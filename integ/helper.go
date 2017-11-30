@@ -14,6 +14,10 @@ func (t *Testing) Errorf(format string, args ...interface{}) {
 	t.hasError = true
 }
 
+func (t *Testing) FailNow() {
+	panic(nil)
+}
+
 func (t *Testing) Close() {
 	if t.hasError {
 		os.Exit(1)

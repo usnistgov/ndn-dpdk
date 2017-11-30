@@ -4,14 +4,86 @@ package dpdk
 #cgo CFLAGS: -m64 -pthread -O3 -march=native -I/usr/local/include/dpdk
 #cgo LDFLAGS: -L/usr/local/lib -ldpdk -lnuma -lpcap
 
+extern int go_lcoreLaunch(void*);
+
 #include <rte_config.h>
 #include <rte_eal.h>
+#include <rte_launch.h>
+#include <rte_lcore.h>
 #include <stdlib.h> // free()
 */
 import "C"
 import "unsafe"
 
-// Provide argc and argv to C code
+type LCore uint
+
+type LCoreState int
+const (
+	LCORE_STATE_WAIT LCoreState = iota
+	LCORE_STATE_RUNNING
+	LCORE_STATE_FINISHED
+)
+
+func (lc LCore) GetState() LCoreState {
+	return LCoreState(C.rte_eal_get_lcore_state(C.uint(lc)))
+}
+
+func (lc LCore) IsMaster() bool {
+	return C.rte_get_master_lcore() == C.uint(lc)
+}
+
+var lcoreFuncs = map[LCore] func() int {}
+
+//export go_lcoreLaunch
+func go_lcoreLaunch(lc unsafe.Pointer) C.int {
+	return C.int(lcoreFuncs[LCore(uintptr(lc))]())
+}
+
+// Asynchonrously launch a function on an lcore.
+// Returns whether success.
+func (lc LCore) RemoteLaunch(f func() int) bool {
+	lcoreFuncs[lc] = f
+	res := C.rte_eal_remote_launch((*C.lcore_function_t)(C.go_lcoreLaunch),
+	                               unsafe.Pointer(uintptr(lc)), C.uint(lc))
+	return res == 0
+}
+
+// Wait for lcore to finish running, and return lcore function's return value.
+// If lcore is not running, return 0 immediately.
+func (lc LCore) Wait() int {
+	return int(C.rte_eal_wait_lcore(C.uint(lc)))
+}
+
+type Eal struct {
+	Args []string // remaining command-line arguments
+	Master LCore
+	Slaves []LCore
+}
+
+// Initialize DPDK Environment Abstraction Layer (EAL).
+func NewEal(args []string) (*Eal, error) {
+  eal := new(Eal)
+
+	a := newCArgs(args)
+	defer a.Close()
+
+	res := int(C.rte_eal_init(a.Argc, a.Argv))
+	if res < 0 {
+		return nil, GetErrno()
+	}
+	eal.Args = a.GetRemainingArgs(res)
+
+	eal.Master = LCore(C.rte_get_master_lcore())
+
+	for i := C.rte_get_next_lcore(C.RTE_MAX_LCORE, 1, 1); i < C.RTE_MAX_LCORE;
+	    i = C.rte_get_next_lcore(i, 1, 0) {
+		eal.Slaves = append(eal.Slaves, LCore(i))
+	}
+
+	return eal, nil
+}
+
+// Provide argc and argv to C code.
 type cArgs struct {
 	Argc C.int // argc for C code
 	Argv **C.char // argv for C code
@@ -34,7 +106,7 @@ func newCArgs(args []string) *cArgs {
 	return a
 }
 
-// Get remaining argv tokens after the first nConsumed tokens have been consumed by C code
+// Get remaining argv tokens after the first nConsumed tokens have been consumed by C code.
 func (a *cArgs) GetRemainingArgs(nConsumed int) []string {
 	var b *C.char
 	ptrSize := unsafe.Sizeof(b)
@@ -59,17 +131,4 @@ func (a *cArgs) Close() {
 	}
 
   C.free(unsafe.Pointer(a.Argv))
-}
-
-// Initialize DPDK Environment Abstraction Layer (EAL)
-// Returns args not consumed by EAL
-func EalInit(args []string) ([]string, error) {
-	a := newCArgs(args)
-	defer a.Close()
-
-	res := int(C.rte_eal_init(a.Argc, a.Argv))
-	if res < 0 {
-		return nil, GetErrno()
-	}
-	return a.GetRemainingArgs(res), nil
 }
