@@ -60,3 +60,16 @@ func (a *cArgs) Close() {
 
   C.free(unsafe.Pointer(a.Argv))
 }
+
+// Initialize DPDK Environment Abstraction Layer (EAL)
+// Returns args not consumed by EAL
+func EalInit(args []string) ([]string, error) {
+	a := newCArgs(args)
+	defer a.Close()
+
+	res := int(C.rte_eal_init(a.Argc, a.Argv))
+	if res < 0 {
+		return nil, GetErrno()
+	}
+	return a.GetRemainingArgs(res), nil
+}
