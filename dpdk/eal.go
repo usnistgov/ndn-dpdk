@@ -2,10 +2,9 @@ package dpdk
 
 /*
 #cgo CFLAGS: -m64 -pthread -O3 -march=native -I/usr/local/include/dpdk
-#cgo LDFLAGS: -L/usr/local/lib -ldpdk -lz -lrt -lm -ldl -lpcap
+#cgo LDFLAGS: -L/usr/local/lib -ldpdk -lnuma -lpcap
 
 #include <rte_config.h>
-#include <rte_common.h>
 #include <rte_eal.h>
 #include <stdlib.h> // free()
 */
@@ -35,7 +34,7 @@ func newCArgs(args []string) *cArgs {
 	return a
 }
 
-// Get remaining argv token after the first nConsumed tokens have been consumed by C code
+// Get remaining argv tokens after the first nConsumed tokens have been consumed by C code
 func (a *cArgs) GetRemainingArgs(nConsumed int) []string {
 	var b *C.char
 	ptrSize := unsafe.Sizeof(b)

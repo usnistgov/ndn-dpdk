@@ -1,11 +1,12 @@
 package dpdk
 
-import "testing"
+import (
+  "testing"
+  "github.com/stretchr/testify/assert"
+)
 
 func TestErrno(t *testing.T) {
 	setErrno(0x19)
 	errno := GetErrno()
-	if errno != 0x19 {
-		t.Errorf("errno %d != 0x19", errno)
-	}
+	assert.EqualValues(t, 0x19, errno)
 }
