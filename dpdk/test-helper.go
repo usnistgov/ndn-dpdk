@@ -34,5 +34,5 @@ func setErrno(v int) {
 }
 
 func testCArgs(a *cArgs) int {
-  return int(C.testCArgs(a.Argc, a.Argv))
+	return int(C.testCArgs(a.Argc, a.Argv))
 }

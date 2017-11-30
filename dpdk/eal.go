@@ -17,7 +17,20 @@ import "unsafe"
 
 type LCore uint
 
+func GetCurrentLCore() LCore {
+	return LCore(C.rte_lcore_id())
+}
+
+func (lc LCore) IsValid() bool {
+	return lc != LCore(C.LCORE_ID_ANY)
+}
+
+func (lc LCore) IsMaster() bool {
+	return C.rte_get_master_lcore() == C.uint(lc)
+}
+
 type LCoreState int
+
 const (
 	LCORE_STATE_WAIT LCoreState = iota
 	LCORE_STATE_RUNNING
@@ -25,14 +38,13 @@ const (
 )
 
 func (lc LCore) GetState() LCoreState {
+	if !GetCurrentLCore().IsMaster() {
+		panic("LCore.GetState is only available on master lcore")
+	}
 	return LCoreState(C.rte_eal_get_lcore_state(C.uint(lc)))
 }
 
-func (lc LCore) IsMaster() bool {
-	return C.rte_get_master_lcore() == C.uint(lc)
-}
-
-var lcoreFuncs = map[LCore] func() int {}
+var lcoreFuncs = map[LCore]func() int{}
 
 //export go_lcoreLaunch
 func go_lcoreLaunch(lc unsafe.Pointer) C.int {
@@ -42,27 +54,33 @@ func go_lcoreLaunch(lc unsafe.Pointer) C.int {
 // Asynchonrously launch a function on an lcore.
 // Returns whether success.
 func (lc LCore) RemoteLaunch(f func() int) bool {
+	if !GetCurrentLCore().IsMaster() {
+		panic("LCore.RemoteLaunch is only available on master lcore")
+	}
 	lcoreFuncs[lc] = f
 	res := C.rte_eal_remote_launch((*C.lcore_function_t)(C.go_lcoreLaunch),
-	                               unsafe.Pointer(uintptr(lc)), C.uint(lc))
+		unsafe.Pointer(uintptr(lc)), C.uint(lc))
 	return res == 0
 }
 
 // Wait for lcore to finish running, and return lcore function's return value.
 // If lcore is not running, return 0 immediately.
 func (lc LCore) Wait() int {
+	if !GetCurrentLCore().IsMaster() {
+		panic("LCore.Wait is only available on master lcore")
+	}
 	return int(C.rte_eal_wait_lcore(C.uint(lc)))
 }
 
 type Eal struct {
-	Args []string // remaining command-line arguments
+	Args   []string // remaining command-line arguments
 	Master LCore
 	Slaves []LCore
 }
 
 // Initialize DPDK Environment Abstraction Layer (EAL).
 func NewEal(args []string) (*Eal, error) {
-  eal := new(Eal)
+	eal := new(Eal)
 
 	a := newCArgs(args)
 	defer a.Close()
@@ -75,8 +93,7 @@ func NewEal(args []string) (*Eal, error) {
 
 	eal.Master = LCore(C.rte_get_master_lcore())
 
-	for i := C.rte_get_next_lcore(C.RTE_MAX_LCORE, 1, 1); i < C.RTE_MAX_LCORE;
-	    i = C.rte_get_next_lcore(i, 1, 0) {
+	for i := C.rte_get_next_lcore(C.RTE_MAX_LCORE, 1, 1); i < C.RTE_MAX_LCORE; i = C.rte_get_next_lcore(i, 1, 0) {
 		eal.Slaves = append(eal.Slaves, LCore(i))
 	}
 
@@ -85,7 +102,7 @@ func NewEal(args []string) (*Eal, error) {
 
 // Provide argc and argv to C code.
 type cArgs struct {
-	Argc C.int // argc for C code
+	Argc C.int    // argc for C code
 	Argv **C.char // argv for C code
 }
 
@@ -99,7 +116,7 @@ func newCArgs(args []string) *cArgs {
 	a.Argv = (**C.char)(argv)
 
 	for i, arg := range args {
-		argvEle := (**C.char)(unsafe.Pointer(uintptr(argv) + uintptr(i) * ptrSize))
+		argvEle := (**C.char)(unsafe.Pointer(uintptr(argv) + uintptr(i)*ptrSize))
 		*argvEle = C.CString(arg)
 	}
 
@@ -114,7 +131,7 @@ func (a *cArgs) GetRemainingArgs(nConsumed int) []string {
 	rem := []string{}
 	argv := uintptr(unsafe.Pointer(a.Argv))
 	for i := nConsumed; i < int(a.Argc); i++ {
-		argvEle := (**C.char)(unsafe.Pointer(uintptr(argv) + uintptr(i) * ptrSize))
+		argvEle := (**C.char)(unsafe.Pointer(uintptr(argv) + uintptr(i)*ptrSize))
 		rem = append(rem, C.GoString(*argvEle))
 	}
 
@@ -125,10 +142,10 @@ func (a *cArgs) Close() {
 	var b *C.char
 	ptrSize := unsafe.Sizeof(b)
 	argv := uintptr(unsafe.Pointer(a.Argv))
-  for i := 0; i < int(a.Argc); i++ {
-		argvEle := (**C.char)(unsafe.Pointer(argv + uintptr(i) * ptrSize))
+	for i := 0; i < int(a.Argc); i++ {
+		argvEle := (**C.char)(unsafe.Pointer(argv + uintptr(i)*ptrSize))
 		C.free(unsafe.Pointer(*argvEle))
 	}
 
-  C.free(unsafe.Pointer(a.Argv))
+	C.free(unsafe.Pointer(a.Argv))
 }
