@@ -15,7 +15,7 @@ func (t *Testing) Errorf(format string, args ...interface{}) {
 }
 
 func (t *Testing) FailNow() {
-	panic(nil)
+	os.Exit(1)
 }
 
 func (t *Testing) Close() {

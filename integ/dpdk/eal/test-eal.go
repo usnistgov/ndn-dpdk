@@ -1,10 +1,10 @@
 package main
 
 import (
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"ndn-traffic-dpdk/dpdk"
 	"ndn-traffic-dpdk/integ"
-  "github.com/stretchr/testify/assert"
-  "github.com/stretchr/testify/require"
 )
 
 func main() {
@@ -26,9 +26,9 @@ func main() {
 		assert.False(t, slave.IsMaster())
 		assert.Equal(t, dpdk.LCORE_STATE_WAIT, slave.GetState())
 	}
-	
+
 	isSlaveExecuted := false
-  eal.Slaves[0].RemoteLaunch(func() int {
+	eal.Slaves[0].RemoteLaunch(func() int {
 		assert.Equal(t, dpdk.LCore(1), dpdk.GetCurrentLCore())
 		isSlaveExecuted = true
 
@@ -36,8 +36,8 @@ func main() {
 		go func() {
 			assert.False(t, dpdk.GetCurrentLCore().IsValid())
 			done <- true
-		} ()
-		<- done
+		}()
+		<-done
 
 		return 66
 	})

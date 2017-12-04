@@ -2,7 +2,7 @@ package dpdk
 
 /*
 #cgo CFLAGS: -m64 -pthread -O3 -march=native -I/usr/local/include/dpdk
-#cgo LDFLAGS: -L/usr/local/lib -ldpdk -lnuma -lpcap
+#cgo LDFLAGS: -L/usr/local/lib -ldpdk -ldl -lnuma -lpcap
 
 extern int go_lcoreLaunch(void*);
 
@@ -10,12 +10,24 @@ extern int go_lcoreLaunch(void*);
 #include <rte_eal.h>
 #include <rte_launch.h>
 #include <rte_lcore.h>
+#include <rte_memory.h>
 #include <stdlib.h> // free()
 */
 import "C"
 import "unsafe"
 
 type LCore uint
+type NumaSocket int
+
+const NUMA_SOCKET_ANY = NumaSocket(C.SOCKET_ID_ANY)
+
+type LCoreState int
+
+const (
+	LCORE_STATE_WAIT LCoreState = iota
+	LCORE_STATE_RUNNING
+	LCORE_STATE_FINISHED
+)
 
 func GetCurrentLCore() LCore {
 	return LCore(C.rte_lcore_id())
@@ -29,13 +41,9 @@ func (lc LCore) IsMaster() bool {
 	return C.rte_get_master_lcore() == C.uint(lc)
 }
 
-type LCoreState int
-
-const (
-	LCORE_STATE_WAIT LCoreState = iota
-	LCORE_STATE_RUNNING
-	LCORE_STATE_FINISHED
-)
+func (lc LCore) GetNumaSocket() NumaSocket {
+	return NumaSocket(C.rte_lcore_to_socket_id(C.uint(lc)))
+}
 
 func (lc LCore) GetState() LCoreState {
 	if !GetCurrentLCore().IsMaster() {
@@ -102,8 +110,9 @@ func NewEal(args []string) (*Eal, error) {
 
 // Provide argc and argv to C code.
 type cArgs struct {
-	Argc C.int    // argc for C code
-	Argv **C.char // argv for C code
+	Argc    C.int            // argc for C code
+	Argv    **C.char         // argv for C code
+	strMems []unsafe.Pointer // C strings
 }
 
 func newCArgs(args []string) *cArgs {
@@ -118,6 +127,7 @@ func newCArgs(args []string) *cArgs {
 	for i, arg := range args {
 		argvEle := (**C.char)(unsafe.Pointer(uintptr(argv) + uintptr(i)*ptrSize))
 		*argvEle = C.CString(arg)
+		a.strMems = append(a.strMems, unsafe.Pointer(*argvEle))
 	}
 
 	return a
@@ -139,13 +149,8 @@ func (a *cArgs) GetRemainingArgs(nConsumed int) []string {
 }
 
 func (a *cArgs) Close() {
-	var b *C.char
-	ptrSize := unsafe.Sizeof(b)
-	argv := uintptr(unsafe.Pointer(a.Argv))
-	for i := 0; i < int(a.Argc); i++ {
-		argvEle := (**C.char)(unsafe.Pointer(argv + uintptr(i)*ptrSize))
-		C.free(unsafe.Pointer(*argvEle))
+	for _, strMem := range a.strMems {
+		C.free(strMem)
 	}
-
 	C.free(unsafe.Pointer(a.Argv))
 }
