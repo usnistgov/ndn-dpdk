@@ -2,19 +2,25 @@ package dpdk
 
 /*
 #cgo CFLAGS: -m64 -pthread -O3 -march=native -I/usr/local/include/dpdk
-#cgo LDFLAGS: -L/usr/local/lib -ldpdk -ldl -lnuma -lpcap
+#cgo LDFLAGS: -L/usr/local/lib -ldpdk -ldl -lnuma
 
 extern int go_lcoreLaunch(void*);
 
+#include <dlfcn.h> // dlopen()
+#include <stdlib.h> // free()
 #include <rte_config.h>
 #include <rte_eal.h>
 #include <rte_launch.h>
 #include <rte_lcore.h>
 #include <rte_memory.h>
-#include <stdlib.h> // free()
 */
 import "C"
-import "unsafe"
+import (
+	"fmt"
+	"io/ioutil"
+	"strings"
+	"unsafe"
+)
 
 type LCore uint
 type NumaSocket int
@@ -88,6 +94,10 @@ type Eal struct {
 
 // Initialize DPDK Environment Abstraction Layer (EAL).
 func NewEal(args []string) (*Eal, error) {
+	e := loadDpdkDynLibs()
+	if e != nil {
+		return nil, e
+	}
 	eal := new(Eal)
 
 	a := newCArgs(args)
@@ -106,6 +116,30 @@ func NewEal(args []string) (*Eal, error) {
 	}
 
 	return eal, nil
+}
+
+func loadDpdkDynLibs() error {
+	const libdpdkPath = "/usr/local/lib/libdpdk.so"
+	dpdkSoContent, e := ioutil.ReadFile(libdpdkPath)
+	if e != nil {
+		return e
+	}
+
+	dpdkText := strings.Split(string(dpdkSoContent), " ")
+	if len(dpdkText) < 4 || dpdkText[0] != "GROUP" {
+		return fmt.Errorf("unexpected text in %s", libdpdkPath)
+	}
+
+	for _, soname := range dpdkText[2:len(dpdkText)-1] {
+		cSoname := C.CString(soname)
+		defer C.free(unsafe.Pointer(cSoname))
+		h := C.dlopen(cSoname, C.RTLD_LAZY)
+		if h == nil {
+			return fmt.Errorf("dlopen failed for %s", soname)
+		}
+	}
+
+	return nil
 }
 
 // Provide argc and argv to C code.
