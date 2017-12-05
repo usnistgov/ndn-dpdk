@@ -130,7 +130,7 @@ func loadDpdkDynLibs() error {
 		return fmt.Errorf("unexpected text in %s", libdpdkPath)
 	}
 
-	for _, soname := range dpdkText[2:len(dpdkText)-1] {
+	for _, soname := range dpdkText[2 : len(dpdkText)-1] {
 		cSoname := C.CString(soname)
 		defer C.free(unsafe.Pointer(cSoname))
 		h := C.dlopen(cSoname, C.RTLD_LAZY)
