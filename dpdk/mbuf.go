@@ -67,7 +67,7 @@ func (m Mbuf) Adj(len uint) (unsafe.Pointer, error) {
 
 // Append len octets at tail, return pointer to new space.
 func (m Mbuf) Append(len uint) (unsafe.Pointer, error) {
-	res := C.rte_pktmbuf_prepend(m.ptr, C.uint16_t(len))
+	res := C.rte_pktmbuf_append(m.ptr, C.uint16_t(len))
 	if res == nil {
 		return nil, errors.New("Mbuf.Append failed")
 	}
