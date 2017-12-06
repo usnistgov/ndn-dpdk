@@ -26,16 +26,12 @@ func main() {
 	assert.True(r.IsEmpty())
 	assert.False(r.IsFull())
 
-	ot := dpdk.NewRingObjTable(2)
-	defer ot.Close()
-
-	nDequeued, nEntries := r.BurstDequeue(ot)
-	assert.EqualValues(0, nDequeued)
+	dequeued, nEntries := r.BurstDequeue(2)
+	assert.EqualValues(0, len(dequeued))
 	assert.EqualValues(0, nEntries)
 
-	ot.Set(0, unsafe.Pointer(uintptr(9971)))
-	ot.Set(1, unsafe.Pointer(uintptr(3087)))
-	nEnqueued, freeSpace := r.BurstEnqueue(ot)
+	input := []unsafe.Pointer{unsafe.Pointer(uintptr(9971)), unsafe.Pointer(uintptr(3087))}
+	nEnqueued, freeSpace := r.BurstEnqueue(input)
 	assert.EqualValues(2, nEnqueued)
 	assert.EqualValues(1, freeSpace)
 	assert.EqualValues(2, r.Count())
@@ -43,9 +39,8 @@ func main() {
 	assert.False(r.IsEmpty())
 	assert.False(r.IsFull())
 
-	ot.Set(0, unsafe.Pointer(uintptr(2776)))
-	ot.Set(1, unsafe.Pointer(uintptr(1876)))
-	nEnqueued, freeSpace = r.BurstEnqueue(ot)
+	input = []unsafe.Pointer{unsafe.Pointer(uintptr(2776)), unsafe.Pointer(uintptr(1876))}
+	nEnqueued, freeSpace = r.BurstEnqueue(input)
 	assert.EqualValues(1, nEnqueued)
 	assert.EqualValues(0, freeSpace)
 	assert.EqualValues(3, r.Count())
@@ -53,18 +48,18 @@ func main() {
 	assert.False(r.IsEmpty())
 	assert.True(r.IsFull())
 
-	nDequeued, nEntries = r.BurstDequeue(ot)
-	assert.EqualValues(2, nDequeued)
-	assert.EqualValues(1, nEntries)
-	assert.Equal(unsafe.Pointer(uintptr(9971)), ot.Get(0))
-	assert.Equal(unsafe.Pointer(uintptr(3087)), ot.Get(1))
-	assert.EqualValues(1, r.Count())
-	assert.EqualValues(2, r.GetFreeSpace())
+	dequeued, nEntries = r.BurstDequeue(1)
+	assert.EqualValues(1, len(dequeued))
+	assert.EqualValues(2, nEntries)
+	assert.Equal([]unsafe.Pointer{unsafe.Pointer(uintptr(9971))}, dequeued)
+	assert.EqualValues(2, r.Count())
+	assert.EqualValues(1, r.GetFreeSpace())
 
-	nDequeued, nEntries = r.BurstDequeue(ot)
-	assert.EqualValues(1, nDequeued)
+	dequeued, nEntries = r.BurstDequeue(3)
+	assert.EqualValues(2, len(dequeued))
 	assert.EqualValues(0, nEntries)
-	assert.Equal(unsafe.Pointer(uintptr(2776)), ot.Get(0))
+	assert.Equal([]unsafe.Pointer{unsafe.Pointer(uintptr(3087)), unsafe.Pointer(uintptr(2776))},
+		dequeued)
 	assert.EqualValues(0, r.Count())
 	assert.EqualValues(3, r.GetFreeSpace())
 }

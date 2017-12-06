@@ -26,16 +26,6 @@ int testCArgs(int argc, char** const argv) {
 	argv[3] = arg2;
 	return 0;
 }
-
-int testRingObjTable(void** objTable) {
-	if (objTable[0] != (void*)6698 ||
-			objTable[1] != (void*)3110 ||
-			(void*)objTable[2] != 0) {
-		return 1;
-	}
-	objTable[3] = (void*)4891;
-	return 0;
-}
 */
 import "C"
 
@@ -45,8 +35,4 @@ func setErrno(v int) {
 
 func testCArgs(a *cArgs) int {
 	return int(C.testCArgs(a.Argc, a.Argv))
-}
-
-func testRingObjTable(ot *RingObjTable) int {
-	return int(C.testRingObjTable(ot.getPointer()))
 }

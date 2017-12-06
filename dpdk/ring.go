@@ -8,48 +8,7 @@ package dpdk
 #include <stdlib.h>
 */
 import "C"
-import (
-	// "errors"
-	"unsafe"
-)
-
-// An array of void* on C memory.
-type RingObjTable struct {
-	table    uintptr
-	capacity uint
-}
-
-const voidPtrSize = unsafe.Sizeof(unsafe.Pointer(nil))
-
-func NewRingObjTable(capacity uint) *RingObjTable {
-	ot := new(RingObjTable)
-	ot.table = uintptr(C.calloc(C.size_t(capacity), C.size_t(voidPtrSize)))
-	ot.capacity = capacity
-	return ot
-}
-
-func (ot *RingObjTable) Close() {
-	C.free(unsafe.Pointer(ot.table))
-}
-
-func (ot *RingObjTable) GetCapacity() uint {
-	return ot.capacity
-}
-
-// Get underlying pointer as void**
-func (ot *RingObjTable) getPointer() *unsafe.Pointer {
-	return (*unsafe.Pointer)(unsafe.Pointer(ot.table))
-}
-
-func (ot *RingObjTable) Get(i uint) unsafe.Pointer {
-	ptr := unsafe.Pointer(ot.table + voidPtrSize*uintptr(i))
-	return *(*unsafe.Pointer)(ptr)
-}
-
-func (ot *RingObjTable) Set(i uint, v unsafe.Pointer) {
-	ptr := unsafe.Pointer(ot.table + voidPtrSize*uintptr(i))
-	*(*unsafe.Pointer)(ptr) = v
-}
+import "unsafe"
 
 type Ring struct {
 	ptr *C.struct_rte_ring
@@ -98,16 +57,17 @@ func (r Ring) IsFull() bool {
 
 // Enqueue several objects on a ring.
 // Return number of objects enqueued, and available ring space after operation.
-func (r Ring) BurstEnqueue(ot *RingObjTable) (uint, uint) {
+func (r Ring) BurstEnqueue(objs []unsafe.Pointer) (uint, uint) {
 	var freeSpace C.uint
-	res := C.rte_ring_enqueue_burst(r.ptr, ot.getPointer(), C.uint(ot.GetCapacity()), &freeSpace)
+	res := C.rte_ring_enqueue_burst(r.ptr, &objs[0], C.uint(len(objs)), &freeSpace)
 	return uint(res), uint(freeSpace)
 }
 
 // Dequeue several objects on a ring.
-// Return number of objects dequeued, and remaining ring entries after operation.
-func (r Ring) BurstDequeue(ot *RingObjTable) (uint, uint) {
+// Return dequeued objects, and remaining ring entries after operation.
+func (r Ring) BurstDequeue(nMaxObjs uint) ([]unsafe.Pointer, uint) {
+	objs := make([]unsafe.Pointer, nMaxObjs)
 	var nEntries C.uint
-	res := C.rte_ring_dequeue_burst(r.ptr, ot.getPointer(), C.uint(ot.GetCapacity()), &nEntries)
-	return uint(res), uint(nEntries)
+	res := C.rte_ring_dequeue_burst(r.ptr, &objs[0], C.uint(nMaxObjs), &nEntries)
+	return objs[0:res], uint(nEntries)
 }
