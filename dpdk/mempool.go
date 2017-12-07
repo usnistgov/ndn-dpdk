@@ -22,6 +22,14 @@ func (mp Mempool) Close() {
 	C.rte_mempool_free(mp.ptr)
 }
 
+func (mp Mempool) CountAvailable() uint {
+	return uint(C.rte_mempool_avail_count(mp.ptr))
+}
+
+func (mp Mempool) CountInUse() uint {
+	return uint(C.rte_mempool_in_use_count(mp.ptr))
+}
+
 type PktmbufPool struct {
 	Mempool
 }

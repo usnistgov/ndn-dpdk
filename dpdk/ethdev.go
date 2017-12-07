@@ -47,6 +47,14 @@ type EthDevConfig struct {
 	Conf     unsafe.Pointer // pointer to rte_eth_conf, nil means default
 }
 
+func (cfg *EthDevConfig) AddRxQueue(qcfg EthRxQueueConfig) {
+	cfg.RxQueues = append(cfg.RxQueues, qcfg)
+}
+
+func (cfg *EthDevConfig) AddTxQueue(qcfg EthTxQueueConfig) {
+	cfg.TxQueues = append(cfg.TxQueues, qcfg)
+}
+
 type EthRxQueueConfig struct {
 	Capacity uint
 	Socket   NumaSocket     // where to allocate the ring
@@ -60,12 +68,13 @@ type EthTxQueueConfig struct {
 	Conf     unsafe.Pointer // pointer to rte_eth_txconf
 }
 
-func (port EthDev) Configure(cfg *EthDevConfig) ([]EthRxQueue, []EthTxQueue, error) {
+func (port EthDev) Configure(cfg EthDevConfig) ([]EthRxQueue, []EthTxQueue, error) {
 	portId := C.uint16_t(port)
-	var emptyEthConf C.struct_rte_eth_conf
+	var defaultConf C.struct_rte_eth_conf
+	defaultConf.rxmode.max_rx_pkt_len = C.ETHER_MAX_LEN
 	conf := (*C.struct_rte_eth_conf)(cfg.Conf)
 	if conf == nil {
-		conf = &emptyEthConf
+		conf = &defaultConf
 	}
 
 	res := C.rte_eth_dev_configure(portId, C.uint16_t(len(cfg.RxQueues)),
@@ -139,12 +148,94 @@ func (port EthDev) SetPromiscuous(enable bool) {
 	}
 }
 
+func (port EthDev) Start() error {
+	res := C.rte_eth_dev_start(C.uint16_t(port))
+	if res != 0 {
+		return fmt.Errorf("rte_eth_dev_start(%d) error %d", port, res)
+	}
+	return nil
+}
+
+func (port EthDev) Stop() {
+	C.rte_eth_dev_stop(C.uint16_t(port))
+}
+
+func (port EthDev) Close(detach bool) error {
+	C.rte_eth_dev_close(C.uint16_t(port))
+	if detach {
+		var devname [C.RTE_DEV_NAME_MAX_LEN]C.char
+		res := C.rte_eth_dev_detach(C.uint16_t(port), &devname[0])
+		if res != 0 {
+			return fmt.Errorf("rte_eth_dev_detach(%d) error %d", port, res)
+		}
+	}
+	return nil
+}
+
 type EthRxQueue struct {
 	port  C.uint16_t
 	queue C.uint16_t
 }
 
+// Retrieve a burst of input packets, up to a maximum.
+func (q EthRxQueue) RxBurst(nMaxPkts uint) []Mbuf {
+	if nMaxPkts == 0 {
+		return []Mbuf{}
+	}
+	pkts := make([]Mbuf, nMaxPkts)
+	res := C.rte_eth_rx_burst(q.port, q.queue, (**C.struct_rte_mbuf)(unsafe.Pointer(&pkts[0])),
+		C.uint16_t(nMaxPkts))
+	return pkts[0:res]
+}
+
 type EthTxQueue struct {
 	port  C.uint16_t
 	queue C.uint16_t
+}
+
+// Send a burst of output packets.
+// Return the number of packets enqueued.
+func (q EthTxQueue) TxBurst(pkts []Mbuf) uint {
+	if len(pkts) == 0 {
+		return 0
+	}
+	res := C.rte_eth_tx_burst(q.port, q.queue, (**C.struct_rte_mbuf)(unsafe.Pointer(&pkts[0])),
+		C.uint16_t(len(pkts)))
+	return uint(res)
+}
+
+type EthStats struct {
+	IPkts   uint64
+	OPkts   uint64
+	IBytes  uint64
+	OBytes  uint64
+	IMissed uint64
+	IErrors uint64
+	OErrors uint64
+}
+
+func (es EthStats) String() string {
+	return fmt.Sprintf("RX %d pkts, %d bytes, %d missed, %d errors; TX %d pkts, %d bytes, %d errors",
+		es.IPkts, es.IBytes, es.IMissed, es.IErrors, es.OPkts, es.OBytes, es.OErrors)
+}
+
+func (port EthDev) GetStats() EthStats {
+	var es C.struct_rte_eth_stats
+	res := C.rte_eth_stats_get(C.uint16_t(port), &es)
+	if res != 0 {
+		return EthStats{}
+	}
+	return EthStats{
+		IPkts:   uint64(es.ipackets),
+		OPkts:   uint64(es.opackets),
+		IBytes:  uint64(es.ibytes),
+		OBytes:  uint64(es.obytes),
+		IMissed: uint64(es.imissed),
+		IErrors: uint64(es.ierrors),
+		OErrors: uint64(es.oerrors),
+	}
+}
+
+func (port EthDev) ResetStats() {
+	C.rte_eth_stats_reset(C.uint16_t(port))
 }
