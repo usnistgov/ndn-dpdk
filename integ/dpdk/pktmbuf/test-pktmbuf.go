@@ -23,10 +23,29 @@ func main() {
 	_, e := dpdk.NewEal([]string{"testprog", "-n1"})
 	require.NoError(e)
 
-	mp, e := dpdk.NewPktmbufPool("MBUF_POOL", 7, 0, 0, 1000, dpdk.GetCurrentLCore().GetNumaSocket())
+	mp, e := dpdk.NewPktmbufPool("MP", 63, 0, 0, 1000, dpdk.NUMA_SOCKET_ANY)
 	require.NoError(e)
 	require.NotNil(mp)
 	defer mp.Close()
+	assert.EqualValues(63, mp.CountAvailable())
+	assert.EqualValues(0, mp.CountInUse())
+
+	var mbufs [63]dpdk.Mbuf
+	e = mp.AllocBulk(mbufs[30:])
+	assert.NoError(e)
+	assert.EqualValues(30, mp.CountAvailable())
+	assert.EqualValues(33, mp.CountInUse())
+	for i := 0; i < 30; i++ {
+		mbufs[i], e = mp.Alloc()
+		assert.NoError(e)
+	}
+	assert.EqualValues(0, mp.CountAvailable())
+	assert.EqualValues(63, mp.CountInUse())
+	_, e = mp.Alloc()
+	assert.Error(e)
+	mbufs[0].Close()
+	assert.EqualValues(1, mp.CountAvailable())
+	assert.EqualValues(62, mp.CountInUse())
 
 	m0, e := mp.Alloc()
 	require.NoError(e)
@@ -44,12 +63,12 @@ func main() {
 	m0p2, e := m0.Append(200)
 	require.NoError(e)
 	C.memset(m0p2, 0xA2, 200)
-	allocBuf := C.malloc(4)
-	defer C.free(allocBuf)
 	assert.EqualValues(300, m0.GetDataLength())
 	assert.EqualValues(100, m0.GetHeadroom())
 	assert.EqualValues(600, m0.GetTailroom())
 
+	allocBuf := C.malloc(4)
+	defer C.free(allocBuf)
 	readBuf := m0.Read(98, 4, allocBuf)
 	assert.Equal([]byte{0xA1, 0xA1, 0xA2, 0xA2}, C.GoBytes(readBuf, 4))
 
@@ -70,16 +89,4 @@ func main() {
 	assert.Error(e)
 	e = m0.Trim(201)
 	assert.Error(e)
-
-	var mbufs [8]dpdk.Mbuf
-	mbufs[0] = m0
-	for i := 1; i < 7; i++ {
-		mbufs[i], e = mp.Alloc()
-		assert.NoError(e)
-	}
-	_, e = mp.Alloc()
-	assert.Error(e)
-	mbufs[0].Close()
-	mbufs[0], e = mp.Alloc()
-	assert.NoError(e)
 }

@@ -55,3 +55,11 @@ func (mp PktmbufPool) Alloc() (Mbuf, error) {
 	}
 	return Mbuf{m}, nil
 }
+
+func (mp PktmbufPool) AllocBulk(mbufs []Mbuf) error {
+	res := C.rte_pktmbuf_alloc_bulk(mp.ptr, (**C.struct_rte_mbuf)(unsafe.Pointer(&mbufs[0])), C.uint(len(mbufs)))
+	if res != 0 {
+		return errors.New("mbuf allocation failed")
+	}
+	return nil
+}

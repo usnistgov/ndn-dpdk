@@ -14,6 +14,7 @@ import (
 
 type Mbuf struct {
 	ptr *C.struct_rte_mbuf
+	// DO NOT add other fields: *Mbuf is passed to C code as rte_mbuf**
 }
 
 func (m Mbuf) Close() {

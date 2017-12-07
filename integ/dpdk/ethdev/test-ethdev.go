@@ -57,12 +57,9 @@ func main() {
 	eal.Slaves[1].RemoteLaunch(func() int {
 		for i := 0; i < TX_LOOPS; i++ {
 			var pkts [TX_BURST_SIZE]dpdk.Mbuf
+			e := mp.AllocBulk(pkts[:])
+			require.NoErrorf(e, "mp.Alloc error at loop %d", i)
 			for j := 0; j < TX_BURST_SIZE; j++ {
-				pkts[j], e = mp.Alloc()
-				assert.NoErrorf(e, "mp.Alloc error at loop %d", i)
-				if e != nil {
-					return 1
-				}
 				pktBuf, e := pkts[j].Append(1)
 				assert.NoError(e)
 				*(*byte)(pktBuf) = byte(j)
@@ -72,7 +69,6 @@ func main() {
 		}
 		return 0
 	})
-
 	eal.Slaves[1].Wait()
 
 	fmt.Println("nReceived=", nReceived)
