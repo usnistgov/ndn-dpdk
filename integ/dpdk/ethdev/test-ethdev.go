@@ -55,7 +55,7 @@ func main() {
 			rxBurstSizeFreq[len(pkts)]++
 			for _, pkt := range pkts {
 				nReceived++
-				assert.EqualValuesf(1, pkt.GetDataLength(), "bad RX length at %d", nReceived)
+				assert.EqualValuesf(1, pkt.Len(), "bad RX length at %d", nReceived)
 				pkt.Close()
 			}
 
@@ -70,11 +70,11 @@ func main() {
 	txRetryFreq := make(map[int]int)
 	eal.Slaves[1].RemoteLaunch(func() int {
 		for i := 0; i < TX_LOOPS; i++ {
-			var pkts [TX_BURST_SIZE]dpdk.Mbuf
-			e := mp.AllocBulk(pkts[:])
-			require.NoErrorf(e, "mp.Alloc error at loop %d", i)
+			var pkts [TX_BURST_SIZE]dpdk.Packet
+			e := mp.AllocPktBulk(pkts[:])
+			require.NoErrorf(e, "mp.AllocPktBulk error at loop %d", i)
 			for j := 0; j < TX_BURST_SIZE; j++ {
-				pktBuf, e := pkts[j].Append(1)
+				pktBuf, e := pkts[j].GetFirstSegment().Append(1)
 				assert.NoError(e)
 				*(*byte)(pktBuf) = byte(j)
 			}
