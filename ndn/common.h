@@ -14,4 +14,6 @@
 // clang-format on
 #include <rte_branch_prediction.h>
 
+#include "error.h"
+
 #endif // NDN_TRAFFIC_DPDK_NDN_COMMON_H

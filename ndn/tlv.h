@@ -42,29 +42,46 @@ EncodeVarNum(uint64_t n, uint8_t* output)
 }
 
 // Decode input into n.
-// input: buffer, must have at least VARNUM_BUFLEN octets.
+// input, inputLen: input buffer and its length.
 // n [output]: the number.
-// Return length of encoded number.
-static inline size_t
-DecodeVarNum(const uint8_t* input, uint64_t* n)
+// len [output]: length of encoded number.
+static inline NdnError
+DecodeVarNum(const uint8_t* input, size_t inputLen, uint64_t* n, size_t* len)
 {
+  if (unlikely(inputLen < 1)) {
+    return NdnError_BufferTooSmall;
+  }
+
   if (unlikely(input[0] == 255)) {
+    if (unlikely(inputLen < 9)) {
+      return NdnError_BufferTooSmall;
+    }
+    *len = 9;
     *n = rte_be_to_cpu_64(*(const rte_be64_t*)(input + 1));
-    return 9;
+    return NdnError_OK;
   }
 
   if (unlikely(input[0] == 254)) {
+    if (unlikely(inputLen < 5)) {
+      return NdnError_BufferTooSmall;
+    }
+    *len = 5;
     *n = rte_be_to_cpu_32(*(const rte_be32_t*)(input + 1));
-    return 5;
+    return NdnError_OK;
   }
 
   if (unlikely(input[0] == 253)) {
+    if (unlikely(inputLen < 3)) {
+      return NdnError_BufferTooSmall;
+    }
+    *len = 3;
     *n = rte_be_to_cpu_16(*(const rte_be16_t*)(input + 1));
-    return 3;
+    return NdnError_OK;
   }
 
+  *len = 1;
   *n = input[0];
-  return 1;
+  return NdnError_OK;
 }
 
 #endif // NDN_TRAFFIC_DPDK_NDN_TLV_H

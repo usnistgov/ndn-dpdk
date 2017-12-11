@@ -11,8 +11,8 @@ func TestVarNum(t *testing.T) {
 	buf := make([]byte, VARNUM_BUFLEN)
 
 	encodeDecodeTests := []struct {
-		n   uint64
-		len uint
+		n      uint64
+		length uint
 	}{
 		{0, 1},
 		{38, 1},
@@ -29,9 +29,12 @@ func TestVarNum(t *testing.T) {
 		{18446744073709551615, 9},
 	}
 	for _, tt := range encodeDecodeTests {
-		assert.EqualValuesf(tt.len, EncodeVarNum(tt.n, buf), "%d", tt.n)
-		n, len := DecodeVarNum(buf)
+		assert.EqualValuesf(tt.length, EncodeVarNum(tt.n, buf), "%d", tt.n)
+		n, length, e := DecodeVarNum(buf[:tt.length])
+		assert.NoErrorf(e, "%d", tt.n)
 		assert.EqualValuesf(tt.n, n, "%d", tt.n)
-		assert.EqualValuesf(tt.len, len, "%d", tt.n)
+		assert.EqualValuesf(tt.length, length, "%d", tt.n)
+		n, length, e = DecodeVarNum(buf[:tt.length-1])
+		assert.Errorf(e, "%d", tt.n)
 	}
 }
