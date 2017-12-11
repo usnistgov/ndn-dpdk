@@ -73,3 +73,14 @@ func (mp PktmbufPool) AllocBulk(mbufs []Mbuf) error {
 func (mp PktmbufPool) AllocPktBulk(pkts []Packet) error {
 	return mp.allocBulkImpl(unsafe.Pointer(&pkts[0]), len(pkts))
 }
+
+// Clone a packet into indirect mbufs.
+// Cloned segments point to the same memory and do not have copy-on-write semantics; appending new
+// segments will not affect the original packet.
+func (mp PktmbufPool) ClonePkt(pkt Packet) (Packet, error) {
+	res := C.rte_pktmbuf_clone(pkt.ptr, mp.ptr)
+	if res == nil {
+		return Packet{Mbuf{nil}}, errors.New("mbuf allocation failed")
+	}
+	return Packet{Mbuf{res}}, nil
+}

@@ -11,11 +11,11 @@ package main
 import "C"
 import (
 	"bytes"
-	"unsafe"
 	assertPkg "github.com/stretchr/testify/assert"
 	requirePkg "github.com/stretchr/testify/require"
 	"ndn-traffic-dpdk/dpdk"
 	"ndn-traffic-dpdk/integ"
+	"unsafe"
 )
 
 var t *integ.Testing
@@ -40,6 +40,7 @@ func main() {
 	testMempool()
 	testSegment()
 	testPacket()
+	testClone()
 }
 
 func testMempool() {
@@ -203,4 +204,33 @@ func testPacket() {
 	pkt.AppendPacket(pkt2, nil)
 	assert.EqualValues(570, pkt.Len())
 	assert.EqualValues(4, pkt.CountSegments())
+}
+
+func testClone() {
+	pkts := make([]dpdk.Packet, 2)
+	e := mp.AllocPktBulk(pkts[:1])
+	require.NoError(e)
+	defer pkts[0].Close()
+
+	m, e := mp.Alloc()
+	require.NoError(e)
+	pkts[0].AppendSegment(m, nil)
+	pkts[0].GetFirstSegment().Append(100)
+	pkts[0].GetLastSegment().Append(200)
+	assert.EqualValues(2, mp.CountInUse())
+
+	mpi, e := dpdk.NewPktmbufPool("MP-INDIRECT", 63, 0, 0, 0, dpdk.NUMA_SOCKET_ANY)
+	require.NoError(e)
+	require.NotNil(mpi)
+	defer mpi.Close()
+
+	pkts[1], e = mpi.ClonePkt(pkts[0])
+	require.NoError(e)
+	require.NotNil(pkts[1])
+	assert.EqualValues(2, mp.CountInUse())
+	assert.EqualValues(2, mpi.CountInUse())
+	assert.EqualValues(2, pkts[1].CountSegments())
+	assert.EqualValues(300, pkts[1].Len())
+	assert.Equal(pkts[0].GetFirstSegment().GetData(), pkts[1].GetFirstSegment().GetData())
+	assert.Equal(pkts[0].GetLastSegment().GetData(), pkts[1].GetLastSegment().GetData())
 }
