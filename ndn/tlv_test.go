@@ -8,7 +8,7 @@ import (
 func TestVarNum(t *testing.T) {
 	assert := assert.New(t)
 
-	buf := make([]byte, VARNUM_BUFLEN)
+	buf := make([]byte, VARNUM_MAXLENGTH)
 
 	encodeDecodeTests := []struct {
 		n      uint64

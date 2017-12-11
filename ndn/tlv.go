@@ -10,10 +10,10 @@ import (
 	"errors"
 )
 
-const VARNUM_BUFLEN = int(C.VARNUM_BUFLEN)
+const VARNUM_MAXLENGTH = int(C.VARNUM_MAXLENGTH)
 
 func EncodeVarNum(n uint64, output []byte) uint {
-	if len(output) < VARNUM_BUFLEN {
+	if len(output) < VARNUM_MAXLENGTH {
 		panic("output buffer is too small")
 	}
 
