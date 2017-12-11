@@ -177,15 +177,12 @@ type EthRxQueue struct {
 	queue C.uint16_t
 }
 
-// Retrieve a burst of input packets, up to a maximum.
-func (q EthRxQueue) RxBurst(nMaxPkts uint) []Packet {
-	if nMaxPkts == 0 {
-		return []Packet{}
-	}
-	pkts := make([]Packet, nMaxPkts)
+// Retrieve a burst of input packets.
+// Return the number of packets received and written into pkts.
+func (q EthRxQueue) RxBurst(pkts []Packet) uint {
 	res := C.rte_eth_rx_burst(q.port, q.queue, (**C.struct_rte_mbuf)(unsafe.Pointer(&pkts[0])),
-		C.uint16_t(nMaxPkts))
-	return pkts[0:res]
+		C.uint16_t(len(pkts)))
+	return uint(res)
 }
 
 type EthTxQueue struct {

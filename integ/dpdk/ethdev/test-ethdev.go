@@ -47,13 +47,14 @@ func main() {
 	const RX_FINISH_WAIT = 10 * time.Millisecond
 
 	nReceived := 0
-	rxBurstSizeFreq := make(map[int]int)
+	rxBurstSizeFreq := make(map[uint]int)
 	rxQuit := make(chan int)
 	eal.Slaves[0].RemoteLaunch(func() int {
+		pkts := make([]dpdk.Packet, RX_BURST_SIZE)
 		for {
-			pkts := rxq.RxBurst(RX_BURST_SIZE)
-			rxBurstSizeFreq[len(pkts)]++
-			for _, pkt := range pkts {
+			burstSize := rxq.RxBurst(pkts)
+			rxBurstSizeFreq[burstSize]++
+			for _, pkt := range pkts[:burstSize] {
 				nReceived++
 				assert.EqualValuesf(1, pkt.Len(), "bad RX length at %d", nReceived)
 				pkt.Close()

@@ -64,10 +64,12 @@ func (mp PktmbufPool) allocBulkImpl(mbufs unsafe.Pointer, count int) error {
 	return nil
 }
 
+// Allocate several mbufs, writing into supplied slice of Mbuf.
 func (mp PktmbufPool) AllocBulk(mbufs []Mbuf) error {
 	return mp.allocBulkImpl(unsafe.Pointer(&mbufs[0]), len(mbufs))
 }
 
+// Allocate several mbufs, writing into supplied slice of Packet.
 func (mp PktmbufPool) AllocPktBulk(pkts []Packet) error {
 	return mp.allocBulkImpl(unsafe.Pointer(&pkts[0]), len(pkts))
 }
