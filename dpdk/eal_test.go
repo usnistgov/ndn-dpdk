@@ -11,7 +11,7 @@ func TestCArgs(t *testing.T) {
 	defer a.Close()
 
 	res := testCArgs(a)
-	assert.Equal(t, 0, res, "testCArgs C function error")
+	assert.Equal(t, 0, res)
 
 	rem := a.GetRemainingArgs(1)
 	assert.Equal(t, []string{"", "d", "bc"}, rem)

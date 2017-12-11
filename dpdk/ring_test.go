@@ -1,23 +1,17 @@
-package main
+package dpdk
 
 import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"ndn-traffic-dpdk/dpdk"
-	"ndn-traffic-dpdk/integ"
+	"testing"
 	"unsafe"
 )
 
-func main() {
-	t := new(integ.Testing)
-	defer t.Close()
+func TestRing(t *testing.T) {
 	assert := assert.New(t)
 	require := require.New(t)
 
-	_, e := dpdk.NewEal([]string{"testprog", "-n1"})
-	require.NoError(e)
-
-	r, e := dpdk.NewRing("TestRing", 4, dpdk.GetCurrentLCore().GetNumaSocket(), true, true)
+	r, e := NewRing("TestRing", 4, GetCurrentLCore().GetNumaSocket(), true, true)
 	require.NoError(e)
 	defer r.Close()
 
