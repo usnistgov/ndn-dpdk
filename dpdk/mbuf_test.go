@@ -156,10 +156,18 @@ func TestMbuf(t *testing.T) {
 			if tt.shouldUseAlloc {
 				assert.Equalf(allocBuf, readBuf, "Read(%d) is not using allocBuf", tt.offset)
 			} else {
-				assert.Truef(allocBuf != readBuf, "Read(%d) is using allocBuf", tt.offset)
+				assert.NotEqualf(allocBuf, readBuf, "Read(%d) is using allocBuf", tt.offset)
 			}
 			assert.Equalf(tt.expected[:], c_GoBytes(readBuf, 4),
 				"Read(%d) returns wrong bytes", tt.offset)
+
+			it := NewPacketIterator(pkt)
+			it.Advance(tt.offset)
+			require.Falsef(it.IsEnd(), "it.Advance(%d) is past end", tt.offset)
+			readBuf2 := make([]byte, 4)
+			nRead := it.Read(readBuf2[:])
+			assert.EqualValuesf(4, nRead, "%d it.Read() has wrong length", tt.offset)
+			assert.Equalf(tt.expected[:], readBuf2, "%d it.Read() returns wrong bytes", tt.offset)
 		}
 
 		_, e = pkt.Read(497, 4, allocBuf)

@@ -3,8 +3,7 @@ package dpdk
 /*
 #cgo CFLAGS: -m64 -pthread -O3 -march=native -I/usr/local/include/dpdk
 
-#include <rte_config.h>
-#include <rte_mbuf.h>
+#include "mbuf.h"
 */
 import "C"
 import (
@@ -99,6 +98,29 @@ func (pkt Packet) Read(offset uint, len uint, buf unsafe.Pointer) (unsafe.Pointe
 		return nil, errors.New("rte_pktmbuf_read out of range")
 	}
 	return res, nil
+}
+
+type PacketIterator struct {
+	ml C.MbufLoc
+}
+
+func NewPacketIterator(pkt Packet) *PacketIterator {
+	it := new(PacketIterator)
+	it.ml.m = pkt.ptr
+	it.ml.off = 0
+	return it
+}
+
+func (it *PacketIterator) IsEnd() bool {
+	return bool(C.MbufLoc_IsEnd(&it.ml))
+}
+
+func (it *PacketIterator) Advance(n uint) {
+	C.MbufLoc_Advance(&it.ml, C.uint32_t(n))
+}
+
+func (it *PacketIterator) Read(output []byte) uint {
+	return uint(C.MbufLoc_Read(&it.ml, unsafe.Pointer(&output[0]), C.uint32_t(len(output))))
 }
 
 type Segment struct {
