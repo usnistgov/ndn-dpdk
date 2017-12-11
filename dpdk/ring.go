@@ -63,11 +63,10 @@ func (r Ring) BurstEnqueue(objs []unsafe.Pointer) (uint, uint) {
 	return uint(res), uint(freeSpace)
 }
 
-// Dequeue several objects on a ring.
-// Return dequeued objects, and remaining ring entries after operation.
-func (r Ring) BurstDequeue(nMaxObjs uint) ([]unsafe.Pointer, uint) {
-	objs := make([]unsafe.Pointer, nMaxObjs)
+// Dequeue several objects on a ring, writing into slice of native pointers.
+// Return number of objects dequeued, and remaining ring entries after operation.
+func (r Ring) BurstDequeue(objs []unsafe.Pointer) (uint, uint) {
 	var nEntries C.uint
-	res := C.rte_ring_dequeue_burst(r.ptr, &objs[0], C.uint(nMaxObjs), &nEntries)
-	return objs[0:res], uint(nEntries)
+	res := C.rte_ring_dequeue_burst(r.ptr, &objs[0], C.uint(len(objs)), &nEntries)
+	return uint(res), uint(nEntries)
 }
