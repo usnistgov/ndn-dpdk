@@ -13,7 +13,7 @@ typedef struct MbufLoc
 } MbufLoc;
 
 static inline bool
-MbufLoc_IsEnd(MbufLoc* ml)
+MbufLoc_IsEnd(const MbufLoc* ml)
 {
   return ml->m == NULL;
 }
@@ -35,6 +35,14 @@ MbufLoc_Advance(MbufLoc* ml, uint32_t n)
   }
   ml->off = (uint16_t)last;
 }
+
+// Determine the distance in octets from a to b.
+// If MbufLoc_Diff(a, b) == n and n >= 0, it implies MbufLoc_Advance(a, n)
+// equals b.
+// If MbufLoc_Diff(a, b) == n and n <= 0, it implies MbufLoc_Advance(b, -n)
+// equals a.
+// Behavior is undefined if a and b do not point to the same packet.
+ptrdiff_t MbufLoc_Diff(const MbufLoc* a, const MbufLoc* b);
 
 uint32_t __MbufLoc_Read_MultiSeg(MbufLoc* ml, void* output, uint32_t n);
 
@@ -82,4 +90,4 @@ MbufLoc_ReadU64(MbufLoc* ml, uint64_t* output)
   return sizeof(uint64_t) == MbufLoc_Read(ml, output, sizeof(uint64_t));
 }
 
-#endif // NDN_TRAFFIC_DPDK_DPDK_MBUF_H
+#endif // NDN_TRAFFIC_DPDK_DPDK_
