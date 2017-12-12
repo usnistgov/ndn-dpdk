@@ -138,6 +138,7 @@ func TestMbuf(t *testing.T) {
 		defer c_free(allocBuf)
 
 		it0 := NewPacketIterator(pkt)
+		readBuf2 := make([]byte, 4)
 		readSuccessTests := []struct {
 			offset         uint
 			shouldUseAlloc bool
@@ -170,11 +171,14 @@ func TestMbuf(t *testing.T) {
 			assert.EqualValuesf(tt.offset, it0.ComputeDistance(&it),
 				"it0.ComputeDistance(it.Advance(%d)) is wrong", tt.offset)
 
-			readBuf2 := make([]byte, 4)
 			nRead := it.Read(readBuf2[:])
 			assert.EqualValuesf(4, nRead, "%d it.Read() has wrong length", tt.offset)
 			assert.Equalf(tt.expected[:], readBuf2, "%d it.Read() returns wrong bytes", tt.offset)
 		}
+
+		it2 := NewPacketIteratorBounded(pkt, 100, 6)
+		assert.EqualValues(4, it2.Read(readBuf2[:]))
+		assert.EqualValues(2, it2.Read(readBuf2[:]))
 
 		_, e = pkt.Read(497, 4, allocBuf)
 		assert.Error(e)

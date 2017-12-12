@@ -106,8 +106,14 @@ type PacketIterator struct {
 
 func NewPacketIterator(pkt Packet) PacketIterator {
 	var it PacketIterator
-	it.ml.m = pkt.ptr
-	it.ml.off = 0
+	C.MbufLoc_Init(&it.ml, pkt.ptr)
+	return it
+}
+
+func NewPacketIteratorBounded(pkt Packet, off uint, len uint) PacketIterator {
+	it := NewPacketIterator(pkt)
+	it.Advance(off)
+	it.ml.rem = C.uint32_t(len)
 	return it
 }
 

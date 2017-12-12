@@ -5,9 +5,9 @@ static inline bool
 MbufLoc_Diff_OneSided(const MbufLoc* a, const MbufLoc* b, ptrdiff_t* dist)
 {
   *dist = 0;
-  struct rte_mbuf* am = a->m;
+  const struct rte_mbuf* am = a->m;
   uint16_t aOff = a->off;
-  struct rte_mbuf* bm = b->m;
+  const struct rte_mbuf* bm = b->m;
   while (am != NULL) {
     if (am == bm) {
       *dist += b->off - aOff;
@@ -62,6 +62,5 @@ __MbufLoc_Read_MultiSeg(MbufLoc* ml, void* output, uint32_t n)
 
   rte_memcpy(output, data, last);
   nRead += last;
-  ml->off = (uint16_t)last;
   return nRead;
 }

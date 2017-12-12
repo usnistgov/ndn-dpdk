@@ -5,17 +5,30 @@
 #include <rte_memcpy.h>
 #include <rte_prefetch.h>
 
-// Location with a packet segment.
+// Position iterator within a packet.
+// It can optionally carry a boundary so that the iterator cannot be advanced
+// past this limit.
 typedef struct MbufLoc
 {
-  struct rte_mbuf* m;
-  uint16_t off;
+  const struct rte_mbuf* m; // current segment
+  uint32_t rem;             // remaining octets
+  uint16_t off;             // offset within current segment
 } MbufLoc;
 
+// Initialize a MbufLoc to the beginning of a packet.
+static inline void
+MbufLoc_Init(MbufLoc* ml, const struct rte_mbuf* pkt)
+{
+  ml->m = pkt;
+  ml->off = 0;
+  ml->rem = pkt->pkt_len;
+}
+
+// Test if the iterator points past the end of packet or boundary.
 static inline bool
 MbufLoc_IsEnd(const MbufLoc* ml)
 {
-  return ml->m == NULL;
+  return ml->m == NULL || ml->rem == 0;
 }
 
 // Advance the position by n octets.
@@ -23,6 +36,11 @@ static inline void
 MbufLoc_Advance(MbufLoc* ml, uint32_t n)
 {
   assert(!MbufLoc_IsEnd(ml));
+
+  if (n > ml->rem) {
+    ml->m = NULL;
+    return;
+  }
 
   uint32_t last = ml->off + n;
   while (unlikely(last >= ml->m->data_len)) {
@@ -42,6 +60,7 @@ MbufLoc_Advance(MbufLoc* ml, uint32_t n)
 // If MbufLoc_Diff(a, b) == n and n <= 0, it implies MbufLoc_Advance(b, -n)
 // equals a.
 // Behavior is undefined if a and b do not point to the same packet.
+// This function does not honor the iterator boundary.
 ptrdiff_t MbufLoc_Diff(const MbufLoc* a, const MbufLoc* b);
 
 uint32_t __MbufLoc_Read_MultiSeg(MbufLoc* ml, void* output, uint32_t n);
@@ -52,6 +71,11 @@ static inline uint32_t
 MbufLoc_Read(MbufLoc* ml, void* output, uint32_t n)
 {
   assert(!MbufLoc_IsEnd(ml));
+
+  if (n > ml->rem) {
+    n = ml->rem;
+  }
+  ml->rem -= n;
 
   uint8_t* data = rte_pktmbuf_mtod_offset(ml->m, uint8_t*, ml->off);
   rte_prefetch0(data);
