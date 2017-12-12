@@ -104,8 +104,8 @@ type PacketIterator struct {
 	ml C.MbufLoc
 }
 
-func NewPacketIterator(pkt Packet) *PacketIterator {
-	it := new(PacketIterator)
+func NewPacketIterator(pkt Packet) PacketIterator {
+	var it PacketIterator
 	it.ml.m = pkt.ptr
 	it.ml.off = 0
 	return it
