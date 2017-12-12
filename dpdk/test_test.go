@@ -4,17 +4,18 @@ package dpdk
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var testEal *Eal
 
 func TestMain(m *testing.M) {
-	eal, e := NewEal([]string{"testprog", "-n1"})
-	if e != nil || eal == nil {
+	testEal, e := NewEal([]string{"testprog", "-n1"})
+	if e != nil || testEal == nil {
 		panic(fmt.Sprintf("NewEal error %v", e))
 	}
 	os.Exit(m.Run())

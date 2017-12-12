@@ -2,7 +2,7 @@
 
 // Same as MbucLoc_Diff but only consider one direction: advance a to reach b.
 static inline bool
-MbufLoc_Diff_OneSided(const MbufLoc* a, const MbufLoc* b, ptrdiff_t* dist)
+__MbufLoc_Diff_OneSided(const MbufLoc* a, const MbufLoc* b, ptrdiff_t* dist)
 {
   *dist = 0;
   const struct rte_mbuf* am = a->m;
@@ -26,10 +26,10 @@ MbufLoc_Diff(const MbufLoc* a, const MbufLoc* b)
   assert(!MbufLoc_IsEnd(a) && !MbufLoc_IsEnd(b));
 
   ptrdiff_t dist = 0;
-  if (MbufLoc_Diff_OneSided(a, b, &dist)) {
+  if (__MbufLoc_Diff_OneSided(a, b, &dist)) {
     return dist;
   }
-  if (MbufLoc_Diff_OneSided(b, a, &dist)) {
+  if (__MbufLoc_Diff_OneSided(b, a, &dist)) {
     return -dist;
   }
   assert(false);

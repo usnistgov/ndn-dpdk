@@ -3,6 +3,8 @@
 
 #include "../common.h"
 
+#include "../dpdk/mbuf.h"
+
 #include "error.h"
 
 #endif // NDN_TRAFFIC_DPDK_NDN_COMMON_H

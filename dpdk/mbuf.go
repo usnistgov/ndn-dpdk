@@ -22,6 +22,10 @@ func (m Mbuf) Close() {
 	C.rte_pktmbuf_free(m.ptr)
 }
 
+func (m Mbuf) AsPacket() Packet {
+	return Packet{m}
+}
+
 type Packet struct {
 	Mbuf
 	// DO NOT add other fields: *Packet is passed to C code as rte_mbuf**
@@ -63,13 +67,13 @@ func (pkt Packet) AppendSegment(m Mbuf, tail *Segment) (Segment, error) {
 	if tail == nil {
 		res := C.rte_pktmbuf_chain(pkt.ptr, m.ptr)
 		if res != 0 {
-			return Segment{Mbuf{nil}, pkt}, errors.New("too many segments")
+			return Segment{}, errors.New("too many segments")
 		}
 		return Segment{m, pkt}, nil
 	}
 
 	if pkt.CountSegments()+uint(m.ptr.nb_segs) > uint(C.RTE_MBUF_MAX_NB_SEGS) {
-		return Segment{Mbuf{nil}, pkt}, errors.New("too many segments")
+		return Segment{}, errors.New("too many segments")
 	}
 
 	tail.ptr.next = m.ptr
@@ -113,6 +117,11 @@ func NewPacketIteratorBounded(pkt Packet, off uint, len uint) PacketIterator {
 	it.Advance(off)
 	it.ml.rem = C.uint32_t(len)
 	return it
+}
+
+// Get native *C.MbufLoc pointer to use in other packages.
+func (it *PacketIterator) GetPtr() unsafe.Pointer {
+	return unsafe.Pointer(&it.ml)
 }
 
 func (it *PacketIterator) IsEnd() bool {

@@ -49,7 +49,7 @@ func TestMbuf(t *testing.T) {
 		m, e := mp.Alloc()
 		require.NoError(e)
 
-		pkt := Packet{m}
+		pkt := m.AsPacket()
 		defer pkt.Close()
 		s := pkt.GetFirstSegment()
 
@@ -102,7 +102,7 @@ func TestMbuf(t *testing.T) {
 		var cMbufPtr *c_struct_rte_mbuf
 		assert.Equal(unsafe.Sizeof(cMbufPtr), unsafe.Sizeof(m))
 
-		pkt := Packet{m}
+		pkt := m.AsPacket()
 		defer pkt.Close()
 		assert.Equal(unsafe.Sizeof(cMbufPtr), unsafe.Sizeof(pkt))
 
@@ -185,7 +185,7 @@ func TestMbuf(t *testing.T) {
 
 		m, e = mp.Alloc()
 		require.NoError(e)
-		pkt2 := Packet{m}
+		pkt2 := m.AsPacket()
 		seg0 = pkt2.GetFirstSegment()
 		seg0.Append(50)
 		m, e = mp.Alloc()

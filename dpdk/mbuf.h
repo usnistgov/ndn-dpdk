@@ -63,7 +63,7 @@ MbufLoc_Advance(MbufLoc* ml, uint32_t n)
 // This function does not honor the iterator boundary.
 ptrdiff_t MbufLoc_Diff(const MbufLoc* a, const MbufLoc* b);
 
-uint32_t __MbufLoc_Read_MultiSeg(MbufLoc* ml, void* output, uint32_t n);
+extern uint32_t __MbufLoc_Read_MultiSeg(MbufLoc* ml, void* output, uint32_t n);
 
 // Copy next n octets, and advance the position.
 // Return number of octets copied.

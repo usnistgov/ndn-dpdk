@@ -49,7 +49,7 @@ func NewPktmbufPool(name string, capacity uint, cacheSize uint, privSize uint16,
 func (mp PktmbufPool) Alloc() (Mbuf, error) {
 	m := C.rte_pktmbuf_alloc(mp.ptr)
 	if m == nil {
-		return Mbuf{nil}, errors.New("mbuf allocation failed")
+		return Mbuf{}, errors.New("mbuf allocation failed")
 	}
 	return Mbuf{m}, nil
 }
@@ -78,7 +78,7 @@ func (mp PktmbufPool) AllocPktBulk(pkts []Packet) error {
 func (mp PktmbufPool) ClonePkt(pkt Packet) (Packet, error) {
 	res := C.rte_pktmbuf_clone(pkt.ptr, mp.ptr)
 	if res == nil {
-		return Packet{Mbuf{nil}}, errors.New("mbuf allocation failed")
+		return Packet{}, errors.New("mbuf allocation failed")
 	}
 	return Packet{Mbuf{res}}, nil
 }
