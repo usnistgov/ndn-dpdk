@@ -1,8 +1,6 @@
 package dpdk
 
 /*
-#cgo CFLAGS: -m64 -pthread -O3 -march=native -I/usr/local/include/dpdk
-
 #include <rte_config.h>
 #include <rte_mbuf.h>
 #include <rte_mempool.h>

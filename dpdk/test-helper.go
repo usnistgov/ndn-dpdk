@@ -3,8 +3,6 @@ package dpdk
 // This file enables unit tests to use cgo, which isn't available in *_test.go.
 
 /*
-#cgo CFLAGS: -m64 -pthread -O3 -march=native -I/usr/local/include/dpdk
-
 #include <string.h>
 #include <stdlib.h>
 #include <rte_config.h>
