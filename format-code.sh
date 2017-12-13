@@ -1,3 +1,3 @@
 #!/bin/bash
 go fmt ./...
-find -name '*.h' -o -name '*.c' | xargs clang-format -i -style=Mozilla
+find -name '*.h' -o -name '*.c' | xargs clang-format -i -style='{BasedOnStyle: Mozilla, ReflowComments: false}'

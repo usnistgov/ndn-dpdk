@@ -1,21 +1,28 @@
 #ifndef NDN_TRAFFIC_DPDK_DPDK_MBUF_H
 #define NDN_TRAFFIC_DPDK_DPDK_MBUF_H
 
+/** \file
+ *  \brief Additions related to struct rte_mbuf.
+ */
+
 #include "../common.h"
 #include <rte_memcpy.h>
 #include <rte_prefetch.h>
 
-// Position iterator within a packet.
-// It can optionally carry a boundary so that the iterator cannot be advanced
-// past this limit.
+/** \brief Iterator within a packet.
+ *
+ *  This struct contains an octet position within a multi-segment packet.
+ *  It can optionally carry a boundary so that the iterator cannot be advanced past this limit.
+ */
 typedef struct MbufLoc
 {
-  const struct rte_mbuf* m; // current segment
-  uint32_t rem;             // remaining octets
-  uint16_t off;             // offset within current segment
+  const struct rte_mbuf* m; ///< current segment
+  uint32_t rem;             ///< remaining octets before reaching boundary
+  uint16_t off;             ///< offset within current segment
 } MbufLoc;
 
-// Initialize a MbufLoc to the beginning of a packet.
+/** \brief Initialize a MbufLoc to the beginning of a packet.
+ */
 static inline void
 MbufLoc_Init(MbufLoc* ml, const struct rte_mbuf* pkt)
 {
@@ -24,14 +31,22 @@ MbufLoc_Init(MbufLoc* ml, const struct rte_mbuf* pkt)
   ml->rem = pkt->pkt_len;
 }
 
-// Test if the iterator points past the end of packet or boundary.
+static inline void
+MbufLoc_Clone(MbufLoc* dst, const MbufLoc* src)
+{
+  rte_memcpy(dst, src, sizeof(*dst));
+}
+
+/** \brief Test if the iterator points past the end of packet or boundary.
+ */
 static inline bool
 MbufLoc_IsEnd(const MbufLoc* ml)
 {
   return ml->m == NULL || ml->rem == 0;
 }
 
-// Advance the position by n octets.
+/** \brief Advance the position by n octets.
+ */
 static inline void
 MbufLoc_Advance(MbufLoc* ml, uint32_t n)
 {
@@ -54,19 +69,20 @@ MbufLoc_Advance(MbufLoc* ml, uint32_t n)
   ml->off = (uint16_t)last;
 }
 
-// Determine the distance in octets from a to b.
-// If MbufLoc_Diff(a, b) == n and n >= 0, it implies MbufLoc_Advance(a, n)
-// equals b.
-// If MbufLoc_Diff(a, b) == n and n <= 0, it implies MbufLoc_Advance(b, -n)
-// equals a.
-// Behavior is undefined if a and b do not point to the same packet.
-// This function does not honor the iterator boundary.
+/** \brief Determine the distance in octets from a to b.
+ *
+ *  If MbufLoc_Diff(a, b) == n and n >= 0, it implies MbufLoc_Advance(a, n) equals b.
+ *  If MbufLoc_Diff(a, b) == n and n <= 0, it implies MbufLoc_Advance(b, -n) equals a.
+ *  Behavior is undefined if a and b do not point to the same packet.
+ *  This function does not honor the iterator boundary.
+ */
 ptrdiff_t MbufLoc_Diff(const MbufLoc* a, const MbufLoc* b);
 
 extern uint32_t __MbufLoc_Read_MultiSeg(MbufLoc* ml, void* output, uint32_t n);
 
-// Copy next n octets, and advance the position.
-// Return number of octets copied.
+/** \brief Copy next n octets, and advance the position.
+ *  \return number of octets copied.
+ */
 static inline uint32_t
 MbufLoc_Read(MbufLoc* ml, void* output, uint32_t n)
 {
@@ -114,4 +130,4 @@ MbufLoc_ReadU64(MbufLoc* ml, uint64_t* output)
   return sizeof(uint64_t) == MbufLoc_Read(ml, output, sizeof(uint64_t));
 }
 
-#endif // NDN_TRAFFIC_DPDK_DPDK_
+#endif // NDN_
