@@ -164,8 +164,9 @@ func TestMbuf(t *testing.T) {
 				"Read(%d) returns wrong bytes", tt.offset)
 
 			it := it0
-			it.Advance(tt.offset)
+			nAdvanced := it.Advance(tt.offset)
 			require.Falsef(it.IsEnd(), "it.Advance(%d) is past end", tt.offset)
+			assert.EqualValuesf(tt.offset, nAdvanced, "it.Advance(%d) is incomplete", tt.offset)
 			assert.EqualValuesf(-int(tt.offset), it.ComputeDistance(&it0),
 				"it.Advance(%d).ComputeDistance(it0) is wrong", tt.offset)
 			assert.EqualValuesf(tt.offset, it0.ComputeDistance(&it),
@@ -179,6 +180,12 @@ func TestMbuf(t *testing.T) {
 		it2 := NewPacketIteratorBounded(pkt, 100, 6)
 		assert.EqualValues(4, it2.Read(readBuf2[:]))
 		assert.EqualValues(2, it2.Read(readBuf2[:]))
+		assert.EqualValues(0, it2.Read(readBuf2[:]))
+
+		it2 = NewPacketIteratorBounded(pkt, 495, 6)
+		assert.EqualValues(3, it2.Advance(3))
+		assert.EqualValues(2, it2.Advance(3))
+		assert.EqualValues(0, it2.Advance(3))
 
 		_, e = pkt.Read(497, 4, allocBuf)
 		assert.Error(e)

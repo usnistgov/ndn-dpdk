@@ -31,6 +31,8 @@ MbufLoc_Init(MbufLoc* ml, const struct rte_mbuf* pkt)
   ml->rem = pkt->pkt_len;
 }
 
+/** \brief Copy MbufLoc \p src to \p dst.
+ */
 static inline void
 MbufLoc_Clone(MbufLoc* dst, const MbufLoc* src)
 {
@@ -46,27 +48,33 @@ MbufLoc_IsEnd(const MbufLoc* ml)
 }
 
 /** \brief Advance the position by n octets.
+ *  \return Actually advanced distance.
  */
-static inline void
+static inline uint32_t
 MbufLoc_Advance(MbufLoc* ml, uint32_t n)
 {
-  assert(!MbufLoc_IsEnd(ml));
+  if (unlikely(MbufLoc_IsEnd(ml))) {
+    return 0;
+  }
 
   if (n > ml->rem) {
-    ml->m = NULL;
-    return;
+    n = ml->rem;
   }
 
-  uint32_t last = ml->off + n;
-  while (unlikely(last >= ml->m->data_len)) {
-    last -= ml->m->data_len;
+  uint32_t dist = 0;
+  while (unlikely(ml->off + n >= ml->m->data_len)) {
+    uint32_t diff = ml->m->data_len - ml->off;
+    dist += diff;
+    n -= diff;
     ml->m = ml->m->next;
-    ml->off = 0;
-    if (unlikely(ml->m == NULL)) {
-      return;
+    if (ml->m == NULL) {
+      return dist;
     }
+    ml->off = 0;
   }
-  ml->off = (uint16_t)last;
+  dist += n;
+  ml->off += n;
+  return dist;
 }
 
 /** \brief Determine the distance in octets from a to b.
@@ -86,7 +94,9 @@ extern uint32_t __MbufLoc_Read_MultiSeg(MbufLoc* ml, void* output, uint32_t n);
 static inline uint32_t
 MbufLoc_Read(MbufLoc* ml, void* output, uint32_t n)
 {
-  assert(!MbufLoc_IsEnd(ml));
+  if (unlikely(MbufLoc_IsEnd(ml))) {
+    return 0;
+  }
 
   if (n > ml->rem) {
     n = ml->rem;

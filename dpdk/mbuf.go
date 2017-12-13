@@ -135,8 +135,8 @@ func (it *PacketIterator) ComputeDistance(it2 *PacketIterator) int {
 	return int(C.MbufLoc_Diff(&it.ml, &it2.ml))
 }
 
-func (it *PacketIterator) Advance(n uint) {
-	C.MbufLoc_Advance(&it.ml, C.uint32_t(n))
+func (it *PacketIterator) Advance(n uint) uint {
+	return uint(C.MbufLoc_Advance(&it.ml, C.uint32_t(n)))
 }
 
 func (it *PacketIterator) Read(output []byte) uint {
