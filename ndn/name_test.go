@@ -1,6 +1,7 @@
 package ndn
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -19,6 +20,8 @@ func TestName(t *testing.T) {
 			"/A/B/%00/%FF/128=A/.../...."},
 		{"07 22 01 20 DC6D6840C6FAFB773D583CDBF465661C7B4B968E04ACD4D9015B1C4E53E59D6A", true, 1, true,
 			"/sha256digest=dc6d6840c6fafb773d583cdbf465661c7b4b968e04acd4d9015b1c4e53e59d6a"},
+		{"07 63 " + strings.Repeat("08 01 41 ", 32) + "08 01 42", true, 33, false,
+			strings.Repeat("/A", 32) + "/B"},
 		{"02 00", false, 0, false, ""},            // bad TLV-TYPE
 		{"07 04 01 02 DDDD", false, 0, false, ""}, // wrong digest length
 	}
