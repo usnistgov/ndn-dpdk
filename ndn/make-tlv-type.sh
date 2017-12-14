@@ -20,13 +20,13 @@ cd "$( dirname "${BASH_SOURCE[0]}" )"
   echo 'type TlvType uint64'
   echo
   echo 'const ('
-  awk '{ print "\tTT_" $1 " TlvType = 0x" $2  }' tlv-type.tsv
+  awk '{ print "TT_" $1 " TlvType = 0x" $2  }' tlv-type.tsv
   echo ')'
   echo
   echo 'func (tt TlvType) String() string {'
-  echo -e '\tswitch tt {'
-  awk '{ print "\tcase TT_" $1 ": return \"" $2 "\""  }' tlv-type.tsv
-  echo -e '\t}'
-  echo -e '\treturn fmt.Sprintf("%d", tt)'
+  echo '  switch tt {'
+  awk '{ print "  case TT_" $1 ": return \"" $2 "\""  }' tlv-type.tsv
+  echo '  }'
+  echo '  return fmt.Sprintf("%d", tt)'
   echo '}'
 ) | gofmt > tlv-type.go

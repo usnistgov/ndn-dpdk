@@ -1,22 +1,16 @@
 #!/bin/bash
 cd "$( dirname "${BASH_SOURCE[0]}" )"
 
-awk '
-BEGIN {
-  print "#ifndef NDN_TRAFFIC_DPDK_NDN_ERROR_H"
-  print "#define NDN_TRAFFIC_DPDK_NDN_ERROR_H"
-  print ""
-  print "typedef enum {"
-}
-{
-  print "  NdnError_" $1 ","
-}
-END {
-  print "} NdnError;"
-  print ""
-  print "#endif // NDN_TRAFFIC_DPDK_NDN_ERROR_H"
-}
-' error.tsv > error.h
+(
+  echo '#ifndef NDN_TRAFFIC_DPDK_NDN_ERROR_H'
+  echo '#define NDN_TRAFFIC_DPDK_NDN_ERROR_H'
+  echo
+  echo 'typedef enum NdnError {'
+  awk '{ print "  NdnError_" $1 "," }' error.tsv
+  echo '} NdnError;'
+  echo
+  echo '#endif // NDN_TRAFFIC_DPDK_NDN_ERROR_H'
+) > error.h
 
 awk '
 BEGIN {
@@ -42,3 +36,22 @@ END {
   print ")"
 }
 ' error.tsv > error.go
+(
+  echo 'package ndn'
+  echo
+  echo 'import "fmt"'
+  echo
+  echo 'type NdnError int'
+  echo
+  echo 'const ('
+  awk 'NR == 1 { print "\tNdnError_" $1 " NdnError = iota" }
+       NR > 1  { print "\tNdnError_" $1 }' error.tsv
+  echo ')'
+  echo
+  echo 'func (e NdnError) Error() string {'
+  echo '  switch e {'
+  awk '{ print "  case NdnError_" $1 ": return \"" $1 "\""  }' error.tsv
+  echo '  }'
+  echo '  return fmt.Sprintf("%d", e)'
+  echo '}'
+) | gofmt > error.go
