@@ -12,7 +12,7 @@ type Ring struct {
 	ptr *C.struct_rte_ring
 }
 
-func NewRing(name string, capacity uint, socket NumaSocket,
+func NewRing(name string, capacity int, socket NumaSocket,
 	isSingleProducer bool, isSingleConsumer bool) (Ring, error) {
 	cName := C.CString(name)
 	defer C.free(unsafe.Pointer(cName))
@@ -37,16 +37,16 @@ func (r Ring) Close() {
 	C.rte_ring_free(r.ptr)
 }
 
-func (r Ring) Count() uint {
-	return uint(C.rte_ring_count(r.ptr))
+func (r Ring) Count() int {
+	return int(C.rte_ring_count(r.ptr))
 }
 
 func (r Ring) IsEmpty() bool {
 	return r.Count() == 0
 }
 
-func (r Ring) GetFreeSpace() uint {
-	return uint(C.rte_ring_free_count(r.ptr))
+func (r Ring) GetFreeSpace() int {
+	return int(C.rte_ring_free_count(r.ptr))
 }
 
 func (r Ring) IsFull() bool {
@@ -55,16 +55,16 @@ func (r Ring) IsFull() bool {
 
 // Enqueue several objects on a ring.
 // Return number of objects enqueued, and available ring space after operation.
-func (r Ring) BurstEnqueue(objs []unsafe.Pointer) (uint, uint) {
+func (r Ring) BurstEnqueue(objs []unsafe.Pointer) (int, int) {
 	var freeSpace C.uint
 	res := C.rte_ring_enqueue_burst(r.ptr, &objs[0], C.uint(len(objs)), &freeSpace)
-	return uint(res), uint(freeSpace)
+	return int(res), int(freeSpace)
 }
 
 // Dequeue several objects on a ring, writing into slice of native pointers.
 // Return number of objects dequeued, and remaining ring entries after operation.
-func (r Ring) BurstDequeue(objs []unsafe.Pointer) (uint, uint) {
+func (r Ring) BurstDequeue(objs []unsafe.Pointer) (int, int) {
 	var nEntries C.uint
 	res := C.rte_ring_dequeue_burst(r.ptr, &objs[0], C.uint(len(objs)), &nEntries)
-	return uint(res), uint(nEntries)
+	return int(res), int(nEntries)
 }

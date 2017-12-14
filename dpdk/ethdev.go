@@ -22,8 +22,8 @@ func ListEthDevs() []EthDev {
 	return l
 }
 
-func CountEthDevs() uint {
-	return uint(C.rte_eth_dev_count())
+func CountEthDevs() int {
+	return int(C.rte_eth_dev_count())
 }
 
 func (port EthDev) GetName() string {
@@ -112,13 +112,13 @@ func (port EthDev) GetMacAddr() net.HardwareAddr {
 	return net.HardwareAddr(C.GoBytes(unsafe.Pointer(&macAddr.addr_bytes[0]), C.ETHER_ADDR_LEN))
 }
 
-func (port EthDev) GetMtu() uint {
+func (port EthDev) GetMtu() int {
 	var mtu C.uint16_t
 	C.rte_eth_dev_get_mtu(C.uint16_t(port), &mtu)
-	return uint(mtu)
+	return int(mtu)
 }
 
-func (port EthDev) SetMtu(mtu uint) error {
+func (port EthDev) SetMtu(mtu int) error {
 	res := C.rte_eth_dev_set_mtu(C.uint16_t(port), C.uint16_t(mtu))
 	if res != 0 {
 		return Errno(-res)
@@ -177,10 +177,10 @@ type EthRxQueue struct {
 
 // Retrieve a burst of input packets.
 // Return the number of packets received and written into pkts.
-func (q EthRxQueue) RxBurst(pkts []Packet) uint {
+func (q EthRxQueue) RxBurst(pkts []Packet) int {
 	res := C.rte_eth_rx_burst(q.port, q.queue, (**C.struct_rte_mbuf)(unsafe.Pointer(&pkts[0])),
 		C.uint16_t(len(pkts)))
-	return uint(res)
+	return int(res)
 }
 
 type EthTxQueue struct {
@@ -190,13 +190,13 @@ type EthTxQueue struct {
 
 // Send a burst of output packets.
 // Return the number of packets enqueued.
-func (q EthTxQueue) TxBurst(pkts []Packet) uint {
+func (q EthTxQueue) TxBurst(pkts []Packet) int {
 	if len(pkts) == 0 {
 		return 0
 	}
 	res := C.rte_eth_tx_burst(q.port, q.queue, (**C.struct_rte_mbuf)(unsafe.Pointer(&pkts[0])),
 		C.uint16_t(len(pkts)))
-	return uint(res)
+	return int(res)
 }
 
 type EthStats struct {

@@ -20,19 +20,19 @@ func (mp Mempool) Close() {
 	C.rte_mempool_free(mp.ptr)
 }
 
-func (mp Mempool) CountAvailable() uint {
-	return uint(C.rte_mempool_avail_count(mp.ptr))
+func (mp Mempool) CountAvailable() int {
+	return int(C.rte_mempool_avail_count(mp.ptr))
 }
 
-func (mp Mempool) CountInUse() uint {
-	return uint(C.rte_mempool_in_use_count(mp.ptr))
+func (mp Mempool) CountInUse() int {
+	return int(C.rte_mempool_in_use_count(mp.ptr))
 }
 
 type PktmbufPool struct {
 	Mempool
 }
 
-func NewPktmbufPool(name string, capacity uint, cacheSize uint, privSize uint16,
+func NewPktmbufPool(name string, capacity int, cacheSize int, privSize uint16,
 	dataRoomSize uint16, socket NumaSocket) (PktmbufPool, error) {
 	cName := C.CString(name)
 	defer C.free(unsafe.Pointer(cName))

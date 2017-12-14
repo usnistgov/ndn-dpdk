@@ -56,7 +56,7 @@ func packetFromBytes(input []byte) dpdk.Packet {
 
 	pkt := m.AsPacket()
 	seg0 := pkt.GetFirstSegment()
-	buf, e := seg0.Append(uint(len(input)))
+	buf, e := seg0.Append(len(input))
 	if e != nil {
 		panic(e)
 	}

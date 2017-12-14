@@ -47,7 +47,7 @@ func main() {
 	const RX_FINISH_WAIT = 10 * time.Millisecond
 
 	nReceived := 0
-	rxBurstSizeFreq := make(map[uint]int)
+	rxBurstSizeFreq := make(map[int]int)
 	rxQuit := make(chan int)
 	eal.Slaves[0].RemoteLaunch(func() int {
 		pkts := make([]dpdk.Packet, RX_BURST_SIZE)

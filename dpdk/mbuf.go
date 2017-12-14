@@ -31,21 +31,21 @@ type Packet struct {
 	// DO NOT add other fields: *Packet is passed to C code as rte_mbuf**
 }
 
-func (pkt Packet) Len() uint {
-	return uint(pkt.ptr.pkt_len)
+func (pkt Packet) Len() int {
+	return int(pkt.ptr.pkt_len)
 }
 
-func (pkt Packet) CountSegments() uint {
-	return uint(pkt.ptr.nb_segs)
+func (pkt Packet) CountSegments() int {
+	return int(pkt.ptr.nb_segs)
 }
 
 func (pkt Packet) GetFirstSegment() Segment {
 	return Segment{pkt.Mbuf, pkt}
 }
 
-func (pkt Packet) GetSegment(i uint) (Segment, error) {
+func (pkt Packet) GetSegment(i int) (Segment, error) {
 	s := pkt.GetFirstSegment()
-	for j := uint(0); j < i; j++ {
+	for j := 0; j < i; j++ {
 		ok := false
 		s, ok = s.GetNext()
 		if !ok {
@@ -72,7 +72,7 @@ func (pkt Packet) AppendSegment(m Mbuf, tail *Segment) (Segment, error) {
 		return Segment{m, pkt}, nil
 	}
 
-	if pkt.CountSegments()+uint(m.ptr.nb_segs) > uint(C.RTE_MBUF_MAX_NB_SEGS) {
+	if C.uint16_t(pkt.CountSegments())+m.ptr.nb_segs > C.RTE_MBUF_MAX_NB_SEGS {
 		return Segment{}, errors.New("too many segments")
 	}
 
@@ -94,7 +94,7 @@ func (pkt Packet) AppendPacket(pkt2 Packet, tail *Segment) error {
 // Read len octets at offset.
 // buf: a buffer on C memory of at least len, for copying in case range is split between segments.
 // Return a C pointer to the octets, either in segment or copied.
-func (pkt Packet) Read(offset uint, len uint, buf unsafe.Pointer) (unsafe.Pointer, error) {
+func (pkt Packet) Read(offset int, len int, buf unsafe.Pointer) (unsafe.Pointer, error) {
 	res := C.rte_pktmbuf_read(pkt.ptr, C.uint32_t(offset), C.uint32_t(len), buf)
 	if res == nil {
 		return nil, errors.New("rte_pktmbuf_read out of range")
@@ -112,7 +112,7 @@ func NewPacketIterator(pkt Packet) PacketIterator {
 	return it
 }
 
-func NewPacketIteratorBounded(pkt Packet, off uint, len uint) PacketIterator {
+func NewPacketIteratorBounded(pkt Packet, off int, len int) PacketIterator {
 	it := NewPacketIterator(pkt)
 	it.Advance(off)
 	it.ml.rem = C.uint32_t(len)
@@ -135,15 +135,15 @@ func (it *PacketIterator) ComputeDistance(it2 *PacketIterator) int {
 	return int(C.MbufLoc_Diff(&it.ml, &it2.ml))
 }
 
-func (it *PacketIterator) Advance(n uint) uint {
-	return uint(C.MbufLoc_Advance(&it.ml, C.uint32_t(n)))
+func (it *PacketIterator) Advance(n int) int {
+	return int(C.MbufLoc_Advance(&it.ml, C.uint32_t(n)))
 }
 
-func (it *PacketIterator) Read(output []byte) uint {
+func (it *PacketIterator) Read(output []byte) int {
 	if len(output) == 0 {
 		return 0
 	}
-	return uint(C.MbufLoc_Read(&it.ml, unsafe.Pointer(&output[0]), C.uint32_t(len(output))))
+	return int(C.MbufLoc_Read(&it.ml, unsafe.Pointer(&output[0]), C.uint32_t(len(output))))
 }
 
 type Segment struct {
@@ -162,8 +162,8 @@ func (s Segment) GetNext() (Segment, bool) {
 	return Segment{Mbuf{next}, s.pkt}, next != nil
 }
 
-func (s Segment) Len() uint {
-	return uint(s.ptr.data_len)
+func (s Segment) Len() int {
+	return int(s.ptr.data_len)
 }
 
 // Get pointer to segment data.
@@ -171,11 +171,11 @@ func (s Segment) GetData() unsafe.Pointer {
 	return unsafe.Pointer(uintptr(s.ptr.buf_addr) + uintptr(s.ptr.data_off))
 }
 
-func (s Segment) GetHeadroom() uint {
-	return uint(C.rte_pktmbuf_headroom(s.ptr))
+func (s Segment) GetHeadroom() int {
+	return int(C.rte_pktmbuf_headroom(s.ptr))
 }
 
-func (s Segment) SetHeadroom(headroom uint) error {
+func (s Segment) SetHeadroom(headroom int) error {
 	if s.Len() > 0 {
 		return errors.New("cannot change headroom of non-empty segment")
 	}
@@ -186,13 +186,13 @@ func (s Segment) SetHeadroom(headroom uint) error {
 	return nil
 }
 
-func (s Segment) GetTailroom() uint {
-	return uint(C.rte_pktmbuf_tailroom(s.ptr))
+func (s Segment) GetTailroom() int {
+	return int(C.rte_pktmbuf_tailroom(s.ptr))
 }
 
 // Prepend len octets.
 // Return pointer to new space.
-func (s Segment) Prepend(len uint) (unsafe.Pointer, error) {
+func (s Segment) Prepend(len int) (unsafe.Pointer, error) {
 	if len > s.GetHeadroom() {
 		return nil, errors.New("insufficient headroom")
 	}
@@ -204,7 +204,7 @@ func (s Segment) Prepend(len uint) (unsafe.Pointer, error) {
 
 // Remove len octets from pkt.
 // Return pointer to new pkt.
-func (s Segment) Adj(len uint) (unsafe.Pointer, error) {
+func (s Segment) Adj(len int) (unsafe.Pointer, error) {
 	if len > s.Len() {
 		return nil, errors.New("segment shorter than adj amount")
 	}
@@ -216,7 +216,7 @@ func (s Segment) Adj(len uint) (unsafe.Pointer, error) {
 
 // Append len octets at tail.
 // Return pointer to new space.
-func (s Segment) Append(len uint) (unsafe.Pointer, error) {
+func (s Segment) Append(len int) (unsafe.Pointer, error) {
 	if len > s.GetTailroom() {
 		return nil, errors.New("insufficient tailroom")
 	}
@@ -228,7 +228,7 @@ func (s Segment) Append(len uint) (unsafe.Pointer, error) {
 }
 
 // Remove len octets from tail.
-func (s Segment) Trim(len uint) error {
+func (s Segment) Trim(len int) error {
 	if len > s.Len() {
 		return errors.New("segment shorter than trim amount")
 	}

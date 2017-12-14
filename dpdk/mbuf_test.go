@@ -140,7 +140,7 @@ func TestMbuf(t *testing.T) {
 		it0 := NewPacketIterator(pkt)
 		readBuf2 := make([]byte, 4)
 		readSuccessTests := []struct {
-			offset         uint
+			offset         int
 			shouldUseAlloc bool
 			expected       [4]byte
 		}{
