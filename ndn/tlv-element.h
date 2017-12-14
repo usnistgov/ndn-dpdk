@@ -4,6 +4,7 @@
 /// \file
 
 #include "tlv-decoder.h"
+#include "tlv-type.h"
 
 /** \brief TLV element
  */
@@ -22,7 +23,7 @@ static_assert(sizeof(TlvElement) <= RTE_CACHE_LINE_SIZE, ""); // keep it small
  *  \param[out] ele the element; will assign all fields except \p last.
  */
 static inline NdnError
-DecodeTlvHeader(MbufLoc* d, TlvElement* ele, size_t* len)
+DecodeTlvHeader(TlvDecoder* d, TlvElement* ele, size_t* len)
 {
   MbufLoc_Clone(&ele->first, d);
 
@@ -54,7 +55,7 @@ DecodeTlvHeader(MbufLoc* d, TlvElement* ele, size_t* len)
  *  \param[out] ele the element.
  */
 static inline NdnError
-DecodeTlvElement(MbufLoc* d, TlvElement* ele, size_t* len)
+DecodeTlvElement(TlvDecoder* d, TlvElement* ele, size_t* len)
 {
   NdnError e = DecodeTlvHeader(d, ele, len);
   if (e != NdnError_OK) {
@@ -69,6 +70,21 @@ DecodeTlvElement(MbufLoc* d, TlvElement* ele, size_t* len)
 
   MbufLoc_Clone(&ele->last, d);
   return NdnError_OK;
+}
+
+/** \brief Decode a TLV element of an expected type.
+ *
+ *  \retval NdnError_BadType TLV-TYPE does not equal \p expectedType.
+ */
+static inline NdnError
+DecodeTlvElementExpectType(TlvDecoder* d, uint64_t expectedType,
+                           TlvElement* ele, size_t* len)
+{
+  NdnError e = DecodeTlvElement(d, ele, len);
+  if (likely(e == NdnError_OK) && unlikely(ele->type != expectedType)) {
+    return NdnError_BadType;
+  }
+  return e;
 }
 
 /** \brief Create a decoder to decode the element's TLV-VALUE.

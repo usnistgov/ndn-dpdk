@@ -3,8 +3,10 @@ package ndn
 // This file contains test setup procedure and common test helper functions.
 
 import (
+	"encoding/hex"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"unsafe"
 
@@ -65,4 +67,12 @@ func packetFromBytes(input []byte) dpdk.Packet {
 	}
 
 	return pkt
+}
+
+func packetFromHex(input string) dpdk.Packet {
+	decoded, e := hex.DecodeString(strings.Replace(input, " ", "", -1))
+	if e != nil {
+		return dpdk.Packet{}
+	}
+	return packetFromBytes(decoded)
 }

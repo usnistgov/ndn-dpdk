@@ -2,3 +2,5 @@ OK
 Incomplete
 LengthOverflow
 BadType
+NameHasComponentAfterDigest
+BadDigestComponentLength

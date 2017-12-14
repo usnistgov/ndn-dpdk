@@ -140,6 +140,9 @@ func (it *PacketIterator) Advance(n uint) uint {
 }
 
 func (it *PacketIterator) Read(output []byte) uint {
+	if len(output) == 0 {
+		return 0
+	}
 	return uint(C.MbufLoc_Read(&it.ml, unsafe.Pointer(&output[0]), C.uint32_t(len(output))))
 }
 
