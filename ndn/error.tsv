@@ -4,3 +4,4 @@ LengthOverflow
 BadType
 NameHasComponentAfterDigest
 BadDigestComponentLength
+BadNonceLength

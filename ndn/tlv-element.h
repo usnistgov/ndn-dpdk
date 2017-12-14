@@ -30,17 +30,12 @@ DecodeTlvHeader(TlvDecoder* d, TlvElement* ele, size_t* len)
   size_t len1;
   NdnError e = DecodeVarNum(d, &ele->type, &len1);
   *len = len1;
-  if (e != NdnError_OK) {
-    // no 'unlikely' here: this can commonly occur when d starts at the end
-    return e;
-  }
+  RETURN_IF_ERROR; // not unlikely: this occurs when d starts at the end
 
   uint64_t tlvLength;
   e = DecodeVarNum(d, &tlvLength, &len1);
   *len += len1;
-  if (unlikely(e != NdnError_OK)) {
-    return e;
-  }
+  RETURN_IF_UNLIKELY_ERROR;
   if (unlikely(tlvLength > UINT32_MAX)) {
     return NdnError_LengthOverflow;
   }
@@ -58,9 +53,7 @@ static inline NdnError
 DecodeTlvElement(TlvDecoder* d, TlvElement* ele, size_t* len)
 {
   NdnError e = DecodeTlvHeader(d, ele, len);
-  if (e != NdnError_OK) {
-    return e;
-  }
+  RETURN_IF_ERROR;
 
   uint32_t n = MbufLoc_Advance(d, ele->length);
   *len += n;

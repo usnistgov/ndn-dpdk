@@ -60,6 +60,7 @@ MbufLoc_Advance(MbufLoc* ml, uint32_t n)
   if (n > ml->rem) {
     n = ml->rem;
   }
+  ml->rem -= n;
 
   uint32_t dist = 0;
   while (unlikely(ml->off + n >= ml->m->data_len)) {
@@ -128,16 +129,31 @@ MbufLoc_ReadU16(MbufLoc* ml, uint16_t* output)
   return sizeof(uint16_t) == MbufLoc_Read(ml, output, sizeof(uint16_t));
 }
 
-static inline uint32_t
+static inline bool
 MbufLoc_ReadU32(MbufLoc* ml, uint32_t* output)
 {
   return sizeof(uint32_t) == MbufLoc_Read(ml, output, sizeof(uint32_t));
 }
 
-static inline uint64_t
+static inline bool
 MbufLoc_ReadU64(MbufLoc* ml, uint64_t* output)
 {
   return sizeof(uint64_t) == MbufLoc_Read(ml, output, sizeof(uint64_t));
+}
+
+/** \brief Read the next octet without advancing the iterator.
+ *  \return the next octet
+ *  \retval -1 iterator is at the end
+ */
+static inline int
+MbufLoc_PeekOctet(const MbufLoc* ml)
+{
+  if (unlikely(MbufLoc_IsEnd(ml))) {
+    return -1;
+  }
+
+  uint8_t* data = rte_pktmbuf_mtod_offset(ml->m, uint8_t*, ml->off);
+  return *data;
 }
 
 #endif // NDN_

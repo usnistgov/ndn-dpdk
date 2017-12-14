@@ -22,6 +22,17 @@
  */
 typedef MbufLoc TlvDecoder;
 
+#define RETURN_IF_ERROR                                                        \
+  do {                                                                         \
+    if (e != NdnError_OK)                                                      \
+      return e;                                                                \
+  } while (false)
+#define RETURN_IF_UNLIKELY_ERROR                                               \
+  do {                                                                         \
+    if (unlikely(e != NdnError_OK))                                            \
+      return e;                                                                \
+  } while (false)
+
 NdnError __DecodeVarNum_MultiOctet(TlvDecoder* d, uint8_t firstOctet,
                                    uint64_t* n, size_t* len);
 

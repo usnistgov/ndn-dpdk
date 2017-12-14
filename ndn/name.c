@@ -5,22 +5,18 @@ DecodeName(TlvDecoder* d, Name* n, size_t* len)
 {
   TlvElement nameEle;
   NdnError e = DecodeTlvElementExpectType(d, TT_Name, &nameEle, len);
-  if (unlikely(e != NdnError_OK)) {
-    return e;
-  }
+  RETURN_IF_UNLIKELY_ERROR;
 
   TlvDecoder compsD;
   TlvElement_MakeValueDecoder(&nameEle, &compsD);
-  TlvElement compEle;
 
   n->digestPos.m = NULL;
   n->nComps = 0;
   while (!MbufLoc_IsEnd(&compsD)) {
+    TlvElement compEle;
     size_t compLen;
     e = DecodeTlvElement(&compsD, &compEle, &compLen);
-    if (unlikely(e != NdnError_OK)) {
-      return e;
-    }
+    RETURN_IF_UNLIKELY_ERROR;
     if (likely(n->nComps < NAME_MAX_INDEXED_COMPS)) {
       MbufLoc_Clone(&n->compPos[n->nComps], &compEle.first);
     }

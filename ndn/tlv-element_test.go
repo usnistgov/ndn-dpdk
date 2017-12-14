@@ -23,19 +23,20 @@ func TestReadTlvElement(t *testing.T) {
 	}
 	for _, tt := range tests {
 		pkt := packetFromBytes(tt.input)
-		require.Truef(pkt.IsValid(), "%v", tt.input)
+		require.True(pkt.IsValid(), tt.input)
 		defer pkt.Close()
 		d := NewTlvDecoder(pkt)
 
 		ele, length, e := d.ReadTlvElement()
 		if tt.ok {
-			assert.NoErrorf(e, "%v", tt.input)
-			assert.Equalf(len(tt.input), ele.Len(), "%v", tt.input)
-			assert.EqualValuesf(tt.ttype, ele.GetType(), "%v", tt.input)
-			assert.Equalf(tt.length, ele.GetLength(), "%v", tt.input)
-			assert.Equalf(len(tt.input), length, "%v", tt.input)
+			if assert.NoError(e, tt.input) {
+				assert.Equal(len(tt.input), ele.Len(), tt.input)
+				assert.EqualValues(tt.ttype, ele.GetType(), tt.input)
+				assert.Equal(tt.length, ele.GetLength(), tt.input)
+				assert.Equal(len(tt.input), length, tt.input)
+			}
 		} else {
-			assert.Error(e, "%v", tt.input)
+			assert.Error(e, tt.input)
 		}
 	}
 }

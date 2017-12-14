@@ -6,7 +6,7 @@ cd "$( dirname "${BASH_SOURCE[0]}" )"
   echo '#define NDN_TRAFFIC_DPDK_NDN_TLV_TYPE_H'
   echo
   echo 'typedef enum TlvType {'
-  awk '{ print "  TT_" $1 " = 0x" $2 "," }' tlv-type.tsv
+  awk  '{ print "  TT_" $1 " = 0x" $2 "," }' tlv-type.tsv
   echo '} TlvType;'
   echo
   echo '#endif // NDN_TRAFFIC_DPDK_NDN_TLV_TYPE_H'
@@ -25,7 +25,13 @@ cd "$( dirname "${BASH_SOURCE[0]}" )"
   echo
   echo 'func (tt TlvType) String() string {'
   echo '  switch tt {'
-  awk '{ print "  case TT_" $1 ": return \"" $2 "\""  }' tlv-type.tsv
+  awk  '{ if (!numberToType[$2]) {
+            numberToType[$2] = $1;
+            print "  case TT_" $1 ": return \"" $1 "\""
+          } else {
+            print "  // TT_" $1 " has same number as " numberToType[$2]
+          }
+        }' tlv-type.tsv
   echo '  }'
   echo '  return fmt.Sprintf("%d", tt)'
   echo '}'

@@ -15,6 +15,7 @@ func TestName(t *testing.T) {
 		hasDigest bool
 		str       string
 	}{
+		{"", false, 0, false, ""},
 		{"07 00", true, 0, false, "/"},
 		{"07 14 08 01 41 08 01 42 08 01 00 08 01 FF 80 01 41 08 00 08 01 2E", true, 7, false,
 			"/A/B/%00/%FF/128=A/.../...."},
@@ -27,19 +28,20 @@ func TestName(t *testing.T) {
 	}
 	for _, tt := range tests {
 		pkt := packetFromHex(tt.input)
-		require.Truef(pkt.IsValid(), "%v", tt.input)
+		require.True(pkt.IsValid(), tt.input)
 		defer pkt.Close()
 		d := NewTlvDecoder(pkt)
 
 		n, length, e := d.ReadName()
 		if tt.ok {
-			assert.NoErrorf(e, "%v", tt.input)
-			assert.EqualValuesf(pkt.Len(), length, "%v", tt.input)
-			assert.Equalf(tt.nComps, n.Len(), "%v", tt.input)
-			assert.Equalf(tt.hasDigest, n.HasDigest(), "%v", tt.input)
-			assert.Equalf(tt.str, n.String(), "%v", tt.input)
+			if assert.NoError(e, tt.input) {
+				assert.EqualValues(pkt.Len(), length, tt.input)
+				assert.Equal(tt.nComps, n.Len(), tt.input)
+				assert.Equal(tt.hasDigest, n.HasDigest(), tt.input)
+				assert.Equal(tt.str, n.String(), tt.input)
+			}
 		} else {
-			assert.Error(e, "%v", tt.input)
+			assert.Error(e, tt.input)
 		}
 	}
 }

@@ -3,3 +3,10 @@ Data 06
 Name 07
 GenericNameComponent 08
 ImplicitSha256DigestComponent 01
+Selectors 09
+MustBeFresh 12
+Nonce 0A
+InterestLifetime 0C
+ForwardingHint 1E
+Delegation 1F
+Preference 1E
