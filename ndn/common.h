@@ -2,6 +2,7 @@
 #define NDN_TRAFFIC_DPDK_NDN_COMMON_H
 
 #include "../common.h"
+#include <rte_byteorder.h>
 
 #include "../dpdk/mbuf.h"
 

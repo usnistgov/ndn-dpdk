@@ -48,6 +48,13 @@ func (ele *TlvElement) GetValue() []byte {
 	return b
 }
 
+// Interpret TLV-VALUE as NonNegativeInteger.
+func (ele *TlvElement) ReadNonNegativeInteger() (n uint64, ok bool) {
+	var v C.uint64_t
+	res := C.TlvElement_ReadNonNegativeInteger(&ele.c, &v)
+	return uint64(v), bool(res)
+}
+
 func (ele *TlvElement) String() string {
 	return fmt.Sprintf("%v(%d) %v", ele.GetType(), ele.GetLength(), ele.GetValue())
 }

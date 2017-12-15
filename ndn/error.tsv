@@ -5,3 +5,4 @@ BadType
 NameHasComponentAfterDigest
 BadDigestComponentLength
 BadNonceLength
+BadInterestLifetime

@@ -50,8 +50,12 @@ DecodeInterest(TlvDecoder* d, InterestPkt* interest, size_t* len)
     e = DecodeTlvElement(&d1, &lifetimeEle, &len1);
     RETURN_IF_UNLIKELY_ERROR;
 
-    // TODO read non negative integer
-    interest->lifetime = 500;
+    uint64_t lifetimeVal;
+    bool ok = TlvElement_ReadNonNegativeInteger(&lifetimeEle, &lifetimeVal);
+    if (unlikely(!ok) || lifetimeVal >= UINT32_MAX) {
+      return NdnError_BadInterestLifetime;
+    }
+    interest->lifetime = (uint32_t)lifetimeVal;
   }
 
   if (MbufLoc_PeekOctet(&d1) == TT_ForwardingHint) {

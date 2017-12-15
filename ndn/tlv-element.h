@@ -90,4 +90,56 @@ TlvElement_MakeValueDecoder(const TlvElement* ele, TlvDecoder* d)
   d->rem = ele->length;
 }
 
+/** \brief Interpret TLV-VALUE as NonNegativeInteger.
+ *  \param[out] n the number.
+ *  \return whether decoding succeeded
+ */
+static inline bool
+TlvElement_ReadNonNegativeInteger(const TlvElement* ele, uint64_t* n)
+{
+  TlvDecoder vd;
+  TlvElement_MakeValueDecoder(ele, &vd);
+
+  switch (ele->length) {
+    case 1: {
+      uint8_t v;
+      bool ok = MbufLoc_ReadU8(&vd, &v);
+      if (unlikely(!ok)) {
+        return false;
+      }
+      *n = v;
+      return true;
+    }
+    case 2: {
+      rte_be16_t v;
+      bool ok = MbufLoc_ReadU16(&vd, &v);
+      if (unlikely(!ok)) {
+        return false;
+      }
+      *n = rte_be_to_cpu_16(v);
+      return true;
+    }
+    case 4: {
+      rte_be32_t v;
+      bool ok = MbufLoc_ReadU32(&vd, &v);
+      if (unlikely(!ok)) {
+        return false;
+      }
+      *n = rte_be_to_cpu_32(v);
+      return true;
+    }
+    case 8: {
+      rte_be64_t v;
+      bool ok = MbufLoc_ReadU64(&vd, &v);
+      if (unlikely(!ok)) {
+        return false;
+      }
+      *n = rte_be_to_cpu_64(v);
+      return true;
+    }
+  }
+
+  return false;
+}
+
 #endif // NDN_TRAFFIC_DPDK_NDN_TLV_ELEMENT_H

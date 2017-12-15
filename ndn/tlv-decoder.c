@@ -1,5 +1,4 @@
 #include "tlv-decoder.h"
-#include <rte_byteorder.h>
 
 __rte_noinline NdnError
 __DecodeVarNum_MultiOctet(TlvDecoder* d, uint8_t firstOctet, uint64_t* n,
