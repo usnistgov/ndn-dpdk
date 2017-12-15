@@ -104,16 +104,20 @@ MbufLoc_FastDiff(const MbufLoc* a, const MbufLoc* b)
   return a->rem - b->rem;
 }
 
-extern uint32_t __MbufLoc_Read_MultiSeg(MbufLoc* ml, void* output, uint32_t n);
+uint32_t __MbufLoc_Read_MultiSeg(MbufLoc* ml, void* output, uint32_t n);
 
-/** \brief Copy next n octets, and advance the position.
- *  \return number of octets copied.
+/** \brief Read next n octets, and advance the position.
+ *  \param buf a buffer to copy octets into, used only if crossing segment boundary.
+ *  \param n requested length
+ *  \param[out] nRead actual length before reaching end or boundary
+ *  \return pointer to in-segment data or the buffer.
  */
-static inline uint32_t
-MbufLoc_Read(MbufLoc* ml, void* output, uint32_t n)
+static inline const uint8_t*
+MbufLoc_Read(MbufLoc* ml, void* buf, uint32_t n, uint32_t* nRead)
 {
   if (unlikely(MbufLoc_IsEnd(ml))) {
-    return 0;
+    *nRead = 0;
+    return buf;
   }
 
   if (n > ml->rem) {
@@ -126,36 +130,52 @@ MbufLoc_Read(MbufLoc* ml, void* output, uint32_t n)
 
   uint32_t last = ml->off + n;
   if (unlikely(last >= ml->m->data_len)) {
-    return __MbufLoc_Read_MultiSeg(ml, output, n);
+    *nRead = __MbufLoc_Read_MultiSeg(ml, buf, n);
+    return buf;
   }
 
-  rte_memcpy(output, data, n);
+  *nRead = n;
   ml->off = (uint16_t)last;
-  return n;
+  return data;
+}
+
+/** \brief Copy next n octets, and advance the position.
+ *  \return number of octets copied.
+ */
+static inline uint32_t
+MbufLoc_ReadTo(MbufLoc* ml, void* output, uint32_t n)
+{
+  uint32_t nRead;
+  const uint8_t* data = MbufLoc_Read(ml, output, n, &nRead);
+
+  if (likely(data != output)) {
+    rte_memcpy(output, data, nRead);
+  }
+  return nRead;
 }
 
 static inline bool
 MbufLoc_ReadU8(MbufLoc* ml, uint8_t* output)
 {
-  return sizeof(uint8_t) == MbufLoc_Read(ml, output, sizeof(uint8_t));
+  return sizeof(uint8_t) == MbufLoc_ReadTo(ml, output, sizeof(uint8_t));
 }
 
 static inline bool
 MbufLoc_ReadU16(MbufLoc* ml, uint16_t* output)
 {
-  return sizeof(uint16_t) == MbufLoc_Read(ml, output, sizeof(uint16_t));
+  return sizeof(uint16_t) == MbufLoc_ReadTo(ml, output, sizeof(uint16_t));
 }
 
 static inline bool
 MbufLoc_ReadU32(MbufLoc* ml, uint32_t* output)
 {
-  return sizeof(uint32_t) == MbufLoc_Read(ml, output, sizeof(uint32_t));
+  return sizeof(uint32_t) == MbufLoc_ReadTo(ml, output, sizeof(uint32_t));
 }
 
 static inline bool
 MbufLoc_ReadU64(MbufLoc* ml, uint64_t* output)
 {
-  return sizeof(uint64_t) == MbufLoc_Read(ml, output, sizeof(uint64_t));
+  return sizeof(uint64_t) == MbufLoc_ReadTo(ml, output, sizeof(uint64_t));
 }
 
 /** \brief Read the next octet without advancing the iterator.

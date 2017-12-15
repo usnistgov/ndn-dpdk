@@ -143,7 +143,7 @@ func (it *PacketIterator) Read(output []byte) int {
 	if len(output) == 0 {
 		return 0
 	}
-	return int(C.MbufLoc_Read(&it.ml, unsafe.Pointer(&output[0]), C.uint32_t(len(output))))
+	return int(C.MbufLoc_ReadTo(&it.ml, unsafe.Pointer(&output[0]), C.uint32_t(len(output))))
 }
 
 type Segment struct {

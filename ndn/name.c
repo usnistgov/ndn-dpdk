@@ -79,20 +79,21 @@ Name_Compare(const Name* lhs, const Name* rhs)
     return NAMECMP_RPREFIX;
   }
 
-  MbufLoc ml;
-  MbufLoc_Copy(&ml, &lhs->compPos[0]);
-  size_t nRead =
-    MbufLoc_Read(&ml, RTE_PER_LCORE(nameCompBufA).buf, lhs->nOctets);
-  assert(nRead == lhs->nOctets);
-  MbufLoc_Copy(&ml, &rhs->compPos[0]);
-  nRead = MbufLoc_Read(&ml, RTE_PER_LCORE(nameCompBufB).buf, rhs->nOctets);
-  assert(nRead == rhs->nOctets);
-  // TODO don't copy in MbufLoc_Read if whole name is in same segment
+  MbufLoc mlL, mlR;
+  MbufLoc_Copy(&mlL, &lhs->compPos[0]);
+  MbufLoc_Copy(&mlR, &rhs->compPos[0]);
+
+  uint32_t nReadL, nReadR;
+  const uint8_t* compBufL =
+    MbufLoc_Read(&mlL, RTE_PER_LCORE(nameCompBufA).buf, lhs->nOctets, &nReadL);
+  const uint8_t* compBufR =
+    MbufLoc_Read(&mlR, RTE_PER_LCORE(nameCompBufB).buf, rhs->nOctets, &nReadR);
+  assert(nReadL == lhs->nOctets);
+  assert(nReadR == rhs->nOctets);
 
   uint16_t minOctets =
     lhs->nOctets <= rhs->nOctets ? lhs->nOctets : rhs->nOctets;
-  int cmp = memcmp(RTE_PER_LCORE(nameCompBufA).buf,
-                   RTE_PER_LCORE(nameCompBufB).buf, minOctets);
+  int cmp = memcmp(compBufL, compBufR, minOctets);
   if (cmp != 0) {
     return ((cmp > 0) - (cmp < 0)) << 1;
   }
