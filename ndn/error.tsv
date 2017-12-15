@@ -2,6 +2,7 @@ OK
 Incomplete
 LengthOverflow
 BadType
+NameTooLong
 NameHasComponentAfterDigest
 BadDigestComponentLength
 BadNonceLength

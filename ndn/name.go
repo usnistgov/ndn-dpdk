@@ -43,7 +43,22 @@ func (n *Name) GetCompAsElement(i int) (ele TlvElement) {
 	return ele
 }
 
-func (n *Name) String() string {
+type NameCompareResult int
+
+const (
+	NAMECMP_LT      NameCompareResult = -2 // n is less than, but not a prefix of n2
+	NAMECMP_LPREFIX                   = -1 ///< n is a prefix of n2
+	NAMECMP_EQUAL                     = 0  ///< n and n2 are equal
+	NAMECMP_RPREFIX                   = 1  ///< n2 is a prefix of n
+	NAMECMP_GT                        = 2  ///< n2 is less than, but not a prefix of n
+)
+
+// Compare two names for <, ==, >, and prefix relations.
+func (n *Name) Compare(n2 Name) NameCompareResult {
+	return NameCompareResult(C.Name_Compare(&n.c, &n2.c))
+}
+
+func (n Name) String() string {
 	if n.Len() == 0 {
 		return "/"
 	}

@@ -26,10 +26,6 @@ func (data *DataPkt) GetName() *Name {
 	return (*Name)(unsafe.Pointer(&data.c.name))
 }
 
-func (data *DataPkt) ComputeDigest() []byte {
-	panic("not implemented")
-}
-
 func (data *DataPkt) GetFreshnessPeriod() time.Duration {
 	return time.Duration(data.c.freshnessPeriod) * time.Millisecond
 }

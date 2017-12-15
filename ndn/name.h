@@ -5,7 +5,11 @@
 
 #include "tlv-element.h"
 
-/** \brief maximum number of name components
+/** \brief maximum supported name length (TLV-LENGTH of Name element)
+ */
+#define NAME_MAX_LENGTH 2048
+
+/** \brief maximum number of name components for efficient processing
  */
 #define NAME_MAX_INDEXED_COMPS 14
 
@@ -16,6 +20,7 @@
  */
 typedef struct Name
 {
+  uint16_t nOctets;                        ///< TLV-LENGTH of Name element
   uint16_t nComps;                         ///< number of components
   MbufLoc compPos[NAME_MAX_INDEXED_COMPS]; ///< start position of components
   MbufLoc digestPos; ///< start position of implicit digest component
@@ -71,9 +76,22 @@ Name_GetComp(const Name* n, uint16_t i, TlvElement* ele)
 
   TlvDecoder d;
   MbufLoc_Copy(&d, &n->compPos[i]);
-  size_t len;
   NdnError e = DecodeTlvElement(&d, ele);
   assert(e == NdnError_OK); // cannot error in valid name
 }
+
+/** \brief Indicate the result of name comparison.
+ */
+typedef enum NameCompareResult {
+  NAMECMP_LT = -2,      ///< \p lhs is less than, but not a prefix of \p rhs
+  NAMECMP_LPREFIX = -1, ///< \p lhs is a prefix of \p rhs
+  NAMECMP_EQUAL = 0,    ///< \p lhs and \p rhs are equal
+  NAMECMP_RPREFIX = 1,  ///< \p rhs is a prefix of \p lhs
+  NAMECMP_GT = 2        ///< \p rhs is less than, but not a prefix of \p lhs
+} NameCompareResult;
+
+/** \brief Compare two names.
+ */
+NameCompareResult Name_Compare(const Name* lhs, const Name* rhs);
 
 #endif // NDN_TRAFFIC_DPDK_NDN_NAME_H
