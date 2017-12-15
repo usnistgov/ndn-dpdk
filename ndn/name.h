@@ -26,7 +26,7 @@ static_assert(sizeof(Name) <= 4 * RTE_CACHE_LINE_SIZE, "");
  *  \param[out] n the name.
  *  \retval NdnError_NameHasComponentAfterDigest unexpected non-digest component after digest.
  */
-NdnError DecodeName(TlvDecoder* d, Name* n, size_t* len);
+NdnError DecodeName(TlvDecoder* d, Name* n);
 
 /** \brief Test whether a name contains an implicit digest component.
  */
@@ -72,7 +72,7 @@ Name_GetComp(const Name* n, uint16_t i, TlvElement* ele)
   TlvDecoder d;
   MbufLoc_Copy(&d, &n->compPos[i]);
   size_t len;
-  NdnError e = DecodeTlvElement(&d, ele, &len);
+  NdnError e = DecodeTlvElement(&d, ele);
   assert(e == NdnError_OK); // cannot error in valid name
 }
 

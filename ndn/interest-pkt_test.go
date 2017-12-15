@@ -36,10 +36,9 @@ func TestInterest(t *testing.T) {
 		defer pkt.Close()
 		d := NewTlvDecoder(pkt)
 
-		interest, length, e := d.ReadInterest()
+		interest, e := d.ReadInterest()
 		if tt.ok {
 			if assert.NoError(e, tt.input) {
-				assert.EqualValues(pkt.Len(), length, tt.input)
 				assert.Equal(tt.name, interest.GetName().String(), tt.input)
 				assert.Equal(tt.mustBeFresh, interest.HasMustBeFresh(), tt.input)
 				assert.Condition(checkNonce(interest.GetNonce()), tt.input)

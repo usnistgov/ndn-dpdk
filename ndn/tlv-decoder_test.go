@@ -32,11 +32,10 @@ func TestReadVarNum(t *testing.T) {
 		defer pkt.Close()
 		d := NewTlvDecoder(pkt)
 
-		v, length, e := d.ReadVarNum()
+		v, e := d.ReadVarNum()
 		if tt.ok {
 			if assert.NoError(e, tt.input) {
 				assert.Equal(tt.output, v, tt.input)
-				assert.EqualValues(len(tt.input), length, tt.input)
 			}
 		} else {
 			assert.Error(e, tt.input)

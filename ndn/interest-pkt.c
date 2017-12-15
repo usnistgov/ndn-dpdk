@@ -1,10 +1,10 @@
 #include "interest-pkt.h"
 
 NdnError
-DecodeInterest(TlvDecoder* d, InterestPkt* interest, size_t* len)
+DecodeInterest(TlvDecoder* d, InterestPkt* interest)
 {
   TlvElement interestEle;
-  NdnError e = DecodeTlvElementExpectType(d, TT_Interest, &interestEle, len);
+  NdnError e = DecodeTlvElementExpectType(d, TT_Interest, &interestEle);
   RETURN_IF_UNLIKELY_ERROR;
 
   memset(interest, 0, sizeof(InterestPkt));
@@ -12,21 +12,20 @@ DecodeInterest(TlvDecoder* d, InterestPkt* interest, size_t* len)
 
   TlvDecoder d1;
   TlvElement_MakeValueDecoder(&interestEle, &d1);
-  size_t len1;
 
-  e = DecodeName(&d1, &interest->name, &len1);
+  e = DecodeName(&d1, &interest->name);
   RETURN_IF_UNLIKELY_ERROR;
 
   if (MbufLoc_PeekOctet(&d1) == TT_Selectors) {
     TlvElement selectorsEle;
-    e = DecodeTlvElement(&d1, &selectorsEle, &len1);
+    e = DecodeTlvElement(&d1, &selectorsEle);
     RETURN_IF_UNLIKELY_ERROR;
 
     TlvDecoder d2;
     TlvElement_MakeValueDecoder(&selectorsEle, &d2);
     while (!MbufLoc_IsEnd(&d2)) {
       TlvElement selectorEle;
-      e = DecodeTlvElement(&d2, &selectorEle, &len1);
+      e = DecodeTlvElement(&d2, &selectorEle);
       RETURN_IF_UNLIKELY_ERROR;
 
       if (selectorEle.type != TT_MustBeFresh) {
@@ -37,7 +36,7 @@ DecodeInterest(TlvDecoder* d, InterestPkt* interest, size_t* len)
   }
 
   TlvElement nonceEle;
-  e = DecodeTlvElementExpectType(&d1, TT_Nonce, &nonceEle, &len1);
+  e = DecodeTlvElementExpectType(&d1, TT_Nonce, &nonceEle);
   RETURN_IF_UNLIKELY_ERROR;
   if (unlikely(nonceEle.length != sizeof(uint32_t))) {
     return NdnError_BadNonceLength;
@@ -47,7 +46,7 @@ DecodeInterest(TlvDecoder* d, InterestPkt* interest, size_t* len)
 
   if (MbufLoc_PeekOctet(&d1) == TT_InterestLifetime) {
     TlvElement lifetimeEle;
-    e = DecodeTlvElement(&d1, &lifetimeEle, &len1);
+    e = DecodeTlvElement(&d1, &lifetimeEle);
     RETURN_IF_UNLIKELY_ERROR;
 
     uint64_t lifetimeVal;
@@ -60,7 +59,7 @@ DecodeInterest(TlvDecoder* d, InterestPkt* interest, size_t* len)
 
   if (MbufLoc_PeekOctet(&d1) == TT_ForwardingHint) {
     TlvElement fhEle;
-    e = DecodeTlvElement(&d1, &fhEle, &len1);
+    e = DecodeTlvElement(&d1, &fhEle);
     RETURN_IF_UNLIKELY_ERROR;
 
     TlvDecoder d2;
@@ -70,15 +69,15 @@ DecodeInterest(TlvDecoder* d, InterestPkt* interest, size_t* len)
         break;
       }
       TlvElement delegationEle;
-      e = DecodeTlvElementExpectType(&d2, TT_Delegation, &delegationEle, &len1);
+      e = DecodeTlvElementExpectType(&d2, TT_Delegation, &delegationEle);
       RETURN_IF_UNLIKELY_ERROR;
 
       TlvDecoder d3;
       TlvElement_MakeValueDecoder(&delegationEle, &d3);
       TlvElement preferenceEle;
-      e = DecodeTlvElementExpectType(&d3, TT_Preference, &preferenceEle, &len1);
+      e = DecodeTlvElementExpectType(&d3, TT_Preference, &preferenceEle);
       RETURN_IF_UNLIKELY_ERROR;
-      e = DecodeName(&d3, &interest->fwHints[i], &len1);
+      e = DecodeName(&d3, &interest->fwHints[i]);
       RETURN_IF_UNLIKELY_ERROR;
       ++interest->nFwHints;
     }

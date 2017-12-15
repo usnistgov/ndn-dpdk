@@ -21,11 +21,10 @@ func (d *TlvDecoder) getPtr() *C.TlvDecoder {
 }
 
 // Decode a TLV-TYPE or TLV-LENGTH number.
-func (d *TlvDecoder) ReadVarNum() (v uint64, length int, e error) {
-	var lengthC C.size_t
-	res := C.DecodeVarNum(d.getPtr(), (*C.uint64_t)(&v), &lengthC)
+func (d *TlvDecoder) ReadVarNum() (v uint64, e error) {
+	res := C.DecodeVarNum(d.getPtr(), (*C.uint64_t)(&v))
 	if res != C.NdnError_OK {
-		return 0, 0, NdnError(res)
+		return 0, NdnError(res)
 	}
-	return v, int(lengthC), nil
+	return v, nil
 }

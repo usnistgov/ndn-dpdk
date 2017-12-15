@@ -14,13 +14,12 @@ type InterestPkt struct {
 }
 
 // Decode an Interest.
-func (d *TlvDecoder) ReadInterest() (interest InterestPkt, length int, e error) {
-	var lengthC C.size_t
-	res := C.DecodeInterest(d.getPtr(), &interest.c, &lengthC)
+func (d *TlvDecoder) ReadInterest() (interest InterestPkt, e error) {
+	res := C.DecodeInterest(d.getPtr(), &interest.c)
 	if res != C.NdnError_OK {
-		return InterestPkt{}, 0, NdnError(res)
+		return InterestPkt{}, NdnError(res)
 	}
-	return interest, int(lengthC), nil
+	return interest, nil
 }
 
 func (interest *InterestPkt) GetName() *Name {

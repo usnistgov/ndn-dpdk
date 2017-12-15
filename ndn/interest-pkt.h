@@ -29,7 +29,7 @@ static_assert(sizeof(Name) <= 4 * RTE_CACHE_LINE_SIZE, "");
  *  \note Selectors other than MustBeFresh are silently ignored.
  *  \note Forwarding hints in excess of INTEREST_MAX_FORWARDING_HINTS are silently ignored.
  */
-NdnError DecodeInterest(TlvDecoder* d, InterestPkt* interest, size_t* len);
+NdnError DecodeInterest(TlvDecoder* d, InterestPkt* interest);
 
 /** \brief Get the Nonce in network byte order.
  */

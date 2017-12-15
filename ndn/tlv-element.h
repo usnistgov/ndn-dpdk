@@ -23,24 +23,21 @@ static_assert(sizeof(TlvElement) <= RTE_CACHE_LINE_SIZE, ""); // keep it small
  *  \param[out] ele the element; will assign all fields except \p last.
  */
 static inline NdnError
-DecodeTlvHeader(TlvDecoder* d, TlvElement* ele, size_t* len)
+DecodeTlvHeader(TlvDecoder* d, TlvElement* ele)
 {
   MbufLoc_Copy(&ele->first, d);
 
-  size_t len1;
-  NdnError e = DecodeVarNum(d, &ele->type, &len1);
-  *len = len1;
+  NdnError e = DecodeVarNum(d, &ele->type);
   RETURN_IF_ERROR; // not unlikely: this occurs when d starts at the end
 
   uint64_t tlvLength;
-  e = DecodeVarNum(d, &tlvLength, &len1);
-  *len += len1;
+  e = DecodeVarNum(d, &tlvLength);
   RETURN_IF_UNLIKELY_ERROR;
   if (unlikely(tlvLength > UINT32_MAX)) {
     return NdnError_LengthOverflow;
   }
   ele->length = (uint32_t)tlvLength;
-  ele->size = *len + ele->length;
+  ele->size = MbufLoc_FastDiff(&ele->first, d) + ele->length;
 
   MbufLoc_Copy(&ele->value, d);
   return NdnError_OK;
@@ -50,13 +47,12 @@ DecodeTlvHeader(TlvDecoder* d, TlvElement* ele, size_t* len)
  *  \param[out] ele the element.
  */
 static inline NdnError
-DecodeTlvElement(TlvDecoder* d, TlvElement* ele, size_t* len)
+DecodeTlvElement(TlvDecoder* d, TlvElement* ele)
 {
-  NdnError e = DecodeTlvHeader(d, ele, len);
+  NdnError e = DecodeTlvHeader(d, ele);
   RETURN_IF_ERROR;
 
   uint32_t n = MbufLoc_Advance(d, ele->length);
-  *len += n;
   if (unlikely(n != ele->length)) {
     return NdnError_Incomplete;
   }
@@ -71,9 +67,9 @@ DecodeTlvElement(TlvDecoder* d, TlvElement* ele, size_t* len)
  */
 static inline NdnError
 DecodeTlvElementExpectType(TlvDecoder* d, uint64_t expectedType,
-                           TlvElement* ele, size_t* len)
+                           TlvElement* ele)
 {
-  NdnError e = DecodeTlvElement(d, ele, len);
+  NdnError e = DecodeTlvElement(d, ele);
   if (likely(e == NdnError_OK) && unlikely(ele->type != expectedType)) {
     return NdnError_BadType;
   }

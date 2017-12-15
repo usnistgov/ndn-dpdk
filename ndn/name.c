@@ -1,10 +1,10 @@
 #include "name.h"
 
 NdnError
-DecodeName(TlvDecoder* d, Name* n, size_t* len)
+DecodeName(TlvDecoder* d, Name* n)
 {
   TlvElement nameEle;
-  NdnError e = DecodeTlvElementExpectType(d, TT_Name, &nameEle, len);
+  NdnError e = DecodeTlvElementExpectType(d, TT_Name, &nameEle);
   RETURN_IF_UNLIKELY_ERROR;
 
   TlvDecoder compsD;
@@ -14,8 +14,7 @@ DecodeName(TlvDecoder* d, Name* n, size_t* len)
   n->nComps = 0;
   while (!MbufLoc_IsEnd(&compsD)) {
     TlvElement compEle;
-    size_t compLen;
-    e = DecodeTlvElement(&compsD, &compEle, &compLen);
+    e = DecodeTlvElement(&compsD, &compEle);
     RETURN_IF_UNLIKELY_ERROR;
     if (likely(n->nComps < NAME_MAX_INDEXED_COMPS)) {
       MbufLoc_Copy(&n->compPos[n->nComps], &compEle.first);
@@ -46,8 +45,7 @@ __Name_GetComp_PastIndexed(const Name* n, uint16_t i, TlvElement* ele)
   uint16_t j = NAME_MAX_INDEXED_COMPS - 1;
   MbufLoc_Copy(&d, &n->compPos[j]);
   for (; j <= i; ++j) {
-    size_t len;
-    NdnError e = DecodeTlvElement(&d, ele, &len);
+    NdnError e = DecodeTlvElement(&d, ele);
     assert(e == NdnError_OK); // cannot error in valid name
   }
 

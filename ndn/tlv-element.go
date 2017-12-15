@@ -14,13 +14,12 @@ type TlvElement struct {
 }
 
 // Decode a TLV element.
-func (d *TlvDecoder) ReadTlvElement() (ele TlvElement, length int, e error) {
-	var lengthC C.size_t
-	res := C.DecodeTlvElement(d.getPtr(), &ele.c, &lengthC)
+func (d *TlvDecoder) ReadTlvElement() (ele TlvElement, e error) {
+	res := C.DecodeTlvElement(d.getPtr(), &ele.c)
 	if res != C.NdnError_OK {
-		return TlvElement{}, 0, NdnError(res)
+		return TlvElement{}, NdnError(res)
 	}
-	return ele, int(lengthC), nil
+	return ele, nil
 }
 
 // Get total length.

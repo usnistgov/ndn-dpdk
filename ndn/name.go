@@ -15,13 +15,12 @@ type Name struct {
 }
 
 // Decode a name.
-func (d *TlvDecoder) ReadName() (n Name, length int, e error) {
-	var lengthC C.size_t
-	res := C.DecodeName(d.getPtr(), &n.c, &lengthC)
+func (d *TlvDecoder) ReadName() (n Name, e error) {
+	res := C.DecodeName(d.getPtr(), &n.c)
 	if res != C.NdnError_OK {
-		return Name{}, 0, NdnError(res)
+		return Name{}, NdnError(res)
 	}
-	return n, int(lengthC), nil
+	return n, nil
 }
 
 // Get number of name components.

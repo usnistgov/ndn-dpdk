@@ -1,8 +1,7 @@
 #include "tlv-decoder.h"
 
 __rte_noinline NdnError
-__DecodeVarNum_MultiOctet(TlvDecoder* d, uint8_t firstOctet, uint64_t* n,
-                          size_t* len)
+__DecodeVarNum_MultiOctet(TlvDecoder* d, uint8_t firstOctet, uint64_t* n)
 {
   if (unlikely(MbufLoc_IsEnd(d))) {
     return NdnError_Incomplete;
@@ -15,7 +14,6 @@ __DecodeVarNum_MultiOctet(TlvDecoder* d, uint8_t firstOctet, uint64_t* n,
       if (unlikely(!ok)) {
         return NdnError_Incomplete;
       }
-      *len = 3;
       *n = rte_be_to_cpu_16(v);
       break;
     }
@@ -25,7 +23,6 @@ __DecodeVarNum_MultiOctet(TlvDecoder* d, uint8_t firstOctet, uint64_t* n,
       if (unlikely(!ok)) {
         return NdnError_Incomplete;
       }
-      *len = 5;
       *n = rte_be_to_cpu_32(v);
       break;
     }
@@ -35,7 +32,6 @@ __DecodeVarNum_MultiOctet(TlvDecoder* d, uint8_t firstOctet, uint64_t* n,
       if (unlikely(!ok)) {
         return NdnError_Incomplete;
       }
-      *len = 9;
       *n = rte_be_to_cpu_64(v);
       break;
     }

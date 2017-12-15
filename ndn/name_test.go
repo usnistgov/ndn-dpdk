@@ -32,10 +32,9 @@ func TestName(t *testing.T) {
 		defer pkt.Close()
 		d := NewTlvDecoder(pkt)
 
-		n, length, e := d.ReadName()
+		n, e := d.ReadName()
 		if tt.ok {
 			if assert.NoError(e, tt.input) {
-				assert.EqualValues(pkt.Len(), length, tt.input)
 				assert.Equal(tt.nComps, n.Len(), tt.input)
 				assert.Equal(tt.hasDigest, n.HasDigest(), tt.input)
 				assert.Equal(tt.str, n.String(), tt.input)

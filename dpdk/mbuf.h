@@ -87,6 +87,23 @@ MbufLoc_Advance(MbufLoc* ml, uint32_t n)
  */
 ptrdiff_t MbufLoc_Diff(const MbufLoc* a, const MbufLoc* b);
 
+/** \brief Determine the distance in octets from a to b.
+ *
+ *  This is faster than MbufLoc_Diff, but it requires \p a to be a copy of \p b at an earlier time.
+ *  \code
+ *  // initialize b
+ *  MbufLoc a;
+ *  MbufLoc_Copy(&a, &b);
+ *  // advance or read from b
+ *  uint32_t diff = MbufLoc_FastDiff(a, b);
+ *  \endcode
+ */
+static inline uint32_t
+MbufLoc_FastDiff(const MbufLoc* a, const MbufLoc* b)
+{
+  return a->rem - b->rem;
+}
+
 extern uint32_t __MbufLoc_Read_MultiSeg(MbufLoc* ml, void* output, uint32_t n);
 
 /** \brief Copy next n octets, and advance the position.

@@ -36,10 +36,9 @@ func TestTlvElement(t *testing.T) {
 		defer pkt.Close()
 		d := NewTlvDecoder(pkt)
 
-		ele, length, e := d.ReadTlvElement()
+		ele, e := d.ReadTlvElement()
 		if tt.ok {
 			if assert.NoError(e, tt.input) {
-				assert.Equal(pkt.Len(), length, tt.input)
 				assert.Equal(pkt.Len(), ele.Len(), tt.input)
 				assert.EqualValues(tt.ttype, ele.GetType(), tt.input)
 				assert.Equal(tt.length, ele.GetLength(), tt.input)

@@ -5,7 +5,6 @@
  *
  *  \par Common parameters of decoding functions:
  *  \param[inout] d the decoder.
- *  \param[out] len total length of decoded item.
  *
  *  \par Common return values of decoding functions:
  *  \retval NdnError_OK successful; decoder is advanced past end of decoded item.
@@ -34,13 +33,13 @@ typedef MbufLoc TlvDecoder;
   } while (false)
 
 NdnError __DecodeVarNum_MultiOctet(TlvDecoder* d, uint8_t firstOctet,
-                                   uint64_t* n, size_t* len);
+                                   uint64_t* n);
 
 /** \brief Decode a TLV-TYPE or TLV-LENGTH number.
  *  \param[out] n the number.
  */
 static inline NdnError
-DecodeVarNum(TlvDecoder* d, uint64_t* n, size_t* len)
+DecodeVarNum(TlvDecoder* d, uint64_t* n)
 {
   if (unlikely(MbufLoc_IsEnd(d))) {
     return NdnError_Incomplete;
@@ -53,10 +52,9 @@ DecodeVarNum(TlvDecoder* d, uint64_t* n, size_t* len)
   }
 
   if (unlikely(firstOctet >= 253)) {
-    return __DecodeVarNum_MultiOctet(d, firstOctet, n, len);
+    return __DecodeVarNum_MultiOctet(d, firstOctet, n);
   }
 
-  *len = 1;
   *n = firstOctet;
   return NdnError_OK;
 }
