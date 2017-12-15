@@ -23,11 +23,12 @@ func TestInterest(t *testing.T) {
 		fwHints     []string
 	}{
 		{"", false, "", false, 0, nil},
-		{"0508 0700 0A04CACBCCCD", true, "/", false, 4000, nil},
-		{"050E 0706080141080142 0A04CACBCCCD", true, "/A/B", false, 4000, nil},
-		{"0515 0700 090B 0D0101 0E0101 110101 1200 0A04CACBCCCD", true, "/", true, 4000, nil},
-		{"050B 0700 0A04CACBCCCD 0C01FF", true, "/", false, 255, nil},
-		{"0514 0700 0A04CACBCCCD 1E0A 1F08 1E0100 0703080147", true,
+		{"0508 name=0700 nonce=0A04CACBCCCD", true, "/", false, 4000, nil},
+		{"050E name=0706080141080142 nonce=0A04CACBCCCD", true, "/A/B", false, 4000, nil},
+		{"0515 name=0700 selectors=090B 0D0101 0E0101 110101 1200 nonce=0A04CACBCCCD", true,
+			"/", true, 4000, nil},
+		{"050B name=0700 nonce=0A04CACBCCCD lifetime=0C01FF", true, "/", false, 255, nil},
+		{"0514 name=0700 nonce=0A04CACBCCCD fwhint=1E0A (del=1F08 pref=1E0100 name=0703080147)", true,
 			"/", false, 4000, []string{"/G"}},
 	}
 	for _, tt := range tests {

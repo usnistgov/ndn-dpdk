@@ -8,26 +8,26 @@ func TestReadVarNum(t *testing.T) {
 	assert, require := makeAR(t)
 
 	tests := []struct {
-		input  []byte
+		input  string
 		ok     bool
 		output uint64
 	}{
-		{[]byte{}, false, 0},
-		{[]byte{0x00}, true, 0x00},
-		{[]byte{0xFC}, true, 0xFC},
-		{[]byte{0xFD}, false, 0},
-		{[]byte{0xFD, 0x00}, false, 0},
-		{[]byte{0xFD, 0x01, 0x00}, true, 0x0100},
-		{[]byte{0xFD, 0xFF, 0xFF}, true, 0xFFFF},
-		{[]byte{0xFE, 0x00, 0x00, 0x00}, false, 0},
-		{[]byte{0xFE, 0x01, 0x00, 0x00, 0x00}, true, 0x01000000},
-		{[]byte{0xFE, 0xFF, 0xFF, 0xFF, 0xFF}, true, 0xFFFFFFFF},
-		{[]byte{0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, false, 0},
-		{[]byte{0xFF, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, true, 0x0100000000000000},
-		{[]byte{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}, true, 0xFFFFFFFFFFFFFFFF},
+		{"", false, 0},
+		{"00", true, 0x00},
+		{"FC", true, 0xFC},
+		{"FD", false, 0},
+		{"FD 00", false, 0},
+		{"FD 01 00", true, 0x0100},
+		{"FD FF FF", true, 0xFFFF},
+		{"FE 00 00 00", false, 0},
+		{"FE 01 00 00 00", true, 0x01000000},
+		{"FE FF FF FF FF", true, 0xFFFFFFFF},
+		{"FF 00 00 00 00 00 00 00", false, 0},
+		{"FF 01 00 00 00 00 00 00 00", true, 0x0100000000000000},
+		{"FF FF FF FF FF FF FF FF FF", true, 0xFFFFFFFFFFFFFFFF},
 	}
 	for _, tt := range tests {
-		pkt := packetFromBytes(tt.input)
+		pkt := packetFromHex(tt.input)
 		require.True(pkt.IsValid(), tt.input)
 		defer pkt.Close()
 		d := NewTlvDecoder(pkt)

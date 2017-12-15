@@ -15,11 +15,11 @@ func TestTlvElement(t *testing.T) {
 		length      int
 		expectedNNI uint64
 	}{
-		{"", false, 0, 0, NOT_NNI},                              // empty
-		{"01", false, 0, 0, NOT_NNI},                            // missing TLV-LENGTH
-		{"01 01", false, 0, 0, NOT_NNI},                         // incomplete TLV-VALUE
-		{"01 00", true, 0x01, 0x00, NOT_NNI},                    // zero TLV-LENGTH
-		{"01 FF 01 00 00 00 00 00 00 00", false, 0, 0, NOT_NNI}, // TLV-LENGTH overflow
+		{"", false, 0, 0, NOT_NNI},           // empty
+		{"01", false, 0, 0, NOT_NNI},         // missing TLV-LENGTH
+		{"01 01", false, 0, 0, NOT_NNI},      // incomplete TLV-VALUE
+		{"01 00", true, 0x01, 0x00, NOT_NNI}, // zero TLV-LENGTH
+		{"01 FF 00", false, 0, 0, NOT_NNI},   // TLV-LENGTH overflow
 		{"01 01 01", true, 0x01, 0x01, 0x01},
 		{"01 02 A0A1", true, 0x01, 0x02, 0xA0A1},
 		{"01 03 A0A1A2", true, 0x01, 0x03, NOT_NNI},

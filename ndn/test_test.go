@@ -69,8 +69,17 @@ func packetFromBytes(input []byte) dpdk.Packet {
 	return pkt
 }
 
+// Make packet from hexadecimal string.
+// The octets must be written as upper case.
+// All characters other than [0-9A-F] are considered as comments and stripped.
 func packetFromHex(input string) dpdk.Packet {
-	decoded, e := hex.DecodeString(strings.Replace(input, " ", "", -1))
+	s := strings.Map(func(ch rune) rune {
+		if strings.ContainsRune("0123456789ABCDEF", ch) {
+			return ch
+		}
+		return -1
+	}, input)
+	decoded, e := hex.DecodeString(s)
 	if e != nil {
 		return dpdk.Packet{}
 	}
