@@ -37,7 +37,7 @@ static inline uint32_t
 InterestPkt_GetNonce(const InterestPkt* interest)
 {
   MbufLoc ml;
-  MbufLoc_Clone(&ml, &interest->nonce);
+  MbufLoc_Copy(&ml, &interest->nonce);
 
   uint32_t nonce;
   bool ok = MbufLoc_ReadU32(&ml, &nonce);

@@ -25,7 +25,7 @@ static_assert(sizeof(TlvElement) <= RTE_CACHE_LINE_SIZE, ""); // keep it small
 static inline NdnError
 DecodeTlvHeader(TlvDecoder* d, TlvElement* ele, size_t* len)
 {
-  MbufLoc_Clone(&ele->first, d);
+  MbufLoc_Copy(&ele->first, d);
 
   size_t len1;
   NdnError e = DecodeVarNum(d, &ele->type, &len1);
@@ -42,7 +42,7 @@ DecodeTlvHeader(TlvDecoder* d, TlvElement* ele, size_t* len)
   ele->length = (uint32_t)tlvLength;
   ele->size = *len + ele->length;
 
-  MbufLoc_Clone(&ele->value, d);
+  MbufLoc_Copy(&ele->value, d);
   return NdnError_OK;
 }
 
@@ -61,7 +61,7 @@ DecodeTlvElement(TlvDecoder* d, TlvElement* ele, size_t* len)
     return NdnError_Incomplete;
   }
 
-  MbufLoc_Clone(&ele->last, d);
+  MbufLoc_Copy(&ele->last, d);
   return NdnError_OK;
 }
 
@@ -86,7 +86,7 @@ DecodeTlvElementExpectType(TlvDecoder* d, uint64_t expectedType,
 static inline void
 TlvElement_MakeValueDecoder(const TlvElement* ele, TlvDecoder* d)
 {
-  MbufLoc_Clone(d, &ele->value);
+  MbufLoc_Copy(d, &ele->value);
   d->rem = ele->length;
 }
 

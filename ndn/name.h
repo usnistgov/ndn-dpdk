@@ -48,12 +48,12 @@ Name_GetCompPos(const Name* n, uint16_t i, MbufLoc* pos)
   assert(i < n->nComps);
 
   if (likely(i < NAME_MAX_INDEXED_COMPS)) {
-    return MbufLoc_Clone(pos, &n->compPos[i]);
+    return MbufLoc_Copy(pos, &n->compPos[i]);
   }
 
   TlvElement ele;
   __Name_GetComp_PastIndexed(n, i, &ele);
-  MbufLoc_Clone(pos, &ele.first);
+  MbufLoc_Copy(pos, &ele.first);
 }
 
 /** \brief Parse i-th name component.
@@ -70,7 +70,7 @@ Name_GetComp(const Name* n, uint16_t i, TlvElement* ele)
   }
 
   TlvDecoder d;
-  MbufLoc_Clone(&d, &n->compPos[i]);
+  MbufLoc_Copy(&d, &n->compPos[i]);
   size_t len;
   NdnError e = DecodeTlvElement(&d, ele, &len);
   assert(e == NdnError_OK); // cannot error in valid name

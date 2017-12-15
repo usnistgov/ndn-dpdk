@@ -42,7 +42,7 @@ DecodeInterest(TlvDecoder* d, InterestPkt* interest, size_t* len)
   if (unlikely(nonceEle.length != sizeof(uint32_t))) {
     return NdnError_BadNonceLength;
   }
-  MbufLoc_Clone(&interest->nonce, &nonceEle.value);
+  MbufLoc_Copy(&interest->nonce, &nonceEle.value);
   interest->nonce.rem = sizeof(uint32_t);
 
   if (MbufLoc_PeekOctet(&d1) == TT_InterestLifetime) {

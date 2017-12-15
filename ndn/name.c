@@ -18,14 +18,14 @@ DecodeName(TlvDecoder* d, Name* n, size_t* len)
     e = DecodeTlvElement(&compsD, &compEle, &compLen);
     RETURN_IF_UNLIKELY_ERROR;
     if (likely(n->nComps < NAME_MAX_INDEXED_COMPS)) {
-      MbufLoc_Clone(&n->compPos[n->nComps], &compEle.first);
+      MbufLoc_Copy(&n->compPos[n->nComps], &compEle.first);
     }
 
     if (unlikely(compEle.type == TT_ImplicitSha256DigestComponent)) {
       if (compEle.length != 32) {
         return NdnError_BadDigestComponentLength;
       }
-      MbufLoc_Clone(&n->digestPos, &compEle.first);
+      MbufLoc_Copy(&n->digestPos, &compEle.first);
     } else if (unlikely(n->digestPos.m != NULL)) {
       return NdnError_NameHasComponentAfterDigest;
     }
@@ -44,7 +44,7 @@ __Name_GetComp_PastIndexed(const Name* n, uint16_t i, TlvElement* ele)
 
   TlvDecoder d;
   uint16_t j = NAME_MAX_INDEXED_COMPS - 1;
-  MbufLoc_Clone(&d, &n->compPos[j]);
+  MbufLoc_Copy(&d, &n->compPos[j]);
   for (; j <= i; ++j) {
     size_t len;
     NdnError e = DecodeTlvElement(&d, ele, &len);

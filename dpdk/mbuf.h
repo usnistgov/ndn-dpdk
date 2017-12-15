@@ -34,7 +34,7 @@ MbufLoc_Init(MbufLoc* ml, const struct rte_mbuf* pkt)
 /** \brief Copy MbufLoc \p src to \p dst.
  */
 static inline void
-MbufLoc_Clone(MbufLoc* dst, const MbufLoc* src)
+MbufLoc_Copy(MbufLoc* dst, const MbufLoc* src)
 {
   rte_memcpy(dst, src, sizeof(*dst));
 }
