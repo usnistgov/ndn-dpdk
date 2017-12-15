@@ -1,5 +1,5 @@
-#ifndef NDN_TRAFFIC_DPDK_NDN_INTEREST_H
-#define NDN_TRAFFIC_DPDK_NDN_INTEREST_H
+#ifndef NDN_TRAFFIC_DPDK_NDN_INTEREST_PKT_H
+#define NDN_TRAFFIC_DPDK_NDN_INTEREST_PKT_H
 
 /// \file
 
@@ -17,12 +17,11 @@ typedef struct InterestPkt
 {
   Name name;
   Name fwHints[INTEREST_MAX_FORWARDING_HINTS];
-  MbufLoc nonce;     ///< start position of Nonce TLV-VALUE
+  MbufLoc nonce;     ///< start position and boundary of Nonce TLV-VALUE
   uint32_t lifetime; ///< InterestLifetime in mills
   uint8_t nFwHints;  ///< number of forwarding hints decoded in .fwHints
   bool mustBeFresh;  ///< has MustBeFresh?
 } InterestPkt;
-static_assert(sizeof(Name) <= 4 * RTE_CACHE_LINE_SIZE, "");
 
 /** \brief Decode an Interest.
  *  \param[out] interest the Interest.
@@ -47,4 +46,4 @@ InterestPkt_GetNonce(const InterestPkt* interest)
 
 void InterestPkt_SetNonce(InterestPkt* interest, uint32_t nonce);
 
-#endif // NDN_TRAFFIC_DPDK_NDN_INTEREST_H
+#endif // NDN_TRAFFIC_DPDK_NDN_INTEREST_PKT_H

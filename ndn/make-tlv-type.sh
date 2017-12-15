@@ -6,7 +6,7 @@ cd "$( dirname "${BASH_SOURCE[0]}" )"
   echo '#define NDN_TRAFFIC_DPDK_NDN_TLV_TYPE_H'
   echo
   echo 'typedef enum TlvType {'
-  awk  '{ print "  TT_" $1 " = 0x" $2 "," }' tlv-type.tsv
+  awk  'NF==2 { print "  TT_" $1 " = 0x" $2 "," }' tlv-type.tsv
   echo '} TlvType;'
   echo
   echo '#endif // NDN_TRAFFIC_DPDK_NDN_TLV_TYPE_H'
@@ -20,12 +20,13 @@ cd "$( dirname "${BASH_SOURCE[0]}" )"
   echo 'type TlvType uint64'
   echo
   echo 'const ('
-  awk '{ print "TT_" $1 " TlvType = 0x" $2  }' tlv-type.tsv
+  awk 'NF==2 { print "TT_" $1 " TlvType = 0x" $2  }' tlv-type.tsv
   echo ')'
   echo
   echo 'func (tt TlvType) String() string {'
   echo '  switch tt {'
-  awk  '{ if (!numberToType[$2]) {
+  awk  'NF==2 {
+          if (!numberToType[$2]) {
             numberToType[$2] = $1;
             print "  case TT_" $1 ": return \"" $1 "\""
           } else {

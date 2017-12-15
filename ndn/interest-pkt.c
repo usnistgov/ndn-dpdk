@@ -32,6 +32,7 @@ DecodeInterest(TlvDecoder* d, InterestPkt* interest)
         continue; // ignore unknown selector
       }
       interest->mustBeFresh = true;
+      break;
     }
   }
 
@@ -41,8 +42,7 @@ DecodeInterest(TlvDecoder* d, InterestPkt* interest)
   if (unlikely(nonceEle.length != sizeof(uint32_t))) {
     return NdnError_BadNonceLength;
   }
-  MbufLoc_Copy(&interest->nonce, &nonceEle.value);
-  interest->nonce.rem = sizeof(uint32_t);
+  TlvElement_MakeValueDecoder(&nonceEle, &interest->nonce);
 
   if (MbufLoc_PeekOctet(&d1) == TT_InterestLifetime) {
     TlvElement lifetimeEle;
@@ -89,5 +89,6 @@ DecodeInterest(TlvDecoder* d, InterestPkt* interest)
 void
 InterestPkt_SetNonce(InterestPkt* interest, uint32_t nonce)
 {
+  assert(false);
   // TODO
 }
