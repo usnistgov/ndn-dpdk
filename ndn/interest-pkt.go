@@ -13,6 +13,11 @@ type InterestPkt struct {
 	c C.InterestPkt
 }
 
+// Test whether the decoder may contain an Interest.
+func (d *TlvDecoder) IsInterest() bool {
+	return d.it.PeekOctet() == int(TT_Interest)
+}
+
 // Decode an Interest.
 func (d *TlvDecoder) ReadInterest() (interest InterestPkt, e error) {
 	res := C.DecodeInterest(d.getPtr(), &interest.c)

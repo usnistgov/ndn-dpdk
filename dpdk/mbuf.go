@@ -146,6 +146,12 @@ func (it *PacketIterator) Read(output []byte) int {
 	return int(C.MbufLoc_ReadTo(&it.ml, unsafe.Pointer(&output[0]), C.uint32_t(len(output))))
 }
 
+// Peek next octet.
+// Return -1 if end of packet.
+func (it *PacketIterator) PeekOctet() int {
+	return int(C.MbufLoc_PeekOctet(&it.ml))
+}
+
 type Segment struct {
 	Mbuf
 	pkt Packet

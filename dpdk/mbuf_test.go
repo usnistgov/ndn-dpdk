@@ -172,6 +172,7 @@ func TestMbuf(t *testing.T) {
 			assert.EqualValuesf(tt.offset, it0.ComputeDistance(&it),
 				"it0.ComputeDistance(it.Advance(%d)) is wrong", tt.offset)
 
+			assert.EqualValuesf(tt.expected[0], it.PeekOctet(), "%d it.PeekOctet() is wrong", tt.offset)
 			nRead := it.Read(readBuf2[:])
 			assert.EqualValuesf(4, nRead, "%d it.Read() has wrong length", tt.offset)
 			assert.Equalf(tt.expected[:], readBuf2, "%d it.Read() returns wrong bytes", tt.offset)
@@ -181,6 +182,7 @@ func TestMbuf(t *testing.T) {
 		assert.EqualValues(4, it2.Read(readBuf2[:]))
 		assert.EqualValues(2, it2.Read(readBuf2[:]))
 		assert.EqualValues(0, it2.Read(readBuf2[:]))
+		assert.Equal(-1, it2.PeekOctet())
 
 		it2 = NewPacketIteratorBounded(pkt, 495, 6)
 		assert.EqualValues(3, it2.Advance(3))

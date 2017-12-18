@@ -13,6 +13,11 @@ type DataPkt struct {
 	c C.DataPkt
 }
 
+// Test whether the decoder may contain a Data.
+func (d *TlvDecoder) IsData() bool {
+	return d.it.PeekOctet() == int(TT_Data)
+}
+
 // Decode a Data.
 func (d *TlvDecoder) ReadData() (data DataPkt, e error) {
 	res := C.DecodeData(d.getPtr(), &data.c)

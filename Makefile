@@ -2,6 +2,9 @@ PROJNAME=ndn-dpdk
 
 all: go-dpdk go-ndn
 
+cmd-%: cmd/%/* go-dpdk go-ndn
+	go install ./cmd/$*
+
 go-dpdk: dpdk/*.go
 	go build ./dpdk
 
