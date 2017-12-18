@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"ndn-traffic-dpdk/dpdk"
+	"ndn-dpdk/dpdk"
 )
 
 func TestName(t *testing.T) {

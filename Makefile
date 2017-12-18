@@ -1,4 +1,4 @@
-PROJNAME=ndn-traffic-dpdk
+PROJNAME=ndn-dpdk
 
 all: go-dpdk go-ndn
 

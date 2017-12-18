@@ -5,7 +5,7 @@ package ndn
 */
 import "C"
 import (
-	"ndn-traffic-dpdk/dpdk"
+	"ndn-dpdk/dpdk"
 )
 
 type TlvDecoder struct {

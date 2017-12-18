@@ -8,7 +8,7 @@ for T in */*/; do
   EXECUTABLE=integ_$(echo $T | sed 's~/~_~')
   echo -e '\033[0;36m'EXEC $T'\033[0m'
   rm -f /tmp/$EXECUTABLE
-  go build -o /tmp/$EXECUTABLE ndn-traffic-dpdk/integ/$T
+  go build -o /tmp/$EXECUTABLE ndn-dpdk/integ/$T
   if sudo /tmp/$EXECUTABLE; then
     echo -e '\033[0;32m'PASS $T'\033[0m'
     NPASSES=$((NPASSES+1))

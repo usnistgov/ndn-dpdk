@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"ndn-traffic-dpdk/dpdk"
-	"ndn-traffic-dpdk/integ"
+	"ndn-dpdk/dpdk"
+	"ndn-dpdk/integ"
 	"time"
 )
 

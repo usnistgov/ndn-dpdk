@@ -2,7 +2,7 @@
 PKG=$1
 
 BUILDDIR=build-c/$PKG
-LIBNANE=build-c/libndn-traffic-dpdk-$PKG.a
+LIBNANE=build-c/libndn-dpdk-$PKG.a
 CFLAGS='-m64 -pthread -O3 -march=native -I/usr/local/include/dpdk'
 
 mkdir -p $BUILDDIR
