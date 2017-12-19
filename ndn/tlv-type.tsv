@@ -1,3 +1,12 @@
+LpPacket 64
+LpPayload 50
+LpSeqNo 51
+FragIndex 52
+FragCount 53
+Nack 0320
+NackReason 0321
+CongestionMark 0340
+
 Name 07
 GenericNameComponent 08
 ImplicitSha256DigestComponent 01

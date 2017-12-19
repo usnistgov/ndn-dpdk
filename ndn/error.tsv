@@ -2,6 +2,8 @@ OK
 Incomplete
 LengthOverflow
 BadType
+UnknownCriticalLpHeader
+FragIndexExceedFragCount
 NameTooLong
 NameHasComponentAfterDigest
 BadDigestComponentLength
