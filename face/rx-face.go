@@ -14,10 +14,6 @@ type RxFace struct {
 	c C.RxFace
 }
 
-func RxFace_GetPktPrivSize() uint16 {
-	return uint16(C.RxFace_GetPktPrivSize())
-}
-
 func NewRxFace(q dpdk.EthRxQueue) RxFace {
 	face := RxFace{}
 	face.c.port = C.uint16_t(q.GetPort())

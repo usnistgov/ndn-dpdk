@@ -11,6 +11,12 @@ import (
 	"ndn-dpdk/ndn"
 )
 
+// Get size of PacketPriv structure.
+// PktmbufPool's privSize must be no less than this size.
+func SizeofPacketPriv() uint16 {
+	return uint16(C.sizeof_PacketPriv)
+}
+
 type NdnPktType int
 
 const (

@@ -17,15 +17,6 @@ typedef struct RxFace
   uint64_t nDataPkts;     ///< number of Data decoded
 } RxFace;
 
-static inline uint16_t
-RxFace_GetPktPrivSize()
-{
-  return sizeof(union {
-    InterestPkt i;
-    DataPkt d;
-  });
-}
-
 /** \brief Receive and decode a burst of packet.
  *  \param face the face
  *  \param pkts array of packet pointers

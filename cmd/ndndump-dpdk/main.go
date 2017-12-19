@@ -66,7 +66,7 @@ func makeMempool(socket dpdk.NumaSocket) dpdk.PktmbufPool {
 
 	mpName := fmt.Sprintf("MP_%d", socket)
 	mp, e := dpdk.NewPktmbufPool(mpName, MP_CAPACITY, MP_CACHE,
-		face.RxFace_GetPktPrivSize(), MP_DATAROOM, socket)
+		face.SizeofPacketPriv(), MP_DATAROOM, socket)
 	if e != nil {
 		log.Printf("NewPktmbufPool(%d): %v", socket, e)
 		os.Exit(EXIT_DPDK_ERROR)

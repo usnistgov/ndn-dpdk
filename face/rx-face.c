@@ -47,6 +47,55 @@ RxFace_ProcessData(RxFace* face, struct rte_mbuf* pkt, TlvDecoder* d)
   return ok;
 }
 
+static inline bool
+RxFace_ProcessNetPkt(RxFace* face, struct rte_mbuf* pkt, TlvDecoder* d,
+                     uint8_t firstOctet)
+{
+  if (firstOctet == TT_Interest) {
+    return RxFace_ProcessInterest(face, pkt, d);
+  }
+  if (firstOctet == TT_Data) {
+    return RxFace_ProcessData(face, pkt, d);
+  }
+  return false;
+}
+
+static inline struct rte_mbuf*
+RxFace_ProcessLpPkt(RxFace* face, struct rte_mbuf* pkt, TlvDecoder* d)
+{
+  // To accommodate reassembly, this function may return a different (reassembled) rte_mbuf to
+  // replace the input packet. The reassembler can also retain the LP fragment and return NULL.
+  // This function internally frees invalid mbufs.
+
+  LpPkt* lpp = Packet_GetLpHdr(pkt);
+  NdnError e = DecodeLpPkt(d, lpp);
+  if (unlikely(e != NdnError_OK)) {
+    rte_pktmbuf_free(pkt);
+    return NULL;
+  }
+
+  if (LpPkt_HasPayload(lpp)) {
+    if (LpPkt_IsFragmented(lpp)) {
+      // TODO reassemble
+      rte_pktmbuf_free(pkt);
+      return NULL;
+    }
+
+    rte_pktmbuf_adj(pkt, lpp->payloadOff);
+    TlvDecoder d1;
+    MbufLoc_Init(&d1, pkt);
+    bool res = RxFace_ProcessNetPkt(face, pkt, &d1, MbufLoc_PeekOctet(&d1));
+    if (likely(res)) {
+      return pkt;
+    }
+    rte_pktmbuf_free(pkt);
+    return NULL;
+  }
+
+  rte_pktmbuf_free(pkt);
+  return NULL;
+}
+
 uint16_t
 RxFace_RxBurst(RxFace* face, struct rte_mbuf** pkts, uint16_t nPkts)
 {
@@ -58,16 +107,13 @@ RxFace_RxBurst(RxFace* face, struct rte_mbuf** pkts, uint16_t nPkts)
     if (ok) {
       TlvDecoder d;
       MbufLoc_Init(&d, pkt);
+      uint8_t firstOctet = MbufLoc_PeekOctet(&d);
 
-      switch (MbufLoc_PeekOctet(&d)) {
-        case TT_Interest: {
-          ok = RxFace_ProcessInterest(face, pkt, &d);
-          break;
-        }
-        case TT_Data: {
-          ok = RxFace_ProcessData(face, pkt, &d);
-          break;
-        }
+      if (firstOctet == TT_LpPacket) {
+        pkts[i] = RxFace_ProcessLpPkt(face, pkt, &d);
+        ok = true;
+      } else {
+        ok = RxFace_ProcessNetPkt(face, pkt, &d, firstOctet);
       }
     }
 

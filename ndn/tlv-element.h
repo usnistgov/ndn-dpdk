@@ -17,7 +17,6 @@ typedef struct TlvElement
   MbufLoc value;   ///< TLV-VALUE position
   MbufLoc last;    ///< past end position
 } TlvElement;
-static_assert(sizeof(TlvElement) <= RTE_CACHE_LINE_SIZE, ""); // keep it small
 
 /** \brief Decode a TLV header including TLV-TYPE and TLV-LENGTH but excluding TLV-VALUE.
  *  \param[out] ele the element; will assign all fields except \p last.

@@ -8,11 +8,10 @@
 /** \brief Indicate packet type.
  *
  *  NdnPktType is stored in rte_mbuf.inner_l4_type field.
- *  It reflects what is stored in MbufPriv area.
+ *  It reflects what is stored in \p PacketPriv.
  */
 typedef enum NdnPktType {
   NdnPktType_None,
-  NdnPktType_Lp,
   NdnPktType_Interest,
   NdnPktType_Data,
   NdnPktType_Nack
@@ -34,13 +33,31 @@ Packet_SetNdnPktType(struct rte_mbuf* pkt, NdnPktType t)
   pkt->inner_l4_type = t;
 }
 
+/** \brief Information stored in rte_mbuf private area.
+ */
+typedef struct PacketPriv
+{
+  LpPkt lp;
+  union
+  {
+    InterestPkt interest;
+    DataPkt data;
+  };
+} PacketPriv;
+
+static inline LpPkt*
+Packet_GetLpHdr(struct rte_mbuf* pkt)
+{
+  return MbufPriv(pkt, LpPkt*, offsetof(PacketPriv, lp));
+}
+
 /** \brief Access InterestPkt* header.
  */
 static inline InterestPkt*
 Packet_GetInterestHdr(struct rte_mbuf* pkt)
 {
   assert(Packet_GetNdnPktType(pkt) == NdnPktType_Interest);
-  return MbufPriv(pkt, InterestPkt*, 0);
+  return MbufPriv(pkt, InterestPkt*, offsetof(PacketPriv, interest));
 }
 
 /** \brief Access DataPkt* header
@@ -49,7 +66,7 @@ static inline DataPkt*
 Packet_GetDataHdr(struct rte_mbuf* pkt)
 {
   assert(Packet_GetNdnPktType(pkt) == NdnPktType_Data);
-  return MbufPriv(pkt, DataPkt*, 0);
+  return MbufPriv(pkt, DataPkt*, offsetof(PacketPriv, data));
 }
 
 #endif // NDN_DPDK_FACE_PACKET_H

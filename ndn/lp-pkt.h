@@ -14,9 +14,9 @@ typedef struct LpPkt
   uint16_t fragCount;
   uint8_t nackReason;
   uint8_t congMark;
-  MbufLoc payload; // start position and boundary of payload
+  uint16_t payloadOff; ///< offset of payload
+  MbufLoc payload;     ///< start position and boundary of payload
 } LpPkt;
-static_assert(sizeof(LpPkt) <= RTE_CACHE_LINE_SIZE, "");
 
 /** \brief Decode an LpPacket.
  *  \param[out] lpp the LpPacket.

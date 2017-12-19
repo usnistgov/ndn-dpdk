@@ -23,8 +23,9 @@ DecodeLpPkt(TlvDecoder* d, LpPkt* lpp)
   while ((e = DecodeTlvElement(&d1, &hdrEle)) == NdnError_OK) {
     switch (hdrEle.type) {
       case TT_LpPayload:
+        lpp->payloadOff = lppEle.size - hdrEle.length;
         TlvElement_MakeValueDecoder(&hdrEle, &lpp->payload);
-        break;
+        goto FOUND_PAYLOAD;
       case TT_LpSeqNo:
         // NDNLPv2 spec defines SeqNo as "fixed-width unsigned integer",
         // but ndn-cxx implements it as nonNegativeInteger.
@@ -86,6 +87,7 @@ DecodeLpPkt(TlvDecoder* d, LpPkt* lpp)
     }
   }
 
+FOUND_PAYLOAD:;
   if (unlikely(!MbufLoc_IsEnd(&d1))) {
     return e;
   }
