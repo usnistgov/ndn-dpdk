@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"ndn-dpdk/dpdk"
-	"ndn-dpdk/ndn"
+	"ndn-dpdk/face"
 )
 
 // exit codes
@@ -26,7 +26,7 @@ const (
 
 var eal *dpdk.Eal
 var mempools = make(map[dpdk.NumaSocket]dpdk.PktmbufPool)
-var portRxQueues = make(map[dpdk.EthDev]dpdk.EthRxQueue)
+var rxFaces = make(map[dpdk.EthDev]face.RxFace)
 
 func main() {
 	eal, e := dpdk.NewEal(os.Args)
@@ -42,7 +42,7 @@ func main() {
 	}
 
 	for _, port := range ports {
-		portRxQueues[port] = initEthDev(port)
+		rxFaces[port] = initEthDev(port)
 	}
 
 	for i, port := range ports {
@@ -65,7 +65,8 @@ func makeMempool(socket dpdk.NumaSocket) dpdk.PktmbufPool {
 	}
 
 	mpName := fmt.Sprintf("MP_%d", socket)
-	mp, e := dpdk.NewPktmbufPool(mpName, MP_CAPACITY, MP_CACHE, 0, MP_DATAROOM, socket)
+	mp, e := dpdk.NewPktmbufPool(mpName, MP_CAPACITY, MP_CACHE,
+		face.RxFace_GetPktPrivSize(), MP_DATAROOM, socket)
 	if e != nil {
 		log.Printf("NewPktmbufPool(%d): %v", socket, e)
 		os.Exit(EXIT_DPDK_ERROR)
@@ -74,7 +75,7 @@ func makeMempool(socket dpdk.NumaSocket) dpdk.PktmbufPool {
 	return mp
 }
 
-func initEthDev(port dpdk.EthDev) dpdk.EthRxQueue {
+func initEthDev(port dpdk.EthDev) face.RxFace {
 	socket := port.GetNumaSocket()
 	mp := makeMempool(socket)
 
@@ -94,48 +95,37 @@ func initEthDev(port dpdk.EthDev) dpdk.EthRxQueue {
 		os.Exit(EXIT_DPDK_ERROR)
 	}
 
-	return rxQueues[0]
+	return face.NewRxFace(rxQueues[0])
 }
 
 func slaveProc(port dpdk.EthDev) int {
 	log.Printf("Processing %s on slave %d", port.GetName(), dpdk.GetCurrentLCore())
-	rxq := portRxQueues[port]
+	iface := rxFaces[port]
 	logger := log.New(os.Stdout, port.GetName()+" ", log.LstdFlags)
 
-	pkts := make([]dpdk.Packet, RX_BURST_SIZE)
+	pkts := make([]face.Packet, RX_BURST_SIZE)
 	for {
-		burstSize := rxq.RxBurst(pkts)
+		burstSize := iface.RxBurst(pkts)
 		for _, pkt := range pkts[:burstSize] {
+			if !pkt.IsValid() {
+				logger.Printf("invalid")
+				continue
+			}
 			processPacket(logger, pkt)
+			pkt.Close()
 		}
 	}
 
 	return 0
 }
 
-func processPacket(logger *log.Logger, pkt dpdk.Packet) {
-	defer pkt.Close()
-
-	const ETHER_HDR_LEN = 14
-	const MIN_NDN_PKT_LEN = 4
-	if pkt.Len() < ETHER_HDR_LEN+MIN_NDN_PKT_LEN {
-		return
-	}
-	pkt.GetFirstSegment().Adj(ETHER_HDR_LEN)
-
-	d := ndn.NewTlvDecoder(pkt)
-	switch {
-	case d.IsInterest():
-		interest, e := d.ReadInterest()
-		if e != nil {
-			return
-		}
+func processPacket(logger *log.Logger, pkt face.Packet) {
+	switch pkt.GetNetType() {
+	case face.NdnNetType_Interest:
+		interest := pkt.AsInterest()
 		logger.Printf("I %s", interest.GetName())
-	case d.IsData():
-		data, e := d.ReadData()
-		if e != nil {
-			return
-		}
+	case face.NdnNetType_Data:
+		data := pkt.AsData()
 		logger.Printf("D %s", data.GetName())
 	}
 }

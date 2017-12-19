@@ -1,17 +1,15 @@
-PROJNAME=ndn-dpdk
+all: go-dpdk go-ndn go-face
 
-all: go-dpdk go-ndn
-
-cmd-%: cmd/%/* go-dpdk go-ndn
+cmd-%: cmd/%/* go-dpdk go-ndn go-face
 	go install ./cmd/$*
 
 go-dpdk: dpdk/*.go
 	go build ./dpdk
 
-build-c/lib$(PROJNAME)-dpdk.a: dpdk/*.c
+build-c/libndn-dpdk-dpdk.a: dpdk/*.c
 	./build-c.sh dpdk
 
-go-ndn: ndn/*.go ndn/error.go ndn/tlv-type.go build-c/lib$(PROJNAME)-dpdk.a
+go-ndn: go-dpdk ndn/*.go ndn/error.go ndn/tlv-type.go build-c/libndn-dpdk-dpdk.a
 	go build ./ndn
 
 ndn/error.go ndn/error.h: ndn/make-error.sh ndn/error.tsv
@@ -19,6 +17,12 @@ ndn/error.go ndn/error.h: ndn/make-error.sh ndn/error.tsv
 
 ndn/tlv-type.go ndn/tlv-type.h: ndn/make-tlv-type.sh ndn/tlv-type.tsv
 	ndn/make-tlv-type.sh
+
+build-c/libndn-dpdk-ndn.a: ndn/*.c ndn/error.h ndn/tlv-type.h
+	./build-c.sh ndn
+
+go-face: go-ndn face/*.go build-c/libndn-dpdk-dpdk.a build-c/libndn-dpdk-ndn.a
+	go build ./face
 
 test:
 	./gotest.sh dpdk

@@ -175,6 +175,14 @@ type EthRxQueue struct {
 	queue C.uint16_t
 }
 
+func (q EthRxQueue) GetPort() uint16 {
+	return uint16(q.port)
+}
+
+func (q EthRxQueue) GetQueue() uint16 {
+	return uint16(q.queue)
+}
+
 // Retrieve a burst of input packets.
 // Return the number of packets received and written into pkts.
 func (q EthRxQueue) RxBurst(pkts []Packet) int {
@@ -186,6 +194,14 @@ func (q EthRxQueue) RxBurst(pkts []Packet) int {
 type EthTxQueue struct {
 	port  C.uint16_t
 	queue C.uint16_t
+}
+
+func (q EthTxQueue) GetPort() uint16 {
+	return uint16(q.port)
+}
+
+func (q EthTxQueue) GetQueue() uint16 {
+	return uint16(q.queue)
 }
 
 // Send a burst of output packets.

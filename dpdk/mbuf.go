@@ -14,6 +14,11 @@ type Mbuf struct {
 	// DO NOT add other fields: *Mbuf is passed to C code as rte_mbuf**
 }
 
+// Get native *C.struct_rte_mbuf pointer to use in other packages.
+func (m Mbuf) GetPtr() unsafe.Pointer {
+	return unsafe.Pointer(m.ptr)
+}
+
 func (m Mbuf) IsValid() bool {
 	return m.ptr != nil
 }
