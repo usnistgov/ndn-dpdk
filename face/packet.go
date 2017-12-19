@@ -11,13 +11,13 @@ import (
 	"ndn-dpdk/ndn"
 )
 
-type NdnNetType int
+type NdnPktType int
 
 const (
-	NdnNetType_None     NdnNetType = C.NdnNetType_None
-	NdnNetType_Interest            = C.NdnNetType_Interest
-	NdnNetType_Data                = C.NdnNetType_Data
-	NdnNetType_Nack                = C.NdnNetType_Nack
+	NdnPktType_None     NdnPktType = C.NdnPktType_None
+	NdnPktType_Interest            = C.NdnPktType_Interest
+	NdnPktType_Data                = C.NdnPktType_Data
+	NdnPktType_Nack                = C.NdnPktType_Nack
 )
 
 type Packet struct {
@@ -28,8 +28,8 @@ func (pkt Packet) getPtr() *C.struct_rte_mbuf {
 	return (*C.struct_rte_mbuf)(pkt.GetPtr())
 }
 
-func (pkt Packet) GetNetType() NdnNetType {
-	return NdnNetType(C.Packet_GetNdnNetType(pkt.getPtr()))
+func (pkt Packet) GetNetType() NdnPktType {
+	return NdnPktType(C.Packet_GetNdnPktType(pkt.getPtr()))
 }
 
 func (pkt Packet) AsInterest() *ndn.InterestPkt {

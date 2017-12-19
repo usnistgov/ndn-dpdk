@@ -26,7 +26,7 @@ RxFace_ProcessFrame(RxFace* face, struct rte_mbuf* pkt)
 static inline bool
 RxFace_ProcessInterest(RxFace* face, struct rte_mbuf* pkt, TlvDecoder* d)
 {
-  Packet_SetNdnNetType(pkt, NdnNetType_Interest);
+  Packet_SetNdnPktType(pkt, NdnPktType_Interest);
   InterestPkt* interest = Packet_GetInterestHdr(pkt);
   NdnError e = DecodeInterest(d, interest);
 
@@ -38,7 +38,7 @@ RxFace_ProcessInterest(RxFace* face, struct rte_mbuf* pkt, TlvDecoder* d)
 static inline bool
 RxFace_ProcessData(RxFace* face, struct rte_mbuf* pkt, TlvDecoder* d)
 {
-  Packet_SetNdnNetType(pkt, NdnNetType_Data);
+  Packet_SetNdnPktType(pkt, NdnPktType_Data);
   DataPkt* data = Packet_GetDataHdr(pkt);
   NdnError e = DecodeData(d, data);
 

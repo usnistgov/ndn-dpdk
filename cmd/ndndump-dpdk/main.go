@@ -121,10 +121,10 @@ func slaveProc(port dpdk.EthDev) int {
 
 func processPacket(logger *log.Logger, pkt face.Packet) {
 	switch pkt.GetNetType() {
-	case face.NdnNetType_Interest:
+	case face.NdnPktType_Interest:
 		interest := pkt.AsInterest()
 		logger.Printf("I %s", interest.GetName())
-	case face.NdnNetType_Data:
+	case face.NdnPktType_Data:
 		data := pkt.AsData()
 		logger.Printf("D %s", data.GetName())
 	}

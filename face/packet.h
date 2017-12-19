@@ -5,19 +5,23 @@
 
 /// \file
 
-/** \brief Indicate NDN network layer packet type.
+/** \brief Indicate packet type.
+ *
+ *  NdnPktType is stored in rte_mbuf.inner_l4_type field.
+ *  It reflects what is stored in MbufPriv area.
  */
-typedef enum NdnNetType {
-  NdnNetType_None,
-  NdnNetType_Interest,
-  NdnNetType_Data,
-  NdnNetType_Nack
-} NdnNetType;
+typedef enum NdnPktType {
+  NdnPktType_None,
+  NdnPktType_Lp,
+  NdnPktType_Interest,
+  NdnPktType_Data,
+  NdnPktType_Nack
+} NdnPktType;
 
 /** \brief Get NDN network layer packet type.
  */
-static inline NdnNetType
-Packet_GetNdnNetType(const struct rte_mbuf* pkt)
+static inline NdnPktType
+Packet_GetNdnPktType(const struct rte_mbuf* pkt)
 {
   return pkt->inner_l4_type;
 }
@@ -25,7 +29,7 @@ Packet_GetNdnNetType(const struct rte_mbuf* pkt)
 /** \brief Set NDN network layer packet type.
  */
 static inline void
-Packet_SetNdnNetType(struct rte_mbuf* pkt, NdnNetType t)
+Packet_SetNdnPktType(struct rte_mbuf* pkt, NdnPktType t)
 {
   pkt->inner_l4_type = t;
 }
@@ -35,7 +39,7 @@ Packet_SetNdnNetType(struct rte_mbuf* pkt, NdnNetType t)
 static inline InterestPkt*
 Packet_GetInterestHdr(struct rte_mbuf* pkt)
 {
-  assert(Packet_GetNdnNetType(pkt) == NdnNetType_Interest);
+  assert(Packet_GetNdnPktType(pkt) == NdnPktType_Interest);
   return MbufPriv(pkt, InterestPkt*, 0);
 }
 
@@ -44,7 +48,7 @@ Packet_GetInterestHdr(struct rte_mbuf* pkt)
 static inline DataPkt*
 Packet_GetDataHdr(struct rte_mbuf* pkt)
 {
-  assert(Packet_GetNdnNetType(pkt) == NdnNetType_Data);
+  assert(Packet_GetNdnPktType(pkt) == NdnPktType_Data);
   return MbufPriv(pkt, DataPkt*, 0);
 }
 
