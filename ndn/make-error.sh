@@ -2,14 +2,14 @@
 cd "$( dirname "${BASH_SOURCE[0]}" )"
 
 (
-  echo '#ifndef NDN_TRAFFIC_DPDK_NDN_ERROR_H'
-  echo '#define NDN_TRAFFIC_DPDK_NDN_ERROR_H'
+  echo '#ifndef NDN_DPDK_NDN_ERROR_H'
+  echo '#define NDN_DPDK_NDN_ERROR_H'
   echo
   echo 'typedef enum NdnError {'
   awk '{ print "  NdnError_" $1 "," }' error.tsv
   echo '} NdnError;'
   echo
-  echo '#endif // NDN_TRAFFIC_DPDK_NDN_ERROR_H'
+  echo '#endif // NDN_DPDK_NDN_ERROR_H'
 ) > error.h
 
 awk '

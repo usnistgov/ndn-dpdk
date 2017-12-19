@@ -1,5 +1,5 @@
-#ifndef NDN_TRAFFIC_DPDK_NDN_INTEREST_PKT_H
-#define NDN_TRAFFIC_DPDK_NDN_INTEREST_PKT_H
+#ifndef NDN_DPDK_NDN_INTEREST_PKT_H
+#define NDN_DPDK_NDN_INTEREST_PKT_H
 
 /// \file
 
@@ -46,4 +46,4 @@ InterestPkt_GetNonce(const InterestPkt* interest)
 
 void InterestPkt_SetNonce(InterestPkt* interest, uint32_t nonce);
 
-#endif // NDN_TRAFFIC_DPDK_NDN_INTEREST_PKT_H
+#endif // NDN_DPDK_NDN_INTEREST_PKT_H

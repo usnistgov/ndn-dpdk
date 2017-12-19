@@ -1,5 +1,5 @@
-#ifndef NDN_TRAFFIC_DPDK_NDN_NAME_H
-#define NDN_TRAFFIC_DPDK_NDN_NAME_H
+#ifndef NDN_DPDK_NDN_NAME_H
+#define NDN_DPDK_NDN_NAME_H
 
 /// \file
 
@@ -94,4 +94,4 @@ typedef enum NameCompareResult {
  */
 NameCompareResult Name_Compare(const Name* lhs, const Name* rhs);
 
-#endif // NDN_TRAFFIC_DPDK_NDN_NAME_H
+#endif // NDN_DPDK_NDN_NAME_H

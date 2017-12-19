@@ -1,5 +1,5 @@
-#ifndef NDN_TRAFFIC_DPDK_COMMON_H
-#define NDN_TRAFFIC_DPDK_COMMON_H
+#ifndef NDN_DPDK_COMMON_H
+#define NDN_DPDK_COMMON_H
 
 #include <assert.h>
 #include <limits.h>
@@ -16,4 +16,4 @@
 #include <rte_branch_prediction.h>
 #include <rte_mbuf.h>
 
-#endif // NDN_TRAFFIC_DPDK_COMMON_H
+#endif // NDN_DPDK_COMMON_H

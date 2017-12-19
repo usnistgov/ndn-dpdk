@@ -1,5 +1,5 @@
-#ifndef NDN_TRAFFIC_DPDK_NDN_DATA_PKT_H
-#define NDN_TRAFFIC_DPDK_NDN_DATA_PKT_H
+#ifndef NDN_DPDK_NDN_DATA_PKT_H
+#define NDN_DPDK_NDN_DATA_PKT_H
 
 /// \file
 
@@ -19,4 +19,4 @@ typedef struct DataPkt
  */
 NdnError DecodeData(TlvDecoder* d, DataPkt* data);
 
-#endif // NDN_TRAFFIC_DPDK_NDN_DATA_PKT_H
+#endif // NDN_DPDK_NDN_DATA_PKT_H

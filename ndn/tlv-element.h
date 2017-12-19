@@ -1,5 +1,5 @@
-#ifndef NDN_TRAFFIC_DPDK_NDN_TLV_ELEMENT_H
-#define NDN_TRAFFIC_DPDK_NDN_TLV_ELEMENT_H
+#ifndef NDN_DPDK_NDN_TLV_ELEMENT_H
+#define NDN_DPDK_NDN_TLV_ELEMENT_H
 
 /// \file
 
@@ -138,4 +138,4 @@ TlvElement_ReadNonNegativeInteger(const TlvElement* ele, uint64_t* n)
   return false;
 }
 
-#endif // NDN_TRAFFIC_DPDK_NDN_TLV_ELEMENT_H
+#endif // NDN_DPDK_NDN_TLV_ELEMENT_H

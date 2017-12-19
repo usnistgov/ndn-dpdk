@@ -2,14 +2,14 @@
 cd "$( dirname "${BASH_SOURCE[0]}" )"
 
 (
-  echo '#ifndef NDN_TRAFFIC_DPDK_NDN_TLV_TYPE_H'
-  echo '#define NDN_TRAFFIC_DPDK_NDN_TLV_TYPE_H'
+  echo '#ifndef NDN_DPDK_NDN_TLV_TYPE_H'
+  echo '#define NDN_DPDK_NDN_TLV_TYPE_H'
   echo
   echo 'typedef enum TlvType {'
   awk  'NF==2 { print "  TT_" $1 " = 0x" $2 "," }' tlv-type.tsv
   echo '} TlvType;'
   echo
-  echo '#endif // NDN_TRAFFIC_DPDK_NDN_TLV_TYPE_H'
+  echo '#endif // NDN_DPDK_NDN_TLV_TYPE_H'
 ) > tlv-type.h
 
 (

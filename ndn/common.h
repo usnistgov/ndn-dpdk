@@ -1,5 +1,5 @@
-#ifndef NDN_TRAFFIC_DPDK_NDN_COMMON_H
-#define NDN_TRAFFIC_DPDK_NDN_COMMON_H
+#ifndef NDN_DPDK_NDN_COMMON_H
+#define NDN_DPDK_NDN_COMMON_H
 
 #include "../common.h"
 #include <rte_byteorder.h>
@@ -8,4 +8,4 @@
 
 #include "error.h"
 
-#endif // NDN_TRAFFIC_DPDK_NDN_COMMON_H
+#endif // NDN_DPDK_NDN_COMMON_H

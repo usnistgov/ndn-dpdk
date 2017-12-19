@@ -1,5 +1,5 @@
-#ifndef NDN_TRAFFIC_DPDK_NDN_TLV_DECODER_H
-#define NDN_TRAFFIC_DPDK_NDN_TLV_DECODER_H
+#ifndef NDN_DPDK_NDN_TLV_DECODER_H
+#define NDN_DPDK_NDN_TLV_DECODER_H
 
 /** \file
  *
@@ -59,4 +59,4 @@ DecodeVarNum(TlvDecoder* d, uint64_t* n)
   return NdnError_OK;
 }
 
-#endif // NDN_TRAFFIC_DPDK_NDN_TLV
+#endif // NDN_DPDK_NDN_TLV
