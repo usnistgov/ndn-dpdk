@@ -5,7 +5,7 @@
 
 /// \file
 
-/** \brief Interface for receiving NDN packets.
+/** \brief Network interface for receiving NDN packets.
  */
 typedef struct RxFace
 {
@@ -28,7 +28,7 @@ RxFace_GetPktPrivSize()
 
 /** \brief Receive and decode a burst of packet.
  *  \param face the face
- *  \param pkt array of packet pointers
+ *  \param pkts array of packet pointers
  *  \param nPkts size of \p pkt array
  *  \return number of received packets
  *

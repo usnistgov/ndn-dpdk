@@ -1,7 +1,9 @@
 #ifndef NDN_DPDK_NDN_PROTONUM_H
 #define NDN_DPDK_NDN_PROTONUM_H
 
-/// \file NDN protocol number assignments
+/** \file
+ *  \brief NDN protocol number assignments
+ */
 
 #define NDN_ETHERTYPE 0x8624
 #define NDN_UDP_PORT 6363
