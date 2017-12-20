@@ -1,19 +1,28 @@
 #include "in-order-reassembler.h"
 #include "packet.h"
 
+#define DBG(fmt, ...)                                                          \
+  fprintf(stderr, "%s:%d " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
+
 struct rte_mbuf*
 InOrderReassembler_Receive(InOrderReassembler* r, struct rte_mbuf* pkt)
 {
+#define PKTDBG(fmt, ...)                                                       \
+  DBG("%016" PRIX64 ",%" PRIu16 ",%" PRIu16 " " fmt, lpp->seqNo,               \
+      lpp->fragIndex, lpp->fragCount, ##__VA_ARGS__)
+
   LpPkt* lpp = Packet_GetLpHdr(pkt);
   assert(LpPkt_HasPayload(lpp) & LpPkt_IsFragmented(lpp));
 
   if (r->tail == NULL) {
     if (lpp->fragIndex != 0) {
+      PKTDBG("not-first");
       ++r->nOutOfOrder;
       rte_pktmbuf_free(pkt);
       return NULL;
     }
 
+    PKTDBG("accepted-first");
     ++r->nAccepted;
     r->head = r->tail = pkt;
     r->nextSeqNo = lpp->seqNo + 1;
@@ -21,6 +30,7 @@ InOrderReassembler_Receive(InOrderReassembler* r, struct rte_mbuf* pkt)
   }
 
   if (lpp->seqNo != r->nextSeqNo) {
+    PKTDBG("out-of-order, expecting %016" PRIX64, r->nextSeqNo);
     ++r->nOutOfOrder;
     rte_pktmbuf_free(pkt);
     rte_pktmbuf_free(r->head);
@@ -35,9 +45,11 @@ InOrderReassembler_Receive(InOrderReassembler* r, struct rte_mbuf* pkt)
   r->nextSeqNo = lpp->seqNo + 1;
 
   if (lpp->fragIndex + 1 < lpp->fragCount) {
+    PKTDBG("accepted-chained");
     return NULL;
   }
 
+  PKTDBG("accepted-last");
   ++r->nDelivered;
   r->tail = NULL; // indicate the reassembler is idle
   return r->head;

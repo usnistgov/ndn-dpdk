@@ -15,7 +15,9 @@ typedef struct InOrderReassembler
 
   uint64_t nAccepted;   ///< number of fragments received and accepted
   uint64_t nOutOfOrder; ///< number of out-of-order fragments dropped
-  uint64_t nDelivered;  ///< number of network layer packet delivered
+  uint64_t nDelivered;  ///< number of network layer packets delivered
+  uint64_t
+    nIncomplete; ///< number of incomplete network layer packets discarded
 } InOrderReassembler;
 
 /** \brief Receive an LpPkt into the reassembler.

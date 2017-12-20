@@ -1,7 +1,7 @@
 #ifndef NDN_DPDK_FACE_FACE_H
 #define NDN_DPDK_FACE_FACE_H
 
-#include "common.h"
+#include "in-order-reassembler.h"
 
 /// \file
 
@@ -9,6 +9,8 @@
  */
 typedef struct RxFace
 {
+  InOrderReassembler reassembler;
+
   uint16_t port;
   uint16_t queue;
 

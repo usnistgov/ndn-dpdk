@@ -108,7 +108,6 @@ func slaveProc(port dpdk.EthDev) int {
 		burstSize := iface.RxBurst(pkts)
 		for _, pkt := range pkts[:burstSize] {
 			if !pkt.IsValid() {
-				logger.Printf("invalid")
 				continue
 			}
 			processPacket(logger, pkt)

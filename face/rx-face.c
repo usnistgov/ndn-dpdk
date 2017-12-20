@@ -78,9 +78,11 @@ RxFace_ProcessLpPkt(RxFace* face, struct rte_mbuf* pkt, TlvDecoder* d)
     rte_pktmbuf_adj(pkt, lpp->payloadOff);
 
     if (LpPkt_IsFragmented(lpp)) {
-      // TODO reassemble
-      rte_pktmbuf_free(pkt);
-      return NULL;
+      pkt = InOrderReassembler_Receive(&face->reassembler, pkt);
+      if (pkt == NULL) {
+        return NULL;
+      }
+      lpp = NULL; // received lpp does not apply to reassembled packet
     }
 
     TlvDecoder d1;
