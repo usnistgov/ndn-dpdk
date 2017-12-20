@@ -3,7 +3,7 @@
 
 /// \file
 
-#include "../common.h"
+#include "../core/common.h"
 #include <rte_mbuf.h>
 
 /** \brief Get private header after struct rte_mbuf.

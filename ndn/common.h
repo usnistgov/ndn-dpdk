@@ -1,7 +1,7 @@
 #ifndef NDN_DPDK_NDN_COMMON_H
 #define NDN_DPDK_NDN_COMMON_H
 
-#include "../common.h"
+#include "../core/common.h"
 #include <rte_byteorder.h>
 
 #include "../dpdk/mbuf-loc.h"

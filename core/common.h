@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_COMMON_H
-#define NDN_DPDK_COMMON_H
+#ifndef NDN_DPDK_CORE_COMMON_H
+#define NDN_DPDK_CORE_COMMON_H
 
 #include <assert.h>
 #include <limits.h>
@@ -15,4 +15,4 @@
 // clang-format on
 #include <rte_branch_prediction.h>
 
-#endif // NDN_DPDK_COMMON_H
+#endif // NDN_DPDK_CORE_COMMON_H
