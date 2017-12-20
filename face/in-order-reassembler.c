@@ -1,15 +1,13 @@
 #include "in-order-reassembler.h"
+#include "../core/logger.h"
 #include "packet.h"
-
-#define DBG(fmt, ...)                                                          \
-  fprintf(stderr, "%s:%d " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
 
 struct rte_mbuf*
 InOrderReassembler_Receive(InOrderReassembler* r, struct rte_mbuf* pkt)
 {
 #define PKTDBG(fmt, ...)                                                       \
-  DBG("%016" PRIX64 ",%" PRIu16 ",%" PRIu16 " " fmt, lpp->seqNo,               \
-      lpp->fragIndex, lpp->fragCount, ##__VA_ARGS__)
+  ZF_LOGD("%016" PRIX64 ",%" PRIu16 ",%" PRIu16 " " fmt, lpp->seqNo,           \
+          lpp->fragIndex, lpp->fragCount, ##__VA_ARGS__)
 
   LpPkt* lpp = Packet_GetLpHdr(pkt);
   assert(LpPkt_HasPayload(lpp) & LpPkt_IsFragmented(lpp));
