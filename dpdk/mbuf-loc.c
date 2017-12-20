@@ -1,4 +1,4 @@
-#include "mbuf.h"
+#include "mbuf-loc.h"
 
 // Same as MbucLoc_Diff but only consider one direction: advance a to reach b.
 static inline bool

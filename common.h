@@ -14,6 +14,5 @@
 #include <rte_config.h>
 // clang-format on
 #include <rte_branch_prediction.h>
-#include <rte_mbuf.h>
 
 #endif // NDN_DPDK_COMMON_H

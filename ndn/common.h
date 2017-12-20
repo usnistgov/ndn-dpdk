@@ -4,7 +4,7 @@
 #include "../common.h"
 #include <rte_byteorder.h>
 
-#include "../dpdk/mbuf.h"
+#include "../dpdk/mbuf-loc.h"
 
 #include "error.h"
 
