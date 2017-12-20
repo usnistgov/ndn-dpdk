@@ -27,6 +27,7 @@ go-face: go-ndn face/*.go build-c/libndn-dpdk-dpdk.a build-c/libndn-dpdk-ndn.a
 test:
 	./gotest.sh dpdk
 	./gotest.sh ndn
+	./gotest.sh face
 	integ/run.sh
 
 clean:

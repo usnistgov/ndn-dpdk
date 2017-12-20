@@ -90,6 +90,20 @@ func (s Segment) Append(len int) (unsafe.Pointer, error) {
 	return tail, nil
 }
 
+// Append octets at tail.
+func (s Segment) AppendOctets(input []byte) error {
+	buf, e := s.Append(len(input))
+	if e != nil {
+		return e
+	}
+
+	for i, b := range input {
+		ptr := unsafe.Pointer(uintptr(buf) + uintptr(i))
+		*(*byte)(ptr) = b
+	}
+	return nil
+}
+
 // Remove len octets from tail.
 func (s Segment) Trim(len int) error {
 	if len > s.Len() {

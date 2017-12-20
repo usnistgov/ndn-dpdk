@@ -8,7 +8,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"unsafe"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -56,14 +55,9 @@ func packetFromBytes(input []byte) dpdk.Packet {
 
 	pkt := m.AsPacket()
 	seg0 := pkt.GetFirstSegment()
-	buf, e := seg0.Append(len(input))
+	e = seg0.AppendOctets(input)
 	if e != nil {
 		panic(e)
-	}
-
-	for i, b := range input {
-		ptr := unsafe.Pointer(uintptr(buf) + uintptr(i))
-		*(*byte)(ptr) = b
 	}
 
 	return pkt

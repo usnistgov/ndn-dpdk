@@ -65,14 +65,16 @@ func TestMbuf(t *testing.T) {
 		dp1, e := s.Prepend(100)
 		require.NoError(e)
 		c_memset(dp1, 0xA1, 100)
-		dp2, e := s.Append(200)
+		dp2, e := s.Append(150)
 		require.NoError(e)
-		c_memset(dp2, 0xA2, 200)
+		c_memset(dp2, 0xA2, 150)
+		e = s.AppendOctets(bytes.Repeat([]byte{0xA3}, 50))
+		require.NoError(e)
 		assert.EqualValues(300, s.Len())
 		assert.EqualValues(100, s.GetHeadroom())
 		assert.EqualValues(600, s.GetTailroom())
 
-		assert.Equal(append(bytes.Repeat([]byte{0xA1}, 100), bytes.Repeat([]byte{0xA2}, 200)...),
+		assert.Equal(append(append(bytes.Repeat([]byte{0xA1}, 100), bytes.Repeat([]byte{0xA2}, 150)...), bytes.Repeat([]byte{0xA3}, 50)...),
 			c_GoBytes(s.GetData(), s.Len()))
 
 		dp3, e := s.Adj(50)
