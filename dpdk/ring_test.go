@@ -1,15 +1,12 @@
 package dpdk
 
 import (
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"testing"
 	"unsafe"
 )
 
 func TestRing(t *testing.T) {
-	assert := assert.New(t)
-	require := require.New(t)
+	assert, require := makeAR(t)
 
 	r, e := NewRing("TestRing", 4, GetCurrentLCore().GetNumaSocket(), true, true)
 	require.NoError(e)

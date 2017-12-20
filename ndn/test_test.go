@@ -11,10 +11,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
 	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/dpdktestenv"
 )
 
-var testEal *dpdk.Eal
 var testMp dpdk.PktmbufPool
 
 const testMp_DATAROOM = 2000
@@ -22,11 +23,9 @@ const testMp_DATAROOM = 2000
 var testMpIndirect dpdk.PktmbufPool
 
 func TestMain(m *testing.M) {
-	eal, e := dpdk.NewEal([]string{"testprog", "-n1"})
-	if e != nil || eal == nil {
-		panic(fmt.Sprintf("NewEal error %v", e))
-	}
+	dpdktestenv.InitEal()
 
+	var e error
 	testMp, e = dpdk.NewPktmbufPool("MP", 255, 0, 0, testMp_DATAROOM, dpdk.NUMA_SOCKET_ANY)
 	if e != nil {
 		panic(fmt.Sprintf("NewPktmbufPool(MP) error %v", e))

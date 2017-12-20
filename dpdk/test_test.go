@@ -11,12 +11,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var testEal *Eal
-
 func TestMain(m *testing.M) {
-	testEal, e := NewEal([]string{"testprog", "-n1"})
-	if e != nil || testEal == nil {
-		panic(fmt.Sprintf("NewEal error %v", e))
+	eal, e := NewEal([]string{"testprog", "-n1"})
+	if e != nil || eal == nil {
+		panic(fmt.Sprintf("dpdk.NewEal error %v", e))
 	}
 	os.Exit(m.Run())
 }

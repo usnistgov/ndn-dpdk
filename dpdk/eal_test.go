@@ -1,18 +1,19 @@
 package dpdk
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func TestCArgs(t *testing.T) {
+	assert, _ := makeAR(t)
+
 	args := []string{"a", "", "bc", "d"}
 	a := newCArgs(args)
 	defer a.Close()
 
 	res := testCArgs(a)
-	assert.Equal(t, 0, res)
+	assert.Equal(0, res)
 
 	rem := a.GetRemainingArgs(1)
-	assert.Equal(t, []string{"", "d", "bc"}, rem)
+	assert.Equal([]string{"", "d", "bc"}, rem)
 }
