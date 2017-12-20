@@ -75,13 +75,14 @@ RxFace_ProcessLpPkt(RxFace* face, struct rte_mbuf* pkt, TlvDecoder* d)
   }
 
   if (LpPkt_HasPayload(lpp)) {
+    rte_pktmbuf_adj(pkt, lpp->payloadOff);
+
     if (LpPkt_IsFragmented(lpp)) {
       // TODO reassemble
       rte_pktmbuf_free(pkt);
       return NULL;
     }
 
-    rte_pktmbuf_adj(pkt, lpp->payloadOff);
     TlvDecoder d1;
     MbufLoc_Init(&d1, pkt);
     bool res = RxFace_ProcessNetPkt(face, pkt, &d1, MbufLoc_PeekOctet(&d1));

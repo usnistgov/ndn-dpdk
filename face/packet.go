@@ -34,6 +34,15 @@ func (pkt Packet) getPtr() *C.struct_rte_mbuf {
 	return (*C.struct_rte_mbuf)(pkt.GetPtr())
 }
 
+func (pkt Packet) GetLpHdr() *ndn.LpPkt {
+	return (*ndn.LpPkt)(unsafe.Pointer(C.Packet_GetLpHdr(pkt.getPtr())))
+}
+
+func (pkt Packet) SetLpHdr(lpp ndn.LpPkt) {
+	lpp1 := pkt.GetLpHdr()
+	*lpp1 = lpp
+}
+
 func (pkt Packet) GetNetType() NdnPktType {
 	return NdnPktType(C.Packet_GetNdnPktType(pkt.getPtr()))
 }
