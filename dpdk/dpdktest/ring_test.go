@@ -1,14 +1,16 @@
-package dpdk
+package dpdktest
 
 import (
 	"testing"
 	"unsafe"
+
+	"ndn-dpdk/dpdk"
 )
 
 func TestRing(t *testing.T) {
 	assert, require := makeAR(t)
 
-	r, e := NewRing("TestRing", 4, GetCurrentLCore().GetNumaSocket(), true, true)
+	r, e := dpdk.NewRing("TestRing", 4, dpdk.GetCurrentLCore().GetNumaSocket(), true, true)
 	require.NoError(e)
 	defer r.Close()
 

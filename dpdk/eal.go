@@ -4,7 +4,6 @@ package dpdk
 extern int go_lcoreLaunch(void*);
 
 #include <dlfcn.h> // dlopen()
-#include <stdlib.h> // free()
 #include <rte_config.h>
 #include <rte_eal.h>
 #include <rte_launch.h>
@@ -97,10 +96,10 @@ func NewEal(args []string) (*Eal, error) {
 	}
 	eal := new(Eal)
 
-	a := newCArgs(args)
+	a := NewCArgs(args)
 	defer a.Close()
 
-	res := int(C.rte_eal_init(a.Argc, a.Argv))
+	res := int(C.rte_eal_init(C.int(a.Argc), (**C.char)(a.Argv)))
 	if res < 0 {
 		return nil, GetErrno()
 	}
@@ -137,51 +136,4 @@ func loadDpdkDynLibs() error {
 	}
 
 	return nil
-}
-
-// Provide argc and argv to C code.
-type cArgs struct {
-	Argc    C.int            // argc for C code
-	Argv    **C.char         // argv for C code
-	strMems []unsafe.Pointer // C strings
-}
-
-func newCArgs(args []string) *cArgs {
-	a := new(cArgs)
-	a.Argc = C.int(len(args))
-
-	var b *C.char
-	ptrSize := unsafe.Sizeof(b)
-	argv := C.malloc(C.size_t(ptrSize) * C.size_t(len(args)))
-	a.Argv = (**C.char)(argv)
-
-	for i, arg := range args {
-		argvEle := (**C.char)(unsafe.Pointer(uintptr(argv) + uintptr(i)*ptrSize))
-		*argvEle = C.CString(arg)
-		a.strMems = append(a.strMems, unsafe.Pointer(*argvEle))
-	}
-
-	return a
-}
-
-// Get remaining argv tokens after the first nConsumed tokens have been consumed by C code.
-func (a *cArgs) GetRemainingArgs(nConsumed int) []string {
-	var b *C.char
-	ptrSize := unsafe.Sizeof(b)
-
-	rem := []string{}
-	argv := uintptr(unsafe.Pointer(a.Argv))
-	for i := nConsumed; i < int(a.Argc); i++ {
-		argvEle := (**C.char)(unsafe.Pointer(uintptr(argv) + uintptr(i)*ptrSize))
-		rem = append(rem, C.GoString(*argvEle))
-	}
-
-	return rem
-}
-
-func (a *cArgs) Close() {
-	for _, strMem := range a.strMems {
-		C.free(strMem)
-	}
-	C.free(unsafe.Pointer(a.Argv))
 }

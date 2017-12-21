@@ -24,10 +24,12 @@ build-c/libndn-dpdk-ndn.a: ndn/*.c ndn/error.h ndn/tlv-type.h
 go-face: go-ndn face/*.go build-c/libndn-dpdk-core.a build-c/libndn-dpdk-dpdk.a build-c/libndn-dpdk-ndn.a
 	go build ./face
 
-test:
-	./gotest.sh dpdk
+unittest:
+	./gotest.sh dpdk/dpdktest
 	./gotest.sh ndn
 	./gotest.sh face
+
+test: unittest
 	integ/run.sh
 
 clean:

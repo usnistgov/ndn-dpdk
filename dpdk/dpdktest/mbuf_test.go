@@ -1,15 +1,17 @@
-package dpdk
+package dpdktest
 
 import (
 	"bytes"
 	"testing"
 	"unsafe"
+
+	"ndn-dpdk/dpdk"
 )
 
 func TestMbuf(t *testing.T) {
 	_, require := makeAR(t)
 
-	mp, e := NewPktmbufPool("MP", 63, 0, 0, 1000, NUMA_SOCKET_ANY)
+	mp, e := dpdk.NewPktmbufPool("MP", 63, 0, 0, 1000, dpdk.NUMA_SOCKET_ANY)
 	require.NoError(e)
 	require.NotNil(mp)
 	defer mp.Close()
@@ -20,7 +22,7 @@ func TestMbuf(t *testing.T) {
 		assert.EqualValues(63, mp.CountAvailable())
 		assert.EqualValues(0, mp.CountInUse())
 
-		var mbufs [63]Mbuf
+		var mbufs [63]dpdk.Mbuf
 		e = mp.AllocBulk(mbufs[30:])
 		assert.NoError(e)
 		assert.EqualValues(30, mp.CountAvailable())
@@ -139,7 +141,7 @@ func TestMbuf(t *testing.T) {
 		allocBuf := c_malloc(4)
 		defer c_free(allocBuf)
 
-		it0 := NewPacketIterator(pkt)
+		it0 := dpdk.NewPacketIterator(pkt)
 		readBuf2 := make([]byte, 4)
 		readSuccessTests := []struct {
 			offset         int
@@ -180,13 +182,13 @@ func TestMbuf(t *testing.T) {
 			assert.Equalf(tt.expected[:], readBuf2, "%d it.Read() returns wrong bytes", tt.offset)
 		}
 
-		it2 := NewPacketIteratorBounded(pkt, 100, 6)
+		it2 := dpdk.NewPacketIteratorBounded(pkt, 100, 6)
 		assert.EqualValues(4, it2.Read(readBuf2[:]))
 		assert.EqualValues(2, it2.Read(readBuf2[:]))
 		assert.EqualValues(0, it2.Read(readBuf2[:]))
 		assert.Equal(-1, it2.PeekOctet())
 
-		it2 = NewPacketIteratorBounded(pkt, 495, 6)
+		it2 = dpdk.NewPacketIteratorBounded(pkt, 495, 6)
 		assert.EqualValues(3, it2.Advance(3))
 		assert.EqualValues(2, it2.Advance(3))
 		assert.EqualValues(0, it2.Advance(3))
@@ -215,7 +217,7 @@ func TestMbuf(t *testing.T) {
 	t.Run("PacketClone", func(t *testing.T) {
 		assert, require := makeAR(t)
 
-		pkts := make([]Packet, 2)
+		pkts := make([]dpdk.Packet, 2)
 		e = mp.AllocPktBulk(pkts[:1])
 		require.NoError(e)
 
@@ -226,7 +228,7 @@ func TestMbuf(t *testing.T) {
 		pkts[0].GetLastSegment().Append(200)
 		assert.EqualValues(2, mp.CountInUse())
 
-		mpi, e := NewPktmbufPool("MP-INDIRECT", 63, 0, 0, 0, NUMA_SOCKET_ANY)
+		mpi, e := dpdk.NewPktmbufPool("MP-INDIRECT", 63, 0, 0, 0, dpdk.NUMA_SOCKET_ANY)
 		require.NoError(e)
 		require.NotNil(mpi)
 		defer mpi.Close()

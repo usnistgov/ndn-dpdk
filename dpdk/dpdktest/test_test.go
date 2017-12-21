@@ -1,21 +1,21 @@
-package dpdk
+package dpdktest
 
 // This file contains test setup procedure and common test helper functions.
+// dpdktest is separated from dpdk package so as to use dpdktestenv without causing import cycle.
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"ndn-dpdk/dpdk/dpdktestenv"
 )
 
 func TestMain(m *testing.M) {
-	eal, e := NewEal([]string{"testprog", "-n1"})
-	if e != nil || eal == nil {
-		panic(fmt.Sprintf("dpdk.NewEal error %v", e))
-	}
+	dpdktestenv.InitEal()
+
 	os.Exit(m.Run())
 }
 
