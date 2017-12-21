@@ -66,6 +66,7 @@ RxFace_ProcessLpPkt(RxFace* face, struct rte_mbuf* pkt, TlvDecoder* d)
   // replace the input packet. The reassembler can also retain the LP fragment and return NULL.
   // This function internally frees invalid mbufs.
 
+  Packet_SetL2PktType(pkt, L2PktType_NdnlpV2);
   LpPkt* lpp = Packet_GetLpHdr(pkt);
   NdnError e = DecodeLpPkt(d, lpp);
   if (unlikely(e != NdnError_OK)) {

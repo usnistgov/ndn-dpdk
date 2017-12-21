@@ -16,6 +16,13 @@ func SizeofPacketPriv() uint16 {
 	return uint16(C.sizeof_PacketPriv)
 }
 
+type L2PktType int
+
+const (
+	L2PktType_None    L2PktType = C.L2PktType_None
+	L2PktType_NdnlpV2           = C.L2PktType_NdnlpV2
+)
+
 type NdnPktType int
 
 const (
@@ -40,11 +47,16 @@ func (pkt Packet) getPtr() *C.struct_rte_mbuf {
 	return (*C.struct_rte_mbuf)(pkt.GetPtr())
 }
 
+func (pkt Packet) GetL2Type() L2PktType {
+	return L2PktType(C.Packet_GetL2PktType(pkt.getPtr()))
+}
+
 func (pkt Packet) GetLpHdr() *LpPkt {
 	return (*LpPkt)(unsafe.Pointer(C.Packet_GetLpHdr(pkt.getPtr())))
 }
 
 func (pkt Packet) SetLpHdr(lpp LpPkt) {
+	C.Packet_SetL2PktType(pkt.getPtr(), C.L2PktType_NdnlpV2)
 	lpp1 := pkt.GetLpHdr()
 	*lpp1 = lpp
 }

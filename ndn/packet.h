@@ -7,6 +7,20 @@
 
 /// \file
 
+typedef enum L2PktType { L2PktType_None, L2PktType_NdnlpV2 } L2PktType;
+
+static inline L2PktType
+Packet_GetL2PktType(const struct rte_mbuf* pkt)
+{
+  return pkt->inner_l2_type;
+}
+
+static inline void
+Packet_SetL2PktType(struct rte_mbuf* pkt, L2PktType t)
+{
+  pkt->inner_l2_type = t;
+}
+
 /** \brief Indicate packet type.
  *
  *  NdnPktType is stored in rte_mbuf.inner_l4_type field.
@@ -24,7 +38,7 @@ typedef enum NdnPktType {
 static inline NdnPktType
 Packet_GetNdnPktType(const struct rte_mbuf* pkt)
 {
-  return pkt->inner_l4_type;
+  return pkt->inner_l3_type;
 }
 
 /** \brief Set NDN network layer packet type.
@@ -32,7 +46,7 @@ Packet_GetNdnPktType(const struct rte_mbuf* pkt)
 static inline void
 Packet_SetNdnPktType(struct rte_mbuf* pkt, NdnPktType t)
 {
-  pkt->inner_l4_type = t;
+  pkt->inner_l3_type = t;
 }
 
 /** \brief Information stored in rte_mbuf private area.
@@ -50,6 +64,7 @@ typedef struct PacketPriv
 static inline LpPkt*
 Packet_GetLpHdr(struct rte_mbuf* pkt)
 {
+  assert(Packet_GetL2PktType(pkt) == L2PktType_NdnlpV2);
   return MbufPriv(pkt, LpPkt*, offsetof(PacketPriv, lp));
 }
 
