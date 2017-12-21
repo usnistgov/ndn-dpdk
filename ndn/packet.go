@@ -5,6 +5,7 @@ package ndn
 */
 import "C"
 import (
+	"fmt"
 	"unsafe"
 
 	"ndn-dpdk/dpdk"
@@ -23,6 +24,14 @@ const (
 	L2PktType_NdnlpV2           = C.L2PktType_NdnlpV2
 )
 
+func (t L2PktType) String() string {
+	switch t {
+	case L2PktType_NdnlpV2:
+		return "NDNLPv2"
+	}
+	return fmt.Sprintf("%d", int(t))
+}
+
 type NdnPktType int
 
 const (
@@ -31,6 +40,18 @@ const (
 	NdnPktType_Data                = C.NdnPktType_Data
 	NdnPktType_Nack                = C.NdnPktType_Nack
 )
+
+func (t NdnPktType) String() string {
+	switch t {
+	case NdnPktType_Interest:
+		return "Interest"
+	case NdnPktType_Data:
+		return "Data"
+	case NdnPktType_Nack:
+		return "Nack"
+	}
+	return fmt.Sprintf("%d", int(t))
+}
 
 // NDN network layer packet with parsed LP and Interest/Data headers.
 type Packet struct {

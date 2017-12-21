@@ -1,8 +1,5 @@
 #include "rx-face.h"
 
-#include "../ndn/protonum.h"
-#include <rte_ether.h>
-
 static inline bool
 RxFace_ProcessFrame(RxFace* face, struct rte_mbuf* pkt)
 {

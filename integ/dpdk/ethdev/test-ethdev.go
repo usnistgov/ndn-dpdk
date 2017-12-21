@@ -16,42 +16,8 @@ func main() {
 
 	eal := dpdktestenv.InitEal()
 	mp := dpdktestenv.MakeDirectMp(4095, 0, 256)
-
-	ring01, e := dpdk.NewRing("RING_tx0rx1", 4, dpdk.NUMA_SOCKET_ANY, true, true)
-	require.NoError(e)
-	ring10, e := dpdk.NewRing("RING_tx1rx0", 1024, dpdk.NUMA_SOCKET_ANY, true, true)
-	require.NoError(e)
-	ringPort0, e := dpdk.NewEthDevFromRings("A", []dpdk.Ring{ring10}, []dpdk.Ring{ring01},
-		dpdk.NUMA_SOCKET_ANY)
-	require.NoError(e)
-	ringPort1, e := dpdk.NewEthDevFromRings("B", []dpdk.Ring{ring01}, []dpdk.Ring{ring10},
-		dpdk.NUMA_SOCKET_ANY)
-	require.NoError(e)
-	ringPort0 = ringPort1
-	ringPort1 = ringPort0
-
-	assert.EqualValues(2, dpdk.CountEthDevs())
-	ports := dpdk.ListEthDevs()
-	require.Len(ports, 2)
-	port0, port1 := ports[0], ports[1]
-	assert.Equal("net_ring_A", port0.GetName())
-	assert.Equal("net_ring_B", port1.GetName())
-
-	var portConf dpdk.EthDevConfig
-	portConf.AddRxQueue(dpdk.EthRxQueueConfig{Capacity: 64, Socket: dpdk.NUMA_SOCKET_ANY, Mp: mp})
-	portConf.AddTxQueue(dpdk.EthTxQueueConfig{Capacity: 64, Socket: dpdk.NUMA_SOCKET_ANY})
-	rxqs0, txqs0, e := port0.Configure(portConf)
-	require.NoError(e)
-	require.Len(rxqs0, 1)
-	require.Len(txqs0, 1)
-	rxqs1, txqs1, e := port1.Configure(portConf)
-	require.NoError(e)
-	require.Len(rxqs1, 1)
-	require.Len(txqs1, 1)
-	rxq, txq := rxqs0[0], txqs1[0]
-
-	port0.Start()
-	port1.Start()
+	edp := dpdktestenv.NewEthDevPair(1, 1024, 64)
+	rxq, txq := edp.RxqA[0], edp.TxqB[0]
 
 	const RX_BURST_SIZE = 6
 	const TX_LOOPS = 100000
@@ -112,8 +78,8 @@ func main() {
 	time.Sleep(RX_FINISH_WAIT)
 	rxQuit <- 0
 
-	fmt.Println(port0.GetStats())
-	fmt.Println(port1.GetStats())
+	fmt.Println(edp.PortA.GetStats())
+	fmt.Println(edp.PortB.GetStats())
 	fmt.Println("txtxRetryFreq=", txRetryFreq)
 	fmt.Println("rxBurstSizeFreq=", rxBurstSizeFreq)
 	assert.True(nReceived <= TX_LOOPS*TX_BURST_SIZE)

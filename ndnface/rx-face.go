@@ -15,8 +15,7 @@ type RxFace struct {
 	c C.RxFace
 }
 
-func NewRxFace(q dpdk.EthRxQueue) RxFace {
-	face := RxFace{}
+func NewRxFace(q dpdk.EthRxQueue) (face RxFace) {
 	face.c.port = C.uint16_t(q.GetPort())
 	face.c.queue = C.uint16_t(q.GetQueue())
 	return face
