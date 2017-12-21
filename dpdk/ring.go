@@ -10,6 +10,7 @@ import "unsafe"
 
 type Ring struct {
 	ptr *C.struct_rte_ring
+	// DO NOT add other fields: *Ring is passed to C code as rte_ring**
 }
 
 func NewRing(name string, capacity int, socket NumaSocket,

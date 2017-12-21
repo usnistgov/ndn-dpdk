@@ -1,7 +1,9 @@
 package dpdk
 
 /*
+#include <stdlib.h>
 #include <rte_config.h>
+#include <rte_eth_ring.h>
 #include <rte_ethdev.h>
 #include <rte_ether.h>
 */
@@ -24,6 +26,19 @@ func ListEthDevs() []EthDev {
 
 func CountEthDevs() int {
 	return int(C.rte_eth_dev_count())
+}
+
+func NewEthDevFromRings(name string, rxRings []Ring, txRings []Ring, socket NumaSocket) (dev EthDev, e error) {
+	nameC := C.CString(name)
+	defer C.free(unsafe.Pointer(nameC))
+	res := C.rte_eth_from_rings(nameC,
+		(**C.struct_rte_ring)(unsafe.Pointer(&rxRings[0])), C.unsigned(len(rxRings)),
+		(**C.struct_rte_ring)(unsafe.Pointer(&txRings[0])), C.unsigned(len(txRings)),
+		C.unsigned(socket))
+	if res < 0 {
+		return EthDev(0xFFFF), GetErrno()
+	}
+	return EthDev(res), nil
 }
 
 func (port EthDev) GetName() string {
@@ -66,7 +81,7 @@ type EthTxQueueConfig struct {
 	Conf     unsafe.Pointer // pointer to rte_eth_txconf
 }
 
-func (port EthDev) Configure(cfg EthDevConfig) ([]EthRxQueue, []EthTxQueue, error) {
+func (port EthDev) Configure(cfg EthDevConfig) (rxQueues []EthRxQueue, txQueues []EthTxQueue, e error) {
 	portId := C.uint16_t(port)
 	var defaultConf C.struct_rte_eth_conf
 	defaultConf.rxmode.max_rx_pkt_len = C.ETHER_MAX_LEN
@@ -81,7 +96,7 @@ func (port EthDev) Configure(cfg EthDevConfig) ([]EthRxQueue, []EthTxQueue, erro
 		return nil, nil, fmt.Errorf("rte_eth_dev_configure(%d) error code %d", port, res)
 	}
 
-	rxQueues := make([]EthRxQueue, len(cfg.RxQueues))
+	rxQueues = make([]EthRxQueue, len(cfg.RxQueues))
 	for i, qcfg := range cfg.RxQueues {
 		res = C.rte_eth_rx_queue_setup(portId, C.uint16_t(i), C.uint16_t(qcfg.Capacity),
 			C.uint(qcfg.Socket), (*C.struct_rte_eth_rxconf)(qcfg.Conf), qcfg.Mp.ptr)
@@ -92,7 +107,7 @@ func (port EthDev) Configure(cfg EthDevConfig) ([]EthRxQueue, []EthTxQueue, erro
 		rxQueues[i].queue = C.uint16_t(i)
 	}
 
-	txQueues := make([]EthTxQueue, len(cfg.RxQueues))
+	txQueues = make([]EthTxQueue, len(cfg.RxQueues))
 	for i, qcfg := range cfg.TxQueues {
 		res = C.rte_eth_tx_queue_setup(portId, C.uint16_t(i), C.uint16_t(qcfg.Capacity),
 			C.uint(qcfg.Socket), (*C.struct_rte_eth_txconf)(qcfg.Conf))

@@ -2,42 +2,56 @@ package main
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"ndn-dpdk/dpdk"
-	"ndn-dpdk/integ"
 	"time"
+
+	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/dpdktestenv"
+	"ndn-dpdk/integ"
 )
 
 func main() {
 	t := new(integ.Testing)
 	defer t.Close()
-	assert := assert.New(t)
-	require := require.New(t)
+	assert, require := integ.MakeAR(t)
 
-	eal, e := dpdk.NewEal([]string{"testprog", "-l0,1,2", "--no-pci", "--vdev=net_ring0"})
+	eal := dpdktestenv.InitEal()
+	mp := dpdktestenv.MakeDirectMp(4095, 0, 256)
+
+	ring01, e := dpdk.NewRing("RING_tx0rx1", 4, dpdk.NUMA_SOCKET_ANY, true, true)
 	require.NoError(e)
-
-	mp, e := dpdk.NewPktmbufPool("MP", 4095, 0, 0, 256, dpdk.NUMA_SOCKET_ANY)
+	ring10, e := dpdk.NewRing("RING_tx1rx0", 1024, dpdk.NUMA_SOCKET_ANY, true, true)
 	require.NoError(e)
-	defer mp.Close()
+	ringPort0, e := dpdk.NewEthDevFromRings("A", []dpdk.Ring{ring10}, []dpdk.Ring{ring01},
+		dpdk.NUMA_SOCKET_ANY)
+	require.NoError(e)
+	ringPort1, e := dpdk.NewEthDevFromRings("B", []dpdk.Ring{ring01}, []dpdk.Ring{ring10},
+		dpdk.NUMA_SOCKET_ANY)
+	require.NoError(e)
+	ringPort0 = ringPort1
+	ringPort1 = ringPort0
 
-	assert.EqualValues(1, dpdk.CountEthDevs())
+	assert.EqualValues(2, dpdk.CountEthDevs())
 	ports := dpdk.ListEthDevs()
-	require.Len(ports, 1)
-	port := ports[0]
-	assert.NotEmpty(port.GetName())
+	require.Len(ports, 2)
+	port0, port1 := ports[0], ports[1]
+	assert.Equal("net_ring_A", port0.GetName())
+	assert.Equal("net_ring_B", port1.GetName())
 
 	var portConf dpdk.EthDevConfig
 	portConf.AddRxQueue(dpdk.EthRxQueueConfig{Capacity: 64, Socket: dpdk.NUMA_SOCKET_ANY, Mp: mp})
 	portConf.AddTxQueue(dpdk.EthTxQueueConfig{Capacity: 64, Socket: dpdk.NUMA_SOCKET_ANY})
-	rxqs, txqs, e := port.Configure(portConf)
+	rxqs0, txqs0, e := port0.Configure(portConf)
 	require.NoError(e)
-	require.Len(rxqs, 1)
-	require.Len(txqs, 1)
-	rxq, txq := rxqs[0], txqs[0]
+	require.Len(rxqs0, 1)
+	require.Len(txqs0, 1)
+	rxqs1, txqs1, e := port1.Configure(portConf)
+	require.NoError(e)
+	require.Len(rxqs1, 1)
+	require.Len(txqs1, 1)
+	rxq, txq := rxqs0[0], txqs1[0]
 
-	port.Start()
+	port0.Start()
+	port1.Start()
 
 	const RX_BURST_SIZE = 6
 	const TX_LOOPS = 100000
@@ -98,7 +112,8 @@ func main() {
 	time.Sleep(RX_FINISH_WAIT)
 	rxQuit <- 0
 
-	fmt.Println(port.GetStats())
+	fmt.Println(port0.GetStats())
+	fmt.Println(port1.GetStats())
 	fmt.Println("txtxRetryFreq=", txRetryFreq)
 	fmt.Println("rxBurstSizeFreq=", rxBurstSizeFreq)
 	assert.True(nReceived <= TX_LOOPS*TX_BURST_SIZE)

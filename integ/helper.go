@@ -3,6 +3,9 @@ package integ
 import (
 	"fmt"
 	"os"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type Testing struct {
@@ -24,4 +27,8 @@ func (t *Testing) Close() {
 	} else {
 		os.Exit(0)
 	}
+}
+
+func MakeAR(t *Testing) (*assert.Assertions, *require.Assertions) {
+	return assert.New(t), require.New(t)
 }
