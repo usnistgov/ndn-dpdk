@@ -1,6 +1,6 @@
-all: go-dpdk go-ndn go-face
+all: go-dpdk go-ndn go-ndnface
 
-cmd-%: cmd/%/* go-dpdk go-ndn go-face
+cmd-%: cmd/%/* go-dpdk go-ndn go-ndnface
 	go install ./cmd/$*
 
 build-c/libndn-dpdk-%.a: %/*.h %/*.c
@@ -21,13 +21,13 @@ ndn/tlv-type.go ndn/tlv-type.h: ndn/make-tlv-type.sh ndn/tlv-type.tsv
 build-c/libndn-dpdk-ndn.a: ndn/*.c ndn/error.h ndn/tlv-type.h
 	./build-c.sh ndn
 
-go-face: go-ndn face/*.go build-c/libndn-dpdk-core.a build-c/libndn-dpdk-dpdk.a build-c/libndn-dpdk-ndn.a
-	go build ./face
+go-ndnface: go-ndn ndnface/*.go build-c/libndn-dpdk-core.a build-c/libndn-dpdk-dpdk.a build-c/libndn-dpdk-ndn.a
+	go build ./ndnface
 
 unittest:
 	./gotest.sh dpdk/dpdktest
 	./gotest.sh ndn
-	./gotest.sh face
+	./gotest.sh ndnface
 
 test: unittest
 	integ/run.sh

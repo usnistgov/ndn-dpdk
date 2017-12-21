@@ -6,7 +6,8 @@ import (
 	"os"
 
 	"ndn-dpdk/dpdk"
-	"ndn-dpdk/face"
+	"ndn-dpdk/ndn"
+	"ndn-dpdk/ndnface"
 )
 
 // exit codes
@@ -26,7 +27,7 @@ const (
 
 var eal *dpdk.Eal
 var mempools = make(map[dpdk.NumaSocket]dpdk.PktmbufPool)
-var rxFaces = make(map[dpdk.EthDev]face.RxFace)
+var rxFaces = make(map[dpdk.EthDev]ndnface.RxFace)
 
 func main() {
 	eal, e := dpdk.NewEal(os.Args)
@@ -66,7 +67,7 @@ func makeMempool(socket dpdk.NumaSocket) dpdk.PktmbufPool {
 
 	mpName := fmt.Sprintf("MP_%d", socket)
 	mp, e := dpdk.NewPktmbufPool(mpName, MP_CAPACITY, MP_CACHE,
-		face.SizeofPacketPriv(), MP_DATAROOM, socket)
+		ndn.SizeofPacketPriv(), MP_DATAROOM, socket)
 	if e != nil {
 		log.Printf("NewPktmbufPool(%d): %v", socket, e)
 		os.Exit(EXIT_DPDK_ERROR)
@@ -75,7 +76,7 @@ func makeMempool(socket dpdk.NumaSocket) dpdk.PktmbufPool {
 	return mp
 }
 
-func initEthDev(port dpdk.EthDev) face.RxFace {
+func initEthDev(port dpdk.EthDev) ndnface.RxFace {
 	socket := port.GetNumaSocket()
 	mp := makeMempool(socket)
 
@@ -95,17 +96,17 @@ func initEthDev(port dpdk.EthDev) face.RxFace {
 		os.Exit(EXIT_DPDK_ERROR)
 	}
 
-	return face.NewRxFace(rxQueues[0])
+	return ndnface.NewRxFace(rxQueues[0])
 }
 
 func slaveProc(port dpdk.EthDev) int {
 	log.Printf("Processing %s on slave %d", port.GetName(), dpdk.GetCurrentLCore())
-	iface := rxFaces[port]
+	face := rxFaces[port]
 	logger := log.New(os.Stdout, port.GetName()+" ", log.LstdFlags)
 
-	pkts := make([]face.Packet, RX_BURST_SIZE)
+	pkts := make([]ndn.Packet, RX_BURST_SIZE)
 	for {
-		burstSize := iface.RxBurst(pkts)
+		burstSize := face.RxBurst(pkts)
 		for _, pkt := range pkts[:burstSize] {
 			if !pkt.IsValid() {
 				continue
@@ -118,12 +119,12 @@ func slaveProc(port dpdk.EthDev) int {
 	return 0
 }
 
-func processPacket(logger *log.Logger, pkt face.Packet) {
+func processPacket(logger *log.Logger, pkt ndn.Packet) {
 	switch pkt.GetNetType() {
-	case face.NdnPktType_Interest:
+	case ndn.NdnPktType_Interest:
 		interest := pkt.AsInterest()
 		logger.Printf("I %s", interest.GetName())
-	case face.NdnPktType_Data:
+	case ndn.NdnPktType_Data:
 		data := pkt.AsData()
 		logger.Printf("D %s", data.GetName())
 	}

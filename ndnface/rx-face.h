@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_FACE_FACE_H
-#define NDN_DPDK_FACE_FACE_H
+#ifndef NDN_DPDK_NDNFACE_RX_FACE_H
+#define NDN_DPDK_NDNFACE_RX_FACE_H
 
 #include "in-order-reassembler.h"
 
@@ -30,4 +30,4 @@ typedef struct RxFace
  */
 uint16_t RxFace_RxBurst(RxFace* face, struct rte_mbuf** pkts, uint16_t nPkts);
 
-#endif // NDN_DPDK_FACE_FACE_H
+#endif // NDN_DPDK_NDNFACE_RX_FACE_H

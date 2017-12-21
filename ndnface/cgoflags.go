@@ -1,4 +1,4 @@
-package face
+package ndnface
 
 /*
 #cgo CFLAGS: -m64 -pthread -O3 -march=native -I/usr/local/include/dpdk

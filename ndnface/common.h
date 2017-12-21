@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_FACE_COMMON_H
-#define NDN_DPDK_FACE_COMMON_H
+#ifndef NDN_DPDK_NDNFACE_COMMON_H
+#define NDN_DPDK_NDNFACE_COMMON_H
 
 #include "../core/common.h"
 
@@ -8,4 +8,4 @@
 #include "../ndn/nack-pkt.h"
 #include "../ndn/packet.h"
 
-#endif // NDN_DPDK_FACE_COMMON_H
+#endif // NDN_DPDK_NDNFACE_COMMON_H

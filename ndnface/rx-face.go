@@ -1,4 +1,4 @@
-package face
+package ndnface
 
 /*
 #include "rx-face.h"
