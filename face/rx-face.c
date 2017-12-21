@@ -1,5 +1,4 @@
 #include "rx-face.h"
-#include "packet.h"
 
 #include "../ndn/protonum.h"
 #include <rte_ether.h>

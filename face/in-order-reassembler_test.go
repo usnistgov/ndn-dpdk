@@ -36,9 +36,9 @@ func TestInOrderReassembler(t *testing.T) {
 		d := ndn.NewTlvDecoder(pkt)
 		lpp, e := d.ReadLpPkt()
 		require.NoError(e, step.input)
-		Packet{pkt}.SetLpHdr(lpp)
+		ndn.Packet{pkt}.SetLpHdr(lpp)
 
-		outPkt := reassembler.Receive(Packet{pkt})
+		outPkt := reassembler.Receive(ndn.Packet{pkt})
 		if step.output == "" {
 			assert.False(outPkt.IsValid(), step.input)
 		} else {

@@ -7,16 +7,16 @@ import "C"
 import (
 	"unsafe"
 
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/ndn"
 )
 
 type InOrderReassembler struct {
 	c C.InOrderReassembler
 }
 
-func (r *InOrderReassembler) Receive(pkt Packet) Packet {
-	res := C.InOrderReassembler_Receive(&r.c, pkt.getPtr())
-	return Packet{dpdk.MbufFromPtr(unsafe.Pointer(res)).AsPacket()}
+func (r *InOrderReassembler) Receive(pkt ndn.Packet) ndn.Packet {
+	res := C.InOrderReassembler_Receive(&r.c, (*C.struct_rte_mbuf)(pkt.GetPtr()))
+	return ndn.PacketFromPtr(unsafe.Pointer(res))
 }
 
 type InOrderReassemblerCounters struct {

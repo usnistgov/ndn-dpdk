@@ -1,7 +1,9 @@
-#ifndef NDN_DPDK_FACE_PACKET_H
-#define NDN_DPDK_FACE_PACKET_H
+#ifndef NDN_DPDK_NDN_PACKET_H
+#define NDN_DPDK_NDN_PACKET_H
 
-#include "common.h"
+#include "data-pkt.h"
+#include "interest-pkt.h"
+#include "lp-pkt.h"
 
 /// \file
 
@@ -69,4 +71,4 @@ Packet_GetDataHdr(struct rte_mbuf* pkt)
   return MbufPriv(pkt, DataPkt*, offsetof(PacketPriv, data));
 }
 
-#endif // NDN_DPDK_FACE_PACKET_H
+#endif // NDN_DPDK_NDN_PACKET_H

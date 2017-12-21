@@ -8,6 +8,7 @@ import (
 	"unsafe"
 
 	"ndn-dpdk/dpdk"
+	"ndn-dpdk/ndn"
 )
 
 type RxFace struct {
@@ -21,7 +22,7 @@ func NewRxFace(q dpdk.EthRxQueue) RxFace {
 	return face
 }
 
-func (face RxFace) RxBurst(pkts []Packet) int {
+func (face RxFace) RxBurst(pkts []ndn.Packet) int {
 	if len(pkts) == 0 {
 		return 0
 	}

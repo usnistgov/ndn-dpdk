@@ -1,6 +1,5 @@
 #include "in-order-reassembler.h"
 #include "../core/logger.h"
-#include "packet.h"
 
 struct rte_mbuf*
 InOrderReassembler_Receive(InOrderReassembler* r, struct rte_mbuf* pkt)
