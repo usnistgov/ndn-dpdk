@@ -4,7 +4,6 @@ package face
 
 import (
 	"encoding/hex"
-	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -16,26 +15,8 @@ import (
 	"ndn-dpdk/dpdk/dpdktestenv"
 )
 
-var testMp dpdk.PktmbufPool
-
-const testMp_DATAROOM = 2000
-
-var testMpIndirect dpdk.PktmbufPool
-
 func TestMain(m *testing.M) {
-	dpdktestenv.InitEal()
-
-	var e error
-	testMp, e = dpdk.NewPktmbufPool("MP", 255, 0, SizeofPacketPriv(), testMp_DATAROOM,
-		dpdk.NUMA_SOCKET_ANY)
-	if e != nil {
-		panic(fmt.Sprintf("NewPktmbufPool(MP) error %v", e))
-	}
-
-	testMpIndirect, e = dpdk.NewPktmbufPool("MP-INDIRECT", 255, 0, 0, 0, dpdk.NUMA_SOCKET_ANY)
-	if e != nil {
-		panic(fmt.Sprintf("NewPktmbufPool(MP-INDIRECT) error %v", e))
-	}
+	dpdktestenv.CreateDirectMp(255, SizeofPacketPriv(), 2000)
 
 	os.Exit(m.Run())
 }
@@ -48,7 +29,7 @@ func makeAR(t *testing.T) (*assert.Assertions, *require.Assertions) {
 // Memory is allocated from testMp.
 // Caller is responsible for closing the packet.
 func packetFromBytes(input []byte) dpdk.Packet {
-	m, e := testMp.Alloc()
+	m, e := dpdktestenv.DirectMp.Alloc()
 	if e != nil {
 		return dpdk.Packet{}
 	}
