@@ -41,10 +41,9 @@ func TestInOrderReassembler(t *testing.T) {
 		outPkt := reassembler.Receive(ndn.Packet{pkt})
 		if step.output == "" {
 			assert.False(outPkt.IsValid(), step.input)
-		} else {
-			if assert.True(outPkt.IsValid(), step.input) {
-				// TODO check contents
-			}
+		} else if assert.True(outPkt.IsValid(), step.input) {
+			assert.False(outPkt.GetLpHdr().IsFragmented(), step.input)
+			// TODO check contents
 		}
 	}
 

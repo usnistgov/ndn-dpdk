@@ -47,7 +47,11 @@ InOrderReassembler_Receive(InOrderReassembler* r, struct rte_mbuf* pkt)
   }
 
   PKTDBG("accepted-last");
-  ++r->nDelivered;
   r->tail = NULL; // indicate the reassembler is idle
+
+  ++r->nDelivered;
+  lpp = Packet_GetLpHdr(r->head);
+  lpp->fragIndex = lpp->fragCount = 0;
   return r->head;
+#undef PKTDBG
 }
