@@ -16,7 +16,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	dpdktestenv.CreateDirectMp(255, SizeofPacketPriv(), 2000)
+	dpdktestenv.MakeDirectMp(255, SizeofPacketPriv(), 2000)
 
 	os.Exit(m.Run())
 }

@@ -9,7 +9,7 @@ import (
 var DirectMp dpdk.PktmbufPool
 var IndirectMp dpdk.PktmbufPool
 
-func CreateDirectMp(capacity int, privSize uint16, dataRoomSize uint16) dpdk.PktmbufPool {
+func MakeDirectMp(capacity int, privSize uint16, dataRoomSize uint16) dpdk.PktmbufPool {
 	createMp(&DirectMp, "TEST-MP-DIRECT", capacity, privSize, dataRoomSize)
 	return DirectMp
 }
