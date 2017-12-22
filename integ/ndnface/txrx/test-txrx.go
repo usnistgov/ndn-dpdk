@@ -16,7 +16,7 @@ func main() {
 	assert, require := integ.MakeAR(t)
 
 	eal := dpdktestenv.InitEal()
-	dpdktestenv.MakeDirectMp(4095, 0, 256)
+	dpdktestenv.MakeDirectMp(4095, ndn.SizeofPacketPriv(), 2000)
 	edp := dpdktestenv.NewEthDevPair(1, 1024, 64)
 
 	faceA, e := ndnface.NewTxFace(edp.TxqA[0])
