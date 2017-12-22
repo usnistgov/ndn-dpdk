@@ -16,6 +16,8 @@ import (
 
 type EthDev uint16
 
+const ETHDEV_INVALID = EthDev(0xFFFF)
+
 func ListEthDevs() []EthDev {
 	var l []EthDev
 	for p := C.rte_eth_find_next(0); p < C.RTE_MAX_ETHPORTS; p = C.rte_eth_find_next(p + 1) {
@@ -39,6 +41,10 @@ func NewEthDevFromRings(name string, rxRings []Ring, txRings []Ring, socket Numa
 		return EthDev(0xFFFF), GetErrno()
 	}
 	return EthDev(res), nil
+}
+
+func (port EthDev) IsValid() bool {
+	return port != ETHDEV_INVALID
 }
 
 func (port EthDev) GetName() string {
@@ -107,7 +113,7 @@ func (port EthDev) Configure(cfg EthDevConfig) (rxQueues []EthRxQueue, txQueues 
 		rxQueues[i].queue = C.uint16_t(i)
 	}
 
-	txQueues = make([]EthTxQueue, len(cfg.RxQueues))
+	txQueues = make([]EthTxQueue, len(cfg.TxQueues))
 	for i, qcfg := range cfg.TxQueues {
 		res = C.rte_eth_tx_queue_setup(portId, C.uint16_t(i), C.uint16_t(qcfg.Capacity),
 			C.uint(qcfg.Socket), (*C.struct_rte_eth_txconf)(qcfg.Conf))
