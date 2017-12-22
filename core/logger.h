@@ -2,6 +2,7 @@
 #define NDN_DPDK_CORE_LOGGER_H
 
 #define ZF_LOG_VERSION_REQUIRED 4
+#define ZF_LOG_SRCLOC ZF_LOG_SRCLOC_SHORT
 #include "zf_log.h"
 
 #endif // NDN_DPDK_CORE_LOGGER_H
