@@ -15,7 +15,7 @@ const (
 	NackReason_Congestion             = 50
 	NackReason_Duplicate              = 100
 	NackReason_NoRoute                = 150
-	NackReason_Unspecified            = 255
+	NackReason_Unspecified            = 255 // reason unspecified
 )
 
 func (nr NackReason) String() string {

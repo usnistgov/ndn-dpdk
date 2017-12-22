@@ -18,7 +18,7 @@ typedef struct InterestPkt
   Name name;
   Name fwHints[INTEREST_MAX_FORWARDING_HINTS];
   MbufLoc nonce;     ///< start position and boundary of Nonce TLV-VALUE
-  uint32_t lifetime; ///< InterestLifetime in mills
+  uint32_t lifetime; ///< InterestLifetime in millis
   uint8_t nFwHints;  ///< number of forwarding hints decoded in .fwHints
   bool mustBeFresh;  ///< has MustBeFresh?
 } InterestPkt;
