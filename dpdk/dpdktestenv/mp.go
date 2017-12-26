@@ -12,7 +12,7 @@ func MakeMp(id string, capacity int, privSize uint16, dataRoomSize uint16) dpdk.
 	InitEal()
 
 	name := "TEST-MP-" + id
-	if mp, ok := mps[name]; ok {
+	if mp, ok := mps[id]; ok {
 		mp.Close()
 	}
 

@@ -56,16 +56,18 @@ func (r Ring) IsFull() bool {
 
 // Enqueue several objects on a ring.
 // Return number of objects enqueued, and available ring space after operation.
-func (r Ring) BurstEnqueue(objs []unsafe.Pointer) (int, int) {
-	var freeSpace C.uint
-	res := C.rte_ring_enqueue_burst(r.ptr, &objs[0], C.uint(len(objs)), &freeSpace)
-	return int(res), int(freeSpace)
+func (r Ring) BurstEnqueue(objs interface{}) (nEnqueued int, freeSpace int) {
+	ptr, count := ParseCptrArray(objs)
+	var freeSpaceC C.uint
+	res := C.rte_ring_enqueue_burst(r.ptr, (*unsafe.Pointer)(ptr), C.uint(count), &freeSpaceC)
+	return int(res), int(freeSpaceC)
 }
 
 // Dequeue several objects on a ring, writing into slice of native pointers.
 // Return number of objects dequeued, and remaining ring entries after operation.
-func (r Ring) BurstDequeue(objs []unsafe.Pointer) (int, int) {
-	var nEntries C.uint
-	res := C.rte_ring_dequeue_burst(r.ptr, &objs[0], C.uint(len(objs)), &nEntries)
-	return int(res), int(nEntries)
+func (r Ring) BurstDequeue(objs interface{}) (nDequeued int, nEntries int) {
+	ptr, count := ParseCptrArray(objs)
+	var nEntriesC C.uint
+	res := C.rte_ring_dequeue_burst(r.ptr, (*unsafe.Pointer)(ptr), C.uint(count), &nEntriesC)
+	return int(res), int(nEntriesC)
 }
