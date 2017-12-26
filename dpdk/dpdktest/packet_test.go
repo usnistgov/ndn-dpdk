@@ -128,7 +128,7 @@ func TestPacket(t *testing.T) {
 func TestPacketClone(t *testing.T) {
 	assert, require := makeAR(t)
 	mp := dpdktestenv.MakeDirectMp(63, 0, 1000)
-	mpi := dpdktestenv.CreateIndirectMp(63)
+	mpi := dpdktestenv.MakeIndirectMp(63)
 
 	pkts := make([]dpdk.Packet, 2)
 	e := mp.AllocPktBulk(pkts[:1])

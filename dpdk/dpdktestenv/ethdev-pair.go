@@ -21,9 +21,7 @@ type EthDevPair struct {
 }
 
 func NewEthDevPair(nQueues int, ringCapacity int, queueCapacity uint) (edp EthDevPair) {
-	if !DirectMp.IsValid() {
-		panic("NewEthDevPair requires initialized DirectMp")
-	}
+	mp := GetMp(MPID_DIRECT)
 
 	var e error
 	edp.ringsAB = make([]dpdk.Ring, nQueues)
@@ -41,7 +39,7 @@ func NewEthDevPair(nQueues int, ringCapacity int, queueCapacity uint) (edp EthDe
 	createRings("BA", edp.ringsBA)
 
 	createPort := func(label string, rxRings []dpdk.Ring, txRings []dpdk.Ring) dpdk.EthDev {
-		name := fmt.Sprintf("EthDevPair_%s", label)
+		name := fmt.Sprintf("EthDevPair_%d_%s", nEthDevPairs, label)
 		port, e := dpdk.NewEthDevFromRings(name, rxRings, txRings, dpdk.NUMA_SOCKET_ANY)
 		if e != nil {
 			panic(fmt.Sprintf("dpdk.NewEthDevFromRings(%s) error %v", name, e))
@@ -52,8 +50,10 @@ func NewEthDevPair(nQueues int, ringCapacity int, queueCapacity uint) (edp EthDe
 	edp.PortB = createPort("B", edp.ringsAB, edp.ringsBA)
 
 	var portConf dpdk.EthDevConfig
-	portConf.AddRxQueue(dpdk.EthRxQueueConfig{Capacity: queueCapacity, Socket: dpdk.NUMA_SOCKET_ANY, Mp: DirectMp})
-	portConf.AddTxQueue(dpdk.EthTxQueueConfig{Capacity: queueCapacity, Socket: dpdk.NUMA_SOCKET_ANY})
+	for i := 0; i < nQueues; i++ {
+		portConf.AddRxQueue(dpdk.EthRxQueueConfig{Capacity: queueCapacity, Socket: dpdk.NUMA_SOCKET_ANY, Mp: mp})
+		portConf.AddTxQueue(dpdk.EthTxQueueConfig{Capacity: queueCapacity, Socket: dpdk.NUMA_SOCKET_ANY})
+	}
 
 	edp.RxqA, edp.TxqA, e = edp.PortA.Configure(portConf)
 	if e != nil {
@@ -61,7 +61,7 @@ func NewEthDevPair(nQueues int, ringCapacity int, queueCapacity uint) (edp EthDe
 	}
 	edp.RxqB, edp.TxqB, e = edp.PortB.Configure(portConf)
 	if e != nil {
-		panic(fmt.Sprintf("EthDev(A).Configure error %v", e))
+		panic(fmt.Sprintf("EthDev(B).Configure error %v", e))
 	}
 
 	edp.PortA.Start()

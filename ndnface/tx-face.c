@@ -1,4 +1,5 @@
 #include "tx-face.h"
+#include "../core/logger.h"
 
 static uint16_t
 TxFace_TxCallback(uint16_t port, uint16_t queue, struct rte_mbuf** pkts,
@@ -18,6 +19,11 @@ TxFace_TxCallback(uint16_t port, uint16_t queue, struct rte_mbuf** pkts,
 bool
 TxFace_Init(TxFace* face)
 {
+  assert(face->indirectMp != NULL);
+  assert(face->headerMp != NULL);
+  assert(rte_pktmbuf_data_room_size(face->headerMp) >=
+         TxFace_GetHeaderMempoolDataRoom());
+
   int res = rte_eth_dev_get_mtu(face->port, &face->mtu);
   if (res != 0) {
     return false;
@@ -43,26 +49,66 @@ TxFace_Close(TxFace* face)
   face->__txCallback = NULL;
 }
 
-uint16_t
+static inline void
+TxFace_SendFrames(TxFace* face, struct rte_mbuf** frames, uint16_t nFrames)
+{
+  ++face->nBursts;
+
+  uint16_t nSent = rte_eth_tx_burst(face->port, face->queue, frames, nFrames);
+  if (nSent == nFrames) {
+    return;
+  }
+
+  ++face->nPartialBursts;
+  face->nZeroBursts += (nSent == 0);
+  for (uint16_t i = nSent; i < nFrames; ++i) {
+    rte_pktmbuf_free(frames[i]);
+  }
+}
+
+void
 TxFace_TxBurst(TxFace* face, struct rte_mbuf** pkts, uint16_t nPkts)
 {
   assert(face->mtu > 0);
 
-  // TODO fragmentation
+  static const int MAX_FRAMES = 64;
+  struct rte_mbuf* frames[MAX_FRAMES];
+  int nFrames = 0;
 
   for (uint16_t i = 0; i < nPkts; ++i) {
-    struct rte_mbuf* pkt = pkts[i];
-    // TODO do not prepend because pkt may be shared
+    struct rte_mbuf* payload = rte_pktmbuf_clone(pkts[i], face->indirectMp);
+    if (unlikely(payload == NULL)) {
+      ++face->nAllocFails;
+      break;
+    }
+
+    // TODO create multiple frames if fragmentation is needed
+    struct rte_mbuf* frame = rte_pktmbuf_alloc(face->headerMp);
+    if (unlikely(payload == NULL)) {
+      ++face->nAllocFails;
+      rte_pktmbuf_free(payload);
+      break;
+    }
+    frame->data_off = sizeof(struct ether_hdr);
+
     struct ether_hdr* eth =
-      (struct ether_hdr*)rte_pktmbuf_prepend(pkt, sizeof(struct ether_hdr));
+      (struct ether_hdr*)rte_pktmbuf_prepend(frame, sizeof(struct ether_hdr));
     assert(eth != NULL);
     memcpy(eth, &face->ethhdr, sizeof(*eth));
+
+    // TODO fragmentation
+    Packet_SetNdnPktType(frame, Packet_GetNdnPktType(payload));
+    rte_pktmbuf_chain(frame, payload);
+
+    frames[nFrames++] = frame;
+
+    if (unlikely(nFrames == MAX_FRAMES)) {
+      TxFace_SendFrames(face, frames, nFrames);
+      nFrames = 0;
+    }
   }
 
-  uint16_t n = 0;
-  while (n == 0) {
-    n = rte_eth_tx_burst(face->port, face->queue, pkts, nPkts);
-    // TODO internal queuing
+  if (likely(nFrames > 0)) {
+    TxFace_SendFrames(face, frames, nFrames);
   }
-  return n;
 }

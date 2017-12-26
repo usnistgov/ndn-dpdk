@@ -6,30 +6,40 @@ import (
 	"ndn-dpdk/dpdk"
 )
 
-var DirectMp dpdk.PktmbufPool
-var IndirectMp dpdk.PktmbufPool
+var mps = make(map[string]dpdk.PktmbufPool)
 
-func MakeDirectMp(capacity int, privSize uint16, dataRoomSize uint16) dpdk.PktmbufPool {
-	createMp(&DirectMp, "TEST-MP-DIRECT", capacity, privSize, dataRoomSize)
-	return DirectMp
-}
-
-func CreateIndirectMp(capacity int) dpdk.PktmbufPool {
-	createMp(&IndirectMp, "TEST-MP-INDIRECT", capacity, 0, 0)
-	return IndirectMp
-}
-
-func createMp(mp *dpdk.PktmbufPool, name string, capacity int, privSize uint16,
-	dataRoomSize uint16) {
+func MakeMp(id string, capacity int, privSize uint16, dataRoomSize uint16) dpdk.PktmbufPool {
 	InitEal()
 
-	if mp.IsValid() {
+	name := "TEST-MP-" + id
+	if mp, ok := mps[name]; ok {
 		mp.Close()
 	}
 
-	var e error
-	*mp, e = dpdk.NewPktmbufPool(name, capacity, 0, privSize, dataRoomSize, dpdk.NUMA_SOCKET_ANY)
+	mp, e := dpdk.NewPktmbufPool(name, capacity, 0, privSize, dataRoomSize, dpdk.NUMA_SOCKET_ANY)
 	if e != nil {
 		panic(fmt.Sprintf("dpdk.NewPktmbufPool(%s) error %v", name, e))
 	}
+
+	mps[id] = mp
+	return mp
+}
+
+func GetMp(id string) dpdk.PktmbufPool {
+	if mp, ok := mps[id]; ok {
+		return mp
+	}
+
+	panic(fmt.Sprintf("GetMp(%s) without MakeMp", id))
+}
+
+const MPID_DIRECT = "_default_direct"
+const MPID_INDIRECT = "_default_indirect"
+
+func MakeDirectMp(capacity int, privSize uint16, dataRoomSize uint16) dpdk.PktmbufPool {
+	return MakeMp(MPID_DIRECT, capacity, privSize, dataRoomSize)
+}
+
+func MakeIndirectMp(capacity int) dpdk.PktmbufPool {
+	return MakeMp(MPID_INDIRECT, capacity, 0, 0)
 }

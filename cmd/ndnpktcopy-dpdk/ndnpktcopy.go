@@ -28,7 +28,9 @@ const (
 )
 
 var eal *dpdk.Eal
-var mp dpdk.PktmbufPool
+var mpRx dpdk.PktmbufPool
+var mpTxHdr dpdk.PktmbufPool
+var mpIndirect dpdk.PktmbufPool
 var rxFace ndnface.RxFace
 var txFaces []ndnface.TxFace
 
@@ -59,10 +61,24 @@ func main() {
 	}
 	log.Printf("inPort=%d outPorts=%v", inPort, outPorts)
 
-	mp, e = dpdk.NewPktmbufPool("MP", MP_CAPACITY, MP_CACHE,
+	mpRx, e = dpdk.NewPktmbufPool("MP-RX", MP_CAPACITY, MP_CACHE,
 		ndn.SizeofPacketPriv(), MP_DATAROOM, inPort.GetNumaSocket())
 	if e != nil {
-		log.Printf("NewPktmbufPool: %v", e)
+		log.Printf("NewPktmbufPool(RX): %v", e)
+		os.Exit(EXIT_DPDK_ERROR)
+	}
+
+	mpTxHdr, e = dpdk.NewPktmbufPool("MP-TXHDR", MP_CAPACITY, MP_CACHE,
+		0, ndnface.SizeofHeaderMempoolDataRoom(), outPorts[0].GetNumaSocket())
+	if e != nil {
+		log.Printf("NewPktmbufPool(TXHDR): %v", e)
+		os.Exit(EXIT_DPDK_ERROR)
+	}
+
+	mpIndirect, e = dpdk.NewPktmbufPool("MP-IND", MP_CAPACITY, MP_CACHE,
+		0, 0, outPorts[0].GetNumaSocket())
+	if e != nil {
+		log.Printf("NewPktmbufPool(IND): %v", e)
 		os.Exit(EXIT_DPDK_ERROR)
 	}
 
@@ -90,9 +106,10 @@ func main() {
 		if nRx > 0 {
 			log.Printf("received %d, sending %d", nRx, nTx)
 			for _, face := range txFaces {
-				// TODO clone the packet before sending, because tx queue takes ownership
-				nSent := face.TxBurst(outPkts[:nTx])
-				log.Printf("sent %d", nSent)
+				face.TxBurst(outPkts[:nTx])
+			}
+			for _, pkt := range outPkts[:nTx] {
+				pkt.Close()
 			}
 		}
 	}
@@ -119,7 +136,7 @@ func parseCommand() (inface string, outfaces map[string]bool, e error) {
 func initRxFace(port dpdk.EthDev) ndnface.RxFace {
 	var cfg dpdk.EthDevConfig
 	cfg.AddRxQueue(dpdk.EthRxQueueConfig{Capacity: RXQ_CAPACITY,
-		Socket: port.GetNumaSocket(), Mp: mp})
+		Socket: port.GetNumaSocket(), Mp: mpRx})
 	rxQueues, _, e := port.Configure(cfg)
 	if e != nil {
 		log.Printf("port(%d).Configure: %v", port, e)
@@ -152,7 +169,7 @@ func initTxFace(port dpdk.EthDev) ndnface.TxFace {
 		os.Exit(EXIT_DPDK_ERROR)
 	}
 
-	face, e := ndnface.NewTxFace(txQueues[0])
+	face, e := ndnface.NewTxFace(txQueues[0], mpIndirect, mpTxHdr)
 	if e != nil {
 		log.Printf("NewTxFace(%d): %v", port, e)
 		os.Exit(EXIT_DPDK_ERROR)

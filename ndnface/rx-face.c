@@ -7,7 +7,8 @@ RxFace_ProcessFrame(RxFace* face, struct rte_mbuf* pkt)
   ++face->nFrames;
 
   if (unlikely(pkt->pkt_len < sizeof(struct ether_hdr))) {
-    ZF_LOGD(_NDNFACE_LOG_PREFIX "no-ether_hdr", _NDNFACE_LOG_PARAM);
+    ZF_LOGD(_NDNFACE_LOG_PREFIX "len=%" PRIu32 " no-ether_hdr",
+            _NDNFACE_LOG_PARAM, pkt->pkt_len);
     return false;
   }
 
@@ -18,7 +19,7 @@ RxFace_ProcessFrame(RxFace* face, struct rte_mbuf* pkt)
     return false;
   }
 
-  rte_pktmbuf_adj(pkt, sizeof(struct ether_hdr));
+  Packet_Adj(pkt, sizeof(struct ether_hdr));
 
   return true;
 }
@@ -64,6 +65,9 @@ RxFace_ProcessNetPkt(RxFace* face, struct rte_mbuf* pkt, TlvDecoder* d,
   if (firstOctet == TT_Data) {
     return RxFace_ProcessData(face, pkt, d);
   }
+
+  ZF_LOGD(_NDNFACE_LOG_PREFIX "unknown-net-type=%" PRIX8, _NDNFACE_LOG_PARAM,
+          firstOctet);
   return false;
 }
 
@@ -84,7 +88,7 @@ RxFace_ProcessLpPkt(RxFace* face, struct rte_mbuf* pkt, TlvDecoder* d)
   }
 
   if (LpPkt_HasPayload(lpp)) {
-    rte_pktmbuf_adj(pkt, lpp->payloadOff);
+    Packet_Adj(pkt, lpp->payloadOff);
 
     if (LpPkt_IsFragmented(lpp)) {
       pkt = InOrderReassembler_Receive(&face->reassembler, pkt);
@@ -100,8 +104,6 @@ RxFace_ProcessLpPkt(RxFace* face, struct rte_mbuf* pkt, TlvDecoder* d)
     if (likely(res)) {
       return pkt;
     }
-    rte_pktmbuf_free(pkt);
-    return NULL;
   } else {
     ZF_LOGD(_NDNFACE_LOG_PREFIX "no-payload", _NDNFACE_LOG_PARAM);
   }

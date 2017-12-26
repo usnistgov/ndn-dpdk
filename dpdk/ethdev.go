@@ -38,7 +38,7 @@ func NewEthDevFromRings(name string, rxRings []Ring, txRings []Ring, socket Numa
 		(**C.struct_rte_ring)(unsafe.Pointer(&txRings[0])), C.unsigned(len(txRings)),
 		C.unsigned(socket))
 	if res < 0 {
-		return EthDev(0xFFFF), GetErrno()
+		return ETHDEV_INVALID, GetErrno()
 	}
 	return EthDev(res), nil
 }

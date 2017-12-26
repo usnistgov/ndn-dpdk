@@ -27,6 +27,10 @@ MbufLoc_Init(MbufLoc* ml, const struct rte_mbuf* pkt)
   ml->m = pkt;
   ml->off = 0;
   ml->rem = pkt->pkt_len;
+
+  while (ml->m != NULL && ml->m->data_len == 0) {
+    ml->m = ml->m->next;
+  }
 }
 
 /** \brief Copy MbufLoc \p src to \p dst.
