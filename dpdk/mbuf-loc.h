@@ -4,6 +4,7 @@
 /// \file
 
 #include "mbuf.h"
+#include <rte_errno.h>
 #include <rte_memcpy.h>
 #include <rte_prefetch.h>
 
@@ -49,35 +50,53 @@ MbufLoc_IsEnd(const MbufLoc* ml)
   return ml->m == NULL || ml->rem == 0;
 }
 
+typedef void (*MbufLoc_AdvanceCb)(void* arg, const struct rte_mbuf* m,
+                                  uint16_t off, uint16_t len);
+
+static inline uint32_t
+__MbufLoc_AdvanceWithCb(MbufLoc* ml, uint32_t n, MbufLoc_AdvanceCb cb,
+                        void* cbarg)
+{
+  assert(n <= ml->rem);
+
+  if (unlikely(MbufLoc_IsEnd(ml))) {
+    return 0;
+  }
+
+  uint32_t dist = 0;
+  while (unlikely(ml->m != NULL && ml->off + n >= ml->m->data_len)) {
+    uint16_t len = ml->m->data_len - ml->off;
+    if (len > 0 && cb != NULL) {
+      (*cb)(cbarg, ml->m, ml->off, len);
+    }
+    dist += len;
+    n -= len;
+    ml->m = ml->m->next;
+    ml->off = 0;
+  }
+
+  if (ml->m != NULL) {
+    if (cb != NULL) {
+      (*cb)(cbarg, ml->m, ml->off, n);
+    }
+    dist += n;
+    ml->off += n;
+  }
+
+  ml->rem -= dist;
+  return dist;
+}
+
 /** \brief Advance the position by n octets.
  *  \return Actually advanced distance.
  */
 static inline uint32_t
 MbufLoc_Advance(MbufLoc* ml, uint32_t n)
 {
-  if (unlikely(MbufLoc_IsEnd(ml))) {
-    return 0;
-  }
-
   if (n > ml->rem) {
     n = ml->rem;
   }
-  ml->rem -= n;
-
-  uint32_t dist = 0;
-  while (unlikely(ml->off + n >= ml->m->data_len)) {
-    uint32_t diff = ml->m->data_len - ml->off;
-    dist += diff;
-    n -= diff;
-    ml->m = ml->m->next;
-    if (ml->m == NULL) {
-      return dist;
-    }
-    ml->off = 0;
-  }
-  dist += n;
-  ml->off += n;
-  return dist;
+  return __MbufLoc_AdvanceWithCb(ml, n, NULL, NULL);
 }
 
 /** \brief Determine the distance in octets from a to b.
@@ -106,7 +125,47 @@ MbufLoc_FastDiff(const MbufLoc* a, const MbufLoc* b)
   return a->rem - b->rem;
 }
 
-uint32_t __MbufLoc_Read_MultiSeg(MbufLoc* ml, void* output, uint32_t n);
+typedef struct __MbufLoc_MakeIndirectCtx
+{
+  struct rte_mempool* mp;
+  struct rte_mbuf* head;
+  struct rte_mbuf* tail;
+} __MbufLoc_MakeIndirectCtx;
+
+void __MbufLoc_MakeIndirectCb(void* arg, const struct rte_mbuf* m, uint16_t off,
+                              uint16_t len);
+
+/** \brief Advance the position by n octets, and clone the range into indirect mbufs.
+ *  \return head of indirect mbufs
+ *  \retval NULL remaining range is less than \p n (rte_errno=ERANGE), or
+                 allocation failure (rte_errno=ENOENT)
+ */
+static inline struct rte_mbuf*
+MbufLoc_MakeIndirect(MbufLoc* ml, uint32_t n, struct rte_mempool* mp)
+{
+  if (unlikely(MbufLoc_IsEnd(ml) || n > ml->rem)) {
+    rte_errno = ERANGE;
+    return NULL;
+  }
+
+  __MbufLoc_MakeIndirectCtx ctx;
+  ctx.mp = mp;
+  ctx.head = ctx.tail = NULL;
+
+  __MbufLoc_AdvanceWithCb(ml, n, __MbufLoc_MakeIndirectCb, &ctx);
+
+  if (unlikely(ctx.mp == NULL)) {
+    rte_errno = ENOENT;
+    if (ctx.head != NULL) {
+      rte_pktmbuf_free(ctx.head);
+    }
+  }
+
+  return ctx.head;
+}
+
+void __MbufLoc_ReadCb(void* arg, const struct rte_mbuf* m, uint16_t off,
+                      uint16_t len);
 
 /** \brief Read next n octets, and advance the position.
  *  \param buf a buffer to copy octets into, used only if crossing segment boundary.
@@ -125,20 +184,17 @@ MbufLoc_Read(MbufLoc* ml, void* buf, uint32_t n, uint32_t* nRead)
   if (n > ml->rem) {
     n = ml->rem;
   }
-  ml->rem -= n;
 
-  uint8_t* data = rte_pktmbuf_mtod_offset(ml->m, uint8_t*, ml->off);
-  rte_prefetch0(data);
-
-  uint32_t last = ml->off + n;
-  if (unlikely(last >= ml->m->data_len)) {
-    *nRead = __MbufLoc_Read_MultiSeg(ml, buf, n);
-    return buf;
+  if (unlikely(ml->off + n >= ml->m->data_len)) {
+    uint8_t* output = (uint8_t*)buf;
+    *nRead = __MbufLoc_AdvanceWithCb(ml, n, __MbufLoc_ReadCb, &output);
+    return (const uint8_t*)buf;
   }
 
   *nRead = n;
-  ml->off = (uint16_t)last;
-  return data;
+  ml->off += (uint16_t)n;
+  ml->rem -= n;
+  return rte_pktmbuf_mtod_offset(ml->m, uint8_t*, ml->off);
 }
 
 /** \brief Copy next n octets, and advance the position.

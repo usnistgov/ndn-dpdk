@@ -45,6 +45,15 @@ func (it *PacketIterator) Advance(n int) int {
 	return int(C.MbufLoc_Advance(&it.ml, C.uint32_t(n)))
 }
 
+// Clone next n octets into indirect mbufs.
+func (it *PacketIterator) MakeIndirect(n int, mp PktmbufPool) (Packet, error) {
+	res := C.MbufLoc_MakeIndirect(&it.ml, C.uint32_t(n), mp.ptr)
+	if res == nil {
+		return Packet{}, GetErrno()
+	}
+	return Mbuf{res}.AsPacket(), nil
+}
+
 func (it *PacketIterator) Read(output []byte) int {
 	if len(output) == 0 {
 		return 0

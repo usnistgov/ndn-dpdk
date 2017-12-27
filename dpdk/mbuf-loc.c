@@ -35,32 +35,45 @@ MbufLoc_Diff(const MbufLoc* a, const MbufLoc* b)
   assert(false);
 }
 
-uint32_t
-__MbufLoc_Read_MultiSeg(MbufLoc* ml, void* output, uint32_t n)
+void
+__MbufLoc_MakeIndirectCb(void* arg, const struct rte_mbuf* m, uint16_t off,
+                         uint16_t len)
 {
-  uint8_t* data = rte_pktmbuf_mtod_offset(ml->m, uint8_t*, ml->off);
-  rte_prefetch0(data);
-
-  uint32_t nRead = 0;
-  uint32_t last = ml->off + n;
-  while (last >= ml->m->data_len) {
-    uint16_t nCopy = ml->m->data_len - ml->off;
-    rte_memcpy(output, data, nCopy);
-    last -= ml->m->data_len;
-    ml->m = ml->m->next;
-    nRead += nCopy;
-
-    if (unlikely(ml->m == NULL)) {
-      return nRead;
-    }
-    data = rte_pktmbuf_mtod(ml->m, uint8_t*);
-    rte_prefetch0(data);
-
-    ml->off = 0;
-    output += nCopy;
+  __MbufLoc_MakeIndirectCtx* ctx = (__MbufLoc_MakeIndirectCtx*)arg;
+  if (unlikely(ctx->mp == NULL)) {
+    return;
   }
 
-  rte_memcpy(output, data, last);
-  nRead += last;
-  return nRead;
+  struct rte_mbuf* mi = rte_pktmbuf_alloc(ctx->mp);
+  if (unlikely(mi == NULL)) {
+    ctx->mp = NULL;
+    return;
+  }
+
+  rte_pktmbuf_attach(mi, (struct rte_mbuf*)m);
+  if (ctx->head == NULL) {
+    ctx->head = mi;
+    mi->nb_segs = 0;
+  }
+
+  rte_pktmbuf_adj(mi, off);
+  rte_pktmbuf_trim(mi, mi->data_len - len);
+  mi->pkt_len = 0;
+  ctx->head->pkt_len += mi->data_len;
+  ++ctx->head->nb_segs;
+
+  if (ctx->tail != NULL) {
+    ctx->tail->next = mi;
+  }
+  ctx->tail = mi;
+}
+
+void
+__MbufLoc_ReadCb(void* arg, const struct rte_mbuf* m, uint16_t off,
+                 uint16_t len)
+{
+  uint8_t** output = (uint8_t**)arg;
+  uint8_t* input = rte_pktmbuf_mtod_offset(m, uint8_t*, off);
+  rte_memcpy(*output, input, len);
+  *output += len;
 }

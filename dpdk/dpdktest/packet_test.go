@@ -11,6 +11,7 @@ import (
 func TestPacket(t *testing.T) {
 	assert, require := makeAR(t)
 	mp := dpdktestenv.MakeDirectMp(63, 0, 1000)
+	mpi := dpdktestenv.MakeIndirectMp(63)
 
 	m, e := mp.Alloc()
 	require.NoError(e)
@@ -68,29 +69,43 @@ func TestPacket(t *testing.T) {
 	}
 	for _, tt := range readSuccessTests {
 		readBuf, e := pkt.Read(tt.offset, 4, allocBuf)
-		assert.NoErrorf(e, "Read(%d) has error", tt.offset)
-		require.NotNilf(readBuf, "Read(%d) returns nil", tt.offset)
-		if tt.shouldUseAlloc {
-			assert.Equalf(allocBuf, readBuf, "Read(%d) is not using allocBuf", tt.offset)
-		} else {
-			assert.NotEqualf(allocBuf, readBuf, "Read(%d) is using allocBuf", tt.offset)
+		assert.NoError(e, tt.offset)
+		if assert.NotNil(readBuf, tt.offset) {
+			if tt.shouldUseAlloc {
+				assert.Equal(allocBuf, readBuf, tt.offset)
+			} else {
+				assert.NotEqual(allocBuf, readBuf, tt.offset)
+			}
+			assert.Equal(tt.expected[:], c_GoBytes(readBuf, 4), tt.offset)
 		}
-		assert.Equalf(tt.expected[:], c_GoBytes(readBuf, 4),
-			"Read(%d) returns wrong bytes", tt.offset)
 
 		it := it0
 		nAdvanced := it.Advance(tt.offset)
-		require.Falsef(it.IsEnd(), "it.Advance(%d) is past end", tt.offset)
-		assert.EqualValuesf(tt.offset, nAdvanced, "it.Advance(%d) is incomplete", tt.offset)
-		assert.EqualValuesf(-int(tt.offset), it.ComputeDistance(&it0),
-			"it.Advance(%d).ComputeDistance(it0) is wrong", tt.offset)
-		assert.EqualValuesf(tt.offset, it0.ComputeDistance(&it),
-			"it0.ComputeDistance(it.Advance(%d)) is wrong", tt.offset)
+		if assert.False(it.IsEnd(), tt.offset) {
+			assert.EqualValues(tt.offset, nAdvanced, tt.offset)
+			assert.EqualValues(-int(tt.offset), it.ComputeDistance(&it0), tt.offset)
+			assert.EqualValues(tt.offset, it0.ComputeDistance(&it), tt.offset)
 
-		assert.EqualValuesf(tt.expected[0], it.PeekOctet(), "%d it.PeekOctet() is wrong", tt.offset)
-		nRead := it.Read(readBuf2[:])
-		assert.EqualValuesf(4, nRead, "%d it.Read() has wrong length", tt.offset)
-		assert.Equalf(tt.expected[:], readBuf2, "%d it.Read() returns wrong bytes", tt.offset)
+			assert.EqualValues(tt.expected[0], it.PeekOctet(), tt.offset)
+			nRead := it.Read(readBuf2[:])
+			assert.EqualValues(4, nRead, tt.offset)
+			assert.Equal(tt.expected[:], readBuf2, tt.offset)
+		}
+
+		it = it0
+		it.Advance(tt.offset)
+		if assert.False(it.IsEnd(), tt.offset) {
+			pkti, e := it.MakeIndirect(4, mpi)
+			if assert.NoError(e, pkti) && assert.True(pkti.IsValid()) {
+				defer pkti.Close()
+				assert.Equal(4, pkti.Len())
+				readBuf, e = pkti.Read(0, 4, allocBuf)
+				assert.NoError(e, tt.offset)
+				if assert.NotNil(readBuf, tt.offset) {
+					assert.Equal(tt.expected[:], c_GoBytes(readBuf, 4), tt.offset)
+				}
+			}
+		}
 	}
 
 	it2 := dpdk.NewPacketIteratorBounded(pkt, 100, 6)
