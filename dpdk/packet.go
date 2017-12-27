@@ -84,3 +84,11 @@ func (pkt Packet) Read(offset int, len int, buf unsafe.Pointer) (unsafe.Pointer,
 	}
 	return res, nil
 }
+
+// Copy len(output) octets at offset into buf.
+// Return actual number of octets read.
+func (pkt Packet) ReadTo(offset int, output []byte) int {
+	pi := NewPacketIterator(pkt)
+	pi.Advance(offset)
+	return pi.Read(output)
+}

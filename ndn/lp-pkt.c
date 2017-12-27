@@ -96,3 +96,81 @@ FOUND_PAYLOAD:;
   }
   return NdnError_OK;
 }
+
+void
+EncodeLpHeaders(struct rte_mbuf* m, const LpPkt* lpp)
+{
+  assert(rte_pktmbuf_headroom(m) >= EncodeLpHeaders_GetHeadroom());
+  assert(rte_pktmbuf_tailroom(m) >= EncodeLpHeaders_GetTailroom());
+  assert(LpPkt_HasPayload(lpp));
+
+  TlvEncoder* en = MakeTlvEncoder(m);
+
+  if (LpPkt_IsFragmented(lpp)) {
+    struct FragHdr
+    {
+      char _padding[6]; // make TLV-VALUE fields aligned
+
+      // NDNLPv2 spec defines SeqNo as a fixed-length field.
+      uint8_t seqNoT;
+      uint8_t seqNoL;
+      rte_be64_t seqNoV;
+
+      // FragIndex and FragCount are NonNegativeInteger fields, but NDN protocol does not
+      // require NonNegativeInteger to use minimal length encoding.
+      uint8_t fragIndexT;
+      uint8_t fragIndexL;
+      rte_be16_t fragIndexV;
+
+      uint8_t fragCountT;
+      uint8_t fragCountL;
+      rte_be16_t fragCountV;
+    };
+    struct FragHdr fragHdr;
+    static_assert(sizeof(fragHdr) - sizeof(fragHdr._padding) == 18, "");
+
+    fragHdr.seqNoT = TT_LpSeqNo;
+    fragHdr.seqNoL = 8;
+    fragHdr.seqNoV = rte_cpu_to_be_64(lpp->seqNo);
+    fragHdr.fragIndexT = TT_FragIndex;
+    fragHdr.fragIndexL = 2;
+    fragHdr.fragIndexV = rte_cpu_to_be_16(lpp->fragIndex);
+    fragHdr.fragCountT = TT_FragCount;
+    fragHdr.fragCountL = 2;
+    fragHdr.fragCountV = rte_cpu_to_be_16(lpp->fragCount);
+
+    uint8_t* room = TlvEncoder_Append(en, 18);
+    assert(room != NULL);
+    rte_memcpy(room, (uint8_t*)(&fragHdr) + 6, 18);
+  }
+
+  if (lpp->fragIndex == 0) {
+    if (lpp->nackReason != NackReason_None) {
+      AppendVarNum(en, TT_Nack);
+      if (unlikely(lpp->nackReason == NackReason_Unspecified)) {
+        AppendVarNum(en, 0);
+      } else {
+        AppendVarNum(en, 5);
+        AppendVarNum(en, TT_NackReason);
+        AppendVarNum(en, 1);
+        *(TlvEncoder_Append(en, 1)) = lpp->nackReason;
+      }
+    }
+
+    if (lpp->congMark != 0) {
+      AppendVarNum(en, TT_CongestionMark);
+      AppendVarNum(en, 1);
+      *(TlvEncoder_Append(en, 1)) = lpp->congMark;
+    }
+  }
+
+  if (m->data_len == 0) {
+    // no LP header needed
+    return;
+  }
+
+  AppendVarNum(en, TT_LpPayload);
+  AppendVarNum(en, lpp->payload.rem);
+  PrependVarNum(en, m->data_len + lpp->payload.rem);
+  PrependVarNum(en, TT_LpPacket);
+}

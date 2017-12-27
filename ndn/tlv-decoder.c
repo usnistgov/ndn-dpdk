@@ -1,6 +1,6 @@
 #include "tlv-decoder.h"
 
-__rte_noinline NdnError
+NdnError
 __DecodeVarNum_MultiOctet(TlvDecoder* d, uint8_t firstOctet, uint64_t* n)
 {
   if (unlikely(MbufLoc_IsEnd(d))) {

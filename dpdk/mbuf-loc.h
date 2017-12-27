@@ -192,9 +192,10 @@ MbufLoc_Read(MbufLoc* ml, void* buf, uint32_t n, uint32_t* nRead)
   }
 
   *nRead = n;
-  ml->off += (uint16_t)n;
+  uint16_t off = ml->off;
+  ml->off = off + (uint16_t)n;
   ml->rem -= n;
-  return rte_pktmbuf_mtod_offset(ml->m, uint8_t*, ml->off);
+  return rte_pktmbuf_mtod_offset(ml->m, uint8_t*, off);
 }
 
 /** \brief Copy next n octets, and advance the position.

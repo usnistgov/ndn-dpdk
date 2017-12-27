@@ -4,6 +4,7 @@ package ndn
 #include "lp-pkt.h"
 */
 import "C"
+import "ndn-dpdk/dpdk"
 
 type LpPkt struct {
 	c C.LpPkt
@@ -43,4 +44,16 @@ func (lpp *LpPkt) GetNackReason() NackReason {
 
 func (lpp *LpPkt) GetCongMark() CongMark {
 	return CongMark(lpp.c.congMark)
+}
+
+func EncodeLpHeaders_GetHeadroom() int {
+	return int(C.EncodeLpHeaders_GetHeadroom())
+}
+
+func EncodeLpHeaders_GetTailroom() int {
+	return int(C.EncodeLpHeaders_GetTailroom())
+}
+
+func (lpp *LpPkt) EncodeHeaders(pkt dpdk.Packet) {
+	C.EncodeLpHeaders((*C.struct_rte_mbuf)(pkt.GetPtr()), &lpp.c)
 }

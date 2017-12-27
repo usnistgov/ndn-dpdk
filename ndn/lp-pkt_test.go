@@ -2,10 +2,12 @@ package ndn
 
 import (
 	"testing"
+
+	"ndn-dpdk/dpdk/dpdktestenv"
 )
 
 func TestLpPkt(t *testing.T) {
-	assert, require := makeAR(t)
+	assert, _ := makeAR(t)
 
 	tests := []struct {
 		input        string
@@ -29,7 +31,7 @@ func TestLpPkt(t *testing.T) {
 			true, true, 0xA0A1A2A3A4A5A601, 1, 2, 0, 0},
 		{"6417 seq=5108A0A1A2A3A4A5A601 fragindex=520102 fragcount=530102 payload=5002D2D3", false,
 			false, false, 0, 0, 0, 0, 0}, // FragIndex>=FragCount
-		{"6404 nack=FD032000(no reason)", true,
+		{"6404 nack=FD032000(noreason)", true,
 			false, false, 0, 0, 1, NackReason_Unspecified, 0},
 		{"6409 nack=FD032005(FD03210196~noroute)", true,
 			false, false, 0, 0, 1, NackReason_NoRoute, 0},
@@ -38,7 +40,6 @@ func TestLpPkt(t *testing.T) {
 	}
 	for _, tt := range tests {
 		pkt := packetFromHex(tt.input)
-		require.True(pkt.IsValid(), tt.input)
 		defer pkt.Close()
 		d := NewTlvDecoder(pkt)
 
@@ -57,5 +58,44 @@ func TestLpPkt(t *testing.T) {
 		} else {
 			assert.Error(e, tt.input)
 		}
+	}
+}
+
+func TestEncodeLpHeaders(t *testing.T) {
+	assert, require := makeAR(t)
+
+	headerMp := dpdktestenv.MakeMp("header", 63, 0,
+		uint16(EncodeLpHeaders_GetHeadroom()+EncodeLpHeaders_GetTailroom()))
+
+	tests := []struct {
+		input  string
+		output string
+	}{
+		{"6403 payload=5001A0", ""},
+		{"6407 nack=FD032000(noreason) payload=5001A0", "6407 FD032000 5001"},
+		{"640C nack=FD032005(FD03210196~noroute) payload=5001A0", "640C FD032005FD03210196 5001"},
+		{"640E seq=5102A0A1 fragindex=520101 fragcount=530102 payload=5002D2D3",
+			"6416 5108000000000000A0A1 52020001 53020002 5002"},
+	}
+	for _, tt := range tests {
+		inputPkt := packetFromHex(tt.input)
+		defer inputPkt.Close()
+		d := NewTlvDecoder(inputPkt)
+		lpp, e := d.ReadLpPkt()
+		require.NoError(e, tt.input)
+
+		headerMbuf, e := headerMp.Alloc()
+		require.NoError(e)
+		defer headerMbuf.Close()
+		header := headerMbuf.AsPacket()
+		header.GetFirstSegment().SetHeadroom(EncodeLpHeaders_GetHeadroom())
+
+		lpp.EncodeHeaders(header)
+
+		expected := dpdktestenv.PacketBytesFromHex(tt.output)
+		assert.Equal(len(expected), header.Len(), tt.input)
+		actual := make([]byte, len(expected))
+		header.ReadTo(0, actual)
+		assert.Equal(expected, actual, tt.input)
 	}
 }

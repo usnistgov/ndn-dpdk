@@ -4,6 +4,7 @@
 /// \file
 
 #include "tlv-element.h"
+#include "tlv-encoder.h"
 
 /** \brief TLV LpPacket
  */
@@ -51,5 +52,34 @@ LpPkt_IsFragmented(const LpPkt* lpp)
 {
   return lpp->fragCount > 1;
 }
+
+static inline uint16_t
+EncodeLpHeaders_GetHeadroom()
+{
+  return 1 + 5;
+}
+
+static inline uint16_t
+EncodeLpHeaders_GetTailroom()
+{
+  return 1 + 1 + 8 +         // SeqNo
+         1 + 1 + 2 +         // FragIndex
+         1 + 1 + 2 +         // FragCount
+         3 + 1 + 3 + 1 + 1 + // Nack
+         3 + 1 + 1 +         // CongestionMark
+         1 + 5;              // Payload
+}
+
+/** \brief Encode LP headers.
+ *  \param m output mbuf, must be empty and is the only segment, must have
+ *           \p EncodeLpHeaders_GetHeadroom() in headroom and
+ *           \p EncodeLpHeaders_GetTailroom() in tailroom
+ *  \param lpp LP header, must have payload
+ *
+ *  This function writes LpPacket's TLV-TYPE and TLV-LENGTH to headroom, and writes
+ *  other header fields as well as Payload's TLV-TYPE and TLV-LENGTH to tailroom.
+ *  If \p LpPkt_IsFragmented(lpp) , this function skips Nack and CongestionMark fields.
+ */
+void EncodeLpHeaders(struct rte_mbuf* m, const LpPkt* lpp);
 
 #endif // NDN_DPDK_NDN_LP_PKT_H
