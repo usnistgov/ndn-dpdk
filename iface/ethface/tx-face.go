@@ -1,4 +1,4 @@
-package ndnface
+package ethface
 
 /*
 #include "tx-face.h"
@@ -13,22 +13,22 @@ import (
 )
 
 func SizeofHeaderMempoolDataRoom() uint16 {
-	return uint16(C.TxFace_GetHeaderMempoolDataRoom())
+	return uint16(C.EthTxFace_GetHeaderMempoolDataRoom())
 }
 
 type TxFace struct {
-	c *C.TxFace
+	c *C.EthTxFace
 }
 
 func NewTxFace(q dpdk.EthTxQueue, indirectMp dpdk.PktmbufPool,
 	headerMp dpdk.PktmbufPool) (face TxFace, e error) {
-	face.c = (*C.TxFace)(C.calloc(1, C.sizeof_TxFace))
+	face.c = (*C.EthTxFace)(C.calloc(1, C.sizeof_EthTxFace))
 	face.c.port = C.uint16_t(q.GetPort())
 	face.c.queue = C.uint16_t(q.GetQueue())
 	face.c.indirectMp = (*C.struct_rte_mempool)(indirectMp.GetPtr())
 	face.c.headerMp = (*C.struct_rte_mempool)(headerMp.GetPtr())
 
-	ok := C.TxFace_Init(face.c)
+	ok := C.EthTxFace_Init(face.c)
 	if !ok {
 		return face, dpdk.GetErrno()
 	}
@@ -36,7 +36,7 @@ func NewTxFace(q dpdk.EthTxQueue, indirectMp dpdk.PktmbufPool,
 }
 
 func (face TxFace) Close() {
-	C.TxFace_Close(face.c)
+	C.EthTxFace_Close(face.c)
 	C.free(unsafe.Pointer(face.c))
 }
 
@@ -44,7 +44,7 @@ func (face TxFace) TxBurst(pkts []ndn.Packet) {
 	if len(pkts) == 0 {
 		return
 	}
-	C.TxFace_TxBurst(face.c, (**C.struct_rte_mbuf)(unsafe.Pointer(&pkts[0])), C.uint16_t(len(pkts)))
+	C.EthTxFace_TxBurst(face.c, (**C.struct_rte_mbuf)(unsafe.Pointer(&pkts[0])), C.uint16_t(len(pkts)))
 }
 
 type TxFaceCounters struct {

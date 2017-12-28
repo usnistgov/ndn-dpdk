@@ -1,4 +1,4 @@
-package ndnface
+package ethface
 
 // This file contains test setup procedure and common test helper functions.
 

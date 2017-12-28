@@ -1,12 +1,12 @@
-#ifndef NDN_DPDK_NDNFACE_TX_FACE_H
-#define NDN_DPDK_NDNFACE_TX_FACE_H
+#ifndef NDN_DPDK_IFACE_ETHFACE_TX_FACE_H
+#define NDN_DPDK_IFACE_ETHFACE_TX_FACE_H
 
 #include "common.h"
 
 /// \file
 
 static size_t
-TxFace_GetHeaderMempoolDataRoom()
+EthTxFace_GetHeaderMempoolDataRoom()
 {
   return sizeof(struct ether_hdr) + EncodeLpHeaders_GetHeadroom() +
          EncodeLpHeaders_GetTailroom();
@@ -14,7 +14,7 @@ TxFace_GetHeaderMempoolDataRoom()
 
 /** \brief Network interface for transmitting NDN packets.
  */
-typedef struct TxFace
+typedef struct EthTxFace
 {
   uint16_t port;
   uint16_t queue;
@@ -23,7 +23,7 @@ typedef struct TxFace
 
   /** \brief mempool for Ethernet and NDNLP headers
    *
-   *  Minimal data room is TxFace_GetHeaderMempoolDataRoom().
+   *  Minimal data room is EthTxFace_GetHeaderMempoolDataRoom().
    *  There is no requirement on priv size.
    */
   struct rte_mempool* headerMp;
@@ -51,18 +51,18 @@ typedef struct TxFace
   uint64_t lastSeqNo; ///< last used NDNLP sequence number
 
   void* __txCallback;
-} TxFace;
+} EthTxFace;
 
-/** \brief Initialize TxFace
+/** \brief Initialize EthTxFace
  *  \param face the face; port and queue must be assigned
  *  \return whether success
  */
-bool TxFace_Init(TxFace* face);
+bool EthTxFace_Init(EthTxFace* face);
 
-/** \brief Deinitialize TxFace
+/** \brief Deinitialize EthTxFace
  *  \param face the face
  */
-void TxFace_Close(TxFace* face);
+void EthTxFace_Close(EthTxFace* face);
 
 /** \brief Send a burst of packet.
  *  \param face the face
@@ -72,6 +72,6 @@ void TxFace_Close(TxFace* face);
  *  This function creates indirect mbufs to reference \p pkts. The caller may not modify these
  *  packets while they are being sent, but must free them if no longer needed.
  */
-void TxFace_TxBurst(TxFace* face, struct rte_mbuf** pkts, uint16_t nPkts);
+void EthTxFace_TxBurst(EthTxFace* face, struct rte_mbuf** pkts, uint16_t nPkts);
 
-#endif // NDN_DPDK_NDNFACE_RX_FACE_H
+#endif // NDN_DPDK_IFACE_ETHFACE_RX_FACE_H

@@ -1,16 +1,18 @@
-all: go-dpdk go-ndn go-ndnface
+CLIBPREFIX=build-c/libndn-dpdk
 
-cmd-%: cmd/%/* go-dpdk go-ndn go-ndnface
+all: go-dpdk go-ndn go-ethface
+
+cmd-%: cmd/%/*
 	go install ./cmd/$*
 
-build-c/libndn-dpdk-%.a: %/*.h %/*.c
-	./build-c.sh $*
+$(CLIBPREFIX)-core.a: core/*
+	./build-c.sh core
 
-go-dpdk: dpdk/*.go
+$(CLIBPREFIX)-dpdk.a: $(CLIBPREFIX)-core.a dpdk/*
+	./build-c.sh dpdk
+
+go-dpdk: $(CLIBPREFIX)-dpdk.a
 	go build ./dpdk
-
-go-ndn: go-dpdk ndn/*.go ndn/error.go ndn/tlv-type.go build-c/libndn-dpdk-dpdk.a
-	go build ./ndn
 
 ndn/error.go ndn/error.h: ndn/make-error.sh ndn/error.tsv
 	ndn/make-error.sh
@@ -18,16 +20,22 @@ ndn/error.go ndn/error.h: ndn/make-error.sh ndn/error.tsv
 ndn/tlv-type.go ndn/tlv-type.h: ndn/make-tlv-type.sh ndn/tlv-type.tsv
 	ndn/make-tlv-type.sh
 
-build-c/libndn-dpdk-ndn.a: ndn/*.c ndn/error.h ndn/tlv-type.h
+$(CLIBPREFIX)-ndn.a: $(CLIBPREFIX)-dpdk.a ndn/* ndn/error.h ndn/tlv-type.h
 	./build-c.sh ndn
 
-go-ndnface: go-ndn ndnface/*.go build-c/libndn-dpdk-core.a build-c/libndn-dpdk-dpdk.a build-c/libndn-dpdk-ndn.a
-	go build ./ndnface
+go-ndn: $(CLIBPREFIX)-ndn.a ndn/error.go ndn/tlv-type.go
+	go build ./ndn
+
+$(CLIBPREFIX)-ethface.a: $(CLIBPREFIX)-ndn.a iface/ethface/*
+	./build-c.sh ndn
+
+go-ethface: $(CLIBPREFIX)-ethface.a
+	go build ./iface/ethface
 
 unittest:
 	./gotest.sh dpdk/dpdktest
 	./gotest.sh ndn
-	./gotest.sh ndnface
+	./gotest.sh iface/ethface
 
 test: unittest
 	integ/run.sh

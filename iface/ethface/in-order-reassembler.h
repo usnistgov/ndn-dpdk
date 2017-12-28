@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_NDNFACE_IN_ORDER_REASSEMBLER_H
-#define NDN_DPDK_NDNFACE_IN_ORDER_REASSEMBLER_H
+#ifndef NDN_DPDK_IFACE_ETHFACE_IN_ORDER_REASSEMBLER_H
+#define NDN_DPDK_IFACE_ETHFACE_IN_ORDER_REASSEMBLER_H
 
 #include "common.h"
 
@@ -28,4 +28,4 @@ typedef struct InOrderReassembler
 struct rte_mbuf* InOrderReassembler_Receive(InOrderReassembler* r,
                                             struct rte_mbuf* pkt);
 
-#endif // NDN_DPDK_NDNFACE_IN_ORDER_REASSEMBLER_H
+#endif // NDN_DPDK_IFACE_ETHFACE_IN_ORDER_REASSEMBLER_H

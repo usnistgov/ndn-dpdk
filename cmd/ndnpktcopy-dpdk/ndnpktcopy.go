@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"ndn-dpdk/dpdk"
+	"ndn-dpdk/iface/ethface"
 	"ndn-dpdk/ndn"
-	"ndn-dpdk/ndnface"
 )
 
 // exit codes
@@ -31,8 +31,8 @@ var eal *dpdk.Eal
 var mpRx dpdk.PktmbufPool
 var mpTxHdr dpdk.PktmbufPool
 var mpIndirect dpdk.PktmbufPool
-var rxFace ndnface.RxFace
-var txFaces []ndnface.TxFace
+var rxFace ethface.RxFace
+var txFaces []ethface.TxFace
 
 func main() {
 	var e error
@@ -69,7 +69,7 @@ func main() {
 	}
 
 	mpTxHdr, e = dpdk.NewPktmbufPool("MP-TXHDR", MP_CAPACITY, MP_CACHE,
-		0, ndnface.SizeofHeaderMempoolDataRoom(), outPorts[0].GetNumaSocket())
+		0, ethface.SizeofHeaderMempoolDataRoom(), outPorts[0].GetNumaSocket())
 	if e != nil {
 		log.Printf("NewPktmbufPool(TXHDR): %v", e)
 		os.Exit(EXIT_DPDK_ERROR)
@@ -130,7 +130,7 @@ func parseCommand() (inface string, outfaces map[string]bool, e error) {
 	return
 }
 
-func initRxFace(port dpdk.EthDev) ndnface.RxFace {
+func initRxFace(port dpdk.EthDev) ethface.RxFace {
 	var cfg dpdk.EthDevConfig
 	cfg.AddRxQueue(dpdk.EthRxQueueConfig{Capacity: RXQ_CAPACITY,
 		Socket: port.GetNumaSocket(), Mp: mpRx})
@@ -148,10 +148,10 @@ func initRxFace(port dpdk.EthDev) ndnface.RxFace {
 		os.Exit(EXIT_DPDK_ERROR)
 	}
 
-	return ndnface.NewRxFace(rxQueues[0])
+	return ethface.NewRxFace(rxQueues[0])
 }
 
-func initTxFace(port dpdk.EthDev) ndnface.TxFace {
+func initTxFace(port dpdk.EthDev) ethface.TxFace {
 	var cfg dpdk.EthDevConfig
 	cfg.AddTxQueue(dpdk.EthTxQueueConfig{Capacity: TXQ_CAPACITY, Socket: port.GetNumaSocket()})
 	_, txQueues, e := port.Configure(cfg)
@@ -166,7 +166,7 @@ func initTxFace(port dpdk.EthDev) ndnface.TxFace {
 		os.Exit(EXIT_DPDK_ERROR)
 	}
 
-	face, e := ndnface.NewTxFace(txQueues[0], mpIndirect, mpTxHdr)
+	face, e := ethface.NewTxFace(txQueues[0], mpIndirect, mpTxHdr)
 	if e != nil {
 		log.Printf("NewTxFace(%d): %v", port, e)
 		os.Exit(EXIT_DPDK_ERROR)

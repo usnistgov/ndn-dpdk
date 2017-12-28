@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_NDNFACE_RX_FACE_H
-#define NDN_DPDK_NDNFACE_RX_FACE_H
+#ifndef NDN_DPDK_IFACE_ETHFACE_RX_FACE_H
+#define NDN_DPDK_IFACE_ETHFACE_RX_FACE_H
 
 #include "in-order-reassembler.h"
 
@@ -7,7 +7,7 @@
 
 /** \brief Network interface for receiving NDN packets.
  */
-typedef struct RxFace
+typedef struct EthRxFace
 {
   InOrderReassembler reassembler;
 
@@ -17,7 +17,7 @@ typedef struct RxFace
   uint64_t nFrames;       ///< number of L2 frames
   uint64_t nInterestPkts; ///< number of Interests decoded
   uint64_t nDataPkts;     ///< number of Data decoded
-} RxFace;
+} EthRxFace;
 
 /** \brief Receive and decode a burst of packet.
  *  \param face the face
@@ -28,6 +28,7 @@ typedef struct RxFace
  *  If a packet has failed decoding, or is retained in reassembly buffer, it is still counted in
  *  the return value, but pkts[i] is set to NULL.
  */
-uint16_t RxFace_RxBurst(RxFace* face, struct rte_mbuf** pkts, uint16_t nPkts);
+uint16_t EthRxFace_RxBurst(EthRxFace* face, struct rte_mbuf** pkts,
+                           uint16_t nPkts);
 
-#endif // NDN_DPDK_NDNFACE_RX_FACE_H
+#endif // NDN_DPDK_IFACE_ETHFACE_RX_FACE_H

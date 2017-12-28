@@ -6,8 +6,8 @@ import (
 	"os"
 
 	"ndn-dpdk/dpdk"
+	"ndn-dpdk/iface/ethface"
 	"ndn-dpdk/ndn"
-	"ndn-dpdk/ndnface"
 )
 
 // exit codes
@@ -27,7 +27,7 @@ const (
 
 var eal *dpdk.Eal
 var mempools = make(map[dpdk.NumaSocket]dpdk.PktmbufPool)
-var rxFaces = make(map[dpdk.EthDev]ndnface.RxFace)
+var rxFaces = make(map[dpdk.EthDev]ethface.RxFace)
 
 func main() {
 	eal, e := dpdk.NewEal(os.Args)
@@ -76,7 +76,7 @@ func makeMempool(socket dpdk.NumaSocket) dpdk.PktmbufPool {
 	return mp
 }
 
-func initEthDev(port dpdk.EthDev) ndnface.RxFace {
+func initEthDev(port dpdk.EthDev) ethface.RxFace {
 	socket := port.GetNumaSocket()
 	mp := makeMempool(socket)
 
@@ -96,7 +96,7 @@ func initEthDev(port dpdk.EthDev) ndnface.RxFace {
 		os.Exit(EXIT_DPDK_ERROR)
 	}
 
-	return ndnface.NewRxFace(rxQueues[0])
+	return ethface.NewRxFace(rxQueues[0])
 }
 
 func slaveProc(port dpdk.EthDev) int {

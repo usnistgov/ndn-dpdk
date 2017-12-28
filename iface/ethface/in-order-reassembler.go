@@ -1,4 +1,4 @@
-package ndnface
+package ethface
 
 /*
 #include "in-order-reassembler.h"

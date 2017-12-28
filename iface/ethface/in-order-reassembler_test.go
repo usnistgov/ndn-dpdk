@@ -1,4 +1,4 @@
-package ndnface
+package ethface
 
 import (
 	"testing"

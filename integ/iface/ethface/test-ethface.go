@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"ndn-dpdk/dpdk/dpdktestenv"
+	"ndn-dpdk/iface/ethface"
 	"ndn-dpdk/integ"
 	"ndn-dpdk/ndn"
-	"ndn-dpdk/ndnface"
 )
 
 func main() {
@@ -20,13 +20,13 @@ func main() {
 	indirectMp := dpdktestenv.MakeIndirectMp(4095)
 	// Normally headerMp does not need PrivRoom, but ring-based PMD would pass a 'header' as first
 	// segment on the RxFace side, where PrivRoom is required.
-	headerMp := dpdktestenv.MakeMp("header", 4095, ndn.SizeofPacketPriv(), ndnface.SizeofHeaderMempoolDataRoom())
+	headerMp := dpdktestenv.MakeMp("header", 4095, ndn.SizeofPacketPriv(), ethface.SizeofHeaderMempoolDataRoom())
 	edp := dpdktestenv.NewEthDevPair(1, 1024, 64)
 
-	faceA, e := ndnface.NewTxFace(edp.TxqA[0], indirectMp, headerMp)
+	faceA, e := ethface.NewTxFace(edp.TxqA[0], indirectMp, headerMp)
 	require.NoError(e)
 	defer faceA.Close()
-	faceB := ndnface.NewRxFace(edp.RxqB[0])
+	faceB := ethface.NewRxFace(edp.RxqB[0])
 	defer faceB.Close()
 
 	const RX_BURST_SIZE = 6
