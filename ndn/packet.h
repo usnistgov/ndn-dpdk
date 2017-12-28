@@ -39,7 +39,7 @@ typedef enum NdnPktType {
   NdnPktType_Interest,
   NdnPktType_Data,
   NdnPktType_Nack,
-  NdnPktType_MAX = NdnPktType_Nack
+  NdnPktType_MAX
 } NdnPktType;
 
 /** \brief Get NDN network layer packet type.

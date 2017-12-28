@@ -96,10 +96,6 @@ func main() {
 			if !pkt.IsValid() {
 				continue
 			}
-			if pkt.Len() > 1488 {
-				log.Print("packet over MTU, dropping")
-				continue
-			}
 			outPkts[nTx] = pkt
 			nTx++
 		}
@@ -107,6 +103,7 @@ func main() {
 			log.Printf("received %d, sending %d", nRx, nTx)
 			for _, face := range txFaces {
 				face.TxBurst(outPkts[:nTx])
+				log.Print(face.GetCounters())
 			}
 			for _, pkt := range outPkts[:nTx] {
 				pkt.Close()

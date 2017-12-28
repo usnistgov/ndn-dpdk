@@ -20,6 +20,16 @@
  */
 #define MbufDirectPriv(mi, T, off) MbufPriv(rte_mbuf_from_indirect(mi), T, off)
 
+/** \brief Free an array of mbufs[0..count-1].
+ */
+static inline void
+FreeMbufs(struct rte_mbuf* mbufs[], int count)
+{
+  for (int i = 0; i < count; ++i) {
+    rte_pktmbuf_free(mbufs[i]);
+  }
+}
+
 /** \brief Remove \p len bytes at the beginning of a packet.
  *
  *  This function does not require first segment to have enough length.

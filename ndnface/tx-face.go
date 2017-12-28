@@ -55,10 +55,11 @@ type TxFaceCounters struct {
 	NFrames uint64 // total L2 frames
 	NOctets uint64
 
-	NAllocFails    uint64
-	NBursts        uint64
-	NZeroBursts    uint64
-	NPartialBursts uint64
+	NL3Bursts     uint64
+	NL3OverLength uint64
+	NAllocFails   uint64
+	NL2Bursts     uint64
+	NL2Incomplete uint64
 }
 
 func (face TxFace) GetCounters() (cnt TxFaceCounters) {
@@ -69,17 +70,18 @@ func (face TxFace) GetCounters() (cnt TxFaceCounters) {
 	cnt.NFrames = uint64(face.c.nPkts[ndn.NdnPktType_None]) + cnt.NInterests + cnt.NData + cnt.NNacks
 	cnt.NOctets = uint64(face.c.nOctets)
 
+	cnt.NL3Bursts = uint64(face.c.nL3Bursts)
+	cnt.NL3OverLength = uint64(face.c.nL3OverLength)
 	cnt.NAllocFails = uint64(face.c.nAllocFails)
-	cnt.NBursts = uint64(face.c.nBursts)
-	cnt.NZeroBursts = uint64(face.c.nZeroBursts)
-	cnt.NPartialBursts = uint64(face.c.nPartialBursts)
+	cnt.NL2Bursts = uint64(face.c.nL2Bursts)
+	cnt.NL2Incomplete = uint64(face.c.nL2Incomplete)
 
 	return cnt
 }
 
 func (cnt TxFaceCounters) String() string {
 	return fmt.Sprintf(
-		"L3 %dI %dD %dN, L2 %dfrm %db; %d alloc-fail, %d bursts, %d partial, %d zero",
+		"%dI %dD %dN %dfrm %db; L3 %dbursts %doverlen %dallocfail; L2 %dbursts, %dincomplete",
 		cnt.NInterests, cnt.NData, cnt.NNacks, cnt.NFrames, cnt.NOctets,
-		cnt.NAllocFails, cnt.NBursts, cnt.NPartialBursts, cnt.NZeroBursts)
+		cnt.NL3Bursts, cnt.NL3OverLength, cnt.NAllocFails, cnt.NL2Bursts, cnt.NL2Incomplete)
 }
