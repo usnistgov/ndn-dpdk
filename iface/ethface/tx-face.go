@@ -9,6 +9,7 @@ import (
 	"unsafe"
 
 	"ndn-dpdk/dpdk"
+	"ndn-dpdk/iface"
 	"ndn-dpdk/ndn"
 )
 
@@ -22,6 +23,10 @@ type TxFace struct {
 
 func NewTxFace(q dpdk.EthTxQueue, indirectMp dpdk.PktmbufPool,
 	headerMp dpdk.PktmbufPool) (face TxFace, e error) {
+	if !hasValidFaceId(q.GetPort()) {
+		return face, fmt.Errorf("port number is too large")
+	}
+
 	face.c = (*C.EthTxFace)(C.calloc(1, C.sizeof_EthTxFace))
 	face.c.port = C.uint16_t(q.GetPort())
 	face.c.queue = C.uint16_t(q.GetQueue())
@@ -35,9 +40,14 @@ func NewTxFace(q dpdk.EthTxQueue, indirectMp dpdk.PktmbufPool,
 	return face, nil
 }
 
-func (face TxFace) Close() {
+func (face TxFace) GetFaceId() iface.FaceId {
+	return FaceIdFromEthDev(uint16(face.c.port))
+}
+
+func (face TxFace) Close() error {
 	C.EthTxFace_Close(face.c)
 	C.free(unsafe.Pointer(face.c))
+	return nil
 }
 
 func (face TxFace) TxBurst(pkts []ndn.Packet) {

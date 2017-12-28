@@ -148,7 +148,12 @@ func initRxFace(port dpdk.EthDev) ethface.RxFace {
 		os.Exit(EXIT_DPDK_ERROR)
 	}
 
-	return ethface.NewRxFace(rxQueues[0])
+	face, e := ethface.NewRxFace(rxQueues[0])
+	if e != nil {
+		log.Printf("NewRxFace(%d): %v", port, e)
+		os.Exit(EXIT_DPDK_ERROR)
+	}
+	return face
 }
 
 func initTxFace(port dpdk.EthDev) ethface.TxFace {
