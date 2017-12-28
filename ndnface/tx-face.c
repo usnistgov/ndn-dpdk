@@ -48,7 +48,8 @@ TxFace_Init(TxFace* face)
   face->fragmentPayloadSize = (uint16_t)fragmentPayloadSize;
 
   rte_eth_macaddr_get(face->port, &face->ethhdr.s_addr);
-  memset(&face->ethhdr.d_addr, 0xFF, sizeof(face->ethhdr.d_addr));
+  const uint8_t dstAddr[] = { NDN_ETHER_MCAST };
+  rte_memcpy(&face->ethhdr.d_addr, dstAddr, sizeof(face->ethhdr.d_addr));
   face->ethhdr.ether_type = rte_cpu_to_be_16(NDN_ETHERTYPE);
 
   face->__txCallback =
