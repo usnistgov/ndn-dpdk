@@ -16,8 +16,9 @@ import (
 
 // exit codes
 const (
-	EXIT_ARG_ERROR  = 2
-	EXIT_DPDK_ERROR = 3
+	EXIT_ARG_ERROR    = 2
+	EXIT_DPDK_ERROR   = 3
+	EXIT_SOCKET_ERROR = 4
 )
 
 // static configuration
@@ -34,8 +35,8 @@ var eal *dpdk.Eal
 var mpRx dpdk.PktmbufPool
 var mpTxHdr dpdk.PktmbufPool
 var mpIndirect dpdk.PktmbufPool
-var rxFace iface.RxFace
-var txFaces []iface.TxFace
+var rxFace iface.Face
+var txFaces []iface.Face
 
 func main() {
 	var e error
@@ -71,11 +72,8 @@ func main() {
 			os.Exit(EXIT_ARG_ERROR)
 		}
 		network, address := outsockParams[0], outsockParams[1]
-		conn, e := net.Dial(network, address)
-		if e != nil {
-			log.Printf("net.Dial(%s,%s): %v", network, address, e)
-		}
-		txFaces = append(txFaces, socketface.New(conn))
+		face := initSocketFace(network, address)
+		txFaces = append(txFaces, face)
 	}
 
 	mpRx, e = dpdk.NewPktmbufPool("MP-RX", MP_CAPACITY, MP_CACHE,
@@ -99,9 +97,9 @@ func main() {
 		os.Exit(EXIT_DPDK_ERROR)
 	}
 
-	rxFace = initRxFace(inPort)
+	rxFace = initEthFace(inPort)
 	for _, port := range outPorts {
-		txFaces = append(txFaces, initTxFace(port))
+		txFaces = append(txFaces, initEthFace(port))
 	}
 
 	var inPkts [BURST_SIZE]ndn.Packet
@@ -117,14 +115,11 @@ func main() {
 			nTx++
 		}
 		if nRx > 0 {
-			log.Printf("received %d, valid %d", nRx, nTx)
 			for _, face := range txFaces {
 				face.TxBurst(outPkts[:nTx])
-				if eface, ok := face.(ethface.TxFace); ok {
-					log.Print(eface.GetCounters())
-				}
 			}
 			for _, pkt := range outPkts[:nTx] {
+				printPacket(pkt)
 				pkt.Close()
 			}
 		}
@@ -156,11 +151,12 @@ func parseCommand() (pc parsedCommand, e error) {
 	return
 }
 
-func initRxFace(port dpdk.EthDev) ethface.RxFace {
+func initEthFace(port dpdk.EthDev) iface.Face {
 	var cfg dpdk.EthDevConfig
 	cfg.AddRxQueue(dpdk.EthRxQueueConfig{Capacity: RXQ_CAPACITY,
 		Socket: port.GetNumaSocket(), Mp: mpRx})
-	rxQueues, _, e := port.Configure(cfg)
+	cfg.AddTxQueue(dpdk.EthTxQueueConfig{Capacity: TXQ_CAPACITY, Socket: port.GetNumaSocket()})
+	_, _, e := port.Configure(cfg)
 	if e != nil {
 		log.Printf("port(%d).Configure: %v", port, e)
 		os.Exit(EXIT_DPDK_ERROR)
@@ -174,33 +170,37 @@ func initRxFace(port dpdk.EthDev) ethface.RxFace {
 		os.Exit(EXIT_DPDK_ERROR)
 	}
 
-	face, e := ethface.NewRxFace(rxQueues[0])
+	face, e := ethface.New(port, mpIndirect, mpTxHdr)
 	if e != nil {
-		log.Printf("NewRxFace(%d): %v", port, e)
+		log.Printf("ethface.New(%d): %v", port, e)
 		os.Exit(EXIT_DPDK_ERROR)
 	}
-	return face
+	return face.Face
 }
 
-func initTxFace(port dpdk.EthDev) ethface.TxFace {
-	var cfg dpdk.EthDevConfig
-	cfg.AddTxQueue(dpdk.EthTxQueueConfig{Capacity: TXQ_CAPACITY, Socket: port.GetNumaSocket()})
-	_, txQueues, e := port.Configure(cfg)
+func initSocketFace(network, address string) iface.Face {
+	conn, e := net.Dial(network, address)
 	if e != nil {
-		log.Printf("port(%d).Configure: %v", port, e)
-		os.Exit(EXIT_DPDK_ERROR)
+		log.Printf("net.Dial(%s,%s): %v", network, address, e)
+		os.Exit(EXIT_SOCKET_ERROR)
 	}
 
-	e = port.Start()
-	if e != nil {
-		log.Printf("port(%d).Start: %v", port, e)
-		os.Exit(EXIT_DPDK_ERROR)
-	}
+	var cfg socketface.Config
+	cfg.TxCapacity = TXQ_CAPACITY
 
-	face, e := ethface.NewTxFace(txQueues[0], mpIndirect, mpTxHdr)
-	if e != nil {
-		log.Printf("NewTxFace(%d): %v", port, e)
-		os.Exit(EXIT_DPDK_ERROR)
+	face := socketface.New(conn, cfg)
+	return face.Face
+}
+
+func printPacket(pkt ndn.Packet) {
+	switch pkt.GetNetType() {
+	case ndn.NdnPktType_Interest:
+		interest := pkt.AsInterest()
+		log.Printf("I %s", interest.GetName())
+	case ndn.NdnPktType_Data:
+		data := pkt.AsData()
+		log.Printf("D %s", data.GetName())
+	case ndn.NdnPktType_Nack:
+		log.Printf("Nack")
 	}
-	return face
 }
