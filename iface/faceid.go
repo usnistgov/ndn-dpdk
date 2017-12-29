@@ -6,7 +6,7 @@ const (
 	FaceKind_None FaceKind = iota
 	FaceKind_EthDev
 	FaceKind_Udp
-	FaceKind_Unix
+	FaceKind_Socket
 )
 
 // Numeric face identifier, may appear in rte_mbuf.port field
@@ -22,7 +22,7 @@ func (id FaceId) GetKind() FaceKind {
 	case 0x5:
 		return FaceKind_Udp
 	case 0xE:
-		return FaceKind_Unix
+		return FaceKind_Socket
 	}
 	return FaceKind_None
 }

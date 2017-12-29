@@ -59,7 +59,7 @@ func New(conn net.Conn, cfg Config) (face *SocketFace) {
 
 	var impl iImpl
 	if _, isDatagram := conn.(net.PacketConn); isDatagram {
-		panic("datagram not implemented")
+		impl = datagramImpl{}
 	} else {
 		impl = streamImpl{}
 	}
@@ -110,6 +110,5 @@ L:
 func go_SocketFace_Close(faceC *C.Face) C.bool {
 	face := getByCFace(faceC)
 	e := face.conn.Close()
-	face.txQuit <- struct{}{}
 	return e == nil
 }

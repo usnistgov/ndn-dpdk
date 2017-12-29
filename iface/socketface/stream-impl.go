@@ -26,8 +26,8 @@ func (impl streamImpl) send(face *SocketFace, pkt ndn.Packet) {
 	}
 
 	for seg, ok := pkt.GetFirstSegment(), true; ok; seg, ok = seg.GetNext() {
-		data := C.GoBytes(seg.GetData(), C.int(seg.Len()))
-		_, e := face.conn.Write(data)
+		buf := C.GoBytes(seg.GetData(), C.int(seg.Len()))
+		_, e := face.conn.Write(buf)
 		if e != nil {
 			panic(fmt.Sprintf("conn.Write error %v", e))
 		}
