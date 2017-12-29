@@ -1,34 +1,56 @@
 package iface
 
+/*
+#include "face.h"
+*/
+import "C"
 import (
+	"unsafe"
+
+	"ndn-dpdk/dpdk"
 	"ndn-dpdk/ndn"
 )
 
-type baseFace interface {
-	GetFaceId() FaceId
-	Close() error
+type Face struct {
+	c *C.Face
 }
 
-type rxFaceMethods interface {
-	RxBurst(pkts []ndn.Packet) int
+// Construct Mbuf from native *C.Face pointer.
+func FaceFromPtr(ptr unsafe.Pointer) (face Face) {
+	face.c = (*C.Face)(ptr)
+	return face
 }
 
-type RxFace interface {
-	baseFace
-	rxFaceMethods
+// Get native *C.Face pointer to use in other packages.
+func (face Face) GetPtr() unsafe.Pointer {
+	return unsafe.Pointer(face.c)
 }
 
-type txFaceMethods interface {
-	TxBurst(pkts []ndn.Packet)
+func (face Face) GetFaceId() FaceId {
+	return FaceId(face.c.id)
 }
 
-type TxFace interface {
-	baseFace
-	txFaceMethods
+func (face Face) Close() error {
+	ok := C.Face_Close(face.c)
+	C.free(unsafe.Pointer(face.c))
+
+	if !ok {
+		return dpdk.GetErrno()
+	}
+	return nil
 }
 
-type Face interface {
-	baseFace
-	rxFaceMethods
-	txFaceMethods
+func (face Face) RxBurst(pkts []ndn.Packet) int {
+	if len(pkts) == 0 {
+		return 0
+	}
+	res := C.Face_RxBurst(face.c, (**C.struct_rte_mbuf)(unsafe.Pointer(&pkts[0])), C.uint16_t(len(pkts)))
+	return int(res)
+}
+
+func (face Face) TxBurst(pkts []ndn.Packet) {
+	if len(pkts) == 0 {
+		return
+	}
+	C.Face_TxBurst(face.c, (**C.struct_rte_mbuf)(unsafe.Pointer(&pkts[0])), C.uint16_t(len(pkts)))
 }

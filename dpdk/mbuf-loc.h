@@ -4,7 +4,6 @@
 /// \file
 
 #include "mbuf.h"
-#include <rte_errno.h>
 #include <rte_memcpy.h>
 #include <rte_prefetch.h>
 

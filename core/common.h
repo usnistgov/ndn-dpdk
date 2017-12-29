@@ -10,9 +10,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-// clang-format off
 #include <rte_config.h>
-// clang-format on
+
 #include <rte_branch_prediction.h>
+#include <rte_errno.h>
+#include <rte_memory.h>
 
 #endif // NDN_DPDK_CORE_COMMON_H

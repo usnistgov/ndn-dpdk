@@ -19,14 +19,16 @@ func main() {
 	dpdktestenv.MakeDirectMp(4095, ndn.SizeofPacketPriv(), 2000)
 	indirectMp := dpdktestenv.MakeIndirectMp(4095)
 	// Normally headerMp does not need PrivRoom, but ring-based PMD would pass a 'header' as first
-	// segment on the RxFace side, where PrivRoom is required.
-	headerMp := dpdktestenv.MakeMp("header", 4095, ndn.SizeofPacketPriv(), ethface.SizeofHeaderMempoolDataRoom())
+	// segment on the RX side, where PrivRoom is required.
+	headerMp := dpdktestenv.MakeMp("header", 4095, ndn.SizeofPacketPriv(),
+		ethface.SizeofHeaderMempoolDataRoom())
 	edp := dpdktestenv.NewEthDevPair(1, 1024, 64)
 
-	faceA, e := ethface.NewTxFace(edp.TxqA[0], indirectMp, headerMp)
+	faceA, e := ethface.New(edp.PortA, indirectMp, headerMp)
 	require.NoError(e)
 	defer faceA.Close()
-	faceB := ethface.NewRxFace(edp.RxqB[0])
+	faceB, e := ethface.New(edp.PortB, indirectMp, headerMp)
+	require.NoError(e)
 	defer faceB.Close()
 
 	const RX_BURST_SIZE = 6
@@ -75,9 +77,9 @@ func main() {
 
 	fmt.Println(edp.PortA.GetStats())
 	fmt.Println(edp.PortB.GetStats())
-	cntA := faceA.GetCounters()
+	cntA := faceA.GetTxCounters()
 	fmt.Println(cntA)
-	cntB := faceB.GetCounters()
+	cntB := faceB.GetRxCounters()
 	fmt.Println(cntB)
 
 	assert.EqualValues(3*TX_LOOPS, cntA.NFrames)

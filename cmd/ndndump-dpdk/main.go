@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"ndn-dpdk/dpdk"
+	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/ethface"
 	"ndn-dpdk/ndn"
 )
@@ -27,7 +28,7 @@ const (
 
 var eal *dpdk.Eal
 var mempools = make(map[dpdk.NumaSocket]dpdk.PktmbufPool)
-var rxFaces = make(map[dpdk.EthDev]ethface.RxFace)
+var rxFaces = make(map[dpdk.EthDev]iface.Face)
 
 func main() {
 	eal, e := dpdk.NewEal(os.Args)
@@ -76,13 +77,14 @@ func makeMempool(socket dpdk.NumaSocket) dpdk.PktmbufPool {
 	return mp
 }
 
-func initEthDev(port dpdk.EthDev) ethface.RxFace {
+func initEthDev(port dpdk.EthDev) iface.Face {
 	socket := port.GetNumaSocket()
 	mp := makeMempool(socket)
 
 	var cfg dpdk.EthDevConfig
 	cfg.AddRxQueue(dpdk.EthRxQueueConfig{Capacity: RXQ_CAPACITY, Socket: socket, Mp: mp})
-	rxQueues, _, e := port.Configure(cfg)
+	cfg.AddTxQueue(dpdk.EthTxQueueConfig{Capacity: 2, Socket: socket}) // TX is unused
+	_, _, e := port.Configure(cfg)
 	if e != nil {
 		log.Printf("port(%d).Configure: %v", port, e)
 		os.Exit(EXIT_DPDK_ERROR)
@@ -96,12 +98,12 @@ func initEthDev(port dpdk.EthDev) ethface.RxFace {
 		os.Exit(EXIT_DPDK_ERROR)
 	}
 
-	face, e := ethface.NewRxFace(rxQueues[0])
+	face, e := ethface.New(port, mp, mp)
 	if e != nil {
 		log.Printf("NewRxFace(%d): %v", port, e)
 		os.Exit(EXIT_DPDK_ERROR)
 	}
-	return face
+	return face.Face
 }
 
 func slaveProc(port dpdk.EthDev) int {

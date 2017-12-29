@@ -1,5 +1,10 @@
-#include "tx-face.h"
+#include "eth-tx.h"
+#include "eth-face.h"
+
 #include "../../core/logger.h"
+
+#define LOG_PREFIX "(%" PRIu16 ",%" PRIu16 ") "
+#define LOG_PARAM face->port, tx->queue
 
 // max L2 burst size
 static const int MAX_FRAMES = 64;
@@ -12,32 +17,34 @@ static const int MIN_PAYLOAD_SIZE_PER_FRAGMENT = 512;
 
 // callback after NIC transmits packets
 static uint16_t
-EthTxFace_TxCallback(uint16_t port, uint16_t queue, struct rte_mbuf** pkts,
-                     uint16_t nPkts, void* face0)
+EthTx_TxCallback(uint16_t port, uint16_t queue, struct rte_mbuf** pkts,
+                 uint16_t nPkts, void* face0)
 {
-  EthTxFace* face = (EthTxFace*)(face0);
+  EthFace* face = (EthFace*)(face0);
+  assert(queue == 0);
+  EthTx* tx = &face->tx;
 
   for (uint16_t i = 0; i < nPkts; ++i) {
     struct rte_mbuf* pkt = pkts[i];
-    ++face->nPkts[Packet_GetNdnPktType(pkt)];
-    face->nOctets += pkt->pkt_len;
+    ++tx->nPkts[Packet_GetNdnPktType(pkt)];
+    tx->nOctets += pkt->pkt_len;
   }
 
   return nPkts;
 }
 
-bool
-EthTxFace_Init(EthTxFace* face)
+int
+EthTx_Init(EthFace* face, EthTx* tx)
 {
-  assert(face->indirectMp != NULL);
-  assert(face->headerMp != NULL);
-  assert(rte_pktmbuf_data_room_size(face->headerMp) >=
-         EthTxFace_GetHeaderMempoolDataRoom());
+  assert(tx->indirectMp != NULL);
+  assert(tx->headerMp != NULL);
+  assert(rte_pktmbuf_data_room_size(tx->headerMp) >=
+         EthTx_GetHeaderMempoolDataRoom());
 
   uint16_t mtu;
   int res = rte_eth_dev_get_mtu(face->port, &mtu);
   if (res != 0) {
-    return false;
+    return -res;
   }
   const int maxLpHeaderSize =
     EncodeLpHeaders_GetHeadroom() + EncodeLpHeaders_GetTailroom();
@@ -45,55 +52,55 @@ EthTxFace_Init(EthTxFace* face)
   if (fragmentPayloadSize < MIN_PAYLOAD_SIZE_PER_FRAGMENT) {
     return false;
   }
-  face->fragmentPayloadSize = (uint16_t)fragmentPayloadSize;
+  tx->fragmentPayloadSize = (uint16_t)fragmentPayloadSize;
 
-  rte_eth_macaddr_get(face->port, &face->ethhdr.s_addr);
+  rte_eth_macaddr_get(face->port, &tx->ethhdr.s_addr);
   const uint8_t dstAddr[] = { NDN_ETHER_MCAST };
-  rte_memcpy(&face->ethhdr.d_addr, dstAddr, sizeof(face->ethhdr.d_addr));
-  face->ethhdr.ether_type = rte_cpu_to_be_16(NDN_ETHERTYPE);
+  rte_memcpy(&tx->ethhdr.d_addr, dstAddr, sizeof(tx->ethhdr.d_addr));
+  tx->ethhdr.ether_type = rte_cpu_to_be_16(NDN_ETHERTYPE);
 
-  face->__txCallback = rte_eth_add_tx_callback(face->port, face->queue,
-                                               &EthTxFace_TxCallback, face);
-  if (face->__txCallback == NULL) {
-    return false;
+  tx->__txCallback =
+    rte_eth_add_tx_callback(face->port, tx->queue, &EthTx_TxCallback, face);
+  if (tx->__txCallback == NULL) {
+    return rte_errno;
   }
 
-  return true;
+  return 0;
 }
 
 void
-EthTxFace_Close(EthTxFace* face)
+EthTx_Close(EthFace* face, EthTx* tx)
 {
-  rte_eth_remove_tx_callback(face->port, face->queue, face->__txCallback);
-  face->__txCallback = NULL;
+  rte_eth_remove_tx_callback(face->port, tx->queue, tx->__txCallback);
+  tx->__txCallback = NULL;
 }
 
-enum EthTxFace_FragmentErr
+enum EthTx_FragmentErr
 {
   // Fragmentation failed but burst processing should continue
-  EthTxFace_FragmentErr_Continue = -1,
+  EthTx_FragmentErr_Continue = -1,
   // Fragmentation failed but burst processing should stop
-  EthTxFace_FragmentErr_Stop = -2,
+  EthTx_FragmentErr_Stop = -2,
 };
 
 // Fragment L3 packet into NDNLP packets filled in fragments[0..retval-1].
 // fragments[i] has NDNLP header chained with payload, but not Ethernet header.
-// Returns number of fragments created, or EthTxFace_FragmentErr on failure.
+// Returns number of fragments created, or EthTx_FragmentErr on failure.
 static inline int
-EthTxFace_Fragment(EthTxFace* face, struct rte_mbuf* pkt,
-                   struct rte_mbuf* fragments[MAX_FRAGMENTS])
+EthTx_Fragment(EthFace* face, EthTx* tx, struct rte_mbuf* pkt,
+               struct rte_mbuf* fragments[MAX_FRAGMENTS])
 {
   assert(pkt->pkt_len > 0);
-  int nFragments = pkt->pkt_len / face->fragmentPayloadSize +
-                   (int)(pkt->pkt_len % face->fragmentPayloadSize > 0);
+  int nFragments = pkt->pkt_len / tx->fragmentPayloadSize +
+                   (int)(pkt->pkt_len % tx->fragmentPayloadSize > 0);
   if (unlikely(nFragments > MAX_FRAGMENTS)) {
-    ++face->nL3OverLength;
-    return EthTxFace_FragmentErr_Continue;
+    ++tx->nL3OverLength;
+    return EthTx_FragmentErr_Continue;
   }
 
-  int res = rte_pktmbuf_alloc_bulk(face->headerMp, fragments, nFragments);
+  int res = rte_pktmbuf_alloc_bulk(tx->headerMp, fragments, nFragments);
   if (unlikely(res != 0)) {
-    ++face->nAllocFails;
+    ++tx->nAllocFails;
     return 0;
   }
 
@@ -108,21 +115,21 @@ EthTxFace_Fragment(EthTxFace* face, struct rte_mbuf* pkt,
   }
 
   for (int i = 0; i < nFragments; ++i) {
-    uint32_t fragSize = face->fragmentPayloadSize;
+    uint32_t fragSize = tx->fragmentPayloadSize;
     if (fragSize > pos.rem) {
       fragSize = pos.rem;
     }
     struct rte_mbuf* payload =
-      MbufLoc_MakeIndirect(&pos, fragSize, face->indirectMp);
+      MbufLoc_MakeIndirect(&pos, fragSize, tx->indirectMp);
     if (unlikely(payload == NULL)) {
       assert(rte_errno == ENOENT);
-      ++face->nAllocFails;
+      ++tx->nAllocFails;
       FreeMbufs(fragments, nFragments);
-      return EthTxFace_FragmentErr_Stop;
+      return EthTx_FragmentErr_Stop;
     }
     MbufLoc_Init(&lpp.payload, payload);
 
-    lpp.seqNo = ++face->lastSeqNo;
+    lpp.seqNo = ++tx->lastSeqNo;
     lpp.fragIndex = (uint16_t)i;
     lpp.fragCount = (uint16_t)nFragments;
 
@@ -131,9 +138,9 @@ EthTxFace_Fragment(EthTxFace* face, struct rte_mbuf* pkt,
     EncodeLpHeaders(fragments[i], &lpp);
     res = rte_pktmbuf_chain(fragments[i], payload);
     if (unlikely(res != 0)) {
-      ++face->nL3OverLength;
+      ++tx->nL3OverLength;
       FreeMbufs(fragments, nFragments);
-      return EthTxFace_FragmentErr_Continue;
+      return EthTx_FragmentErr_Continue;
     }
   }
 
@@ -141,34 +148,34 @@ EthTxFace_Fragment(EthTxFace* face, struct rte_mbuf* pkt,
 }
 
 static inline void
-EthTxFace_SendFrames(EthTxFace* face, struct rte_mbuf** frames,
-                     uint16_t nFrames)
+EthTx_SendFrames(EthFace* face, EthTx* tx, struct rte_mbuf** frames,
+                 uint16_t nFrames)
 {
-  ++face->nL2Bursts;
+  ++tx->nL2Bursts;
 
-  uint16_t nSent = rte_eth_tx_burst(face->port, face->queue, frames, nFrames);
+  uint16_t nSent = rte_eth_tx_burst(face->port, tx->queue, frames, nFrames);
   if (nSent == nFrames) {
     return;
   }
 
-  ++face->nL2Incomplete;
+  ++tx->nL2Incomplete;
   FreeMbufs(frames + nSent, nFrames - nSent);
 }
 
 void
-EthTxFace_TxBurst(EthTxFace* face, struct rte_mbuf** pkts, uint16_t nPkts)
+EthTx_TxBurst(EthFace* face, EthTx* tx, struct rte_mbuf** pkts, uint16_t nPkts)
 {
-  ++face->nL3Bursts;
+  ++tx->nL3Bursts;
   struct rte_mbuf* frames[MAX_FRAMES + MAX_FRAGMENTS];
   int nFrames = 0;
 
   for (uint16_t i = 0; i < nPkts; ++i) {
     struct rte_mbuf* pkt = pkts[i];
-    int nFragments = EthTxFace_Fragment(face, pkt, frames + nFrames);
+    int nFragments = EthTx_Fragment(face, tx, pkt, frames + nFrames);
     if (unlikely(nFragments <= 0)) {
-      if (nFragments == EthTxFace_FragmentErr_Continue) {
+      if (nFragments == EthTx_FragmentErr_Continue) {
         continue;
-      } else if (nFragments == EthTxFace_FragmentErr_Stop) {
+      } else if (nFragments == EthTx_FragmentErr_Stop) {
         break;
       } else {
         assert(false);
@@ -186,11 +193,11 @@ EthTxFace_TxBurst(EthTxFace* face, struct rte_mbuf** pkts, uint16_t nPkts)
       struct ether_hdr* eth =
         (struct ether_hdr*)rte_pktmbuf_prepend(frame, sizeof(struct ether_hdr));
       assert(eth != NULL);
-      rte_memcpy(eth, &face->ethhdr, sizeof(*eth));
+      rte_memcpy(eth, &tx->ethhdr, sizeof(*eth));
     }
 
     while (unlikely(nFrames >= MAX_FRAMES)) {
-      EthTxFace_SendFrames(face, frames, MAX_FRAMES);
+      EthTx_SendFrames(face, tx, frames, MAX_FRAMES);
 #if MAX_FRAGMENTS > MAX_FRAMES
 #define MoveUpFragments memmove
 #else // nFragments is no more than MAX_FRAME so no overlapping
@@ -204,6 +211,6 @@ EthTxFace_TxBurst(EthTxFace* face, struct rte_mbuf** pkts, uint16_t nPkts)
   }
 
   if (likely(nFrames > 0)) {
-    EthTxFace_SendFrames(face, frames, nFrames);
+    EthTx_SendFrames(face, tx, frames, nFrames);
   }
 }

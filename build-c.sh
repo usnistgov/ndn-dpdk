@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 INPUTDIR=$1
 PKG=$(basename $INPUTDIR)
 
@@ -10,6 +11,6 @@ mkdir -p $BUILDDIR
 rm -f $BUILDDIR/*.o
 
 for CFILE in $INPUTDIR/*.c; do
-  gcc -c -o $BUILDDIR/$(basename $CFILE .c).o $CFLAGS $CFILE
+  gcc -c -Werror -o $BUILDDIR/$(basename $CFILE .c).o $CFLAGS $CFILE
 done
 ar rcs $LIBNANE $BUILDDIR/*.o
