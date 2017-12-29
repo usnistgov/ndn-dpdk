@@ -64,22 +64,14 @@ func (mp PktmbufPool) Alloc() (Mbuf, error) {
 	return Mbuf{m}, nil
 }
 
-func (mp PktmbufPool) allocBulkImpl(mbufs unsafe.Pointer, count int) error {
-	res := C.rte_pktmbuf_alloc_bulk(mp.ptr, (**C.struct_rte_mbuf)(mbufs), C.uint(count))
+// Allocate several mbufs, writing into supplied slice of Mbuf or Packet.
+func (mp PktmbufPool) AllocBulk(mbufs interface{}) error {
+	ptr, count := ParseCptrArray(mbufs)
+	res := C.rte_pktmbuf_alloc_bulk(mp.ptr, (**C.struct_rte_mbuf)(ptr), C.uint(count))
 	if res != 0 {
 		return errors.New("mbuf allocation failed")
 	}
 	return nil
-}
-
-// Allocate several mbufs, writing into supplied slice of Mbuf.
-func (mp PktmbufPool) AllocBulk(mbufs []Mbuf) error {
-	return mp.allocBulkImpl(unsafe.Pointer(&mbufs[0]), len(mbufs))
-}
-
-// Allocate several mbufs, writing into supplied slice of Packet.
-func (mp PktmbufPool) AllocPktBulk(pkts []Packet) error {
-	return mp.allocBulkImpl(unsafe.Pointer(&pkts[0]), len(pkts))
 }
 
 // Clone a packet into indirect mbufs.

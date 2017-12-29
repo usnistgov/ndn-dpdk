@@ -146,7 +146,7 @@ func TestPacketClone(t *testing.T) {
 	mpi := dpdktestenv.MakeIndirectMp(63)
 
 	pkts := make([]dpdk.Packet, 2)
-	e := mp.AllocPktBulk(pkts[:1])
+	e := mp.AllocBulk(pkts[:1])
 	require.NoError(e)
 
 	m, e := mp.Alloc()

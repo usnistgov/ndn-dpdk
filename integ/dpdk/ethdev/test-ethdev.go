@@ -52,8 +52,8 @@ func main() {
 	eal.Slaves[1].RemoteLaunch(func() int {
 		for i := 0; i < TX_LOOPS; i++ {
 			var pkts [TX_BURST_SIZE]dpdk.Packet
-			e := mp.AllocPktBulk(pkts[:])
-			require.NoErrorf(e, "mp.AllocPktBulk error at loop %d", i)
+			e := mp.AllocBulk(pkts[:])
+			require.NoErrorf(e, "mp.AllocBulk error at loop %d", i)
 			for j := 0; j < TX_BURST_SIZE; j++ {
 				pktBuf, e := pkts[j].GetFirstSegment().Append(1)
 				assert.NoError(e)
