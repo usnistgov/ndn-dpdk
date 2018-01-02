@@ -1,4 +1,4 @@
-package ethface
+package iface
 
 // This file contains test setup procedure and common test helper functions.
 

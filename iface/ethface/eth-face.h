@@ -10,7 +10,6 @@ typedef struct EthFace
 {
   Face base;
   uint16_t port;
-  EthRx rx;
   EthTx tx;
 } EthFace;
 

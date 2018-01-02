@@ -1,7 +1,7 @@
 #ifndef NDN_DPDK_IFACE_FACE_H
 #define NDN_DPDK_IFACE_FACE_H
 
-#include "common.h"
+#include "rx-proc.h"
 
 /// \file
 
@@ -34,8 +34,16 @@ typedef struct Face
   FaceOps_TxBurst txBurstOp;
   const FaceOps* ops;
 
+  RxProc rx;
+
   FaceId id;
 } Face;
+
+static inline bool
+Face_Close(Face* face)
+{
+  return (*face->ops->close)(face);
+}
 
 /** \brief Receive and decode a burst of packet.
  *  \param face the face
@@ -44,11 +52,7 @@ typedef struct Face
  *  \return number of filled \p pkts elements; if pkts[i] fails decoding or is retained by
  *          reassembler, it will be a null pointer
  */
-static inline uint16_t
-Face_RxBurst(Face* face, struct rte_mbuf** pkts, uint16_t nPkts)
-{
-  return (*face->rxBurstOp)(face, pkts, nPkts);
-}
+uint16_t Face_RxBurst(Face* face, struct rte_mbuf** pkts, uint16_t nPkts);
 
 /** \brief Send a burst of packet.
  *  \param face the face
@@ -64,16 +68,8 @@ Face_TxBurst(Face* face, struct rte_mbuf** pkts, uint16_t nPkts)
   (*face->txBurstOp)(face, pkts, nPkts);
 }
 
-static inline bool
-Face_Close(Face* face)
-{
-  return (*face->ops->close)(face);
-}
-
-static inline void
-Face_ReadCounters(Face* face, FaceCounters* cnt)
-{
-  (*face->ops->readCounters)(face, cnt);
-}
+/** \brief Retrieve face counters.
+ */
+void Face_ReadCounters(Face* face, FaceCounters* cnt);
 
 #endif // NDN_DPDK_IFACE_FACE_H

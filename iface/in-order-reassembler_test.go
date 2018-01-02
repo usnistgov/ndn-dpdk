@@ -1,4 +1,4 @@
-package ethface
+package iface
 
 import (
 	"testing"

@@ -4,7 +4,7 @@ static uint16_t
 EthFace_RxBurst(Face* faceBase, struct rte_mbuf** pkts, uint16_t nPkts)
 {
   EthFace* face = (EthFace*)faceBase;
-  return EthRx_RxBurst(face, &face->rx, pkts, nPkts);
+  return EthRx_RxBurst(face, 0, pkts, nPkts);
 }
 
 static void
@@ -26,7 +26,6 @@ static void
 EthFace_ReadCounters(Face* faceBase, FaceCounters* cnt)
 {
   EthFace* face = (EthFace*)faceBase;
-  EthRx_ReadCounters(face, &face->rx, cnt);
   EthTx_ReadCounters(face, &face->tx, cnt);
 }
 
@@ -49,7 +48,6 @@ EthFace_Init(EthFace* face, uint16_t port, struct rte_mempool* indirectMp,
   face->base.ops = &ethFaceOps;
   face->port = port;
 
-  face->rx.queue = 0;
   face->tx.queue = 0;
   face->tx.indirectMp = indirectMp;
   face->tx.headerMp = headerMp;

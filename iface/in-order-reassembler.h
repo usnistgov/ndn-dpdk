@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_IFACE_ETHFACE_IN_ORDER_REASSEMBLER_H
-#define NDN_DPDK_IFACE_ETHFACE_IN_ORDER_REASSEMBLER_H
+#ifndef NDN_DPDK_IFACE_IN_ORDER_REASSEMBLER_H
+#define NDN_DPDK_IFACE_IN_ORDER_REASSEMBLER_H
 
 #include "common.h"
 
@@ -15,9 +15,8 @@ typedef struct InOrderReassembler
 
   uint64_t nAccepted;   ///< number of fragments received and accepted
   uint64_t nOutOfOrder; ///< number of out-of-order fragments dropped
-  uint64_t nDelivered;  ///< number of network layer packets delivered
-  uint64_t
-    nIncomplete; ///< number of incomplete network layer packets discarded
+  uint64_t nDelivered;  ///< number of L3 packets delivered
+  uint64_t nIncomplete; ///< number of incomplete L3 packets discarded
 } InOrderReassembler;
 
 /** \brief Receive an LpPkt into the reassembler.
@@ -28,4 +27,4 @@ typedef struct InOrderReassembler
 struct rte_mbuf* InOrderReassembler_Receive(InOrderReassembler* r,
                                             struct rte_mbuf* pkt);
 
-#endif // NDN_DPDK_IFACE_ETHFACE_IN_ORDER_REASSEMBLER_H
+#endif // NDN_DPDK_IFACE_IN_ORDER_REASSEMBLER_H
