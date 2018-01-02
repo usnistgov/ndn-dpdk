@@ -4,6 +4,8 @@
 #include "eth-rx.h"
 #include "eth-tx.h"
 
+/// \file
+
 typedef struct EthFace
 {
   Face base;

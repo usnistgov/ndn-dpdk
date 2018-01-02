@@ -4,6 +4,12 @@
 #include "../common.h"
 #include "../face.h"
 
+/// \file
+
+/** \brief A face to communicate on a socket.
+ *
+ *  SocketFace is implemented in Go code. This struct is a proxy to expose SocketFace to C code.
+ */
 typedef struct SocketFace
 {
   Face base;

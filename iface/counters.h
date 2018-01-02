@@ -3,6 +3,8 @@
 
 #include "common.h"
 
+/// \file
+
 typedef struct RxL2Counters
 {
   uint64_t nFrames;

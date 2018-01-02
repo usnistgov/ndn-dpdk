@@ -3,6 +3,8 @@
 
 #include "common.h"
 
+/// \file
+
 /** \brief Numeric face identifier.
  */
 typedef uint16_t FaceId;
