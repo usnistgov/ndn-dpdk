@@ -5,8 +5,11 @@ package socketface
 */
 import "C"
 import (
+	"fmt"
+	"log"
 	"math/rand"
 	"net"
+	"os"
 	"unsafe"
 
 	"ndn-dpdk/dpdk"
@@ -22,14 +25,18 @@ const (
 )
 
 type Config struct {
-	RxCapacity int              // receive queue length in packets
-	TxCapacity int              // send queue length in packets
-	RxMp       dpdk.PktmbufPool // mempool for received packets
+	RxMp        dpdk.PktmbufPool // mempool for received packets, dataroom must be at least MTU
+	RxqCapacity int              // receive queue length in packets
+	TxqCapacity int              // send queue length in packets
 }
 
 type SocketFace struct {
 	iface.Face
-	conn net.Conn
+	logger *log.Logger
+	conn   net.Conn
+
+	rxMp    dpdk.PktmbufPool
+	rxQueue chan ndn.Packet // RX queue
 
 	txQueue        chan ndn.Packet // TX queue
 	txQuit         chan struct{}   // stop TxLoop
@@ -37,6 +44,7 @@ type SocketFace struct {
 }
 
 type iImpl interface {
+	RxLoop(face *SocketFace)
 	TxLoop(face *SocketFace)
 }
 
@@ -51,8 +59,12 @@ func New(conn net.Conn, cfg Config) (face *SocketFace) {
 
 	face = new(SocketFace)
 	face.Face = iface.FaceFromPtr(C.calloc(1, C.sizeof_SocketFace))
+	face.logger = log.New(os.Stderr, fmt.Sprintf("face %d ", id), log.LstdFlags)
 	face.conn = conn
-	face.txQueue = make(chan ndn.Packet, cfg.TxCapacity)
+	face.rxMp = cfg.RxMp
+	face.rxQueue = make(chan ndn.Packet, cfg.RxqCapacity)
+	face.txQueue = make(chan ndn.Packet, cfg.TxqCapacity)
+	face.txQuit = make(chan struct{}, 1)
 
 	C.SocketFace_Init(face.getPtr(), C.uint16_t(id))
 	faceById[id] = face
@@ -63,12 +75,17 @@ func New(conn net.Conn, cfg Config) (face *SocketFace) {
 	} else {
 		impl = streamImpl{}
 	}
+	go impl.RxLoop(face)
 	go impl.TxLoop(face)
 
 	return face
 }
 
-func (face SocketFace) getPtr() *C.SocketFace {
+func (face *SocketFace) Close() error {
+	return face.conn.Close()
+}
+
+func (face *SocketFace) getPtr() *C.SocketFace {
 	return (*C.SocketFace)(face.GetPtr())
 }
 

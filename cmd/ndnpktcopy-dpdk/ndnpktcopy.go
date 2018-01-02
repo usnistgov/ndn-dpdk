@@ -65,17 +65,6 @@ func main() {
 	}
 	log.Printf("inPort=%d outPorts=%v", inPort, outPorts)
 
-	if len(pc.outsock) > 0 {
-		outsockParams := strings.SplitN(pc.outsock, ":", 2)
-		if len(outsockParams) != 2 {
-			log.Print("-connect syntax error")
-			os.Exit(EXIT_ARG_ERROR)
-		}
-		network, address := outsockParams[0], outsockParams[1]
-		face := initSocketFace(network, address)
-		txFaces = append(txFaces, face)
-	}
-
 	mpRx, e = dpdk.NewPktmbufPool("MP-RX", MP_CAPACITY, MP_CACHE,
 		ndn.SizeofPacketPriv(), MP_DATAROOM, inPort.GetNumaSocket())
 	if e != nil {
@@ -95,6 +84,17 @@ func main() {
 	if e != nil {
 		log.Printf("NewPktmbufPool(IND): %v", e)
 		os.Exit(EXIT_DPDK_ERROR)
+	}
+
+	if len(pc.outsock) > 0 {
+		outsockParams := strings.SplitN(pc.outsock, ":", 2)
+		if len(outsockParams) != 2 {
+			log.Print("-connect syntax error")
+			os.Exit(EXIT_ARG_ERROR)
+		}
+		network, address := outsockParams[0], outsockParams[1]
+		face := initSocketFace(network, address)
+		txFaces = append(txFaces, face)
 	}
 
 	rxFace = initEthFace(inPort)
@@ -186,7 +186,9 @@ func initSocketFace(network, address string) iface.Face {
 	}
 
 	var cfg socketface.Config
-	cfg.TxCapacity = TXQ_CAPACITY
+	cfg.RxMp = mpRx
+	cfg.RxqCapacity = RXQ_CAPACITY
+	cfg.TxqCapacity = TXQ_CAPACITY
 
 	face := socketface.New(conn, cfg)
 	return face.Face

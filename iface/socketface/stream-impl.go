@@ -9,6 +9,10 @@ import (
 
 type streamImpl struct{}
 
+func (impl streamImpl) RxLoop(face *SocketFace) {
+	panic("not implemented")
+}
+
 func (impl streamImpl) TxLoop(face *SocketFace) {
 	for {
 		select {

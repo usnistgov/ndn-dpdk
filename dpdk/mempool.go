@@ -56,6 +56,10 @@ func NewPktmbufPool(name string, capacity int, cacheSize int, privSize uint16,
 	return mp, nil
 }
 
+func (mp PktmbufPool) GetDataroom() int {
+	return int(C.rte_pktmbuf_data_room_size(mp.ptr))
+}
+
 func (mp PktmbufPool) Alloc() (Mbuf, error) {
 	m := C.rte_pktmbuf_alloc(mp.ptr)
 	if m == nil {
