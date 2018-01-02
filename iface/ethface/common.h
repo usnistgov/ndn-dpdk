@@ -1,7 +1,7 @@
 #ifndef NDN_DPDK_IFACE_ETHFACE_COMMON_H
 #define NDN_DPDK_IFACE_ETHFACE_COMMON_H
 
-#include "../common.h"
+#include "../counters.h"
 #include "../face.h"
 
 #include <rte_ethdev.h>

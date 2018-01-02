@@ -54,3 +54,9 @@ func (face Face) TxBurst(pkts []ndn.Packet) {
 	}
 	C.Face_TxBurst(face.c, (**C.struct_rte_mbuf)(unsafe.Pointer(&pkts[0])), C.uint16_t(len(pkts)))
 }
+
+func (face Face) ReadCounters() Counters {
+	var cnt Counters
+	C.Face_ReadCounters(face.c, (*C.FaceCounters)(unsafe.Pointer(&cnt)))
+	return cnt
+}

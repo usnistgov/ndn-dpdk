@@ -129,3 +129,12 @@ func go_SocketFace_Close(faceC *C.Face) C.bool {
 	e := face.conn.Close()
 	return e == nil
 }
+
+//export go_SocketFace_ReadCounters
+func go_SocketFace_ReadCounters(faceC *C.Face, cntC *C.FaceCounters) {
+	// face := getByCFace(faceC)
+	cnt := (*iface.Counters)(unsafe.Pointer(cntC))
+	cnt.RxL2.NFrames = 1
+	cnt.TxL2.NFrames = 1
+	// TODO implement counters
+}

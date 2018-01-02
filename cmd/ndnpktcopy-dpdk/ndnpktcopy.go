@@ -115,8 +115,10 @@ func main() {
 			nTx++
 		}
 		if nRx > 0 {
+			log.Printf("%d %v", rxFace.GetFaceId(), rxFace.ReadCounters())
 			for _, face := range txFaces {
 				face.TxBurst(outPkts[:nTx])
+				log.Printf("%d %v", face.GetFaceId(), face.ReadCounters())
 			}
 			for _, pkt := range outPkts[:nTx] {
 				printPacket(pkt)

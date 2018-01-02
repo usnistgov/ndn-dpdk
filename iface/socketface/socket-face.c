@@ -3,6 +3,7 @@
 
 static const FaceOps socketFaceOps = {
   .close = go_SocketFace_Close,
+  .readCounters = go_SocketFace_ReadCounters,
 };
 
 void

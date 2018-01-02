@@ -29,8 +29,8 @@ func (face EthFace) GetTxCounters() (cnt TxCounters) {
 	faceC := face.getPtr()
 
 	cnt.NInterests = uint64(faceC.tx.nPkts[ndn.NdnPktType_Interest])
-	cnt.NData = uint64(faceC.tx.nPkts[ndn.NdnPktType_Interest])
-	cnt.NNacks = uint64(faceC.tx.nPkts[ndn.NdnPktType_Interest])
+	cnt.NData = uint64(faceC.tx.nPkts[ndn.NdnPktType_Data])
+	cnt.NNacks = uint64(faceC.tx.nPkts[ndn.NdnPktType_Nack])
 
 	cnt.NFrames = uint64(faceC.tx.nPkts[ndn.NdnPktType_None]) + cnt.NInterests + cnt.NData + cnt.NNacks
 	cnt.NOctets = uint64(faceC.tx.nOctets)

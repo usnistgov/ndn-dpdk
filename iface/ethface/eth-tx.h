@@ -53,4 +53,6 @@ void EthTx_Close(EthFace* face, EthTx* tx);
 void EthTx_TxBurst(EthFace* face, EthTx* tx, struct rte_mbuf** pkts,
                    uint16_t nPkts);
 
+void EthTx_ReadCounters(EthFace* face, EthTx* tx, FaceCounters* cnt);
+
 #endif // NDN_DPDK_IFACE_ETHFACE_ETH_TX_H

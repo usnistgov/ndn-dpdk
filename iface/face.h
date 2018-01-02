@@ -8,17 +8,20 @@
 typedef uint16_t FaceId;
 
 typedef struct Face Face;
+typedef struct FaceCounters FaceCounters;
 
 typedef uint16_t (*FaceOps_RxBurst)(Face* face, struct rte_mbuf** pkts,
                                     uint16_t nPkts);
 typedef void (*FaceOps_TxBurst)(Face* face, struct rte_mbuf** pkts,
                                 uint16_t nPkts);
 typedef bool (*FaceOps_Close)(Face* face);
+typedef void (*FaceOps_ReadCounters)(Face* face, FaceCounters* cnt);
 
 typedef struct FaceOps
 {
   // most frequent ops, rxBurst and txBurst, are placed directly in Face struct
   FaceOps_Close close;
+  FaceOps_ReadCounters readCounters;
 } FaceOps;
 
 /** \brief Generic network interface.
@@ -63,6 +66,12 @@ static inline bool
 Face_Close(Face* face)
 {
   return (*face->ops->close)(face);
+}
+
+static inline void
+Face_ReadCounters(Face* face, FaceCounters* cnt)
+{
+  (*face->ops->readCounters)(face, cnt);
 }
 
 #endif // NDN_DPDK_IFACE_FACE_H

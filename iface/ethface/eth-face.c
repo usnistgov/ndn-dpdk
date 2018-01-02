@@ -22,8 +22,17 @@ EthFace_Close(Face* faceBase)
   return true;
 }
 
+static void
+EthFace_ReadCounters(Face* faceBase, FaceCounters* cnt)
+{
+  EthFace* face = (EthFace*)faceBase;
+  EthRx_ReadCounters(face, &face->rx, cnt);
+  EthTx_ReadCounters(face, &face->tx, cnt);
+}
+
 static const FaceOps ethFaceOps = {
   .close = EthFace_Close,
+  .readCounters = EthFace_ReadCounters,
 };
 
 int

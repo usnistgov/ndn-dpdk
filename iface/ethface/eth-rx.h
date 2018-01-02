@@ -21,4 +21,6 @@ typedef struct EthRx
 uint16_t EthRx_RxBurst(EthFace* face, EthRx* rx, struct rte_mbuf** pkts,
                        uint16_t nPkts);
 
+void EthRx_ReadCounters(EthFace* face, EthRx* rx, FaceCounters* cnt);
+
 #endif // NDN_DPDK_IFACE_ETHFACE_ETH_RX_H

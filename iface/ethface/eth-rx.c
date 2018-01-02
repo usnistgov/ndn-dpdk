@@ -145,3 +145,11 @@ EthRx_RxBurst(EthFace* face, EthRx* rx, struct rte_mbuf** pkts, uint16_t nPkts)
 
   return nReceived;
 }
+
+void
+EthRx_ReadCounters(EthFace* face, EthRx* rx, FaceCounters* cnt)
+{
+  cnt->rxl2.nFrames = rx->nFrames;
+  cnt->rxl3.nInterests = rx->nInterestPkts;
+  cnt->rxl3.nData = rx->nDataPkts;
+}

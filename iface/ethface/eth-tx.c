@@ -214,3 +214,15 @@ EthTx_TxBurst(EthFace* face, EthTx* tx, struct rte_mbuf** pkts, uint16_t nPkts)
     EthTx_SendFrames(face, tx, frames, nFrames);
   }
 }
+
+void
+EthTx_ReadCounters(EthFace* face, EthTx* tx, FaceCounters* cnt)
+{
+  cnt->txl3.nInterests = tx->nPkts[NdnPktType_Interest];
+  cnt->txl3.nData = tx->nPkts[NdnPktType_Data];
+  cnt->txl3.nNacks = tx->nPkts[NdnPktType_Nack];
+
+  cnt->txl2.nFrames = tx->nPkts[NdnPktType_None] + cnt->txl3.nInterests +
+                      cnt->txl3.nData + cnt->txl3.nNacks;
+  cnt->txl2.nOctets = tx->nOctets;
+}
