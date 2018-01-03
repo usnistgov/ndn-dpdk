@@ -6,11 +6,15 @@
 
 /// \file
 
+#define ETHFACE_MAX_RX_COUNT 1
+#define ETHFACE_MAX_TX_COUNT 1
+
 typedef struct EthFace
 {
   Face base;
   uint16_t port;
-  EthTx tx;
+  EthRx rx[ETHFACE_MAX_RX_COUNT];
+  EthTx tx[ETHFACE_MAX_TX_COUNT];
 } EthFace;
 
 /** \brief Initialize a face to communicate on Ethernet.

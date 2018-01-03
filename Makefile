@@ -2,7 +2,7 @@ CLIBPREFIX=build-c/libndn-dpdk
 
 all: gopkgs
 
-gopkgs: go-dpdk go-ndn go-ethface go-socketface
+gopkgs: go-dpdk go-ndn go-iface go-ethface go-socketface
 
 cmd-%: cmd/%/* gopkgs
 	go install ./cmd/$*
@@ -28,8 +28,14 @@ $(CLIBPREFIX)-ndn.a: $(CLIBPREFIX)-dpdk.a ndn/* ndn/error.h ndn/tlv-type.h
 go-ndn: $(CLIBPREFIX)-ndn.a ndn/error.go ndn/tlv-type.go
 	go build ./ndn
 
-$(CLIBPREFIX)-ethface.a: $(CLIBPREFIX)-ndn.a iface/ethface/*
-	./build-c.sh ndn
+$(CLIBPREFIX)-iface.a: $(CLIBPREFIX)-ndn.a iface/*
+	./build-c.sh iface
+
+go-iface: $(CLIBPREFIX)-iface.a
+	go build ./iface
+
+$(CLIBPREFIX)-ethface.a: $(CLIBPREFIX)-iface.a iface/ethface/*
+	./build-c.sh iface/ethface
 
 go-ethface: $(CLIBPREFIX)-ethface.a
 	go build ./iface/ethface
