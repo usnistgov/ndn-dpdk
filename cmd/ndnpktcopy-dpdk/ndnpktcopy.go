@@ -102,28 +102,20 @@ func main() {
 		txFaces = append(txFaces, initEthFace(port))
 	}
 
-	var inPkts [BURST_SIZE]ndn.Packet
-	var outPkts [BURST_SIZE]ndn.Packet
 	for {
-		nRx := rxFace.RxBurst(inPkts[:])
-		nTx := 0
-		for _, pkt := range inPkts[:nRx] {
-			if !pkt.IsValid() {
-				continue
-			}
-			outPkts[nTx] = pkt
-			nTx++
+		var pkts [BURST_SIZE]ndn.Packet
+		nPkts := rxFace.RxBurst(pkts[:])
+		if nPkts == 0 {
+			continue
 		}
-		if nRx > 0 {
-			log.Printf("%d %v", rxFace.GetFaceId(), rxFace.ReadCounters())
-			for _, face := range txFaces {
-				face.TxBurst(outPkts[:nTx])
-				log.Printf("%d %v", face.GetFaceId(), face.ReadCounters())
-			}
-			for _, pkt := range outPkts[:nTx] {
-				printPacket(pkt)
-				pkt.Close()
-			}
+		log.Printf("%d %v", rxFace.GetFaceId(), rxFace.ReadCounters())
+		for _, txFace := range txFaces {
+			txFace.TxBurst(pkts[:nPkts])
+			log.Printf("%d %v", txFace.GetFaceId(), txFace.ReadCounters())
+		}
+		for _, pkt := range pkts[:nPkts] {
+			printPacket(pkt)
+			pkt.Close()
 		}
 	}
 }

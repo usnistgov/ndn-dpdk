@@ -102,7 +102,7 @@ func (face *SocketFace) getPtr() *C.SocketFace {
 func (face *SocketFace) RxLoop() {
 	for {
 		buf, e := face.impl.Recv()
-		if e != nil && face.handleError("RX", e) {
+		if face.handleError("RX", e) {
 			return
 		}
 
@@ -118,11 +118,14 @@ func (face *SocketFace) RxLoop() {
 		seg0.AppendOctets(buf[:])
 
 		select {
-		case face.rxQueue <- pkt:
 		case <-face.rxQuit:
+			pkt.Close()
 			return
+		case face.rxQueue <- pkt:
 		default:
+			pkt.Close()
 			face.rxCongestions++
+			face.logger.Printf("RX queue is full, %d", face.rxCongestions)
 		}
 	}
 }
@@ -133,20 +136,22 @@ func (face *SocketFace) TxLoop() {
 		if !ok {
 			return
 		}
-		defer pkt.Close()
 		e := face.impl.Send(pkt)
-		if e != nil {
-			if face.handleError("TX", e) {
-				return
-			}
-		} else {
+		if e == nil {
 			C.FaceImpl_CountSent(&face.getPtr().base, (*C.struct_rte_mbuf)(pkt.GetPtr()))
+		}
+		pkt.Close()
+		if face.handleError("TX", e) {
+			return
 		}
 	}
 }
 
 // Handle socket error, if any. Return whether RxLoop or TxLoop should terminate.
 func (face *SocketFace) handleError(dir string, e error) bool {
+	if e == nil {
+		return false
+	}
 	if netErr, ok := e.(net.Error); ok && netErr.Temporary() {
 		face.logger.Printf("%s socket error: %v", dir, e)
 		return false
