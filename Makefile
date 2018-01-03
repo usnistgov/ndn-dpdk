@@ -41,7 +41,7 @@ go-iface: $(CLIBPREFIX)-iface.a
 go-ethface: $(CLIBPREFIX)-iface.a iface/ethface/*
 	go build ./iface/ethface
 
-go-socketface:
+go-socketface: $(CLIBPREFIX)-iface.a iface/socketface/*
 	go build ./iface/socketface
 
 unittest:

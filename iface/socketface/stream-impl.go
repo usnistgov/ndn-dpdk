@@ -2,38 +2,32 @@ package socketface
 
 import "C"
 import (
-	"fmt"
+	"net"
 
-	"ndn-dpdk/ndn"
+	"ndn-dpdk/dpdk"
 )
 
-type streamImpl struct{}
+type streamImpl struct {
+	face *SocketFace
+}
 
-func (impl streamImpl) RxLoop(face *SocketFace) {
+func newStreamImpl(face *SocketFace, conn net.Conn) *streamImpl {
+	impl := new(streamImpl)
+	impl.face = face
+	return impl
+}
+
+func (impl *streamImpl) Recv() ([]byte, error) {
 	panic("not implemented")
 }
 
-func (impl streamImpl) TxLoop(face *SocketFace) {
-	for {
-		select {
-		case pkt := <-face.txQueue:
-			impl.send(face, pkt)
-		case <-face.txQuit:
-			return
-		}
-	}
-}
-
-func (impl streamImpl) send(face *SocketFace, pkt ndn.Packet) {
-	if pkt.GetNetType() == ndn.NdnPktType_Nack {
-		panic("Nack sending not implemented")
-	}
-
+func (impl *streamImpl) Send(pkt dpdk.Packet) error {
 	for seg, ok := pkt.GetFirstSegment(), true; ok; seg, ok = seg.GetNext() {
 		buf := C.GoBytes(seg.GetData(), C.int(seg.Len()))
-		_, e := face.conn.Write(buf)
+		_, e := impl.face.conn.Write(buf)
 		if e != nil {
-			panic(fmt.Sprintf("conn.Write error %v", e))
+			return e
 		}
 	}
+	return nil
 }

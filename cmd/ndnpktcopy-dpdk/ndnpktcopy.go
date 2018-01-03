@@ -190,6 +190,8 @@ func initSocketFace(network, address string) iface.Face {
 	var cfg socketface.Config
 	cfg.RxMp = mpRx
 	cfg.RxqCapacity = RXQ_CAPACITY
+	cfg.TxIndirectMp = mpIndirect
+	cfg.TxHeaderMp = mpTxHdr
 	cfg.TxqCapacity = TXQ_CAPACITY
 
 	face := socketface.New(conn, cfg)
