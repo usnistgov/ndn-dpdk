@@ -1,10 +1,14 @@
 CLIBPREFIX=build-c/libndn-dpdk
 
-all: gopkgs
+all: cmds
 
 gopkgs: go-dpdk go-ndn go-iface go-ethface go-socketface
 
-cmd-%: cmd/%/* gopkgs
+cbuilds: $(CLIBPREFIX)-core.a $(CLIBPREFIX)-dpdk.a $(CLIBPREFIX)-ndn.a $(CLIBPREFIX)-iface.a
+
+cmds: cmd-ndndump-dpdk cmd-ndnpktcopy-dpdk
+
+cmd-%: cmd/%/* cbuilds
 	go install ./cmd/$*
 
 $(CLIBPREFIX)-core.a: core/*
@@ -34,10 +38,7 @@ $(CLIBPREFIX)-iface.a: $(CLIBPREFIX)-ndn.a iface/*
 go-iface: $(CLIBPREFIX)-iface.a
 	go build ./iface
 
-$(CLIBPREFIX)-ethface.a: $(CLIBPREFIX)-iface.a iface/ethface/*
-	./build-c.sh iface/ethface
-
-go-ethface: $(CLIBPREFIX)-ethface.a
+go-ethface: $(CLIBPREFIX)-iface.a iface/ethface/*
 	go build ./iface/ethface
 
 go-socketface:
