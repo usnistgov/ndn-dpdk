@@ -3,15 +3,15 @@
 #include "../core/logger.h"
 
 static inline struct rte_mbuf*
-RxProc_ProcessInterest(RxProc* rx, struct rte_mbuf* pkt, TlvDecoder* d)
+RxProc_ProcessInterest(RxProc* rx, struct rte_mbuf* pkt, TlvDecoder* d,
+                       NdnPktType l3type)
 {
-  // TODO distinguish Nack from Interest
-  Packet_SetNdnPktType(pkt, NdnPktType_Interest);
+  Packet_SetNdnPktType(pkt, l3type);
   InterestPkt* interest = Packet_GetInterestHdr(pkt);
   NdnError e = DecodeInterest(d, interest);
 
   if (likely(e == NdnError_OK)) {
-    ++rx->nInterests;
+    ++rx->nFrames[l3type];
     return pkt;
   }
 
@@ -29,7 +29,7 @@ RxProc_ProcessData(RxProc* rx, struct rte_mbuf* pkt, TlvDecoder* d)
   NdnError e = DecodeData(d, data);
 
   if (likely(e == NdnError_OK)) {
-    ++rx->nData;
+    ++rx->nFrames[NdnPktType_Data];
     return pkt;
   }
 
@@ -39,12 +39,13 @@ RxProc_ProcessData(RxProc* rx, struct rte_mbuf* pkt, TlvDecoder* d)
   return NULL;
 }
 
+// interestL3type: L3 type (Interest or Nack) if the packet is an Interest
 static inline struct rte_mbuf*
 RxProc_ProcessNetPkt(RxProc* rx, struct rte_mbuf* pkt, TlvDecoder* d,
-                     uint8_t firstOctet)
+                     uint8_t firstOctet, NdnPktType interestL3type)
 {
   if (firstOctet == TT_Interest) {
-    return RxProc_ProcessInterest(rx, pkt, d);
+    return RxProc_ProcessInterest(rx, pkt, d, interestL3type);
   }
   if (firstOctet == TT_Data) {
     return RxProc_ProcessData(rx, pkt, d);
@@ -86,13 +87,15 @@ RxProc_ProcessLpPkt(RxProc* rx, struct rte_mbuf* pkt, TlvDecoder* d)
 
   TlvDecoder d1;
   MbufLoc_Init(&d1, pkt);
-  return RxProc_ProcessNetPkt(rx, pkt, &d1, MbufLoc_PeekOctet(&d1));
+  return RxProc_ProcessNetPkt(rx, pkt, &d1, MbufLoc_PeekOctet(&d1),
+                              lpp->nackReason > 0 ? NdnPktType_Nack
+                                                  : NdnPktType_Interest);
 }
 
 struct rte_mbuf*
 RxProc_Input(RxProc* rx, struct rte_mbuf* frame)
 {
-  ++rx->nFrames;
+  ++rx->nFrames[NdnPktType_None];
   rx->nOctets += frame->pkt_len;
 
   TlvDecoder d;
@@ -102,19 +105,19 @@ RxProc_Input(RxProc* rx, struct rte_mbuf* frame)
   if (firstOctet == TT_LpPacket) {
     return RxProc_ProcessLpPkt(rx, frame, &d);
   }
-  return RxProc_ProcessNetPkt(rx, frame, &d, firstOctet);
+  return RxProc_ProcessNetPkt(rx, frame, &d, firstOctet, NdnPktType_Interest);
 }
 
 void
 RxProc_ReadCounters(RxProc* rx, FaceCounters* cnt)
 {
-  cnt->rxl2.nFrames = rx->nFrames;
+  cnt->rxl2.nFrames = rx->nFrames[NdnPktType_None];
   cnt->rxl2.nOctets = rx->nOctets;
 
   cnt->rxl2.nReassGood = rx->reassembler.nDelivered;
   cnt->rxl2.nReassBad = rx->reassembler.nIncomplete;
 
-  cnt->rxl3.nInterests = rx->nInterests;
-  cnt->rxl3.nData = rx->nData;
-  cnt->rxl3.nNacks = rx->nNacks;
+  cnt->rxl3.nInterests = rx->nFrames[NdnPktType_Interest];
+  cnt->rxl3.nData = rx->nFrames[NdnPktType_Data];
+  cnt->rxl3.nNacks = rx->nFrames[NdnPktType_Nack];
 }

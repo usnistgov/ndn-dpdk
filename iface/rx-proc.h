@@ -12,12 +12,15 @@ typedef struct RxProc
 {
   InOrderReassembler reassembler;
 
-  uint64_t nFrames; ///< input frames
+  /** \brief input frames and decoded L3 packets
+   *
+   *  \li nFrames[NdnPktType_None] input frames
+   *  \li nFrames[NdnPktType_Interests] decoded Interests
+   *  \li nFrames[NdnPktType_Data] decoded Data
+   *  \li nFrames[NdnPktType_Nacks] decoded Nacks
+   */
+  uint64_t nFrames[NdnPktType_MAX];
   uint64_t nOctets; ///< input bytes
-
-  uint64_t nInterests; ///< decoded Interests
-  uint64_t nData;      ///< decoded Data
-  uint64_t nNacks;     ///< decoded Nacks
 
   uint64_t nL2DecodeErr; ///< failed NDNLP decodings
   uint64_t nL3DecodeErr; ///< failed Interest/Data/Nack decodings

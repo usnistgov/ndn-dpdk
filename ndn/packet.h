@@ -82,7 +82,9 @@ Packet_GetLpHdr(struct rte_mbuf* pkt)
 static inline InterestPkt*
 Packet_GetInterestHdr(struct rte_mbuf* pkt)
 {
-  assert(Packet_GetNdnPktType(pkt) == NdnPktType_Interest);
+  assert(Packet_GetNdnPktType(pkt) == NdnPktType_Interest ||
+         (Packet_GetNdnPktType(pkt) == NdnPktType_Nack &&
+          Packet_GetLpHdr(pkt)->nackReason > 0));
   return MbufDirectPriv(pkt, InterestPkt*, offsetof(PacketPriv, interest));
 }
 
