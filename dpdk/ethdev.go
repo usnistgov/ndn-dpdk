@@ -30,6 +30,16 @@ func CountEthDevs() int {
 	return int(C.rte_eth_dev_count())
 }
 
+func FindEthDev(name string) EthDev {
+	for p := C.rte_eth_find_next(0); p < C.RTE_MAX_ETHPORTS; p = C.rte_eth_find_next(p + 1) {
+		port := EthDev(p)
+		if port.GetName() == name {
+			return port
+		}
+	}
+	return ETHDEV_INVALID
+}
+
 func NewEthDevFromRings(name string, rxRings []Ring, txRings []Ring, socket NumaSocket) (dev EthDev, e error) {
 	nameC := C.CString(name)
 	defer C.free(unsafe.Pointer(nameC))
