@@ -35,7 +35,7 @@ go-ndn: $(CLIBPREFIX)-ndn.a ndn/error.go ndn/tlv-type.go
 $(CLIBPREFIX)-iface.a: $(CLIBPREFIX)-ndn.a iface/*
 	./build-c.sh iface
 
-go-iface: $(CLIBPREFIX)-iface.a
+go-iface: $(CLIBPREFIX)-iface.a iface/*
 	go build ./iface
 
 go-ethface: $(CLIBPREFIX)-iface.a iface/ethface/*
@@ -43,6 +43,9 @@ go-ethface: $(CLIBPREFIX)-iface.a iface/ethface/*
 
 go-socketface: $(CLIBPREFIX)-iface.a iface/socketface/*
 	go build ./iface/socketface
+
+go-faceuri: $(CLIBPREFIX)-iface.a iface/faceuri/*
+	go build ./iface/faceuri
 
 unittest:
 	./gotest.sh dpdk/dpdktest
