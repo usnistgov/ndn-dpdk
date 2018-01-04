@@ -1,10 +1,9 @@
 package main
 
 import (
-	"flag"
 	"log"
 	"os"
-	"strings"
+	"time"
 
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
@@ -86,42 +85,33 @@ func main() {
 		txFaces = append(txFaces, txFace)
 	}
 
+	tick := time.Tick(pc.counterInterval)
+	go func() {
+		for {
+			<-tick
+			log.Printf("RX-cnt %d %v", rxFace.GetFaceId(), rxFace.ReadCounters())
+			for _, txFace := range txFaces {
+				log.Printf("TX-cnt %d %v", txFace.GetFaceId(), txFace.ReadCounters())
+			}
+		}
+	}()
+
 	for {
 		var pkts [BURST_SIZE]ndn.Packet
 		nPkts := rxFace.RxBurst(pkts[:])
 		if nPkts == 0 {
 			continue
 		}
-		log.Printf("%d %v", rxFace.GetFaceId(), rxFace.ReadCounters())
 		for _, txFace := range txFaces {
 			txFace.TxBurst(pkts[:nPkts])
-			log.Printf("%d %v", txFace.GetFaceId(), txFace.ReadCounters())
 		}
 		for _, pkt := range pkts[:nPkts] {
-			printPacket(pkt)
+			if pc.wantDump {
+				printPacket(pkt)
+			}
 			pkt.Close()
 		}
 	}
-}
-
-type parsedCommand struct {
-	inface   string
-	outfaces []string
-}
-
-func parseCommand() (pc parsedCommand, e error) {
-	var outfaceStr string
-
-	flags := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-	flags.StringVar(&pc.inface, "in", "", "input face")
-	flags.StringVar(&outfaceStr, "out", "", "output face(s)")
-	e = flags.Parse(eal.Args[1:])
-	if e != nil {
-		return
-	}
-
-	pc.outfaces = strings.Split(outfaceStr, ",")
-	return
 }
 
 func printPacket(pkt ndn.Packet) {
