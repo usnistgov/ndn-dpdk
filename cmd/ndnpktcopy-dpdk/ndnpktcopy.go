@@ -42,6 +42,10 @@ func main() {
 		log.Print("NewEal:", e)
 		os.Exit(EXIT_DPDK_ERROR)
 	}
+	if len(eal.Slaves) < 2 {
+		log.Print("at least two slaves are required")
+		os.Exit(EXIT_DPDK_ERROR)
+	}
 
 	pc, e := parseCommand()
 
@@ -93,25 +97,52 @@ func main() {
 			for _, txFace := range txFaces {
 				log.Printf("TX-cnt %d %v", txFace.GetFaceId(), txFace.ReadCounters())
 			}
+			log.Printf("MP-usage RX=%d TXHDR=%d IND=%d", mpRx.CountInUse(),
+				mpTxHdr.CountInUse(), mpIndirect.CountInUse())
 		}
 	}()
 
-	for {
-		var pkts [BURST_SIZE]ndn.Packet
-		nPkts := rxFace.RxBurst(pkts[:])
-		if nPkts == 0 {
-			continue
-		}
-		for _, txFace := range txFaces {
-			txFace.TxBurst(pkts[:nPkts])
-		}
-		for _, pkt := range pkts[:nPkts] {
-			if pc.wantDump {
-				printPacket(pkt)
+	// copy packets from inface to outface
+	eal.Slaves[0].RemoteLaunch(func() int {
+		for {
+			var pkts [BURST_SIZE]ndn.Packet
+			nPkts := rxFace.RxBurst(pkts[:])
+			if nPkts == 0 {
+				continue
 			}
-			pkt.Close()
+			for _, txFace := range txFaces {
+				txFace.TxBurst(pkts[:nPkts])
+			}
+			for _, pkt := range pkts[:nPkts] {
+				if pc.wantDump {
+					printPacket(pkt)
+				}
+				pkt.Close()
+			}
 		}
-	}
+	})
+
+	// discard packets arrived on outfaces
+	eal.Slaves[1].RemoteLaunch(func() int {
+		if len(txFaces) == 0 {
+			return 1
+		}
+		for {
+			for _, txFace := range txFaces {
+				var pkts [BURST_SIZE]ndn.Packet
+				nPkts := txFace.RxBurst(pkts[:])
+				if nPkts == 0 {
+					continue
+				}
+				for _, pkt := range pkts[:nPkts] {
+					pkt.Close()
+				}
+			}
+		}
+	})
+
+	eal.Slaves[0].Wait()
+	eal.Slaves[1].Wait()
 }
 
 func printPacket(pkt ndn.Packet) {
