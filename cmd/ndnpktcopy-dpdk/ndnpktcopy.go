@@ -25,13 +25,13 @@ func main() {
 
 	rxFace, e = appinit.NewFaceFromUri(pc.inface)
 	if e != nil {
-		appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "createFaceFromUri(%s): %v", pc.inface, e)
+		appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "NewFaceFromUri(%s): %v", pc.inface, e)
 	}
 
 	for _, outface := range pc.outfaces {
 		txFace, e := appinit.NewFaceFromUri(outface)
 		if e != nil {
-			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "createFaceFromUri(%s): %v", outface, e)
+			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "NewFaceFromUri(%s): %v", outface, e)
 		}
 		txFaces = append(txFaces, txFace)
 		numaSocket := txFace.GetNumaSocket()

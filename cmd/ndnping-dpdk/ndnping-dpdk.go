@@ -1,8 +1,6 @@
 package main
 
 import (
-	"log"
-
 	"ndn-dpdk/appinit"
 )
 
@@ -13,5 +11,15 @@ func main() {
 		appinit.Exitf(appinit.EXIT_BAD_CONFIG, "parseCommand: %v", e)
 	}
 
-	log.Fatal("ndnping-dpdk program not implemented")
+	for _, server := range pc.servers {
+		face, e := appinit.NewFaceFromUri(server.face)
+		if e != nil {
+			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "NewFaceFromUri(%s): %v", server.face, e)
+		}
+
+		server := NewNdnpingServer(*face)
+		appinit.LaunchRequired(server.Run, face.GetNumaSocket())
+	}
+
+	select {}
 }

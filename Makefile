@@ -6,7 +6,7 @@ gopkgs: go-dpdk go-ndn go-iface go-ethface go-socketface go-appinit
 
 cbuilds: $(CLIBPREFIX)-core.a $(CLIBPREFIX)-dpdk.a $(CLIBPREFIX)-ndn.a $(CLIBPREFIX)-iface.a
 
-cmds: cmd-ndnpktcopy-dpdk
+cmds: cmd-ndnpktcopy-dpdk cmd-ndnping-dpdk
 
 cmd-%: cmd/%/* cbuilds
 	go install ./cmd/$*
