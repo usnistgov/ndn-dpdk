@@ -13,7 +13,7 @@ const (
 	EXIT_FACE_INIT_ERROR    = 6
 )
 
-func exitf(exitCode int, format string, v ...interface{}) {
+func Exitf(exitCode int, format string, v ...interface{}) {
 	log.Printf(format, v...)
 	os.Exit(exitCode)
 }

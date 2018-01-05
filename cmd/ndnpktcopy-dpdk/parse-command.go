@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"ndn-dpdk/appinit"
 	"ndn-dpdk/iface/faceuri"
 )
 
@@ -18,14 +17,14 @@ type parsedCommand struct {
 	counterInterval time.Duration
 }
 
-func parseCommand() (pc parsedCommand, e error) {
+func parseCommand(args []string) (pc parsedCommand, e error) {
 	flags := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	inface := flags.String("in", "", "input face")
 	outfaces := flags.String("out", "", "output face(s)")
 	flags.BoolVar(&pc.wantDump, "dump", false, "log every packet")
 	flags.DurationVar(&pc.counterInterval, "cnt", time.Second*10, "interval between printing counters")
 
-	e = flags.Parse(appinit.Eal.Args[1:])
+	e = flags.Parse(args)
 	if e != nil {
 		return pc, e
 	}

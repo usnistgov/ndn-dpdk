@@ -9,7 +9,7 @@ import (
 
 var Eal *dpdk.Eal
 
-func init() {
+func InitEal() {
 	if Eal != nil {
 		return
 	}
@@ -17,7 +17,7 @@ func init() {
 	var e error
 	Eal, e = dpdk.NewEal(os.Args)
 	if e != nil {
-		exitf(EXIT_EAL_INIT_ERROR, "NewEal(): %v", e)
+		Exitf(EXIT_EAL_INIT_ERROR, "NewEal(): %v", e)
 	}
 }
 

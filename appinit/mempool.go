@@ -53,14 +53,14 @@ func MakePktmbufPool(key string, socket dpdk.NumaSocket) dpdk.PktmbufPool {
 	}
 
 	if cfg.Capacity <= 0 {
-		exitf(EXIT_BAD_CONFIG, "MakePktmbufPool(%s) bad config: capacity must be positive")
+		Exitf(EXIT_BAD_CONFIG, "MakePktmbufPool(%s) bad config: capacity must be positive")
 	}
 	if ((cfg.Capacity + 1) & cfg.Capacity) != 0 {
 		log.Printf("MakePktmbufPool(%s) nonoptimal config: capacity is not 2^q-1")
 	}
 	maxCacheSize := int(math.Min(float64(MEMPOOL_MAX_CACHE_SIZE), float64(cfg.Capacity)/1.5))
 	if cfg.CacheSize < 0 || cfg.CacheSize > maxCacheSize {
-		exitf(EXIT_BAD_CONFIG, "MakePktmbufPool(%s) bad config: cache size must be between 0 and %d",
+		Exitf(EXIT_BAD_CONFIG, "MakePktmbufPool(%s) bad config: cache size must be between 0 and %d",
 			maxCacheSize)
 	}
 	if cfg.CacheSize > 0 && cfg.Capacity%cfg.CacheSize != 0 {
@@ -75,7 +75,7 @@ func MakePktmbufPool(key string, socket dpdk.NumaSocket) dpdk.PktmbufPool {
 	mp, e := dpdk.NewPktmbufPool(name, cfg.Capacity, cfg.CacheSize,
 		cfg.PrivSize, cfg.DataRoomSize, socket)
 	if e != nil {
-		exitf(EXIT_MEMPOOL_INIT_ERROR, "MakePktmbufPool(%s,%d): %v", key, socket, e)
+		Exitf(EXIT_MEMPOOL_INIT_ERROR, "MakePktmbufPool(%s,%d): %v", key, socket, e)
 	}
 	mempools[name] = mp
 	return mp

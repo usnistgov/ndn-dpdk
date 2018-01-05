@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"os"
 	"time"
 
 	"ndn-dpdk/appinit"
@@ -11,34 +10,28 @@ import (
 	"ndn-dpdk/ndn"
 )
 
-// static configuration
-const (
-	MP_CAPACITY  = 255
-	MP_CACHE     = 0
-	MP_DATAROOM  = 2000
-	RXQ_CAPACITY = 64
-	TXQ_CAPACITY = 64
-	BURST_SIZE   = 8
-)
+const BURST_SIZE = 8
 
 var rxFace *iface.Face
 var txFaces []*iface.Face
 var txFacesByNumaSocket = make(map[dpdk.NumaSocket][]*iface.Face)
 
 func main() {
-	pc, e := parseCommand()
+	appinit.InitEal()
+	pc, e := parseCommand(appinit.Eal.Args[1:])
+	if e != nil {
+		appinit.Exitf(appinit.EXIT_BAD_CONFIG, "parseCommand: %v", e)
+	}
 
 	rxFace, e = appinit.NewFaceFromUri(pc.inface)
 	if e != nil {
-		log.Printf("createFaceFromUri(%s): %v", pc.inface, e)
-		os.Exit(appinit.EXIT_FACE_INIT_ERROR)
+		appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "createFaceFromUri(%s): %v", pc.inface, e)
 	}
 
 	for _, outface := range pc.outfaces {
 		txFace, e := appinit.NewFaceFromUri(outface)
 		if e != nil {
-			log.Printf("createFaceFromUri(%s): %v", outface, e)
-			os.Exit(appinit.EXIT_FACE_INIT_ERROR)
+			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "createFaceFromUri(%s): %v", outface, e)
 		}
 		txFaces = append(txFaces, txFace)
 		numaSocket := txFace.GetNumaSocket()
