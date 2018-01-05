@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"ndn-dpdk/appinit"
 )
 
 type parsedCommand struct {
@@ -23,7 +25,7 @@ func parseCommand() (pc parsedCommand, e error) {
 	flags.BoolVar(&pc.wantDump, "dump", false, "log every packet")
 	flags.DurationVar(&pc.counterInterval, "cnt", time.Second*10, "interval between printing counters")
 
-	e = flags.Parse(eal.Args[1:])
+	e = flags.Parse(appinit.Eal.Args[1:])
 	if e != nil {
 		return
 	}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 
+	"ndn-dpdk/appinit"
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/ethface"
@@ -51,7 +52,8 @@ func createEthFace(u *faceuri.FaceUri) (*iface.Face, error) {
 
 	var cfg dpdk.EthDevConfig
 	cfg.AddRxQueue(dpdk.EthRxQueueConfig{Capacity: RXQ_CAPACITY,
-		Socket: port.GetNumaSocket(), Mp: mpRx})
+		Socket: port.GetNumaSocket(),
+		Mp:     appinit.MakePktmbufPool(appinit.MP_ETHRX, port.GetNumaSocket())})
 	cfg.AddTxQueue(dpdk.EthTxQueueConfig{Capacity: TXQ_CAPACITY, Socket: port.GetNumaSocket()})
 	_, _, e := port.Configure(cfg)
 	if e != nil {
@@ -65,7 +67,9 @@ func createEthFace(u *faceuri.FaceUri) (*iface.Face, error) {
 		return nil, fmt.Errorf("port(%d).Start: %v", port, e)
 	}
 
-	face, e := ethface.New(port, mpIndirect, mpTxHdr)
+	face, e := ethface.New(port,
+		appinit.MakePktmbufPool(appinit.MP_IND, port.GetNumaSocket()),
+		appinit.MakePktmbufPool(appinit.MP_ETHTX, port.GetNumaSocket()))
 	if e != nil {
 		return nil, fmt.Errorf("ethface.New(%d): %v", port, e)
 	}
@@ -82,10 +86,10 @@ func createSocketFace(u *faceuri.FaceUri) (*iface.Face, error) {
 	}
 
 	var cfg socketface.Config
-	cfg.RxMp = mpRx
+	cfg.RxMp = appinit.MakePktmbufPool(appinit.MP_ETHRX, dpdk.NUMA_SOCKET_ANY)
 	cfg.RxqCapacity = RXQ_CAPACITY
-	cfg.TxIndirectMp = mpIndirect
-	cfg.TxHeaderMp = mpTxHdr
+	cfg.TxIndirectMp = appinit.MakePktmbufPool(appinit.MP_IND, dpdk.NUMA_SOCKET_ANY)
+	cfg.TxHeaderMp = appinit.MakePktmbufPool(appinit.MP_ETHTX, dpdk.NUMA_SOCKET_ANY)
 	cfg.TxqCapacity = TXQ_CAPACITY
 
 	face := socketface.New(conn, cfg)

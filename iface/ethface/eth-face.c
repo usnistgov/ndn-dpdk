@@ -26,8 +26,16 @@ EthFace_Close(Face* faceBase)
   return true;
 }
 
+static int
+EthFace_GetNumaSocket(Face* faceBase)
+{
+  EthFace* face = (EthFace*)faceBase;
+  return rte_eth_dev_socket_id(face->port);
+}
+
 static const FaceOps ethFaceOps = {
   .close = EthFace_Close,
+  .getNumaSocket = EthFace_GetNumaSocket,
 };
 
 int

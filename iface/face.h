@@ -32,10 +32,15 @@ typedef uint16_t (*FaceOps_TxBurst)(Face* face, struct rte_mbuf** pkts,
  */
 typedef bool (*FaceOps_Close)(Face* face);
 
+/** \brief Determine NumaSocket of a face.
+ */
+typedef int (*FaceOps_GetNumaSocket)(Face* face);
+
 typedef struct FaceOps
 {
   // most frequent ops, rxBurst and txBurst, are placed directly in Face struct
   FaceOps_Close close;
+  FaceOps_GetNumaSocket getNumaSocket;
 } FaceOps;
 
 /** \brief Generic network interface.
@@ -58,6 +63,12 @@ static inline bool
 Face_Close(Face* face)
 {
   return (*face->ops->close)(face);
+}
+
+static inline int
+Face_GetNumaSocket(Face* face)
+{
+  return (*face->ops->getNumaSocket)(face);
 }
 
 /** \brief Receive and decode a burst of packet.

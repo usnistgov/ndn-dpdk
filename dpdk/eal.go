@@ -18,10 +18,16 @@ import (
 	"unsafe"
 )
 
-type LCore uint
 type NumaSocket int
 
 const NUMA_SOCKET_ANY = NumaSocket(C.SOCKET_ID_ANY)
+
+func (socket NumaSocket) String() string {
+	if socket == NUMA_SOCKET_ANY {
+		return "any"
+	}
+	return fmt.Sprintf("%d", socket)
+}
 
 type LCoreState int
 
@@ -31,12 +37,37 @@ const (
 	LCORE_STATE_FINISHED
 )
 
+func (s LCoreState) String() string {
+	switch s {
+	case LCORE_STATE_WAIT:
+		return "WAIT"
+	case LCORE_STATE_RUNNING:
+		return "RUNNING"
+	case LCORE_STATE_FINISHED:
+		return "FINISHED"
+	}
+	return fmt.Sprintf("LCoreState(%d)", s)
+}
+
+type LCore uint
+
+const LCORE_INVALID = LCore(C.LCORE_ID_ANY)
+
 func GetCurrentLCore() LCore {
 	return LCore(C.rte_lcore_id())
 }
 
+// Prevent a function to be executed in slave lcore.
+func panicInSlave(funcName string) {
+	lc := GetCurrentLCore()
+	if lc.IsValid() && !lc.IsMaster() {
+		panic(fmt.Sprintf("%s is unavailable in slave lcore; current=%d master=%d", lc, C.rte_get_master_lcore()))
+	}
+	// 'invalid' lcore is permitted, because Golang runtime could use another thread
+}
+
 func (lc LCore) IsValid() bool {
-	return lc != LCore(C.LCORE_ID_ANY)
+	return lc != LCORE_INVALID
 }
 
 func (lc LCore) IsMaster() bool {
@@ -48,13 +79,13 @@ func (lc LCore) GetNumaSocket() NumaSocket {
 }
 
 func (lc LCore) GetState() LCoreState {
-	if !GetCurrentLCore().IsMaster() {
-		panic("LCore.GetState is only available on master lcore")
-	}
+	panicInSlave("LCore.GetState()")
 	return LCoreState(C.rte_eal_get_lcore_state(C.uint(lc)))
 }
 
-var lcoreFuncs = map[LCore]func() int{}
+type LCoreFunc func() int
+
+var lcoreFuncs = make(map[LCore]LCoreFunc)
 
 //export go_lcoreLaunch
 func go_lcoreLaunch(lc unsafe.Pointer) C.int {
@@ -63,10 +94,8 @@ func go_lcoreLaunch(lc unsafe.Pointer) C.int {
 
 // Asynchonrously launch a function on an lcore.
 // Returns whether success.
-func (lc LCore) RemoteLaunch(f func() int) bool {
-	if !GetCurrentLCore().IsMaster() {
-		panic("LCore.RemoteLaunch is only available on master lcore")
-	}
+func (lc LCore) RemoteLaunch(f LCoreFunc) bool {
+	panicInSlave("LCore.RemoteLaunch()")
 	lcoreFuncs[lc] = f
 	res := C.rte_eal_remote_launch((*C.lcore_function_t)(C.go_lcoreLaunch),
 		unsafe.Pointer(uintptr(lc)), C.uint(lc))
@@ -76,9 +105,7 @@ func (lc LCore) RemoteLaunch(f func() int) bool {
 // Wait for lcore to finish running, and return lcore function's return value.
 // If lcore is not running, return 0 immediately.
 func (lc LCore) Wait() int {
-	if !GetCurrentLCore().IsMaster() {
-		panic("LCore.Wait is only available on master lcore")
-	}
+	panicInSlave("LCore.Wait()")
 	return int(C.rte_eal_wait_lcore(C.uint(lc)))
 }
 

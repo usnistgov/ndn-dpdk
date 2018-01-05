@@ -5,17 +5,10 @@ import (
 	"os"
 	"time"
 
+	"ndn-dpdk/appinit"
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
-	"ndn-dpdk/iface/ethface"
 	"ndn-dpdk/ndn"
-)
-
-// exit codes
-const (
-	EXIT_ARG_ERROR         = 2
-	EXIT_DPDK_ERROR        = 3
-	EXIT_CREATE_FACE_ERROR = 4
 )
 
 // static configuration
@@ -28,65 +21,32 @@ const (
 	BURST_SIZE   = 8
 )
 
-var eal *dpdk.Eal
-var mpRx dpdk.PktmbufPool
-var mpTxHdr dpdk.PktmbufPool
-var mpIndirect dpdk.PktmbufPool
 var rxFace *iface.Face
 var txFaces []*iface.Face
+var txFacesByNumaSocket = make(map[dpdk.NumaSocket][]*iface.Face)
 
 func main() {
-	var e error
-	eal, e = dpdk.NewEal(os.Args)
-	if e != nil {
-		log.Print("NewEal:", e)
-		os.Exit(EXIT_DPDK_ERROR)
-	}
-	if len(eal.Slaves) < 2 {
-		log.Print("at least two slaves are required")
-		os.Exit(EXIT_DPDK_ERROR)
-	}
-
 	pc, e := parseCommand()
-
-	mpRx, e = dpdk.NewPktmbufPool("MP-RX", MP_CAPACITY, MP_CACHE,
-		ndn.SizeofPacketPriv(), MP_DATAROOM, dpdk.NUMA_SOCKET_ANY)
-	if e != nil {
-		log.Printf("NewPktmbufPool(RX): %v", e)
-		os.Exit(EXIT_DPDK_ERROR)
-	}
-
-	mpTxHdr, e = dpdk.NewPktmbufPool("MP-TXHDR", MP_CAPACITY, MP_CACHE,
-		0, ethface.SizeofHeaderMempoolDataRoom(), dpdk.NUMA_SOCKET_ANY)
-	if e != nil {
-		log.Printf("NewPktmbufPool(TXHDR): %v", e)
-		os.Exit(EXIT_DPDK_ERROR)
-	}
-
-	mpIndirect, e = dpdk.NewPktmbufPool("MP-IND", MP_CAPACITY, MP_CACHE,
-		0, 0, dpdk.NUMA_SOCKET_ANY)
-	if e != nil {
-		log.Printf("NewPktmbufPool(IND): %v", e)
-		os.Exit(EXIT_DPDK_ERROR)
-	}
 
 	rxFace, _, e = createFaceFromUri(pc.inface)
 	if e != nil {
 		log.Printf("createFaceFromUri(%s): %v", pc.inface, e)
-		os.Exit(EXIT_CREATE_FACE_ERROR)
+		os.Exit(appinit.EXIT_FACE_INIT_ERROR)
 	}
 
 	for _, outface := range pc.outfaces {
 		txFace, isNew, e := createFaceFromUri(outface)
 		if e != nil {
 			log.Printf("createFaceFromUri(%s): %v", outface, e)
-			os.Exit(EXIT_CREATE_FACE_ERROR)
+			os.Exit(appinit.EXIT_FACE_INIT_ERROR)
 		}
 		if !isNew {
 			log.Printf("duplicate face %s", outface)
-			os.Exit(EXIT_ARG_ERROR)
+			os.Exit(appinit.EXIT_BAD_CONFIG)
 		}
+		numaSocket := txFace.GetNumaSocket()
 		txFaces = append(txFaces, txFace)
+		txFacesByNumaSocket[numaSocket] = append(txFacesByNumaSocket[numaSocket], txFace)
 	}
 
 	tick := time.Tick(pc.counterInterval)
@@ -97,13 +57,13 @@ func main() {
 			for _, txFace := range txFaces {
 				log.Printf("TX-cnt %d %v", txFace.GetFaceId(), txFace.ReadCounters())
 			}
-			log.Printf("MP-usage RX=%d TXHDR=%d IND=%d", mpRx.CountInUse(),
-				mpTxHdr.CountInUse(), mpIndirect.CountInUse())
+			// log.Printf("MP-usage RX=%d TXHDR=%d IND=%d", mpRx.CountInUse(),
+			// 	mpTxHdr.CountInUse(), mpIndirect.CountInUse())
 		}
 	}()
 
 	// copy packets from inface to outface
-	eal.Slaves[0].RemoteLaunch(func() int {
+	appinit.LaunchRequired(func() int {
 		for {
 			var pkts [BURST_SIZE]ndn.Packet
 			nPkts := rxFace.RxBurst(pkts[:])
@@ -120,29 +80,28 @@ func main() {
 				pkt.Close()
 			}
 		}
-	})
+	}, rxFace.GetNumaSocket())
 
-	// discard packets arrived on outfaces
-	eal.Slaves[1].RemoteLaunch(func() int {
-		if len(txFaces) == 0 {
-			return 1
-		}
-		for {
-			for _, txFace := range txFaces {
-				var pkts [BURST_SIZE]ndn.Packet
-				nPkts := txFace.RxBurst(pkts[:])
-				if nPkts == 0 {
-					continue
-				}
-				for _, pkt := range pkts[:nPkts] {
-					pkt.Close()
+	for numaSocket := range txFacesByNumaSocket {
+		txFacesOnSocket := txFacesByNumaSocket[numaSocket]
+		// discard packets arrived on outfaces
+		appinit.LaunchRequired(func() int {
+			for {
+				for _, txFace := range txFacesOnSocket {
+					var pkts [BURST_SIZE]ndn.Packet
+					nPkts := txFace.RxBurst(pkts[:])
+					if nPkts == 0 {
+						continue
+					}
+					for _, pkt := range pkts[:nPkts] {
+						pkt.Close()
+					}
 				}
 			}
-		}
-	})
+		}, numaSocket)
+	}
 
-	eal.Slaves[0].Wait()
-	eal.Slaves[1].Wait()
+	select {}
 }
 
 func printPacket(pkt ndn.Packet) {

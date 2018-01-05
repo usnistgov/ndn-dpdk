@@ -15,7 +15,7 @@ type Face struct {
 	c *C.Face
 }
 
-// Construct Mbuf from native *C.Face pointer.
+// Construct Face from native *C.Face pointer.
 func FaceFromPtr(ptr unsafe.Pointer) (face Face) {
 	face.c = (*C.Face)(ptr)
 	return face
@@ -28,6 +28,10 @@ func (face Face) GetPtr() unsafe.Pointer {
 
 func (face Face) GetFaceId() FaceId {
 	return FaceId(face.c.id)
+}
+
+func (face Face) GetNumaSocket() dpdk.NumaSocket {
+	return dpdk.NumaSocket(C.Face_GetNumaSocket(face.c))
 }
 
 func (face Face) Close() error {

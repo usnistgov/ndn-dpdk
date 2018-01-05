@@ -2,7 +2,7 @@ CLIBPREFIX=build-c/libndn-dpdk
 
 all: cmds
 
-gopkgs: go-dpdk go-ndn go-iface go-ethface go-socketface
+gopkgs: go-dpdk go-ndn go-iface go-ethface go-socketface go-appinit
 
 cbuilds: $(CLIBPREFIX)-core.a $(CLIBPREFIX)-dpdk.a $(CLIBPREFIX)-ndn.a $(CLIBPREFIX)-iface.a
 
@@ -46,6 +46,9 @@ go-socketface: $(CLIBPREFIX)-iface.a iface/socketface/*
 
 go-faceuri: $(CLIBPREFIX)-iface.a iface/faceuri/*
 	go build ./iface/faceuri
+
+go-appinit: appinit/*
+	go build ./appinit
 
 unittest:
 	./gotest.sh dpdk/dpdktest
