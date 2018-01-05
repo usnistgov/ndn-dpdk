@@ -2,6 +2,8 @@
 
 #include "../core/logger.h"
 
+INIT_ZF_LOG(InOrderReassembler);
+
 struct rte_mbuf*
 InOrderReassembler_Receive(InOrderReassembler* r, struct rte_mbuf* pkt)
 {

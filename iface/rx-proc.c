@@ -2,6 +2,8 @@
 
 #include "../core/logger.h"
 
+INIT_ZF_LOG(RxProc);
+
 static inline struct rte_mbuf*
 RxProc_ProcessInterest(RxProc* rx, struct rte_mbuf* pkt, TlvDecoder* d,
                        NdnPktType l3type)

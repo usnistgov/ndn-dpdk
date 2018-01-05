@@ -22,7 +22,7 @@ typedef struct EthTx
 } EthTx;
 
 /** \brief Initialize Ethernet TX
- *  \reture 0 for success, otherwise error code
+ *  \return 0 for success, otherwise error code
  */
 int EthTx_Init(EthFace* face, uint16_t queue);
 

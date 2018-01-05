@@ -3,6 +3,8 @@
 
 #include "../../core/logger.h"
 
+INIT_ZF_LOG(EthRx);
+
 static inline struct rte_mbuf*
 EthRx_ProcessFrame(EthFace* face, struct rte_mbuf* pkt)
 {
