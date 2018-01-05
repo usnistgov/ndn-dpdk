@@ -85,14 +85,14 @@ func (cfg *EthDevConfig) AddTxQueue(qcfg EthTxQueueConfig) {
 }
 
 type EthRxQueueConfig struct {
-	Capacity uint
+	Capacity int
 	Socket   NumaSocket     // where to allocate the ring
 	Mp       PktmbufPool    // where to store packets
 	Conf     unsafe.Pointer // pointer to rte_eth_rxconf
 }
 
 type EthTxQueueConfig struct {
-	Capacity uint
+	Capacity int
 	Socket   NumaSocket     // where to allocate the ring
 	Conf     unsafe.Pointer // pointer to rte_eth_txconf
 }

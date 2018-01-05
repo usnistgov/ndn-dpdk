@@ -28,24 +28,20 @@ var txFacesByNumaSocket = make(map[dpdk.NumaSocket][]*iface.Face)
 func main() {
 	pc, e := parseCommand()
 
-	rxFace, _, e = createFaceFromUri(pc.inface)
+	rxFace, e = appinit.NewFaceFromUri(pc.inface)
 	if e != nil {
 		log.Printf("createFaceFromUri(%s): %v", pc.inface, e)
 		os.Exit(appinit.EXIT_FACE_INIT_ERROR)
 	}
 
 	for _, outface := range pc.outfaces {
-		txFace, isNew, e := createFaceFromUri(outface)
+		txFace, e := appinit.NewFaceFromUri(outface)
 		if e != nil {
 			log.Printf("createFaceFromUri(%s): %v", outface, e)
 			os.Exit(appinit.EXIT_FACE_INIT_ERROR)
 		}
-		if !isNew {
-			log.Printf("duplicate face %s", outface)
-			os.Exit(appinit.EXIT_BAD_CONFIG)
-		}
-		numaSocket := txFace.GetNumaSocket()
 		txFaces = append(txFaces, txFace)
+		numaSocket := txFace.GetNumaSocket()
 		txFacesByNumaSocket[numaSocket] = append(txFacesByNumaSocket[numaSocket], txFace)
 	}
 

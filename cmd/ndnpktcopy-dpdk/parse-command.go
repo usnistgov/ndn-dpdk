@@ -2,37 +2,57 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"strings"
 	"time"
 
 	"ndn-dpdk/appinit"
+	"ndn-dpdk/iface/faceuri"
 )
 
 type parsedCommand struct {
-	inface          string
-	outfaces        []string
+	inface          faceuri.FaceUri
+	outfaces        []faceuri.FaceUri
 	wantDump        bool
 	counterInterval time.Duration
 }
 
 func parseCommand() (pc parsedCommand, e error) {
-	var outfaceStr string
-
 	flags := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-	flags.StringVar(&pc.inface, "in", "", "input face")
-	flags.StringVar(&outfaceStr, "out", "", "output face(s)")
+	inface := flags.String("in", "", "input face")
+	outfaces := flags.String("out", "", "output face(s)")
 	flags.BoolVar(&pc.wantDump, "dump", false, "log every packet")
 	flags.DurationVar(&pc.counterInterval, "cnt", time.Second*10, "interval between printing counters")
 
 	e = flags.Parse(appinit.Eal.Args[1:])
 	if e != nil {
-		return
+		return pc, e
 	}
 
-	pc.outfaces = strings.Split(outfaceStr, ",")
-	if len(pc.outfaces) == 1 && pc.outfaces[0] == "" {
-		pc.outfaces = pc.outfaces[:0]
+	foundFaceUris := make(map[string]bool)
+
+	u, e := faceuri.Parse(*inface)
+	if e != nil {
+		return pc, e
 	}
-	return
+	pc.inface = *u
+	foundFaceUris[u.String()] = true
+
+	for _, outface := range strings.Split(*outfaces, ",") {
+		if outface == "" {
+			continue
+		}
+		u, e = faceuri.Parse(outface)
+		if e != nil {
+			return pc, e
+		}
+		normailzedUri := u.String()
+		if foundFaceUris[normailzedUri] {
+			return pc, fmt.Errorf("duplicate FaceUri %s (normailzed as %v)", outface, normailzedUri)
+		}
+		foundFaceUris[normailzedUri] = true
+		pc.outfaces = append(pc.outfaces, *u)
+	}
+	return pc, nil
 }
