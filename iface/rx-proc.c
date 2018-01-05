@@ -78,11 +78,11 @@ RxProc_ProcessLpPkt(RxProc* rx, struct rte_mbuf* pkt, TlvDecoder* d)
   Packet_Adj(pkt, lpp->payloadOff);
 
   if (LpPkt_IsFragmented(lpp)) {
-    lpp = NULL; // received lpp does not apply to reassembled packet
     pkt = InOrderReassembler_Receive(&rx->reassembler, pkt);
     if (pkt == NULL) {
       return NULL;
     }
+    lpp = Packet_GetLpHdr(pkt);
   }
 
   TlvDecoder d1;
