@@ -11,8 +11,8 @@ MakeNack(struct rte_mbuf* pkt, NackReason reason)
     Packet_SetL2PktType(pkt, L2PktType_NdnlpV2);
     lpp = Packet_GetLpHdr(pkt);
     memset(lpp, 0, sizeof(*lpp));
+    MbufLoc_Init(&lpp->payload, pkt);
   }
 
   lpp->nackReason = reason;
-  MbufLoc_Init(&lpp->payload, pkt);
 }

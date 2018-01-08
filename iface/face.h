@@ -10,6 +10,8 @@
  */
 typedef uint16_t FaceId;
 
+#define PRI_FaceId PRIu16
+
 typedef struct Face Face;
 typedef struct FaceCounters FaceCounters;
 

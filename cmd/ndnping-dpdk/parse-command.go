@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"ndn-dpdk/iface/faceuri"
+	"ndn-dpdk/ndn"
 )
 
 type parsedCommand struct {
@@ -18,7 +19,8 @@ type parsedCommand struct {
 }
 
 type serverCfg struct {
-	face faceuri.FaceUri
+	face     faceuri.FaceUri
+	prefixes []ndn.TlvBytes
 }
 
 func parseCommand(args []string) (pc parsedCommand, e error) {
@@ -51,26 +53,29 @@ func parseCommand(args []string) (pc parsedCommand, e error) {
 	}
 	parseToken := func(token string) error {
 		switch {
-		case isIdleState():
-			switch token {
-			case "+c":
-				state = STATE_CLIENT_FACE
-			case "+s":
-				state = STATE_SERVER_FACE
-			}
+		case isIdleState() && token == "+c":
+			state = STATE_CLIENT_FACE
+		case isIdleState() && token == "+s":
+			state = STATE_SERVER_FACE
 		case state == STATE_CLIENT_FACE:
 			state = STATE_CLIENT_PREFIX
 		case state == STATE_CLIENT_PREFIX:
 			state = STATE_CLIENT_PCT
 		case state == STATE_CLIENT_PCT:
+			state = STATE_CLIENT_PREFIX
 		case state == STATE_SERVER_FACE:
 			u, e := faceuri.Parse(token)
 			if e != nil {
 				return e
 			}
-			pc.servers = append(pc.servers, serverCfg{*u})
+			pc.servers = append(pc.servers, serverCfg{face: *u})
 			state = STATE_SERVER_PREFIX
 		case state == STATE_SERVER_PREFIX:
+			comps, e := ndn.EncodeNameComponentsFromUri(token)
+			if e != nil {
+				return e
+			}
+			pc.servers[len(pc.servers)-1].prefixes = append(pc.servers[len(pc.servers)-1].prefixes, comps)
 		}
 		return nil
 	}

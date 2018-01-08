@@ -11,13 +11,16 @@ func main() {
 		appinit.Exitf(appinit.EXIT_BAD_CONFIG, "parseCommand: %v", e)
 	}
 
-	for _, server := range pc.servers {
-		face, e := appinit.NewFaceFromUri(server.face)
+	for _, serverCfg := range pc.servers {
+		face, e := appinit.NewFaceFromUri(serverCfg.face)
 		if e != nil {
-			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "NewFaceFromUri(%s): %v", server.face, e)
+			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "NewFaceFromUri(%s): %v", serverCfg.face, e)
 		}
 
 		server := NewNdnpingServer(*face)
+		for _, prefix := range serverCfg.prefixes {
+			server.AddPrefix(prefix)
+		}
 		appinit.LaunchRequired(server.Run, face.GetNumaSocket())
 	}
 
