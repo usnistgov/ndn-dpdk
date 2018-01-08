@@ -33,6 +33,15 @@ static_assert(sizeof(Name) <= 4 * RTE_CACHE_LINE_SIZE, "");
  */
 NdnError DecodeName(TlvDecoder* d, Name* n);
 
+/** \brief max bufid in \p Name_LinearizeComps
+ */
+#define NAME_LINEARIZE_MAX_BUFID 32
+
+/** \brief Place name components in a linear buffer.
+ *  \param bufid internal linearize buffer id
+ */
+const uint8_t* Name_LinearizeComps(const Name* n, int bufid);
+
 /** \brief Test whether a name contains an implicit digest component.
  */
 static inline bool

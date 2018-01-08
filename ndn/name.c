@@ -1,13 +1,6 @@
 #include "name.h"
 #include <rte_per_lcore.h>
 
-struct NameCompareBuffer
-{
-  uint8_t buf[NAME_MAX_LENGTH];
-};
-RTE_DEFINE_PER_LCORE(struct NameCompareBuffer, nameCompBufA);
-RTE_DEFINE_PER_LCORE(struct NameCompareBuffer, nameCompBufB);
-
 NdnError
 DecodeName(TlvDecoder* d, Name* n)
 {
@@ -49,6 +42,33 @@ DecodeName(TlvDecoder* d, Name* n)
   return NdnError_OK;
 }
 
+#define LINEARIZE_BUFID_INTERNAL_START NAME_LINEARIZE_MAX_BUFID
+#define LINEARIZE_BUFID_COMPARE_L (LINEARIZE_BUFID_INTERNAL_START + 0)
+#define LINEARIZE_BUFID_COMPARE_R (LINEARIZE_BUFID_INTERNAL_START + 1)
+#define LINEARIZE_BUFID_MAX (LINEARIZE_BUFID_INTERNAL_START + 2)
+
+struct NameLinearizeBuffer
+{
+  uint8_t buf[LINEARIZE_BUFID_MAX][NAME_MAX_LENGTH];
+};
+RTE_DEFINE_PER_LCORE(struct NameLinearizeBuffer, nameLinearizeBuf);
+
+const uint8_t*
+Name_LinearizeComps(const Name* n, int bufid)
+{
+  assert(n->nOctets <= NAME_MAX_LENGTH);
+  assert(bufid < LINEARIZE_BUFID_MAX);
+
+  MbufLoc ml;
+  MbufLoc_Copy(&ml, &n->compPos[0]);
+
+  uint32_t nRead;
+  const uint8_t* linearBuf = MbufLoc_Read(
+    &ml, RTE_PER_LCORE(nameLinearizeBuf).buf[bufid], n->nOctets, &nRead);
+  assert(nRead == n->nOctets);
+  return linearBuf;
+}
+
 void
 __Name_GetComp_PastIndexed(const Name* n, uint16_t i, TlvElement* ele)
 {
@@ -79,21 +99,12 @@ Name_Compare(const Name* lhs, const Name* rhs)
     return NAMECMP_RPREFIX;
   }
 
-  MbufLoc mlL, mlR;
-  MbufLoc_Copy(&mlL, &lhs->compPos[0]);
-  MbufLoc_Copy(&mlR, &rhs->compPos[0]);
-
-  uint32_t nReadL, nReadR;
-  const uint8_t* compBufL =
-    MbufLoc_Read(&mlL, RTE_PER_LCORE(nameCompBufA).buf, lhs->nOctets, &nReadL);
-  const uint8_t* compBufR =
-    MbufLoc_Read(&mlR, RTE_PER_LCORE(nameCompBufB).buf, rhs->nOctets, &nReadR);
-  assert(nReadL == lhs->nOctets);
-  assert(nReadR == rhs->nOctets);
+  const uint8_t* compsL = Name_LinearizeComps(lhs, LINEARIZE_BUFID_COMPARE_L);
+  const uint8_t* compsR = Name_LinearizeComps(rhs, LINEARIZE_BUFID_COMPARE_R);
 
   uint16_t minOctets =
     lhs->nOctets <= rhs->nOctets ? lhs->nOctets : rhs->nOctets;
-  int cmp = memcmp(compBufL, compBufR, minOctets);
+  int cmp = memcmp(compsL, compsR, minOctets);
   if (cmp != 0) {
     return ((cmp > 0) - (cmp < 0)) << 1;
   }

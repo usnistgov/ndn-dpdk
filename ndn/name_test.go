@@ -125,7 +125,7 @@ func TestNameEncode(t *testing.T) {
 		if tt.ok {
 			if assert.NoError(e, tt.input) {
 				expected := dpdktestenv.PacketBytesFromHex(tt.output)
-				assert.Equal(expected, encoded, tt.input)
+				assert.EqualValues(expected, encoded, tt.input)
 			}
 		} else {
 			assert.Error(e, tt.input)
