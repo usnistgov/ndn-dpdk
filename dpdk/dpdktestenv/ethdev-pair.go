@@ -20,7 +20,7 @@ type EthDevPair struct {
 	ringsBA []dpdk.Ring
 }
 
-func NewEthDevPair(nQueues int, ringCapacity int, queueCapacity uint) (edp EthDevPair) {
+func NewEthDevPair(nQueues int, ringCapacity int, queueCapacity int) (edp EthDevPair) {
 	mp := GetMp(MPID_DIRECT)
 
 	var e error

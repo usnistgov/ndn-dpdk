@@ -21,8 +21,7 @@
  */
 typedef MbufLoc TlvDecoder;
 
-NdnError __DecodeVarNum_MultiOctet(TlvDecoder* d, uint8_t firstOctet,
-                                   uint64_t* n);
+NdnError __DecodeVarNum_32or64(TlvDecoder* d, uint8_t firstOctet, uint64_t* n);
 
 /** \brief Decode a TLV-TYPE or TLV-LENGTH number.
  *  \param[out] n the number.
@@ -40,11 +39,21 @@ DecodeVarNum(TlvDecoder* d, uint64_t* n)
     return NdnError_Incomplete;
   }
 
-  if (unlikely(firstOctet >= 253)) {
-    return __DecodeVarNum_MultiOctet(d, firstOctet, n);
+  if (likely(firstOctet < 253)) {
+    *n = firstOctet;
+    return NdnError_OK;
   }
 
-  *n = firstOctet;
+  if (firstOctet > 253) {
+    return __DecodeVarNum_32or64(d, firstOctet, n);
+  }
+
+  rte_be16_t v;
+  ok = MbufLoc_ReadU16(d, &v);
+  if (unlikely(!ok)) {
+    return NdnError_Incomplete;
+  }
+  *n = rte_be_to_cpu_16(v);
   return NdnError_OK;
 }
 
