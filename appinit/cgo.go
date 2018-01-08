@@ -1,7 +1,7 @@
 package appinit
 
 /*
-#cgo CFLAGS: -m64 -pthread -O3 -march=native -I/usr/local/include/dpdk
+#cgo CFLAGS: -m64 -pthread -O3 -g -march=native -I/usr/local/include/dpdk
 
 #include <rte_config.h>
 */
