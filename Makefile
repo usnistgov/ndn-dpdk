@@ -50,12 +50,8 @@ go-faceuri: $(CLIBPREFIX)-iface.a iface/faceuri/*
 go-appinit: appinit/*
 	go build ./appinit
 
-unittest:
-	./gotest.sh dpdk/dpdktest
-	./gotest.sh ndn
-	./gotest.sh iface/ethface
-
-test: unittest
+test:
+	./gotest.sh
 	integ/run.sh
 
 clean:
