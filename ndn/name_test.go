@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/dpdktestenv"
 )
 
 func TestName(t *testing.T) {
@@ -100,6 +101,34 @@ func TestNameCompare(t *testing.T) {
 		for j, rel := range relRow {
 			cmp := names[i].Compare(names[j])
 			assert.Equal(NameCompareResult(rel), cmp, "%d=%s %d=%s", i, names[i], j, names[j])
+		}
+	}
+}
+
+func TestNameEncode(t *testing.T) {
+	assert, _ := makeAR(t)
+
+	tests := []struct {
+		input  string
+		ok     bool
+		output string
+	}{
+		{"ndn:/", true, "0700"},
+		{"/", true, "0700"},
+		{"/G", true, "0703 080147"},
+		{"/H/I", true, "0706 080148 080149"},
+		{"/.../..../.....", true, "0709 0800 08012E 08022E2E"},
+		{"/%00GH%ab%cD%EF", true, "0708 0806004748ABCDEF"},
+	}
+	for _, tt := range tests {
+		encoded, e := EncodeNameFromUri(tt.input)
+		if tt.ok {
+			if assert.NoError(e, tt.input) {
+				expected := dpdktestenv.PacketBytesFromHex(tt.output)
+				assert.Equal(expected, encoded, tt.input)
+			}
+		} else {
+			assert.Error(e, tt.input)
 		}
 	}
 }

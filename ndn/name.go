@@ -6,8 +6,10 @@ package ndn
 import "C"
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"io"
+	"strings"
 )
 
 type Name struct {
@@ -124,4 +126,55 @@ func printDigestComponent(w io.Writer, comp *TlvElement) (n int, e error) {
 		}
 	}
 	return
+}
+
+// Parse name URI and encode as bytes.
+// Limitation: this function does not recognize typed components,
+// and cannot detect certain invalid names.
+func EncodeNameFromUri(uri string) ([]byte, error) {
+	uri = strings.TrimPrefix(uri, "ndn:")
+	uri = strings.TrimPrefix(uri, "/")
+
+	var buf bytes.Buffer
+	if uri != "" {
+		for i, token := range strings.Split(uri, "/") {
+			comp, e := encodeNameComponentFromUri(token)
+			if e != nil {
+				return nil, fmt.Errorf("component %d '%s': %v", i, token, e)
+			}
+			buf.Write(comp)
+		}
+	}
+
+	return append(EncodeTlvTypeLength(TT_Name, buf.Len()), buf.Bytes()...), nil
+}
+
+func encodeNameComponentFromUri(token string) ([]byte, error) {
+	if strings.Contains(token, "=") {
+		return nil, fmt.Errorf("typed component is not supported")
+	}
+
+	var buf bytes.Buffer
+	if strings.TrimLeft(token, ".") == "" {
+		if len(token) < 3 {
+			return nil, fmt.Errorf("invalid URI component of less than three periods")
+		}
+		buf.WriteString(token[3:])
+	} else {
+		for i := 0; i < len(token); i++ {
+			ch := token[i]
+			if ch == '%' && i+2 < len(token) {
+				b, e := hex.DecodeString(token[i+1 : i+3])
+				if e != nil {
+					return nil, fmt.Errorf("hex error near position %d: %v", i, e)
+				}
+				buf.Write(b)
+				i += 2
+			} else {
+				buf.WriteByte(ch)
+			}
+		}
+	}
+
+	return append(EncodeTlvTypeLength(TT_GenericNameComponent, buf.Len()), buf.Bytes()...), nil
 }
