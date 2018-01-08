@@ -32,6 +32,12 @@ $(CLIBPREFIX)-ndn.a: $(CLIBPREFIX)-dpdk.a ndn/* ndn/error.h ndn/tlv-type.h
 go-ndn: $(CLIBPREFIX)-ndn.a ndn/error.go ndn/tlv-type.go
 	go build ./ndn
 
+$(CLIBPREFIX)-nameset.a: $(CLIBPREFIX)-ndn.a container/nameset/*
+	./build-c.sh container/nameset
+
+go-nameset: $(CLIBPREFIX)-nameset.a
+	go build ./container/nameset
+
 $(CLIBPREFIX)-iface.a: $(CLIBPREFIX)-ndn.a iface/*
 	./build-c.sh iface
 

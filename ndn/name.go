@@ -128,10 +128,21 @@ func printDigestComponent(w io.Writer, comp *TlvElement) (n int, e error) {
 	return
 }
 
-// Parse name URI and encode as bytes.
+// Encode name from URI.
 // Limitation: this function does not recognize typed components,
 // and cannot detect certain invalid names.
-func EncodeNameFromUri(uri string) ([]byte, error) {
+func EncodeNameFromUri(uri string) (TlvBytes, error) {
+	buf, e := EncodeNameComponentsFromUri(uri)
+	if e != nil {
+		return nil, e
+	}
+	return append(EncodeTlvTypeLength(TT_Name, len(buf)), buf...), nil
+}
+
+// Parse name from URI and encode components only.
+// Limitation: this function does not recognize typed components,
+// and cannot detect certain invalid names.
+func EncodeNameComponentsFromUri(uri string) (TlvBytes, error) {
 	uri = strings.TrimPrefix(uri, "ndn:")
 	uri = strings.TrimPrefix(uri, "/")
 
@@ -145,11 +156,10 @@ func EncodeNameFromUri(uri string) ([]byte, error) {
 			buf.Write(comp)
 		}
 	}
-
-	return append(EncodeTlvTypeLength(TT_Name, buf.Len()), buf.Bytes()...), nil
+	return buf.Bytes(), nil
 }
 
-func encodeNameComponentFromUri(token string) ([]byte, error) {
+func encodeNameComponentFromUri(token string) (TlvBytes, error) {
 	if strings.Contains(token, "=") {
 		return nil, fmt.Errorf("typed component is not supported")
 	}
