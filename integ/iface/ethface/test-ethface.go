@@ -35,7 +35,7 @@ func main() {
 	const TX_LOOPS = 10000
 
 	nReceived := 0
-	rxQuit := make(chan int)
+	rxQuit := make(chan struct{})
 	eal.Slaves[0].RemoteLaunch(func() int {
 		pkts := make([]ndn.Packet, RX_BURST_SIZE)
 		for {
@@ -73,17 +73,18 @@ func main() {
 	})
 	eal.Slaves[1].Wait()
 	time.Sleep(time.Second)
-	rxQuit <- 0
+	rxQuit <- struct{}{}
 
 	fmt.Println(edp.PortA.GetStats())
 	fmt.Println(edp.PortB.GetStats())
-	cntA := faceA.GetTxCounters()
+	cntA := faceA.ReadCounters()
 	fmt.Println(cntA)
-	cntB := faceB.GetRxCounters()
+	cntB := faceB.ReadCounters()
 	fmt.Println(cntB)
 
-	assert.EqualValues(3*TX_LOOPS, cntA.NFrames)
+	assert.EqualValues(3*TX_LOOPS, cntA.TxL2.NFrames)
+	// TxL3 counters are unavailable because packets do not have NdnPktType specified.
 
 	assert.True(nReceived > TX_LOOPS*3*0.9)
-	assert.EqualValues(nReceived, cntB.NFrames)
+	assert.EqualValues(nReceived, cntB.RxL2.NFrames)
 }
