@@ -27,6 +27,12 @@ MakeTlvEncoder(struct rte_mbuf* m)
   return (TlvEncoder*)(void*)m;
 }
 
+static inline TlvEncoder*
+MakeTlvEncoder_Unchecked(struct rte_mbuf* m)
+{
+  return (TlvEncoder*)(void*)m;
+}
+
 static inline uint8_t*
 TlvEncoder_Append(TlvEncoder* en, uint16_t len)
 {

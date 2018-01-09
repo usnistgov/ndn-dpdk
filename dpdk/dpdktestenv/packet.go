@@ -12,15 +12,11 @@ import (
 // Memory is allocated from DirectMp.
 // Caller is responsible for closing the packet.
 func PacketFromBytes(input []byte) dpdk.Packet {
-	mp := GetMp(MPID_DIRECT)
-	m, e := mp.Alloc()
-	if e != nil {
-		panic(fmt.Sprintf("PacketFromBytes error %v", e))
-	}
+	m := Alloc(MPID_DIRECT)
 
 	pkt := m.AsPacket()
 	seg0 := pkt.GetFirstSegment()
-	e = seg0.AppendOctets(input)
+	e := seg0.AppendOctets(input)
 	if e != nil {
 		panic(fmt.Sprintf("Segment.AppendOctets error %v, packet too long?", e))
 	}

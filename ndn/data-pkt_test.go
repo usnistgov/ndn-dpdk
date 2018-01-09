@@ -3,6 +3,8 @@ package ndn
 import (
 	"testing"
 	"time"
+
+	"ndn-dpdk/dpdk/dpdktestenv"
 )
 
 func TestData(t *testing.T) {
@@ -37,4 +39,27 @@ func TestData(t *testing.T) {
 			assert.Error(e, tt.input)
 		}
 	}
+}
+
+func TestEncodeData(t *testing.T) {
+	assert, require := makeAR(t)
+
+	nameMbuf := packetFromHex("0706 080141 080142")
+	defer nameMbuf.Close()
+	nameD := NewTlvDecoder(nameMbuf)
+	name, e := nameD.ReadName()
+	require.NoError(e)
+
+	payloadMbuf := packetFromHex("C0C1C2C3C4C5C6C7")
+	// note: payloadMbuf will be leaked if there's a fatal error below
+
+	m1 := dpdktestenv.Alloc(dpdktestenv.MPID_DIRECT)
+	m2 := dpdktestenv.Alloc(dpdktestenv.MPID_DIRECT)
+
+	encoded := EncodeData(&name, payloadMbuf, m1, m2)
+	dataD := NewTlvDecoder(encoded)
+	data, e := dataD.ReadData()
+	require.NoError(e)
+
+	assert.Equal("/A/B", data.GetName().String())
 }

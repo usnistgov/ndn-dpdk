@@ -25,4 +25,7 @@ MetaInfo 14
 FreshnessPeriod 19
 Content 15
 SignatureInfo 16
+SignatureType 1B
+KeyLocator 1C
+KeyDigest 1D
 SignatureValue 17
