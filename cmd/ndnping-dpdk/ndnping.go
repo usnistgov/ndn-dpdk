@@ -17,7 +17,10 @@ func main() {
 			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "NewFaceFromUri(%s): %v", serverCfg.face, e)
 		}
 
-		server := NewNdnpingServer(*face)
+		server, e := NewNdnpingServer(*face)
+		if e != nil {
+			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "NewPingServer(%s): %v", serverCfg.face, e)
+		}
 		for _, prefix := range serverCfg.prefixes {
 			server.AddPrefix(prefix)
 		}
