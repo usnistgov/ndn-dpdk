@@ -2,10 +2,12 @@ package ndn
 
 import (
 	"testing"
+
+	"ndn-dpdk/dpdk/dpdktestenv"
 )
 
 func TestReadVarNum(t *testing.T) {
-	assert, require := makeAR(t)
+	assert, _ := makeAR(t)
 
 	tests := []struct {
 		input  string
@@ -27,18 +29,23 @@ func TestReadVarNum(t *testing.T) {
 		{"FF FF FF FF FF FF FF FF FF", true, 0xFFFFFFFFFFFFFFFF},
 	}
 	for _, tt := range tests {
-		pkt := packetFromHex(tt.input)
-		require.True(pkt.IsValid(), tt.input)
+		input := dpdktestenv.PacketBytesFromHex(tt.input)
+		pkt := dpdktestenv.PacketFromBytes(input)
 		defer pkt.Close()
 		d := NewTlvDecoder(pkt)
 
 		v, e := d.ReadVarNum()
+		v2, size, ok := DecodeVarNum(input)
 		if tt.ok {
 			if assert.NoError(e, tt.input) {
 				assert.Equal(tt.output, v, tt.input)
 			}
+			assert.True(ok, tt.input)
+			assert.Equal(tt.output, v2, tt.input)
+			assert.Equal(len(input), size)
 		} else {
 			assert.Error(e, tt.input)
+			assert.False(ok)
 		}
 	}
 }
