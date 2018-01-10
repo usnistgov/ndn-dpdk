@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"net"
 	"os"
+	"time"
 	"unsafe"
 
 	"ndn-dpdk/dpdk"
@@ -90,6 +91,7 @@ func New(conn net.Conn, cfg Config) (face *SocketFace) {
 }
 
 func (face *SocketFace) Close() error {
+	face.conn.SetDeadline(time.Now())
 	face.rxQuit <- struct{}{}
 	close(face.txQueue)
 	return face.conn.Close()

@@ -14,8 +14,13 @@ import (
 	"ndn-dpdk/ndn"
 )
 
+var directMp, indirectMp, headerMp dpdk.PktmbufPool
+
 func TestMain(m *testing.M) {
-	dpdktestenv.MakeDirectMp(255, ndn.SizeofPacketPriv(), 2000)
+	directMp = dpdktestenv.MakeDirectMp(255, ndn.SizeofPacketPriv(), 2000)
+	indirectMp = dpdktestenv.MakeIndirectMp(4095)
+	headerMp = dpdktestenv.MakeMp("header", 4095, 0,
+		uint16(ndn.EncodeLpHeaders_GetHeadroom()+ndn.EncodeLpHeaders_GetTailroom()))
 
 	os.Exit(m.Run())
 }
