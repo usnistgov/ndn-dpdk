@@ -9,16 +9,6 @@ import (
 	"unsafe"
 )
 
-func checkCountersDef() struct{} {
-	var cnt Counters
-	if unsafe.Sizeof(cnt) != C.sizeof_FaceCounters {
-		panic("iface.FaceCounters definition does not match C.FaceCounters")
-	}
-	return struct{}{}
-}
-
-var checkCountersDefOk = checkCountersDef()
-
 type RxL2Counters struct {
 	NFrames uint64 // total frames
 	NOctets uint64 // total bytes
@@ -74,4 +64,11 @@ type Counters struct {
 
 func (cnt Counters) String() string {
 	return fmt.Sprintf("RX %v %v; TX %v %v", cnt.RxL2, cnt.RxL3, cnt.TxL2, cnt.TxL3)
+}
+
+func init() {
+	var cnt Counters
+	if unsafe.Sizeof(cnt) != C.sizeof_FaceCounters {
+		panic("iface.FaceCounters definition does not match C.FaceCounters")
+	}
 }
