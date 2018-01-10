@@ -73,7 +73,7 @@ func New(conn net.Conn, cfg Config) (face *SocketFace) {
 	face.conn = conn
 	face.rxMp = cfg.RxMp
 	face.rxQueue = make(chan dpdk.Packet, cfg.RxqCapacity)
-	face.rxQuit = make(chan struct{})
+	face.rxQuit = make(chan struct{}, 1)
 	face.txQueue = make(chan dpdk.Packet, cfg.TxqCapacity)
 
 	C.SocketFace_Init(face.getPtr(), C.uint16_t(id),
@@ -92,7 +92,7 @@ func New(conn net.Conn, cfg Config) (face *SocketFace) {
 	return face
 }
 
-func (face *SocketFace) Close() error {
+func (face *SocketFace) close() error {
 	face.conn.SetDeadline(time.Now())
 	face.rxQuit <- struct{}{}
 	close(face.txQueue)
@@ -183,6 +183,6 @@ func go_SocketFace_TxBurst(faceC *C.Face, pkts **C.struct_rte_mbuf, nPkts C.uint
 //export go_SocketFace_Close
 func go_SocketFace_Close(faceC *C.Face) C.bool {
 	face := getByCFace(faceC)
-	e := face.Close()
+	e := face.close()
 	return e == nil
 }

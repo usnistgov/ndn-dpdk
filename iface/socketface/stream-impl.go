@@ -5,6 +5,7 @@ import (
 	"net"
 
 	"ndn-dpdk/dpdk"
+	"ndn-dpdk/ndn"
 )
 
 type streamImpl struct {
@@ -19,8 +20,75 @@ func newStreamImpl(face *SocketFace, conn net.Conn) *streamImpl {
 
 func (impl *streamImpl) RxLoop() {
 	face := impl.face
-	face.logger.Print("RxLoop is not implemented, nothing will be received")
-	<-face.rxQuit
+	buf := make([]byte, face.rxMp.GetDataroom())
+	nAvail := 0
+	for {
+		nRead, e := face.conn.Read(buf[nAvail:])
+		if face.handleError("RX", e) {
+			return
+		}
+		nAvail += nRead
+
+		// parse and post packets
+		offset := 0
+		for {
+			n := impl.postPacket(buf[offset:nAvail])
+			if n == 0 {
+				break
+			}
+			offset += n
+		}
+
+		// move remaining portion to the front
+		for i := offset; i < nAvail; i++ {
+			buf[i-offset] = buf[i]
+		}
+		nAvail -= offset
+
+		select {
+		case <-face.rxQuit:
+			return
+		default:
+		}
+	}
+}
+
+func (impl *streamImpl) postPacket(buf []byte) (n int) {
+	face := impl.face
+
+	_, sizeofTlvType, ok := ndn.DecodeVarNum(buf)
+	if !ok {
+		return 0
+	}
+	tlvLength, sizeofTlvLength, ok := ndn.DecodeVarNum(buf[sizeofTlvType:])
+	if !ok {
+		return 0
+	}
+	n = sizeofTlvType + sizeofTlvLength + int(tlvLength)
+	if n > len(buf) {
+		return 0
+	}
+
+	mbuf, e := face.rxMp.Alloc()
+	if e != nil {
+		face.logger.Printf("RX alloc error: %v", e)
+		return n
+	}
+
+	pkt := mbuf.AsPacket()
+	seg0 := pkt.GetFirstSegment()
+	seg0.SetHeadroom(0)
+	seg0.AppendOctets(buf)
+
+	select {
+	case face.rxQueue <- pkt:
+	default:
+		pkt.Close()
+		face.rxCongestions++
+		face.logger.Printf("RX queue is full, %d", face.rxCongestions)
+	}
+
+	return n
 }
 
 func (impl *streamImpl) Send(pkt dpdk.Packet) error {
