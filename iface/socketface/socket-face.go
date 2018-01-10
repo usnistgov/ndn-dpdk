@@ -49,8 +49,10 @@ type SocketFace struct {
 }
 
 type impl interface {
-	// Receive one NDNLP packet on the socket.
-	Recv() ([]byte, error)
+	// Receive packets on the socket and post them to face.rxQueue.
+	// Loop until a fatal error occurs or face.rxQuit receives a message.
+	// Increment face.rxCongestions when a packet arrives but face.rxQueue is full.
+	RxLoop()
 
 	// Transmit one packet on the socket.
 	Send(pkt dpdk.Packet) error
@@ -84,8 +86,8 @@ func New(conn net.Conn, cfg Config) (face *SocketFace) {
 	} else {
 		face.impl = newStreamImpl(face, conn)
 	}
-	go face.RxLoop()
-	go face.TxLoop()
+	go face.impl.RxLoop()
+	go face.txLoop()
 
 	return face
 }
@@ -101,38 +103,7 @@ func (face *SocketFace) getPtr() *C.SocketFace {
 	return (*C.SocketFace)(face.GetPtr())
 }
 
-func (face *SocketFace) RxLoop() {
-	for {
-		buf, e := face.impl.Recv()
-		if face.handleError("RX", e) {
-			return
-		}
-
-		mbuf, e := face.rxMp.Alloc()
-		if e != nil {
-			face.logger.Printf("RX alloc error: %v", e)
-			continue
-		}
-
-		pkt := mbuf.AsPacket()
-		seg0 := pkt.GetFirstSegment()
-		seg0.SetHeadroom(0)
-		seg0.AppendOctets(buf[:])
-
-		select {
-		case <-face.rxQuit:
-			pkt.Close()
-			return
-		case face.rxQueue <- pkt:
-		default:
-			pkt.Close()
-			face.rxCongestions++
-			face.logger.Printf("RX queue is full, %d", face.rxCongestions)
-		}
-	}
-}
-
-func (face *SocketFace) TxLoop() {
+func (face *SocketFace) txLoop() {
 	for {
 		pkt, ok := <-face.txQueue
 		if !ok {

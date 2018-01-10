@@ -17,8 +17,10 @@ func newStreamImpl(face *SocketFace, conn net.Conn) *streamImpl {
 	return impl
 }
 
-func (impl *streamImpl) Recv() ([]byte, error) {
-	panic("not implemented")
+func (impl *streamImpl) RxLoop() {
+	face := impl.face
+	face.logger.Print("RxLoop is not implemented, nothing will be received")
+	<-face.rxQuit
 }
 
 func (impl *streamImpl) Send(pkt dpdk.Packet) error {

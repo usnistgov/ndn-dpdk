@@ -17,13 +17,37 @@ func newDatagramImpl(face *SocketFace, conn net.PacketConn) *datagramImpl {
 	return impl
 }
 
-func (impl *datagramImpl) Recv() ([]byte, error) {
-	buf := make([]byte, impl.face.rxMp.GetDataroom())
-	nOctets, e := impl.face.conn.Read(buf)
-	if e != nil {
-		return nil, e
+func (impl *datagramImpl) RxLoop() {
+	face := impl.face
+	buf := make([]byte, face.rxMp.GetDataroom())
+	for {
+		nOctets, e := face.conn.Read(buf)
+		if face.handleError("RX", e) {
+			return
+		}
+
+		mbuf, e := face.rxMp.Alloc()
+		if e != nil {
+			face.logger.Printf("RX alloc error: %v", e)
+			continue
+		}
+
+		pkt := mbuf.AsPacket()
+		seg0 := pkt.GetFirstSegment()
+		seg0.SetHeadroom(0)
+		seg0.AppendOctets(buf[:nOctets])
+
+		select {
+		case <-face.rxQuit:
+			pkt.Close()
+			return
+		case face.rxQueue <- pkt:
+		default:
+			pkt.Close()
+			face.rxCongestions++
+			face.logger.Printf("RX queue is full, %d", face.rxCongestions)
+		}
 	}
-	return buf[:nOctets], nil
 }
 
 func (impl *datagramImpl) Send(pkt dpdk.Packet) error {
