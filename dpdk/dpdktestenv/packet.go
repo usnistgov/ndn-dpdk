@@ -33,7 +33,7 @@ func PacketBytesFromHex(input string) []byte {
 	}, input)
 	decoded, e := hex.DecodeString(s)
 	if e != nil {
-		return nil
+		panic(fmt.Sprintf("hex.DecodeString error %v", e))
 	}
 	return decoded
 }

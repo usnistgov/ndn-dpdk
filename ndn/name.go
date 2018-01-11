@@ -6,6 +6,7 @@ package ndn
 import "C"
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -156,6 +157,10 @@ func EncodeNameComponentsFromUri(uri string) (TlvBytes, error) {
 			buf.Write(comp)
 		}
 	}
+
+	if buf.Len() == 0 {
+		return oneTlvByte[:0], nil
+	}
 	return buf.Bytes(), nil
 }
 
@@ -187,4 +192,10 @@ func encodeNameComponentFromUri(token string) (TlvBytes, error) {
 	}
 
 	return append(EncodeTlvTypeLength(TT_GenericNameComponent, buf.Len()), buf.Bytes()...), nil
+}
+
+func EncodeNameComponentFromNumber(tlvType TlvType, v interface{}) TlvBytes {
+	var buf bytes.Buffer
+	binary.Write(&buf, binary.BigEndian, v)
+	return append(EncodeTlvTypeLength(tlvType, buf.Len()), buf.Bytes()...)
 }

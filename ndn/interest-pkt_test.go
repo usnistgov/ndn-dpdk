@@ -87,7 +87,8 @@ func TestEncodeInterest0(t *testing.T) {
 	assert.False(tpl.GetMustBeFresh())
 	assert.Equal(4000*time.Millisecond, tpl.GetInterestLifetime())
 
-	checkEncodeInterest(t, tpl, "050E 0700 0C0400000FA0 0A04CCCCCCCC")
+	checkEncodeInterest(t, tpl,
+		"050E 0700 0C0400000FA0 0A04CCCCCCCC")
 }
 
 func TestEncodeInterest1(t *testing.T) {
@@ -96,10 +97,12 @@ func TestEncodeInterest1(t *testing.T) {
 	tpl := NewInterestTemplate()
 	e := tpl.SetNamePrefixFromUri("/A/B")
 	assert.NoError(e)
+	tpl.NameSuffix = EncodeNameComponentFromNumber(TT_GenericNameComponent, uint32(0x737F2FBD))
 	tpl.SetMustBeFresh(true)
 	assert.True(tpl.GetMustBeFresh())
 	tpl.SetInterestLifetime(9000 * time.Millisecond)
 	assert.Equal(9000*time.Millisecond, tpl.GetInterestLifetime())
 
-	checkEncodeInterest(t, tpl, "0518 0706080141080142 09021200 0C0400002328 0A04CCCCCCCC")
+	checkEncodeInterest(t, tpl,
+		"051E 070C0801410801420804737F2FBD 09021200 0C0400002328 0A04CCCCCCCC")
 }
