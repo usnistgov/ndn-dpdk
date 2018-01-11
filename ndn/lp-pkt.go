@@ -54,6 +54,6 @@ func EncodeLpHeaders_GetTailroom() int {
 	return int(C.EncodeLpHeaders_GetTailroom())
 }
 
-func (lpp *LpPkt) EncodeHeaders(pkt dpdk.Packet) {
+func (lpp *LpPkt) EncodeHeaders(pkt dpdk.IMbuf) {
 	C.EncodeLpHeaders((*C.struct_rte_mbuf)(pkt.GetPtr()), &lpp.c)
 }

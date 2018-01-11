@@ -1,11 +1,14 @@
 package ndn
 
 import (
+	"encoding/binary"
 	"testing"
 	"time"
+
+	"ndn-dpdk/dpdk/dpdktestenv"
 )
 
-func TestInterest(t *testing.T) {
+func TestDecodeInterest(t *testing.T) {
 	assert, require := makeAR(t)
 
 	checkNonce := func(nonce uint32) func() bool {
@@ -56,4 +59,47 @@ func TestInterest(t *testing.T) {
 			assert.Error(e, tt.input)
 		}
 	}
+}
+
+func checkEncodeInterest(t *testing.T, tpl *InterestTemplate, expectedHex string) {
+	assert, _ := makeAR(t)
+
+	expected := dpdktestenv.PacketBytesFromHex(expectedHex)
+
+	pkt := dpdktestenv.Alloc(dpdktestenv.MPID_DIRECT).AsPacket()
+	tpl.EncodeTo(pkt)
+	assert.Equal(len(expected), pkt.Len())
+
+	actual := make([]byte, len(expected))
+	pkt.ReadTo(0, actual)
+	assert.NotEqual(binary.LittleEndian.Uint32(actual[len(expected)-4:]), uint32(0xCCCCCCCC))
+	binary.LittleEndian.PutUint32(actual[len(expected)-4:], 0xCCCCCCCC)
+	assert.Equal(expected, actual)
+}
+
+func TestEncodeInterest0(t *testing.T) {
+	assert, _ := makeAR(t)
+
+	tpl := NewInterestTemplate()
+	e := tpl.SetNamePrefixFromUri("/")
+	assert.NoError(e)
+	tpl.SetMustBeFresh(false)
+	assert.False(tpl.GetMustBeFresh())
+	assert.Equal(4000*time.Millisecond, tpl.GetInterestLifetime())
+
+	checkEncodeInterest(t, tpl, "050E 0700 0C0400000FA0 0A04CCCCCCCC")
+}
+
+func TestEncodeInterest1(t *testing.T) {
+	assert, _ := makeAR(t)
+
+	tpl := NewInterestTemplate()
+	e := tpl.SetNamePrefixFromUri("/A/B")
+	assert.NoError(e)
+	tpl.SetMustBeFresh(true)
+	assert.True(tpl.GetMustBeFresh())
+	tpl.SetInterestLifetime(9000 * time.Millisecond)
+	assert.Equal(9000*time.Millisecond, tpl.GetInterestLifetime())
+
+	checkEncodeInterest(t, tpl, "0518 0706080141080142 09021200 0C0400002328 0A04CCCCCCCC")
 }

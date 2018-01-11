@@ -46,4 +46,68 @@ InterestPkt_GetNonce(const InterestPkt* interest)
 
 void InterestPkt_SetNonce(InterestPkt* interest, uint32_t nonce);
 
+typedef struct InterestTemplate
+{
+  const uint8_t* namePrefix;
+  uint16_t namePrefixSize;
+  const uint8_t* nameSuffix;
+  uint16_t nameSuffixSize;
+  bool mustBeFresh;
+  uint32_t lifetime;
+  const uint8_t* fwHints;
+  uint16_t fwHintsSize;
+} InterestTemplate;
+
+static inline uint16_t
+EncodeInterest_GetHeadroom()
+{
+  return 1 + 5; // Name TL
+}
+
+static inline uint16_t
+EncodeInterest_GetTailroom(const InterestTemplate* tpl)
+{
+  return 1 + 5 + tpl->namePrefixSize + tpl->nameSuffixSize + // Name
+         1 + 1 +                                             //Selectors
+         1 + 1 +                                             // MustBeFresh
+         1 + 1 + 4 +                                         // Nonce
+         1 + 1 + 4 +                                         // InterestLifetime
+         1 + 5 + tpl->fwHintsSize;                           // ForwardingHint
+}
+
+/** \brief Get required tailroom for EncodeInterest output mbuf,
+ *         assuming max name length and one delegation in forwarding hint.
+ */
+static inline uint16_t
+EncodeInterest_GetTailroomMax()
+{
+  return 1 + 5 + NAME_MAX_LENGTH + // Name
+         1 + 1 +                   // Selectors TL
+         1 + 1 +                   // S.MustBeFresh
+         1 + 1 + 4 +               // Nonce
+         1 + 1 + 4 +               // InterestLifetime
+         1 + 5 +                   // ForwardingHint TL
+         1 + 5 +                   // FH.Delegation TL
+         1 + 1 + 4 +               // D.Preference
+         1 + 5 + NAME_MAX_LENGTH;  // D.Name
+}
+
+// Golang cgocheck is unhappy if tpl->namePrefix etc points to Go memory.
+void __EncodeInterest(struct rte_mbuf* m, const InterestTemplate* tpl,
+                      const uint8_t* namePrefix, const uint8_t* nameSuffix,
+                      const uint8_t* fwHints);
+
+/** \brief Make an Interest.
+ *  \param m output mbuf, must be empty and is the only segment, must have
+ *           \p EncodeInterest_GetHeadroom() in headroom and
+ *           \p EncodeInterest_GetTailroom(tpl) in tailroom;
+ *           headroom for Ethernet and NDNLP headers shall be included if needed.
+ *  \param tpl
+ */
+static inline void
+EncodeInterest(struct rte_mbuf* m, const InterestTemplate* tpl)
+{
+  __EncodeInterest(m, tpl, tpl->namePrefix, tpl->nameSuffix, tpl->fwHints);
+}
+
 #endif // NDN_DPDK_NDN_INTEREST_PKT_H

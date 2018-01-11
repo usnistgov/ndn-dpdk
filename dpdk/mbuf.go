@@ -8,6 +8,12 @@ import (
 	"unsafe"
 )
 
+type IMbuf interface {
+	Close()
+	GetPtr() unsafe.Pointer
+	iMbufFlag()
+}
+
 type Mbuf struct {
 	ptr *C.struct_rte_mbuf
 	// DO NOT add other fields: *Mbuf is passed to C code as rte_mbuf**
@@ -16,6 +22,10 @@ type Mbuf struct {
 // Construct Mbuf from native *C.struct_rte_mbuf pointer.
 func MbufFromPtr(ptr unsafe.Pointer) Mbuf {
 	return Mbuf{(*C.struct_rte_mbuf)(ptr)}
+}
+
+func (m Mbuf) iMbufFlag() {
+	panic("Mbuf.isMbufFlag should not be invoked")
 }
 
 // Get native *C.struct_rte_mbuf pointer to use in other packages.

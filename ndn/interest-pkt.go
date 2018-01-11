@@ -7,6 +7,8 @@ import "C"
 import (
 	"time"
 	"unsafe"
+
+	"ndn-dpdk/dpdk"
 )
 
 type InterestPkt struct {
@@ -53,4 +55,52 @@ func (interest *InterestPkt) GetFwHints() []*Name {
 		fhs[i] = (*Name)(unsafe.Pointer(&interest.c.fwHints[i]))
 	}
 	return fhs
+}
+
+// Template to make an Interest.
+type InterestTemplate struct {
+	c          C.InterestTemplate
+	NamePrefix TlvBytes
+	NameSuffix TlvBytes
+	FwHints    TlvBytes
+}
+
+func NewInterestTemplate() (tpl *InterestTemplate) {
+	tpl = new(InterestTemplate)
+	tpl.c.lifetime = C.DEFAULT_INTEREST_LIFETIME
+	return tpl
+}
+
+func (tpl *InterestTemplate) SetNamePrefixFromUri(uri string) error {
+	prefix, e := EncodeNameComponentsFromUri(uri)
+	if e != nil {
+		return e
+	}
+	tpl.NamePrefix = prefix
+	return nil
+}
+
+func (tpl *InterestTemplate) GetMustBeFresh() bool {
+	return bool(tpl.c.mustBeFresh)
+}
+
+func (tpl *InterestTemplate) SetMustBeFresh(v bool) {
+	tpl.c.mustBeFresh = C.bool(v)
+}
+
+func (tpl *InterestTemplate) GetInterestLifetime() time.Duration {
+	return time.Duration(tpl.c.lifetime) * time.Millisecond
+}
+
+func (tpl *InterestTemplate) SetInterestLifetime(lifetime time.Duration) {
+	tpl.c.lifetime = C.uint32_t(lifetime / time.Millisecond)
+}
+
+func (tpl *InterestTemplate) EncodeTo(m dpdk.IMbuf) {
+	tpl.c.namePrefixSize = C.uint16_t(len(tpl.NamePrefix))
+	tpl.c.nameSuffixSize = C.uint16_t(len(tpl.NameSuffix))
+	tpl.c.fwHintsSize = C.uint16_t(len(tpl.FwHints))
+	C.__EncodeInterest((*C.struct_rte_mbuf)(m.GetPtr()), &tpl.c,
+		(*C.uint8_t)(tpl.NamePrefix.GetPtr()), (*C.uint8_t)(tpl.NameSuffix.GetPtr()),
+		(*C.uint8_t)(tpl.FwHints.GetPtr()))
 }

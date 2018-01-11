@@ -55,18 +55,6 @@ DecodeData(TlvDecoder* d, DataPkt* data)
 }
 
 void
-EncodeDataHeader(struct rte_mbuf* m, const Name* name, uint32_t payloadLen,
-                 uint32_t signatureLen)
-{
-  // TODO check headroom and tailroom
-
-  TlvEncoder* en = MakeTlvEncoder(m);
-
-  PrependVarNum(en, m->pkt_len + signatureLen);
-  PrependVarNum(en, TT_Data);
-}
-
-void
 EncodeData1(struct rte_mbuf* m, const Name* name, struct rte_mbuf* payload)
 {
   assert(rte_pktmbuf_headroom(m) >= EncodeData1_GetHeadroom());

@@ -57,10 +57,10 @@ func EncodeData2_GetTailroom() int {
 	return int(C.EncodeData2_GetTailroom())
 }
 
-// Encode a Data.
-func EncodeData(name *Name, payload dpdk.Packet, m1 dpdk.Mbuf, m2 dpdk.Mbuf) dpdk.Packet {
+// Make a Data.
+func EncodeData(name *Name, payload dpdk.IMbuf, m1 dpdk.IMbuf, m2 dpdk.IMbuf) dpdk.Packet {
 	C.EncodeData1((*C.struct_rte_mbuf)(m1.GetPtr()), &name.c, (*C.struct_rte_mbuf)(payload.GetPtr()))
 	C.EncodeData2((*C.struct_rte_mbuf)(m2.GetPtr()), (*C.struct_rte_mbuf)(m1.GetPtr()))
 	C.EncodeData3((*C.struct_rte_mbuf)(m1.GetPtr()))
-	return m1.AsPacket()
+	return dpdk.MbufFromPtr(m1.GetPtr()).AsPacket()
 }

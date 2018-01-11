@@ -1,4 +1,5 @@
 #include "interest-pkt.h"
+#include "tlv-encoder.h"
 
 NdnError
 DecodeInterest(TlvDecoder* d, InterestPkt* interest)
@@ -91,4 +92,86 @@ InterestPkt_SetNonce(InterestPkt* interest, uint32_t nonce)
 {
   assert(false);
   // TODO
+}
+
+void
+__EncodeInterest(struct rte_mbuf* m, const InterestTemplate* tpl,
+                 const uint8_t* namePrefix, const uint8_t* nameSuffix,
+                 const uint8_t* fwHints)
+{
+  assert(rte_pktmbuf_headroom(m) >= EncodeInterest_GetHeadroom());
+  assert(rte_pktmbuf_tailroom(m) >= EncodeInterest_GetTailroom(tpl));
+
+  TlvEncoder* en = MakeTlvEncoder(m);
+
+  AppendVarNum(en, TT_Name);
+  AppendVarNum(en, tpl->namePrefixSize + tpl->nameSuffixSize);
+  if (likely(tpl->namePrefixSize > 0)) {
+    rte_memcpy(rte_pktmbuf_append(m, tpl->namePrefixSize), namePrefix,
+               tpl->namePrefixSize);
+  }
+  if (likely(tpl->nameSuffixSize > 0)) {
+    rte_memcpy(rte_pktmbuf_append(m, tpl->nameSuffixSize), nameSuffix,
+               tpl->nameSuffixSize);
+  }
+
+  struct Mid
+  {
+    char _padding[2]; // make interestLifetimeV aligned
+
+    uint8_t selectorsT;
+    uint8_t selectorsL;
+    uint8_t mustBeFreshT;
+    uint8_t mustBeFreshL;
+
+    // InterestLifetime is a NonNegativeInteger fields, but NDN protocol does not
+    // require NonNegativeInteger to use minimal length encoding.
+    uint8_t interestLifetimeT;
+    uint8_t interestLifetimeL;
+    rte_be32_t interestLifetimeV;
+
+    uint8_t nonceT;
+    uint8_t nonceL;
+    rte_be16_t nonceVhi;
+    rte_be16_t nonceVlo;
+
+    char _end[0];
+  };
+  struct Mid mid;
+  static_assert(
+    offsetof(struct Mid, _end) - offsetof(struct Mid, selectorsT) == 16, "");
+  static_assert(
+    offsetof(struct Mid, _end) - offsetof(struct Mid, interestLifetimeT) == 12,
+    "");
+
+  mid.selectorsT = TT_Selectors;
+  mid.selectorsL = 2;
+  mid.mustBeFreshT = TT_MustBeFresh;
+  mid.mustBeFreshL = 0;
+  mid.interestLifetimeT = TT_InterestLifetime;
+  mid.interestLifetimeL = 4;
+  mid.interestLifetimeV = rte_cpu_to_be_32(tpl->lifetime);
+  mid.nonceT = TT_Nonce;
+  mid.nonceL = 4;
+  int nonceRand = lrand48();
+  mid.nonceVhi = nonceRand >> 16;
+  mid.nonceVlo = nonceRand;
+
+  int midOffset =
+    offsetof(struct Mid, interestLifetimeT) -
+    (int)tpl->mustBeFresh * (offsetof(struct Mid, interestLifetimeT) -
+                             offsetof(struct Mid, selectorsT));
+  int midSize = offsetof(struct Mid, _end) - midOffset;
+  rte_memcpy(rte_pktmbuf_append(m, midSize), ((uint8_t*)&mid) + midOffset,
+             midSize);
+
+  if (tpl->fwHintsSize > 0) {
+    AppendVarNum(en, TT_ForwardingHint);
+    AppendVarNum(en, tpl->fwHintsSize);
+    rte_memcpy(rte_pktmbuf_append(m, tpl->fwHintsSize), fwHints,
+               tpl->fwHintsSize);
+  }
+
+  PrependVarNum(en, m->pkt_len);
+  PrependVarNum(en, TT_Interest);
 }

@@ -44,7 +44,7 @@ EncodeData1_GetTailroomMax()
          1 + 5;            // Content
 }
 
-/** \brief Encoder Data step1.
+/** \brief Make a Data, step1.
  *  \param m output mbuf, must be empty and is the only segment, must have
  *           \p EncodeData1_GetHeadroom() in headroom and
  *           \p EncodeData1_GetTailroom(name) in tailroom;
@@ -70,7 +70,7 @@ EncodeData2_GetTailroom()
   return __EncodeData2_FakeSigLen;
 }
 
-/** \brief Encoder Data step2.
+/** \brief Make a Data, step2.
  *  \param m signature mbuf, must be empty and is the only segment, must have
  *           \p EncodeData2_GetHeadroom() in headroom and
  *           \p EncodeData2_GetTailroom() in tailroom
@@ -80,7 +80,7 @@ EncodeData2_GetTailroom()
  */
 void EncodeData2(struct rte_mbuf* m, struct rte_mbuf* data1);
 
-/** \brief Encoder Data step3.
+/** \brief Make a Data, step3.
  *  \param data2 'data1' from \p EncodeData2
  *
  *  This function prepends TLV-TYPE and TLV-LENGTH of Data element in the first segment.

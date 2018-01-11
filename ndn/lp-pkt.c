@@ -1,5 +1,6 @@
 #include "lp-pkt.h"
 #include "nack-pkt.h"
+#include "tlv-encoder.h"
 
 static inline bool
 CanIgnoreLpHeader(uint64_t tlvType)

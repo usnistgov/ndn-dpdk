@@ -4,7 +4,6 @@
 /// \file
 
 #include "tlv-element.h"
-#include "tlv-encoder.h"
 
 /** \brief TLV LpPacket
  */
