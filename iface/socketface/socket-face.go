@@ -17,12 +17,20 @@ import (
 	"ndn-dpdk/iface"
 )
 
-var faceById = make(map[int]*SocketFace)
-
 const (
 	minId = 0xE000
 	maxId = 0xEFFF
 )
+
+var faceById [maxId - minId + 1]*SocketFace
+
+func getById(id int) *SocketFace {
+	return faceById[id-minId]
+}
+
+func setById(id int, face *SocketFace) {
+	faceById[id-minId] = face
+}
 
 type Config struct {
 	RxMp        dpdk.PktmbufPool // mempool for received frames, dataroom must fit NDNLP frame
@@ -62,7 +70,7 @@ func New(conn net.Conn, cfg Config) (face *SocketFace) {
 	id := 0
 	for {
 		id = minId + rand.Intn(maxId-minId+1)
-		if _, hasOldFace := faceById[id]; !hasOldFace {
+		if getById(id) == nil {
 			break
 		}
 	}
@@ -79,7 +87,7 @@ func New(conn net.Conn, cfg Config) (face *SocketFace) {
 	C.SocketFace_Init(face.getPtr(), C.uint16_t(id),
 		(*C.struct_rte_mempool)(cfg.TxIndirectMp.GetPtr()),
 		(*C.struct_rte_mempool)(cfg.TxHeaderMp.GetPtr()))
-	faceById[id] = face
+	setById(id, face)
 
 	if dconn, isDatagram := conn.(net.PacketConn); isDatagram {
 		face.impl = newDatagramImpl(face, dconn)
@@ -137,8 +145,8 @@ func (face *SocketFace) handleError(dir string, e error) bool {
 
 func getByCFace(faceC *C.Face) *SocketFace {
 	socketFaceC := (*C.SocketFace)(unsafe.Pointer(faceC))
-	face, ok := faceById[int(socketFaceC.base.id)]
-	if !ok {
+	face := getById(int(socketFaceC.base.id))
+	if face == nil {
 		panic("SocketFace not found")
 	}
 	return face
