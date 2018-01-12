@@ -3,10 +3,9 @@
 
 typedef struct NameSetRecord
 {
-  uint32_t len;
+  uint16_t len;
+  uint8_t comps[0];
 } NameSetRecord;
-
-#define NameSetRecord_GetComps(record) (((uint8_t*)(record)) + sizeof(uint32_t))
 
 void
 NameSet_Close(NameSet* set)
@@ -21,22 +20,22 @@ NameSet_Close(NameSet* set)
 }
 
 void
-NameSet_Insert(NameSet* set, const uint8_t* comps, uint32_t compsLen)
+NameSet_Insert(NameSet* set, const uint8_t* comps, uint16_t compsLen)
 {
   NameSetRecord* record =
-    rte_malloc("NameSetRecord", sizeof(uint32_t) + compsLen, 0);
+    rte_malloc("NameSetRecord", sizeof(NameSetRecord) + compsLen, 0);
   assert(record != NULL);
   record->len = compsLen;
-  rte_memcpy(NameSetRecord_GetComps(record), comps, compsLen);
+  rte_memcpy(record->comps, comps, compsLen);
 
   ++set->nRecords;
 
   if (set->records == NULL) {
     set->records =
-      rte_malloc("NameSetRecords", set->nRecords * sizeof(set->records[0]), 0);
+      rte_malloc("NameSetRecords", set->nRecords * sizeof(NameSetRecord), 0);
   } else {
     set->records =
-      rte_realloc(set->records, set->nRecords * sizeof(set->records[0]), 0);
+      rte_realloc(set->records, set->nRecords * sizeof(NameSetRecord), 0);
   }
   assert(set->records != NULL);
 
@@ -52,21 +51,21 @@ NameSet_Erase(NameSet* set, int index)
 }
 
 const uint8_t*
-NameSet_GetName(const NameSet* set, int index, uint32_t* compsLen)
+NameSet_GetName(const NameSet* set, int index, uint16_t* compsLen)
 {
   assert(index >= 0 && index < set->nRecords);
   NameSetRecord* record = set->records[index];
   *compsLen = record->len;
-  return NameSetRecord_GetComps(record);
+  return record->comps;
 }
 
 int
-NameSet_FindExact(const NameSet* set, const uint8_t* comps, uint32_t compsLen)
+NameSet_FindExact(const NameSet* set, const uint8_t* comps, uint16_t compsLen)
 {
   for (int i = 0; i < set->nRecords; ++i) {
     NameSetRecord* record = set->records[i];
     if (record->len == compsLen &&
-        memcmp(NameSetRecord_GetComps(record), comps, record->len) == 0) {
+        memcmp(record->comps, comps, record->len) == 0) {
       return i;
     }
   }
@@ -74,12 +73,12 @@ NameSet_FindExact(const NameSet* set, const uint8_t* comps, uint32_t compsLen)
 }
 
 int
-NameSet_FindPrefix(const NameSet* set, const uint8_t* comps, uint32_t compsLen)
+NameSet_FindPrefix(const NameSet* set, const uint8_t* comps, uint16_t compsLen)
 {
   for (int i = 0; i < set->nRecords; ++i) {
     NameSetRecord* record = set->records[i];
     if (record->len <= compsLen &&
-        memcmp(NameSetRecord_GetComps(record), comps, record->len) == 0) {
+        memcmp(record->comps, comps, record->len) == 0) {
       return i;
     }
   }

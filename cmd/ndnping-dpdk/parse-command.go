@@ -11,11 +11,22 @@ import (
 )
 
 type parsedCommand struct {
+	clients        []clientCfg
 	servers        []serverCfg
 	measureLatency bool
 	measureRtt     bool
 	addDelay       time.Duration
 	serverNack     bool
+}
+
+type clientPattern struct {
+	prefix ndn.TlvBytes
+	pct    float32
+}
+
+type clientCfg struct {
+	face     faceuri.FaceUri
+	patterns []clientPattern
 }
 
 type serverCfg struct {
@@ -58,10 +69,26 @@ func parseCommand(args []string) (pc parsedCommand, e error) {
 		case isIdleState() && token == "+s":
 			state = STATE_SERVER_FACE
 		case state == STATE_CLIENT_FACE:
+			u, e := faceuri.Parse(token)
+			if e != nil {
+				return e
+			}
+			pc.clients = append(pc.clients, clientCfg{face: *u})
 			state = STATE_CLIENT_PREFIX
 		case state == STATE_CLIENT_PREFIX:
+			comps, e := ndn.EncodeNameComponentsFromUri(token)
+			if e != nil {
+				return e
+			}
+			client := &pc.clients[len(pc.clients)-1]
+			client.patterns = append(client.patterns, clientPattern{prefix: comps})
 			state = STATE_CLIENT_PCT
 		case state == STATE_CLIENT_PCT:
+			patterns := pc.clients[len(pc.clients)-1].patterns
+			n, e := fmt.Sscan(token, &patterns[len(patterns)-1].pct)
+			if n != 1 {
+				return e
+			}
 			state = STATE_CLIENT_PREFIX
 		case state == STATE_SERVER_FACE:
 			u, e := faceuri.Parse(token)
@@ -75,7 +102,8 @@ func parseCommand(args []string) (pc parsedCommand, e error) {
 			if e != nil {
 				return e
 			}
-			pc.servers[len(pc.servers)-1].prefixes = append(pc.servers[len(pc.servers)-1].prefixes, comps)
+			server := &pc.servers[len(pc.servers)-1]
+			server.prefixes = append(server.prefixes, comps)
 		}
 		return nil
 	}

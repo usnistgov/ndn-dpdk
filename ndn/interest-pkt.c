@@ -117,51 +117,41 @@ __EncodeInterest(struct rte_mbuf* m, const InterestTemplate* tpl,
 
   struct Mid
   {
-    char _padding[2]; // make interestLifetimeV aligned
-
     uint8_t selectorsT;
     uint8_t selectorsL;
     uint8_t mustBeFreshT;
     uint8_t mustBeFreshL;
-
-    // InterestLifetime is a NonNegativeInteger fields, but NDN protocol does not
-    // require NonNegativeInteger to use minimal length encoding.
-    uint8_t interestLifetimeT;
-    uint8_t interestLifetimeL;
-    rte_be32_t interestLifetimeV;
 
     uint8_t nonceT;
     uint8_t nonceL;
     rte_be16_t nonceVhi;
     rte_be16_t nonceVlo;
 
-    char _end[0];
+    // InterestLifetime is a NonNegativeInteger fields, but NDN protocol does not
+    // require NonNegativeInteger to use minimal length encoding.
+    uint8_t interestLifetimeT;
+    uint8_t interestLifetimeL;
+    rte_be32_t interestLifetimeV;
   };
   struct Mid mid;
-  static_assert(
-    offsetof(struct Mid, _end) - offsetof(struct Mid, selectorsT) == 16, "");
-  static_assert(
-    offsetof(struct Mid, _end) - offsetof(struct Mid, interestLifetimeT) == 12,
-    "");
+  static_assert(sizeof(mid) == 16, "");
+  static_assert(sizeof(mid) - offsetof(struct Mid, nonceT) == 12, "");
 
   mid.selectorsT = TT_Selectors;
   mid.selectorsL = 2;
   mid.mustBeFreshT = TT_MustBeFresh;
   mid.mustBeFreshL = 0;
-  mid.interestLifetimeT = TT_InterestLifetime;
-  mid.interestLifetimeL = 4;
-  mid.interestLifetimeV = rte_cpu_to_be_32(tpl->lifetime);
   mid.nonceT = TT_Nonce;
   mid.nonceL = 4;
   int nonceRand = lrand48();
   mid.nonceVhi = nonceRand >> 16;
   mid.nonceVlo = nonceRand;
+  mid.interestLifetimeT = TT_InterestLifetime;
+  mid.interestLifetimeL = 4;
+  mid.interestLifetimeV = rte_cpu_to_be_32(tpl->lifetime);
 
-  int midOffset =
-    offsetof(struct Mid, interestLifetimeT) -
-    (int)tpl->mustBeFresh * (offsetof(struct Mid, interestLifetimeT) -
-                             offsetof(struct Mid, selectorsT));
-  int midSize = offsetof(struct Mid, _end) - midOffset;
+  int midOffset = ((int)!tpl->mustBeFresh) * offsetof(struct Mid, nonceT);
+  int midSize = sizeof(mid) - midOffset;
   rte_memcpy(rte_pktmbuf_append(m, midSize), ((uint8_t*)&mid) + midOffset,
              midSize);
 

@@ -6,9 +6,9 @@ This program acts as [ndnping](https://github.com/named-data/ndn-tools/tree/mast
 
 ```
 sudo ndnping-dpdk EAL-ARGS -- \
+  [-latency] [-rtt] [-add-delay DURATION] [-nack=false] \
   +c FACE PREFIX PCT PREFIX PCT \
-  +s FACE PREFIX PREFIX \
-  [-latency] [-rtt] [-add-delay DURATION] [-nack=false]
+  +s FACE PREFIX PREFIX
 ```
 
 **+c** defines a client on *FACE*.

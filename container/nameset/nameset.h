@@ -26,7 +26,7 @@ void NameSet_Close(NameSet* set);
  *  \param compsLen length of \p comps .
  *  \warning Crash if memory allocation fails.
  */
-void NameSet_Insert(NameSet* set, const uint8_t* comps, uint32_t compsLen);
+void NameSet_Insert(NameSet* set, const uint8_t* comps, uint16_t compsLen);
 
 /** \brief Erase a name at \p index .
  */
@@ -37,18 +37,18 @@ void NameSet_Erase(NameSet* set, int index);
  *  \return encoding of name components.
  */
 const uint8_t* NameSet_GetName(const NameSet* set, int index,
-                               uint32_t* compsLen);
+                               uint16_t* compsLen);
 
 /** \brief Determine if a name exists.
  *  \return index within NameSet, or -1 if not found.
  */
 int NameSet_FindExact(const NameSet* set, const uint8_t* comps,
-                      uint32_t compsLen);
+                      uint16_t compsLen);
 
 /** \brief Determine if any name in the set is a prefix of queried name.
  *  \return index within NameSet, or -1 if not found.
  */
 int NameSet_FindPrefix(const NameSet* set, const uint8_t* comps,
-                       uint32_t compsLen);
+                       uint16_t compsLen);
 
 #endif // NDN_DPDK_CONTAINER_NAMESET_NAMESET_H

@@ -36,7 +36,7 @@ func (set NameSet) Len() int {
 }
 
 func (set NameSet) Insert(comps ndn.TlvBytes) {
-	C.NameSet_Insert(set.c, (*C.uint8_t)(comps.GetPtr()), C.uint32_t(len(comps)))
+	C.NameSet_Insert(set.c, (*C.uint8_t)(comps.GetPtr()), C.uint16_t(len(comps)))
 }
 
 func (set NameSet) Erase(index int) {
@@ -44,9 +44,9 @@ func (set NameSet) Erase(index int) {
 }
 
 func (set NameSet) FindExact(comps ndn.TlvBytes) int {
-	return int(C.NameSet_FindExact(set.c, (*C.uint8_t)(comps.GetPtr()), C.uint32_t(len(comps))))
+	return int(C.NameSet_FindExact(set.c, (*C.uint8_t)(comps.GetPtr()), C.uint16_t(len(comps))))
 }
 
 func (set NameSet) FindPrefix(comps ndn.TlvBytes) int {
-	return int(C.NameSet_FindPrefix(set.c, (*C.uint8_t)(comps.GetPtr()), C.uint32_t(len(comps))))
+	return int(C.NameSet_FindPrefix(set.c, (*C.uint8_t)(comps.GetPtr()), C.uint16_t(len(comps))))
 }

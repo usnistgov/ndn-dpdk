@@ -10,13 +10,23 @@ import (
 func TestParseCommand(t *testing.T) {
 	assert, _ := makeAR(t)
 
-	pc, e := parseCommand(strings.Split("-rtt +c dev://net_pcap0 /prefix/ping 100", " "))
+	pc, e := parseCommand(strings.Split(
+		"-rtt -nack=false +c dev://net_pcap1 /P/ping 60 /Q 70 +s dev://net_pcap0 /P/ping /Q", " "))
 	if assert.NoError(e) {
-		// TODO verify client config
-	}
+		assert.False(pc.measureLatency)
+		assert.True(pc.measureRtt)
+		if assert.Len(pc.clients, 1) {
+			assert.Equal("dev://net_pcap1", pc.clients[0].face.String())
+			if assert.Len(pc.clients[0].patterns, 2) {
+				assert.EqualValues(dpdktestenv.PacketBytesFromHex("080150 080470696E67"),
+					pc.clients[0].patterns[0].prefix)
+				assert.EqualValues(60.0, pc.clients[0].patterns[0].pct)
+				assert.EqualValues(dpdktestenv.PacketBytesFromHex("080151"),
+					pc.clients[0].patterns[1].prefix)
+				assert.EqualValues(70.0, pc.clients[0].patterns[1].pct)
+			}
+		}
 
-	pc, e = parseCommand(strings.Split("-nack=false +s dev://net_pcap0 /P/ping /Q", " "))
-	if assert.NoError(e) {
 		assert.False(pc.serverNack)
 		if assert.Len(pc.servers, 1) {
 			assert.Equal("dev://net_pcap0", pc.servers[0].face.String())

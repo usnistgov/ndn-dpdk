@@ -57,6 +57,14 @@ func (interest *InterestPkt) GetFwHints() []*Name {
 	return fhs
 }
 
+func EncodeInterest_GetHeadroom() int {
+	return int(C.EncodeInterest_GetHeadroom())
+}
+
+func EncodeInterest_GetTailroomMax() int {
+	return int(C.EncodeInterest_GetTailroomMax())
+}
+
 // Template to make an Interest.
 type InterestTemplate struct {
 	c          C.InterestTemplate
