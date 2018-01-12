@@ -11,12 +11,13 @@ import (
 )
 
 type parsedCommand struct {
-	clients        []clientCfg
-	servers        []serverCfg
-	measureLatency bool
-	measureRtt     bool
-	addDelay       time.Duration
-	serverNack     bool
+	clients         []clientCfg
+	servers         []serverCfg
+	measureLatency  bool
+	measureRtt      bool
+	addDelay        time.Duration
+	serverNack      bool
+	counterInterval time.Duration
 }
 
 type clientPattern struct {
@@ -40,6 +41,7 @@ func parseCommand(args []string) (pc parsedCommand, e error) {
 	flags.BoolVar(&pc.measureRtt, "rtt", false, "measure round trip time")
 	flags.DurationVar(&pc.addDelay, "add-delay", time.Duration(0), "add delay before server response")
 	flags.BoolVar(&pc.serverNack, "nack", true, "server Nacks on unserved Interests")
+	flags.DurationVar(&pc.counterInterval, "cnt", time.Second*10, "interval between printing counters")
 
 	e = flags.Parse(args)
 	if e != nil {

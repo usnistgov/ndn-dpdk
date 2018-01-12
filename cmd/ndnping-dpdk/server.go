@@ -35,6 +35,10 @@ func NewNdnpingServer(face iface.Face) (server NdnpingServer, e error) {
 	return server, e
 }
 
+func (server NdnpingServer) GetFace() iface.Face {
+	return iface.FaceFromPtr(unsafe.Pointer(server.c.face))
+}
+
 func (server NdnpingServer) SetNackNoRoute(enable bool) {
 	server.c.wantNackNoRoute = C.bool(enable)
 }

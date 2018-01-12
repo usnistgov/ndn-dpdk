@@ -35,6 +35,10 @@ func (client NdnpingClient) Close() error {
 	return nil
 }
 
+func (client NdnpingClient) GetFace() iface.Face {
+	return iface.FaceFromPtr(unsafe.Pointer(client.c.face))
+}
+
 func (client NdnpingClient) AddPattern(comps ndn.TlvBytes, pct float32) {
 	prefixSet := nameset.FromPtr(unsafe.Pointer(&client.c.prefixes))
 	prefixSet.Insert(comps)

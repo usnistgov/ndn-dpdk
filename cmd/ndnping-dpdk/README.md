@@ -6,7 +6,7 @@ This program acts as [ndnping](https://github.com/named-data/ndn-tools/tree/mast
 
 ```
 sudo ndnping-dpdk EAL-ARGS -- \
-  [-latency] [-rtt] [-add-delay DURATION] [-nack=false] \
+  [-latency] [-rtt] [-add-delay DURATION] [-nack=false] [-cnt DURATION] \
   +c FACE PREFIX PCT PREFIX PCT \
   +s FACE PREFIX PREFIX
 ```
@@ -25,9 +25,11 @@ It requires client and server to run in the same process.
 
 **-rtt** enables round trip time measurement on client.
 
-**-add-delay** injects a delay, in microseconds, before server answers an Interest.
+**-add-delay** injects a delay before server answers an Interest.
 
 **-nack=false** instructs the server to not respond to Interests it cannot serve, instead of responding with Nacks.
+
+**-cnt** specifies duration between printing counters.
 
 ## Example
 
