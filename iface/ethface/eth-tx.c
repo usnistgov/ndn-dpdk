@@ -2,6 +2,7 @@
 #include "eth-face.h"
 
 #include "../../core/logger.h"
+#include "../../dpdk/ethdev.h"
 
 #define LOG_PREFIX "(%" PRIu16 ",%" PRIu16 ") "
 #define LOG_PARAM face->port, tx->queue
@@ -37,7 +38,7 @@ EthTx_Init(EthFace* face, uint16_t queue)
   EthTx* tx = &face->tx[queue];
   tx->face = face;
 
-  rte_eth_macaddr_get(face->port, &tx->ethhdr.s_addr);
+  EthDev_GetMacAddr(face->port, &tx->ethhdr.s_addr);
   const uint8_t dstAddr[] = { NDN_ETHER_MCAST };
   rte_memcpy(&tx->ethhdr.d_addr, dstAddr, sizeof(tx->ethhdr.d_addr));
   tx->ethhdr.ether_type = rte_cpu_to_be_16(NDN_ETHERTYPE);
