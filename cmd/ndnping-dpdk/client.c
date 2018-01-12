@@ -2,6 +2,7 @@
 
 #include "../../core/logger.h"
 
+#include <rte_cycles.h>
 #include <rte_random.h>
 
 INIT_ZF_LOG(NdnpingClient);
@@ -116,9 +117,20 @@ NdnpingClient_RxBurst(NdnpingClient* client)
 int
 NdnpingClient_Run(NdnpingClient* client)
 {
-  ZF_LOGD("%" PRI_FaceId " starting %p", client->face->id, client);
+  uint64_t txBurstInterval = client->interestInterval / 1000.0 *
+                             rte_get_tsc_hz() * NDNPINGCLIENT_TX_BURST_SIZE;
+  ZF_LOGI("%" PRI_FaceId " starting %p burst-interval=%" PRIu64 " @%" PRIu64
+          "Hz",
+          client->face->id, client, txBurstInterval, rte_get_tsc_hz());
+  assert(txBurstInterval > 0);
+
+  uint64_t nextTxBurst = rte_get_tsc_cycles();
   while (true) {
-    NdnpingClient_TxBurst(client);
+    uint64_t now = rte_get_tsc_cycles();
+    if (now > nextTxBurst) {
+      NdnpingClient_TxBurst(client);
+      nextTxBurst += txBurstInterval;
+    }
     NdnpingClient_RxBurst(client);
   }
   return 0;

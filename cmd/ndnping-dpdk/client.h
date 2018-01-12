@@ -10,8 +10,8 @@ typedef struct NdnpingClient
 {
   Face* face;
   NameSet prefixes;
-
   struct rte_mempool* mpInterest; ///< mempool for Interests
+  double interestInterval; ///< average interval between two Interests (millis)
 
   InterestTemplate interestTpl;
   struct
@@ -23,6 +23,11 @@ typedef struct NdnpingClient
   } suffixComponent;
 } NdnpingClient;
 
+/** \brief Initialize NdnpingClient.
+ *
+ *  The caller is reponsible for \p face, \p prefixes, \p mpInterest, \p interestInterval.
+ *  This function initializes all other fields.
+ */
 void NdnpingClient_Init(NdnpingClient* client);
 
 int NdnpingClient_Run(NdnpingClient* client);

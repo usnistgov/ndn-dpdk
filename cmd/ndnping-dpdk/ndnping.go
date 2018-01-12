@@ -28,6 +28,7 @@ func main() {
 		for _, pattern := range clientCfg.patterns {
 			client.AddPattern(pattern.prefix, pattern.pct)
 		}
+		client.SetInterval(time.Millisecond)
 		clients = append(clients, client)
 	}
 
