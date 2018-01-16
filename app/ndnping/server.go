@@ -48,9 +48,8 @@ func (server Server) SetNackNoRoute(enable bool) {
 	server.c.wantNackNoRoute = C.bool(enable)
 }
 
-func (server Server) AddPrefix(comps ndn.TlvBytes) {
-	prefixSet := nameset.FromPtr(unsafe.Pointer(&server.c.prefixes))
-	prefixSet.Insert(comps)
+func (server Server) AddPattern(comps ndn.TlvBytes) {
+	C.NdnpingServer_AddPattern(server.c, (*C.uint8_t)(comps.GetPtr()), C.uint16_t(len(comps)))
 }
 
 func (server Server) clearPayload() {
@@ -78,11 +77,6 @@ func (server Server) SetPayload(payload []byte) error {
 	return nil
 }
 
-func (server Server) Run() int {
-	C.NdnpingServer_Run(server.c)
-	return 0
-}
-
 const Server_PayloadMp = "NdnpingServer_Payload"
 const Server_MaxPayloadSize = 2048
 
@@ -94,4 +88,46 @@ func init() {
 			PrivSize:     0,
 			DataRoomSize: Server_MaxPayloadSize,
 		})
+}
+
+func (server Server) Run() int {
+	C.NdnpingServer_Run(server.c)
+	return 0
+}
+
+type ServerPatternCounters struct {
+	NInterests uint64
+}
+
+func (cnt ServerPatternCounters) String() string {
+	return fmt.Sprintf("%dI", cnt.NInterests)
+}
+
+type ServerCounters struct {
+	PerPattern  []ServerPatternCounters
+	NInterests  uint64
+	NNoMatch    uint64
+	NAllocError uint64
+}
+
+func (cnt ServerCounters) String() string {
+	s := fmt.Sprintf("%dI %dno-match %dalloc-error", cnt.NInterests, cnt.NNoMatch, cnt.NAllocError)
+	for i, pcnt := range cnt.PerPattern {
+		s += fmt.Sprintf("; pattern(%d) %s", i, pcnt)
+	}
+	return s
+}
+
+func (server Server) ReadCounters() (cnt ServerCounters) {
+	patterns := nameset.FromPtr(unsafe.Pointer(&server.c.patterns))
+	cnt.PerPattern = make([]ServerPatternCounters, patterns.Len())
+	for i := 0; i < len(cnt.PerPattern); i++ {
+		pattern := (*C.NdnpingServerPattern)(patterns.GetUsr(i))
+		cnt.PerPattern[i].NInterests = uint64(pattern.nInterests)
+		cnt.NInterests += uint64(pattern.nInterests)
+	}
+
+	cnt.NNoMatch = uint64(server.c.nNoMatch)
+	cnt.NAllocError = uint64(server.c.nAllocError)
+	return cnt
 }

@@ -23,10 +23,13 @@ void NameSet_Close(NameSet* set);
 
 /** \brief Insert a name.
  *  \param comps encoding of name components.
- *  \param compsLen length of \p comps .
+ *  \param compsLen length of \p comps.
+ *  \param usr extra user information, NULL to initialize as zeros.
+ *  \param usrLen length of extra user information.
  *  \warning Crash if memory allocation fails.
  */
-void NameSet_Insert(NameSet* set, const uint8_t* comps, uint16_t compsLen);
+void NameSet_Insert(NameSet* set, const uint8_t* comps, uint16_t compsLen,
+                    const void* usr, size_t usrLen);
 
 /** \brief Erase a name at \p index .
  */
@@ -38,6 +41,14 @@ void NameSet_Erase(NameSet* set, int index);
  */
 const uint8_t* NameSet_GetName(const NameSet* set, int index,
                                uint16_t* compsLen);
+
+/** \brief Get extra user information at \p index .
+ */
+void* NameSet_GetUsr(const NameSet* set, int index);
+
+/** \brief Get extra user information as \p index and cast to type T.
+ */
+#define NameSet_GetUsrT(set, index, T) (T)(NameSet_GetUsr((set), (index)))
 
 /** \brief Determine if a name exists.
  *  \return index within NameSet, or -1 if not found.

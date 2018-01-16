@@ -20,13 +20,19 @@ NameSet_Close(NameSet* set)
 }
 
 void
-NameSet_Insert(NameSet* set, const uint8_t* comps, uint16_t compsLen)
+NameSet_Insert(NameSet* set, const uint8_t* comps, uint16_t compsLen,
+               const void* usr, size_t usrLen)
 {
   NameSetRecord* record =
-    rte_malloc("NameSetRecord", sizeof(NameSetRecord) + compsLen, 0);
+    rte_zmalloc("NameSetRecord", sizeof(NameSetRecord) + compsLen + usrLen, 0);
   assert(record != NULL);
   record->len = compsLen;
-  rte_memcpy(record->comps, comps, compsLen);
+  if (compsLen > 0) {
+    rte_memcpy(record->comps, comps, compsLen);
+  }
+  if (usrLen > 0 && usr != NULL) {
+    rte_memcpy(record->comps + compsLen, usr, usrLen);
+  }
 
   ++set->nRecords;
 
@@ -57,6 +63,14 @@ NameSet_GetName(const NameSet* set, int index, uint16_t* compsLen)
   NameSetRecord* record = set->records[index];
   *compsLen = record->len;
   return record->comps;
+}
+
+void*
+NameSet_GetUsr(const NameSet* set, int index)
+{
+  assert(index >= 0 && index < set->nRecords);
+  NameSetRecord* record = set->records[index];
+  return record->comps + record->len;
 }
 
 int

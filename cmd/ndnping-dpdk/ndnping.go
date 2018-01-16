@@ -45,7 +45,7 @@ func main() {
 			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "ndnping.NewServer(%s): %v", serverCfg.face, e)
 		}
 		for _, prefix := range serverCfg.prefixes {
-			server.AddPrefix(prefix)
+			server.AddPattern(prefix)
 		}
 		servers = append(servers, server)
 	}
@@ -68,7 +68,8 @@ func main() {
 			}
 			for _, server := range servers {
 				face := server.GetFace()
-				log.Printf("server(%d) %v", face.GetFaceId(), face.ReadCounters())
+				log.Printf("server(%d) %v %v", face.GetFaceId(),
+					server.ReadCounters(), face.ReadCounters())
 			}
 		}
 	}()

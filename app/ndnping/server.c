@@ -6,6 +6,14 @@ INIT_ZF_LOG(NdnpingServer);
 
 #define NDNPINGSERVER_BURST_SIZE 64
 
+void
+NdnpingServer_AddPattern(NdnpingServer* server, const uint8_t* comps,
+                         uint16_t compsLen)
+{
+  NameSet_Insert(&server->patterns, comps, compsLen, NULL,
+                 sizeof(NdnpingServerPattern));
+}
+
 static inline struct rte_mbuf*
 NdnpingServer_MakeData(NdnpingServer* server, const Name* name)
 {
@@ -51,18 +59,24 @@ NdnpingServer_ProcessPkt(NdnpingServer* server, struct rte_mbuf* pkt)
   Name* name = &Packet_GetInterestHdr(pkt)->name;
   const uint8_t* nameComps = Name_LinearizeComps(name, 0);
 
-  int inNameSet =
-    NameSet_FindPrefix(&server->prefixes, nameComps, name->nOctets);
-  if (inNameSet < 0) {
-    ZF_LOGD("%" PRI_FaceId " no-prefix-match", server->face->id);
+  int index = NameSet_FindPrefix(&server->patterns, nameComps, name->nOctets);
+  if (index < 0) {
+    ZF_LOGV("%" PRI_FaceId " no-prefix-match", server->face->id);
+    ++server->nNoMatch;
     MakeNack(pkt, NackReason_NoRoute);
     return pkt;
   }
-  ZF_LOGV("%" PRI_FaceId " match-prefix=%" PRIu8, server->face->id, inNameSet);
+  ZF_LOGV("%" PRI_FaceId " match-pattern=%" PRIu8, server->face->id, index);
+
+  NdnpingServerPattern* pattern =
+    NameSet_GetUsrT(&server->patterns, index, NdnpingServerPattern*);
+  ++pattern->nInterests;
 
   struct rte_mbuf* dataPkt = NdnpingServer_MakeData(server, name);
   if (unlikely(dataPkt == NULL)) {
+    ++server->nAllocError;
     MakeNack(pkt, NackReason_Congestion);
+    return pkt;
   }
 
   rte_pktmbuf_free(pkt);
