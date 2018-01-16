@@ -34,8 +34,19 @@ func NewRing(name string, capacity int, socket NumaSocket,
 	return r, nil
 }
 
-func (r Ring) Close() {
+// Construct Ring from native *C.struct_rte_ring pointer.
+func RingFromPtr(ptr unsafe.Pointer) Ring {
+	return Ring{(*C.struct_rte_ring)(ptr)}
+}
+
+// Get native *C.struct_rte_ring pointer to use in other packages.
+func (r Ring) GetPtr() unsafe.Pointer {
+	return unsafe.Pointer(r.ptr)
+}
+
+func (r Ring) Close() error {
 	C.rte_ring_free(r.ptr)
+	return nil
 }
 
 func (r Ring) Count() int {

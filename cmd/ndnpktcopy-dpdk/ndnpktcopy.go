@@ -10,11 +10,7 @@ import (
 	"ndn-dpdk/ndn"
 )
 
-const BURST_SIZE = 8
-
-var rxFace *iface.Face
-var txFaces []*iface.Face
-var txFacesByNumaSocket = make(map[dpdk.NumaSocket][]*iface.Face)
+const DISCARD_BURST_SIZE = 8
 
 func main() {
 	appinit.InitEal()
@@ -23,19 +19,33 @@ func main() {
 		appinit.Exitf(appinit.EXIT_BAD_CONFIG, "parseCommand: %v", e)
 	}
 
-	rxFace, e = appinit.NewFaceFromUri(pc.inface)
+	rxFace, e := appinit.NewFaceFromUri(pc.inface)
 	if e != nil {
 		appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "NewFaceFromUri(%s): %v", pc.inface, e)
 	}
+	pcrx, e := NewPktcopyRx(*rxFace)
+	if e != nil {
+		appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "NewPktcopyRx(%d): %v", rxFace.GetFaceId(), e)
+	}
 
+	var txFaces []iface.Face
+	var pctxs []PktcopyTx
+	txFacesByNumaSocket := make(map[dpdk.NumaSocket][]iface.Face)
 	for _, outface := range pc.outfaces {
 		txFace, e := appinit.NewFaceFromUri(outface)
 		if e != nil {
 			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "NewFaceFromUri(%s): %v", outface, e)
 		}
-		txFaces = append(txFaces, txFace)
+		txFaces = append(txFaces, *txFace)
 		numaSocket := txFace.GetNumaSocket()
-		txFacesByNumaSocket[numaSocket] = append(txFacesByNumaSocket[numaSocket], txFace)
+		txFacesByNumaSocket[numaSocket] = append(txFacesByNumaSocket[numaSocket], *txFace)
+
+		pctx, e := NewPktcopyTx(*txFace)
+		if e != nil {
+			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "NewPktcopyTx(%d): %v", txFace.GetFaceId(), e)
+		}
+		pcrx.LinkTo(pctx)
+		pctxs = append(pctxs, pctx)
 	}
 
 	tick := time.Tick(pc.counterInterval)
@@ -46,30 +56,16 @@ func main() {
 			for _, txFace := range txFaces {
 				log.Printf("TX-cnt %d %v", txFace.GetFaceId(), txFace.ReadCounters())
 			}
-			// log.Printf("MP-usage RX=%d TXHDR=%d IND=%d", mpRx.CountInUse(),
-			// 	mpTxHdr.CountInUse(), mpIndirect.CountInUse())
 		}
 	}()
 
-	// copy packets from inface to outface
-	appinit.LaunchRequired(func() int {
-		for {
-			var pkts [BURST_SIZE]ndn.Packet
-			nPkts := rxFace.RxBurst(pkts[:])
-			if nPkts == 0 {
-				continue
-			}
-			for _, txFace := range txFaces {
-				txFace.TxBurst(pkts[:nPkts])
-			}
-			for _, pkt := range pkts[:nPkts] {
-				if pc.wantDump {
-					printPacket(pkt)
-				}
-				pkt.Close()
-			}
-		}
-	}, rxFace.GetNumaSocket())
+	// start PktcopyTx processes
+	for _, pctx := range pctxs {
+		appinit.LaunchRequired(pctx.Run, pctx.GetFace().GetNumaSocket())
+	}
+
+	// start PktcopyRx process
+	appinit.LaunchRequired(pcrx.Run, pcrx.GetFace().GetNumaSocket())
 
 	for numaSocket := range txFacesByNumaSocket {
 		txFacesOnSocket := txFacesByNumaSocket[numaSocket]
@@ -77,7 +73,7 @@ func main() {
 		appinit.LaunchRequired(func() int {
 			for {
 				for _, txFace := range txFacesOnSocket {
-					var pkts [BURST_SIZE]ndn.Packet
+					var pkts [DISCARD_BURST_SIZE]ndn.Packet
 					nPkts := txFace.RxBurst(pkts[:])
 					if nPkts == 0 {
 						continue
