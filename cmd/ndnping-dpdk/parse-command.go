@@ -27,6 +27,7 @@ type clientPattern struct {
 
 type clientCfg struct {
 	face     faceuri.FaceUri
+	interval time.Duration
 	patterns []clientPattern
 }
 
@@ -49,12 +50,13 @@ func parseCommand(args []string) (pc parsedCommand, e error) {
 	}
 
 	const (
-		STATE_NONE          = iota
-		STATE_CLIENT_FACE   // next token is client face
-		STATE_CLIENT_PREFIX // next token is client prefix
-		STATE_CLIENT_PCT    // next token is client percentage
-		STATE_SERVER_FACE   // next token is server face
-		STATE_SERVER_PREFIX // next token is server prefix or end of server defintion
+		STATE_NONE            = iota
+		STATE_CLIENT_FACE     // next token is client face
+		STATE_CLIENT_INTERVAL // next token is client Interest interval
+		STATE_CLIENT_PREFIX   // next token is client prefix or end of client definition
+		STATE_CLIENT_PCT      // next token is client percentage
+		STATE_SERVER_FACE     // next token is server face
+		STATE_SERVER_PREFIX   // next token is server prefix or end of server definition
 	)
 	state := STATE_NONE
 	isIdleState := func() bool { // can accept +c +s or end?
@@ -76,6 +78,14 @@ func parseCommand(args []string) (pc parsedCommand, e error) {
 				return e
 			}
 			pc.clients = append(pc.clients, clientCfg{face: *u})
+			state = STATE_CLIENT_INTERVAL
+		case state == STATE_CLIENT_INTERVAL:
+			interval, e := time.ParseDuration(token)
+			if e != nil {
+				return e
+			}
+			client := &pc.clients[len(pc.clients)-1]
+			client.interval = interval
 			state = STATE_CLIENT_PREFIX
 		case state == STATE_CLIENT_PREFIX:
 			comps, e := ndn.EncodeNameComponentsFromUri(token)

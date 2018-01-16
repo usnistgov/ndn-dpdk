@@ -122,7 +122,6 @@ NdnpingClient_Run(NdnpingClient* client)
   ZF_LOGI("%" PRI_FaceId " starting %p burst-interval=%" PRIu64 " @%" PRIu64
           "Hz",
           client->face->id, client, txBurstInterval, rte_get_tsc_hz());
-  assert(txBurstInterval > 0);
 
   uint64_t nextTxBurst = rte_get_tsc_cycles();
   while (true) {

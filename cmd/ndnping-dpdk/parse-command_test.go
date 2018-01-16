@@ -3,6 +3,7 @@ package main
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"ndn-dpdk/dpdk/dpdktestenv"
 )
@@ -11,12 +12,13 @@ func TestParseCommand(t *testing.T) {
 	assert, _ := makeAR(t)
 
 	pc, e := parseCommand(strings.Split(
-		"-rtt -nack=false +c dev://net_pcap1 /P/ping 60 /Q 70 +s dev://net_pcap0 /P/ping /Q", " "))
+		"-rtt -nack=false +c dev://net_pcap1 1ms /P/ping 60 /Q 70 +s dev://net_pcap0 /P/ping /Q", " "))
 	if assert.NoError(e) {
 		assert.False(pc.measureLatency)
 		assert.True(pc.measureRtt)
 		if assert.Len(pc.clients, 1) {
 			assert.Equal("dev://net_pcap1", pc.clients[0].face.String())
+			assert.Equal(time.Millisecond, pc.clients[0].interval)
 			if assert.Len(pc.clients[0].patterns, 2) {
 				assert.EqualValues(dpdktestenv.PacketBytesFromHex("080150 080470696E67"),
 					pc.clients[0].patterns[0].prefix)

@@ -7,11 +7,12 @@ This program acts as [ndnping](https://github.com/named-data/ndn-tools/tree/mast
 ```
 sudo ndnping-dpdk EAL-ARGS -- \
   [-latency] [-rtt] [-add-delay DURATION] [-nack=false] [-cnt DURATION] \
-  +c FACE PREFIX PCT PREFIX PCT \
+  +c FACE INTERVAL PREFIX PCT PREFIX PCT \
   +s FACE PREFIX PREFIX
 ```
 
 **+c** defines a client on *FACE*.
+*INTERVAL* is the interval between two Interest; since the client sends Interests in bursts, this will be transformed into a burst interval where the average Interest frequency matches this specified interval; zero means "as fast as possible".
 *PREFIX* is a name prefix for Interests; it is recommended to use `ping` as the last name component.
 *PCT* is the percentage of traffic under this prefix.
 This may be repeated.

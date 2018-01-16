@@ -25,10 +25,10 @@ func main() {
 		if e != nil {
 			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "NewNdnpingClient(%s): %v", clientCfg.face, e)
 		}
+		client.SetInterval(clientCfg.interval)
 		for _, pattern := range clientCfg.patterns {
 			client.AddPattern(pattern.prefix, pattern.pct)
 		}
-		client.SetInterval(time.Millisecond)
 		clients = append(clients, client)
 	}
 
