@@ -36,6 +36,7 @@ func NewServer(face iface.Face) (server Server, e error) {
 }
 
 func (server Server) Close() error {
+	server.getPatterns().Close()
 	server.clearPayload()
 	return nil
 }
@@ -48,8 +49,12 @@ func (server Server) SetNackNoRoute(enable bool) {
 	server.c.wantNackNoRoute = C.bool(enable)
 }
 
+func (server Server) getPatterns() nameset.NameSet {
+	return nameset.FromPtr(unsafe.Pointer(&server.c.patterns))
+}
+
 func (server Server) AddPattern(comps ndn.TlvBytes) {
-	C.NdnpingServer_AddPattern(server.c, (*C.uint8_t)(comps.GetPtr()), C.uint16_t(len(comps)))
+	server.getPatterns().InsertWithZeroUsr(comps, int(C.sizeof_NdnpingServerPattern))
 }
 
 func (server Server) clearPayload() {
@@ -113,13 +118,13 @@ type ServerCounters struct {
 func (cnt ServerCounters) String() string {
 	s := fmt.Sprintf("%dI %dno-match %dalloc-error", cnt.NInterests, cnt.NNoMatch, cnt.NAllocError)
 	for i, pcnt := range cnt.PerPattern {
-		s += fmt.Sprintf("; pattern(%d) %s", i, pcnt)
+		s += fmt.Sprintf(", pattern(%d) %s", i, pcnt)
 	}
 	return s
 }
 
 func (server Server) ReadCounters() (cnt ServerCounters) {
-	patterns := nameset.FromPtr(unsafe.Pointer(&server.c.patterns))
+	patterns := server.getPatterns()
 	cnt.PerPattern = make([]ServerPatternCounters, patterns.Len())
 	for i := 0; i < len(cnt.PerPattern); i++ {
 		pattern := (*C.NdnpingServerPattern)(patterns.GetUsr(i))

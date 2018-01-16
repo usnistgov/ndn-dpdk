@@ -4,11 +4,15 @@
 #include "../../container/nameset/nameset.h"
 #include "../../iface/face.h"
 
+/** \brief Per-pattern information in ndnping server.
+ */
 typedef struct NdnpingServerPattern
 {
   uint64_t nInterests;
 } NdnpingServerPattern;
 
+/** \brief ndnping server.
+ */
 typedef struct NdnpingServer
 {
   Face* face;
@@ -23,9 +27,6 @@ typedef struct NdnpingServer
   uint64_t nNoMatch;
   uint64_t nAllocError;
 } NdnpingServer;
-
-void NdnpingServer_AddPattern(NdnpingServer* server, const uint8_t* comps,
-                              uint16_t compsLen);
 
 void NdnpingServer_Run(NdnpingServer* server);
 

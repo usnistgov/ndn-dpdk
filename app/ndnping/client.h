@@ -4,12 +4,21 @@
 #include "../../container/nameset/nameset.h"
 #include "../../iface/face.h"
 
-/** \brief ndnping client
+/** \brief Per-pattern information in ndnping client.
+ */
+typedef struct NdnpingClientPattern
+{
+  uint64_t nInterests;
+  uint64_t nData;
+  uint64_t nNacks;
+} NdnpingClientPattern;
+
+/** \brief ndnping client.
  */
 typedef struct NdnpingClient
 {
   Face* face;
-  NameSet prefixes;
+  NameSet patterns;
   struct rte_mempool* mpInterest; ///< mempool for Interests
   double interestInterval; ///< average interval between two Interests (millis)
 
@@ -21,6 +30,8 @@ typedef struct NdnpingClient
     uint8_t compL;
     uint64_t compV; // sequence number in native endianness
   } suffixComponent;
+
+  uint64_t nAllocError;
 } NdnpingClient;
 
 /** \brief Initialize NdnpingClient.

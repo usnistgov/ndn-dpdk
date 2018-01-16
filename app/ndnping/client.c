@@ -27,13 +27,23 @@ NdnpingClient_Init(NdnpingClient* client)
   client->interestTpl.fwHintsSize = 0;
 }
 
+static inline int
+NdnpingClient_SelectPattern(NdnpingClient* client, uint64_t seqNo)
+{
+  return seqNo % client->patterns.nRecords;
+}
+
 static inline void
 NdnpingClient_PrepareTxInterest(NdnpingClient* client, struct rte_mbuf* pkt)
 {
   uint64_t seqNo = ++client->suffixComponent.compV;
-  int patternId = seqNo % client->prefixes.nRecords;
+  int patternId = NdnpingClient_SelectPattern(client, seqNo);
+  NdnpingClientPattern* pattern =
+    NameSet_GetUsrT(&client->patterns, patternId, NdnpingClientPattern*);
+  ++pattern->nInterests;
+
   client->interestTpl.namePrefix = NameSet_GetName(
-    &client->prefixes, patternId, &client->interestTpl.namePrefixSize);
+    &client->patterns, patternId, &client->interestTpl.namePrefixSize);
   EncodeInterest(pkt, &client->interestTpl);
   Packet_SetNdnPktType(pkt, NdnPktType_Interest);
   ZF_LOGV("%" PRI_FaceId " <I seq=%" PRIx64 " pattern=%d", client->face->id,
@@ -81,7 +91,13 @@ NdnpingClient_ProcessRxData(NdnpingClient* client, struct rte_mbuf* pkt)
     return;
   }
 
-  ZF_LOGV("%" PRI_FaceId " >D seq=%" PRIx64, client->face->id, seqNo);
+  int patternId = NdnpingClient_SelectPattern(client, seqNo);
+  ZF_LOGV("%" PRI_FaceId " >D seq=%" PRIx64 " pattern=%d", client->face->id,
+          seqNo, patternId);
+
+  NdnpingClientPattern* pattern =
+    NameSet_GetUsrT(&client->patterns, patternId, NdnpingClientPattern*);
+  ++pattern->nData;
 }
 
 static inline void
@@ -94,8 +110,13 @@ NdnpingClient_ProcessRxNack(NdnpingClient* client, struct rte_mbuf* pkt)
     return;
   }
 
+  int patternId = NdnpingClient_SelectPattern(client, seqNo);
   ZF_LOGV("%" PRI_FaceId " >N seq=%" PRIx64 " pattern=%d", client->face->id,
-          seqNo);
+          seqNo, patternId);
+
+  NdnpingClientPattern* pattern =
+    NameSet_GetUsrT(&client->patterns, patternId, NdnpingClientPattern*);
+  ++pattern->nNacks;
 }
 
 static inline void

@@ -5,6 +5,7 @@ package ndnping
 */
 import "C"
 import (
+	"fmt"
 	"time"
 	"unsafe"
 
@@ -32,7 +33,7 @@ func NewClient(face iface.Face) (client Client, e error) {
 }
 
 func (client Client) Close() error {
-	nameset.FromPtr(unsafe.Pointer(&client.c.prefixes)).Close()
+	client.getPatterns().Close()
 	C.free(unsafe.Pointer(client.c))
 	return nil
 }
@@ -41,9 +42,12 @@ func (client Client) GetFace() iface.Face {
 	return iface.FaceFromPtr(unsafe.Pointer(client.c.face))
 }
 
+func (client Client) getPatterns() nameset.NameSet {
+	return nameset.FromPtr(unsafe.Pointer(&client.c.patterns))
+}
+
 func (client Client) AddPattern(comps ndn.TlvBytes, pct float32) {
-	prefixSet := nameset.FromPtr(unsafe.Pointer(&client.c.prefixes))
-	prefixSet.Insert(comps)
+	client.getPatterns().InsertWithZeroUsr(comps, int(C.sizeof_NdnpingClientPattern))
 }
 
 func (client Client) SetInterval(interval time.Duration) {
@@ -52,4 +56,52 @@ func (client Client) SetInterval(interval time.Duration) {
 
 func (client Client) Run() int {
 	return int(C.NdnpingClient_Run(client.c))
+}
+
+type ClientPatternCounters struct {
+	NInterests uint64
+	NData      uint64
+	NNacks     uint64
+}
+
+func (cnt ClientPatternCounters) String() string {
+	return fmt.Sprintf("%dI %dD(%0.2f%%) %dN(%0.2f%%)", cnt.NInterests,
+		cnt.NData, float64(cnt.NData)/float64(cnt.NInterests)*100.0,
+		cnt.NNacks, float64(cnt.NNacks)/float64(cnt.NInterests)*100.0)
+}
+
+type ClientCounters struct {
+	PerPattern  []ClientPatternCounters
+	NInterests  uint64
+	NData       uint64
+	NNacks      uint64
+	NAllocError uint64
+}
+
+func (cnt ClientCounters) String() string {
+	s := fmt.Sprintf("%dI %dD(%0.2f%%) %dN(%0.2f%%) %dalloc-error", cnt.NInterests,
+		cnt.NData, float64(cnt.NData)/float64(cnt.NInterests)*100.0,
+		cnt.NNacks, float64(cnt.NNacks)/float64(cnt.NInterests)*100.0,
+		cnt.NAllocError)
+	for i, pcnt := range cnt.PerPattern {
+		s += fmt.Sprintf(", pattern(%d) %s", i, pcnt)
+	}
+	return s
+}
+
+func (client Client) ReadCounters() (cnt ClientCounters) {
+	patterns := client.getPatterns()
+	cnt.PerPattern = make([]ClientPatternCounters, patterns.Len())
+	for i := 0; i < len(cnt.PerPattern); i++ {
+		pattern := (*C.NdnpingClientPattern)(patterns.GetUsr(i))
+		cnt.PerPattern[i].NInterests = uint64(pattern.nInterests)
+		cnt.PerPattern[i].NData = uint64(pattern.nData)
+		cnt.PerPattern[i].NNacks = uint64(pattern.nNacks)
+		cnt.NInterests += uint64(pattern.nInterests)
+		cnt.NData += uint64(pattern.nData)
+		cnt.NNacks += uint64(pattern.nNacks)
+	}
+
+	cnt.NAllocError = uint64(client.c.nAllocError)
+	return cnt
 }
