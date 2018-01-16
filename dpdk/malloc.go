@@ -1,0 +1,36 @@
+package dpdk
+
+/*
+#include <rte_config.h>
+#include <rte_malloc.h>
+#include <stdlib.h>
+*/
+import "C"
+import (
+	"reflect"
+	"unsafe"
+)
+
+// Allocate zero'ed memory on specified NumaSocket.
+func Zmalloc(dbgtype string, size int, socket NumaSocket) unsafe.Pointer {
+	return ZmallocAligned(dbgtype, size, 0, socket)
+}
+
+// Allocate zero'ed memory on specified NumaSocket.
+// Panics if out of memory.
+// align: alignment requirement, in number of cachelines, must be power of 2.
+func ZmallocAligned(dbgtype string, size int, align int, socket NumaSocket) unsafe.Pointer {
+	cType := C.CString(dbgtype)
+	defer C.free(unsafe.Pointer(cType))
+
+	ptr := C.rte_zmalloc_socket(cType, C.size_t(size), C.unsigned(align*C.RTE_CACHE_LINE_SIZE), C.int(socket))
+	if ptr == nil {
+		panic("ZmallocAligned failed")
+	}
+	return ptr
+}
+
+// Deallocate memory from Zmalloc.
+func Free(ptr interface{}) {
+	C.rte_free(unsafe.Pointer(reflect.ValueOf(ptr).Pointer()))
+}
