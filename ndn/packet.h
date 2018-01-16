@@ -10,7 +10,6 @@
 /** \brief Indicate layer 2 packet type.
  *
  *  L2PktType is stored in rte_mbuf.inner_l2_type field.
- *  It reflects what is stored in \p PacketPriv of direct mbuf.
  */
 typedef enum L2PktType {
   L2PktType_None,
@@ -32,7 +31,6 @@ Packet_SetL2PktType(struct rte_mbuf* pkt, L2PktType t)
 /** \brief Indicate network layer packet type.
  *
  *  NdnPktType is stored in rte_mbuf.inner_l3_type field.
- *  It reflects what is stored in \p PacketPriv of direct mbuf.
  */
 typedef enum NdnPktType {
   NdnPktType_None,

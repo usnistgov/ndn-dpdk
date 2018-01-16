@@ -35,6 +35,7 @@ NdnpingClient_PrepareTxInterest(NdnpingClient* client, struct rte_mbuf* pkt)
   client->interestTpl.namePrefix = NameSet_GetName(
     &client->prefixes, patternId, &client->interestTpl.namePrefixSize);
   EncodeInterest(pkt, &client->interestTpl);
+  Packet_SetNdnPktType(pkt, NdnPktType_Interest);
   ZF_LOGV("%" PRI_FaceId " <I seq=%" PRIx64 " pattern=%d", client->face->id,
           seqNo, patternId);
 }

@@ -35,6 +35,7 @@ NdnpingServer_MakeData(NdnpingServer* server, const Name* name)
   EncodeData1(m1, name, payload);
   EncodeData2(m2, m1);
   EncodeData3(m1);
+  Packet_SetNdnPktType(m1, NdnPktType_Data);
   return m1;
 }
 
