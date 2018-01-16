@@ -11,6 +11,7 @@ import (
 
 	"ndn-dpdk/appinit"
 	"ndn-dpdk/container/nameset"
+	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/ndn"
 )
@@ -20,13 +21,13 @@ type Client struct {
 }
 
 func NewClient(face iface.Face) (client Client, e error) {
-	client.c = (*C.NdnpingClient)(C.calloc(1, C.sizeof_NdnpingClient))
+	socket := face.GetNumaSocket()
+	client.c = (*C.NdnpingClient)(dpdk.Zmalloc("NdnpingClient", C.sizeof_NdnpingClient, socket))
 	client.c.face = (*C.Face)(face.GetPtr())
 	client.SetInterval(time.Second)
 
-	numaSocket := face.GetNumaSocket()
 	client.c.mpInterest = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
-		appinit.MP_INT, numaSocket).GetPtr())
+		appinit.MP_INT, socket).GetPtr())
 
 	C.NdnpingClient_Init(client.c)
 	return client, nil
@@ -34,7 +35,7 @@ func NewClient(face iface.Face) (client Client, e error) {
 
 func (client Client) Close() error {
 	client.getPatterns().Close()
-	C.free(unsafe.Pointer(client.c))
+	dpdk.Free(client.c)
 	return nil
 }
 

@@ -23,8 +23,9 @@ void
 NameSet_Insert(NameSet* set, const uint8_t* comps, uint16_t compsLen,
                const void* usr, size_t usrLen)
 {
-  NameSetRecord* record =
-    rte_zmalloc("NameSetRecord", sizeof(NameSetRecord) + compsLen + usrLen, 0);
+  NameSetRecord* record = rte_zmalloc_socket(
+    "NameSetRecord", sizeof(NameSetRecord) + compsLen + usrLen, 0,
+    set->numaSocket);
   assert(record != NULL);
   record->len = compsLen;
   if (compsLen > 0) {
@@ -38,7 +39,8 @@ NameSet_Insert(NameSet* set, const uint8_t* comps, uint16_t compsLen,
 
   if (set->records == NULL) {
     set->records =
-      rte_malloc("NameSetRecords", set->nRecords * sizeof(NameSetRecord), 0);
+      rte_malloc_socket("NameSetRecords", set->nRecords * sizeof(NameSetRecord),
+                        0, set->numaSocket);
   } else {
     set->records =
       rte_realloc(set->records, set->nRecords * sizeof(NameSetRecord), 0);

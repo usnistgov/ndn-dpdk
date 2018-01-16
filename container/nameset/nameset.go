@@ -7,6 +7,7 @@ import "C"
 import (
 	"unsafe"
 
+	"ndn-dpdk/dpdk"
 	"ndn-dpdk/ndn"
 )
 
@@ -17,7 +18,12 @@ type NameSet struct {
 }
 
 func New() (set NameSet) {
-	set.c = new(C.NameSet)
+	return NewOnNumaSocket(dpdk.NUMA_SOCKET_ANY)
+}
+
+func NewOnNumaSocket(socket dpdk.NumaSocket) (set NameSet) {
+	set.c = (*C.NameSet)(dpdk.Zmalloc("NameSet", C.sizeof_NameSet, socket))
+	set.c.numaSocket = C.int(socket)
 	return set
 }
 
@@ -28,6 +34,7 @@ func FromPtr(ptr unsafe.Pointer) (set NameSet) {
 
 func (set NameSet) Close() error {
 	C.NameSet_Close(set.c)
+	dpdk.Free(set.c)
 	return nil
 }
 

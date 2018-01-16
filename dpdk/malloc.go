@@ -12,18 +12,20 @@ import (
 )
 
 // Allocate zero'ed memory on specified NumaSocket.
-func Zmalloc(dbgtype string, size int, socket NumaSocket) unsafe.Pointer {
+func Zmalloc(dbgtype string, size interface{}, socket NumaSocket) unsafe.Pointer {
 	return ZmallocAligned(dbgtype, size, 0, socket)
 }
 
 // Allocate zero'ed memory on specified NumaSocket.
 // Panics if out of memory.
+// size: C.sizeof_*, or other signed integer type.
 // align: alignment requirement, in number of cachelines, must be power of 2.
-func ZmallocAligned(dbgtype string, size int, align int, socket NumaSocket) unsafe.Pointer {
+func ZmallocAligned(dbgtype string, size interface{}, align int, socket NumaSocket) unsafe.Pointer {
 	cType := C.CString(dbgtype)
 	defer C.free(unsafe.Pointer(cType))
 
-	ptr := C.rte_zmalloc_socket(cType, C.size_t(size), C.unsigned(align*C.RTE_CACHE_LINE_SIZE), C.int(socket))
+	ptr := C.rte_zmalloc_socket(cType, C.size_t(reflect.ValueOf(size).Int()),
+		C.unsigned(align*C.RTE_CACHE_LINE_SIZE), C.int(socket))
 	if ptr == nil {
 		panic("ZmallocAligned failed")
 	}

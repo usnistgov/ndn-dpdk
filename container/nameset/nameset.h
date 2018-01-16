@@ -15,6 +15,7 @@ typedef struct NameSet
 {
   NameSetRecord** records;
   int nRecords;
+  int numaSocket; ///< where to allocate memory for new records
 } NameSet;
 
 /** \brief Release all memory allocated by NameSet.

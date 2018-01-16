@@ -20,17 +20,17 @@ type Server struct {
 }
 
 func NewServer(face iface.Face) (server Server, e error) {
-	server.c = new(C.NdnpingServer)
+	socket := face.GetNumaSocket()
+	server.c = (*C.NdnpingServer)(dpdk.Zmalloc("NdnpingServer", C.sizeof_NdnpingServer, socket))
 	server.c.face = (*C.Face)(face.GetPtr())
 	e = server.SetPayload([]byte{})
 
-	numaSocket := face.GetNumaSocket()
 	server.c.mpData1 = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
-		appinit.MP_DATA1, numaSocket).GetPtr())
+		appinit.MP_DATA1, socket).GetPtr())
 	server.c.mpData2 = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
-		appinit.MP_DATA2, numaSocket).GetPtr())
+		appinit.MP_DATA2, socket).GetPtr())
 	server.c.mpIndirect = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
-		appinit.MP_IND, numaSocket).GetPtr())
+		appinit.MP_IND, socket).GetPtr())
 
 	return server, e
 }
@@ -38,6 +38,7 @@ func NewServer(face iface.Face) (server Server, e error) {
 func (server Server) Close() error {
 	server.getPatterns().Close()
 	server.clearPayload()
+	dpdk.Free(server.c)
 	return nil
 }
 
