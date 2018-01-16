@@ -37,8 +37,10 @@ func (m Mbuf) IsValid() bool {
 	return m.ptr != nil
 }
 
-func (m Mbuf) Close() {
+func (m Mbuf) Close() error {
 	C.rte_pktmbuf_free(m.ptr)
+	m.ptr = nil
+	return nil
 }
 
 func (m Mbuf) AsPacket() Packet {

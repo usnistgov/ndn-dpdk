@@ -45,9 +45,10 @@ func (a *CArgs) GetRemainingArgs(nConsumed int) []string {
 	return rem
 }
 
-func (a *CArgs) Close() {
+func (a *CArgs) Close() error {
 	for _, strMem := range a.strMems {
 		C.free(strMem)
 	}
 	C.free(unsafe.Pointer(a.Argv))
+	return nil
 }

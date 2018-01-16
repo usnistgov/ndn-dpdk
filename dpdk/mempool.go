@@ -25,9 +25,10 @@ func (mp Mempool) IsValid() bool {
 	return mp.ptr != nil
 }
 
-func (mp Mempool) Close() {
+func (mp Mempool) Close() error {
 	C.rte_mempool_free(mp.ptr)
 	mp.ptr = nil
+	return nil
 }
 
 func (mp Mempool) CountAvailable() int {

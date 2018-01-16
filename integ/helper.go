@@ -21,12 +21,13 @@ func (t *Testing) FailNow() {
 	os.Exit(1)
 }
 
-func (t *Testing) Close() {
+func (t *Testing) Close() error {
 	if t.hasError {
 		os.Exit(1)
 	} else {
 		os.Exit(0)
 	}
+	return nil
 }
 
 func MakeAR(t *Testing) (*assert.Assertions, *require.Assertions) {
