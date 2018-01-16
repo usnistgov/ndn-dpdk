@@ -5,56 +5,70 @@ import (
 	"time"
 
 	"ndn-dpdk/appinit"
-	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/ndn"
 )
 
-const DISCARD_BURST_SIZE = 8
-
 func main() {
 	appinit.InitEal()
-	pc, e := parseCommand(appinit.Eal.Args[1:])
+	pc, e := ParseCommand(appinit.Eal.Args[1:])
 	if e != nil {
 		appinit.Exitf(appinit.EXIT_BAD_CONFIG, "parseCommand: %v", e)
 	}
 
-	rxFace, e := appinit.NewFaceFromUri(pc.inface)
-	if e != nil {
-		appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "NewFaceFromUri(%s): %v", pc.inface, e)
-	}
-	pcrx, e := NewPktcopyRx(*rxFace)
-	if e != nil {
-		appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "NewPktcopyRx(%d): %v", rxFace.GetFaceId(), e)
-	}
-
-	var txFaces []iface.Face
+	var faces []iface.Face
+	var pcrxs []PktcopyRx
 	var pctxs []PktcopyTx
-	txFacesByNumaSocket := make(map[dpdk.NumaSocket][]iface.Face)
-	for _, outface := range pc.outfaces {
-		txFace, e := appinit.NewFaceFromUri(outface)
-		if e != nil {
-			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "NewFaceFromUri(%s): %v", outface, e)
-		}
-		txFaces = append(txFaces, *txFace)
-		numaSocket := txFace.GetNumaSocket()
-		txFacesByNumaSocket[numaSocket] = append(txFacesByNumaSocket[numaSocket], *txFace)
 
-		pctx, e := NewPktcopyTx(*txFace)
+	for _, faceUri := range pc.Faces {
+		face, e := appinit.NewFaceFromUri(faceUri)
 		if e != nil {
-			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "NewPktcopyTx(%d): %v", txFace.GetFaceId(), e)
+			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "NewFaceFromUri(%s): %v", faceUri, e)
 		}
-		pcrx.LinkTo(pctx)
+		faces = append(faces, *face)
+
+		pcrx, e := NewPktcopyRx(*face)
+		if e != nil {
+			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "NewPktcopyRx(%d): %v", face.GetFaceId(), e)
+		}
+		pcrxs = append(pcrxs, pcrx)
+
+		pctx, e := NewPktcopyTx(*face)
+		if e != nil {
+			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "NewPktcopyTx(%d): %v", face.GetFaceId(), e)
+		}
 		pctxs = append(pctxs, pctx)
 	}
 
-	tick := time.Tick(pc.counterInterval)
+	// link PktcopyRx and PktcopyTx
+	switch pc.Mode {
+	case TopoMode_Pair:
+		for i := 0; i < len(faces); i += 2 {
+			pcrxs[i].LinkTo(pctxs[i+1])
+			pcrxs[i+1].LinkTo(pctxs[i])
+		}
+	case TopoMode_All:
+		for i, pcrx := range pcrxs {
+			for j, pctx := range pctxs {
+				if i == j {
+					continue
+				}
+				pcrx.LinkTo(pctx)
+			}
+		}
+	case TopoMode_OneWay:
+		for _, pctx := range pctxs[1:] {
+			pcrxs[0].LinkTo(pctx)
+		}
+	}
+
+	// print counters
+	tick := time.Tick(pc.CntInterval)
 	go func() {
 		for {
 			<-tick
-			log.Printf("RX-cnt %d %v", rxFace.GetFaceId(), rxFace.ReadCounters())
-			for _, txFace := range txFaces {
-				log.Printf("TX-cnt %d %v", txFace.GetFaceId(), txFace.ReadCounters())
+			for _, face := range faces {
+				log.Printf("%d %v", face.GetFaceId(), face.ReadCounters())
 			}
 		}
 	}()
@@ -65,25 +79,8 @@ func main() {
 	}
 
 	// start PktcopyRx process
-	appinit.LaunchRequired(pcrx.Run, pcrx.GetFace().GetNumaSocket())
-
-	for numaSocket := range txFacesByNumaSocket {
-		txFacesOnSocket := txFacesByNumaSocket[numaSocket]
-		// discard packets arrived on outfaces
-		appinit.LaunchRequired(func() int {
-			for {
-				for _, txFace := range txFacesOnSocket {
-					var pkts [DISCARD_BURST_SIZE]ndn.Packet
-					nPkts := txFace.RxBurst(pkts[:])
-					if nPkts == 0 {
-						continue
-					}
-					for _, pkt := range pkts[:nPkts] {
-						pkt.Close()
-					}
-				}
-			}
-		}, numaSocket)
+	for _, pcrx := range pcrxs {
+		appinit.LaunchRequired(pcrx.Run, pcrx.GetFace().GetNumaSocket())
 	}
 
 	select {}

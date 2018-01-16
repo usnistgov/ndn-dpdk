@@ -20,7 +20,7 @@ PktcopyRx_Run(PktcopyRx* pcrx)
       continue;
     }
     if (pcrx->nTxRings == 0) {
-      FreeMbufs(txPkts, nRx);
+      FreeMbufs(pkts, nRx);
     }
 
     for (int i = 0; i < pcrx->nTxRings; ++i) {
