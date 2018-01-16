@@ -4,6 +4,7 @@ import (
 	"log"
 	"time"
 
+	"ndn-dpdk/app/ndnping"
 	"ndn-dpdk/appinit"
 )
 
@@ -14,16 +15,16 @@ func main() {
 		appinit.Exitf(appinit.EXIT_BAD_CONFIG, "parseCommand: %v", e)
 	}
 
-	var clients []NdnpingClient
+	var clients []ndnping.Client
 	for _, clientCfg := range pc.clients {
 		face, e := appinit.NewFaceFromUri(clientCfg.face)
 		if e != nil {
 			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "NewFaceFromUri(%s): %v", clientCfg.face, e)
 		}
 
-		client, e := NewNdnpingClient(*face)
+		client, e := ndnping.NewClient(*face)
 		if e != nil {
-			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "NewNdnpingClient(%s): %v", clientCfg.face, e)
+			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "ndnping.NewClient(%s): %v", clientCfg.face, e)
 		}
 		client.SetInterval(clientCfg.interval)
 		for _, pattern := range clientCfg.patterns {
@@ -32,16 +33,16 @@ func main() {
 		clients = append(clients, client)
 	}
 
-	var servers []NdnpingServer
+	var servers []ndnping.Server
 	for _, serverCfg := range pc.servers {
 		face, e := appinit.NewFaceFromUri(serverCfg.face)
 		if e != nil {
 			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "NewFaceFromUri(%s): %v", serverCfg.face, e)
 		}
 
-		server, e := NewNdnpingServer(*face)
+		server, e := ndnping.NewServer(*face)
 		if e != nil {
-			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "NewPingServer(%s): %v", serverCfg.face, e)
+			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "ndnping.NewServer(%s): %v", serverCfg.face, e)
 		}
 		for _, prefix := range serverCfg.prefixes {
 			server.AddPrefix(prefix)

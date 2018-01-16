@@ -68,7 +68,7 @@ NdnpingServer_ProcessPkt(NdnpingServer* server, struct rte_mbuf* pkt)
   return dataPkt;
 }
 
-int
+void
 NdnpingServer_Run(NdnpingServer* server)
 {
   ZF_LOGD("%" PRI_FaceId " starting %p", server->face->id, server);
@@ -83,5 +83,4 @@ NdnpingServer_Run(NdnpingServer* server)
     Face_TxBurst(server->face, pkts, nTx);
     FreeMbufs(pkts, nTx);
   }
-  return 0;
 }

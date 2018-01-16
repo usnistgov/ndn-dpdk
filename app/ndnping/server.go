@@ -1,4 +1,4 @@
-package main
+package ndnping
 
 /*
 #include "server.h"
@@ -15,11 +15,11 @@ import (
 	"ndn-dpdk/ndn"
 )
 
-type NdnpingServer struct {
+type Server struct {
 	c *C.NdnpingServer
 }
 
-func NewNdnpingServer(face iface.Face) (server NdnpingServer, e error) {
+func NewServer(face iface.Face) (server Server, e error) {
 	server.c = new(C.NdnpingServer)
 	server.c.face = (*C.Face)(face.GetPtr())
 	e = server.SetPayload([]byte{})
@@ -35,30 +35,39 @@ func NewNdnpingServer(face iface.Face) (server NdnpingServer, e error) {
 	return server, e
 }
 
-func (server NdnpingServer) GetFace() iface.Face {
+func (server Server) Close() error {
+	server.clearPayload()
+	return nil
+}
+
+func (server Server) GetFace() iface.Face {
 	return iface.FaceFromPtr(unsafe.Pointer(server.c.face))
 }
 
-func (server NdnpingServer) SetNackNoRoute(enable bool) {
+func (server Server) SetNackNoRoute(enable bool) {
 	server.c.wantNackNoRoute = C.bool(enable)
 }
 
-func (server NdnpingServer) AddPrefix(comps ndn.TlvBytes) {
+func (server Server) AddPrefix(comps ndn.TlvBytes) {
 	prefixSet := nameset.FromPtr(unsafe.Pointer(&server.c.prefixes))
 	prefixSet.Insert(comps)
 }
 
-func (server NdnpingServer) SetPayload(payload []byte) error {
-	if len(payload) > NdnpingServer_MaxPayloadSize {
-		return fmt.Errorf("payload is too long")
-	}
-
+func (server Server) clearPayload() {
 	if server.c.payload != nil {
 		dpdk.MbufFromPtr(unsafe.Pointer(server.c.payload)).Close()
 	}
+}
 
-	numaSocket := iface.FaceFromPtr(unsafe.Pointer(server.c.face)).GetNumaSocket()
-	mp := appinit.MakePktmbufPool(ndnpingServer_PayloadMp, numaSocket)
+func (server Server) SetPayload(payload []byte) error {
+	if len(payload) > Server_MaxPayloadSize {
+		return fmt.Errorf("payload is too long")
+	}
+
+	server.clearPayload()
+
+	numaSocket := server.GetFace().GetNumaSocket()
+	mp := appinit.MakePktmbufPool(Server_PayloadMp, numaSocket)
 	m, e := mp.Alloc()
 	if e != nil {
 		return fmt.Errorf("cannot allocate mbuf for payload: %v", e)
@@ -69,19 +78,20 @@ func (server NdnpingServer) SetPayload(payload []byte) error {
 	return nil
 }
 
-func (server NdnpingServer) Run() int {
-	return int(C.NdnpingServer_Run(server.c))
+func (server Server) Run() int {
+	C.NdnpingServer_Run(server.c)
+	return 0
 }
 
-const ndnpingServer_PayloadMp = "NdnpingServer_Payload"
-const NdnpingServer_MaxPayloadSize = 2048
+const Server_PayloadMp = "NdnpingServer_Payload"
+const Server_MaxPayloadSize = 2048
 
 func init() {
-	appinit.RegisterMempool(ndnpingServer_PayloadMp,
+	appinit.RegisterMempool(Server_PayloadMp,
 		appinit.MempoolConfig{
 			Capacity:     15,
 			CacheSize:    0,
 			PrivSize:     0,
-			DataRoomSize: NdnpingServer_MaxPayloadSize,
+			DataRoomSize: Server_MaxPayloadSize,
 		})
 }

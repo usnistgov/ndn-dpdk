@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_CMD_NDNPING_SERVER_H
-#define NDN_DPDK_CMD_NDNPING_SERVER_H
+#ifndef NDN_DPDK_APP_NDNPING_SERVER_H
+#define NDN_DPDK_APP_NDNPING_SERVER_H
 
 #include "../../container/nameset/nameset.h"
 #include "../../iface/face.h"
@@ -16,6 +16,6 @@ typedef struct NdnpingServer
   struct rte_mempool* mpIndirect; ///< mempool for indirect mbufs to payload
 } NdnpingServer;
 
-int NdnpingServer_Run(NdnpingServer* server);
+void NdnpingServer_Run(NdnpingServer* server);
 
-#endif // NDN_DPDK_CMD_NDNPING_SERVER_H
+#endif // NDN_DPDK_APP_NDNPING_SERVER_H

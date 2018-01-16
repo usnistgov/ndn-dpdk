@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_CMD_NDNPING_CLIENT_H
-#define NDN_DPDK_CMD_NDNPING_CLIENT_H
+#ifndef NDN_DPDK_APP_NDNPING_CLIENT_H
+#define NDN_DPDK_APP_NDNPING_CLIENT_H
 
 #include "../../container/nameset/nameset.h"
 #include "../../iface/face.h"
@@ -32,4 +32,4 @@ void NdnpingClient_Init(NdnpingClient* client);
 
 int NdnpingClient_Run(NdnpingClient* client);
 
-#endif // NDN_DPDK_CMD_NDNPING_CLIENT_H
+#endif // NDN_DPDK_APP_NDNPING_CLIENT_H
