@@ -33,6 +33,10 @@ func Parse(raw string) (*FaceUri, error) {
 	return nil, fmt.Errorf("unknown scheme %s", base.Scheme)
 }
 
+func (u FaceUri) String() string {
+	return u.URL.String()
+}
+
 type iImpl interface {
 	// Verify a FaceUri. Update fields if necessary.
 	// Return an error if FaceUri is invalid, otherwise return nil.
