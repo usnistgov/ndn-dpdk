@@ -21,6 +21,13 @@ func FaceFromPtr(ptr unsafe.Pointer) (face Face) {
 	return face
 }
 
+// Allocate Face.c on specified NumaSocket.
+// This should be only be called by subtype constructor.
+// size: C.sizeof_SubTypeOfFace
+func (face *Face) AllocCFace(size interface{}, socket dpdk.NumaSocket) {
+	face.c = (*C.Face)(dpdk.ZmallocAligned("Face", size, 1, socket))
+}
+
 // Get native *C.Face pointer to use in other packages.
 func (face Face) GetPtr() unsafe.Pointer {
 	return unsafe.Pointer(face.c)
@@ -36,7 +43,7 @@ func (face Face) GetNumaSocket() dpdk.NumaSocket {
 
 func (face Face) Close() error {
 	ok := C.Face_Close(face.c)
-	C.free(unsafe.Pointer(face.c))
+	dpdk.Free(face.c)
 
 	if !ok {
 		return dpdk.GetErrno()

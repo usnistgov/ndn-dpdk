@@ -76,7 +76,7 @@ func New(conn net.Conn, cfg Config) (face *SocketFace) {
 	}
 
 	face = new(SocketFace)
-	face.Face = iface.FaceFromPtr(C.calloc(1, C.sizeof_SocketFace))
+	face.AllocCFace(C.sizeof_SocketFace, dpdk.NUMA_SOCKET_ANY)
 	face.logger = log.New(os.Stderr, fmt.Sprintf("face %d ", id), log.LstdFlags)
 	face.conn = conn
 	face.rxMp = cfg.RxMp

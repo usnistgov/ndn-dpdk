@@ -19,7 +19,7 @@ type EthFace struct {
 
 func New(port dpdk.EthDev, indirectMp dpdk.PktmbufPool,
 	headerMp dpdk.PktmbufPool) (face EthFace, e error) {
-	face = EthFace{iface.FaceFromPtr(C.calloc(1, C.sizeof_EthFace))}
+	face.AllocCFace(C.sizeof_EthFace, port.GetNumaSocket())
 	res := C.EthFace_Init(face.getPtr(), C.uint16_t(port),
 		(*C.struct_rte_mempool)(indirectMp.GetPtr()), (*C.struct_rte_mempool)(headerMp.GetPtr()))
 
