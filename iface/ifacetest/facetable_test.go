@@ -12,6 +12,7 @@ func TestFaceTable(t *testing.T) {
 
 	ft := iface.NewFaceTable()
 	assert.Equal(0, ft.Len())
+	assert.Len(ft.ListFaces(), 0)
 
 	const NFACES = 1000
 	var faces [NFACES + 1]FaceTableTestFace
@@ -31,6 +32,7 @@ func TestFaceTable(t *testing.T) {
 
 	wg.Wait()
 	assert.Equal(NFACES, ft.Len())
+	assert.Len(ft.ListFaces(), 1000)
 
 	wg.Add(NFACES)
 	for i := 1; i <= NFACES; i++ {

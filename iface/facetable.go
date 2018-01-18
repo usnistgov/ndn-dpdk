@@ -24,6 +24,17 @@ func (ft FaceTable) Len() int {
 	return int(C.FaceTable_Count(ft.c))
 }
 
+func (ft FaceTable) ListFaces() []Face {
+	faces := make([]Face, 0)
+	for i := FACEID_MIN; i < FACEID_MAX; i++ {
+		face := ft.GetFace(i)
+		if face.IsValid() {
+			faces = append(faces, face)
+		}
+	}
+	return faces
+}
+
 func (ft FaceTable) GetFace(id FaceId) Face {
 	return FaceFromPtr(unsafe.Pointer(C.FaceTable_GetFace(ft.c, C.FaceId(id))))
 }

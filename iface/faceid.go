@@ -12,7 +12,11 @@ const (
 // Numeric face identifier, may appear in rte_mbuf.port field
 type FaceId uint16
 
-const FACEID_INVALID = FaceId(0)
+const (
+	FACEID_INVALID FaceId = 0
+	FACEID_MIN     FaceId = 1
+	FACEID_MAX     FaceId = 0xFFFF
+)
 
 func (id FaceId) GetKind() FaceKind {
 	switch id >> 12 {
