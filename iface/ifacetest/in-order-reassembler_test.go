@@ -1,15 +1,17 @@
-package iface
+package ifacetest
 
 import (
 	"testing"
 
+	"ndn-dpdk/dpdk/dpdktestenv"
+	"ndn-dpdk/iface"
 	"ndn-dpdk/ndn"
 )
 
 func TestInOrderReassembler(t *testing.T) {
 	assert, require := makeAR(t)
 
-	reassembler := InOrderReassembler{}
+	reassembler := iface.InOrderReassembler{}
 
 	steps := []struct {
 		input  string
@@ -31,7 +33,7 @@ func TestInOrderReassembler(t *testing.T) {
 			""}, // dropping because buffer discarded
 	}
 	for _, step := range steps {
-		pkt := packetFromHex(step.input)
+		pkt := dpdktestenv.PacketFromHex(step.input)
 		require.True(pkt.IsValid(), step.input)
 		d := ndn.NewTlvDecoder(pkt)
 		lpp, e := d.ReadLpPkt()

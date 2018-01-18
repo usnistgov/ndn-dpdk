@@ -1,4 +1,4 @@
-package iface
+package ifacetest
 
 // This file contains test setup procedure and common test helper functions.
 
@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"ndn-dpdk/dpdk"
 	"ndn-dpdk/dpdk/dpdktestenv"
 	"ndn-dpdk/ndn"
 )
@@ -22,8 +21,4 @@ func TestMain(m *testing.M) {
 
 func makeAR(t *testing.T) (*assert.Assertions, *require.Assertions) {
 	return assert.New(t), require.New(t)
-}
-
-func packetFromHex(input string) dpdk.Packet {
-	return dpdktestenv.PacketFromHex(input)
 }

@@ -57,11 +57,16 @@ func GetCurrentLCore() LCore {
 	return LCore(C.rte_lcore_id())
 }
 
+func GetMasterLCore() LCore {
+	return LCore(C.rte_get_master_lcore())
+}
+
 // Prevent a function to be executed in slave lcore.
 func panicInSlave(funcName string) {
 	lc := GetCurrentLCore()
 	if lc.IsValid() && !lc.IsMaster() {
-		panic(fmt.Sprintf("%s is unavailable in slave lcore; current=%d master=%d", lc, C.rte_get_master_lcore()))
+		panic(fmt.Sprintf("%s is unavailable in slave lcore; current=%d master=%d",
+			funcName, lc, GetMasterLCore()))
 	}
 	// 'invalid' lcore is permitted, because Golang runtime could use another thread
 }
@@ -71,7 +76,7 @@ func (lc LCore) IsValid() bool {
 }
 
 func (lc LCore) IsMaster() bool {
-	return C.rte_get_master_lcore() == C.uint(lc)
+	return lc == GetMasterLCore()
 }
 
 func (lc LCore) GetNumaSocket() NumaSocket {

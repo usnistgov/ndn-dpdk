@@ -33,6 +33,10 @@ func (face Face) GetPtr() unsafe.Pointer {
 	return unsafe.Pointer(face.c)
 }
 
+func (face Face) IsValid() bool {
+	return face.c != nil
+}
+
 func (face Face) GetFaceId() FaceId {
 	return FaceId(face.c.id)
 }
