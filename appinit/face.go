@@ -11,6 +11,15 @@ import (
 	"ndn-dpdk/iface/socketface"
 )
 
+var theFaceTable iface.FaceTable
+
+func GetFaceTable() iface.FaceTable {
+	if theFaceTable.GetPtr() == nil {
+		theFaceTable = iface.NewFaceTable()
+	}
+	return theFaceTable
+}
+
 var FACE_RXQ_CAPACITY = 64 // RX queue capacity for new faces
 var FACE_TXQ_CAPACITY = 64 // TX queue capacity for new faces
 
@@ -59,6 +68,7 @@ func newEthFace(u faceuri.FaceUri) (*iface.Face, error) {
 		return nil, fmt.Errorf("ethface.New(%d): %v", port, e)
 	}
 
+	GetFaceTable().SetFace(face.Face)
 	return &face.Face, nil
 }
 
@@ -78,5 +88,6 @@ func newSocketFace(u faceuri.FaceUri) (*iface.Face, error) {
 	cfg.TxqCapacity = FACE_TXQ_CAPACITY
 
 	face := socketface.New(conn, cfg)
+	GetFaceTable().SetFace(face.Face)
 	return &face.Face, nil
 }

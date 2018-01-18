@@ -20,6 +20,11 @@ func NewFaceTable() (ft FaceTable) {
 	return ft
 }
 
+// Get native *C.FaceTable pointer to use in other packages.
+func (ft FaceTable) GetPtr() unsafe.Pointer {
+	return unsafe.Pointer(ft.c)
+}
+
 func (ft FaceTable) Len() int {
 	return int(C.FaceTable_Count(ft.c))
 }

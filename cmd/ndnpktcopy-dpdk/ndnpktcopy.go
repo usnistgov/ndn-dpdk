@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"ndn-dpdk/appinit"
-	"ndn-dpdk/iface"
 	"ndn-dpdk/ndn"
 )
 
@@ -16,7 +15,6 @@ func main() {
 		appinit.Exitf(appinit.EXIT_BAD_CONFIG, "parseCommand: %v", e)
 	}
 
-	var faces []iface.Face
 	var pcrxs []PktcopyRx
 	var pctxs []PktcopyTx
 
@@ -25,7 +23,6 @@ func main() {
 		if e != nil {
 			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "NewFaceFromUri(%s): %v", faceUri, e)
 		}
-		faces = append(faces, *face)
 
 		pcrx, e := NewPktcopyRx(*face)
 		if e != nil {
@@ -43,7 +40,7 @@ func main() {
 	// link PktcopyRx and PktcopyTx
 	switch pc.Mode {
 	case TopoMode_Pair:
-		for i := 0; i < len(faces); i += 2 {
+		for i := 0; i < len(pcrxs); i += 2 {
 			pcrxs[i].LinkTo(pctxs[i+1])
 			pcrxs[i+1].LinkTo(pctxs[i])
 		}
@@ -67,7 +64,7 @@ func main() {
 	go func() {
 		for {
 			<-tick
-			for _, face := range faces {
+			for _, face := range appinit.GetFaceTable().ListFaces() {
 				log.Printf("%d %v", face.GetFaceId(), face.ReadCounters())
 			}
 		}
