@@ -30,6 +30,8 @@ func main() {
 		for _, pattern := range clientCfg.patterns {
 			client.AddPattern(pattern.prefix, pattern.pct)
 		}
+		client.EnableRtt(8, 16)
+
 		clients = append(clients, client)
 	}
 

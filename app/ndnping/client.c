@@ -3,6 +3,7 @@
 #include "../../core/logger.h"
 
 #include <rte_cycles.h>
+#include <rte_malloc.h>
 #include <rte_random.h>
 
 INIT_ZF_LOG(NdnpingClient);
@@ -10,6 +11,25 @@ INIT_ZF_LOG(NdnpingClient);
 #define NDNPINGCLIENT_RX_BURST_SIZE 64
 #define NDNPINGCLIENT_TX_BURST_SIZE 64
 #define NDNPINGCLIENT_INTEREST_LIFETIME 1000
+
+// Currently, only pattern 0 has timeout and RTT sampling, because seqNo determines which pattern
+// to use, as well as whether to sample. This should be fixed when implementing pattern ratios.
+#define PATTERN_0 0
+
+typedef struct NdnpingClientSample
+{
+  bool isPending : 1;
+  bool _reserved : 1;
+  int patternId : 6;
+  uint64_t sendTime : 56; ///< TSC cycles >> NDNPING_TIMING_PRECISION
+} __rte_packed NdnpingClientSample;
+static_assert(sizeof(NdnpingClientSample) == sizeof(uint64_t), "");
+
+static inline bool
+NdnpingClient_IsSamplingEnabled(NdnpingClient* client)
+{
+  return client->sampleFreq != 0xFF;
+}
 
 void
 NdnpingClient_Init(NdnpingClient* client)
@@ -25,12 +45,37 @@ NdnpingClient_Init(NdnpingClient* client)
   client->interestTpl.lifetime = NDNPINGCLIENT_INTEREST_LIFETIME;
   client->interestTpl.fwHints = NULL;
   client->interestTpl.fwHintsSize = 0;
+
+  if (NdnpingClient_IsSamplingEnabled(client)) {
+    size_t nSampleTableEntries = 1 << client->sampleTableSize;
+    client->samplingMask = (1 << client->sampleFreq) - 1;
+    client->sampleIndexMask = (1 << client->sampleTableSize) - 1;
+    client->sampleTable = rte_calloc_socket(
+      "NdnpingClient.sampleTable", nSampleTableEntries,
+      sizeof(NdnpingClientSample), 0, Face_GetNumaSocket(client->face));
+  }
+}
+
+void
+NdnpingClient_Close(NdnpingClient* client)
+{
+  if (client->sampleTable != NULL) {
+    rte_free(client->sampleTable);
+  }
 }
 
 static inline int
 NdnpingClient_SelectPattern(NdnpingClient* client, uint64_t seqNo)
 {
   return seqNo % client->patterns.nRecords;
+}
+
+static inline NdnpingClientSample*
+NdnpingClient_FindSample(NdnpingClient* client, uint64_t seqNo)
+{
+  uint64_t tableIndex = (seqNo >> client->sampleFreq) & client->sampleIndexMask;
+  assert((tableIndex >> client->sampleTableSize) == 0);
+  return (NdnpingClientSample*)client->sampleTable + tableIndex;
 }
 
 static inline void
@@ -48,6 +93,24 @@ NdnpingClient_PrepareTxInterest(NdnpingClient* client, struct rte_mbuf* pkt)
   Packet_SetNdnPktType(pkt, NdnPktType_Interest);
   ZF_LOGV("%" PRI_FaceId " <I seq=%" PRIx64 " pattern=%d", client->face->id,
           seqNo, patternId);
+
+  if (!NdnpingClient_IsSamplingEnabled(client)) {
+    return;
+  }
+  if (patternId != PATTERN_0) {
+    return;
+  }
+  if (likely((seqNo & client->samplingMask) != 0)) {
+    return;
+  }
+
+  NdnpingClientSample* sample = NdnpingClient_FindSample(client, seqNo);
+  if (unlikely(sample->isPending)) { // timeout
+    assert(sample->patternId == PATTERN_0);
+  }
+  sample->isPending = true;
+  sample->patternId = patternId;
+  sample->sendTime = rte_get_tsc_cycles() >> NDNPING_TIMING_PRECISION;
 }
 
 static inline void
@@ -98,6 +161,27 @@ NdnpingClient_ProcessRxData(NdnpingClient* client, struct rte_mbuf* pkt)
   NdnpingClientPattern* pattern =
     NameSet_GetUsrT(&client->patterns, patternId, NdnpingClientPattern*);
   ++pattern->nData;
+
+  if (!NdnpingClient_IsSamplingEnabled(client)) {
+    return;
+  }
+  if (patternId != PATTERN_0) {
+    return;
+  }
+  if (likely((seqNo & client->samplingMask) != 0)) {
+    return;
+  }
+  NdnpingClientSample* sample = NdnpingClient_FindSample(client, seqNo);
+  assert(sample->patternId == PATTERN_0);
+  if (unlikely(!sample->isPending)) {
+    ZF_LOGI("%" PRI_FaceId " duplicate-Data-or-Nack seq=%" PRIx64,
+            client->face->id, seqNo);
+    return;
+  }
+  sample->isPending = false;
+
+  uint64_t now = rte_get_tsc_cycles() >> NDNPING_TIMING_PRECISION;
+  RunningStat_Push(&pattern->rtt, now - sample->sendTime);
 }
 
 static inline void
@@ -117,6 +201,24 @@ NdnpingClient_ProcessRxNack(NdnpingClient* client, struct rte_mbuf* pkt)
   NdnpingClientPattern* pattern =
     NameSet_GetUsrT(&client->patterns, patternId, NdnpingClientPattern*);
   ++pattern->nNacks;
+
+  if (!NdnpingClient_IsSamplingEnabled(client)) {
+    return;
+  }
+  if (patternId != PATTERN_0) {
+    return;
+  }
+  if (likely((seqNo & client->samplingMask) != 0)) {
+    return;
+  }
+  NdnpingClientSample* sample = NdnpingClient_FindSample(client, seqNo);
+  assert(sample->patternId == PATTERN_0);
+  if (unlikely(!sample->isPending)) {
+    ZF_LOGI("%" PRI_FaceId " duplicate-Data-or-Nack seq=%" PRIx64,
+            client->face->id, seqNo);
+    return;
+  }
+  sample->isPending = false;
 }
 
 static inline void
@@ -136,14 +238,16 @@ NdnpingClient_RxBurst(NdnpingClient* client)
   FreeMbufs(pkts, nRx);
 }
 
-int
+void
 NdnpingClient_Run(NdnpingClient* client)
 {
-  uint64_t txBurstInterval = client->interestInterval / 1000.0 *
-                             rte_get_tsc_hz() * NDNPINGCLIENT_TX_BURST_SIZE;
-  ZF_LOGI("%" PRI_FaceId " starting %p burst-interval=%" PRIu64 " @%" PRIu64
+  uint64_t tscHz = rte_get_tsc_hz();
+  atomic_store_explicit(&client->tscHz, tscHz, memory_order_relaxed);
+  uint64_t txBurstInterval =
+    client->interestInterval / 1000.0 * tscHz * NDNPINGCLIENT_TX_BURST_SIZE;
+  ZF_LOGI("%" PRI_FaceId " starting %p tx-burst-interval=%" PRIu64 " @%" PRIu64
           "Hz",
-          client->face->id, client, txBurstInterval, rte_get_tsc_hz());
+          client->face->id, client, txBurstInterval, tscHz);
 
   uint64_t nextTxBurst = rte_get_tsc_cycles();
   while (true) {
@@ -154,5 +258,10 @@ NdnpingClient_Run(NdnpingClient* client)
     }
     NdnpingClient_RxBurst(client);
   }
-  return 0;
+}
+
+uint64_t
+NdnpingClient_GetTscHz(NdnpingClient* client)
+{
+  return atomic_load_explicit(&client->tscHz, memory_order_relaxed);
 }
