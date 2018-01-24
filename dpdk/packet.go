@@ -2,6 +2,7 @@ package dpdk
 
 /*
 #include "mbuf.h"
+#include "mbuf-loc.h"
 */
 import "C"
 import (
@@ -91,4 +92,17 @@ func (pkt Packet) ReadTo(offset int, output []byte) int {
 	pi := NewPacketIterator(pkt)
 	pi.Advance(offset)
 	return pi.Read(output)
+}
+
+// Copy all octets into new []byte.
+func (pkt Packet) ReadAll() []byte {
+	b := make([]byte, pkt.Len())
+	pkt.ReadTo(0, b)
+	return b
+}
+
+// Delete len octets starting from offset (int or PacketIterator or *PacketIterator).
+func (pkt Packet) DeleteRange(offset interface{}, len int) {
+	pi := makePacketIteratorFromOffset(pkt, offset)
+	C.MbufLoc_Delete(&pi.ml, C.uint32_t(len), pkt.ptr, nil)
 }

@@ -25,6 +25,24 @@ func NewPacketIteratorBounded(pkt Packet, off int, len int) PacketIterator {
 	return it
 }
 
+// Reuse or create PacketIterator from an offset.
+// offset: *PacketIterator or PacketIterator or int.
+func makePacketIteratorFromOffset(pkt Packet, offset interface{}) (pi *PacketIterator) {
+	switch v := offset.(type) {
+	case *PacketIterator:
+		pi = v
+	case PacketIterator:
+		pi = &v
+	case int:
+		newPi := NewPacketIterator(pkt)
+		pi = &newPi
+		pi.Advance(v)
+	default:
+		panic("bad offset type")
+	}
+	return pi
+}
+
 // Get native *C.MbufLoc pointer to use in other packages.
 func (it *PacketIterator) GetPtr() unsafe.Pointer {
 	return unsafe.Pointer(&it.ml)

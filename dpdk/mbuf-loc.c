@@ -77,3 +77,89 @@ __MbufLoc_ReadCb(void* arg, const struct rte_mbuf* m, uint16_t off,
   rte_memcpy(*output, input, len);
   *output += len;
 }
+
+// Find previous segment.
+static inline struct rte_mbuf*
+__MbufLoc_FindPrev(const struct rte_mbuf* m, struct rte_mbuf* pkt)
+{
+  assert(m != pkt);
+  struct rte_mbuf* prev = pkt;
+  while (prev->next != m) {
+    prev = prev->next;
+  }
+  return prev;
+}
+
+void
+MbufLoc_Delete(MbufLoc* ml, uint32_t n, struct rte_mbuf* pkt,
+               struct rte_mbuf* prev)
+{
+  if (unlikely(n == 0)) {
+    return;
+  }
+  assert(!MbufLoc_IsEnd(ml));
+  assert(prev == NULL || prev->next == ml->m);
+
+  uint32_t oldPktLen = pkt->pkt_len;
+  struct rte_mbuf* firstM = (struct rte_mbuf*)ml->m;
+
+  if (ml->off + n <= firstM->data_len) { // is the range inside firstM?
+    if (ml->off == 0) {
+      // delete first n octets
+      firstM->data_off += n;
+    } else {
+      // move [ml->off+n,end) to ml->off
+      uint16_t nMoving = firstM->data_len - ml->off - n;
+      if (likely(nMoving > 0)) {
+        uint8_t* dst = rte_pktmbuf_mtod_offset(firstM, uint8_t*, ml->off);
+        const uint8_t* src =
+          rte_pktmbuf_mtod_offset(firstM, uint8_t*, ml->off + n);
+        memmove(dst, src, nMoving);
+      }
+    }
+    firstM->data_len -= n;
+    pkt->pkt_len -= n;
+  } else {
+    // in firstM, delete [ml->off,end)
+    uint16_t nTrim = firstM->data_len - ml->off;
+    firstM->data_len -= nTrim;
+    pkt->pkt_len -= nTrim;
+    uint32_t remaining = n - nTrim;
+
+    // delete remaining octets from subsequent segments
+    while (remaining > 0) {
+      struct rte_mbuf* seg = firstM->next;
+      assert(seg != NULL);
+      bool isEmptying = seg->data_len <= remaining;
+      if (isEmptying) {
+        // segment becomes empty
+        pkt->pkt_len -= seg->data_len;
+        remaining -= seg->data_len;
+        firstM->next = seg->next;
+        --pkt->nb_segs;
+        rte_pktmbuf_free_seg(seg);
+      } else {
+        // delete first n octets from the segment
+        seg->data_off += remaining;
+        seg->data_len -= remaining;
+        pkt->pkt_len -= remaining;
+        remaining = 0;
+      }
+    }
+  }
+
+  // free firstM if it is empty, unless it is the first segment
+  if (firstM != pkt && firstM->data_len == 0) {
+    if (prev == NULL) {
+      prev = __MbufLoc_FindPrev(firstM, pkt);
+    } else {
+      assert(prev->next == firstM);
+    }
+    prev->next = firstM->next;
+    --pkt->nb_segs;
+    rte_pktmbuf_free_seg(firstM);
+  }
+
+  assert((rte_mbuf_sanity_check(pkt, 1), true));
+  assert(pkt->pkt_len + n == oldPktLen);
+}

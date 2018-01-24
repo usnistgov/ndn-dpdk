@@ -52,6 +52,8 @@ MbufLoc_IsEnd(const MbufLoc* ml)
 typedef void (*MbufLoc_AdvanceCb)(void* arg, const struct rte_mbuf* m,
                                   uint16_t off, uint16_t len);
 
+/** \brief Advance the position by \p n octets and invoke \p cb on each mbuf.
+ */
 static inline uint32_t
 __MbufLoc_AdvanceWithCb(MbufLoc* ml, uint32_t n, MbufLoc_AdvanceCb cb,
                         void* cbarg)
@@ -86,7 +88,7 @@ __MbufLoc_AdvanceWithCb(MbufLoc* ml, uint32_t n, MbufLoc_AdvanceCb cb,
   return dist;
 }
 
-/** \brief Advance the position by n octets.
+/** \brief Advance the position by \p n octets.
  *  \return Actually advanced distance.
  */
 static inline uint32_t
@@ -250,5 +252,15 @@ MbufLoc_PeekOctet(const MbufLoc* ml)
   uint8_t* data = rte_pktmbuf_mtod_offset(ml->m, uint8_t*, ml->off);
   return *data;
 }
+
+/** \brief Delete \p n octets at \p ml and free unused mbufs.
+ *  \param[inout] ml starting pointer, will be updated
+ *  \param pkt first segment of the packet
+ *  \param prev mbuf before ml->m, or NULL if unknown or ml->m is first segment
+ *  \post pkt->nb_segs and pkt->pkt_len are updated.
+ *  \warning Undefined behavior if there are less than \p n octets after \p ml.
+ */
+void MbufLoc_Delete(MbufLoc* ml, uint32_t n, struct rte_mbuf* pkt,
+                    struct rte_mbuf* prev);
 
 #endif // NDN_DPDK_DPDK_MBUF_LOC_H

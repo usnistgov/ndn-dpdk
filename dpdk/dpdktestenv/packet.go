@@ -8,17 +8,30 @@ import (
 	"ndn-dpdk/dpdk"
 )
 
-// Make packet from raw bytes.
+// Make packet from byte slice(s), each slice becomes a segment.
 // Memory is allocated from DirectMp.
 // Caller is responsible for closing the packet.
-func PacketFromBytes(input []byte) dpdk.Packet {
-	m := Alloc(MPID_DIRECT)
+func PacketFromBytes(inputs ...[]byte) (pkt dpdk.Packet) {
+	if len(inputs) == 0 {
+		return Alloc(MPID_DIRECT).AsPacket()
+	}
 
-	pkt := m.AsPacket()
-	seg0 := pkt.GetFirstSegment()
-	e := seg0.AppendOctets(input)
-	if e != nil {
-		panic(fmt.Sprintf("Segment.AppendOctets error %v, packet too long?", e))
+	mbufs := AllocBulk(MPID_DIRECT, len(inputs))
+	pkt = mbufs[0].AsPacket()
+	seg := pkt.GetFirstSegment()
+	for i, m := range mbufs {
+		var e error
+		if i > 0 {
+			seg, e = pkt.AppendSegment(m, &seg)
+			if e != nil {
+				panic(fmt.Sprintf("Packet.AppendSegment error %v, packet too long?", e))
+			}
+		}
+		seg.SetHeadroom(0)
+		e = seg.AppendOctets(inputs[i])
+		if e != nil {
+			panic(fmt.Sprintf("Segment.AppendOctets error %v, packet too long?", e))
+		}
 	}
 
 	return pkt
@@ -38,13 +51,13 @@ func PacketBytesFromHex(input string) []byte {
 	return decoded
 }
 
-// Make packet from hexadecimal string.
+// Make packet from hexadecimal string(s), each string becomes a segment.
 // The octets must be written as upper case.
 // All characters other than [0-9A-F] are considered as comments and stripped.
-func PacketFromHex(input string) dpdk.Packet {
-	bytes := PacketBytesFromHex(input)
-	if bytes == nil {
-		return dpdk.Packet{}
+func PacketFromHex(inputs ...string) dpdk.Packet {
+	byteSlices := make([][]byte, len(inputs))
+	for i, input := range inputs {
+		byteSlices[i] = PacketBytesFromHex(input)
 	}
-	return PacketFromBytes(bytes)
+	return PacketFromBytes(byteSlices...)
 }
