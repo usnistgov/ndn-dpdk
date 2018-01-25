@@ -61,7 +61,8 @@ func TestDecodeInterest(t *testing.T) {
 	}
 }
 
-func checkEncodeInterest(t *testing.T, tpl *InterestTemplate, expectedHex string) {
+func checkEncodeInterest(t *testing.T, tpl *InterestTemplate,
+	expectedHex string, nonceOffset int) {
 	assert, _ := makeAR(t)
 
 	expected := dpdktestenv.PacketBytesFromHex(expectedHex)
@@ -72,8 +73,9 @@ func checkEncodeInterest(t *testing.T, tpl *InterestTemplate, expectedHex string
 
 	actual := make([]byte, len(expected))
 	pkt.ReadTo(0, actual)
-	assert.NotEqual(binary.LittleEndian.Uint32(actual[len(expected)-4:]), uint32(0xCCCCCCCC))
-	binary.LittleEndian.PutUint32(actual[len(expected)-4:], 0xCCCCCCCC)
+	assert.NotEqual(binary.LittleEndian.Uint32(actual[nonceOffset:nonceOffset+4]),
+		uint32(0xCCCCCCCC))
+	binary.LittleEndian.PutUint32(actual[nonceOffset:nonceOffset+4], 0xCCCCCCCC)
 	assert.Equal(expected, actual)
 }
 
@@ -88,7 +90,7 @@ func TestEncodeInterest0(t *testing.T) {
 	assert.Equal(4000*time.Millisecond, tpl.GetInterestLifetime())
 
 	checkEncodeInterest(t, tpl,
-		"050E 0700 0C0400000FA0 0A04CCCCCCCC")
+		"050E 0700 0A04CCCCCCCC 0C0400000FA0", 6)
 }
 
 func TestEncodeInterest1(t *testing.T) {
@@ -104,5 +106,5 @@ func TestEncodeInterest1(t *testing.T) {
 	assert.Equal(9000*time.Millisecond, tpl.GetInterestLifetime())
 
 	checkEncodeInterest(t, tpl,
-		"051E 070C0801410801420804737F2FBD 09021200 0C0400002328 0A04CCCCCCCC")
+		"051E 070C0801410801420804737F2FBD 09021200 0A04CCCCCCCC 0C0400002328", 22)
 }
