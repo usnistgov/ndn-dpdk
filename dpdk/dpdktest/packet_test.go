@@ -2,6 +2,7 @@ package dpdktest
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 
 	"ndn-dpdk/dpdk"
@@ -90,126 +91,47 @@ func TestPacketClone(t *testing.T) {
 func TestPacketDeleteRange(t *testing.T) {
 	mp := dpdktestenv.MakeDirectMp(63, 0, 4)
 
-	// subtest name: (segment count)-(delete from which segment)(where in that segment)
+	tests := []struct {
+		id     string // (segment count)-(delete from which segment)(where in that segment)
+		pkt    string // packet segments, separated by '/'
+		offset int
+		count  int
+		nSegs  int
+	}{
+		{"1-0head", "A0A1A2A3", 0, 2, 1},
+		{"1-0mid", "A0A1A2A3", 1, 2, 1},
+		{"1-0tail", "A0A1A2A3", 1, 2, 1},
+		{"1-0all", "A0A1A2A3", 0, 4, 1},
+		{"2-0tail", "A0A1A2A3/B0B1B2B3", 2, 2, 2},
+		{"2-0all", "A0A1A2A3/B0B1B2B3", 0, 4, 2},
+		{"2-1head", "A0A1A2A3/B0B1B2B3", 4, 2, 2},
+		{"2-1all", "A0A1A2A3/B0B1B2B3", 4, 4, 1},
+		{"2-0tail-1head", "A0A1A2A3/B0B1B2B3", 2, 4, 2},
+		{"2-0tail-1all", "A0A1A2A3/B0B1B2B3", 2, 6, 1},
+		{"3-1all", "A0A1A2A3/B0B1B2B3/C0C1C2C3", 4, 4, 2},
+		{"3-0tail-1all", "A0A1A2A3/B0B1B2B3/C0C1C2C3", 2, 6, 2},
+		{"3-1all-2head", "A0A1A2A3/B0B1B2B3/C0C1C2C3", 4, 6, 2},
+		{"3-0tail-1all", "A0A1A2A3/B0B1B2B3/C0C1C2C3", 2, 6, 2},
+		{"3-0tail-1all-2head", "A0A1A2A3/B0B1B2B3/C0C1C2C3", 2, 8, 2},
+		{"3-0tail-1all-2all", "A0A1A2A3/B0B1B2B3/C0C1C2C3", 2, 10, 1},
+	}
+	for _, tt := range tests {
+		t.Run(tt.id, func(t *testing.T) {
+			assert, _ := makeAR(t)
+			pkt := dpdktestenv.PacketFromHex(strings.Split(tt.pkt, "/")...)
+			expected := pkt.ReadAll()
+			expected = append(expected[:tt.offset], expected[tt.offset+tt.count:]...)
 
-	t.Run("1-0head", func(t *testing.T) {
-		assert, _ := makeAR(t)
-		pkt := dpdktestenv.PacketFromHex("A0A1A2A3")
-		defer pkt.Close()
-		pkt.DeleteRange(0, 2)
-		assert.Equal(dpdktestenv.PacketBytesFromHex("A2A3"), pkt.ReadAll())
-		assert.Equal(1, mp.CountInUse())
-	})
-	t.Run("1-0mid", func(t *testing.T) {
-		assert, _ := makeAR(t)
-		pkt := dpdktestenv.PacketFromHex("A0A1A2A3")
-		defer pkt.Close()
-		pkt.DeleteRange(1, 2)
-		assert.Equal(dpdktestenv.PacketBytesFromHex("A0A3"), pkt.ReadAll())
-		assert.Equal(1, mp.CountInUse())
-	})
-	t.Run("1-0tail", func(t *testing.T) {
-		assert, _ := makeAR(t)
-		pkt := dpdktestenv.PacketFromHex("A0A1A2A3")
-		defer pkt.Close()
-		pkt.DeleteRange(2, 2)
-		assert.Equal(dpdktestenv.PacketBytesFromHex("A0A1"), pkt.ReadAll())
-		assert.Equal(1, mp.CountInUse())
-	})
-	t.Run("1-0all", func(t *testing.T) {
-		assert, _ := makeAR(t)
-		pkt := dpdktestenv.PacketFromHex("A0A1A2A3")
-		defer pkt.Close()
-		pkt.DeleteRange(0, 4)
-		assert.Equal(0, pkt.Len())
-		assert.Equal(1, mp.CountInUse())
-	})
-	t.Run("2-0tail", func(t *testing.T) {
-		assert, _ := makeAR(t)
-		pkt := dpdktestenv.PacketFromHex("A0A1A2A3", "B0B1B2B3")
-		defer pkt.Close()
-		pkt.DeleteRange(2, 2)
-		assert.Equal(dpdktestenv.PacketBytesFromHex("A0A1B0B1B2B3"), pkt.ReadAll())
-		assert.Equal(2, mp.CountInUse())
-	})
-	t.Run("2-0all", func(t *testing.T) {
-		assert, _ := makeAR(t)
-		pkt := dpdktestenv.PacketFromHex("A0A1A2A3", "B0B1B2B3")
-		defer pkt.Close()
-		pkt.DeleteRange(0, 4)
-		assert.Equal(dpdktestenv.PacketBytesFromHex("B0B1B2B3"), pkt.ReadAll())
-		assert.Equal(2, mp.CountInUse())
-	})
-	t.Run("2-1head", func(t *testing.T) {
-		assert, _ := makeAR(t)
-		pkt := dpdktestenv.PacketFromHex("A0A1A2A3", "B0B1B2B3")
-		defer pkt.Close()
-		pkt.DeleteRange(4, 2)
-		assert.Equal(dpdktestenv.PacketBytesFromHex("A0A1A2A3B2B3"), pkt.ReadAll())
-		assert.Equal(2, mp.CountInUse())
-	})
-	t.Run("2-1all", func(t *testing.T) {
-		assert, _ := makeAR(t)
-		pkt := dpdktestenv.PacketFromHex("A0A1A2A3", "B0B1B2B3")
-		defer pkt.Close()
-		pkt.DeleteRange(4, 4)
-		assert.Equal(dpdktestenv.PacketBytesFromHex("A0A1A2A3"), pkt.ReadAll())
-		assert.Equal(1, mp.CountInUse())
-	})
-	t.Run("2-0tail-1head", func(t *testing.T) {
-		assert, _ := makeAR(t)
-		pkt := dpdktestenv.PacketFromHex("A0A1A2A3", "B0B1B2B3")
-		defer pkt.Close()
-		pkt.DeleteRange(2, 4)
-		assert.Equal(dpdktestenv.PacketBytesFromHex("A0A1B2B3"), pkt.ReadAll())
-		assert.Equal(2, mp.CountInUse())
-	})
-	t.Run("2-0tail-1all", func(t *testing.T) {
-		assert, _ := makeAR(t)
-		pkt := dpdktestenv.PacketFromHex("A0A1A2A3", "B0B1B2B3")
-		defer pkt.Close()
-		pkt.DeleteRange(2, 6)
-		assert.Equal(dpdktestenv.PacketBytesFromHex("A0A1"), pkt.ReadAll())
-		assert.Equal(1, mp.CountInUse())
-	})
-	t.Run("3-1all", func(t *testing.T) {
-		assert, _ := makeAR(t)
-		pkt := dpdktestenv.PacketFromHex("A0A1A2A3", "B0B1B2B3", "C0C1C2C3")
-		defer pkt.Close()
-		pkt.DeleteRange(4, 4)
-		assert.Equal(dpdktestenv.PacketBytesFromHex("A0A1A2A3C0C1C2C3"), pkt.ReadAll())
-		assert.Equal(2, mp.CountInUse())
-	})
-	t.Run("3-0tail-1all", func(t *testing.T) {
-		assert, _ := makeAR(t)
-		pkt := dpdktestenv.PacketFromHex("A0A1A2A3", "B0B1B2B3", "C0C1C2C3")
-		defer pkt.Close()
-		pkt.DeleteRange(2, 6)
-		assert.Equal(dpdktestenv.PacketBytesFromHex("A0A1C0C1C2C3"), pkt.ReadAll())
-		assert.Equal(2, mp.CountInUse())
-	})
-	t.Run("3-1all-2head", func(t *testing.T) {
-		assert, _ := makeAR(t)
-		pkt := dpdktestenv.PacketFromHex("A0A1A2A3", "B0B1B2B3", "C0C1C2C3")
-		defer pkt.Close()
-		pkt.DeleteRange(4, 6)
-		assert.Equal(dpdktestenv.PacketBytesFromHex("A0A1A2A3C2C3"), pkt.ReadAll())
-		assert.Equal(2, mp.CountInUse())
-	})
-	t.Run("3-0tail-1all-2head", func(t *testing.T) {
-		assert, _ := makeAR(t)
-		pkt := dpdktestenv.PacketFromHex("A0A1A2A3", "B0B1B2B3", "C0C1C2C3")
-		defer pkt.Close()
-		pkt.DeleteRange(2, 8)
-		assert.Equal(dpdktestenv.PacketBytesFromHex("A0A1C2C3"), pkt.ReadAll())
-		assert.Equal(2, mp.CountInUse())
-	})
-	t.Run("3-0tail-1all-2all", func(t *testing.T) {
-		assert, _ := makeAR(t)
-		pkt := dpdktestenv.PacketFromHex("A0A1A2A3", "B0B1B2B3", "C0C1C2C3")
-		defer pkt.Close()
-		pkt.DeleteRange(2, 10)
-		assert.Equal(dpdktestenv.PacketBytesFromHex("A0A1"), pkt.ReadAll())
-		assert.Equal(1, mp.CountInUse())
-	})
+			begin := dpdk.NewPacketIterator(pkt)
+			pi := begin
+			pi.Advance(tt.offset)
+			pkt.DeleteRange(&pi, tt.count)
+
+			assert.Equal(tt.offset, begin.ComputeDistance(pi))
+			assert.Equal(expected, pkt.ReadAll())
+			assert.Equal(tt.nSegs, mp.CountInUse())
+
+			pkt.Close()
+		})
+	}
 }

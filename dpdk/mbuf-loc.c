@@ -168,6 +168,14 @@ MbufLoc_Delete(MbufLoc* ml, uint32_t n, struct rte_mbuf* pkt,
     }
   }
 
+  // 'advance' ml by zero, so that it points to valid buffer
+  if (ml->off == firstM->data_len) {
+    while (ml->m != NULL && ml->m->data_len == ml->off) {
+      ml->m = ml->m->next;
+      ml->off = 0;
+    }
+  }
+
   // free firstM if it is empty, unless it is the first segment
   if (firstM != pkt && firstM->data_len == 0) {
     if (prev == NULL) {
