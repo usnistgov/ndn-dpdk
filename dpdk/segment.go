@@ -53,63 +53,58 @@ func (s Segment) GetTailroom() int {
 	return int(C.rte_pktmbuf_tailroom(s.ptr))
 }
 
-// Prepend len octets.
+// Prepend in headroom.
 // Return pointer to new space.
-func (s Segment) Prepend(len int) (unsafe.Pointer, error) {
-	if len > s.GetHeadroom() {
-		return nil, errors.New("insufficient headroom")
+func (s Segment) Prepend(input []byte) error {
+	count := len(input)
+	if count == 0 {
+		return nil
 	}
-	s.ptr.data_off = s.ptr.data_off - C.uint16_t(len)
-	s.ptr.data_len = s.ptr.data_len + C.uint16_t(len)
-	s.pkt.ptr.pkt_len = s.pkt.ptr.pkt_len + C.uint32_t(len)
-	return s.GetData(), nil
+	if count > s.GetHeadroom() {
+		return errors.New("insufficient headroom")
+	}
+	s.ptr.data_off -= C.uint16_t(count)
+	s.ptr.data_len += C.uint16_t(count)
+	s.pkt.ptr.pkt_len += C.uint32_t(count)
+	C.memcpy(s.GetData(), unsafe.Pointer(&input[0]), C.size_t(count))
+	return nil
 }
 
-// Remove len octets from pkt.
-// Return pointer to new pkt.
-func (s Segment) Adj(len int) (unsafe.Pointer, error) {
+// Remove len octets from head.
+func (s Segment) Adj(len int) error {
 	if len > s.Len() {
-		return nil, errors.New("segment shorter than adj amount")
+		return errors.New("segment shorter than adj amount")
 	}
 	s.ptr.data_off = s.ptr.data_off + C.uint16_t(len)
 	s.ptr.data_len = s.ptr.data_len - C.uint16_t(len)
 	s.pkt.ptr.pkt_len = s.pkt.ptr.pkt_len - C.uint32_t(len)
-	return s.GetData(), nil
-}
-
-// Append len octets at tail.
-// Return pointer to new space.
-func (s Segment) Append(len int) (unsafe.Pointer, error) {
-	if len > s.GetTailroom() {
-		return nil, errors.New("insufficient tailroom")
-	}
-	tail := unsafe.Pointer(uintptr(s.ptr.buf_addr) + uintptr(s.ptr.data_off) +
-		uintptr(s.ptr.data_len))
-	s.ptr.data_len = s.ptr.data_len + C.uint16_t(len)
-	s.pkt.ptr.pkt_len = s.pkt.ptr.pkt_len + C.uint32_t(len)
-	return tail, nil
-}
-
-// Append octets at tail.
-func (s Segment) AppendOctets(input []byte) error {
-	buf, e := s.Append(len(input))
-	if e != nil {
-		return e
-	}
-
-	for i, b := range input {
-		ptr := unsafe.Pointer(uintptr(buf) + uintptr(i))
-		*(*byte)(ptr) = b
-	}
 	return nil
 }
 
-// Remove len octets from tail.
-func (s Segment) Trim(len int) error {
-	if len > s.Len() {
+// Append in tailroom.
+func (s Segment) Append(input []byte) error {
+	count := len(input)
+	if count == 0 {
+		return nil
+	}
+	if count > s.GetTailroom() {
+		return errors.New("insufficient tailroom")
+	}
+
+	tail := unsafe.Pointer(uintptr(s.ptr.buf_addr) + uintptr(s.ptr.data_off) +
+		uintptr(s.ptr.data_len))
+	s.ptr.data_len += C.uint16_t(count)
+	s.pkt.ptr.pkt_len += C.uint32_t(count)
+	C.memcpy(tail, unsafe.Pointer(&input[0]), C.size_t(count))
+	return nil
+}
+
+// Remove count octets from tail.
+func (s Segment) Trim(count int) error {
+	if count > s.Len() {
 		return errors.New("segment shorter than trim amount")
 	}
-	s.ptr.data_len = s.ptr.data_len - C.uint16_t(len)
-	s.pkt.ptr.pkt_len = s.pkt.ptr.pkt_len - C.uint32_t(len)
+	s.ptr.data_len = s.ptr.data_len - C.uint16_t(count)
+	s.pkt.ptr.pkt_len = s.pkt.ptr.pkt_len - C.uint32_t(count)
 	return nil
 }

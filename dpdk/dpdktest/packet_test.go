@@ -1,143 +1,58 @@
 package dpdktest
 
 import (
+	"bytes"
 	"testing"
-	"unsafe"
 
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/dpdk/dpdktestenv"
 )
 
-func TestPacket(t *testing.T) {
+func TestPacketSegmentsRead(t *testing.T) {
 	assert, require := makeAR(t)
-	mp := dpdktestenv.MakeDirectMp(63, 0, 1000)
-	mpi := dpdktestenv.MakeIndirectMp(63)
+	dpdktestenv.MakeDirectMp(63, 0, 1000)
 
-	m, e := mp.Alloc()
-	require.NoError(e)
-	var cMbufPtr *c_struct_rte_mbuf
-	assert.Equal(unsafe.Sizeof(cMbufPtr), unsafe.Sizeof(m))
-
-	pkt := m.AsPacket()
+	pkt := dpdktestenv.Alloc(dpdktestenv.MPID_DIRECT).AsPacket()
 	defer pkt.Close()
-	assert.Equal(unsafe.Sizeof(cMbufPtr), unsafe.Sizeof(pkt))
-
-	assert.EqualValues(0, pkt.Len())
-	assert.EqualValues(1, pkt.CountSegments())
+	assert.Equal(0, pkt.Len())
+	assert.Equal(1, pkt.CountSegments())
 	assert.Equal(pkt.GetFirstSegment(), pkt.GetLastSegment())
-	seg0, e := pkt.GetSegment(0)
-	assert.NoError(e)
-	assert.Equal(pkt.GetFirstSegment(), seg0)
-	_, e = pkt.GetSegment(1)
-	assert.Error(e)
+	seg0p := pkt.GetSegment(0)
+	require.NotNil(seg0p)
+	assert.Equal(pkt.GetFirstSegment(), *seg0p)
 
-	dp0, e := seg0.Append(200)
-	c_memset(dp0, 0xA1, 200)
-	assert.EqualValues(200, pkt.Len())
+	pkt.GetFirstSegment().Append(bytes.Repeat([]byte{0xA1}, 200))
+	assert.Equal(200, pkt.Len())
 
-	m, e = mp.Alloc()
+	seg1, e := pkt.AppendSegment(dpdktestenv.Alloc(dpdktestenv.MPID_DIRECT))
 	require.NoError(e)
-	seg1, e := pkt.AppendSegment(m, nil)
-	require.NoError(e)
-	assert.EqualValues(200, pkt.Len())
-	assert.EqualValues(2, pkt.CountSegments())
-	assert.NotEqual(pkt.GetFirstSegment(), pkt.GetLastSegment())
-	seg1, e = pkt.GetSegment(1)
-	assert.NoError(e)
 	assert.Equal(pkt.GetLastSegment(), seg1)
+	seg1p := pkt.GetSegment(1)
+	require.NotNil(seg1p)
+	assert.Equal(seg1, *seg1p)
 
-	dp1, e := seg1.Append(300)
-	c_memset(dp1, 0xA2, 300)
-	assert.EqualValues(500, pkt.Len())
+	seg1.Append(bytes.Repeat([]byte{0xA2}, 300))
+	assert.Equal(500, pkt.Len())
 
-	allocBuf := c_malloc(4)
-	defer c_free(allocBuf)
-
-	it0 := dpdk.NewPacketIterator(pkt)
-	readBuf2 := make([]byte, 4)
-	readSuccessTests := []struct {
-		offset         int
-		shouldUseAlloc bool
-		expected       [4]byte
+	readTests := []struct {
+		offset   int
+		expected []byte
 	}{
-		{0, false, [4]byte{0xA1, 0xA1, 0xA1, 0xA1}},
-		{196, false, [4]byte{0xA1, 0xA1, 0xA1, 0xA1}},
-		{197, true, [4]byte{0xA1, 0xA1, 0xA1, 0xA2}},
-		{199, true, [4]byte{0xA1, 0xA2, 0xA2, 0xA2}},
-		{200, false, [4]byte{0xA2, 0xA2, 0xA2, 0xA2}},
-		{496, false, [4]byte{0xA2, 0xA2, 0xA2, 0xA2}},
+		{0, []byte{0xA1, 0xA1, 0xA1, 0xA1}},
+		{196, []byte{0xA1, 0xA1, 0xA1, 0xA1}},
+		{197, []byte{0xA1, 0xA1, 0xA1, 0xA2}},
+		{199, []byte{0xA1, 0xA2, 0xA2, 0xA2}},
+		{200, []byte{0xA2, 0xA2, 0xA2, 0xA2}},
+		{496, []byte{0xA2, 0xA2, 0xA2, 0xA2}},
+		{498, []byte{0xA2, 0xA2}},
+		{500, []byte{}},
 	}
-	for _, tt := range readSuccessTests {
-		readBuf, e := pkt.Read(tt.offset, 4, allocBuf)
-		assert.NoError(e, tt.offset)
-		if assert.NotNil(readBuf, tt.offset) {
-			if tt.shouldUseAlloc {
-				assert.Equal(allocBuf, readBuf, tt.offset)
-			} else {
-				assert.NotEqual(allocBuf, readBuf, tt.offset)
-			}
-			assert.Equal(tt.expected[:], c_GoBytes(readBuf, 4), tt.offset)
-		}
-
-		it := it0
-		nAdvanced := it.Advance(tt.offset)
-		if assert.False(it.IsEnd(), tt.offset) {
-			assert.EqualValues(tt.offset, nAdvanced, tt.offset)
-			assert.EqualValues(-int(tt.offset), it.ComputeDistance(&it0), tt.offset)
-			assert.EqualValues(tt.offset, it0.ComputeDistance(&it), tt.offset)
-
-			assert.EqualValues(tt.expected[0], it.PeekOctet(), tt.offset)
-			nRead := it.Read(readBuf2[:])
-			assert.EqualValues(4, nRead, tt.offset)
-			assert.Equal(tt.expected[:], readBuf2, tt.offset)
-		}
-
-		it = it0
-		it.Advance(tt.offset)
-		if assert.False(it.IsEnd(), tt.offset) {
-			pkti, e := it.MakeIndirect(4, mpi)
-			if assert.NoError(e, pkti) && assert.True(pkti.IsValid()) {
-				defer pkti.Close()
-				assert.Equal(4, pkti.Len())
-				readBuf, e = pkti.Read(0, 4, allocBuf)
-				assert.NoError(e, tt.offset)
-				if assert.NotNil(readBuf, tt.offset) {
-					assert.Equal(tt.expected[:], c_GoBytes(readBuf, 4), tt.offset)
-				}
-			}
-		}
+	for _, tt := range readTests {
+		readBuf := make([]byte, 4)
+		nRead := pkt.ReadTo(tt.offset, readBuf)
+		assert.Equal(len(tt.expected), nRead, tt.offset)
+		assert.Equal(tt.expected, readBuf[:nRead], tt.offset)
 	}
-
-	it2 := dpdk.NewPacketIteratorBounded(pkt, 100, 6)
-	assert.EqualValues(4, it2.Read(readBuf2[:]))
-	assert.EqualValues(2, it2.Read(readBuf2[:]))
-	assert.EqualValues(0, it2.Read(readBuf2[:]))
-	assert.Equal(-1, it2.PeekOctet())
-
-	it2 = dpdk.NewPacketIteratorBounded(pkt, 495, 6)
-	assert.EqualValues(3, it2.Advance(3))
-	assert.EqualValues(2, it2.Advance(3))
-	assert.EqualValues(0, it2.Advance(3))
-
-	_, e = pkt.Read(497, 4, allocBuf)
-	assert.Error(e)
-
-	m, e = mp.Alloc()
-	require.NoError(e)
-	pkt2 := m.AsPacket()
-	seg0 = pkt2.GetFirstSegment()
-	seg0.Append(50)
-	m, e = mp.Alloc()
-	require.NoError(e)
-	seg1, e = pkt2.AppendSegment(m, &seg0)
-	assert.NoError(e)
-	seg1.Append(20)
-	assert.EqualValues(70, pkt2.Len())
-	assert.EqualValues(2, pkt2.CountSegments())
-
-	pkt.AppendPacket(pkt2, nil)
-	assert.EqualValues(570, pkt.Len())
-	assert.EqualValues(4, pkt.CountSegments())
 }
 
 func TestPacketClone(t *testing.T) {
@@ -145,34 +60,31 @@ func TestPacketClone(t *testing.T) {
 	mp := dpdktestenv.MakeDirectMp(63, 0, 1000)
 	mpi := dpdktestenv.MakeIndirectMp(63)
 
-	pkts := make([]dpdk.Packet, 2)
-	e := mp.AllocBulk(pkts[:1])
+	var pkt0mbufs [2]dpdk.Mbuf
+	dpdktestenv.AllocBulk(dpdktestenv.MPID_DIRECT, pkt0mbufs[:])
+	pkt0 := pkt0mbufs[0].AsPacket()
+	pkt0.AppendSegment(pkt0mbufs[1])
+	pkt0.GetFirstSegment().Append(bytes.Repeat([]byte{0xA1}, 100))
+	pkt0.GetLastSegment().Append(bytes.Repeat([]byte{0xA2}, 200))
+	assert.Equal(2, mp.CountInUse())
+
+	pkt1, e := mpi.ClonePkt(pkt0)
 	require.NoError(e)
+	require.True(pkt1.IsValid())
+	assert.Equal(2, mp.CountInUse())
+	assert.Equal(2, mpi.CountInUse())
+	assert.Equal(2, pkt1.CountSegments())
+	assert.Equal(300, pkt1.Len())
+	assert.Equal(pkt0.GetFirstSegment().GetData(), pkt1.GetFirstSegment().GetData())
+	assert.Equal(pkt0.GetLastSegment().GetData(), pkt1.GetLastSegment().GetData())
 
-	m, e := mp.Alloc()
-	require.NoError(e)
-	pkts[0].AppendSegment(m, nil)
-	pkts[0].GetFirstSegment().Append(100)
-	pkts[0].GetLastSegment().Append(200)
-	assert.EqualValues(2, mp.CountInUse())
+	pkt0.Close()
+	assert.Equal(2, mp.CountInUse())
+	assert.Equal(2, mpi.CountInUse())
 
-	pkts[1], e = mpi.ClonePkt(pkts[0])
-	require.NoError(e)
-	require.NotNil(pkts[1])
-	assert.EqualValues(2, mp.CountInUse())
-	assert.EqualValues(2, mpi.CountInUse())
-	assert.EqualValues(2, pkts[1].CountSegments())
-	assert.EqualValues(300, pkts[1].Len())
-	assert.Equal(pkts[0].GetFirstSegment().GetData(), pkts[1].GetFirstSegment().GetData())
-	assert.Equal(pkts[0].GetLastSegment().GetData(), pkts[1].GetLastSegment().GetData())
-
-	pkts[0].Close()
-	assert.EqualValues(2, mp.CountInUse())
-	assert.EqualValues(2, mpi.CountInUse())
-
-	pkts[1].Close()
-	assert.EqualValues(0, mp.CountInUse())
-	assert.EqualValues(0, mpi.CountInUse())
+	pkt1.Close()
+	assert.Equal(0, mp.CountInUse())
+	assert.Equal(0, mpi.CountInUse())
 }
 
 func TestPacketDeleteRange(t *testing.T) {

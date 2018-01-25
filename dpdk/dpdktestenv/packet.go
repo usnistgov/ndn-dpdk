@@ -16,21 +16,22 @@ func PacketFromBytes(inputs ...[]byte) (pkt dpdk.Packet) {
 		return Alloc(MPID_DIRECT).AsPacket()
 	}
 
-	mbufs := AllocBulk(MPID_DIRECT, len(inputs))
+	mbufs := make([]dpdk.Mbuf, len(inputs))
+	AllocBulk(MPID_DIRECT, mbufs)
 	pkt = mbufs[0].AsPacket()
 	seg := pkt.GetFirstSegment()
 	for i, m := range mbufs {
 		var e error
 		if i > 0 {
-			seg, e = pkt.AppendSegment(m, &seg)
+			seg, e = pkt.AppendSegmentHint(m, &seg)
 			if e != nil {
 				panic(fmt.Sprintf("Packet.AppendSegment error %v, packet too long?", e))
 			}
 		}
 		seg.SetHeadroom(0)
-		e = seg.AppendOctets(inputs[i])
+		e = seg.Append(inputs[i])
 		if e != nil {
-			panic(fmt.Sprintf("Segment.AppendOctets error %v, packet too long?", e))
+			panic(fmt.Sprintf("Segment.Append error %v, packet too long?", e))
 		}
 	}
 

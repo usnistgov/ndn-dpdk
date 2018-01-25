@@ -35,7 +35,7 @@ func (impl *datagramImpl) RxLoop() {
 		pkt := mbuf.AsPacket()
 		seg0 := pkt.GetFirstSegment()
 		seg0.SetHeadroom(0)
-		seg0.AppendOctets(buf[:nOctets])
+		seg0.Append(buf[:nOctets])
 
 		select {
 		case <-face.rxQuit:

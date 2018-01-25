@@ -78,7 +78,7 @@ func (impl *streamImpl) postPacket(buf []byte) (n int) {
 	pkt := mbuf.AsPacket()
 	seg0 := pkt.GetFirstSegment()
 	seg0.SetHeadroom(0)
-	seg0.AppendOctets(buf)
+	seg0.Append(buf)
 
 	select {
 	case face.rxQueue <- pkt:

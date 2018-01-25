@@ -41,13 +41,11 @@ func Alloc(id string) dpdk.Mbuf {
 	return m
 }
 
-func AllocBulk(id string, n int) (mbufs []dpdk.Mbuf) {
-	mbufs = make([]dpdk.Mbuf, n)
+func AllocBulk(id string, mbufs interface{}) {
 	e := GetMp(id).AllocBulk(mbufs)
 	if e != nil {
-		panic(fmt.Sprintf("mp[%s].AllocBulk(%d) error %v", id, n, e))
+		panic(fmt.Sprintf("mp[%s].AllocBulk() error %v", id, e))
 	}
-	return mbufs
 }
 
 const MPID_DIRECT = "_default_direct"

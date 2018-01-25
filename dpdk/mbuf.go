@@ -9,7 +9,7 @@ import (
 )
 
 type IMbuf interface {
-	Close()
+	Close() error
 	GetPtr() unsafe.Pointer
 	iMbufFlag()
 }
@@ -45,4 +45,11 @@ func (m Mbuf) Close() error {
 
 func (m Mbuf) AsPacket() Packet {
 	return Packet{m}
+}
+
+func init() {
+	var m Mbuf
+	if unsafe.Sizeof(m) != unsafe.Sizeof(m.ptr) {
+		panic("sizeof dpdk.Mbuf differs from *C.struct_rte_mbuf")
+	}
 }

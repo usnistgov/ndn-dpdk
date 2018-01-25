@@ -11,6 +11,7 @@
  *
  *  This struct contains an octet position within a multi-segment packet.
  *  It can optionally carry a boundary so that the iterator cannot be advanced past this limit.
+ *  A zero-initialized MbufLoc indicates past-end.
  */
 typedef struct MbufLoc
 {

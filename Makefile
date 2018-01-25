@@ -2,8 +2,6 @@ CLIBPREFIX=build-c/libndn-dpdk
 
 all: cmds
 
-gopkgs: go-dpdk go-ndn go-iface go-ethface go-socketface go-appinit
-
 cbuilds: $(CLIBPREFIX)-core.a $(CLIBPREFIX)-dpdk.a $(CLIBPREFIX)-ndn.a $(CLIBPREFIX)-nameset.a $(CLIBPREFIX)-iface.a
 
 cmds: cmd-ndnpktcopy-dpdk cmd-ndnping-dpdk

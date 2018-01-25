@@ -55,9 +55,8 @@ func main() {
 			e := mp.AllocBulk(pkts[:])
 			require.NoErrorf(e, "mp.AllocBulk error at loop %d", i)
 			for j := 0; j < TX_BURST_SIZE; j++ {
-				pktBuf, e := pkts[j].GetFirstSegment().Append(1)
+				e := pkts[j].GetFirstSegment().Append([]byte{byte(j)})
 				assert.NoError(e)
-				*(*byte)(pktBuf) = byte(j)
 			}
 
 			nSent := 0

@@ -1,8 +1,8 @@
 #include "mbuf-loc.h"
 
-// Same as MbucLoc_Diff but only consider one direction: advance a to reach b.
+// Determine the distance advancing a to reach b.
 static inline bool
-__MbufLoc_Diff_OneSided(const MbufLoc* a, const MbufLoc* b, ptrdiff_t* dist)
+__MbufLoc_Diff_Forward(const MbufLoc* a, const MbufLoc* b, ptrdiff_t* dist)
 {
   *dist = 0;
   const struct rte_mbuf* am = a->m;
@@ -20,16 +20,36 @@ __MbufLoc_Diff_OneSided(const MbufLoc* a, const MbufLoc* b, ptrdiff_t* dist)
   return false;
 }
 
+// Determine the distance advancing ml to reach the end.
+static inline ptrdiff_t
+__MbufLoc_Diff_ToEnd(const MbufLoc* ml)
+{
+  ptrdiff_t dist = 0;
+  const struct rte_mbuf* m = ml->m;
+  uint16_t off = ml->off;
+  while (m != NULL) {
+    dist += m->data_len - off;
+    m = m->next;
+    off = 0;
+  }
+  return dist;
+}
+
 ptrdiff_t
 MbufLoc_Diff(const MbufLoc* a, const MbufLoc* b)
 {
-  assert(!MbufLoc_IsEnd(a) && !MbufLoc_IsEnd(b));
+  if (b->m == NULL) {
+    return __MbufLoc_Diff_ToEnd(a);
+  }
+  if (a->m == NULL) {
+    return -__MbufLoc_Diff_ToEnd(b);
+  }
 
   ptrdiff_t dist = 0;
-  if (__MbufLoc_Diff_OneSided(a, b, &dist)) {
+  if (__MbufLoc_Diff_Forward(a, b, &dist)) {
     return dist;
   }
-  if (__MbufLoc_Diff_OneSided(b, a, &dist)) {
+  if (__MbufLoc_Diff_Forward(b, a, &dist)) {
     return -dist;
   }
   assert(false);

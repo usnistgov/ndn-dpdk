@@ -78,7 +78,7 @@ func (server Server) SetPayload(payload []byte) error {
 		return fmt.Errorf("cannot allocate mbuf for payload: %v", e)
 	}
 
-	m.AsPacket().GetFirstSegment().AppendOctets(payload)
+	m.AsPacket().GetFirstSegment().Append(payload)
 	server.c.payload = (*C.struct_rte_mbuf)(m.GetPtr())
 	return nil
 }

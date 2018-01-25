@@ -27,16 +27,16 @@ func (pkt Packet) GetFirstSegment() Segment {
 	return Segment{pkt.Mbuf, pkt}
 }
 
-func (pkt Packet) GetSegment(i int) (Segment, error) {
+func (pkt Packet) GetSegment(i int) *Segment {
 	s := pkt.GetFirstSegment()
 	for j := 0; j < i; j++ {
 		ok := false
 		s, ok = s.GetNext()
 		if !ok {
-			return s, errors.New("segment index out of range")
+			return nil
 		}
 	}
-	return s, nil
+	return &s
 }
 
 func (pkt Packet) GetLastSegment() Segment {
@@ -47,7 +47,7 @@ func (pkt Packet) GetLastSegment() Segment {
 // m: allocated Mbuf for new segment
 // tail: if not nil, must be pkt.GetLastSegment(), to use faster implementation
 // Return the new tail segment.
-func (pkt Packet) AppendSegment(m Mbuf, tail *Segment) (Segment, error) {
+func (pkt Packet) AppendSegmentHint(m Mbuf, tail *Segment) (Segment, error) {
 	if tail == nil {
 		res := C.rte_pktmbuf_chain(pkt.ptr, m.ptr)
 		if res != 0 {
@@ -68,22 +68,19 @@ func (pkt Packet) AppendSegment(m Mbuf, tail *Segment) (Segment, error) {
 	return Segment{m, pkt}, nil
 }
 
+func (pkt Packet) AppendSegment(m Mbuf) (Segment, error) {
+	return pkt.AppendSegmentHint(m, nil)
+}
+
 // Append all segments in pkt2.
 // tail: if not nil, must be pkt.GetLastSegment(), to use faster implementation
-func (pkt Packet) AppendPacket(pkt2 Packet, tail *Segment) error {
-	_, e := pkt.AppendSegment(pkt2.Mbuf, tail)
+func (pkt Packet) AppendPacketHint(pkt2 Packet, tail *Segment) error {
+	_, e := pkt.AppendSegmentHint(pkt2.Mbuf, tail)
 	return e
 }
 
-// Read len octets at offset.
-// buf: a buffer on C memory of at least len, for copying in case range is split between segments.
-// Return a C pointer to the octets, either in segment or copied.
-func (pkt Packet) Read(offset int, len int, buf unsafe.Pointer) (unsafe.Pointer, error) {
-	res := C.rte_pktmbuf_read(pkt.ptr, C.uint32_t(offset), C.uint32_t(len), buf)
-	if res == nil {
-		return nil, errors.New("rte_pktmbuf_read out of range")
-	}
-	return res, nil
+func (pkt Packet) AppendPacket(pkt2 Packet) error {
+	return pkt.AppendPacketHint(pkt2, nil)
 }
 
 // Copy len(output) octets at offset into buf.
@@ -105,4 +102,11 @@ func (pkt Packet) ReadAll() []byte {
 func (pkt Packet) DeleteRange(offset interface{}, len int) {
 	pi := makePacketIteratorFromOffset(pkt, offset)
 	C.MbufLoc_Delete(&pi.ml, C.uint32_t(len), pkt.ptr, nil)
+}
+
+func init() {
+	var pkt Packet
+	if unsafe.Sizeof(pkt) != unsafe.Sizeof(pkt.ptr) {
+		panic("sizeof dpdk.Packet differs from *C.struct_rte_mbuf")
+	}
 }

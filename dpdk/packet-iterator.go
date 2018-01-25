@@ -52,15 +52,15 @@ func (it *PacketIterator) IsEnd() bool {
 	return bool(C.MbufLoc_IsEnd(&it.ml))
 }
 
+func (it *PacketIterator) Advance(n int) int {
+	return int(C.MbufLoc_Advance(&it.ml, C.uint32_t(n)))
+}
+
 // Compute distance from it to it2.
 // it.Advance(dist) equals it2 if dist is positive;
 // it2.Advance(-dist) equals it if dist is negative.
-func (it *PacketIterator) ComputeDistance(it2 *PacketIterator) int {
+func (it *PacketIterator) ComputeDistance(it2 PacketIterator) int {
 	return int(C.MbufLoc_Diff(&it.ml, &it2.ml))
-}
-
-func (it *PacketIterator) Advance(n int) int {
-	return int(C.MbufLoc_Advance(&it.ml, C.uint32_t(n)))
 }
 
 // Clone next n octets into indirect mbufs.
