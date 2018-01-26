@@ -5,16 +5,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
 	"ndn-dpdk/dpdk/dpdktestenv"
 	"ndn-dpdk/iface/ethface"
 	"ndn-dpdk/ndn"
 )
 
 func TestEthFace(t *testing.T) {
-	assert, require := assert.New(t), require.New(t)
+	assert, require := dpdktestenv.MakeAR(t)
 
 	eal := dpdktestenv.InitEal()
 	dpdktestenv.MakeDirectMp(4095, ndn.SizeofPacketPriv(), 2000)

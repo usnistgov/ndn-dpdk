@@ -3,13 +3,12 @@ package running_stat_test
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"ndn-dpdk/core/running_stat"
+	"ndn-dpdk/dpdk/dpdktestenv"
 )
 
 func TestRunningStat(t *testing.T) {
-	assert := assert.New(t)
+	assert, _ := dpdktestenv.MakeAR(t)
 
 	s := running_stat.New()
 

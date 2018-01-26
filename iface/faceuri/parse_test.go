@@ -1,9 +1,13 @@
 package faceuri
 
-import "testing"
+import (
+	"testing"
+
+	"ndn-dpdk/dpdk/dpdktestenv"
+)
 
 func TestParse(t *testing.T) {
-	assert, _ := makeAR(t)
+	assert, _ := dpdktestenv.MakeAR(t)
 
 	tests := []struct {
 		input  string

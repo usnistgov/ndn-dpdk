@@ -9,7 +9,7 @@ import (
 )
 
 func TestParseCommand(t *testing.T) {
-	assert, _ := makeAR(t)
+	assert, _ := dpdktestenv.MakeAR(t)
 
 	pc, e := parseCommand(strings.Split(
 		"-rtt -nack=false +c dev://net_pcap1 1ms /P/ping 60 /Q 70 +s dev://net_pcap0 /P/ping /Q", " "))

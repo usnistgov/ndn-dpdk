@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"ndn-dpdk/dpdk/dpdktestenv"
 )
 
 type Testing struct {
@@ -30,6 +29,4 @@ func (t *Testing) Close() error {
 	return nil
 }
 
-func MakeAR(t *Testing) (*assert.Assertions, *require.Assertions) {
-	return assert.New(t), require.New(t)
-}
+var MakeAR = dpdktestenv.MakeAR
