@@ -6,7 +6,7 @@ import (
 	"ndn-dpdk/dpdk"
 )
 
-var nEthDevPairs = 0
+var nEthDevPairs = 0 // to ensure unique IDs
 
 type EthDevPair struct {
 	PortA dpdk.EthDev
@@ -20,7 +20,8 @@ type EthDevPair struct {
 	ringsBA []dpdk.Ring
 }
 
-func NewEthDevPair(nQueues int, ringCapacity int, queueCapacity int) (edp EthDevPair) {
+func NewEthDevPair(nQueues int, ringCapacity int, queueCapacity int) *EthDevPair {
+	var edp EthDevPair
 	mp := GetMp(MPID_DIRECT)
 
 	var e error
@@ -68,5 +69,23 @@ func NewEthDevPair(nQueues int, ringCapacity int, queueCapacity int) (edp EthDev
 	edp.PortB.Start()
 
 	nEthDevPairs++
-	return edp
+	return &edp
+}
+
+func (edp *EthDevPair) Close() error {
+	edp.PortA.Stop()
+	edp.PortB.Stop()
+	edp.PortA.Close(true)
+	edp.PortB.Close(true)
+	for _, r := range edp.ringsAB {
+		r.Close()
+	}
+	for _, r := range edp.ringsBA {
+		r.Close()
+	}
+
+	// Do not decrement nEthDevPairs, to avoid duplicate IDs.
+
+	// All errors are ignored. Returning 'error' to fulfill io.Closer interface.
+	return nil
 }

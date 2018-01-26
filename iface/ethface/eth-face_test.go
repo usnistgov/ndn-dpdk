@@ -1,19 +1,20 @@
-package main
+package ethface_test
 
 import (
 	"fmt"
+	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"ndn-dpdk/dpdk/dpdktestenv"
 	"ndn-dpdk/iface/ethface"
-	"ndn-dpdk/integ"
 	"ndn-dpdk/ndn"
 )
 
-func main() {
-	t := new(integ.Testing)
-	defer t.Close()
-	assert, require := integ.MakeAR(t)
+func TestEthFace(t *testing.T) {
+	assert, require := assert.New(t), require.New(t)
 
 	eal := dpdktestenv.InitEal()
 	dpdktestenv.MakeDirectMp(4095, ndn.SizeofPacketPriv(), 2000)
@@ -23,6 +24,7 @@ func main() {
 	headerMp := dpdktestenv.MakeMp("header", 4095, ndn.SizeofPacketPriv(),
 		ethface.SizeofHeaderMempoolDataRoom())
 	edp := dpdktestenv.NewEthDevPair(1, 1024, 64)
+	defer edp.Close()
 
 	faceA, e := ethface.New(edp.PortA, indirectMp, headerMp)
 	require.NoError(e)
@@ -74,6 +76,7 @@ func main() {
 	eal.Slaves[1].Wait()
 	time.Sleep(time.Second)
 	rxQuit <- struct{}{}
+	eal.Slaves[0].Wait()
 
 	fmt.Println(edp.PortA.GetStats())
 	fmt.Println(edp.PortB.GetStats())
