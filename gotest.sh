@@ -17,7 +17,8 @@ elif [[ $# -eq 1 ]]; then
   PKG=$1
   TESTPKG=$(getTestPkg $PKG)
 
-  sudo $(which go) test -cover -coverpkg ./$PKG ./$TESTPKG -v
+  sudo $(which go) test -cover -covermode count -coverpkg ./$PKG -coverprofile /tmp/gotest.cover ./$TESTPKG -v
+  go tool cover -html /tmp/gotest.cover -o /tmp/gotest.cover.html
 
 elif [[ $# -eq 2 ]]; then
   # run one test
@@ -41,8 +42,8 @@ elif [[ $# -eq 3 ]]; then
     exit 1
   fi
 
-  go test -c ./$TESTPKG -o /tmp/gotest-exe
-  sudo $DBG /tmp/gotest-exe -test.v -test.run 'Test'$TEST'.*'
+  go test -c ./$TESTPKG -o /tmp/gotest.exe
+  sudo $DBG /tmp/gotest.exe -test.v -test.run 'Test'$TEST'.*'
 else
   echo 'USAGE: ./gotest.sh [debug-tool] [directory] [test-name]' >/dev/stderr
   exit 1
