@@ -42,31 +42,18 @@ DecodeName(TlvDecoder* d, Name* n)
   return NdnError_OK;
 }
 
-#define LINEARIZE_BUFID_INTERNAL_START NAME_LINEARIZE_MAX_BUFID
-#define LINEARIZE_BUFID_COMPARE_L (LINEARIZE_BUFID_INTERNAL_START + 0)
-#define LINEARIZE_BUFID_COMPARE_R (LINEARIZE_BUFID_INTERNAL_START + 1)
-#define LINEARIZE_BUFID_MAX (LINEARIZE_BUFID_INTERNAL_START + 2)
-
-struct NameLinearizeBuffer
-{
-  uint8_t buf[LINEARIZE_BUFID_MAX][NAME_MAX_LENGTH];
-};
-RTE_DEFINE_PER_LCORE(struct NameLinearizeBuffer, nameLinearizeBuf);
-
 const uint8_t*
-Name_LinearizeComps(const Name* n, int bufid)
+Name_LinearizeComps(const Name* n, uint8_t scratch[NAME_MAX_LENGTH])
 {
   assert(n->nOctets <= NAME_MAX_LENGTH);
-  assert(bufid < LINEARIZE_BUFID_MAX);
 
   MbufLoc ml;
   MbufLoc_Copy(&ml, &n->compPos[0]);
 
   uint32_t nRead;
-  const uint8_t* linearBuf = MbufLoc_Read(
-    &ml, RTE_PER_LCORE(nameLinearizeBuf).buf[bufid], n->nOctets, &nRead);
+  const uint8_t* linear = MbufLoc_Read(&ml, scratch, n->nOctets, &nRead);
   assert(nRead == n->nOctets);
-  return linearBuf;
+  return linear;
 }
 
 void
@@ -99,8 +86,10 @@ Name_Compare(const Name* lhs, const Name* rhs)
     return NAMECMP_RPREFIX;
   }
 
-  const uint8_t* compsL = Name_LinearizeComps(lhs, LINEARIZE_BUFID_COMPARE_L);
-  const uint8_t* compsR = Name_LinearizeComps(rhs, LINEARIZE_BUFID_COMPARE_R);
+  uint8_t scratchL[NAME_MAX_LENGTH];
+  uint8_t scratchR[NAME_MAX_LENGTH];
+  const uint8_t* compsL = Name_LinearizeComps(lhs, scratchL);
+  const uint8_t* compsR = Name_LinearizeComps(rhs, scratchR);
 
   uint16_t minOctets =
     lhs->nOctets <= rhs->nOctets ? lhs->nOctets : rhs->nOctets;

@@ -49,7 +49,8 @@ NdnpingServer_ProcessPkt(NdnpingServer* server, struct rte_mbuf* pkt)
   }
 
   Name* name = &Packet_GetInterestHdr(pkt)->name;
-  const uint8_t* nameComps = Name_LinearizeComps(name, 0);
+  uint8_t nameCompsScratch[NAME_MAX_LENGTH];
+  const uint8_t* nameComps = Name_LinearizeComps(name, nameCompsScratch);
 
   int patternId =
     NameSet_FindPrefix(&server->patterns, nameComps, name->nOctets);
