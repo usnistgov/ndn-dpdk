@@ -264,4 +264,30 @@ MbufLoc_PeekOctet(const MbufLoc* ml)
 void MbufLoc_Delete(MbufLoc* ml, uint32_t n, struct rte_mbuf* pkt,
                     struct rte_mbuf* prev);
 
+uint8_t* __MbufLoc_Linearize(MbufLoc* first, MbufLoc* last,
+                             struct rte_mbuf* pkt, struct rte_mempool* mp);
+
+/** \brief Ensure [first, last) are in the same mbuf.
+ *  \param[inout] first begin range iterator, will be updated if needed
+ *  \param[inout] last past-end range iterator, will be updated if needed
+ *  \param pkt first segment of the packet
+ *  \param mp mempool for copying [first, last)
+ *  \return pointer to consecutive memory at \p first , or NULL on failure
+ *  \post [first, last) is in consecutive memory
+ *  \post any MbufLoc at or after \p first is invalidated
+ *  \exception ENOMEM mp is full
+ *  \exception EMSGSIZE mp dataroom is less than MbufLoc_Diff(first, last)
+ *  \warning Undefined behavior if advancing \p first cannot reach \p last
+ */
+static inline uint8_t*
+MbufLoc_Linearize(MbufLoc* first, MbufLoc* last, struct rte_mbuf* pkt,
+                  struct rte_mempool* mp)
+{
+  if (likely(first->m == last->m)) {
+    return rte_pktmbuf_mtod_offset(first->m, uint8_t*, first->off);
+  }
+
+  return __MbufLoc_Linearize(first, last, pkt, mp);
+}
+
 #endif // NDN_DPDK_DPDK_MBUF_LOC_H

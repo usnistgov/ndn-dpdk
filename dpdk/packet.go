@@ -104,6 +104,18 @@ func (pkt Packet) DeleteRange(offset interface{}, len int) {
 	C.MbufLoc_Delete(&pi.ml, C.uint32_t(len), pkt.ptr, nil)
 }
 
+// Ensure two offsets are in the same Mbuf.
+// Return a C pointer to the octets in consecutive memory.
+func (pkt Packet) LinearizeRange(first interface{}, last interface{}, mp PktmbufPool) (unsafe.Pointer, error) {
+	firstPi := makePacketIteratorFromOffset(pkt, first)
+	lastPi := makePacketIteratorFromOffset(pkt, last)
+	res := C.MbufLoc_Linearize(&firstPi.ml, &lastPi.ml, pkt.ptr, mp.ptr)
+	if res == nil {
+		return nil, GetErrno()
+	}
+	return unsafe.Pointer(res), nil
+}
+
 func init() {
 	var pkt Packet
 	if unsafe.Sizeof(pkt) != unsafe.Sizeof(pkt.ptr) {

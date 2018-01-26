@@ -119,6 +119,7 @@ func TestPacketDeleteRange(t *testing.T) {
 		t.Run(tt.id, func(t *testing.T) {
 			assert, _ := makeAR(t)
 			pkt := dpdktestenv.PacketFromHex(strings.Split(tt.pkt, "/")...)
+			defer pkt.Close()
 			expected := pkt.ReadAll()
 			expected = append(expected[:tt.offset], expected[tt.offset+tt.count:]...)
 
@@ -130,8 +131,56 @@ func TestPacketDeleteRange(t *testing.T) {
 			assert.Equal(tt.offset, begin.ComputeDistance(pi))
 			assert.Equal(expected, pkt.ReadAll())
 			assert.Equal(tt.nSegs, mp.CountInUse())
+		})
+	}
+}
 
-			pkt.Close()
+func TestPacketLinearizeRange(t *testing.T) {
+	mp := dpdktestenv.MakeDirectMp(63, 0, 4)
+
+	getSegmentLengths := func(pkt dpdk.Packet) (lens []int) {
+		for seg, ok := pkt.GetFirstSegment(), true; ok; seg, ok = seg.GetNext() {
+			lens = append(lens, seg.Len())
+		}
+		return lens
+	}
+
+	tests := []struct {
+		id       string
+		pkt      string // packet segments, separated by '/'
+		first    int
+		last     int
+		segLen   []int
+		inSeg    int
+		atOffset uintptr
+	}{
+		{"InSeg", "A0A1A2A3/B0B1B2B3", 1, 3, []int{4, 4}, 0, 1},
+		{"AppendToFirst-KeepLastSeg", "A0A1/B0/C0C1", 1, 4, []int{4, 1}, 0, 1},
+		{"AppendToFirst-FreeLastSeg", "A0A1/B0/C0", 1, 4, []int{4}, 0, 1},
+		{"NewSeg-KeepLastSeg", "A0A1A2A3/B0/C0C1C2", 3, 6, []int{3, 3, 2}, 1, 0},
+		{"NewSeg-FreeLastSeg", "A0A1A2A3/B0/C0", 3, 6, []int{3, 3}, 1, 0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.id, func(t *testing.T) {
+			assert, require := makeAR(t)
+			pkt := dpdktestenv.PacketFromHex(strings.Split(tt.pkt, "/")...)
+			defer pkt.Close()
+			payload := pkt.ReadAll()
+
+			begin := dpdk.NewPacketIterator(pkt)
+			first := begin
+			first.Advance(tt.first)
+			last := begin
+			last.Advance(tt.last)
+
+			linear, e := pkt.LinearizeRange(&first, &last, mp)
+			require.NoError(e)
+			require.Equal(tt.segLen, getSegmentLengths(pkt))
+			assert.Equal(uintptr(pkt.GetSegment(tt.inSeg).GetData())+tt.atOffset, uintptr(linear))
+			assert.Equal(payload, pkt.ReadAll())
+			assert.Equal(len(tt.segLen), mp.CountInUse())
+			assert.Equal(tt.first, begin.ComputeDistance(first))
+			assert.Equal(tt.last, begin.ComputeDistance(last))
 		})
 	}
 }
