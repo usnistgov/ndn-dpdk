@@ -49,8 +49,8 @@ func (ndt Ndt) ReadCounters() (cnt []int) {
 	cnt2 := make([]C.uint32_t, int(C.Ndt_SizeofCounters(ndt.c)))
 	C.Ndt_ReadCounters(ndt.c, &cnt2[0])
 	cnt = make([]int, len(cnt2))
-	for i := 0; i < len(cnt); i++ {
-		cnt[i] = int(cnt2[i])
+	for i, c := range cnt2 {
+		cnt[i] = int(c)
 	}
 	return cnt
 }

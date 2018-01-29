@@ -2,6 +2,7 @@ package ndt_test
 
 import (
 	"math/rand"
+	"sort"
 	"testing"
 	"time"
 
@@ -18,7 +19,7 @@ func TestNdt(t *testing.T) {
 	cfg := ndt.Config{
 		PrefixLen:  2,
 		IndexBits:  8,
-		SampleFreq: 1,
+		SampleFreq: 2,
 	}
 	numaSockets := make([]dpdk.NumaSocket, len(slaves))
 	for i, slave := range slaves {
@@ -60,6 +61,7 @@ func TestNdt(t *testing.T) {
 		}
 	}
 	randomUpdate()
+	cnt0 := ndt.ReadCounters()
 
 	const NLOOPS = 100000
 	result1 := make([]uint8, len(slaves))
@@ -84,22 +86,21 @@ func TestNdt(t *testing.T) {
 	}
 
 	time.Sleep(10 * time.Millisecond)
+	cnt1 := ndt.ReadCounters()
 	randomUpdate()
 
 	for i, slave := range slaves {
 		assert.Zero(slave.Wait(), "%d", i)
 		assert.NotZero(result1[i], "%d", i)
 	}
+	cnt2 := ndt.ReadCounters()
 
-	equalPairs := map[[2]int]bool{
-		{3, 4}: true,
-	}
 	for a := range names {
 		for b := range names {
 			if a >= b {
 				continue
 			}
-			if equalPairs[[2]int{a, b}] {
+			if a == 3 && b == 4 { // they have same 2-component prefix
 				assert.Equal(result1[a], result1[b], "%d-%d", a, b)
 				assert.Equal(result2[a], result2[b], "%d-%d", a, b)
 			} else {
@@ -108,4 +109,18 @@ func TestNdt(t *testing.T) {
 			}
 		}
 	}
+
+	require.Len(cnt0, 256)
+	sort.Ints(cnt0)
+	assert.Zero(cnt0[255])
+
+	require.Len(cnt1, 256)
+	sort.Ints(cnt1)
+	assert.Zero(cnt1[248])
+	assert.NotZero(cnt1[249])
+
+	require.Len(cnt2, 256)
+	sort.Ints(cnt2)
+	unitCnt := NLOOPS >> uint(cfg.SampleFreq)
+	assert.Equal([]int{0, unitCnt, unitCnt, unitCnt, unitCnt, unitCnt, unitCnt, unitCnt * 2}, cnt2[248:])
 }
