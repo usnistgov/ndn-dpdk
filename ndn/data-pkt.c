@@ -63,7 +63,7 @@ EncodeData1(struct rte_mbuf* m, const Name* name, struct rte_mbuf* payload)
   TlvEncoder* en = MakeTlvEncoder(m);
 
   MbufLoc mlName;
-  MbufLoc_Copy(&mlName, &name->compPos[0]);
+  MbufLoc_Copy(&mlName, &name->comps[0].pos);
   MbufLoc_ReadTo(&mlName, rte_pktmbuf_append(m, name->nOctets), name->nOctets);
   PrependVarNum(en, name->nOctets);
   PrependVarNum(en, TT_Name);

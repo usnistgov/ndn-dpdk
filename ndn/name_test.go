@@ -9,7 +9,7 @@ import (
 )
 
 func TestNameDecode(t *testing.T) {
-	assert, require := makeAR(t)
+	assert, _ := makeAR(t)
 
 	tests := []struct {
 		input     string
@@ -31,7 +31,6 @@ func TestNameDecode(t *testing.T) {
 	}
 	for _, tt := range tests {
 		pkt := packetFromHex(tt.input)
-		require.True(pkt.IsValid(), tt.input)
 		defer pkt.Close()
 		d := NewTlvDecoder(pkt)
 
@@ -44,6 +43,67 @@ func TestNameDecode(t *testing.T) {
 			}
 		} else {
 			assert.Error(e, tt.input)
+		}
+	}
+}
+
+func TestNamePrefixHash(t *testing.T) {
+	assert, require := makeAR(t)
+
+	nameStrs := []string{
+		"0700",
+		"0702 0200",
+		"0702 0800",
+		"0704 0800 0800",
+		"0703 080141",
+		"0705 080141 0800",
+		"0707 080141 0800 0800",
+		"0706 080141 080141",
+		"0703 080142",
+		"0704 08024100",
+		"0704 08024101",
+		"0702 0900",
+	}
+	pkts := make([]dpdk.Packet, len(nameStrs))
+	names := make([]Name, len(nameStrs))
+	for i, nameStr := range nameStrs {
+		pkts[i] = packetFromHex(nameStr)
+		defer pkts[i].Close()
+		d := NewTlvDecoder(pkts[i])
+		var e error
+		names[i], e = d.ReadName()
+		require.NoError(e, nameStr)
+	}
+
+	// (a,i,b,j) means names[a].ComputePrefixHash(i) should equal names[b].ComputePrefixHash(j)
+	equalPairs := map[[4]int]bool{
+		{2, 1, 3, 1}: true,
+		{4, 1, 5, 1}: true,
+		{4, 1, 6, 1}: true,
+		{4, 1, 7, 1}: true,
+		{5, 1, 6, 1}: true,
+		{5, 2, 6, 2}: true,
+		{5, 1, 7, 1}: true,
+		{6, 1, 7, 1}: true,
+	}
+	for a, nameA := range names {
+		for b, nameB := range names {
+			if a >= b {
+				continue
+			}
+			assert.Equal(nameA.ComputePrefixHash(0), nameB.ComputePrefixHash(0),
+				"%d,%d-%d,%d", a, 0, b, 0)
+			for i := 1; i <= nameA.Len(); i++ {
+				for j := 1; j <= nameB.Len(); j++ {
+					if equalPairs[[4]int{a, i, b, j}] {
+						assert.Equal(nameA.ComputePrefixHash(i), nameB.ComputePrefixHash(j),
+							"%d,%d-%d,%d", a, i, b, j)
+					} else {
+						assert.NotEqual(nameA.ComputePrefixHash(i), nameB.ComputePrefixHash(j),
+							"%d,%d-%d,%d", a, i, b, j)
+					}
+				}
+			}
 		}
 	}
 }
@@ -69,17 +129,12 @@ func TestNameCompare(t *testing.T) {
 	names := make([]Name, len(nameStrs))
 	for i, nameStr := range nameStrs {
 		pkts[i] = packetFromHex(nameStr)
-		require.True(pkts[i].IsValid(), nameStr)
+		defer pkts[i].Close()
 		d := NewTlvDecoder(pkts[i])
 		var e error
 		names[i], e = d.ReadName()
 		require.NoError(e, nameStr)
 	}
-	defer func() {
-		for _, pkt := range pkts {
-			pkt.Close()
-		}
-	}()
 
 	relTable := [][]int{
 		[]int{+0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},

@@ -14,28 +14,31 @@ DecodeName(TlvDecoder* d, Name* n)
 
   n->nOctets = nameEle.length;
   n->nComps = 0;
-  n->digestPos.m = NULL;
+  n->hasDigestComp = false;
+  n->hasPrefixHashes = false;
 
   TlvDecoder compsD;
   TlvElement_MakeValueDecoder(&nameEle, &compsD);
 
   while (!MbufLoc_IsEnd(&compsD)) {
-    TlvElement compEle;
-    e = DecodeTlvElement(&compsD, &compEle);
-    RETURN_IF_UNLIKELY_ERROR;
-    if (likely(n->nComps < NAME_MAX_INDEXED_COMPS)) {
-      MbufLoc_Copy(&n->compPos[n->nComps], &compEle.first);
-    }
-
-    if (unlikely(compEle.type == TT_ImplicitSha256DigestComponent)) {
-      if (compEle.length != 32) {
-        return NdnError_BadDigestComponentLength;
-      }
-      MbufLoc_Copy(&n->digestPos, &compEle.first);
-    } else if (unlikely(n->digestPos.m != NULL)) {
+    if (unlikely(n->hasDigestComp)) {
       return NdnError_NameHasComponentAfterDigest;
     }
 
+    TlvElement compEle;
+    e = DecodeTlvElement(&compsD, &compEle);
+    RETURN_IF_UNLIKELY_ERROR;
+
+    if (unlikely(compEle.type == TT_ImplicitSha256DigestComponent)) {
+      if (unlikely(compEle.length != 32)) {
+        return NdnError_BadDigestComponentLength;
+      }
+      n->hasDigestComp = true;
+    }
+
+    if (likely(n->nComps < NAME_MAX_INDEXED_COMPS)) {
+      MbufLoc_Copy(&n->comps[n->nComps].pos, &compEle.first);
+    }
     ++n->nComps;
   }
 
@@ -48,7 +51,7 @@ Name_LinearizeComps(const Name* n, uint8_t scratch[NAME_MAX_LENGTH])
   assert(n->nOctets <= NAME_MAX_LENGTH);
 
   MbufLoc ml;
-  MbufLoc_Copy(&ml, &n->compPos[0]);
+  MbufLoc_Copy(&ml, &n->comps[0].pos);
 
   uint32_t nRead;
   const uint8_t* linear = MbufLoc_Read(&ml, scratch, n->nOctets, &nRead);
@@ -64,13 +67,55 @@ __Name_GetComp_PastIndexed(const Name* n, uint16_t i, TlvElement* ele)
 
   TlvDecoder d;
   uint16_t j = NAME_MAX_INDEXED_COMPS - 1;
-  MbufLoc_Copy(&d, &n->compPos[j]);
+  MbufLoc_Copy(&d, &n->comps[j].pos);
   for (; j <= i; ++j) {
     NdnError e = DecodeTlvElement(&d, ele);
     assert(e == NdnError_OK); // cannot error in valid name
   }
 
   // last DecodeTlvElement invocation was on i-th element
+}
+
+static void
+__Name_ComputePrefixHashes_WriteToSipHash(void* h, const struct rte_mbuf* m,
+                                          uint16_t off, uint16_t len)
+{
+  SipHash_Write((SipHash*)h, rte_pktmbuf_mtod_offset(m, const uint8_t*, off),
+                len);
+}
+
+void
+__Name_ComputePrefixHashes(Name* n)
+{
+  SipHash h;
+  SipHash_Init(&h, &theNameHashKey);
+
+  for (uint16_t i = 0; i < n->nComps && i < NAME_MAX_INDEXED_COMPS; ++i) {
+    TlvElement ele;
+    Name_GetComp(n, i, &ele);
+
+    __MbufLoc_AdvanceWithCb(&ele.first, ele.size,
+                            __Name_ComputePrefixHashes_WriteToSipHash, &h);
+    n->comps[i].hash = SipHash_Sum(&h);
+  }
+
+  n->hasPrefixHashes = true;
+}
+
+uint64_t
+__Name_ComputePrefixHash_PastIndexed(const Name* n, uint16_t i)
+{
+  MbufLoc begin;
+  Name_GetCompPos(n, 0, &begin);
+  TlvElement end;
+  Name_GetComp(n, i, &end);
+  ptrdiff_t size = MbufLoc_Diff(&begin, &end.last);
+
+  SipHash h;
+  SipHash_Init(&h, &theNameHashKey);
+  __MbufLoc_AdvanceWithCb(&begin, size,
+                          __Name_ComputePrefixHashes_WriteToSipHash, &h);
+  return SipHash_Final(&h);
 }
 
 NameCompareResult

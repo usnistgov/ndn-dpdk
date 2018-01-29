@@ -9,8 +9,10 @@
  */
 typedef struct sipkey SipHashKey;
 
+#define SIPHASHKEY_SIZE 16
+
 static inline void
-SipHashKey_FromBuffer(SipHashKey* key, const uint8_t buf[16])
+SipHashKey_FromBuffer(SipHashKey* key, const uint8_t buf[SIPHASHKEY_SIZE])
 {
   sip_tokey(key, buf);
 }

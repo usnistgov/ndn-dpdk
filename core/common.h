@@ -2,12 +2,13 @@
 #define NDN_DPDK_CORE_COMMON_H
 
 #include <assert.h>
+#include <inttypes.h>
 #include <limits.h>
 #include <memory.h>
 #include <stdatomic.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 

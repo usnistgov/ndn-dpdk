@@ -3,6 +3,7 @@
 
 /// \file
 
+#include "namehash.h"
 #include "tlv-element.h"
 
 /** \brief maximum supported name length (TLV-LENGTH of Name element)
@@ -13,6 +14,14 @@
  */
 #define NAME_MAX_INDEXED_COMPS 14
 
+/** \brief TLV Name component record
+ */
+typedef struct NameCompRecord
+{
+  MbufLoc pos;   ///< start position of component's TLV-TYPE
+  uint64_t hash; ///< hash of name prefix up to and including this component
+} NameCompRecord;
+
 /** \brief TLV Name
  *
  *  This struct stores indices of first \p NAME_MAX_INDEXED_COMPS name components, but permits
@@ -20,12 +29,14 @@
  */
 typedef struct Name
 {
-  uint16_t nOctets;                        ///< TLV-LENGTH of Name element
-  uint16_t nComps;                         ///< number of components
-  MbufLoc compPos[NAME_MAX_INDEXED_COMPS]; ///< start position of components
-  MbufLoc digestPos; ///< start position of implicit digest component
+  uint16_t nOctets;   ///< TLV-LENGTH of Name element
+  uint16_t nComps;    ///< number of components
+  bool hasDigestComp; ///< ends with digest component?
+
+  bool hasPrefixHashes; ///< (private) are comps[i].hash computed?
+  NameCompRecord comps[NAME_MAX_INDEXED_COMPS]; ///< (private) components
 } Name;
-static_assert(sizeof(Name) <= 4 * RTE_CACHE_LINE_SIZE, "");
+static_assert(sizeof(Name) <= 6 * RTE_CACHE_LINE_SIZE, "");
 
 /** \brief Decode a name.
  *  \param[out] n the name.
@@ -39,14 +50,6 @@ NdnError DecodeName(TlvDecoder* d, Name* n);
 const uint8_t* Name_LinearizeComps(const Name* n,
                                    uint8_t scratch[NAME_MAX_LENGTH]);
 
-/** \brief Test whether a name contains an implicit digest component.
- */
-static inline bool
-Name_HasDigest(const Name* n)
-{
-  return !MbufLoc_IsEnd(&n->digestPos);
-}
-
 void __Name_GetComp_PastIndexed(const Name* n, uint16_t i, TlvElement* ele);
 
 /** \brief Get position of i-th name component.
@@ -59,7 +62,7 @@ Name_GetCompPos(const Name* n, uint16_t i, MbufLoc* pos)
   assert(i < n->nComps);
 
   if (likely(i < NAME_MAX_INDEXED_COMPS)) {
-    return MbufLoc_Copy(pos, &n->compPos[i]);
+    return MbufLoc_Copy(pos, &n->comps[i].pos);
   }
 
   TlvElement ele;
@@ -68,7 +71,7 @@ Name_GetCompPos(const Name* n, uint16_t i, MbufLoc* pos)
 }
 
 /** \brief Parse i-th name component.
- *  \param i name component index; <tt>0 <= i < nComps</tt>.
+ *  \param i name component index, must be less than n->nComps.
  *  \param[out] ele the element.
  */
 static inline void
@@ -81,9 +84,33 @@ Name_GetComp(const Name* n, uint16_t i, TlvElement* ele)
   }
 
   TlvDecoder d;
-  MbufLoc_Copy(&d, &n->compPos[i]);
+  MbufLoc_Copy(&d, &n->comps[i].pos);
   NdnError e = DecodeTlvElement(&d, ele);
   assert(e == NdnError_OK); // cannot error in valid name
+}
+
+void __Name_ComputePrefixHashes(Name* n);
+uint64_t __Name_ComputePrefixHash_PastIndexed(const Name* n, uint16_t i);
+
+/** \brief Compute hash for prefix with i components.
+ */
+static inline uint64_t
+Name_ComputePrefixHash(const Name* n, uint16_t i)
+{
+  if (i == 0) {
+    return NAMEHASH_EMPTYHASH;
+  }
+
+  assert(i <= n->nComps);
+
+  if (unlikely(i > NAME_MAX_INDEXED_COMPS)) {
+    return __Name_ComputePrefixHash_PastIndexed(n, i);
+  }
+
+  if (!n->hasPrefixHashes) {
+    __Name_ComputePrefixHashes((Name*)n);
+  }
+  return n->comps[i - 1].hash;
 }
 
 /** \brief Indicate the result of name comparison.
@@ -100,4 +127,4 @@ typedef enum NameCompareResult {
  */
 NameCompareResult Name_Compare(const Name* lhs, const Name* rhs);
 
-#endif // NDN_DPDK_NDN_NAME_H
+#endif // NDN_DPDK_NDN_NAME_

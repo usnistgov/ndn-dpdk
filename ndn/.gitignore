@@ -1,4 +1,5 @@
 error.go
 error.h
+namehash.h
 tlv-type.go
 tlv-type.h

@@ -21,10 +21,15 @@ go-dpdk: $(CLIBPREFIX)-dpdk.a
 ndn/error.go ndn/error.h: ndn/make-error.sh ndn/error.tsv
 	ndn/make-error.sh
 
+ndn/namehash.h: ndn/namehash.c
+	gcc -o /tmp/namehash.exe ndn/namehash.c -I/usr/local/include/dpdk -DNAMEHASH_GENERATOR
+	openssl rand 16 | /tmp/namehash.exe > ndn/namehash.h
+	rm /tmp/namehash.exe
+
 ndn/tlv-type.go ndn/tlv-type.h: ndn/make-tlv-type.sh ndn/tlv-type.tsv
 	ndn/make-tlv-type.sh
 
-$(CLIBPREFIX)-ndn.a: $(CLIBPREFIX)-dpdk.a ndn/* ndn/error.h ndn/tlv-type.h
+$(CLIBPREFIX)-ndn.a: $(CLIBPREFIX)-dpdk.a ndn/* ndn/error.h ndn/namehash.h ndn/tlv-type.h
 	./build-c.sh ndn
 
 go-ndn: $(CLIBPREFIX)-ndn.a ndn/error.go ndn/tlv-type.go

@@ -33,7 +33,7 @@ func (n *Name) Len() int {
 
 // Test whether the name has an implicit digest.
 func (n *Name) HasDigest() bool {
-	return bool(C.Name_HasDigest(&n.c))
+	return bool(n.c.hasDigestComp)
 }
 
 // Get component as TlvElement.
@@ -44,6 +44,11 @@ func (n *Name) GetCompAsElement(i int) (ele TlvElement) {
 	}
 	C.Name_GetComp(&n.c, C.uint16_t(i), &ele.c)
 	return ele
+}
+
+// Compute hash for prefix with i component.
+func (n *Name) ComputePrefixHash(i int) uint64 {
+	return uint64(C.Name_ComputePrefixHash(&n.c, C.uint16_t(i)))
 }
 
 type NameCompareResult int
