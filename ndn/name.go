@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"unsafe"
 )
 
 type Name struct {
@@ -24,6 +25,10 @@ func (d *TlvDecoder) ReadName() (n Name, e error) {
 		return Name{}, NdnError(res)
 	}
 	return n, nil
+}
+
+func (n *Name) GetPtr() unsafe.Pointer {
+	return unsafe.Pointer(&n.c)
 }
 
 // Get number of name components.

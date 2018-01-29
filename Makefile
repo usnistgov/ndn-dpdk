@@ -41,6 +41,12 @@ $(CLIBPREFIX)-nameset.a: $(CLIBPREFIX)-ndn.a container/nameset/*
 go-nameset: $(CLIBPREFIX)-nameset.a
 	go build ./container/nameset
 
+$(CLIBPREFIX)-ndt.a: $(CLIBPREFIX)-ndn.a container/ndt/*
+	./build-c.sh container/ndt
+
+go-ndt: $(CLIBPREFIX)-ndt.a
+	go build ./container/ndt
+
 $(CLIBPREFIX)-iface.a: $(CLIBPREFIX)-ndn.a iface/*
 	./build-c.sh iface
 
