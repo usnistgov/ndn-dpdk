@@ -5,12 +5,16 @@
 
 #include "../../ndn/name.h"
 
+/** \brief Per-thread counters for NDT.
+ */
 typedef struct NdtThread
 {
   uint64_t nLookups;
   uint16_t nHits[0];
 } NdtThread;
 
+/** \brief The Name Dispatch Table (NDT).
+ */
 typedef struct Ndt
 {
   _Atomic uint8_t* table;
@@ -28,7 +32,7 @@ typedef struct Ndt
  *  \param nThreads number of lookup threads
  *  \param numaSockets array of \p nThreads elements indicating NUMA socket of each
  *                     lookup thread; numaSockets[0] will be used for the table
- *  \param array of threads
+ *  \return array of threads
  */
 NdtThread** Ndt_Init(Ndt* ndt, uint16_t prefixLen, uint8_t indexBits,
                      uint8_t sampleFreq, uint8_t nThreads,

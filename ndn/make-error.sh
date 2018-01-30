@@ -5,6 +5,8 @@ cd "$( dirname "${BASH_SOURCE[0]}" )"
   echo '#ifndef NDN_DPDK_NDN_ERROR_H'
   echo '#define NDN_DPDK_NDN_ERROR_H'
   echo
+  echo '/// \file'
+  echo
   echo 'typedef enum NdnError {'
   awk '{ print "  NdnError_" $1 "," }' error.tsv
   echo '} NdnError;'

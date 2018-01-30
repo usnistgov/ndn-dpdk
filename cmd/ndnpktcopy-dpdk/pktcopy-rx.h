@@ -3,8 +3,14 @@
 
 #include "../../iface/face.h"
 
+/// \file
+
+/** \brief Maximum number of TX rings.
+ */
 #define PKTCOPYRX_MAXTX 16
 
+/** \brief Receiving thread of ndnpktcopy.
+ */
 typedef struct PktcopyRx
 {
   Face* face;

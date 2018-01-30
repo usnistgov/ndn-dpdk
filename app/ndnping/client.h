@@ -5,6 +5,8 @@
 #include "../../core/running_stat/running-stat.h"
 #include "../../iface/face.h"
 
+/// \file
+
 /** \brief Maximum number of patterns.
  *
  *  This is checked by \p NdnpingClient_EnableRtt.

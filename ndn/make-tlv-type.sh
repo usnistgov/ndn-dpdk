@@ -5,6 +5,8 @@ cd "$( dirname "${BASH_SOURCE[0]}" )"
   echo '#ifndef NDN_DPDK_NDN_TLV_TYPE_H'
   echo '#define NDN_DPDK_NDN_TLV_TYPE_H'
   echo
+  echo '/// \file'
+  echo
   echo 'typedef enum TlvType {'
   awk  'NF==2 { print "  TT_" $1 " = 0x" $2 "," }' tlv-type.tsv
   echo '} TlvType;'

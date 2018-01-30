@@ -4,6 +4,8 @@
 #include "../../container/nameset/nameset.h"
 #include "../../iface/face.h"
 
+/// \file
+
 /** \brief Per-pattern information in ndnping server.
  */
 typedef struct NdnpingServerPattern

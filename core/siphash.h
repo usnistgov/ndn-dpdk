@@ -5,6 +5,8 @@
 #include "siphash-20121104.h"
 #include <rte_memcpy.h>
 
+/// \file
+
 /** \brief a key for SipHash
  */
 typedef struct sipkey SipHashKey;

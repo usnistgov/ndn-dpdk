@@ -3,6 +3,10 @@
 
 #include "../../iface/face.h"
 
+/// \file
+
+/** \brief Transmitting thread of ndnpktcopy.
+ */
 typedef struct PktcopyTx
 {
   Face* face;
