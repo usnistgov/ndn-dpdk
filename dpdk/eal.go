@@ -90,11 +90,11 @@ func (lc LCore) GetState() LCoreState {
 
 type LCoreFunc func() int
 
-var lcoreFuncs = make(map[LCore]LCoreFunc)
+var lcoreFuncs = make([]LCoreFunc, int(C.RTE_MAX_LCORE))
 
 //export go_lcoreLaunch
 func go_lcoreLaunch(lc unsafe.Pointer) C.int {
-	return C.int(lcoreFuncs[LCore(uintptr(lc))]())
+	return C.int(lcoreFuncs[uintptr(lc)]())
 }
 
 // Asynchonrously launch a function on an lcore.
