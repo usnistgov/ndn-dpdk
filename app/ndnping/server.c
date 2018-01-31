@@ -48,12 +48,12 @@ NdnpingServer_ProcessPkt(NdnpingServer* server, struct rte_mbuf* pkt)
     return NULL;
   }
 
-  Name* name = &Packet_GetInterestHdr(pkt)->name;
-  uint8_t nameCompsScratch[NAME_MAX_LENGTH];
-  const uint8_t* nameComps = Name_LinearizeComps(name, nameCompsScratch);
+  const Name* name = &Packet_GetInterestHdr(pkt)->name;
+  uint8_t scratch[NAME_MAX_LENGTH];
+  LName lname = Name_Linearize(name, scratch);
 
   int patternId =
-    NameSet_FindPrefix(&server->patterns, nameComps, name->nOctets);
+    NameSet_FindPrefix(&server->patterns, lname.value, lname.length);
   if (patternId < 0) {
     ZF_LOGV("%" PRI_FaceId " no-prefix-match", server->face->id);
     ++server->nNoMatch;

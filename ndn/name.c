@@ -45,20 +45,6 @@ DecodeName(TlvDecoder* d, Name* n)
   return NdnError_OK;
 }
 
-const uint8_t*
-Name_LinearizeComps(const Name* n, uint8_t scratch[NAME_MAX_LENGTH])
-{
-  assert(n->nOctets <= NAME_MAX_LENGTH);
-
-  MbufLoc ml;
-  MbufLoc_Copy(&ml, &n->comps[0].pos);
-
-  uint32_t nRead;
-  const uint8_t* linear = MbufLoc_Read(&ml, scratch, n->nOctets, &nRead);
-  assert(nRead == n->nOctets);
-  return linear;
-}
-
 void
 __Name_GetComp_PastIndexed(const Name* n, uint16_t i, TlvElement* ele)
 {
@@ -133,15 +119,37 @@ Name_Compare(const Name* lhs, const Name* rhs)
 
   uint8_t scratchL[NAME_MAX_LENGTH];
   uint8_t scratchR[NAME_MAX_LENGTH];
-  const uint8_t* compsL = Name_LinearizeComps(lhs, scratchL);
-  const uint8_t* compsR = Name_LinearizeComps(rhs, scratchR);
+  return LName_Compare(Name_Linearize(lhs, scratchL),
+                       Name_Linearize(rhs, scratchR));
+}
 
-  uint16_t minOctets =
-    lhs->nOctets <= rhs->nOctets ? lhs->nOctets : rhs->nOctets;
-  int cmp = memcmp(compsL, compsR, minOctets);
+LName
+Name_Linearize(const Name* n, uint8_t scratch[NAME_MAX_LENGTH])
+{
+  LName lname;
+  lname.length = n->nOctets;
+
+  if (unlikely(lname.length == 0)) {
+    lname.value = scratch;
+  } else {
+    MbufLoc ml;
+    MbufLoc_Copy(&ml, &n->comps[0].pos);
+    uint32_t nRead;
+    lname.value = MbufLoc_Read(&ml, scratch, lname.length, &nRead);
+    assert(nRead == lname.length);
+  }
+
+  return lname;
+}
+
+NameCompareResult
+LName_Compare(const LName lhs, const LName rhs)
+{
+  uint16_t minOctets = lhs.length <= rhs.length ? lhs.length : rhs.length;
+  int cmp = memcmp(lhs.value, rhs.value, minOctets);
   if (cmp != 0) {
     return ((cmp > 0) - (cmp < 0)) << 1;
   }
-  cmp = lhs->nComps - rhs->nComps;
+  cmp = lhs.length - rhs.length;
   return (cmp > 0) - (cmp < 0);
 }

@@ -44,12 +44,6 @@ static_assert(sizeof(Name) <= 6 * RTE_CACHE_LINE_SIZE, "");
  */
 NdnError DecodeName(TlvDecoder* d, Name* n);
 
-/** \brief Place name components in a linear buffer.
- *  \param scratch buffer space for copying name components when necessary.
- */
-const uint8_t* Name_LinearizeComps(const Name* n,
-                                   uint8_t scratch[NAME_MAX_LENGTH]);
-
 void __Name_GetComp_PastIndexed(const Name* n, uint16_t i, TlvElement* ele);
 
 /** \brief Get position of i-th name component.
@@ -127,4 +121,21 @@ typedef enum NameCompareResult {
  */
 NameCompareResult Name_Compare(const Name* lhs, const Name* rhs);
 
-#endif // NDN_DPDK_NDN_NAME_
+/** \brief Name in linear buffer.
+ */
+typedef struct LName
+{
+  const uint8_t* value;
+  uint16_t length;
+} LName;
+
+/** \brief Place name components in a linear buffer.
+ *  \param scratch buffer space for copying name components when necessary.
+ */
+LName Name_Linearize(const Name* n, uint8_t scratch[NAME_MAX_LENGTH]);
+
+/** \brief Compare two names in linear buffers.
+ */
+NameCompareResult LName_Compare(const LName lhs, const LName rhs);
+
+#endif // NDN_DPDK_NDN_NAME_H
