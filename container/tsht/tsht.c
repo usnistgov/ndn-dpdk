@@ -35,7 +35,17 @@ Tsht_New(const char* id, uint32_t maxEntries, uint32_t nBuckets,
 void
 Tsht_Close(Tsht* ht)
 {
-  assert(false); // not implemented
+  TshtPriv* htp = Tsht_GetPriv(ht);
+
+  rcu_read_lock();
+  struct cds_lfht_iter it;
+  struct cds_lfht_node* node;
+  cds_lfht_for_each(htp->lfht, &it, node) { cds_lfht_del(htp->lfht, node); }
+  rcu_read_unlock();
+
+  int res = cds_lfht_destroy(htp->lfht, NULL);
+  assert(res == 0);
+  rte_mempool_free(ht);
 }
 
 TshtEntryPtr

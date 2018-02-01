@@ -23,7 +23,7 @@ Fib_New(const char* id, uint32_t maxEntries, uint32_t nBuckets,
 void
 Fib_Close(Fib* fib)
 {
-  assert(false); // not implemented
+  Tsht_Close(fib);
 }
 
 FibInsertResult

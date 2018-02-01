@@ -22,7 +22,7 @@ typedef struct TshtNode
 typedef void* TshtEntryPtr;
 
 /** \brief Get the node enclosing an entry.
- *  \param entry a TshtEntryPtr.
+ *  \param entry1 a TshtEntryPtr.
  */
 #define TshtNode_FromEntry(entry1)                                             \
   ((TshtNode*)((char*)(entry1)-offsetof(TshtNode, entry)))
@@ -84,6 +84,9 @@ Tsht* Tsht_New(const char* id, uint32_t maxEntries, uint32_t nBuckets,
                unsigned numaSocket);
 
 /** \brief Release all memory.
+ *  \pre Calling thread is registered as RCU read-side thread, but does not hold rcu_read_lock.
+ *  \post \p ht pointer is no longer valid.
+ *  \warning This function is not thread-safe.
  */
 void Tsht_Close(Tsht* ht);
 

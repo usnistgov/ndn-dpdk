@@ -35,7 +35,7 @@ func TestFib(t *testing.T) {
 
 	fib, e := fib.New(cfg)
 	require.NoError(e)
-	// defer fib.Close()
+	defer fib.Close()
 	mp := fib.GetMempool()
 	assert.Zero(fib.Len())
 	assert.Zero(mp.CountInUse())
