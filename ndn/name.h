@@ -134,8 +134,10 @@ typedef struct LName
  */
 LName Name_Linearize(const Name* n, uint8_t scratch[NAME_MAX_LENGTH]);
 
+uint64_t LName_ComputeHash(LName n);
+
 /** \brief Compare two names in linear buffers.
  */
-NameCompareResult LName_Compare(const LName lhs, const LName rhs);
+NameCompareResult LName_Compare(LName lhs, LName rhs);
 
 #endif // NDN_DPDK_NDN_NAME_H

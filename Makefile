@@ -47,6 +47,15 @@ $(CLIBPREFIX)-ndt.a: $(CLIBPREFIX)-ndn.a container/ndt/*
 go-ndt: $(CLIBPREFIX)-ndt.a
 	go build ./container/ndt
 
+$(CLIBPREFIX)-tsht.a: $(CLIBPREFIX)-dpdk.a container/tsht/*
+	./build-c.sh container/tsht
+
+$(CLIBPREFIX)-fib.a: $(CLIBPREFIX)-tsht.a $(CLIBPREFIX)-ndn.a container/fib/*
+	./build-c.sh container/fib
+
+go-fib: $(CLIBPREFIX)-fib.a
+	go build ./container/fib
+
 $(CLIBPREFIX)-iface.a: $(CLIBPREFIX)-ndn.a iface/*
 	./build-c.sh iface
 
@@ -70,7 +79,7 @@ test:
 	integ/run.sh
 
 clean:
-	rm -rf build-c ndn/error.go ndn/error.h ndn/tlv-type.go ndn/tlv-type.h
+	rm -rf build-c ndn/error.go ndn/error.h ndn/namehash.h ndn/tlv-type.go ndn/tlv-type.h
 	go clean ./...
 
 doxygen:

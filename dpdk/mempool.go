@@ -16,6 +16,10 @@ type Mempool struct {
 	ptr *C.struct_rte_mempool
 }
 
+func MempoolFromPtr(ptr unsafe.Pointer) Mempool {
+	return Mempool{(*C.struct_rte_mempool)(ptr)}
+}
+
 // Get native *C.struct_rte_mempool pointer to use in other packages.
 func (mp Mempool) GetPtr() unsafe.Pointer {
 	return unsafe.Pointer(mp.ptr)

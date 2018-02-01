@@ -25,11 +25,30 @@ type TlvBytes []byte
 var oneTlvByte = make(TlvBytes, 1)
 
 // Get C pointer to the first octet.
-func (buf TlvBytes) GetPtr() unsafe.Pointer {
-	if len(buf) == 0 {
+func (tb TlvBytes) GetPtr() unsafe.Pointer {
+	if len(tb) == 0 {
 		return unsafe.Pointer(&oneTlvByte[0])
 	}
-	return unsafe.Pointer(&buf[0])
+	return unsafe.Pointer(&tb[0])
+}
+
+// Count how many elements are present in TlvBytes.
+// Return the number of elements, or -1 if incomplete.
+func (tb TlvBytes) CountElements() (n int) {
+	b := []byte(tb)
+	for _, size, ok := DecodeVarNum(b); ok; _, size, ok = DecodeVarNum(b) { // read TLV-TYPE
+		b = b[size:]
+		if length, size, ok := DecodeVarNum(b); !ok || len(b) < size+int(length) { // read TLV-LENGTH
+			return -1
+		} else {
+			b = b[size+int(length):]
+		}
+		n++
+	}
+	if len(b) > 0 {
+		return -1
+	}
+	return n
 }
 
 func EncodeTlvTypeLength(tlvType TlvType, tlvLength int) TlvBytes {

@@ -1,4 +1,4 @@
-package ndn
+package fib_test
 
 import (
 	"os"
@@ -14,4 +14,3 @@ func TestMain(m *testing.M) {
 }
 
 var makeAR = dpdktestenv.MakeAR
-var packetFromHex = dpdktestenv.PacketFromHex

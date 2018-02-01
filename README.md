@@ -12,6 +12,7 @@ Requirements:
 * DPDK 17.11, installed to `/usr/local`
 * Doxygen
 * `clang-format`
+* `liburcu-dev`
 
 Installation steps:
 
