@@ -64,9 +64,27 @@ Fib_Erase(Fib* fib, uint16_t nameL, const uint8_t* nameV)
   return ok;
 }
 
+static inline const FibEntry*
+Fib_ExactMatch(Fib* fib, const Name* name, LName lname, uint16_t prefixLen)
+{
+  lname.length = Name_GetPrefixSize(name, prefixLen);
+  uint64_t hash = Name_ComputePrefixHash(name, prefixLen);
+  return Tsht_Find(fib, hash, &lname);
+}
+
 const FibEntry*
 Fib_Lpm(Fib* fib, const Name* name)
 {
-  assert(false); // not implemented
+  uint8_t scratch[NAME_MAX_LENGTH];
+  LName lname = Name_Linearize(name, scratch);
+
+  for (int prefixLen = name->nComps; prefixLen >= 0; --prefixLen) {
+    const FibEntry* entry = Fib_ExactMatch(fib, name, lname, prefixLen);
+    if (entry != NULL) {
+      return entry;
+    }
+  }
+
+  // TODO implement two-stage lookup
   return NULL;
 }

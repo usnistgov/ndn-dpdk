@@ -47,6 +47,23 @@ func TestNameDecode(t *testing.T) {
 	}
 }
 
+func TestNamePrefixSize(t *testing.T) {
+	assert, require := makeAR(t)
+
+	pkt := packetFromHex("0709 0800 080141 08024243")
+	defer pkt.Close()
+	d := NewTlvDecoder(pkt)
+	name, e := d.ReadName()
+	require.NoError(e)
+
+	assert.Equal(3, name.Len())
+	assert.Equal(9, name.Size())
+	assert.Equal(0, name.GetPrefixSize(0))
+	assert.Equal(2, name.GetPrefixSize(1))
+	assert.Equal(5, name.GetPrefixSize(2))
+	assert.Equal(9, name.GetPrefixSize(3))
+}
+
 func TestNamePrefixHash(t *testing.T) {
 	assert, require := makeAR(t)
 

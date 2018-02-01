@@ -49,6 +49,7 @@ void __Name_GetComp_PastIndexed(const Name* n, uint16_t i, TlvElement* ele);
 /** \brief Get position of i-th name component.
  *  \param i name component index; <tt>0 <= i < nComps</tt>.
  *  \param[out] pos start position of i-th name component.
+ *  \note pos->rem ends at the end of Name TLV.
  */
 static inline void
 Name_GetCompPos(const Name* n, uint16_t i, MbufLoc* pos)
@@ -81,6 +82,25 @@ Name_GetComp(const Name* n, uint16_t i, TlvElement* ele)
   MbufLoc_Copy(&d, &n->comps[i].pos);
   NdnError e = DecodeTlvElement(&d, ele);
   assert(e == NdnError_OK); // cannot error in valid name
+}
+
+/** \brief Get size (in octets) of prefix with i components.
+ */
+static inline uint16_t
+Name_GetPrefixSize(const Name* n, uint16_t i)
+{
+  assert(i <= n->nComps);
+
+  if (i == 0) {
+    return 0;
+  }
+  if (i == n->nComps) {
+    return n->nOctets;
+  }
+
+  MbufLoc pos;
+  Name_GetCompPos(n, i, &pos);
+  return MbufLoc_FastDiff(&n->comps[0].pos, &pos);
 }
 
 void __Name_ComputePrefixHashes(Name* n);

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"unsafe"
 
+	"ndn-dpdk/core/urcu"
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/ndn"
 )
@@ -19,6 +20,7 @@ type Config struct {
 	NumaSocket dpdk.NumaSocket
 }
 
+// The FIB.
 type Fib struct {
 	c        *C.Fib
 	nEntries int
@@ -42,14 +44,18 @@ func (fib *Fib) Close() error {
 	return nil
 }
 
+// Get underlying mempool of the FIB.
 func (fib *Fib) GetMempool() dpdk.Mempool {
 	return dpdk.MempoolFromPtr(unsafe.Pointer(fib.c))
 }
 
+// Get number of FIB entries.
 func (fib *Fib) Len() int {
 	return fib.nEntries
 }
 
+// Insert a FIB entry.
+// If an existing entry has the same name, it will be replaced.
 func (fib *Fib) Insert(entry *Entry) (isNew bool, e error) {
 	if entry.c.nNexthops == 0 {
 		return false, errors.New("cannot insert FIB entry with no nexthop")
@@ -68,10 +74,27 @@ func (fib *Fib) Insert(entry *Entry) (isNew bool, e error) {
 	panic("C.Fib_Insert unexpected return value")
 }
 
+// Erase a FIB entry by name.
 func (fib *Fib) Erase(name ndn.TlvBytes) (ok bool) {
 	ok = bool(C.Fib_Erase(fib.c, C.uint16_t(len(name)), (*C.uint8_t)(name.GetPtr())))
 	if ok {
 		fib.nEntries--
 	}
 	return ok
+}
+
+// Perform a longest prefix match lookup.
+// The FIB entry will be copied.
+func (fib *Fib) Lpm(name *ndn.Name, rcuRs *urcu.ReadSide) (entry *Entry) {
+	rcuRs.Lock()
+	defer rcuRs.Unlock()
+
+	entryC := C.Fib_Lpm(fib.c, (*C.Name)(name.GetPtr()))
+	if entryC == nil {
+		return nil
+	}
+
+	entry = new(Entry)
+	entry.c = *entryC
+	return entry
 }

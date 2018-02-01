@@ -36,6 +36,11 @@ func (n *Name) Len() int {
 	return int(n.c.nComps)
 }
 
+// Get TLV-LENGTH of Name element.
+func (n *Name) Size() int {
+	return int(n.c.nOctets)
+}
+
 // Test whether the name has an implicit digest.
 func (n *Name) HasDigest() bool {
 	return bool(n.c.hasDigestComp)
@@ -51,7 +56,12 @@ func (n *Name) GetCompAsElement(i int) (ele TlvElement) {
 	return ele
 }
 
-// Compute hash for prefix with i component.
+// Get size of prefix with i components.
+func (n *Name) GetPrefixSize(i int) int {
+	return int(C.Name_GetPrefixSize(&n.c, C.uint16_t(i)))
+}
+
+// Compute hash for prefix with i components.
 func (n *Name) ComputePrefixHash(i int) uint64 {
 	return uint64(C.Name_ComputePrefixHash(&n.c, C.uint16_t(i)))
 }

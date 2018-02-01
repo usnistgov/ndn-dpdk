@@ -95,7 +95,7 @@ __Name_ComputePrefixHash_PastIndexed(const Name* n, uint16_t i)
   Name_GetCompPos(n, 0, &begin);
   TlvElement end;
   Name_GetComp(n, i, &end);
-  ptrdiff_t size = MbufLoc_Diff(&begin, &end.last);
+  ptrdiff_t size = MbufLoc_FastDiff(&begin, &end.last);
 
   SipHash h;
   SipHash_Init(&h, &theNameHashKey);

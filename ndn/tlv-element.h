@@ -44,6 +44,8 @@ DecodeTlvHeader(TlvDecoder* d, TlvElement* ele)
 
 /** \brief Decode a TLV element.
  *  \param[out] ele the element.
+ *  \note ele.first.rem, ele.value.rem, and ele.last.rem are unchanged, so that
+ *        MbufLoc_FastDiff may be used on them.
  */
 static inline NdnError
 DecodeTlvElement(TlvDecoder* d, TlvElement* ele)

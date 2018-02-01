@@ -39,15 +39,19 @@ typedef enum FibInsertResult {
 
 /** \brief Insert a FIB entry, or replace an existing entry with same name.
  *  \param entry the entry, will be copied.
+ *  \pre Calling thread is registered as RCU read-side thread.
  */
 FibInsertResult Fib_Insert(Fib* fib, const FibEntry* entry);
 
 /** \brief Erase a FIB entry of given name.
  *  \return whether success
+ *  \pre Calling thread is registered as RCU read-side thread.
  */
 bool Fib_Erase(Fib* fib, uint16_t nameL, const uint8_t* nameV);
 
 /** \brief Perform longest prefix match.
+ *  \pre Calling thread holds rcu_read_lock, which must be retained until it stops
+ *       using the returned entry.
  */
 const FibEntry* Fib_Lpm(Fib* fib, const Name* name);
 
