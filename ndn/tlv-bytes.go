@@ -4,7 +4,10 @@ package ndn
 #include "tlv-encoder.h"
 */
 import "C"
-import "unsafe"
+import (
+	"bytes"
+	"unsafe"
+)
 
 // TLV bytes in Go memory.
 type TlvBytes []byte
@@ -17,6 +20,11 @@ func (tb TlvBytes) GetPtr() unsafe.Pointer {
 		return unsafe.Pointer(&oneTlvByte[0])
 	}
 	return unsafe.Pointer(&tb[0])
+}
+
+// Compare equality.
+func (tb TlvBytes) Equal(other TlvBytes) bool {
+	return bytes.Equal([]byte(tb), []byte(other))
 }
 
 // Count how many elements are present in TlvBytes.

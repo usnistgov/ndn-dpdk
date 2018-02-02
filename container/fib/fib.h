@@ -49,6 +49,12 @@ FibInsertResult Fib_Insert(Fib* fib, const FibEntry* entry);
  */
 bool Fib_Erase(Fib* fib, uint16_t nameL, const uint8_t* nameV);
 
+/** \brief Perform exact match.
+ *  \pre Calling thread holds rcu_read_lock, which must be retained until it stops
+ *       using the returned entry.
+ */
+const FibEntry* Fib_Find(Fib* fib, uint16_t nameL, const uint8_t* nameV);
+
 /** \brief Perform longest prefix match.
  *  \pre Calling thread holds rcu_read_lock, which must be retained until it stops
  *       using the returned entry.
