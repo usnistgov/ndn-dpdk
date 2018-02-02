@@ -4,20 +4,7 @@ package ndn
 #include "tlv-encoder.h"
 */
 import "C"
-import (
-	"unsafe"
-
-	"ndn-dpdk/dpdk"
-)
-
-type TlvEncoder struct {
-	c *C.TlvEncoder
-}
-
-func NewTlvEncoder(pkt dpdk.Packet) (encoder TlvEncoder) {
-	encoder.c = C.MakeTlvEncoder((*C.struct_rte_mbuf)(pkt.GetPtr()))
-	return encoder
-}
+import "unsafe"
 
 // TLV bytes in Go memory.
 type TlvBytes []byte
@@ -49,6 +36,29 @@ func (tb TlvBytes) CountElements() (n int) {
 		return -1
 	}
 	return n
+}
+
+// Split TlvBytes into elements.
+// Return slice of elements, or nil if incomplete.
+func (tb TlvBytes) SplitElements() (elements []TlvBytes) {
+	elements = make([]TlvBytes, 0)
+	b := []byte(tb)
+	for _, size, ok := DecodeVarNum(b); ok; _, size, ok = DecodeVarNum(b) { // read TLV-TYPE
+		element := b[:size]
+		b = b[size:]
+		if length, size, ok := DecodeVarNum(b); !ok || len(b) < size+int(length) { // read TLV-LENGTH
+			return nil
+		} else {
+			lvSize := size + int(length)
+			element = append(element, b[:lvSize]...)
+			b = b[lvSize:]
+		}
+		elements = append(elements, TlvBytes(element))
+	}
+	if len(b) > 0 {
+		return nil
+	}
+	return elements
 }
 
 func EncodeTlvTypeLength(tlvType TlvType, tlvLength int) TlvBytes {
