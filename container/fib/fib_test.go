@@ -39,8 +39,6 @@ func makeFibEntry(name string, nexthops ...iface.FaceId) (entry *fib.Entry) {
 
 func TestFibInsertErase(t *testing.T) {
 	assert, require := makeAR(t)
-	rcuRs := urcu.NewReadSide()
-	defer rcuRs.Close()
 
 	fib := createFib()
 	defer fib.Close()
@@ -48,7 +46,7 @@ func TestFibInsertErase(t *testing.T) {
 	assert.Zero(fib.Len())
 	assert.Zero(mp.CountInUse())
 	nameA, _ := ndn.EncodeNameComponentsFromUri("/A")
-	assert.Nil(fib.Find(nameA, rcuRs))
+	assert.Nil(fib.Find(nameA))
 
 	_, e := fib.Insert(makeFibEntry("/A"))
 	assert.Error(e) // cannot insert: entry has no nexthop
@@ -64,30 +62,26 @@ func TestFibInsertErase(t *testing.T) {
 	assert.NoError(e)
 	assert.False(isNew)
 	assert.Equal(1, fib.Len())
-	assert.Equal(2, mp.CountInUse())
+	assert.True(mp.CountInUse() >= 1)
 
-	assert.NotNil(fib.Find(nameA, rcuRs))
+	assert.NotNil(fib.Find(nameA))
 	names := fib.ListNames()
 	require.Len(names, 1)
 	assert.Equal(nameA, names[0])
 
 	assert.True(fib.Erase(nameA))
 	assert.Zero(fib.Len())
-	assert.Nil(fib.Find(nameA, rcuRs))
+	assert.Nil(fib.Find(nameA))
 	assert.Len(fib.ListNames(), 0)
 	assert.False(fib.Erase(nameA))
 	assert.Zero(fib.Len())
-	assert.Equal(2, mp.CountInUse())
 
-	rcuRs.Quiescent()
 	urcu.Barrier()
-	assert.Equal(0, mp.CountInUse())
+	assert.Zero(mp.CountInUse())
 }
 
 func TestFibLpm(t *testing.T) {
 	assert, require := makeAR(t)
-	rcuRs := urcu.NewReadSide()
-	defer rcuRs.Close()
 
 	fib := createFib()
 	defer fib.Close()
@@ -101,7 +95,7 @@ func TestFibLpm(t *testing.T) {
 		name, e := d.ReadName()
 		require.NoError(e, nameStr)
 
-		entry := fib.Lpm(&name, rcuRs)
+		entry := fib.Lpm(&name)
 		if entry == nil {
 			return 0
 		}

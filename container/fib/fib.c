@@ -40,9 +40,7 @@ Fib_Insert(Fib* fib, const FibEntry* entry)
   key.value = newEntry->nameV;
   uint64_t hash = LName_ComputeHash(key);
 
-  rcu_read_lock();
   bool res = Tsht_Insert(fib, hash, &key, newEntry);
-  rcu_read_unlock();
   return res;
 }
 
@@ -50,12 +48,10 @@ bool
 Fib_Erase(Fib* fib, uint16_t nameL, const uint8_t* nameV)
 {
   bool ok = false;
-  rcu_read_lock();
   FibEntry* entry = (FibEntry*)Fib_Find(fib, nameL, nameV);
   if (entry != NULL) {
     ok = Tsht_Erase(fib, entry);
   }
-  rcu_read_unlock();
   return ok;
 }
 
