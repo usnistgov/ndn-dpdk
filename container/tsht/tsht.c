@@ -62,6 +62,13 @@ Tsht_Alloc(Tsht* ht)
   return node->entry;
 }
 
+void
+Tsht_Free(Tsht* ht, TshtEntryPtr entry)
+{
+  TshtNode* node = TshtNode_FromEntry(entry);
+  rte_mempool_put(ht, node);
+}
+
 static void
 Tsht_FreeNode(struct rcu_head* rcuhead)
 {

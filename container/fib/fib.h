@@ -14,6 +14,7 @@ typedef Tsht Fib;
  */
 typedef struct FibPriv
 {
+  int startDepth; ///< starting depth ('M' in 2-stage LPM paper)
 } FibPriv;
 
 #define Fib_GetPriv(fib) Tsht_GetHead(fib, FibPriv)
@@ -25,29 +26,45 @@ typedef struct FibPriv
  *  \param numaSocket where to allocate memory.
  */
 Fib* Fib_New(const char* id, uint32_t maxEntries, uint32_t nBuckets,
-             unsigned numaSocket);
+             unsigned numaSocket, uint8_t startDepth);
 
 /** \brief Release all memory.
  */
-void Fib_Close(Fib* fib);
+static inline void
+Fib_Close(Fib* fib)
+{
+  Tsht_Close(fib);
+}
 
-typedef enum FibInsertResult {
-  FIB_INSERT_REPLACE = 0,     ///< old entry replaced by new entry
-  FIB_INSERT_NEW = 1,         ///< new entry inserted
-  FIB_INSERT_ALLOC_ERROR = 2, ///< allocation error
-} FibInsertResult;
+/** \brief Allocate and zero a FIB entry from mempool.
+ */
+FibEntry* Fib_Alloc(Fib* fib);
+
+/** \brief Deallocate an unused FIB entry.
+ */
+static inline void
+Fib_Free(Fib* fib, FibEntry* entry)
+{
+  Tsht_Free(fib, entry);
+}
 
 /** \brief Insert a FIB entry, or replace an existing entry with same name.
- *  \param entry the entry, will be copied.
+ *  \param entry an entry allocated from \p Fib_Alloc.
+ *  \retval true new entry inserted.
+ *  \retval false old entry replaced by new entry.
  *  \pre Calling thread holds rcu_read_lock.
  */
-FibInsertResult Fib_Insert(Fib* fib, const FibEntry* entry);
+bool Fib_Insert(Fib* fib, FibEntry* entry);
 
 /** \brief Erase a FIB entry of given name.
  *  \return whether success
  *  \pre Calling thread holds rcu_read_lock.
  */
-bool Fib_Erase(Fib* fib, uint16_t nameL, const uint8_t* nameV);
+static inline void
+Fib_Erase(Fib* fib, FibEntry* entry)
+{
+  Tsht_Erase(fib, entry);
+}
 
 /** \brief Perform exact match.
  *  \pre Calling thread holds rcu_read_lock, which must be retained until it stops

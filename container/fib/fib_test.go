@@ -17,6 +17,7 @@ func createFib() *fib.Fib {
 		MaxEntries: 255,
 		NBuckets:   64,
 		NumaSocket: dpdk.NUMA_SOCKET_ANY,
+		StartDepth: 2,
 	}
 
 	fib, e := fib.New(cfg)
@@ -69,15 +70,23 @@ func TestFibInsertErase(t *testing.T) {
 	require.Len(names, 1)
 	assert.Equal(nameA, names[0])
 
-	assert.True(fib.Erase(nameA))
+	assert.NoError(fib.Erase(nameA))
 	assert.Zero(fib.Len())
 	assert.Nil(fib.Find(nameA))
 	assert.Len(fib.ListNames(), 0)
-	assert.False(fib.Erase(nameA))
+	assert.Error(fib.Erase(nameA))
 	assert.Zero(fib.Len())
 
 	urcu.Barrier()
 	assert.Zero(mp.CountInUse())
+
+	fib.Insert(makeFibEntry("/A", 2886))
+	fib.Insert(makeFibEntry("/A/B/C", 1916))
+	fib.Insert(makeFibEntry("/E/F/G/H", 7505))
+	fib.Insert(makeFibEntry("/E/F", 2143))
+	assert.Equal(4, fib.Len())
+	assert.Equal(1, fib.CountVirtuals())
+	assert.Len(fib.ListNames(), 4)
 }
 
 func TestFibLpm(t *testing.T) {
@@ -119,4 +128,9 @@ func TestFibLpm(t *testing.T) {
 	assert.Equal(0, lpm("/"))
 	assert.Equal(5001, lpm("/A"))
 	assert.Equal(0, lpm("/AB"))
+
+	fib.Insert(makeFibEntry("/E/F/G/H", 7505))
+	fib.Insert(makeFibEntry("/E/F", 2143))
+	assert.Equal(7505, lpm("/E/F/G/H/I/J"))
+	assert.Equal(2143, lpm("/E/F/G/K"))
 }

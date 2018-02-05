@@ -30,16 +30,20 @@ func (entry *Entry) GetNComps() int {
 	return int(entry.c.nComps)
 }
 
-func (entry *Entry) SetName(name ndn.TlvBytes) error {
+func entrySetName(entryC *C.FibEntry, name ndn.TlvBytes) error {
 	if len(name) > C.FIB_ENTRY_MAX_NAME_LEN {
 		return fmt.Errorf("FIB entry name cannot exceed %d octets", C.FIB_ENTRY_MAX_NAME_LEN)
 	}
-	entry.c.nameL = C.uint16_t(len(name))
+	entryC.nameL = C.uint16_t(len(name))
 	for i, b := range name {
-		entry.c.nameV[i] = C.uint8_t(b)
+		entryC.nameV[i] = C.uint8_t(b)
 	}
-	entry.c.nComps = C.uint8_t(name.CountElements())
+	entryC.nComps = C.uint8_t(name.CountElements())
 	return nil
+}
+
+func (entry *Entry) SetName(name ndn.TlvBytes) error {
+	return entrySetName(&entry.c, name)
 }
 
 func (entry *Entry) GetNexthops() (nexthops []iface.FaceId) {

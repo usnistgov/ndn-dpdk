@@ -69,6 +69,10 @@ func (tb TlvBytes) SplitElements() (elements []TlvBytes) {
 	return elements
 }
 
+func JoinTlvBytes(s []TlvBytes) TlvBytes {
+	return TlvBytes(bytes.Join(*(*[][]byte)(unsafe.Pointer(&s)), nil))
+}
+
 func EncodeTlvTypeLength(tlvType TlvType, tlvLength int) TlvBytes {
 	return append(EncodeVarNum(uint64(tlvType)), EncodeVarNum(uint64(tlvLength))...)
 }

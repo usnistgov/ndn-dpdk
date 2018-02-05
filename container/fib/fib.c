@@ -13,46 +13,36 @@ Fib_LookupMatch(TshtMatchNode node, const void* key0)
 
 Fib*
 Fib_New(const char* id, uint32_t maxEntries, uint32_t nBuckets,
-        unsigned numaSocket)
+        unsigned numaSocket, uint8_t startDepth)
 {
   Fib* fib = Tsht_New(id, maxEntries, nBuckets, Fib_LookupMatch,
                       sizeof(FibEntry), sizeof(FibPriv), numaSocket);
+
+  FibPriv* fibp = Fib_GetPriv(fib);
+  fibp->startDepth = startDepth;
+
   return fib;
 }
 
-void
-Fib_Close(Fib* fib)
+FibEntry*
+Fib_Alloc(Fib* fib)
 {
-  Tsht_Close(fib);
-}
-
-FibInsertResult
-Fib_Insert(Fib* fib, const FibEntry* entry)
-{
-  FibEntry* newEntry = Tsht_AllocT(fib, FibEntry);
-  if (newEntry == NULL) {
-    return FIB_INSERT_ALLOC_ERROR;
+  FibEntry* entry = Tsht_AllocT(fib, FibEntry);
+  if (likely(entry != NULL)) {
+    memset(entry, 0, sizeof(*entry));
   }
-  rte_memcpy(newEntry, entry, sizeof(*newEntry));
-
-  LName key;
-  key.length = newEntry->nameL;
-  key.value = newEntry->nameV;
-  uint64_t hash = LName_ComputeHash(key);
-
-  bool res = Tsht_Insert(fib, hash, &key, newEntry);
-  return res;
+  return entry;
 }
 
 bool
-Fib_Erase(Fib* fib, uint16_t nameL, const uint8_t* nameV)
+Fib_Insert(Fib* fib, FibEntry* entry)
 {
-  bool ok = false;
-  FibEntry* entry = (FibEntry*)Fib_Find(fib, nameL, nameV);
-  if (entry != NULL) {
-    ok = Tsht_Erase(fib, entry);
-  }
-  return ok;
+  LName key;
+  key.length = entry->nameL;
+  key.value = entry->nameV;
+  uint64_t hash = LName_ComputeHash(key);
+
+  return Tsht_Insert(fib, hash, &key, entry);
 }
 
 const FibEntry*
@@ -67,26 +57,45 @@ Fib_Find(Fib* fib, uint16_t nameL, const uint8_t* nameV)
 }
 
 static inline const FibEntry*
-Fib_ExactMatch(Fib* fib, const Name* name, LName lname, uint16_t prefixLen)
+Fib_GetEntryByPrefix(Fib* fib, const Name* name, LName lname,
+                     uint16_t prefixLen)
 {
   lname.length = Name_GetPrefixSize(name, prefixLen);
   uint64_t hash = Name_ComputePrefixHash(name, prefixLen);
-  return Tsht_Find(fib, hash, &lname);
+  return Tsht_FindT(fib, hash, &lname, FibEntry);
 }
 
 const FibEntry*
 Fib_Lpm(Fib* fib, const Name* name)
 {
+  FibPriv* fibp = Fib_GetPriv(fib);
+
   uint8_t scratch[NAME_MAX_LENGTH];
   LName lname = Name_Linearize(name, scratch);
 
-  for (int prefixLen = name->nComps; prefixLen >= 0; --prefixLen) {
-    const FibEntry* entry = Fib_ExactMatch(fib, name, lname, prefixLen);
-    if (entry != NULL) {
+  const FibEntry* startEntry = NULL;
+  int prefixLen = name->nComps;
+  if (fibp->startDepth < prefixLen) {
+    startEntry = Fib_GetEntryByPrefix(fib, name, lname, fibp->startDepth);
+    if (startEntry == NULL) {
+      prefixLen = fibp->startDepth - 1;
+    } else if (startEntry->maxDepth > 0) {
+      prefixLen += startEntry->maxDepth;
+      if (prefixLen > name->nComps) {
+        prefixLen = name->nComps;
+      }
+    }
+  }
+
+  for (; prefixLen >= 0; --prefixLen) {
+    const FibEntry* entry =
+      unlikely(prefixLen == fibp->startDepth)
+        ? startEntry
+        : Fib_GetEntryByPrefix(fib, name, lname, prefixLen);
+    if (entry != NULL && entry->nNexthops > 0) {
       return entry;
     }
   }
 
-  // TODO implement two-stage lookup
   return NULL;
 }

@@ -98,6 +98,10 @@ TshtEntryPtr Tsht_Alloc(Tsht* ht);
  */
 #define Tsht_AllocT(ht, T) ((T*)Tsht_Alloc((ht)))
 
+/** \brief Deallocate an unused entry.
+ */
+void Tsht_Free(Tsht* ht, TshtEntryPtr entry);
+
 /** \brief Insert an entry, or replace an entry with same key.
  *  \pre Calling thread holds rcu_read_lock.
  *  \retval true new entry inserted

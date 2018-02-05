@@ -65,30 +65,35 @@ func (t *tree) seek(comps []ndn.TlvBytes, wantInsert bool) (nodes []*node) {
 	return nodes
 }
 
-func (t *tree) Insert(name ndn.TlvBytes) {
-	comps := name.SplitElements()
+func (t *tree) Insert(comps []ndn.TlvBytes) {
 	nodes := t.seek(comps, true)
 	nodes[len(comps)].IsEntry = true
 
 	for i := len(nodes) - 1; i >= 0; i-- {
-		nodes[i].UpdateMaxDepth()
+		node := nodes[i]
+		node.UpdateMaxDepth()
 	}
 }
 
-func (t *tree) Erase(name ndn.TlvBytes) {
-	comps := name.SplitElements()
+func (t *tree) Erase(comps []ndn.TlvBytes, startDepth int) (oldMd int, newMd int) {
 	nodes := t.seek(comps, false)
 	nodes[len(comps)].IsEntry = false // will panic if node does not exist
 
-	for i := len(nodes) - 1; i > 0; i-- {
+	for i := len(nodes) - 1; i >= 0; i-- {
 		node := nodes[i]
-		if !node.IsEntry && len(node.Children) == 0 {
+		if i > 0 && !node.IsEntry && len(node.Children) == 0 {
 			delete(nodes[i-1].Children, node)
 		} else {
+			if i == startDepth {
+				oldMd = node.MaxDepth
+			}
 			node.UpdateMaxDepth()
+			if i == startDepth {
+				newMd = node.MaxDepth
+			}
 		}
 	}
-	nodes[0].UpdateMaxDepth()
+	return
 }
 
 func (t *tree) List() (names []ndn.TlvBytes) {
