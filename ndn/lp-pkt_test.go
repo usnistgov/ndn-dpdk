@@ -67,7 +67,7 @@ func TestLpPkt(t *testing.T) {
 func TestEncodeLpHeaders(t *testing.T) {
 	assert, require := makeAR(t)
 
-	headerMp := dpdktestenv.MakeMp("header", 63, 0,
+	dpdktestenv.MakeMp("header", 63, 0,
 		uint16(EncodeLpHeaders_GetHeadroom()+EncodeLpHeaders_GetTailroom()))
 
 	tests := []struct {
@@ -79,6 +79,8 @@ func TestEncodeLpHeaders(t *testing.T) {
 		{"640C nack=FD032005(FD03210196~noroute) payload=5001A0", "640C FD032005FD03210196 5001"},
 		{"640E seq=5102A0A1 fragindex=520101 fragcount=530102 payload=5002D2D3",
 			"6416 5108000000000000A0A1 52020001 53020002 5002"},
+		{"640D pittoken=62089A414B412BC38EB2 payload=5001A0",
+			"640D 62089A414B412BC38EB2 5001"},
 	}
 	for _, tt := range tests {
 		inputPkt := packetFromHex(tt.input)
@@ -87,18 +89,11 @@ func TestEncodeLpHeaders(t *testing.T) {
 		lpp, e := d.ReadLpPkt()
 		require.NoError(e, tt.input)
 
-		headerMbuf, e := headerMp.Alloc()
-		require.NoError(e)
-		defer headerMbuf.Close()
-		header := headerMbuf.AsPacket()
+		header := dpdktestenv.Alloc("header").AsPacket()
+		defer header.Close()
 		header.GetFirstSegment().SetHeadroom(EncodeLpHeaders_GetHeadroom())
 
 		lpp.EncodeHeaders(header)
-
-		expected := dpdktestenv.PacketBytesFromHex(tt.output)
-		assert.Equal(len(expected), header.Len(), tt.input)
-		actual := make([]byte, len(expected))
-		header.ReadTo(0, actual)
-		assert.Equal(expected, actual, tt.input)
+		assert.Equal(dpdktestenv.PacketBytesFromHex(tt.output), header.ReadAll(), tt.input)
 	}
 }

@@ -51,7 +51,7 @@ DecodeLpPkt(TlvDecoder* d, LpPkt* lpp)
         break;
       }
       case TT_PitToken: {
-        if (unlikely(hdrEle.length != sizeof(uint64_t))) {
+        if (unlikely(hdrEle.length != 8)) {
           return NdnError_BadPitToken;
         }
         TlvDecoder d2;
@@ -119,7 +119,7 @@ EncodeLpHeaders(struct rte_mbuf* m, const LpPkt* lpp)
   TlvEncoder* en = MakeTlvEncoder(m);
 
   if (LpPkt_IsFragmented(lpp)) {
-    struct FragHdr
+    typedef struct FragHdr
     {
       char _padding[6]; // make TLV-VALUE fields aligned
 
@@ -137,26 +137,46 @@ EncodeLpHeaders(struct rte_mbuf* m, const LpPkt* lpp)
       uint8_t fragCountT;
       uint8_t fragCountL;
       rte_be16_t fragCountV;
-    };
-    struct FragHdr fragHdr;
-    static_assert(sizeof(fragHdr) - sizeof(fragHdr._padding) == 18, "");
-
-    fragHdr.seqNoT = TT_LpSeqNo;
-    fragHdr.seqNoL = 8;
-    fragHdr.seqNoV = rte_cpu_to_be_64(lpp->seqNo);
-    fragHdr.fragIndexT = TT_FragIndex;
-    fragHdr.fragIndexL = 2;
-    fragHdr.fragIndexV = rte_cpu_to_be_16(lpp->fragIndex);
-    fragHdr.fragCountT = TT_FragCount;
-    fragHdr.fragCountL = 2;
-    fragHdr.fragCountV = rte_cpu_to_be_16(lpp->fragCount);
+    } __rte_packed FragHdr;
+    static_assert(sizeof(FragHdr) - offsetof(FragHdr, seqNoT) == 18, "");
 
     uint8_t* room = TlvEncoder_Append(en, 18);
     assert(room != NULL);
-    rte_memcpy(room, (uint8_t*)(&fragHdr) + 6, 18);
+    FragHdr* hdr = (FragHdr*)(room - offsetof(FragHdr, seqNoT));
+
+    hdr->seqNoT = TT_LpSeqNo;
+    hdr->seqNoL = 8;
+    hdr->seqNoV = rte_cpu_to_be_64(lpp->seqNo);
+    hdr->fragIndexT = TT_FragIndex;
+    hdr->fragIndexL = 2;
+    hdr->fragIndexV = rte_cpu_to_be_16(lpp->fragIndex);
+    hdr->fragCountT = TT_FragCount;
+    hdr->fragCountL = 2;
+    hdr->fragCountV = rte_cpu_to_be_16(lpp->fragCount);
   }
 
   if (lpp->fragIndex == 0) {
+    if (lpp->pitToken != 0) {
+      typedef struct PitTokenHdr
+      {
+        char _padding[6]; // make TLV-VALUE aligned
+        uint8_t pitTokenT;
+        uint8_t pitTokenL;
+        rte_le64_t pitTokenV;
+      } __rte_packed PitTokenHdr;
+      static_assert(
+        sizeof(PitTokenHdr) - offsetof(PitTokenHdr, pitTokenT) == 10, "");
+
+      uint8_t* room = TlvEncoder_Append(en, 10);
+      assert(room != NULL);
+      PitTokenHdr* hdr =
+        (PitTokenHdr*)(room - offsetof(PitTokenHdr, pitTokenT));
+
+      hdr->pitTokenT = TT_PitToken;
+      hdr->pitTokenL = 8;
+      hdr->pitTokenV = rte_cpu_to_le_64(lpp->pitToken);
+    }
+
     if (lpp->nackReason != NackReason_None) {
       AppendVarNum(en, TT_Nack);
       if (unlikely(lpp->nackReason == NackReason_Unspecified)) {

@@ -66,6 +66,7 @@ EncodeLpHeaders_GetTailroom()
   return 1 + 1 + 8 +         // SeqNo
          1 + 1 + 2 +         // FragIndex
          1 + 1 + 2 +         // FragCount
+         1 + 1 + 8 +         // PitToken
          3 + 1 + 3 + 1 + 1 + // Nack
          3 + 1 + 1 +         // CongestionMark
          1 + 5;              // Payload
