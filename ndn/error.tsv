@@ -4,6 +4,7 @@ LengthOverflow
 BadType
 UnknownCriticalLpHeader
 FragIndexExceedFragCount
+BadPitToken
 NameTooLong
 NameHasComponentAfterDigest
 BadDigestComponentLength

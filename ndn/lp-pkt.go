@@ -38,6 +38,10 @@ func (lpp *LpPkt) GetFragFields() (seqNo uint64, fragIndex uint16, fragCount uin
 	return uint64(lpp.c.seqNo), uint16(lpp.c.fragIndex), uint16(lpp.c.fragCount)
 }
 
+func (lpp *LpPkt) GetPitToken() uint64 {
+	return uint64(lpp.c.pitToken)
+}
+
 func (lpp *LpPkt) GetNackReason() NackReason {
 	return NackReason(lpp.c.nackReason)
 }

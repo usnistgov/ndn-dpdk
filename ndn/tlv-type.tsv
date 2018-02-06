@@ -3,6 +3,7 @@ LpPayload 50
 LpSeqNo 51
 FragIndex 52
 FragCount 53
+PitToken 62
 Nack 0320
 NackReason 0321
 CongestionMark 0340

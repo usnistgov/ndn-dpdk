@@ -9,11 +9,13 @@
  */
 typedef struct LpPkt
 {
+  uint64_t pitToken;
   uint64_t seqNo;
   uint16_t fragIndex;
   uint16_t fragCount;
   uint8_t nackReason;
   uint8_t congMark;
+
   uint16_t payloadOff; ///< offset of payload
   MbufLoc payload;     ///< start position and boundary of payload
 } LpPkt;

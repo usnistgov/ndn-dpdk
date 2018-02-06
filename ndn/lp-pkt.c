@@ -50,6 +50,17 @@ DecodeLpPkt(TlvDecoder* d, LpPkt* lpp)
         lpp->fragCount = v;
         break;
       }
+      case TT_PitToken: {
+        if (unlikely(hdrEle.length != sizeof(uint64_t))) {
+          return NdnError_BadPitToken;
+        }
+        TlvDecoder d2;
+        TlvElement_MakeValueDecoder(&hdrEle, &d2);
+        rte_le64_t v;
+        MbufLoc_ReadU64(&d2, &v);
+        lpp->pitToken = rte_le_to_cpu_64(v);
+        break;
+      }
       case TT_Nack: {
         TlvDecoder d2;
         TlvElement_MakeValueDecoder(&hdrEle, &d2);

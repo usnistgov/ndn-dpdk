@@ -10,33 +10,35 @@ func TestLpPkt(t *testing.T) {
 	assert, _ := makeAR(t)
 
 	tests := []struct {
-		input        string
-		ok           bool
-		hasPayload   bool
-		isFragmented bool
-		seqNo        uint64
-		fragIndex    uint16
-		fragCount    uint16
-		nackReason   NackReason
-		congMark     CongMark
+		input      string
+		bad        bool
+		hasPayload bool
+		seqNo      uint64
+		fragIndex  uint16
+		fragCount  uint16
+		pitToken   uint64
+		nackReason NackReason
+		congMark   CongMark
 	}{
-		{"", false, false, false, 0, 0, 0, 0, 0},
-		{"6406 payload=5004D0D1D2D3", true, true, false, 0, 0, 1, 0, 0},
-		{"6402 unknown-critical=6300", false, false, false, 0, 0, 0, 0, 0},
-		{"6404 unknown-critical=FD03BF00", false, false, false, 0, 0, 0, 0, 0},
-		{"6404 unknown-ignored=FD03BC00", true, false, false, 0, 0, 1, 0, 0},
-		{"6411 seq=5108A0A1A2A3A4A5A600 fragcount=530102 payload=5002D0D1", true,
-			true, true, 0xA0A1A2A3A4A5A600, 0, 2, 0, 0},
-		{"6414 seq=5108A0A1A2A3A4A5A601 fragindex=520101 fragcount=530102 payload=5002D2D3", true,
-			true, true, 0xA0A1A2A3A4A5A601, 1, 2, 0, 0},
-		{"6417 seq=5108A0A1A2A3A4A5A601 fragindex=520102 fragcount=530102 payload=5002D2D3", false,
-			false, false, 0, 0, 0, 0, 0}, // FragIndex>=FragCount
-		{"6404 nack=FD032000(noreason)", true,
-			false, false, 0, 0, 1, NackReason_Unspecified, 0},
-		{"6409 nack=FD032005(FD03210196~noroute)", true,
-			false, false, 0, 0, 1, NackReason_NoRoute, 0},
-		{"6405 congmark=FD03400104", true,
-			false, false, 0, 0, 1, 0, 4},
+		{input: "", bad: true},
+		{input: "6406 payload=5004D0D1D2D3", hasPayload: true, fragCount: 1},
+		{input: "6402 unknown-critical=6300", bad: true},
+		{input: "6404 unknown-critical=FD03BF00", bad: true},
+		{input: "6404 unknown-ignored=FD03BC00", fragCount: 1},
+		{input: "6411 seq=5108A0A1A2A3A4A5A600 fragcount=530102 payload=5002D0D1",
+			hasPayload: true, seqNo: 0xA0A1A2A3A4A5A600, fragIndex: 0, fragCount: 2},
+		{input: "6414 seq=5108A0A1A2A3A4A5A601 fragindex=520101 fragcount=530102 payload=5002D2D3",
+			hasPayload: true, seqNo: 0xA0A1A2A3A4A5A601, fragIndex: 1, fragCount: 2},
+		{input: "6417 seq=5108A0A1A2A3A4A5A601 fragindex=520102 fragcount=530102 payload=5002D2D3",
+			bad: true}, // FragIndex>=FragCount
+		{input: "640A pittoken=62089A414B412BC38EB2",
+			fragCount: 1, pitToken: 0xB28EC32B414B419A},
+		{input: "6406 pittoken=620420A3C0D7", bad: true}, // only accept 8-octet PitToken
+		{input: "6404 nack=FD032000(noreason)",
+			fragCount: 1, nackReason: NackReason_Unspecified},
+		{input: "6409 nack=FD032005(FD03210196~noroute)",
+			fragCount: 1, nackReason: NackReason_NoRoute},
+		{input: "6405 congmark=FD03400104", fragCount: 1, congMark: 4},
 	}
 	for _, tt := range tests {
 		pkt := packetFromHex(tt.input)
@@ -44,19 +46,20 @@ func TestLpPkt(t *testing.T) {
 		d := NewTlvDecoder(pkt)
 
 		lpp, e := d.ReadLpPkt()
-		if tt.ok {
+		if tt.bad {
+			assert.Error(e, tt.input)
+		} else {
 			if assert.NoError(e, tt.input) {
 				assert.Equal(tt.hasPayload, lpp.HasPayload(), tt.input)
-				assert.Equal(tt.isFragmented, lpp.IsFragmented(), tt.input)
+				assert.Equal(tt.fragCount > 1, lpp.IsFragmented(), tt.input)
 				seqNo, fragIndex, fragCount := lpp.GetFragFields()
 				assert.Equal(tt.seqNo, seqNo, tt.input)
 				assert.Equal(tt.fragIndex, fragIndex, tt.input)
 				assert.Equal(tt.fragCount, fragCount, tt.input)
+				assert.Equal(tt.pitToken, lpp.GetPitToken(), tt.input)
 				assert.Equal(tt.nackReason, lpp.GetNackReason(), tt.input)
 				assert.Equal(tt.congMark, lpp.GetCongMark(), tt.input)
 			}
-		} else {
-			assert.Error(e, tt.input)
 		}
 	}
 }
