@@ -1,17 +1,11 @@
 #ifndef NDN_DPDK_APP_NDNPING_CLIENT_H
 #define NDN_DPDK_APP_NDNPING_CLIENT_H
 
+/// \file
+
 #include "../../container/nameset/nameset.h"
 #include "../../core/running_stat/running-stat.h"
 #include "../../iface/face.h"
-
-/// \file
-
-/** \brief Maximum number of patterns.
- *
- *  This is checked by \p NdnpingClient_EnableRtt.
- */
-#define NDNPINGCLIENT_MAXPATTERNS 64
 
 /** \brief Per-pattern information in ndnping client.
  */

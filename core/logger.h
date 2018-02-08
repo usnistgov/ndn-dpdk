@@ -1,11 +1,9 @@
 #ifndef NDN_DPDK_CORE_LOGGER_H
 #define NDN_DPDK_CORE_LOGGER_H
 
-#include "common.h"
+/// \file
 
-/** \file
- *  \brief C logging
- */
+#include "common.h"
 
 #if DOXYGEN
 /** \brief Set compile-time maximum log level.

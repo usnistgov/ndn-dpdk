@@ -1,9 +1,9 @@
 #ifndef NDN_DPDK_IFACE_IN_ORDER_REASSEMBLER_H
 #define NDN_DPDK_IFACE_IN_ORDER_REASSEMBLER_H
 
-#include "common.h"
-
 /// \file
+
+#include "common.h"
 
 /** \brief Reassembler that requires in-order packet arrival.
  */

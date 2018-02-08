@@ -1,9 +1,9 @@
 #ifndef NDN_DPDK_IFACE_ETHFACE_ETH_TX_H
 #define NDN_DPDK_IFACE_ETHFACE_ETH_TX_H
 
-#include "common.h"
-
 /// \file
+
+#include "common.h"
 
 typedef struct EthFace EthFace;
 
@@ -14,6 +14,8 @@ EthTx_GetHeaderMempoolDataRoom()
          EncodeLpHeaders_GetTailroom();
 }
 
+/** \brief Ethernet transmitting queue.
+ */
 typedef struct EthTx
 {
   EthFace* face;

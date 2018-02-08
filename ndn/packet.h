@@ -1,11 +1,11 @@
 #ifndef NDN_DPDK_NDN_PACKET_H
 #define NDN_DPDK_NDN_PACKET_H
 
+/// \file
+
 #include "data-pkt.h"
 #include "interest-pkt.h"
 #include "lp-pkt.h"
-
-/// \file
 
 /** \brief Indicate layer 2 packet type.
  *

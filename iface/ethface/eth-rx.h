@@ -1,12 +1,14 @@
 #ifndef NDN_DPDK_IFACE_ETHFACE_ETH_RX_H
 #define NDN_DPDK_IFACE_ETHFACE_ETH_RX_H
 
-#include "common.h"
-
 /// \file
+
+#include "common.h"
 
 typedef struct EthFace EthFace;
 
+/** \brief Ethernet receiving queue.
+ */
 typedef struct EthRx
 {
 } EthRx;

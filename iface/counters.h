@@ -1,9 +1,9 @@
 #ifndef NDN_DPDK_IFACE_COUNTERS_H
 #define NDN_DPDK_IFACE_COUNTERS_H
 
-#include "common.h"
-
 /// \file
+
+#include "common.h"
 
 typedef struct RxL2Counters
 {

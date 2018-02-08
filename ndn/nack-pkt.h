@@ -1,9 +1,9 @@
 #ifndef NDN_DPDK_NDN_NACK_PKT_H
 #define NDN_DPDK_NDN_NACK_PKT_H
 
-#include "common.h"
-
 /// \file
+
+#include "common.h"
 
 /** \brief Indicate the Nack reason.
  */

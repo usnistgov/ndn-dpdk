@@ -1,9 +1,9 @@
 #ifndef NDN_DPDK_IFACE_FACETABLE_H
 #define NDN_DPDK_IFACE_FACETABLE_H
 
-#include "face.h"
-
 /// \file
+
+#include "face.h"
 
 /** \brief Table of faces indexed by FaceId.
  *

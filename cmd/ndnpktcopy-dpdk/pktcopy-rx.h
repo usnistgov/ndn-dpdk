@@ -1,9 +1,9 @@
 #ifndef NDN_DPDK_CMD_NDNPKTCOPY_RX_H
 #define NDN_DPDK_CMD_NDNPKTCOPY_RX_H
 
-#include "../../iface/face.h"
-
 /// \file
+
+#include "../../iface/face.h"
 
 /** \brief Maximum number of TX rings.
  */

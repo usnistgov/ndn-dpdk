@@ -1,10 +1,10 @@
 #ifndef NDN_DPDK_IFACE_FACE_H
 #define NDN_DPDK_IFACE_FACE_H
 
+/// \file
+
 #include "rx-proc.h"
 #include "tx-proc.h"
-
-/// \file
 
 /** \brief Numeric face identifier.
  */

@@ -1,8 +1,12 @@
 #ifndef NDN_DPDK_CORE_RUNNING_STAT_H
 #define NDN_DPDK_CORE_RUNNING_STAT_H
 
+/// \file
+
 #include "../common.h"
 
+/** \brief Facility to compute min, max, mean, and variance.
+ */
 typedef struct RunningStat
 {
   uint64_t n;
@@ -14,6 +18,8 @@ typedef struct RunningStat
   double newS;
 } RunningStat;
 
+/** \brief Add a sample to RunningStat.
+ */
 static inline void
 RunningStat_Push(RunningStat* s, double x)
 {

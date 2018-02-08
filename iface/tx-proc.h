@@ -1,9 +1,9 @@
 #ifndef NDN_DPDK_IFACE_TX_PROC_H
 #define NDN_DPDK_IFACE_TX_PROC_H
 
-#include "counters.h"
-
 /// \file
+
+#include "counters.h"
 
 typedef struct TxProc TxProc;
 

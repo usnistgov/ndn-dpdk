@@ -1,10 +1,10 @@
 #ifndef NDN_DPDK_IFACE_RX_PROC_H
 #define NDN_DPDK_IFACE_RX_PROC_H
 
+/// \file
+
 #include "counters.h"
 #include "in-order-reassembler.h"
-
-/// \file
 
 /** \brief Incoming frame processing procedure.
  */

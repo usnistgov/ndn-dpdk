@@ -1,14 +1,16 @@
 #ifndef NDN_DPDK_IFACE_ETHFACE_ETH_FACE_H
 #define NDN_DPDK_IFACE_ETHFACE_ETH_FACE_H
 
+/// \file
+
 #include "eth-rx.h"
 #include "eth-tx.h"
-
-/// \file
 
 #define ETHFACE_MAX_RX_COUNT 1
 #define ETHFACE_MAX_TX_COUNT 1
 
+/** \brief Ethernet face.
+ */
 typedef struct EthFace
 {
   Face base;

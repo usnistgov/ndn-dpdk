@@ -1,10 +1,9 @@
 #ifndef NDN_DPDK_IFACE_SOCKETFACE_SOCKET_FACE_H
 #define NDN_DPDK_IFACE_SOCKETFACE_SOCKET_FACE_H
 
-#include "../common.h"
-#include "../face.h"
-
 /// \file
+
+#include "../face.h"
 
 /** \brief A face to communicate on a socket.
  *

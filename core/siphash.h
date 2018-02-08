@@ -1,11 +1,11 @@
 #ifndef NDN_DPDK_CORE_SIPHASH_H
 #define NDN_DPDK_CORE_SIPHASH_H
 
+/// \file
+
 #include "common.h"
 #include "siphash-20121104.h"
 #include <rte_memcpy.h>
-
-/// \file
 
 /** \brief a key for SipHash
  */

@@ -1,10 +1,10 @@
 #ifndef NDN_DPDK_APP_NDNPING_SERVER_H
 #define NDN_DPDK_APP_NDNPING_SERVER_H
 
+/// \file
+
 #include "../../container/nameset/nameset.h"
 #include "../../iface/face.h"
-
-/// \file
 
 /** \brief Per-pattern information in ndnping server.
  */

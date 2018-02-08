@@ -1,9 +1,9 @@
 #ifndef NDN_DPDK_CMD_NDNPKTCOPY_TX_H
 #define NDN_DPDK_CMD_NDNPKTCOPY_TX_H
 
-#include "../../iface/face.h"
-
 /// \file
+
+#include "../../iface/face.h"
 
 /** \brief Transmitting thread of ndnpktcopy.
  */
