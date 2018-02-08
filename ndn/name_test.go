@@ -1,4 +1,4 @@
-package ndn
+package ndn_test
 
 import (
 	"strings"
@@ -6,6 +6,7 @@ import (
 
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/dpdk/dpdktestenv"
+	"ndn-dpdk/ndn"
 )
 
 func TestNameDecode(t *testing.T) {
@@ -32,7 +33,7 @@ func TestNameDecode(t *testing.T) {
 	for _, tt := range tests {
 		pkt := packetFromHex(tt.input)
 		defer pkt.Close()
-		d := NewTlvDecoder(pkt)
+		d := ndn.NewTlvDecoder(pkt)
 
 		n, e := d.ReadName()
 		if tt.ok {
@@ -52,7 +53,8 @@ func TestNamePrefixSize(t *testing.T) {
 
 	pkt := packetFromHex("0709 0800 080141 08024243")
 	defer pkt.Close()
-	d := NewTlvDecoder(pkt)
+	d := ndn.NewTlvDecoder(pkt)
+
 	name, e := d.ReadName()
 	require.NoError(e)
 
@@ -82,11 +84,12 @@ func TestNamePrefixHash(t *testing.T) {
 		"0702 0900",
 	}
 	pkts := make([]dpdk.Packet, len(nameStrs))
-	names := make([]Name, len(nameStrs))
+	names := make([]ndn.Name, len(nameStrs))
 	for i, nameStr := range nameStrs {
 		pkts[i] = packetFromHex(nameStr)
 		defer pkts[i].Close()
-		d := NewTlvDecoder(pkts[i])
+		d := ndn.NewTlvDecoder(pkts[i])
+
 		var e error
 		names[i], e = d.ReadName()
 		require.NoError(e, nameStr)
@@ -143,11 +146,12 @@ func TestNameCompare(t *testing.T) {
 		"0702 0900",
 	}
 	pkts := make([]dpdk.Packet, len(nameStrs))
-	names := make([]Name, len(nameStrs))
+	names := make([]ndn.Name, len(nameStrs))
 	for i, nameStr := range nameStrs {
 		pkts[i] = packetFromHex(nameStr)
 		defer pkts[i].Close()
-		d := NewTlvDecoder(pkts[i])
+		d := ndn.NewTlvDecoder(pkts[i])
+
 		var e error
 		names[i], e = d.ReadName()
 		require.NoError(e, nameStr)
@@ -172,7 +176,7 @@ func TestNameCompare(t *testing.T) {
 		assert.Equal(len(names), len(relRow), i)
 		for j, rel := range relRow {
 			cmp := names[i].Compare(names[j])
-			assert.Equal(NameCompareResult(rel), cmp, "%d=%s %d=%s", i, names[i], j, names[j])
+			assert.Equal(ndn.NameCompareResult(rel), cmp, "%d=%s %d=%s", i, names[i], j, names[j])
 		}
 	}
 }
@@ -194,8 +198,8 @@ func TestNameEncode(t *testing.T) {
 		{"/%00GH%ab%cD%EF", true, "0708", "0806004748ABCDEF"},
 	}
 	for _, tt := range tests {
-		tlv, e1 := EncodeNameFromUri(tt.input)
-		comps, e2 := EncodeNameComponentsFromUri(tt.input)
+		tlv, e1 := ndn.EncodeNameFromUri(tt.input)
+		comps, e2 := ndn.EncodeNameComponentsFromUri(tt.input)
 		if tt.ok {
 			if assert.NoError(e1, tt.input) {
 				expected := dpdktestenv.PacketBytesFromHex(tt.outputTL + tt.outputV)
@@ -216,17 +220,17 @@ func TestNameComponentEncodeFromNumber(t *testing.T) {
 	assert, _ := makeAR(t)
 
 	tests := []struct {
-		tlvType TlvType
+		tlvType ndn.TlvType
 		v       interface{}
 		output  string
 	}{
-		{TT_GenericNameComponent, uint8(0x5B), "08015B"},
-		{TT_GenericNameComponent, uint16(0x7ED2), "08027ED2"},
-		{TT_GenericNameComponent, uint32(0xD6793), "0804000D6793"},
-		{TT_GenericNameComponent, uint64(0xEFF5DE886FF), "080800000EFF5DE886FF"},
+		{ndn.TT_GenericNameComponent, uint8(0x5B), "08015B"},
+		{ndn.TT_GenericNameComponent, uint16(0x7ED2), "08027ED2"},
+		{ndn.TT_GenericNameComponent, uint32(0xD6793), "0804000D6793"},
+		{ndn.TT_GenericNameComponent, uint64(0xEFF5DE886FF), "080800000EFF5DE886FF"},
 	}
 	for _, tt := range tests {
-		encoded := EncodeNameComponentFromNumber(tt.tlvType, tt.v)
+		encoded := ndn.EncodeNameComponentFromNumber(tt.tlvType, tt.v)
 		expected := dpdktestenv.PacketBytesFromHex(tt.output)
 		assert.EqualValues(expected, encoded, tt.output)
 	}

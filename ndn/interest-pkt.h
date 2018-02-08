@@ -30,7 +30,7 @@ typedef struct InterestPkt
  */
 NdnError DecodeInterest(TlvDecoder* d, InterestPkt* interest);
 
-/** \brief Get the Nonce in network byte order.
+/** \brief Get the Nonce, interpreted as little endian.
  */
 static inline uint32_t
 InterestPkt_GetNonce(const InterestPkt* interest)
@@ -38,10 +38,10 @@ InterestPkt_GetNonce(const InterestPkt* interest)
   MbufLoc ml;
   MbufLoc_Copy(&ml, &interest->nonce);
 
-  uint32_t nonce;
+  rte_le32_t nonce;
   bool ok = MbufLoc_ReadU32(&ml, &nonce);
   assert(ok);
-  return nonce;
+  return rte_le_to_cpu_32(nonce);
 }
 
 void InterestPkt_SetNonce(InterestPkt* interest, uint32_t nonce);

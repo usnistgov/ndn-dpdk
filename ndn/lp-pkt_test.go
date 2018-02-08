@@ -1,9 +1,10 @@
-package ndn
+package ndn_test
 
 import (
 	"testing"
 
 	"ndn-dpdk/dpdk/dpdktestenv"
+	"ndn-dpdk/ndn"
 )
 
 func TestLpPkt(t *testing.T) {
@@ -17,8 +18,8 @@ func TestLpPkt(t *testing.T) {
 		fragIndex  uint16
 		fragCount  uint16
 		pitToken   uint64
-		nackReason NackReason
-		congMark   CongMark
+		nackReason ndn.NackReason
+		congMark   ndn.CongMark
 	}{
 		{input: "", bad: true},
 		{input: "6406 payload=5004D0D1D2D3", hasPayload: true, fragCount: 1},
@@ -35,15 +36,15 @@ func TestLpPkt(t *testing.T) {
 			fragCount: 1, pitToken: 0xB28EC32B414B419A},
 		{input: "6406 pittoken=620420A3C0D7", bad: true}, // only accept 8-octet PitToken
 		{input: "6404 nack=FD032000(noreason)",
-			fragCount: 1, nackReason: NackReason_Unspecified},
+			fragCount: 1, nackReason: ndn.NackReason_Unspecified},
 		{input: "6409 nack=FD032005(FD03210196~noroute)",
-			fragCount: 1, nackReason: NackReason_NoRoute},
+			fragCount: 1, nackReason: ndn.NackReason_NoRoute},
 		{input: "6405 congmark=FD03400104", fragCount: 1, congMark: 4},
 	}
 	for _, tt := range tests {
 		pkt := packetFromHex(tt.input)
 		defer pkt.Close()
-		d := NewTlvDecoder(pkt)
+		d := ndn.NewTlvDecoder(pkt)
 
 		lpp, e := d.ReadLpPkt()
 		if tt.bad {
@@ -68,7 +69,7 @@ func TestEncodeLpHeaders(t *testing.T) {
 	assert, require := makeAR(t)
 
 	dpdktestenv.MakeMp("header", 63, 0,
-		uint16(EncodeLpHeaders_GetHeadroom()+EncodeLpHeaders_GetTailroom()))
+		uint16(ndn.EncodeLpHeaders_GetHeadroom()+ndn.EncodeLpHeaders_GetTailroom()))
 
 	tests := []struct {
 		input  string
@@ -85,13 +86,14 @@ func TestEncodeLpHeaders(t *testing.T) {
 	for _, tt := range tests {
 		inputPkt := packetFromHex(tt.input)
 		defer inputPkt.Close()
-		d := NewTlvDecoder(inputPkt)
+		d := ndn.NewTlvDecoder(inputPkt)
+
 		lpp, e := d.ReadLpPkt()
 		require.NoError(e, tt.input)
 
 		header := dpdktestenv.Alloc("header").AsPacket()
 		defer header.Close()
-		header.GetFirstSegment().SetHeadroom(EncodeLpHeaders_GetHeadroom())
+		header.GetFirstSegment().SetHeadroom(ndn.EncodeLpHeaders_GetHeadroom())
 
 		lpp.EncodeHeaders(header)
 		assert.Equal(dpdktestenv.PacketBytesFromHex(tt.output), header.ReadAll(), tt.input)

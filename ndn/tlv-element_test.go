@@ -1,11 +1,13 @@
-package ndn
+package ndn_test
 
 import (
 	"testing"
+
+	"ndn-dpdk/ndn"
 )
 
 func TestTlvElement(t *testing.T) {
-	assert, require := makeAR(t)
+	assert, _ := makeAR(t)
 
 	const NOT_NNI uint64 = 0xB9C0CEA091E491F0
 	tests := []struct {
@@ -32,9 +34,8 @@ func TestTlvElement(t *testing.T) {
 	}
 	for _, tt := range tests {
 		pkt := packetFromHex(tt.input)
-		require.True(pkt.IsValid(), tt.input)
 		defer pkt.Close()
-		d := NewTlvDecoder(pkt)
+		d := ndn.NewTlvDecoder(pkt)
 
 		ele, e := d.ReadTlvElement()
 		if tt.ok {

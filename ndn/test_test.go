@@ -1,4 +1,4 @@
-package ndn
+package ndn_test
 
 import (
 	"os"

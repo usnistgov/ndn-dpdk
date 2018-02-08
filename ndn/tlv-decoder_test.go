@@ -1,9 +1,10 @@
-package ndn
+package ndn_test
 
 import (
 	"testing"
 
 	"ndn-dpdk/dpdk/dpdktestenv"
+	"ndn-dpdk/ndn"
 )
 
 func TestReadVarNum(t *testing.T) {
@@ -32,10 +33,10 @@ func TestReadVarNum(t *testing.T) {
 		input := dpdktestenv.PacketBytesFromHex(tt.input)
 		pkt := dpdktestenv.PacketFromBytes(input)
 		defer pkt.Close()
-		d := NewTlvDecoder(pkt)
+		d := ndn.NewTlvDecoder(pkt)
 
 		v, e := d.ReadVarNum()
-		v2, size, ok := DecodeVarNum(input)
+		v2, size, ok := ndn.DecodeVarNum(input)
 		if tt.ok {
 			if assert.NoError(e, tt.input) {
 				assert.Equal(tt.output, v, tt.input)

@@ -1,4 +1,4 @@
-package ndn
+package ndn_test
 
 import (
 	"encoding/binary"
@@ -6,16 +6,11 @@ import (
 	"time"
 
 	"ndn-dpdk/dpdk/dpdktestenv"
+	"ndn-dpdk/ndn"
 )
 
 func TestDecodeInterest(t *testing.T) {
-	assert, require := makeAR(t)
-
-	checkNonce := func(nonce uint32) func() bool {
-		return func() bool {
-			return nonce == 0xCACBCCCD || nonce == 0xCDCCCBCA
-		}
-	}
+	assert, _ := makeAR(t)
 
 	tests := []struct {
 		input       string
@@ -36,16 +31,15 @@ func TestDecodeInterest(t *testing.T) {
 	}
 	for _, tt := range tests {
 		pkt := packetFromHex(tt.input)
-		require.Truef(pkt.IsValid(), tt.input)
 		defer pkt.Close()
-		d := NewTlvDecoder(pkt)
+		d := ndn.NewTlvDecoder(pkt)
 
 		interest, e := d.ReadInterest()
 		if tt.ok {
 			if assert.NoError(e, tt.input) {
 				assert.Equal(tt.name, interest.GetName().String(), tt.input)
 				assert.Equal(tt.mustBeFresh, interest.HasMustBeFresh(), tt.input)
-				assert.Condition(checkNonce(interest.GetNonce()), tt.input)
+				assert.Equal(uint32(0xCDCCCBCA), interest.GetNonce(), tt.input)
 				assert.EqualValues(tt.lifetime, interest.GetLifetime()/time.Millisecond, tt.input)
 
 				fwHints := interest.GetFwHints()
@@ -61,7 +55,7 @@ func TestDecodeInterest(t *testing.T) {
 	}
 }
 
-func checkEncodeInterest(t *testing.T, tpl *InterestTemplate,
+func checkEncodeInterest(t *testing.T, tpl *ndn.InterestTemplate,
 	expectedHex string, nonceOffset int) {
 	assert, _ := makeAR(t)
 
@@ -82,7 +76,7 @@ func checkEncodeInterest(t *testing.T, tpl *InterestTemplate,
 func TestEncodeInterest0(t *testing.T) {
 	assert, _ := makeAR(t)
 
-	tpl := NewInterestTemplate()
+	tpl := ndn.NewInterestTemplate()
 	e := tpl.SetNamePrefixFromUri("/")
 	assert.NoError(e)
 	tpl.SetMustBeFresh(false)
@@ -96,10 +90,11 @@ func TestEncodeInterest0(t *testing.T) {
 func TestEncodeInterest1(t *testing.T) {
 	assert, _ := makeAR(t)
 
-	tpl := NewInterestTemplate()
+	tpl := ndn.NewInterestTemplate()
 	e := tpl.SetNamePrefixFromUri("/A/B")
 	assert.NoError(e)
-	tpl.NameSuffix = EncodeNameComponentFromNumber(TT_GenericNameComponent, uint32(0x737F2FBD))
+	tpl.NameSuffix = ndn.EncodeNameComponentFromNumber(ndn.TT_GenericNameComponent,
+		uint32(0x737F2FBD))
 	tpl.SetMustBeFresh(true)
 	assert.True(tpl.GetMustBeFresh())
 	tpl.SetInterestLifetime(9000 * time.Millisecond)

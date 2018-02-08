@@ -1,9 +1,10 @@
-package ndn
+package ndn_test
 
 import (
 	"testing"
 
 	"ndn-dpdk/dpdk/dpdktestenv"
+	"ndn-dpdk/ndn"
 )
 
 func TestTlvBytes(t *testing.T) {
@@ -25,7 +26,7 @@ func TestTlvBytes(t *testing.T) {
 		{"0202B0B1 0101A0", 2, []int{4, 3}},
 	}
 	for _, tt := range tests {
-		tb := TlvBytes(dpdktestenv.PacketBytesFromHex(tt.input))
+		tb := ndn.TlvBytes(dpdktestenv.PacketBytesFromHex(tt.input))
 		assert.Equal(tt.nElements, tb.CountElements(), tt.input)
 		if elements := tb.SplitElements(); tt.nElements == -1 {
 			assert.Nil(elements, tt.input)

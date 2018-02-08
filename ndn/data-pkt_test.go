@@ -1,14 +1,15 @@
-package ndn
+package ndn_test
 
 import (
 	"testing"
 	"time"
 
 	"ndn-dpdk/dpdk/dpdktestenv"
+	"ndn-dpdk/ndn"
 )
 
 func TestData(t *testing.T) {
-	assert, require := makeAR(t)
+	assert, _ := makeAR(t)
 
 	tests := []struct {
 		input     string
@@ -25,9 +26,8 @@ func TestData(t *testing.T) {
 	}
 	for _, tt := range tests {
 		pkt := packetFromHex(tt.input)
-		require.Truef(pkt.IsValid(), tt.input)
 		defer pkt.Close()
-		d := NewTlvDecoder(pkt)
+		d := ndn.NewTlvDecoder(pkt)
 
 		data, e := d.ReadData()
 		if tt.ok {
@@ -46,8 +46,8 @@ func TestEncodeData(t *testing.T) {
 
 	nameMbuf := packetFromHex("0706 080141 080142")
 	defer nameMbuf.Close()
-	nameD := NewTlvDecoder(nameMbuf)
-	name, e := nameD.ReadName()
+	d := ndn.NewTlvDecoder(nameMbuf)
+	name, e := d.ReadName()
 	require.NoError(e)
 
 	payloadMbuf := packetFromHex("C0C1C2C3C4C5C6C7")
@@ -56,9 +56,9 @@ func TestEncodeData(t *testing.T) {
 	m1 := dpdktestenv.Alloc(dpdktestenv.MPID_DIRECT)
 	m2 := dpdktestenv.Alloc(dpdktestenv.MPID_DIRECT)
 
-	encoded := EncodeData(&name, payloadMbuf, m1, m2)
-	dataD := NewTlvDecoder(encoded)
-	data, e := dataD.ReadData()
+	encoded := ndn.EncodeData(&name, payloadMbuf, m1, m2)
+	d = ndn.NewTlvDecoder(encoded)
+	data, e := d.ReadData()
 	require.NoError(e)
 
 	assert.Equal("/A/B", data.GetName().String())
