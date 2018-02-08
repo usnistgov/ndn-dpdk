@@ -18,3 +18,8 @@ func EntryFromPtr(ptr unsafe.Pointer) Entry {
 func (entry Entry) GetPitEntryPtr() unsafe.Pointer {
 	return unsafe.Pointer(entry.c)
 }
+
+// Determine whether two Entry instances point to the same underlying entry.
+func (entry Entry) SameAs(entry2 Entry) bool {
+	return entry.c == entry2.c
+}

@@ -8,7 +8,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	dpdktestenv.MakeDirectMp(255, 0, 2000)
+	dpdktestenv.MakeDirectMp(1023, 0, 2000)
 
 	os.Exit(m.Run())
 }

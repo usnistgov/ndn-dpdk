@@ -31,7 +31,7 @@ typedef struct PcctPriv
   ((PcctPriv*)rte_mempool_get_priv((struct rte_mempool*)(pcct)))
 
 /** \brief Create a PIT-CS index.
- *  \param id identifier for debugging, must be unique.
+ *  \param id identifier for debugging, up to 24 chars, must be unique.
  *  \param maxEntries maximum number of entries, should be (2^q-1).
  *  \param numaSocket where to allocate memory.
  */
@@ -55,16 +55,36 @@ void Pcct_Erase(Pcct* pcct, PccEntry* entry);
  */
 PccEntry* Pcct_Find(const Pcct* pcct, uint64_t hash, PccSearch* search);
 
+uint64_t __Pcct_AddToken(Pcct* pcct, PccEntry* entry);
+
 /** \brief Assign a token to an entry.
+ *  \return New or existing token.
  */
-void Pcct_AddToken(Pcct* pcct, PccEntry* entry);
+static inline uint64_t
+Pcct_AddToken(Pcct* pcct, PccEntry* entry)
+{
+  if (entry->hasToken) {
+    return entry->token;
+  }
+  return __Pcct_AddToken(pcct, entry);
+}
+
+void __Pcct_RemoveToken(Pcct* pcct, PccEntry* entry);
 
 /** \brief Clear the token on an entry.
  */
-void Pcct_RemoveToken(Pcct* pcct, PccEntry* entry);
+static inline void
+Pcct_RemoveToken(Pcct* pcct, PccEntry* entry)
+{
+  if (!entry->hasToken) {
+    return;
+  }
+  __Pcct_RemoveToken(pcct, entry);
+}
 
 /** \brief Find an entry by token.
+ *  \param token the token, only lower 48 bits are significant.
  */
 PccEntry* Pcct_FindByToken(const Pcct* pcct, uint64_t token);
 
-#endif // NDN_DPDK_CONTAINER_PCI_PCI_H
+#endif // NDN_DPD

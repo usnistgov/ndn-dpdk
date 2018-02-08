@@ -51,3 +51,56 @@ func TestInsertErase(t *testing.T) {
 	assert.Zero(pit.Len())
 	assert.Zero(mp.CountInUse())
 }
+
+func TestToken(t *testing.T) {
+	assert, require := makeAR(t)
+	tokens := make(map[uint64]pit.Entry)
+
+	pit := createPit()
+	defer pit.Pcct.Close()
+	defer pit.Close()
+
+	pktBytes := dpdktestenv.PacketBytesFromHex("050B name=0703 080141 nonce=0A04A0A1A2A3")
+	for i := 0; i <= 255; i++ {
+		pktBytes[6] = byte(i)
+		pkt := dpdktestenv.PacketFromBytes(pktBytes)
+		defer pkt.Close()
+		d := ndn.NewTlvDecoder(pkt)
+		interest, e := d.ReadInterest()
+		require.NoError(e)
+
+		entry, _ := pit.Insert(&interest)
+		if i == 255 { // PCCT is full
+			assert.Nil(entry)
+			continue
+		}
+
+		require.NotNil(entry)
+		token := pit.AddToken(*entry)
+		assert.Equal(token&(1<<48-1), token) // token has 48 bits
+		tokens[token] = *entry
+	}
+
+	assert.Equal(255, pit.Len())
+	assert.Len(tokens, 255)
+
+	for token, entry := range tokens {
+		found := pit.Find(token)
+		if assert.NotNil(found) {
+			assert.True(entry.SameAs(*found))
+		}
+
+		// high 16 bits should be ignored
+		token2 := token ^ 0x79BC000000000000
+		found2 := pit.Find(token2)
+		if assert.NotNil(found2) {
+			assert.True(entry.SameAs(*found2))
+		}
+
+		pit.Erase(entry)
+		found = pit.Find(token)
+		assert.Nil(found)
+		found2 = pit.Find(token2)
+		assert.Nil(found2)
+	}
+}

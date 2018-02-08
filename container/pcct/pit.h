@@ -73,6 +73,15 @@ PitInsertResult_GetCsEntry(PitInsertResult res)
  */
 PitInsertResult Pit_Insert(Pit* pit, const InterestPkt* interest);
 
+/** \brief Assign a token to a PIT entry.
+ *  \return New or existing token.
+ */
+static inline uint64_t
+Pit_AddToken(Pit* pit, PitEntry* entry)
+{
+  return Pcct_AddToken(Pcct_FromPit(pit), PccEntry_FromPitEntry(entry));
+}
+
 /** \brief Erase a PIT entry but retain the PccEntry.
  *  \return enclosing PccEntry.
  *  \post \p entry is no longer valid.
@@ -82,10 +91,24 @@ PccEntry* __Pit_RawErase(Pit* pit, PitEntry* entry);
 /** \brief Erase a PIT entry.
  *  \post \p entry is no longer valid.
  */
-void Pit_Erase(Pit* pit, PitEntry* entry);
+static inline void
+Pit_Erase(Pit* pit, PitEntry* entry)
+{
+  PccEntry* pccEntry = __Pit_RawErase(pit, entry);
+  Pcct_Erase(Pcct_FromPit(pit), pccEntry);
+}
 
 /** \brief Find a PIT entry for the given token.
+ *  \param token the token, only lower 48 bits are significant.
  */
-PitEntry* Pit_Find(Pit* pit, uint64_t token);
+static inline PitEntry*
+Pit_Find(Pit* pit, uint64_t token)
+{
+  PccEntry* pccEntry = Pcct_FindByToken(Pcct_FromPit(pit), token);
+  if (likely(pccEntry != NULL && pccEntry->hasPitEntry)) {
+    return PccEntry_GetPitEntry(pccEntry);
+  }
+  return NULL;
+}
 
 #endif // NDN_DPDK_CONTAINER_PCCT_PIT_H

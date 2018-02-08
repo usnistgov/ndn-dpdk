@@ -30,21 +30,8 @@ __Pit_RawErase(Pit* pit, PitEntry* entry)
 {
   PitPriv* pitp = Pit_GetPriv(pit);
   PccEntry* pccEntry = PccEntry_FromPitEntry(entry);
+  Pcct_RemoveToken(Pcct_FromPit(pit), pccEntry);
   pccEntry->hasPitEntry = false;
   --pitp->nEntries;
   return pccEntry;
-}
-
-void
-Pit_Erase(Pit* pit, PitEntry* entry)
-{
-  PccEntry* pccEntry = __Pit_RawErase(pit, entry);
-  Pcct_Erase(Pcct_FromPit(pit), pccEntry);
-}
-
-PitEntry*
-Pit_Find(Pit* pit, uint64_t token)
-{
-  assert(false); // not implemented
-  return NULL;
 }
