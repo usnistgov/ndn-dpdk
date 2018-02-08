@@ -1,9 +1,10 @@
-package faceuri
+package faceuri_test
 
 import (
 	"testing"
 
 	"ndn-dpdk/dpdk/dpdktestenv"
+	"ndn-dpdk/iface/faceuri"
 )
 
 func TestParse(t *testing.T) {
@@ -42,7 +43,7 @@ func TestParse(t *testing.T) {
 		{"tcp4://192.0.2.1:7777", true, ""},
 	}
 	for _, tt := range tests {
-		u, e := Parse(tt.input)
+		u, e := faceuri.Parse(tt.input)
 		if tt.ok {
 			if assert.NoError(e, tt.input) && assert.NotNil(u, tt.input) {
 				output := tt.output
