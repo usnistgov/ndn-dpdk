@@ -1,4 +1,4 @@
-package socketface
+package socketface_test
 
 import (
 	"net"
@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"ndn-dpdk/dpdk/dpdktestenv"
+	"ndn-dpdk/iface/socketface"
 	"ndn-dpdk/ndn"
 )
 
@@ -19,7 +20,7 @@ func TestUdp(t *testing.T) {
 	conn2, e := net.DialUDP("udp", &addr1, &addr2)
 	require.NoError(e)
 
-	face1 := New(conn1, Config{
+	face1 := socketface.New(conn1, socketface.Config{
 		RxMp:         directMp,
 		RxqCapacity:  64,
 		TxIndirectMp: indirectMp,

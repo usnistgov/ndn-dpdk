@@ -1,4 +1,4 @@
-package socketface
+package socketface_test
 
 import (
 	"io"
@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"ndn-dpdk/dpdk/dpdktestenv"
+	"ndn-dpdk/iface/socketface"
 	"ndn-dpdk/ndn"
 )
 
@@ -15,7 +16,7 @@ func TestStream(t *testing.T) {
 
 	conn1, conn2 := net.Pipe()
 
-	face1 := New(conn1, Config{
+	face1 := socketface.New(conn1, socketface.Config{
 		RxMp:         directMp,
 		RxqCapacity:  64,
 		TxIndirectMp: indirectMp,

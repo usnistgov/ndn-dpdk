@@ -1,4 +1,4 @@
-package socketface
+package socketface_test
 
 // This file contains test setup procedure and common test helper functions.
 
@@ -23,7 +23,3 @@ func TestMain(m *testing.M) {
 }
 
 var makeAR = dpdktestenv.MakeAR
-
-func packetFromHex(input string) dpdk.Packet {
-	return dpdktestenv.PacketFromHex(input)
-}
