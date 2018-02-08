@@ -12,9 +12,9 @@ type PacketIterator struct {
 	ml C.MbufLoc
 }
 
-func NewPacketIterator(pkt Packet) PacketIterator {
+func NewPacketIterator(pkt IMbuf) PacketIterator {
 	var it PacketIterator
-	C.MbufLoc_Init(&it.ml, pkt.ptr)
+	C.MbufLoc_Init(&it.ml, (*C.struct_rte_mbuf)(pkt.GetPtr()))
 	return it
 }
 

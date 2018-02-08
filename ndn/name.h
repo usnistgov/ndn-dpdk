@@ -127,6 +127,14 @@ Name_ComputePrefixHash(const Name* n, uint16_t i)
   return n->comps[i - 1].hash;
 }
 
+/** \brief Compute hash for whole name.
+ */
+static inline uint64_t
+Name_ComputeHash(const Name* n)
+{
+  return Name_ComputePrefixHash(n, n->nComps);
+}
+
 /** \brief Indicate the result of name comparison.
  */
 typedef enum NameCompareResult {

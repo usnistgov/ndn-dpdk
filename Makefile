@@ -2,7 +2,7 @@ CLIBPREFIX=build-c/libndn-dpdk
 
 all: cmds
 
-cbuilds: $(CLIBPREFIX)-core.a $(CLIBPREFIX)-dpdk.a $(CLIBPREFIX)-ndn.a $(CLIBPREFIX)-nameset.a $(CLIBPREFIX)-iface.a
+cbuilds: $(CLIBPREFIX)-core.a $(CLIBPREFIX)-dpdk.a $(CLIBPREFIX)-ndn.a $(CLIBPREFIX)-nameset.a $(CLIBPREFIX)-pcct.a $(CLIBPREFIX)-iface.a
 
 cmds: cmd-ndnpktcopy-dpdk cmd-ndnping-dpdk
 
@@ -55,6 +55,18 @@ $(CLIBPREFIX)-fib.a: $(CLIBPREFIX)-tsht.a $(CLIBPREFIX)-ndn.a container/fib/*
 
 go-fib: $(CLIBPREFIX)-fib.a
 	go build ./container/fib
+
+container/pcct/uthash.h: container/pcct/fetch-uthash.sh
+	cd container/pcct && ./fetch-uthash.sh
+
+$(CLIBPREFIX)-pcct.a: $(CLIBPREFIX)-ndn.a container/pcct/* container/pcct/uthash.h
+	./build-c.sh container/pcct
+
+go-pit: $(CLIBPREFIX)-pcct.a container/pit/*
+	go build ./container/pit
+
+go-cs: $(CLIBPREFIX)-pcct.a container/cs/*
+	go build ./container/cs
 
 $(CLIBPREFIX)-iface.a: $(CLIBPREFIX)-ndn.a iface/*
 	./build-c.sh iface

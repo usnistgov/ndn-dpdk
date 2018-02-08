@@ -3,7 +3,6 @@
 #include "../../core/logger.h"
 
 #include <rte_cycles.h>
-#include <rte_malloc.h>
 #include <rte_random.h>
 
 INIT_ZF_LOG(NdnpingClient);

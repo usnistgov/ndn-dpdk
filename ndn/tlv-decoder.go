@@ -14,7 +14,7 @@ type TlvDecoder struct {
 	it dpdk.PacketIterator
 }
 
-func NewTlvDecoder(pkt dpdk.Packet) TlvDecoder {
+func NewTlvDecoder(pkt dpdk.IMbuf) TlvDecoder {
 	return TlvDecoder{dpdk.NewPacketIterator(pkt)}
 }
 

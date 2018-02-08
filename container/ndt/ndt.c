@@ -1,5 +1,4 @@
 #include "ndt.h"
-#include <rte_malloc.h>
 
 #define NDT_INDEX_MASK (NDT_MAX_INDEX - 1)
 

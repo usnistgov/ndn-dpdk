@@ -93,3 +93,18 @@ func (pkt Packet) AsInterest() *InterestPkt {
 func (pkt Packet) AsData() *DataPkt {
 	return (*DataPkt)(unsafe.Pointer(C.Packet_GetDataHdr(pkt.getPtr())))
 }
+
+func (pkt Packet) SetNetHdr(netp interface{}) {
+	if interest, ok := netp.(*InterestPkt); ok {
+		if pkt.GetL2Type() == L2PktType_NdnlpV2 && pkt.GetLpHdr().GetNackReason() != NackReason_None {
+			C.Packet_SetNdnPktType(pkt.getPtr(), C.NdnPktType_Nack)
+		} else {
+			C.Packet_SetNdnPktType(pkt.getPtr(), C.NdnPktType_Interest)
+		}
+		*C.Packet_GetInterestHdr(pkt.getPtr()) = interest.c
+	} else {
+		data := netp.(*DataPkt)
+		C.Packet_SetNdnPktType(pkt.getPtr(), C.NdnPktType_Data)
+		*C.Packet_GetDataHdr(pkt.getPtr()) = data.c
+	}
+}

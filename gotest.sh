@@ -4,6 +4,7 @@ getTestPkg() {
   # determine $TESTPKG from $PKG
   if [[ $1 == 'dpdk' ]]; then echo dpdk/dpdktest
   elif [[ $1 == 'iface' ]]; then echo iface/ifacetest
+  elif [[ $1 == 'container/cs' ]]; then echo container/cs/cstest
   else echo $PKG; fi
 }
 
@@ -14,7 +15,7 @@ if [[ $# -eq 0 ]]; then
 
 elif [[ $# -eq 1 ]]; then
   # run tests in one package
-  PKG=$1
+  PKG=${1%/}
   TESTPKG=$(getTestPkg $PKG)
 
   sudo $(which go) test -cover -covermode count -coverpkg ./$PKG -coverprofile /tmp/gotest.cover ./$TESTPKG -v
@@ -22,7 +23,7 @@ elif [[ $# -eq 1 ]]; then
 
 elif [[ $# -eq 2 ]]; then
   # run one test
-  PKG=$1
+  PKG=${1%/}
   TESTPKG=$(getTestPkg $PKG)
   TEST=$2
 
@@ -31,7 +32,7 @@ elif [[ $# -eq 2 ]]; then
 elif [[ $# -eq 3 ]]; then
   # run one test with debug tool
   DBGTOOL=$1
-  PKG=$2
+  PKG=${2%/}
   TESTPKG=$(getTestPkg $PKG)
   TEST=$3
 

@@ -1,5 +1,4 @@
 #include "nameset.h"
-#include <rte_malloc.h>
 
 typedef struct NameSetRecord
 {
