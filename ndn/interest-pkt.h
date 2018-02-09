@@ -32,7 +32,7 @@ NdnError DecodeInterest(TlvDecoder* d, InterestPkt* interest);
 
 /** \brief Get the Nonce, interpreted as little endian.
  */
-static inline uint32_t
+static uint32_t
 InterestPkt_GetNonce(const InterestPkt* interest)
 {
   MbufLoc ml;
@@ -58,13 +58,13 @@ typedef struct InterestTemplate
   uint16_t fwHintsSize;
 } InterestTemplate;
 
-static inline uint16_t
+static uint16_t
 EncodeInterest_GetHeadroom()
 {
   return 1 + 5; // Name TL
 }
 
-static inline uint16_t
+static uint16_t
 EncodeInterest_GetTailroom(const InterestTemplate* tpl)
 {
   return 1 + 5 + tpl->namePrefixSize + tpl->nameSuffixSize + // Name
@@ -78,7 +78,7 @@ EncodeInterest_GetTailroom(const InterestTemplate* tpl)
 /** \brief Get required tailroom for EncodeInterest output mbuf,
  *         assuming max name length and one delegation in forwarding hint.
  */
-static inline uint16_t
+static uint16_t
 EncodeInterest_GetTailroomMax()
 {
   return 1 + 5 + NAME_MAX_LENGTH + // Name
@@ -104,7 +104,7 @@ void __EncodeInterest(struct rte_mbuf* m, const InterestTemplate* tpl,
  *           headroom for Ethernet and NDNLP headers shall be included if needed.
  *  \param tpl
  */
-static inline void
+static void
 EncodeInterest(struct rte_mbuf* m, const InterestTemplate* tpl)
 {
   __EncodeInterest(m, tpl, tpl->namePrefix, tpl->nameSuffix, tpl->fwHints);

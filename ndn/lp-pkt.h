@@ -40,7 +40,7 @@ NdnError DecodeLpPkt(TlvDecoder* d, LpPkt* lpp);
 
 /** \brief Test whether \p lpp contains payload.
  */
-static inline bool
+static bool
 LpPkt_HasPayload(const LpPkt* lpp)
 {
   return !MbufLoc_IsEnd(&lpp->payload);
@@ -48,19 +48,19 @@ LpPkt_HasPayload(const LpPkt* lpp)
 
 /** \brief Test whether the payload of \p lpp is fragmented.
  */
-static inline bool
+static bool
 LpPkt_IsFragmented(const LpPkt* lpp)
 {
   return lpp->fragCount > 1;
 }
 
-static inline uint16_t
+static uint16_t
 EncodeLpHeaders_GetHeadroom()
 {
   return 1 + 5;
 }
 
-static inline uint16_t
+static uint16_t
 EncodeLpHeaders_GetTailroom()
 {
   return 1 + 1 + 8 +         // SeqNo

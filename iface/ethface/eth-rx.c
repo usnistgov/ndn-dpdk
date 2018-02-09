@@ -5,7 +5,7 @@
 
 INIT_ZF_LOG(EthRx);
 
-static inline struct rte_mbuf*
+static struct rte_mbuf*
 EthRx_ProcessFrame(EthFace* face, struct rte_mbuf* pkt)
 {
   if (unlikely(pkt->pkt_len < sizeof(struct ether_hdr))) {

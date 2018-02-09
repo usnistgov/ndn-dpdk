@@ -56,7 +56,7 @@ Fib_Find(Fib* fib, uint16_t nameL, const uint8_t* nameV)
   return Tsht_FindT(fib, hash, &key, FibEntry);
 }
 
-static inline const FibEntry*
+static const FibEntry*
 Fib_GetEntryByPrefix(Fib* fib, const Name* name, LName lname,
                      uint16_t prefixLen)
 {

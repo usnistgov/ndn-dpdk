@@ -10,13 +10,13 @@
  */
 typedef Pcct Pit;
 
-static inline Pcct*
+static Pcct*
 Pcct_FromPit(const Pit* pit)
 {
   return (Pcct*)pit;
 }
 
-static inline Pit*
+static Pit*
 Pcct_GetPit(const Pcct* pcct)
 {
   return (Pit*)pcct;
@@ -26,7 +26,7 @@ Pcct_GetPit(const Pcct* pcct)
 
 /** \brief Get number of PIT entries.
  */
-static inline uint32_t
+static uint32_t
 Pit_CountEntries(const Pit* pit)
 {
   return Pit_GetPriv(pit)->nEntries;
@@ -42,7 +42,7 @@ typedef enum PitInsertResultKind {
   PIT_INSERT_CS,   ///< found existing CS entry, cannot insert PIT entry
 } PitInsertResultKind;
 
-static inline PitInsertResultKind
+static PitInsertResultKind
 PitInsertResult_GetKind(PitInsertResult res)
 {
   if (unlikely(res == NULL)) {
@@ -55,14 +55,14 @@ PitInsertResult_GetKind(PitInsertResult res)
   return PIT_INSERT_PIT;
 }
 
-static inline PitEntry*
+static PitEntry*
 PitInsertResult_GetPitEntry(PitInsertResult res)
 {
   assert(PitInsertResult_GetKind(res) == PIT_INSERT_PIT);
   return &res->pitEntry;
 }
 
-static inline CsEntry*
+static CsEntry*
 PitInsertResult_GetCsEntry(PitInsertResult res)
 {
   assert(PitInsertResult_GetKind(res) == PIT_INSERT_CS);
@@ -76,7 +76,7 @@ PitInsertResult Pit_Insert(Pit* pit, const InterestPkt* interest);
 /** \brief Assign a token to a PIT entry.
  *  \return New or existing token.
  */
-static inline uint64_t
+static uint64_t
 Pit_AddToken(Pit* pit, PitEntry* entry)
 {
   return Pcct_AddToken(Pcct_FromPit(pit), PccEntry_FromPitEntry(entry));
@@ -91,7 +91,7 @@ PccEntry* __Pit_RawErase(Pit* pit, PitEntry* entry);
 /** \brief Erase a PIT entry.
  *  \post \p entry is no longer valid.
  */
-static inline void
+static void
 Pit_Erase(Pit* pit, PitEntry* entry)
 {
   PccEntry* pccEntry = __Pit_RawErase(pit, entry);
@@ -101,7 +101,7 @@ Pit_Erase(Pit* pit, PitEntry* entry)
 /** \brief Find a PIT entry for the given token.
  *  \param token the token, only lower 48 bits are significant.
  */
-static inline PitEntry*
+static PitEntry*
 Pit_Find(Pit* pit, uint64_t token)
 {
   PccEntry* pccEntry = Pcct_FindByToken(Pcct_FromPit(pit), token);

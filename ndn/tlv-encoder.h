@@ -20,20 +20,20 @@ typedef struct TlvEncoder
  *
  *  The mbuf must be the only segment and must be empty.
  */
-static inline TlvEncoder*
+static TlvEncoder*
 MakeTlvEncoder(struct rte_mbuf* m)
 {
   assert(m->nb_segs == 1 && m->pkt_len == 0 && m->data_len == 0);
   return (TlvEncoder*)(void*)m;
 }
 
-static inline TlvEncoder*
+static TlvEncoder*
 MakeTlvEncoder_Unchecked(struct rte_mbuf* m)
 {
   return (TlvEncoder*)(void*)m;
 }
 
-static inline uint8_t*
+static uint8_t*
 TlvEncoder_Append(TlvEncoder* en, uint16_t len)
 {
   struct rte_mbuf* m = (struct rte_mbuf*)en;
@@ -45,7 +45,7 @@ TlvEncoder_Append(TlvEncoder* en, uint16_t len)
   return rte_pktmbuf_mtod_offset(m, uint8_t*, off);
 }
 
-static inline uint8_t*
+static uint8_t*
 TlvEncoder_Prepend(TlvEncoder* en, uint16_t len)
 {
   struct rte_mbuf* m = (struct rte_mbuf*)en;
@@ -54,7 +54,7 @@ TlvEncoder_Prepend(TlvEncoder* en, uint16_t len)
 
 /** \brief Compute size of a TLV-TYPE or TLV-LENGTH number.
  */
-static inline int
+static int
 SizeofVarNum(uint64_t n)
 {
   return n <= UINT16_MAX ? (n < 253 ? 1 : 3) : (n <= UINT32_MAX ? 5 : 9);
@@ -66,7 +66,7 @@ void __EncodeVarNum_32or64(uint8_t* room, uint64_t n);
  *  \param[out] room output buffer, must have \p SizeofVarNum(n) octets
  *  \param n the number
  */
-static inline void
+static void
 EncodeVarNum(uint8_t* room, uint64_t n)
 {
   if (unlikely(n >= UINT16_MAX)) {
@@ -85,7 +85,7 @@ EncodeVarNum(uint8_t* room, uint64_t n)
 
 /** \brief Append a TLV-TYPE or TLV-LENGTH number.
  */
-static inline NdnError
+static NdnError
 AppendVarNum(TlvEncoder* en, uint64_t n)
 {
   uint8_t* room = TlvEncoder_Append(en, SizeofVarNum(n));
@@ -99,7 +99,7 @@ AppendVarNum(TlvEncoder* en, uint64_t n)
 
 /** \brief Prepend a TLV-TYPE or TLV-LENGTH number.
  */
-static inline NdnError
+static NdnError
 PrependVarNum(TlvEncoder* en, uint64_t n)
 {
   uint8_t* room = TlvEncoder_Prepend(en, SizeofVarNum(n));

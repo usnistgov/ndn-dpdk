@@ -22,7 +22,7 @@
 
 /** \brief Free an array of mbufs[0..count-1].
  */
-static inline void
+static void
 FreeMbufs(struct rte_mbuf* mbufs[], int count)
 {
   for (int i = 0; i < count; ++i) {
@@ -34,7 +34,7 @@ FreeMbufs(struct rte_mbuf* mbufs[], int count)
  *
  *  This function does not require first segment to have enough length.
  */
-static inline bool
+static bool
 Packet_Adj(struct rte_mbuf* pkt, uint16_t len)
 {
   if (unlikely(pkt->pkt_len < len)) {

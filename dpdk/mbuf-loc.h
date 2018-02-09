@@ -22,7 +22,7 @@ typedef struct MbufLoc
 
 /** \brief Initialize a MbufLoc to the beginning of a packet.
  */
-static inline void
+static void
 MbufLoc_Init(MbufLoc* ml, const struct rte_mbuf* pkt)
 {
   ml->m = pkt;
@@ -36,7 +36,7 @@ MbufLoc_Init(MbufLoc* ml, const struct rte_mbuf* pkt)
 
 /** \brief Copy MbufLoc \p src to \p dst.
  */
-static inline void
+static void
 MbufLoc_Copy(MbufLoc* dst, const MbufLoc* src)
 {
   rte_memcpy(dst, src, sizeof(*dst));
@@ -44,7 +44,7 @@ MbufLoc_Copy(MbufLoc* dst, const MbufLoc* src)
 
 /** \brief Test if the iterator points past the end of packet or boundary.
  */
-static inline bool
+static bool
 MbufLoc_IsEnd(const MbufLoc* ml)
 {
   return ml->m == NULL || ml->rem == 0;
@@ -55,7 +55,7 @@ typedef void (*MbufLoc_AdvanceCb)(void* arg, const struct rte_mbuf* m,
 
 /** \brief Advance the position by \p n octets and invoke \p cb on each mbuf.
  */
-static inline uint32_t
+static uint32_t
 __MbufLoc_AdvanceWithCb(MbufLoc* ml, uint32_t n, MbufLoc_AdvanceCb cb,
                         void* cbarg)
 {
@@ -92,7 +92,7 @@ __MbufLoc_AdvanceWithCb(MbufLoc* ml, uint32_t n, MbufLoc_AdvanceCb cb,
 /** \brief Advance the position by \p n octets.
  *  \return Actually advanced distance.
  */
-static inline uint32_t
+static uint32_t
 MbufLoc_Advance(MbufLoc* ml, uint32_t n)
 {
   if (n > ml->rem) {
@@ -121,7 +121,7 @@ ptrdiff_t MbufLoc_Diff(const MbufLoc* a, const MbufLoc* b);
  *  uint32_t diff = MbufLoc_FastDiff(a, b);
  *  \endcode
  */
-static inline uint32_t
+static uint32_t
 MbufLoc_FastDiff(const MbufLoc* a, const MbufLoc* b)
 {
   return a->rem - b->rem;
@@ -142,7 +142,7 @@ void __MbufLoc_MakeIndirectCb(void* arg, const struct rte_mbuf* m, uint16_t off,
  *  \retval NULL remaining range is less than \p n (rte_errno=ERANGE), or
                  allocation failure (rte_errno=ENOENT)
  */
-static inline struct rte_mbuf*
+static struct rte_mbuf*
 MbufLoc_MakeIndirect(MbufLoc* ml, uint32_t n, struct rte_mempool* mp)
 {
   if (unlikely(MbufLoc_IsEnd(ml) || n > ml->rem)) {
@@ -175,7 +175,7 @@ void __MbufLoc_ReadCb(void* arg, const struct rte_mbuf* m, uint16_t off,
  *  \param[out] nRead actual length before reaching end or boundary
  *  \return pointer to in-segment data or the buffer.
  */
-static inline const uint8_t*
+static const uint8_t*
 MbufLoc_Read(MbufLoc* ml, void* buf, uint32_t n, uint32_t* nRead)
 {
   if (unlikely(MbufLoc_IsEnd(ml))) {
@@ -203,7 +203,7 @@ MbufLoc_Read(MbufLoc* ml, void* buf, uint32_t n, uint32_t* nRead)
 /** \brief Copy next n octets, and advance the position.
  *  \return number of octets copied.
  */
-static inline uint32_t
+static uint32_t
 MbufLoc_ReadTo(MbufLoc* ml, void* output, uint32_t n)
 {
   uint32_t nRead;
@@ -215,25 +215,25 @@ MbufLoc_ReadTo(MbufLoc* ml, void* output, uint32_t n)
   return nRead;
 }
 
-static inline bool
+static bool
 MbufLoc_ReadU8(MbufLoc* ml, uint8_t* output)
 {
   return sizeof(uint8_t) == MbufLoc_ReadTo(ml, output, sizeof(uint8_t));
 }
 
-static inline bool
+static bool
 MbufLoc_ReadU16(MbufLoc* ml, uint16_t* output)
 {
   return sizeof(uint16_t) == MbufLoc_ReadTo(ml, output, sizeof(uint16_t));
 }
 
-static inline bool
+static bool
 MbufLoc_ReadU32(MbufLoc* ml, uint32_t* output)
 {
   return sizeof(uint32_t) == MbufLoc_ReadTo(ml, output, sizeof(uint32_t));
 }
 
-static inline bool
+static bool
 MbufLoc_ReadU64(MbufLoc* ml, uint64_t* output)
 {
   return sizeof(uint64_t) == MbufLoc_ReadTo(ml, output, sizeof(uint64_t));
@@ -243,7 +243,7 @@ MbufLoc_ReadU64(MbufLoc* ml, uint64_t* output)
  *  \return the next octet
  *  \retval -1 iterator is at the end
  */
-static inline int
+static int
 MbufLoc_PeekOctet(const MbufLoc* ml)
 {
   if (unlikely(MbufLoc_IsEnd(ml))) {
@@ -279,7 +279,7 @@ uint8_t* __MbufLoc_Linearize(MbufLoc* first, MbufLoc* last,
  *  \exception EMSGSIZE mp dataroom is less than MbufLoc_Diff(first, last)
  *  \warning Undefined behavior if advancing \p first cannot reach \p last
  */
-static inline uint8_t*
+static uint8_t*
 MbufLoc_Linearize(MbufLoc* first, MbufLoc* last, struct rte_mbuf* pkt,
                   struct rte_mempool* mp)
 {

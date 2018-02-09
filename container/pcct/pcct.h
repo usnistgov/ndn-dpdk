@@ -60,7 +60,7 @@ uint64_t __Pcct_AddToken(Pcct* pcct, PccEntry* entry);
 /** \brief Assign a token to an entry.
  *  \return New or existing token.
  */
-static inline uint64_t
+static uint64_t
 Pcct_AddToken(Pcct* pcct, PccEntry* entry)
 {
   if (entry->hasToken) {
@@ -73,7 +73,7 @@ void __Pcct_RemoveToken(Pcct* pcct, PccEntry* entry);
 
 /** \brief Clear the token on an entry.
  */
-static inline void
+static void
 Pcct_RemoveToken(Pcct* pcct, PccEntry* entry)
 {
   if (!entry->hasToken) {

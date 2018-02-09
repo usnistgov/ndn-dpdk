@@ -19,7 +19,7 @@ Face_RxBurst(Face* face, struct rte_mbuf** pkts, uint16_t nPkts)
 static const int TX_BURST_FRAMES = 64;  // number of frames in a burst
 static const int TX_MAX_FRAGMENTS = 64; // max allowed number of fragments
 
-static inline void
+static void
 Face_TxBurst_SendFrames(Face* face, struct rte_mbuf** frames, uint16_t nFrames)
 {
   assert(nFrames > 0);

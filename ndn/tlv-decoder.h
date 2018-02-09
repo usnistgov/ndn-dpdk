@@ -26,7 +26,7 @@ NdnError __DecodeVarNum_32or64(TlvDecoder* d, uint8_t firstOctet, uint64_t* n);
 /** \brief Decode a TLV-TYPE or TLV-LENGTH number.
  *  \param[out] n the number.
  */
-static inline NdnError
+static NdnError
 DecodeVarNum(TlvDecoder* d, uint64_t* n)
 {
   if (unlikely(MbufLoc_IsEnd(d))) {

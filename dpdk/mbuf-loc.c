@@ -1,7 +1,7 @@
 #include "mbuf-loc.h"
 
 // Determine the distance advancing a to reach b.
-static inline bool
+static bool
 __MbufLoc_Diff_Forward(const MbufLoc* a, const MbufLoc* b, ptrdiff_t* dist)
 {
   *dist = 0;
@@ -21,7 +21,7 @@ __MbufLoc_Diff_Forward(const MbufLoc* a, const MbufLoc* b, ptrdiff_t* dist)
 }
 
 // Determine the distance advancing ml to reach the end.
-static inline ptrdiff_t
+static ptrdiff_t
 __MbufLoc_Diff_ToEnd(const MbufLoc* ml)
 {
   ptrdiff_t dist = 0;
@@ -99,7 +99,7 @@ __MbufLoc_ReadCb(void* arg, const struct rte_mbuf* m, uint16_t off,
 }
 
 // Find previous segment.
-static inline struct rte_mbuf*
+static struct rte_mbuf*
 __MbufLoc_FindPrev(const struct rte_mbuf* m, struct rte_mbuf* pkt)
 {
   assert(m != pkt);

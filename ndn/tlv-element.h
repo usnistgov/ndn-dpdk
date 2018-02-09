@@ -21,7 +21,7 @@ typedef struct TlvElement
 /** \brief Decode a TLV header including TLV-TYPE and TLV-LENGTH but excluding TLV-VALUE.
  *  \param[out] ele the element; will assign all fields except \p last.
  */
-static inline NdnError
+static NdnError
 DecodeTlvHeader(TlvDecoder* d, TlvElement* ele)
 {
   MbufLoc_Copy(&ele->first, d);
@@ -47,7 +47,7 @@ DecodeTlvHeader(TlvDecoder* d, TlvElement* ele)
  *  \note ele.first.rem, ele.value.rem, and ele.last.rem are unchanged, so that
  *        MbufLoc_FastDiff may be used on them.
  */
-static inline NdnError
+static NdnError
 DecodeTlvElement(TlvDecoder* d, TlvElement* ele)
 {
   NdnError e = DecodeTlvHeader(d, ele);
@@ -66,7 +66,7 @@ DecodeTlvElement(TlvDecoder* d, TlvElement* ele)
  *
  *  \retval NdnError_BadType TLV-TYPE does not equal \p expectedType.
  */
-static inline NdnError
+static NdnError
 DecodeTlvElementExpectType(TlvDecoder* d, uint64_t expectedType,
                            TlvElement* ele)
 {
@@ -80,7 +80,7 @@ DecodeTlvElementExpectType(TlvDecoder* d, uint64_t expectedType,
 /** \brief Create a decoder to decode the element's TLV-VALUE.
  *  \param[out] d an iterator bounded inside TLV-VALUE.
  */
-static inline void
+static void
 TlvElement_MakeValueDecoder(const TlvElement* ele, TlvDecoder* d)
 {
   MbufLoc_Copy(d, &ele->value);
@@ -91,7 +91,7 @@ TlvElement_MakeValueDecoder(const TlvElement* ele, TlvDecoder* d)
  *  \param[out] n the number.
  *  \return whether decoding succeeded
  */
-static inline bool
+static bool
 TlvElement_ReadNonNegativeInteger(const TlvElement* ele, uint64_t* n)
 {
   TlvDecoder vd;

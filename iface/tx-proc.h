@@ -68,14 +68,14 @@ int TxProc_Init(TxProc* tx, uint16_t mtu, uint16_t headroom,
  *  \param maxFrames size of frames array
  *  \return number of L2 frames to be transmitted
  */
-static inline uint16_t
+static uint16_t
 TxProc_Output(TxProc* tx, struct rte_mbuf* pkt, struct rte_mbuf** frames,
               uint16_t maxFrames)
 {
   return (*tx->outputFunc)(tx, pkt, frames, maxFrames);
 }
 
-static inline void
+static void
 TxProc_CountQueued(TxProc* tx, uint16_t nAccepts, uint16_t nRejects)
 {
   tx->nQueueAccepts += nAccepts;
@@ -84,7 +84,7 @@ TxProc_CountQueued(TxProc* tx, uint16_t nAccepts, uint16_t nRejects)
 
 /** \brief Update counters when L2 frames have been transmitted.
  */
-static inline void
+static void
 TxProc_CountSent(TxProc* tx, struct rte_mbuf* pkt)
 {
   ++tx->nFrames[Packet_GetNdnPktType(pkt)];

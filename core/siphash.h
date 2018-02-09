@@ -13,7 +13,7 @@ typedef struct sipkey SipHashKey;
 
 #define SIPHASHKEY_SIZE 16
 
-static inline void
+static void
 SipHashKey_FromBuffer(SipHashKey* key, const uint8_t buf[SIPHASHKEY_SIZE])
 {
   sip_tokey(key, buf);
@@ -25,7 +25,7 @@ typedef struct siphash SipHash;
 
 /** \brief initialize SipHash-2-4
  */
-static inline void
+static void
 SipHash_Init(SipHash* h, const SipHashKey* key)
 {
   sip24_init(h, key);
@@ -33,7 +33,7 @@ SipHash_Init(SipHash* h, const SipHashKey* key)
 
 /** \brief write input into SipHash
  */
-static inline void
+static void
 SipHash_Write(SipHash* h, const uint8_t* input, size_t count)
 {
   sip24_update(h, input, count);
@@ -42,7 +42,7 @@ SipHash_Write(SipHash* h, const uint8_t* input, size_t count)
 /** \brief finalize SipHash
  *  \return hash value
  */
-static inline uint64_t
+static uint64_t
 SipHash_Final(SipHash* h)
 {
   return sip24_final(h);
@@ -51,7 +51,7 @@ SipHash_Final(SipHash* h)
 /** \brief compute hash value without changing underlying state
  *  \return hash value
  */
-static inline uint64_t
+static uint64_t
 SipHash_Sum(const SipHash* h)
 {
   SipHash h2;

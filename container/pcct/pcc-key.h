@@ -23,7 +23,7 @@ typedef struct PccSearch
 
 /** \brief Determine if a \p PccKey matches a \p PccSearch.
  */
-static inline bool
+static bool
 PccKey_MatchSearchKey(const PccKey* key, const PccSearch* search)
 {
   assert(search->name.length <= sizeof(key->name));

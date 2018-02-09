@@ -24,7 +24,7 @@ typedef struct NdnpingClientSample
 } __rte_packed NdnpingClientSample;
 static_assert(sizeof(NdnpingClientSample) == sizeof(uint64_t), "");
 
-static inline bool
+static bool
 NdnpingClient_IsSamplingEnabled(NdnpingClient* client)
 {
   return client->sampleFreq != 0xFF;
@@ -63,13 +63,13 @@ NdnpingClient_Close(NdnpingClient* client)
   }
 }
 
-static inline int
+static int
 NdnpingClient_SelectPattern(NdnpingClient* client, uint64_t seqNo)
 {
   return seqNo % client->patterns.nRecords;
 }
 
-static inline NdnpingClientSample*
+static NdnpingClientSample*
 NdnpingClient_FindSample(NdnpingClient* client, uint64_t seqNo)
 {
   uint64_t tableIndex = (seqNo >> client->sampleFreq) & client->sampleIndexMask;
@@ -77,7 +77,7 @@ NdnpingClient_FindSample(NdnpingClient* client, uint64_t seqNo)
   return (NdnpingClientSample*)client->sampleTable + tableIndex;
 }
 
-static inline void
+static void
 NdnpingClient_PrepareTxInterest(NdnpingClient* client, struct rte_mbuf* pkt)
 {
   uint64_t seqNo = ++client->suffixComponent.compV;
@@ -112,7 +112,7 @@ NdnpingClient_PrepareTxInterest(NdnpingClient* client, struct rte_mbuf* pkt)
   sample->sendTime = rte_get_tsc_cycles() >> NDNPING_TIMING_PRECISION;
 }
 
-static inline void
+static void
 NdnpingClient_TxBurst(NdnpingClient* client)
 {
   struct rte_mbuf* pkts[NDNPINGCLIENT_TX_BURST_SIZE];
@@ -130,7 +130,7 @@ NdnpingClient_TxBurst(NdnpingClient* client)
   FreeMbufs(pkts, NDNPINGCLIENT_TX_BURST_SIZE);
 }
 
-static inline bool
+static bool
 NdnpingClient_GetSeqNoFromName(const Name* name, uint64_t* seqNo)
 {
   if (unlikely(name->nComps < 1)) {
@@ -144,7 +144,7 @@ NdnpingClient_GetSeqNoFromName(const Name* name, uint64_t* seqNo)
   return MbufLoc_ReadU64(&comp.value, seqNo);
 }
 
-static inline void
+static void
 NdnpingClient_ProcessRxData(NdnpingClient* client, struct rte_mbuf* pkt)
 {
   const DataPkt* data = Packet_GetDataHdr(pkt);
@@ -183,7 +183,7 @@ NdnpingClient_ProcessRxData(NdnpingClient* client, struct rte_mbuf* pkt)
   RunningStat_Push(&pattern->rtt, now - sample->sendTime);
 }
 
-static inline void
+static void
 NdnpingClient_ProcessRxNack(NdnpingClient* client, struct rte_mbuf* pkt)
 {
   const LpPkt* lpp = Packet_GetLpHdr(pkt);
@@ -220,7 +220,7 @@ NdnpingClient_ProcessRxNack(NdnpingClient* client, struct rte_mbuf* pkt)
   sample->isPending = false;
 }
 
-static inline void
+static void
 NdnpingClient_RxBurst(NdnpingClient* client)
 {
   struct rte_mbuf* pkts[NDNPINGCLIENT_RX_BURST_SIZE];

@@ -51,7 +51,7 @@ void __Name_GetComp_PastIndexed(const Name* n, uint16_t i, TlvElement* ele);
  *  \param[out] pos start position of i-th name component.
  *  \note pos->rem ends at the end of Name TLV.
  */
-static inline void
+static void
 Name_GetCompPos(const Name* n, uint16_t i, MbufLoc* pos)
 {
   assert(i < n->nComps);
@@ -69,7 +69,7 @@ Name_GetCompPos(const Name* n, uint16_t i, MbufLoc* pos)
  *  \param i name component index, must be less than n->nComps.
  *  \param[out] ele the element.
  */
-static inline void
+static void
 Name_GetComp(const Name* n, uint16_t i, TlvElement* ele)
 {
   assert(i < n->nComps);
@@ -86,7 +86,7 @@ Name_GetComp(const Name* n, uint16_t i, TlvElement* ele)
 
 /** \brief Get size (in octets) of prefix with i components.
  */
-static inline uint16_t
+static uint16_t
 Name_GetPrefixSize(const Name* n, uint16_t i)
 {
   assert(i <= n->nComps);
@@ -108,7 +108,7 @@ uint64_t __Name_ComputePrefixHash_PastIndexed(const Name* n, uint16_t i);
 
 /** \brief Compute hash for prefix with i components.
  */
-static inline uint64_t
+static uint64_t
 Name_ComputePrefixHash(const Name* n, uint16_t i)
 {
   if (i == 0) {
@@ -129,7 +129,7 @@ Name_ComputePrefixHash(const Name* n, uint16_t i)
 
 /** \brief Compute hash for whole name.
  */
-static inline uint64_t
+static uint64_t
 Name_ComputeHash(const Name* n)
 {
   return Name_ComputePrefixHash(n, n->nComps);

@@ -2,7 +2,7 @@
 #include "nack-pkt.h"
 #include "tlv-encoder.h"
 
-static inline bool
+static bool
 CanIgnoreLpHeader(uint64_t tlvType)
 {
   return 800 <= tlvType && tlvType <= 959 && (tlvType & 0x3) == 0x0;

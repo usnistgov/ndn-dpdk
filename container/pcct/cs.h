@@ -10,13 +10,13 @@
  */
 typedef Pcct Cs;
 
-static inline Pcct*
+static Pcct*
 Pcct_FromCs(const Cs* cs)
 {
   return (Pcct*)cs;
 }
 
-static inline Cs*
+static Cs*
 Pcct_GetCs(const Pcct* pcct)
 {
   return (Cs*)pcct;
@@ -26,7 +26,7 @@ Pcct_GetCs(const Pcct* pcct)
 
 /** \brief Get capacity in number of entries.
  */
-static inline uint32_t
+static uint32_t
 Cs_GetCapacity(const Cs* cs)
 {
   return Cs_GetPriv(cs)->capacity;
@@ -38,7 +38,7 @@ void Cs_SetCapacity(Cs* cs, uint32_t capacity);
 
 /** \brief Get number of CS entries.
  */
-static inline uint32_t
+static uint32_t
 Cs_CountEntries(const Cs* cs)
 {
   return Cs_GetPriv(cs)->nEntries;

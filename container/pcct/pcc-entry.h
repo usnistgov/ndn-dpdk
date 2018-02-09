@@ -36,7 +36,7 @@ typedef struct PccEntry
 
 /** \brief Get PIT entry from \p PccEntry.
  */
-static inline PitEntry*
+static PitEntry*
 PccEntry_GetPitEntry(PccEntry* entry)
 {
   assert(entry->hasPitEntry);
@@ -45,7 +45,7 @@ PccEntry_GetPitEntry(PccEntry* entry)
 
 /** \brief Get \p PccEntry pointer from \p PitEntry.
  */
-static inline PccEntry*
+static PccEntry*
 PccEntry_FromPitEntry(PitEntry* pitEntry)
 {
   PccEntry* entry = (PccEntry*)((char*)pitEntry - offsetof(PccEntry, pitEntry));
@@ -55,7 +55,7 @@ PccEntry_FromPitEntry(PitEntry* pitEntry)
 
 /** \brief Get CS entry from \p PccEntry.
  */
-static inline CsEntry*
+static CsEntry*
 PccEntry_GetCsEntry(PccEntry* entry)
 {
   assert(entry->hasCsEntry);
@@ -64,7 +64,7 @@ PccEntry_GetCsEntry(PccEntry* entry)
 
 /** \brief Get \p PccEntry pointer from \p CsEntry.
  */
-static inline PccEntry*
+static PccEntry*
 PccEntry_FromCsEntry(CsEntry* csEntry)
 {
   PccEntry* entry = (PccEntry*)((char*)csEntry - offsetof(PccEntry, csEntry));

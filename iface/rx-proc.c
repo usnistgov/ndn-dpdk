@@ -4,7 +4,7 @@
 
 INIT_ZF_LOG(RxProc);
 
-static inline struct rte_mbuf*
+static struct rte_mbuf*
 RxProc_ProcessInterest(RxProc* rx, struct rte_mbuf* pkt, TlvDecoder* d,
                        NdnPktType l3type)
 {
@@ -23,7 +23,7 @@ RxProc_ProcessInterest(RxProc* rx, struct rte_mbuf* pkt, TlvDecoder* d,
   return NULL;
 }
 
-static inline struct rte_mbuf*
+static struct rte_mbuf*
 RxProc_ProcessData(RxProc* rx, struct rte_mbuf* pkt, TlvDecoder* d)
 {
   Packet_SetNdnPktType(pkt, NdnPktType_Data);
@@ -42,7 +42,7 @@ RxProc_ProcessData(RxProc* rx, struct rte_mbuf* pkt, TlvDecoder* d)
 }
 
 // interestL3type: L3 type (Interest or Nack) if the packet is an Interest
-static inline struct rte_mbuf*
+static struct rte_mbuf*
 RxProc_ProcessNetPkt(RxProc* rx, struct rte_mbuf* pkt, TlvDecoder* d,
                      uint8_t firstOctet, NdnPktType interestL3type)
 {
@@ -58,7 +58,7 @@ RxProc_ProcessNetPkt(RxProc* rx, struct rte_mbuf* pkt, TlvDecoder* d,
   return NULL;
 }
 
-static inline struct rte_mbuf*
+static struct rte_mbuf*
 RxProc_ProcessLpPkt(RxProc* rx, struct rte_mbuf* pkt, TlvDecoder* d)
 {
   Packet_SetL2PktType(pkt, L2PktType_NdnlpV2);

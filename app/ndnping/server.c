@@ -6,7 +6,7 @@ INIT_ZF_LOG(NdnpingServer);
 
 #define NDNPINGSERVER_BURST_SIZE 64
 
-static inline struct rte_mbuf*
+static struct rte_mbuf*
 NdnpingServer_MakeData(NdnpingServer* server, const Name* name)
 {
   struct rte_mbuf* m1 = rte_pktmbuf_alloc(server->mpData1);
@@ -39,7 +39,7 @@ NdnpingServer_MakeData(NdnpingServer* server, const Name* name)
   return m1;
 }
 
-static inline struct rte_mbuf*
+static struct rte_mbuf*
 NdnpingServer_ProcessPkt(NdnpingServer* server, struct rte_mbuf* pkt)
 {
   if (Packet_GetNdnPktType(pkt) != NdnPktType_Interest) {

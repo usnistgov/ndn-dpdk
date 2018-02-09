@@ -16,13 +16,13 @@ typedef enum L2PktType {
   L2PktType_NdnlpV2,
 } L2PktType;
 
-static inline L2PktType
+static L2PktType
 Packet_GetL2PktType(const struct rte_mbuf* pkt)
 {
   return pkt->inner_l2_type;
 }
 
-static inline void
+static void
 Packet_SetL2PktType(struct rte_mbuf* pkt, L2PktType t)
 {
   pkt->inner_l2_type = t;
@@ -42,7 +42,7 @@ typedef enum NdnPktType {
 
 /** \brief Get NDN network layer packet type.
  */
-static inline NdnPktType
+static NdnPktType
 Packet_GetNdnPktType(const struct rte_mbuf* pkt)
 {
   return pkt->inner_l3_type;
@@ -50,7 +50,7 @@ Packet_GetNdnPktType(const struct rte_mbuf* pkt)
 
 /** \brief Set NDN network layer packet type.
  */
-static inline void
+static void
 Packet_SetNdnPktType(struct rte_mbuf* pkt, NdnPktType t)
 {
   pkt->inner_l3_type = t;
@@ -68,7 +68,7 @@ typedef struct PacketPriv
   };
 } PacketPriv;
 
-static inline LpPkt*
+static LpPkt*
 Packet_GetLpHdr(struct rte_mbuf* pkt)
 {
   assert(Packet_GetL2PktType(pkt) == L2PktType_NdnlpV2);
@@ -77,7 +77,7 @@ Packet_GetLpHdr(struct rte_mbuf* pkt)
 
 /** \brief Access InterestPkt* header.
  */
-static inline InterestPkt*
+static InterestPkt*
 Packet_GetInterestHdr(struct rte_mbuf* pkt)
 {
   assert(Packet_GetNdnPktType(pkt) == NdnPktType_Interest ||
@@ -88,7 +88,7 @@ Packet_GetInterestHdr(struct rte_mbuf* pkt)
 
 /** \brief Access DataPkt* header
  */
-static inline DataPkt*
+static DataPkt*
 Packet_GetDataHdr(struct rte_mbuf* pkt)
 {
   assert(Packet_GetNdnPktType(pkt) == NdnPktType_Data);

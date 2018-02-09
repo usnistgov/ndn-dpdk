@@ -20,7 +20,7 @@ typedef struct RunningStat
 
 /** \brief Add a sample to RunningStat.
  */
-static inline void
+static void
 RunningStat_Push(RunningStat* s, double x)
 {
   ++s->n;

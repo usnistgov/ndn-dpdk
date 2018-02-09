@@ -19,14 +19,14 @@ typedef struct DataPkt
  */
 NdnError DecodeData(TlvDecoder* d, DataPkt* data);
 
-static inline uint16_t
+static uint16_t
 EncodeData1_GetHeadroom()
 {
   return 1 + 5 + // Data
          1 + 5;  // Name TL
 }
 
-static inline uint16_t
+static uint16_t
 EncodeData1_GetTailroom(const Name* name)
 {
   return name->nOctets + // Name V
@@ -36,7 +36,7 @@ EncodeData1_GetTailroom(const Name* name)
 
 /** \brief Get required tailroom for EncodeData1 output mbuf, assuming max name length.
  */
-static inline uint16_t
+static uint16_t
 EncodeData1_GetTailroomMax()
 {
   return NAME_MAX_LENGTH + // Name V
@@ -56,7 +56,7 @@ EncodeData1_GetTailroomMax()
 void EncodeData1(struct rte_mbuf* m, const Name* name,
                  struct rte_mbuf* payload);
 
-static inline uint16_t
+static uint16_t
 EncodeData2_GetHeadroom()
 {
   return 0;
@@ -64,7 +64,7 @@ EncodeData2_GetHeadroom()
 
 extern const uint16_t __EncodeData2_FakeSigLen;
 
-static inline uint16_t
+static uint16_t
 EncodeData2_GetTailroom()
 {
   return __EncodeData2_FakeSigLen;

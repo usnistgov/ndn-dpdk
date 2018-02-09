@@ -30,7 +30,7 @@ Fib* Fib_New(const char* id, uint32_t maxEntries, uint32_t nBuckets,
 
 /** \brief Release all memory.
  */
-static inline void
+static void
 Fib_Close(Fib* fib)
 {
   Tsht_Close(fib);
@@ -42,7 +42,7 @@ FibEntry* Fib_Alloc(Fib* fib);
 
 /** \brief Deallocate an unused FIB entry.
  */
-static inline void
+static void
 Fib_Free(Fib* fib, FibEntry* entry)
 {
   Tsht_Free(fib, entry);
@@ -60,7 +60,7 @@ bool Fib_Insert(Fib* fib, FibEntry* entry);
  *  \return whether success
  *  \pre Calling thread holds rcu_read_lock.
  */
-static inline void
+static void
 Fib_Erase(Fib* fib, FibEntry* entry)
 {
   Tsht_Erase(fib, entry);

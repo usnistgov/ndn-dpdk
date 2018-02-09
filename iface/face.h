@@ -63,13 +63,13 @@ typedef struct Face
 
 // ---- functions invoked user of face system ----
 
-static inline bool
+static bool
 Face_Close(Face* face)
 {
   return (*face->ops->close)(face);
 }
 
-static inline int
+static int
 Face_GetNumaSocket(Face* face)
 {
   return (*face->ops->getNumaSocket)(face);
@@ -109,7 +109,7 @@ void FaceImpl_Init(Face* face, uint16_t mtu, uint16_t headroom,
  *
  *  This should be called after transmitting \p pkt .
  */
-static inline void
+static void
 FaceImpl_CountSent(Face* face, struct rte_mbuf* pkt)
 {
   TxProc_CountSent(&face->tx, pkt);

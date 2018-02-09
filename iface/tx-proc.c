@@ -42,7 +42,7 @@ TxProc_Init(TxProc* tx, uint16_t mtu, uint16_t headroom,
   return 0;
 }
 
-static inline void
+static void
 TxProc_PrepareLpPkt(TxProc* tx, struct rte_mbuf* pkt, LpPkt* lpp)
 {
   if (Packet_GetL2PktType(pkt) == L2PktType_NdnlpV2) {
