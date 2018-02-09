@@ -3,13 +3,13 @@
 
 /// \file
 
-#include "name.h"
+#include "name1.h"
 
 /** \brief TLV Data
  */
 typedef struct DataPkt
 {
-  Name name;
+  Name1 name;
   MbufLoc content; ///< start position and boundary of Content TLV-VALUE
   uint32_t freshnessPeriod; ///< FreshnessPeriod in millis
 } DataPkt;
@@ -27,7 +27,7 @@ EncodeData1_GetHeadroom()
 }
 
 static uint16_t
-EncodeData1_GetTailroom(const Name* name)
+EncodeData1_GetTailroom(const Name1* name)
 {
   return name->nOctets + // Name V
          1 + 1 +         // MetaInfo
@@ -53,7 +53,7 @@ EncodeData1_GetTailroomMax()
  *  \param payload the payload; this function will chain them onto \p m , so they should be
  *                 indirect mbufs if shared
  */
-void EncodeData1(struct rte_mbuf* m, const Name* name,
+void EncodeData1(struct rte_mbuf* m, const Name1* name,
                  struct rte_mbuf* payload);
 
 static uint16_t

@@ -29,8 +29,8 @@ func (d *TlvDecodePos) ReadInterest() (interest InterestPkt, e error) {
 	return interest, nil
 }
 
-func (interest *InterestPkt) GetName() *Name {
-	return (*Name)(unsafe.Pointer(&interest.c.name))
+func (interest *InterestPkt) GetName() *Name1 {
+	return (*Name1)(unsafe.Pointer(&interest.c.name))
 }
 
 func (interest *InterestPkt) HasMustBeFresh() bool {
@@ -49,10 +49,10 @@ func (interest *InterestPkt) GetLifetime() time.Duration {
 	return time.Duration(interest.c.lifetime) * time.Millisecond
 }
 
-func (interest *InterestPkt) GetFwHints() []*Name {
-	fhs := make([]*Name, int(interest.c.nFwHints))
+func (interest *InterestPkt) GetFwHints() []*Name1 {
+	fhs := make([]*Name1, int(interest.c.nFwHints))
 	for i := range fhs {
-		fhs[i] = (*Name)(unsafe.Pointer(&interest.c.fwHints[i]))
+		fhs[i] = (*Name1)(unsafe.Pointer(&interest.c.fwHints[i]))
 	}
 	return fhs
 }

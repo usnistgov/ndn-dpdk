@@ -29,8 +29,8 @@ func (d *TlvDecodePos) ReadData() (data DataPkt, e error) {
 	return data, nil
 }
 
-func (data *DataPkt) GetName() *Name {
-	return (*Name)(unsafe.Pointer(&data.c.name))
+func (data *DataPkt) GetName() *Name1 {
+	return (*Name1)(unsafe.Pointer(&data.c.name))
 }
 
 func (data *DataPkt) GetFreshnessPeriod() time.Duration {
@@ -41,7 +41,7 @@ func EncodeData1_GetHeadroom() int {
 	return int(C.EncodeData1_GetHeadroom())
 }
 
-func EncodeData1_GetTailroom(name *Name) int {
+func EncodeData1_GetTailroom(name *Name1) int {
 	return int(C.EncodeData1_GetTailroom(&name.c))
 }
 
@@ -58,7 +58,7 @@ func EncodeData2_GetTailroom() int {
 }
 
 // Make a Data.
-func EncodeData(name *Name, payload dpdk.IMbuf, m1 dpdk.IMbuf, m2 dpdk.IMbuf) dpdk.Packet {
+func EncodeData(name *Name1, payload dpdk.IMbuf, m1 dpdk.IMbuf, m2 dpdk.IMbuf) dpdk.Packet {
 	C.EncodeData1((*C.struct_rte_mbuf)(m1.GetPtr()), &name.c, (*C.struct_rte_mbuf)(payload.GetPtr()))
 	C.EncodeData2((*C.struct_rte_mbuf)(m2.GetPtr()), (*C.struct_rte_mbuf)(m1.GetPtr()))
 	C.EncodeData3((*C.struct_rte_mbuf)(m1.GetPtr()))

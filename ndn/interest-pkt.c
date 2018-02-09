@@ -14,7 +14,7 @@ DecodeInterest(TlvDecodePos* d, InterestPkt* interest)
   TlvDecodePos d1;
   TlvElement_MakeValueDecoder(&interestEle, &d1);
 
-  e = DecodeName(&d1, &interest->name);
+  e = DecodeName1(&d1, &interest->name);
   RETURN_IF_UNLIKELY_ERROR;
 
   if (MbufLoc_PeekOctet(&d1) == TT_Selectors) {
@@ -78,7 +78,7 @@ DecodeInterest(TlvDecodePos* d, InterestPkt* interest)
       TlvElement preferenceEle;
       e = DecodeTlvElementExpectType(&d3, TT_Preference, &preferenceEle);
       RETURN_IF_UNLIKELY_ERROR;
-      e = DecodeName(&d3, &interest->fwHints[i]);
+      e = DecodeName1(&d3, &interest->fwHints[i]);
       RETURN_IF_UNLIKELY_ERROR;
       ++interest->nFwHints;
     }

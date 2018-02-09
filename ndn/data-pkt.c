@@ -13,7 +13,7 @@ DecodeData(TlvDecodePos* d, DataPkt* data)
   TlvDecodePos d1;
   TlvElement_MakeValueDecoder(&dataEle, &d1);
 
-  e = DecodeName(&d1, &data->name);
+  e = DecodeName1(&d1, &data->name);
   RETURN_IF_UNLIKELY_ERROR;
 
   {
@@ -55,7 +55,7 @@ DecodeData(TlvDecodePos* d, DataPkt* data)
 }
 
 void
-EncodeData1(struct rte_mbuf* m, const Name* name, struct rte_mbuf* payload)
+EncodeData1(struct rte_mbuf* m, const Name1* name, struct rte_mbuf* payload)
 {
   assert(rte_pktmbuf_headroom(m) >= EncodeData1_GetHeadroom());
   assert(rte_pktmbuf_tailroom(m) >= EncodeData1_GetTailroom(name));

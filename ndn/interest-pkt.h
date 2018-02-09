@@ -3,7 +3,7 @@
 
 /// \file
 
-#include "name.h"
+#include "name1.h"
 
 /** \brief maximum number of forwarding hints
  */
@@ -15,8 +15,8 @@
  */
 typedef struct InterestPkt
 {
-  Name name;
-  Name fwHints[INTEREST_MAX_FORWARDING_HINTS];
+  Name1 name;
+  Name1 fwHints[INTEREST_MAX_FORWARDING_HINTS];
   MbufLoc nonce;     ///< start position and boundary of Nonce TLV-VALUE
   uint32_t lifetime; ///< InterestLifetime in millis
   uint8_t nFwHints;  ///< number of forwarding hints decoded in .fwHints

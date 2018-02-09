@@ -47,7 +47,7 @@ func TestEncodeData(t *testing.T) {
 	nameMbuf := packetFromHex("0706 080141 080142")
 	defer nameMbuf.Close()
 	d := ndn.NewTlvDecodePos(nameMbuf)
-	name, e := d.ReadName()
+	name, e := d.ReadName1()
 	require.NoError(e)
 
 	payloadMbuf := packetFromHex("C0C1C2C3C4C5C6C7")
