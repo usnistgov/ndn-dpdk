@@ -1,5 +1,9 @@
 package ndn
 
+/*
+#include "name.h"
+*/
+import "C"
 import (
 	"bytes"
 	"encoding/binary"
@@ -8,6 +12,36 @@ import (
 	"io"
 	"strings"
 )
+
+type Name struct {
+	b TlvBytes
+	p *C.PName
+}
+
+func NewName(b TlvBytes) (n *Name, e error) {
+	n = new(Name)
+	n.p = new(C.PName)
+	res := C.PName_Parse(n.p, C.uint32_t(len(b)), (*C.uint8_t)(b.GetPtr()))
+	if res != C.NdnError_OK {
+		return nil, NdnError(res)
+	}
+	n.b = b
+	return n, nil
+}
+
+func (n *Name) Len() int {
+	return int(n.p.nComps)
+}
+
+func (n *Name) HasDigestComp() bool {
+	return bool(n.p.hasDigestComp)
+}
+
+func (n *Name) GetComp(i int) TlvBytes {
+	start := C.PName_GetCompStart(n.p, (*C.uint8_t)(n.b.GetPtr()), C.uint16_t(i))
+	end := C.PName_GetCompStart(n.p, (*C.uint8_t)(n.b.GetPtr()), C.uint16_t(i))
+	return n.b[start:end]
+}
 
 type NameCompareResult int
 

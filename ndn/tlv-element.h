@@ -77,6 +77,24 @@ DecodeTlvElementExpectType(TlvDecodePos* d, uint64_t expectedType,
   return e;
 }
 
+/** \brief Determine if the element's TLV-VALUE is in consecutive memory.
+ */
+static bool
+TlvElement_IsValueLinear(const TlvElement* ele)
+{
+  return ele->value.off + ele->length <= ele->value.m->data_len;
+}
+
+/** \brief Get pointer to element's TLV-VALUE.
+ *  \pre TlvElement_IsValueLinear(ele)
+ */
+static const uint8_t*
+TlvElement_GetLinearValue(const TlvElement* ele)
+{
+  assert(TlvElement_IsValueLinear(ele));
+  return rte_pktmbuf_mtod_offset(ele->value.m, const uint8_t*, ele->value.off);
+}
+
 /** \brief Create a decoder to decode the element's TLV-VALUE.
  *  \param[out] d an iterator bounded inside TLV-VALUE.
  */

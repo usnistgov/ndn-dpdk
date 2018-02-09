@@ -2,10 +2,12 @@ OK
 Incomplete
 LengthOverflow
 BadType
+Fragmented
 UnknownCriticalLpHeader
 FragIndexExceedFragCount
 BadPitToken
 NameTooLong
+BadNameComponentType
 NameHasComponentAfterDigest
 BadDigestComponentLength
 BadNonceLength

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"ndn-dpdk/dpdk/dpdktestenv"
+	"ndn-dpdk/ndn"
 )
 
 func TestMain(m *testing.M) {
@@ -15,3 +16,7 @@ func TestMain(m *testing.M) {
 
 var makeAR = dpdktestenv.MakeAR
 var packetFromHex = dpdktestenv.PacketFromHex
+
+func TlvBytesFromHex(input string) ndn.TlvBytes {
+	return ndn.TlvBytes(dpdktestenv.PacketBytesFromHex(input))
+}
