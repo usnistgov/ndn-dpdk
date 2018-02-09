@@ -22,7 +22,7 @@ ndn/error.go ndn/error.h: ndn/make-error.sh ndn/error.tsv
 	ndn/make-error.sh
 
 ndn/namehash.h: ndn/namehash.c
-	gcc -o /tmp/namehash.exe ndn/namehash.c -I/usr/local/include/dpdk -DNAMEHASH_GENERATOR
+	gcc -o /tmp/namehash.exe ndn/namehash.c -m64 -march=native -I/usr/local/include/dpdk -DNAMEHASH_GENERATOR
 	openssl rand 16 | /tmp/namehash.exe > ndn/namehash.h
 	rm /tmp/namehash.exe
 
