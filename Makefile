@@ -1,13 +1,10 @@
 CLIBPREFIX=build-c/libndn-dpdk
 
-all: cmds
+all: cbuilds
+	go build -v ./...
 
-cbuilds: $(CLIBPREFIX)-core.a $(CLIBPREFIX)-dpdk.a $(CLIBPREFIX)-ndn.a $(CLIBPREFIX)-nameset.a $(CLIBPREFIX)-pcct.a $(CLIBPREFIX)-iface.a
-
-cmds: cmd-ndnpktcopy-dpdk cmd-ndnping-dpdk
-
-cmd-%: cmd/%/* cbuilds
-	go install ./cmd/$*
+cbuilds:
+	bash -c "sed -n '/\.a:\s/ s/\$$(CLIBPREFIX)//p' Makefile | cut -d: -f1 | sed 's:^:$(CLIBPREFIX):' | xargs make"
 
 $(CLIBPREFIX)-core.a: core/*
 	./build-c.sh core
@@ -86,16 +83,21 @@ go-faceuri: $(CLIBPREFIX)-iface.a iface/faceuri/*
 go-appinit: appinit/*
 	go build ./appinit
 
+cmds: cmd-ndnpktcopy-dpdk cmd-ndnping-dpdk
+
+cmd-%: cmd/%/* cbuilds
+	go install ./cmd/$*
+
 test:
 	./gotest.sh
 	integ/run.sh
-
-clean:
-	rm -rf build-c ndn/error.go ndn/error.h ndn/namehash.h ndn/tlv-type.go ndn/tlv-type.h
-	go clean ./...
 
 doxygen:
 	cd docs && doxygen Doxyfile 2>&1 | ./filter-Doxygen-warning.awk 1>&2
 
 dochttp: doxygen
 	cd docs/html && python3 -m http.server 2>/dev/null &
+
+clean:
+	rm -rf build-c ndn/error.go ndn/error.h ndn/namehash.h ndn/tlv-type.go ndn/tlv-type.h docs/html
+	go clean ./...
