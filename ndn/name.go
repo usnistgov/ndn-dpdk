@@ -19,7 +19,7 @@ type Name struct {
 }
 
 // Decode a name.
-func (d *TlvDecoder) ReadName() (n Name, e error) {
+func (d *TlvDecodePos) ReadName() (n Name, e error) {
 	res := C.DecodeName(d.getPtr(), &n.c)
 	if res != C.NdnError_OK {
 		return Name{}, NdnError(res)

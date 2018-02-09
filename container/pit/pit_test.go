@@ -36,7 +36,7 @@ func TestInsertErase(t *testing.T) {
 
 	pktAB := dpdktestenv.PacketFromHex("050E name=0706 080141 080142 nonce=0A04A0A1A2A3")
 	defer pktAB.Close()
-	d := ndn.NewTlvDecoder(pktAB)
+	d := ndn.NewTlvDecodePos(pktAB)
 	interestAB, e := d.ReadInterest()
 	require.NoError(e)
 
@@ -65,7 +65,7 @@ func TestToken(t *testing.T) {
 		pktBytes[6] = byte(i)
 		pkt := dpdktestenv.PacketFromBytes(pktBytes)
 		defer pkt.Close()
-		d := ndn.NewTlvDecoder(pkt)
+		d := ndn.NewTlvDecodePos(pkt)
 		interest, e := d.ReadInterest()
 		require.NoError(e)
 

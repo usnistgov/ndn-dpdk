@@ -33,7 +33,7 @@ func TestNameDecode(t *testing.T) {
 	for _, tt := range tests {
 		pkt := packetFromHex(tt.input)
 		defer pkt.Close()
-		d := ndn.NewTlvDecoder(pkt)
+		d := ndn.NewTlvDecodePos(pkt)
 
 		n, e := d.ReadName()
 		if tt.ok {
@@ -53,7 +53,7 @@ func TestNamePrefixSize(t *testing.T) {
 
 	pkt := packetFromHex("0709 0800 080141 08024243")
 	defer pkt.Close()
-	d := ndn.NewTlvDecoder(pkt)
+	d := ndn.NewTlvDecodePos(pkt)
 
 	name, e := d.ReadName()
 	require.NoError(e)
@@ -88,7 +88,7 @@ func TestNamePrefixHash(t *testing.T) {
 	for i, nameStr := range nameStrs {
 		pkts[i] = packetFromHex(nameStr)
 		defer pkts[i].Close()
-		d := ndn.NewTlvDecoder(pkts[i])
+		d := ndn.NewTlvDecodePos(pkts[i])
 
 		var e error
 		names[i], e = d.ReadName()
@@ -150,7 +150,7 @@ func TestNameCompare(t *testing.T) {
 	for i, nameStr := range nameStrs {
 		pkts[i] = packetFromHex(nameStr)
 		defer pkts[i].Close()
-		d := ndn.NewTlvDecoder(pkts[i])
+		d := ndn.NewTlvDecodePos(pkts[i])
 
 		var e error
 		names[i], e = d.ReadName()

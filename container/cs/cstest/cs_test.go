@@ -43,7 +43,7 @@ func TestReplacePitEntry(t *testing.T) {
 
 	interestPkt := dpdktestenv.PacketFromHex("050E name=0706080141080142 nonce=0A04A0A1A2A3")
 	defer interestPkt.Close()
-	d := ndn.NewTlvDecoder(interestPkt)
+	d := ndn.NewTlvDecodePos(interestPkt)
 	interest, e := d.ReadInterest()
 	require.NoError(e)
 
@@ -53,7 +53,7 @@ func TestReplacePitEntry(t *testing.T) {
 
 	dataPkt := ndn.Packet{dpdktestenv.PacketFromHex("060E name=0706080141080142 metainfo=1400 content=1502C0C1")}
 	defer dataPkt.Close()
-	d = ndn.NewTlvDecoder(dataPkt)
+	d = ndn.NewTlvDecodePos(dataPkt)
 	data, e := d.ReadData()
 	require.NoError(e)
 	dataPkt.SetNetHdr(&data)

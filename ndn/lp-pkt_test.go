@@ -44,7 +44,7 @@ func TestLpPkt(t *testing.T) {
 	for _, tt := range tests {
 		pkt := packetFromHex(tt.input)
 		defer pkt.Close()
-		d := ndn.NewTlvDecoder(pkt)
+		d := ndn.NewTlvDecodePos(pkt)
 
 		lpp, e := d.ReadLpPkt()
 		if tt.bad {
@@ -86,7 +86,7 @@ func TestEncodeLpHeaders(t *testing.T) {
 	for _, tt := range tests {
 		inputPkt := packetFromHex(tt.input)
 		defer inputPkt.Close()
-		d := ndn.NewTlvDecoder(inputPkt)
+		d := ndn.NewTlvDecodePos(inputPkt)
 
 		lpp, e := d.ReadLpPkt()
 		require.NoError(e, tt.input)

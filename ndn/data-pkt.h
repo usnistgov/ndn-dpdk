@@ -17,7 +17,7 @@ typedef struct DataPkt
 /** \brief Decode a Data.
  *  \param[out] data the Data.
  */
-NdnError DecodeData(TlvDecoder* d, DataPkt* data);
+NdnError DecodeData(TlvDecodePos* d, DataPkt* data);
 
 static uint16_t
 EncodeData1_GetHeadroom()

@@ -2,7 +2,7 @@
 #include "tlv-encoder.h"
 
 NdnError
-DecodeData(TlvDecoder* d, DataPkt* data)
+DecodeData(TlvDecodePos* d, DataPkt* data)
 {
   TlvElement dataEle;
   NdnError e = DecodeTlvElementExpectType(d, TT_Data, &dataEle);
@@ -10,7 +10,7 @@ DecodeData(TlvDecoder* d, DataPkt* data)
 
   memset(data, 0, sizeof(DataPkt));
 
-  TlvDecoder d1;
+  TlvDecodePos d1;
   TlvElement_MakeValueDecoder(&dataEle, &d1);
 
   e = DecodeName(&d1, &data->name);
@@ -21,7 +21,7 @@ DecodeData(TlvDecoder* d, DataPkt* data)
     e = DecodeTlvElementExpectType(&d1, TT_MetaInfo, &metaEle);
     RETURN_IF_UNLIKELY_ERROR;
 
-    TlvDecoder d2;
+    TlvDecodePos d2;
     TlvElement_MakeValueDecoder(&metaEle, &d2);
     while (!MbufLoc_IsEnd(&d2)) {
       TlvElement metaChild;

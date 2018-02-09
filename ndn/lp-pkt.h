@@ -36,7 +36,7 @@ typedef struct LpPkt
  *          too large to be stored in the header.
  *  \retval NdnError_FragIndexExceedFragCount FragIndex is not less than FragCount.
  */
-NdnError DecodeLpPkt(TlvDecoder* d, LpPkt* lpp);
+NdnError DecodeLpPkt(TlvDecodePos* d, LpPkt* lpp);
 
 /** \brief Test whether \p lpp contains payload.
  */

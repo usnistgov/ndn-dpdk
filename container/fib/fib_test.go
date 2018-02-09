@@ -100,7 +100,7 @@ func TestFibLpm(t *testing.T) {
 		require.NoError(e)
 		pkt := dpdktestenv.PacketFromBytes(tb)
 		defer pkt.Close()
-		d := ndn.NewTlvDecoder(pkt)
+		d := ndn.NewTlvDecodePos(pkt)
 		name, e := d.ReadName()
 		require.NoError(e, nameStr)
 

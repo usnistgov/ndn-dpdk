@@ -32,7 +32,7 @@ func TestDecodeInterest(t *testing.T) {
 	for _, tt := range tests {
 		pkt := packetFromHex(tt.input)
 		defer pkt.Close()
-		d := ndn.NewTlvDecoder(pkt)
+		d := ndn.NewTlvDecodePos(pkt)
 
 		interest, e := d.ReadInterest()
 		if tt.ok {

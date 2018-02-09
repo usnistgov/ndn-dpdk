@@ -5,7 +5,7 @@
 INIT_ZF_LOG(RxProc);
 
 static struct rte_mbuf*
-RxProc_ProcessInterest(RxProc* rx, struct rte_mbuf* pkt, TlvDecoder* d,
+RxProc_ProcessInterest(RxProc* rx, struct rte_mbuf* pkt, TlvDecodePos* d,
                        NdnPktType l3type)
 {
   Packet_SetNdnPktType(pkt, l3type);
@@ -24,7 +24,7 @@ RxProc_ProcessInterest(RxProc* rx, struct rte_mbuf* pkt, TlvDecoder* d,
 }
 
 static struct rte_mbuf*
-RxProc_ProcessData(RxProc* rx, struct rte_mbuf* pkt, TlvDecoder* d)
+RxProc_ProcessData(RxProc* rx, struct rte_mbuf* pkt, TlvDecodePos* d)
 {
   Packet_SetNdnPktType(pkt, NdnPktType_Data);
   DataPkt* data = Packet_GetDataHdr(pkt);
@@ -43,7 +43,7 @@ RxProc_ProcessData(RxProc* rx, struct rte_mbuf* pkt, TlvDecoder* d)
 
 // interestL3type: L3 type (Interest or Nack) if the packet is an Interest
 static struct rte_mbuf*
-RxProc_ProcessNetPkt(RxProc* rx, struct rte_mbuf* pkt, TlvDecoder* d,
+RxProc_ProcessNetPkt(RxProc* rx, struct rte_mbuf* pkt, TlvDecodePos* d,
                      uint8_t firstOctet, NdnPktType interestL3type)
 {
   if (firstOctet == TT_Interest) {
@@ -59,7 +59,7 @@ RxProc_ProcessNetPkt(RxProc* rx, struct rte_mbuf* pkt, TlvDecoder* d,
 }
 
 static struct rte_mbuf*
-RxProc_ProcessLpPkt(RxProc* rx, struct rte_mbuf* pkt, TlvDecoder* d)
+RxProc_ProcessLpPkt(RxProc* rx, struct rte_mbuf* pkt, TlvDecodePos* d)
 {
   Packet_SetL2PktType(pkt, L2PktType_NdnlpV2);
   LpPkt* lpp = Packet_GetLpHdr(pkt);
@@ -87,7 +87,7 @@ RxProc_ProcessLpPkt(RxProc* rx, struct rte_mbuf* pkt, TlvDecoder* d)
     lpp = Packet_GetLpHdr(pkt);
   }
 
-  TlvDecoder d1;
+  TlvDecodePos d1;
   MbufLoc_Init(&d1, pkt);
   return RxProc_ProcessNetPkt(rx, pkt, &d1, MbufLoc_PeekOctet(&d1),
                               lpp->nackReason > 0 ? NdnPktType_Nack
@@ -100,7 +100,7 @@ RxProc_Input(RxProc* rx, struct rte_mbuf* frame)
   ++rx->nFrames[NdnPktType_None];
   rx->nOctets += frame->pkt_len;
 
-  TlvDecoder d;
+  TlvDecodePos d;
   MbufLoc_Init(&d, frame);
   uint8_t firstOctet = MbufLoc_PeekOctet(&d);
 

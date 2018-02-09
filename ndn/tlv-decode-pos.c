@@ -1,7 +1,7 @@
-#include "tlv-decoder.h"
+#include "tlv-decode-pos.h"
 
 NdnError
-__DecodeVarNum_32or64(TlvDecoder* d, uint8_t firstOctet, uint64_t* n)
+__DecodeVarNum_32or64(TlvDecodePos* d, uint8_t firstOctet, uint64_t* n)
 {
   if (unlikely(MbufLoc_IsEnd(d))) {
     return NdnError_Incomplete;

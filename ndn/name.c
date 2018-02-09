@@ -2,7 +2,7 @@
 #include <rte_per_lcore.h>
 
 NdnError
-DecodeName(TlvDecoder* d, Name* n)
+DecodeName(TlvDecodePos* d, Name* n)
 {
   TlvElement nameEle;
   NdnError e = DecodeTlvElementExpectType(d, TT_Name, &nameEle);
@@ -17,7 +17,7 @@ DecodeName(TlvDecoder* d, Name* n)
   n->hasDigestComp = false;
   n->hasPrefixHashes = false;
 
-  TlvDecoder compsD;
+  TlvDecodePos compsD;
   TlvElement_MakeValueDecoder(&nameEle, &compsD);
 
   while (!MbufLoc_IsEnd(&compsD)) {
@@ -51,7 +51,7 @@ __Name_GetComp_PastIndexed(const Name* n, uint16_t i, TlvElement* ele)
   assert(n->nComps >= NAME_MAX_INDEXED_COMPS);
   assert(i >= NAME_MAX_INDEXED_COMPS);
 
-  TlvDecoder d;
+  TlvDecodePos d;
   uint16_t j = NAME_MAX_INDEXED_COMPS - 1;
   MbufLoc_Copy(&d, &n->comps[j].pos);
   for (; j <= i; ++j) {

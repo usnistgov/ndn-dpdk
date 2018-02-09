@@ -9,7 +9,7 @@ CanIgnoreLpHeader(uint64_t tlvType)
 }
 
 NdnError
-DecodeLpPkt(TlvDecoder* d, LpPkt* lpp)
+DecodeLpPkt(TlvDecodePos* d, LpPkt* lpp)
 {
   TlvElement lppEle;
   NdnError e = DecodeTlvElementExpectType(d, TT_LpPacket, &lppEle);
@@ -18,7 +18,7 @@ DecodeLpPkt(TlvDecoder* d, LpPkt* lpp)
   memset(lpp, 0, sizeof(LpPkt));
   lpp->fragCount = 1;
 
-  TlvDecoder d1;
+  TlvDecodePos d1;
   TlvElement_MakeValueDecoder(&lppEle, &d1);
   TlvElement hdrEle;
   while ((e = DecodeTlvElement(&d1, &hdrEle)) == NdnError_OK) {
@@ -54,7 +54,7 @@ DecodeLpPkt(TlvDecoder* d, LpPkt* lpp)
         if (unlikely(hdrEle.length != 8)) {
           return NdnError_BadPitToken;
         }
-        TlvDecoder d2;
+        TlvDecodePos d2;
         TlvElement_MakeValueDecoder(&hdrEle, &d2);
         rte_le64_t v;
         MbufLoc_ReadU64(&d2, &v);
@@ -62,7 +62,7 @@ DecodeLpPkt(TlvDecoder* d, LpPkt* lpp)
         break;
       }
       case TT_Nack: {
-        TlvDecoder d2;
+        TlvDecodePos d2;
         TlvElement_MakeValueDecoder(&hdrEle, &d2);
         TlvElement nackReasonEle;
         NdnError e2 =

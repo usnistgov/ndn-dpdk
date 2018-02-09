@@ -35,7 +35,7 @@ func TestInOrderReassembler(t *testing.T) {
 	for _, step := range steps {
 		pkt := dpdktestenv.PacketFromHex(step.input)
 		require.True(pkt.IsValid(), step.input)
-		d := ndn.NewTlvDecoder(pkt)
+		d := ndn.NewTlvDecodePos(pkt)
 		lpp, e := d.ReadLpPkt()
 		require.NoError(e, step.input)
 		ndn.Packet{pkt}.SetLpHdr(lpp)

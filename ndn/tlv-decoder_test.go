@@ -33,7 +33,7 @@ func TestReadVarNum(t *testing.T) {
 		input := dpdktestenv.PacketBytesFromHex(tt.input)
 		pkt := dpdktestenv.PacketFromBytes(input)
 		defer pkt.Close()
-		d := ndn.NewTlvDecoder(pkt)
+		d := ndn.NewTlvDecodePos(pkt)
 
 		v, e := d.ReadVarNum()
 		v2, size, ok := ndn.DecodeVarNum(input)

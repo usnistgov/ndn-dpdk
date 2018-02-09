@@ -35,7 +35,7 @@ func TestTlvElement(t *testing.T) {
 	for _, tt := range tests {
 		pkt := packetFromHex(tt.input)
 		defer pkt.Close()
-		d := ndn.NewTlvDecoder(pkt)
+		d := ndn.NewTlvDecodePos(pkt)
 
 		ele, e := d.ReadTlvElement()
 		if tt.ok {

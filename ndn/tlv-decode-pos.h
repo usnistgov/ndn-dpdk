@@ -19,15 +19,15 @@
  *
  *  The decoder contains an input iterator and boundary.
  */
-typedef MbufLoc TlvDecoder;
+typedef MbufLoc TlvDecodePos;
 
-NdnError __DecodeVarNum_32or64(TlvDecoder* d, uint8_t firstOctet, uint64_t* n);
+NdnError __DecodeVarNum_32or64(TlvDecodePos* d, uint8_t firstOctet, uint64_t* n);
 
 /** \brief Decode a TLV-TYPE or TLV-LENGTH number.
  *  \param[out] n the number.
  */
 static NdnError
-DecodeVarNum(TlvDecoder* d, uint64_t* n)
+DecodeVarNum(TlvDecodePos* d, uint64_t* n)
 {
   if (unlikely(MbufLoc_IsEnd(d))) {
     return NdnError_Incomplete;

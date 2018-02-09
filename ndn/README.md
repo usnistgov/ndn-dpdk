@@ -5,7 +5,7 @@ This package implements NDN packet representations.
 ## Packet Decoding and Representation
 
 `InterestPkt`, `DataPkt`, and `LpPkt` represent Interest, Data, and NDNLP packets, respectively.
-They can be decoded from `TlvDecoder` that is really a `MbufLoc`.
+They can be decoded from `TlvDecodePos` that is really a `MbufLoc`.
 
 These types are designed to represent a decoded packet.
 They contain pointers into the original packet, and thus must be used together with the input mbufs.

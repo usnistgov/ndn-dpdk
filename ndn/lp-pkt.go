@@ -13,12 +13,12 @@ type LpPkt struct {
 type CongMark uint8
 
 // Test whether the decoder may contain an LpPacket.
-func (d *TlvDecoder) IsLpPkt() bool {
+func (d *TlvDecodePos) IsLpPkt() bool {
 	return d.it.PeekOctet() == int(TT_LpPacket)
 }
 
 // Decode an LpPacket.
-func (d *TlvDecoder) ReadLpPkt() (lpp LpPkt, e error) {
+func (d *TlvDecodePos) ReadLpPkt() (lpp LpPkt, e error) {
 	res := C.DecodeLpPkt(d.getPtr(), &lpp.c)
 	if res != C.NdnError_OK {
 		return LpPkt{}, NdnError(res)

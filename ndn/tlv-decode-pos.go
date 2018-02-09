@@ -1,7 +1,7 @@
 package ndn
 
 /*
-#include "tlv-decoder.h"
+#include "tlv-decode-pos.h"
 */
 import "C"
 import (
@@ -10,20 +10,20 @@ import (
 	"ndn-dpdk/dpdk"
 )
 
-type TlvDecoder struct {
+type TlvDecodePos struct {
 	it dpdk.PacketIterator
 }
 
-func NewTlvDecoder(pkt dpdk.IMbuf) TlvDecoder {
-	return TlvDecoder{dpdk.NewPacketIterator(pkt)}
+func NewTlvDecodePos(pkt dpdk.IMbuf) TlvDecodePos {
+	return TlvDecodePos{dpdk.NewPacketIterator(pkt)}
 }
 
-func (d *TlvDecoder) getPtr() *C.TlvDecoder {
-	return (*C.TlvDecoder)(d.it.GetPtr())
+func (d *TlvDecodePos) getPtr() *C.TlvDecodePos {
+	return (*C.TlvDecodePos)(d.it.GetPtr())
 }
 
 // Decode a TLV-TYPE or TLV-LENGTH number.
-func (d *TlvDecoder) ReadVarNum() (v uint64, e error) {
+func (d *TlvDecodePos) ReadVarNum() (v uint64, e error) {
 	res := C.DecodeVarNum(d.getPtr(), (*C.uint64_t)(&v))
 	if res != C.NdnError_OK {
 		return 0, NdnError(res)

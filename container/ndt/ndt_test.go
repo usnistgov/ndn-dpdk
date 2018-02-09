@@ -41,7 +41,7 @@ func TestNdt(t *testing.T) {
 	for i, nameStr := range nameStrs {
 		namePkts[i] = dpdktestenv.PacketFromHex(nameStr)
 		defer namePkts[i].Close()
-		d := ndn.NewTlvDecoder(namePkts[i])
+		d := ndn.NewTlvDecodePos(namePkts[i])
 		name, e := d.ReadName()
 		require.NoError(e)
 		names[i] = &name

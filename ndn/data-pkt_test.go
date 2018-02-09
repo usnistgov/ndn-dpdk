@@ -27,7 +27,7 @@ func TestData(t *testing.T) {
 	for _, tt := range tests {
 		pkt := packetFromHex(tt.input)
 		defer pkt.Close()
-		d := ndn.NewTlvDecoder(pkt)
+		d := ndn.NewTlvDecodePos(pkt)
 
 		data, e := d.ReadData()
 		if tt.ok {
@@ -46,7 +46,7 @@ func TestEncodeData(t *testing.T) {
 
 	nameMbuf := packetFromHex("0706 080141 080142")
 	defer nameMbuf.Close()
-	d := ndn.NewTlvDecoder(nameMbuf)
+	d := ndn.NewTlvDecodePos(nameMbuf)
 	name, e := d.ReadName()
 	require.NoError(e)
 
@@ -57,7 +57,7 @@ func TestEncodeData(t *testing.T) {
 	m2 := dpdktestenv.Alloc(dpdktestenv.MPID_DIRECT)
 
 	encoded := ndn.EncodeData(&name, payloadMbuf, m1, m2)
-	d = ndn.NewTlvDecoder(encoded)
+	d = ndn.NewTlvDecodePos(encoded)
 	data, e := d.ReadData()
 	require.NoError(e)
 

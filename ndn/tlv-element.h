@@ -3,7 +3,7 @@
 
 /// \file
 
-#include "tlv-decoder.h"
+#include "tlv-decode-pos.h"
 #include "tlv-type.h"
 
 /** \brief TLV element
@@ -22,7 +22,7 @@ typedef struct TlvElement
  *  \param[out] ele the element; will assign all fields except \p last.
  */
 static NdnError
-DecodeTlvHeader(TlvDecoder* d, TlvElement* ele)
+DecodeTlvHeader(TlvDecodePos* d, TlvElement* ele)
 {
   MbufLoc_Copy(&ele->first, d);
 
@@ -48,7 +48,7 @@ DecodeTlvHeader(TlvDecoder* d, TlvElement* ele)
  *        MbufLoc_FastDiff may be used on them.
  */
 static NdnError
-DecodeTlvElement(TlvDecoder* d, TlvElement* ele)
+DecodeTlvElement(TlvDecodePos* d, TlvElement* ele)
 {
   NdnError e = DecodeTlvHeader(d, ele);
   RETURN_IF_ERROR;
@@ -67,7 +67,7 @@ DecodeTlvElement(TlvDecoder* d, TlvElement* ele)
  *  \retval NdnError_BadType TLV-TYPE does not equal \p expectedType.
  */
 static NdnError
-DecodeTlvElementExpectType(TlvDecoder* d, uint64_t expectedType,
+DecodeTlvElementExpectType(TlvDecodePos* d, uint64_t expectedType,
                            TlvElement* ele)
 {
   NdnError e = DecodeTlvElement(d, ele);
@@ -81,7 +81,7 @@ DecodeTlvElementExpectType(TlvDecoder* d, uint64_t expectedType,
  *  \param[out] d an iterator bounded inside TLV-VALUE.
  */
 static void
-TlvElement_MakeValueDecoder(const TlvElement* ele, TlvDecoder* d)
+TlvElement_MakeValueDecoder(const TlvElement* ele, TlvDecodePos* d)
 {
   MbufLoc_Copy(d, &ele->value);
   d->rem = ele->length;
@@ -94,7 +94,7 @@ TlvElement_MakeValueDecoder(const TlvElement* ele, TlvDecoder* d)
 static bool
 TlvElement_ReadNonNegativeInteger(const TlvElement* ele, uint64_t* n)
 {
-  TlvDecoder vd;
+  TlvDecodePos vd;
   TlvElement_MakeValueDecoder(ele, &vd);
 
   switch (ele->length) {

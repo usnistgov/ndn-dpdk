@@ -11,7 +11,7 @@ type TlvElement struct {
 }
 
 // Decode a TLV element.
-func (d *TlvDecoder) ReadTlvElement() (ele TlvElement, e error) {
+func (d *TlvDecodePos) ReadTlvElement() (ele TlvElement, e error) {
 	res := C.DecodeTlvElement(d.getPtr(), &ele.c)
 	if res != C.NdnError_OK {
 		return TlvElement{}, NdnError(res)
@@ -36,7 +36,7 @@ func (ele *TlvElement) GetLength() int {
 
 // Get TLV-VALUE.
 func (ele *TlvElement) GetValue() []byte {
-	var d TlvDecoder
+	var d TlvDecodePos
 	C.TlvElement_MakeValueDecoder(&ele.c, d.getPtr())
 
 	b := make([]byte, ele.GetLength())

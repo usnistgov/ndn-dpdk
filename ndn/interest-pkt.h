@@ -28,7 +28,7 @@ typedef struct InterestPkt
  *  \note Selectors other than MustBeFresh are silently ignored.
  *  \note Forwarding hints in excess of INTEREST_MAX_FORWARDING_HINTS are silently ignored.
  */
-NdnError DecodeInterest(TlvDecoder* d, InterestPkt* interest);
+NdnError DecodeInterest(TlvDecodePos* d, InterestPkt* interest);
 
 /** \brief Get the Nonce, interpreted as little endian.
  */

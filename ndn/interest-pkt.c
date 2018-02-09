@@ -2,7 +2,7 @@
 #include "tlv-encoder.h"
 
 NdnError
-DecodeInterest(TlvDecoder* d, InterestPkt* interest)
+DecodeInterest(TlvDecodePos* d, InterestPkt* interest)
 {
   TlvElement interestEle;
   NdnError e = DecodeTlvElementExpectType(d, TT_Interest, &interestEle);
@@ -11,7 +11,7 @@ DecodeInterest(TlvDecoder* d, InterestPkt* interest)
   memset(interest, 0, sizeof(InterestPkt));
   interest->lifetime = DEFAULT_INTEREST_LIFETIME;
 
-  TlvDecoder d1;
+  TlvDecodePos d1;
   TlvElement_MakeValueDecoder(&interestEle, &d1);
 
   e = DecodeName(&d1, &interest->name);
@@ -22,7 +22,7 @@ DecodeInterest(TlvDecoder* d, InterestPkt* interest)
     e = DecodeTlvElement(&d1, &selectorsEle);
     RETURN_IF_UNLIKELY_ERROR;
 
-    TlvDecoder d2;
+    TlvDecodePos d2;
     TlvElement_MakeValueDecoder(&selectorsEle, &d2);
     while (!MbufLoc_IsEnd(&d2)) {
       TlvElement selectorEle;
@@ -63,7 +63,7 @@ DecodeInterest(TlvDecoder* d, InterestPkt* interest)
     e = DecodeTlvElement(&d1, &fhEle);
     RETURN_IF_UNLIKELY_ERROR;
 
-    TlvDecoder d2;
+    TlvDecodePos d2;
     TlvElement_MakeValueDecoder(&fhEle, &d2);
     for (int i = 0; i < INTEREST_MAX_FORWARDING_HINTS; ++i) {
       if (MbufLoc_IsEnd(&d2)) {
@@ -73,7 +73,7 @@ DecodeInterest(TlvDecoder* d, InterestPkt* interest)
       e = DecodeTlvElementExpectType(&d2, TT_Delegation, &delegationEle);
       RETURN_IF_UNLIKELY_ERROR;
 
-      TlvDecoder d3;
+      TlvDecodePos d3;
       TlvElement_MakeValueDecoder(&delegationEle, &d3);
       TlvElement preferenceEle;
       e = DecodeTlvElementExpectType(&d3, TT_Preference, &preferenceEle);
