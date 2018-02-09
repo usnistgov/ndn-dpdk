@@ -7,8 +7,6 @@ import "C"
 import (
 	"fmt"
 	"unsafe"
-
-	"ndn-dpdk/dpdk"
 )
 
 // Get size of PacketPriv structure.
@@ -55,56 +53,55 @@ func (t NdnPktType) String() string {
 
 // NDN network layer packet with parsed LP and Interest/Data headers.
 type Packet struct {
-	dpdk.Packet
+	c *C.Packet
 }
 
 // Construct Packet from *C.struct_rte_mbuf pointing to first segment.
 // This function can accept nil pointer.
-func PacketFromPtr(ptr unsafe.Pointer) Packet {
-	return Packet{dpdk.MbufFromPtr(ptr).AsPacket()}
-}
-
-func (pkt Packet) getPtr() *C.struct_rte_mbuf {
-	return (*C.struct_rte_mbuf)(pkt.GetPtr())
+func PacketFromPtr(ptr unsafe.Pointer) (pkt Packet) {
+	if ptr != nil {
+		pkt.c = C.Packet_FromMbuf((*C.struct_rte_mbuf)(ptr))
+	}
+	return pkt
 }
 
 func (pkt Packet) GetL2Type() L2PktType {
-	return L2PktType(C.Packet_GetL2PktType(pkt.getPtr()))
+	return L2PktType(C.Packet_GetL2PktType(pkt.c))
 }
 
 func (pkt Packet) GetLpHdr() *LpPkt {
-	return (*LpPkt)(unsafe.Pointer(C.Packet_GetLpHdr(pkt.getPtr())))
+	return (*LpPkt)(unsafe.Pointer(C.Packet_GetLpHdr(pkt.c)))
 }
 
 func (pkt Packet) SetLpHdr(lpp LpPkt) {
-	C.Packet_SetL2PktType(pkt.getPtr(), C.L2PktType_NdnlpV2)
+	C.Packet_SetL2PktType(pkt.c, C.L2PktType_NdnlpV2)
 	lpp1 := pkt.GetLpHdr()
 	*lpp1 = lpp
 }
 
 func (pkt Packet) GetNetType() NdnPktType {
-	return NdnPktType(C.Packet_GetNdnPktType(pkt.getPtr()))
+	return NdnPktType(C.Packet_GetNdnPktType(pkt.c))
 }
 
 func (pkt Packet) AsInterest() *InterestPkt {
-	return (*InterestPkt)(unsafe.Pointer(C.Packet_GetInterestHdr(pkt.getPtr())))
+	return (*InterestPkt)(unsafe.Pointer(C.Packet_GetInterestHdr(pkt.c)))
 }
 
 func (pkt Packet) AsData() *DataPkt {
-	return (*DataPkt)(unsafe.Pointer(C.Packet_GetDataHdr(pkt.getPtr())))
+	return (*DataPkt)(unsafe.Pointer(C.Packet_GetDataHdr(pkt.c)))
 }
 
 func (pkt Packet) SetNetHdr(netp interface{}) {
 	if interest, ok := netp.(*InterestPkt); ok {
 		if pkt.GetL2Type() == L2PktType_NdnlpV2 && pkt.GetLpHdr().GetNackReason() != NackReason_None {
-			C.Packet_SetNdnPktType(pkt.getPtr(), C.NdnPktType_Nack)
+			C.Packet_SetNdnPktType(pkt.c, C.NdnPktType_Nack)
 		} else {
-			C.Packet_SetNdnPktType(pkt.getPtr(), C.NdnPktType_Interest)
+			C.Packet_SetNdnPktType(pkt.c, C.NdnPktType_Interest)
 		}
-		*C.Packet_GetInterestHdr(pkt.getPtr()) = interest.c
+		*C.Packet_GetInterestHdr(pkt.c) = interest.c
 	} else {
 		data := netp.(*DataPkt)
-		C.Packet_SetNdnPktType(pkt.getPtr(), C.NdnPktType_Data)
-		*C.Packet_GetDataHdr(pkt.getPtr()) = data.c
+		C.Packet_SetNdnPktType(pkt.c, C.NdnPktType_Data)
+		*C.Packet_GetDataHdr(pkt.c) = data.c
 	}
 }

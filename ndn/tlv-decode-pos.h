@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_NDN_TLV_DECODER_H
-#define NDN_DPDK_NDN_TLV_DECODER_H
+#ifndef NDN_DPDK_NDN_TLV_DECODE_POS_H
+#define NDN_DPDK_NDN_TLV_DECODE_POS_H
 
 /** \file
  *
@@ -21,7 +21,8 @@
  */
 typedef MbufLoc TlvDecodePos;
 
-NdnError __DecodeVarNum_32or64(TlvDecodePos* d, uint8_t firstOctet, uint64_t* n);
+NdnError __DecodeVarNum_32or64(TlvDecodePos* d, uint8_t firstOctet,
+                               uint64_t* n);
 
 /** \brief Decode a TLV-TYPE or TLV-LENGTH number.
  *  \param[out] n the number.
@@ -57,4 +58,4 @@ DecodeVarNum(TlvDecodePos* d, uint64_t* n)
   return NdnError_OK;
 }
 
-#endif // NDN_DPDK_NDN_TLV_DECODER_H
+#endif // NDN_DPDK_NDN_TLV_DECODE_POS_H
