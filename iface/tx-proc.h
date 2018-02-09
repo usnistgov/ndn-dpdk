@@ -38,12 +38,12 @@ typedef struct TxProc
 
   /** \brief number of L2 frames sent, seperated by L3 packet type
    *
-   *  \li nFrames[NdnPktType_None] idle packets and non-first fragments
-   *  \li nFrames[NdnPktType_Interests] Interests
-   *  \li nFrames[NdnPktType_Data] Data
-   *  \li nFrames[NdnPktType_Nacks] Nacks
+   *  \li nFrames[L3PktType_None] idle packets and non-first fragments
+   *  \li nFrames[L3PktType_Interests] Interests
+   *  \li nFrames[L3PktType_Data] Data
+   *  \li nFrames[L3PktType_Nacks] Nacks
    */
-  uint64_t nFrames[NdnPktType_MAX];
+  uint64_t nFrames[L3PktType_MAX];
   uint64_t nOctets; ///< octets sent, including Ethernet and NDNLP headers
 } TxProc;
 
@@ -87,7 +87,7 @@ TxProc_CountQueued(TxProc* tx, uint16_t nAccepts, uint16_t nRejects)
 static void
 TxProc_CountSent(TxProc* tx, struct rte_mbuf* pkt)
 {
-  ++tx->nFrames[Packet_GetNdnPktType(pkt)];
+  ++tx->nFrames[Packet_GetL3PktType(pkt)];
   tx->nOctets += pkt->pkt_len;
 }
 

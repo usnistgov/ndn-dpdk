@@ -16,5 +16,5 @@ MakeNack(struct rte_mbuf* pkt, NackReason reason)
   }
 
   lpp->nackReason = reason;
-  Packet_SetNdnPktType(npkt, NdnPktType_Nack);
+  Packet_SetL3PktType(npkt, L3PktType_Nack);
 }

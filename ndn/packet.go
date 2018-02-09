@@ -30,22 +30,22 @@ func (t L2PktType) String() string {
 	return fmt.Sprintf("%d", int(t))
 }
 
-type NdnPktType int
+type L3PktType int
 
 const (
-	NdnPktType_None     NdnPktType = C.NdnPktType_None
-	NdnPktType_Interest            = C.NdnPktType_Interest
-	NdnPktType_Data                = C.NdnPktType_Data
-	NdnPktType_Nack                = C.NdnPktType_Nack
+	L3PktType_None     L3PktType = C.L3PktType_None
+	L3PktType_Interest           = C.L3PktType_Interest
+	L3PktType_Data               = C.L3PktType_Data
+	L3PktType_Nack               = C.L3PktType_Nack
 )
 
-func (t NdnPktType) String() string {
+func (t L3PktType) String() string {
 	switch t {
-	case NdnPktType_Interest:
+	case L3PktType_Interest:
 		return "Interest"
-	case NdnPktType_Data:
+	case L3PktType_Data:
 		return "Data"
-	case NdnPktType_Nack:
+	case L3PktType_Nack:
 		return "Nack"
 	}
 	return fmt.Sprintf("%d", int(t))
@@ -79,8 +79,8 @@ func (pkt Packet) SetLpHdr(lpp LpPkt) {
 	*lpp1 = lpp
 }
 
-func (pkt Packet) GetNetType() NdnPktType {
-	return NdnPktType(C.Packet_GetNdnPktType(pkt.c))
+func (pkt Packet) GetNetType() L3PktType {
+	return L3PktType(C.Packet_GetL3PktType(pkt.c))
 }
 
 func (pkt Packet) AsInterest() *InterestPkt {
@@ -94,14 +94,14 @@ func (pkt Packet) AsData() *DataPkt {
 func (pkt Packet) SetNetHdr(netp interface{}) {
 	if interest, ok := netp.(*InterestPkt); ok {
 		if pkt.GetL2Type() == L2PktType_NdnlpV2 && pkt.GetLpHdr().GetNackReason() != NackReason_None {
-			C.Packet_SetNdnPktType(pkt.c, C.NdnPktType_Nack)
+			C.Packet_SetL3PktType(pkt.c, C.L3PktType_Nack)
 		} else {
-			C.Packet_SetNdnPktType(pkt.c, C.NdnPktType_Interest)
+			C.Packet_SetL3PktType(pkt.c, C.L3PktType_Interest)
 		}
 		*C.Packet_GetInterestHdr(pkt.c) = interest.c
 	} else {
 		data := netp.(*DataPkt)
-		C.Packet_SetNdnPktType(pkt.c, C.NdnPktType_Data)
+		C.Packet_SetL3PktType(pkt.c, C.L3PktType_Data)
 		*C.Packet_GetDataHdr(pkt.c) = data.c
 	}
 }

@@ -14,12 +14,12 @@ typedef struct RxProc
 
   /** \brief input frames and decoded L3 packets
    *
-   *  \li nFrames[NdnPktType_None] input frames
-   *  \li nFrames[NdnPktType_Interests] decoded Interests
-   *  \li nFrames[NdnPktType_Data] decoded Data
-   *  \li nFrames[NdnPktType_Nacks] decoded Nacks
+   *  \li nFrames[L3PktType_None] input frames
+   *  \li nFrames[L3PktType_Interests] decoded Interests
+   *  \li nFrames[L3PktType_Data] decoded Data
+   *  \li nFrames[L3PktType_Nacks] decoded Nacks
    */
-  uint64_t nFrames[NdnPktType_MAX];
+  uint64_t nFrames[L3PktType_MAX];
   uint64_t nOctets; ///< input bytes
 
   uint64_t nL2DecodeErr; ///< failed NDNLP decodings

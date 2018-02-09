@@ -52,42 +52,46 @@ typedef enum L2PktType {
   L2PktType_NdnlpV2,
 } L2PktType;
 
+/** \brief Get layer 2 packet type.
+ */
 static L2PktType
 Packet_GetL2PktType(const Packet* npkt)
 {
   return Packet_ToMbuf(npkt)->inner_l2_type;
 }
 
+/** \brief Set layer 2 packet type.
+ */
 static void
 Packet_SetL2PktType(Packet* npkt, L2PktType t)
 {
   Packet_ToMbuf(npkt)->inner_l2_type = t;
 }
 
-/** \brief Indicate network layer packet type.
+/** \brief Indicate layer 3 packet type.
  *
- *  NdnPktType is stored in rte_mbuf.inner_l3_type field.
+ *  L3PktType is stored in rte_mbuf.inner_l3_type field.
  */
-typedef enum NdnPktType {
-  NdnPktType_None,
-  NdnPktType_Interest,
-  NdnPktType_Data,
-  NdnPktType_Nack,
-  NdnPktType_MAX
-} NdnPktType;
+typedef enum L3PktType {
+  L3PktType_None,
+  L3PktType_Interest,
+  L3PktType_Data,
+  L3PktType_Nack,
+  L3PktType_MAX
+} L3PktType;
 
-/** \brief Get NDN network layer packet type.
+/** \brief Get layer 3 packet type.
  */
-static NdnPktType
-Packet_GetNdnPktType(const Packet* npkt)
+static L3PktType
+Packet_GetL3PktType(const Packet* npkt)
 {
   return Packet_ToMbuf(npkt)->inner_l3_type;
 }
 
-/** \brief Set NDN network layer packet type.
+/** \brief Set layer 3 packet type.
  */
 static void
-Packet_SetNdnPktType(Packet* npkt, NdnPktType t)
+Packet_SetL3PktType(Packet* npkt, L3PktType t)
 {
   Packet_ToMbuf(npkt)->inner_l3_type = t;
 }
@@ -104,8 +108,8 @@ Packet_GetLpHdr(Packet* npkt)
 static InterestPkt*
 Packet_GetInterestHdr(Packet* npkt)
 {
-  assert(Packet_GetNdnPktType(npkt) == NdnPktType_Interest ||
-         (Packet_GetNdnPktType(npkt) == NdnPktType_Nack &&
+  assert(Packet_GetL3PktType(npkt) == L3PktType_Interest ||
+         (Packet_GetL3PktType(npkt) == L3PktType_Nack &&
           Packet_GetLpHdr(npkt)->nackReason > 0));
   return MbufDirectPriv(Packet_ToMbuf(npkt), InterestPkt*,
                         offsetof(PacketPriv, interest));
@@ -116,7 +120,7 @@ Packet_GetInterestHdr(Packet* npkt)
 static DataPkt*
 Packet_GetDataHdr(Packet* npkt)
 {
-  assert(Packet_GetNdnPktType(npkt) == NdnPktType_Data);
+  assert(Packet_GetL3PktType(npkt) == L3PktType_Data);
   return MbufDirectPriv(Packet_ToMbuf(npkt), DataPkt*,
                         offsetof(PacketPriv, data));
 }

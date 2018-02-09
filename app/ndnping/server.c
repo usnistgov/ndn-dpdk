@@ -35,14 +35,14 @@ NdnpingServer_MakeData(NdnpingServer* server, const Name* name)
   EncodeData1(m1, name, payload);
   EncodeData2(m2, m1);
   EncodeData3(m1);
-  Packet_SetNdnPktType(m1, NdnPktType_Data);
+  Packet_SetL3PktType(m1, L3PktType_Data);
   return m1;
 }
 
 static struct rte_mbuf*
 NdnpingServer_ProcessPkt(NdnpingServer* server, struct rte_mbuf* pkt)
 {
-  if (Packet_GetNdnPktType(pkt) != NdnPktType_Interest) {
+  if (Packet_GetL3PktType(pkt) != L3PktType_Interest) {
     ZF_LOGD("%" PRI_FaceId " not-Interest", server->face->id);
     rte_pktmbuf_free(pkt);
     return NULL;

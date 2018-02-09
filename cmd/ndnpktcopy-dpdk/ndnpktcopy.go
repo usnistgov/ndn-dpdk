@@ -85,13 +85,13 @@ func main() {
 
 func printPacket(pkt ndn.Packet) {
 	switch pkt.GetNetType() {
-	case ndn.NdnPktType_Interest:
+	case ndn.L3PktType_Interest:
 		interest := pkt.AsInterest()
 		log.Printf("I %s", interest.GetName())
-	case ndn.NdnPktType_Data:
+	case ndn.L3PktType_Data:
 		data := pkt.AsData()
 		log.Printf("D %s", data.GetName())
-	case ndn.NdnPktType_Nack:
+	case ndn.L3PktType_Nack:
 		log.Printf("Nack")
 	}
 }

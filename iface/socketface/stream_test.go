@@ -64,5 +64,5 @@ func TestStream(t *testing.T) {
 	assert.EqualValues(1, cnt.RxL3.NData)
 	assert.EqualValues(1, cnt.RxL3.NNacks)
 	assert.EqualValues(3, cnt.TxL2.NFrames)
-	// TxL3 counters are unavailable because packets do not have NdnPktType specified.
+	// TxL3 counters are unavailable because packets do not have L3PktType specified.
 }

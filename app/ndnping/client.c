@@ -89,7 +89,7 @@ NdnpingClient_PrepareTxInterest(NdnpingClient* client, struct rte_mbuf* pkt)
   client->interestTpl.namePrefix = NameSet_GetName(
     &client->patterns, patternId, &client->interestTpl.namePrefixSize);
   EncodeInterest(pkt, &client->interestTpl);
-  Packet_SetNdnPktType(pkt, NdnPktType_Interest);
+  Packet_SetL3PktType(pkt, L3PktType_Interest);
   ZF_LOGV("%" PRI_FaceId " <I seq=%" PRIx64 " pattern=%d", client->face->id,
           seqNo, patternId);
 
@@ -227,10 +227,10 @@ NdnpingClient_RxBurst(NdnpingClient* client)
   uint16_t nRx = Face_RxBurst(client->face, pkts, NDNPINGCLIENT_RX_BURST_SIZE);
   for (uint16_t i = 0; i < nRx; ++i) {
     struct rte_mbuf* pkt = pkts[i];
-    NdnPktType l3type = Packet_GetNdnPktType(pkt);
-    if (likely(l3type == NdnPktType_Data)) {
+    L3PktType l3type = Packet_GetL3PktType(pkt);
+    if (likely(l3type == L3PktType_Data)) {
       NdnpingClient_ProcessRxData(client, pkt);
-    } else if (likely(l3type == NdnPktType_Nack)) {
+    } else if (likely(l3type == L3PktType_Nack)) {
       NdnpingClient_ProcessRxNack(client, pkt);
     }
   }

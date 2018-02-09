@@ -74,7 +74,7 @@ TxProc_OutputFrag(TxProc* tx, struct rte_mbuf* pkt, struct rte_mbuf** frames,
   TxProc_PrepareLpPkt(tx, pkt, &lpp);
   MbufLoc pos;
   MbufLoc_Init(&pos, pkt);
-  NdnPktType l3type = Packet_GetNdnPktType(pkt);
+  L3PktType l3type = Packet_GetL3PktType(pkt);
 
   for (int i = 0; i < nFragments; ++i) {
     uint32_t fragSize = tx->fragmentPayloadSize;
@@ -108,8 +108,8 @@ TxProc_OutputFrag(TxProc* tx, struct rte_mbuf* pkt, struct rte_mbuf** frames,
 
     // Set real L3 type on first segment and None on other segments,
     // to match counting logic in TxProc_Sent
-    Packet_SetNdnPktType(frame, l3type);
-    l3type = NdnPktType_None;
+    Packet_SetL3PktType(frame, l3type);
+    l3type = L3PktType_None;
   }
 
   ++tx->nL3Pkts[(int)(nFragments > 1)];
@@ -164,10 +164,10 @@ TxProc_ReadCounters(TxProc* tx, FaceCounters* cnt)
   cnt->txl2.nFragGood = tx->nL3Pkts[1];
   cnt->txl2.nFragBad = tx->nL3OverLength + tx->nAllocFails;
 
-  cnt->txl3.nInterests = tx->nFrames[NdnPktType_Interest];
-  cnt->txl3.nData = tx->nFrames[NdnPktType_Data];
-  cnt->txl3.nNacks = tx->nFrames[NdnPktType_Nack];
+  cnt->txl3.nInterests = tx->nFrames[L3PktType_Interest];
+  cnt->txl3.nData = tx->nFrames[L3PktType_Data];
+  cnt->txl3.nNacks = tx->nFrames[L3PktType_Nack];
 
-  cnt->txl2.nFrames = tx->nFrames[NdnPktType_None] + cnt->txl3.nInterests +
+  cnt->txl2.nFrames = tx->nFrames[L3PktType_None] + cnt->txl3.nInterests +
                       cnt->txl3.nData + cnt->txl3.nNacks;
 }

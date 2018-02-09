@@ -83,7 +83,7 @@ func TestEthFace(t *testing.T) {
 	fmt.Println(cntB)
 
 	assert.EqualValues(3*TX_LOOPS, cntA.TxL2.NFrames)
-	// TxL3 counters are unavailable because packets do not have NdnPktType specified.
+	// TxL3 counters are unavailable because packets do not have L3PktType specified.
 
 	assert.True(nReceived > TX_LOOPS*3*0.9)
 	assert.EqualValues(nReceived, cntB.RxL2.NFrames)
