@@ -9,13 +9,16 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	dpdktestenv.MakeDirectMp(255, 0, 2000)
+	dpdktestenv.MakeDirectMp(255, ndn.SizeofPacketPriv(), 2000)
 
 	os.Exit(m.Run())
 }
 
 var makeAR = dpdktestenv.MakeAR
-var packetFromHex = dpdktestenv.PacketFromHex
+
+func packetFromHex(input string) ndn.Packet {
+	return ndn.PacketFromPtr(dpdktestenv.PacketFromHex(input).GetPtr())
+}
 
 func TlvBytesFromHex(input string) ndn.TlvBytes {
 	return ndn.TlvBytes(dpdktestenv.PacketBytesFromHex(input))

@@ -1,31 +1,37 @@
-#include "data-pkt.h"
+#include "data.h"
 #include "tlv-encoder.h"
 
 NdnError
-DecodeData(TlvDecodePos* d, DataPkt* data)
+PData_FromElement(PData* data, const TlvElement* ele)
 {
-  TlvElement dataEle;
-  NdnError e = DecodeTlvElementExpectType(d, TT_Data, &dataEle);
-  RETURN_IF_UNLIKELY_ERROR;
+  assert(ele->type == TT_Data);
 
-  memset(data, 0, sizeof(DataPkt));
-
-  TlvDecodePos d1;
-  TlvElement_MakeValueDecoder(&dataEle, &d1);
-
-  e = DecodeName1(&d1, &data->name);
-  RETURN_IF_UNLIKELY_ERROR;
+  TlvDecodePos d;
+  TlvElement_MakeValueDecoder(ele, &d);
 
   {
+    TlvElement nameEle;
+    NdnError e = DecodeTlvElementExpectType(&d, TT_Name, &nameEle);
+    RETURN_IF_UNLIKELY_ERROR;
+    e = PName_FromElement(&data->name.p, &nameEle);
+    RETURN_IF_UNLIKELY_ERROR;
+    data->name.v = TlvElement_GetLinearValue(&nameEle);
+  }
+
+  {
+    data->freshnessPeriod = 0;
     TlvElement metaEle;
-    e = DecodeTlvElementExpectType(&d1, TT_MetaInfo, &metaEle);
+    NdnError e = DecodeTlvElementExpectType(&d, TT_MetaInfo, &metaEle);
+    if (e == NdnError_Incomplete || e == NdnError_BadType) {
+      return NdnError_OK; // MetaInfo not present
+    }
     RETURN_IF_UNLIKELY_ERROR;
 
-    TlvDecodePos d2;
-    TlvElement_MakeValueDecoder(&metaEle, &d2);
-    while (!MbufLoc_IsEnd(&d2)) {
+    TlvDecodePos d1;
+    TlvElement_MakeValueDecoder(&metaEle, &d1);
+    while (!MbufLoc_IsEnd(&d1)) {
       TlvElement metaChild;
-      e = DecodeTlvElement(&d2, &metaChild);
+      e = DecodeTlvElement(&d1, &metaChild);
       RETURN_IF_UNLIKELY_ERROR;
 
       if (metaChild.type != TT_FreshnessPeriod) {
@@ -34,38 +40,26 @@ DecodeData(TlvDecodePos* d, DataPkt* data)
 
       uint64_t fpVal;
       bool ok = TlvElement_ReadNonNegativeInteger(&metaChild, &fpVal);
-      if (unlikely(!ok) || fpVal >= UINT32_MAX) {
-        return NdnError_BadFreshnessPeriod;
-      }
-      data->freshnessPeriod = (uint32_t)fpVal;
+      RETURN_IF_UNLIKELY_ERROR;
+      data->freshnessPeriod =
+        unlikely(fpVal > UINT32_MAX) ? UINT32_MAX : (uint32_t)fpVal;
       break;
     }
   }
-
-  {
-    TlvElement contentEle;
-    e = DecodeTlvElementExpectType(&d1, TT_Content, &contentEle);
-    RETURN_IF_UNLIKELY_ERROR;
-    TlvElement_MakeValueDecoder(&contentEle, &data->content);
-  }
-
-  // ignore Signature
 
   return NdnError_OK;
 }
 
 void
-EncodeData1(struct rte_mbuf* m, const Name1* name, struct rte_mbuf* payload)
+EncodeData1(struct rte_mbuf* m, LName name, struct rte_mbuf* payload)
 {
   assert(rte_pktmbuf_headroom(m) >= EncodeData1_GetHeadroom());
-  assert(rte_pktmbuf_tailroom(m) >= EncodeData1_GetTailroom(name));
+  assert(rte_pktmbuf_tailroom(m) >= EncodeData1_GetTailroom(name.length));
 
   TlvEncoder* en = MakeTlvEncoder(m);
 
-  MbufLoc mlName;
-  MbufLoc_Copy(&mlName, &name->comps[0].pos);
-  MbufLoc_ReadTo(&mlName, rte_pktmbuf_append(m, name->nOctets), name->nOctets);
-  PrependVarNum(en, name->nOctets);
+  rte_memcpy(rte_pktmbuf_append(m, name.length), name.value, name.length);
+  PrependVarNum(en, name.length);
   PrependVarNum(en, TT_Name);
 
   AppendVarNum(en, TT_MetaInfo);

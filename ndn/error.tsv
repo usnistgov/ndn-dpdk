@@ -12,4 +12,3 @@ NameHasComponentAfterDigest
 BadDigestComponentLength
 BadNonceLength
 BadInterestLifetime
-BadFreshnessPeriod

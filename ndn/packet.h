@@ -3,11 +3,11 @@
 
 /// \file
 
-#include "data-pkt.h"
+#include "data.h"
 #include "interest-pkt.h"
 #include "lp-pkt.h"
 
-/** \brief An NDN packet.
+/** \brief An NDN L2 or L3 packet.
  */
 typedef struct
 {
@@ -21,7 +21,7 @@ typedef struct PacketPriv
   union
   {
     InterestPkt interest;
-    DataPkt data;
+    PData data;
   };
 } PacketPriv;
 
@@ -68,6 +68,13 @@ Packet_SetL2PktType(Packet* npkt, L2PktType t)
   Packet_ToMbuf(npkt)->inner_l2_type = t;
 }
 
+static LpPkt*
+Packet_GetLpHdr(Packet* npkt)
+{
+  assert(Packet_GetL2PktType(npkt) == L2PktType_NdnlpV2);
+  return MbufDirectPriv(Packet_ToMbuf(npkt), LpPkt*, offsetof(PacketPriv, lp));
+}
+
 /** \brief Indicate layer 3 packet type.
  *
  *  L3PktType is stored in rte_mbuf.inner_l3_type field.
@@ -96,12 +103,10 @@ Packet_SetL3PktType(Packet* npkt, L3PktType t)
   Packet_ToMbuf(npkt)->inner_l3_type = t;
 }
 
-static LpPkt*
-Packet_GetLpHdr(Packet* npkt)
-{
-  assert(Packet_GetL2PktType(npkt) == L2PktType_NdnlpV2);
-  return MbufDirectPriv(Packet_ToMbuf(npkt), LpPkt*, offsetof(PacketPriv, lp));
-}
+/** \brief Parse packet as either Interest or Data.
+ *  \retval NdnError_BadType packet is neither Interest nor Data.
+ */
+NdnError Packet_ParseL3(Packet* npkt);
 
 /** \brief Access InterestPkt* header.
  */
@@ -115,13 +120,13 @@ Packet_GetInterestHdr(Packet* npkt)
                         offsetof(PacketPriv, interest));
 }
 
-/** \brief Access DataPkt* header
+/** \brief Access PData* header
  */
-static DataPkt*
+static PData*
 Packet_GetDataHdr(Packet* npkt)
 {
   assert(Packet_GetL3PktType(npkt) == L3PktType_Data);
-  return MbufDirectPriv(Packet_ToMbuf(npkt), DataPkt*,
+  return MbufDirectPriv(Packet_ToMbuf(npkt), PData*,
                         offsetof(PacketPriv, data));
 }
 

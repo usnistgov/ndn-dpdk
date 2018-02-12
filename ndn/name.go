@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"unsafe"
 )
 
 // Name element.
@@ -29,6 +30,12 @@ func NewName(b TlvBytes) (n *Name, e error) {
 		return nil, NdnError(res)
 	}
 	return n, nil
+}
+
+func (n *Name) copyFromC(c *C.Name) {
+	n.b = TlvBytes(C.GoBytes(unsafe.Pointer(c.v), C.int(c.p.nOctets)))
+	n.p = new(C.PName)
+	*n.p = c.p
 }
 
 func (n *Name) getValuePtr() *C.uint8_t {

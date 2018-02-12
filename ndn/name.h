@@ -45,7 +45,7 @@ NameCompareResult LName_Compare(LName lhs, LName rhs);
 /** \brief Number of name components whose information are cached in Name struct
  *         for efficient processing.
  */
-#define NAME_N_CACHED_COMPS 18
+#define NAME_N_CACHED_COMPS 17
 
 /** \brief Parsed Name element.
  */
@@ -59,7 +59,6 @@ typedef struct PName
   uint16_t comp[NAME_N_CACHED_COMPS]; ///< (pvt) end offset of i-th component
   uint64_t hash[NAME_N_CACHED_COMPS]; ///< (pvt) hash of i+1-component prefix
 } PName;
-static_assert(sizeof(PName) <= 3 * RTE_CACHE_LINE_SIZE, "");
 
 /** \brief Parse a name from memory buffer.
  *  \param length TLV-LENGTH of Name element
@@ -144,5 +143,17 @@ PName_ComputeHash(const PName* n, const uint8_t* input)
 {
   return PName_ComputePrefixHash(n, input, n->nComps);
 }
+
+/** \brief Parsed name with TLV-VALUE pointer.
+ */
+typedef struct Name
+{
+  const uint8_t* v;
+  PName p;
+} Name;
+static_assert(sizeof(Name) <= 3 * RTE_CACHE_LINE_SIZE, "");
+static_assert(offsetof(Name, p) + offsetof(PName, nOctets) ==
+                offsetof(LName, length),
+              "");
 
 #endif // NDN_DPDK_NDN_NAME_H

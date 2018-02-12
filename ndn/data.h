@@ -1,37 +1,37 @@
-#ifndef NDN_DPDK_NDN_DATA_PKT_H
-#define NDN_DPDK_NDN_DATA_PKT_H
+#ifndef NDN_DPDK_NDN_DATA_H
+#define NDN_DPDK_NDN_DATA_H
 
 /// \file
 
-#include "name1.h"
+#include "name.h"
 
-/** \brief TLV Data
+/** \brief Parsed Data packet.
  */
-typedef struct DataPkt
+typedef struct PData
 {
-  Name1 name;
-  MbufLoc content; ///< start position and boundary of Content TLV-VALUE
+  Name name;
   uint32_t freshnessPeriod; ///< FreshnessPeriod in millis
-} DataPkt;
+} PData;
 
-/** \brief Decode a Data.
- *  \param[out] data the Data.
+/** \brief Parse a Data from TlvElement.
+ *  \param ele TLV Name element, TLV-TYPE must be TT_Data
+ *  \retval NdnError_Fragmented Name TLV-VALUE is not in consecutive memory
  */
-NdnError DecodeData(TlvDecodePos* d, DataPkt* data);
+NdnError PData_FromElement(PData* data, const TlvElement* ele);
 
 static uint16_t
 EncodeData1_GetHeadroom()
 {
   return 1 + 5 + // Data
-         1 + 5;  // Name TL
+         1 + 3;  // Name TL
 }
 
 static uint16_t
-EncodeData1_GetTailroom(const Name1* name)
+EncodeData1_GetTailroom(uint16_t nameLength)
 {
-  return name->nOctets + // Name V
-         1 + 1 +         // MetaInfo
-         1 + 5;          // Content
+  return nameLength + // Name V
+         1 + 1 +      // MetaInfo
+         1 + 5;       // Content TL
 }
 
 /** \brief Get required tailroom for EncodeData1 output mbuf, assuming max name length.
@@ -39,9 +39,7 @@ EncodeData1_GetTailroom(const Name1* name)
 static uint16_t
 EncodeData1_GetTailroomMax()
 {
-  return NAME_MAX_LENGTH + // Name V
-         1 + 1 +           // MetaInfo
-         1 + 5;            // Content
+  return EncodeData1_GetTailroom(NAME_MAX_LENGTH);
 }
 
 /** \brief Make a Data, step1.
@@ -53,8 +51,7 @@ EncodeData1_GetTailroomMax()
  *  \param payload the payload; this function will chain them onto \p m , so they should be
  *                 indirect mbufs if shared
  */
-void EncodeData1(struct rte_mbuf* m, const Name1* name,
-                 struct rte_mbuf* payload);
+void EncodeData1(struct rte_mbuf* m, LName name, struct rte_mbuf* payload);
 
 static uint16_t
 EncodeData2_GetHeadroom()
@@ -88,4 +85,4 @@ void EncodeData2(struct rte_mbuf* m, struct rte_mbuf* data1);
  */
 void EncodeData3(struct rte_mbuf* data2);
 
-#endif // NDN_DPDK_NDN_DATA_PKT_H
+#endif // NDN_DPDK_NDN_DATA_H

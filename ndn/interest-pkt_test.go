@@ -30,7 +30,7 @@ func TestDecodeInterest(t *testing.T) {
 			"/", false, 4000, []string{"/G"}},
 	}
 	for _, tt := range tests {
-		pkt := packetFromHex(tt.input)
+		pkt := dpdktestenv.PacketFromHex(tt.input)
 		defer pkt.Close()
 		d := ndn.NewTlvDecodePos(pkt)
 

@@ -3,6 +3,7 @@ package ndn_test
 import (
 	"testing"
 
+	"ndn-dpdk/dpdk/dpdktestenv"
 	"ndn-dpdk/ndn"
 )
 
@@ -33,7 +34,7 @@ func TestTlvElement(t *testing.T) {
 		{"01 09 A0A1A2A3A4A5A6A7A8", true, 0x01, 0x09, NOT_NNI},
 	}
 	for _, tt := range tests {
-		pkt := packetFromHex(tt.input)
+		pkt := dpdktestenv.PacketFromHex(tt.input)
 		defer pkt.Close()
 		d := ndn.NewTlvDecodePos(pkt)
 

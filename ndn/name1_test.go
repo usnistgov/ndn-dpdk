@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/dpdktestenv"
 	"ndn-dpdk/ndn"
 )
 
@@ -30,7 +31,7 @@ func TestName1Decode(t *testing.T) {
 		{"0704 0102 DDDD", false, 0, false, ""}, // wrong digest length
 	}
 	for _, tt := range tests {
-		pkt := packetFromHex(tt.input)
+		pkt := dpdktestenv.PacketFromHex(tt.input)
 		defer pkt.Close()
 		d := ndn.NewTlvDecodePos(pkt)
 
@@ -50,7 +51,7 @@ func TestName1Decode(t *testing.T) {
 func TestName1PrefixSize(t *testing.T) {
 	assert, require := makeAR(t)
 
-	pkt := packetFromHex("0709 0800 080141 08024243")
+	pkt := dpdktestenv.PacketFromHex("0709 0800 080141 08024243")
 	defer pkt.Close()
 	d := ndn.NewTlvDecodePos(pkt)
 
@@ -85,7 +86,7 @@ func TestName1PrefixHash(t *testing.T) {
 	pkts := make([]dpdk.Packet, len(nameStrs))
 	names := make([]ndn.Name1, len(nameStrs))
 	for i, nameStr := range nameStrs {
-		pkts[i] = packetFromHex(nameStr)
+		pkts[i] = dpdktestenv.PacketFromHex(nameStr)
 		defer pkts[i].Close()
 		d := ndn.NewTlvDecodePos(pkts[i])
 
@@ -147,7 +148,7 @@ func TestName1Compare(t *testing.T) {
 	pkts := make([]dpdk.Packet, len(nameStrs))
 	names := make([]ndn.Name1, len(nameStrs))
 	for i, nameStr := range nameStrs {
-		pkts[i] = packetFromHex(nameStr)
+		pkts[i] = dpdktestenv.PacketFromHex(nameStr)
 		defer pkts[i].Close()
 		d := ndn.NewTlvDecodePos(pkts[i])
 

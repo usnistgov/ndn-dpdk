@@ -42,7 +42,7 @@ func TestLpPkt(t *testing.T) {
 		{input: "6405 congmark=FD03400104", fragCount: 1, congMark: 4},
 	}
 	for _, tt := range tests {
-		pkt := packetFromHex(tt.input)
+		pkt := dpdktestenv.PacketFromHex(tt.input)
 		defer pkt.Close()
 		d := ndn.NewTlvDecodePos(pkt)
 
@@ -84,7 +84,7 @@ func TestEncodeLpHeaders(t *testing.T) {
 			"640D 62089A414B412BC38EB2 5001"},
 	}
 	for _, tt := range tests {
-		inputPkt := packetFromHex(tt.input)
+		inputPkt := dpdktestenv.PacketFromHex(tt.input)
 		defer inputPkt.Close()
 		d := ndn.NewTlvDecodePos(inputPkt)
 
