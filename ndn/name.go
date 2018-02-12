@@ -13,45 +13,77 @@ import (
 	"strings"
 )
 
+// Name element.
 type Name struct {
 	b TlvBytes
 	p *C.PName
 }
 
+// Parse name from TLV-VALUE of Name element.
 func NewName(b TlvBytes) (n *Name, e error) {
 	n = new(Name)
+	n.b = b
 	n.p = new(C.PName)
-	res := C.PName_Parse(n.p, C.uint32_t(len(b)), (*C.uint8_t)(b.GetPtr()))
+	res := C.PName_Parse(n.p, C.uint32_t(len(b)), n.getValuePtr())
 	if res != C.NdnError_OK {
 		return nil, NdnError(res)
 	}
-	n.b = b
 	return n, nil
 }
 
+func (n *Name) getValuePtr() *C.uint8_t {
+	return (*C.uint8_t)(n.b.GetPtr())
+}
+
+// Get number of name components.
 func (n *Name) Len() int {
 	return int(n.p.nComps)
 }
 
+// Get TLV-LENGTH of Name element.
+func (n *Name) Size() int {
+	return int(n.p.nOctets)
+}
+
+// Test whether the name ends with an implicit digest.
 func (n *Name) HasDigestComp() bool {
 	return bool(n.p.hasDigestComp)
 }
 
+// Get i-th name component TLV.
 func (n *Name) GetComp(i int) TlvBytes {
-	start := C.PName_GetCompStart(n.p, (*C.uint8_t)(n.b.GetPtr()), C.uint16_t(i))
-	end := C.PName_GetCompStart(n.p, (*C.uint8_t)(n.b.GetPtr()), C.uint16_t(i))
+	start := C.PName_GetCompStart(n.p, n.getValuePtr(), C.uint16_t(i))
+	end := C.PName_GetCompEnd(n.p, n.getValuePtr(), C.uint16_t(i))
 	return n.b[start:end]
 }
 
+// Compute hash for prefix with i components.
+func (n *Name) ComputePrefixHash(i int) uint64 {
+	return uint64(C.PName_ComputePrefixHash(n.p, n.getValuePtr(), C.uint16_t(i)))
+}
+
+// Compute hash for prefix with i components.
+func (n *Name) ComputeHash() uint64 {
+	return uint64(C.PName_ComputeHash(n.p, n.getValuePtr()))
+}
+
+// Indicate the result of name comparison.
 type NameCompareResult int
 
 const (
-	NAMECMP_LT      NameCompareResult = -2 // n is less than, but not a prefix of n2
-	NAMECMP_LPREFIX                   = -1 // n is a prefix of n2
-	NAMECMP_EQUAL                     = 0  // n and n2 are equal
-	NAMECMP_RPREFIX                   = 1  // n2 is a prefix of n
-	NAMECMP_GT                        = 2  // n2 is less than, but not a prefix of n
+	NAMECMP_LT      NameCompareResult = -2 // lhs is less than, but not a prefix of rhs
+	NAMECMP_LPREFIX                   = -1 // lhs is a prefix of rhs
+	NAMECMP_EQUAL                     = 0  // lhs and rhs are equal
+	NAMECMP_RPREFIX                   = 1  // rhs is a prefix of lhs
+	NAMECMP_GT                        = 2  // rhs is less than, but not a prefix of lhs
 )
+
+// Compare two names for <, ==, >, and prefix relations.
+func (n *Name) Compare(r *Name) NameCompareResult {
+	lhs := C.LName{value: n.getValuePtr(), length: n.p.nOctets}
+	rhs := C.LName{value: r.getValuePtr(), length: r.p.nOctets}
+	return NameCompareResult(C.LName_Compare(lhs, rhs))
+}
 
 func printNameComponent(w io.Writer, comp *TlvElement) (n int, e error) {
 	switch comp.GetType() {

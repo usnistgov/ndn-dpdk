@@ -1,6 +1,27 @@
 #include "name.h"
 #include "tlv-decode.h"
 
+uint64_t
+__LName_ComputeHash(uint16_t length, const uint8_t* value)
+{
+  SipHash h;
+  SipHash_Init(&h, &theNameHashKey);
+  SipHash_Write(&h, value, length);
+  return SipHash_Final(&h);
+}
+
+NameCompareResult
+LName_Compare(LName lhs, LName rhs)
+{
+  uint16_t minOctets = lhs.length <= rhs.length ? lhs.length : rhs.length;
+  int cmp = memcmp(lhs.value, rhs.value, minOctets);
+  if (cmp != 0) {
+    return ((cmp > 0) - (cmp < 0)) << 1;
+  }
+  cmp = lhs.length - rhs.length;
+  return (cmp > 0) - (cmp < 0);
+}
+
 static bool
 IsValidNameComponentType(uint64_t type)
 {
@@ -43,8 +64,8 @@ PName_Parse(PName* n, uint32_t length, const uint8_t* value)
       n->hasDigestComp = true;
     }
 
-    if (n->nComps > 0 && n->nComps <= NAME_N_CACHED_COMPS) {
-      n->comp[n->nComps - 1] = off;
+    if (likely(n->nComps < NAME_N_CACHED_COMPS)) {
+      n->comp[n->nComps] = end;
     }
 
     ++n->nComps;
@@ -65,11 +86,11 @@ PName_FromElement(PName* n, const TlvElement* ele)
 }
 
 uint16_t
-__PName_SeekCompStart(PName* n, const uint8_t* input, uint16_t i)
+__PName_SeekCompEnd(const PName* n, const uint8_t* input, uint16_t i)
 {
-  assert(i > NAME_N_CACHED_COMPS);
+  assert(i >= NAME_N_CACHED_COMPS);
   uint16_t off = n->comp[NAME_N_CACHED_COMPS - 1];
-  for (uint16_t j = NAME_N_CACHED_COMPS; j < i; ++j) {
+  for (uint16_t j = NAME_N_CACHED_COMPS - 1; j < i; ++j) {
     uint64_t compT, compL;
     off += ParseTlvTypeLength(input + off, n->nOctets - off, &compT, &compL);
     off += compL;
@@ -77,23 +98,21 @@ __PName_SeekCompStart(PName* n, const uint8_t* input, uint16_t i)
   return off;
 }
 
-uint64_t
-LName_ComputeHash(LName n)
+void
+__PName_HashToCache(PName* n, const uint8_t* input)
 {
   SipHash h;
   SipHash_Init(&h, &theNameHashKey);
-  SipHash_Write(&h, n.value, n.length);
-  return SipHash_Final(&h);
-}
 
-NameCompareResult
-LName_Compare(LName lhs, LName rhs)
-{
-  uint16_t minOctets = lhs.length <= rhs.length ? lhs.length : rhs.length;
-  int cmp = memcmp(lhs.value, rhs.value, minOctets);
-  if (cmp != 0) {
-    return ((cmp > 0) - (cmp < 0)) << 1;
+  uint16_t off = 0;
+  for (uint16_t i = 0, last = n->nComps < NAME_N_CACHED_COMPS
+                                ? n->nComps
+                                : NAME_N_CACHED_COMPS;
+       i < last; ++i) {
+    SipHash_Write(&h, input + off, n->comp[i] - off);
+    n->hash[i] = SipHash_Sum(&h);
+    off = n->comp[i];
   }
-  cmp = lhs.length - rhs.length;
-  return (cmp > 0) - (cmp < 0);
+
+  n->hasHashes = true;
 }
