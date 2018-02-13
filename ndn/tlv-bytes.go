@@ -1,6 +1,7 @@
 package ndn
 
 /*
+#include "tlv-decode.h"
 #include "tlv-encoder.h"
 */
 import "C"
@@ -27,21 +28,32 @@ func (tb TlvBytes) Equal(other TlvBytes) bool {
 	return bytes.Equal([]byte(tb), []byte(other))
 }
 
+// Decode a TLV-TYPE or TLV-LENGTH number.
+// Return the number and remaining bytes, or (0, nil) if failed.
+func (tb TlvBytes) DecodeVarNum() (v uint64, tail TlvBytes) {
+	if len(tb) < 1 {
+		return 0, nil
+	}
+	res := C.ParseVarNum((*C.uint8_t)(tb.GetPtr()), C.uint32_t(len(tb)), (*C.uint64_t)(&v))
+	if res == 0 {
+		return 0, nil
+	}
+	return v, tb[res:]
+}
+
 // Count how many elements are present in TlvBytes.
 // Return the number of elements, or -1 if incomplete.
 func (tb TlvBytes) CountElements() (n int) {
-	b := []byte(tb)
-	for _, size, ok := DecodeVarNum(b); ok; _, size, ok = DecodeVarNum(b) { // read TLV-TYPE
-		b = b[size:]
-		if length, size, ok := DecodeVarNum(b); !ok || len(b) < size+int(length) { // read TLV-LENGTH
+	for len(tb) > 0 {
+		var length uint64
+		if _, tb = tb.DecodeVarNum(); tb == nil { // read TLV-TYPE
 			return -1
-		} else {
-			b = b[size+int(length):]
 		}
+		if length, tb = tb.DecodeVarNum(); tb == nil || len(tb) < int(length) { // read TLV-LENGTH
+			return -1
+		}
+		tb = tb[length:]
 		n++
-	}
-	if len(b) > 0 {
-		return -1
 	}
 	return n
 }
@@ -50,21 +62,17 @@ func (tb TlvBytes) CountElements() (n int) {
 // Return slice of elements, or nil if incomplete.
 func (tb TlvBytes) SplitElements() (elements []TlvBytes) {
 	elements = make([]TlvBytes, 0)
-	b := []byte(tb)
-	for _, size, ok := DecodeVarNum(b); ok; _, size, ok = DecodeVarNum(b) { // read TLV-TYPE
-		element := b[:size]
-		b = b[size:]
-		if length, size, ok := DecodeVarNum(b); !ok || len(b) < size+int(length) { // read TLV-LENGTH
+	for len(tb) > 0 {
+		var tlvType, length uint64
+		if tlvType, tb = tb.DecodeVarNum(); tb == nil { // read TLV-TYPE
 			return nil
-		} else {
-			lvSize := size + int(length)
-			element = append(element, b[:lvSize]...)
-			b = b[lvSize:]
 		}
-		elements = append(elements, TlvBytes(element))
-	}
-	if len(b) > 0 {
-		return nil
+		if length, tb = tb.DecodeVarNum(); tb == nil || len(tb) < int(length) { // read TLV-LENGTH
+			return nil
+		}
+		elements = append(elements,
+			append(EncodeTlvTypeLength(TlvType(tlvType), int(length)), tb[:length]...))
+		tb = tb[length:]
 	}
 	return elements
 }
