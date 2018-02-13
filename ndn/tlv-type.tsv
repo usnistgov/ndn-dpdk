@@ -13,13 +13,15 @@ GenericNameComponent 08
 ImplicitSha256DigestComponent 01
 
 Interest 05
-Selectors 09
+CanBePrefix 21
 MustBeFresh 12
-Nonce 0A
-InterestLifetime 0C
 ForwardingHint 1E
 Delegation 1F
 Preference 1E
+Nonce 0A
+InterestLifetime 0C
+HopLimit 25
+Parameters 23
 
 Data 06
 MetaInfo 14

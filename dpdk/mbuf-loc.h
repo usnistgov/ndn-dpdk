@@ -42,6 +42,15 @@ MbufLoc_Copy(MbufLoc* dst, const MbufLoc* src)
   rte_memcpy(dst, src, sizeof(*dst));
 }
 
+/** \brief Copy MbufLoc \p src to \p dst but retain \p rem field.
+ */
+static void
+MbufLoc_CopyPos(MbufLoc* dst, const MbufLoc* src)
+{
+  dst->m = src->m;
+  dst->off = src->off;
+}
+
 /** \brief Test if the iterator points past the end of packet or boundary.
  */
 static bool

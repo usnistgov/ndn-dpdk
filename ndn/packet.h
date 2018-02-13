@@ -4,7 +4,7 @@
 /// \file
 
 #include "data.h"
-#include "interest-pkt.h"
+#include "interest.h"
 #include "lp-pkt.h"
 
 /** \brief An NDN L2 or L3 packet.
@@ -20,7 +20,7 @@ typedef struct PacketPriv
   LpPkt lp;
   union
   {
-    InterestPkt interest;
+    PInterest interest;
     PData data;
   };
 } PacketPriv;
@@ -111,16 +111,22 @@ Packet_SetL3PktType(Packet* npkt, L3PktType t)
  */
 NdnError Packet_ParseL3(Packet* npkt, struct rte_mempool* mpName);
 
+static PInterest*
+__Packet_GetInterestHdr(Packet* npkt)
+{
+  return MbufDirectPriv(Packet_ToMbuf(npkt), PInterest*,
+                        offsetof(PacketPriv, interest));
+}
+
 /** \brief Access InterestPkt* header.
  */
-static InterestPkt*
+static PInterest*
 Packet_GetInterestHdr(Packet* npkt)
 {
   assert(Packet_GetL3PktType(npkt) == L3PktType_Interest ||
          (Packet_GetL3PktType(npkt) == L3PktType_Nack &&
           Packet_GetLpHdr(npkt)->nackReason > 0));
-  return MbufDirectPriv(Packet_ToMbuf(npkt), InterestPkt*,
-                        offsetof(PacketPriv, interest));
+  return __Packet_GetInterestHdr(npkt);
 }
 
 static PData*

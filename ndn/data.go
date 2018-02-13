@@ -18,6 +18,7 @@ import (
 	"ndn-dpdk/dpdk"
 )
 
+// Data packet.
 type Data struct {
 	m Packet
 	p *C.PData

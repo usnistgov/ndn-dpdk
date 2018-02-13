@@ -109,8 +109,8 @@ func (pkt Packet) ParseL3(mps PacketParseMempools) error {
 	return nil
 }
 
-func (pkt Packet) AsInterest() *InterestPkt {
-	return (*InterestPkt)(unsafe.Pointer(C.Packet_GetInterestHdr(pkt.c)))
+func (pkt Packet) AsInterest() *Interest {
+	return &Interest{pkt, C.Packet_GetInterestHdr(pkt.c)}
 }
 
 func (pkt Packet) AsData() *Data {

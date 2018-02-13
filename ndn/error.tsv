@@ -7,9 +7,11 @@ Fragmented
 UnknownCriticalLpHeader
 FragIndexExceedFragCount
 BadPitToken
+NameIsEmpty
 NameTooLong
 BadNameComponentType
 NameHasComponentAfterDigest
 BadDigestComponentLength
 BadNonceLength
 BadInterestLifetime
+BadHopLimitLength
