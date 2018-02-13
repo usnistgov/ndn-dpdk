@@ -53,13 +53,13 @@ func TestInterestDecode(t *testing.T) {
 				continue
 			}
 			interest := pkt.AsInterest()
-			// assert.Equal(tt.name, interest.GetName().String(), tt.input)
+			assert.Equal(tt.name, interest.GetName().String(), tt.input)
 			assert.Equal(tt.canBePrefix, interest.HasCanBePrefix(), tt.input)
 			assert.Equal(tt.mustBeFresh, interest.HasMustBeFresh(), tt.input)
 			if fhs := interest.GetFhs(); assert.Len(fhs, len(tt.fhs), tt.input) {
-				// for i, fhName := range fhs {
-				// 	assert.Equal(tt.fhs[i], fhName.String(), "%s %i", tt.input, i)
-				// }
+				for i, fhName := range fhs {
+					assert.Equal(tt.fhs[i], fhName.String(), "%s %i", tt.input, i)
+				}
 			}
 			if tt.hasNonce {
 				assert.Equal(uint32(0xA3A2A1A0), interest.GetNonce(), tt.input)

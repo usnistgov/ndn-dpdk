@@ -58,10 +58,19 @@ func (n *Name) HasDigestComp() bool {
 }
 
 // Get i-th name component TLV.
-func (n *Name) GetComp(i int) TlvBytes {
+func (n *Name) GetComp(i int) NameComponent {
 	start := C.PName_GetCompStart(n.p, n.getValuePtr(), C.uint16_t(i))
 	end := C.PName_GetCompEnd(n.p, n.getValuePtr(), C.uint16_t(i))
-	return n.b[start:end]
+	return NameComponent(n.b[start:end])
+}
+
+// Get all name component TLVs.
+func (n *Name) ListComps() []NameComponent {
+	comps := make([]NameComponent, n.Len())
+	for i := range comps {
+		comps[i] = n.GetComp(i)
+	}
+	return comps
 }
 
 // Compute hash for prefix with i components.
@@ -79,10 +88,10 @@ type NameCompareResult int
 
 const (
 	NAMECMP_LT      NameCompareResult = -2 // lhs is less than, but not a prefix of rhs
-	NAMECMP_LPREFIX                   = -1 // lhs is a prefix of rhs
-	NAMECMP_EQUAL                     = 0  // lhs and rhs are equal
-	NAMECMP_RPREFIX                   = 1  // rhs is a prefix of lhs
-	NAMECMP_GT                        = 2  // rhs is less than, but not a prefix of lhs
+	NAMECMP_LPREFIX NameCompareResult = -1 // lhs is a prefix of rhs
+	NAMECMP_EQUAL   NameCompareResult = 0  // lhs and rhs are equal
+	NAMECMP_RPREFIX NameCompareResult = 1  // rhs is a prefix of lhs
+	NAMECMP_GT      NameCompareResult = 2  // rhs is less than, but not a prefix of lhs
 )
 
 // Compare two names for <, ==, >, and prefix relations.
@@ -92,58 +101,34 @@ func (n *Name) Compare(r *Name) NameCompareResult {
 	return NameCompareResult(C.LName_Compare(lhs, rhs))
 }
 
-func printNameComponent(w io.Writer, comp *TlvElement) (n int, e error) {
-	switch comp.GetType() {
-	case TT_ImplicitSha256DigestComponent:
-		return printDigestComponent(w, comp)
-	case TT_GenericNameComponent:
-	default:
-		n, e = fmt.Fprintf(w, "%v=", comp.GetType())
-		if e != nil {
-			return
-		}
+// Print as URI.
+// Implements io.WriterTo.
+func (n *Name) WriteTo(w io.Writer) (nn int64, e error) {
+	if n.Len() == 0 {
+		n2, e := fmt.Fprint(w, "/")
+		return int64(n2), e
 	}
 
-	n2 := 0
-	nNonPeriods := 0
-	for _, b := range comp.GetValue() {
-		if ('A' <= b && b <= 'Z') || ('a' <= b && b <= 'z') || ('0' <= b && b <= '9') ||
-			b == '+' || b == '.' || b == '_' || b == '-' {
-			n2, e = fmt.Fprint(w, string(b))
+	for _, comp := range n.ListComps() {
+		if n2, e := fmt.Fprint(w, "/"); e != nil {
+			return nn, e
 		} else {
-			n2, e = fmt.Fprintf(w, "%%%02X", b)
+			nn += int64(n2)
 		}
-		n += n2
-		if e != nil {
-			return
-		}
-		if b != '.' {
-			nNonPeriods++
+		if n2, e := comp.WriteTo(w); e != nil {
+			return nn, e
+		} else {
+			nn += int64(n2)
 		}
 	}
-
-	if nNonPeriods == 0 {
-		n2, e = fmt.Fprint(w, "...")
-		n += n2
-	}
-	return
+	return nn, nil
 }
 
-func printDigestComponent(w io.Writer, comp *TlvElement) (n int, e error) {
-	n, e = fmt.Fprint(w, "sha256digest=")
-	if e != nil {
-		return
-	}
-
-	n2 := 0
-	for _, b := range comp.GetValue() {
-		n2, e = fmt.Fprintf(w, "%02x", b)
-		n += n2
-		if e != nil {
-			return
-		}
-	}
-	return
+// Convert to URI.
+func (n *Name) String() string {
+	var sb bytes.Buffer
+	n.WriteTo(&sb)
+	return sb.String()
 }
 
 // Encode name from URI.

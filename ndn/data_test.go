@@ -33,7 +33,7 @@ func TestDataDecode(t *testing.T) {
 				continue
 			}
 			data := pkt.AsData()
-			// assert.Equal(tt.name, data.GetName().String(), tt.input)
+			assert.Equal(tt.name, data.GetName().String(), tt.input)
 			assert.EqualValues(tt.freshness, data.GetFreshnessPeriod()/time.Millisecond, tt.input)
 		}
 	}
