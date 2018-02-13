@@ -25,7 +25,7 @@ func TestDataDecode(t *testing.T) {
 	for _, tt := range tests {
 		pkt := packetFromHex(tt.input)
 		defer pkt.AsDpdkPacket().Close()
-		e := pkt.ParseL3()
+		e := pkt.ParseL3(parseMps)
 		if tt.bad {
 			assert.Error(e, tt.input)
 		} else if assert.NoError(e, tt.input) {
@@ -53,7 +53,7 @@ func TestDataEncode(t *testing.T) {
 	encoded := ndn.EncodeData(name, payloadMbuf, m1, m2)
 
 	pkt := ndn.PacketFromDpdk(encoded)
-	e = pkt.ParseL3()
+	e = pkt.ParseL3(parseMps)
 	require.NoError(e)
 	data := pkt.AsData()
 

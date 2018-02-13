@@ -18,5 +18,10 @@
     if (unlikely(e != NdnError_OK))                                            \
       return e;                                                                \
   } while (false)
+#define RETURN_IF_UNLIKELY_NULL(ptr, ret)                                      \
+  do {                                                                         \
+    if (unlikely(ptr == NULL))                                                 \
+      return ret;                                                              \
+  } while (false)
 
 #endif // NDN_DPDK_NDN_COMMON_H

@@ -1,22 +1,22 @@
 #include "packet.h"
 
 NdnError
-Packet_ParseL3(Packet* npkt)
+Packet_ParseL3(Packet* npkt, struct rte_mempool* mpName)
 {
-  TlvDecodePos d;
-  MbufLoc_Init(&d, Packet_ToMbuf(npkt));
-  TlvElement ele;
-  NdnError e = DecodeTlvElement(&d, &ele);
-  RETURN_IF_UNLIKELY_ERROR;
-
-  switch (ele.type) {
+  struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
+  NdnError e = NdnError_BadType;
+  TlvDecodePos d0;
+  MbufLoc_Init(&d0, pkt);
+  switch (MbufLoc_PeekOctet(&d0)) {
     case TT_Interest:
-      Packet_SetL3PktType(npkt, L3PktType_Interest);
       assert(false); // not implemented
-      return NdnError_BadType;
+      break;
     case TT_Data:
-      Packet_SetL3PktType(npkt, L3PktType_Data);
-      return PData_FromElement(Packet_GetDataHdr(npkt), &ele);
+      e = PData_FromPacket(__Packet_GetDataHdr(npkt), pkt, mpName);
+      if (likely(e == NdnError_OK)) {
+        Packet_SetL3PktType(npkt, L3PktType_Data);
+      }
+      break;
   }
-  return NdnError_BadType;
+  return e;
 }

@@ -95,6 +95,25 @@ TlvElement_GetLinearValue(const TlvElement* ele)
   return rte_pktmbuf_mtod_offset(ele->value.m, const uint8_t*, ele->value.off);
 }
 
+/** \brief Ensure TLV-VALUE is in consecutive memory.
+ *  \param[inout] ele this TlvElement, will be updated.
+ *  \param[inout] pkt enclosing packet.
+ *  \param mp mempool for copying TLV-VALUE if necessary, requires TLV-LENGTH in dataroom.
+ *  \param[out] a TlvDecodePos pointing to past-end position; NULL if not needed.
+ *  \post parent/following TlvElements and TlvDecodePos may be invalidated.
+ */
+static const uint8_t*
+TlvElement_LinearizeValue(TlvElement* ele, struct rte_mbuf* pkt,
+                          struct rte_mempool* mp, TlvDecodePos* d)
+{
+  const uint8_t* linear = MbufLoc_Linearize(&ele->value, &ele->last, pkt, mp);
+  if (d != NULL) {
+    // in case MbufLoc_Linearize, this is meaningless but harmless
+    MbufLoc_Copy(d, &ele->last);
+  }
+  return linear;
+}
+
 /** \brief Create a decoder to decode the element's TLV-VALUE.
  *  \param[out] d an iterator bounded inside TLV-VALUE.
  */

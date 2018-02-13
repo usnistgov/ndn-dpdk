@@ -104,9 +104,12 @@ Packet_SetL3PktType(Packet* npkt, L3PktType t)
 }
 
 /** \brief Parse packet as either Interest or Data.
+ *  \param mpName mempool for allocating Name linearize mbufs,
+ *                requires at least \p NAME_MAX_LENGTH dataroom.
  *  \retval NdnError_BadType packet is neither Interest nor Data.
+ *  \retval NdnError_AllocError unable to allocate mbuf.
  */
-NdnError Packet_ParseL3(Packet* npkt);
+NdnError Packet_ParseL3(Packet* npkt, struct rte_mempool* mpName);
 
 /** \brief Access InterestPkt* header.
  */
@@ -120,14 +123,20 @@ Packet_GetInterestHdr(Packet* npkt)
                         offsetof(PacketPriv, interest));
 }
 
+static PData*
+__Packet_GetDataHdr(Packet* npkt)
+{
+  return MbufDirectPriv(Packet_ToMbuf(npkt), PData*,
+                        offsetof(PacketPriv, data));
+}
+
 /** \brief Access PData* header
  */
 static PData*
 Packet_GetDataHdr(Packet* npkt)
 {
   assert(Packet_GetL3PktType(npkt) == L3PktType_Data);
-  return MbufDirectPriv(Packet_ToMbuf(npkt), PData*,
-                        offsetof(PacketPriv, data));
+  return __Packet_GetDataHdr(npkt);
 }
 
 #endif // NDN_DPDK_NDN_PACKET_H

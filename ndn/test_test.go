@@ -9,7 +9,8 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	dpdktestenv.MakeDirectMp(255, ndn.SizeofPacketPriv(), 2000)
+	mp := dpdktestenv.MakeDirectMp(255, ndn.SizeofPacketPriv(), 2000)
+	parseMps.MpName = mp
 
 	os.Exit(m.Run())
 }
@@ -23,3 +24,5 @@ func packetFromHex(input string) ndn.Packet {
 func TlvBytesFromHex(input string) ndn.TlvBytes {
 	return ndn.TlvBytes(dpdktestenv.PacketBytesFromHex(input))
 }
+
+var parseMps ndn.PacketParseMempools

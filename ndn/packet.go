@@ -53,6 +53,11 @@ func (t L3PktType) String() string {
 	return fmt.Sprintf("%d", int(t))
 }
 
+// Mempools for Packet.Parse* functions.
+type PacketParseMempools struct {
+	MpName dpdk.PktmbufPool
+}
+
 // NDN network layer packet with parsed LP and Interest/Data headers.
 type Packet struct {
 	c *C.Packet
@@ -96,8 +101,8 @@ func (pkt Packet) GetL3Type() L3PktType {
 	return L3PktType(C.Packet_GetL3PktType(pkt.c))
 }
 
-func (pkt Packet) ParseL3() error {
-	res := NdnError(C.Packet_ParseL3(pkt.c))
+func (pkt Packet) ParseL3(mps PacketParseMempools) error {
+	res := NdnError(C.Packet_ParseL3(pkt.c, (*C.struct_rte_mempool)(mps.MpName.GetPtr())))
 	if res != NdnError_OK {
 		return res
 	}
