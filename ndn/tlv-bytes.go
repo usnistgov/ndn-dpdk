@@ -81,12 +81,21 @@ func JoinTlvBytes(s []TlvBytes) TlvBytes {
 	return TlvBytes(bytes.Join(*(*[][]byte)(unsafe.Pointer(&s)), nil))
 }
 
-func EncodeTlvTypeLength(tlvType TlvType, tlvLength int) TlvBytes {
-	return append(EncodeVarNum(uint64(tlvType)), EncodeVarNum(uint64(tlvLength))...)
-}
-
 func EncodeVarNum(n uint64) TlvBytes {
 	buf := make([]byte, int(C.SizeofVarNum(C.uint64_t(n))))
 	C.EncodeVarNum((*C.uint8_t)(unsafe.Pointer(&buf[0])), C.uint64_t(n))
 	return buf
+}
+
+func EncodeTlvTypeLength(tlvType TlvType, tlvLength int) TlvBytes {
+	return JoinTlvBytes([]TlvBytes{
+		EncodeVarNum(uint64(tlvType)),
+		EncodeVarNum(uint64(tlvLength))})
+}
+
+func EncodeTlv(tlvType TlvType, value TlvBytes) TlvBytes {
+	return JoinTlvBytes([]TlvBytes{
+		EncodeVarNum(uint64(tlvType)),
+		EncodeVarNum(uint64(len(value))),
+		value})
 }

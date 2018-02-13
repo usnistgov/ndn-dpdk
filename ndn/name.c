@@ -25,7 +25,7 @@ LName_Compare(LName lhs, LName rhs)
 static bool
 IsValidNameComponentType(uint64_t type)
 {
-  return 1 <= type && type <= 32767;
+  return 1 <= type && type <= 65535;
 }
 
 NdnError

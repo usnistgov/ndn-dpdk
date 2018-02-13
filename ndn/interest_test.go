@@ -110,8 +110,8 @@ func TestEncodeInterest1(t *testing.T) {
 	tpl := ndn.NewInterestTemplate()
 	e := tpl.SetNamePrefixFromUri("/A/B")
 	assert.NoError(e)
-	tpl.NameSuffix = ndn.EncodeNameComponentFromNumber(ndn.TT_GenericNameComponent,
-		uint32(0x737F2FBD))
+	tpl.NameSuffix = ndn.MakeNameComponentFromNumber(ndn.TT_GenericNameComponent,
+		uint32(0x737F2FBD)).GetValue()
 	tpl.SetMustBeFresh(true)
 	assert.True(tpl.GetMustBeFresh())
 	tpl.SetInterestLifetime(9000 * time.Millisecond)

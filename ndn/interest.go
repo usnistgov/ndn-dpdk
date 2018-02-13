@@ -83,11 +83,11 @@ func NewInterestTemplate() (tpl *InterestTemplate) {
 }
 
 func (tpl *InterestTemplate) SetNamePrefixFromUri(uri string) error {
-	prefix, e := EncodeNameComponentsFromUri(uri)
+	prefix, e := ParseName(uri)
 	if e != nil {
 		return e
 	}
-	tpl.NamePrefix = prefix
+	tpl.NamePrefix = prefix.GetValue()
 	return nil
 }
 

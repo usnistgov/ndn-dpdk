@@ -69,7 +69,7 @@ void __EncodeVarNum_32or64(uint8_t* room, uint64_t n);
 static void
 EncodeVarNum(uint8_t* room, uint64_t n)
 {
-  if (unlikely(n >= UINT16_MAX)) {
+  if (unlikely(n > UINT16_MAX)) {
     __EncodeVarNum_32or64(room, n);
     return;
   }
