@@ -123,73 +123,108 @@ PInterest_FromPacket(PInterest* interest, struct rte_mbuf* pkt,
 #undef D1_NEXT
 }
 
+uint16_t
+__InterestTemplate_Prepare(InterestTemplate* tpl, uint8_t* buffer,
+                           uint16_t bufferSize, const uint8_t* fhV)
+{
+  tpl->bufferOff = 0;
+  uint16_t size = 0;
+  if (tpl->canBePrefix) {
+    size += SizeofVarNum(TT_CanBePrefix) + SizeofVarNum(0);
+  }
+  if (tpl->mustBeFresh) {
+    size += SizeofVarNum(TT_MustBeFresh) + SizeofVarNum(0);
+  }
+  if (tpl->fhL > 0) {
+    size += SizeofVarNum(TT_ForwardingHint) + SizeofVarNum(tpl->fhL) + tpl->fhL;
+  }
+  {
+    size += SizeofVarNum(TT_Nonce) + SizeofVarNum(4);
+    tpl->nonceOff = size;
+    while (tpl->nonceOff % 4 != 0) {
+      ++tpl->bufferOff;
+      ++tpl->nonceOff;
+    }
+    size += 4;
+  }
+  if (tpl->lifetime != DEFAULT_INTEREST_LIFETIME) {
+    size += SizeofVarNum(TT_InterestLifetime) + SizeofVarNum(4) + 4;
+  }
+  if (tpl->hopLimit != HOP_LIMIT_OMITTED) {
+    size += SizeofVarNum(TT_HopLimit) + SizeofVarNum(1) + 1;
+  }
+  if (size > bufferSize) {
+    return size;
+  }
+
+  uint8_t* p = buffer + tpl->bufferOff;
+  if (tpl->canBePrefix) {
+    p = EncodeVarNum(p, TT_CanBePrefix);
+    p = EncodeVarNum(p, 0);
+  }
+  if (tpl->mustBeFresh) {
+    p = EncodeVarNum(p, TT_MustBeFresh);
+    p = EncodeVarNum(p, 0);
+  }
+  if (tpl->fhL > 0) {
+    p = EncodeVarNum(p, TT_ForwardingHint);
+    p = EncodeVarNum(p, tpl->fhL);
+    rte_memcpy(p, fhV, tpl->fhL);
+    p += tpl->fhL;
+  }
+  {
+    p = EncodeVarNum(p, TT_Nonce);
+    p = EncodeVarNum(p, 4);
+    assert(p == buffer + tpl->nonceOff);
+    p += 4;
+  }
+  if (tpl->lifetime != DEFAULT_INTEREST_LIFETIME) {
+    p = EncodeVarNum(p, TT_InterestLifetime);
+    p = EncodeVarNum(p, 4);
+    rte_be32_t lifetimeV = rte_cpu_to_be_32(tpl->lifetime);
+    rte_memcpy(p, &lifetimeV, 4);
+    p += 4;
+  }
+  if (tpl->hopLimit != HOP_LIMIT_OMITTED) {
+    p = EncodeVarNum(p, TT_HopLimit);
+    p = EncodeVarNum(p, 1);
+    *p++ = (uint8_t)tpl->hopLimit;
+  }
+  assert(p == buffer + tpl->bufferOff + size);
+  tpl->bufferSize = size;
+  return 0;
+}
+
 void
 __EncodeInterest(struct rte_mbuf* m, const InterestTemplate* tpl,
-                 const uint8_t* namePrefix, const uint8_t* nameSuffix,
-                 const uint8_t* fwHints)
+                 uint8_t* preparedBuffer, uint16_t nameSuffixL,
+                 const uint8_t* nameSuffixV, uint16_t paramL,
+                 const uint8_t* paramV, const uint8_t* namePrefixV)
 {
   assert(rte_pktmbuf_headroom(m) >= EncodeInterest_GetHeadroom());
-  assert(rte_pktmbuf_tailroom(m) >= EncodeInterest_GetTailroom(tpl));
-
+  assert(rte_pktmbuf_tailroom(m) >=
+         EncodeInterest_GetTailroom(tpl, nameSuffixL, paramL));
   TlvEncoder* en = MakeTlvEncoder(m);
 
   AppendVarNum(en, TT_Name);
-  AppendVarNum(en, tpl->namePrefixSize + tpl->nameSuffixSize);
-  if (likely(tpl->namePrefixSize > 0)) {
-    rte_memcpy(rte_pktmbuf_append(m, tpl->namePrefixSize), namePrefix,
-               tpl->namePrefixSize);
+  AppendVarNum(en, tpl->namePrefix.length + nameSuffixL);
+  if (likely(tpl->namePrefix.length > 0)) {
+    rte_memcpy(rte_pktmbuf_append(m, tpl->namePrefix.length), namePrefixV,
+               tpl->namePrefix.length);
   }
-  if (likely(tpl->nameSuffixSize > 0)) {
-    rte_memcpy(rte_pktmbuf_append(m, tpl->nameSuffixSize), nameSuffix,
-               tpl->nameSuffixSize);
+  if (likely(nameSuffixL > 0)) {
+    rte_memcpy(rte_pktmbuf_append(m, nameSuffixL), nameSuffixV, nameSuffixL);
   }
 
-  struct Mid
-  {
-    uint8_t selectorsT;
-    uint8_t selectorsL;
-    uint8_t mustBeFreshT;
-    uint8_t mustBeFreshL;
+  uint32_t* nonce = (uint32_t*)(preparedBuffer + tpl->nonceOff);
+  *nonce = (uint32_t)lrand48();
+  rte_memcpy(rte_pktmbuf_append(m, tpl->bufferSize),
+             preparedBuffer + tpl->bufferOff, tpl->bufferSize);
 
-    uint8_t nonceT;
-    uint8_t nonceL;
-    rte_be16_t nonceVhi;
-    rte_be16_t nonceVlo;
-
-    // InterestLifetime is a NonNegativeInteger fields, but NDN protocol does not
-    // require NonNegativeInteger to use minimal length encoding.
-    uint8_t interestLifetimeT;
-    uint8_t interestLifetimeL;
-    rte_be32_t interestLifetimeV;
-  };
-  struct Mid mid;
-  static_assert(sizeof(mid) == 16, "");
-  static_assert(sizeof(mid) - offsetof(struct Mid, nonceT) == 12, "");
-
-  const uint8_t TT_Selectors = 0x09; // XXX
-  mid.selectorsT = TT_Selectors;
-  mid.selectorsL = 2;
-  mid.mustBeFreshT = TT_MustBeFresh;
-  mid.mustBeFreshL = 0;
-  mid.nonceT = TT_Nonce;
-  mid.nonceL = 4;
-  int nonceRand = lrand48();
-  mid.nonceVhi = nonceRand >> 16;
-  mid.nonceVlo = nonceRand;
-  mid.interestLifetimeT = TT_InterestLifetime;
-  mid.interestLifetimeL = 4;
-  mid.interestLifetimeV = rte_cpu_to_be_32(tpl->lifetime);
-
-  int midOffset = ((int)!tpl->mustBeFresh) * offsetof(struct Mid, nonceT);
-  int midSize = sizeof(mid) - midOffset;
-  rte_memcpy(rte_pktmbuf_append(m, midSize), ((uint8_t*)&mid) + midOffset,
-             midSize);
-
-  if (tpl->fwHintsSize > 0) {
-    AppendVarNum(en, TT_ForwardingHint);
-    AppendVarNum(en, tpl->fwHintsSize);
-    rte_memcpy(rte_pktmbuf_append(m, tpl->fwHintsSize), fwHints,
-               tpl->fwHintsSize);
+  if (paramL > 0) {
+    AppendVarNum(en, TT_Parameters);
+    AppendVarNum(en, paramL);
+    rte_memcpy(rte_pktmbuf_append(m, paramL), paramV, paramL);
   }
 
   PrependVarNum(en, m->pkt_len);

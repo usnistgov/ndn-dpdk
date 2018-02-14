@@ -60,26 +60,28 @@ SizeofVarNum(uint64_t n)
   return n <= UINT16_MAX ? (n < 253 ? 1 : 3) : (n <= UINT32_MAX ? 5 : 9);
 }
 
-void __EncodeVarNum_32or64(uint8_t* room, uint64_t n);
+uint8_t* __EncodeVarNum_32or64(uint8_t* room, uint64_t n);
 
 /** \brief Encode a TLV-TYPE or TLV-LENGTH number.
  *  \param[out] room output buffer, must have \p SizeofVarNum(n) octets
  *  \param n the number
+ *  \return room + SizeofVarNum(n)
  */
-static void
+static uint8_t*
 EncodeVarNum(uint8_t* room, uint64_t n)
 {
   if (unlikely(n > UINT16_MAX)) {
-    __EncodeVarNum_32or64(room, n);
-    return;
+    return __EncodeVarNum_32or64(room, n);
   }
 
   if (n < 253) {
     room[0] = (uint8_t)n;
+    return room + 1;
   } else {
     room[0] = 253;
     room[1] = (uint8_t)(n >> 8);
     room[2] = (uint8_t)n;
+    return room + 3;
   }
 }
 

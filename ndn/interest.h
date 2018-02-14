@@ -16,8 +16,8 @@
 typedef uint16_t HopLimit;
 enum HopLimitSpecial
 {
-  HOP_LIMIT_OMITTED = 0x0100, ///< HopLimit is omitted
-  HOP_LIMIT_ZERO = 0x0101,    ///< HopLimit was zero before decrementing
+  HOP_LIMIT_OMITTED = 0x0101, ///< HopLimit is omitted
+  HOP_LIMIT_ZERO = 0x0100,    ///< HopLimit was zero before decrementing
 };
 
 /** \brief Parsed Interest packet.
@@ -48,68 +48,102 @@ typedef struct PInterest
 NdnError PInterest_FromPacket(PInterest* interest, struct rte_mbuf* pkt,
                               struct rte_mempool* mpName);
 
+/** \brief Template for Interest encoding.
+ */
 typedef struct InterestTemplate
 {
-  const uint8_t* namePrefix;
-  uint16_t namePrefixSize;
-  const uint8_t* nameSuffix;
-  uint16_t nameSuffixSize;
+  LName namePrefix;  ///< first part of the name
+  uint32_t lifetime; ///< InterestLifetime in millis
+  HopLimit hopLimit; ///< HopLimit value, or \p HOP_LIMIT_OMITTED
+  bool canBePrefix;
   bool mustBeFresh;
-  uint32_t lifetime;
-  const uint8_t* fwHints;
-  uint16_t fwHintsSize;
+  const uint8_t* fhV; ///< ForwardingHint TLV-VALUE
+  uint16_t fhL;       ///< ForwardingHint TLV-LENGTH
+
+  uint16_t bufferSize; ///< (pvt) used buffer size after \p bufferOff
+  uint16_t bufferOff;  ///< (pvt) start offset within buffer
+  uint16_t nonceOff;   ///< (pvt) nonce offset within buffer
 } InterestTemplate;
+
+uint16_t __InterestTemplate_Prepare(InterestTemplate* tpl, uint8_t* buffer,
+                                    uint16_t bufferSize, const uint8_t* fhV);
+
+/** \brief Prepare a buffer of "middle" fields.
+ *  \param[out] buffer buffer space for CanBePrefix, MustBeFresh, ForwardingHint,
+ *                     Nonce, InterestLifetime, HopLimit fields.
+ *  \return 0 if success, otherwise a positive number indicates the required buffer size
+ */
+static uint16_t
+InterestTemplate_Prepare(InterestTemplate* tpl, uint8_t* buffer,
+                         uint16_t bufferSize)
+{
+  return __InterestTemplate_Prepare(tpl, buffer, bufferSize, tpl->fhV);
+}
 
 static uint16_t
 EncodeInterest_GetHeadroom()
 {
-  return 1 + 5; // Name TL
+  return 1 + 5; // Interest TL
 }
 
 static uint16_t
-EncodeInterest_GetTailroom(const InterestTemplate* tpl)
+__EncodeInterest_GetTailroom(uint16_t bufferSize, uint16_t nameL,
+                             uint16_t paramL)
 {
-  return 1 + 5 + tpl->namePrefixSize + tpl->nameSuffixSize + // Name
-         1 + 1 +                                             //Selectors
-         1 + 1 +                                             // MustBeFresh
-         1 + 1 + 4 +                                         // Nonce
-         1 + 1 + 4 +                                         // InterestLifetime
-         1 + 5 + tpl->fwHintsSize;                           // ForwardingHint
+  return 1 + 3 + nameL +              // Name
+         bufferSize + 1 + 5 + paramL; // Parameters
 }
 
-/** \brief Get required tailroom for EncodeInterest output mbuf,
- *         assuming max name length and one delegation in forwarding hint.
+static uint16_t
+EncodeInterest_GetTailroom(const InterestTemplate* tpl, uint16_t nameSuffixL,
+                           uint16_t paramL)
+{
+  return __EncodeInterest_GetTailroom(
+    tpl->bufferSize, tpl->namePrefix.length + nameSuffixL, paramL);
+}
+
+/** \brief Get required tailroom for EncodeInterest output mbuf, assuming
+ *         max name length, one delegation in forwarding hint, no parameters.
  */
 static uint16_t
 EncodeInterest_GetTailroomMax()
 {
-  return 1 + 5 + NAME_MAX_LENGTH + // Name
-         1 + 1 +                   // Selectors TL
-         1 + 1 +                   // S.MustBeFresh
-         1 + 1 + 4 +               // Nonce
-         1 + 1 + 4 +               // InterestLifetime
-         1 + 5 +                   // ForwardingHint TL
-         1 + 5 +                   // FH.Delegation TL
-         1 + 1 + 4 +               // D.Preference
-         1 + 5 + NAME_MAX_LENGTH;  // D.Name
+  const uint16_t maxBufferSize = 1 + 1 +                   // CanBePrefix
+                                 1 + 1 +                   // MustBeFresh
+                                 1 + 3 +                   // ForwardingHint
+                                 1 + 3 +                   // FH.Delegation TL
+                                 1 + 1 + 4 +               // FH.D.Preference
+                                 1 + 3 + NAME_MAX_LENGTH + // FH.D.Name
+                                 1 + 1 + 4 +               // Nonce
+                                 1 + 1 + 4 +               // InterestLifetime
+                                 1 + 1 + 1;                // HopLimit
+  return __EncodeInterest_GetTailroom(maxBufferSize, NAME_MAX_LENGTH, 0);
 }
 
-// Golang cgocheck is unhappy if tpl->namePrefix etc points to Go memory.
 void __EncodeInterest(struct rte_mbuf* m, const InterestTemplate* tpl,
-                      const uint8_t* namePrefix, const uint8_t* nameSuffix,
-                      const uint8_t* fwHints);
+                      uint8_t* preparedBuffer, uint16_t nameSuffixL,
+                      const uint8_t* nameSuffixV, uint16_t paramL,
+                      const uint8_t* paramV, const uint8_t* namePrefixV);
 
-/** \brief Make an Interest.
+/** \brief Encode an Interest.
  *  \param m output mbuf, must be empty and is the only segment, must have
  *           \p EncodeInterest_GetHeadroom() in headroom and
- *           \p EncodeInterest_GetTailroom(tpl) in tailroom;
+ *           \p EncodeInterest_GetTailroom(tpl, nameSuffix.length, paramL) in tailroom;
  *           headroom for Ethernet and NDNLP headers shall be included if needed.
- *  \param tpl
+ *  \param preparedBuffer a buffer prepared with \p InterestTemplate_Prepare;
+ *                        concurrent calls to this function must be distinct preparedBuffer;
+ *                        the buffer may be duplicated after preparing if needed.
+ *  \param nameSuffix second part of the name, set length to zero if not needed
+ *  \param paramL Parameters TLV-LENGTH
+ *  \param paramV Parameters TLV-VALUE
  */
 static void
-EncodeInterest(struct rte_mbuf* m, const InterestTemplate* tpl)
+EncodeInterest(struct rte_mbuf* m, const InterestTemplate* tpl,
+               uint8_t* preparedBuffer, LName nameSuffix, uint16_t paramL,
+               const uint8_t* paramV)
 {
-  __EncodeInterest(m, tpl, tpl->namePrefix, tpl->nameSuffix, tpl->fwHints);
+  __EncodeInterest(m, tpl, preparedBuffer, nameSuffix.length, nameSuffix.value,
+                   paramL, paramV, tpl->namePrefix.value);
 }
 
 #endif // NDN_DPDK_NDN_INTEREST_H

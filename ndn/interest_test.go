@@ -1,7 +1,6 @@
 package ndn_test
 
 import (
-	"encoding/binary"
 	"testing"
 	"time"
 
@@ -72,51 +71,37 @@ func TestInterestDecode(t *testing.T) {
 	}
 }
 
-func checkEncodeInterest(t *testing.T, tpl *ndn.InterestTemplate,
-	expectedHex string, nonceOffset int) {
-	assert, _ := makeAR(t)
+func TestInterestEncode(t *testing.T) {
+	assert, require := makeAR(t)
 
-	expected := dpdktestenv.PacketBytesFromHex(expectedHex)
+	tpl := ndn.NewInterestTemplate()
+	prefix, e := ndn.ParseName("/A/B")
+	require.NoError(e)
+	tpl.SetNamePrefix(prefix)
 
 	pkt := dpdktestenv.Alloc(dpdktestenv.MPID_DIRECT).AsPacket()
-	tpl.EncodeTo(pkt)
-	assert.Equal(len(expected), pkt.Len())
+	defer pkt.Close()
+	tpl.Encode(pkt, nil, nil)
+	encoded := pkt.ReadAll()
+	require.Len(encoded, 16)
+	assert.Equal(dpdktestenv.PacketBytesFromHex("050E name=0706080141080142 nonce=0A04"),
+		encoded[:12])
 
-	actual := make([]byte, len(expected))
-	pkt.ReadTo(0, actual)
-	assert.NotEqual(binary.LittleEndian.Uint32(actual[nonceOffset:nonceOffset+4]),
-		uint32(0xCCCCCCCC))
-	binary.LittleEndian.PutUint32(actual[nonceOffset:nonceOffset+4], 0xCCCCCCCC)
-	assert.Equal(expected, actual)
-}
-
-func TestEncodeInterest0(t *testing.T) {
-	assert, _ := makeAR(t)
-
-	tpl := ndn.NewInterestTemplate()
-	e := tpl.SetNamePrefixFromUri("/")
-	assert.NoError(e)
-	tpl.SetMustBeFresh(false)
-	assert.False(tpl.GetMustBeFresh())
-	assert.Equal(4000*time.Millisecond, tpl.GetInterestLifetime())
-
-	checkEncodeInterest(t, tpl,
-		"050E 0700 0A04CCCCCCCC 0C0400000FA0", 6)
-}
-
-func TestEncodeInterest1(t *testing.T) {
-	assert, _ := makeAR(t)
-
-	tpl := ndn.NewInterestTemplate()
-	e := tpl.SetNamePrefixFromUri("/A/B")
-	assert.NoError(e)
-	tpl.NameSuffix = ndn.MakeNameComponentFromNumber(ndn.TT_GenericNameComponent,
-		uint32(0x737F2FBD)).GetValue()
+	tpl.SetCanBePrefix(true)
 	tpl.SetMustBeFresh(true)
-	assert.True(tpl.GetMustBeFresh())
 	tpl.SetInterestLifetime(9000 * time.Millisecond)
-	assert.Equal(9000*time.Millisecond, tpl.GetInterestLifetime())
+	tpl.SetHopLimit(125)
 
-	checkEncodeInterest(t, tpl,
-		"051E 070C0801410801420804737F2FBD 09021200 0A04CCCCCCCC 0C0400002328", 22)
+	suffix, e := ndn.ParseName("/C/D")
+	require.NoError(e)
+
+	pkt = dpdktestenv.Alloc(dpdktestenv.MPID_DIRECT).AsPacket()
+	defer pkt.Close()
+	tpl.Encode(pkt, suffix, nil)
+	encoded = pkt.ReadAll()
+	require.Len(encoded, 35)
+	assert.Equal(dpdktestenv.PacketBytesFromHex("0521 name=070C080141080142080143080144 "+
+		"canbeprefix=2100 mustbefresh=1200 nonce=0A04"), encoded[:22])
+	assert.Equal(dpdktestenv.PacketBytesFromHex("lifetime=0C0400002328 hoplimit=25017D"),
+		encoded[26:])
 }

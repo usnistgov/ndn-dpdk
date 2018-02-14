@@ -43,8 +43,8 @@ func (interest *Interest) GetLifetime() time.Duration {
 type HopLimit uint16
 
 const (
-	HOP_LIMIT_OMITTED HopLimit = 0x0100 // HopLimit is omitted.
-	HOP_LIMIT_ZERO    HopLimit = 0x0101 // HopLimit was zero before decrementing.
+	HOP_LIMIT_OMITTED = HopLimit(C.HOP_LIMIT_OMITTED) // HopLimit is omitted.
+	HOP_LIMIT_ZERO    = HopLimit(C.HOP_LIMIT_ZERO)    // HopLimit was zero before decrementing.
 )
 
 func (interest *Interest) GetHopLimit() HopLimit {
@@ -68,50 +68,63 @@ func EncodeInterest_GetTailroomMax() int {
 	return int(C.EncodeInterest_GetTailroomMax())
 }
 
-// Template to make an Interest.
+// Template to encode an Interest.
 type InterestTemplate struct {
 	c          C.InterestTemplate
-	NamePrefix TlvBytes
-	NameSuffix TlvBytes
-	FwHints    TlvBytes
+	buffer     TlvBytes
+	namePrefix TlvBytes
 }
 
 func NewInterestTemplate() (tpl *InterestTemplate) {
 	tpl = new(InterestTemplate)
 	tpl.c.lifetime = C.DEFAULT_INTEREST_LIFETIME
+	tpl.c.hopLimit = C.HOP_LIMIT_OMITTED
 	return tpl
 }
 
-func (tpl *InterestTemplate) SetNamePrefixFromUri(uri string) error {
-	prefix, e := ParseName(uri)
-	if e != nil {
-		return e
-	}
-	tpl.NamePrefix = prefix.GetValue()
-	return nil
+func (tpl *InterestTemplate) SetNamePrefix(v *Name) {
+	tpl.namePrefix = v.GetValue()
+	tpl.c.namePrefix.length = C.uint16_t(len(tpl.namePrefix))
 }
 
-func (tpl *InterestTemplate) GetMustBeFresh() bool {
-	return bool(tpl.c.mustBeFresh)
+func (tpl *InterestTemplate) SetCanBePrefix(v bool) {
+	tpl.buffer = nil
+	tpl.c.canBePrefix = C.bool(v)
 }
 
 func (tpl *InterestTemplate) SetMustBeFresh(v bool) {
+	tpl.buffer = nil
 	tpl.c.mustBeFresh = C.bool(v)
 }
 
-func (tpl *InterestTemplate) GetInterestLifetime() time.Duration {
-	return time.Duration(tpl.c.lifetime) * time.Millisecond
+func (tpl *InterestTemplate) SetInterestLifetime(v time.Duration) {
+	tpl.buffer = nil
+	tpl.c.lifetime = C.uint32_t(v / time.Millisecond)
 }
 
-func (tpl *InterestTemplate) SetInterestLifetime(lifetime time.Duration) {
-	tpl.c.lifetime = C.uint32_t(lifetime / time.Millisecond)
+func (tpl *InterestTemplate) SetHopLimit(v HopLimit) {
+	tpl.buffer = nil
+	tpl.c.hopLimit = C.HopLimit(v)
 }
 
-func (tpl *InterestTemplate) EncodeTo(m dpdk.IMbuf) {
-	tpl.c.namePrefixSize = C.uint16_t(len(tpl.NamePrefix))
-	tpl.c.nameSuffixSize = C.uint16_t(len(tpl.NameSuffix))
-	tpl.c.fwHintsSize = C.uint16_t(len(tpl.FwHints))
-	C.__EncodeInterest((*C.struct_rte_mbuf)(m.GetPtr()), &tpl.c,
-		(*C.uint8_t)(tpl.NamePrefix.GetPtr()), (*C.uint8_t)(tpl.NameSuffix.GetPtr()),
-		(*C.uint8_t)(tpl.FwHints.GetPtr()))
+func (tpl *InterestTemplate) prepare() {
+	if tpl.buffer != nil {
+		return
+	}
+	size := C.__InterestTemplate_Prepare(&tpl.c, nil, 0, nil)
+	tpl.buffer = make(TlvBytes, int(size))
+	C.__InterestTemplate_Prepare(&tpl.c, (*C.uint8_t)(tpl.buffer.GetPtr()), size, nil)
+}
+
+func (tpl *InterestTemplate) Encode(m dpdk.IMbuf, nameSuffix *Name, paramV TlvBytes) {
+	tpl.prepare()
+
+	var nameSuffixV TlvBytes
+	if nameSuffix != nil {
+		nameSuffixV = nameSuffix.GetValue()
+	}
+	C.__EncodeInterest((*C.struct_rte_mbuf)(m.GetPtr()), &tpl.c, (*C.uint8_t)(tpl.buffer.GetPtr()),
+		C.uint16_t(len(nameSuffixV)), (*C.uint8_t)(nameSuffixV.GetPtr()),
+		C.uint16_t(len(paramV)), (*C.uint8_t)(paramV.GetPtr()),
+		(*C.uint8_t)(tpl.namePrefix.GetPtr()))
 }
