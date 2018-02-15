@@ -45,7 +45,7 @@ NameCompareResult LName_Compare(LName lhs, LName rhs);
 /** \brief Number of name components whose information are cached in Name struct
  *         for efficient processing.
  */
-#define NAME_N_CACHED_COMPS 17
+#define PNAME_N_CACHED_COMPS 17
 
 /** \brief Parsed Name element.
  */
@@ -55,9 +55,9 @@ typedef struct PName
   uint16_t nComps;    ///< number of components
   bool hasDigestComp; ///< ends with digest component?
 
-  bool hasHashes;                     ///< (pvt) are hash[i] computed?
-  uint16_t comp[NAME_N_CACHED_COMPS]; ///< (pvt) end offset of i-th component
-  uint64_t hash[NAME_N_CACHED_COMPS]; ///< (pvt) hash of i+1-component prefix
+  bool hasHashes;                      ///< (pvt) are hash[i] computed?
+  uint16_t comp[PNAME_N_CACHED_COMPS]; ///< (pvt) end offset of i-th component
+  uint64_t hash[PNAME_N_CACHED_COMPS]; ///< (pvt) hash of i+1-component prefix
 } PName;
 
 /** \brief Parse a name from memory buffer.
@@ -88,7 +88,7 @@ static uint16_t
 PName_GetCompEnd(const PName* n, const uint8_t* input, uint16_t i)
 {
   assert(i < n->nComps);
-  if (likely(i < NAME_N_CACHED_COMPS)) {
+  if (likely(i < PNAME_N_CACHED_COMPS)) {
     return n->comp[i];
   }
   if (i == n->nComps - 1) {
@@ -125,7 +125,7 @@ PName_ComputePrefixHash(const PName* n, const uint8_t* input, uint16_t i)
   }
 
   assert(i <= n->nComps);
-  if (unlikely(i > NAME_N_CACHED_COMPS)) {
+  if (unlikely(i > PNAME_N_CACHED_COMPS)) {
     return __LName_ComputeHash(PName_GetCompEnd(n, input, i - 1), input);
   }
 

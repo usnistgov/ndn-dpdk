@@ -64,7 +64,7 @@ PName_Parse(PName* n, uint32_t length, const uint8_t* value)
       n->hasDigestComp = true;
     }
 
-    if (likely(n->nComps < NAME_N_CACHED_COMPS)) {
+    if (likely(n->nComps < PNAME_N_CACHED_COMPS)) {
       n->comp[n->nComps] = end;
     }
 
@@ -88,9 +88,9 @@ PName_FromElement(PName* n, const TlvElement* ele)
 uint16_t
 __PName_SeekCompEnd(const PName* n, const uint8_t* input, uint16_t i)
 {
-  assert(i >= NAME_N_CACHED_COMPS);
-  uint16_t off = n->comp[NAME_N_CACHED_COMPS - 1];
-  for (uint16_t j = NAME_N_CACHED_COMPS - 1; j < i; ++j) {
+  assert(i >= PNAME_N_CACHED_COMPS);
+  uint16_t off = n->comp[PNAME_N_CACHED_COMPS - 1];
+  for (uint16_t j = PNAME_N_CACHED_COMPS - 1; j < i; ++j) {
     uint64_t compT, compL;
     off += ParseTlvTypeLength(input + off, n->nOctets - off, &compT, &compL);
     off += compL;
@@ -105,9 +105,9 @@ __PName_HashToCache(PName* n, const uint8_t* input)
   SipHash_Init(&h, &theNameHashKey);
 
   uint16_t off = 0;
-  for (uint16_t i = 0, last = n->nComps < NAME_N_CACHED_COMPS
+  for (uint16_t i = 0, last = n->nComps < PNAME_N_CACHED_COMPS
                                 ? n->nComps
-                                : NAME_N_CACHED_COMPS;
+                                : PNAME_N_CACHED_COMPS;
        i < last; ++i) {
     SipHash_Write(&h, input + off, n->comp[i] - off);
     n->hash[i] = SipHash_Sum(&h);
