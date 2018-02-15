@@ -14,7 +14,7 @@ typedef struct PData
 } PData;
 
 /** \brief Parse a packet as Data.
- *  \param[out] the parsed Data packet.
+ *  \param[out] data the parsed Data packet.
  *  \param pkt the packet.
  *  \param mpName mempool for allocating Name linearize mbufs,
  *                requires at least \p NAME_MAX_LENGTH dataroom.

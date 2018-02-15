@@ -38,7 +38,7 @@ typedef struct PInterest
 } PInterest;
 
 /** \brief Parse a packet as Interest.
- *  \param[out] the parsed Interest packet.
+ *  \param[out] interest the parsed Interest packet.
  *  \param pkt the packet.
  *  \param mpName mempool for allocating Name linearize mbufs,
  *                requires at least \p NAME_MAX_LENGTH dataroom.

@@ -99,7 +99,7 @@ TlvElement_GetLinearValue(const TlvElement* ele)
  *  \param[inout] ele this TlvElement, will be updated.
  *  \param[inout] pkt enclosing packet.
  *  \param mp mempool for copying TLV-VALUE if necessary, requires TLV-LENGTH in dataroom.
- *  \param[out] a TlvDecodePos pointing to past-end position; NULL if not needed.
+ *  \param[out] d a TlvDecodePos pointing to past-end position; NULL if not needed.
  *  \post parent/following TlvElements and TlvDecodePos may be invalidated.
  */
 static const uint8_t*
