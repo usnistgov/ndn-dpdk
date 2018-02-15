@@ -30,15 +30,15 @@ func TestInterestDecode(t *testing.T) {
 			lifetime: 4000, hopLimit: ndn.HOP_LIMIT_OMITTED},
 		{input: "0528 name=0706080141080142 canbeprefix=2100 mustbefresh=1200 " +
 			"fh=1E0A (del=1F08 pref=1E0100 name=0703080147) nonce=0A04A0A1A2A3 " +
-			"lifetime=0C01FF hoplimit=250120 parameters=2302C0C1",
+			"lifetime=0C01FF hoplimit=220120 parameters=2302C0C1",
 			name: "/A/B", canBePrefix: true, mustBeFresh: true, fhs: []string{"/G"},
 			hasNonce: true, lifetime: 255, hopLimit: 31}, // HopLimit decremented
 		{input: "050D name=0706080141080142 nonce=0A03A0A1A2", bad: true}, // Nonce wrong length
 		{input: "0512 name=0706080141080142 lifetime=0C080000000100000000",
 			bad: true}, // InterestLifetime too large
-		{input: "050C name=0706080141080142 hoplimit=25020101",
+		{input: "050C name=0706080141080142 hoplimit=22020101",
 			bad: true}, // HopLimit wrong length
-		{input: "050B name=0706080141080142 hoplimit=250100", name: "/A/B",
+		{input: "050B name=0706080141080142 hoplimit=220100", name: "/A/B",
 			lifetime: 4000, hopLimit: ndn.HOP_LIMIT_ZERO},
 	}
 	for _, tt := range tests {
@@ -102,6 +102,6 @@ func TestInterestEncode(t *testing.T) {
 	require.Len(encoded, 35)
 	assert.Equal(dpdktestenv.PacketBytesFromHex("0521 name=070C080141080142080143080144 "+
 		"canbeprefix=2100 mustbefresh=1200 nonce=0A04"), encoded[:22])
-	assert.Equal(dpdktestenv.PacketBytesFromHex("lifetime=0C0400002328 hoplimit=25017D"),
+	assert.Equal(dpdktestenv.PacketBytesFromHex("lifetime=0C0400002328 hoplimit=22017D"),
 		encoded[26:])
 }
