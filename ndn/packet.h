@@ -6,6 +6,7 @@
 #include "data.h"
 #include "interest.h"
 #include "lp.h"
+#include "nack.h"
 
 /** \brief An NDN L2 or L3 packet.
  *
@@ -29,9 +30,16 @@ typedef union PacketPriv
       PData data;
     };
   };
+  PNack nack;
 } PacketPriv;
 static_assert(offsetof(PacketPriv, lp) + offsetof(LpHeader, l3) ==
                 offsetof(PacketPriv, lpl3),
+              "");
+static_assert(offsetof(PacketPriv, nack) + offsetof(PNack, lpl3) ==
+                offsetof(PacketPriv, lpl3),
+              "");
+static_assert(offsetof(PacketPriv, nack) + offsetof(PNack, interest) ==
+                offsetof(PacketPriv, interest),
               "");
 
 /** \brief Convert Packet* from rte_mbuf*.
@@ -162,9 +170,9 @@ __Packet_GetInterestHdr(Packet* npkt)
 static PInterest*
 Packet_GetInterestHdr(Packet* npkt)
 {
-  assert(Packet_GetL3PktType(npkt) == L3PktType_Interest ||
-         (Packet_GetL3PktType(npkt) == L3PktType_Nack &&
-          Packet_GetLpL3Hdr(npkt)->nackReason > 0));
+  assert(Packet_GetL3PktType(npkt) == L3PktType_Interest &&
+         (Packet_GetL2PktType(npkt) != L2PktType_NdnlpV2 ||
+          __Packet_GetLpL3Hdr(npkt)->nackReason == NackReason_None));
   return __Packet_GetInterestHdr(npkt);
 }
 
@@ -182,6 +190,17 @@ Packet_GetDataHdr(Packet* npkt)
 {
   assert(Packet_GetL3PktType(npkt) == L3PktType_Data);
   return __Packet_GetDataHdr(npkt);
+}
+
+/** \brief Access PNack* header.
+ */
+static PNack*
+Packet_GetNackHdr(Packet* npkt)
+{
+  assert(Packet_GetL3PktType(npkt) == L3PktType_Nack &&
+         Packet_GetLpL3Hdr(npkt)->nackReason != NackReason_None);
+  return MbufDirectPriv(Packet_ToMbuf(npkt), PNack*,
+                        offsetof(PacketPriv, nack));
 }
 
 /** \brief Parse packet as LpPacket (including bare Interest/Data).

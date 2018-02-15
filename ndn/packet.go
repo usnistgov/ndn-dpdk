@@ -95,6 +95,10 @@ func (pkt Packet) AsData() *Data {
 	return &Data{pkt, C.Packet_GetDataHdr(pkt.c)}
 }
 
+func (pkt Packet) AsNack() *Nack {
+	return &Nack{pkt, C.Packet_GetNackHdr(pkt.c)}
+}
+
 func (pkt Packet) ParseL2() error {
 	res := NdnError(C.Packet_ParseL2(pkt.c))
 	if res != NdnError_OK {
