@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_NDN_NACK_PKT_H
-#define NDN_DPDK_NDN_NACK_PKT_H
+#ifndef NDN_DPDK_NDN_NACK_H
+#define NDN_DPDK_NDN_NACK_H
 
 /// \file
 
@@ -20,4 +20,4 @@ typedef enum NackReason {
  */
 void MakeNack(struct rte_mbuf* pkt, NackReason reason);
 
-#endif // NDN_DPDK_NDN_NACK_PKT_H
+#endif // NDN_DPDK_NDN_NACK_H

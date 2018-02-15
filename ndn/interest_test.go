@@ -44,7 +44,7 @@ func TestInterestDecode(t *testing.T) {
 	for _, tt := range tests {
 		pkt := packetFromHex(tt.input)
 		defer pkt.AsDpdkPacket().Close()
-		e := pkt.ParseL3(parseMps)
+		e := pkt.ParseL3(theMp)
 		if tt.bad {
 			assert.Error(e, tt.input)
 		} else if assert.NoError(e, tt.input) {

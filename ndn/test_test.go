@@ -4,13 +4,15 @@ import (
 	"os"
 	"testing"
 
+	"ndn-dpdk/dpdk"
 	"ndn-dpdk/dpdk/dpdktestenv"
 	"ndn-dpdk/ndn"
 )
 
+var theMp dpdk.PktmbufPool
+
 func TestMain(m *testing.M) {
-	mp := dpdktestenv.MakeDirectMp(255, ndn.SizeofPacketPriv(), 2000)
-	parseMps.MpName = mp
+	theMp = dpdktestenv.MakeDirectMp(255, ndn.SizeofPacketPriv(), 2000)
 
 	os.Exit(m.Run())
 }
@@ -24,5 +26,3 @@ func packetFromHex(input string) ndn.Packet {
 func TlvBytesFromHex(input string) ndn.TlvBytes {
 	return ndn.TlvBytes(dpdktestenv.PacketBytesFromHex(input))
 }
-
-var parseMps ndn.PacketParseMempools

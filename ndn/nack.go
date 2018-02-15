@@ -1,7 +1,7 @@
 package ndn
 
 /*
-#include "nack-pkt.h"
+#include "nack.h"
 */
 import "C"
 import (

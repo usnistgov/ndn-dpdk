@@ -5,9 +5,11 @@
 
 #include "data.h"
 #include "interest.h"
-#include "lp-pkt.h"
+#include "lp.h"
 
 /** \brief An NDN L2 or L3 packet.
+ *
+ *  Packet* is struct rte_mbuf* that fulfills requirements of \p Packet_FromMbuf.
  */
 typedef struct
 {
@@ -15,15 +17,22 @@ typedef struct
 
 /** \brief Information stored in rte_mbuf private area.
  */
-typedef struct PacketPriv
+typedef union PacketPriv
 {
-  LpPkt lp;
-  union
+  LpHeader lp;
+  struct
   {
-    PInterest interest;
-    PData data;
+    LpL3 lpl3;
+    union
+    {
+      PInterest interest;
+      PData data;
+    };
   };
 } PacketPriv;
+static_assert(offsetof(PacketPriv, lp) + offsetof(LpHeader, l3) ==
+                offsetof(PacketPriv, lpl3),
+              "");
 
 /** \brief Convert Packet* from rte_mbuf*.
  *  \param pkt mbuf of first fragment; must have sizeof(PacketPriv) privSize.
@@ -68,13 +77,6 @@ Packet_SetL2PktType(Packet* npkt, L2PktType t)
   Packet_ToMbuf(npkt)->inner_l2_type = t;
 }
 
-static LpPkt*
-Packet_GetLpHdr(Packet* npkt)
-{
-  assert(Packet_GetL2PktType(npkt) == L2PktType_NdnlpV2);
-  return MbufDirectPriv(Packet_ToMbuf(npkt), LpPkt*, offsetof(PacketPriv, lp));
-}
-
 /** \brief Indicate layer 3 packet type.
  *
  *  L3PktType is stored in rte_mbuf.inner_l3_type field.
@@ -103,13 +105,50 @@ Packet_SetL3PktType(Packet* npkt, L3PktType t)
   Packet_ToMbuf(npkt)->inner_l3_type = t;
 }
 
-/** \brief Parse packet as either Interest or Data.
- *  \param mpName mempool for allocating Name linearize mbufs,
- *                requires at least \p NAME_MAX_LENGTH dataroom.
- *  \retval NdnError_BadType packet is neither Interest nor Data.
- *  \retval NdnError_AllocError unable to allocate mbuf.
+static LpHeader*
+__Packet_GetLpHdr(Packet* npkt)
+{
+  return MbufDirectPriv(Packet_ToMbuf(npkt), LpHeader*,
+                        offsetof(PacketPriv, lp));
+}
+
+/** \brief Access LpHeader* header.
  */
-NdnError Packet_ParseL3(Packet* npkt, struct rte_mempool* mpName);
+static LpHeader*
+Packet_GetLpHdr(Packet* npkt)
+{
+  assert(Packet_GetL2PktType(npkt) == L2PktType_NdnlpV2 &&
+         Packet_GetL3PktType(npkt) == L3PktType_None);
+  return __Packet_GetLpHdr(npkt);
+}
+
+static LpL3*
+__Packet_GetLpL3Hdr(Packet* npkt)
+{
+  return MbufDirectPriv(Packet_ToMbuf(npkt), LpL3*, offsetof(PacketPriv, lpl3));
+}
+
+/** \brief Access LpL3* header.
+ */
+static LpL3*
+Packet_GetLpL3Hdr(Packet* npkt)
+{
+  assert(Packet_GetL2PktType(npkt) == L2PktType_NdnlpV2);
+  return __Packet_GetLpL3Hdr(npkt);
+}
+
+/** \brief Access LpL3* header, initialize it if it does not exist.
+ */
+static LpL3*
+Packet_InitLpL3Hdr(Packet* npkt)
+{
+  LpL3* lpl3 = __Packet_GetLpL3Hdr(npkt);
+  if (Packet_GetL2PktType(npkt) != L2PktType_NdnlpV2) {
+    Packet_SetL2PktType(npkt, L2PktType_NdnlpV2);
+    memset(lpl3, 0, sizeof(*lpl3));
+  }
+  return lpl3;
+}
 
 static PInterest*
 __Packet_GetInterestHdr(Packet* npkt)
@@ -118,14 +157,14 @@ __Packet_GetInterestHdr(Packet* npkt)
                         offsetof(PacketPriv, interest));
 }
 
-/** \brief Access InterestPkt* header.
+/** \brief Access PInterest* header.
  */
 static PInterest*
 Packet_GetInterestHdr(Packet* npkt)
 {
   assert(Packet_GetL3PktType(npkt) == L3PktType_Interest ||
          (Packet_GetL3PktType(npkt) == L3PktType_Nack &&
-          Packet_GetLpHdr(npkt)->nackReason > 0));
+          Packet_GetLpL3Hdr(npkt)->nackReason > 0));
   return __Packet_GetInterestHdr(npkt);
 }
 
@@ -144,5 +183,21 @@ Packet_GetDataHdr(Packet* npkt)
   assert(Packet_GetL3PktType(npkt) == L3PktType_Data);
   return __Packet_GetDataHdr(npkt);
 }
+
+/** \brief Parse packet as LpPacket (including bare Interest/Data).
+ *  \retval NdnError_BadType packet type is not LpPacket.
+ *  \post Packet_GetL2Type(npkt) == L2PktType_NdnlpV2
+ *  \post LpHeader is stripped, leaving payload TLV-VALUE in the packet.
+ */
+NdnError Packet_ParseL2(Packet* npkt);
+
+/** \brief Parse packet as Interest or Data.
+ *  \param mpName mempool for allocating Name linearize mbufs,
+ *                requires at least \p NAME_MAX_LENGTH dataroom.
+ *  \retval NdnError_BadType packet type is neither Interest nor Data.
+ *  \retval NdnError_AllocError unable to allocate mbuf.
+ *  \post Packet_GetL3Type(npkt) is L3PktType_Interest or L3PktType_Data or L3PktType_Nack.
+ */
+NdnError Packet_ParseL3(Packet* npkt, struct rte_mempool* mpName);
 
 #endif // NDN_DPDK_NDN_PACKET_H

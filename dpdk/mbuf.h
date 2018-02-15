@@ -53,14 +53,15 @@ Packet_Adj(struct rte_mbuf* pkt, uint16_t len)
     len -= segment->data_len;
     segment->data_off += segment->data_len;
     segment->data_len = 0;
-    segment = segment->next;
+    struct rte_mbuf* next = segment->next;
+    if (segment != pkt) {
+      rte_pktmbuf_free(segment);
+    }
+    segment = next;
   }
 
-  if (len > 0) {
-    segment->data_off += len;
-    segment->data_len -= len;
-  }
-
+  segment->data_off += len;
+  segment->data_len -= len;
   return true;
 }
 

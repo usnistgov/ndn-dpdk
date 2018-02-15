@@ -53,21 +53,9 @@ func (t L3PktType) String() string {
 	return fmt.Sprintf("%d", int(t))
 }
 
-// Mempools for Packet.Parse* functions.
-type PacketParseMempools struct {
-	MpName dpdk.PktmbufPool
-}
-
 // NDN network layer packet with parsed LP and Interest/Data headers.
 type Packet struct {
 	c *C.Packet
-}
-
-func PacketFromDpdk(m dpdk.Packet) (pkt Packet) {
-	if m.IsValid() {
-		pkt.c = C.Packet_FromMbuf((*C.struct_rte_mbuf)(m.GetPtr()))
-	}
-	return pkt
 }
 
 // Construct Packet from *C.struct_rte_mbuf pointing to first segment.
@@ -79,6 +67,10 @@ func PacketFromPtr(ptr unsafe.Pointer) (pkt Packet) {
 	return pkt
 }
 
+func PacketFromDpdk(m dpdk.Packet) (pkt Packet) {
+	return PacketFromPtr(m.GetPtr())
+}
+
 func (pkt Packet) AsDpdkPacket() dpdk.Packet {
 	return dpdk.MbufFromPtr(unsafe.Pointer(pkt.c)).AsPacket()
 }
@@ -87,26 +79,12 @@ func (pkt Packet) GetL2Type() L2PktType {
 	return L2PktType(C.Packet_GetL2PktType(pkt.c))
 }
 
-func (pkt Packet) GetLpHdr() *LpPkt {
-	return (*LpPkt)(unsafe.Pointer(C.Packet_GetLpHdr(pkt.c)))
-}
-
-func (pkt Packet) SetLpHdr(lpp LpPkt) {
-	C.Packet_SetL2PktType(pkt.c, C.L2PktType_NdnlpV2)
-	lpp1 := pkt.GetLpHdr()
-	*lpp1 = lpp
-}
-
 func (pkt Packet) GetL3Type() L3PktType {
 	return L3PktType(C.Packet_GetL3PktType(pkt.c))
 }
 
-func (pkt Packet) ParseL3(mps PacketParseMempools) error {
-	res := NdnError(C.Packet_ParseL3(pkt.c, (*C.struct_rte_mempool)(mps.MpName.GetPtr())))
-	if res != NdnError_OK {
-		return res
-	}
-	return nil
+func (pkt Packet) GetLpHdr() *LpHeader {
+	return (*LpHeader)(unsafe.Pointer(C.Packet_GetLpHdr(pkt.c)))
 }
 
 func (pkt Packet) AsInterest() *Interest {
@@ -115,4 +93,20 @@ func (pkt Packet) AsInterest() *Interest {
 
 func (pkt Packet) AsData() *Data {
 	return &Data{pkt, C.Packet_GetDataHdr(pkt.c)}
+}
+
+func (pkt Packet) ParseL2() error {
+	res := NdnError(C.Packet_ParseL2(pkt.c))
+	if res != NdnError_OK {
+		return res
+	}
+	return nil
+}
+
+func (pkt Packet) ParseL3(mpName dpdk.PktmbufPool) error {
+	res := NdnError(C.Packet_ParseL3(pkt.c, (*C.struct_rte_mempool)(mpName.GetPtr())))
+	if res != NdnError_OK {
+		return res
+	}
+	return nil
 }
