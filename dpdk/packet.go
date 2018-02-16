@@ -48,23 +48,16 @@ func (pkt Packet) GetLastSegment() Segment {
 // tail: if not nil, must be pkt.GetLastSegment(), to use faster implementation
 // Return the new tail segment.
 func (pkt Packet) AppendSegmentHint(m Mbuf, tail *Segment) (Segment, error) {
+	var res C.int
 	if tail == nil {
-		res := C.rte_pktmbuf_chain(pkt.ptr, m.ptr)
-		if res != 0 {
-			return Segment{}, errors.New("too many segments")
-		}
-		return Segment{m, pkt}, nil
+		res = C.rte_pktmbuf_chain(pkt.ptr, m.ptr)
+	} else {
+		res = C.Packet_Chain(pkt.ptr, tail.ptr, m.ptr)
 	}
 
-	if C.uint16_t(pkt.CountSegments())+m.ptr.nb_segs > C.RTE_MBUF_MAX_NB_SEGS {
+	if res != 0 {
 		return Segment{}, errors.New("too many segments")
 	}
-
-	tail.ptr.next = m.ptr
-	pkt.ptr.nb_segs = pkt.ptr.nb_segs + m.ptr.nb_segs
-	pkt.ptr.pkt_len = pkt.ptr.pkt_len + m.ptr.pkt_len
-	m.ptr.nb_segs = 1
-	m.ptr.pkt_len = 0
 	return Segment{m, pkt}, nil
 }
 

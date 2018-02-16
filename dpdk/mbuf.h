@@ -65,4 +65,27 @@ Packet_Adj(struct rte_mbuf* pkt, uint16_t len)
   return true;
 }
 
+/** \brief Chain \p tail onto \p head.
+ *  \param lastSeg must be rte_pktmbuf_lastseg(head)
+ *  \retval 0 success
+ *  \retval -EOVERFLOW total segment count exceeds limit
+ */
+static int
+Packet_Chain(struct rte_mbuf* head, struct rte_mbuf* lastSeg,
+             struct rte_mbuf* tail)
+{
+  assert(lastSeg == rte_pktmbuf_lastseg(head));
+
+  if (unlikely(head->nb_segs + tail->nb_segs > RTE_MBUF_MAX_NB_SEGS)) {
+    return -EOVERFLOW;
+  }
+
+  lastSeg->next = tail;
+  head->nb_segs += tail->nb_segs;
+  head->pkt_len += tail->pkt_len;
+  tail->nb_segs = 1;
+  tail->pkt_len = tail->data_len;
+  return 0;
+}
+
 #endif // NDN_DPDK_DPDK_MBUF_H
