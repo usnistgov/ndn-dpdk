@@ -64,9 +64,9 @@ func (n *Name) HasDigestComp() bool {
 
 // Get i-th name component TLV.
 func (n *Name) GetComp(i int) NameComponent {
-	start := C.PName_GetCompStart(n.p, n.getValuePtr(), C.uint16_t(i))
+	begin := C.PName_GetCompBegin(n.p, n.getValuePtr(), C.uint16_t(i))
 	end := C.PName_GetCompEnd(n.p, n.getValuePtr(), C.uint16_t(i))
-	return NameComponent(n.b[start:end])
+	return NameComponent(n.b[begin:end])
 }
 
 // Get all name component TLVs.

@@ -31,7 +31,7 @@ typedef struct NdnpingClient
   // config:
   Face* face;
   NameSet patterns;
-  struct rte_mempool* mpInterest; ///< mempool for Interests
+  struct rte_mempool* interestMp; ///< mempool for Interests
   float interestInterval; ///< average interval between two Interests (millis)
 
   /** \brief How often to sample RTT and latency.
@@ -51,7 +51,7 @@ typedef struct NdnpingClient
   // counters:
   uint64_t nAllocError;
 
-  // internal:
+  // private:
   InterestTemplate interestTpl;
   struct
   {
@@ -59,7 +59,7 @@ typedef struct NdnpingClient
     uint8_t compT;
     uint8_t compL;
     uint64_t compV; ///< sequence number in native endianness
-  } suffixComponent;
+  } __rte_packed suffixComponent;
 
   _Atomic uint64_t tscHz;
 
@@ -74,6 +74,8 @@ typedef struct NdnpingClient
    */
   uint64_t sampleIndexMask;
   void* sampleTable;
+
+  uint8_t interestPrepareBuffer[8192];
 } NdnpingClient;
 
 /** \brief Initialize NdnpingClient.

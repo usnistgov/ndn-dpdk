@@ -2,10 +2,9 @@
 #include "packet.h"
 
 void
-MakeNack(struct rte_mbuf* pkt, NackReason reason)
+MakeNack(Packet* npkt, NackReason reason)
 {
-  Packet* npkt = Packet_FromMbuf(pkt);
-  LpL3* lpl3 = Packet_InitLpL3Hdr(npkt);
-  lpl3->nackReason = reason;
+  assert(Packet_GetL3PktType(npkt) == L3PktType_Interest);
+  Packet_InitLpL3Hdr(npkt)->nackReason = reason;
   Packet_SetL3PktType(npkt, L3PktType_Nack);
 }

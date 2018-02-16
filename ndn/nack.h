@@ -30,9 +30,12 @@ PNack_GetReason(const PNack* nack)
   return nack->lpl3.nackReason;
 }
 
+typedef struct Packet Packet;
+
 /** \brief Turn an Interest into a Nack.
- *  \param[inout] pkt the packet, must be Interest
+ *  \pre Packet_GetL3PktType(npkt) == L3PktType_Interest
+ *  \post Packet_GetL3PktType(npkt) == L3PktType_Nack
  */
-void MakeNack(struct rte_mbuf* pkt, NackReason reason);
+void MakeNack(Packet* npkt, NackReason reason);
 
 #endif // NDN_DPDK_NDN_NACK_H

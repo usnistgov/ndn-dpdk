@@ -22,9 +22,9 @@ typedef struct NdnpingServer
   bool wantNackNoRoute;     ///< whether to Nack unserved Interests
   struct rte_mbuf* payload; ///< the payload
 
-  struct rte_mempool* mpData1;    ///< mempool for Data header
-  struct rte_mempool* mpData2;    ///< mempool for Data signature
-  struct rte_mempool* mpIndirect; ///< mempool for indirect mbufs to payload
+  struct rte_mempool* data1Mp;    ///< mempool for Data header
+  struct rte_mempool* data2Mp;    ///< mempool for Data signature
+  struct rte_mempool* indirectMp; ///< mempool for indirect mbufs to payload
 
   uint64_t nNoMatch;
   uint64_t nAllocError;

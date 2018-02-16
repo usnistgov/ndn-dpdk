@@ -35,7 +35,7 @@ None of these types own the name components buffer.
 `PName` contains offsets of name components.
 Internally, it only has space for the initial `PNAME_N_CACHED_COMPS` name components.
 However, its APIs allow unlimited number of name components: accessing a name component after `PNAME_N_CACHED_COMPS` involves re-parsing and is inefficient.
-`PName_GetCompStart` and `PName_GetCompEnd` functions provide the boundary of each name component.
+`PName_GetCompBegin` and `PName_GetCompEnd` functions provide the boundary of each name component.
 `PName_ComputePrefixHash` function computes *SipHash* of the name or its prefix, which is useful in table implementation.
 All `PName` APIs require a pointer to the name components buffer that the `PName` was parsed from.
 

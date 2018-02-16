@@ -97,18 +97,28 @@ PName_GetCompEnd(const PName* n, const uint8_t* input, uint16_t i)
   return __PName_SeekCompEnd(n, input, i);
 }
 
-/** \brief Get start offset of i-th component.
+/** \brief Get begin offset of i-th component.
  *  \param input a buffer containing TLV-VALUE of Name element
  *  \param i component index, must be less than n->nComps
  */
 static uint16_t
-PName_GetCompStart(const PName* n, const uint8_t* input, uint16_t i)
+PName_GetCompBegin(const PName* n, const uint8_t* input, uint16_t i)
 {
   assert(i < n->nComps);
   if (i == 0) {
     return 0;
   }
   return PName_GetCompEnd(n, input, i - 1);
+}
+
+/** \brief Get size of i-th component.
+ *  \param input a buffer containing TLV-VALUE of Name element
+ *  \param i component index, must be less than n->nComps
+ */
+static uint16_t
+PName_SizeofComp(const PName* n, const uint8_t* input, uint16_t i)
+{
+  return PName_GetCompEnd(n, input, i) - PName_GetCompBegin(n, input, i);
 }
 
 void __PName_HashToCache(PName* n, const uint8_t* input);
@@ -155,5 +165,24 @@ static_assert(sizeof(Name) <= 3 * RTE_CACHE_LINE_SIZE, "");
 static_assert(offsetof(Name, p) + offsetof(PName, nOctets) ==
                 offsetof(LName, length),
               "");
+
+typedef struct NameComp
+{
+  const uint8_t* tlv;
+  uint16_t size;
+} NameComp;
+
+/** \brief Get i-th component.
+ *  \param i component index, must be less than n->p.nComps
+ */
+static NameComp
+Name_GetComp(const Name* n, uint16_t i)
+{
+  NameComp comp = {
+    .tlv = RTE_PTR_ADD(n->v, PName_GetCompBegin(&n->p, n->v, i)),
+    .size = PName_SizeofComp(&n->p, n->v, i),
+  };
+  return comp;
+}
 
 #endif // NDN_DPDK_NDN_NAME_H

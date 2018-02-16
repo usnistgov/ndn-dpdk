@@ -125,14 +125,14 @@ func init() {
 		MempoolConfig{
 			Capacity:     65535,
 			CacheSize:    255,
-			PrivSize:     0,
+			PrivSize:     ndn.SizeofPacketPriv(),
 			DataRoomSize: uint16(ndn.EncodeInterest_GetHeadroom() + ndn.EncodeInterest_GetTailroomMax()),
 		})
 	RegisterMempool(MP_DATA1,
 		MempoolConfig{
 			Capacity:     65535,
 			CacheSize:    255,
-			PrivSize:     0,
+			PrivSize:     ndn.SizeofPacketPriv(),
 			DataRoomSize: uint16(ndn.EncodeData1_GetHeadroom() + ndn.EncodeData1_GetTailroomMax()),
 		})
 	RegisterMempool(MP_DATA2,

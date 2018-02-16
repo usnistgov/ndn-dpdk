@@ -21,7 +21,7 @@ type parsedCommand struct {
 }
 
 type clientPattern struct {
-	prefix ndn.TlvBytes
+	prefix *ndn.Name
 	pct    float32
 }
 
@@ -33,7 +33,7 @@ type clientCfg struct {
 
 type serverCfg struct {
 	face     faceuri.FaceUri
-	prefixes []ndn.TlvBytes
+	prefixes []*ndn.Name
 }
 
 func parseCommand(args []string) (pc parsedCommand, e error) {
@@ -88,12 +88,12 @@ func parseCommand(args []string) (pc parsedCommand, e error) {
 			client.interval = interval
 			state = STATE_CLIENT_PREFIX
 		case state == STATE_CLIENT_PREFIX:
-			comps, e := ndn.EncodeNameComponentsFromUri(token)
+			name, e := ndn.ParseName(token)
 			if e != nil {
 				return e
 			}
 			client := &pc.clients[len(pc.clients)-1]
-			client.patterns = append(client.patterns, clientPattern{prefix: comps})
+			client.patterns = append(client.patterns, clientPattern{prefix: name})
 			state = STATE_CLIENT_PCT
 		case state == STATE_CLIENT_PCT:
 			patterns := pc.clients[len(pc.clients)-1].patterns
@@ -110,12 +110,12 @@ func parseCommand(args []string) (pc parsedCommand, e error) {
 			pc.servers = append(pc.servers, serverCfg{face: *u})
 			state = STATE_SERVER_PREFIX
 		case state == STATE_SERVER_PREFIX:
-			comps, e := ndn.EncodeNameComponentsFromUri(token)
+			name, e := ndn.ParseName(token)
 			if e != nil {
 				return e
 			}
 			server := &pc.servers[len(pc.servers)-1]
-			server.prefixes = append(server.prefixes, comps)
+			server.prefixes = append(server.prefixes, name)
 		}
 		return nil
 	}

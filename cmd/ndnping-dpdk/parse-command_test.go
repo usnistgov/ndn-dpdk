@@ -20,11 +20,9 @@ func TestParseCommand(t *testing.T) {
 			assert.Equal("dev://net_pcap1", pc.clients[0].face.String())
 			assert.Equal(time.Millisecond, pc.clients[0].interval)
 			if assert.Len(pc.clients[0].patterns, 2) {
-				assert.EqualValues(dpdktestenv.PacketBytesFromHex("080150 080470696E67"),
-					pc.clients[0].patterns[0].prefix)
+				assert.Equal("/P/ping", pc.clients[0].patterns[0].prefix.String())
 				assert.EqualValues(60.0, pc.clients[0].patterns[0].pct)
-				assert.EqualValues(dpdktestenv.PacketBytesFromHex("080151"),
-					pc.clients[0].patterns[1].prefix)
+				assert.Equal("/Q", pc.clients[0].patterns[1].prefix.String())
 				assert.EqualValues(70.0, pc.clients[0].patterns[1].pct)
 			}
 		}
@@ -33,10 +31,8 @@ func TestParseCommand(t *testing.T) {
 		if assert.Len(pc.servers, 1) {
 			assert.Equal("dev://net_pcap0", pc.servers[0].face.String())
 			if assert.Len(pc.servers[0].prefixes, 2) {
-				assert.EqualValues(dpdktestenv.PacketBytesFromHex("080150 080470696E67"),
-					pc.servers[0].prefixes[0])
-				assert.EqualValues(dpdktestenv.PacketBytesFromHex("080151"),
-					pc.servers[0].prefixes[1])
+				assert.Equal("/P/ping", pc.servers[0].prefixes[0].String())
+				assert.Equal("/Q", pc.servers[0].prefixes[1].String())
 			}
 		}
 	}

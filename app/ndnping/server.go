@@ -25,11 +25,11 @@ func NewServer(face iface.Face) (server Server, e error) {
 	server.c.face = (*C.Face)(face.GetPtr())
 	e = server.SetPayload([]byte{})
 
-	server.c.mpData1 = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
+	server.c.data1Mp = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
 		appinit.MP_DATA1, socket).GetPtr())
-	server.c.mpData2 = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
+	server.c.data2Mp = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
 		appinit.MP_DATA2, socket).GetPtr())
-	server.c.mpIndirect = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
+	server.c.indirectMp = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
 		appinit.MP_IND, socket).GetPtr())
 
 	return server, e
@@ -54,8 +54,8 @@ func (server Server) getPatterns() nameset.NameSet {
 	return nameset.FromPtr(unsafe.Pointer(&server.c.patterns))
 }
 
-func (server Server) AddPattern(comps ndn.TlvBytes) {
-	server.getPatterns().InsertWithZeroUsr(comps, int(C.sizeof_NdnpingServerPattern))
+func (server Server) AddPattern(name *ndn.Name) {
+	server.getPatterns().InsertWithZeroUsr(name, int(C.sizeof_NdnpingServerPattern))
 }
 
 func (server Server) clearPayload() {

@@ -26,7 +26,7 @@ func NewClient(face iface.Face) (client Client, e error) {
 	socket := face.GetNumaSocket()
 	client.c = (*C.NdnpingClient)(dpdk.Zmalloc("NdnpingClient", C.sizeof_NdnpingClient, socket))
 	client.c.face = (*C.Face)(face.GetPtr())
-	client.c.mpInterest = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
+	client.c.interestMp = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
 		appinit.MP_INT, socket).GetPtr())
 	client.c.sampleFreq = 0xFF
 
@@ -48,8 +48,8 @@ func (client Client) getPatterns() nameset.NameSet {
 	return nameset.FromPtr(unsafe.Pointer(&client.c.patterns))
 }
 
-func (client Client) AddPattern(comps ndn.TlvBytes, pct float32) {
-	client.getPatterns().InsertWithZeroUsr(comps, int(C.sizeof_NdnpingClientPattern))
+func (client Client) AddPattern(name *ndn.Name, pct float32) {
+	client.getPatterns().InsertWithZeroUsr(name, int(C.sizeof_NdnpingClientPattern))
 }
 
 func (client Client) SetInterval(interval time.Duration) {
