@@ -4,47 +4,47 @@
 
 INIT_ZF_LOG(InOrderReassembler);
 
-struct rte_mbuf*
-InOrderReassembler_Receive(InOrderReassembler* r, struct rte_mbuf* pkt)
+Packet*
+InOrderReassembler_Receive(InOrderReassembler* r, Packet* npkt)
 {
+  struct rte_mbuf* frame = Packet_ToMbuf(npkt);
+  LpL2* lpl2 = &Packet_GetLpHdr(npkt)->l2;
+  assert(lpl2->fragCount > 1);
 #define PKTDBG(fmt, ...)                                                       \
-  ZF_LOGD("%016" PRIX64 ",%" PRIu16 ",%" PRIu16 " " fmt, lpp->seqNo,           \
-          lpp->fragIndex, lpp->fragCount, ##__VA_ARGS__)
-
-  LpPkt* lpp = Packet_GetLpHdr(pkt);
-  assert(LpPkt_HasPayload(lpp) & LpPkt_IsFragmented(lpp));
+  ZF_LOGD("%016" PRIX64 ",%" PRIu16 ",%" PRIu16 " " fmt, lpl2->seqNo,          \
+          lpl2->fragIndex, lpl2->fragCount, ##__VA_ARGS__)
 
   if (r->tail == NULL) {
-    if (lpp->fragIndex != 0) {
+    if (lpl2->fragIndex != 0) {
       PKTDBG("not-first");
       ++r->nOutOfOrder;
-      rte_pktmbuf_free(pkt);
+      rte_pktmbuf_free(frame);
       return NULL;
     }
 
     PKTDBG("accepted-first");
     ++r->nAccepted;
-    r->head = r->tail = pkt;
-    r->nextSeqNo = lpp->seqNo + 1;
+    r->head = r->tail = frame;
+    r->nextSeqNo = lpl2->seqNo + 1;
     return NULL;
   }
 
-  if (lpp->seqNo != r->nextSeqNo) {
+  if (lpl2->seqNo != r->nextSeqNo) {
     PKTDBG("out-of-order, expecting %016" PRIX64, r->nextSeqNo);
     ++r->nOutOfOrder;
-    rte_pktmbuf_free(pkt);
+    rte_pktmbuf_free(frame);
     rte_pktmbuf_free(r->head);
     r->head = r->tail = NULL;
     return NULL;
   }
 
   ++r->nAccepted;
-  // TODO more efficient chaining
-  rte_pktmbuf_chain(r->head, pkt);
-  r->tail = rte_pktmbuf_lastseg(r->head);
-  r->nextSeqNo = lpp->seqNo + 1;
+  struct rte_mbuf* newTail = rte_pktmbuf_lastseg(frame);
+  Packet_Chain(r->head, r->tail, frame);
+  r->tail = newTail;
+  r->nextSeqNo = lpl2->seqNo + 1;
 
-  if (lpp->fragIndex + 1 < lpp->fragCount) {
+  if (lpl2->fragIndex + 1 < lpl2->fragCount) {
     PKTDBG("accepted-chained");
     return NULL;
   }
@@ -53,8 +53,6 @@ InOrderReassembler_Receive(InOrderReassembler* r, struct rte_mbuf* pkt)
   r->tail = NULL; // indicate the reassembler is idle
 
   ++r->nDelivered;
-  lpp = Packet_GetLpHdr(r->head);
-  lpp->fragIndex = lpp->fragCount = 0;
-  return r->head;
+  return Packet_FromMbuf(r->head);
 #undef PKTDBG
 }

@@ -6,14 +6,6 @@
 #include "rx-proc.h"
 #include "tx-proc.h"
 
-/** \brief Numeric face identifier.
- */
-typedef uint16_t FaceId;
-
-#define FACEID_INVALID 0
-#define FACEID_MAX UINT16_MAX
-#define PRI_FaceId PRIu16
-
 typedef struct Face Face;
 typedef struct FaceCounters FaceCounters;
 
@@ -77,19 +69,19 @@ Face_GetNumaSocket(Face* face)
 
 /** \brief Receive and decode a burst of packet.
  *  \param face the face
- *  \param[out] pkts array of network layer packets with PacketPriv
- *  \param nPkts size of \p pkts array
+ *  \param[out] pkts array of L3 packets
+ *  \param count size of \p pkts array
  *  \return number of retrieved packets
  */
-uint16_t Face_RxBurst(Face* face, struct rte_mbuf** pkts, uint16_t nPkts);
+uint16_t Face_RxBurst(Face* face, Packet** npkts, uint16_t count);
 
 /** \brief Send a burst of packet.
  *  \param face the face
- *  \param pkts array of network layer packets with PacketPriv;
+ *  \param pkts array of L3 packets
  *              this function does not take ownership of these packets
- *  \param nPkts size of \p pkt array
+ *  \param count size of \p pkt array
  */
-void Face_TxBurst(Face* face, struct rte_mbuf** pkts, uint16_t nPkts);
+void Face_TxBurst(Face* face, Packet** npkts, uint16_t count);
 
 /** \brief Retrieve face counters.
  */
@@ -97,17 +89,34 @@ void Face_ReadCounters(Face* face, FaceCounters* cnt);
 
 // ---- functions invoked by face implementation ----
 
-/** \brief Initialize a face.
- *
- *  This should be called after initialization.
+typedef struct FaceMempools
+{
+  /** \brief mempool for indirect mbufs
+   */
+  struct rte_mempool* indirectMp;
+
+  /** \brief mempool for name linearize upon RX
+   *
+   *  Dataroom must be at least NAME_MAX_LENGTH.
+   */
+  struct rte_mempool* nameMp;
+
+  /** \brief mempool for NDNLP headers upon TX
+   *
+   *  Dataroom must be at least transport-specific-headroom +
+   *  EncodeLpHeader_GetHeadroom() + EncodeLpHeader_GetTailroom().
+   */
+  struct rte_mempool* headerMp;
+} FaceMempools;
+
+/** \brief Initialize face RX and TX.
+ *  \param mtu transport MTU available for NDNLP packets.
+ *  \param headroom headroom before NDNLP header, as required by transport.
  */
 void FaceImpl_Init(Face* face, uint16_t mtu, uint16_t headroom,
-                   struct rte_mempool* indirectMp,
-                   struct rte_mempool* headerMp);
+                   FaceMempools* mempools);
 
 /** \brief Update counters after a frame is transmitted.
- *
- *  This should be called after transmitting \p pkt .
  */
 static void
 FaceImpl_CountSent(Face* face, struct rte_mbuf* pkt)

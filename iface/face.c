@@ -3,14 +3,14 @@
 #include "rx-proc.h"
 
 uint16_t
-Face_RxBurst(Face* face, struct rte_mbuf** pkts, uint16_t nPkts)
+Face_RxBurst(Face* face, Packet** npkts, uint16_t count)
 {
-  uint16_t nInputs = (*face->rxBurstOp)(face, pkts, nPkts);
+  uint16_t nInputs = (*face->rxBurstOp)(face, (struct rte_mbuf**)npkts, count);
   uint16_t nProcessed = 0;
   for (uint16_t i = 0; i < nInputs; ++i) {
-    struct rte_mbuf* processed = RxProc_Input(&face->rx, pkts[i]);
+    Packet* processed = RxProc_Input(&face->rx, (struct rte_mbuf*)npkts[i]);
     if (processed != NULL) {
-      pkts[nProcessed++] = processed;
+      npkts[nProcessed++] = processed;
     }
   }
   return nProcessed;
@@ -30,15 +30,14 @@ Face_TxBurst_SendFrames(Face* face, struct rte_mbuf** frames, uint16_t nFrames)
 }
 
 void
-Face_TxBurst(Face* face, struct rte_mbuf** pkts, uint16_t nPkts)
+Face_TxBurst(Face* face, Packet** npkts, uint16_t count)
 {
   struct rte_mbuf* frames[TX_BURST_FRAMES + TX_MAX_FRAGMENTS];
   uint16_t nFrames = 0;
 
-  for (uint16_t i = 0; i < nPkts; ++i) {
-    struct rte_mbuf* pkt = pkts[i];
+  for (uint16_t i = 0; i < count; ++i) {
     nFrames +=
-      TxProc_Output(&face->tx, pkt, frames + nFrames, TX_MAX_FRAGMENTS);
+      TxProc_Output(&face->tx, npkts[i], frames + nFrames, TX_MAX_FRAGMENTS);
 
     if (unlikely(nFrames >= TX_BURST_FRAMES)) {
       Face_TxBurst_SendFrames(face, frames, nFrames);
@@ -60,7 +59,9 @@ Face_ReadCounters(Face* face, FaceCounters* cnt)
 
 void
 FaceImpl_Init(Face* face, uint16_t mtu, uint16_t headroom,
-              struct rte_mempool* indirectMp, struct rte_mempool* headerMp)
+              FaceMempools* mempools)
 {
-  TxProc_Init(&face->tx, mtu, headroom, indirectMp, headerMp);
+  TxProc_Init(&face->tx, mtu, headroom, mempools->indirectMp,
+              mempools->headerMp);
+  RxProc_Init(&face->rx, mempools->nameMp);
 }

@@ -7,7 +7,7 @@
 
 typedef struct TxProc TxProc;
 
-typedef uint16_t (*__TxProc_OutputFunc)(TxProc* tx, struct rte_mbuf* pkt,
+typedef uint16_t (*__TxProc_OutputFunc)(TxProc* tx, Packet* npkt,
                                         struct rte_mbuf** frames,
                                         uint16_t maxFrames);
 
@@ -48,11 +48,11 @@ typedef struct TxProc
 } TxProc;
 
 /** \brief Initialize TX procedure.
- *  \param mtu transport MTU available for NDNLP packets
- *  \param headroom headroom before NDNLP header, as required by transport
- *  \param indirectMp mempool for indirect mbufs
+ *  \param mtu transport MTU available for NDNLP packets.
+ *  \param headroom headroom before NDNLP header, as required by transport.
+ *  \param indirectMp mempool for indirect mbufs.
  *  \param headerMp mempool for NDNLP headers; dataroom must be at least headroom +
- *                  EncodeLpHeaders_GetHeadroom() + EncodeLpHeaders_GetTailroom()
+ *                  EncodeLpHeader_GetHeadroom() + EncodeLpHeader_GetTailroom().
  *  \retval 0 success
  *  \retval ENOSPC MTU is too small
  *  \retval ERANGE dataroom of headerMp is too small
@@ -69,10 +69,10 @@ int TxProc_Init(TxProc* tx, uint16_t mtu, uint16_t headroom,
  *  \return number of L2 frames to be transmitted
  */
 static uint16_t
-TxProc_Output(TxProc* tx, struct rte_mbuf* pkt, struct rte_mbuf** frames,
+TxProc_Output(TxProc* tx, Packet* npkt, struct rte_mbuf** frames,
               uint16_t maxFrames)
 {
-  return (*tx->outputFunc)(tx, pkt, frames, maxFrames);
+  return (*tx->outputFunc)(tx, npkt, frames, maxFrames);
 }
 
 static void
@@ -87,7 +87,7 @@ TxProc_CountQueued(TxProc* tx, uint16_t nAccepts, uint16_t nRejects)
 static void
 TxProc_CountSent(TxProc* tx, struct rte_mbuf* pkt)
 {
-  ++tx->nFrames[Packet_GetL3PktType(pkt)];
+  ++tx->nFrames[pkt->inner_l3_type];
   tx->nOctets += pkt->pkt_len;
 }
 

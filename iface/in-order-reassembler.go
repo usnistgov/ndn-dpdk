@@ -15,7 +15,7 @@ type InOrderReassembler struct {
 }
 
 func (r *InOrderReassembler) Receive(pkt ndn.Packet) ndn.Packet {
-	res := C.InOrderReassembler_Receive(&r.c, (*C.struct_rte_mbuf)(pkt.GetPtr()))
+	res := C.InOrderReassembler_Receive(&r.c, (*C.Packet)(pkt.GetPtr()))
 	return ndn.PacketFromPtr(unsafe.Pointer(res))
 }
 

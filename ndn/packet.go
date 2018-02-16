@@ -58,7 +58,7 @@ type Packet struct {
 	c *C.Packet
 }
 
-// Construct Packet from *C.struct_rte_mbuf pointing to first segment.
+// Construct Packet from *C.struct_rte_mbuf.
 // This function can accept nil pointer.
 func PacketFromPtr(ptr unsafe.Pointer) (pkt Packet) {
 	if ptr != nil {
@@ -69,6 +69,10 @@ func PacketFromPtr(ptr unsafe.Pointer) (pkt Packet) {
 
 func PacketFromDpdk(m dpdk.Packet) (pkt Packet) {
 	return PacketFromPtr(m.GetPtr())
+}
+
+func (pkt Packet) GetPtr() unsafe.Pointer {
+	return unsafe.Pointer(pkt.c)
 }
 
 func (pkt Packet) AsDpdkPacket() dpdk.Packet {

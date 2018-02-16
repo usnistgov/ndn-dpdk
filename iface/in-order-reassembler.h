@@ -19,12 +19,11 @@ typedef struct InOrderReassembler
   uint64_t nIncomplete; ///< number of incomplete L3 packets discarded
 } InOrderReassembler;
 
-/** \brief Receive an LpPkt into the reassembler.
- *  \param pkt the packet; mbuf offset points to network layer packet.
- *         Reassembler will free \p pkt when necessary.
- *  \return reassembled packet, if any.
+/** \brief Receive an NDNLPv2 fragmented packet into the reassembler.
+ *  \param npkt the packet after \p Packet_ParseL2; its mbuf must point to LpPayload,
+ *              and \p Packet_GetLpHdr must be available.
+ *  \return reassembled packet, or NULL if still waiting for more fragments.
  */
-struct rte_mbuf* InOrderReassembler_Receive(InOrderReassembler* r,
-                                            struct rte_mbuf* pkt);
+Packet* InOrderReassembler_Receive(InOrderReassembler* r, Packet* npkt);
 
 #endif // NDN_DPDK_IFACE_IN_ORDER_REASSEMBLER_H

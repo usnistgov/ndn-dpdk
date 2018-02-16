@@ -5,10 +5,10 @@
 // minimum payload size per fragment
 static const int MIN_PAYLOAD_SIZE_PER_FRAGMENT = 512;
 
-uint16_t TxProc_OutputFrag(TxProc* tx, struct rte_mbuf* pkt,
-                           struct rte_mbuf** frames, uint16_t maxFrames);
-uint16_t TxProc_OutputNoFrag(TxProc* tx, struct rte_mbuf* pkt,
-                             struct rte_mbuf** frames, uint16_t maxFrames);
+uint16_t TxProc_OutputFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames,
+                           uint16_t maxFrames);
+uint16_t TxProc_OutputNoFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames,
+                             uint16_t maxFrames);
 
 int
 TxProc_Init(TxProc* tx, uint16_t mtu, uint16_t headroom,
@@ -17,7 +17,7 @@ TxProc_Init(TxProc* tx, uint16_t mtu, uint16_t headroom,
   assert(indirectMp != NULL);
   assert(headerMp != NULL);
   assert(rte_pktmbuf_data_room_size(headerMp) >=
-         EncodeLpHeaders_GetHeadroom() + EncodeLpHeaders_GetTailroom());
+         EncodeLpHeader_GetHeadroom() + EncodeLpHeader_GetTailroom());
   tx->indirectMp = indirectMp;
   tx->headerMp = headerMp;
 
@@ -25,7 +25,7 @@ TxProc_Init(TxProc* tx, uint16_t mtu, uint16_t headroom,
     tx->outputFunc = TxProc_OutputNoFrag;
   } else {
     int fragmentPayloadSize =
-      (int)mtu - EncodeLpHeaders_GetHeadroom() - EncodeLpHeaders_GetTailroom();
+      (int)mtu - EncodeLpHeader_GetHeadroom() - EncodeLpHeader_GetTailroom();
     if (fragmentPayloadSize < MIN_PAYLOAD_SIZE_PER_FRAGMENT) {
       return ENOSPC;
     }
@@ -33,29 +33,20 @@ TxProc_Init(TxProc* tx, uint16_t mtu, uint16_t headroom,
     tx->outputFunc = TxProc_OutputFrag;
   }
 
-  tx->headerHeadroom = headroom + EncodeLpHeaders_GetHeadroom();
+  tx->headerHeadroom = headroom + EncodeLpHeader_GetHeadroom();
   if (rte_pktmbuf_data_room_size(headerMp) <
-      tx->headerHeadroom + EncodeLpHeaders_GetTailroom()) {
+      tx->headerHeadroom + EncodeLpHeader_GetTailroom()) {
     return ERANGE;
   }
 
   return 0;
 }
 
-static void
-TxProc_PrepareLpPkt(TxProc* tx, struct rte_mbuf* pkt, LpPkt* lpp)
-{
-  if (Packet_GetL2PktType(pkt) == L2PktType_NdnlpV2) {
-    rte_memcpy(lpp, Packet_GetLpHdr(pkt), sizeof(*lpp));
-  } else {
-    memset(lpp, 0, sizeof(*lpp));
-  }
-}
-
 uint16_t
-TxProc_OutputFrag(TxProc* tx, struct rte_mbuf* pkt, struct rte_mbuf** frames,
+TxProc_OutputFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames,
                   uint16_t maxFrames)
 {
+  struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   assert(pkt->pkt_len > 0);
   uint16_t nFragments = pkt->pkt_len / tx->fragmentPayloadSize +
                         (uint16_t)(pkt->pkt_len % tx->fragmentPayloadSize > 0);
@@ -70,11 +61,12 @@ TxProc_OutputFrag(TxProc* tx, struct rte_mbuf* pkt, struct rte_mbuf** frames,
     return 0;
   }
 
-  LpPkt lpp;
-  TxProc_PrepareLpPkt(tx, pkt, &lpp);
   MbufLoc pos;
   MbufLoc_Init(&pos, pkt);
-  L3PktType l3type = Packet_GetL3PktType(pkt);
+  LpHeader lph = { 0 };
+  rte_memcpy(&lph.l3, Packet_InitLpL3Hdr(npkt), sizeof(lph.l3));
+  lph.l2.fragCount = (uint16_t)nFragments;
+  L3PktType l3type = Packet_GetL3PktType(npkt);
 
   for (int i = 0; i < nFragments; ++i) {
     uint32_t fragSize = tx->fragmentPayloadSize;
@@ -89,15 +81,13 @@ TxProc_OutputFrag(TxProc* tx, struct rte_mbuf* pkt, struct rte_mbuf** frames,
       FreeMbufs(frames, nFragments);
       return 0;
     }
-    MbufLoc_Init(&lpp.payload, payload);
 
-    lpp.seqNo = ++tx->lastSeqNo;
-    lpp.fragIndex = (uint16_t)i;
-    lpp.fragCount = (uint16_t)nFragments;
+    lph.l2.seqNo = ++tx->lastSeqNo;
+    lph.l2.fragIndex = (uint16_t)i;
 
     struct rte_mbuf* frame = frames[i];
     frame->data_off = tx->headerHeadroom;
-    EncodeLpHeaders(frame, &lpp);
+    EncodeLpHeader(frame, &lph, payload->pkt_len);
     res = rte_pktmbuf_chain(frame, payload);
     if (unlikely(res != 0)) {
       ++tx->nL3OverLength;
@@ -107,8 +97,8 @@ TxProc_OutputFrag(TxProc* tx, struct rte_mbuf* pkt, struct rte_mbuf** frames,
     }
 
     // Set real L3 type on first segment and None on other segments,
-    // to match counting logic in TxProc_Sent
-    Packet_SetL3PktType(frame, l3type);
+    // to match counting logic in TxProc_CountSent
+    frame->inner_l3_type = l3type;
     l3type = L3PktType_None;
   }
 
@@ -117,9 +107,10 @@ TxProc_OutputFrag(TxProc* tx, struct rte_mbuf* pkt, struct rte_mbuf** frames,
 }
 
 uint16_t
-TxProc_OutputNoFrag(TxProc* tx, struct rte_mbuf* pkt, struct rte_mbuf** frames,
+TxProc_OutputNoFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames,
                     uint16_t maxFrames)
 {
+  struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   assert(pkt->pkt_len > 0);
   assert(maxFrames >= 1);
 
@@ -137,14 +128,13 @@ TxProc_OutputNoFrag(TxProc* tx, struct rte_mbuf* pkt, struct rte_mbuf** frames,
     return 0;
   }
 
-  LpPkt lpp;
-  TxProc_PrepareLpPkt(tx, pkt, &lpp);
-  lpp.fragIndex = 0;
-  lpp.fragCount = 1;
-  MbufLoc_Init(&lpp.payload, payload);
+  LpHeader lph = { 0 };
+  rte_memcpy(&lph.l3, Packet_InitLpL3Hdr(npkt), sizeof(lph.l3));
+  lph.l2.fragIndex = 0;
+  lph.l2.fragCount = 1;
 
   frame->data_off = tx->headerHeadroom;
-  EncodeLpHeaders(frame, &lpp);
+  EncodeLpHeader(frame, &lph, payload->pkt_len);
   int res = rte_pktmbuf_chain(frame, payload);
   if (unlikely(res != 0)) {
     ++tx->nL3OverLength;
@@ -153,6 +143,7 @@ TxProc_OutputNoFrag(TxProc* tx, struct rte_mbuf* pkt, struct rte_mbuf** frames,
     return 0;
   }
 
+  frame->inner_l3_type = Packet_GetL3PktType(npkt);
   ++tx->nL3Pkts[0];
   return 1;
 }

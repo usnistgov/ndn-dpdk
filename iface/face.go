@@ -59,7 +59,7 @@ func (face Face) RxBurst(pkts []ndn.Packet) int {
 	if len(pkts) == 0 {
 		return 0
 	}
-	res := C.Face_RxBurst(face.c, (**C.struct_rte_mbuf)(unsafe.Pointer(&pkts[0])), C.uint16_t(len(pkts)))
+	res := C.Face_RxBurst(face.c, (**C.Packet)(unsafe.Pointer(&pkts[0])), C.uint16_t(len(pkts)))
 	return int(res)
 }
 
@@ -67,7 +67,7 @@ func (face Face) TxBurst(pkts []ndn.Packet) {
 	if len(pkts) == 0 {
 		return
 	}
-	C.Face_TxBurst(face.c, (**C.struct_rte_mbuf)(unsafe.Pointer(&pkts[0])), C.uint16_t(len(pkts)))
+	C.Face_TxBurst(face.c, (**C.Packet)(unsafe.Pointer(&pkts[0])), C.uint16_t(len(pkts)))
 }
 
 func (face Face) ReadCounters() Counters {

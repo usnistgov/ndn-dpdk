@@ -33,19 +33,16 @@ func TestInOrderReassembler(t *testing.T) {
 			""}, // dropping because buffer discarded
 	}
 	for _, step := range steps {
-		pkt := dpdktestenv.PacketFromHex(step.input)
-		require.True(pkt.IsValid(), step.input)
-		d := ndn.NewTlvDecodePos(pkt)
-		lpp, e := d.ReadLpPkt()
+		fragPkt := ndn.PacketFromDpdk(dpdktestenv.PacketFromHex(step.input))
+		e := fragPkt.ParseL2()
 		require.NoError(e, step.input)
-		ndn.Packet{pkt}.SetLpHdr(lpp)
 
-		outPkt := reassembler.Receive(ndn.Packet{pkt})
+		reassPkt := reassembler.Receive(fragPkt)
 		if step.output == "" {
-			assert.False(outPkt.IsValid(), step.input)
-		} else if assert.True(outPkt.IsValid(), step.input) {
-			assert.False(outPkt.GetLpHdr().IsFragmented(), step.input)
-			// TODO check contents
+			assert.True(reassPkt.GetPtr() == nil, step.input)
+		} else if assert.NotNil(reassPkt.GetPtr(), step.input) {
+			payload := reassPkt.AsDpdkPacket().ReadAll()
+			assert.Equal(dpdktestenv.PacketBytesFromHex(step.output), payload, step.input)
 		}
 	}
 
