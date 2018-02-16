@@ -39,9 +39,11 @@ static const FaceOps ethFaceOps = {
 };
 
 int
-EthFace_Init(EthFace* face, uint16_t port, struct rte_mempool* indirectMp,
-             struct rte_mempool* headerMp)
+EthFace_Init(EthFace* face, uint16_t port, FaceMempools* mempools)
 {
+  assert(rte_pktmbuf_data_room_size(mempools->headerMp) >=
+         EthTx_GetHeaderMempoolDataRoom());
+
   if (port >= 0x1000) {
     return ENODEV;
   }
@@ -65,7 +67,6 @@ EthFace_Init(EthFace* face, uint16_t port, struct rte_mempool* indirectMp,
     return res;
   }
 
-  FaceImpl_Init(&face->base, mtu, sizeof(struct ether_hdr), indirectMp,
-                headerMp);
+  FaceImpl_Init(&face->base, mtu, sizeof(struct ether_hdr), mempools);
   return 0;
 }

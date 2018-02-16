@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"ndn-dpdk/dpdk/dpdktestenv"
+	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/ethface"
 	"ndn-dpdk/ndn"
 )
@@ -15,18 +16,21 @@ func TestEthFace(t *testing.T) {
 
 	eal := dpdktestenv.InitEal()
 	dpdktestenv.MakeDirectMp(4095, ndn.SizeofPacketPriv(), 2000)
-	indirectMp := dpdktestenv.MakeIndirectMp(4095)
-	// Normally headerMp does not need PrivRoom, but ring-based PMD would pass a 'header' as first
-	// segment on the RX side, where PrivRoom is required.
-	headerMp := dpdktestenv.MakeMp("header", 4095, ndn.SizeofPacketPriv(),
-		ethface.SizeofHeaderMempoolDataRoom())
+	mempools := iface.Mempools{
+		IndirectMp: dpdktestenv.MakeIndirectMp(4095),
+		NameMp:     dpdktestenv.MakeMp("name", 4095, 0, uint16(ndn.NAME_MAX_LENGTH)),
+		// Normally headerMp does not need PrivRoom, but ring-based PMD would pass a 'header'
+		// as first segment on the RX side, where PrivRoom is required.
+		HeaderMp: dpdktestenv.MakeMp("header", 4095, ndn.SizeofPacketPriv(),
+			ethface.SizeofHeaderMempoolDataRoom()),
+	}
 	edp := dpdktestenv.NewEthDevPair(1, 1024, 64)
 	defer edp.Close()
 
-	faceA, e := ethface.New(edp.PortA, indirectMp, headerMp)
+	faceA, e := ethface.New(edp.PortA, mempools)
 	require.NoError(e)
 	defer faceA.Close()
-	faceB, e := ethface.New(edp.PortB, indirectMp, headerMp)
+	faceB, e := ethface.New(edp.PortB, mempools)
 	require.NoError(e)
 	defer faceB.Close()
 
@@ -42,8 +46,8 @@ func TestEthFace(t *testing.T) {
 			nReceived += burstSize
 
 			for _, pkt := range pkts[:burstSize] {
-				if assert.True(pkt.IsValid()) {
-					pkt.Close()
+				if assert.True(pkt.GetPtr() != nil) {
+					pkt.AsDpdkPacket().Close()
 				}
 			}
 
@@ -58,14 +62,17 @@ func TestEthFace(t *testing.T) {
 	eal.Slaves[1].RemoteLaunch(func() int {
 		for i := 0; i < TX_LOOPS; i++ {
 			pkts := make([]ndn.Packet, 3)
-			pkts[0] = ndn.Packet{dpdktestenv.PacketFromHex("interest 050B name=0703080141 nonce=0A04CACBCCCD")}
-			pkts[1] = ndn.Packet{dpdktestenv.PacketFromHex("data 0609 name=0703080141 meta=1400 content=1500")}
-			pkts[2] = ndn.Packet{dpdktestenv.PacketFromHex("nack 6418 nack=FD032005(FD03210196~noroute) " +
-				"payload=500D(interest 050B name=0703080141 nonce=0A04CACBCCCD)")}
+			pkts[0] = ndn.PacketFromDpdk(dpdktestenv.PacketFromHex(
+				"interest 050B name=0703080141 nonce=0A04CACBCCCD"))
+			pkts[1] = ndn.PacketFromDpdk(dpdktestenv.PacketFromHex(
+				"data 0609 name=0703080141 meta=1400 content=1500"))
+			pkts[2] = ndn.PacketFromDpdk(dpdktestenv.PacketFromHex(
+				"nack 6418 nack=FD032005(FD03210196~noroute) " +
+					"payload=500D(interest 050B name=0703080141 nonce=0A04CACBCCCD)"))
 			faceA.TxBurst(pkts)
-			pkts[0].Close()
-			pkts[1].Close()
-			pkts[2].Close()
+			for _, pkt := range pkts {
+				pkt.AsDpdkPacket().Close()
+			}
 			time.Sleep(time.Millisecond)
 		}
 		return 0

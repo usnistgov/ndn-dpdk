@@ -16,11 +16,11 @@ LpHeader_FromPacket(LpHeader* lph, struct rte_mbuf* pkt, uint32_t* payloadOff)
 
   TlvDecodePos d0;
   MbufLoc_Init(&d0, pkt);
-  int firstOctet = MbufLoc_PeekOctet(&d0);
   TlvElement lppEle;
   NdnError e = DecodeTlvElement(&d0, &lppEle);
   RETURN_IF_UNLIKELY_ERROR;
   if (lppEle.type == TT_Interest || lppEle.type == TT_Data) {
+    *payloadOff = 0;
     return NdnError_OK;
   }
 
