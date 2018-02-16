@@ -106,6 +106,11 @@ func (n *Name) Compare(r *Name) NameCompareResult {
 	return NameCompareResult(C.LName_Compare(lhs, rhs))
 }
 
+// Determine if two names are equal.
+func (n *Name) Equal(r *Name) bool {
+	return n.Compare(r) == NAMECMP_EQUAL
+}
+
 // Print as URI.
 // Implements io.WriterTo.
 func (n *Name) WriteTo(w io.Writer) (nn int64, e error) {

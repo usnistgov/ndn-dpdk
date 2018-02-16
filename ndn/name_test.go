@@ -110,6 +110,11 @@ func TestNameCompare(t *testing.T) {
 		for j, rel := range relRow {
 			cmp := names[i].Compare(names[j])
 			assert.Equal(ndn.NameCompareResult(rel), cmp, "%d=%s %d=%s", i, names[i], j, names[j])
+			if rel == 0 {
+				assert.True(names[i].Equal(names[j]), "%d=%s %d=%s", i, names[i], j, names[j])
+			} else {
+				assert.False(names[i].Equal(names[j]), "%d=%s %d=%s", i, names[i], j, names[j])
+			}
 		}
 	}
 }
