@@ -20,7 +20,7 @@ func newStreamImpl(face *SocketFace, conn net.Conn) *streamImpl {
 
 func (impl *streamImpl) RxLoop() {
 	face := impl.face
-	buf := make([]byte, face.rxMp.GetDataroom())
+	buf := make(ndn.TlvBytes, face.rxMp.GetDataroom())
 	nAvail := 0
 	for {
 		nRead, e := face.conn.Read(buf[nAvail:])
@@ -53,19 +53,11 @@ func (impl *streamImpl) RxLoop() {
 	}
 }
 
-func (impl *streamImpl) postPacket(buf []byte) (n int) {
+func (impl *streamImpl) postPacket(buf ndn.TlvBytes) (n int) {
 	face := impl.face
 
-	_, sizeofTlvType, ok := ndn.DecodeVarNum(buf)
-	if !ok {
-		return 0
-	}
-	tlvLength, sizeofTlvLength, ok := ndn.DecodeVarNum(buf[sizeofTlvType:])
-	if !ok {
-		return 0
-	}
-	n = sizeofTlvType + sizeofTlvLength + int(tlvLength)
-	if n > len(buf) {
+	element, _ := buf.ExtractElement()
+	if element == nil {
 		return 0
 	}
 
@@ -78,7 +70,7 @@ func (impl *streamImpl) postPacket(buf []byte) (n int) {
 	pkt := mbuf.AsPacket()
 	seg0 := pkt.GetFirstSegment()
 	seg0.SetHeadroom(0)
-	seg0.Append(buf)
+	seg0.Append([]byte(element))
 
 	select {
 	case face.rxQueue <- pkt:
@@ -88,7 +80,7 @@ func (impl *streamImpl) postPacket(buf []byte) (n int) {
 		face.logger.Printf("RX queue is full, %d", face.rxCongestions)
 	}
 
-	return n
+	return len(element)
 }
 
 func (impl *streamImpl) Send(pkt dpdk.Packet) error {

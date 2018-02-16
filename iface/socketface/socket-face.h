@@ -14,8 +14,6 @@ typedef struct SocketFace
   Face base;
 } SocketFace;
 
-void SocketFace_Init(SocketFace* face, uint16_t id,
-                     struct rte_mempool* indirectMp,
-                     struct rte_mempool* headerMp);
+void SocketFace_Init(SocketFace* face, FaceId id, FaceMempools* mempools);
 
 #endif // NDN_DPDK_IFACE_SOCKETFACE_SOCKET_FACE_H

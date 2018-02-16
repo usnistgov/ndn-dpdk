@@ -17,11 +17,10 @@ func TestStream(t *testing.T) {
 	conn1, conn2 := net.Pipe()
 
 	face1 := socketface.New(conn1, socketface.Config{
-		RxMp:         directMp,
-		RxqCapacity:  64,
-		TxIndirectMp: indirectMp,
-		TxHeaderMp:   headerMp,
-		TxqCapacity:  64,
+		Mempools:    faceMempools,
+		RxMp:        directMp,
+		RxqCapacity: 64,
+		TxqCapacity: 64,
 	})
 	defer face1.Close()
 
@@ -36,8 +35,8 @@ func TestStream(t *testing.T) {
 	for i, hexPkt := range hexPkts {
 		hexJoined = append(hexJoined, dpdktestenv.PacketBytesFromHex(hexPkt)...)
 
-		txPkts[i] = ndn.Packet{dpdktestenv.PacketFromHex(hexPkt)}
-		defer txPkts[i].Close()
+		txPkts[i] = ndn.PacketFromDpdk(dpdktestenv.PacketFromHex(hexPkt))
+		defer txPkts[i].AsDpdkPacket().Close()
 	}
 
 	go conn2.Write(hexJoined)

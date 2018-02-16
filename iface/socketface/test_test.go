@@ -8,16 +8,19 @@ import (
 
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/dpdk/dpdktestenv"
+	"ndn-dpdk/iface"
 	"ndn-dpdk/ndn"
 )
 
-var directMp, indirectMp, headerMp dpdk.PktmbufPool
+var directMp dpdk.PktmbufPool
+var faceMempools iface.Mempools
 
 func TestMain(m *testing.M) {
 	directMp = dpdktestenv.MakeDirectMp(255, ndn.SizeofPacketPriv(), 2000)
-	indirectMp = dpdktestenv.MakeIndirectMp(4095)
-	headerMp = dpdktestenv.MakeMp("header", 4095, 0,
-		uint16(ndn.EncodeLpHeaders_GetHeadroom()+ndn.EncodeLpHeaders_GetTailroom()))
+	faceMempools.IndirectMp = dpdktestenv.MakeIndirectMp(4095)
+	faceMempools.HeaderMp = dpdktestenv.MakeMp("header", 4095, 0,
+		uint16(ndn.EncodeLpHeader_GetHeadroom()+ndn.EncodeLpHeader_GetTailroom()))
+	faceMempools.NameMp = dpdktestenv.MakeMp("name", 4095, 0, uint16(ndn.NAME_MAX_LENGTH))
 
 	os.Exit(m.Run())
 }

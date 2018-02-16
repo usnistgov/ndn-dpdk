@@ -58,21 +58,32 @@ func (tb TlvBytes) CountElements() (n int) {
 	return n
 }
 
+// Extract the first element from TlvBytes.
+// Return the first element or nil if not found, and any remaining bytes.
+func (tb TlvBytes) ExtractElement() (element TlvBytes, tail TlvBytes) {
+	if _, tail = tb.DecodeVarNum(); tail == nil {
+		return nil, tb
+	}
+	var length uint64
+	if length, tail = tail.DecodeVarNum(); tail == nil || len(tail) < int(length) {
+		return nil, tb
+	}
+	tail = tail[int(length):]
+	element = tb[:len(tb)-len(tail)]
+	return element, tail
+}
+
 // Split TlvBytes into elements.
 // Return slice of elements, or nil if incomplete.
 func (tb TlvBytes) SplitElements() (elements []TlvBytes) {
 	elements = make([]TlvBytes, 0)
 	for len(tb) > 0 {
-		var tlvType, length uint64
-		if tlvType, tb = tb.DecodeVarNum(); tb == nil { // read TLV-TYPE
+		var element TlvBytes
+		element, tb = tb.ExtractElement()
+		if element == nil {
 			return nil
 		}
-		if length, tb = tb.DecodeVarNum(); tb == nil || len(tb) < int(length) { // read TLV-LENGTH
-			return nil
-		}
-		elements = append(elements,
-			append(EncodeTlvTypeLength(TlvType(tlvType), int(length)), tb[:length]...))
-		tb = tb[length:]
+		elements = append(elements, element)
 	}
 	return elements
 }

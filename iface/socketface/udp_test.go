@@ -21,11 +21,10 @@ func TestUdp(t *testing.T) {
 	require.NoError(e)
 
 	face1 := socketface.New(conn1, socketface.Config{
-		RxMp:         directMp,
-		RxqCapacity:  64,
-		TxIndirectMp: indirectMp,
-		TxHeaderMp:   headerMp,
-		TxqCapacity:  64,
+		Mempools:    faceMempools,
+		RxMp:        directMp,
+		RxqCapacity: 64,
+		TxqCapacity: 64,
 	})
 	defer face1.Close()
 
@@ -39,8 +38,8 @@ func TestUdp(t *testing.T) {
 	for i, hexPkt := range hexPkts {
 		conn2.Write(dpdktestenv.PacketBytesFromHex(hexPkt))
 
-		txPkts[i] = ndn.Packet{dpdktestenv.PacketFromHex(hexPkt)}
-		defer txPkts[i].Close()
+		txPkts[i] = ndn.PacketFromDpdk(dpdktestenv.PacketFromHex(hexPkt))
+		defer txPkts[i].AsDpdkPacket().Close()
 	}
 
 	time.Sleep(time.Millisecond * 100)

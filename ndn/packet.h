@@ -12,7 +12,7 @@
  *
  *  Packet* is struct rte_mbuf* that fulfills requirements of \p Packet_FromMbuf.
  */
-typedef struct
+typedef struct Packet
 {
 } Packet;
 

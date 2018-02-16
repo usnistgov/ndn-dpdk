@@ -33,12 +33,10 @@ func setById(id int, face *SocketFace) {
 }
 
 type Config struct {
+	iface.Mempools
 	RxMp        dpdk.PktmbufPool // mempool for received frames, dataroom must fit NDNLP frame
 	RxqCapacity int              // receive queue length in frames
-
-	TxIndirectMp dpdk.PktmbufPool // mempool for indirect mbufs
-	TxHeaderMp   dpdk.PktmbufPool // mempool for NDNLP header
-	TxqCapacity  int              // send queue length in frames
+	TxqCapacity int              // send queue length in frames
 }
 
 type SocketFace struct {
@@ -84,9 +82,8 @@ func New(conn net.Conn, cfg Config) (face *SocketFace) {
 	face.rxQuit = make(chan struct{}, 1)
 	face.txQueue = make(chan dpdk.Packet, cfg.TxqCapacity)
 
-	C.SocketFace_Init(face.getPtr(), C.uint16_t(id),
-		(*C.struct_rte_mempool)(cfg.TxIndirectMp.GetPtr()),
-		(*C.struct_rte_mempool)(cfg.TxHeaderMp.GetPtr()))
+	C.SocketFace_Init(face.getPtr(), C.FaceId(id),
+		(*C.FaceMempools)(cfg.Mempools.GetPtr()))
 	setById(id, face)
 
 	if dconn, isDatagram := conn.(net.PacketConn); isDatagram {
