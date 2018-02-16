@@ -20,7 +20,7 @@ func TestMain(m *testing.M) {
 	faceMempools.IndirectMp = dpdktestenv.MakeIndirectMp(4095)
 	faceMempools.HeaderMp = dpdktestenv.MakeMp("header", 4095, 0,
 		uint16(ndn.EncodeLpHeader_GetHeadroom()+ndn.EncodeLpHeader_GetTailroom()))
-	faceMempools.NameMp = dpdktestenv.MakeMp("name", 4095, 0, uint16(ndn.NAME_MAX_LENGTH))
+	faceMempools.NameMp = dpdktestenv.MakeMp("name", 4095, 0, ndn.NAME_MAX_LENGTH)
 
 	os.Exit(m.Run())
 }

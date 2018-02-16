@@ -12,7 +12,7 @@ import (
 	"unsafe"
 )
 
-const NAME_MAX_LENGTH = int(C.NAME_MAX_LENGTH)
+const NAME_MAX_LENGTH = C.NAME_MAX_LENGTH
 
 // Name element.
 type Name struct {

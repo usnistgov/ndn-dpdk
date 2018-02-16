@@ -61,9 +61,7 @@ func newEthFace(u faceuri.FaceUri) (*iface.Face, error) {
 		return nil, fmt.Errorf("port(%d).Start: %v", port, e)
 	}
 
-	face, e := ethface.New(port,
-		MakePktmbufPool(MP_IND, port.GetNumaSocket()),
-		MakePktmbufPool(MP_ETHTX, port.GetNumaSocket()))
+	face, e := ethface.New(port, makeFaceMempools(port.GetNumaSocket()))
 	if e != nil {
 		return nil, fmt.Errorf("ethface.New(%d): %v", port, e)
 	}
@@ -81,13 +79,19 @@ func newSocketFace(u faceuri.FaceUri) (*iface.Face, error) {
 	}
 
 	var cfg socketface.Config
+	cfg.Mempools = makeFaceMempools(dpdk.NUMA_SOCKET_ANY)
 	cfg.RxMp = MakePktmbufPool(MP_ETHRX, dpdk.NUMA_SOCKET_ANY)
 	cfg.RxqCapacity = FACE_RXQ_CAPACITY
-	cfg.TxIndirectMp = MakePktmbufPool(MP_IND, dpdk.NUMA_SOCKET_ANY)
-	cfg.TxHeaderMp = MakePktmbufPool(MP_ETHTX, dpdk.NUMA_SOCKET_ANY)
 	cfg.TxqCapacity = FACE_TXQ_CAPACITY
 
 	face := socketface.New(conn, cfg)
 	GetFaceTable().SetFace(face.Face)
 	return &face.Face, nil
+}
+
+func makeFaceMempools(socket dpdk.NumaSocket) (mempools iface.Mempools) {
+	mempools.IndirectMp = MakePktmbufPool(MP_IND, socket)
+	mempools.NameMp = MakePktmbufPool(MP_NAME, socket)
+	mempools.HeaderMp = MakePktmbufPool(MP_ETHTX, socket)
+	return mempools
 }

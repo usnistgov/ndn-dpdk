@@ -85,10 +85,11 @@ func MakePktmbufPool(key string, socket dpdk.NumaSocket) dpdk.PktmbufPool {
 const (
 	MP_IND   = "__IND"   // mempool for indirect mbufs
 	MP_ETHRX = "__ETHRX" // mempool for incoming Ethernet frames
+	MP_NAME  = "__NAME"  // mempool for name linearize
 	MP_ETHTX = "__ETHTX" // mempool for outgoing Ethernet and NDNLP headers
-	MP_INT   = "__INT"   // mempool for Interests
-	MP_DATA1 = "__DATA1" // mempool for Data header
-	MP_DATA2 = "__DATA2" // mempool for Data signature
+	MP_INT   = "__INT"   // mempool for encoding Interests
+	MP_DATA1 = "__DATA1" // mempool for encoding Data header
+	MP_DATA2 = "__DATA2" // mempool for encoding Data signature
 )
 
 func init() {
@@ -105,6 +106,13 @@ func init() {
 			CacheSize:    255,
 			PrivSize:     ndn.SizeofPacketPriv(),
 			DataRoomSize: 9014, // MTU+sizeof(ether_hdr)
+		})
+	RegisterMempool(MP_NAME,
+		MempoolConfig{
+			Capacity:     65535,
+			CacheSize:    255,
+			PrivSize:     0,
+			DataRoomSize: ndn.NAME_MAX_LENGTH,
 		})
 	RegisterMempool(MP_ETHTX,
 		MempoolConfig{
