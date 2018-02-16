@@ -42,13 +42,19 @@ func (set NameSet) Len() int {
 	return int(set.c.nRecords)
 }
 
-func (set NameSet) Insert(comps ndn.TlvBytes) {
-	C.NameSet_Insert(set.c, (*C.uint8_t)(comps.GetPtr()), C.uint16_t(len(comps)), nil, 0)
+func (set NameSet) Insert(name *ndn.Name) {
+	set.InsertWithZeroUsr(name, 0)
 }
 
-func (set NameSet) InsertWithZeroUsr(comps ndn.TlvBytes, usrLen int) {
-	C.NameSet_Insert(set.c, (*C.uint8_t)(comps.GetPtr()), C.uint16_t(len(comps)),
+func (set NameSet) InsertWithZeroUsr(name *ndn.Name, usrLen int) {
+	C.__NameSet_Insert(set.c, (C.uint16_t)(name.Size()), (*C.uint8_t)(name.GetValue().GetPtr()),
 		nil, C.size_t(usrLen))
+}
+
+func (set NameSet) GetName(index int) (name *ndn.Name) {
+	n := C.NameSet_GetName(set.c, C.int(index))
+	name, _ = ndn.NewName(ndn.TlvBytes(C.GoBytes(unsafe.Pointer(n.value), C.int(n.length))))
+	return name
 }
 
 func (set NameSet) GetUsr(index int) unsafe.Pointer {
@@ -59,10 +65,12 @@ func (set NameSet) Erase(index int) {
 	C.NameSet_Erase(set.c, C.int(index))
 }
 
-func (set NameSet) FindExact(comps ndn.TlvBytes) int {
-	return int(C.NameSet_FindExact(set.c, (*C.uint8_t)(comps.GetPtr()), C.uint16_t(len(comps))))
+func (set NameSet) FindExact(name *ndn.Name) int {
+	return int(C.__NameSet_FindExact(set.c, (C.uint16_t)(name.Size()),
+		(*C.uint8_t)(name.GetValue().GetPtr())))
 }
 
-func (set NameSet) FindPrefix(comps ndn.TlvBytes) int {
-	return int(C.NameSet_FindPrefix(set.c, (*C.uint8_t)(comps.GetPtr()), C.uint16_t(len(comps))))
+func (set NameSet) FindPrefix(name *ndn.Name) int {
+	return int(C.__NameSet_FindPrefix(set.c, (C.uint16_t)(name.Size()),
+		(*C.uint8_t)(name.GetValue().GetPtr())))
 }
