@@ -37,6 +37,8 @@ func main() {
 		pctxs = append(pctxs, pctx)
 	}
 
+	// TODO enable dump
+
 	// link PktcopyRx and PktcopyTx
 	switch pc.Mode {
 	case TopoMode_Pair:
@@ -75,7 +77,7 @@ func main() {
 		appinit.LaunchRequired(pctx.Run, pctx.GetFace().GetNumaSocket())
 	}
 
-	// start PktcopyRx process
+	// start PktcopyRx processes
 	for _, pcrx := range pcrxs {
 		appinit.LaunchRequired(pcrx.Run, pcrx.GetFace().GetNumaSocket())
 	}
@@ -84,7 +86,7 @@ func main() {
 }
 
 func printPacket(pkt ndn.Packet) {
-	switch pkt.GetNetType() {
+	switch pkt.GetL3Type() {
 	case ndn.L3PktType_Interest:
 		interest := pkt.AsInterest()
 		log.Printf("I %s", interest.GetName())
@@ -92,6 +94,7 @@ func printPacket(pkt ndn.Packet) {
 		data := pkt.AsData()
 		log.Printf("D %s", data.GetName())
 	case ndn.L3PktType_Nack:
-		log.Printf("Nack")
+		nack := pkt.AsNack()
+		log.Printf("N %s~%s", nack.GetInterest().GetName(), nack.GetReason())
 	}
 }

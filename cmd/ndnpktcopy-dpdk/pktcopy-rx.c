@@ -15,7 +15,8 @@ PktcopyRx_Run(PktcopyRx* pcrx)
   struct rte_mbuf* pkts[PKTCOPYRX_BURST_SIZE];
   struct rte_mbuf* indirects[PKTCOPYRX_BURST_SIZE];
   while (true) {
-    uint16_t nRx = Face_RxBurst(pcrx->face, pkts, PKTCOPYRX_BURST_SIZE);
+    uint16_t nRx =
+      Face_RxBurst(pcrx->face, (Packet**)pkts, PKTCOPYRX_BURST_SIZE);
     if (nRx == 0) {
       continue;
     }
@@ -31,6 +32,7 @@ PktcopyRx_Run(PktcopyRx* pcrx)
           // TODO memory allocation error counter
           continue;
         }
+        // XXX missing: make indirect mbufs point to packets
         txPkts = indirects;
       }
       unsigned nEnq =
