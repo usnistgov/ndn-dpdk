@@ -6,8 +6,12 @@
 #include "pcct.h"
 
 /** \brief The Pending Interest Table (PIT).
+ *
+ *  Pit* is Pcct*.
  */
-typedef Pcct Pit;
+typedef struct Pit
+{
+} Pit;
 
 static Pcct*
 Pcct_FromPit(const Pit* pit)
@@ -21,7 +25,11 @@ Pcct_GetPit(const Pcct* pcct)
   return (Pit*)pcct;
 }
 
-#define Pit_GetPriv(pit) (&Pcct_GetPriv((pit))->pitPriv)
+static PitPriv*
+Pit_GetPriv(const Pit* pit)
+{
+  return &Pcct_GetPriv(Pcct_FromPit(pit))->pitPriv;
+}
 
 /** \brief Get number of PIT entries.
  */

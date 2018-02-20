@@ -18,7 +18,7 @@ Pit_Insert(Pit* pit, Packet* npkt)
   }
 
   bool isNew = false;
-  PccEntry* pccEntry = Pcct_Insert(pit, hash, &search, &isNew);
+  PccEntry* pccEntry = Pcct_Insert(Pcct_FromPit(pit), hash, &search, &isNew);
   if (likely(pccEntry != NULL) && isNew) {
     pccEntry->hasPitEntry = true;
     ++pitp->nEntries;

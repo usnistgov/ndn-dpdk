@@ -35,7 +35,7 @@ Pcct_New(const char* id, uint32_t maxEntries, unsigned numaSocket)
     return NULL;
   }
 
-  Pcct* pcct = rte_mempool_create(
+  Pcct* pcct = (Pcct*)rte_mempool_create(
     id, maxEntries, sizeof(PccEntry), 0, sizeof(PcctPriv), NULL, NULL, NULL,
     NULL, numaSocket, MEMPOOL_F_SP_PUT | MEMPOOL_F_SC_GET);
   if (unlikely(pcct == NULL)) {
@@ -65,7 +65,7 @@ Pcct_Close(Pcct* pcct)
   PcctPriv* pcctp = Pcct_GetPriv(pcct);
   rte_hash_free(pcctp->tokenHt);
   HASH_CLEAR(hh, pcctp->keyHt);
-  rte_mempool_free(pcct);
+  rte_mempool_free(Pcct_ToMempool(pcct));
 }
 
 PccEntry*
@@ -78,7 +78,7 @@ Pcct_Insert(Pcct* pcct, uint64_t hash, PccSearch* search, bool* isNew)
   }
 
   void* entry0;
-  int res = rte_mempool_get(pcct, &entry0);
+  int res = rte_mempool_get(Pcct_ToMempool(pcct), &entry0);
   if (unlikely(res != 0)) {
     return NULL;
   }
@@ -99,7 +99,7 @@ Pcct_Erase(Pcct* pcct, PccEntry* entry)
   PcctPriv* pcctp = Pcct_GetPriv(pcct);
   Pcct_RemoveToken(pcct, entry);
   HASH_DELETE(hh, pcctp->keyHt, entry);
-  rte_mempool_put(pcct, entry);
+  rte_mempool_put(Pcct_ToMempool(pcct), entry);
 }
 
 PccEntry*

@@ -9,9 +9,19 @@
 
 /** \brief Shared index for PIT and CS.
  *
- *  \p PcctPriv is attached to the private data area of this mempool.
+ *  Pcct* is struct rte_mempool* with \p PcctPriv is attached to its private data area.
  */
-typedef struct rte_mempool Pcct;
+typedef struct Pcct
+{
+} Pcct;
+
+/** \brief Cast Pcct* as rte_mempool*.
+ */
+static struct rte_mempool*
+Pcct_ToMempool(const Pcct* pcct)
+{
+  return (struct rte_mempool*)pcct;
+}
 
 /** \brief rte_mempool private data for Pcc.
  */
@@ -25,8 +35,13 @@ typedef struct PcctPriv
   CsPriv csPriv;
 } PcctPriv;
 
-#define Pcct_GetPriv(pcct)                                                     \
-  ((PcctPriv*)rte_mempool_get_priv((struct rte_mempool*)(pcct)))
+/** \brief Access TshtPriv* struct.
+ */
+static PcctPriv*
+Pcct_GetPriv(const Pcct* pcct)
+{
+  return (PcctPriv*)rte_mempool_get_priv(Pcct_ToMempool(pcct));
+}
 
 /** \brief Create a PIT-CS index.
  *  \param id identifier for debugging, up to 24 chars, must be unique.

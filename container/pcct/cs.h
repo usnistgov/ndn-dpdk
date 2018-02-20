@@ -6,8 +6,12 @@
 #include "pcct.h"
 
 /** \brief The Content Store (CS).
+ *
+ *  Cs* is Pcct*.
  */
-typedef Pcct Cs;
+typedef struct Cs
+{
+} Cs;
 
 static Pcct*
 Pcct_FromCs(const Cs* cs)
@@ -21,7 +25,11 @@ Pcct_GetCs(const Pcct* pcct)
   return (Cs*)pcct;
 }
 
-#define Cs_GetPriv(cs) (&Pcct_GetPriv((cs))->csPriv)
+static CsPriv*
+Cs_GetPriv(const Cs* cs)
+{
+  return &Pcct_GetPriv(Pcct_FromCs(cs))->csPriv;
+}
 
 /** \brief Get capacity in number of entries.
  */

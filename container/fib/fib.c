@@ -15,8 +15,8 @@ Fib*
 Fib_New(const char* id, uint32_t maxEntries, uint32_t nBuckets,
         unsigned numaSocket, uint8_t startDepth)
 {
-  Fib* fib = Tsht_New(id, maxEntries, nBuckets, Fib_LookupMatch,
-                      sizeof(FibEntry), sizeof(FibPriv), numaSocket);
+  Fib* fib = (Fib*)Tsht_New(id, maxEntries, nBuckets, Fib_LookupMatch,
+                            sizeof(FibEntry), sizeof(FibPriv), numaSocket);
 
   FibPriv* fibp = Fib_GetPriv(fib);
   fibp->startDepth = startDepth;
@@ -27,7 +27,7 @@ Fib_New(const char* id, uint32_t maxEntries, uint32_t nBuckets,
 FibEntry*
 Fib_Alloc(Fib* fib)
 {
-  FibEntry* entry = Tsht_AllocT(fib, FibEntry);
+  FibEntry* entry = Tsht_AllocT(Fib_ToTsht(fib), FibEntry);
   if (likely(entry != NULL)) {
     memset(entry, 0, sizeof(*entry));
   }
@@ -42,14 +42,14 @@ Fib_Insert(Fib* fib, FibEntry* entry)
   key.value = entry->nameV;
   uint64_t hash = LName_ComputeHash(key);
 
-  return Tsht_Insert(fib, hash, &key, entry);
+  return Tsht_Insert(Fib_ToTsht(fib), hash, &key, entry);
 }
 
 const FibEntry*
 Fib_Find(Fib* fib, LName name)
 {
   uint64_t hash = LName_ComputeHash(name);
-  return Tsht_FindT(fib, hash, &name, FibEntry);
+  return Tsht_FindT(Fib_ToTsht(fib), hash, &name, FibEntry);
 }
 
 static const FibEntry*
@@ -59,7 +59,7 @@ Fib_GetEntryByPrefix(Fib* fib, const PName* name, const uint8_t* nameV,
   uint64_t hash = PName_ComputePrefixHash(name, nameV, prefixLen);
   LName key = {.length = PName_SizeofPrefix(name, nameV, prefixLen),
                .value = nameV };
-  return Tsht_FindT(fib, hash, &key, FibEntry);
+  return Tsht_FindT(Fib_ToTsht(fib), hash, &key, FibEntry);
 }
 
 const FibEntry*

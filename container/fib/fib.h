@@ -7,8 +7,20 @@
 #include "entry.h"
 
 /** \brief The Forwarding Information Base (FIB).
+ *
+ *  Fib* is Tsht* with \p FibPriv at its 'head' field.
  */
-typedef Tsht Fib;
+typedef struct Fib
+{
+} Fib;
+
+/** \brief Cast Fib* as Tsht*.
+ */
+static Tsht*
+Fib_ToTsht(const Fib* fib)
+{
+  return (Tsht*)fib;
+}
 
 /** \brief TSHT private data for FIB.
  */
@@ -17,7 +29,13 @@ typedef struct FibPriv
   int startDepth; ///< starting depth ('M' in 2-stage LPM paper)
 } FibPriv;
 
-#define Fib_GetPriv(fib) Tsht_GetHead(fib, FibPriv)
+/** \brief Access FibPriv* struct.
+ */
+static FibPriv*
+Fib_GetPriv(const Fib* fib)
+{
+  return Tsht_GetHead(Fib_ToTsht(fib), FibPriv);
+}
 
 /** \brief Create a FIB.
  *  \param id identifier for debugging, must be unique.
@@ -33,7 +51,7 @@ Fib* Fib_New(const char* id, uint32_t maxEntries, uint32_t nBuckets,
 static void
 Fib_Close(Fib* fib)
 {
-  Tsht_Close(fib);
+  Tsht_Close(Fib_ToTsht(fib));
 }
 
 /** \brief Allocate and zero a FIB entry from mempool.
@@ -45,7 +63,7 @@ FibEntry* Fib_Alloc(Fib* fib);
 static void
 Fib_Free(Fib* fib, FibEntry* entry)
 {
-  Tsht_Free(fib, entry);
+  Tsht_Free(Fib_ToTsht(fib), entry);
 }
 
 /** \brief Insert a FIB entry, or replace an existing entry with same name.
@@ -63,7 +81,7 @@ bool Fib_Insert(Fib* fib, FibEntry* entry);
 static void
 Fib_Erase(Fib* fib, FibEntry* entry)
 {
-  Tsht_Erase(fib, entry);
+  Tsht_Erase(Fib_ToTsht(fib), entry);
 }
 
 /** \brief Perform exact match.

@@ -1,7 +1,5 @@
 #include "tsht.h"
 
-#include <rte_mempool.h>
-
 // lfht must be capable of storing the full hash value.
 static_assert(sizeof(((struct cds_lfht_node*)NULL)->reverse_hash) ==
                 sizeof(uint64_t),
@@ -14,9 +12,9 @@ Tsht_New(const char* id, uint32_t maxEntries, uint32_t nBuckets,
 {
   uint32_t nodeSize = sizeof(TshtNode) + sizeofEntry;
   uint32_t privSize = sizeof(TshtPriv) + sizeofHead;
-  Tsht* ht =
-    rte_mempool_create(id, maxEntries, nodeSize, 0, privSize, NULL, NULL, NULL,
-                       NULL, numaSocket, MEMPOOL_F_SP_PUT | MEMPOOL_F_SC_GET);
+  Tsht* ht = (Tsht*)rte_mempool_create(id, maxEntries, nodeSize, 0, privSize,
+                                       NULL, NULL, NULL, NULL, numaSocket,
+                                       MEMPOOL_F_SP_PUT | MEMPOOL_F_SC_GET);
   if (unlikely(ht == NULL)) {
     return NULL;
   }
@@ -25,7 +23,7 @@ Tsht_New(const char* id, uint32_t maxEntries, uint32_t nBuckets,
   htp->match = (cds_lfht_match_fct)match;
   htp->lfht = cds_lfht_new(nBuckets, nBuckets, nBuckets, 0, NULL);
   if (unlikely(htp->lfht == NULL)) {
-    rte_mempool_free(ht);
+    rte_mempool_free(Tsht_ToMempool(ht));
     return NULL;
   }
 
@@ -45,14 +43,14 @@ Tsht_Close(Tsht* ht)
 
   int res = cds_lfht_destroy(htp->lfht, NULL);
   assert(res == 0);
-  rte_mempool_free(ht);
+  rte_mempool_free(Tsht_ToMempool(ht));
 }
 
 TshtEntryPtr
 Tsht_Alloc(Tsht* ht)
 {
   void* node0 = NULL;
-  int res = rte_mempool_get(ht, &node0);
+  int res = rte_mempool_get(Tsht_ToMempool(ht), &node0);
   if (unlikely(res != 0)) {
     return NULL;
   }
@@ -66,15 +64,15 @@ void
 Tsht_Free(Tsht* ht, TshtEntryPtr entry)
 {
   TshtNode* node = TshtNode_FromEntry(entry);
-  rte_mempool_put(ht, node);
+  rte_mempool_put(Tsht_ToMempool(ht), node);
 }
 
 static void
 Tsht_FreeNode(struct rcu_head* rcuhead)
 {
   TshtNode* node = caa_container_of(rcuhead, TshtNode, rcuhead);
-  Tsht* ht = rte_mempool_from_obj(node);
-  rte_mempool_put(ht, node);
+  struct rte_mempool* mempool = rte_mempool_from_obj(node);
+  rte_mempool_put(mempool, node);
 }
 
 bool
