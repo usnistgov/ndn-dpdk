@@ -59,6 +59,10 @@ func TestInterestDecode(t *testing.T) {
 				for i, fhName := range fhs {
 					assert.Equal(tt.fhs[i], fhName.String(), "%s %i", tt.input, i)
 				}
+				if len(tt.fhs) > 0 {
+					assert.Error(interest.SetFhIndex(len(tt.fhs)), tt.input)
+					assert.NoError(interest.SetFhIndex(0), tt.input)
+				}
 			}
 			if tt.hasNonce {
 				assert.Equal(uint32(0xA3A2A1A0), interest.GetNonce(), tt.input)

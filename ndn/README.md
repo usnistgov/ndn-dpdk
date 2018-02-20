@@ -7,7 +7,7 @@ It supports index fragmentation, network nack, and congestion mark features.
 As a protocol extension, it supports [PIT token](https://redmine.named-data.net/issues/4432) field.
 
 Layer 3 implementation follows **NDN Packet Format** specification, [version 0.3 draft 4441,24](https://gerrit.named-data.net/#/c/4441/24).
-However, it does support TLV encoding evolvability: encountering an unrecognized or out-of-order TLV element would cause the packet to be treated as invalid, regardless of whether its TLV-TYPE is critical or non-critical.
+However, it does not support TLV encoding evolvability: encountering an unrecognized or out-of-order TLV element would cause the packet to be treated as invalid, regardless of whether its TLV-TYPE is critical or non-critical.
 
 ## Low-Level TLV Functions
 
@@ -51,8 +51,8 @@ Within a `PacketPriv`:
 * **LpL3** contains layer 3 fields in NDNLPv2 header, accessible via `Packet_GetLpL3Hdr`.
 * **LpL2** contains layer 2 fields in NDNLPv2 header.
 * **LpHeader** combines `LpL3` and `LpL2`, accessible via `Packet_GetLpHdr`.
-* **PInterest** is a parsed Interest, accessible via `Packet_GetInterestHdr`. It must be used together with the mbufs containing the Interest packet.
-* **PData** is a parsed Data, accessible via `Packet_GetDataHdr`. It must be used together with the mbufs containing the Data packet.
+* **PInterest** is a parsed Interest, accessible via `Packet_GetInterestHdr`. It must be used together with the mbuf containing the Interest packet.
+* **PData** is a parsed Data, accessible via `Packet_GetDataHdr`. It must be used together with the mbuf containing the Data packet.
 * **PNack** represents a parsed Nack, accessible via `Packet_GetNackHdr`. It overlays `LpL3` (where NackReason field is located) and `PInterest`.
 
 `Packet_GetL2PktType` and `Packet_GetL3PktType` indicate what headers are currently accessible.
@@ -64,7 +64,19 @@ To receive and parse a packet, calling code should:
 2. Cast the mbuf to `Packet*` with `Packet_FromMbuf` function.
 3. Invoke `Packet_ParseL2` function to parse NDNLPv2 headers into `LpHeader`. NDNLPv2 headers are stripped from the mbuf during this step. Bare Interest/Data is considered valid LpPacket, and also makes `LpHeader` available.
 4. Perform reassembly if necessary.
-5. Invoke `Packet_ParseL3` function to parse Interest or Data into `PInterest`, `PData`, or `PNack`. During this step, fragmented names are moved or copied into consecutive memory. The *HopLimit* field of an Interest is automatically decremented. `LpHeader` is overwritten but `LpL3` survives.
+5. Invoke `Packet_ParseL3` function to parse Interest or Data into `PInterest`, `PData`, or `PNack`. During this step, fragmented names are moved or copied into consecutive memory. `LpHeader` is overwritten but `LpL3` survives.
+
+### Interest Decoding Details
+
+`PInterest_FromPacket` function decodes an Interest.
+
+If the Interest carries a *forwarding hint*, up to `INTEREST_MAX_FHS` delegations are recognized, and any remaining delegations are ignored.
+`PInterest.fh` array stores the recognized delegation names as `LName`; this implies that the decoder only determines the length of each name, but does not parse at component level.
+`PInterest_ParseFh` function can parse a delegation name into components on demand, but only one delegation name can be stored as as `PName` in a `PInterest`.
+
+If the Interest carries the *HopLimit* field, it is automatically decremented in place.
+
+The decoder stores the position of Nonce and InterestLifetime fields as `PInterest.guiderLoc`. It can be used to insert a missing Nonce field, or to modify InterestLifetime.
 
 ## Packet Encoding
 

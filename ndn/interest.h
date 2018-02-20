@@ -48,6 +48,13 @@ typedef struct PInterest
 NdnError PInterest_FromPacket(PInterest* interest, struct rte_mbuf* pkt,
                               struct rte_mempool* mpName);
 
+/** \brief Parse a forwarding hint.
+ *  \param index forwarding hint index, must be less than \p interest->nFhs.
+ *  \post interest->thisFhIndex == index
+ *  \post interest->thisFh reflects the index-th forwarding hint.
+ */
+NdnError PInterest_ParseFh(PInterest* interest, uint8_t index);
+
 /** \brief Template for Interest encoding.
  */
 typedef struct InterestTemplate

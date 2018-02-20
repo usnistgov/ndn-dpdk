@@ -123,6 +123,23 @@ PInterest_FromPacket(PInterest* interest, struct rte_mbuf* pkt,
 #undef D1_NEXT
 }
 
+NdnError
+PInterest_ParseFh(PInterest* interest, uint8_t index)
+{
+  assert(index < interest->nFhs);
+  if (interest->thisFhIndex == index) {
+    return NdnError_OK;
+  }
+
+  NdnError e = PName_Parse(&interest->thisFh.p, interest->fh[index].length,
+                           interest->fh[index].value);
+  RETURN_IF_UNLIKELY_ERROR;
+
+  interest->thisFh.v = interest->fh[index].value;
+  interest->thisFhIndex = index;
+  return NdnError_OK;
+}
+
 uint16_t
 __InterestTemplate_Prepare(InterestTemplate* tpl, uint8_t* buffer,
                            uint16_t bufferSize, const uint8_t* fhV)

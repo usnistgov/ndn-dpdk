@@ -5,6 +5,7 @@ package ndn
 */
 import "C"
 import (
+	"errors"
 	"time"
 	"unsafe"
 
@@ -62,6 +63,22 @@ func (interest *Interest) GetFhs() (fhs []*Name) {
 		fhs[i], _ = NewName(TlvBytes(C.GoBytes(unsafe.Pointer(lname.value), C.int(lname.length))))
 	}
 	return fhs
+}
+
+func (interest *Interest) SetFhIndex(index int) error {
+	if index < -1 || index >= int(interest.p.nFhs) {
+		return errors.New("fhindex out of range")
+	}
+	if index == -1 {
+		interest.p.thisFhIndex = -1
+		return nil
+	}
+
+	e := C.PInterest_ParseFh(interest.p, C.uint8_t(index))
+	if e != C.NdnError_OK {
+		return NdnError(e)
+	}
+	return nil
 }
 
 func EncodeInterest_GetHeadroom() int {
