@@ -45,8 +45,9 @@ type iPitEntry interface {
 }
 
 // Insert a CS entry by replacing a PIT entry with same key.
-func (cs Cs) ReplacePitEntry(pitEntry iPitEntry, pkt ndn.Packet) {
-	C.Cs_ReplacePitEntry(cs.getPtr(), (*C.PitEntry)(pitEntry.GetPitEntryPtr()), (*C.struct_rte_mbuf)(pkt.GetPtr()))
+func (cs Cs) ReplacePitEntry(pitEntry iPitEntry, data *ndn.Data) {
+	C.Cs_ReplacePitEntry(cs.getPtr(), (*C.PitEntry)(pitEntry.GetPitEntryPtr()),
+		(*C.Packet)(data.GetPacket().GetPtr()))
 }
 
 // Erase a CS entry.

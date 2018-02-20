@@ -7,7 +7,7 @@ import (
 	"ndn-dpdk/container/pit"
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/dpdk/dpdktestenv"
-	"ndn-dpdk/ndn"
+	"ndn-dpdk/ndn/ndntestutil"
 )
 
 func createPit() pit.Pit {
@@ -34,13 +34,10 @@ func TestInsertErase(t *testing.T) {
 	assert.Zero(pit.Len())
 	assert.Zero(mp.CountInUse())
 
-	pktAB := dpdktestenv.PacketFromHex("050E name=0706 080141 080142 nonce=0A04A0A1A2A3")
-	defer pktAB.Close()
-	d := ndn.NewTlvDecodePos(pktAB)
-	interestAB, e := d.ReadInterest()
-	require.NoError(e)
+	interestAB := ndntestutil.MakeInterest("050E name=0706 080141 080142 nonce=0A04A0A1A2A3")
+	defer ndntestutil.ClosePacket(interestAB)
 
-	pitEntryAB, csEntryAB := pit.Insert(&interestAB)
+	pitEntryAB, csEntryAB := pit.Insert(interestAB)
 	assert.Nil(csEntryAB)
 	require.NotNil(pitEntryAB)
 
@@ -63,13 +60,10 @@ func TestToken(t *testing.T) {
 	pktBytes := dpdktestenv.PacketBytesFromHex("050B name=0703 080141 nonce=0A04A0A1A2A3")
 	for i := 0; i <= 255; i++ {
 		pktBytes[6] = byte(i)
-		pkt := dpdktestenv.PacketFromBytes(pktBytes)
-		defer pkt.Close()
-		d := ndn.NewTlvDecodePos(pkt)
-		interest, e := d.ReadInterest()
-		require.NoError(e)
+		interest := ndntestutil.MakeInterest(pktBytes)
+		defer ndntestutil.ClosePacket(interest)
 
-		entry, _ := pit.Insert(&interest)
+		entry, _ := pit.Insert(interest)
 		if i == 255 { // PCCT is full
 			assert.Nil(entry)
 			continue

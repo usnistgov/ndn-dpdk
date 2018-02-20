@@ -1,9 +1,7 @@
-#ifndef NDN_DPDK_CONTAINER_PCI_PCI_H
-#define NDN_DPDK_CONTAINER_PCI_PCI_H
+#ifndef NDN_DPDK_CONTAINER_PCCT_PCCT_H
+#define NDN_DPDK_CONTAINER_PCCT_PCCT_H
 
 /// \file
-
-#include <rte_hash.h>
 
 #include "cs-struct.h"
 #include "pcc-entry.h"
@@ -87,4 +85,4 @@ Pcct_RemoveToken(Pcct* pcct, PccEntry* entry)
  */
 PccEntry* Pcct_FindByToken(const Pcct* pcct, uint64_t token);
 
-#endif // NDN_DPD
+#endif // NDN_DPDK_CONTAINER_PCCT_PCCT_H

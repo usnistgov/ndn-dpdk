@@ -7,8 +7,7 @@ import (
 	"ndn-dpdk/container/pcct"
 	"ndn-dpdk/container/pit"
 	"ndn-dpdk/dpdk"
-	"ndn-dpdk/dpdk/dpdktestenv"
-	"ndn-dpdk/ndn"
+	"ndn-dpdk/ndn/ndntestutil"
 )
 
 func createCs() cs.Cs {
@@ -41,30 +40,21 @@ func TestReplacePitEntry(t *testing.T) {
 	assert.Zero(pit.Len())
 	assert.Zero(mp.CountInUse())
 
-	interestPkt := dpdktestenv.PacketFromHex("050E name=0706080141080142 nonce=0A04A0A1A2A3")
-	defer interestPkt.Close()
-	d := ndn.NewTlvDecodePos(interestPkt)
-	interest, e := d.ReadInterest()
-	require.NoError(e)
-
-	pitEntry, csEntry := pit.Insert(&interest)
+	interest := ndntestutil.MakeInterest("050E name=0706080141080142 nonce=0A04A0A1A2A3")
+	defer ndntestutil.ClosePacket(interest)
+	pitEntry, csEntry := pit.Insert(interest)
 	assert.Nil(csEntry)
 	require.NotNil(pitEntry)
 
-	dataPkt := ndn.Packet{dpdktestenv.PacketFromHex("060E name=0706080141080142 metainfo=1400 content=1502C0C1")}
-	defer dataPkt.Close()
-	d = ndn.NewTlvDecodePos(dataPkt)
-	data, e := d.ReadData()
-	require.NoError(e)
-	dataPkt.SetNetHdr(&data)
-
+	data := ndntestutil.MakeData("060E name=0706080141080142 metainfo=1400 content=1502C0C1")
+	defer ndntestutil.ClosePacket(data)
 	assert.Zero(cs.Len())
-	cs.ReplacePitEntry(pitEntry, dataPkt)
+	cs.ReplacePitEntry(pitEntry, data)
 	assert.Equal(1, cs.Len())
 	assert.Zero(pit.Len())
 	assert.Equal(1, mp.CountInUse())
 
-	pitEntry, csEntry = pit.Insert(&interest)
+	pitEntry, csEntry = pit.Insert(interest)
 	assert.Nil(pitEntry)
 	require.NotNil(csEntry)
 

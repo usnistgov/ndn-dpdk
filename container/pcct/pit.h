@@ -3,7 +3,6 @@
 
 /// \file
 
-#include "../../ndn/interest-pkt.h"
 #include "pcct.h"
 
 /** \brief The Pending Interest Table (PIT).
@@ -71,7 +70,7 @@ PitInsertResult_GetCsEntry(PitInsertResult res)
 
 /** \brief Insert or find a PIT entry for the given Interest.
  */
-PitInsertResult Pit_Insert(Pit* pit, const InterestPkt* interest);
+PitInsertResult Pit_Insert(Pit* pit, Packet* npkt);
 
 /** \brief Assign a token to a PIT entry.
  *  \return New or existing token.

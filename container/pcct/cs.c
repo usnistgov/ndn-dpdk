@@ -8,7 +8,7 @@ Cs_SetCapacity(Cs* cs, uint32_t capacity)
 }
 
 void
-Cs_ReplacePitEntry(Cs* cs, PitEntry* pitEntry, struct rte_mbuf* pkt)
+Cs_ReplacePitEntry(Cs* cs, PitEntry* pitEntry, struct Packet* npkt)
 {
   CsPriv* csp = Cs_GetPriv(cs);
   PccEntry* pccEntry = __Pit_RawErase(Pcct_GetPit(Pcct_FromCs(cs)), pitEntry);
@@ -16,7 +16,7 @@ Cs_ReplacePitEntry(Cs* cs, PitEntry* pitEntry, struct rte_mbuf* pkt)
   ++csp->nEntries;
 
   CsEntry* entry = &pccEntry->csEntry;
-  entry->data = pkt;
+  entry->data = npkt;
 }
 
 void
@@ -25,7 +25,7 @@ Cs_Erase(Cs* cs, CsEntry* entry)
   CsPriv* csp = Cs_GetPriv(cs);
   PccEntry* pccEntry = PccEntry_FromCsEntry(entry);
 
-  rte_pktmbuf_free(entry->data);
+  rte_pktmbuf_free(Packet_ToMbuf(entry->data));
 
   --csp->nEntries;
   Pcct_Erase(Pcct_FromCs(cs), pccEntry);

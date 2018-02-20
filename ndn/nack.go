@@ -38,6 +38,10 @@ type Nack struct {
 	p *C.PNack
 }
 
+func (nack *Nack) GetPacket() Packet {
+	return nack.m
+}
+
 func (nack *Nack) GetReason() NackReason {
 	return NackReason(C.PNack_GetReason(nack.p))
 }

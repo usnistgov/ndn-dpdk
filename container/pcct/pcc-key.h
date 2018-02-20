@@ -5,7 +5,7 @@
 
 #include "../../ndn/name.h"
 
-/** \brief Hash key stored in \p PciEntry.
+/** \brief Hash key stored in \p PccEntry.
  */
 typedef struct PccKey
 {
@@ -13,7 +13,7 @@ typedef struct PccKey
   uint8_t fh[NAME_MAX_LENGTH];
 } PccKey;
 
-/** \brief Hash key for searching among \p PciEntry.
+/** \brief Hash key for searching among \p PccEntry.
  */
 typedef struct PccSearch
 {

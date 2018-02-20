@@ -3,7 +3,6 @@
 
 /// \file
 
-#include "../../ndn/data-pkt.h"
 #include "pcct.h"
 
 /** \brief The Content Store (CS).
@@ -46,10 +45,10 @@ Cs_CountEntries(const Cs* cs)
 
 /** \brief Insert a CS entry by replacing a PIT entry with same key.
  *  \param pitEntry the PIT entry satisfied by this Data, will be overwritten.
- *  \param pkt the Data packet. CS takes ownership of this mbuf, and may immediately
- *             free it; caller must clone the packet if it is still needed.
+ *  \param npkt the Data packet. CS takes ownership of this mbuf, and may immediately
+ *              free it; caller must clone the packet if it is still needed.
  */
-void Cs_ReplacePitEntry(Cs* cs, PitEntry* pitEntry, struct rte_mbuf* pkt);
+void Cs_ReplacePitEntry(Cs* cs, PitEntry* pitEntry, struct Packet* npkt);
 
 /** \brief Erase a CS entry.
  *  \post \p entry is no longer valid.

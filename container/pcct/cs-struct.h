@@ -3,7 +3,7 @@
 
 /// \file
 
-#include "../../core/common.h"
+#include "common.h"
 
 /** \brief PCCT private data for CS.
  */

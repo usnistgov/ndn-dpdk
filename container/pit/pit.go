@@ -31,9 +31,8 @@ func (pit Pit) Len() int {
 }
 
 // Insert or find a PIT entry for the given Interest.
-func (pit Pit) Insert(interest *ndn.InterestPkt) (pitEntry *Entry, csEntry *cs.Entry) {
-	interestC := (*C.InterestPkt)(unsafe.Pointer(interest))
-	insertRes := C.Pit_Insert(pit.getPtr(), interestC)
+func (pit Pit) Insert(interest *ndn.Interest) (pitEntry *Entry, csEntry *cs.Entry) {
+	insertRes := C.Pit_Insert(pit.getPtr(), (*C.Packet)(interest.GetPacket().GetPtr()))
 	switch C.PitInsertResult_GetKind(insertRes) {
 	case C.PIT_INSERT_PIT:
 		pitEntry = &Entry{C.PitInsertResult_GetPitEntry(insertRes)}

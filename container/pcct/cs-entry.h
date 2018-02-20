@@ -3,7 +3,7 @@
 
 /// \file
 
-#include "../../core/common.h"
+#include "common.h"
 
 /** \brief A CS entry.
  *
@@ -11,7 +11,7 @@
  */
 typedef struct CsEntry
 {
-  struct rte_mbuf* data; ///< the Data packet
+  Packet* data; ///< the Data packet
 } CsEntry;
 
 #endif // NDN_DPDK_CONTAINER_PCCT_CS_ENTRY_H

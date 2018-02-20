@@ -3,6 +3,8 @@
 
 /// \file
 
+#include "common.h"
+
 /** \brief A PIT entry.
  *
  *  This struct is enclosed in \p PcctEntry.

@@ -24,6 +24,10 @@ type Data struct {
 	p *C.PData
 }
 
+func (data *Data) GetPacket() Packet {
+	return data.m
+}
+
 func (data *Data) GetName() (n *Name) {
 	n = new(Name)
 	n.copyFromC(&data.p.name)

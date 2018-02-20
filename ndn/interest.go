@@ -17,6 +17,10 @@ type Interest struct {
 	p *C.PInterest
 }
 
+func (interest *Interest) GetPacket() Packet {
+	return interest.m
+}
+
 func (interest *Interest) GetName() (n *Name) {
 	n = new(Name)
 	n.copyFromC(&interest.p.name)
