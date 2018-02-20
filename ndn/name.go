@@ -52,6 +52,11 @@ func (n *Name) Size() int {
 	return int(n.p.nOctets)
 }
 
+// Get *C.PName pointer.
+func (n *Name) GetPNamePtr() unsafe.Pointer {
+	return unsafe.Pointer(n.p)
+}
+
 // Get TLV-VALUE of Name element.
 func (n *Name) GetValue() TlvBytes {
 	return n.b

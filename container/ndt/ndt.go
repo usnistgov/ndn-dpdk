@@ -65,5 +65,6 @@ type NdtThread struct {
 }
 
 func (ndtt NdtThread) Lookup(name *ndn.Name) uint8 {
-	return uint8(C.Ndt_Lookup(ndtt.Ndt.c, ndtt.c, (*C.Name)(name.GetPtr())))
+	return uint8(C.Ndt_Lookup(ndtt.Ndt.c, ndtt.c, (*C.PName)(name.GetPNamePtr()),
+		(*C.uint8_t)(name.GetValue().GetPtr())))
 }

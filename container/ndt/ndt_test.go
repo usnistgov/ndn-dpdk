@@ -27,26 +27,21 @@ func TestNdt(t *testing.T) {
 	}
 
 	nameStrs := []string{
-		"0700",
-		"0702 0800",
-		"0706 080141 020143",
-		"0709 080141 080141 080143",
-		"0709 080141 080141 080144",
-		"0703 080142",
-		"0706 080142 020143",
-		"0706 080142 080143",
+		"/",
+		"/...",
+		"/A/2=C",
+		"/A/A/C",
+		"/A/A/D",
+		"/B",
+		"/B/2=C",
+		"/B/C",
 	}
-	namePkts := make([]dpdk.Packet, len(nameStrs))
 	names := make([]*ndn.Name, len(nameStrs))
 	for i, nameStr := range nameStrs {
-		namePkts[i] = dpdktestenv.PacketFromHex(nameStr)
-		defer namePkts[i].Close()
-		d := ndn.NewTlvDecodePos(namePkts[i])
-		name, e := d.ReadName()
-		require.NoError(e)
-		names[i] = &name
+		var e error
+		names[i], e = ndn.ParseName(nameStr)
+		require.NoError(e, nameStr)
 	}
-	require.Equal(len(names), len(slaves))
 
 	ndt := ndt.New(cfg, numaSockets)
 	defer ndt.Close()
@@ -76,9 +71,9 @@ func TestNdt(t *testing.T) {
 				if result1[ii] == 0 || result1[ii] == result {
 					result1[ii] = result // initial result
 				} else if result2[ii] == 0 {
-					result2[ii] = result // result from random update
+					result2[ii] = result // result after random update
 				} else if result2[ii] != result {
-					return j
+					return j // shouldn't have third result
 				}
 			}
 			return 0
@@ -100,7 +95,7 @@ func TestNdt(t *testing.T) {
 			if a >= b {
 				continue
 			}
-			if a == 3 && b == 4 { // they have same 2-component prefix
+			if a == 3 && b == 4 { // /A/A/C and /A/A/D have same 2-component prefix
 				assert.Equal(result1[a], result1[b], "%d-%d", a, b)
 				assert.Equal(result2[a], result2[b], "%d-%d", a, b)
 			} else {
@@ -112,12 +107,12 @@ func TestNdt(t *testing.T) {
 
 	require.Len(cnt0, 256)
 	sort.Ints(cnt0)
-	assert.Zero(cnt0[255])
+	assert.Zero(cnt0[255]) // all counters are zero initially
 
 	require.Len(cnt1, 256)
 	sort.Ints(cnt1)
 	assert.Zero(cnt1[248])
-	assert.NotZero(cnt1[249])
+	assert.NotZero(cnt1[249]) // seven counters are not zero, others are zero
 
 	require.Len(cnt2, 256)
 	sort.Ints(cnt2)

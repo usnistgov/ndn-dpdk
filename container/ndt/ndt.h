@@ -63,6 +63,7 @@ void Ndt_Update(Ndt* ndt, uint64_t hash, uint8_t value);
 
 /** \brief Query NDT.
  */
-uint8_t Ndt_Lookup(const Ndt* ndt, NdtThread* ndtt, const Name* name);
+uint8_t Ndt_Lookup(const Ndt* ndt, NdtThread* ndtt, const PName* name,
+                   const uint8_t* nameV);
 
 #endif // NDN_DPDK_CONTAINER_NDT_NDT_H

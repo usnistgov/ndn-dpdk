@@ -55,11 +55,12 @@ Ndt_Update(Ndt* ndt, uint64_t hash, uint8_t value)
 }
 
 uint8_t
-Ndt_Lookup(const Ndt* ndt, NdtThread* ndtt, const Name* name)
+Ndt_Lookup(const Ndt* ndt, NdtThread* ndtt, const PName* name,
+           const uint8_t* nameV)
 {
   uint16_t prefixLen =
     name->nComps < ndt->prefixLen ? name->nComps : ndt->prefixLen;
-  uint64_t hash = Name_ComputePrefixHash(name, prefixLen);
+  uint64_t hash = PName_ComputePrefixHash(name, nameV, prefixLen);
   uint64_t index = hash & ndt->indexMask;
 
   if ((++ndtt->nLookups & ndt->sampleMask) == 0) {
