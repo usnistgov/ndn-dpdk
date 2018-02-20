@@ -41,23 +41,6 @@ func (tb TlvBytes) DecodeVarNum() (v uint64, tail TlvBytes) {
 	return v, tb[res:]
 }
 
-// Count how many elements are present in TlvBytes.
-// Return the number of elements, or -1 if incomplete.
-func (tb TlvBytes) CountElements() (n int) {
-	for len(tb) > 0 {
-		var length uint64
-		if _, tb = tb.DecodeVarNum(); tb == nil { // read TLV-TYPE
-			return -1
-		}
-		if length, tb = tb.DecodeVarNum(); tb == nil || len(tb) < int(length) { // read TLV-LENGTH
-			return -1
-		}
-		tb = tb[length:]
-		n++
-	}
-	return n
-}
-
 // Extract the first element from TlvBytes.
 // Return the first element or nil if not found, and any remaining bytes.
 func (tb TlvBytes) ExtractElement() (element TlvBytes, tail TlvBytes) {
@@ -73,21 +56,6 @@ func (tb TlvBytes) ExtractElement() (element TlvBytes, tail TlvBytes) {
 	return element, tail
 }
 
-// Split TlvBytes into elements.
-// Return slice of elements, or nil if incomplete.
-func (tb TlvBytes) SplitElements() (elements []TlvBytes) {
-	elements = make([]TlvBytes, 0)
-	for len(tb) > 0 {
-		var element TlvBytes
-		element, tb = tb.ExtractElement()
-		if element == nil {
-			return nil
-		}
-		elements = append(elements, element)
-	}
-	return elements
-}
-
 func JoinTlvBytes(s []TlvBytes) TlvBytes {
 	return TlvBytes(bytes.Join(*(*[][]byte)(unsafe.Pointer(&s)), nil))
 }
@@ -96,12 +64,6 @@ func EncodeVarNum(n uint64) TlvBytes {
 	buf := make([]byte, int(C.SizeofVarNum(C.uint64_t(n))))
 	C.EncodeVarNum((*C.uint8_t)(unsafe.Pointer(&buf[0])), C.uint64_t(n))
 	return buf
-}
-
-func EncodeTlvTypeLength(tlvType TlvType, tlvLength int) TlvBytes {
-	return JoinTlvBytes([]TlvBytes{
-		EncodeVarNum(uint64(tlvType)),
-		EncodeVarNum(uint64(tlvLength))})
 }
 
 func EncodeTlv(tlvType TlvType, value TlvBytes) TlvBytes {
