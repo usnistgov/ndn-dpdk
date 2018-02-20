@@ -67,15 +67,24 @@ Fib_Erase(Fib* fib, FibEntry* entry)
 }
 
 /** \brief Perform exact match.
+ *  \note This function is meant for management usage. It does not use cached hash value,
+ *        and thus would be inefficient for dataplane.
  *  \pre Calling thread holds rcu_read_lock, which must be retained until it stops
  *       using the returned entry.
  */
-const FibEntry* Fib_Find(Fib* fib, uint16_t nameL, const uint8_t* nameV);
+const FibEntry* Fib_Find(Fib* fib, LName name);
+
+static const FibEntry*
+__Fib_Find(Fib* fib, uint16_t nameL, const uint8_t* nameV)
+{
+  LName name = {.length = nameL, .value = nameV };
+  return Fib_Find(fib, name);
+}
 
 /** \brief Perform longest prefix match.
  *  \pre Calling thread holds rcu_read_lock, which must be retained until it stops
  *       using the returned entry.
  */
-const FibEntry* Fib_Lpm(Fib* fib, const Name* name);
+const FibEntry* Fib_Lpm(Fib* fib, const PName* name, const uint8_t* nameV);
 
 #endif // NDN_DPDK_CONTAINER_FIB_FIB_H

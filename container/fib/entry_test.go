@@ -12,23 +12,24 @@ func TestEntry(t *testing.T) {
 	assert, _ := makeAR(t)
 
 	var entry fib.Entry
-	assert.Len(entry.GetName(), 0)
+	assert.Equal("/", entry.GetName().String())
 	assert.Equal(0, entry.GetNComps())
 	assert.Len(entry.GetNexthops(), 0)
 
-	name, _ := ndn.EncodeNameComponentsFromUri("/A/B")
+	name, _ := ndn.ParseName("/A/B")
 	assert.NoError(entry.SetName(name))
-	assert.Equal(name, entry.GetName())
+	assert.True(name.Equal(entry.GetName()))
 	assert.Equal(2, entry.GetNComps())
 
 	nexthops := []iface.FaceId{2302, 1067, 1122}
 	assert.NoError(entry.SetNexthops(nexthops))
 	assert.Equal(nexthops, entry.GetNexthops())
 
-	name2 := name
-	for len(name2) <= fib.MAX_NAME_LEN {
-		name2 = append(name2, name...)
+	name2V := name.GetValue()
+	for len(name2V) <= fib.MAX_NAME_LEN {
+		name2V = append(name2V, name2V...)
 	}
+	name2, _ := ndn.NewName(name2V)
 	assert.Error(entry.SetName(name2))
 
 	nexthops2 := make([]iface.FaceId, 0)

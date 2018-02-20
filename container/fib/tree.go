@@ -6,12 +6,12 @@ import (
 
 type node struct {
 	IsEntry  bool
-	Comp     ndn.TlvBytes
+	Comp     ndn.NameComponent
 	MaxDepth int
 	Children map[*node]struct{}
 }
 
-func (n *node) FindChild(comp ndn.TlvBytes) *node {
+func (n *node) FindChild(comp ndn.NameComponent) *node {
 	for child := range n.Children {
 		if comp.Equal(child.Comp) {
 			return child
@@ -30,19 +30,20 @@ func (n *node) UpdateMaxDepth() {
 	}
 }
 
-func (n *node) ListTo(names *[]ndn.TlvBytes, prefix ndn.TlvBytes) {
-	name := append(append(ndn.TlvBytes(nil), prefix...), n.Comp...)
+func (n *node) ListTo(names *[]*ndn.Name, prefix ndn.TlvBytes) {
+	nameV := append(append(ndn.TlvBytes(nil), prefix...), n.Comp...)
 	if n.IsEntry {
+		name, _ := ndn.NewName(nameV)
 		*names = append(*names, name)
 	}
 	for child := range n.Children {
-		child.ListTo(names, name)
+		child.ListTo(names, nameV)
 	}
 }
 
 type tree node
 
-func (t *tree) seek(comps []ndn.TlvBytes, wantInsert bool) (nodes []*node) {
+func (t *tree) seek(comps []ndn.NameComponent, wantInsert bool) (nodes []*node) {
 	nodes = make([]*node, len(comps)+1)
 	nodes[0] = (*node)(t)
 
@@ -65,7 +66,7 @@ func (t *tree) seek(comps []ndn.TlvBytes, wantInsert bool) (nodes []*node) {
 	return nodes
 }
 
-func (t *tree) Insert(comps []ndn.TlvBytes) {
+func (t *tree) Insert(comps []ndn.NameComponent) {
 	nodes := t.seek(comps, true)
 	nodes[len(comps)].IsEntry = true
 
@@ -75,7 +76,7 @@ func (t *tree) Insert(comps []ndn.TlvBytes) {
 	}
 }
 
-func (t *tree) Erase(comps []ndn.TlvBytes, startDepth int) (oldMd int, newMd int) {
+func (t *tree) Erase(comps []ndn.NameComponent, startDepth int) (oldMd int, newMd int) {
 	nodes := t.seek(comps, false)
 	nodes[len(comps)].IsEntry = false // will panic if node does not exist
 
@@ -96,8 +97,8 @@ func (t *tree) Erase(comps []ndn.TlvBytes, startDepth int) (oldMd int, newMd int
 	return
 }
 
-func (t *tree) List() (names []ndn.TlvBytes) {
-	names = make([]ndn.TlvBytes, 0)
+func (t *tree) List() (names []*ndn.Name) {
+	names = make([]*ndn.Name, 0)
 	(*node)(t).ListTo(&names, nil)
 	return names
 }

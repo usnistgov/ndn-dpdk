@@ -46,52 +46,47 @@ Fib_Insert(Fib* fib, FibEntry* entry)
 }
 
 const FibEntry*
-Fib_Find(Fib* fib, uint16_t nameL, const uint8_t* nameV)
+Fib_Find(Fib* fib, LName name)
 {
-  LName key;
-  key.length = nameL;
-  key.value = nameV;
-  uint64_t hash = LName_ComputeHash(key);
-
-  return Tsht_FindT(fib, hash, &key, FibEntry);
+  uint64_t hash = LName_ComputeHash(name);
+  return Tsht_FindT(fib, hash, &name, FibEntry);
 }
 
 static const FibEntry*
-Fib_GetEntryByPrefix(Fib* fib, const Name* name, LName lname,
+Fib_GetEntryByPrefix(Fib* fib, const PName* name, const uint8_t* nameV,
                      uint16_t prefixLen)
 {
-  lname.length = Name_GetPrefixSize(name, prefixLen);
-  uint64_t hash = Name_ComputePrefixHash(name, prefixLen);
-  return Tsht_FindT(fib, hash, &lname, FibEntry);
+  uint64_t hash = PName_ComputePrefixHash(name, nameV, prefixLen);
+  LName key = {.length = PName_SizeofPrefix(name, nameV, prefixLen),
+               .value = nameV };
+  return Tsht_FindT(fib, hash, &key, FibEntry);
 }
 
 const FibEntry*
-Fib_Lpm(Fib* fib, const Name* name)
+Fib_Lpm(Fib* fib, const PName* name, const uint8_t* nameV)
 {
   FibPriv* fibp = Fib_GetPriv(fib);
 
-  uint8_t scratch[NAME_MAX_LENGTH];
-  LName lname = Name_Linearize(name, scratch);
-
-  const FibEntry* startEntry = NULL;
+  // first stage
   int prefixLen = name->nComps;
   if (fibp->startDepth < prefixLen) {
-    startEntry = Fib_GetEntryByPrefix(fib, name, lname, fibp->startDepth);
-    if (startEntry == NULL) {
+    const FibEntry* entry =
+      Fib_GetEntryByPrefix(fib, name, nameV, fibp->startDepth);
+    if (entry == NULL) { // continue to shorter prefixes
       prefixLen = fibp->startDepth - 1;
-    } else if (startEntry->maxDepth > 0) {
-      prefixLen += startEntry->maxDepth;
+    } else if (entry->maxDepth > 0) { // restart at a longest prefix
+      prefixLen = fibp->startDepth + entry->maxDepth;
       if (prefixLen > name->nComps) {
         prefixLen = name->nComps;
       }
+    } else if (entry->nNexthops > 0) { // the start entry itself is a match
+      return entry;
     }
   }
 
+  // second stage
   for (; prefixLen >= 0; --prefixLen) {
-    const FibEntry* entry =
-      unlikely(prefixLen == fibp->startDepth)
-        ? startEntry
-        : Fib_GetEntryByPrefix(fib, name, lname, prefixLen);
+    const FibEntry* entry = Fib_GetEntryByPrefix(fib, name, nameV, prefixLen);
     if (entry != NULL && entry->nNexthops > 0) {
       return entry;
     }

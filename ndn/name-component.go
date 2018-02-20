@@ -9,6 +9,7 @@ import (
 	"io"
 	"strconv"
 	"strings"
+	"unsafe"
 )
 
 // A name component.
@@ -176,4 +177,9 @@ func MakeNameComponentFromNumber(tlvType TlvType, v interface{}) NameComponent {
 	var buf bytes.Buffer
 	binary.Write(&buf, binary.BigEndian, v)
 	return NameComponent(EncodeTlv(tlvType, buf.Bytes()))
+}
+
+// Join name components as TlvBytes.
+func JoinNameComponents(comps []NameComponent) TlvBytes {
+	return TlvBytes(bytes.Join(*(*[][]byte)(unsafe.Pointer(&comps)), nil))
 }

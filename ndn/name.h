@@ -121,6 +121,19 @@ PName_SizeofComp(const PName* n, const uint8_t* input, uint16_t i)
   return PName_GetCompEnd(n, input, i) - PName_GetCompBegin(n, input, i);
 }
 
+/** \brief Get size of a prefix with i components.
+ *  \param input a buffer containing TLV-VALUE of Name element
+ *  \param i prefix length, must be no greater than n->nComps
+ */
+static uint16_t
+PName_SizeofPrefix(const PName* n, const uint8_t* input, uint16_t i)
+{
+  if (i == 0) {
+    return 0;
+  }
+  return PName_GetCompEnd(n, input, i - 1);
+}
+
 void __PName_HashToCache(PName* n, const uint8_t* input);
 
 /** \brief Compute hash for a prefix with i components.

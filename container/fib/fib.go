@@ -44,8 +44,8 @@ func New(cfg Config) (fib *Fib, e error) {
 	if fib.c == nil {
 		return nil, dpdk.GetErrno()
 	}
-	fib.commands = make(chan command)
 
+	fib.commands = make(chan command)
 	go func() {
 		// execute all commands in a RCU read-side thread
 		rs := urcu.NewReadSide()
@@ -91,14 +91,14 @@ func (fib *Fib) Close() error {
 	return <-cmd
 }
 
-type listNamesCommand chan []ndn.TlvBytes
+type listNamesCommand chan []*ndn.Name
 
 func (cmd listNamesCommand) Execute(fib *Fib, rs *urcu.ReadSide) {
 	cmd <- fib.tree.List()
 }
 
 // List all FIB entry names.
-func (fib *Fib) ListNames() []ndn.TlvBytes {
+func (fib *Fib) ListNames() []*ndn.Name {
 	cmd := make(listNamesCommand)
 	fib.commands <- cmd
 	return <-cmd
@@ -110,13 +110,12 @@ type insertCommand struct {
 }
 
 func (cmd insertCommand) Execute(fib *Fib, rs *urcu.ReadSide) {
-	entry := cmd.entry
-	name := entry.GetName()
-	comps := name.SplitElements()
-	nComps := len(comps)
-
 	rs.Lock()
 	defer rs.Unlock()
+	entry := cmd.entry
+	name := entry.GetName()
+	comps := name.ListComps()
+	nComps := len(comps)
 
 	newEntryC := C.Fib_Alloc(fib.c)
 	if newEntryC == nil {
@@ -125,8 +124,8 @@ func (cmd insertCommand) Execute(fib *Fib, rs *urcu.ReadSide) {
 	}
 
 	if nComps > fib.startDepth {
-		virtName := ndn.JoinTlvBytes(comps[:fib.startDepth])
-		oldVirtC := C.Fib_Find(fib.c, C.uint16_t(len(virtName)), (*C.uint8_t)(virtName.GetPtr()))
+		virtNameV := ndn.JoinNameComponents(comps[:fib.startDepth])
+		oldVirtC := fib.findC(virtNameV)
 		if oldVirtC == nil || int(oldVirtC.maxDepth) < nComps-fib.startDepth {
 			newVirtC := C.Fib_Alloc(fib.c)
 			if newVirtC == nil {
@@ -135,7 +134,7 @@ func (cmd insertCommand) Execute(fib *Fib, rs *urcu.ReadSide) {
 				return
 			}
 			if oldVirtC == nil {
-				entrySetName(newVirtC, virtName)
+				entrySetName(newVirtC, virtNameV, fib.startDepth)
 				fib.nVirtuals++
 			} else {
 				*newVirtC = *oldVirtC
@@ -148,7 +147,7 @@ func (cmd insertCommand) Execute(fib *Fib, rs *urcu.ReadSide) {
 	*newEntryC = entry.c
 	isReplacingVirtual := false
 	if nComps == fib.startDepth {
-		oldEntryC := C.Fib_Find(fib.c, C.uint16_t(len(name)), (*C.uint8_t)(name.GetPtr()))
+		oldEntryC := fib.findC(name.GetValue())
 		if oldEntryC != nil && oldEntryC.maxDepth > 0 {
 			newEntryC.maxDepth = oldEntryC.maxDepth
 			fib.nVirtuals--
@@ -184,38 +183,34 @@ func (fib *Fib) Insert(entry *Entry) (isNew bool, e error) {
 }
 
 type eraseCommand struct {
-	name ndn.TlvBytes
+	name *ndn.Name
 	res  chan error
 }
 
 func (cmd eraseCommand) Execute(fib *Fib, rs *urcu.ReadSide) {
-	name := cmd.name
-	comps := name.SplitElements()
-	nComps := len(comps)
-
 	rs.Lock()
 	defer rs.Unlock()
+	name := cmd.name
+	comps := name.ListComps()
+	nComps := len(comps)
 
-	oldEntryC := C.Fib_Find(fib.c, C.uint16_t(len(name)), (*C.uint8_t)(name.GetPtr()))
+	oldEntryC := fib.findC(name.GetValue())
 	if oldEntryC == nil {
 		cmd.res <- errors.New("FIB entry does not exist")
 		return
 	}
 	oldMd, newMd := fib.tree.Erase(comps, fib.startDepth)
 
-	needNewVirt := false
-	virtName := name
-	oldVirtC := oldEntryC
+	var oldVirtC *C.FibEntry
 	if nComps > fib.startDepth && oldMd != newMd {
-		needNewVirt = true
-		virtName = ndn.JoinTlvBytes(comps[:fib.startDepth])
-		oldVirtC = C.Fib_Find(fib.c, C.uint16_t(len(virtName)), (*C.uint8_t)(virtName.GetPtr()))
+		virtNameV := ndn.JoinNameComponents(comps[:fib.startDepth])
+		oldVirtC = fib.findC(virtNameV)
 	} else if nComps == fib.startDepth && newMd != 0 {
-		needNewVirt = true
+		oldVirtC = oldEntryC
 		oldEntryC = nil // don't delete, because newVirtC is replacing oldEntryC
 	}
 
-	if needNewVirt {
+	if oldVirtC != nil { // need to replace virtual entry
 		newVirtC := C.Fib_Alloc(fib.c)
 		if newVirtC == nil {
 			fib.tree.Insert(comps) // revert tree change
@@ -230,6 +225,8 @@ func (cmd eraseCommand) Execute(fib *Fib, rs *urcu.ReadSide) {
 		if newVirtC.nNexthops == 0 && oldMd == 0 && newMd > 0 {
 			fib.nVirtuals++
 		}
+
+		// XXX if oldMd > 0 && newMd == 0, should delete and not replace virtual entry
 	}
 
 	fib.nEntries--
@@ -240,23 +237,27 @@ func (cmd eraseCommand) Execute(fib *Fib, rs *urcu.ReadSide) {
 }
 
 // Erase a FIB entry by name.
-func (fib *Fib) Erase(name ndn.TlvBytes) error {
+func (fib *Fib) Erase(name *ndn.Name) error {
 	cmd := eraseCommand{name: name, res: make(chan error)}
 	fib.commands <- cmd
 	return <-cmd.res
 }
 
+func (fib *Fib) findC(nameV ndn.TlvBytes) (entryC *C.FibEntry) {
+	return C.__Fib_Find(fib.c, C.uint16_t(len(nameV)), (*C.uint8_t)(nameV.GetPtr()))
+}
+
 type findCommand struct {
-	name ndn.TlvBytes
+	name *ndn.Name
 	res  chan *Entry
 }
 
 func (cmd findCommand) Execute(fib *Fib, rs *urcu.ReadSide) {
 	rs.Lock()
 	defer rs.Unlock()
-
 	name := cmd.name
-	entryC := C.Fib_Find(fib.c, C.uint16_t(len(name)), (*C.uint8_t)(name.GetPtr()))
+
+	entryC := fib.findC(name.GetValue())
 	if entryC == nil {
 		cmd.res <- nil
 	} else {
@@ -266,7 +267,7 @@ func (cmd findCommand) Execute(fib *Fib, rs *urcu.ReadSide) {
 
 // Perform an exact match lookup.
 // The FIB entry will be copied.
-func (fib *Fib) Find(name ndn.TlvBytes) (entry *Entry) {
+func (fib *Fib) Find(name *ndn.Name) (entry *Entry) {
 	cmd := findCommand{name: name, res: make(chan *Entry)}
 	fib.commands <- cmd
 	return <-cmd.res
@@ -280,9 +281,10 @@ type lpmCommand struct {
 func (cmd lpmCommand) Execute(fib *Fib, rs *urcu.ReadSide) {
 	rs.Lock()
 	defer rs.Unlock()
-
 	name := cmd.name
-	entryC := C.Fib_Lpm(fib.c, (*C.Name)(name.GetPtr()))
+
+	entryC := C.Fib_Lpm(fib.c, (*C.PName)(name.GetPNamePtr()),
+		(*C.uint8_t)(name.GetValue().GetPtr()))
 	if entryC == nil {
 		cmd.res <- nil
 	} else {

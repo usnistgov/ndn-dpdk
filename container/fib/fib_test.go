@@ -6,7 +6,6 @@ import (
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/core/urcu"
 	"ndn-dpdk/dpdk"
-	"ndn-dpdk/dpdk/dpdktestenv"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/ndn"
 )
@@ -27,13 +26,10 @@ func createFib() *fib.Fib {
 	return fib
 }
 
-func makeFibEntry(name string, nexthops ...iface.FaceId) (entry *fib.Entry) {
+func makeFibEntry(nameStr string, nexthops ...iface.FaceId) (entry *fib.Entry) {
 	entry = new(fib.Entry)
-	comps, e := ndn.EncodeNameComponentsFromUri(name)
-	if e != nil {
-		panic(e)
-	}
-	entry.SetName(comps)
+	name, _ := ndn.ParseName(nameStr)
+	entry.SetName(name)
 	entry.SetNexthops(nexthops)
 	return entry
 }
@@ -46,7 +42,7 @@ func TestFibInsertErase(t *testing.T) {
 	mp := fib.GetMempool()
 	assert.Zero(fib.Len())
 	assert.Zero(mp.CountInUse())
-	nameA, _ := ndn.EncodeNameComponentsFromUri("/A")
+	nameA, _ := ndn.ParseName("/A")
 	assert.Nil(fib.Find(nameA))
 
 	_, e := fib.Insert(makeFibEntry("/A"))
@@ -90,21 +86,14 @@ func TestFibInsertErase(t *testing.T) {
 }
 
 func TestFibLpm(t *testing.T) {
-	assert, require := makeAR(t)
+	assert, _ := makeAR(t)
 
 	fib := createFib()
 	defer fib.Close()
 
 	lpm := func(nameStr string) int {
-		tb, e := ndn.EncodeNameFromUri(nameStr)
-		require.NoError(e)
-		pkt := dpdktestenv.PacketFromBytes(tb)
-		defer pkt.Close()
-		d := ndn.NewTlvDecodePos(pkt)
-		name, e := d.ReadName()
-		require.NoError(e, nameStr)
-
-		entry := fib.Lpm(&name)
+		name, _ := ndn.ParseName(nameStr)
+		entry := fib.Lpm(name)
 		if entry == nil {
 			return 0
 		}
@@ -124,7 +113,8 @@ func TestFibLpm(t *testing.T) {
 	assert.Equal(5002, lpm("/A/B/C/D"))
 	assert.Equal(5001, lpm("/A/B/CD"))
 
-	fib.Erase(ndn.TlvBytes{}) // erase '/' entry
+	emptyName, _ := ndn.ParseName("/")
+	fib.Erase(emptyName)
 	assert.Equal(0, lpm("/"))
 	assert.Equal(5001, lpm("/A"))
 	assert.Equal(0, lpm("/AB"))
