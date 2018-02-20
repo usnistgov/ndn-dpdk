@@ -36,7 +36,7 @@ func TestUdp(t *testing.T) {
 	}
 	txPkts := make([]ndn.Packet, 3)
 	for i, hexPkt := range hexPkts {
-		conn2.Write(dpdktestenv.PacketBytesFromHex(hexPkt))
+		conn2.Write(dpdktestenv.BytesFromHex(hexPkt))
 
 		txPkts[i] = ndn.PacketFromDpdk(dpdktestenv.PacketFromHex(hexPkt))
 		defer txPkts[i].AsDpdkPacket().Close()

@@ -24,5 +24,5 @@ func packetFromHex(input string) ndn.Packet {
 }
 
 func TlvBytesFromHex(input string) ndn.TlvBytes {
-	return ndn.TlvBytes(dpdktestenv.PacketBytesFromHex(input))
+	return ndn.TlvBytes(dpdktestenv.BytesFromHex(input))
 }

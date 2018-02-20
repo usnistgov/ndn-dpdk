@@ -42,7 +42,7 @@ func TestInOrderReassembler(t *testing.T) {
 			assert.True(reassPkt.GetPtr() == nil, step.input)
 		} else if assert.NotNil(reassPkt.GetPtr(), step.input) {
 			payload := reassPkt.AsDpdkPacket().ReadAll()
-			assert.Equal(dpdktestenv.PacketBytesFromHex(step.output), payload, step.input)
+			assert.Equal(dpdktestenv.BytesFromHex(step.output), payload, step.input)
 		}
 	}
 

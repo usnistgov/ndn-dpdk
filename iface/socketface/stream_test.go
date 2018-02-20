@@ -33,7 +33,7 @@ func TestStream(t *testing.T) {
 	txPkts := make([]ndn.Packet, 3)
 	var hexJoined []byte
 	for i, hexPkt := range hexPkts {
-		hexJoined = append(hexJoined, dpdktestenv.PacketBytesFromHex(hexPkt)...)
+		hexJoined = append(hexJoined, dpdktestenv.BytesFromHex(hexPkt)...)
 
 		txPkts[i] = ndn.PacketFromDpdk(dpdktestenv.PacketFromHex(hexPkt))
 		defer txPkts[i].AsDpdkPacket().Close()

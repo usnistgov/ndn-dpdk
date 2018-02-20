@@ -19,7 +19,7 @@ func MakePacket(input interface{}) ndn.Packet {
 	case []byte:
 		b = input1
 	case string:
-		b = dpdktestenv.PacketBytesFromHex(input1)
+		b = dpdktestenv.BytesFromHex(input1)
 	}
 	return ndn.PacketFromPtr(dpdktestenv.PacketFromBytes(b).GetPtr())
 }

@@ -38,7 +38,7 @@ func PacketFromBytes(inputs ...[]byte) (pkt dpdk.Packet) {
 	return pkt
 }
 
-func PacketBytesFromHex(input string) []byte {
+func BytesFromHex(input string) []byte {
 	s := strings.Map(func(ch rune) rune {
 		if strings.ContainsRune("0123456789ABCDEF", ch) {
 			return ch
@@ -58,7 +58,7 @@ func PacketBytesFromHex(input string) []byte {
 func PacketFromHex(inputs ...string) dpdk.Packet {
 	byteSlices := make([][]byte, len(inputs))
 	for i, input := range inputs {
-		byteSlices[i] = PacketBytesFromHex(input)
+		byteSlices[i] = BytesFromHex(input)
 	}
 	return PacketFromBytes(byteSlices...)
 }

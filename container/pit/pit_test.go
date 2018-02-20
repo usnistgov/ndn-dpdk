@@ -57,7 +57,7 @@ func TestToken(t *testing.T) {
 	defer pit.Pcct.Close()
 	defer pit.Close()
 
-	pktBytes := dpdktestenv.PacketBytesFromHex("050B name=0703 080141 nonce=0A04A0A1A2A3")
+	pktBytes := dpdktestenv.BytesFromHex("050B name=0703 080141 nonce=0A04A0A1A2A3")
 	for i := 0; i <= 255; i++ {
 		pktBytes[6] = byte(i)
 		interest := ndntestutil.MakeInterest(pktBytes)

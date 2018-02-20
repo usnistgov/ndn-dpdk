@@ -22,7 +22,7 @@ func TestNameComponentFromNumber(t *testing.T) {
 	}
 	for _, tt := range tests {
 		encoded := ndn.MakeNameComponentFromNumber(tt.tlvType, tt.v)
-		expected := dpdktestenv.PacketBytesFromHex(tt.output)
+		expected := dpdktestenv.BytesFromHex(tt.output)
 		assert.EqualValues(expected, encoded, tt.output)
 	}
 }

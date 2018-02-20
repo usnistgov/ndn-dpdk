@@ -148,7 +148,7 @@ func TestNameParse(t *testing.T) {
 		if tt.bad {
 			assert.Error(e, tt.input)
 		} else if assert.NoError(e, tt.input) {
-			expected := ndn.TlvBytes(dpdktestenv.PacketBytesFromHex(tt.output))
+			expected := ndn.TlvBytes(dpdktestenv.BytesFromHex(tt.output))
 			assert.Equal(expected, n.GetValue(), tt.input)
 			if tt.canonical == "" {
 				tt.canonical = tt.input

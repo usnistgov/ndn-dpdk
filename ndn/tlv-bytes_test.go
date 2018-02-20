@@ -25,7 +25,7 @@ func TestTlvBytes(t *testing.T) {
 		{"0202B0B1 0101A0", []int{4, 3}},
 	}
 	for _, tt := range tests {
-		tb := ndn.TlvBytes(dpdktestenv.PacketBytesFromHex(tt.input))
+		tb := ndn.TlvBytes(dpdktestenv.BytesFromHex(tt.input))
 		nElements := tb.CountElements()
 		elements := tb.SplitElements()
 		if tt.elementSizes == nil {

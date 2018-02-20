@@ -30,7 +30,7 @@ func TestReadVarNum(t *testing.T) {
 		{input: "FF FFFFFFFFFFFFFFFF", v: 0xFFFFFFFFFFFFFFFF},
 	}
 	for _, tt := range tests {
-		input := dpdktestenv.PacketBytesFromHex(tt.input)
+		input := dpdktestenv.BytesFromHex(tt.input)
 		pkt := dpdktestenv.PacketFromBytes(input)
 		defer pkt.Close()
 		d := ndn.NewTlvDecodePos(pkt)

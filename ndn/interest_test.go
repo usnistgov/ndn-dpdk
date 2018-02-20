@@ -84,7 +84,7 @@ func TestInterestEncode(t *testing.T) {
 	tpl.Encode(pkt, nil, nil)
 	encoded := pkt.ReadAll()
 	require.Len(encoded, 16)
-	assert.Equal(dpdktestenv.PacketBytesFromHex("050E name=0706080141080142 nonce=0A04"),
+	assert.Equal(dpdktestenv.BytesFromHex("050E name=0706080141080142 nonce=0A04"),
 		encoded[:12])
 
 	tpl.SetCanBePrefix(true)
@@ -100,8 +100,8 @@ func TestInterestEncode(t *testing.T) {
 	tpl.Encode(pkt, suffix, nil)
 	encoded = pkt.ReadAll()
 	require.Len(encoded, 35)
-	assert.Equal(dpdktestenv.PacketBytesFromHex("0521 name=070C080141080142080143080144 "+
+	assert.Equal(dpdktestenv.BytesFromHex("0521 name=070C080141080142080143080144 "+
 		"canbeprefix=2100 mustbefresh=1200 nonce=0A04"), encoded[:22])
-	assert.Equal(dpdktestenv.PacketBytesFromHex("lifetime=0C0400002328 hoplimit=22017D"),
+	assert.Equal(dpdktestenv.BytesFromHex("lifetime=0C0400002328 hoplimit=22017D"),
 		encoded[26:])
 }

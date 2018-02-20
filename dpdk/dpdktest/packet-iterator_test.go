@@ -68,7 +68,7 @@ func TestPktItMakeIndirect(t *testing.T) {
 	defer pkt.Close()
 	const pktlen = 10
 	require.Equal(pktlen, pkt.Len())
-	payload := dpdktestenv.PacketBytesFromHex("A0A1A2A3B0B1B2C0C1D0")
+	payload := dpdktestenv.BytesFromHex("A0A1A2A3B0B1B2C0C1D0")
 
 	for offset := 0; offset <= pktlen; offset++ {
 		for count := 0; count < pktlen-offset; count++ {
