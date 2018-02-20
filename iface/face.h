@@ -68,18 +68,15 @@ Face_GetNumaSocket(Face* face)
 }
 
 /** \brief Receive and decode a burst of packet.
- *  \param face the face
- *  \param[out] pkts array of L3 packets
- *  \param count size of \p pkts array
+ *  \param[out] npkts array of L3 packets
+ *  \param count size of \p npkts array
  *  \return number of retrieved packets
  */
 uint16_t Face_RxBurst(Face* face, Packet** npkts, uint16_t count);
 
 /** \brief Send a burst of packet.
- *  \param face the face
- *  \param pkts array of L3 packets
- *              this function does not take ownership of these packets
- *  \param count size of \p pkt array
+ *  \param npkts array of L3 packets; this function does not take ownership
+ *  \param count size of \p npkt array
  */
 void Face_TxBurst(Face* face, Packet** npkts, uint16_t count);
 

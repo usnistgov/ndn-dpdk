@@ -26,8 +26,6 @@ void __NameSet_Insert(NameSet* set, uint16_t nameL, const uint8_t* nameV,
                       const void* usr, size_t usrLen);
 
 /** \brief Insert a name.
- *  \param comps encoding of name components.
- *  \param compsLen length of \p comps.
  *  \param usr extra user information, NULL to initialize as zeros.
  *  \param usrLen length of extra user information.
  *  \warning Crash if memory allocation fails.
