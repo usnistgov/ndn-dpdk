@@ -7,6 +7,8 @@ package ndn
 import "C"
 import (
 	"bytes"
+	"encoding/hex"
+	"strings"
 	"unsafe"
 )
 
@@ -54,6 +56,10 @@ func (tb TlvBytes) ExtractElement() (element TlvBytes, tail TlvBytes) {
 	tail = tail[int(length):]
 	element = tb[:len(tb)-len(tail)]
 	return element, tail
+}
+
+func (tb TlvBytes) String() string {
+	return strings.ToUpper(hex.EncodeToString(([]byte)(tb)))
 }
 
 func JoinTlvBytes(s []TlvBytes) TlvBytes {

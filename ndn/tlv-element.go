@@ -35,13 +35,13 @@ func (ele *TlvElement) GetLength() int {
 }
 
 // Get TLV-VALUE.
-func (ele *TlvElement) GetValue() []byte {
+func (ele *TlvElement) GetValue() (v TlvBytes) {
 	var d TlvDecodePos
 	C.TlvElement_MakeValueDecoder(&ele.c, d.getPtr())
 
-	b := make([]byte, ele.GetLength())
-	d.it.Read(b) // will always succeed on valid TLV
-	return b
+	v = make(TlvBytes, ele.GetLength())
+	d.it.Read(([]byte)(v)) // will always succeed on valid TLV
+	return v
 }
 
 // Interpret TLV-VALUE as NonNegativeInteger.
