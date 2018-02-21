@@ -65,6 +65,10 @@ func (interest *Interest) GetFhs() (fhs []*Name) {
 	return fhs
 }
 
+func (interest *Interest) GetFhIndex() int {
+	return int(interest.p.thisFhIndex)
+}
+
 func (interest *Interest) SetFhIndex(index int) error {
 	if index < -1 || index >= int(interest.p.nFhs) {
 		return errors.New("fhindex out of range")
