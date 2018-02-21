@@ -40,13 +40,13 @@ typedef struct PInterest
 /** \brief Parse a packet as Interest.
  *  \param[out] interest the parsed Interest packet.
  *  \param pkt the packet.
- *  \param mpName mempool for allocating Name linearize mbufs,
+ *  \param nameMp mempool for allocating Name linearize mbufs,
  *                requires at least \p NAME_MAX_LENGTH dataroom.
  *  \retval NdnError_BadType packet is not Interest.
  *  \retval NdnError_AllocError unable to allocate mbuf.
  */
 NdnError PInterest_FromPacket(PInterest* interest, struct rte_mbuf* pkt,
-                              struct rte_mempool* mpName);
+                              struct rte_mempool* nameMp);
 
 /** \brief Parse a forwarding hint.
  *  \param index forwarding hint index, must be less than \p interest->nFhs.

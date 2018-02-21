@@ -211,12 +211,12 @@ Packet_GetNackHdr(Packet* npkt)
 NdnError Packet_ParseL2(Packet* npkt);
 
 /** \brief Parse packet as Interest or Data.
- *  \param mpName mempool for allocating Name linearize mbufs,
+ *  \param nameMp mempool for allocating Name linearize mbufs,
  *                requires at least \p NAME_MAX_LENGTH dataroom.
  *  \retval NdnError_BadType packet type is neither Interest nor Data.
  *  \retval NdnError_AllocError unable to allocate mbuf.
  *  \post Packet_GetL3Type(npkt) is L3PktType_Interest or L3PktType_Data or L3PktType_Nack.
  */
-NdnError Packet_ParseL3(Packet* npkt, struct rte_mempool* mpName);
+NdnError Packet_ParseL3(Packet* npkt, struct rte_mempool* nameMp);
 
 #endif // NDN_DPDK_NDN_PACKET_H

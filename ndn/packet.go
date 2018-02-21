@@ -111,8 +111,8 @@ func (pkt Packet) ParseL2() error {
 	return nil
 }
 
-func (pkt Packet) ParseL3(mpName dpdk.PktmbufPool) error {
-	res := NdnError(C.Packet_ParseL3(pkt.c, (*C.struct_rte_mempool)(mpName.GetPtr())))
+func (pkt Packet) ParseL3(nameMp dpdk.PktmbufPool) error {
+	res := NdnError(C.Packet_ParseL3(pkt.c, (*C.struct_rte_mempool)(nameMp.GetPtr())))
 	if res != NdnError_OK {
 		return res
 	}

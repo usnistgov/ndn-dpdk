@@ -3,7 +3,7 @@
 
 NdnError
 PInterest_FromPacket(PInterest* interest, struct rte_mbuf* pkt,
-                     struct rte_mempool* mpName)
+                     struct rte_mempool* nameMp)
 {
   TlvDecodePos d0;
   MbufLoc_Init(&d0, pkt);
@@ -29,7 +29,7 @@ PInterest_FromPacket(PInterest* interest, struct rte_mbuf* pkt,
   if (unlikely(ele1.length == 0)) {
     return NdnError_NameIsEmpty;
   }
-  interest->name.v = TlvElement_LinearizeValue(&ele1, pkt, mpName, &d1);
+  interest->name.v = TlvElement_LinearizeValue(&ele1, pkt, nameMp, &d1);
   RETURN_IF_UNLIKELY_NULL(interest->name.v, NdnError_AllocError);
   e = PName_Parse(&interest->name.p, ele1.length, interest->name.v);
   RETURN_IF_UNLIKELY_ERROR;
@@ -71,7 +71,7 @@ PInterest_FromPacket(PInterest* interest, struct rte_mbuf* pkt,
       RETURN_IF_UNLIKELY_ERROR;
       e = DecodeTlvElementExpectType(&d3, TT_Name, &ele3);
       interest->fh[i].value =
-        TlvElement_LinearizeValue(&ele3, pkt, mpName, &d3);
+        TlvElement_LinearizeValue(&ele3, pkt, nameMp, &d3);
       RETURN_IF_UNLIKELY_NULL(interest->fh[i].value, NdnError_AllocError);
       interest->fh[i].length = ele3.length;
       ++interest->nFhs;

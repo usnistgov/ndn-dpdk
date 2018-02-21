@@ -15,7 +15,7 @@ Packet_ParseL2(Packet* npkt)
 }
 
 NdnError
-Packet_ParseL3(Packet* npkt, struct rte_mempool* mpName)
+Packet_ParseL3(Packet* npkt, struct rte_mempool* nameMp)
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   MbufLoc ml;
@@ -23,7 +23,7 @@ Packet_ParseL3(Packet* npkt, struct rte_mempool* mpName)
   switch (MbufLoc_PeekOctet(&ml)) {
     case TT_Interest: {
       NdnError e =
-        PInterest_FromPacket(__Packet_GetInterestHdr(npkt), pkt, mpName);
+        PInterest_FromPacket(__Packet_GetInterestHdr(npkt), pkt, nameMp);
       if (likely(e == NdnError_OK)) {
         if (Packet_InitLpL3Hdr(npkt)->nackReason > 0) {
           Packet_SetL3PktType(npkt, L3PktType_Nack);
@@ -34,7 +34,7 @@ Packet_ParseL3(Packet* npkt, struct rte_mempool* mpName)
       return e;
     }
     case TT_Data: {
-      NdnError e = PData_FromPacket(__Packet_GetDataHdr(npkt), pkt, mpName);
+      NdnError e = PData_FromPacket(__Packet_GetDataHdr(npkt), pkt, nameMp);
       if (likely(e == NdnError_OK)) {
         Packet_SetL3PktType(npkt, L3PktType_Data);
       }

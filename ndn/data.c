@@ -2,7 +2,7 @@
 #include "tlv-encoder.h"
 
 NdnError
-PData_FromPacket(PData* data, struct rte_mbuf* pkt, struct rte_mempool* mpName)
+PData_FromPacket(PData* data, struct rte_mbuf* pkt, struct rte_mempool* nameMp)
 {
   TlvDecodePos d0;
   MbufLoc_Init(&d0, pkt);
@@ -16,7 +16,7 @@ PData_FromPacket(PData* data, struct rte_mbuf* pkt, struct rte_mempool* mpName)
   TlvElement nameEle;
   e = DecodeTlvElementExpectType(&d1, TT_Name, &nameEle);
   RETURN_IF_UNLIKELY_ERROR;
-  data->name.v = TlvElement_LinearizeValue(&nameEle, pkt, mpName, &d1);
+  data->name.v = TlvElement_LinearizeValue(&nameEle, pkt, nameMp, &d1);
   RETURN_IF_UNLIKELY_NULL(data->name.v, NdnError_AllocError);
   e = PName_Parse(&data->name.p, nameEle.length, data->name.v);
   RETURN_IF_UNLIKELY_ERROR;

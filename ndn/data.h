@@ -16,13 +16,13 @@ typedef struct PData
 /** \brief Parse a packet as Data.
  *  \param[out] data the parsed Data packet.
  *  \param pkt the packet.
- *  \param mpName mempool for allocating Name linearize mbufs,
+ *  \param nameMp mempool for allocating Name linearize mbufs,
  *                requires at least \p NAME_MAX_LENGTH dataroom.
  *  \retval NdnError_BadType packet is not Data.
  *  \retval NdnError_AllocError unable to allocate mbuf.
  */
 NdnError PData_FromPacket(PData* data, struct rte_mbuf* pkt,
-                          struct rte_mempool* mpName);
+                          struct rte_mempool* nameMp);
 
 static uint16_t
 EncodeData1_GetHeadroom()
