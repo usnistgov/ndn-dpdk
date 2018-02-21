@@ -81,9 +81,6 @@ PInterest_FromPacket(PInterest* interest, struct rte_mbuf* pkt,
     D1_NEXT;
   }
 
-  // mark position of Nonce and InterestLifetime, or where they may be inserted
-  MbufLoc_Copy(&interest->guiderLoc, &ele1.first);
-
   if (ele1.type == TT_Nonce) {
     if (unlikely(ele1.length != 4)) {
       return NdnError_BadNonceLength;

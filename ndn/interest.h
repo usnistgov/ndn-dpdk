@@ -25,7 +25,6 @@ enum HopLimitSpecial
 typedef struct PInterest
 {
   Name name;
-  MbufLoc guiderLoc; ///< where are Nonce and InterestLifetime
   uint32_t nonce;    ///< Nonce interpreted as little endian
   uint32_t lifetime; ///< InterestLifetime in millis
   HopLimit hopLimit; ///< HopLimit value after decrementing, or HopLimitSpecial
