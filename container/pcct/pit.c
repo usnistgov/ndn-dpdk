@@ -18,7 +18,7 @@ Pit_Insert(Pit* pit, Packet* npkt)
   }
 
   bool isNew = false;
-  PccEntry* pccEntry = Pcct_Insert(Pcct_FromPit(pit), hash, &search, &isNew);
+  PccEntry* pccEntry = Pcct_Insert(Pit_ToPcct(pit), hash, &search, &isNew);
   if (likely(pccEntry != NULL) && isNew) {
     pccEntry->hasPitEntry = true;
     ++pitp->nEntries;
@@ -31,7 +31,7 @@ __Pit_RawErase(Pit* pit, PitEntry* entry)
 {
   PitPriv* pitp = Pit_GetPriv(pit);
   PccEntry* pccEntry = PccEntry_FromPitEntry(entry);
-  Pcct_RemoveToken(Pcct_FromPit(pit), pccEntry);
+  Pcct_RemoveToken(Pit_ToPcct(pit), pccEntry);
   pccEntry->hasPitEntry = false;
   --pitp->nEntries;
   return pccEntry;

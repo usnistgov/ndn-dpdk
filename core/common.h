@@ -1,6 +1,8 @@
 #ifndef NDN_DPDK_CORE_COMMON_H
 #define NDN_DPDK_CORE_COMMON_H
 
+/// \file
+
 #include <assert.h>
 #include <inttypes.h>
 #include <limits.h>

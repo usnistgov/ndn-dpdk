@@ -48,7 +48,8 @@ PccEntry_GetPitEntry(PccEntry* entry)
 static PccEntry*
 PccEntry_FromPitEntry(PitEntry* pitEntry)
 {
-  PccEntry* entry = (PccEntry*)((char*)pitEntry - offsetof(PccEntry, pitEntry));
+  PccEntry* entry =
+    (PccEntry*)RTE_PTR_SUB(pitEntry, offsetof(PccEntry, pitEntry));
   assert(entry->hasPitEntry);
   return entry;
 }
@@ -67,7 +68,8 @@ PccEntry_GetCsEntry(PccEntry* entry)
 static PccEntry*
 PccEntry_FromCsEntry(CsEntry* csEntry)
 {
-  PccEntry* entry = (PccEntry*)((char*)csEntry - offsetof(PccEntry, csEntry));
+  PccEntry* entry =
+    (PccEntry*)RTE_PTR_SUB(csEntry, offsetof(PccEntry, csEntry));
   assert(entry->hasCsEntry);
   return entry;
 }

@@ -1,6 +1,8 @@
 #ifndef NDN_DPDK_IFACE_COMMON_H
 #define NDN_DPDK_IFACE_COMMON_H
 
+/// \file
+
 #include "../ndn/packet.h"
 #include "../ndn/protonum.h"
 

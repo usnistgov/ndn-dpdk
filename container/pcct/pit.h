@@ -13,22 +13,28 @@ typedef struct Pit
 {
 } Pit;
 
-static Pcct*
-Pcct_FromPit(const Pit* pit)
-{
-  return (Pcct*)pit;
-}
-
+/** \brief Cast Pcct* as Pit*.
+ */
 static Pit*
-Pcct_GetPit(const Pcct* pcct)
+Pit_FromPcct(const Pcct* pcct)
 {
   return (Pit*)pcct;
 }
 
+/** \brief Cast Pit* as Pcct*.
+ */
+static Pcct*
+Pit_ToPcct(const Pit* pit)
+{
+  return (Pcct*)pit;
+}
+
+/** \brief Access PitPriv* struct.
+ */
 static PitPriv*
 Pit_GetPriv(const Pit* pit)
 {
-  return &Pcct_GetPriv(Pcct_FromPit(pit))->pitPriv;
+  return &Pcct_GetPriv(Pit_ToPcct(pit))->pitPriv;
 }
 
 /** \brief Get number of PIT entries.
@@ -86,7 +92,7 @@ PitInsertResult Pit_Insert(Pit* pit, Packet* npkt);
 static uint64_t
 Pit_AddToken(Pit* pit, PitEntry* entry)
 {
-  return Pcct_AddToken(Pcct_FromPit(pit), PccEntry_FromPitEntry(entry));
+  return Pcct_AddToken(Pit_ToPcct(pit), PccEntry_FromPitEntry(entry));
 }
 
 /** \brief Erase a PIT entry but retain the PccEntry.
@@ -102,7 +108,7 @@ static void
 Pit_Erase(Pit* pit, PitEntry* entry)
 {
   PccEntry* pccEntry = __Pit_RawErase(pit, entry);
-  Pcct_Erase(Pcct_FromPit(pit), pccEntry);
+  Pcct_Erase(Pit_ToPcct(pit), pccEntry);
 }
 
 /** \brief Find a PIT entry for the given token.
@@ -111,7 +117,7 @@ Pit_Erase(Pit* pit, PitEntry* entry)
 static PitEntry*
 Pit_Find(Pit* pit, uint64_t token)
 {
-  PccEntry* pccEntry = Pcct_FindByToken(Pcct_FromPit(pit), token);
+  PccEntry* pccEntry = Pcct_FindByToken(Pit_ToPcct(pit), token);
   if (likely(pccEntry != NULL && pccEntry->hasPitEntry)) {
     return PccEntry_GetPitEntry(pccEntry);
   }

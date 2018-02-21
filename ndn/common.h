@@ -1,6 +1,8 @@
 #ifndef NDN_DPDK_NDN_COMMON_H
 #define NDN_DPDK_NDN_COMMON_H
 
+/// \file
+
 #include "../core/common.h"
 #include <rte_byteorder.h>
 
@@ -13,11 +15,13 @@
     if (e != NdnError_OK)                                                      \
       return e;                                                                \
   } while (false)
+
 #define RETURN_IF_UNLIKELY_ERROR                                               \
   do {                                                                         \
     if (unlikely(e != NdnError_OK))                                            \
       return e;                                                                \
   } while (false)
+
 #define RETURN_IF_UNLIKELY_NULL(ptr, ret)                                      \
   do {                                                                         \
     if (unlikely(ptr == NULL))                                                 \

@@ -1,6 +1,8 @@
 #ifndef NDN_DPDK_IFACE_ETHFACE_COMMON_H
 #define NDN_DPDK_IFACE_ETHFACE_COMMON_H
 
+/// \file
+
 #include "../counters.h"
 #include "../face.h"
 

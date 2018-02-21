@@ -13,22 +13,28 @@ typedef struct Cs
 {
 } Cs;
 
-static Pcct*
-Pcct_FromCs(const Cs* cs)
-{
-  return (Pcct*)cs;
-}
-
+/** \brief Cast Pcct* as Cs*.
+ */
 static Cs*
-Pcct_GetCs(const Pcct* pcct)
+Cs_FromPcct(const Pcct* pcct)
 {
   return (Cs*)pcct;
 }
 
+/** \brief Cast Cs* as Pcct*.
+ */
+static Pcct*
+Cs_ToPcct(const Cs* cs)
+{
+  return (Pcct*)cs;
+}
+
+/** \brief Access CsPriv* struct.
+ */
 static CsPriv*
 Cs_GetPriv(const Cs* cs)
 {
-  return &Pcct_GetPriv(Pcct_FromCs(cs))->csPriv;
+  return &Pcct_GetPriv(Cs_ToPcct(cs))->csPriv;
 }
 
 /** \brief Get capacity in number of entries.

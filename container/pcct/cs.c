@@ -11,7 +11,7 @@ void
 Cs_ReplacePitEntry(Cs* cs, PitEntry* pitEntry, struct Packet* npkt)
 {
   CsPriv* csp = Cs_GetPriv(cs);
-  PccEntry* pccEntry = __Pit_RawErase(Pcct_GetPit(Pcct_FromCs(cs)), pitEntry);
+  PccEntry* pccEntry = __Pit_RawErase(Pit_FromPcct(Cs_ToPcct(cs)), pitEntry);
   pccEntry->hasCsEntry = true;
   ++csp->nEntries;
 
@@ -28,5 +28,5 @@ Cs_Erase(Cs* cs, CsEntry* entry)
   rte_pktmbuf_free(Packet_ToMbuf(entry->data));
 
   --csp->nEntries;
-  Pcct_Erase(Pcct_FromCs(cs), pccEntry);
+  Pcct_Erase(Cs_ToPcct(cs), pccEntry);
 }

@@ -1,9 +1,7 @@
 #ifndef NDN_DPDK_NDN_PROTONUM_H
 #define NDN_DPDK_NDN_PROTONUM_H
 
-/** \file
- *  \brief NDN protocol number assignments
- */
+/// \file
 
 #define NDN_ETHER_MCAST 0x01, 0x00, 0x5E, 0x00, 0x17, 0xAA
 #define NDN_ETHERTYPE 0x8624
