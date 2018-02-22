@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"ndn-dpdk/dpdk/dpdktestenv"
+	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/socketface"
 	"ndn-dpdk/ndn"
 )
@@ -47,6 +48,7 @@ func TestStream(t *testing.T) {
 
 	for _, npkt := range rxPkts {
 		pkt := npkt.AsDpdkPacket()
+		assert.Equal(face1.GetFaceId(), iface.FaceId(pkt.GetPort()))
 		assert.NotZero(pkt.GetTimestamp())
 		pkt.Close()
 	}

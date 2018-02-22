@@ -19,6 +19,14 @@ func (pkt Packet) Len() int {
 	return int(pkt.ptr.pkt_len)
 }
 
+func (pkt Packet) GetPort() uint16 {
+	return uint16(pkt.ptr.port)
+}
+
+func (pkt Packet) SetPort(port uint16) {
+	pkt.ptr.port = C.uint16_t(port)
+}
+
 func (pkt Packet) GetTimestamp() TscTime {
 	return TscTime(pkt.ptr.timestamp)
 }

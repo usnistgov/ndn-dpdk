@@ -48,6 +48,7 @@ func TestEthFace(t *testing.T) {
 			for _, npkt := range npkts[:burstSize] {
 				if assert.True(npkt.GetPtr() != nil) {
 					pkt := npkt.AsDpdkPacket()
+					assert.Equal(faceB.GetFaceId(), iface.FaceId(pkt.GetPort()))
 					assert.NotZero(pkt.GetTimestamp())
 					pkt.Close()
 				}

@@ -15,6 +15,7 @@ Packet*
 RxProc_Input(RxProc* rx, struct rte_mbuf* frame)
 {
   FaceId faceId = frame->port;
+  assert(faceId != MBUF_INVALID_PORT);
   ++rx->nFrames[L3PktType_None];
   rx->nOctets += frame->pkt_len;
 
