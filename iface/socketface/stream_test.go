@@ -45,6 +45,12 @@ func TestStream(t *testing.T) {
 	nRxPkts := face1.RxBurst(rxPkts)
 	assert.Equal(3, nRxPkts)
 
+	for _, npkt := range rxPkts {
+		pkt := npkt.AsDpdkPacket()
+		assert.NotZero(pkt.GetTimestamp())
+		pkt.Close()
+	}
+
 	txDone := false
 	go func() {
 		readBuf := make([]byte, len(hexJoined))

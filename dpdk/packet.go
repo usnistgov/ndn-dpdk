@@ -23,6 +23,10 @@ func (pkt Packet) GetTimestamp() TscTime {
 	return TscTime(pkt.ptr.timestamp)
 }
 
+func (pkt Packet) SetTimestamp(t TscTime) {
+	pkt.ptr.timestamp = C.uint64_t(t)
+}
+
 func (pkt Packet) CountSegments() int {
 	return int(pkt.ptr.nb_segs)
 }

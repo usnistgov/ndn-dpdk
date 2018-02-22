@@ -47,6 +47,12 @@ func TestUdp(t *testing.T) {
 	nRxPkts := face1.RxBurst(rxPkts)
 	assert.Equal(3, nRxPkts)
 
+	for _, npkt := range rxPkts {
+		pkt := npkt.AsDpdkPacket()
+		assert.NotZero(pkt.GetTimestamp())
+		pkt.Close()
+	}
+
 	face1.TxBurst(txPkts)
 	conn2.SetReadDeadline(time.Now().Add(time.Millisecond * 100))
 	readBuf := make([]byte, 2000)
