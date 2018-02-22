@@ -5,6 +5,32 @@
 
 INIT_ZF_LOG(EthRx);
 
+// callback after NIC receives packets
+static uint16_t
+EthRx_RxCallback(uint16_t port, uint16_t queue, struct rte_mbuf** pkts,
+                 uint16_t nPkts, uint16_t maxPkts, void* nothing)
+{
+  uint64_t now = rte_get_tsc_cycles();
+  for (uint16_t i = 0; i < nPkts; ++i) {
+    pkts[i]->timestamp = now;
+  }
+  return nPkts;
+}
+
+int
+EthRx_Init(EthFace* face, uint16_t queue)
+{
+  EthRx* rx = &face->rx[queue];
+
+  rx->rxCallback =
+    rte_eth_add_rx_callback(face->port, queue, &EthRx_RxCallback, NULL);
+  if (rx->rxCallback == NULL) {
+    return rte_errno;
+  }
+
+  return 0;
+}
+
 static struct rte_mbuf*
 EthRx_ProcessFrame(EthFace* face, struct rte_mbuf* pkt)
 {

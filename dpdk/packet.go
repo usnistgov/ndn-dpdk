@@ -19,6 +19,10 @@ func (pkt Packet) Len() int {
 	return int(pkt.ptr.pkt_len)
 }
 
+func (pkt Packet) GetTimestamp() TscTime {
+	return TscTime(pkt.ptr.timestamp)
+}
+
 func (pkt Packet) CountSegments() int {
 	return int(pkt.ptr.nb_segs)
 }

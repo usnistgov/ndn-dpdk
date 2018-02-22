@@ -17,6 +17,7 @@
 #include <rte_config.h>
 
 #include <rte_branch_prediction.h>
+#include <rte_cycles.h>
 #include <rte_errno.h>
 #include <rte_malloc.h>
 #include <rte_memory.h>

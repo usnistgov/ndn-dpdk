@@ -62,6 +62,11 @@ EthFace_Init(EthFace* face, uint16_t port, FaceMempools* mempools)
   face->base.txBurstOp = EthFace_TxBurst;
   face->base.ops = &ethFaceOps;
 
+  res = EthRx_Init(face, QUEUE_0);
+  if (res != 0) {
+    return res;
+  }
+
   res = EthTx_Init(face, QUEUE_0);
   if (res != 0) {
     return res;

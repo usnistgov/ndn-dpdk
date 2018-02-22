@@ -11,7 +11,13 @@ typedef struct EthFace EthFace;
  */
 typedef struct EthRx
 {
+  void* rxCallback;
 } EthRx;
+
+/** \brief Initialize Ethernet TX
+ *  \return 0 for success, otherwise error code
+ */
+int EthRx_Init(EthFace* face, uint16_t queue);
 
 uint16_t EthRx_RxBurst(EthFace* face, uint16_t queue, struct rte_mbuf** pkts,
                        uint16_t nPkts);

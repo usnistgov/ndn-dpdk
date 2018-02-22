@@ -40,14 +40,16 @@ func TestEthFace(t *testing.T) {
 	nReceived := 0
 	rxQuit := make(chan struct{})
 	eal.Slaves[0].RemoteLaunch(func() int {
-		pkts := make([]ndn.Packet, RX_BURST_SIZE)
+		npkts := make([]ndn.Packet, RX_BURST_SIZE)
 		for {
-			burstSize := faceB.RxBurst(pkts)
+			burstSize := faceB.RxBurst(npkts)
 			nReceived += burstSize
 
-			for _, pkt := range pkts[:burstSize] {
-				if assert.True(pkt.GetPtr() != nil) {
-					pkt.AsDpdkPacket().Close()
+			for _, npkt := range npkts[:burstSize] {
+				if assert.True(npkt.GetPtr() != nil) {
+					pkt := npkt.AsDpdkPacket()
+					assert.NotZero(pkt.GetTimestamp())
+					pkt.Close()
 				}
 			}
 
