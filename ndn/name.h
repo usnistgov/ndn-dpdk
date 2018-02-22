@@ -42,6 +42,15 @@ typedef enum NameCompareResult {
  */
 NameCompareResult LName_Compare(LName lhs, LName rhs);
 
+#define LNAME_MAX_STRING_SIZE (NAME_MAX_LENGTH * 2)
+
+/** \brief Convert a name to a hexidecimal string for debug purpose.
+ *  \param[out] buf text buffer
+ *  \param bufsize size of \p buf; (LNAME_MAX_STRING_SIZE+1) avoids truncation
+ *  \return number of characters written excluding terminating null character
+ */
+int LName_ToString(LName n, char* buf, size_t bufsz);
+
 /** \brief Number of name components whose information are cached in Name struct
  *         for efficient processing.
  */

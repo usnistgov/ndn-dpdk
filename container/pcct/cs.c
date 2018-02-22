@@ -11,7 +11,8 @@ void
 Cs_ReplacePitEntry(Cs* cs, PitEntry* pitEntry, struct Packet* npkt)
 {
   CsPriv* csp = Cs_GetPriv(cs);
-  PccEntry* pccEntry = __Pit_RawErase(Pit_FromPcct(Cs_ToPcct(cs)), pitEntry);
+  // XXX will crash if pitEntry is for MustBeFresh=1
+  PccEntry* pccEntry = __Pit_RawErase0(Pit_FromPcct(Cs_ToPcct(cs)), pitEntry);
   pccEntry->hasCsEntry = true;
   ++csp->nEntries;
 
@@ -28,5 +29,6 @@ Cs_Erase(Cs* cs, CsEntry* entry)
   rte_pktmbuf_free(Packet_ToMbuf(entry->data));
 
   --csp->nEntries;
+  // XXX incorrect if pitEntry1 presents
   Pcct_Erase(Cs_ToPcct(cs), pccEntry);
 }

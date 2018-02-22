@@ -4,7 +4,9 @@ This package implements the **PIT-CS Composite Table (PCCT)**.
 
 PCCT is a non-thread-safe hash table that carries both the Pending Interest Table (PIT) and the Content Store (CS).
 PCCT combines a DPDK mempool for `PccEntry` allocation, a name hash table, and a token hash table.
-Each `PccEntry` carries *either* a PIT entry or a CS entry, but cannot carry both at the same time.
+
+A separate `PccEntry` is created for each combination of Interest/Data name and chosen delegation in the forwarding hint has .
+Each `PccEntry` contains a PIT entry for MustBeFresh=0 (denoted "PitEntry0"), a PIT entry for MustBeFresh=1 (denoted "PitEntry1"), and a CS entry; however, PitEntry0 and CsEntry cannot coexist.
 
 C code for [PIT](../pit/) and [CS](../cs/) is in this directory to avoid circular dependency problems, but their Go bindings and documentation are in their own packages.
 

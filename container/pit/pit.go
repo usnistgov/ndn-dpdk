@@ -34,7 +34,7 @@ func (pit Pit) Len() int {
 func (pit Pit) Insert(interest *ndn.Interest) (pitEntry *Entry, csEntry *cs.Entry) {
 	insertRes := C.Pit_Insert(pit.getPtr(), (*C.Packet)(interest.GetPacket().GetPtr()))
 	switch C.PitInsertResult_GetKind(insertRes) {
-	case C.PIT_INSERT_PIT:
+	case C.PIT_INSERT_PIT0, C.PIT_INSERT_PIT1:
 		pitEntry = &Entry{C.PitInsertResult_GetPitEntry(insertRes)}
 	case C.PIT_INSERT_CS:
 		csEntry1 := cs.EntryFromPtr(unsafe.Pointer(C.PitInsertResult_GetCsEntry(insertRes)))
@@ -55,10 +55,15 @@ func (pit Pit) Erase(entry Entry) {
 }
 
 // Find a PIT entry for the given token.
-func (pit Pit) Find(token uint64) *Entry {
-	entryC := C.Pit_Find(pit.getPtr(), C.uint64_t(token))
-	if entryC == nil {
-		return nil
+func (pit Pit) Find(token uint64) (matches []*Entry) {
+	matches = make([]*Entry, 0, C.PIT_FIND_MAX_MATCHES)
+	pfr := C.Pit_Find(pit.getPtr(), C.uint64_t(token))
+	for i := 0; i <= C.PIT_FIND_MAX_MATCHES; i++ {
+		entryC := pfr.matches[i]
+		if entryC == nil {
+			break
+		}
+		matches = append(matches, &Entry{entryC})
 	}
-	return &Entry{entryC}
+	return matches
 }

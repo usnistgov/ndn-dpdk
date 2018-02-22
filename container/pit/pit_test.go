@@ -80,21 +80,21 @@ func TestToken(t *testing.T) {
 
 	for token, entry := range tokens {
 		found := pit.Find(token)
-		if assert.NotNil(found) {
-			assert.True(entry.SameAs(*found))
+		if assert.Len(found, 1) {
+			assert.True(entry.SameAs(*found[0]))
 		}
 
 		// high 16 bits should be ignored
 		token2 := token ^ 0x79BC000000000000
 		found2 := pit.Find(token2)
-		if assert.NotNil(found2) {
-			assert.True(entry.SameAs(*found2))
+		if assert.Len(found2, 1) {
+			assert.True(entry.SameAs(*found2[0]))
 		}
 
 		pit.Erase(entry)
 		found = pit.Find(token)
-		assert.Nil(found)
+		assert.Len(found, 0)
 		found2 = pit.Find(token2)
-		assert.Nil(found2)
+		assert.Len(found2, 0)
 	}
 }

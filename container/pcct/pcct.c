@@ -1,5 +1,9 @@
 #include "pcct.h"
 
+#include "../../core/logger.h"
+
+INIT_ZF_LOG(Pcct);
+
 #undef uthash_malloc
 #undef uthash_free
 #undef uthash_memcmp
@@ -48,20 +52,22 @@ Pcct_New(const char* id, uint32_t maxEntries, unsigned numaSocket)
   struct rte_hash_parameters tokenHtParams = {
     .name = tokenHtName,
     .entries = maxEntries,
-    .key_len =
-      sizeof(uint64_t), // waste 2 bytes in exchange for faster comparison
+    .key_len = sizeof(uint64_t), // waste 2 bytes for faster comparison
     .hash_func = __Pcct_TokenHt_Hash,
     .socket_id = numaSocket,
   };
   pcctp->tokenHt = rte_hash_create(&tokenHtParams);
   rte_hash_set_cmp_func(pcctp->tokenHt, __Pcct_TokenHt_Cmp);
 
+  ZF_LOGI("%p New('%s')", pcct, id);
   return pcct;
 }
 
 void
 Pcct_Close(Pcct* pcct)
 {
+  ZF_LOGI("%p Close()", pcct);
+
   PcctPriv* pcctp = Pcct_GetPriv(pcct);
   rte_hash_free(pcctp->tokenHt);
   HASH_CLEAR(hh, pcctp->keyHt);
@@ -80,6 +86,7 @@ Pcct_Insert(Pcct* pcct, uint64_t hash, PccSearch* search, bool* isNew)
   void* entry0;
   int res = rte_mempool_get(Pcct_ToMempool(pcct), &entry0);
   if (unlikely(res != 0)) {
+    ZF_LOGE("%p Insert() table-full", pcct);
     return NULL;
   }
 
@@ -90,12 +97,17 @@ Pcct_Insert(Pcct* pcct, uint64_t hash, PccSearch* search, bool* isNew)
   PcctPriv* pcctp = Pcct_GetPriv(pcct);
   HASH_ADD_BYHASHVALUE(hh, pcctp->keyHt, key, 0, hash, entry);
   *isNew = true;
+
+  ZF_LOGD("%p Insert(%016" PRIx64 ", %s) %p", pcct, hash,
+          PccSearch_ToDebugString(search), entry);
   return entry;
 }
 
 void
 Pcct_Erase(Pcct* pcct, PccEntry* entry)
 {
+  ZF_LOGD("%p Erase(%p)", pcct, entry);
+
   PcctPriv* pcctp = Pcct_GetPriv(pcct);
   Pcct_RemoveToken(pcct, entry);
   HASH_DELETE(hh, pcctp->keyHt, entry);
@@ -129,6 +141,8 @@ __Pcct_AddToken(Pcct* pcct, PccEntry* entry)
   int res =
     rte_hash_add_key_with_hash_data(pcctp->tokenHt, &token, hash, entry);
   assert(res == 0);
+
+  ZF_LOGD("%p AddToken(%p) %012" PRIx64, pcct, entry, token);
   return token;
 }
 
@@ -142,6 +156,8 @@ __Pcct_RemoveToken(Pcct* pcct, PccEntry* entry)
 
   uint64_t token = entry->token;
   uint32_t hash = (uint32_t)token;
+
+  ZF_LOGD("%p RemoveToken(%p, %012" PRIx64 ")", pcct, entry, token);
 
   entry->hasToken = false;
   int res = rte_hash_del_key_with_hash(pcctp->tokenHt, &token, hash);

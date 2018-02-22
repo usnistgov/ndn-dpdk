@@ -19,9 +19,10 @@ typedef struct PccEntry
     struct
     {
       bool hasToken : 1;
-      bool hasPitEntry : 1;
+      bool hasPitEntry0 : 1;
+      bool hasPitEntry1 : 1;
       bool hasCsEntry : 1;
-      int : 13;
+      int : 12;
       uint64_t token : 48;
     } __rte_packed;
     uint64_t __tokenQword;
@@ -29,29 +30,61 @@ typedef struct PccEntry
 
   union
   {
-    PitEntry pitEntry;
-    CsEntry csEntry;
+    PitEntry pitEntry0; ///< PIT entry of MustBeFresh=0
+    CsEntry csEntry;    ///< CS entry
   };
+  PitEntry pitEntry1; ///< PIT entry of MustBeFresh=1
 } PccEntry;
 
-/** \brief Get PIT entry from \p PccEntry.
+/** \brief Get PIT entry of MustBeFresh=0 from \p PccEntry.
  */
 static PitEntry*
-PccEntry_GetPitEntry(PccEntry* entry)
+PccEntry_GetPitEntry0(PccEntry* entry, bool mustBeFresh)
 {
-  assert(entry->hasPitEntry);
-  return &entry->pitEntry;
+  assert(entry->hasPitEntry0);
+  return &entry->pitEntry0;
 }
 
-/** \brief Get \p PccEntry pointer from \p PitEntry.
+/** \brief Get PIT entry of MustBeFresh=1 from \p PccEntry.
+ */
+static PitEntry*
+PccEntry_GetPitEntry1(PccEntry* entry, bool mustBeFresh)
+{
+  assert(entry->hasPitEntry1);
+  return &entry->pitEntry1;
+}
+
+/** \brief Access \p PccEntry struct containing given PIT entry of MustBeFresh=0.
+ */
+static PccEntry*
+PccEntry_FromPitEntry0(PitEntry* pitEntry)
+{
+  assert(pitEntry->mustBeFresh == false);
+  PccEntry* entry = container_of(pitEntry, PccEntry, pitEntry0);
+  assert(entry->hasPitEntry0);
+  return entry;
+}
+
+/** \brief Access \p PccEntry struct containing given PIT entry of MustBeFresh=1.
+ */
+static PccEntry*
+PccEntry_FromPitEntry1(PitEntry* pitEntry)
+{
+  assert(pitEntry->mustBeFresh == true);
+  PccEntry* entry = container_of(pitEntry, PccEntry, pitEntry1);
+  assert(entry->hasPitEntry1);
+  return entry;
+}
+
+/** \brief Access \p PccEntry struct containing given PIT entry.
  */
 static PccEntry*
 PccEntry_FromPitEntry(PitEntry* pitEntry)
 {
-  PccEntry* entry =
-    (PccEntry*)RTE_PTR_SUB(pitEntry, offsetof(PccEntry, pitEntry));
-  assert(entry->hasPitEntry);
-  return entry;
+  if (pitEntry->mustBeFresh) {
+    return PccEntry_FromPitEntry1(pitEntry);
+  }
+  return PccEntry_FromPitEntry0(pitEntry);
 }
 
 /** \brief Get CS entry from \p PccEntry.
@@ -63,13 +96,12 @@ PccEntry_GetCsEntry(PccEntry* entry)
   return &entry->csEntry;
 }
 
-/** \brief Get \p PccEntry pointer from \p CsEntry.
+/** \brief Access \p PccEntry struct containing given \p CsEntry.
  */
 static PccEntry*
 PccEntry_FromCsEntry(CsEntry* csEntry)
 {
-  PccEntry* entry =
-    (PccEntry*)RTE_PTR_SUB(csEntry, offsetof(PccEntry, csEntry));
+  PccEntry* entry = container_of(csEntry, PccEntry, csEntry);
   assert(entry->hasCsEntry);
   return entry;
 }

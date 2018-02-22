@@ -22,6 +22,23 @@ LName_Compare(LName lhs, LName rhs)
   return (cmp > 0) - (cmp < 0);
 }
 
+int
+LName_ToString(LName n, char* buf, size_t bufsz)
+{
+  int count = 0;
+  for (uint16_t i = 0; i < n.length; ++i) {
+    int res = snprintf(buf, bufsz, "%02X", n.value[i]);
+    if (unlikely(res != 2 || bufsz <= 2)) {
+      *buf = '\0';
+      break;
+    }
+    count += res;
+    buf = RTE_PTR_ADD(buf, res);
+    bufsz -= res;
+  }
+  return count;
+}
+
 static bool
 IsValidNameComponentType(uint64_t type)
 {

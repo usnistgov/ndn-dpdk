@@ -47,39 +47,45 @@ Pit_CountEntries(const Pit* pit)
 
 /** \brief Result of PIT insertion.
  */
-typedef PccEntry* PitInsertResult;
+typedef struct PitInsertResult
+{
+  uintptr_t ptr; ///< PccEntry* | PitInsertResultKind
+} PitInsertResult;
 
 typedef enum PitInsertResultKind {
-  PIT_INSERT_FULL, ///< PIT is full, cannot insert
-  PIT_INSERT_PIT,  ///< created or found PIT entry
-  PIT_INSERT_CS,   ///< found existing CS entry, cannot insert PIT entry
+  PIT_INSERT_FULL = 0, ///< PIT is full, cannot insert
+  PIT_INSERT_PIT0 = 1, ///< created or found PIT entry of MustBeFresh=0
+  PIT_INSERT_PIT1 = 2, ///< created or found PIT entry of MustBeFresh=1
+  PIT_INSERT_CS = 3,   ///< found existing CS entry that matches the Interest
+
+  __PIT_INSERT_MASK = 0x03,
 } PitInsertResultKind;
 
 static PitInsertResultKind
 PitInsertResult_GetKind(PitInsertResult res)
 {
-  if (unlikely(res == NULL)) {
-    return PIT_INSERT_FULL;
-  }
-  if (res->hasCsEntry) {
-    return PIT_INSERT_CS;
-  }
-  assert(res->hasPitEntry);
-  return PIT_INSERT_PIT;
+  return (PitInsertResultKind)(res.ptr & __PIT_INSERT_MASK);
 }
 
 static PitEntry*
 PitInsertResult_GetPitEntry(PitInsertResult res)
 {
-  assert(PitInsertResult_GetKind(res) == PIT_INSERT_PIT);
-  return &res->pitEntry;
+  PccEntry* entry = (PccEntry*)(res.ptr & ~__PIT_INSERT_MASK);
+  switch (PitInsertResult_GetKind(res)) {
+    case PIT_INSERT_PIT0:
+      return &entry->pitEntry0;
+    case PIT_INSERT_PIT1:
+      return &entry->pitEntry1;
+  }
+  assert(false);
 }
 
 static CsEntry*
 PitInsertResult_GetCsEntry(PitInsertResult res)
 {
   assert(PitInsertResult_GetKind(res) == PIT_INSERT_CS);
-  return &res->csEntry;
+  PccEntry* entry = (PccEntry*)(res.ptr & ~__PIT_INSERT_MASK);
+  return &entry->csEntry;
 }
 
 /** \brief Insert or find a PIT entry for the given Interest.
@@ -95,33 +101,35 @@ Pit_AddToken(Pit* pit, PitEntry* entry)
   return Pcct_AddToken(Pit_ToPcct(pit), PccEntry_FromPitEntry(entry));
 }
 
-/** \brief Erase a PIT entry but retain the PccEntry.
+/** \brief Erase a PIT entry of MustBeFresh=0 but retain the PccEntry.
  *  \return enclosing PccEntry.
  *  \post \p entry is no longer valid.
  */
-PccEntry* __Pit_RawErase(Pit* pit, PitEntry* entry);
+PccEntry* __Pit_RawErase0(Pit* pit, PitEntry* entry);
+
+/** \brief Erase a PIT entry of MustBeFresh=1 but retain the PccEntry.
+ *  \return enclosing PccEntry.
+ *  \post \p entry is no longer valid.
+ */
+PccEntry* __Pit_RawErase1(Pit* pit, PitEntry* entry);
 
 /** \brief Erase a PIT entry.
  *  \post \p entry is no longer valid.
  */
-static void
-Pit_Erase(Pit* pit, PitEntry* entry)
+void Pit_Erase(Pit* pit, PitEntry* entry);
+
+#define PIT_FIND_MAX_MATCHES 2
+
+/** \brief Result of PIT find.
+ */
+typedef struct PitFindResult
 {
-  PccEntry* pccEntry = __Pit_RawErase(pit, entry);
-  Pcct_Erase(Pit_ToPcct(pit), pccEntry);
-}
+  PitEntry* matches[PIT_FIND_MAX_MATCHES + 1];
+} PitFindResult;
 
 /** \brief Find a PIT entry for the given token.
  *  \param token the token, only lower 48 bits are significant.
  */
-static PitEntry*
-Pit_Find(Pit* pit, uint64_t token)
-{
-  PccEntry* pccEntry = Pcct_FindByToken(Pit_ToPcct(pit), token);
-  if (likely(pccEntry != NULL && pccEntry->hasPitEntry)) {
-    return PccEntry_GetPitEntry(pccEntry);
-  }
-  return NULL;
-}
+PitFindResult Pit_Find(Pit* pit, uint64_t token);
 
 #endif // NDN_DPDK_CONTAINER_PCCT_PIT_H
