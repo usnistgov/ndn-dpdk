@@ -1,8 +1,7 @@
 package dpdk
 
 /*
-#include <rte_config.h>
-#include <rte_cycles.h>
+#include "tsc.h"
 */
 import "C"
 import "time"
@@ -36,10 +35,20 @@ func (t TscTime) ToTime() time.Time {
 	return std0.Add(since)
 }
 
+// Get number of nanoseconds in a TSC time unit.
+func GetNanosInTscUnit() float64 {
+	return float64(time.Second) / float64(C.rte_get_tsc_hz())
+}
+
+// Get TSC time unit as time.Duration.
+func GetTscUnit() time.Duration {
+	return time.Duration(GetNanosInTscUnit())
+}
+
 func convertFromTscDuration(d int64) time.Duration {
-	return time.Duration(float64(time.Second) / float64(C.rte_get_tsc_hz()) * float64(d))
+	return time.Duration(GetNanosInTscUnit() * float64(d))
 }
 
 func convertToTscDuration(d time.Duration) int64 {
-	return int64(d.Seconds() * float64(C.rte_get_tsc_hz()))
+	return int64(float64(d) / GetNanosInTscUnit())
 }
