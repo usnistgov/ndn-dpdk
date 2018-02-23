@@ -5,6 +5,7 @@
 
 #include "../../container/nameset/nameset.h"
 #include "../../core/running_stat/running-stat.h"
+#include "../../dpdk/tsc.h"
 #include "../../iface/face.h"
 
 /** \brief Per-pattern information in ndnping client.
@@ -20,7 +21,7 @@ typedef struct NdnpingClientPattern
 
 /** \brief Precision of timing measurements.
  *
- *  Duration unit is (RDTSC >> NDNPING_TIMING_PRECISION).
+ *  Duration unit is (TSC >> NDNPING_TIMING_PRECISION).
  */
 #define NDNPING_TIMING_PRECISION 16
 
@@ -61,8 +62,6 @@ typedef struct NdnpingClient
     uint64_t compV; ///< sequence number in native endianness
   } __rte_packed suffixComponent;
 
-  _Atomic uint64_t tscHz;
-
   /** \brief Bitmask to determine whether to sample a packet.
    *
    *  (seqNo & samplingMask) == 0
@@ -86,9 +85,5 @@ void NdnpingClient_Init(NdnpingClient* client);
 void NdnpingClient_Close(NdnpingClient* client);
 
 void NdnpingClient_Run(NdnpingClient* client);
-
-/** \brief Get RDTSC frequency (in Hz) for the lcore executing \p NdnpingClient_Run.
- */
-uint64_t NdnpingClient_GetTscHz(NdnpingClient* client);
 
 #endif // NDN_DPDK_APP_NDNPING_CLIENT_H

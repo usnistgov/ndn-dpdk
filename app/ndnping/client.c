@@ -19,7 +19,7 @@ typedef struct NdnpingClientSample
   bool isPending : 1;
   bool _reserved : 1;
   int patternId : 6;
-  uint64_t sendTime : 56; ///< TSC cycles >> NDNPING_TIMING_PRECISION
+  uint64_t sendTime : 56; ///< TscTime >> NDNPING_TIMING_PRECISION
 } __rte_packed NdnpingClientSample;
 static_assert(sizeof(NdnpingClientSample) == sizeof(uint64_t), "");
 
@@ -250,7 +250,6 @@ void
 NdnpingClient_Run(NdnpingClient* client)
 {
   uint64_t tscHz = rte_get_tsc_hz();
-  atomic_store_explicit(&client->tscHz, tscHz, memory_order_relaxed);
   uint64_t txBurstInterval =
     client->interestInterval / 1000.0 * tscHz * NDNPINGCLIENT_TX_BURST_SIZE;
   ZF_LOGI("%" PRI_FaceId " starting %p tx-burst-interval=%" PRIu64 " @%" PRIu64
@@ -266,10 +265,4 @@ NdnpingClient_Run(NdnpingClient* client)
     }
     NdnpingClient_RxBurst(client);
   }
-}
-
-uint64_t
-NdnpingClient_GetTscHz(NdnpingClient* client)
-{
-  return atomic_load_explicit(&client->tscHz, memory_order_relaxed);
 }

@@ -109,11 +109,8 @@ func (cnt ClientCounters) String() string {
 }
 
 func (client Client) ReadCounters() (cnt ClientCounters) {
-	durationUnit := 0.0
-	if tschz := C.NdnpingClient_GetTscHz(client.c); tschz > 0 {
-		durationUnit = float64(time.Second) / float64(tschz) *
-			math.Pow(2.0, float64(C.NDNPING_TIMING_PRECISION))
-	}
+	durationUnit := dpdk.GetNanosInTscUnit() *
+		math.Pow(2.0, float64(C.NDNPING_TIMING_PRECISION))
 	toDuration := func(d float64) time.Duration {
 		return time.Duration(d * durationUnit)
 	}
