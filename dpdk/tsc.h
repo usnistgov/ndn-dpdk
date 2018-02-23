@@ -10,4 +10,8 @@
  */
 typedef uint64_t TscTime;
 
+/** \brief Duration in TscTime unit.
+ */
+typedef int64_t TscDuration;
+
 #endif // NDN_DPDK_DPDK_TSC_H

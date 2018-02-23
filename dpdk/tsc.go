@@ -16,12 +16,12 @@ func TscNow() TscTime {
 
 // Return t+d.
 func (t TscTime) Add(d time.Duration) TscTime {
-	return t + TscTime(convertToTscDuration(d))
+	return t + TscTime(ToTscDuration(d))
 }
 
 // Return t1-t0.
 func (t1 TscTime) Sub(t0 TscTime) time.Duration {
-	return convertFromTscDuration(int64(t1 - t0))
+	return FromTscDuration(int64(t1 - t0))
 }
 
 // Convert to time.Time.
@@ -45,10 +45,10 @@ func GetTscUnit() time.Duration {
 	return time.Duration(GetNanosInTscUnit())
 }
 
-func convertFromTscDuration(d int64) time.Duration {
+func FromTscDuration(d int64) time.Duration {
 	return time.Duration(GetNanosInTscUnit() * float64(d))
 }
 
-func convertToTscDuration(d time.Duration) int64 {
+func ToTscDuration(d time.Duration) int64 {
 	return int64(float64(d) / GetNanosInTscUnit())
 }

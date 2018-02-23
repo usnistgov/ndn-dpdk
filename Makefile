@@ -32,6 +32,24 @@ $(CLIBPREFIX)-ndn.a: $(CLIBPREFIX)-dpdk.a ndn/* ndn/error.h ndn/namehash.h ndn/t
 go-ndn: $(CLIBPREFIX)-ndn.a ndn/error.go ndn/tlv-type.go
 	go build ./ndn
 
+$(CLIBPREFIX)-iface.a: $(CLIBPREFIX)-ndn.a iface/*
+	./cbuild.sh iface
+
+go-iface: $(CLIBPREFIX)-iface.a iface/*
+	go build ./iface
+
+go-ethface: $(CLIBPREFIX)-iface.a iface/ethface/*
+	go build ./iface/ethface
+
+go-socketface: $(CLIBPREFIX)-iface.a iface/socketface/*
+	go build ./iface/socketface
+
+go-faceuri: $(CLIBPREFIX)-iface.a iface/faceuri/*
+	go build ./iface/faceuri
+
+$(CLIBPREFIX)-mintmr.a: $(CLIBPREFIX)-dpdk.a container/mintmr/*
+	./cbuild.sh container/mintmr
+
 $(CLIBPREFIX)-nameset.a: $(CLIBPREFIX)-ndn.a container/nameset/*
 	./cbuild.sh container/nameset
 
@@ -64,21 +82,6 @@ go-pit: $(CLIBPREFIX)-pcct.a container/pit/*
 
 go-cs: $(CLIBPREFIX)-pcct.a container/cs/*
 	go build ./container/cs
-
-$(CLIBPREFIX)-iface.a: $(CLIBPREFIX)-ndn.a iface/*
-	./cbuild.sh iface
-
-go-iface: $(CLIBPREFIX)-iface.a iface/*
-	go build ./iface
-
-go-ethface: $(CLIBPREFIX)-iface.a iface/ethface/*
-	go build ./iface/ethface
-
-go-socketface: $(CLIBPREFIX)-iface.a iface/socketface/*
-	go build ./iface/socketface
-
-go-faceuri: $(CLIBPREFIX)-iface.a iface/faceuri/*
-	go build ./iface/faceuri
 
 go-appinit: appinit/*
 	go build ./appinit
