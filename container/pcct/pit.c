@@ -14,6 +14,8 @@ Pit_Init(Pit* pit)
   // 2^12 slots of 33ms interval, accommodates InterestLifetime up to 136533ms
   pitp->timeoutSched =
     MinSched_New(12, rte_get_tsc_hz() / 30, __Pit_Timeout, pit);
+  assert(MinSched_GetMaxDelay(pitp->timeoutSched) >=
+         PIT_MAX_LIFETIME * rte_get_tsc_hz() / 1000);
 }
 
 static PitInsertResult
@@ -34,7 +36,7 @@ Pit_Insert(Pit* pit, Packet* npkt)
   search.name = *(const LName*)(&interest->name);
   uint64_t hash = PName_ComputeHash(&interest->name.p, interest->name.v);
   if (interest->nFhs > 0) {
-    assert(false); // not implemented
+    assert(false); // XXX not implemented
     // search.fh = Name_Linearize(&interest->fwHints[0], scratch.fh);
     // hash ^= Name_ComputeHash(&interest->fwHints[0]);
   } else {

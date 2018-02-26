@@ -21,8 +21,7 @@ PitEntry_ScheduleTimeout(Pit* pit, PitEntry* entry)
 
   MinTmr_Cancel(&entry->timeout);
   bool ok = MinTmr_At(&entry->timeout, expiry, pitp->timeoutSched);
-  assert(
-    ok); // TODO restrict max lifetime so this assertion would not be triggered
+  assert(ok);
 }
 
 int
@@ -54,7 +53,10 @@ PitEntry_DnRxInterest(Pit* pit, PitEntry* entry, Packet* npkt)
   dn->token = lpl3->pitToken;
   dn->canBePrefix = interest->canBePrefix;
   dn->nonce = interest->nonce;
-  dn->expiry = pkt->timestamp + interest->lifetime * rte_get_tsc_hz() / 1000;
+  uint32_t lifetime = interest->lifetime <= PIT_MAX_LIFETIME
+                        ? interest->lifetime
+                        : PIT_MAX_LIFETIME;
+  dn->expiry = pkt->timestamp + lifetime * rte_get_tsc_hz() / 1000;
 
   // put CanBePrefix on outgoing Interests if any downstream specifies that
   if (!entry->canBePrefix && interest->canBePrefix) {

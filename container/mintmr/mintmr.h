@@ -65,6 +65,14 @@ MinTmr_Init(MinTmr* tmr)
   tmr->next = tmr->prev = NULL;
 }
 
+/** \brief Calculate the maximum delay allowed in \p MinTmr_After.
+ */
+static TscDuration
+MinSched_GetMaxDelay(MinSched* sched)
+{
+  return sched->interval * (sched->nSlots - 2);
+}
+
 /** \brief Schedule a timer to expire \p after since current time.
  *  \param tmr the timer, must not be running.
  */

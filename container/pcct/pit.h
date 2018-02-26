@@ -5,6 +5,10 @@
 
 #include "pcct.h"
 
+/** \brief Maximum PIT entry lifetime (millis).
+ */
+#define PIT_MAX_LIFETIME 120000
+
 /** \brief Cast Pcct* as Pit*.
  */
 static Pit*
