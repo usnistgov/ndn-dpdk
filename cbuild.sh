@@ -22,12 +22,15 @@ fi
 INPUTDIR=$(realpath --relative-to=. $1)
 PKG=$(basename $INPUTDIR)
 BUILDDIR=build/$PKG
-LIBNANE=build/libndn-dpdk-$PKG.a
+LIBNAME=build/libndn-dpdk-$PKG.a
 
 mkdir -p $BUILDDIR
-rm -f $BUILDDIR/*.o
+rm -f $LIBNAME $BUILDDIR/*.o
 
-for CFILE in $INPUTDIR/*.c; do
-  gcc -c -Werror -o $BUILDDIR/$(basename $CFILE .c).o $CFLAGS $CFILE
+ar rc $LIBNAME
+for CFILE in $(find $INPUTDIR -maxdepth 1 -name '*.c'); do
+  OBJ=$BUILDDIR/$(basename $CFILE .c).o
+  gcc -c -Werror -o $OBJ $CFLAGS $CFILE
+  ar r $LIBNAME $OBJ
 done
-ar rcs $LIBNANE $BUILDDIR/*.o
+ar s $LIBNAME

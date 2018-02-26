@@ -1,8 +1,6 @@
 package main
 
 /*
-#cgo CFLAGS: -m64 -pthread -O3 -g -march=native -I/usr/local/include/dpdk
-#cgo LDFLAGS: -L../../../build -lndn-dpdk-mintmr -lndn-dpdk-dpdk -ldpdk
 #include "test-mintmr.h"
 */
 import "C"

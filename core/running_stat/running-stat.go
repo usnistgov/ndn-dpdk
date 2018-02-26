@@ -1,7 +1,6 @@
 package running_stat
 
 /*
-#cgo CFLAGS: -m64 -pthread -O3 -g -march=native -I/usr/local/include/dpdk
 #include "running-stat.h"
 */
 import "C"
