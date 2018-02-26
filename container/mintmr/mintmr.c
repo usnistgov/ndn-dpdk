@@ -1,13 +1,15 @@
 #include "mintmr.h"
 
 MinSched*
-MinSched_New(int nSlotBits, TscDuration interval, MinTmrCallback cb)
+MinSched_New(int nSlotBits, TscDuration interval, MinTmrCallback cb,
+             void* cbarg)
 {
   uint16_t nSlots = 1 << nSlotBits;
   MinSched* sched =
     rte_zmalloc("MinSched", sizeof(MinSched) + nSlots * sizeof(MinTmr), 0);
   sched->interval = interval;
   sched->cb = cb;
+  sched->cbarg = cbarg;
   sched->nSlots = nSlots;
   sched->slotMask = nSlots - 1;
   sched->lastSlot = nSlots - 1;
@@ -37,7 +39,7 @@ __MinSched_Trigger(MinSched* sched, TscTime now)
     MinTmr* next;
     for (MinTmr* tmr = slot->next; tmr != slot; tmr = next) {
       next = tmr->next;
-      (sched->cb)(tmr);
+      (sched->cb)(tmr, sched->cbarg);
       MinTmr_Init(tmr);
     }
     slot->next = slot->prev = slot;

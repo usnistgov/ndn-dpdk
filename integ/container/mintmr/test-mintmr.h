@@ -15,6 +15,4 @@ MinSched* MinTmrTest_MakeSched(int nSlotBits, TscDuration interval);
 
 MinTmrTestRecord* MinTmrTest_NewRecord(int n);
 
-void MinTmrTest_TriggerRecord(MinTmr* tmr);
-
 #endif // NDN_DPDK_INTEG_CONTAINER_MINTMR_TEST_MINTMR_H
