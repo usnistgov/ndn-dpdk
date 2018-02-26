@@ -5,14 +5,12 @@
 
 #include "common.h"
 
-#if DOXYGEN
+#ifndef ZF_LOG_DEF_LEVEL
 /** \brief Set compile-time maximum log level.
  *
  *  Logging statements below this level incur zero runtime overhead.
  */
 #define ZF_LOG_DEF_LEVEL ZF_LOG_VERBOSE
-#else
-// #define ZF_LOG_DEF_LEVEL ZF_LOG_WARN
 #endif
 
 #define ZF_LOG_VERSION_REQUIRED 4

@@ -1,10 +1,16 @@
 #include "mintmr.h"
 
+#include "../../core/logger.h"
+
+INIT_ZF_LOG(MinTmr);
+
 MinSched*
 MinSched_New(int nSlotBits, TscDuration interval, MinTmrCallback cb,
              void* cbarg)
 {
   uint16_t nSlots = 1 << nSlotBits;
+  assert(nSlots != 0);
+
   MinSched* sched =
     rte_zmalloc("MinSched", sizeof(MinSched) + nSlots * sizeof(MinTmr), 0);
   sched->interval = interval;
@@ -14,6 +20,9 @@ MinSched_New(int nSlotBits, TscDuration interval, MinTmrCallback cb,
   sched->slotMask = nSlots - 1;
   sched->lastSlot = nSlots - 1;
   sched->nextTime = rte_get_tsc_cycles();
+
+  ZF_LOGI("%p New(slots=%" PRIu16 " interval=%" PRIu64 " cb=%p)", sched,
+          sched->nSlots, sched->interval, cb);
 
   for (uint16_t i = 0; i < nSlots; ++i) {
     MinTmr* slot = &sched->slot[i];
@@ -33,12 +42,16 @@ __MinSched_Trigger(MinSched* sched, TscTime now)
 {
   while (sched->nextTime <= now) {
     sched->lastSlot = (sched->lastSlot + 1) & sched->slotMask;
-    sched->nextTime += sched->interval;
     MinTmr* slot = &sched->slot[sched->lastSlot];
+    ZF_LOGV("%p Trigger() slot=%" PRIu16 " time=%" PRIu64 " now=%" PRIu64,
+            sched, sched->lastSlot, sched->nextTime, now);
+    sched->nextTime += sched->interval;
 
     MinTmr* next;
     for (MinTmr* tmr = slot->next; tmr != slot; tmr = next) {
       next = tmr->next;
+      ZF_LOGD("%p Trigger() slot=%" PRIu16 " tmr=%p", sched, sched->lastSlot,
+              tmr);
       (sched->cb)(tmr, sched->cbarg);
       MinTmr_Init(tmr);
     }
@@ -53,13 +66,27 @@ MinTmr_After(MinTmr* tmr, TscDuration after, MinSched* sched)
 
   uint64_t nSlotsAway = after / sched->interval + 1;
   if (unlikely(nSlotsAway >= sched->nSlots)) {
+    ZF_LOGW("%p After(%p, %" PRIu64 ") too-far nSlotsAway=%" PRIu64, sched, tmr,
+            after, nSlotsAway);
     return false;
   }
 
-  MinTmr* slot = &sched->slot[(sched->lastSlot + nSlotsAway) & sched->slotMask];
+  uint16_t slotNo = (sched->lastSlot + nSlotsAway) & sched->slotMask;
+  ZF_LOGD("%p After(%p, %" PRIu64 ") slot=%" PRIu16 " last=%" PRIu16, sched,
+          tmr, after, slotNo, sched->lastSlot);
+  MinTmr* slot = &sched->slot[slotNo];
   tmr->next = slot->next;
   tmr->next->prev = tmr;
   slot->next = tmr;
   tmr->prev = slot;
   return true;
+}
+
+void
+__MinTmr_Cancel(MinTmr* tmr)
+{
+  ZF_LOGD("? Cancel(%p)", tmr);
+  tmr->next->prev = tmr->prev;
+  tmr->prev->next = tmr->next;
+  MinTmr_Init(tmr);
 }

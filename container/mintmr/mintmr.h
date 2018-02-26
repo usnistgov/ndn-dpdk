@@ -81,6 +81,8 @@ MinTmr_At(MinTmr* tmr, TscTime at, MinSched* sched)
   return MinTmr_After(tmr, after, sched);
 }
 
+void __MinTmr_Cancel(MinTmr* tmr);
+
 /** \brief Schedule a timer to expire at \p at.
  */
 static void
@@ -89,9 +91,7 @@ MinTmr_Cancel(MinTmr* tmr)
   if (tmr->next == NULL) {
     return;
   }
-  tmr->next->prev = tmr->prev;
-  tmr->prev->next = tmr->next;
-  MinTmr_Init(tmr);
+  __MinTmr_Cancel(tmr);
 }
 
 #endif // NDN_DPDK_CONTAINER_MINTMR_MINTMR_H
