@@ -1,6 +1,7 @@
 package ndntestutil
 
 import (
+	"ndn-dpdk/dpdk"
 	"ndn-dpdk/dpdk/dpdktestenv"
 	"ndn-dpdk/ndn"
 )
@@ -21,7 +22,9 @@ func MakePacket(input interface{}) ndn.Packet {
 	case string:
 		b = dpdktestenv.BytesFromHex(input1)
 	}
-	return ndn.PacketFromPtr(dpdktestenv.PacketFromBytes(b).GetPtr())
+	pkt := dpdktestenv.PacketFromBytes(b)
+	pkt.SetTimestamp(dpdk.TscNow())
+	return ndn.PacketFromPtr(pkt.GetPtr())
 }
 
 func parseL2L3(pkt ndn.Packet) {
@@ -56,6 +59,10 @@ func MakeNack(input interface{}) *ndn.Nack {
 
 type iNdnPacket interface {
 	GetPacket() ndn.Packet
+}
+
+func SetFaceId(pkt iNdnPacket, port uint16) {
+	pkt.GetPacket().AsDpdkPacket().SetPort(port)
 }
 
 func ClosePacket(pkt iNdnPacket) {

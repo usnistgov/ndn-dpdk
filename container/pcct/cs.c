@@ -2,6 +2,11 @@
 #include "pit.h"
 
 void
+Cs_Init(Cs* cs)
+{
+}
+
+void
 Cs_SetCapacity(Cs* cs, uint32_t capacity)
 {
   assert(false); // not implemented

@@ -74,7 +74,7 @@ go-fib: $(CLIBPREFIX)-fib.a
 container/pcct/uthash.h: container/pcct/fetch-uthash.sh
 	cd container/pcct && ./fetch-uthash.sh
 
-$(CLIBPREFIX)-pcct.a: $(CLIBPREFIX)-ndn.a container/pcct/* container/pcct/uthash.h
+$(CLIBPREFIX)-pcct.a: $(CLIBPREFIX)-mintmr.a $(CLIBPREFIX)-ndn.a container/pcct/* container/pcct/uthash.h
 	./cbuild.sh container/pcct
 
 go-pit: $(CLIBPREFIX)-pcct.a container/pit/*

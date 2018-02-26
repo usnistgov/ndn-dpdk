@@ -5,6 +5,14 @@
 
 #include "common.h"
 
+/** \brief The Content Store (CS).
+ *
+ *  Cs* is Pcct*.
+ */
+typedef struct Cs
+{
+} Cs;
+
 /** \brief PCCT private data for CS.
  */
 typedef struct CsPriv

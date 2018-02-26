@@ -39,7 +39,7 @@ typedef struct PccEntry
 /** \brief Get PIT entry of MustBeFresh=0 from \p PccEntry.
  */
 static PitEntry*
-PccEntry_GetPitEntry0(PccEntry* entry, bool mustBeFresh)
+PccEntry_GetPitEntry0(PccEntry* entry)
 {
   assert(entry->hasPitEntry0);
   return &entry->pitEntry0;
@@ -48,7 +48,7 @@ PccEntry_GetPitEntry0(PccEntry* entry, bool mustBeFresh)
 /** \brief Get PIT entry of MustBeFresh=1 from \p PccEntry.
  */
 static PitEntry*
-PccEntry_GetPitEntry1(PccEntry* entry, bool mustBeFresh)
+PccEntry_GetPitEntry1(PccEntry* entry)
 {
   assert(entry->hasPitEntry1);
   return &entry->pitEntry1;

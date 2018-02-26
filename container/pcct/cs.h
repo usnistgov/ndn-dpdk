@@ -5,14 +5,6 @@
 
 #include "pcct.h"
 
-/** \brief The Content Store (CS).
- *
- *  Cs* is Pcct*.
- */
-typedef struct Cs
-{
-} Cs;
-
 /** \brief Cast Pcct* as Cs*.
  */
 static Cs*
@@ -36,6 +28,10 @@ Cs_GetPriv(const Cs* cs)
 {
   return &Pcct_GetPriv(Cs_ToPcct(cs))->csPriv;
 }
+
+/** \brief Constructor.
+ */
+void Cs_Init(Cs* cs);
 
 /** \brief Get capacity in number of entries.
  */

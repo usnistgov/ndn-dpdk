@@ -1,5 +1,8 @@
 #include "pcct.h"
 
+#include "cs.h"
+#include "pit.h"
+
 #include "../../core/logger.h"
 
 INIT_ZF_LOG(Pcct);
@@ -60,6 +63,8 @@ Pcct_New(const char* id, uint32_t maxEntries, unsigned numaSocket)
   rte_hash_set_cmp_func(pcctp->tokenHt, __Pcct_TokenHt_Cmp);
 
   ZF_LOGI("%p New('%s')", pcct, id);
+  Pit_Init(Pit_FromPcct(pcct));
+  Cs_Init(Cs_FromPcct(pcct));
   return pcct;
 }
 

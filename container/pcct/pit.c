@@ -4,6 +4,18 @@
 
 INIT_ZF_LOG(Pit);
 
+static void __Pit_Timeout(MinTmr* tmr, void* pit0);
+
+void
+Pit_Init(Pit* pit)
+{
+  PitPriv* pitp = Pit_GetPriv(pit);
+
+  // 2^12 slots of 33ms interval, accommodates InterestLifetime up to 136533ms
+  pitp->timeoutSched =
+    MinSched_New(12, rte_get_tsc_hz() / 30, __Pit_Timeout, pit);
+}
+
 static PitInsertResult
 PitInsertResult_New(PccEntry* pccEntry, PitInsertResultKind kind)
 {
@@ -41,8 +53,9 @@ Pit_Insert(Pit* pit, Packet* npkt)
     // TODO CS should not match if it violates CanBePrefix
     // TODO evict CS entry if it violates CanBePrefix and Interest has MustBeFresh=0,
     //      to make room for pitEntry0
-    ZF_LOGD("%p Insert(%s) %p has-CS", pit, PccSearch_ToDebugString(&search),
-            pccEntry);
+    ZF_LOGD("%p Insert(%s) pcc=%p has-CS cs=%p", pit,
+            PccSearch_ToDebugString(&search), pccEntry,
+            PccEntry_GetCsEntry(pccEntry));
     return PitInsertResult_New(pccEntry, PIT_INSERT_CS);
   }
 
@@ -51,11 +64,13 @@ Pit_Insert(Pit* pit, Packet* npkt)
       ++pitp->nEntries;
       pccEntry->hasPitEntry1 = true;
       pccEntry->pitEntry1.mustBeFresh = true;
-      ZF_LOGD("%p Insert(%s) %p ins-PIT1", pit,
-              PccSearch_ToDebugString(&search), pccEntry);
+      ZF_LOGD("%p Insert(%s) pcc=%p ins-PIT1 pit=%p", pit,
+              PccSearch_ToDebugString(&search), pccEntry,
+              PccEntry_GetPitEntry1(pccEntry));
     } else {
-      ZF_LOGD("%p Insert(%s) %p has-PIT1", pit,
-              PccSearch_ToDebugString(&search), pccEntry);
+      ZF_LOGD("%p Insert(%s) pcc=%p has-PIT1 pit=%p", pit,
+              PccSearch_ToDebugString(&search), pccEntry,
+              PccEntry_GetPitEntry1(pccEntry));
     }
     return PitInsertResult_New(pccEntry, PIT_INSERT_PIT1);
   }
@@ -65,11 +80,13 @@ Pit_Insert(Pit* pit, Packet* npkt)
     ++pitp->nEntries;
     pccEntry->hasPitEntry0 = true;
     pccEntry->pitEntry0.mustBeFresh = false;
-    ZF_LOGD("%p Insert(%s) %p ins-PIT0", pit, PccSearch_ToDebugString(&search),
-            pccEntry);
+    ZF_LOGD("%p Insert(%s) pcc=%p ins-PIT0 pit=%p", pit,
+            PccSearch_ToDebugString(&search), pccEntry,
+            PccEntry_GetPitEntry0(pccEntry));
   } else {
-    ZF_LOGD("%p Insert(%s) %p has-PIT0", pit, PccSearch_ToDebugString(&search),
-            pccEntry);
+    ZF_LOGD("%p Insert(%s) pcc=%p has-PIT0 pit=%p", pit,
+            PccSearch_ToDebugString(&search), pccEntry,
+            PccEntry_GetPitEntry0(pccEntry));
   }
   return PitInsertResult_New(pccEntry, PIT_INSERT_PIT0);
 }
@@ -112,18 +129,27 @@ Pit_Erase(Pit* pit, PitEntry* entry)
   PccEntry* pccEntry;
   if (entry->mustBeFresh) {
     pccEntry = __Pit_RawErase1(pit, entry);
-    ZF_LOGD("%p Erase(%p) del-PIT1", pit, pccEntry);
+    ZF_LOGD("%p Erase(%p) del-PIT1 pcc=%p", pit, entry, pccEntry);
     if (pccEntry->hasPitEntry0 || pccEntry->hasCsEntry) {
       return;
     }
   } else {
     pccEntry = __Pit_RawErase0(pit, entry);
-    ZF_LOGD("%p Erase(%p) del-PIT0", pit, pccEntry);
+    ZF_LOGD("%p Erase(%p) del-PIT0 pcc=%p", pit, entry, pccEntry);
     if (pccEntry->hasPitEntry1) {
       return;
     }
   }
   Pcct_Erase(Pit_ToPcct(pit), pccEntry);
+}
+
+static void
+__Pit_Timeout(MinTmr* tmr, void* pit0)
+{
+  Pit* pit = (Pit*)pit0;
+  PitEntry* entry = container_of(tmr, PitEntry, timeout);
+  ZF_LOGD("%p Timeout(%p)", pit, entry);
+  Pit_Erase(pit, entry);
 }
 
 PitFindResult

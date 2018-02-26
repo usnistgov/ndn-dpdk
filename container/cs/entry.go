@@ -7,9 +7,10 @@ import "C"
 import "unsafe"
 
 type Entry struct {
-	c *C.CsEntry
+	c  *C.CsEntry
+	cs Cs
 }
 
-func EntryFromPtr(ptr unsafe.Pointer) Entry {
-	return Entry{(*C.CsEntry)(ptr)}
+func (cs Cs) EntryFromPtr(ptr unsafe.Pointer) Entry {
+	return Entry{(*C.CsEntry)(ptr), cs}
 }

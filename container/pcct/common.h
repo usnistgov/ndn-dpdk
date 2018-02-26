@@ -3,7 +3,8 @@
 
 /// \file
 
-#include "../../ndn/packet.h"
+#include "../../iface/face.h"
+#include "../mintmr/mintmr.h"
 #include <rte_hash.h>
 
 #endif // NDN_DPDK_CONTAINER_PCCT_COMMON_H
