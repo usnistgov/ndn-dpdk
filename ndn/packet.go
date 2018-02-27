@@ -91,6 +91,10 @@ func (pkt Packet) GetLpHdr() *LpHeader {
 	return (*LpHeader)(unsafe.Pointer(C.Packet_GetLpHdr(pkt.c)))
 }
 
+func (pkt Packet) GetLpL3() *LpL3 {
+	return (*LpL3)(unsafe.Pointer(C.Packet_GetLpL3Hdr(pkt.c)))
+}
+
 func (pkt Packet) AsInterest() *Interest {
 	return &Interest{pkt, C.Packet_GetInterestHdr(pkt.c)}
 }

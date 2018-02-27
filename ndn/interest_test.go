@@ -90,13 +90,15 @@ func TestInterestModify(t *testing.T) {
 	mod1 := mod0
 	mod1.HopLimit = 41
 	ins1 := ins0 + " hop=220129"
+	const pitToken0 = uint64(0xB7B6B5B4B3B2B1B0)
 
 	tests := []struct {
 		input string
 		out0  string
 		out1  string
 	}{
-		{"0505 name=0703080141",
+		{"6413 pittoken=6208B0B1B2B3B4B5B6B7 payload=5007 " +
+			"0505 name=0703080141",
 			"0511 name=0703080141" + ins0,
 			"0514 name=0703080141" + ins1},
 		{"050B name=0703080141 parameters=2304E0E1E2E3",
@@ -115,10 +117,14 @@ func TestInterestModify(t *testing.T) {
 			"0517 name=0703080141" + ins0 + " parameters=2304E0E1E2E3",
 			"051A name=0703080141" + ins1 + " parameters=2304E0E1E2E3"},
 	}
-	for _, tt := range tests {
+	for i, tt := range tests {
 		pkt := packetFromHex(tt.input)
 		defer pkt.AsDpdkPacket().Close()
-		e := pkt.ParseL3(theMp)
+		e := pkt.ParseL2()
+		if !assert.NoError(e, tt.input) {
+			continue
+		}
+		e = pkt.ParseL3(theMp)
 		if !assert.NoError(e, tt.input) {
 			continue
 		}
@@ -129,18 +135,26 @@ func TestInterestModify(t *testing.T) {
 
 		out0 := interest.Modify(mod0, mbufs[0], mbufs[1], theMp)
 		if assert.NotNil(out0, tt.input) {
-			pkt0 := out0.GetPacket().AsDpdkPacket()
-			assert.Equal(dpdktestenv.BytesFromHex(tt.out0),
-				pkt0.ReadAll(), tt.input)
+			npkt0 := out0.GetPacket()
+			pkt0 := npkt0.AsDpdkPacket()
+			defer pkt0.Close()
+
+			assert.Equal(dpdktestenv.BytesFromHex(tt.out0), pkt0.ReadAll(), tt.input)
+			if i == 0 {
+				assert.Equal(pitToken0, npkt0.GetLpL3().GetPitToken(), tt.input)
+			}
 		}
 
 		out1 := interest.Modify(mod1, mbufs[2], mbufs[3], theMp)
 		if assert.NotNil(out1, tt.input) {
-			pkt1 := out1.GetPacket().AsDpdkPacket()
-			assert.Equal(dpdktestenv.BytesFromHex(tt.out1),
-				pkt1.ReadAll(), tt.input)
-		}
+			npkt1 := out1.GetPacket()
+			pkt1 := npkt1.AsDpdkPacket()
+			defer pkt1.Close()
 
-		// TODO verify that LpL3 is copied
+			assert.Equal(dpdktestenv.BytesFromHex(tt.out1), pkt1.ReadAll(), tt.input)
+			if i == 0 {
+				assert.Equal(pitToken0, npkt1.GetLpL3().GetPitToken(), tt.input)
+			}
+		}
 	}
 }
