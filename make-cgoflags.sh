@@ -11,7 +11,7 @@ PKGNAME=$(basename $PKG)
 LIBPATH=$(realpath --relative-to=$PKG build/)
 shift
 
-for GOFILE in $(find $PKG -name '*.go' -not -name '*_test.go' -not -name 'cgoflags.go'); do
+for GOFILE in $(find -maxdepth 1 $PKG -name '*.go' -not -name '*_test.go' -not -name 'cgoflags.go'); do
   PKGNAME=$(grep 'package ' $GOFILE | head -1 | awk '{print $2}')
 done
 

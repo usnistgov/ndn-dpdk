@@ -46,7 +46,7 @@ NameCompareResult LName_Compare(LName lhs, LName rhs);
 
 /** \brief Convert a name to a hexidecimal string for debug purpose.
  *  \param[out] buf text buffer
- *  \param bufsize size of \p buf; (LNAME_MAX_STRING_SIZE+1) avoids truncation
+ *  \param bufsz size of \p buf; (LNAME_MAX_STRING_SIZE+1) avoids truncation
  *  \return number of characters written excluding terminating null character
  */
 int LName_ToString(LName n, char* buf, size_t bufsz);

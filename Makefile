@@ -162,8 +162,14 @@ test: cbuilds cgoflags
 doxygen:
 	cd docs && doxygen Doxyfile 2>&1 | ./filter-Doxygen-warning.awk 1>&2
 
-dochttp: doxygen
-	cd docs/html && python3 -m http.server 2>/dev/null &
+godochtml:
+	bash docs/godoc.sh
+
+dochttp: doxygen godochtml
+	cd docs && python3 -m http.server 2>/dev/null &
+
+godochttp:
+	godoc -http ':6060' 2>/dev/null &
 
 clean:
 	rm -rf build ndn/error.go ndn/error.h ndn/namehash.h ndn/tlv-type.go ndn/tlv-type.h docs/html
