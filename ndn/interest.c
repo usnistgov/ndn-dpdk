@@ -1,4 +1,7 @@
 #include "interest.h"
+#include "encode-interest.h"
+#include "packet.h"
+#include "tlv-encoder.h"
 
 NdnError
 PInterest_FromPacket(PInterest* interest, struct rte_mbuf* pkt,
@@ -33,6 +36,8 @@ PInterest_FromPacket(PInterest* interest, struct rte_mbuf* pkt,
   e = PName_Parse(&interest->name.p, ele1.length, interest->name.v);
   RETURN_IF_UNLIKELY_ERROR;
 
+  interest->guiderOff = ele1.size;
+  interest->guiderSize = 0;
   interest->nonce = 0;
   interest->lifetime = DEFAULT_INTEREST_LIFETIME;
   interest->hopLimit = HOP_LIMIT_OMITTED;
@@ -44,11 +49,13 @@ PInterest_FromPacket(PInterest* interest, struct rte_mbuf* pkt,
   D1_NEXT;
   if (ele1.type == TT_CanBePrefix) {
     interest->canBePrefix = true;
+    interest->guiderOff += ele1.size;
     D1_NEXT;
   }
 
   if (ele1.type == TT_MustBeFresh) {
     interest->mustBeFresh = true;
+    interest->guiderOff += ele1.size;
     D1_NEXT;
   }
 
@@ -77,6 +84,7 @@ PInterest_FromPacket(PInterest* interest, struct rte_mbuf* pkt,
       MbufLoc_CopyPos(&d2, &d3);
     }
     MbufLoc_CopyPos(&d1, &d2);
+    interest->guiderOff += ele1.size;
     D1_NEXT;
   }
 
@@ -89,6 +97,7 @@ PInterest_FromPacket(PInterest* interest, struct rte_mbuf* pkt,
     bool ok = MbufLoc_ReadU32(&ele1.value, &nonceV);
     assert(ok); // must succeed because length is checked
     interest->nonce = rte_le_to_cpu_32(nonceV);
+    interest->guiderSize += ele1.size;
     D1_NEXT;
   }
 
@@ -99,6 +108,7 @@ PInterest_FromPacket(PInterest* interest, struct rte_mbuf* pkt,
       return NdnError_BadInterestLifetime;
     }
     interest->lifetime = (uint32_t)lifetimeV;
+    interest->guiderSize += ele1.size;
     D1_NEXT;
   }
 
@@ -112,6 +122,7 @@ PInterest_FromPacket(PInterest* interest, struct rte_mbuf* pkt,
     } else {
       interest->hopLimit = --(*(uint8_t*)hopLimitV);
     }
+    interest->guiderSize += ele1.size;
     D1_NEXT;
   }
 
@@ -134,4 +145,107 @@ PInterest_ParseFh(PInterest* interest, uint8_t index)
   interest->thisFh.v = interest->fh[index].value;
   interest->thisFhIndex = index;
   return NdnError_OK;
+}
+
+Packet*
+ModifyInterest(Packet* npkt, const InterestMod* mod, struct rte_mbuf* header,
+               struct rte_mbuf* guider, struct rte_mempool* indirectMp)
+{
+  assert(rte_pktmbuf_headroom(header) >= EncodeInterest_GetHeadroom());
+  assert(rte_pktmbuf_tailroom(guider) >= ModifyInterest_SizeofGuider());
+
+  struct rte_mbuf* inPkt = Packet_ToMbuf(npkt);
+  PInterest* inInterest = Packet_GetInterestHdr(npkt);
+  Packet* outNpkt = Packet_FromMbuf(header);
+
+  // skip Interest TL
+  TlvDecodePos d0;
+  MbufLoc_Init(&d0, inPkt);
+  TlvElement interestEle;
+  NdnError e = DecodeTlvHeader(&d0, &interestEle);
+  assert(e == NdnError_OK);
+
+  // make indirect mbufs over Name thru ForwardingHint
+  struct rte_mbuf* m1 =
+    MbufLoc_MakeIndirect(&d0, inInterest->guiderOff, indirectMp);
+  if (unlikely(m1 == NULL)) {
+    rte_pktmbuf_free(header);
+    rte_pktmbuf_free(guider);
+    return NULL;
+  }
+
+  // skip old guiders
+  MbufLoc_Advance(&d0, inInterest->guiderSize);
+
+  // prepare new guiders
+  TlvEncoder* enG = MakeTlvEncoder(guider);
+  typedef struct GuiderF
+  {
+    uint8_t nonceT;
+    uint8_t nonceL;
+    rte_le32_t nonceV;
+
+    uint8_t lifetimeT;
+    uint8_t lifetimeL;
+    rte_be32_t lifetimeV;
+
+    uint8_t hopLimitT;
+    uint8_t hopLimitL;
+    uint8_t hopLimitV;
+  } __rte_packed GuiderF;
+
+  bool hasHopLimit = mod->hopLimit != HOP_LIMIT_OMITTED;
+  size_t guiderSize =
+    hasHopLimit ? sizeof(GuiderF) : offsetof(GuiderF, hopLimitT);
+  GuiderF* f = (GuiderF*)TlvEncoder_Append(enG, guiderSize);
+  f->nonceT = TT_Nonce;
+  f->nonceL = 4;
+  *(unaligned_uint32_t*)&f->nonceV = rte_cpu_to_le_32(mod->nonce);
+  f->lifetimeT = TT_InterestLifetime;
+  f->lifetimeL = 4;
+  *(unaligned_uint32_t*)&f->lifetimeV = rte_cpu_to_be_32(mod->lifetime);
+  if (hasHopLimit) {
+    f->hopLimitT = TT_HopLimit;
+    f->hopLimitL = 1;
+    f->hopLimitV = (uint8_t)mod->hopLimit;
+  }
+
+  // make indirect mbufs over Parameters and chain after guiders
+  if (d0.rem > 0) {
+    struct rte_mbuf* m2 = MbufLoc_MakeIndirect(&d0, d0.rem, indirectMp);
+    if (unlikely(m2 == NULL)) {
+      rte_pktmbuf_free(m1);
+      rte_pktmbuf_free(header);
+      rte_pktmbuf_free(guider);
+      return NULL;
+    }
+
+    rte_pktmbuf_chain(guider, m2);
+  }
+
+  // chain guiders after Name thru ForwardingHint
+  rte_pktmbuf_chain(m1, guider);
+
+  // prepend Interest TL
+  TlvEncoder* enH = MakeTlvEncoder(header);
+  PrependVarNum(enH, m1->pkt_len);
+  PrependVarNum(enH, TT_Interest);
+  rte_pktmbuf_chain(header, m1);
+
+  // copy LpL3 and PInterest
+  L2PktType l2type = Packet_GetL2PktType(npkt);
+  Packet_SetL2PktType(outNpkt, l2type);
+  if (l2type == L2PktType_NdnlpV2) {
+    rte_memcpy(Packet_GetLpL3Hdr(outNpkt), Packet_GetLpL3Hdr(npkt),
+               sizeof(LpL3));
+  }
+  Packet_SetL3PktType(outNpkt, L3PktType_Interest);
+  PInterest* outInterest = Packet_GetInterestHdr(outNpkt);
+  rte_memcpy(outInterest, inInterest, sizeof(PInterest));
+  outInterest->nonce = mod->nonce;
+  outInterest->lifetime = mod->lifetime;
+  outInterest->hopLimit = mod->hopLimit;
+  outInterest->guiderSize = guiderSize;
+
+  return outNpkt;
 }

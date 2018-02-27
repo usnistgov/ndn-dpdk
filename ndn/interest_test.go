@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/dpdktestenv"
 	"ndn-dpdk/ndn"
 )
 
@@ -73,5 +75,72 @@ func TestInterestDecode(t *testing.T) {
 			assert.EqualValues(tt.lifetime, interest.GetLifetime()/time.Millisecond, tt.input)
 			assert.Equal(tt.hopLimit, interest.GetHopLimit(), tt.input)
 		}
+	}
+}
+
+func TestInterestModify(t *testing.T) {
+	assert, _ := makeAR(t)
+
+	mod0 := ndn.InterestMod{
+		Nonce:    0xABAAA9A8,
+		Lifetime: 27938 * time.Millisecond,
+		HopLimit: ndn.HOP_LIMIT_OMITTED,
+	}
+	ins0 := " nonce=0A04A8A9AAAB lifetime=0C0400006D22"
+	mod1 := mod0
+	mod1.HopLimit = 41
+	ins1 := ins0 + " hop=220129"
+
+	tests := []struct {
+		input string
+		out0  string
+		out1  string
+	}{
+		{"0505 name=0703080141",
+			"0511 name=0703080141" + ins0,
+			"0514 name=0703080141" + ins1},
+		{"050B name=0703080141 parameters=2304E0E1E2E3",
+			"0517 name=0703080141" + ins0 + " parameters=2304E0E1E2E3",
+			"051A name=0703080141" + ins1 + " parameters=2304E0E1E2E3"},
+		{"0507 name=0703080141 cbp=2100",
+			"0513 name=0703080141 cbp=2100" + ins0,
+			"0516 name=0703080141 cbp=2100" + ins1},
+		{"0507 name=0703080141 mbf=1200",
+			"0513 name=0703080141 mbf=1200" + ins0,
+			"0516 name=0703080141 mbf=1200" + ins1},
+		{"0511 name=0703080141 fh=1E0A1F081E01000703080147",
+			"051D name=0703080141 fh=1E0A1F081E01000703080147" + ins0,
+			"0520 name=0703080141 fh=1E0A1F081E01000703080147" + ins1},
+		{"0518 name=0703080141 nonce=0A04A0A1A2A3 lifetime=0C02C0C1 hop=220180  parameters=2304E0E1E2E3",
+			"0517 name=0703080141" + ins0 + " parameters=2304E0E1E2E3",
+			"051A name=0703080141" + ins1 + " parameters=2304E0E1E2E3"},
+	}
+	for _, tt := range tests {
+		pkt := packetFromHex(tt.input)
+		defer pkt.AsDpdkPacket().Close()
+		e := pkt.ParseL3(theMp)
+		if !assert.NoError(e, tt.input) {
+			continue
+		}
+		interest := pkt.AsInterest()
+
+		var mbufs [4]dpdk.Mbuf
+		dpdktestenv.AllocBulk(dpdktestenv.MPID_DIRECT, mbufs[:])
+
+		out0 := interest.Modify(mod0, mbufs[0], mbufs[1], theMp)
+		if assert.NotNil(out0, tt.input) {
+			pkt0 := out0.GetPacket().AsDpdkPacket()
+			assert.Equal(dpdktestenv.BytesFromHex(tt.out0),
+				pkt0.ReadAll(), tt.input)
+		}
+
+		out1 := interest.Modify(mod1, mbufs[2], mbufs[3], theMp)
+		if assert.NotNil(out1, tt.input) {
+			pkt1 := out1.GetPacket().AsDpdkPacket()
+			assert.Equal(dpdktestenv.BytesFromHex(tt.out1),
+				pkt1.ReadAll(), tt.input)
+		}
+
+		// TODO verify that LpL3 is copied
 	}
 }

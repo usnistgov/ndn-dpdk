@@ -58,7 +58,7 @@ type Packet struct {
 	c *C.Packet
 }
 
-// Construct Packet from *C.struct_rte_mbuf.
+// Construct Packet from *C.Packet.
 // This function can accept nil pointer.
 func PacketFromPtr(ptr unsafe.Pointer) (pkt Packet) {
 	if ptr != nil {

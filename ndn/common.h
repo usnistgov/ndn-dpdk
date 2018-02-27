@@ -10,6 +10,8 @@
 
 #include "error.h"
 
+typedef struct Packet Packet;
+
 #define RETURN_IF_ERROR                                                        \
   do {                                                                         \
     if (e != NdnError_OK)                                                      \

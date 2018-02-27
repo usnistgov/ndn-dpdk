@@ -24,12 +24,16 @@ enum HopLimitSpecial
  */
 typedef struct PInterest
 {
+  uint32_t guiderOff;  ///< size of Name through ForwardingHint
+  uint32_t guiderSize; ///< size of guiders
+
   Name name;
   uint32_t nonce;    ///< Nonce interpreted as little endian
   uint32_t lifetime; ///< InterestLifetime in millis
   HopLimit hopLimit; ///< HopLimit value after decrementing, or HopLimitSpecial
   bool canBePrefix;
   bool mustBeFresh;
+
   uint8_t nFhs;       ///< number of forwarding hints in \p fh
   int8_t thisFhIndex; ///< index of current forwarding hint in \p thisFh, or -1
   LName fh[INTEREST_MAX_FHS];
@@ -53,5 +57,41 @@ NdnError PInterest_FromPacket(PInterest* interest, struct rte_mbuf* pkt,
  *  \post interest->thisFh reflects the index-th forwarding hint.
  */
 NdnError PInterest_ParseFh(PInterest* interest, uint8_t index);
+
+static uint16_t
+ModifyInterest_SizeofGuider()
+{
+  return 1 + 1 + 4 + // Nonce
+         1 + 1 + 4 + // InterestLifetime
+         1 + 1 + 1;  // HopLimit
+}
+
+/** \brief Instructions to modify Interest guiders.
+ */
+typedef struct InterestMod
+{
+  uint32_t nonce;
+  uint32_t lifetime;
+  HopLimit hopLimit;
+} InterestMod;
+
+/** \brief Modify Interest guiders.
+ *  \param[in] npkt the original Interest packet;
+ *             must have \p Packet_GetInterestHdr().
+ *  \param header output mbuf to store Interest TL;
+ *                must be empty and is the only segment,
+ *                must have \p EncodeInterest_GetHeadroom() in headroom,
+ *                and must fulfill requirements of \p Packet_FromMbuf().
+ *  \param guider output mbuf to store Nonce, InterestLifetime, and HopLimit;
+ *                must be empty and is the only segment,
+ *                must have \p ModifyInterest_SizeofGuider() in tailroom.
+ *  \param indirectMp mempool for allocating indirect mbufs.
+ *  \return cloned and modified packet that has \p Packet_GetInterestHdr().
+ *  \retval NULL upon indirectMp allocation failure;
+ *               \p header and \p guider will be freed.
+ */
+Packet* ModifyInterest(Packet* npkt, const InterestMod* mod,
+                       struct rte_mbuf* header, struct rte_mbuf* guider,
+                       struct rte_mempool* indirectMp);
 
 #endif // NDN_DPDK_NDN_INTEREST_H

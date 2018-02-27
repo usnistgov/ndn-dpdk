@@ -8,6 +8,8 @@ import (
 	"errors"
 	"time"
 	"unsafe"
+
+	"ndn-dpdk/dpdk"
 )
 
 // Interest packet.
@@ -81,4 +83,29 @@ func (interest *Interest) SetFhIndex(index int) error {
 		return NdnError(e)
 	}
 	return nil
+}
+
+func ModifyInterest_SizeofGuider() int {
+	return int(C.ModifyInterest_SizeofGuider())
+}
+
+type InterestMod struct {
+	Nonce    uint32
+	Lifetime time.Duration
+	HopLimit HopLimit
+}
+
+func (interest *Interest) Modify(mod InterestMod, header dpdk.IMbuf, guider dpdk.IMbuf,
+	indirectMp dpdk.PktmbufPool) *Interest {
+	var modC C.InterestMod
+	modC.nonce = C.uint32_t(mod.Nonce)
+	modC.lifetime = C.uint32_t(mod.Lifetime / time.Millisecond)
+	modC.hopLimit = C.HopLimit(mod.HopLimit)
+
+	outPktC := C.ModifyInterest(interest.m.c, &modC, (*C.struct_rte_mbuf)(header.GetPtr()),
+		(*C.struct_rte_mbuf)(guider.GetPtr()), (*C.struct_rte_mempool)(indirectMp.GetPtr()))
+	if outPktC == nil {
+		return nil
+	}
+	return Packet{outPktC}.AsInterest()
 }
