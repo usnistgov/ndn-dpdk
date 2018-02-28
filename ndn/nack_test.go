@@ -31,6 +31,7 @@ func TestNackDecode(t *testing.T) {
 			continue
 		}
 		nack := pkt.AsNack()
+		assert.Implements((*ndn.IL3Packet)(nil), nack)
 		assert.Equal(tt.reason, nack.GetReason(), tt.input)
 		interest := nack.GetInterest()
 		assert.Equal("/A", interest.GetName().String(), tt.input)

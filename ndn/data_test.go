@@ -32,6 +32,7 @@ func TestDataDecode(t *testing.T) {
 				continue
 			}
 			data := pkt.AsData()
+			assert.Implements((*ndn.IL3Packet)(nil), data)
 			assert.Equal(tt.name, data.GetName().String(), tt.input)
 			assert.EqualValues(tt.freshness, data.GetFreshnessPeriod()/time.Millisecond, tt.input)
 		}

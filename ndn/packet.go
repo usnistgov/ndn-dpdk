@@ -122,3 +122,8 @@ func (pkt Packet) ParseL3(nameMp dpdk.PktmbufPool) error {
 	}
 	return nil
 }
+
+// L3 packet interface type that allows conversion to Packet.
+type IL3Packet interface {
+	GetPacket() Packet
+}

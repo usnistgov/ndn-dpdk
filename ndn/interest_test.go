@@ -129,6 +129,7 @@ func TestInterestModify(t *testing.T) {
 			continue
 		}
 		interest := pkt.AsInterest()
+		assert.Implements((*ndn.IL3Packet)(nil), interest)
 
 		var mbufs [4]dpdk.Mbuf
 		dpdktestenv.AllocBulk(dpdktestenv.MPID_DIRECT, mbufs[:])
