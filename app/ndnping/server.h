@@ -30,6 +30,8 @@ typedef struct NdnpingServer
   uint64_t nAllocError;
 } NdnpingServer;
 
-void NdnpingServer_Run(NdnpingServer* server);
+__rte_deprecated void NdnpingServer_Run(NdnpingServer* server);
+
+void NdnpingServer_Rx(Face* face, FaceRxBurst* burst, void* server0);
 
 #endif // NDN_DPDK_APP_NDNPING_SERVER_H

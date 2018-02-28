@@ -75,3 +75,15 @@ EthFace_Init(EthFace* face, uint16_t port, FaceMempools* mempools)
   FaceImpl_Init(&face->base, mtu, sizeof(struct ether_hdr), mempools);
   return 0;
 }
+
+void
+EthFace_RxLoop(EthFace* face, uint16_t burstSize, Face_RxCb cb, void* cbarg)
+{
+  FaceRxBurst* burst = FaceRxBurst_New(burstSize);
+  struct rte_mbuf** frames = FaceRxBurst_GetScratch(burst);
+  while (true) {
+    uint16_t nRx = EthRx_RxBurst(face, QUEUE_0, frames, burstSize);
+    FaceImpl_RxBurst(&face->base, burst, nRx, cb, cbarg);
+  }
+  FaceRxBurst_Close(burst);
+}

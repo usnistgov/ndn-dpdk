@@ -1,6 +1,7 @@
 #include "server.h"
 
 #include "../../core/logger.h"
+#include "../../ndn/encode-data.h"
 
 INIT_ZF_LOG(NdnpingServer);
 
@@ -45,12 +46,8 @@ NdnpingServer_MakeData(NdnpingServer* server, LName name)
 static Packet*
 NdnpingServer_ProcessPkt(NdnpingServer* server, Packet* npkt)
 {
+  assert(Packet_GetL3PktType(npkt) == L3PktType_Interest);
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
-  if (Packet_GetL3PktType(npkt) != L3PktType_Interest) {
-    ZF_LOGD("%" PRI_FaceId " not-Interest", server->face->id);
-    rte_pktmbuf_free(pkt);
-    return NULL;
-  }
 
   const LName name = *(const LName*)&Packet_GetInterestHdr(npkt)->name;
 
@@ -78,19 +75,44 @@ NdnpingServer_ProcessPkt(NdnpingServer* server, Packet* npkt)
   return dataPkt;
 }
 
-void
+__rte_deprecated void
 NdnpingServer_Run(NdnpingServer* server)
 {
   ZF_LOGD("%" PRI_FaceId " starting %p", server->face->id, server);
-  Packet* pkts[NDNPINGSERVER_BURST_SIZE];
+  Packet* npkts[NDNPINGSERVER_BURST_SIZE];
   while (true) {
-    uint16_t nRx = Face_RxBurst(server->face, pkts, NDNPINGSERVER_BURST_SIZE);
+    uint16_t nRx = Face_RxBurst(server->face, npkts, NDNPINGSERVER_BURST_SIZE);
     uint16_t nTx = 0;
     for (uint16_t i = 0; i < nRx; ++i) {
-      pkts[nTx] = NdnpingServer_ProcessPkt(server, pkts[i]);
-      nTx += (pkts[nTx] != NULL);
+      Packet* npkt = npkts[i];
+      if (Packet_GetL3PktType(npkt) != L3PktType_Interest) {
+        ZF_LOGD("%" PRI_FaceId " not-Interest", server->face->id);
+        rte_pktmbuf_free(Packet_ToMbuf(npkt));
+        continue;
+      }
+
+      npkts[nTx] = NdnpingServer_ProcessPkt(server, npkt);
+      nTx += (npkts[nTx] != NULL);
     }
-    Face_TxBurst(server->face, pkts, nTx);
-    FreeMbufs((struct rte_mbuf**)pkts, nTx);
+    Face_TxBurst(server->face, npkts, nTx);
+    FreeMbufs((struct rte_mbuf**)npkts, nTx);
   }
+}
+
+void
+NdnpingServer_Rx(Face* face, FaceRxBurst* burst, void* server0)
+{
+  NdnpingServer* server = (NdnpingServer*)server0;
+  FreeMbufs((struct rte_mbuf**)FaceRxBurst_ListData(burst), burst->nData);
+  FreeMbufs((struct rte_mbuf**)FaceRxBurst_ListNacks(burst), burst->nNacks);
+
+  Packet** tx = FaceRxBurst_ListData(burst);
+  uint16_t nTx = 0;
+  for (uint16_t i = 0; i < burst->nInterests; ++i) {
+    tx[nTx] =
+      NdnpingServer_ProcessPkt(server, FaceRxBurst_GetInterest(burst, i));
+    nTx += (tx[nTx] != NULL);
+  }
+  Face_TxBurst(server->face, tx, nTx);
+  FreeMbufs((struct rte_mbuf**)tx, nTx);
 }

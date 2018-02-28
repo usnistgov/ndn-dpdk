@@ -65,3 +65,35 @@ FaceImpl_Init(Face* face, uint16_t mtu, uint16_t headroom,
               mempools->headerMp);
   RxProc_Init(&face->rx, mempools->nameMp);
 }
+
+void
+FaceImpl_RxBurst(Face* face, FaceRxBurst* burst, uint16_t nFrames, Face_RxCb cb,
+                 void* cbarg)
+{
+  FaceRxBurst_Clear(burst);
+
+  struct rte_mbuf** frames = FaceRxBurst_GetScratch(burst);
+  for (uint16_t i = 0; i < nFrames; ++i) {
+    Packet* npkt = RxProc_Input(&face->rx, frames[i]);
+    if (npkt == NULL) {
+      continue;
+    }
+
+    L3PktType l3type = Packet_GetL3PktType(npkt);
+    switch (l3type) {
+      case L3PktType_Interest:
+        FaceRxBurst_PutInterest(burst, npkt);
+        break;
+      case L3PktType_Data:
+        FaceRxBurst_PutData(burst, npkt);
+        break;
+      case L3PktType_Nack:
+        FaceRxBurst_PutNack(burst, npkt);
+        break;
+    }
+  }
+
+  if (likely(burst->nInterests + burst->nData + burst->nNacks > 0)) {
+    cb(face, burst, cbarg);
+  }
+}

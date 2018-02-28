@@ -12,6 +12,7 @@ import (
 	"ndn-dpdk/container/nameset"
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
+	"ndn-dpdk/iface/ethface"
 	"ndn-dpdk/ndn"
 )
 
@@ -85,6 +86,7 @@ func (server Server) SetPayload(payload []byte) error {
 
 const Server_PayloadMp = "NdnpingServer_Payload"
 const Server_MaxPayloadSize = 2048
+const Server_BurstSize = 64
 
 func init() {
 	appinit.RegisterMempool(Server_PayloadMp,
@@ -97,7 +99,13 @@ func init() {
 }
 
 func (server Server) Run() int {
-	C.NdnpingServer_Run(server.c)
+	face := server.GetFace()
+	if face.GetFaceId().GetKind() == iface.FaceKind_EthDev {
+		ethface.EthFace{face}.RxLoop(Server_BurstSize, unsafe.Pointer(C.NdnpingServer_Rx),
+			unsafe.Pointer(server.c))
+	} else {
+		C.NdnpingServer_Run(server.c)
+	}
 	return 0
 }
 

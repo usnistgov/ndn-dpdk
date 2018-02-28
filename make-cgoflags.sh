@@ -11,11 +11,11 @@ PKGNAME=$(basename $PKG)
 LIBPATH=$(realpath --relative-to=$PKG build/)
 shift
 
-for GOFILE in $(find -maxdepth 1 $PKG -name '*.go' -not -name '*_test.go' -not -name 'cgoflags.go'); do
+for GOFILE in $(find $PKG -maxdepth 1 -name '*.go' -not -name '*_test.go' -not -name 'cgoflags.go'); do
   PKGNAME=$(grep 'package ' $GOFILE | head -1 | awk '{print $2}')
 done
 
-CFLAGS='-Werror -m64 -pthread -O3 -g -march=native -I/usr/local/include/dpdk'
+CFLAGS='-Werror -Wno-error=deprecated-declarations -m64 -pthread -O3 -g -march=native -I/usr/local/include/dpdk'
 LIBS='-L/usr/local/lib -lurcu-qsbr -lurcu-cds -ldpdk -ldl -lnuma'
 
 (

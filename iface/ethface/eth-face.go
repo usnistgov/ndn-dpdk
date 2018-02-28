@@ -2,9 +2,17 @@ package ethface
 
 /*
 #include "eth-face.h"
+
+void
+c_EthFace_RxLoop(EthFace* face, uint16_t burstSize, void* cb, void* cbarg)
+{
+	EthFace_RxLoop(face, burstSize, (Face_RxCb)cb, cbarg);
+}
 */
 import "C"
 import (
+	"unsafe"
+
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
 )
@@ -29,4 +37,8 @@ func New(port dpdk.EthDev, mempools iface.Mempools) (face EthFace, e error) {
 
 func (face EthFace) getPtr() *C.EthFace {
 	return (*C.EthFace)(face.GetPtr())
+}
+
+func (face EthFace) RxLoop(burstSize int, cb unsafe.Pointer, cbarg unsafe.Pointer) {
+	C.c_EthFace_RxLoop(face.getPtr(), C.uint16_t(burstSize), cb, cbarg)
 }

@@ -7,6 +7,7 @@
 #include "../../core/running_stat/running-stat.h"
 #include "../../dpdk/tsc.h"
 #include "../../iface/face.h"
+#include "../../ndn/encode-interest.h"
 
 /** \brief Per-pattern information in ndnping client.
  */

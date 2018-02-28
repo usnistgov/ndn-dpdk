@@ -4,6 +4,7 @@
 /// \file
 
 #include "rx-proc.h"
+#include "rxburst.h"
 #include "tx-proc.h"
 
 typedef struct Face Face;
@@ -53,7 +54,7 @@ typedef struct Face
   FaceId id;
 } Face;
 
-// ---- functions invoked user of face system ----
+// ---- functions invoked by user of face system ----
 
 static bool
 Face_Close(Face* face)
@@ -71,14 +72,25 @@ Face_GetNumaSocket(Face* face)
  *  \param[out] npkts array of L3 packets
  *  \param count size of \p npkts array
  *  \return number of retrieved packets
+ *  \deprecated use RxLoop instead
  */
-uint16_t Face_RxBurst(Face* face, Packet** npkts, uint16_t count);
+__rte_deprecated uint16_t Face_RxBurst(Face* face, Packet** npkts,
+                                       uint16_t count);
 
 /** \brief Send a burst of packet.
  *  \param npkts array of L3 packets; this function does not take ownership
  *  \param count size of \p npkt array
  */
 void Face_TxBurst(Face* face, Packet** npkts, uint16_t count);
+
+/** \brief Send a packet.
+ *  \param npkt an L3 packet; this function does not take ownership
+ */
+static void
+Face_Tx(Face* face, Packet* npkt)
+{
+  Face_TxBurst(face, &npkt, 1);
+}
 
 /** \brief Retrieve face counters.
  */
@@ -112,6 +124,12 @@ typedef struct FaceMempools
  */
 void FaceImpl_Init(Face* face, uint16_t mtu, uint16_t headroom,
                    FaceMempools* mempools);
+
+/** \brief Process received frames and invoke upper layer callback.
+ *  \param burst FaceRxBurst_GetScratch(burst) shall contain received frames.
+ */
+void FaceImpl_RxBurst(Face* face, FaceRxBurst* burst, uint16_t nFrames,
+                      Face_RxCb cb, void* cbarg);
 
 /** \brief Update counters after a frame is transmitted.
  */
