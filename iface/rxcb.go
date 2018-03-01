@@ -36,6 +36,7 @@ func go_Face_RxCb(face *C.Face, burst *C.FaceRxBurst, cbarg unsafe.Pointer) {
 }
 
 // Interface containing RxLoop function.
-type RxLooper interface {
+type IRxLooper interface {
 	RxLoop(burstSize int, cb unsafe.Pointer, cbarg unsafe.Pointer)
+	StopRxLoop() error
 }

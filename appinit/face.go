@@ -96,7 +96,7 @@ func makeFaceMempools(socket dpdk.NumaSocket) (mempools iface.Mempools) {
 	return mempools
 }
 
-func MakeRxLooper(face iface.Face) iface.RxLooper {
+func MakeRxLooper(face iface.Face) iface.IRxLooper {
 	faceId := face.GetFaceId()
 	switch faceId.GetKind() {
 	case iface.FaceKind_EthDev:

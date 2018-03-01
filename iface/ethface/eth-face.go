@@ -43,6 +43,7 @@ func (face EthFace) RxLoop(burstSize int, cb unsafe.Pointer, cbarg unsafe.Pointe
 	C.c_EthFace_RxLoop(face.getPtr(), C.uint16_t(burstSize), cb, cbarg)
 }
 
-func (face EthFace) StopRxLoop() {
+func (face EthFace) StopRxLoop() error {
 	C.EthFace_StopRxLoop(face.getPtr())
+	return nil
 }

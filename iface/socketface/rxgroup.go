@@ -37,8 +37,7 @@ func NewRxGroup(faces ...*SocketFace) (rxg RxGroup) {
 }
 
 func (rxg RxGroup) Close() error {
-	rxg.closeCmd <- struct{}{}
-	return nil
+	return rxg.StopRxLoop()
 }
 
 func (rxg RxGroup) AddFace(face *SocketFace) {
@@ -69,4 +68,9 @@ func (rxg RxGroup) RxLoop(burstSize int, cb unsafe.Pointer, cbarg unsafe.Pointer
 			}
 		}
 	}
+}
+
+func (rxg RxGroup) StopRxLoop() error {
+	rxg.closeCmd <- struct{}{}
+	return nil
 }
