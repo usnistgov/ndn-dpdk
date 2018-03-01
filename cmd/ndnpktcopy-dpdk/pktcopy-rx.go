@@ -12,23 +12,26 @@ import (
 	"ndn-dpdk/iface"
 )
 
+const PktcopyRx_BurstSize = 64
+
 type PktcopyRx struct {
-	c *C.PktcopyRx
+	c    *C.PktcopyRx
+	face iface.Face
 }
 
 func NewPktcopyRx(face iface.Face) (pcrx PktcopyRx, e error) {
 	pcrx.c = new(C.PktcopyRx)
-	pcrx.c.face = (*C.Face)(face.GetPtr())
+	pcrx.face = face
 
 	numaSocket := face.GetNumaSocket()
-	pcrx.c.mpIndirect = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
+	pcrx.c.indirectMp = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
 		appinit.MP_IND, numaSocket).GetPtr())
 
 	return pcrx, nil
 }
 
 func (pcrx PktcopyRx) GetFace() iface.Face {
-	return iface.FaceFromPtr(unsafe.Pointer(pcrx.c.face))
+	return pcrx.face
 }
 
 func (pcrx PktcopyRx) LinkTo(pctx PktcopyTx) error {
@@ -41,6 +44,7 @@ func (pcrx PktcopyRx) LinkTo(pctx PktcopyTx) error {
 }
 
 func (pcrx PktcopyRx) Run() int {
-	C.PktcopyRx_Run(pcrx.c)
+	appinit.MakeRxLooper(pcrx.face).RxLoop(PktcopyRx_BurstSize,
+		unsafe.Pointer(C.PktcopyRx_Rx), unsafe.Pointer(pcrx.c))
 	return 0
 }

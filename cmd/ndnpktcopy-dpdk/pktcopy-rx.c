@@ -1,7 +1,5 @@
 #include "pktcopy-rx.h"
 
-#define PKTCOPYRX_BURST_SIZE 64
-
 void
 PktcopyRx_AddTxRing(PktcopyRx* pcrx, struct rte_ring* r)
 {
@@ -9,38 +7,44 @@ PktcopyRx_AddTxRing(PktcopyRx* pcrx, struct rte_ring* r)
   pcrx->txRings[pcrx->nTxRings++] = r;
 }
 
-void
-PktcopyRx_Run(PktcopyRx* pcrx)
+static void
+PktcopyRx_Transfer(PktcopyRx* pcrx, Packet** npkts, uint16_t count)
 {
-  struct rte_mbuf* pkts[PKTCOPYRX_BURST_SIZE];
-  struct rte_mbuf* indirects[PKTCOPYRX_BURST_SIZE];
-  while (true) {
-    uint16_t nRx =
-      Face_RxBurst(pcrx->face, (Packet**)pkts, PKTCOPYRX_BURST_SIZE);
-    if (nRx == 0) {
-      continue;
-    }
-    if (pcrx->nTxRings == 0) {
-      FreeMbufs(pkts, nRx);
-    }
+  if (unlikely(pcrx->nTxRings == 0)) {
+    FreeMbufs((struct rte_mbuf**)npkts, count);
+    return;
+  }
 
-    for (int i = 0; i < pcrx->nTxRings; ++i) {
-      struct rte_mbuf** txPkts = pkts;
-      if (i < pcrx->nTxRings - 1) {
-        int res = rte_pktmbuf_alloc_bulk(pcrx->mpIndirect, indirects, nRx);
-        if (unlikely(res != 0)) {
-          // TODO memory allocation error counter
-          continue;
-        }
-        // XXX missing: make indirect mbufs point to packets
-        txPkts = indirects;
+  for (int i = pcrx->nTxRings - 1; i > 0; --i) {
+    struct rte_ring* r = pcrx->txRings[i];
+    for (uint16_t j = 0; j < count; ++j) {
+      struct rte_mbuf* pkt = Packet_ToMbuf(npkts[j]);
+      struct rte_mbuf* clone = rte_pktmbuf_clone(pkt, pcrx->indirectMp);
+      if (unlikely(clone == NULL)) {
+        ++pcrx->nAllocError;
       }
-      unsigned nEnq =
-        rte_ring_enqueue_burst(pcrx->txRings[i], (void**)txPkts, nRx, NULL);
-      if (unlikely(nEnq < nRx)) {
-        // TODO ring congestion counter
-        FreeMbufs(txPkts + nEnq, nRx - nEnq);
+
+      int res = rte_ring_enqueue(r, clone);
+      if (unlikely(res != 0)) {
+        rte_pktmbuf_free(clone);
+        ++pcrx->nTxRingCongestions[i];
       }
     }
   }
+
+  struct rte_ring* r = pcrx->txRings[0];
+  unsigned nEnq = rte_ring_enqueue_burst(r, (void**)npkts, count, NULL);
+  if (unlikely(nEnq < count)) {
+    FreeMbufs((struct rte_mbuf**)npkts + nEnq, count - nEnq);
+    ++pcrx->nTxRingCongestions[0];
+  }
+}
+
+void
+PktcopyRx_Rx(Face* face, FaceRxBurst* burst, void* pcrx0)
+{
+  PktcopyRx* pcrx = (PktcopyRx*)pcrx0;
+  PktcopyRx_Transfer(pcrx, FaceRxBurst_ListInterests(burst), burst->nInterests);
+  PktcopyRx_Transfer(pcrx, FaceRxBurst_ListData(burst), burst->nData);
+  PktcopyRx_Transfer(pcrx, FaceRxBurst_ListNacks(burst), burst->nNacks);
 }
