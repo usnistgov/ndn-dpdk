@@ -10,13 +10,6 @@
 typedef struct Face Face;
 typedef struct FaceCounters FaceCounters;
 
-/** \brief Receive a burst of L2 frames.
- *  \param[out] pkts L2 frames without Ethernet/etc header;
- *                   callback releases ownership of these frames
- */
-typedef uint16_t (*FaceOps_RxBurst)(Face* face, struct rte_mbuf** pkts,
-                                    uint16_t nPkts);
-
 /** \brief Transmit a burst of L2 frames.
  *  \param pkts L2 frames with NDNLP header
  *  \return successfully queued packets; callback owns queued frames, but does
@@ -35,7 +28,7 @@ typedef int (*FaceOps_GetNumaSocket)(Face* face);
 
 typedef struct FaceOps
 {
-  // most frequent ops, rxBurst and txBurst, are placed directly in Face struct
+  // txBurstOp is placed directly in Face struct to reduce indirection
   FaceOps_Close close;
   FaceOps_GetNumaSocket getNumaSocket;
 } FaceOps;
@@ -44,7 +37,6 @@ typedef struct FaceOps
  */
 typedef struct Face
 {
-  FaceOps_RxBurst rxBurstOp;
   FaceOps_TxBurst txBurstOp;
   const FaceOps* ops;
 
@@ -68,14 +60,12 @@ Face_GetNumaSocket(Face* face)
   return (*face->ops->getNumaSocket)(face);
 }
 
-/** \brief Receive and decode a burst of packet.
- *  \param[out] npkts array of L3 packets
- *  \param count size of \p npkts array
- *  \return number of retrieved packets
- *  \deprecated use RxLoop instead
+/** \brief Callback upon packet arrival.
+ *
+ *  Face base type does not directly provide RX function. Each face
+ *  implementation shall have an RxLoop function that accepts this callback.
  */
-__rte_deprecated uint16_t Face_RxBurst(Face* face, Packet** npkts,
-                                       uint16_t count);
+typedef void (*Face_RxCb)(Face* face, FaceRxBurst* burst, void* cbarg);
 
 /** \brief Send a burst of packet.
  *  \param npkts array of L3 packets; this function does not take ownership

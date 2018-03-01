@@ -5,13 +5,6 @@
 #define QUEUE_0 0
 
 static uint16_t
-EthFace_RxBurst(Face* faceBase, struct rte_mbuf** pkts, uint16_t nPkts)
-{
-  EthFace* face = (EthFace*)faceBase;
-  return EthRx_RxBurst(face, QUEUE_0, pkts, nPkts);
-}
-
-static uint16_t
 EthFace_TxBurst(Face* faceBase, struct rte_mbuf** pkts, uint16_t nPkts)
 {
   EthFace* face = (EthFace*)faceBase;
@@ -58,7 +51,6 @@ EthFace_Init(EthFace* face, uint16_t port, FaceMempools* mempools)
   face->port = port;
   face->base.id = 0x1000 | port;
 
-  face->base.rxBurstOp = EthFace_RxBurst;
   face->base.txBurstOp = EthFace_TxBurst;
   face->base.ops = &ethFaceOps;
 
@@ -81,9 +73,16 @@ EthFace_RxLoop(EthFace* face, uint16_t burstSize, Face_RxCb cb, void* cbarg)
 {
   FaceRxBurst* burst = FaceRxBurst_New(burstSize);
   struct rte_mbuf** frames = FaceRxBurst_GetScratch(burst);
-  while (true) {
+  face->stopRxLoop = false;
+  while (likely(!face->stopRxLoop)) {
     uint16_t nRx = EthRx_RxBurst(face, QUEUE_0, frames, burstSize);
     FaceImpl_RxBurst(&face->base, burst, nRx, cb, cbarg);
   }
   FaceRxBurst_Close(burst);
+}
+
+void
+EthFace_StopRxLoop(EthFace* face)
+{
+  face->stopRxLoop = true;
 }

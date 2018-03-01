@@ -42,3 +42,7 @@ func (face EthFace) getPtr() *C.EthFace {
 func (face EthFace) RxLoop(burstSize int, cb unsafe.Pointer, cbarg unsafe.Pointer) {
 	C.c_EthFace_RxLoop(face.getPtr(), C.uint16_t(burstSize), cb, cbarg)
 }
+
+func (face EthFace) StopRxLoop() {
+	C.EthFace_StopRxLoop(face.getPtr())
+}

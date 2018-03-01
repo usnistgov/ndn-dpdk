@@ -12,8 +12,14 @@ import (
 	"ndn-dpdk/container/nameset"
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
-	"ndn-dpdk/iface/ethface"
 	"ndn-dpdk/ndn"
+)
+
+// Server internal config.
+const (
+	Server_PayloadMp      = "NdnpingServer_Payload"
+	Server_MaxPayloadSize = 2048
+	Server_BurstSize      = 64
 )
 
 type Server struct {
@@ -84,10 +90,6 @@ func (server Server) SetPayload(payload []byte) error {
 	return nil
 }
 
-const Server_PayloadMp = "NdnpingServer_Payload"
-const Server_MaxPayloadSize = 2048
-const Server_BurstSize = 64
-
 func init() {
 	appinit.RegisterMempool(Server_PayloadMp,
 		appinit.MempoolConfig{
@@ -100,12 +102,8 @@ func init() {
 
 func (server Server) Run() int {
 	face := server.GetFace()
-	if face.GetFaceId().GetKind() == iface.FaceKind_EthDev {
-		ethface.EthFace{face}.RxLoop(Server_BurstSize, unsafe.Pointer(C.NdnpingServer_Rx),
-			unsafe.Pointer(server.c))
-	} else {
-		C.NdnpingServer_Run(server.c)
-	}
+	appinit.MakeRxLooper(face).RxLoop(Server_BurstSize,
+		unsafe.Pointer(C.NdnpingServer_Rx), unsafe.Pointer(server.c))
 	return 0
 }
 

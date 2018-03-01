@@ -6,7 +6,6 @@
 
 INIT_ZF_LOG(NdnpingClient);
 
-#define NDNPINGCLIENT_RX_BURST_SIZE 64
 #define NDNPINGCLIENT_TX_BURST_SIZE 64
 #define NDNPINGCLIENT_INTEREST_LIFETIME 1000
 
@@ -22,12 +21,6 @@ typedef struct NdnpingClientSample
   uint64_t sendTime : 56; ///< TscTime >> NDNPING_TIMING_PRECISION
 } __rte_packed NdnpingClientSample;
 static_assert(sizeof(NdnpingClientSample) == sizeof(uint64_t), "");
-
-static bool
-NdnpingClient_IsSamplingEnabled(NdnpingClient* client)
-{
-  return client->sampleFreq != 0xFF;
-}
 
 void
 NdnpingClient_Init(NdnpingClient* client)
@@ -49,14 +42,18 @@ NdnpingClient_Init(NdnpingClient* client)
     sizeof(client->interestPrepareBuffer));
   assert(res == 0);
 
-  if (NdnpingClient_IsSamplingEnabled(client)) {
-    size_t nSampleTableEntries = 1 << client->sampleTableSize;
-    client->samplingMask = (1 << client->sampleFreq) - 1;
-    client->sampleIndexMask = (1 << client->sampleTableSize) - 1;
-    client->sampleTable = rte_calloc_socket(
-      "NdnpingClient.sampleTable", nSampleTableEntries,
-      sizeof(NdnpingClientSample), 0, Face_GetNumaSocket(client->face));
-  }
+  client->sampleTable = NULL;
+}
+
+void
+NdnpingClient_EnableSampling(NdnpingClient* client)
+{
+  size_t nSampleTableEntries = 1 << client->sampleTableSize;
+  client->samplingMask = (1 << client->sampleFreq) - 1;
+  client->sampleIndexMask = (1 << client->sampleTableSize) - 1;
+  client->sampleTable = rte_calloc_socket(
+    "NdnpingClient.sampleTable", nSampleTableEntries,
+    sizeof(NdnpingClientSample), 0, Face_GetNumaSocket(client->face));
 }
 
 void
@@ -101,7 +98,7 @@ NdnpingClient_PrepareTxInterest(NdnpingClient* client, Packet* npkt)
   ZF_LOGV("%" PRI_FaceId " <I seq=%" PRIx64 " pattern=%d", client->face->id,
           seqNo, patternId);
 
-  if (!NdnpingClient_IsSamplingEnabled(client)) {
+  if (client->sampleTable == NULL) {
     return;
   }
   if (patternId != PATTERN_0) {
@@ -138,6 +135,27 @@ NdnpingClient_TxBurst(NdnpingClient* client)
   FreeMbufs((struct rte_mbuf**)npkts, NDNPINGCLIENT_TX_BURST_SIZE);
 }
 
+void
+NdnpingClient_RunTx(NdnpingClient* client)
+{
+  uint64_t tscHz = rte_get_tsc_hz();
+  uint64_t txBurstInterval =
+    client->interestInterval / 1000.0 * tscHz * NDNPINGCLIENT_TX_BURST_SIZE;
+  ZF_LOGI("%" PRI_FaceId " client=%p "
+          "tx-burst-interval=%" PRIu64 " @%" PRIu64 "Hz",
+          client->face->id, client, txBurstInterval, tscHz);
+
+  uint64_t nextTxBurst = rte_get_tsc_cycles();
+  while (true) {
+    if (rte_get_tsc_cycles() < nextTxBurst) {
+      rte_pause();
+      continue;
+    }
+    NdnpingClient_TxBurst(client);
+    nextTxBurst += txBurstInterval;
+  }
+}
+
 static bool
 NdnpingClient_GetSeqNoFromName(const Name* name, uint64_t* seqNo)
 {
@@ -171,7 +189,7 @@ NdnpingClient_ProcessRxData(NdnpingClient* client, Packet* npkt)
     NameSet_GetUsrT(&client->patterns, patternId, NdnpingClientPattern*);
   ++pattern->nData;
 
-  if (!NdnpingClient_IsSamplingEnabled(client)) {
+  if (client->sampleTable == NULL) {
     return;
   }
   if (patternId != PATTERN_0) {
@@ -210,7 +228,7 @@ NdnpingClient_ProcessRxNack(NdnpingClient* client, Packet* npkt)
     NameSet_GetUsrT(&client->patterns, patternId, NdnpingClientPattern*);
   ++pattern->nNacks;
 
-  if (!NdnpingClient_IsSamplingEnabled(client)) {
+  if (client->sampleTable == NULL) {
     return;
   }
   if (patternId != PATTERN_0) {
@@ -229,40 +247,19 @@ NdnpingClient_ProcessRxNack(NdnpingClient* client, Packet* npkt)
   sample->isPending = false;
 }
 
-static void
-NdnpingClient_RxBurst(NdnpingClient* client)
-{
-  Packet* npkts[NDNPINGCLIENT_RX_BURST_SIZE];
-  uint16_t nRx = Face_RxBurst(client->face, npkts, NDNPINGCLIENT_RX_BURST_SIZE);
-  for (uint16_t i = 0; i < nRx; ++i) {
-    Packet* npkt = npkts[i];
-    L3PktType l3type = Packet_GetL3PktType(npkt);
-    if (likely(l3type == L3PktType_Data)) {
-      NdnpingClient_ProcessRxData(client, npkt);
-    } else if (likely(l3type == L3PktType_Nack)) {
-      NdnpingClient_ProcessRxNack(client, npkt);
-    }
-  }
-  FreeMbufs((struct rte_mbuf**)npkts, nRx);
-}
-
 void
-NdnpingClient_Run(NdnpingClient* client)
+NdnpingClient_Rx(Face* face, FaceRxBurst* burst, void* client0)
 {
-  uint64_t tscHz = rte_get_tsc_hz();
-  uint64_t txBurstInterval =
-    client->interestInterval / 1000.0 * tscHz * NDNPINGCLIENT_TX_BURST_SIZE;
-  ZF_LOGI("%" PRI_FaceId " starting %p tx-burst-interval=%" PRIu64 " @%" PRIu64
-          "Hz",
-          client->face->id, client, txBurstInterval, tscHz);
-
-  uint64_t nextTxBurst = rte_get_tsc_cycles();
-  while (true) {
-    uint64_t now = rte_get_tsc_cycles();
-    if (now > nextTxBurst) {
-      NdnpingClient_TxBurst(client);
-      nextTxBurst += txBurstInterval;
-    }
-    NdnpingClient_RxBurst(client);
+  NdnpingClient* client = (NdnpingClient*)client0;
+  for (uint16_t i = 0; i < burst->nData; ++i) {
+    NdnpingClient_ProcessRxData(client, FaceRxBurst_GetData(burst, i));
   }
+  for (uint16_t i = 0; i < burst->nNacks; ++i) {
+    NdnpingClient_ProcessRxNack(client, FaceRxBurst_GetNack(burst, i));
+  }
+
+  FreeMbufs((struct rte_mbuf**)FaceRxBurst_ListInterests(burst),
+            burst->nInterests);
+  FreeMbufs((struct rte_mbuf**)FaceRxBurst_ListData(burst), burst->nData);
+  FreeMbufs((struct rte_mbuf**)FaceRxBurst_ListNacks(burst), burst->nNacks);
 }

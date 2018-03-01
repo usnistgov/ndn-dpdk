@@ -14,6 +14,4 @@ typedef uint16_t FaceId;
 #define FACEID_MAX UINT16_MAX
 #define PRI_FaceId PRIu16
 
-typedef struct Face Face;
-
 #endif // NDN_DPDK_IFACE_COMMON_H

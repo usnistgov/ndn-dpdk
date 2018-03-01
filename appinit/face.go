@@ -95,3 +95,14 @@ func makeFaceMempools(socket dpdk.NumaSocket) (mempools iface.Mempools) {
 	mempools.HeaderMp = MakePktmbufPool(MP_ETHTX, socket)
 	return mempools
 }
+
+func MakeRxLooper(face iface.Face) iface.RxLooper {
+	faceId := face.GetFaceId()
+	switch faceId.GetKind() {
+	case iface.FaceKind_EthDev:
+		return ethface.EthFace{face}
+	case iface.FaceKind_Socket:
+		return socketface.NewRxGroup(socketface.Get(faceId))
+	}
+	return nil
+}

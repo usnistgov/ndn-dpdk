@@ -15,6 +15,7 @@ typedef struct EthFace
 {
   Face base;
   uint16_t port;
+  bool stopRxLoop;
   EthRx rx[ETHFACE_MAX_RX_COUNT];
   EthTx tx[ETHFACE_MAX_TX_COUNT];
 } EthFace;
@@ -34,5 +35,9 @@ int EthFace_Init(EthFace* face, uint16_t port, FaceMempools* mempools);
  */
 void EthFace_RxLoop(EthFace* face, uint16_t burstSize, Face_RxCb cb,
                     void* cbarg);
+
+/** \brief Tell \p EthFace_RxLoop to stop.
+ */
+void EthFace_StopRxLoop(EthFace* face);
 
 #endif // NDN_DPDK_IFACE_ETHFACE_ETH_FACE_H

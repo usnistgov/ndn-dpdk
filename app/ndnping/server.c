@@ -75,30 +75,6 @@ NdnpingServer_ProcessPkt(NdnpingServer* server, Packet* npkt)
   return dataPkt;
 }
 
-__rte_deprecated void
-NdnpingServer_Run(NdnpingServer* server)
-{
-  ZF_LOGD("%" PRI_FaceId " starting %p", server->face->id, server);
-  Packet* npkts[NDNPINGSERVER_BURST_SIZE];
-  while (true) {
-    uint16_t nRx = Face_RxBurst(server->face, npkts, NDNPINGSERVER_BURST_SIZE);
-    uint16_t nTx = 0;
-    for (uint16_t i = 0; i < nRx; ++i) {
-      Packet* npkt = npkts[i];
-      if (Packet_GetL3PktType(npkt) != L3PktType_Interest) {
-        ZF_LOGD("%" PRI_FaceId " not-Interest", server->face->id);
-        rte_pktmbuf_free(Packet_ToMbuf(npkt));
-        continue;
-      }
-
-      npkts[nTx] = NdnpingServer_ProcessPkt(server, npkt);
-      nTx += (npkts[nTx] != NULL);
-    }
-    Face_TxBurst(server->face, npkts, nTx);
-    FreeMbufs((struct rte_mbuf**)npkts, nTx);
-  }
-}
-
 void
 NdnpingServer_Rx(Face* face, FaceRxBurst* burst, void* server0)
 {

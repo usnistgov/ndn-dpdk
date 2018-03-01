@@ -129,8 +129,4 @@ FaceRxBurst_PutNack(FaceRxBurst* burst, Packet* npkt)
   FaceRxBurst_ListNacks(burst)[burst->nNacks++] = npkt;
 }
 
-/** \brief Callback upon packet arrival.
- */
-typedef void (*Face_RxCb)(Face* face, FaceRxBurst* burst, void* cbarg);
-
 #endif // NDN_DPDK_IFACE_RXCB_H

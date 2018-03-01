@@ -28,6 +28,14 @@ func getById(id int) *SocketFace {
 	return faceById[id-minId]
 }
 
+// Retrieve SocketFace by FaceId.
+func Get(id iface.FaceId) *SocketFace {
+	if id.GetKind() != iface.FaceKind_Socket {
+		return nil
+	}
+	return getById(int(id))
+}
+
 func setById(id int, face *SocketFace) {
 	faceById[id-minId] = face
 }
@@ -108,6 +116,19 @@ func (face *SocketFace) getPtr() *C.SocketFace {
 	return (*C.SocketFace)(face.GetPtr())
 }
 
+func (face *SocketFace) rxBurst(burst iface.RxBurst) (nRx int) {
+	capacity := burst.GetCapacity()
+	for ; nRx < capacity; nRx++ {
+		select {
+		case pkt := <-face.rxQueue:
+			burst.SetFrame(nRx, pkt)
+		default:
+			return nRx
+		}
+	}
+	return nRx
+}
+
 func (face *SocketFace) txLoop() {
 	for {
 		pkt, ok := <-face.txQueue
@@ -147,24 +168,6 @@ func getByCFace(faceC *C.Face) *SocketFace {
 		panic("SocketFace not found")
 	}
 	return face
-}
-
-//export go_SocketFace_RxBurst
-func go_SocketFace_RxBurst(faceC *C.Face, pkts **C.struct_rte_mbuf, nPkts C.uint16_t) C.uint16_t {
-	face := getByCFace(faceC)
-	nReceived := C.uint16_t(0)
-	for i := C.uint16_t(0); i < nPkts; i++ {
-		pktsEle := (**C.struct_rte_mbuf)(unsafe.Pointer(uintptr(unsafe.Pointer(pkts)) +
-			uintptr(i)*unsafe.Sizeof(*pkts)))
-		select {
-		case pkt := <-face.rxQueue:
-			*pktsEle = (*C.struct_rte_mbuf)(pkt.GetPtr())
-			nReceived++
-		default:
-			return nReceived
-		}
-	}
-	return nReceived
 }
 
 //export go_SocketFace_TxBurst

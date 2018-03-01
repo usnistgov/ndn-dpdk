@@ -18,6 +18,11 @@ import (
 	"ndn-dpdk/ndn"
 )
 
+// Client internal config.
+const (
+	Client_BurstSize = 64
+)
+
 type Client struct {
 	c *C.NdnpingClient
 }
@@ -28,9 +33,9 @@ func NewClient(face iface.Face) (client Client, e error) {
 	client.c.face = (*C.Face)(face.GetPtr())
 	client.c.interestMp = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
 		appinit.MP_INT, socket).GetPtr())
-	client.c.sampleFreq = 0xFF
-
 	client.SetInterval(time.Second)
+
+	C.NdnpingClient_Init(client.c)
 	return client, nil
 }
 
@@ -59,11 +64,18 @@ func (client Client) SetInterval(interval time.Duration) {
 func (client Client) EnableRtt(sampleFreq int, sampleTableSize int) {
 	client.c.sampleFreq = C.uint8_t(sampleFreq)
 	client.c.sampleTableSize = C.uint8_t(sampleTableSize)
+	C.NdnpingClient_EnableSampling(client.c)
 }
 
-func (client Client) Run() int {
-	C.NdnpingClient_Init(client.c)
-	C.NdnpingClient_Run(client.c)
+func (client Client) RunTx() int {
+	C.NdnpingClient_RunTx(client.c)
+	return 0
+}
+
+func (client Client) RunRx() int {
+	face := client.GetFace()
+	appinit.MakeRxLooper(face).RxLoop(Client_BurstSize,
+		unsafe.Pointer(C.NdnpingClient_Rx), unsafe.Pointer(client.c))
 	return 0
 }
 

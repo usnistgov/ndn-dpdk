@@ -30,16 +30,16 @@ typedef struct NdnpingClientPattern
  */
 typedef struct NdnpingClient
 {
-  // config:
+  // basic config:
   Face* face;
   NameSet patterns;
   struct rte_mempool* interestMp; ///< mempool for Interests
   float interestInterval; ///< average interval between two Interests (millis)
 
+  // sampling config:
   /** \brief How often to sample RTT and latency.
    *
    *  A sample is taken every (2^sampleFreq) Interests.
-   *  0xFF disables sampling.
    */
   uint8_t sampleFreq;
   /** \brief How many samples to keep.
@@ -79,12 +79,19 @@ typedef struct NdnpingClient
 } NdnpingClient;
 
 /** \brief Initialize NdnpingClient.
- *  \pre Config fields are initialized.
+ *  \pre Basic config fields are initialized.
  */
 void NdnpingClient_Init(NdnpingClient* client);
 
+/** \brief Initialize NdnpingClient.
+ *  \pre Sampling config fields are initialized.
+ */
+void NdnpingClient_EnableSampling(NdnpingClient* client);
+
 void NdnpingClient_Close(NdnpingClient* client);
 
-void NdnpingClient_Run(NdnpingClient* client);
+void NdnpingClient_RunTx(NdnpingClient* client);
+
+void NdnpingClient_Rx(Face* face, FaceRxBurst* burst, void* client0);
 
 #endif // NDN_DPDK_APP_NDNPING_CLIENT_H

@@ -57,7 +57,8 @@ func main() {
 	}
 	time.Sleep(100 * time.Millisecond)
 	for _, client := range clients {
-		appinit.LaunchRequired(client.Run, client.GetFace().GetNumaSocket())
+		appinit.LaunchRequired(client.RunRx, client.GetFace().GetNumaSocket())
+		appinit.LaunchRequired(client.RunTx, client.GetFace().GetNumaSocket())
 	}
 
 	tick := time.Tick(pc.counterInterval)

@@ -1,20 +1,5 @@
 #include "face.h"
-
 #include "rx-proc.h"
-
-uint16_t
-Face_RxBurst(Face* face, Packet** npkts, uint16_t count)
-{
-  uint16_t nInputs = (*face->rxBurstOp)(face, (struct rte_mbuf**)npkts, count);
-  uint16_t nProcessed = 0;
-  for (uint16_t i = 0; i < nInputs; ++i) {
-    Packet* processed = RxProc_Input(&face->rx, (struct rte_mbuf*)npkts[i]);
-    if (processed != NULL) {
-      npkts[nProcessed++] = processed;
-    }
-  }
-  return nProcessed;
-}
 
 static const int TX_BURST_FRAMES = 64;  // number of frames in a burst
 static const int TX_MAX_FRAGMENTS = 64; // max allowed number of fragments
