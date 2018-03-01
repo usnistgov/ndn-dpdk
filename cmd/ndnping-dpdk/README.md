@@ -37,7 +37,7 @@ It requires client and server to run in the same process.
 Emulate classical ndnping client:
 
 ```
-sudo ndnping-dpdk EAL-ARGS -- -rtt +c dev://net_pcap0 /prefix/ping 100
+sudo ndnping-dpdk EAL-ARGS -- -rtt +c dev://net_pcap0 1ms /prefix/ping 100
 ```
 
 Emulate classical ndnping server:

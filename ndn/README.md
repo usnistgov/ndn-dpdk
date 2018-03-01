@@ -2,11 +2,11 @@
 
 This package implements NDN layer 2 and layer 3 packet representations.
 
-Layer 2 implementation follows **NDN Link Protocol v2 (NDNLPv2)** specification, [revision 27](https://redmine.named-data.net/projects/nfd/wiki/NDNLPv2/27).
+Layer 2 implementation follows [**NDN Link Protocol v2 (NDNLPv2)** specification](https://redmine.named-data.net/projects/nfd/wiki/NDNLPv2), [revision 27](https://redmine.named-data.net/projects/nfd/wiki/NDNLPv2/27).
 It supports index fragmentation, network nack, and congestion mark features.
 As a protocol extension, it supports [PIT token](https://redmine.named-data.net/issues/4432) field.
 
-Layer 3 implementation follows **NDN Packet Format** specification, [version 0.3 draft 4441,24](https://gerrit.named-data.net/#/c/4441/24).
+Layer 3 implementation follows [**NDN Packet Format** specification](https://named-data.net/doc/NDN-TLV/current/), [version 0.3](https://gerrit.named-data.net/gitweb?p=NDN-TLV.git;a=tree;hb=e9f48510fe62589334309641a378e591317b8b33).
 However, it does not support TLV encoding evolvability: encountering an unrecognized or out-of-order TLV element would cause the packet to be treated as invalid, regardless of whether its TLV-TYPE is critical or non-critical.
 
 ## Low-Level TLV Functions
