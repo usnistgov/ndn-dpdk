@@ -20,8 +20,13 @@ func GetFaceTable() iface.FaceTable {
 	return theFaceTable
 }
 
-var FACE_RXQ_CAPACITY = 64 // RX queue capacity for new faces
-var FACE_TXQ_CAPACITY = 64 // TX queue capacity for new faces
+// Queue capacity configuration for new faces.
+var (
+	ETHFACE_RXQ_CAPACITY    = 64
+	ETHFACE_TXQ_CAPACITY    = 64
+	SOCKETFACE_RXQ_CAPACITY = 512
+	SOCKETFACE_TXQ_CAPACITY = 64
+)
 
 func NewFaceFromUri(u faceuri.FaceUri) (*iface.Face, error) {
 	create := newFaceByScheme[u.Scheme]
@@ -44,10 +49,10 @@ func newEthFace(u faceuri.FaceUri) (*iface.Face, error) {
 	}
 
 	var cfg dpdk.EthDevConfig
-	cfg.AddRxQueue(dpdk.EthRxQueueConfig{Capacity: FACE_RXQ_CAPACITY,
+	cfg.AddRxQueue(dpdk.EthRxQueueConfig{Capacity: ETHFACE_RXQ_CAPACITY,
 		Socket: port.GetNumaSocket(),
 		Mp:     MakePktmbufPool(MP_ETHRX, port.GetNumaSocket())})
-	cfg.AddTxQueue(dpdk.EthTxQueueConfig{Capacity: FACE_TXQ_CAPACITY,
+	cfg.AddTxQueue(dpdk.EthTxQueueConfig{Capacity: ETHFACE_TXQ_CAPACITY,
 		Socket: port.GetNumaSocket()})
 	_, _, e := port.Configure(cfg)
 	if e != nil {
@@ -92,8 +97,8 @@ func newSocketFace(u faceuri.FaceUri) (face *iface.Face, e error) {
 	var cfg socketface.Config
 	cfg.Mempools = makeFaceMempools(dpdk.NUMA_SOCKET_ANY)
 	cfg.RxMp = MakePktmbufPool(MP_ETHRX, dpdk.NUMA_SOCKET_ANY)
-	cfg.RxqCapacity = FACE_RXQ_CAPACITY
-	cfg.TxqCapacity = FACE_TXQ_CAPACITY
+	cfg.RxqCapacity = SOCKETFACE_RXQ_CAPACITY
+	cfg.TxqCapacity = SOCKETFACE_TXQ_CAPACITY
 
 	face = &socketface.New(conn, cfg).Face
 	GetFaceTable().SetFace(*face)
