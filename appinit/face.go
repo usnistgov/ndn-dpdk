@@ -70,10 +70,21 @@ func newEthFace(u faceuri.FaceUri) (*iface.Face, error) {
 	return &face.Face, nil
 }
 
-func newSocketFace(u faceuri.FaceUri) (*iface.Face, error) {
+func newSocketFace(u faceuri.FaceUri) (face *iface.Face, e error) {
 	network, address := u.Scheme[:3], u.Host
 
-	conn, e := net.Dial(network, address)
+	var conn net.Conn
+	if network == "udp" {
+		raddr, e := net.ResolveUDPAddr(network, address)
+		if e != nil {
+			return nil, fmt.Errorf("net.ResolveUDPAddr(%s,%s): %v", network, address, e)
+		}
+		var laddr net.UDPAddr
+		laddr.Port = raddr.Port
+		conn, e = net.DialUDP(network, &laddr, raddr)
+	} else {
+		conn, e = net.Dial(network, address)
+	}
 	if e != nil {
 		return nil, fmt.Errorf("net.Dial(%s,%s): %v", network, address, e)
 	}
@@ -84,9 +95,9 @@ func newSocketFace(u faceuri.FaceUri) (*iface.Face, error) {
 	cfg.RxqCapacity = FACE_RXQ_CAPACITY
 	cfg.TxqCapacity = FACE_TXQ_CAPACITY
 
-	face := socketface.New(conn, cfg)
-	GetFaceTable().SetFace(face.Face)
-	return &face.Face, nil
+	face = &socketface.New(conn, cfg).Face
+	GetFaceTable().SetFace(*face)
+	return face, nil
 }
 
 func makeFaceMempools(socket dpdk.NumaSocket) (mempools iface.Mempools) {
