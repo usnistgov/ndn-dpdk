@@ -129,6 +129,14 @@ func (face *SocketFace) rxBurst(burst iface.RxBurst) (nRx int) {
 	return nRx
 }
 
+// Report congestion when RxLoop is unable to send into rxQueue.
+func (face *SocketFace) rxReportCongestion() {
+	face.rxCongestions++
+	if face.rxCongestions%1024 == 0 {
+		face.logger.Printf("RX queue is full, %d", face.rxCongestions)
+	}
+}
+
 func (face *SocketFace) txLoop() {
 	for {
 		pkt, ok := <-face.txQueue

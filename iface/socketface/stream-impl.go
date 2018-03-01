@@ -81,8 +81,7 @@ func (impl *streamImpl) postPacket(buf ndn.TlvBytes) (n int) {
 	case face.rxQueue <- pkt:
 	default:
 		pkt.Close()
-		face.rxCongestions++
-		face.logger.Printf("RX queue is full, %d", face.rxCongestions)
+		face.rxReportCongestion()
 	}
 
 	return len(element)

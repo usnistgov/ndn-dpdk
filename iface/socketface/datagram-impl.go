@@ -51,8 +51,7 @@ func (impl *datagramImpl) RxLoop() {
 		case face.rxQueue <- pkt:
 		default:
 			pkt.Close()
-			face.rxCongestions++
-			face.logger.Printf("RX queue is full, %d", face.rxCongestions)
+			face.rxReportCongestion()
 		}
 	}
 }
