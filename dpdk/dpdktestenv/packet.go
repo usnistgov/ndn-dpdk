@@ -12,12 +12,16 @@ import (
 // Memory is allocated from DirectMp.
 // Caller is responsible for closing the packet.
 func PacketFromBytes(inputs ...[]byte) (pkt dpdk.Packet) {
+	return packetFromBytesInMp(MPID_DIRECT, inputs...)
+}
+
+func packetFromBytesInMp(mpid string, inputs ...[]byte) (pkt dpdk.Packet) {
 	if len(inputs) == 0 {
-		return Alloc(MPID_DIRECT).AsPacket()
+		return Alloc(mpid).AsPacket()
 	}
 
 	mbufs := make([]dpdk.Mbuf, len(inputs))
-	AllocBulk(MPID_DIRECT, mbufs)
+	AllocBulk(mpid, mbufs)
 	pkt = mbufs[0].AsPacket()
 	seg := pkt.GetFirstSegment()
 	for i, m := range mbufs {

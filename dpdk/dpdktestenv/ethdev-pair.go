@@ -8,6 +8,7 @@ import (
 
 var nEthDevPairs = 0 // to ensure unique IDs
 
+// A pair of EthDevs connected via ring-based PMD.
 type EthDevPair struct {
 	PortA dpdk.EthDev
 	RxqA  []dpdk.EthRxQueue
