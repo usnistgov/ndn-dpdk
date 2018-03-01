@@ -8,8 +8,15 @@ import (
 	"ndn-dpdk/iface/socketface"
 )
 
-func TestStream(t *testing.T) {
-	connA, connB := net.Pipe()
+func TestDatagram(t *testing.T) {
+	_, require := makeAR(t)
+
+	addrA := net.UDPAddr{net.ParseIP("127.0.0.1"), 7001, ""}
+	addrB := net.UDPAddr{net.ParseIP("127.0.0.1"), 7002, ""}
+	connA, e := net.DialUDP("udp", &addrB, &addrA)
+	require.NoError(e)
+	connB, e := net.DialUDP("udp", &addrA, &addrB)
+	require.NoError(e)
 
 	faceA := socketface.New(connA, socketface.Config{
 		Mempools:    faceMempools,
