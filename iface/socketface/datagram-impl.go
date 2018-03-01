@@ -19,13 +19,7 @@ func newDatagramImpl(face *SocketFace, conn net.PacketConn) *datagramImpl {
 
 func (impl *datagramImpl) RxLoop() {
 	face := impl.face
-	buf := make([]byte, face.rxMp.GetDataroom())
 	for {
-		nOctets, e := face.conn.Read(buf)
-		if face.handleError("RX", e) {
-			return
-		}
-
 		mbuf, e := face.rxMp.Alloc()
 		if e != nil {
 			face.logger.Printf("RX alloc error: %v", e)
@@ -37,6 +31,17 @@ func (impl *datagramImpl) RxLoop() {
 		pkt.SetTimestamp(dpdk.TscNow())
 		seg0 := pkt.GetFirstSegment()
 		seg0.SetHeadroom(0)
+
+		buf := seg0.AsByteSlice()
+		buf = buf[:cap(buf)]
+		nOctets, e := face.conn.Read(buf)
+		if e != nil {
+			if face.handleError("RX", e) {
+				pkt.Close()
+				return
+			}
+			continue
+		}
 		seg0.Append(buf[:nOctets])
 
 		select {

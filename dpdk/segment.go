@@ -6,6 +6,7 @@ package dpdk
 import "C"
 import (
 	"errors"
+	"reflect"
 	"unsafe"
 )
 
@@ -32,6 +33,12 @@ func (s Segment) Len() int {
 // Get pointer to segment data.
 func (s Segment) GetData() unsafe.Pointer {
 	return unsafe.Pointer(uintptr(s.ptr.buf_addr) + uintptr(s.ptr.data_off))
+}
+
+// Map segment data as []byte.
+func (s Segment) AsByteSlice() []byte {
+	sh := reflect.SliceHeader{uintptr(s.GetData()), s.Len(), s.Len() + s.GetTailroom()}
+	return *(*[]byte)(unsafe.Pointer(&sh))
 }
 
 func (s Segment) GetHeadroom() int {
@@ -66,7 +73,7 @@ func (s Segment) Prepend(input []byte) error {
 	s.ptr.data_off -= C.uint16_t(count)
 	s.ptr.data_len += C.uint16_t(count)
 	s.pkt.ptr.pkt_len += C.uint32_t(count)
-	C.memcpy(s.GetData(), unsafe.Pointer(&input[0]), C.size_t(count))
+	C.rte_memcpy(s.GetData(), unsafe.Pointer(&input[0]), C.size_t(count))
 	return nil
 }
 
@@ -95,7 +102,11 @@ func (s Segment) Append(input []byte) error {
 		uintptr(s.ptr.data_len))
 	s.ptr.data_len += C.uint16_t(count)
 	s.pkt.ptr.pkt_len += C.uint32_t(count)
-	C.memcpy(tail, unsafe.Pointer(&input[0]), C.size_t(count))
+
+	// skip memcpy if input is obtained from s.AsByteSlice()
+	if tail != unsafe.Pointer(&input[0]) {
+		C.rte_memcpy(tail, unsafe.Pointer(&input[0]), C.size_t(count))
+	}
 	return nil
 }
 

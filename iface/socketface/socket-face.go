@@ -140,17 +140,15 @@ func (face *SocketFace) txLoop() {
 			C.FaceImpl_CountSent(&face.getPtr().base, (*C.struct_rte_mbuf)(pkt.GetPtr()))
 		}
 		pkt.Close()
-		if face.handleError("TX", e) {
+		if e != nil && face.handleError("TX", e) {
 			return
 		}
 	}
 }
 
-// Handle socket error, if any. Return whether RxLoop or TxLoop should terminate.
+// Handle socket error.
+// Return whether RxLoop or TxLoop should terminate.
 func (face *SocketFace) handleError(dir string, e error) bool {
-	if e == nil {
-		return false
-	}
 	if netErr, ok := e.(net.Error); ok && netErr.Temporary() {
 		face.logger.Printf("%s socket error: %v", dir, e)
 		return false

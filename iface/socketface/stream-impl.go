@@ -24,8 +24,11 @@ func (impl *streamImpl) RxLoop() {
 	nAvail := 0
 	for {
 		nRead, e := face.conn.Read(buf[nAvail:])
-		if face.handleError("RX", e) {
-			return
+		if e != nil {
+			if face.handleError("RX", e) {
+				return
+			}
+			continue
 		}
 		nAvail += nRead
 
