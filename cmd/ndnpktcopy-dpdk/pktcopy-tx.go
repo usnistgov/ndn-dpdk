@@ -36,8 +36,12 @@ func (pctx PktcopyTx) GetFace() iface.Face {
 	return iface.FaceFromPtr(unsafe.Pointer(pctx.c.face))
 }
 
+func (pctx PktcopyTx) GetRing() dpdk.Ring {
+	return dpdk.RingFromPtr(unsafe.Pointer(pctx.c.txRing))
+}
+
 func (pctx PktcopyTx) Close() error {
-	return dpdk.RingFromPtr(unsafe.Pointer(pctx.c.txRing)).Close()
+	return pctx.GetRing().Close()
 }
 
 func (pctx PktcopyTx) Run() int {

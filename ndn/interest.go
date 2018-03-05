@@ -22,6 +22,10 @@ func (interest *Interest) GetPacket() Packet {
 	return interest.m
 }
 
+func (interest *Interest) String() string {
+	return interest.GetName().String()
+}
+
 func (interest *Interest) GetName() (n *Name) {
 	n = new(Name)
 	n.copyFromC(&interest.p.name)

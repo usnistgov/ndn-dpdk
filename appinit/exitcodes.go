@@ -11,6 +11,7 @@ const (
 	EXIT_EAL_LAUNCH_ERROR   = 4
 	EXIT_MEMPOOL_INIT_ERROR = 5
 	EXIT_FACE_INIT_ERROR    = 6
+	EXIT_RING_INIT_ERROR    = 7
 )
 
 func Exitf(exitCode int, format string, v ...interface{}) {

@@ -9,6 +9,7 @@ import (
 	"unsafe"
 
 	"ndn-dpdk/appinit"
+	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
 )
 
@@ -34,12 +35,12 @@ func (pcrx PktcopyRx) GetFace() iface.Face {
 	return pcrx.face
 }
 
-func (pcrx PktcopyRx) LinkTo(pctx PktcopyTx) error {
+func (pcrx PktcopyRx) LinkTo(txRing dpdk.Ring) error {
 	if pcrx.c.nTxRings >= C.PKTCOPYRX_MAXTX {
 		return fmt.Errorf("cannot link more than %d TX", C.PKTCOPYRX_MAXTX)
 	}
 
-	C.PktcopyRx_AddTxRing(pcrx.c, pctx.c.txRing)
+	C.PktcopyRx_AddTxRing(pcrx.c, (*C.struct_rte_ring)(txRing.GetPtr()))
 	return nil
 }
 

@@ -16,6 +16,10 @@ func (data *Data) GetPacket() Packet {
 	return data.m
 }
 
+func (data *Data) String() string {
+	return data.GetName().String()
+}
+
 func (data *Data) GetName() (n *Name) {
 	n = new(Name)
 	n.copyFromC(&data.p.name)

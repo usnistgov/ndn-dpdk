@@ -56,6 +56,7 @@ func (t L3PktType) String() string {
 // NDN network layer packet with parsed LP and Interest/Data headers.
 type Packet struct {
 	c *C.Packet
+	// DO NOT add other fields: *Packet is passed to C code as Packet**
 }
 
 // Construct Packet from *C.Packet.
@@ -107,6 +108,18 @@ func (pkt Packet) AsNack() *Nack {
 	return &Nack{pkt, C.Packet_GetNackHdr(pkt.c)}
 }
 
+func (pkt Packet) String() string {
+	switch pkt.GetL3Type() {
+	case L3PktType_Interest:
+		return fmt.Sprintf("I %s", pkt.AsInterest())
+	case L3PktType_Data:
+		return fmt.Sprintf("D %s", pkt.AsData())
+	case L3PktType_Nack:
+		return fmt.Sprintf("N %s", pkt.AsNack())
+	}
+	return fmt.Sprintf("Packet(l3=%d)", pkt.GetL3Type())
+}
+
 func (pkt Packet) ParseL2() error {
 	res := NdnError(C.Packet_ParseL2(pkt.c))
 	if res != NdnError_OK {
@@ -126,4 +139,11 @@ func (pkt Packet) ParseL3(nameMp dpdk.PktmbufPool) error {
 // L3 packet interface type that allows conversion to Packet.
 type IL3Packet interface {
 	GetPacket() Packet
+}
+
+func init() {
+	var pkt Packet
+	if unsafe.Sizeof(pkt) != unsafe.Sizeof(pkt.c) {
+		panic("sizeof ndn.Packet differs from *C.Packet")
+	}
 }

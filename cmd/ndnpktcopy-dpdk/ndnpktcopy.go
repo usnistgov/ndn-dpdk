@@ -1,12 +1,17 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"os"
 	"time"
 
+	"ndn-dpdk/app/dump"
 	"ndn-dpdk/appinit"
-	"ndn-dpdk/ndn"
+	"ndn-dpdk/dpdk"
 )
+
+const Dump_RingCapacity = 64
 
 func main() {
 	appinit.InitEal()
@@ -17,6 +22,7 @@ func main() {
 
 	var pcrxs []PktcopyRx
 	var pctxs []PktcopyTx
+	var dumps []dump.Dump
 
 	for _, faceUri := range pc.Faces {
 		face, e := appinit.NewFaceFromUri(faceUri)
@@ -37,14 +43,29 @@ func main() {
 		pctxs = append(pctxs, pctx)
 	}
 
-	// TODO enable dump
+	// enable dump
+	if pc.Dump {
+		for i, pcrx := range pcrxs {
+			ringName := fmt.Sprintf("dump_%d", i)
+			ring, e := dpdk.NewRing(ringName, Dump_RingCapacity, pcrx.GetFace().GetNumaSocket(), true, true)
+			if e != nil {
+				appinit.Exitf(appinit.EXIT_RING_INIT_ERROR, "NewRing(%s): %v", ringName, e)
+			}
+			pcrx.LinkTo(ring)
+
+			prefix := fmt.Sprintf("%d ", pcrx.GetFace().GetFaceId())
+			logger := log.New(os.Stderr, prefix, log.Lmicroseconds)
+			dumper := dump.New(ring, logger)
+			dumps = append(dumps, dumper)
+		}
+	}
 
 	// link PktcopyRx and PktcopyTx
 	switch pc.Mode {
 	case TopoMode_Pair:
 		for i := 0; i < len(pcrxs); i += 2 {
-			pcrxs[i].LinkTo(pctxs[i+1])
-			pcrxs[i+1].LinkTo(pctxs[i])
+			pcrxs[i].LinkTo(pctxs[i+1].GetRing())
+			pcrxs[i+1].LinkTo(pctxs[i].GetRing())
 		}
 	case TopoMode_All:
 		for i, pcrx := range pcrxs {
@@ -52,12 +73,12 @@ func main() {
 				if i == j {
 					continue
 				}
-				pcrx.LinkTo(pctx)
+				pcrx.LinkTo(pctx.GetRing())
 			}
 		}
 	case TopoMode_OneWay:
 		for _, pctx := range pctxs[1:] {
-			pcrxs[0].LinkTo(pctx)
+			pcrxs[0].LinkTo(pctx.GetRing())
 		}
 	}
 
@@ -82,19 +103,10 @@ func main() {
 		appinit.LaunchRequired(pcrx.Run, pcrx.GetFace().GetNumaSocket())
 	}
 
-	select {}
-}
-
-func printPacket(pkt ndn.Packet) {
-	switch pkt.GetL3Type() {
-	case ndn.L3PktType_Interest:
-		interest := pkt.AsInterest()
-		log.Printf("I %s", interest.GetName())
-	case ndn.L3PktType_Data:
-		data := pkt.AsData()
-		log.Printf("D %s", data.GetName())
-	case ndn.L3PktType_Nack:
-		nack := pkt.AsNack()
-		log.Printf("N %s~%s", nack.GetInterest().GetName(), nack.GetReason())
+	// start Dump processes
+	for _, dump := range dumps {
+		appinit.LaunchRequired(dump.Run, dpdk.NUMA_SOCKET_ANY)
 	}
+
+	select {}
 }

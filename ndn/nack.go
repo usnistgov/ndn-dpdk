@@ -42,6 +42,10 @@ func (nack *Nack) GetPacket() Packet {
 	return nack.m
 }
 
+func (nack *Nack) String() string {
+	return fmt.Sprintf("%s~%s", nack.GetInterest(), nack.GetReason())
+}
+
 func (nack *Nack) GetReason() NackReason {
 	return NackReason(C.PNack_GetReason(nack.p))
 }
