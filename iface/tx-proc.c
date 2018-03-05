@@ -54,10 +54,12 @@ TxProc_OutputFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames,
     ++tx->nL3OverLength;
     return 0;
   }
+  // TODO optimize logic for one fragment
 
   int res = rte_pktmbuf_alloc_bulk(tx->headerMp, frames, nFragments);
   if (unlikely(res != 0)) {
     ++tx->nAllocFails;
+    rte_pktmbuf_free(pkt);
     return 0;
   }
 
@@ -79,6 +81,7 @@ TxProc_OutputFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames,
       assert(rte_errno == ENOENT);
       ++tx->nAllocFails;
       FreeMbufs(frames, nFragments);
+      rte_pktmbuf_free(pkt);
       return 0;
     }
 
@@ -93,6 +96,7 @@ TxProc_OutputFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames,
       ++tx->nL3OverLength;
       FreeMbufs(frames, nFragments);
       rte_pktmbuf_free(payload);
+      rte_pktmbuf_free(pkt);
       return 0;
     }
 
@@ -101,6 +105,7 @@ TxProc_OutputFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames,
     frame->inner_l3_type = l3type;
     l3type = L3PktType_None;
   }
+  rte_pktmbuf_free(pkt);
 
   ++tx->nL3Pkts[(int)(nFragments > 1)];
   return nFragments;
@@ -114,17 +119,11 @@ TxProc_OutputNoFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames,
   assert(pkt->pkt_len > 0);
   assert(maxFrames >= 1);
 
+  // TODO prepend to pkt if there is enough headroom
   struct rte_mbuf* frame = frames[0] = rte_pktmbuf_alloc(tx->headerMp);
   if (unlikely(frame == NULL)) {
     ++tx->nAllocFails;
-    return 0;
-  }
-
-  struct rte_mbuf* payload = rte_pktmbuf_clone(pkt, tx->indirectMp);
-  if (unlikely(payload == NULL)) {
-    assert(rte_errno == ENOENT);
-    ++tx->nAllocFails;
-    rte_pktmbuf_free(frame);
+    rte_pktmbuf_free(pkt);
     return 0;
   }
 
@@ -134,12 +133,12 @@ TxProc_OutputNoFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames,
   lph.l2.fragCount = 1;
 
   frame->data_off = tx->headerHeadroom;
-  EncodeLpHeader(frame, &lph, payload->pkt_len);
-  int res = rte_pktmbuf_chain(frame, payload);
+  EncodeLpHeader(frame, &lph, pkt->pkt_len);
+  int res = rte_pktmbuf_chain(frame, pkt);
   if (unlikely(res != 0)) {
     ++tx->nL3OverLength;
     rte_pktmbuf_free(frame);
-    rte_pktmbuf_free(payload);
+    rte_pktmbuf_free(pkt);
     return 0;
   }
 

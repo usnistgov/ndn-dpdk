@@ -10,6 +10,5 @@ PktcopyTx_Run(PktcopyTx* pctx)
     unsigned nDeq = rte_ring_dequeue_burst(pctx->txRing, (void**)npkts,
                                            PKTCOPYTX_BURST_SIZE, NULL);
     Face_TxBurst(pctx->face, npkts, nDeq);
-    FreeMbufs((struct rte_mbuf**)npkts, nDeq);
   }
 }

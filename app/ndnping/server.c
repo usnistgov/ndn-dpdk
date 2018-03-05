@@ -90,5 +90,4 @@ NdnpingServer_Rx(Face* face, FaceRxBurst* burst, void* server0)
     nTx += (tx[nTx] != NULL);
   }
   Face_TxBurst(server->face, tx, nTx);
-  FreeMbufs((struct rte_mbuf**)tx, nTx);
 }

@@ -61,10 +61,8 @@ int TxProc_Init(TxProc* tx, uint16_t mtu, uint16_t headroom,
                 struct rte_mempool* indirectMp, struct rte_mempool* headerMp);
 
 /** \brief Process an outgoing L3 packet.
- *  \param npkt outgoing L3 packet;
- *              TxProc does not take ownership of this packet
- *  \param[out] frames L2 frames to be transmitted;
- *                     TxProc releases ownership of these frames
+ *  \param npkt outgoing L3 packet; TxProc takes ownership
+ *  \param[out] frames L2 frames to be transmitted; TxProc releases ownership
  *  \param maxFrames size of frames array
  *  \return number of L2 frames to be transmitted
  */

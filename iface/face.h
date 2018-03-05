@@ -11,9 +11,9 @@ typedef struct Face Face;
 typedef struct FaceCounters FaceCounters;
 
 /** \brief Transmit a burst of L2 frames.
- *  \param pkts L2 frames with NDNLP header
- *  \return successfully queued packets; callback owns queued frames, but does
- *          not own or release the remaining frames
+ *  \param pkts L2 frames
+ *  \return successfully queued frames
+ *  \post FaceImpl owns queued frames, but does not own remaining frames
  */
 typedef uint16_t (*FaceOps_TxBurst)(Face* face, struct rte_mbuf** pkts,
                                     uint16_t nPkts);
@@ -68,13 +68,13 @@ Face_GetNumaSocket(Face* face)
 typedef void (*Face_RxCb)(Face* face, FaceRxBurst* burst, void* cbarg);
 
 /** \brief Send a burst of packet.
- *  \param npkts array of L3 packets; this function does not take ownership
+ *  \param npkts array of L3 packets; Face takes ownership
  *  \param count size of \p npkt array
  */
 void Face_TxBurst(Face* face, Packet** npkts, uint16_t count);
 
 /** \brief Send a packet.
- *  \param npkt an L3 packet; this function does not take ownership
+ *  \param npkt an L3 packet; Face takes ownership
  */
 static void
 Face_Tx(Face* face, Packet* npkt)

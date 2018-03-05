@@ -97,9 +97,6 @@ func (fixture *Fixture) txProc() int {
 		pkts[2] = ndntestutil.MakeNack("6418 nack=FD032005(FD03210196~noroute) " +
 			"payload=500D(interest 050B name=0703080141 nonce=0A04CACBCCCD)").GetPacket()
 		fixture.txFace.TxBurst(pkts)
-		for _, pkt := range pkts {
-			pkt.AsDpdkPacket().Close()
-		}
 		time.Sleep(time.Millisecond)
 	}
 	return 0

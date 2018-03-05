@@ -132,7 +132,6 @@ NdnpingClient_TxBurst(NdnpingClient* client)
     NdnpingClient_PrepareTxInterest(client, npkts[i]);
   }
   Face_TxBurst(client->face, npkts, NDNPINGCLIENT_TX_BURST_SIZE);
-  FreeMbufs((struct rte_mbuf**)npkts, NDNPINGCLIENT_TX_BURST_SIZE);
 }
 
 void
