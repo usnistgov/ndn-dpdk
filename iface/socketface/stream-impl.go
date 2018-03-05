@@ -89,7 +89,7 @@ func (impl *streamImpl) postPacket(buf ndn.TlvBytes) (n int) {
 
 func (impl *streamImpl) Send(pkt dpdk.Packet) error {
 	for seg, ok := pkt.GetFirstSegment(), true; ok; seg, ok = seg.GetNext() {
-		buf := C.GoBytes(seg.GetData(), C.int(seg.Len()))
+		buf := seg.AsByteSlice()
 		_, e := impl.face.conn.Write(buf)
 		if e != nil {
 			return e

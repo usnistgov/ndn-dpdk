@@ -21,6 +21,6 @@ Calling code must run `RxGroup.RxLoop` in an LCore to retrieve L2 frames from th
 ## Send Path
 
 The transmission function provided in `Face.txBurstOp` is `go_SocketFace_TxBurst`.
-It places an outgoing L2 frame on the `SocketFace.txQueue` channel.
-
-A goroutine running `SocketFace.txLoop` function retrieves from the channel, and copies bytes from mbuf to a `[]byte` that is sent on the socket.
+It places outgoing L2 frames on the `SocketFace.txQueue` channel.
+A goroutine running `SocketFace.txLoop` function retrieves from the channel, and passes them to `impl.Send`.
+In most cases, DPDK mbuf's internal buffer is casted as a `[]byte`, and does not need copying; however, `dataImpl.Send` would have to copy if the mbuf is segmented.

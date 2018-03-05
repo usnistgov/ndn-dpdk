@@ -57,8 +57,12 @@ func (impl *datagramImpl) RxLoop() {
 }
 
 func (impl *datagramImpl) Send(pkt dpdk.Packet) error {
-	buf := make([]byte, pkt.Len())
-	pkt.ReadTo(0, buf)
+	var buf []byte
+	if pkt.CountSegments() > 1 {
+		buf = pkt.ReadAll()
+	} else {
+		buf = pkt.GetFirstSegment().AsByteSlice()
+	}
 	_, e := impl.face.conn.Write(buf)
 	return e
 }
