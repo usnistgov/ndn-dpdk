@@ -24,12 +24,7 @@ typedef struct TxProc
 
   uint64_t lastSeqNo; ///< last used NDNLP sequence number
 
-  /** \brief number of L3 packets to be queued
-   *
-   *  \li nL3Pkts[0] packets that did not require fragmentation
-   *  \li nL3Pkts[1] packets that required fragmentation
-   */
-  uint64_t nL3Pkts[2];
+  uint64_t nL3Fragmented; ///< L3 packets that required fragmentation
   uint64_t nL3OverLength; ///< dropped L3 packets due to over length
   uint64_t nAllocFails;   ///< dropped L3 packets due to allocation failure
 

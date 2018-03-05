@@ -50,11 +50,13 @@ TxProc_OutputFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames,
   assert(pkt->pkt_len > 0);
   uint16_t nFragments = pkt->pkt_len / tx->fragmentPayloadSize +
                         (uint16_t)(pkt->pkt_len % tx->fragmentPayloadSize > 0);
+  if (nFragments == 1) {
+    return TxProc_OutputNoFrag(tx, npkt, frames, maxFrames);
+  }
   if (unlikely(nFragments > maxFrames)) {
     ++tx->nL3OverLength;
     return 0;
   }
-  // TODO optimize logic for one fragment
 
   int res = rte_pktmbuf_alloc_bulk(tx->headerMp, frames, nFragments);
   if (unlikely(res != 0)) {
@@ -100,14 +102,14 @@ TxProc_OutputFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames,
       return 0;
     }
 
-    // Set real L3 type on first segment and None on other segments,
+    // Set real L3 type on first L2 frame and None on other L2 frames,
     // to match counting logic in TxProc_CountSent
     frame->inner_l3_type = l3type;
     l3type = L3PktType_None;
   }
   rte_pktmbuf_free(pkt);
 
-  ++tx->nL3Pkts[(int)(nFragments > 1)];
+  ++tx->nL3Fragmented;
   return nFragments;
 }
 
@@ -119,7 +121,7 @@ TxProc_OutputNoFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames,
   assert(pkt->pkt_len > 0);
   assert(maxFrames >= 1);
 
-  // TODO prepend to pkt if there is enough headroom
+  // TODO prepend LpHeader to pkt if there is enough headroom
   struct rte_mbuf* frame = frames[0] = rte_pktmbuf_alloc(tx->headerMp);
   if (unlikely(frame == NULL)) {
     ++tx->nAllocFails;
@@ -143,7 +145,6 @@ TxProc_OutputNoFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames,
   }
 
   frame->inner_l3_type = Packet_GetL3PktType(npkt);
-  ++tx->nL3Pkts[0];
   return 1;
 }
 
@@ -151,7 +152,7 @@ void
 TxProc_ReadCounters(TxProc* tx, FaceCounters* cnt)
 {
   cnt->txl2.nOctets = tx->nOctets;
-  cnt->txl2.nFragGood = tx->nL3Pkts[1];
+  cnt->txl2.nFragGood = tx->nL3Fragmented;
   cnt->txl2.nFragBad = tx->nL3OverLength + tx->nAllocFails;
 
   cnt->txl3.nInterests = tx->nFrames[L3PktType_Interest];
