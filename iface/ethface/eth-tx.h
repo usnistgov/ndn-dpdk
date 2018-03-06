@@ -10,8 +10,7 @@ typedef struct EthFace EthFace;
 static uint16_t
 EthTx_GetHeaderMempoolDataRoom()
 {
-  return sizeof(struct ether_hdr) + EncodeLpHeader_GetHeadroom() +
-         EncodeLpHeader_GetTailroom();
+  return sizeof(struct ether_hdr) + PrependLpHeader_GetHeadroom();
 }
 
 /** \brief Ethernet transmitting queue.

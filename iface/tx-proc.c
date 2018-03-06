@@ -2,6 +2,8 @@
 
 #include "../core/logger.h"
 
+INIT_ZF_LOG(TxProc);
+
 // minimum payload size per fragment
 static const int MIN_PAYLOAD_SIZE_PER_FRAGMENT = 512;
 
@@ -17,15 +19,14 @@ TxProc_Init(TxProc* tx, uint16_t mtu, uint16_t headroom,
   assert(indirectMp != NULL);
   assert(headerMp != NULL);
   assert(rte_pktmbuf_data_room_size(headerMp) >=
-         EncodeLpHeader_GetHeadroom() + EncodeLpHeader_GetTailroom());
+         headroom + PrependLpHeader_GetHeadroom());
   tx->indirectMp = indirectMp;
   tx->headerMp = headerMp;
 
   if (mtu == 0) {
     tx->outputFunc = TxProc_OutputNoFrag;
   } else {
-    int fragmentPayloadSize =
-      (int)mtu - EncodeLpHeader_GetHeadroom() - EncodeLpHeader_GetTailroom();
+    int fragmentPayloadSize = (int)mtu - PrependLpHeader_GetHeadroom();
     if (fragmentPayloadSize < MIN_PAYLOAD_SIZE_PER_FRAGMENT) {
       return ENOSPC;
     }
@@ -33,12 +34,7 @@ TxProc_Init(TxProc* tx, uint16_t mtu, uint16_t headroom,
     tx->outputFunc = TxProc_OutputFrag;
   }
 
-  tx->headerHeadroom = headroom + EncodeLpHeader_GetHeadroom();
-  if (rte_pktmbuf_data_room_size(headerMp) <
-      tx->headerHeadroom + EncodeLpHeader_GetTailroom()) {
-    return ERANGE;
-  }
-
+  tx->headerHeadroom = headroom + PrependLpHeader_GetHeadroom();
   return 0;
 }
 
@@ -53,6 +49,8 @@ TxProc_OutputFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames,
   if (nFragments == 1) {
     return TxProc_OutputNoFrag(tx, npkt, frames, maxFrames);
   }
+  ZF_LOGV("pktLen=%" PRIu32 " nFragments=%" PRIu16 " seq=%" PRIu64,
+          pkt->pkt_len, nFragments, tx->lastSeqNo + 1);
   if (unlikely(nFragments > maxFrames)) {
     ++tx->nL3OverLength;
     return 0;
@@ -92,7 +90,7 @@ TxProc_OutputFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames,
 
     struct rte_mbuf* frame = frames[i];
     frame->data_off = tx->headerHeadroom;
-    EncodeLpHeader(frame, &lph, payload->pkt_len);
+    PrependLpHeader(frame, &lph, payload->pkt_len);
     res = rte_pktmbuf_chain(frame, payload);
     if (unlikely(res != 0)) {
       ++tx->nL3OverLength;
@@ -118,33 +116,40 @@ TxProc_OutputNoFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames,
                     uint16_t maxFrames)
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
-  assert(pkt->pkt_len > 0);
+  uint32_t payloadL = pkt->pkt_len;
+  assert(payloadL > 0);
   assert(maxFrames >= 1);
 
-  // TODO prepend LpHeader to pkt if there is enough headroom
-  struct rte_mbuf* frame = frames[0] = rte_pktmbuf_alloc(tx->headerMp);
-  if (unlikely(frame == NULL)) {
-    ++tx->nAllocFails;
-    rte_pktmbuf_free(pkt);
-    return 0;
+  struct rte_mbuf* frame;
+  if (RTE_MBUF_INDIRECT(pkt) || pkt->refcnt < 1 ||
+      rte_pktmbuf_headroom(pkt) < tx->headerHeadroom) {
+    frame = rte_pktmbuf_alloc(tx->headerMp);
+    if (unlikely(frame == NULL)) {
+      ++tx->nAllocFails;
+      rte_pktmbuf_free(pkt);
+      return 0;
+    }
+    frame->data_off = tx->headerHeadroom;
+
+    int res = rte_pktmbuf_chain(frame, pkt);
+    if (unlikely(res != 0)) {
+      ++tx->nL3OverLength;
+      rte_pktmbuf_free(frame);
+      rte_pktmbuf_free(pkt);
+      return 0;
+    }
+    ZF_LOGV("pktLen=%" PRIu32 " one-fragment(alloc)", pkt->pkt_len);
+  } else {
+    frame = pkt;
+    ZF_LOGV("pktLen=%" PRIu32 " one-fragment(prepend)", pkt->pkt_len);
   }
 
   LpHeader lph = { 0 };
   rte_memcpy(&lph.l3, Packet_InitLpL3Hdr(npkt), sizeof(lph.l3));
-  lph.l2.fragIndex = 0;
   lph.l2.fragCount = 1;
-
-  frame->data_off = tx->headerHeadroom;
-  EncodeLpHeader(frame, &lph, pkt->pkt_len);
-  int res = rte_pktmbuf_chain(frame, pkt);
-  if (unlikely(res != 0)) {
-    ++tx->nL3OverLength;
-    rte_pktmbuf_free(frame);
-    rte_pktmbuf_free(pkt);
-    return 0;
-  }
-
+  PrependLpHeader(frame, &lph, payloadL);
   frame->inner_l3_type = Packet_GetL3PktType(npkt);
+  frames[0] = frame;
   return 1;
 }
 

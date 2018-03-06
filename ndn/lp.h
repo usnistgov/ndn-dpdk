@@ -55,15 +55,10 @@ NdnError LpHeader_FromPacket(LpHeader* lph, struct rte_mbuf* pkt,
                              uint32_t* payloadOff);
 
 static uint16_t
-EncodeLpHeader_GetHeadroom()
+PrependLpHeader_GetHeadroom()
 {
-  return 1 + 5;
-}
-
-static uint16_t
-EncodeLpHeader_GetTailroom()
-{
-  return 1 + 1 + 8 +         // SeqNo
+  return 1 + 5 +             // LpPacket TL
+         1 + 1 + 8 +         // SeqNo
          1 + 1 + 2 +         // FragIndex
          1 + 1 + 2 +         // FragCount
          1 + 1 + 8 +         // PitToken
@@ -72,12 +67,12 @@ EncodeLpHeader_GetTailroom()
          1 + 5;              // Payload TL
 }
 
-/** \brief Encode LP header.
- *  \param m output mbuf, must be empty and is the only segment, must have
- *           \p EncodeLpHeader_GetHeadroom() in headroom and
- *           \p EncodeLpHeader_GetTailroom() in tailroom.
+/** \brief Encode LP header in headroom.
+ *  \param m output mbuf, must be first segment, and must have
+ *           \p PrependLpHeader_GetHeadroom() in headroom.
  *  \param payloadL TLV-LENGTH of LpPayload, or 0 to indicate no payload
  */
-void EncodeLpHeader(struct rte_mbuf* m, const LpHeader* lph, uint32_t payloadL);
+void PrependLpHeader(struct rte_mbuf* m, const LpHeader* lph,
+                     uint32_t payloadL);
 
 #endif // NDN_DPDK_NDN_LP_H

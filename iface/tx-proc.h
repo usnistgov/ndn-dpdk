@@ -46,11 +46,10 @@ typedef struct TxProc
  *  \param mtu transport MTU available for NDNLP packets.
  *  \param headroom headroom before NDNLP header, as required by transport.
  *  \param indirectMp mempool for indirect mbufs.
- *  \param headerMp mempool for NDNLP headers; dataroom must be at least headroom +
- *                  EncodeLpHeader_GetHeadroom() + EncodeLpHeader_GetTailroom().
+ *  \param headerMp mempool for NDNLP headers; must have
+ *                  headroom + PrependLpHeader_GetHeadroom() dataroom.
  *  \retval 0 success
  *  \retval ENOSPC MTU is too small
- *  \retval ERANGE dataroom of headerMp is too small
  */
 int TxProc_Init(TxProc* tx, uint16_t mtu, uint16_t headroom,
                 struct rte_mempool* indirectMp, struct rte_mempool* headerMp);

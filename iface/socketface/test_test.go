@@ -19,7 +19,7 @@ func TestMain(m *testing.M) {
 	directMp = dpdktestenv.MakeDirectMp(255, ndn.SizeofPacketPriv(), 2000)
 	faceMempools.IndirectMp = dpdktestenv.MakeIndirectMp(4095)
 	faceMempools.HeaderMp = dpdktestenv.MakeMp("header", 4095, 0,
-		uint16(ndn.EncodeLpHeader_GetHeadroom()+ndn.EncodeLpHeader_GetTailroom()))
+		uint16(ndn.PrependLpHeader_GetHeadroom()))
 	faceMempools.NameMp = dpdktestenv.MakeMp("name", 4095, 0, ndn.NAME_MAX_LENGTH)
 
 	os.Exit(m.Run())

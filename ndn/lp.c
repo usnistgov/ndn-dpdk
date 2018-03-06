@@ -114,11 +114,73 @@ FOUND_PAYLOAD:;
 }
 
 void
-EncodeLpHeader(struct rte_mbuf* m, const LpHeader* lph, uint32_t payloadL)
+PrependLpHeader(struct rte_mbuf* m, const LpHeader* lph, uint32_t payloadL)
 {
-  assert(rte_pktmbuf_headroom(m) >= EncodeLpHeader_GetHeadroom());
-  assert(rte_pktmbuf_tailroom(m) >= EncodeLpHeader_GetTailroom());
-  TlvEncoder* en = MakeTlvEncoder(m);
+  assert(rte_pktmbuf_headroom(m) >= PrependLpHeader_GetHeadroom());
+  TlvEncoder* en = MakeTlvEncoder_Unchecked(m);
+
+  uint16_t size0 = m->data_len;
+  if (likely(payloadL) != 0) {
+    PrependVarNum(en, payloadL);
+    PrependVarNum(en, TT_LpPayload);
+  }
+  uint16_t size1 = m->data_len;
+
+  if (lph->l2.fragIndex == 0) {
+    if (lph->l3.congMark != 0) {
+      typedef struct CongMarkF
+      {
+        uint8_t congMarkT[3];
+        uint8_t congMarkL;
+        uint8_t congMarkV;
+      } __rte_packed CongMarkF;
+
+      CongMarkF* f = (CongMarkF*)TlvEncoder_Prepend(en, sizeof(CongMarkF));
+      assert(SizeofVarNum(TT_CongestionMark) == sizeof(f->congMarkT));
+      EncodeVarNum(f->congMarkT, TT_CongestionMark);
+      f->congMarkL = 1;
+      f->congMarkV = lph->l3.congMark;
+    }
+
+    if (lph->l3.nackReason != NackReason_None) {
+      if (unlikely(lph->l3.nackReason == NackReason_Unspecified)) {
+        PrependVarNum(en, 0);
+        PrependVarNum(en, TT_Nack);
+      } else {
+        typedef struct NackF
+        {
+          uint8_t nackT[3];
+          uint8_t nackL;
+          uint8_t nackReasonT[3];
+          uint8_t nackReasonL;
+          uint8_t nackReasonV;
+        } __rte_packed NackF;
+
+        NackF* f = (NackF*)TlvEncoder_Prepend(en, sizeof(NackF));
+        assert(SizeofVarNum(TT_Nack) == sizeof(f->nackT));
+        EncodeVarNum(f->nackT, TT_Nack);
+        f->nackL = 5;
+        assert(SizeofVarNum(TT_NackReason) == sizeof(f->nackReasonT));
+        EncodeVarNum(f->nackReasonT, TT_NackReason);
+        f->nackReasonL = 1;
+        f->nackReasonV = lph->l3.nackReason;
+      }
+    }
+
+    if (lph->l3.pitToken != 0) {
+      typedef struct PitTokenF
+      {
+        uint8_t pitTokenT;
+        uint8_t pitTokenL;
+        rte_le64_t pitTokenV;
+      } __rte_packed PitTokenF;
+
+      PitTokenF* f = (PitTokenF*)TlvEncoder_Prepend(en, sizeof(PitTokenF));
+      f->pitTokenT = TT_PitToken;
+      f->pitTokenL = 8;
+      *(unaligned_uint64_t*)&f->pitTokenV = rte_cpu_to_le_64(lph->l3.pitToken);
+    }
+  }
 
   if (lph->l2.fragCount > 1) {
     typedef struct FragF
@@ -138,7 +200,7 @@ EncodeLpHeader(struct rte_mbuf* m, const LpHeader* lph, uint32_t payloadL)
       rte_be16_t fragCountV;
     } __rte_packed FragF;
 
-    FragF* f = (FragF*)TlvEncoder_Append(en, sizeof(FragF));
+    FragF* f = (FragF*)TlvEncoder_Prepend(en, sizeof(FragF));
     f->seqNoT = TT_LpSeqNo;
     f->seqNoL = 8;
     *(unaligned_uint64_t*)&f->seqNoV = rte_cpu_to_be_64(lph->l2.seqNo);
@@ -150,50 +212,11 @@ EncodeLpHeader(struct rte_mbuf* m, const LpHeader* lph, uint32_t payloadL)
     *(unaligned_uint16_t*)&f->fragCountV = rte_cpu_to_be_16(lph->l2.fragCount);
   }
 
-  if (lph->l2.fragIndex == 0) {
-    if (lph->l3.pitToken != 0) {
-      typedef struct PitTokenF
-      {
-        uint8_t pitTokenT;
-        uint8_t pitTokenL;
-        rte_le64_t pitTokenV;
-      } __rte_packed PitTokenF;
-
-      PitTokenF* f = (PitTokenF*)TlvEncoder_Append(en, sizeof(PitTokenF));
-      f->pitTokenT = TT_PitToken;
-      f->pitTokenL = 8;
-      *(unaligned_uint64_t*)&f->pitTokenV = rte_cpu_to_le_64(lph->l3.pitToken);
-    }
-
-    if (lph->l3.nackReason != NackReason_None) {
-      AppendVarNum(en, TT_Nack);
-      if (unlikely(lph->l3.nackReason == NackReason_Unspecified)) {
-        AppendVarNum(en, 0);
-      } else {
-        AppendVarNum(en, 5);
-        AppendVarNum(en, TT_NackReason);
-        AppendVarNum(en, 1);
-        *(TlvEncoder_Append(en, 1)) = lph->l3.nackReason;
-      }
-    }
-
-    if (lph->l3.congMark != 0) {
-      AppendVarNum(en, TT_CongestionMark);
-      AppendVarNum(en, 1);
-      *(TlvEncoder_Append(en, 1)) = lph->l3.congMark;
-    }
-  }
-
-  if (m->pkt_len == 0) {
-    // no LP header needed
+  if (m->data_len == size1) { // no LP headers
+    rte_pktmbuf_adj(m, size1 - size0);
     return;
   }
 
-  if (likely(payloadL) != 0) {
-    AppendVarNum(en, TT_LpPayload);
-    AppendVarNum(en, payloadL);
-  }
-
-  PrependVarNum(en, m->pkt_len + payloadL);
+  PrependVarNum(en, m->data_len - size0 + payloadL);
   PrependVarNum(en, TT_LpPacket);
 }

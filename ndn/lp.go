@@ -37,19 +37,13 @@ func (lph *LpHeader) GetFragFields() (seqNo uint64, fragIndex uint16, fragCount 
 	return uint64(lph.l2.seqNo), uint16(lph.l2.fragIndex), uint16(lph.l2.fragCount)
 }
 
-func EncodeLpHeader_GetHeadroom() int {
-	return int(C.EncodeLpHeader_GetHeadroom())
+func PrependLpHeader_GetHeadroom() int {
+	return int(C.PrependLpHeader_GetHeadroom())
 }
 
-func EncodeLpHeader_GetTailroom() int {
-	return int(C.EncodeLpHeader_GetTailroom())
-}
-
-func (lph *LpHeader) Encode(pkt dpdk.IMbuf, payloadL int) {
-	var lphC C.LpHeader
-	lphC.l3 = lph.LpL3.c
-	lphC.l2 = lph.l2
-	C.EncodeLpHeader((*C.struct_rte_mbuf)(pkt.GetPtr()), &lphC, C.uint32_t(payloadL))
+func (lph *LpHeader) Prepend(pkt dpdk.IMbuf, payloadL int) {
+	lphC := (*C.LpHeader)(unsafe.Pointer(lph))
+	C.PrependLpHeader((*C.struct_rte_mbuf)(pkt.GetPtr()), lphC, C.uint32_t(payloadL))
 }
 
 func init() {

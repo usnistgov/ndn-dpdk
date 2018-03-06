@@ -103,7 +103,7 @@ typedef struct FaceMempools
   /** \brief mempool for NDNLP headers upon TX
    *
    *  Dataroom must be at least transport-specific-headroom +
-   *  EncodeLpHeader_GetHeadroom() + EncodeLpHeader_GetTailroom().
+   *  PrependLpHeader_GetHeadroom().
    */
   struct rte_mempool* headerMp;
 } FaceMempools;
