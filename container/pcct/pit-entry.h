@@ -44,6 +44,12 @@ PitEntry_Init(Pit* pit, PitEntry* entry, Packet* npkt)
   entry->ups[0].face = FACEID_INVALID;
 }
 
+/** \brief Represent PIT entry as a string for debug purpose.
+ *  \return A string from thread-local buffer.
+ *  \warning Subsequent *ToDebugString calls on the same thread overwrite the buffer.
+ */
+const char* PitEntry_ToDebugString(PitEntry* entry);
+
 /** \brief Refresh downstream record for RX Interest.
  *  \param entry PIT entry, must be initialized.
  *  \param npkt received Interest; will take ownership unless returning -1.

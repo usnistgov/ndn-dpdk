@@ -3,7 +3,7 @@
 
 /// \file
 
-#include "../../ndn/name.h"
+#include "common.h"
 
 /** \brief Hash key for searching among \p PccEntry.
  */
@@ -15,7 +15,7 @@ typedef struct PccSearch
 
 /** \brief Convert \p PccSearch to a string for debug purpose.
  *  \return A string from thread-local buffer.
- *  \warning Subsequent calls to this function on the same thread overwrites the buffer.
+ *  \warning Subsequent *ToDebugString calls on the same thread overwrite the buffer.
  */
 const char* PccSearch_ToDebugString(const PccSearch* search);
 

@@ -1,26 +1,21 @@
 #include "pcc-key.h"
-
-typedef struct PccSearchDebugString
-{
-  char s[5 + LNAME_MAX_STRING_SIZE + 4 + LNAME_MAX_STRING_SIZE + 1];
-} PccSearchDebugString;
-RTE_DEFINE_PER_LCORE(PccSearchDebugString, gPccSearchDebugString);
+#include "debug-string.h"
 
 const char*
 PccSearch_ToDebugString(const PccSearch* search)
 {
+  PccDebugString_Clear();
+
   char nameStr[LNAME_MAX_STRING_SIZE + 1];
   if (LName_ToString(search->name, nameStr, sizeof(nameStr)) == 0) {
     snprintf(nameStr, sizeof(nameStr), "(empty)");
   }
-  char fhStr[LNAME_MAX_STRING_SIZE + 1];
-  if (LName_ToString(search->fh, nameStr, sizeof(nameStr)) == 0) {
-    snprintf(fhStr, sizeof(fhStr), "(empty)");
-  }
+  PccDebugString_Appendf("name=%s", nameStr);
 
-  PccSearchDebugString* ds = &RTE_PER_LCORE(gPccSearchDebugString);
-  snprintf(ds->s, sizeof(ds->s), "name=%s fh=%s", nameStr, fhStr);
-  return ds->s;
+  if (LName_ToString(search->fh, nameStr, sizeof(nameStr)) == 0) {
+    snprintf(nameStr, sizeof(nameStr), "(empty)");
+  }
+  return PccDebugString_Appendf(" fh=%s", nameStr);
 }
 
 void

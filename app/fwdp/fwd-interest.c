@@ -9,11 +9,14 @@ FwFwd_RxInterestMissCs(FwFwd* fwd, PitEntry* pitEntry, Packet* npkt)
 {
   int dnIndex = PitEntry_DnRxInterest(fwd->pit, pitEntry, npkt);
   if (dnIndex < 0) {
-    ZF_LOGW("%" PRIu8 " PitDn-full", fwd->id);
+    ZF_LOGW("%" PRIu8 " %s PitDn-full", fwd->id,
+            PitEntry_ToDebugString(pitEntry));
     rte_pktmbuf_free(Packet_ToMbuf(npkt));
     return;
   }
   npkt = NULL; // npkt is owned/freed by pitEntry
+  ZF_LOGV("%" PRIu8 " %s dnIndex=%d", fwd->id, PitEntry_ToDebugString(pitEntry),
+          dnIndex);
 
   // TODO
 }
