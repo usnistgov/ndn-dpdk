@@ -10,8 +10,8 @@
  */
 typedef struct FwInputFwdConn
 {
-  struct rte_ring* r; ///< FwFwd's queue
-  uint64_t nDrops;    ///< dropped packets due to full queue
+  struct rte_ring* queue; ///< FwFwd's queue
+  uint64_t nDrops;        ///< dropped packets due to full queue
 } FwInputFwdConn;
 
 /** \brief Forwarder data plane, input process.

@@ -22,14 +22,14 @@ void
 FwInput_Connect(FwInput* fwi, FwFwd* fwd)
 {
   FwInputFwdConn* conn = &fwi->conn[fwd->id];
-  assert(conn->r == NULL);
-  conn->r = fwd->queue;
+  assert(conn->queue == NULL);
+  conn->queue = fwd->queue;
 }
 
 static void
 FwInput_PassTo(FwInput* fwi, Packet* npkt, uint8_t fwdId)
 {
-  int res = rte_ring_enqueue(fwi->conn[fwdId].r, npkt);
+  int res = rte_ring_enqueue(fwi->conn[fwdId].queue, npkt);
   if (res != 0) {
     ++fwi->conn[fwdId].nDrops;
     rte_pktmbuf_free(Packet_ToMbuf(npkt));
