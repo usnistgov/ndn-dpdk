@@ -171,16 +171,16 @@ test: cbuilds cgoflags
 doxygen:
 	cd docs && doxygen Doxyfile 2>&1 | ./filter-Doxygen-warning.awk 1>&2
 
-godochtml:
-	bash docs/godoc.sh
+codedoc:
+	bash docs/codedoc.sh
 
-dochttp: doxygen godochtml
+dochttp: doxygen codedoc
 	cd docs && python3 -m http.server 2>/dev/null &
 
 godochttp:
 	godoc -http ':6060' 2>/dev/null &
 
 clean:
-	rm -rf build ndn/error.go ndn/error.h ndn/namehash.h ndn/tlv-type.go ndn/tlv-type.h docs/html
+	rm -rf build ndn/error.go ndn/error.h ndn/namehash.h ndn/tlv-type.go ndn/tlv-type.h docs/doxygen docs/codedoc
 	find -name 'cgoflags.go' -delete
 	go clean ./...

@@ -10,9 +10,8 @@ Requirements:
 * `build-essential` package, including gcc 5.4
 * Go 1.9.2
 * DPDK 17.11, installed to `/usr/local`
-* Doxygen
-* `clang-format`
 * `liburcu-dev`
+* `doxygen pandoc clang-format` packages, for building documentation
 
 Installation steps:
 
