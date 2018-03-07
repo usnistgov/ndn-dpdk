@@ -51,16 +51,16 @@ Ndt_GetThread(const Ndt* ndt, uint8_t id)
   return ndt->threads[id];
 }
 
-/** \brief Get the size of counters array.
+/** \brief Get number of table elements.
  */
 static const int
-Ndt_SizeofCounters(Ndt* ndt)
+Ndt_CountElements(Ndt* ndt)
 {
   return ndt->indexMask + 1;
 }
 
 /** \brief Read entry hit counters.
- *  \param[out] cnt counters array of \p Ndt_SizeofCounters(ndt) elements.
+ *  \param[out] cnt counters array of \p Ndt_CountElements(ndt) elements.
  */
 void Ndt_ReadCounters(Ndt* ndt, uint32_t* cnt);
 

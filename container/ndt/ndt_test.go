@@ -1,7 +1,6 @@
 package ndt_test
 
 import (
-	"math/rand"
 	"sort"
 	"testing"
 	"time"
@@ -46,16 +45,7 @@ func TestNdt(t *testing.T) {
 	ndt := ndt.New(cfg, numaSockets)
 	defer ndt.Close()
 
-	randomUpdate := func() {
-		for h := 0; h < (1 << uint(cfg.IndexBits)); h++ {
-			v := uint8(0)
-			for v == 0 {
-				v = uint8(rand.Int())
-			}
-			ndt.Update(uint64(h), v)
-		}
-	}
-	randomUpdate()
+	ndt.Randomize(256)
 	cnt0 := ndt.ReadCounters()
 
 	const NLOOPS = 100000
@@ -82,7 +72,7 @@ func TestNdt(t *testing.T) {
 
 	time.Sleep(10 * time.Millisecond)
 	cnt1 := ndt.ReadCounters()
-	randomUpdate()
+	ndt.Randomize(256)
 
 	for i, slave := range slaves {
 		assert.Zero(slave.Wait(), "%d", i)

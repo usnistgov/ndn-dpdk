@@ -2,7 +2,9 @@ package main
 
 import (
 	"log"
+	"math/rand"
 	"os"
+	"time"
 
 	"ndn-dpdk/app/fwdp"
 	"ndn-dpdk/appinit"
@@ -17,6 +19,7 @@ var theFib *fib.Fib
 var theDp *fwdp.DataPlane
 
 func main() {
+	rand.Seed(time.Now().UTC().UnixNano())
 	startDp()
 	select {}
 }
@@ -76,11 +79,11 @@ func startDp() {
 	}
 
 	// reserve lcores for forwarding processes
-	nFwdLCores := len(appinit.Eal.Slaves) - len(dpCfg.InputLCores)
-	for len(dpCfg.FwdLCores) < nFwdLCores {
+	nFwds := len(appinit.Eal.Slaves) - len(dpCfg.InputLCores)
+	for len(dpCfg.FwdLCores) < nFwds {
 		lc := lcr.Reserve(dpdk.NUMA_SOCKET_ANY)
 		if !lc.IsValid() {
-			continue
+			break
 		}
 		logger.Printf("Reserving lcore %d on socket %d for forwarding", lc, lc.GetNumaSocket())
 		dpCfg.FwdLCores = append(dpCfg.FwdLCores, lc)
@@ -117,6 +120,9 @@ func startDp() {
 			appinit.Exitf(appinit.EXIT_EAL_LAUNCH_ERROR, "dp.LaunchInput(%d): %v", i, e)
 		}
 	}
+
+	// randomize NDT
+	theNdt.Randomize(nFwds)
 
 	logger.Print("Data plane started")
 }
