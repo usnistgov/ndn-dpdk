@@ -31,6 +31,11 @@ func New(cfg Config) (pcct *Pcct, e error) {
 	return pcct, nil
 }
 
+func PcctFromPtr(ptr unsafe.Pointer) Pcct {
+	return Pcct{(*C.Pcct)(ptr)}
+}
+
+// Get native *C.Pcct pointer to use in other packages.
 func (pcct Pcct) GetPtr() unsafe.Pointer {
 	return unsafe.Pointer(pcct.c)
 }

@@ -62,6 +62,11 @@ func New(cfg Config) (fib *Fib, e error) {
 	return fib, nil
 }
 
+// Get native *C.Fib pointer to use in other packages.
+func (fib *Fib) GetPtr() unsafe.Pointer {
+	return unsafe.Pointer(fib.c)
+}
+
 // Get underlying mempool of the FIB.
 func (fib *Fib) GetMempool() dpdk.Mempool {
 	return dpdk.MempoolFromPtr(unsafe.Pointer(fib.c))

@@ -42,6 +42,15 @@ NdtThread** Ndt_Init(Ndt* ndt, uint16_t prefixLen, uint8_t indexBits,
  */
 void Ndt_Close(Ndt* ndt);
 
+/** \brief Access NdtThread struct.
+ */
+static NdtThread*
+Ndt_GetThread(const Ndt* ndt, uint8_t id)
+{
+  assert(id < ndt->nThreads);
+  return ndt->threads[id];
+}
+
 /** \brief Get the size of counters array.
  */
 static const int

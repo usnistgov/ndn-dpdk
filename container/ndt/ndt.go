@@ -39,6 +39,11 @@ func (ndt Ndt) Close() error {
 	return nil
 }
 
+// Get native *C.Ndt pointer to use in other packages.
+func (ndt Ndt) GetPtr() unsafe.Pointer {
+	return unsafe.Pointer(ndt.c)
+}
+
 func (ndt Ndt) GetThread(i int) NdtThread {
 	var cThreadPtr *C.NdtThread
 	return NdtThread{ndt, *(**C.NdtThread)(unsafe.Pointer(uintptr(unsafe.Pointer(ndt.c.threads)) +

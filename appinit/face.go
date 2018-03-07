@@ -1,6 +1,7 @@
 package appinit
 
 import (
+	"errors"
 	"fmt"
 	"net"
 
@@ -28,14 +29,21 @@ var (
 	SOCKETFACE_TXQ_CAPACITY = 64
 )
 
-func NewFaceFromUri(u faceuri.FaceUri) (*iface.Face, error) {
+// Create face by FaceUri and add to the FaceTable.
+func NewFaceFromUri(u faceuri.FaceUri) (face *iface.Face, e error) {
 	create := newFaceByScheme[u.Scheme]
 	if create == nil {
 		return nil, fmt.Errorf("cannot create face with scheme %s", u.Scheme)
 	}
-	return create(u)
+	face, e = create(u)
+	if e == nil {
+		GetFaceTable().SetFace(*face)
+	}
+	return face, e
 }
 
+// Functions to create face by FaceUri for each FaceUri scheme.
+// These functions do not add face to the FaceTable.
 var newFaceByScheme = map[string]func(u faceuri.FaceUri) (*iface.Face, error){
 	"dev":  newEthFace,
 	"udp4": newSocketFace,
@@ -47,7 +55,22 @@ func newEthFace(u faceuri.FaceUri) (*iface.Face, error) {
 	if !port.IsValid() {
 		return nil, fmt.Errorf("DPDK device %s not found", u.Host)
 	}
+	return newEthFaceFromDev(port)
+}
 
+// Create face on DPDK device and add to the FaceTable.
+func NewFaceFromEthDev(port dpdk.EthDev) (face *iface.Face, e error) {
+	if !port.IsValid() {
+		return nil, errors.New("DPDK device is invalid")
+	}
+	face, e = newEthFaceFromDev(port)
+	if e == nil {
+		GetFaceTable().SetFace(*face)
+	}
+	return face, e
+}
+
+func newEthFaceFromDev(port dpdk.EthDev) (*iface.Face, error) {
 	var cfg dpdk.EthDevConfig
 	cfg.AddRxQueue(dpdk.EthRxQueueConfig{Capacity: ETHFACE_RXQ_CAPACITY,
 		Socket: port.GetNumaSocket(),
@@ -70,8 +93,6 @@ func newEthFace(u faceuri.FaceUri) (*iface.Face, error) {
 	if e != nil {
 		return nil, fmt.Errorf("ethface.New(%d): %v", port, e)
 	}
-
-	GetFaceTable().SetFace(face.Face)
 	return &face.Face, nil
 }
 
@@ -101,7 +122,6 @@ func newSocketFace(u faceuri.FaceUri) (face *iface.Face, e error) {
 	cfg.TxqCapacity = SOCKETFACE_TXQ_CAPACITY
 
 	face = &socketface.New(conn, cfg).Face
-	GetFaceTable().SetFace(*face)
 	return face, nil
 }
 
@@ -112,6 +132,7 @@ func makeFaceMempools(socket dpdk.NumaSocket) (mempools iface.Mempools) {
 	return mempools
 }
 
+// Create RxLooper for one face.
 func MakeRxLooper(face iface.Face) iface.IRxLooper {
 	faceId := face.GetFaceId()
 	switch faceId.GetKind() {

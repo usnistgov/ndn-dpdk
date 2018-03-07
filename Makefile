@@ -141,6 +141,15 @@ appinit/cgoflags.go: dpdk/cgoflags.go
 app/ndnping/cgoflags.go: container/nameset/cgoflags.go iface/cgoflags.go
 	./make-cgoflags.sh app/ndnping container/nameset iface
 
+$(CLIBPREFIX)-fwdp.a: $(CLIBPREFIX)-ndt.a $(CLIBPREFIX)-fib.a $(CLIBPREFIX)-pcct.a $(CLIBPREFIX)-iface.a app/fwdp/*.h app/fwdp/*.c
+	./cbuild.sh app/fwdp
+
+app/fwdp/cgoflags.go: container/ndt/cgoflags.go container/fib/cgoflags.go container/pcct/cgoflags.go iface/cgoflags.go
+	./make-cgoflags.sh app/fwdp container/ndt container/fib container/pcct iface
+
+go-fwdp: $(CLIBPREFIX)-fwdp.a app/fwdp/cgoflags.go
+	go build ./app/fwdp
+
 cmd/ndnpktcopy-dpdk/cgoflags.go: iface/cgoflags.go
 	./make-cgoflags.sh cmd/ndnpktcopy-dpdk iface
 
