@@ -35,18 +35,26 @@ PitEntry_DnRxInterest(Pit* pit, PitEntry* entry, Packet* npkt)
   // find slot for downstream record
   int index;
   PitDn* dn = NULL;
-  for (index = 0; index < PIT_ENTRY_MAX_DNS; ++index) {
-    dn = &entry->dns[index];
-    if (dn->face == face) {
-      break;
+  if (entry->npkt == NULL) {
+    entry->npkt = npkt;
+    index = 0;
+    dn = &entry->dns[0];
+    assert(dn->face == FACEID_INVALID);
+    dn->face = face;
+  } else {
+    for (index = 0; index < PIT_ENTRY_MAX_DNS; ++index) {
+      dn = &entry->dns[index];
+      if (dn->face == face) {
+        break;
+      }
+      if (dn->face == FACEID_INVALID) {
+        dn->face = face;
+        break;
+      }
     }
-    if (dn->face == FACEID_INVALID) {
-      dn->face = face;
-      break;
+    if (unlikely(dn == NULL)) {
+      return -1;
     }
-  }
-  if (unlikely(dn == NULL)) {
-    return -1;
   }
 
   // refresh downstream record
@@ -64,6 +72,8 @@ PitEntry_DnRxInterest(Pit* pit, PitEntry* entry, Packet* npkt)
     rte_pktmbuf_free(Packet_ToMbuf(entry->npkt));
     entry->npkt = npkt;
     entry->canBePrefix = true;
+  } else {
+    rte_pktmbuf_free(Packet_ToMbuf(npkt));
   }
 
   PitEntry_ScheduleTimeout(pit, entry);

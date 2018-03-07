@@ -30,12 +30,13 @@ typedef struct PitEntry
 } PitEntry;
 
 /** \brief Initialize a PIT entry.
+ *  \p npkt received Interest; will not take ownership.
  */
 static void
 PitEntry_Init(Pit* pit, PitEntry* entry, Packet* npkt)
 {
   PInterest* interest = Packet_GetInterestHdr(npkt);
-  entry->npkt = npkt;
+  entry->npkt = NULL; // do not store npkt until DnRxInterest
   MinTmr_Init(&entry->timeout);
   entry->canBePrefix = interest->canBePrefix;
   entry->mustBeFresh = interest->mustBeFresh;
@@ -45,7 +46,7 @@ PitEntry_Init(Pit* pit, PitEntry* entry, Packet* npkt)
 
 /** \brief Refresh downstream record for RX Interest.
  *  \param entry PIT entry, must be initialized.
- *  \param npkt received Interest packet.
+ *  \param npkt received Interest; will take ownership unless returning -1.
  *  \return index of downstream record, or -1 if no slot is available.
  */
 int PitEntry_DnRxInterest(Pit* pit, PitEntry* entry, Packet* npkt);
