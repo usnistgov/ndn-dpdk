@@ -82,14 +82,17 @@ func MakePktmbufPool(key string, socket dpdk.NumaSocket) dpdk.PktmbufPool {
 	return mp
 }
 
+// Registered mempool templates.
 const (
-	MP_IND   = "__IND"   // mempool for indirect mbufs
-	MP_ETHRX = "__ETHRX" // mempool for incoming Ethernet frames
-	MP_NAME  = "__NAME"  // mempool for name linearize
-	MP_ETHTX = "__ETHTX" // mempool for outgoing Ethernet and NDNLP headers
-	MP_INT   = "__INT"   // mempool for encoding Interests
-	MP_DATA1 = "__DATA1" // mempool for encoding Data header
-	MP_DATA2 = "__DATA2" // mempool for encoding Data signature
+	MP_IND   = "__IND"   // indirect mbufs
+	MP_ETHRX = "__ETHRX" // RX Ethernet frames
+	MP_NAME  = "__NAME"  // name linearize
+	MP_ETHTX = "__ETHTX" // TX Ethernet+NDNLP headers
+	MP_INTH  = "__INTH"  // modifying Interest headers, with room for ETHTX
+	MP_INTG  = "__INTG"  // modifying Interest guiders
+	MP_INT   = "__INT"   // encoding Interest
+	MP_DATA1 = "__DATA1" // encoding Data header
+	MP_DATA2 = "__DATA2" // encoding Data signature
 )
 
 func init() {
@@ -120,6 +123,20 @@ func init() {
 			CacheSize:    255,
 			PrivSize:     0,
 			DataRoomSize: ethface.SizeofHeaderMempoolDataRoom(),
+		})
+	RegisterMempool(MP_INTH,
+		MempoolConfig{
+			Capacity:     65535,
+			CacheSize:    255,
+			PrivSize:     ndn.SizeofPacketPriv(),
+			DataRoomSize: ethface.SizeofHeaderMempoolDataRoom() + uint16(ndn.EncodeInterest_GetHeadroom()),
+		})
+	RegisterMempool(MP_INTG,
+		MempoolConfig{
+			Capacity:     65535,
+			CacheSize:    255,
+			PrivSize:     0,
+			DataRoomSize: uint16(ndn.ModifyInterest_SizeofGuider()),
 		})
 	RegisterMempool(MP_INT,
 		MempoolConfig{

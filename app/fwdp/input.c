@@ -40,7 +40,8 @@ static void
 FwInput_DispatchByName(FwInput* fwi, Packet* npkt, const Name* name)
 {
   uint8_t fwdId = Ndt_Lookup(fwi->ndt, fwi->ndtt, &name->p, name->v);
-  ZF_LOGD("%p by-name to=%" PRIu8, npkt, fwdId);
+  ZF_LOGD("%" PRI_FaceId " %p by-name to=%" PRIu8, Packet_ToMbuf(npkt)->port,
+          npkt, fwdId);
   FwInput_PassTo(fwi, npkt, fwdId);
 }
 
@@ -49,8 +50,16 @@ FwInput_DispatchByToken(FwInput* fwi, Packet* npkt, uint64_t token)
 {
   FwToken tok = {.token = token };
   uint8_t fwdId = tok.fwdId;
-  ZF_LOGD("%p token=%" PRIx64 " to=%" PRIu8, npkt, token, fwdId);
-  FwInput_PassTo(fwi, npkt, fwdId);
+
+  if (unlikely(fwdId >= fwi->nFwds)) {
+    ZF_LOGD("%" PRI_FaceId " %p token=%" PRIx64 " bad-fwdId",
+            Packet_ToMbuf(npkt)->port, npkt, token);
+    rte_pktmbuf_free(Packet_ToMbuf(npkt));
+  } else {
+    ZF_LOGD("%" PRI_FaceId " %p token=%" PRIx64 " to=%" PRIu8,
+            Packet_ToMbuf(npkt)->port, npkt, token, fwdId);
+    FwInput_PassTo(fwi, npkt, fwdId);
+  }
 }
 
 void

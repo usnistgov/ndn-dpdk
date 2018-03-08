@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"unsafe"
 
+	"ndn-dpdk/appinit"
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/ndt"
 	"ndn-dpdk/container/pcct"
@@ -26,7 +27,7 @@ type Config struct {
 	FwdLCores   []dpdk.LCore
 
 	FwdQueueCapacity int         // input-fwd queue capacity, must be power of 2
-	PcctCfg          pcct.Config // PCCT config, 'Id' and 'NumaSocket' ignored
+	PcctCfg          pcct.Config // PCCT config; Id, NumaSocket, mempools ignored
 }
 
 // Forwarder data plane.
@@ -51,8 +52,9 @@ func New(cfg Config) (*DataPlane, error) {
 	fibC := (*C.Fib)(cfg.Fib.GetPtr())
 
 	for i, lc := range cfg.FwdLCores {
+		numaSocket := lc.GetNumaSocket()
 		queue, e := dpdk.NewRing(fmt.Sprintf("FwFwdQ_%d", i), cfg.FwdQueueCapacity,
-			lc.GetNumaSocket(), false, true)
+			numaSocket, false, true)
 		if e != nil {
 			dp.Close()
 			return nil, fmt.Errorf("dpdk.NewRing(%d): %v", i, e)
@@ -60,7 +62,10 @@ func New(cfg Config) (*DataPlane, error) {
 
 		pcctCfg := cfg.PcctCfg
 		pcctCfg.Id = fmt.Sprintf("FwPcct_%d", i)
-		pcctCfg.NumaSocket = lc.GetNumaSocket()
+		pcctCfg.NumaSocket = numaSocket
+		pcctCfg.HeaderMp = appinit.MakePktmbufPool(appinit.MP_INTH, numaSocket)
+		pcctCfg.GuiderMp = appinit.MakePktmbufPool(appinit.MP_INTG, numaSocket)
+		pcctCfg.IndirectMp = appinit.MakePktmbufPool(appinit.MP_IND, numaSocket)
 		pcct, e := pcct.New(pcctCfg)
 		if e != nil {
 			queue.Close()
@@ -68,7 +73,7 @@ func New(cfg Config) (*DataPlane, error) {
 			return nil, fmt.Errorf("pcct.New(%d): %v", i, e)
 		}
 
-		fwd := (*C.FwFwd)(dpdk.Zmalloc("FwFwd", C.sizeof_FwFwd, lc.GetNumaSocket()))
+		fwd := (*C.FwFwd)(dpdk.Zmalloc("FwFwd", C.sizeof_FwFwd, numaSocket))
 		fwd.id = C.uint8_t(i)
 		fwd.queue = (*C.struct_rte_ring)(queue.GetPtr())
 

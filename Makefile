@@ -153,7 +153,7 @@ go-fwdp: $(CLIBPREFIX)-fwdp.a app/fwdp/cgoflags.go
 cmd/ndnpktcopy-dpdk/cgoflags.go: iface/cgoflags.go
 	./make-cgoflags.sh cmd/ndnpktcopy-dpdk iface
 
-cmds: cmd-ndnpktcopy-dpdk cmd-ndnping-dpdk
+cmds: cmd-ndnfw-dpdk cmd-ndnping-dpdk cmd-ndnpktcopy-dpdk
 
 cmd-%: cmd/%/* cbuilds cgoflags
 	go install ./cmd/$*

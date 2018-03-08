@@ -9,7 +9,7 @@
  */
 typedef struct PitDn
 {
-  TscTime expiry; ///< expiration time (TSC)
+  TscTime expiry; ///< expiration time
   uint64_t token; ///< downstream's token
   uint32_t nonce; ///< downstream's nonce
   FaceId face;

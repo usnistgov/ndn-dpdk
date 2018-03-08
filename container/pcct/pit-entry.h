@@ -18,12 +18,13 @@ typedef struct PitEntry
 {
   Packet* npkt; ///< representative Interest packet
 
-  MinTmr timeout;         ///< timeout timer
-  uint64_t lastRxTime;    ///< last RX time (TSC)
-  uint64_t suppressUntil; ///< suppression ending time (TSC)
+  MinTmr timeout; ///< timeout timer
+  TscTime expiry; ///< last DN expiration time
 
-  bool canBePrefix; ///< any RX Interest has CanBePrefix?
-  bool mustBeFresh; ///< entry for MustBeFresh=0 or MustBeFresh=1?
+  uint8_t nCanBePrefix; ///< how many DNs want CanBePrefix?
+  bool mustBeFresh;     ///< entry for MustBeFresh 0 or 1?
+
+  uint8_t lastDnIndex; ///< most recent DN index
 
   PitDn dns[PIT_ENTRY_MAX_DNS];
   PitUp ups[PIT_ENTRY_MAX_UPS];
@@ -33,15 +34,27 @@ typedef struct PitEntry
  *  \p npkt received Interest; will not take ownership.
  */
 static void
-PitEntry_Init(Pit* pit, PitEntry* entry, Packet* npkt)
+PitEntry_Init(PitEntry* entry, Packet* npkt)
 {
   PInterest* interest = Packet_GetInterestHdr(npkt);
   entry->npkt = NULL; // do not store npkt until DnRxInterest
   MinTmr_Init(&entry->timeout);
-  entry->canBePrefix = interest->canBePrefix;
+  entry->expiry = 0;
+  entry->nCanBePrefix = interest->canBePrefix;
   entry->mustBeFresh = interest->mustBeFresh;
   entry->dns[0].face = FACEID_INVALID;
   entry->ups[0].face = FACEID_INVALID;
+}
+
+/** \brief Finalize a PIT entry.
+ */
+static void
+PitEntry_Finalize(PitEntry* entry)
+{
+  if (likely(entry->npkt != NULL)) {
+    rte_pktmbuf_free(Packet_ToMbuf(entry->npkt));
+  }
+  MinTmr_Cancel(&entry->timeout);
 }
 
 /** \brief Represent PIT entry as a string for debug purpose.
@@ -50,10 +63,10 @@ PitEntry_Init(Pit* pit, PitEntry* entry, Packet* npkt)
  */
 const char* PitEntry_ToDebugString(PitEntry* entry);
 
-/** \brief Refresh downstream record for RX Interest.
+/** \brief Refresh DN record for RX Interest.
  *  \param entry PIT entry, must be initialized.
  *  \param npkt received Interest; will take ownership unless returning -1.
- *  \return index of downstream record, or -1 if no slot is available.
+ *  \return index of DN record, or -1 if no slot is available.
  */
 int PitEntry_DnRxInterest(Pit* pit, PitEntry* entry, Packet* npkt);
 
@@ -61,5 +74,14 @@ int PitEntry_DnRxInterest(Pit* pit, PitEntry* entry, Packet* npkt);
  *  \param entry PIT entry.
  */
 int PitEntry_DnTxData(Pit* pit, PitEntry* entry, FaceId face, Packet* npkt);
+
+/** \brief Prepare TX Interest to upstream.
+ *  \param entry PIT entry, must be initialized.
+ *  \param face upstream face.
+ *  \param[out] npkt Interest packet, may be NULL if allocation fails.
+ *  \return index of UP record, or -1 if no slot is available.
+ */
+int PitEntry_UpTxInterest(Pit* pit, PitEntry* entry, FaceId face,
+                          Packet** npkt);
 
 #endif // NDN_DPDK_CONTAINER_PCCT_PIT_ENTRY_H

@@ -2,6 +2,8 @@ package pcct
 
 /*
 #include "pcct.h"
+#include "pit.h"
+#include "cs.h"
 */
 import "C"
 import (
@@ -14,12 +16,18 @@ type Config struct {
 	Id         string
 	MaxEntries int
 	NumaSocket dpdk.NumaSocket
+
+	HeaderMp   dpdk.PktmbufPool
+	GuiderMp   dpdk.PktmbufPool
+	IndirectMp dpdk.PktmbufPool
 }
 
+// The PIT-CS Composite Table (PCCT).
 type Pcct struct {
 	c *C.Pcct
 }
 
+// Create a PCCT, then initialize PIT and CS.
 func New(cfg Config) (pcct *Pcct, e error) {
 	idC := C.CString(cfg.Id)
 	defer C.free(unsafe.Pointer(idC))
@@ -28,6 +36,12 @@ func New(cfg Config) (pcct *Pcct, e error) {
 	if pcct.c == nil {
 		return nil, dpdk.GetErrno()
 	}
+
+	C.Pit_Init(C.Pit_FromPcct(pcct.c),
+		(*C.struct_rte_mempool)(cfg.HeaderMp.GetPtr()),
+		(*C.struct_rte_mempool)(cfg.GuiderMp.GetPtr()),
+		(*C.struct_rte_mempool)(cfg.IndirectMp.GetPtr()))
+	C.Cs_Init(C.Cs_FromPcct(pcct.c))
 	return pcct, nil
 }
 

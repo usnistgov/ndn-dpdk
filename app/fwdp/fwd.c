@@ -1,5 +1,9 @@
 #include "fwd.h"
 
+#include "../../core/logger.h"
+
+INIT_ZF_LOG(FwFwd);
+
 #define FW_FWD_BURST_SIZE 16
 
 void
@@ -31,6 +35,7 @@ FwFwd_Run(FwFwd* fwd)
     for (unsigned i = 0; i < count; ++i) {
       Packet* npkt = npkts[i];
       L3PktType l3type = Packet_GetL3PktType(npkt);
+      ZF_LOGV("%" PRIu8 " npkt=%p l3type=%d", fwd->id, npkt, (int)l3type);
       FwFwd_RxFunc rxFunc = FwFwd_RxFuncs[l3type];
       (*rxFunc)(fwd, npkt);
     }

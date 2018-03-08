@@ -7,7 +7,8 @@ INIT_ZF_LOG(Pit);
 static void __Pit_Timeout(MinTmr* tmr, void* pit0);
 
 void
-Pit_Init(Pit* pit)
+Pit_Init(Pit* pit, struct rte_mempool* headerMp, struct rte_mempool* guiderMp,
+         struct rte_mempool* indirectMp)
 {
   PitPriv* pitp = Pit_GetPriv(pit);
 
@@ -16,6 +17,10 @@ Pit_Init(Pit* pit)
     MinSched_New(12, rte_get_tsc_hz() / 30, __Pit_Timeout, pit);
   assert(MinSched_GetMaxDelay(pitp->timeoutSched) >=
          PIT_MAX_LIFETIME * rte_get_tsc_hz() / 1000);
+
+  pitp->headerMp = headerMp;
+  pitp->guiderMp = guiderMp;
+  pitp->indirectMp = indirectMp;
 }
 
 static PitInsertResult
@@ -65,7 +70,7 @@ Pit_Insert(Pit* pit, Packet* npkt)
     if (!pccEntry->hasPitEntry1) {
       ++pitp->nEntries;
       pccEntry->hasPitEntry1 = true;
-      pccEntry->pitEntry1.mustBeFresh = true;
+      PitEntry_Init(PccEntry_GetPitEntry1(pccEntry), npkt);
       ZF_LOGD("%p Insert(%s) pcc=%p ins-PIT1 pit=%p", pit,
               PccSearch_ToDebugString(&search), pccEntry,
               PccEntry_GetPitEntry1(pccEntry));
@@ -81,7 +86,7 @@ Pit_Insert(Pit* pit, Packet* npkt)
     assert(!pccEntry->hasCsEntry);
     ++pitp->nEntries;
     pccEntry->hasPitEntry0 = true;
-    pccEntry->pitEntry0.mustBeFresh = false;
+    PitEntry_Init(PccEntry_GetPitEntry0(pccEntry), npkt);
     ZF_LOGD("%p Insert(%s) pcc=%p ins-PIT0 pit=%p", pit,
             PccSearch_ToDebugString(&search), pccEntry,
             PccEntry_GetPitEntry0(pccEntry));
@@ -97,6 +102,7 @@ PccEntry*
 __Pit_RawErase0(Pit* pit, PitEntry* entry)
 {
   assert(entry->mustBeFresh == false);
+  PitEntry_Finalize(entry);
 
   PitPriv* pitp = Pit_GetPriv(pit);
   PccEntry* pccEntry = PccEntry_FromPitEntry0(entry);
@@ -113,6 +119,7 @@ PccEntry*
 __Pit_RawErase1(Pit* pit, PitEntry* entry)
 {
   assert(entry->mustBeFresh == true);
+  PitEntry_Finalize(entry);
 
   PitPriv* pitp = Pit_GetPriv(pit);
   PccEntry* pccEntry = PccEntry_FromPitEntry1(entry);

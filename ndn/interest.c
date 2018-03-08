@@ -163,6 +163,8 @@ ModifyInterest(Packet* npkt, uint32_t nonce, uint32_t lifetime,
     rte_pktmbuf_free(header);
     return NULL;
   }
+  header->data_off = header->buf_len;
+  guider->data_off = 0;
 
   struct rte_mbuf* inPkt = Packet_ToMbuf(npkt);
   PInterest* inInterest = Packet_GetInterestHdr(npkt);
@@ -225,7 +227,6 @@ ModifyInterest(Packet* npkt, uint32_t nonce, uint32_t lifetime,
   rte_pktmbuf_chain(m1, guider);
 
   // prepend Interest TL
-  header->data_off = header->buf_len;
   TlvEncoder* enH = MakeTlvEncoder(header);
   PrependVarNum(enH, m1->pkt_len);
   PrependVarNum(enH, TT_Interest);

@@ -12,6 +12,7 @@ import (
 	"ndn-dpdk/container/ndt"
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
+	"ndn-dpdk/ndn"
 )
 
 var theNdt ndt.Ndt
@@ -21,6 +22,24 @@ var theDp *fwdp.DataPlane
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
 	startDp()
+
+	// set FIB nexthops
+	// TODO remove this when FIB management is ready
+	{
+		var fibEntry fib.Entry
+		fibEntryName, _ := ndn.ParseName("/")
+		fibEntry.SetName(fibEntryName)
+		fibNextHops := make([]iface.FaceId, 0)
+		for _, face := range appinit.GetFaceTable().ListFaces() {
+			fibNextHops = append(fibNextHops, face.GetFaceId())
+			if len(fibNextHops) >= fib.MAX_NEXTHOPS {
+				break
+			}
+		}
+		fibEntry.SetNexthops(fibNextHops)
+		theFib.Insert(&fibEntry)
+	}
+
 	select {}
 }
 

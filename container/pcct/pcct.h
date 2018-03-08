@@ -7,9 +7,9 @@
 #include "pcc-entry.h"
 #include "pit-struct.h"
 
-/** \brief Shared index for PIT and CS.
+/** \brief The PIT-CS Composite Table (PCCT).
  *
- *  Pcct* is struct rte_mempool* with \p PcctPriv is attached to its private data area.
+ *  Pcct* is struct rte_mempool* with \p PcctPriv attached to its private data area.
  */
 typedef struct Pcct
 {
@@ -47,6 +47,8 @@ Pcct_GetPriv(const Pcct* pcct)
  *  \param id identifier for debugging, up to 24 chars, must be unique.
  *  \param maxEntries maximum number of entries, should be (2^q-1).
  *  \param numaSocket where to allocate memory.
+ *
+ *  Caller must invoke \p Pit_Init and \p Cs_Init to initialize each table.
  */
 Pcct* Pcct_New(const char* id, uint32_t maxEntries, unsigned numaSocket);
 

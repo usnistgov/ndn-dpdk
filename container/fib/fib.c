@@ -63,7 +63,7 @@ Fib_GetEntryByPrefix(Fib* fib, const PName* name, const uint8_t* nameV,
 }
 
 const FibEntry*
-Fib_Lpm(Fib* fib, const PName* name, const uint8_t* nameV)
+__Fib_Lpm(Fib* fib, const PName* name, const uint8_t* nameV)
 {
   FibPriv* fibp = Fib_GetPriv(fib);
 

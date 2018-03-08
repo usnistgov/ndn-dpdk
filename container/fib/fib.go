@@ -288,7 +288,7 @@ func (cmd lpmCommand) Execute(fib *Fib, rs *urcu.ReadSide) {
 	defer rs.Unlock()
 	name := cmd.name
 
-	entryC := C.Fib_Lpm(fib.c, (*C.PName)(name.GetPNamePtr()),
+	entryC := C.__Fib_Lpm(fib.c, (*C.PName)(name.GetPNamePtr()),
 		(*C.uint8_t)(name.GetValue().GetPtr()))
 	if entryC == nil {
 		cmd.res <- nil

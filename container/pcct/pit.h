@@ -35,7 +35,8 @@ Pit_GetPriv(const Pit* pit)
 
 /** \brief Constructor.
  */
-void Pit_Init(Pit* pit);
+void Pit_Init(Pit* pit, struct rte_mempool* headerMp,
+              struct rte_mempool* guiderMp, struct rte_mempool* indirectMp);
 
 /** \brief Get number of PIT entries.
  */
