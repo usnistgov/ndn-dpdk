@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"ndn-dpdk/dpdk"
 	"ndn-dpdk/dpdk/dpdktestenv"
 	"ndn-dpdk/ndn"
 )
@@ -81,41 +80,26 @@ func TestInterestDecode(t *testing.T) {
 func TestInterestModify(t *testing.T) {
 	assert, _ := makeAR(t)
 
-	mod0 := ndn.InterestMod{
-		Nonce:    0xABAAA9A8,
-		Lifetime: 27938 * time.Millisecond,
-		HopLimit: ndn.HOP_LIMIT_OMITTED,
-	}
-	ins0 := " nonce=0A04A8A9AAAB lifetime=0C0400006D22"
-	mod1 := mod0
-	mod1.HopLimit = 41
-	ins1 := ins0 + " hop=220129"
+	const ins0 = " nonce=0A04A8A9AAAB lifetime=0C0400006D22"
 	const pitToken0 = uint64(0xB7B6B5B4B3B2B1B0)
 
 	tests := []struct {
-		input string
-		out0  string
-		out1  string
+		input  string
+		output string
 	}{
 		{"6413 pittoken=6208B0B1B2B3B4B5B6B7 payload=5007 " +
 			"0505 name=0703080141",
-			"0511 name=0703080141" + ins0,
-			"0514 name=0703080141" + ins1},
+			"0511 name=0703080141" + ins0},
 		{"050B name=0703080141 parameters=2304E0E1E2E3",
-			"0517 name=0703080141" + ins0 + " parameters=2304E0E1E2E3",
-			"051A name=0703080141" + ins1 + " parameters=2304E0E1E2E3"},
+			"0517 name=0703080141" + ins0 + " parameters=2304E0E1E2E3"},
 		{"0507 name=0703080141 cbp=2100",
-			"0513 name=0703080141 cbp=2100" + ins0,
-			"0516 name=0703080141 cbp=2100" + ins1},
+			"0513 name=0703080141 cbp=2100" + ins0},
 		{"0507 name=0703080141 mbf=1200",
-			"0513 name=0703080141 mbf=1200" + ins0,
-			"0516 name=0703080141 mbf=1200" + ins1},
+			"0513 name=0703080141 mbf=1200" + ins0},
 		{"0511 name=0703080141 fh=1E0A1F081E01000703080147",
-			"051D name=0703080141 fh=1E0A1F081E01000703080147" + ins0,
-			"0520 name=0703080141 fh=1E0A1F081E01000703080147" + ins1},
+			"051D name=0703080141 fh=1E0A1F081E01000703080147" + ins0},
 		{"0518 name=0703080141 nonce=0A04A0A1A2A3 lifetime=0C02C0C1 hop=220180  parameters=2304E0E1E2E3",
-			"0517 name=0703080141" + ins0 + " parameters=2304E0E1E2E3",
-			"051A name=0703080141" + ins1 + " parameters=2304E0E1E2E3"},
+			"051A name=0703080141" + ins0 + " hop=22017F parameters=2304E0E1E2E3"},
 	}
 	for i, tt := range tests {
 		pkt := packetFromHex(tt.input)
@@ -131,30 +115,15 @@ func TestInterestModify(t *testing.T) {
 		interest := pkt.AsInterest()
 		assert.Implements((*ndn.IL3Packet)(nil), interest)
 
-		var mbufs [4]dpdk.Mbuf
-		dpdktestenv.AllocBulk(dpdktestenv.MPID_DIRECT, mbufs[:])
+		modified := interest.Modify(0xABAAA9A8, 27938*time.Millisecond, theMp, theMp, theMp)
+		if assert.NotNil(modified, tt.input) {
+			npkt := modified.GetPacket()
+			pkt := npkt.AsDpdkPacket()
+			defer pkt.Close()
 
-		out0 := interest.Modify(mod0, mbufs[0], mbufs[1], theMp)
-		if assert.NotNil(out0, tt.input) {
-			npkt0 := out0.GetPacket()
-			pkt0 := npkt0.AsDpdkPacket()
-			defer pkt0.Close()
-
-			assert.Equal(dpdktestenv.BytesFromHex(tt.out0), pkt0.ReadAll(), tt.input)
+			assert.Equal(dpdktestenv.BytesFromHex(tt.output), pkt.ReadAll(), tt.input)
 			if i == 0 {
-				assert.Equal(pitToken0, npkt0.GetLpL3().GetPitToken(), tt.input)
-			}
-		}
-
-		out1 := interest.Modify(mod1, mbufs[2], mbufs[3], theMp)
-		if assert.NotNil(out1, tt.input) {
-			npkt1 := out1.GetPacket()
-			pkt1 := npkt1.AsDpdkPacket()
-			defer pkt1.Close()
-
-			assert.Equal(dpdktestenv.BytesFromHex(tt.out1), pkt1.ReadAll(), tt.input)
-			if i == 0 {
-				assert.Equal(pitToken0, npkt1.GetLpL3().GetPitToken(), tt.input)
+				assert.Equal(pitToken0, npkt.GetLpL3().GetPitToken(), tt.input)
 			}
 		}
 	}

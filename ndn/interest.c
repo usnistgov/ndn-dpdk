@@ -122,7 +122,6 @@ PInterest_FromPacket(PInterest* interest, struct rte_mbuf* pkt,
     } else {
       interest->hopLimit = --(*(uint8_t*)hopLimitV);
     }
-    interest->guiderSize += ele1.size;
     D1_NEXT;
   }
 
@@ -148,11 +147,22 @@ PInterest_ParseFh(PInterest* interest, uint8_t index)
 }
 
 Packet*
-ModifyInterest(Packet* npkt, const InterestMod* mod, struct rte_mbuf* header,
-               struct rte_mbuf* guider, struct rte_mempool* indirectMp)
+ModifyInterest(Packet* npkt, uint32_t nonce, uint32_t lifetime,
+               struct rte_mempool* headerMp, struct rte_mempool* guiderMp,
+               struct rte_mempool* indirectMp)
 {
-  assert(rte_pktmbuf_headroom(header) >= EncodeInterest_GetHeadroom());
-  assert(rte_pktmbuf_tailroom(guider) >= ModifyInterest_SizeofGuider());
+  assert(rte_pktmbuf_data_room_size(headerMp) >= EncodeInterest_GetHeadroom());
+  assert(rte_pktmbuf_data_room_size(guiderMp) >= ModifyInterest_SizeofGuider());
+
+  struct rte_mbuf* header = rte_pktmbuf_alloc(headerMp);
+  if (unlikely(header == NULL)) {
+    return NULL;
+  }
+  struct rte_mbuf* guider = rte_pktmbuf_alloc(guiderMp);
+  if (unlikely(guider == NULL)) {
+    rte_pktmbuf_free(header);
+    return NULL;
+  }
 
   struct rte_mbuf* inPkt = Packet_ToMbuf(npkt);
   PInterest* inInterest = Packet_GetInterestHdr(npkt);
@@ -188,29 +198,17 @@ ModifyInterest(Packet* npkt, const InterestMod* mod, struct rte_mbuf* header,
     uint8_t lifetimeT;
     uint8_t lifetimeL;
     rte_be32_t lifetimeV;
-
-    uint8_t hopLimitT;
-    uint8_t hopLimitL;
-    uint8_t hopLimitV;
   } __rte_packed GuiderF;
 
-  bool hasHopLimit = mod->hopLimit != HOP_LIMIT_OMITTED;
-  size_t guiderSize =
-    hasHopLimit ? sizeof(GuiderF) : offsetof(GuiderF, hopLimitT);
-  GuiderF* f = (GuiderF*)TlvEncoder_Append(enG, guiderSize);
+  GuiderF* f = (GuiderF*)TlvEncoder_Append(enG, sizeof(GuiderF));
   f->nonceT = TT_Nonce;
   f->nonceL = 4;
-  *(unaligned_uint32_t*)&f->nonceV = rte_cpu_to_le_32(mod->nonce);
+  *(unaligned_uint32_t*)&f->nonceV = rte_cpu_to_le_32(nonce);
   f->lifetimeT = TT_InterestLifetime;
   f->lifetimeL = 4;
-  *(unaligned_uint32_t*)&f->lifetimeV = rte_cpu_to_be_32(mod->lifetime);
-  if (hasHopLimit) {
-    f->hopLimitT = TT_HopLimit;
-    f->hopLimitL = 1;
-    f->hopLimitV = (uint8_t)mod->hopLimit;
-  }
+  *(unaligned_uint32_t*)&f->lifetimeV = rte_cpu_to_be_32(lifetime);
 
-  // make indirect mbufs over Parameters and chain after guiders
+  // make indirect mbufs over HopLimit and Parameters, then chain after guiders
   if (d0.rem > 0) {
     struct rte_mbuf* m2 = MbufLoc_MakeIndirect(&d0, d0.rem, indirectMp);
     if (unlikely(m2 == NULL)) {
@@ -227,6 +225,7 @@ ModifyInterest(Packet* npkt, const InterestMod* mod, struct rte_mbuf* header,
   rte_pktmbuf_chain(m1, guider);
 
   // prepend Interest TL
+  header->data_off = header->buf_len;
   TlvEncoder* enH = MakeTlvEncoder(header);
   PrependVarNum(enH, m1->pkt_len);
   PrependVarNum(enH, TT_Interest);
@@ -242,10 +241,9 @@ ModifyInterest(Packet* npkt, const InterestMod* mod, struct rte_mbuf* header,
   Packet_SetL3PktType(outNpkt, L3PktType_Interest);
   PInterest* outInterest = Packet_GetInterestHdr(outNpkt);
   rte_memcpy(outInterest, inInterest, sizeof(PInterest));
-  outInterest->nonce = mod->nonce;
-  outInterest->lifetime = mod->lifetime;
-  outInterest->hopLimit = mod->hopLimit;
-  outInterest->guiderSize = guiderSize;
+  outInterest->nonce = nonce;
+  outInterest->lifetime = lifetime;
+  outInterest->guiderSize = sizeof(GuiderF);
 
   return outNpkt;
 }

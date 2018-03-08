@@ -25,7 +25,7 @@ enum HopLimitSpecial
 typedef struct PInterest
 {
   uint32_t guiderOff;  ///< size of Name through ForwardingHint
-  uint32_t guiderSize; ///< size of guiders
+  uint32_t guiderSize; ///< size of Nonce+InterestLifetime
 
   Name name;
   uint32_t nonce;    ///< Nonce interpreted as little endian
@@ -62,36 +62,25 @@ static uint16_t
 ModifyInterest_SizeofGuider()
 {
   return 1 + 1 + 4 + // Nonce
-         1 + 1 + 4 + // InterestLifetime
-         1 + 1 + 1;  // HopLimit
+         1 + 1 + 4;  // InterestLifetime
 }
 
-/** \brief Instructions to modify Interest guiders.
- */
-typedef struct InterestMod
-{
-  uint32_t nonce;
-  uint32_t lifetime;
-  HopLimit hopLimit;
-} InterestMod;
-
-/** \brief Modify Interest guiders.
+/** \brief Modify Interest nonce and lifetime.
  *  \param[in] npkt the original Interest packet;
  *             must have \p Packet_GetInterestHdr().
- *  \param header output mbuf to store Interest TL;
- *                must be empty and is the only segment,
- *                must have \p EncodeInterest_GetHeadroom() in headroom,
- *                and must fulfill requirements of \p Packet_FromMbuf().
- *  \param guider output mbuf to store Nonce, InterestLifetime, and HopLimit;
- *                must be empty and is the only segment,
- *                must have \p ModifyInterest_SizeofGuider() in tailroom.
+ *  \param headerMp mempool for storing Interest TL;
+ *                  must have \p EncodeInterest_GetHeadroom() dataroom,
+ *                  and must fulfill requirements of \p Packet_FromMbuf();
+ *                  may have additional headroom for lower layer headers.
+ *  \param guiderMp mempool for storing Nonce and InterestLifetime;
+ *                  must have \p ModifyInterest_SizeofGuider() dataroom.
  *  \param indirectMp mempool for allocating indirect mbufs.
  *  \return cloned and modified packet that has \p Packet_GetInterestHdr().
- *  \retval NULL upon indirectMp allocation failure;
- *               \p header and \p guider will be freed.
+ *  \retval NULL allocation failure.
  */
-Packet* ModifyInterest(Packet* npkt, const InterestMod* mod,
-                       struct rte_mbuf* header, struct rte_mbuf* guider,
+Packet* ModifyInterest(Packet* npkt, uint32_t nonce, uint32_t lifetime,
+                       struct rte_mempool* headerMp,
+                       struct rte_mempool* guiderMp,
                        struct rte_mempool* indirectMp);
 
 #endif // NDN_DPDK_NDN_INTEREST_H
