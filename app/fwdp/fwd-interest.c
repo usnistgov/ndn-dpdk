@@ -7,7 +7,8 @@ INIT_ZF_LOG(FwInterest);
 static void
 FwFwd_RxInterestMissCs(FwFwd* fwd, PitEntry* pitEntry, Packet* npkt)
 {
-  FaceId inFace = Packet_ToMbuf(npkt)->port;
+  struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
+  FaceId inFace = pkt->port;
   PInterest* interest = Packet_GetInterestHdr(npkt);
 
   // insert DN record
@@ -15,7 +16,7 @@ FwFwd_RxInterestMissCs(FwFwd* fwd, PitEntry* pitEntry, Packet* npkt)
   if (dnIndex < 0) {
     ZF_LOGW("%" PRIu8 " %s PitDn-full", fwd->id,
             PitEntry_ToDebugString(pitEntry));
-    rte_pktmbuf_free(Packet_ToMbuf(npkt));
+    rte_pktmbuf_free(pkt);
     return;
   }
   npkt = NULL; // npkt is owned/freed by pitEntry
@@ -24,7 +25,7 @@ FwFwd_RxInterestMissCs(FwFwd* fwd, PitEntry* pitEntry, Packet* npkt)
 
   // query FIB, multicast the Interest to every nexthop except inFace
   rcu_read_lock();
-  // TODO consider forwarding hint
+  // TODO query with forwarding hint
   const FibEntry* fibEntry = Fib_Lpm(fwd->fib, &interest->name);
   if (unlikely(fibEntry == NULL)) {
     ZF_LOGV("%" PRIu8 " %s FIB-no-match", fwd->id,
@@ -70,7 +71,14 @@ FwFwd_RxInterest(FwFwd* fwd, Packet* npkt)
     case PIT_INSERT_PIT1:
       return FwFwd_RxInterestMissCs(fwd, PitInsertResult_GetPitEntry(pitIns),
                                     npkt);
+    case PIT_INSERT_CS:
+      assert(false); // not implemented
+      break;
+    case PIT_INSERT_FULL:
+      rte_pktmbuf_free(Packet_ToMbuf(npkt));
+      break;
     default:
-      assert(false); // will not happen before implementing RxData procedure
+      assert(false); // no other cases
+      break;
   }
 }
