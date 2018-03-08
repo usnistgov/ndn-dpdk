@@ -98,15 +98,15 @@ const (
 func init() {
 	RegisterMempool(MP_IND,
 		MempoolConfig{
-			Capacity:     65535,
-			CacheSize:    255,
+			Capacity:     262143,
+			CacheSize:    219,
 			PrivSize:     0,
 			DataRoomSize: 0,
 		})
 	RegisterMempool(MP_ETHRX,
 		MempoolConfig{
-			Capacity:     65535,
-			CacheSize:    255,
+			Capacity:     262143,
+			CacheSize:    219,
 			PrivSize:     ndn.SizeofPacketPriv(),
 			DataRoomSize: 9014, // MTU+sizeof(ether_hdr)
 		})
