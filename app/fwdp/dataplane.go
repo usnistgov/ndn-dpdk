@@ -82,6 +82,9 @@ func New(cfg Config) (*DataPlane, error) {
 		fwd.pit = (*C.Pit)(pcct.GetPtr())
 		fwd.cs = (*C.Cs)(pcct.GetPtr())
 
+		fwd.headerMp = (*C.struct_rte_mempool)(pcctCfg.HeaderMp.GetPtr())
+		fwd.indirectMp = (*C.struct_rte_mempool)(pcctCfg.IndirectMp.GetPtr())
+
 		dp.fwds = append(dp.fwds, fwd)
 	}
 

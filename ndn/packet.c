@@ -43,3 +43,28 @@ Packet_ParseL3(Packet* npkt, struct rte_mempool* nameMp)
   }
   return NdnError_BadType;
 }
+
+Packet*
+ClonePacket(Packet* npkt, struct rte_mempool* headerMp,
+            struct rte_mempool* indirectMp)
+{
+  struct rte_mbuf* header = rte_pktmbuf_alloc(headerMp);
+  if (unlikely(header == NULL)) {
+    return NULL;
+  }
+
+  struct rte_mbuf* body = rte_pktmbuf_clone(Packet_ToMbuf(npkt), indirectMp);
+  if (unlikely(body == NULL)) {
+    rte_pktmbuf_free(header);
+    return NULL;
+  }
+  rte_pktmbuf_chain(header, body);
+  Packet* outNpkt = Packet_FromMbuf(header);
+
+  // copy PacketPriv
+  Packet_SetL2PktType(outNpkt, Packet_GetL2PktType(npkt));
+  Packet_SetL3PktType(outNpkt, Packet_GetL3PktType(npkt));
+  rte_memcpy(__Packet_GetPriv(outNpkt), __Packet_GetPriv(npkt),
+             sizeof(PacketPriv));
+  return outNpkt;
+}

@@ -160,22 +160,17 @@ __Pit_Timeout(MinTmr* tmr, void* pit0)
   Pit_Erase(pit, entry);
 }
 
-PitFindResult
-Pit_Find(Pit* pit, uint64_t token)
+void
+Pit_Find(Pit* pit, uint64_t token, PitFindResult* found)
 {
-  PitFindResult res;
-  int nMatches = 0;
-
+  found->nMatches = 0;
   PccEntry* pccEntry = Pcct_FindByToken(Pit_ToPcct(pit), token);
   if (likely(pccEntry != NULL)) {
     if (pccEntry->hasPitEntry0) {
-      res.matches[nMatches++] = &pccEntry->pitEntry0;
+      found->matches[found->nMatches++] = &pccEntry->pitEntry0;
     }
     if (pccEntry->hasPitEntry1) {
-      res.matches[nMatches++] = &pccEntry->pitEntry1;
+      found->matches[found->nMatches++] = &pccEntry->pitEntry1;
     }
   }
-
-  res.matches[nMatches] = NULL;
-  return res;
 }

@@ -113,11 +113,16 @@ Packet_SetL3PktType(Packet* npkt, L3PktType t)
   Packet_ToMbuf(npkt)->inner_l3_type = t;
 }
 
+static PacketPriv*
+__Packet_GetPriv(Packet* npkt)
+{
+  return MbufDirectPriv(Packet_ToMbuf(npkt), PacketPriv*, 0);
+}
+
 static LpHeader*
 __Packet_GetLpHdr(Packet* npkt)
 {
-  return MbufDirectPriv(Packet_ToMbuf(npkt), LpHeader*,
-                        offsetof(PacketPriv, lp));
+  return &__Packet_GetPriv(npkt)->lp;
 }
 
 /** \brief Access LpHeader* header.
@@ -133,7 +138,7 @@ Packet_GetLpHdr(Packet* npkt)
 static LpL3*
 __Packet_GetLpL3Hdr(Packet* npkt)
 {
-  return MbufDirectPriv(Packet_ToMbuf(npkt), LpL3*, offsetof(PacketPriv, lpl3));
+  return &__Packet_GetPriv(npkt)->lpl3;
 }
 
 /** \brief Access LpL3* header.
@@ -161,8 +166,7 @@ Packet_InitLpL3Hdr(Packet* npkt)
 static PInterest*
 __Packet_GetInterestHdr(Packet* npkt)
 {
-  return MbufDirectPriv(Packet_ToMbuf(npkt), PInterest*,
-                        offsetof(PacketPriv, interest));
+  return &__Packet_GetPriv(npkt)->interest;
 }
 
 /** \brief Access PInterest* header.
@@ -179,8 +183,7 @@ Packet_GetInterestHdr(Packet* npkt)
 static PData*
 __Packet_GetDataHdr(Packet* npkt)
 {
-  return MbufDirectPriv(Packet_ToMbuf(npkt), PData*,
-                        offsetof(PacketPriv, data));
+  return &__Packet_GetPriv(npkt)->data;
 }
 
 /** \brief Access PData* header
@@ -199,8 +202,7 @@ Packet_GetNackHdr(Packet* npkt)
 {
   assert(Packet_GetL3PktType(npkt) == L3PktType_Nack &&
          Packet_GetLpL3Hdr(npkt)->nackReason != NackReason_None);
-  return MbufDirectPriv(Packet_ToMbuf(npkt), PNack*,
-                        offsetof(PacketPriv, nack));
+  return &__Packet_GetPriv(npkt)->nack;
 }
 
 /** \brief Parse packet as LpPacket (including bare Interest/Data).
@@ -218,5 +220,17 @@ NdnError Packet_ParseL2(Packet* npkt);
  *  \post Packet_GetL3Type(npkt) is L3PktType_Interest or L3PktType_Data or L3PktType_Nack.
  */
 NdnError Packet_ParseL3(Packet* npkt, struct rte_mempool* nameMp);
+
+/** \brief Clone packet with a new empty header mbuf and indirect mbufs.
+ *  \param[in] npkt the original packet.
+ *  \param headerMp mempool for header mbuf;
+ *                  must fulfill requirements of \p Packet_FromMbuf();
+ *                  may have additional headroom for lower layer headers.
+ *  \param indirectMp mempool for allocating indirect mbufs.
+ *  \return cloned packet with copied PacketPriv.
+ *  \retval NULL allocation failure.
+ */
+Packet* ClonePacket(Packet* npkt, struct rte_mempool* headerMp,
+                    struct rte_mempool* indirectMp);
 
 #endif // NDN_DPDK_NDN_PACKET_H

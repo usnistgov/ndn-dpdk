@@ -233,18 +233,13 @@ ModifyInterest(Packet* npkt, uint32_t nonce, uint32_t lifetime,
   rte_pktmbuf_chain(header, m1);
 
   // copy LpL3 and PInterest
-  L2PktType l2type = Packet_GetL2PktType(npkt);
-  Packet_SetL2PktType(outNpkt, l2type);
-  if (l2type == L2PktType_NdnlpV2) {
-    rte_memcpy(Packet_GetLpL3Hdr(outNpkt), Packet_GetLpL3Hdr(npkt),
-               sizeof(LpL3));
-  }
+  Packet_SetL2PktType(outNpkt, Packet_GetL2PktType(npkt));
   Packet_SetL3PktType(outNpkt, L3PktType_Interest);
+  rte_memcpy(__Packet_GetPriv(outNpkt), __Packet_GetPriv(npkt),
+             sizeof(PacketPriv));
   PInterest* outInterest = Packet_GetInterestHdr(outNpkt);
-  rte_memcpy(outInterest, inInterest, sizeof(PInterest));
   outInterest->nonce = nonce;
   outInterest->lifetime = lifetime;
   outInterest->guiderSize = sizeof(GuiderF);
-
   return outNpkt;
 }

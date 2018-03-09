@@ -19,6 +19,9 @@ typedef struct FwFwd
 
   uint8_t id; ///< fwd process id
   bool stop;  ///< set to true to stop the process
+
+  struct rte_mempool* headerMp;   ///< mempool for cloned packet header
+  struct rte_mempool* indirectMp; ///< mempool for indirect mbufs
 } FwFwd;
 
 void FwFwd_Run(FwFwd* fwd);

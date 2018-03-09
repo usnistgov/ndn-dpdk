@@ -57,8 +57,7 @@ FwInput_DispatchByToken(FwInput* fwi, Packet* npkt, uint64_t token)
     return;
   }
 
-  FwToken tok = {.token = token };
-  uint8_t fwdId = tok.fwdId;
+  uint8_t fwdId = FwToken_GetFwdId(token);
 
   if (unlikely(fwdId >= fwi->nFwds)) {
     ZF_LOGD("%" PRI_FaceId " %p token=%" PRIx64 " bad-fwdId", pkt->port, npkt,

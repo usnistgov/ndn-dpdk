@@ -65,14 +65,11 @@ func (pit Pit) Erase(entry Entry) {
 
 // Find a PIT entry for the given token.
 func (pit Pit) Find(token uint64) (matches []*Entry) {
-	matches = make([]*Entry, 0, C.PIT_FIND_MAX_MATCHES)
-	pfr := C.Pit_Find(pit.getPtr(), C.uint64_t(token))
-	for i := 0; i <= C.PIT_FIND_MAX_MATCHES; i++ {
-		entryC := pfr.matches[i]
-		if entryC == nil {
-			break
-		}
-		matches = append(matches, &Entry{entryC, pit})
+	var found C.PitFindResult
+	C.Pit_Find(pit.getPtr(), C.uint64_t(token), &found)
+	matches = make([]*Entry, int(found.nMatches))
+	for i := range matches {
+		matches[i] = &Entry{found.matches[i], pit}
 	}
 	return matches
 }

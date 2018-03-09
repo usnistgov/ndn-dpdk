@@ -67,7 +67,7 @@ ModifyInterest_SizeofGuider()
 
 /** \brief Modify Interest nonce and lifetime.
  *  \param[in] npkt the original Interest packet;
- *             must have \p Packet_GetInterestHdr().
+ *                  must have \p Packet_GetInterestHdr().
  *  \param headerMp mempool for storing Interest TL;
  *                  must have \p EncodeInterest_GetHeadroom() dataroom,
  *                  and must fulfill requirements of \p Packet_FromMbuf();

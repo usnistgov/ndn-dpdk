@@ -129,12 +129,14 @@ void Pit_Erase(Pit* pit, PitEntry* entry);
  */
 typedef struct PitFindResult
 {
-  PitEntry* matches[PIT_FIND_MAX_MATCHES + 1];
+  uint8_t nMatches;
+  PitEntry* matches[PIT_FIND_MAX_MATCHES];
 } PitFindResult;
 
 /** \brief Find a PIT entry for the given token.
  *  \param token the token, only lower 48 bits are significant.
+ *  \param[out] found the result.
  */
-PitFindResult Pit_Find(Pit* pit, uint64_t token);
+void Pit_Find(Pit* pit, uint64_t token, PitFindResult* found);
 
 #endif // NDN_DPDK_CONTAINER_PCCT_PIT_H

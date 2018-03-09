@@ -21,8 +21,8 @@ FwFwd_RxInterestMissCs(FwFwd* fwd, PitEntry* pitEntry, Packet* npkt)
     return;
   }
   npkt = NULL; // npkt is owned/freed by pitEntry
-  ZF_LOGV("%" PRIu8 " %s dnIndex=%d", fwd->id, PitEntry_ToDebugString(pitEntry),
-          dnIndex);
+  ZF_LOGV("%" PRIu8 " %s dn[%d]=%" PRI_FaceId, fwd->id,
+          PitEntry_ToDebugString(pitEntry), dnIndex, pkt->port);
 
   // query FIB, multicast the Interest to every nexthop except inFace
   rcu_read_lock();
@@ -51,17 +51,15 @@ FwFwd_RxInterestMissCs(FwFwd* fwd, PitEntry* pitEntry, Packet* npkt)
       break;
     }
 
-    FwToken token = { 0 };
-    token.fwdId = fwd->id;
-    token.pccToken = Pit_AddToken(fwd->pit, pitEntry);
-    Packet_InitLpL3Hdr(outNpkt)->pitToken = token.token;
+    uint64_t token = FwToken_New(fwd->id, Pit_AddToken(fwd->pit, pitEntry));
+    Packet_InitLpL3Hdr(outNpkt)->pitToken = token;
 
     Face* outFace = FaceTable_GetFace(fwd->ft, nh);
     if (unlikely(outFace == NULL)) {
       continue;
     }
-    ZF_LOGV("%" PRIu8 " %s nh=%" PRI_FaceId " upIndex=%d", fwd->id,
-            PitEntry_ToDebugString(pitEntry), nh, upIndex);
+    ZF_LOGV("%" PRIu8 " %s up[%d]=%" PRI_FaceId " token=%" PRIx64, fwd->id,
+            PitEntry_ToDebugString(pitEntry), upIndex, nh, token);
     Face_Tx(outFace, outNpkt);
   }
   rcu_read_unlock();
@@ -70,7 +68,9 @@ FwFwd_RxInterestMissCs(FwFwd* fwd, PitEntry* pitEntry, Packet* npkt)
 void
 FwFwd_RxInterest(FwFwd* fwd, Packet* npkt)
 {
-  ZF_LOGD("%" PRIu8 " %p RxInterest", fwd->id, npkt);
+  struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
+  ZF_LOGD("%" PRIu8 " %p RxInterest from=%" PRI_FaceId, fwd->id, npkt,
+          pkt->port);
   PInterest* interest = Packet_GetInterestHdr(npkt);
 
   PitInsertResult pitIns = Pit_Insert(fwd->pit, interest);
@@ -83,7 +83,7 @@ FwFwd_RxInterest(FwFwd* fwd, Packet* npkt)
       assert(false); // not implemented
       break;
     case PIT_INSERT_FULL:
-      rte_pktmbuf_free(Packet_ToMbuf(npkt));
+      rte_pktmbuf_free(pkt);
       break;
     default:
       assert(false); // no other cases
