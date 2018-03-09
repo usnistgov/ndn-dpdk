@@ -26,6 +26,11 @@ func (interest *Interest) String() string {
 	return interest.GetName().String()
 }
 
+// Get *C.PInterest pointer.
+func (interest *Interest) GetPInterestPtr() unsafe.Pointer {
+	return unsafe.Pointer(interest.p)
+}
+
 func (interest *Interest) GetName() (n *Name) {
 	n = new(Name)
 	n.copyFromC(&interest.p.name)

@@ -7,6 +7,7 @@ package ndn
 import "C"
 import (
 	"fmt"
+	"unsafe"
 )
 
 // Indicate a Nack reason.
@@ -44,6 +45,11 @@ func (nack *Nack) GetPacket() Packet {
 
 func (nack *Nack) String() string {
 	return fmt.Sprintf("%s~%s", nack.GetInterest(), nack.GetReason())
+}
+
+// Get *C.PNack pointer.
+func (nack *Nack) GetPNackPtr() unsafe.Pointer {
+	return unsafe.Pointer(nack.p)
 }
 
 func (nack *Nack) GetReason() NackReason {

@@ -41,7 +41,7 @@ func (pit Pit) TriggerTimeoutSched() {
 
 // Insert or find a PIT entry for the given Interest.
 func (pit Pit) Insert(interest *ndn.Interest) (pitEntry *Entry, csEntry *cs.Entry) {
-	insertRes := C.Pit_Insert(pit.getPtr(), (*C.Packet)(interest.GetPacket().GetPtr()))
+	insertRes := C.Pit_Insert(pit.getPtr(), (*C.PInterest)(interest.GetPInterestPtr()))
 	switch C.PitInsertResult_GetKind(insertRes) {
 	case C.PIT_INSERT_PIT0, C.PIT_INSERT_PIT1:
 		pitEntry = &Entry{C.PitInsertResult_GetPitEntry(insertRes), pit}

@@ -90,13 +90,12 @@ PitInsertResult_GetCsEntry(PitInsertResult res)
 }
 
 /** \brief Insert or find a PIT entry for the given Interest.
- *  \p npkt received Interest; will not take ownership.
  *
  *  If there is a CS match, return the CS entry. If there is a PIT match,
  *  return the PIT entry. Otherwise, unless the PCCT is full, insert and
  *  initialize a PIT entry.
  */
-PitInsertResult Pit_Insert(Pit* pit, Packet* npkt);
+PitInsertResult Pit_Insert(Pit* pit, PInterest* interest);
 
 /** \brief Assign a token to a PIT entry.
  *  \return New or existing token.

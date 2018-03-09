@@ -31,12 +31,10 @@ typedef struct PitEntry
 } PitEntry;
 
 /** \brief Initialize a PIT entry.
- *  \p npkt received Interest; will not take ownership.
  */
 static void
-PitEntry_Init(PitEntry* entry, Packet* npkt)
+PitEntry_Init(PitEntry* entry, PInterest* interest)
 {
-  PInterest* interest = Packet_GetInterestHdr(npkt);
   entry->npkt = NULL; // do not store npkt until DnRxInterest
   MinTmr_Init(&entry->timeout);
   entry->expiry = 0;
@@ -69,11 +67,6 @@ const char* PitEntry_ToDebugString(PitEntry* entry);
  *  \return index of DN record, or -1 if no slot is available.
  */
 int PitEntry_DnRxInterest(Pit* pit, PitEntry* entry, Packet* npkt);
-
-/** \brief Prepare TX Data according to downstream record.
- *  \param entry PIT entry.
- */
-int PitEntry_DnTxData(Pit* pit, PitEntry* entry, FaceId face, Packet* npkt);
 
 /** \brief Prepare TX Interest to upstream.
  *  \param entry PIT entry, must be initialized.

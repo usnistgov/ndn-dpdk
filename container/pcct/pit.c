@@ -32,10 +32,9 @@ PitInsertResult_New(PccEntry* pccEntry, PitInsertResultKind kind)
 }
 
 PitInsertResult
-Pit_Insert(Pit* pit, Packet* npkt)
+Pit_Insert(Pit* pit, PInterest* interest)
 {
   PitPriv* pitp = Pit_GetPriv(pit);
-  PInterest* interest = Packet_GetInterestHdr(npkt);
 
   PccSearch search;
   search.name = *(const LName*)(&interest->name);
@@ -70,7 +69,7 @@ Pit_Insert(Pit* pit, Packet* npkt)
     if (!pccEntry->hasPitEntry1) {
       ++pitp->nEntries;
       pccEntry->hasPitEntry1 = true;
-      PitEntry_Init(PccEntry_GetPitEntry1(pccEntry), npkt);
+      PitEntry_Init(PccEntry_GetPitEntry1(pccEntry), interest);
       ZF_LOGD("%p Insert(%s) pcc=%p ins-PIT1 pit=%p", pit,
               PccSearch_ToDebugString(&search), pccEntry,
               PccEntry_GetPitEntry1(pccEntry));
@@ -86,7 +85,7 @@ Pit_Insert(Pit* pit, Packet* npkt)
     assert(!pccEntry->hasCsEntry);
     ++pitp->nEntries;
     pccEntry->hasPitEntry0 = true;
-    PitEntry_Init(PccEntry_GetPitEntry0(pccEntry), npkt);
+    PitEntry_Init(PccEntry_GetPitEntry0(pccEntry), interest);
     ZF_LOGD("%p Insert(%s) pcc=%p ins-PIT0 pit=%p", pit,
             PccSearch_ToDebugString(&search), pccEntry,
             PccEntry_GetPitEntry0(pccEntry));

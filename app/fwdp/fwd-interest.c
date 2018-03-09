@@ -71,8 +71,9 @@ void
 FwFwd_RxInterest(FwFwd* fwd, Packet* npkt)
 {
   ZF_LOGD("%" PRIu8 " %p RxInterest", fwd->id, npkt);
+  PInterest* interest = Packet_GetInterestHdr(npkt);
 
-  PitInsertResult pitIns = Pit_Insert(fwd->pit, npkt);
+  PitInsertResult pitIns = Pit_Insert(fwd->pit, interest);
   switch (PitInsertResult_GetKind(pitIns)) {
     case PIT_INSERT_PIT0:
     case PIT_INSERT_PIT1:

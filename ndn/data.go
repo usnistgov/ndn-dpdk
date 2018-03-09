@@ -4,7 +4,10 @@ package ndn
 #include "data.h"
 */
 import "C"
-import "time"
+import (
+	"time"
+	"unsafe"
+)
 
 // Data packet.
 type Data struct {
@@ -18,6 +21,11 @@ func (data *Data) GetPacket() Packet {
 
 func (data *Data) String() string {
 	return data.GetName().String()
+}
+
+// Get *C.PData pointer.
+func (data *Data) GetPDataPtr() unsafe.Pointer {
+	return unsafe.Pointer(data.p)
 }
 
 func (data *Data) GetName() (n *Name) {
