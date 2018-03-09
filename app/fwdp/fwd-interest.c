@@ -1,4 +1,5 @@
 #include "fwd.h"
+#include "token.h"
 
 #include "../../core/logger.h"
 
@@ -49,6 +50,12 @@ FwFwd_RxInterestMissCs(FwFwd* fwd, PitEntry* pitEntry, Packet* npkt)
     if (unlikely(outNpkt == NULL)) {
       break;
     }
+
+    FwToken token = { 0 };
+    token.fwdId = fwd->id;
+    token.pccToken = Pit_AddToken(fwd->pit, pitEntry);
+    Packet_InitLpL3Hdr(outNpkt)->pitToken = token.token;
+
     Face* outFace = FaceTable_GetFace(fwd->ft, nh);
     if (unlikely(outFace == NULL)) {
       continue;

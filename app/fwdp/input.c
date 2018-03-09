@@ -39,25 +39,34 @@ FwInput_PassTo(FwInput* fwi, Packet* npkt, uint8_t fwdId)
 static void
 FwInput_DispatchByName(FwInput* fwi, Packet* npkt, const Name* name)
 {
+  struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   uint8_t fwdId = Ndt_Lookup(fwi->ndt, fwi->ndtt, &name->p, name->v);
-  ZF_LOGD("%" PRI_FaceId " %p by-name to=%" PRIu8, Packet_ToMbuf(npkt)->port,
-          npkt, fwdId);
+
+  ZF_LOGD("%" PRI_FaceId " %p by-name to-fwd=%" PRIu8, pkt->port, npkt, fwdId);
   FwInput_PassTo(fwi, npkt, fwdId);
 }
 
 static void
 FwInput_DispatchByToken(FwInput* fwi, Packet* npkt, uint64_t token)
 {
+  struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
+
+  if (unlikely(token == 0)) {
+    ZF_LOGD("%" PRI_FaceId " %p no-token", pkt->port, npkt);
+    rte_pktmbuf_free(pkt);
+    return;
+  }
+
   FwToken tok = {.token = token };
   uint8_t fwdId = tok.fwdId;
 
   if (unlikely(fwdId >= fwi->nFwds)) {
-    ZF_LOGD("%" PRI_FaceId " %p token=%" PRIx64 " bad-fwdId",
-            Packet_ToMbuf(npkt)->port, npkt, token);
-    rte_pktmbuf_free(Packet_ToMbuf(npkt));
+    ZF_LOGD("%" PRI_FaceId " %p token=%" PRIx64 " bad-fwdId", pkt->port, npkt,
+            token);
+    rte_pktmbuf_free(pkt);
   } else {
-    ZF_LOGD("%" PRI_FaceId " %p token=%" PRIx64 " to=%" PRIu8,
-            Packet_ToMbuf(npkt)->port, npkt, token, fwdId);
+    ZF_LOGD("%" PRI_FaceId " %p token=%" PRIx64 " to-fwd=%" PRIu8, pkt->port,
+            npkt, token, fwdId);
     FwInput_PassTo(fwi, npkt, fwdId);
   }
 }
