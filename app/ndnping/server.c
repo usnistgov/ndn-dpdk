@@ -71,6 +71,7 @@ NdnpingServer_ProcessPkt(NdnpingServer* server, Packet* npkt)
     return npkt;
   }
 
+  Packet_InitLpL3Hdr(dataPkt)->pitToken = Packet_InitLpL3Hdr(npkt)->pitToken;
   rte_pktmbuf_free(pkt);
   return dataPkt;
 }
