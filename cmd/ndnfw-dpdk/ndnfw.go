@@ -21,6 +21,9 @@ var theDp *fwdp.DataPlane
 
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
+	appinit.InitEal()
+	appinit.EnableMgmt()
+	appinit.StartMgmt()
 	startDp()
 
 	// set FIB nexthops
@@ -45,7 +48,6 @@ func main() {
 
 func startDp() {
 	logger := log.New(os.Stderr, "startDp ", log.LstdFlags)
-	appinit.InitEal()
 	logger.Printf("EAL has %d slave lcores", len(appinit.Eal.Slaves))
 	lcr := appinit.NewLCoreReservations()
 

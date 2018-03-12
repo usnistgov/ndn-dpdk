@@ -1,5 +1,9 @@
 package appinit
 
+/*
+#include <rte_config.h>
+*/
+import "C"
 import (
 	"fmt"
 	"log"
@@ -58,7 +62,8 @@ func MakePktmbufPool(key string, socket dpdk.NumaSocket) dpdk.PktmbufPool {
 	if ((cfg.Capacity + 1) & cfg.Capacity) != 0 {
 		log.Printf("MakePktmbufPool(%s) nonoptimal config: capacity is not 2^q-1", key)
 	}
-	maxCacheSize := int(math.Min(float64(MEMPOOL_MAX_CACHE_SIZE), float64(cfg.Capacity)/1.5))
+	maxCacheSize := int(math.Min(float64(int(C.RTE_MEMPOOL_CACHE_MAX_SIZE)),
+		float64(cfg.Capacity)/1.5))
 	if cfg.CacheSize < 0 || cfg.CacheSize > maxCacheSize {
 		Exitf(EXIT_BAD_CONFIG, "MakePktmbufPool(%s) bad config: cache size must be between 0 and %d",
 			key, maxCacheSize)
