@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"ndn-dpdk/app/fwdp"
+	"ndn-dpdk/app/fwdp/fwdpmgmt"
 	"ndn-dpdk/appinit"
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/ndt"
@@ -22,9 +23,10 @@ var theDp *fwdp.DataPlane
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
 	appinit.InitEal()
-	appinit.EnableMgmt()
-	appinit.StartMgmt()
 	startDp()
+	appinit.EnableMgmt()
+	fwdpmgmt.Enable(theDp)
+	appinit.StartMgmt()
 
 	// set FIB nexthops
 	// TODO remove this when FIB management is ready

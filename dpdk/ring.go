@@ -49,6 +49,12 @@ func (r Ring) Close() error {
 	return nil
 }
 
+// Get ring capacity.
+func (r Ring) GetCapacity() int {
+	return int(C.rte_ring_get_capacity(r.ptr))
+}
+
+// Get used space.
 func (r Ring) Count() int {
 	return int(C.rte_ring_count(r.ptr))
 }
@@ -57,6 +63,7 @@ func (r Ring) IsEmpty() bool {
 	return r.Count() == 0
 }
 
+// Get free space.
 func (r Ring) GetFreeSpace() int {
 	return int(C.rte_ring_free_count(r.ptr))
 }

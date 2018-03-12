@@ -31,4 +31,11 @@ void FwInput_Connect(FwInput* fwi, FwFwd* fwd);
 
 void FwInput_FaceRx(Face* face, FaceRxBurst* burst, void* fwi0);
 
+static FwInputFwdConn*
+FwInput_GetConn(FwInput* fwi, uint8_t i)
+{
+  assert(i < fwi->nFwds);
+  return &fwi->conn[i];
+}
+
 #endif // NDN_DPDK_APP_FWDP_INPUT_H
