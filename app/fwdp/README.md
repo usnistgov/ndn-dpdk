@@ -17,7 +17,6 @@ For each incoming packet, FwInput decides which forwarding process should handle
 
 Then, FwInput passes the packet to the chosen forwarding process's input queue (a DPDK ring in multi-produer single-consumer mode).
 In case the queue is full, FwInput drops the packet, and increments a drop counter.
-Drop counters are currently not exported.
 
 ### Data Structure Usage
 

@@ -47,3 +47,7 @@ func (face EthFace) StopRxLoop() error {
 	C.EthFace_StopRxLoop(face.getPtr())
 	return nil
 }
+
+func (face EthFace) ListFacesInRxLoop() []iface.FaceId {
+	return []iface.FaceId{face.GetFaceId()}
+}

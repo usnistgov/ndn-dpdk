@@ -32,8 +32,12 @@ FwFwd_Run(FwFwd* fwd)
 
     unsigned count = rte_ring_dequeue_burst(fwd->queue, (void**)npkts,
                                             FW_FWD_BURST_SIZE, NULL);
+    TscTime now = rte_get_tsc_cycles();
     for (unsigned i = 0; i < count; ++i) {
       Packet* npkt = npkts[i];
+      TscDuration timeSinceRx = now - Packet_ToMbuf(npkt)->timestamp;
+      RunningStat_Push(&fwd->timeSinceRxStat, timeSinceRx);
+
       L3PktType l3type = Packet_GetL3PktType(npkt);
       ZF_LOGV("%" PRIu8 " npkt=%p l3type=%d", fwd->id, npkt, (int)l3type);
       FwFwd_RxFunc rxFunc = FwFwd_RxFuncs[l3type];

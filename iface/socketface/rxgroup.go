@@ -22,6 +22,7 @@ type RxGroup struct {
 	closeCmd  chan struct{}
 	addCmd    chan *SocketFace
 	removeCmd chan *SocketFace
+	listCmd   chan chan []iface.FaceId
 }
 
 func NewRxGroup(faces ...*SocketFace) (rxg RxGroup) {
@@ -33,6 +34,7 @@ func NewRxGroup(faces ...*SocketFace) (rxg RxGroup) {
 	rxg.closeCmd = make(chan struct{})
 	rxg.addCmd = make(chan *SocketFace)
 	rxg.removeCmd = make(chan *SocketFace)
+	rxg.listCmd = make(chan chan []iface.FaceId)
 	return rxg
 }
 
@@ -58,6 +60,8 @@ func (rxg RxGroup) RxLoop(burstSize int, cb unsafe.Pointer, cbarg unsafe.Pointer
 			rxg.faces[face] = struct{}{}
 		case face := <-rxg.removeCmd:
 			delete(rxg.faces, face)
+		case returnCh := <-rxg.listCmd:
+			returnCh <- rxg.listFaceIds()
 		default:
 		}
 
@@ -73,4 +77,18 @@ func (rxg RxGroup) RxLoop(burstSize int, cb unsafe.Pointer, cbarg unsafe.Pointer
 func (rxg RxGroup) StopRxLoop() error {
 	rxg.closeCmd <- struct{}{}
 	return nil
+}
+
+func (rxg RxGroup) listFaceIds() (list []iface.FaceId) {
+	list = make([]iface.FaceId, 0)
+	for face := range rxg.faces {
+		list = append(list, face.GetFaceId())
+	}
+	return list
+}
+
+func (rxg RxGroup) ListFacesInRxLoop() []iface.FaceId {
+	returnCh := make(chan []iface.FaceId)
+	rxg.listCmd <- returnCh
+	return <-returnCh
 }

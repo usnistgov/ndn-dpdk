@@ -4,6 +4,7 @@
 #include "../../container/fib/fib.h"
 #include "../../container/pcct/cs.h"
 #include "../../container/pcct/pit.h"
+#include "../../core/running_stat/running-stat.h"
 #include "../../iface/facetable.h"
 
 /** \brief Forwarder data plane, forwarding process.
@@ -22,6 +23,10 @@ typedef struct FwFwd
 
   struct rte_mempool* headerMp;   ///< mempool for cloned packet header
   struct rte_mempool* indirectMp; ///< mempool for indirect mbufs
+
+  /** \brief Statistics of latency from packet arrival to start processing.
+   */
+  RunningStat timeSinceRxStat;
 } FwFwd;
 
 void FwFwd_Run(FwFwd* fwd);
