@@ -29,7 +29,7 @@ A number of templates have been registered automatically.
 
 `EnableMgmt` followed by `StartMgmt` initializes the management RPC server.
 Calling process may register additional management modules on `MgmtRpcServer` variable.
-This server uses JSON-RPC 1.0 codec.
+This server uses JSON-RPC 2.0 codec.
 
 By default, the RPC server listens on Unix stream socket `/var/run/ndn-dpdk-mgmt.sock`.
 Sysadmin may change this path or switch to TCP through environment variable.

@@ -3,9 +3,10 @@ package appinit
 import (
 	"net"
 	"net/rpc"
-	"net/rpc/jsonrpc"
 	"net/url"
 	"os"
+
+	"github.com/powerman/rpc-codec/jsonrpc2"
 
 	"ndn-dpdk/iface/facemgmt"
 )
@@ -72,7 +73,7 @@ func serveMgmtListener() {
 				break
 			}
 		}
-		go MgmtRpcServer.ServeCodec(jsonrpc.NewServerCodec(conn))
+		go MgmtRpcServer.ServeCodec(jsonrpc2.NewServerCodec(conn, MgmtRpcServer))
 	}
 }
 
