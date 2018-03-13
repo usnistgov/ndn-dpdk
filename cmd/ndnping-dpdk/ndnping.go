@@ -52,13 +52,15 @@ func main() {
 		servers = append(servers, server)
 	}
 
-	for _, server := range servers {
-		appinit.LaunchRequired(server.Run, server.GetFace().GetNumaSocket())
+	for i, server := range servers {
+		lc := appinit.LaunchRequired(server.Run, server.GetFace().GetNumaSocket())
+		log.Printf("server(%d) lcore %d socket %d", i, lc, lc.GetNumaSocket())
 	}
 	time.Sleep(100 * time.Millisecond)
-	for _, client := range clients {
-		appinit.LaunchRequired(client.RunRx, client.GetFace().GetNumaSocket())
-		appinit.LaunchRequired(client.RunTx, client.GetFace().GetNumaSocket())
+	for i, client := range clients {
+		lc1 := appinit.LaunchRequired(client.RunRx, client.GetFace().GetNumaSocket())
+		lc2 := appinit.LaunchRequired(client.RunTx, lc1.GetNumaSocket())
+		log.Printf("client(%d) lcore %d, %d socket %d", i, lc1, lc2, lc1.GetNumaSocket())
 	}
 
 	tick := time.Tick(pc.counterInterval)

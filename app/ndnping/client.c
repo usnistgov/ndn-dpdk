@@ -200,7 +200,7 @@ NdnpingClient_ProcessRxData(NdnpingClient* client, Packet* npkt)
   NdnpingClientSample* sample = NdnpingClient_FindSample(client, seqNo);
   assert(sample->patternId == PATTERN_0);
   if (unlikely(!sample->isPending)) {
-    ZF_LOGI("%" PRI_FaceId " duplicate-Data-or-Nack seq=%" PRIx64,
+    ZF_LOGD("%" PRI_FaceId " duplicate-Data-or-Nack seq=%" PRIx64,
             client->face->id, seqNo);
     return;
   }
@@ -239,7 +239,7 @@ NdnpingClient_ProcessRxNack(NdnpingClient* client, Packet* npkt)
   NdnpingClientSample* sample = NdnpingClient_FindSample(client, seqNo);
   assert(sample->patternId == PATTERN_0);
   if (unlikely(!sample->isPending)) {
-    ZF_LOGI("%" PRI_FaceId " duplicate-Data-or-Nack seq=%" PRIx64,
+    ZF_LOGD("%" PRI_FaceId " duplicate-Data-or-Nack seq=%" PRIx64,
             client->face->id, seqNo);
     return;
   }
