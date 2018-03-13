@@ -9,7 +9,8 @@ CanIgnoreLpHeader(uint64_t tlvType)
 }
 
 NdnError
-LpHeader_FromPacket(LpHeader* lph, struct rte_mbuf* pkt, uint32_t* payloadOff)
+LpHeader_FromPacket(LpHeader* lph, struct rte_mbuf* pkt, uint32_t* payloadOff,
+                    uint32_t* tlvSize)
 {
   memset(lph, 0, sizeof(LpHeader));
   lph->l2.fragCount = 1;
@@ -19,12 +20,13 @@ LpHeader_FromPacket(LpHeader* lph, struct rte_mbuf* pkt, uint32_t* payloadOff)
   TlvElement lppEle;
   NdnError e = DecodeTlvElement(&d0, &lppEle);
   RETURN_IF_UNLIKELY_ERROR;
+  *tlvSize = lppEle.size;
   if (lppEle.type == TT_Interest || lppEle.type == TT_Data) {
     *payloadOff = 0;
     return NdnError_OK;
   }
 
-  *payloadOff = pkt->pkt_len;
+  *payloadOff = lppEle.size;
 
   TlvDecodePos d1;
   TlvElement_MakeValueDecoder(&lppEle, &d1);

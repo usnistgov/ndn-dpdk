@@ -35,6 +35,7 @@ typedef struct LpHeader
  *  \param[out] lph the parsed LpHeader.
  *  \param pkt the packet.
  *  \param[out] payloadOff payload offset.
+ *  \param[out] tlvSize size of top-level TLV.
  *
  *  This function recognizes these NDNLPv2 features:
  *  \li indexed fragmentation-reassembly
@@ -52,7 +53,7 @@ typedef struct LpHeader
  *  \retval NdnError_LpHasTrailer found trailer fields after LpFragment.
  */
 NdnError LpHeader_FromPacket(LpHeader* lph, struct rte_mbuf* pkt,
-                             uint32_t* payloadOff);
+                             uint32_t* payloadOff, uint32_t* tlvSize);
 
 static uint16_t
 PrependLpHeader_GetHeadroom()

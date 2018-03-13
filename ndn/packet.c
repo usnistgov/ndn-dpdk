@@ -5,11 +5,16 @@ Packet_ParseL2(Packet* npkt)
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   LpHeader* lph = __Packet_GetLpHdr(npkt);
-  uint32_t payloadOff;
-  NdnError e = LpHeader_FromPacket(lph, pkt, &payloadOff);
+  uint32_t payloadOff, tlvSize;
+  NdnError e = LpHeader_FromPacket(lph, pkt, &payloadOff, &tlvSize);
   RETURN_IF_UNLIKELY_ERROR;
   Packet_SetL2PktType(npkt, L2PktType_NdnlpV2);
 
+  if (unlikely(tlvSize < pkt->pkt_len)) { // strip Ethernet trailer
+    assert(pkt->nb_segs == 1);
+    pkt->pkt_len = tlvSize;
+    pkt->data_len = (uint16_t)tlvSize;
+  }
   Packet_Adj(pkt, payloadOff); // strip LpHeader
   return NdnError_OK;
 }
