@@ -52,6 +52,7 @@ __MinSched_Trigger(MinSched* sched, TscTime now)
       next = tmr->next;
       ZF_LOGD("%p Trigger() slot=%" PRIu16 " tmr=%p", sched, sched->lastSlot,
               tmr);
+      ++sched->nTriggered;
       (sched->cb)(tmr, sched->cbarg);
       MinTmr_Init(tmr);
     }

@@ -6,8 +6,13 @@ Subcommands:
     List faces.
   face show <ID>
     Show face counters.
-  dataplane counters
-    Show dataplane counters.
+  dpinfo [global]
+    Show dataplane global information.
+  dpinfo input <I>
+  dpinfo fwd <I>
+  dpinfo pit <I>
+  dpinfo cs <I>
+    Show dataplane i-th input/fwd/PIT/CS counters.
 EOT
   exit 0
 fi
@@ -25,8 +30,10 @@ if [[ $1 == 'face' ]]; then
   elif [[ $2 == 'show' ]]; then
     jsonrpc Faces.Get '{"Id":'$3'}'
   fi
-elif [[ $1 == 'dataplane' ]]; then
-  if [[ $2 == 'counters' ]]; then
-    jsonrpc DataPlane.GetCounters ''
+elif [[ $1 == 'dpinfo' ]]; then
+  if [[ -z $2 ]] || [[ $2 == 'global' ]]; then
+    jsonrpc DPInfo.Global ''
+  elif [[ $2 == 'input' ]] || [[ $2 == 'fwd' ]] || [[ $2 == 'pit' ]] || [[ $2 == 'cs' ]]; then
+    jsonrpc DPInfo."${2^}" '{"Index":'$3'}'
   fi
 fi

@@ -50,6 +50,7 @@ Pit_Insert(Pit* pit, PInterest* interest)
   bool isNew = false;
   PccEntry* pccEntry = Pcct_Insert(Pit_ToPcct(pit), hash, &search, &isNew);
   if (unlikely(pccEntry == NULL)) {
+    ++pitp->nAllocErr;
     return PitInsertResult_New(pccEntry, PIT_INSERT_FULL);
   }
 
@@ -62,6 +63,7 @@ Pit_Insert(Pit* pit, PInterest* interest)
     ZF_LOGD("%p Insert(%s) pcc=%p has-CS cs=%p", pit,
             PccSearch_ToDebugString(&search), pccEntry,
             PccEntry_GetCsEntry(pccEntry));
+    ++pitp->nCsMatch;
     return PitInsertResult_New(pccEntry, PIT_INSERT_CS);
   }
 
@@ -73,10 +75,12 @@ Pit_Insert(Pit* pit, PInterest* interest)
       ZF_LOGD("%p Insert(%s) pcc=%p ins-PIT1 pit=%p", pit,
               PccSearch_ToDebugString(&search), pccEntry,
               PccEntry_GetPitEntry1(pccEntry));
+      ++pitp->nInsert;
     } else {
       ZF_LOGD("%p Insert(%s) pcc=%p has-PIT1 pit=%p", pit,
               PccSearch_ToDebugString(&search), pccEntry,
               PccEntry_GetPitEntry1(pccEntry));
+      ++pitp->nFound;
     }
     return PitInsertResult_New(pccEntry, PIT_INSERT_PIT1);
   }
@@ -89,10 +93,12 @@ Pit_Insert(Pit* pit, PInterest* interest)
     ZF_LOGD("%p Insert(%s) pcc=%p ins-PIT0 pit=%p", pit,
             PccSearch_ToDebugString(&search), pccEntry,
             PccEntry_GetPitEntry0(pccEntry));
+    ++pitp->nInsert;
   } else {
     ZF_LOGD("%p Insert(%s) pcc=%p has-PIT0 pit=%p", pit,
             PccSearch_ToDebugString(&search), pccEntry,
             PccEntry_GetPitEntry0(pccEntry));
+    ++pitp->nFound;
   }
   return PitInsertResult_New(pccEntry, PIT_INSERT_PIT0);
 }

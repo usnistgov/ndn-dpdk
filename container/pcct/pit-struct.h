@@ -17,7 +17,12 @@ typedef struct Pit
  */
 typedef struct PitPriv
 {
-  uint64_t nEntries;
+  uint64_t nEntries;  ///< current number of entries
+  uint64_t nInsert;   ///< how many inserts created a new PIT entry
+  uint64_t nFound;    ///< how many inserts found an existing PIT entry
+  uint64_t nCsMatch;  ///< how many inserts matched a CS entry
+  uint64_t nAllocErr; ///< how many inserts failed due to allocation error
+
   MinSched* timeoutSched;
 
   struct rte_mempool* headerMp;   ///< mempool for Interest header

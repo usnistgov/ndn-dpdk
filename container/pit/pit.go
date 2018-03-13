@@ -21,6 +21,10 @@ func (pit Pit) getPtr() *C.Pit {
 	return (*C.Pit)(pit.GetPtr())
 }
 
+func (pit Pit) getPriv() *C.PitPriv {
+	return C.Pit_GetPriv(pit.getPtr())
+}
+
 func (pit Pit) getCs() cs.Cs {
 	return cs.Cs{pit.Pcct}
 }
@@ -36,7 +40,7 @@ func (pit Pit) Len() int {
 
 // Trigger the internal timeout scheduler.
 func (pit Pit) TriggerTimeoutSched() {
-	C.MinSched_Trigger(C.Pit_GetPriv(pit.getPtr()).timeoutSched)
+	C.MinSched_Trigger(pit.getPriv().timeoutSched)
 }
 
 // Insert or find a PIT entry for the given Interest.
