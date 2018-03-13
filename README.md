@@ -10,7 +10,8 @@ Requirements:
 * `build-essential` package, including gcc 5.4
 * Go 1.9.2
 * DPDK 17.11, installed to `/usr/local`
-* `liburcu-dev`
+* `liburcu-dev` library
+* `socat` program, NodeJS 8.x, and NPM `jayson` package, for management client
 * `doxygen pandoc clang-format` packages, for building documentation
 
 Installation steps:
@@ -26,8 +27,8 @@ Installation steps:
 * [core](core/): common shared code.
 * [dpdk](dpdk/): DPDK bindings and extensions.
 * [ndn](ndn/): NDN packet representations.
-* [container](container/): data structures.
 * [iface](iface/): network interfaces.
+* [container](container/): data structures.
 * [app](app/): applications.
 * [appinit](appinit/): initialization procedures.
 * [cmd](cmd/): executables.

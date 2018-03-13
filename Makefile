@@ -150,13 +150,19 @@ app/fwdp/cgoflags.go: container/ndt/cgoflags.go container/fib/cgoflags.go contai
 go-fwdp: $(CLIBPREFIX)-fwdp.a app/fwdp/cgoflags.go
 	go build ./app/fwdp
 
-cmd/ndnpktcopy-dpdk/cgoflags.go: iface/cgoflags.go
-	./make-cgoflags.sh cmd/ndnpktcopy-dpdk iface
-
 cmds: cmd-ndnfw-dpdk cmd-ndnping-dpdk cmd-ndnpktcopy-dpdk
 
 cmd-%: cmd/%/* cbuilds cgoflags
 	go install ./cmd/$*
+
+mgmtclient:: cmd/mgmtclient/*
+	mkdir -p build
+	cd build && rm -f mgmt*.sh
+	cd cmd/mgmtclient && cp mgmt*.sh ../../build/
+	chmod +x build/mgmt*.sh
+
+cmd/ndnpktcopy-dpdk/cgoflags.go: iface/cgoflags.go
+	./make-cgoflags.sh cmd/ndnpktcopy-dpdk iface
 
 integ/core/siphash/cgoflags.go:
 	./make-cgoflags.sh integ/core/siphash core
