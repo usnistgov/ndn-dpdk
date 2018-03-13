@@ -20,6 +20,11 @@ typedef struct FwInput
 {
   const Ndt* ndt;
   NdtThread* ndtt;
+
+  uint64_t nNameDisp;  ///< packets dispatched by name
+  uint64_t nTokenDisp; ///< packets dispatched by token
+  uint64_t nBadToken;  ///< dropped packets due to missing or bad token
+
   uint8_t nFwds;
   FwInputFwdConn conn[0];
 } FwInput;

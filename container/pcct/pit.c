@@ -169,14 +169,18 @@ __Pit_Timeout(MinTmr* tmr, void* pit0)
 void
 Pit_Find(Pit* pit, uint64_t token, PitFindResult* found)
 {
+  PitPriv* pitp = Pit_GetPriv(pit);
   found->nMatches = 0;
   PccEntry* pccEntry = Pcct_FindByToken(Pit_ToPcct(pit), token);
   if (likely(pccEntry != NULL)) {
+    ++pitp->nTokenHits;
     if (pccEntry->hasPitEntry0) {
       found->matches[found->nMatches++] = &pccEntry->pitEntry0;
     }
     if (pccEntry->hasPitEntry1) {
       found->matches[found->nMatches++] = &pccEntry->pitEntry1;
     }
+  } else {
+    ++pitp->nTokenMisses;
   }
 }

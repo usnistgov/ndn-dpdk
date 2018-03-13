@@ -22,6 +22,10 @@ func (dp *DataPlane) CountLCores() (nInputs int, nFwds int) {
 type InputInfo struct {
 	LCore dpdk.LCore     // LCore executing this input process
 	Faces []iface.FaceId // faces served by this input process
+
+	NNameDisp  uint64 // packets dispatched by name
+	NTokenDisp uint64 // packets dispatched by token
+	NBadToken  uint64 // dropped packets due to missing or bad token
 }
 
 // Read information about i-th input.
@@ -29,10 +33,16 @@ func (dp *DataPlane) ReadInputInfo(i int) (info *InputInfo) {
 	if i < 0 || i >= len(dp.inputLCores) {
 		return nil
 	}
+	input := dp.inputs[i]
 
 	info = new(InputInfo)
 	info.LCore = dp.inputLCores[i]
 	info.Faces = dp.inputRxLoopers[i].ListFacesInRxLoop()
+
+	info.NNameDisp = uint64(input.nNameDisp)
+	info.NTokenDisp = uint64(input.nTokenDisp)
+	info.NBadToken = uint64(input.nBadToken)
+
 	return info
 }
 
