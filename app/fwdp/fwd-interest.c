@@ -51,7 +51,8 @@ FwFwd_RxInterestMissCs(FwFwd* fwd, PitEntry* pitEntry, Packet* npkt)
       break;
     }
 
-    uint64_t token = FwToken_New(fwd->id, Pit_AddToken(fwd->pit, pitEntry));
+    uint64_t token =
+      FwToken_New(fwd->id, Pit_GetEntryToken(fwd->pit, pitEntry));
     Packet_InitLpL3Hdr(outNpkt)->pitToken = token;
 
     Face* outFace = FaceTable_GetFace(fwd->ft, nh);

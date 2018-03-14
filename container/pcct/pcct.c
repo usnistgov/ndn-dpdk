@@ -54,8 +54,8 @@ Pcct_New(const char* id, uint32_t maxEntries, unsigned numaSocket)
 
   struct rte_hash_parameters tokenHtParams = {
     .name = tokenHtName,
-    .entries = maxEntries,
-    .key_len = sizeof(uint64_t), // waste 2 bytes for faster comparison
+    .entries = maxEntries * 2,   // keep occupancy under 50%
+    .key_len = sizeof(uint64_t), // 64-bit compares faster than 48-bit
     .hash_func = __Pcct_TokenHt_Hash,
     .socket_id = numaSocket,
   };
@@ -130,20 +130,30 @@ uint64_t
 __Pcct_AddToken(Pcct* pcct, PccEntry* entry)
 {
   assert(!entry->hasToken);
-
   PcctPriv* pcctp = Pcct_GetPriv(pcct);
 
-  // find an available token; it must exist because 48-bit token space is larger than maxEntries
-  while (Pcct_FindByToken(pcct, ++pcctp->lastToken) != NULL) {
+  // find an available token
+  uint64_t token = pcctp->lastToken;
+  uint32_t hash;
+  do {
+    ++token;
+    token &= PCCT_TOKEN_MASK;
+    if (unlikely(token == 0)) {
+      ++token;
+    }
+    hash = (uint32_t)token;
+  } while (rte_hash_lookup_with_hash(pcctp->tokenHt, &token, hash) >= 0);
+  pcctp->lastToken = token;
+
+  int res =
+    rte_hash_add_key_with_hash_data(pcctp->tokenHt, &token, hash, entry);
+  if (unlikely(res != 0)) {
+    ZF_LOGW("%p AddToken(%p) tokenHt-full", pcct, entry);
+    return 0;
   }
-  uint64_t token = pcctp->lastToken & PCCT_TOKEN_MASK;
-  uint32_t hash = (uint32_t)token;
 
   entry->token = token;
   entry->hasToken = true;
-  int res =
-    rte_hash_add_key_with_hash_data(pcctp->tokenHt, &token, hash, entry);
-  assert(res == 0);
 
   ZF_LOGD("%p AddToken(%p) %012" PRIx64, pcct, entry, token);
   return token;

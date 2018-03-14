@@ -2,6 +2,7 @@ package pit
 
 /*
 #include "../pcct/pit-entry.h"
+#include "../pcct/pit.h"
 */
 import "C"
 import (
@@ -23,6 +24,10 @@ func (pit Pit) EntryFromPtr(ptr unsafe.Pointer) Entry {
 // Implements cs.iPitEntry.
 func (entry Entry) GetPitEntryPtr() unsafe.Pointer {
 	return unsafe.Pointer(entry.c)
+}
+
+func (entry Entry) GetToken() uint64 {
+	return uint64(C.Pit_GetEntryToken(entry.pit.getPtr(), entry.c))
 }
 
 // Determine whether two Entry instances point to the same underlying entry.

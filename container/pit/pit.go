@@ -56,11 +56,6 @@ func (pit Pit) Insert(interest *ndn.Interest) (pitEntry *Entry, csEntry *cs.Entr
 	return
 }
 
-// Assign a token to a PIT entry.
-func (pit Pit) AddToken(entry Entry) uint64 {
-	return uint64(C.Pit_AddToken(pit.getPtr(), entry.c))
-}
-
 // Erase a PIT entry.
 func (pit Pit) Erase(entry Entry) {
 	C.Pit_Erase(pit.getPtr(), entry.c)

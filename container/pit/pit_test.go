@@ -68,9 +68,9 @@ func TestToken(t *testing.T) {
 			assert.Nil(entry)
 			continue
 		}
-
 		require.NotNil(entry)
-		token := pit.AddToken(*entry)
+
+		token := entry.GetToken()
 		assert.Equal(token&(1<<48-1), token) // token has 48 bits
 		tokens[token] = *entry
 	}

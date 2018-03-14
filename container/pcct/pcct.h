@@ -73,6 +73,7 @@ PccEntry* Pcct_Find(const Pcct* pcct, uint64_t hash, PccSearch* search);
 uint64_t __Pcct_AddToken(Pcct* pcct, PccEntry* entry);
 
 /** \brief Assign a token to an entry.
+ *  \retval 0 No token available.
  *  \return New or existing token.
  */
 static uint64_t

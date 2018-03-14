@@ -97,13 +97,14 @@ PitInsertResult_GetCsEntry(PitInsertResult res)
  */
 PitInsertResult Pit_Insert(Pit* pit, PInterest* interest);
 
-/** \brief Assign a token to a PIT entry.
- *  \return New or existing token.
+/** \brief Get a token of a PIT entry.
  */
 static uint64_t
-Pit_AddToken(Pit* pit, PitEntry* entry)
+Pit_GetEntryToken(Pit* pit, PitEntry* entry)
 {
-  return Pcct_AddToken(Pit_ToPcct(pit), PccEntry_FromPitEntry(entry));
+  PccEntry* pccEntry = PccEntry_FromPitEntry(entry);
+  assert(pccEntry->hasToken);
+  return pccEntry->token;
 }
 
 /** \brief Erase a PIT entry of MustBeFresh=0 but retain the PccEntry.

@@ -34,8 +34,10 @@ PitInsertResult_New(PccEntry* pccEntry, PitInsertResultKind kind)
 PitInsertResult
 Pit_Insert(Pit* pit, PInterest* interest)
 {
+  Pcct* pcct = Pit_ToPcct(pit);
   PitPriv* pitp = Pit_GetPriv(pit);
 
+  // construct PccSearch
   PccSearch search;
   search.name = *(const LName*)(&interest->name);
   uint64_t hash = PName_ComputeHash(&interest->name.p, interest->name.v);
@@ -47,13 +49,15 @@ Pit_Insert(Pit* pit, PInterest* interest)
     search.fh.length = 0;
   }
 
-  bool isNew = false;
-  PccEntry* pccEntry = Pcct_Insert(Pit_ToPcct(pit), hash, &search, &isNew);
+  // seek PCC entry
+  bool isNewPcc = false;
+  PccEntry* pccEntry = Pcct_Insert(pcct, hash, &search, &isNewPcc);
   if (unlikely(pccEntry == NULL)) {
     ++pitp->nAllocErr;
     return PitInsertResult_New(pccEntry, PIT_INSERT_FULL);
   }
 
+  // check for CS match
   if (pccEntry->hasCsEntry) {
     bool isCsMatch = true;
     // TODO CS should not match if it violates MustBeFresh
@@ -67,6 +71,16 @@ Pit_Insert(Pit* pit, PInterest* interest)
     return PitInsertResult_New(pccEntry, PIT_INSERT_CS);
   }
 
+  // add token, so that it won't fail later
+  uint64_t token = Pcct_AddToken(pcct, pccEntry);
+  if (unlikely(token == 0)) {
+    if (isNewPcc) {
+      Pcct_Erase(pcct, pccEntry);
+    }
+    return PitInsertResult_New(pccEntry, PIT_INSERT_FULL);
+  }
+
+  // put PIT entry in slot 1 if MustBeFresh=1
   if (interest->mustBeFresh) {
     if (!pccEntry->hasPitEntry1) {
       ++pitp->nEntries;
@@ -85,6 +99,7 @@ Pit_Insert(Pit* pit, PInterest* interest)
     return PitInsertResult_New(pccEntry, PIT_INSERT_PIT1);
   }
 
+  // put PIT entry in slot 0 if MustBeFresh=0
   if (!pccEntry->hasPitEntry0) {
     assert(!pccEntry->hasCsEntry);
     ++pitp->nEntries;
