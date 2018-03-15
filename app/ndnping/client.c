@@ -93,10 +93,8 @@ NdnpingClient_PrepareTxInterest(NdnpingClient* client, Packet* npkt)
   LName nameSuffix = {.length = 10, .value = &client->suffixComponent.compT };
   EncodeInterest(pkt, &client->interestTpl, client->interestPrepareBuffer,
                  nameSuffix, 0, NULL);
-  Packet_SetL3PktType(
-    npkt, L3PktType_Interest); // for stats; PInterest* is not filled
-  ZF_LOGV("%" PRI_FaceId " <I seq=%" PRIx64 " pattern=%d", client->face->id,
-          seqNo, patternId);
+  Packet_SetL3PktType(npkt, L3PktType_Interest); // for stats; no PInterest*
+  ZF_LOGV("<I seq=%" PRIx64 " pattern=%d", seqNo, patternId);
 
   if (client->sampleTable == NULL) {
     return;
@@ -124,7 +122,7 @@ NdnpingClient_TxBurst(NdnpingClient* client)
   int res = rte_pktmbuf_alloc_bulk(client->interestMp, (struct rte_mbuf**)npkts,
                                    NDNPINGCLIENT_TX_BURST_SIZE);
   if (unlikely(res != 0)) {
-    ZF_LOGW("%" PRI_FaceId " TX alloc failure %d", client->face->id, res);
+    ZF_LOGW("interestMp-full");
     return;
   }
 
@@ -140,7 +138,7 @@ NdnpingClient_RunTx(NdnpingClient* client)
   uint64_t tscHz = rte_get_tsc_hz();
   uint64_t txBurstInterval =
     client->interestInterval / 1000.0 * tscHz * NDNPINGCLIENT_TX_BURST_SIZE;
-  ZF_LOGI("%" PRI_FaceId " client=%p "
+  ZF_LOGI("face=%" PRI_FaceId " client=%p "
           "tx-burst-interval=%" PRIu64 " @%" PRIu64 "Hz",
           client->face->id, client, txBurstInterval, tscHz);
 
@@ -181,8 +179,7 @@ NdnpingClient_ProcessRxData(NdnpingClient* client, Packet* npkt)
   }
 
   int patternId = NdnpingClient_SelectPattern(client, seqNo);
-  ZF_LOGV("%" PRI_FaceId " >D seq=%" PRIx64 " pattern=%d", client->face->id,
-          seqNo, patternId);
+  ZF_LOGD(">D seq=%" PRIx64 " pattern=%d", seqNo, patternId);
 
   NdnpingClientPattern* pattern =
     NameSet_GetUsrT(&client->patterns, patternId, NdnpingClientPattern*);
@@ -200,8 +197,7 @@ NdnpingClient_ProcessRxData(NdnpingClient* client, Packet* npkt)
   NdnpingClientSample* sample = NdnpingClient_FindSample(client, seqNo);
   assert(sample->patternId == PATTERN_0);
   if (unlikely(!sample->isPending)) {
-    ZF_LOGD("%" PRI_FaceId " duplicate-Data-or-Nack seq=%" PRIx64,
-            client->face->id, seqNo);
+    ZF_LOGD("^ duplicate-Data-or-Nack");
     return;
   }
   sample->isPending = false;
@@ -220,8 +216,7 @@ NdnpingClient_ProcessRxNack(NdnpingClient* client, Packet* npkt)
   }
 
   int patternId = NdnpingClient_SelectPattern(client, seqNo);
-  ZF_LOGV("%" PRI_FaceId " >N seq=%" PRIx64 " pattern=%d", client->face->id,
-          seqNo, patternId);
+  ZF_LOGV(">N seq=%" PRIx64 " pattern=%d", seqNo, patternId);
 
   NdnpingClientPattern* pattern =
     NameSet_GetUsrT(&client->patterns, patternId, NdnpingClientPattern*);
@@ -239,8 +234,7 @@ NdnpingClient_ProcessRxNack(NdnpingClient* client, Packet* npkt)
   NdnpingClientSample* sample = NdnpingClient_FindSample(client, seqNo);
   assert(sample->patternId == PATTERN_0);
   if (unlikely(!sample->isPending)) {
-    ZF_LOGD("%" PRI_FaceId " duplicate-Data-or-Nack seq=%" PRIx64,
-            client->face->id, seqNo);
+    ZF_LOGD("^ duplicate-Data-or-Nack");
     return;
   }
   sample->isPending = false;

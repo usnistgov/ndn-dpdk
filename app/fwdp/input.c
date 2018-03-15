@@ -43,7 +43,10 @@ FwInput_DispatchByName(FwInput* fwi, Packet* npkt, const Name* name)
   uint8_t fwdId = Ndt_Lookup(fwi->ndt, fwi->ndtt, &name->p, name->v);
   assert(fwdId < fwi->nFwds);
 
-  ZF_LOGD("%" PRI_FaceId " %p by-name to-fwd=%" PRIu8, pkt->port, npkt, fwdId);
+  ZF_LOGD("%s-from=%" PRI_FaceId " npkt=%p token=%016" PRIx64
+          " ndt-fwd=%" PRIu8,
+          L3PktType_ToString(Packet_GetL3PktType(npkt)), pkt->port, npkt,
+          Packet_GetLpL3Hdr(npkt)->pitToken, fwdId);
   ++fwi->nNameDisp;
   FwInput_PassTo(fwi, npkt, fwdId);
 }
@@ -54,7 +57,9 @@ FwInput_DispatchByToken(FwInput* fwi, Packet* npkt, uint64_t token)
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
 
   if (unlikely(token == 0)) {
-    ZF_LOGD("%" PRI_FaceId " %p no-token", pkt->port, npkt);
+    ZF_LOGD("%s-from=%" PRI_FaceId " npkt=%p bad-token=%016" PRIx64,
+            L3PktType_ToString(Packet_GetL3PktType(npkt)), pkt->port, npkt,
+            token);
     ++fwi->nBadToken;
     rte_pktmbuf_free(pkt);
     return;
@@ -63,13 +68,16 @@ FwInput_DispatchByToken(FwInput* fwi, Packet* npkt, uint64_t token)
   uint8_t fwdId = FwToken_GetFwdId(token);
 
   if (unlikely(fwdId >= fwi->nFwds)) {
-    ZF_LOGD("%" PRI_FaceId " %p token=%" PRIx64 " bad-fwdId", pkt->port, npkt,
+    ZF_LOGD("%s-from=%" PRI_FaceId " npkt=%p bad-token=%016" PRIx64,
+            L3PktType_ToString(Packet_GetL3PktType(npkt)), pkt->port, npkt,
             token);
     ++fwi->nBadToken;
     rte_pktmbuf_free(pkt);
   } else {
-    ZF_LOGD("%" PRI_FaceId " %p token=%" PRIx64 " to-fwd=%" PRIu8, pkt->port,
-            npkt, token, fwdId);
+    ZF_LOGD("%s-from=%" PRI_FaceId " npkt=%p token=%016" PRIx64
+            " token-fwd=%" PRIu8,
+            L3PktType_ToString(Packet_GetL3PktType(npkt)), pkt->port, npkt,
+            token, fwdId);
     ++fwi->nTokenDisp;
     FwInput_PassTo(fwi, npkt, fwdId);
   }
@@ -79,6 +87,9 @@ void
 FwInput_FaceRx(Face* face, FaceRxBurst* burst, void* fwi0)
 {
   FwInput* fwi = (FwInput*)fwi0;
+  ZF_LOGD("fwi=%p face=%" PRI_FaceId " burst=(%" PRIu16 "I %" PRIu16
+          "D %" PRIu16 "N)",
+          fwi, face->id, burst->nInterests, burst->nData, burst->nNacks);
   for (uint16_t i = 0; i < burst->nInterests; ++i) {
     Packet* npkt = FaceRxBurst_GetInterest(burst, i);
     PInterest* interest = Packet_GetInterestHdr(npkt);

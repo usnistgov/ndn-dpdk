@@ -42,3 +42,19 @@ All FwFwds have read-only access to a shared [FIB](../../container/fib/).
 
 Each FwFwd has a private partition of [PIT-CS](../../container/pcct/).
 An outgoing Interest from a FwFwd must carry the identifier of this FwFwd as the first 8 bits of its PIT token, so that returned Data or Nack can come back to the same FwFwd and thus use the same PIT-CS partition.
+
+### Per-Packet Logging
+
+`FwFwd` uses DEBUG log level for per-packet logging.
+Generally, a log line has several key-value pairs delimited by space.
+Keys should use kebab-case.
+Common keys include:
+
+* "interest-from", "data-from", and "nack-from": incoming FaceId in packet arrival.
+* "interest-to", "data-to", or "nack-to": outgoing FaceId in packet transmission.
+* "npkt" (meaning "NDN packet"): memory address of a packet.
+* "dn-token": PIT token at downstream.
+* "up-token": PIT token assigned by this node, which is sent upstream.
+* "drop": reason of dropping a packet.
+* "pit-entry" and "cs-entry": memory address of a table entry.
+* "pit-key": debug string of a PIT entry.

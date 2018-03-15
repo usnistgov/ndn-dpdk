@@ -97,6 +97,10 @@ typedef enum L3PktType {
   L3PktType_MAX
 } L3PktType;
 
+/** \brief Get \p t as lower case string.
+ */
+const char* L3PktType_ToString(L3PktType t);
+
 /** \brief Get layer 3 packet type.
  */
 static L3PktType

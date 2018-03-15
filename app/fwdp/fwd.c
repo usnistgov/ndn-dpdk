@@ -25,6 +25,10 @@ static const FwFwd_RxFunc FwFwd_RxFuncs[L3PktType_MAX] = {
 void
 FwFwd_Run(FwFwd* fwd)
 {
+  assert((void*)fwd->pit == (void*)fwd->cs);
+  ZF_LOGI("fwdId=%" PRIu8 " fwd=%p queue=%p pit+cs=%p", fwd->id, fwd,
+          fwd->queue, fwd->pit);
+
   Packet* npkts[FW_FWD_BURST_SIZE];
   while (!fwd->stop) {
     rcu_quiescent_state();
@@ -39,9 +43,11 @@ FwFwd_Run(FwFwd* fwd)
       RunningStat_Push(&fwd->timeSinceRxStat, timeSinceRx);
 
       L3PktType l3type = Packet_GetL3PktType(npkt);
-      ZF_LOGV("%" PRIu8 " npkt=%p l3type=%d", fwd->id, npkt, (int)l3type);
+      assert(l3type != L3PktType_None && l3type < L3PktType_MAX);
       FwFwd_RxFunc rxFunc = FwFwd_RxFuncs[l3type];
       (*rxFunc)(fwd, npkt);
     }
   }
+
+  ZF_LOGI("fwdId=%" PRIu8 " STOP", fwd->id);
 }

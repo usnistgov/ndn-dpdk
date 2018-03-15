@@ -1,5 +1,15 @@
 #include "packet.h"
 
+static const char* L3PktType_Strings[L3PktType_MAX] = {
+  "none", "interest", "data", "nack",
+};
+
+const char*
+L3PktType_ToString(L3PktType t)
+{
+  return L3PktType_Strings[t];
+}
+
 NdnError
 Packet_ParseL2(Packet* npkt)
 {

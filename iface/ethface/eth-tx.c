@@ -4,9 +4,6 @@
 #include "../../core/logger.h"
 #include "../../dpdk/ethdev.h"
 
-#define LOG_PREFIX "(%" PRIu16 ",%" PRIu16 ") "
-#define LOG_PARAM face->port, tx->queue
-
 // max L2 burst size
 static const int MAX_FRAMES = 64;
 

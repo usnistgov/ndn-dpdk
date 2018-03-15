@@ -3,7 +3,7 @@
 
 #include "../../core/logger.h"
 
-INIT_ZF_LOG(FwInterest);
+INIT_ZF_LOG(FwFwd);
 
 static void
 FwFwd_RxInterestMissCs(FwFwd* fwd, PitEntry* pitEntry, Packet* npkt)
@@ -14,23 +14,21 @@ FwFwd_RxInterestMissCs(FwFwd* fwd, PitEntry* pitEntry, Packet* npkt)
 
   // insert DN record
   int dnIndex = PitEntry_DnRxInterest(fwd->pit, pitEntry, npkt);
-  if (dnIndex < 0) {
-    ZF_LOGW("%" PRIu8 " %s PitDn-full", fwd->id,
-            PitEntry_ToDebugString(pitEntry));
+  if (unlikely(dnIndex < 0)) {
+    ZF_LOGD("^ pit-entry=%p drop=PitDn-full", pitEntry);
     rte_pktmbuf_free(pkt);
     return;
   }
+  ZF_LOGD("^ pit-entry=%p pit-key=%s", pitEntry,
+          PitEntry_ToDebugString(pitEntry));
   npkt = NULL; // npkt is owned/freed by pitEntry
-  ZF_LOGV("%" PRIu8 " %s dn[%d]=%" PRI_FaceId, fwd->id,
-          PitEntry_ToDebugString(pitEntry), dnIndex, pkt->port);
 
   // query FIB, multicast the Interest to every nexthop except inFace
   rcu_read_lock();
   // TODO query with forwarding hint
   const FibEntry* fibEntry = Fib_Lpm(fwd->fib, &interest->name);
   if (unlikely(fibEntry == NULL)) {
-    ZF_LOGV("%" PRIu8 " %s FIB-no-match", fwd->id,
-            PitEntry_ToDebugString(pitEntry));
+    ZF_LOGD("^ drop=no-FIB-match");
     rcu_read_unlock();
     return;
   }
@@ -45,9 +43,11 @@ FwFwd_RxInterestMissCs(FwFwd* fwd, PitEntry* pitEntry, Packet* npkt)
     Packet* outNpkt;
     int upIndex = PitEntry_UpTxInterest(fwd->pit, pitEntry, nh, &outNpkt);
     if (unlikely(upIndex < 0)) {
+      ZF_LOGD("^ drop=PitUp-full");
       break;
     }
     if (unlikely(outNpkt == NULL)) {
+      ZF_LOGD("^ drop=interest-alloc-error");
       break;
     }
 
@@ -59,8 +59,8 @@ FwFwd_RxInterestMissCs(FwFwd* fwd, PitEntry* pitEntry, Packet* npkt)
     if (unlikely(outFace == NULL)) {
       continue;
     }
-    ZF_LOGV("%" PRIu8 " %s up[%d]=%" PRI_FaceId " token=%" PRIx64, fwd->id,
-            PitEntry_ToDebugString(pitEntry), upIndex, nh, token);
+    ZF_LOGD("^ interest-to=%" PRI_FaceId " npkt=%p up-token=%016" PRIx64, nh,
+            outNpkt, token);
     Face_Tx(outFace, outNpkt);
   }
   rcu_read_unlock();
@@ -70,20 +70,26 @@ void
 FwFwd_RxInterest(FwFwd* fwd, Packet* npkt)
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
-  ZF_LOGD("%" PRIu8 " %p RxInterest from=%" PRI_FaceId, fwd->id, npkt,
-          pkt->port);
+  uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
   PInterest* interest = Packet_GetInterestHdr(npkt);
+
+  ZF_LOGD("interest-from=%" PRI_FaceId " npkt=%p dn-token=%016" PRIx64,
+          pkt->port, npkt, token);
 
   PitInsertResult pitIns = Pit_Insert(fwd->pit, interest);
   switch (PitInsertResult_GetKind(pitIns)) {
     case PIT_INSERT_PIT0:
-    case PIT_INSERT_PIT1:
-      return FwFwd_RxInterestMissCs(fwd, PitInsertResult_GetPitEntry(pitIns),
-                                    npkt);
-    case PIT_INSERT_CS:
-      assert(false); // not implemented
+    case PIT_INSERT_PIT1: {
+      PitEntry* pitEntry = PitInsertResult_GetPitEntry(pitIns);
+      return FwFwd_RxInterestMissCs(fwd, pitEntry, npkt);
+    }
+    case PIT_INSERT_CS: {
+      CsEntry* csEntry = PitInsertResult_GetCsEntry(pitIns);
+      ZF_LOGD("^ cs-entry=%p", csEntry);
       break;
+    }
     case PIT_INSERT_FULL:
+      ZF_LOGD("^ drop=PIT-full");
       rte_pktmbuf_free(pkt);
       break;
     default:

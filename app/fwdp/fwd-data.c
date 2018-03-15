@@ -2,14 +2,12 @@
 
 #include "../../core/logger.h"
 
-INIT_ZF_LOG(FwData);
+INIT_ZF_LOG(FwFwd);
 
 static void
 FwFwd_RxDataUnsolicited(FwFwd* fwd, Packet* npkt)
 {
-  uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
-  ZF_LOGD("%" PRIu8 " %p RxDataUnsolicited token=%" PRIx64, fwd->id, npkt,
-          token);
+  ZF_LOGD("^ drop=unsolicited");
   rte_pktmbuf_free(Packet_ToMbuf(npkt));
 }
 
@@ -17,15 +15,19 @@ static void
 FwFwd_RxDataSatisfy(FwFwd* fwd, Packet* npkt, PitEntry* pitEntry)
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
+  ZF_LOGD("^ pit-entry=%p pit-key=%s", pitEntry,
+          PitEntry_ToDebugString(pitEntry));
 
   for (int index = 0; index < PIT_ENTRY_MAX_DNS; ++index) {
     PitDn* dn = &pitEntry->dns[index];
-    if (dn->face == FACEID_INVALID) {
+    if (unlikely(dn->face == FACEID_INVALID)) {
+      if (index == 0) {
+        ZF_LOGD("^ drop=PitDn-empty");
+      }
       break;
     }
-    if (dn->expiry < pkt->timestamp) {
-      ZF_LOGV("%" PRIu8 " %s dn[%i]=%" PRI_FaceId " expired", fwd->id,
-              PitEntry_ToDebugString(pitEntry), index, dn->face);
+    if (unlikely(dn->expiry < pkt->timestamp)) {
+      ZF_LOGV("^ dn-expired=%" PRI_FaceId, dn->face);
       continue;
     }
     Face* outFace = FaceTable_GetFace(fwd->ft, dn->face);
@@ -34,8 +36,7 @@ FwFwd_RxDataSatisfy(FwFwd* fwd, Packet* npkt, PitEntry* pitEntry)
     }
 
     Packet* outNpkt = ClonePacket(npkt, fwd->headerMp, fwd->indirectMp);
-    ZF_LOGV("%" PRIu8 " %s dn[%i]=%" PRI_FaceId " TxData=%p", fwd->id,
-            PitEntry_ToDebugString(pitEntry), index, dn->face, outNpkt);
+    ZF_LOGD("^ data-to=%" PRI_FaceId " npkt=%p", dn->face, outNpkt);
     if (likely(outNpkt != NULL)) {
       Face_Tx(outFace, outNpkt);
     }
@@ -48,9 +49,11 @@ void
 FwFwd_RxData(FwFwd* fwd, Packet* npkt)
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
-  ZF_LOGD("%" PRIu8 " %p RxData from=%" PRI_FaceId, fwd->id, npkt, pkt->port);
-
   uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
+
+  ZF_LOGD("data-from=%" PRI_FaceId " npkt=%p up-token=%016" PRIx64, pkt->port,
+          npkt, token);
+
   PitFindResult pitFound;
   Pit_Find(fwd->pit, token, &pitFound);
 
