@@ -5,6 +5,7 @@ package iface
 */
 import "C"
 import (
+	"fmt"
 	"unsafe"
 
 	"ndn-dpdk/dpdk"
@@ -52,6 +53,28 @@ func (face Face) Close() error {
 	if !ok {
 		return dpdk.GetErrno()
 	}
+	return nil
+}
+
+// Make TxBurst thread-safe.
+//
+// Initially, Face_TxBurst (or Face.TxBurst in Go) is non-thread-safe.
+// This function adds a software queue on the face, to make TxBurst thread safe.
+// The face must then be added to a TxLooper.
+//
+// queueCapacity must be (2^q).
+func (face Face) EnableThreadSafeTx(queueCapacity int) error {
+	if face.c.threadSafeTxQueue != nil {
+		return fmt.Errorf("Face %d already has thread-safe TX", face.GetFaceId())
+	}
+
+	r, e := dpdk.NewRing(fmt.Sprintf("FaceTsTx_%d", face.GetFaceId()),
+		queueCapacity, face.GetNumaSocket(), false, true)
+	if e != nil {
+		return e
+	}
+
+	face.c.threadSafeTxQueue = (*C.struct_rte_ring)(r.GetPtr())
 	return nil
 }
 

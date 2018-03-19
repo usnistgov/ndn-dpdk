@@ -37,8 +37,10 @@ typedef struct FaceOps
  */
 typedef struct Face
 {
-  FaceOps_TxBurst txBurstOp;
   const FaceOps* ops;
+  FaceOps_TxBurst txBurstOp;
+
+  struct rte_ring* threadSafeTxQueue;
 
   RxProc rx;
   TxProc tx;
@@ -67,11 +69,30 @@ Face_GetNumaSocket(Face* face)
  */
 typedef void (*Face_RxCb)(Face* face, FaceRxBurst* burst, void* cbarg);
 
-/** \brief Send a burst of packet.
+/** \brief Send a burst of packets (non-thread-safe).
+ */
+void Face_TxBurst_Nts(Face* face, Packet** npkts, uint16_t count);
+
+/** \brief Send a burst of packets.
  *  \param npkts array of L3 packets; Face takes ownership
  *  \param count size of \p npkt array
+ *
+ *  This function is non-thread-safe by default.
+ *  Invoke Face.EnableThreadSafeTx in Go API to make this thread-safe.
  */
-void Face_TxBurst(Face* face, Packet** npkts, uint16_t count);
+static void
+Face_TxBurst(Face* face, Packet** npkts, uint16_t count)
+{
+  if (likely(face->threadSafeTxQueue != NULL)) {
+    uint16_t nQueued = rte_ring_mp_enqueue_burst(face->threadSafeTxQueue,
+                                                 (void**)npkts, count, NULL);
+    uint16_t nRejects = count - nQueued;
+    FreeMbufs((struct rte_mbuf**)&npkts[nQueued], nRejects);
+    // TODO count nRejects
+  } else {
+    Face_TxBurst_Nts(face, npkts, count);
+  }
+}
 
 /** \brief Send a packet.
  *  \param npkt an L3 packet; Face takes ownership

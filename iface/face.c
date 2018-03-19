@@ -10,19 +10,19 @@ Face_TxBurst_SendFrames(Face* face, struct rte_mbuf** frames, uint16_t nFrames)
   assert(nFrames > 0);
   uint16_t nQueued = (*face->txBurstOp)(face, frames, nFrames);
   uint16_t nRejects = nFrames - nQueued;
-  FreeMbufs(frames + nQueued, nRejects);
+  FreeMbufs(&frames[nQueued], nRejects);
   TxProc_CountQueued(&face->tx, nQueued, nRejects);
 }
 
 void
-Face_TxBurst(Face* face, Packet** npkts, uint16_t count)
+Face_TxBurst_Nts(Face* face, Packet** npkts, uint16_t count)
 {
   struct rte_mbuf* frames[TX_BURST_FRAMES + TX_MAX_FRAGMENTS];
   uint16_t nFrames = 0;
 
   for (uint16_t i = 0; i < count; ++i) {
     nFrames +=
-      TxProc_Output(&face->tx, npkts[i], frames + nFrames, TX_MAX_FRAGMENTS);
+      TxProc_Output(&face->tx, npkts[i], &frames[nFrames], TX_MAX_FRAGMENTS);
 
     if (unlikely(nFrames >= TX_BURST_FRAMES)) {
       Face_TxBurst_SendFrames(face, frames, nFrames);
@@ -46,6 +46,8 @@ void
 FaceImpl_Init(Face* face, uint16_t mtu, uint16_t headroom,
               FaceMempools* mempools)
 {
+  face->threadSafeTxQueue = NULL;
+
   TxProc_Init(&face->tx, mtu, headroom, mempools->indirectMp,
               mempools->headerMp);
   RxProc_Init(&face->rx, mempools->nameMp);

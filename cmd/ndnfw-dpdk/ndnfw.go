@@ -56,24 +56,37 @@ func startDp() {
 	var dpCfg fwdp.Config
 	dpCfg.FaceTable = appinit.GetFaceTable()
 
-	// reserve lcores for EthFace inputs
+	// reserve lcores for EthFace
 	var inputNumaSockets []dpdk.NumaSocket
 	var inputRxLoopers []iface.IRxLooper
+	var outputLCores []dpdk.LCore
+	var outputTxLoopers []iface.ITxLooper
 	for _, port := range dpdk.ListEthDevs() {
 		face, e := appinit.NewFaceFromEthDev(port)
 		if e != nil {
 			logger.Printf("%v", e)
 			continue
 		}
-		lc := lcr.ReserveRequired(face.GetNumaSocket())
-		socket := lc.GetNumaSocket()
-		logger.Printf("Reserving lcore %d on socket %d for EthDev %d", lc, socket, port)
-		dpCfg.InputLCores = append(dpCfg.InputLCores, lc)
+		inputLc := lcr.ReserveRequired(face.GetNumaSocket())
+		socket := inputLc.GetNumaSocket()
+		logger.Printf("Reserving lcore %d on socket %d for EthDev %d RX", inputLc, socket, port)
+		dpCfg.InputLCores = append(dpCfg.InputLCores, inputLc)
 		inputNumaSockets = append(inputNumaSockets, socket)
 		inputRxLoopers = append(inputRxLoopers, appinit.MakeRxLooper(*face))
+
+		e = face.EnableThreadSafeTx(256)
+		if e != nil {
+			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "EthFace(%d).EnableThreadSafeTx(): %v",
+				port, e)
+		}
+
+		outputLc := lcr.ReserveRequired(socket)
+		logger.Printf("Reserving lcore %d on socket %d for EthDev %d TX", outputLc, socket, port)
+		outputLCores = append(outputLCores, outputLc)
+		outputTxLoopers = append(outputTxLoopers, appinit.MakeTxLooper(*face))
 	}
 
-	// TODO reserve lcore for SocketFace inputs
+	// TODO reserve lcore for SocketFaces
 
 	// initialize NDT
 	{
@@ -102,7 +115,7 @@ func startDp() {
 	}
 
 	// reserve lcores for forwarding processes
-	nFwds := len(appinit.Eal.Slaves) - len(dpCfg.InputLCores)
+	nFwds := len(appinit.Eal.Slaves) - len(dpCfg.InputLCores) - len(outputLCores)
 	for len(dpCfg.FwdLCores) < nFwds {
 		lc := lcr.Reserve(dpdk.NUMA_SOCKET_ANY)
 		if !lc.IsValid() {
@@ -111,6 +124,13 @@ func startDp() {
 		logger.Printf("Reserving lcore %d on socket %d for forwarding", lc, lc.GetNumaSocket())
 		dpCfg.FwdLCores = append(dpCfg.FwdLCores, lc)
 	}
+	nFwds = len(dpCfg.FwdLCores)
+	if nFwds <= 0 {
+		appinit.Exitf(appinit.EXIT_EAL_LAUNCH_ERROR, "No lcore available for forwarding")
+	}
+
+	// randomize NDT
+	theNdt.Randomize(nFwds)
 
 	// set forwarding process config
 	dpCfg.FwdQueueCapacity = 64
@@ -123,6 +143,18 @@ func startDp() {
 		if e != nil {
 			appinit.Exitf(appinit.EXIT_EAL_LAUNCH_ERROR, "fwdp.New(): %v", e)
 		}
+	}
+
+	// launch output lcores
+	logger.Print("Launching output lcores")
+	for i := range outputTxLoopers {
+		func(i int) {
+			outputLCores[i].RemoteLaunch(func() int {
+				txl := outputTxLoopers[i]
+				txl.TxLoop()
+				return 0
+			})
+		}(i)
 	}
 
 	// launch forwarding lcores
@@ -143,9 +175,6 @@ func startDp() {
 			appinit.Exitf(appinit.EXIT_EAL_LAUNCH_ERROR, "dp.LaunchInput(%d): %v", i, e)
 		}
 	}
-
-	// randomize NDT
-	theNdt.Randomize(nFwds)
 
 	logger.Print("Data plane started")
 }

@@ -143,3 +143,8 @@ func MakeRxLooper(face iface.Face) iface.IRxLooper {
 	}
 	return nil
 }
+
+// Create TxLooper for one face.
+func MakeTxLooper(face iface.Face) iface.ITxLooper {
+	return iface.NewTxLooper(face)
+}

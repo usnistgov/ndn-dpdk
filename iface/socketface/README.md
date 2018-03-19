@@ -7,6 +7,8 @@ There are two different implementations:
 * **datagraImpl** for datagram-oriented sockets (net.PacketConn).
 * **streamImpl** for stream-oriented sockets (net.Conn that is not net.PacketConn).
 
+SocketFace is thread safe on C API side, due to the use of Go channels.
+
 ## Receive Path
 
 A goroutine running `impl.RxLoop` function reads from the socket, and places L2 frames on the `SocketFace.rxQueue` channel.
