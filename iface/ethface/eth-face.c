@@ -35,7 +35,7 @@ int
 EthFace_Init(EthFace* face, uint16_t port, FaceMempools* mempools)
 {
   assert(rte_pktmbuf_data_room_size(mempools->headerMp) >=
-         EthTx_GetHeaderMempoolDataRoom());
+         EthTx_GetHeaderMempoolDataroom());
 
   if (port >= 0x1000) {
     return ENODEV;

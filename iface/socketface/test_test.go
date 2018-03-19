@@ -17,10 +17,11 @@ var faceMempools iface.Mempools
 
 func TestMain(m *testing.M) {
 	directMp = dpdktestenv.MakeDirectMp(255, ndn.SizeofPacketPriv(), 2000)
-	faceMempools.IndirectMp = dpdktestenv.MakeIndirectMp(4095)
-	faceMempools.HeaderMp = dpdktestenv.MakeMp("header", 4095, 0,
-		uint16(ndn.PrependLpHeader_GetHeadroom()))
-	faceMempools.NameMp = dpdktestenv.MakeMp("name", 4095, 0, ndn.NAME_MAX_LENGTH)
+	faceMempools = iface.Mempools{
+		IndirectMp: dpdktestenv.MakeIndirectMp(4095),
+		NameMp:     dpdktestenv.MakeMp("name", 4095, 0, ndn.NAME_MAX_LENGTH),
+		HeaderMp:   dpdktestenv.MakeMp("header", 4095, 0, ndn.PrependLpHeader_GetHeadroom()),
+	}
 
 	os.Exit(m.Run())
 }

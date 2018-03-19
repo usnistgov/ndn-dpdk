@@ -96,7 +96,7 @@ func init() {
 			Capacity:     15,
 			CacheSize:    0,
 			PrivSize:     0,
-			DataRoomSize: Server_MaxPayloadSize,
+			DataroomSize: Server_MaxPayloadSize,
 		})
 }
 

@@ -47,14 +47,20 @@ type PktmbufPool struct {
 	Mempool
 }
 
-func NewPktmbufPool(name string, capacity int, cacheSize int, privSize uint16,
-	dataRoomSize uint16, socket NumaSocket) (PktmbufPool, error) {
+func NewPktmbufPool(name string, capacity int, cacheSize int, privSize int,
+	dataroomSize int, socket NumaSocket) (mp PktmbufPool, e error) {
+	if privSize > C.UINT16_MAX {
+		return mp, errors.New("privSize is too large")
+	}
+	if dataroomSize > C.UINT16_MAX {
+		return mp, errors.New("dataroomSize is too large")
+	}
+
 	cName := C.CString(name)
 	defer C.free(unsafe.Pointer(cName))
 
-	var mp PktmbufPool
 	mp.ptr = C.rte_pktmbuf_pool_create(cName, C.uint(capacity), C.uint(cacheSize),
-		C.uint16_t(privSize), C.uint16_t(dataRoomSize), C.int(socket))
+		C.uint16_t(privSize), C.uint16_t(dataroomSize), C.int(socket))
 	if mp.ptr == nil {
 		return mp, GetErrno()
 	}

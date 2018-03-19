@@ -17,8 +17,8 @@ import (
 	"ndn-dpdk/iface"
 )
 
-func SizeofHeaderMempoolDataRoom() uint16 {
-	return uint16(C.EthTx_GetHeaderMempoolDataRoom())
+func SizeofHeaderMempoolDataroom() int {
+	return int(C.EthTx_GetHeaderMempoolDataroom())
 }
 
 type EthFace struct {

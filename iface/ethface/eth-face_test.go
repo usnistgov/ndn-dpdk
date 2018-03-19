@@ -18,8 +18,8 @@ func TestEthFace(t *testing.T) {
 	dpdktestenv.MakeDirectMp(4095, ndn.SizeofPacketPriv(), 2000)
 	mempools := iface.Mempools{
 		IndirectMp: dpdktestenv.MakeIndirectMp(4095),
-		NameMp:     dpdktestenv.MakeMp("name", 4095, 0, uint16(ndn.NAME_MAX_LENGTH)),
-		HeaderMp:   dpdktestenv.MakeMp("header", 4095, 0, ethface.SizeofHeaderMempoolDataRoom()),
+		NameMp:     dpdktestenv.MakeMp("name", 4095, 0, ndn.NAME_MAX_LENGTH),
+		HeaderMp:   dpdktestenv.MakeMp("header", 4095, 0, ethface.SizeofHeaderMempoolDataroom()),
 	}
 	evl := dpdktestenv.NewEthVLink(1024, 64, dpdktestenv.MPID_DIRECT)
 	defer evl.Close()

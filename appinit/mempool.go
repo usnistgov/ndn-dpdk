@@ -18,8 +18,8 @@ import (
 type MempoolConfig struct {
 	Capacity     int
 	CacheSize    int
-	PrivSize     uint16
-	DataRoomSize uint16
+	PrivSize     int
+	DataroomSize int
 }
 
 var mempoolCfgs = make(map[string]*MempoolConfig)
@@ -79,7 +79,7 @@ func MakePktmbufPool(key string, socket dpdk.NumaSocket) dpdk.PktmbufPool {
 	}
 
 	mp, e := dpdk.NewPktmbufPool(name, cfg.Capacity, cfg.CacheSize,
-		cfg.PrivSize, cfg.DataRoomSize, socket)
+		cfg.PrivSize, cfg.DataroomSize, socket)
 	if e != nil {
 		Exitf(EXIT_MEMPOOL_INIT_ERROR, "MakePktmbufPool(%s,%d): %v", key, socket, e)
 	}
@@ -105,55 +105,55 @@ func init() {
 			Capacity:     262143,
 			CacheSize:    219,
 			PrivSize:     0,
-			DataRoomSize: 0,
+			DataroomSize: 0,
 		})
 	RegisterMempool(MP_ETHRX,
 		MempoolConfig{
 			Capacity:     262143,
 			CacheSize:    219,
 			PrivSize:     ndn.SizeofPacketPriv(),
-			DataRoomSize: 9014, // MTU+sizeof(ether_hdr)
+			DataroomSize: 9014, // MTU+sizeof(ether_hdr)
 		})
 	RegisterMempool(MP_NAME,
 		MempoolConfig{
 			Capacity:     65535,
 			CacheSize:    255,
 			PrivSize:     0,
-			DataRoomSize: ndn.NAME_MAX_LENGTH,
+			DataroomSize: ndn.NAME_MAX_LENGTH,
 		})
 	RegisterMempool(MP_HDR,
 		MempoolConfig{
 			Capacity:     65535,
 			CacheSize:    255,
 			PrivSize:     ndn.SizeofPacketPriv(),
-			DataRoomSize: ethface.SizeofHeaderMempoolDataRoom() + uint16(ndn.EncodeInterest_GetHeadroom()),
+			DataroomSize: ethface.SizeofHeaderMempoolDataroom() + ndn.EncodeInterest_GetHeadroom(),
 		})
 	RegisterMempool(MP_INTG,
 		MempoolConfig{
 			Capacity:     65535,
 			CacheSize:    255,
 			PrivSize:     0,
-			DataRoomSize: uint16(ndn.ModifyInterest_SizeofGuider()),
+			DataroomSize: ndn.ModifyInterest_SizeofGuider(),
 		})
 	RegisterMempool(MP_INT,
 		MempoolConfig{
 			Capacity:     65535,
 			CacheSize:    255,
 			PrivSize:     ndn.SizeofPacketPriv(),
-			DataRoomSize: uint16(ndn.EncodeInterest_GetHeadroom() + ndn.EncodeInterest_GetTailroomMax()),
+			DataroomSize: ndn.EncodeInterest_GetHeadroom() + ndn.EncodeInterest_GetTailroomMax(),
 		})
 	RegisterMempool(MP_DATA1,
 		MempoolConfig{
 			Capacity:     65535,
 			CacheSize:    255,
 			PrivSize:     ndn.SizeofPacketPriv(),
-			DataRoomSize: uint16(ndn.EncodeData1_GetHeadroom() + ndn.EncodeData1_GetTailroomMax()),
+			DataroomSize: ndn.EncodeData1_GetHeadroom() + ndn.EncodeData1_GetTailroomMax(),
 		})
 	RegisterMempool(MP_DATA2,
 		MempoolConfig{
 			Capacity:     65535,
 			CacheSize:    255,
 			PrivSize:     0,
-			DataRoomSize: uint16(ndn.EncodeData2_GetHeadroom() + ndn.EncodeData2_GetTailroom()),
+			DataroomSize: ndn.EncodeData2_GetHeadroom() + ndn.EncodeData2_GetTailroom(),
 		})
 }

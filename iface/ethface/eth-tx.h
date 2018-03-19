@@ -8,7 +8,7 @@
 typedef struct EthFace EthFace;
 
 static uint16_t
-EthTx_GetHeaderMempoolDataRoom()
+EthTx_GetHeaderMempoolDataroom()
 {
   return sizeof(struct ether_hdr) + PrependLpHeader_GetHeadroom();
 }

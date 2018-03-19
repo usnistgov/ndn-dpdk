@@ -13,8 +13,8 @@ import (
 
 // Get size of PacketPriv structure.
 // PktmbufPool's privSize must be no less than this size.
-func SizeofPacketPriv() uint16 {
-	return uint16(C.sizeof_PacketPriv)
+func SizeofPacketPriv() int {
+	return int(C.sizeof_PacketPriv)
 }
 
 type L2PktType int
