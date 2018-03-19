@@ -37,7 +37,7 @@ func NewFaceFromUri(u faceuri.FaceUri) (face *iface.Face, e error) {
 	}
 	face, e = create(u)
 	if e == nil {
-		GetFaceTable().SetFace(*face)
+		GetFaceTable().AddFace(*face)
 	}
 	return face, e
 }
@@ -65,7 +65,7 @@ func NewFaceFromEthDev(port dpdk.EthDev) (face *iface.Face, e error) {
 	}
 	face, e = newEthFaceFromDev(port)
 	if e == nil {
-		GetFaceTable().SetFace(*face)
+		GetFaceTable().AddFace(*face)
 	}
 	return face, e
 }

@@ -44,10 +44,10 @@ func (ft FaceTable) GetFace(id FaceId) Face {
 	return FaceFromPtr(unsafe.Pointer(C.FaceTable_GetFace(ft.c, C.FaceId(id))))
 }
 
-func (ft FaceTable) SetFace(face Face) {
-	C.FaceTable_SetFace(ft.c, (*C.Face)(face.GetPtr()))
+func (ft FaceTable) AddFace(face Face) {
+	C.FaceTable_AddFace(ft.c, (*C.Face)(face.GetPtr()))
 }
 
-func (ft FaceTable) UnsetFace(id FaceId) {
-	C.FaceTable_UnsetFace(ft.c, C.FaceId(id))
+func (ft FaceTable) RemoveFace(id FaceId) {
+	C.FaceTable_RemoveFace(ft.c, C.FaceId(id))
 }

@@ -13,7 +13,7 @@ FaceTable_GetFace(FaceTable* ft, FaceId id)
 }
 
 void
-FaceTable_SetFace(FaceTable* ft, Face* face)
+FaceTable_AddFace(FaceTable* ft, Face* face)
 {
   assert(face->id != FACEID_INVALID);
   Face* oldFace =
@@ -23,11 +23,12 @@ FaceTable_SetFace(FaceTable* ft, Face* face)
 }
 
 void
-FaceTable_UnsetFace(FaceTable* ft, FaceId id)
+FaceTable_RemoveFace(FaceTable* ft, FaceId id)
 {
   Face* oldFace =
     atomic_exchange_explicit(&ft->table[id], NULL, memory_order_relaxed);
   if (oldFace != NULL) {
     atomic_fetch_sub_explicit(&ft->count, 1, memory_order_relaxed);
+    Face_Close(oldFace);
   }
 }

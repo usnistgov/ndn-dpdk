@@ -13,6 +13,7 @@ func TestFaceTable(t *testing.T) {
 	ft := iface.NewFaceTable()
 	assert.Equal(0, ft.Len())
 	assert.Len(ft.ListFaces(), 0)
+	clearNFaceTableTestFaceCloses()
 
 	const NFACES = 1000
 	var faces [NFACES + 1]FaceTableTestFace
@@ -23,7 +24,7 @@ func TestFaceTable(t *testing.T) {
 		go func(id iface.FaceId) {
 			assert.False(ft.GetFace(id).IsValid())
 			face := newFaceTableTestFace(id)
-			ft.SetFace(face.Face)
+			ft.AddFace(face.Face)
 			assert.Equal(face.GetPtr(), ft.GetFace(id).GetPtr())
 			faces[id] = face
 			wg.Done()
@@ -33,13 +34,13 @@ func TestFaceTable(t *testing.T) {
 	wg.Wait()
 	assert.Equal(NFACES, ft.Len())
 	assert.Len(ft.ListFaces(), 1000)
+	assert.Equal(0, getNFaceTableTestFaceCloses())
 
 	wg.Add(NFACES)
 	for i := 1; i <= NFACES; i++ {
 		go func(id iface.FaceId) {
 			assert.Equal(faces[id].GetPtr(), ft.GetFace(id).GetPtr())
-			ft.UnsetFace(id)
-			faces[id].Close()
+			ft.RemoveFace(id)
 			assert.False(ft.GetFace(id).IsValid())
 			wg.Done()
 		}(iface.FaceId(i))
@@ -47,4 +48,5 @@ func TestFaceTable(t *testing.T) {
 
 	wg.Wait()
 	assert.Equal(0, ft.Len())
+	assert.Equal(NFACES, getNFaceTableTestFaceCloses())
 }

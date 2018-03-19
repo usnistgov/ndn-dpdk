@@ -23,14 +23,15 @@ int FaceTable_Count(FaceTable* ft);
  */
 Face* FaceTable_GetFace(FaceTable* ft, FaceId id);
 
-/** \brief Set face with assigned FaceId.
+/** \brief Add face with pre-assigned FaceId.
  *  \pre face->id != FACEID_INVALID
  *  \pre FaceTable_GetFace(ft, face->id) == NULL
  */
-void FaceTable_SetFace(FaceTable* ft, Face* face);
+void FaceTable_AddFace(FaceTable* ft, Face* face);
 
-/** \brief Count faces in the FaceTable.
+/** \brief Remove face with specified FaceId.
+ *  \post If face exists, \p Face_Close is invoked.
  */
-void FaceTable_UnsetFace(FaceTable* ft, FaceId id);
+void FaceTable_RemoveFace(FaceTable* ft, FaceId id);
 
 #endif // NDN_DPDK_IFACE_FACETABLE_H
