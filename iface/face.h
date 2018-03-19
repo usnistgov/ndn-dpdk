@@ -7,6 +7,9 @@
 #include "rxburst.h"
 #include "tx-proc.h"
 
+#include "../core/urcu/urcu.h"
+#include <urcu/rcuhlist.h>
+
 typedef struct Face Face;
 typedef struct FaceCounters FaceCounters;
 
@@ -41,6 +44,7 @@ typedef struct Face
   FaceOps_TxBurst txBurstOp;
 
   struct rte_ring* threadSafeTxQueue;
+  struct cds_hlist_node threadSafeTxNode;
 
   RxProc rx;
   TxProc tx;

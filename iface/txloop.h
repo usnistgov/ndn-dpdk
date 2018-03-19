@@ -5,15 +5,24 @@
 
 #include "face.h"
 
-/** \brief TX loop for faces that enabled thread-safe TX.
- *  \note Currently this only supports one face.
+/** \brief TX loop for one face that enabled thread-safe TX.
  */
-typedef struct FaceTxLoop
+typedef struct SingleTxLoop
 {
-  Face* head;
+  Face* face;
   bool stop;
-} FaceTxLoop;
+} SingleTxLoop;
 
-void FaceTxLoop_Run(FaceTxLoop* txl);
+void SingleTxLoop_Run(SingleTxLoop* txl);
+
+/** \brief TX loop for multiple faces that enabled thread-safe TX.
+ */
+typedef struct MultiTxLoop
+{
+  struct cds_hlist_head head;
+  bool stop;
+} MultiTxLoop;
+
+void MultiTxLoop_Run(MultiTxLoop* txl);
 
 #endif // NDN_DPDK_IFACE_TXLOOP_H

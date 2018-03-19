@@ -24,6 +24,7 @@ The receive path is not thread safe; as such, only one "RX loop" should receive 
 The send path is normally not thread safe.
 It can be made thread safe by `Face.EnableThreadSafeTx` function that adds a queue.
 The face must then join a **TxLooper** that dequeues and sends packets.
+This package provides two variants of TxLooper: **SingleTxLoop** for a single high-traffic face, and **MultiTxLoop** for multiple low-traffic faces (slower due to use of RCU).
 
 ## FaceTable
 

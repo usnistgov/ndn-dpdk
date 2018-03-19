@@ -146,5 +146,5 @@ func MakeRxLooper(face iface.Face) iface.IRxLooper {
 
 // Create TxLooper for one face.
 func MakeTxLooper(face iface.Face) iface.ITxLooper {
-	return iface.NewTxLooper(face)
+	return iface.NewSingleTxLoop(face)
 }
