@@ -63,7 +63,7 @@ func New(cfg Config) (*DataPlane, error) {
 		pcctCfg := cfg.PcctCfg
 		pcctCfg.Id = fmt.Sprintf("FwPcct_%d", i)
 		pcctCfg.NumaSocket = numaSocket
-		pcctCfg.HeaderMp = appinit.MakePktmbufPool(appinit.MP_INTH, numaSocket)
+		pcctCfg.HeaderMp = appinit.MakePktmbufPool(appinit.MP_HDR, numaSocket)
 		pcctCfg.GuiderMp = appinit.MakePktmbufPool(appinit.MP_INTG, numaSocket)
 		pcctCfg.IndirectMp = appinit.MakePktmbufPool(appinit.MP_IND, numaSocket)
 		pcct, e := pcct.New(pcctCfg)

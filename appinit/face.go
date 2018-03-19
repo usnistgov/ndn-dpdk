@@ -128,7 +128,7 @@ func newSocketFace(u faceuri.FaceUri) (face *iface.Face, e error) {
 func makeFaceMempools(socket dpdk.NumaSocket) (mempools iface.Mempools) {
 	mempools.IndirectMp = MakePktmbufPool(MP_IND, socket)
 	mempools.NameMp = MakePktmbufPool(MP_NAME, socket)
-	mempools.HeaderMp = MakePktmbufPool(MP_ETHTX, socket)
+	mempools.HeaderMp = MakePktmbufPool(MP_HDR, socket)
 	return mempools
 }
 

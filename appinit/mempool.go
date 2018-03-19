@@ -92,8 +92,7 @@ const (
 	MP_IND   = "__IND"   // indirect mbufs
 	MP_ETHRX = "__ETHRX" // RX Ethernet frames
 	MP_NAME  = "__NAME"  // name linearize
-	MP_ETHTX = "__ETHTX" // TX Ethernet+NDNLP headers
-	MP_INTH  = "__INTH"  // modifying Interest headers, with room for ETHTX
+	MP_HDR   = "__HDR"   // TX Ethernet+NDNLP+Interest headers
 	MP_INTG  = "__INTG"  // modifying Interest guiders
 	MP_INT   = "__INT"   // encoding Interest
 	MP_DATA1 = "__DATA1" // encoding Data header
@@ -122,14 +121,7 @@ func init() {
 			PrivSize:     0,
 			DataRoomSize: ndn.NAME_MAX_LENGTH,
 		})
-	RegisterMempool(MP_ETHTX,
-		MempoolConfig{
-			Capacity:     65535,
-			CacheSize:    255,
-			PrivSize:     0,
-			DataRoomSize: ethface.SizeofHeaderMempoolDataRoom(),
-		})
-	RegisterMempool(MP_INTH,
+	RegisterMempool(MP_HDR,
 		MempoolConfig{
 			Capacity:     65535,
 			CacheSize:    255,
