@@ -141,7 +141,8 @@ void FaceImpl_Init(Face* face, uint16_t mtu, uint16_t headroom,
                    FaceMempools* mempools);
 
 /** \brief Process received frames and invoke upper layer callback.
- *  \param burst FaceRxBurst_GetScratch(burst) shall contain received frames.
+ *  \param burst FaceRxBurst_GetScratch(burst) shall contain received frames,
+ *               and each frame should have timestamp set.
  */
 void FaceImpl_RxBurst(Face* face, FaceRxBurst* burst, uint16_t nFrames,
                       Face_RxCb cb, void* cbarg);

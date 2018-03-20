@@ -71,7 +71,6 @@ func (impl *streamImpl) postPacket(buf ndn.TlvBytes) (n int) {
 	}
 
 	pkt := mbuf.AsPacket()
-	pkt.SetPort(uint16(impl.face.GetFaceId()))
 	pkt.SetTimestamp(dpdk.TscNow())
 	seg0 := pkt.GetFirstSegment()
 	seg0.SetHeadroom(0)

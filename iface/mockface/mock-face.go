@@ -79,7 +79,7 @@ func (face *MockFace) IsClosed() bool {
 
 func (face *MockFace) Rx(pkt ndn.IL3Packet) {
 	npkt := pkt.GetPacket()
-	npkt.AsDpdkPacket().SetPort(uint16(face.GetFaceId()))
+	npkt.AsDpdkPacket().SetTimestamp(dpdk.TscNow())
 	C.Packet_SetL3PktType((*C.Packet)(npkt.GetPtr()), C.L3PktType_None)
 	rxQueue <- rxPacket{face, npkt}
 }
