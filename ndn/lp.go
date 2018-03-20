@@ -12,10 +12,15 @@ import (
 
 type LpL3 struct {
 	c C.LpL3
+	// DO NOT add other fields: *C.LpL3 is casted as *LpL3
 }
 
 func (l3 *LpL3) GetPitToken() uint64 {
 	return uint64(l3.c.pitToken)
+}
+
+func (l3 *LpL3) SetPitToken(token uint64) {
+	l3.c.pitToken = C.uint64_t(token)
 }
 
 func (l3 *LpL3) GetNackReason() NackReason {
@@ -31,6 +36,7 @@ func (l3 *LpL3) GetCongMark() CongMark {
 type LpHeader struct {
 	LpL3
 	l2 C.LpL2
+	// DO NOT add other fields: *C.LpHeader is casted as *LpHeader
 }
 
 func (lph *LpHeader) GetFragFields() (seqNo uint64, fragIndex uint16, fragCount uint16) {

@@ -123,6 +123,18 @@ func SetFaceId(pkt ndn.IL3Packet, port uint16) {
 	pkt.GetPacket().AsDpdkPacket().SetPort(port)
 }
 
+func GetPitToken(pkt ndn.IL3Packet) uint64 {
+	return pkt.GetPacket().GetLpL3().GetPitToken()
+}
+
+func SetPitToken(pkt ndn.IL3Packet, token uint64) {
+	pkt.GetPacket().GetLpL3().SetPitToken(token)
+}
+
+func CopyPitToken(pkt ndn.IL3Packet, src ndn.IL3Packet) {
+	SetPitToken(pkt, GetPitToken(src))
+}
+
 func ClosePacket(pkt ndn.IL3Packet) {
 	pkt.GetPacket().AsDpdkPacket().Close()
 }

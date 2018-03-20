@@ -7,8 +7,8 @@ import "C"
 import (
 	"unsafe"
 
+	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
-	"ndn-dpdk/ndn"
 )
 
 type rxLoop struct{}
@@ -18,7 +18,7 @@ var TheRxLoop iface.IRxLooper = &theRxLoop
 
 type rxPacket struct {
 	face *MockFace
-	pkt  ndn.Packet
+	pkt  dpdk.Packet
 }
 
 var rxQueue chan rxPacket = make(chan rxPacket)

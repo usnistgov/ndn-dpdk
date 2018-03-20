@@ -9,7 +9,7 @@ import (
 )
 
 func TestInterestData(t *testing.T) {
-	assert, _ := makeAR(t)
+	assert, require := makeAR(t)
 	fixture := fwdptestfixture.New(t)
 	defer fixture.Close()
 
@@ -20,14 +20,16 @@ func TestInterestData(t *testing.T) {
 	fixture.SetFibEntry("/B", face2.GetFaceId())
 	fixture.SetFibEntry("/C", face3.GetFaceId())
 
-	interestB := ndntestutil.MakeInterest("/B/2")
-	face1.Rx(interestB)
+	interestB1 := ndntestutil.MakeInterest("/B/1")
+	face1.Rx(interestB1)
 	time.Sleep(100 * time.Millisecond)
-	assert.Len(face2.TxInterests, 1)
+	require.Len(face2.TxInterests, 1)
 	assert.Len(face3.TxInterests, 0)
 
-	face2.Rx(ndntestutil.MakeData("/B/2"))
+	dataB1 := ndntestutil.MakeData("/B/1")
+	ndntestutil.CopyPitToken(dataB1, face2.TxInterests[0])
+	face2.Rx(dataB1)
 	time.Sleep(100 * time.Millisecond)
-	assert.Len(face1.TxData, 0) // cannot deliver due to missing PIT token
+	assert.Len(face1.TxData, 1)
 	assert.Len(face1.TxNacks, 0)
 }

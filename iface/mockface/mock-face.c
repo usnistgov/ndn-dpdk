@@ -1,6 +1,10 @@
 #include "mock-face.h"
 #include "_cgo_export.h"
 
+#include "../../core/logger.h"
+
+INIT_ZF_LOG(MockFace);
+
 static int
 MockFace_GetNumaSocket(Face* faceBase)
 {
@@ -15,6 +19,8 @@ static const FaceOps MockFaceOps = {
 void
 MockFace_Init(MockFace* face, FaceId id, FaceMempools* mempools)
 {
+  ZF_LOGI("%p Init(id=%" PRI_FaceId ")", face, id);
+
   face->base.id = id;
   face->base.txBurstOp = go_MockFace_TxBurst;
   face->base.ops = &MockFaceOps;

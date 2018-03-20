@@ -77,11 +77,39 @@ func (face *MockFace) IsClosed() bool {
 	return face.isClosed
 }
 
-func (face *MockFace) Rx(pkt ndn.IL3Packet) {
-	npkt := pkt.GetPacket()
-	npkt.AsDpdkPacket().SetTimestamp(dpdk.TscNow())
-	C.Packet_SetL3PktType((*C.Packet)(npkt.GetPtr()), C.L3PktType_None)
-	rxQueue <- rxPacket{face, npkt}
+// Cause the face to receive a packet.
+// MockFace takes ownership of the underlying mbuf.
+func (face *MockFace) Rx(l3pkt ndn.IL3Packet) {
+	var lph ndn.LpHeader
+	lph.LpL3 = *l3pkt.GetPacket().GetLpL3()
+
+	pkt := l3pkt.GetPacket().AsDpdkPacket()
+	payloadL := pkt.Len()
+	if pkt.GetFirstSegment().GetHeadroom() <= ndn.PrependLpHeader_GetHeadroom() {
+		hdrMbuf, e := FaceMempools.HeaderMp.Alloc()
+		if e != nil {
+			pkt.Close()
+			return
+		}
+		hdr := hdrMbuf.AsPacket()
+		hdr.GetFirstSegment().SetHeadroom(ndn.PrependLpHeader_GetHeadroom())
+		e = hdr.AppendPacket(pkt)
+		if e != nil {
+			hdr.Close()
+			pkt.Close()
+			return
+		}
+		pkt = hdr
+	} else {
+		C.Packet_SetL2PktType((*C.Packet)(pkt.GetPtr()), C.L2PktType_None)
+		C.Packet_SetL3PktType((*C.Packet)(pkt.GetPtr()), C.L3PktType_None)
+	}
+
+	// restore LpHeader because RxProc_Input will re-parse
+	lph.Prepend(pkt, payloadL)
+
+	pkt.SetTimestamp(dpdk.TscNow())
+	rxQueue <- rxPacket{face, pkt}
 }
 
 func (face *MockFace) recordTx(pkt ndn.Packet) {
