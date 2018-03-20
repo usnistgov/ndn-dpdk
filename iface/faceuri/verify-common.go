@@ -1,8 +1,6 @@
 package faceuri
 
-import (
-	"fmt"
-)
+import "fmt"
 
 // Error if FaceUri contains User, Path, Query, or Fragment.
 func rejectUPQF(u *FaceUri) error {

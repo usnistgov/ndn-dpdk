@@ -141,6 +141,11 @@ type IL3Packet interface {
 	GetPacket() Packet
 }
 
+// Implement IL3Packet.
+func (pkt Packet) GetPacket() Packet {
+	return pkt
+}
+
 func init() {
 	var pkt Packet
 	if unsafe.Sizeof(pkt) != unsafe.Sizeof(pkt.c) {

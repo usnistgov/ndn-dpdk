@@ -41,6 +41,8 @@ func TestParse(t *testing.T) {
 		{"tcp://192.0.2.1:7777", true, "tcp4://192.0.2.1:7777"},
 		{"tcp4://192.0.2.1", true, "tcp4://192.0.2.1:6363"},
 		{"tcp4://192.0.2.1:7777", true, ""},
+		{"mock://", true, ""},
+		{"mock://x", false, ""},
 	}
 	for _, tt := range tests {
 		u, e := faceuri.Parse(tt.input)

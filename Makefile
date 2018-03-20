@@ -76,6 +76,9 @@ iface/socketface/cgoflags.go: iface/cgoflags.go
 go-socketface: $(CLIBPREFIX)-iface.a iface/socketface/cgoflags.go
 	go build ./iface/socketface
 
+iface/mockface/cgoflags.go: iface/cgoflags.go
+	./make-cgoflags.sh iface/mockface iface
+
 go-faceuri: $(CLIBPREFIX)-iface.a
 	go build ./iface/faceuri
 

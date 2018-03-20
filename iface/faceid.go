@@ -4,6 +4,7 @@ type FaceKind int
 
 const (
 	FaceKind_None FaceKind = iota
+	FaceKind_Mock
 	FaceKind_EthDev
 	FaceKind_Udp
 	FaceKind_Socket
@@ -20,6 +21,11 @@ const (
 
 func (id FaceId) GetKind() FaceKind {
 	switch id >> 12 {
+	case 0x0:
+		if id == FACEID_INVALID {
+			return FaceKind_None
+		}
+		return FaceKind_Mock
 	case 0x1:
 		return FaceKind_EthDev
 	case 0x4:

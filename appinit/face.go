@@ -9,6 +9,7 @@ import (
 	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/ethface"
 	"ndn-dpdk/iface/faceuri"
+	"ndn-dpdk/iface/mockface"
 	"ndn-dpdk/iface/socketface"
 )
 
@@ -48,6 +49,7 @@ var newFaceByScheme = map[string]func(u faceuri.FaceUri) (*iface.Face, error){
 	"dev":  newEthFace,
 	"udp4": newSocketFace,
 	"tcp4": newSocketFace,
+	"mock": newMockFace,
 }
 
 func newEthFace(u faceuri.FaceUri) (*iface.Face, error) {
@@ -125,6 +127,12 @@ func newSocketFace(u faceuri.FaceUri) (face *iface.Face, e error) {
 	return face, nil
 }
 
+func newMockFace(u faceuri.FaceUri) (face *iface.Face, e error) {
+	mockface.FaceMempools = makeFaceMempools(dpdk.NUMA_SOCKET_ANY)
+	face = &mockface.New().Face
+	return face, nil
+}
+
 func makeFaceMempools(socket dpdk.NumaSocket) (mempools iface.Mempools) {
 	mempools.IndirectMp = MakePktmbufPool(MP_IND, socket)
 	mempools.NameMp = MakePktmbufPool(MP_NAME, socket)
@@ -136,6 +144,8 @@ func makeFaceMempools(socket dpdk.NumaSocket) (mempools iface.Mempools) {
 func MakeRxLooper(face iface.Face) iface.IRxLooper {
 	faceId := face.GetFaceId()
 	switch faceId.GetKind() {
+	case iface.FaceKind_Mock:
+		return mockface.TheRxLoop
 	case iface.FaceKind_EthDev:
 		return ethface.EthFace{face}
 	case iface.FaceKind_Socket:

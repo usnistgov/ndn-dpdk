@@ -2,9 +2,10 @@
 
 getTestPkg() {
   # determine $TESTPKG from $PKG
-  if [[ $1 == 'dpdk' ]]; then echo dpdk/dpdktest
-  elif [[ $1 == 'iface' ]]; then echo iface/ifacetest
+  if [[ $1 == 'app/fwdp' ]]; then echo app/fwdp/fwdptest
   elif [[ $1 == 'container/cs' ]]; then echo container/cs/cstest
+  elif [[ $1 == 'dpdk' ]]; then echo dpdk/dpdktest
+  elif [[ $1 == 'iface' ]]; then echo iface/ifacetest
   else echo $PKG; fi
 }
 
