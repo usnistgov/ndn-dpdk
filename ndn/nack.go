@@ -21,8 +21,8 @@ const (
 	NackReason_Unspecified = NackReason(C.NackReason_Unspecified)
 )
 
-func (nr NackReason) String() string {
-	switch nr {
+func (reason NackReason) String() string {
+	switch reason {
 	case NackReason_Congestion:
 		return "Congestion"
 	case NackReason_Duplicate:
@@ -30,13 +30,32 @@ func (nr NackReason) String() string {
 	case NackReason_NoRoute:
 		return "NoRoute"
 	}
-	return fmt.Sprintf("%d", nr)
+	return fmt.Sprintf("%d", reason)
+}
+
+func ParseNackReason(s string) NackReason {
+	switch s {
+	case "Congestion":
+		return NackReason_Congestion
+	case "Duplicate":
+		return NackReason_Duplicate
+	case "NoRoute":
+		return NackReason_NoRoute
+	}
+	return NackReason_Unspecified
 }
 
 // Nack packet.
 type Nack struct {
 	m Packet
 	p *C.PNack
+}
+
+// Turn Interest into Nack.
+// This overwrites the Interest.
+func MakeNackFromInterest(interest *Interest, reason NackReason) *Nack {
+	C.MakeNack(interest.m.c, C.NackReason(reason))
+	return interest.m.AsNack()
 }
 
 func (nack *Nack) GetPacket() Packet {

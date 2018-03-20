@@ -1,30 +1,28 @@
 package ndntestutil
 
 import (
+	"strings"
+
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/dpdk/dpdktestenv"
 	"ndn-dpdk/ndn"
 )
 
-func ParseName(nameStr string) *ndn.Name {
-	name, e := ndn.ParseName(nameStr)
+// Parse NDN name from URI.
+// Panics if URI is malformed.
+func ParseName(uri string) *ndn.Name {
+	name, e := ndn.ParseName(uri)
 	if e != nil {
 		panic(e)
 	}
 	return name
 }
 
-func MakePacket(input interface{}) ndn.Packet {
-	var b []byte
-	switch input1 := input.(type) {
-	case []byte:
-		b = input1
-	case string:
-		b = dpdktestenv.BytesFromHex(input1)
-	}
-	pkt := dpdktestenv.PacketFromBytes(b)
-	pkt.SetTimestamp(dpdk.TscNow())
-	return ndn.PacketFromPtr(pkt.GetPtr())
+func makePacket(b []byte) (pkt ndn.Packet) {
+	m := dpdktestenv.PacketFromBytes(b)
+	m.SetTimestamp(dpdk.TscNow())
+	pkt = ndn.PacketFromPtr(m.GetPtr())
+	return pkt
 }
 
 func parseL2L3(pkt ndn.Packet) {
@@ -39,32 +37,92 @@ func parseL2L3(pkt ndn.Packet) {
 	}
 }
 
+var interestTpl = ndn.NewInterestTemplate()
+
+// Make Interest on dpdktestenv DirectMp.
+// input: packet bytes as []byte or HEX, or name URI.
+// Panics if packet constructed from bytes is not Interest.
 func MakeInterest(input interface{}) *ndn.Interest {
-	pkt := MakePacket(input)
+	var pkt ndn.Packet
+	switch input1 := input.(type) {
+	case []byte:
+		pkt = makePacket(input1)
+	case string:
+		if input1[0] == '/' {
+			m := dpdktestenv.Alloc(dpdktestenv.MPID_DIRECT)
+			interestTpl.Encode(m, ParseName(input1), nil)
+			pkt = ndn.PacketFromPtr(m.GetPtr())
+		} else {
+			pkt = makePacket(dpdktestenv.BytesFromHex(input1))
+		}
+	default:
+		panic("unrecognized input type")
+	}
+
 	parseL2L3(pkt)
 	return pkt.AsInterest()
 }
 
+// Make Data on dpdktestenv DirectMp.
+// input: packet bytes as []byte or HEX, or name URI.
+// Panics if packet constructed from bytes is not Data.
 func MakeData(input interface{}) *ndn.Data {
-	pkt := MakePacket(input)
+	var pkt ndn.Packet
+	switch input1 := input.(type) {
+	case []byte:
+		pkt = makePacket(input1)
+	case string:
+		if input1[0] == '/' {
+			mbufs := make([]dpdk.Mbuf, 3)
+			dpdktestenv.AllocBulk(dpdktestenv.MPID_DIRECT, mbufs)
+			m := ndn.EncodeData(ParseName(input1), mbufs[0], mbufs[1], mbufs[2])
+			pkt = ndn.PacketFromPtr(m.GetPtr())
+		} else {
+			pkt = makePacket(dpdktestenv.BytesFromHex(input1))
+		}
+	default:
+		panic("unrecognized input type")
+	}
+
 	parseL2L3(pkt)
 	return pkt.AsData()
 }
 
+// Make Nack on dpdktestenv DirectMp.
+// input: packet bytes as []byte or HEX, or "name~reason".
+// Panics if packet constructed from bytes is not Nack.
 func MakeNack(input interface{}) *ndn.Nack {
-	pkt := MakePacket(input)
+	var pkt ndn.Packet
+	switch input1 := input.(type) {
+	case []byte:
+		pkt = makePacket(input1)
+	case string:
+		if input1[0] == '/' {
+			nackReason := ndn.NackReason_Unspecified
+			if reasonPos := strings.LastIndexByte(input1, '~'); reasonPos >= 0 {
+				nackReason = ndn.ParseNackReason(input1[reasonPos+1:])
+				input1 = input1[:reasonPos]
+			}
+			m := dpdktestenv.Alloc(dpdktestenv.MPID_DIRECT)
+			interestTpl.Encode(m, ParseName(input1), nil)
+			pkt = ndn.PacketFromPtr(m.GetPtr())
+			parseL2L3(pkt)
+			return ndn.MakeNackFromInterest(pkt.AsInterest(), nackReason)
+		} else {
+			pkt = makePacket(dpdktestenv.BytesFromHex(input1))
+		}
+	default:
+		panic("unrecognized input type")
+	}
+
 	parseL2L3(pkt)
 	return pkt.AsNack()
 }
 
-type iNdnPacket interface {
-	GetPacket() ndn.Packet
-}
-
-func SetFaceId(pkt iNdnPacket, port uint16) {
+func SetFaceId(pkt ndn.IL3Packet, port uint16) {
 	pkt.GetPacket().AsDpdkPacket().SetPort(port)
 }
 
-func ClosePacket(pkt iNdnPacket) {
+func ClosePacket(pkt ndn.IL3Packet) {
 	pkt.GetPacket().AsDpdkPacket().Close()
 }

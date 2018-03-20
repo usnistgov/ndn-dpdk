@@ -40,13 +40,13 @@ func TestReplacePitEntry(t *testing.T) {
 	assert.Zero(pit.Len())
 	assert.Zero(mp.CountInUse())
 
-	interest := ndntestutil.MakeInterest("050E name=0706080141080142 nonce=0A04A0A1A2A3")
+	interest := ndntestutil.MakeInterest("/A/B")
 	defer ndntestutil.ClosePacket(interest)
 	pitEntry, csEntry := pit.Insert(interest)
 	assert.Nil(csEntry)
 	require.NotNil(pitEntry)
 
-	data := ndntestutil.MakeData("060E name=0706080141080142 metainfo=1400 content=1502C0C1")
+	data := ndntestutil.MakeData("/A/B")
 	defer ndntestutil.ClosePacket(data)
 	assert.Zero(cs.Len())
 	cs.ReplacePitEntry(pitEntry, data)

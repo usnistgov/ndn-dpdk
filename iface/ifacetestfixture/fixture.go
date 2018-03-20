@@ -92,10 +92,9 @@ func (fixture *Fixture) rxProc() int {
 func (fixture *Fixture) txProc() int {
 	for i := 0; i < fixture.TxLoops; i++ {
 		pkts := make([]ndn.Packet, 3)
-		pkts[0] = ndntestutil.MakeInterest("050B name=0703080141 nonce=0A04CACBCCCD").GetPacket()
-		pkts[1] = ndntestutil.MakeData("0609 name=0703080141 meta=1400 content=1500").GetPacket()
-		pkts[2] = ndntestutil.MakeNack("6418 nack=FD032005(FD03210196~noroute) " +
-			"payload=500D(interest 050B name=0703080141 nonce=0A04CACBCCCD)").GetPacket()
+		pkts[0] = ndntestutil.MakeInterest("/A").GetPacket()
+		pkts[1] = ndntestutil.MakeData("/A").GetPacket()
+		pkts[2] = ndntestutil.MakeNack("/A~NoRoute").GetPacket()
 		fixture.txFace.TxBurst(pkts)
 		time.Sleep(time.Millisecond)
 	}
