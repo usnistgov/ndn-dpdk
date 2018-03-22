@@ -62,10 +62,10 @@ func (pit Pit) Erase(entry Entry) {
 	entry.c = nil
 }
 
-// Find a PIT entry for the given token.
-func (pit Pit) Find(token uint64) (matches []*Entry) {
+// Find PIT entries matching a Data.
+func (pit Pit) FindByData(data *ndn.Data) (matches []*Entry) {
 	var found C.PitFindResult
-	C.Pit_Find(pit.getPtr(), C.uint64_t(token), &found)
+	C.Pit_FindByData(pit.getPtr(), (*C.Packet)(data.GetPacket().GetPtr()), &found)
 	matches = make([]*Entry, int(found.nMatches))
 	for i := range matches {
 		matches[i] = &Entry{found.matches[i], pit}

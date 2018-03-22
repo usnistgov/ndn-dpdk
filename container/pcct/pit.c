@@ -182,20 +182,35 @@ __Pit_Timeout(MinTmr* tmr, void* pit0)
 }
 
 void
-Pit_Find(Pit* pit, uint64_t token, PitFindResult* found)
+Pit_FindByData(Pit* pit, Packet* npkt, PitFindResult* found)
 {
   PitPriv* pitp = Pit_GetPriv(pit);
+  uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
   found->nMatches = 0;
+
   PccEntry* pccEntry = Pcct_FindByToken(Pit_ToPcct(pit), token);
-  if (likely(pccEntry != NULL)) {
-    ++pitp->nTokenHits;
-    if (pccEntry->hasPitEntry0) {
-      found->matches[found->nMatches++] = &pccEntry->pitEntry0;
-    }
-    if (pccEntry->hasPitEntry1) {
-      found->matches[found->nMatches++] = &pccEntry->pitEntry1;
-    }
-  } else {
-    ++pitp->nTokenMisses;
+  if (unlikely(pccEntry == NULL)) {
+    ++pitp->nMisses;
+    return;
   }
+
+  if (pccEntry->hasPitEntry0) {
+    found->matches[found->nMatches++] = &pccEntry->pitEntry0;
+  }
+  if (pccEntry->hasPitEntry1) {
+    found->matches[found->nMatches++] = &pccEntry->pitEntry1;
+  }
+
+  if (unlikely(found->nMatches == 0)) {
+    ++pitp->nMisses;
+    return;
+  }
+
+  PInterest* interest = Packet_GetInterestHdr(found->matches[0]->npkt);
+  if (unlikely(!PInterest_MatchesData(interest, npkt))) {
+    found->nMatches = 0;
+    ++pitp->nMisses;
+    return;
+  }
+  ++pitp->nHits;
 }

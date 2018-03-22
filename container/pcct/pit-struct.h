@@ -24,8 +24,8 @@ typedef struct PitPriv
   uint64_t nCsMatch;  ///< how many inserts matched a CS entry
   uint64_t nAllocErr; ///< how many inserts failed due to allocation error
 
-  uint64_t nTokenHits;   ///< how many finds found existing PIT entries
-  uint64_t nTokenMisses; ///< how many finds did not find existing PIT entry
+  uint64_t nHits;   ///< how many finds found existing PIT entries
+  uint64_t nMisses; ///< how many finds did not find existing PIT entry
 
   MinSched* timeoutSched;
 

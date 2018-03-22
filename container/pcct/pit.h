@@ -134,10 +134,16 @@ typedef struct PitFindResult
   PitEntry* matches[PIT_FIND_MAX_MATCHES];
 } PitFindResult;
 
-/** \brief Find a PIT entry for the given token.
- *  \param token the token, only lower 48 bits are significant.
+/** \brief Find PIT entries matching a Data.
+ *  \param npkt Data packet, its token will be used.
  *  \param[out] found the result.
  */
-void Pit_Find(Pit* pit, uint64_t token, PitFindResult* found);
+void Pit_FindByData(Pit* pit, Packet* npkt, PitFindResult* found);
+
+/** \brief Find PIT entries matching a Nack.
+ *  \param npkt Data packet, its token will be used.
+ *  \param[out] found the result.
+ */
+void Pit_FindByNack(Pit* pit, Packet* npkt, PitFindResult* found);
 
 #endif // NDN_DPDK_CONTAINER_PCCT_PIT_H

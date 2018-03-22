@@ -57,7 +57,7 @@ FwFwd_RxData(FwFwd* fwd, Packet* npkt)
           npkt, token);
 
   PitFindResult pitFound;
-  Pit_Find(fwd->pit, token, &pitFound);
+  Pit_FindByData(fwd->pit, npkt, &pitFound);
 
   if (unlikely(pitFound.nMatches == 0)) {
     FwFwd_RxDataUnsolicited(fwd, npkt);
