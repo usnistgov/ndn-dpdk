@@ -25,16 +25,16 @@ All FwInputs have read-only access to a shared NDT.
 ## Forwarding Process (FwFwd)
 
 A FwFwd runs `FwFwd_Run` function as the main loop.
-It reads packets from its input queue, and handles each packet separately:
+The main loop first performs some maintenance work:
+
+* Mark a URCU quiescent state, as required by FIB.
+* Trigger the PIT timeout scheduler.
+
+Then it reads packets from its input queue, and handles each packet separately:
 
 * `FwFwd_RxInterest` function handles an incoming Interest.
 * `FwFwd_RxData` function handles an incoming Data.
 * `FwFwd_RxNack` function handles an incoming Nack.
-
-Before reading each burst of input packets, the main loop also performs some maintenance work:
-
-* Mark a URCU quiescent state, as required by FIB.
-* Trigger the PIT timeout scheduler.
 
 ### Data Structure Usage
 
