@@ -21,6 +21,8 @@ func TestInterestData(t *testing.T) {
 	fixture.SetFibEntry("/C", face3.GetFaceId())
 
 	interestB1 := ndntestutil.MakeInterest("/B/1")
+	ndntestutil.SetPitToken(interestB1, 0x0290dd7089e9d790)
+	assert.EqualValues(0x0290dd7089e9d790, ndntestutil.GetPitToken(interestB1))
 	face1.Rx(interestB1)
 	time.Sleep(100 * time.Millisecond)
 	require.Len(face2.TxInterests, 1)
@@ -30,6 +32,7 @@ func TestInterestData(t *testing.T) {
 	ndntestutil.CopyPitToken(dataB1, face2.TxInterests[0])
 	face2.Rx(dataB1)
 	time.Sleep(100 * time.Millisecond)
-	assert.Len(face1.TxData, 1)
+	require.Len(face1.TxData, 1)
 	assert.Len(face1.TxNacks, 0)
+	assert.EqualValues(0x0290dd7089e9d790, ndntestutil.GetPitToken(face1.TxData[0]))
 }
