@@ -1,4 +1,5 @@
 #include "interest.h"
+#include "data.h"
 #include "encode-interest.h"
 #include "packet.h"
 #include "tlv-encoder.h"
@@ -144,6 +145,17 @@ PInterest_ParseFh(PInterest* interest, uint8_t index)
   interest->thisFh.v = interest->fh[index].value;
   interest->thisFhIndex = index;
   return NdnError_OK;
+}
+
+bool
+PInterest_MatchesData(PInterest* interest, Packet* dataNpkt)
+{
+  PData* data = Packet_GetDataHdr(dataNpkt);
+  assert(!interest->name.p.hasDigestComp); // not implemented
+  NameCompareResult cmp =
+    LName_Compare(*(const LName*)&interest->name, *(const LName*)&data->name);
+  return cmp == NAMECMP_EQUAL ||
+         (interest->canBePrefix && cmp == NAMECMP_LPREFIX);
 }
 
 Packet*

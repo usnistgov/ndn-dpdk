@@ -94,6 +94,10 @@ func (interest *Interest) SetFhIndex(index int) error {
 	return nil
 }
 
+func (interest *Interest) MatchesData(data *Data) bool {
+	return bool(C.PInterest_MatchesData(interest.p, data.m.c))
+}
+
 func ModifyInterest_SizeofGuider() int {
 	return int(C.ModifyInterest_SizeofGuider())
 }

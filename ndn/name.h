@@ -69,6 +69,14 @@ typedef struct PName
   uint64_t hash[PNAME_N_CACHED_COMPS]; ///< (pvt) hash of i+1-component prefix
 } PName;
 
+/** \brief Initialize a PName to indicate an empty name.
+ */
+static void
+PName_Clear(PName* n)
+{
+  memset(n, 0, sizeof(PName));
+}
+
 /** \brief Parse a name from memory buffer.
  *  \param length TLV-LENGTH of Name element
  *  \param value TLV-VALUE of Name element

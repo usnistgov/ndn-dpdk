@@ -77,6 +77,45 @@ func TestInterestDecode(t *testing.T) {
 	}
 }
 
+func TestInterestMatchesData(t *testing.T) {
+	assert, require := makeAR(t)
+
+	interestPktExact := packetFromHex("0505 name=0703080142")
+	defer interestPktExact.AsDpdkPacket().Close()
+	e := interestPktExact.ParseL3(theMp)
+	require.NoError(e)
+	interestExact := interestPktExact.AsInterest()
+	interestPktPrefix := packetFromHex("0507 name=0703080142 cbp=2100")
+	defer interestPktPrefix.AsDpdkPacket().Close()
+	e = interestPktPrefix.ParseL3(theMp)
+	require.NoError(e)
+	interestPrefix := interestPktPrefix.AsInterest()
+
+	tests := []struct {
+		input       string
+		exactMatch  bool
+		prefixMatch bool
+	}{
+		{"0605 0703080141", false, false},
+		{"0605 0703020142", false, false},
+		{"0605 0703080142", true, true},
+		{"0608 0706080142080130", false, true},
+		{"0602 0700", false, false},
+		{"0605 0703080143", false, false},
+	}
+	for _, tt := range tests {
+		pkt := packetFromHex(tt.input)
+		defer pkt.AsDpdkPacket().Close()
+		e = pkt.ParseL3(theMp)
+		if !assert.NoError(e, tt.input) {
+			continue
+		}
+		data := pkt.AsData()
+		assert.Equal(tt.exactMatch, interestExact.MatchesData(data))
+		assert.Equal(tt.prefixMatch, interestPrefix.MatchesData(data))
+	}
+}
+
 func TestInterestModify(t *testing.T) {
 	assert, _ := makeAR(t)
 

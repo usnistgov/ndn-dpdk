@@ -58,6 +58,10 @@ NdnError PInterest_FromPacket(PInterest* interest, struct rte_mbuf* pkt,
  */
 NdnError PInterest_ParseFh(PInterest* interest, uint8_t index);
 
+/** \brief Determine whether \p dataNpkt can satisfy \p interest.
+ */
+bool PInterest_MatchesData(PInterest* interest, Packet* dataNpkt);
+
 static uint16_t
 ModifyInterest_SizeofGuider()
 {

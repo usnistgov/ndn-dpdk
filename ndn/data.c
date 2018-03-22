@@ -15,10 +15,15 @@ PData_FromPacket(PData* data, struct rte_mbuf* pkt, struct rte_mempool* nameMp)
   TlvElement nameEle;
   e = DecodeTlvElementExpectType(&d1, TT_Name, &nameEle);
   RETURN_IF_UNLIKELY_ERROR;
-  data->name.v = TlvElement_LinearizeValue(&nameEle, pkt, nameMp, &d1);
-  RETURN_IF_UNLIKELY_NULL(data->name.v, NdnError_AllocError);
-  e = PName_Parse(&data->name.p, nameEle.length, data->name.v);
-  RETURN_IF_UNLIKELY_ERROR;
+  if (unlikely(nameEle.length == 0)) {
+    data->name.v = NULL;
+    PName_Clear(&data->name.p);
+  } else {
+    data->name.v = TlvElement_LinearizeValue(&nameEle, pkt, nameMp, &d1);
+    RETURN_IF_UNLIKELY_NULL(data->name.v, NdnError_AllocError);
+    e = PName_Parse(&data->name.p, nameEle.length, data->name.v);
+    RETURN_IF_UNLIKELY_ERROR;
+  }
 
   data->freshnessPeriod = 0;
   TlvElement metaEle;

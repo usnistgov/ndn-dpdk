@@ -18,6 +18,7 @@ func TestDataDecode(t *testing.T) {
 	}{
 		{input: "0600", bad: true},                        // missing Name
 		{input: "0604 meta=1400 content=1500", bad: true}, // missing Name
+		{input: "0602 name=0700", name: "/"},
 		{input: "0605 name=0703080141", name: "/A"},
 		{input: "0615 name=0703080142 meta=140C (180102 fp=190201FF 1A03080142) content=1500", name: "/B", freshness: 0x01FF},
 	}

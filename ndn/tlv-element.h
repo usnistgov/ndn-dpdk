@@ -96,7 +96,7 @@ TlvElement_GetLinearValue(const TlvElement* ele)
 }
 
 /** \brief Ensure TLV-VALUE is in consecutive memory.
- *  \param[inout] ele this TlvElement, will be updated.
+ *  \param[inout] ele this TlvElement; TLV-LENGTH must be positive; will be updated.
  *  \param[inout] pkt enclosing packet.
  *  \param mp mempool for copying TLV-VALUE if necessary, requires TLV-LENGTH in dataroom.
  *  \param[out] d a TlvDecodePos pointing to past-end position; NULL if not needed.
@@ -106,9 +106,10 @@ static const uint8_t*
 TlvElement_LinearizeValue(TlvElement* ele, struct rte_mbuf* pkt,
                           struct rte_mempool* mp, TlvDecodePos* d)
 {
+  assert(ele->length > 0);
   const uint8_t* linear = MbufLoc_Linearize(&ele->value, &ele->last, pkt, mp);
   if (d != NULL) {
-    // in case MbufLoc_Linearize, this is meaningless but harmless
+    // in case MbufLoc_Linearize fails, this is meaningless but harmless
     MbufLoc_Copy(d, &ele->last);
   }
   return linear;
