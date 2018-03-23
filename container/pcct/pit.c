@@ -46,7 +46,7 @@ Pit_Insert(Pit* pit, PInterest* interest)
   PccEntry* pccEntry = Pcct_Insert(pcct, hash, &search, &isNewPcc);
   if (unlikely(pccEntry == NULL)) {
     ++pitp->nAllocErr;
-    return PitResult_New(NULL, PIT_INSERT_FULL);
+    return __PitResult_New(NULL, PIT_INSERT_FULL);
   }
 
   // check for CS match
@@ -60,7 +60,7 @@ Pit_Insert(Pit* pit, PInterest* interest)
             PccSearch_ToDebugString(&search), pccEntry,
             PccEntry_GetCsEntry(pccEntry));
     ++pitp->nCsMatch;
-    return PitResult_New(pccEntry, PIT_INSERT_CS);
+    return __PitResult_New(pccEntry, PIT_INSERT_CS);
   }
 
   // add token now, to avoid token allocation error later
@@ -69,7 +69,7 @@ Pit_Insert(Pit* pit, PInterest* interest)
     if (isNewPcc) {
       Pcct_Erase(pcct, pccEntry);
     }
-    return PitResult_New(pccEntry, PIT_INSERT_FULL);
+    return __PitResult_New(pccEntry, PIT_INSERT_FULL);
   }
 
   // put PIT entry in slot 1 if MustBeFresh=1
@@ -88,7 +88,7 @@ Pit_Insert(Pit* pit, PInterest* interest)
               PccEntry_GetPitEntry1(pccEntry));
       ++pitp->nFound;
     }
-    return PitResult_New(pccEntry, PIT_INSERT_PIT1);
+    return __PitResult_New(pccEntry, PIT_INSERT_PIT1);
   }
 
   // put PIT entry in slot 0 if MustBeFresh=0
@@ -107,7 +107,7 @@ Pit_Insert(Pit* pit, PInterest* interest)
             PccEntry_GetPitEntry0(pccEntry));
     ++pitp->nFound;
   }
-  return PitResult_New(pccEntry, PIT_INSERT_PIT0);
+  return __PitResult_New(pccEntry, PIT_INSERT_PIT0);
 }
 
 PccEntry*
@@ -182,27 +182,19 @@ Pit_FindByData(Pit* pit, Packet* npkt)
   PccEntry* pccEntry = Pcct_FindByToken(Pit_ToPcct(pit), token);
   if (unlikely(pccEntry == NULL)) {
     ++pitp->nMisses;
-    return PitResult_New(NULL, PIT_FIND_NONE);
+    return __PitResult_New(NULL, PIT_FIND_NONE);
   }
 
-  PitResultKind resKind = PIT_FIND_NONE;
-  PitEntry* entry;
-  if (pccEntry->hasPitEntry0) {
-    resKind |= PIT_FIND_PIT0;
-    entry = &pccEntry->pitEntry0;
-  }
-  if (pccEntry->hasPitEntry1) {
-    resKind |= PIT_FIND_PIT1;
-    entry = &pccEntry->pitEntry1;
-  }
-
-  PInterest* interest = Packet_GetInterestHdr(entry->npkt);
-  if (unlikely(!PInterest_MatchesData(interest, npkt))) {
-    // Data carries old/bad PIT token
-    ++pitp->nMisses;
-    return PitResult_New(NULL, PIT_FIND_NONE);
+  PitResultKind resKind = __PitFindResult_DetermineKind(pccEntry);
+  if (likely(resKind != PIT_FIND_NONE)) {
+    PInterest* interest = __PitFindResult_GetInterest2(pccEntry, resKind);
+    if (unlikely(!PInterest_MatchesData(interest, npkt))) {
+      // Data carries old/bad PIT token
+      ++pitp->nMisses;
+      return __PitResult_New(NULL, PIT_FIND_NONE);
+    }
   }
 
   ++pitp->nHits;
-  return PitResult_New(pccEntry, resKind);
+  return __PitResult_New(pccEntry, resKind);
 }

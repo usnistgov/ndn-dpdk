@@ -66,14 +66,35 @@ Cs_SetCapacity(Cs* cs, uint32_t capacity)
 }
 
 void
-Cs_Insert(Cs* cs, Packet* npkt, PitEntry* pitEntry)
+Cs_Insert(Cs* cs, Packet* npkt, PitResult pitFound)
 {
   CsPriv* csp = Cs_GetPriv(cs);
+  PData* data = Packet_GetDataHdr(npkt);
 
-  // TODO check Data has exact name as the PIT entry
+  // Data has exact name?
+  PInterest* interest = __PitFindResult_GetInterest(pitFound);
+  if (unlikely(interest->name.p.nComps != data->name.p.nComps)) {
+    // Interest name is a prefix of Data name
+    // TODO insert Data into a new PccEntry
+    rte_pktmbuf_free(Packet_ToMbuf(npkt));
+    return;
+  }
 
-  // XXX will crash if pitEntry is for MustBeFresh=1
-  PccEntry* pccEntry = __Pit_RawErase0(Pit_FromPcct(Cs_ToPcct(cs)), pitEntry);
+  PccEntry* pccEntry = __PitResult_GetPccEntry(pitFound);
+
+  // delete PIT entries
+  {
+    Pit* pit = Pit_FromPcct(Cs_ToPcct(cs));
+    PitEntry* pitEntry0 = PitFindResult_GetPitEntry0(pitFound);
+    if (pitEntry0 != NULL) {
+      __Pit_RawErase0(pit, pitEntry0);
+    }
+    PitEntry* pitEntry1 = PitFindResult_GetPitEntry1(pitFound);
+    if (pitEntry1 != NULL) {
+      __Pit_RawErase1(pit, pitEntry1);
+    }
+    // TODO optimize this part
+  }
 
   pccEntry->hasCsEntry = true;
   CsEntry* entry = &pccEntry->csEntry;
@@ -83,8 +104,7 @@ Cs_Insert(Cs* cs, Packet* npkt, PitEntry* pitEntry)
 
   // TODO evict if needed
 
-  ZF_LOGD("%p Insert(%p, pit=%p) pcc=%p cs=%p", cs, npkt, pitEntry, pccEntry,
-          entry);
+  ZF_LOGD("%p Insert(%p, pcc=%p) cs=%p", cs, npkt, pccEntry, entry);
 }
 
 void

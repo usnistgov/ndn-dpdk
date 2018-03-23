@@ -21,11 +21,6 @@ func (pit Pit) EntryFromPtr(ptr unsafe.Pointer) Entry {
 	return Entry{(*C.PitEntry)(ptr), pit}
 }
 
-// Implements cs.iPitEntry.
-func (entry Entry) GetPitEntryPtr() unsafe.Pointer {
-	return unsafe.Pointer(entry.c)
-}
-
 func (entry Entry) GetToken() uint64 {
 	return uint64(C.Pit_GetEntryToken(entry.pit.getPtr(), entry.c))
 }

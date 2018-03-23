@@ -49,15 +49,16 @@ func (cs Cs) List() (list []Entry) {
 	return list
 }
 
-type iPitEntry interface {
-	// Return the *C.PitEntry pointer.
-	GetPitEntryPtr() unsafe.Pointer
+type iPitFindResult interface {
+	CopyToCPitResult(ptr unsafe.Pointer)
 }
 
 // Insert a CS entry by replacing a PIT entry with same key.
-func (cs Cs) Insert(data *ndn.Data, pitEntry iPitEntry) {
-	C.Cs_Insert(cs.getPtr(), (*C.Packet)(data.GetPacket().GetPtr()),
-		(*C.PitEntry)(pitEntry.GetPitEntryPtr()))
+func (cs Cs) Insert(data *ndn.Data, pitFound iPitFindResult) {
+	var pitFoundC C.PitResult
+	pitFound.CopyToCPitResult(unsafe.Pointer(&pitFoundC))
+	println("cs.Insert", pitFoundC.ptr)
+	C.Cs_Insert(cs.getPtr(), (*C.Packet)(data.GetPacket().GetPtr()), pitFoundC)
 }
 
 // Erase a CS entry.

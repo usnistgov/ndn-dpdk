@@ -69,7 +69,8 @@ type FindResult struct {
 }
 
 // Copy to *C.PitResult for use in another package.
-func (fr FindResult) CopyToPitCResult(ptr unsafe.Pointer) {
+func (fr FindResult) CopyToCPitResult(ptr unsafe.Pointer) {
+	println("fr.Copy", fr.resC.ptr)
 	dst := (*C.PitResult)(ptr)
 	dst.ptr = fr.resC.ptr
 }
@@ -102,5 +103,6 @@ func (fr FindResult) GetEntries() (entries []Entry) {
 // Find PIT entries matching a Data.
 func (pit Pit) FindByData(data *ndn.Data) FindResult {
 	resC := C.Pit_FindByData(pit.getPtr(), (*C.Packet)(data.GetPacket().GetPtr()))
+	println("FindByData", resC.ptr)
 	return FindResult{resC, pit}
 }

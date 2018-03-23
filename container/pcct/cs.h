@@ -4,6 +4,7 @@
 /// \file
 
 #include "pcct.h"
+#include "pit-result.h"
 
 /** \brief Cast Pcct* as Cs*.
  */
@@ -53,12 +54,13 @@ Cs_CountEntries(const Cs* cs)
   return Cs_GetPriv(cs)->nEntries;
 }
 
-/** \brief Insert a CS entry by replacing a PIT entry with same key.
- *  \param pitEntry the PIT entry satisfied by this Data, will be overwritten.
- *  \param npkt the Data packet. CS takes ownership of this mbuf, and may immediately
- *              free it; caller must clone the packet if it is still needed.
+/** \brief Insert a CS entry.
+ *  \param npkt the Data packet. CS takes ownership.
+ *  \param pitFound result of Pit_FindByData that contains PIT entries
+ *                  satisfied by this Data, must not be PIT_FIND_NONE.
+ *  \post PIT entries contained in \p pitFound are removed.
  */
-void Cs_Insert(Cs* cs, Packet* npkt, PitEntry* pitEntry);
+void Cs_Insert(Cs* cs, Packet* npkt, PitResult pitFound);
 
 /** \brief Erase a CS entry.
  *  \post \p entry is no longer valid.

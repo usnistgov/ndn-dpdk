@@ -27,24 +27,31 @@ typedef struct PitResult
   uintptr_t ptr; ///< PccEntry* | PitResultKind
 } PitResult;
 
-static PitResult
-PitResult_New(PccEntry* entry, PitResultKind kind)
-{
-  PitResult res = {.ptr = ((uintptr_t)entry | kind) };
-  assert((PccEntry*)(res.ptr & __PIT_RESULT_ENTRY_MASK) == entry);
-  return res;
-}
-
 static PitResultKind
 PitResult_GetKind(PitResult res)
 {
   return (PitResultKind)(res.ptr & __PIT_RESULT_KIND_MASK);
 }
 
+static PccEntry*
+__PitResult_GetPccEntry(PitResult res)
+{
+  return (PccEntry*)(res.ptr & __PIT_RESULT_ENTRY_MASK);
+}
+
+static PitResult
+__PitResult_New(PccEntry* entry, PitResultKind kind)
+{
+  PitResult res = {.ptr = ((uintptr_t)entry | kind) };
+  assert(__PitResult_GetPccEntry(res) == entry);
+  assert(PitResult_GetKind(res) == kind);
+  return res;
+}
+
 static PitEntry*
 PitInsertResult_GetPitEntry(PitResult res)
 {
-  PccEntry* entry = (PccEntry*)(res.ptr & __PIT_RESULT_ENTRY_MASK);
+  PccEntry* entry = __PitResult_GetPccEntry(res);
   switch (PitResult_GetKind(res)) {
     case PIT_INSERT_PIT0:
       return &entry->pitEntry0;
@@ -58,8 +65,33 @@ static CsEntry*
 PitInsertResult_GetCsEntry(PitResult res)
 {
   assert(PitResult_GetKind(res) == PIT_INSERT_CS);
-  PccEntry* entry = (PccEntry*)(res.ptr & __PIT_RESULT_ENTRY_MASK);
+  PccEntry* entry = __PitResult_GetPccEntry(res);
   return &entry->csEntry;
+}
+
+static PitResultKind
+__PitFindResult_DetermineKind(PccEntry* entry)
+{
+  return (entry->hasPitEntry0) | (entry->hasPitEntry1 << 1);
+}
+
+static PInterest*
+__PitFindResult_GetInterest2(PccEntry* entry, PitResultKind kind)
+{
+  assert(kind != PIT_FIND_NONE);
+  PitEntry* pitEntry =
+    (kind & PIT_FIND_PIT0) != 0 ? &entry->pitEntry0 : &entry->pitEntry1;
+  return Packet_GetInterestHdr(pitEntry->npkt);
+}
+
+/** \brief Get a representative Interest from either PIT entry.
+ *  \pre PitResult_GetKind(res) != PIT_FIND_NONE
+ */
+static PInterest*
+__PitFindResult_GetInterest(PitResult res)
+{
+  PccEntry* entry = __PitResult_GetPccEntry(res);
+  return __PitFindResult_GetInterest2(entry, PitResult_GetKind(res));
 }
 
 static PitEntry*
@@ -68,7 +100,7 @@ PitFindResult_GetPitEntry0(PitResult res)
   if ((PitResult_GetKind(res) & PIT_FIND_PIT0) == 0) {
     return NULL;
   }
-  PccEntry* entry = (PccEntry*)(res.ptr & __PIT_RESULT_ENTRY_MASK);
+  PccEntry* entry = __PitResult_GetPccEntry(res);
   return &entry->pitEntry0;
 }
 
@@ -78,7 +110,7 @@ PitFindResult_GetPitEntry1(PitResult res)
   if ((PitResult_GetKind(res) & PIT_FIND_PIT1) == 0) {
     return NULL;
   }
-  PccEntry* entry = (PccEntry*)(res.ptr & __PIT_RESULT_ENTRY_MASK);
+  PccEntry* entry = __PitResult_GetPccEntry(res);
   return &entry->pitEntry1;
 }
 

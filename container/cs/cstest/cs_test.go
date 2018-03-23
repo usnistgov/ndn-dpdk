@@ -39,14 +39,18 @@ func TestInsertErase(t *testing.T) {
 	assert.Zero(mp.CountInUse())
 
 	interest := ndntestutil.MakeInterest("/A/B")
-	defer ndntestutil.ClosePacket(interest)
 	pitEntry, csEntry := pit.Insert(interest)
 	assert.Nil(csEntry)
 	require.NotNil(pitEntry)
+	pitEntry.DnRxInterest(interest)
 
 	data := ndntestutil.MakeData("/A/B")
+	ndntestutil.SetPitToken(data, pitEntry.GetToken())
+	pitFound := pit.FindByData(data)
+	assert.Equal(1, pitFound.Len())
+
 	assert.Zero(cs.Len())
-	cs.Insert(data, pitEntry)
+	cs.Insert(data, pitFound)
 	assert.Equal(1, cs.Len())
 	assert.Len(cs.List(), 1)
 	assert.Zero(pit.Len())
