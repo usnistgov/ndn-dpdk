@@ -56,18 +56,22 @@ FwFwd_RxData(FwFwd* fwd, Packet* npkt)
   ZF_LOGD("data-from=%" PRI_FaceId " npkt=%p up-token=%016" PRIx64, pkt->port,
           npkt, token);
 
-  PitFindResult pitFound;
-  Pit_FindByData(fwd->pit, npkt, &pitFound);
-
-  if (unlikely(pitFound.nMatches == 0)) {
-    FwFwd_RxDataUnsolicited(fwd, npkt);
-    return;
-  }
-
-  for (uint8_t i = 0; i < pitFound.nMatches; ++i) {
-    // TODO if both PIT entries have same downstream face,
-    //      Data should be sent only once
-    FwFwd_RxDataSatisfy(fwd, npkt, pitFound.matches[i]);
+  PitResult pitFound = Pit_FindByData(fwd->pit, npkt);
+  switch (PitResult_GetKind(pitFound)) {
+    case PIT_FIND_NONE:
+      FwFwd_RxDataUnsolicited(fwd, npkt);
+      return;
+    case PIT_FIND_PIT0:
+      FwFwd_RxDataSatisfy(fwd, npkt, PitFindResult_GetPitEntry0(pitFound));
+      break;
+    case PIT_FIND_PIT1:
+      FwFwd_RxDataSatisfy(fwd, npkt, PitFindResult_GetPitEntry1(pitFound));
+      break;
+    case PIT_FIND_PIT01:
+      // TODO send Data to each downstream only once
+      FwFwd_RxDataSatisfy(fwd, npkt, PitFindResult_GetPitEntry0(pitFound));
+      FwFwd_RxDataSatisfy(fwd, npkt, PitFindResult_GetPitEntry1(pitFound));
+      break;
   }
 
   // TODO insert to CS

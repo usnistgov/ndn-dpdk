@@ -45,12 +45,12 @@ func (pit Pit) TriggerTimeoutSched() {
 
 // Insert or find a PIT entry for the given Interest.
 func (pit Pit) Insert(interest *ndn.Interest) (pitEntry *Entry, csEntry *cs.Entry) {
-	insertRes := C.Pit_Insert(pit.getPtr(), (*C.PInterest)(interest.GetPInterestPtr()))
-	switch C.PitInsertResult_GetKind(insertRes) {
+	res := C.Pit_Insert(pit.getPtr(), (*C.PInterest)(interest.GetPInterestPtr()))
+	switch C.PitResult_GetKind(res) {
 	case C.PIT_INSERT_PIT0, C.PIT_INSERT_PIT1:
-		pitEntry = &Entry{C.PitInsertResult_GetPitEntry(insertRes), pit}
+		pitEntry = &Entry{C.PitInsertResult_GetPitEntry(res), pit}
 	case C.PIT_INSERT_CS:
-		csEntry1 := pit.getCs().EntryFromPtr(unsafe.Pointer(C.PitInsertResult_GetCsEntry(insertRes)))
+		csEntry1 := pit.getCs().EntryFromPtr(unsafe.Pointer(C.PitInsertResult_GetCsEntry(res)))
 		csEntry = &csEntry1
 	}
 	return
@@ -62,13 +62,45 @@ func (pit Pit) Erase(entry Entry) {
 	entry.c = nil
 }
 
-// Find PIT entries matching a Data.
-func (pit Pit) FindByData(data *ndn.Data) (matches []*Entry) {
-	var found C.PitFindResult
-	C.Pit_FindByData(pit.getPtr(), (*C.Packet)(data.GetPacket().GetPtr()), &found)
-	matches = make([]*Entry, int(found.nMatches))
-	for i := range matches {
-		matches[i] = &Entry{found.matches[i], pit}
+// Result of Pit.FindByData.
+type FindResult struct {
+	resC C.PitResult
+	pit  Pit
+}
+
+// Copy to *C.PitResult for use in another package.
+func (fr FindResult) CopyToPitCResult(ptr unsafe.Pointer) {
+	dst := (*C.PitResult)(ptr)
+	dst.ptr = fr.resC.ptr
+}
+
+// Determine how many PIT entries are matched.
+func (fr FindResult) Len() int {
+	switch C.PitResult_GetKind(fr.resC) {
+	case C.PIT_FIND_PIT0, C.PIT_FIND_PIT1:
+		return 1
+	case C.PIT_FIND_PIT01:
+		return 2
 	}
-	return matches
+	return 0
+}
+
+// Access matches PIT entries.
+func (fr FindResult) GetEntries() (entries []Entry) {
+	entries = make([]Entry, 0, 2)
+	entry0 := C.PitFindResult_GetPitEntry0(fr.resC)
+	if entry0 != nil {
+		entries = append(entries, fr.pit.EntryFromPtr(unsafe.Pointer(entry0)))
+	}
+	entry1 := C.PitFindResult_GetPitEntry1(fr.resC)
+	if entry1 != nil {
+		entries = append(entries, fr.pit.EntryFromPtr(unsafe.Pointer(entry1)))
+	}
+	return entries
+}
+
+// Find PIT entries matching a Data.
+func (pit Pit) FindByData(data *ndn.Data) FindResult {
+	resC := C.Pit_FindByData(pit.getPtr(), (*C.Packet)(data.GetPacket().GetPtr()))
+	return FindResult{resC, pit}
 }

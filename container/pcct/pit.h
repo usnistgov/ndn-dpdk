@@ -4,6 +4,7 @@
 /// \file
 
 #include "pcct.h"
+#include "pit-result.h"
 
 /** \brief Maximum PIT entry lifetime (millis).
  */
@@ -46,56 +47,13 @@ Pit_CountEntries(const Pit* pit)
   return Pit_GetPriv(pit)->nEntries;
 }
 
-/** \brief Result of PIT insertion.
- */
-typedef struct PitInsertResult
-{
-  uintptr_t ptr; ///< PccEntry* | PitInsertResultKind
-} PitInsertResult;
-
-typedef enum PitInsertResultKind {
-  PIT_INSERT_FULL = 0, ///< PIT is full, cannot insert
-  PIT_INSERT_PIT0 = 1, ///< created or found PIT entry of MustBeFresh=0
-  PIT_INSERT_PIT1 = 2, ///< created or found PIT entry of MustBeFresh=1
-  PIT_INSERT_CS = 3,   ///< found existing CS entry that matches the Interest
-
-  __PIT_INSERT_MASK = 0x03,
-} PitInsertResultKind;
-
-static PitInsertResultKind
-PitInsertResult_GetKind(PitInsertResult res)
-{
-  return (PitInsertResultKind)(res.ptr & __PIT_INSERT_MASK);
-}
-
-static PitEntry*
-PitInsertResult_GetPitEntry(PitInsertResult res)
-{
-  PccEntry* entry = (PccEntry*)(res.ptr & ~__PIT_INSERT_MASK);
-  switch (PitInsertResult_GetKind(res)) {
-    case PIT_INSERT_PIT0:
-      return &entry->pitEntry0;
-    case PIT_INSERT_PIT1:
-      return &entry->pitEntry1;
-  }
-  assert(false);
-}
-
-static CsEntry*
-PitInsertResult_GetCsEntry(PitInsertResult res)
-{
-  assert(PitInsertResult_GetKind(res) == PIT_INSERT_CS);
-  PccEntry* entry = (PccEntry*)(res.ptr & ~__PIT_INSERT_MASK);
-  return &entry->csEntry;
-}
-
 /** \brief Insert or find a PIT entry for the given Interest.
  *
  *  If there is a CS match, return the CS entry. If there is a PIT match,
  *  return the PIT entry. Otherwise, unless the PCCT is full, insert and
  *  initialize a PIT entry.
  */
-PitInsertResult Pit_Insert(Pit* pit, PInterest* interest);
+PitResult Pit_Insert(Pit* pit, PInterest* interest);
 
 /** \brief Get a token of a PIT entry.
  */
@@ -124,26 +82,14 @@ PccEntry* __Pit_RawErase1(Pit* pit, PitEntry* entry);
  */
 void Pit_Erase(Pit* pit, PitEntry* entry);
 
-#define PIT_FIND_MAX_MATCHES 2
-
-/** \brief Result of PIT find.
- */
-typedef struct PitFindResult
-{
-  uint8_t nMatches;
-  PitEntry* matches[PIT_FIND_MAX_MATCHES];
-} PitFindResult;
-
 /** \brief Find PIT entries matching a Data.
  *  \param npkt Data packet, its token will be used.
- *  \param[out] found the result.
  */
-void Pit_FindByData(Pit* pit, Packet* npkt, PitFindResult* found);
+PitResult Pit_FindByData(Pit* pit, Packet* npkt);
 
-/** \brief Find PIT entries matching a Nack.
- *  \param npkt Data packet, its token will be used.
- *  \param[out] found the result.
+/** \brief Find PIT entry matching a Nack.
+ *  \param npkt Nack packet, its token will be used.
  */
-void Pit_FindByNack(Pit* pit, Packet* npkt, PitFindResult* found);
+PitEntry* Pit_FindByNack(Pit* pit, Packet* npkt);
 
 #endif // NDN_DPDK_CONTAINER_PCCT_PIT_H

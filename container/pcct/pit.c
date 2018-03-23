@@ -23,15 +23,7 @@ Pit_Init(Pit* pit, struct rte_mempool* headerMp, struct rte_mempool* guiderMp,
   pitp->indirectMp = indirectMp;
 }
 
-static PitInsertResult
-PitInsertResult_New(PccEntry* pccEntry, PitInsertResultKind kind)
-{
-  PitInsertResult res = {.ptr = ((uintptr_t)pccEntry | kind) };
-  assert((res.ptr & ~__PIT_INSERT_MASK) == (uintptr_t)pccEntry);
-  return res;
-}
-
-PitInsertResult
+PitResult
 Pit_Insert(Pit* pit, PInterest* interest)
 {
   Pcct* pcct = Pit_ToPcct(pit);
@@ -54,7 +46,7 @@ Pit_Insert(Pit* pit, PInterest* interest)
   PccEntry* pccEntry = Pcct_Insert(pcct, hash, &search, &isNewPcc);
   if (unlikely(pccEntry == NULL)) {
     ++pitp->nAllocErr;
-    return PitInsertResult_New(pccEntry, PIT_INSERT_FULL);
+    return PitResult_New(NULL, PIT_INSERT_FULL);
   }
 
   // check for CS match
@@ -68,16 +60,16 @@ Pit_Insert(Pit* pit, PInterest* interest)
             PccSearch_ToDebugString(&search), pccEntry,
             PccEntry_GetCsEntry(pccEntry));
     ++pitp->nCsMatch;
-    return PitInsertResult_New(pccEntry, PIT_INSERT_CS);
+    return PitResult_New(pccEntry, PIT_INSERT_CS);
   }
 
-  // add token, so that it won't fail later
+  // add token now, to avoid token allocation error later
   uint64_t token = Pcct_AddToken(pcct, pccEntry);
   if (unlikely(token == 0)) {
     if (isNewPcc) {
       Pcct_Erase(pcct, pccEntry);
     }
-    return PitInsertResult_New(pccEntry, PIT_INSERT_FULL);
+    return PitResult_New(pccEntry, PIT_INSERT_FULL);
   }
 
   // put PIT entry in slot 1 if MustBeFresh=1
@@ -96,7 +88,7 @@ Pit_Insert(Pit* pit, PInterest* interest)
               PccEntry_GetPitEntry1(pccEntry));
       ++pitp->nFound;
     }
-    return PitInsertResult_New(pccEntry, PIT_INSERT_PIT1);
+    return PitResult_New(pccEntry, PIT_INSERT_PIT1);
   }
 
   // put PIT entry in slot 0 if MustBeFresh=0
@@ -115,7 +107,7 @@ Pit_Insert(Pit* pit, PInterest* interest)
             PccEntry_GetPitEntry0(pccEntry));
     ++pitp->nFound;
   }
-  return PitInsertResult_New(pccEntry, PIT_INSERT_PIT0);
+  return PitResult_New(pccEntry, PIT_INSERT_PIT0);
 }
 
 PccEntry*
@@ -181,36 +173,36 @@ __Pit_Timeout(MinTmr* tmr, void* pit0)
   Pit_Erase(pit, entry);
 }
 
-void
-Pit_FindByData(Pit* pit, Packet* npkt, PitFindResult* found)
+PitResult
+Pit_FindByData(Pit* pit, Packet* npkt)
 {
   PitPriv* pitp = Pit_GetPriv(pit);
   uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
-  found->nMatches = 0;
 
   PccEntry* pccEntry = Pcct_FindByToken(Pit_ToPcct(pit), token);
   if (unlikely(pccEntry == NULL)) {
     ++pitp->nMisses;
-    return;
+    return PitResult_New(NULL, PIT_FIND_NONE);
   }
 
+  PitResultKind resKind = PIT_FIND_NONE;
+  PitEntry* entry;
   if (pccEntry->hasPitEntry0) {
-    found->matches[found->nMatches++] = &pccEntry->pitEntry0;
+    resKind |= PIT_FIND_PIT0;
+    entry = &pccEntry->pitEntry0;
   }
   if (pccEntry->hasPitEntry1) {
-    found->matches[found->nMatches++] = &pccEntry->pitEntry1;
+    resKind |= PIT_FIND_PIT1;
+    entry = &pccEntry->pitEntry1;
   }
 
-  if (unlikely(found->nMatches == 0)) {
-    ++pitp->nMisses;
-    return;
-  }
-
-  PInterest* interest = Packet_GetInterestHdr(found->matches[0]->npkt);
+  PInterest* interest = Packet_GetInterestHdr(entry->npkt);
   if (unlikely(!PInterest_MatchesData(interest, npkt))) {
-    found->nMatches = 0;
+    // Data carries old/bad PIT token
     ++pitp->nMisses;
-    return;
+    return PitResult_New(NULL, PIT_FIND_NONE);
   }
+
   ++pitp->nHits;
+  return PitResult_New(pccEntry, resKind);
 }

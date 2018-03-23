@@ -80,8 +80,8 @@ FwFwd_RxInterest(FwFwd* fwd, Packet* npkt)
   }
 
   // TODO insert PIT entry with forwarding hint
-  PitInsertResult pitIns = Pit_Insert(fwd->pit, interest);
-  switch (PitInsertResult_GetKind(pitIns)) {
+  PitResult pitIns = Pit_Insert(fwd->pit, interest);
+  switch (PitResult_GetKind(pitIns)) {
     case PIT_INSERT_PIT0:
     case PIT_INSERT_PIT1: {
       PitEntry* pitEntry = PitInsertResult_GetPitEntry(pitIns);
