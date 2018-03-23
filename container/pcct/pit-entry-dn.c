@@ -12,14 +12,12 @@ PitEntry_DnRxInterest(Pit* pit, PitEntry* entry, Packet* npkt)
 
   int index;
   PitDn* dn = NULL;
-  if (entry->npkt == NULL) {
-    entry->npkt = npkt;
+  if (entry->npkt == npkt) { // new PIT entry
     index = 0;
     dn = &entry->dns[0];
     assert(dn->face == FACEID_INVALID);
     dn->face = face;
-  } else {
-    // find DN slot
+  } else { // find DN slot
     for (index = 0; index < PIT_ENTRY_MAX_DNS; ++index) {
       dn = &entry->dns[index];
       if (dn->face == face) {

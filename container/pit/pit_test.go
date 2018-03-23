@@ -65,7 +65,6 @@ func TestToken(t *testing.T) {
 			continue
 		}
 		require.NotNil(entry)
-		entry.DnRxInterest(interest)
 
 		token := entry.GetToken()
 		assert.Equal(token&(1<<48-1), token) // token has 48 bits

@@ -80,7 +80,7 @@ FwFwd_RxInterest(FwFwd* fwd, Packet* npkt)
   }
 
   // TODO insert PIT entry with forwarding hint
-  PitResult pitIns = Pit_Insert(fwd->pit, interest);
+  PitResult pitIns = Pit_Insert(fwd->pit, npkt);
   switch (PitResult_GetKind(pitIns)) {
     case PIT_INSERT_PIT0:
     case PIT_INSERT_PIT1: {
@@ -91,12 +91,14 @@ FwFwd_RxInterest(FwFwd* fwd, Packet* npkt)
     case PIT_INSERT_CS: {
       CsEntry* csEntry = PitInsertResult_GetCsEntry(pitIns);
       ZF_LOGD("^ cs-entry=%p", csEntry);
-      rte_pktmbuf_free(pkt); // TODO
+      rte_pktmbuf_free(pkt);
+      // TODO send Data
       break;
     }
     case PIT_INSERT_FULL:
       ZF_LOGD("^ drop=PIT-full");
       rte_pktmbuf_free(pkt);
+      // TODO send Nack~Congestion
       break;
     default:
       assert(false); // no other cases

@@ -45,7 +45,7 @@ func (pit Pit) TriggerTimeoutSched() {
 
 // Insert or find a PIT entry for the given Interest.
 func (pit Pit) Insert(interest *ndn.Interest) (pitEntry *Entry, csEntry *cs.Entry) {
-	res := C.Pit_Insert(pit.getPtr(), (*C.PInterest)(interest.GetPInterestPtr()))
+	res := C.Pit_Insert(pit.getPtr(), (*C.Packet)(interest.GetPacket().GetPtr()))
 	switch C.PitResult_GetKind(res) {
 	case C.PIT_INSERT_PIT0, C.PIT_INSERT_PIT1:
 		pitEntry = &Entry{C.PitInsertResult_GetPitEntry(res), pit}
@@ -70,7 +70,6 @@ type FindResult struct {
 
 // Copy to *C.PitResult for use in another package.
 func (fr FindResult) CopyToCPitResult(ptr unsafe.Pointer) {
-	println("fr.Copy", fr.resC.ptr)
 	dst := (*C.PitResult)(ptr)
 	dst.ptr = fr.resC.ptr
 }
@@ -103,6 +102,5 @@ func (fr FindResult) GetEntries() (entries []Entry) {
 // Find PIT entries matching a Data.
 func (pit Pit) FindByData(data *ndn.Data) FindResult {
 	resC := C.Pit_FindByData(pit.getPtr(), (*C.Packet)(data.GetPacket().GetPtr()))
-	println("FindByData", resC.ptr)
 	return FindResult{resC, pit}
 }

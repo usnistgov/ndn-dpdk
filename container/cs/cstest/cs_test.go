@@ -42,7 +42,6 @@ func TestInsertErase(t *testing.T) {
 	pitEntry, csEntry := pit.Insert(interest)
 	assert.Nil(csEntry)
 	require.NotNil(pitEntry)
-	pitEntry.DnRxInterest(interest)
 
 	data := ndntestutil.MakeData("/A/B")
 	ndntestutil.SetPitToken(data, pitEntry.GetToken())

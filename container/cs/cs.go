@@ -57,7 +57,6 @@ type iPitFindResult interface {
 func (cs Cs) Insert(data *ndn.Data, pitFound iPitFindResult) {
 	var pitFoundC C.PitResult
 	pitFound.CopyToCPitResult(unsafe.Pointer(&pitFoundC))
-	println("cs.Insert", pitFoundC.ptr)
 	C.Cs_Insert(cs.getPtr(), (*C.Packet)(data.GetPacket().GetPtr()), pitFoundC)
 }
 

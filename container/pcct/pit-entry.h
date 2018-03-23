@@ -33,9 +33,10 @@ typedef struct PitEntry
 /** \brief Initialize a PIT entry.
  */
 static void
-PitEntry_Init(PitEntry* entry, PInterest* interest)
+PitEntry_Init(PitEntry* entry, Packet* npkt)
 {
-  entry->npkt = NULL; // do not store npkt until DnRxInterest
+  PInterest* interest = Packet_GetInterestHdr(npkt);
+  entry->npkt = npkt;
   MinTmr_Init(&entry->timeout);
   entry->expiry = 0;
   entry->nCanBePrefix = interest->canBePrefix;
