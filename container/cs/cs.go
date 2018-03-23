@@ -39,15 +39,25 @@ func (cs Cs) Len() int {
 	return int(C.Cs_CountEntries(cs.getPtr()))
 }
 
+// Enumerate all CS entries.
+func (cs Cs) List() (list []Entry) {
+	list = make([]Entry, 0, cs.Len())
+	head := &C.Cs_GetPriv(cs.getPtr()).head
+	for node := head.next; node != head; node = node.next {
+		list = append(list, cs.EntryFromPtr(unsafe.Pointer(node)))
+	}
+	return list
+}
+
 type iPitEntry interface {
 	// Return the *C.PitEntry pointer.
 	GetPitEntryPtr() unsafe.Pointer
 }
 
 // Insert a CS entry by replacing a PIT entry with same key.
-func (cs Cs) ReplacePitEntry(pitEntry iPitEntry, data *ndn.Data) {
-	C.Cs_ReplacePitEntry(cs.getPtr(), (*C.PitEntry)(pitEntry.GetPitEntryPtr()),
-		(*C.Packet)(data.GetPacket().GetPtr()))
+func (cs Cs) Insert(data *ndn.Data, pitEntry iPitEntry) {
+	C.Cs_Insert(cs.getPtr(), (*C.Packet)(data.GetPacket().GetPtr()),
+		(*C.PitEntry)(pitEntry.GetPitEntryPtr()))
 }
 
 // Erase a CS entry.

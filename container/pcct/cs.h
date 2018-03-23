@@ -58,7 +58,7 @@ Cs_CountEntries(const Cs* cs)
  *  \param npkt the Data packet. CS takes ownership of this mbuf, and may immediately
  *              free it; caller must clone the packet if it is still needed.
  */
-void Cs_ReplacePitEntry(Cs* cs, PitEntry* pitEntry, struct Packet* npkt);
+void Cs_Insert(Cs* cs, Packet* npkt, PitEntry* pitEntry);
 
 /** \brief Erase a CS entry.
  *  \post \p entry is no longer valid.

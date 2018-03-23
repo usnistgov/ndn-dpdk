@@ -28,7 +28,7 @@ func pitFromCs(cs cs.Cs) pit.Pit {
 	return pit.Pit{cs.Pcct}
 }
 
-func TestReplacePitEntry(t *testing.T) {
+func TestInsertErase(t *testing.T) {
 	assert, require := makeAR(t)
 
 	cs := createCs()
@@ -47,10 +47,10 @@ func TestReplacePitEntry(t *testing.T) {
 	require.NotNil(pitEntry)
 
 	data := ndntestutil.MakeData("/A/B")
-	defer ndntestutil.ClosePacket(data)
 	assert.Zero(cs.Len())
-	cs.ReplacePitEntry(pitEntry, data)
+	cs.Insert(data, pitEntry)
 	assert.Equal(1, cs.Len())
+	assert.Len(cs.List(), 1)
 	assert.Zero(pit.Len())
 	assert.Equal(1, mp.CountInUse())
 
@@ -61,4 +61,5 @@ func TestReplacePitEntry(t *testing.T) {
 	cs.Erase(*csEntry)
 	assert.Zero(cs.Len())
 	assert.Zero(mp.CountInUse())
+	assert.Len(cs.List(), 0)
 }
