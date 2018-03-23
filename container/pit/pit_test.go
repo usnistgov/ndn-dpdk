@@ -29,7 +29,6 @@ func TestInsertErase(t *testing.T) {
 
 	pit := createPit()
 	defer pit.Pcct.Close()
-	defer pit.Close()
 	mp := pit.GetMempool()
 	assert.Zero(pit.Len())
 	assert.Zero(mp.CountInUse())
@@ -55,7 +54,6 @@ func TestToken(t *testing.T) {
 
 	pit := createPit()
 	defer pit.Pcct.Close()
-	defer pit.Close()
 
 	for i := 0; i <= 255; i++ {
 		interest := ndntestutil.MakeInterest(fmt.Sprintf("/I/%d", i))

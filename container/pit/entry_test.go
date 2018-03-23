@@ -12,7 +12,6 @@ func TestEntry(t *testing.T) {
 
 	pit := createPit()
 	defer pit.Pcct.Close()
-	defer pit.Close()
 
 	// lifetime 50ms
 	interest1 := ndntestutil.MakeInterest("641F " +

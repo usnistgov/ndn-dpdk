@@ -21,7 +21,7 @@ func (cs Cs) getPtr() *C.Cs {
 }
 
 func (cs Cs) Close() error {
-	return nil
+	panic("Cs.Close() method is explicitly deleted; use Pcct.Close() to close underlying PCCT")
 }
 
 // Get capacity in number of entries.

@@ -33,9 +33,7 @@ func TestInsertErase(t *testing.T) {
 
 	cs := createCs()
 	defer cs.Pcct.Close()
-	defer cs.Close()
 	pit := pitFromCs(cs)
-	defer pit.Close()
 	mp := cs.GetMempool()
 	assert.Zero(pit.Len())
 	assert.Zero(mp.CountInUse())
