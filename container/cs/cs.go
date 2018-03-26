@@ -11,6 +11,8 @@ import (
 	"ndn-dpdk/ndn"
 )
 
+const MIN_CAPACITY = int(C.CS_EVICT_BULK)
+
 // The Content Store (CS).
 type Cs struct {
 	*pcct.Pcct

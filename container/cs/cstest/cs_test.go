@@ -1,6 +1,7 @@
 package cstest
 
 import (
+	"fmt"
 	"testing"
 
 	"ndn-dpdk/ndn/ndntestutil"
@@ -9,7 +10,8 @@ import (
 func TestInsertErase(t *testing.T) {
 	assert, require := makeAR(t)
 
-	fixture := NewFixture(255)
+	fixture := NewFixture(255, 128)
+	defer fixture.Close()
 
 	ok := fixture.Insert(ndntestutil.MakeInterest("/A/B"), ndntestutil.MakeData("/A/B"))
 	assert.True(ok)
@@ -25,4 +27,28 @@ func TestInsertErase(t *testing.T) {
 	assert.Zero(fixture.Cs.Len())
 	assert.Len(fixture.Cs.List(), 0)
 	assert.Zero(fixture.CountMpInUse())
+}
+
+func TestEvict(t *testing.T) {
+	assert, _ := makeAR(t)
+
+	capacity := 256
+	fixture := NewFixture(511, capacity)
+	defer fixture.Close()
+
+	assert.Equal(capacity, fixture.Cs.GetCapacity())
+
+	for i := 1; i <= 2000; i++ {
+		name := fmt.Sprintf("/N/%d", i)
+		ok := fixture.Insert(ndntestutil.MakeInterest(name), ndntestutil.MakeData(name))
+		assert.True(ok)
+		assert.True(fixture.Cs.Len() <= capacity)
+		assert.Len(fixture.Cs.List(), fixture.Cs.Len())
+	}
+
+	capacity = 64
+	fixture.Cs.SetCapacity(capacity)
+	assert.Equal(capacity, fixture.Cs.GetCapacity())
+	assert.True(fixture.Cs.Len() <= capacity)
+	assert.Len(fixture.Cs.List(), fixture.Cs.Len())
 }

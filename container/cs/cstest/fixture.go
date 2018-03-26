@@ -14,10 +14,11 @@ type Fixture struct {
 	Pit pit.Pit
 }
 
-func NewFixture(pcctMaxEntries int) (fixture *Fixture) {
+func NewFixture(pcctMaxEntries int, csCapacity int) (fixture *Fixture) {
 	cfg := pcct.Config{
 		Id:         "TestPcct",
 		MaxEntries: pcctMaxEntries,
+		CsCapacity: csCapacity,
 		NumaSocket: dpdk.NUMA_SOCKET_ANY,
 	}
 	pcct, e := pcct.New(cfg)

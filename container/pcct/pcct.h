@@ -66,6 +66,10 @@ PccEntry* Pcct_Insert(Pcct* pcct, uint64_t hash, PccSearch* search,
  */
 void Pcct_Erase(Pcct* pcct, PccEntry* entry);
 
+/** \brief Erase multiple entries.
+ */
+void Pcct_EraseBulk(Pcct* pcct, PccEntry* entries[], uint32_t count);
+
 /** \brief Find an entry.
  */
 PccEntry* Pcct_Find(const Pcct* pcct, uint64_t hash, PccSearch* search);

@@ -11,6 +11,7 @@ Pit_Init(Pit* pit, struct rte_mempool* headerMp, struct rte_mempool* guiderMp,
          struct rte_mempool* indirectMp)
 {
   PitPriv* pitp = Pit_GetPriv(pit);
+  ZF_LOGI("%p Init() priv=%p", pit, pitp);
 
   // 2^12 slots of 33ms interval, accommodates InterestLifetime up to 136533ms
   pitp->timeoutSched =

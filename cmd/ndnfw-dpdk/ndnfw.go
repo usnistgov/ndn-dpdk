@@ -135,6 +135,7 @@ func startDp() {
 	// set forwarding process config
 	dpCfg.FwdQueueCapacity = 64
 	dpCfg.PcctCfg.MaxEntries = 65535
+	dpCfg.CsCapacity = 32768
 
 	// create dataplane
 	{

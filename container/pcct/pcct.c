@@ -117,6 +117,19 @@ Pcct_Erase(Pcct* pcct, PccEntry* entry)
   rte_mempool_put(Pcct_ToMempool(pcct), entry);
 }
 
+void
+Pcct_EraseBulk(Pcct* pcct, PccEntry* entries[], uint32_t count)
+{
+  PcctPriv* pcctp = Pcct_GetPriv(pcct);
+  for (uint32_t i = 0; i < count; ++i) {
+    PccEntry* entry = entries[i];
+    ZF_LOGD("%p EraseBulk() entry=%p", pcct, entry);
+    Pcct_RemoveToken(pcct, entry);
+    HASH_DELETE(hh, pcctp->keyHt, entry);
+  }
+  rte_mempool_put_bulk(Pcct_ToMempool(pcct), (void**)entries, count);
+}
+
 PccEntry*
 Pcct_Find(const Pcct* pcct, uint64_t hash, PccSearch* search)
 {

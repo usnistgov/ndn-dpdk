@@ -6,6 +6,12 @@
 #include "pcct.h"
 #include "pit-result.h"
 
+/** \brief Bulk size of CS eviction.
+ *
+ *  This is also the minimum CS capacity.
+ */
+#define CS_EVICT_BULK 64
+
 /** \brief Cast Pcct* as Cs*.
  */
 static Cs*
@@ -32,7 +38,7 @@ Cs_GetPriv(const Cs* cs)
 
 /** \brief Constructor.
  */
-void Cs_Init(Cs* cs);
+void Cs_Init(Cs* cs, uint32_t capacity);
 
 /** \brief Get capacity in number of entries.
  */

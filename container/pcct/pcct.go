@@ -15,6 +15,7 @@ import (
 type Config struct {
 	Id         string
 	MaxEntries int
+	CsCapacity int
 	NumaSocket dpdk.NumaSocket
 
 	HeaderMp   dpdk.PktmbufPool
@@ -41,7 +42,7 @@ func New(cfg Config) (pcct *Pcct, e error) {
 		(*C.struct_rte_mempool)(cfg.HeaderMp.GetPtr()),
 		(*C.struct_rte_mempool)(cfg.GuiderMp.GetPtr()),
 		(*C.struct_rte_mempool)(cfg.IndirectMp.GetPtr()))
-	C.Cs_Init(C.Cs_FromPcct(pcct.c))
+	C.Cs_Init(C.Cs_FromPcct(pcct.c), C.uint32_t(cfg.CsCapacity))
 	return pcct, nil
 }
 

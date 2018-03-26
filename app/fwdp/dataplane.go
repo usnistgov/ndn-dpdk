@@ -10,6 +10,7 @@ import (
 	"unsafe"
 
 	"ndn-dpdk/appinit"
+	"ndn-dpdk/container/cs"
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/ndt"
 	"ndn-dpdk/container/pcct"
@@ -28,6 +29,7 @@ type Config struct {
 
 	FwdQueueCapacity int         // input-fwd queue capacity, must be power of 2
 	PcctCfg          pcct.Config // PCCT config; Id, NumaSocket, mempools ignored
+	CsCapacity       int         // CS capacity, must be no less than cs.MIN_CAPACITY
 }
 
 // Forwarder data plane.
@@ -72,6 +74,7 @@ func New(cfg Config) (*DataPlane, error) {
 			dp.Close()
 			return nil, fmt.Errorf("pcct.New(%d): %v", i, e)
 		}
+		cs.Cs{pcct}.SetCapacity(cfg.CsCapacity)
 
 		fwd := (*C.FwFwd)(dpdk.Zmalloc("FwFwd", C.sizeof_FwFwd, numaSocket))
 		fwd.id = C.uint8_t(i)

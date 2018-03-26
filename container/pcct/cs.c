@@ -50,10 +50,49 @@ CsPriv_MoveEntryToLast(CsPriv* csp, CsEntry* entry)
   CsPriv_AppendNode(csp, node);
 }
 
-void
-Cs_Init(Cs* cs)
+static void
+Cs_EvictBulk(Cs* cs)
 {
   CsPriv* csp = Cs_GetPriv(cs);
+  assert(csp->nEntries >= CS_EVICT_BULK);
+
+  ZF_LOGD("%p EvictBulk() count=%" PRIu32, cs, csp->nEntries);
+
+  CsNode* head = &csp->head;
+  CsNode* node = head->next;
+
+  PccEntry* pccErase[CS_EVICT_BULK];
+  uint32_t nPccErase = 0;
+
+  for (int i = 0; i < CS_EVICT_BULK; ++i) {
+    assert(node != head);
+    CsEntry* entry = container_of(node, CsEntry, node);
+    node = node->next;
+    CsEntry_Finalize(entry);
+
+    PccEntry* pccEntry = PccEntry_FromCsEntry(entry);
+    if (likely(!pccEntry->hasPitEntry1)) {
+      pccErase[nPccErase++] = pccEntry;
+    } else {
+      pccEntry->hasCsEntry = false;
+    }
+    ZF_LOGD("^ cs=%p pcc=%p%s", entry, pccEntry,
+            pccEntry->hasPitEntry1 ? "(retain)" : "(erase)");
+  }
+
+  node->prev = head;
+  head->next = node;
+  csp->nEntries -= CS_EVICT_BULK;
+  ZF_LOGD("^ end-count=%" PRIu32, csp->nEntries);
+  Pcct_EraseBulk(Cs_ToPcct(cs), pccErase, nPccErase);
+}
+
+void
+Cs_Init(Cs* cs, uint32_t capacity)
+{
+  CsPriv* csp = Cs_GetPriv(cs);
+  csp->capacity = RTE_MAX(capacity, CS_EVICT_BULK);
+  ZF_LOGI("%p Init() priv=%p capacity=%" PRIu32, cs, csp, csp->capacity);
 
   CsNode* head = &csp->head;
   head->prev = head->next = head;
@@ -62,7 +101,13 @@ Cs_Init(Cs* cs)
 void
 Cs_SetCapacity(Cs* cs, uint32_t capacity)
 {
-  assert(false); // not implemented
+  CsPriv* csp = Cs_GetPriv(cs);
+  csp->capacity = RTE_MAX(capacity, CS_EVICT_BULK);
+  ZF_LOGI("%p SetCapacity(%" PRIu32 ")", cs, csp->capacity);
+
+  while (likely(csp->nEntries >= csp->capacity)) {
+    Cs_EvictBulk(cs);
+  }
 }
 
 void
@@ -96,9 +141,12 @@ Cs_Insert(Cs* cs, Packet* npkt, PitResult pitFound)
 
   CsPriv_AppendEntry(csp, entry);
 
-  // TODO evict if needed
+  ZF_LOGD("%p Insert(%p, pcc=%p) cs=%p count=%" PRIu32, cs, npkt, pccEntry,
+          entry, csp->nEntries);
 
-  ZF_LOGD("%p Insert(%p, pcc=%p) cs=%p", cs, npkt, pccEntry, entry);
+  if (unlikely(csp->nEntries > csp->capacity)) {
+    Cs_EvictBulk(cs);
+  }
 }
 
 void
@@ -110,9 +158,10 @@ Cs_Erase(Cs* cs, CsEntry* entry)
   CsPriv_RemoveEntry(csp, entry);
   CsEntry_Finalize(entry);
 
-  pccEntry->hasCsEntry = false;
-  if (!pccEntry->hasPitEntry1) {
+  if (likely(!pccEntry->hasPitEntry1)) {
     Pcct_Erase(Cs_ToPcct(cs), pccEntry);
+  } else {
+    pccEntry->hasCsEntry = false;
   }
 
   ZF_LOGD("%p Erase(%p) pcc=%p", cs, entry, pccEntry);

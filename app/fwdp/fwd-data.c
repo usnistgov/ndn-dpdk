@@ -43,8 +43,6 @@ FwFwd_RxDataSatisfy(FwFwd* fwd, Packet* npkt, PitEntry* pitEntry)
       Face_Tx(outFace, outNpkt);
     }
   }
-
-  Pit_Erase(fwd->pit, pitEntry);
 }
 
 void

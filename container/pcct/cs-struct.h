@@ -27,8 +27,8 @@ typedef struct Cs
  */
 typedef struct CsPriv
 {
-  uint32_t capacity;
-  uint32_t nEntries;
+  uint32_t capacity; ///< max number of entries
+  uint32_t nEntries; ///< current number of entries
 
   CsNode head; ///< doubly linked list of entries for cleanup
 } CsPriv;
