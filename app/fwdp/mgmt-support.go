@@ -90,6 +90,6 @@ func (dp *DataPlane) GetFwdPcct(i int) *pcct.Pcct {
 	if i < 0 || i >= len(dp.fwds) {
 		return nil
 	}
-	pcct := pcct.PcctFromPtr(unsafe.Pointer(dp.fwds[i].pit))
+	pcct := pcct.PcctFromPtr(unsafe.Pointer(*C.__FwFwd_GetPcctPtr(dp.fwds[i])))
 	return &pcct
 }

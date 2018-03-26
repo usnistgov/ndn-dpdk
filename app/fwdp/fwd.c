@@ -27,7 +27,7 @@ FwFwd_Run(FwFwd* fwd)
 {
   assert((void*)fwd->pit == (void*)fwd->cs);
   ZF_LOGI("fwdId=%" PRIu8 " fwd=%p queue=%p pit+cs=%p", fwd->id, fwd,
-          fwd->queue, fwd->pit);
+          fwd->queue, fwd->pcct);
 
   Packet* npkts[FW_FWD_BURST_SIZE];
   while (!fwd->stop) {

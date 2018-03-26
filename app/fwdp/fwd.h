@@ -15,8 +15,12 @@ typedef struct FwFwd
 
   FaceTable* ft;
   Fib* fib;
-  Pit* pit;
-  Cs* cs;
+  union
+  {
+    Pcct* pcct;
+    Pit* pit;
+    Cs* cs;
+  };
 
   uint8_t id; ///< fwd process id
   bool stop;  ///< set to true to stop the process
@@ -28,6 +32,12 @@ typedef struct FwFwd
    */
   RunningStat timeSinceRxStat;
 } FwFwd;
+
+static Pcct**
+__FwFwd_GetPcctPtr(FwFwd* fwd)
+{
+  return &fwd->pcct;
+}
 
 void FwFwd_Run(FwFwd* fwd);
 

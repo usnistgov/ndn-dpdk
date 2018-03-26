@@ -83,6 +83,7 @@ Cs_Insert(Cs* cs, Packet* npkt, PitResult pitFound)
   PInterest* interest = __PitFindResult_GetInterest(pitFound);
   if (unlikely(interest->name.p.nComps != data->name.p.nComps)) {
     // Interest name is a prefix of Data name
+    ZF_LOGD("%p Insert(%p, pcc=%p) drop=inexact-name", cs, npkt, pccEntry);
     // TODO insert Data into a new PccEntry
     rte_pktmbuf_free(Packet_ToMbuf(npkt));
     Pcct_Erase(Cs_ToPcct(cs), pccEntry);

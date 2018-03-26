@@ -79,8 +79,7 @@ func New(cfg Config) (*DataPlane, error) {
 
 		fwd.ft = ftC
 		fwd.fib = fibC
-		fwd.pit = (*C.Pit)(pcct.GetPtr())
-		fwd.cs = (*C.Cs)(pcct.GetPtr())
+		*C.__FwFwd_GetPcctPtr(fwd) = (*C.Pcct)(pcct.GetPtr())
 
 		fwd.headerMp = (*C.struct_rte_mempool)(pcctCfg.HeaderMp.GetPtr())
 		fwd.indirectMp = (*C.struct_rte_mempool)(pcctCfg.IndirectMp.GetPtr())
@@ -113,7 +112,7 @@ func (dp *DataPlane) Close() error {
 	for _, fwd := range dp.fwds {
 		queue := dpdk.RingFromPtr(unsafe.Pointer(fwd.queue))
 		queue.Close()
-		pcct := pcct.PcctFromPtr(unsafe.Pointer(fwd.pit))
+		pcct := pcct.PcctFromPtr(unsafe.Pointer(*C.__FwFwd_GetPcctPtr(fwd)))
 		pcct.Close()
 		dpdk.Free(fwd)
 	}

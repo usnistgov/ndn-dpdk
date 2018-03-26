@@ -74,6 +74,6 @@ FwFwd_RxData(FwFwd* fwd, Packet* npkt)
       break;
   }
 
-  // TODO insert to CS
-  rte_pktmbuf_free(pkt);
+  // insert to CS
+  Cs_Insert(fwd->cs, npkt, pitFound);
 }
