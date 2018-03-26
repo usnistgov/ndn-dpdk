@@ -19,7 +19,7 @@ typedef struct TlvElement
 } TlvElement;
 
 /** \brief Decode a TLV header including TLV-TYPE and TLV-LENGTH but excluding TLV-VALUE.
- *  \param[out] ele the element; will assign all fields except \p last.
+ *  \param[out] ele the element; will assign all fields except \c last.
  */
 static NdnError
 DecodeTlvHeader(TlvDecodePos* d, TlvElement* ele)

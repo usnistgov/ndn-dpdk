@@ -1,6 +1,8 @@
 #ifndef NDN_DPDK_APP_FWDP_INPUT_H
 #define NDN_DPDK_APP_FWDP_INPUT_H
 
+/// \file
+
 #include "fwd.h"
 
 #include "../../container/ndt/ndt.h"

@@ -20,8 +20,8 @@ typedef struct InOrderReassembler
 } InOrderReassembler;
 
 /** \brief Receive an NDNLPv2 fragmented packet into the reassembler.
- *  \param npkt the packet after \p Packet_ParseL2; its mbuf must point to LpPayload,
- *              and \p Packet_GetLpHdr must be available.
+ *  \param npkt the packet after \c Packet_ParseL2; its mbuf must point to LpPayload,
+ *              and \c Packet_GetLpHdr must be available.
  *  \return reassembled packet, or NULL if still waiting for more fragments.
  */
 Packet* InOrderReassembler_Receive(InOrderReassembler* r, Packet* npkt);

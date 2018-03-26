@@ -66,7 +66,7 @@ MinTmr_Init(MinTmr* tmr)
   tmr->next = tmr->prev = NULL;
 }
 
-/** \brief Calculate the maximum delay allowed in \p MinTmr_After.
+/** \brief Calculate the maximum delay allowed in \c MinTmr_After.
  */
 static TscDuration
 MinSched_GetMaxDelay(MinSched* sched)
@@ -92,7 +92,7 @@ MinTmr_At(MinTmr* tmr, TscTime at, MinSched* sched)
 
 void __MinTmr_Cancel(MinTmr* tmr);
 
-/** \brief Schedule a timer to expire at \p at.
+/** \brief Cancel a timer.
  */
 static void
 MinTmr_Cancel(MinTmr* tmr)

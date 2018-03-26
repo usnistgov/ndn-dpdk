@@ -8,7 +8,7 @@
 
 /** \brief The Forwarding Information Base (FIB).
  *
- *  Fib* is Tsht* with \p FibPriv at its 'head' field.
+ *  Fib* is Tsht* with \c FibPriv at its 'head' field.
  */
 typedef struct Fib
 {
@@ -67,7 +67,7 @@ Fib_Free(Fib* fib, FibEntry* entry)
 }
 
 /** \brief Insert a FIB entry, or replace an existing entry with same name.
- *  \param entry an entry allocated from \p Fib_Alloc.
+ *  \param entry an entry allocated from \c Fib_Alloc.
  *  \retval true new entry inserted.
  *  \retval false old entry replaced by new entry.
  *  \pre Calling thread holds rcu_read_lock.

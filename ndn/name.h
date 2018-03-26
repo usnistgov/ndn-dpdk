@@ -31,11 +31,11 @@ LName_ComputeHash(LName n)
 /** \brief Indicate the result of name comparison.
  */
 typedef enum NameCompareResult {
-  NAMECMP_LT = -2,      ///< \p lhs is less than, but not a prefix of \p rhs
-  NAMECMP_LPREFIX = -1, ///< \p lhs is a prefix of \p rhs
-  NAMECMP_EQUAL = 0,    ///< \p lhs and \p rhs are equal
-  NAMECMP_RPREFIX = 1,  ///< \p rhs is a prefix of \p lhs
-  NAMECMP_GT = 2        ///< \p rhs is less than, but not a prefix of \p lhs
+  NAMECMP_LT = -2,      ///< \c lhs is less than, but not a prefix of \c rhs
+  NAMECMP_LPREFIX = -1, ///< \c lhs is a prefix of \c rhs
+  NAMECMP_EQUAL = 0,    ///< \c lhs and \c rhs are equal
+  NAMECMP_RPREFIX = 1,  ///< \c rhs is a prefix of \c lhs
+  NAMECMP_GT = 2        ///< \c rhs is less than, but not a prefix of \c lhs
 } NameCompareResult;
 
 /** \brief Compare two names for <, ==, >, and prefix relations.
@@ -81,7 +81,7 @@ PName_Clear(PName* n)
  *  \param length TLV-LENGTH of Name element
  *  \param value TLV-VALUE of Name element
  *  \retval NdnError_OK success
- *  \retval NdnError_NameTooLong TLV-LENGTH exceeds \p NAME_MAX_LENGTH
+ *  \retval NdnError_NameTooLong TLV-LENGTH exceeds \c NAME_MAX_LENGTH
  *  \retval NdnError_BadNameComponentType component type not in 1-32767 range
  *  \retval NdnError_BadDigestComponentLength ImplicitSha256DigestComponent is not 32 octets
  *  \retval NdnError_NameHasComponentAfterDigest ImplicitSha256DigestComponent is not at last
@@ -91,7 +91,7 @@ NdnError PName_Parse(PName* n, uint32_t length, const uint8_t* value);
 /** \brief Parse a name from TlvElement.
  *  \param ele TLV Name element, TLV-TYPE must be TT_Name
  *  \retval NdnError_Fragmented TLV-VALUE is not in consecutive memory
- *  \return return value of \p PName_Parse
+ *  \return return value of \c PName_Parse
  */
 NdnError PName_FromElement(PName* n, const TlvElement* ele);
 

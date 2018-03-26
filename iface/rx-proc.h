@@ -37,7 +37,7 @@ int RxProc_Init(RxProc* rx, struct rte_mempool* nameMp);
 /** \brief Process an incoming L2 frame.
  *  \param pkt incoming L2 frame, starting from NDNLP header;
  *             RxProc retains ownership of this packet
- *  \return L3 packet after \p Packet_ParseL3;
+ *  \return L3 packet after \c Packet_ParseL3;
  *          RxProc releases ownership of this packet
  *  \retval NULL no L3 packet is ready at this moment
  */

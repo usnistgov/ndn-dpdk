@@ -49,7 +49,7 @@ Pit_CountEntries(const Pit* pit)
 
 /** \brief Insert or find a PIT entry for the given Interest.
  *  \param npkt Interest packet. PIT references it if creating a new PIT entry;
- *              caller may use it until \p PitEntry_DnRxInterest.
+ *              caller may use it until \c PitEntry_DnRxInterest.
  *
  *  If there is a CS match, return the CS entry. If there is a PIT match,
  *  return the PIT entry. Otherwise, unless the PCCT is full, insert and

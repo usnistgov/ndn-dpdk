@@ -48,7 +48,7 @@ typedef struct PccEntry
   PitEntry pitEntry1; ///< PIT entry of MustBeFresh=1
 } PccEntry;
 
-/** \brief Get PIT entry of MustBeFresh=0 from \p PccEntry.
+/** \brief Get PIT entry of MustBeFresh=0 from \p entry.
  */
 static PitEntry*
 PccEntry_GetPitEntry0(PccEntry* entry)
@@ -57,7 +57,7 @@ PccEntry_GetPitEntry0(PccEntry* entry)
   return &entry->pitEntry0;
 }
 
-/** \brief Get PIT entry of MustBeFresh=1 from \p PccEntry.
+/** \brief Get PIT entry of MustBeFresh=1 from \p entry.
  */
 static PitEntry*
 PccEntry_GetPitEntry1(PccEntry* entry)
@@ -66,7 +66,7 @@ PccEntry_GetPitEntry1(PccEntry* entry)
   return &entry->pitEntry1;
 }
 
-/** \brief Access \p PccEntry struct containing given PIT entry of MustBeFresh=0.
+/** \brief Access \c PccEntry struct containing given PIT entry of MustBeFresh=0.
  */
 static PccEntry*
 PccEntry_FromPitEntry0(PitEntry* pitEntry)
@@ -77,7 +77,7 @@ PccEntry_FromPitEntry0(PitEntry* pitEntry)
   return entry;
 }
 
-/** \brief Access \p PccEntry struct containing given PIT entry of MustBeFresh=1.
+/** \brief Access \c PccEntry struct containing given PIT entry of MustBeFresh=1.
  */
 static PccEntry*
 PccEntry_FromPitEntry1(PitEntry* pitEntry)
@@ -88,7 +88,7 @@ PccEntry_FromPitEntry1(PitEntry* pitEntry)
   return entry;
 }
 
-/** \brief Access \p PccEntry struct containing given PIT entry.
+/** \brief Access \c PccEntry struct containing given PIT entry.
  */
 static PccEntry*
 PccEntry_FromPitEntry(PitEntry* pitEntry)
@@ -99,7 +99,7 @@ PccEntry_FromPitEntry(PitEntry* pitEntry)
   return PccEntry_FromPitEntry0(pitEntry);
 }
 
-/** \brief Get CS entry from \p PccEntry.
+/** \brief Get CS entry from \p entry.
  */
 static CsEntry*
 PccEntry_GetCsEntry(PccEntry* entry)
@@ -108,7 +108,7 @@ PccEntry_GetCsEntry(PccEntry* entry)
   return &entry->csEntry;
 }
 
-/** \brief Access \p PccEntry struct containing given \p CsEntry.
+/** \brief Access \c PccEntry struct containing given CS entry.
  */
 static PccEntry*
 PccEntry_FromCsEntry(CsEntry* csEntry)

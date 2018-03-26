@@ -28,11 +28,11 @@ typedef void* TshtEntryPtr;
 #define TshtNode_FromEntry(entry1)                                             \
   ((TshtNode*)RTE_PTR_SUB((entry1), offsetof(TshtNode, entry)))
 
-/** \brief Argument to \p Tsht_Match.
+/** \brief Argument to \c Tsht_Match.
  */
 typedef struct cds_lfht_node* TshtMatchNode;
 
-/** \brief Recover entry from \p TshtMatchNode.
+/** \brief Recover entry from \c TshtMatchNode.
  *  \tparam T type of entry.
  */
 #define TshtMatch_GetEntry(node, T)                                            \

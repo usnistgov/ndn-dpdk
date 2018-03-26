@@ -12,7 +12,7 @@
  *  This function returns a random MAC address if detecting pcap PMD's default MAC address.
  *  However, the returned MAC address would be different upon every invocation.
  *
- *  In all other cases, this function is equivalent to \p rte_eth_macaddr_get.
+ *  In all other cases, this function is equivalent to \c rte_eth_macaddr_get.
  */
 void EthDev_GetMacAddr(uint16_t port, struct ether_addr* macaddr);
 

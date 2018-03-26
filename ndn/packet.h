@@ -10,7 +10,7 @@
 
 /** \brief An NDN L2 or L3 packet.
  *
- *  Packet* is struct rte_mbuf* that fulfills requirements of \p Packet_FromMbuf.
+ *  Packet* is struct rte_mbuf* that fulfills requirements of \c Packet_FromMbuf.
  */
 typedef struct Packet
 {
@@ -218,7 +218,7 @@ NdnError Packet_ParseL2(Packet* npkt);
 
 /** \brief Parse packet as Interest or Data.
  *  \param nameMp mempool for allocating Name linearize mbufs,
- *                requires at least \p NAME_MAX_LENGTH dataroom.
+ *                requires at least \c NAME_MAX_LENGTH dataroom.
  *  \retval NdnError_BadType packet type is neither Interest nor Data.
  *  \retval NdnError_AllocError unable to allocate mbuf.
  *  \post Packet_GetL3Type(npkt) is L3PktType_Interest or L3PktType_Data or L3PktType_Nack.
@@ -228,7 +228,7 @@ NdnError Packet_ParseL3(Packet* npkt, struct rte_mempool* nameMp);
 /** \brief Clone packet with a new empty header mbuf and indirect mbufs.
  *  \param[in] npkt the original packet.
  *  \param headerMp mempool for header mbuf;
- *                  must fulfill requirements of \p Packet_FromMbuf();
+ *                  must fulfill requirements of \c Packet_FromMbuf();
  *                  may have additional headroom for lower layer headers.
  *  \param indirectMp mempool for allocating indirect mbufs.
  *  \return cloned packet with copied PacketPriv.

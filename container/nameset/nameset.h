@@ -36,15 +36,15 @@ NameSet_Insert(NameSet* set, LName name, const void* usr, size_t usrLen)
   __NameSet_Insert(set, name.length, name.value, usr, usrLen);
 }
 
-/** \brief Erase a name at \p index .
+/** \brief Erase a name at \p index.
  */
 void NameSet_Erase(NameSet* set, int index);
 
-/** \brief Get the name at \p index .
+/** \brief Get the name at \p index.
  */
 LName NameSet_GetName(const NameSet* set, int index);
 
-/** \brief Get extra user information at \p index .
+/** \brief Get extra user information at \p index.
  */
 void* NameSet_GetUsr(const NameSet* set, int index);
 

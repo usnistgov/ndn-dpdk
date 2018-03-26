@@ -7,7 +7,7 @@
 
 /** \brief A thread-safe hashtable.
  *
- *  Tsht* is struct rte_mempool* with \p TshtPriv is attached to its private data area.
+ *  Tsht* is struct rte_mempool* with \c TshtPriv is attached to its private data area.
  */
 typedef struct Tsht
 {

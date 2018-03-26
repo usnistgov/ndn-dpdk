@@ -63,7 +63,7 @@ SizeofVarNum(uint64_t n)
 uint8_t* __EncodeVarNum_32or64(uint8_t* room, uint64_t n);
 
 /** \brief Encode a TLV-TYPE or TLV-LENGTH number.
- *  \param[out] room output buffer, must have \p SizeofVarNum(n) octets
+ *  \param[out] room output buffer, must have \c SizeofVarNum(n) octets
  *  \param n the number
  *  \return room + SizeofVarNum(n)
  */

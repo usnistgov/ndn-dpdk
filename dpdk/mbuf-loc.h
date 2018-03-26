@@ -42,7 +42,7 @@ MbufLoc_Copy(MbufLoc* dst, const MbufLoc* src)
   rte_memcpy(dst, src, sizeof(*dst));
 }
 
-/** \brief Copy MbufLoc \p src to \p dst but retain \p rem field.
+/** \brief Copy MbufLoc \p src to \p dst but retain \c rem field.
  */
 static void
 MbufLoc_CopyPos(MbufLoc* dst, const MbufLoc* src)

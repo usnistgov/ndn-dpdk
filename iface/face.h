@@ -79,7 +79,7 @@ void Face_TxBurst_Nts(Face* face, Packet** npkts, uint16_t count);
 
 /** \brief Send a burst of packets.
  *  \param npkts array of L3 packets; Face takes ownership
- *  \param count size of \p npkt array
+ *  \param count size of \p npkts array
  *
  *  This function is non-thread-safe by default.
  *  Invoke Face.EnableThreadSafeTx in Go API to make this thread-safe.

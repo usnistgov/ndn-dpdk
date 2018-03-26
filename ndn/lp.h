@@ -70,7 +70,7 @@ PrependLpHeader_GetHeadroom()
 
 /** \brief Encode LP header in headroom.
  *  \param m output mbuf, must be first segment, and must have
- *           \p PrependLpHeader_GetHeadroom() in headroom.
+ *           \c PrependLpHeader_GetHeadroom() in headroom.
  *  \param payloadL TLV-LENGTH of LpPayload, or 0 to indicate no payload
  */
 void PrependLpHeader(struct rte_mbuf* m, const LpHeader* lph,

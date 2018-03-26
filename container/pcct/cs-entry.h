@@ -7,7 +7,7 @@
 
 /** \brief A CS entry.
  *
- *  This struct is enclosed in \p PccEntry.
+ *  This struct is enclosed in \c PccEntry.
  */
 typedef struct CsEntry
 {

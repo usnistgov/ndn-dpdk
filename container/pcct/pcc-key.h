@@ -5,7 +5,7 @@
 
 #include "common.h"
 
-/** \brief Hash key for searching among \p PccEntry.
+/** \brief Hash key for searching among \c PccEntry.
  */
 typedef struct PccSearch
 {
@@ -13,13 +13,13 @@ typedef struct PccSearch
   LName fh;
 } PccSearch;
 
-/** \brief Convert \p PccSearch to a string for debug purpose.
+/** \brief Convert \p search to a string for debug purpose.
  *  \return A string from thread-local buffer.
  *  \warning Subsequent *ToDebugString calls on the same thread overwrite the buffer.
  */
 const char* PccSearch_ToDebugString(const PccSearch* search);
 
-/** \brief Hash key stored in \p PccEntry.
+/** \brief Hash key stored in \c PccEntry.
  */
 typedef struct PccKey
 {
@@ -27,7 +27,7 @@ typedef struct PccKey
   uint8_t fh[NAME_MAX_LENGTH];
 } PccKey;
 
-/** \brief Determine if a \p PccKey matches a \p PccSearch.
+/** \brief Determine if \p key matches \p search.
  */
 static bool
 PccKey_MatchSearchKey(const PccKey* key, const PccSearch* search)
@@ -38,7 +38,7 @@ PccKey_MatchSearchKey(const PccKey* key, const PccSearch* search)
          memcmp(key->fh, search->fh.value, search->fh.length) == 0;
 }
 
-/** \brief Copy \p PccSearch into a \p PccKey.
+/** \brief Copy \c search into \p key.
  */
 void PccKey_CopyFromSearch(PccKey* key, const PccSearch* search);
 

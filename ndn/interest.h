@@ -34,17 +34,17 @@ typedef struct PInterest
   bool canBePrefix;
   bool mustBeFresh;
 
-  uint8_t nFhs;       ///< number of forwarding hints in \p fh
-  int8_t thisFhIndex; ///< index of current forwarding hint in \p thisFh, or -1
+  uint8_t nFhs;       ///< number of forwarding hints in \c fh
+  int8_t thisFhIndex; ///< index of current forwarding hint in \c thisFh, or -1
   LName fh[INTEREST_MAX_FHS];
-  Name thisFh; ///< a parsed forwarding hint at index \p thisFhIndex
+  Name thisFh; ///< a parsed forwarding hint at index \c thisFhIndex
 } PInterest;
 
 /** \brief Parse a packet as Interest.
  *  \param[out] interest the parsed Interest packet.
  *  \param pkt the packet.
  *  \param nameMp mempool for allocating Name linearize mbufs,
- *                requires at least \p NAME_MAX_LENGTH dataroom.
+ *                requires at least \c NAME_MAX_LENGTH dataroom.
  *  \retval NdnError_BadType packet is not Interest.
  *  \retval NdnError_AllocError unable to allocate mbuf.
  */
@@ -52,7 +52,7 @@ NdnError PInterest_FromPacket(PInterest* interest, struct rte_mbuf* pkt,
                               struct rte_mempool* nameMp);
 
 /** \brief Parse a forwarding hint.
- *  \param index forwarding hint index, must be less than \p interest->nFhs.
+ *  \param index forwarding hint index, must be less than \c interest->nFhs.
  *  \post interest->thisFhIndex == index
  *  \post interest->thisFh reflects the index-th forwarding hint.
  */
@@ -71,15 +71,15 @@ ModifyInterest_SizeofGuider()
 
 /** \brief Modify Interest nonce and lifetime.
  *  \param[in] npkt the original Interest packet;
- *                  must have \p Packet_GetInterestHdr().
+ *                  must have \c Packet_GetInterestHdr().
  *  \param headerMp mempool for storing Interest TL;
- *                  must have \p EncodeInterest_GetHeadroom() dataroom,
- *                  and must fulfill requirements of \p Packet_FromMbuf();
+ *                  must have \c EncodeInterest_GetHeadroom() dataroom,
+ *                  and must fulfill requirements of \c Packet_FromMbuf();
  *                  may have additional headroom for lower layer headers.
  *  \param guiderMp mempool for storing Nonce and InterestLifetime;
- *                  must have \p ModifyInterest_SizeofGuider() dataroom.
+ *                  must have \c ModifyInterest_SizeofGuider() dataroom.
  *  \param indirectMp mempool for allocating indirect mbufs.
- *  \return cloned and modified packet that has \p Packet_GetInterestHdr().
+ *  \return cloned and modified packet that has \c Packet_GetInterestHdr().
  *  \retval NULL allocation failure.
  */
 Packet* ModifyInterest(Packet* npkt, uint32_t nonce, uint32_t lifetime,

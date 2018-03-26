@@ -73,10 +73,10 @@ FaceRxBurst_GetNack(FaceRxBurst* burst, uint16_t i)
   return FaceRxBurst_ListNacks(burst)[i];
 }
 
-/** \brief Get a scratch space for receiving up to \p burst->capacity frames.
+/** \brief Get a scratch space for receiving up to \c burst->capacity frames.
  *
  *  This scratch space overlaps with the space for Interests. It is safe to use
- *  \p FaceRxBurst_PutInterest as long as processing each frames adds at most
+ *  \c FaceRxBurst_PutInterest as long as processing each frames adds at most
  *  one Interest.
  */
 static struct rte_mbuf**

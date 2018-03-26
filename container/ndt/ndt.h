@@ -60,7 +60,7 @@ Ndt_CountElements(Ndt* ndt)
 }
 
 /** \brief Read entry hit counters.
- *  \param[out] cnt counters array of \p Ndt_CountElements(ndt) elements.
+ *  \param[out] cnt counters array of \c Ndt_CountElements(ndt) elements.
  */
 void Ndt_ReadCounters(Ndt* ndt, uint32_t* cnt);
 

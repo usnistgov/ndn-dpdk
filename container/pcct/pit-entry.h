@@ -12,7 +12,7 @@
 
 /** \brief A PIT entry.
  *
- *  This struct is enclosed in \p PccEntry.
+ *  This struct is enclosed in \c PccEntry.
  */
 typedef struct PitEntry
 {

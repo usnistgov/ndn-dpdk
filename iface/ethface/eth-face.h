@@ -23,7 +23,7 @@ typedef struct EthFace
 /** \brief Initialize a face to communicate on Ethernet.
  *  \param[out] face the face
  *  \param port DPDK ethdev port number; must be less than 0x1000
- *  \param mempools headerMp must have \p EthTx_GetHeaderMempoolDataRoom() dataroom
+ *  \param mempools headerMp must have \c EthTx_GetHeaderMempoolDataRoom() dataroom
  *  \retval 0 success
  *  \retval ENODEV port number is too large
  */
@@ -36,7 +36,7 @@ int EthFace_Init(EthFace* face, uint16_t port, FaceMempools* mempools);
 void EthFace_RxLoop(EthFace* face, uint16_t burstSize, Face_RxCb cb,
                     void* cbarg);
 
-/** \brief Tell \p EthFace_RxLoop to stop.
+/** \brief Tell \c EthFace_RxLoop to stop.
  */
 void EthFace_StopRxLoop(EthFace* face);
 

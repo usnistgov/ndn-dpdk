@@ -44,7 +44,7 @@ typedef struct NdnpingClient
   uint8_t sampleFreq;
   /** \brief How many samples to keep.
    *
-   *  \p sampleTable has (2^sampleTableSize) entries.
+   *  \c sampleTable has (2^sampleTableSize) entries.
    *  The same entry will be reused after (2^(sampleFreq+sampleTableSize)) Interests are sent,
    *  and the previous Interest in the entry will be reported as timeout if not satisfied.
    */
@@ -68,7 +68,7 @@ typedef struct NdnpingClient
    *  (seqNo & samplingMask) == 0
    */
   uint64_t samplingMask;
-  /** \brief Bitmask to determine where to store sample in \p sampleTable .
+  /** \brief Bitmask to determine where to store sample in \c sampleTable .
    *
    *  sampleTable[(seqNo >> sampleFreq) & sampleIndexMask]
    */

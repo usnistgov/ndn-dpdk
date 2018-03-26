@@ -30,7 +30,7 @@ Face* FaceTable_GetFace(FaceTable* ft, FaceId id);
 void FaceTable_AddFace(FaceTable* ft, Face* face);
 
 /** \brief Remove face with specified FaceId.
- *  \post If face exists, \p Face_Close is invoked.
+ *  \post If face exists, \c Face_Close is invoked.
  */
 void FaceTable_RemoveFace(FaceTable* ft, FaceId id);
 

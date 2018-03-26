@@ -11,13 +11,13 @@ typedef struct InterestTemplate
 {
   LName namePrefix;  ///< first part of the name
   uint32_t lifetime; ///< InterestLifetime in millis
-  HopLimit hopLimit; ///< HopLimit value, or \p HOP_LIMIT_OMITTED
+  HopLimit hopLimit; ///< HopLimit value, or \c HOP_LIMIT_OMITTED
   bool canBePrefix;
   bool mustBeFresh;
   const uint8_t* fhV; ///< ForwardingHint TLV-VALUE
   uint16_t fhL;       ///< ForwardingHint TLV-LENGTH
 
-  uint16_t bufferSize; ///< (pvt) used buffer size after \p bufferOff
+  uint16_t bufferSize; ///< (pvt) used buffer size after \c bufferOff
   uint16_t bufferOff;  ///< (pvt) start offset within buffer
   uint16_t nonceOff;   ///< (pvt) nonce offset within buffer
 } InterestTemplate;
@@ -84,10 +84,10 @@ void __EncodeInterest(struct rte_mbuf* m, const InterestTemplate* tpl,
 
 /** \brief Encode an Interest.
  *  \param m output mbuf, must be empty and is the only segment, must have
- *           \p EncodeInterest_GetHeadroom() in headroom and
- *           \p EncodeInterest_GetTailroom(tpl, nameSuffix.length, paramL) in tailroom;
+ *           \c EncodeInterest_GetHeadroom() in headroom and
+ *           <tt>EncodeInterest_GetTailroom(tpl, nameSuffix.length, paramL)</tt> in tailroom;
  *           headroom for Ethernet and NDNLP headers shall be included if needed.
- *  \param preparedBuffer a buffer prepared with \p InterestTemplate_Prepare;
+ *  \param preparedBuffer a buffer prepared with \c InterestTemplate_Prepare;
  *                        concurrent calls to this function must be distinct preparedBuffer;
  *                        the buffer may be duplicated after preparing if needed.
  *  \param nameSuffix second part of the name, set length to zero if not needed
