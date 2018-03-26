@@ -135,15 +135,24 @@ Cs_Insert(Cs* cs, Packet* npkt, PitResult pitFound)
     return;
   }
 
-  pccEntry->hasCsEntry = true;
   CsEntry* entry = &pccEntry->csEntry;
-  entry->data = npkt;
+  if (unlikely(pccEntry->hasCsEntry)) {
+    // refresh CS entry
+    rte_pktmbuf_free(Packet_ToMbuf(entry->data));
+    entry->data = npkt;
+    CsPriv_MoveEntryToLast(csp, entry);
+    ZF_LOGD("%p Insert(%p, pcc=%p) cs=%p count=%" PRIu32 " replace", cs, npkt,
+            pccEntry, entry, csp->nEntries);
+  } else {
+    // insert CS entry
+    pccEntry->hasCsEntry = true;
+    entry->data = npkt;
+    CsPriv_AppendEntry(csp, entry);
+    ZF_LOGD("%p Insert(%p, pcc=%p) cs=%p count=%" PRIu32, cs, npkt, pccEntry,
+            entry, csp->nEntries);
+  }
 
-  CsPriv_AppendEntry(csp, entry);
-
-  ZF_LOGD("%p Insert(%p, pcc=%p) cs=%p count=%" PRIu32, cs, npkt, pccEntry,
-          entry, csp->nEntries);
-
+  // evict if necessary
   if (unlikely(csp->nEntries > csp->capacity)) {
     Cs_EvictBulk(cs);
   }

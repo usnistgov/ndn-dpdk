@@ -13,7 +13,9 @@ func TestInsertErase(t *testing.T) {
 	fixture := NewFixture(255, 128)
 	defer fixture.Close()
 
-	ok := fixture.Insert(ndntestutil.MakeInterest("/A/B"), ndntestutil.MakeData("/A/B"))
+	// Interest MustBeFresh=0
+	ok := fixture.Insert(ndntestutil.MakeInterest("/A/B"),
+		ndntestutil.MakeData("/A/B"))
 	assert.True(ok)
 	assert.Equal(1, fixture.Cs.Len())
 	assert.Len(fixture.Cs.List(), 1)
@@ -21,6 +23,14 @@ func TestInsertErase(t *testing.T) {
 	assert.Equal(1, fixture.CountMpInUse())
 
 	csEntry := fixture.Find(ndntestutil.MakeInterest("/A/B"))
+	assert.NotNil(csEntry)
+
+	ok = fixture.Insert(ndntestutil.MakeInterest("050A 0706080141080142 1200"),
+		ndntestutil.MakeData("/A/B"))
+	assert.True(ok)
+	assert.Equal(1, fixture.Cs.Len())
+
+	csEntry = fixture.Find(ndntestutil.MakeInterest("/A/B"))
 	require.NotNil(csEntry)
 
 	fixture.Cs.Erase(*csEntry)

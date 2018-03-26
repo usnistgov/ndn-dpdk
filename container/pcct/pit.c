@@ -52,9 +52,9 @@ Pit_Insert(Pit* pit, Packet* npkt)
   }
 
   // check for CS match
-  if (pccEntry->hasCsEntry) {
+  if (pccEntry->hasCsEntry && !interest->mustBeFresh) {
     bool isCsMatch = true;
-    // TODO CS should not match if it violates MustBeFresh
+    // TODO CS should match if it satisfies MustBeFresh
     // TODO CS should not match if it violates CanBePrefix
     // TODO evict CS entry if it violates CanBePrefix and Interest has MustBeFresh=0,
     //      to make room for pitEntry0
