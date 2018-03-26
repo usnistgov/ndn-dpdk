@@ -111,58 +111,46 @@ Pit_Insert(Pit* pit, Packet* npkt)
   return __PitResult_New(pccEntry, PIT_INSERT_PIT0);
 }
 
-PccEntry*
-__Pit_RawErase0(Pit* pit, PitEntry* entry)
-{
-  assert(entry->mustBeFresh == false);
-  PitEntry_Finalize(entry);
-
-  PitPriv* pitp = Pit_GetPriv(pit);
-  PccEntry* pccEntry = PccEntry_FromPitEntry0(entry);
-  --pitp->nEntries;
-  pccEntry->hasPitEntry0 = false;
-
-  if (!pccEntry->hasPitEntry1) {
-    Pcct_RemoveToken(Pit_ToPcct(pit), pccEntry);
-  }
-  return pccEntry;
-}
-
-PccEntry*
-__Pit_RawErase1(Pit* pit, PitEntry* entry)
-{
-  assert(entry->mustBeFresh == true);
-  PitEntry_Finalize(entry);
-
-  PitPriv* pitp = Pit_GetPriv(pit);
-  PccEntry* pccEntry = PccEntry_FromPitEntry1(entry);
-  --pitp->nEntries;
-  pccEntry->hasPitEntry1 = false;
-
-  if (!pccEntry->hasPitEntry0) {
-    Pcct_RemoveToken(Pit_ToPcct(pit), pccEntry);
-  }
-  return pccEntry;
-}
-
 void
 Pit_Erase(Pit* pit, PitEntry* entry)
 {
   PccEntry* pccEntry;
   if (entry->mustBeFresh) {
-    pccEntry = __Pit_RawErase1(pit, entry);
+    pccEntry = PccEntry_FromPitEntry1(entry);
+    assert(pccEntry->hasPitEntry1);
+    pccEntry->hasPitEntry1 = false;
     ZF_LOGD("%p Erase(%p) del-PIT1 pcc=%p", pit, entry, pccEntry);
-    if (pccEntry->hasPitEntry0 || pccEntry->hasCsEntry) {
-      return;
-    }
   } else {
-    pccEntry = __Pit_RawErase0(pit, entry);
+    pccEntry = PccEntry_FromPitEntry0(entry);
+    assert(pccEntry->hasPitEntry0);
+    pccEntry->hasPitEntry0 = false;
     ZF_LOGD("%p Erase(%p) del-PIT0 pcc=%p", pit, entry, pccEntry);
-    if (pccEntry->hasPitEntry1) {
-      return;
-    }
   }
-  Pcct_Erase(Pit_ToPcct(pit), pccEntry);
+  PitEntry_Finalize(entry);
+
+  PitPriv* pitp = Pit_GetPriv(pit);
+  --pitp->nEntries;
+  if (!pccEntry->hasEntries) {
+    Pcct_Erase(Pit_ToPcct(pit), pccEntry);
+  } else if (!pccEntry->hasPitEntries) {
+    Pcct_RemoveToken(Pit_ToPcct(pit), pccEntry);
+  }
+}
+
+void
+__Pit_RawErase01(Pit* pit, PccEntry* pccEntry)
+{
+  PitPriv* pitp = Pit_GetPriv(pit);
+  if (pccEntry->hasPitEntry0) {
+    --pitp->nEntries;
+    PitEntry_Finalize(PccEntry_GetPitEntry0(pccEntry));
+  }
+  if (pccEntry->hasPitEntry1) {
+    --pitp->nEntries;
+    PitEntry_Finalize(PccEntry_GetPitEntry1(pccEntry));
+  }
+  pccEntry->hasPitEntries = 0;
+  Pcct_RemoveToken(Pit_ToPcct(pit), pccEntry);
 }
 
 static void

@@ -25,6 +25,18 @@ typedef struct PccEntry
       int : 12;
       uint64_t token : 48;
     } __rte_packed;
+    struct
+    {
+      int : 1;
+      int hasEntries : 3;
+      uint64_t : 56;
+    } __rte_packed;
+    struct
+    {
+      int : 1;
+      int hasPitEntries : 2;
+      uint64_t : 57;
+    } __rte_packed;
     uint64_t __tokenQword;
   };
 

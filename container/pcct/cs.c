@@ -71,29 +71,22 @@ Cs_Insert(Cs* cs, Packet* npkt, PitResult pitFound)
   CsPriv* csp = Cs_GetPriv(cs);
   PData* data = Packet_GetDataHdr(npkt);
 
+  PccEntry* pccEntry = __PitResult_GetPccEntry(pitFound);
+
+  // delete PIT entries
+  {
+    Pit* pit = Pit_FromPcct(Cs_ToPcct(cs));
+    __Pit_RawErase01(pit, pccEntry);
+  }
+
   // Data has exact name?
   PInterest* interest = __PitFindResult_GetInterest(pitFound);
   if (unlikely(interest->name.p.nComps != data->name.p.nComps)) {
     // Interest name is a prefix of Data name
     // TODO insert Data into a new PccEntry
     rte_pktmbuf_free(Packet_ToMbuf(npkt));
+    Pcct_Erase(Cs_ToPcct(cs), pccEntry);
     return;
-  }
-
-  PccEntry* pccEntry = __PitResult_GetPccEntry(pitFound);
-
-  // delete PIT entries
-  {
-    Pit* pit = Pit_FromPcct(Cs_ToPcct(cs));
-    PitEntry* pitEntry0 = PitFindResult_GetPitEntry0(pitFound);
-    if (pitEntry0 != NULL) {
-      __Pit_RawErase0(pit, pitEntry0);
-    }
-    PitEntry* pitEntry1 = PitFindResult_GetPitEntry1(pitFound);
-    if (pitEntry1 != NULL) {
-      __Pit_RawErase1(pit, pitEntry1);
-    }
-    // TODO optimize this part
   }
 
   pccEntry->hasCsEntry = true;

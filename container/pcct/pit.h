@@ -67,22 +67,14 @@ Pit_GetEntryToken(Pit* pit, PitEntry* entry)
   return pccEntry->token;
 }
 
-/** \brief Erase a PIT entry of MustBeFresh=0 but retain the PccEntry.
- *  \return enclosing PccEntry.
- *  \post \p entry is no longer valid.
- */
-PccEntry* __Pit_RawErase0(Pit* pit, PitEntry* entry);
-
-/** \brief Erase a PIT entry of MustBeFresh=1 but retain the PccEntry.
- *  \return enclosing PccEntry.
- *  \post \p entry is no longer valid.
- */
-PccEntry* __Pit_RawErase1(Pit* pit, PitEntry* entry);
-
 /** \brief Erase a PIT entry.
  *  \post \p entry is no longer valid.
  */
 void Pit_Erase(Pit* pit, PitEntry* entry);
+
+/** \brief Erase both PIT entries on a PccEntry but retain the PccEntry.
+ */
+void __Pit_RawErase01(Pit* pit, PccEntry* pccEntry);
 
 /** \brief Find PIT entries matching a Data.
  *  \param npkt Data packet, its token will be used.
