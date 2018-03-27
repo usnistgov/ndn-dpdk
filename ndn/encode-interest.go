@@ -5,6 +5,7 @@ package ndn
 */
 import "C"
 import (
+	"fmt"
 	"time"
 
 	"ndn-dpdk/dpdk"
@@ -66,6 +67,7 @@ func (tpl *InterestTemplate) prepare() {
 	C.__InterestTemplate_Prepare(&tpl.c, (*C.uint8_t)(tpl.buffer.GetPtr()), size, nil)
 }
 
+// Encode an Interest from template.
 func (tpl *InterestTemplate) Encode(m dpdk.IMbuf, nameSuffix *Name, paramV TlvBytes) {
 	tpl.prepare()
 
@@ -77,4 +79,57 @@ func (tpl *InterestTemplate) Encode(m dpdk.IMbuf, nameSuffix *Name, paramV TlvBy
 		C.uint16_t(len(nameSuffixV)), (*C.uint8_t)(nameSuffixV.GetPtr()),
 		C.uint16_t(len(paramV)), (*C.uint8_t)(paramV.GetPtr()),
 		(*C.uint8_t)(tpl.namePrefix.GetPtr()))
+}
+
+type tCanBePrefix bool
+type tMustBeFresh bool
+
+const (
+	CanBePrefixFlag = tCanBePrefix(true)
+	MustBeFreshFlag = tMustBeFresh(true)
+)
+
+// Encode an Interest from flexible arguments.
+// This alternate API is easier to use but less efficient.
+func MakeInterest(m dpdk.IMbuf, name string, args ...interface{}) (*Interest, error) {
+	n, e := ParseName(name)
+	if e != nil {
+		m.Close()
+		return nil, e
+	}
+	var param TlvBytes
+	tpl := NewInterestTemplate()
+
+	for _, arg := range args {
+		switch a := arg.(type) {
+		case tCanBePrefix:
+			tpl.SetCanBePrefix(true)
+		case tMustBeFresh:
+			tpl.SetMustBeFresh(true)
+		case time.Duration:
+			tpl.SetInterestLifetime(a)
+		case HopLimit:
+			tpl.SetHopLimit(a)
+		case TlvBytes:
+			param = a
+		default:
+			m.Close()
+			return nil, fmt.Errorf("unrecognized argument type %T", a)
+		}
+	}
+
+	tpl.Encode(m, n, param)
+
+	pkt := PacketFromDpdk(m)
+	e = pkt.ParseL2()
+	if e != nil {
+		m.Close()
+		return nil, e
+	}
+	e = pkt.ParseL3(dpdk.PktmbufPool{})
+	if e != nil || pkt.GetL3Type() != L3PktType_Interest {
+		m.Close()
+		return nil, e
+	}
+	return pkt.AsInterest(), nil
 }

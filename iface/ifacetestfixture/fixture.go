@@ -94,7 +94,7 @@ func (fixture *Fixture) txProc() int {
 		pkts := make([]ndn.Packet, 3)
 		pkts[0] = ndntestutil.MakeInterest("/A").GetPacket()
 		pkts[1] = ndntestutil.MakeData("/A").GetPacket()
-		pkts[2] = ndntestutil.MakeNack("/A~NoRoute").GetPacket()
+		pkts[2] = ndn.MakeNackFromInterest(ndntestutil.MakeInterest("/A"), ndn.NackReason_NoRoute).GetPacket()
 		fixture.txFace.TxBurst(pkts)
 		time.Sleep(time.Millisecond)
 	}

@@ -218,7 +218,8 @@ NdnError Packet_ParseL2(Packet* npkt);
 
 /** \brief Parse packet as Interest or Data.
  *  \param nameMp mempool for allocating Name linearize mbufs,
- *                requires at least \c NAME_MAX_LENGTH dataroom.
+ *                requires at least \c NAME_MAX_LENGTH dataroom;
+ *                if NULL, will panic when Name linearize becomes necessary.
  *  \retval NdnError_BadType packet type is neither Interest nor Data.
  *  \retval NdnError_AllocError unable to allocate mbuf.
  *  \post Packet_GetL3Type(npkt) is L3PktType_Interest or L3PktType_Data or L3PktType_Nack.

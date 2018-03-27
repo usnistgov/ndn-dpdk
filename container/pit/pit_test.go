@@ -82,7 +82,7 @@ func TestToken(t *testing.T) {
 		ndntestutil.SetPitToken(data, token)
 		found := pit.FindByData(data)
 		if assert.Equal(1, found.Len()) {
-			assert.True(entry.SameAs(found.GetEntries()[0]))
+			assert.Equal(uintptr(entry.GetPtr()), uintptr(found.GetEntries()[0].GetPtr()))
 		}
 
 		// high 16 bits of the token should be ignored
@@ -90,7 +90,7 @@ func TestToken(t *testing.T) {
 		ndntestutil.SetPitToken(data, token2)
 		found = pit.FindByData(data)
 		if assert.Equal(1, found.Len()) {
-			assert.True(entry.SameAs(found.GetEntries()[0]))
+			assert.Equal(uintptr(entry.GetPtr()), uintptr(found.GetEntries()[0].GetPtr()))
 		}
 
 		// name mismatch

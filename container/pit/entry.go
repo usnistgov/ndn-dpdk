@@ -21,13 +21,12 @@ func (pit Pit) EntryFromPtr(ptr unsafe.Pointer) Entry {
 	return Entry{(*C.PitEntry)(ptr), pit}
 }
 
-func (entry Entry) GetToken() uint64 {
-	return uint64(C.Pit_GetEntryToken(entry.pit.getPtr(), entry.c))
+func (entry Entry) GetPtr() unsafe.Pointer {
+	return unsafe.Pointer(entry.c)
 }
 
-// Determine whether two Entry instances point to the same underlying entry.
-func (entry Entry) SameAs(entry2 Entry) bool {
-	return entry.c == entry2.c
+func (entry Entry) GetToken() uint64 {
+	return uint64(C.Pit_GetEntryToken(entry.pit.getPtr(), entry.c))
 }
 
 // List downstream records.

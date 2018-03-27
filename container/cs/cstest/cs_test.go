@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"ndn-dpdk/dpdk"
+	"ndn-dpdk/ndn"
 	"ndn-dpdk/ndn/ndntestutil"
 )
 
@@ -28,7 +29,7 @@ func TestInsertErase(t *testing.T) {
 	assert.False(csEntry.IsFresh(dpdk.TscNow()))
 
 	// Interest MustBeFresh=1
-	ok = fixture.Insert(ndntestutil.MakeInterest("050A 0706080141080142 1200"),
+	ok = fixture.Insert(ndntestutil.MakeInterest("/A/B", ndn.MustBeFreshFlag),
 		ndntestutil.MakeData("/A/B"))
 	assert.True(ok)
 	assert.Equal(1, fixture.Cs.Len())

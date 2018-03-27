@@ -5,6 +5,7 @@ package ndn
 */
 import "C"
 import (
+	"fmt"
 	"time"
 
 	"ndn-dpdk/dpdk"
@@ -28,4 +29,43 @@ func EncodeData(m dpdk.IMbuf, name *Name, freshnessPeriod time.Duration, content
 		C.uint16_t(name.Size()), name.getValuePtr(),
 		C.uint32_t(freshnessPeriod/time.Millisecond),
 		C.uint16_t(len(content)), (*C.uint8_t)(content.GetPtr()))
+}
+
+// Encode a Data from flexible arguments.
+// This alternate API is easier to use but less efficient.
+func MakeData(m dpdk.IMbuf, name string, args ...interface{}) (*Data, error) {
+	n, e := ParseName(name)
+	if e != nil {
+		m.Close()
+		return nil, e
+	}
+	var freshnessPeriod time.Duration
+	var content TlvBytes
+
+	for _, arg := range args {
+		switch a := arg.(type) {
+		case time.Duration:
+			freshnessPeriod = a
+		case TlvBytes:
+			content = a
+		default:
+			m.Close()
+			return nil, fmt.Errorf("unrecognized argument type %T", a)
+		}
+	}
+
+	EncodeData(m, n, freshnessPeriod, content)
+
+	pkt := PacketFromDpdk(m)
+	e = pkt.ParseL2()
+	if e != nil {
+		m.Close()
+		return nil, e
+	}
+	e = pkt.ParseL3(dpdk.PktmbufPool{})
+	if e != nil || pkt.GetL3Type() != L3PktType_Data {
+		m.Close()
+		return nil, e
+	}
+	return pkt.AsData(), nil
 }
