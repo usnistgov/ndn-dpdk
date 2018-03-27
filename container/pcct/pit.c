@@ -29,6 +29,7 @@ Pit_Insert(Pit* pit, Packet* npkt)
 {
   Pcct* pcct = Pit_ToPcct(pit);
   PitPriv* pitp = Pit_GetPriv(pit);
+  struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   PInterest* interest = Packet_GetInterestHdr(npkt);
 
   // construct PccSearch
@@ -52,17 +53,19 @@ Pit_Insert(Pit* pit, Packet* npkt)
   }
 
   // check for CS match
-  if (pccEntry->hasCsEntry && !interest->mustBeFresh) {
-    bool isCsMatch = true;
-    // TODO CS should match if it satisfies MustBeFresh
+  if (pccEntry->hasCsEntry) {
+    CsEntry* csEntry = PccEntry_GetCsEntry(pccEntry);
+    bool isCsMatch =
+      !interest->mustBeFresh || CsEntry_IsFresh(csEntry, pkt->timestamp);
     // TODO CS should not match if it violates CanBePrefix
     // TODO evict CS entry if it violates CanBePrefix and Interest has MustBeFresh=0,
     //      to make room for pitEntry0
-    ZF_LOGD("%p Insert(%s) pcc=%p has-CS cs=%p", pit,
-            PccSearch_ToDebugString(&search), pccEntry,
-            PccEntry_GetCsEntry(pccEntry));
-    ++pitp->nCsMatch;
-    return __PitResult_New(pccEntry, PIT_INSERT_CS);
+    if (isCsMatch) {
+      ZF_LOGD("%p Insert(%s) pcc=%p has-CS cs=%p", pit,
+              PccSearch_ToDebugString(&search), pccEntry, csEntry);
+      ++pitp->nCsMatch;
+      return __PitResult_New(pccEntry, PIT_INSERT_CS);
+    }
   }
 
   // add token now, to avoid token allocation error later

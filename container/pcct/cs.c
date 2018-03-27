@@ -114,8 +114,8 @@ void
 Cs_Insert(Cs* cs, Packet* npkt, PitResult pitFound)
 {
   CsPriv* csp = Cs_GetPriv(cs);
+  struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   PData* data = Packet_GetDataHdr(npkt);
-
   PccEntry* pccEntry = __PitResult_GetPccEntry(pitFound);
 
   // delete PIT entries
@@ -139,20 +139,21 @@ Cs_Insert(Cs* cs, Packet* npkt, PitResult pitFound)
   if (unlikely(pccEntry->hasCsEntry)) {
     // refresh CS entry
     rte_pktmbuf_free(Packet_ToMbuf(entry->data));
-    entry->data = npkt;
     CsPriv_MoveEntryToLast(csp, entry);
-    ZF_LOGD("%p Insert(%p, pcc=%p) cs=%p count=%" PRIu32 " replace", cs, npkt,
+    ZF_LOGD("%p Insert(%p, pcc=%p) cs=%p count=%" PRIu32 " refresh", cs, npkt,
             pccEntry, entry, csp->nEntries);
   } else {
     // insert CS entry
     pccEntry->hasCsEntry = true;
-    entry->data = npkt;
     CsPriv_AppendEntry(csp, entry);
-    ZF_LOGD("%p Insert(%p, pcc=%p) cs=%p count=%" PRIu32, cs, npkt, pccEntry,
-            entry, csp->nEntries);
+    ZF_LOGD("%p Insert(%p, pcc=%p) cs=%p count=%" PRIu32 " insert", cs, npkt,
+            pccEntry, entry, csp->nEntries);
   }
+  entry->data = npkt;
+  entry->freshUntil =
+    pkt->timestamp + TscDuration_FromMillis(data->freshnessPeriod);
 
-  // evict if necessary
+  // evict if over capacity
   if (unlikely(csp->nEntries > csp->capacity)) {
     Cs_EvictBulk(cs);
   }

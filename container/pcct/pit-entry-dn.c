@@ -46,7 +46,7 @@ PitEntry_DnRxInterest(Pit* pit, PitEntry* entry, Packet* npkt)
   uint32_t lifetime = interest->lifetime <= PIT_MAX_LIFETIME
                         ? interest->lifetime
                         : PIT_MAX_LIFETIME;
-  dn->expiry = pkt->timestamp + lifetime * rte_get_tsc_hz() / 1000;
+  dn->expiry = pkt->timestamp + TscDuration_FromMillis(lifetime);
 
   // record CanBePrefix and prefer CBP=1 for representative Interest
   if (entry->nCanBePrefix != (uint8_t)interest->canBePrefix) {

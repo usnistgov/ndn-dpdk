@@ -45,7 +45,7 @@ PitEntry_UpTxInterest(Pit* pit, PitEntry* entry, FaceId face, Packet** npkt)
   }
 
   // prepare outgoing Interest
-  uint32_t lifetime = (entry->expiry - up->lastTx) * 1000 / rte_get_tsc_hz();
+  uint32_t lifetime = TscDuration_ToMillis(entry->expiry - up->lastTx);
   *npkt = ModifyInterest(entry->npkt, up->nonce, lifetime, pitp->headerMp,
                          pitp->guiderMp, pitp->indirectMp);
 

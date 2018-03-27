@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"ndn-dpdk/dpdk"
 	"ndn-dpdk/ndn/ndntestutil"
 )
 
@@ -24,7 +25,9 @@ func TestInsertErase(t *testing.T) {
 
 	csEntry := fixture.Find(ndntestutil.MakeInterest("/A/B"))
 	assert.NotNil(csEntry)
+	assert.False(csEntry.IsFresh(dpdk.TscNow()))
 
+	// Interest MustBeFresh=1
 	ok = fixture.Insert(ndntestutil.MakeInterest("050A 0706080141080142 1200"),
 		ndntestutil.MakeData("/A/B"))
 	assert.True(ok)
@@ -32,6 +35,7 @@ func TestInsertErase(t *testing.T) {
 
 	csEntry = fixture.Find(ndntestutil.MakeInterest("/A/B"))
 	require.NotNil(csEntry)
+	assert.Equal("/A/B", csEntry.GetData().GetName().String())
 
 	fixture.Cs.Erase(*csEntry)
 	assert.Zero(fixture.Cs.Len())

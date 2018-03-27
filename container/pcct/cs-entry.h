@@ -13,7 +13,8 @@ typedef struct CsEntry
 {
   CsNode node;
 
-  Packet* data; ///< the Data packet
+  Packet* data;       ///< the Data packet
+  TscTime freshUntil; ///< when to become stale
 } CsEntry;
 static_assert(offsetof(CsEntry, node) == 0, ""); // Cs.List() assumes this
 
@@ -23,6 +24,14 @@ static void
 CsEntry_Finalize(CsEntry* entry)
 {
   rte_pktmbuf_free(Packet_ToMbuf(entry->data));
+}
+
+/** \brief Determine if \p entry is stale.
+ */
+static bool
+CsEntry_IsFresh(CsEntry* entry, TscTime now)
+{
+  return entry->freshUntil > now;
 }
 
 #endif // NDN_DPDK_CONTAINER_PCCT_CS_ENTRY_H
