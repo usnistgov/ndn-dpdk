@@ -80,39 +80,54 @@ func TestInterestDecode(t *testing.T) {
 func TestInterestMatchesData(t *testing.T) {
 	assert, require := makeAR(t)
 
-	interestPktExact := packetFromHex("0505 name=0703080142")
-	defer interestPktExact.AsDpdkPacket().Close()
-	e := interestPktExact.ParseL3(theMp)
+	m := dpdktestenv.Alloc(dpdktestenv.MPID_DIRECT)
+	interestExact, e := ndn.MakeInterest(m, "/B")
 	require.NoError(e)
-	interestExact := interestPktExact.AsInterest()
-	interestPktPrefix := packetFromHex("0507 name=0703080142 cbp=2100")
-	defer interestPktPrefix.AsDpdkPacket().Close()
-	e = interestPktPrefix.ParseL3(theMp)
+	defer m.Close()
+
+	m = dpdktestenv.Alloc(dpdktestenv.MPID_DIRECT)
+	interestPrefix, e := ndn.MakeInterest(m, "/B", ndn.CanBePrefixFlag)
 	require.NoError(e)
-	interestPrefix := interestPktPrefix.AsInterest()
+	defer m.Close()
+
+	m = dpdktestenv.Alloc(dpdktestenv.MPID_DIRECT)
+	interestFresh, e := ndn.MakeInterest(m, "/B", ndn.MustBeFreshFlag)
+	require.NoError(e)
+	defer m.Close()
+
+	makeData := func(name string, args ...interface{}) *ndn.Data {
+		m = dpdktestenv.Alloc(dpdktestenv.MPID_DIRECT)
+		data, e := ndn.MakeData(m, name, args...)
+		require.NoError(e)
+		return data
+	}
 
 	tests := []struct {
-		input       string
+		data        *ndn.Data
 		exactMatch  bool
 		prefixMatch bool
+		freshMatch  bool
 	}{
-		{"0605 0703080141", false, false},
-		{"0605 0703020142", false, false},
-		{"0605 0703080142", true, true},
-		{"0608 0706080142080130", false, true},
-		{"0602 0700", false, false},
-		{"0605 0703080143", false, false},
+		{makeData("/A", time.Second),
+			false, false, false},
+		{makeData("/2=B", time.Second),
+			false, false, false},
+		{makeData("/B", time.Second),
+			true, true, true},
+		{makeData("/B", time.Duration(0)),
+			true, true, false},
+		{makeData("/B/0", time.Second),
+			false, true, false},
+		{makeData("/", time.Second),
+			false, false, false},
+		{makeData("/C", time.Second),
+			false, false, false},
 	}
-	for _, tt := range tests {
-		pkt := packetFromHex(tt.input)
-		defer pkt.AsDpdkPacket().Close()
-		e = pkt.ParseL3(theMp)
-		if !assert.NoError(e, tt.input) {
-			continue
-		}
-		data := pkt.AsData()
-		assert.Equal(tt.exactMatch, interestExact.MatchesData(data))
-		assert.Equal(tt.prefixMatch, interestPrefix.MatchesData(data))
+	for i, tt := range tests {
+		assert.Equal(tt.exactMatch, interestExact.MatchesData(tt.data), "%d", i)
+		assert.Equal(tt.prefixMatch, interestPrefix.MatchesData(tt.data), "%d", i)
+		assert.Equal(tt.freshMatch, interestFresh.MatchesData(tt.data), "%d", i)
+		tt.data.GetPacket().AsDpdkPacket().Close()
 	}
 }
 

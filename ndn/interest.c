@@ -154,8 +154,9 @@ PInterest_MatchesData(PInterest* interest, Packet* dataNpkt)
   assert(!interest->name.p.hasDigestComp); // not implemented
   NameCompareResult cmp =
     LName_Compare(*(const LName*)&interest->name, *(const LName*)&data->name);
-  return cmp == NAMECMP_EQUAL ||
-         (interest->canBePrefix && cmp == NAMECMP_LPREFIX);
+  return (cmp == NAMECMP_EQUAL ||
+          (interest->canBePrefix && cmp == NAMECMP_LPREFIX)) &&
+         (!interest->mustBeFresh || data->freshnessPeriod > 0);
 }
 
 Packet*

@@ -3,6 +3,7 @@ package cstest
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/ndn"
@@ -15,7 +16,6 @@ func TestInsertErase(t *testing.T) {
 	fixture := NewFixture(255, 128)
 	defer fixture.Close()
 
-	// Interest MustBeFresh=0
 	ok := fixture.Insert(ndntestutil.MakeInterest("/A/B"),
 		ndntestutil.MakeData("/A/B"))
 	assert.True(ok)
@@ -28,15 +28,20 @@ func TestInsertErase(t *testing.T) {
 	assert.NotNil(csEntry)
 	assert.False(csEntry.IsFresh(dpdk.TscNow()))
 
-	// Interest MustBeFresh=1
 	ok = fixture.Insert(ndntestutil.MakeInterest("/A/B", ndn.MustBeFreshFlag),
-		ndntestutil.MakeData("/A/B"))
+		ndntestutil.MakeData("/A/B", 100*time.Millisecond))
 	assert.True(ok)
 	assert.Equal(1, fixture.Cs.Len())
 
 	csEntry = fixture.Find(ndntestutil.MakeInterest("/A/B"))
 	require.NotNil(csEntry)
 	assert.Equal("/A/B", csEntry.GetData().GetName().String())
+
+	time.Sleep(10 * time.Millisecond)
+	assert.NotNil(fixture.Find(ndntestutil.MakeInterest("/A/B", ndn.MustBeFreshFlag)))
+	time.Sleep(120 * time.Millisecond)
+	assert.Nil(fixture.Find(ndntestutil.MakeInterest("/A/B", ndn.MustBeFreshFlag)))
+	assert.NotNil(fixture.Find(ndntestutil.MakeInterest("/A/B")))
 
 	fixture.Cs.Erase(*csEntry)
 	assert.Zero(fixture.Cs.Len())
