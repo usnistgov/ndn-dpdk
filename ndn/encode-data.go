@@ -2,43 +2,30 @@ package ndn
 
 /*
 #include "encode-data.h"
-
-void
-c_EncodeData1(struct rte_mbuf* m, uint16_t nameL, const uint8_t* nameV, struct rte_mbuf* payload)
-{
-	LName name = { .length = nameL, .value = nameV };
-	EncodeData1(m, name, payload);
-}
-
 */
 import "C"
-import "ndn-dpdk/dpdk"
+import (
+	"time"
 
-func EncodeData1_GetHeadroom() int {
-	return int(C.EncodeData1_GetHeadroom())
+	"ndn-dpdk/dpdk"
+)
+
+func EncodeData_GetHeadroom() int {
+	return int(C.EncodeData_GetHeadroom())
 }
 
-func EncodeData1_GetTailroom(nameLength int) int {
-	return int(C.EncodeData1_GetTailroom(C.uint16_t(nameLength)))
+func EncodeData_GetTailroom(nameL int, contentL int) int {
+	return int(C.EncodeData_GetTailroom(C.uint16_t(nameL), C.uint16_t(contentL)))
 }
 
-func EncodeData1_GetTailroomMax() int {
-	return int(C.EncodeData1_GetTailroomMax())
+func EncodeData_GetTailroomMax() int {
+	return int(C.EncodeData_GetTailroomMax())
 }
 
-func EncodeData2_GetHeadroom() int {
-	return int(C.EncodeData2_GetHeadroom())
-}
-
-func EncodeData2_GetTailroom() int {
-	return int(C.EncodeData2_GetTailroom())
-}
-
-// Make a Data.
-func EncodeData(name *Name, payload dpdk.IMbuf, m1 dpdk.IMbuf, m2 dpdk.IMbuf) dpdk.Packet {
-	C.c_EncodeData1((*C.struct_rte_mbuf)(m1.GetPtr()), C.uint16_t(name.Size()), name.getValuePtr(),
-		(*C.struct_rte_mbuf)(payload.GetPtr()))
-	C.EncodeData2((*C.struct_rte_mbuf)(m2.GetPtr()), (*C.struct_rte_mbuf)(m1.GetPtr()))
-	C.EncodeData3((*C.struct_rte_mbuf)(m1.GetPtr()))
-	return dpdk.MbufFromPtr(m1.GetPtr()).AsPacket()
+// Encode a Data.
+func EncodeData(m dpdk.IMbuf, name *Name, freshnessPeriod time.Duration, content TlvBytes) {
+	C.__EncodeData((*C.struct_rte_mbuf)(m.GetPtr()),
+		C.uint16_t(name.Size()), name.getValuePtr(),
+		C.uint32_t(freshnessPeriod/time.Millisecond),
+		C.uint16_t(len(content)), (*C.uint8_t)(content.GetPtr()))
 }

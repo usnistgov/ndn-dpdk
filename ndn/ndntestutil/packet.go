@@ -51,7 +51,7 @@ func MakeInterest(input interface{}) *ndn.Interest {
 		if input1[0] == '/' {
 			m := dpdktestenv.Alloc(dpdktestenv.MPID_DIRECT)
 			interestTpl.Encode(m, ParseName(input1), nil)
-			pkt = ndn.PacketFromPtr(m.GetPtr())
+			pkt = ndn.PacketFromDpdk(m)
 		} else {
 			pkt = makePacket(dpdktestenv.BytesFromHex(input1))
 		}
@@ -73,10 +73,9 @@ func MakeData(input interface{}) *ndn.Data {
 		pkt = makePacket(input1)
 	case string:
 		if input1[0] == '/' {
-			mbufs := make([]dpdk.Mbuf, 3)
-			dpdktestenv.AllocBulk(dpdktestenv.MPID_DIRECT, mbufs)
-			m := ndn.EncodeData(ParseName(input1), mbufs[0], mbufs[1], mbufs[2])
-			pkt = ndn.PacketFromPtr(m.GetPtr())
+			m := dpdktestenv.Alloc(dpdktestenv.MPID_DIRECT)
+			ndn.EncodeData(m, ParseName(input1), 0, nil)
+			pkt = ndn.PacketFromDpdk(m)
 		} else {
 			pkt = makePacket(dpdktestenv.BytesFromHex(input1))
 		}
@@ -105,7 +104,7 @@ func MakeNack(input interface{}) *ndn.Nack {
 			}
 			m := dpdktestenv.Alloc(dpdktestenv.MPID_DIRECT)
 			interestTpl.Encode(m, ParseName(input1), nil)
-			pkt = ndn.PacketFromPtr(m.GetPtr())
+			pkt = ndn.PacketFromDpdk(m)
 			parseL2L3(pkt)
 			return ndn.MakeNackFromInterest(pkt.AsInterest(), nackReason)
 		} else {

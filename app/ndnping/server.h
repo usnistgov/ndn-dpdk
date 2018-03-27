@@ -18,13 +18,12 @@ typedef struct NdnpingServerPattern
 typedef struct NdnpingServer
 {
   Face* face;
-  NameSet patterns;         ///< served prefixes
-  bool wantNackNoRoute;     ///< whether to Nack unserved Interests
-  struct rte_mbuf* payload; ///< the payload
+  NameSet patterns;     ///< served prefixes
+  bool wantNackNoRoute; ///< whether to Nack unserved Interests
+  uint32_t freshnessPeriod;
 
-  struct rte_mempool* data1Mp;    ///< mempool for Data header
-  struct rte_mempool* data2Mp;    ///< mempool for Data signature
-  struct rte_mempool* indirectMp; ///< mempool for indirect mbufs to payload
+  struct rte_mempool* dataMp; ///< mempool for Data
+  uint16_t dataMbufHeadroom;
 
   uint64_t nNoMatch;
   uint64_t nAllocError;

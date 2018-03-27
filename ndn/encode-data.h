@@ -6,69 +6,47 @@
 #include "name.h"
 
 static uint16_t
-EncodeData1_GetHeadroom()
+EncodeData_GetHeadroom()
 {
-  return 1 + 5 + // Data
-         1 + 3;  // Name TL
+  return 1 + 5; // Data TL
 }
+
+extern const uint16_t __EncodeData_FakeSigLen;
 
 static uint16_t
-EncodeData1_GetTailroom(uint16_t nameLength)
+EncodeData_GetTailroom(uint16_t nameL, uint16_t contentL)
 {
-  return nameLength + // Name V
-         1 + 1 +      // MetaInfo
-         1 + 5;       // Content TL
+  return 1 + 3 + nameL +     // Name
+         1 + 1 + 1 + 1 + 4 + // MetaInfo with FreshnessPeriod
+         1 + 4 + contentL +  // Content
+         __EncodeData_FakeSigLen;
 }
 
-/** \brief Get required tailroom for EncodeData1 output mbuf, assuming max name length.
+/** \brief Get required tailroom for EncodeData output mbuf,
+ *         assuming max name length and empty payload.
  */
 static uint16_t
-EncodeData1_GetTailroomMax()
+EncodeData_GetTailroomMax()
 {
-  return EncodeData1_GetTailroom(NAME_MAX_LENGTH);
+  return EncodeData_GetTailroom(NAME_MAX_LENGTH, 0);
 }
 
-/** \brief Make a Data, step1.
+void __EncodeData(struct rte_mbuf* m, uint16_t nameL, const uint8_t* nameV,
+                  uint32_t freshnessPeriod, uint16_t contentL,
+                  const uint8_t* contentV);
+
+/** \brief Encode a Data.
  *  \param m output mbuf, must be empty and is the only segment, must have
- *           \c EncodeData1_GetHeadroom() in headroom and
- *           \c EncodeData1_GetTailroom(name) in tailroom;
+ *           \c EncodeData_GetHeadroom() in headroom and
+ *           <tt>EncodeData_GetTailroom(name.length, contentL)</tt> in tailroom;
  *           headroom for Ethernet and NDNLP headers shall be included if needed.
- *  \param name the Data name; this function will copy the name
- *  \param payload the payload; this function will chain them onto \p m, so they should be
- *                 indirect mbufs if shared
+ *  \param contentV the payload, will be copied.
  */
-void EncodeData1(struct rte_mbuf* m, LName name, struct rte_mbuf* payload);
-
-static uint16_t
-EncodeData2_GetHeadroom()
+static void
+EncodeData(struct rte_mbuf* m, LName name, uint32_t freshnessPeriod,
+           uint16_t contentL, const uint8_t* contentV)
 {
-  return 0;
+  __EncodeData(m, name.length, name.value, freshnessPeriod, contentL, contentV);
 }
-
-extern const uint16_t __EncodeData2_FakeSigLen;
-
-static uint16_t
-EncodeData2_GetTailroom()
-{
-  return __EncodeData2_FakeSigLen;
-}
-
-/** \brief Make a Data, step2.
- *  \param m signature mbuf, must be empty and is the only segment, must have
- *           \c EncodeData2_GetHeadroom() in headroom and
- *           \c EncodeData2_GetTailroom() in tailroom
- *  \param data1 'm' from \c EncodeData1
- *
- *  This function prepares a fake signature in \p m and chains it onto the Data.
- */
-void EncodeData2(struct rte_mbuf* m, struct rte_mbuf* data1);
-
-/** \brief Make a Data, step3.
- *  \param data2 'data1' from \p EncodeData2
- *
- *  This function prepends TLV-TYPE and TLV-LENGTH of Data element in the first segment.
- *  \c EncodeData1_GetHeadroom() has accounted for these octets.
- */
-void EncodeData3(struct rte_mbuf* data2);
 
 #endif // NDN_DPDK_NDN_ENCODE_DATA_H

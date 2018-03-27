@@ -10,33 +10,15 @@ INIT_ZF_LOG(NdnpingServer);
 static Packet*
 NdnpingServer_MakeData(NdnpingServer* server, LName name)
 {
-  struct rte_mbuf* m1 = rte_pktmbuf_alloc(server->data1Mp);
-  if (unlikely(m1 == NULL)) {
-    ZF_LOGW("data1Mp-full");
+  struct rte_mbuf* m = rte_pktmbuf_alloc(server->dataMp);
+  if (unlikely(m == NULL)) {
+    ZF_LOGW("dataMp-full");
     return NULL;
   }
-  struct rte_mbuf* m2 = rte_pktmbuf_alloc(server->data2Mp);
-  if (unlikely(m2 == NULL)) {
-    ZF_LOGW("data2Mp-full");
-    rte_pktmbuf_free(m1);
-    return NULL;
-  }
-  struct rte_mbuf* payload =
-    rte_pktmbuf_clone(server->payload, server->indirectMp);
-  if (unlikely(payload == NULL)) {
-    ZF_LOGW("indirectMp-full");
-    rte_pktmbuf_free(m1);
-    rte_pktmbuf_free(m2);
-    return NULL;
-  }
+  m->data_off = server->dataMbufHeadroom;
+  EncodeData(m, name, server->freshnessPeriod, 0, NULL);
 
-  m1->data_off = EncodeData1_GetHeadroom();
-  m2->data_off = EncodeData2_GetHeadroom();
-  EncodeData1(m1, name, payload);
-  EncodeData2(m2, m1);
-  EncodeData3(m1);
-
-  Packet* npkt = Packet_FromMbuf(m1);
+  Packet* npkt = Packet_FromMbuf(m);
   Packet_SetL2PktType(npkt, L2PktType_None);
   Packet_SetL3PktType(npkt, L3PktType_Data); // for stats; no PData*
   return npkt;

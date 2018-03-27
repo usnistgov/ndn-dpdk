@@ -68,7 +68,7 @@ func PacketFromPtr(ptr unsafe.Pointer) (pkt Packet) {
 	return pkt
 }
 
-func PacketFromDpdk(m dpdk.Packet) (pkt Packet) {
+func PacketFromDpdk(m dpdk.IMbuf) (pkt Packet) {
 	return PacketFromPtr(m.GetPtr())
 }
 

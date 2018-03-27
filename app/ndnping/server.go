@@ -17,9 +17,8 @@ import (
 
 // Server internal config.
 const (
-	Server_PayloadMp      = "NdnpingServer_Payload"
-	Server_MaxPayloadSize = 2048
-	Server_BurstSize      = 64
+	Server_BurstSize       = 64
+	Server_FreshnessPeriod = 60000
 )
 
 type Server struct {
@@ -30,21 +29,17 @@ func NewServer(face iface.Face) (server Server, e error) {
 	socket := face.GetNumaSocket()
 	server.c = (*C.NdnpingServer)(dpdk.Zmalloc("NdnpingServer", C.sizeof_NdnpingServer, socket))
 	server.c.face = (*C.Face)(face.GetPtr())
-	e = server.SetPayload([]byte{})
+	server.c.freshnessPeriod = C.uint32_t(Server_FreshnessPeriod)
 
-	server.c.data1Mp = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
-		appinit.MP_DATA1, socket).GetPtr())
-	server.c.data2Mp = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
-		appinit.MP_DATA2, socket).GetPtr())
-	server.c.indirectMp = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
-		appinit.MP_IND, socket).GetPtr())
+	server.c.dataMp = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
+		appinit.MP_DATA, socket).GetPtr())
+	server.c.dataMbufHeadroom = C.uint16_t(appinit.SizeofEthLpHeaders() + ndn.EncodeData_GetHeadroom())
 
 	return server, e
 }
 
 func (server Server) Close() error {
 	server.getPatterns().Close()
-	server.clearPayload()
 	dpdk.Free(server.c)
 	return nil
 }
@@ -63,41 +58,6 @@ func (server Server) getPatterns() nameset.NameSet {
 
 func (server Server) AddPattern(name *ndn.Name) {
 	server.getPatterns().InsertWithZeroUsr(name, int(C.sizeof_NdnpingServerPattern))
-}
-
-func (server Server) clearPayload() {
-	if server.c.payload != nil {
-		dpdk.MbufFromPtr(unsafe.Pointer(server.c.payload)).Close()
-	}
-}
-
-func (server Server) SetPayload(payload []byte) error {
-	if len(payload) > Server_MaxPayloadSize {
-		return fmt.Errorf("payload is too long")
-	}
-
-	server.clearPayload()
-
-	numaSocket := server.GetFace().GetNumaSocket()
-	mp := appinit.MakePktmbufPool(Server_PayloadMp, numaSocket)
-	m, e := mp.Alloc()
-	if e != nil {
-		return fmt.Errorf("cannot allocate mbuf for payload: %v", e)
-	}
-
-	m.AsPacket().GetFirstSegment().Append(payload)
-	server.c.payload = (*C.struct_rte_mbuf)(m.GetPtr())
-	return nil
-}
-
-func init() {
-	appinit.RegisterMempool(Server_PayloadMp,
-		appinit.MempoolConfig{
-			Capacity:     15,
-			CacheSize:    0,
-			PrivSize:     0,
-			DataroomSize: Server_MaxPayloadSize,
-		})
 }
 
 func (server Server) Run() int {

@@ -87,6 +87,8 @@ func MakePktmbufPool(key string, socket dpdk.NumaSocket) dpdk.PktmbufPool {
 	return mp
 }
 
+var SizeofEthLpHeaders = ethface.SizeofHeaderMempoolDataroom
+
 // Registered mempool templates.
 const (
 	MP_IND   = "__IND"   // indirect mbufs
@@ -94,9 +96,8 @@ const (
 	MP_NAME  = "__NAME"  // name linearize
 	MP_HDR   = "__HDR"   // TX Ethernet+NDNLP+Interest headers
 	MP_INTG  = "__INTG"  // modifying Interest guiders
-	MP_INT   = "__INT"   // encoding Interest
-	MP_DATA1 = "__DATA1" // encoding Data header
-	MP_DATA2 = "__DATA2" // encoding Data signature
+	MP_INT   = "__INT"   // TX Ethernet+NDNLP and encoding Interest
+	MP_DATA  = "__DATA"  // TX Ethernet+NDNLP and encoding Data
 )
 
 func init() {
@@ -126,7 +127,7 @@ func init() {
 			Capacity:     65535,
 			CacheSize:    255,
 			PrivSize:     ndn.SizeofPacketPriv(),
-			DataroomSize: ethface.SizeofHeaderMempoolDataroom() + ndn.EncodeInterest_GetHeadroom(),
+			DataroomSize: SizeofEthLpHeaders() + ndn.EncodeInterest_GetHeadroom(),
 		})
 	RegisterMempool(MP_INTG,
 		MempoolConfig{
@@ -137,23 +138,18 @@ func init() {
 		})
 	RegisterMempool(MP_INT,
 		MempoolConfig{
-			Capacity:     65535,
-			CacheSize:    255,
-			PrivSize:     ndn.SizeofPacketPriv(),
-			DataroomSize: ndn.EncodeInterest_GetHeadroom() + ndn.EncodeInterest_GetTailroomMax(),
+			Capacity:  65535,
+			CacheSize: 255,
+			PrivSize:  ndn.SizeofPacketPriv(),
+			DataroomSize: SizeofEthLpHeaders() + ndn.EncodeInterest_GetHeadroom() +
+				ndn.EncodeInterest_GetTailroomMax(),
 		})
-	RegisterMempool(MP_DATA1,
+	RegisterMempool(MP_DATA,
 		MempoolConfig{
-			Capacity:     65535,
-			CacheSize:    255,
-			PrivSize:     ndn.SizeofPacketPriv(),
-			DataroomSize: ndn.EncodeData1_GetHeadroom() + ndn.EncodeData1_GetTailroomMax(),
-		})
-	RegisterMempool(MP_DATA2,
-		MempoolConfig{
-			Capacity:     65535,
-			CacheSize:    255,
-			PrivSize:     0,
-			DataroomSize: ndn.EncodeData2_GetHeadroom() + ndn.EncodeData2_GetTailroom(),
+			Capacity:  65535,
+			CacheSize: 255,
+			PrivSize:  ndn.SizeofPacketPriv(),
+			DataroomSize: SizeofEthLpHeaders() + ndn.EncodeData_GetHeadroom() +
+				ndn.EncodeData_GetTailroomMax(),
 		})
 }

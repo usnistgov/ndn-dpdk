@@ -82,6 +82,7 @@ static void
 NdnpingClient_PrepareTxInterest(NdnpingClient* client, Packet* npkt)
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
+  pkt->data_off = client->interestMbufHeadroom;
   uint64_t seqNo = ++client->suffixComponent.compV;
   int patternId = NdnpingClient_SelectPattern(client, seqNo);
   NdnpingClientPattern* pattern =

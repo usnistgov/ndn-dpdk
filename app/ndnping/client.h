@@ -34,6 +34,7 @@ typedef struct NdnpingClient
   Face* face;
   NameSet patterns;
   struct rte_mempool* interestMp; ///< mempool for Interests
+  uint16_t interestMbufHeadroom;
   float interestInterval; ///< average interval between two Interests (millis)
 
   // sampling config:

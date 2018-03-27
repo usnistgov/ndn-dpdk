@@ -1,27 +1,6 @@
 #include "encode-data.h"
 #include "tlv-encoder.h"
 
-void
-EncodeData1(struct rte_mbuf* m, LName name, struct rte_mbuf* payload)
-{
-  assert(rte_pktmbuf_headroom(m) >= EncodeData1_GetHeadroom());
-  assert(rte_pktmbuf_tailroom(m) >= EncodeData1_GetTailroom(name.length));
-
-  TlvEncoder* en = MakeTlvEncoder(m);
-
-  rte_memcpy(rte_pktmbuf_append(m, name.length), name.value, name.length);
-  PrependVarNum(en, name.length);
-  PrependVarNum(en, TT_Name);
-
-  AppendVarNum(en, TT_MetaInfo);
-  AppendVarNum(en, 0);
-
-  AppendVarNum(en, TT_Content);
-  AppendVarNum(en, payload->pkt_len);
-
-  rte_pktmbuf_chain(m, payload);
-}
-
 // clang-format off
 static const uint8_t FAKESIG[] = {
   TT_SignatureInfo, 0x03,
@@ -34,25 +13,51 @@ static const uint8_t FAKESIG[] = {
 };
 // clang-format on
 
-const uint16_t __EncodeData2_FakeSigLen = sizeof(FAKESIG);
+const uint16_t __EncodeData_FakeSigLen = sizeof(FAKESIG);
 
 void
-EncodeData2(struct rte_mbuf* m, struct rte_mbuf* data1)
+__EncodeData(struct rte_mbuf* m, uint16_t nameL, const uint8_t* nameV,
+             uint32_t freshnessPeriod, uint16_t contentL,
+             const uint8_t* contentV)
 {
-  assert(rte_pktmbuf_headroom(m) >= EncodeData2_GetHeadroom());
-  assert(rte_pktmbuf_tailroom(m) >= EncodeData2_GetTailroom());
-  MakeTlvEncoder(m); // asserts empty
+  assert(rte_pktmbuf_headroom(m) >= EncodeData_GetHeadroom());
+  assert(rte_pktmbuf_tailroom(m) >= EncodeData_GetTailroom(nameL, contentL));
+  TlvEncoder* en = MakeTlvEncoder(m);
 
-  char* room = rte_pktmbuf_append(m, __EncodeData2_FakeSigLen);
-  rte_memcpy(room, FAKESIG, __EncodeData2_FakeSigLen);
+  {
+    AppendVarNum(en, TT_Name);
+    AppendVarNum(en, nameL);
+    rte_memcpy(rte_pktmbuf_append(m, nameL), nameV, nameL);
+  }
 
-  rte_pktmbuf_chain(data1, m);
-}
+  if (freshnessPeriod != 0) {
+    typedef struct MetaInfoF
+    {
+      uint8_t metaInfoT;
+      uint8_t metaInfoL;
+      uint8_t freshnessPeriodT;
+      uint8_t freshnessPeriodL;
+      rte_be32_t freshnessPeriodV;
+    } __rte_packed MetaInfoF;
 
-void
-EncodeData3(struct rte_mbuf* data2)
-{
-  TlvEncoder* en = MakeTlvEncoder_Unchecked(data2);
-  PrependVarNum(en, data2->pkt_len);
+    MetaInfoF* f = (MetaInfoF*)TlvEncoder_Append(en, sizeof(MetaInfoF));
+    f->metaInfoT = TT_MetaInfo;
+    f->metaInfoL = 6;
+    f->freshnessPeriodT = TT_FreshnessPeriod;
+    f->freshnessPeriodL = 4;
+    *(unaligned_uint32_t*)&f->freshnessPeriodV =
+      rte_cpu_to_be_32(freshnessPeriod);
+  }
+
+  if (contentL != 0) {
+    AppendVarNum(en, TT_Content);
+    AppendVarNum(en, contentL);
+    rte_memcpy(rte_pktmbuf_append(m, contentL), contentV, contentL);
+  }
+
+  rte_memcpy(rte_pktmbuf_append(m, __EncodeData_FakeSigLen), FAKESIG,
+             __EncodeData_FakeSigLen);
+
+  PrependVarNum(en, m->pkt_len);
   PrependVarNum(en, TT_Data);
 }

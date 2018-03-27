@@ -33,6 +33,7 @@ func NewClient(face iface.Face) (client Client, e error) {
 	client.c.face = (*C.Face)(face.GetPtr())
 	client.c.interestMp = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
 		appinit.MP_INT, socket).GetPtr())
+	client.c.interestMbufHeadroom = C.uint16_t(appinit.SizeofEthLpHeaders() + ndn.EncodeInterest_GetHeadroom())
 	client.SetInterval(time.Second)
 
 	C.NdnpingClient_Init(client.c)
