@@ -124,12 +124,11 @@ Cs_Insert(Cs* cs, Packet* npkt, PitResult pitFound)
     __Pit_RawErase01(pit, pccEntry);
   }
 
-  // Data has exact name?
+  // stop if Data does not have exact name
+  // TODO introduce indirect entries for prefix match
   PInterest* interest = __PitFindResult_GetInterest(pitFound);
   if (unlikely(interest->name.p.nComps != data->name.p.nComps)) {
-    // Interest name is a prefix of Data name
-    ZF_LOGD("%p Insert(%p, pcc=%p) drop=inexact-name", cs, npkt, pccEntry);
-    // TODO insert Data into a new PccEntry
+    ZF_LOGD("%p Insert(%p, pcc=%p) drop=nonexact-name", cs, npkt, pccEntry);
     rte_pktmbuf_free(Packet_ToMbuf(npkt));
     Pcct_Erase(Cs_ToPcct(cs), pccEntry);
     return;

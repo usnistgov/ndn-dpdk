@@ -9,6 +9,8 @@ CS's APIs are tied to the PIT.
 `Pit_Insert` performs CS lookup.
 `Cs_Insert` requires a PIT find result, and the new CS entry would take the place of satisfied PIT entries.
 
+This CS only supports exact match lookups.
+
 ## Eviction
 
 CS has its own capacity limit, in addition to the capacity limit of PCCT's underlying mempool.

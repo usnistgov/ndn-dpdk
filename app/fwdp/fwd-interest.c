@@ -54,15 +54,30 @@ FwFwd_RxInterestMissCs(FwFwd* fwd, PitEntry* pitEntry, Packet* npkt,
   }
 }
 
+static void
+FwFwd_RxInterestHitCs(FwFwd* fwd, CsEntry* csEntry, Packet* npkt, Face* dnFace)
+{
+  uint64_t dnToken = Packet_GetLpL3Hdr(npkt)->pitToken;
+  Packet* outNpkt = ClonePacket(csEntry->data, fwd->headerMp, fwd->indirectMp);
+  ZF_LOGD("^ cs-entry=%p data-to=%" PRI_FaceId " npkt=%p dn-token=%016" PRIx64,
+          csEntry, dnFace->id, outNpkt, dnToken);
+  if (likely(outNpkt != NULL)) {
+    Packet_GetLpL3Hdr(outNpkt)->pitToken = dnToken;
+    Face_Tx(dnFace, outNpkt);
+  }
+}
+
 void
 FwFwd_RxInterest(FwFwd* fwd, Packet* npkt)
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
   PInterest* interest = Packet_GetInterestHdr(npkt);
+  Face* dnFace = FaceTable_GetFace(fwd->ft, pkt->port);
+  assert(dnFace != NULL); // XXX could fail if face fails during forwarding
 
   ZF_LOGD("interest-from=%" PRI_FaceId " npkt=%p dn-token=%016" PRIx64,
-          pkt->port, npkt, token);
+          dnFace->id, npkt, token);
 
   rcu_read_lock();
 
@@ -70,10 +85,8 @@ FwFwd_RxInterest(FwFwd* fwd, Packet* npkt)
   const FibEntry* fibEntry = Fib_Lpm(fwd->fib, &interest->name);
   if (unlikely(fibEntry == NULL)) {
     // Nack if no FIB match
-    ZF_LOGD("^ drop=no-FIB-match nack-to=%" PRI_FaceId, pkt->port);
+    ZF_LOGD("^ drop=no-FIB-match nack-to=%" PRI_FaceId, dnFace->id);
     MakeNack(npkt, NackReason_NoRoute);
-    Face* dnFace = FaceTable_GetFace(fwd->ft, pkt->port);
-    assert(dnFace != NULL); // XXX could fail if face fails during forwarding
     Face_Tx(dnFace, npkt);
     rcu_read_unlock();
     return;
@@ -90,15 +103,13 @@ FwFwd_RxInterest(FwFwd* fwd, Packet* npkt)
     }
     case PIT_INSERT_CS: {
       CsEntry* csEntry = PitInsertResult_GetCsEntry(pitIns);
-      ZF_LOGD("^ cs-entry=%p", csEntry);
-      rte_pktmbuf_free(pkt);
-      // TODO send Data
+      FwFwd_RxInterestHitCs(fwd, csEntry, npkt, dnFace);
       break;
     }
     case PIT_INSERT_FULL:
-      ZF_LOGD("^ drop=PIT-full");
-      rte_pktmbuf_free(pkt);
-      // TODO send Nack~Congestion
+      ZF_LOGD("^ drop=PIT-full nack-to=%" PRI_FaceId, dnFace->id);
+      MakeNack(npkt, NackReason_Congestion);
+      Face_Tx(dnFace, npkt);
       break;
     default:
       assert(false); // no other cases

@@ -30,17 +30,17 @@ FwFwd_RxDataSatisfy(FwFwd* fwd, Packet* npkt, PitEntry* pitEntry)
       ZF_LOGD("^ dn-expired=%" PRI_FaceId, dn->face);
       continue;
     }
-    Face* outFace = FaceTable_GetFace(fwd->ft, dn->face);
-    if (unlikely(outFace == NULL)) {
+    Face* dnFace = FaceTable_GetFace(fwd->ft, dn->face);
+    if (unlikely(dnFace == NULL)) {
       continue;
     }
 
     Packet* outNpkt = ClonePacket(npkt, fwd->headerMp, fwd->indirectMp);
-    ZF_LOGD("^ data-to=%" PRI_FaceId " npkt=%p dn-token=%016" PRIx64, dn->face,
-            outNpkt, dn->token);
+    ZF_LOGD("^ data-to=%" PRI_FaceId " npkt=%p dn-token=%016" PRIx64,
+            dnFace->id, outNpkt, dn->token);
     if (likely(outNpkt != NULL)) {
       Packet_GetLpL3Hdr(outNpkt)->pitToken = dn->token;
-      Face_Tx(outFace, outNpkt);
+      Face_Tx(dnFace, outNpkt);
     }
   }
 }

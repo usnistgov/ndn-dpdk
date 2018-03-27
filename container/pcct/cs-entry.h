@@ -5,6 +5,8 @@
 
 #include "cs-struct.h"
 
+#define PIT_ENTRY_MAX_INDIRECTS 4
+
 /** \brief A CS entry.
  *
  *  This struct is enclosed in \c PccEntry.
