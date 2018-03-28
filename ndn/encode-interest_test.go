@@ -18,11 +18,10 @@ func TestEncodeInterest(t *testing.T) {
 
 	pkt := dpdktestenv.Alloc(dpdktestenv.MPID_DIRECT).AsPacket()
 	defer pkt.Close()
-	tpl.Encode(pkt, nil, nil)
+	tpl.Encode(pkt, nil, 0xA0A1A2A3, nil)
 	encoded := pkt.ReadAll()
-	require.Len(encoded, 16)
-	assert.Equal(dpdktestenv.BytesFromHex("050E name=0706080141080142 nonce=0A04"),
-		encoded[:12])
+	assert.Equal(dpdktestenv.BytesFromHex("050E name=0706080141080142 "+
+		"nonce=0A04A3A2A1A0"), encoded)
 
 	tpl.SetCanBePrefix(true)
 	tpl.SetMustBeFresh(true)
@@ -34,11 +33,9 @@ func TestEncodeInterest(t *testing.T) {
 
 	pkt = dpdktestenv.Alloc(dpdktestenv.MPID_DIRECT).AsPacket()
 	defer pkt.Close()
-	tpl.Encode(pkt, suffix, nil)
+	tpl.Encode(pkt, suffix, 0xA0A1A2A3, nil)
 	encoded = pkt.ReadAll()
-	require.Len(encoded, 35)
 	assert.Equal(dpdktestenv.BytesFromHex("0521 name=070C080141080142080143080144 "+
-		"canbeprefix=2100 mustbefresh=1200 nonce=0A04"), encoded[:22])
-	assert.Equal(dpdktestenv.BytesFromHex("lifetime=0C0400002328 hoplimit=22017D"),
-		encoded[26:])
+		"canbeprefix=2100 mustbefresh=1200 nonce=0A04A3A2A1A0 "+
+		"lifetime=0C0400002328 hoplimit=22017D"), encoded)
 }

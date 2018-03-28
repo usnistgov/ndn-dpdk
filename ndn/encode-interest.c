@@ -1,6 +1,12 @@
 #include "encode-interest.h"
 #include "tlv-encoder.h"
 
+void
+NonceGen_Init(NonceGen* g)
+{
+  pcg32_srandom_r(&g->rng, rte_get_tsc_cycles(), 0);
+}
+
 uint16_t
 __InterestTemplate_Prepare(InterestTemplate* tpl, uint8_t* buffer,
                            uint16_t bufferSize, const uint8_t* fhV)
@@ -76,7 +82,7 @@ __InterestTemplate_Prepare(InterestTemplate* tpl, uint8_t* buffer,
 void
 __EncodeInterest(struct rte_mbuf* m, const InterestTemplate* tpl,
                  uint8_t* preparedBuffer, uint16_t nameSuffixL,
-                 const uint8_t* nameSuffixV, uint16_t paramL,
+                 const uint8_t* nameSuffixV, uint32_t nonce, uint16_t paramL,
                  const uint8_t* paramV, const uint8_t* namePrefixV)
 {
   assert(rte_pktmbuf_headroom(m) >= EncodeInterest_GetHeadroom());
@@ -94,8 +100,7 @@ __EncodeInterest(struct rte_mbuf* m, const InterestTemplate* tpl,
     rte_memcpy(rte_pktmbuf_append(m, nameSuffixL), nameSuffixV, nameSuffixL);
   }
 
-  uint32_t* nonce = (uint32_t*)(preparedBuffer + tpl->nonceOff);
-  *nonce = (uint32_t)lrand48();
+  *(uint32_t*)(preparedBuffer + tpl->nonceOff) = nonce;
   rte_memcpy(rte_pktmbuf_append(m, tpl->bufferSize),
              preparedBuffer + tpl->bufferOff, tpl->bufferSize);
 

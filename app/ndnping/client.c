@@ -41,6 +41,7 @@ NdnpingClient_Init(NdnpingClient* client)
     &client->interestTpl, client->interestPrepareBuffer,
     sizeof(client->interestPrepareBuffer));
   assert(res == 0);
+  NonceGen_Init(&client->nonceGen);
 
   client->sampleTable = NULL;
 }
@@ -93,7 +94,7 @@ NdnpingClient_PrepareTxInterest(NdnpingClient* client, Packet* npkt)
     NameSet_GetName(&client->patterns, patternId);
   LName nameSuffix = {.length = 10, .value = &client->suffixComponent.compT };
   EncodeInterest(pkt, &client->interestTpl, client->interestPrepareBuffer,
-                 nameSuffix, 0, NULL);
+                 nameSuffix, NonceGen_Next(&client->nonceGen), 0, NULL);
   Packet_SetL3PktType(npkt, L3PktType_Interest); // for stats; no PInterest*
   ZF_LOGV("<I seq=%" PRIx64 " pattern=%d", seqNo, patternId);
 

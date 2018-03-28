@@ -63,6 +63,7 @@ typedef struct NdnpingClient
     uint8_t compL;
     uint64_t compV; ///< sequence number in native endianness
   } __rte_packed suffixComponent;
+  NonceGen nonceGen;
 
   /** \brief Bitmask to determine whether to sample a packet.
    *

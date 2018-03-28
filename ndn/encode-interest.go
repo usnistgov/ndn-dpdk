@@ -6,6 +6,7 @@ package ndn
 import "C"
 import (
 	"fmt"
+	"math/rand"
 	"time"
 
 	"ndn-dpdk/dpdk"
@@ -68,7 +69,7 @@ func (tpl *InterestTemplate) prepare() {
 }
 
 // Encode an Interest from template.
-func (tpl *InterestTemplate) Encode(m dpdk.IMbuf, nameSuffix *Name, paramV TlvBytes) {
+func (tpl *InterestTemplate) Encode(m dpdk.IMbuf, nameSuffix *Name, nonce uint32, paramV TlvBytes) {
 	tpl.prepare()
 
 	var nameSuffixV TlvBytes
@@ -77,7 +78,7 @@ func (tpl *InterestTemplate) Encode(m dpdk.IMbuf, nameSuffix *Name, paramV TlvBy
 	}
 	C.__EncodeInterest((*C.struct_rte_mbuf)(m.GetPtr()), &tpl.c, (*C.uint8_t)(tpl.buffer.GetPtr()),
 		C.uint16_t(len(nameSuffixV)), (*C.uint8_t)(nameSuffixV.GetPtr()),
-		C.uint16_t(len(paramV)), (*C.uint8_t)(paramV.GetPtr()),
+		C.uint32_t(nonce), C.uint16_t(len(paramV)), (*C.uint8_t)(paramV.GetPtr()),
 		(*C.uint8_t)(tpl.namePrefix.GetPtr()))
 }
 
@@ -97,6 +98,7 @@ func MakeInterest(m dpdk.IMbuf, name string, args ...interface{}) (*Interest, er
 		m.Close()
 		return nil, e
 	}
+	nonce := rand.Uint32()
 	var param TlvBytes
 	tpl := NewInterestTemplate()
 
@@ -106,6 +108,8 @@ func MakeInterest(m dpdk.IMbuf, name string, args ...interface{}) (*Interest, er
 			tpl.SetCanBePrefix(true)
 		case tMustBeFresh:
 			tpl.SetMustBeFresh(true)
+		case uint32:
+			nonce = a
 		case time.Duration:
 			tpl.SetInterestLifetime(a)
 		case HopLimit:
@@ -118,7 +122,7 @@ func MakeInterest(m dpdk.IMbuf, name string, args ...interface{}) (*Interest, er
 		}
 	}
 
-	tpl.Encode(m, n, param)
+	tpl.Encode(m, n, nonce, param)
 
 	pkt := PacketFromDpdk(m)
 	e = pkt.ParseL2()

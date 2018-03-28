@@ -3,7 +3,21 @@
 
 /// \file
 
+#include "../core/pcg_basic.h"
 #include "interest.h"
+
+typedef struct NonceGen
+{
+  pcg32_random_t rng;
+} NonceGen;
+
+void NonceGen_Init(NonceGen* g);
+
+static uint32_t
+NonceGen_Next(NonceGen* g)
+{
+  return pcg32_random_r(&g->rng);
+}
 
 /** \brief Template for Interest encoding.
  */
@@ -79,8 +93,9 @@ EncodeInterest_GetTailroomMax()
 
 void __EncodeInterest(struct rte_mbuf* m, const InterestTemplate* tpl,
                       uint8_t* preparedBuffer, uint16_t nameSuffixL,
-                      const uint8_t* nameSuffixV, uint16_t paramL,
-                      const uint8_t* paramV, const uint8_t* namePrefixV);
+                      const uint8_t* nameSuffixV, uint32_t nonce,
+                      uint16_t paramL, const uint8_t* paramV,
+                      const uint8_t* namePrefixV);
 
 /** \brief Encode an Interest.
  *  \param m output mbuf, must be empty and is the only segment, must have
@@ -96,11 +111,11 @@ void __EncodeInterest(struct rte_mbuf* m, const InterestTemplate* tpl,
  */
 static void
 EncodeInterest(struct rte_mbuf* m, const InterestTemplate* tpl,
-               uint8_t* preparedBuffer, LName nameSuffix, uint16_t paramL,
-               const uint8_t* paramV)
+               uint8_t* preparedBuffer, LName nameSuffix, uint32_t nonce,
+               uint16_t paramL, const uint8_t* paramV)
 {
   __EncodeInterest(m, tpl, preparedBuffer, nameSuffix.length, nameSuffix.value,
-                   paramL, paramV, tpl->namePrefix.value);
+                   nonce, paramL, paramV, tpl->namePrefix.value);
 }
 
 #endif // NDN_DPDK_NDN_ENCODE_INTEREST_H

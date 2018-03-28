@@ -3,10 +3,10 @@
 
 /// \file
 
+#include "../../core/uthash.h"
 #include "cs-entry.h"
 #include "pcc-key.h"
 #include "pit-entry.h"
-#include "../../core/uthash.h"
 
 /** \brief PIT-CS composite entry.
  */
