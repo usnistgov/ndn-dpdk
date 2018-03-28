@@ -2,6 +2,7 @@ package facemgmt
 
 import (
 	"ndn-dpdk/core/running_stat"
+	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
 )
 
@@ -10,7 +11,14 @@ type IdArg struct {
 }
 
 type FaceInfo struct {
-	Id       iface.FaceId
+	Id iface.FaceId
+
+	// Basic counters.
 	Counters iface.Counters
-	Latency  running_stat.Snapshot
+
+	// DPDK EthDev stats.
+	EthStats *dpdk.EthStats
+
+	// Latency for TX packets since arrival/generation (in nanos).
+	Latency running_stat.Snapshot
 }

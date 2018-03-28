@@ -4,13 +4,14 @@ import (
 	"errors"
 
 	"ndn-dpdk/iface"
+	"ndn-dpdk/iface/ethface"
 )
 
 type FaceMgmt struct {
-	ft IFaceTable
+	ft iface.FaceTable
 }
 
-func New(ft IFaceTable) *FaceMgmt {
+func New(ft iface.FaceTable) *FaceMgmt {
 	return &FaceMgmt{ft}
 }
 
@@ -28,8 +29,15 @@ func (fm *FaceMgmt) Get(args IdArg, reply *FaceInfo) error {
 	if !face.IsValid() {
 		return errors.New("Face not found.")
 	}
+
 	reply.Id = face.GetFaceId()
 	reply.Counters = face.ReadCounters()
 	reply.Latency = face.ReadLatency()
+
+	if face.GetFaceId().GetKind() == iface.FaceKind_EthDev {
+		ethStats := ethface.EthFace{face}.GetPort().GetStats()
+		reply.EthStats = &ethStats
+	}
+
 	return nil
 }

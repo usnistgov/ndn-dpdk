@@ -39,6 +39,10 @@ func (face EthFace) getPtr() *C.EthFace {
 	return (*C.EthFace)(face.GetPtr())
 }
 
+func (face EthFace) GetPort() dpdk.EthDev {
+	return dpdk.EthDev(face.getPtr().port)
+}
+
 func (face EthFace) RxLoop(burstSize int, cb unsafe.Pointer, cbarg unsafe.Pointer) {
 	C.c_EthFace_RxLoop(face.getPtr(), C.uint16_t(burstSize), cb, cbarg)
 }
