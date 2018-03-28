@@ -117,6 +117,7 @@ Cs_Insert(Cs* cs, Packet* npkt, PitResult pitFound)
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   PData* data = Packet_GetDataHdr(npkt);
   PccEntry* pccEntry = __PitResult_GetPccEntry(pitFound);
+  uint16_t entryNameLen = __PitFindResult_GetInterest(pitFound)->name.p.nComps;
 
   // delete PIT entries
   {
@@ -126,8 +127,7 @@ Cs_Insert(Cs* cs, Packet* npkt, PitResult pitFound)
 
   // stop if Data does not have exact name
   // TODO introduce indirect entries for prefix match
-  PInterest* interest = __PitFindResult_GetInterest(pitFound);
-  if (unlikely(interest->name.p.nComps != data->name.p.nComps)) {
+  if (unlikely(entryNameLen != data->name.p.nComps)) {
     ZF_LOGD("%p Insert(%p, pcc=%p) drop=nonexact-name", cs, npkt, pccEntry);
     rte_pktmbuf_free(Packet_ToMbuf(npkt));
     Pcct_Erase(Cs_ToPcct(cs), pccEntry);
