@@ -23,10 +23,10 @@ func TakeSnapshot(s RunningStat) (o Snapshot) {
 
 // Multiple every number by a ratio.
 func (s Snapshot) Multiply(ratio float64) (o Snapshot) {
-	o.Count = s.Count
-	o.Min = s.Min * ratio
-	o.Max = s.Max * ratio
-	o.Mean = s.Mean * ratio
-	o.Stdev = s.Stdev * math.Abs(ratio)
+	o = s
+	o.Min *= ratio
+	o.Max *= ratio
+	o.Mean *= ratio
+	o.Stdev *= math.Abs(ratio)
 	return o
 }

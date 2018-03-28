@@ -40,7 +40,7 @@ FwFwd_Run(FwFwd* fwd)
     for (unsigned i = 0; i < count; ++i) {
       Packet* npkt = npkts[i];
       TscDuration timeSinceRx = now - Packet_ToMbuf(npkt)->timestamp;
-      RunningStat_Push(&fwd->latencyStat, timeSinceRx);
+      RunningStat_Push1(&fwd->latencyStat, timeSinceRx);
 
       L3PktType l3type = Packet_GetL3PktType(npkt);
       assert(l3type != L3PktType_None && l3type < L3PktType_MAX);

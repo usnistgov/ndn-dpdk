@@ -14,6 +14,7 @@ import (
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/ndt"
 	"ndn-dpdk/container/pcct"
+	"ndn-dpdk/core/running_stat"
 	"ndn-dpdk/core/urcu"
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
@@ -27,9 +28,10 @@ type Config struct {
 	InputLCores []dpdk.LCore
 	FwdLCores   []dpdk.LCore
 
-	FwdQueueCapacity int         // input-fwd queue capacity, must be power of 2
-	PcctCfg          pcct.Config // PCCT config; Id, NumaSocket, mempools ignored
-	CsCapacity       int         // CS capacity, must be no less than cs.MIN_CAPACITY
+	FwdQueueCapacity  int         // input-fwd queue capacity, must be power of 2
+	LatencySampleRate int         // latency sample rate, between 0 and 30
+	PcctCfg           pcct.Config // PCCT config; Id, NumaSocket, mempools ignored
+	CsCapacity        int         // CS capacity, must be no less than cs.MIN_CAPACITY
 }
 
 // Forwarder data plane.
@@ -86,6 +88,9 @@ func New(cfg Config) (*DataPlane, error) {
 
 		fwd.headerMp = (*C.struct_rte_mempool)(pcctCfg.HeaderMp.GetPtr())
 		fwd.indirectMp = (*C.struct_rte_mempool)(pcctCfg.IndirectMp.GetPtr())
+
+		latencyStat := running_stat.FromPtr(unsafe.Pointer(&fwd.latencyStat))
+		latencyStat.SetSampleRate(cfg.LatencySampleRate)
 
 		dp.fwds = append(dp.fwds, fwd)
 	}

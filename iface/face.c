@@ -1,6 +1,7 @@
 #include "face.h"
 #include "rx-proc.h"
 
+static const int LATENCY_STAT_SAMPLE_FREQ = 16;
 static const int TX_BURST_FRAMES = 64;  // number of frames in a burst
 static const int TX_MAX_FRAGMENTS = 64; // max allowed number of fragments
 
@@ -24,7 +25,7 @@ Face_TxBurst_Nts(Face* face, Packet** npkts, uint16_t count)
   for (uint16_t i = 0; i < count; ++i) {
     Packet* npkt = npkts[i];
     TscDuration timeSinceRx = now - Packet_ToMbuf(npkt)->timestamp;
-    RunningStat_Push(&face->latencyStat, timeSinceRx);
+    RunningStat_Push1(&face->latencyStat, timeSinceRx);
 
     struct rte_mbuf** outFrames = &frames[nFrames];
     nFrames += TxProc_Output(&face->tx, npkt, outFrames, TX_MAX_FRAGMENTS);
@@ -53,6 +54,7 @@ FaceImpl_Init(Face* face, uint16_t mtu, uint16_t headroom,
 {
   face->threadSafeTxQueue = NULL;
 
+  RunningStat_SetSampleRate(&face->latencyStat, LATENCY_STAT_SAMPLE_FREQ);
   TxProc_Init(&face->tx, mtu, headroom, mempools->indirectMp,
               mempools->headerMp);
   RxProc_Init(&face->rx, mempools->nameMp);
