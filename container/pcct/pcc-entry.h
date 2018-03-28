@@ -6,7 +6,7 @@
 #include "cs-entry.h"
 #include "pcc-key.h"
 #include "pit-entry.h"
-#include "uthash.h"
+#include "../../core/uthash.h"
 
 /** \brief PIT-CS composite entry.
  */
