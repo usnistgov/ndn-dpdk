@@ -121,10 +121,7 @@ container/fib/cgoflags.go: container/tsht/cgoflags.go ndn/cgoflags.go
 go-fib: $(CLIBPREFIX)-fib.a container/fib/cgoflags.go
 	go build ./container/fib
 
-container/pcct/uthash.h: container/pcct/fetch-uthash.sh
-	cd container/pcct && ./fetch-uthash.sh
-
-$(CLIBPREFIX)-pcct.a: $(CLIBPREFIX)-mintmr.a $(CLIBPREFIX)-ndn.a container/pcct/*.h container/pcct/*.c container/pcct/uthash.h
+$(CLIBPREFIX)-pcct.a: $(CLIBPREFIX)-mintmr.a $(CLIBPREFIX)-ndn.a container/pcct/*.h container/pcct/*.c
 	./cbuild.sh container/pcct
 
 container/pcct/cgoflags.go: container/mintmr/cgoflags.go ndn/cgoflags.go
