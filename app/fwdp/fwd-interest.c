@@ -11,6 +11,7 @@ FwFwd_RxInterestMissCs(FwFwd* fwd, PitEntry* pitEntry, Packet* npkt,
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   PInterest* interest = Packet_GetInterestHdr(npkt);
+  TscTime rxTime = pkt->timestamp;
 
   // insert DN record
   int dnIndex = PitEntry_DnRxInterest(fwd->pit, pitEntry, npkt);
@@ -21,7 +22,7 @@ FwFwd_RxInterestMissCs(FwFwd* fwd, PitEntry* pitEntry, Packet* npkt,
   }
   ZF_LOGD("^ pit-entry=%p pit-key=%s", pitEntry,
           PitEntry_ToDebugString(pitEntry));
-  npkt = NULL; // npkt is owned/freed by pitEntry
+  npkt = NULL; // npkt is owned and possibly freed by pitEntry
 
   for (uint8_t i = 0; i < fibEntry->nNexthops; ++i) {
     FaceId nh = fibEntry->nexthops[i];
@@ -43,6 +44,7 @@ FwFwd_RxInterestMissCs(FwFwd* fwd, PitEntry* pitEntry, Packet* npkt,
     uint64_t token =
       FwToken_New(fwd->id, Pit_GetEntryToken(fwd->pit, pitEntry));
     Packet_InitLpL3Hdr(outNpkt)->pitToken = token;
+    Packet_ToMbuf(outNpkt)->timestamp = rxTime;
 
     Face* outFace = FaceTable_GetFace(fwd->ft, nh);
     if (unlikely(outFace == NULL)) {
@@ -63,6 +65,7 @@ FwFwd_RxInterestHitCs(FwFwd* fwd, CsEntry* csEntry, Packet* npkt, Face* dnFace)
           csEntry, dnFace->id, outNpkt, dnToken);
   if (likely(outNpkt != NULL)) {
     Packet_GetLpL3Hdr(outNpkt)->pitToken = dnToken;
+    Packet_CopyTimestamp(outNpkt, npkt);
     Face_Tx(dnFace, outNpkt);
   }
 }

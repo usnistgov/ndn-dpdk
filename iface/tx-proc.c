@@ -104,6 +104,7 @@ TxProc_OutputFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames,
     // to match counting logic in TxProc_CountSent
     frame->inner_l3_type = l3type;
     l3type = L3PktType_None;
+    frame->timestamp = pkt->timestamp;
   }
   rte_pktmbuf_free(pkt);
 
@@ -138,6 +139,8 @@ TxProc_OutputNoFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames,
       rte_pktmbuf_free(pkt);
       return 0;
     }
+
+    frame->inner_l3_type = Packet_GetL3PktType(npkt);
     ZF_LOGV("pktLen=%" PRIu32 " one-fragment(alloc)", pkt->pkt_len);
   } else {
     frame = pkt;
@@ -148,7 +151,6 @@ TxProc_OutputNoFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames,
   rte_memcpy(&lph.l3, Packet_InitLpL3Hdr(npkt), sizeof(lph.l3));
   lph.l2.fragCount = 1;
   PrependLpHeader(frame, &lph, payloadL);
-  frame->inner_l3_type = Packet_GetL3PktType(npkt);
   frames[0] = frame;
   return 1;
 }

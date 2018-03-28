@@ -7,6 +7,7 @@
 #include "rxburst.h"
 #include "tx-proc.h"
 
+#include "../core/running_stat/running-stat.h"
 #include "../core/urcu/urcu.h"
 #include <urcu/rcuhlist.h>
 
@@ -48,6 +49,13 @@ typedef struct Face
 
   RxProc rx;
   TxProc tx;
+
+  /** \brief Statistics of L3 latency.
+   *
+   *  Latency counting starts from packet arrival or generation, and ends when
+   *  packet is queuing for transmission; this counts per L3 packet.
+   */
+  RunningStat latencyStat;
 
   FaceId id;
 } Face;

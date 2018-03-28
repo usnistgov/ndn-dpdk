@@ -30,5 +30,6 @@ func (fm *FaceMgmt) Get(args IdArg, reply *FaceInfo) error {
 	}
 	reply.Id = face.GetFaceId()
 	reply.Counters = face.ReadCounters()
+	reply.Latency = face.ReadLatency()
 	return nil
 }

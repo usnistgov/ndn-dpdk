@@ -81,5 +81,6 @@ ClonePacket(Packet* npkt, struct rte_mempool* headerMp,
   Packet_SetL3PktType(outNpkt, Packet_GetL3PktType(npkt));
   rte_memcpy(__Packet_GetPriv(outNpkt), __Packet_GetPriv(npkt),
              sizeof(PacketPriv));
+  Packet_CopyTimestamp(outNpkt, npkt);
   return outNpkt;
 }

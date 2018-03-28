@@ -226,6 +226,14 @@ NdnError Packet_ParseL2(Packet* npkt);
  */
 NdnError Packet_ParseL3(Packet* npkt, struct rte_mempool* nameMp);
 
+/** \brief Copy timestamp from \p src to \p dst.
+ */
+static void
+Packet_CopyTimestamp(Packet* dst, Packet* src)
+{
+  Packet_ToMbuf(dst)->timestamp = Packet_ToMbuf(src)->timestamp;
+}
+
 /** \brief Clone packet with a new empty header mbuf and indirect mbufs.
  *  \param[in] npkt the original packet.
  *  \param headerMp mempool for header mbuf;

@@ -32,7 +32,7 @@ typedef struct FwFwd
 
   /** \brief Statistics of latency from packet arrival to start processing.
    */
-  RunningStat timeSinceRxStat;
+  RunningStat latencyStat;
 } FwFwd;
 
 static Pcct**

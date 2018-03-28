@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"unsafe"
 
+	"ndn-dpdk/core/running_stat"
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/ndn"
 )
@@ -89,4 +90,10 @@ func (face Face) ReadCounters() Counters {
 	var cnt Counters
 	C.Face_ReadCounters(face.c, (*C.FaceCounters)(unsafe.Pointer(&cnt)))
 	return cnt
+}
+
+// Read L3 latency statistics (in nanos).
+func (face Face) ReadLatency() running_stat.Snapshot {
+	latencyStat := running_stat.FromPtr(unsafe.Pointer(&face.c.latencyStat))
+	return running_stat.TakeSnapshot(latencyStat).Multiply(dpdk.GetNanosInTscUnit())
 }

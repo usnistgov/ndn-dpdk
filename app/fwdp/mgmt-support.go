@@ -52,7 +52,7 @@ type FwdInfo struct {
 
 	QueueCapacity int                   // input queue capacity
 	NQueueDrops   uint64                // packets dropped because input queue is full
-	TimeSinceRx   running_stat.Snapshot // input latency in nanos
+	InputLatency  running_stat.Snapshot // input latency in nanos
 
 	HeaderMpUsage   int // how many entries are used in header mempool
 	IndirectMpUsage int // how many entries are used in indirect mempool
@@ -71,8 +71,8 @@ func (dp *DataPlane) ReadFwdInfo(i int) (info *FwdInfo) {
 	fwdQ := dpdk.RingFromPtr(unsafe.Pointer(fwd.queue))
 	info.QueueCapacity = fwdQ.GetCapacity()
 
-	timeSinceRxStat := running_stat.FromPtr(unsafe.Pointer(&fwd.timeSinceRxStat))
-	info.TimeSinceRx = running_stat.TakeSnapshot(timeSinceRxStat).Multiply(dpdk.GetNanosInTscUnit())
+	latencyStat := running_stat.FromPtr(unsafe.Pointer(&fwd.latencyStat))
+	info.InputLatency = running_stat.TakeSnapshot(latencyStat).Multiply(dpdk.GetNanosInTscUnit())
 
 	info.HeaderMpUsage = dpdk.MempoolFromPtr(unsafe.Pointer(fwd.headerMp)).CountInUse()
 	info.IndirectMpUsage = dpdk.MempoolFromPtr(unsafe.Pointer(fwd.indirectMp)).CountInUse()

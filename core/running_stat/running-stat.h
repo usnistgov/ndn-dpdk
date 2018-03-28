@@ -29,8 +29,8 @@ RunningStat_Push(RunningStat* s, double x)
     s->min = s->max = s->oldM = s->newM = x;
     s->oldS = 0.0;
   } else {
-    s->min = s->min > x ? x : s->min;
-    s->max = s->max < x ? x : s->max;
+    s->min = RTE_MIN(s->min, x);
+    s->max = RTE_MAX(s->max, x);
     s->newM = s->oldM + (x - s->oldM) / s->n;
     s->newS = s->oldS + (x - s->oldM) * (x - s->newM);
     s->oldM = s->newM;
