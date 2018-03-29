@@ -36,10 +36,10 @@ Pit_Insert(Pit* pit, Packet* npkt)
   PccSearch search;
   search.name = *(const LName*)(&interest->name);
   uint64_t hash = PName_ComputeHash(&interest->name.p, interest->name.v);
-  if (interest->nFhs > 0) {
-    assert(false); // XXX not implemented
-    // search.fh = Name_Linearize(&interest->fwHints[0], scratch.fh);
-    // hash ^= Name_ComputeHash(&interest->fwHints[0]);
+  if (interest->activeFh >= 0) {
+    search.fh = *(const LName*)(&interest->activeFhName);
+    hash ^=
+      PName_ComputeHash(&interest->activeFhName.p, interest->activeFhName.v);
   } else {
     search.fh.length = 0;
   }

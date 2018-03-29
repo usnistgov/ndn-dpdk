@@ -4,56 +4,63 @@ import (
 	"fmt"
 	"testing"
 
-	"ndn-dpdk/container/pcct"
 	"ndn-dpdk/container/pit"
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/ndn"
 	"ndn-dpdk/ndn/ndntestutil"
 )
 
-func createPit() pit.Pit {
-	cfg := pcct.Config{
-		Id:         "TestPcct",
-		MaxEntries: 255,
-		NumaSocket: dpdk.NUMA_SOCKET_ANY,
-	}
-
-	pcct, e := pcct.New(cfg)
-	if e != nil {
-		panic(e)
-	}
-	return pit.Pit{pcct}
-}
-
 func TestInsertErase(t *testing.T) {
-	assert, require := makeAR(t)
+	assert, _ := makeAR(t)
+	fixture := NewFixture(255)
+	defer fixture.Close()
 
-	pit := createPit()
-	defer pit.Pcct.Close()
-	mp := pit.GetMempool()
-	assert.Zero(pit.Len())
-	assert.Zero(mp.CountInUse())
+	assert.Zero(fixture.Pit.Len())
+	assert.Zero(fixture.CountMpInUse())
 
-	interestAB := ndntestutil.MakeInterest("050E name=0706 080141 080142 nonce=0A04A0A1A2A3")
-	defer ndntestutil.ClosePacket(interestAB)
+	interest1 := ndntestutil.MakeInterest("/A/1")
+	entry1 := fixture.Insert(interest1)
+	assert.NotNil(entry1)
 
-	pitEntryAB, csEntryAB := pit.Insert(interestAB)
-	assert.Nil(csEntryAB)
-	require.NotNil(pitEntryAB)
+	interest2 := ndntestutil.MakeInterest("/A/2")
+	entry2 := fixture.Insert(interest2)
+	assert.NotNil(entry2)
 
-	assert.Equal(1, pit.Len())
-	assert.Equal(1, mp.CountInUse())
+	interest3 := ndntestutil.MakeInterest("/A/2",
+		ndn.FHDelegation{1, "/F"}, ndn.FHDelegation{1, "/G"})
+	entry3 := fixture.Insert(interest3)
+	ndntestutil.ClosePacket(interest3)
+	assert.NotNil(entry3)
+	assert.Equal(uintptr(entry2.GetPtr()), uintptr(entry3.GetPtr()))
 
-	pit.Erase(*pitEntryAB)
-	assert.Zero(pit.Len())
-	assert.Zero(mp.CountInUse())
+	interest4 := ndntestutil.MakeInterest("/A/2",
+		ndn.FHDelegation{1, "/F"}, ndn.FHDelegation{1, "/G"})
+	interest4.SelectActiveFh(0)
+	entry4 := fixture.Insert(interest4)
+	assert.NotNil(entry4)
+
+	interest5 := ndntestutil.MakeInterest("/A/2",
+		ndn.FHDelegation{1, "/F"}, ndn.FHDelegation{1, "/G"})
+	interest5.SelectActiveFh(1)
+	entry5 := fixture.Insert(interest5)
+	assert.NotNil(entry5)
+
+	assert.Equal(4, fixture.Pit.Len())
+	assert.Equal(4, fixture.CountMpInUse())
+
+	fixture.Pit.Erase(*entry1)
+	fixture.Pit.Erase(*entry2)
+	fixture.Pit.Erase(*entry4)
+	fixture.Pit.Erase(*entry5)
+	assert.Zero(fixture.Pit.Len())
+	assert.Zero(fixture.CountMpInUse())
 }
 
 func TestToken(t *testing.T) {
 	assert, require := makeAR(t)
 	tokens, entries := make([]uint64, 255), make([]pit.Entry, 255)
-
-	pit := createPit()
-	defer pit.Pcct.Close()
+	fixture := NewFixture(255)
+	defer fixture.Close()
+	pit := fixture.Pit
 
 	for i := 0; i <= 255; i++ {
 		interest := ndntestutil.MakeInterest(fmt.Sprintf("/I/%d", i))

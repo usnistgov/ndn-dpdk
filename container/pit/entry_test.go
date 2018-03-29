@@ -9,9 +9,8 @@ import (
 
 func TestEntry(t *testing.T) {
 	assert, require := makeAR(t)
-
-	pit := createPit()
-	defer pit.Pcct.Close()
+	fixture := NewFixture(255)
+	defer fixture.Close()
 
 	// lifetime 50ms
 	interest1 := ndntestutil.MakeInterest("/A/B", 50*time.Millisecond)
@@ -23,24 +22,22 @@ func TestEntry(t *testing.T) {
 	ndntestutil.SetPitToken(interest2, 0xB8B9BABBBCBDBEBF)
 	ndntestutil.SetFaceId(interest2, 1002)
 
-	entry, _ := pit.Insert(interest1)
+	entry := fixture.Insert(interest1)
 	require.NotNil(entry)
-	entry2, _ := pit.Insert(interest2)
-	require.NotNil(entry2)
-	assert.Equal(uintptr(entry.GetPtr()), uintptr(entry2.GetPtr()))
-
 	assert.Len(entry.ListDns(), 0)
-
 	assert.True(entry.DnRxInterest(interest1))
 	assert.Len(entry.ListDns(), 1)
 
+	entry2 := fixture.Insert(interest2)
+	require.NotNil(entry2)
+	assert.Equal(uintptr(entry.GetPtr()), uintptr(entry2.GetPtr()))
 	assert.True(entry.DnRxInterest(interest2))
 	assert.Len(entry.ListDns(), 2)
 
 	time.Sleep(100 * time.Millisecond)
-	pit.TriggerTimeoutSched()
-	assert.Equal(1, pit.Len())
+	fixture.Pit.TriggerTimeoutSched()
+	assert.Equal(1, fixture.Pit.Len())
 	time.Sleep(150 * time.Millisecond)
-	pit.TriggerTimeoutSched()
-	assert.Equal(0, pit.Len())
+	fixture.Pit.TriggerTimeoutSched()
+	assert.Zero(fixture.Pit.Len())
 }

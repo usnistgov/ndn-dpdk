@@ -35,7 +35,24 @@ func TestInsertErase(t *testing.T) {
 
 	csEntry = fixture.Find(ndntestutil.MakeInterest("/A/B"))
 	require.NotNil(csEntry)
-	assert.Equal("/A/B", csEntry.GetData().GetName().String())
+	csData := csEntry.GetData()
+	assert.Equal("/A/B", csData.GetName().String())
+	assert.Equal(100*time.Millisecond, csData.GetFreshnessPeriod())
+
+	interest3 := ndntestutil.MakeInterest("/A/B", ndn.FHDelegation{1, "/F"})
+	interest3.SelectActiveFh(0)
+	ok = fixture.Insert(interest3, ndntestutil.MakeData("/A/B", 200*time.Millisecond))
+	assert.True(ok)
+	assert.Equal(2, fixture.Cs.Len())
+
+	interest3 = ndntestutil.MakeInterest("/A/B",
+		ndn.FHDelegation{1, "/G"}, ndn.FHDelegation{2, "/F"})
+	interest3.SelectActiveFh(1)
+	csEntry3 := fixture.Find(interest3)
+	require.NotNil(csEntry3)
+	csData3 := csEntry3.GetData()
+	assert.Equal("/A/B", csData3.GetName().String())
+	assert.Equal(200*time.Millisecond, csData3.GetFreshnessPeriod())
 
 	time.Sleep(10 * time.Millisecond)
 	assert.NotNil(fixture.Find(ndntestutil.MakeInterest("/A/B", ndn.MustBeFreshFlag)))
@@ -44,6 +61,7 @@ func TestInsertErase(t *testing.T) {
 	assert.NotNil(fixture.Find(ndntestutil.MakeInterest("/A/B")))
 
 	fixture.Cs.Erase(*csEntry)
+	fixture.Cs.Erase(*csEntry3)
 	assert.Zero(fixture.Cs.Len())
 	assert.Len(fixture.Cs.List(), 0)
 	assert.Zero(fixture.CountMpInUse())

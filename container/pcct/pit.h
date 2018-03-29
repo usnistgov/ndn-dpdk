@@ -48,12 +48,17 @@ Pit_CountEntries(const Pit* pit)
 }
 
 /** \brief Insert or find a PIT entry for the given Interest.
- *  \param npkt Interest packet. PIT references it if creating a new PIT entry;
- *              caller may use it until \c PitEntry_DnRxInterest.
+ *  \param npkt Interest packet.
+ *
+ *  The PIT-CS lookup includes forwarding hint. PInterest's \c activeFh field
+ *  indicates which fwhint is in use, and setting it to -1 disables fwhint.
  *
  *  If there is a CS match, return the CS entry. If there is a PIT match,
  *  return the PIT entry. Otherwise, unless the PCCT is full, insert and
  *  initialize a PIT entry.
+ *
+ *  When a new PIT entry is inserted, the PIT entry will reference \p npkt. The
+ *  caller may continue using \p npkt until invoking \c PitEntry_DnRxInterest.
  */
 PitResult Pit_Insert(Pit* pit, Packet* npkt);
 
