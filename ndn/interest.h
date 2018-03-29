@@ -15,20 +15,26 @@
  */
 typedef struct PInterest
 {
-  uint32_t guiderOff;  ///< size of Name through ForwardingHint
-  uint32_t guiderSize; ///< size of Nonce+InterestLifetime+HopLimit
-
-  Name name;
   uint32_t nonce;    ///< Nonce interpreted as little endian
   uint32_t lifetime; ///< InterestLifetime in millis
-  uint8_t hopLimit;  ///< HopLimit value, "omitted" is same as 0xFF
-  bool canBePrefix;
-  bool mustBeFresh;
 
-  uint8_t nFhs;       ///< number of forwarding hints in \c fh
-  int8_t thisFhIndex; ///< index of current forwarding hint in \c thisFh, or -1
-  LName fh[INTEREST_MAX_FHS];
-  Name thisFh; ///< a parsed forwarding hint at index \c thisFhIndex
+  uint32_t guiderOff;  ///< size of Name through ForwardingHint
+  uint16_t guiderSize; ///< size of Nonce+InterestLifetime+HopLimit
+
+  uint8_t hopLimit; ///< HopLimit value, "omitted" is same as 0xFF
+  struct
+  {
+    bool canBePrefix : 1;
+    bool mustBeFresh : 1;
+    uint8_t nFhs : 3;    ///< number of fwhints, up to INTEREST_MAX_FHS
+    int8_t activeFh : 3; ///< index of active fwhint, -1 for none
+  } __rte_packed;
+
+  Name name;
+
+  const uint8_t* fhNameV[INTEREST_MAX_FHS];
+  uint16_t fhNameL[INTEREST_MAX_FHS];
+  Name activeFhName; ///< a parsed forwarding hint at index \c thisFhIndex
 } PInterest;
 
 /** \brief Parse a packet as Interest.
@@ -42,12 +48,12 @@ typedef struct PInterest
 NdnError PInterest_FromPacket(PInterest* interest, struct rte_mbuf* pkt,
                               struct rte_mempool* nameMp);
 
-/** \brief Parse a forwarding hint.
- *  \param index forwarding hint index, must be less than \c interest->nFhs.
- *  \post interest->thisFhIndex == index
- *  \post interest->thisFh reflects the index-th forwarding hint.
+/** \brief Set active forwarding hint.
+ *  \param index fwhint index, must be less than \c interest->nFhs, or -1 for none.
+ *  \post interest->activeFh == index
+ *  \post interest->activeFhName reflects the index-th fwhint.
  */
-NdnError PInterest_ParseFh(PInterest* interest, uint8_t index);
+NdnError PInterest_SelectActiveFh(PInterest* interest, int8_t index);
 
 /** \brief Determine whether \p dataNpkt can satisfy \p interest.
  */

@@ -55,15 +55,17 @@ func TestInterestDecode(t *testing.T) {
 			assert.Equal(tt.name, interest.GetName().String(), tt.input)
 			assert.Equal(tt.canBePrefix, interest.HasCanBePrefix(), tt.input)
 			assert.Equal(tt.mustBeFresh, interest.HasMustBeFresh(), tt.input)
-			assert.Equal(-1, interest.GetFhIndex(), tt.input)
+			assert.Equal(-1, interest.GetActiveFhIndex(), tt.input)
 			if fhs := interest.GetFhs(); assert.Len(fhs, len(tt.fhs), tt.input) {
 				for i, fhName := range fhs {
 					assert.Equal(tt.fhs[i], fhName.String(), "%s %i", tt.input, i)
 				}
 				if len(tt.fhs) > 0 {
-					assert.Error(interest.SetFhIndex(len(tt.fhs)), tt.input)
-					assert.NoError(interest.SetFhIndex(0), tt.input)
-					assert.Equal(0, interest.GetFhIndex(), tt.input)
+					assert.Error(interest.SelectActiveFh(len(tt.fhs)), tt.input)
+					assert.NoError(interest.SelectActiveFh(0), tt.input)
+					assert.Equal(0, interest.GetActiveFhIndex(), tt.input)
+					assert.NoError(interest.SelectActiveFh(-1), tt.input)
+					assert.Equal(-1, interest.GetActiveFhIndex(), tt.input)
 				}
 			}
 			if tt.hasNonce {

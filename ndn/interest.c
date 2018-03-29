@@ -45,7 +45,7 @@ PInterest_FromPacket(PInterest* interest, struct rte_mbuf* pkt,
   interest->canBePrefix = false;
   interest->mustBeFresh = false;
   interest->nFhs = 0;
-  interest->thisFhIndex = -1;
+  interest->activeFh = -1;
 
   D1_NEXT;
   if (ele1.type == TT_CanBePrefix) {
@@ -77,10 +77,9 @@ PInterest_FromPacket(PInterest* interest, struct rte_mbuf* pkt,
       e = DecodeTlvElementExpectType(&d3, TT_Preference, &ele3);
       RETURN_IF_ERROR;
       e = DecodeTlvElementExpectType(&d3, TT_Name, &ele3);
-      interest->fh[i].value =
-        TlvElement_LinearizeValue(&ele3, pkt, nameMp, &d3);
-      RETURN_IF_NULL(interest->fh[i].value, NdnError_AllocError);
-      interest->fh[i].length = ele3.length;
+      interest->fhNameV[i] = TlvElement_LinearizeValue(&ele3, pkt, nameMp, &d3);
+      RETURN_IF_NULL(interest->fhNameV[i], NdnError_AllocError);
+      interest->fhNameL[i] = ele3.length;
       ++interest->nFhs;
       MbufLoc_CopyPos(&d2, &d3);
     }
@@ -93,9 +92,9 @@ PInterest_FromPacket(PInterest* interest, struct rte_mbuf* pkt,
     if (unlikely(ele1.length != 4)) {
       return NdnError_BadNonceLength;
     }
-    // overwriting ele1.value, but it's okay because we don't need it later
     rte_le32_t nonceV;
     bool ok = MbufLoc_ReadU32(&ele1.value, &nonceV);
+    // overwriting ele1.value, but it's okay because we don't need it later
     assert(ok); // must succeed because length is checked
     interest->nonce = rte_le_to_cpu_32(nonceV);
     interest->guiderSize += ele1.size;
@@ -128,19 +127,22 @@ PInterest_FromPacket(PInterest* interest, struct rte_mbuf* pkt,
 }
 
 NdnError
-PInterest_ParseFh(PInterest* interest, uint8_t index)
+PInterest_SelectActiveFh(PInterest* interest, int8_t index)
 {
-  assert(index < interest->nFhs);
-  if (interest->thisFhIndex == index) {
+  assert(index >= -1 && index < interest->nFhs);
+  if (interest->activeFh == index) {
+    return NdnError_OK;
+  }
+  interest->activeFh = -1;
+  if (index < 0) {
     return NdnError_OK;
   }
 
-  NdnError e = PName_Parse(&interest->thisFh.p, interest->fh[index].length,
-                           interest->fh[index].value);
+  NdnError e = PName_Parse(&interest->activeFhName.p, interest->fhNameL[index],
+                           interest->fhNameV[index]);
   RETURN_IF_ERROR;
-
-  interest->thisFh.v = interest->fh[index].value;
-  interest->thisFhIndex = index;
+  interest->activeFhName.v = interest->fhNameV[index];
+  interest->activeFh = index;
   return NdnError_OK;
 }
 

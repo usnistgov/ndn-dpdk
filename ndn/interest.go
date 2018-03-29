@@ -2,6 +2,23 @@ package ndn
 
 /*
 #include "interest.h"
+
+typedef struct PInterestUnpacked
+{
+	bool canBePrefix;
+	bool mustBeFresh;
+	uint8_t nFhs;
+	int8_t activeFh;
+} PInterestUnpacked;
+
+static void
+PInterest_Unpack(const PInterest* p, PInterestUnpacked* u)
+{
+	u->canBePrefix = p->canBePrefix;
+	u->mustBeFresh = p->mustBeFresh;
+	u->nFhs = p->nFhs;
+	u->activeFh = p->activeFh;
+}
 */
 import "C"
 import (
@@ -38,11 +55,15 @@ func (interest *Interest) GetName() (n *Name) {
 }
 
 func (interest *Interest) HasCanBePrefix() bool {
-	return bool(interest.p.canBePrefix)
+	var u C.PInterestUnpacked
+	C.PInterest_Unpack(interest.p, &u)
+	return bool(u.canBePrefix)
 }
 
 func (interest *Interest) HasMustBeFresh() bool {
-	return bool(interest.p.mustBeFresh)
+	var u C.PInterestUnpacked
+	C.PInterest_Unpack(interest.p, &u)
+	return bool(u.mustBeFresh)
 }
 
 func (interest *Interest) GetNonce() uint32 {
@@ -58,28 +79,31 @@ func (interest *Interest) GetHopLimit() uint8 {
 }
 
 func (interest *Interest) GetFhs() (fhs []*Name) {
-	fhs = make([]*Name, int(interest.p.nFhs))
+	var u C.PInterestUnpacked
+	C.PInterest_Unpack(interest.p, &u)
+	fhs = make([]*Name, int(u.nFhs))
 	for i := range fhs {
-		lname := interest.p.fh[i]
-		fhs[i], _ = NewName(TlvBytes(C.GoBytes(unsafe.Pointer(lname.value), C.int(lname.length))))
+		nameL := interest.p.fhNameL[i]
+		nameV := unsafe.Pointer(interest.p.fhNameV[i])
+		fhs[i], _ = NewName(TlvBytes(C.GoBytes(nameV, C.int(nameL))))
 	}
 	return fhs
 }
 
-func (interest *Interest) GetFhIndex() int {
-	return int(interest.p.thisFhIndex)
+func (interest *Interest) GetActiveFhIndex() int {
+	var u C.PInterestUnpacked
+	C.PInterest_Unpack(interest.p, &u)
+	return int(u.activeFh)
 }
 
-func (interest *Interest) SetFhIndex(index int) error {
-	if index < -1 || index >= int(interest.p.nFhs) {
+func (interest *Interest) SelectActiveFh(index int) error {
+	var u C.PInterestUnpacked
+	C.PInterest_Unpack(interest.p, &u)
+	if index < -1 || index >= int(u.nFhs) {
 		return errors.New("fhindex out of range")
 	}
-	if index == -1 {
-		interest.p.thisFhIndex = -1
-		return nil
-	}
 
-	e := C.PInterest_ParseFh(interest.p, C.uint8_t(index))
+	e := C.PInterest_SelectActiveFh(interest.p, C.int8_t(index))
 	if e != C.NdnError_OK {
 		return NdnError(e)
 	}
