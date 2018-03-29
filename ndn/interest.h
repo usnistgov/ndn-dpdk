@@ -63,7 +63,8 @@ static uint16_t
 ModifyInterest_SizeofGuider()
 {
   return 1 + 1 + 4 + // Nonce
-         1 + 1 + 4;  // InterestLifetime
+         1 + 1 + 4 + // InterestLifetime
+         1 + 1 + 1;  // HopLimit
 }
 
 /** \brief Modify Interest nonce and lifetime.

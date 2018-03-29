@@ -32,4 +32,31 @@ typedef struct FibEntry
 // can fit in FIB_ENTRY_MAX_NAME_LEN octets.
 static_assert(UINT8_MAX >= FIB_ENTRY_MAX_NAME_LEN / 2, "");
 
+/** \brief Find nexthops satisfying certain conditions.
+ *  \param[out] result nexthops satisfying all conditions, must have
+ *                     \c FIB_ENTRY_MAX_NEXTHOPS room.
+ *  \param rejects prohibit faces in this list.
+ *  \return number of nexthops written to \p result.
+ */
+static int
+FibEntry_FilterNexthops(const FibEntry* fibEntry, FaceId result[],
+                        FaceId rejects[], int nRejects)
+{
+  int count = 0;
+  for (int i = 0; i < fibEntry->nNexthops; ++i) {
+    FaceId nh = fibEntry->nexthops[i];
+    bool ok = true;
+    for (int j = 0; j < nRejects; ++j) {
+      if (nh == rejects[j]) {
+        ok = false;
+        break;
+      }
+    }
+    if (ok) {
+      result[count++] = nh;
+    }
+  }
+  return count;
+}
+
 #endif // NDN_DPDK_CONTAINER_FIB_ENTRY_H
