@@ -12,7 +12,7 @@ PInterest_FromPacket(PInterest* interest, struct rte_mbuf* pkt,
   MbufLoc_Init(&d0, pkt);
   TlvElement interestEle;
   NdnError e = DecodeTlvElementExpectType(&d0, TT_Interest, &interestEle);
-  RETURN_IF_UNLIKELY_ERROR;
+  RETURN_IF_ERROR;
 
   TlvDecodePos d1;
   TlvElement_MakeValueDecoder(&interestEle, &d1);
@@ -24,18 +24,18 @@ PInterest_FromPacket(PInterest* interest, struct rte_mbuf* pkt,
       return NdnError_OK;                                                      \
     }                                                                          \
     e = DecodeTlvElement(&d1, &ele1);                                          \
-    RETURN_IF_UNLIKELY_ERROR;                                                  \
+    RETURN_IF_ERROR;                                                           \
   } while (false)
 
   e = DecodeTlvElementExpectType(&d1, TT_Name, &ele1);
-  RETURN_IF_UNLIKELY_ERROR;
+  RETURN_IF_ERROR;
   if (unlikely(ele1.length == 0)) {
     return NdnError_NameIsEmpty;
   }
   interest->name.v = TlvElement_LinearizeValue(&ele1, pkt, nameMp, &d1);
-  RETURN_IF_UNLIKELY_NULL(interest->name.v, NdnError_AllocError);
+  RETURN_IF_NULL(interest->name.v, NdnError_AllocError);
   e = PName_Parse(&interest->name.p, ele1.length, interest->name.v);
-  RETURN_IF_UNLIKELY_ERROR;
+  RETURN_IF_ERROR;
 
   interest->guiderOff = ele1.size;
   interest->guiderSize = 0;
@@ -69,17 +69,17 @@ PInterest_FromPacket(PInterest* interest, struct rte_mbuf* pkt,
       }
       TlvElement delegationEle;
       e = DecodeTlvElementExpectType(&d2, TT_Delegation, &delegationEle);
-      RETURN_IF_UNLIKELY_ERROR;
+      RETURN_IF_ERROR;
 
       TlvDecodePos d3;
       TlvElement_MakeValueDecoder(&delegationEle, &d3);
       TlvElement ele3;
       e = DecodeTlvElementExpectType(&d3, TT_Preference, &ele3);
-      RETURN_IF_UNLIKELY_ERROR;
+      RETURN_IF_ERROR;
       e = DecodeTlvElementExpectType(&d3, TT_Name, &ele3);
       interest->fh[i].value =
         TlvElement_LinearizeValue(&ele3, pkt, nameMp, &d3);
-      RETURN_IF_UNLIKELY_NULL(interest->fh[i].value, NdnError_AllocError);
+      RETURN_IF_NULL(interest->fh[i].value, NdnError_AllocError);
       interest->fh[i].length = ele3.length;
       ++interest->nFhs;
       MbufLoc_CopyPos(&d2, &d3);
@@ -137,7 +137,7 @@ PInterest_ParseFh(PInterest* interest, uint8_t index)
 
   NdnError e = PName_Parse(&interest->thisFh.p, interest->fh[index].length,
                            interest->fh[index].value);
-  RETURN_IF_UNLIKELY_ERROR;
+  RETURN_IF_ERROR;
 
   interest->thisFh.v = interest->fh[index].value;
   interest->thisFhIndex = index;

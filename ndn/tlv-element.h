@@ -27,11 +27,11 @@ DecodeTlvHeader(TlvDecodePos* d, TlvElement* ele)
   MbufLoc_Copy(&ele->first, d);
 
   NdnError e = DecodeVarNum(d, &ele->type);
-  RETURN_IF_ERROR; // not unlikely: this occurs when d starts at the end
+  RETURN_IF_ERROR;
 
   uint64_t tlvLength;
   e = DecodeVarNum(d, &tlvLength);
-  RETURN_IF_UNLIKELY_ERROR;
+  RETURN_IF_ERROR;
   if (unlikely(tlvLength > UINT32_MAX)) {
     return NdnError_LengthOverflow;
   }

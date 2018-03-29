@@ -19,7 +19,7 @@ LpHeader_FromPacket(LpHeader* lph, struct rte_mbuf* pkt, uint32_t* payloadOff,
   MbufLoc_Init(&d0, pkt);
   TlvElement lppEle;
   NdnError e = DecodeTlvElement(&d0, &lppEle);
-  RETURN_IF_UNLIKELY_ERROR;
+  RETURN_IF_ERROR;
   *tlvSize = lppEle.size;
   if (lppEle.type == TT_Interest || lppEle.type == TT_Data) {
     *payloadOff = 0;

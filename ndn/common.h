@@ -14,17 +14,11 @@ typedef struct Packet Packet;
 
 #define RETURN_IF_ERROR                                                        \
   do {                                                                         \
-    if (e != NdnError_OK)                                                      \
-      return e;                                                                \
-  } while (false)
-
-#define RETURN_IF_UNLIKELY_ERROR                                               \
-  do {                                                                         \
     if (unlikely(e != NdnError_OK))                                            \
       return e;                                                                \
   } while (false)
 
-#define RETURN_IF_UNLIKELY_NULL(ptr, ret)                                      \
+#define RETURN_IF_NULL(ptr, ret)                                               \
   do {                                                                         \
     if (unlikely(ptr == NULL))                                                 \
       return ret;                                                              \

@@ -17,7 +17,7 @@ Packet_ParseL2(Packet* npkt)
   LpHeader* lph = __Packet_GetLpHdr(npkt);
   uint32_t payloadOff, tlvSize;
   NdnError e = LpHeader_FromPacket(lph, pkt, &payloadOff, &tlvSize);
-  RETURN_IF_UNLIKELY_ERROR;
+  RETURN_IF_ERROR;
   Packet_SetL2PktType(npkt, L2PktType_NdnlpV2);
 
   if (unlikely(tlvSize < pkt->pkt_len)) { // strip Ethernet trailer
