@@ -42,6 +42,18 @@ DecodeTlvHeader(TlvDecodePos* d, TlvElement* ele)
   return NdnError_OK;
 }
 
+static NdnError
+__DecodeTlvElement_Value(TlvDecodePos* d, TlvElement* ele)
+{
+  uint32_t n = MbufLoc_Advance(d, ele->length);
+  if (unlikely(n != ele->length)) {
+    return NdnError_Incomplete;
+  }
+
+  MbufLoc_Copy(&ele->last, d);
+  return NdnError_OK;
+}
+
 /** \brief Decode a TLV element.
  *  \param[out] ele the element.
  *  \note ele.first.rem, ele.value.rem, and ele.last.rem are unchanged, so that
@@ -52,14 +64,7 @@ DecodeTlvElement(TlvDecodePos* d, TlvElement* ele)
 {
   NdnError e = DecodeTlvHeader(d, ele);
   RETURN_IF_ERROR;
-
-  uint32_t n = MbufLoc_Advance(d, ele->length);
-  if (unlikely(n != ele->length)) {
-    return NdnError_Incomplete;
-  }
-
-  MbufLoc_Copy(&ele->last, d);
-  return NdnError_OK;
+  return __DecodeTlvElement_Value(d, ele);
 }
 
 /** \brief Decode a TLV element of an expected type.
@@ -70,11 +75,12 @@ static NdnError
 DecodeTlvElementExpectType(TlvDecodePos* d, uint64_t expectedType,
                            TlvElement* ele)
 {
-  NdnError e = DecodeTlvElement(d, ele);
-  if (likely(e == NdnError_OK) && unlikely(ele->type != expectedType)) {
+  NdnError e = DecodeTlvHeader(d, ele);
+  RETURN_IF_ERROR;
+  if (unlikely(ele->type != expectedType)) {
     return NdnError_BadType;
   }
-  return e;
+  return __DecodeTlvElement_Value(d, ele);
 }
 
 /** \brief Determine if the element's TLV-VALUE is in consecutive memory.
