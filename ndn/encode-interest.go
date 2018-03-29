@@ -5,6 +5,7 @@ package ndn
 */
 import "C"
 import (
+	"encoding/binary"
 	"fmt"
 	"math/rand"
 	"time"
@@ -25,6 +26,7 @@ type InterestTemplate struct {
 	c          C.InterestTemplate
 	buffer     TlvBytes
 	namePrefix TlvBytes
+	fh         TlvBytes
 }
 
 func NewInterestTemplate() (tpl *InterestTemplate) {
@@ -49,6 +51,18 @@ func (tpl *InterestTemplate) SetMustBeFresh(v bool) {
 	tpl.c.mustBeFresh = C.bool(v)
 }
 
+func (tpl *InterestTemplate) AppendFH(preference int, name *Name) {
+	prefV := make([]byte, 4)
+	binary.BigEndian.PutUint32(prefV, uint32(preference))
+	prefTLV := EncodeTlv(TT_Preference, TlvBytes(prefV))
+
+	delV := JoinTlvBytes(prefTLV, name.Encode())
+	delTLV := EncodeTlv(TT_Delegation, delV)
+
+	tpl.fh = append(tpl.fh, delTLV...)
+	tpl.c.fhL = C.uint16_t(len(tpl.fh))
+}
+
 func (tpl *InterestTemplate) SetInterestLifetime(v time.Duration) {
 	tpl.buffer = nil
 	tpl.c.lifetime = C.uint32_t(v / time.Millisecond)
@@ -65,7 +79,7 @@ func (tpl *InterestTemplate) prepare() {
 	}
 	size := C.__InterestTemplate_Prepare(&tpl.c, nil, 0, nil)
 	tpl.buffer = make(TlvBytes, int(size))
-	C.__InterestTemplate_Prepare(&tpl.c, (*C.uint8_t)(tpl.buffer.GetPtr()), size, nil)
+	C.__InterestTemplate_Prepare(&tpl.c, (*C.uint8_t)(tpl.buffer.GetPtr()), size, (*C.uint8_t)(tpl.fh.GetPtr()))
 }
 
 // Encode an Interest from template.
@@ -90,24 +104,37 @@ const (
 	MustBeFreshFlag = tMustBeFresh(true)
 )
 
+type FHDelegation struct {
+	Preference int
+	Name       string
+}
+
 // Encode an Interest from flexible arguments.
 // This alternate API is easier to use but less efficient.
-func MakeInterest(m dpdk.IMbuf, name string, args ...interface{}) (*Interest, error) {
-	n, e := ParseName(name)
-	if e != nil {
-		m.Close()
-		return nil, e
-	}
+func MakeInterest(m dpdk.IMbuf, name string, args ...interface{}) (interest *Interest, e error) {
+	var n *Name
 	nonce := rand.Uint32()
 	var param TlvBytes
 	tpl := NewInterestTemplate()
 
-	for _, arg := range args {
-		switch a := arg.(type) {
+	if n, e = ParseName(name); e != nil {
+		m.Close()
+		return nil, e
+	}
+
+	for i := 0; i < len(args); i++ {
+		switch a := args[i].(type) {
 		case tCanBePrefix:
 			tpl.SetCanBePrefix(true)
 		case tMustBeFresh:
 			tpl.SetMustBeFresh(true)
+		case FHDelegation:
+			var fhName *Name
+			if fhName, e = ParseName(a.Name); e != nil {
+				m.Close()
+				return nil, e
+			}
+			tpl.AppendFH(a.Preference, fhName)
 		case uint32:
 			nonce = a
 		case time.Duration:
@@ -125,13 +152,11 @@ func MakeInterest(m dpdk.IMbuf, name string, args ...interface{}) (*Interest, er
 	tpl.Encode(m, n, nonce, param)
 
 	pkt := PacketFromDpdk(m)
-	e = pkt.ParseL2()
-	if e != nil {
+	if e = pkt.ParseL2(); e != nil {
 		m.Close()
 		return nil, e
 	}
-	e = pkt.ParseL3(dpdk.PktmbufPool{})
-	if e != nil || pkt.GetL3Type() != L3PktType_Interest {
+	if e = pkt.ParseL3(dpdk.PktmbufPool{}); e != nil || pkt.GetL3Type() != L3PktType_Interest {
 		m.Close()
 		return nil, e
 	}

@@ -62,8 +62,8 @@ func (tb TlvBytes) String() string {
 	return strings.ToUpper(hex.EncodeToString(([]byte)(tb)))
 }
 
-func JoinTlvBytes(s []TlvBytes) TlvBytes {
-	return TlvBytes(bytes.Join(*(*[][]byte)(unsafe.Pointer(&s)), nil))
+func JoinTlvBytes(a ...TlvBytes) TlvBytes {
+	return TlvBytes(bytes.Join(*(*[][]byte)(unsafe.Pointer(&a)), nil))
 }
 
 func EncodeVarNum(n uint64) TlvBytes {
@@ -73,8 +73,8 @@ func EncodeVarNum(n uint64) TlvBytes {
 }
 
 func EncodeTlv(tlvType TlvType, value TlvBytes) TlvBytes {
-	return JoinTlvBytes([]TlvBytes{
+	return JoinTlvBytes(
 		EncodeVarNum(uint64(tlvType)),
 		EncodeVarNum(uint64(len(value))),
-		value})
+		value)
 }

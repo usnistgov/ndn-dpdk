@@ -62,6 +62,11 @@ func (n *Name) GetValue() TlvBytes {
 	return n.b
 }
 
+// Encode Name element to TlvBytes.
+func (n *Name) Encode() TlvBytes {
+	return EncodeTlv(TT_Name, n.b)
+}
+
 // Test whether the name ends with an implicit digest.
 func (n *Name) HasDigestComp() bool {
 	return bool(n.p.hasDigestComp)
