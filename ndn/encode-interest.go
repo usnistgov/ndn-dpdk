@@ -32,7 +32,7 @@ type InterestTemplate struct {
 func NewInterestTemplate() (tpl *InterestTemplate) {
 	tpl = new(InterestTemplate)
 	tpl.c.lifetime = C.DEFAULT_INTEREST_LIFETIME
-	tpl.c.hopLimit = C.HOP_LIMIT_OMITTED
+	tpl.c.hopLimit = 0xFF
 	return tpl
 }
 
@@ -68,9 +68,9 @@ func (tpl *InterestTemplate) SetInterestLifetime(v time.Duration) {
 	tpl.c.lifetime = C.uint32_t(v / time.Millisecond)
 }
 
-func (tpl *InterestTemplate) SetHopLimit(v HopLimit) {
+func (tpl *InterestTemplate) SetHopLimit(v uint8) {
 	tpl.buffer = nil
-	tpl.c.hopLimit = C.HopLimit(v)
+	tpl.c.hopLimit = C.uint8_t(v)
 }
 
 func (tpl *InterestTemplate) prepare() {
@@ -139,7 +139,7 @@ func MakeInterest(m dpdk.IMbuf, name string, args ...interface{}) (interest *Int
 			nonce = a
 		case time.Duration:
 			tpl.SetInterestLifetime(a)
-		case HopLimit:
+		case uint8:
 			tpl.SetHopLimit(a)
 		case TlvBytes:
 			param = a

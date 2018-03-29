@@ -25,7 +25,7 @@ typedef struct InterestTemplate
 {
   LName namePrefix;  ///< first part of the name
   uint32_t lifetime; ///< InterestLifetime in millis
-  HopLimit hopLimit; ///< HopLimit value, or \c HOP_LIMIT_OMITTED
+  uint8_t hopLimit;  ///< HopLimit value
   bool canBePrefix;
   bool mustBeFresh;
   const uint8_t* fhV; ///< ForwardingHint TLV-VALUE

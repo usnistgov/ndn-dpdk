@@ -46,8 +46,9 @@ PitEntry_UpTxInterest(Pit* pit, PitEntry* entry, FaceId face, Packet** npkt)
 
   // prepare outgoing Interest
   uint32_t lifetime = TscDuration_ToMillis(entry->expiry - up->lastTx);
-  *npkt = ModifyInterest(entry->npkt, up->nonce, lifetime, pitp->headerMp,
+  *npkt = ModifyInterest(entry->npkt, up->nonce, lifetime, 0xFF, pitp->headerMp,
                          pitp->guiderMp, pitp->indirectMp);
+  // TODO properly set HopLimit
 
   return index;
 }

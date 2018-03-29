@@ -53,16 +53,8 @@ func (interest *Interest) GetLifetime() time.Duration {
 	return time.Duration(interest.p.lifetime) * time.Millisecond
 }
 
-// Interest HopLimit field.
-type HopLimit uint16
-
-const (
-	HOP_LIMIT_OMITTED = HopLimit(C.HOP_LIMIT_OMITTED) // HopLimit is omitted.
-	HOP_LIMIT_ZERO    = HopLimit(C.HOP_LIMIT_ZERO)    // HopLimit was zero before decrementing.
-)
-
-func (interest *Interest) GetHopLimit() HopLimit {
-	return HopLimit(interest.p.hopLimit)
+func (interest *Interest) GetHopLimit() uint8 {
+	return uint8(interest.p.hopLimit)
 }
 
 func (interest *Interest) GetFhs() (fhs []*Name) {
@@ -103,10 +95,10 @@ func ModifyInterest_SizeofGuider() int {
 }
 
 func (interest *Interest) Modify(nonce uint32, lifetime time.Duration,
-	headerMp dpdk.PktmbufPool, guiderMp dpdk.PktmbufPool,
-	indirectMp dpdk.PktmbufPool) *Interest {
-	outPktC := C.ModifyInterest(interest.m.c,
-		C.uint32_t(nonce), C.uint32_t(lifetime/time.Millisecond),
+	hopLimit uint8, headerMp dpdk.PktmbufPool,
+	guiderMp dpdk.PktmbufPool, indirectMp dpdk.PktmbufPool) *Interest {
+	outPktC := C.ModifyInterest(interest.m.c, C.uint32_t(nonce),
+		C.uint32_t(lifetime/time.Millisecond), C.uint8_t(hopLimit),
 		(*C.struct_rte_mempool)(headerMp.GetPtr()),
 		(*C.struct_rte_mempool)(guiderMp.GetPtr()),
 		(*C.struct_rte_mempool)(indirectMp.GetPtr()))

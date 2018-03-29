@@ -11,26 +11,17 @@
 
 #define DEFAULT_INTEREST_LIFETIME 4000
 
-/** \brief Interest HopLimit field.
- */
-typedef uint16_t HopLimit;
-enum HopLimitSpecial
-{
-  HOP_LIMIT_OMITTED = 0x0101, ///< HopLimit is omitted
-  HOP_LIMIT_ZERO = 0x0100,    ///< HopLimit was zero before decrementing
-};
-
 /** \brief Parsed Interest packet.
  */
 typedef struct PInterest
 {
   uint32_t guiderOff;  ///< size of Name through ForwardingHint
-  uint32_t guiderSize; ///< size of Nonce+InterestLifetime
+  uint32_t guiderSize; ///< size of Nonce+InterestLifetime+HopLimit
 
   Name name;
   uint32_t nonce;    ///< Nonce interpreted as little endian
   uint32_t lifetime; ///< InterestLifetime in millis
-  HopLimit hopLimit; ///< HopLimit value after decrementing, or HopLimitSpecial
+  uint8_t hopLimit;  ///< HopLimit value, "omitted" is same as 0xFF
   bool canBePrefix;
   bool mustBeFresh;
 
@@ -83,7 +74,7 @@ ModifyInterest_SizeofGuider()
  *  \retval NULL allocation failure.
  */
 Packet* ModifyInterest(Packet* npkt, uint32_t nonce, uint32_t lifetime,
-                       struct rte_mempool* headerMp,
+                       uint8_t hopLimit, struct rte_mempool* headerMp,
                        struct rte_mempool* guiderMp,
                        struct rte_mempool* indirectMp);
 

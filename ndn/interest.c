@@ -41,7 +41,7 @@ PInterest_FromPacket(PInterest* interest, struct rte_mbuf* pkt,
   interest->guiderSize = 0;
   interest->nonce = 0;
   interest->lifetime = DEFAULT_INTEREST_LIFETIME;
-  interest->hopLimit = HOP_LIMIT_OMITTED;
+  interest->hopLimit = 0xFF;
   interest->canBePrefix = false;
   interest->mustBeFresh = false;
   interest->nFhs = 0;
@@ -118,11 +118,8 @@ PInterest_FromPacket(PInterest* interest, struct rte_mbuf* pkt,
       return NdnError_BadHopLimitLength;
     }
     const uint8_t* hopLimitV = TlvElement_GetLinearValue(&ele1);
-    if (unlikely(*hopLimitV == 0)) {
-      interest->hopLimit = HOP_LIMIT_ZERO;
-    } else {
-      interest->hopLimit = --(*(uint8_t*)hopLimitV);
-    }
+    interest->hopLimit = *hopLimitV;
+    interest->guiderSize += ele1.size;
     D1_NEXT;
   }
 
@@ -161,8 +158,8 @@ PInterest_MatchesData(PInterest* interest, Packet* dataNpkt)
 
 Packet*
 ModifyInterest(Packet* npkt, uint32_t nonce, uint32_t lifetime,
-               struct rte_mempool* headerMp, struct rte_mempool* guiderMp,
-               struct rte_mempool* indirectMp)
+               uint8_t hopLimit, struct rte_mempool* headerMp,
+               struct rte_mempool* guiderMp, struct rte_mempool* indirectMp)
 {
   assert(rte_pktmbuf_data_room_size(headerMp) >= EncodeInterest_GetHeadroom());
   assert(rte_pktmbuf_data_room_size(guiderMp) >= ModifyInterest_SizeofGuider());
@@ -213,6 +210,10 @@ ModifyInterest(Packet* npkt, uint32_t nonce, uint32_t lifetime,
     uint8_t lifetimeT;
     uint8_t lifetimeL;
     rte_be32_t lifetimeV;
+
+    uint8_t hopLimitT;
+    uint8_t hopLimitL;
+    uint8_t hopLimitV;
   } __rte_packed GuiderF;
 
   GuiderF* f = (GuiderF*)TlvEncoder_Append(enG, sizeof(GuiderF));
@@ -222,8 +223,11 @@ ModifyInterest(Packet* npkt, uint32_t nonce, uint32_t lifetime,
   f->lifetimeT = TT_InterestLifetime;
   f->lifetimeL = 4;
   *(unaligned_uint32_t*)&f->lifetimeV = rte_cpu_to_be_32(lifetime);
+  f->hopLimitT = TT_HopLimit;
+  f->hopLimitL = 1;
+  f->hopLimitV = hopLimit;
 
-  // make indirect mbufs over HopLimit and Parameters, then chain after guiders
+  // make indirect mbufs Parameters, then chain after guiders
   if (d0.rem > 0) {
     struct rte_mbuf* m2 = MbufLoc_MakeIndirect(&d0, d0.rem, indirectMp);
     if (unlikely(m2 == NULL)) {

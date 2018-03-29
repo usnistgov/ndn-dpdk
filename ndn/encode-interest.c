@@ -34,7 +34,7 @@ __InterestTemplate_Prepare(InterestTemplate* tpl, uint8_t* buffer,
   if (tpl->lifetime != DEFAULT_INTEREST_LIFETIME) {
     size += SizeofVarNum(TT_InterestLifetime) + SizeofVarNum(4) + 4;
   }
-  if (tpl->hopLimit != HOP_LIMIT_OMITTED) {
+  {
     size += SizeofVarNum(TT_HopLimit) + SizeofVarNum(1) + 1;
   }
   if (size > bufferSize) {
@@ -69,7 +69,7 @@ __InterestTemplate_Prepare(InterestTemplate* tpl, uint8_t* buffer,
     rte_memcpy(p, &lifetimeV, 4);
     p += 4;
   }
-  if (tpl->hopLimit != HOP_LIMIT_OMITTED) {
+  {
     p = EncodeVarNum(p, TT_HopLimit);
     p = EncodeVarNum(p, 1);
     *p++ = (uint8_t)tpl->hopLimit;
