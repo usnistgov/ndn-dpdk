@@ -2,6 +2,8 @@
 #include "debug-string.h"
 #include "pit.h"
 
+static_assert(sizeof(PitEntryExt) <= sizeof(PccEntry), "");
+
 const char*
 PitEntry_ToDebugString(PitEntry* entry)
 {

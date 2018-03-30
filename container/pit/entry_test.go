@@ -7,7 +7,7 @@ import (
 	"ndn-dpdk/ndn/ndntestutil"
 )
 
-func TestEntry(t *testing.T) {
+func TestEntryExpiry(t *testing.T) {
 	assert, require := makeAR(t)
 	fixture := NewFixture(255)
 	defer fixture.Close()
@@ -40,4 +40,22 @@ func TestEntry(t *testing.T) {
 	time.Sleep(150 * time.Millisecond)
 	fixture.Pit.TriggerTimeoutSched()
 	assert.Zero(fixture.Pit.Len())
+}
+
+func TestEntryExtend(t *testing.T) {
+	assert, require := makeAR(t)
+	fixture := NewFixture(255)
+	defer fixture.Close()
+
+	for i := 0; i < 512; i++ {
+		interest := ndntestutil.MakeInterest("/A/B")
+		ndntestutil.SetPitToken(interest, uint64(0xB0B1B2B300000000)|uint64(i))
+		ndntestutil.SetFaceId(interest, uint16(1000+i))
+
+		entry := fixture.Insert(interest)
+		require.NotNil(entry)
+		assert.True(entry.DnRxInterest(interest))
+	}
+
+	assert.Equal(1, fixture.Pit.Len())
 }

@@ -110,6 +110,7 @@ void
 Pcct_Erase(Pcct* pcct, PccEntry* entry)
 {
   ZF_LOGD("%p Erase(%p)", pcct, entry);
+  assert(!entry->hasEntries);
 
   PcctPriv* pcctp = Pcct_GetPriv(pcct);
   Pcct_RemoveToken(pcct, entry);

@@ -166,11 +166,10 @@ Cs_Erase(Cs* cs, CsEntry* entry)
 
   CsPriv_RemoveEntry(csp, entry);
   CsEntry_Finalize(entry);
+  pccEntry->hasCsEntry = false;
 
   if (likely(!pccEntry->hasPitEntry1)) {
     Pcct_Erase(Cs_ToPcct(cs), pccEntry);
-  } else {
-    pccEntry->hasCsEntry = false;
   }
 
   ZF_LOGD("%p Erase(%p) pcc=%p", cs, entry, pccEntry);

@@ -1,4 +1,5 @@
 #include "pit-entry.h"
+#include "pit-dn-up-it.h"
 #include "pit.h"
 
 int
@@ -18,8 +19,11 @@ PitEntry_DnRxInterest(Pit* pit, PitEntry* entry, Packet* npkt)
     assert(dn->face == FACEID_INVALID);
     dn->face = face;
   } else { // find DN slot
-    for (index = 0; index < PIT_ENTRY_MAX_DNS; ++index) {
-      dn = &entry->dns[index];
+    PitDnIt it;
+    for (PitDnIt_Init(&it, entry);
+         PitDnIt_Valid(&it) || PitDnIt_Extend(&it, pit); PitDnIt_Next(&it)) {
+      index = it.index;
+      dn = it.dn;
       if (dn->face == face) {
         break;
       }
@@ -34,7 +38,7 @@ PitEntry_DnRxInterest(Pit* pit, PitEntry* entry, Packet* npkt)
         break;
       }
     }
-    if (unlikely(dn == NULL)) {
+    if (unlikely(!PitDnIt_Valid(&it))) {
       return -1;
     }
   }

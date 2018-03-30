@@ -1,4 +1,5 @@
 #include "pit-entry.h"
+#include "pit-dn-up-it.h"
 #include "pit.h"
 
 int
@@ -10,8 +11,11 @@ PitEntry_UpTxInterest(Pit* pit, PitEntry* entry, FaceId face, Packet** npkt)
   // find UP slot
   int index;
   PitUp* up = NULL;
-  for (index = 0; index < PIT_ENTRY_MAX_UPS; ++index) {
-    up = &entry->ups[index];
+  PitUpIt it;
+  for (PitUpIt_Init(&it, entry); PitUpIt_Valid(&it) || PitUpIt_Extend(&it, pit);
+       PitUpIt_Next(&it)) {
+    index = it.index;
+    up = it.up;
     if (up->face == face) {
       break;
     }
@@ -20,7 +24,7 @@ PitEntry_UpTxInterest(Pit* pit, PitEntry* entry, FaceId face, Packet** npkt)
       break;
     }
   }
-  if (unlikely(up == NULL)) {
+  if (unlikely(!PitUpIt_Valid(&it))) {
     return -1;
   }
 

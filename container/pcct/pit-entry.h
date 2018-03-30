@@ -8,7 +8,11 @@
 #include "pit-up.h"
 
 #define PIT_ENTRY_MAX_DNS 8
-#define PIT_ENTRY_MAX_UPS 8
+#define PIT_ENTRY_MAX_UPS 4
+#define PIT_ENTRY_EXT_MAX_DNS 72
+#define PIT_ENTRY_EXT_MAX_UPS 36
+
+typedef struct PitEntryExt PitEntryExt;
 
 /** \brief A PIT entry.
  *
@@ -26,9 +30,18 @@ typedef struct PitEntry
 
   uint8_t lastDnIndex; ///< most recent DN index
 
+  PitEntryExt* ext;
   PitDn dns[PIT_ENTRY_MAX_DNS];
   PitUp ups[PIT_ENTRY_MAX_UPS];
 } PitEntry;
+static_assert(offsetof(PitEntry, dns) <= RTE_CACHE_LINE_SIZE, "");
+
+struct PitEntryExt
+{
+  PitDn dns[PIT_ENTRY_EXT_MAX_DNS];
+  PitUp ups[PIT_ENTRY_EXT_MAX_UPS];
+  PitEntryExt* next;
+};
 
 /** \brief Initialize a PIT entry.
  */
@@ -43,6 +56,7 @@ PitEntry_Init(PitEntry* entry, Packet* npkt)
   entry->mustBeFresh = interest->mustBeFresh;
   entry->dns[0].face = FACEID_INVALID;
   entry->ups[0].face = FACEID_INVALID;
+  entry->ext = NULL;
 }
 
 /** \brief Finalize a PIT entry.
@@ -54,6 +68,11 @@ PitEntry_Finalize(PitEntry* entry)
     rte_pktmbuf_free(Packet_ToMbuf(entry->npkt));
   }
   MinTmr_Cancel(&entry->timeout);
+  for (PitEntryExt* ext = entry->ext; unlikely(ext != NULL);) {
+    PitEntryExt* next = ext->next;
+    rte_mempool_put(rte_mempool_from_obj(ext), ext);
+    ext = next;
+  }
 }
 
 /** \brief Represent PIT entry as a string for debug purpose.
