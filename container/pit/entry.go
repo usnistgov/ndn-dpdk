@@ -29,22 +29,53 @@ func (entry Entry) GetToken() uint64 {
 	return uint64(C.Pit_GetEntryToken(entry.pit.getPtr(), entry.c))
 }
 
-// List downstream records.
+// List DN records.
 func (entry Entry) ListDns() (list []Dn) {
 	list = make([]Dn, 0, C.PIT_ENTRY_MAX_DNS)
-	for index := 0; index < int(C.PIT_ENTRY_MAX_DNS); index++ {
-		dnC := &entry.c.dns[index]
+	for i := 0; i < int(C.PIT_ENTRY_MAX_DNS); i++ {
+		dnC := &entry.c.dns[i]
 		if dnC.face == C.FACEID_INVALID {
-			break
+			return list
 		}
 		list = append(list, Dn{dnC, entry})
+	}
+	for extC := entry.c.ext; extC != nil; extC = extC.next {
+		for i := 0; i < int(C.PIT_ENTRY_EXT_MAX_DNS); i++ {
+			dnC := &extC.dns[i]
+			if dnC.face == C.FACEID_INVALID {
+				return list
+			}
+			list = append(list, Dn{dnC, entry})
+		}
 	}
 	return list
 }
 
-// Refresh downstream record for RX Interest.
-func (entry Entry) DnRxInterest(interest *ndn.Interest) bool {
+// Insert new DN record, or update existing DN record.
+func (entry Entry) InsertDn(interest *ndn.Interest) *Dn {
 	npktC := (*C.Packet)(interest.GetPacket().GetPtr())
-	index := C.PitEntry_DnRxInterest(entry.pit.getPtr(), entry.c, npktC)
-	return index >= 0
+	dnC := C.PitEntry_InsertDn(entry.c, entry.pit.getPtr(), npktC)
+	return &Dn{dnC, entry}
+}
+
+// List UP records.
+func (entry Entry) ListUps() (list []Up) {
+	list = make([]Up, 0, C.PIT_ENTRY_MAX_UPS)
+	for i := 0; i < int(C.PIT_ENTRY_MAX_UPS); i++ {
+		upC := &entry.c.ups[i]
+		if upC.face == C.FACEID_INVALID {
+			return list
+		}
+		list = append(list, Up{upC, entry})
+	}
+	for extC := entry.c.ext; extC != nil; extC = extC.next {
+		for i := 0; i < int(C.PIT_ENTRY_EXT_MAX_UPS); i++ {
+			upC := &extC.ups[i]
+			if upC.face == C.FACEID_INVALID {
+				return list
+			}
+			list = append(list, Up{upC, entry})
+		}
+	}
+	return list
 }

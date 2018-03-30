@@ -67,9 +67,6 @@ func New(cfg Config) (*DataPlane, error) {
 		pcctCfg := cfg.PcctCfg
 		pcctCfg.Id = fmt.Sprintf("FwPcct_%d", i)
 		pcctCfg.NumaSocket = numaSocket
-		pcctCfg.HeaderMp = appinit.MakePktmbufPool(appinit.MP_HDR, numaSocket)
-		pcctCfg.GuiderMp = appinit.MakePktmbufPool(appinit.MP_INTG, numaSocket)
-		pcctCfg.IndirectMp = appinit.MakePktmbufPool(appinit.MP_IND, numaSocket)
 		pcct, e := pcct.New(pcctCfg)
 		if e != nil {
 			queue.Close()
@@ -86,8 +83,13 @@ func New(cfg Config) (*DataPlane, error) {
 		fwd.fib = fibC
 		*C.__FwFwd_GetPcctPtr(fwd) = (*C.Pcct)(pcct.GetPtr())
 
-		fwd.headerMp = (*C.struct_rte_mempool)(pcctCfg.HeaderMp.GetPtr())
-		fwd.indirectMp = (*C.struct_rte_mempool)(pcctCfg.IndirectMp.GetPtr())
+		headerMp := appinit.MakePktmbufPool(appinit.MP_HDR, numaSocket)
+		guiderMp := appinit.MakePktmbufPool(appinit.MP_INTG, numaSocket)
+		indirectMp := appinit.MakePktmbufPool(appinit.MP_IND, numaSocket)
+
+		fwd.headerMp = (*C.struct_rte_mempool)(headerMp.GetPtr())
+		fwd.guiderMp = (*C.struct_rte_mempool)(guiderMp.GetPtr())
+		fwd.indirectMp = (*C.struct_rte_mempool)(indirectMp.GetPtr())
 
 		latencyStat := running_stat.FromPtr(unsafe.Pointer(&fwd.latencyStat))
 		latencyStat.SetSampleRate(cfg.LatencySampleRate)

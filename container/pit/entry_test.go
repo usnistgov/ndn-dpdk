@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"ndn-dpdk/container/pit"
 	"ndn-dpdk/ndn/ndntestutil"
 )
 
@@ -25,13 +26,13 @@ func TestEntryExpiry(t *testing.T) {
 	entry := fixture.Insert(interest1)
 	require.NotNil(entry)
 	assert.Len(entry.ListDns(), 0)
-	assert.True(entry.DnRxInterest(interest1))
+	assert.NotNil(entry.InsertDn(interest1))
 	assert.Len(entry.ListDns(), 1)
 
 	entry2 := fixture.Insert(interest2)
 	require.NotNil(entry2)
 	assert.Equal(uintptr(entry.GetPtr()), uintptr(entry2.GetPtr()))
-	assert.True(entry.DnRxInterest(interest2))
+	assert.NotNil(entry.InsertDn(interest2))
 	assert.Len(entry.ListDns(), 2)
 
 	time.Sleep(100 * time.Millisecond)
@@ -47,15 +48,22 @@ func TestEntryExtend(t *testing.T) {
 	fixture := NewFixture(255)
 	defer fixture.Close()
 
+	var entry *pit.Entry
+
 	for i := 0; i < 512; i++ {
 		interest := ndntestutil.MakeInterest("/A/B")
 		ndntestutil.SetPitToken(interest, uint64(0xB0B1B2B300000000)|uint64(i))
 		ndntestutil.SetFaceId(interest, uint16(1000+i))
 
-		entry := fixture.Insert(interest)
+		entry = fixture.Insert(interest)
 		require.NotNil(entry)
-		assert.True(entry.DnRxInterest(interest))
+		assert.NotNil(entry.InsertDn(interest))
 	}
 
 	assert.Equal(1, fixture.Pit.Len())
+	assert.True(fixture.CountMpInUse() > 1)
+
+	fixture.Pit.Erase(*entry)
+	assert.Zero(fixture.Pit.Len())
+	assert.Zero(fixture.CountMpInUse())
 }

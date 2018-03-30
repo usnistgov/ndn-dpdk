@@ -17,10 +17,6 @@ type Config struct {
 	MaxEntries int
 	CsCapacity int
 	NumaSocket dpdk.NumaSocket
-
-	HeaderMp   dpdk.PktmbufPool
-	GuiderMp   dpdk.PktmbufPool
-	IndirectMp dpdk.PktmbufPool
 }
 
 // The PIT-CS Composite Table (PCCT).
@@ -38,10 +34,7 @@ func New(cfg Config) (pcct *Pcct, e error) {
 		return nil, dpdk.GetErrno()
 	}
 
-	C.Pit_Init(C.Pit_FromPcct(pcct.c),
-		(*C.struct_rte_mempool)(cfg.HeaderMp.GetPtr()),
-		(*C.struct_rte_mempool)(cfg.GuiderMp.GetPtr()),
-		(*C.struct_rte_mempool)(cfg.IndirectMp.GetPtr()))
+	C.Pit_Init(C.Pit_FromPcct(pcct.c))
 	C.Cs_Init(C.Cs_FromPcct(pcct.c), C.uint32_t(cfg.CsCapacity))
 	return pcct, nil
 }

@@ -27,7 +27,8 @@ typedef struct FwFwd
   uint8_t id; ///< fwd process id
   bool stop;  ///< set to true to stop the process
 
-  struct rte_mempool* headerMp;   ///< mempool for cloned packet header
+  struct rte_mempool* headerMp;   ///< mempool for Interest/Data header
+  struct rte_mempool* guiderMp;   ///< mempool for Interest guiders
   struct rte_mempool* indirectMp; ///< mempool for indirect mbufs
 
   /** \brief Statistics of latency from packet arrival to start processing.

@@ -36,8 +36,7 @@ Pit_GetPriv(const Pit* pit)
 
 /** \brief Constructor.
  */
-void Pit_Init(Pit* pit, struct rte_mempool* headerMp,
-              struct rte_mempool* guiderMp, struct rte_mempool* indirectMp);
+void Pit_Init(Pit* pit);
 
 /** \brief Get number of PIT entries.
  */
@@ -57,8 +56,8 @@ Pit_CountEntries(const Pit* pit)
  *  return the PIT entry. Otherwise, unless the PCCT is full, insert and
  *  initialize a PIT entry.
  *
- *  When a new PIT entry is inserted, the PIT entry will reference \p npkt. The
- *  caller may continue using \p npkt until invoking \c PitEntry_DnRxInterest.
+ *  When a new PIT entry is inserted, the PIT entry owns \p npkt but does not
+ *  free it, so the caller may continue using it until \c PitEntry_InsertDn.
  */
 PitResult Pit_Insert(Pit* pit, Packet* npkt);
 

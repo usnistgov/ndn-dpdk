@@ -28,10 +28,6 @@ typedef struct PitPriv
   uint64_t nMisses; ///< how many finds did not find existing PIT entry
 
   MinSched* timeoutSched;
-
-  struct rte_mempool* headerMp;   ///< mempool for Interest header
-  struct rte_mempool* guiderMp;   ///< mempool for Interest guiders
-  struct rte_mempool* indirectMp; ///< mempool for indirect mbufs
 } PitPriv;
 
 #endif // NDN_DPDK_CONTAINER_PCCT_PIT_STRUCT_H

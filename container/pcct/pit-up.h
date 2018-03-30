@@ -5,6 +5,8 @@
 
 #include "common.h"
 
+typedef struct PitEntry PitEntry;
+
 #define PIT_UP_MAX_REJ_NONCES 4
 
 /** \brief A PIT upstream record.
@@ -34,24 +36,32 @@ PitUp_Copy(PitUp* dst, PitUp* src)
   src->face = FACEID_INVALID;
 }
 
-static bool
-PitUp_HasRejectedNonce(PitUp* up, uint32_t nonce)
-{
-  for (int i = 0; i < PIT_UP_MAX_REJ_NONCES; ++i) {
-    if (up->rejectedNonces[i] == nonce) {
-      return true;
-    }
-  }
-  return false;
-}
-
+/** \brief Record that \p nonce is rejected by upstream.
+ */
 static void
 PitUp_AddRejectedNonce(PitUp* up, uint32_t nonce)
 {
-  for (int i = 1; i < PIT_UP_MAX_REJ_NONCES; ++i) {
-    up->rejectedNonces[i] == up->rejectedNonces[i - 1];
+  for (int i = PIT_UP_MAX_REJ_NONCES - 1; i > 0; --i) {
+    up->rejectedNonces[i] = up->rejectedNonces[i - 1];
   }
   up->rejectedNonces[0] = nonce;
 }
+
+/** \brief Choose a nonce for TX Interest.
+ *  \param[inout] nonce initial suggested nonce suggestion, usually from RX
+ *                      Interest or Nack; final nonce selection.
+ *  \retval true a valid nonce is found.
+ *  \retval false all DN nonces have been rejected.
+ */
+bool PitUp_ChooseNonce(PitUp* up, PitEntry* entry, TscTime now,
+                       uint32_t* nonce);
+
+/** \brief Record Interest transmission.
+ *  \param now time used for calculating InterestLifetime.
+ *  \param nonce nonce of TX Interest.
+ */
+static void PitUp_RecordTx(PitUp* up, PitEntry* entry, TscTime now,
+                           uint32_t nonce);
+// Definition in pit-entry.h to avoid circular dependency.
 
 #endif // NDN_DPDK_CONTAINER_PCCT_PIT_UP_H

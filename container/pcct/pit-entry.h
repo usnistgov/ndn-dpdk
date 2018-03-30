@@ -23,12 +23,11 @@ typedef struct PitEntry
   Packet* npkt; ///< representative Interest packet
 
   MinTmr timeout; ///< timeout timer
-  TscTime expiry; ///< last DN expiration time
+
+  TscTime expiry; ///< when all DNs expire
 
   uint8_t nCanBePrefix; ///< how many DNs want CanBePrefix?
   bool mustBeFresh;     ///< entry for MustBeFresh 0 or 1?
-
-  uint8_t lastDnIndex; ///< most recent DN index
 
   PitEntryExt* ext;
   PitDn dns[PIT_ENTRY_MAX_DNS];
@@ -81,20 +80,39 @@ PitEntry_Finalize(PitEntry* entry)
  */
 const char* PitEntry_ToDebugString(PitEntry* entry);
 
-/** \brief Refresh DN record for RX Interest.
+/** \brief Insert new DN record, or update existing DN record.
  *  \param entry PIT entry, must be initialized.
- *  \param npkt received Interest; will take ownership unless returning -1.
- *  \return index of DN record, or -1 if no slot is available.
+ *  \param npkt received Interest; will take ownership unless returning NULL.
+ *  \return DN record, or NULL if no slot is available.
  */
-int PitEntry_DnRxInterest(Pit* pit, PitEntry* entry, Packet* npkt);
+PitDn* PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt);
 
-/** \brief Prepare TX Interest to upstream.
+/** \brief Find existing UP record, or reserve slot for new UP record.
  *  \param entry PIT entry, must be initialized.
  *  \param face upstream face.
- *  \param[out] npkt Interest packet, may be NULL if allocation fails.
- *  \return index of UP record, or -1 if no slot is available.
+ *  \return UP record, or NULL if no slot is available.
+ *  \note If returned UP record is unused (no \c PitUp_RecordTx invocation),
+ *        it will be overwritten on the next \c PitEntry_ReserveUp invocation.
  */
-int PitEntry_UpTxInterest(Pit* pit, PitEntry* entry, FaceId face,
-                          Packet** npkt);
+PitUp* PitEntry_ReserveUp(PitEntry* entry, Pit* pit, FaceId face);
+
+/** \brief Calculate InterestLifetime for TX Interest.
+ *  \return InterestLifetime in millis.
+ */
+static uint32_t
+PitEntry_GetTxInterestLifetime(PitEntry* entry, TscTime now)
+{
+  return TscDuration_ToMillis(entry->expiry - now);
+}
+
+// Declaration in pit-up.h. Definition here to avoid circular dependency.
+static void
+PitUp_RecordTx(PitUp* up, PitEntry* entry, TscTime now, uint32_t nonce)
+{
+  up->lastTx = now;
+  up->canBePrefix = (bool)entry->nCanBePrefix;
+  up->nonce = nonce;
+  up->nack = NackReason_None;
+}
 
 #endif // NDN_DPDK_CONTAINER_PCCT_PIT_ENTRY_H

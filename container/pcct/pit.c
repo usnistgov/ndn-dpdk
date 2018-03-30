@@ -7,8 +7,7 @@ INIT_ZF_LOG(Pit);
 static void __Pit_Timeout(MinTmr* tmr, void* pit0);
 
 void
-Pit_Init(Pit* pit, struct rte_mempool* headerMp, struct rte_mempool* guiderMp,
-         struct rte_mempool* indirectMp)
+Pit_Init(Pit* pit)
 {
   PitPriv* pitp = Pit_GetPriv(pit);
   ZF_LOGI("%p Init() priv=%p", pit, pitp);
@@ -18,10 +17,6 @@ Pit_Init(Pit* pit, struct rte_mempool* headerMp, struct rte_mempool* guiderMp,
     MinSched_New(12, rte_get_tsc_hz() / 30, __Pit_Timeout, pit);
   assert(MinSched_GetMaxDelay(pitp->timeoutSched) >=
          PIT_MAX_LIFETIME * rte_get_tsc_hz() / 1000);
-
-  pitp->headerMp = headerMp;
-  pitp->guiderMp = guiderMp;
-  pitp->indirectMp = indirectMp;
 }
 
 PitResult
