@@ -16,7 +16,7 @@ for GOFILE in $(find $PKG -maxdepth 1 -name '*.go' -not -name '*_test.go' -not -
 done
 
 CFLAGS='-Werror -Wno-error=deprecated-declarations -m64 -pthread -O3 -g -march=native -I/usr/local/include/dpdk'
-LIBS='-L/usr/local/lib -lurcu-qsbr -lurcu-cds -ldpdk -ldl -lnuma'
+LIBS='-L/usr/local/lib -lurcu-qsbr -lurcu-cds -lubpf -ldpdk -ldl -lnuma'
 if [[ -n $RELEASE ]]; then
   CFLAGS=$CFLAGS' -DNDEBUG -DZF_LOG_DEF_LEVEL=ZF_LOG_INFO'
 fi

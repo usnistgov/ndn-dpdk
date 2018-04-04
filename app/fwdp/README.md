@@ -1,6 +1,6 @@
 # ndn-dpdk/app/fwdp
 
-This package implements the data plane of a forwarder.
+This package implements the forwarder's data plane.
 
 The data plane consists two types of processes, "input process" and "forwarding process".
 Each process runs in a DPDK lcore.
@@ -58,3 +58,4 @@ Common keys include:
 * "drop": reason of dropping a packet.
 * "pit-entry" and "cs-entry": memory address of a table entry.
 * "pit-key": debug string of a PIT entry.
+* "sg-res": return value of strategy invocation.

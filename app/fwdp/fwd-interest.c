@@ -1,4 +1,5 @@
 #include "fwd.h"
+#include "strategy.h"
 #include "token.h"
 
 #include "../../core/logger.h"
@@ -67,9 +68,9 @@ FwFwd_InterestMissCs(FwFwd* fwd, FwFwdRxInterestContext* ctx)
 {
   // TODO detect duplicate nonce
   // TODO suppression
-
-  TscTime rxTime = ctx->pkt->timestamp;
-  uint32_t dnNonce = Packet_GetInterestHdr(ctx->npkt)->nonce;
+  SgContext sgCtx = { 0 };
+  sgCtx.rxTime = ctx->pkt->timestamp;
+  sgCtx.dnNonce = Packet_GetInterestHdr(ctx->npkt)->nonce;
 
   // insert DN record
   PitDn* dn = PitEntry_InsertDn(ctx->pitEntry, fwd->pit, ctx->npkt);
@@ -83,48 +84,13 @@ FwFwd_InterestMissCs(FwFwd* fwd, FwFwdRxInterestContext* ctx)
   ZF_LOGD("^ pit-entry=%p pit-key=%s", ctx->pitEntry,
           PitEntry_ToDebugString(ctx->pitEntry));
 
-  TscTime now = rte_get_tsc_cycles();
-  uint32_t upLifetime = PitEntry_GetTxInterestLifetime(ctx->pitEntry, now);
-  for (uint8_t i = 0; i < ctx->nNexthops; ++i) {
-    FaceId nh = ctx->nexthops[i];
-
-    Face* outFace = FaceTable_GetFace(fwd->ft, nh);
-    if (unlikely(outFace == NULL)) {
-      ZF_LOGD("^ no-forward-to=%" PRI_FaceId " drop=no-face", nh);
-      continue;
-    }
-
-    PitUp* up = PitEntry_ReserveUp(ctx->pitEntry, fwd->pit, nh);
-    if (unlikely(up == NULL)) {
-      ZF_LOGD("^ no-forward-to=%" PRI_FaceId " drop=PitUp-full", nh);
-      break;
-    }
-
-    uint32_t upNonce = dnNonce;
-    bool hasNonce = PitUp_ChooseNonce(up, ctx->pitEntry, now, &upNonce);
-    if (unlikely(!hasNonce)) {
-      ZF_LOGD("^ no-forward-to=%" PRI_FaceId " drop=nonces-rejected", nh);
-      continue;
-    }
-
-    uint8_t hopLimit = 0xFF; // TODO properly set HopLimit
-    Packet* outNpkt =
-      ModifyInterest(ctx->pitEntry->npkt, upNonce, upLifetime, hopLimit,
-                     fwd->headerMp, fwd->guiderMp, fwd->indirectMp);
-    if (unlikely(outNpkt == NULL)) {
-      ZF_LOGD("^ no-forward-to=%" PRI_FaceId " drop=interest-alloc-error", nh);
-      break;
-    }
-
-    uint64_t token =
-      FwToken_New(fwd->id, Pit_GetEntryToken(fwd->pit, ctx->pitEntry));
-    Packet_InitLpL3Hdr(outNpkt)->pitToken = token;
-    Packet_ToMbuf(outNpkt)->timestamp = rxTime; // for latency stats
-
-    ZF_LOGD("^ interest-to=%" PRI_FaceId " npkt=%p up-token=%016" PRIx64, nh,
-            outNpkt, token);
-    Face_Tx(outFace, outNpkt);
-  }
+  sgCtx.fwd = fwd;
+  sgCtx.pitEntry = ctx->pitEntry;
+  sgCtx.inner.eventKind = SGEVT_INTEREST;
+  sgCtx.inner.nexthops = ctx->nexthops;
+  sgCtx.inner.nNexthops = ctx->nNexthops;
+  uint64_t res = (*fwd->strategy)(&sgCtx, sizeof(SgCtx));
+  ZF_LOGD("^ sg-res=%" PRIu64, res);
 }
 
 static void
@@ -194,4 +160,49 @@ FwFwd_RxInterest(FwFwd* fwd, Packet* npkt)
       assert(false); // no other cases
       break;
   }
+}
+
+void
+Sg_ForwardInterest(SgContext* ctx, FaceId nh)
+{
+  FwFwd* fwd = ctx->fwd;
+  TscTime now = rte_get_tsc_cycles();
+
+  Face* outFace = FaceTable_GetFace(fwd->ft, nh);
+  if (unlikely(outFace == NULL)) {
+    ZF_LOGD("^ no-forward-to=%" PRI_FaceId " drop=no-face", nh);
+    return;
+  }
+
+  PitUp* up = PitEntry_ReserveUp(ctx->pitEntry, fwd->pit, nh);
+  if (unlikely(up == NULL)) {
+    ZF_LOGD("^ no-forward-to=%" PRI_FaceId " drop=PitUp-full", nh);
+    return;
+  }
+
+  uint32_t upNonce = ctx->dnNonce;
+  bool hasNonce = PitUp_ChooseNonce(up, ctx->pitEntry, now, &upNonce);
+  if (unlikely(!hasNonce)) {
+    ZF_LOGD("^ no-forward-to=%" PRI_FaceId " drop=nonces-rejected", nh);
+    return;
+  }
+
+  uint32_t upLifetime = PitEntry_GetTxInterestLifetime(ctx->pitEntry, now);
+  uint8_t hopLimit = 0xFF; // TODO properly set HopLimit
+  Packet* outNpkt =
+    ModifyInterest(ctx->pitEntry->npkt, upNonce, upLifetime, hopLimit,
+                   fwd->headerMp, fwd->guiderMp, fwd->indirectMp);
+  if (unlikely(outNpkt == NULL)) {
+    ZF_LOGD("^ no-forward-to=%" PRI_FaceId " drop=interest-alloc-error", nh);
+    return;
+  }
+
+  uint64_t token =
+    FwToken_New(fwd->id, Pit_GetEntryToken(fwd->pit, ctx->pitEntry));
+  Packet_InitLpL3Hdr(outNpkt)->pitToken = token;
+  Packet_ToMbuf(outNpkt)->timestamp = ctx->rxTime; // for latency stats
+
+  ZF_LOGD("^ interest-to=%" PRI_FaceId " npkt=%p up-token=%016" PRIx64, nh,
+          outNpkt, token);
+  Face_Tx(outFace, outNpkt);
 }

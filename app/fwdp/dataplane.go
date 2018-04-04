@@ -41,6 +41,7 @@ type DataPlane struct {
 	inputRxLoopers []iface.IRxLooper
 	fwdLCores      []dpdk.LCore
 	fwds           []*C.FwFwd
+	strategy       *Strategy
 }
 
 func New(cfg Config) (*DataPlane, error) {
@@ -54,6 +55,12 @@ func New(cfg Config) (*DataPlane, error) {
 	ftC := (*C.FaceTable)(cfg.FaceTable.GetPtr())
 	ndtC := (*C.Ndt)(cfg.Ndt.GetPtr())
 	fibC := (*C.Fib)(cfg.Fib.GetPtr())
+
+	if strategy, e := NewStrategy(getMulticastStrategyElf()); e != nil {
+		return nil, fmt.Errorf("NewStrategy(): %v", e)
+	} else {
+		dp.strategy = strategy
+	}
 
 	for i, lc := range cfg.FwdLCores {
 		numaSocket := lc.GetNumaSocket()
@@ -94,6 +101,8 @@ func New(cfg Config) (*DataPlane, error) {
 		latencyStat := running_stat.FromPtr(unsafe.Pointer(&fwd.latencyStat))
 		latencyStat.SetSampleRate(cfg.LatencySampleRate)
 
+		fwd.strategy = dp.strategy.jit
+
 		dp.fwds = append(dp.fwds, fwd)
 	}
 
@@ -126,6 +135,7 @@ func (dp *DataPlane) Close() error {
 		pcct.Close()
 		dpdk.Free(fwd)
 	}
+	dp.strategy.Close()
 	return nil
 }
 

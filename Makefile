@@ -1,4 +1,5 @@
 CLIBPREFIX=build/libndn-dpdk
+STRATEGYPREFIX=build/strategy
 
 all: cbuilds cgoflags
 	go build -v ./...
@@ -134,6 +135,13 @@ go-pit: $(CLIBPREFIX)-pcct.a container/pcct/cgoflags.go
 
 go-cs: $(CLIBPREFIX)-pcct.a container/pcct/cgoflags.go
 	go build ./container/cs
+
+strategies: $(STRATEGYPREFIX)/multicast.o
+
+strategy-% $(STRATEGYPREFIX)/%.o: strategy/%.c strategy/api*.h
+	mkdir -p $(STRATEGYPREFIX)
+	clang -O2 -target bpf -c $< -S -o $(STRATEGYPREFIX)/$*.s
+	clang -O2 -target bpf -c $< -o $(STRATEGYPREFIX)/$*.o
 
 appinit/cgoflags.go: dpdk/cgoflags.go
 	./make-cgoflags.sh appinit dpdk
