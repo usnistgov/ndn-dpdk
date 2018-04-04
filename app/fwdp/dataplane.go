@@ -56,7 +56,7 @@ func New(cfg Config) (*DataPlane, error) {
 	ndtC := (*C.Ndt)(cfg.Ndt.GetPtr())
 	fibC := (*C.Fib)(cfg.Fib.GetPtr())
 
-	if strategy, e := NewStrategy(getMulticastStrategyElf()); e != nil {
+	if strategy, e := NewBuiltinStrategy("multicast"); e != nil {
 		return nil, fmt.Errorf("NewStrategy(): %v", e)
 	} else {
 		dp.strategy = strategy

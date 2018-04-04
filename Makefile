@@ -163,6 +163,9 @@ cmds: cmd-ndnfw-dpdk cmd-ndnping-dpdk cmd-ndnpktcopy-dpdk
 cmd-%: cmd/%/* cbuilds cgoflags
 	go install ./cmd/$*
 
+cmd-ndnfw-dpdk: cmd/ndnfw-dpdk/* cbuilds cgoflags strategies
+	go install ./cmd/ndnfw-dpdk
+
 mgmtclient:: cmd/mgmtclient/*
 	mkdir -p build
 	cd build && rm -f mgmt*.sh
