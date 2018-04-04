@@ -5,14 +5,15 @@
 
 #include "api-struct.h"
 
+typedef int64_t TscDuration;
+
 /** \brief Set a timer to invoke strategy after a duration.
- *  \param after delay duration in TSC cycles.
  *
  *  \c Program will be invoked again with \c SGEVT_TIMER after \p after.
  *  However, the timer would be cancelled if \c Program is invoked for any other event,
  *  a different timer is set, or the strategy choice has been changed.
  */
-void SetTimer(SgCtx* ctx, uint64_t after);
+void SetTimer(SgCtx* ctx, TscDuration after);
 
 /** \brief Forward an Interest to a nexthop.
  */

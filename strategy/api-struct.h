@@ -3,10 +3,7 @@
 
 /// \file
 
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <stdlib.h>
+#include "api-pit.h"
 
 /** \brief Indicate why the strategy program is invoked.
  */
@@ -16,13 +13,12 @@ typedef enum SgEvent {
   SGEVT_INTEREST = 2, ///< Interest arrives
 } SgEvent;
 
-typedef uint16_t FaceId;
-
 /** \brief Context of strategy invocation.
  */
 typedef struct SgCtx
 {
   SgEvent eventKind;
+  SgPitEntry* pitEntry;
   FaceId* nexthops;
   uint8_t nNexthops;
 } SgCtx;

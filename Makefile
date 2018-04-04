@@ -1,5 +1,6 @@
 CLIBPREFIX=build/libndn-dpdk
 STRATEGYPREFIX=build/strategy
+BPFFLAGS=-O2 -target bpf -I/usr/local/include/dpdk -Wno-int-to-void-pointer-cast
 
 all: cbuilds cgoflags
 	go build -v ./...
@@ -138,10 +139,13 @@ go-cs: $(CLIBPREFIX)-pcct.a container/pcct/cgoflags.go
 
 strategies: $(STRATEGYPREFIX)/multicast.o
 
-strategy-% $(STRATEGYPREFIX)/%.o: strategy/%.c strategy/api*.h
+$(CLIBPREFIX)-strategy.a: strategy/api*
+	./cbuild.sh strategy
+
+strategy-% $(STRATEGYPREFIX)/%.o: strategy/%.c $(CLIBPREFIX)-strategy.a
 	mkdir -p $(STRATEGYPREFIX)
-	clang -O2 -target bpf -c $< -S -o $(STRATEGYPREFIX)/$*.s
-	clang -O2 -target bpf -c $< -o $(STRATEGYPREFIX)/$*.o
+	clang $(BPFFLAGS) -c $< -S -o $(STRATEGYPREFIX)/$*.s
+	clang $(BPFFLAGS) -c $< -o $(STRATEGYPREFIX)/$*.o
 
 appinit/cgoflags.go: dpdk/cgoflags.go
 	./make-cgoflags.sh appinit dpdk

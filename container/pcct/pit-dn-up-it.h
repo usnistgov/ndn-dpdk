@@ -60,7 +60,7 @@ __PitDnUpIt_Next(__PitDnUpIt* it, int maxInExt, size_t offsetInExt)
 bool __PitDnUpIt_Extend(__PitDnUpIt* it, Pit* pit, int maxInExt,
                         size_t offsetInExt);
 
-/** \brief It of DN slots in PIT entry.
+/** \brief Iterator of DN slots in PIT entry.
  *
  *  \code
  *  PitDnIt it;
@@ -105,7 +105,7 @@ PitDnIt_Extend(PitDnIt* it, Pit* pit)
   return ok;
 }
 
-/** \brief It of UP slots in PIT entry.
+/** \brief Iterator of UP slots in PIT entry.
  *
  *  \code
  *  PitUpIt it;

@@ -3,18 +3,9 @@
 
 /// \file
 
-#include <assert.h>
-#include <inttypes.h>
-#include <limits.h>
-#include <memory.h>
-#include <stdatomic.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+// These are available to all C code except strategy BPF programs.
 
-#include <rte_config.h>
+#include "common1.h"
 
 #include <rte_branch_prediction.h>
 #include <rte_cycles.h>
