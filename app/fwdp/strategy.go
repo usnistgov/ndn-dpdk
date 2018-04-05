@@ -7,9 +7,9 @@ import "C"
 import (
 	"fmt"
 	"io/ioutil"
-	"path"
-	"runtime"
 	"unsafe"
+
+	"ndn-dpdk/appinit"
 )
 
 // BPF code of a strategy.
@@ -18,6 +18,7 @@ type Strategy struct {
 	jit C.ubpf_jit_fn
 }
 
+// Load strategy from ELF object.
 func NewStrategy(elf []byte) (s *Strategy, e error) {
 	s = new(Strategy)
 
@@ -45,14 +46,9 @@ func NewStrategy(elf []byte) (s *Strategy, e error) {
 	return s, nil
 }
 
+// Load strategy from ELF file in build/strategy/ directory.
 func NewBuiltinStrategy(name string) (*Strategy, error) {
-	_, codeFilePath, _, ok := runtime.Caller(0)
-	if !ok {
-		return nil, fmt.Errorf("runtime.Caller failed")
-	}
-
-	objFilePath := path.Join(path.Dir(codeFilePath),
-		fmt.Sprintf("../../build/strategy/%s.o", name))
+	objFilePath := fmt.Sprintf("%s/build/strategy/%s.o", appinit.CodePath, name)
 	elf, e := ioutil.ReadFile(objFilePath)
 	if e != nil {
 		return nil, fmt.Errorf("ioutil.ReadFile(%s): %v", objFilePath, e)
