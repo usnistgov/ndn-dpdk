@@ -169,7 +169,7 @@ Pit_FindByData(Pit* pit, Packet* npkt)
 
   PccEntry* pccEntry = Pcct_FindByToken(Pit_ToPcct(pit), token);
   if (unlikely(pccEntry == NULL)) {
-    ++pitp->nMisses;
+    ++pitp->nDataMiss;
     return __PitResult_New(NULL, PIT_FIND_NONE);
   }
 
@@ -178,11 +178,53 @@ Pit_FindByData(Pit* pit, Packet* npkt)
     PInterest* interest = __PitFindResult_GetInterest2(pccEntry, resKind);
     if (unlikely(!PInterest_MatchesData(interest, npkt))) {
       // Data carries old/bad PIT token
-      ++pitp->nMisses;
+      ++pitp->nDataMiss;
       return __PitResult_New(NULL, PIT_FIND_NONE);
     }
   }
 
-  ++pitp->nHits;
+  ++pitp->nDataHit;
   return __PitResult_New(pccEntry, resKind);
+}
+
+PitEntry*
+Pit_FindByNack(Pit* pit, Packet* npkt)
+{
+  PitPriv* pitp = Pit_GetPriv(pit);
+  uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
+  PNack* nack = Packet_GetNackHdr(npkt);
+  PInterest* interest = &nack->interest;
+
+  // find PCC entry by token
+  PccEntry* pccEntry = Pcct_FindByToken(Pit_ToPcct(pit), token);
+  if (unlikely(pccEntry == NULL)) {
+    ++pitp->nNackMiss;
+    return NULL;
+  }
+
+  // find PIT entry
+  PitEntry* entry = NULL;
+  if (interest->mustBeFresh) {
+    if (unlikely(!pccEntry->hasPitEntry1)) {
+      ++pitp->nNackMiss;
+      return NULL;
+    }
+    entry = PccEntry_GetPitEntry1(pccEntry);
+  } else {
+    if (unlikely(!pccEntry->hasPitEntry0)) {
+      ++pitp->nNackMiss;
+      return NULL;
+    }
+    entry = PccEntry_GetPitEntry0(pccEntry);
+  }
+
+  // verify Interest name matches PCC key
+  LName interestName = *(const LName*)(&interest->name);
+  if (unlikely(!PccKey_MatchName(&pccEntry->key, interestName))) {
+    ++pitp->nNackMiss;
+    return NULL;
+  }
+
+  ++pitp->nNackHit;
+  return entry;
 }

@@ -85,7 +85,6 @@ func TestToken(t *testing.T) {
 	for i, token := range tokens {
 		entry := entries[i]
 		data := ndntestutil.MakeData(fmt.Sprintf("/I/%d", i))
-		defer ndntestutil.ClosePacket(data)
 		ndntestutil.SetPitToken(data, token)
 		found := pit.FindByData(data)
 		if assert.Equal(1, found.Len()) {
@@ -94,27 +93,34 @@ func TestToken(t *testing.T) {
 
 		// high 16 bits of the token should be ignored
 		token2 := token ^ 0x79BC000000000000
-		ndntestutil.SetPitToken(data, token2)
-		found = pit.FindByData(data)
-		if assert.Equal(1, found.Len()) {
-			assert.Equal(uintptr(entry.GetPtr()), uintptr(found.GetEntries()[0].GetPtr()))
+		nack := ndn.MakeNackFromInterest(ndntestutil.MakeInterest(fmt.Sprintf("/I/%d", i)),
+			ndn.NackReason_NoRoute)
+		ndntestutil.SetPitToken(nack, token2)
+		foundEntry := pit.FindByNack(nack)
+		if assert.NotNil(foundEntry) {
+			assert.Equal(uintptr(entry.GetPtr()), uintptr(foundEntry.GetPtr()))
 		}
 
 		// name mismatch
 		data2 := ndntestutil.MakeData(fmt.Sprintf("/K/%d", i))
-		defer ndntestutil.ClosePacket(data2)
 		ndntestutil.SetPitToken(data2, token)
 		found = pit.FindByData(data2)
 		assert.Equal(0, found.Len())
 
 		pit.Erase(entry)
-		found = pit.FindByData(data)
-		assert.Equal(0, found.Len())
+		foundEntry = pit.FindByNack(nack)
+		assert.Nil(foundEntry)
+
+		ndntestutil.ClosePacket(data)
+		ndntestutil.ClosePacket(nack)
+		ndntestutil.ClosePacket(data2)
 	}
 
 	cnt := pit.ReadCounters()
 	assert.Equal(uint64(255), cnt.NInsert)
 	assert.Equal(uint64(1), cnt.NAllocErr)
-	assert.Equal(uint64(510), cnt.NHits)
-	assert.Equal(uint64(510), cnt.NMisses)
+	assert.Equal(uint64(255), cnt.NDataHit)
+	assert.Equal(uint64(255), cnt.NDataMiss)
+	assert.Equal(uint64(255), cnt.NNackHit)
+	assert.Equal(uint64(255), cnt.NNackMiss)
 }

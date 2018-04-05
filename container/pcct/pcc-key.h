@@ -27,14 +27,22 @@ typedef struct PccKey
   uint8_t fh[NAME_MAX_LENGTH];
 } PccKey;
 
+/** \brief Determine if \p key->name matches \p name.
+ */
+static bool
+PccKey_MatchName(const PccKey* key, LName name)
+{
+  assert(name.length <= sizeof(key->name));
+  return memcmp(key->name, name.value, name.length) == 0;
+}
+
 /** \brief Determine if \p key matches \p search.
  */
 static bool
 PccKey_MatchSearchKey(const PccKey* key, const PccSearch* search)
 {
-  assert(search->name.length <= sizeof(key->name));
   assert(search->fh.length <= sizeof(key->fh));
-  return memcmp(key->name, search->name.value, search->name.length) == 0 &&
+  return PccKey_MatchName(key, search->name) &&
          memcmp(key->fh, search->fh.value, search->fh.length) == 0;
 }
 

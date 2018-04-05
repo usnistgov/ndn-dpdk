@@ -85,7 +85,7 @@ func (fr FindResult) Len() int {
 	return 0
 }
 
-// Access matches PIT entries.
+// Access matched PIT entries.
 func (fr FindResult) GetEntries() (entries []Entry) {
 	entries = make([]Entry, 0, 2)
 	entry0 := C.PitFindResult_GetPitEntry0(fr.resC)
@@ -103,4 +103,13 @@ func (fr FindResult) GetEntries() (entries []Entry) {
 func (pit Pit) FindByData(data *ndn.Data) FindResult {
 	resC := C.Pit_FindByData(pit.getPtr(), (*C.Packet)(data.GetPacket().GetPtr()))
 	return FindResult{resC, pit}
+}
+
+// Find PIT entries matching a Nack.
+func (pit Pit) FindByNack(nack *ndn.Nack) *Entry {
+	entryC := C.Pit_FindByNack(pit.getPtr(), (*C.Packet)(nack.GetPacket().GetPtr()))
+	if entryC == nil {
+		return nil
+	}
+	return &Entry{entryC, pit}
 }
