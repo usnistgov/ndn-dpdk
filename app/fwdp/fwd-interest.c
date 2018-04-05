@@ -170,22 +170,23 @@ Sg_ForwardInterest(SgContext* ctx, FaceId nh)
 
   Face* outFace = FaceTable_GetFace(fwd->ft, nh);
   if (unlikely(outFace == NULL)) {
-    ZF_LOGD("^ no-forward-to=%" PRI_FaceId " drop=no-face", nh);
+    ZF_LOGD("^ no-interest-to=%" PRI_FaceId " drop=no-face", nh);
     return;
   }
 
   PitUp* up = PitEntry_ReserveUp(ctx->pitEntry, fwd->pit, nh);
   if (unlikely(up == NULL)) {
-    ZF_LOGD("^ no-forward-to=%" PRI_FaceId " drop=PitUp-full", nh);
+    ZF_LOGD("^ no-interest-to=%" PRI_FaceId " drop=PitUp-full", nh);
     return;
   }
 
   uint32_t upNonce = ctx->dnNonce;
   bool hasNonce = PitUp_ChooseNonce(up, ctx->pitEntry, now, &upNonce);
   if (unlikely(!hasNonce)) {
-    ZF_LOGD("^ no-forward-to=%" PRI_FaceId " drop=nonces-rejected", nh);
+    ZF_LOGD("^ no-interest-to=%" PRI_FaceId " drop=nonces-rejected", nh);
     return;
   }
+  up->nonce = upNonce;
 
   uint32_t upLifetime = PitEntry_GetTxInterestLifetime(ctx->pitEntry, now);
   uint8_t hopLimit = 0xFF; // TODO properly set HopLimit
@@ -193,7 +194,7 @@ Sg_ForwardInterest(SgContext* ctx, FaceId nh)
     ModifyInterest(ctx->pitEntry->npkt, upNonce, upLifetime, hopLimit,
                    fwd->headerMp, fwd->guiderMp, fwd->indirectMp);
   if (unlikely(outNpkt == NULL)) {
-    ZF_LOGD("^ no-forward-to=%" PRI_FaceId " drop=interest-alloc-error", nh);
+    ZF_LOGD("^ no-interest-to=%" PRI_FaceId " drop=alloc-error", nh);
     return;
   }
 
@@ -202,7 +203,8 @@ Sg_ForwardInterest(SgContext* ctx, FaceId nh)
   Packet_InitLpL3Hdr(outNpkt)->pitToken = token;
   Packet_ToMbuf(outNpkt)->timestamp = ctx->rxTime; // for latency stats
 
-  ZF_LOGD("^ interest-to=%" PRI_FaceId " npkt=%p up-token=%016" PRIx64, nh,
-          outNpkt, token);
+  ZF_LOGD("^ interest-to=%" PRI_FaceId " npkt=%p nonce=%08" PRIx32
+          " up-token=%016" PRIx64,
+          nh, outNpkt, upNonce, token);
   Face_Tx(outFace, outNpkt);
 }

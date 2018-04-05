@@ -13,8 +13,17 @@ typedef enum NackReason {
   NackReason_Congestion = 50,
   NackReason_Duplicate = 100,
   NackReason_NoRoute = 150,
-  NackReason_Unspecified = 255 ///< reason unspecified
+  NackReason_Unspecified = 255, ///< reason unspecified
+  NackReason_Max = 255,
 } NackReason;
+
+/** \brief Return the less severe NackReason.
+ */
+static NackReason
+NackReason_GetMin(NackReason a, NackReason b)
+{
+  return RTE_MIN(a, b);
+}
 
 /** \brief Parsed Nack packet.
  */

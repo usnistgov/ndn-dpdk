@@ -33,10 +33,10 @@ func TestInterestData(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 	require.Len(face1.TxData, 1)
 	assert.Len(face1.TxNacks, 0)
-	assert.Equal(uint64(0x0290dd7089e9d790), ndntestutil.GetPitToken(face1.TxData[0]))
+	assert.Equal(ndntestutil.GetPitToken(face1.TxData[0]), uint64(0x0290dd7089e9d790))
 }
 
-func TestInterestNack(t *testing.T) {
+func TestInterestNoRoute(t *testing.T) {
 	assert, require := makeAR(t)
 	fixture := fwdptestfixture.New(t)
 	defer fixture.Close()
@@ -51,7 +51,7 @@ func TestInterestNack(t *testing.T) {
 	assert.Equal(uint64(0x431328d8b4075167), ndntestutil.GetPitToken(face1.TxNacks[0]))
 }
 
-func TestInterestCsHit(t *testing.T) {
+func TestCsHit(t *testing.T) {
 	assert, require := makeAR(t)
 	fixture := fwdptestfixture.New(t)
 	defer fixture.Close()
