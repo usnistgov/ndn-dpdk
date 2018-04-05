@@ -1,25 +1,27 @@
 #include "fwd.h"
 
+#include "../../container/pcct/pit-dn-up-it.h"
 #include "../../core/logger.h"
 
 INIT_ZF_LOG(FwFwd);
 
 static void
-FwFwd_RxDataUnsolicited(FwFwd* fwd, Packet* npkt)
+FwFwd_DataUnsolicited(FwFwd* fwd, Packet* npkt)
 {
   ZF_LOGD("^ drop=unsolicited");
   rte_pktmbuf_free(Packet_ToMbuf(npkt));
 }
 
 static void
-FwFwd_RxDataSatisfy(FwFwd* fwd, Packet* npkt, PitEntry* pitEntry)
+FwFwd_DataSatisfy(FwFwd* fwd, Packet* npkt, PitEntry* pitEntry)
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   ZF_LOGD("^ pit-entry=%p pit-key=%s", pitEntry,
           PitEntry_ToDebugString(pitEntry));
 
-  for (int index = 0; index < PIT_ENTRY_MAX_DNS; ++index) {
-    PitDn* dn = &pitEntry->dns[index];
+  PitDnIt it;
+  for (PitDnIt_Init(&it, pitEntry); PitDnIt_Valid(&it); PitDnIt_Next(&it)) {
+    PitDn* dn = it.dn;
     if (unlikely(dn->face == FACEID_INVALID)) {
       if (index == 0) {
         ZF_LOGD("^ drop=PitDn-empty");
@@ -57,18 +59,18 @@ FwFwd_RxData(FwFwd* fwd, Packet* npkt)
   PitResult pitFound = Pit_FindByData(fwd->pit, npkt);
   switch (PitResult_GetKind(pitFound)) {
     case PIT_FIND_NONE:
-      FwFwd_RxDataUnsolicited(fwd, npkt);
+      FwFwd_DataUnsolicited(fwd, npkt);
       return;
     case PIT_FIND_PIT0:
-      FwFwd_RxDataSatisfy(fwd, npkt, PitFindResult_GetPitEntry0(pitFound));
+      FwFwd_DataSatisfy(fwd, npkt, PitFindResult_GetPitEntry0(pitFound));
       break;
     case PIT_FIND_PIT1:
-      FwFwd_RxDataSatisfy(fwd, npkt, PitFindResult_GetPitEntry1(pitFound));
+      FwFwd_DataSatisfy(fwd, npkt, PitFindResult_GetPitEntry1(pitFound));
       break;
     case PIT_FIND_PIT01:
-      // TODO send Data to each downstream only once
-      FwFwd_RxDataSatisfy(fwd, npkt, PitFindResult_GetPitEntry0(pitFound));
-      FwFwd_RxDataSatisfy(fwd, npkt, PitFindResult_GetPitEntry1(pitFound));
+      // XXX if both PIT entries have the same downstream, Data is sent twice
+      FwFwd_DataSatisfy(fwd, npkt, PitFindResult_GetPitEntry0(pitFound));
+      FwFwd_DataSatisfy(fwd, npkt, PitFindResult_GetPitEntry1(pitFound));
       break;
   }
 
