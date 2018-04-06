@@ -36,6 +36,23 @@ PitEntry_ToDebugString(PitEntry* entry)
   return PccDebugString_Appendf("]");
 }
 
+FaceId
+PitEntry_FindDuplicateNonce(PitEntry* entry, uint32_t nonce, FaceId dnFace)
+{
+  PitDnIt it;
+  for (PitDnIt_Init(&it, entry); PitDnIt_Valid(&it); PitDnIt_Next(&it)) {
+    PitDn* dn = it.dn;
+    if (dn->face == FACEID_INVALID) {
+      break;
+    }
+    if (dn->face == dnFace) {
+      continue;
+    }
+    return dn->face;
+  }
+  return FACEID_INVALID;
+}
+
 PitDn*
 PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt)
 {

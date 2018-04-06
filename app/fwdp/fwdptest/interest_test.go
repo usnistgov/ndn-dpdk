@@ -20,20 +20,54 @@ func TestInterestData(t *testing.T) {
 	fixture.SetFibEntry("/B", face2.GetFaceId())
 	fixture.SetFibEntry("/C", face3.GetFaceId())
 
-	interestB1 := ndntestutil.MakeInterest("/B/1")
-	ndntestutil.SetPitToken(interestB1, 0x0290dd7089e9d790)
-	face1.Rx(interestB1)
+	interest := ndntestutil.MakeInterest("/B/1")
+	ndntestutil.SetPitToken(interest, 0x0290dd7089e9d790)
+	face1.Rx(interest)
 	time.Sleep(100 * time.Millisecond)
 	require.Len(face2.TxInterests, 1)
 	assert.Len(face3.TxInterests, 0)
 
-	dataB1 := ndntestutil.MakeData("/B/1")
-	ndntestutil.CopyPitToken(dataB1, face2.TxInterests[0])
-	face2.Rx(dataB1)
+	data := ndntestutil.MakeData("/B/1")
+	ndntestutil.CopyPitToken(data, face2.TxInterests[0])
+	face2.Rx(data)
 	time.Sleep(100 * time.Millisecond)
 	require.Len(face1.TxData, 1)
 	assert.Len(face1.TxNacks, 0)
 	assert.Equal(ndntestutil.GetPitToken(face1.TxData[0]), uint64(0x0290dd7089e9d790))
+}
+
+func TestInterestDupNonce(t *testing.T) {
+	assert, require := makeAR(t)
+	fixture := fwdptestfixture.New(t)
+	defer fixture.Close()
+
+	face1 := fixture.CreateFace()
+	face2 := fixture.CreateFace()
+	face3 := fixture.CreateFace()
+	fixture.SetFibEntry("/A", face3.GetFaceId())
+
+	interest := ndntestutil.MakeInterest("/A/1", uint32(0x6f937a51))
+	ndntestutil.SetPitToken(interest, 0x3bddf54cffbc6ad0)
+	face1.Rx(interest)
+	time.Sleep(100 * time.Millisecond)
+	assert.Len(face3.TxInterests, 1)
+
+	interest = ndntestutil.MakeInterest("/A/1", uint32(0x6f937a51))
+	ndntestutil.SetPitToken(interest, 0x3bddf54cffbc6ad0)
+	face2.Rx(interest)
+	time.Sleep(100 * time.Millisecond)
+	require.Len(face3.TxInterests, 1)
+	require.Len(face2.TxNacks, 1)
+	assert.Equal(face2.TxNacks[0].GetReason(), ndn.NackReason_Duplicate)
+
+	data := ndntestutil.MakeData("/A/1")
+	ndntestutil.CopyPitToken(data, face3.TxInterests[0])
+	face3.Rx(data)
+	time.Sleep(100 * time.Millisecond)
+	assert.Len(face1.TxData, 1)
+	assert.Len(face1.TxNacks, 0)
+	assert.Len(face2.TxData, 0)
+	assert.Len(face2.TxNacks, 1)
 }
 
 func TestInterestSuppress(t *testing.T) {

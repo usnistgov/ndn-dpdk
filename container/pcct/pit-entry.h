@@ -80,6 +80,12 @@ PitEntry_Finalize(PitEntry* entry)
  */
 const char* PitEntry_ToDebugString(PitEntry* entry);
 
+/** \brief Find duplicate nonce among DN records other than \p rxFace.
+ *  \return FaceId of PitDn with duplicate nonce, or \c FACEID_INVALID if none.
+ */
+FaceId PitEntry_FindDuplicateNonce(PitEntry* entry, uint32_t nonce,
+                                   FaceId rxFace);
+
 /** \brief Insert new DN record, or update existing DN record.
  *  \param entry PIT entry, must be initialized.
  *  \param npkt received Interest; will take ownership unless returning NULL.

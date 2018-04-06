@@ -64,19 +64,31 @@ FwFwd_LookupFib(FwFwd* fwd, FwFwdRxInterestContext* ctx)
 }
 
 static void
-FwFwd_InterestMissCs(FwFwd* fwd, FwFwdRxInterestContext* ctx)
+FwFwd_InterestForward(FwFwd* fwd, FwFwdRxInterestContext* ctx)
 {
-  // TODO detect duplicate nonce
   SgContext sgCtx = { 0 };
   sgCtx.rxTime = ctx->pkt->timestamp;
   sgCtx.dnNonce = Packet_GetInterestHdr(ctx->npkt)->nonce;
 
+  // detect duplicate nonce
+  FaceId dupNonce =
+    PitEntry_FindDuplicateNonce(ctx->pitEntry, sgCtx.dnNonce, ctx->dnFace->id);
+  if (unlikely(dupNonce != FACEID_INVALID)) {
+    ZF_LOGD("^ pit-entry=%p drop=duplicate-nonce(%" PRI_FaceId
+            ") nack-to=%" PRI_FaceId,
+            ctx->pitEntry, dupNonce, ctx->dnFace->id);
+    MakeNack(ctx->npkt, NackReason_Duplicate);
+    Face_Tx(ctx->dnFace, ctx->npkt);
+    return;
+  }
+
   // insert DN record
   PitDn* dn = PitEntry_InsertDn(ctx->pitEntry, fwd->pit, ctx->npkt);
   if (unlikely(dn == NULL)) {
-    // TODO allocate another entry for excess DN records
-    ZF_LOGD("^ pit-entry=%p drop=PitDn-full", ctx->pitEntry);
-    rte_pktmbuf_free(ctx->pkt);
+    ZF_LOGD("^ pit-entry=%p drop=PitDn-full nack-to=%" PRI_FaceId,
+            ctx->pitEntry, ctx->dnFace->id);
+    MakeNack(ctx->npkt, NackReason_Congestion);
+    Face_Tx(ctx->dnFace, ctx->npkt);
     return;
   }
   ctx->npkt = NULL; // npkt is owned and possibly freed by pitEntry
@@ -142,7 +154,7 @@ FwFwd_RxInterest(FwFwd* fwd, Packet* npkt)
     case PIT_INSERT_PIT0:
     case PIT_INSERT_PIT1: {
       ctx.pitEntry = PitInsertResult_GetPitEntry(pitIns);
-      FwFwd_InterestMissCs(fwd, &ctx);
+      FwFwd_InterestForward(fwd, &ctx);
       break;
     }
     case PIT_INSERT_CS: {
