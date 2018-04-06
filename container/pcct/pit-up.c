@@ -35,3 +35,16 @@ PitUp_ChooseNonce(PitUp* up, PitEntry* entry, TscTime now, uint32_t* nonce)
   }
   return false;
 }
+
+void
+PitUp_RecordTx(PitUp* up, PitEntry* entry, TscTime now, uint32_t nonce,
+               PitSuppressConfig* suppressCfg)
+{
+  up->nonce = nonce;
+  up->canBePrefix = (bool)entry->nCanBePrefix;
+  up->nack = NackReason_None;
+
+  up->lastTx = now;
+  up->suppress = PitSuppressConfig_Compute(suppressCfg, up->suppress);
+  ++up->nTx;
+}

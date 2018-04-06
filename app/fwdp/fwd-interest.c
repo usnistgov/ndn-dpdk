@@ -67,7 +67,6 @@ static void
 FwFwd_InterestMissCs(FwFwd* fwd, FwFwdRxInterestContext* ctx)
 {
   // TODO detect duplicate nonce
-  // TODO suppression
   SgContext sgCtx = { 0 };
   sgCtx.rxTime = ctx->pkt->timestamp;
   sgCtx.dnNonce = Packet_GetInterestHdr(ctx->npkt)->nonce;
@@ -85,8 +84,8 @@ FwFwd_InterestMissCs(FwFwd* fwd, FwFwdRxInterestContext* ctx)
           PitEntry_ToDebugString(ctx->pitEntry));
 
   sgCtx.fwd = fwd;
-  sgCtx.pitEntry = ctx->pitEntry;
   sgCtx.inner.eventKind = SGEVT_INTEREST;
+  sgCtx.inner.pitEntry = (SgPitEntry*)ctx->pitEntry;
   sgCtx.inner.nexthops = ctx->nexthops;
   sgCtx.inner.nNexthops = ctx->nNexthops;
   uint64_t res = (*fwd->strategy)(&sgCtx, sizeof(SgCtx));
@@ -162,44 +161,49 @@ FwFwd_RxInterest(FwFwd* fwd, Packet* npkt)
   }
 }
 
-void
-Sg_ForwardInterest(SgContext* ctx, FaceId nh)
+SgForwardInterestResult
+SgForwardInterest(SgCtx* ctx0, FaceId nh)
 {
+  SgContext* ctx = (SgContext*)ctx0;
   FwFwd* fwd = ctx->fwd;
+  PitEntry* pitEntry = (PitEntry*)ctx->inner.pitEntry;
   TscTime now = rte_get_tsc_cycles();
 
   Face* outFace = FaceTable_GetFace(fwd->ft, nh);
   if (unlikely(outFace == NULL)) {
     ZF_LOGD("^ no-interest-to=%" PRI_FaceId " drop=no-face", nh);
-    return;
+    return SGFWDI_BADFACE;
   }
 
-  PitUp* up = PitEntry_ReserveUp(ctx->pitEntry, fwd->pit, nh);
+  PitUp* up = PitEntry_ReserveUp(pitEntry, fwd->pit, nh);
   if (unlikely(up == NULL)) {
     ZF_LOGD("^ no-interest-to=%" PRI_FaceId " drop=PitUp-full", nh);
-    return;
+    return SGFWDI_ALLOCERR;
+  }
+
+  if (PitUp_ShouldSuppress(up, now)) {
+    ZF_LOGD("^ no-interest-to=%" PRI_FaceId " drop=suppressed", nh);
+    return SGFWDI_SUPPRESSED;
   }
 
   uint32_t upNonce = ctx->dnNonce;
-  bool hasNonce = PitUp_ChooseNonce(up, ctx->pitEntry, now, &upNonce);
+  bool hasNonce = PitUp_ChooseNonce(up, pitEntry, now, &upNonce);
   if (unlikely(!hasNonce)) {
     ZF_LOGD("^ no-interest-to=%" PRI_FaceId " drop=nonces-rejected", nh);
-    return;
+    return SGFWDI_NONONCE;
   }
-  up->nonce = upNonce;
 
-  uint32_t upLifetime = PitEntry_GetTxInterestLifetime(ctx->pitEntry, now);
+  uint32_t upLifetime = PitEntry_GetTxInterestLifetime(pitEntry, now);
   uint8_t hopLimit = 0xFF; // TODO properly set HopLimit
   Packet* outNpkt =
-    ModifyInterest(ctx->pitEntry->npkt, upNonce, upLifetime, hopLimit,
-                   fwd->headerMp, fwd->guiderMp, fwd->indirectMp);
+    ModifyInterest(pitEntry->npkt, upNonce, upLifetime, hopLimit, fwd->headerMp,
+                   fwd->guiderMp, fwd->indirectMp);
   if (unlikely(outNpkt == NULL)) {
     ZF_LOGD("^ no-interest-to=%" PRI_FaceId " drop=alloc-error", nh);
-    return;
+    return SGFWDI_ALLOCERR;
   }
 
-  uint64_t token =
-    FwToken_New(fwd->id, Pit_GetEntryToken(fwd->pit, ctx->pitEntry));
+  uint64_t token = FwToken_New(fwd->id, Pit_GetEntryToken(fwd->pit, pitEntry));
   Packet_InitLpL3Hdr(outNpkt)->pitToken = token;
   Packet_ToMbuf(outNpkt)->timestamp = ctx->rxTime; // for latency stats
 
@@ -207,4 +211,7 @@ Sg_ForwardInterest(SgContext* ctx, FaceId nh)
           " up-token=%016" PRIx64,
           nh, outNpkt, upNonce, token);
   Face_Tx(outFace, outNpkt);
+
+  PitUp_RecordTx(up, pitEntry, now, upNonce, &fwd->suppressCfg);
+  return SGFWDI_OK;
 }

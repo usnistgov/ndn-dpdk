@@ -7,6 +7,7 @@ package fwdp
 import "C"
 import (
 	"fmt"
+	"time"
 	"unsafe"
 
 	"ndn-dpdk/appinit"
@@ -102,6 +103,9 @@ func New(cfg Config) (*DataPlane, error) {
 		latencyStat.SetSampleRate(cfg.LatencySampleRate)
 
 		fwd.strategy = dp.strategy.jit
+		fwd.suppressCfg.min = C.TscDuration(dpdk.ToTscDuration(10 * time.Millisecond))
+		fwd.suppressCfg.multiplier = 2.0
+		fwd.suppressCfg.max = C.TscDuration(dpdk.ToTscDuration(100 * time.Millisecond))
 
 		dp.fwds = append(dp.fwds, fwd)
 	}

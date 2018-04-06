@@ -3,24 +3,29 @@
 
 /// \file
 
-#include "common.h"
+#include "pit-suppress-config.h"
 
 typedef struct PitEntry PitEntry;
 
-#define PIT_UP_MAX_REJ_NONCES 4
+#define PIT_UP_MAX_REJ_NONCES 6
 
 /** \brief A PIT upstream record.
  */
 typedef struct PitUp
 {
-  TscTime lastTx; ///< last TX Interest time
-  uint32_t nonce; ///< last TX nonce
-  FaceId face;
-  bool canBePrefix; ///< Interest has CanBePrefix?
-  uint8_t nack;     ///< upstream's nack reason
+  uint32_t nonce;   ///< nonce on last sent Interest
+  FaceId face;      ///< the upstream face
+  bool canBePrefix; ///< sent Interest has CanBePrefix?
+  uint8_t nack;     ///< Nack reason against last Interest
+
+  TscTime lastTx;       ///< when last Interest was sent
+  TscDuration suppress; ///< suppression duration since lastTx
+  uint16_t nTx;         ///< how many Interests were sent
+
+  /// nonces rejected by Nack~Duplicate from upstream
   uint32_t rejectedNonces[PIT_UP_MAX_REJ_NONCES];
-} __rte_aligned(32) PitUp;
-static_assert(sizeof(PitUp) <= 32, "");
+} __rte_aligned(64) PitUp;
+static_assert(sizeof(PitUp) == 64, "");
 
 static void
 PitUp_Reset(PitUp* up, FaceId face)
@@ -32,8 +37,16 @@ PitUp_Reset(PitUp* up, FaceId face)
 static void
 PitUp_Copy(PitUp* dst, PitUp* src)
 {
-  rte_mov32((uint8_t*)dst, (const uint8_t*)src);
+  rte_mov64((uint8_t*)dst, (const uint8_t*)src);
   src->face = FACEID_INVALID;
+}
+
+/** \brief Determine if forwarding should be suppressed.
+ */
+static bool
+PitUp_ShouldSuppress(PitUp* up, TscTime now)
+{
+  return up->lastTx + up->suppress > now;
 }
 
 /** \brief Record that \p nonce is rejected by upstream.
@@ -60,8 +73,7 @@ bool PitUp_ChooseNonce(PitUp* up, PitEntry* entry, TscTime now,
  *  \param now time used for calculating InterestLifetime.
  *  \param nonce nonce of TX Interest.
  */
-static void PitUp_RecordTx(PitUp* up, PitEntry* entry, TscTime now,
-                           uint32_t nonce);
-// Definition in pit-entry.h to avoid circular dependency.
+void PitUp_RecordTx(PitUp* up, PitEntry* entry, TscTime now, uint32_t nonce,
+                    PitSuppressConfig* suppressCfg);
 
 #endif // NDN_DPDK_CONTAINER_PCCT_PIT_UP_H

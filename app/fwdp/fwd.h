@@ -26,6 +26,7 @@ typedef struct FwFwd
   };
 
   ubpf_jit_fn strategy; // TODO move strategy to FIB
+  PitSuppressConfig suppressCfg;
 
   uint8_t id; ///< fwd process id
   bool stop;  ///< set to true to stop the process

@@ -46,9 +46,9 @@ func NewStrategy(elf []byte) (s *Strategy, e error) {
 	return s, nil
 }
 
-// Load strategy from ELF file in build/strategy/ directory.
+// Load strategy from ELF file in build/strategy-bpf/ directory.
 func NewBuiltinStrategy(name string) (*Strategy, error) {
-	objFilePath := fmt.Sprintf("%s/build/strategy/%s.o", appinit.CodePath, name)
+	objFilePath := fmt.Sprintf("%s/build/strategy-bpf/%s.o", appinit.CodePath, name)
 	elf, e := ioutil.ReadFile(objFilePath)
 	if e != nil {
 		return nil, fmt.Errorf("ioutil.ReadFile(%s): %v", objFilePath, e)

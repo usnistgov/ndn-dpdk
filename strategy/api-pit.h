@@ -7,6 +7,7 @@
 
 typedef uint16_t FaceId;
 typedef uint64_t TscTime;
+typedef int64_t TscDuration;
 
 typedef struct SgPitDn
 {
@@ -17,15 +18,18 @@ typedef struct SgPitDn
 
 typedef struct SgPitUp
 {
-  TscTime lastTx;
   char _a[4];
   FaceId face;
   char _b[1];
   uint8_t nack;
-} __rte_aligned(32) SgPitUp;
 
-#define SG_PIT_ENTRY_MAX_DNS 8
-#define SG_PIT_ENTRY_MAX_UPS 4
+  TscTime lastTx;
+  TscDuration suppress;
+  uint16_t nTx;
+} __rte_aligned(64) SgPitUp;
+
+#define SG_PIT_ENTRY_MAX_DNS 6
+#define SG_PIT_ENTRY_MAX_UPS 2
 #define SG_PIT_ENTRY_EXT_MAX_DNS 72
 #define SG_PIT_ENTRY_EXT_MAX_UPS 36
 

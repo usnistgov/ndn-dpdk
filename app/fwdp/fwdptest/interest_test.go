@@ -36,6 +36,37 @@ func TestInterestData(t *testing.T) {
 	assert.Equal(ndntestutil.GetPitToken(face1.TxData[0]), uint64(0x0290dd7089e9d790))
 }
 
+func TestInterestSuppress(t *testing.T) {
+	assert, _ := makeAR(t)
+	fixture := fwdptestfixture.New(t)
+	defer fixture.Close()
+
+	face1 := fixture.CreateFace()
+	face2 := fixture.CreateFace()
+	face3 := fixture.CreateFace()
+	fixture.SetFibEntry("/A", face3.GetFaceId())
+
+	go func() {
+		ticker := time.NewTicker(1 * time.Millisecond)
+		for i := 0; i < 400; i++ {
+			<-ticker.C
+			interest := ndntestutil.MakeInterest("/A/1")
+			ndntestutil.SetPitToken(interest, 0xf4aab9f23eb5271e^uint64(i))
+			if i%2 == 0 {
+				face1.Rx(interest)
+			} else {
+				face2.Rx(interest)
+			}
+		}
+		ticker.Stop()
+	}()
+
+	time.Sleep(500 * time.Millisecond)
+	assert.Len(face3.TxInterests, 7)
+	// suppression config is min=10, multiplier=2, max=100,
+	// so Interests should be forwarded at 0, 10, 30, 70, 150, 250, 350
+}
+
 func TestInterestNoRoute(t *testing.T) {
 	assert, require := makeAR(t)
 	fixture := fwdptestfixture.New(t)

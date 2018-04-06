@@ -15,7 +15,7 @@ typedef struct PitDn
   FaceId face;
   bool canBePrefix; ///< Interest has CanBePrefix?
 } __rte_aligned(32) PitDn;
-static_assert(sizeof(PitDn) <= 32, "");
+static_assert(sizeof(PitDn) == 32, "");
 
 static void
 PitDn_Copy(PitDn* dst, PitDn* src)

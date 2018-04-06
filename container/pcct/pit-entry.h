@@ -7,8 +7,8 @@
 #include "pit-struct.h"
 #include "pit-up.h"
 
-#define PIT_ENTRY_MAX_DNS 8
-#define PIT_ENTRY_MAX_UPS 4
+#define PIT_ENTRY_MAX_DNS 6
+#define PIT_ENTRY_MAX_UPS 2
 #define PIT_ENTRY_EXT_MAX_DNS 72
 #define PIT_ENTRY_EXT_MAX_UPS 36
 
@@ -103,16 +103,6 @@ static uint32_t
 PitEntry_GetTxInterestLifetime(PitEntry* entry, TscTime now)
 {
   return TscDuration_ToMillis(entry->expiry - now);
-}
-
-// Declaration in pit-up.h. Definition here to avoid circular dependency.
-static void
-PitUp_RecordTx(PitUp* up, PitEntry* entry, TscTime now, uint32_t nonce)
-{
-  up->lastTx = now;
-  up->canBePrefix = (bool)entry->nCanBePrefix;
-  up->nonce = nonce;
-  up->nack = NackReason_None;
 }
 
 #endif // NDN_DPDK_CONTAINER_PCCT_PIT_ENTRY_H
