@@ -11,12 +11,20 @@ Fib_LookupMatch(TshtMatchNode node, const void* key0)
          memcmp(entry->nameV, key->value, key->length) == 0;
 }
 
+static void
+Fib_FinalizeEntry(TshtEntryPtr entry0, Tsht* tsht)
+{
+  FibEntry* entry = (FibEntry*)entry0;
+  Fib* fib = (Fib*)tsht;
+}
+
 Fib*
 Fib_New(const char* id, uint32_t maxEntries, uint32_t nBuckets,
         unsigned numaSocket, uint8_t startDepth)
 {
-  Fib* fib = (Fib*)Tsht_New(id, maxEntries, nBuckets, Fib_LookupMatch,
-                            sizeof(FibEntry), sizeof(FibPriv), numaSocket);
+  Fib* fib =
+    (Fib*)Tsht_New(id, maxEntries, nBuckets, Fib_LookupMatch, Fib_FinalizeEntry,
+                   sizeof(FibEntry), sizeof(FibPriv), numaSocket);
 
   FibPriv* fibp = Fib_GetPriv(fib);
   fibp->startDepth = startDepth;

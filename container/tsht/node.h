@@ -9,6 +9,8 @@
 #include <rte_mempool.h>
 #include <urcu/rculfhash.h>
 
+typedef struct Tsht Tsht;
+
 /** \brief A node in TSHT.
  */
 typedef struct TshtNode
@@ -21,6 +23,10 @@ typedef struct TshtNode
 /** \brief Represents an entry enclosed in TshtNode.
  */
 typedef void* TshtEntryPtr;
+
+/** \brief A callback to finalize an erased entry.
+ */
+typedef void (*Tsht_Finalize)(TshtEntryPtr entry, Tsht* ht);
 
 /** \brief Get the node enclosing an entry.
  *  \param entry1 a TshtEntryPtr.

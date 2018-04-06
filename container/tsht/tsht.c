@@ -7,8 +7,8 @@ static_assert(sizeof(((struct cds_lfht_node*)NULL)->reverse_hash) ==
 
 Tsht*
 Tsht_New(const char* id, uint32_t maxEntries, uint32_t nBuckets,
-         Tsht_Match match, size_t sizeofEntry, size_t sizeofHead,
-         unsigned numaSocket)
+         Tsht_Match match, Tsht_Finalize finalize, size_t sizeofEntry,
+         size_t sizeofHead, unsigned numaSocket)
 {
   uint32_t nodeSize = sizeof(TshtNode) + sizeofEntry;
   uint32_t privSize = sizeof(TshtPriv) + sizeofHead;
@@ -21,6 +21,7 @@ Tsht_New(const char* id, uint32_t maxEntries, uint32_t nBuckets,
 
   TshtPriv* htp = Tsht_GetPriv(ht);
   htp->match = (cds_lfht_match_fct)match;
+  htp->finalize = finalize;
   htp->lfht = cds_lfht_new(nBuckets, nBuckets, nBuckets, 0, NULL);
   if (unlikely(htp->lfht == NULL)) {
     rte_mempool_free(Tsht_ToMempool(ht));
@@ -72,6 +73,9 @@ Tsht_FreeNode(struct rcu_head* rcuhead)
 {
   TshtNode* node = caa_container_of(rcuhead, TshtNode, rcuhead);
   struct rte_mempool* mempool = rte_mempool_from_obj(node);
+  Tsht* ht = (Tsht*)mempool;
+  TshtPriv* htp = Tsht_GetPriv(ht);
+  (*htp->finalize)(node->entry, ht);
   rte_mempool_put(mempool, node);
 }
 

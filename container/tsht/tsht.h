@@ -27,6 +27,7 @@ typedef struct TshtPriv
 {
   struct cds_lfht* lfht;    ///< URCU hashtable
   cds_lfht_match_fct match; ///< match function
+  Tsht_Finalize finalize;   ///< finalize function
   char head[0];             ///< private area for enclosing data structure
 } TshtPriv;
 
@@ -51,8 +52,8 @@ Tsht_GetPriv(const Tsht* ht)
  *  \param numaSocket where to allocate memory.
  */
 Tsht* Tsht_New(const char* id, uint32_t maxEntries, uint32_t nBuckets,
-               Tsht_Match match, size_t sizeofEntry, size_t sizeofHead,
-               unsigned numaSocket);
+               Tsht_Match match, Tsht_Finalize finalize, size_t sizeofEntry,
+               size_t sizeofHead, unsigned numaSocket);
 
 /** \brief Release all memory.
  *  \pre Calling thread is registered as RCU read-side thread, but does not hold rcu_read_lock.
@@ -70,6 +71,8 @@ TshtEntryPtr Tsht_Alloc(Tsht* ht);
 #define Tsht_AllocT(ht, T) ((T*)Tsht_Alloc((ht)))
 
 /** \brief Deallocate an unused entry.
+ *
+ *  \c Tsht_Finalize will not be invoked for this entry.
  */
 void Tsht_Free(Tsht* ht, TshtEntryPtr entry);
 
@@ -77,6 +80,8 @@ void Tsht_Free(Tsht* ht, TshtEntryPtr entry);
  *  \pre Calling thread holds rcu_read_lock.
  *  \retval true new entry inserted
  *  \retval false new entry replaced an old entry
+ *
+ *  \c Tsht_Finalize will be invoked for the old entry when it can be released.
  */
 bool Tsht_Insert(Tsht* ht, uint64_t hash, const void* key,
                  TshtEntryPtr newEntry);
@@ -84,6 +89,8 @@ bool Tsht_Insert(Tsht* ht, uint64_t hash, const void* key,
 /** \brief Erase an entry.
  *  \pre Calling thread holds rcu_read_lock.
  *  \return whether success
+ *
+ *  \c Tsht_Finalize will be invoked for this entry when it can be released.
  */
 bool Tsht_Erase(Tsht* ht, TshtEntryPtr entry);
 
