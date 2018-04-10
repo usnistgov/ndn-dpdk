@@ -55,11 +55,7 @@ func (fixture *Fixture) CountMpInUse() int {
 
 // Create a strategy with empty BPF program.
 func (fixture *Fixture) MakeStrategy() (sc fib.StrategyCode) {
-	sc, e := fixture.Fib.AllocStrategyCode()
-	if e != nil {
-		panic(e)
-	}
-	e = sc.LoadEmpty()
+	sc, e := fixture.Fib.MakeEmptyStrategy()
 	if e != nil {
 		panic(e)
 	}

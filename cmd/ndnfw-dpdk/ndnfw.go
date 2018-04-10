@@ -31,8 +31,7 @@ func main() {
 	// set FIB nexthops
 	// TODO remove this when FIB management is ready
 	{
-		dummyStrategy, _ := theFib.AllocStrategyCode()
-		dummyStrategy.LoadEmpty()
+		dummyStrategy, _ := theFib.MakeEmptyStrategy()
 		var fibEntry fib.Entry
 		fibEntryName, _ := ndn.ParseName("/")
 		fibEntry.SetName(fibEntryName)
