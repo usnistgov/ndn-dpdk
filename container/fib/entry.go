@@ -66,3 +66,11 @@ func (entry *Entry) SetNexthops(nexthops []iface.FaceId) error {
 	}
 	return nil
 }
+
+func (entry *Entry) GetStrategy() StrategyCode {
+	return StrategyCode{entry.c.strategy}
+}
+
+func (entry *Entry) SetStrategy(sc StrategyCode) {
+	entry.c.strategy = sc.c
+}

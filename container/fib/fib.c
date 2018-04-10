@@ -16,6 +16,9 @@ Fib_FinalizeEntry(TshtEntryPtr entry0, Tsht* tsht)
 {
   FibEntry* entry = (FibEntry*)entry0;
   Fib* fib = (Fib*)tsht;
+  if (likely(entry->strategy != NULL)) {
+    StrategyCode_Unref(entry->strategy);
+  }
 }
 
 Fib*
@@ -45,6 +48,12 @@ Fib_Alloc(Fib* fib)
 bool
 Fib_Insert(Fib* fib, FibEntry* entry)
 {
+  if (likely(entry->strategy != NULL)) {
+    StrategyCode_Ref(entry->strategy);
+  } else {
+    assert(entry->nNexthops == 0);
+  }
+
   LName key;
   key.length = entry->nameL;
   key.value = entry->nameV;

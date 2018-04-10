@@ -121,9 +121,11 @@ func (cmd insertCommand) Execute(fib *Fib, rs *urcu.ReadSide) {
 	name := entry.GetName()
 	comps := name.ListComps()
 	nComps := len(comps)
+	logger.Printf("Insert(name=%v,nexthops=%v,strategy=%d)", name, entry.GetNexthops(), entry.GetStrategy().GetId())
 
 	newEntryC := C.Fib_Alloc(fib.c)
 	if newEntryC == nil {
+		logger.Printf("^ err=entry-alloc-err")
 		cmd.res <- errors.New("FIB entry allocation error")
 		return
 	}
@@ -134,6 +136,7 @@ func (cmd insertCommand) Execute(fib *Fib, rs *urcu.ReadSide) {
 		if oldVirtC == nil || int(oldVirtC.maxDepth) < nComps-fib.startDepth {
 			newVirtC := C.Fib_Alloc(fib.c)
 			if newVirtC == nil {
+				logger.Printf("^ err=virt-alloc-err")
 				C.Fib_Free(fib.c, newEntryC)
 				cmd.res <- errors.New("FIB virtual entry allocation error")
 				return
@@ -145,7 +148,10 @@ func (cmd insertCommand) Execute(fib *Fib, rs *urcu.ReadSide) {
 				*newVirtC = *oldVirtC
 			}
 			newVirtC.maxDepth = C.uint8_t(nComps - fib.startDepth)
+			logger.Printf("^ old-virt=%p new-virt=%p max-depth=%d", oldVirtC, newVirtC, newVirtC.maxDepth)
 			C.Fib_Insert(fib.c, newVirtC)
+		} else {
+			logger.Printf("^ reuse-virt=%p", oldVirtC)
 		}
 	}
 
@@ -161,10 +167,16 @@ func (cmd insertCommand) Execute(fib *Fib, rs *urcu.ReadSide) {
 	}
 
 	if bool(C.Fib_Insert(fib.c, newEntryC)) || isReplacingVirtual {
+		if isReplacingVirtual {
+			logger.Printf("^ entry=%p replace-virt", newEntryC)
+		} else {
+			logger.Printf("^ entry=%p new-entry", newEntryC)
+		}
 		fib.nEntries++
 		fib.tree.Insert(comps)
 		cmd.res <- true
 	} else {
+		logger.Printf("^ entry=%p replace-entry", newEntryC)
 		cmd.res <- false
 	}
 }
@@ -174,6 +186,9 @@ func (cmd insertCommand) Execute(fib *Fib, rs *urcu.ReadSide) {
 func (fib *Fib) Insert(entry *Entry) (isNew bool, e error) {
 	if entry.c.nNexthops == 0 {
 		return false, errors.New("cannot insert FIB entry with no nexthop")
+	}
+	if entry.c.strategy == nil {
+		return false, errors.New("cannot insert FIB entry without strategy")
 	}
 
 	cmd := insertCommand{entry: entry, res: make(chan interface{})}
@@ -198,13 +213,16 @@ func (cmd eraseCommand) Execute(fib *Fib, rs *urcu.ReadSide) {
 	name := cmd.name
 	comps := name.ListComps()
 	nComps := len(comps)
+	logger.Printf("Erase(%v)", name)
 
 	oldEntryC := fib.findC(name.GetValue())
-	if oldEntryC == nil {
+	if oldEntryC == nil || oldEntryC.nNexthops == 0 {
+		logger.Printf("^ err=no-entry")
 		cmd.res <- errors.New("FIB entry does not exist")
 		return
 	}
 	oldMd, newMd := fib.tree.Erase(comps, fib.startDepth)
+	logger.Printf("^ old-max-depth=%d new-max-depth=%d", oldMd, newMd)
 
 	var oldVirtC *C.FibEntry
 	if nComps > fib.startDepth && oldMd != newMd {
@@ -215,27 +233,34 @@ func (cmd eraseCommand) Execute(fib *Fib, rs *urcu.ReadSide) {
 		oldEntryC = nil // don't delete, because newVirtC is replacing oldEntryC
 	}
 
-	if oldVirtC != nil { // need to replace virtual entry
-		newVirtC := C.Fib_Alloc(fib.c)
-		if newVirtC == nil {
-			fib.tree.Insert(comps) // revert tree change
-			cmd.res <- errors.New("FIB virtual entry allocation error")
-			return
+	if oldVirtC != nil {
+		if newMd != 0 { // need to replace virtual entry
+			newVirtC := C.Fib_Alloc(fib.c)
+			if newVirtC == nil {
+				logger.Printf("^ err=virt-alloc-err")
+				fib.tree.Insert(comps) // revert tree change
+				cmd.res <- errors.New("FIB virtual entry allocation error")
+				return
+			}
+			logger.Printf("^ old-virt=%p new-virt=%p", oldVirtC, newVirtC)
+
+			*newVirtC = *oldVirtC
+			newVirtC.maxDepth = C.uint8_t(newMd)
+			C.Fib_Insert(fib.c, newVirtC)
+
+			if (newVirtC.nNexthops == 0 && oldMd == 0 && newMd > 0) || oldEntryC == nil {
+				fib.nVirtuals++
+			}
+		} else if oldVirtC.nNexthops == 0 { // need to erase virtual entry
+			logger.Printf("^ erase-virt=%p", oldVirtC)
+			C.Fib_Erase(fib.c, oldVirtC)
+			fib.nVirtuals--
 		}
-
-		*newVirtC = *oldVirtC
-		newVirtC.maxDepth = C.uint8_t(newMd)
-		C.Fib_Insert(fib.c, newVirtC)
-
-		if newVirtC.nNexthops == 0 && oldMd == 0 && newMd > 0 {
-			fib.nVirtuals++
-		}
-
-		// XXX if oldMd > 0 && newMd == 0, should delete and not replace virtual entry
 	}
 
 	fib.nEntries--
 	if oldEntryC != nil {
+		logger.Printf("^ erase-entry=%p", oldEntryC)
 		C.Fib_Erase(fib.c, oldEntryC)
 	}
 	cmd.res <- nil

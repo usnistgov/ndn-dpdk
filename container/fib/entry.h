@@ -4,6 +4,7 @@
 /// \file
 
 #include "../../iface/face.h"
+#include "strategy-code.h"
 
 #define FIB_ENTRY_MAX_NAME_LEN 500
 
@@ -11,6 +12,8 @@
 
 typedef struct FibEntry
 {
+  StrategyCode* strategy;
+
   uint16_t nameL;    ///< TLV-LENGTH of name
   uint8_t nComps;    ///< number of name components
   uint8_t nNexthops; ///< number of nexthops

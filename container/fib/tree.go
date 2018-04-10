@@ -82,16 +82,15 @@ func (t *tree) Erase(comps []ndn.NameComponent, startDepth int) (oldMd int, newM
 
 	for i := len(nodes) - 1; i >= 0; i-- {
 		node := nodes[i]
+		if i == startDepth {
+			oldMd = node.MaxDepth
+		}
+		node.UpdateMaxDepth()
+		if i == startDepth {
+			newMd = node.MaxDepth
+		}
 		if i > 0 && !node.IsEntry && len(node.Children) == 0 {
 			delete(nodes[i-1].Children, node)
-		} else {
-			if i == startDepth {
-				oldMd = node.MaxDepth
-			}
-			node.UpdateMaxDepth()
-			if i == startDepth {
-				newMd = node.MaxDepth
-			}
 		}
 	}
 	return

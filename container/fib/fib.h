@@ -64,6 +64,7 @@ FibEntry* Fib_Alloc(Fib* fib);
 static void
 Fib_Free(Fib* fib, FibEntry* entry)
 {
+  assert(entry->strategy == NULL);
   Tsht_Free(Fib_ToTsht(fib), entry);
 }
 
