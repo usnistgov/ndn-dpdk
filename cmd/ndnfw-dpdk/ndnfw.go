@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"os"
@@ -28,13 +30,13 @@ func main() {
 	fwdpmgmt.Enable(theDp)
 	appinit.StartMgmt()
 
-	// set FIB nexthops
+	// add default FIB entry
 	// TODO remove this when FIB management is ready
 	{
-		dummyStrategy, _ := theFib.MakeEmptyStrategy()
 		var fibEntry fib.Entry
 		fibEntryName, _ := ndn.ParseName("/")
 		fibEntry.SetName(fibEntryName)
+
 		fibNextHops := make([]iface.FaceId, 0)
 		for _, face := range appinit.GetFaceTable().ListFaces() {
 			fibNextHops = append(fibNextHops, face.GetFaceId())
@@ -43,7 +45,10 @@ func main() {
 			}
 		}
 		fibEntry.SetNexthops(fibNextHops)
-		fibEntry.SetStrategy(dummyStrategy)
+
+		strategy := loadStrategy("multicast")
+		fibEntry.SetStrategy(strategy)
+
 		theFib.Insert(&fibEntry)
 	}
 
@@ -181,4 +186,17 @@ func startDp() {
 	}
 
 	logger.Print("Data plane started")
+}
+
+func loadStrategy(filename string) fib.StrategyCode {
+	objFilePath := fmt.Sprintf("%s/build/strategy-bpf/%s.o", appinit.CodePath, filename)
+	elf, e := ioutil.ReadFile(objFilePath)
+	if e != nil {
+		appinit.Exitf(appinit.EXIT_MGMT_ERROR, "ioutil.ReadFile(%s): %v", objFilePath, e)
+	}
+	sc, e := theFib.LoadStrategyCode(elf)
+	if e != nil {
+		appinit.Exitf(appinit.EXIT_MGMT_ERROR, "fib.LoadStrategyCode(%s): %v", objFilePath, e)
+	}
+	return sc
 }

@@ -15,6 +15,7 @@ typedef struct FwFwdRxInterestContext
   };
   Face* dnFace;
 
+  const FibEntry* fibEntry;
   PitEntry* pitEntry;
   CsEntry* csEntry;
 
@@ -22,22 +23,22 @@ typedef struct FwFwdRxInterestContext
   uint8_t nNexthops;
 } FwFwdRxInterestContext;
 
-static const FibEntry*
+static bool
 FwFwd_LookupFib(FwFwd* fwd, FwFwdRxInterestContext* ctx)
 {
   PInterest* interest = Packet_GetInterestHdr(ctx->npkt);
 
   if (likely(interest->nFhs == 0)) {
-    const FibEntry* fibEntry = Fib_Lpm(fwd->fib, &interest->name);
-    if (unlikely(fibEntry == NULL)) {
-      return NULL;
+    ctx->fibEntry = Fib_Lpm(fwd->fib, &interest->name);
+    if (unlikely(ctx->fibEntry == NULL)) {
+      return false;
     }
-    ctx->nNexthops =
-      FibEntry_FilterNexthops(fibEntry, ctx->nexthops, &ctx->dnFace->id, 1);
+    ctx->nNexthops = FibEntry_FilterNexthops(ctx->fibEntry, ctx->nexthops,
+                                             &ctx->dnFace->id, 1);
     if (unlikely(ctx->nNexthops == 0)) {
-      return NULL;
+      return false;
     }
-    return fibEntry;
+    return true;
   }
 
   for (int fhIndex = 0; fhIndex < interest->nFhs; ++fhIndex) {
@@ -45,22 +46,21 @@ FwFwd_LookupFib(FwFwd* fwd, FwFwdRxInterestContext* ctx)
     if (unlikely(e != NdnError_OK)) {
       ZF_LOGD("^ drop=bad-fh(%d,%d)", fhIndex, e);
       // caller would treat this as "no FIB match" and reply Nack
-      return NULL;
+      return false;
     }
 
-    const FibEntry* fibEntry = Fib_Lpm(fwd->fib, &interest->name);
-    if (unlikely(fibEntry == NULL)) {
+    ctx->fibEntry = Fib_Lpm(fwd->fib, &interest->activeFhName);
+    if (unlikely(ctx->fibEntry == NULL)) {
       continue;
     }
-    ctx->nNexthops =
-      FibEntry_FilterNexthops(fibEntry, ctx->nexthops, &ctx->dnFace->id, 1);
+    ctx->nNexthops = FibEntry_FilterNexthops(ctx->fibEntry, ctx->nexthops,
+                                             &ctx->dnFace->id, 1);
     if (unlikely(ctx->nNexthops == 0)) {
       continue;
     }
-    return fibEntry;
+    return true;
   }
-
-  return NULL;
+  return false;
 }
 
 static void
@@ -100,7 +100,7 @@ FwFwd_InterestForward(FwFwd* fwd, FwFwdRxInterestContext* ctx)
   sgCtx.inner.pitEntry = (SgPitEntry*)ctx->pitEntry;
   sgCtx.inner.nexthops = ctx->nexthops;
   sgCtx.inner.nNexthops = ctx->nNexthops;
-  uint64_t res = (*fwd->strategy)(&sgCtx, sizeof(SgCtx));
+  uint64_t res = (*ctx->fibEntry->strategy->jit)(&sgCtx, sizeof(SgCtx));
   ZF_LOGD("^ sg-res=%" PRIu64, res);
 }
 
@@ -134,8 +134,8 @@ FwFwd_RxInterest(FwFwd* fwd, Packet* npkt)
 
   // query FIB, reply Nack if no FIB match
   rcu_read_lock();
-  const FibEntry* fibEntry = FwFwd_LookupFib(fwd, &ctx);
-  if (unlikely(fibEntry == NULL)) {
+  bool hasFibEntry = FwFwd_LookupFib(fwd, &ctx);
+  if (unlikely(!hasFibEntry)) {
     ZF_LOGD("^ drop=no-FIB-match nack-to=%" PRI_FaceId, ctx.dnFace->id);
     MakeNack(npkt, NackReason_NoRoute);
     Face_Tx(ctx.dnFace, npkt);
@@ -143,10 +143,8 @@ FwFwd_RxInterest(FwFwd* fwd, Packet* npkt)
     return;
   }
   ZF_LOGD("^ fib-entry-depth=%" PRIu8 " nexthop-count=%" PRIu8,
-          fibEntry->nComps, ctx.nNexthops);
+          ctx.fibEntry->nComps, ctx.nNexthops);
   assert(ctx.nNexthops > 0);
-  fibEntry = NULL;
-  rcu_read_unlock();
 
   // lookup PIT-CS
   PitResult pitIns = Pit_Insert(fwd->pit, npkt);
@@ -171,6 +169,8 @@ FwFwd_RxInterest(FwFwd* fwd, Packet* npkt)
       assert(false); // no other cases
       break;
   }
+
+  rcu_read_unlock();
 }
 
 SgForwardInterestResult

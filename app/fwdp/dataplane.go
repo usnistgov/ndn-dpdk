@@ -1,8 +1,9 @@
 package fwdp
 
 /*
-#include "input.h"
 #include "fwd.h"
+#include "input.h"
+#include "strategy.h"
 */
 import "C"
 import (
@@ -42,7 +43,13 @@ type DataPlane struct {
 	inputRxLoopers []iface.IRxLooper
 	fwdLCores      []dpdk.LCore
 	fwds           []*C.FwFwd
-	strategy       *Strategy
+}
+
+func registerStrategyFuncs(vm unsafe.Pointer) error {
+	if nErrors := C.SgRegisterFuncs((*C.struct_ubpf_vm)(vm)); nErrors > 0 {
+		return fmt.Errorf("SgRegisterFuncs: %d errors", nErrors)
+	}
+	return nil
 }
 
 func New(cfg Config) (*DataPlane, error) {
@@ -56,12 +63,7 @@ func New(cfg Config) (*DataPlane, error) {
 	ftC := (*C.FaceTable)(cfg.FaceTable.GetPtr())
 	ndtC := (*C.Ndt)(cfg.Ndt.GetPtr())
 	fibC := (*C.Fib)(cfg.Fib.GetPtr())
-
-	if strategy, e := NewBuiltinStrategy("multicast"); e != nil {
-		return nil, fmt.Errorf("NewStrategy(): %v", e)
-	} else {
-		dp.strategy = strategy
-	}
+	fib.RegisterStrategyFuncs = registerStrategyFuncs
 
 	for i, lc := range cfg.FwdLCores {
 		numaSocket := lc.GetNumaSocket()
@@ -102,7 +104,6 @@ func New(cfg Config) (*DataPlane, error) {
 		latencyStat := running_stat.FromPtr(unsafe.Pointer(&fwd.latencyStat))
 		latencyStat.SetSampleRate(cfg.LatencySampleRate)
 
-		fwd.strategy = dp.strategy.jit
 		fwd.suppressCfg.min = C.TscDuration(dpdk.ToTscDuration(10 * time.Millisecond))
 		fwd.suppressCfg.multiplier = 2.0
 		fwd.suppressCfg.max = C.TscDuration(dpdk.ToTscDuration(100 * time.Millisecond))
@@ -139,7 +140,6 @@ func (dp *DataPlane) Close() error {
 		pcct.Close()
 		dpdk.Free(fwd)
 	}
-	dp.strategy.Close()
 	return nil
 }
 

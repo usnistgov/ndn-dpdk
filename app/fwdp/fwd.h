@@ -25,7 +25,6 @@ typedef struct FwFwd
     Cs* cs;
   };
 
-  ubpf_jit_fn strategy; // TODO move strategy to FIB
   PitSuppressConfig suppressCfg;
 
   uint8_t id; ///< fwd process id
@@ -45,8 +44,6 @@ __FwFwd_GetPcctPtr(FwFwd* fwd)
 {
   return &fwd->pcct;
 }
-
-bool FwFwd_LoadStrategy(FwFwd* fwd, const void* elf, size_t sizeofElf);
 
 void FwFwd_Run(FwFwd* fwd);
 
