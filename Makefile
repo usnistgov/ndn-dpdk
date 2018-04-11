@@ -2,7 +2,7 @@ CLIBPREFIX=build/libndn-dpdk
 STRATEGYPREFIX=build/strategy-bpf
 BPFFLAGS=-O2 -target bpf -I/usr/local/include/dpdk -Wno-int-to-void-pointer-cast
 
-all: cbuilds cgoflags
+all: cbuilds cgoflags strategies
 	go build -v ./...
 
 cbuilds:
