@@ -14,6 +14,7 @@ import (
 	"ndn-dpdk/iface/faceuri"
 	"ndn-dpdk/iface/mockface"
 	"ndn-dpdk/ndn"
+	"ndn-dpdk/strategy/strategy_elf"
 )
 
 const nFwds = 2
@@ -27,6 +28,7 @@ type Fixture struct {
 
 	outputTxLoop *iface.MultiTxLoop
 	faceIds      []iface.FaceId
+	strategies   map[string]fib.StrategyCode
 }
 
 func New(t *testing.T) (fixture *Fixture) {
@@ -94,6 +96,7 @@ func New(t *testing.T) (fixture *Fixture) {
 		return 0
 	})
 
+	fixture.strategies = make(map[string]fib.StrategyCode)
 	return fixture
 }
 
@@ -128,8 +131,8 @@ func (fixture *Fixture) CreateFace() *mockface.MockFace {
 	return mockface.Get(faceId)
 }
 
-func (fixture *Fixture) SetFibEntry(uri string, nexthops ...iface.FaceId) {
-	n, e := ndn.ParseName(uri)
+func (fixture *Fixture) SetFibEntry(name string, strategy string, nexthops ...iface.FaceId) {
+	n, e := ndn.ParseName(name)
 	fixture.require.NoError(e)
 
 	var entry fib.Entry
@@ -139,6 +142,23 @@ func (fixture *Fixture) SetFibEntry(uri string, nexthops ...iface.FaceId) {
 	e = entry.SetNexthops(nexthops)
 	fixture.require.NoError(e)
 
+	entry.SetStrategy(fixture.makeStrategy(strategy))
+
 	_, e = fixture.Fib.Insert(&entry)
 	fixture.require.NoError(e)
+}
+
+func (fixture *Fixture) makeStrategy(shortname string) fib.StrategyCode {
+	if sc, ok := fixture.strategies[shortname]; ok {
+		return sc
+	}
+
+	elf, e := strategy_elf.Load(shortname)
+	fixture.require.NoError(e)
+
+	sc, e := fixture.Fib.LoadStrategyCode(elf)
+	fixture.require.NoError(e)
+
+	fixture.strategies[shortname] = sc
+	return sc
 }

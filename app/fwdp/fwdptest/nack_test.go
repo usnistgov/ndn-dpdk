@@ -17,7 +17,7 @@ func TestNackMerge(t *testing.T) {
 	face1 := fixture.CreateFace()
 	face2 := fixture.CreateFace()
 	face3 := fixture.CreateFace()
-	fixture.SetFibEntry("/A", face2.GetFaceId(), face3.GetFaceId())
+	fixture.SetFibEntry("/A", "multicast", face2.GetFaceId(), face3.GetFaceId())
 
 	// Interest is forwarded to two upstream nodes
 	interest := ndntestutil.MakeInterest("/A/1", uint32(0x2ea29515))

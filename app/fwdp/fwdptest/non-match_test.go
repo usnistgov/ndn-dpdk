@@ -16,7 +16,7 @@ func TestDataWrongName(t *testing.T) {
 
 	face1 := fixture.CreateFace()
 	face2 := fixture.CreateFace()
-	fixture.SetFibEntry("/B", face2.GetFaceId())
+	fixture.SetFibEntry("/B", "multicast", face2.GetFaceId())
 
 	interestB1 := ndntestutil.MakeInterest("/B/1")
 	ndntestutil.SetPitToken(interestB1, 0x0290dd7089e9d790)
@@ -39,7 +39,7 @@ func TestDataZeroFreshnessPeriod(t *testing.T) {
 
 	face1 := fixture.CreateFace()
 	face2 := fixture.CreateFace()
-	fixture.SetFibEntry("/B", face2.GetFaceId())
+	fixture.SetFibEntry("/B", "multicast", face2.GetFaceId())
 
 	interestB1 := ndntestutil.MakeInterest("/B/1", ndn.MustBeFreshFlag)
 	ndntestutil.SetPitToken(interestB1, 0x7ec988011afdf50b)

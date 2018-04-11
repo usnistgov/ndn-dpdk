@@ -17,8 +17,8 @@ func TestInterestData(t *testing.T) {
 	face1 := fixture.CreateFace()
 	face2 := fixture.CreateFace()
 	face3 := fixture.CreateFace()
-	fixture.SetFibEntry("/B", face2.GetFaceId())
-	fixture.SetFibEntry("/C", face3.GetFaceId())
+	fixture.SetFibEntry("/B", "multicast", face2.GetFaceId())
+	fixture.SetFibEntry("/C", "multicast", face3.GetFaceId())
 
 	interest := ndntestutil.MakeInterest("/B/1")
 	ndntestutil.SetPitToken(interest, 0x0290dd7089e9d790)
@@ -44,7 +44,7 @@ func TestInterestDupNonce(t *testing.T) {
 	face1 := fixture.CreateFace()
 	face2 := fixture.CreateFace()
 	face3 := fixture.CreateFace()
-	fixture.SetFibEntry("/A", face3.GetFaceId())
+	fixture.SetFibEntry("/A", "multicast", face3.GetFaceId())
 
 	interest := ndntestutil.MakeInterest("/A/1", uint32(0x6f937a51))
 	ndntestutil.SetPitToken(interest, 0x3bddf54cffbc6ad0)
@@ -78,7 +78,7 @@ func TestInterestSuppress(t *testing.T) {
 	face1 := fixture.CreateFace()
 	face2 := fixture.CreateFace()
 	face3 := fixture.CreateFace()
-	fixture.SetFibEntry("/A", face3.GetFaceId())
+	fixture.SetFibEntry("/A", "multicast", face3.GetFaceId())
 
 	go func() {
 		ticker := time.NewTicker(1 * time.Millisecond)
@@ -123,7 +123,7 @@ func TestCsHit(t *testing.T) {
 
 	face1 := fixture.CreateFace()
 	face2 := fixture.CreateFace()
-	fixture.SetFibEntry("/B", face2.GetFaceId())
+	fixture.SetFibEntry("/B", "multicast", face2.GetFaceId())
 
 	interestB1 := ndntestutil.MakeInterest("/B/1")
 	ndntestutil.SetPitToken(interestB1, 0x193d673cdb9f85ac)
