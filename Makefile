@@ -137,15 +137,17 @@ go-pit: $(CLIBPREFIX)-pcct.a container/pcct/cgoflags.go
 go-cs: $(CLIBPREFIX)-pcct.a container/pcct/cgoflags.go
 	go build ./container/cs
 
-strategies: $(STRATEGYPREFIX)/multicast.o
+strategies: strategy/strategy_elf/bindata.go
 
-$(CLIBPREFIX)-strategy.a: strategy/api*
-	./cbuild.sh strategy
+strategy/strategy_elf/bindata.go: $(STRATEGYPREFIX)/multicast.o
+	go-bindata -nomemcopy -pkg strategy_elf -prefix $(STRATEGYPREFIX) -o /dev/stdout $(STRATEGYPREFIX) | gofmt > strategy/strategy_elf/bindata.go
 
 strategy-% $(STRATEGYPREFIX)/%.o: strategy/%.c $(CLIBPREFIX)-strategy.a
 	mkdir -p $(STRATEGYPREFIX)
-	clang $(BPFFLAGS) -c $< -S -o $(STRATEGYPREFIX)/$*.s
 	clang $(BPFFLAGS) -c $< -o $(STRATEGYPREFIX)/$*.o
+
+$(CLIBPREFIX)-strategy.a: strategy/api*
+	./cbuild.sh strategy
 
 appinit/cgoflags.go: dpdk/cgoflags.go
 	./make-cgoflags.sh appinit dpdk
@@ -170,7 +172,7 @@ cmd-%: cmd/%/* cbuilds cgoflags
 cmd-ndnfw-dpdk: cmd/ndnfw-dpdk/* cbuilds cgoflags strategies
 	go install ./cmd/ndnfw-dpdk
 
-mgmtclient:: cmd/mgmtclient/*
+mgmtclient: cmd/mgmtclient/*
 	mkdir -p build
 	cd build && rm -f mgmt*.sh
 	cd cmd/mgmtclient && cp mgmt*.sh ../../build/
@@ -202,6 +204,6 @@ godochttp:
 	godoc -http ':6060' 2>/dev/null &
 
 clean:
-	rm -rf build ndn/error.go ndn/error.h ndn/namehash.h ndn/tlv-type.go ndn/tlv-type.h docs/doxygen docs/codedoc
+	rm -rf build docs/doxygen docs/codedoc ndn/error.go ndn/error.h ndn/namehash.h ndn/tlv-type.go ndn/tlv-type.h strategy/strategy_elf/bindata.go
 	find -name 'cgoflags.go' -delete
 	go clean ./...

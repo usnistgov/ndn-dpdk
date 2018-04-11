@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"io/ioutil"
 	"log"
 	"math/rand"
 	"os"
@@ -16,6 +14,7 @@ import (
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/ndn"
+	"ndn-dpdk/strategy/strategy_elf"
 )
 
 var theNdt ndt.Ndt
@@ -188,15 +187,14 @@ func startDp() {
 	logger.Print("Data plane started")
 }
 
-func loadStrategy(filename string) fib.StrategyCode {
-	objFilePath := fmt.Sprintf("%s/build/strategy-bpf/%s.o", appinit.CodePath, filename)
-	elf, e := ioutil.ReadFile(objFilePath)
+func loadStrategy(shortname string) fib.StrategyCode {
+	elf, e := strategy_elf.Load(shortname)
 	if e != nil {
-		appinit.Exitf(appinit.EXIT_MGMT_ERROR, "ioutil.ReadFile(%s): %v", objFilePath, e)
+		appinit.Exitf(appinit.EXIT_MGMT_ERROR, "strategy_elf.Load(%s): %v", shortname, e)
 	}
 	sc, e := theFib.LoadStrategyCode(elf)
 	if e != nil {
-		appinit.Exitf(appinit.EXIT_MGMT_ERROR, "fib.LoadStrategyCode(%s): %v", objFilePath, e)
+		appinit.Exitf(appinit.EXIT_MGMT_ERROR, "fib.LoadStrategyCode(%s): %v", shortname, e)
 	}
 	return sc
 }
