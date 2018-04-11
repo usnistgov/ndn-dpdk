@@ -27,10 +27,10 @@ type Client struct {
 	c *C.NdnpingClient
 }
 
-func NewClient(face iface.Face) (client Client, e error) {
+func NewClient(face iface.IFace) (client Client, e error) {
 	socket := face.GetNumaSocket()
 	client.c = (*C.NdnpingClient)(dpdk.Zmalloc("NdnpingClient", C.sizeof_NdnpingClient, socket))
-	client.c.face = (*C.Face)(face.GetPtr())
+	client.c.face = (C.FaceId)(face.GetFaceId())
 	client.c.interestMp = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
 		appinit.MP_INT, socket).GetPtr())
 	client.c.interestMbufHeadroom = C.uint16_t(appinit.SizeofEthLpHeaders() + ndn.EncodeInterest_GetHeadroom())
@@ -46,8 +46,8 @@ func (client Client) Close() error {
 	return nil
 }
 
-func (client Client) GetFace() iface.Face {
-	return iface.FaceFromPtr(unsafe.Pointer(client.c.face))
+func (client Client) GetFace() iface.IFace {
+	return iface.Get(iface.FaceId(client.c.face))
 }
 
 func (client Client) getPatterns() nameset.NameSet {

@@ -22,7 +22,7 @@ func main() {
 			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "NewFaceFromUri(%s): %v", clientCfg.face, e)
 		}
 
-		client, e := ndnping.NewClient(*face)
+		client, e := ndnping.NewClient(face)
 		if e != nil {
 			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "ndnping.NewClient(%s): %v", clientCfg.face, e)
 		}
@@ -42,7 +42,7 @@ func main() {
 			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "NewFaceFromUri(%s): %v", serverCfg.face, e)
 		}
 
-		server, e := ndnping.NewServer(*face)
+		server, e := ndnping.NewServer(face)
 		if e != nil {
 			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "ndnping.NewServer(%s): %v", serverCfg.face, e)
 		}

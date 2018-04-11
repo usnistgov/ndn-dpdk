@@ -25,10 +25,10 @@ type Server struct {
 	c *C.NdnpingServer
 }
 
-func NewServer(face iface.Face) (server Server, e error) {
+func NewServer(face iface.IFace) (server Server, e error) {
 	socket := face.GetNumaSocket()
 	server.c = (*C.NdnpingServer)(dpdk.Zmalloc("NdnpingServer", C.sizeof_NdnpingServer, socket))
-	server.c.face = (*C.Face)(face.GetPtr())
+	server.c.face = (C.FaceId)(face.GetFaceId())
 	server.c.freshnessPeriod = C.uint32_t(Server_FreshnessPeriod)
 
 	server.c.dataMp = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
@@ -44,8 +44,8 @@ func (server Server) Close() error {
 	return nil
 }
 
-func (server Server) GetFace() iface.Face {
-	return iface.FaceFromPtr(unsafe.Pointer(server.c.face))
+func (server Server) GetFace() iface.IFace {
+	return iface.Get(iface.FaceId(server.c.face))
 }
 
 func (server Server) SetNackNoRoute(enable bool) {

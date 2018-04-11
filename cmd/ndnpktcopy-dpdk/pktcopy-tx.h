@@ -3,13 +3,13 @@
 
 /// \file
 
-#include "../../iface/face.h"
+#include "../../iface/iface.h"
 
 /** \brief Transmitting thread of ndnpktcopy.
  */
 typedef struct PktcopyTx
 {
-  Face* face;
+  FaceId face;
   struct rte_ring* txRing;
 } PktcopyTx;
 

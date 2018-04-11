@@ -47,7 +47,7 @@ type MockFace struct {
 	TxInterests []*ndn.Interest // sent Interest packets
 	TxData      []*ndn.Data     // sent Data packets
 	TxNacks     []*ndn.Nack     // sent Nack packets
-	TxBadPkts   []ndn.Packet    // send unparsable packets
+	TxBadPkts   []ndn.Packet    // sent unparsable packets
 }
 
 func New() (face *MockFace) {
@@ -66,6 +66,7 @@ func New() (face *MockFace) {
 		(*C.FaceMempools)(FaceMempools.GetPtr()))
 	setById(id, face)
 
+	iface.Put(face)
 	return face
 }
 

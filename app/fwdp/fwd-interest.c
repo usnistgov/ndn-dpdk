@@ -13,7 +13,7 @@ typedef struct FwFwdRxInterestContext
     Packet* npkt;
     struct rte_mbuf* pkt;
   };
-  Face* dnFace;
+  FaceId dnFace;
 
   const FibEntry* fibEntry;
   PitEntry* pitEntry;
@@ -33,8 +33,8 @@ FwFwd_LookupFib(FwFwd* fwd, FwFwdRxInterestContext* ctx)
     if (unlikely(ctx->fibEntry == NULL)) {
       return false;
     }
-    ctx->nNexthops = FibEntry_FilterNexthops(ctx->fibEntry, ctx->nexthops,
-                                             &ctx->dnFace->id, 1);
+    ctx->nNexthops =
+      FibEntry_FilterNexthops(ctx->fibEntry, ctx->nexthops, &ctx->dnFace, 1);
     if (unlikely(ctx->nNexthops == 0)) {
       return false;
     }
@@ -53,8 +53,8 @@ FwFwd_LookupFib(FwFwd* fwd, FwFwdRxInterestContext* ctx)
     if (unlikely(ctx->fibEntry == NULL)) {
       continue;
     }
-    ctx->nNexthops = FibEntry_FilterNexthops(ctx->fibEntry, ctx->nexthops,
-                                             &ctx->dnFace->id, 1);
+    ctx->nNexthops =
+      FibEntry_FilterNexthops(ctx->fibEntry, ctx->nexthops, &ctx->dnFace, 1);
     if (unlikely(ctx->nNexthops == 0)) {
       continue;
     }
@@ -72,11 +72,11 @@ FwFwd_InterestForward(FwFwd* fwd, FwFwdRxInterestContext* ctx)
 
   // detect duplicate nonce
   FaceId dupNonce =
-    PitEntry_FindDuplicateNonce(ctx->pitEntry, sgCtx.dnNonce, ctx->dnFace->id);
+    PitEntry_FindDuplicateNonce(ctx->pitEntry, sgCtx.dnNonce, ctx->dnFace);
   if (unlikely(dupNonce != FACEID_INVALID)) {
     ZF_LOGD("^ pit-entry=%p drop=duplicate-nonce(%" PRI_FaceId
             ") nack-to=%" PRI_FaceId,
-            ctx->pitEntry, dupNonce, ctx->dnFace->id);
+            ctx->pitEntry, dupNonce, ctx->dnFace);
     MakeNack(ctx->npkt, NackReason_Duplicate);
     Face_Tx(ctx->dnFace, ctx->npkt);
     return;
@@ -86,7 +86,7 @@ FwFwd_InterestForward(FwFwd* fwd, FwFwdRxInterestContext* ctx)
   PitDn* dn = PitEntry_InsertDn(ctx->pitEntry, fwd->pit, ctx->npkt);
   if (unlikely(dn == NULL)) {
     ZF_LOGD("^ pit-entry=%p drop=PitDn-full nack-to=%" PRI_FaceId,
-            ctx->pitEntry, ctx->dnFace->id);
+            ctx->pitEntry, ctx->dnFace);
     MakeNack(ctx->npkt, NackReason_Congestion);
     Face_Tx(ctx->dnFace, ctx->npkt);
     return;
@@ -111,7 +111,7 @@ FwFwd_InterestHitCs(FwFwd* fwd, FwFwdRxInterestContext* ctx)
   Packet* outNpkt =
     ClonePacket(ctx->csEntry->data, fwd->headerMp, fwd->indirectMp);
   ZF_LOGD("^ cs-entry=%p data-to=%" PRI_FaceId " npkt=%p dn-token=%016" PRIx64,
-          ctx->csEntry, ctx->dnFace->id, outNpkt, dnToken);
+          ctx->csEntry, ctx->dnFace, outNpkt, dnToken);
   if (likely(outNpkt != NULL)) {
     Packet_GetLpL3Hdr(outNpkt)->pitToken = dnToken;
     Packet_CopyTimestamp(outNpkt, ctx->npkt);
@@ -124,19 +124,18 @@ FwFwd_RxInterest(FwFwd* fwd, Packet* npkt)
 {
   FwFwdRxInterestContext ctx = { 0 };
   ctx.npkt = npkt;
-  ctx.dnFace = FaceTable_GetFace(fwd->ft, ctx.pkt->port);
-  assert(ctx.dnFace != NULL); // XXX could fail if face fails during forwarding
+  ctx.dnFace = ctx.pkt->port;
   PInterest* interest = Packet_GetInterestHdr(npkt);
   uint64_t dnToken = Packet_GetLpL3Hdr(npkt)->pitToken;
 
   ZF_LOGD("interest-from=%" PRI_FaceId " npkt=%p dn-token=%016" PRIx64,
-          ctx.dnFace->id, npkt, dnToken);
+          ctx.dnFace, npkt, dnToken);
 
   // query FIB, reply Nack if no FIB match
   rcu_read_lock();
   bool hasFibEntry = FwFwd_LookupFib(fwd, &ctx);
   if (unlikely(!hasFibEntry)) {
-    ZF_LOGD("^ drop=no-FIB-match nack-to=%" PRI_FaceId, ctx.dnFace->id);
+    ZF_LOGD("^ drop=no-FIB-match nack-to=%" PRI_FaceId, ctx.dnFace);
     MakeNack(npkt, NackReason_NoRoute);
     Face_Tx(ctx.dnFace, npkt);
     rcu_read_unlock();
@@ -161,7 +160,7 @@ FwFwd_RxInterest(FwFwd* fwd, Packet* npkt)
       break;
     }
     case PIT_INSERT_FULL:
-      ZF_LOGD("^ drop=PIT-full nack-to=%" PRI_FaceId, ctx.dnFace->id);
+      ZF_LOGD("^ drop=PIT-full nack-to=%" PRI_FaceId, ctx.dnFace);
       MakeNack(npkt, NackReason_Congestion);
       Face_Tx(ctx.dnFace, npkt);
       break;
@@ -181,9 +180,8 @@ SgForwardInterest(SgCtx* ctx0, FaceId nh)
   PitEntry* pitEntry = (PitEntry*)ctx->inner.pitEntry;
   TscTime now = rte_get_tsc_cycles();
 
-  Face* outFace = FaceTable_GetFace(fwd->ft, nh);
-  if (unlikely(outFace == NULL)) {
-    ZF_LOGD("^ no-interest-to=%" PRI_FaceId " drop=no-face", nh);
+  if (unlikely(Face_IsDown(nh))) {
+    ZF_LOGD("^ no-interest-to=%" PRI_FaceId " drop=face-down", nh);
     return SGFWDI_BADFACE;
   }
 
@@ -222,7 +220,7 @@ SgForwardInterest(SgCtx* ctx0, FaceId nh)
   ZF_LOGD("^ interest-to=%" PRI_FaceId " npkt=%p nonce=%08" PRIx32
           " up-token=%016" PRIx64,
           nh, outNpkt, upNonce, token);
-  Face_Tx(outFace, outNpkt);
+  Face_Tx(nh, outNpkt);
 
   PitUp_RecordTx(up, pitEntry, now, upNonce, &fwd->suppressCfg);
   return SGFWDI_OK;

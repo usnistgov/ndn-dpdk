@@ -142,7 +142,7 @@ NdnpingClient_RunTx(NdnpingClient* client)
     client->interestInterval / 1000.0 * tscHz * NDNPINGCLIENT_TX_BURST_SIZE;
   ZF_LOGI("face=%" PRI_FaceId " client=%p "
           "tx-burst-interval=%" PRIu64 " @%" PRIu64 "Hz",
-          client->face->id, client, txBurstInterval, tscHz);
+          client->face, client, txBurstInterval, tscHz);
 
   uint64_t nextTxBurst = rte_get_tsc_cycles();
   while (true) {
@@ -243,7 +243,7 @@ NdnpingClient_ProcessRxNack(NdnpingClient* client, Packet* npkt)
 }
 
 void
-NdnpingClient_Rx(Face* face, FaceRxBurst* burst, void* client0)
+NdnpingClient_Rx(FaceId faceId, FaceRxBurst* burst, void* client0)
 {
   NdnpingClient* client = (NdnpingClient*)client0;
   for (uint16_t i = 0; i < burst->nData; ++i) {

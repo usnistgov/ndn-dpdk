@@ -4,7 +4,7 @@
 /// \file
 
 #include "../../container/nameset/nameset.h"
-#include "../../iface/face.h"
+#include "../../iface/iface.h"
 
 /** \brief Per-pattern information in ndnping server.
  */
@@ -17,7 +17,7 @@ typedef struct NdnpingServerPattern
  */
 typedef struct NdnpingServer
 {
-  Face* face;
+  FaceId face;
   NameSet patterns;     ///< served prefixes
   bool wantNackNoRoute; ///< whether to Nack unserved Interests
   uint32_t freshnessPeriod;
@@ -29,6 +29,6 @@ typedef struct NdnpingServer
   uint64_t nAllocError;
 } NdnpingServer;
 
-void NdnpingServer_Rx(Face* face, FaceRxBurst* burst, void* server0);
+void NdnpingServer_Rx(FaceId faceId, FaceRxBurst* burst, void* server0);
 
 #endif // NDN_DPDK_APP_NDNPING_SERVER_H

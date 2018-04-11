@@ -9,6 +9,7 @@ import (
 	"ndn-dpdk/app/dump"
 	"ndn-dpdk/appinit"
 	"ndn-dpdk/dpdk"
+	"ndn-dpdk/iface"
 )
 
 const Dump_RingCapacity = 64
@@ -30,13 +31,13 @@ func main() {
 			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "NewFaceFromUri(%s): %v", faceUri, e)
 		}
 
-		pcrx, e := NewPktcopyRx(*face)
+		pcrx, e := NewPktcopyRx(face)
 		if e != nil {
 			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "NewPktcopyRx(%d): %v", face.GetFaceId(), e)
 		}
 		pcrxs = append(pcrxs, pcrx)
 
-		pctx, e := NewPktcopyTx(*face)
+		pctx, e := NewPktcopyTx(face)
 		if e != nil {
 			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "NewPktcopyTx(%d): %v", face.GetFaceId(), e)
 		}
@@ -87,8 +88,8 @@ func main() {
 	go func() {
 		for {
 			<-tick
-			for _, face := range appinit.GetFaceTable().ListFaces() {
-				log.Printf("%d %v", face.GetFaceId(), face.ReadCounters())
+			for _, faceId := range iface.ListFaceIds() {
+				log.Printf("%d %v", faceId, iface.Get(faceId).ReadCounters())
 			}
 		}
 	}()

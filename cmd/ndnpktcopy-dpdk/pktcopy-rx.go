@@ -17,10 +17,10 @@ const PktcopyRx_BurstSize = 64
 
 type PktcopyRx struct {
 	c    *C.PktcopyRx
-	face iface.Face
+	face iface.IFace
 }
 
-func NewPktcopyRx(face iface.Face) (pcrx PktcopyRx, e error) {
+func NewPktcopyRx(face iface.IFace) (pcrx PktcopyRx, e error) {
 	pcrx.c = new(C.PktcopyRx)
 	pcrx.face = face
 
@@ -31,7 +31,7 @@ func NewPktcopyRx(face iface.Face) (pcrx PktcopyRx, e error) {
 	return pcrx, nil
 }
 
-func (pcrx PktcopyRx) GetFace() iface.Face {
+func (pcrx PktcopyRx) GetFace() iface.IFace {
 	return pcrx.face
 }
 

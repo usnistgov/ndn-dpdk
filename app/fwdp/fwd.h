@@ -7,7 +7,7 @@
 #include "../../container/pcct/cs.h"
 #include "../../container/pcct/pit.h"
 #include "../../core/running_stat/running-stat.h"
-#include "../../iface/facetable.h"
+#include "../../iface/iface.h"
 #include <ubpf.h>
 
 /** \brief Forwarder data plane, forwarding process.
@@ -16,7 +16,6 @@ typedef struct FwFwd
 {
   struct rte_ring* queue; ///< input queue
 
-  FaceTable* ft;
   Fib* fib;
   union
   {

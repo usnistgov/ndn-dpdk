@@ -18,8 +18,7 @@ func EnableMgmt() {
 }
 
 func enableFaceMgmt() {
-	ft := GetFaceTable()
-	fm := facemgmt.New(ft)
+	var fm facemgmt.FaceMgmt
 	MgmtRpcServer.RegisterName("Faces", fm)
 }
 

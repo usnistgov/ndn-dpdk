@@ -102,6 +102,7 @@ func New(conn net.Conn, cfg Config) (face *SocketFace) {
 	go face.impl.RxLoop()
 	go face.txLoop()
 
+	iface.Put(face)
 	return face
 }
 

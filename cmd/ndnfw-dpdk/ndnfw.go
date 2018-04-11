@@ -35,19 +35,8 @@ func main() {
 		var fibEntry fib.Entry
 		fibEntryName, _ := ndn.ParseName("/")
 		fibEntry.SetName(fibEntryName)
-
-		fibNextHops := make([]iface.FaceId, 0)
-		for _, face := range appinit.GetFaceTable().ListFaces() {
-			fibNextHops = append(fibNextHops, face.GetFaceId())
-			if len(fibNextHops) >= fib.MAX_NEXTHOPS {
-				break
-			}
-		}
-		fibEntry.SetNexthops(fibNextHops)
-
-		strategy := loadStrategy("multicast")
-		fibEntry.SetStrategy(strategy)
-
+		fibEntry.SetNexthops(iface.ListFaceIds())
+		fibEntry.SetStrategy(loadStrategy("multicast"))
 		theFib.Insert(&fibEntry)
 	}
 
@@ -60,7 +49,6 @@ func startDp() {
 	lcr := appinit.NewLCoreReservations()
 
 	var dpCfg fwdp.Config
-	dpCfg.FaceTable = appinit.GetFaceTable()
 
 	// reserve lcores for EthFace
 	var inputNumaSockets []dpdk.NumaSocket
@@ -78,7 +66,7 @@ func startDp() {
 		logger.Printf("Reserving lcore %d on socket %d for EthDev %d RX", inputLc, socket, port)
 		dpCfg.InputLCores = append(dpCfg.InputLCores, inputLc)
 		inputNumaSockets = append(inputNumaSockets, socket)
-		inputRxLoopers = append(inputRxLoopers, appinit.MakeRxLooper(*face))
+		inputRxLoopers = append(inputRxLoopers, appinit.MakeRxLooper(face))
 
 		e = face.EnableThreadSafeTx(256)
 		if e != nil {
@@ -89,7 +77,7 @@ func startDp() {
 		outputLc := lcr.ReserveRequired(socket)
 		logger.Printf("Reserving lcore %d on socket %d for EthDev %d TX", outputLc, socket, port)
 		outputLCores = append(outputLCores, outputLc)
-		outputTxLoopers = append(outputTxLoopers, appinit.MakeTxLooper(*face))
+		outputTxLoopers = append(outputTxLoopers, appinit.MakeTxLooper(face))
 	}
 
 	// TODO reserve lcore for SocketFaces

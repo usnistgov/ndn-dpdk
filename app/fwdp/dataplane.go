@@ -23,9 +23,8 @@ import (
 )
 
 type Config struct {
-	FaceTable iface.FaceTable
-	Ndt       ndt.Ndt
-	Fib       *fib.Fib
+	Ndt ndt.Ndt
+	Fib *fib.Fib
 
 	InputLCores []dpdk.LCore
 	FwdLCores   []dpdk.LCore
@@ -60,7 +59,6 @@ func New(cfg Config) (*DataPlane, error) {
 	dp.inputRxLoopers = make([]iface.IRxLooper, nInputs)
 	dp.fwdLCores = append([]dpdk.LCore{}, cfg.FwdLCores...)
 
-	ftC := (*C.FaceTable)(cfg.FaceTable.GetPtr())
 	ndtC := (*C.Ndt)(cfg.Ndt.GetPtr())
 	fibC := (*C.Fib)(cfg.Fib.GetPtr())
 	fib.RegisterStrategyFuncs = registerStrategyFuncs
@@ -89,7 +87,6 @@ func New(cfg Config) (*DataPlane, error) {
 		fwd.id = C.uint8_t(i)
 		fwd.queue = (*C.struct_rte_ring)(queue.GetPtr())
 
-		fwd.ft = ftC
 		fwd.fib = fibC
 		*C.__FwFwd_GetPcctPtr(fwd) = (*C.Pcct)(pcct.GetPtr())
 

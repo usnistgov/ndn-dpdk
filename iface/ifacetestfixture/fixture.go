@@ -65,7 +65,8 @@ func (fixture *Fixture) RunTest() {
 func (fixture *Fixture) rxProc() int {
 	assert := fixture.assert
 
-	cb, cbarg := iface.WrapRxCb(func(face iface.Face, burst iface.RxBurst) {
+	cb, cbarg := iface.WrapRxCb(func(face iface.IFace, burst iface.RxBurst) {
+		assert.Equal(fixture.rxFace.GetFaceId(), face.GetFaceId())
 		check := func(l3pkt ndn.IL3Packet) {
 			pkt := l3pkt.GetPacket().AsDpdkPacket()
 			assert.Equal(fixture.rxFace.GetFaceId(), iface.FaceId(pkt.GetPort()))

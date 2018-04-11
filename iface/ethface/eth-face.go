@@ -32,6 +32,8 @@ func New(port dpdk.EthDev, mempools iface.Mempools) (face EthFace, e error) {
 	if res != 0 {
 		return face, dpdk.Errno(res)
 	}
+
+	iface.Put(face)
 	return face, nil
 }
 

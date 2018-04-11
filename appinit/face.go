@@ -13,15 +13,6 @@ import (
 	"ndn-dpdk/iface/socketface"
 )
 
-var theFaceTable iface.FaceTable
-
-func GetFaceTable() iface.FaceTable {
-	if theFaceTable.GetPtr() == nil {
-		theFaceTable = iface.NewFaceTable()
-	}
-	return theFaceTable
-}
-
 // Queue capacity configuration for new faces.
 var (
 	ETHFACE_RXQ_CAPACITY    = 64
@@ -30,29 +21,25 @@ var (
 	SOCKETFACE_TXQ_CAPACITY = 64
 )
 
-// Create face by FaceUri and add to the FaceTable.
-func NewFaceFromUri(u faceuri.FaceUri) (face *iface.Face, e error) {
+// Create face by FaceUri.
+func NewFaceFromUri(u faceuri.FaceUri) (face iface.IFace, e error) {
 	create := newFaceByScheme[u.Scheme]
 	if create == nil {
 		return nil, fmt.Errorf("cannot create face with scheme %s", u.Scheme)
 	}
 	face, e = create(u)
-	if e == nil {
-		GetFaceTable().AddFace(*face)
-	}
 	return face, e
 }
 
 // Functions to create face by FaceUri for each FaceUri scheme.
-// These functions do not add face to the FaceTable.
-var newFaceByScheme = map[string]func(u faceuri.FaceUri) (*iface.Face, error){
+var newFaceByScheme = map[string]func(u faceuri.FaceUri) (iface.IFace, error){
 	"dev":  newEthFace,
 	"udp4": newSocketFace,
 	"tcp4": newSocketFace,
 	"mock": newMockFace,
 }
 
-func newEthFace(u faceuri.FaceUri) (*iface.Face, error) {
+func newEthFace(u faceuri.FaceUri) (iface.IFace, error) {
 	port := dpdk.FindEthDev(u.Host)
 	if !port.IsValid() {
 		return nil, fmt.Errorf("DPDK device %s not found", u.Host)
@@ -60,19 +47,16 @@ func newEthFace(u faceuri.FaceUri) (*iface.Face, error) {
 	return newEthFaceFromDev(port)
 }
 
-// Create face on DPDK device and add to the FaceTable.
-func NewFaceFromEthDev(port dpdk.EthDev) (face *iface.Face, e error) {
+// Create face on DPDK device.
+func NewFaceFromEthDev(port dpdk.EthDev) (face iface.IFace, e error) {
 	if !port.IsValid() {
 		return nil, errors.New("DPDK device is invalid")
 	}
 	face, e = newEthFaceFromDev(port)
-	if e == nil {
-		GetFaceTable().AddFace(*face)
-	}
 	return face, e
 }
 
-func newEthFaceFromDev(port dpdk.EthDev) (*iface.Face, error) {
+func newEthFaceFromDev(port dpdk.EthDev) (iface.IFace, error) {
 	var cfg dpdk.EthDevConfig
 	cfg.AddRxQueue(dpdk.EthRxQueueConfig{Capacity: ETHFACE_RXQ_CAPACITY,
 		Socket: port.GetNumaSocket(),
@@ -98,7 +82,7 @@ func newEthFaceFromDev(port dpdk.EthDev) (*iface.Face, error) {
 	return &face.Face, nil
 }
 
-func newSocketFace(u faceuri.FaceUri) (face *iface.Face, e error) {
+func newSocketFace(u faceuri.FaceUri) (face iface.IFace, e error) {
 	network, address := u.Scheme[:3], u.Host
 
 	var conn net.Conn
@@ -127,7 +111,7 @@ func newSocketFace(u faceuri.FaceUri) (face *iface.Face, e error) {
 	return face, nil
 }
 
-func newMockFace(u faceuri.FaceUri) (face *iface.Face, e error) {
+func newMockFace(u faceuri.FaceUri) (face iface.IFace, e error) {
 	mockface.FaceMempools = makeFaceMempools(dpdk.NUMA_SOCKET_ANY)
 	face = &mockface.New().Face
 	return face, nil
@@ -141,13 +125,16 @@ func makeFaceMempools(socket dpdk.NumaSocket) (mempools iface.Mempools) {
 }
 
 // Create RxLooper for one face.
-func MakeRxLooper(face iface.Face) iface.IRxLooper {
+func MakeRxLooper(face iface.IFace) iface.IRxLooper {
 	faceId := face.GetFaceId()
 	switch faceId.GetKind() {
 	case iface.FaceKind_Mock:
 		return mockface.TheRxLoop
 	case iface.FaceKind_EthDev:
-		return ethface.EthFace{face}
+		if faceBase, ok := face.(*iface.Face); ok {
+			return ethface.EthFace{*faceBase}
+		}
+		return face.(iface.IRxLooper)
 	case iface.FaceKind_Socket:
 		return socketface.NewRxGroup(socketface.Get(faceId))
 	}
@@ -155,6 +142,6 @@ func MakeRxLooper(face iface.Face) iface.IRxLooper {
 }
 
 // Create TxLooper for one face.
-func MakeTxLooper(face iface.Face) iface.ITxLooper {
+func MakeTxLooper(face iface.IFace) iface.ITxLooper {
 	return iface.NewSingleTxLoop(face)
 }

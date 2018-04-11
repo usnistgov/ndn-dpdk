@@ -3,7 +3,7 @@
 
 /// \file
 
-#include "../../iface/face.h"
+#include "../../iface/iface.h"
 
 /** \brief Maximum number of TX rings.
  */

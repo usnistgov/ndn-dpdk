@@ -3,6 +3,7 @@
 
 /// \file
 
+#include "faceid.h"
 #include "rx-proc.h"
 #include "rxburst.h"
 #include "tx-proc.h"
@@ -68,32 +69,19 @@ Face_Close(Face* face)
   return (*face->ops->close)(face);
 }
 
-static int
-Face_GetNumaSocket(Face* face)
-{
-  return (*face->ops->getNumaSocket)(face);
-}
-
 /** \brief Callback upon packet arrival.
  *
  *  Face base type does not directly provide RX function. Each face
  *  implementation shall have an RxLoop function that accepts this callback.
  */
-typedef void (*Face_RxCb)(Face* face, FaceRxBurst* burst, void* cbarg);
+typedef void (*Face_RxCb)(FaceId faceId, FaceRxBurst* burst, void* cbarg);
 
 /** \brief Send a burst of packets (non-thread-safe).
  */
 void Face_TxBurst_Nts(Face* face, Packet** npkts, uint16_t count);
 
-/** \brief Send a burst of packets.
- *  \param npkts array of L3 packets; Face takes ownership
- *  \param count size of \p npkts array
- *
- *  This function is non-thread-safe by default.
- *  Invoke Face.EnableThreadSafeTx in Go API to make this thread-safe.
- */
 static void
-Face_TxBurst(Face* face, Packet** npkts, uint16_t count)
+__Face_TxBurst(Face* face, Packet** npkts, uint16_t count)
 {
   if (likely(face->threadSafeTxQueue != NULL)) {
     uint16_t nQueued = rte_ring_mp_enqueue_burst(face->threadSafeTxQueue,
@@ -104,15 +92,6 @@ Face_TxBurst(Face* face, Packet** npkts, uint16_t count)
   } else {
     Face_TxBurst_Nts(face, npkts, count);
   }
-}
-
-/** \brief Send a packet.
- *  \param npkt an L3 packet; Face takes ownership
- */
-static void
-Face_Tx(Face* face, Packet* npkt)
-{
-  Face_TxBurst(face, &npkt, 1);
 }
 
 /** \brief Retrieve face counters.

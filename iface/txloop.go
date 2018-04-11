@@ -19,9 +19,9 @@ type SingleTxLoop struct {
 	c C.SingleTxLoop
 }
 
-func NewSingleTxLoop(face Face) (txl *SingleTxLoop) {
+func NewSingleTxLoop(face IFace) (txl *SingleTxLoop) {
 	txl = new(SingleTxLoop)
-	txl.c.face = (*C.Face)(face.GetPtr())
+	txl.c.face = face.getPtr()
 	return txl
 }
 
@@ -40,7 +40,7 @@ type MultiTxLoop struct {
 	c C.MultiTxLoop
 }
 
-func NewMultiTxLoop(faces ...Face) (txl *MultiTxLoop) {
+func NewMultiTxLoop(faces ...IFace) (txl *MultiTxLoop) {
 	txl = new(MultiTxLoop)
 
 	for _, face := range faces {
@@ -61,12 +61,12 @@ func (txl *MultiTxLoop) StopTxLoop() error {
 	return nil
 }
 
-func (txl *MultiTxLoop) AddFace(face Face) {
-	faceC := (*C.Face)(face.GetPtr())
+func (txl *MultiTxLoop) AddFace(face IFace) {
+	faceC := face.getPtr()
 	C.cds_hlist_add_head_rcu(&faceC.threadSafeTxNode, &txl.c.head)
 }
 
-func (txl *MultiTxLoop) RemoveFace(face Face) {
-	faceC := (*C.Face)(face.GetPtr())
+func (txl *MultiTxLoop) RemoveFace(face IFace) {
+	faceC := face.getPtr()
 	C.cds_hlist_del_rcu(&faceC.threadSafeTxNode)
 }

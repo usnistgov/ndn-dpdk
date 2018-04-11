@@ -7,26 +7,16 @@ import (
 	"ndn-dpdk/iface/ethface"
 )
 
-type FaceMgmt struct {
-	ft iface.FaceTable
-}
+type FaceMgmt struct{}
 
-func New(ft iface.FaceTable) *FaceMgmt {
-	return &FaceMgmt{ft}
-}
-
-func (fm *FaceMgmt) List(args struct{}, reply *[]iface.FaceId) error {
-	faces := fm.ft.ListFaces()
-	*reply = make([]iface.FaceId, len(faces))
-	for i, face := range faces {
-		(*reply)[i] = face.GetFaceId()
-	}
+func (fm FaceMgmt) List(args struct{}, reply *[]iface.FaceId) error {
+	*reply = iface.ListFaceIds()
 	return nil
 }
 
-func (fm *FaceMgmt) Get(args IdArg, reply *FaceInfo) error {
-	face := fm.ft.GetFace(args.Id)
-	if !face.IsValid() {
+func (fm FaceMgmt) Get(args IdArg, reply *FaceInfo) error {
+	face := iface.Get(args.Id)
+	if face == nil {
 		return errors.New("Face not found.")
 	}
 
@@ -34,8 +24,8 @@ func (fm *FaceMgmt) Get(args IdArg, reply *FaceInfo) error {
 	reply.Counters = face.ReadCounters()
 	reply.Latency = face.ReadLatency()
 
-	if face.GetFaceId().GetKind() == iface.FaceKind_EthDev {
-		ethStats := ethface.EthFace{face}.GetPort().GetStats()
+	if reply.Id.GetKind() == iface.FaceKind_EthDev {
+		ethStats := face.(ethface.EthFace).GetPort().GetStats()
 		reply.EthStats = &ethStats
 	}
 

@@ -1,6 +1,6 @@
 #include "rx-proc.h"
-
 #include "../core/logger.h"
+#include "faceid.h"
 
 INIT_ZF_LOG(RxProc);
 

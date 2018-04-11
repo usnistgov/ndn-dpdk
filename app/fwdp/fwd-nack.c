@@ -77,13 +77,10 @@ FwFwd_RxNackCongestion(FwFwd* fwd, PitEntry* pitEntry, PitUp* up,
   Packet_InitLpL3Hdr(outNpkt)->pitToken = token;
   Packet_ToMbuf(outNpkt)->timestamp = rxTime; // for latency stats
 
-  Face* upFace = FaceTable_GetFace(fwd->ft, up->face);
-  assert(upFace != NULL);
-
   ZF_LOGD("^ interest-to=%" PRI_FaceId " npkt=%p nonce-%08" PRIu32
           " up-token=%016" PRIx64,
           up->face, outNpkt, upNonce, token);
-  Face_Tx(upFace, outNpkt);
+  Face_Tx(up->face, outNpkt);
   return true;
 }
 
@@ -141,8 +138,8 @@ FwFwd_RxNack(FwFwd* fwd, Packet* npkt)
       continue;
     }
 
-    Face* dnFace = FaceTable_GetFace(fwd->ft, dn->face);
-    if (unlikely(dnFace == NULL)) {
+    if (unlikely(Face_IsDown(dn->face))) {
+      ZF_LOGD("^ no-data-to=%" PRI_FaceId " drop=face-down", dn->face);
       continue;
     }
 
@@ -155,7 +152,7 @@ FwFwd_RxNack(FwFwd* fwd, Packet* npkt)
     }
     MakeNack(outNpkt, leastSevereReason);
     Packet_GetLpL3Hdr(outNpkt)->pitToken = dn->token;
-    Face_Tx(dnFace, outNpkt);
+    Face_Tx(dn->face, outNpkt);
   }
 
   // erase PIT entry

@@ -51,8 +51,6 @@ func New(t *testing.T) (fixture *Fixture) {
 	outputLc := lcr.Reserve(dpdk.NUMA_SOCKET_ANY)
 	fixture.require.True(outputLc.IsValid())
 
-	dpCfg.FaceTable = appinit.GetFaceTable()
-
 	{
 		var ndtCfg ndt.Config
 		ndtCfg.PrefixLen = 2
@@ -101,10 +99,7 @@ func New(t *testing.T) (fixture *Fixture) {
 }
 
 func (fixture *Fixture) Close() error {
-	ft := appinit.GetFaceTable()
-	for _, faceId := range fixture.faceIds {
-		ft.RemoveFace(faceId)
-	}
+	iface.CloseAll()
 
 	fixture.DataPlane.StopInput(0)
 	for i := 0; i < nFwds; i++ {
@@ -125,7 +120,7 @@ func (fixture *Fixture) CreateFace() *mockface.MockFace {
 	e = face.EnableThreadSafeTx(16)
 	fixture.require.NoError(e)
 
-	fixture.outputTxLoop.AddFace(*face)
+	fixture.outputTxLoop.AddFace(face)
 	faceId := face.GetFaceId()
 	fixture.faceIds = append(fixture.faceIds, faceId)
 	return mockface.Get(faceId)

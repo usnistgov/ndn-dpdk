@@ -6,7 +6,7 @@
 #include "fwd.h"
 
 #include "../../container/ndt/ndt.h"
-#include "../../iface/face.h"
+#include "../../iface/iface.h"
 
 /** \brief FwInput's connection to FwFwd.
  */
@@ -36,7 +36,7 @@ FwInput* FwInput_New(const Ndt* ndt, uint8_t ndtThreadId, uint8_t nFwds,
 
 void FwInput_Connect(FwInput* fwi, FwFwd* fwd);
 
-void FwInput_FaceRx(Face* face, FaceRxBurst* burst, void* fwi0);
+void FwInput_FaceRx(FaceId face, FaceRxBurst* burst, void* fwi0);
 
 static FwInputFwdConn*
 FwInput_GetConn(FwInput* fwi, uint8_t i)

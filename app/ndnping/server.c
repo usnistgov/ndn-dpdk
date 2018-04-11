@@ -59,12 +59,12 @@ NdnpingServer_ProcessPkt(NdnpingServer* server, Packet* npkt)
 }
 
 void
-NdnpingServer_Rx(Face* face, FaceRxBurst* burst, void* server0)
+NdnpingServer_Rx(FaceId faceId, FaceRxBurst* burst, void* server0)
 {
   NdnpingServer* server = (NdnpingServer*)server0;
   ZF_LOGD("server-face=%" PRI_FaceId " burst=(%" PRIu16 "I %" PRIu16
           "D %" PRIu16 "N)",
-          server->face->id, burst->nInterests, burst->nData, burst->nNacks);
+          server->face, burst->nInterests, burst->nData, burst->nNacks);
   FreeMbufs((struct rte_mbuf**)FaceRxBurst_ListData(burst), burst->nData);
   FreeMbufs((struct rte_mbuf**)FaceRxBurst_ListNacks(burst), burst->nNacks);
 

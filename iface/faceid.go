@@ -1,5 +1,10 @@
 package iface
 
+/*
+#include "faceid.h"
+*/
+import "C"
+
 type FaceKind int
 
 const (
@@ -14,9 +19,9 @@ const (
 type FaceId uint16
 
 const (
-	FACEID_INVALID FaceId = 0
-	FACEID_MIN     FaceId = 1
-	FACEID_MAX     FaceId = 0xFFFF
+	FACEID_INVALID FaceId = C.FACEID_INVALID
+	FACEID_MIN     FaceId = C.FACEID_MIN
+	FACEID_MAX     FaceId = C.FACEID_MAX
 )
 
 func (id FaceId) GetKind() FaceKind {

@@ -18,9 +18,9 @@ type PktcopyTx struct {
 	c *C.PktcopyTx
 }
 
-func NewPktcopyTx(face iface.Face) (pctx PktcopyTx, e error) {
+func NewPktcopyTx(face iface.IFace) (pctx PktcopyTx, e error) {
 	pctx.c = new(C.PktcopyTx)
-	pctx.c.face = (*C.Face)(face.GetPtr())
+	pctx.c.face = (C.FaceId)(face.GetFaceId())
 
 	ring, e := dpdk.NewRing(fmt.Sprintf("PktcopyTx_%d", face.GetFaceId()), PktcopyTx_RingCapacity,
 		face.GetNumaSocket(), false, true)
@@ -32,8 +32,8 @@ func NewPktcopyTx(face iface.Face) (pctx PktcopyTx, e error) {
 	return pctx, nil
 }
 
-func (pctx PktcopyTx) GetFace() iface.Face {
-	return iface.FaceFromPtr(unsafe.Pointer(pctx.c.face))
+func (pctx PktcopyTx) GetFace() iface.IFace {
+	return iface.Get(iface.FaceId(pctx.c.face))
 }
 
 func (pctx PktcopyTx) GetRing() dpdk.Ring {

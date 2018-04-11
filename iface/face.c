@@ -89,6 +89,6 @@ FaceImpl_RxBurst(Face* face, FaceRxBurst* burst, uint16_t nFrames, Face_RxCb cb,
   }
 
   if (likely(burst->nInterests + burst->nData + burst->nNacks > 0)) {
-    cb(face, burst, cbarg);
+    cb(face->id, burst, cbarg);
   }
 }

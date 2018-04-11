@@ -3,7 +3,7 @@
 
 /// \file
 
-#include "../../iface/face.h"
+#include "../../iface/faceid.h"
 #include "strategy-code.h"
 
 #define FIB_ENTRY_MAX_NAME_LEN 500

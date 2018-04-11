@@ -3,7 +3,7 @@
 
 /// \file
 
-#include "../../iface/face.h"
+#include "../../iface/faceid.h"
 #include "../mintmr/mintmr.h"
 #include <rte_hash.h>
 

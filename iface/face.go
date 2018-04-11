@@ -1,7 +1,7 @@
 package iface
 
 /*
-#include "face.h"
+#include "iface.h"
 */
 import "C"
 import (
@@ -30,6 +30,10 @@ func (face *Face) AllocCFace(size interface{}, socket dpdk.NumaSocket) {
 	face.c = (*C.Face)(dpdk.ZmallocAligned("Face", size, 1, socket))
 }
 
+func (face Face) getPtr() *C.Face {
+	return face.c
+}
+
 // Get native *C.Face pointer to use in other packages.
 func (face Face) GetPtr() unsafe.Pointer {
 	return unsafe.Pointer(face.c)
@@ -44,7 +48,7 @@ func (face Face) GetFaceId() FaceId {
 }
 
 func (face Face) GetNumaSocket() dpdk.NumaSocket {
-	return dpdk.NumaSocket(C.Face_GetNumaSocket(face.c))
+	return dpdk.NumaSocket(C.Face_GetNumaSocket(face.c.id))
 }
 
 func (face Face) Close() error {
@@ -83,7 +87,7 @@ func (face Face) TxBurst(pkts []ndn.Packet) {
 	if len(pkts) == 0 {
 		return
 	}
-	C.Face_TxBurst(face.c, (**C.Packet)(unsafe.Pointer(&pkts[0])), C.uint16_t(len(pkts)))
+	C.__Face_TxBurst(face.c, (**C.Packet)(unsafe.Pointer(&pkts[0])), C.uint16_t(len(pkts)))
 }
 
 func (face Face) ReadCounters() Counters {

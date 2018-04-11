@@ -6,7 +6,7 @@
 #include "../../container/nameset/nameset.h"
 #include "../../core/running_stat/running-stat.h"
 #include "../../dpdk/tsc.h"
-#include "../../iface/face.h"
+#include "../../iface/iface.h"
 #include "../../ndn/encode-interest.h"
 
 /** \brief Per-pattern information in ndnping client.
@@ -31,7 +31,7 @@ typedef struct NdnpingClientPattern
 typedef struct NdnpingClient
 {
   // basic config:
-  Face* face;
+  FaceId face;
   NameSet patterns;
   struct rte_mempool* interestMp; ///< mempool for Interests
   uint16_t interestMbufHeadroom;
@@ -94,6 +94,6 @@ void NdnpingClient_Close(NdnpingClient* client);
 
 void NdnpingClient_RunTx(NdnpingClient* client);
 
-void NdnpingClient_Rx(Face* face, FaceRxBurst* burst, void* client0);
+void NdnpingClient_Rx(FaceId faceId, FaceRxBurst* burst, void* client0);
 
 #endif // NDN_DPDK_APP_NDNPING_CLIENT_H
