@@ -1,7 +1,7 @@
 package iface
 
 /*
-#include "iface.h"
+#include "face.h"
 */
 import "C"
 import (
@@ -41,7 +41,6 @@ func Put(face IFace) {
 	}
 	gFaceIds = append(gFaceIds, faceId)
 	gFaces[faceId] = face
-	C.gFaces[faceId] = face.getPtr()
 }
 
 // List FaceIds.

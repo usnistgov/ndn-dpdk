@@ -79,7 +79,7 @@ func newEthFaceFromDev(port dpdk.EthDev) (iface.IFace, error) {
 	if e != nil {
 		return nil, fmt.Errorf("ethface.New(%d): %v", port, e)
 	}
-	return &face.Face, nil
+	return face, nil
 }
 
 func newSocketFace(u faceuri.FaceUri) (face iface.IFace, e error) {
@@ -107,14 +107,12 @@ func newSocketFace(u faceuri.FaceUri) (face iface.IFace, e error) {
 	cfg.RxqCapacity = SOCKETFACE_RXQ_CAPACITY
 	cfg.TxqCapacity = SOCKETFACE_TXQ_CAPACITY
 
-	face = &socketface.New(conn, cfg).Face
-	return face, nil
+	return socketface.New(conn, cfg), nil
 }
 
 func newMockFace(u faceuri.FaceUri) (face iface.IFace, e error) {
 	mockface.FaceMempools = makeFaceMempools(dpdk.NUMA_SOCKET_ANY)
-	face = &mockface.New().Face
-	return face, nil
+	return mockface.New(), nil
 }
 
 func makeFaceMempools(socket dpdk.NumaSocket) (mempools iface.Mempools) {
@@ -130,13 +128,10 @@ func MakeRxLooper(face iface.IFace) iface.IRxLooper {
 	switch faceId.GetKind() {
 	case iface.FaceKind_Mock:
 		return mockface.TheRxLoop
-	case iface.FaceKind_EthDev:
-		if faceBase, ok := face.(*iface.Face); ok {
-			return ethface.EthFace{*faceBase}
-		}
+	case iface.FaceKind_Eth:
 		return face.(iface.IRxLooper)
 	case iface.FaceKind_Socket:
-		return socketface.NewRxGroup(socketface.Get(faceId))
+		return socketface.NewRxGroup(face.(*socketface.SocketFace))
 	}
 	return nil
 }

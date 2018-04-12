@@ -47,14 +47,14 @@ NdnpingClient_Init(NdnpingClient* client)
 }
 
 void
-NdnpingClient_EnableSampling(NdnpingClient* client)
+NdnpingClient_EnableSampling(NdnpingClient* client, int numaSocket)
 {
   size_t nSampleTableEntries = 1 << client->sampleTableSize;
   client->samplingMask = (1 << client->sampleFreq) - 1;
   client->sampleIndexMask = (1 << client->sampleTableSize) - 1;
-  client->sampleTable = rte_calloc_socket(
-    "NdnpingClient.sampleTable", nSampleTableEntries,
-    sizeof(NdnpingClientSample), 0, Face_GetNumaSocket(client->face));
+  client->sampleTable =
+    rte_calloc_socket("NdnpingClient.sampleTable", nSampleTableEntries,
+                      sizeof(NdnpingClientSample), 0, numaSocket);
 }
 
 void

@@ -1,7 +1,8 @@
 package socketface
 
 /*
-#include "socket-face.h"
+#include "../face.h"
+uint16_t go_SocketFace_TxBurst(Face* faceC, struct rte_mbuf** pkts, uint16_t nPkts);
 */
 import "C"
 import (
@@ -22,22 +23,13 @@ const (
 	maxId = 0xEFFF
 )
 
-var faceById [maxId - minId + 1]*SocketFace
-
-func getById(id int) *SocketFace {
-	return faceById[id-minId]
-}
-
-// Retrieve SocketFace by FaceId.
-func Get(id iface.FaceId) *SocketFace {
-	if id.GetKind() != iface.FaceKind_Socket {
-		return nil
+func allocId() (id iface.FaceId) {
+	for {
+		id = iface.FaceId(minId + rand.Intn(maxId-minId+1))
+		if iface.Get(id) == nil {
+			return id
+		}
 	}
-	return getById(int(id))
-}
-
-func setById(id int, face *SocketFace) {
-	faceById[id-minId] = face
 }
 
 type Config struct {
@@ -48,7 +40,7 @@ type Config struct {
 }
 
 type SocketFace struct {
-	iface.Face
+	iface.BaseFace
 	logger *log.Logger
 	conn   net.Conn
 	impl   impl
@@ -72,49 +64,41 @@ type impl interface {
 	Send(pkt dpdk.Packet) error
 }
 
-func New(conn net.Conn, cfg Config) (face *SocketFace) {
-	id := 0
-	for {
-		id = minId + rand.Intn(maxId-minId+1)
-		if getById(id) == nil {
-			break
-		}
-	}
+func New(conn net.Conn, cfg Config) *SocketFace {
+	var face SocketFace
+	face.InitBaseFace(allocId(), 0, dpdk.NUMA_SOCKET_ANY)
 
-	face = new(SocketFace)
-	face.AllocCFace(C.sizeof_SocketFace, dpdk.NUMA_SOCKET_ANY)
-	face.logger = log.New(os.Stderr, fmt.Sprintf("face %d ", id), log.LstdFlags)
+	face.logger = log.New(os.Stderr, fmt.Sprintf("face %d ", face.GetFaceId()), log.LstdFlags)
 	face.conn = conn
 	face.rxMp = cfg.RxMp
 	face.rxQueue = make(chan dpdk.Packet, cfg.RxqCapacity)
 	face.rxQuit = make(chan struct{}, 1)
 	face.txQueue = make(chan dpdk.Packet, cfg.TxqCapacity)
 
-	C.SocketFace_Init(face.getPtr(), C.FaceId(id),
-		(*C.FaceMempools)(cfg.Mempools.GetPtr()))
-	setById(id, face)
-
 	if dconn, isDatagram := conn.(net.PacketConn); isDatagram {
-		face.impl = newDatagramImpl(face, dconn)
+		face.impl = newDatagramImpl(&face, dconn)
 	} else {
-		face.impl = newStreamImpl(face, conn)
+		face.impl = newStreamImpl(&face, conn)
 	}
 	go face.impl.RxLoop()
 	go face.txLoop()
 
-	iface.Put(face)
-	return face
+	faceC := face.getPtr()
+	faceC.txBurstOp = (C.FaceImpl_TxBurst)(C.go_SocketFace_TxBurst)
+	C.FaceImpl_Init(faceC, 0, 0, (*C.FaceMempools)(cfg.Mempools.GetPtr()))
+	iface.Put(&face)
+	return &face
 }
 
-func (face *SocketFace) close() error {
+func (face *SocketFace) getPtr() *C.Face {
+	return (*C.Face)(face.GetPtr())
+}
+
+func (face *SocketFace) Close() error {
 	face.conn.SetDeadline(time.Now())
 	face.rxQuit <- struct{}{}
 	close(face.txQueue)
 	return face.conn.Close()
-}
-
-func (face *SocketFace) getPtr() *C.SocketFace {
-	return (*C.SocketFace)(face.GetPtr())
 }
 
 func (face *SocketFace) rxBurst(burst iface.RxBurst) (nRx int) {
@@ -146,7 +130,7 @@ func (face *SocketFace) txLoop() {
 		}
 		e := face.impl.Send(pkt)
 		if e == nil {
-			C.FaceImpl_CountSent(&face.getPtr().base, (*C.struct_rte_mbuf)(pkt.GetPtr()))
+			C.FaceImpl_CountSent(face.getPtr(), (*C.struct_rte_mbuf)(pkt.GetPtr()))
 		}
 		pkt.Close()
 		if e != nil && face.handleError("TX", e) {
@@ -168,18 +152,9 @@ func (face *SocketFace) handleError(dir string, e error) bool {
 	return true
 }
 
-func getByCFace(faceC *C.Face) *SocketFace {
-	socketFaceC := (*C.SocketFace)(unsafe.Pointer(faceC))
-	face := getById(int(socketFaceC.base.id))
-	if face == nil {
-		panic("SocketFace not found")
-	}
-	return face
-}
-
 //export go_SocketFace_TxBurst
 func go_SocketFace_TxBurst(faceC *C.Face, pkts **C.struct_rte_mbuf, nPkts C.uint16_t) C.uint16_t {
-	face := getByCFace(faceC)
+	face := iface.Get(iface.FaceId(faceC.id)).(*SocketFace)
 	nQueued := C.uint16_t(0)
 	for i := C.uint16_t(0); i < nPkts; i++ {
 		pktsEle := (**C.struct_rte_mbuf)(unsafe.Pointer(uintptr(unsafe.Pointer(pkts)) +
@@ -193,11 +168,4 @@ func go_SocketFace_TxBurst(faceC *C.Face, pkts **C.struct_rte_mbuf, nPkts C.uint
 		}
 	}
 	return nQueued
-}
-
-//export go_SocketFace_Close
-func go_SocketFace_Close(faceC *C.Face) C.bool {
-	face := getByCFace(faceC)
-	e := face.close()
-	return e == nil
 }

@@ -65,7 +65,7 @@ func (client Client) SetInterval(interval time.Duration) {
 func (client Client) EnableRtt(sampleFreq int, sampleTableSize int) {
 	client.c.sampleFreq = C.uint8_t(sampleFreq)
 	client.c.sampleTableSize = C.uint8_t(sampleTableSize)
-	C.NdnpingClient_EnableSampling(client.c)
+	C.NdnpingClient_EnableSampling(client.c, C.int(client.GetFace().GetNumaSocket()))
 }
 
 func (client Client) RunTx() int {

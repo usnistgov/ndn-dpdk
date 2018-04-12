@@ -87,8 +87,6 @@ func MakePktmbufPool(key string, socket dpdk.NumaSocket) dpdk.PktmbufPool {
 	return mp
 }
 
-var SizeofEthLpHeaders = ethface.SizeofHeaderMempoolDataroom
-
 // Registered mempool templates.
 const (
 	MP_IND   = "__IND"   // indirect mbufs
@@ -99,6 +97,8 @@ const (
 	MP_INT   = "__INT"   // TX Ethernet+NDNLP and encoding Interest
 	MP_DATA  = "__DATA"  // TX Ethernet+NDNLP and encoding Data
 )
+
+var SizeofEthLpHeaders = ethface.SizeofTxHeader
 
 func init() {
 	RegisterMempool(MP_IND,

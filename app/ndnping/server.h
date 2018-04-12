@@ -4,7 +4,7 @@
 /// \file
 
 #include "../../container/nameset/nameset.h"
-#include "../../iface/iface.h"
+#include "../../iface/face.h"
 
 /** \brief Per-pattern information in ndnping server.
  */

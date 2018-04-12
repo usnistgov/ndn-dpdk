@@ -1,7 +1,7 @@
 package iface
 
 /*
-#include "iface.h"
+#include "face.h"
 
 void go_Face_RxCb(FaceId faceId, FaceRxBurst* burst, void* cbarg);
 */

@@ -24,8 +24,8 @@ func (fm FaceMgmt) Get(args IdArg, reply *FaceInfo) error {
 	reply.Counters = face.ReadCounters()
 	reply.Latency = face.ReadLatency()
 
-	if reply.Id.GetKind() == iface.FaceKind_EthDev {
-		ethStats := face.(ethface.EthFace).GetPort().GetStats()
+	if reply.Id.GetKind() == iface.FaceKind_Eth {
+		ethStats := face.(*ethface.EthFace).GetPort().GetStats()
 		reply.EthStats = &ethStats
 	}
 

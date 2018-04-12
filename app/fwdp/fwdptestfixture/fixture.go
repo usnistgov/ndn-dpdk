@@ -122,7 +122,7 @@ func (fixture *Fixture) CreateFace() *mockface.MockFace {
 	fixture.outputTxLoop.AddFace(face)
 	faceId := face.GetFaceId()
 	fixture.faceIds = append(fixture.faceIds, faceId)
-	return mockface.Get(faceId)
+	return face.(*mockface.MockFace)
 }
 
 func (fixture *Fixture) SetFibEntry(name string, strategy string, nexthops ...iface.FaceId) {

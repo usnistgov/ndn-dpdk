@@ -10,8 +10,7 @@ type FaceKind int
 const (
 	FaceKind_None FaceKind = iota
 	FaceKind_Mock
-	FaceKind_EthDev
-	FaceKind_Udp
+	FaceKind_Eth
 	FaceKind_Socket
 )
 
@@ -32,10 +31,7 @@ func (id FaceId) GetKind() FaceKind {
 		}
 		return FaceKind_Mock
 	case 0x1:
-		return FaceKind_EthDev
-	case 0x4:
-	case 0x5:
-		return FaceKind_Udp
+		return FaceKind_Eth
 	case 0xE:
 		return FaceKind_Socket
 	}

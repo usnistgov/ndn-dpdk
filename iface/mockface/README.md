@@ -1,6 +1,6 @@
 # ndn-dpdk/iface/mockface
 
-This package implements a mock face for testing.
+This package implements a mock face for unit testing.
 
 Test code can invoke `MockFace.Rx` to cause the face to receive a packet.
 All MockFaces depend on `MockFace.TheRxLoop` singleton as their `iface.IRxLooper`.

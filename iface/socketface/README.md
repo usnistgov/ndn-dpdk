@@ -4,7 +4,7 @@ This package implements a face using socket as transport.
 
 There are two different implementations:
 
-* **datagraImpl** for datagram-oriented sockets (net.PacketConn).
+* **datagramImpl** for datagram-oriented sockets (net.PacketConn).
 * **streamImpl** for stream-oriented sockets (net.Conn that is not net.PacketConn).
 
 SocketFace is thread safe on C API side, due to the use of Go channels.
@@ -25,4 +25,4 @@ Calling code must run `RxGroup.RxLoop` in an LCore to retrieve L2 frames from th
 The transmission function provided in `Face.txBurstOp` is `go_SocketFace_TxBurst`.
 It places outgoing L2 frames on the `SocketFace.txQueue` channel.
 A goroutine running `SocketFace.txLoop` function retrieves from the channel, and passes them to `impl.Send`.
-In most cases, DPDK mbuf's internal buffer is casted as a `[]byte`, and does not need copying; however, `dataImpl.Send` would have to copy if the mbuf is segmented.
+In most cases, DPDK mbuf's internal buffer is casted as a `[]byte`, and does not need copying; however, `datagramImpl.Send` would have to copy if the mbuf is segmented.

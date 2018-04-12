@@ -3,41 +3,37 @@
 
 /// \file
 
-#include "eth-rx.h"
-#include "eth-tx.h"
+#include "../../dpdk/ethdev.h"
+#include "../face.h"
+#include <rte_ether.h>
 
-#define ETHFACE_MAX_RX_COUNT 1
-#define ETHFACE_MAX_TX_COUNT 1
-
-/** \brief Ethernet face.
+/** \brief Ethernet face private data.
  */
-typedef struct EthFace
+typedef struct EthFacePriv
 {
-  Face base;
-  uint16_t port;
   bool stopRxLoop;
-  EthRx rx[ETHFACE_MAX_RX_COUNT];
-  EthTx tx[ETHFACE_MAX_TX_COUNT];
-} EthFace;
+  struct ether_hdr ethhdr; // TX Ethernet header
+  void* rxCallback;
+  void* txCallback;
+} EthFacePriv;
+
+static uint16_t
+EthFace_SizeofTxHeader()
+{
+  return sizeof(struct ether_hdr) + PrependLpHeader_GetHeadroom();
+}
 
 /** \brief Initialize a face to communicate on Ethernet.
- *  \param[out] face the face
- *  \param port DPDK ethdev port number; must be less than 0x1000
- *  \param mempools headerMp must have \c EthTx_GetHeaderMempoolDataRoom() dataroom
- *  \retval 0 success
- *  \retval ENODEV port number is too large
+ *  \param mempools headerMp must have \c EthFace_SizeofTxHeader() dataroom
  */
-int EthFace_Init(EthFace* face, uint16_t port, FaceMempools* mempools);
+bool EthFace_Init(Face* face, FaceMempools* mempools);
+
+void EthFace_Close(Face* face);
 
 /** \brief Continually retrieve packets from an Ethernet face.
  *  \param burstSize how many L2 frames to retrieve in each burst.
  *  \param cb callback after each packet arrival.
  */
-void EthFace_RxLoop(EthFace* face, uint16_t burstSize, Face_RxCb cb,
-                    void* cbarg);
-
-/** \brief Tell \c EthFace_RxLoop to stop.
- */
-void EthFace_StopRxLoop(EthFace* face);
+void EthFace_RxLoop(Face* face, uint16_t burstSize, Face_RxCb cb, void* cbarg);
 
 #endif // NDN_DPDK_IFACE_ETHFACE_ETH_FACE_H

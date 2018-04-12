@@ -31,6 +31,11 @@ func (burst RxBurst) GetPtr() unsafe.Pointer {
 	return unsafe.Pointer(burst.c)
 }
 
+func (burst RxBurst) Close() error {
+	C.FaceRxBurst_Close(burst.c)
+	return nil
+}
+
 func (burst RxBurst) GetCapacity() int {
 	return int(burst.c.capacity)
 }

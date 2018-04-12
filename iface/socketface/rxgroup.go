@@ -1,13 +1,7 @@
 package socketface
 
 /*
-#include "socket-face.h"
-
-void
-c_SocketFace_PostRxBurst(SocketFace* face, void* burst, uint16_t nRx, void* cb, void* cbarg)
-{
-	FaceImpl_RxBurst(&face->base, (FaceRxBurst*)burst, nRx, (Face_RxCb)cb, cbarg);
-}
+#include "../face.h"
 */
 import "C"
 import (
@@ -68,7 +62,8 @@ func (rxg RxGroup) RxLoop(burstSize int, cb unsafe.Pointer, cbarg unsafe.Pointer
 		for face := range rxg.faces {
 			nRx := face.rxBurst(burst)
 			if nRx > 0 {
-				C.c_SocketFace_PostRxBurst(face.getPtr(), burst.GetPtr(), C.uint16_t(nRx), cb, cbarg)
+				C.FaceImpl_RxBurst(face.getPtr(), (*C.FaceRxBurst)(burst.GetPtr()),
+					C.uint16_t(nRx), (C.Face_RxCb)(cb), cbarg)
 			}
 		}
 	}

@@ -5,6 +5,8 @@ static const int LATENCY_STAT_SAMPLE_FREQ = 16;
 static const int TX_BURST_FRAMES = 64;  // number of frames in a burst
 static const int TX_MAX_FRAGMENTS = 64; // max allowed number of fragments
 
+Face __gFaces[FACEID_MAX];
+
 static void
 Face_TxBurst_SendFrames(Face* face, struct rte_mbuf** frames, uint16_t nFrames)
 {
@@ -12,7 +14,7 @@ Face_TxBurst_SendFrames(Face* face, struct rte_mbuf** frames, uint16_t nFrames)
   uint16_t nQueued = (*face->txBurstOp)(face, frames, nFrames);
   uint16_t nRejects = nFrames - nQueued;
   FreeMbufs(&frames[nQueued], nRejects);
-  TxProc_CountQueued(&face->tx, nQueued, nRejects);
+  TxProc_CountQueued(&face->impl->tx, nQueued, nRejects);
 }
 
 void
@@ -25,10 +27,11 @@ Face_TxBurst_Nts(Face* face, Packet** npkts, uint16_t count)
   for (uint16_t i = 0; i < count; ++i) {
     Packet* npkt = npkts[i];
     TscDuration timeSinceRx = now - Packet_ToMbuf(npkt)->timestamp;
-    RunningStat_Push1(&face->latencyStat, timeSinceRx);
+    RunningStat_Push1(&face->impl->latencyStat, timeSinceRx);
 
     struct rte_mbuf** outFrames = &frames[nFrames];
-    nFrames += TxProc_Output(&face->tx, npkt, outFrames, TX_MAX_FRAGMENTS);
+    nFrames +=
+      TxProc_Output(&face->impl->tx, npkt, outFrames, TX_MAX_FRAGMENTS);
 
     if (unlikely(nFrames >= TX_BURST_FRAMES)) {
       Face_TxBurst_SendFrames(face, frames, nFrames);
@@ -42,10 +45,11 @@ Face_TxBurst_Nts(Face* face, Packet** npkts, uint16_t count)
 }
 
 void
-Face_ReadCounters(Face* face, FaceCounters* cnt)
+Face_ReadCounters(FaceId faceId, FaceCounters* cnt)
 {
-  RxProc_ReadCounters(&face->rx, cnt);
-  TxProc_ReadCounters(&face->tx, cnt);
+  Face* face = __Face_Get(faceId);
+  RxProc_ReadCounters(&face->impl->rx, cnt);
+  TxProc_ReadCounters(&face->impl->tx, cnt);
 }
 
 void
@@ -54,10 +58,10 @@ FaceImpl_Init(Face* face, uint16_t mtu, uint16_t headroom,
 {
   face->threadSafeTxQueue = NULL;
 
-  RunningStat_SetSampleRate(&face->latencyStat, LATENCY_STAT_SAMPLE_FREQ);
-  TxProc_Init(&face->tx, mtu, headroom, mempools->indirectMp,
+  RunningStat_SetSampleRate(&face->impl->latencyStat, LATENCY_STAT_SAMPLE_FREQ);
+  TxProc_Init(&face->impl->tx, mtu, headroom, mempools->indirectMp,
               mempools->headerMp);
-  RxProc_Init(&face->rx, mempools->nameMp);
+  RxProc_Init(&face->impl->rx, mempools->nameMp);
 }
 
 void
@@ -69,7 +73,7 @@ FaceImpl_RxBurst(Face* face, FaceRxBurst* burst, uint16_t nFrames, Face_RxCb cb,
   struct rte_mbuf** frames = FaceRxBurst_GetScratch(burst);
   for (uint16_t i = 0; i < nFrames; ++i) {
     frames[i]->port = face->id;
-    Packet* npkt = RxProc_Input(&face->rx, frames[i]);
+    Packet* npkt = RxProc_Input(&face->impl->rx, frames[i]);
     if (npkt == NULL) {
       continue;
     }

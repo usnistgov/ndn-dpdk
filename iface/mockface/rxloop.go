@@ -1,7 +1,7 @@
 package mockface
 
 /*
-#include "mock-face.h"
+#include "../face.h"
 */
 import "C"
 import (
@@ -13,8 +13,7 @@ import (
 
 type rxLoop struct{}
 
-var theRxLoop rxLoop
-var TheRxLoop iface.IRxLooper = &theRxLoop
+var TheRxLoop iface.IRxLooper = rxLoop{}
 
 type rxPacket struct {
 	face *MockFace
@@ -24,27 +23,31 @@ type rxPacket struct {
 var rxQueue chan rxPacket = make(chan rxPacket)
 var rxStop chan struct{} = make(chan struct{})
 
-func (rxl *rxLoop) RxLoop(burstSize int, cb unsafe.Pointer, cbarg unsafe.Pointer) {
+func (rxLoop) RxLoop(burstSize int, cb unsafe.Pointer, cbarg unsafe.Pointer) {
+	burst := iface.NewRxBurst(1)
+	defer burst.Close()
 	for {
 		select {
 		case rxp := <-rxQueue:
-			C.MockFace_Rx(rxp.face.getPtr(), cb, cbarg, (*C.Packet)(rxp.pkt.GetPtr()))
+			burst.SetFrame(0, rxp.pkt)
+			C.FaceImpl_RxBurst(rxp.face.getPtr(), (*C.FaceRxBurst)(burst.GetPtr()), 1,
+				(C.Face_RxCb)(cb), cbarg)
 		case <-rxStop:
 			return
 		}
 	}
 }
 
-func (rxl *rxLoop) StopRxLoop() error {
+func (rxLoop) StopRxLoop() error {
 	rxStop <- struct{}{}
 	return nil
 }
 
-func (rxl *rxLoop) ListFacesInRxLoop() (faceIds []iface.FaceId) {
+func (rxLoop) ListFacesInRxLoop() (faceIds []iface.FaceId) {
 	faceIds = make([]iface.FaceId, 0)
-	for id := minId; id <= maxId; id++ {
-		if getById(id) != nil {
-			faceIds = append(faceIds, iface.FaceId(id))
+	for id := iface.FaceId(minId); id <= maxId; id++ {
+		if iface.Get(id) != nil {
+			faceIds = append(faceIds, id)
 		}
 	}
 	return faceIds

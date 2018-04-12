@@ -1,7 +1,8 @@
 package mockface
 
 /*
-#include "mock-face.h"
+#include "../face.h"
+uint16_t go_MockFace_TxBurst(Face* faceC, struct rte_mbuf** pkts, uint16_t nPkts);
 */
 import "C"
 import (
@@ -22,26 +23,17 @@ const (
 	maxId = 0x0FFF
 )
 
-var faceById [maxId - minId + 1]*MockFace
-
-func getById(id int) *MockFace {
-	return faceById[id-minId]
-}
-
-// Retrieve MockFace by FaceId.
-func Get(id iface.FaceId) *MockFace {
-	if id.GetKind() != iface.FaceKind_Mock {
-		return nil
+func allocId() (id iface.FaceId) {
+	for {
+		id = iface.FaceId(minId + rand.Intn(maxId-minId+1))
+		if iface.Get(id) == nil {
+			return id
+		}
 	}
-	return getById(int(id))
-}
-
-func setById(id int, face *MockFace) {
-	faceById[id-minId] = face
 }
 
 type MockFace struct {
-	iface.Face
+	iface.BaseFace
 	isClosed bool
 
 	TxInterests []*ndn.Interest // sent Interest packets
@@ -50,28 +42,24 @@ type MockFace struct {
 	TxBadPkts   []ndn.Packet    // sent unparsable packets
 }
 
-func New() (face *MockFace) {
-	id := 0
-	for {
-		id = minId + rand.Intn(maxId-minId+1)
-		if getById(id) == nil {
-			break
-		}
-	}
+func New() *MockFace {
+	var face MockFace
+	face.InitBaseFace(allocId(), 0, dpdk.NUMA_SOCKET_ANY)
 
-	face = new(MockFace)
-	face.AllocCFace(C.sizeof_MockFace, dpdk.NUMA_SOCKET_ANY)
-
-	C.MockFace_Init(face.getPtr(), C.FaceId(id),
-		(*C.FaceMempools)(FaceMempools.GetPtr()))
-	setById(id, face)
-
-	iface.Put(face)
-	return face
+	faceC := face.getPtr()
+	faceC.txBurstOp = (C.FaceImpl_TxBurst)(C.go_MockFace_TxBurst)
+	C.FaceImpl_Init(faceC, 0, 0, (*C.FaceMempools)(FaceMempools.GetPtr()))
+	iface.Put(&face)
+	return &face
 }
 
-func (face *MockFace) getPtr() *C.MockFace {
-	return (*C.MockFace)(face.GetPtr())
+func (face *MockFace) getPtr() *C.Face {
+	return (*C.Face)(face.GetPtr())
+}
+
+func (face *MockFace) Close() error {
+	face.isClosed = true
+	return nil
 }
 
 func (face *MockFace) IsClosed() bool {
@@ -133,17 +121,9 @@ func (face *MockFace) recordTx(pkt ndn.Packet) {
 	}
 }
 
-func getByCFace(faceC *C.Face) *MockFace {
-	face := getById(int(faceC.id))
-	if face == nil {
-		panic("MockFace not found")
-	}
-	return face
-}
-
 //export go_MockFace_TxBurst
 func go_MockFace_TxBurst(faceC *C.Face, pkts **C.struct_rte_mbuf, nPkts C.uint16_t) C.uint16_t {
-	face := getByCFace(faceC)
+	face := iface.Get(iface.FaceId(faceC.id)).(*MockFace)
 	for i := C.uint16_t(0); i < nPkts; i++ {
 		pktsEle := (**C.struct_rte_mbuf)(unsafe.Pointer(uintptr(unsafe.Pointer(pkts)) +
 			uintptr(i)*unsafe.Sizeof(*pkts)))
@@ -151,11 +131,4 @@ func go_MockFace_TxBurst(faceC *C.Face, pkts **C.struct_rte_mbuf, nPkts C.uint16
 		face.recordTx(pkt)
 	}
 	return C.uint16_t(nPkts)
-}
-
-//export go_MockFace_Close
-func go_MockFace_Close(faceC *C.Face) C.bool {
-	face := getByCFace(faceC)
-	face.isClosed = true
-	return C.bool(true)
 }

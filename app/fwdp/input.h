@@ -6,7 +6,7 @@
 #include "fwd.h"
 
 #include "../../container/ndt/ndt.h"
-#include "../../iface/iface.h"
+#include "../../iface/face.h"
 
 /** \brief FwInput's connection to FwFwd.
  */

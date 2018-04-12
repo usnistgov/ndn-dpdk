@@ -6,7 +6,7 @@
 #include "../../container/nameset/nameset.h"
 #include "../../core/running_stat/running-stat.h"
 #include "../../dpdk/tsc.h"
-#include "../../iface/iface.h"
+#include "../../iface/face.h"
 #include "../../ndn/encode-interest.h"
 
 /** \brief Per-pattern information in ndnping client.
@@ -88,7 +88,7 @@ void NdnpingClient_Init(NdnpingClient* client);
 /** \brief Initialize NdnpingClient.
  *  \pre Sampling config fields are initialized.
  */
-void NdnpingClient_EnableSampling(NdnpingClient* client);
+void NdnpingClient_EnableSampling(NdnpingClient* client, int numaSocket);
 
 void NdnpingClient_Close(NdnpingClient* client);
 

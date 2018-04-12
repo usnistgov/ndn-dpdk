@@ -3,7 +3,7 @@
 
 /// \file
 
-#include "../../iface/iface.h"
+#include "../../iface/face.h"
 
 #define PKTCOPYRX_RXBURST_SIZE 64
 #define PKTCOPYRX_MAXTX 16

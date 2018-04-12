@@ -20,34 +20,11 @@ typedef struct FaceCounters FaceCounters;
  *  \return successfully queued frames
  *  \post FaceImpl owns queued frames, but does not own remaining frames
  */
-typedef uint16_t (*FaceOps_TxBurst)(Face* face, struct rte_mbuf** pkts,
-                                    uint16_t nPkts);
+typedef uint16_t (*FaceImpl_TxBurst)(Face* face, struct rte_mbuf** pkts,
+                                     uint16_t nPkts);
 
-/** \brief Close a face.
- */
-typedef bool (*FaceOps_Close)(Face* face);
-
-/** \brief Determine NumaSocket of a face.
- */
-typedef int (*FaceOps_GetNumaSocket)(Face* face);
-
-typedef struct FaceOps
+typedef struct FaceImpl
 {
-  // txBurstOp is placed directly in Face struct to reduce indirection
-  FaceOps_Close close;
-  FaceOps_GetNumaSocket getNumaSocket;
-} FaceOps;
-
-/** \brief Generic network interface.
- */
-typedef struct Face
-{
-  const FaceOps* ops;
-  FaceOps_TxBurst txBurstOp;
-
-  struct rte_ring* threadSafeTxQueue;
-  struct cds_hlist_node threadSafeTxNode;
-
   RxProc rx;
   TxProc tx;
 
@@ -58,15 +35,51 @@ typedef struct Face
    */
   RunningStat latencyStat;
 
+  char priv[0];
+} FaceImpl;
+
+/** \brief Generic network interface.
+ */
+typedef struct Face
+{
+  FaceImpl* impl;
+  FaceImpl_TxBurst txBurstOp;
   FaceId id;
-} Face;
+  int numaSocket;
+
+  struct rte_ring* threadSafeTxQueue;
+  struct cds_hlist_node threadSafeTxNode;
+} __rte_cache_aligned Face;
+
+static void*
+Face_GetPriv(Face* face)
+{
+  return face->impl->priv;
+}
+
+#define Face_GetPrivT(face, T) ((T*)Face_GetPriv((face)))
+
+/** \brief Array of all faces.
+ */
+extern Face __gFaces[FACEID_MAX];
+
+static Face*
+__Face_Get(FaceId faceId)
+{
+  Face* face = &__gFaces[faceId];
+  assert(face->id != FACEID_INVALID);
+  return face;
+}
 
 // ---- functions invoked by user of face system ----
 
+/** \brief Return whether the face is DOWN.
+ */
 static bool
-Face_Close(Face* face)
+Face_IsDown(FaceId faceId)
 {
-  return (*face->ops->close)(face);
+  // TODO implement
+  return false;
 }
 
 /** \brief Callback upon packet arrival.
@@ -80,9 +93,17 @@ typedef void (*Face_RxCb)(FaceId faceId, FaceRxBurst* burst, void* cbarg);
  */
 void Face_TxBurst_Nts(Face* face, Packet** npkts, uint16_t count);
 
+/** \brief Send a burst of packets.
+ *  \param npkts array of L3 packets; face takes ownership
+ *  \param count size of \p npkts array
+ *
+ *  This function is non-thread-safe by default.
+ *  Invoke Face.EnableThreadSafeTx in Go API to make this thread-safe.
+ */
 static void
-__Face_TxBurst(Face* face, Packet** npkts, uint16_t count)
+Face_TxBurst(FaceId faceId, Packet** npkts, uint16_t count)
 {
+  Face* face = __Face_Get(faceId);
   if (likely(face->threadSafeTxQueue != NULL)) {
     uint16_t nQueued = rte_ring_mp_enqueue_burst(face->threadSafeTxQueue,
                                                  (void**)npkts, count, NULL);
@@ -94,9 +115,18 @@ __Face_TxBurst(Face* face, Packet** npkts, uint16_t count)
   }
 }
 
+/** \brief Send a packet.
+ *  \param npkt an L3 packet; face takes ownership
+ */
+static void
+Face_Tx(FaceId faceId, Packet* npkt)
+{
+  Face_TxBurst(faceId, &npkt, 1);
+}
+
 /** \brief Retrieve face counters.
  */
-void Face_ReadCounters(Face* face, FaceCounters* cnt);
+void Face_ReadCounters(FaceId faceId, FaceCounters* cnt);
 
 // ---- functions invoked by face implementation ----
 
@@ -139,7 +169,7 @@ void FaceImpl_RxBurst(Face* face, FaceRxBurst* burst, uint16_t nFrames,
 static void
 FaceImpl_CountSent(Face* face, struct rte_mbuf* pkt)
 {
-  TxProc_CountSent(&face->tx, pkt);
+  TxProc_CountSent(&face->impl->tx, pkt);
 }
 
 #endif // NDN_DPDK_IFACE_FACE_H

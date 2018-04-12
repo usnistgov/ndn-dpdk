@@ -13,13 +13,13 @@ import (
 )
 
 func TestEthFace(t *testing.T) {
-	_, require := dpdktestenv.MakeAR(t)
+	assert, require := dpdktestenv.MakeAR(t)
 
 	dpdktestenv.MakeDirectMp(4095, ndn.SizeofPacketPriv(), 2000)
 	mempools := iface.Mempools{
 		IndirectMp: dpdktestenv.MakeIndirectMp(4095),
 		NameMp:     dpdktestenv.MakeMp("name", 4095, 0, ndn.NAME_MAX_LENGTH),
-		HeaderMp:   dpdktestenv.MakeMp("header", 4095, 0, ethface.SizeofHeaderMempoolDataroom()),
+		HeaderMp:   dpdktestenv.MakeMp("header", 4095, 0, ethface.SizeofTxHeader()),
 	}
 	evl := dpdktestenv.NewEthVLink(1024, 64, dpdktestenv.MPID_DIRECT)
 	defer evl.Close()
@@ -30,6 +30,7 @@ func TestEthFace(t *testing.T) {
 	faceB, e := ethface.New(evl.PortB, mempools)
 	require.NoError(e)
 	defer faceB.Close()
+	assert.Implements((*iface.IRxLooper)(nil), faceA)
 
 	fixture := ifacetestfixture.New(t, faceA, faceA, faceB)
 	dpdktestenv.Eal.Slaves[2].RemoteLaunch(evl.Bridge)
