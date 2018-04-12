@@ -61,7 +61,6 @@ $(CLIBPREFIX)-iface.a: $(CLIBPREFIX)-ndn.a iface/*.h iface/*.c
 
 iface/cgoflags.go: ndn/cgoflags.go
 	./make-cgoflags.sh iface ndn
-	./make-cgoflags.sh iface/ifacetest iface
 
 go-iface: $(CLIBPREFIX)-iface.a iface/cgoflags.go
 	go build ./iface

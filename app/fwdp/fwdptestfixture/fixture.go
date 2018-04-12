@@ -99,8 +99,6 @@ func New(t *testing.T) (fixture *Fixture) {
 }
 
 func (fixture *Fixture) Close() error {
-	iface.CloseAll()
-
 	fixture.DataPlane.StopInput(0)
 	for i := 0; i < nFwds; i++ {
 		fixture.DataPlane.StopFwd(i)
@@ -110,6 +108,7 @@ func (fixture *Fixture) Close() error {
 	fixture.DataPlane.Close()
 	fixture.Ndt.Close()
 	fixture.Fib.Close()
+	iface.CloseAll()
 	return nil
 }
 
