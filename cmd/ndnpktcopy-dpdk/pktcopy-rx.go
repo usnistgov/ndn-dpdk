@@ -13,39 +13,43 @@ import (
 	"ndn-dpdk/iface"
 )
 
-const PktcopyRx_BurstSize = 64
-
 type PktcopyRx struct {
 	c    *C.PktcopyRx
 	face iface.IFace
 }
 
-func NewPktcopyRx(face iface.IFace) (pcrx PktcopyRx, e error) {
-	pcrx.c = new(C.PktcopyRx)
-	pcrx.face = face
-
+func NewPktcopyRx(face iface.IFace) *PktcopyRx {
 	numaSocket := face.GetNumaSocket()
+	var pcrx PktcopyRx
+	pcrx.c = (*C.PktcopyRx)(dpdk.Zmalloc("PktcopyRx", C.sizeof_PktcopyRx, numaSocket))
+	pcrx.c.headerMp = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
+		appinit.MP_HDR, numaSocket).GetPtr())
 	pcrx.c.indirectMp = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
 		appinit.MP_IND, numaSocket).GetPtr())
-
-	return pcrx, nil
+	pcrx.face = face
+	return &pcrx
 }
 
-func (pcrx PktcopyRx) GetFace() iface.IFace {
-	return pcrx.face
-}
-
-func (pcrx PktcopyRx) LinkTo(txRing dpdk.Ring) error {
-	if pcrx.c.nTxRings >= C.PKTCOPYRX_MAXTX {
-		return fmt.Errorf("cannot link more than %d TX", C.PKTCOPYRX_MAXTX)
-	}
-
-	C.PktcopyRx_AddTxRing(pcrx.c, (*C.struct_rte_ring)(txRing.GetPtr()))
+func (pcrx *PktcopyRx) Close() error {
+	dpdk.Free(pcrx.c)
 	return nil
 }
 
-func (pcrx PktcopyRx) Run() int {
-	appinit.MakeRxLooper(pcrx.face).RxLoop(PktcopyRx_BurstSize,
+func (pcrx *PktcopyRx) SetDumpRing(ring dpdk.Ring) {
+	pcrx.c.dumpRing = (*C.struct_rte_ring)(ring.GetPtr())
+}
+
+func (pcrx *PktcopyRx) AddTxFace(txFace iface.IFace) error {
+	if pcrx.c.nTxFaces >= C.PKTCOPYRX_MAXTX {
+		return fmt.Errorf("cannot link more than %d TX", C.PKTCOPYRX_MAXTX)
+	}
+	pcrx.c.txFaces[pcrx.c.nTxFaces] = (C.FaceId)(txFace.GetFaceId())
+	pcrx.c.nTxFaces++
+	return nil
+}
+
+func (pcrx *PktcopyRx) Run() int {
+	appinit.MakeRxLooper(pcrx.face).RxLoop(C.PKTCOPYRX_RXBURST_SIZE,
 		unsafe.Pointer(C.PktcopyRx_Rx), unsafe.Pointer(pcrx.c))
 	return 0
 }

@@ -1,47 +1,47 @@
 #include "pktcopy-rx.h"
 
-void
-PktcopyRx_AddTxRing(PktcopyRx* pcrx, struct rte_ring* r)
-{
-  assert(pcrx->nTxRings < PKTCOPYRX_MAXTX);
-  pcrx->txRings[pcrx->nTxRings++] = r;
-}
-
 static void
 PktcopyRx_Transfer(PktcopyRx* pcrx, Packet** npkts, uint16_t count)
 {
-  if (unlikely(pcrx->nTxRings == 0)) {
+  int nTx = pcrx->nTxFaces + (pcrx->dumpRing != NULL);
+  if (unlikely(nTx == 0)) {
     FreeMbufs((struct rte_mbuf**)npkts, count);
     return;
   }
 
-  for (int i = pcrx->nTxRings - 1; i > 0; --i) {
-    struct rte_ring* r = pcrx->txRings[i];
-    for (uint16_t j = 0; j < count; ++j) {
-      struct rte_mbuf* pkt = Packet_ToMbuf(npkts[j]);
-      struct rte_mbuf* clone = rte_pktmbuf_clone(pkt, pcrx->indirectMp);
-      if (unlikely(clone == NULL)) {
-        ++pcrx->nAllocError;
-      }
+  assert(count <= PKTCOPYRX_RXBURST_SIZE);
+  Packet* clones[PKTCOPYRX_RXBURST_SIZE];
+  uint16_t nOuts;
+  Packet** outNpkts;
 
-      int res = rte_ring_enqueue(r, clone);
-      if (unlikely(res != 0)) {
-        rte_pktmbuf_free(clone);
-        ++pcrx->nTxRingCongestions[i];
+  for (int i = 0; i < nTx; ++i) {
+    if (i < nTx - 1) {
+      for (nOuts = 0; nOuts < count; ++nOuts) {
+        clones[nOuts] =
+          ClonePacket(npkts[nOuts], pcrx->headerMp, pcrx->indirectMp);
+        if (unlikely(clones[nOuts] == NULL)) {
+          ++pcrx->nAllocError;
+          break;
+        }
       }
+      outNpkts = clones;
+    } else {
+      nOuts = count;
+      outNpkts = npkts;
     }
-  }
 
-  struct rte_ring* r = pcrx->txRings[0];
-  unsigned nEnq = rte_ring_enqueue_burst(r, (void**)npkts, count, NULL);
-  if (unlikely(nEnq < count)) {
-    FreeMbufs((struct rte_mbuf**)npkts + nEnq, count - nEnq);
-    ++pcrx->nTxRingCongestions[0];
+    if (i < pcrx->nTxFaces) {
+      Face_TxBurst(pcrx->txFaces[i], outNpkts, nOuts);
+    } else {
+      unsigned nEnq =
+        rte_ring_enqueue_burst(pcrx->dumpRing, (void**)outNpkts, nOuts, NULL);
+      FreeMbufs((struct rte_mbuf**)&outNpkts[nEnq], nOuts - nEnq);
+    }
   }
 }
 
 void
-PktcopyRx_Rx(Face* face, FaceRxBurst* burst, void* pcrx0)
+PktcopyRx_Rx(FaceId faceId, FaceRxBurst* burst, void* pcrx0)
 {
   PktcopyRx* pcrx = (PktcopyRx*)pcrx0;
   PktcopyRx_Transfer(pcrx, FaceRxBurst_ListInterests(burst), burst->nInterests);

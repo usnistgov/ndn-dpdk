@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_IFACE_RXCB_H
-#define NDN_DPDK_IFACE_RXCB_H
+#ifndef NDN_DPDK_IFACE_RXBURST_H
+#define NDN_DPDK_IFACE_RXBURST_H
 
 /// \file
 
@@ -76,7 +76,7 @@ FaceRxBurst_GetNack(FaceRxBurst* burst, uint16_t i)
 /** \brief Get a scratch space for receiving up to \c burst->capacity frames.
  *
  *  This scratch space overlaps with the space for Interests. It is safe to use
- *  \c FaceRxBurst_PutInterest as long as processing each frames adds at most
+ *  \c FaceRxBurst_PutInterest as long as processing each frame adds at most
  *  one Interest.
  */
 static struct rte_mbuf**
@@ -129,4 +129,4 @@ FaceRxBurst_PutNack(FaceRxBurst* burst, Packet* npkt)
   FaceRxBurst_ListNacks(burst)[burst->nNacks++] = npkt;
 }
 
-#endif // NDN_DPDK_IFACE_RXCB_H
+#endif // NDN_DPDK_IFACE_RXBURST_H

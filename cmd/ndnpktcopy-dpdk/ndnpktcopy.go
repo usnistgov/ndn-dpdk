@@ -12,7 +12,19 @@ import (
 	"ndn-dpdk/iface"
 )
 
-const Dump_RingCapacity = 64
+const (
+	Dump_RingCapacity    = 256
+	Face_TxQueueCapacity = 256
+)
+
+type PktcopyProc struct {
+	face      iface.IFace
+	pcrx      *PktcopyRx
+	rxLcore   dpdk.LCore
+	txLcore   dpdk.LCore
+	dumper    *dump.Dump
+	dumpLcore dpdk.LCore
+}
 
 func main() {
 	appinit.InitEal()
@@ -21,65 +33,63 @@ func main() {
 		appinit.Exitf(appinit.EXIT_BAD_CONFIG, "parseCommand: %v", e)
 	}
 
-	var pcrxs []PktcopyRx
-	var pctxs []PktcopyTx
-	var dumps []dump.Dump
-
-	for _, faceUri := range pc.Faces {
+	// initialize faces, PktcopyRxs, and dumpers
+	lcr := appinit.NewLCoreReservations()
+	procs := make([]PktcopyProc, len(pc.Faces))
+	for i, faceUri := range pc.Faces {
+		proc := &procs[i]
 		face, e := appinit.NewFaceFromUri(faceUri)
 		if e != nil {
 			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "NewFaceFromUri(%s): %v", faceUri, e)
 		}
+		face.EnableThreadSafeTx(Face_TxQueueCapacity)
+		numaSocket := face.GetNumaSocket()
+		proc.face = face
 
-		pcrx, e := NewPktcopyRx(face)
-		if e != nil {
-			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "NewPktcopyRx(%d): %v", face.GetFaceId(), e)
-		}
-		pcrxs = append(pcrxs, pcrx)
+		pcrx := NewPktcopyRx(face)
+		proc.pcrx = pcrx
 
-		pctx, e := NewPktcopyTx(face)
-		if e != nil {
-			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "NewPktcopyTx(%d): %v", face.GetFaceId(), e)
-		}
-		pctxs = append(pctxs, pctx)
-	}
-
-	// enable dump
-	if pc.Dump {
-		for i, pcrx := range pcrxs {
+		if pc.Dump {
 			ringName := fmt.Sprintf("dump_%d", i)
-			ring, e := dpdk.NewRing(ringName, Dump_RingCapacity, pcrx.GetFace().GetNumaSocket(), true, true)
+			ring, e := dpdk.NewRing(ringName, Dump_RingCapacity, numaSocket, true, true)
 			if e != nil {
 				appinit.Exitf(appinit.EXIT_RING_INIT_ERROR, "NewRing(%s): %v", ringName, e)
 			}
-			pcrx.LinkTo(ring)
+			pcrx.SetDumpRing(ring)
 
-			prefix := fmt.Sprintf("%d ", pcrx.GetFace().GetFaceId())
+			prefix := fmt.Sprintf("%d ", face.GetFaceId())
 			logger := log.New(os.Stderr, prefix, log.Lmicroseconds)
-			dumper := dump.New(ring, logger)
-			dumps = append(dumps, dumper)
+			proc.dumper = dump.New(ring, logger)
+		}
+
+		proc.rxLcore = lcr.ReserveRequired(numaSocket)
+		proc.txLcore = lcr.ReserveRequired(numaSocket)
+	}
+	if pc.Dump {
+		for i := range procs {
+			procs[i].dumpLcore = lcr.ReserveRequired(dpdk.NUMA_SOCKET_ANY)
 		}
 	}
 
-	// link PktcopyRx and PktcopyTx
+	// link PktcopyRx to TX faces
 	switch pc.Mode {
 	case TopoMode_Pair:
-		for i := 0; i < len(pcrxs); i += 2 {
-			pcrxs[i].LinkTo(pctxs[i+1].GetRing())
-			pcrxs[i+1].LinkTo(pctxs[i].GetRing())
+		for i := 0; i < len(procs); i += 2 {
+			procs[i].pcrx.AddTxFace(procs[i+1].face)
+			procs[i+1].pcrx.AddTxFace(procs[i].face)
 		}
 	case TopoMode_All:
-		for i, pcrx := range pcrxs {
-			for j, pctx := range pctxs {
+		for i := range procs {
+			for j := range procs {
 				if i == j {
 					continue
 				}
-				pcrx.LinkTo(pctx.GetRing())
+				procs[i].pcrx.AddTxFace(procs[j].face)
 			}
 		}
 	case TopoMode_OneWay:
-		for _, pctx := range pctxs[1:] {
-			pcrxs[0].LinkTo(pctx.GetRing())
+		for i := 1; i < len(procs); i++ {
+			procs[0].pcrx.AddTxFace(procs[i].face)
 		}
 	}
 
@@ -94,19 +104,18 @@ func main() {
 		}
 	}()
 
-	// start PktcopyTx processes
-	for _, pctx := range pctxs {
-		appinit.LaunchRequired(pctx.Run, pctx.GetFace().GetNumaSocket())
+	// launch
+	for _, proc := range procs {
+		proc.txLcore.RemoteLaunch(func() int {
+			appinit.MakeTxLooper(proc.face).TxLoop()
+			return 0
+		})
+		if proc.dumper != nil {
+			proc.dumpLcore.RemoteLaunch(proc.dumper.Run)
+		}
 	}
-
-	// start PktcopyRx processes
-	for _, pcrx := range pcrxs {
-		appinit.LaunchRequired(pcrx.Run, pcrx.GetFace().GetNumaSocket())
-	}
-
-	// start Dump processes
-	for _, dump := range dumps {
-		appinit.LaunchRequired(dump.Run, dpdk.NUMA_SOCKET_ANY)
+	for _, proc := range procs {
+		proc.rxLcore.RemoteLaunch(proc.pcrx.Run)
 	}
 
 	select {}

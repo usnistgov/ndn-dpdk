@@ -17,19 +17,20 @@ type Dump struct {
 	stop chan struct{}
 }
 
-func New(r dpdk.Ring, w *log.Logger) (dump Dump) {
+func New(r dpdk.Ring, w *log.Logger) *Dump {
+	var dump Dump
 	dump.r = r
 	dump.w = w
 	dump.stop = make(chan struct{})
-	return dump
+	return &dump
 }
 
-func (dump Dump) Close() error {
+func (dump *Dump) Close() error {
 	dump.stop <- struct{}{}
 	return nil
 }
 
-func (dump Dump) Run() int {
+func (dump *Dump) Run() int {
 	npkts := make([]ndn.Packet, burstSize)
 	for {
 		count, _ := dump.r.BurstDequeue(npkts)
