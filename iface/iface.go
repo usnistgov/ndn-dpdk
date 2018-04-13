@@ -22,8 +22,7 @@ type IFace interface {
 	ReadLatency() running_stat.Snapshot
 }
 
-var gFaces [FACEID_MAX]IFace
-var gFaceIds []FaceId
+var gFaces [int(FACEID_MAX) + 1]IFace
 
 // Get face by FaceId.
 func Get(faceId FaceId) IFace {
@@ -39,20 +38,45 @@ func Put(face IFace) {
 	if gFaces[faceId] != nil {
 		panic("duplicate FaceId")
 	}
-	gFaceIds = append(gFaceIds, faceId)
 	gFaces[faceId] = face
 }
 
-// List FaceIds.
-func ListFaceIds() []FaceId {
-	return gFaceIds
+// Iterator over faces.
+//
+// Usage:
+// for it := iface.IterFaces(); it.Valid(); it.Next() {
+//   // use it.Id and it.Face
+// }
+type FaceIterator struct {
+	Id   FaceId
+	Face IFace
 }
 
-// Close all faces (for unit tests).
-func CloseAll() {
-	for _, faceId := range gFaceIds {
-		gFaces[faceId].Close()
-		gFaces[faceId] = nil
+func IterFaces() *FaceIterator {
+	var it FaceIterator
+	it.Id = FACEID_INVALID
+	it.Next()
+	return &it
+}
+
+func (it *FaceIterator) Valid() bool {
+	return it.Id != FACEID_INVALID
+}
+
+func (it *FaceIterator) Next() {
+	for it.Id++; it.Id != FACEID_INVALID; it.Id++ {
+		it.Face = gFaces[it.Id]
+		if it.Face != nil {
+			return
+		}
 	}
-	gFaceIds = nil
+	it.Face = nil
+}
+
+// Close all faces.
+func CloseAll() {
+	for it := IterFaces(); it.Valid(); it.Next() {
+		it.Face.Close()
+		gFaces[it.Id] = nil
+	}
 }

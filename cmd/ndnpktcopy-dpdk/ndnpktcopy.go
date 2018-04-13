@@ -98,8 +98,8 @@ func main() {
 	go func() {
 		for {
 			<-tick
-			for _, faceId := range iface.ListFaceIds() {
-				log.Printf("%d %v", faceId, iface.Get(faceId).ReadCounters())
+			for it := iface.IterFaces(); it.Valid(); it.Next() {
+				log.Printf("%d %v", it.Id, it.Face.ReadCounters())
 			}
 		}
 	}()

@@ -35,7 +35,11 @@ func main() {
 		var fibEntry fib.Entry
 		fibEntryName, _ := ndn.ParseName("/")
 		fibEntry.SetName(fibEntryName)
-		fibEntry.SetNexthops(iface.ListFaceIds())
+		nexthops := make([]iface.FaceId, 0, fib.MAX_NEXTHOPS)
+		for it := iface.IterFaces(); it.Valid() && len(nexthops) < fib.MAX_NEXTHOPS; it.Next() {
+			nexthops = append(nexthops, it.Id)
+		}
+		fibEntry.SetNexthops(nexthops)
 		fibEntry.SetStrategy(loadStrategy("multicast"))
 		theFib.Insert(&fibEntry)
 	}

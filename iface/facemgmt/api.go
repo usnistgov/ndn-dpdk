@@ -10,7 +10,11 @@ import (
 type FaceMgmt struct{}
 
 func (fm FaceMgmt) List(args struct{}, reply *[]iface.FaceId) error {
-	*reply = iface.ListFaceIds()
+	list := make([]iface.FaceId, 0)
+	for it := iface.IterFaces(); it.Valid(); it.Next() {
+		list = append(list, it.Id)
+	}
+	*reply = list
 	return nil
 }
 
