@@ -8,7 +8,6 @@ import "C"
 import (
 	"fmt"
 	"log"
-	"math/rand"
 	"net"
 	"os"
 	"time"
@@ -17,20 +16,6 @@ import (
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
 )
-
-const (
-	minId = 0xE000
-	maxId = 0xEFFF
-)
-
-func allocId() (id iface.FaceId) {
-	for {
-		id = iface.FaceId(minId + rand.Intn(maxId-minId+1))
-		if iface.Get(id) == nil {
-			return id
-		}
-	}
-}
 
 type Config struct {
 	iface.Mempools
@@ -66,7 +51,7 @@ type impl interface {
 
 func New(conn net.Conn, cfg Config) *SocketFace {
 	var face SocketFace
-	face.InitBaseFace(allocId(), 0, dpdk.NUMA_SOCKET_ANY)
+	face.InitBaseFace(iface.AllocId(iface.FaceKind_Socket), 0, dpdk.NUMA_SOCKET_ANY)
 
 	face.logger = log.New(os.Stderr, fmt.Sprintf("face %d ", face.GetFaceId()), log.LstdFlags)
 	face.conn = conn

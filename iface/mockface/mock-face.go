@@ -6,7 +6,6 @@ uint16_t go_MockFace_TxBurst(Face* faceC, struct rte_mbuf** pkts, uint16_t nPkts
 */
 import "C"
 import (
-	"math/rand"
 	"unsafe"
 
 	"ndn-dpdk/dpdk"
@@ -17,20 +16,6 @@ import (
 // Face mempools.
 // These must be assigned before calling New().
 var FaceMempools iface.Mempools
-
-const (
-	minId = 0x0001
-	maxId = 0x0FFF
-)
-
-func allocId() (id iface.FaceId) {
-	for {
-		id = iface.FaceId(minId + rand.Intn(maxId-minId+1))
-		if iface.Get(id) == nil {
-			return id
-		}
-	}
-}
 
 type MockFace struct {
 	iface.BaseFace
@@ -44,7 +29,7 @@ type MockFace struct {
 
 func New() *MockFace {
 	var face MockFace
-	face.InitBaseFace(allocId(), 0, dpdk.NUMA_SOCKET_ANY)
+	face.InitBaseFace(iface.AllocId(iface.FaceKind_Mock), 0, dpdk.NUMA_SOCKET_ANY)
 
 	faceC := face.getPtr()
 	faceC.txBurstOp = (C.FaceImpl_TxBurst)(C.go_MockFace_TxBurst)

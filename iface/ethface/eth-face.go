@@ -28,7 +28,7 @@ type EthFace struct {
 
 func New(port dpdk.EthDev, mempools iface.Mempools) (*EthFace, error) {
 	var face EthFace
-	id := iface.FaceId(0x1000 | port)
+	id := iface.FaceId(iface.FaceKind_Eth << 12) | iface.FaceId(port)
 	face.InitBaseFace(id, int(C.sizeof_EthFacePriv), port.GetNumaSocket())
 
 	if ok := C.EthFace_Init(face.getPtr(), (*C.FaceMempools)(mempools.GetPtr())); !ok {

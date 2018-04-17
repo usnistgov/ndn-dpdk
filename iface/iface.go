@@ -29,7 +29,8 @@ func Get(faceId FaceId) IFace {
 	return gFaces[faceId]
 }
 
-// Put constructed face (non-thread-safe).
+// Put face (non-thread-safe).
+// This should be called by face subtype constructor.
 func Put(face IFace) {
 	faceId := face.GetFaceId()
 	if faceId.GetKind() == FaceKind_None {

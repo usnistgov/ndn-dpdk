@@ -45,9 +45,9 @@ func (rxLoop) StopRxLoop() error {
 
 func (rxLoop) ListFacesInRxLoop() (faceIds []iface.FaceId) {
 	faceIds = make([]iface.FaceId, 0)
-	for id := iface.FaceId(minId); id <= maxId; id++ {
-		if iface.Get(id) != nil {
-			faceIds = append(faceIds, id)
+	for it := iface.IterFaces(); it.Valid(); it.Next() {
+		if it.Id.GetKind() == iface.FaceKind_Mock {
+			faceIds = append(faceIds, it.Id)
 		}
 	}
 	return faceIds
