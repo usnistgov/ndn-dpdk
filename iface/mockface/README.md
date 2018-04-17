@@ -7,3 +7,7 @@ All MockFaces depend on `MockFace.TheRxLoop` singleton as their `iface.IRxLooper
 
 Packets transmitted through a mock face are accumulated on `MockFace.TxInterests`, `MockFace.TxData`, or `MockFace.TxNacks` slices.
 Test code is responsible for freeing these packets.
+
+FaceId of MockFace is randomly assigned from the range 0x0001-0x0FFF.
+
+MockFace's send path is not thread safe.

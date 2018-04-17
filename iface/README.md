@@ -1,36 +1,47 @@
 # ndn-dpdk/iface
 
-This package implements the face system.
+This package implements the face system, which provides network interfaces (faces) that can send and receive NDN packets.
+Each face has a **FaceId**, a uint16 number that identifies the face.
 
-Unit tests of this package are in [ifacetest](ifacetest/) subdirectory.
+There are three kinds of lower layer implementations:
 
-## Face
+* [EthFace](ethface/) communicates on Ethernet via DPDK ethdev.
+* [SocketFace](socketface/) communicates on Unix/TCP/UDP tunnels via Go sockets.
+* [MockFace](mockface/) is for unit testing.
 
-**Face** represents a network interface that can send and receive NDN packets.
+## Face System API
 
-**RxProc** and **TxProc** implement the receive path and the send path, respectively.
-They translate between network layer packets and link layer packets.
-They also implement [NDNLPv2](https://redmine.named-data.net/projects/nfd/wiki/NDNLPv2) fragmentation-reassembly feature, but the reassembler cannot handle out-of-order arrival.
+In C, public APIs are defined in term of **FaceId**.
+There are functions to query face status, and to transmit a burst of packets.
+Notably, there isn't a function to receive packets; instead, each lower layer implementation offers an "RX loop" function for receiving packets.
 
-Each lower layer implementation (in NFD they are known as "Transports") provides a number of function pointers for lower layer actions, such as transmitting L2 frames and closing the face.
-They are either contained in a **FaceOps** struct, or placed on the **Face** struct directly.
+In Go, **IFace** interface defines what methods a face must provide.
+Each lower layer implementation offers a `New` function that creates an instance that implements IFace interface.
+That instance should embed **BaseFace** struct that implements many methods required by IFace.
+`Get` function retrieves an existing IFace by FaceId; `IterFaces` enumerates all faces.
 
-Notably, lower layer implementations do not supply a function pointer for receiving packets.
-Instead, they offer a "RX loop" function that continually retrieves L2 frames from one or more faces, and passes a received burst of L2 frames to `FaceImpl_RxBurst`, which in turn passes them to **RxProc**.
-All "RX loop" functions must accept a **Face\_RxCb** callback, which would be invoked when a burst of L3 packets arrives.
-The receive path is not thread safe; as such, only one "RX loop" should receive for a face.
+## Receive Path
 
-`Face_TxBurst` starts the send path.
-The send path is normally not thread safe.
-It can be made thread safe by `Face.EnableThreadSafeTx` function that adds a queue.
+The receive path starts from an "RX loop" function offered by lower layer implementations.
+The RX loop continually retrieves L2 frames from one or more faces, and passes a received burst of L2 frames to `FaceImpl_RxBurst`.
+
+`FaceImpl_RxBurst` first calls **RxProc** to decode L2 frames into L3 packets.
+It then passes a burst of L3 packets to a **Face\_RxCb** callback provided by the user of face system (such as forwarder's input function).
+
+RxProc is not thread safe; as such, only one RX loop should be running for a face.
+
+## Send Path
+
+The send path starts from `Face_TxBurst` function.
+It first calls **TxProc** to encode L3 packets into L2 frames.
+It then passes a burst of L2 frames to a **FaceImpl\_TxBurst** function provided by the lower layer implementation.
+
+TxProc is normally not thread safe.
+It can be made thread safe by `EnableThreadSafeTx` function that adds an output queue.
 The face must then join a **TxLooper** that dequeues and sends packets.
 This package provides two variants of TxLooper: **SingleTxLoop** for a single high-traffic face, and **MultiTxLoop** for multiple low-traffic faces (slower due to use of RCU).
 
-## FaceTable
+## NDNLPv2
 
-**FaceTable** type stores a pointer to each face.
-
-Each inserted face must have a unique FaceId.
-Each lower layer implementation is allocated a range of FaceIds, and they are responsible for allocating the FaceId.
-
-FaceTable is thread safe.
+RxProc and TxProc partially implement [NDNLPv2](https://redmine.named-data.net/projects/nfd/wiki/NDNLPv2) indexed fragmentation feature.
+One limitation is that the reassembler cannot handle out-of-order arrival.

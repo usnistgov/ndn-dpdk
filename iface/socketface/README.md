@@ -7,7 +7,9 @@ There are two different implementations:
 * **datagramImpl** for datagram-oriented sockets (net.PacketConn).
 * **streamImpl** for stream-oriented sockets (net.Conn that is not net.PacketConn).
 
-SocketFace is thread safe on C API side, due to the use of Go channels.
+FaceId of MockFace is randomly assigned from the range 0x0001-0x0FFF.
+
+SocketFace's send path is thread safe.
 
 ## Receive Path
 
