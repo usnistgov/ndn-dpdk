@@ -2,9 +2,11 @@ package socketface
 
 import "C"
 import (
+	"fmt"
 	"net"
 
 	"ndn-dpdk/dpdk"
+	"ndn-dpdk/iface/faceuri"
 )
 
 type datagramImpl struct {
@@ -64,4 +66,17 @@ func (impl *datagramImpl) Send(pkt dpdk.Packet) error {
 	}
 	_, e := impl.face.conn.Write(buf)
 	return e
+}
+
+func (impl *datagramImpl) GetFaceUri() *faceuri.FaceUri {
+	if a, ok := impl.face.conn.RemoteAddr().(*net.UDPAddr); ok {
+		if a.IP.To4() != nil {
+			return faceuri.MustParse(fmt.Sprintf("udp4://%s", a))
+		} else {
+			// FaceUri cannot represent IPv6 address
+			return faceuri.MustParse(fmt.Sprintf("udp4://192.0.2.6:%d", a.Port))
+		}
+	}
+	// FaceUri cannot represent non-UDP
+	return faceuri.MustParse("udp4://192.0.2.0:1")
 }

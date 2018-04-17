@@ -33,6 +33,14 @@ func Parse(raw string) (*FaceUri, error) {
 	return nil, fmt.Errorf("unknown scheme %s", base.Scheme)
 }
 
+func MustParse(raw string) *FaceUri {
+	u, e := Parse(raw)
+	if e != nil {
+		panic(e)
+	}
+	return u
+}
+
 func (u FaceUri) String() string {
 	return u.URL.String()
 }

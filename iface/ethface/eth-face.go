@@ -2,19 +2,15 @@ package ethface
 
 /*
 #include "eth-face.h"
-
-void
-c_EthFace_RxLoop(Face* face, uint16_t burstSize, void* cb, void* cbarg)
-{
-	EthFace_RxLoop(face, burstSize, (Face_RxCb)cb, cbarg);
-}
 */
 import "C"
 import (
+	"fmt"
 	"unsafe"
 
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
+	"ndn-dpdk/iface/faceuri"
 )
 
 func SizeofTxHeader() int {
@@ -28,7 +24,7 @@ type EthFace struct {
 
 func New(port dpdk.EthDev, mempools iface.Mempools) (*EthFace, error) {
 	var face EthFace
-	id := iface.FaceId(iface.FaceKind_Eth << 12) | iface.FaceId(port)
+	id := iface.FaceId(iface.FaceKind_Eth<<12) | iface.FaceId(port)
 	face.InitBaseFace(id, int(C.sizeof_EthFacePriv), port.GetNumaSocket())
 
 	if ok := C.EthFace_Init(face.getPtr(), (*C.FaceMempools)(mempools.GetPtr())); !ok {
@@ -49,7 +45,11 @@ func (face *EthFace) getPriv() *C.EthFacePriv {
 }
 
 func (face *EthFace) GetPort() dpdk.EthDev {
-	return dpdk.EthDev(face.GetFaceId() | 0x0FFF)
+	return dpdk.EthDev(face.GetFaceId() & 0x0FFF)
+}
+
+func (face *EthFace) GetFaceUri() *faceuri.FaceUri {
+	return faceuri.MustParse(fmt.Sprintf("dev://%s", face.GetPort().GetName()))
 }
 
 func (face *EthFace) Close() error {
@@ -58,7 +58,7 @@ func (face *EthFace) Close() error {
 }
 
 func (face *EthFace) RxLoop(burstSize int, cb unsafe.Pointer, cbarg unsafe.Pointer) {
-	C.c_EthFace_RxLoop(face.getPtr(), C.uint16_t(burstSize), cb, cbarg)
+	C.EthFace_RxLoop(face.getPtr(), C.uint16_t(burstSize), (C.Face_RxCb)(cb), cbarg)
 	face.rxLoopStopped <- true
 }
 

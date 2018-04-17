@@ -2,9 +2,11 @@ package socketface
 
 import "C"
 import (
+	"fmt"
 	"net"
 
 	"ndn-dpdk/dpdk"
+	"ndn-dpdk/iface/faceuri"
 	"ndn-dpdk/ndn"
 )
 
@@ -95,4 +97,17 @@ func (impl *streamImpl) Send(pkt dpdk.Packet) error {
 		}
 	}
 	return nil
+}
+
+func (impl *streamImpl) GetFaceUri() *faceuri.FaceUri {
+	if a, ok := impl.face.conn.RemoteAddr().(*net.TCPAddr); ok {
+		if a.IP.To4() != nil {
+			return faceuri.MustParse(fmt.Sprintf("tcp4://%s", a))
+		} else {
+			// FaceUri cannot represent IPv6 address
+			return faceuri.MustParse(fmt.Sprintf("tcp4://192.0.2.6:%d", a.Port))
+		}
+	}
+	// FaceUri cannot represent non-TCP
+	return faceuri.MustParse("tcp4://192.0.2.0:1")
 }

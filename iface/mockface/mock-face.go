@@ -10,6 +10,7 @@ import (
 
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
+	"ndn-dpdk/iface/faceuri"
 	"ndn-dpdk/ndn"
 )
 
@@ -40,6 +41,10 @@ func New() *MockFace {
 
 func (face *MockFace) getPtr() *C.Face {
 	return (*C.Face)(face.GetPtr())
+}
+
+func (face *MockFace) GetFaceUri() *faceuri.FaceUri {
+	return faceuri.MustParse("mock://")
 }
 
 func (face *MockFace) Close() error {

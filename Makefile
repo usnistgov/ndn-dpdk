@@ -80,9 +80,6 @@ go-socketface: $(CLIBPREFIX)-iface.a iface/socketface/cgoflags.go
 iface/mockface/cgoflags.go: iface/cgoflags.go
 	./make-cgoflags.sh iface/mockface iface
 
-go-faceuri: $(CLIBPREFIX)-iface.a
-	go build ./iface/faceuri
-
 $(CLIBPREFIX)-mintmr.a: $(CLIBPREFIX)-dpdk.a container/mintmr/*.h container/mintmr/*.c
 	./cbuild.sh container/mintmr
 

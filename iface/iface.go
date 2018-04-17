@@ -7,6 +7,7 @@ import "C"
 import (
 	"ndn-dpdk/core/running_stat"
 	"ndn-dpdk/dpdk"
+	"ndn-dpdk/iface/faceuri"
 	"ndn-dpdk/ndn"
 )
 
@@ -14,6 +15,7 @@ import (
 type IFace interface {
 	getPtr() *C.Face
 	GetFaceId() FaceId
+	GetFaceUri() *faceuri.FaceUri
 	GetNumaSocket() dpdk.NumaSocket
 	Close() error
 	EnableThreadSafeTx(queueCapacity int) error

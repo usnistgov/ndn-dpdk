@@ -11,7 +11,8 @@ type IdArg struct {
 }
 
 type FaceInfo struct {
-	Id iface.FaceId
+	Id            iface.FaceId
+	RemoteFaceUri string
 
 	// Basic counters.
 	Counters iface.Counters

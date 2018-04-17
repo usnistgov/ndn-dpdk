@@ -9,7 +9,7 @@ import (
 )
 
 func TestDatagram(t *testing.T) {
-	_, require := makeAR(t)
+	assert, require := makeAR(t)
 
 	addrA := net.UDPAddr{net.ParseIP("127.0.0.1"), 7001, ""}
 	addrB := net.UDPAddr{net.ParseIP("127.0.0.1"), 7002, ""}
@@ -32,6 +32,9 @@ func TestDatagram(t *testing.T) {
 	})
 	defer faceA.Close()
 	defer faceB.Close()
+
+	assert.Equal("udp4://127.0.0.1:7001", faceA.GetFaceUri().String())
+	assert.Equal("udp4://127.0.0.1:7002", faceB.GetFaceUri().String())
 
 	fixture := ifacetestfixture.New(t, faceA, socketface.NewRxGroup(faceA), faceB)
 	fixture.RunTest()

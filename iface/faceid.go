@@ -18,10 +18,10 @@ const (
 	FaceKind_Socket FaceKind = 0xE
 )
 
-var faceKinds = map[FaceKind]string {
-	FaceKind_None: "none",
-	FaceKind_Mock: "mock",
-	FaceKind_Eth: "eth",
+var faceKinds = map[FaceKind]string{
+	FaceKind_None:   "none",
+	FaceKind_Mock:   "mock",
+	FaceKind_Eth:    "eth",
 	FaceKind_Socket: "socket",
 }
 
@@ -55,7 +55,7 @@ func (id FaceId) GetKind() FaceKind {
 // Allocate a random FaceId for a kind of face.
 func AllocId(kind FaceKind) (id FaceId) {
 	for id.GetKind() != kind || gFaces[id] != nil {
-		id = FaceId(kind << 12) | FaceId(rand.Uint32() & 0x0FFF)
+		id = FaceId(kind<<12) | FaceId(rand.Uint32()&0x0FFF)
 	}
 	return id
 }

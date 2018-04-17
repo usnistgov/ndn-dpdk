@@ -25,6 +25,7 @@ func (fm FaceMgmt) Get(args IdArg, reply *FaceInfo) error {
 	}
 
 	reply.Id = face.GetFaceId()
+	reply.RemoteFaceUri = face.GetFaceUri().String()
 	reply.Counters = face.ReadCounters()
 	reply.Latency = face.ReadLatency()
 

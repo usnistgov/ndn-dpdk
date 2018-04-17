@@ -15,6 +15,7 @@ import (
 
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
+	"ndn-dpdk/iface/faceuri"
 )
 
 type Config struct {
@@ -47,6 +48,9 @@ type impl interface {
 
 	// Transmit one packet on the socket.
 	Send(pkt dpdk.Packet) error
+
+	// Return FaceUri describing the remote endpoint.
+	GetFaceUri() *faceuri.FaceUri
 }
 
 func New(conn net.Conn, cfg Config) *SocketFace {
@@ -77,6 +81,10 @@ func New(conn net.Conn, cfg Config) *SocketFace {
 
 func (face *SocketFace) getPtr() *C.Face {
 	return (*C.Face)(face.GetPtr())
+}
+
+func (face *SocketFace) GetFaceUri() *faceuri.FaceUri {
+	return face.impl.GetFaceUri()
 }
 
 func (face *SocketFace) Close() error {
