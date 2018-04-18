@@ -29,6 +29,7 @@ Installation steps:
 * [container](container/): data structures.
 * [strategy](strategy/): forwarding strategy BPF programs.
 * [app](app/): applications.
+* [mgmt](mgmt/): management interface.
 * [appinit](appinit/): initialization procedures.
 * [cmd](cmd/): executables.
 * [integ](integ/): integration tests.

@@ -7,12 +7,13 @@ import (
 	"time"
 
 	"ndn-dpdk/app/fwdp"
-	"ndn-dpdk/app/fwdp/fwdpmgmt"
 	"ndn-dpdk/appinit"
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/ndt"
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
+	"ndn-dpdk/mgmt/facemgmt"
+	"ndn-dpdk/mgmt/fwdpmgmt"
 	"ndn-dpdk/ndn"
 	"ndn-dpdk/strategy/strategy_elf"
 )
@@ -25,9 +26,7 @@ func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
 	appinit.InitEal()
 	startDp()
-	appinit.EnableMgmt()
-	fwdpmgmt.Enable(theDp)
-	appinit.StartMgmt()
+	startMgmt()
 
 	// add default FIB entry
 	// TODO remove this when FIB management is ready
@@ -177,6 +176,12 @@ func startDp() {
 	}
 
 	logger.Print("Data plane started")
+}
+
+func startMgmt() {
+	appinit.RegisterMgmt(facemgmt.FaceMgmt{})
+	appinit.RegisterMgmt(fwdpmgmt.DpInfoMgmt{theDp})
+	appinit.StartMgmt()
 }
 
 func loadStrategy(shortname string) fib.StrategyCode {

@@ -25,19 +25,8 @@ A number of templates have been registered automatically.
 
 `NewFace*` functions allow creating faces from FaceUri.
 
-## Management RPC Server (mgmt.go)
+## Management (mgmt.go)
 
-`EnableMgmt` followed by `StartMgmt` initializes the management RPC server.
-Calling process may register additional management modules on `MgmtRpcServer` variable.
-This server uses JSON-RPC 2.0 codec.
+`RegisterMgmt` registers a management module.
 
-By default, the RPC server listens on Unix stream socket `/var/run/ndn-dpdk-mgmt.sock`.
-Sysadmin may change this path or switch to TCP through environment variable.
-For example:
-
-    MGMT=unix:///tmp/ndn-dpdk-mgmt.sock
-    MGMT=tcp4://127.0.0.1:6345
-    MGMT=tcp6://[::1]:6345
-
-The Unix stream socket is reachable by root only, because there is no authentication on the RPC server.
-Client processes should start as root and open the socket, then drop root privileges if desired.
+`StartMgmt` launches the management RPC server.

@@ -9,7 +9,7 @@ import (
 
 type FaceMgmt struct{}
 
-func (fm FaceMgmt) List(args struct{}, reply *[]iface.FaceId) error {
+func (FaceMgmt) List(args struct{}, reply *[]iface.FaceId) error {
 	list := make([]iface.FaceId, 0)
 	for it := iface.IterFaces(); it.Valid(); it.Next() {
 		list = append(list, it.Id)
@@ -18,7 +18,7 @@ func (fm FaceMgmt) List(args struct{}, reply *[]iface.FaceId) error {
 	return nil
 }
 
-func (fm FaceMgmt) Get(args IdArg, reply *FaceInfo) error {
+func (FaceMgmt) Get(args IdArg, reply *FaceInfo) error {
 	face := iface.Get(args.Id)
 	if face == nil {
 		return errors.New("Face not found.")

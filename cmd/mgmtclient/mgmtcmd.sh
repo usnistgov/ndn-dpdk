@@ -26,14 +26,14 @@ jsonrpc() {
 
 if [[ $1 == 'face' ]]; then
   if [[ -z $2 ]] || [[ $2 == 'list' ]]; then
-    jsonrpc Faces.List
+    jsonrpc Face.List
   elif [[ $2 == 'show' ]]; then
-    jsonrpc Faces.Get '{"Id":'$3'}'
+    jsonrpc Face.Get '{"Id":'$3'}'
   fi
 elif [[ $1 == 'dpinfo' ]]; then
   if [[ -z $2 ]] || [[ $2 == 'global' ]]; then
-    jsonrpc DPInfo.Global ''
+    jsonrpc DpInfo.Global ''
   elif [[ $2 == 'input' ]] || [[ $2 == 'fwd' ]] || [[ $2 == 'pit' ]] || [[ $2 == 'cs' ]]; then
-    jsonrpc DPInfo."${2^}" '{"Index":'$3'}'
+    jsonrpc DpInfo."${2^}" '{"Index":'$3'}'
   fi
 fi
