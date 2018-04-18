@@ -106,10 +106,10 @@ func (fixture *Fixture) CheckCounters() {
 	assert := fixture.assert
 
 	txCnt := fixture.txFace.ReadCounters()
-	assert.Equal(uint64(3*fixture.TxLoops), txCnt.TxL2.NFrames)
-	assert.Equal(uint64(fixture.TxLoops), txCnt.TxL3.NInterests)
-	assert.Equal(uint64(fixture.TxLoops), txCnt.TxL3.NData)
-	assert.Equal(uint64(fixture.TxLoops), txCnt.TxL3.NNacks)
+	assert.Equal(3*fixture.TxLoops, int(txCnt.TxL2.NFrames))
+	assert.Equal(fixture.TxLoops, int(txCnt.TxL3.NInterests))
+	assert.Equal(fixture.TxLoops, int(txCnt.TxL3.NData))
+	assert.Equal(fixture.TxLoops, int(txCnt.TxL3.NNacks))
 
 	rxCnt := fixture.rxFace.ReadCounters()
 	assert.Equal(fixture.NRxInterests, int(rxCnt.RxL3.NInterests))

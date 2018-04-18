@@ -5,85 +5,121 @@ package socketface
 */
 import "C"
 import (
+	"errors"
+	"reflect"
+	"sync"
 	"unsafe"
 
+	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
 )
 
+// Provide RxLoop for a set of SocketFaces.
 type RxGroup struct {
-	faces     map[*SocketFace]struct{}
-	running   bool
-	closeCmd  chan struct{}
-	addCmd    chan *SocketFace
-	removeCmd chan *SocketFace
-	listCmd   chan chan []iface.FaceId
+	lock        sync.Mutex
+	quit        chan<- bool
+	faces       []*SocketFace
+	selectCases []reflect.SelectCase
 }
 
-func NewRxGroup(faces ...*SocketFace) (rxg RxGroup) {
-	rxg.faces = make(map[*SocketFace]struct{})
-	for _, face := range faces {
-		rxg.faces[face] = struct{}{}
+func NewRxGroup(faces ...*SocketFace) *RxGroup {
+	var rxg RxGroup
+	quit := make(chan bool)
+	rxg.quit = quit
+	rxg.selectCases = []reflect.SelectCase{
+		{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(quit)},
 	}
 
-	rxg.closeCmd = make(chan struct{})
-	rxg.addCmd = make(chan *SocketFace)
-	rxg.removeCmd = make(chan *SocketFace)
-	rxg.listCmd = make(chan chan []iface.FaceId)
-	return rxg
+	for _, face := range faces {
+		rxg.AddFace(face)
+	}
+	return &rxg
 }
 
-func (rxg RxGroup) Close() error {
+func (rxg *RxGroup) Close() error {
 	return rxg.StopRxLoop()
 }
 
-func (rxg RxGroup) AddFace(face *SocketFace) {
-	rxg.addCmd <- face
-}
+func (rxg *RxGroup) AddFace(face *SocketFace) error {
+	rxg.lock.Lock()
+	defer rxg.lock.Unlock()
 
-func (rxg RxGroup) RemoveFace(face *SocketFace) {
-	rxg.removeCmd <- face
-}
-
-func (rxg RxGroup) RxLoop(burstSize int, cb unsafe.Pointer, cbarg unsafe.Pointer) {
-	burst := iface.NewRxBurst(burstSize)
-	for {
-		select {
-		case <-rxg.closeCmd:
-			return
-		case face := <-rxg.addCmd:
-			rxg.faces[face] = struct{}{}
-		case face := <-rxg.removeCmd:
-			delete(rxg.faces, face)
-		case returnCh := <-rxg.listCmd:
-			returnCh <- rxg.listFaceIds()
-		default:
-		}
-
-		for face := range rxg.faces {
-			nRx := face.rxBurst(burst)
-			if nRx > 0 {
-				C.FaceImpl_RxBurst(face.getPtr(), (*C.FaceRxBurst)(burst.GetPtr()),
-					C.uint16_t(nRx), (C.Face_RxCb)(cb), cbarg)
-			}
+	for _, f := range rxg.faces {
+		if f == face {
+			return errors.New("face is already in RxGroup")
 		}
 	}
-}
 
-func (rxg RxGroup) StopRxLoop() error {
-	rxg.closeCmd <- struct{}{}
+	rxg.faces = append(rxg.faces, face)
+	rxg.selectCases = append(rxg.selectCases,
+		reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(face.rxQueue)})
 	return nil
 }
 
-func (rxg RxGroup) listFaceIds() (list []iface.FaceId) {
-	list = make([]iface.FaceId, 0)
-	for face := range rxg.faces {
-		list = append(list, face.GetFaceId())
+func (rxg *RxGroup) RemoveFace(face *SocketFace) error {
+	rxg.lock.Lock()
+	defer rxg.lock.Unlock()
+
+	index := -1
+	for i, f := range rxg.faces {
+		if f == face {
+			index = i
+			break
+		}
 	}
-	return list
+	if index < 0 {
+		return errors.New("face is not in RxGroup")
+	}
+
+	last := len(rxg.faces) - 1
+	rxg.faces[index] = rxg.faces[last]
+	rxg.faces = rxg.faces[:last]
+	rxg.selectCases[index+1] = rxg.selectCases[last+1]
+	rxg.selectCases = rxg.selectCases[:last+1]
+	return nil
 }
 
-func (rxg RxGroup) ListFacesInRxLoop() []iface.FaceId {
-	returnCh := make(chan []iface.FaceId)
-	rxg.listCmd <- returnCh
-	return <-returnCh
+func (rxg *RxGroup) RxLoop(burstSize int, cb unsafe.Pointer, cbarg unsafe.Pointer) {
+	burst := iface.NewRxBurst(burstSize)
+	defer burst.Close()
+	for {
+		rxg.lock.Lock()
+		chosen, recv, _ := reflect.Select(rxg.selectCases)
+		if chosen == 0 { // quit
+			rxg.lock.Unlock()
+			return
+		} else { // RX
+			face := rxg.faces[chosen-1]
+			nRx := 1
+			burst.SetFrame(0, recv.Interface().(dpdk.Packet))
+		LOOP_BURST:
+			for ; nRx < burstSize; nRx++ {
+				select {
+				case pkt := <-face.rxQueue:
+					burst.SetFrame(nRx, pkt)
+				default:
+					break LOOP_BURST
+				}
+			}
+			C.FaceImpl_RxBurst(face.getPtr(), (*C.FaceRxBurst)(burst.GetPtr()),
+				C.uint16_t(nRx), (C.Face_RxCb)(cb), cbarg)
+		}
+		rxg.lock.Unlock()
+	}
+}
+
+func (rxg *RxGroup) StopRxLoop() error {
+	rxg.quit <- true
+	return nil
+}
+
+func (rxg *RxGroup) ListFacesInRxLoop() []iface.FaceId {
+	rxg.lock.Lock()
+	defer rxg.lock.Unlock()
+
+	list := make([]iface.FaceId, len(rxg.faces))
+	for i, face := range rxg.faces {
+		list[i] = face.GetFaceId()
+	}
+	return list
 }

@@ -9,6 +9,7 @@ import (
 	"ndn-dpdk/iface/faceuri"
 )
 
+// SocketFace implementation for datagram-oriented sockets.
 type datagramImpl struct {
 	face *SocketFace
 }

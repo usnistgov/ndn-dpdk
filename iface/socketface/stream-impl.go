@@ -10,6 +10,7 @@ import (
 	"ndn-dpdk/ndn"
 )
 
+// SocketFace implementation for stream-oriented sockets.
 type streamImpl struct {
 	face *SocketFace
 }

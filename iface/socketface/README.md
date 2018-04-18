@@ -7,7 +7,7 @@ There are two different implementations:
 * **datagramImpl** for datagram-oriented sockets (net.PacketConn).
 * **streamImpl** for stream-oriented sockets (net.Conn that is not net.PacketConn).
 
-FaceId of MockFace is randomly assigned from the range 0x0001-0x0FFF.
+FaceId of SocketFace is randomly assigned from the range 0xE000-0xEFFF.
 
 SocketFace's send path is thread safe.
 
@@ -20,7 +20,7 @@ It casts DPDK mbuf's internal buffer as a `[]byte`, and does not copy the frame 
 
 **streamImpl** reads the incoming stream into a `[]byte`, extracts completed TLV elements with `ndn.TlvBytes.ExtractElement` function, and copies them to DPDK mbufs for posting to the channel.
 
-Calling code must run `RxGroup.RxLoop` in an LCore to retrieve L2 frames from the `SocketFace.rxQueue` channel, perform packet parsing, and eventually deliver L3 packets to the **Face\_RxCb** callback.
+Calling code must run `RxGroup.RxLoop` in an LCore to retrieve L2 frames from the `SocketFace.rxQueue` channel and pass them to `FaceImpl_RxBurst`.
 
 ## Send Path
 

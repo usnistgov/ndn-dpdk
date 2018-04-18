@@ -18,6 +18,7 @@ import (
 	"ndn-dpdk/iface/faceuri"
 )
 
+// Configuration for creating SocketFace.
 type Config struct {
 	iface.Mempools
 	RxMp        dpdk.PktmbufPool // mempool for received frames, dataroom must fit NDNLP frame
@@ -25,6 +26,7 @@ type Config struct {
 	TxqCapacity int              // send queue length in frames
 }
 
+// A face using socket as transport.
 type SocketFace struct {
 	iface.BaseFace
 	logger *log.Logger
@@ -53,6 +55,7 @@ type impl interface {
 	GetFaceUri() *faceuri.FaceUri
 }
 
+// Create a SocketFace on a net.Conn.
 func New(conn net.Conn, cfg Config) *SocketFace {
 	var face SocketFace
 	face.InitBaseFace(iface.AllocId(iface.FaceKind_Socket), 0, dpdk.NUMA_SOCKET_ANY)
@@ -92,19 +95,6 @@ func (face *SocketFace) Close() error {
 	face.rxQuit <- struct{}{}
 	close(face.txQueue)
 	return face.conn.Close()
-}
-
-func (face *SocketFace) rxBurst(burst iface.RxBurst) (nRx int) {
-	capacity := burst.GetCapacity()
-	for ; nRx < capacity; nRx++ {
-		select {
-		case pkt := <-face.rxQueue:
-			burst.SetFrame(nRx, pkt)
-		default:
-			return nRx
-		}
-	}
-	return nRx
 }
 
 // Report congestion when RxLoop is unable to send into rxQueue.
