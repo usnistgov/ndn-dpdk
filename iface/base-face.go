@@ -42,6 +42,7 @@ func (face *BaseFace) InitBaseFace(id FaceId, sizeofPriv int, socket dpdk.NumaSo
 	faceC := face.getPtr()
 	*faceC = C.Face{}
 	faceC.id = C.FaceId(face.id)
+	faceC.state = C.FACESTA_UP
 	faceC.numaSocket = C.int(socket)
 
 	sizeofImpl := int(C.sizeof_FaceImpl) + sizeofPriv
@@ -52,8 +53,8 @@ func (face *BaseFace) InitBaseFace(id FaceId, sizeofPriv int, socket dpdk.NumaSo
 // Deallocate FaceImpl.
 func (face BaseFace) CloseBaseFace() {
 	faceC := face.getPtr()
+	faceC.state = C.FACESTA_REMOVED
 	dpdk.Free(faceC.impl)
-	faceC.id = 0
 }
 
 func (face BaseFace) GetFaceId() FaceId {

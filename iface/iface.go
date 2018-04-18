@@ -63,11 +63,11 @@ func IterFaces() *FaceIterator {
 }
 
 func (it *FaceIterator) Valid() bool {
-	return it.Id != FACEID_INVALID
+	return it.Id <= FACEID_MAX
 }
 
 func (it *FaceIterator) Next() {
-	for it.Id++; it.Id != FACEID_INVALID; it.Id++ {
+	for it.Id++; it.Id <= FACEID_MAX; it.Id++ {
 		it.Face = gFaces[it.Id]
 		if it.Face != nil {
 			return

@@ -9,6 +9,8 @@ There are three kinds of lower layer implementations:
 * [SocketFace](socketface/) communicates on Unix/TCP/UDP tunnels via Go sockets.
 * [MockFace](mockface/) is for unit testing.
 
+Unit tests of this package are in [ifacetest](ifacetest/) subdirectory.
+
 ## Face System API
 
 In C, public APIs are defined in term of **FaceId**.

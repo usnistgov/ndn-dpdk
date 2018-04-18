@@ -32,7 +32,6 @@ func (kind FaceKind) String() string {
 	return fmt.Sprintf("%d", kind)
 }
 
-// Numeric face identifier, may appear in rte_mbuf.port field
 type FaceId uint16
 
 const (
@@ -58,4 +57,27 @@ func AllocId(kind FaceKind) (id FaceId) {
 		id = FaceId(kind<<12) | FaceId(rand.Uint32()&0x0FFF)
 	}
 	return id
+}
+
+type State uint8
+
+const (
+	State_Unused  State = C.FACESTA_UNUSED
+	State_Up      State = C.FACESTA_UP
+	State_Down    State = C.FACESTA_DOWN
+	State_Removed State = C.FACESTA_REMOVED
+)
+
+var states = map[State]string{
+	State_Unused:  "unused",
+	State_Up:      "up",
+	State_Down:    "down",
+	State_Removed: "removed",
+}
+
+func (st State) String() string {
+	if s, ok := states[st]; ok {
+		return s
+	}
+	return fmt.Sprintf("%d", st)
 }

@@ -45,6 +45,7 @@ typedef struct Face
   FaceImpl* impl;
   FaceImpl_TxBurst txBurstOp;
   FaceId id;
+  FaceState state;
   int numaSocket;
 
   struct rte_ring* threadSafeTxQueue;
@@ -59,16 +60,14 @@ Face_GetPriv(Face* face)
 
 #define Face_GetPrivT(face, T) ((T*)Face_GetPriv((face)))
 
-/** \brief Array of all faces.
+/** \brief Static array of all faces.
  */
-extern Face __gFaces[FACEID_MAX];
+extern Face __gFaces[FACEID_MAX + 1];
 
 static Face*
 __Face_Get(FaceId faceId)
 {
-  Face* face = &__gFaces[faceId];
-  assert(face->id != FACEID_INVALID);
-  return face;
+  return &__gFaces[faceId];
 }
 
 // ---- functions invoked by user of face system ----
@@ -78,8 +77,8 @@ __Face_Get(FaceId faceId)
 static bool
 Face_IsDown(FaceId faceId)
 {
-  // TODO implement
-  return false;
+  Face* face = __Face_Get(faceId);
+  return face->state != FACESTA_UP;
 }
 
 /** \brief Callback upon packet arrival.
@@ -104,6 +103,11 @@ static void
 Face_TxBurst(FaceId faceId, Packet** npkts, uint16_t count)
 {
   Face* face = __Face_Get(faceId);
+  if (unlikely(face->state != FACESTA_UP)) {
+    FreeMbufs((struct rte_mbuf**)npkts, count);
+    return;
+  }
+
   if (likely(face->threadSafeTxQueue != NULL)) {
     uint16_t nQueued = rte_ring_mp_enqueue_burst(face->threadSafeTxQueue,
                                                  (void**)npkts, count, NULL);

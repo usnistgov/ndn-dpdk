@@ -5,7 +5,7 @@ static const int LATENCY_STAT_SAMPLE_FREQ = 16;
 static const int TX_BURST_FRAMES = 64;  // number of frames in a burst
 static const int TX_MAX_FRAGMENTS = 64; // max allowed number of fragments
 
-Face __gFaces[FACEID_MAX];
+Face __gFaces[FACEID_MAX + 1];
 
 static void
 Face_TxBurst_SendFrames(Face* face, struct rte_mbuf** frames, uint16_t nFrames)
@@ -48,6 +48,11 @@ void
 Face_ReadCounters(FaceId faceId, FaceCounters* cnt)
 {
   Face* face = __Face_Get(faceId);
+  if (unlikely(face->state != FACESTA_UP && face->state != FACESTA_DOWN)) {
+    memset(cnt, 0, sizeof(*cnt));
+    return;
+  }
+
   RxProc_ReadCounters(&face->impl->rx, cnt);
   TxProc_ReadCounters(&face->impl->tx, cnt);
 }
