@@ -13,6 +13,7 @@ import (
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/mgmt/facemgmt"
+	"ndn-dpdk/mgmt/fibmgmt"
 	"ndn-dpdk/mgmt/fwdpmgmt"
 	"ndn-dpdk/ndn"
 	"ndn-dpdk/strategy/strategy_elf"
@@ -20,12 +21,14 @@ import (
 
 var theNdt ndt.Ndt
 var theFib *fib.Fib
+var theStrategy fib.StrategyCode
 var theDp *fwdp.DataPlane
 
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
 	appinit.InitEal()
 	startDp()
+	theStrategy = loadStrategy("multicast")
 	startMgmt()
 
 	// add default FIB entry
@@ -39,7 +42,7 @@ func main() {
 			nexthops = append(nexthops, it.Id)
 		}
 		fibEntry.SetNexthops(nexthops)
-		fibEntry.SetStrategy(loadStrategy("multicast"))
+		fibEntry.SetStrategy(theStrategy)
 		theFib.Insert(&fibEntry)
 	}
 
@@ -180,6 +183,8 @@ func startDp() {
 
 func startMgmt() {
 	appinit.RegisterMgmt(facemgmt.FaceMgmt{})
+	fibmgmt.TheStrategy = theStrategy
+	appinit.RegisterMgmt(fibmgmt.FibMgmt{theFib})
 	appinit.RegisterMgmt(fwdpmgmt.DpInfoMgmt{theDp})
 	appinit.StartMgmt()
 }

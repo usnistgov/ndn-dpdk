@@ -6,6 +6,17 @@ Subcommands:
     List faces.
   face show <ID>
     Show face counters.
+  fib info
+    Show FIB counters.
+  fib list
+    List FIB entry names.
+  fib insert <NAME> <NEXTHOP,NEXTHOP>
+    Insert/replace FIB entry.
+  fib erase <NAME>
+    Erase FIB entry.
+  fib find <NAME>
+  fib lpm <NAME>
+    Perform exact-match/longest-prefix-match lookup on FIB.
   dpinfo [global]
     Show dataplane global information.
   dpinfo input <I>
@@ -29,6 +40,16 @@ if [[ $1 == 'face' ]]; then
     jsonrpc Face.List
   elif [[ $2 == 'show' ]]; then
     jsonrpc Face.Get '{"Id":'$3'}'
+  fi
+elif [[ $1 == 'fib' ]]; then
+  if [[ $2 == 'info' ]]; then
+    jsonrpc Fib.Info ''
+  elif [[ -z $2 ]] || [[ $2 == 'list' ]]; then
+    jsonrpc Fib.List ''
+  elif [[ $2 == 'insert' ]]; then
+    jsonrpc Fib.Insert '{"Name":"'$3'","Nexthops":['$4']}'
+  elif [[ $2 == 'erase' ]] || [[ $2 == 'find' ]] || [[ $2 == 'lpm' ]]; then
+    jsonrpc Fib."${2^}" '{"Name":"'$3'"}'
   fi
 elif [[ $1 == 'dpinfo' ]]; then
   if [[ -z $2 ]] || [[ $2 == 'global' ]]; then
