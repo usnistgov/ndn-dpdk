@@ -6,6 +6,8 @@ Subcommands:
     List faces.
   face show <ID>
     Show face counters.
+  face create <FACEURI>
+    Create a socket face.
   fib info
     Show FIB counters.
   fib list
@@ -40,6 +42,8 @@ if [[ $1 == 'face' ]]; then
     jsonrpc Face.List
   elif [[ $2 == 'show' ]]; then
     jsonrpc Face.Get '{"Id":'$3'}'
+  elif [[ $2 == 'create' ]]; then
+    jsonrpc Face.Create '{"RemoteFaceUri":"'$3'"}'
   fi
 elif [[ $1 == 'fib' ]]; then
   if [[ $2 == 'info' ]]; then

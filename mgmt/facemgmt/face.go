@@ -5,7 +5,11 @@ import (
 
 	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/ethface"
+	"ndn-dpdk/iface/faceuri"
 )
+
+// Function to create a face.
+var CreateFace func(u faceuri.FaceUri) (iface.FaceId, error)
 
 type FaceMgmt struct{}
 
@@ -21,7 +25,7 @@ func (FaceMgmt) List(args struct{}, reply *[]iface.FaceId) error {
 func (FaceMgmt) Get(args IdArg, reply *FaceInfo) error {
 	face := iface.Get(args.Id)
 	if face == nil {
-		return errors.New("Face not found.")
+		return errors.New("face not found")
 	}
 
 	reply.Id = face.GetFaceId()
@@ -35,4 +39,18 @@ func (FaceMgmt) Get(args IdArg, reply *FaceInfo) error {
 	}
 
 	return nil
+}
+
+func (FaceMgmt) Create(args FaceUriArg, reply *IdArg) error {
+	if CreateFace == nil {
+		return errors.New("face creation is unavailable")
+	}
+
+	u, e := faceuri.Parse(args.RemoteFaceUri)
+	if e != nil {
+		return e
+	}
+
+	reply.Id, e = CreateFace(*u)
+	return e
 }

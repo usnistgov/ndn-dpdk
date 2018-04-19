@@ -1,10 +1,10 @@
 package main
 
 import (
+	"errors"
 	"log"
 	"math/rand"
 	"os"
-	"strings"
 	"time"
 
 	"ndn-dpdk/app/fwdp"
@@ -35,23 +35,6 @@ func main() {
 	startDp()
 	theStrategy = loadStrategy("multicast")
 	startMgmt()
-
-	// create socket faces
-	// TODO remove this when face management is ready
-	if socketFacesEnv := os.Getenv("NDNFW_SOCKETFACES"); len(socketFacesEnv) > 0 {
-		for _, socketFaceUri := range strings.Split(socketFacesEnv, ",") {
-			u := faceuri.MustParse(socketFaceUri)
-			face, e := appinit.NewFaceFromUri(*u)
-			if e != nil {
-				log.Printf("NewFaceFromUri(%s): %v", socketFaceUri, e)
-				continue
-			}
-			face.EnableThreadSafeTx(64)
-			theSocketRxg.AddFace(face.(*socketface.SocketFace))
-			theSocketTxl.AddFace(face)
-			log.Printf("Creating SocketFace %d for %s", face.GetFaceId(), socketFaceUri)
-		}
-	}
 
 	// add default FIB entry
 	// TODO remove this when FIB management is ready
@@ -218,7 +201,24 @@ func startDp() {
 	logger.Print("Data plane started")
 }
 
+func createFace(u faceuri.FaceUri) (iface.FaceId, error) {
+	if u.Scheme != "udp4" && u.Scheme != "tcp4" {
+		return iface.FACEID_INVALID, errors.New("face creation only allows udp4 and tcp4 schemes")
+	}
+
+	face, e := appinit.NewFaceFromUri(u)
+	if e != nil {
+		return iface.FACEID_INVALID, e
+	}
+
+	face.EnableThreadSafeTx(64)
+	theSocketRxg.AddFace(face.(*socketface.SocketFace))
+	theSocketTxl.AddFace(face)
+	return face.GetFaceId(), nil
+}
+
 func startMgmt() {
+	facemgmt.CreateFace = createFace
 	appinit.RegisterMgmt(facemgmt.FaceMgmt{})
 	fibmgmt.TheStrategy = theStrategy
 	appinit.RegisterMgmt(fibmgmt.FibMgmt{theFib})

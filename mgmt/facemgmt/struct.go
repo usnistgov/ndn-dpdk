@@ -10,6 +10,10 @@ type IdArg struct {
 	Id iface.FaceId
 }
 
+type FaceUriArg struct {
+	RemoteFaceUri string
+}
+
 type FaceInfo struct {
 	Id            iface.FaceId
 	RemoteFaceUri string
