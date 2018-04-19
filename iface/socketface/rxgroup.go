@@ -8,6 +8,7 @@ import (
 	"errors"
 	"reflect"
 	"sync"
+	"time"
 	"unsafe"
 
 	"ndn-dpdk/dpdk"
@@ -18,6 +19,7 @@ import (
 type RxGroup struct {
 	lock        sync.Mutex
 	quit        chan<- bool
+	ticker      *time.Ticker
 	faces       []*SocketFace
 	selectCases []reflect.SelectCase
 }
@@ -26,8 +28,10 @@ func NewRxGroup(faces ...*SocketFace) *RxGroup {
 	var rxg RxGroup
 	quit := make(chan bool)
 	rxg.quit = quit
+	rxg.ticker = time.NewTicker(10 * time.Millisecond)
 	rxg.selectCases = []reflect.SelectCase{
 		{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(quit)},
+		{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(rxg.ticker.C)},
 	}
 
 	for _, face := range faces {
@@ -74,22 +78,22 @@ func (rxg *RxGroup) RemoveFace(face *SocketFace) error {
 	last := len(rxg.faces) - 1
 	rxg.faces[index] = rxg.faces[last]
 	rxg.faces = rxg.faces[:last]
-	rxg.selectCases[index+1] = rxg.selectCases[last+1]
-	rxg.selectCases = rxg.selectCases[:last+1]
+	rxg.selectCases[index+2] = rxg.selectCases[last+2]
+	rxg.selectCases = rxg.selectCases[:last+2]
 	return nil
 }
 
 func (rxg *RxGroup) RxLoop(burstSize int, cb unsafe.Pointer, cbarg unsafe.Pointer) {
 	burst := iface.NewRxBurst(burstSize)
 	defer burst.Close()
-	for {
+	stop := false
+	for !stop {
 		rxg.lock.Lock()
 		chosen, recv, _ := reflect.Select(rxg.selectCases)
-		if chosen == 0 { // quit
-			rxg.lock.Unlock()
-			return
+		if chosen <= 1 { // 0=quit, 1=ticker for periodical unlock
+			stop = chosen == 0
 		} else { // RX
-			face := rxg.faces[chosen-1]
+			face := rxg.faces[chosen-2]
 			nRx := 1
 			burst.SetFrame(0, recv.Interface().(dpdk.Packet))
 		LOOP_BURST:

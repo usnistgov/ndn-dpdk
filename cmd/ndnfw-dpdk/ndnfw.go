@@ -4,6 +4,7 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"strings"
 	"time"
 
 	"ndn-dpdk/app/fwdp"
@@ -12,6 +13,8 @@ import (
 	"ndn-dpdk/container/ndt"
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
+	"ndn-dpdk/iface/faceuri"
+	"ndn-dpdk/iface/socketface"
 	"ndn-dpdk/mgmt/facemgmt"
 	"ndn-dpdk/mgmt/fibmgmt"
 	"ndn-dpdk/mgmt/fwdpmgmt"
@@ -19,6 +22,8 @@ import (
 	"ndn-dpdk/strategy/strategy_elf"
 )
 
+var theSocketRxg *socketface.RxGroup
+var theSocketTxl *iface.MultiTxLoop
 var theNdt ndt.Ndt
 var theFib *fib.Fib
 var theStrategy fib.StrategyCode
@@ -30,6 +35,23 @@ func main() {
 	startDp()
 	theStrategy = loadStrategy("multicast")
 	startMgmt()
+
+	// create socket faces
+	// TODO remove this when face management is ready
+	if socketFacesEnv := os.Getenv("NDNFW_SOCKETFACES"); len(socketFacesEnv) > 0 {
+		for _, socketFaceUri := range strings.Split(socketFacesEnv, ",") {
+			u := faceuri.MustParse(socketFaceUri)
+			face, e := appinit.NewFaceFromUri(*u)
+			if e != nil {
+				log.Printf("NewFaceFromUri(%s): %v", socketFaceUri, e)
+				continue
+			}
+			face.EnableThreadSafeTx(64)
+			theSocketRxg.AddFace(face.(*socketface.SocketFace))
+			theSocketTxl.AddFace(face)
+			log.Printf("Creating SocketFace %d for %s", face.GetFaceId(), socketFaceUri)
+		}
+	}
 
 	// add default FIB entry
 	// TODO remove this when FIB management is ready
@@ -86,7 +108,22 @@ func startDp() {
 		outputTxLoopers = append(outputTxLoopers, appinit.MakeTxLooper(face))
 	}
 
-	// TODO reserve lcore for SocketFaces
+	// reserve lcore for SocketFaces
+	{
+		theSocketRxg = socketface.NewRxGroup()
+		inputLc := lcr.ReserveRequired(dpdk.NUMA_SOCKET_ANY)
+		socket := inputLc.GetNumaSocket()
+		logger.Printf("Reserving lcore %d on socket %d for SocketFaces RX", inputLc, socket)
+		dpCfg.InputLCores = append(dpCfg.InputLCores, inputLc)
+		inputNumaSockets = append(inputNumaSockets, socket)
+		inputRxLoopers = append(inputRxLoopers, theSocketRxg)
+
+		theSocketTxl = iface.NewMultiTxLoop()
+		outputLc := lcr.ReserveRequired(socket)
+		logger.Printf("Reserving lcore %d on socket %d for SocketFaces TX", outputLc, socket)
+		outputLCores = append(outputLCores, outputLc)
+		outputTxLoopers = append(outputTxLoopers, theSocketTxl)
+	}
 
 	// initialize NDT
 	{

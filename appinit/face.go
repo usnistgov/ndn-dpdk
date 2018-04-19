@@ -91,14 +91,16 @@ func newSocketFace(u faceuri.FaceUri) (face iface.IFace, e error) {
 		if e != nil {
 			return nil, fmt.Errorf("net.ResolveUDPAddr(%s,%s): %v", network, address, e)
 		}
-		var laddr net.UDPAddr
-		laddr.Port = raddr.Port
+		laddr := net.UDPAddr{Port: raddr.Port}
 		conn, e = net.DialUDP(network, &laddr, raddr)
+		if e != nil {
+			return nil, fmt.Errorf("net.DialUDP(%s,%s): %v", network, address, e)
+		}
 	} else {
 		conn, e = net.Dial(network, address)
-	}
-	if e != nil {
-		return nil, fmt.Errorf("net.Dial(%s,%s): %v", network, address, e)
+		if e != nil {
+			return nil, fmt.Errorf("net.Dial(%s,%s): %v", network, address, e)
+		}
 	}
 
 	var cfg socketface.Config
