@@ -18,15 +18,14 @@ import (
 	"ndn-dpdk/mgmt/facemgmt"
 	"ndn-dpdk/mgmt/fibmgmt"
 	"ndn-dpdk/mgmt/fwdpmgmt"
-	"ndn-dpdk/ndn"
 	"ndn-dpdk/strategy/strategy_elf"
 )
 
 var theSocketRxg *socketface.RxGroup
 var theSocketTxl *iface.MultiTxLoop
 var theNdt ndt.Ndt
-var theFib *fib.Fib
 var theStrategy fib.StrategyCode
+var theFib *fib.Fib
 var theDp *fwdp.DataPlane
 
 func main() {
@@ -34,22 +33,8 @@ func main() {
 	appinit.InitEal()
 	startDp()
 	theStrategy = loadStrategy("multicast")
+	theStrategy.Ref()
 	startMgmt()
-
-	// add default FIB entry
-	// TODO remove this when FIB management is ready
-	{
-		var fibEntry fib.Entry
-		fibEntryName, _ := ndn.ParseName("/")
-		fibEntry.SetName(fibEntryName)
-		nexthops := make([]iface.FaceId, 0, fib.MAX_NEXTHOPS)
-		for it := iface.IterFaces(); it.Valid() && len(nexthops) < fib.MAX_NEXTHOPS; it.Next() {
-			nexthops = append(nexthops, it.Id)
-		}
-		fibEntry.SetNexthops(nexthops)
-		fibEntry.SetStrategy(theStrategy)
-		theFib.Insert(&fibEntry)
-	}
 
 	select {}
 }
