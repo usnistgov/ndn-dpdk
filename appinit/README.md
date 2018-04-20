@@ -8,7 +8,7 @@ Most procedures are designed to terminate the process (via `Exitf` function) if 
 `InitEal` initializes DPDK's EAL.
 It is required before calling any other function that depends on DPDK.
 
-`Launch` and `LaunchRequired` launch an lcore on specified NUMA socket.
+`Launch` and `MustLaunch` launch an lcore on specified NUMA socket.
 
 **LCoreReservations** type allows reserving lcore(s) for launching later.
 

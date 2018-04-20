@@ -62,12 +62,12 @@ func main() {
 			proc.dumper = dump.New(ring, logger)
 		}
 
-		proc.rxLcore = lcr.ReserveRequired(numaSocket)
-		proc.txLcore = lcr.ReserveRequired(numaSocket)
+		proc.rxLcore = lcr.MustReserve(numaSocket)
+		proc.txLcore = lcr.MustReserve(numaSocket)
 	}
 	if pc.Dump {
 		for i := range procs {
-			procs[i].dumpLcore = lcr.ReserveRequired(dpdk.NUMA_SOCKET_ANY)
+			procs[i].dumpLcore = lcr.MustReserve(dpdk.NUMA_SOCKET_ANY)
 		}
 	}
 

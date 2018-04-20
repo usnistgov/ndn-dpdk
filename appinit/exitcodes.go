@@ -15,6 +15,7 @@ const (
 	EXIT_MGMT_ERROR         = 8
 )
 
+// Log an error message, then os.Exit(exitCode).
 func Exitf(exitCode int, format string, v ...interface{}) {
 	log.Printf(format, v...)
 	os.Exit(exitCode)

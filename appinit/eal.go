@@ -1,7 +1,6 @@
 package appinit
 
 import (
-	"log"
 	"os"
 
 	"ndn-dpdk/dpdk"
@@ -34,12 +33,11 @@ func Launch(f dpdk.LCoreFunc, socket dpdk.NumaSocket) dpdk.LCore {
 
 // Asynchonrously launch a function on an lcore in specified NumaSocket.
 // os.Exit(EXIT_EAL_LAUNCH_ERROR) if no lcore available or other failure.
-func LaunchRequired(f dpdk.LCoreFunc, socket dpdk.NumaSocket) dpdk.LCore {
+func MustLaunch(f dpdk.LCoreFunc, socket dpdk.NumaSocket) dpdk.LCore {
 	lc := NewLCoreReservations().Reserve(socket)
 	ok := lc.RemoteLaunch(f)
 	if !ok {
-		log.Printf("unable to launch lcore %d on socket %d", lc, socket)
-		os.Exit(EXIT_EAL_LAUNCH_ERROR)
+		Exitf(EXIT_EAL_LAUNCH_ERROR, "unable to launch lcore %d on socket %d", lc, socket)
 	}
 	return lc
 }
@@ -69,11 +67,10 @@ func (lcr LCoreReservations) Reserve(socket dpdk.NumaSocket) dpdk.LCore {
 
 // Reserve an idle lcore in specified NumaSocket.
 // os.Exit(EXIT_EAL_LAUNCH_ERROR) if no lcore available.
-func (lcr LCoreReservations) ReserveRequired(socket dpdk.NumaSocket) dpdk.LCore {
+func (lcr LCoreReservations) MustReserve(socket dpdk.NumaSocket) dpdk.LCore {
 	lc := lcr.Reserve(socket)
 	if !lc.IsValid() {
-		log.Printf("unable to reserve an lcore on socket %d", socket)
-		os.Exit(EXIT_EAL_LAUNCH_ERROR)
+		Exitf(EXIT_EAL_LAUNCH_ERROR, "unable to reserve an lcore on socket %d", socket)
 	}
 	return lc
 }

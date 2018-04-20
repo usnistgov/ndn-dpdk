@@ -57,7 +57,7 @@ func startDp() {
 			logger.Printf("%v", e)
 			continue
 		}
-		inputLc := lcr.ReserveRequired(face.GetNumaSocket())
+		inputLc := lcr.MustReserve(face.GetNumaSocket())
 		socket := inputLc.GetNumaSocket()
 		logger.Printf("Reserving lcore %d on socket %d for EthDev %d RX", inputLc, socket, port)
 		dpCfg.InputLCores = append(dpCfg.InputLCores, inputLc)
@@ -70,7 +70,7 @@ func startDp() {
 				port, e)
 		}
 
-		outputLc := lcr.ReserveRequired(socket)
+		outputLc := lcr.MustReserve(socket)
 		logger.Printf("Reserving lcore %d on socket %d for EthDev %d TX", outputLc, socket, port)
 		outputLCores = append(outputLCores, outputLc)
 		outputTxLoopers = append(outputTxLoopers, appinit.MakeTxLooper(face))
@@ -79,7 +79,7 @@ func startDp() {
 	// reserve lcore for SocketFaces
 	{
 		theSocketRxg = socketface.NewRxGroup()
-		inputLc := lcr.ReserveRequired(dpdk.NUMA_SOCKET_ANY)
+		inputLc := lcr.MustReserve(dpdk.NUMA_SOCKET_ANY)
 		socket := inputLc.GetNumaSocket()
 		logger.Printf("Reserving lcore %d on socket %d for SocketFaces RX", inputLc, socket)
 		dpCfg.InputLCores = append(dpCfg.InputLCores, inputLc)
@@ -87,7 +87,7 @@ func startDp() {
 		inputRxLoopers = append(inputRxLoopers, theSocketRxg)
 
 		theSocketTxl = iface.NewMultiTxLoop()
-		outputLc := lcr.ReserveRequired(socket)
+		outputLc := lcr.MustReserve(socket)
 		logger.Printf("Reserving lcore %d on socket %d for SocketFaces TX", outputLc, socket)
 		outputLCores = append(outputLCores, outputLc)
 		outputTxLoopers = append(outputTxLoopers, theSocketTxl)

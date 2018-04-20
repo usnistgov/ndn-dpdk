@@ -53,13 +53,13 @@ func main() {
 	}
 
 	for i, server := range servers {
-		lc := appinit.LaunchRequired(server.Run, server.GetFace().GetNumaSocket())
+		lc := appinit.MustLaunch(server.Run, server.GetFace().GetNumaSocket())
 		log.Printf("server(%d) lcore %d socket %d", i, lc, lc.GetNumaSocket())
 	}
 	time.Sleep(100 * time.Millisecond)
 	for i, client := range clients {
-		lc1 := appinit.LaunchRequired(client.RunRx, client.GetFace().GetNumaSocket())
-		lc2 := appinit.LaunchRequired(client.RunTx, lc1.GetNumaSocket())
+		lc1 := appinit.MustLaunch(client.RunRx, client.GetFace().GetNumaSocket())
+		lc2 := appinit.MustLaunch(client.RunTx, lc1.GetNumaSocket())
 		log.Printf("client(%d) lcore %d, %d socket %d", i, lc1, lc2, lc1.GetNumaSocket())
 	}
 
