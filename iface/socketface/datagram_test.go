@@ -3,8 +3,9 @@ package socketface_test
 import (
 	"net"
 	"os"
-	"syscall"
 	"testing"
+
+	"golang.org/x/sys/unix"
 
 	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/ifacetestfixture"
@@ -14,7 +15,7 @@ import (
 func TestDatagram(t *testing.T) {
 	_, require := makeAR(t)
 
-	fd, e := syscall.Socketpair(syscall.AF_UNIX, syscall.SOCK_DGRAM, 0)
+	fd, e := unix.Socketpair(unix.AF_UNIX, unix.SOCK_DGRAM, 0)
 	require.NoError(e)
 
 	makeConnFromFd := func(fd int) net.Conn {
