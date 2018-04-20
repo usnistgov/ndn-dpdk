@@ -9,7 +9,7 @@ import (
 )
 
 // Function to create a face.
-var CreateFace func(u faceuri.FaceUri) (iface.FaceId, error)
+var CreateFace func(u *faceuri.FaceUri) (iface.FaceId, error)
 
 type FaceMgmt struct{}
 
@@ -51,6 +51,6 @@ func (FaceMgmt) Create(args FaceUriArg, reply *IdArg) error {
 		return e
 	}
 
-	reply.Id, e = CreateFace(*u)
+	reply.Id, e = CreateFace(u)
 	return e
 }

@@ -20,7 +20,7 @@ const (
 
 type ParsedCommand struct {
 	Mode        TopoMode
-	Faces       []faceuri.FaceUri
+	Faces       []*faceuri.FaceUri
 	Dump        bool
 	CntInterval time.Duration
 }
@@ -59,10 +59,10 @@ func ParseCommand(args []string) (pc ParsedCommand, e error) {
 		}
 		normailzedUri := u.String()
 		if foundFaceUris[normailzedUri] {
-			return pc, fmt.Errorf("duplicate FaceUri %s (normalized as %v)", faceUri, normailzedUri)
+			return pc, fmt.Errorf("duplicate FaceUri %s (normalized as %s)", faceUri, normailzedUri)
 		}
 		foundFaceUris[normailzedUri] = true
-		pc.Faces = append(pc.Faces, *u)
+		pc.Faces = append(pc.Faces, u)
 	}
 
 	return pc, nil

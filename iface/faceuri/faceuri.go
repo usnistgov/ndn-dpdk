@@ -41,7 +41,7 @@ func MustParse(raw string) *FaceUri {
 	return u
 }
 
-func (u FaceUri) String() string {
+func (u *FaceUri) String() string {
 	return u.URL.String()
 }
 

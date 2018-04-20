@@ -22,7 +22,10 @@ var (
 )
 
 // Create face by FaceUri.
-func NewFaceFromUri(u faceuri.FaceUri) (face iface.IFace, e error) {
+func NewFaceFromUri(u *faceuri.FaceUri) (face iface.IFace, e error) {
+	if u == nil {
+		return nil, errors.New("FaceUri is empty")
+	}
 	create := newFaceByScheme[u.Scheme]
 	if create == nil {
 		return nil, fmt.Errorf("cannot create face with scheme %s", u.Scheme)
@@ -32,14 +35,14 @@ func NewFaceFromUri(u faceuri.FaceUri) (face iface.IFace, e error) {
 }
 
 // Functions to create face by FaceUri for each FaceUri scheme.
-var newFaceByScheme = map[string]func(u faceuri.FaceUri) (iface.IFace, error){
+var newFaceByScheme = map[string]func(u *faceuri.FaceUri) (iface.IFace, error){
 	"dev":  newEthFace,
 	"udp4": newSocketFace,
 	"tcp4": newSocketFace,
 	"mock": newMockFace,
 }
 
-func newEthFace(u faceuri.FaceUri) (iface.IFace, error) {
+func newEthFace(u *faceuri.FaceUri) (iface.IFace, error) {
 	port := dpdk.FindEthDev(u.Host)
 	if !port.IsValid() {
 		return nil, fmt.Errorf("DPDK device %s not found", u.Host)
@@ -82,7 +85,7 @@ func newEthFaceFromDev(port dpdk.EthDev) (iface.IFace, error) {
 	return face, nil
 }
 
-func newSocketFace(u faceuri.FaceUri) (face iface.IFace, e error) {
+func newSocketFace(u *faceuri.FaceUri) (face iface.IFace, e error) {
 	network, address := u.Scheme[:3], u.Host
 
 	var conn net.Conn
@@ -112,7 +115,7 @@ func newSocketFace(u faceuri.FaceUri) (face iface.IFace, e error) {
 	return socketface.New(conn, cfg), nil
 }
 
-func newMockFace(u faceuri.FaceUri) (face iface.IFace, e error) {
+func newMockFace(u *faceuri.FaceUri) (face iface.IFace, e error) {
 	mockface.FaceMempools = makeFaceMempools(dpdk.NUMA_SOCKET_ANY)
 	return mockface.New(), nil
 }

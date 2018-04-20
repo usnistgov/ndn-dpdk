@@ -186,7 +186,7 @@ func startDp() {
 	logger.Print("Data plane started")
 }
 
-func createFace(u faceuri.FaceUri) (iface.FaceId, error) {
+func createFace(u *faceuri.FaceUri) (iface.FaceId, error) {
 	if u.Scheme != "udp4" && u.Scheme != "tcp4" {
 		return iface.FACEID_INVALID, errors.New("face creation only allows udp4 and tcp4 schemes")
 	}

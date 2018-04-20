@@ -26,13 +26,13 @@ type clientPattern struct {
 }
 
 type clientCfg struct {
-	face     faceuri.FaceUri
+	face     *faceuri.FaceUri
 	interval time.Duration
 	patterns []clientPattern
 }
 
 type serverCfg struct {
-	face     faceuri.FaceUri
+	face     *faceuri.FaceUri
 	prefixes []*ndn.Name
 }
 
@@ -77,7 +77,7 @@ func parseCommand(args []string) (pc parsedCommand, e error) {
 			if e != nil {
 				return e
 			}
-			pc.clients = append(pc.clients, clientCfg{face: *u})
+			pc.clients = append(pc.clients, clientCfg{face: u})
 			state = STATE_CLIENT_INTERVAL
 		case state == STATE_CLIENT_INTERVAL:
 			interval, e := time.ParseDuration(token)
@@ -107,7 +107,7 @@ func parseCommand(args []string) (pc parsedCommand, e error) {
 			if e != nil {
 				return e
 			}
-			pc.servers = append(pc.servers, serverCfg{face: *u})
+			pc.servers = append(pc.servers, serverCfg{face: u})
 			state = STATE_SERVER_PREFIX
 		case state == STATE_SERVER_PREFIX:
 			name, e := ndn.ParseName(token)
