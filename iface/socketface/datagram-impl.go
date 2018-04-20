@@ -69,8 +69,8 @@ func (impl *datagramImpl) Send(pkt dpdk.Packet) error {
 	return e
 }
 
-func (impl *datagramImpl) GetFaceUri() *faceuri.FaceUri {
-	if a, ok := impl.face.conn.RemoteAddr().(*net.UDPAddr); ok {
+func (impl *datagramImpl) FormatFaceUri(addr net.Addr) *faceuri.FaceUri {
+	if a, ok := addr.(*net.UDPAddr); ok {
 		if a.IP.To4() != nil {
 			return faceuri.MustParse(fmt.Sprintf("udp4://%s", a))
 		} else {

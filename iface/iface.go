@@ -15,7 +15,8 @@ import (
 type IFace interface {
 	getPtr() *C.Face
 	GetFaceId() FaceId
-	GetFaceUri() *faceuri.FaceUri
+	GetLocalUri() *faceuri.FaceUri
+	GetRemoteUri() *faceuri.FaceUri
 	GetNumaSocket() dpdk.NumaSocket
 	Close() error
 	EnableThreadSafeTx(queueCapacity int) error

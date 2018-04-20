@@ -51,8 +51,8 @@ type impl interface {
 	// Transmit one packet on the socket.
 	Send(pkt dpdk.Packet) error
 
-	// Return FaceUri describing the remote endpoint.
-	GetFaceUri() *faceuri.FaceUri
+	// Return FaceUri describing an endpoint.
+	FormatFaceUri(addr net.Addr) *faceuri.FaceUri
 }
 
 // Create a SocketFace on a net.Conn.
@@ -86,8 +86,12 @@ func (face *SocketFace) getPtr() *C.Face {
 	return (*C.Face)(face.GetPtr())
 }
 
-func (face *SocketFace) GetFaceUri() *faceuri.FaceUri {
-	return face.impl.GetFaceUri()
+func (face *SocketFace) GetLocalUri() *faceuri.FaceUri {
+	return face.impl.FormatFaceUri(face.conn.LocalAddr())
+}
+
+func (face *SocketFace) GetRemoteUri() *faceuri.FaceUri {
+	return face.impl.FormatFaceUri(face.conn.RemoteAddr())
 }
 
 func (face *SocketFace) Close() error {

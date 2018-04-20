@@ -43,7 +43,11 @@ func (face *MockFace) getPtr() *C.Face {
 	return (*C.Face)(face.GetPtr())
 }
 
-func (face *MockFace) GetFaceUri() *faceuri.FaceUri {
+func (*MockFace) GetLocalUri() *faceuri.FaceUri {
+	return faceuri.MustParse("mock://")
+}
+
+func (*MockFace) GetRemoteUri() *faceuri.FaceUri {
 	return faceuri.MustParse("mock://")
 }
 

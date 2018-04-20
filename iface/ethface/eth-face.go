@@ -48,7 +48,11 @@ func (face *EthFace) GetPort() dpdk.EthDev {
 	return dpdk.EthDev(face.GetFaceId() & 0x0FFF)
 }
 
-func (face *EthFace) GetFaceUri() *faceuri.FaceUri {
+func (face *EthFace) GetLocalUri() *faceuri.FaceUri {
+	return faceuri.MustParse(fmt.Sprintf("ether://[%s]", face.GetPort().GetMacAddr()))
+}
+
+func (face *EthFace) GetRemoteUri() *faceuri.FaceUri {
 	return faceuri.MustParse(fmt.Sprintf("dev://%s", face.GetPort().GetName()))
 }
 

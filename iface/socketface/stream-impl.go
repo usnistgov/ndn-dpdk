@@ -100,8 +100,8 @@ func (impl *streamImpl) Send(pkt dpdk.Packet) error {
 	return nil
 }
 
-func (impl *streamImpl) GetFaceUri() *faceuri.FaceUri {
-	if a, ok := impl.face.conn.RemoteAddr().(*net.TCPAddr); ok {
+func (impl *streamImpl) FormatFaceUri(addr net.Addr) *faceuri.FaceUri {
+	if a, ok := addr.(*net.TCPAddr); ok {
 		if a.IP.To4() != nil {
 			return faceuri.MustParse(fmt.Sprintf("tcp4://%s", a))
 		} else {

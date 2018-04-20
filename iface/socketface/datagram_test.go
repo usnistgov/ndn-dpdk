@@ -1,6 +1,7 @@
 package socketface_test
 
 import (
+	"fmt"
 	"net"
 	"os"
 	"testing"
@@ -64,5 +65,6 @@ func TestUdp(t *testing.T) {
 	defer face.Close()
 
 	assert.Equal(iface.FaceKind_Socket, face.GetFaceId().GetKind())
-	assert.Equal("udp4://127.0.0.1:7000", face.GetFaceUri().String())
+	assert.Equal(fmt.Sprintf("udp4://%s", conn.LocalAddr()), face.GetLocalUri().String())
+	assert.Equal("udp4://127.0.0.1:7000", face.GetRemoteUri().String())
 }

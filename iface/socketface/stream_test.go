@@ -54,5 +54,6 @@ func TestTcp(t *testing.T) {
 	defer face.Close()
 
 	assert.Equal(iface.FaceKind_Socket, face.GetFaceId().GetKind())
-	assert.Equal(fmt.Sprintf("tcp4://127.0.0.1:%d", addr.Port), face.GetFaceUri().String())
+	assert.Equal(fmt.Sprintf("tcp4://%s", conn.LocalAddr()), face.GetLocalUri().String())
+	assert.Equal(fmt.Sprintf("tcp4://127.0.0.1:%d", addr.Port), face.GetRemoteUri().String())
 }
