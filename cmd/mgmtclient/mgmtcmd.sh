@@ -8,6 +8,12 @@ Subcommands:
     Show face counters.
   face create <FACEURI>
     Create a socket face.
+  ndt show
+    Show NDT content.
+  ndt counters
+    Show NDT counters.
+  ndt update [HASH] [VALUE]
+    Update an NDT element.
   fib info
     Show FIB counters.
   fib list
@@ -44,6 +50,14 @@ if [[ $1 == 'face' ]]; then
     jsonrpc Face.Get '{"Id":'$3'}'
   elif [[ $2 == 'create' ]]; then
     jsonrpc Face.Create '{"RemoteFaceUri":"'$3'"}'
+  fi
+elif [[ $1 == 'ndt' ]]; then
+  if [[ $2 == 'show' ]]; then
+    jsonrpc Ndt.ReadTable ''
+  elif [[ $2 == 'counters' ]]; then
+    jsonrpc Ndt.ReadCounters ''
+  elif [[ $2 == 'update' ]]; then
+    jsonrpc Ndt.Update '{"Instructions":[{"Hash":'$3',"Value":'$4'}]}'
   fi
 elif [[ $1 == 'fib' ]]; then
   if [[ $2 == 'info' ]]; then

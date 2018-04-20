@@ -18,6 +18,7 @@ import (
 	"ndn-dpdk/mgmt/facemgmt"
 	"ndn-dpdk/mgmt/fibmgmt"
 	"ndn-dpdk/mgmt/fwdpmgmt"
+	"ndn-dpdk/mgmt/ndtmgmt"
 	"ndn-dpdk/strategy/strategy_elf"
 )
 
@@ -205,6 +206,7 @@ func createFace(u *faceuri.FaceUri) (iface.FaceId, error) {
 func startMgmt() {
 	facemgmt.CreateFace = createFace
 	appinit.RegisterMgmt(facemgmt.FaceMgmt{})
+	appinit.RegisterMgmt(ndtmgmt.NdtMgmt{theNdt})
 	fibmgmt.TheStrategy = theStrategy
 	appinit.RegisterMgmt(fibmgmt.FibMgmt{theFib})
 	appinit.RegisterMgmt(fwdpmgmt.DpInfoMgmt{theDp})

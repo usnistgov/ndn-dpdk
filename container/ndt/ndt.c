@@ -36,18 +36,6 @@ Ndt_Close(Ndt* ndt)
 }
 
 void
-Ndt_ReadCounters(Ndt* ndt, uint32_t* cnt)
-{
-  uint64_t tableSize = ndt->indexMask + 1;
-  memset(cnt, 0, tableSize * sizeof(cnt[0]));
-  for (uint8_t i = 0; i < ndt->nThreads; ++i) {
-    for (uint64_t index = 0; index < tableSize; ++index) {
-      cnt[index] += ndt->threads[i]->nHits[index];
-    }
-  }
-}
-
-void
 Ndt_Update(Ndt* ndt, uint64_t hash, uint8_t value)
 {
   uint64_t index = hash & ndt->indexMask;

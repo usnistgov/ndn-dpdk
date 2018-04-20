@@ -51,19 +51,6 @@ Ndt_GetThread(const Ndt* ndt, uint8_t id)
   return ndt->threads[id];
 }
 
-/** \brief Get number of table elements.
- */
-static const int
-Ndt_CountElements(Ndt* ndt)
-{
-  return ndt->indexMask + 1;
-}
-
-/** \brief Read entry hit counters.
- *  \param[out] cnt counters array of \c Ndt_CountElements(ndt) elements.
- */
-void Ndt_ReadCounters(Ndt* ndt, uint32_t* cnt);
-
 /** \brief Update NDT.
  *  \param hash a prefix hash mapped into the table entry.
  *  \param value new PIT partition number in the table entry.

@@ -9,6 +9,7 @@ import (
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/dpdk/dpdktestenv"
 	"ndn-dpdk/ndn"
+	"ndn-dpdk/ndn/ndntestutil"
 )
 
 func TestNdt(t *testing.T) {
@@ -37,9 +38,7 @@ func TestNdt(t *testing.T) {
 	}
 	names := make([]*ndn.Name, len(nameStrs))
 	for i, nameStr := range nameStrs {
-		var e error
-		names[i], e = ndn.ParseName(nameStr)
-		require.NoError(e, nameStr)
+		names[i] = ndntestutil.ParseName(nameStr)
 	}
 
 	ndt := ndt.New(cfg, numaSockets)
@@ -86,11 +85,11 @@ func TestNdt(t *testing.T) {
 				continue
 			}
 			if a == 3 && b == 4 { // /A/A/C and /A/A/D have same 2-component prefix
-				assert.Equal(result1[a], result1[b], "%d-%d", a, b)
-				assert.Equal(result2[a], result2[b], "%d-%d", a, b)
+				assert.True(result1[a] == result1[b] && result2[a] == result2[b],
+					"%d[%d,%d]-%d[%d,%d]", a, result1[a], result2[a], b, result1[b], result2[b])
 			} else {
-				assert.NotEqual(result1[a], result1[b], "%d-%d", a, b)
-				assert.NotEqual(result2[a], result2[b], "%d-%d", a, b)
+				assert.False(result1[a] == result1[b] && result2[a] == result2[b],
+					"%d[%d,%d]-%d[%d,%d]", a, result1[a], result2[a], b, result1[b], result2[b])
 			}
 		}
 	}

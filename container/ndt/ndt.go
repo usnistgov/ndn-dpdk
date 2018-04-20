@@ -50,23 +50,38 @@ func (ndt Ndt) GetPtr() unsafe.Pointer {
 
 // Get number of table elements.
 func (ndt Ndt) CountElements() int {
-	return int(C.Ndt_CountElements(ndt.c))
+	return int(ndt.c.indexMask + 1)
+}
+
+func (ndt Ndt) getThreadC(i int) *C.NdtThread {
+	var threadPtrC *C.NdtThread
+	first := uintptr(unsafe.Pointer(ndt.c.threads))
+	offset := uintptr(i) * uintptr(unsafe.Sizeof(threadPtrC))
+	return *(**C.NdtThread)(unsafe.Pointer(first + offset))
 }
 
 // Obtain a handle of NdtThread for lookups.
 func (ndt Ndt) GetThread(i int) NdtThread {
-	var cThreadPtr *C.NdtThread
-	return NdtThread{ndt, *(**C.NdtThread)(unsafe.Pointer(uintptr(unsafe.Pointer(ndt.c.threads)) +
-		uintptr(i)*uintptr(unsafe.Sizeof(cThreadPtr))))}
+	return NdtThread{ndt, ndt.getThreadC(i)}
+}
+
+// Read the table.
+func (ndt Ndt) ReadTable() (table []uint8) {
+	table = make([]uint8, ndt.CountElements())
+	C.rte_memcpy(unsafe.Pointer(&table[0]), unsafe.Pointer(ndt.c.table), C.size_t(len(table)))
+	return table
 }
 
 // Read hit counters.
 func (ndt Ndt) ReadCounters() (cnt []int) {
-	cnt2 := make([]C.uint32_t, ndt.CountElements())
-	C.Ndt_ReadCounters(ndt.c, &cnt2[0])
-	cnt = make([]int, len(cnt2))
-	for i, c := range cnt2 {
-		cnt[i] = int(c)
+	cnt = make([]int, ndt.CountElements())
+	for i := C.uint8_t(0); i < ndt.c.nThreads; i++ {
+		threadC := ndt.getThreadC(int(i))
+		first := uintptr(unsafe.Pointer(threadC)) + C.sizeof_NdtThread
+		for i := range cnt {
+			offset := uintptr(i) * C.sizeof_uint16_t
+			cnt[i] += int(*(*C.uint16_t)(unsafe.Pointer(first + offset)))
+		}
 	}
 	return cnt
 }
@@ -90,7 +105,7 @@ type NdtThread struct {
 	c *C.NdtThread
 }
 
-// Perform a non-thread-safe lookup.
+// Lookup a name.
 func (ndtt NdtThread) Lookup(name *ndn.Name) uint8 {
 	return uint8(C.Ndt_Lookup(ndtt.Ndt.c, ndtt.c, (*C.PName)(name.GetPNamePtr()),
 		(*C.uint8_t)(name.GetValue().GetPtr())))
