@@ -2,9 +2,7 @@ package main
 
 import (
 	"errors"
-	"log"
 	"math/rand"
-	"os"
 	"time"
 
 	"ndn-dpdk/app/fwdp"
@@ -41,8 +39,7 @@ func main() {
 }
 
 func startDp() {
-	logger := log.New(os.Stderr, "startDp ", log.LstdFlags)
-	logger.Printf("EAL has %d slave lcores", len(appinit.Eal.Slaves))
+	log.WithField("nSlaves", len(appinit.Eal.Slaves)).Info("EAL ready")
 	lcr := appinit.NewLCoreReservations()
 
 	var dpCfg fwdp.Config
@@ -53,26 +50,26 @@ func startDp() {
 	var outputLCores []dpdk.LCore
 	var outputTxLoopers []iface.ITxLooper
 	for _, port := range dpdk.ListEthDevs() {
+		logEntry := log.WithField("port", port)
 		face, e := appinit.NewFaceFromEthDev(port)
 		if e != nil {
-			logger.Printf("%v", e)
+			logEntry.WithError(e).Fatal("EthFace creation error")
 			continue
 		}
 		inputLc := lcr.MustReserve(face.GetNumaSocket())
 		socket := inputLc.GetNumaSocket()
-		logger.Printf("Reserving lcore %d on socket %d for EthDev %d RX", inputLc, socket, port)
+		logEntry = logEntry.WithFields(makeLogFields("face", face.GetFaceId(), "rx-lcore", inputLc, "socket", socket))
 		dpCfg.InputLCores = append(dpCfg.InputLCores, inputLc)
 		inputNumaSockets = append(inputNumaSockets, socket)
 		inputRxLoopers = append(inputRxLoopers, appinit.MakeRxLooper(face))
 
 		e = face.EnableThreadSafeTx(256)
 		if e != nil {
-			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "EthFace(%d).EnableThreadSafeTx(): %v",
-				port, e)
+			logEntry.WithError(e).Fatal("EnableThreadSafeTx failed")
 		}
 
 		outputLc := lcr.MustReserve(socket)
-		logger.Printf("Reserving lcore %d on socket %d for EthDev %d TX", outputLc, socket, port)
+		logEntry.WithField("tx-lcore", outputLc).Info("EthFace created")
 		outputLCores = append(outputLCores, outputLc)
 		outputTxLoopers = append(outputTxLoopers, appinit.MakeTxLooper(face))
 	}
@@ -82,16 +79,16 @@ func startDp() {
 		theSocketRxg = socketface.NewRxGroup()
 		inputLc := lcr.MustReserve(dpdk.NUMA_SOCKET_ANY)
 		socket := inputLc.GetNumaSocket()
-		logger.Printf("Reserving lcore %d on socket %d for SocketFaces RX", inputLc, socket)
 		dpCfg.InputLCores = append(dpCfg.InputLCores, inputLc)
 		inputNumaSockets = append(inputNumaSockets, socket)
 		inputRxLoopers = append(inputRxLoopers, theSocketRxg)
 
 		theSocketTxl = iface.NewMultiTxLoop()
 		outputLc := lcr.MustReserve(socket)
-		logger.Printf("Reserving lcore %d on socket %d for SocketFaces TX", outputLc, socket)
 		outputLCores = append(outputLCores, outputLc)
 		outputTxLoopers = append(outputTxLoopers, theSocketTxl)
+
+		log.WithFields(makeLogFields("rx-lcore", inputLc, "socket", socket, "tx-lcore", outputLc)).Info("SocketFaces ready")
 	}
 
 	// initialize NDT
@@ -115,7 +112,7 @@ func startDp() {
 		var e error
 		theFib, e = fib.New(fibCfg)
 		if e != nil {
-			appinit.Exitf(appinit.EXIT_MEMPOOL_INIT_ERROR, "fib.New(): %v", e)
+			log.WithError(e).Fatal("FIB creation failed")
 		}
 		dpCfg.Fib = theFib
 	}
@@ -127,12 +124,12 @@ func startDp() {
 		if !lc.IsValid() {
 			break
 		}
-		logger.Printf("Reserving lcore %d on socket %d for forwarding", lc, lc.GetNumaSocket())
+		log.WithFields(makeLogFields("lcore", lc, "socket", lc.GetNumaSocket())).Info("fwd created")
 		dpCfg.FwdLCores = append(dpCfg.FwdLCores, lc)
 	}
 	nFwds = len(dpCfg.FwdLCores)
 	if nFwds <= 0 {
-		appinit.Exitf(appinit.EXIT_EAL_LAUNCH_ERROR, "No lcore available for forwarding")
+		log.Fatal("no lcore available for forwarding")
 	}
 
 	// randomize NDT
@@ -149,12 +146,12 @@ func startDp() {
 		var e error
 		theDp, e = fwdp.New(dpCfg)
 		if e != nil {
-			appinit.Exitf(appinit.EXIT_EAL_LAUNCH_ERROR, "fwdp.New(): %v", e)
+			log.WithError(e).Fatal("dataplane init error")
 		}
 	}
 
 	// launch output lcores
-	logger.Print("Launching output lcores")
+	log.Info("launching output lcores")
 	for i := range outputTxLoopers {
 		func(i int) {
 			outputLCores[i].RemoteLaunch(func() int {
@@ -166,25 +163,25 @@ func startDp() {
 	}
 
 	// launch forwarding lcores
-	logger.Print("Launching forwarding lcores")
+	log.Info("launching forwarding lcores")
 	for i := range dpCfg.FwdLCores {
 		e := theDp.LaunchFwd(i)
 		if e != nil {
-			appinit.Exitf(appinit.EXIT_EAL_LAUNCH_ERROR, "dp.LaunchFwd(%d): %v", i, e)
+			log.WithError(e).WithField("i", i).Fatal("fwd launch failed")
 		}
 	}
 
 	// launch input lcores
-	logger.Print("Launching input lcores")
+	log.Info("launching input lcores")
 	const burstSize = 64
 	for i, rxl := range inputRxLoopers {
 		e := theDp.LaunchInput(i, rxl, burstSize)
 		if e != nil {
-			appinit.Exitf(appinit.EXIT_EAL_LAUNCH_ERROR, "dp.LaunchInput(%d): %v", i, e)
+			log.WithError(e).WithField("i", i).Fatal("input launch failed")
 		}
 	}
 
-	logger.Print("Data plane started")
+	log.Info("dataplane started")
 }
 
 func createFace(remote, local *faceuri.FaceUri) (iface.FaceId, error) {
@@ -214,13 +211,17 @@ func startMgmt() {
 }
 
 func loadStrategy(shortname string) fib.StrategyCode {
+	logEntry := log.WithField("strategy", shortname)
+
 	elf, e := strategy_elf.Load(shortname)
 	if e != nil {
-		appinit.Exitf(appinit.EXIT_MGMT_ERROR, "strategy_elf.Load(%s): %v", shortname, e)
+		logEntry.WithError(e).Fatal("strategy ELF load error")
 	}
 	sc, e := theFib.LoadStrategyCode(elf)
 	if e != nil {
-		appinit.Exitf(appinit.EXIT_MGMT_ERROR, "fib.LoadStrategyCode(%s): %v", shortname, e)
+		logEntry.WithError(e).Fatal("strategy code load error")
 	}
+
+	logEntry.Debug("strategy loaded")
 	return sc
 }

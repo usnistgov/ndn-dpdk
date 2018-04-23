@@ -1,7 +1,7 @@
 # ndn-dpdk/appinit
 
 This package implements program initialization procedures.
-Most procedures are designed to terminate the process (via `Exitf` function) if an error occurs.
+Most procedures are designed to terminate the process (via `log.Fatal`) if an error occurs.
 
 ## EAL (eal.go)
 

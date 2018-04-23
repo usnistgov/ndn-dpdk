@@ -6,7 +6,6 @@ package appinit
 import "C"
 import (
 	"fmt"
-	"log"
 	"math"
 	"strings"
 
@@ -51,39 +50,42 @@ func ConfigureMempool(key string, capacity int, cacheSize int) {
 
 // Get or create a mempool on specified NumaSocket.
 func MakePktmbufPool(key string, socket dpdk.NumaSocket) dpdk.PktmbufPool {
+	logEntry := log.WithField("template", key)
+
 	cfg, ok := mempoolCfgs[key]
 	if !ok {
-		log.Panicf("MakePktmbufPool(%s) unregistered", key)
+		logEntry.Panic("mempool template unregistered")
 	}
 
 	if cfg.Capacity <= 0 {
-		Exitf(EXIT_BAD_CONFIG, "MakePktmbufPool(%s) bad config: capacity must be positive", key)
+		logEntry.Fatal("mempool bad config: capacity must be positive")
 	}
 	if ((cfg.Capacity + 1) & cfg.Capacity) != 0 {
-		log.Printf("MakePktmbufPool(%s) nonoptimal config: capacity is not 2^q-1", key)
+		logEntry.Warn("mempool nonoptimal config: capacity is not 2^q-1")
 	}
 	maxCacheSize := int(math.Min(float64(int(C.RTE_MEMPOOL_CACHE_MAX_SIZE)),
 		float64(cfg.Capacity)/1.5))
 	if cfg.CacheSize < 0 || cfg.CacheSize > maxCacheSize {
-		Exitf(EXIT_BAD_CONFIG, "MakePktmbufPool(%s) bad config: cache size must be between 0 and %d",
-			key, maxCacheSize)
+		logEntry.Fatalf("mempool bad config: cache size must be between 0 and %d", maxCacheSize)
 	}
 	if cfg.CacheSize > 0 && cfg.Capacity%cfg.CacheSize != 0 {
-		log.Printf("MakePktmbufPool(%s) nonoptimal config: capacity is not a multiply of cacheSize",
-			key)
+		logEntry.Warn("mempool nonoptimal config: capacity is not a multiply of cacheSize")
 	}
 
 	name := fmt.Sprintf("%s#%d", key, socket)
+	logEntry = logEntry.WithFields(makeLogFields("name", name, "socket", socket))
 	if mp, ok := mempools[name]; ok {
+		logEntry.Debug("mempool found")
 		return mp
 	}
 
 	mp, e := dpdk.NewPktmbufPool(name, cfg.Capacity, cfg.CacheSize,
 		cfg.PrivSize, cfg.DataroomSize, socket)
 	if e != nil {
-		Exitf(EXIT_MEMPOOL_INIT_ERROR, "MakePktmbufPool(%s,%d): %v", key, socket, e)
+		logEntry.WithError(e).Fatal("mempool creation failed")
 	}
 	mempools[name] = mp
+	logEntry.Debug("mempool created")
 	return mp
 }
 

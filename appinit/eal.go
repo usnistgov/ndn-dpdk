@@ -16,7 +16,7 @@ func InitEal() {
 	var e error
 	Eal, e = dpdk.NewEal(os.Args)
 	if e != nil {
-		Exitf(EXIT_EAL_INIT_ERROR, "NewEal(): %v", e)
+		log.WithError(e).Fatal("EAL init failed")
 	}
 }
 
@@ -32,12 +32,12 @@ func Launch(f dpdk.LCoreFunc, socket dpdk.NumaSocket) dpdk.LCore {
 }
 
 // Asynchonrously launch a function on an lcore in specified NumaSocket.
-// os.Exit(EXIT_EAL_LAUNCH_ERROR) if no lcore available or other failure.
+// Fatal error if no lcore available or other failure.
 func MustLaunch(f dpdk.LCoreFunc, socket dpdk.NumaSocket) dpdk.LCore {
 	lc := NewLCoreReservations().Reserve(socket)
 	ok := lc.RemoteLaunch(f)
 	if !ok {
-		Exitf(EXIT_EAL_LAUNCH_ERROR, "unable to launch lcore %d on socket %d", lc, socket)
+		log.WithFields(makeLogFields("lcore", lc, "socket", socket)).Fatal("lcore launch failed")
 	}
 	return lc
 }
@@ -66,11 +66,11 @@ func (lcr LCoreReservations) Reserve(socket dpdk.NumaSocket) dpdk.LCore {
 }
 
 // Reserve an idle lcore in specified NumaSocket.
-// os.Exit(EXIT_EAL_LAUNCH_ERROR) if no lcore available.
+// Fatal error if no lcore available.
 func (lcr LCoreReservations) MustReserve(socket dpdk.NumaSocket) dpdk.LCore {
 	lc := lcr.Reserve(socket)
 	if !lc.IsValid() {
-		Exitf(EXIT_EAL_LAUNCH_ERROR, "unable to reserve an lcore on socket %d", socket)
+		log.WithFields(makeLogFields("socket", socket)).Fatal("no lcore available")
 	}
 	return lc
 }

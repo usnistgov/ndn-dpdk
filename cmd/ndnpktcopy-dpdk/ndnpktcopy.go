@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"log"
+	stdlog "log"
 	"os"
 	"time"
 
@@ -30,17 +30,18 @@ func main() {
 	appinit.InitEal()
 	pc, e := ParseCommand(appinit.Eal.Args[1:])
 	if e != nil {
-		appinit.Exitf(appinit.EXIT_BAD_CONFIG, "parseCommand: %v", e)
+		log.WithError(e).Fatal("command line error")
 	}
 
 	// initialize faces, PktcopyRxs, and dumpers
 	lcr := appinit.NewLCoreReservations()
 	procs := make([]PktcopyProc, len(pc.Faces))
 	for i, faceUri := range pc.Faces {
+		logEntry := log.WithField("face", faceUri)
 		proc := &procs[i]
 		face, e := appinit.NewFaceFromUri(faceUri, nil)
 		if e != nil {
-			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "NewFaceFromUri(%s): %v", faceUri, e)
+			logEntry.WithError(e).Fatal("face creation error")
 		}
 		face.EnableThreadSafeTx(Face_TxQueueCapacity)
 		numaSocket := face.GetNumaSocket()
@@ -53,12 +54,12 @@ func main() {
 			ringName := fmt.Sprintf("dump_%d", i)
 			ring, e := dpdk.NewRing(ringName, Dump_RingCapacity, numaSocket, true, true)
 			if e != nil {
-				appinit.Exitf(appinit.EXIT_RING_INIT_ERROR, "NewRing(%s): %v", ringName, e)
+				logEntry.WithField("ring", ringName).WithError(e).Fatal("dump ring creation error")
 			}
 			pcrx.SetDumpRing(ring)
 
 			prefix := fmt.Sprintf("%d ", face.GetFaceId())
-			logger := log.New(os.Stderr, prefix, log.Lmicroseconds)
+			logger := stdlog.New(os.Stderr, prefix, stdlog.Lmicroseconds)
 			proc.dumper = dump.New(ring, logger)
 		}
 
@@ -99,7 +100,7 @@ func main() {
 		for {
 			<-tick
 			for it := iface.IterFaces(); it.Valid(); it.Next() {
-				log.Printf("%d %v", it.Id, it.Face.ReadCounters())
+				stdlog.Printf("%d %v", it.Id, it.Face.ReadCounters())
 			}
 		}
 	}()

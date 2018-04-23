@@ -1,19 +1,24 @@
 package appinit
 
 import (
+	"fmt"
+
 	"ndn-dpdk/mgmt"
 )
 
 func RegisterMgmt(mg interface{}) {
+	logEntry := log.WithField("mg", fmt.Sprintf("%T", mg))
 	e := mgmt.Register(mg)
 	if e != nil {
-		Exitf(EXIT_MGMT_ERROR, "RegisterMgmt(%T): %v", mg, e)
+		logEntry.WithError(e).Fatal("mgmt module register failed")
 	}
+	log.Debug("mgmt module registered")
 }
 
 func StartMgmt() {
 	e := mgmt.Start()
 	if e != nil {
-		Exitf(EXIT_MGMT_ERROR, "StartMgmt: %v", e)
+		log.WithError(e).Fatal("mgmt start failed")
 	}
+	log.Debug("mgmt started")
 }
