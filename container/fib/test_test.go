@@ -12,8 +12,6 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	fib.SetLogOutput(os.Stderr)
-
 	dpdktestenv.MakeDirectMp(255, 0, 2000)
 
 	os.Exit(m.Run())

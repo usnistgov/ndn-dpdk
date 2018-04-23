@@ -6,12 +6,11 @@ uint16_t go_SocketFace_TxBurst(Face* faceC, struct rte_mbuf** pkts, uint16_t nPk
 */
 import "C"
 import (
-	"fmt"
-	"log"
 	"net"
-	"os"
 	"time"
 	"unsafe"
+
+	"github.com/sirupsen/logrus"
 
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
@@ -29,7 +28,7 @@ type Config struct {
 // A face using socket as transport.
 type SocketFace struct {
 	iface.BaseFace
-	logger *log.Logger
+	logger logrus.FieldLogger
 	conn   net.Conn
 	impl   impl
 	failed bool
@@ -60,7 +59,7 @@ func New(conn net.Conn, cfg Config) *SocketFace {
 	var face SocketFace
 	face.InitBaseFace(iface.AllocId(iface.FaceKind_Socket), 0, dpdk.NUMA_SOCKET_ANY)
 
-	face.logger = log.New(os.Stderr, fmt.Sprintf("face %d ", face.GetFaceId()), log.LstdFlags)
+	face.logger = newLogger(face.GetFaceId())
 	face.conn = conn
 	face.rxMp = cfg.RxMp
 	face.rxQueue = make(chan dpdk.Packet, cfg.RxqCapacity)
@@ -105,7 +104,7 @@ func (face *SocketFace) Close() error {
 func (face *SocketFace) rxReportCongestion() {
 	face.rxCongestions++
 	if face.rxCongestions%1024 == 0 {
-		face.logger.Printf("RX queue is full, %d", face.rxCongestions)
+		face.logger.WithField("rxCongestions", face.rxCongestions).Warn("RX queue is full")
 	}
 }
 
@@ -130,10 +129,10 @@ func (face *SocketFace) txLoop() {
 // Return whether RxLoop or TxLoop should terminate.
 func (face *SocketFace) handleError(dir string, e error) bool {
 	if netErr, ok := e.(net.Error); ok && netErr.Temporary() {
-		face.logger.Printf("%s socket error: %v", dir, e)
+		face.logger.WithError(e).Errorf("%s socket error", dir)
 		return false
 	}
-	face.logger.Printf("%s socket failed: %v", dir, e)
+	face.logger.WithError(e).Errorf("%s socket failed", dir)
 	face.conn.Close()
 	face.failed = true
 	return true

@@ -106,3 +106,10 @@ func (sc StrategyCode) Ref() {
 func (sc StrategyCode) Unref() {
 	C.StrategyCode_Unref(sc.c)
 }
+
+func (sc StrategyCode) String() string {
+	if sc.c == nil {
+		return "0@nil"
+	}
+	return fmt.Sprintf("%d@%p", sc.GetId(), sc.c)
+}

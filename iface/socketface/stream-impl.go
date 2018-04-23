@@ -69,7 +69,7 @@ func (impl *streamImpl) postPacket(buf ndn.TlvBytes) (n int) {
 
 	mbuf, e := face.rxMp.Alloc()
 	if e != nil {
-		face.logger.Printf("RX alloc error: %v", e)
+		face.logger.WithError(e).Error("RX alloc error")
 		return n
 	}
 
