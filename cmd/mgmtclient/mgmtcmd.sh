@@ -6,7 +6,7 @@ Subcommands:
     List faces.
   face show <ID>
     Show face counters.
-  face create <FACEURI>
+  face create <REMOTEURI> [<LOCALURI>]
     Create a socket face.
   ndt show
     Show NDT content.
@@ -49,7 +49,7 @@ if [[ $1 == 'face' ]]; then
   elif [[ $2 == 'show' ]]; then
     jsonrpc Face.Get '{"Id":'$3'}'
   elif [[ $2 == 'create' ]]; then
-    jsonrpc Face.Create '{"RemoteFaceUri":"'$3'"}'
+    jsonrpc Face.Create '{"RemoteUri":"'$3'","LocalUri":"'$4'"}'
   fi
 elif [[ $1 == 'ndt' ]]; then
   if [[ $2 == 'show' ]]; then

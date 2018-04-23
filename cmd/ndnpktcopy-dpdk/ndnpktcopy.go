@@ -38,7 +38,7 @@ func main() {
 	procs := make([]PktcopyProc, len(pc.Faces))
 	for i, faceUri := range pc.Faces {
 		proc := &procs[i]
-		face, e := appinit.NewFaceFromUri(faceUri)
+		face, e := appinit.NewFaceFromUri(faceUri, nil)
 		if e != nil {
 			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "NewFaceFromUri(%s): %v", faceUri, e)
 		}

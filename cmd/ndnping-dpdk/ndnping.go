@@ -17,7 +17,7 @@ func main() {
 
 	var clients []ndnping.Client
 	for _, clientCfg := range pc.clients {
-		face, e := appinit.NewFaceFromUri(clientCfg.face)
+		face, e := appinit.NewFaceFromUri(clientCfg.face, nil)
 		if e != nil {
 			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "NewFaceFromUri(%s): %v", clientCfg.face, e)
 		}
@@ -37,7 +37,7 @@ func main() {
 
 	var servers []ndnping.Server
 	for _, serverCfg := range pc.servers {
-		face, e := appinit.NewFaceFromUri(serverCfg.face)
+		face, e := appinit.NewFaceFromUri(serverCfg.face, nil)
 		if e != nil {
 			appinit.Exitf(appinit.EXIT_FACE_INIT_ERROR, "NewFaceFromUri(%s): %v", serverCfg.face, e)
 		}

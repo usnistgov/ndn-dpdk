@@ -17,35 +17,43 @@ import (
 var (
 	ETHFACE_RXQ_CAPACITY    = 64
 	ETHFACE_TXQ_CAPACITY    = 64
-	SOCKETFACE_RXQ_CAPACITY = 512
+	SOCKETFACE_RXQ_CAPACITY = 128
 	SOCKETFACE_TXQ_CAPACITY = 64
 )
 
 // Create face by FaceUri.
-func NewFaceFromUri(u *faceuri.FaceUri) (face iface.IFace, e error) {
-	if u == nil {
-		return nil, errors.New("FaceUri is empty")
+func NewFaceFromUri(remote, local *faceuri.FaceUri) (face iface.IFace, e error) {
+	if remote == nil {
+		return nil, errors.New("remote FaceUri is empty")
 	}
-	create := newFaceByScheme[u.Scheme]
+	if local != nil && local.Scheme != remote.Scheme {
+		return nil, errors.New("remote and local FaceUris have different schemes")
+	}
+
+	create := newFaceByScheme[remote.Scheme]
 	if create == nil {
-		return nil, fmt.Errorf("cannot create face with scheme %s", u.Scheme)
+		return nil, fmt.Errorf("cannot create face with scheme %s", remote.Scheme)
 	}
-	face, e = create(u)
+	face, e = create(remote, local)
 	return face, e
 }
 
 // Functions to create face by FaceUri for each FaceUri scheme.
-var newFaceByScheme = map[string]func(u *faceuri.FaceUri) (iface.IFace, error){
+var newFaceByScheme = map[string]func(remote, local *faceuri.FaceUri) (iface.IFace, error){
 	"dev":  newEthFace,
 	"udp4": newSocketFace,
 	"tcp4": newSocketFace,
 	"mock": newMockFace,
 }
 
-func newEthFace(u *faceuri.FaceUri) (iface.IFace, error) {
-	port := dpdk.FindEthDev(u.Host)
+func newEthFace(remote, local *faceuri.FaceUri) (iface.IFace, error) {
+	if local != nil {
+		return nil, errors.New("eth scheme does not accept local FaceUri")
+	}
+
+	port := dpdk.FindEthDev(remote.Host)
 	if !port.IsValid() {
-		return nil, fmt.Errorf("DPDK device %s not found", u.Host)
+		return nil, fmt.Errorf("DPDK device %s not found", remote.Host)
 	}
 	return newEthFaceFromDev(port)
 }
@@ -85,24 +93,29 @@ func newEthFaceFromDev(port dpdk.EthDev) (iface.IFace, error) {
 	return face, nil
 }
 
-func newSocketFace(u *faceuri.FaceUri) (face iface.IFace, e error) {
-	network, address := u.Scheme[:3], u.Host
-
+func newSocketFace(remote, local *faceuri.FaceUri) (face iface.IFace, e error) {
 	var conn net.Conn
-	if network == "udp" {
-		raddr, e := net.ResolveUDPAddr(network, address)
+	if remote.Scheme == "udp4" {
+		raddr, e := net.ResolveUDPAddr(remote.Scheme, remote.Host)
 		if e != nil {
-			return nil, fmt.Errorf("net.ResolveUDPAddr(%s,%s): %v", network, address, e)
+			return nil, fmt.Errorf("net.ResolveUDPAddr(%s,%s): %v", remote.Scheme, remote.Host, e)
 		}
-		laddr := net.UDPAddr{Port: raddr.Port}
-		conn, e = net.DialUDP(network, &laddr, raddr)
+		laddr := &net.UDPAddr{Port: raddr.Port}
+		if local != nil {
+			if laddr, e = net.ResolveUDPAddr(local.Scheme, local.Host); e != nil {
+				return nil, fmt.Errorf("net.ResolveUDPAddr(%s,%s): %v", local.Scheme, local.Host, e)
+			}
+		}
+		conn, e = net.DialUDP(remote.Scheme, laddr, raddr)
 		if e != nil {
-			return nil, fmt.Errorf("net.DialUDP(%s,%s): %v", network, address, e)
+			return nil, fmt.Errorf("net.DialUDP(%s,%s,%s): %v", remote.Scheme, laddr, raddr, e)
 		}
+	} else if local != nil {
+		return nil, fmt.Errorf("%s scheme does not accept local FaceUri", remote.Scheme)
 	} else {
-		conn, e = net.Dial(network, address)
+		conn, e = net.Dial(remote.Scheme, remote.Host)
 		if e != nil {
-			return nil, fmt.Errorf("net.Dial(%s,%s): %v", network, address, e)
+			return nil, fmt.Errorf("net.Dial(%s,%s): %v", remote.Scheme, remote.Host, e)
 		}
 	}
 
@@ -111,11 +124,13 @@ func newSocketFace(u *faceuri.FaceUri) (face iface.IFace, e error) {
 	cfg.RxMp = MakePktmbufPool(MP_ETHRX, dpdk.NUMA_SOCKET_ANY)
 	cfg.RxqCapacity = SOCKETFACE_RXQ_CAPACITY
 	cfg.TxqCapacity = SOCKETFACE_TXQ_CAPACITY
-
 	return socketface.New(conn, cfg), nil
 }
 
-func newMockFace(u *faceuri.FaceUri) (face iface.IFace, e error) {
+func newMockFace(remote, local *faceuri.FaceUri) (face iface.IFace, e error) {
+	if local != nil {
+		return nil, errors.New("mock scheme does not accept local FaceUri")
+	}
 	mockface.FaceMempools = makeFaceMempools(dpdk.NUMA_SOCKET_ANY)
 	return mockface.New(), nil
 }

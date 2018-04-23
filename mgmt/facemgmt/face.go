@@ -9,7 +9,7 @@ import (
 )
 
 // Function to create a face.
-var CreateFace func(u *faceuri.FaceUri) (iface.FaceId, error)
+var CreateFace func(remote, local *faceuri.FaceUri) (iface.FaceId, error)
 
 type FaceMgmt struct{}
 
@@ -42,16 +42,23 @@ func (FaceMgmt) Get(args IdArg, reply *FaceInfo) error {
 	return nil
 }
 
-func (FaceMgmt) Create(args FaceUriArg, reply *IdArg) error {
+func (FaceMgmt) Create(args CreateArg, reply *IdArg) error {
 	if CreateFace == nil {
 		return errors.New("face creation is unavailable")
 	}
 
-	u, e := faceuri.Parse(args.RemoteFaceUri)
+	remote, e := faceuri.Parse(args.RemoteUri)
 	if e != nil {
 		return e
 	}
 
-	reply.Id, e = CreateFace(u)
+	var local *faceuri.FaceUri
+	if args.LocalUri != "" {
+		if local, e = faceuri.Parse(args.LocalUri); e != nil {
+			return e
+		}
+	}
+
+	reply.Id, e = CreateFace(remote, local)
 	return e
 }
