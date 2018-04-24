@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"ndn-dpdk/iface"
-	"ndn-dpdk/iface/ethface"
 	"ndn-dpdk/iface/faceuri"
 )
 
@@ -32,12 +31,8 @@ func (FaceMgmt) Get(args IdArg, reply *FaceInfo) error {
 	reply.LocalUri = face.GetLocalUri().String()
 	reply.RemoteUri = face.GetRemoteUri().String()
 	reply.Counters = face.ReadCounters()
+	reply.ExCounters = face.ReadExCounters()
 	reply.Latency = face.ReadLatency()
-
-	if reply.Id.GetKind() == iface.FaceKind_Eth {
-		ethStats := face.(*ethface.EthFace).GetPort().GetStats()
-		reply.EthStats = &ethStats
-	}
 
 	return nil
 }

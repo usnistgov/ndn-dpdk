@@ -61,6 +61,10 @@ func (face *EthFace) Close() error {
 	return nil
 }
 
+func (face *EthFace) ReadExCounters() interface{} {
+	return face.GetPort().GetStats()
+}
+
 func (face *EthFace) RxLoop(burstSize int, cb unsafe.Pointer, cbarg unsafe.Pointer) {
 	C.EthFace_RxLoop(face.getPtr(), C.uint16_t(burstSize), (C.Face_RxCb)(cb), cbarg)
 	face.rxLoopStopped <- true

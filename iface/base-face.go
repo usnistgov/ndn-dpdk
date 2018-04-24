@@ -100,7 +100,10 @@ func (face BaseFace) ReadCounters() (cnt Counters) {
 	return cnt
 }
 
-// Read L3 latency statistics (in nanos).
+func (face BaseFace) ReadExCounters() interface{} {
+	return nil
+}
+
 func (face BaseFace) ReadLatency() running_stat.Snapshot {
 	faceC := face.getPtr()
 	latencyStat := running_stat.FromPtr(unsafe.Pointer(&faceC.impl.latencyStat))
