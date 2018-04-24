@@ -85,6 +85,10 @@ func (face *SocketFace) getPtr() *C.Face {
 	return (*C.Face)(face.GetPtr())
 }
 
+func (face *SocketFace) GetConn() net.Conn {
+	return face.conn
+}
+
 func (face *SocketFace) GetLocalUri() *faceuri.FaceUri {
 	return face.impl.FormatFaceUri(face.conn.LocalAddr())
 }

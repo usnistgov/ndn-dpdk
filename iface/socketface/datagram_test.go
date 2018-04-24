@@ -9,6 +9,7 @@ import (
 	"golang.org/x/sys/unix"
 
 	"ndn-dpdk/iface"
+	"ndn-dpdk/iface/faceuri"
 	"ndn-dpdk/iface/ifacetestfixture"
 	"ndn-dpdk/iface/socketface"
 )
@@ -51,20 +52,17 @@ func TestDatagram(t *testing.T) {
 func TestUdp(t *testing.T) {
 	assert, require := makeAR(t)
 
-	addr, e := net.ResolveUDPAddr("udp", "127.0.0.1:7000")
-	require.NoError(e)
-	conn, e := net.DialUDP("udp", nil, addr)
-	require.NoError(e)
-
-	face := socketface.New(conn, socketface.Config{
+	remoteUri := faceuri.MustParse("udp4://127.0.0.1:7000")
+	face, e := socketface.NewFromUri(remoteUri, nil, socketface.Config{
 		Mempools:    faceMempools,
 		RxMp:        directMp,
 		RxqCapacity: 64,
 		TxqCapacity: 64,
 	})
+	require.NoError(e)
 	defer face.Close()
 
 	assert.Equal(iface.FaceKind_Socket, face.GetFaceId().GetKind())
-	assert.Equal(fmt.Sprintf("udp4://%s", conn.LocalAddr()), face.GetLocalUri().String())
+	assert.Equal(fmt.Sprintf("udp4://%s", face.GetConn().LocalAddr()), face.GetLocalUri().String())
 	assert.Equal("udp4://127.0.0.1:7000", face.GetRemoteUri().String())
 }

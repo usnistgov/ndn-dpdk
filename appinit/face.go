@@ -3,7 +3,6 @@ package appinit
 import (
 	"errors"
 	"fmt"
-	"net"
 
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
@@ -25,9 +24,6 @@ var (
 func NewFaceFromUri(remote, local *faceuri.FaceUri) (face iface.IFace, e error) {
 	if remote == nil {
 		return nil, errors.New("remote FaceUri is empty")
-	}
-	if local != nil && local.Scheme != remote.Scheme {
-		return nil, errors.New("remote and local FaceUris have different schemes")
 	}
 
 	create := newFaceByScheme[remote.Scheme]
@@ -94,37 +90,12 @@ func newEthFaceFromDev(port dpdk.EthDev) (iface.IFace, error) {
 }
 
 func newSocketFace(remote, local *faceuri.FaceUri) (face iface.IFace, e error) {
-	var conn net.Conn
-	if remote.Scheme == "udp4" {
-		raddr, e := net.ResolveUDPAddr(remote.Scheme, remote.Host)
-		if e != nil {
-			return nil, fmt.Errorf("net.ResolveUDPAddr(%s,%s): %v", remote.Scheme, remote.Host, e)
-		}
-		laddr := &net.UDPAddr{Port: raddr.Port}
-		if local != nil {
-			if laddr, e = net.ResolveUDPAddr(local.Scheme, local.Host); e != nil {
-				return nil, fmt.Errorf("net.ResolveUDPAddr(%s,%s): %v", local.Scheme, local.Host, e)
-			}
-		}
-		conn, e = net.DialUDP(remote.Scheme, laddr, raddr)
-		if e != nil {
-			return nil, fmt.Errorf("net.DialUDP(%s,%s,%s): %v", remote.Scheme, laddr, raddr, e)
-		}
-	} else if local != nil {
-		return nil, fmt.Errorf("%s scheme does not accept local FaceUri", remote.Scheme)
-	} else {
-		conn, e = net.Dial(remote.Scheme, remote.Host)
-		if e != nil {
-			return nil, fmt.Errorf("net.Dial(%s,%s): %v", remote.Scheme, remote.Host, e)
-		}
-	}
-
 	var cfg socketface.Config
 	cfg.Mempools = makeFaceMempools(dpdk.NUMA_SOCKET_ANY)
 	cfg.RxMp = MakePktmbufPool(MP_ETHRX, dpdk.NUMA_SOCKET_ANY)
 	cfg.RxqCapacity = SOCKETFACE_RXQ_CAPACITY
 	cfg.TxqCapacity = SOCKETFACE_TXQ_CAPACITY
-	return socketface.New(conn, cfg), nil
+	return socketface.NewFromUri(remote, local, cfg)
 }
 
 func newMockFace(remote, local *faceuri.FaceUri) (face iface.IFace, e error) {

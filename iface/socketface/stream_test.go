@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"ndn-dpdk/iface"
+	"ndn-dpdk/iface/faceuri"
 	"ndn-dpdk/iface/ifacetestfixture"
 	"ndn-dpdk/iface/socketface"
 )
@@ -42,18 +43,18 @@ func TestTcp(t *testing.T) {
 	require.NoError(e)
 	defer listener.Close()
 	*addr = *listener.Addr().(*net.TCPAddr)
-	conn, e := net.DialTCP("tcp", nil, addr)
-	require.NoError(e)
 
-	face := socketface.New(conn, socketface.Config{
+	remoteUri := faceuri.MustParse(fmt.Sprintf("tcp4://127.0.0.1:%d", addr.Port))
+	face, e := socketface.NewFromUri(remoteUri, nil, socketface.Config{
 		Mempools:    faceMempools,
 		RxMp:        directMp,
 		RxqCapacity: 64,
 		TxqCapacity: 64,
 	})
+	require.NoError(e)
 	defer face.Close()
 
 	assert.Equal(iface.FaceKind_Socket, face.GetFaceId().GetKind())
-	assert.Equal(fmt.Sprintf("tcp4://%s", conn.LocalAddr()), face.GetLocalUri().String())
+	assert.Equal(fmt.Sprintf("tcp4://%s", face.GetConn().LocalAddr()), face.GetLocalUri().String())
 	assert.Equal(fmt.Sprintf("tcp4://127.0.0.1:%d", addr.Port), face.GetRemoteUri().String())
 }
