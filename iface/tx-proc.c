@@ -154,18 +154,3 @@ TxProc_OutputNoFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames,
   frames[0] = frame;
   return 1;
 }
-
-void
-TxProc_ReadCounters(TxProc* tx, FaceCounters* cnt)
-{
-  cnt->txl2.nOctets = tx->nOctets;
-  cnt->txl2.nFragGood = tx->nL3Fragmented;
-  cnt->txl2.nFragBad = tx->nL3OverLength + tx->nAllocFails;
-
-  cnt->txl3.nInterests = tx->nFrames[L3PktType_Interest];
-  cnt->txl3.nData = tx->nFrames[L3PktType_Data];
-  cnt->txl3.nNacks = tx->nFrames[L3PktType_Nack];
-
-  cnt->txl2.nFrames = tx->nFrames[L3PktType_None] + cnt->txl3.nInterests +
-                      cnt->txl3.nData + cnt->txl3.nNacks;
-}

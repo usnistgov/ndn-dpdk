@@ -54,17 +54,3 @@ RxProc_Input(RxProc* rx, struct rte_mbuf* frame)
   ++rx->nFrames[l3type];
   return npkt;
 }
-
-void
-RxProc_ReadCounters(RxProc* rx, FaceCounters* cnt)
-{
-  cnt->rxl2.nFrames = rx->nFrames[L3PktType_None];
-  cnt->rxl2.nOctets = rx->nOctets;
-
-  cnt->rxl2.nReassGood = rx->reassembler.nDelivered;
-  cnt->rxl2.nReassBad = rx->reassembler.nIncomplete;
-
-  cnt->rxl3.nInterests = rx->nFrames[L3PktType_Interest];
-  cnt->rxl3.nData = rx->nFrames[L3PktType_Data];
-  cnt->rxl3.nNacks = rx->nFrames[L3PktType_Nack];
-}

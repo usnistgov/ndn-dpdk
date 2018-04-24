@@ -45,19 +45,6 @@ Face_TxBurst_Nts(Face* face, Packet** npkts, uint16_t count)
 }
 
 void
-Face_ReadCounters(FaceId faceId, FaceCounters* cnt)
-{
-  Face* face = __Face_Get(faceId);
-  if (unlikely(face->state != FACESTA_UP && face->state != FACESTA_DOWN)) {
-    memset(cnt, 0, sizeof(*cnt));
-    return;
-  }
-
-  RxProc_ReadCounters(&face->impl->rx, cnt);
-  TxProc_ReadCounters(&face->impl->tx, cnt);
-}
-
-void
 FaceImpl_Init(Face* face, uint16_t mtu, uint16_t headroom,
               FaceMempools* mempools)
 {

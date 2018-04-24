@@ -3,7 +3,7 @@
 
 /// \file
 
-#include "counters.h"
+#include "common.h"
 
 typedef struct TxProc TxProc;
 
@@ -82,9 +82,5 @@ TxProc_CountSent(TxProc* tx, struct rte_mbuf* pkt)
   ++tx->nFrames[pkt->inner_l3_type];
   tx->nOctets += pkt->pkt_len;
 }
-
-/** \brief Retrieve counters.
- */
-void TxProc_ReadCounters(TxProc* tx, FaceCounters* cnt);
 
 #endif // NDN_DPDK_IFACE_TX_PROC_H

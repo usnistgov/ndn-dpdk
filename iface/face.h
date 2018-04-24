@@ -128,10 +128,6 @@ Face_Tx(FaceId faceId, Packet* npkt)
   Face_TxBurst(faceId, &npkt, 1);
 }
 
-/** \brief Retrieve face counters.
- */
-void Face_ReadCounters(FaceId faceId, FaceCounters* cnt);
-
 // ---- functions invoked by face implementation ----
 
 typedef struct FaceMempools

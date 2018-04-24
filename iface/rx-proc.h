@@ -3,7 +3,6 @@
 
 /// \file
 
-#include "counters.h"
 #include "in-order-reassembler.h"
 
 /** \brief Incoming frame processing procedure.
@@ -42,9 +41,5 @@ int RxProc_Init(RxProc* rx, struct rte_mempool* nameMp);
  *  \retval NULL no L3 packet is ready at this moment
  */
 Packet* RxProc_Input(RxProc* rx, struct rte_mbuf* pkt);
-
-/** \brief Retrieve counters.
- */
-void RxProc_ReadCounters(RxProc* rx, FaceCounters* cnt);
 
 #endif // NDN_DPDK_IFACE_RX_PROC_H
