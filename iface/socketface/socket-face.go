@@ -6,6 +6,7 @@ uint16_t go_SocketFace_TxBurst(Face* faceC, struct rte_mbuf** pkts, uint16_t nPk
 */
 import "C"
 import (
+	"fmt"
 	"net"
 	"time"
 	"unsafe"
@@ -30,7 +31,7 @@ type SocketFace struct {
 	iface.BaseFace
 	logger logrus.FieldLogger
 	conn   net.Conn
-	impl   impl
+	impl   iImpl
 	failed bool
 
 	rxMp          dpdk.PktmbufPool
@@ -41,32 +42,16 @@ type SocketFace struct {
 	txQueue chan dpdk.Packet
 }
 
-type impl interface {
-	// Receive packets on the socket and post them to face.rxQueue.
-	// Loop until a fatal error occurs or face.rxQuit receives a message.
-	// Increment face.rxCongestions when a packet arrives but face.rxQueue is full.
-	RxLoop()
-
-	// Transmit one packet on the socket.
-	Send(pkt dpdk.Packet) error
-
-	// Return FaceUri describing an endpoint.
-	FormatFaceUri(addr net.Addr) *faceuri.FaceUri
-}
-
-func isDatagramConn(conn net.Conn) bool {
-	switch conn.(type) {
-	case *net.UnixConn:
-		return conn.LocalAddr().Network() == "unixgram"
-	case net.PacketConn:
-		return true
-	}
-	return false
-}
-
 // Create a SocketFace on a net.Conn.
-func New(conn net.Conn, cfg Config) *SocketFace {
-	var face SocketFace
+func New(conn net.Conn, cfg Config) (face *SocketFace, e error) {
+	face = &SocketFace{}
+	network := conn.LocalAddr().Network()
+	if impl, ok := implByNetwork[network]; ok {
+		face.impl = impl
+	} else {
+		return nil, fmt.Errorf("unknown network %s", network)
+	}
+
 	face.InitBaseFace(iface.AllocId(iface.FaceKind_Socket), 0, dpdk.NUMA_SOCKET_ANY)
 
 	face.logger = newLogger(face.GetFaceId())
@@ -76,19 +61,14 @@ func New(conn net.Conn, cfg Config) *SocketFace {
 	face.rxQuit = make(chan struct{}, 1)
 	face.txQueue = make(chan dpdk.Packet, cfg.TxqCapacity)
 
-	if isDatagramConn(conn) {
-		face.impl = newDatagramImpl(&face)
-	} else {
-		face.impl = newStreamImpl(&face)
-	}
-	go face.impl.RxLoop()
+	go face.impl.RxLoop(face)
 	go face.txLoop()
 
 	faceC := face.getPtr()
 	faceC.txBurstOp = (C.FaceImpl_TxBurst)(C.go_SocketFace_TxBurst)
 	C.FaceImpl_Init(faceC, 0, 0, (*C.FaceMempools)(cfg.Mempools.GetPtr()))
-	iface.Put(&face)
-	return &face
+	iface.Put(face)
+	return face, nil
 }
 
 func (face *SocketFace) getPtr() *C.Face {
@@ -97,11 +77,6 @@ func (face *SocketFace) getPtr() *C.Face {
 
 func (face *SocketFace) GetConn() net.Conn {
 	return face.conn
-}
-
-func (face *SocketFace) IsDatagram() bool {
-	_, isDatagramImpl := face.impl.(*datagramImpl)
-	return isDatagramImpl
 }
 
 func (face *SocketFace) GetLocalUri() *faceuri.FaceUri {
@@ -133,7 +108,7 @@ func (face *SocketFace) txLoop() {
 		if !ok {
 			return
 		}
-		e := face.impl.Send(pkt)
+		e := face.impl.Send(face, pkt)
 		if e == nil {
 			C.FaceImpl_CountSent(face.getPtr(), (*C.struct_rte_mbuf)(pkt.GetPtr()))
 		}

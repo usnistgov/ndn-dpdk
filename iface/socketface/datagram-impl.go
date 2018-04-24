@@ -10,18 +10,9 @@ import (
 )
 
 // SocketFace implementation for datagram-oriented sockets.
-type datagramImpl struct {
-	face *SocketFace
-}
+type datagramImpl struct{}
 
-func newDatagramImpl(face *SocketFace) *datagramImpl {
-	impl := new(datagramImpl)
-	impl.face = face
-	return impl
-}
-
-func (impl *datagramImpl) RxLoop() {
-	face := impl.face
+func (datagramImpl) RxLoop(face *SocketFace) {
 	for {
 		mbuf, e := face.rxMp.Alloc()
 		if e != nil {
@@ -58,26 +49,42 @@ func (impl *datagramImpl) RxLoop() {
 	}
 }
 
-func (impl *datagramImpl) Send(pkt dpdk.Packet) error {
+func (datagramImpl) Send(face *SocketFace, pkt dpdk.Packet) error {
 	var buf []byte
 	if pkt.CountSegments() > 1 {
 		buf = pkt.ReadAll()
 	} else {
 		buf = pkt.GetFirstSegment().AsByteSlice()
 	}
-	_, e := impl.face.conn.Write(buf)
+	_, e := face.conn.Write(buf)
 	return e
 }
 
-func (impl *datagramImpl) FormatFaceUri(addr net.Addr) *faceuri.FaceUri {
-	if a, ok := addr.(*net.UDPAddr); ok {
-		if a.IP.To4() != nil {
-			return faceuri.MustParse(fmt.Sprintf("udp4://%s", a))
-		} else {
-			// FaceUri cannot represent IPv6 address
-			return faceuri.MustParse(fmt.Sprintf("udp4://192.0.2.6:%d", a.Port))
-		}
+type udpImpl struct {
+	datagramImpl
+}
+
+func (udpImpl) FormatFaceUri(addr net.Addr) *faceuri.FaceUri {
+	a := addr.(*net.UDPAddr)
+	if a.IP.To4() == nil {
+		// FaceUri cannot represent IPv6 address
+		return faceuri.MustParse(fmt.Sprintf("udp4://192.0.2.6:%d", a.Port))
 	}
+	return faceuri.MustParse(fmt.Sprintf("udp4://%s", a))
+}
+
+type unixgramImpl struct {
+	datagramImpl
+}
+
+func (unixgramImpl) FormatFaceUri(addr net.Addr) *faceuri.FaceUri {
 	// FaceUri cannot represent non-UDP
 	return faceuri.MustParse("udp4://192.0.2.0:1")
+}
+
+func init() {
+	implByNetwork["udp"] = udpImpl{}
+	implByNetwork["udp4"] = udpImpl{}
+	implByNetwork["udp6"] = udpImpl{}
+	implByNetwork["unixgram"] = unixgramImpl{}
 }

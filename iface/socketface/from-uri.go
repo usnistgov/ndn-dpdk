@@ -39,5 +39,5 @@ func NewFromUri(remote, local *faceuri.FaceUri, cfg Config) (face *SocketFace, e
 		}
 	}
 
-	return New(conn, cfg), nil
+	return New(conn, cfg)
 }

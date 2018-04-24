@@ -8,6 +8,8 @@ import (
 	"path"
 	"testing"
 
+	"golang.org/x/sys/unix"
+
 	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/faceuri"
 	"ndn-dpdk/iface/ifacetestfixture"
@@ -15,25 +17,17 @@ import (
 )
 
 func TestStream(t *testing.T) {
-	assert, _ := makeAR(t)
+	_, require := makeAR(t)
 
-	connA, connB := net.Pipe()
+	fd, e := unix.Socketpair(unix.AF_UNIX, unix.SOCK_STREAM, 0)
+	require.NoError(e)
 
-	faceA := socketface.New(connA, socketface.Config{
-		Mempools:    faceMempools,
-		RxMp:        directMp,
-		RxqCapacity: 64,
-		TxqCapacity: 64,
-	})
-	faceB := socketface.New(connB, socketface.Config{
-		Mempools:    faceMempools,
-		RxMp:        directMp,
-		RxqCapacity: 64,
-		TxqCapacity: 64,
-	})
+	faceA, e := socketface.New(makeConnFromFd(fd[0]), socketfaceCfg)
+	require.NoError(e)
 	defer faceA.Close()
+	faceB, e := socketface.New(makeConnFromFd(fd[1]), socketfaceCfg)
+	require.NoError(e)
 	defer faceB.Close()
-	assert.False(faceA.IsDatagram())
 
 	fixture := ifacetestfixture.New(t, faceA, socketface.NewRxGroup(faceA), faceB)
 	fixture.RunTest()
@@ -51,15 +45,9 @@ func TestTcp(t *testing.T) {
 	*addr = *listener.Addr().(*net.TCPAddr)
 
 	remoteUri := faceuri.MustParse(fmt.Sprintf("tcp4://127.0.0.1:%d", addr.Port))
-	face, e := socketface.NewFromUri(remoteUri, nil, socketface.Config{
-		Mempools:    faceMempools,
-		RxMp:        directMp,
-		RxqCapacity: 64,
-		TxqCapacity: 64,
-	})
+	face, e := socketface.NewFromUri(remoteUri, nil, socketfaceCfg)
 	require.NoError(e)
 	defer face.Close()
-	assert.False(face.IsDatagram())
 
 	assert.Equal(iface.FaceKind_Socket, face.GetFaceId().GetKind())
 	assert.Equal(fmt.Sprintf("tcp4://%s", face.GetConn().LocalAddr()), face.GetLocalUri().String())
@@ -78,17 +66,11 @@ func TestUnix(t *testing.T) {
 	defer listener.Close()
 
 	remoteUri := faceuri.MustParse(fmt.Sprintf("unix://%s", addr))
-	face, e := socketface.NewFromUri(remoteUri, nil, socketface.Config{
-		Mempools:    faceMempools,
-		RxMp:        directMp,
-		RxqCapacity: 64,
-		TxqCapacity: 64,
-	})
+	face, e := socketface.NewFromUri(remoteUri, nil, socketfaceCfg)
 	require.NoError(e)
 	defer face.Close()
-	assert.False(face.IsDatagram())
 
 	assert.Equal(iface.FaceKind_Socket, face.GetFaceId().GetKind())
-	assert.Equal("tcp4://192.0.2.0:1", face.GetLocalUri().String())
+	assert.Equal("unix:///invalid", face.GetLocalUri().String())
 	assert.Equal(fmt.Sprintf("unix://%s", addr), face.GetRemoteUri().String())
 }

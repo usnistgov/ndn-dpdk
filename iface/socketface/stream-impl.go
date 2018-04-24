@@ -15,14 +15,7 @@ type streamImpl struct {
 	face *SocketFace
 }
 
-func newStreamImpl(face *SocketFace) *streamImpl {
-	impl := new(streamImpl)
-	impl.face = face
-	return impl
-}
-
-func (impl *streamImpl) RxLoop() {
-	face := impl.face
+func (impl streamImpl) RxLoop(face *SocketFace) {
 	buf := make(ndn.TlvBytes, face.rxMp.GetDataroom())
 	nAvail := 0
 	for {
@@ -38,7 +31,7 @@ func (impl *streamImpl) RxLoop() {
 		// parse and post packets
 		offset := 0
 		for {
-			n := impl.postPacket(buf[offset:nAvail])
+			n := impl.postPacket(face, buf[offset:nAvail])
 			if n == 0 {
 				break
 			}
@@ -59,9 +52,7 @@ func (impl *streamImpl) RxLoop() {
 	}
 }
 
-func (impl *streamImpl) postPacket(buf ndn.TlvBytes) (n int) {
-	face := impl.face
-
+func (streamImpl) postPacket(face *SocketFace, buf ndn.TlvBytes) (n int) {
 	element, _ := buf.ExtractElement()
 	if element == nil {
 		return 0
@@ -89,10 +80,10 @@ func (impl *streamImpl) postPacket(buf ndn.TlvBytes) (n int) {
 	return len(element)
 }
 
-func (impl *streamImpl) Send(pkt dpdk.Packet) error {
+func (streamImpl) Send(face *SocketFace, pkt dpdk.Packet) error {
 	for seg, ok := pkt.GetFirstSegment(), true; ok; seg, ok = seg.GetNext() {
 		buf := seg.AsByteSlice()
-		_, e := impl.face.conn.Write(buf)
+		_, e := face.conn.Write(buf)
 		if e != nil {
 			return e
 		}
@@ -100,20 +91,34 @@ func (impl *streamImpl) Send(pkt dpdk.Packet) error {
 	return nil
 }
 
-func (impl *streamImpl) FormatFaceUri(addr net.Addr) *faceuri.FaceUri {
-	switch a := addr.(type) {
-	case *net.TCPAddr:
-		if a.IP.To4() != nil {
-			return faceuri.MustParse(fmt.Sprintf("tcp4://%s", a))
-		} else {
-			// FaceUri cannot represent IPv6 address
-			return faceuri.MustParse(fmt.Sprintf("tcp4://192.0.2.6:%d", a.Port))
-		}
-	case *net.UnixAddr:
-		if a.Name != "@" {
-			return faceuri.MustParse(fmt.Sprintf("%s://%s", a.Net, a.Name))
-		}
+type tcpImpl struct {
+	streamImpl
+}
+
+func (tcpImpl) FormatFaceUri(addr net.Addr) *faceuri.FaceUri {
+	a := addr.(*net.TCPAddr)
+	if a.IP.To4() == nil {
+		// FaceUri cannot represent IPv6 address
+		return faceuri.MustParse(fmt.Sprintf("tcp4://192.0.2.6:%d", a.Port))
 	}
-	// FaceUri cannot represent other schemes
-	return faceuri.MustParse("tcp4://192.0.2.0:1")
+	return faceuri.MustParse(fmt.Sprintf("tcp4://%s", a))
+}
+
+type unixImpl struct {
+	streamImpl
+}
+
+func (unixImpl) FormatFaceUri(addr net.Addr) *faceuri.FaceUri {
+	a := addr.(*net.UnixAddr)
+	if a.Name == "@" {
+		return faceuri.MustParse("unix:///invalid")
+	}
+	return faceuri.MustParse(fmt.Sprintf("unix://%s", a.Name))
+}
+
+func init() {
+	implByNetwork["tcp"] = tcpImpl{}
+	implByNetwork["tcp4"] = tcpImpl{}
+	implByNetwork["tcp6"] = tcpImpl{}
+	implByNetwork["unix"] = unixImpl{}
 }
