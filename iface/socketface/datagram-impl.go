@@ -14,7 +14,7 @@ type datagramImpl struct {
 	face *SocketFace
 }
 
-func newDatagramImpl(face *SocketFace, conn net.PacketConn) *datagramImpl {
+func newDatagramImpl(face *SocketFace) *datagramImpl {
 	impl := new(datagramImpl)
 	impl.face = face
 	return impl

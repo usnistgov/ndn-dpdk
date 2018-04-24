@@ -33,7 +33,7 @@ func NewFromUri(remote, local *faceuri.FaceUri, cfg Config) (face *SocketFace, e
 	} else if local != nil {
 		return nil, fmt.Errorf("%s scheme does not accept local FaceUri", remote.Scheme)
 	} else {
-		conn, e = net.Dial(remote.Scheme, remote.Host)
+		conn, e = net.Dial(remote.Scheme, remote.Host+remote.Path)
 		if e != nil {
 			return nil, fmt.Errorf("net.Dial(%s,%s): %v", remote.Scheme, remote.Host, e)
 		}

@@ -2,7 +2,7 @@ package faceuri
 
 import (
 	"errors"
-	"path/filepath"
+	"path"
 )
 
 type unixImpl struct{}
@@ -12,7 +12,7 @@ func (unixImpl) Verify(u *FaceUri) error {
 		return e
 	}
 
-	u.Path = filepath.Clean(u.Path)
+	u.Path = path.Clean(u.Path)
 
 	if u.Path[0] != '/' {
 		return errors.New("unix FaceUri must have absolute filesystem path")

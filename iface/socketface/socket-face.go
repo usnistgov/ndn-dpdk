@@ -54,6 +54,16 @@ type impl interface {
 	FormatFaceUri(addr net.Addr) *faceuri.FaceUri
 }
 
+func isDatagramConn(conn net.Conn) bool {
+	switch conn.(type) {
+	case *net.UnixConn:
+		return conn.LocalAddr().Network() == "unixgram"
+	case net.PacketConn:
+		return true
+	}
+	return false
+}
+
 // Create a SocketFace on a net.Conn.
 func New(conn net.Conn, cfg Config) *SocketFace {
 	var face SocketFace
@@ -66,10 +76,10 @@ func New(conn net.Conn, cfg Config) *SocketFace {
 	face.rxQuit = make(chan struct{}, 1)
 	face.txQueue = make(chan dpdk.Packet, cfg.TxqCapacity)
 
-	if dconn, isDatagram := conn.(net.PacketConn); isDatagram {
-		face.impl = newDatagramImpl(&face, dconn)
+	if isDatagramConn(conn) {
+		face.impl = newDatagramImpl(&face)
 	} else {
-		face.impl = newStreamImpl(&face, conn)
+		face.impl = newStreamImpl(&face)
 	}
 	go face.impl.RxLoop()
 	go face.txLoop()
@@ -87,6 +97,11 @@ func (face *SocketFace) getPtr() *C.Face {
 
 func (face *SocketFace) GetConn() net.Conn {
 	return face.conn
+}
+
+func (face *SocketFace) IsDatagram() bool {
+	_, isDatagramImpl := face.impl.(*datagramImpl)
+	return isDatagramImpl
 }
 
 func (face *SocketFace) GetLocalUri() *faceuri.FaceUri {

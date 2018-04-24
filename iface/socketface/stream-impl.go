@@ -15,7 +15,7 @@ type streamImpl struct {
 	face *SocketFace
 }
 
-func newStreamImpl(face *SocketFace, conn net.Conn) *streamImpl {
+func newStreamImpl(face *SocketFace) *streamImpl {
 	impl := new(streamImpl)
 	impl.face = face
 	return impl
@@ -101,14 +101,19 @@ func (impl *streamImpl) Send(pkt dpdk.Packet) error {
 }
 
 func (impl *streamImpl) FormatFaceUri(addr net.Addr) *faceuri.FaceUri {
-	if a, ok := addr.(*net.TCPAddr); ok {
+	switch a := addr.(type) {
+	case *net.TCPAddr:
 		if a.IP.To4() != nil {
 			return faceuri.MustParse(fmt.Sprintf("tcp4://%s", a))
 		} else {
 			// FaceUri cannot represent IPv6 address
 			return faceuri.MustParse(fmt.Sprintf("tcp4://192.0.2.6:%d", a.Port))
 		}
+	case *net.UnixAddr:
+		if a.Name != "@" {
+			return faceuri.MustParse(fmt.Sprintf("%s://%s", a.Net, a.Name))
+		}
 	}
-	// FaceUri cannot represent non-TCP
+	// FaceUri cannot represent other schemes
 	return faceuri.MustParse("tcp4://192.0.2.0:1")
 }

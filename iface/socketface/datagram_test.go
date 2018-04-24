@@ -15,7 +15,7 @@ import (
 )
 
 func TestDatagram(t *testing.T) {
-	_, require := makeAR(t)
+	assert, require := makeAR(t)
 
 	fd, e := unix.Socketpair(unix.AF_UNIX, unix.SOCK_DGRAM, 0)
 	require.NoError(e)
@@ -43,6 +43,7 @@ func TestDatagram(t *testing.T) {
 	})
 	defer faceA.Close()
 	defer faceB.Close()
+	assert.True(faceA.IsDatagram())
 
 	fixture := ifacetestfixture.New(t, faceA, socketface.NewRxGroup(faceA), faceB)
 	fixture.RunTest()
@@ -61,6 +62,7 @@ func TestUdp(t *testing.T) {
 	})
 	require.NoError(e)
 	defer face.Close()
+	assert.True(face.IsDatagram())
 
 	assert.Equal(iface.FaceKind_Socket, face.GetFaceId().GetKind())
 	assert.Equal(fmt.Sprintf("udp4://%s", face.GetConn().LocalAddr()), face.GetLocalUri().String())

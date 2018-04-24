@@ -8,7 +8,7 @@ There are two different implementations:
 * **streamImpl** for stream-oriented sockets (net.Conn that is not net.PacketConn).
 
 FaceId of SocketFace is randomly assigned from the range 0xE000-0xEFFF.
-LocalUri and RemoteUri reflect local and remote endpoint addresses, except that IPv6 addresses will be shown as "192.0.2.6", and non-UDP/TCP endpoints will be shown as "192.0.2.0:1".
+LocalUri and RemoteUri reflect local and remote endpoint addresses, except that IPv6 addresses become "192.0.2.6", and unknown endpoints become "192.0.2.0:1".
 
 SocketFace's send path is thread safe.
 
