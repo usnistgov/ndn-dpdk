@@ -13,14 +13,13 @@ type udpTcpImpl struct {
 }
 
 func (impl udpTcpImpl) Verify(u *FaceUri) error {
-	e := rejectUPQF(u)
-	if e != nil {
+	if e := u.verifyNo(no.user, no.path, no.query, no.fragment); e != nil {
 		return e
 	}
 
 	ip := net.ParseIP(u.Hostname()).To4()
 	if ip == nil || ip[0] < 1 || ip[0] > 223 {
-		return fmt.Errorf("%s URI must contain IPv4 unicast address", u.Scheme)
+		return fmt.Errorf("%s FaceUri must contain IPv4 unicast address", u.Scheme)
 	}
 
 	if u.Port() == "" {
@@ -29,11 +28,11 @@ func (impl udpTcpImpl) Verify(u *FaceUri) error {
 		var portNo uint16
 		_, e := fmt.Sscan(u.Port(), &portNo)
 		if e != nil {
-			return fmt.Errorf("%s URI needs a valid port number but %s has error %v",
+			return fmt.Errorf("%s FaceUri needs a valid port number but %s has error %v",
 				u.Scheme, u.Port(), e)
 		}
 		if portNo == 0 {
-			return fmt.Errorf("%s URI cannot have port number 0", u.Scheme)
+			return fmt.Errorf("%s FaceUri cannot have port number 0", u.Scheme)
 		}
 	}
 

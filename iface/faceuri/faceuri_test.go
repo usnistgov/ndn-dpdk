@@ -15,6 +15,7 @@ func TestParse(t *testing.T) {
 		ok     bool
 		output string // "" indicates same as input
 	}{
+		{"badscheme://", false, ""},
 		{"dev://net_pcap1", true, ""},
 		{"dev://net_pcap1/", true, "dev://net_pcap1"},
 		{"dev://user@net_pcap1", false, ""},
@@ -25,6 +26,8 @@ func TestParse(t *testing.T) {
 		{"ether://[02:02:02:02:02:02]", true, ""},
 		{"ether://02:02:02:02:02:02", false, ""},
 		{"ether://[FF:FF:FF:FF:FF:FF]/", true, "ether://[ff:ff:ff:ff:ff:ff]"},
+		{"mock://", true, ""},
+		{"mock://x", false, ""},
 		{"udp://192.0.2.1", true, "udp4://192.0.2.1:6363"},
 		{"udp://192.0.2.1:7777", true, "udp4://192.0.2.1:7777"},
 		{"udp4://192.0.2.1", true, "udp4://192.0.2.1:6363"},
@@ -40,12 +43,14 @@ func TestParse(t *testing.T) {
 		{"udp4://192.0.2.1/path", false, ""},
 		{"udp4://192.0.2.1?query", false, ""},
 		{"udp4://192.0.2.1#fragment", false, ""},
+		{"unix://", false, ""},
+		{"unix:///", true, ""},
+		{"unix:///var/run/ndn-dpdk-app.sock", true, ""},
+		{"unix:///var//run/X/../ndn-dpdk-app.sock", true, "unix:///var/run/ndn-dpdk-app.sock"},
 		{"tcp://192.0.2.1", true, "tcp4://192.0.2.1:6363"},
 		{"tcp://192.0.2.1:7777", true, "tcp4://192.0.2.1:7777"},
 		{"tcp4://192.0.2.1", true, "tcp4://192.0.2.1:6363"},
 		{"tcp4://192.0.2.1:7777", true, ""},
-		{"mock://", true, ""},
-		{"mock://x", false, ""},
 	}
 	for _, tt := range tests {
 		u, e := faceuri.Parse(tt.input)
