@@ -21,6 +21,8 @@ typedef struct NdnpingServer
   NameSet patterns;     ///< served prefixes
   bool wantNackNoRoute; ///< whether to Nack unserved Interests
   uint32_t freshnessPeriod;
+  uint16_t payloadL;
+  const uint8_t* payloadV;
 
   struct rte_mempool* dataMp; ///< mempool for Data
   uint16_t dataMbufHeadroom;

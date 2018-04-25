@@ -17,6 +17,7 @@ type parsedCommand struct {
 	measureRtt      bool
 	addDelay        time.Duration
 	serverNack      bool
+	payloadLen      int
 	counterInterval time.Duration
 }
 
@@ -40,8 +41,9 @@ func parseCommand(args []string) (pc parsedCommand, e error) {
 	flags := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	flags.BoolVar(&pc.measureLatency, "latency", false, "measure client-server latency")
 	flags.BoolVar(&pc.measureRtt, "rtt", false, "measure round trip time")
-	flags.DurationVar(&pc.addDelay, "add-delay", time.Duration(0), "add delay before server response")
+	flags.DurationVar(&pc.addDelay, "add-delay", time.Duration(0), "add delay before server responds")
 	flags.BoolVar(&pc.serverNack, "nack", true, "server Nacks on unserved Interests")
+	flags.IntVar(&pc.payloadLen, "payload-len", 0, "length of Content from server")
 	flags.DurationVar(&pc.counterInterval, "cnt", time.Second*10, "interval between printing counters")
 
 	e = flags.Parse(args)

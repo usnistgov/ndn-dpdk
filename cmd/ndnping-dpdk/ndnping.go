@@ -51,6 +51,7 @@ func main() {
 		for _, prefix := range serverCfg.prefixes {
 			server.AddPattern(prefix)
 		}
+		server.SetPayloadLen(pc.payloadLen)
 		servers = append(servers, server)
 	}
 

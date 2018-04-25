@@ -16,7 +16,8 @@ NdnpingServer_MakeData(NdnpingServer* server, LName name)
     return NULL;
   }
   m->data_off = server->dataMbufHeadroom;
-  EncodeData(m, name, server->freshnessPeriod, 0, NULL);
+  EncodeData(m, name, server->freshnessPeriod, server->payloadL,
+             server->payloadV);
 
   Packet* npkt = Packet_FromMbuf(m);
   Packet_SetL2PktType(npkt, L2PktType_None);
