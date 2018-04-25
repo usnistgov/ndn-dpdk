@@ -91,6 +91,7 @@ func (face *SocketFace) Close() error {
 	face.conn.SetDeadline(time.Now())
 	face.rxQuit <- struct{}{}
 	close(face.txQueue)
+	face.CloseBaseFace()
 	return face.conn.Close()
 }
 

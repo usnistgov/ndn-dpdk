@@ -58,6 +58,7 @@ func (face *EthFace) GetRemoteUri() *faceuri.FaceUri {
 
 func (face *EthFace) Close() error {
 	C.EthFace_Close(face.getPtr())
+	face.CloseBaseFace()
 	return nil
 }
 

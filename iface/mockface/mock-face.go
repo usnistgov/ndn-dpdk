@@ -53,6 +53,7 @@ func (*MockFace) GetRemoteUri() *faceuri.FaceUri {
 
 func (face *MockFace) Close() error {
 	face.isClosed = true
+	face.CloseBaseFace()
 	return nil
 }
 

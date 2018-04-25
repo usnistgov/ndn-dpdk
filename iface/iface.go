@@ -107,6 +107,5 @@ func (it *FaceIterator) Next() {
 func CloseAll() {
 	for it := IterFaces(); it.Valid(); it.Next() {
 		it.Face.Close()
-		gFaces[it.Id] = nil
 	}
 }

@@ -55,6 +55,7 @@ func (face BaseFace) CloseBaseFace() {
 	faceC := face.getPtr()
 	faceC.state = C.FACESTA_REMOVED
 	dpdk.Free(faceC.impl)
+	gFaces[faceC.id] = nil
 }
 
 func (face BaseFace) GetFaceId() FaceId {
