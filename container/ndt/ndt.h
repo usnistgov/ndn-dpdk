@@ -54,8 +54,9 @@ Ndt_GetThread(const Ndt* ndt, uint8_t id)
 /** \brief Update NDT.
  *  \param hash a prefix hash mapped into the table entry.
  *  \param value new PIT partition number in the table entry.
+ *  \return table index.
  */
-void Ndt_Update(Ndt* ndt, uint64_t hash, uint8_t value);
+uint64_t Ndt_Update(Ndt* ndt, uint64_t hash, uint8_t value);
 
 /** \brief Query NDT.
  */

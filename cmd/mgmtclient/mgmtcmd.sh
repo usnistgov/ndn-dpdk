@@ -13,7 +13,9 @@ Subcommands:
   ndt counters
     Show NDT counters.
   ndt update [HASH] [VALUE]
-    Update an NDT element.
+    Update an NDT element by hash.
+  ndt updaten [NAME] [VALUE]
+    Update an NDT element by name.
   fib info
     Show FIB counters.
   fib list
@@ -57,7 +59,9 @@ elif [[ $1 == 'ndt' ]]; then
   elif [[ $2 == 'counters' ]]; then
     jsonrpc Ndt.ReadCounters ''
   elif [[ $2 == 'update' ]]; then
-    jsonrpc Ndt.Update '{"Instructions":[{"Hash":'$3',"Value":'$4'}]}'
+    jsonrpc Ndt.Update '{"Hash":'$3',"Value":'$4'}'
+  elif [[ $2 == 'updaten' ]]; then
+    jsonrpc Ndt.Update '{"Name":"'$3'","Value":'$4'}'
   fi
 elif [[ $1 == 'fib' ]]; then
   if [[ $2 == 'info' ]]; then

@@ -93,7 +93,7 @@ func (n *Name) ComputePrefixHash(i int) uint64 {
 	return uint64(C.PName_ComputePrefixHash(n.p, n.getValuePtr(), C.uint16_t(i)))
 }
 
-// Compute hash for prefix with i components.
+// Compute hash for all components.
 func (n *Name) ComputeHash() uint64 {
 	return uint64(C.PName_ComputeHash(n.p, n.getValuePtr()))
 }

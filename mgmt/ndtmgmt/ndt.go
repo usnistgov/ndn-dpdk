@@ -2,6 +2,7 @@ package ndtmgmt
 
 import (
 	"ndn-dpdk/container/ndt"
+	"ndn-dpdk/ndn"
 )
 
 type NdtMgmt struct {
@@ -18,9 +19,14 @@ func (mg NdtMgmt) ReadCounters(args struct{}, reply *[]int) error {
 	return nil
 }
 
-func (mg NdtMgmt) Update(args UpdateArgs, reply *struct{}) error {
-	for _, instn := range args.Instructions {
-		mg.Ndt.Update(instn.Hash, instn.Value)
+func (mg NdtMgmt) Update(args UpdateArgs, reply *UpdateReply) error {
+	if args.Name != "" {
+		name, e := ndn.ParseName(args.Name)
+		if e != nil {
+			return e
+		}
+		args.Hash = mg.Ndt.ComputeHash(name)
 	}
+	reply.Index = mg.Ndt.Update(args.Hash, args.Value)
 	return nil
 }

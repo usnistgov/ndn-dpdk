@@ -35,11 +35,12 @@ Ndt_Close(Ndt* ndt)
   rte_free(ndt->table);
 }
 
-void
+uint64_t
 Ndt_Update(Ndt* ndt, uint64_t hash, uint8_t value)
 {
   uint64_t index = hash & ndt->indexMask;
   atomic_store_explicit(&ndt->table[index], value, memory_order_relaxed);
+  return index;
 }
 
 uint8_t
