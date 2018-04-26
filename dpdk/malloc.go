@@ -7,6 +7,7 @@ package dpdk
 */
 import "C"
 import (
+	"fmt"
 	"reflect"
 	"unsafe"
 )
@@ -27,7 +28,7 @@ func ZmallocAligned(dbgtype string, size interface{}, align int, socket NumaSock
 	ptr := C.rte_zmalloc_socket(cType, C.size_t(reflect.ValueOf(size).Int()),
 		C.unsigned(align*C.RTE_CACHE_LINE_SIZE), C.int(socket))
 	if ptr == nil {
-		panic("ZmallocAligned failed")
+		panic(fmt.Sprintf("ZmallocAligned(%d) failed", size))
 	}
 	return ptr
 }

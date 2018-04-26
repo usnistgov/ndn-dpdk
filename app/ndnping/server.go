@@ -39,10 +39,8 @@ func NewServer(face iface.IFace) (server Server, e error) {
 }
 
 func (server Server) Close() error {
+	server.SetPayloadLen(0)
 	server.getPatterns().Close()
-	if server.c.payloadV != nil {
-		dpdk.Free(server.c.payloadV)
-	}
 	dpdk.Free(server.c)
 	return nil
 }
@@ -56,8 +54,13 @@ func (server Server) SetNackNoRoute(enable bool) {
 }
 
 func (server Server) SetPayloadLen(len int) {
-	server.c.payloadV = (*C.uint8_t)(dpdk.Zmalloc("NdnpingServerPayload", len, dpdk.NUMA_SOCKET_ANY))
-	server.c.payloadL = C.uint16_t(len)
+	if server.c.payloadV != nil {
+		dpdk.Free(server.c.payloadV)
+	}
+	if len > 0 {
+		server.c.payloadV = (*C.uint8_t)(dpdk.Zmalloc("NdnpingServerPayload", len, dpdk.NUMA_SOCKET_ANY))
+		server.c.payloadL = C.uint16_t(len)
+	}
 }
 
 func (server Server) getPatterns() nameset.NameSet {
