@@ -136,9 +136,9 @@ func startDp() {
 	theNdt.Randomize(nFwds)
 
 	// set forwarding process config
-	dpCfg.FwdQueueCapacity = 64
+	dpCfg.FwdQueueCapacity = 128
 	dpCfg.LatencySampleRate = 16
-	dpCfg.PcctCfg.MaxEntries = 65535
+	dpCfg.PcctCfg.MaxEntries = 131071
 	dpCfg.CsCapacity = 32768
 
 	// create dataplane

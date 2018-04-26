@@ -105,17 +105,17 @@ var SizeofEthLpHeaders = ethface.SizeofTxHeader
 func init() {
 	RegisterMempool(MP_IND,
 		MempoolConfig{
-			Capacity:     262143,
-			CacheSize:    219,
+			Capacity:     2097151,
+			CacheSize:    337,
 			PrivSize:     0,
 			DataroomSize: 0,
 		})
 	RegisterMempool(MP_ETHRX,
 		MempoolConfig{
-			Capacity:     262143,
-			CacheSize:    219,
+			Capacity:     2097151,
+			CacheSize:    337,
 			PrivSize:     ndn.SizeofPacketPriv(),
-			DataroomSize: 9014, // MTU+sizeof(ether_hdr)
+			DataroomSize: 2560, // >= MTU+sizeof(ether_hdr)
 		})
 	RegisterMempool(MP_NAME,
 		MempoolConfig{
