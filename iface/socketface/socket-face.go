@@ -8,6 +8,9 @@ import "C"
 import (
 	"fmt"
 	"net"
+	"runtime"
+	"sync"
+	"sync/atomic"
 	"time"
 	"unsafe"
 
@@ -30,13 +33,16 @@ type Config struct {
 type SocketFace struct {
 	iface.BaseFace
 	logger logrus.FieldLogger
-	conn   net.Conn
+	conn   atomic.Value
 	impl   iImpl
-	failed bool
+
+	closing   int32          // 1 if face is closing, need atomic access
+	nRedials  int            // how many times face is redialed
+	redialing int32          // 1 if face is redialing, need atomic access
+	quitWg    sync.WaitGroup // wait until rxLoop and txLoop quits
 
 	rxMp          dpdk.PktmbufPool
 	rxQueue       chan dpdk.Packet
-	rxQuit        chan struct{}
 	rxCongestions int // L2 frames dropped due to rxQueue full
 
 	txQueue chan dpdk.Packet
@@ -55,19 +61,21 @@ func New(conn net.Conn, cfg Config) (face *SocketFace, e error) {
 	face.InitBaseFace(iface.AllocId(iface.FaceKind_Socket), 0, dpdk.NUMA_SOCKET_ANY)
 
 	face.logger = newLogger(face.GetFaceId())
-	face.conn = conn
+	face.conn.Store(conn)
 	face.rxMp = cfg.RxMp
 	face.rxQueue = make(chan dpdk.Packet, cfg.RxqCapacity)
-	face.rxQuit = make(chan struct{}, 1)
 	face.txQueue = make(chan dpdk.Packet, cfg.TxqCapacity)
 
-	go face.impl.RxLoop(face)
+	face.quitWg.Add(2)
+	go face.rxLoop()
 	go face.txLoop()
 
 	faceC := face.getPtr()
 	faceC.txBurstOp = (C.FaceImpl_TxBurst)(C.go_SocketFace_TxBurst)
 	C.FaceImpl_Init(faceC, 0, 0, (*C.FaceMempools)(cfg.Mempools.GetPtr()))
 	iface.Put(face)
+
+	face.logger.Infof("new %s face %s->%s", conn.LocalAddr().Network(), conn.LocalAddr(), conn.RemoteAddr())
 	return face, nil
 }
 
@@ -76,30 +84,43 @@ func (face *SocketFace) getPtr() *C.Face {
 }
 
 func (face *SocketFace) GetConn() net.Conn {
-	return face.conn
+	return face.conn.Load().(net.Conn)
 }
 
 func (face *SocketFace) GetLocalUri() *faceuri.FaceUri {
-	return face.impl.FormatFaceUri(face.conn.LocalAddr())
+	return face.impl.FormatFaceUri(face.GetConn().LocalAddr())
 }
 
 func (face *SocketFace) GetRemoteUri() *faceuri.FaceUri {
-	return face.impl.FormatFaceUri(face.conn.RemoteAddr())
+	return face.impl.FormatFaceUri(face.GetConn().RemoteAddr())
 }
 
 func (face *SocketFace) Close() error {
-	face.conn.SetDeadline(time.Now())
-	face.rxQuit <- struct{}{}
+	atomic.StoreInt32(&face.closing, 1)
 	close(face.txQueue)
+	if e := face.GetConn().Close(); e != nil {
+		return e
+	}
+	face.quitWg.Wait()
 	face.CloseBaseFace()
-	return face.conn.Close()
+	return nil
+}
+
+func (face *SocketFace) rxLoop() {
+	face.impl.RxLoop(face)
+	face.quitWg.Done()
 }
 
 // Report congestion when RxLoop is unable to send into rxQueue.
-func (face *SocketFace) rxReportCongestion() {
-	face.rxCongestions++
-	if face.rxCongestions%1024 == 0 {
-		face.logger.WithField("rxCongestions", face.rxCongestions).Warn("RX queue is full")
+func (face *SocketFace) rxPkt(pkt dpdk.Packet) {
+	select {
+	case face.rxQueue <- pkt:
+	default:
+		pkt.Close()
+		face.rxCongestions++
+		if face.rxCongestions%1024 == 0 {
+			face.logger.WithField("rxCongestions", face.rxCongestions).Warn("RX queue is full")
+		}
 	}
 }
 
@@ -107,7 +128,7 @@ func (face *SocketFace) txLoop() {
 	for {
 		pkt, ok := <-face.txQueue
 		if !ok {
-			return
+			break
 		}
 		e := face.impl.Send(face, pkt)
 		if e == nil {
@@ -115,22 +136,44 @@ func (face *SocketFace) txLoop() {
 		}
 		pkt.Close()
 		if e != nil && face.handleError("TX", e) {
-			return
+			break
 		}
 	}
+	face.quitWg.Done()
 }
 
 // Handle socket error.
-// Return whether RxLoop or TxLoop should terminate.
+// Return whether RxLoop or TxLoop should terminate (i.e. face closed).
 func (face *SocketFace) handleError(dir string, e error) bool {
+	if atomic.LoadInt32(&face.closing) != 0 {
+		return true
+	}
 	if netErr, ok := e.(net.Error); ok && netErr.Temporary() {
 		face.logger.WithError(e).Errorf("%s socket error", dir)
 		return false
 	}
 	face.logger.WithError(e).Errorf("%s socket failed", dir)
-	face.conn.Close()
-	face.failed = true
-	return true
+
+	if atomic.CompareAndSwapInt32(&face.redialing, 0, 1) {
+		defer atomic.StoreInt32(&face.redialing, 0)
+		for atomic.LoadInt32(&face.closing) == 0 {
+			time.Sleep(time.Second) // TODO exponential backoff
+			face.nRedials++
+			conn := face.GetConn()
+			conn, e = face.impl.Redial(conn)
+			if e == nil {
+				face.logger.Infof("redialed %s->%s", conn.LocalAddr(), conn.RemoteAddr())
+				face.conn.Store(conn)
+				break
+			}
+			face.logger.WithError(e).Errorf("redial failed")
+		}
+	} else { // another goroutine is redialing
+		for atomic.LoadInt32(&face.redialing) != 0 {
+			runtime.Gosched()
+		}
+	}
+	return atomic.LoadInt32(&face.closing) != 0
 }
 
 //export go_SocketFace_TxBurst

@@ -27,7 +27,7 @@ func (datagramImpl) RxLoop(face *SocketFace) {
 
 		buf := seg0.AsByteSlice()
 		buf = buf[:cap(buf)]
-		nOctets, e := face.conn.Read(buf)
+		nOctets, e := face.GetConn().Read(buf)
 		if e != nil {
 			if face.handleError("RX", e) {
 				pkt.Close()
@@ -37,15 +37,7 @@ func (datagramImpl) RxLoop(face *SocketFace) {
 		}
 		seg0.Append(buf[:nOctets])
 
-		select {
-		case <-face.rxQuit:
-			pkt.Close()
-			return
-		case face.rxQueue <- pkt:
-		default:
-			pkt.Close()
-			face.rxReportCongestion()
-		}
+		face.rxPkt(pkt)
 	}
 }
 
@@ -56,12 +48,13 @@ func (datagramImpl) Send(face *SocketFace, pkt dpdk.Packet) error {
 	} else {
 		buf = pkt.GetFirstSegment().AsByteSlice()
 	}
-	_, e := face.conn.Write(buf)
+	_, e := face.GetConn().Write(buf)
 	return e
 }
 
 type udpImpl struct {
 	datagramImpl
+	nopRedialer
 }
 
 func (udpImpl) FormatFaceUri(addr net.Addr) *faceuri.FaceUri {
@@ -75,6 +68,7 @@ func (udpImpl) FormatFaceUri(addr net.Addr) *faceuri.FaceUri {
 
 type unixgramImpl struct {
 	datagramImpl
+	noLocalAddrRedialer
 }
 
 func (unixgramImpl) FormatFaceUri(addr net.Addr) *faceuri.FaceUri {

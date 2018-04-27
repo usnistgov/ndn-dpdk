@@ -11,15 +11,13 @@ import (
 )
 
 // SocketFace implementation for stream-oriented sockets.
-type streamImpl struct {
-	face *SocketFace
-}
+type streamImpl struct{}
 
 func (impl streamImpl) RxLoop(face *SocketFace) {
 	buf := make(ndn.TlvBytes, face.rxMp.GetDataroom())
 	nAvail := 0
 	for {
-		nRead, e := face.conn.Read(buf[nAvail:])
+		nRead, e := face.GetConn().Read(buf[nAvail:])
 		if e != nil {
 			if face.handleError("RX", e) {
 				return
@@ -43,12 +41,6 @@ func (impl streamImpl) RxLoop(face *SocketFace) {
 			buf[i-offset] = buf[i]
 		}
 		nAvail -= offset
-
-		select {
-		case <-face.rxQuit:
-			return
-		default:
-		}
 	}
 }
 
@@ -70,20 +62,14 @@ func (streamImpl) postPacket(face *SocketFace, buf ndn.TlvBytes) (n int) {
 	seg0.SetHeadroom(0)
 	seg0.Append([]byte(element))
 
-	select {
-	case face.rxQueue <- pkt:
-	default:
-		pkt.Close()
-		face.rxReportCongestion()
-	}
-
+	face.rxPkt(pkt)
 	return len(element)
 }
 
 func (streamImpl) Send(face *SocketFace, pkt dpdk.Packet) error {
 	for seg, ok := pkt.GetFirstSegment(), true; ok; seg, ok = seg.GetNext() {
 		buf := seg.AsByteSlice()
-		_, e := face.conn.Write(buf)
+		_, e := face.GetConn().Write(buf)
 		if e != nil {
 			return e
 		}
@@ -93,6 +79,7 @@ func (streamImpl) Send(face *SocketFace, pkt dpdk.Packet) error {
 
 type tcpImpl struct {
 	streamImpl
+	localAddrRedialer
 }
 
 func (tcpImpl) FormatFaceUri(addr net.Addr) *faceuri.FaceUri {
@@ -106,6 +93,7 @@ func (tcpImpl) FormatFaceUri(addr net.Addr) *faceuri.FaceUri {
 
 type unixImpl struct {
 	streamImpl
+	noLocalAddrRedialer
 }
 
 func (unixImpl) FormatFaceUri(addr net.Addr) *faceuri.FaceUri {

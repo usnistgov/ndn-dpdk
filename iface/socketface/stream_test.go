@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"testing"
+	"time"
 
 	"golang.org/x/sys/unix"
 
@@ -34,6 +35,20 @@ func TestStream(t *testing.T) {
 	fixture.CheckCounters()
 }
 
+func checkStreamRedialing(t *testing.T, listener net.Listener, face *socketface.SocketFace) {
+	_, require := makeAR(t)
+
+	accepted, e := listener.Accept()
+	require.NoError(e)
+	time.Sleep(100 * time.Millisecond)
+	accepted.Close() // close initial connection
+
+	accepted, e = listener.Accept() // face should redial
+	require.NoError(e)
+	time.Sleep(100 * time.Millisecond)
+	accepted.Close()
+}
+
 func TestTcp(t *testing.T) {
 	assert, require := makeAR(t)
 
@@ -52,6 +67,8 @@ func TestTcp(t *testing.T) {
 	assert.Equal(iface.FaceKind_Socket, face.GetFaceId().GetKind())
 	assert.Equal(fmt.Sprintf("tcp4://%s", face.GetConn().LocalAddr()), face.GetLocalUri().String())
 	assert.Equal(fmt.Sprintf("tcp4://127.0.0.1:%d", addr.Port), face.GetRemoteUri().String())
+
+	checkStreamRedialing(t, listener, face)
 }
 
 func TestUnix(t *testing.T) {
@@ -73,4 +90,6 @@ func TestUnix(t *testing.T) {
 	assert.Equal(iface.FaceKind_Socket, face.GetFaceId().GetKind())
 	assert.Equal("unix:///invalid", face.GetLocalUri().String())
 	assert.Equal(fmt.Sprintf("unix://%s", addr), face.GetRemoteUri().String())
+
+	checkStreamRedialing(t, listener, face)
 }

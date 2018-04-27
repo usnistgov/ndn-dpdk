@@ -8,9 +8,8 @@ import (
 )
 
 type iImpl interface {
-	// Receive packets on the socket and post them to face.rxQueue.
+	// Receive packets on the socket and pass them to face.rxPkt.
 	// Loop until a fatal error occurs or face.rxQuit receives a message.
-	// Increment face.rxCongestions when a packet arrives but face.rxQueue is full.
 	RxLoop(face *SocketFace)
 
 	// Transmit one packet on the socket.
@@ -18,6 +17,9 @@ type iImpl interface {
 
 	// Return FaceUri describing an endpoint.
 	FormatFaceUri(addr net.Addr) *faceuri.FaceUri
+
+	// Redial the socket.
+	Redial(oldConn net.Conn) (net.Conn, error)
 }
 
 var implByNetwork = make(map[string]iImpl)
