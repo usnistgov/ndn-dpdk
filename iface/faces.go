@@ -18,6 +18,7 @@ func Put(face IFace) {
 		panic("duplicate FaceId")
 	}
 	gFaces[faceId] = face
+	emitter.EmitSync(evt_FaceNew, face)
 }
 
 // Iterator over faces.

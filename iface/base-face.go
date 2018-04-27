@@ -52,10 +52,13 @@ func (face *BaseFace) InitBaseFace(id FaceId, sizeofPriv int, socket dpdk.NumaSo
 // Close BaseFace.
 // Deallocate FaceImpl.
 func (face BaseFace) CloseBaseFace() {
+	id := face.GetFaceId()
 	faceC := face.getPtr()
 	faceC.state = C.FACESTA_REMOVED
 	dpdk.Free(faceC.impl)
-	gFaces[faceC.id] = nil
+	faceC.id = C.FACEID_INVALID
+	gFaces[id] = nil
+	emitter.EmitSync(evt_FaceClosed, id)
 }
 
 func (face BaseFace) GetFaceId() FaceId {
