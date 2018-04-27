@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"math/rand"
 	"time"
 
@@ -11,7 +10,6 @@ import (
 	"ndn-dpdk/container/ndt"
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
-	"ndn-dpdk/iface/faceuri"
 	"ndn-dpdk/iface/socketface"
 	"ndn-dpdk/mgmt/facemgmt"
 	"ndn-dpdk/mgmt/fibmgmt"
@@ -20,12 +18,15 @@ import (
 	"ndn-dpdk/strategy/strategy_elf"
 )
 
-var theSocketRxg *socketface.RxGroup
-var theSocketTxl *iface.MultiTxLoop
-var theNdt ndt.Ndt
-var theStrategy fib.StrategyCode
-var theFib *fib.Fib
-var theDp *fwdp.DataPlane
+var (
+	theSocketFaceNumaSocket dpdk.NumaSocket
+	theSocketRxg            *socketface.RxGroup
+	theSocketTxl            *iface.MultiTxLoop
+	theNdt                  ndt.Ndt
+	theStrategy             fib.StrategyCode
+	theFib                  *fib.Fib
+	theDp                   *fwdp.DataPlane
+)
 
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
@@ -78,17 +79,18 @@ func startDp() {
 	{
 		theSocketRxg = socketface.NewRxGroup()
 		inputLc := lcr.MustReserve(dpdk.NUMA_SOCKET_ANY)
-		socket := inputLc.GetNumaSocket()
+		theSocketFaceNumaSocket = inputLc.GetNumaSocket()
 		dpCfg.InputLCores = append(dpCfg.InputLCores, inputLc)
-		inputNumaSockets = append(inputNumaSockets, socket)
+		inputNumaSockets = append(inputNumaSockets, theSocketFaceNumaSocket)
 		inputRxLoopers = append(inputRxLoopers, theSocketRxg)
 
 		theSocketTxl = iface.NewMultiTxLoop()
-		outputLc := lcr.MustReserve(socket)
+		outputLc := lcr.MustReserve(theSocketFaceNumaSocket)
 		outputLCores = append(outputLCores, outputLc)
 		outputTxLoopers = append(outputTxLoopers, theSocketTxl)
 
-		log.WithFields(makeLogFields("rx-lcore", inputLc, "socket", socket, "tx-lcore", outputLc)).Info("SocketFaces ready")
+		log.WithFields(makeLogFields("rx-lcore", inputLc, "socket", theSocketFaceNumaSocket,
+			"tx-lcore", outputLc)).Info("SocketFaces ready")
 	}
 
 	// initialize NDT
@@ -184,24 +186,8 @@ func startDp() {
 	log.Info("dataplane started")
 }
 
-func createFace(remote, local *faceuri.FaceUri) (iface.FaceId, error) {
-	if remote.Scheme != "udp4" && remote.Scheme != "tcp4" {
-		return iface.FACEID_INVALID, errors.New("face creation only allows udp4 and tcp4 schemes")
-	}
-
-	face, e := appinit.NewFaceFromUri(remote, local)
-	if e != nil {
-		return iface.FACEID_INVALID, e
-	}
-
-	face.EnableThreadSafeTx(64)
-	theSocketRxg.AddFace(face.(*socketface.SocketFace))
-	theSocketTxl.AddFace(face)
-	return face.GetFaceId(), nil
-}
-
 func startMgmt() {
-	facemgmt.CreateFace = createFace
+	facemgmt.CreateFace = socketface.MakeMgmtCreateFace(appinit.NewSocketFaceCfg(theSocketFaceNumaSocket), theSocketRxg, theSocketTxl, 64)
 	appinit.RegisterMgmt(facemgmt.FaceMgmt{})
 	appinit.RegisterMgmt(ndtmgmt.NdtMgmt{theNdt})
 	fibmgmt.TheStrategy = theStrategy

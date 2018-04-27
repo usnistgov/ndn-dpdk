@@ -90,12 +90,16 @@ func newEthFaceFromDev(port dpdk.EthDev) (iface.IFace, error) {
 }
 
 func newSocketFace(remote, local *faceuri.FaceUri) (face iface.IFace, e error) {
-	var cfg socketface.Config
-	cfg.Mempools = makeFaceMempools(dpdk.NUMA_SOCKET_ANY)
-	cfg.RxMp = MakePktmbufPool(MP_ETHRX, dpdk.NUMA_SOCKET_ANY)
+	cfg := NewSocketFaceCfg(dpdk.NUMA_SOCKET_ANY)
+	return socketface.NewFromUri(remote, local, cfg)
+}
+
+func NewSocketFaceCfg(socket dpdk.NumaSocket) (cfg socketface.Config) {
+	cfg.Mempools = makeFaceMempools(socket)
+	cfg.RxMp = MakePktmbufPool(MP_ETHRX, socket)
 	cfg.RxqCapacity = SOCKETFACE_RXQ_CAPACITY
 	cfg.TxqCapacity = SOCKETFACE_TXQ_CAPACITY
-	return socketface.NewFromUri(remote, local, cfg)
+	return cfg
 }
 
 func newMockFace(remote, local *faceuri.FaceUri) (face iface.IFace, e error) {
