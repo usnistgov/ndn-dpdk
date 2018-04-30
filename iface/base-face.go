@@ -99,15 +99,6 @@ func (face BaseFace) TxBurst(pkts []ndn.Packet) {
 	C.Face_TxBurst(C.FaceId(face.id), (**C.Packet)(unsafe.Pointer(&pkts[0])), C.uint16_t(len(pkts)))
 }
 
-func (face BaseFace) ReadCounters() (cnt Counters) {
-	cnt.readFrom(face.getPtr())
-	return cnt
-}
-
-func (face BaseFace) ReadExCounters() interface{} {
-	return nil
-}
-
 func (face BaseFace) ReadLatency() running_stat.Snapshot {
 	faceC := face.getPtr()
 	latencyStat := running_stat.FromPtr(unsafe.Pointer(&faceC.impl.latencyStat))
