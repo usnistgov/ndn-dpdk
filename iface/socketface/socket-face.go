@@ -157,6 +157,7 @@ func (face *SocketFace) handleError(dir string, e error) bool {
 	if atomic.CompareAndSwapInt32(&face.redialing, 0, 1) {
 		defer atomic.StoreInt32(&face.redialing, 0)
 		for atomic.LoadInt32(&face.closing) == 0 {
+			face.SetDown(true)
 			time.Sleep(time.Second) // TODO exponential backoff
 			face.nRedials++
 			conn := face.GetConn()
@@ -164,6 +165,7 @@ func (face *SocketFace) handleError(dir string, e error) bool {
 			if e == nil {
 				face.logger.Infof("redialed %s->%s", conn.LocalAddr(), conn.RemoteAddr())
 				face.conn.Store(conn)
+				face.SetDown(false)
 				break
 			}
 			face.logger.WithError(e).Errorf("redial failed")

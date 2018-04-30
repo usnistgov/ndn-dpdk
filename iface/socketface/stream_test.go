@@ -36,7 +36,19 @@ func TestStream(t *testing.T) {
 }
 
 func checkStreamRedialing(t *testing.T, listener net.Listener, face *socketface.SocketFace) {
-	_, require := makeAR(t)
+	assert, require := makeAR(t)
+
+	var hasDownEvt, hasUpEvt bool
+	defer iface.OnFaceDown(func(id iface.FaceId) {
+		if id == face.GetFaceId() {
+			hasDownEvt = true
+		}
+	}).Close()
+	defer iface.OnFaceUp(func(id iface.FaceId) {
+		if id == face.GetFaceId() {
+			hasUpEvt = true
+		}
+	}).Close()
 
 	accepted, e := listener.Accept()
 	require.NoError(e)
@@ -47,6 +59,12 @@ func checkStreamRedialing(t *testing.T, listener net.Listener, face *socketface.
 	require.NoError(e)
 	time.Sleep(100 * time.Millisecond)
 	accepted.Close()
+
+	assert.True(hasDownEvt)
+	assert.True(hasUpEvt)
+
+	cnt := face.ReadExCounters().(socketface.ExCounters)
+	assert.InDelta(1.5, float64(cnt.NRedials), 0.6) // redial counter should be 1 or 2
 }
 
 func TestTcp(t *testing.T) {
