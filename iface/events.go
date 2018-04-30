@@ -4,8 +4,7 @@ import (
 	"github.com/chuckpreslar/emission"
 )
 
-type EventCallback func(face IFace)
-type FaceIdCallback func(faceId FaceId)
+type EventCallback func(faceId FaceId)
 
 // Register a callback when a new face is created.
 func OnFaceNew(cb EventCallback) {
@@ -23,7 +22,7 @@ func OnFaceDown(cb EventCallback) {
 }
 
 // Register a callback when a face is closed.
-func OnFaceClosed(cb FaceIdCallback) {
+func OnFaceClosed(cb EventCallback) {
 	emitter.On(evt_FaceClosed, cb)
 }
 

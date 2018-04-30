@@ -49,6 +49,14 @@ func (face *BaseFace) InitBaseFace(id FaceId, sizeofPriv int, socket dpdk.NumaSo
 	faceC.impl = (*C.FaceImpl)(dpdk.ZmallocAligned("FaceImpl", sizeofImpl, 1, socket))
 }
 
+func (face BaseFace) GetFaceId() FaceId {
+	return face.id
+}
+
+func (face BaseFace) GetNumaSocket() dpdk.NumaSocket {
+	return dpdk.NumaSocket(face.getPtr().numaSocket)
+}
+
 // Close BaseFace.
 // Deallocate FaceImpl.
 func (face BaseFace) CloseBaseFace() {
@@ -61,12 +69,20 @@ func (face BaseFace) CloseBaseFace() {
 	emitter.EmitSync(evt_FaceClosed, id)
 }
 
-func (face BaseFace) GetFaceId() FaceId {
-	return face.id
+func (face BaseFace) IsDown() bool {
+	return face.getPtr().state != C.FACESTA_UP
 }
 
-func (face BaseFace) GetNumaSocket() dpdk.NumaSocket {
-	return dpdk.NumaSocket(face.getPtr().numaSocket)
+func (face BaseFace) SetDown(isDown bool) {
+	id := face.GetFaceId()
+	faceC := face.getPtr()
+	if isDown {
+		faceC.state = C.FACESTA_DOWN
+		emitter.EmitSync(evt_FaceDown, id)
+	} else {
+		faceC.state = C.FACESTA_UP
+		emitter.EmitSync(evt_FaceUp, id)
+	}
 }
 
 // Make TxBurst thread-safe.

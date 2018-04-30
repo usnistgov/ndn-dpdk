@@ -34,6 +34,9 @@ type IFace interface {
 	// Lower layer implementation must provide this method, and call BaseFace.CloseBaseFace.
 	Close() error
 
+	// Determine whether the face is DOWN or UP.
+	IsDown() bool
+
 	// Enable thread-safety on C.Face_TxBurst function.
 	EnableThreadSafeTx(queueCapacity int) error
 

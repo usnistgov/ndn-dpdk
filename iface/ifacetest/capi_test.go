@@ -13,7 +13,6 @@ func TestCApiNoFace(t *testing.T) {
 	assert, _ := makeAR(t)
 
 	id := iface.AllocId(iface.FaceKind_Mock) // non-existent face
-
 	assert.True(Face_IsDown(id))
 
 	pkts := make([]ndn.Packet, 1)
@@ -27,7 +26,11 @@ func TestCApi(t *testing.T) {
 	face := mockface.New()
 	defer face.Close()
 	id := face.GetFaceId()
+	assert.False(Face_IsDown(id))
 
+	face.SetDown(true)
+	assert.True(Face_IsDown(id))
+	face.SetDown(false)
 	assert.False(Face_IsDown(id))
 
 	pkts := make([]ndn.Packet, 1)

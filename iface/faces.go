@@ -10,15 +10,15 @@ func Get(faceId FaceId) IFace {
 // Put face (non-thread-safe).
 // This should be called by face subtype constructor.
 func Put(face IFace) {
-	faceId := face.GetFaceId()
-	if faceId.GetKind() == FaceKind_None {
+	id := face.GetFaceId()
+	if id.GetKind() == FaceKind_None {
 		panic("invalid FaceId")
 	}
-	if gFaces[faceId] != nil {
+	if gFaces[id] != nil {
 		panic("duplicate FaceId")
 	}
-	gFaces[faceId] = face
-	emitter.EmitSync(evt_FaceNew, face)
+	gFaces[id] = face
+	emitter.EmitSync(evt_FaceNew, id)
 }
 
 // Iterator over faces.
