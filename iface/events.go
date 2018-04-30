@@ -1,30 +1,12 @@
 package iface
 
 import (
+	"io"
+
 	"github.com/chuckpreslar/emission"
 )
 
-type EventCallback func(faceId FaceId)
-
-// Register a callback when a new face is created.
-func OnFaceNew(cb EventCallback) {
-	emitter.On(evt_FaceNew, cb)
-}
-
-// Register a callback when a face becomes UP.
-func OnFaceUp(cb EventCallback) {
-	emitter.On(evt_FaceUp, cb)
-}
-
-// Register a callback when a face becomes DOWN.
-func OnFaceDown(cb EventCallback) {
-	emitter.On(evt_FaceDown, cb)
-}
-
-// Register a callback when a face is closed.
-func OnFaceClosed(cb EventCallback) {
-	emitter.On(evt_FaceClosed, cb)
-}
+var emitter = emission.NewEmitter()
 
 const (
 	evt_FaceNew = iota
@@ -33,4 +15,42 @@ const (
 	evt_FaceClosed
 )
 
-var emitter = emission.NewEmitter()
+type EventCallback func(faceId FaceId)
+
+type eventCanceler struct {
+	evt int
+	cb  EventCallback
+}
+
+func (c eventCanceler) Close() error {
+	emitter.Off(c.evt, c.cb)
+	return nil
+}
+
+// Register a callback when a new face is created.
+// Return a Closer that cancels the callback registration.
+func OnFaceNew(cb EventCallback) io.Closer {
+	emitter.On(evt_FaceNew, cb)
+	return eventCanceler{evt_FaceNew, cb}
+}
+
+// Register a callback when a face becomes UP.
+// Return a Closer that cancels the callback registration.
+func OnFaceUp(cb EventCallback) io.Closer {
+	emitter.On(evt_FaceUp, cb)
+	return eventCanceler{evt_FaceUp, cb}
+}
+
+// Register a callback when a face becomes DOWN.
+// Return a Closer that cancels the callback registration.
+func OnFaceDown(cb EventCallback) io.Closer {
+	emitter.On(evt_FaceDown, cb)
+	return eventCanceler{evt_FaceDown, cb}
+}
+
+// Register a callback when a face is closed.
+// Return a Closer that cancels the callback registration.
+func OnFaceClosed(cb EventCallback) io.Closer {
+	emitter.On(evt_FaceClosed, cb)
+	return eventCanceler{evt_FaceClosed, cb}
+}

@@ -106,17 +106,17 @@ func (fixture *Fixture) CheckCounters() {
 	assert := fixture.assert
 
 	txCnt := fixture.txFace.ReadCounters()
-	assert.Equal(3*fixture.TxLoops, int(txCnt.TxL2.NFrames))
-	assert.Equal(fixture.TxLoops, int(txCnt.TxL3.NInterests))
-	assert.Equal(fixture.TxLoops, int(txCnt.TxL3.NData))
-	assert.Equal(fixture.TxLoops, int(txCnt.TxL3.NNacks))
+	assert.Equal(3*fixture.TxLoops, int(txCnt.TxFrames))
+	assert.Equal(fixture.TxLoops, int(txCnt.TxInterests))
+	assert.Equal(fixture.TxLoops, int(txCnt.TxData))
+	assert.Equal(fixture.TxLoops, int(txCnt.TxNacks))
 
 	rxCnt := fixture.rxFace.ReadCounters()
-	assert.Equal(fixture.NRxInterests, int(rxCnt.RxL3.NInterests))
-	assert.Equal(fixture.NRxData, int(rxCnt.RxL3.NData))
-	assert.Equal(fixture.NRxNacks, int(rxCnt.RxL3.NNacks))
+	assert.Equal(fixture.NRxInterests, int(rxCnt.RxInterests))
+	assert.Equal(fixture.NRxData, int(rxCnt.RxData))
+	assert.Equal(fixture.NRxNacks, int(rxCnt.RxNacks))
 	assert.Equal(fixture.NRxInterests+fixture.NRxData+fixture.NRxNacks,
-		int(rxCnt.RxL2.NFrames))
+		int(rxCnt.RxFrames))
 
 	assert.InEpsilon(fixture.TxLoops, fixture.NRxInterests, fixture.LossTolerance)
 	assert.InEpsilon(fixture.TxLoops, fixture.NRxData, fixture.LossTolerance)

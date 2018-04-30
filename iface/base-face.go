@@ -74,6 +74,9 @@ func (face BaseFace) IsDown() bool {
 }
 
 func (face BaseFace) SetDown(isDown bool) {
+	if face.IsDown() == isDown {
+		return
+	}
 	id := face.GetFaceId()
 	faceC := face.getPtr()
 	if isDown {

@@ -14,18 +14,18 @@ func TestEvents(t *testing.T) {
 	var faceUpEvts []iface.FaceId
 	var faceDownEvts []iface.FaceId
 	var faceClosedEvts []iface.FaceId
-	iface.OnFaceNew(func(id iface.FaceId) {
+	defer iface.OnFaceNew(func(id iface.FaceId) {
 		faceNewEvts = append(faceNewEvts, id)
-	})
-	iface.OnFaceUp(func(id iface.FaceId) {
+	}).Close()
+	defer iface.OnFaceUp(func(id iface.FaceId) {
 		faceUpEvts = append(faceUpEvts, id)
-	})
-	iface.OnFaceDown(func(id iface.FaceId) {
+	}).Close()
+	defer iface.OnFaceDown(func(id iface.FaceId) {
 		faceDownEvts = append(faceDownEvts, id)
-	})
-	iface.OnFaceClosed(func(id iface.FaceId) {
+	}).Close()
+	defer iface.OnFaceClosed(func(id iface.FaceId) {
 		faceClosedEvts = append(faceClosedEvts, id)
-	})
+	}).Close()
 
 	face1 := mockface.New()
 	face2 := mockface.New()
@@ -36,9 +36,11 @@ func TestEvents(t *testing.T) {
 	}
 
 	face1.SetDown(true)
+	face1.SetDown(true)
 	if assert.Len(faceDownEvts, 1) {
 		assert.Equal(id1, faceDownEvts[0])
 	}
+	face1.SetDown(false)
 	face1.SetDown(false)
 	if assert.Len(faceUpEvts, 1) {
 		assert.Equal(id1, faceUpEvts[0])
