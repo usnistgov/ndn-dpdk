@@ -57,3 +57,12 @@ func (FaceMgmt) Create(args CreateArg, reply *IdArg) error {
 	reply.Id, e = CreateFace(remote, local)
 	return e
 }
+
+func (FaceMgmt) Destroy(args IdArg, reply *struct{}) error {
+	face := iface.Get(args.Id)
+	if face == nil {
+		return errors.New("face not found")
+	}
+
+	return face.Close()
+}

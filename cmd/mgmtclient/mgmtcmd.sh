@@ -8,6 +8,8 @@ Subcommands:
     Show face counters.
   face create <REMOTEURI> [<LOCALURI>]
     Create a socket face.
+  face destroy <ID>
+    Destroy a face.
   ndt show
     Show NDT content.
   ndt counters
@@ -52,6 +54,8 @@ if [[ $1 == 'face' ]]; then
     jsonrpc Face.Get '{"Id":'$3'}'
   elif [[ $2 == 'create' ]]; then
     jsonrpc Face.Create '{"RemoteUri":"'$3'","LocalUri":"'$4'"}'
+  elif [[ $2 == 'destroy' ]]; then
+    jsonrpc Face.Destroy '{"Id":'$3'}'
   fi
 elif [[ $1 == 'ndt' ]]; then
   if [[ $2 == 'show' ]]; then
