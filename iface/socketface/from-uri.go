@@ -46,6 +46,15 @@ func NewFromUri(remote, local *faceuri.FaceUri, cfg Config) (face *SocketFace, e
 // Make a facemgmt.CreateFace function that creates a SocketFace and adds it to RxGroup and MultiTxLoop.
 func MakeMgmtCreateFace(cfg Config, rxg *RxGroup, txl *iface.MultiTxLoop,
 	txQueueCapacity int) func(remote, local *faceuri.FaceUri) (iface.FaceId, error) {
+	iface.OnFaceClosing(func(id iface.FaceId) {
+		if id.GetKind() != iface.FaceKind_Socket {
+			return
+		}
+		face := iface.Get(id).(*SocketFace)
+		if e := rxg.RemoveFace(face); e != errFaceNotInRxGroup {
+			txl.RemoveFace(face)
+		}
+	})
 	return func(remote, local *faceuri.FaceUri) (iface.FaceId, error) {
 		face, e := NewFromUri(remote, local, cfg)
 		if e != nil {

@@ -31,7 +31,8 @@ type IFace interface {
 	GetNumaSocket() dpdk.NumaSocket
 
 	// Close the face.
-	// Lower layer implementation must provide this method, and call BaseFace.CloseBaseFace.
+	// Lower layer implementation must provide this method.
+	// It should call BaseFace.BeforeClose and BaseFace.CloseBaseFace.
 	Close() error
 
 	// Determine whether the face is DOWN or UP.

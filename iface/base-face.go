@@ -57,6 +57,14 @@ func (face BaseFace) GetNumaSocket() dpdk.NumaSocket {
 	return dpdk.NumaSocket(face.getPtr().numaSocket)
 }
 
+// Prepare to close face.
+func (face BaseFace) BeforeClose() {
+	id := face.GetFaceId()
+	faceC := face.getPtr()
+	faceC.state = C.FACESTA_DOWN
+	emitter.EmitSync(evt_FaceClosing, id)
+}
+
 // Close BaseFace.
 // Deallocate FaceImpl.
 func (face BaseFace) CloseBaseFace() {

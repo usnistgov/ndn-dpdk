@@ -60,6 +60,8 @@ func (rxg *RxGroup) AddFace(face *SocketFace) error {
 	return nil
 }
 
+var errFaceNotInRxGroup = errors.New("face is not in RxGroup")
+
 func (rxg *RxGroup) RemoveFace(face *SocketFace) error {
 	rxg.lock.Lock()
 	defer rxg.lock.Unlock()
@@ -72,7 +74,7 @@ func (rxg *RxGroup) RemoveFace(face *SocketFace) error {
 		}
 	}
 	if index < 0 {
-		return errors.New("face is not in RxGroup")
+		return errFaceNotInRxGroup
 	}
 
 	last := len(rxg.faces) - 1

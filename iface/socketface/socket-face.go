@@ -96,6 +96,7 @@ func (face *SocketFace) GetRemoteUri() *faceuri.FaceUri {
 }
 
 func (face *SocketFace) Close() error {
+	face.BeforeClose()
 	atomic.StoreInt32(&face.closing, 1)
 	close(face.txQueue)
 	if e := face.GetConn().Close(); e != nil {
