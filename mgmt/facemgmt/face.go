@@ -30,6 +30,7 @@ func (FaceMgmt) Get(args IdArg, reply *FaceInfo) error {
 	reply.Id = face.GetFaceId()
 	reply.LocalUri = face.GetLocalUri().String()
 	reply.RemoteUri = face.GetRemoteUri().String()
+	reply.IsDown = face.IsDown()
 	reply.Counters = face.ReadCounters()
 	reply.ExCounters = face.ReadExCounters()
 	reply.Latency = face.ReadLatency()

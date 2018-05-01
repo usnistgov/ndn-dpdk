@@ -18,6 +18,7 @@ type FaceInfo struct {
 	Id        iface.FaceId
 	LocalUri  string
 	RemoteUri string
+	IsDown    bool
 
 	// Basic counters.
 	Counters iface.Counters
