@@ -15,6 +15,7 @@ import (
 	"ndn-dpdk/mgmt/fibmgmt"
 	"ndn-dpdk/mgmt/fwdpmgmt"
 	"ndn-dpdk/mgmt/ndtmgmt"
+	"ndn-dpdk/mgmt/versionmgmt"
 	"ndn-dpdk/strategy/strategy_elf"
 )
 
@@ -187,6 +188,7 @@ func startDp() {
 }
 
 func startMgmt() {
+	appinit.RegisterMgmt(versionmgmt.VersionMgmt{})
 	facemgmt.CreateFace = socketface.MakeMgmtCreateFace(appinit.NewSocketFaceCfg(theSocketFaceNumaSocket), theSocketRxg, theSocketTxl, 64)
 	appinit.RegisterMgmt(facemgmt.FaceMgmt{})
 	appinit.RegisterMgmt(ndtmgmt.NdtMgmt{theNdt})

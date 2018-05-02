@@ -2,6 +2,8 @@
 if [[ $1 == 'help' ]]; then
   cat <<EOT
 Subcommands:
+  version [show]
+    Show version.
   face [list]
     List faces.
   face show <ID>
@@ -47,7 +49,11 @@ jsonrpc() {
   jayson -s 127.0.0.1:6345 -m $METHOD -p "$PARAMS"
 }
 
-if [[ $1 == 'face' ]]; then
+if [[ $1 == 'version' ]]; then
+  if [[ -z $2 ]] || [[ $2 == 'show' ]]; then
+    jsonrpc Version.Version
+  fi
+elif [[ $1 == 'face' ]]; then
   if [[ -z $2 ]] || [[ $2 == 'list' ]]; then
     jsonrpc Face.List
   elif [[ $2 == 'show' ]]; then

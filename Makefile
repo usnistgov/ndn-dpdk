@@ -161,12 +161,18 @@ app/fwdp/cgoflags.go: container/ndt/cgoflags.go container/fib/cgoflags.go contai
 go-fwdp: $(CLIBPREFIX)-fwdp.a app/fwdp/cgoflags.go
 	go build ./app/fwdp
 
+.PHONY: app/version/version.go
+app/version/version.go:
+	app/version/make-version.sh
+
+cmd-deps: cbuilds cgoflags app/version/version.go
+
 cmds: cmd-ndnfw-dpdk cmd-ndnping-dpdk cmd-ndnpktcopy-dpdk
 
-cmd-%: cmd/%/* cbuilds cgoflags
+cmd-%: cmd/%/* cmd-deps
 	go install ./cmd/$*
 
-cmd-ndnfw-dpdk: cmd/ndnfw-dpdk/* cbuilds cgoflags strategies
+cmd-ndnfw-dpdk: cmd/ndnfw-dpdk/* cmd-deps strategies
 	go install ./cmd/ndnfw-dpdk
 
 mgmtclient: cmd/mgmtclient/*
