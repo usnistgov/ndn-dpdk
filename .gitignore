@@ -1,2 +1,4 @@
+_obj
 build
 cgoflags.go
+cgostruct.go

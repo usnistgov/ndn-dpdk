@@ -246,36 +246,9 @@ func (q EthTxQueue) TxBurst(pkts []Packet) int {
 	return int(res)
 }
 
-type EthStats struct {
-	IPkts   uint64
-	OPkts   uint64
-	IBytes  uint64
-	OBytes  uint64
-	IMissed uint64
-	IErrors uint64
-	OErrors uint64
-}
-
-func (es EthStats) String() string {
-	return fmt.Sprintf("RX %d pkts, %d bytes, %d missed, %d errors; TX %d pkts, %d bytes, %d errors",
-		es.IPkts, es.IBytes, es.IMissed, es.IErrors, es.OPkts, es.OBytes, es.OErrors)
-}
-
-func (port EthDev) GetStats() EthStats {
-	var es C.struct_rte_eth_stats
-	res := C.rte_eth_stats_get(C.uint16_t(port), &es)
-	if res != 0 {
-		return EthStats{}
-	}
-	return EthStats{
-		IPkts:   uint64(es.ipackets),
-		OPkts:   uint64(es.opackets),
-		IBytes:  uint64(es.ibytes),
-		OBytes:  uint64(es.obytes),
-		IMissed: uint64(es.imissed),
-		IErrors: uint64(es.ierrors),
-		OErrors: uint64(es.oerrors),
-	}
+func (port EthDev) GetStats() (es EthStats) {
+	C.rte_eth_stats_get(C.uint16_t(port), (*C.struct_rte_eth_stats)(unsafe.Pointer(&es)))
+	return es
 }
 
 func (port EthDev) ResetStats() {

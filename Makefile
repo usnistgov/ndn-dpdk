@@ -29,12 +29,12 @@ core/urcu/cgoflags.go:
 $(CLIBPREFIX)-dpdk.a: $(CLIBPREFIX)-core.a dpdk/*.h dpdk/*.c
 	./cbuild.sh dpdk
 
-dpdk/cgoflags.go:
+dpdk/cgostruct.go: dpdk/cgostruct.in.go
+	cd dpdk; go tool cgo -godefs -- -I/usr/local/include/dpdk cgostruct.in.go | gofmt > cgostruct.go; rm -rf _obj
+
+dpdk/cgoflags.go: dpdk/cgostruct.go
 	./make-cgoflags.sh dpdk core
 	./make-cgoflags.sh dpdk/dpdktest dpdk
-
-go-dpdk: $(CLIBPREFIX)-dpdk.a dpdk/cgoflags.go
-	go build ./dpdk
 
 ndn/error.go ndn/error.h: ndn/make-error.sh ndn/error.tsv
 	ndn/make-error.sh
@@ -53,9 +53,6 @@ $(CLIBPREFIX)-ndn.a: $(CLIBPREFIX)-dpdk.a ndn/*.h ndn/*.c ndn/error.h ndn/nameha
 ndn/cgoflags.go: dpdk/cgoflags.go
 	./make-cgoflags.sh ndn dpdk
 
-go-ndn: $(CLIBPREFIX)-ndn.a ndn/cgoflags.go ndn/error.go ndn/tlv-type.go
-	go build ./ndn
-
 $(CLIBPREFIX)-iface.a: $(CLIBPREFIX)-ndn.a iface/*.h iface/*.c
 	./cbuild.sh iface
 
@@ -63,20 +60,11 @@ iface/cgoflags.go: ndn/cgoflags.go
 	./make-cgoflags.sh iface ndn
 	./make-cgoflags.sh iface/ifacetest iface
 
-go-iface: $(CLIBPREFIX)-iface.a iface/cgoflags.go
-	go build ./iface
-
 iface/ethface/cgoflags.go: iface/cgoflags.go
 	./make-cgoflags.sh iface/ethface iface
 
-go-ethface: $(CLIBPREFIX)-iface.a iface/ethface/cgoflags.go
-	go build ./iface/ethface
-
 iface/socketface/cgoflags.go: iface/cgoflags.go
 	./make-cgoflags.sh iface/socketface iface
-
-go-socketface: $(CLIBPREFIX)-iface.a iface/socketface/cgoflags.go
-	go build ./iface/socketface
 
 iface/mockface/cgoflags.go: iface/cgoflags.go
 	./make-cgoflags.sh iface/mockface iface
@@ -93,17 +81,11 @@ $(CLIBPREFIX)-nameset.a: $(CLIBPREFIX)-ndn.a container/nameset/*.h container/nam
 container/nameset/cgoflags.go: ndn/cgoflags.go
 	./make-cgoflags.sh container/nameset ndn
 
-go-nameset: $(CLIBPREFIX)-nameset.a
-	go build ./container/nameset
-
 $(CLIBPREFIX)-ndt.a: $(CLIBPREFIX)-ndn.a container/ndt/*.h container/ndt/*.c
 	./cbuild.sh container/ndt
 
 container/ndt/cgoflags.go: ndn/cgoflags.go
 	./make-cgoflags.sh container/ndt ndn
-
-go-ndt: $(CLIBPREFIX)-ndt.a container/ndt/cgoflags.go
-	go build ./container/ndt
 
 $(CLIBPREFIX)-tsht.a: $(CLIBPREFIX)-dpdk.a $(CLIBPREFIX)-urcu.a container/tsht/*.h container/tsht/*.c
 	./cbuild.sh container/tsht
@@ -117,9 +99,6 @@ $(CLIBPREFIX)-fib.a: $(CLIBPREFIX)-tsht.a $(CLIBPREFIX)-ndn.a container/fib/*.h 
 container/fib/cgoflags.go: container/tsht/cgoflags.go ndn/cgoflags.go
 	./make-cgoflags.sh container/fib container/tsht ndn
 
-go-fib: $(CLIBPREFIX)-fib.a container/fib/cgoflags.go
-	go build ./container/fib
-
 $(CLIBPREFIX)-pcct.a: $(CLIBPREFIX)-mintmr.a $(CLIBPREFIX)-ndn.a container/pcct/*.h container/pcct/*.c
 	./cbuild.sh container/pcct
 
@@ -127,12 +106,6 @@ container/pcct/cgoflags.go: container/mintmr/cgoflags.go ndn/cgoflags.go
 	./make-cgoflags.sh container/pcct container/mintmr ndn
 	./make-cgoflags.sh container/pit container/pcct
 	./make-cgoflags.sh container/cs container/pcct
-
-go-pit: $(CLIBPREFIX)-pcct.a container/pcct/cgoflags.go
-	go build ./container/pit
-
-go-cs: $(CLIBPREFIX)-pcct.a container/pcct/cgoflags.go
-	go build ./container/cs
 
 strategies: strategy/strategy_elf/bindata.go
 
@@ -157,9 +130,6 @@ $(CLIBPREFIX)-fwdp.a: $(CLIBPREFIX)-ndt.a $(CLIBPREFIX)-fib.a $(CLIBPREFIX)-pcct
 
 app/fwdp/cgoflags.go: container/ndt/cgoflags.go container/fib/cgoflags.go container/pcct/cgoflags.go iface/cgoflags.go
 	./make-cgoflags.sh app/fwdp container/ndt container/fib container/pcct iface
-
-go-fwdp: $(CLIBPREFIX)-fwdp.a app/fwdp/cgoflags.go
-	go build ./app/fwdp
 
 .PHONY: app/version/version.go
 app/version/version.go:
@@ -208,5 +178,5 @@ godochttp:
 
 clean:
 	rm -rf build docs/doxygen docs/codedoc ndn/error.go ndn/error.h ndn/namehash.h ndn/tlv-type.go ndn/tlv-type.h strategy/strategy_elf/bindata.go
-	find -name 'cgoflags.go' -delete
+	find -name 'cgoflags.go' -o -name 'cgostruct.go' -delete
 	go clean ./...
