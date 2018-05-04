@@ -48,7 +48,9 @@ PitEntry_FindDuplicateNonce(PitEntry* entry, uint32_t nonce, FaceId dnFace)
     if (dn->face == dnFace) {
       continue;
     }
-    return dn->face;
+    if (dn->nonce == nonce) {
+      return dn->face;
+    }
   }
   return FACEID_INVALID;
 }

@@ -92,7 +92,7 @@ FwFwd_InterestForward(FwFwd* fwd, FwFwdRxInterestContext* ctx)
     return;
   }
   ctx->npkt = NULL; // npkt is owned and possibly freed by pitEntry
-  ZF_LOGD("^ pit-entry=%p pit-key=%s", ctx->pitEntry,
+  ZF_LOGD("^ pit-entry=%p(%s)", ctx->pitEntry,
           PitEntry_ToDebugString(ctx->pitEntry));
 
   sgCtx.fwd = fwd;
@@ -141,8 +141,8 @@ FwFwd_RxInterest(FwFwd* fwd, Packet* npkt)
     rcu_read_unlock();
     return;
   }
-  ZF_LOGD("^ fib-entry-depth=%" PRIu8 " nexthop-count=%" PRIu8,
-          ctx.fibEntry->nComps, ctx.nNexthops);
+  ZF_LOGD("^ fh-index=%d fib-entry-depth=%" PRIu8 " nexthop-count=%" PRIu8,
+          interest->activeFh, ctx.fibEntry->nComps, ctx.nNexthops);
   assert(ctx.nNexthops > 0);
 
   // lookup PIT-CS
