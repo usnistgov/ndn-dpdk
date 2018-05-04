@@ -1,11 +1,8 @@
 package dpdk
 
 /*
-#include <stdlib.h>
-#include <rte_config.h>
+#include "ethdev.h"
 #include <rte_eth_ring.h>
-#include <rte_ethdev.h>
-#include <rte_ether.h>
 */
 import "C"
 import (
@@ -175,6 +172,10 @@ func (port EthDev) SetPromiscuous(enable bool) {
 	} else {
 		C.rte_eth_promiscuous_disable(C.uint16_t(port))
 	}
+}
+
+func (port EthDev) IsDown() bool {
+	return bool(C.EthDev_IsDown(C.uint16_t(port)))
 }
 
 func (port EthDev) Start() error {

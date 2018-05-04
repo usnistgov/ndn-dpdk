@@ -18,6 +18,8 @@ func main() {
 	mp := dpdktestenv.MakeDirectMp(4095, 0, 256)
 	edp := dpdktestenv.NewEthDevPair(1, 1024, 64)
 	rxq, txq := edp.RxqA[0], edp.TxqB[0]
+	assert.False(edp.PortA.IsDown())
+	assert.False(edp.PortB.IsDown())
 
 	const RX_BURST_SIZE = 6
 	const TX_LOOPS = 100000
@@ -36,7 +38,7 @@ func main() {
 			rxBurstSizeFreq[burstSize]++
 			for _, pkt := range pkts[:burstSize] {
 				nReceived++
-				assert.EqualValuesf(1, pkt.Len(), "bad RX length at %d", nReceived)
+				assert.EqualValues(1, pkt.Len(), "bad RX length at %d", nReceived)
 				pkt.Close()
 			}
 
@@ -53,7 +55,7 @@ func main() {
 		for i := 0; i < TX_LOOPS; i++ {
 			var pkts [TX_BURST_SIZE]dpdk.Packet
 			e := mp.AllocBulk(pkts[:])
-			require.NoErrorf(e, "mp.AllocBulk error at loop %d", i)
+			require.NoError(e, "mp.AllocBulk error at loop %d", i)
 			for j := 0; j < TX_BURST_SIZE; j++ {
 				e := pkts[j].GetFirstSegment().Append([]byte{byte(j)})
 				assert.NoError(e)
@@ -69,7 +71,7 @@ func main() {
 				}
 				time.Sleep(TX_RETRY_INTERVAL)
 			}
-			assert.EqualValuesf(TX_BURST_SIZE, nSent, "TxBurst incomplete at loop %d", i)
+			assert.EqualValues(TX_BURST_SIZE, nSent, "TxBurst incomplete at loop %d", i)
 		}
 		return 0
 	})
@@ -79,7 +81,7 @@ func main() {
 
 	fmt.Println(edp.PortA.GetStats())
 	fmt.Println(edp.PortB.GetStats())
-	fmt.Println("txtxRetryFreq=", txRetryFreq)
+	fmt.Println("txRetryFreq=", txRetryFreq)
 	fmt.Println("rxBurstSizeFreq=", rxBurstSizeFreq)
 	assert.True(nReceived <= TX_LOOPS*TX_BURST_SIZE)
 	assert.InEpsilon(TX_LOOPS*TX_BURST_SIZE, nReceived, 0.05)
