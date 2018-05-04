@@ -126,6 +126,7 @@ FwFwd_RxInterest(FwFwd* fwd, Packet* npkt)
   ctx.npkt = npkt;
   ctx.dnFace = ctx.pkt->port;
   PInterest* interest = Packet_GetInterestHdr(npkt);
+  assert(interest->hopLimit > 0);
   uint64_t dnToken = Packet_GetLpL3Hdr(npkt)->pitToken;
 
   ZF_LOGD("interest-from=%" PRI_FaceId " npkt=%p dn-token=%016" PRIx64,
@@ -204,10 +205,14 @@ SgForwardInterest(SgCtx* ctx0, FaceId nh)
   }
 
   uint32_t upLifetime = PitEntry_GetTxInterestLifetime(pitEntry, now);
-  uint8_t hopLimit = 0xFF; // TODO properly set HopLimit
+  uint8_t upHopLimit = PitEntry_GetTxInterestHopLimit(pitEntry);
+  if (unlikely(upHopLimit == 0)) {
+    ZF_LOGD("^ no-interest-to=%" PRI_FaceId " drop=hoplimit-zero", nh);
+    return SGFWDI_HOPZERO;
+  }
   Packet* outNpkt =
-    ModifyInterest(pitEntry->npkt, upNonce, upLifetime, hopLimit, fwd->headerMp,
-                   fwd->guiderMp, fwd->indirectMp);
+    ModifyInterest(pitEntry->npkt, upNonce, upLifetime, upHopLimit,
+                   fwd->headerMp, fwd->guiderMp, fwd->indirectMp);
   if (unlikely(outNpkt == NULL)) {
     ZF_LOGD("^ no-interest-to=%" PRI_FaceId " drop=alloc-error", nh);
     return SGFWDI_ALLOCERR;
@@ -218,8 +223,8 @@ SgForwardInterest(SgCtx* ctx0, FaceId nh)
   Packet_ToMbuf(outNpkt)->timestamp = ctx->rxTime; // for latency stats
 
   ZF_LOGD("^ interest-to=%" PRI_FaceId " npkt=%p nonce=%08" PRIx32
-          " up-token=%016" PRIx64,
-          nh, outNpkt, upNonce, token);
+          " lifetime=%" PRIu32 " hopLimit=%" PRIu8 " up-token=%016" PRIx64,
+          nh, outNpkt, upNonce, upLifetime, upHopLimit, token);
   Face_Tx(nh, outNpkt);
 
   PitUp_RecordTx(up, pitEntry, now, upNonce, &fwd->suppressCfg);

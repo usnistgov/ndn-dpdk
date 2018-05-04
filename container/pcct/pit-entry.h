@@ -26,8 +26,9 @@ typedef struct PitEntry
 
   TscTime expiry; ///< when all DNs expire
 
-  uint8_t nCanBePrefix; ///< how many DNs want CanBePrefix?
   bool mustBeFresh;     ///< entry for MustBeFresh 0 or 1?
+  uint8_t nCanBePrefix; ///< how many DNs want CanBePrefix?
+  uint8_t txHopLimit;   ///< HopLimit for outgoing Interests
 
   PitEntryExt* ext;
   PitDn dns[PIT_ENTRY_MAX_DNS];
@@ -109,6 +110,14 @@ static uint32_t
 PitEntry_GetTxInterestLifetime(PitEntry* entry, TscTime now)
 {
   return TscDuration_ToMillis(entry->expiry - now);
+}
+
+/** \brief Calculate HopLimit for TX Interest.
+ */
+static uint8_t
+PitEntry_GetTxInterestHopLimit(PitEntry* entry)
+{
+  return entry->txHopLimit;
 }
 
 #endif // NDN_DPDK_CONTAINER_PCCT_PIT_ENTRY_H

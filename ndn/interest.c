@@ -117,6 +117,9 @@ PInterest_FromPacket(PInterest* interest, struct rte_mbuf* pkt,
       return NdnError_BadHopLimitLength;
     }
     const uint8_t* hopLimitV = TlvElement_GetLinearValue(&ele1);
+    if (unlikely(*hopLimitV == 0)) {
+      return NdnError_HopLimitZero;
+    }
     interest->hopLimit = *hopLimitV;
     interest->guiderSize += ele1.size;
     D1_NEXT;
@@ -229,7 +232,7 @@ ModifyInterest(Packet* npkt, uint32_t nonce, uint32_t lifetime,
   f->hopLimitL = 1;
   f->hopLimitV = hopLimit;
 
-  // make indirect mbufs Parameters, then chain after guiders
+  // make indirect mbufs on Parameters, then chain after guiders
   if (d0.rem > 0) {
     struct rte_mbuf* m2 = MbufLoc_MakeIndirect(&d0, d0.rem, indirectMp);
     if (unlikely(m2 == NULL)) {

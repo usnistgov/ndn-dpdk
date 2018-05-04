@@ -16,3 +16,4 @@ BadDigestComponentLength
 BadNonceLength
 BadInterestLifetime
 BadHopLimitLength
+HopLimitZero

@@ -51,8 +51,7 @@ FwFwd_VerifyNack(FwFwd* fwd, Packet* npkt, PitEntry* pitEntry, PitUp** up,
 }
 
 static bool
-FwFwd_RxNackCongestion(FwFwd* fwd, PitEntry* pitEntry, PitUp* up,
-                       TscTime rxTime)
+FwFwd_RxNackDuplicate(FwFwd* fwd, PitEntry* pitEntry, PitUp* up, TscTime rxTime)
 {
   TscTime now = rte_get_tsc_cycles();
 
@@ -64,10 +63,10 @@ FwFwd_RxNackCongestion(FwFwd* fwd, PitEntry* pitEntry, PitUp* up,
   }
 
   uint32_t upLifetime = PitEntry_GetTxInterestLifetime(pitEntry, now);
-  uint8_t hopLimit = 0xFF; // TODO properly set HopLimit
+  uint8_t upHopLimit = PitEntry_GetTxInterestHopLimit(pitEntry);
   Packet* outNpkt =
-    ModifyInterest(pitEntry->npkt, upNonce, upLifetime, hopLimit, fwd->headerMp,
-                   fwd->guiderMp, fwd->indirectMp);
+    ModifyInterest(pitEntry->npkt, upNonce, upLifetime, upHopLimit,
+                   fwd->headerMp, fwd->guiderMp, fwd->indirectMp);
   if (unlikely(outNpkt == NULL)) {
     ZF_LOGD("^ no-interest-to=%" PRI_FaceId " drop=alloc-error", up->face);
     return true;
@@ -77,10 +76,12 @@ FwFwd_RxNackCongestion(FwFwd* fwd, PitEntry* pitEntry, PitUp* up,
   Packet_InitLpL3Hdr(outNpkt)->pitToken = token;
   Packet_ToMbuf(outNpkt)->timestamp = rxTime; // for latency stats
 
-  ZF_LOGD("^ interest-to=%" PRI_FaceId " npkt=%p nonce-%08" PRIu32
-          " up-token=%016" PRIx64,
-          up->face, outNpkt, upNonce, token);
+  ZF_LOGD("^ interest-to=%" PRI_FaceId " npkt=%p nonce=%08" PRIx32
+          " lifetime=%" PRIu32 " hopLimit=%" PRIu8 " up-token=%016" PRIx64,
+          up->face, outNpkt, upNonce, upLifetime, upHopLimit, token);
   Face_Tx(up->face, outNpkt);
+
+  PitUp_RecordTx(up, pitEntry, now, upNonce, &fwd->suppressCfg);
   return true;
 }
 
@@ -92,6 +93,7 @@ FwFwd_RxNack(FwFwd* fwd, Packet* npkt)
   PNack* nack = Packet_GetNackHdr(npkt);
   TscTime rxTime = pkt->timestamp;
   NackReason reason = nack->lpl3.nackReason;
+  uint8_t nackHopLimit = nack->interest.hopLimit;
 
   ZF_LOGD("nack-from=%" PRI_FaceId " npkt=%p up-token=%016" PRIx64
           " reason=%" PRIu8,
@@ -117,7 +119,7 @@ FwFwd_RxNack(FwFwd* fwd, Packet* npkt)
 
   // for Duplicate, resend with an alternate nonce if available
   if (reason == NackReason_Duplicate &&
-      FwFwd_RxNackCongestion(fwd, pitEntry, up, rxTime)) {
+      FwFwd_RxNackDuplicate(fwd, pitEntry, up, rxTime)) {
     return;
   }
 
@@ -139,19 +141,23 @@ FwFwd_RxNack(FwFwd* fwd, Packet* npkt)
     }
 
     if (unlikely(Face_IsDown(dn->face))) {
-      ZF_LOGD("^ no-data-to=%" PRI_FaceId " drop=face-down", dn->face);
+      ZF_LOGD("^ no-nack-to=%" PRI_FaceId " drop=face-down", dn->face);
       continue;
     }
 
     Packet* outNpkt =
-      ModifyInterest(pitEntry->npkt, dn->nonce, 0, 0, fwd->headerMp,
+      ModifyInterest(pitEntry->npkt, dn->nonce, 0, nackHopLimit, fwd->headerMp,
                      fwd->guiderMp, fwd->indirectMp);
     if (unlikely(outNpkt == NULL)) {
-      ZF_LOGD("^ no-nack-to=%" PRI_FaceId " drop=alloc-error", up->face);
+      ZF_LOGD("^ no-nack-to=%" PRI_FaceId " drop=alloc-error", dn->face);
       break;
     }
+
     MakeNack(outNpkt, leastSevereReason);
     Packet_GetLpL3Hdr(outNpkt)->pitToken = dn->token;
+    ZF_LOGD("^ nack-to=%" PRI_FaceId " npkt=%p nonce=%08" PRIx32
+            " dn-token=%016" PRIx64,
+            dn->face, outNpkt, dn->nonce, dn->token);
     Face_Tx(dn->face, outNpkt);
   }
 

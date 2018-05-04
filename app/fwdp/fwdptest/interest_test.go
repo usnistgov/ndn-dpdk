@@ -116,6 +116,48 @@ func TestInterestNoRoute(t *testing.T) {
 	assert.Equal(uint64(0x431328d8b4075167), ndntestutil.GetPitToken(face1.TxNacks[0]))
 }
 
+func TestHopLimit(t *testing.T) {
+	assert, require := makeAR(t)
+	fixture := fwdptestfixture.New(t)
+	defer fixture.Close()
+
+	face1 := fixture.CreateFace()
+	face2 := fixture.CreateFace()
+	face3 := fixture.CreateFace()
+	face4 := fixture.CreateFace()
+	fixture.SetFibEntry("/A", "multicast", face1.GetFaceId())
+
+	// cannot test HopLimit=0 because it's rejected by decoder,
+	// so MakeInterest would fail
+
+	// HopLimit becomes zero, cannot forward
+	interest1 := ndntestutil.MakeInterest("/A/1", uint8(1))
+	face2.Rx(interest1)
+	time.Sleep(10 * time.Millisecond)
+	assert.Len(face1.TxInterests, 0)
+
+	// HopLimit is 1 after decrementing, forwarded with HopLimit=1
+	interest2 := ndntestutil.MakeInterest("/A/1", uint8(2))
+	face3.Rx(interest2)
+	time.Sleep(10 * time.Millisecond)
+	require.Len(face1.TxInterests, 1)
+	assert.Equal(uint8(1), face1.TxInterests[0].GetHopLimit())
+
+	// Data satisfies Interest
+	data := ndntestutil.MakeData("/A/1")
+	ndntestutil.CopyPitToken(data, face1.TxInterests[0])
+	face1.Rx(data)
+	time.Sleep(10 * time.Millisecond)
+	assert.Len(face3.TxData, 1)
+	// whether face3 receives Data or not is unspecified
+
+	// HopLimit reaches zero, can still retrieve from CS
+	interest1a := ndntestutil.MakeInterest("/A/1", uint8(1))
+	face4.Rx(interest1a)
+	time.Sleep(10 * time.Millisecond)
+	assert.Len(face4.TxData, 1)
+}
+
 func TestCsHit(t *testing.T) {
 	assert, require := makeAR(t)
 	fixture := fwdptestfixture.New(t)

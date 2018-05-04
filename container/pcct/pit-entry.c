@@ -112,6 +112,10 @@ PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt)
   }
   entry->nCanBePrefix += (uint8_t)interest->canBePrefix;
 
+  // update txHopLimit
+  assert(interest->hopLimit > 0); // decoder rejects HopLimit=0
+  entry->txHopLimit = RTE_MAX(entry->txHopLimit, interest->hopLimit - 1);
+
   // set timer
   if (dn->expiry > entry->expiry) {
     entry->expiry = dn->expiry;

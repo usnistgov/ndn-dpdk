@@ -37,6 +37,7 @@ typedef enum SgForwardInterestResult {
   SGFWDI_ALLOCERR,   ///< allocation error
   SGFWDI_NONONCE,    ///< upstream has rejected all nonces
   SGFWDI_SUPPRESSED, ///< forwarding is suppressed
+  SGFWDI_HOPZERO,    ///< HopLimit has become zero
 } SgForwardInterestResult;
 
 /** \brief Forward an Interest to a nexthop.
