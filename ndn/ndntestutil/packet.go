@@ -6,16 +6,6 @@ import (
 	"ndn-dpdk/ndn"
 )
 
-// Parse NDN name from URI.
-// Panics if URI is malformed.
-func ParseName(uri string) *ndn.Name {
-	name, e := ndn.ParseName(uri)
-	if e != nil {
-		panic(e)
-	}
-	return name
-}
-
 func makePacket(b []byte) (pkt ndn.Packet) {
 	m := dpdktestenv.PacketFromBytes(b)
 	m.SetTimestamp(dpdk.TscNow())

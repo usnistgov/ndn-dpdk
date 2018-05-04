@@ -8,7 +8,7 @@ import (
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/dpdk/dpdktestenv"
 	"ndn-dpdk/iface"
-	"ndn-dpdk/ndn/ndntestutil"
+	"ndn-dpdk/ndn"
 )
 
 func TestMain(m *testing.M) {
@@ -64,7 +64,7 @@ func (fixture *Fixture) MakeStrategy() (sc fib.StrategyCode) {
 func (fixture *Fixture) MakeEntry(name string, sc fib.StrategyCode,
 	nexthops ...iface.FaceId) (entry *fib.Entry) {
 	entry = new(fib.Entry)
-	n := ndntestutil.ParseName(name)
+	n := ndn.MustParseName(name)
 	entry.SetName(n)
 	entry.SetNexthops(nexthops)
 	entry.SetStrategy(sc)

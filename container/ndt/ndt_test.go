@@ -9,7 +9,6 @@ import (
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/dpdk/dpdktestenv"
 	"ndn-dpdk/ndn"
-	"ndn-dpdk/ndn/ndntestutil"
 )
 
 func TestNdt(t *testing.T) {
@@ -38,7 +37,7 @@ func TestNdt(t *testing.T) {
 	}
 	names := make([]*ndn.Name, len(nameStrs))
 	for i, nameStr := range nameStrs {
-		names[i] = ndntestutil.ParseName(nameStr)
+		names[i] = ndn.MustParseName(nameStr)
 	}
 
 	ndt := ndt.New(cfg, numaSockets)

@@ -172,3 +172,13 @@ func ParseName(uri string) (n *Name, e error) {
 	}
 	return NewName(buf.Bytes())
 }
+
+// Parse name from URI.
+// Panics if parsing fails.
+func MustParseName(uri string) *Name {
+	n, e := ParseName(uri)
+	if e != nil {
+		panic(e)
+	}
+	return n
+}

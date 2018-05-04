@@ -5,7 +5,7 @@ import (
 
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/core/urcu"
-	"ndn-dpdk/ndn/ndntestutil"
+	"ndn-dpdk/ndn"
 )
 
 func TestFibInsertErase(t *testing.T) {
@@ -17,7 +17,7 @@ func TestFibInsertErase(t *testing.T) {
 	assert.Zero(fib.Len())
 	assert.Zero(fixture.CountMpInUse())
 
-	nameA := ndntestutil.ParseName("/A")
+	nameA := ndn.MustParseName("/A")
 	assert.Nil(fib.Find(nameA))
 
 	_, e := fib.Insert(fixture.MakeEntry("/A", badStrategy, 2851))
@@ -91,7 +91,7 @@ func TestFibLpm(t *testing.T) {
 	strategyP := fixture.MakeStrategy()
 
 	lpm := func(name string) int {
-		entry := fib.Lpm(ndntestutil.ParseName(name))
+		entry := fib.Lpm(ndn.MustParseName(name))
 		if entry == nil {
 			return 0
 		}
@@ -126,16 +126,16 @@ func TestFibLpm(t *testing.T) {
 	assert.Equal(5006, lpm("/X/Y"))
 	assert.Equal(5007, lpm("/X"))
 
-	assert.NoError(fib.Erase(ndntestutil.ParseName("/")))
+	assert.NoError(fib.Erase(ndn.MustParseName("/")))
 	assert.Equal(7, fib.Len())
 	assert.Equal(1, fib.CountVirtuals())
 
-	assert.NoError(fib.Erase(ndntestutil.ParseName("/A/B/C")))
+	assert.NoError(fib.Erase(ndn.MustParseName("/A/B/C")))
 	assert.Equal(6, fib.Len())
 	assert.Equal(0, fib.CountVirtuals()) // '/A/B' is gone
 
-	assert.NoError(fib.Erase(ndntestutil.ParseName("/M/N")))
-	assert.NoError(fib.Erase(ndntestutil.ParseName("/X/Y")))
+	assert.NoError(fib.Erase(ndn.MustParseName("/M/N")))
+	assert.NoError(fib.Erase(ndn.MustParseName("/X/Y")))
 	assert.Equal(4, fib.Len())
 	assert.Equal(2, fib.CountVirtuals()) // '/M/N' and '/X/Y' become virtual
 	assert.Len(fib.ListNames(), 4)
