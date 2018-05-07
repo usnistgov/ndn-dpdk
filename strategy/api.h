@@ -23,6 +23,14 @@ typedef struct SgCtx
   uint8_t nNexthops;
 } SgCtx;
 
+/** \brief Access PIT entry scratch area as T* type.
+ */
+#define SgCtx_PitScratchT(ctx, T)                                              \
+  __extension__({                                                              \
+    static_assert(sizeof(T) <= SG_PIT_ENTRY_SCRATCH, "");                      \
+    (T*)ctx->pitEntry->scratch;                                                \
+  })
+
 /** \brief Set a timer to invoke strategy after a duration.
  *
  *  \c Program will be invoked again with \c SGEVT_TIMER after \p after.
@@ -33,7 +41,7 @@ void SgSetTimer(SgCtx* ctx, TscDuration after);
 
 typedef enum SgForwardInterestResult {
   SGFWDI_OK,
-  SGFWDI_BADFACE,    ///< FaceId is invalid
+  SGFWDI_BADFACE,    ///< face is down or FaceId is invalid
   SGFWDI_ALLOCERR,   ///< allocation error
   SGFWDI_NONONCE,    ///< upstream has rejected all nonces
   SGFWDI_SUPPRESSED, ///< forwarding is suppressed

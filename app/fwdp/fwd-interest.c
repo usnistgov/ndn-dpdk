@@ -100,7 +100,7 @@ FwFwd_InterestForward(FwFwd* fwd, FwFwdRxInterestContext* ctx)
   sgCtx.inner.pitEntry = (SgPitEntry*)ctx->pitEntry;
   sgCtx.inner.nexthops = ctx->nexthops;
   sgCtx.inner.nNexthops = ctx->nNexthops;
-  uint64_t res = (*ctx->fibEntry->strategy->jit)(&sgCtx, sizeof(SgCtx));
+  uint64_t res = SgInvoke(ctx->fibEntry->strategy, &sgCtx);
   ZF_LOGD("^ sg-res=%" PRIu64, res);
 }
 

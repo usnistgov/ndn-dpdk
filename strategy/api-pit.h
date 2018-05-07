@@ -32,6 +32,7 @@ typedef struct SgPitUp
 #define SG_PIT_ENTRY_MAX_UPS 2
 #define SG_PIT_ENTRY_EXT_MAX_DNS 72
 #define SG_PIT_ENTRY_EXT_MAX_UPS 36
+#define SG_PIT_ENTRY_SCRATCH 64
 
 typedef struct SgPitEntryExt SgPitEntryExt;
 
@@ -41,6 +42,7 @@ typedef struct SgPitEntry
   SgPitEntryExt* ext;
   SgPitDn dns[SG_PIT_ENTRY_MAX_DNS];
   SgPitUp ups[SG_PIT_ENTRY_MAX_UPS];
+  uint64_t scratch[SG_PIT_ENTRY_SCRATCH / 8];
 } SgPitEntry;
 
 struct SgPitEntryExt

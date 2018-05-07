@@ -11,6 +11,7 @@
 #define PIT_ENTRY_MAX_UPS 2
 #define PIT_ENTRY_EXT_MAX_DNS 72
 #define PIT_ENTRY_EXT_MAX_UPS 36
+#define PIT_ENTRY_SG_SCRATCH 64
 
 typedef struct PitEntryExt PitEntryExt;
 
@@ -30,9 +31,13 @@ typedef struct PitEntry
   uint8_t nCanBePrefix; ///< how many DNs want CanBePrefix?
   uint8_t txHopLimit;   ///< HopLimit for outgoing Interests
 
+  int strategyId; ///< for detecting strategy change
+
   PitEntryExt* ext;
   PitDn dns[PIT_ENTRY_MAX_DNS];
   PitUp ups[PIT_ENTRY_MAX_UPS];
+
+  uint64_t sgScratch[PIT_ENTRY_SG_SCRATCH / sizeof(uint64_t)];
 } PitEntry;
 static_assert(offsetof(PitEntry, dns) <= RTE_CACHE_LINE_SIZE, "");
 
@@ -52,8 +57,10 @@ PitEntry_Init(PitEntry* entry, Packet* npkt)
   entry->npkt = npkt;
   MinTmr_Init(&entry->timeout);
   entry->expiry = 0;
-  entry->nCanBePrefix = interest->canBePrefix;
   entry->mustBeFresh = interest->mustBeFresh;
+  entry->nCanBePrefix = interest->canBePrefix;
+  entry->txHopLimit = 0;
+  entry->strategyId = 0;
   entry->dns[0].face = FACEID_INVALID;
   entry->ups[0].face = FACEID_INVALID;
   entry->ext = NULL;

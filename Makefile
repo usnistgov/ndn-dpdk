@@ -109,7 +109,7 @@ container/pcct/cgoflags.go: container/mintmr/cgoflags.go ndn/cgoflags.go
 
 strategies: strategy/strategy_elf/bindata.go
 
-strategy/strategy_elf/bindata.go: $(STRATEGYPREFIX)/multicast.o
+strategy/strategy_elf/bindata.go: $(STRATEGYPREFIX)/multicast.o $(STRATEGYPREFIX)/roundrobin.o
 	go-bindata -nomemcopy -pkg strategy_elf -prefix $(STRATEGYPREFIX) -o /dev/stdout $(STRATEGYPREFIX) | gofmt > strategy/strategy_elf/bindata.go
 
 strategy-% $(STRATEGYPREFIX)/%.o: strategy/%.c $(CLIBPREFIX)-strategy.a
