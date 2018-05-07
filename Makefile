@@ -170,7 +170,10 @@ doxygen:
 codedoc:
 	bash docs/codedoc.sh
 
-dochttp: doxygen codedoc
+docs/mgmtschema/schema.json: docs/mgmtschema/*.js
+	nodejs docs/mgmtschema/ > docs/mgmtschema/schema.json
+
+dochttp: doxygen codedoc docs/mgmtschema/schema.json
 	cd docs && python3 -m http.server 2>/dev/null &
 
 godochttp:
