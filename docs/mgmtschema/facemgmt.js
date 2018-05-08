@@ -1,90 +1,85 @@
 (function(exports){
-exports.provideDefinitions = function(declareType, useType, declareMethod) {
+exports.provideDefinitions = function(ctx) {
 
-declareType('iface.FaceUri', {
+ctx.declareType('iface.FaceUri', {
   type: 'string',
   format: 'uri',
 });
 
-declareType('iface.Counters', {
+ctx.declareType('iface.Counters', {
   type: 'object',
   properties: {
-    RxFrames: useType('counter'),
-    RxOctets: useType('counter'),
-    L2DecodeErrs: useType('counter'),
-    ReassBad: useType('counter'),
-    ReassGood: useType('counter'),
-    L3DecodeErrs: useType('counter'),
-    RxInterests: useType('counter'),
-    RxData: useType('counter'),
-    RxNacks: useType('counter'),
-    FragGood: useType('counter'),
-    FragBad: useType('counter'),
-    TxAllocErrs: useType('counter'),
-    TxQueued: useType('counter'),
-    TxDropped: useType('counter'),
-    TxInterests: useType('counter'),
-    TxData: useType('counter'),
-    TxNacks: useType('counter'),
-    TxFrames: useType('counter'),
-    TxOctets: useType('counter'),
+    RxFrames: ctx.useType('counter'),
+    RxOctets: ctx.useType('counter'),
+    L2DecodeErrs: ctx.useType('counter'),
+    ReassBad: ctx.useType('counter'),
+    ReassGood: ctx.useType('counter'),
+    L3DecodeErrs: ctx.useType('counter'),
+    RxInterests: ctx.useType('counter'),
+    RxData: ctx.useType('counter'),
+    RxNacks: ctx.useType('counter'),
+    FragGood: ctx.useType('counter'),
+    FragBad: ctx.useType('counter'),
+    TxAllocErrs: ctx.useType('counter'),
+    TxQueued: ctx.useType('counter'),
+    TxDropped: ctx.useType('counter'),
+    TxInterests: ctx.useType('counter'),
+    TxData: ctx.useType('counter'),
+    TxNacks: ctx.useType('counter'),
+    TxFrames: ctx.useType('counter'),
+    TxOctets: ctx.useType('counter'),
   },
 });
 
-declareType('dpdk.EthStats', {
+ctx.declareType('dpdk.EthStats', {
   type: 'object',
 });
 
-declareType('socketface.ExCounters', {
+ctx.declareType('socketface.ExCounters', {
   type: 'object',
 });
 
-declareType('facemgmt.FaceInfo', {
+ctx.declareType('facemgmt.FaceInfo', {
   type: 'object',
   properties: {
-    Id: useType('iface.FaceId'),
-    LocalUri: useType('iface.FaceUri'),
-    RemoteUri: useType('iface.FaceUri'),
-    IsDown: useType('boolean'),
-    Counters: useType('iface.Counters'),
+    Id: ctx.useType('iface.FaceId'),
+    LocalUri: ctx.useType('iface.FaceUri'),
+    RemoteUri: ctx.useType('iface.FaceUri'),
+    IsDown: ctx.useType('boolean'),
+    Counters: ctx.useType('iface.Counters'),
     ExCounters: {
       oneOf: [
-        useType('dpdk.EthStats'),
-        useType('socketface.ExCounters'),
+        ctx.useType('dpdk.EthStats'),
+        ctx.useType('socketface.ExCounters'),
         true,
       ],
     },
-    Latency: useType('running_stat.Snapshot'),
+    Latency: ctx.useType('running_stat.Snapshot'),
   },
 });
 
-declareType('facemgmt.IdArg', {
+ctx.declareType('facemgmt.IdArg', ctx.markAllRequired({
   type: 'object',
   properties: {
-    Id: useType('iface.FaceId'),
+    Id: ctx.useType('iface.FaceId'),
   },
-});
+}));
 
-declareMethod('Face.List', 'null',
-  {
-    type: 'array',
-    items: useType('iface.FaceId'),
-    uniqueItems: true,
-  });
+ctx.declareMethod('Face.List', 'null', 'iface.FaceId[]');
 
-declareMethod('Face.Get', 'facemgmt.IdArg', 'facemgmt.FaceInfo');
+ctx.declareMethod('Face.Get', 'facemgmt.IdArg', 'facemgmt.FaceInfo');
 
-declareMethod('Face.Create',
-  {
+ctx.declareMethod('Face.Create',
+  ctx.markAllRequired({
     type: 'object',
     properties: {
-      LocalUri: useType('iface.FaceUri'),
-      RemoteUri: useType('iface.FaceUri'),
+      LocalUri: ctx.useType('iface.FaceUri'),
+      RemoteUri: ctx.useType('iface.FaceUri'),
     },
-  },
+  }),
   'facemgmt.IdArg');
 
-declareMethod('Face.Destroy', 'facemgmt.IdArg', 'null');
+ctx.declareMethod('Face.Destroy', 'facemgmt.IdArg', 'null');
 
 };
 })(exports);

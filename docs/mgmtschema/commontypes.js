@@ -1,29 +1,44 @@
 (function(exports){
-exports.provideDefinitions = function(declareType, useType, declareMethod) {
+exports.provideDefinitions = function(ctx) {
 
-declareType('counter', {
+ctx.declareType('counter', {
   type: 'integer',
   minimum: 0,
 })
 
-declareType('running_stat.Snapshot', {
+ctx.declareType('running_stat.Snapshot', {
   type: 'object',
+  properties: {
+    Count: ctx.useType('counter'),
+    Min: ctx.useType('number'),
+    Max: ctx.useType('number'),
+    Mean: ctx.useType('number'),
+    Stdev: {
+      type: 'number',
+      minimum: 0,
+    },
+  }
 });
 
-declareType('iface.FaceId', {
+ctx.declareType('dpdk.LCore', {
+  type: 'integer',
+  minimum: 0,
+  maximum: 127,
+});
+
+ctx.declareType('iface.FaceId', {
   type: 'integer',
   minimum: 1,
   maximum: 65535,
 });
 
-declareType('array-of_iface.FaceId', {
+ctx.declareType('iface.FaceId[]', {
   type: 'array',
-  items: useType('iface.FaceId'),
-  minItems: 1,
+  items: ctx.useType('iface.FaceId'),
   uniqueItems: true,
 });
 
-declareType('ndn.Name', {
+ctx.declareType('ndn.Name', {
   type: 'string',
   format: 'uri-reference',
 });

@@ -1,57 +1,74 @@
 (function(exports){
-exports.provideDefinitions = function(declareType, useType, declareMethod) {
+exports.provideDefinitions = function(ctx) {
 
-declareType('fibmgmt.NameArg', {
+ctx.declareType('fibmgmt.NameArg', ctx.markAllRequired({
   type: 'object',
   properties: {
-    Name: useType('ndn.Name'),
+    Name: ctx.useType('ndn.Name'),
   },
+}));
+
+ctx.declareType('fibmgmt.Nexthops', {
+  type: 'array',
+  items: ctx.useType('iface.FaceId'),
+  minItems: 1,
+  uniqueItems: true,
 });
 
-declareType('fibmgmt.LookupReply', {
+ctx.declareType('fibmgmt.LookupReply', {
   type: 'object',
   properties: {
-    HasEntry: useType('boolean'),
-    Name: useType('ndn.Name'),
-    Nexthops: useType('array-of_iface.FaceId'),
+    HasEntry: ctx.useType('boolean'),
+    Name: ctx.useType('ndn.Name'),
+    Nexthops: ctx.useType('fibmgmt.Nexthops'),
   },
+  anyOf: [
+    {
+      properties: {
+        HasEntry: { const:false },
+      },
+    },
+    {
+      required: ['Name', 'Nexthops'],
+    },
+  ]
 });
 
-declareMethod('Fib.Info', 'null',
+ctx.declareMethod('Fib.Info', 'null',
   {
     type: 'object',
     properties: {
-      NEntries: useType('counter'),
-      NVirtuals: useType('counter'),
+      NEntries: ctx.useType('counter'),
+      NVirtuals: ctx.useType('counter'),
     },
   });
 
-declareMethod('Fib.List', 'null',
+ctx.declareMethod('Fib.List', 'null',
   {
     type: 'array',
-    items: useType('ndn.Name'),
+    items: ctx.useType('ndn.Name'),
   });
 
-declareMethod('Fib.Insert',
+ctx.declareMethod('Fib.Insert',
+  ctx.markAllRequired({
+    type: 'object',
+    properties: {
+      Name: ctx.useType('ndn.Name'),
+      Nexthops: ctx.useType('fibmgmt.Nexthops'),
+    },
+  }),
   {
     type: 'object',
     properties: {
-      Name: useType('ndn.Name'),
-      Nexthops: useType('array-of_iface.FaceId'),
-    },
-  },
-  {
-    type: 'object',
-    properties: {
-      IsNew: useType('boolean'),
+      IsNew: ctx.useType('boolean'),
     },
   });
 
-declareMethod('Fib.Erase', 'fibmgmt.NameArg', 'null');
+ctx.declareMethod('Fib.Erase', 'fibmgmt.NameArg', 'null');
 
-declareMethod('Fib.Find', 'fibmgmt.NameArg', 'fibmgmt.LookupReply');
+ctx.declareMethod('Fib.Find', 'fibmgmt.NameArg', 'fibmgmt.LookupReply');
 
-declareMethod('Fib.Lpm', 'fibmgmt.NameArg', 'fibmgmt.LookupReply');
+ctx.declareMethod('Fib.Lpm', 'fibmgmt.NameArg', 'fibmgmt.LookupReply');
 
 };
 })(exports);

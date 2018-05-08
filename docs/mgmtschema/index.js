@@ -15,35 +15,44 @@ var theSchema = {
   oneOf: [],
 };
 
-function declareType(type, subschema) {
-  theSchema.definitions[type] = subschema;
-}
+var ctx = {
+  declareType: function(type, subschema) {
+    theSchema.definitions[type] = subschema;
+  },
 
-function useType(t) {
-  if (typeof t == 'object') {
-    return t;
-  }
-  if (['null', 'boolean', 'array', 'number', 'string', 'integer'].includes(t)) {
-    return {type: t};
-  }
-  console.assert(theSchema.definitions.hasOwnProperty(t), 'undefined type %s', t);
-  return {'$ref': '#/definitions/' + t};
-}
-
-function declareMethod(method, paramsType, resultType) {
-  theSchema.oneOf.push({
-    properties: {
-      method: {
-        const: method,
-      },
-      params: useType(paramsType),
-      result: useType(resultType),
+  useType: function(t) {
+    if (typeof t == 'object') {
+      return t;
     }
-  });
-}
+    if (['null', 'boolean', 'array', 'number', 'string', 'integer'].includes(t)) {
+      return {type: t};
+    }
+    console.assert(theSchema.definitions.hasOwnProperty(t), 'undefined type %s', t);
+    return {'$ref': '#/definitions/' + t};
+  },
 
-['commontypes', 'facemgmt', 'fibmgmt', 'versionmgmt'].forEach(function(module) {
-  require('./' + module).provideDefinitions(declareType, useType, declareMethod);
+  markAllRequired: function(subschema) {
+    if (subschema.properties) {
+      subschema.required = Object.keys(subschema.properties);
+    }
+    return subschema;
+  },
+
+  declareMethod: function(method, paramsType, resultType) {
+    theSchema.oneOf.push({
+      properties: {
+        method: {
+          const: method,
+        },
+        params: ctx.useType(paramsType),
+        result: ctx.useType(resultType),
+      }
+    });
+  },
+};
+
+['commontypes', 'facemgmt', 'fibmgmt', 'fwdpmgmt', 'ndtmgmt', 'versionmgmt'].forEach(function(module) {
+  require('./' + module).provideDefinitions(ctx);
 });
 
 process.stdout.write(JSON.stringify(theSchema, null, 2));

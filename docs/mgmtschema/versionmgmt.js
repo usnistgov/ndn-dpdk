@@ -1,20 +1,21 @@
 (function(exports){
-exports.provideDefinitions = function(declareType, useType, declareMethod) {
+exports.provideDefinitions = function(ctx) {
 
-declareType('versionmgmt.VersionReply', {
-  type: 'object',
-  properties: {
-    Commit: {
-      type: 'string',
-      pattern: '/^[0-9a-f]{40}$/',
+ctx.declareMethod('Version.Version', 'null',
+  {
+    type: 'object',
+    properties: {
+      Commit: {
+        type: 'string',
+        pattern: '^[0-9a-f]{40}$',
+      },
+      BuildTime: {
+        type: 'string',
+        format: 'date-time',
+      },
     },
-    BuildTime: {
-      type: 'string',
-      format: 'date-time',
-    },
-  },
-});
-declareMethod('Version.Version', 'null', 'versionmgmt.VersionReply');
+    required: ['Commit'],
+  });
 
 };
 })(exports);
