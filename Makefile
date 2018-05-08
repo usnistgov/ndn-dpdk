@@ -13,6 +13,7 @@ cgoflags:
 
 core/cgoflags.go:
 	./make-cgoflags.sh core
+	./make-cgoflags.sh core/coretest core
 
 $(CLIBPREFIX)-core.a: core/*.h core/*.c
 	./cbuild.sh core
@@ -74,6 +75,7 @@ $(CLIBPREFIX)-mintmr.a: $(CLIBPREFIX)-dpdk.a container/mintmr/*.h container/mint
 
 container/mintmr/cgoflags.go: dpdk/cgoflags.go
 	./make-cgoflags.sh container/mintmr dpdk
+	./make-cgoflags.sh container/mintmr/mintmrtest container/mintmr
 
 $(CLIBPREFIX)-nameset.a: $(CLIBPREFIX)-ndn.a container/nameset/*.h container/nameset/*.c
 	./cbuild.sh container/nameset
@@ -153,12 +155,6 @@ mgmtclient: cmd/mgmtclient/*
 
 cmd/ndnpktcopy-dpdk/cgoflags.go: iface/cgoflags.go
 	./make-cgoflags.sh cmd/ndnpktcopy-dpdk iface
-
-integ/core/siphash/cgoflags.go:
-	./make-cgoflags.sh integ/core/siphash core
-
-integ/container/mintmr/cgoflags.go:
-	./make-cgoflags.sh integ/container/mintmr container/mintmr
 
 test: cbuilds cgoflags
 	./gotest.sh

@@ -1,4 +1,4 @@
-#include "test-mintmr.h"
+#include "mintmr_test.h"
 #include "_cgo_export.h"
 
 void

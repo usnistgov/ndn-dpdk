@@ -1,24 +1,21 @@
-package main
+package mintmrtest
 
 /*
-#include "test-mintmr.h"
+#include "mintmr_test.h"
 */
 import "C"
 import (
+	"testing"
 	"time"
 
+	_ "ndn-dpdk/container/mintmr"
 	"ndn-dpdk/dpdk"
-	"ndn-dpdk/dpdk/dpdktestenv"
-	"ndn-dpdk/integ"
 )
 
 var triggered map[int]bool
 
-func main() {
-	t := new(integ.Testing)
-	defer t.Close()
-	assert, _ := integ.MakeAR(t)
-	dpdktestenv.InitEal()
+func testMinTmr(t *testing.T) {
+	assert, _ := makeAR(t)
 	triggered = make(map[int]bool)
 
 	// 32 slots * 100ms = 3200ms

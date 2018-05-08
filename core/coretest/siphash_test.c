@@ -1,12 +1,10 @@
-package main
-
-/*
-#include "../../../core/siphash.h"
+#include "../siphash.h"
 #include <rte_byteorder.h>
 
 int
-testSipHash()
+TestSipHash()
 {
+  // clang-format off
 	static const uint8_t vectors[64][8] = {
 		{ 0x31, 0x0e, 0x0e, 0xdd, 0x47, 0xdb, 0x6f, 0x72, },
 		{ 0xfd, 0x67, 0xdc, 0x93, 0xc5, 0x39, 0xf8, 0x74, },
@@ -73,33 +71,21 @@ testSipHash()
 		{ 0x57, 0x5f, 0xf2, 0x8e, 0x60, 0x38, 0x1b, 0xe5, },
 		{ 0x72, 0x45, 0x06, 0xeb, 0x4c, 0x32, 0x8a, 0x95, },
 	};
+  // clang-format on
 
-	SipHashKey k;
-	SipHashKey_FromBuffer(&k,
-	  (const uint8_t*)"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f");
-	SipHash h;
-	SipHash_Init(&h, &k);
+  SipHashKey k;
+  SipHashKey_FromBuffer(&k, (const uint8_t*)"\x00\x01\x02\x03\x04\x05\x06\x07"
+                                            "\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f");
+  SipHash h;
+  SipHash_Init(&h, &k);
 
-	for (uint8_t i = 0; i < 64; ++i) {
-		SipHash_Write(&h, &i, 1);
-		uint64_t sum = SipHash_Sum(&h);
-		if (sum != rte_le_to_cpu_64(*(const rte_le64_t*)vectors[i])) {
-			return i;
-		}
-	}
+  for (uint8_t i = 0; i < 64; ++i) {
+    SipHash_Write(&h, &i, 1);
+    uint64_t sum = SipHash_Sum(&h);
+    if (sum != rte_le_to_cpu_64(*(const rte_le64_t*)vectors[i])) {
+      return i;
+    }
+  }
 
-	return 0;
-}
-*/
-import "C"
-import (
-	"ndn-dpdk/integ"
-)
-
-func main() {
-	t := new(integ.Testing)
-	defer t.Close()
-	assert, _ := integ.MakeAR(t)
-
-	assert.EqualValues(0, C.testSipHash())
+  return 0;
 }
