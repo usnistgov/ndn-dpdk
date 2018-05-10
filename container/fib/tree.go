@@ -6,23 +6,13 @@ import (
 
 type node struct {
 	IsEntry  bool
-	Comp     ndn.NameComponent
 	MaxDepth int
-	Children map[*node]struct{}
-}
-
-func (n *node) FindChild(comp ndn.NameComponent) *node {
-	for child := range n.Children {
-		if comp.Equal(child.Comp) {
-			return child
-		}
-	}
-	return nil
+	Children map[string]*node // key is NameComponent cast as string
 }
 
 func (n *node) UpdateMaxDepth() {
 	n.MaxDepth = 0
-	for child := range n.Children {
+	for _, child := range n.Children {
 		depth := 1 + child.MaxDepth
 		if depth > n.MaxDepth {
 			n.MaxDepth = depth
@@ -30,14 +20,13 @@ func (n *node) UpdateMaxDepth() {
 	}
 }
 
-func (n *node) ListTo(names *[]*ndn.Name, prefix ndn.TlvBytes) {
-	nameV := append(append(ndn.TlvBytes(nil), prefix...), n.Comp...)
+func (n *node) ListTo(names *[]*ndn.Name, prefix string) {
 	if n.IsEntry {
-		name, _ := ndn.NewName(nameV)
+		name, _ := ndn.NewName(ndn.TlvBytes(prefix))
 		*names = append(*names, name)
 	}
-	for child := range n.Children {
-		child.ListTo(names, nameV)
+	for comp, child := range n.Children {
+		child.ListTo(names, prefix+comp)
 	}
 }
 
@@ -49,17 +38,21 @@ func (t *tree) seek(comps []ndn.NameComponent, wantInsert bool) (nodes []*node) 
 
 	for i, comp := range comps {
 		parent := nodes[i]
-		child := parent.FindChild(comp)
+		if parent.Children == nil {
+			if wantInsert {
+				parent.Children = make(map[string]*node)
+			} else {
+				return nodes[:i+1]
+			}
+		}
+		compStr := string(comp)
+		child := parent.Children[compStr]
 		if child == nil {
 			if !wantInsert {
 				return nodes[:i+1]
 			}
-			if parent.Children == nil {
-				parent.Children = make(map[*node]struct{})
-			}
 			child = new(node)
-			child.Comp = comp
-			parent.Children[child] = struct{}{}
+			parent.Children[compStr] = child
 		}
 		nodes[i+1] = child
 	}
@@ -90,7 +83,7 @@ func (t *tree) Erase(comps []ndn.NameComponent, startDepth int) (oldMd int, newM
 			newMd = node.MaxDepth
 		}
 		if i > 0 && !node.IsEntry && len(node.Children) == 0 {
-			delete(nodes[i-1].Children, node)
+			delete(nodes[i-1].Children, string(comps[i-1]))
 		}
 	}
 	return
@@ -98,6 +91,6 @@ func (t *tree) Erase(comps []ndn.NameComponent, startDepth int) (oldMd int, newM
 
 func (t *tree) List() (names []*ndn.Name) {
 	names = make([]*ndn.Name, 0)
-	(*node)(t).ListTo(&names, nil)
+	(*node)(t).ListTo(&names, "")
 	return names
 }
