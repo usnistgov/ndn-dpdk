@@ -1,21 +1,17 @@
-package main
+package dpdktest
 
 import (
-	"fmt"
+	"log"
+	"testing"
 	"time"
 
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/dpdk/dpdktestenv"
-	"ndn-dpdk/integ"
 )
 
-func main() {
-	t := new(integ.Testing)
-	defer t.Close()
-	assert, require := integ.MakeAR(t)
+func TestEthDev(t *testing.T) {
+	assert, _ := makeAR(t)
 
-	eal := dpdktestenv.InitEal()
-	mp := dpdktestenv.MakeDirectMp(4095, 0, 256)
 	edp := dpdktestenv.NewEthDevPair(1, 1024, 64)
 	rxq, txq := edp.RxqA[0], edp.TxqB[0]
 	assert.False(edp.PortA.IsDown())
@@ -30,15 +26,15 @@ func main() {
 
 	nReceived := 0
 	rxBurstSizeFreq := make(map[int]int)
-	rxQuit := make(chan int)
-	eal.Slaves[0].RemoteLaunch(func() int {
+	rxQuit := make(chan bool)
+	dpdktestenv.Eal.Slaves[0].RemoteLaunch(func() int {
 		pkts := make([]dpdk.Packet, RX_BURST_SIZE)
 		for {
 			burstSize := rxq.RxBurst(pkts)
 			rxBurstSizeFreq[burstSize]++
 			for _, pkt := range pkts[:burstSize] {
 				nReceived++
-				assert.EqualValues(1, pkt.Len(), "bad RX length at %d", nReceived)
+				assert.Equal(1, pkt.Len(), "bad RX length at %d", nReceived)
 				pkt.Close()
 			}
 
@@ -51,11 +47,10 @@ func main() {
 	})
 
 	txRetryFreq := make(map[int]int)
-	eal.Slaves[1].RemoteLaunch(func() int {
+	dpdktestenv.Eal.Slaves[1].RemoteLaunch(func() int {
 		for i := 0; i < TX_LOOPS; i++ {
 			var pkts [TX_BURST_SIZE]dpdk.Packet
-			e := mp.AllocBulk(pkts[:])
-			require.NoError(e, "mp.AllocBulk error at loop %d", i)
+			dpdktestenv.AllocBulk(dpdktestenv.MPID_DIRECT, pkts[:])
 			for j := 0; j < TX_BURST_SIZE; j++ {
 				e := pkts[j].GetFirstSegment().Append([]byte{byte(j)})
 				assert.NoError(e)
@@ -71,18 +66,18 @@ func main() {
 				}
 				time.Sleep(TX_RETRY_INTERVAL)
 			}
-			assert.EqualValues(TX_BURST_SIZE, nSent, "TxBurst incomplete at loop %d", i)
+			assert.Equal(TX_BURST_SIZE, nSent, "TxBurst incomplete at loop %d", i)
 		}
 		return 0
 	})
-	eal.Slaves[1].Wait()
+	dpdktestenv.Eal.Slaves[1].Wait()
 	time.Sleep(RX_FINISH_WAIT)
-	rxQuit <- 0
+	rxQuit <- true
 
-	fmt.Println(edp.PortA.GetStats())
-	fmt.Println(edp.PortB.GetStats())
-	fmt.Println("txRetryFreq=", txRetryFreq)
-	fmt.Println("rxBurstSizeFreq=", rxBurstSizeFreq)
+	log.Println("portA.stats=", edp.PortA.GetStats())
+	log.Println("portB.stats=", edp.PortB.GetStats())
+	log.Println("txRetryFreq=", txRetryFreq)
+	log.Println("rxBurstSizeFreq=", rxBurstSizeFreq)
 	assert.True(nReceived <= TX_LOOPS*TX_BURST_SIZE)
 	assert.InEpsilon(TX_LOOPS*TX_BURST_SIZE, nReceived, 0.05)
 }

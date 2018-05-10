@@ -80,6 +80,9 @@ func (lc LCore) IsMaster() bool {
 }
 
 func (lc LCore) GetNumaSocket() NumaSocket {
+	if !lc.IsValid() {
+		return NUMA_SOCKET_ANY
+	}
 	return NumaSocket(C.rte_lcore_to_socket_id(C.uint(lc)))
 }
 
