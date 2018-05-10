@@ -1,25 +1,22 @@
-package main
+package dpdktest
 
 import (
+	"testing"
+
 	"ndn-dpdk/dpdk"
-	"ndn-dpdk/integ"
+	"ndn-dpdk/dpdk/dpdktestenv"
 )
 
-func main() {
-	t := new(integ.Testing)
-	defer t.Close()
-	assert, require := integ.MakeAR(t)
-
-	args := []string{"testprog", "-l0,1,3", "-n1", "--no-pci", "--", "X"}
-	eal, e := dpdk.NewEal(args)
-	require.NoError(e)
+func TestEal(t *testing.T) {
+	assert, require := makeAR(t)
+	eal := dpdktestenv.Eal
 
 	assert.Equal([]string{"testprog", "X"}, eal.Args)
 
 	assert.Equal(dpdk.LCore(0), eal.Master)
 	assert.True(eal.Master.IsValid())
 	assert.True(eal.Master.IsMaster())
-	require.Equal([]dpdk.LCore{1, 3}, eal.Slaves)
+	require.Equal([]dpdk.LCore{2, 3}, eal.Slaves)
 	for _, slave := range eal.Slaves {
 		assert.True(slave.IsValid())
 		assert.False(slave.IsMaster())
@@ -28,7 +25,7 @@ func main() {
 
 	isSlaveExecuted := false
 	eal.Slaves[0].RemoteLaunch(func() int {
-		assert.Equal(dpdk.LCore(1), dpdk.GetCurrentLCore())
+		assert.Equal(dpdk.LCore(2), dpdk.GetCurrentLCore())
 		isSlaveExecuted = true
 
 		done := make(chan bool)
