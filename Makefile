@@ -158,7 +158,6 @@ cmd/ndnpktcopy-dpdk/cgoflags.go: iface/cgoflags.go
 
 test: cbuilds cgoflags
 	./gotest.sh
-	integ/run.sh
 
 doxygen:
 	cd docs && doxygen Doxyfile 2>&1 | ./filter-Doxygen-warning.awk 1>&2

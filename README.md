@@ -32,4 +32,3 @@ Installation steps:
 * [mgmt](mgmt/): management interface.
 * [appinit](appinit/): initialization procedures.
 * [cmd](cmd/): executables.
-* [integ](integ/): integration tests.
