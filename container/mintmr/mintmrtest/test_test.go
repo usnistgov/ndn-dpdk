@@ -13,8 +13,6 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-var makeAR = dpdktestenv.MakeAR
-
 func TestMinTmr(t *testing.T) {
 	testMinTmr(t)
 }

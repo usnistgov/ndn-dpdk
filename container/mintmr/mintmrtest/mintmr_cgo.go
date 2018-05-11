@@ -10,12 +10,13 @@ import (
 
 	_ "ndn-dpdk/container/mintmr"
 	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/dpdktestenv"
 )
 
 var triggered map[int]bool
 
 func testMinTmr(t *testing.T) {
-	assert, _ := makeAR(t)
+	assert, _ := dpdktestenv.MakeAR(t)
 	triggered = make(map[int]bool)
 
 	// 32 slots * 100ms = 3200ms
