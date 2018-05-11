@@ -48,7 +48,7 @@ func (fixture *Fixture) Close() error {
 
 // Return number of in-use entries in FIB's underlying mempool.
 func (fixture *Fixture) CountMpInUse() int {
-	return fixture.Fib.GetMempool().CountInUse()
+	return dpdk.MempoolFromPtr(fixture.Fib.GetPtr()).CountInUse()
 }
 
 // Create a strategy with empty BPF program.
