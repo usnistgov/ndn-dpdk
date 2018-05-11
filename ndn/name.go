@@ -79,13 +79,18 @@ func (n *Name) GetComp(i int) NameComponent {
 	return NameComponent(n.b[begin:end])
 }
 
-// Get all name component TLVs.
-func (n *Name) ListComps() []NameComponent {
-	comps := make([]NameComponent, n.Len())
+// Get first several name components.
+func (n *Name) ListPrefixComps(prefixLen int) (comps []NameComponent) {
+	comps = make([]NameComponent, prefixLen)
 	for i := range comps {
 		comps[i] = n.GetComp(i)
 	}
 	return comps
+}
+
+// Get all name component TLVs.
+func (n *Name) ListComps() []NameComponent {
+	return n.ListPrefixComps(n.Len())
 }
 
 // Compute hash for prefix with i components.

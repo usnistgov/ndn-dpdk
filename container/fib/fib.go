@@ -119,8 +119,7 @@ func (cmd insertCommand) Execute(fib *Fib, rs *urcu.ReadSide) {
 	defer rs.Unlock()
 	entry := cmd.entry
 	name := entry.GetName()
-	comps := name.ListComps()
-	nComps := len(comps)
+	nComps := name.Len()
 	logEntry := log.WithFields(makeLogFields("name", name, "nexthops", entry.GetNexthops(), "strategy", entry.GetStrategy()))
 
 	newEntryC := C.Fib_Alloc(fib.c)
@@ -130,8 +129,8 @@ func (cmd insertCommand) Execute(fib *Fib, rs *urcu.ReadSide) {
 		return
 	}
 
-	if nComps > fib.startDepth {
-		virtNameV := ndn.JoinNameComponents(comps[:fib.startDepth])
+	if name.Len() > fib.startDepth {
+		virtNameV := ndn.JoinNameComponents(name.ListPrefixComps(fib.startDepth))
 		oldVirtC := fib.findC(virtNameV)
 		if oldVirtC == nil || int(oldVirtC.maxDepth) < nComps-fib.startDepth {
 			newVirtC := C.Fib_Alloc(fib.c)
@@ -174,7 +173,7 @@ func (cmd insertCommand) Execute(fib *Fib, rs *urcu.ReadSide) {
 			logEntry.Info("Insert new-entry")
 		}
 		fib.nEntries++
-		fib.tree.Insert(comps)
+		fib.tree.Insert(name)
 		cmd.res <- true
 	} else {
 		logEntry.Info("Insert replace-entry")
@@ -212,8 +211,7 @@ func (cmd eraseCommand) Execute(fib *Fib, rs *urcu.ReadSide) {
 	rs.Lock()
 	defer rs.Unlock()
 	name := cmd.name
-	comps := name.ListComps()
-	nComps := len(comps)
+	nComps := name.Len()
 	logEntry := log.WithField("name", name)
 
 	oldEntryC := fib.findC(name.GetValue())
@@ -222,12 +220,12 @@ func (cmd eraseCommand) Execute(fib *Fib, rs *urcu.ReadSide) {
 		cmd.res <- errors.New("FIB entry does not exist")
 		return
 	}
-	oldMd, newMd := fib.tree.Erase(comps, fib.startDepth)
+	oldMd, newMd := fib.tree.Erase(name, fib.startDepth)
 	logEntry = logEntry.WithFields(makeLogFields("old-max-depth", oldMd, "new-max-depth", newMd))
 
 	var oldVirtC *C.FibEntry
 	if nComps > fib.startDepth && oldMd != newMd {
-		virtNameV := ndn.JoinNameComponents(comps[:fib.startDepth])
+		virtNameV := ndn.JoinNameComponents(name.ListPrefixComps(fib.startDepth))
 		oldVirtC = fib.findC(virtNameV)
 	} else if nComps == fib.startDepth && newMd != 0 {
 		oldVirtC = oldEntryC
@@ -239,7 +237,7 @@ func (cmd eraseCommand) Execute(fib *Fib, rs *urcu.ReadSide) {
 			newVirtC := C.Fib_Alloc(fib.c)
 			if newVirtC == nil {
 				logEntry.Error("Erase err=virt-alloc-err")
-				fib.tree.Insert(comps) // revert tree change
+				fib.tree.Insert(name) // revert tree change
 				cmd.res <- errors.New("FIB virtual entry allocation error")
 				return
 			}
