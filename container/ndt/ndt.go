@@ -38,7 +38,11 @@ func New(cfg Config, numaSockets []dpdk.NumaSocket) (ndt Ndt) {
 
 // Destroy the NDT.
 func (ndt Ndt) Close() error {
-	C.Ndt_Close(ndt.c)
+	for i := 0; i < int(ndt.c.nThreads); i++ {
+		dpdk.Free(ndt.getThreadC(i))
+	}
+	dpdk.Free(ndt.c.threads)
+	dpdk.Free(ndt.c.table)
 	dpdk.Free(ndt.c)
 	return nil
 }
@@ -60,9 +64,8 @@ func (ndt Ndt) getThreadC(i int) *C.NdtThread {
 	return *(**C.NdtThread)(unsafe.Pointer(first + offset))
 }
 
-// Obtain a handle of NdtThread for lookups.
 func (ndt Ndt) GetThread(i int) NdtThread {
-	return NdtThread{ndt, ndt.getThreadC(i)}
+	return NdtThread{ndt: ndt, c: ndt.getThreadC(i)}
 }
 
 // Read the table.
@@ -108,14 +111,21 @@ func (ndt Ndt) Randomize(max int) {
 	}
 }
 
-// A thread for NDT lookups.
-type NdtThread struct {
-	Ndt
-	c *C.NdtThread
+// Lookup a name without counting.
+func (ndt Ndt) Lookup(name *ndn.Name) uint8 {
+	var index C.uint64_t
+	return uint8(C.__Ndt_Lookup(ndt.c, (*C.PName)(name.GetPNamePtr()),
+		(*C.uint8_t)(name.GetValue().GetPtr()), &index))
 }
 
-// Lookup a name.
+// A thread for NDT lookups.
+type NdtThread struct {
+	ndt Ndt
+	c   *C.NdtThread
+}
+
+// Lookup a name with counting.
 func (ndtt NdtThread) Lookup(name *ndn.Name) uint8 {
-	return uint8(C.Ndt_Lookup(ndtt.Ndt.c, ndtt.c, (*C.PName)(name.GetPNamePtr()),
+	return uint8(C.__Ndtt_Lookup(ndtt.ndt.c, ndtt.c, (*C.PName)(name.GetPNamePtr()),
 		(*C.uint8_t)(name.GetValue().GetPtr())))
 }

@@ -38,10 +38,6 @@ NdtThread** Ndt_Init(Ndt* ndt, uint16_t prefixLen, uint8_t indexBits,
                      uint8_t sampleFreq, uint8_t nThreads,
                      const unsigned* numaSockets);
 
-/** \brief Release all memory associated with NDT, except \p ndt itself.
- */
-void Ndt_Close(Ndt* ndt);
-
 /** \brief Access NdtThread struct.
  */
 static NdtThread*
@@ -58,9 +54,37 @@ Ndt_GetThread(const Ndt* ndt, uint8_t id)
  */
 uint64_t Ndt_Update(Ndt* ndt, uint64_t hash, uint8_t value);
 
-/** \brief Query NDT.
+/** \brief Query NDT without counting.
  */
-uint8_t Ndt_Lookup(const Ndt* ndt, NdtThread* ndtt, const PName* name,
-                   const uint8_t* nameV);
+static uint8_t
+__Ndt_Lookup(const Ndt* ndt, const PName* name, const uint8_t* nameV,
+             uint64_t* index)
+{
+  uint16_t prefixLen =
+    name->nComps < ndt->prefixLen ? name->nComps : ndt->prefixLen;
+  uint64_t hash = PName_ComputePrefixHash(name, nameV, prefixLen);
+  *index = hash & ndt->indexMask;
+  return atomic_load_explicit(&ndt->table[*index], memory_order_relaxed);
+}
+
+static uint8_t
+__Ndtt_Lookup(const Ndt* ndt, NdtThread* ndtt, const PName* name,
+              const uint8_t* nameV)
+{
+  uint64_t index;
+  uint8_t value = __Ndt_Lookup(ndt, name, nameV, &index);
+  if ((++ndtt->nLookups & ndt->sampleMask) == 0) {
+    ++ndtt->nHits[index];
+  }
+  return value;
+}
+
+/** \brief Query NDT with counting.
+ */
+static uint8_t
+Ndtt_Lookup(const Ndt* ndt, NdtThread* ndtt, const Name* name)
+{
+  return __Ndtt_Lookup(ndt, ndtt, &name->p, name->v);
+}
 
 #endif // NDN_DPDK_CONTAINER_NDT_NDT_H

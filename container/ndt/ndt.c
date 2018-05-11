@@ -25,36 +25,10 @@ Ndt_Init(Ndt* ndt, uint16_t prefixLen, uint8_t indexBits, uint8_t sampleFreq,
   return ndt->threads;
 }
 
-void
-Ndt_Close(Ndt* ndt)
-{
-  for (uint8_t i = 0; i < ndt->nThreads; ++i) {
-    rte_free(ndt->threads[i]);
-  }
-  rte_free(ndt->threads);
-  rte_free(ndt->table);
-}
-
 uint64_t
 Ndt_Update(Ndt* ndt, uint64_t hash, uint8_t value)
 {
   uint64_t index = hash & ndt->indexMask;
   atomic_store_explicit(&ndt->table[index], value, memory_order_relaxed);
   return index;
-}
-
-uint8_t
-Ndt_Lookup(const Ndt* ndt, NdtThread* ndtt, const PName* name,
-           const uint8_t* nameV)
-{
-  uint16_t prefixLen =
-    name->nComps < ndt->prefixLen ? name->nComps : ndt->prefixLen;
-  uint64_t hash = PName_ComputePrefixHash(name, nameV, prefixLen);
-  uint64_t index = hash & ndt->indexMask;
-
-  if ((++ndtt->nLookups & ndt->sampleMask) == 0) {
-    ++ndtt->nHits[index];
-  }
-
-  return atomic_load_explicit(&ndt->table[index], memory_order_relaxed);
 }

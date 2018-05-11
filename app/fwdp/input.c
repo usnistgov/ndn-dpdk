@@ -40,7 +40,7 @@ static void
 FwInput_DispatchByName(FwInput* fwi, Packet* npkt, const Name* name)
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
-  uint8_t fwdId = Ndt_Lookup(fwi->ndt, fwi->ndtt, &name->p, name->v);
+  uint8_t fwdId = Ndtt_Lookup(fwi->ndt, fwi->ndtt, name);
   assert(fwdId < fwi->nFwds);
 
   ZF_LOGD("%s-from=%" PRI_FaceId " npkt=%p token=%016" PRIx64
