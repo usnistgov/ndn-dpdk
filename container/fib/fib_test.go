@@ -1,6 +1,7 @@
 package fib_test
 
 import (
+	"sort"
 	"testing"
 
 	"ndn-dpdk/container/fib"
@@ -108,7 +109,15 @@ func TestFibLpm(t *testing.T) {
 	fib.Insert(fixture.MakeEntry("/X", strategyP, 5007))
 	assert.Equal(8, fib.Len())
 	assert.Equal(1, fib.CountVirtuals()) // '/A/B' is the only virtual entry
-	assert.Len(fib.ListNames(), 8)
+
+	names := fib.ListNames()
+	assert.Len(names, 8)
+	nameUris := make([]string, len(names))
+	for i, name := range names {
+		nameUris[i] = name.String()
+	}
+	sort.Strings(nameUris)
+	assert.Equal([]string{"/", "/A", "/A/B/C", "/M/N", "/M/N/O", "/X", "/X/Y", "/X/Y/Z"}, nameUris)
 
 	assert.Equal(5000, lpm("/"))
 	assert.Equal(5001, lpm("/A"))

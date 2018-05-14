@@ -4,6 +4,8 @@ import (
 	"ndn-dpdk/ndn"
 )
 
+type treeWalkCallback func(name string, isEntry bool)
+
 type node struct {
 	IsEntry  bool
 	MaxDepth int
@@ -20,13 +22,10 @@ func (n *node) UpdateMaxDepth() {
 	}
 }
 
-func (n *node) ListTo(names *[]*ndn.Name, prefix string) {
-	if n.IsEntry {
-		name, _ := ndn.NewName(ndn.TlvBytes(prefix))
-		*names = append(*names, name)
-	}
+func (n *node) Walk(name string, cb treeWalkCallback) {
+	cb(name, n.IsEntry)
 	for comp, child := range n.Children {
-		child.ListTo(names, prefix+comp)
+		child.Walk(name+comp, cb)
 	}
 }
 
@@ -93,6 +92,11 @@ func (t *tree) Erase(name *ndn.Name, startDepth int) (oldMd int, newMd int) {
 
 func (t *tree) List() (names []*ndn.Name) {
 	names = make([]*ndn.Name, 0)
-	t.root.ListTo(&names, "")
+	t.root.Walk("", func(nameStr string, isEntry bool) {
+		if isEntry {
+			name, _ := ndn.NewName(ndn.TlvBytes(nameStr))
+			names = append(names, name)
+		}
+	})
 	return names
 }
