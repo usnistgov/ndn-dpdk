@@ -29,13 +29,9 @@ func (n *node) Walk(name string, cb treeWalkCallback) {
 	}
 }
 
-type tree struct {
-	root node
-}
-
-func (t *tree) seek(name *ndn.Name, wantInsert bool) (nodes []*node) {
+func (fib *Fib) seekNode(name *ndn.Name, wantInsert bool) (nodes []*node) {
 	nodes = make([]*node, name.Len()+1)
-	nodes[0] = &t.root
+	nodes[0] = &fib.treeRoot
 
 	for i := 0; i < name.Len(); i++ {
 		parent := nodes[i]
@@ -60,8 +56,8 @@ func (t *tree) seek(name *ndn.Name, wantInsert bool) (nodes []*node) {
 	return nodes
 }
 
-func (t *tree) Insert(name *ndn.Name) {
-	nodes := t.seek(name, true)
+func (fib *Fib) insertNode(name *ndn.Name) {
+	nodes := fib.seekNode(name, true)
 	nodes[name.Len()].IsEntry = true
 
 	for i := len(nodes) - 1; i >= 0; i-- {
@@ -70,8 +66,8 @@ func (t *tree) Insert(name *ndn.Name) {
 	}
 }
 
-func (t *tree) Erase(name *ndn.Name, startDepth int) (oldMd int, newMd int) {
-	nodes := t.seek(name, false)
+func (fib *Fib) eraseNode(name *ndn.Name, startDepth int) (oldMd int, newMd int) {
+	nodes := fib.seekNode(name, false)
 	nodes[name.Len()].IsEntry = false // will panic if node does not exist
 
 	for i := len(nodes) - 1; i >= 0; i-- {
@@ -88,15 +84,4 @@ func (t *tree) Erase(name *ndn.Name, startDepth int) (oldMd int, newMd int) {
 		}
 	}
 	return
-}
-
-func (t *tree) List() (names []*ndn.Name) {
-	names = make([]*ndn.Name, 0)
-	t.root.Walk("", func(nameStr string, isEntry bool) {
-		if isEntry {
-			name, _ := ndn.NewName(ndn.TlvBytes(nameStr))
-			names = append(names, name)
-		}
-	})
-	return names
 }

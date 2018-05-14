@@ -27,10 +27,9 @@ type Fib struct {
 	commands   chan command
 	startDepth int
 	ndt        ndt.Ndt
+	treeRoot   node
 	nEntries   int
 	nVirtuals  int
-	tree       tree             // tree of all nodes
-	subtrees   []map[*node]bool // nodes at NDT.PrefixLen, sorted by NDT element index
 }
 
 func New(cfg Config, ndt ndt.Ndt, numaSockets []dpdk.NumaSocket) (fib *Fib, e error) {

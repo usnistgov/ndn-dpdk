@@ -99,7 +99,7 @@ func (fib *Fib) Insert(entry *Entry) (isNew bool, e error) {
 			}
 		}
 		if isNew {
-			fib.tree.Insert(name)
+			fib.insertNode(name)
 		}
 		return nil
 	})
@@ -146,7 +146,7 @@ func (fib *Fib) Erase(name *ndn.Name) (e error) {
 		}
 
 		// update tree
-		oldMd, newMd := fib.tree.Erase(name, fib.startDepth)
+		oldMd, newMd := fib.eraseNode(name, fib.startDepth)
 
 		if nComps >= fib.startDepth {
 			// only one partition because cfg.StartDepth > ndt.GetPrefixLen()
@@ -163,7 +163,7 @@ func (fib *Fib) Erase(name *ndn.Name) (e error) {
 					// update virtual entry
 					newVirtC := C.Fib_Alloc(fibC)
 					if newVirtC == nil {
-						fib.tree.Insert(name)
+						fib.insertNode(name) // revert tree change
 						return errors.New("allocation error")
 					}
 					*newVirtC = *oldVirtC
@@ -174,7 +174,7 @@ func (fib *Fib) Erase(name *ndn.Name) (e error) {
 				// replace oldEntriesC[0] with virtual entry
 				newVirtC := C.Fib_Alloc(fibC)
 				if newVirtC == nil {
-					fib.tree.Insert(name)
+					fib.insertNode(name)
 					return errors.New("allocation error")
 				}
 				entrySetName(newVirtC, name.GetValue(), nComps)

@@ -12,7 +12,13 @@ import (
 // List all FIB entry names.
 func (fib *Fib) ListNames() (names []*ndn.Name) {
 	fib.postCommand(func(rs *urcu.ReadSide) error {
-		names = fib.tree.List()
+		names = make([]*ndn.Name, 0)
+		fib.treeRoot.Walk("", func(name string, isEntry bool) {
+			if isEntry {
+				n, _ := ndn.NewName(ndn.TlvBytes(name))
+				names = append(names, n)
+			}
+		})
 		return nil
 	})
 	return names
