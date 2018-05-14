@@ -6,7 +6,7 @@
 #include "../tsht/tsht.h"
 #include "entry.h"
 
-/** \brief The Forwarding Information Base (FIB).
+/** \brief A partition of the Forwarding Information Base (FIB).
  *
  *  Fib* is Tsht* with \c FibPriv at its 'head' field.
  */
@@ -76,7 +76,7 @@ Fib_Free(Fib* fib, FibEntry* entry)
  */
 bool Fib_Insert(Fib* fib, FibEntry* entry);
 
-/** \brief Erase a FIB entry of given name.
+/** \brief Erase given FIB entry.
  *  \return whether success
  *  \pre Calling thread holds rcu_read_lock.
  */

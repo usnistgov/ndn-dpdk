@@ -13,13 +13,13 @@ func TestEntry(t *testing.T) {
 
 	var entry fib.Entry
 	assert.Equal("/", entry.GetName().String())
-	assert.Equal(0, entry.GetNComps())
+	assert.Equal(0, entry.CountComps())
 	assert.Len(entry.GetNexthops(), 0)
 
 	name, _ := ndn.ParseName("/A/B")
 	assert.NoError(entry.SetName(name))
 	assert.True(name.Equal(entry.GetName()))
-	assert.Equal(2, entry.GetNComps())
+	assert.Equal(2, entry.CountComps())
 
 	nexthops := []iface.FaceId{2302, 1067, 1122}
 	assert.NoError(entry.SetNexthops(nexthops))

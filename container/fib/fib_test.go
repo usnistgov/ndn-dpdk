@@ -10,58 +10,58 @@ import (
 
 func TestFibInsertErase(t *testing.T) {
 	assert, require := makeAR(t)
-	fixture := NewFixture(2)
+	fixture := NewFixture(0, 2, 1)
 	defer fixture.Close()
 	var badStrategy fib.StrategyCode
 	fib := fixture.Fib
 	assert.Zero(fib.Len())
-	assert.Zero(fixture.CountMpInUse())
+	assert.Zero(fixture.CountMpInUse(0))
 
 	nameA := ndn.MustParseName("/A")
 	assert.Nil(fib.Find(nameA))
 
 	_, e := fib.Insert(fixture.MakeEntry("/A", badStrategy, 2851))
 	assert.Error(e) // cannot insert: entry has no strategy
-	assert.Zero(fixture.CountMpInUse())
+	assert.Zero(fixture.CountMpInUse(0))
 
 	strategyP := fixture.MakeStrategy()
 	strategyP.Ref()
 	strategyQ := fixture.MakeStrategy()
 	strategyQ.Ref()
-	assert.Equal(2, fixture.CountMpInUse())
+	assert.Equal(2, fixture.CountMpInUse(0))
 
 	_, e = fib.Insert(fixture.MakeEntry("/A", strategyP))
 	assert.Error(e) // cannot insert: entry has no nexthop
-	assert.Equal(2, fixture.CountMpInUse())
+	assert.Equal(2, fixture.CountMpInUse(0))
 
 	isNew, e := fib.Insert(fixture.MakeEntry("/A", strategyP, 4076))
 	assert.NoError(e)
 	assert.True(isNew)
 	assert.Equal(1, fib.Len())
-	assert.Equal(3, fixture.CountMpInUse())
+	assert.Equal(3, fixture.CountMpInUse(0))
 	assert.Equal(2, strategyP.CountRefs())
 
 	isNew, e = fib.Insert(fixture.MakeEntry("/A", strategyP, 3092))
 	assert.NoError(e)
 	assert.False(isNew)
 	assert.Equal(1, fib.Len())
-	assert.True(fixture.CountMpInUse() >= 3)
+	assert.True(fixture.CountMpInUse(0) >= 3)
 	assert.True(strategyP.CountRefs() >= 2)
 	urcu.Barrier()
-	assert.Equal(3, fixture.CountMpInUse())
+	assert.Equal(3, fixture.CountMpInUse(0))
 	assert.Equal(2, strategyP.CountRefs())
 
 	isNew, e = fib.Insert(fixture.MakeEntry("/A", strategyQ, 3092))
 	assert.NoError(e)
 	assert.False(isNew)
 	assert.Equal(1, fib.Len())
-	assert.True(fixture.CountMpInUse() >= 3)
+	assert.True(fixture.CountMpInUse(0) >= 3)
 	assert.True(strategyP.CountRefs() >= 1)
 	assert.Equal(2, strategyQ.CountRefs())
 	urcu.Barrier()
 	assert.Equal(1, strategyP.CountRefs())
 	strategyP.Unref()
-	assert.Equal(2, fixture.CountMpInUse())
+	assert.Equal(2, fixture.CountMpInUse(0))
 	assert.Equal(2, strategyQ.CountRefs())
 
 	entryA := fib.Find(nameA)
@@ -80,12 +80,12 @@ func TestFibInsertErase(t *testing.T) {
 	urcu.Barrier()
 	assert.Equal(1, strategyQ.CountRefs())
 	strategyQ.Unref()
-	assert.Zero(fixture.CountMpInUse())
+	assert.Zero(fixture.CountMpInUse(0))
 }
 
 func TestFibLpm(t *testing.T) {
 	assert, _ := makeAR(t)
-	fixture := NewFixture(2)
+	fixture := NewFixture(0, 2, 1)
 	defer fixture.Close()
 	fib := fixture.Fib
 	strategyP := fixture.MakeStrategy()
@@ -139,4 +139,59 @@ func TestFibLpm(t *testing.T) {
 	assert.Equal(4, fib.Len())
 	assert.Equal(2, fib.CountVirtuals()) // '/M/N' and '/X/Y' become virtual
 	assert.Len(fib.ListNames(), 4)
+}
+
+func TestFibPartitioning(t *testing.T) {
+	assert, _ := makeAR(t)
+	fixture := NewFixture(2, 4, 4)
+	defer fixture.Close()
+	ndt := fixture.Ndt
+	fib := fixture.Fib
+	strategyP := fixture.MakeStrategy()
+
+	name0 := ndn.MustParseName("/")
+	nameA := ndn.MustParseName("/A")
+	nameAB := ndn.MustParseName("/A/B")
+	nameCDW := ndn.MustParseName("/C/D/W")
+	nameEFXYZ := ndn.MustParseName("/E/F/X/Y/Z")
+
+	ndt.Update(ndt.ComputeHash(nameAB), 1)
+	ndt.Update(ndt.ComputeHash(nameCDW), 2)
+	ndt.Update(ndt.ComputeHash(nameEFXYZ), 3)
+
+	fib.Insert(fixture.MakeEntry(name0.String(), strategyP, 5000))
+	assert.NotNil(fib.FindInPartition(name0, 0))
+	assert.NotNil(fib.FindInPartition(name0, 1))
+	assert.NotNil(fib.FindInPartition(name0, 2))
+	assert.NotNil(fib.FindInPartition(name0, 3))
+	assert.Equal(4, fib.Len())
+
+	fib.Insert(fixture.MakeEntry(nameA.String(), strategyP, 5001))
+	assert.NotNil(fib.FindInPartition(nameA, 0))
+	assert.NotNil(fib.FindInPartition(nameA, 1))
+	assert.NotNil(fib.FindInPartition(nameA, 2))
+	assert.NotNil(fib.FindInPartition(nameA, 3))
+	assert.Equal(8, fib.Len())
+
+	fib.Insert(fixture.MakeEntry(nameAB.String(), strategyP, 5002))
+	assert.Nil(fib.FindInPartition(nameAB, 0))
+	assert.NotNil(fib.FindInPartition(nameAB, 1))
+	assert.Nil(fib.FindInPartition(nameAB, 2))
+	assert.Nil(fib.FindInPartition(nameAB, 3))
+	assert.Equal(9, fib.Len())
+
+	fib.Insert(fixture.MakeEntry(nameCDW.String(), strategyP, 5003))
+	assert.Nil(fib.FindInPartition(nameCDW, 0))
+	assert.Nil(fib.FindInPartition(nameCDW, 1))
+	assert.NotNil(fib.FindInPartition(nameCDW, 2))
+	assert.Nil(fib.FindInPartition(nameCDW, 3))
+	assert.Equal(10, fib.Len())
+
+	fib.Insert(fixture.MakeEntry(nameEFXYZ.String(), strategyP, 5004))
+	assert.Nil(fib.FindInPartition(nameEFXYZ, 0))
+	assert.Nil(fib.FindInPartition(nameEFXYZ, 1))
+	assert.Nil(fib.FindInPartition(nameEFXYZ, 2))
+	assert.NotNil(fib.FindInPartition(nameEFXYZ, 3))
+	assert.Equal(11, fib.Len())
+	assert.Equal(1, fib.CountVirtuals())
 }

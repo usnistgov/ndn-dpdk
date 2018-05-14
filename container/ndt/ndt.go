@@ -38,7 +38,7 @@ func New(cfg Config, numaSockets []dpdk.NumaSocket) (ndt Ndt) {
 
 // Destroy the NDT.
 func (ndt Ndt) Close() error {
-	for i := 0; i < int(ndt.c.nThreads); i++ {
+	for i := 0; i < ndt.CountThreads(); i++ {
 		dpdk.Free(ndt.getThreadC(i))
 	}
 	dpdk.Free(ndt.c.threads)
@@ -55,6 +55,15 @@ func (ndt Ndt) GetPtr() unsafe.Pointer {
 // Get number of table elements.
 func (ndt Ndt) CountElements() int {
 	return int(ndt.c.indexMask + 1)
+}
+
+func (ndt Ndt) GetPrefixLen() int {
+	return int(ndt.c.prefixLen)
+}
+
+// Get number of threads.
+func (ndt Ndt) CountThreads() int {
+	return int(ndt.c.nThreads)
 }
 
 func (ndt Ndt) getThreadC(i int) *C.NdtThread {
@@ -78,8 +87,8 @@ func (ndt Ndt) ReadTable() (table []uint8) {
 // Read hit counters.
 func (ndt Ndt) ReadCounters() (cnt []int) {
 	cnt = make([]int, ndt.CountElements())
-	for i := C.uint8_t(0); i < ndt.c.nThreads; i++ {
-		threadC := ndt.getThreadC(int(i))
+	for i := 0; i < ndt.CountThreads(); i++ {
+		threadC := ndt.getThreadC(i)
 		first := uintptr(unsafe.Pointer(threadC)) + C.sizeof_NdtThread
 		for i := range cnt {
 			offset := uintptr(i) * C.sizeof_uint16_t
@@ -112,10 +121,11 @@ func (ndt Ndt) Randomize(max int) {
 }
 
 // Lookup a name without counting.
-func (ndt Ndt) Lookup(name *ndn.Name) uint8 {
-	var index C.uint64_t
-	return uint8(C.__Ndt_Lookup(ndt.c, (*C.PName)(name.GetPNamePtr()),
-		(*C.uint8_t)(name.GetValue().GetPtr()), &index))
+func (ndt Ndt) Lookup(name *ndn.Name) (index uint64, value uint8) {
+	var indexC C.uint64_t
+	value = uint8(C.__Ndt_Lookup(ndt.c, (*C.PName)(name.GetPNamePtr()),
+		(*C.uint8_t)(name.GetValue().GetPtr()), &indexC))
+	return uint64(indexC), value
 }
 
 // A thread for NDT lookups.

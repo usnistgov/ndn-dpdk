@@ -56,7 +56,7 @@ func New(t *testing.T) (fixture *Fixture) {
 		ndtCfg.PrefixLen = 2
 		ndtCfg.IndexBits = 16
 		ndtCfg.SampleFreq = 8
-		theNdt := ndt.New(ndtCfg, []dpdk.NumaSocket{inputLc.GetNumaSocket()})
+		theNdt := ndt.New(ndtCfg, dpdk.ListNumaSocketsOfLCores(dpCfg.InputLCores))
 		fixture.Ndt = theNdt
 		dpCfg.Ndt = theNdt
 		theNdt.Randomize(nFwds)
@@ -67,9 +67,8 @@ func New(t *testing.T) (fixture *Fixture) {
 		fibCfg.Id = "FIB"
 		fibCfg.MaxEntries = 65535
 		fibCfg.NBuckets = 256
-		fibCfg.NumaSocket = dpdk.GetMasterLCore().GetNumaSocket()
 		fibCfg.StartDepth = 8
-		theFib, e := fib.New(fibCfg)
+		theFib, e := fib.New(fibCfg, fixture.Ndt, dpdk.ListNumaSocketsOfLCores(dpCfg.FwdLCores))
 		fixture.require.NoError(e)
 		fixture.Fib = theFib
 		dpCfg.Fib = theFib

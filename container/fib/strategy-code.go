@@ -79,7 +79,7 @@ func (fib *Fib) makeStrategyCode(load func(vm *C.struct_ubpf_vm) error) (sc Stra
 		return sc, fromUbpfError("ubpf_compile", errC)
 	}
 
-	if sc.c = C.StrategyCode_Alloc(fib.c); sc.c == nil {
+	if sc.c = C.StrategyCode_Alloc(fib.c[0]); sc.c == nil {
 		C.ubpf_destroy(vm)
 		return sc, dpdk.GetErrno()
 	}

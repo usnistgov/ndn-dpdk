@@ -91,6 +91,14 @@ func (lc LCore) GetState() LCoreState {
 	return LCoreState(C.rte_eal_get_lcore_state(C.uint(lc)))
 }
 
+func ListNumaSocketsOfLCores(lcores []LCore) (a []NumaSocket) {
+	a = make([]NumaSocket, len(lcores))
+	for i, lcore := range lcores {
+		a[i] = lcore.GetNumaSocket()
+	}
+	return a
+}
+
 type LCoreFunc func() int
 
 var lcoreFuncs = make([]LCoreFunc, int(C.RTE_MAX_LCORE))

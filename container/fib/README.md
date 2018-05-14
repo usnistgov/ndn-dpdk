@@ -1,20 +1,29 @@
 # ndn-dpdk/container/fib
 
 This package implements the **Forwarding Information Base (FIB)**.
-This FIB implements [2-stage LPM](http://ieeexplore.ieee.org/document/6665203/) algorithm for efficient Longest Prefix Match (LPM) lookups.
 
-## C code
+FIB is partitioned according to the [NDT](../ndt/).
+Most FIB entries only appear in one partition, as chosen by NDT lookup.
+In case a FIB entry name is shorter than NDT's prefix length, the FIB entry is duplicated across all partitions.
+Go `Fib` type represents the entire FIB; C `Fib` struct represents a single partition.
 
-`Fib` data structure is a hash table. It is a customization of [Thread-Safe Hash Table (TSHT)](../tsht/). Linearized names serve as keys; SipHash of names serve as hash values.
-`Fib_Lpm` function implements 2-stage LPM lookup. It is the only function intended to be called from other packages. The caller is responsible for obtaining and releasing the RCU read lock.
+The FIB implements [2-stage LPM](http://ieeexplore.ieee.org/document/6665203/) algorithm for efficient Longest Prefix Match (LPM) lookups.
 
 ## Go code
 
-`Fib` type has a pointer to `C.Fib` data structure.
-It exports `Insert` and `Erase` methods for FIB updates.
-It also exports `Find` and `Lpm` methods to (inefficiently) perform exact match and longest prefix match lookups.
+`Fib` type provides `Insert` and `Erase` methods for updates, as well as `Find` and `Lpm` methods for exact match and longest prefix match lookups.
+A `commandLoop` goroutine sequentially executes all commands in an RCU read-side thread, and internally obtains and releases RCU read lock.
 
-`Fib` type also contains a tree of FIB entry names, kept in sync with `C.Fib`.
-The main purpose of this tree is to compute *MD* used in 2-stage LPM algorithm.
+`Fib` type internally maintains a tree of FIB entry names.
+This tree allows computing *MD* used in 2-stage LPM algorithm.
 
-A dedicated goroutine sequentially executes all commands in a registered RCU read-side thread. `Fib` internally obtains and releases RCU read lock; `Find` or `Lpm` method copies the result FIB entry before returning it.
+## C code
+
+`Fib` struct is a hash table, a customization of [Thread-Safe Hash Table (TSHT)](../tsht/).
+Key type is name TLV-VALUE.
+Hash value is SipHash of name.
+Element type is `FibEntry` that represents either a FIB entry or a virtual entry (in 2-stage LPM).
+
+`Fib_Lpm` function implements 2-stage LPM procedure.
+It is the only function intended to be called from other packages.
+The caller is responsible for obtaining and releasing the RCU read lock.

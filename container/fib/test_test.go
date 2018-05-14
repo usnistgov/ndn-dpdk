@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"ndn-dpdk/container/fib"
+	"ndn-dpdk/container/ndt"
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/dpdk/dpdktestenv"
 	"ndn-dpdk/iface"
@@ -20,35 +21,45 @@ func TestMain(m *testing.M) {
 var makeAR = dpdktestenv.MakeAR
 
 type Fixture struct {
+	Ndt ndt.Ndt
 	Fib *fib.Fib
 }
 
-func NewFixture(startDepth int) (fixture *Fixture) {
-	cfg := fib.Config{
+func NewFixture(ndtPrefixLen, fibStartDepth, nPartitions int) (fixture *Fixture) {
+	ndtCfg := ndt.Config{
+		PrefixLen:  ndtPrefixLen,
+		IndexBits:  16,
+		SampleFreq: 32,
+	}
+	ndt := ndt.New(ndtCfg, []dpdk.NumaSocket{dpdk.NUMA_SOCKET_ANY})
+	ndt.Randomize(nPartitions)
+
+	fibCfg := fib.Config{
 		Id:         "TestFib",
 		MaxEntries: 255,
 		NBuckets:   64,
-		NumaSocket: dpdk.NUMA_SOCKET_ANY,
-		StartDepth: startDepth,
+		StartDepth: fibStartDepth,
 	}
-
-	fib, e := fib.New(cfg)
+	partitionNumaSockets := make([]dpdk.NumaSocket, nPartitions)
+	for i := range partitionNumaSockets {
+		partitionNumaSockets[i] = dpdk.NUMA_SOCKET_ANY
+	}
+	fib, e := fib.New(fibCfg, ndt, partitionNumaSockets)
 	if e != nil {
 		panic(e)
 	}
 
-	fixture = new(Fixture)
-	fixture.Fib = fib
-	return fixture
+	return &Fixture{Ndt: ndt, Fib: fib}
 }
 
 func (fixture *Fixture) Close() error {
-	return fixture.Fib.Close()
+	fixture.Fib.Close()
+	return fixture.Ndt.Close()
 }
 
 // Return number of in-use entries in FIB's underlying mempool.
-func (fixture *Fixture) CountMpInUse() int {
-	return dpdk.MempoolFromPtr(fixture.Fib.GetPtr()).CountInUse()
+func (fixture *Fixture) CountMpInUse(i int) int {
+	return dpdk.MempoolFromPtr(fixture.Fib.GetPtr(i)).CountInUse()
 }
 
 // Create a strategy with empty BPF program.

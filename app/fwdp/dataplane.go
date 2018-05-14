@@ -52,15 +52,21 @@ func registerStrategyFuncs(vm unsafe.Pointer) error {
 }
 
 func New(cfg Config) (*DataPlane, error) {
-	var dp DataPlane
 	nInputs := len(cfg.InputLCores)
 	nFwds := len(cfg.FwdLCores)
+	if nInputs != cfg.Ndt.CountThreads() {
+		return nil, fmt.Errorf("%d FwInputs but %d NDT threads", nInputs, cfg.Ndt.CountThreads())
+	}
+	if nFwds != cfg.Fib.CountPartitions() {
+		return nil, fmt.Errorf("%d FwFwds but %d FIB partitions", nFwds, cfg.Fib.CountPartitions())
+	}
+
+	var dp DataPlane
 	dp.inputLCores = append([]dpdk.LCore{}, cfg.InputLCores...)
 	dp.inputRxLoopers = make([]iface.IRxLooper, nInputs)
 	dp.fwdLCores = append([]dpdk.LCore{}, cfg.FwdLCores...)
 
 	ndtC := (*C.Ndt)(cfg.Ndt.GetPtr())
-	fibC := (*C.Fib)(cfg.Fib.GetPtr())
 	fib.RegisterStrategyFuncs = registerStrategyFuncs
 
 	for i, lc := range cfg.FwdLCores {
@@ -87,7 +93,7 @@ func New(cfg Config) (*DataPlane, error) {
 		fwd.id = C.uint8_t(i)
 		fwd.queue = (*C.struct_rte_ring)(queue.GetPtr())
 
-		fwd.fib = fibC
+		fwd.fib = (*C.Fib)(cfg.Fib.GetPtr(i))
 		*C.__FwFwd_GetPcctPtr(fwd) = (*C.Pcct)(pcct.GetPtr())
 
 		headerMp := appinit.MakePktmbufPool(appinit.MP_HDR, numaSocket)

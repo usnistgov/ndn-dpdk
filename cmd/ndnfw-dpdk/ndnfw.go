@@ -47,7 +47,6 @@ func startDp() {
 	var dpCfg fwdp.Config
 
 	// reserve lcores for EthFace
-	var inputNumaSockets []dpdk.NumaSocket
 	var inputRxLoopers []iface.IRxLooper
 	var outputLCores []dpdk.LCore
 	var outputTxLoopers []iface.ITxLooper
@@ -62,7 +61,6 @@ func startDp() {
 		socket := inputLc.GetNumaSocket()
 		logEntry = logEntry.WithFields(makeLogFields("face", face.GetFaceId(), "rx-lcore", inputLc, "socket", socket))
 		dpCfg.InputLCores = append(dpCfg.InputLCores, inputLc)
-		inputNumaSockets = append(inputNumaSockets, socket)
 		inputRxLoopers = append(inputRxLoopers, appinit.MakeRxLooper(face))
 
 		e = face.EnableThreadSafeTx(256)
@@ -82,7 +80,6 @@ func startDp() {
 		inputLc := lcr.MustReserve(dpdk.NUMA_SOCKET_ANY)
 		theSocketFaceNumaSocket = inputLc.GetNumaSocket()
 		dpCfg.InputLCores = append(dpCfg.InputLCores, inputLc)
-		inputNumaSockets = append(inputNumaSockets, theSocketFaceNumaSocket)
 		inputRxLoopers = append(inputRxLoopers, theSocketRxg)
 
 		theSocketTxl = iface.NewMultiTxLoop()
@@ -92,32 +89,6 @@ func startDp() {
 
 		log.WithFields(makeLogFields("rx-lcore", inputLc, "socket", theSocketFaceNumaSocket,
 			"tx-lcore", outputLc)).Info("SocketFaces ready")
-	}
-
-	// initialize NDT
-	{
-		var ndtCfg ndt.Config
-		ndtCfg.PrefixLen = 2
-		ndtCfg.IndexBits = 16
-		ndtCfg.SampleFreq = 8
-		theNdt = ndt.New(ndtCfg, inputNumaSockets)
-		dpCfg.Ndt = theNdt
-	}
-
-	// initialize FIB
-	{
-		var fibCfg fib.Config
-		fibCfg.Id = "FIB"
-		fibCfg.MaxEntries = 65535
-		fibCfg.NBuckets = 256
-		fibCfg.NumaSocket = dpdk.GetMasterLCore().GetNumaSocket()
-		fibCfg.StartDepth = 8
-		var e error
-		theFib, e = fib.New(fibCfg)
-		if e != nil {
-			log.WithError(e).Fatal("FIB creation failed")
-		}
-		dpCfg.Fib = theFib
 	}
 
 	// reserve lcores for forwarding processes
@@ -133,6 +104,31 @@ func startDp() {
 	nFwds = len(dpCfg.FwdLCores)
 	if nFwds <= 0 {
 		log.Fatal("no lcore available for forwarding")
+	}
+
+	// initialize NDT
+	{
+		var ndtCfg ndt.Config
+		ndtCfg.PrefixLen = 2
+		ndtCfg.IndexBits = 16
+		ndtCfg.SampleFreq = 8
+		theNdt = ndt.New(ndtCfg, dpdk.ListNumaSocketsOfLCores(dpCfg.InputLCores))
+		dpCfg.Ndt = theNdt
+	}
+
+	// initialize FIB
+	{
+		var fibCfg fib.Config
+		fibCfg.Id = "FIB"
+		fibCfg.MaxEntries = 65535
+		fibCfg.NBuckets = 256
+		fibCfg.StartDepth = 8
+		var e error
+		theFib, e = fib.New(fibCfg, theNdt, dpdk.ListNumaSocketsOfLCores(dpCfg.FwdLCores))
+		if e != nil {
+			log.WithError(e).Fatal("FIB creation failed")
+		}
+		dpCfg.Fib = theFib
 	}
 
 	// randomize NDT

@@ -27,7 +27,7 @@ func (entry *Entry) GetName() (name *ndn.Name) {
 	return name
 }
 
-func (entry *Entry) GetNComps() int {
+func (entry *Entry) CountComps() int {
 	return int(entry.c.nComps)
 }
 

@@ -18,17 +18,22 @@ func (fib *Fib) ListNames() (names []*ndn.Name) {
 	return names
 }
 
-func (fib *Fib) findC(nameV ndn.TlvBytes) (entryC *C.FibEntry) {
-	return C.__Fib_Find(fib.c, C.uint16_t(len(nameV)), (*C.uint8_t)(nameV.GetPtr()))
+func findC(fibC *C.Fib, nameV ndn.TlvBytes) (entryC *C.FibEntry) {
+	return C.__Fib_Find(fibC, C.uint16_t(len(nameV)), (*C.uint8_t)(nameV.GetPtr()))
 }
 
 // Perform an exact match lookup.
-// The FIB entry will be copied.
 func (fib *Fib) Find(name *ndn.Name) (entry *Entry) {
+	_, partition := fib.ndt.Lookup(name)
+	return fib.FindInPartition(name, int(partition))
+}
+
+// Perform an exact match lookup in specified partition.
+func (fib *Fib) FindInPartition(name *ndn.Name, partition int) (entry *Entry) {
 	fib.postCommand(func(rs *urcu.ReadSide) error {
 		rs.Lock()
 		defer rs.Unlock()
-		entryC := fib.findC(name.GetValue())
+		entryC := findC(fib.c[partition], name.GetValue())
 		if entryC != nil {
 			entry = &Entry{*entryC}
 		}
@@ -38,12 +43,17 @@ func (fib *Fib) Find(name *ndn.Name) (entry *Entry) {
 }
 
 // Perform a longest prefix match lookup.
-// The FIB entry will be copied.
 func (fib *Fib) Lpm(name *ndn.Name) (entry *Entry) {
+	_, partition := fib.ndt.Lookup(name)
+	return fib.LpmInPartition(name, int(partition))
+}
+
+// Perform a longest prefix match lookup in specified partition.
+func (fib *Fib) LpmInPartition(name *ndn.Name, partition int) (entry *Entry) {
 	fib.postCommand(func(rs *urcu.ReadSide) error {
 		rs.Lock()
 		defer rs.Unlock()
-		entryC := C.__Fib_Lpm(fib.c, (*C.PName)(name.GetPNamePtr()),
+		entryC := C.__Fib_Lpm(fib.c[partition], (*C.PName)(name.GetPNamePtr()),
 			(*C.uint8_t)(name.GetValue().GetPtr()))
 		if entryC != nil {
 			entry = &Entry{*entryC}
