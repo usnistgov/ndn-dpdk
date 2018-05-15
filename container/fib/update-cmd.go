@@ -11,6 +11,19 @@ import (
 	"ndn-dpdk/ndn"
 )
 
+func (fib *Fib) insertC(fibC *C.Fib, entryC *C.FibEntry) (isNew bool) {
+	isNew = bool(C.Fib_Insert(fibC, entryC))
+	if isNew {
+		fib.nEntriesC++
+	}
+	return isNew
+}
+
+func (fib *Fib) eraseC(fibC *C.Fib, entryC *C.FibEntry) {
+	C.Fib_Erase(fibC, entryC)
+	fib.nEntriesC--
+}
+
 // Insert a FIB entry.
 // If an existing entry has the same name, it will be replaced.
 func (fib *Fib) Insert(entry *Entry) (isNew bool, e error) {
@@ -70,12 +83,11 @@ func (fib *Fib) Insert(entry *Entry) (isNew bool, e error) {
 				}
 				if oldVirtC == nil {
 					entrySetName(newVirtC, virtNameV, fib.startDepth)
-					fib.nVirtuals++
 				} else {
 					*newVirtC = *oldVirtC
 				}
 				newVirtC.maxDepth = C.uint8_t(nComps - fib.startDepth)
-				C.Fib_Insert(fibC, newVirtC)
+				fib.insertC(fibC, newVirtC)
 			}
 		}
 
@@ -86,17 +98,13 @@ func (fib *Fib) Insert(entry *Entry) (isNew bool, e error) {
 			oldEntryC := findC(fibsC[0], name.GetValue())
 			if oldEntryC != nil && oldEntryC.maxDepth > 0 {
 				newEntriesC[0].maxDepth = oldEntryC.maxDepth
-				fib.nVirtuals--
 				isReplacingVirtual = true
 			}
 		}
 
 		// insert new entries
 		for i, newEntryC := range newEntriesC {
-			isNew = bool(C.Fib_Insert(fibsC[i], newEntryC)) || isReplacingVirtual
-			if isNew {
-				fib.nEntries++
-			}
+			isNew = fib.insertC(fibsC[i], newEntryC) || isReplacingVirtual
 		}
 		if isNew {
 			fib.insertNode(name)
@@ -157,8 +165,7 @@ func (fib *Fib) Erase(name *ndn.Name) (e error) {
 				oldVirtC := findC(fibC, virtNameV) // is not nil
 				if newMd == 0 {
 					// erase virtual entry
-					C.Fib_Erase(fibC, oldVirtC)
-					fib.nVirtuals--
+					fib.eraseC(fibC, oldVirtC)
 				} else {
 					// update virtual entry
 					newVirtC := C.Fib_Alloc(fibC)
@@ -168,7 +175,7 @@ func (fib *Fib) Erase(name *ndn.Name) (e error) {
 					}
 					*newVirtC = *oldVirtC
 					newVirtC.maxDepth = C.uint8_t(newMd)
-					C.Fib_Insert(fibC, newVirtC)
+					fib.insertC(fibC, newVirtC)
 				}
 			} else if nComps == fib.startDepth && newMd != 0 {
 				// replace oldEntriesC[0] with virtual entry
@@ -179,16 +186,13 @@ func (fib *Fib) Erase(name *ndn.Name) (e error) {
 				}
 				entrySetName(newVirtC, name.GetValue(), nComps)
 				newVirtC.maxDepth = C.uint8_t(newMd)
-				C.Fib_Insert(fibC, newVirtC)
-				fib.nVirtuals++
-				fib.nEntries--
+				fib.insertC(fibC, newVirtC)
 				oldEntriesC = nil // don't delete oldEntriesC[0]
 			}
 		}
 
 		for i, oldEntryC := range oldEntriesC {
-			C.Fib_Erase(fibsC[i], oldEntryC)
-			fib.nEntries--
+			fib.eraseC(fibsC[i], oldEntryC)
 		}
 		return nil
 	})

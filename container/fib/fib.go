@@ -27,9 +27,12 @@ type Fib struct {
 	commands   chan command
 	startDepth int
 	ndt        ndt.Ndt
-	treeRoot   node
-	nEntries   int
-	nVirtuals  int
+	treeRoot   *node
+
+	nNodes        int
+	nShortEntries int // Entries with name shorter than NDT PrefixLen in tree.
+	nLongEntries  int // Entries with name not shorter than NDT PrefixLen in tree.
+	nEntriesC     int // Entries in C.Fib.
 }
 
 func New(cfg Config, ndt ndt.Ndt, numaSockets []dpdk.NumaSocket) (fib *Fib, e error) {
@@ -55,25 +58,37 @@ func New(cfg Config, ndt ndt.Ndt, numaSockets []dpdk.NumaSocket) (fib *Fib, e er
 	fib.startDepth = cfg.StartDepth
 	fib.ndt = ndt
 
+	fib.treeRoot = newNode()
+	fib.nNodes++
+
 	fib.commands = make(chan command)
 	go fib.commandLoop()
 
 	return fib, nil
 }
 
-// Get number of FIB entries, excluding virtual entries.
+// Get number of partitions.
+func (fib *Fib) CountPartitions() int {
+	return len(fib.c)
+}
+
 func (fib *Fib) Len() int {
-	return fib.nEntries
+	return fib.CountEntries(false)
+}
+
+// Get number of entries.
+// If an entry name is shorter than NDT PrefixLen, it is duplicated across all partitions.
+// Such entry is counted once if withDup is false, or counted multiple times if withDup is true.
+func (fib *Fib) CountEntries(withDup bool) int {
+	if withDup {
+		return fib.nShortEntries*fib.CountPartitions() + fib.nLongEntries
+	}
+	return fib.nShortEntries + fib.nLongEntries
 }
 
 // Get number of virtual entries.
 func (fib *Fib) CountVirtuals() int {
-	return fib.nVirtuals
-}
-
-// Get number of partitions.
-func (fib *Fib) CountPartitions() int {
-	return len(fib.c)
+	return fib.nEntriesC - fib.CountEntries(true)
 }
 
 // Get *C.Fib pointer for specified partition.

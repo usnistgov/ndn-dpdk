@@ -13,8 +13,10 @@ type FibMgmt struct {
 }
 
 func (mg FibMgmt) Info(args struct{}, reply *FibInfo) error {
-	reply.NEntries = mg.Fib.Len()
+	reply.NEntries = mg.Fib.CountEntries(false)
+	reply.NEntriesDup = mg.Fib.CountEntries(true)
 	reply.NVirtuals = mg.Fib.CountVirtuals()
+	reply.NNodes = mg.Fib.CountNodes()
 	return nil
 }
 

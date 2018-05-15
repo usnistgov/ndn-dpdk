@@ -39,7 +39,9 @@ ctx.declareMethod('Fib.Info', 'null',
     type: 'object',
     properties: {
       NEntries: ctx.useType('counter'),
+      NEntriesDup: ctx.useType('counter'),
       NVirtuals: ctx.useType('counter'),
+      NNodes: ctx.useType('counter'),
     },
   });
 
