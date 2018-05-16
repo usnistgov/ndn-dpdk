@@ -25,10 +25,9 @@ Ndt_Init(Ndt* ndt, uint16_t prefixLen, uint8_t indexBits, uint8_t sampleFreq,
   return ndt->threads;
 }
 
-uint64_t
-Ndt_Update(Ndt* ndt, uint64_t hash, uint8_t value)
+void
+Ndt_Update(Ndt* ndt, uint64_t index, uint8_t value)
 {
-  uint64_t index = hash & ndt->indexMask;
+  assert(index == (index & ndt->indexMask));
   atomic_store_explicit(&ndt->table[index], value, memory_order_relaxed);
-  return index;
 }

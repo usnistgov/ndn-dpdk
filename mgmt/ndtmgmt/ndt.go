@@ -27,6 +27,7 @@ func (mg NdtMgmt) Update(args UpdateArgs, reply *UpdateReply) error {
 		}
 		args.Hash = mg.Ndt.ComputeHash(name)
 	}
-	reply.Index = mg.Ndt.Update(args.Hash, args.Value)
+	reply.Index = mg.Ndt.GetIndex(args.Hash)
+	mg.Ndt.Update(reply.Index, args.Value)
 	return nil
 }

@@ -165,9 +165,12 @@ func TestFibPartitioning(t *testing.T) {
 	nameCDW := ndn.MustParseName("/C/D/W")
 	nameEFXYZ := ndn.MustParseName("/E/F/X/Y/Z")
 
-	ndt.Update(ndt.ComputeHash(nameAB), 1)
-	ndt.Update(ndt.ComputeHash(nameCDW), 2)
-	ndt.Update(ndt.ComputeHash(nameEFXYZ), 3)
+	indexAB := ndt.GetIndex(ndt.ComputeHash(nameAB))
+	indexCDW := ndt.GetIndex(ndt.ComputeHash(nameCDW))
+	indexEFXYZ := ndt.GetIndex(ndt.ComputeHash(nameEFXYZ))
+	ndt.Update(indexAB, 1)
+	ndt.Update(indexCDW, 2)
+	ndt.Update(indexEFXYZ, 3)
 
 	fib.Insert(fixture.MakeEntry(name0.String(), strategyP, 5000))
 	assert.NotNil(fib.FindInPartition(name0, 0))

@@ -100,7 +100,7 @@ func (ndt *Ndt) ReadCounters() (cnt []int) {
 	return cnt
 }
 
-// Compute the hash that NDT uses for a name.
+// Compute the hash used for a name.
 func (ndt *Ndt) ComputeHash(name *ndn.Name) uint64 {
 	prefixLen := name.Len()
 	if prefixLen > int(ndt.c.prefixLen) {
@@ -109,9 +109,14 @@ func (ndt *Ndt) ComputeHash(name *ndn.Name) uint64 {
 	return name.ComputePrefixHash(prefixLen)
 }
 
+// Get table index used for a hash.
+func (ndt *Ndt) GetIndex(hash uint64) uint64 {
+	return hash & uint64(ndt.c.indexMask)
+}
+
 // Update an element.
-func (ndt *Ndt) Update(hash uint64, value uint8) (index uint64) {
-	return uint64(C.Ndt_Update(ndt.c, C.uint64_t(hash), C.uint8_t(value)))
+func (ndt *Ndt) Update(index uint64, value uint8) {
+	C.Ndt_Update(ndt.c, C.uint64_t(index), C.uint8_t(value))
 }
 
 // Update all elements to random values < max.
