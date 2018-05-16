@@ -28,6 +28,7 @@ type Fib struct {
 	startDepth int
 	ndt        *ndt.Ndt
 	treeRoot   *node
+	sti        subtreeIndex
 
 	nNodes        int
 	nShortEntries int // Entries with name shorter than NDT PrefixLen in tree.
@@ -60,6 +61,8 @@ func New(cfg Config, ndt *ndt.Ndt, numaSockets []dpdk.NumaSocket) (fib *Fib, e e
 
 	fib.treeRoot = newNode()
 	fib.nNodes++
+
+	fib.sti = newSubtreeIndex(ndt)
 
 	fib.commands = make(chan command)
 	go fib.commandLoop()

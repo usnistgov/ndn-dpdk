@@ -59,6 +59,7 @@ func (ndt *Ndt) CountElements() int {
 	return int(ndt.c.indexMask + 1)
 }
 
+// Get number of name components used to compute hash.
 func (ndt *Ndt) GetPrefixLen() int {
 	return int(ndt.c.prefixLen)
 }
@@ -79,10 +80,31 @@ func (ndt *Ndt) GetThread(i int) NdtThread {
 	return NdtThread{ndt: ndt, c: ndt.getThreadC(i)}
 }
 
+// Compute the hash used for a name.
+func (ndt *Ndt) ComputeHash(name *ndn.Name) uint64 {
+	prefixLen := name.Len()
+	if prefixLen > int(ndt.c.prefixLen) {
+		prefixLen = int(ndt.c.prefixLen)
+	}
+	return name.ComputePrefixHash(prefixLen)
+}
+
+// Get table index used for a hash.
+func (ndt *Ndt) GetIndex(hash uint64) uint64 {
+	return hash & uint64(ndt.c.indexMask)
+}
+
+// Read a table element.
+func (ndt *Ndt) ReadElement(index uint64) uint8 {
+	return uint8(C.Ndt_ReadElement(ndt.c, C.uint64_t(index)))
+}
+
 // Read the table.
 func (ndt *Ndt) ReadTable() (table []uint8) {
 	table = make([]uint8, ndt.CountElements())
-	C.rte_memcpy(unsafe.Pointer(&table[0]), unsafe.Pointer(ndt.c.table), C.size_t(len(table)))
+	for i := range table {
+		table[i] = ndt.ReadElement(uint64(i))
+	}
 	return table
 }
 
@@ -100,21 +122,9 @@ func (ndt *Ndt) ReadCounters() (cnt []int) {
 	return cnt
 }
 
-// Compute the hash used for a name.
-func (ndt *Ndt) ComputeHash(name *ndn.Name) uint64 {
-	prefixLen := name.Len()
-	if prefixLen > int(ndt.c.prefixLen) {
-		prefixLen = int(ndt.c.prefixLen)
-	}
-	return name.ComputePrefixHash(prefixLen)
-}
-
-// Get table index used for a hash.
-func (ndt *Ndt) GetIndex(hash uint64) uint64 {
-	return hash & uint64(ndt.c.indexMask)
-}
-
 // Update an element.
+// When used with partitioned FIB, this function does not relocate FIB entries.
+// See ndtupdater package for alternative.
 func (ndt *Ndt) Update(index uint64, value uint8) {
 	C.Ndt_Update(ndt.c, C.uint64_t(index), C.uint8_t(value))
 }
@@ -130,7 +140,7 @@ func (ndt *Ndt) Randomize(max int) {
 // Lookup a name without counting.
 func (ndt *Ndt) Lookup(name *ndn.Name) (index uint64, value uint8) {
 	var indexC C.uint64_t
-	value = uint8(C.__Ndt_Lookup(ndt.c, (*C.PName)(name.GetPNamePtr()),
+	value = uint8(C.Ndt_Lookup(ndt.c, (*C.PName)(name.GetPNamePtr()),
 		(*C.uint8_t)(name.GetValue().GetPtr()), &indexC))
 	return uint64(indexC), value
 }

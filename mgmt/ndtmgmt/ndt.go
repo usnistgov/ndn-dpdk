@@ -2,11 +2,13 @@ package ndtmgmt
 
 import (
 	"ndn-dpdk/container/ndt"
+	"ndn-dpdk/container/ndt/ndtupdater"
 	"ndn-dpdk/ndn"
 )
 
 type NdtMgmt struct {
-	Ndt *ndt.Ndt
+	Ndt     *ndt.Ndt
+	Updater *ndtupdater.NdtUpdater
 }
 
 func (mg NdtMgmt) ReadTable(args struct{}, reply *[]uint8) error {
@@ -28,6 +30,6 @@ func (mg NdtMgmt) Update(args UpdateArgs, reply *UpdateReply) error {
 		args.Hash = mg.Ndt.ComputeHash(name)
 	}
 	reply.Index = mg.Ndt.GetIndex(args.Hash)
-	mg.Ndt.Update(reply.Index, args.Value)
+	mg.Updater.Update(reply.Index, args.Value)
 	return nil
 }

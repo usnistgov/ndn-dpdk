@@ -11,11 +11,16 @@ The FIB implements [2-stage LPM](http://ieeexplore.ieee.org/document/6665203/) a
 
 ## Go code
 
-`Fib` type provides `Insert` and `Erase` methods for updates, as well as `Find` and `Lpm` methods for exact match and longest prefix match lookups.
-A `commandLoop` goroutine sequentially executes all commands in an RCU read-side thread, and internally obtains and releases RCU read lock.
+`Fib` type provides methods to execute read or update commands, sequentially executed in an RCU read-side thread that internally obtains and releases RCU read lock.
+Supported commands include:
 
-`Fib` type internally maintains a tree of FIB entry names.
-This tree allows computing *MD* used in 2-stage LPM algorithm.
+* Exact match lookup.
+* Longest prefix match lookup.
+* Insert or update an entry.
+* Erase an entry.
+* Relocate entries during NDT update (see [NdtUpdater](../ndt/ndtupdater/)).
+
+`Fib` type internally maintains a tree of FIB entry names for computing *MD* used in 2-stage LPM algorithm and for determining affected entries during NDT update.
 
 ## C code
 

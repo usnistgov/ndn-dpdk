@@ -47,18 +47,20 @@ Tsht_Close(Tsht* ht)
   rte_mempool_free(Tsht_ToMempool(ht));
 }
 
-TshtEntryPtr
-Tsht_Alloc(Tsht* ht)
+bool
+Tsht_AllocBulk(Tsht* ht, TshtEntryPtr entries[], unsigned count)
 {
-  void* node0 = NULL;
-  int res = rte_mempool_get(Tsht_ToMempool(ht), &node0);
+  int res = rte_mempool_get_bulk(Tsht_ToMempool(ht), (void**)entries, count);
   if (unlikely(res != 0)) {
-    return NULL;
+    return false;
   }
 
-  TshtNode* node = (TshtNode*)node0;
-  cds_lfht_node_init(&node->lfhtnode);
-  return node->entry;
+  for (unsigned i = 0; i < count; ++i) {
+    TshtNode* node = (TshtNode*)entries[i];
+    cds_lfht_node_init(&node->lfhtnode);
+    entries[i] = node->entry;
+  }
+  return true;
 }
 
 void

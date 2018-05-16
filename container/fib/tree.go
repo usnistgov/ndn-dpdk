@@ -1,6 +1,7 @@
 package fib
 
 import (
+	"ndn-dpdk/container/ndt"
 	"ndn-dpdk/ndn"
 )
 
@@ -43,6 +44,31 @@ func (n *node) Walk(nn nodeName, cb treeWalkCallback) {
 	}
 }
 
+type subtreeIndex []map[*node]ndn.TlvBytes
+
+func newSubtreeIndex(ndt *ndt.Ndt) subtreeIndex {
+	return make(subtreeIndex, ndt.CountElements())
+}
+
+func (sti subtreeIndex) Insert(ndtIndex uint64, nameV ndn.TlvBytes, n *node) {
+	if sti[ndtIndex] == nil {
+		sti[ndtIndex] = make(map[*node]ndn.TlvBytes)
+	} else if _, ok := sti[ndtIndex][n]; ok {
+		panic("node already in subtreeIndex")
+	}
+	sti[ndtIndex][n] = nameV
+}
+
+func (sti subtreeIndex) Erase(ndtIndex uint64, n *node) {
+	if sti[ndtIndex] != nil {
+		if _, ok := sti[ndtIndex][n]; ok {
+			delete(sti[ndtIndex], n)
+			return
+		}
+	}
+	panic("node not in subtreeIndex")
+}
+
 func (fib *Fib) CountNodes() int {
 	return fib.nNodes
 }
@@ -55,7 +81,7 @@ func (fib *Fib) updateNEntries(name *ndn.Name, diff int) {
 	}
 }
 
-func (fib *Fib) insertNode(name *ndn.Name) {
+func (fib *Fib) insertNode(name *ndn.Name, ndtIndex uint64) {
 	nodes := []*node{fib.treeRoot}
 	for i := 0; i < name.Len(); i++ {
 		parent := nodes[i]
@@ -65,6 +91,10 @@ func (fib *Fib) insertNode(name *ndn.Name) {
 			child = newNode()
 			fib.nNodes++
 			parent.Children[comp] = child
+			if i+1 == fib.ndt.GetPrefixLen() {
+				prefixV := ndn.JoinNameComponents(name.ListPrefixComps(i + 1))
+				fib.sti.Insert(ndtIndex, prefixV, child)
+			}
 		}
 		nodes = append(nodes, child)
 	}
@@ -81,7 +111,7 @@ func (fib *Fib) insertNode(name *ndn.Name) {
 	}
 }
 
-func (fib *Fib) eraseNode(name *ndn.Name, startDepth int) (oldMd int, newMd int) {
+func (fib *Fib) eraseNode(name *ndn.Name, ndtIndex uint64) (oldMd int, newMd int) {
 	nodes := []*node{fib.treeRoot}
 	for i := 0; i < name.Len(); i++ {
 		parent := nodes[i]
@@ -100,14 +130,17 @@ func (fib *Fib) eraseNode(name *ndn.Name, startDepth int) (oldMd int, newMd int)
 
 	for i := len(nodes) - 1; i >= 0; i-- {
 		node := nodes[i]
-		if i == startDepth {
+		if i == fib.startDepth {
 			oldMd = node.MaxDepth
 		}
 		node.UpdateMaxDepth()
-		if i == startDepth {
+		if i == fib.startDepth {
 			newMd = node.MaxDepth
 		}
 		if i > 0 && !node.IsEntry && len(node.Children) == 0 {
+			if i == fib.ndt.GetPrefixLen() {
+				fib.sti.Erase(ndtIndex, node)
+			}
 			delete(nodes[i-1].Children, string(name.GetComp(i-1)))
 			fib.nNodes--
 		}

@@ -59,6 +59,14 @@ Fib_Close(Fib* fib)
  */
 FibEntry* Fib_Alloc(Fib* fib);
 
+/** \brief Allocate FIB entries from mempool without zeroing.
+ */
+static bool
+Fib_RawAllocBulk(Fib* fib, FibEntry* entries[], unsigned count)
+{
+  return Tsht_AllocBulk(Fib_ToTsht(fib), (TshtEntryPtr*)entries, count);
+}
+
 /** \brief Deallocate an unused FIB entry.
  */
 static void

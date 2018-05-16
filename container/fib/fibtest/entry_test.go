@@ -1,4 +1,4 @@
-package fib_test
+package fibtest
 
 import (
 	"testing"

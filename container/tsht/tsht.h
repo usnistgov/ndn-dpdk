@@ -62,9 +62,22 @@ Tsht* Tsht_New(const char* id, uint32_t maxEntries, uint32_t nBuckets,
  */
 void Tsht_Close(Tsht* ht);
 
+/** \brief Allocate entries from TSHT's mempool.
+ */
+bool Tsht_AllocBulk(Tsht* ht, TshtEntryPtr entries[], unsigned count);
+
 /** \brief Allocate an entry from TSHT's mempool.
  */
-TshtEntryPtr Tsht_Alloc(Tsht* ht);
+static TshtEntryPtr
+Tsht_Alloc(Tsht* ht)
+{
+  TshtEntryPtr entry;
+  bool ok = Tsht_AllocBulk(ht, &entry, 1);
+  if (unlikely(!ok)) {
+    return NULL;
+  }
+  return entry;
+}
 
 /** \brief Allocate an entry from TSHT's mempool, and cast as T* type.
  */

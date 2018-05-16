@@ -1,24 +1,13 @@
-package fib_test
+package fibtest
 
 import (
-	"os"
-	"testing"
-
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/ndt"
+	"ndn-dpdk/core/urcu"
 	"ndn-dpdk/dpdk"
-	"ndn-dpdk/dpdk/dpdktestenv"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/ndn"
 )
-
-func TestMain(m *testing.M) {
-	dpdktestenv.MakeDirectMp(255, 0, 2000)
-
-	os.Exit(m.Run())
-}
-
-var makeAR = dpdktestenv.MakeAR
 
 type Fixture struct {
 	Ndt *ndt.Ndt
@@ -28,7 +17,7 @@ type Fixture struct {
 func NewFixture(ndtPrefixLen, fibStartDepth, nPartitions int) (fixture *Fixture) {
 	ndtCfg := ndt.Config{
 		PrefixLen:  ndtPrefixLen,
-		IndexBits:  16,
+		IndexBits:  8,
 		SampleFreq: 32,
 	}
 	ndt := ndt.New(ndtCfg, []dpdk.NumaSocket{dpdk.NUMA_SOCKET_ANY})
@@ -80,4 +69,16 @@ func (fixture *Fixture) MakeEntry(name string, sc fib.StrategyCode,
 	entry.SetNexthops(nexthops)
 	entry.SetStrategy(sc)
 	return entry
+}
+
+// Find what partitions contain the given name.
+func (fixture *Fixture) FindInPartitions(name *ndn.Name) (partitions []int) {
+	rs := urcu.NewReadSide()
+	defer rs.Close()
+	for partition := 0; partition < fixture.Fib.CountPartitions(); partition++ {
+		if fixture.Fib.FindInPartition(name, partition, rs) != nil {
+			partitions = append(partitions, partition)
+		}
+	}
+	return partitions
 }

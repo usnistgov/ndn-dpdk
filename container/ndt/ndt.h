@@ -53,17 +53,25 @@ Ndt_GetThread(const Ndt* ndt, uint8_t id)
  */
 void Ndt_Update(Ndt* ndt, uint64_t index, uint8_t value);
 
+/** \brief Read NDT element.
+ */
+static uint8_t
+Ndt_ReadElement(const Ndt* ndt, uint64_t index)
+{
+  return atomic_load_explicit(&ndt->table[index], memory_order_relaxed);
+}
+
 /** \brief Query NDT without counting.
  */
 static uint8_t
-__Ndt_Lookup(const Ndt* ndt, const PName* name, const uint8_t* nameV,
-             uint64_t* index)
+Ndt_Lookup(const Ndt* ndt, const PName* name, const uint8_t* nameV,
+           uint64_t* index)
 {
   uint16_t prefixLen =
     name->nComps < ndt->prefixLen ? name->nComps : ndt->prefixLen;
   uint64_t hash = PName_ComputePrefixHash(name, nameV, prefixLen);
   *index = hash & ndt->indexMask;
-  return atomic_load_explicit(&ndt->table[*index], memory_order_relaxed);
+  return Ndt_ReadElement(ndt, *index);
 }
 
 static uint8_t
@@ -71,7 +79,7 @@ __Ndtt_Lookup(const Ndt* ndt, NdtThread* ndtt, const PName* name,
               const uint8_t* nameV)
 {
   uint64_t index;
-  uint8_t value = __Ndt_Lookup(ndt, name, nameV, &index);
+  uint8_t value = Ndt_Lookup(ndt, name, nameV, &index);
   if ((++ndtt->nLookups & ndt->sampleMask) == 0) {
     ++ndtt->nHits[index];
   }

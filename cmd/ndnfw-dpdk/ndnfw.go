@@ -8,6 +8,7 @@ import (
 	"ndn-dpdk/appinit"
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/ndt"
+	"ndn-dpdk/container/ndt/ndtupdater"
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/socketface"
@@ -185,12 +186,24 @@ func startDp() {
 
 func startMgmt() {
 	appinit.RegisterMgmt(versionmgmt.VersionMgmt{})
+
 	facemgmt.CreateFace = socketface.MakeMgmtCreateFace(appinit.NewSocketFaceCfg(theSocketFaceNumaSocket), theSocketRxg, theSocketTxl, 64)
 	appinit.RegisterMgmt(facemgmt.FaceMgmt{})
-	appinit.RegisterMgmt(ndtmgmt.NdtMgmt{theNdt})
+
+	appinit.RegisterMgmt(ndtmgmt.NdtMgmt{
+		Ndt: theNdt,
+		Updater: &ndtupdater.NdtUpdater{
+			Ndt:      theNdt,
+			Fib:      theFib,
+			SleepFor: 200 * time.Millisecond,
+		},
+	})
+
 	fibmgmt.TheStrategy = theStrategy
 	appinit.RegisterMgmt(fibmgmt.FibMgmt{theFib})
+
 	appinit.RegisterMgmt(fwdpmgmt.DpInfoMgmt{theDp})
+
 	appinit.StartMgmt()
 }
 
