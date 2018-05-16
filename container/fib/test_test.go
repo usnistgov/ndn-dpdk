@@ -21,7 +21,7 @@ func TestMain(m *testing.M) {
 var makeAR = dpdktestenv.MakeAR
 
 type Fixture struct {
-	Ndt ndt.Ndt
+	Ndt *ndt.Ndt
 	Fib *fib.Fib
 }
 

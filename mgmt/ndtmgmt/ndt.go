@@ -6,7 +6,7 @@ import (
 )
 
 type NdtMgmt struct {
-	Ndt ndt.Ndt
+	Ndt *ndt.Ndt
 }
 
 func (mg NdtMgmt) ReadTable(args struct{}, reply *[]uint8) error {

@@ -23,7 +23,7 @@ var (
 	theSocketFaceNumaSocket dpdk.NumaSocket
 	theSocketRxg            *socketface.RxGroup
 	theSocketTxl            *iface.MultiTxLoop
-	theNdt                  ndt.Ndt
+	theNdt                  *ndt.Ndt
 	theStrategy             fib.StrategyCode
 	theFib                  *fib.Fib
 	theDp                   *fwdp.DataPlane

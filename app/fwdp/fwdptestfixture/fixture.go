@@ -22,7 +22,7 @@ const nFwds = 2
 type Fixture struct {
 	require *require.Assertions
 
-	Ndt       ndt.Ndt
+	Ndt       *ndt.Ndt
 	Fib       *fib.Fib
 	DataPlane *fwdp.DataPlane
 

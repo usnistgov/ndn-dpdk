@@ -24,7 +24,9 @@ type Ndt struct {
 }
 
 // Create an NDT.
-func New(cfg Config, numaSockets []dpdk.NumaSocket) (ndt Ndt) {
+func New(cfg Config, numaSockets []dpdk.NumaSocket) (ndt *Ndt) {
+	ndt = new(Ndt)
+
 	numaSocketsC := make([]C.unsigned, len(numaSockets))
 	for i, socket := range numaSockets {
 		numaSocketsC[i] = C.unsigned(socket)
@@ -37,7 +39,7 @@ func New(cfg Config, numaSockets []dpdk.NumaSocket) (ndt Ndt) {
 }
 
 // Destroy the NDT.
-func (ndt Ndt) Close() error {
+func (ndt *Ndt) Close() error {
 	for i := 0; i < ndt.CountThreads(); i++ {
 		dpdk.Free(ndt.getThreadC(i))
 	}
@@ -48,44 +50,44 @@ func (ndt Ndt) Close() error {
 }
 
 // Get native *C.Ndt pointer to use in other packages.
-func (ndt Ndt) GetPtr() unsafe.Pointer {
+func (ndt *Ndt) GetPtr() unsafe.Pointer {
 	return unsafe.Pointer(ndt.c)
 }
 
 // Get number of table elements.
-func (ndt Ndt) CountElements() int {
+func (ndt *Ndt) CountElements() int {
 	return int(ndt.c.indexMask + 1)
 }
 
-func (ndt Ndt) GetPrefixLen() int {
+func (ndt *Ndt) GetPrefixLen() int {
 	return int(ndt.c.prefixLen)
 }
 
 // Get number of threads.
-func (ndt Ndt) CountThreads() int {
+func (ndt *Ndt) CountThreads() int {
 	return int(ndt.c.nThreads)
 }
 
-func (ndt Ndt) getThreadC(i int) *C.NdtThread {
+func (ndt *Ndt) getThreadC(i int) *C.NdtThread {
 	var threadPtrC *C.NdtThread
 	first := uintptr(unsafe.Pointer(ndt.c.threads))
 	offset := uintptr(i) * uintptr(unsafe.Sizeof(threadPtrC))
 	return *(**C.NdtThread)(unsafe.Pointer(first + offset))
 }
 
-func (ndt Ndt) GetThread(i int) NdtThread {
+func (ndt *Ndt) GetThread(i int) NdtThread {
 	return NdtThread{ndt: ndt, c: ndt.getThreadC(i)}
 }
 
 // Read the table.
-func (ndt Ndt) ReadTable() (table []uint8) {
+func (ndt *Ndt) ReadTable() (table []uint8) {
 	table = make([]uint8, ndt.CountElements())
 	C.rte_memcpy(unsafe.Pointer(&table[0]), unsafe.Pointer(ndt.c.table), C.size_t(len(table)))
 	return table
 }
 
 // Read hit counters.
-func (ndt Ndt) ReadCounters() (cnt []int) {
+func (ndt *Ndt) ReadCounters() (cnt []int) {
 	cnt = make([]int, ndt.CountElements())
 	for i := 0; i < ndt.CountThreads(); i++ {
 		threadC := ndt.getThreadC(i)
@@ -99,7 +101,7 @@ func (ndt Ndt) ReadCounters() (cnt []int) {
 }
 
 // Compute the hash that NDT uses for a name.
-func (ndt Ndt) ComputeHash(name *ndn.Name) uint64 {
+func (ndt *Ndt) ComputeHash(name *ndn.Name) uint64 {
 	prefixLen := name.Len()
 	if prefixLen > int(ndt.c.prefixLen) {
 		prefixLen = int(ndt.c.prefixLen)
@@ -108,20 +110,20 @@ func (ndt Ndt) ComputeHash(name *ndn.Name) uint64 {
 }
 
 // Update an element.
-func (ndt Ndt) Update(hash uint64, value uint8) (index uint64) {
+func (ndt *Ndt) Update(hash uint64, value uint8) (index uint64) {
 	return uint64(C.Ndt_Update(ndt.c, C.uint64_t(hash), C.uint8_t(value)))
 }
 
 // Update all elements to random values < max.
 // This should be used during initialization only.
-func (ndt Ndt) Randomize(max int) {
+func (ndt *Ndt) Randomize(max int) {
 	for i, nElements := uint64(0), uint64(ndt.CountElements()); i < nElements; i++ {
 		ndt.Update(i, uint8(rand.Intn(max)))
 	}
 }
 
 // Lookup a name without counting.
-func (ndt Ndt) Lookup(name *ndn.Name) (index uint64, value uint8) {
+func (ndt *Ndt) Lookup(name *ndn.Name) (index uint64, value uint8) {
 	var indexC C.uint64_t
 	value = uint8(C.__Ndt_Lookup(ndt.c, (*C.PName)(name.GetPNamePtr()),
 		(*C.uint8_t)(name.GetValue().GetPtr()), &indexC))
@@ -130,12 +132,12 @@ func (ndt Ndt) Lookup(name *ndn.Name) (index uint64, value uint8) {
 
 // A thread for NDT lookups.
 type NdtThread struct {
-	ndt Ndt
+	ndt *Ndt
 	c   *C.NdtThread
 }
 
 // Lookup a name with counting.
-func (ndtt NdtThread) Lookup(name *ndn.Name) uint8 {
+func (ndtt *NdtThread) Lookup(name *ndn.Name) uint8 {
 	return uint8(C.__Ndtt_Lookup(ndtt.ndt.c, ndtt.c, (*C.PName)(name.GetPNamePtr()),
 		(*C.uint8_t)(name.GetValue().GetPtr())))
 }

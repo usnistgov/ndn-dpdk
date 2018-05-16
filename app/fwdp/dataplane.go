@@ -23,7 +23,7 @@ import (
 )
 
 type Config struct {
-	Ndt ndt.Ndt
+	Ndt *ndt.Ndt
 	Fib *fib.Fib
 
 	InputLCores []dpdk.LCore

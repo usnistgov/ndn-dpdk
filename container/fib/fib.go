@@ -26,7 +26,7 @@ type Fib struct {
 	c          []*C.Fib
 	commands   chan command
 	startDepth int
-	ndt        ndt.Ndt
+	ndt        *ndt.Ndt
 	treeRoot   *node
 
 	nNodes        int
@@ -35,7 +35,7 @@ type Fib struct {
 	nEntriesC     int // Entries in C.Fib.
 }
 
-func New(cfg Config, ndt ndt.Ndt, numaSockets []dpdk.NumaSocket) (fib *Fib, e error) {
+func New(cfg Config, ndt *ndt.Ndt, numaSockets []dpdk.NumaSocket) (fib *Fib, e error) {
 	if cfg.StartDepth <= ndt.GetPrefixLen() {
 		return nil, errors.New("FIB StartDepth must be greater than NDT PrefixLen")
 	}
