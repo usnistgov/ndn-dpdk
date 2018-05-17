@@ -7,12 +7,34 @@
 #include "strategy-code.h"
 
 #define FIB_ENTRY_MAX_NAME_LEN 500
-
 #define FIB_ENTRY_MAX_NEXTHOPS 8
+#define FIB_DYN_SIZEOF_SCRATCH 96
 
+/** \brief Counters and strategy scratch area on FIB entry.
+ */
+typedef struct FibEntryDyn
+{
+  uint32_t nRxInterests;
+  uint32_t nRxData;
+  uint32_t nRxNacks;
+  uint32_t nTxInterests;
+
+  char scratch[FIB_DYN_SIZEOF_SCRATCH];
+} FibEntryDyn;
+
+static void
+FibEntryDyn_Copy(FibEntryDyn* dst, const FibEntryDyn* src)
+{
+  rte_memcpy(dst, src, offsetof(FibEntryDyn, scratch));
+  memset(dst->scratch, 0, FIB_DYN_SIZEOF_SCRATCH);
+}
+
+/** \brief A FIB entry.
+ */
 typedef struct FibEntry
 {
   StrategyCode* strategy;
+  FibEntryDyn* dyn;
 
   uint16_t nameL;    ///< TLV-LENGTH of name
   uint8_t nComps;    ///< number of name components
@@ -26,6 +48,8 @@ typedef struct FibEntry
    *  'depth' means number of name components.
    */
   uint8_t maxDepth;
+
+  bool shouldFreeDyn; ///< (private) read by Fib_FinalizeEntry
 
   FaceId nexthops[FIB_ENTRY_MAX_NEXTHOPS];
   uint8_t nameV[FIB_ENTRY_MAX_NAME_LEN];

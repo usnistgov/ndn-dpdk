@@ -16,14 +16,15 @@ import (
 
 type Config struct {
 	Id         string
-	MaxEntries int
-	NBuckets   int
-	StartDepth int
+	MaxEntries int // Entries per partition.
+	NBuckets   int // Hashtable buckets.
+	StartDepth int // 'M' in 2-stage LPM algorithm.
 }
 
 // The FIB.
 type Fib struct {
 	c          []*C.Fib
+	dynMps     []dpdk.Mempool
 	commands   chan command
 	startDepth int
 	ndt        *ndt.Ndt
@@ -31,8 +32,8 @@ type Fib struct {
 	sti        subtreeIndex
 
 	nNodes              int // Nodes in tree.
-	nShortEntries       int // Entries with name shorter than NDT PrefixLen in tree.
-	nLongEntries        int // Entries with name not shorter than NDT PrefixLen in tree.
+	nShortEntries       int // Entries with name shorter than NDT PrefixLen.
+	nLongEntries        int // Entries with name not shorter than NDT PrefixLen.
 	nEntriesC           int // Entries in C.Fib.
 	nRelocatingEntriesC int // Duplicate entries due to relocating.
 }
@@ -43,18 +44,24 @@ func New(cfg Config, ndt *ndt.Ndt, numaSockets []dpdk.NumaSocket) (fib *Fib, e e
 	}
 
 	fib = new(Fib)
-	fib.c = make([]*C.Fib, len(numaSockets))
 	for i, numaSocket := range numaSockets {
 		idC := C.CString(fmt.Sprintf("%s_%d", cfg.Id, i))
 		defer C.free(unsafe.Pointer(idC))
-		fib.c[i] = C.Fib_New(idC, C.uint32_t(cfg.MaxEntries), C.uint32_t(cfg.NBuckets),
+		fibC := C.Fib_New(idC, C.uint32_t(cfg.MaxEntries), C.uint32_t(cfg.NBuckets),
 			C.unsigned(numaSocket), C.uint8_t(cfg.StartDepth))
-		if fib.c[i] == nil {
-			for i--; i >= 0; i-- {
-				C.Fib_Close(fib.c[i])
-			}
+		if fibC == nil {
+			fib.doClose(nil)
 			return nil, dpdk.GetErrno()
 		}
+		fib.c = append(fib.c, fibC)
+
+		dynMp, e := dpdk.NewMempool(fmt.Sprintf("%s_dyn%d", cfg.Id, i), cfg.MaxEntries, 0,
+			int(C.sizeof_FibEntryDyn), numaSocket)
+		if e != nil {
+			fib.doClose(nil)
+			return nil, e
+		}
+		fib.dynMps = append(fib.dynMps, dynMp)
 	}
 
 	fib.startDepth = cfg.StartDepth
@@ -128,13 +135,17 @@ func (fib *Fib) postCommand(f func(rs *urcu.ReadSide) error) error {
 }
 
 func (fib *Fib) Close() (e error) {
-	e = fib.postCommand(func(rs *urcu.ReadSide) error {
-		for _, fibC := range fib.c {
-			C.Fib_Close(fibC)
-		}
-		return nil
-
-	})
+	e = fib.postCommand(fib.doClose)
 	close(fib.commands)
 	return e
+}
+
+func (fib *Fib) doClose(rs *urcu.ReadSide) error {
+	for _, fibC := range fib.c {
+		C.Fib_Close(fibC)
+	}
+	for _, dynMp := range fib.dynMps {
+		dynMp.Close()
+	}
+	return nil
 }

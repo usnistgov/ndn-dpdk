@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"ndn-dpdk/core/urcu"
+	"ndn-dpdk/dpdk"
 	"ndn-dpdk/ndn"
 )
 
@@ -29,6 +30,7 @@ func (fib *Fib) insertC(fibC *C.Fib, entryC *C.FibEntry) (isNew bool) {
 }
 
 func (fib *Fib) eraseC(fibC *C.Fib, entryC *C.FibEntry) {
+	entryC.shouldFreeDyn = true
 	C.Fib_Erase(fibC, entryC)
 	fib.nEntriesC--
 }
@@ -52,10 +54,12 @@ func (fib *Fib) Insert(entry *Entry) (isNew bool, e error) {
 
 		// determine what partition(s) should receive new entry
 		var fibsC []*C.Fib
+		var dynMps []dpdk.Mempool
 		var ndtIndex uint64
 		if nComps < fib.ndt.GetPrefixLen() {
 			logEntry = logEntry.WithField("partition", "all")
 			fibsC = fib.c
+			dynMps = fib.dynMps
 		} else {
 			var partition uint8
 			ndtIndex, partition = fib.ndt.Lookup(name)
@@ -64,20 +68,30 @@ func (fib *Fib) Insert(entry *Entry) (isNew bool, e error) {
 				return errors.New("bad partition")
 			}
 			fibsC = []*C.Fib{fib.c[partition]}
+			dynMps = []dpdk.Mempool{fib.dynMps[partition]}
 		}
 
 		// allocate and populate new entries
 		var newEntriesC []*C.FibEntry
-		for _, fibC := range fibsC {
-			if newEntryC := fib.allocC(fibC); newEntryC == nil {
-				for i, allocatedEntryC := range newEntriesC {
-					C.Fib_Free(fibsC[i], allocatedEntryC)
-				}
-				return errors.New("allocation error")
-			} else {
-				*newEntryC = entry.c
-				newEntriesC = append(newEntriesC, newEntryC)
+		for i, fibC := range fibsC {
+			newEntryC := fib.allocC(fibC)
+			if newEntryC == nil {
+				break
 			}
+			*newEntryC = entry.c
+			newEntryC.dyn = (*C.FibEntryDyn)(dynMps[i].Alloc())
+			if newEntryC.dyn == nil {
+				C.Fib_Free(fibC, newEntryC)
+				break
+			}
+			*newEntryC.dyn = C.FibEntryDyn{}
+			newEntriesC = append(newEntriesC, newEntryC)
+		}
+		if len(newEntriesC) != len(fibsC) {
+			for i, newEntryC := range newEntriesC {
+				C.Fib_Free(fibsC[i], newEntryC)
+			}
+			return errors.New("allocation error")
 		}
 
 		// insert virtual entry if needed
@@ -230,8 +244,11 @@ func (fib *Fib) Erase(name *ndn.Name) (e error) {
 type RelocateContext struct {
 	oldFibC     *C.Fib
 	newFibC     *C.Fib
+	newDynMp    dpdk.Mempool
 	oldEntriesC []*C.FibEntry
+	nOldDyns    int
 	newEntriesC []*C.FibEntry
+	newDynsC    []*C.FibEntryDyn
 
 	NoRevertOnError bool // If true, relocating is not reverted even if callback has error.
 }
@@ -273,6 +290,7 @@ func (fib *Fib) Relocate(ndtIndex uint64, oldPartition, newPartition uint8,
 		var ctx RelocateContext
 		ctx.oldFibC = fib.c[oldPartition]
 		ctx.newFibC = fib.c[newPartition]
+		ctx.newDynMp = fib.dynMps[newPartition]
 
 		// find old entries
 		for n, nameV := range fib.sti[ndtIndex] {
@@ -283,6 +301,9 @@ func (fib *Fib) Relocate(ndtIndex uint64, oldPartition, newPartition uint8,
 						panic(fmt.Sprintf("entry not found %s", nn.GetName()))
 					} else {
 						ctx.oldEntriesC = append(ctx.oldEntriesC, oldEntryC)
+						if oldEntryC.dyn != nil {
+							ctx.nOldDyns++
+						}
 					}
 				}
 			})
@@ -290,20 +311,35 @@ func (fib *Fib) Relocate(ndtIndex uint64, oldPartition, newPartition uint8,
 		logEntry = logEntry.WithFields(makeLogFields("nEntries", len(ctx.oldEntriesC),
 			"nSubtrees", len(fib.sti[ndtIndex])))
 
+		// allocate new dyns
+		if ctx.nOldDyns > 0 {
+			ctx.newDynsC = make([]*C.FibEntryDyn, ctx.nOldDyns)
+			if e := ctx.newDynMp.AllocBulk(ctx.newDynsC); e != nil {
+				return e
+			}
+		}
+
 		// allocate new entries
 		if len(ctx.oldEntriesC) > 0 {
 			ctx.newEntriesC = make([]*C.FibEntry, len(ctx.oldEntriesC))
 			if ok := bool(C.Fib_AllocBulk(ctx.newFibC, &ctx.newEntriesC[0], C.unsigned(len(ctx.newEntriesC)))); !ok {
+				ctx.newDynMp.FreeBulk(ctx.newDynsC)
 				return errors.New("allocation error")
 			}
 		}
 
 		// insert new entries
+		j := 0
 		for i, oldEntryC := range ctx.oldEntriesC {
 			newEntryC := ctx.newEntriesC[i]
 			*newEntryC = *oldEntryC
+			if oldEntryC.dyn != nil {
+				newEntryC.dyn = ctx.newDynsC[j]
+				j++
+				C.FibEntryDyn_Copy(newEntryC.dyn, oldEntryC.dyn)
+			}
 			if isNew := fib.insertC(ctx.newFibC, newEntryC); !isNew {
-				newEntry := Entry{*newEntryC}
+				newEntry := Entry{*oldEntryC}
 				panic(fmt.Sprintf("entry should not exist %s", newEntry.GetName()))
 			}
 			fib.nRelocatingEntriesC++

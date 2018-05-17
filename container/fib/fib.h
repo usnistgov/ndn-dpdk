@@ -27,7 +27,6 @@ Fib_ToTsht(const Fib* fib)
 typedef struct FibPriv
 {
   int startDepth; ///< starting depth ('M' in 2-stage LPM paper)
-  int nNodes;     ///< allocated nodes
 } FibPriv;
 
 /** \brief Access FibPriv* struct.

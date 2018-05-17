@@ -16,6 +16,10 @@ Fib_FinalizeEntry(TshtEntryPtr entry0, Tsht* tsht)
 {
   FibEntry* entry = (FibEntry*)entry0;
   Fib* fib = (Fib*)tsht;
+  if (likely(entry->dyn != NULL) && entry->shouldFreeDyn) {
+    struct rte_mempool* dynMp = rte_mempool_from_obj(entry->dyn);
+    rte_mempool_put(dynMp, entry->dyn);
+  }
   if (likely(entry->strategy != NULL)) {
     StrategyCode_Unref(entry->strategy);
   }
@@ -40,6 +44,7 @@ Fib_Insert(Fib* fib, FibEntry* entry)
 {
   if (likely(entry->strategy != NULL)) {
     StrategyCode_Ref(entry->strategy);
+    assert(entry->dyn != NULL);
   } else {
     assert(entry->nNexthops == 0);
   }
