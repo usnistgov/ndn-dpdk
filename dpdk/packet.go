@@ -16,27 +16,27 @@ type Packet struct {
 }
 
 func (pkt Packet) Len() int {
-	return int(pkt.ptr.pkt_len)
+	return int(pkt.c.pkt_len)
 }
 
 func (pkt Packet) GetPort() uint16 {
-	return uint16(pkt.ptr.port)
+	return uint16(pkt.c.port)
 }
 
 func (pkt Packet) SetPort(port uint16) {
-	pkt.ptr.port = C.uint16_t(port)
+	pkt.c.port = C.uint16_t(port)
 }
 
 func (pkt Packet) GetTimestamp() TscTime {
-	return TscTime(pkt.ptr.timestamp)
+	return TscTime(pkt.c.timestamp)
 }
 
 func (pkt Packet) SetTimestamp(t TscTime) {
-	pkt.ptr.timestamp = C.uint64_t(t)
+	pkt.c.timestamp = C.uint64_t(t)
 }
 
 func (pkt Packet) CountSegments() int {
-	return int(pkt.ptr.nb_segs)
+	return int(pkt.c.nb_segs)
 }
 
 func (pkt Packet) GetFirstSegment() Segment {
@@ -56,7 +56,7 @@ func (pkt Packet) GetSegment(i int) *Segment {
 }
 
 func (pkt Packet) GetLastSegment() Segment {
-	return Segment{Mbuf{C.rte_pktmbuf_lastseg(pkt.ptr)}, pkt}
+	return Segment{Mbuf{C.rte_pktmbuf_lastseg(pkt.c)}, pkt}
 }
 
 // Append a segment.
@@ -66,9 +66,9 @@ func (pkt Packet) GetLastSegment() Segment {
 func (pkt Packet) AppendSegmentHint(m Mbuf, tail *Segment) (Segment, error) {
 	var res C.int
 	if tail == nil {
-		res = C.rte_pktmbuf_chain(pkt.ptr, m.ptr)
+		res = C.rte_pktmbuf_chain(pkt.c, m.c)
 	} else {
-		res = C.Packet_Chain(pkt.ptr, tail.ptr, m.ptr)
+		res = C.Packet_Chain(pkt.c, tail.c, m.c)
 	}
 
 	if res != 0 {
@@ -110,7 +110,7 @@ func (pkt Packet) ReadAll() []byte {
 // Delete len octets starting from offset (int or PacketIterator or *PacketIterator).
 func (pkt Packet) DeleteRange(offset interface{}, len int) {
 	pi := makePacketIteratorFromOffset(pkt, offset)
-	C.MbufLoc_Delete(&pi.ml, C.uint32_t(len), pkt.ptr, nil)
+	C.MbufLoc_Delete(&pi.ml, C.uint32_t(len), pkt.c, nil)
 }
 
 // Ensure two offsets are in the same Mbuf.
@@ -118,7 +118,7 @@ func (pkt Packet) DeleteRange(offset interface{}, len int) {
 func (pkt Packet) LinearizeRange(first interface{}, last interface{}, mp PktmbufPool) (unsafe.Pointer, error) {
 	firstPi := makePacketIteratorFromOffset(pkt, first)
 	lastPi := makePacketIteratorFromOffset(pkt, last)
-	res := C.MbufLoc_Linearize(&firstPi.ml, &lastPi.ml, pkt.ptr, mp.ptr)
+	res := C.MbufLoc_Linearize(&firstPi.ml, &lastPi.ml, pkt.c, mp.c)
 	if res == nil {
 		return nil, GetErrno()
 	}
@@ -127,7 +127,7 @@ func (pkt Packet) LinearizeRange(first interface{}, last interface{}, mp Pktmbuf
 
 func init() {
 	var pkt Packet
-	if unsafe.Sizeof(pkt) != unsafe.Sizeof(pkt.ptr) {
+	if unsafe.Sizeof(pkt) != unsafe.Sizeof(pkt.c) {
 		panic("sizeof dpdk.Packet differs from *C.struct_rte_mbuf")
 	}
 }

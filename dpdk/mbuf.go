@@ -15,7 +15,7 @@ type IMbuf interface {
 }
 
 type Mbuf struct {
-	ptr *C.struct_rte_mbuf
+	c *C.struct_rte_mbuf
 	// DO NOT add other fields: *Mbuf is passed to C code as rte_mbuf**
 }
 
@@ -30,16 +30,15 @@ func (m Mbuf) iMbufFlag() {
 
 // Get native *C.struct_rte_mbuf pointer to use in other packages.
 func (m Mbuf) GetPtr() unsafe.Pointer {
-	return unsafe.Pointer(m.ptr)
+	return unsafe.Pointer(m.c)
 }
 
 func (m Mbuf) IsValid() bool {
-	return m.ptr != nil
+	return m.c != nil
 }
 
 func (m Mbuf) Close() error {
-	C.rte_pktmbuf_free(m.ptr)
-	m.ptr = nil
+	C.rte_pktmbuf_free(m.c)
 	return nil
 }
 
@@ -49,7 +48,7 @@ func (m Mbuf) AsPacket() Packet {
 
 func init() {
 	var m Mbuf
-	if unsafe.Sizeof(m) != unsafe.Sizeof(m.ptr) {
+	if unsafe.Sizeof(m) != unsafe.Sizeof(m.c) {
 		panic("sizeof dpdk.Mbuf differs from *C.struct_rte_mbuf")
 	}
 }

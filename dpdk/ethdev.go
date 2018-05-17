@@ -112,7 +112,7 @@ func (port EthDev) Configure(cfg EthDevConfig) (rxQueues []EthRxQueue, txQueues 
 	rxQueues = make([]EthRxQueue, len(cfg.RxQueues))
 	for i, qcfg := range cfg.RxQueues {
 		res = C.rte_eth_rx_queue_setup(portId, C.uint16_t(i), C.uint16_t(qcfg.Capacity),
-			C.uint(qcfg.Socket), (*C.struct_rte_eth_rxconf)(qcfg.Conf), qcfg.Mp.ptr)
+			C.uint(qcfg.Socket), (*C.struct_rte_eth_rxconf)(qcfg.Conf), qcfg.Mp.c)
 		if res != 0 {
 			return nil, nil, fmt.Errorf("rte_eth_rx_queue_setup(%d,%d) error %d", port, i, res)
 		}

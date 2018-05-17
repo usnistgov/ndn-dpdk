@@ -22,17 +22,17 @@ func (s Segment) GetPacket() Packet {
 // Get next segment.
 // Return the next segment if it exists, and whether the next segment exists.
 func (s Segment) GetNext() (Segment, bool) {
-	next := s.ptr.next
+	next := s.c.next
 	return Segment{Mbuf{next}, s.pkt}, next != nil
 }
 
 func (s Segment) Len() int {
-	return int(s.ptr.data_len)
+	return int(s.c.data_len)
 }
 
 // Get pointer to segment data.
 func (s Segment) GetData() unsafe.Pointer {
-	return unsafe.Pointer(uintptr(s.ptr.buf_addr) + uintptr(s.ptr.data_off))
+	return unsafe.Pointer(uintptr(s.c.buf_addr) + uintptr(s.c.data_off))
 }
 
 // Map segment data as []byte.
@@ -42,22 +42,22 @@ func (s Segment) AsByteSlice() []byte {
 }
 
 func (s Segment) GetHeadroom() int {
-	return int(C.rte_pktmbuf_headroom(s.ptr))
+	return int(C.rte_pktmbuf_headroom(s.c))
 }
 
 func (s Segment) SetHeadroom(headroom int) error {
 	if s.Len() > 0 {
 		return errors.New("cannot change headroom of non-empty segment")
 	}
-	if C.uint16_t(headroom) > s.ptr.buf_len {
+	if C.uint16_t(headroom) > s.c.buf_len {
 		return errors.New("headroom cannot exceed buffer length")
 	}
-	s.ptr.data_off = C.uint16_t(headroom)
+	s.c.data_off = C.uint16_t(headroom)
 	return nil
 }
 
 func (s Segment) GetTailroom() int {
-	return int(C.rte_pktmbuf_tailroom(s.ptr))
+	return int(C.rte_pktmbuf_tailroom(s.c))
 }
 
 // Prepend in headroom.
@@ -70,9 +70,9 @@ func (s Segment) Prepend(input []byte) error {
 	if count > s.GetHeadroom() {
 		return errors.New("insufficient headroom")
 	}
-	s.ptr.data_off -= C.uint16_t(count)
-	s.ptr.data_len += C.uint16_t(count)
-	s.pkt.ptr.pkt_len += C.uint32_t(count)
+	s.c.data_off -= C.uint16_t(count)
+	s.c.data_len += C.uint16_t(count)
+	s.pkt.c.pkt_len += C.uint32_t(count)
 	C.rte_memcpy(s.GetData(), unsafe.Pointer(&input[0]), C.size_t(count))
 	return nil
 }
@@ -82,9 +82,9 @@ func (s Segment) Adj(len int) error {
 	if len > s.Len() {
 		return errors.New("segment shorter than adj amount")
 	}
-	s.ptr.data_off = s.ptr.data_off + C.uint16_t(len)
-	s.ptr.data_len = s.ptr.data_len - C.uint16_t(len)
-	s.pkt.ptr.pkt_len = s.pkt.ptr.pkt_len - C.uint32_t(len)
+	s.c.data_off = s.c.data_off + C.uint16_t(len)
+	s.c.data_len = s.c.data_len - C.uint16_t(len)
+	s.pkt.c.pkt_len = s.pkt.c.pkt_len - C.uint32_t(len)
 	return nil
 }
 
@@ -98,10 +98,10 @@ func (s Segment) Append(input []byte) error {
 		return errors.New("insufficient tailroom")
 	}
 
-	tail := unsafe.Pointer(uintptr(s.ptr.buf_addr) + uintptr(s.ptr.data_off) +
-		uintptr(s.ptr.data_len))
-	s.ptr.data_len += C.uint16_t(count)
-	s.pkt.ptr.pkt_len += C.uint32_t(count)
+	tail := unsafe.Pointer(uintptr(s.c.buf_addr) + uintptr(s.c.data_off) +
+		uintptr(s.c.data_len))
+	s.c.data_len += C.uint16_t(count)
+	s.pkt.c.pkt_len += C.uint32_t(count)
 
 	// skip memcpy if input is obtained from s.AsByteSlice()
 	if tail != unsafe.Pointer(&input[0]) {
@@ -115,7 +115,7 @@ func (s Segment) Trim(count int) error {
 	if count > s.Len() {
 		return errors.New("segment shorter than trim amount")
 	}
-	s.ptr.data_len = s.ptr.data_len - C.uint16_t(count)
-	s.pkt.ptr.pkt_len = s.pkt.ptr.pkt_len - C.uint32_t(count)
+	s.c.data_len = s.c.data_len - C.uint16_t(count)
+	s.pkt.c.pkt_len = s.pkt.c.pkt_len - C.uint32_t(count)
 	return nil
 }

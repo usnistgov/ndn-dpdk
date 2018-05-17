@@ -65,7 +65,7 @@ func (it *PacketIterator) ComputeDistance(it2 PacketIterator) int {
 
 // Clone next n octets into indirect mbufs.
 func (it *PacketIterator) MakeIndirect(n int, mp PktmbufPool) (Packet, error) {
-	res := C.MbufLoc_MakeIndirect(&it.ml, C.uint32_t(n), mp.ptr)
+	res := C.MbufLoc_MakeIndirect(&it.ml, C.uint32_t(n), mp.c)
 	if res == nil {
 		return Packet{}, GetErrno()
 	}

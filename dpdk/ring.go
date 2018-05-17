@@ -9,7 +9,7 @@ import "C"
 import "unsafe"
 
 type Ring struct {
-	ptr *C.struct_rte_ring
+	c *C.struct_rte_ring
 	// DO NOT add other fields: *Ring is passed to C code as rte_ring**
 }
 
@@ -27,8 +27,8 @@ func NewRing(name string, capacity int, socket NumaSocket,
 	}
 
 	var r Ring
-	r.ptr = C.rte_ring_create(cName, C.uint(capacity), C.int(socket), flags)
-	if r.ptr == nil {
+	r.c = C.rte_ring_create(cName, C.uint(capacity), C.int(socket), flags)
+	if r.c == nil {
 		return r, GetErrno()
 	}
 	return r, nil
@@ -41,22 +41,22 @@ func RingFromPtr(ptr unsafe.Pointer) Ring {
 
 // Get native *C.struct_rte_ring pointer to use in other packages.
 func (r Ring) GetPtr() unsafe.Pointer {
-	return unsafe.Pointer(r.ptr)
+	return unsafe.Pointer(r.c)
 }
 
 func (r Ring) Close() error {
-	C.rte_ring_free(r.ptr)
+	C.rte_ring_free(r.c)
 	return nil
 }
 
 // Get ring capacity.
 func (r Ring) GetCapacity() int {
-	return int(C.rte_ring_get_capacity(r.ptr))
+	return int(C.rte_ring_get_capacity(r.c))
 }
 
 // Get used space.
 func (r Ring) Count() int {
-	return int(C.rte_ring_count(r.ptr))
+	return int(C.rte_ring_count(r.c))
 }
 
 func (r Ring) IsEmpty() bool {
@@ -65,7 +65,7 @@ func (r Ring) IsEmpty() bool {
 
 // Get free space.
 func (r Ring) GetFreeSpace() int {
-	return int(C.rte_ring_free_count(r.ptr))
+	return int(C.rte_ring_free_count(r.c))
 }
 
 func (r Ring) IsFull() bool {
@@ -77,7 +77,7 @@ func (r Ring) IsFull() bool {
 func (r Ring) BurstEnqueue(objs interface{}) (nEnqueued int, freeSpace int) {
 	ptr, count := ParseCptrArray(objs)
 	var freeSpaceC C.uint
-	res := C.rte_ring_enqueue_burst(r.ptr, (*unsafe.Pointer)(ptr), C.uint(count), &freeSpaceC)
+	res := C.rte_ring_enqueue_burst(r.c, (*unsafe.Pointer)(ptr), C.uint(count), &freeSpaceC)
 	return int(res), int(freeSpaceC)
 }
 
@@ -86,6 +86,13 @@ func (r Ring) BurstEnqueue(objs interface{}) (nEnqueued int, freeSpace int) {
 func (r Ring) BurstDequeue(objs interface{}) (nDequeued int, nEntries int) {
 	ptr, count := ParseCptrArray(objs)
 	var nEntriesC C.uint
-	res := C.rte_ring_dequeue_burst(r.ptr, (*unsafe.Pointer)(ptr), C.uint(count), &nEntriesC)
+	res := C.rte_ring_dequeue_burst(r.c, (*unsafe.Pointer)(ptr), C.uint(count), &nEntriesC)
 	return int(res), int(nEntriesC)
+}
+
+func init() {
+	var r Ring
+	if unsafe.Sizeof(r) != unsafe.Sizeof(r.c) {
+		panic("sizeof dpdk.Ring differs from *C.struct_rte_ring")
+	}
 }
