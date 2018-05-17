@@ -222,6 +222,8 @@ type RelocateContext struct {
 	newFibC     *C.Fib
 	oldEntriesC []*C.FibEntry
 	newEntriesC []*C.FibEntry
+
+	NoRevertOnError bool // If true, relocating is not reverted even if callback has error.
 }
 
 // Get how many FIB entries are being moved.
@@ -233,12 +235,13 @@ func (ctx *RelocateContext) Len() int {
 // It is invoked after entries are inserted to new partition, but before entries are erased
 // from old partition. The callback should perform NDT update, then sleep long enough for
 // previous dispatched packets that depend on old entries to be processed. Note that the FIB
-// could not process new commands during this sleep period.
+// could not process other commands during this sleep period. In case the callback errors,
+// relocating operation will be reverted, unless ctx.NoRevertOnError is set to true.
 type RelocateCallback func(ctx *RelocateContext) error
 
 // Relocate entries under an NDT index from one partition to another.
 func (fib *Fib) Relocate(ndtIndex uint64, oldPartition, newPartition uint8,
-	f RelocateCallback) (e error) {
+	cb RelocateCallback) (e error) {
 	logEntry := log.WithFields(makeLogFields("ndtIndex", ndtIndex,
 		"oldPartition", oldPartition, "newPartition", newPartition))
 	if oldPartition == newPartition {
@@ -293,21 +296,26 @@ func (fib *Fib) Relocate(ndtIndex uint64, oldPartition, newPartition uint8,
 				newEntry := Entry{*newEntryC}
 				panic(fmt.Sprintf("entry should not exist %s", newEntry.GetName()))
 			}
-			// XXX counters are incorrect at this moment
+			fib.nRelocatingEntriesC++
 		}
 
-		// invoke f
-		if e := f(&ctx); e != nil {
-			// TODO revert
-			return e
+		// invoke callback
+		cbErr := cb(&ctx)
+		if cbErr == nil || ctx.NoRevertOnError {
+			// erase old entries
+			for _, oldEntryC := range ctx.oldEntriesC {
+				fib.eraseC(ctx.oldFibC, oldEntryC)
+				fib.nRelocatingEntriesC--
+			}
+		} else {
+			// revert: erase new entries
+			for _, newEntryC := range ctx.newEntriesC {
+				fib.eraseC(ctx.newFibC, newEntryC)
+				fib.nRelocatingEntriesC--
+			}
 		}
 
-		// erase old entries
-		for _, oldEntryC := range ctx.oldEntriesC {
-			fib.eraseC(ctx.oldFibC, oldEntryC)
-		}
-
-		return nil
+		return cbErr
 	})
 
 	if e != nil {

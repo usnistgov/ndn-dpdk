@@ -30,10 +30,11 @@ type Fib struct {
 	treeRoot   *node
 	sti        subtreeIndex
 
-	nNodes        int
-	nShortEntries int // Entries with name shorter than NDT PrefixLen in tree.
-	nLongEntries  int // Entries with name not shorter than NDT PrefixLen in tree.
-	nEntriesC     int // Entries in C.Fib.
+	nNodes              int // Nodes in tree.
+	nShortEntries       int // Entries with name shorter than NDT PrefixLen in tree.
+	nLongEntries        int // Entries with name not shorter than NDT PrefixLen in tree.
+	nEntriesC           int // Entries in C.Fib.
+	nRelocatingEntriesC int // Duplicate entries due to relocating.
 }
 
 func New(cfg Config, ndt *ndt.Ndt, numaSockets []dpdk.NumaSocket) (fib *Fib, e error) {
@@ -91,7 +92,7 @@ func (fib *Fib) CountEntries(withDup bool) int {
 
 // Get number of virtual entries.
 func (fib *Fib) CountVirtuals() int {
-	return fib.nEntriesC - fib.CountEntries(true)
+	return fib.nEntriesC - fib.nRelocatingEntriesC - fib.CountEntries(true)
 }
 
 // Get *C.Fib pointer for specified partition.

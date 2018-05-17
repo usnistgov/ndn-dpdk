@@ -76,6 +76,9 @@ func TestFibRelocate(t *testing.T) {
 	}()
 	time.Sleep(20 * time.Millisecond)
 	assert.Equal([]int{1, 3}, fixture.FindInPartitions(nameEFXYZ))
+	assert.Equal(5, fib.CountEntries(false))
+	assert.Equal(11, fib.CountEntries(true))
+	assert.Equal(1, fib.CountVirtuals())
 	<-done
 	assert.Equal([]int{1}, fixture.FindInPartitions(nameEFXYZ))
 
