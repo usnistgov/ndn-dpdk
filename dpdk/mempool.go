@@ -16,6 +16,19 @@ type Mempool struct {
 	c *C.struct_rte_mempool
 }
 
+func NewMempool(name string, capacity int, cacheSize int, elementSize int,
+	socket NumaSocket) (mp Mempool, e error) {
+	nameC := C.CString(name)
+	defer C.free(unsafe.Pointer(nameC))
+
+	mp.c = C.rte_mempool_create(nameC, C.uint(capacity), C.uint(elementSize),
+		C.uint(cacheSize), 0, nil, nil, nil, nil, C.int(socket), 0)
+	if mp.c == nil {
+		return mp, GetErrno()
+	}
+	return mp, nil
+}
+
 func MempoolFromPtr(ptr unsafe.Pointer) Mempool {
 	return Mempool{(*C.struct_rte_mempool)(ptr)}
 }
@@ -30,12 +43,38 @@ func (mp Mempool) Close() error {
 	return nil
 }
 
+func (mp Mempool) SizeofElement() int {
+	return int(mp.c.elt_size)
+}
+
 func (mp Mempool) CountAvailable() int {
 	return int(C.rte_mempool_avail_count(mp.c))
 }
 
 func (mp Mempool) CountInUse() int {
 	return int(C.rte_mempool_in_use_count(mp.c))
+}
+
+func (mp Mempool) Alloc() (ptr unsafe.Pointer, e error) {
+	res := C.rte_mempool_get(mp.c, &ptr)
+	if res != 0 {
+		return nil, errors.New("mbuf allocation failed")
+	}
+	return ptr, nil
+}
+
+// Allocate several mbufs, writing into supplied slice of Mbuf or Packet.
+func (mp Mempool) AllocBulk(objs interface{}) error {
+	ptr, count := ParseCptrArray(objs)
+	res := C.rte_mempool_get_bulk(mp.c, (*unsafe.Pointer)(ptr), C.uint(count))
+	if res != 0 {
+		return errors.New("mbuf allocation failed")
+	}
+	return nil
+}
+
+func (mp Mempool) Free(obj unsafe.Pointer) {
+	C.rte_mempool_put(mp.c, obj)
 }
 
 type PktmbufPool struct {
@@ -51,10 +90,10 @@ func NewPktmbufPool(name string, capacity int, cacheSize int, privSize int,
 		return mp, errors.New("dataroomSize is too large")
 	}
 
-	cName := C.CString(name)
-	defer C.free(unsafe.Pointer(cName))
+	nameC := C.CString(name)
+	defer C.free(unsafe.Pointer(nameC))
 
-	mp.c = C.rte_pktmbuf_pool_create(cName, C.uint(capacity), C.uint(cacheSize),
+	mp.c = C.rte_pktmbuf_pool_create(nameC, C.uint(capacity), C.uint(cacheSize),
 		C.uint16_t(privSize), C.uint16_t(dataroomSize), C.int(socket))
 	if mp.c == nil {
 		return mp, GetErrno()
