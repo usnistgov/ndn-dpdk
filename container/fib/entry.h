@@ -8,7 +8,7 @@
 
 #define FIB_ENTRY_MAX_NAME_LEN 500
 #define FIB_ENTRY_MAX_NEXTHOPS 8
-#define FIB_DYN_SIZEOF_SCRATCH 96
+#define FIB_DYN_SCRATCH 96
 
 /** \brief Counters and strategy scratch area on FIB entry.
  */
@@ -19,14 +19,14 @@ typedef struct FibEntryDyn
   uint32_t nRxNacks;
   uint32_t nTxInterests;
 
-  char scratch[FIB_DYN_SIZEOF_SCRATCH];
+  char scratch[FIB_DYN_SCRATCH];
 } FibEntryDyn;
 
 static void
 FibEntryDyn_Copy(FibEntryDyn* dst, const FibEntryDyn* src)
 {
   rte_memcpy(dst, src, offsetof(FibEntryDyn, scratch));
-  memset(dst->scratch, 0, FIB_DYN_SIZEOF_SCRATCH);
+  memset(dst->scratch, 0, sizeof(dst->scratch));
 }
 
 /** \brief A FIB entry.
@@ -59,28 +59,73 @@ typedef struct FibEntry
 // can fit in FIB_ENTRY_MAX_NAME_LEN octets.
 static_assert(UINT8_MAX >= FIB_ENTRY_MAX_NAME_LEN / 2, "");
 
-/** \brief Find nexthops satisfying certain conditions.
- *  \param[out] result nexthops satisfying all conditions, must have
- *                     \c FIB_ENTRY_MAX_NEXTHOPS room.
- *  \param rejects prohibit faces in this list.
- *  \return number of nexthops written to \p result.
+/** \brief A filter over FIB nexthops.
+ *
+ *  The zero value permits all nexthops in the FIB entry.
+ */
+typedef uint32_t FibNexthopFilter;
+
+static_assert(CHAR_BIT * sizeof(FibNexthopFilter) >= FIB_ENTRY_MAX_NEXTHOPS,
+              "");
+
+static int
+__FibNexthopFilter_Next(FibNexthopFilter filter, const FibEntry* entry, int i,
+                        FaceId* nh)
+{
+  do {
+    ++i;
+  } while (i < (int)entry->nNexthops && (filter & (1 << i)));
+  *nh = likely(i < (int)entry->nNexthops) ? entry->nexthops[i] : FACEID_INVALID;
+  return i;
+}
+
+/** \brief Iterator over FIB nexthops that pass a filter.
+ *  \param filter a FibNexthopFilter.
+ *  \param entry pointer to FibEntry.
+ *  \param index undeclared variable name for the entry.
+ *  \param nh declared FaceId variable for nexthop face.
+ *
+ *  Example:
+ *  \code
+ *  FaceId nh;
+ *  FibNexthopFilter_ForEach(filter, entry, i, nh) {
+ *    // use i and nh
+ *    // 'continue' and 'break' are available
+ *  }
+ *  \endcode
+ */
+#define FibNexthopFilter_ForEach(filter, entry, index, nh)                     \
+  for (int index = __FibNexthopFilter_Next(filter, (entry), -1, &nh);          \
+       index < (int)(entry)->nNexthops;                                        \
+       index = __FibNexthopFilter_Next(filter, (entry), index, &nh))
+
+/** \brief Count how many faces pass the filter.
  */
 static int
-FibEntry_FilterNexthops(const FibEntry* fibEntry, FaceId result[],
-                        FaceId rejects[], int nRejects)
+FibNexthopFilter_Count(FibNexthopFilter filter, const FibEntry* entry)
 {
   int count = 0;
-  for (int i = 0; i < fibEntry->nNexthops; ++i) {
-    FaceId nh = fibEntry->nexthops[i];
-    bool ok = true;
-    for (int j = 0; j < nRejects; ++j) {
-      if (nh == rejects[j]) {
-        ok = false;
-        break;
-      }
-    }
-    if (ok) {
-      result[count++] = nh;
+  FaceId nh;
+  FibNexthopFilter_ForEach(filter, entry, i, nh) { ++count; }
+  return count;
+}
+
+/** \brief Reject the given nexthop.
+ *  \param[inout] original and updated filter.
+ *  \return count of passing faces after the update.
+ */
+static int
+FibNexthopFilter_Reject(FibNexthopFilter* filter, const FibEntry* entry,
+                        FaceId face)
+{
+  int count = 0;
+  FaceId nh;
+  FibNexthopFilter_ForEach(*filter, entry, i, nh)
+  {
+    if (nh == face) {
+      *filter |= (1 << i);
+    } else {
+      ++count;
     }
   }
   return count;

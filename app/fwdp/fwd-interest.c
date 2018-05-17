@@ -16,11 +16,10 @@ typedef struct FwFwdRxInterestContext
   FaceId dnFace;
 
   const FibEntry* fibEntry;
+  FibNexthopFilter nhFlt;
+
   PitEntry* pitEntry;
   CsEntry* csEntry;
-
-  FaceId nexthops[FIB_ENTRY_MAX_NEXTHOPS];
-  uint8_t nNexthops;
 } FwFwdRxInterestContext;
 
 static bool
@@ -33,12 +32,9 @@ FwFwd_LookupFib(FwFwd* fwd, FwFwdRxInterestContext* ctx)
     if (unlikely(ctx->fibEntry == NULL)) {
       return false;
     }
-    ctx->nNexthops =
-      FibEntry_FilterNexthops(ctx->fibEntry, ctx->nexthops, &ctx->dnFace, 1);
-    if (unlikely(ctx->nNexthops == 0)) {
-      return false;
-    }
-    return true;
+    int nNexthops =
+      FibNexthopFilter_Reject(&ctx->nhFlt, ctx->fibEntry, ctx->dnFace);
+    return nNexthops > 0;
   }
 
   for (int fhIndex = 0; fhIndex < interest->nFhs; ++fhIndex) {
@@ -53,9 +49,10 @@ FwFwd_LookupFib(FwFwd* fwd, FwFwdRxInterestContext* ctx)
     if (unlikely(ctx->fibEntry == NULL)) {
       continue;
     }
-    ctx->nNexthops =
-      FibEntry_FilterNexthops(ctx->fibEntry, ctx->nexthops, &ctx->dnFace, 1);
-    if (unlikely(ctx->nNexthops == 0)) {
+    ctx->nhFlt = 0;
+    int nNexthops =
+      FibNexthopFilter_Reject(&ctx->nhFlt, ctx->fibEntry, ctx->dnFace);
+    if (unlikely(nNexthops == 0)) {
       continue;
     }
     return true;
@@ -97,9 +94,9 @@ FwFwd_InterestForward(FwFwd* fwd, FwFwdRxInterestContext* ctx)
 
   sgCtx.fwd = fwd;
   sgCtx.inner.eventKind = SGEVT_INTEREST;
+  sgCtx.inner.nhFlt = (SgFibNexthopFilter)ctx->nhFlt;
+  sgCtx.inner.fibEntry = (SgFibEntry*)ctx->fibEntry;
   sgCtx.inner.pitEntry = (SgPitEntry*)ctx->pitEntry;
-  sgCtx.inner.nexthops = ctx->nexthops;
-  sgCtx.inner.nNexthops = ctx->nNexthops;
   uint64_t res = SgInvoke(ctx->fibEntry->strategy, &sgCtx);
   ZF_LOGD("^ sg-res=%" PRIu64, res);
 }
@@ -142,9 +139,8 @@ FwFwd_RxInterest(FwFwd* fwd, Packet* npkt)
     rcu_read_unlock();
     return;
   }
-  ZF_LOGD("^ fh-index=%d fib-entry-depth=%" PRIu8 " nexthop-count=%" PRIu8,
-          interest->activeFh, ctx.fibEntry->nComps, ctx.nNexthops);
-  assert(ctx.nNexthops > 0);
+  ZF_LOGD("^ fh-index=%d fib-entry-depth=%" PRIu8, interest->activeFh,
+          ctx.fibEntry->nComps);
 
   // lookup PIT-CS
   PitResult pitIns = Pit_Insert(fwd->pit, npkt);

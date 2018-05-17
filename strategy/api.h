@@ -3,6 +3,7 @@
 
 /// \file
 
+#include "api-fib.h"
 #include "api-pit.h"
 
 /** \brief Indicate why the strategy program is invoked.
@@ -18,10 +19,34 @@ typedef enum SgEvent {
 typedef struct SgCtx
 {
   SgEvent eventKind;
+  SgFibNexthopFilter nhFlt;
+  SgFibEntry* fibEntry;
   SgPitEntry* pitEntry;
-  FaceId* nexthops;
-  uint8_t nNexthops;
 } SgCtx;
+
+/** \brief Iterator over FIB nexthops that pass ctx->nhFlt.
+ *  \param index undeclared variable name for the entry.
+ *  \param nh declared FaceId variable for nexthop face.
+ *
+ *  Example:
+ *  \code
+ *  FaceId nh;
+ *  SgCtx_ForEachNexthop(ctx, i, nh) {
+ *    // use i and nh
+ *    // 'continue' and 'break' are available
+ *  }
+ *  \endcode
+ */
+#define SgCtx_ForEachNexthop(ctx, index, nh)                                   \
+  SgFibNexthopFilter_ForEach(ctx->nhFlt, ctx->fibEntry, index, nh)
+
+/** \brief Access FIB entry scratch area as T* type.
+ */
+#define SgCtx_FibScratchT(ctx, T)                                              \
+  __extension__({                                                              \
+    static_assert(sizeof(T) <= SG_FIB_DYN_SCRATCH, "");                        \
+    (T*)ctx->pitEntry->scratch;                                                \
+  })
 
 /** \brief Access PIT entry scratch area as T* type.
  */

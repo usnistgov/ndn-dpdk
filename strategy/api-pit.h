@@ -3,11 +3,7 @@
 
 /// \file
 
-#include "../core/common1.h"
-
-typedef uint16_t FaceId;
-typedef uint64_t TscTime;
-typedef int64_t TscDuration;
+#include "api-common.h"
 
 typedef struct SgPitDn
 {

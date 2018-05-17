@@ -14,14 +14,23 @@ inline uint64_t
 RxInterest(SgCtx* ctx)
 {
   PitEntryInfo* pei = SgCtx_PitScratchT(ctx, PitEntryInfo);
-  if (pei->nextNexthopIndex >= ctx->nNexthops) {
+  if (pei->nextNexthopIndex >= ctx->fibEntry->nNexthops) {
     pei->nextNexthopIndex = 0;
   }
-  SgForwardInterestResult res;
-  do {
-    FaceId nh = ctx->nexthops[pei->nextNexthopIndex++];
+
+  SgForwardInterestResult res = SGFWDI_BADFACE;
+  FaceId nh;
+  SgCtx_ForEachNexthop(ctx, i, nh)
+  {
+    if (i < (int)pei->nextNexthopIndex) {
+      continue;
+    }
+    pei->nextNexthopIndex = i + 1;
     res = SgForwardInterest(ctx, nh);
-  } while (res != SGFWDI_OK && pei->nextNexthopIndex < ctx->nNexthops);
+    if (res == SGFWDI_OK) {
+      break;
+    }
+  }
   return res == SGFWDI_OK ? 0 : 3;
 }
 
