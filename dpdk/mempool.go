@@ -55,15 +55,14 @@ func (mp Mempool) CountInUse() int {
 	return int(C.rte_mempool_in_use_count(mp.c))
 }
 
-func (mp Mempool) Alloc() (ptr unsafe.Pointer, e error) {
+func (mp Mempool) Alloc() (ptr unsafe.Pointer) {
 	res := C.rte_mempool_get(mp.c, &ptr)
 	if res != 0 {
-		return nil, errors.New("mbuf allocation failed")
+		return nil
 	}
-	return ptr, nil
+	return ptr
 }
 
-// Allocate several mbufs, writing into supplied slice of Mbuf or Packet.
 func (mp Mempool) AllocBulk(objs interface{}) error {
 	ptr, count := ParseCptrArray(objs)
 	res := C.rte_mempool_get_bulk(mp.c, (*unsafe.Pointer)(ptr), C.uint(count))
@@ -75,6 +74,11 @@ func (mp Mempool) AllocBulk(objs interface{}) error {
 
 func (mp Mempool) Free(obj unsafe.Pointer) {
 	C.rte_mempool_put(mp.c, obj)
+}
+
+func (mp Mempool) FreeBulk(objs interface{}) {
+	ptr, count := ParseCptrArray(objs)
+	C.rte_mempool_put_bulk(mp.c, (*unsafe.Pointer)(ptr), C.uint(count))
 }
 
 type PktmbufPool struct {

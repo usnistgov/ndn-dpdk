@@ -12,7 +12,6 @@ func TestMempool(t *testing.T) {
 
 	mp, e := dpdk.NewMempool("MP", 63, 0, 256, dpdk.NUMA_SOCKET_ANY)
 	require.NoError(e)
-	require.NotNil(mp)
 	defer mp.Close()
 
 	assert.Equal(256, mp.SizeofElement())
@@ -25,20 +24,20 @@ func TestMempool(t *testing.T) {
 	assert.Equal(30, mp.CountAvailable())
 	assert.Equal(33, mp.CountInUse())
 	for i := 0; i < 30; i++ {
-		objs[i], e = mp.Alloc()
-		assert.NoError(e)
+		objs[i] = mp.Alloc()
+		assert.False(objs[i] == nil)
 	}
 	assert.Equal(0, mp.CountAvailable())
 	assert.Equal(63, mp.CountInUse())
-	_, e = mp.Alloc()
-	assert.Error(e)
+	assert.True(mp.Alloc() == nil)
 	mp.Free(objs[0])
 	assert.Equal(1, mp.CountAvailable())
 	assert.Equal(62, mp.CountInUse())
 
-	for i := 1; i < 63; i++ {
+	for i := 1; i < 30; i++ {
 		mp.Free(objs[i])
 	}
+	mp.FreeBulk(objs[30:])
 	assert.Equal(63, mp.CountAvailable())
 }
 
@@ -47,7 +46,6 @@ func TestPktmbufPool(t *testing.T) {
 
 	mp, e := dpdk.NewPktmbufPool("MP", 63, 0, 0, 1000, dpdk.NUMA_SOCKET_ANY)
 	require.NoError(e)
-	require.NotNil(mp)
 	defer mp.Close()
 
 	assert.Equal(63, mp.CountAvailable())
