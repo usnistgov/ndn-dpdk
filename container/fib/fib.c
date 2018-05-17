@@ -35,16 +35,6 @@ Fib_New(const char* id, uint32_t maxEntries, uint32_t nBuckets,
   return fib;
 }
 
-FibEntry*
-Fib_Alloc(Fib* fib)
-{
-  FibEntry* entry = Tsht_AllocT(Fib_ToTsht(fib), FibEntry);
-  if (likely(entry != NULL)) {
-    memset(entry, 0, sizeof(*entry));
-  }
-  return entry;
-}
-
 bool
 Fib_Insert(Fib* fib, FibEntry* entry)
 {

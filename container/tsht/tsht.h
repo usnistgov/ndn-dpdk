@@ -66,23 +66,6 @@ void Tsht_Close(Tsht* ht);
  */
 bool Tsht_AllocBulk(Tsht* ht, TshtEntryPtr entries[], unsigned count);
 
-/** \brief Allocate an entry from TSHT's mempool.
- */
-static TshtEntryPtr
-Tsht_Alloc(Tsht* ht)
-{
-  TshtEntryPtr entry;
-  bool ok = Tsht_AllocBulk(ht, &entry, 1);
-  if (unlikely(!ok)) {
-    return NULL;
-  }
-  return entry;
-}
-
-/** \brief Allocate an entry from TSHT's mempool, and cast as T* type.
- */
-#define Tsht_AllocT(ht, T) ((T*)Tsht_Alloc((ht)))
-
 /** \brief Deallocate an unused entry.
  *
  *  \c Tsht_Finalize will not be invoked for this entry.

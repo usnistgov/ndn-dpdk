@@ -12,6 +12,14 @@ import (
 	"ndn-dpdk/ndn"
 )
 
+func (fib *Fib) allocC(fibC *C.Fib) (entryC *C.FibEntry) {
+	ok := bool(C.Fib_AllocBulk(fibC, &entryC, 1))
+	if !ok {
+		entryC = nil
+	}
+	return entryC
+}
+
 func (fib *Fib) insertC(fibC *C.Fib, entryC *C.FibEntry) (isNew bool) {
 	isNew = bool(C.Fib_Insert(fibC, entryC))
 	if isNew {
@@ -61,7 +69,7 @@ func (fib *Fib) Insert(entry *Entry) (isNew bool, e error) {
 		// allocate and populate new entries
 		var newEntriesC []*C.FibEntry
 		for _, fibC := range fibsC {
-			if newEntryC := C.Fib_Alloc(fibC); newEntryC == nil {
+			if newEntryC := fib.allocC(fibC); newEntryC == nil {
 				for i, allocatedEntryC := range newEntriesC {
 					C.Fib_Free(fibsC[i], allocatedEntryC)
 				}
@@ -79,12 +87,13 @@ func (fib *Fib) Insert(entry *Entry) (isNew bool, e error) {
 			virtNameV := ndn.JoinNameComponents(name.ListPrefixComps(fib.startDepth))
 			oldVirtC := findC(fibC, virtNameV)
 			if oldVirtC == nil || int(oldVirtC.maxDepth) < nComps-fib.startDepth {
-				newVirtC := C.Fib_Alloc(fibC)
+				newVirtC := fib.allocC(fibC)
 				if newVirtC == nil {
 					C.Fib_Free(fibC, newEntriesC[0])
 					return errors.New("allocation error")
 				}
 				if oldVirtC == nil {
+					*newVirtC = C.FibEntry{}
 					entrySetName(newVirtC, virtNameV, fib.startDepth)
 				} else {
 					*newVirtC = *oldVirtC
@@ -179,7 +188,7 @@ func (fib *Fib) Erase(name *ndn.Name) (e error) {
 					fib.eraseC(fibC, oldVirtC)
 				} else {
 					// update virtual entry
-					newVirtC := C.Fib_Alloc(fibC)
+					newVirtC := fib.allocC(fibC)
 					if newVirtC == nil {
 						return errors.New("allocation error")
 					}
@@ -189,10 +198,11 @@ func (fib *Fib) Erase(name *ndn.Name) (e error) {
 				}
 			} else if nComps == fib.startDepth && newMd != 0 {
 				// replace oldEntriesC[0] with virtual entry
-				newVirtC := C.Fib_Alloc(fibC)
+				newVirtC := fib.allocC(fibC)
 				if newVirtC == nil {
 					return errors.New("allocation error")
 				}
+				*newVirtC = C.FibEntry{}
 				entrySetName(newVirtC, name.GetValue(), nComps)
 				newVirtC.maxDepth = C.uint8_t(newMd)
 				fib.insertC(fibC, newVirtC)
@@ -283,7 +293,7 @@ func (fib *Fib) Relocate(ndtIndex uint64, oldPartition, newPartition uint8,
 		// allocate new entries
 		if len(ctx.oldEntriesC) > 0 {
 			ctx.newEntriesC = make([]*C.FibEntry, len(ctx.oldEntriesC))
-			if ok := bool(C.Fib_RawAllocBulk(ctx.newFibC, &ctx.newEntriesC[0], C.unsigned(len(ctx.newEntriesC)))); !ok {
+			if ok := bool(C.Fib_AllocBulk(ctx.newFibC, &ctx.newEntriesC[0], C.unsigned(len(ctx.newEntriesC)))); !ok {
 				return errors.New("allocation error")
 			}
 		}

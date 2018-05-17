@@ -55,14 +55,10 @@ Fib_Close(Fib* fib)
   Tsht_Close(Fib_ToTsht(fib));
 }
 
-/** \brief Allocate and zero a FIB entry from mempool.
- */
-FibEntry* Fib_Alloc(Fib* fib);
-
-/** \brief Allocate FIB entries from mempool without zeroing.
+/** \brief Allocate FIB entries from mempool.
  */
 static bool
-Fib_RawAllocBulk(Fib* fib, FibEntry* entries[], unsigned count)
+Fib_AllocBulk(Fib* fib, FibEntry* entries[], unsigned count)
 {
   return Tsht_AllocBulk(Fib_ToTsht(fib), (TshtEntryPtr*)entries, count);
 }
