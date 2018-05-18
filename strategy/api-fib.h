@@ -27,35 +27,60 @@ typedef struct SgFibEntry
 
 typedef uint32_t SgFibNexthopFilter;
 
-inline int
-__SgFibNexthopFilter_Next(SgFibNexthopFilter filter, const SgFibEntry* entry,
-                          int i, FaceId* nh)
-{
-  do {
-    ++i;
-  } while (i < (int)entry->nNexthops && (filter & (1 << i)));
-  *nh = i < (int)entry->nNexthops ? entry->nexthops[i] : FACEID_INVALID;
-  return i;
-}
-
-/** \brief Iterator over FIB nexthops that pass a filter.
- *  \param filter a SgFibNexthopFilter.
- *  \param entry pointer to SgFibEntry.
- *  \param index undeclared variable name for the entry.
- *  \param nh declared FaceId variable for nexthop face.
+/** \brief Iterator of FIB nexthops passing a filter.
  *
- *  Example:
  *  \code
- *  FaceId nh;
- *  SgFibNexthopFilter_ForEach(filter, entry, i, nh) {
- *    // use i and nh
- *    // 'continue' and 'break' are available
+ *  SgFibNexthopIt it;
+ *  for (SgFibNexthopIt_Init(&it, entry, filter); // or SgFibNexthopIt_Init2(&it, ctx)
+ *       SgFibNexthopIt_Valid(&it);
+ *       SgFibNexthopIt_Next(&it)) {
+ *    int index = it.i;
+ *    FaceId nexthop = it.nh;
  *  }
  *  \endcode
  */
-#define SgFibNexthopFilter_ForEach(filter, entry, index, nh)                   \
-  for (int index = __SgFibNexthopFilter_Next(filter, (entry), -1, &nh);        \
-       index < (int)(entry)->nNexthops;                                        \
-       index = __SgFibNexthopFilter_Next(filter, (entry), index, &nh))
+typedef struct SgFibNexthopIt
+{
+  const SgFibEntry* entry;
+  SgFibNexthopFilter filter;
+  uint8_t i;
+  FaceId nh;
+} SgFibNexthopIt;
+
+inline bool
+SgFibNexthopIt_Valid(const SgFibNexthopIt* it)
+{
+  return it->i < it->entry->nNexthops;
+}
+
+inline void
+__SgFibNexthopIt_Advance(SgFibNexthopIt* it)
+{
+  for (; SgFibNexthopIt_Valid(it); ++it->i) {
+    if (it->filter & (1 << it->i)) {
+      continue;
+    }
+    it->nh = it->entry->nexthops[it->i];
+    return;
+  }
+  it->nh = FACEID_INVALID;
+}
+
+inline void
+SgFibNexthopIt_Init(SgFibNexthopIt* it, const SgFibEntry* entry,
+                    SgFibNexthopFilter filter)
+{
+  it->entry = entry;
+  it->filter = filter;
+  it->i = 0;
+  __SgFibNexthopIt_Advance(it);
+}
+
+inline void
+SgFibNexthopIt_Next(SgFibNexthopIt* it)
+{
+  ++it->i;
+  __SgFibNexthopIt_Advance(it);
+}
 
 #endif // NDN_DPDK_STRATEGY_API_FIB_H

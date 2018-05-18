@@ -6,8 +6,11 @@
 inline uint64_t
 RxInterest(SgCtx* ctx)
 {
-  FaceId nh;
-  SgCtx_ForEachNexthop(ctx, i, nh) { SgForwardInterest(ctx, nh); }
+  SgFibNexthopIt it;
+  for (SgFibNexthopIt_Init2(&it, ctx); SgFibNexthopIt_Valid(&it);
+       SgFibNexthopIt_Next(&it)) {
+    SgForwardInterest(ctx, it.nh);
+  }
   return 0;
 }
 

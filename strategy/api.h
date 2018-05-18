@@ -24,21 +24,14 @@ typedef struct SgCtx
   SgPitEntry* pitEntry;
 } SgCtx;
 
-/** \brief Iterator over FIB nexthops that pass ctx->nhFlt.
- *  \param index undeclared variable name for the entry.
- *  \param nh declared FaceId variable for nexthop face.
- *
- *  Example:
- *  \code
- *  FaceId nh;
- *  SgCtx_ForEachNexthop(ctx, i, nh) {
- *    // use i and nh
- *    // 'continue' and 'break' are available
- *  }
- *  \endcode
+/** \brief Iterate over FIB nexthops passing ctx->nhFlt.
+ *  \sa SgFibNexthopIt
  */
-#define SgCtx_ForEachNexthop(ctx, index, nh)                                   \
-  SgFibNexthopFilter_ForEach(ctx->nhFlt, ctx->fibEntry, index, nh)
+inline void
+SgFibNexthopIt_Init2(SgFibNexthopIt* it, const SgCtx* ctx)
+{
+  SgFibNexthopIt_Init(it, ctx->fibEntry, ctx->nhFlt);
+}
 
 /** \brief Access FIB entry scratch area as T* type.
  */

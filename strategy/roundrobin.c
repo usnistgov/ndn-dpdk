@@ -19,14 +19,14 @@ RxInterest(SgCtx* ctx)
   }
 
   SgForwardInterestResult res = SGFWDI_BADFACE;
-  FaceId nh;
-  SgCtx_ForEachNexthop(ctx, i, nh)
-  {
-    if (i < (int)pei->nextNexthopIndex) {
+  SgFibNexthopIt it;
+  for (SgFibNexthopIt_Init2(&it, ctx); SgFibNexthopIt_Valid(&it);
+       SgFibNexthopIt_Next(&it)) {
+    if (it.i < pei->nextNexthopIndex) {
       continue;
     }
-    pei->nextNexthopIndex = i + 1;
-    res = SgForwardInterest(ctx, nh);
+    pei->nextNexthopIndex = it.i + 1;
+    res = SgForwardInterest(ctx, it.nh);
     if (res == SGFWDI_OK) {
       break;
     }

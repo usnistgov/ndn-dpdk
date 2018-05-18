@@ -68,63 +68,20 @@ typedef uint32_t FibNexthopFilter;
 static_assert(CHAR_BIT * sizeof(FibNexthopFilter) >= FIB_ENTRY_MAX_NEXTHOPS,
               "");
 
-static int
-__FibNexthopFilter_Next(FibNexthopFilter filter, const FibEntry* entry, int i,
-                        FaceId* nh)
-{
-  do {
-    ++i;
-  } while (i < (int)entry->nNexthops && (filter & (1 << i)));
-  *nh = likely(i < (int)entry->nNexthops) ? entry->nexthops[i] : FACEID_INVALID;
-  return i;
-}
-
-/** \brief Iterator over FIB nexthops that pass a filter.
- *  \param filter a FibNexthopFilter.
- *  \param entry pointer to FibEntry.
- *  \param index undeclared variable name for the entry.
- *  \param nh declared FaceId variable for nexthop face.
- *
- *  Example:
- *  \code
- *  FaceId nh;
- *  FibNexthopFilter_ForEach(filter, entry, i, nh) {
- *    // use i and nh
- *    // 'continue' and 'break' are available
- *  }
- *  \endcode
- */
-#define FibNexthopFilter_ForEach(filter, entry, index, nh)                     \
-  for (int index = __FibNexthopFilter_Next(filter, (entry), -1, &nh);          \
-       index < (int)(entry)->nNexthops;                                        \
-       index = __FibNexthopFilter_Next(filter, (entry), index, &nh))
-
-/** \brief Count how many faces pass the filter.
- */
-static int
-FibNexthopFilter_Count(FibNexthopFilter filter, const FibEntry* entry)
-{
-  int count = 0;
-  FaceId nh;
-  FibNexthopFilter_ForEach(filter, entry, i, nh) { ++count; }
-  return count;
-}
-
 /** \brief Reject the given nexthop.
  *  \param[inout] original and updated filter.
- *  \return count of passing faces after the update.
+ *  \return how many nexthops pass the filter after the update.
  */
 static int
 FibNexthopFilter_Reject(FibNexthopFilter* filter, const FibEntry* entry,
-                        FaceId face)
+                        FaceId nh)
 {
   int count = 0;
-  FaceId nh;
-  FibNexthopFilter_ForEach(*filter, entry, i, nh)
-  {
-    if (nh == face) {
+  for (uint8_t i = 0; i < entry->nNexthops; ++i) {
+    if (entry->nexthops[i] == nh) {
       *filter |= (1 << i);
-    } else {
+    }
+    if (!(*filter & (1 << i))) {
       ++count;
     }
   }
