@@ -23,8 +23,9 @@ func (fib *Fib) ListNames() (names []*ndn.Name) {
 	return names
 }
 
-func findC(fibC *C.Fib, nameV ndn.TlvBytes) (entryC *C.FibEntry) {
-	return C.__Fib_Find(fibC, C.uint16_t(len(nameV)), (*C.uint8_t)(nameV.GetPtr()))
+func findC(fibC *C.Fib, nameV ndn.TlvBytes, hash uint64) (entryC *C.FibEntry) {
+	return C.__Fib_Find(fibC, C.uint16_t(len(nameV)), (*C.uint8_t)(nameV.GetPtr()),
+		C.uint64_t(hash))
 }
 
 // Perform an exact match lookup.
@@ -42,7 +43,7 @@ func (fib *Fib) Find(name *ndn.Name) (entry *Entry) {
 func (fib *Fib) FindInPartition(name *ndn.Name, partition int, rs *urcu.ReadSide) (entry *Entry) {
 	rs.Lock()
 	defer rs.Unlock()
-	entryC := findC(fib.c[partition], name.GetValue())
+	entryC := findC(fib.c[partition], name.GetValue(), name.ComputeHash())
 	if entryC != nil {
 		entry = &Entry{*entryC}
 	}

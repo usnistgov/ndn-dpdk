@@ -99,7 +99,8 @@ func (fib *Fib) Insert(entry *Entry) (isNew bool, e error) {
 			// only one partition because cfg.StartDepth > ndt.GetPrefixLen()
 			fibC := fibsC[0]
 			virtNameV := ndn.JoinNameComponents(name.ListPrefixComps(fib.startDepth))
-			oldVirtC := findC(fibC, virtNameV)
+			virtNameHash := name.ComputePrefixHash(fib.startDepth)
+			oldVirtC := findC(fibC, virtNameV, virtNameHash)
 			if oldVirtC == nil || int(oldVirtC.maxDepth) < nComps-fib.startDepth {
 				newVirtC := fib.allocC(fibC)
 				if newVirtC == nil {
@@ -121,7 +122,7 @@ func (fib *Fib) Insert(entry *Entry) (isNew bool, e error) {
 		isReplacingVirtual := false
 		if nComps == fib.startDepth {
 			// only one partition because cfg.StartDepth > ndt.GetPrefixLen()
-			oldEntryC := findC(fibsC[0], name.GetValue())
+			oldEntryC := findC(fibsC[0], name.GetValue(), name.ComputeHash())
 			if oldEntryC != nil && oldEntryC.maxDepth > 0 {
 				newEntriesC[0].maxDepth = oldEntryC.maxDepth
 				isReplacingVirtual = true
@@ -174,7 +175,7 @@ func (fib *Fib) Erase(name *ndn.Name) (e error) {
 		// retrieve old entries
 		var oldEntriesC []*C.FibEntry
 		for _, fibC := range fibsC {
-			if oldEntryC := findC(fibC, name.GetValue()); oldEntryC == nil {
+			if oldEntryC := findC(fibC, name.GetValue(), name.ComputeHash()); oldEntryC == nil {
 				return errors.New("entry does not exist")
 			} else {
 				oldEntriesC = append(oldEntriesC, oldEntryC)
@@ -196,7 +197,8 @@ func (fib *Fib) Erase(name *ndn.Name) (e error) {
 
 			if nComps > fib.startDepth && oldMd != newMd {
 				virtNameV := ndn.JoinNameComponents(name.ListPrefixComps(fib.startDepth))
-				oldVirtC := findC(fibC, virtNameV) // is not nil
+				virtNameHash := name.ComputePrefixHash(fib.startDepth)
+				oldVirtC := findC(fibC, virtNameV, virtNameHash) // is not nil
 				if newMd == 0 {
 					// erase virtual entry
 					fib.eraseC(fibC, oldVirtC)
@@ -296,14 +298,15 @@ func (fib *Fib) Relocate(ndtIndex uint64, oldPartition, newPartition uint8,
 		for n, nameV := range fib.sti[ndtIndex] {
 			nn := nodeName{NameV: string(nameV), NComps: fib.ndt.GetPrefixLen()}
 			n.Walk(nn, func(nn nodeName, node *node) {
+				name := nn.GetName()
 				if node.IsEntry || (node.MaxDepth > 0 && nn.NComps == fib.startDepth) {
-					if oldEntryC := findC(ctx.oldFibC, ndn.TlvBytes(nn.NameV)); oldEntryC == nil {
-						panic(fmt.Sprintf("entry not found %s", nn.GetName()))
-					} else {
-						ctx.oldEntriesC = append(ctx.oldEntriesC, oldEntryC)
-						if oldEntryC.dyn != nil {
-							ctx.nOldDyns++
-						}
+					oldEntryC := findC(ctx.oldFibC, name.GetValue(), name.ComputeHash())
+					if oldEntryC == nil {
+						panic(fmt.Sprintf("entry not found %s", name))
+					}
+					ctx.oldEntriesC = append(ctx.oldEntriesC, oldEntryC)
+					if oldEntryC.dyn != nil {
+						ctx.nOldDyns++
 					}
 				}
 			})

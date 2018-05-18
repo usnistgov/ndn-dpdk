@@ -90,18 +90,20 @@ Fib_Erase(Fib* fib, FibEntry* entry)
 }
 
 /** \brief Perform exact match.
- *  \note This function is meant for management usage. It does not use cached hash value,
- *        and thus would be inefficient for dataplane.
  *  \pre Calling thread holds rcu_read_lock, which must be retained until it stops
  *       using the returned entry.
  */
-const FibEntry* Fib_Find(Fib* fib, LName name);
+static const FibEntry*
+Fib_Find(Fib* fib, LName name, uint64_t hash)
+{
+  return Tsht_FindT(Fib_ToTsht(fib), hash, &name, FibEntry);
+}
 
 static const FibEntry*
-__Fib_Find(Fib* fib, uint16_t nameL, const uint8_t* nameV)
+__Fib_Find(Fib* fib, uint16_t nameL, const uint8_t* nameV, uint64_t hash)
 {
   LName name = {.length = nameL, .value = nameV };
-  return Fib_Find(fib, name);
+  return Fib_Find(fib, name, hash);
 }
 
 const FibEntry* __Fib_Lpm(Fib* fib, const PName* name, const uint8_t* nameV);

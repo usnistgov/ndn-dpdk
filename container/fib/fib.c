@@ -57,13 +57,6 @@ Fib_Insert(Fib* fib, FibEntry* entry)
   return Tsht_Insert(Fib_ToTsht(fib), hash, &key, entry);
 }
 
-const FibEntry*
-Fib_Find(Fib* fib, LName name)
-{
-  uint64_t hash = LName_ComputeHash(name);
-  return Tsht_FindT(Fib_ToTsht(fib), hash, &name, FibEntry);
-}
-
 static const FibEntry*
 Fib_GetEntryByPrefix(Fib* fib, const PName* name, const uint8_t* nameV,
                      uint16_t prefixLen)
