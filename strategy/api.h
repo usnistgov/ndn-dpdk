@@ -38,7 +38,7 @@ SgFibNexthopIt_Init2(SgFibNexthopIt* it, const SgCtx* ctx)
 #define SgCtx_FibScratchT(ctx, T)                                              \
   __extension__({                                                              \
     static_assert(sizeof(T) <= SG_FIB_DYN_SCRATCH, "");                        \
-    (T*)ctx->pitEntry->scratch;                                                \
+    (T*)ctx->fibEntry->dyn->scratch;                                           \
   })
 
 /** \brief Access PIT entry scratch area as T* type.
