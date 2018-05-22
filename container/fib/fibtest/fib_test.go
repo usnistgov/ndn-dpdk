@@ -51,6 +51,10 @@ func TestFibInsertErase(t *testing.T) {
 	urcu.Barrier()
 	assert.Equal(3, fixture.CountMpInUse(0))
 	assert.Equal(2, strategyP.CountRefs())
+	entryA := fib.Find(nameA)
+	require.NotNil(entryA)
+	assert.True(entryA.GetName().Equal(nameA))
+	seqNo1 := entryA.GetSeqNo()
 
 	isNew, e = fib.Insert(fixture.MakeEntry("/A", strategyQ, 3092))
 	assert.NoError(e)
@@ -65,9 +69,11 @@ func TestFibInsertErase(t *testing.T) {
 	assert.Equal(2, fixture.CountMpInUse(0))
 	assert.Equal(2, strategyQ.CountRefs())
 
-	entryA := fib.Find(nameA)
+	entryA = fib.Find(nameA)
 	require.NotNil(entryA)
 	assert.True(entryA.GetName().Equal(nameA))
+	seqNo2 := entryA.GetSeqNo()
+	assert.NotEqual(seqNo1, seqNo2)
 	names := fib.ListNames()
 	require.Len(names, 1)
 	assert.True(names[0].Equal(nameA))

@@ -18,7 +18,7 @@ typedef struct SgFibEntry
 {
   char _a[8];
   SgFibEntryDyn* dyn;
-  char _b[3];
+  char _b[7];
   uint8_t nNexthops;
   char _c[2];
   FaceId nexthops[SG_FIB_ENTRY_MAX_NEXTHOPS];

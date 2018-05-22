@@ -28,6 +28,7 @@ Supported commands include:
 Key type is name TLV-VALUE.
 Hash value is SipHash of name.
 Element type is `FibEntry` that represents either a FIB entry or a virtual entry (in 2-stage LPM).
+Each `FibEntry` carries a sequence number that is incremented upon every insertion, allowing to detect an entry has changed.
 
 `Fib_Lpm` function implements 2-stage LPM procedure.
 It is the only function intended to be called from other packages.

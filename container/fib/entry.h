@@ -36,6 +36,8 @@ typedef struct FibEntry
   StrategyCode* strategy;
   FibEntryDyn* dyn;
 
+  uint32_t seqNo; ///< sequence number to detect FIB changes
+
   uint16_t nameL;    ///< TLV-LENGTH of name
   uint8_t nComps;    ///< number of name components
   uint8_t nNexthops; ///< number of nexthops
@@ -69,7 +71,7 @@ static_assert(CHAR_BIT * sizeof(FibNexthopFilter) >= FIB_ENTRY_MAX_NEXTHOPS,
               "");
 
 /** \brief Reject the given nexthop.
- *  \param[inout] original and updated filter.
+ *  \param[inout] filter original and updated filter.
  *  \return how many nexthops pass the filter after the update.
  */
 static int

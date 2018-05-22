@@ -18,6 +18,10 @@ type Entry struct {
 	c C.FibEntry
 }
 
+func (entry *Entry) GetSeqNo() uint32 {
+	return uint32(entry.c.seqNo)
+}
+
 func (entry *Entry) GetName() (name *ndn.Name) {
 	nameV := make(ndn.TlvBytes, int(entry.c.nameL))
 	for i := range nameV {
