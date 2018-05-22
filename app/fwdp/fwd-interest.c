@@ -57,8 +57,9 @@ FwFwd_InterestForward(FwFwd* fwd, FwFwdRxInterestContext* ctx)
 
   sgCtx.fwd = fwd;
   sgCtx.inner.eventKind = SGEVT_INTEREST;
+  sgCtx.inner.pkt = (const SgPacket*)ctx->pkt;
+  sgCtx.inner.fibEntry = (const SgFibEntry*)ctx->fibEntry;
   sgCtx.inner.nhFlt = (SgFibNexthopFilter)ctx->nhFlt;
-  sgCtx.inner.fibEntry = (SgFibEntry*)ctx->fibEntry;
   sgCtx.inner.pitEntry = (SgPitEntry*)ctx->pitEntry;
   uint64_t res = SgInvoke(ctx->fibEntry->strategy, &sgCtx);
   ZF_LOGD("^ sg-res=%" PRIu64, res);

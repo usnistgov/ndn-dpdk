@@ -1,6 +1,6 @@
 CLIBPREFIX=build/libndn-dpdk
 STRATEGYPREFIX=build/strategy-bpf
-BPFFLAGS=-O2 -target bpf -I/usr/local/include/dpdk -Wno-int-to-void-pointer-cast
+BPFFLAGS=-O2 -target bpf -I/usr/local/include/dpdk -Wno-int-to-void-pointer-cast -mllvm -inline-threshold=65536
 
 all: godeps
 	go build -v ./...
@@ -116,9 +116,12 @@ strategies: strategy/strategy_elf/bindata.go
 strategy/strategy_elf/bindata.go: $(STRATEGYPREFIX)/multicast.o $(STRATEGYPREFIX)/fastroute.o $(STRATEGYPREFIX)/roundrobin.o
 	go-bindata -nomemcopy -pkg strategy_elf -prefix $(STRATEGYPREFIX) -o /dev/stdout $(STRATEGYPREFIX) | gofmt > strategy/strategy_elf/bindata.go
 
-strategy-% $(STRATEGYPREFIX)/%.o: strategy/%.c $(CLIBPREFIX)-strategy.a
+$(STRATEGYPREFIX)/%.o: strategy/%.c $(CLIBPREFIX)-strategy.a
 	mkdir -p $(STRATEGYPREFIX)
 	clang $(BPFFLAGS) -c $< -o $(STRATEGYPREFIX)/$*.o
+
+strategy-%.s: strategy/%.c
+	clang $(BPFFLAGS) -c $< -S -o -
 
 $(CLIBPREFIX)-strategy.a: strategy/api*
 	./cbuild.sh strategy

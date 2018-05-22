@@ -19,12 +19,17 @@ RxInterest(SgCtx* ctx)
   // TODO probe
 
   // unicast to selected nexthop
-  // XXX this might incorrectly use a rejected nexthop
   if (fei->hasSelectedNexthop) {
-    FaceId nh = ctx->fibEntry->nexthops[fei->selectedNexthop];
-    SgForwardInterestResult res = SgForwardInterest(ctx, nh);
-    if (res == SGFWDI_OK) {
-      return 0;
+    SgFibNexthopIt it;
+    for (SgFibNexthopIt_Init2(&it, ctx); SgFibNexthopIt_Valid(&it);
+         SgFibNexthopIt_Next(&it)) {
+      if (it.i == fei->selectedNexthop) {
+        SgForwardInterestResult res = SgForwardInterest(ctx, it.nh);
+        if (res == SGFWDI_OK) {
+          return 0;
+        }
+        break;
+      }
     }
     // if unicasting fails, proceed to multicast
   }
@@ -34,13 +39,25 @@ RxInterest(SgCtx* ctx)
   for (SgFibNexthopIt_Init2(&it, ctx); SgFibNexthopIt_Valid(&it);
        SgFibNexthopIt_Next(&it)) {
     SgForwardInterest(ctx, it.nh);
-
-    fei->hasSelectedNexthop = true;
-    fei->selectedNexthop = it.i;
-    // XXX RxData is not yet implemented, so this code selects the last nexthop
-    // as a test.
   }
   return 4;
+}
+
+inline uint64_t
+RxData(SgCtx* ctx)
+{
+  FibEntryInfo* fei = SgCtx_FibScratchT(ctx, FibEntryInfo);
+
+  SgFibNexthopIt it;
+  for (SgFibNexthopIt_Init(&it, ctx->fibEntry, 0); SgFibNexthopIt_Valid(&it);
+       SgFibNexthopIt_Next(&it)) {
+    if (it.nh == ctx->pkt->rxFace) {
+      fei->hasSelectedNexthop = true;
+      fei->selectedNexthop = it.i;
+      return 0;
+    }
+  }
+  return 5;
 }
 
 uint64_t
@@ -49,6 +66,8 @@ SgMain(SgCtx* ctx)
   switch (ctx->eventKind) {
     case SGEVT_INTEREST:
       return RxInterest(ctx);
+    case SGEVT_DATA:
+      return RxData(ctx);
     default:
       return 2;
   }

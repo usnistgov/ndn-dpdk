@@ -1,5 +1,6 @@
 #include "fwd.h"
 #include "fwd-lookup-fib.h"
+#include "strategy.h"
 
 #include "../../container/pcct/pit-dn-up-it.h"
 #include "../../core/logger.h"
@@ -30,10 +31,6 @@ FwFwd_DataSatisfy(FwFwd* fwd, FwFwdRxDataContext* ctx, PitEntry* pitEntry)
 {
   ZF_LOGD("^ pit-entry=%p pit-key=%s", pitEntry,
           PitEntry_ToDebugString(pitEntry));
-  if (likely(ctx->fibEntry != NULL)) {
-    ZF_LOGD("^ fib-entry-depth=%" PRIu8 " sg-id=%d", ctx->fibEntry->nComps,
-            ctx->fibEntry->strategy->id);
-  }
 
   PitDnIt it;
   for (PitDnIt_Init(&it, pitEntry); PitDnIt_Valid(&it); PitDnIt_Next(&it)) {
@@ -60,6 +57,19 @@ FwFwd_DataSatisfy(FwFwd* fwd, FwFwdRxDataContext* ctx, PitEntry* pitEntry)
       Packet_GetLpL3Hdr(outNpkt)->pitToken = dn->token;
       Face_Tx(dn->face, outNpkt);
     }
+  }
+
+  if (likely(ctx->fibEntry != NULL)) {
+    SgContext sgCtx = { 0 };
+    sgCtx.fwd = fwd;
+    sgCtx.inner.eventKind = SGEVT_DATA;
+    sgCtx.inner.pkt = (const SgPacket*)ctx->pkt;
+    sgCtx.inner.fibEntry = (const SgFibEntry*)ctx->fibEntry;
+    sgCtx.inner.nhFlt = ~0;
+    sgCtx.inner.pitEntry = (SgPitEntry*)pitEntry;
+    uint64_t res = SgInvoke(ctx->fibEntry->strategy, &sgCtx);
+    ZF_LOGD("^ fib-entry-depth=%" PRIu8 " sg-id=%d sg-res=%" PRIu64,
+            ctx->fibEntry->nComps, ctx->fibEntry->strategy->id, res);
   }
 }
 

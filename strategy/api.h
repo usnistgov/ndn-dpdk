@@ -4,6 +4,7 @@
 /// \file
 
 #include "api-fib.h"
+#include "api-packet.h"
 #include "api-pit.h"
 
 /** \brief Indicate why the strategy program is invoked.
@@ -12,6 +13,7 @@ typedef enum SgEvent {
   SGEVT_NONE,
   SGEVT_TIMER,    ///< timer expires
   SGEVT_INTEREST, ///< Interest arrives
+  SGEVT_DATA,     ///< Data arrives
 } SgEvent;
 
 /** \brief Context of strategy invocation.
@@ -20,7 +22,8 @@ typedef struct SgCtx
 {
   SgEvent eventKind;
   SgFibNexthopFilter nhFlt;
-  SgFibEntry* fibEntry;
+  const SgPacket* pkt;
+  const SgFibEntry* fibEntry;
   SgPitEntry* pitEntry;
 } SgCtx;
 
