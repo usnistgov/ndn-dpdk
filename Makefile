@@ -2,8 +2,10 @@ CLIBPREFIX=build/libndn-dpdk
 STRATEGYPREFIX=build/strategy-bpf
 BPFFLAGS=-O2 -target bpf -I/usr/local/include/dpdk -Wno-int-to-void-pointer-cast
 
-all: cbuilds cgoflags strategies
+all: godeps
 	go build -v ./...
+
+godeps: cbuilds cgoflags strategies app/version/version.go
 
 cbuilds:
 	bash -c "sed -n '/\.a:\s/ s/\$$(CLIBPREFIX)//p' Makefile | cut -d: -f1 | sed 's:^:$(CLIBPREFIX):' | xargs make"
@@ -137,14 +139,12 @@ app/fwdp/cgoflags.go: container/ndt/cgoflags.go container/fib/cgoflags.go contai
 app/version/version.go:
 	app/version/make-version.sh
 
-cmd-deps: cbuilds cgoflags app/version/version.go
+cmds: cmd-ndnfw-dpdk cmd-ndnping-dpdk cmd-ndnpktcopy-dpdk mgmtclient
 
-cmds: cmd-ndnfw-dpdk cmd-ndnping-dpdk cmd-ndnpktcopy-dpdk
-
-cmd-%: cmd/%/* cmd-deps
+cmd-%: cmd/%/* godeps
 	go install ./cmd/$*
 
-cmd-ndnfw-dpdk: cmd/ndnfw-dpdk/* cmd-deps strategies
+cmd-ndnfw-dpdk: cmd/ndnfw-dpdk/* godeps strategies
 	go install ./cmd/ndnfw-dpdk
 
 mgmtclient: cmd/mgmtclient/*
@@ -168,7 +168,10 @@ codedoc:
 docs/mgmtschema/schema.json: docs/mgmtschema/*.js
 	nodejs docs/mgmtschema/ > docs/mgmtschema/schema.json
 
-dochttp: doxygen codedoc docs/mgmtschema/schema.json
+.PHONY: docs
+docs: doxygen codedoc docs/mgmtschema/schema.json
+
+dochttp: docs
 	cd docs && python3 -m http.server 2>/dev/null &
 
 godochttp:
