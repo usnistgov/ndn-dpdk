@@ -1,23 +1,39 @@
 #include "fwd.h"
+#include "fwd-lookup-fib.h"
 
 #include "../../container/pcct/pit-dn-up-it.h"
 #include "../../core/logger.h"
 
 INIT_ZF_LOG(FwFwd);
 
+typedef struct FwFwdRxDataContext
+{
+  union
+  {
+    Packet* npkt;
+    struct rte_mbuf* pkt;
+  };
+  FaceId upFace;
+
+  const FibEntry* fibEntry;
+} FwFwdRxDataContext;
+
 static void
-FwFwd_DataUnsolicited(FwFwd* fwd, Packet* npkt)
+FwFwd_DataUnsolicited(FwFwd* fwd, FwFwdRxDataContext* ctx)
 {
   ZF_LOGD("^ drop=unsolicited");
-  rte_pktmbuf_free(Packet_ToMbuf(npkt));
+  rte_pktmbuf_free(ctx->pkt);
 }
 
 static void
-FwFwd_DataSatisfy(FwFwd* fwd, Packet* npkt, PitEntry* pitEntry)
+FwFwd_DataSatisfy(FwFwd* fwd, FwFwdRxDataContext* ctx, PitEntry* pitEntry)
 {
-  struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   ZF_LOGD("^ pit-entry=%p pit-key=%s", pitEntry,
           PitEntry_ToDebugString(pitEntry));
+  if (likely(ctx->fibEntry != NULL)) {
+    ZF_LOGD("^ fib-entry-depth=%" PRIu8 " sg-id=%d", ctx->fibEntry->nComps,
+            ctx->fibEntry->strategy->id);
+  }
 
   PitDnIt it;
   for (PitDnIt_Init(&it, pitEntry); PitDnIt_Valid(&it); PitDnIt_Next(&it)) {
@@ -28,7 +44,7 @@ FwFwd_DataSatisfy(FwFwd* fwd, Packet* npkt, PitEntry* pitEntry)
       }
       break;
     }
-    if (unlikely(dn->expiry < pkt->timestamp)) {
+    if (unlikely(dn->expiry < ctx->pkt->timestamp)) {
       ZF_LOGD("^ dn-expired=%" PRI_FaceId, dn->face);
       continue;
     }
@@ -37,7 +53,7 @@ FwFwd_DataSatisfy(FwFwd* fwd, Packet* npkt, PitEntry* pitEntry)
       continue;
     }
 
-    Packet* outNpkt = ClonePacket(npkt, fwd->headerMp, fwd->indirectMp);
+    Packet* outNpkt = ClonePacket(ctx->npkt, fwd->headerMp, fwd->indirectMp);
     ZF_LOGD("^ data-to=%" PRI_FaceId " npkt=%p dn-token=%016" PRIx64, dn->face,
             outNpkt, dn->token);
     if (likely(outNpkt != NULL)) {
@@ -50,27 +66,35 @@ FwFwd_DataSatisfy(FwFwd* fwd, Packet* npkt, PitEntry* pitEntry)
 void
 FwFwd_RxData(FwFwd* fwd, Packet* npkt)
 {
-  struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
+  FwFwdRxDataContext ctx = { 0 };
+  ctx.npkt = npkt;
+  ctx.upFace = ctx.pkt->port;
   uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
 
-  ZF_LOGD("data-from=%" PRI_FaceId " npkt=%p up-token=%016" PRIx64, pkt->port,
+  ZF_LOGD("data-from=%" PRI_FaceId " npkt=%p up-token=%016" PRIx64, ctx.upFace,
           npkt, token);
 
   PitResult pitFound = Pit_FindByData(fwd->pit, npkt);
   switch (PitResult_GetKind(pitFound)) {
     case PIT_FIND_NONE:
-      FwFwd_DataUnsolicited(fwd, npkt);
+      FwFwd_DataUnsolicited(fwd, &ctx);
       return;
     case PIT_FIND_PIT0:
-      FwFwd_DataSatisfy(fwd, npkt, PitFindResult_GetPitEntry0(pitFound));
+      ctx.fibEntry =
+        FwFwd_LookupFibByPitEntry(fwd, PitFindResult_GetPitEntry0(pitFound));
+      FwFwd_DataSatisfy(fwd, &ctx, PitFindResult_GetPitEntry0(pitFound));
       break;
     case PIT_FIND_PIT1:
-      FwFwd_DataSatisfy(fwd, npkt, PitFindResult_GetPitEntry1(pitFound));
+      ctx.fibEntry =
+        FwFwd_LookupFibByPitEntry(fwd, PitFindResult_GetPitEntry1(pitFound));
+      FwFwd_DataSatisfy(fwd, &ctx, PitFindResult_GetPitEntry1(pitFound));
       break;
     case PIT_FIND_PIT01:
+      ctx.fibEntry =
+        FwFwd_LookupFibByPitEntry(fwd, PitFindResult_GetPitEntry0(pitFound));
       // XXX if both PIT entries have the same downstream, Data is sent twice
-      FwFwd_DataSatisfy(fwd, npkt, PitFindResult_GetPitEntry0(pitFound));
-      FwFwd_DataSatisfy(fwd, npkt, PitFindResult_GetPitEntry1(pitFound));
+      FwFwd_DataSatisfy(fwd, &ctx, PitFindResult_GetPitEntry0(pitFound));
+      FwFwd_DataSatisfy(fwd, &ctx, PitFindResult_GetPitEntry1(pitFound));
       break;
   }
 

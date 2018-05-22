@@ -1,4 +1,5 @@
 #include "fwd.h"
+#include "fwd-lookup-fib.h"
 #include "strategy.h"
 #include "token.h"
 
@@ -21,44 +22,6 @@ typedef struct FwFwdRxInterestContext
   PitEntry* pitEntry;
   CsEntry* csEntry;
 } FwFwdRxInterestContext;
-
-static bool
-FwFwd_LookupFib(FwFwd* fwd, FwFwdRxInterestContext* ctx)
-{
-  PInterest* interest = Packet_GetInterestHdr(ctx->npkt);
-
-  if (likely(interest->nFhs == 0)) {
-    ctx->fibEntry = Fib_Lpm(fwd->fib, &interest->name);
-    if (unlikely(ctx->fibEntry == NULL)) {
-      return false;
-    }
-    int nNexthops =
-      FibNexthopFilter_Reject(&ctx->nhFlt, ctx->fibEntry, ctx->dnFace);
-    return nNexthops > 0;
-  }
-
-  for (int fhIndex = 0; fhIndex < interest->nFhs; ++fhIndex) {
-    NdnError e = PInterest_SelectActiveFh(interest, fhIndex);
-    if (unlikely(e != NdnError_OK)) {
-      ZF_LOGD("^ drop=bad-fh(%d,%d)", fhIndex, e);
-      // caller would treat this as "no FIB match" and reply Nack
-      return false;
-    }
-
-    ctx->fibEntry = Fib_Lpm(fwd->fib, &interest->activeFhName);
-    if (unlikely(ctx->fibEntry == NULL)) {
-      continue;
-    }
-    ctx->nhFlt = 0;
-    int nNexthops =
-      FibNexthopFilter_Reject(&ctx->nhFlt, ctx->fibEntry, ctx->dnFace);
-    if (unlikely(nNexthops == 0)) {
-      continue;
-    }
-    return true;
-  }
-  return false;
-}
 
 static void
 FwFwd_InterestForward(FwFwd* fwd, FwFwdRxInterestContext* ctx)
@@ -131,16 +94,16 @@ FwFwd_RxInterest(FwFwd* fwd, Packet* npkt)
 
   // query FIB, reply Nack if no FIB match
   rcu_read_lock();
-  bool hasFibEntry = FwFwd_LookupFib(fwd, &ctx);
-  if (unlikely(!hasFibEntry)) {
+  ctx.fibEntry = FwFwd_LookupFibByInterest(fwd, ctx.npkt, &ctx.nhFlt);
+  if (unlikely(ctx.fibEntry == NULL)) {
     ZF_LOGD("^ drop=no-FIB-match nack-to=%" PRI_FaceId, ctx.dnFace);
     MakeNack(npkt, NackReason_NoRoute);
     Face_Tx(ctx.dnFace, npkt);
     rcu_read_unlock();
     return;
   }
-  ZF_LOGD("^ fh-index=%d fib-entry-depth=%" PRIu8, interest->activeFh,
-          ctx.fibEntry->nComps);
+  ZF_LOGD("^ fh-index=%d fib-entry-depth=%" PRIu8 " sg-id=%d",
+          interest->activeFh, ctx.fibEntry->nComps, ctx.fibEntry->strategy->id);
 
   // lookup PIT-CS
   PitResult pitIns = Pit_Insert(fwd->pit, npkt);

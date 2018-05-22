@@ -58,4 +58,5 @@ Common keys include:
 * "drop": reason of dropping a packet.
 * "pit-entry" and "cs-entry": memory address of a table entry.
 * "pit-key": debug string of a PIT entry.
+* "sg-id": strategy identifier.
 * "sg-res": return value of strategy invocation.
