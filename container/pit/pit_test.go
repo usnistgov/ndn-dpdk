@@ -24,6 +24,7 @@ func TestInsertErase(t *testing.T) {
 	interest2 := ndntestutil.MakeInterest("/A/2")
 	entry2 := fixture.Insert(interest2)
 	assert.NotNil(entry2)
+	assert.NotEqual(uintptr(entry1.GetPtr()), uintptr(entry2.GetPtr()))
 
 	interest3 := ndntestutil.MakeInterest("/A/2",
 		ndn.FHDelegation{1, "/F"}, ndn.FHDelegation{1, "/G"})
@@ -37,20 +38,29 @@ func TestInsertErase(t *testing.T) {
 	interest4.SelectActiveFh(0)
 	entry4 := fixture.Insert(interest4)
 	assert.NotNil(entry4)
+	assert.NotEqual(uintptr(entry2.GetPtr()), uintptr(entry4.GetPtr()))
 
 	interest5 := ndntestutil.MakeInterest("/A/2",
 		ndn.FHDelegation{1, "/F"}, ndn.FHDelegation{1, "/G"})
 	interest5.SelectActiveFh(1)
 	entry5 := fixture.Insert(interest5)
 	assert.NotNil(entry5)
+	assert.NotEqual(uintptr(entry2.GetPtr()), uintptr(entry5.GetPtr()))
+	assert.NotEqual(uintptr(entry4.GetPtr()), uintptr(entry5.GetPtr()))
 
-	assert.Equal(4, fixture.Pit.Len())
-	assert.Equal(4, fixture.CountMpInUse())
+	interest6 := ndntestutil.MakeInterest("/A/2", ndn.MustBeFreshFlag)
+	entry6 := fixture.Insert(interest6)
+	assert.NotNil(entry6)
+	assert.NotEqual(uintptr(entry2.GetPtr()), uintptr(entry6.GetPtr()))
+
+	assert.Equal(5, fixture.Pit.Len())
+	assert.Equal(4, fixture.CountMpInUse()) // entry2 and entry6 share a PccEntry
 
 	fixture.Pit.Erase(*entry1)
 	fixture.Pit.Erase(*entry2)
 	fixture.Pit.Erase(*entry4)
 	fixture.Pit.Erase(*entry5)
+	fixture.Pit.Erase(*entry6)
 	assert.Zero(fixture.Pit.Len())
 	assert.Zero(fixture.CountMpInUse())
 }

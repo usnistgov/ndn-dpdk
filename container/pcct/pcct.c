@@ -78,26 +78,26 @@ Pcct_Close(Pcct* pcct)
 }
 
 PccEntry*
-Pcct_Insert(Pcct* pcct, uint64_t hash, PccSearch* search, bool* isNew)
+Pcct_Insert(Pcct* pcct, PccSearch* search, bool* isNew)
 {
-  PccEntry* entry = Pcct_Find(pcct, hash, search);
+  PcctPriv* pcctp = Pcct_GetPriv(pcct);
+  uint64_t hash = PccSearch_ComputeHash(search);
+
+  PccEntry* entry = NULL;
+  HASH_FIND_BYHASHVALUE(hh, pcctp->keyHt, search, 0, hash, entry);
   if (entry != NULL) {
     *isNew = false;
     return entry;
   }
 
-  void* entry0;
-  int res = rte_mempool_get(Pcct_ToMempool(pcct), &entry0);
+  int res = rte_mempool_get(Pcct_ToMempool(pcct), (void**)&entry);
   if (unlikely(res != 0)) {
     ZF_LOGE("%p Insert() table-full", pcct);
     return NULL;
   }
 
-  entry = (PccEntry*)entry0;
   PccKey_CopyFromSearch(&entry->key, search);
   entry->__tokenQword = 0;
-
-  PcctPriv* pcctp = Pcct_GetPriv(pcct);
   HASH_ADD_BYHASHVALUE(hh, pcctp->keyHt, key, 0, hash, entry);
   *isNew = true;
 
@@ -129,15 +129,6 @@ Pcct_EraseBulk(Pcct* pcct, PccEntry* entries[], uint32_t count)
     HASH_DELETE(hh, pcctp->keyHt, entry);
   }
   rte_mempool_put_bulk(Pcct_ToMempool(pcct), (void**)entries, count);
-}
-
-PccEntry*
-Pcct_Find(const Pcct* pcct, uint64_t hash, PccSearch* search)
-{
-  PcctPriv* pcctp = Pcct_GetPriv(pcct);
-  PccEntry* entry = NULL;
-  HASH_FIND_BYHASHVALUE(hh, pcctp->keyHt, search, 0, hash, entry);
-  return entry;
 }
 
 uint64_t

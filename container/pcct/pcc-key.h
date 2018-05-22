@@ -11,7 +11,17 @@ typedef struct PccSearch
 {
   LName name;
   LName fh;
+  uint64_t nameHash;
+  uint64_t fhHash;
 } PccSearch;
+
+/** \brief Compute hash value for use in PCCT.
+ */
+static uint64_t
+PccSearch_ComputeHash(const PccSearch* search)
+{
+  return search->nameHash ^ search->fhHash;
+}
 
 /** \brief Convert \p search to a string for debug purpose.
  *  \return A string from thread-local buffer.
@@ -23,8 +33,10 @@ const char* PccSearch_ToDebugString(const PccSearch* search);
  */
 typedef struct PccKey
 {
-  uint8_t name[NAME_MAX_LENGTH];
-  uint8_t fh[NAME_MAX_LENGTH];
+  uint8_t nameV[NAME_MAX_LENGTH];
+  uint8_t fhV[NAME_MAX_LENGTH];
+  uint16_t nameL;
+  uint16_t fhL;
 } PccKey;
 
 /** \brief Determine if \p key->name matches \p name.
@@ -32,8 +44,8 @@ typedef struct PccKey
 static bool
 PccKey_MatchName(const PccKey* key, LName name)
 {
-  assert(name.length <= sizeof(key->name));
-  return memcmp(key->name, name.value, name.length) == 0;
+  return name.length == key->nameL &&
+         memcmp(key->nameV, name.value, key->nameL) == 0;
 }
 
 /** \brief Determine if \p key matches \p search.
@@ -41,9 +53,8 @@ PccKey_MatchName(const PccKey* key, LName name)
 static bool
 PccKey_MatchSearchKey(const PccKey* key, const PccSearch* search)
 {
-  assert(search->fh.length <= sizeof(key->fh));
-  return PccKey_MatchName(key, search->name) &&
-         memcmp(key->fh, search->fh.value, search->fh.length) == 0;
+  return search->fh.length == key->fhL && PccKey_MatchName(key, search->name) &&
+         memcmp(key->fhV, search->fh.value, search->fh.length) == 0;
 }
 
 /** \brief Copy \c search into \p key.

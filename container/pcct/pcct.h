@@ -59,8 +59,7 @@ void Pcct_Close(Pcct* pcct);
 /** \brief Insert or find an entry.
  *  \param[out] isNew whether the entry is new
  */
-PccEntry* Pcct_Insert(Pcct* pcct, uint64_t hash, PccSearch* search,
-                      bool* isNew);
+PccEntry* Pcct_Insert(Pcct* pcct, PccSearch* search, bool* isNew);
 
 /** \brief Erase an entry.
  */
@@ -69,10 +68,6 @@ void Pcct_Erase(Pcct* pcct, PccEntry* entry);
 /** \brief Erase multiple entries.
  */
 void Pcct_EraseBulk(Pcct* pcct, PccEntry* entries[], uint32_t count);
-
-/** \brief Find an entry.
- */
-PccEntry* Pcct_Find(const Pcct* pcct, uint64_t hash, PccSearch* search);
 
 uint64_t __Pcct_AddToken(Pcct* pcct, PccEntry* entry);
 

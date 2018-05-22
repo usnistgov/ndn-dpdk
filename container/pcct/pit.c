@@ -28,20 +28,18 @@ Pit_Insert(Pit* pit, Packet* npkt)
   PInterest* interest = Packet_GetInterestHdr(npkt);
 
   // construct PccSearch
-  PccSearch search;
+  PccSearch search = { 0 };
   search.name = *(const LName*)(&interest->name);
-  uint64_t hash = PName_ComputeHash(&interest->name.p, interest->name.v);
+  search.nameHash = PName_ComputeHash(&interest->name.p, interest->name.v);
   if (interest->activeFh >= 0) {
     search.fh = *(const LName*)(&interest->activeFhName);
-    hash ^=
+    search.fhHash =
       PName_ComputeHash(&interest->activeFhName.p, interest->activeFhName.v);
-  } else {
-    search.fh.length = 0;
   }
 
   // seek PCC entry
   bool isNewPcc = false;
-  PccEntry* pccEntry = Pcct_Insert(pcct, hash, &search, &isNewPcc);
+  PccEntry* pccEntry = Pcct_Insert(pcct, &search, &isNewPcc);
   if (unlikely(pccEntry == NULL)) {
     ++pitp->nAllocErr;
     return __PitResult_New(NULL, PIT_INSERT_FULL);
