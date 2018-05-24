@@ -15,7 +15,7 @@ Requirements:
 Installation steps:
 
 1. Clone repository to `$GOPATH/src/ndn-dpdk`.
-2. Execute `go get -t ./...` inside the repository.
+2. Execute `go get -d -t ./...` inside the repository.
 3. `make`, and have a look at other [Makefile](./Makefile) targets.
    Prepend `RELEASE=1` selects release mode that disables asserts and verbose logging.
    Note: `go get` installation is unavailable due to dependency between C code.
