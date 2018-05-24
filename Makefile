@@ -159,7 +159,7 @@ mgmtclient: cmd/mgmtclient/*
 cmd/ndnpktcopy-dpdk/cgoflags.go: iface/cgoflags.go
 	./make-cgoflags.sh cmd/ndnpktcopy-dpdk iface
 
-test: cbuilds cgoflags
+test: godeps
 	./gotest.sh
 
 doxygen:

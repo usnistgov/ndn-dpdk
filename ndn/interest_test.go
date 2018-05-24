@@ -38,8 +38,8 @@ func TestInterestDecode(t *testing.T) {
 			bad: true}, // InterestLifetime too large
 		{input: "050C name=0706080141080142 hoplimit=22020101",
 			bad: true}, // HopLimit wrong length
-		{input: "050B name=0706080141080142 hoplimit=220100", name: "/A/B",
-			lifetime: 4000, hopLimit: 0x00},
+		{input: "050B name=0706080141080142 hoplimit=220100",
+			bad: true}, // HopLimit is zero
 	}
 	for _, tt := range tests {
 		pkt := packetFromHex(tt.input)
