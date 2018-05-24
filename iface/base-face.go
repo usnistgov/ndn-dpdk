@@ -73,6 +73,9 @@ func (face BaseFace) CloseBaseFace() {
 	faceC.state = C.FACESTA_REMOVED
 	dpdk.Free(faceC.impl)
 	faceC.id = C.FACEID_INVALID
+	if faceC.threadSafeTxQueue != nil {
+		dpdk.RingFromPtr(unsafe.Pointer(faceC.threadSafeTxQueue)).Close()
+	}
 	gFaces[id] = nil
 	emitter.EmitSync(evt_FaceClosed, id)
 }
