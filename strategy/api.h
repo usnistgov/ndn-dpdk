@@ -14,6 +14,7 @@ typedef enum SgEvent {
   SGEVT_TIMER,    ///< timer expires
   SGEVT_INTEREST, ///< Interest arrives
   SGEVT_DATA,     ///< Data arrives
+  SGEVT_NACK,     ///< Nack arrives
 } SgEvent;
 
 /** \brief Context of strategy invocation.

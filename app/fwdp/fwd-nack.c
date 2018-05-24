@@ -1,4 +1,5 @@
 #include "fwd.h"
+#include "strategy.h"
 #include "token.h"
 
 #include "../../container/pcct/pit-dn-up-it.h"
@@ -6,44 +7,55 @@
 
 INIT_ZF_LOG(FwFwd);
 
-static bool
-FwFwd_VerifyNack(FwFwd* fwd, Packet* npkt, PitEntry* pitEntry, PitUp** up,
-                 int* nPending, NackReason* leastSevereReason)
+typedef struct FwFwdRxNackContext
 {
-  struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
-  PNack* nack = Packet_GetNackHdr(npkt);
+  union
+  {
+    Packet* npkt;
+    struct rte_mbuf* pkt;
+  };
 
-  if (unlikely(pitEntry == NULL)) {
+  PitEntry* pitEntry;
+  PitUp* up;
+  int nPending;
+  NackReason leastSevereReason;
+} FwFwdRxNackContext;
+
+static bool
+FwFwd_VerifyNack(FwFwd* fwd, FwFwdRxNackContext* ctx)
+{
+  if (unlikely(ctx->pitEntry == NULL)) {
     ZF_LOGD("^ drop=no-PIT-entry");
     return false;
   }
 
-  *up = NULL;
-  *nPending = 0;
-  *leastSevereReason = nack->lpl3.nackReason;
+  PNack* nack = Packet_GetNackHdr(ctx->npkt);
+  ctx->leastSevereReason = nack->lpl3.nackReason;
 
   PitUpIt it;
-  for (PitUpIt_Init(&it, pitEntry); PitUpIt_Valid(&it); PitUpIt_Next(&it)) {
+  for (PitUpIt_Init(&it, ctx->pitEntry); PitUpIt_Valid(&it);
+       PitUpIt_Next(&it)) {
     if (it.up->face == FACEID_INVALID) {
       break;
     }
-    if (it.up->face == pkt->port) {
-      *up = it.up;
+    if (it.up->face == ctx->pkt->port) {
+      ctx->up = it.up;
       continue;
     }
     if (it.up->nack == NackReason_None) {
-      ++(*nPending);
+      ++ctx->nPending;
     } else {
-      *leastSevereReason = NackReason_GetMin(*leastSevereReason, it.up->nack);
+      ctx->leastSevereReason =
+        NackReason_GetMin(ctx->leastSevereReason, it.up->nack);
     }
   }
-  if (unlikely(*up == NULL)) {
+  if (unlikely(ctx->up == NULL)) {
     return false;
   }
 
-  if (unlikely((*up)->nonce != nack->interest.nonce)) {
+  if (unlikely(ctx->up->nonce != nack->interest.nonce)) {
     ZF_LOGD("^ drop=wrong-nonce pit-nonce=%" PRIx32 " up-nonce=%" PRIx32,
-            (*up)->nonce, nack->interest.nonce);
+            ctx->up->nonce, nack->interest.nonce);
     return false;
   }
 
@@ -51,92 +63,105 @@ FwFwd_VerifyNack(FwFwd* fwd, Packet* npkt, PitEntry* pitEntry, PitUp** up,
 }
 
 static bool
-FwFwd_RxNackDuplicate(FwFwd* fwd, PitEntry* pitEntry, PitUp* up, TscTime rxTime)
+FwFwd_RxNackDuplicate(FwFwd* fwd, FwFwdRxNackContext* ctx)
 {
   TscTime now = rte_get_tsc_cycles();
 
-  uint32_t upNonce = up->nonce;
-  PitUp_AddRejectedNonce(up, upNonce);
-  bool hasAltNonce = PitUp_ChooseNonce(up, pitEntry, now, &upNonce);
+  uint32_t upNonce = ctx->up->nonce;
+  PitUp_AddRejectedNonce(ctx->up, upNonce);
+  bool hasAltNonce = PitUp_ChooseNonce(ctx->up, ctx->pitEntry, now, &upNonce);
   if (!hasAltNonce) {
     return false;
   }
 
-  uint32_t upLifetime = PitEntry_GetTxInterestLifetime(pitEntry, now);
-  uint8_t upHopLimit = PitEntry_GetTxInterestHopLimit(pitEntry);
+  uint32_t upLifetime = PitEntry_GetTxInterestLifetime(ctx->pitEntry, now);
+  uint8_t upHopLimit = PitEntry_GetTxInterestHopLimit(ctx->pitEntry);
   Packet* outNpkt =
-    ModifyInterest(pitEntry->npkt, upNonce, upLifetime, upHopLimit,
+    ModifyInterest(ctx->pitEntry->npkt, upNonce, upLifetime, upHopLimit,
                    fwd->headerMp, fwd->guiderMp, fwd->indirectMp);
   if (unlikely(outNpkt == NULL)) {
-    ZF_LOGD("^ no-interest-to=%" PRI_FaceId " drop=alloc-error", up->face);
+    ZF_LOGD("^ no-interest-to=%" PRI_FaceId " drop=alloc-error", ctx->up->face);
     return true;
   }
 
-  uint64_t token = FwToken_New(fwd->id, Pit_GetEntryToken(fwd->pit, pitEntry));
+  uint64_t token =
+    FwToken_New(fwd->id, Pit_GetEntryToken(fwd->pit, ctx->pitEntry));
   Packet_InitLpL3Hdr(outNpkt)->pitToken = token;
-  Packet_ToMbuf(outNpkt)->timestamp = rxTime; // for latency stats
+  Packet_ToMbuf(outNpkt)->timestamp = ctx->pkt->timestamp; // for latency stats
 
   ZF_LOGD("^ interest-to=%" PRI_FaceId " npkt=%p nonce=%08" PRIx32
           " lifetime=%" PRIu32 " hopLimit=%" PRIu8 " up-token=%016" PRIx64,
-          up->face, outNpkt, upNonce, upLifetime, upHopLimit, token);
-  Face_Tx(up->face, outNpkt);
+          ctx->up->face, outNpkt, upNonce, upLifetime, upHopLimit, token);
+  Face_Tx(ctx->up->face, outNpkt);
 
-  PitUp_RecordTx(up, pitEntry, now, upNonce, &fwd->suppressCfg);
+  PitUp_RecordTx(ctx->up, ctx->pitEntry, now, upNonce, &fwd->suppressCfg);
   return true;
 }
 
 void
 FwFwd_RxNack(FwFwd* fwd, Packet* npkt)
 {
-  struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
+  FwFwdRxNackContext ctx = { 0 };
+  ctx.npkt = npkt;
   uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
   PNack* nack = Packet_GetNackHdr(npkt);
-  TscTime rxTime = pkt->timestamp;
   NackReason reason = nack->lpl3.nackReason;
   uint8_t nackHopLimit = nack->interest.hopLimit;
 
   ZF_LOGD("nack-from=%" PRI_FaceId " npkt=%p up-token=%016" PRIx64
           " reason=%" PRIu8,
-          pkt->port, npkt, token, reason);
+          ctx.pkt->port, npkt, token, reason);
 
-  // find PIT entry and verify nonce in Nack matches nonce in PitUp
-  PitEntry* pitEntry = Pit_FindByNack(fwd->pit, npkt);
-  PitUp* up;
-  int nPending;
-  NackReason leastSevereReason;
-  bool ok =
-    FwFwd_VerifyNack(fwd, npkt, pitEntry, &up, &nPending, &leastSevereReason);
-  rte_pktmbuf_free(pkt);
-  npkt = NULL;
-  pkt = NULL;
-  nack = NULL;
-  if (unlikely(!ok)) {
+  // find PIT entry
+  ctx.pitEntry = Pit_FindByNack(fwd->pit, npkt);
+
+  // verify nonce in Nack matches nonce in PitUp
+  if (unlikely(!FwFwd_VerifyNack(fwd, &ctx))) {
+    rte_pktmbuf_free(ctx.pkt);
     return;
   }
 
   // record NackReason in PitUp
-  up->nack = reason;
+  ctx.up->nack = reason;
 
-  // for Duplicate, resend with an alternate nonce if available
-  if (reason == NackReason_Duplicate &&
-      FwFwd_RxNackDuplicate(fwd, pitEntry, up, rxTime)) {
+  // find FIB entry and invoke strategy
+  // TODO give strategy some control on Nack processing
+  rcu_read_lock();
+  const FibEntry* fibEntry = PitEntry_FindFibEntry(ctx.pitEntry, fwd->fib);
+  if (likely(fibEntry != NULL)) {
+    SgContext sgCtx = { 0 };
+    sgCtx.fwd = fwd;
+    sgCtx.inner.eventKind = SGEVT_NACK;
+    sgCtx.inner.pkt = (const SgPacket*)ctx.pkt;
+    sgCtx.inner.fibEntry = (const SgFibEntry*)fibEntry;
+    sgCtx.inner.nhFlt = 0; // TODO prevent forwarding to downstream
+    sgCtx.inner.pitEntry = (SgPitEntry*)ctx.pitEntry;
+    uint64_t res = SgInvoke(fibEntry->strategy, &sgCtx);
+    ZF_LOGD("^ fib-entry-depth=%" PRIu8 " sg-id=%d sg-res=%" PRIu64,
+            fibEntry->nComps, fibEntry->strategy->id, res);
+  }
+  rcu_read_unlock();
+
+  // Duplicate: record rejected nonce, resend with an alternate nonce if possible
+  if (reason == NackReason_Duplicate && FwFwd_RxNackDuplicate(fwd, &ctx)) {
+    rte_pktmbuf_free(ctx.pkt);
     return;
   }
 
   // if other upstream are pending, wait for them
-  if (nPending > 0) {
-    ZF_LOGD("^ drop=more-pending(%d)", nPending);
+  if (ctx.nPending > 0) {
+    ZF_LOGD("^ up-pendings=%d", ctx.nPending);
     return;
   }
 
   // return Nacks to downstream
   PitDnIt it;
-  for (PitDnIt_Init(&it, pitEntry); PitDnIt_Valid(&it); PitDnIt_Next(&it)) {
+  for (PitDnIt_Init(&it, ctx.pitEntry); PitDnIt_Valid(&it); PitDnIt_Next(&it)) {
     PitDn* dn = it.dn;
     if (dn->face == FACEID_INVALID) {
       break;
     }
-    if (dn->expiry < rxTime) {
+    if (dn->expiry < ctx.pkt->timestamp) {
       continue;
     }
 
@@ -146,14 +171,14 @@ FwFwd_RxNack(FwFwd* fwd, Packet* npkt)
     }
 
     Packet* outNpkt =
-      ModifyInterest(pitEntry->npkt, dn->nonce, 0, nackHopLimit, fwd->headerMp,
-                     fwd->guiderMp, fwd->indirectMp);
+      ModifyInterest(ctx.pitEntry->npkt, dn->nonce, 0, nackHopLimit,
+                     fwd->headerMp, fwd->guiderMp, fwd->indirectMp);
     if (unlikely(outNpkt == NULL)) {
       ZF_LOGD("^ no-nack-to=%" PRI_FaceId " drop=alloc-error", dn->face);
       break;
     }
 
-    MakeNack(outNpkt, leastSevereReason);
+    MakeNack(outNpkt, ctx.leastSevereReason);
     Packet_GetLpL3Hdr(outNpkt)->pitToken = dn->token;
     ZF_LOGD("^ nack-to=%" PRI_FaceId " npkt=%p nonce=%08" PRIx32
             " dn-token=%016" PRIx64,
@@ -162,5 +187,5 @@ FwFwd_RxNack(FwFwd* fwd, Packet* npkt)
   }
 
   // erase PIT entry
-  Pit_Erase(fwd->pit, pitEntry);
+  Pit_Erase(fwd->pit, ctx.pitEntry);
 }

@@ -86,8 +86,10 @@ FwFwd_RxData(FwFwd* fwd, Packet* npkt)
           npkt, token);
 
   PitResult pitFound = Pit_FindByData(fwd->pit, npkt);
+  rcu_read_lock();
   switch (PitResult_GetKind(pitFound)) {
     case PIT_FIND_NONE:
+      rcu_read_unlock();
       FwFwd_DataUnsolicited(fwd, &ctx);
       return;
     case PIT_FIND_PIT0:
@@ -103,12 +105,13 @@ FwFwd_RxData(FwFwd* fwd, Packet* npkt)
     case PIT_FIND_PIT01:
       ctx.pitEntry = PitFindResult_GetPitEntry0(pitFound);
       ctx.fibEntry = PitEntry_FindFibEntry(ctx.pitEntry, fwd->fib);
-      // XXX if both PIT entries have the same downstream, Data is sent twice
       FwFwd_DataSatisfy(fwd, &ctx);
+      // XXX if both PIT entries have the same downstream, Data is sent twice
       ctx.pitEntry = PitFindResult_GetPitEntry1(pitFound);
       FwFwd_DataSatisfy(fwd, &ctx);
       break;
   }
+  rcu_read_unlock();
 
   // insert to CS
   Cs_Insert(fwd->cs, npkt, pitFound);

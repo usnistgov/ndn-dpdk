@@ -23,6 +23,17 @@ typedef struct SgPacket
   char _d[20];
   TscTime timestamp;
   char _e[64];
+  char _mbuf_end[0];
+  char _f[8];
+  uint8_t nackReason;
+  uint8_t congMark;
 } SgPacket;
+
+typedef enum SgNackReason {
+  SgNackReason_Congestion = 50,
+  SgNackReason_Duplicate = 100,
+  SgNackReason_NoRoute = 150,
+  SgNackReason_Unspecified = 255,
+} SgNackReason;
 
 #endif // NDN_DPDK_STRATEGY_API_PACKET_H

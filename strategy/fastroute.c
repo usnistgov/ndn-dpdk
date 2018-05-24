@@ -60,6 +60,22 @@ RxData(SgCtx* ctx)
   return 5;
 }
 
+inline uint64_t
+RxNack(SgCtx* ctx)
+{
+  if (ctx->pkt->nackReason == SgNackReason_Duplicate) {
+    return 7;
+  }
+
+  FibEntryInfo* fei = SgCtx_FibScratchT(ctx, FibEntryInfo);
+  if (fei->hasSelectedNexthop &&
+      ctx->fibEntry->nexthops[fei->selectedNexthop] == ctx->pkt->rxFace) {
+    fei->hasSelectedNexthop = false;
+    return 0;
+  }
+  return 6;
+}
+
 uint64_t
 SgMain(SgCtx* ctx)
 {
@@ -68,6 +84,8 @@ SgMain(SgCtx* ctx)
       return RxInterest(ctx);
     case SGEVT_DATA:
       return RxData(ctx);
+    case SGEVT_NACK:
+      return RxNack(ctx);
     default:
       return 2;
   }
