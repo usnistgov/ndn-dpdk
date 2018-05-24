@@ -106,8 +106,8 @@ container/fib/cgoflags.go: container/tsht/cgoflags.go ndn/cgoflags.go
 $(CLIBPREFIX)-pcct.a: $(CLIBPREFIX)-mintmr.a $(CLIBPREFIX)-ndn.a container/pcct/*.h container/pcct/*.c
 	./cbuild.sh container/pcct
 
-container/pcct/cgoflags.go: container/mintmr/cgoflags.go ndn/cgoflags.go
-	./make-cgoflags.sh container/pcct container/mintmr ndn
+container/pcct/cgoflags.go: container/mintmr/cgoflags.go container/fib/cgoflags.go
+	./make-cgoflags.sh container/pcct container/mintmr container/fib
 	./make-cgoflags.sh container/pit container/pcct
 	./make-cgoflags.sh container/cs container/pcct
 

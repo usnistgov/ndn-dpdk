@@ -20,7 +20,7 @@ Pit_Init(Pit* pit)
 }
 
 PitResult
-Pit_Insert(Pit* pit, Packet* npkt)
+Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
 {
   Pcct* pcct = Pit_ToPcct(pit);
   PitPriv* pitp = Pit_GetPriv(pit);
@@ -70,42 +70,45 @@ Pit_Insert(Pit* pit, Packet* npkt)
     return __PitResult_New(pccEntry, PIT_INSERT_FULL);
   }
 
-  // put PIT entry in slot 1 if MustBeFresh=1
-  if (interest->mustBeFresh) {
-    if (!pccEntry->hasPitEntry1) {
-      ++pitp->nEntries;
-      pccEntry->hasPitEntry1 = true;
-      PitEntry_Init(PccEntry_GetPitEntry1(pccEntry), npkt);
-      ZF_LOGD("%p Insert(%s) pcc=%p ins-PIT1 pit=%p", pit,
-              PccSearch_ToDebugString(&search), pccEntry,
-              PccEntry_GetPitEntry1(pccEntry));
-      ++pitp->nInsert;
-    } else {
-      ZF_LOGD("%p Insert(%s) pcc=%p has-PIT1 pit=%p", pit,
-              PccSearch_ToDebugString(&search), pccEntry,
-              PccEntry_GetPitEntry1(pccEntry));
-      ++pitp->nFound;
+  PitEntry* entry = NULL;
+  bool isNew = false;
+  PitResultKind resKind = 0;
+
+  // select slot 0 or 1 according to MustBeFresh
+  if (!interest->mustBeFresh) {
+    if (!pccEntry->hasPitEntry0) {
+      assert(!pccEntry->hasCsEntry);
+      pccEntry->hasPitEntry0 = true;
+      isNew = true;
     }
-    return __PitResult_New(pccEntry, PIT_INSERT_PIT1);
+    entry = PccEntry_GetPitEntry0(pccEntry);
+    resKind = PIT_INSERT_PIT0;
+  } else {
+    if (!pccEntry->hasPitEntry1) {
+      pccEntry->hasPitEntry1 = true;
+      isNew = true;
+    }
+    entry = PccEntry_GetPitEntry1(pccEntry);
+    resKind = PIT_INSERT_PIT1;
   }
 
-  // put PIT entry in slot 0 if MustBeFresh=0
-  if (!pccEntry->hasPitEntry0) {
-    assert(!pccEntry->hasCsEntry);
+  // initialize new PIT entry, or refresh FIB entry reference on old PIT entry
+  if (isNew) {
     ++pitp->nEntries;
-    pccEntry->hasPitEntry0 = true;
-    PitEntry_Init(PccEntry_GetPitEntry0(pccEntry), npkt);
-    ZF_LOGD("%p Insert(%s) pcc=%p ins-PIT0 pit=%p", pit,
-            PccSearch_ToDebugString(&search), pccEntry,
-            PccEntry_GetPitEntry0(pccEntry));
     ++pitp->nInsert;
+    PitEntry_Init(entry, npkt, fibEntry);
+    ZF_LOGD("%p Insert(%s) pcc=%p ins-PIT%d pit=%p", pit,
+            PccSearch_ToDebugString(&search), pccEntry, (int)entry->mustBeFresh,
+            entry);
   } else {
-    ZF_LOGD("%p Insert(%s) pcc=%p has-PIT0 pit=%p", pit,
-            PccSearch_ToDebugString(&search), pccEntry,
-            PccEntry_GetPitEntry0(pccEntry));
     ++pitp->nFound;
+    PitEntry_RefreshFibEntry(entry, npkt, fibEntry);
+    ZF_LOGD("%p Insert(%s) pcc=%p has-PIT%d pit=%p", pit,
+            PccSearch_ToDebugString(&search), pccEntry, (int)entry->mustBeFresh,
+            entry);
   }
-  return __PitResult_New(pccEntry, PIT_INSERT_PIT0);
+
+  return __PitResult_New(pccEntry, resKind);
 }
 
 void

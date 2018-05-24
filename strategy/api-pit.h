@@ -34,7 +34,7 @@ typedef struct SgPitEntryExt SgPitEntryExt;
 
 typedef struct SgPitEntry
 {
-  char _a[40];
+  char _a[48];
   SgPitEntryExt* ext;
   SgPitDn dns[SG_PIT_ENTRY_MAX_DNS];
   SgPitUp ups[SG_PIT_ENTRY_MAX_UPS];

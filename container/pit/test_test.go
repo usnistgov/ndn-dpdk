@@ -4,10 +4,13 @@ import (
 	"os"
 	"testing"
 
+	"ndn-dpdk/container/fib"
+	"ndn-dpdk/container/fib/fibtest"
 	"ndn-dpdk/container/pcct"
 	"ndn-dpdk/container/pit"
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/dpdk/dpdktestenv"
+	"ndn-dpdk/iface"
 	"ndn-dpdk/ndn"
 	"ndn-dpdk/ndn/ndntestutil"
 )
@@ -22,25 +25,35 @@ var makeAR = dpdktestenv.MakeAR
 
 type Fixture struct {
 	Pit pit.Pit
+
+	fibFixture    *fibtest.Fixture
+	emptyStrategy fib.StrategyCode
+	EmptyFibEntry *fib.Entry
 }
 
 func NewFixture(pcctMaxEntries int) (fixture *Fixture) {
-	cfg := pcct.Config{
+	fixture = new(Fixture)
+
+	pcctCfg := pcct.Config{
 		Id:         "TestPcct",
 		MaxEntries: pcctMaxEntries,
 		NumaSocket: dpdk.NUMA_SOCKET_ANY,
 	}
-	pcct, e := pcct.New(cfg)
+	pcct, e := pcct.New(pcctCfg)
 	if e != nil {
 		panic(e)
 	}
 
-	fixture = new(Fixture)
 	fixture.Pit = pit.Pit{pcct}
+
+	fixture.fibFixture = fibtest.NewFixture(2, 4, 1)
+	fixture.emptyStrategy = fixture.fibFixture.MakeStrategy()
+	fixture.EmptyFibEntry = new(fib.Entry)
 	return fixture
 }
 
 func (fixture *Fixture) Close() error {
+	fixture.fibFixture.Close()
 	return fixture.Pit.Pcct.Close()
 }
 
@@ -53,7 +66,7 @@ func (fixture *Fixture) CountMpInUse() int {
 // Returns the PIT entry.
 // If CS entry is found, returns nil and frees interest.
 func (fixture *Fixture) Insert(interest *ndn.Interest) *pit.Entry {
-	pitEntry, csEntry := fixture.Pit.Insert(interest)
+	pitEntry, csEntry := fixture.Pit.Insert(interest, fixture.EmptyFibEntry)
 	if csEntry != nil {
 		ndntestutil.ClosePacket(interest)
 		return nil
@@ -62,4 +75,12 @@ func (fixture *Fixture) Insert(interest *ndn.Interest) *pit.Entry {
 		panic("Pit.Insert failed")
 	}
 	return pitEntry
+}
+
+func (fixture *Fixture) InsertFibEntry(name string, nexthop iface.FaceId) *fib.Entry {
+	if _, e := fixture.fibFixture.Fib.Insert(fixture.fibFixture.MakeEntry(name,
+		fixture.emptyStrategy, nexthop)); e != nil {
+		panic(e)
+	}
+	return fixture.fibFixture.Fib.Find(ndn.MustParseName(name))
 }

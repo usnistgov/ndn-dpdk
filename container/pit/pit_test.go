@@ -75,7 +75,7 @@ func TestToken(t *testing.T) {
 	for i := 0; i <= 255; i++ {
 		interest := ndntestutil.MakeInterest(fmt.Sprintf("/I/%d", i))
 
-		entry, _ := pit.Insert(interest)
+		entry, _ := pit.Insert(interest, fixture.EmptyFibEntry)
 		if i == 255 { // PCCT is full
 			assert.Nil(entry)
 			ndntestutil.ClosePacket(interest)

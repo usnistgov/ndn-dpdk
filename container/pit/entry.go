@@ -29,6 +29,10 @@ func (entry Entry) GetToken() uint64 {
 	return uint64(C.Pit_GetEntryToken(entry.pit.getPtr(), entry.c))
 }
 
+func (entry Entry) GetFibSeqNo() uint32 {
+	return uint32(entry.c.fibSeqNo)
+}
+
 // List DN records.
 func (entry Entry) ListDns() (list []Dn) {
 	list = make([]Dn, 0, C.PIT_ENTRY_MAX_DNS)

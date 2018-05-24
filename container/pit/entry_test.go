@@ -67,3 +67,27 @@ func TestEntryExtend(t *testing.T) {
 	assert.Zero(fixture.Pit.Len())
 	assert.Zero(fixture.CountMpInUse())
 }
+
+func TestEntryFibRef(t *testing.T) {
+	assert, require := makeAR(t)
+	fixture := NewFixture(255)
+	defer fixture.Close()
+
+	fibEntry1 := fixture.InsertFibEntry("/A", 1001)
+	interest1 := ndntestutil.MakeInterest("/A/B")
+	entry1, _ := fixture.Pit.Insert(interest1, fibEntry1)
+	require.NotNil(entry1)
+	assert.NotNil(entry1.InsertDn(interest1))
+	assert.Equal(fibEntry1.GetSeqNo(), entry1.GetFibSeqNo())
+
+	interest2 := ndntestutil.MakeInterest("/A/B")
+	entry2, _ := fixture.Pit.Insert(interest2, fibEntry1)
+	require.Equal(entry1, entry2)
+	assert.Equal(fibEntry1.GetSeqNo(), entry2.GetFibSeqNo())
+
+	fibEntry3 := fixture.InsertFibEntry("/A", 1003)
+	assert.NotEqual(fibEntry1.GetSeqNo(), fibEntry3.GetSeqNo())
+	entry3, _ := fixture.Pit.Insert(interest2, fibEntry3)
+	require.Equal(entry2, entry3)
+	assert.Equal(fibEntry3.GetSeqNo(), entry3.GetFibSeqNo())
+}

@@ -31,6 +31,7 @@ func TestFastroute(t *testing.T) {
 	data1 := ndntestutil.MakeData("/A/B/1")
 	ndntestutil.CopyPitToken(data1, face3.TxInterests[0])
 	face3.Rx(data1)
+	time.Sleep(10 * time.Millisecond)
 
 	// unicast subsequent Interest
 	interest2 := ndntestutil.MakeInterest("/A/B/2")

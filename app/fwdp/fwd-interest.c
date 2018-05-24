@@ -1,5 +1,4 @@
 #include "fwd.h"
-#include "fwd-lookup-fib.h"
 #include "strategy.h"
 #include "token.h"
 
@@ -22,6 +21,46 @@ typedef struct FwFwdRxInterestContext
   PitEntry* pitEntry;
   CsEntry* csEntry;
 } FwFwdRxInterestContext;
+
+static const FibEntry*
+FwFwd_InterestLookupFib(FwFwd* fwd, Packet* npkt, FibNexthopFilter* nhFlt)
+{
+  PInterest* interest = Packet_GetInterestHdr(npkt);
+  FaceId dnFace = Packet_ToMbuf(npkt)->port;
+
+  if (likely(interest->nFhs == 0)) {
+    const FibEntry* entry = Fib_Lpm(fwd->fib, &interest->name);
+    if (unlikely(entry == NULL)) {
+      return NULL;
+    }
+    *nhFlt = 0;
+    int nNexthops = FibNexthopFilter_Reject(nhFlt, entry, dnFace);
+    if (unlikely(nNexthops == 0)) {
+      return NULL;
+    }
+    return entry;
+  }
+
+  for (int fhIndex = 0; fhIndex < interest->nFhs; ++fhIndex) {
+    NdnError e = PInterest_SelectActiveFh(interest, fhIndex);
+    if (unlikely(e != NdnError_OK)) {
+      // caller would treat this as "no FIB match" and reply Nack
+      return false;
+    }
+
+    const FibEntry* entry = Fib_Lpm(fwd->fib, &interest->activeFhName);
+    if (unlikely(entry == NULL)) {
+      continue;
+    }
+    *nhFlt = 0;
+    int nNexthops = FibNexthopFilter_Reject(nhFlt, entry, dnFace);
+    if (unlikely(nNexthops == 0)) {
+      continue;
+    }
+    return entry;
+  }
+  return NULL;
+}
 
 static void
 FwFwd_InterestForward(FwFwd* fwd, FwFwdRxInterestContext* ctx)
@@ -95,7 +134,7 @@ FwFwd_RxInterest(FwFwd* fwd, Packet* npkt)
 
   // query FIB, reply Nack if no FIB match
   rcu_read_lock();
-  ctx.fibEntry = FwFwd_LookupFibByInterest(fwd, ctx.npkt, &ctx.nhFlt);
+  ctx.fibEntry = FwFwd_InterestLookupFib(fwd, ctx.npkt, &ctx.nhFlt);
   if (unlikely(ctx.fibEntry == NULL)) {
     ZF_LOGD("^ drop=no-FIB-match nack-to=%" PRI_FaceId, ctx.dnFace);
     MakeNack(npkt, NackReason_NoRoute);
@@ -107,7 +146,7 @@ FwFwd_RxInterest(FwFwd* fwd, Packet* npkt)
           interest->activeFh, ctx.fibEntry->nComps, ctx.fibEntry->strategy->id);
 
   // lookup PIT-CS
-  PitResult pitIns = Pit_Insert(fwd->pit, npkt);
+  PitResult pitIns = Pit_Insert(fwd->pit, npkt, ctx.fibEntry);
   switch (PitResult_GetKind(pitIns)) {
     case PIT_INSERT_PIT0:
     case PIT_INSERT_PIT1: {

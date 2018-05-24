@@ -59,7 +59,7 @@ Pit_CountEntries(const Pit* pit)
  *  When a new PIT entry is inserted, the PIT entry owns \p npkt but does not
  *  free it, so the caller may continue using it until \c PitEntry_InsertDn.
  */
-PitResult Pit_Insert(Pit* pit, Packet* npkt);
+PitResult Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry);
 
 /** \brief Get a token of a PIT entry.
  */

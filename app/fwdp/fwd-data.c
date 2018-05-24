@@ -1,5 +1,4 @@
 #include "fwd.h"
-#include "fwd-lookup-fib.h"
 #include "strategy.h"
 
 #include "../../container/pcct/pit-dn-up-it.h"
@@ -17,6 +16,7 @@ typedef struct FwFwdRxDataContext
   FaceId upFace;
 
   const FibEntry* fibEntry;
+  PitEntry* pitEntry;
 } FwFwdRxDataContext;
 
 static void
@@ -27,13 +27,14 @@ FwFwd_DataUnsolicited(FwFwd* fwd, FwFwdRxDataContext* ctx)
 }
 
 static void
-FwFwd_DataSatisfy(FwFwd* fwd, FwFwdRxDataContext* ctx, PitEntry* pitEntry)
+FwFwd_DataSatisfy(FwFwd* fwd, FwFwdRxDataContext* ctx)
 {
-  ZF_LOGD("^ pit-entry=%p pit-key=%s", pitEntry,
-          PitEntry_ToDebugString(pitEntry));
+  ZF_LOGD("^ pit-entry=%p pit-key=%s", ctx->pitEntry,
+          PitEntry_ToDebugString(ctx->pitEntry));
 
   PitDnIt it;
-  for (PitDnIt_Init(&it, pitEntry); PitDnIt_Valid(&it); PitDnIt_Next(&it)) {
+  for (PitDnIt_Init(&it, ctx->pitEntry); PitDnIt_Valid(&it);
+       PitDnIt_Next(&it)) {
     PitDn* dn = it.dn;
     if (unlikely(dn->face == FACEID_INVALID)) {
       if (index == 0) {
@@ -66,7 +67,7 @@ FwFwd_DataSatisfy(FwFwd* fwd, FwFwdRxDataContext* ctx, PitEntry* pitEntry)
     sgCtx.inner.pkt = (const SgPacket*)ctx->pkt;
     sgCtx.inner.fibEntry = (const SgFibEntry*)ctx->fibEntry;
     sgCtx.inner.nhFlt = ~0;
-    sgCtx.inner.pitEntry = (SgPitEntry*)pitEntry;
+    sgCtx.inner.pitEntry = (SgPitEntry*)ctx->pitEntry;
     uint64_t res = SgInvoke(ctx->fibEntry->strategy, &sgCtx);
     ZF_LOGD("^ fib-entry-depth=%" PRIu8 " sg-id=%d sg-res=%" PRIu64,
             ctx->fibEntry->nComps, ctx->fibEntry->strategy->id, res);
@@ -90,21 +91,22 @@ FwFwd_RxData(FwFwd* fwd, Packet* npkt)
       FwFwd_DataUnsolicited(fwd, &ctx);
       return;
     case PIT_FIND_PIT0:
-      ctx.fibEntry =
-        FwFwd_LookupFibByPitEntry(fwd, PitFindResult_GetPitEntry0(pitFound));
-      FwFwd_DataSatisfy(fwd, &ctx, PitFindResult_GetPitEntry0(pitFound));
+      ctx.pitEntry = PitFindResult_GetPitEntry0(pitFound);
+      ctx.fibEntry = PitEntry_FindFibEntry(ctx.pitEntry, fwd->fib);
+      FwFwd_DataSatisfy(fwd, &ctx);
       break;
     case PIT_FIND_PIT1:
-      ctx.fibEntry =
-        FwFwd_LookupFibByPitEntry(fwd, PitFindResult_GetPitEntry1(pitFound));
-      FwFwd_DataSatisfy(fwd, &ctx, PitFindResult_GetPitEntry1(pitFound));
+      ctx.pitEntry = PitFindResult_GetPitEntry1(pitFound);
+      ctx.fibEntry = PitEntry_FindFibEntry(ctx.pitEntry, fwd->fib);
+      FwFwd_DataSatisfy(fwd, &ctx);
       break;
     case PIT_FIND_PIT01:
-      ctx.fibEntry =
-        FwFwd_LookupFibByPitEntry(fwd, PitFindResult_GetPitEntry0(pitFound));
+      ctx.pitEntry = PitFindResult_GetPitEntry0(pitFound);
+      ctx.fibEntry = PitEntry_FindFibEntry(ctx.pitEntry, fwd->fib);
       // XXX if both PIT entries have the same downstream, Data is sent twice
-      FwFwd_DataSatisfy(fwd, &ctx, PitFindResult_GetPitEntry0(pitFound));
-      FwFwd_DataSatisfy(fwd, &ctx, PitFindResult_GetPitEntry1(pitFound));
+      FwFwd_DataSatisfy(fwd, &ctx);
+      ctx.pitEntry = PitFindResult_GetPitEntry1(pitFound);
+      FwFwd_DataSatisfy(fwd, &ctx);
       break;
   }
 

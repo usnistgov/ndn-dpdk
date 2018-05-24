@@ -8,6 +8,7 @@ import (
 	"unsafe"
 
 	"ndn-dpdk/container/cs"
+	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/pcct"
 	"ndn-dpdk/ndn"
 )
@@ -44,8 +45,9 @@ func (pit Pit) TriggerTimeoutSched() {
 }
 
 // Insert or find a PIT entry for the given Interest.
-func (pit Pit) Insert(interest *ndn.Interest) (pitEntry *Entry, csEntry *cs.Entry) {
-	res := C.Pit_Insert(pit.getPtr(), (*C.Packet)(interest.GetPacket().GetPtr()))
+func (pit Pit) Insert(interest *ndn.Interest, fibEntry *fib.Entry) (pitEntry *Entry, csEntry *cs.Entry) {
+	res := C.Pit_Insert(pit.getPtr(), (*C.Packet)(interest.GetPacket().GetPtr()),
+		(*C.FibEntry)(unsafe.Pointer(fibEntry)))
 	switch C.PitResult_GetKind(res) {
 	case C.PIT_INSERT_PIT0, C.PIT_INSERT_PIT1:
 		pitEntry = &Entry{C.PitInsertResult_GetPitEntry(res), pit}

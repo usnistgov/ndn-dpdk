@@ -3,6 +3,7 @@
 
 /// \file
 
+#include "../fib/fib.h"
 #include "pit-dn.h"
 #include "pit-struct.h"
 #include "pit-up.h"
@@ -21,23 +22,23 @@ typedef struct PitEntryExt PitEntryExt;
  */
 typedef struct PitEntry
 {
-  Packet* npkt; ///< representative Interest packet
-
+  Packet* npkt;   ///< representative Interest packet
   MinTmr timeout; ///< timeout timer
-
   TscTime expiry; ///< when all DNs expire
 
-  bool mustBeFresh;     ///< entry for MustBeFresh 0 or 1?
   uint8_t nCanBePrefix; ///< how many DNs want CanBePrefix?
   uint8_t txHopLimit;   ///< HopLimit for outgoing Interests
+  bool mustBeFresh : 1; ///< entry for MustBeFresh 0 or 1?
 
-  int strategyId; ///< for detecting strategy change
+  uint16_t fibPrefixL : 15; ///< TLV-LENGTH of FIB prefix
+  uint32_t fibSeqNo;        ///< FIB entry sequence number
+  uint64_t fibPrefixHash;   ///< hash value of FIB prefix
 
   PitEntryExt* ext;
   PitDn dns[PIT_ENTRY_MAX_DNS];
   PitUp ups[PIT_ENTRY_MAX_UPS];
 
-  uint64_t sgScratch[PIT_ENTRY_SG_SCRATCH / sizeof(uint64_t)];
+  char sgScratch[PIT_ENTRY_SG_SCRATCH];
 } PitEntry;
 static_assert(offsetof(PitEntry, dns) <= RTE_CACHE_LINE_SIZE, "");
 
@@ -48,22 +49,37 @@ struct PitEntryExt
   PitEntryExt* next;
 };
 
+static void
+__PitEntry_SetFibEntry(PitEntry* entry, PInterest* interest,
+                       const FibEntry* fibEntry)
+{
+  entry->fibPrefixL = fibEntry->nameL;
+  entry->fibSeqNo = fibEntry->seqNo;
+  entry->fibPrefixHash = PName_ComputePrefixHash(
+    &interest->name.p, interest->name.v, fibEntry->nComps);
+  memset(entry->sgScratch, 0, PIT_ENTRY_SG_SCRATCH);
+}
+
 /** \brief Initialize a PIT entry.
+ *  \param npkt the Interest packet.
  */
 static void
-PitEntry_Init(PitEntry* entry, Packet* npkt)
+PitEntry_Init(PitEntry* entry, Packet* npkt, const FibEntry* fibEntry)
 {
   PInterest* interest = Packet_GetInterestHdr(npkt);
   entry->npkt = npkt;
   MinTmr_Init(&entry->timeout);
   entry->expiry = 0;
-  entry->mustBeFresh = interest->mustBeFresh;
+
   entry->nCanBePrefix = interest->canBePrefix;
   entry->txHopLimit = 0;
-  entry->strategyId = 0;
+  entry->mustBeFresh = interest->mustBeFresh;
+
   entry->dns[0].face = FACEID_INVALID;
   entry->ups[0].face = FACEID_INVALID;
   entry->ext = NULL;
+
+  __PitEntry_SetFibEntry(entry, interest, fibEntry);
 }
 
 /** \brief Finalize a PIT entry.
@@ -87,6 +103,37 @@ PitEntry_Finalize(PitEntry* entry)
  *  \warning Subsequent *ToDebugString calls on the same thread overwrite the buffer.
  */
 const char* PitEntry_ToDebugString(PitEntry* entry);
+
+/** \brief Reference FIB entry from PIT entry, clear scratch if FIB entry changed.
+ *  \param npkt the Interest packet.
+ */
+static void
+PitEntry_RefreshFibEntry(PitEntry* entry, Packet* npkt,
+                         const FibEntry* fibEntry)
+{
+  if (likely(entry->fibSeqNo == fibEntry->seqNo)) {
+    return;
+  }
+
+  PInterest* interest = Packet_GetInterestHdr(npkt);
+  __PitEntry_SetFibEntry(entry, interest, fibEntry);
+}
+
+/** \brief Retrieve FIB entry via PIT entry's FIB reference.
+ *  \pre Calling thread holds rcu_read_lock, which must be retained until it stops
+ *       using the returned entry.
+ */
+static const FibEntry*
+PitEntry_FindFibEntry(PitEntry* entry, Fib* fib)
+{
+  PInterest* interest = Packet_GetInterestHdr(entry->npkt);
+  LName name = {.length = entry->fibPrefixL, .value = interest->name.v };
+  const FibEntry* fibEntry = Fib_Find(fib, name, entry->fibPrefixHash);
+  if (unlikely(fibEntry->seqNo != entry->fibSeqNo)) {
+    return NULL;
+  }
+  return fibEntry;
+}
 
 /** \brief Find duplicate nonce among DN records other than \p rxFace.
  *  \return FaceId of PitDn with duplicate nonce, or \c FACEID_INVALID if none.

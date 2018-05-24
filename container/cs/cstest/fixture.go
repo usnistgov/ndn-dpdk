@@ -2,6 +2,7 @@ package cstest
 
 import (
 	"ndn-dpdk/container/cs"
+	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/pcct"
 	"ndn-dpdk/container/pit"
 	"ndn-dpdk/dpdk"
@@ -10,8 +11,9 @@ import (
 )
 
 type Fixture struct {
-	Cs  cs.Cs
-	Pit pit.Pit
+	Cs            cs.Cs
+	Pit           pit.Pit
+	emptyFibEntry *fib.Entry
 }
 
 func NewFixture(pcctMaxEntries int, csCapacity int) (fixture *Fixture) {
@@ -26,10 +28,11 @@ func NewFixture(pcctMaxEntries int, csCapacity int) (fixture *Fixture) {
 		panic(e)
 	}
 
-	fixture = new(Fixture)
-	fixture.Cs = cs.Cs{pcct}
-	fixture.Pit = pit.Pit{pcct}
-	return fixture
+	return &Fixture{
+		Cs:            cs.Cs{pcct},
+		Pit:           pit.Pit{pcct},
+		emptyFibEntry: new(fib.Entry),
+	}
 }
 
 func (fixture *Fixture) Close() error {
@@ -45,8 +48,8 @@ func (fixture *Fixture) CountMpInUse() int {
 // Returns false if CS entry is found during PIT entry insertion.
 // Returns true if CS entry is replacing PIT entry.
 // This function takes ownership of interest and data.
-func (fixture *Fixture) Insert(interest *ndn.Interest, data *ndn.Data) bool {
-	pitEntry, csEntry := fixture.Pit.Insert(interest)
+func (fixture *Fixture) Insert(interest *ndn.Interest, data *ndn.Data) (isReplacing bool) {
+	pitEntry, csEntry := fixture.Pit.Insert(interest, fixture.emptyFibEntry)
 	if csEntry != nil {
 		ndntestutil.ClosePacket(interest)
 		ndntestutil.ClosePacket(data)
@@ -70,7 +73,7 @@ func (fixture *Fixture) Insert(interest *ndn.Interest, data *ndn.Data) bool {
 // If a PIT entry is created in Pit.Insert invocation, it is erased immediately.
 // This function takes ownership of interest.
 func (fixture *Fixture) Find(interest *ndn.Interest) *cs.Entry {
-	pitEntry, csEntry := fixture.Pit.Insert(interest)
+	pitEntry, csEntry := fixture.Pit.Insert(interest, fixture.emptyFibEntry)
 	if pitEntry != nil {
 		fixture.Pit.Erase(*pitEntry)
 	} else {
