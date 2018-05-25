@@ -107,8 +107,9 @@ func main() {
 
 	// launch
 	for _, proc := range procs {
+		txl := appinit.MakeTxLooper(proc.face)
 		proc.txLcore.RemoteLaunch(func() int {
-			appinit.MakeTxLooper(proc.face).TxLoop()
+			txl.TxLoop()
 			return 0
 		})
 		if proc.dumper != nil {
