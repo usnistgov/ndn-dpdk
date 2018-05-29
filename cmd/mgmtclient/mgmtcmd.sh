@@ -31,6 +31,8 @@ Subcommands:
   fib find <NAME>
   fib lpm <NAME>
     Perform exact-match/longest-prefix-match lookup on FIB.
+  fib counters <NAME>
+    Show FIB entry counters.
   dpinfo [global]
     Show dataplane global information.
   dpinfo input <I>
@@ -82,6 +84,8 @@ elif [[ $1 == 'fib' ]]; then
     jsonrpc Fib.Insert '{"Name":"'$3'","Nexthops":['$4']}'
   elif [[ $2 == 'erase' ]] || [[ $2 == 'find' ]] || [[ $2 == 'lpm' ]]; then
     jsonrpc Fib."${2^}" '{"Name":"'$3'"}'
+  elif [[ $2 == 'counters' ]]; then
+    jsonrpc Fib.ReadEntryCounters '{"Name":"'$3'"}'
   fi
 elif [[ $1 == 'dpinfo' ]]; then
   if [[ -z $2 ]] || [[ $2 == 'global' ]]; then

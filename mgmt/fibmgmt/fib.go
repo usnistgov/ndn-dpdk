@@ -84,3 +84,13 @@ func (mg FibMgmt) lookup(args NameArg, reply *LookupReply, lookup func(name *ndn
 	}
 	return nil
 }
+
+func (mg FibMgmt) ReadEntryCounters(args NameArg, reply *fib.EntryCounters) error {
+	name, e := ndn.ParseName(args.Name)
+	if e != nil {
+		return e
+	}
+
+	*reply = mg.Fib.ReadEntryCounters(name)
+	return nil
+}

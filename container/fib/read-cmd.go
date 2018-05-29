@@ -50,6 +50,26 @@ func (fib *Fib) FindInPartition(name *ndn.Name, partition int, rs *urcu.ReadSide
 	return entry
 }
 
+// Read entry counters, aggregate across all partitions if necessary.
+func (fib *Fib) ReadEntryCounters(name *ndn.Name) (cnt EntryCounters) {
+	fib.postCommand(func(rs *urcu.ReadSide) error {
+		if name.Len() < fib.ndt.GetPrefixLen() {
+			for partition := 0; partition < len(fib.c); partition++ {
+				if entry := fib.FindInPartition(name, partition, rs); entry != nil {
+					cnt.Add(entry)
+				}
+			}
+		} else {
+			_, partition := fib.ndt.Lookup(name)
+			if entry := fib.FindInPartition(name, int(partition), rs); entry != nil {
+				cnt.Add(entry)
+			}
+		}
+		return nil
+	})
+	return cnt
+}
+
 // Perform a longest prefix match lookup.
 func (fib *Fib) Lpm(name *ndn.Name) (entry *Entry) {
 	fib.postCommand(func(rs *urcu.ReadSide) error {

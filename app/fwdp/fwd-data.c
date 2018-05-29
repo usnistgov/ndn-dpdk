@@ -61,6 +61,7 @@ FwFwd_DataSatisfy(FwFwd* fwd, FwFwdRxDataContext* ctx)
   }
 
   if (likely(ctx->fibEntry != NULL)) {
+    ++ctx->fibEntry->dyn->nRxData;
     SgContext sgCtx = { 0 };
     sgCtx.fwd = fwd;
     sgCtx.inner.eventKind = SGEVT_DATA;

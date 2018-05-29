@@ -16,3 +16,5 @@ Currently there is no strategy management, and all entries will use `TheStrategy
 **Fib.Find** performs an exact match lookup.
 
 **Fib.Lpm** performs a longest prefix match lookup.
+
+**Fib.ReadEntryCounters** reads counters of an entry.

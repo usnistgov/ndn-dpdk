@@ -144,6 +144,7 @@ FwFwd_RxInterest(FwFwd* fwd, Packet* npkt)
   }
   ZF_LOGD("^ fh-index=%d fib-entry-depth=%" PRIu8 " sg-id=%d",
           interest->activeFh, ctx.fibEntry->nComps, ctx.fibEntry->strategy->id);
+  ++ctx.fibEntry->dyn->nRxInterests;
 
   // lookup PIT-CS
   PitResult pitIns = Pit_Insert(fwd->pit, npkt, ctx.fibEntry);
@@ -177,6 +178,7 @@ SgForwardInterest(SgCtx* ctx0, FaceId nh)
 {
   SgContext* ctx = (SgContext*)ctx0;
   FwFwd* fwd = ctx->fwd;
+  const FibEntry* fibEntry = (const FibEntry*)ctx->inner.fibEntry;
   PitEntry* pitEntry = (PitEntry*)ctx->inner.pitEntry;
   TscTime now = rte_get_tsc_cycles();
 
@@ -225,6 +227,7 @@ SgForwardInterest(SgCtx* ctx0, FaceId nh)
           " lifetime=%" PRIu32 " hopLimit=%" PRIu8 " up-token=%016" PRIx64,
           nh, outNpkt, upNonce, upLifetime, upHopLimit, token);
   Face_Tx(nh, outNpkt);
+  ++fibEntry->dyn->nTxInterests;
 
   PitUp_RecordTx(up, pitEntry, now, upNonce, &fwd->suppressCfg);
   return SGFWDI_OK;

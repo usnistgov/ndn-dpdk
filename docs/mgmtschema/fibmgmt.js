@@ -31,17 +31,26 @@ ctx.declareType('fibmgmt.LookupReply', {
     {
       required: ['Name', 'Nexthops'],
     },
-  ]
+  ],
+});
+
+ctx.declareType('fib.EntryCounters', {
+  type: 'object',
+  properties: {
+    HasEntry: ctx.useType('boolean'),
+    Name: ctx.useType('ndn.Name'),
+    Nexthops: ctx.useType('fibmgmt.Nexthops'),
+  },
 });
 
 ctx.declareMethod('Fib.Info', 'null',
   {
     type: 'object',
     properties: {
-      NEntries: ctx.useType('counter'),
-      NEntriesDup: ctx.useType('counter'),
-      NVirtuals: ctx.useType('counter'),
-      NNodes: ctx.useType('counter'),
+      NRxInterests: ctx.useType('counter'),
+      NRxData: ctx.useType('counter'),
+      NRxNacks: ctx.useType('counter'),
+      NTxInterests: ctx.useType('counter'),
     },
   });
 
@@ -71,6 +80,8 @@ ctx.declareMethod('Fib.Erase', 'fibmgmt.NameArg', 'null');
 ctx.declareMethod('Fib.Find', 'fibmgmt.NameArg', 'fibmgmt.LookupReply');
 
 ctx.declareMethod('Fib.Lpm', 'fibmgmt.NameArg', 'fibmgmt.LookupReply');
+
+ctx.declareMethod('Fib.ReadEntryCounters', 'fibmgmt.NameArg', 'fib.EntryCounters');
 
 };
 })(exports);
