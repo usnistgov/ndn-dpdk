@@ -125,14 +125,21 @@ FwFwd_RxNack(FwFwd* fwd, Packet* npkt)
   // record NackReason in PitUp
   ctx.up->nack = reason;
 
+  // Duplicate: record rejected nonce, resend with an alternate nonce if possible
+  if (reason == NackReason_Duplicate && FwFwd_RxNackDuplicate(fwd, &ctx)) {
+    rte_pktmbuf_free(ctx.pkt);
+    return;
+  }
+
   // find FIB entry and invoke strategy
-  // TODO give strategy some control on Nack processing
   rcu_read_lock();
+  SgContext sgCtx = { 0 };
   const FibEntry* fibEntry = PitEntry_FindFibEntry(ctx.pitEntry, fwd->fib);
   if (likely(fibEntry != NULL)) {
     ++fibEntry->dyn->nRxNacks;
-    SgContext sgCtx = { 0 };
     sgCtx.fwd = fwd;
+    sgCtx.rxTime = ctx.pkt->timestamp;
+    sgCtx.dnNonce = nack->interest.nonce;
     sgCtx.inner.eventKind = SGEVT_NACK;
     sgCtx.inner.pkt = (const SgPacket*)ctx.pkt;
     sgCtx.inner.fibEntry = (const SgFibEntry*)fibEntry;
@@ -144,15 +151,9 @@ FwFwd_RxNack(FwFwd* fwd, Packet* npkt)
   }
   rcu_read_unlock();
 
-  // Duplicate: record rejected nonce, resend with an alternate nonce if possible
-  if (reason == NackReason_Duplicate && FwFwd_RxNackDuplicate(fwd, &ctx)) {
-    rte_pktmbuf_free(ctx.pkt);
-    return;
-  }
-
-  // if other upstream are pending, wait for them
-  if (ctx.nPending > 0) {
-    ZF_LOGD("^ up-pendings=%d", ctx.nPending);
+  // if there are more pending upstream or strategy retries, wait for them
+  if (ctx.nPending > 0 || sgCtx.nForwarded > 0) {
+    ZF_LOGD("^ up-pendings=%d sg-forwarded=%d", ctx.nPending, sgCtx.nForwarded);
     return;
   }
 
@@ -187,6 +188,7 @@ FwFwd_RxNack(FwFwd* fwd, Packet* npkt)
             dn->face, outNpkt, dn->nonce, dn->token);
     Face_Tx(dn->face, outNpkt);
   }
+  rte_pktmbuf_free(ctx.pkt);
 
   // erase PIT entry
   Pit_Erase(fwd->pit, ctx.pitEntry);

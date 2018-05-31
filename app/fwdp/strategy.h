@@ -17,8 +17,9 @@ typedef struct SgContext
 
   FwFwd* fwd;
 
-  TscTime rxTime;   // XXX this is for RxInterest only
-  uint32_t dnNonce; // XXX this is for RxInterest only
+  TscTime rxTime;   // SGEVT_INTEREST and SGEVT_NACK only
+  uint32_t dnNonce; // SGEVT_INTEREST and SGEVT_NACK only
+  int nForwarded;   // SGEVT_INTEREST and SGEVT_NACK only
 } SgContext;
 
 /** \brief Register BPF-CALLable functions.

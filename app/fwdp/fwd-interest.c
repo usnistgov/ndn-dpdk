@@ -230,5 +230,6 @@ SgForwardInterest(SgCtx* ctx0, FaceId nh)
   ++fibEntry->dyn->nTxInterests;
 
   PitUp_RecordTx(up, pitEntry, now, upNonce, &fwd->suppressCfg);
+  ++ctx->nForwarded;
   return SGFWDI_OK;
 }

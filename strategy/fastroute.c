@@ -63,13 +63,16 @@ RxData(SgCtx* ctx)
 inline uint64_t
 RxNack(SgCtx* ctx)
 {
-  if (ctx->pkt->nackReason == SgNackReason_Duplicate) {
-    return 7;
-  }
-
   FibEntryInfo* fei = SgCtx_FibScratchT(ctx, FibEntryInfo);
   if (fei->hasSelectedNexthop &&
       ctx->fibEntry->nexthops[fei->selectedNexthop] == ctx->pkt->rxFace) {
+    SgFibNexthopIt it;
+    for (SgFibNexthopIt_Init2(&it, ctx); SgFibNexthopIt_Valid(&it);
+         SgFibNexthopIt_Next(&it)) {
+      if (it.i != fei->selectedNexthop) {
+        SgForwardInterest(ctx, it.nh);
+      }
+    }
     fei->hasSelectedNexthop = false;
     return 0;
   }

@@ -71,6 +71,7 @@ typedef enum SgForwardInterestResult {
 } SgForwardInterestResult;
 
 /** \brief Forward an Interest to a nexthop.
+ *  \warning Not available in \c SGEVT_DATA.
  */
 SgForwardInterestResult SgForwardInterest(SgCtx* ctx, FaceId nh);
 

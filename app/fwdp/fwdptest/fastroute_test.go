@@ -75,18 +75,27 @@ func TestFastroute(t *testing.T) {
 	assert.Len(face2.TxInterests, 2)
 	assert.Len(face3.TxInterests, 3)
 
-	// face1 replies Nack~NoRoute
+	// face1 replies Nack~NoRoute, retry on other faces
 	nack5 := ndn.MakeNackFromInterest(ndntestutil.MakeInterest("/A/B/5", uint32(0x422e9f49)), ndn.NackReason_NoRoute)
 	ndntestutil.CopyPitToken(nack5, face1.TxInterests[2])
 	face1.Rx(nack5)
 	time.Sleep(10 * time.Millisecond)
+	assert.Len(face1.TxInterests, 3)
+	assert.Len(face2.TxInterests, 3)
+	assert.Len(face3.TxInterests, 3) // no Interest to face3 because it's DOWN
+
+	// face2 replies Nack~NoRoute as well, return Nack to downstream
+	nack5 = ndn.MakeNackFromInterest(ndntestutil.MakeInterest("/A/B/5", uint32(0x422e9f49)), ndn.NackReason_NoRoute)
+	ndntestutil.CopyPitToken(nack5, face2.TxInterests[2])
+	face2.Rx(nack5)
+	time.Sleep(10 * time.Millisecond)
 	assert.Len(face4.TxNacks, 1)
 
-	// multicast next Interest because face1 Nacked
+	// multicast next Interest because faces Nacked
 	interest6 := ndntestutil.MakeInterest("/A/B/6")
 	face4.Rx(interest6)
 	time.Sleep(10 * time.Millisecond)
 	assert.Len(face1.TxInterests, 4)
-	assert.Len(face2.TxInterests, 3)
+	assert.Len(face2.TxInterests, 4)
 	assert.Len(face3.TxInterests, 3) // no Interest to face3 because it's DOWN
 }
