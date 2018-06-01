@@ -25,6 +25,13 @@ A number of templates have been registered automatically.
 
 `NewFace*` functions allow creating faces from FaceUri.
 
+## Initialization Configuration (init-config.go)
+
+`DeclareInitConfigFlag` accepts structured configuration from either the command line or a file, to initialize mempool templates and others.
+This is intended for options that must be specified during initialization and are more or less fixed for a node.
+Options that are modifiable during runtime, such as FIB entries, should be exposed via management RPC server.
+Options that change between program executions, such as log levels and producer name prefix, should appear as environment variables or simple command line flags.
+
 ## Management (mgmt.go)
 
 `RegisterMgmt` registers a management module.

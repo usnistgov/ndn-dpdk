@@ -33,6 +33,12 @@ var (
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
 	appinit.InitEal()
+	pc, e := parseCommand(appinit.Eal.Args[1:])
+	if e != nil {
+		log.WithError(e).Fatal("command line error")
+	}
+	pc.initConfig.Mempool.Apply()
+
 	startDp()
 	theStrategy = loadStrategy("multicast")
 	theStrategy.Ref()

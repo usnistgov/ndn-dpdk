@@ -48,6 +48,26 @@ func ConfigureMempool(key string, capacity int, cacheSize int) {
 	cfg.CacheSize = cacheSize
 }
 
+type MempoolCapacityConfig struct {
+	Capacity  int
+	CacheSize int
+}
+
+// Init config section for mempool capacity.
+type MempoolsCapacityConfig map[string]MempoolCapacityConfig
+
+func (cfg MempoolsCapacityConfig) Apply() {
+	for key, cfg1 := range cfg {
+		tpl, ok := mempoolCfgs[key]
+		if !ok {
+			log.WithField("key", key).Warn("unknown mempool template")
+			continue
+		}
+		tpl.Capacity = cfg1.Capacity
+		tpl.CacheSize = cfg1.CacheSize
+	}
+}
+
 // Get or create a mempool on specified NumaSocket.
 func MakePktmbufPool(key string, socket dpdk.NumaSocket) dpdk.PktmbufPool {
 	logEntry := log.WithField("template", key)
@@ -91,13 +111,13 @@ func MakePktmbufPool(key string, socket dpdk.NumaSocket) dpdk.PktmbufPool {
 
 // Registered mempool templates.
 const (
-	MP_IND   = "__IND"   // indirect mbufs
-	MP_ETHRX = "__ETHRX" // RX Ethernet frames
-	MP_NAME  = "__NAME"  // name linearize
-	MP_HDR   = "__HDR"   // TX Ethernet+NDNLP+Interest headers
-	MP_INTG  = "__INTG"  // modifying Interest guiders
-	MP_INT   = "__INT"   // TX Ethernet+NDNLP and encoding Interest
-	MP_DATA  = "__DATA"  // TX Ethernet+NDNLP and encoding Data
+	MP_IND   = "IND"   // indirect mbufs
+	MP_ETHRX = "ETHRX" // RX Ethernet frames
+	MP_NAME  = "NAME"  // name linearize
+	MP_HDR   = "HDR"   // TX Ethernet+NDNLP+Interest headers
+	MP_INTG  = "INTG"  // modifying Interest guiders
+	MP_INT   = "INT"   // TX Ethernet+NDNLP and encoding Interest
+	MP_DATA  = "DATA"  // TX Ethernet+NDNLP and encoding Data
 )
 
 var SizeofEthLpHeaders = ethface.SizeofTxHeader
@@ -112,8 +132,8 @@ func init() {
 		})
 	RegisterMempool(MP_ETHRX,
 		MempoolConfig{
-			Capacity:     1572864,
-			CacheSize:    256,
+			Capacity:     2097151,
+			CacheSize:    337,
 			PrivSize:     ndn.SizeofPacketPriv(),
 			DataroomSize: 2560, // >= MTU+sizeof(ether_hdr)
 		})
