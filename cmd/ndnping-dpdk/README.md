@@ -6,12 +6,16 @@ This program acts as [ndnping](https://github.com/named-data/ndn-tools/tree/mast
 
 ```
 sudo ndnping-dpdk EAL-ARGS -- \
+  [-initcfg=INITCFG] \
   [-latency] [-rtt] \
   [-add-delay=DURATION] [-nack=false] [-payload-len=SIZE] \
   [-cnt DURATION] \
   +c FACE INTERVAL PREFIX PCT PREFIX PCT \
   +s FACE PREFIX PREFIX
 ```
+
+**-initcfg** accepts an initialization configuration object in YAML format.
+This program recognizes *mempool* section only.
 
 **+c** defines a client on *FACE*.
 *INTERVAL* is the interval between two Interests; since the client sends Interests in bursts, this will be transformed into a burst interval where the average Interest interval matches this specified interval; zero means "as fast as possible".

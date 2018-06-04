@@ -14,6 +14,7 @@ func main() {
 	if e != nil {
 		log.WithError(e).Fatal("command line error")
 	}
+	pc.initcfg.Mempool.Apply()
 
 	var clients []ndnping.Client
 	for _, clientCfg := range pc.clients {

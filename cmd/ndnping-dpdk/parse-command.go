@@ -6,11 +6,13 @@ import (
 	"os"
 	"time"
 
+	"ndn-dpdk/appinit"
 	"ndn-dpdk/iface/faceuri"
 	"ndn-dpdk/ndn"
 )
 
 type parsedCommand struct {
+	initcfg         appinit.InitConfig
 	clients         []clientCfg
 	servers         []serverCfg
 	measureLatency  bool
@@ -39,6 +41,7 @@ type serverCfg struct {
 
 func parseCommand(args []string) (pc parsedCommand, e error) {
 	flags := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+	appinit.DeclareInitConfigFlag(flags, &pc.initcfg)
 	flags.BoolVar(&pc.measureLatency, "latency", false, "measure client-server latency")
 	flags.BoolVar(&pc.measureRtt, "rtt", false, "measure round trip time")
 	flags.DurationVar(&pc.addDelay, "add-delay", time.Duration(0), "add delay before server responds")
