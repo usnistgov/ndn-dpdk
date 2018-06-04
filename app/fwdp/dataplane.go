@@ -30,7 +30,7 @@ type Config struct {
 	FwdLCores   []dpdk.LCore
 
 	FwdQueueCapacity  int         // input-fwd queue capacity, must be power of 2
-	LatencySampleRate int         // latency sample rate, between 0 and 30
+	LatencySampleFreq int         // latency sample frequency, between 0 and 30
 	PcctCfg           pcct.Config // PCCT config; Id, NumaSocket, mempools ignored
 	CsCapacity        int         // CS capacity, must be no less than cs.MIN_CAPACITY
 }
@@ -105,7 +105,7 @@ func New(cfg Config) (*DataPlane, error) {
 		fwd.indirectMp = (*C.struct_rte_mempool)(indirectMp.GetPtr())
 
 		latencyStat := running_stat.FromPtr(unsafe.Pointer(&fwd.latencyStat))
-		latencyStat.SetSampleRate(cfg.LatencySampleRate)
+		latencyStat.SetSampleRate(cfg.LatencySampleFreq)
 
 		fwd.suppressCfg.min = C.TscDuration(dpdk.ToTscDuration(10 * time.Millisecond))
 		fwd.suppressCfg.multiplier = 2.0

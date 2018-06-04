@@ -5,20 +5,43 @@ import (
 	"os"
 
 	"ndn-dpdk/appinit"
+	"ndn-dpdk/container/fib"
+	"ndn-dpdk/container/ndt"
 )
 
-type parsedCommand struct {
-	initConfig appinit.InitConfig
+type initConfig struct {
+	Mempool appinit.MempoolsCapacityConfig
+	Ndt     ndt.Config
+	Fib     fib.Config
+	Fwdp    fwdpInitConfig
 }
 
-func parseCommand(args []string) (pc parsedCommand, e error) {
+type fwdpInitConfig struct {
+	FwdQueueCapacity  int
+	LatencySampleFreq int
+	PcctCapacity      int
+	CsCapacity        int
+}
+
+func parseCommand(args []string) (initCfg initConfig, e error) {
+	initCfg.Ndt.PrefixLen = 2
+	initCfg.Ndt.IndexBits = 16
+	initCfg.Ndt.SampleFreq = 8
+	initCfg.Fib.MaxEntries = 65535
+	initCfg.Fib.NBuckets = 256
+	initCfg.Fib.StartDepth = 8
+	initCfg.Fwdp.FwdQueueCapacity = 128
+	initCfg.Fwdp.LatencySampleFreq = 16
+	initCfg.Fwdp.PcctCapacity = 131071
+	initCfg.Fwdp.CsCapacity = 32768
+
 	flags := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-	appinit.DeclareInitConfigFlag(flags, &pc.initConfig)
+	appinit.DeclareInitConfigFlag(flags, &initCfg)
 
 	e = flags.Parse(args)
 	if e != nil {
-		return pc, e
+		return initConfig{}, e
 	}
 
-	return pc, nil
+	return initCfg, nil
 }

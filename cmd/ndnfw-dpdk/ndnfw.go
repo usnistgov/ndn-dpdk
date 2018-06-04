@@ -33,13 +33,13 @@ var (
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
 	appinit.InitEal()
-	pc, e := parseCommand(appinit.Eal.Args[1:])
+	initCfg, e := parseCommand(appinit.Eal.Args[1:])
 	if e != nil {
 		log.WithError(e).Fatal("command line error")
 	}
-	pc.initConfig.Mempool.Apply()
+	initCfg.Mempool.Apply()
 
-	startDp()
+	startDp(initCfg.Ndt, initCfg.Fib, initCfg.Fwdp)
 	theStrategy = loadStrategy("multicast")
 	theStrategy.Ref()
 	startMgmt()
@@ -47,7 +47,7 @@ func main() {
 	select {}
 }
 
-func startDp() {
+func startDp(ndtCfg ndt.Config, fibCfg fib.Config, dpInit fwdpInitConfig) {
 	log.WithField("nSlaves", len(appinit.Eal.Slaves)).Info("EAL ready")
 	lcr := appinit.NewLCoreReservations()
 
@@ -115,21 +115,13 @@ func startDp() {
 
 	// initialize NDT
 	{
-		var ndtCfg ndt.Config
-		ndtCfg.PrefixLen = 2
-		ndtCfg.IndexBits = 16
-		ndtCfg.SampleFreq = 8
 		theNdt = ndt.New(ndtCfg, dpdk.ListNumaSocketsOfLCores(dpCfg.InputLCores))
 		dpCfg.Ndt = theNdt
 	}
 
 	// initialize FIB
 	{
-		var fibCfg fib.Config
 		fibCfg.Id = "FIB"
-		fibCfg.MaxEntries = 65535
-		fibCfg.NBuckets = 256
-		fibCfg.StartDepth = 8
 		var e error
 		theFib, e = fib.New(fibCfg, theNdt, dpdk.ListNumaSocketsOfLCores(dpCfg.FwdLCores))
 		if e != nil {
@@ -142,10 +134,10 @@ func startDp() {
 	theNdt.Randomize(nFwds)
 
 	// set forwarding process config
-	dpCfg.FwdQueueCapacity = 128
-	dpCfg.LatencySampleRate = 16
-	dpCfg.PcctCfg.MaxEntries = 131071
-	dpCfg.CsCapacity = 32768
+	dpCfg.FwdQueueCapacity = dpInit.FwdQueueCapacity
+	dpCfg.LatencySampleFreq = dpInit.LatencySampleFreq
+	dpCfg.PcctCfg.MaxEntries = dpInit.PcctCapacity
+	dpCfg.CsCapacity = dpInit.CsCapacity
 
 	// create dataplane
 	{
