@@ -44,11 +44,11 @@ func (face *MockFace) getPtr() *C.Face {
 }
 
 func (*MockFace) GetLocalUri() *faceuri.FaceUri {
-	return faceuri.MustParse("mock://")
+	return faceuri.MustParse("mock:")
 }
 
 func (*MockFace) GetRemoteUri() *faceuri.FaceUri {
-	return faceuri.MustParse("mock://")
+	return faceuri.MustParse("mock:")
 }
 
 func (face *MockFace) Close() error {

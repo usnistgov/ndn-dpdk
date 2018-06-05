@@ -26,7 +26,7 @@ func TestParse(t *testing.T) {
 		{"ether://[02:02:02:02:02:02]", true, ""},
 		{"ether://02:02:02:02:02:02", false, ""},
 		{"ether://[FF:FF:FF:FF:FF:FF]/", true, "ether://[ff:ff:ff:ff:ff:ff]"},
-		{"mock://", true, ""},
+		{"mock:", true, ""},
 		{"mock://x", false, ""},
 		{"udp://192.0.2.1", true, "udp4://192.0.2.1:6363"},
 		{"udp://192.0.2.1:7777", true, "udp4://192.0.2.1:7777"},

@@ -5,8 +5,8 @@ import "errors"
 type mockImpl struct{}
 
 func (mockImpl) Verify(u *FaceUri) error {
-	if u.String() != "mock://" {
-		return errors.New("mock FaceUri must be 'mock://'")
+	if u.String() != "mock:" {
+		return errors.New("mock FaceUri must be 'mock:'")
 	}
 	return nil
 }

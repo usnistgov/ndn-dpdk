@@ -6,10 +6,10 @@ This repository contains high-performance [Named Data Networking (NDN)](https://
 
 Requirements:
 
-* Ubuntu 16.04 or 18.04 on `amd64` architecture
+* Ubuntu 16.04 or 18.04 on *amd64* architecture
 * Go 1.10.2
-* `clang clang-format doxygen git go-bindata libc6-dev-i386 libnuma-dev liburcu-dev pandoc socat sudo yamllint` packages
-* DPDK 17.11 installed from source to `/usr/local` (Ubuntu 16.04), or `dpdk-dev` package (Ubuntu 18.04)
+* `clang-3.9 clang-format-3.9 doxygen git go-bindata libc6-dev-i386 libnuma-dev liburcu-dev pandoc socat sudo yamllint` packages
+* DPDK 17.11 installed from source to `/usr/local`, or `dpdk-dev` package (Ubuntu 18.04 only)
 * [ubpf](https://github.com/iovisor/ubpf/tree/10e0a45b11ea27696add38c33e24dbc631caffb6) library, installed to `/usr/local/include/ubpf.h` and `/usr/local/lib/libubpf.a`
 * NodeJS 8.x and `sudo npm install -g jayson`
 
@@ -20,6 +20,14 @@ Installation steps:
 3. `make`, and have a look at other [Makefile](./Makefile) targets.
    Prepend `RELEASE=1` selects release mode that disables asserts and verbose logging.
    Note: `go get` installation is unavailable due to dependency between C code.
+
+This program can also run in a Docker container in privileged mode.
+The `Dockerfile` serves a useful reference on how to install dependencies.
+
+1. Clean up the codebase: `make clean`
+2. Build the image: `docker build -t ndn-dpdk .`
+3. Launch a container: `docker run --rm -it --privileged -v /sys/bus/pci/devices:/sys/bus/pci/devices -v /sys/kernel/mm/hugepages:/sys/kernel/mm/hugepages -v /sys/devices/system/node:/sys/devices/system/node -v /dev:/dev --network host ndn-dpdk`
+4. Setup environment inside the container: `mkdir /mnt/huge1G && mount -t hugetlbfs nodev /mnt/huge1G -o pagesize=1G && export PATH=$PATH:/usr/local/go/bin && export GOPATH=/root/go`
 
 ## Code Organization
 

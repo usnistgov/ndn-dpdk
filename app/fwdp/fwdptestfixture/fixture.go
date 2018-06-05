@@ -112,7 +112,7 @@ func (fixture *Fixture) Close() error {
 }
 
 func (fixture *Fixture) CreateFace() *mockface.MockFace {
-	face, e := appinit.NewFaceFromUri(faceuri.MustParse("mock://"), nil)
+	face, e := appinit.NewFaceFromUri(faceuri.MustParse("mock:"), nil)
 	fixture.require.NoError(e)
 	e = face.EnableThreadSafeTx(16)
 	fixture.require.NoError(e)

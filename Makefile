@@ -98,13 +98,13 @@ $(CLIBPREFIX)-tsht.a: $(CLIBPREFIX)-dpdk.a $(CLIBPREFIX)-urcu.a container/tsht/*
 container/tsht/cgoflags.go: dpdk/cgoflags.go core/urcu/cgoflags.go
 	./make-cgoflags.sh container/tsht dpdk core/urcu
 
-$(CLIBPREFIX)-fib.a: $(CLIBPREFIX)-tsht.a $(CLIBPREFIX)-ndn.a container/fib/*.h container/fib/*.c
+$(CLIBPREFIX)-fib.a: $(CLIBPREFIX)-tsht.a $(CLIBPREFIX)-ndt.a container/fib/*.h container/fib/*.c
 	./cbuild.sh container/fib
 
 container/fib/cgoflags.go: container/tsht/cgoflags.go ndn/cgoflags.go
 	./make-cgoflags.sh container/fib container/tsht ndn
 
-$(CLIBPREFIX)-pcct.a: $(CLIBPREFIX)-mintmr.a $(CLIBPREFIX)-ndn.a container/pcct/*.h container/pcct/*.c
+$(CLIBPREFIX)-pcct.a: $(CLIBPREFIX)-mintmr.a $(CLIBPREFIX)-fib.a container/pcct/*.h container/pcct/*.c
 	./cbuild.sh container/pcct
 
 container/pcct/cgoflags.go: container/mintmr/cgoflags.go container/fib/cgoflags.go
@@ -119,12 +119,12 @@ strategy/strategy_elf/bindata.go: $(STRATEGYPREFIX)/multicast.o $(STRATEGYPREFIX
 
 $(STRATEGYPREFIX)/%.o: strategy/%.c $(CLIBPREFIX)-strategy.a
 	mkdir -p $(STRATEGYPREFIX)
-	clang $(BPFFLAGS) -c $< -o $(STRATEGYPREFIX)/$*.o
+	clang-3.9 $(BPFFLAGS) -c $< -o $(STRATEGYPREFIX)/$*.o
 
 strategy-%.s: strategy/%.c
-	clang $(BPFFLAGS) -c $< -S -o -
+	clang-3.9 $(BPFFLAGS) -c $< -S -o -
 
-$(CLIBPREFIX)-strategy.a: strategy/api*
+$(CLIBPREFIX)-strategy.a: strategy/api* $(CLIBPREFIX)-pcct.a
 	./cbuild.sh strategy
 
 appinit/cgoflags.go: dpdk/cgoflags.go
@@ -133,7 +133,7 @@ appinit/cgoflags.go: dpdk/cgoflags.go
 app/ndnping/cgoflags.go: container/nameset/cgoflags.go iface/cgoflags.go
 	./make-cgoflags.sh app/ndnping container/nameset iface
 
-$(CLIBPREFIX)-fwdp.a: $(CLIBPREFIX)-ndt.a $(CLIBPREFIX)-fib.a $(CLIBPREFIX)-pcct.a $(CLIBPREFIX)-iface.a app/fwdp/*.h app/fwdp/*.c
+$(CLIBPREFIX)-fwdp.a: $(CLIBPREFIX)-pcct.a $(CLIBPREFIX)-iface.a app/fwdp/*.h app/fwdp/*.c
 	./cbuild.sh app/fwdp
 
 app/fwdp/cgoflags.go: container/ndt/cgoflags.go container/fib/cgoflags.go container/pcct/cgoflags.go iface/cgoflags.go

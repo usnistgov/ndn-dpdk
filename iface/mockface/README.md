@@ -9,6 +9,6 @@ Packets transmitted through a mock face are accumulated on `MockFace.TxInterests
 Test code is responsible for freeing these packets.
 
 FaceId of MockFace is randomly assigned from the range 0x0001-0x0FFF.
-LocalUri and RemoteUri are both "mock://".
+LocalUri and RemoteUri are both "mock:".
 
 MockFace's send path is not thread safe.
