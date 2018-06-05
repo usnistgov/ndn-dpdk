@@ -6,9 +6,10 @@ This repository contains high-performance [Named Data Networking (NDN)](https://
 
 Requirements:
 
-* Ubuntu 16.04 on `amd64` architecture
-* `clang clang-format doxygen go-bindata libc6-dev-i386 liburcu-dev pandoc socat yamllint` packages
-* DPDK 17.11, installed to `/usr/local`
+* Ubuntu 16.04 or 18.04 on `amd64` architecture
+* Go 1.10.2
+* `clang clang-format doxygen git go-bindata libc6-dev-i386 libnuma-dev liburcu-dev pandoc socat sudo yamllint` packages
+* DPDK 17.11 installed from source to `/usr/local` (Ubuntu 16.04), or `dpdk-dev` package (Ubuntu 18.04)
 * [ubpf](https://github.com/iovisor/ubpf/tree/10e0a45b11ea27696add38c33e24dbc631caffb6) library, installed to `/usr/local/include/ubpf.h` and `/usr/local/lib/libubpf.a`
 * NodeJS 8.x and `sudo npm install -g jayson`
 

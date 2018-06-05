@@ -1,6 +1,7 @@
 CLIBPREFIX=build/libndn-dpdk
 STRATEGYPREFIX=build/strategy-bpf
-BPFFLAGS=-O2 -target bpf -I/usr/local/include/dpdk -Wno-int-to-void-pointer-cast -mllvm -inline-threshold=65536
+INCLUDEFLAGS=-I/usr/local/include/dpdk -I/usr/include/dpdk
+BPFFLAGS=-O2 -target bpf $(INCLUDEFLAGS) -Wno-int-to-void-pointer-cast -mllvm -inline-threshold=65536
 
 all: godeps
 	go build -v ./...
@@ -33,7 +34,7 @@ $(CLIBPREFIX)-dpdk.a: $(CLIBPREFIX)-core.a dpdk/*.h dpdk/*.c
 	./cbuild.sh dpdk
 
 dpdk/cgostruct.go: dpdk/cgostruct.in.go
-	cd dpdk; go tool cgo -godefs -- -I/usr/local/include/dpdk cgostruct.in.go | gofmt > cgostruct.go; rm -rf _obj
+	cd dpdk; go tool cgo -godefs -- $(INCLUDEFLAGS) cgostruct.in.go | gofmt > cgostruct.go; rm -rf _obj
 
 dpdk/cgoflags.go: dpdk/cgostruct.go
 	./make-cgoflags.sh dpdk core
@@ -43,7 +44,7 @@ ndn/error.go ndn/error.h: ndn/make-error.sh ndn/error.tsv
 	ndn/make-error.sh
 
 ndn/namehash.h: ndn/namehash.c
-	gcc -o /tmp/namehash.exe ndn/namehash.c -m64 -march=native -I/usr/local/include/dpdk -DNAMEHASH_GENERATOR
+	gcc -o /tmp/namehash.exe ndn/namehash.c -m64 -march=native $(INCLUDEFLAGS) -DNAMEHASH_GENERATOR
 	openssl rand 16 | /tmp/namehash.exe > ndn/namehash.h
 	rm /tmp/namehash.exe
 
@@ -182,5 +183,5 @@ godochttp:
 
 clean:
 	rm -rf build docs/doxygen docs/codedoc ndn/error.go ndn/error.h ndn/namehash.h ndn/tlv-type.go ndn/tlv-type.h strategy/strategy_elf/bindata.go
-	find -name 'cgoflags.go' -o -name 'cgostruct.go' -delete
+	find \( -name 'cgoflags.go' -o -name 'cgostruct.go' \) -delete
 	go clean ./...

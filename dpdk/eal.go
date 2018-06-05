@@ -157,9 +157,19 @@ func NewEal(args []string) (*Eal, error) {
 	return eal, nil
 }
 
-func loadDpdkDynLibs() error {
-	const libdpdkPath = "/usr/local/lib/libdpdk.so"
-	dpdkSoContent, e := ioutil.ReadFile(libdpdkPath)
+func loadDpdkDynLibs() (e error) {
+	var libdpdkPath string
+	libdpdkPaths := []string{
+		"/usr/local/lib/libdpdk.so",
+		"/usr/lib/x86_64-linux-gnu/libdpdk.so",
+	}
+	var dpdkSoContent []byte
+	for _, libdpdkPath = range libdpdkPaths {
+		dpdkSoContent, e = ioutil.ReadFile(libdpdkPath)
+		if e == nil {
+			break
+		}
+	}
 	if e != nil {
 		return e
 	}

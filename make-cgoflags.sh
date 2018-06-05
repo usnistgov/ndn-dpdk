@@ -11,11 +11,12 @@ PKGNAME=$(basename $PKG)
 LIBPATH=$(realpath --relative-to=$PKG build/)
 shift
 
-for GOFILE in $(find $PKG -maxdepth 1 -name '*.go' -not -name '*_test.go' -not -name 'cgoflags.go'); do
-  PKGNAME=$(grep 'package ' $GOFILE | head -1 | awk '{print $2}')
-done
+GOFILES=$(find $PKG -maxdepth 1 -name '*.go' -not -name '*_test.go' -not -name 'cgoflags.go')
+if [[ -n $GOFILES ]]; then
+  PKGNAME=$(grep -h '^package ' $GOFILES | head -1 | awk '{print $2}')
+fi
 
-CFLAGS='-Werror -Wno-error=deprecated-declarations -m64 -pthread -O3 -g -march=native -I/usr/local/include/dpdk'
+CFLAGS='-Werror -Wno-error=deprecated-declarations -m64 -pthread -O3 -g -march=native -I/usr/local/include/dpdk -I/usr/include/dpdk'
 LIBS='-L/usr/local/lib -lurcu-qsbr -lurcu-cds -lubpf -ldpdk -ldl -lnuma'
 if [[ -n $RELEASE ]]; then
   CFLAGS=$CFLAGS' -DNDEBUG -DZF_LOG_DEF_LEVEL=ZF_LOG_INFO'
