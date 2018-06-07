@@ -6,6 +6,7 @@ package ethface
 import "C"
 import (
 	"fmt"
+	"strings"
 	"unsafe"
 
 	"ndn-dpdk/dpdk"
@@ -53,7 +54,13 @@ func (face *EthFace) GetLocalUri() *faceuri.FaceUri {
 }
 
 func (face *EthFace) GetRemoteUri() *faceuri.FaceUri {
-	return faceuri.MustParse(fmt.Sprintf("dev://%s", face.GetPort().GetName()))
+	hostname := strings.Map(func(c rune) rune {
+		if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' {
+			return c
+		}
+		return '-'
+	}, face.GetPort().GetName())
+	return faceuri.MustParse(fmt.Sprintf("dev://%s", hostname))
 }
 
 func (face *EthFace) Close() error {
