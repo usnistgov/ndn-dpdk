@@ -182,6 +182,6 @@ godochttp:
 	godoc -http ':6060' 2>/dev/null &
 
 clean:
-	rm -rf build docs/doxygen docs/codedoc ndn/error.go ndn/error.h ndn/namehash.h ndn/tlv-type.go ndn/tlv-type.h strategy/strategy_elf/bindata.go
+	rm -rf build docs/doxygen docs/codedoc docs/mgmtschema/schema.json ndn/error.go ndn/error.h ndn/namehash.h ndn/tlv-type.go ndn/tlv-type.h strategy/strategy_elf/bindata.go app/version/version.go
 	find \( -name 'cgoflags.go' -o -name 'cgostruct.go' \) -delete
 	go clean ./...
