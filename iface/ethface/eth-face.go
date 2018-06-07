@@ -18,6 +18,23 @@ func SizeofTxHeader() int {
 	return int(C.EthFace_SizeofTxHeader())
 }
 
+// List RemoteUris of available ports.
+func ListPortUris() (a []string) {
+	for _, port := range dpdk.ListEthDevs() {
+		a = append(a, makeRemoteUri(port))
+	}
+	return a
+}
+
+func FindPortByUri(uri string) dpdk.EthDev {
+	for _, port := range dpdk.ListEthDevs() {
+		if makeRemoteUri(port) == uri {
+			return port
+		}
+	}
+	return dpdk.ETHDEV_INVALID
+}
+
 type EthFace struct {
 	iface.BaseFace
 	rxLoopStopped chan bool
@@ -53,14 +70,18 @@ func (face *EthFace) GetLocalUri() *faceuri.FaceUri {
 	return faceuri.MustParse(fmt.Sprintf("ether://[%s]", face.GetPort().GetMacAddr()))
 }
 
-func (face *EthFace) GetRemoteUri() *faceuri.FaceUri {
+func makeRemoteUri(port dpdk.EthDev) string {
 	hostname := strings.Map(func(c rune) rune {
 		if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' {
 			return c
 		}
 		return '-'
-	}, face.GetPort().GetName())
-	return faceuri.MustParse(fmt.Sprintf("dev://%s", hostname))
+	}, port.GetName())
+	return fmt.Sprintf("dev://%s", hostname)
+}
+
+func (face *EthFace) GetRemoteUri() *faceuri.FaceUri {
+	return faceuri.MustParse(makeRemoteUri(face.GetPort()))
 }
 
 func (face *EthFace) Close() error {

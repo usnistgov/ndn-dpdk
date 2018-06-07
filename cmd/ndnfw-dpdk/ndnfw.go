@@ -58,7 +58,7 @@ func startDp(ndtCfg ndt.Config, fibCfg fib.Config, dpInit fwdpInitConfig) {
 	var outputLCores []dpdk.LCore
 	var outputTxLoopers []iface.ITxLooper
 	for _, port := range dpdk.ListEthDevs() {
-		logEntry := log.WithField("port", port)
+		logEntry := log.WithFields(makeLogFields("port", port, "name", port.GetName()))
 		face, e := appinit.NewFaceFromEthDev(port)
 		if e != nil {
 			logEntry.WithError(e).Fatal("EthFace creation error")

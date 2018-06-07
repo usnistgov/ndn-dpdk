@@ -44,12 +44,13 @@ var newFaceByScheme = map[string]func(remote, local *faceuri.FaceUri) (iface.IFa
 
 func newEthFace(remote, local *faceuri.FaceUri) (iface.IFace, error) {
 	if local != nil {
-		return nil, errors.New("eth scheme does not accept local FaceUri")
+		return nil, errors.New("dev scheme does not accept local FaceUri")
 	}
 
-	port := dpdk.FindEthDev(remote.Host)
+	port := ethface.FindPortByUri(remote.String())
 	if !port.IsValid() {
-		return nil, fmt.Errorf("DPDK device %s not found", remote.Host)
+		return nil, fmt.Errorf("DPDK device %s not found (available ports: %v)",
+			remote.Host, ethface.ListPortUris())
 	}
 	return newEthFaceFromDev(port)
 }
