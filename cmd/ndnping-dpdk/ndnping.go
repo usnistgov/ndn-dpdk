@@ -74,13 +74,13 @@ func main() {
 			<-tick
 			for _, client := range clients {
 				face := client.GetFace()
-				stdlog.Printf("client(%d) %v; %v", face.GetFaceId(),
-					client.ReadCounters(), face.ReadCounters())
+				stdlog.Printf("client(%d) %v; %v; %v", face.GetFaceId(),
+					client.ReadCounters(), face.ReadCounters(), face.ReadExCounters())
 			}
 			for _, server := range servers {
 				face := server.GetFace()
-				stdlog.Printf("server(%d) %v; %v", face.GetFaceId(),
-					server.ReadCounters(), face.ReadCounters())
+				stdlog.Printf("server(%d) %v; %v; %v", face.GetFaceId(),
+					server.ReadCounters(), face.ReadCounters(), face.ReadExCounters())
 			}
 		}
 	}()
