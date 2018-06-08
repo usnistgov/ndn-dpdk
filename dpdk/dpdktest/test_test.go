@@ -9,12 +9,14 @@ import (
 )
 
 func TestMain(m *testing.M) {
+	println("dpdktest.TestMain")
 	// TestEal test case needs these parameters.
-	if eal, e := dpdk.NewEal([]string{"testprog", "-l0,2,3", "-n1", "--no-pci", "--", "X"}); e == nil {
+	if eal, e := dpdk.NewEal([]string{"testprog", "-l", "0,2,3", "-n", "1", "--no-pci", "--", "X"}); e == nil {
 		dpdktestenv.Eal = eal
+	} else {
+		panic(e)
 	}
 
-	dpdktestenv.InitEal() // panics if Eal is unavailable
 	dpdktestenv.MakeDirectMp(4095, 0, 256)
 
 	os.Exit(m.Run())

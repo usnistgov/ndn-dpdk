@@ -15,7 +15,7 @@ getTestPkg() {
 if [[ $# -eq 0 ]]; then
   # run all tests
 
-  find -name '*_test.go' -printf '%h\n' | uniq | xargs -I{} sudo $(which go) test {}
+  find -name '*_test.go' -printf '%h\n' | uniq | xargs -I{} sudo $(which go) test {} -count=1
 
 elif [[ $# -eq 1 ]]; then
   # run tests in one package
@@ -31,7 +31,7 @@ elif [[ $# -eq 2 ]]; then
   TESTPKG=$(getTestPkg $PKG)
   TEST=$2
 
-  sudo GODEBUG=cgocheck=2 $DBG $(which go) test ./$TESTPKG -v -run 'Test'$TEST'.*'
+  sudo GODEBUG=cgocheck=2 $DBG $(which go) test ./$TESTPKG -count=1 -v -run 'Test'$TEST'.*'
 
 elif [[ $# -eq 3 ]]; then
   # run one test with debug tool

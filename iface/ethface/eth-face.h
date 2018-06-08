@@ -13,8 +13,8 @@ typedef struct EthFacePriv
 {
   bool stopRxLoop;
   struct ether_hdr ethhdr; // TX Ethernet header
-  void* rxCallback;
-  void* txCallback;
+  const struct rte_eth_rxtx_callback* rxCallback;
+  const struct rte_eth_rxtx_callback* txCallback;
 } EthFacePriv;
 
 static uint16_t
