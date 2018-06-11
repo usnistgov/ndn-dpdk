@@ -28,6 +28,21 @@ mempool:
     capacity: 65535
     cachesize: 255
 
+# face queue capacity
+facequeuecapacity:
+  # Ethernet face, RX frames before decoding
+  ethrxframes: 256
+  # Ethernet face, TX packets before fragmentation
+  ethtxpkts: 256
+  # Ethernet face, TX frames after fragmentation
+  ethtxframes: 256
+  # socket face, RX frames before decoding
+  socketrxframes: 256
+  # socket face, TX packets before fragmentation
+  sockettxpkts: 256
+  # socket face, TX frames after fragmentation
+  sockettxframes: 256
+
 # NDT
 ndt:
   # Names are dispatched using prefix with this number of components.

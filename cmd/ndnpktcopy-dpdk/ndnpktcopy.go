@@ -12,10 +12,7 @@ import (
 	"ndn-dpdk/iface"
 )
 
-const (
-	Dump_RingCapacity    = 256
-	Face_TxQueueCapacity = 256
-)
+const Dump_RingCapacity = 256
 
 type PktcopyProc struct {
 	face      iface.IFace
@@ -43,7 +40,7 @@ func main() {
 		if e != nil {
 			logEntry.WithError(e).Fatal("face creation error")
 		}
-		face.EnableThreadSafeTx(Face_TxQueueCapacity)
+		face.EnableThreadSafeTx(appinit.TheFaceQueueCapacityConfig.EthTxPkts)
 		numaSocket := face.GetNumaSocket()
 		proc.face = face
 

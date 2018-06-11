@@ -38,6 +38,7 @@ func main() {
 		log.WithError(e).Fatal("command line error")
 	}
 	initCfg.Mempool.Apply()
+	initCfg.FaceQueueCapacity.Apply()
 
 	startDp(initCfg.Ndt, initCfg.Fib, initCfg.Fwdp)
 	theStrategy = loadStrategy("multicast")
@@ -70,7 +71,7 @@ func startDp(ndtCfg ndt.Config, fibCfg fib.Config, dpInit fwdpInitConfig) {
 		dpCfg.InputLCores = append(dpCfg.InputLCores, inputLc)
 		inputRxLoopers = append(inputRxLoopers, appinit.MakeRxLooper(face))
 
-		e = face.EnableThreadSafeTx(256)
+		e = face.EnableThreadSafeTx(appinit.TheFaceQueueCapacityConfig.EthTxPkts)
 		if e != nil {
 			logEntry.WithError(e).Fatal("EnableThreadSafeTx failed")
 		}
@@ -185,7 +186,9 @@ func startDp(ndtCfg ndt.Config, fibCfg fib.Config, dpInit fwdpInitConfig) {
 func startMgmt() {
 	appinit.RegisterMgmt(versionmgmt.VersionMgmt{})
 
-	facemgmt.CreateFace = socketface.MakeMgmtCreateFace(appinit.NewSocketFaceCfg(theSocketFaceNumaSocket), theSocketRxg, theSocketTxl, 64)
+	facemgmt.CreateFace = socketface.MakeMgmtCreateFace(
+		appinit.NewSocketFaceCfg(theSocketFaceNumaSocket), theSocketRxg, theSocketTxl,
+		appinit.TheFaceQueueCapacityConfig.SocketTxPkts)
 	appinit.RegisterMgmt(facemgmt.FaceMgmt{})
 
 	appinit.RegisterMgmt(ndtmgmt.NdtMgmt{

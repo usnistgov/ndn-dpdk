@@ -12,13 +12,30 @@ import (
 	"ndn-dpdk/iface/socketface"
 )
 
-// Queue capacity configuration for new faces.
-var (
-	ETHFACE_RXQ_CAPACITY    = 64
-	ETHFACE_TXQ_CAPACITY    = 64
-	SOCKETFACE_RXQ_CAPACITY = 256
-	SOCKETFACE_TXQ_CAPACITY = 256
-)
+type FaceQueueCapacityConfig struct {
+	EthRxFrames int
+	EthTxPkts   int
+	EthTxFrames int
+
+	SocketRxFrames int
+	SocketTxPkts   int
+	SocketTxFrames int
+}
+
+func (cfg FaceQueueCapacityConfig) Apply() {
+	TheFaceQueueCapacityConfig = cfg
+}
+
+var TheFaceQueueCapacityConfig FaceQueueCapacityConfig
+
+func init() {
+	TheFaceQueueCapacityConfig.EthRxFrames = 256
+	TheFaceQueueCapacityConfig.EthTxPkts = 256
+	TheFaceQueueCapacityConfig.EthTxFrames = 256
+	TheFaceQueueCapacityConfig.SocketRxFrames = 256
+	TheFaceQueueCapacityConfig.SocketTxPkts = 256
+	TheFaceQueueCapacityConfig.SocketTxFrames = 256
+}
 
 // Create face by FaceUri.
 func NewFaceFromUri(remote, local *faceuri.FaceUri) (face iface.IFace, e error) {
@@ -66,10 +83,10 @@ func NewFaceFromEthDev(port dpdk.EthDev) (face iface.IFace, e error) {
 
 func newEthFaceFromDev(port dpdk.EthDev) (iface.IFace, error) {
 	var cfg dpdk.EthDevConfig
-	cfg.AddRxQueue(dpdk.EthRxQueueConfig{Capacity: ETHFACE_RXQ_CAPACITY,
+	cfg.AddRxQueue(dpdk.EthRxQueueConfig{Capacity: TheFaceQueueCapacityConfig.EthRxFrames,
 		Socket: port.GetNumaSocket(),
 		Mp:     MakePktmbufPool(MP_ETHRX, port.GetNumaSocket())})
-	cfg.AddTxQueue(dpdk.EthTxQueueConfig{Capacity: ETHFACE_TXQ_CAPACITY,
+	cfg.AddTxQueue(dpdk.EthTxQueueConfig{Capacity: TheFaceQueueCapacityConfig.EthTxFrames,
 		Socket: port.GetNumaSocket()})
 	_, _, e := port.Configure(cfg)
 	if e != nil {
@@ -98,8 +115,8 @@ func newSocketFace(remote, local *faceuri.FaceUri) (face iface.IFace, e error) {
 func NewSocketFaceCfg(socket dpdk.NumaSocket) (cfg socketface.Config) {
 	cfg.Mempools = makeFaceMempools(socket)
 	cfg.RxMp = MakePktmbufPool(MP_ETHRX, socket)
-	cfg.RxqCapacity = SOCKETFACE_RXQ_CAPACITY
-	cfg.TxqCapacity = SOCKETFACE_TXQ_CAPACITY
+	cfg.RxqCapacity = TheFaceQueueCapacityConfig.SocketRxFrames
+	cfg.TxqCapacity = TheFaceQueueCapacityConfig.SocketTxFrames
 	return cfg
 }
 

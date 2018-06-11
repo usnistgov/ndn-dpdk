@@ -10,10 +10,11 @@ import (
 )
 
 type initConfig struct {
-	Mempool appinit.MempoolsCapacityConfig
-	Ndt     ndt.Config
-	Fib     fib.Config
-	Fwdp    fwdpInitConfig
+	Mempool           appinit.MempoolsCapacityConfig
+	FaceQueueCapacity appinit.FaceQueueCapacityConfig
+	Ndt               ndt.Config
+	Fib               fib.Config
+	Fwdp              fwdpInitConfig
 }
 
 type fwdpInitConfig struct {
