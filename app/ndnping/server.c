@@ -38,8 +38,13 @@ NdnpingServer_ProcessPkt(NdnpingServer* server, Packet* npkt)
   if (patternId < 0) {
     ZF_LOGD(">I dn-token=%016" PRIx64 " no-pattern", token);
     ++server->nNoMatch;
-    MakeNack(npkt, NackReason_NoRoute);
-    return npkt;
+    if (server->wantNackNoRoute) {
+      MakeNack(npkt, NackReason_NoRoute);
+      return npkt;
+    } else {
+      rte_pktmbuf_free(pkt);
+      return NULL;
+    }
   }
   ZF_LOGD(">I dn-token=%016" PRIx64 " pattern=%d", token, patternId);
 

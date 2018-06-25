@@ -38,7 +38,6 @@ This option is not implemented: RTT measurement is always enabled on pattern 0, 
 This feature is not implemented.
 
 **-nack=false** instructs the server to not respond to Interests it cannot serve, instead of responding with Nacks.
-This option is not implemented: server always responds with Nack.
 
 **-payload-len** specifies length of Content in server's Data packets.
 
