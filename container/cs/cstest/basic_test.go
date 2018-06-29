@@ -39,16 +39,14 @@ func TestInsertErase(t *testing.T) {
 	assert.Equal("/A/B", csData.GetName().String())
 	assert.Equal(100*time.Millisecond, csData.GetFreshnessPeriod())
 
-	interest3 := ndntestutil.MakeInterest("/A/B", ndn.FHDelegation{1, "/F"})
-	interest3.SelectActiveFh(0)
-	ok = fixture.Insert(interest3, ndntestutil.MakeData("/A/B", 200*time.Millisecond))
+	ok = fixture.Insert(
+		ndntestutil.MakeInterest("/A/B", ndn.FHDelegation{1, "/F"}, ndn.ActiveFHDelegation(0)),
+		ndntestutil.MakeData("/A/B", 200*time.Millisecond))
 	assert.True(ok)
 	assert.Equal(2, fixture.Cs.Len())
 
-	interest3 = ndntestutil.MakeInterest("/A/B",
-		ndn.FHDelegation{1, "/G"}, ndn.FHDelegation{2, "/F"})
-	interest3.SelectActiveFh(1)
-	csEntry3 := fixture.Find(interest3)
+	csEntry3 := fixture.Find(ndntestutil.MakeInterest("/A/B",
+		ndn.FHDelegation{1, "/G"}, ndn.FHDelegation{2, "/F"}, ndn.ActiveFHDelegation(1)))
 	require.NotNil(csEntry3)
 	csData3 := csEntry3.GetData()
 	assert.Equal("/A/B", csData3.GetName().String())

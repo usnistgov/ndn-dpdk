@@ -33,17 +33,13 @@ func TestInsertErase(t *testing.T) {
 	assert.NotNil(entry3)
 	assert.Equal(uintptr(entry2.GetPtr()), uintptr(entry3.GetPtr()))
 
-	interest4 := ndntestutil.MakeInterest("/A/2",
-		ndn.FHDelegation{1, "/F"}, ndn.FHDelegation{1, "/G"})
-	interest4.SelectActiveFh(0)
-	entry4 := fixture.Insert(interest4)
+	entry4 := fixture.Insert(ndntestutil.MakeInterest("/A/2",
+		ndn.FHDelegation{1, "/F"}, ndn.FHDelegation{1, "/G"}, ndn.ActiveFHDelegation(0)))
 	assert.NotNil(entry4)
 	assert.NotEqual(uintptr(entry2.GetPtr()), uintptr(entry4.GetPtr()))
 
-	interest5 := ndntestutil.MakeInterest("/A/2",
-		ndn.FHDelegation{1, "/F"}, ndn.FHDelegation{1, "/G"})
-	interest5.SelectActiveFh(1)
-	entry5 := fixture.Insert(interest5)
+	entry5 := fixture.Insert(ndntestutil.MakeInterest("/A/2",
+		ndn.FHDelegation{1, "/F"}, ndn.FHDelegation{1, "/G"}, ndn.ActiveFHDelegation(1)))
 	assert.NotNil(entry5)
 	assert.NotEqual(uintptr(entry2.GetPtr()), uintptr(entry5.GetPtr()))
 	assert.NotEqual(uintptr(entry4.GetPtr()), uintptr(entry5.GetPtr()))

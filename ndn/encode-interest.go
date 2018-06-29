@@ -109,6 +109,8 @@ type FHDelegation struct {
 	Name       string
 }
 
+type ActiveFHDelegation int
+
 // Encode an Interest from flexible arguments.
 // This alternate API is easier to use but less efficient.
 func MakeInterest(m dpdk.IMbuf, name string, args ...interface{}) (interest *Interest, e error) {
@@ -116,6 +118,7 @@ func MakeInterest(m dpdk.IMbuf, name string, args ...interface{}) (interest *Int
 	nonce := rand.Uint32()
 	var param TlvBytes
 	tpl := NewInterestTemplate()
+	activeFh := -1
 
 	if n, e = ParseName(name); e != nil {
 		m.Close()
@@ -135,6 +138,8 @@ func MakeInterest(m dpdk.IMbuf, name string, args ...interface{}) (interest *Int
 				return nil, e
 			}
 			tpl.AppendFH(a.Preference, fhName)
+		case ActiveFHDelegation:
+			activeFh = int(a)
 		case uint32:
 			nonce = a
 		case time.Duration:
@@ -160,5 +165,13 @@ func MakeInterest(m dpdk.IMbuf, name string, args ...interface{}) (interest *Int
 		m.Close()
 		return nil, e
 	}
-	return pkt.AsInterest(), nil
+
+	interest = pkt.AsInterest()
+	if activeFh >= 0 {
+		if e = interest.SelectActiveFh(activeFh); e != nil {
+			m.Close()
+			return nil, e
+		}
+	}
+	return interest, nil
 }
