@@ -1,6 +1,7 @@
 #include "pit.h"
 
 #include "../../core/logger.h"
+#include "cs.h"
 
 INIT_ZF_LOG(Pit);
 
@@ -48,16 +49,28 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
   // check for CS match
   if (pccEntry->hasCsEntry) {
     CsEntry* csEntry = PccEntry_GetCsEntry(pccEntry);
-    bool isCsMatch =
-      !interest->mustBeFresh || CsEntry_IsFresh(csEntry, pkt->timestamp);
-    // TODO CS should not match if it violates CanBePrefix
-    // TODO evict CS entry if it violates CanBePrefix and Interest has MustBeFresh=0,
-    //      to make room for pitEntry0
-    if (isCsMatch) {
+    Packet* dataNpkt = CsEntry_GetData(csEntry);
+    PData* data = Packet_GetDataHdr(dataNpkt);
+
+    bool violateCanBePrefix =
+      !interest->canBePrefix && interest->name.p.nComps != data->name.p.nComps;
+    // XXX this does not handle implicit digest
+    bool violateMustBeFresh =
+      interest->mustBeFresh && !CsEntry_IsFresh(csEntry, pkt->timestamp);
+
+    if (likely(!violateCanBePrefix && !violateMustBeFresh)) {
+      // CS entry satisfies Interest
       ZF_LOGD("%p Insert(%s) pcc=%p has-CS cs=%p", pit,
               PccSearch_ToDebugString(&search), pccEntry, csEntry);
       ++pitp->nCsMatch;
       return __PitResult_New(pccEntry, PIT_INSERT_CS);
+    }
+
+    if (unlikely(violateCanBePrefix && !interest->mustBeFresh)) {
+      // erase CS entry to make room for pitEntry0
+      ZF_LOGD("%p Insert(%s) pcc=%p evict-conflict-CS cs=%p", pit,
+              PccSearch_ToDebugString(&search), pccEntry, csEntry);
+      __Cs_RawErase(Cs_FromPcct(pcct), csEntry);
     }
   }
 

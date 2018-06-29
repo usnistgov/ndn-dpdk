@@ -110,47 +110,154 @@ Cs_SetCapacity(Cs* cs, uint32_t capacity)
   }
 }
 
-void
-Cs_Insert(Cs* cs, Packet* npkt, PitResult pitFound)
+static bool
+__Cs_PutDirect(Cs* cs, Packet* npkt, PccEntry* pccEntry)
 {
   CsPriv* csp = Cs_GetPriv(cs);
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   PData* data = Packet_GetDataHdr(npkt);
-  PccEntry* pccEntry = __PitResult_GetPccEntry(pitFound);
-  uint16_t entryNameLen = __PitFindResult_GetInterest(pitFound)->name.p.nComps;
-
-  // delete PIT entries
-  {
-    Pit* pit = Pit_FromPcct(Cs_ToPcct(cs));
-    __Pit_RawErase01(pit, pccEntry);
-  }
-
-  // stop if Data does not have exact name
-  // TODO introduce indirect entries for prefix match
-  if (unlikely(entryNameLen != data->name.p.nComps)) {
-    ZF_LOGD("%p Insert(%p, pcc=%p) drop=nonexact-name", cs, npkt, pccEntry);
-    rte_pktmbuf_free(Packet_ToMbuf(npkt));
-    Pcct_Erase(Cs_ToPcct(cs), pccEntry);
-    return;
-  }
 
   CsEntry* entry = &pccEntry->csEntry;
   if (unlikely(pccEntry->hasCsEntry)) {
-    // refresh CS entry
-    rte_pktmbuf_free(Packet_ToMbuf(entry->data));
+    // refresh direct entry
+    // old entry can be either direct or indirect
+    // XXX If old entry is direct, and an indirect entry with full name (incl
+    // implicit digest) depends on it, refreshing with a different Data could
+    // change the implicit digest, and cause that indirect entry to become
+    // non-matching. This code does not handle this case correctly.
+    CsEntry_Clear(entry);
     CsPriv_MoveEntryToLast(csp, entry);
-    ZF_LOGD("%p Insert(%p, pcc=%p) cs=%p count=%" PRIu32 " refresh", cs, npkt,
-            pccEntry, entry, csp->nEntries);
+    ZF_LOGD("%p PutDirect(%p, pcc=%p) cs=%p count=%" PRIu32 " refresh", cs,
+            npkt, pccEntry, entry, csp->nEntries);
+  } else if (unlikely(pccEntry->hasPitEntry0)) {
+    ZF_LOGD("%p PutDirect(%p, pcc=%p) drop=has-pit0", cs, npkt, pccEntry);
+    return false;
   } else {
-    // insert CS entry
+    // insert direct entry
     pccEntry->hasCsEntry = true;
+    entry->nIndirects = 0;
     CsPriv_AppendEntry(csp, entry);
-    ZF_LOGD("%p Insert(%p, pcc=%p) cs=%p count=%" PRIu32 " insert", cs, npkt,
+    ZF_LOGD("%p PutDirect(%p, pcc=%p) cs=%p count=%" PRIu32 " insert", cs, npkt,
             pccEntry, entry, csp->nEntries);
   }
   entry->data = npkt;
   entry->freshUntil =
     pkt->timestamp + TscDuration_FromMillis(data->freshnessPeriod);
+  return true;
+}
+
+static CsEntry*
+__Cs_InsertDirect(Cs* cs, Packet* npkt, PInterest* interest)
+{
+  Pcct* pcct = Cs_ToPcct(cs);
+  PData* data = Packet_GetDataHdr(npkt);
+
+  // construct PccSearch
+  PccSearch search = { 0 };
+  search.name = *(const LName*)(&data->name);
+  search.nameHash = PName_ComputeHash(&data->name.p, data->name.v);
+  if (interest->activeFh >= 0) {
+    search.fh = *(const LName*)(&interest->activeFhName);
+    search.fhHash =
+      PName_ComputeHash(&interest->activeFhName.p, interest->activeFhName.v);
+  }
+
+  // seek PCC entry
+  bool isNewPcc = false;
+  PccEntry* pccEntry = Pcct_Insert(pcct, &search, &isNewPcc);
+  if (unlikely(pccEntry == NULL)) {
+    ZF_LOGD("%p InsertDirect(%p) drop=alloc-err", cs, npkt);
+    return NULL;
+  }
+
+  // put direct entry on PCC entry
+  if (likely(__Cs_PutDirect(cs, npkt, pccEntry))) {
+    return PccEntry_GetCsEntry(pccEntry);
+  }
+  return NULL;
+}
+
+static bool
+__Cs_PutIndirect(Cs* cs, CsEntry* direct, PccEntry* pccEntry)
+{
+  assert(!pccEntry->hasPitEntry0);
+  CsPriv* csp = Cs_GetPriv(cs);
+
+  CsEntry* entry = &pccEntry->csEntry;
+  if (unlikely(pccEntry->hasCsEntry)) {
+    if (unlikely(CsEntry_IsDirect(entry) && entry->nIndirects > 0)) {
+      // don't overwrite direct entry with dependencies
+      ZF_LOGD("%p PutIndirect(%p, pcc=%p) cs=%p drop=has-dependency", cs,
+              direct, pccEntry, entry);
+      return false;
+    }
+    // refresh indirect entry
+    // old entry can be either direct without dependency or indirect
+    CsEntry_Clear(entry);
+    CsPriv_MoveEntryToLast(csp, entry);
+    ZF_LOGD("%p PutIndirect(%p, pcc=%p) cs=%p count=%" PRIu32 " refresh", cs,
+            direct, pccEntry, entry, csp->nEntries);
+  } else {
+    // insert indirect entry
+    pccEntry->hasCsEntry = true;
+    entry->nIndirects = 0;
+    CsPriv_AppendEntry(csp, entry);
+    ZF_LOGD("%p PutIndirect(%p, pcc=%p) cs=%p count=%" PRIu32 " insert", cs,
+            direct, pccEntry, entry, csp->nEntries);
+  }
+
+  if (likely(CsEntry_Assoc(entry, direct))) {
+    // ensure direct entry is evicted later than indirect entry
+    CsPriv_MoveEntryToLast(csp, direct);
+    return true;
+  }
+
+  ZF_LOGD("^ drop=indirect-assoc-err");
+  CsPriv_RemoveEntry(csp, entry);
+  pccEntry->hasCsEntry = false;
+  Pcct_Erase(Cs_ToPcct(cs), pccEntry);
+  return false;
+}
+
+void
+Cs_Insert(Cs* cs, Packet* npkt, PitResult pitFound)
+{
+  Pcct* pcct = Cs_ToPcct(cs);
+  Pit* pit = Pit_FromPcct(pcct);
+  CsPriv* csp = Cs_GetPriv(cs);
+  struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
+  PData* data = Packet_GetDataHdr(npkt);
+  PccEntry* pccEntry = __PitResult_GetPccEntry(pitFound);
+  PInterest* interest = __PitFindResult_GetInterest(pitFound);
+  CsEntry* direct = NULL;
+
+  // if Interest name is shorter or longer than Data name, insert a direct CS
+  // entry in another PCC entry, and put an indirect CS entry at pccEntry
+  if (unlikely(interest->name.p.nComps != data->name.p.nComps)) {
+    direct = __Cs_InsertDirect(cs, npkt, interest);
+    if (unlikely(direct == NULL)) {
+      __Pit_RawErase01(pit, pccEntry);
+      rte_pktmbuf_free(pkt);
+      if (likely(!pccEntry->hasCsEntry)) {
+        Pcct_Erase(pcct, pccEntry);
+      }
+      return;
+    }
+    pkt = NULL; // owned by direct entry, don't free it
+  }
+
+  // delete PIT entries
+  __Pit_RawErase01(pit, pccEntry);
+  interest = NULL;
+
+  if (likely(direct == NULL)) {
+    // put direct CS entry at pccEntry
+    bool ok = __Cs_PutDirect(cs, npkt, pccEntry);
+    assert(ok);
+  } else {
+    // put indirect CS entry at pccEntry
+    __Cs_PutIndirect(cs, direct, pccEntry);
+  }
 
   // evict if over capacity
   if (unlikely(csp->nEntries > csp->capacity)) {
@@ -159,14 +266,25 @@ Cs_Insert(Cs* cs, Packet* npkt, PitResult pitFound)
 }
 
 void
-Cs_Erase(Cs* cs, CsEntry* entry)
+__Cs_RawErase(Cs* cs, CsEntry* entry)
 {
   CsPriv* csp = Cs_GetPriv(cs);
   PccEntry* pccEntry = PccEntry_FromCsEntry(entry);
 
+  // TODO erase indirect entries depending on this entry,
+  // otherwise CsEntry_Finalize would crash
+
   CsPriv_RemoveEntry(csp, entry);
   CsEntry_Finalize(entry);
   pccEntry->hasCsEntry = false;
+}
+
+void
+Cs_Erase(Cs* cs, CsEntry* entry)
+{
+  PccEntry* pccEntry = PccEntry_FromCsEntry(entry);
+
+  __Cs_RawErase(cs, entry);
 
   if (likely(!pccEntry->hasPitEntry1)) {
     Pcct_Erase(Cs_ToPcct(cs), pccEntry);

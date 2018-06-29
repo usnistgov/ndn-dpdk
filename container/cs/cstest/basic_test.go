@@ -25,7 +25,7 @@ func TestInsertErase(t *testing.T) {
 	assert.Equal(1, fixture.CountMpInUse())
 
 	csEntry := fixture.Find(ndntestutil.MakeInterest("/A/B"))
-	assert.NotNil(csEntry)
+	require.NotNil(csEntry)
 	assert.False(csEntry.IsFresh(dpdk.TscNow()))
 
 	ok = fixture.Insert(ndntestutil.MakeInterest("/A/B", ndn.MustBeFreshFlag),

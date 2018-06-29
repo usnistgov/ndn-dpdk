@@ -68,6 +68,10 @@ Cs_CountEntries(const Cs* cs)
  */
 void Cs_Insert(Cs* cs, Packet* npkt, PitResult pitFound);
 
+/** \brief Erase CS entry but retain the PccEntry.
+ */
+void __Cs_RawErase(Cs* cs, CsEntry* entry);
+
 /** \brief Erase a CS entry.
  *  \post \p entry is no longer valid.
  */
