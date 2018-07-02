@@ -15,10 +15,12 @@ type parsedCommand struct {
 	initcfg         appinit.InitConfig
 	clients         []clientCfg
 	servers         []serverCfg
+	canBePrefix     bool
 	measureLatency  bool
 	measureRtt      bool
 	addDelay        time.Duration
 	serverNack      bool
+	nameSuffix      *ndn.Name
 	payloadLen      int
 	counterInterval time.Duration
 }
@@ -41,17 +43,23 @@ type serverCfg struct {
 
 func parseCommand(args []string) (pc parsedCommand, e error) {
 	flags := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+	var nameSuffixUri string
 	appinit.DeclareInitConfigFlag(flags, &pc.initcfg)
 	flags.BoolVar(&pc.measureLatency, "latency", false, "measure client-server latency")
 	flags.BoolVar(&pc.measureRtt, "rtt", false, "measure round trip time")
 	flags.DurationVar(&pc.addDelay, "add-delay", time.Duration(0), "add delay before server responds")
 	flags.BoolVar(&pc.serverNack, "nack", true, "server Nacks on unserved Interests")
+	flags.StringVar(&nameSuffixUri, "suffix", "", "append suffix to Data names")
 	flags.IntVar(&pc.payloadLen, "payload-len", 0, "length of Content from server")
 	flags.DurationVar(&pc.counterInterval, "cnt", time.Second*10, "interval between printing counters")
 
-	e = flags.Parse(args)
-	if e != nil {
+	if e = flags.Parse(args); e != nil {
 		return pc, e
+	}
+	if len(nameSuffixUri) > 0 {
+		if pc.nameSuffix, e = ndn.ParseName(nameSuffixUri); e != nil {
+			return pc, e
+		}
 	}
 
 	const (

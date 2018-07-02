@@ -53,6 +53,7 @@ func main() {
 			server.AddPattern(prefix)
 		}
 		server.SetNackNoRoute(pc.serverNack)
+		server.SetNameSuffix(pc.nameSuffix)
 		server.SetPayloadLen(pc.payloadLen)
 		servers = append(servers, server)
 	}

@@ -8,7 +8,7 @@ This program acts as [ndnping](https://github.com/named-data/ndn-tools/tree/mast
 sudo ndnping-dpdk EAL-ARGS -- \
   [-initcfg=INITCFG] \
   [-latency] [-rtt] \
-  [-add-delay=DURATION] [-nack=false] [-payload-len=SIZE] \
+  [-add-delay=DURATION] [-nack=false] [-suffix=/NAME] [-payload-len=SIZE] \
   [-cnt DURATION] \
   +c FACE INTERVAL PREFIX PCT PREFIX PCT \
   +s FACE PREFIX PREFIX
@@ -38,6 +38,8 @@ This option is not implemented: RTT measurement is always enabled on pattern 0, 
 This feature is not implemented.
 
 **-nack=false** instructs the server to not respond to Interests it cannot serve, instead of responding with Nacks.
+
+**-suffix** appends a suffix to Data names from the server.
 
 **-payload-len** specifies length of Content in server's Data packets.
 

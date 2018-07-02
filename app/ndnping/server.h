@@ -20,6 +20,7 @@ typedef struct NdnpingServer
   FaceId face;
   NameSet patterns;     ///< served prefixes
   bool wantNackNoRoute; ///< whether to Nack unserved Interests
+  LName nameSuffix;
   uint32_t freshnessPeriod;
   uint16_t payloadL;
   const uint8_t* payloadV;

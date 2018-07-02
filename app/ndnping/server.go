@@ -6,6 +6,7 @@ package ndnping
 import "C"
 import (
 	"fmt"
+	"time"
 	"unsafe"
 
 	"ndn-dpdk/appinit"
@@ -39,6 +40,7 @@ func NewServer(face iface.IFace) (server Server, e error) {
 }
 
 func (server Server) Close() error {
+	server.SetNameSuffix(nil)
 	server.SetPayloadLen(0)
 	server.getPatterns().Close()
 	dpdk.Free(server.c)
@@ -51,6 +53,25 @@ func (server Server) GetFace() iface.IFace {
 
 func (server Server) SetNackNoRoute(enable bool) {
 	server.c.wantNackNoRoute = C.bool(enable)
+}
+
+func (server Server) SetNameSuffix(n *ndn.Name) {
+	if server.c.nameSuffix.value != nil {
+		dpdk.Free(server.c.nameSuffix.value)
+		server.c.nameSuffix.value = nil
+	}
+	if len := n.Size(); len > 0 {
+		v := uintptr(dpdk.Zmalloc("NdnpingServerSuffix", len, dpdk.NUMA_SOCKET_ANY))
+		for i, ch := range n.GetValue() {
+			*(*byte)(unsafe.Pointer(v + uintptr(i))) = ch
+		}
+		server.c.nameSuffix.value = (*C.uint8_t)(unsafe.Pointer(v))
+		server.c.nameSuffix.length = (C.uint16_t)(len)
+	}
+}
+
+func (server Server) SetFreshnessPeriod(freshness time.Duration) {
+	server.c.freshnessPeriod = C.uint32_t(freshness / time.Millisecond)
 }
 
 func (server Server) SetPayloadLen(len int) {
