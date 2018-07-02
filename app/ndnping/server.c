@@ -16,7 +16,8 @@ NdnpingServer_MakeData(NdnpingServer* server, LName name)
     return NULL;
   }
   m->data_off = server->dataMbufHeadroom;
-  EncodeData(m, name, server->freshnessPeriod, server->payloadL,
+  LName nameSuffix = { 0 };
+  EncodeData(m, name, nameSuffix, server->freshnessPeriod, server->payloadL,
              server->payloadV);
 
   Packet* npkt = Packet_FromMbuf(m);

@@ -24,9 +24,10 @@ func EncodeData_GetTailroomMax() int {
 }
 
 // Encode a Data.
-func EncodeData(m dpdk.IMbuf, name *Name, freshnessPeriod time.Duration, content TlvBytes) {
+func EncodeData(m dpdk.IMbuf, namePrefix *Name, nameSuffix *Name, freshnessPeriod time.Duration, content TlvBytes) {
 	C.__EncodeData((*C.struct_rte_mbuf)(m.GetPtr()),
-		C.uint16_t(name.Size()), name.getValuePtr(),
+		C.uint16_t(namePrefix.Size()), namePrefix.getValuePtr(),
+		C.uint16_t(nameSuffix.Size()), nameSuffix.getValuePtr(),
 		C.uint32_t(freshnessPeriod/time.Millisecond),
 		C.uint16_t(len(content)), (*C.uint8_t)(content.GetPtr()))
 }
@@ -54,7 +55,7 @@ func MakeData(m dpdk.IMbuf, name string, args ...interface{}) (*Data, error) {
 		}
 	}
 
-	EncodeData(m, n, freshnessPeriod, content)
+	EncodeData(m, n, nil, freshnessPeriod, content)
 
 	pkt := PacketFromDpdk(m)
 	e = pkt.ParseL2()

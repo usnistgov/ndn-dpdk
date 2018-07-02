@@ -16,18 +16,25 @@ static const uint8_t FAKESIG[] = {
 const uint16_t __EncodeData_FakeSigLen = sizeof(FAKESIG);
 
 void
-__EncodeData(struct rte_mbuf* m, uint16_t nameL, const uint8_t* nameV,
-             uint32_t freshnessPeriod, uint16_t contentL,
-             const uint8_t* contentV)
+__EncodeData(struct rte_mbuf* m, uint16_t namePrefixL,
+             const uint8_t* namePrefixV, uint16_t nameSuffixL,
+             const uint8_t* nameSuffixV, uint32_t freshnessPeriod,
+             uint16_t contentL, const uint8_t* contentV)
 {
   assert(rte_pktmbuf_headroom(m) >= EncodeData_GetHeadroom());
-  assert(rte_pktmbuf_tailroom(m) >= EncodeData_GetTailroom(nameL, contentL));
+  assert(rte_pktmbuf_tailroom(m) >=
+         EncodeData_GetTailroom(namePrefixL + nameSuffixL, contentL));
   TlvEncoder* en = MakeTlvEncoder(m);
 
   {
     AppendVarNum(en, TT_Name);
-    AppendVarNum(en, nameL);
-    rte_memcpy(rte_pktmbuf_append(m, nameL), nameV, nameL);
+    AppendVarNum(en, namePrefixL + nameSuffixL);
+    if (likely(namePrefixL > 0)) {
+      rte_memcpy(rte_pktmbuf_append(m, namePrefixL), namePrefixV, namePrefixL);
+    }
+    if (likely(nameSuffixL > 0)) {
+      rte_memcpy(rte_pktmbuf_append(m, nameSuffixL), nameSuffixV, nameSuffixL);
+    }
   }
 
   if (freshnessPeriod != 0) {

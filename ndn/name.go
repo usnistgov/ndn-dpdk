@@ -39,6 +39,9 @@ func (n *Name) copyFromC(c *C.Name) {
 }
 
 func (n *Name) getValuePtr() *C.uint8_t {
+	if n == nil {
+		return nil
+	}
 	return (*C.uint8_t)(n.b.GetPtr())
 }
 
@@ -49,6 +52,9 @@ func (n *Name) Len() int {
 
 // Get TLV-LENGTH of Name element.
 func (n *Name) Size() int {
+	if n == nil {
+		return 0
+	}
 	return int(n.p.nOctets)
 }
 
