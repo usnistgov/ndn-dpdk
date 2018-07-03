@@ -25,6 +25,7 @@ type fwdpInitConfig struct {
 }
 
 func parseCommand(args []string) (initCfg initConfig, e error) {
+	initCfg.FaceQueueCapacity = appinit.TheFaceQueueCapacityConfig
 	initCfg.Ndt.PrefixLen = 2
 	initCfg.Ndt.IndexBits = 16
 	initCfg.Ndt.SampleFreq = 8
