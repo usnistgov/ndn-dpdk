@@ -114,6 +114,7 @@ func TestInterestNoRoute(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 	require.Len(face1.TxNacks, 1)
 	assert.Equal(uint64(0x431328d8b4075167), ndntestutil.GetPitToken(face1.TxNacks[0]))
+	assert.Equal(face1.TxNacks[0].GetReason(), ndn.NackReason_NoRoute)
 }
 
 func TestHopLimit(t *testing.T) {
