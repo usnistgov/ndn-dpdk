@@ -3,6 +3,7 @@
 #include "token.h"
 
 #include "../../core/logger.h"
+#include "../timing/timing.h"
 
 INIT_ZF_LOG(FwInput);
 
@@ -91,18 +92,24 @@ FwInput_FaceRx(FaceId face, FaceRxBurst* burst, void* fwi0)
           "D %" PRIu16 "N)",
           fwi, face, burst->nInterests, burst->nData, burst->nNacks);
   for (uint16_t i = 0; i < burst->nInterests; ++i) {
+    TscTime begin = rte_get_tsc_cycles();
     Packet* npkt = FaceRxBurst_GetInterest(burst, i);
     PInterest* interest = Packet_GetInterestHdr(npkt);
     FwInput_DispatchByName(fwi, npkt, &interest->name);
+    Timing_Post(TIMING_IN, begin);
   }
   for (uint16_t i = 0; i < burst->nData; ++i) {
+    TscTime begin = rte_get_tsc_cycles();
     Packet* npkt = FaceRxBurst_GetData(burst, i);
     LpL3* lpl3 = Packet_GetLpL3Hdr(npkt);
     FwInput_DispatchByToken(fwi, npkt, lpl3->pitToken);
+    Timing_Post(TIMING_IT, begin);
   }
   for (uint16_t i = 0; i < burst->nNacks; ++i) {
+    TscTime begin = rte_get_tsc_cycles();
     Packet* npkt = FaceRxBurst_GetNack(burst, i);
     LpL3* lpl3 = Packet_GetLpL3Hdr(npkt);
     FwInput_DispatchByToken(fwi, npkt, lpl3->pitToken);
+    Timing_Post(TIMING_IT, begin);
   }
 }

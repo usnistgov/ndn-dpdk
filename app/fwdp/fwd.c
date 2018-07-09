@@ -1,6 +1,7 @@
 #include "fwd.h"
 
 #include "../../core/logger.h"
+#include "../timing/timing.h"
 
 INIT_ZF_LOG(FwFwd);
 
@@ -30,10 +31,15 @@ FwFwd_Run(FwFwd* fwd)
       TscDuration timeSinceRx = now - Packet_ToMbuf(npkt)->timestamp;
       RunningStat_Push1(&fwd->latencyStat, timeSinceRx);
 
+      TscTime begin = rte_get_tsc_cycles();
       L3PktType l3type = Packet_GetL3PktType(npkt);
       assert(l3type != L3PktType_None && l3type < L3PktType_MAX);
       FwFwd_RxFunc rxFunc = FwFwd_RxFuncs[l3type];
       (*rxFunc)(fwd, npkt);
+      Timing_Post(l3type, begin);
+    }
+    if (likely(count > 0)) {
+      Timing_Record(TIMING_PIT, Pit_CountEntries(fwd->pit));
     }
   }
 

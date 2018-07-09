@@ -1,10 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"math/rand"
+	"os"
 	"time"
 
 	"ndn-dpdk/app/fwdp"
+	"ndn-dpdk/app/timing"
 	"ndn-dpdk/appinit"
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/ndt"
@@ -40,12 +43,22 @@ func main() {
 	initCfg.Mempool.Apply()
 	initCfg.FaceQueueCapacity.Apply()
 
+	var timingRingCapacity int
+	var tw timing.Writer
+	fmt.Sscanf(os.Getenv("TIMING_WRITER"), "%d:%d:%d:%s", &timingRingCapacity,
+		&tw.NTotal, &tw.NSkip, &tw.Filename)
+	timing.Init(timingRingCapacity)
+
 	startDp(initCfg.Ndt, initCfg.Fib, initCfg.Fwdp)
 	theStrategy = loadStrategy("multicast")
 	theStrategy.Ref()
 	startMgmt()
 
-	select {}
+	if tw.Filename != "" {
+		tw.Run()
+	} else {
+		select {}
+	}
 }
 
 func startDp(ndtCfg ndt.Config, fibCfg fib.Config, dpInit fwdpInitConfig) {

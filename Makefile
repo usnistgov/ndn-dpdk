@@ -133,11 +133,17 @@ appinit/cgoflags.go: dpdk/cgoflags.go
 app/ndnping/cgoflags.go: container/nameset/cgoflags.go iface/cgoflags.go
 	./make-cgoflags.sh app/ndnping container/nameset iface
 
-$(CLIBPREFIX)-fwdp.a: $(CLIBPREFIX)-pcct.a $(CLIBPREFIX)-iface.a app/fwdp/*.h app/fwdp/*.c
+$(CLIBPREFIX)-timing.a: $(CLIBPREFIX)-dpdk.a app/timing/*.h app/timing/*.c
+	./cbuild.sh app/timing
+
+app/timing/cgoflags.go: dpdk/cgoflags.go
+	./make-cgoflags.sh app/timing dpdk
+
+$(CLIBPREFIX)-fwdp.a: $(CLIBPREFIX)-pcct.a $(CLIBPREFIX)-iface.a $(CLIBPREFIX)-timing.a app/fwdp/*.h app/fwdp/*.c
 	./cbuild.sh app/fwdp
 
-app/fwdp/cgoflags.go: container/ndt/cgoflags.go container/fib/cgoflags.go container/pcct/cgoflags.go iface/cgoflags.go
-	./make-cgoflags.sh app/fwdp container/ndt container/fib container/pcct iface
+app/fwdp/cgoflags.go: container/ndt/cgoflags.go container/fib/cgoflags.go container/pcct/cgoflags.go iface/cgoflags.go app/timing/cgoflags.go
+	./make-cgoflags.sh app/fwdp container/ndt container/fib container/pcct iface app/timing
 
 .PHONY: app/version/version.go
 app/version/version.go:
