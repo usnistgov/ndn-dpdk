@@ -23,11 +23,11 @@ ctx.declareType('fibmgmt.LookupReply', {
     Nexthops: ctx.useType('fibmgmt.Nexthops'),
   },
   anyOf: [
-    {
+    ctx.markAllRequired({
       properties: {
         HasEntry: { const:false },
       },
-    },
+    }),
     {
       required: ['Name', 'Nexthops'],
     },
