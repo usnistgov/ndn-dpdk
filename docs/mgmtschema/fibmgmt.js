@@ -9,10 +9,8 @@ ctx.declareType('fibmgmt.NameArg', ctx.markAllRequired({
 }));
 
 ctx.declareType('fibmgmt.Nexthops', {
-  type: 'array',
-  items: ctx.useType('iface.FaceId'),
+  allOf: [ctx.useType('iface.FaceId[]')],
   minItems: 1,
-  uniqueItems: true,
 });
 
 ctx.declareType('fibmgmt.LookupReply', {
@@ -37,9 +35,10 @@ ctx.declareType('fibmgmt.LookupReply', {
 ctx.declareType('fib.EntryCounters', {
   type: 'object',
   properties: {
-    HasEntry: ctx.useType('boolean'),
-    Name: ctx.useType('ndn.Name'),
-    Nexthops: ctx.useType('fibmgmt.Nexthops'),
+    NRxInterests: ctx.useType('counter'),
+    NRxData: ctx.useType('counter'),
+    NRxNacks: ctx.useType('counter'),
+    NTxInterests: ctx.useType('counter'),
   },
 });
 
@@ -47,10 +46,10 @@ ctx.declareMethod('Fib.Info', 'null',
   {
     type: 'object',
     properties: {
-      NRxInterests: ctx.useType('counter'),
-      NRxData: ctx.useType('counter'),
-      NRxNacks: ctx.useType('counter'),
-      NTxInterests: ctx.useType('counter'),
+      NEntries: ctx.useType('counter'),
+      NEntriesDup: ctx.useType('counter'),
+      NVirtuals: ctx.useType('counter'),
+      NNodes: ctx.useType('counter'),
     },
   });
 
@@ -75,7 +74,7 @@ ctx.declareMethod('Fib.Insert',
     },
   });
 
-ctx.declareMethod('Fib.Erase', 'fibmgmt.NameArg', 'null');
+ctx.declareMethod('Fib.Erase', 'fibmgmt.NameArg', {});
 
 ctx.declareMethod('Fib.Find', 'fibmgmt.NameArg', 'fibmgmt.LookupReply');
 
