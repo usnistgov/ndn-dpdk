@@ -118,6 +118,9 @@ FwFwd_RxNack(FwFwd* fwd, Packet* npkt)
 
   // verify nonce in Nack matches nonce in PitUp
   if (unlikely(!FwFwd_VerifyNack(fwd, &ctx))) {
+    if (ctx.pitEntry != NULL) {
+      ++fwd->nNackMismatch;
+    }
     rte_pktmbuf_free(ctx.pkt);
     return;
   }

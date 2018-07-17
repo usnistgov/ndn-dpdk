@@ -54,6 +54,11 @@ type FwdInfo struct {
 	NQueueDrops   uint64                // packets dropped because input queue is full
 	InputLatency  running_stat.Snapshot // input latency in nanos
 
+	NNoFibMatch   uint64 // Interests dropped due to no FIB match
+	NDupNonce     uint64 // Interests dropped due duplicate nonce
+	NSgNoFwd      uint64 // Interests not forwarded by strategy
+	NNackMismatch uint64 // Nack dropped due to outdated nonce
+
 	HeaderMpUsage   int // how many entries are used in header mempool
 	IndirectMpUsage int // how many entries are used in indirect mempool
 }
@@ -70,9 +75,13 @@ func (dp *DataPlane) ReadFwdInfo(i int) (info *FwdInfo) {
 
 	fwdQ := dpdk.RingFromPtr(unsafe.Pointer(fwd.queue))
 	info.QueueCapacity = fwdQ.GetCapacity()
-
 	latencyStat := running_stat.FromPtr(unsafe.Pointer(&fwd.latencyStat))
 	info.InputLatency = running_stat.TakeSnapshot(latencyStat).Multiply(dpdk.GetNanosInTscUnit())
+
+	info.NNoFibMatch = uint64(fwd.nNoFibMatch)
+	info.NDupNonce = uint64(fwd.nDupNonce)
+	info.NSgNoFwd = uint64(fwd.nSgNoFwd)
+	info.NNackMismatch = uint64(fwd.nNackMismatch)
 
 	info.HeaderMpUsage = dpdk.MempoolFromPtr(unsafe.Pointer(fwd.headerMp)).CountInUse()
 	info.IndirectMpUsage = dpdk.MempoolFromPtr(unsafe.Pointer(fwd.indirectMp)).CountInUse()

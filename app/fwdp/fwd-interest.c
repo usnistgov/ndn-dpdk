@@ -78,6 +78,7 @@ FwFwd_InterestForward(FwFwd* fwd, FwFwdRxInterestContext* ctx)
             ctx->pitEntry, dupNonce, ctx->dnFace);
     MakeNack(ctx->npkt, NackReason_Duplicate);
     Face_Tx(ctx->dnFace, ctx->npkt);
+    ++fwd->nDupNonce;
     return;
   }
 
@@ -101,7 +102,10 @@ FwFwd_InterestForward(FwFwd* fwd, FwFwdRxInterestContext* ctx)
   sgCtx.inner.nhFlt = (SgFibNexthopFilter)ctx->nhFlt;
   sgCtx.inner.pitEntry = (SgPitEntry*)ctx->pitEntry;
   uint64_t res = SgInvoke(ctx->fibEntry->strategy, &sgCtx);
-  ZF_LOGD("^ sg-res=%" PRIu64, res);
+  ZF_LOGD("^ sg-res=%" PRIu64 " sg-forwarded=%d", res, sgCtx.nForwarded);
+  if (unlikely(sgCtx.nForwarded == 0)) {
+    ++fwd->nSgNoFwd;
+  }
 }
 
 static void
@@ -139,6 +143,7 @@ FwFwd_RxInterest(FwFwd* fwd, Packet* npkt)
     ZF_LOGD("^ drop=no-FIB-match nack-to=%" PRI_FaceId, ctx.dnFace);
     MakeNack(npkt, NackReason_NoRoute);
     Face_Tx(ctx.dnFace, npkt);
+    ++fwd->nNoFibMatch;
     rcu_read_unlock();
     return;
   }

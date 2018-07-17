@@ -154,3 +154,11 @@ func (fixture *Fixture) makeStrategy(shortname string) fib.StrategyCode {
 	fixture.strategies[shortname] = sc
 	return sc
 }
+
+// Read a counter from all FwFwds and compute the sum.
+func (fixture *Fixture) SumCounter(getCounter func(dp *fwdp.DataPlane, i int) uint64) (n uint64) {
+	for i := 0; i < nFwds; i++ {
+		n += getCounter(fixture.DataPlane, i)
+	}
+	return n
+}

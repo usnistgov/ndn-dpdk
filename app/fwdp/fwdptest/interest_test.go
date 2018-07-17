@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"ndn-dpdk/app/fwdp"
 	"ndn-dpdk/app/fwdp/fwdptestfixture"
 	"ndn-dpdk/ndn"
 	"ndn-dpdk/ndn/ndntestutil"
@@ -33,7 +34,7 @@ func TestInterestData(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 	require.Len(face1.TxData, 1)
 	assert.Len(face1.TxNacks, 0)
-	assert.Equal(ndntestutil.GetPitToken(face1.TxData[0]), uint64(0x0290dd7089e9d790))
+	assert.Equal(uint64(0x0290dd7089e9d790), ndntestutil.GetPitToken(face1.TxData[0]))
 }
 
 func TestInterestDupNonce(t *testing.T) {
@@ -58,7 +59,10 @@ func TestInterestDupNonce(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 	require.Len(face3.TxInterests, 1)
 	require.Len(face2.TxNacks, 1)
-	assert.Equal(face2.TxNacks[0].GetReason(), ndn.NackReason_Duplicate)
+	assert.Equal(ndn.NackReason_Duplicate, face2.TxNacks[0].GetReason())
+	assert.Equal(uint64(1), fixture.SumCounter(func(dp *fwdp.DataPlane, i int) uint64 {
+		return dp.ReadFwdInfo(i).NDupNonce
+	}))
 
 	data := ndntestutil.MakeData("/A/1")
 	ndntestutil.CopyPitToken(data, face3.TxInterests[0])
@@ -114,7 +118,10 @@ func TestInterestNoRoute(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 	require.Len(face1.TxNacks, 1)
 	assert.Equal(uint64(0x431328d8b4075167), ndntestutil.GetPitToken(face1.TxNacks[0]))
-	assert.Equal(face1.TxNacks[0].GetReason(), ndn.NackReason_NoRoute)
+	assert.Equal(ndn.NackReason_NoRoute, face1.TxNacks[0].GetReason())
+	assert.Equal(uint64(1), fixture.SumCounter(func(dp *fwdp.DataPlane, i int) uint64 {
+		return dp.ReadFwdInfo(i).NNoFibMatch
+	}))
 }
 
 func TestHopLimit(t *testing.T) {
