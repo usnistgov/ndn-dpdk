@@ -5,14 +5,13 @@ import (
 	"time"
 
 	"ndn-dpdk/app/fwdp"
-	"ndn-dpdk/app/fwdp/fwdptestfixture"
 	"ndn-dpdk/ndn"
 	"ndn-dpdk/ndn/ndntestutil"
 )
 
 func TestInterestData(t *testing.T) {
 	assert, require := makeAR(t)
-	fixture := fwdptestfixture.New(t)
+	fixture := NewFixture(t)
 	defer fixture.Close()
 
 	face1 := fixture.CreateFace()
@@ -39,7 +38,7 @@ func TestInterestData(t *testing.T) {
 
 func TestInterestDupNonce(t *testing.T) {
 	assert, require := makeAR(t)
-	fixture := fwdptestfixture.New(t)
+	fixture := NewFixture(t)
 	defer fixture.Close()
 
 	face1 := fixture.CreateFace()
@@ -76,7 +75,7 @@ func TestInterestDupNonce(t *testing.T) {
 
 func TestInterestSuppress(t *testing.T) {
 	assert, _ := makeAR(t)
-	fixture := fwdptestfixture.New(t)
+	fixture := NewFixture(t)
 	defer fixture.Close()
 
 	face1 := fixture.CreateFace()
@@ -107,7 +106,7 @@ func TestInterestSuppress(t *testing.T) {
 
 func TestInterestNoRoute(t *testing.T) {
 	assert, require := makeAR(t)
-	fixture := fwdptestfixture.New(t)
+	fixture := NewFixture(t)
 	defer fixture.Close()
 
 	face1 := fixture.CreateFace()
@@ -126,7 +125,7 @@ func TestInterestNoRoute(t *testing.T) {
 
 func TestHopLimit(t *testing.T) {
 	assert, require := makeAR(t)
-	fixture := fwdptestfixture.New(t)
+	fixture := NewFixture(t)
 	defer fixture.Close()
 
 	face1 := fixture.CreateFace()
@@ -168,7 +167,7 @@ func TestHopLimit(t *testing.T) {
 
 func TestCsHit(t *testing.T) {
 	assert, require := makeAR(t)
-	fixture := fwdptestfixture.New(t)
+	fixture := NewFixture(t)
 	defer fixture.Close()
 
 	face1 := fixture.CreateFace()
@@ -224,7 +223,7 @@ func TestCsHit(t *testing.T) {
 
 func TestFwHint(t *testing.T) {
 	assert, require := makeAR(t)
-	fixture := fwdptestfixture.New(t)
+	fixture := NewFixture(t)
 	defer fixture.Close()
 
 	face1 := fixture.CreateFace()

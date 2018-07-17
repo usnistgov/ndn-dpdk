@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"ndn-dpdk/app/fwdp"
-	"ndn-dpdk/app/fwdp/fwdptestfixture"
 	"ndn-dpdk/container/pit"
 	"ndn-dpdk/ndn"
 	"ndn-dpdk/ndn/ndntestutil"
@@ -13,7 +12,7 @@ import (
 
 func TestDataWrongName(t *testing.T) {
 	assert, require := makeAR(t)
-	fixture := fwdptestfixture.New(t)
+	fixture := NewFixture(t)
 	defer fixture.Close()
 
 	face1 := fixture.CreateFace()
@@ -40,7 +39,7 @@ func TestDataWrongName(t *testing.T) {
 
 func TestDataLongerName(t *testing.T) {
 	assert, require := makeAR(t)
-	fixture := fwdptestfixture.New(t)
+	fixture := NewFixture(t)
 	defer fixture.Close()
 
 	face1 := fixture.CreateFace()
@@ -67,7 +66,7 @@ func TestDataLongerName(t *testing.T) {
 
 func TestDataZeroFreshnessPeriod(t *testing.T) {
 	assert, require := makeAR(t)
-	fixture := fwdptestfixture.New(t)
+	fixture := NewFixture(t)
 	defer fixture.Close()
 
 	face1 := fixture.CreateFace()
@@ -94,7 +93,7 @@ func TestDataZeroFreshnessPeriod(t *testing.T) {
 
 func TestNackWrongName(t *testing.T) {
 	assert, require := makeAR(t)
-	fixture := fwdptestfixture.New(t)
+	fixture := NewFixture(t)
 	defer fixture.Close()
 
 	face1 := fixture.CreateFace()
@@ -121,7 +120,7 @@ func TestNackWrongName(t *testing.T) {
 
 func TestNackWrongNonce(t *testing.T) {
 	assert, require := makeAR(t)
-	fixture := fwdptestfixture.New(t)
+	fixture := NewFixture(t)
 	defer fixture.Close()
 
 	face1 := fixture.CreateFace()

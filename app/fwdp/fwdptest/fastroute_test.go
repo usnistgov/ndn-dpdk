@@ -4,14 +4,13 @@ import (
 	"testing"
 	"time"
 
-	"ndn-dpdk/app/fwdp/fwdptestfixture"
 	"ndn-dpdk/ndn"
 	"ndn-dpdk/ndn/ndntestutil"
 )
 
 func TestFastroute(t *testing.T) {
 	assert, _ := makeAR(t)
-	fixture := fwdptestfixture.New(t)
+	fixture := NewFixture(t)
 	defer fixture.Close()
 
 	face1 := fixture.CreateFace()

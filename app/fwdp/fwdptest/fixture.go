@@ -1,4 +1,4 @@
-package fwdptestfixture
+package fwdptest
 
 import (
 	"testing"
@@ -31,7 +31,7 @@ type Fixture struct {
 	strategies   map[string]fib.StrategyCode
 }
 
-func New(t *testing.T) (fixture *Fixture) {
+func NewFixture(t *testing.T) (fixture *Fixture) {
 	fixture = new(Fixture)
 	fixture.require = require.New(t)
 

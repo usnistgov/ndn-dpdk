@@ -4,14 +4,13 @@ import (
 	"testing"
 	"time"
 
-	"ndn-dpdk/app/fwdp/fwdptestfixture"
 	"ndn-dpdk/ndn"
 	"ndn-dpdk/ndn/ndntestutil"
 )
 
 func TestNackMerge(t *testing.T) {
 	assert, require := makeAR(t)
-	fixture := fwdptestfixture.New(t)
+	fixture := NewFixture(t)
 	defer fixture.Close()
 
 	face1 := fixture.CreateFace()
@@ -63,7 +62,7 @@ func TestNackMerge(t *testing.T) {
 
 func TestNackDuplicate(t *testing.T) {
 	assert, require := makeAR(t)
-	fixture := fwdptestfixture.New(t)
+	fixture := NewFixture(t)
 	defer fixture.Close()
 
 	face1 := fixture.CreateFace()
