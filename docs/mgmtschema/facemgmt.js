@@ -6,14 +6,23 @@ ctx.declareType('iface.FaceUri', {
   format: 'uri',
 });
 
+ctx.declareType('iface.InOrderReassemblerCounters', {
+  type: 'object',
+  properties: {
+    Accepted: ctx.useType('counter'),
+    OutOfOrder: ctx.useType('counter'),
+    Delivered: ctx.useType('counter'),
+    Incomplete: ctx.useType('counter'),
+  },
+});
+
 ctx.declareType('iface.Counters', {
   type: 'object',
   properties: {
     RxFrames: ctx.useType('counter'),
     RxOctets: ctx.useType('counter'),
     L2DecodeErrs: ctx.useType('counter'),
-    ReassBad: ctx.useType('counter'),
-    ReassGood: ctx.useType('counter'),
+    Reass: ctx.useType('iface.InOrderReassemblerCounters'),
     L3DecodeErrs: ctx.useType('counter'),
     RxInterests: ctx.useType('counter'),
     RxData: ctx.useType('counter'),

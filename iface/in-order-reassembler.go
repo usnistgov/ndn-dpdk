@@ -5,30 +5,46 @@ package iface
 */
 import "C"
 import (
+	"fmt"
 	"unsafe"
 
 	"ndn-dpdk/ndn"
 )
 
 type InOrderReassembler struct {
-	c C.InOrderReassembler
+	c *C.InOrderReassembler
 }
 
-func (r *InOrderReassembler) Receive(pkt ndn.Packet) ndn.Packet {
-	res := C.InOrderReassembler_Receive(&r.c, (*C.Packet)(pkt.GetPtr()))
+func NewInOrderReassembler() InOrderReassembler {
+	return InOrderReassembler{new(C.InOrderReassembler)}
+}
+
+func InOrderReassemblerFromPtr(ptr unsafe.Pointer) InOrderReassembler {
+	return InOrderReassembler{(*C.InOrderReassembler)(ptr)}
+}
+
+func (r InOrderReassembler) Receive(pkt ndn.Packet) ndn.Packet {
+	res := C.InOrderReassembler_Receive(r.c, (*C.Packet)(pkt.GetPtr()))
 	return ndn.PacketFromPtr(unsafe.Pointer(res))
 }
 
 type InOrderReassemblerCounters struct {
-	NAccepted   uint64
-	NOutOfOrder uint64
-	NDelivered  uint64
+	Accepted   uint64
+	OutOfOrder uint64
+	Delivered  uint64
+	Incomplete uint64
 }
 
-func (r *InOrderReassembler) GetCounters() InOrderReassemblerCounters {
+func (cnt InOrderReassemblerCounters) String() string {
+	return fmt.Sprintf("%dacpt %dooo %ddlvr %dincomp",
+		cnt.Accepted, cnt.OutOfOrder, cnt.Delivered, cnt.Incomplete)
+}
+
+func (r InOrderReassembler) ReadCounters() InOrderReassemblerCounters {
 	return InOrderReassemblerCounters{
-		NAccepted:   uint64(r.c.nAccepted),
-		NOutOfOrder: uint64(r.c.nOutOfOrder),
-		NDelivered:  uint64(r.c.nDelivered),
+		Accepted:   uint64(r.c.nAccepted),
+		OutOfOrder: uint64(r.c.nOutOfOrder),
+		Delivered:  uint64(r.c.nDelivered),
+		Incomplete: uint64(r.c.nIncomplete),
 	}
 }

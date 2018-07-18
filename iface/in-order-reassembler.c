@@ -14,27 +14,25 @@ InOrderReassembler_Receive(InOrderReassembler* r, Packet* npkt)
   ZF_LOGD("%016" PRIX64 ",%" PRIu16 ",%" PRIu16 " " fmt, lpl2->seqNo,          \
           lpl2->fragIndex, lpl2->fragCount, ##__VA_ARGS__)
 
-  if (r->tail == NULL) {
-    if (lpl2->fragIndex != 0) {
-      PKTDBG("not-first");
-      ++r->nOutOfOrder;
-      rte_pktmbuf_free(frame);
-      return NULL;
+  if (lpl2->fragIndex == 0) {
+    if (unlikely(r->tail != NULL)) {
+      PKTDBG("accepted-first, discard-incomplete");
+      ++r->nIncomplete;
+      rte_pktmbuf_free(r->head);
+    } else {
+      PKTDBG("accepted-first");
     }
-
-    PKTDBG("accepted-first");
     ++r->nAccepted;
-    r->head = r->tail = frame;
+    r->head = frame;
+    r->tail = rte_pktmbuf_lastseg(frame);
     r->nextSeqNo = lpl2->seqNo + 1;
     return NULL;
   }
 
-  if (lpl2->seqNo != r->nextSeqNo) {
-    PKTDBG("out-of-order, expecting %016" PRIX64, r->nextSeqNo);
+  if (unlikely(r->tail == NULL || lpl2->seqNo != r->nextSeqNo)) {
+    PKTDBG("out-of-order");
     ++r->nOutOfOrder;
     rte_pktmbuf_free(frame);
-    rte_pktmbuf_free(r->head);
-    r->head = r->tail = NULL;
     return NULL;
   }
 

@@ -6,6 +6,7 @@ package iface
 import "C"
 import (
 	"fmt"
+	"unsafe"
 
 	"ndn-dpdk/ndn"
 )
@@ -16,8 +17,7 @@ type Counters struct {
 	RxOctets uint64 // RX total bytes
 
 	L2DecodeErrs uint64 // L2 decode errors
-	ReassBad     uint64 // reassembly failures
-	ReassGood    uint64 // reassembled L3 packets
+	Reass        InOrderReassemblerCounters
 
 	L3DecodeErrs uint64 // L3 decode errors
 	RxInterests  uint64 // RX Interest packets
@@ -39,8 +39,8 @@ type Counters struct {
 }
 
 func (cnt Counters) String() string {
-	return fmt.Sprintf("RX %dfrm %db %dI %dD %dN reass=(%dgood %dbad) l2=%derr l3=%derr TX %dfrm %db %dI %dD %dN frag=(%dgood %dbad) alloc=%derr %dqueued %ddropped",
-		cnt.RxFrames, cnt.RxOctets, cnt.RxInterests, cnt.RxData, cnt.RxNacks, cnt.ReassGood, cnt.ReassBad, cnt.L2DecodeErrs, cnt.L3DecodeErrs,
+	return fmt.Sprintf("RX %dfrm %db %dI %dD %dN reass=(%v) l2=%derr l3=%derr TX %dfrm %db %dI %dD %dN frag=(%dgood %dbad) alloc=%derr %dqueued %ddropped",
+		cnt.RxFrames, cnt.RxOctets, cnt.RxInterests, cnt.RxData, cnt.RxNacks, cnt.Reass, cnt.L2DecodeErrs, cnt.L3DecodeErrs,
 		cnt.TxFrames, cnt.TxOctets, cnt.TxInterests, cnt.TxData, cnt.TxNacks, cnt.FragGood, cnt.FragBad, cnt.TxAllocErrs, cnt.TxQueued, cnt.TxDropped)
 }
 
@@ -54,8 +54,7 @@ func (face BaseFace) ReadCounters() (cnt Counters) {
 	cnt.RxFrames = uint64(rxC.nFrames[ndn.L3PktType_None])
 	cnt.RxOctets = uint64(rxC.nOctets)
 	cnt.L2DecodeErrs = uint64(rxC.nL2DecodeErr)
-	cnt.ReassGood = uint64(rxC.reassembler.nDelivered)
-	cnt.ReassBad = uint64(rxC.reassembler.nIncomplete)
+	cnt.Reass = InOrderReassemblerFromPtr(unsafe.Pointer(&rxC.reassembler)).ReadCounters()
 	cnt.L3DecodeErrs = uint64(rxC.nL3DecodeErr)
 	cnt.RxInterests = uint64(rxC.nFrames[ndn.L3PktType_Interest])
 	cnt.RxData = uint64(rxC.nFrames[ndn.L3PktType_Data])
