@@ -8,7 +8,7 @@ ctx.declareType('fwdpmgmt.IndexArg', ctx.markAllRequired({
   },
 }));
 
-ctx.declareMethod('DPInfo.Global', 'null',
+ctx.declareMethod('DPInfo.Global', true,
   {
     type: 'object',
     properties: {

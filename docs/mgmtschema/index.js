@@ -4,10 +4,17 @@ var theSchema = {
   definitions: {},
   type: 'object',
   properties: {
-    method: {
-      type: 'string'
+    jsonrpc: {
+      type: 'string',
+      const: '2.0',
     },
-    params: true,
+    id: true,
+    method: {
+      type: 'string',
+    },
+    params: {
+      type: 'object',
+    },
     result: true,
   },
   required: ['method'],
@@ -21,7 +28,7 @@ var ctx = {
   },
 
   useType: function(t) {
-    if (typeof t == 'object') {
+    if (['object', 'boolean'].includes(typeof t)) {
       return t;
     }
     if (['null', 'boolean', 'array', 'number', 'string', 'integer'].includes(t)) {

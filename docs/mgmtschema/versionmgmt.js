@@ -1,7 +1,7 @@
 (function(exports){
 exports.provideDefinitions = function(ctx) {
 
-ctx.declareMethod('Version.Version', 'null',
+ctx.declareMethod('Version.Version', true,
   {
     type: 'object',
     properties: {

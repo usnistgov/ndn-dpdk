@@ -7,7 +7,7 @@ ctx.declareType('ndt.Value', {
   maximum: 255,
 });
 
-ctx.declareMethod('Ndt.ReadTable', 'null',
+ctx.declareMethod('Ndt.ReadTable', true,
   {
     oneOf: [
       {
@@ -22,7 +22,7 @@ ctx.declareMethod('Ndt.ReadTable', 'null',
     ],
   });
 
-ctx.declareMethod('Ndt.ReadCounters', 'null',
+ctx.declareMethod('Ndt.ReadCounters', true,
   {
     type: 'array',
     items: ctx.useType('counter'),

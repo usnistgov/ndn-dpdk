@@ -3,7 +3,7 @@
 This package implements a management RPC server.
 Calling process should `Register` management modules, then `Start` the server.
 
-The RPC server uses JSON-RPC 2.0 codec.
+The RPC server uses [JSON-RPC 2.0](https://www.jsonrpc.org/specification) codec.
 By default, the server listens on Unix stream socket `/var/run/ndn-dpdk-mgmt.sock`.
 Sysadmin may change this path or switch to TCP through environment variable.
 For example:

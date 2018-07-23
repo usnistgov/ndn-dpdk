@@ -74,7 +74,7 @@ ctx.declareType('facemgmt.IdArg', ctx.markAllRequired({
   },
 }));
 
-ctx.declareMethod('Face.List', 'null', 'iface.FaceId[]');
+ctx.declareMethod('Face.List', true, 'iface.FaceId[]');
 
 ctx.declareMethod('Face.Get', 'facemgmt.IdArg', 'facemgmt.FaceInfo');
 
@@ -88,7 +88,7 @@ ctx.declareMethod('Face.Create',
   }),
   'facemgmt.IdArg');
 
-ctx.declareMethod('Face.Destroy', 'facemgmt.IdArg', 'null');
+ctx.declareMethod('Face.Destroy', 'facemgmt.IdArg', true);
 
 };
 })(exports);

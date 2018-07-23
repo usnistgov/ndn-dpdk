@@ -42,7 +42,7 @@ ctx.declareType('fib.EntryCounters', {
   },
 });
 
-ctx.declareMethod('Fib.Info', 'null',
+ctx.declareMethod('Fib.Info', true,
   {
     type: 'object',
     properties: {
@@ -53,7 +53,7 @@ ctx.declareMethod('Fib.Info', 'null',
     },
   });
 
-ctx.declareMethod('Fib.List', 'null',
+ctx.declareMethod('Fib.List', true,
   {
     type: 'array',
     items: ctx.useType('ndn.Name'),
