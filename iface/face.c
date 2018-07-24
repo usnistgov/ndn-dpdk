@@ -65,7 +65,7 @@ FaceImpl_RxBurst(Face* face, FaceRxBurst* burst, uint16_t nFrames, Face_RxCb cb,
   struct rte_mbuf** frames = FaceRxBurst_GetScratch(burst);
   for (uint16_t i = 0; i < nFrames; ++i) {
     frames[i]->port = face->id;
-    Packet* npkt = RxProc_Input(&face->impl->rx, frames[i]);
+    Packet* npkt = RxProc_Input(&face->impl->rx, 0, frames[i]);
     if (npkt == NULL) {
       continue;
     }

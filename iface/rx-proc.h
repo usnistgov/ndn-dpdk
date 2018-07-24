@@ -5,14 +5,12 @@
 
 #include "in-order-reassembler.h"
 
-/** \brief Incoming frame processing procedure.
+#define RXPROC_MAX_THREADS 8
+
+/** \brief RxProc per-thread information.
  */
-typedef struct RxProc
+typedef struct RxProcThread
 {
-  struct rte_mempool* nameMp; ///< mempool for allocating Name linearize mbufs
-
-  InOrderReassembler reassembler;
-
   /** \brief input frames and decoded L3 packets
    *
    *  \li nFrames[L3PktType_None] input frames
@@ -25,13 +23,24 @@ typedef struct RxProc
 
   uint64_t nL2DecodeErr; ///< failed NDNLP decodings
   uint64_t nL3DecodeErr; ///< failed Interest/Data/Nack decodings
+} __rte_cache_aligned RxProcThread;
+
+/** \brief Incoming frame processing procedure.
+ */
+typedef struct RxProc
+{
+  struct rte_mempool* nameMp; ///< mempool for allocating Name linearize mbufs
+
+  InOrderReassembler reassembler;
+
+  RxProcThread threads[RXPROC_MAX_THREADS];
 } RxProc;
 
 /** \brief Initialize RX procedure.
+ *  \pre *rx is zeroized.
  *  \param nameMp mempool for name linearize; dataroom must be at least NAME_MAX_LENGTH.
- *  \retval 0
  */
-int RxProc_Init(RxProc* rx, struct rte_mempool* nameMp);
+void RxProc_Init(RxProc* rx, struct rte_mempool* nameMp);
 
 /** \brief Process an incoming L2 frame.
  *  \param pkt incoming L2 frame, starting from NDNLP header;
@@ -40,6 +49,6 @@ int RxProc_Init(RxProc* rx, struct rte_mempool* nameMp);
  *          RxProc releases ownership of this packet
  *  \retval NULL no L3 packet is ready at this moment
  */
-Packet* RxProc_Input(RxProc* rx, struct rte_mbuf* pkt);
+Packet* RxProc_Input(RxProc* rx, int thread, struct rte_mbuf* pkt);
 
 #endif // NDN_DPDK_IFACE_RX_PROC_H

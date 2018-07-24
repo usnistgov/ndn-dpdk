@@ -40,7 +40,7 @@ typedef struct TxProc
    */
   uint64_t nFrames[L3PktType_MAX];
   uint64_t nOctets; ///< octets sent, including Ethernet and NDNLP headers
-} TxProc;
+} __rte_cache_aligned TxProc;
 
 /** \brief Initialize TX procedure.
  *  \param mtu transport MTU available for NDNLP packets.

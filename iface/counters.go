@@ -51,14 +51,17 @@ func (face BaseFace) ReadCounters() (cnt Counters) {
 	}
 
 	rxC := &faceC.impl.rx
-	cnt.RxFrames = uint64(rxC.nFrames[ndn.L3PktType_None])
-	cnt.RxOctets = uint64(rxC.nOctets)
-	cnt.L2DecodeErrs = uint64(rxC.nL2DecodeErr)
 	cnt.Reass = InOrderReassemblerFromPtr(unsafe.Pointer(&rxC.reassembler)).ReadCounters()
-	cnt.L3DecodeErrs = uint64(rxC.nL3DecodeErr)
-	cnt.RxInterests = uint64(rxC.nFrames[ndn.L3PktType_Interest])
-	cnt.RxData = uint64(rxC.nFrames[ndn.L3PktType_Data])
-	cnt.RxNacks = uint64(rxC.nFrames[ndn.L3PktType_Nack])
+	for i := 0; i < C.RXPROC_MAX_THREADS; i++ {
+		rxtC := &rxC.threads[i]
+		cnt.RxFrames += uint64(rxtC.nFrames[ndn.L3PktType_None])
+		cnt.RxOctets += uint64(rxtC.nOctets)
+		cnt.L2DecodeErrs += uint64(rxtC.nL2DecodeErr)
+		cnt.L3DecodeErrs += uint64(rxtC.nL3DecodeErr)
+		cnt.RxInterests += uint64(rxtC.nFrames[ndn.L3PktType_Interest])
+		cnt.RxData += uint64(rxtC.nFrames[ndn.L3PktType_Data])
+		cnt.RxNacks += uint64(rxtC.nFrames[ndn.L3PktType_Nack])
+	}
 
 	txC := &faceC.impl.tx
 	cnt.FragGood = uint64(txC.nL3Fragmented)
