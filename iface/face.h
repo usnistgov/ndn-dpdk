@@ -161,8 +161,8 @@ void FaceImpl_Init(Face* face, uint16_t mtu, uint16_t headroom,
  *  \param burst FaceRxBurst_GetScratch(burst) shall contain received frames,
  *               and each frame should have timestamp set.
  */
-void FaceImpl_RxBurst(Face* face, FaceRxBurst* burst, uint16_t nFrames,
-                      Face_RxCb cb, void* cbarg);
+void FaceImpl_RxBurst(Face* face, int rxThread, FaceRxBurst* burst,
+                      uint16_t nFrames, Face_RxCb cb, void* cbarg);
 
 /** \brief Update counters after a frame is transmitted.
  */

@@ -142,7 +142,11 @@ func MakeRxLooper(face iface.IFace) iface.IRxLooper {
 	case iface.FaceKind_Mock:
 		return mockface.TheRxLoop
 	case iface.FaceKind_Eth:
-		return face.(iface.IRxLooper)
+		rxl := ethface.NewRxLoop(1, face.GetNumaSocket())
+		if e := rxl.Add(face.(*ethface.EthFace)); e != nil {
+			return nil
+		}
+		return rxl
 	case iface.FaceKind_Socket:
 		return socketface.NewRxGroup(face.(*socketface.SocketFace))
 	}

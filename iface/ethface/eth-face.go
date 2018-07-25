@@ -7,7 +7,6 @@ import "C"
 import (
 	"fmt"
 	"strings"
-	"unsafe"
 
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
@@ -37,7 +36,7 @@ func FindPortByUri(uri string) dpdk.EthDev {
 
 type EthFace struct {
 	iface.BaseFace
-	rxLoopStopped chan bool
+	nRxThreads int // how many RxProc threads are assigned to RxLoops
 }
 
 func New(port dpdk.EthDev, mempools iface.Mempools) (*EthFace, error) {
@@ -49,7 +48,6 @@ func New(port dpdk.EthDev, mempools iface.Mempools) (*EthFace, error) {
 		return nil, dpdk.GetErrno()
 	}
 
-	face.rxLoopStopped = make(chan bool)
 	iface.Put(&face)
 	return &face, nil
 }
@@ -93,21 +91,4 @@ func (face *EthFace) Close() error {
 
 func (face *EthFace) ReadExCounters() interface{} {
 	return face.GetPort().GetStats()
-}
-
-func (face *EthFace) RxLoop(burstSize int, cb unsafe.Pointer, cbarg unsafe.Pointer) {
-	C.EthFace_RxLoop(face.getPtr(), C.uint16_t(burstSize), (C.Face_RxCb)(cb), cbarg)
-	face.rxLoopStopped <- true
-}
-
-func (face *EthFace) StopRxLoop() error {
-	privC := face.getPriv()
-	privC.stopRxLoop = true
-	<-face.rxLoopStopped
-	privC.stopRxLoop = false
-	return nil
-}
-
-func (face *EthFace) ListFacesInRxLoop() []iface.FaceId {
-	return []iface.FaceId{face.GetFaceId()}
 }

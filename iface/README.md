@@ -30,7 +30,8 @@ The RX loop continually retrieves L2 frames from one or more faces, and passes a
 `FaceImpl_RxBurst` first calls **RxProc** to decode L2 frames into L3 packets.
 It then passes a burst of L3 packets to a **Face\_RxCb** callback provided by the user of face system (such as forwarder's input function).
 
-RxProc is not thread safe; as such, only one RX loop should be running for a face.
+RxProc is thread safe as long as different "RxProc thread number" is being used.
+Currently, only thread 0 is capable of NDNLP reassembly.
 
 ## Send Path
 

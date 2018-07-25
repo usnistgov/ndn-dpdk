@@ -21,7 +21,7 @@ func TestEthFace(t *testing.T) {
 		NameMp:     dpdktestenv.MakeMp("name", 4095, 0, ndn.NAME_MAX_LENGTH),
 		HeaderMp:   dpdktestenv.MakeMp("header", 4095, 0, ethface.SizeofTxHeader()),
 	}
-	evl := dpdktestenv.NewEthVLink(1024, 64, dpdktestenv.MPID_DIRECT)
+	evl := dpdktestenv.NewEthVLink(2, 1024, 64, dpdktestenv.MPID_DIRECT)
 	defer evl.Close()
 
 	faceA, e := ethface.New(evl.PortA, mempools)
@@ -30,9 +30,14 @@ func TestEthFace(t *testing.T) {
 	faceB, e := ethface.New(evl.PortB, mempools)
 	require.NoError(e)
 	defer faceB.Close()
-	assert.Implements((*iface.IRxLooper)(nil), faceA)
 
-	fixture := ifacetestfixture.New(t, faceA, faceA, faceB)
+	rxlA := ethface.NewRxLoop(3, faceA.GetNumaSocket())
+	defer rxlA.Close()
+	require.NoError(rxlA.Add(faceA)) // queue 0
+	require.NoError(rxlA.Add(faceA)) // queue 1
+	assert.Error(rxlA.Add(faceA))    // queue 2 does not exist
+
+	fixture := ifacetestfixture.New(t, faceA, rxlA, faceB)
 	dpdktestenv.Eal.Slaves[2].RemoteLaunch(evl.Bridge)
 	time.Sleep(time.Second)
 	fixture.RunTest()
@@ -42,4 +47,6 @@ func TestEthFace(t *testing.T) {
 	fmt.Println("TX face", faceB.ReadCounters())
 	fmt.Println("RX port", evl.PortA.GetStats())
 	fmt.Println("RX face", faceA.ReadCounters())
+	fmt.Println("AtoB", evl.AtoB)
+	fmt.Println("BtoA", evl.BtoA)
 }

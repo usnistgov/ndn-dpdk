@@ -8,11 +8,15 @@ import "ndn-dpdk/dpdk"
 // into new mbufs. It is slower but behaves more like a real link.
 type EthVLink struct {
 	PortA dpdk.EthDev
-	RxqA  dpdk.EthRxQueue
-	TxqA  dpdk.EthTxQueue
+	RxqA  dpdk.EthRxQueue // first RX queue of port A
+	TxqA  dpdk.EthTxQueue // first TX queue of port A
+
 	PortB dpdk.EthDev
-	RxqB  dpdk.EthRxQueue
-	TxqB  dpdk.EthTxQueue
+	RxqB  dpdk.EthRxQueue // first RX queue of port B
+	TxqB  dpdk.EthTxQueue // first TX queue of port B
+
+	AtoB []int // per-queue packet count from A to B
+	BtoA []int // per-queue packet count from B to A
 
 	mpid  string
 	pairA *EthDevPair
@@ -20,12 +24,12 @@ type EthVLink struct {
 	stop  chan struct{}
 }
 
-func NewEthVLink(ringCapacity int, queueCapacity int, mpid string) *EthVLink {
+func NewEthVLink(nQueues, ringCapacity, queueCapacity int, mpid string) *EthVLink {
 	var evl EthVLink
 
 	evl.mpid = mpid
-	evl.pairA = NewEthDevPair(1, ringCapacity, queueCapacity)
-	evl.pairB = NewEthDevPair(1, ringCapacity, queueCapacity)
+	evl.pairA = NewEthDevPair(nQueues, ringCapacity, queueCapacity)
+	evl.pairB = NewEthDevPair(nQueues, ringCapacity, queueCapacity)
 	evl.stop = make(chan struct{}, 1)
 
 	evl.PortA = evl.pairA.PortA
@@ -35,6 +39,9 @@ func NewEthVLink(ringCapacity int, queueCapacity int, mpid string) *EthVLink {
 	evl.RxqB = evl.pairB.RxqB[0]
 	evl.TxqB = evl.pairB.TxqB[0]
 
+	evl.AtoB = make([]int, nQueues)
+	evl.BtoA = make([]int, nQueues)
+
 	return &evl
 }
 
@@ -43,18 +50,23 @@ func (evl *EthVLink) Bridge() int {
 	rxPkts := make([]dpdk.Packet, BURST_SIZE)
 	txPkts := make([]dpdk.Packet, BURST_SIZE)
 
-	transfer := func(rxq dpdk.EthRxQueue, txq dpdk.EthTxQueue) {
+	transfer := func(rxq dpdk.EthRxQueue, txq dpdk.EthTxQueue) int {
 		nRx := rxq.RxBurst(rxPkts)
 		for i, rxPkt := range rxPkts[:nRx] {
 			txPkts[i] = packetFromBytesInMp(evl.mpid, rxPkt.ReadAll())
 			rxPkt.Close()
 		}
 		txq.TxBurst(txPkts[:nRx])
+		return nRx
 	}
 
 	for {
-		transfer(evl.pairA.RxqB[0], evl.pairB.TxqA[0])
-		transfer(evl.pairB.RxqA[0], evl.pairA.TxqB[0])
+		for i := range evl.AtoB {
+			evl.AtoB[i] += transfer(evl.pairA.RxqB[i], evl.pairB.TxqA[i])
+		}
+		for i := range evl.BtoA {
+			evl.BtoA[i] += transfer(evl.pairB.RxqA[i], evl.pairA.TxqB[i])
+		}
 
 		select {
 		case <-evl.stop:

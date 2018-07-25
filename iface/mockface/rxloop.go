@@ -30,7 +30,7 @@ func (rxLoop) RxLoop(burstSize int, cb unsafe.Pointer, cbarg unsafe.Pointer) {
 		select {
 		case rxp := <-rxQueue:
 			burst.SetFrame(0, rxp.pkt)
-			C.FaceImpl_RxBurst(rxp.face.getPtr(), (*C.FaceRxBurst)(burst.GetPtr()), 1,
+			C.FaceImpl_RxBurst(rxp.face.getPtr(), 0, (*C.FaceRxBurst)(burst.GetPtr()), 1,
 				(C.Face_RxCb)(cb), cbarg)
 		case <-rxStop:
 			return
