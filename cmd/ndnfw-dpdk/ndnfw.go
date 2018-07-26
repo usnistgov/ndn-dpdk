@@ -11,6 +11,7 @@ import (
 	"ndn-dpdk/container/ndt/ndtupdater"
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
+	"ndn-dpdk/iface/ethface"
 	"ndn-dpdk/iface/socketface"
 	"ndn-dpdk/mgmt/facemgmt"
 	"ndn-dpdk/mgmt/fibmgmt"
@@ -53,37 +54,96 @@ func startDp(ndtCfg ndt.Config, fibCfg fib.Config, dpInit fwdpInitConfig) {
 	lcr := appinit.NewLCoreReservations()
 
 	var dpCfg fwdp.Config
-
-	// reserve lcores for EthFace
 	var inputRxLoopers []iface.IRxLooper
 	var outputLCores []dpdk.LCore
 	var outputTxLoopers []iface.ITxLooper
-	for _, port := range dpdk.ListEthDevs() {
-		logEntry := log.WithFields(makeLogFields("port", port, "name", port.GetName()))
-		face, e := appinit.NewFaceFromEthDev(port)
-		if e != nil {
-			logEntry.WithError(e).Fatal("EthFace creation error")
-			continue
-		}
-		inputLc := lcr.MustReserve(face.GetNumaSocket())
-		socket := inputLc.GetNumaSocket()
-		logEntry = logEntry.WithFields(makeLogFields("face", face.GetFaceId(), "rx-lcore", inputLc, "socket", socket))
-		dpCfg.InputLCores = append(dpCfg.InputLCores, inputLc)
-		inputRxLoopers = append(inputRxLoopers, appinit.MakeRxLooper(face))
 
-		e = face.EnableThreadSafeTx(appinit.TheFaceQueueCapacityConfig.EthTxPkts)
-		if e != nil {
-			logEntry.WithError(e).Fatal("EnableThreadSafeTx failed")
+	// reserve lcores for EthFace
+	{
+		nRxThreads := dpInit.EthInputsPerFace
+		if nRxThreads == 0 {
+			nRxThreads = dpInit.EthInputsPerNuma
 		}
+		rxlPerNuma := make(map[dpdk.NumaSocket][]*ethface.RxLoop)
+		txlPerNuma := make(map[dpdk.NumaSocket]*iface.MultiTxLoop)
 
-		outputLc := lcr.MustReserve(socket)
-		logEntry.WithField("tx-lcore", outputLc).Info("EthFace created")
-		outputLCores = append(outputLCores, outputLc)
-		outputTxLoopers = append(outputTxLoopers, appinit.MakeTxLooper(face))
+		ethDevs := dpdk.ListEthDevs()
+		for _, port := range ethDevs {
+			logEntry := log.WithFields(makeLogFields("port", port, "name", port.GetName()))
+			face, e := appinit.NewFaceFromEthDev(port, nRxThreads)
+			if e != nil {
+				logEntry.WithError(e).Fatal("EthFace creation error")
+				continue
+			}
+
+			socket := face.GetNumaSocket()
+			if socket == dpdk.NUMA_SOCKET_ANY {
+				socket = 0
+			}
+			logEntry = logEntry.WithField("socket", socket)
+
+			if dpInit.EthInputsPerFace > 0 {
+				lcores := make([]dpdk.LCore, dpInit.EthInputsPerFace)
+				for i := range lcores {
+					lcores[i] = lcr.MustReserve(face.GetNumaSocket())
+					dpCfg.InputLCores = append(dpCfg.InputLCores, lcores[i])
+					inputRxLoopers = append(inputRxLoopers, appinit.MakeRxLooper(face))
+				}
+				logEntry = logEntry.WithField("rx-lcores", lcores)
+			} else {
+				rxls, ok := rxlPerNuma[socket]
+				if !ok {
+					lcores := make([]dpdk.LCore, dpInit.EthInputsPerNuma)
+					rxls = make([]*ethface.RxLoop, dpInit.EthInputsPerNuma)
+					for i := range rxls {
+						lcores[i] = lcr.MustReserve(socket)
+						rxls[i] = ethface.NewRxLoop(len(ethDevs), socket)
+						dpCfg.InputLCores = append(dpCfg.InputLCores, lcores[i])
+						inputRxLoopers = append(inputRxLoopers, rxls[i])
+					}
+					rxlPerNuma[socket] = rxls
+					logEntry = logEntry.WithField("shared-rx-lcores", lcores)
+				} else {
+					logEntry = logEntry.WithField("shared-rx-lcores", "reuse")
+				}
+
+				for _, rxl := range rxls {
+					if e := rxl.Add(face.(*ethface.EthFace)); e != nil {
+						logEntry.WithError(e).Fatal("rxl.Add failed")
+					}
+				}
+			}
+
+			if e := face.EnableThreadSafeTx(appinit.TheFaceQueueCapacityConfig.EthTxPkts); e != nil {
+				logEntry.WithError(e).Fatal("EnableThreadSafeTx failed")
+			}
+
+			if !dpInit.EthShareTx {
+				lcore := lcr.MustReserve(socket)
+				logEntry = logEntry.WithField("tx-lcore", lcore)
+				outputLCores = append(outputLCores, lcore)
+				outputTxLoopers = append(outputTxLoopers, appinit.MakeTxLooper(face))
+			} else {
+				txl, ok := txlPerNuma[socket]
+				if !ok {
+					lcore := lcr.MustReserve(socket)
+					txl = iface.NewMultiTxLoop()
+					txlPerNuma[socket] = txl
+					outputLCores = append(outputLCores, lcore)
+					outputTxLoopers = append(outputTxLoopers, txl)
+					logEntry = logEntry.WithField("shared-tx-lcore", lcore)
+				} else {
+					logEntry = logEntry.WithField("shared-tx-lcore", "reuse")
+				}
+				txl.AddFace(face)
+			}
+
+			logEntry.Info("EthFace created")
+		}
 	}
 
 	// reserve lcore for SocketFaces
-	{
+	if dpInit.EnableSocketFace {
 		theSocketRxg = socketface.NewRxGroup()
 		inputLc := lcr.MustReserve(dpdk.NUMA_SOCKET_ANY)
 		theSocketFaceNumaSocket = inputLc.GetNumaSocket()
@@ -186,9 +246,11 @@ func startDp(ndtCfg ndt.Config, fibCfg fib.Config, dpInit fwdpInitConfig) {
 func startMgmt() {
 	appinit.RegisterMgmt(versionmgmt.VersionMgmt{})
 
-	facemgmt.CreateFace = socketface.MakeMgmtCreateFace(
-		appinit.NewSocketFaceCfg(theSocketFaceNumaSocket), theSocketRxg, theSocketTxl,
-		appinit.TheFaceQueueCapacityConfig.SocketTxPkts)
+	if theSocketRxg != nil {
+		facemgmt.CreateFace = socketface.MakeMgmtCreateFace(
+			appinit.NewSocketFaceCfg(theSocketFaceNumaSocket), theSocketRxg, theSocketTxl,
+			appinit.TheFaceQueueCapacityConfig.SocketTxPkts)
+	}
 	appinit.RegisterMgmt(facemgmt.FaceMgmt{})
 
 	appinit.RegisterMgmt(ndtmgmt.NdtMgmt{

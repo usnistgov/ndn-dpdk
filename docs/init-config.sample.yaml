@@ -65,6 +65,15 @@ fib:
 
 # FORWARDER DATA PLANE
 fwdp:
+  # How many FwInputs per EthDev. If non-zero, ethinputspernuma is ignored.
+  ethinputsperface: 1
+  # How many FwInputs per NUMA socket, shared for all EthDevs.
+  ethinputspernuma: 0
+  # Whether to share TxLoop among EthDev on same NUMA socket.
+  ethsharetx: false
+  # Whether to launch FwInput and TxLoop for socket faces.
+  enablesocketface: true
+
   # Capacity of queue between FwInput and FwFwd.
   fwdqueuecapacity: 128
   # Collect RX-FwFwd latency sample every 2^latencysamplefreq packets.

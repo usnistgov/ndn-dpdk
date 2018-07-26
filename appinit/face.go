@@ -69,23 +69,25 @@ func newEthFace(remote, local *faceuri.FaceUri) (iface.IFace, error) {
 		return nil, fmt.Errorf("DPDK device %s not found (available ports: %v)",
 			remote.Host, ethface.ListPortUris())
 	}
-	return newEthFaceFromDev(port)
+	return newEthFaceFromDev(port, 1)
 }
 
 // Create face on DPDK device.
-func NewFaceFromEthDev(port dpdk.EthDev) (face iface.IFace, e error) {
+func NewFaceFromEthDev(port dpdk.EthDev, nRxThreads int) (face iface.IFace, e error) {
 	if !port.IsValid() {
 		return nil, errors.New("DPDK device is invalid")
 	}
-	face, e = newEthFaceFromDev(port)
+	face, e = newEthFaceFromDev(port, nRxThreads)
 	return face, e
 }
 
-func newEthFaceFromDev(port dpdk.EthDev) (iface.IFace, error) {
+func newEthFaceFromDev(port dpdk.EthDev, nRxThreads int) (iface.IFace, error) {
 	var cfg dpdk.EthDevConfig
-	cfg.AddRxQueue(dpdk.EthRxQueueConfig{Capacity: TheFaceQueueCapacityConfig.EthRxFrames,
-		Socket: port.GetNumaSocket(),
-		Mp:     MakePktmbufPool(MP_ETHRX, port.GetNumaSocket())})
+	for i := 0; i < nRxThreads; i++ {
+		cfg.AddRxQueue(dpdk.EthRxQueueConfig{Capacity: TheFaceQueueCapacityConfig.EthRxFrames,
+			Socket: port.GetNumaSocket(),
+			Mp:     MakePktmbufPool(MP_ETHRX, port.GetNumaSocket())})
+	}
 	cfg.AddTxQueue(dpdk.EthTxQueueConfig{Capacity: TheFaceQueueCapacityConfig.EthTxFrames,
 		Socket: port.GetNumaSocket()})
 	_, _, e := port.Configure(cfg)

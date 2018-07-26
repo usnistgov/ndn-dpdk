@@ -63,6 +63,11 @@ func (port EthDev) GetNumaSocket() NumaSocket {
 	return NumaSocket(C.rte_eth_dev_socket_id(C.uint16_t(port)))
 }
 
+func (port EthDev) GetDevInfo() (info EthDevInfo) {
+	C.rte_eth_dev_info_get(C.uint16_t(port), (*C.struct_rte_eth_dev_info)(unsafe.Pointer(&info)))
+	return info
+}
+
 type EthDevConfig struct {
 	RxQueues []EthRxQueueConfig
 	TxQueues []EthTxQueueConfig

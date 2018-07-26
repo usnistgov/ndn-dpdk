@@ -11,6 +11,9 @@ import (
 	"fmt"
 )
 
+// Contextual information of an Ethernet port.
+type EthDevInfo C.struct_rte_eth_dev_info
+
 // Statistics for an Ethernet port.
 type EthStats C.struct_rte_eth_stats
 
