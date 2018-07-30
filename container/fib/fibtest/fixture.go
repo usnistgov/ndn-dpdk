@@ -3,6 +3,7 @@ package fibtest
 import (
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/ndt"
+	"ndn-dpdk/container/strategycode"
 	"ndn-dpdk/core/urcu"
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
@@ -43,7 +44,7 @@ func NewFixture(ndtPrefixLen, fibStartDepth, nPartitions int) (fixture *Fixture)
 
 func (fixture *Fixture) Close() error {
 	fixture.Fib.Close()
-	fib.UnloadAllStrategyCode()
+	strategycode.CloseAll()
 	return fixture.Ndt.Close()
 }
 
@@ -52,17 +53,8 @@ func (fixture *Fixture) CountMpInUse(i int) int {
 	return dpdk.MempoolFromPtr(fixture.Fib.GetPtr(i)).CountInUse()
 }
 
-// Create a strategy with empty BPF program.
-func (fixture *Fixture) MakeStrategy() (sc fib.StrategyCode) {
-	sc, e := fib.MakeEmptyStrategy()
-	if e != nil {
-		panic(e)
-	}
-	return sc
-}
-
 // Allocate and initialize a FIB entry.
-func (fixture *Fixture) MakeEntry(name string, sc fib.StrategyCode,
+func (fixture *Fixture) MakeEntry(name string, sc strategycode.StrategyCode,
 	nexthops ...iface.FaceId) (entry *fib.Entry) {
 	entry = new(fib.Entry)
 	n := ndn.MustParseName(name)

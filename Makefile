@@ -92,6 +92,12 @@ $(CLIBPREFIX)-ndt.a: $(CLIBPREFIX)-ndn.a container/ndt/*.h container/ndt/*.c
 container/ndt/cgoflags.go: ndn/cgoflags.go
 	./make-cgoflags.sh container/ndt ndn
 
+$(CLIBPREFIX)-strategycode.a: container/strategycode/*.h container/strategycode/*.c
+	./cbuild.sh container/strategycode
+
+container/strategycode/cgoflags.go: core/cgoflags.go
+	./make-cgoflags.sh container/strategycode core
+
 $(CLIBPREFIX)-tsht.a: $(CLIBPREFIX)-dpdk.a $(CLIBPREFIX)-urcu.a container/tsht/*.h container/tsht/*.c
 	./cbuild.sh container/tsht
 
@@ -101,8 +107,8 @@ container/tsht/cgoflags.go: dpdk/cgoflags.go core/urcu/cgoflags.go
 $(CLIBPREFIX)-fib.a: $(CLIBPREFIX)-tsht.a $(CLIBPREFIX)-ndt.a container/fib/*.h container/fib/*.c
 	./cbuild.sh container/fib
 
-container/fib/cgoflags.go: container/tsht/cgoflags.go ndn/cgoflags.go
-	./make-cgoflags.sh container/fib container/tsht ndn
+container/fib/cgoflags.go: container/tsht/cgoflags.go container/strategycode/cgoflags.go ndn/cgoflags.go
+	./make-cgoflags.sh container/fib container/strategycode container/tsht ndn
 
 $(CLIBPREFIX)-pcct.a: $(CLIBPREFIX)-mintmr.a $(CLIBPREFIX)-fib.a container/pcct/*.h container/pcct/*.c
 	./cbuild.sh container/pcct

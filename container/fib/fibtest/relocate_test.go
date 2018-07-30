@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"ndn-dpdk/container/ndt/ndtupdater"
+	"ndn-dpdk/container/strategycode"
 	"ndn-dpdk/ndn"
 )
 
@@ -14,7 +15,7 @@ func TestFibRelocate(t *testing.T) {
 	defer fixture.Close()
 	ndt := fixture.Ndt
 	fib := fixture.Fib
-	strategyP := fixture.MakeStrategy()
+	strategyP := strategycode.MakeEmpty()
 
 	name0 := ndn.MustParseName("/")
 	nameA := ndn.MustParseName("/A")

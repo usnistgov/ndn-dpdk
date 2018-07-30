@@ -2,11 +2,12 @@ package fibmgmt
 
 import (
 	"ndn-dpdk/container/fib"
+	"ndn-dpdk/container/strategycode"
 	"ndn-dpdk/ndn"
 )
 
 // Strategy for new FIB entries.
-var TheStrategy fib.StrategyCode
+var TheStrategy strategycode.StrategyCode
 
 type FibMgmt struct {
 	Fib *fib.Fib

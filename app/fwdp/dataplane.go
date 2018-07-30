@@ -16,6 +16,7 @@ import (
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/ndt"
 	"ndn-dpdk/container/pcct"
+	"ndn-dpdk/container/strategycode"
 	"ndn-dpdk/core/running_stat"
 	"ndn-dpdk/core/urcu"
 	"ndn-dpdk/dpdk"
@@ -67,7 +68,7 @@ func New(cfg Config) (*DataPlane, error) {
 	dp.fwdLCores = append([]dpdk.LCore{}, cfg.FwdLCores...)
 
 	ndtC := (*C.Ndt)(cfg.Ndt.GetPtr())
-	fib.RegisterStrategyFuncs = registerStrategyFuncs
+	strategycode.RegisterStrategyFuncs = registerStrategyFuncs
 
 	for i, lc := range cfg.FwdLCores {
 		numaSocket := lc.GetNumaSocket()

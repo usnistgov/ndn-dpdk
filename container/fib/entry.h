@@ -4,7 +4,7 @@
 /// \file
 
 #include "../../iface/faceid.h"
-#include "strategy-code.h"
+#include "../strategycode/strategy-code.h"
 
 #define FIB_ENTRY_MAX_NAME_LEN 500
 #define FIB_ENTRY_MAX_NEXTHOPS 8

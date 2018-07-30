@@ -6,7 +6,9 @@ package fib
 import "C"
 import (
 	"fmt"
+	"unsafe"
 
+	"ndn-dpdk/container/strategycode"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/ndn"
 )
@@ -71,10 +73,10 @@ func (entry *Entry) SetNexthops(nexthops []iface.FaceId) error {
 	return nil
 }
 
-func (entry *Entry) GetStrategy() StrategyCode {
-	return StrategyCode{entry.c.strategy}
+func (entry *Entry) GetStrategy() strategycode.StrategyCode {
+	return strategycode.FromPtr(unsafe.Pointer(entry.c.strategy))
 }
 
-func (entry *Entry) SetStrategy(sc StrategyCode) {
-	entry.c.strategy = sc.c
+func (entry *Entry) SetStrategy(sc strategycode.StrategyCode) {
+	entry.c.strategy = (*C.StrategyCode)(sc.GetPtr())
 }

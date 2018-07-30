@@ -9,6 +9,7 @@ import (
 	"ndn-dpdk/appinit"
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/ndt"
+	"ndn-dpdk/container/strategycode"
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/faceuri"
@@ -28,7 +29,7 @@ type Fixture struct {
 
 	outputTxLoop *iface.MultiTxLoop
 	faceIds      []iface.FaceId
-	strategies   map[string]fib.StrategyCode
+	strategies   map[string]strategycode.StrategyCode
 }
 
 func NewFixture(t *testing.T) (fixture *Fixture) {
@@ -93,7 +94,7 @@ func NewFixture(t *testing.T) (fixture *Fixture) {
 		return 0
 	})
 
-	fixture.strategies = make(map[string]fib.StrategyCode)
+	fixture.strategies = make(map[string]strategycode.StrategyCode)
 	return fixture
 }
 
@@ -108,6 +109,7 @@ func (fixture *Fixture) Close() error {
 	fixture.Ndt.Close()
 	fixture.Fib.Close()
 	iface.CloseAll()
+	strategycode.CloseAll()
 	return nil
 }
 
@@ -141,7 +143,7 @@ func (fixture *Fixture) ReadFibCounters(name string) fib.EntryCounters {
 	return fixture.Fib.ReadEntryCounters(ndn.MustParseName(name))
 }
 
-func (fixture *Fixture) makeStrategy(shortname string) fib.StrategyCode {
+func (fixture *Fixture) makeStrategy(shortname string) strategycode.StrategyCode {
 	if sc, ok := fixture.strategies[shortname]; ok {
 		return sc
 	}
@@ -149,7 +151,7 @@ func (fixture *Fixture) makeStrategy(shortname string) fib.StrategyCode {
 	elf, e := strategy_elf.Load(shortname)
 	fixture.require.NoError(e)
 
-	sc, e := fib.LoadStrategyCode(elf)
+	sc, e := strategycode.Load(elf)
 	fixture.require.NoError(e)
 
 	fixture.strategies[shortname] = sc

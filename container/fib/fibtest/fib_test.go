@@ -4,7 +4,7 @@ import (
 	"sort"
 	"testing"
 
-	"ndn-dpdk/container/fib"
+	"ndn-dpdk/container/strategycode"
 	"ndn-dpdk/core/urcu"
 	"ndn-dpdk/ndn"
 )
@@ -14,10 +14,10 @@ func TestFibInsertErase(t *testing.T) {
 	fixture := NewFixture(0, 2, 1)
 	defer fixture.Close()
 
-	var badStrategy fib.StrategyCode
-	strategyP := fixture.MakeStrategy()
+	var badStrategy strategycode.StrategyCode
+	strategyP := strategycode.MakeEmpty()
 	assert.Equal(0, strategyP.CountRefs())
-	strategyQ := fixture.MakeStrategy()
+	strategyQ := strategycode.MakeEmpty()
 
 	fib := fixture.Fib
 	assert.Equal(0, fib.Len())
@@ -94,7 +94,7 @@ func TestFibLpm(t *testing.T) {
 	fixture := NewFixture(0, 2, 1)
 	defer fixture.Close()
 	fib := fixture.Fib
-	strategyP := fixture.MakeStrategy()
+	strategyP := strategycode.MakeEmpty()
 
 	lpm := func(name string) int {
 		entry := fib.Lpm(ndn.MustParseName(name))

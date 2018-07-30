@@ -1,4 +1,4 @@
-package fib
+package strategycode
 
 /*
 #include "strategy-code.h"
@@ -18,6 +18,14 @@ type StrategyCode struct {
 	c *C.StrategyCode
 }
 
+func (sc StrategyCode) GetPtr() unsafe.Pointer {
+	return unsafe.Pointer(sc.c)
+}
+
+func FromPtr(ptr unsafe.Pointer) StrategyCode {
+	return StrategyCode{(*C.StrategyCode)(ptr)}
+}
+
 func (sc StrategyCode) GetId() int {
 	return int(sc.c.id)
 }
@@ -31,10 +39,10 @@ func (sc StrategyCode) Close() error {
 		return errors.New("StrategyCode has references")
 	}
 
-	strategyCodeMutex.Lock()
-	defer strategyCodeMutex.Unlock()
+	tableLock.Lock()
+	defer tableLock.Unlock()
 	C.ubpf_destroy(sc.c.vm)
-	delete(strategyCodeTable, sc.GetId())
+	delete(table, sc.GetId())
 	dpdk.Free(sc.c)
 	return nil
 }
@@ -48,13 +56,13 @@ func (sc StrategyCode) String() string {
 
 // Table of StrategyCode instances.
 var (
-	strategyCodeId    int
-	strategyCodeTable map[int]StrategyCode = make(map[int]StrategyCode)
-	strategyCodeMutex sync.Mutex
+	lastId    int
+	table     map[int]StrategyCode = make(map[int]StrategyCode)
+	tableLock sync.Mutex
 )
 
 // A global function that registers CALL-able functions available to BPF program.
-// fib.LoadStrategyCode is available only if this is specified.
+// fib.Load is available only if this is specified.
 var RegisterStrategyFuncs func(vm unsafe.Pointer) error
 
 func fromUbpfError(funcName string, errC *C.char) error {
@@ -81,21 +89,21 @@ func makeStrategyCode(load func(vm *C.struct_ubpf_vm) error) (sc StrategyCode, e
 		return sc, fromUbpfError("ubpf_compile", errC)
 	}
 
-	strategyCodeMutex.Lock()
-	defer strategyCodeMutex.Unlock()
-	strategyCodeId++
+	tableLock.Lock()
+	defer tableLock.Unlock()
+	lastId++
 	sc.c = (*C.StrategyCode)(dpdk.Zmalloc("StrategyCode", C.sizeof_StrategyCode, dpdk.NUMA_SOCKET_ANY))
-	sc.c.id = C.int(strategyCodeId)
+	sc.c.id = C.int(lastId)
 	sc.c.vm = vm
 	sc.c.jit = jit
-	strategyCodeTable[strategyCodeId] = sc
+	table[lastId] = sc
 	return sc, nil
 }
 
 // Load a strategy BPF program from ELF object.
-func LoadStrategyCode(elf []byte) (sc StrategyCode, e error) {
+func Load(elf []byte) (sc StrategyCode, e error) {
 	if RegisterStrategyFuncs == nil {
-		return sc, errors.New("fib.RegisterStrategyFuncs is empty")
+		return sc, errors.New("strategycode.RegisterStrategyFuncs is empty")
 	}
 
 	return makeStrategyCode(func(vm *C.struct_ubpf_vm) error {
@@ -112,8 +120,8 @@ func LoadStrategyCode(elf []byte) (sc StrategyCode, e error) {
 }
 
 // Load an empty BPF program (mainly for unit testing).
-func MakeEmptyStrategy() (sc StrategyCode, e error) {
-	return makeStrategyCode(func(vm *C.struct_ubpf_vm) error {
+func MakeEmpty() StrategyCode {
+	sc, e := makeStrategyCode(func(vm *C.struct_ubpf_vm) error {
 		code := []uint64{0x95}
 		var errC *C.char
 		if res := C.ubpf_load(vm, unsafe.Pointer(&code[0]), 8, &errC); res != 0 {
@@ -121,30 +129,34 @@ func MakeEmptyStrategy() (sc StrategyCode, e error) {
 		}
 		return nil
 	})
+	if e != nil {
+		panic(e)
+	}
+	return sc
 }
 
-func GetStrategyCode(id int) (sc StrategyCode, e error) {
-	strategyCodeMutex.Lock()
-	defer strategyCodeMutex.Unlock()
+func Get(id int) (sc StrategyCode, e error) {
+	tableLock.Lock()
+	defer tableLock.Unlock()
 	var ok bool
-	if sc, ok = strategyCodeTable[id]; !ok {
+	if sc, ok = table[id]; !ok {
 		return sc, fmt.Errorf("StrategyCode(%d) does not exist", id)
 	}
 	return sc, nil
 }
 
-func ListStrategyCode() []StrategyCode {
-	strategyCodeMutex.Lock()
-	defer strategyCodeMutex.Unlock()
-	list := make([]StrategyCode, 0, len(strategyCodeTable))
-	for _, sc := range strategyCodeTable {
+func List() []StrategyCode {
+	tableLock.Lock()
+	defer tableLock.Unlock()
+	list := make([]StrategyCode, 0, len(table))
+	for _, sc := range table {
 		list = append(list, sc)
 	}
 	return list
 }
 
-func UnloadAllStrategyCode() {
-	for _, sc := range ListStrategyCode() {
+func CloseAll() {
+	for _, sc := range List() {
 		sc.Close()
 	}
 }

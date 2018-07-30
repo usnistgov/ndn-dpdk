@@ -8,6 +8,7 @@ import (
 	"ndn-dpdk/container/fib/fibtest"
 	"ndn-dpdk/container/pcct"
 	"ndn-dpdk/container/pit"
+	"ndn-dpdk/container/strategycode"
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/dpdk/dpdktestenv"
 	"ndn-dpdk/iface"
@@ -27,7 +28,7 @@ type Fixture struct {
 	Pit pit.Pit
 
 	fibFixture    *fibtest.Fixture
-	emptyStrategy fib.StrategyCode
+	emptyStrategy strategycode.StrategyCode
 	EmptyFibEntry *fib.Entry
 }
 
@@ -47,7 +48,7 @@ func NewFixture(pcctMaxEntries int) (fixture *Fixture) {
 	fixture.Pit = pit.Pit{pcct}
 
 	fixture.fibFixture = fibtest.NewFixture(2, 4, 1)
-	fixture.emptyStrategy = fixture.fibFixture.MakeStrategy()
+	fixture.emptyStrategy = strategycode.MakeEmpty()
 	fixture.EmptyFibEntry = new(fib.Entry)
 	return fixture
 }

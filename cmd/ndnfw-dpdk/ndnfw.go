@@ -9,6 +9,7 @@ import (
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/ndt"
 	"ndn-dpdk/container/ndt/ndtupdater"
+	"ndn-dpdk/container/strategycode"
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/ethface"
@@ -26,7 +27,7 @@ var (
 	theSocketRxg            *socketface.RxGroup
 	theSocketTxl            *iface.MultiTxLoop
 	theNdt                  *ndt.Ndt
-	theStrategy             fib.StrategyCode
+	theStrategy             strategycode.StrategyCode
 	theFib                  *fib.Fib
 	theDp                   *fwdp.DataPlane
 )
@@ -269,14 +270,14 @@ func startMgmt() {
 	appinit.StartMgmt()
 }
 
-func loadStrategy(shortname string) fib.StrategyCode {
+func loadStrategy(shortname string) strategycode.StrategyCode {
 	logEntry := log.WithField("strategy", shortname)
 
 	elf, e := strategy_elf.Load(shortname)
 	if e != nil {
 		logEntry.WithError(e).Fatal("strategy ELF load error")
 	}
-	sc, e := fib.LoadStrategyCode(elf)
+	sc, e := strategycode.Load(elf)
 	if e != nil {
 		logEntry.WithError(e).Fatal("strategy code load error")
 	}
