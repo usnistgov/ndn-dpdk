@@ -81,6 +81,7 @@ func (mg FibMgmt) lookup(args NameArg, reply *LookupReply, lookup func(name *ndn
 		reply.HasEntry = true
 		reply.Name = entry.GetName().String()
 		reply.Nexthops = entry.GetNexthops()
+		reply.StrategyId = entry.GetStrategy().GetId()
 	}
 	return nil
 }

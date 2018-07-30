@@ -1,6 +1,11 @@
 (function(exports){
 exports.provideDefinitions = function(ctx) {
 
+ctx.declareType('fibmgmt.StrategyId', {
+  type: 'integer',
+  minimum: 1,
+})
+
 ctx.declareType('fibmgmt.NameArg', ctx.markAllRequired({
   type: 'object',
   properties: {
@@ -19,6 +24,7 @@ ctx.declareType('fibmgmt.LookupReply', {
     HasEntry: ctx.useType('boolean'),
     Name: ctx.useType('ndn.Name'),
     Nexthops: ctx.useType('fibmgmt.Nexthops'),
+    StrategyId: ctx.useType('fibmgmt.StrategyId'),
   },
   anyOf: [
     ctx.markAllRequired({

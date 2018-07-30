@@ -25,7 +25,8 @@ type InsertReply struct {
 }
 
 type LookupReply struct {
-	HasEntry bool
-	Name     string
-	Nexthops []iface.FaceId
+	HasEntry   bool
+	Name       string
+	Nexthops   []iface.FaceId
+	StrategyId int
 }
