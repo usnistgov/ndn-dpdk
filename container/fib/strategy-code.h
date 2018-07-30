@@ -13,10 +13,8 @@ typedef struct StrategyCode
   struct ubpf_vm* vm;
   ubpf_jit_fn jit;
   int id;
-  int nRefs; ///< how many FibEntry* references this
+  atomic_int nRefs; ///< how many FibEntry* references this
 } StrategyCode;
-
-StrategyCode* StrategyCode_Alloc(Fib* fib);
 
 void StrategyCode_Ref(StrategyCode* sc);
 

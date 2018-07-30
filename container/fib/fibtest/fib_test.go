@@ -13,44 +13,44 @@ func TestFibInsertErase(t *testing.T) {
 	assert, require := makeAR(t)
 	fixture := NewFixture(0, 2, 1)
 	defer fixture.Close()
+
 	var badStrategy fib.StrategyCode
+	strategyP := fixture.MakeStrategy()
+	assert.Equal(0, strategyP.CountRefs())
+	strategyQ := fixture.MakeStrategy()
+
 	fib := fixture.Fib
-	assert.Zero(fib.Len())
-	assert.Zero(fixture.CountMpInUse(0))
+	assert.Equal(0, fib.Len())
+	assert.Equal(0, fixture.CountMpInUse(0))
 
 	nameA := ndn.MustParseName("/A")
 	assert.Nil(fib.Find(nameA))
 
 	_, e := fib.Insert(fixture.MakeEntry("/A", badStrategy, 2851))
 	assert.Error(e) // cannot insert: entry has no strategy
-	assert.Zero(fixture.CountMpInUse(0))
-
-	strategyP := fixture.MakeStrategy()
-	strategyP.Ref()
-	strategyQ := fixture.MakeStrategy()
-	strategyQ.Ref()
-	assert.Equal(2, fixture.CountMpInUse(0))
+	assert.Equal(0, fixture.CountMpInUse(0))
 
 	_, e = fib.Insert(fixture.MakeEntry("/A", strategyP))
 	assert.Error(e) // cannot insert: entry has no nexthop
-	assert.Equal(2, fixture.CountMpInUse(0))
+	assert.Equal(0, fixture.CountMpInUse(0))
+	assert.Equal(0, strategyP.CountRefs())
 
 	isNew, e := fib.Insert(fixture.MakeEntry("/A", strategyP, 4076))
 	assert.NoError(e)
 	assert.True(isNew)
 	assert.Equal(1, fib.Len())
-	assert.Equal(3, fixture.CountMpInUse(0))
-	assert.Equal(2, strategyP.CountRefs())
+	assert.Equal(1, fixture.CountMpInUse(0))
+	assert.Equal(1, strategyP.CountRefs())
 
 	isNew, e = fib.Insert(fixture.MakeEntry("/A", strategyP, 3092))
 	assert.NoError(e)
 	assert.False(isNew)
 	assert.Equal(1, fib.Len())
-	assert.True(fixture.CountMpInUse(0) >= 3)
-	assert.True(strategyP.CountRefs() >= 2)
+	assert.True(fixture.CountMpInUse(0) >= 1)
+	assert.True(strategyP.CountRefs() >= 1)
 	urcu.Barrier()
-	assert.Equal(3, fixture.CountMpInUse(0))
-	assert.Equal(2, strategyP.CountRefs())
+	assert.Equal(1, fixture.CountMpInUse(0))
+	assert.Equal(1, strategyP.CountRefs())
 	entryA := fib.Find(nameA)
 	require.NotNil(entryA)
 	assert.True(entryA.GetName().Equal(nameA))
@@ -60,14 +60,13 @@ func TestFibInsertErase(t *testing.T) {
 	assert.NoError(e)
 	assert.False(isNew)
 	assert.Equal(1, fib.Len())
-	assert.True(fixture.CountMpInUse(0) >= 3)
-	assert.True(strategyP.CountRefs() >= 1)
-	assert.Equal(2, strategyQ.CountRefs())
+	assert.True(fixture.CountMpInUse(0) >= 1)
+	assert.True(strategyP.CountRefs() >= 0)
+	assert.Equal(1, strategyQ.CountRefs())
 	urcu.Barrier()
-	assert.Equal(1, strategyP.CountRefs())
-	strategyP.Unref()
-	assert.Equal(2, fixture.CountMpInUse(0))
-	assert.Equal(2, strategyQ.CountRefs())
+	assert.Equal(0, strategyP.CountRefs())
+	assert.Equal(1, fixture.CountMpInUse(0))
+	assert.Equal(1, strategyQ.CountRefs())
 
 	entryA = fib.Find(nameA)
 	require.NotNil(entryA)
@@ -79,16 +78,15 @@ func TestFibInsertErase(t *testing.T) {
 	assert.True(names[0].Equal(nameA))
 
 	assert.NoError(fib.Erase(nameA))
-	assert.Zero(fib.Len())
+	assert.Equal(0, fib.Len())
 	assert.Nil(fib.Find(nameA))
 	assert.Len(fib.ListNames(), 0)
 
 	assert.Error(fib.Erase(nameA))
-	assert.Zero(fib.Len())
+	assert.Equal(0, fib.Len())
 	urcu.Barrier()
-	assert.Equal(1, strategyQ.CountRefs())
-	strategyQ.Unref()
-	assert.Zero(fixture.CountMpInUse(0))
+	assert.Equal(0, strategyQ.CountRefs())
+	assert.Equal(0, fixture.CountMpInUse(0))
 }
 
 func TestFibLpm(t *testing.T) {

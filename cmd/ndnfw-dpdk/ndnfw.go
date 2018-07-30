@@ -43,7 +43,6 @@ func main() {
 
 	startDp(initCfg.Ndt, initCfg.Fib, initCfg.Fwdp)
 	theStrategy = loadStrategy("multicast")
-	theStrategy.Ref()
 	startMgmt()
 
 	select {}
@@ -277,7 +276,7 @@ func loadStrategy(shortname string) fib.StrategyCode {
 	if e != nil {
 		logEntry.WithError(e).Fatal("strategy ELF load error")
 	}
-	sc, e := theFib.LoadStrategyCode(elf)
+	sc, e := fib.LoadStrategyCode(elf)
 	if e != nil {
 		logEntry.WithError(e).Fatal("strategy code load error")
 	}

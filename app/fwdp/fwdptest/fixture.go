@@ -149,7 +149,7 @@ func (fixture *Fixture) makeStrategy(shortname string) fib.StrategyCode {
 	elf, e := strategy_elf.Load(shortname)
 	fixture.require.NoError(e)
 
-	sc, e := fixture.Fib.LoadStrategyCode(elf)
+	sc, e := fib.LoadStrategyCode(elf)
 	fixture.require.NoError(e)
 
 	fixture.strategies[shortname] = sc

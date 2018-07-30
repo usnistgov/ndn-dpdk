@@ -43,6 +43,7 @@ func NewFixture(ndtPrefixLen, fibStartDepth, nPartitions int) (fixture *Fixture)
 
 func (fixture *Fixture) Close() error {
 	fixture.Fib.Close()
+	fib.UnloadAllStrategyCode()
 	return fixture.Ndt.Close()
 }
 
@@ -53,7 +54,7 @@ func (fixture *Fixture) CountMpInUse(i int) int {
 
 // Create a strategy with empty BPF program.
 func (fixture *Fixture) MakeStrategy() (sc fib.StrategyCode) {
-	sc, e := fixture.Fib.MakeEmptyStrategy()
+	sc, e := fib.MakeEmptyStrategy()
 	if e != nil {
 		panic(e)
 	}
