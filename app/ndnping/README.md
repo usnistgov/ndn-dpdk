@@ -34,6 +34,7 @@ For a sampled Interest, it records when the Interest is sent in `sampleTable`, a
 
 `sampleFreq` argument controls sampling frequency.
 If the last `sampleFreq` bits of a sequence number is all zeros, the client samples the Interest.
+Because of this decision method, the number of patterns must be odd in order to obtain RTT samples on every pattern.
 
 `sampleTableSize` argument sets the `sampleTable` to have `2 ^ sampleTableSize` entries.
 The same entry will be reused after `2 ^ (sampleTableSize + sampleFreq)` Interests.

@@ -9,10 +9,6 @@ INIT_ZF_LOG(NdnpingClient);
 #define NDNPINGCLIENT_TX_BURST_SIZE 64
 #define NDNPINGCLIENT_INTEREST_LIFETIME 1000
 
-// Currently, only pattern 0 has timeout and RTT sampling, because seqNo determines which pattern
-// to use, as well as whether to sample. This should be fixed when implementing pattern ratios.
-#define PATTERN_0 0
-
 typedef struct NdnpingClientSample
 {
   bool isPending : 1;
@@ -74,6 +70,13 @@ NdnpingClient_SelectPattern(NdnpingClient* client, uint64_t seqNo)
 static NdnpingClientSample*
 NdnpingClient_FindSample(NdnpingClient* client, uint64_t seqNo)
 {
+  if (client->sampleTable == NULL) { // sampling disabled
+    return NULL;
+  }
+  if (likely((seqNo & client->samplingMask) != 0)) { // seqNo not sampled
+    return NULL;
+  }
+
   uint64_t tableIndex = (seqNo >> client->sampleFreq) & client->sampleIndexMask;
   assert((tableIndex >> client->sampleTableSize) == 0);
   return (NdnpingClientSample*)client->sampleTable + tableIndex;
@@ -96,21 +99,14 @@ NdnpingClient_PrepareTxInterest(NdnpingClient* client, Packet* npkt)
   EncodeInterest(pkt, &client->interestTpl, client->interestPrepareBuffer,
                  nameSuffix, NonceGen_Next(&client->nonceGen), 0, NULL);
   Packet_SetL3PktType(npkt, L3PktType_Interest); // for stats; no PInterest*
-  ZF_LOGV("<I seq=%" PRIx64 " pattern=%d", seqNo, patternId);
-
-  if (client->sampleTable == NULL) {
-    return;
-  }
-  if (patternId != PATTERN_0) {
-    return;
-  }
-  if (likely((seqNo & client->samplingMask) != 0)) {
-    return;
-  }
+  ZF_LOGD("<I seq=%" PRIx64 " pattern=%d", seqNo, patternId);
 
   NdnpingClientSample* sample = NdnpingClient_FindSample(client, seqNo);
+  if (sample == NULL) {
+    return;
+  }
   if (unlikely(sample->isPending)) { // timeout
-    assert(sample->patternId == PATTERN_0);
+    ZF_LOGD("TIMEOUT pattern=%d", sample->patternId);
   }
   sample->isPending = true;
   sample->patternId = patternId;
@@ -172,6 +168,31 @@ NdnpingClient_GetSeqNoFromName(const Name* name, uint64_t* seqNo)
 }
 
 static void
+NdnpingClient_SampleDataOrNack(NdnpingClient* client, uint64_t seqNo,
+                               int patternId, NdnpingClientPattern* pattern,
+                               bool isData)
+{
+  NdnpingClientSample* sample = NdnpingClient_FindSample(client, seqNo);
+  if (sample == NULL) {
+    return;
+  }
+  if (unlikely(sample->patternId != patternId)) {
+    ZF_LOGD("^ mismatch-sample-pattern=%d", sample->patternId);
+    return;
+  }
+  if (unlikely(!sample->isPending)) {
+    ZF_LOGD("^ duplicate-Data-or-Nack");
+    return;
+  }
+  sample->isPending = false;
+
+  if (isData) {
+    uint64_t now = rte_get_tsc_cycles() >> NDNPING_TIMING_PRECISION;
+    RunningStat_Push(&pattern->rtt, now - sample->sendTime);
+  }
+}
+
+static void
 NdnpingClient_ProcessRxData(NdnpingClient* client, Packet* npkt)
 {
   const PData* data = Packet_GetDataHdr(npkt);
@@ -187,25 +208,7 @@ NdnpingClient_ProcessRxData(NdnpingClient* client, Packet* npkt)
     NameSet_GetUsrT(&client->patterns, patternId, NdnpingClientPattern*);
   ++pattern->nData;
 
-  if (client->sampleTable == NULL) {
-    return;
-  }
-  if (patternId != PATTERN_0) {
-    return;
-  }
-  if (likely((seqNo & client->samplingMask) != 0)) {
-    return;
-  }
-  NdnpingClientSample* sample = NdnpingClient_FindSample(client, seqNo);
-  assert(sample->patternId == PATTERN_0);
-  if (unlikely(!sample->isPending)) {
-    ZF_LOGD("^ duplicate-Data-or-Nack");
-    return;
-  }
-  sample->isPending = false;
-
-  uint64_t now = rte_get_tsc_cycles() >> NDNPING_TIMING_PRECISION;
-  RunningStat_Push(&pattern->rtt, now - sample->sendTime);
+  NdnpingClient_SampleDataOrNack(client, seqNo, patternId, pattern, true);
 }
 
 static void
@@ -218,28 +221,13 @@ NdnpingClient_ProcessRxNack(NdnpingClient* client, Packet* npkt)
   }
 
   int patternId = NdnpingClient_SelectPattern(client, seqNo);
-  ZF_LOGV(">N seq=%" PRIx64 " pattern=%d", seqNo, patternId);
+  ZF_LOGD(">N seq=%" PRIx64 " pattern=%d", seqNo, patternId);
 
   NdnpingClientPattern* pattern =
     NameSet_GetUsrT(&client->patterns, patternId, NdnpingClientPattern*);
   ++pattern->nNacks;
 
-  if (client->sampleTable == NULL) {
-    return;
-  }
-  if (patternId != PATTERN_0) {
-    return;
-  }
-  if (likely((seqNo & client->samplingMask) != 0)) {
-    return;
-  }
-  NdnpingClientSample* sample = NdnpingClient_FindSample(client, seqNo);
-  assert(sample->patternId == PATTERN_0);
-  if (unlikely(!sample->isPending)) {
-    ZF_LOGD("^ duplicate-Data-or-Nack");
-    return;
-  }
-  sample->isPending = false;
+  NdnpingClient_SampleDataOrNack(client, seqNo, patternId, pattern, false);
 }
 
 void
