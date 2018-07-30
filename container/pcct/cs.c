@@ -271,8 +271,11 @@ __Cs_RawErase(Cs* cs, CsEntry* entry)
   CsPriv* csp = Cs_GetPriv(cs);
   PccEntry* pccEntry = PccEntry_FromCsEntry(entry);
 
-  // TODO erase indirect entries depending on this entry,
-  // otherwise CsEntry_Finalize would crash
+  if (CsEntry_IsDirect(entry)) {
+    for (int i = 0; i < entry->nIndirects; ++i) {
+      Cs_Erase(cs, entry->indirect[i]);
+    }
+  }
 
   CsPriv_RemoveEntry(csp, entry);
   CsEntry_Finalize(entry);

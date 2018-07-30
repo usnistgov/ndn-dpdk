@@ -1,11 +1,8 @@
 package cstest
 
 import (
-	//"fmt"
 	"testing"
-	//"time"
 
-	//"ndn-dpdk/dpdk"
 	"ndn-dpdk/ndn"
 	"ndn-dpdk/ndn/ndntestutil"
 )
@@ -26,46 +23,47 @@ func TestPrefixMatch(t *testing.T) {
 	assert.True(direct.IsDirect())
 	assert.Len(direct.ListIndirects(), 1)
 
-	indirect := fixture.Find(ndntestutil.MakeInterest("/A/B", ndn.CanBePrefixFlag))
-	require.NotNil(indirect)
-	assert.False(indirect.IsDirect())
+	indirect2 := fixture.Find(ndntestutil.MakeInterest("/A/B", ndn.CanBePrefixFlag))
+	require.NotNil(indirect2)
+	assert.False(indirect2.IsDirect())
 
-	indirect = fixture.Find(ndntestutil.MakeInterest("/A/B/C", ndn.CanBePrefixFlag))
-	assert.Nil(indirect)
+	assert.Nil(fixture.Find(ndntestutil.MakeInterest("/A/B/C", ndn.CanBePrefixFlag)))
 
 	ok = fixture.Insert(ndntestutil.MakeInterest("/A/B/C", ndn.CanBePrefixFlag),
 		ndntestutil.MakeData("/A/B/C/D"))
 	assert.True(ok)
 	assert.Equal(3, fixture.Cs.Len())
 
-	indirect = fixture.Find(ndntestutil.MakeInterest("/A/B", ndn.CanBePrefixFlag))
-	require.NotNil(indirect)
-	assert.False(indirect.IsDirect())
+	indirect2 = fixture.Find(ndntestutil.MakeInterest("/A/B", ndn.CanBePrefixFlag))
+	require.NotNil(indirect2)
+	assert.False(indirect2.IsDirect())
 
-	indirect = fixture.Find(ndntestutil.MakeInterest("/A/B/C", ndn.CanBePrefixFlag))
-	require.NotNil(indirect)
-	assert.False(indirect.IsDirect())
-	assert.Len(indirect.GetDirect().ListIndirects(), 2)
+	indirect3 := fixture.Find(ndntestutil.MakeInterest("/A/B/C", ndn.CanBePrefixFlag))
+	require.NotNil(indirect3)
+	assert.False(indirect3.IsDirect())
+	assert.Len(direct.ListIndirects(), 2)
 
-	indirect = fixture.Find(ndntestutil.MakeInterest("/A/B", ndn.MustBeFreshFlag))
-	assert.Nil(indirect) // no match because CanBePrefix=0
+	assert.Nil(fixture.Find(ndntestutil.MakeInterest("/A/B", ndn.MustBeFreshFlag))) // CanBePrefix=0
 	assert.Equal(3, fixture.Cs.Len())
 
-	indirect = fixture.Find(ndntestutil.MakeInterest("/A/B"))
-	assert.Nil(indirect)              // no match because CanBePrefix=0
-	assert.Equal(2, fixture.Cs.Len()) // erasing CS entry to make room for PIT entry
+	assert.Nil(fixture.Find(ndntestutil.MakeInterest("/A/B"))) // CanBePrefix=0
+	assert.Equal(2, fixture.Cs.Len())                          // erasing 'indirect2' to make room for PIT entry
+	assert.Len(direct.ListIndirects(), 1)
+
+	fixture.Cs.Erase(*direct)
+	assert.Equal(0, fixture.Cs.Len())
 
 	ok = fixture.Insert(
 		ndntestutil.MakeInterest("/A/B", ndn.CanBePrefixFlag,
 			ndn.FHDelegation{1, "/F"}, ndn.ActiveFHDelegation(0)),
 		ndntestutil.MakeData("/A/B/C/D"))
 	assert.True(ok)
-	assert.Equal(4, fixture.Cs.Len())
+	assert.Equal(2, fixture.Cs.Len())
 
 	ok = fixture.Insert(
 		ndntestutil.MakeInterest("/A/B/C", ndn.CanBePrefixFlag,
 			ndn.FHDelegation{1, "/F"}, ndn.ActiveFHDelegation(0)),
 		ndntestutil.MakeData("/A/B/C/D"))
 	assert.True(ok)
-	assert.Equal(5, fixture.Cs.Len())
+	assert.Equal(3, fixture.Cs.Len())
 }
