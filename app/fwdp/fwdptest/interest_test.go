@@ -34,6 +34,12 @@ func TestInterestData(t *testing.T) {
 	require.Len(face1.TxData, 1)
 	assert.Len(face1.TxNacks, 0)
 	assert.Equal(uint64(0x0290dd7089e9d790), ndntestutil.GetPitToken(face1.TxData[0]))
+
+	fibCnt := fixture.ReadFibCounters("/B")
+	assert.Equal(uint64(1), fibCnt.NRxInterests)
+	assert.Equal(uint64(1), fibCnt.NRxData)
+	assert.Equal(uint64(0), fibCnt.NRxNacks)
+	assert.Equal(uint64(1), fibCnt.NTxInterests)
 }
 
 func TestInterestDupNonce(t *testing.T) {
@@ -219,6 +225,12 @@ func TestCsHit(t *testing.T) {
 	require.Len(face1.TxData, 4)
 	assert.Equal(uint64(0xb5565a4e715c858d), ndntestutil.GetPitToken(face1.TxData[3]))
 	assert.Equal(2500*time.Millisecond, face1.TxData[3].GetFreshnessPeriod())
+
+	fibCnt := fixture.ReadFibCounters("/B")
+	assert.Equal(uint64(4), fibCnt.NRxInterests)
+	assert.Equal(uint64(2), fibCnt.NRxData)
+	assert.Equal(uint64(0), fibCnt.NRxNacks)
+	assert.Equal(uint64(2), fibCnt.NTxInterests)
 }
 
 func TestFwHint(t *testing.T) {
@@ -257,10 +269,8 @@ func TestFwHint(t *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 	assert.Len(face1.TxInterests, 0)
 	assert.True(len(face2.TxInterests) <= 2)
-	if len(face2.TxInterests) == 2 { // if retransmitting, second Interest should have same PitToken
-		assert.Equal(ndntestutil.GetPitToken(face2.TxInterests[0]),
-			ndntestutil.GetPitToken(face2.TxInterests[1]))
-	}
+	require.Len(face2.TxInterests, 2)
+	assert.Equal(ndntestutil.GetPitToken(face2.TxInterests[0]), ndntestutil.GetPitToken(face2.TxInterests[1]))
 	require.Len(face3.TxInterests, 1)
 
 	data1 := ndntestutil.MakeData("/A/1", 1*time.Second) // satisfies interest1 and interest3
@@ -289,4 +299,20 @@ func TestFwHint(t *testing.T) {
 	require.Len(face4.TxData, 2)
 	assert.Equal(uint64(0xbb19e173f937f221), ndntestutil.GetPitToken(face4.TxData[1]))
 	assert.Equal(2*time.Second, face4.TxData[1].GetFreshnessPeriod())
+
+	fibCnt := fixture.ReadFibCounters("/A")
+	assert.Equal(uint64(0), fibCnt.NRxInterests)
+	assert.Equal(uint64(0), fibCnt.NRxData)
+	assert.Equal(uint64(0), fibCnt.NRxNacks)
+	assert.Equal(uint64(0), fibCnt.NTxInterests)
+	fibCnt = fixture.ReadFibCounters("/B")
+	assert.Equal(uint64(2), fibCnt.NRxInterests)
+	assert.Equal(uint64(1), fibCnt.NRxData)
+	assert.Equal(uint64(0), fibCnt.NRxNacks)
+	assert.Equal(uint64(2), fibCnt.NTxInterests)
+	fibCnt = fixture.ReadFibCounters("/C")
+	assert.Equal(uint64(2), fibCnt.NRxInterests)
+	assert.Equal(uint64(1), fibCnt.NRxData)
+	assert.Equal(uint64(0), fibCnt.NRxNacks)
+	assert.Equal(uint64(1), fibCnt.NTxInterests)
 }

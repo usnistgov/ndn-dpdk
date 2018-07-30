@@ -97,4 +97,10 @@ func TestNackDuplicate(t *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 	assert.Len(face1.TxNacks, 1)
 	assert.Len(face2.TxNacks, 1)
+
+	fibCnt := fixture.ReadFibCounters("/A")
+	assert.Equal(uint64(2), fibCnt.NRxInterests)
+	assert.Equal(uint64(0), fibCnt.NRxData)
+	assert.Equal(uint64(2), fibCnt.NRxNacks)
+	assert.Equal(uint64(2), fibCnt.NTxInterests)
 }

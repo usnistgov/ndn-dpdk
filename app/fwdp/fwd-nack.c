@@ -63,7 +63,8 @@ FwFwd_VerifyNack(FwFwd* fwd, FwFwdRxNackContext* ctx)
 }
 
 static bool
-FwFwd_RxNackDuplicate(FwFwd* fwd, FwFwdRxNackContext* ctx)
+FwFwd_RxNackDuplicate(FwFwd* fwd, FwFwdRxNackContext* ctx,
+                      const FibEntry* fibEntry)
 {
   TscTime now = rte_get_tsc_cycles();
 
@@ -93,7 +94,9 @@ FwFwd_RxNackDuplicate(FwFwd* fwd, FwFwdRxNackContext* ctx)
           " lifetime=%" PRIu32 " hopLimit=%" PRIu8 " up-token=%016" PRIx64,
           ctx->up->face, outNpkt, upNonce, upLifetime, upHopLimit, token);
   Face_Tx(ctx->up->face, outNpkt);
-  // TODO increment FibEntryDyn.nTxInterests
+  if (fibEntry != NULL) {
+    ++fibEntry->dyn->nTxInterests;
+  }
 
   PitUp_RecordTx(ctx->up, ctx->pitEntry, now, upNonce, &fwd->suppressCfg);
   return true;
@@ -128,18 +131,23 @@ FwFwd_RxNack(FwFwd* fwd, Packet* npkt)
   // record NackReason in PitUp
   ctx.up->nack = reason;
 
+  rcu_read_lock();
+  const FibEntry* fibEntry = PitEntry_FindFibEntry(ctx.pitEntry, fwd->fib);
+  if (likely(fibEntry != NULL)) {
+    ++fibEntry->dyn->nRxNacks;
+  }
+
   // Duplicate: record rejected nonce, resend with an alternate nonce if possible
-  if (reason == NackReason_Duplicate && FwFwd_RxNackDuplicate(fwd, &ctx)) {
+  if (reason == NackReason_Duplicate &&
+      FwFwd_RxNackDuplicate(fwd, &ctx, fibEntry)) {
     rte_pktmbuf_free(ctx.pkt);
+    rcu_read_unlock();
     return;
   }
 
   // find FIB entry and invoke strategy
-  rcu_read_lock();
   SgContext sgCtx = { 0 };
-  const FibEntry* fibEntry = PitEntry_FindFibEntry(ctx.pitEntry, fwd->fib);
   if (likely(fibEntry != NULL)) {
-    ++fibEntry->dyn->nRxNacks;
     sgCtx.fwd = fwd;
     sgCtx.rxTime = ctx.pkt->timestamp;
     sgCtx.dnNonce = nack->interest.nonce;

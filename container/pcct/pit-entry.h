@@ -55,8 +55,12 @@ __PitEntry_SetFibEntry(PitEntry* entry, PInterest* interest,
 {
   entry->fibPrefixL = fibEntry->nameL;
   entry->fibSeqNo = fibEntry->seqNo;
-  entry->fibPrefixHash = PName_ComputePrefixHash(
-    &interest->name.p, interest->name.v, fibEntry->nComps);
+  Name* name = &interest->name;
+  if (unlikely(interest->activeFh >= 0)) {
+    name = &interest->activeFhName;
+  }
+  entry->fibPrefixHash =
+    PName_ComputePrefixHash(&name->p, name->v, fibEntry->nComps);
   memset(entry->sgScratch, 0, PIT_ENTRY_SG_SCRATCH);
 }
 
@@ -128,8 +132,11 @@ PitEntry_FindFibEntry(PitEntry* entry, Fib* fib)
 {
   PInterest* interest = Packet_GetInterestHdr(entry->npkt);
   LName name = {.length = entry->fibPrefixL, .value = interest->name.v };
+  if (unlikely(interest->activeFh >= 0)) {
+    name.value = interest->activeFhName.v;
+  }
   const FibEntry* fibEntry = Fib_Find(fib, name, entry->fibPrefixHash);
-  if (unlikely(fibEntry->seqNo != entry->fibSeqNo)) {
+  if (unlikely(fibEntry == NULL || fibEntry->seqNo != entry->fibSeqNo)) {
     return NULL;
   }
   return fibEntry;

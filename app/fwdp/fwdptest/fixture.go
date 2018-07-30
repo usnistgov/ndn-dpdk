@@ -124,11 +124,8 @@ func (fixture *Fixture) CreateFace() *mockface.MockFace {
 }
 
 func (fixture *Fixture) SetFibEntry(name string, strategy string, nexthops ...iface.FaceId) {
-	n, e := ndn.ParseName(name)
-	fixture.require.NoError(e)
-
 	var entry fib.Entry
-	e = entry.SetName(n)
+	e := entry.SetName(ndn.MustParseName(name))
 	fixture.require.NoError(e)
 
 	e = entry.SetNexthops(nexthops)
@@ -138,6 +135,10 @@ func (fixture *Fixture) SetFibEntry(name string, strategy string, nexthops ...if
 
 	_, e = fixture.Fib.Insert(&entry)
 	fixture.require.NoError(e)
+}
+
+func (fixture *Fixture) ReadFibCounters(name string) fib.EntryCounters {
+	return fixture.Fib.ReadEntryCounters(ndn.MustParseName(name))
 }
 
 func (fixture *Fixture) makeStrategy(shortname string) fib.StrategyCode {

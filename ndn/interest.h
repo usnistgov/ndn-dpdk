@@ -34,7 +34,7 @@ typedef struct PInterest
 
   const uint8_t* fhNameV[INTEREST_MAX_FHS];
   uint16_t fhNameL[INTEREST_MAX_FHS];
-  Name activeFhName; ///< a parsed forwarding hint at index \c thisFhIndex
+  Name activeFhName; ///< a parsed forwarding hint at index \c activeFh
 } PInterest;
 
 /** \brief Parse a packet as Interest.
