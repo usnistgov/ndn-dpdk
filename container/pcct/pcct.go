@@ -53,11 +53,7 @@ func (pcct Pcct) GetMempool() dpdk.Mempool {
 	return dpdk.MempoolFromPtr(pcct.GetPtr())
 }
 
-func (pcct *Pcct) Close() error {
-	if pcct.c == nil {
-		return nil
-	}
+func (pcct Pcct) Close() error {
 	C.Pcct_Close(pcct.c)
-	pcct.c = nil
 	return nil
 }

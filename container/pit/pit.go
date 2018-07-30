@@ -31,7 +31,7 @@ func (pit Pit) getCs() cs.Cs {
 }
 
 func (pit Pit) Close() error {
-	panic("Cs.Close() method is explicitly deleted; use Pcct.Close() to close underlying PCCT")
+	panic("Pit.Close() method is explicitly deleted; use Pcct.Close() to close underlying PCCT")
 }
 
 // Count number of PIT entries.
