@@ -15,9 +15,9 @@ func TestFibInsertErase(t *testing.T) {
 	defer fixture.Close()
 
 	var badStrategy strategycode.StrategyCode
-	strategyP := strategycode.MakeEmpty()
+	strategyP := strategycode.MakeEmpty("P")
 	assert.Equal(0, strategyP.CountRefs())
-	strategyQ := strategycode.MakeEmpty()
+	strategyQ := strategycode.MakeEmpty("Q")
 
 	fib := fixture.Fib
 	assert.Equal(0, fib.Len())
@@ -94,7 +94,7 @@ func TestFibLpm(t *testing.T) {
 	fixture := NewFixture(0, 2, 1)
 	defer fixture.Close()
 	fib := fixture.Fib
-	strategyP := strategycode.MakeEmpty()
+	strategyP := strategycode.MakeEmpty("P")
 
 	lpm := func(name string) int {
 		entry := fib.Lpm(ndn.MustParseName(name))

@@ -48,12 +48,13 @@ func NewFixture(pcctMaxEntries int) (fixture *Fixture) {
 	fixture.Pit = pit.Pit{pcct}
 
 	fixture.fibFixture = fibtest.NewFixture(2, 4, 1)
-	fixture.emptyStrategy = strategycode.MakeEmpty()
+	fixture.emptyStrategy = strategycode.MakeEmpty("empty")
 	fixture.EmptyFibEntry = new(fib.Entry)
 	return fixture
 }
 
 func (fixture *Fixture) Close() error {
+	strategycode.CloseAll()
 	fixture.fibFixture.Close()
 	return fixture.Pit.Pcct.Close()
 }

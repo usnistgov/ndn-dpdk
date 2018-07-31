@@ -30,6 +30,10 @@ func (sc StrategyCode) GetId() int {
 	return int(sc.c.id)
 }
 
+func (sc StrategyCode) GetName() string {
+	return C.GoString(sc.c.name)
+}
+
 func (sc StrategyCode) CountRefs() int {
 	return int(sc.c.nRefs)
 }
@@ -43,6 +47,7 @@ func (sc StrategyCode) Close() error {
 	defer tableLock.Unlock()
 	C.ubpf_destroy(sc.c.vm)
 	delete(table, sc.GetId())
+	C.free(unsafe.Pointer(sc.c.name))
 	dpdk.Free(sc.c)
 	return nil
 }
@@ -71,7 +76,7 @@ func fromUbpfError(funcName string, errC *C.char) error {
 	return fmt.Errorf("%s: %v", funcName, err)
 }
 
-func makeStrategyCode(load func(vm *C.struct_ubpf_vm) error) (sc StrategyCode, e error) {
+func makeStrategyCode(name string, load func(vm *C.struct_ubpf_vm) error) (sc StrategyCode, e error) {
 	vm := C.ubpf_create()
 	if vm == nil {
 		return sc, errors.New("ubpf_create failed")
@@ -94,6 +99,7 @@ func makeStrategyCode(load func(vm *C.struct_ubpf_vm) error) (sc StrategyCode, e
 	lastId++
 	sc.c = (*C.StrategyCode)(dpdk.Zmalloc("StrategyCode", C.sizeof_StrategyCode, dpdk.NUMA_SOCKET_ANY))
 	sc.c.id = C.int(lastId)
+	sc.c.name = C.CString(name)
 	sc.c.vm = vm
 	sc.c.jit = jit
 	table[lastId] = sc
@@ -101,12 +107,12 @@ func makeStrategyCode(load func(vm *C.struct_ubpf_vm) error) (sc StrategyCode, e
 }
 
 // Load a strategy BPF program from ELF object.
-func Load(elf []byte) (sc StrategyCode, e error) {
+func Load(name string, elf []byte) (sc StrategyCode, e error) {
 	if RegisterStrategyFuncs == nil {
 		return sc, errors.New("strategycode.RegisterStrategyFuncs is empty")
 	}
 
-	return makeStrategyCode(func(vm *C.struct_ubpf_vm) error {
+	return makeStrategyCode(name, func(vm *C.struct_ubpf_vm) error {
 		e = RegisterStrategyFuncs(unsafe.Pointer(vm))
 		if e != nil {
 			return e
@@ -120,8 +126,8 @@ func Load(elf []byte) (sc StrategyCode, e error) {
 }
 
 // Load an empty BPF program (mainly for unit testing).
-func MakeEmpty() StrategyCode {
-	sc, e := makeStrategyCode(func(vm *C.struct_ubpf_vm) error {
+func MakeEmpty(name string) StrategyCode {
+	sc, e := makeStrategyCode(name, func(vm *C.struct_ubpf_vm) error {
 		code := []uint64{0x95}
 		var errC *C.char
 		if res := C.ubpf_load(vm, unsafe.Pointer(&code[0]), 8, &errC); res != 0 {
@@ -135,14 +141,22 @@ func MakeEmpty() StrategyCode {
 	return sc
 }
 
-func Get(id int) (sc StrategyCode, e error) {
+func Get(id int) (sc StrategyCode, ok bool) {
 	tableLock.Lock()
 	defer tableLock.Unlock()
-	var ok bool
-	if sc, ok = table[id]; !ok {
-		return sc, fmt.Errorf("StrategyCode(%d) does not exist", id)
+	sc, ok = table[id]
+	return
+}
+
+func Find(name string) (sc StrategyCode, ok bool) {
+	tableLock.Lock()
+	defer tableLock.Unlock()
+	for _, sc = range table {
+		if sc.GetName() == name {
+			return sc, true
+		}
 	}
-	return sc, nil
+	return StrategyCode{}, false
 }
 
 func List() []StrategyCode {

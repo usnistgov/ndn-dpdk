@@ -277,7 +277,7 @@ func loadStrategy(shortname string) strategycode.StrategyCode {
 	if e != nil {
 		logEntry.WithError(e).Fatal("strategy ELF load error")
 	}
-	sc, e := strategycode.Load(elf)
+	sc, e := strategycode.Load(shortname, elf)
 	if e != nil {
 		logEntry.WithError(e).Fatal("strategy code load error")
 	}

@@ -29,7 +29,6 @@ type Fixture struct {
 
 	outputTxLoop *iface.MultiTxLoop
 	faceIds      []iface.FaceId
-	strategies   map[string]strategycode.StrategyCode
 }
 
 func NewFixture(t *testing.T) (fixture *Fixture) {
@@ -94,7 +93,6 @@ func NewFixture(t *testing.T) (fixture *Fixture) {
 		return 0
 	})
 
-	fixture.strategies = make(map[string]strategycode.StrategyCode)
 	return fixture
 }
 
@@ -144,17 +142,16 @@ func (fixture *Fixture) ReadFibCounters(name string) fib.EntryCounters {
 }
 
 func (fixture *Fixture) makeStrategy(shortname string) strategycode.StrategyCode {
-	if sc, ok := fixture.strategies[shortname]; ok {
+	if sc, ok := strategycode.Find(shortname); ok {
 		return sc
 	}
 
 	elf, e := strategy_elf.Load(shortname)
 	fixture.require.NoError(e)
 
-	sc, e := strategycode.Load(elf)
+	sc, e := strategycode.Load(shortname, elf)
 	fixture.require.NoError(e)
 
-	fixture.strategies[shortname] = sc
 	return sc
 }
 
