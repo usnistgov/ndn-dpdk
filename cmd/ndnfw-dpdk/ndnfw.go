@@ -8,19 +8,10 @@ import (
 	"ndn-dpdk/appinit"
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/ndt"
-	"ndn-dpdk/container/ndt/ndtupdater"
-	"ndn-dpdk/container/strategycode"
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/ethface"
 	"ndn-dpdk/iface/socketface"
-	"ndn-dpdk/mgmt/facemgmt"
-	"ndn-dpdk/mgmt/fibmgmt"
-	"ndn-dpdk/mgmt/fwdpmgmt"
-	"ndn-dpdk/mgmt/ndtmgmt"
-	"ndn-dpdk/mgmt/strategymgmt"
-	"ndn-dpdk/mgmt/versionmgmt"
-	"ndn-dpdk/strategy/strategy_elf"
 )
 
 var (
@@ -28,7 +19,6 @@ var (
 	theSocketRxg            *socketface.RxGroup
 	theSocketTxl            *iface.MultiTxLoop
 	theNdt                  *ndt.Ndt
-	theStrategy             strategycode.StrategyCode
 	theFib                  *fib.Fib
 	theDp                   *fwdp.DataPlane
 )
@@ -44,7 +34,6 @@ func main() {
 	initCfg.FaceQueueCapacity.Apply()
 
 	startDp(initCfg.Ndt, initCfg.Fib, initCfg.Fwdp)
-	theStrategy = loadStrategy("multicast")
 	startMgmt()
 
 	select {}
@@ -242,49 +231,4 @@ func startDp(ndtCfg ndt.Config, fibCfg fib.Config, dpInit fwdpInitConfig) {
 	}
 
 	log.Info("dataplane started")
-}
-
-func startMgmt() {
-	appinit.RegisterMgmt(versionmgmt.VersionMgmt{})
-
-	if theSocketRxg != nil {
-		facemgmt.CreateFace = socketface.MakeMgmtCreateFace(
-			appinit.NewSocketFaceCfg(theSocketFaceNumaSocket), theSocketRxg, theSocketTxl,
-			appinit.TheFaceQueueCapacityConfig.SocketTxPkts)
-	}
-	appinit.RegisterMgmt(facemgmt.FaceMgmt{})
-
-	appinit.RegisterMgmt(ndtmgmt.NdtMgmt{
-		Ndt: theNdt,
-		Updater: &ndtupdater.NdtUpdater{
-			Ndt:      theNdt,
-			Fib:      theFib,
-			SleepFor: 200 * time.Millisecond,
-		},
-	})
-
-	appinit.RegisterMgmt(strategymgmt.StrategyMgmt{})
-
-	fibmgmt.TheStrategy = theStrategy
-	appinit.RegisterMgmt(fibmgmt.FibMgmt{theFib})
-
-	appinit.RegisterMgmt(fwdpmgmt.DpInfoMgmt{theDp})
-
-	appinit.StartMgmt()
-}
-
-func loadStrategy(shortname string) strategycode.StrategyCode {
-	logEntry := log.WithField("strategy", shortname)
-
-	elf, e := strategy_elf.Load(shortname)
-	if e != nil {
-		logEntry.WithError(e).Fatal("strategy ELF load error")
-	}
-	sc, e := strategycode.Load(shortname, elf)
-	if e != nil {
-		logEntry.WithError(e).Fatal("strategy code load error")
-	}
-
-	logEntry.Debug("strategy loaded")
-	return sc
 }

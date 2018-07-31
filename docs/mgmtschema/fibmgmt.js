@@ -61,13 +61,15 @@ ctx.declareMethod('Fib.List', true,
   });
 
 ctx.declareMethod('Fib.Insert',
-  ctx.markAllRequired({
+  {
     type: 'object',
     properties: {
       Name: ctx.useType('ndn.Name'),
       Nexthops: ctx.useType('fibmgmt.Nexthops'),
+      StrategyId: ctx.useType('strategycode.Id')
     },
-  }),
+    required: ['Name', 'Nexthops'],
+  },
   {
     type: 'object',
     properties: {

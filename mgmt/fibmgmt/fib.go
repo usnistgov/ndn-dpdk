@@ -1,16 +1,16 @@
 package fibmgmt
 
 import (
+	"errors"
+
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/strategycode"
 	"ndn-dpdk/ndn"
 )
 
-// Strategy for new FIB entries.
-var TheStrategy strategycode.StrategyCode
-
 type FibMgmt struct {
-	Fib *fib.Fib
+	Fib               *fib.Fib
+	DefaultStrategyId int
 }
 
 func (mg FibMgmt) Info(args struct{}, reply *FibInfo) error {
@@ -43,7 +43,15 @@ func (mg FibMgmt) Insert(args InsertArg, reply *InsertReply) error {
 		return e
 	}
 
-	entry.SetStrategy(TheStrategy)
+	strategyId := args.StrategyId
+	if strategyId == 0 {
+		strategyId = mg.DefaultStrategyId
+	}
+	if sc, ok := strategycode.Get(strategyId); ok {
+		entry.SetStrategy(sc)
+	} else {
+		return errors.New("strategy not found")
+	}
 
 	isNew, e := mg.Fib.Insert(entry)
 	if e != nil {

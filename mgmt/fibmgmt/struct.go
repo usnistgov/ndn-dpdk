@@ -16,8 +16,9 @@ type NameArg struct {
 }
 
 type InsertArg struct {
-	Name     string
-	Nexthops []iface.FaceId
+	Name       string
+	Nexthops   []iface.FaceId
+	StrategyId int
 }
 
 type InsertReply struct {

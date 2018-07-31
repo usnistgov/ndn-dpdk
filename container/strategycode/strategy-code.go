@@ -38,6 +38,14 @@ func (sc StrategyCode) CountRefs() int {
 	return int(sc.c.nRefs)
 }
 
+func (sc StrategyCode) Ref() {
+	C.StrategyCode_Ref(sc.c)
+}
+
+func (sc StrategyCode) Unref() {
+	C.StrategyCode_Unref(sc.c)
+}
+
 func (sc StrategyCode) Close() error {
 	if sc.CountRefs() > 0 {
 		return errors.New("StrategyCode has references")

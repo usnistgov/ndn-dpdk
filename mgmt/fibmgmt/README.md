@@ -9,7 +9,8 @@ This package implements [FIB](../../container/fib/) management.
 **Fib.List** lists FIB entry names.
 
 **Fib.Insert** inserts or replaces an entry.
-Currently there is no strategy management, and all entries will use `TheStrategy`.
+If forwarding strategy is not specified, the default strategy is used.
+In case the default strategy has been unloaded, this command fails.
 
 **Fib.Erase** erases an entry.
 

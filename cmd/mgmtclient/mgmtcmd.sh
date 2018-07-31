@@ -16,19 +16,23 @@ Subcommands:
     Show NDT content.
   ndt counters
     Show NDT counters.
-  ndt update [HASH] [VALUE]
+  ndt update <HASH> <VALUE>
     Update an NDT element by hash.
-  ndt updaten [NAME] [VALUE]
+  ndt updaten <NAME> <VALUE>
     Update an NDT element by name.
   strategy [list]
-    List forwarding strategies
-  strategy load [NAME] [ELF-FILE]
+    List forwarding strategies.
+  strategy get <ID>
+    Get forwarding strategy information.
+  strategy load <NAME> <ELF-FILE>
     Load forwarding strategy.
+  strategy unload <ID>
+    Unload forwarding strategy.
   fib info
     Show FIB counters.
   fib list
     List FIB entry names.
-  fib insert <NAME> <NEXTHOP,NEXTHOP>
+  fib insert <NAME> <NEXTHOP,NEXTHOP> [<STRATEGY-ID>]
     Insert/replace FIB entry.
   fib erase <NAME>
     Erase FIB entry.
@@ -95,7 +99,11 @@ elif [[ $1 == 'fib' ]]; then
   elif [[ -z $2 ]] || [[ $2 == 'list' ]]; then
     jsonrpc Fib.List ''
   elif [[ $2 == 'insert' ]]; then
-    jsonrpc Fib.Insert '{"Name":"'$3'","Nexthops":['$4']}'
+    if [[ -z $5 ]]; then
+      jsonrpc Fib.Insert '{"Name":"'$3'","Nexthops":['$4']}'
+    else
+      jsonrpc Fib.Insert '{"Name":"'$3'","Nexthops":['$4'],"StrategyId":'$5'}'
+    fi
   elif [[ $2 == 'erase' ]] || [[ $2 == 'find' ]] || [[ $2 == 'lpm' ]]; then
     jsonrpc Fib."${2^}" '{"Name":"'$3'"}'
   elif [[ $2 == 'counters' ]]; then
