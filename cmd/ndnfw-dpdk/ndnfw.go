@@ -18,6 +18,7 @@ import (
 	"ndn-dpdk/mgmt/fibmgmt"
 	"ndn-dpdk/mgmt/fwdpmgmt"
 	"ndn-dpdk/mgmt/ndtmgmt"
+	"ndn-dpdk/mgmt/strategymgmt"
 	"ndn-dpdk/mgmt/versionmgmt"
 	"ndn-dpdk/strategy/strategy_elf"
 )
@@ -261,6 +262,8 @@ func startMgmt() {
 			SleepFor: 200 * time.Millisecond,
 		},
 	})
+
+	appinit.RegisterMgmt(strategymgmt.StrategyMgmt{})
 
 	fibmgmt.TheStrategy = theStrategy
 	appinit.RegisterMgmt(fibmgmt.FibMgmt{theFib})

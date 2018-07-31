@@ -6,6 +6,12 @@ ctx.declareType('counter', {
   minimum: 0,
 })
 
+ctx.declareType('blob', {
+  type: 'string',
+  contentEncoding: 'base64',
+  contentMediaType: 'application/octet-stream',
+})
+
 ctx.declareType('running_stat.Snapshot', {
   type: 'object',
   properties: {
@@ -37,6 +43,11 @@ ctx.declareType('iface.FaceId[]', {
   items: ctx.useType('iface.FaceId'),
   uniqueItems: true,
 });
+
+ctx.declareType('strategycode.Id', {
+  type: 'integer',
+  minimum: 1,
+})
 
 ctx.declareType('ndn.Name', {
   type: 'string',

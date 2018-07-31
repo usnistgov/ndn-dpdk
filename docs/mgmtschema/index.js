@@ -58,7 +58,7 @@ var ctx = {
   },
 };
 
-['commontypes', 'facemgmt', 'fibmgmt', 'fwdpmgmt', 'ndtmgmt', 'versionmgmt'].forEach(function(module) {
+['commontypes', 'facemgmt', 'fibmgmt', 'fwdpmgmt', 'ndtmgmt', 'strategymgmt', 'versionmgmt'].forEach(function(module) {
   require('./' + module).provideDefinitions(ctx);
 });
 

@@ -178,8 +178,10 @@ codedoc:
 docs/mgmtschema/schema.json: docs/mgmtschema/*.js
 	nodejs docs/mgmtschema/ > docs/mgmtschema/schema.json
 
+mgmtschema: docs/mgmtschema/schema.json
+
 .PHONY: docs
-docs: doxygen codedoc docs/mgmtschema/schema.json
+docs: doxygen codedoc mgmtschema
 
 dochttp: docs
 	cd docs && python3 -m http.server 2>/dev/null &

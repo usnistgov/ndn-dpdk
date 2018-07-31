@@ -7,20 +7,7 @@ ctx.declareType('ndt.Value', {
   maximum: 255,
 });
 
-ctx.declareMethod('Ndt.ReadTable', true,
-  {
-    oneOf: [
-      {
-        type: 'array',
-        items: ctx.useType('ndt.Value'),
-      },
-      {
-        type: 'string',
-        contentEncoding: 'base64',
-        contentMediaType: 'application/octet-stream',
-      },
-    ],
-  });
+ctx.declareMethod('Ndt.ReadTable', true, 'blob');
 
 ctx.declareMethod('Ndt.ReadCounters', true,
   {

@@ -20,6 +20,10 @@ Subcommands:
     Update an NDT element by hash.
   ndt updaten [NAME] [VALUE]
     Update an NDT element by name.
+  strategy [list]
+    List forwarding strategies
+  strategy load [NAME] [ELF-FILE]
+    Load forwarding strategy.
   fib info
     Show FIB counters.
   fib list
@@ -74,6 +78,16 @@ elif [[ $1 == 'ndt' ]]; then
     jsonrpc Ndt.Update '{"Hash":'$3',"Value":'$4'}'
   elif [[ $2 == 'updaten' ]]; then
     jsonrpc Ndt.Update '{"Name":"'$3'","Value":'$4'}'
+  fi
+elif [[ $1 == 'strategy' ]]; then
+  if [[ -z $2 ]] || [[ $2 == 'list' ]]; then
+    jsonrpc Strategy.List ''
+  elif [[ $2 == 'show' ]]; then
+    jsonrpc Strategy.Get '{"Id":'$3'}'
+  elif [[ $2 == 'load' ]]; then
+    jsonrpc Strategy.Load '{"Name":"'$3'","Elf":"'$(base64 -w0 $4)'"}'
+  elif [[ $2 == 'unload' ]]; then
+    jsonrpc Strategy.Unload '{"Id":'$3'}'
   fi
 elif [[ $1 == 'fib' ]]; then
   if [[ $2 == 'info' ]]; then
