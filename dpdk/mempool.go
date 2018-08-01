@@ -4,7 +4,7 @@ package dpdk
 #include <rte_config.h>
 #include <rte_mbuf.h>
 #include <rte_mempool.h>
-#include <stdlib.h> // free()
+#include <stdlib.h>
 */
 import "C"
 import (
