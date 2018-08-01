@@ -10,11 +10,7 @@ import (
 func TestCryptoDev(t *testing.T) {
 	assert, require := makeAR(t)
 
-	const devName = "crypto_openssl"
-	require.NoError(dpdk.CreateVdev(devName, ""))
-	defer dpdk.DestroyVdev(devName)
-
-	cd, e := dpdk.NewCryptoDev(devName, 1024, 2, dpdk.NUMA_SOCKET_ANY)
+	cd, e := dpdk.NewOpensslCryptoDev("", 2, dpdk.NUMA_SOCKET_ANY)
 	require.NoError(e)
 	defer cd.Close()
 
@@ -65,4 +61,8 @@ func TestCryptoDev(t *testing.T) {
 	assert.Equal(dpdktestenv.BytesFromHex("A6662B764A4468DF70CA2CAD1B17DA26C62E53439DA8E4E8A80D9B91E59D09BA"),
 		out1.AsByteSlice())
 	assert.Equal(0, qp0.DequeueBurst(ops))
+
+	assert.Equal(3, mp.CountInUse())
+	ops0[0].Close()
+	assert.Equal(2, mp.CountInUse())
 }

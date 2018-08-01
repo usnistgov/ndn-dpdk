@@ -10,11 +10,12 @@ Unit tests of this package are in [dpdktest](dpdktest/) subdirectory.
 
 ## Go bindings
 
-This packet has Go bindings for:
+This package has Go bindings for:
 
 * EAL, lcore, launch
 * mempool, mbuf
 * ring
 * ethdev
+* cryptodev
 
 Go bindings are object-oriented when possible.

@@ -10,6 +10,7 @@ import (
 	"unsafe"
 )
 
+// Crypto operation type.
 type CryptoOpType int
 
 const (
@@ -24,6 +25,7 @@ func (t CryptoOpType) String() string {
 	return fmt.Sprintf("%d", t)
 }
 
+// Crypto operation status.
 type CryptoOpStatus int
 
 const (
@@ -57,6 +59,7 @@ func (s CryptoOpStatus) Error() string {
 	return fmt.Sprintf("CryptoOp-%s", s)
 }
 
+// Crypto operation.
 type CryptoOp struct {
 	c *C.struct_rte_crypto_op
 	// DO NOT add other fields: *CryptoOp is passed to C code as rte_crypto_op**
@@ -66,6 +69,10 @@ func (op CryptoOp) GetStatus() CryptoOpStatus {
 	return CryptoOpStatus(C.CryptoOp_GetStatus(op.c))
 }
 
+// Setup SHA256 digest generation operation.
+// m: input packet.
+// offset, length: range of input packet.
+// output: digest output, 32 bytes in C memory.
 func (op CryptoOp) PrepareSha256Digest(m Packet, offset, length int, output unsafe.Pointer) error {
 	if offset < 0 || length < 0 || offset+length > m.Len() {
 		return errors.New("offset+length exceeds packet boundary")
@@ -75,6 +82,13 @@ func (op CryptoOp) PrepareSha256Digest(m Packet, offset, length int, output unsa
 	return nil
 }
 
+func (op CryptoOp) Close() error {
+	mp := CryptoOpPool{Mempool{c: op.c.mempool}}
+	mp.Free(unsafe.Pointer(op.c))
+	return nil
+}
+
+// Mempool for CryptoOp.
 type CryptoOpPool struct {
 	Mempool
 }
@@ -101,11 +115,14 @@ func (mp CryptoOpPool) AllocBulk(opType CryptoOpType, ops []CryptoOp) error {
 	return nil
 }
 
+// Crypto device.
 type CryptoDev struct {
 	devId       C.uint8_t
 	sessionPool Mempool
+	ownsVdev    bool
 }
 
+// Initialize a crypto device.
 func NewCryptoDev(name string, maxSessions, nQueuePairs int, socket NumaSocket) (cd CryptoDev, e error) {
 	nameC := C.CString(name)
 	defer C.free(unsafe.Pointer(nameC))
@@ -144,12 +161,37 @@ func NewCryptoDev(name string, maxSessions, nQueuePairs int, socket NumaSocket) 
 	return cd, nil
 }
 
+// Create an OpenSSL virtual crypto device.
+func NewOpensslCryptoDev(id string, nQueuePairs int, socket NumaSocket) (cd CryptoDev, e error) {
+	name := fmt.Sprintf("crypto_openssl_%s", id)
+	var args string
+	if socket != NUMA_SOCKET_ANY {
+		args = fmt.Sprintf("socket_id=%d", socket)
+	}
+	if e = CreateVdev(name, args); e != nil {
+		return CryptoDev{}, e
+	}
+	if cd, e = NewCryptoDev(name, 1024, nQueuePairs, socket); e != nil {
+		return CryptoDev{}, e
+	}
+	cd.ownsVdev = true
+	return cd, nil
+}
+
 func (cd CryptoDev) Close() error {
+	name := cd.GetName()
 	C.rte_cryptodev_stop(cd.devId)
 	if res := C.rte_cryptodev_close(cd.devId); res < 0 {
 		return fmt.Errorf("rte_cryptodev_close error %d", res)
 	}
+	if cd.ownsVdev {
+		return DestroyVdev(name)
+	}
 	return nil
+}
+
+func (cd CryptoDev) GetName() string {
+	return C.GoString(C.rte_cryptodev_name_get(cd.devId))
 }
 
 func (cd CryptoDev) GetQueuePair(i int) (qp CryptoQueuePair, ok bool) {
@@ -161,11 +203,13 @@ func (cd CryptoDev) GetQueuePair(i int) (qp CryptoQueuePair, ok bool) {
 	return qp, true
 }
 
+// Crypto device queue pair.
 type CryptoQueuePair struct {
 	CryptoDev
 	qpId C.uint16_t
 }
 
+// Submit a burst of crypto operations.
 func (qp CryptoQueuePair) EnqueueBurst(ops []CryptoOp) int {
 	ptr, count := ParseCptrArray(ops)
 	if count == 0 {
@@ -176,6 +220,7 @@ func (qp CryptoQueuePair) EnqueueBurst(ops []CryptoOp) int {
 	return int(res)
 }
 
+// Retrieve a burst of completed crypto operations.
 func (qp CryptoQueuePair) DequeueBurst(ops []CryptoOp) int {
 	ptr, count := ParseCptrArray(ops)
 	if count == 0 {
