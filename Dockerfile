@@ -1,7 +1,7 @@
 FROM ubuntu:18.04
 RUN apt-get update && \
-    apt-get install -y -qq clang-3.9 clang-format-3.9 curl doxygen git go-bindata libc6-dev-i386 libnuma-dev liburcu-dev pandoc socat sudo yamllint
-RUN curl -L https://dl.google.com/go/go1.10.2.linux-amd64.tar.gz | sudo tar -C /usr/local -xz
+    apt-get install -y -qq clang-3.9 clang-format-3.9 curl doxygen git go-bindata libc6-dev-i386 libnuma-dev libssl-dev liburcu-dev pandoc socat sudo yamllint
+RUN curl -L https://dl.google.com/go/go1.10.3.linux-amd64.tar.gz | sudo tar -C /usr/local -xz
 RUN cd /tmp && \
     curl -L https://github.com/iovisor/ubpf/archive/10e0a45b11ea27696add38c33e24dbc631caffb6.tar.gz | tar xz && \
     cd ubpf-*/vm && \
@@ -17,7 +17,8 @@ RUN tar -C / -xf /root/go/src/ndn-dpdk/build/kernel-headers.tar
 RUN curl -L http://fast.dpdk.org/rel/dpdk-18.05.tar.xz | tar -C /tmp -xJ && \
     cd /tmp/dpdk-18.05 && \
     make config T=x86_64-native-linuxapp-gcc && \
-    sed -ri 's,(BUILD_SHARED_LIB=).*,\1y,' build/.config && \
+    sed -ri 's,(CONFIG_RTE_BUILD_SHARED_LIB=).*,\1y,' build/.config && \
+    sed -ri 's,(CONFIG_RTE_LIBRTE_PMD_OPENSSL=).*,\1y,' build/.config && \
     make -j12 EXTRA_CFLAGS=-g && \
     make install && \
     ldconfig
