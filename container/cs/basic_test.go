@@ -1,4 +1,4 @@
-package cstest
+package cs_test
 
 import (
 	"fmt"

@@ -3,7 +3,6 @@
 getTestPkg() {
   # determine $TESTPKG from $PKG
   if [[ $1 == 'app/fwdp' ]]; then echo app/fwdp/fwdptest
-  elif [[ $1 == 'container/cs' ]]; then echo container/cs/cstest
   elif [[ $1 == 'container/fib' ]]; then echo container/fib/fibtest
   elif [[ $1 == 'container/mintmr' ]]; then echo container/mintmr/mintmrtest
   elif [[ $1 == 'core' ]]; then echo core/coretest

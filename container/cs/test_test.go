@@ -1,14 +1,26 @@
-package cstest
+package cs_test
 
 import (
+	"os"
+	"testing"
+
 	"ndn-dpdk/container/cs"
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/pcct"
 	"ndn-dpdk/container/pit"
 	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/dpdktestenv"
 	"ndn-dpdk/ndn"
 	"ndn-dpdk/ndn/ndntestutil"
 )
+
+func TestMain(m *testing.M) {
+	dpdktestenv.MakeDirectMp(1023, ndn.SizeofPacketPriv(), 2000)
+
+	os.Exit(m.Run())
+}
+
+var makeAR = dpdktestenv.MakeAR
 
 type Fixture struct {
 	Cs            cs.Cs
