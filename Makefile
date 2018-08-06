@@ -149,7 +149,7 @@ app/fwdp/cgoflags.go: container/ndt/cgoflags.go container/fib/cgoflags.go contai
 app/version/version.go:
 	app/version/make-version.sh
 
-cmds: cmd-ndnfw-dpdk cmd-ndnping-dpdk cmd-ndnpktcopy-dpdk mgmtclient
+cmds: cmd-ndnfw-dpdk cmd-ndnping-dpdk cmd-ndnpktcopy-dpdk mgmtclient nfdemu
 
 cmd-%: cmd/%/* godeps
 	go install ./cmd/$*
@@ -157,14 +157,17 @@ cmd-%: cmd/%/* godeps
 cmd-ndnfw-dpdk: cmd/ndnfw-dpdk/* godeps strategies
 	go install ./cmd/ndnfw-dpdk
 
+cmd/ndnpktcopy-dpdk/cgoflags.go: iface/cgoflags.go
+	./make-cgoflags.sh cmd/ndnpktcopy-dpdk iface
+
 mgmtclient: cmd/mgmtclient/*
 	mkdir -p build
 	cd build && rm -f mgmt*.sh
 	cd cmd/mgmtclient && cp mgmt*.sh ../../build/
 	chmod +x build/mgmt*.sh
 
-cmd/ndnpktcopy-dpdk/cgoflags.go: iface/cgoflags.go
-	./make-cgoflags.sh cmd/ndnpktcopy-dpdk iface
+nfdemu: cmd/nfdemu/*.ts
+	cd cmd/nfdemu && npm install && tsc
 
 test: godeps
 	./gotest.sh
@@ -190,6 +193,6 @@ godochttp:
 	godoc -http ':6060' 2>/dev/null &
 
 clean:
-	rm -rf build docs/doxygen docs/codedoc docs/mgmtschema/schema.json ndn/error.go ndn/error.h ndn/namehash.h ndn/tlv-type.go ndn/tlv-type.h strategy/strategy_elf/bindata.go app/version/version.go
+	rm -rf build cmd/nfdemu/node_modules cmd/nfdemu/*.js docs/doxygen docs/codedoc docs/mgmtschema/schema.json ndn/error.go ndn/error.h ndn/namehash.h ndn/tlv-type.go ndn/tlv-type.h strategy/strategy_elf/bindata.go app/version/version.go
 	find \( -name 'cgoflags.go' -o -name 'cgostruct.go' \) -delete
 	go clean ./...
