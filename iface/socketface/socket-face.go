@@ -99,9 +99,7 @@ func (face *SocketFace) Close() error {
 	face.BeforeClose()
 	atomic.StoreInt32(&face.closing, 1)
 	close(face.txQueue)
-	if e := face.GetConn().Close(); e != nil {
-		return e
-	}
+	face.GetConn().Close() // ignore error
 	face.quitWg.Wait()
 	face.CloseBaseFace()
 	return nil
