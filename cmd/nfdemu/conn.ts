@@ -1,7 +1,8 @@
 import EventEmitter = require("events");
 import fs = require("fs");
 import jayson = require("jayson");
-import { ElementReader as ndnjs_ElementReader } from "ndn-js/js/encoding/element-reader.js";
+import ndn = require("ndn-js");
+import { ElementReader as ndn_ElementReader } from "ndn-js/js/encoding/element-reader.js";
 import net = require("net");
 
 import { Packet } from "./packet";
@@ -11,10 +12,11 @@ const mgmtClient = jayson.client.tcp({port: 6345});
 class SocketConn extends EventEmitter {
   public get isConnected(): boolean { return !!this.socket; }
   protected socket: net.Socket;
-  private er: ndnjs_ElementReader;
+  private er: ndn_ElementReader;
 
   public send(buf: Buffer): void {
     if (!this.isConnected) {
+      this.once("connected", () => { this.send(buf); });
       return;
     }
     this.socket.write(buf);
@@ -33,8 +35,9 @@ class SocketConn extends EventEmitter {
 
   protected accept(socket: net.Socket) {
     this.socket = socket;
-    this.er = new ndnjs_ElementReader(this);
+    this.er = new ndn_ElementReader(this);
     this.socket.on("data", (buf: Buffer) => { this.er.onReceivedData(buf); });
+    this.socket.on("error", () => {});
     this.socket.on("close", () => {
       if (!this.isConnected) {
         return;
@@ -59,6 +62,7 @@ export class AppConn extends SocketConn {
 }
 
 export class FwConn extends SocketConn {
+  public id: number;
   private path: string;
   private server: net.Server;
   private faceId: number;
@@ -66,7 +70,8 @@ export class FwConn extends SocketConn {
   constructor() {
     super();
 
-    this.path = "/tmp/nfdemu-" + Math.floor(Math.random() * 100000000) + ".sock";
+    this.id = Math.floor(Math.random() * 100000000);
+    this.path = "/tmp/nfdemu-" + this.id + ".sock";
     this.server = new net.Server();
     this.server.once("connection", (socket: net.Socket) => {
       this.server.close();
@@ -82,7 +87,25 @@ export class FwConn extends SocketConn {
       (err, response) => {
         if (response && response.result) {
           this.faceId = response.result.Id;
+          this.emit("faceidready", this.faceId);
         }
+      });
+  }
+
+  public registerPrefix(name: ndn.Name, cb: (bool) => void): void {
+    if (!this.faceId) {
+      this.once("faceidready", () => { this.registerPrefix(name, cb); });
+      return;
+    }
+    let done = false;
+    mgmtClient.request("Fib.Insert",
+      {
+        Name: name.toUri(),
+        Nexthops: [this.faceId],
+      },
+      (err, response) => {
+        done || cb(!!(response && response.result));
+        done = true;
       });
   }
 

@@ -1,7 +1,7 @@
 import fs = require("fs");
 import net = require("net");
 
-import { ConnPair } from "./connpair";
+import { Transfer } from "./transfer";
 
 const listenerPath = "/tmp/nfdemu.sock";
 if (fs.existsSync(listenerPath)) {
@@ -9,5 +9,5 @@ if (fs.existsSync(listenerPath)) {
 }
 
 const server = new net.Server();
-server.on("connection", (socket: net.Socket) => { new ConnPair(socket); });
+server.on("connection", (socket: net.Socket) => { new Transfer(socket); });
 server.listen(listenerPath);

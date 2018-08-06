@@ -1,6 +1,7 @@
-import ndnjs = require("ndn-js");
+import ndn = require("ndn-js");
 import { DecodingException } from "ndn-js/js/encoding/decoding-exception.js";
 import { TlvDecoder } from "ndn-js/js/encoding/tlv/tlv-decoder.js";
+import { TlvEncoder } from "ndn-js/js/encoding/tlv/tlv-encoder.js";
 import { Tlv } from "ndn-js/js/encoding/tlv/tlv.js";
 
 import { TT } from "./tlv-type";
@@ -12,22 +13,37 @@ export enum PktType {
   Nack = TT.Nack,
 }
 
-const wf = ndnjs.TlvWireFormat.get();
-
 export class Packet {
   public buf: Buffer;
   public netPkt: Buffer;
   public type: PktType = PktType.None;
-  public pitToken: Uint8Array;
+  public pitToken: string;
 
-  public interest: ndnjs.Interest;
-  public data: ndnjs.Data;
-  public nack: ndnjs.NetworkNack;
+  public name: ndn.Name;
+  public interest: ndn.Interest;
+  public data: ndn.Data;
+  public nack: ndn.NetworkNack;
 
   constructor(buf: Buffer) {
     this.buf = Buffer.from(buf);
     this.netPkt = this.buf;
     this.parsePacket(false);
+  }
+
+  public wireEncode(wantPitToken: boolean = true): Buffer {
+    const e = new TlvEncoder();
+    const len0 = e.getLength();
+    e.writeBlobTlv(TT.LpPayload, this.netPkt);
+    if (this.type == PktType.Nack) {
+      const len1 = e.getLength();
+      e.writeNonNegativeIntegerTlv(TT.NackReason, this.nack.getReason());
+      e.writeTypeAndLength(TT.Nack, e.getLength() - len1);
+    }
+    if (wantPitToken && this.pitToken) {
+      e.writeBlobTlv(TT.PitToken, Buffer.from(this.pitToken, "hex"));
+    }
+    e.writeTypeAndLength(TT.LpPacket, e.getLength() - len0);
+    return e.getOutput();
   }
 
   public toString(): string {
@@ -45,16 +61,18 @@ export class Packet {
   private parsePacket(isNested: boolean) {
     switch (this.netPkt[0]) {
       case TT.Interest:
-        this.interest = new ndnjs.Interest();
-        wf.decodeInterest(this.interest, this.netPkt);
+        this.interest = new ndn.Interest();
+        this.interest.wireDecode(this.netPkt);
         if (this.type !== PktType.Nack) {
           this.type = PktType.Interest;
         }
+        this.name = this.interest.getName();
         break;
       case TT.Data:
-        this.data = new ndnjs.Data();
-        wf.decodeData(this.data, this.netPkt);
+        this.data = new ndn.Data();
+        this.data.wireDecode(this.netPkt);
         this.type = PktType.Data;
+        this.name = this.data.getName();
         break;
       case TT.LpPacket:
         if (!isNested) {
@@ -80,10 +98,10 @@ export class Packet {
 
       switch (tlvType) {
         case TT.PitToken:
-          this.pitToken = tlvValue;
+          this.pitToken = tlvValue.toString("hex");
           break;
         case TT.Nack:
-          this.nack = new ndnjs.NetworkNack();
+          this.nack = new ndn.NetworkNack();
           const code = d.readOptionalNonNegativeIntegerTlv(TT.NackReason, tlvValueEnd);
           if (code > 0) {
             this.nack.setReason(code);
