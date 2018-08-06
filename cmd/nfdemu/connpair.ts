@@ -1,7 +1,7 @@
 import net = require("net");
 
-import { AppConn } from "./appconn";
-import { FwConn } from "./fwconn";
+import { AppConn, FwConn } from "./conn";
+import { PktType } from "./packet";
 
 export class ConnPair {
   private ac: AppConn;
@@ -12,15 +12,15 @@ export class ConnPair {
     this.fc.on("connected", () => {
       console.log(">CONNECTED");
     });
+    this.fc.on("packet", (pkt) => {
+      console.log(">" + pkt.toString());
+      this.ac.send(pkt.buf);
+    });
 
     this.ac = new AppConn(appSocket);
-    this.ac.on("ndninterest", (interest, buf) => {
-      console.log("<I ", interest.getName().toUri());
-      this.fc.send(buf);
-    });
-    this.ac.on("ndndata", (data, buf) => {
-      console.log("<D ", data.getName().toUri());
-      // TODO lookup and insert PIT token
+    this.ac.on("packet", (pkt) => {
+      console.log("<" + pkt.toString());
+      this.fc.send(pkt.buf);
     });
     this.ac.on("close", () => {
       console.log("<CLOSE");

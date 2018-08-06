@@ -166,8 +166,14 @@ mgmtclient: cmd/mgmtclient/*
 	cd cmd/mgmtclient && cp mgmt*.sh ../../build/
 	chmod +x build/mgmt*.sh
 
-nfdemu: cmd/nfdemu/*.ts
-	cd cmd/nfdemu && npm install && tsc
+cmd/nfdemu/node_modules/.installed: cmd/nfdemu/package*.json
+	cd cmd/nfdemu && npm install && touch node_modules/.installed
+
+cmd/nfdemu/tlv-type.ts: ndn/tlv-type.tsv
+	cmd/nfdemu/make-tlv-type.sh
+
+nfdemu: cmd/nfdemu/node_modules/.installed cmd/nfdemu/tlv-type.ts cmd/nfdemu/*.ts
+	cd cmd/nfdemu && tsc
 
 test: godeps
 	./gotest.sh
@@ -193,6 +199,6 @@ godochttp:
 	godoc -http ':6060' 2>/dev/null &
 
 clean:
-	rm -rf build cmd/nfdemu/node_modules cmd/nfdemu/*.js docs/doxygen docs/codedoc docs/mgmtschema/schema.json ndn/error.go ndn/error.h ndn/namehash.h ndn/tlv-type.go ndn/tlv-type.h strategy/strategy_elf/bindata.go app/version/version.go
+	rm -rf build cmd/nfdemu/node_modules cmd/nfdemu/*.js cmd/nfdemu/tlv-type.ts docs/doxygen docs/codedoc docs/mgmtschema/schema.json ndn/error.go ndn/error.h ndn/namehash.h ndn/tlv-type.go ndn/tlv-type.h strategy/strategy_elf/bindata.go app/version/version.go
 	find \( -name 'cgoflags.go' -o -name 'cgostruct.go' \) -delete
 	go clean ./...
