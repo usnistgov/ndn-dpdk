@@ -1,12 +1,18 @@
 {
   "compilerOptions": {
-    "target": "es5"
+    "forceConsistentCasingInFileNames": true,
+    "module": "commonjs",
+    "noImplicitAny": false,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "outDir": "build",
+    "strict": true,
+    "target": "es2017"
   },
   "include": [
-    "*.ts"
+    "**/*.ts",
   ],
   "exclude": [
-    "node_modules",
-    "*.js"
+    "node_modules"
   ]
 }

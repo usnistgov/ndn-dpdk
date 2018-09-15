@@ -1,5 +1,5 @@
 import ndn = require("ndn-js");
-import net = require("net");
+import * as net from "net";
 
 import { AppConn, FwConn } from "./conn";
 import { Packet, PktType } from "./packet";
@@ -7,9 +7,9 @@ import { Packet, PktType } from "./packet";
 class PendingInterest {
   public name: ndn.Name;
   public expiry: Date;
-  public pitToken: string;
+  public pitToken?: string;
 
-  constructor(interest: ndn.Interest, pitToken: string) {
+  constructor(interest: ndn.Interest, pitToken?: string) {
     this.name = interest.getName();
     const lifetime = interest.getInterestLifetimeMilliseconds() || 4000;
     this.expiry = new Date(new Date().getTime() + lifetime);
@@ -30,7 +30,7 @@ class PendingInterestList {
     this.list.push(pi);
   }
 
-  public find(name: ndn.Name): PendingInterest {
+  public find(name: ndn.Name): PendingInterest|undefined {
     this.cleanup();
     for (let i = 0; i < this.length; ++i) {
       const pi = this.list[i];
@@ -39,7 +39,7 @@ class PendingInterestList {
       }
       return pi;
     }
-    return null;
+    return undefined;
   }
 
   private cleanup(): void {
@@ -83,7 +83,7 @@ export class Transfer {
 
   private handleFwPacket(pkt: Packet): void {
     this.log(">", pkt.toString(), pkt.pitToken);
-    if (pkt.type == PktType.Interest) {
+    if (pkt.type === PktType.Interest) {
       this.pil.insert(new PendingInterest(pkt.interest, pkt.pitToken));
     }
     this.ac.send(pkt.wireEncode(false));
@@ -100,7 +100,7 @@ export class Transfer {
       case PktType.Data:
       case PktType.Nack:
         const pi = this.pil.find(pkt.name);
-        if (pi != null) {
+        if (pi) {
           pkt.pitToken = pi.pitToken;
         }
         break;
@@ -112,9 +112,11 @@ export class Transfer {
   private handleAppPrefixReg(interest: ndn.Interest): void {
     const cp = new ndn.ControlParameters();
     cp.wireDecode(interest.getName().getComponent(ribRegisterPrefix.size()));
-    this.fc.registerPrefix(cp.getName(), (ok: true) => {
+    this.log("<R ", cp.getName().toUri());
+    this.fc.registerPrefix(cp.getName(), (ok: boolean) => {
       const cr = new ndn.ControlResponse();
       if (ok) {
+        this.log(">R ", cp.getName().toUri());
         const flags = new ndn.ForwardingFlags();
         flags.setChildInherit(false);
         flags.setCapture(true);

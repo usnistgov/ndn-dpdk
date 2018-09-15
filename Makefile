@@ -199,6 +199,6 @@ godochttp:
 	godoc -http ':6060' 2>/dev/null &
 
 clean:
-	rm -rf build cmd/nfdemu/node_modules cmd/nfdemu/*.js cmd/nfdemu/tlv-type.ts docs/doxygen docs/codedoc docs/mgmtschema/schema.json ndn/error.go ndn/error.h ndn/namehash.h ndn/tlv-type.go ndn/tlv-type.h strategy/strategy_elf/bindata.go app/version/version.go
+	rm -rf build cmd/nfdemu/node_modules cmd/nfdemu/build cmd/nfdemu/tlv-type.ts docs/doxygen docs/codedoc docs/mgmtschema/schema.json ndn/error.go ndn/error.h ndn/namehash.h ndn/tlv-type.go ndn/tlv-type.h strategy/strategy_elf/bindata.go app/version/version.go
 	find \( -name 'cgoflags.go' -o -name 'cgostruct.go' \) -delete
 	go clean ./...

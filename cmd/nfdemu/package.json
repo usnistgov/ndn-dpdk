@@ -1,6 +1,7 @@
 {
   "dependencies": {
-    "jayson": "2.0.6",
-    "ndn-js": "0.16.0"
+    "jayson": "^2.0.6",
+    "ndn-js": "0.16.0",
+    "node-noop": "^1.0.0"
   }
 }

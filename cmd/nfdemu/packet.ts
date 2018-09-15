@@ -17,7 +17,7 @@ export class Packet {
   public buf: Buffer;
   public netPkt: Buffer;
   public type: PktType = PktType.None;
-  public pitToken: string;
+  public pitToken?: string;
 
   public name: ndn.Name;
   public interest: ndn.Interest;
@@ -34,7 +34,7 @@ export class Packet {
     const e = new TlvEncoder();
     const len0 = e.getLength();
     e.writeBlobTlv(TT.LpPayload, this.netPkt);
-    if (this.type == PktType.Nack) {
+    if (this.type === PktType.Nack) {
       const len1 = e.getLength();
       e.writeNonNegativeIntegerTlv(TT.NackReason, this.nack.getReason());
       e.writeTypeAndLength(TT.Nack, e.getLength() - len1);

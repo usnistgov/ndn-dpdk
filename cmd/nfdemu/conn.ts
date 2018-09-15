@@ -1,9 +1,10 @@
 import EventEmitter = require("events");
-import fs = require("fs");
-import jayson = require("jayson");
+import * as fs from "fs";
+import * as jayson from "jayson";
 import ndn = require("ndn-js");
 import { ElementReader as ndn_ElementReader } from "ndn-js/js/encoding/element-reader.js";
-import net = require("net");
+import * as net from "net";
+import { noop } from "node-noop";
 
 import { Packet } from "./packet";
 
@@ -11,7 +12,7 @@ const mgmtClient = jayson.client.tcp({port: 6345});
 
 class SocketConn extends EventEmitter {
   public get isConnected(): boolean { return !!this.socket; }
-  protected socket: net.Socket;
+  protected socket?: net.Socket;
   private er: ndn_ElementReader;
 
   public send(buf: Buffer): void {
@@ -19,7 +20,7 @@ class SocketConn extends EventEmitter {
       this.once("connected", () => { this.send(buf); });
       return;
     }
-    this.socket.write(buf);
+    this.socket!.write(buf);
   }
 
   public close(): boolean {
@@ -27,8 +28,8 @@ class SocketConn extends EventEmitter {
       return false;
     }
 
-    this.socket.end();
-    this.socket = null;
+    this.socket!.end();
+    this.socket = undefined;
     this.emit("close");
     return true;
   }
@@ -37,12 +38,12 @@ class SocketConn extends EventEmitter {
     this.socket = socket;
     this.er = new ndn_ElementReader(this);
     this.socket.on("data", (buf: Buffer) => { this.er.onReceivedData(buf); });
-    this.socket.on("error", () => {});
+    this.socket.on("error", noop);
     this.socket.on("close", () => {
       if (!this.isConnected) {
         return;
       }
-      this.socket = null;
+      this.socket = undefined;
       this.emit("close");
     });
 
@@ -75,10 +76,11 @@ export class FwConn extends SocketConn {
     this.server = new net.Server();
     this.server.once("connection", (socket: net.Socket) => {
       this.server.close();
-      fs.unlink(this.path, () => {});
+      fs.unlink(this.path, noop);
       this.accept(socket);
     });
     this.server.listen(this.path);
+    this.faceId = 0;
 
     mgmtClient.request("Face.Create",
       {
@@ -104,7 +106,9 @@ export class FwConn extends SocketConn {
         Nexthops: [this.faceId],
       },
       (err, response) => {
-        done || cb(!!(response && response.result));
+        if (!done) {
+          cb(!!(response && response.result));
+        }
         done = true;
       });
   }
@@ -117,7 +121,7 @@ export class FwConn extends SocketConn {
       {
         Id: this.faceId,
       },
-      () => {});
+      noop);
     return true;
   }
 }

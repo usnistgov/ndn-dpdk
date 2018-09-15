@@ -1,5 +1,5 @@
-import fs = require("fs");
-import net = require("net");
+import * as fs from "fs";
+import * as net from "net";
 
 import { Transfer } from "./transfer";
 
