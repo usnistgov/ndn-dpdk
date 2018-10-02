@@ -7,16 +7,16 @@ This repository contains high-performance [Named Data Networking (NDN)](https://
 Requirements:
 
 * Ubuntu 16.04 or 18.04 on *amd64* architecture
-* Go 1.10.3
+* Go 1.11.1
 * `clang-3.9 clang-format-3.9 curl doxygen git go-bindata libc6-dev-i386 libnuma-dev libssl-dev liburcu-dev pandoc socat sudo yamllint` packages
-* DPDK 18.05 shared libraries installed to `/usr/local`; including OpenSSL PMD
+* DPDK 18.08 shared libraries installed to `/usr/local`; including OpenSSL PMD
 * [ubpf](https://github.com/iovisor/ubpf/tree/10e0a45b11ea27696add38c33e24dbc631caffb6) library, installed to `/usr/local/include/ubpf.h` and `/usr/local/lib/libubpf.a`
 * NodeJS 8.x and `sudo npm install -g jayson tslint typescript`
 
 Installation steps:
 
 1. Clone repository to `$GOPATH/src/ndn-dpdk`.
-2. Execute `go get -d -t ./...` inside the repository.
+2. Execute `make godeps; go get -d -t ./...` inside the repository.
 3. `make`, and have a look at other [Makefile](./Makefile) targets.
    Prepend `RELEASE=1` selects release mode that disables asserts and verbose logging.
    Note: `go get` installation is unavailable due to dependency between C code.

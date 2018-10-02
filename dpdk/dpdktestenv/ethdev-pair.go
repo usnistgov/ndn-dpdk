@@ -76,8 +76,8 @@ func NewEthDevPair(nQueues int, ringCapacity int, queueCapacity int) *EthDevPair
 func (edp *EthDevPair) Close() error {
 	edp.PortA.Stop()
 	edp.PortB.Stop()
-	edp.PortA.Close(true)
-	edp.PortB.Close(true)
+	edp.PortA.Close()
+	edp.PortB.Close()
 	for _, r := range edp.ringsAB {
 		r.Close()
 	}

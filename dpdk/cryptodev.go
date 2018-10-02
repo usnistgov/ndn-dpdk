@@ -97,7 +97,8 @@ func NewCryptoOpPool(name string, capacity int, cacheSize int, privSize int, soc
 	nameC := C.CString(name)
 	defer C.free(unsafe.Pointer(nameC))
 
-	mp.c = C.rte_crypto_op_pool_create(nameC, C.RTE_CRYPTO_OP_TYPE_UNDEFINED,
+	// TODO change back to RTE_CRYPTO_OP_TYPE_UNDEFINED when DPDK can accept it
+	mp.c = C.rte_crypto_op_pool_create(nameC, C.RTE_CRYPTO_OP_TYPE_SYMMETRIC,
 		C.uint(capacity), C.uint(cacheSize), C.uint16_t(privSize), C.int(socket))
 	if mp.c == nil {
 		return mp, GetErrno()

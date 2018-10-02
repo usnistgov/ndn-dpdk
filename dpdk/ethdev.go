@@ -191,15 +191,8 @@ func (port EthDev) Stop() {
 	C.rte_eth_dev_stop(C.uint16_t(port))
 }
 
-func (port EthDev) Close(detach bool) error {
+func (port EthDev) Close() error {
 	C.rte_eth_dev_close(C.uint16_t(port))
-	if detach {
-		var devname [C.RTE_DEV_NAME_MAX_LEN]C.char
-		res := C.rte_eth_dev_detach(C.uint16_t(port), &devname[0])
-		if res != 0 {
-			return fmt.Errorf("rte_eth_dev_detach(%d) error %d", port, res)
-		}
-	}
 	return nil
 }
 
