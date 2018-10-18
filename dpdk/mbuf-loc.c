@@ -71,16 +71,16 @@ __MbufLoc_MakeIndirectCb(void* arg, const struct rte_mbuf* m, uint16_t off,
   }
 
   rte_pktmbuf_attach(mi, (struct rte_mbuf*)m);
-  if (ctx->head == NULL) {
-    ctx->head = mi;
-    mi->nb_segs = 0;
-  }
-
   rte_pktmbuf_adj(mi, off);
   rte_pktmbuf_trim(mi, mi->data_len - len);
+  if (ctx->head == NULL) {
+    ctx->head = mi;
+    mi->nb_segs = 1;
+  } else {
+    ++ctx->head->nb_segs;
+  }
   mi->pkt_len = 0;
   ctx->head->pkt_len += mi->data_len;
-  ++ctx->head->nb_segs;
 
   if (ctx->tail != NULL) {
     ctx->tail->next = mi;
