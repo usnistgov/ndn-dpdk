@@ -33,12 +33,15 @@ func (rxl *RxLoop) Close() error {
 }
 
 func (rxl *RxLoop) Add(face *EthFace) error {
+	if rxl.c.nTasks >= rxl.c.maxTasks {
+		return fmt.Errorf("this RxLoop is full")
+	}
+
 	if face.nRxThreads >= C.RXPROC_MAX_THREADS {
 		return fmt.Errorf("cannot add face to more than %d RxLoops", C.RXPROC_MAX_THREADS)
 	}
-
-	if rxl.c.nTasks >= rxl.c.maxTasks {
-		return fmt.Errorf("this RxLoop is full")
+	if ethDevInfo := face.GetPort().GetDevInfo(); face.nRxThreads >= int(ethDevInfo.Nb_rx_queues) {
+		return fmt.Errorf("cannot add this face to more than %d RxLoops", ethDevInfo.Nb_rx_queues)
 	}
 
 	var task C.EthRxTask
@@ -46,10 +49,7 @@ func (rxl *RxLoop) Add(face *EthFace) error {
 	task.queue = C.uint16_t(face.nRxThreads)
 	task.rxThread = C.int(face.nRxThreads)
 	task.face = face.getPtr()
-
-	if err := C.EthRxLoop_AddTask(rxl.c, &task); err != 0 {
-		return dpdk.Errno(err)
-	}
+	C.EthRxLoop_AddTask(rxl.c, &task)
 
 	face.nRxThreads++
 	return nil

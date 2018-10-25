@@ -37,7 +37,7 @@ __EthRxLoop_GetTask(EthRxLoop* rxl, int i)
   return &rxl->task[i];
 }
 
-int EthRxLoop_AddTask(EthRxLoop* rxl, EthRxTask* task);
+void EthRxLoop_AddTask(EthRxLoop* rxl, EthRxTask* task);
 
 void EthRxLoop_Run(EthRxLoop* rxl, FaceRxBurst* burst, Face_RxCb cb,
                    void* cbarg);

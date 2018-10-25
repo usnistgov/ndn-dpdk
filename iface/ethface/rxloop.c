@@ -17,13 +17,12 @@ EthRxLoop_Close(EthRxLoop* rxl)
   rte_free(rxl);
 }
 
-int
+void
 EthRxLoop_AddTask(EthRxLoop* rxl, EthRxTask* task)
 {
   EthRxTask* rxt = &rxl->task[rxl->nTasks];
   rte_memcpy(rxt, task, sizeof(*rxt));
   ++rxl->nTasks;
-  return 0;
 }
 
 static bool
