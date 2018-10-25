@@ -22,12 +22,6 @@ typedef struct EthRxLoop
   int maxTasks;
   bool stop; ///< true tells EthRxLoop_Run to stop
 
-  /** \brief RX callbacks.
-   *
-   *  This array is separate from EthRxTask because this is rarely used.
-   */
-  const struct rte_eth_rxtx_callback** callback;
-
   /** \brief Array of tasks.
    */
   EthRxTask task[0];

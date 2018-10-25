@@ -12,7 +12,6 @@
 typedef struct EthFacePriv
 {
   struct ether_hdr ethhdr; // TX Ethernet header
-  const struct rte_eth_rxtx_callback* txCallback;
 } EthFacePriv;
 
 static uint16_t
@@ -25,13 +24,5 @@ EthFace_SizeofTxHeader()
  *  \param mempools headerMp must have \c EthFace_SizeofTxHeader() dataroom
  */
 bool EthFace_Init(Face* face, FaceMempools* mempools);
-
-void EthFace_Close(Face* face);
-
-/** \brief Continually retrieve packets from an Ethernet face.
- *  \param burstSize how many L2 frames to retrieve in each burst.
- *  \param cb callback after each packet arrival.
- */
-void EthFace_RxLoop(Face* face, uint16_t burstSize, Face_RxCb cb, void* cbarg);
 
 #endif // NDN_DPDK_IFACE_ETHFACE_ETH_FACE_H
