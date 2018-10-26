@@ -6,6 +6,7 @@
 #include "../core/common.h"
 #include <rte_byteorder.h>
 
+#include "../dpdk/cryptodev.h"
 #include "../dpdk/mbuf-loc.h"
 
 #include "error.h"

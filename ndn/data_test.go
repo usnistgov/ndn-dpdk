@@ -1,10 +1,13 @@
 package ndn_test
 
 import (
+	"crypto/sha256"
 	"testing"
 	"time"
 
+	"ndn-dpdk/dpdk"
 	"ndn-dpdk/ndn"
+	"ndn-dpdk/ndn/ndntestutil"
 )
 
 func TestDataDecode(t *testing.T) {
@@ -36,6 +39,50 @@ func TestDataDecode(t *testing.T) {
 			assert.Implements((*ndn.IL3Packet)(nil), data)
 			assert.Equal(tt.name, data.GetName().String(), tt.input)
 			assert.EqualValues(tt.freshness, data.GetFreshnessPeriod()/time.Millisecond, tt.input)
+		}
+	}
+}
+
+func TestDataDigest(t *testing.T) {
+	assert, require := makeAR(t)
+
+	cd, e := dpdk.NewOpensslCryptoDev("", 1, dpdk.NUMA_SOCKET_ANY)
+	require.NoError(e)
+	defer cd.Close()
+	qp, ok := cd.GetQueuePair(0)
+	require.True(ok)
+	mp, e := dpdk.NewCryptoOpPool("MP-CryptoOp", 255, 5, 0, dpdk.NUMA_SOCKET_ANY)
+	require.NoError(e)
+	defer mp.Close()
+
+	names := []string{
+		"/",
+		"/A",
+		"/B",
+		"/C",
+	}
+	inputs := make([]*ndn.Data, 4)
+	for i, name := range names {
+		inputs[i] = ndntestutil.MakeData(name)
+	}
+
+	ops := make([]dpdk.CryptoOp, 4)
+	require.NoError(mp.AllocBulk(dpdk.CRYPTO_OP_SYM, ops))
+	for i, data := range inputs {
+		assert.Nil(data.GetDigest())
+		data.DigestPrepare(ops[i])
+	}
+	assert.Equal(4, qp.EnqueueBurst(ops))
+
+	assert.Equal(4, qp.DequeueBurst(ops))
+	for i, op := range ops {
+		data, e := ndn.DataDigest_Finish(op)
+		assert.NoError(e)
+		if assert.NotNil(data) {
+			assert.Equal(names[i], data.GetName().String())
+
+			expectedDigest := sha256.Sum256(data.GetPacket().AsDpdkPacket().ReadAll())
+			assert.Equal(expectedDigest[:], data.GetDigest())
 		}
 	}
 }

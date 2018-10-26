@@ -65,6 +65,10 @@ type CryptoOp struct {
 	// DO NOT add other fields: *CryptoOp is passed to C code as rte_crypto_op**
 }
 
+func (op CryptoOp) GetPtr() unsafe.Pointer {
+	return unsafe.Pointer(op.c)
+}
+
 func (op CryptoOp) GetStatus() CryptoOpStatus {
 	return CryptoOpStatus(C.CryptoOp_GetStatus(op.c))
 }
