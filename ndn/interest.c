@@ -152,13 +152,8 @@ PInterest_SelectActiveFh(PInterest* interest, int8_t index)
 bool
 PInterest_MatchesData(PInterest* interest, Packet* dataNpkt)
 {
-  PData* data = Packet_GetDataHdr(dataNpkt);
-  assert(!interest->name.p.hasDigestComp); // not implemented
-  NameCompareResult cmp =
-    LName_Compare(*(const LName*)&interest->name, *(const LName*)&data->name);
-  return (cmp == NAMECMP_EQUAL ||
-          (interest->canBePrefix && cmp == NAMECMP_LPREFIX)) &&
-         (!interest->mustBeFresh || data->freshnessPeriod > 0);
+  return PData_CanSatisfy(Packet_GetDataHdr(dataNpkt), interest) ==
+         DATA_SATISFY_YES;
 }
 
 Packet*

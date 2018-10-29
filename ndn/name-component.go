@@ -2,6 +2,7 @@ package ndn
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
@@ -49,7 +50,7 @@ func (comp NameComponent) GetValue() TlvBytes {
 
 const (
 	implicitSha256DigestComponent_UriPrefix = "sha256digest"
-	implicitSha256DigestComponent_Length    = 32
+	implicitSha256DigestComponent_Length    = sha256.Size
 )
 
 // Print as URI.

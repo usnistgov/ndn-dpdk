@@ -1,4 +1,5 @@
 #include "data.h"
+#include "interest.h"
 #include "packet.h"
 
 NdnError
@@ -58,6 +59,39 @@ PData_FromPacket(PData* data, struct rte_mbuf* pkt, struct rte_mempool* nameMp)
   }
 
   return NdnError_OK;
+}
+
+DataSatisfyResult
+PData_CanSatisfy(PData* data, PInterest* interest)
+{
+  if (unlikely(interest->mustBeFresh && data->freshnessPeriod == 0)) {
+    return DATA_SATISFY_NO;
+  }
+
+  NameCompareResult cmp =
+    LName_Compare(*(const LName*)&interest->name, *(const LName*)&data->name);
+
+  if (unlikely(interest->name.p.hasDigestComp)) {
+    if (cmp != NAMECMP_RPREFIX ||
+        interest->name.p.nComps != data->name.p.nComps + 1) {
+      return DATA_SATISFY_NO;
+    }
+
+    if (!data->hasDigest) {
+      return DATA_SATISFY_NEED_DIGEST;
+    }
+
+    NameComp digestComp = Name_GetComp(&interest->name, data->name.p.nComps);
+    assert(digestComp.size == 34);
+    const uint8_t* digest = RTE_PTR_ADD(digestComp.tlv, 2);
+    return memcmp(digest, data->digest, 32) == 0 ? DATA_SATISFY_YES
+                                                 : DATA_SATISFY_NO;
+  }
+
+  return (cmp == NAMECMP_EQUAL ||
+          (interest->canBePrefix && cmp == NAMECMP_LPREFIX))
+           ? DATA_SATISFY_YES
+           : DATA_SATISFY_NO;
 }
 
 void

@@ -38,8 +38,39 @@ func (data *Data) GetName() (n *Name) {
 	return n
 }
 
+// Compute Data full name (written in Go, for unit testing).
+func (data *Data) GetFullName() (n *Name) {
+	name := data.GetName()
+	comps := name.ListComps()
+
+	digestComp := data.ComputeDigest(false)
+	digestComp = append([]byte{
+		byte(TT_ImplicitSha256DigestComponent),
+		byte(len(digestComp)),
+	}, digestComp...)
+	comps = append(comps, digestComp)
+
+	n, e := NewName(JoinNameComponents(comps))
+	if e != nil {
+		panic(e)
+	}
+	return n
+}
+
 func (data *Data) GetFreshnessPeriod() time.Duration {
 	return time.Duration(data.p.freshnessPeriod) * time.Millisecond
+}
+
+type DataSatisfyResult int
+
+const (
+	DATA_SATISFY_YES         DataSatisfyResult = 0 // Data satisfies Interest
+	DATA_SATISFY_NO          DataSatisfyResult = 1 // Data does not satisfy Interest
+	DATA_SATISFY_NEED_DIGEST DataSatisfyResult = 2 // need Data digest to determine
+)
+
+func (data *Data) CanSatisfy(interest *Interest) DataSatisfyResult {
+	return DataSatisfyResult(C.PData_CanSatisfy(data.p, interest.p))
 }
 
 func (data *Data) GetDigest() []byte {
@@ -47,6 +78,16 @@ func (data *Data) GetDigest() []byte {
 		return nil
 	}
 	return C.GoBytes(unsafe.Pointer(&data.p.digest[0]), sha256.Size)
+}
+
+// Compute Data digest (written in Go, for unit testing).
+func (data *Data) ComputeDigest(wantSave bool) []byte {
+	d := sha256.Sum256(data.GetPacket().AsDpdkPacket().ReadAll())
+	if wantSave {
+		data.p.hasDigest = true
+		C.memcpy(unsafe.Pointer(&data.p.digest[0]), unsafe.Pointer(&d[0]), sha256.Size)
+	}
+	return d[:]
 }
 
 func (data *Data) DigestPrepare(op dpdk.CryptoOp) {

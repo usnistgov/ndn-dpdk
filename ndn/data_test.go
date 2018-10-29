@@ -1,7 +1,6 @@
 package ndn_test
 
 import (
-	"crypto/sha256"
 	"testing"
 	"time"
 
@@ -43,6 +42,55 @@ func TestDataDecode(t *testing.T) {
 	}
 }
 
+func TestDataSatisfy(t *testing.T) {
+	assert, _ := makeAR(t)
+
+	interestExact := ndntestutil.MakeInterest("/B")
+	interestPrefix := ndntestutil.MakeInterest("/B", ndn.CanBePrefixFlag)
+	interestFresh := ndntestutil.MakeInterest("/B", ndn.MustBeFreshFlag)
+
+	tests := []struct {
+		data        *ndn.Data
+		exactMatch  ndn.DataSatisfyResult
+		prefixMatch ndn.DataSatisfyResult
+		freshMatch  ndn.DataSatisfyResult
+	}{
+		{ndntestutil.MakeData("/A", time.Second),
+			ndn.DATA_SATISFY_NO, ndn.DATA_SATISFY_NO, ndn.DATA_SATISFY_NO},
+		{ndntestutil.MakeData("/2=B", time.Second),
+			ndn.DATA_SATISFY_NO, ndn.DATA_SATISFY_NO, ndn.DATA_SATISFY_NO},
+		{ndntestutil.MakeData("/B", time.Second),
+			ndn.DATA_SATISFY_YES, ndn.DATA_SATISFY_YES, ndn.DATA_SATISFY_YES},
+		{ndntestutil.MakeData("/B", time.Duration(0)),
+			ndn.DATA_SATISFY_YES, ndn.DATA_SATISFY_YES, ndn.DATA_SATISFY_NO},
+		{ndntestutil.MakeData("/B/0", time.Second),
+			ndn.DATA_SATISFY_NO, ndn.DATA_SATISFY_YES, ndn.DATA_SATISFY_NO},
+		{ndntestutil.MakeData("/", time.Second),
+			ndn.DATA_SATISFY_NO, ndn.DATA_SATISFY_NO, ndn.DATA_SATISFY_NO},
+		{ndntestutil.MakeData("/C", time.Second),
+			ndn.DATA_SATISFY_NO, ndn.DATA_SATISFY_NO, ndn.DATA_SATISFY_NO},
+	}
+	for i, tt := range tests {
+		assert.Equal(tt.exactMatch, tt.data.CanSatisfy(interestExact), "%d", i)
+		assert.Equal(tt.prefixMatch, tt.data.CanSatisfy(interestPrefix), "%d", i)
+		assert.Equal(tt.freshMatch, tt.data.CanSatisfy(interestFresh), "%d", i)
+
+		if tt.exactMatch == ndn.DATA_SATISFY_YES {
+			interestImplicit := ndntestutil.MakeInterest(tt.data.GetFullName().String())
+			assert.Equal(ndn.DATA_SATISFY_NEED_DIGEST, tt.data.CanSatisfy(interestImplicit))
+			tt.data.ComputeDigest(true)
+			assert.Equal(ndn.DATA_SATISFY_YES, tt.data.CanSatisfy(interestImplicit))
+			ndntestutil.ClosePacket(interestImplicit)
+		}
+
+		ndntestutil.ClosePacket(tt.data)
+	}
+
+	ndntestutil.ClosePacket(interestExact)
+	ndntestutil.ClosePacket(interestPrefix)
+	ndntestutil.ClosePacket(interestFresh)
+}
+
 func TestDataDigest(t *testing.T) {
 	assert, require := makeAR(t)
 
@@ -80,9 +128,7 @@ func TestDataDigest(t *testing.T) {
 		assert.NoError(e)
 		if assert.NotNil(data) {
 			assert.Equal(names[i], data.GetName().String())
-
-			expectedDigest := sha256.Sum256(data.GetPacket().AsDpdkPacket().ReadAll())
-			assert.Equal(expectedDigest[:], data.GetDigest())
+			assert.Equal(data.ComputeDigest(false), data.GetDigest())
 		}
 	}
 }

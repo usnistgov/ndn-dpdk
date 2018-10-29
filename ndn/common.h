@@ -12,6 +12,8 @@
 #include "error.h"
 
 typedef struct Packet Packet;
+typedef struct PInterest PInterest;
+typedef struct PData PData;
 
 #define RETURN_IF_ERROR                                                        \
   do {                                                                         \

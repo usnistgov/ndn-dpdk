@@ -56,8 +56,10 @@ NdnError PInterest_FromPacket(PInterest* interest, struct rte_mbuf* pkt,
 NdnError PInterest_SelectActiveFh(PInterest* interest, int8_t index);
 
 /** \brief Determine whether \p dataNpkt can satisfy \p interest.
+ *  \deprecated use PData_CanSatisfy
  */
-bool PInterest_MatchesData(PInterest* interest, Packet* dataNpkt);
+__rte_deprecated bool PInterest_MatchesData(PInterest* interest,
+                                            Packet* dataNpkt);
 
 static uint16_t
 ModifyInterest_SizeofGuider()

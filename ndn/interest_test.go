@@ -79,60 +79,6 @@ func TestInterestDecode(t *testing.T) {
 	}
 }
 
-func TestInterestMatchesData(t *testing.T) {
-	assert, require := makeAR(t)
-
-	m := dpdktestenv.Alloc(dpdktestenv.MPID_DIRECT)
-	interestExact, e := ndn.MakeInterest(m, "/B")
-	require.NoError(e)
-	defer m.Close()
-
-	m = dpdktestenv.Alloc(dpdktestenv.MPID_DIRECT)
-	interestPrefix, e := ndn.MakeInterest(m, "/B", ndn.CanBePrefixFlag)
-	require.NoError(e)
-	defer m.Close()
-
-	m = dpdktestenv.Alloc(dpdktestenv.MPID_DIRECT)
-	interestFresh, e := ndn.MakeInterest(m, "/B", ndn.MustBeFreshFlag)
-	require.NoError(e)
-	defer m.Close()
-
-	makeData := func(name string, args ...interface{}) *ndn.Data {
-		m = dpdktestenv.Alloc(dpdktestenv.MPID_DIRECT)
-		data, e := ndn.MakeData(m, name, args...)
-		require.NoError(e)
-		return data
-	}
-
-	tests := []struct {
-		data        *ndn.Data
-		exactMatch  bool
-		prefixMatch bool
-		freshMatch  bool
-	}{
-		{makeData("/A", time.Second),
-			false, false, false},
-		{makeData("/2=B", time.Second),
-			false, false, false},
-		{makeData("/B", time.Second),
-			true, true, true},
-		{makeData("/B", time.Duration(0)),
-			true, true, false},
-		{makeData("/B/0", time.Second),
-			false, true, false},
-		{makeData("/", time.Second),
-			false, false, false},
-		{makeData("/C", time.Second),
-			false, false, false},
-	}
-	for i, tt := range tests {
-		assert.Equal(tt.exactMatch, interestExact.MatchesData(tt.data), "%d", i)
-		assert.Equal(tt.prefixMatch, interestPrefix.MatchesData(tt.data), "%d", i)
-		assert.Equal(tt.freshMatch, interestFresh.MatchesData(tt.data), "%d", i)
-		tt.data.GetPacket().AsDpdkPacket().Close()
-	}
-}
-
 func TestInterestModify(t *testing.T) {
 	assert, _ := makeAR(t)
 
