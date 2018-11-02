@@ -5,113 +5,112 @@
 
 #include "pcc-entry.h"
 
-typedef enum PitResultKind {
+/** \brief Private base of PitInsertResult and PitFindResult.
+ */
+typedef struct PitResult
+{
+  PccEntry* entry;
+  int kind;
+} PitResult;
+
+static PitResult
+__PitResult_New(PccEntry* entry, int kind)
+{
+  PitResult pr = {.entry = entry, .kind = kind };
+  return pr;
+}
+
+/** \brief Result of PIT insert.
+ */
+typedef PitResult PitInsertResult;
+
+typedef enum PitInsertResultKind {
   PIT_INSERT_FULL = 0, ///< PIT is full, cannot insert
   PIT_INSERT_PIT0 = 1, ///< created or found PIT entry of MustBeFresh=0
   PIT_INSERT_PIT1 = 2, ///< created or found PIT entry of MustBeFresh=1
   PIT_INSERT_CS = 3,   ///< found existing CS entry that matches the Interest
+} PitInsertResultKind;
 
+static PitInsertResultKind
+PitInsertResult_GetKind(PitInsertResult res)
+{
+  return res.kind;
+}
+
+static PitEntry*
+PitInsertResult_GetPitEntry(PitInsertResult res)
+{
+  switch (res.kind) {
+    case PIT_INSERT_PIT0:
+      return &res.entry->pitEntry0;
+    case PIT_INSERT_PIT1:
+      return &res.entry->pitEntry1;
+    default:
+      assert(false);
+      return NULL;
+  }
+}
+
+static CsEntry*
+PitInsertResult_GetCsEntry(PitInsertResult res)
+{
+  assert(res.kind == PIT_INSERT_CS);
+  return &res.entry->csEntry;
+}
+
+/** \brief Result of PIT find.
+ */
+typedef PitResult PitFindResult;
+
+typedef enum PitFindResultKind {
   PIT_FIND_NONE = 0,  ///< no PIT match
   PIT_FIND_PIT0 = 1,  ///< matched PIT entry of MustBeFresh=0
   PIT_FIND_PIT1 = 2,  ///< matched PIT entry of MustBeFresh=1
   PIT_FIND_PIT01 = 3, ///< matched both PIT entries
+} PitFindResultKind;
 
-  __PIT_RESULT_KIND_MASK = 3,
-  __PIT_RESULT_ENTRY_MASK = ~__PIT_RESULT_KIND_MASK,
-} PitResultKind;
-
-/** \brief Result of PIT insert/find.
- */
-typedef struct PitResult
+static PitFindResultKind
+PitFindResult_GetKind(PitFindResult res)
 {
-  uintptr_t ptr; ///< PccEntry* | PitResultKind
-} PitResult;
-
-static PitResultKind
-PitResult_GetKind(PitResult res)
-{
-  return (PitResultKind)(res.ptr & __PIT_RESULT_KIND_MASK);
-}
-
-static PccEntry*
-__PitResult_GetPccEntry(PitResult res)
-{
-  return (PccEntry*)(res.ptr & __PIT_RESULT_ENTRY_MASK);
-}
-
-static PitResult
-__PitResult_New(PccEntry* entry, PitResultKind kind)
-{
-  PitResult res = {.ptr = ((uintptr_t)entry | kind) };
-  assert(__PitResult_GetPccEntry(res) == entry);
-  assert(PitResult_GetKind(res) == kind);
-  return res;
+  return res.kind;
 }
 
 static PitEntry*
-PitInsertResult_GetPitEntry(PitResult res)
+PitFindResult_GetPitEntry0(PitFindResult res)
 {
-  PccEntry* entry = __PitResult_GetPccEntry(res);
-  switch (PitResult_GetKind(res)) {
-    case PIT_INSERT_PIT0:
-      return &entry->pitEntry0;
-    case PIT_INSERT_PIT1:
-      return &entry->pitEntry1;
+  if ((res.kind & PIT_FIND_PIT0) == 0) {
+    return NULL;
   }
-  assert(false);
+  return &res.entry->pitEntry0;
 }
 
-static CsEntry*
-PitInsertResult_GetCsEntry(PitResult res)
+static PitEntry*
+PitFindResult_GetPitEntry1(PitFindResult res)
 {
-  assert(PitResult_GetKind(res) == PIT_INSERT_CS);
-  PccEntry* entry = __PitResult_GetPccEntry(res);
-  return &entry->csEntry;
-}
-
-static PitResultKind
-__PitFindResult_DetermineKind(PccEntry* entry)
-{
-  return (entry->hasPitEntry0) | (entry->hasPitEntry1 << 1);
-}
-
-static PInterest*
-__PitFindResult_GetInterest2(PccEntry* entry, PitResultKind kind)
-{
-  assert(kind != PIT_FIND_NONE);
-  PitEntry* pitEntry =
-    (kind & PIT_FIND_PIT0) != 0 ? &entry->pitEntry0 : &entry->pitEntry1;
-  return Packet_GetInterestHdr(pitEntry->npkt);
+  if ((res.kind & PIT_FIND_PIT1) == 0) {
+    return NULL;
+  }
+  return &res.entry->pitEntry1;
 }
 
 /** \brief Get a representative Interest from either PIT entry.
- *  \pre PitResult_GetKind(res) != PIT_FIND_NONE
  */
 static PInterest*
-__PitFindResult_GetInterest(PitResult res)
+__PitFindResult_GetInterest(PitFindResult res)
 {
-  PccEntry* entry = __PitResult_GetPccEntry(res);
-  return __PitFindResult_GetInterest2(entry, PitResult_GetKind(res));
-}
-
-static PitEntry*
-PitFindResult_GetPitEntry0(PitResult res)
-{
-  if ((PitResult_GetKind(res) & PIT_FIND_PIT0) == 0) {
-    return NULL;
+  PitEntry* pitEntry = NULL;
+  switch (res.kind) {
+    case PIT_FIND_PIT0:
+    case PIT_FIND_PIT01:
+      pitEntry = &res.entry->pitEntry0;
+      break;
+    case PIT_FIND_PIT1:
+      pitEntry = &res.entry->pitEntry1;
+      break;
+    default:
+      return NULL;
   }
-  PccEntry* entry = __PitResult_GetPccEntry(res);
-  return &entry->pitEntry0;
-}
-
-static PitEntry*
-PitFindResult_GetPitEntry1(PitResult res)
-{
-  if ((PitResult_GetKind(res) & PIT_FIND_PIT1) == 0) {
-    return NULL;
-  }
-  PccEntry* entry = __PitResult_GetPccEntry(res);
-  return &entry->pitEntry1;
+  return Packet_GetInterestHdr(pitEntry->npkt);
 }
 
 #endif // NDN_DPDK_CONTAINER_PCCT_PIT_RESULT_H

@@ -86,9 +86,9 @@ FwFwd_RxData(FwFwd* fwd, Packet* npkt)
   ZF_LOGD("data-from=%" PRI_FaceId " npkt=%p up-token=%016" PRIx64, ctx.upFace,
           npkt, token);
 
-  PitResult pitFound = Pit_FindByData(fwd->pit, npkt);
+  PitFindResult pitFound = Pit_FindByData(fwd->pit, npkt);
   rcu_read_lock();
-  switch (PitResult_GetKind(pitFound)) {
+  switch (PitFindResult_GetKind(pitFound)) {
     case PIT_FIND_NONE:
       rcu_read_unlock();
       FwFwd_DataUnsolicited(fwd, &ctx);

@@ -20,7 +20,7 @@ Pit_Init(Pit* pit)
          PIT_MAX_LIFETIME * rte_get_tsc_hz() / 1000);
 }
 
-PitResult
+PitInsertResult
 Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
 {
   Pcct* pcct = Pit_ToPcct(pit);
@@ -85,7 +85,7 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
 
   PitEntry* entry = NULL;
   bool isNew = false;
-  PitResultKind resKind = 0;
+  PitInsertResultKind resKind = 0;
 
   // select slot 0 or 1 according to MustBeFresh
   if (!interest->mustBeFresh) {
@@ -175,7 +175,7 @@ __Pit_Timeout(MinTmr* tmr, void* pit0)
   Pit_Erase(pit, entry);
 }
 
-PitResult
+PitFindResult
 Pit_FindByData(Pit* pit, Packet* npkt)
 {
   PitPriv* pitp = Pit_GetPriv(pit);
@@ -187,18 +187,24 @@ Pit_FindByData(Pit* pit, Packet* npkt)
     return __PitResult_New(NULL, PIT_FIND_NONE);
   }
 
-  PitResultKind resKind = __PitFindResult_DetermineKind(pccEntry);
-  if (likely(resKind != PIT_FIND_NONE)) {
-    PInterest* interest = __PitFindResult_GetInterest2(pccEntry, resKind);
-    if (unlikely(!PInterest_MatchesData(interest, npkt))) {
-      // Data carries old/bad PIT token
-      ++pitp->nDataMiss;
-      return __PitResult_New(NULL, PIT_FIND_NONE);
-    }
+  PitFindResultKind resKind = PIT_FIND_NONE;
+  PInterest* interest = NULL;
+  if (pccEntry->hasPitEntry1) {
+    resKind = resKind | PIT_FIND_PIT1;
+    interest = Packet_GetInterestHdr(pccEntry->pitEntry1.npkt);
+  }
+  if (pccEntry->hasPitEntry0) {
+    resKind = resKind | PIT_FIND_PIT0;
+    interest = Packet_GetInterestHdr(pccEntry->pitEntry0.npkt);
   }
 
-  ++pitp->nDataHit;
-  return __PitResult_New(pccEntry, resKind);
+  if (likely(resKind != PIT_FIND_NONE &&
+             PInterest_MatchesData(interest, npkt))) {
+    ++pitp->nDataHit;
+    return __PitResult_New(pccEntry, resKind);
+  }
+  ++pitp->nDataMiss;
+  return __PitResult_New(NULL, PIT_FIND_NONE);
 }
 
 PitEntry*

@@ -48,7 +48,7 @@ func (pit Pit) TriggerTimeoutSched() {
 func (pit Pit) Insert(interest *ndn.Interest, fibEntry *fib.Entry) (pitEntry *Entry, csEntry *cs.Entry) {
 	res := C.Pit_Insert(pit.getPtr(), (*C.Packet)(interest.GetPacket().GetPtr()),
 		(*C.FibEntry)(unsafe.Pointer(fibEntry)))
-	switch C.PitResult_GetKind(res) {
+	switch C.PitInsertResult_GetKind(res) {
 	case C.PIT_INSERT_PIT0, C.PIT_INSERT_PIT1:
 		pitEntry = &Entry{C.PitInsertResult_GetPitEntry(res), pit}
 	case C.PIT_INSERT_CS:
@@ -66,19 +66,20 @@ func (pit Pit) Erase(entry Entry) {
 
 // Result of Pit.FindByData.
 type FindResult struct {
-	resC C.PitResult
+	resC C.PitFindResult
 	pit  Pit
 }
 
-// Copy to *C.PitResult for use in another package.
-func (fr FindResult) CopyToCPitResult(ptr unsafe.Pointer) {
-	dst := (*C.PitResult)(ptr)
-	dst.ptr = fr.resC.ptr
+// Copy to *C.PitFindResult for use in another package.
+func (fr FindResult) CopyToCPitFindResult(ptr unsafe.Pointer) {
+	dst := (*C.PitFindResult)(ptr)
+	dst.entry = fr.resC.entry
+	dst.kind = fr.resC.kind
 }
 
 // Determine how many PIT entries are matched.
 func (fr FindResult) Len() int {
-	switch C.PitResult_GetKind(fr.resC) {
+	switch C.PitFindResult_GetKind(fr.resC) {
 	case C.PIT_FIND_PIT0, C.PIT_FIND_PIT1:
 		return 1
 	case C.PIT_FIND_PIT01:

@@ -63,10 +63,10 @@ Cs_CountEntries(const Cs* cs)
 /** \brief Insert a CS entry.
  *  \param npkt the Data packet. CS takes ownership.
  *  \param pitFound result of Pit_FindByData that contains PIT entries
- *                  satisfied by this Data, must not be PIT_FIND_NONE.
+ *                  satisfied by this Data; its kind must not be PIT_FIND_NONE.
  *  \post PIT entries contained in \p pitFound are removed.
  */
-void Cs_Insert(Cs* cs, Packet* npkt, PitResult pitFound);
+void Cs_Insert(Cs* cs, Packet* npkt, PitFindResult pitFound);
 
 /** \brief Erase CS entry but retain the PccEntry.
  */

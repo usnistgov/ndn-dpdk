@@ -220,14 +220,14 @@ __Cs_PutIndirect(Cs* cs, CsEntry* direct, PccEntry* pccEntry)
 }
 
 void
-Cs_Insert(Cs* cs, Packet* npkt, PitResult pitFound)
+Cs_Insert(Cs* cs, Packet* npkt, PitFindResult pitFound)
 {
   Pcct* pcct = Cs_ToPcct(cs);
   Pit* pit = Pit_FromPcct(pcct);
   CsPriv* csp = Cs_GetPriv(cs);
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   PData* data = Packet_GetDataHdr(npkt);
-  PccEntry* pccEntry = __PitResult_GetPccEntry(pitFound);
+  PccEntry* pccEntry = pitFound.entry;
   PInterest* interest = __PitFindResult_GetInterest(pitFound);
   CsEntry* direct = NULL;
 

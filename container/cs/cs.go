@@ -52,13 +52,13 @@ func (cs Cs) List() (list []Entry) {
 }
 
 type iPitFindResult interface {
-	CopyToCPitResult(ptr unsafe.Pointer)
+	CopyToCPitFindResult(ptr unsafe.Pointer)
 }
 
 // Insert a CS entry by replacing a PIT entry with same key.
 func (cs Cs) Insert(data *ndn.Data, pitFound iPitFindResult) {
-	var pitFoundC C.PitResult
-	pitFound.CopyToCPitResult(unsafe.Pointer(&pitFoundC))
+	var pitFoundC C.PitFindResult
+	pitFound.CopyToCPitFindResult(unsafe.Pointer(&pitFoundC))
 	C.Cs_Insert(cs.getPtr(), (*C.Packet)(data.GetPacket().GetPtr()), pitFoundC)
 }
 

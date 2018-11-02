@@ -152,8 +152,8 @@ FwFwd_RxInterest(FwFwd* fwd, Packet* npkt)
   ++ctx.fibEntry->dyn->nRxInterests;
 
   // lookup PIT-CS
-  PitResult pitIns = Pit_Insert(fwd->pit, npkt, ctx.fibEntry);
-  switch (PitResult_GetKind(pitIns)) {
+  PitInsertResult pitIns = Pit_Insert(fwd->pit, npkt, ctx.fibEntry);
+  switch (PitInsertResult_GetKind(pitIns)) {
     case PIT_INSERT_PIT0:
     case PIT_INSERT_PIT1: {
       ctx.pitEntry = PitInsertResult_GetPitEntry(pitIns);
