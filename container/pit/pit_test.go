@@ -63,17 +63,25 @@ func TestInsertErase(t *testing.T) {
 
 func TestToken(t *testing.T) {
 	assert, require := makeAR(t)
-	tokens, entries := make([]uint64, 255), make([]pit.Entry, 255)
+	interestNames := make([]string, 255)
+	dataPkts := make([]*ndn.Data, 255)
+	entries := make([]pit.Entry, 255)
 	fixture := NewFixture(255)
 	defer fixture.Close()
 	pit := fixture.Pit
 
 	for i := 0; i <= 255; i++ {
-		interest := ndntestutil.MakeInterest(fmt.Sprintf("/I/%d", i))
+		data := ndntestutil.MakeData(fmt.Sprintf("/I/%d", i))
+		name := data.GetName().String()
+		if i < 32 {
+			name = data.GetFullName().String()
+		}
+		interest := ndntestutil.MakeInterest(name)
 
 		entry, _ := pit.Insert(interest, fixture.EmptyFibEntry)
 		if i == 255 { // PCCT is full
 			assert.Nil(entry)
+			ndntestutil.ClosePacket(data)
 			ndntestutil.ClosePacket(interest)
 			continue
 		}
@@ -81,25 +89,41 @@ func TestToken(t *testing.T) {
 
 		token := entry.GetToken()
 		assert.Equal(token&(1<<48-1), token) // token has 48 bits
-		tokens[i] = token
+		ndntestutil.SetPitToken(data, token)
+
+		interestNames[i] = name
+		dataPkts[i] = data
 		entries[i] = *entry
 	}
 
 	assert.Equal(255, pit.Len())
-	assert.Len(tokens, 255)
+	assert.Len(entries, 255)
 
-	for i, token := range tokens {
-		entry := entries[i]
-		data := ndntestutil.MakeData(fmt.Sprintf("/I/%d", i))
-		ndntestutil.SetPitToken(data, token)
+	for i, entry := range entries {
+		name := interestNames[i]
+		data := dataPkts[i]
+		token := ndntestutil.GetPitToken(data)
+
 		found := pit.FindByData(data)
-		if assert.Equal(1, found.Len()) {
-			assert.Equal(uintptr(entry.GetPtr()), uintptr(found.GetEntries()[0].GetPtr()))
+		foundEntries := found.ListEntries()
+		if assert.Len(foundEntries, 1) {
+			assert.Equal(uintptr(entry.GetPtr()), uintptr(foundEntries[0].GetPtr()))
 		}
+
+		// Interest carries implicit digest, so Data digest is needed
+		if i < 32 && assert.True(found.NeedDataDigest()) {
+			data.ComputeDigest(true)
+			found = pit.FindByData(data)
+			foundEntries = found.ListEntries()
+			if assert.Len(foundEntries, 1) {
+				assert.Equal(uintptr(entry.GetPtr()), uintptr(foundEntries[0].GetPtr()))
+			}
+		}
+		assert.False(found.NeedDataDigest())
 
 		// high 16 bits of the token should be ignored
 		token2 := token ^ 0x79BC000000000000
-		nack := ndn.MakeNackFromInterest(ndntestutil.MakeInterest(fmt.Sprintf("/I/%d", i)),
+		nack := ndn.MakeNackFromInterest(ndntestutil.MakeInterest(name),
 			ndn.NackReason_NoRoute)
 		ndntestutil.SetPitToken(nack, token2)
 		foundEntry := pit.FindByNack(nack)
@@ -110,8 +134,8 @@ func TestToken(t *testing.T) {
 		// name mismatch
 		data2 := ndntestutil.MakeData(fmt.Sprintf("/K/%d", i))
 		ndntestutil.SetPitToken(data2, token)
-		found = pit.FindByData(data2)
-		assert.Equal(0, found.Len())
+		foundEntries = pit.FindByData(data2).ListEntries()
+		assert.Len(foundEntries, 0)
 
 		pit.Erase(entry)
 		foundEntry = pit.FindByNack(nack)

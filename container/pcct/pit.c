@@ -187,24 +187,36 @@ Pit_FindByData(Pit* pit, Packet* npkt)
     return __PitResult_New(NULL, PIT_FIND_NONE);
   }
 
-  PitFindResultKind resKind = PIT_FIND_NONE;
+  PitFindResultFlag flags = PIT_FIND_NONE;
   PInterest* interest = NULL;
   if (pccEntry->hasPitEntry1) {
-    resKind = resKind | PIT_FIND_PIT1;
+    flags |= PIT_FIND_PIT1;
     interest = Packet_GetInterestHdr(pccEntry->pitEntry1.npkt);
   }
   if (pccEntry->hasPitEntry0) {
-    resKind = resKind | PIT_FIND_PIT0;
+    flags |= PIT_FIND_PIT0;
     interest = Packet_GetInterestHdr(pccEntry->pitEntry0.npkt);
   }
 
-  if (likely(resKind != PIT_FIND_NONE &&
-             PInterest_MatchesData(interest, npkt))) {
-    ++pitp->nDataHit;
-    return __PitResult_New(pccEntry, resKind);
+  if (likely(flags != PIT_FIND_NONE)) {
+    PData* data = Packet_GetDataHdr(npkt);
+    DataSatisfyResult satisfy = PData_CanSatisfy(data, interest);
+    switch (satisfy) {
+      case DATA_SATISFY_YES:
+        ++pitp->nDataHit;
+        break;
+      case DATA_SATISFY_NO:
+        flags = PIT_FIND_NONE;
+        ++pitp->nDataMiss;
+        break;
+      case DATA_SATISFY_NEED_DIGEST:
+        flags |= PIT_FIND_NEED_DIGEST;
+        // do not increment either counter: caller should compute Data digest
+        // and reinvoke Pit_FindByData that leads to either Data hit or miss.
+        break;
+    }
   }
-  ++pitp->nDataMiss;
-  return __PitResult_New(NULL, PIT_FIND_NONE);
+  return __PitResult_New(pccEntry, flags);
 }
 
 PitEntry*

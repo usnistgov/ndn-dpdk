@@ -73,7 +73,7 @@ func (fixture *Fixture) Insert(interest *ndn.Interest, data *ndn.Data) (isReplac
 
 	ndntestutil.SetPitToken(data, pitEntry.GetToken())
 	pitFound := fixture.Pit.FindByData(data)
-	if pitFound.Len() == 0 {
+	if len(pitFound.ListEntries()) == 0 {
 		panic("Pit.FindByData returned empty result")
 	}
 

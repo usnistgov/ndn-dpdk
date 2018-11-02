@@ -77,29 +77,20 @@ func (fr FindResult) CopyToCPitFindResult(ptr unsafe.Pointer) {
 	dst.kind = fr.resC.kind
 }
 
-// Determine how many PIT entries are matched.
-func (fr FindResult) Len() int {
-	switch C.PitFindResult_GetKind(fr.resC) {
-	case C.PIT_FIND_PIT0, C.PIT_FIND_PIT1:
-		return 1
-	case C.PIT_FIND_PIT01:
-		return 2
-	}
-	return 0
-}
-
 // Access matched PIT entries.
-func (fr FindResult) GetEntries() (entries []Entry) {
+func (fr FindResult) ListEntries() (entries []Entry) {
 	entries = make([]Entry, 0, 2)
-	entry0 := C.PitFindResult_GetPitEntry0(fr.resC)
-	if entry0 != nil {
+	if entry0 := C.PitFindResult_GetPitEntry0(fr.resC); entry0 != nil {
 		entries = append(entries, fr.pit.EntryFromPtr(unsafe.Pointer(entry0)))
 	}
-	entry1 := C.PitFindResult_GetPitEntry1(fr.resC)
-	if entry1 != nil {
+	if entry1 := C.PitFindResult_GetPitEntry1(fr.resC); entry1 != nil {
 		entries = append(entries, fr.pit.EntryFromPtr(unsafe.Pointer(entry1)))
 	}
 	return entries
+}
+
+func (fr FindResult) NeedDataDigest() bool {
+	return bool(C.PitFindResult_Is(fr.resC, C.PIT_FIND_NEED_DIGEST))
 }
 
 // Find PIT entries matching a Data.

@@ -24,6 +24,8 @@ __PitResult_New(PccEntry* entry, int kind)
  */
 typedef PitResult PitInsertResult;
 
+/** \brief Result kind of PIT insert.
+ */
 typedef enum PitInsertResultKind {
   PIT_INSERT_FULL = 0, ///< PIT is full, cannot insert
   PIT_INSERT_PIT0 = 1, ///< created or found PIT entry of MustBeFresh=0
@@ -62,23 +64,32 @@ PitInsertResult_GetCsEntry(PitInsertResult res)
  */
 typedef PitResult PitFindResult;
 
-typedef enum PitFindResultKind {
-  PIT_FIND_NONE = 0,  ///< no PIT match
-  PIT_FIND_PIT0 = 1,  ///< matched PIT entry of MustBeFresh=0
-  PIT_FIND_PIT1 = 2,  ///< matched PIT entry of MustBeFresh=1
-  PIT_FIND_PIT01 = 3, ///< matched both PIT entries
-} PitFindResultKind;
+/** \brief Result flag of PIT find, bitwise OR.
+ */
+typedef enum PitFindResultFlag {
+  PIT_FIND_NONE = 0, ///< no PIT match
 
-static PitFindResultKind
-PitFindResult_GetKind(PitFindResult res)
+  PIT_FIND_PIT0 = (1 << 0), ///< matched PIT entry of MustBeFresh=0
+  PIT_FIND_PIT1 = (1 << 1), ///< matched PIT entry of MustBeFresh=1
+
+  /// need Data digest to determine match, PccEntry is set on PitInsertResult,
+  /// PIT_FIND_PIT0 and PIT_FIND_PIT1 indicate existence of PIT entries.
+  PIT_FIND_NEED_DIGEST = (1 << 2),
+} PitFindResultFlag;
+
+static bool
+PitFindResult_Is(PitFindResult res, PitFindResultFlag flag)
 {
-  return res.kind;
+  if (flag == PIT_FIND_NONE) {
+    return res.kind == PIT_FIND_NONE;
+  }
+  return (res.kind & flag) != 0;
 }
 
 static PitEntry*
 PitFindResult_GetPitEntry0(PitFindResult res)
 {
-  if ((res.kind & PIT_FIND_PIT0) == 0) {
+  if (!PitFindResult_Is(res, PIT_FIND_PIT0)) {
     return NULL;
   }
   return &res.entry->pitEntry0;
@@ -87,7 +98,7 @@ PitFindResult_GetPitEntry0(PitFindResult res)
 static PitEntry*
 PitFindResult_GetPitEntry1(PitFindResult res)
 {
-  if ((res.kind & PIT_FIND_PIT1) == 0) {
+  if (!PitFindResult_Is(res, PIT_FIND_PIT1)) {
     return NULL;
   }
   return &res.entry->pitEntry1;
@@ -98,17 +109,12 @@ PitFindResult_GetPitEntry1(PitFindResult res)
 static PInterest*
 __PitFindResult_GetInterest(PitFindResult res)
 {
-  PitEntry* pitEntry = NULL;
-  switch (res.kind) {
-    case PIT_FIND_PIT0:
-    case PIT_FIND_PIT01:
-      pitEntry = &res.entry->pitEntry0;
-      break;
-    case PIT_FIND_PIT1:
-      pitEntry = &res.entry->pitEntry1;
-      break;
-    default:
-      return NULL;
+  PitEntry* pitEntry = PitFindResult_GetPitEntry0(res);
+  if (pitEntry == NULL) {
+    pitEntry = PitFindResult_GetPitEntry1(res);
+  }
+  if (pitEntry == NULL) {
+    return NULL;
   }
   return Packet_GetInterestHdr(pitEntry->npkt);
 }

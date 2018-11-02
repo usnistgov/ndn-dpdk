@@ -87,30 +87,27 @@ FwFwd_RxData(FwFwd* fwd, Packet* npkt)
           npkt, token);
 
   PitFindResult pitFound = Pit_FindByData(fwd->pit, npkt);
+  if (PitFindResult_Is(pitFound, PIT_FIND_NONE)) {
+    FwFwd_DataUnsolicited(fwd, &ctx);
+    return;
+  }
+
+  // Data digest not implemented
+  assert(!PitFindResult_Is(pitFound, PIT_FIND_NEED_DIGEST));
+
   rcu_read_lock();
-  switch (PitFindResult_GetKind(pitFound)) {
-    case PIT_FIND_NONE:
-      rcu_read_unlock();
-      FwFwd_DataUnsolicited(fwd, &ctx);
-      return;
-    case PIT_FIND_PIT0:
-      ctx.pitEntry = PitFindResult_GetPitEntry0(pitFound);
+  if (PitFindResult_Is(pitFound, PIT_FIND_PIT0)) {
+    ctx.pitEntry = PitFindResult_GetPitEntry0(pitFound);
+    ctx.fibEntry = PitEntry_FindFibEntry(ctx.pitEntry, fwd->fib);
+    FwFwd_DataSatisfy(fwd, &ctx);
+  }
+  if (PitFindResult_Is(pitFound, PIT_FIND_PIT1)) {
+    ctx.pitEntry = PitFindResult_GetPitEntry1(pitFound);
+    if (likely(ctx.fibEntry == NULL)) {
       ctx.fibEntry = PitEntry_FindFibEntry(ctx.pitEntry, fwd->fib);
-      FwFwd_DataSatisfy(fwd, &ctx);
-      break;
-    case PIT_FIND_PIT1:
-      ctx.pitEntry = PitFindResult_GetPitEntry1(pitFound);
-      ctx.fibEntry = PitEntry_FindFibEntry(ctx.pitEntry, fwd->fib);
-      FwFwd_DataSatisfy(fwd, &ctx);
-      break;
-    case PIT_FIND_PIT01:
-      ctx.pitEntry = PitFindResult_GetPitEntry0(pitFound);
-      ctx.fibEntry = PitEntry_FindFibEntry(ctx.pitEntry, fwd->fib);
-      FwFwd_DataSatisfy(fwd, &ctx);
-      // XXX if both PIT entries have the same downstream, Data is sent twice
-      ctx.pitEntry = PitFindResult_GetPitEntry1(pitFound);
-      FwFwd_DataSatisfy(fwd, &ctx);
-      break;
+    }
+    // XXX if both PIT entries have the same downstream, Data is sent twice
+    FwFwd_DataSatisfy(fwd, &ctx);
   }
   rcu_read_unlock();
 

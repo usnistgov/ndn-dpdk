@@ -149,13 +149,6 @@ PInterest_SelectActiveFh(PInterest* interest, int8_t index)
   return NdnError_OK;
 }
 
-bool
-PInterest_MatchesData(PInterest* interest, Packet* dataNpkt)
-{
-  return PData_CanSatisfy(Packet_GetDataHdr(dataNpkt), interest) ==
-         DATA_SATISFY_YES;
-}
-
 Packet*
 ModifyInterest(Packet* npkt, uint32_t nonce, uint32_t lifetime,
                uint8_t hopLimit, struct rte_mempool* headerMp,
