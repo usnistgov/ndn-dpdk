@@ -38,6 +38,8 @@ typedef struct FwFwd
   struct rte_mempool* guiderMp;   ///< mempool for Interest guiders
   struct rte_mempool* indirectMp; ///< mempool for indirect mbufs
 
+  struct rte_ring* crypto; ///< queue to crypto helper
+
   /** \brief Statistics of latency from packet arrival to start processing.
    */
   RunningStat latencyStat;

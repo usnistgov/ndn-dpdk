@@ -316,3 +316,36 @@ func TestFwHint(t *testing.T) {
 	assert.Equal(uint64(0), fibCnt.NRxNacks)
 	assert.Equal(uint64(1), fibCnt.NTxInterests)
 }
+
+func TestImplicitDigest(t *testing.T) {
+	assert, require := makeAR(t)
+	fixture := NewFixture(t)
+	defer fixture.Close()
+
+	face1 := fixture.CreateFace()
+	face2 := fixture.CreateFace()
+	fixture.SetFibEntry("/B", "multicast", face2.GetFaceId())
+
+	dataB1 := ndntestutil.MakeData("/B/1")
+	fullNameB1 := dataB1.GetFullName().String()
+
+	interestB1 := ndntestutil.MakeInterest(fullNameB1)
+	ndntestutil.SetPitToken(interestB1, 0xce2e9bce22327e97)
+	face1.Rx(interestB1)
+	time.Sleep(100 * time.Millisecond)
+	require.Len(face2.TxInterests, 1)
+
+	ndntestutil.CopyPitToken(dataB1, face2.TxInterests[0])
+	face2.Rx(dataB1)
+	time.Sleep(100 * time.Millisecond)
+	require.Len(face1.TxData, 1)
+	assert.Equal(uint64(0xce2e9bce22327e97), ndntestutil.GetPitToken(face1.TxData[0]))
+
+	// TODO test CS hit
+
+	fibCnt := fixture.ReadFibCounters("/B")
+	assert.Equal(uint64(1), fibCnt.NRxInterests)
+	assert.Equal(uint64(1), fibCnt.NRxData)
+	assert.Equal(uint64(0), fibCnt.NRxNacks)
+	assert.Equal(uint64(1), fibCnt.NTxInterests)
+}

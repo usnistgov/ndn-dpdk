@@ -25,6 +25,7 @@ type Fixture struct {
 
 	Ndt       *ndt.Ndt
 	Fib       *fib.Fib
+	FwCrypto  *fwdp.Crypto
 	DataPlane *fwdp.DataPlane
 
 	outputTxLoop *iface.MultiTxLoop
@@ -38,9 +39,11 @@ func NewFixture(t *testing.T) (fixture *Fixture) {
 	var dpCfg fwdp.Config
 	lcr := appinit.NewLCoreReservations()
 
-	inputLc := lcr.Reserve(dpdk.NUMA_SOCKET_ANY)
-	fixture.require.True(inputLc.IsValid())
-	dpCfg.InputLCores = []dpdk.LCore{inputLc}
+	faceInputLc := lcr.Reserve(dpdk.NUMA_SOCKET_ANY)
+	fixture.require.True(faceInputLc.IsValid())
+	cryptoInputLc := lcr.Reserve(dpdk.NUMA_SOCKET_ANY)
+	fixture.require.True(cryptoInputLc.IsValid())
+	dpCfg.InputLCores = []dpdk.LCore{faceInputLc, cryptoInputLc}
 
 	for i := 0; i < nFwds; i++ {
 		lc := lcr.Reserve(dpdk.NUMA_SOCKET_ANY)
@@ -77,11 +80,25 @@ func NewFixture(t *testing.T) (fixture *Fixture) {
 	dpCfg.FwdQueueCapacity = 64
 	dpCfg.PcctCfg.MaxEntries = 65535
 
+	{
+		var cryptoCfg fwdp.CryptoConfig
+		cryptoCfg.InputCapacity = 64
+		cryptoCfg.OpPoolCapacity = 1023
+		cryptoCfg.OpPoolCacheSize = 31
+		cryptoCfg.Socket = cryptoInputLc.GetNumaSocket()
+		theCrypto, e := fwdp.NewCrypto("FWC", cryptoCfg)
+		fixture.require.NoError(e)
+		fixture.FwCrypto = theCrypto
+	}
+
 	theDp, e := fwdp.New(dpCfg)
 	fixture.require.NoError(e)
+	theDp.SetCrypto(fixture.FwCrypto)
 	fixture.DataPlane = theDp
 
 	e = fixture.DataPlane.LaunchInput(0, mockface.TheRxLoop, 1)
+	fixture.require.NoError(e)
+	e = fixture.DataPlane.LaunchInput(1, fixture.FwCrypto, 1)
 	fixture.require.NoError(e)
 	for i := 0; i < nFwds; i++ {
 		e := fixture.DataPlane.LaunchFwd(i)
@@ -98,12 +115,14 @@ func NewFixture(t *testing.T) (fixture *Fixture) {
 
 func (fixture *Fixture) Close() error {
 	fixture.DataPlane.StopInput(0)
+	fixture.DataPlane.StopInput(1)
 	for i := 0; i < nFwds; i++ {
 		fixture.DataPlane.StopFwd(i)
 	}
 	fixture.outputTxLoop.StopTxLoop()
 
 	fixture.DataPlane.Close()
+	fixture.FwCrypto.Close()
 	fixture.Ndt.Close()
 	fixture.Fib.Close()
 	iface.CloseAll()

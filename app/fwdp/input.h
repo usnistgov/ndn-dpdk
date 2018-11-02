@@ -36,13 +36,16 @@ FwInput* FwInput_New(const Ndt* ndt, uint8_t ndtThreadId, uint8_t nFwds,
 
 void FwInput_Connect(FwInput* fwi, FwFwd* fwd);
 
-void FwInput_FaceRx(FaceId face, FaceRxBurst* burst, void* fwi0);
-
 static FwInputFwdConn*
 FwInput_GetConn(FwInput* fwi, uint8_t i)
 {
   assert(i < fwi->nFwds);
   return &fwi->conn[i];
 }
+
+void FwInput_DispatchByName(FwInput* fwi, Packet* npkt, const Name* name);
+void FwInput_DispatchByToken(FwInput* fwi, Packet* npkt, uint64_t token);
+
+void FwInput_FaceRx(FaceId face, FaceRxBurst* burst, void* fwi0);
 
 #endif // NDN_DPDK_APP_FWDP_INPUT_H

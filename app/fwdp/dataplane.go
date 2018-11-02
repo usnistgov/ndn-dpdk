@@ -147,6 +147,13 @@ func (dp *DataPlane) Close() error {
 	return nil
 }
 
+// Provide crypto helper to fwds.
+func (dp *DataPlane) SetCrypto(fwc *Crypto) {
+	for _, fwd := range dp.fwds {
+		fwd.crypto = fwc.c.input
+	}
+}
+
 // Launch input process.
 func (dp *DataPlane) LaunchInput(i int, rxl iface.IRxLooper, burstSize int) error {
 	lc := dp.inputLCores[i]

@@ -27,6 +27,24 @@ FwFwd_DataUnsolicited(FwFwd* fwd, FwFwdRxDataContext* ctx)
 }
 
 static void
+FwFwd_DataNeedDigest(FwFwd* fwd, FwFwdRxDataContext* ctx)
+{
+  if (unlikely(fwd->crypto == NULL)) {
+    ZF_LOGD("^ error=crypto-unavailable");
+    rte_pktmbuf_free(ctx->pkt);
+    return;
+  }
+
+  int res = rte_ring_enqueue(fwd->crypto, ctx->npkt);
+  if (unlikely(res != 0)) {
+    ZF_LOGD("^ error=crypto-enqueue-error-%d", res);
+    rte_pktmbuf_free(ctx->pkt);
+  } else {
+    ZF_LOGD("^ helper=crypto");
+  }
+}
+
+static void
 FwFwd_DataSatisfy(FwFwd* fwd, FwFwdRxDataContext* ctx)
 {
   ZF_LOGD("^ pit-entry=%p pit-key=%s", ctx->pitEntry,
@@ -91,9 +109,10 @@ FwFwd_RxData(FwFwd* fwd, Packet* npkt)
     FwFwd_DataUnsolicited(fwd, &ctx);
     return;
   }
-
-  // Data digest not implemented
-  assert(!PitFindResult_Is(pitFound, PIT_FIND_NEED_DIGEST));
+  if (PitFindResult_Is(pitFound, PIT_FIND_NEED_DIGEST)) {
+    FwFwd_DataNeedDigest(fwd, &ctx);
+    return;
+  }
 
   rcu_read_lock();
   if (PitFindResult_Is(pitFound, PIT_FIND_PIT0)) {
@@ -111,6 +130,5 @@ FwFwd_RxData(FwFwd* fwd, Packet* npkt)
   }
   rcu_read_unlock();
 
-  // insert to CS
   Cs_Insert(fwd->cs, npkt, pitFound);
 }

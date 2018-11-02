@@ -15,12 +15,22 @@ For each incoming packet, FwInput decides which forwarding process should handle
 * For an Interest, lookup the [NDT](../../container/ndt/) with the Interest name.
 * For a Data or Nack, take the first 8 bits of its PIT token.
 
-Then, FwInput passes the packet to the chosen forwarding process's input queue (a DPDK ring in multi-produer single-consumer mode).
+Then, FwInput passes the packet to the chosen forwarding process's input queue (a DPDK ring in multi-producer single-consumer mode).
 In case the queue is full, FwInput drops the packet, and increments a drop counter.
 
 ### Data Structure Usage
 
 All FwInputs have read-only access to a shared NDT.
+
+### Crypto Helper (FwCrypto)
+
+FwCrypto provides Data implicit digest computation.
+It is a special kind of FwInput that runs `FwCrypto_Run` as the main loop.
+
+When FwFwd processes an incoming Data packet and finds a PIT entry whose Interest carries the ImplicitSha256DigestComponent, it needs to compute the Data's implicit digest in order to determine whether the Data satisfies the Interest.
+Instead of doing the computation in FwFwd and blocking other packet processing, the FwFwd passes the Data to FwCrypto.
+FwCrypto computes Data digest using a DPDK cryptodev, stores the implicit digest in the mbuf header, and re-dispatches the Data to FwFwd.
+FwFwd can then re-process the Data, and use the computed implicit digest to determine whether it satisfies the pending Interest.
 
 ## Forwarding Process (FwFwd)
 
@@ -60,3 +70,4 @@ Common keys include:
 * "pit-key": debug string of a PIT entry.
 * "sg-id": strategy identifier.
 * "sg-res": return value of strategy invocation.
+* "helper": handing off to a helper.

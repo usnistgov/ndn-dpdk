@@ -36,7 +36,7 @@ FwInput_PassTo(FwInput* fwi, Packet* npkt, uint8_t fwdId)
   }
 }
 
-static void
+void
 FwInput_DispatchByName(FwInput* fwi, Packet* npkt, const Name* name)
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
@@ -51,7 +51,7 @@ FwInput_DispatchByName(FwInput* fwi, Packet* npkt, const Name* name)
   FwInput_PassTo(fwi, npkt, fwdId);
 }
 
-static void
+void
 FwInput_DispatchByToken(FwInput* fwi, Packet* npkt, uint64_t token)
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);

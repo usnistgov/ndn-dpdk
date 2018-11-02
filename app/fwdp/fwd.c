@@ -14,8 +14,8 @@ static const FwFwd_RxFunc FwFwd_RxFuncs[L3PktType_MAX] = {
 void
 FwFwd_Run(FwFwd* fwd)
 {
-  ZF_LOGI("fwdId=%" PRIu8 " fwd=%p queue=%p fib=%p pit+cs=%p", fwd->id, fwd,
-          fwd->queue, fwd->fib, fwd->pcct);
+  ZF_LOGI("fwdId=%" PRIu8 " fwd=%p queue=%p fib=%p pit+cs=%p crypto=%p",
+          fwd->id, fwd, fwd->queue, fwd->fib, fwd->pcct, fwd->crypto);
 
   Packet* npkts[FW_FWD_BURST_SIZE];
   while (!fwd->stop) {

@@ -166,9 +166,14 @@ func NewCryptoDev(name string, maxSessions, nQueuePairs int, socket NumaSocket) 
 	return cd, nil
 }
 
+var lastOpensslCryptoDevId int
+
 // Create an OpenSSL virtual crypto device.
 func NewOpensslCryptoDev(id string, nQueuePairs int, socket NumaSocket) (cd CryptoDev, e error) {
-	name := fmt.Sprintf("crypto_openssl_%s", id)
+	// XXX due to https://bugs.dpdk.org/show_bug.cgi?id=105, device name
+	// is currently a sequence number to ensure uniqueness.
+	lastOpensslCryptoDevId++
+	name := fmt.Sprintf("crypto_openssl_%d", lastOpensslCryptoDevId)
 	var args string
 	if socket != NUMA_SOCKET_ANY {
 		args = fmt.Sprintf("socket_id=%d", socket)
@@ -184,15 +189,22 @@ func NewOpensslCryptoDev(id string, nQueuePairs int, socket NumaSocket) (cd Cryp
 }
 
 func (cd CryptoDev) Close() error {
-	name := cd.GetName()
+	// name := cd.GetName()
 	C.rte_cryptodev_stop(cd.devId)
 	if res := C.rte_cryptodev_close(cd.devId); res < 0 {
 		return fmt.Errorf("rte_cryptodev_close error %d", res)
 	}
 	if cd.ownsVdev {
-		return DestroyVdev(name)
+		// XXX not releasing device leaks memory, but DestroyVdev triggers
+		// https://bugs.dpdk.org/show_bug.cgi?id=105
+		return nil
+		// return DestroyVdev(name)
 	}
 	return nil
+}
+
+func (cd CryptoDev) GetId() int {
+	return int(cd.devId)
 }
 
 func (cd CryptoDev) GetName() string {
