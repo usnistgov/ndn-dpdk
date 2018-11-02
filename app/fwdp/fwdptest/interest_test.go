@@ -341,10 +341,18 @@ func TestImplicitDigest(t *testing.T) {
 	require.Len(face1.TxData, 1)
 	assert.Equal(uint64(0xce2e9bce22327e97), ndntestutil.GetPitToken(face1.TxData[0]))
 
-	// TODO test CS hit
+	interestB1 = ndntestutil.MakeInterest(fullNameB1)
+	ndntestutil.SetPitToken(interestB1, 0x5446c548dd1a5c89)
+	face1.Rx(interestB1)
+	time.Sleep(100 * time.Millisecond)
+	assert.Len(face2.TxInterests, 1)
+
+	// CS hit
+	require.Len(face1.TxData, 2)
+	assert.Equal(uint64(0x5446c548dd1a5c89), ndntestutil.GetPitToken(face1.TxData[1]))
 
 	fibCnt := fixture.ReadFibCounters("/B")
-	assert.Equal(uint64(1), fibCnt.NRxInterests)
+	assert.Equal(uint64(2), fibCnt.NRxInterests)
 	assert.Equal(uint64(1), fibCnt.NRxData)
 	assert.Equal(uint64(0), fibCnt.NRxNacks)
 	assert.Equal(uint64(1), fibCnt.NTxInterests)

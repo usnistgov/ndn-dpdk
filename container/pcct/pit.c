@@ -53,8 +53,7 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
     PData* data = Packet_GetDataHdr(dataNpkt);
 
     bool violateCanBePrefix =
-      !interest->canBePrefix && interest->name.p.nComps != data->name.p.nComps;
-    // XXX this does not handle implicit digest
+      !interest->canBePrefix && interest->name.p.nComps < data->name.p.nComps;
     bool violateMustBeFresh =
       interest->mustBeFresh && !CsEntry_IsFresh(csEntry, pkt->timestamp);
 

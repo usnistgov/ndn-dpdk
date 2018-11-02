@@ -161,7 +161,7 @@ FwFwd_RxInterest(FwFwd* fwd, Packet* npkt)
       break;
     }
     case PIT_INSERT_CS: {
-      ctx.csEntry = PitInsertResult_GetCsEntry(pitIns);
+      ctx.csEntry = CsEntry_GetDirect(PitInsertResult_GetCsEntry(pitIns));
       FwFwd_InterestHitCs(fwd, &ctx);
       break;
     }
