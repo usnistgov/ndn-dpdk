@@ -108,7 +108,7 @@ func go_lcoreLaunch(lc unsafe.Pointer) C.int {
 	return C.int(lcoreFuncs[uintptr(lc)]())
 }
 
-// Asynchonrously launch a function on an lcore.
+// Asynchronously launch a function on an lcore.
 // Returns whether success.
 func (lc LCore) RemoteLaunch(f LCoreFunc) bool {
 	panicInSlave("LCore.RemoteLaunch()")

@@ -20,7 +20,7 @@ func InitEal() {
 	}
 }
 
-// Asynchonrously launch a function on an lcore in specified NumaSocket.
+// Asynchronously launch a function on an lcore in specified NumaSocket.
 // Return the lcore used, or dpdk.LCORE_INVALID if no lcore available or other failure.
 func Launch(f dpdk.LCoreFunc, socket dpdk.NumaSocket) dpdk.LCore {
 	lc := NewLCoreReservations().Reserve(socket)
@@ -31,7 +31,7 @@ func Launch(f dpdk.LCoreFunc, socket dpdk.NumaSocket) dpdk.LCore {
 	return lc
 }
 
-// Asynchonrously launch a function on an lcore in specified NumaSocket.
+// Asynchronously launch a function on an lcore in specified NumaSocket.
 // Fatal error if no lcore available or other failure.
 func MustLaunch(f dpdk.LCoreFunc, socket dpdk.NumaSocket) dpdk.LCore {
 	lc := NewLCoreReservations().Reserve(socket)
