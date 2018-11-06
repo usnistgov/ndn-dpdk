@@ -5,69 +5,97 @@ package fwdp
 */
 import "C"
 import (
+	"fmt"
 	"unsafe"
 
+	"ndn-dpdk/appinit"
+	"ndn-dpdk/container/ndt"
 	"ndn-dpdk/dpdk"
-	"ndn-dpdk/iface"
 )
 
 type CryptoConfig struct {
 	InputCapacity   int
 	OpPoolCapacity  int
 	OpPoolCacheSize int
-	Socket          dpdk.NumaSocket
 }
 
 type Crypto struct {
+	InputBase
 	c   C.FwCrypto
 	dev dpdk.CryptoDev
 }
 
-func NewCrypto(name string, cfg CryptoConfig) (fwc *Crypto, e error) {
-	input, e := dpdk.NewRing(name+"_input", cfg.InputCapacity, cfg.Socket, false, true)
-	if e != nil {
-		return nil, e
+func newCrypto(id int) *Crypto {
+	var fwc Crypto
+	fwc.ResetThreadBase()
+	fwc.id = id
+	return &fwc
+}
+
+func (fwc *Crypto) String() string {
+	return fmt.Sprintf("crypto%d", fwc.id)
+}
+
+func (fwc *Crypto) Init(cfg CryptoConfig, ndt *ndt.Ndt, fwds []*Fwd) error {
+	if e := fwc.InputBase.Init(ndt, fwds); e != nil {
+		return e
+	} else {
+		fwc.c.output = fwc.InputBase.c
 	}
 
-	opPool, e := dpdk.NewCryptoOpPool(name+"_pool", cfg.OpPoolCapacity, cfg.OpPoolCacheSize, 0, cfg.Socket)
+	numaSocket := fwc.GetNumaSocket()
+
+	input, e := dpdk.NewRing("crypto0_queue", cfg.InputCapacity, numaSocket, false, true)
+	if e != nil {
+		fwc.InputBase.Close()
+		return fmt.Errorf("dpdk.NewRing: %v", e)
+	} else {
+		fwc.c.input = (*C.struct_rte_ring)(input.GetPtr())
+	}
+
+	opPool, e := dpdk.NewCryptoOpPool("crypto0_pool", cfg.OpPoolCapacity, cfg.OpPoolCacheSize, 0, numaSocket)
 	if e != nil {
 		input.Close()
-		return nil, e
+		fwc.InputBase.Close()
+		return fmt.Errorf("dpdk.NewCryptoOpPool: %v", e)
+	} else {
+		fwc.c.opPool = (*C.struct_rte_mempool)(opPool.GetPtr())
 	}
 
-	fwc = new(Crypto)
-	fwc.dev, e = dpdk.NewOpensslCryptoDev(name, 1, cfg.Socket)
+	fwc.dev, e = dpdk.NewOpensslCryptoDev("crypto0_dev", 1, numaSocket)
 	if e != nil {
 		opPool.Close()
 		input.Close()
-		return nil, e
+		fwc.InputBase.Close()
+		return fmt.Errorf("dpdk.NewOpensslCryptoDev: %v", e)
+	} else {
+		fwc.c.devId = C.uint8_t(fwc.dev.GetId())
+		fwc.c.qpId = 0
 	}
 
-	fwc.c.input = (*C.struct_rte_ring)(input.GetPtr())
-	fwc.c.opPool = (*C.struct_rte_mempool)(opPool.GetPtr())
-	fwc.c.devId = C.uint8_t(fwc.dev.GetId())
-	fwc.c.qpId = 0
-	return fwc, nil
+	for _, fwd := range fwds {
+		fwd.c.crypto = fwc.c.input
+	}
+
+	return nil
+}
+
+func (fwc *Crypto) Launch() error {
+	return fwc.LaunchImpl(func() int {
+		C.FwCrypto_Run(&fwc.c)
+		return 0
+	})
+}
+
+func (fwc *Crypto) Stop() error {
+	return fwc.StopImpl(appinit.NewStopFlag(unsafe.Pointer(&fwc.c.stop)))
 }
 
 func (fwc *Crypto) Close() error {
+	fwc.InputBase.Close()
 	fwc.dev.Close()
 	dpdk.MempoolFromPtr(unsafe.Pointer(fwc.c.opPool)).Close()
 	dpdk.RingFromPtr(unsafe.Pointer(fwc.c.input)).Close()
+	dpdk.Free(fwc.c.output)
 	return nil
-}
-
-// TODO don't disguise as iface.IRxLooper
-func (fwc *Crypto) RxLoop(burstSize int, cb unsafe.Pointer, cbarg unsafe.Pointer) {
-	fwc.c.output = (*C.FwInput)(cbarg)
-	C.FwCrypto_Run(&fwc.c)
-}
-
-func (fwc *Crypto) StopRxLoop() error {
-	fwc.c.stop = C.bool(true)
-	return nil
-}
-
-func (fwc *Crypto) ListFacesInRxLoop() []iface.FaceId {
-	return []iface.FaceId{1}
 }

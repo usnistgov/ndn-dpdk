@@ -23,7 +23,6 @@ const nFwds = 2
 type Fixture struct {
 	require *require.Assertions
 
-	FwCrypto  *fwdp.Crypto
 	DataPlane *fwdp.DataPlane
 	Ndt       *ndt.Ndt
 	Fib       *fib.Fib
@@ -41,9 +40,8 @@ func NewFixture(t *testing.T) (fixture *Fixture) {
 
 	faceInputLc := lcr.Reserve(dpdk.NUMA_SOCKET_ANY)
 	fixture.require.True(faceInputLc.IsValid())
-	cryptoInputLc := lcr.Reserve(dpdk.NUMA_SOCKET_ANY)
-	fixture.require.True(cryptoInputLc.IsValid())
-	dpCfg.InputLCores = []dpdk.LCore{faceInputLc, cryptoInputLc}
+	dpCfg.InputLCores = []dpdk.LCore{faceInputLc}
+	dpCfg.InputRxLoopers = []iface.IRxLooper{mockface.TheRxLoop}
 
 	for i := 0; i < nFwds; i++ {
 		lc := lcr.Reserve(dpdk.NUMA_SOCKET_ANY)
@@ -54,6 +52,14 @@ func NewFixture(t *testing.T) (fixture *Fixture) {
 	outputLc := lcr.Reserve(dpdk.NUMA_SOCKET_ANY)
 	fixture.require.True(outputLc.IsValid())
 
+	dpCfg.Crypto.InputCapacity = 64
+	dpCfg.Crypto.OpPoolCapacity = 1023
+	dpCfg.Crypto.OpPoolCacheSize = 31
+
+	cryptoLc := lcr.Reserve(dpdk.NUMA_SOCKET_ANY)
+	fixture.require.True(cryptoLc.IsValid())
+	dpCfg.CryptoLCore = cryptoLc
+
 	dpCfg.Ndt.PrefixLen = 2
 	dpCfg.Ndt.IndexBits = 16
 	dpCfg.Ndt.SampleFreq = 8
@@ -62,55 +68,35 @@ func NewFixture(t *testing.T) (fixture *Fixture) {
 	dpCfg.Fib.NBuckets = 256
 	dpCfg.Fib.StartDepth = 8
 
-	dpCfg.FwdQueueCapacity = 64
 	dpCfg.Pcct.MaxEntries = 65535
 	dpCfg.Pcct.CsCapacity = 32767
 
-	{
-		var cryptoCfg fwdp.CryptoConfig
-		cryptoCfg.InputCapacity = 64
-		cryptoCfg.OpPoolCapacity = 1023
-		cryptoCfg.OpPoolCacheSize = 31
-		cryptoCfg.Socket = cryptoInputLc.GetNumaSocket()
-		theCrypto, e := fwdp.NewCrypto("FWC", cryptoCfg)
-		fixture.require.NoError(e)
-		fixture.FwCrypto = theCrypto
-	}
+	dpCfg.FwdQueueCapacity = 64
+	dpCfg.LatencySampleFreq = 0
 
 	theDp, e := fwdp.New(dpCfg)
 	fixture.require.NoError(e)
-	theDp.SetCrypto(fixture.FwCrypto)
 	fixture.DataPlane = theDp
 	fixture.Ndt = theDp.GetNdt()
 	fixture.Fib = theDp.GetFib()
 
-	e = fixture.DataPlane.LaunchInput(0, mockface.TheRxLoop, 1)
-	fixture.require.NoError(e)
-	e = fixture.DataPlane.LaunchInput(1, fixture.FwCrypto, 1)
-	fixture.require.NoError(e)
-	for i := 0; i < nFwds; i++ {
-		e := fixture.DataPlane.LaunchFwd(i)
-		fixture.require.NoError(e)
-	}
 	fixture.outputTxLoop = iface.NewMultiTxLoop()
 	outputLc.RemoteLaunch(func() int {
 		fixture.outputTxLoop.TxLoop()
 		return 0
 	})
 
+	e = theDp.Launch()
+	fixture.require.NoError(e)
+
 	return fixture
 }
 
 func (fixture *Fixture) Close() error {
-	fixture.DataPlane.StopInput(0)
-	fixture.DataPlane.StopInput(1)
-	for i := 0; i < nFwds; i++ {
-		fixture.DataPlane.StopFwd(i)
-	}
+	fixture.DataPlane.Stop()
 	fixture.outputTxLoop.StopTxLoop()
 
 	fixture.DataPlane.Close()
-	fixture.FwCrypto.Close()
 	iface.CloseAll()
 	strategycode.CloseAll()
 	return nil

@@ -2,20 +2,20 @@
 
 This package implements the forwarder's data plane.
 
-The data plane consists two types of processes, "input process" and "forwarding process".
-Each process runs in a DPDK lcore.
+The data plane consists two types of threads, "input thread" and "forwarding thread".
+Each thread runs in a DPDK lcore.
 
-## Input Process (FwInput)
+## Input Thread (FwInput)
 
 A FwInput runs an **iface.RxLooper** as the main loop, which reads and decodes packets from one or more network interfaces.
 Every burst of receives L3 packets triggers `FwInput_FaceRx` function.
 
-For each incoming packet, FwInput decides which forwarding process should handle the packet:
+For each incoming packet, FwInput decides which forwarding thread should handle the packet:
 
 * For an Interest, lookup the [NDT](../../container/ndt/) with the Interest name.
 * For a Data or Nack, take the first 8 bits of its PIT token.
 
-Then, FwInput passes the packet to the chosen forwarding process's input queue (a DPDK ring in multi-producer single-consumer mode).
+Then, FwInput passes the packet to the chosen forwarding thread's input queue (a DPDK ring in multi-producer single-consumer mode).
 In case the queue is full, FwInput drops the packet, and increments a drop counter.
 
 ### Data Structure Usage
@@ -27,12 +27,12 @@ All FwInputs have read-only access to a shared NDT.
 FwCrypto provides Data implicit digest computation.
 It is a special kind of FwInput that runs `FwCrypto_Run` as the main loop.
 
-When FwFwd processes an incoming Data packet and finds a PIT entry whose Interest carries the ImplicitSha256DigestComponent, it needs to compute the Data's implicit digest in order to determine whether the Data satisfies the Interest.
+When FwFwd threads an incoming Data packet and finds a PIT entry whose Interest carries the ImplicitSha256DigestComponent, it needs to compute the Data's implicit digest in order to determine whether the Data satisfies the Interest.
 Instead of doing the computation in FwFwd and blocking other packet processing, the FwFwd passes the Data to FwCrypto.
 FwCrypto computes Data digest using a DPDK cryptodev, stores the implicit digest in the mbuf header, and re-dispatches the Data to FwFwd.
 FwFwd can then re-process the Data, and use the computed implicit digest to determine whether it satisfies the pending Interest.
 
-## Forwarding Process (FwFwd)
+## Forwarding Thread (FwFwd)
 
 A FwFwd runs `FwFwd_Run` function as the main loop.
 The main loop first performs some maintenance work:

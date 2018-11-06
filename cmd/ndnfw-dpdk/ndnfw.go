@@ -42,14 +42,13 @@ func startDp(ndtCfg ndt.Config, fibCfg fib.Config, dpInit fwdpInitConfig) {
 	lcr := appinit.NewLCoreReservations()
 
 	var dpCfg fwdp.Config
-	var inputRxLoopers []iface.IRxLooper
 	var outputLCores []dpdk.LCore
 	var outputTxLoopers []iface.ITxLooper
 
 	dpCfg.Ndt = ndtCfg
 	dpCfg.Fib = fibCfg
 
-	// reserve lcores for EthFace
+	// create EthFaces
 	{
 		nRxThreads := dpInit.EthInputsPerFace
 		if nRxThreads == 0 {
@@ -78,7 +77,7 @@ func startDp(ndtCfg ndt.Config, fibCfg fib.Config, dpInit fwdpInitConfig) {
 				for i := range lcores {
 					lcores[i] = lcr.MustReserve(face.GetNumaSocket())
 					dpCfg.InputLCores = append(dpCfg.InputLCores, lcores[i])
-					inputRxLoopers = append(inputRxLoopers, appinit.MakeRxLooper(face))
+					dpCfg.InputRxLoopers = append(dpCfg.InputRxLoopers, appinit.MakeRxLooper(face))
 				}
 				logEntry = logEntry.WithField("rx-lcores", lcores)
 			} else {
@@ -90,7 +89,7 @@ func startDp(ndtCfg ndt.Config, fibCfg fib.Config, dpInit fwdpInitConfig) {
 						lcores[i] = lcr.MustReserve(socket)
 						rxls[i] = ethface.NewRxLoop(len(ethDevs), socket)
 						dpCfg.InputLCores = append(dpCfg.InputLCores, lcores[i])
-						inputRxLoopers = append(inputRxLoopers, rxls[i])
+						dpCfg.InputRxLoopers = append(dpCfg.InputRxLoopers, rxls[i])
 					}
 					rxlPerNuma[socket] = rxls
 					logEntry = logEntry.WithField("shared-rx-lcores", lcores)
@@ -133,13 +132,13 @@ func startDp(ndtCfg ndt.Config, fibCfg fib.Config, dpInit fwdpInitConfig) {
 		}
 	}
 
-	// reserve lcore for SocketFaces
+	// prepare SocketFaces
 	if dpInit.EnableSocketFace {
 		theSocketRxg = socketface.NewRxGroup()
 		inputLc := lcr.MustReserve(dpdk.NUMA_SOCKET_ANY)
 		theSocketFaceNumaSocket = inputLc.GetNumaSocket()
 		dpCfg.InputLCores = append(dpCfg.InputLCores, inputLc)
-		inputRxLoopers = append(inputRxLoopers, theSocketRxg)
+		dpCfg.InputRxLoopers = append(dpCfg.InputRxLoopers, theSocketRxg)
 
 		theSocketTxl = iface.NewMultiTxLoop()
 		outputLc := lcr.MustReserve(theSocketFaceNumaSocket)
@@ -150,8 +149,18 @@ func startDp(ndtCfg ndt.Config, fibCfg fib.Config, dpInit fwdpInitConfig) {
 			"tx-lcore", outputLc)).Info("SocketFaces ready")
 	}
 
-	// reserve lcores for forwarding processes
-	nFwds := len(appinit.Eal.Slaves) - len(dpCfg.InputLCores) - len(outputLCores)
+	// enable crypto thread
+	{
+		lc := lcr.MustReserve(dpdk.NUMA_SOCKET_ANY)
+		dpCfg.CryptoLCore = lc
+		dpCfg.Crypto.InputCapacity = 64
+		dpCfg.Crypto.OpPoolCapacity = 1023
+		dpCfg.Crypto.OpPoolCacheSize = 31
+		log.WithFields(makeLogFields("lcore", lc, "socket", lc.GetNumaSocket())).Info("crypto-helper created")
+	}
+
+	// allocate forwarding threads
+	nFwds := len(appinit.Eal.Slaves) - len(dpCfg.InputLCores) - len(outputLCores) - 1
 	for len(dpCfg.FwdLCores) < nFwds {
 		lc := lcr.Reserve(dpdk.NUMA_SOCKET_ANY)
 		if !lc.IsValid() {
@@ -165,7 +174,7 @@ func startDp(ndtCfg ndt.Config, fibCfg fib.Config, dpInit fwdpInitConfig) {
 		log.Fatal("no lcore available for forwarding")
 	}
 
-	// set forwarding process config
+	// set dataplane config
 	dpCfg.FwdQueueCapacity = dpInit.FwdQueueCapacity
 	dpCfg.LatencySampleFreq = dpInit.LatencySampleFreq
 	dpCfg.Pcct.MaxEntries = dpInit.PcctCapacity
@@ -180,36 +189,18 @@ func startDp(ndtCfg ndt.Config, fibCfg fib.Config, dpInit fwdpInitConfig) {
 		}
 	}
 
-	// launch output lcores
-	log.Info("launching output lcores")
+	// launch output threads
 	for i := range outputTxLoopers {
-		func(i int) {
-			outputLCores[i].RemoteLaunch(func() int {
-				txl := outputTxLoopers[i]
-				txl.TxLoop()
-				return 0
-			})
-		}(i)
+		txl := outputTxLoopers[i]
+		outputLCores[i].RemoteLaunch(func() int {
+			txl.TxLoop()
+			return 0
+		})
 	}
 
-	// launch forwarding lcores
-	log.Info("launching forwarding lcores")
-	for i := range dpCfg.FwdLCores {
-		e := theDp.LaunchFwd(i)
-		if e != nil {
-			log.WithError(e).WithField("i", i).Fatal("fwd launch failed")
-		}
+	// launch dataplane
+	if e := theDp.Launch(); e != nil {
+		log.WithError(e).Fatal("dataplane launch error")
 	}
-
-	// launch input lcores
-	log.Info("launching input lcores")
-	const burstSize = 64
-	for i, rxl := range inputRxLoopers {
-		e := theDp.LaunchInput(i, rxl, burstSize)
-		if e != nil {
-			log.WithError(e).WithField("i", i).Fatal("input launch failed")
-		}
-	}
-
 	log.Info("dataplane started")
 }

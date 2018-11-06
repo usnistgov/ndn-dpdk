@@ -17,7 +17,7 @@ import (
 
 // Count number of input and forwarding processes.
 func (dp *DataPlane) CountLCores() (nInputs int, nFwds int) {
-	return len(dp.inputLCores), len(dp.fwdLCores)
+	return len(dp.inputs), len(dp.fwds)
 }
 
 // Information and counters about an input process.
@@ -32,18 +32,18 @@ type InputInfo struct {
 
 // Read information about i-th input.
 func (dp *DataPlane) ReadInputInfo(i int) (info *InputInfo) {
-	if i < 0 || i >= len(dp.inputLCores) {
+	if i < 0 || i >= len(dp.inputs) {
 		return nil
 	}
 	input := dp.inputs[i]
 
 	info = new(InputInfo)
-	info.LCore = dp.inputLCores[i]
-	info.Faces = dp.inputRxLoopers[i].ListFacesInRxLoop()
+	info.LCore = input.GetLCore()
+	info.Faces = input.rxl.ListFacesInRxLoop()
 
-	info.NNameDisp = uint64(input.nNameDisp)
-	info.NTokenDisp = uint64(input.nTokenDisp)
-	info.NBadToken = uint64(input.nBadToken)
+	info.NNameDisp = uint64(input.c.nNameDisp)
+	info.NTokenDisp = uint64(input.c.nTokenDisp)
+	info.NBadToken = uint64(input.c.nBadToken)
 
 	return info
 }
@@ -67,29 +67,29 @@ type FwdInfo struct {
 
 // Read information about i-th fwd.
 func (dp *DataPlane) ReadFwdInfo(i int) (info *FwdInfo) {
-	if i < 0 || i >= len(dp.fwdLCores) {
+	if i < 0 || i >= len(dp.fwds) {
 		return nil
 	}
 
 	info = new(FwdInfo)
 	fwd := dp.fwds[i]
-	info.LCore = dp.fwdLCores[i]
+	info.LCore = fwd.GetLCore()
 
-	fwdQ := dpdk.RingFromPtr(unsafe.Pointer(fwd.queue))
+	fwdQ := dpdk.RingFromPtr(unsafe.Pointer(fwd.c.queue))
 	info.QueueCapacity = fwdQ.GetCapacity()
-	latencyStat := running_stat.FromPtr(unsafe.Pointer(&fwd.latencyStat))
+	latencyStat := running_stat.FromPtr(unsafe.Pointer(&fwd.c.latencyStat))
 	info.InputLatency = running_stat.TakeSnapshot(latencyStat).Multiply(dpdk.GetNanosInTscUnit())
 
-	info.NNoFibMatch = uint64(fwd.nNoFibMatch)
-	info.NDupNonce = uint64(fwd.nDupNonce)
-	info.NSgNoFwd = uint64(fwd.nSgNoFwd)
-	info.NNackMismatch = uint64(fwd.nNackMismatch)
+	info.NNoFibMatch = uint64(fwd.c.nNoFibMatch)
+	info.NDupNonce = uint64(fwd.c.nDupNonce)
+	info.NSgNoFwd = uint64(fwd.c.nSgNoFwd)
+	info.NNackMismatch = uint64(fwd.c.nNackMismatch)
 
-	info.HeaderMpUsage = dpdk.MempoolFromPtr(unsafe.Pointer(fwd.headerMp)).CountInUse()
-	info.IndirectMpUsage = dpdk.MempoolFromPtr(unsafe.Pointer(fwd.indirectMp)).CountInUse()
+	info.HeaderMpUsage = dpdk.MempoolFromPtr(unsafe.Pointer(fwd.c.headerMp)).CountInUse()
+	info.IndirectMpUsage = dpdk.MempoolFromPtr(unsafe.Pointer(fwd.c.indirectMp)).CountInUse()
 
 	for _, input := range dp.inputs {
-		inputConn := C.FwInput_GetConn(input, C.uint8_t(i))
+		inputConn := C.FwInput_GetConn(input.c, C.uint8_t(i))
 		info.NQueueDrops += uint64(inputConn.nDrops)
 	}
 
@@ -111,6 +111,6 @@ func (dp *DataPlane) GetFwdPcct(i int) *pcct.Pcct {
 	if i < 0 || i >= len(dp.fwds) {
 		return nil
 	}
-	pcct := pcct.PcctFromPtr(unsafe.Pointer(*C.__FwFwd_GetPcctPtr(dp.fwds[i])))
+	pcct := pcct.PcctFromPtr(unsafe.Pointer(*C.__FwFwd_GetPcctPtr(dp.fwds[i].c)))
 	return &pcct
 }
