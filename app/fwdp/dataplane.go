@@ -12,7 +12,6 @@ import (
 	"unsafe"
 
 	"ndn-dpdk/appinit"
-	"ndn-dpdk/container/cs"
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/ndt"
 	"ndn-dpdk/container/pcct"
@@ -24,20 +23,21 @@ import (
 )
 
 type Config struct {
-	Ndt *ndt.Ndt
-	Fib *fib.Fib
-
 	InputLCores []dpdk.LCore
 	FwdLCores   []dpdk.LCore
 
-	FwdQueueCapacity  int         // input-fwd queue capacity, must be power of 2
-	LatencySampleFreq int         // latency sample frequency, between 0 and 30
-	PcctCfg           pcct.Config // PCCT config; Id, NumaSocket, mempools ignored
-	CsCapacity        int         // CS capacity, must be no less than cs.MIN_CAPACITY
+	Ndt  ndt.Config  // NDT config
+	Fib  fib.Config  // FIB config (Id ignored)
+	Pcct pcct.Config // PCCT config template (Id and NumaSocket ignored)
+
+	FwdQueueCapacity  int // input-fwd queue capacity, must be power of 2
+	LatencySampleFreq int // latency sample frequency, between 0 and 30
 }
 
 // Forwarder data plane.
 type DataPlane struct {
+	ndt            *ndt.Ndt
+	fib            *fib.Fib
 	inputLCores    []dpdk.LCore
 	inputs         []*C.FwInput
 	inputRxLoopers []iface.IRxLooper
@@ -52,22 +52,24 @@ func registerStrategyFuncs(vm unsafe.Pointer) error {
 	return nil
 }
 
-func New(cfg Config) (*DataPlane, error) {
+func New(cfg Config) (dp *DataPlane, e error) {
 	nInputs := len(cfg.InputLCores)
 	nFwds := len(cfg.FwdLCores)
-	if nInputs != cfg.Ndt.CountThreads() {
-		return nil, fmt.Errorf("%d FwInputs but %d NDT threads", nInputs, cfg.Ndt.CountThreads())
-	}
-	if nFwds != cfg.Fib.CountPartitions() {
-		return nil, fmt.Errorf("%d FwFwds but %d FIB partitions", nFwds, cfg.Fib.CountPartitions())
-	}
 
-	var dp DataPlane
+	dp = new(DataPlane)
 	dp.inputLCores = append([]dpdk.LCore{}, cfg.InputLCores...)
 	dp.inputRxLoopers = make([]iface.IRxLooper, nInputs)
 	dp.fwdLCores = append([]dpdk.LCore{}, cfg.FwdLCores...)
 
-	ndtC := (*C.Ndt)(cfg.Ndt.GetPtr())
+	dp.ndt = ndt.New(cfg.Ndt, dpdk.ListNumaSocketsOfLCores(dp.inputLCores))
+	dp.ndt.Randomize(nFwds)
+
+	cfg.Fib.Id = "FIB"
+	if dp.fib, e = fib.New(cfg.Fib, dp.ndt, dpdk.ListNumaSocketsOfLCores(dp.fwdLCores)); e != nil {
+		dp.Close()
+		return nil, e
+	}
+
 	strategycode.RegisterStrategyFuncs = registerStrategyFuncs
 
 	for i, lc := range cfg.FwdLCores {
@@ -79,8 +81,8 @@ func New(cfg Config) (*DataPlane, error) {
 			return nil, fmt.Errorf("dpdk.NewRing(%d): %v", i, e)
 		}
 
-		pcctCfg := cfg.PcctCfg
-		pcctCfg.Id = fmt.Sprintf("FwPcct_%d", i)
+		pcctCfg := cfg.Pcct
+		pcctCfg.Id = fmt.Sprintf("PCCT_%d", i)
 		pcctCfg.NumaSocket = numaSocket
 		pcct, e := pcct.New(pcctCfg)
 		if e != nil {
@@ -88,13 +90,12 @@ func New(cfg Config) (*DataPlane, error) {
 			dp.Close()
 			return nil, fmt.Errorf("pcct.New(%d): %v", i, e)
 		}
-		cs.Cs{pcct}.SetCapacity(cfg.CsCapacity)
 
 		fwd := (*C.FwFwd)(dpdk.Zmalloc("FwFwd", C.sizeof_FwFwd, numaSocket))
 		fwd.id = C.uint8_t(i)
 		fwd.queue = (*C.struct_rte_ring)(queue.GetPtr())
 
-		fwd.fib = (*C.Fib)(cfg.Fib.GetPtr(i))
+		fwd.fib = (*C.Fib)(dp.fib.GetPtr(i))
 		*C.__FwFwd_GetPcctPtr(fwd) = (*C.Pcct)(pcct.GetPtr())
 
 		headerMp := appinit.MakePktmbufPool(appinit.MP_HDR, numaSocket)
@@ -116,8 +117,8 @@ func New(cfg Config) (*DataPlane, error) {
 	}
 
 	for i, lc := range cfg.InputLCores {
-		fwi := C.FwInput_New(ndtC, C.uint8_t(i), C.uint8_t(nFwds),
-			C.unsigned(lc.GetNumaSocket()))
+		fwi := C.FwInput_New((*C.Ndt)(dp.ndt.GetPtr()), C.uint8_t(i),
+			C.uint8_t(nFwds), C.unsigned(lc.GetNumaSocket()))
 		if fwi == nil {
 			dp.Close()
 			return nil, dpdk.GetErrno()
@@ -130,7 +131,7 @@ func New(cfg Config) (*DataPlane, error) {
 		dp.inputs = append(dp.inputs, fwi)
 	}
 
-	return &dp, nil
+	return dp, nil
 }
 
 func (dp *DataPlane) Close() error {
@@ -143,6 +144,12 @@ func (dp *DataPlane) Close() error {
 		pcct := pcct.PcctFromPtr(unsafe.Pointer(*C.__FwFwd_GetPcctPtr(fwd)))
 		pcct.Close()
 		dpdk.Free(fwd)
+	}
+	if dp.fib != nil {
+		dp.fib.Close()
+	}
+	if dp.ndt != nil {
+		dp.ndt.Close()
 	}
 	return nil
 }

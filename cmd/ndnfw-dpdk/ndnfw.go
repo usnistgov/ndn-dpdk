@@ -18,8 +18,6 @@ var (
 	theSocketFaceNumaSocket dpdk.NumaSocket
 	theSocketRxg            *socketface.RxGroup
 	theSocketTxl            *iface.MultiTxLoop
-	theNdt                  *ndt.Ndt
-	theFib                  *fib.Fib
 	theDp                   *fwdp.DataPlane
 )
 
@@ -47,6 +45,9 @@ func startDp(ndtCfg ndt.Config, fibCfg fib.Config, dpInit fwdpInitConfig) {
 	var inputRxLoopers []iface.IRxLooper
 	var outputLCores []dpdk.LCore
 	var outputTxLoopers []iface.ITxLooper
+
+	dpCfg.Ndt = ndtCfg
+	dpCfg.Fib = fibCfg
 
 	// reserve lcores for EthFace
 	{
@@ -164,31 +165,11 @@ func startDp(ndtCfg ndt.Config, fibCfg fib.Config, dpInit fwdpInitConfig) {
 		log.Fatal("no lcore available for forwarding")
 	}
 
-	// initialize NDT
-	{
-		theNdt = ndt.New(ndtCfg, dpdk.ListNumaSocketsOfLCores(dpCfg.InputLCores))
-		dpCfg.Ndt = theNdt
-	}
-
-	// initialize FIB
-	{
-		fibCfg.Id = "FIB"
-		var e error
-		theFib, e = fib.New(fibCfg, theNdt, dpdk.ListNumaSocketsOfLCores(dpCfg.FwdLCores))
-		if e != nil {
-			log.WithError(e).Fatal("FIB creation failed")
-		}
-		dpCfg.Fib = theFib
-	}
-
-	// randomize NDT
-	theNdt.Randomize(nFwds)
-
 	// set forwarding process config
 	dpCfg.FwdQueueCapacity = dpInit.FwdQueueCapacity
 	dpCfg.LatencySampleFreq = dpInit.LatencySampleFreq
-	dpCfg.PcctCfg.MaxEntries = dpInit.PcctCapacity
-	dpCfg.CsCapacity = dpInit.CsCapacity
+	dpCfg.Pcct.MaxEntries = dpInit.PcctCapacity
+	dpCfg.Pcct.CsCapacity = dpInit.CsCapacity
 
 	// create dataplane
 	{

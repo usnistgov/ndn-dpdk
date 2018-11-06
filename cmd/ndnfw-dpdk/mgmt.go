@@ -27,10 +27,10 @@ func startMgmt() {
 	appinit.RegisterMgmt(facemgmt.FaceMgmt{})
 
 	appinit.RegisterMgmt(ndtmgmt.NdtMgmt{
-		Ndt: theNdt,
+		Ndt: theDp.GetNdt(),
 		Updater: &ndtupdater.NdtUpdater{
-			Ndt:      theNdt,
-			Fib:      theFib,
+			Ndt:      theDp.GetNdt(),
+			Fib:      theDp.GetFib(),
 			SleepFor: 200 * time.Millisecond,
 		},
 	})
@@ -38,7 +38,7 @@ func startMgmt() {
 	appinit.RegisterMgmt(strategymgmt.StrategyMgmt{})
 
 	appinit.RegisterMgmt(fibmgmt.FibMgmt{
-		Fib:               theFib,
+		Fib:               theDp.GetFib(),
 		DefaultStrategyId: loadStrategy("multicast").GetId(),
 	})
 

@@ -7,6 +7,8 @@ import "C"
 import (
 	"unsafe"
 
+	"ndn-dpdk/container/fib"
+	"ndn-dpdk/container/ndt"
 	"ndn-dpdk/container/pcct"
 	"ndn-dpdk/core/running_stat"
 	"ndn-dpdk/dpdk"
@@ -92,6 +94,16 @@ func (dp *DataPlane) ReadFwdInfo(i int) (info *FwdInfo) {
 	}
 
 	return info
+}
+
+// Access the NDT.
+func (dp *DataPlane) GetNdt() *ndt.Ndt {
+	return dp.ndt
+}
+
+// Access the FIB.
+func (dp *DataPlane) GetFib() *fib.Fib {
+	return dp.fib
 }
 
 // Access i-th fwd's PCCT.

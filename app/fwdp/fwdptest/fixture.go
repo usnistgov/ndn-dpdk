@@ -23,10 +23,10 @@ const nFwds = 2
 type Fixture struct {
 	require *require.Assertions
 
-	Ndt       *ndt.Ndt
-	Fib       *fib.Fib
 	FwCrypto  *fwdp.Crypto
 	DataPlane *fwdp.DataPlane
+	Ndt       *ndt.Ndt
+	Fib       *fib.Fib
 
 	outputTxLoop *iface.MultiTxLoop
 	faceIds      []iface.FaceId
@@ -54,31 +54,17 @@ func NewFixture(t *testing.T) (fixture *Fixture) {
 	outputLc := lcr.Reserve(dpdk.NUMA_SOCKET_ANY)
 	fixture.require.True(outputLc.IsValid())
 
-	{
-		var ndtCfg ndt.Config
-		ndtCfg.PrefixLen = 2
-		ndtCfg.IndexBits = 16
-		ndtCfg.SampleFreq = 8
-		theNdt := ndt.New(ndtCfg, dpdk.ListNumaSocketsOfLCores(dpCfg.InputLCores))
-		fixture.Ndt = theNdt
-		dpCfg.Ndt = theNdt
-		theNdt.Randomize(nFwds)
-	}
+	dpCfg.Ndt.PrefixLen = 2
+	dpCfg.Ndt.IndexBits = 16
+	dpCfg.Ndt.SampleFreq = 8
 
-	{
-		var fibCfg fib.Config
-		fibCfg.Id = "FIB"
-		fibCfg.MaxEntries = 65535
-		fibCfg.NBuckets = 256
-		fibCfg.StartDepth = 8
-		theFib, e := fib.New(fibCfg, fixture.Ndt, dpdk.ListNumaSocketsOfLCores(dpCfg.FwdLCores))
-		fixture.require.NoError(e)
-		fixture.Fib = theFib
-		dpCfg.Fib = theFib
-	}
+	dpCfg.Fib.MaxEntries = 65535
+	dpCfg.Fib.NBuckets = 256
+	dpCfg.Fib.StartDepth = 8
 
 	dpCfg.FwdQueueCapacity = 64
-	dpCfg.PcctCfg.MaxEntries = 65535
+	dpCfg.Pcct.MaxEntries = 65535
+	dpCfg.Pcct.CsCapacity = 32767
 
 	{
 		var cryptoCfg fwdp.CryptoConfig
@@ -95,6 +81,8 @@ func NewFixture(t *testing.T) (fixture *Fixture) {
 	fixture.require.NoError(e)
 	theDp.SetCrypto(fixture.FwCrypto)
 	fixture.DataPlane = theDp
+	fixture.Ndt = theDp.GetNdt()
+	fixture.Fib = theDp.GetFib()
 
 	e = fixture.DataPlane.LaunchInput(0, mockface.TheRxLoop, 1)
 	fixture.require.NoError(e)
@@ -123,8 +111,6 @@ func (fixture *Fixture) Close() error {
 
 	fixture.DataPlane.Close()
 	fixture.FwCrypto.Close()
-	fixture.Ndt.Close()
-	fixture.Fib.Close()
 	iface.CloseAll()
 	strategycode.CloseAll()
 	return nil
