@@ -15,12 +15,7 @@ type rxLoop struct{}
 
 var TheRxLoop iface.IRxLooper = rxLoop{}
 
-type rxPacket struct {
-	face *MockFace
-	pkt  dpdk.Packet
-}
-
-var rxQueue chan rxPacket = make(chan rxPacket)
+var rxQueue chan dpdk.Packet = make(chan dpdk.Packet)
 var rxStop chan struct{} = make(chan struct{})
 
 func (rxLoop) RxLoop(burstSize int, cb unsafe.Pointer, cbarg unsafe.Pointer) {
@@ -28,10 +23,9 @@ func (rxLoop) RxLoop(burstSize int, cb unsafe.Pointer, cbarg unsafe.Pointer) {
 	defer burst.Close()
 	for {
 		select {
-		case rxp := <-rxQueue:
-			burst.SetFrame(0, rxp.pkt)
-			C.FaceImpl_RxBurst(rxp.face.getPtr(), 0, (*C.FaceRxBurst)(burst.GetPtr()), 1,
-				(C.Face_RxCb)(cb), cbarg)
+		case pkt := <-rxQueue:
+			burst.SetFrame(0, pkt)
+			C.FaceImpl_RxBurst((*C.FaceRxBurst)(burst.GetPtr()), 1, 0, (C.Face_RxCb)(cb), cbarg)
 		case <-rxStop:
 			return
 		}

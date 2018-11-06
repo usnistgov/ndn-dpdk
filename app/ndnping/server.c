@@ -65,7 +65,7 @@ NdnpingServer_ProcessPkt(NdnpingServer* server, Packet* npkt)
 }
 
 void
-NdnpingServer_Rx(FaceId faceId, FaceRxBurst* burst, void* server0)
+NdnpingServer_Rx(FaceRxBurst* burst, void* server0)
 {
   NdnpingServer* server = (NdnpingServer*)server0;
   ZF_LOGD("server-face=%" PRI_FaceId " burst=(%" PRIu16 "I %" PRIu16

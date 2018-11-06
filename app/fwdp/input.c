@@ -84,12 +84,11 @@ FwInput_DispatchByToken(FwInput* fwi, Packet* npkt, uint64_t token)
 }
 
 void
-FwInput_FaceRx(FaceId face, FaceRxBurst* burst, void* fwi0)
+FwInput_FaceRx(FaceRxBurst* burst, void* fwi0)
 {
   FwInput* fwi = (FwInput*)fwi0;
-  ZF_LOGD("fwi=%p face=%" PRI_FaceId " burst=(%" PRIu16 "I %" PRIu16
-          "D %" PRIu16 "N)",
-          fwi, face, burst->nInterests, burst->nData, burst->nNacks);
+  ZF_LOGD("fwi=%p burst=(%" PRIu16 "I %" PRIu16 "D %" PRIu16 "N)", fwi,
+          burst->nInterests, burst->nData, burst->nNacks);
   for (uint16_t i = 0; i < burst->nInterests; ++i) {
     Packet* npkt = FaceRxBurst_GetInterest(burst, i);
     PInterest* interest = Packet_GetInterestHdr(npkt);

@@ -3,7 +3,7 @@ package iface
 /*
 #include "face.h"
 
-void go_Face_RxCb(FaceId faceId, FaceRxBurst* burst, void* cbarg);
+void go_Face_RxCb(FaceRxBurst* burst, void* cbarg);
 */
 import "C"
 import (
@@ -11,7 +11,7 @@ import (
 	"unsafe"
 )
 
-type RxCbFunc func(face IFace, burst RxBurst)
+type RxCbFunc func(burst RxBurst)
 
 var rxCbFuncs = make([]RxCbFunc, 0)
 var rxCbFuncsLock sync.RWMutex
@@ -26,13 +26,13 @@ func WrapRxCb(f RxCbFunc) (cb unsafe.Pointer, cbarg unsafe.Pointer) {
 }
 
 //export go_Face_RxCb
-func go_Face_RxCb(faceId C.FaceId, burst *C.FaceRxBurst, cbarg unsafe.Pointer) {
+func go_Face_RxCb(burst *C.FaceRxBurst, cbarg unsafe.Pointer) {
 	index := uintptr(cbarg)
 	rxCbFuncsLock.RLock()
 	f := rxCbFuncs[index]
 	rxCbFuncsLock.RUnlock()
 
-	f(Get(FaceId(faceId)), RxBurst{burst})
+	f(RxBurst{burst})
 }
 
 // Interface containing RxLoop and related functions.

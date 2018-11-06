@@ -41,7 +41,7 @@ PktcopyRx_Transfer(PktcopyRx* pcrx, Packet** npkts, uint16_t count)
 }
 
 void
-PktcopyRx_Rx(FaceId faceId, FaceRxBurst* burst, void* pcrx0)
+PktcopyRx_Rx(FaceRxBurst* burst, void* pcrx0)
 {
   PktcopyRx* pcrx = (PktcopyRx*)pcrx0;
   PktcopyRx_Transfer(pcrx, FaceRxBurst_ListInterests(burst), burst->nInterests);

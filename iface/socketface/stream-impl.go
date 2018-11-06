@@ -57,7 +57,6 @@ func (streamImpl) postPacket(face *SocketFace, buf ndn.TlvBytes) (n int) {
 	}
 
 	pkt := mbuf.AsPacket()
-	pkt.SetTimestamp(dpdk.TscNow())
 	seg0 := pkt.GetFirstSegment()
 	seg0.SetHeadroom(0)
 	seg0.Append([]byte(element))

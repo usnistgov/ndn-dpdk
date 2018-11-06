@@ -86,7 +86,7 @@ Face_IsDown(FaceId faceId)
  *  Face base type does not directly provide RX function. Each face
  *  implementation shall have an RxLoop function that accepts this callback.
  */
-typedef void (*Face_RxCb)(FaceId faceId, FaceRxBurst* burst, void* cbarg);
+typedef void (*Face_RxCb)(FaceRxBurst* burst, void* cbarg);
 
 /** \brief Send a burst of packets (non-thread-safe).
  */
@@ -158,11 +158,13 @@ void FaceImpl_Init(Face* face, uint16_t mtu, uint16_t headroom,
                    FaceMempools* mempools);
 
 /** \brief Process received frames and invoke upper layer callback.
- *  \param burst FaceRxBurst_GetScratch(burst) shall contain received frames,
- *               and each frame should have timestamp set.
+ *  \param burst FaceRxBurst_GetScratch(burst) must contain received frames.
+ *               frame->port indicates FaceId, and frame->timestamp should be set.
+ *  \param rxThread RX thread number within each face. Threads receiving frames on the
+ *                  same face must use distinct numbers to avoid race condition.
  */
-void FaceImpl_RxBurst(Face* face, int rxThread, FaceRxBurst* burst,
-                      uint16_t nFrames, Face_RxCb cb, void* cbarg);
+void FaceImpl_RxBurst(FaceRxBurst* burst, uint16_t nFrames, int rxThread,
+                      Face_RxCb cb, void* cbarg);
 
 /** \brief Update counters after a frame is transmitted.
  */

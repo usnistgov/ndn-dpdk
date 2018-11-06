@@ -107,8 +107,8 @@ func (rxg *RxGroup) RxLoop(burstSize int, cb unsafe.Pointer, cbarg unsafe.Pointe
 					break LOOP_BURST
 				}
 			}
-			C.FaceImpl_RxBurst(face.getPtr(), 0, (*C.FaceRxBurst)(burst.GetPtr()),
-				C.uint16_t(nRx), (C.Face_RxCb)(cb), cbarg)
+			C.FaceImpl_RxBurst((*C.FaceRxBurst)(burst.GetPtr()), C.uint16_t(nRx),
+				0, (C.Face_RxCb)(cb), cbarg)
 		}
 		rxg.lock.Unlock()
 	}

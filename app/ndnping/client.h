@@ -94,6 +94,6 @@ void NdnpingClient_Close(NdnpingClient* client);
 
 void NdnpingClient_RunTx(NdnpingClient* client);
 
-void NdnpingClient_Rx(FaceId faceId, FaceRxBurst* burst, void* client0);
+void NdnpingClient_Rx(FaceRxBurst* burst, void* client0);
 
 #endif // NDN_DPDK_APP_NDNPING_CLIENT_H

@@ -231,7 +231,7 @@ NdnpingClient_ProcessRxNack(NdnpingClient* client, Packet* npkt)
 }
 
 void
-NdnpingClient_Rx(FaceId faceId, FaceRxBurst* burst, void* client0)
+NdnpingClient_Rx(FaceRxBurst* burst, void* client0)
 {
   NdnpingClient* client = (NdnpingClient*)client0;
   for (uint16_t i = 0; i < burst->nData; ++i) {

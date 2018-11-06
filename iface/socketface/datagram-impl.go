@@ -21,7 +21,6 @@ func (datagramImpl) RxLoop(face *SocketFace) {
 		}
 
 		pkt := mbuf.AsPacket()
-		pkt.SetTimestamp(dpdk.TscNow())
 		seg0 := pkt.GetFirstSegment()
 		seg0.SetHeadroom(0)
 

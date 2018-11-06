@@ -57,15 +57,21 @@ FaceImpl_Init(Face* face, uint16_t mtu, uint16_t headroom,
 }
 
 void
-FaceImpl_RxBurst(Face* face, int rxThread, FaceRxBurst* burst, uint16_t nFrames,
+FaceImpl_RxBurst(FaceRxBurst* burst, uint16_t nFrames, int rxThread,
                  Face_RxCb cb, void* cbarg)
 {
   FaceRxBurst_Clear(burst);
 
   struct rte_mbuf** frames = FaceRxBurst_GetScratch(burst);
   for (uint16_t i = 0; i < nFrames; ++i) {
-    frames[i]->port = face->id;
-    Packet* npkt = RxProc_Input(&face->impl->rx, rxThread, frames[i]);
+    struct rte_mbuf* frame = frames[i];
+    Face* face = __Face_Get(frame->port);
+    if (unlikely(face->impl == NULL)) {
+      rte_pktmbuf_free(frame);
+      continue;
+    }
+
+    Packet* npkt = RxProc_Input(&face->impl->rx, rxThread, frame);
     if (npkt == NULL) {
       continue;
     }
@@ -85,6 +91,6 @@ FaceImpl_RxBurst(Face* face, int rxThread, FaceRxBurst* burst, uint16_t nFrames,
   }
 
   if (likely(burst->nInterests + burst->nData + burst->nNacks > 0)) {
-    cb(face->id, burst, cbarg);
+    cb(burst, cbarg);
   }
 }

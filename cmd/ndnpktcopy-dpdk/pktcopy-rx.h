@@ -20,6 +20,6 @@ typedef struct PktcopyRx
   FaceId txFaces[PKTCOPYRX_MAXTX];
 } PktcopyRx;
 
-void PktcopyRx_Rx(FaceId faceId, FaceRxBurst* burst, void* pcrx0);
+void PktcopyRx_Rx(FaceRxBurst* burst, void* pcrx0);
 
 #endif // NDN_DPDK_CMD_NDNPKTCOPY_RX_H

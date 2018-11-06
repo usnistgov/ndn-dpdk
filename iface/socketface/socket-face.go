@@ -112,6 +112,9 @@ func (face *SocketFace) rxLoop() {
 
 // Report congestion when RxLoop is unable to send into rxQueue.
 func (face *SocketFace) rxPkt(pkt dpdk.Packet) {
+	pkt.SetPort(uint16(face.GetFaceId()))
+	pkt.SetTimestamp(dpdk.TscNow())
+
 	select {
 	case face.rxQueue <- pkt:
 	default:

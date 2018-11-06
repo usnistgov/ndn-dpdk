@@ -93,8 +93,9 @@ func (face *MockFace) Rx(l3pkt ndn.IL3Packet) {
 	// restore LpHeader because RxProc_Input will re-parse
 	lph.Prepend(pkt, payloadL)
 
+	pkt.SetPort(uint16(face.GetFaceId()))
 	pkt.SetTimestamp(dpdk.TscNow())
-	rxQueue <- rxPacket{face, pkt}
+	rxQueue <- pkt
 }
 
 func (face *MockFace) recordTx(pkt ndn.Packet) {
