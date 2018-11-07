@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 
 	"ndn-dpdk/appinit"
@@ -10,11 +11,10 @@ import (
 )
 
 type initConfig struct {
-	Mempool           appinit.MempoolsCapacityConfig
-	FaceQueueCapacity appinit.FaceQueueCapacityConfig
-	Ndt               ndt.Config
-	Fib               fib.Config
-	Fwdp              fwdpInitConfig
+	appinit.InitConfig `yaml:",inline"`
+	Ndt                ndt.Config
+	Fib                fib.Config
+	Fwdp               fwdpInitConfig
 }
 
 type fwdpInitConfig struct {
@@ -53,6 +53,8 @@ func parseCommand(args []string) (initCfg initConfig, e error) {
 	if e != nil {
 		return initConfig{}, e
 	}
+
+	fmt.Println(initCfg.Mempool)
 
 	return initCfg, nil
 }

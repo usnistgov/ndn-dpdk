@@ -39,7 +39,7 @@ func DeclareInitConfigFlag(flags *flag.FlagSet, value interface{}) {
 }
 
 // Config sections defined by appinit package.
-// To add more sections, copy the fields to another struct; embedding will not work.
+// To add more sections, embed with `yaml:",inline"` tag.
 type InitConfig struct {
 	Mempool           MempoolsCapacityConfig
 	FaceQueueCapacity FaceQueueCapacityConfig
