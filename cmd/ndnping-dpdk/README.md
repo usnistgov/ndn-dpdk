@@ -20,11 +20,27 @@ This program recognizes *mempool* section only.
 Emulate classical ndnping client:
 
 ```
-sudo ndnping-dpdk EAL-ARGS -- -tasks="[{face:{remote:'dev://net_pcap0'},client:{patterns:[{prefix:"/prefix/ping"}],interval:1ms}}]"
+sudo ndnping-dpdk EAL-ARGS -- -tasks="
+---
+- face:
+    remote: dev://net_pcap0
+  client:
+    patterns:
+      - prefix: /prefix/ping
+    interval: 1ms
+"
 ```
 
 Emulate classical ndnping server:
 
 ```
-sudo ndnping-dpdk EAL-ARGS -- -tasks="[{face:{remote:'dev://net_pcap0'},server:{patterns:[{prefix:"/prefix/ping"}],nack:false}}]"
+sudo ndnping-dpdk EAL-ARGS -- -tasks="
+---
+- face:
+    remote: dev://net_pcap0
+  server:
+    patterns:
+      - prefix: /prefix/ping
+    nack: true
+"
 ```

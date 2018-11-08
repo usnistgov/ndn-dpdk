@@ -1,8 +1,28 @@
 # ndn-dpdk/app/ndnping
 
-This package implements a NDN package generator that doubles as **ndnping** client and server.
+This package implements a NDN packet generator that doubles as **ndnping** client and server.
 
 Unlike named-data.net's [ndnping](https://github.com/named-data/ndn-tools/tree/master/tools/ping) and [ndn-traffic-generator](https://github.com/named-data/ndn-traffic-generator), this implementation does not use a local forwarder, but directly sends and receives packets on a network interface.
+
+This packet generator has five kinds of threads:
+
+*   A single **input thread** runs an *iface.RxLooper* that invokes `NdnpingInput_FaceRx` when a burst of L3 packets arrives on any face.
+    It dispatches Data and Nacks to client-RX threads, and dispatches Interests to server threads.
+*   A per-face **client-TX thread** executes `NdnpingClient_RunTx` function that periodically sends Interests.
+*   A per-face **client-RX thread** executes `NdnpingClient_RunRx` function that receives Data and Nacks from the input thread, and collects statistics about them.
+*   A per-face **server thread** executes `NdnpingServer_Run` function that receives Interest from the input thread via a queue, and responds to them.
+*   A single **output thread** runs an *iface.MultiTxLoop* that transmits Interests, Data, and Nacks created by any client-RX thread or server thread.
+
+```
+      /--client0-RX
+      |             client0-TX--\
+      |                         |
+input-+--client1-RX             |
+      |             client1-TX--+-output
+      |                         |
+      +---------server0---------+
+      \---------server1---------/
+```
 
 ## Client
 
