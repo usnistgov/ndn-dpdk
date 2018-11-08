@@ -68,9 +68,6 @@ void
 NdnpingServer_Rx(FaceRxBurst* burst, void* server0)
 {
   NdnpingServer* server = (NdnpingServer*)server0;
-  ZF_LOGD("server-face=%" PRI_FaceId " burst=(%" PRIu16 "I %" PRIu16
-          "D %" PRIu16 "N)",
-          server->face, burst->nInterests, burst->nData, burst->nNacks);
   FreeMbufs((struct rte_mbuf**)FaceRxBurst_ListData(burst), burst->nData);
   FreeMbufs((struct rte_mbuf**)FaceRxBurst_ListNacks(burst), burst->nNacks);
 
@@ -82,4 +79,27 @@ NdnpingServer_Rx(FaceRxBurst* burst, void* server0)
     nTx += (tx[nTx] != NULL);
   }
   Face_TxBurst(server->face, tx, nTx);
+}
+
+void
+NdnpingServer_Run(NdnpingServer* server)
+{
+  const int burstSize = 64;
+  Packet* rx[burstSize];
+  Packet* tx[burstSize];
+
+  while (true) {
+    uint16_t nRx =
+      rte_ring_sc_dequeue_bulk(server->rxQueue, (void**)rx, burstSize, NULL);
+    uint16_t nTx = 0;
+    for (uint16_t i = 0; i < nRx; ++i) {
+      tx[nTx] = NdnpingServer_ProcessPkt(server, rx[i]);
+      nTx += (tx[nTx] != NULL);
+    }
+    if (likely(nRx > 0)) {
+      ZF_LOGD("face=%" PRI_FaceId "nRx=%" PRIu16 " nTx=%" PRIu16, server->face,
+              nRx, nTx);
+    }
+    Face_TxBurst(server->face, tx, nTx);
+  }
 }

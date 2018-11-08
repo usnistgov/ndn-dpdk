@@ -1,0 +1,43 @@
+# ndnping-dpdk task description
+---
+
+- face:
+    remote: dev://net_af_packetB0
+  client:
+    patterns:
+      - prefix: /U/1
+      - prefix: /U/2
+      - prefix: /U/3
+      - prefix: /U/4
+      - prefix: /U/5
+      - prefix: /U/6
+    interval: 1ms
+  server:
+    patterns:
+      - prefix: /V/1
+      - prefix: /V/2
+      - prefix: /V/3
+      - prefix: /V/4
+      - prefix: /V/5
+      - prefix: /V/6
+    nack: false
+- face:
+    remote: dev://net_af_packetB1
+  client:
+    patterns:
+      - prefix: /V/1
+      - prefix: /V/2
+      - prefix: /V/3
+      - prefix: /V/4
+      - prefix: /V/5
+      - prefix: /V/6
+    interval: 1ms
+  server:
+    patterns:
+      - prefix: /U/1
+      - prefix: /U/2
+      - prefix: /U/3
+      - prefix: /U/4
+      - prefix: /U/5
+      - prefix: /U/6
+    nack: false

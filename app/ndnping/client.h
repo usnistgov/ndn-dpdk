@@ -31,7 +31,9 @@ typedef struct NdnpingClientPattern
 typedef struct NdnpingClient
 {
   // basic config:
+  struct rte_ring* rxQueue;
   FaceId face;
+
   NameSet patterns;
   struct rte_mempool* interestMp; ///< mempool for Interests
   uint16_t interestMbufHeadroom;
@@ -94,6 +96,6 @@ void NdnpingClient_Close(NdnpingClient* client);
 
 void NdnpingClient_RunTx(NdnpingClient* client);
 
-void NdnpingClient_Rx(FaceRxBurst* burst, void* client0);
+void NdnpingClient_RunRx(NdnpingClient* client);
 
 #endif // NDN_DPDK_APP_NDNPING_CLIENT_H

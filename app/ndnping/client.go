@@ -40,6 +40,27 @@ func NewClient(face iface.IFace) (client Client, e error) {
 	return client, nil
 }
 
+func newClient2(face iface.IFace, cfg ClientConfig) (client *Client, e error) {
+	if client2, e := NewClient(face); e != nil {
+		return nil, e
+	} else {
+		client = &client2
+	}
+
+	for _, patternCfg := range cfg.Patterns {
+		name, e := ndn.ParseName(patternCfg.Prefix)
+		if e != nil {
+			return nil, fmt.Errorf("ndn.ParseName(%s): %v", patternCfg.Prefix, e)
+		}
+		// TODO process Repeat
+		client.AddPattern(name, 1)
+	}
+
+	client.SetInterval(cfg.Interval)
+	client.EnableRtt(8, 16)
+	return client, nil
+}
+
 func (client Client) Close() error {
 	client.getPatterns().Close()
 	dpdk.Free(client.c)
@@ -74,9 +95,7 @@ func (client Client) RunTx() int {
 }
 
 func (client Client) RunRx() int {
-	face := client.GetFace()
-	appinit.MakeRxLooper(face).RxLoop(Client_BurstSize,
-		unsafe.Pointer(C.NdnpingClient_Rx), unsafe.Pointer(client.c))
+	C.NdnpingClient_RunRx(client.c)
 	return 0
 }
 

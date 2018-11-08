@@ -17,7 +17,9 @@ typedef struct NdnpingServerPattern
  */
 typedef struct NdnpingServer
 {
+  struct rte_ring* rxQueue;
   FaceId face;
+
   NameSet patterns;     ///< served prefixes
   bool wantNackNoRoute; ///< whether to Nack unserved Interests
   LName nameSuffix;
@@ -32,6 +34,6 @@ typedef struct NdnpingServer
   uint64_t nAllocError;
 } NdnpingServer;
 
-void NdnpingServer_Rx(FaceRxBurst* burst, void* server0);
+void NdnpingServer_Run(NdnpingServer* server);
 
 #endif // NDN_DPDK_APP_NDNPING_SERVER_H

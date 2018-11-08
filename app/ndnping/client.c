@@ -231,18 +231,28 @@ NdnpingClient_ProcessRxNack(NdnpingClient* client, Packet* npkt)
 }
 
 void
-NdnpingClient_Rx(FaceRxBurst* burst, void* client0)
+NdnpingClient_RunRx(NdnpingClient* client)
 {
-  NdnpingClient* client = (NdnpingClient*)client0;
-  for (uint16_t i = 0; i < burst->nData; ++i) {
-    NdnpingClient_ProcessRxData(client, FaceRxBurst_GetData(burst, i));
-  }
-  for (uint16_t i = 0; i < burst->nNacks; ++i) {
-    NdnpingClient_ProcessRxNack(client, FaceRxBurst_GetNack(burst, i));
-  }
+  const int burstSize = 64;
+  Packet* rx[burstSize];
 
-  FreeMbufs((struct rte_mbuf**)FaceRxBurst_ListInterests(burst),
-            burst->nInterests);
-  FreeMbufs((struct rte_mbuf**)FaceRxBurst_ListData(burst), burst->nData);
-  FreeMbufs((struct rte_mbuf**)FaceRxBurst_ListNacks(burst), burst->nNacks);
+  while (true) {
+    uint16_t nRx =
+      rte_ring_sc_dequeue_bulk(client->rxQueue, (void**)rx, burstSize, NULL);
+    for (uint16_t i = 0; i < nRx; ++i) {
+      Packet* npkt = rx[i];
+      switch (Packet_GetL3PktType(npkt)) {
+        case L3PktType_Data:
+          NdnpingClient_ProcessRxData(client, npkt);
+          break;
+        case L3PktType_Nack:
+          NdnpingClient_ProcessRxNack(client, npkt);
+          break;
+        default:
+          assert(false);
+          break;
+      }
+    }
+    FreeMbufs((struct rte_mbuf**)rx, nRx);
+  }
 }

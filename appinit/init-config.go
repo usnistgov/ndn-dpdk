@@ -31,11 +31,16 @@ func (v *yamlFlagValue) String() string {
 	return fmt.Sprintf("%v", v.Value)
 }
 
-// Declare 'initcfg' flag.
+// Declare YAML config flag.
 // The flag can either be a YAML document, or "@" followed by a filename.
 // value should be pointer to a struct containing config sections.
+func DeclareConfigFlag(flags *flag.FlagSet, value interface{}, name, usage string) {
+	flags.Var(&yamlFlagValue{value}, name, usage)
+}
+
+// Declare 'initcfg' flag.
 func DeclareInitConfigFlag(flags *flag.FlagSet, value interface{}) {
-	flags.Var(&yamlFlagValue{value}, "initcfg", "initialization config object")
+	DeclareConfigFlag(flags, value, "initcfg", "initialization config object")
 }
 
 // Config sections defined by appinit package.

@@ -39,6 +39,39 @@ func NewServer(face iface.IFace) (server Server, e error) {
 	return server, e
 }
 
+func newServer2(face iface.IFace, cfg ServerConfig) (server *Server, e error) {
+	if server2, e := NewServer(face); e != nil {
+		return nil, e
+	} else {
+		server = &server2
+	}
+
+	for _, patternCfg := range cfg.Patterns {
+		name, e := ndn.ParseName(patternCfg.Prefix)
+		if e != nil {
+			server.Close()
+			return nil, fmt.Errorf("ndn.ParseName(%s): %v", patternCfg.Prefix, e)
+		}
+		// TODO make PayloadLen and Suffix per-pattern
+		server.AddPattern(name)
+	}
+
+	server.SetNackNoRoute(cfg.Nack)
+
+	if suffix := cfg.Patterns[0].Suffix; suffix != "" {
+		suffixName, e := ndn.ParseName(suffix)
+		if e != nil {
+			server.Close()
+			return nil, fmt.Errorf("ndn.ParseName(%s): %v", suffix, e)
+		}
+		server.SetNameSuffix(suffixName)
+	}
+
+	server.SetPayloadLen(cfg.Patterns[0].PayloadLen)
+
+	return server, nil
+}
+
 func (server Server) Close() error {
 	server.SetNameSuffix(nil)
 	server.SetPayloadLen(0)
@@ -93,9 +126,7 @@ func (server Server) AddPattern(name *ndn.Name) {
 }
 
 func (server Server) Run() int {
-	face := server.GetFace()
-	appinit.MakeRxLooper(face).RxLoop(Server_BurstSize,
-		unsafe.Pointer(C.NdnpingServer_Rx), unsafe.Pointer(server.c))
+	C.NdnpingServer_Run(server.c)
 	return 0
 }
 
