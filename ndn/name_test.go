@@ -1,8 +1,11 @@
 package ndn_test
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
+
+	"gopkg.in/yaml.v2"
 
 	"ndn-dpdk/dpdk/dpdktestenv"
 	"ndn-dpdk/ndn"
@@ -155,5 +158,46 @@ func TestNameParse(t *testing.T) {
 			}
 			assert.Equal(tt.canonical, n.String(), tt.input)
 		}
+	}
+}
+
+type marshalTestStruct struct {
+	Name *ndn.Name
+	I    int
+}
+
+func TestNameMarshal(t *testing.T) {
+	assert, _ := makeAR(t)
+
+	var obj marshalTestStruct
+	obj.Name = ndn.MustParseName("/A/B")
+	obj.I = 50
+
+	jsonEncoding, e := json.Marshal(obj)
+	if assert.NoError(e) {
+		assert.Equal([]byte("{\"Name\":\"/A/B\",\"I\":50}"), jsonEncoding)
+	}
+
+	var jsonDecoded marshalTestStruct
+	if e := json.Unmarshal(jsonEncoding, &jsonDecoded); assert.NoError(e) {
+		assert.True(obj.Name.Equal(jsonDecoded.Name))
+		assert.Equal(50, jsonDecoded.I)
+	}
+
+	var jsonDecoded2 marshalTestStruct
+	assert.Error(json.Unmarshal([]byte("{\"Name\":4,\"I\":50}"), &jsonDecoded2))
+	if assert.NoError(json.Unmarshal([]byte("{\"Name\":null,\"I\":50}"), &jsonDecoded2)) {
+		assert.Nil(jsonDecoded2.Name)
+	}
+
+	yamlEncoding, e := yaml.Marshal(obj)
+	if assert.NoError(e) {
+		assert.Equal([]byte("name: /A/B\ni: 50\n"), yamlEncoding)
+	}
+
+	var yamlDecoded marshalTestStruct
+	if e := yaml.Unmarshal(yamlEncoding, &yamlDecoded); assert.NoError(e) {
+		assert.True(obj.Name.Equal(yamlDecoded.Name))
+		assert.Equal(50, yamlDecoded.I)
 	}
 }

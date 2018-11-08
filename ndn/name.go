@@ -6,6 +6,7 @@ package ndn
 import "C"
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"strings"
@@ -192,4 +193,31 @@ func MustParseName(uri string) *Name {
 		panic(e)
 	}
 	return n
+}
+
+func (n *Name) MarshalJSON() ([]byte, error) {
+	return json.Marshal(n.String())
+}
+
+func (n *Name) UnmarshalJSON(data []byte) error {
+	return n.UnmarshalYAML(func(v interface{}) error {
+		return json.Unmarshal(data, v)
+	})
+}
+
+func (n *Name) MarshalYAML() (interface{}, error) {
+	return n.String(), nil
+}
+
+func (n *Name) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var uri string
+	if e := unmarshal(&uri); e != nil {
+		return e
+	}
+	if n2, e := ParseName(uri); e != nil {
+		return e
+	} else {
+		*n = *n2
+	}
+	return nil
 }
