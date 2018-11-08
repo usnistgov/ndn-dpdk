@@ -2,6 +2,7 @@ package ndnping
 
 /*
 #include "client.h"
+#include "token.h"
 */
 import "C"
 import (
@@ -57,7 +58,6 @@ func newClient2(face iface.IFace, cfg ClientConfig) (client *Client, e error) {
 	}
 
 	client.SetInterval(cfg.Interval)
-	client.EnableRtt(8, 16)
 	return client, nil
 }
 
@@ -81,12 +81,6 @@ func (client Client) AddPattern(name *ndn.Name, pct float32) {
 
 func (client Client) SetInterval(interval time.Duration) {
 	client.c.interestInterval = C.float(float64(interval) / float64(time.Millisecond))
-}
-
-func (client Client) EnableRtt(sampleFreq int, sampleTableSize int) {
-	client.c.sampleFreq = C.uint8_t(sampleFreq)
-	client.c.sampleTableSize = C.uint8_t(sampleTableSize)
-	C.NdnpingClient_EnableSampling(client.c, C.int(client.GetFace().GetNumaSocket()))
 }
 
 func (client Client) RunTx() int {

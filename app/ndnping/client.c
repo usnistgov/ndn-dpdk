@@ -1,4 +1,5 @@
 #include "client.h"
+#include "token.h"
 
 #include "../../core/logger.h"
 
@@ -8,15 +9,6 @@ INIT_ZF_LOG(NdnpingClient);
 
 #define NDNPINGCLIENT_TX_BURST_SIZE 64
 #define NDNPINGCLIENT_INTEREST_LIFETIME 1000
-
-typedef struct NdnpingClientSample
-{
-  bool isPending : 1;
-  bool _reserved : 1;
-  int patternId : 6;
-  uint64_t sendTime : 56; ///< TscTime >> NDNPING_TIMING_PRECISION
-} __rte_packed NdnpingClientSample;
-static_assert(sizeof(NdnpingClientSample) == sizeof(uint64_t), "");
 
 void
 NdnpingClient_Init(NdnpingClient* client)
@@ -38,57 +30,27 @@ NdnpingClient_Init(NdnpingClient* client)
     sizeof(client->interestPrepareBuffer));
   assert(res == 0);
   NonceGen_Init(&client->nonceGen);
-
-  client->sampleTable = NULL;
-}
-
-void
-NdnpingClient_EnableSampling(NdnpingClient* client, int numaSocket)
-{
-  size_t nSampleTableEntries = 1 << client->sampleTableSize;
-  client->samplingMask = (1 << client->sampleFreq) - 1;
-  client->sampleIndexMask = (1 << client->sampleTableSize) - 1;
-  client->sampleTable =
-    rte_calloc_socket("NdnpingClient.sampleTable", nSampleTableEntries,
-                      sizeof(NdnpingClientSample), 0, numaSocket);
 }
 
 void
 NdnpingClient_Close(NdnpingClient* client)
 {
-  if (client->sampleTable != NULL) {
-    rte_free(client->sampleTable);
-  }
 }
 
-static int
-NdnpingClient_SelectPattern(NdnpingClient* client, uint64_t seqNo)
+static uint8_t
+NdnpingClient_SelectPattern(NdnpingClient* client, uint64_t seqNum)
 {
-  return seqNo % client->patterns.nRecords;
-}
-
-static NdnpingClientSample*
-NdnpingClient_FindSample(NdnpingClient* client, uint64_t seqNo)
-{
-  if (client->sampleTable == NULL) { // sampling disabled
-    return NULL;
-  }
-  if (likely((seqNo & client->samplingMask) != 0)) { // seqNo not sampled
-    return NULL;
-  }
-
-  uint64_t tableIndex = (seqNo >> client->sampleFreq) & client->sampleIndexMask;
-  assert((tableIndex >> client->sampleTableSize) == 0);
-  return (NdnpingClientSample*)client->sampleTable + tableIndex;
+  return seqNum % client->patterns.nRecords;
 }
 
 static void
-NdnpingClient_PrepareTxInterest(NdnpingClient* client, Packet* npkt)
+NdnpingClient_PrepareTxInterest(NdnpingClient* client, Packet* npkt,
+                                uint64_t now)
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   pkt->data_off = client->interestMbufHeadroom;
-  uint64_t seqNo = ++client->suffixComponent.compV;
-  int patternId = NdnpingClient_SelectPattern(client, seqNo);
+  uint64_t seqNum = ++client->suffixComponent.compV;
+  uint8_t patternId = NdnpingClient_SelectPattern(client, seqNum);
   NdnpingClientPattern* pattern =
     NameSet_GetUsrT(&client->patterns, patternId, NdnpingClientPattern*);
   ++pattern->nInterests;
@@ -99,18 +61,9 @@ NdnpingClient_PrepareTxInterest(NdnpingClient* client, Packet* npkt)
   EncodeInterest(pkt, &client->interestTpl, client->interestPrepareBuffer,
                  nameSuffix, NonceGen_Next(&client->nonceGen), 0, NULL);
   Packet_SetL3PktType(npkt, L3PktType_Interest); // for stats; no PInterest*
-  ZF_LOGD("<I seq=%" PRIx64 " pattern=%d", seqNo, patternId);
+  ZF_LOGD("<I seq=%" PRIx64 " pattern=%d", seqNum, patternId);
 
-  NdnpingClientSample* sample = NdnpingClient_FindSample(client, seqNo);
-  if (sample == NULL) {
-    return;
-  }
-  if (unlikely(sample->isPending)) { // timeout
-    ZF_LOGD("TIMEOUT pattern=%d", sample->patternId);
-  }
-  sample->isPending = true;
-  sample->patternId = patternId;
-  sample->sendTime = rte_get_tsc_cycles() >> NDNPING_TIMING_PRECISION;
+  Packet_InitLpL3Hdr(npkt)->pitToken = NdnpingToken_New(patternId, now);
 }
 
 static void
@@ -124,8 +77,9 @@ NdnpingClient_TxBurst(NdnpingClient* client)
     return;
   }
 
+  uint64_t now = Ndnping_Now();
   for (uint16_t i = 0; i < NDNPINGCLIENT_TX_BURST_SIZE; ++i) {
-    NdnpingClient_PrepareTxInterest(client, npkts[i]);
+    NdnpingClient_PrepareTxInterest(client, npkts[i], now);
   }
   Face_TxBurst(client->face, npkts, NDNPINGCLIENT_TX_BURST_SIZE);
 }
@@ -152,82 +106,66 @@ NdnpingClient_RunTx(NdnpingClient* client)
 }
 
 static bool
-NdnpingClient_GetSeqNoFromName(const Name* name, uint64_t* seqNo)
+NdnpingClient_GetSeqNumFromName(NdnpingClient* client, uint8_t patternId,
+                                const Name* name, uint64_t* seqNum)
 {
-  if (unlikely(name->p.nComps < 1)) {
+  LName prefix = NameSet_GetName(&client->patterns, patternId);
+  if (unlikely(name->p.nOctets < prefix.length + 10)) {
     return false;
   }
 
-  NameComp comp = Name_GetComp(name, name->p.nComps - 1);
-  if (unlikely(comp.size != 10)) {
+  const uint8_t* comp = RTE_PTR_ADD(name->v, prefix.length);
+  if (unlikely(comp[0] != TT_GenericNameComponent || comp[1] != 8)) {
     return false;
   }
 
-  *seqNo = *(const unaligned_uint64_t*)RTE_PTR_ADD(comp.tlv, 2);
+  *seqNum = *(const unaligned_uint64_t*)RTE_PTR_ADD(comp, 2);
   return true;
 }
 
 static void
-NdnpingClient_SampleDataOrNack(NdnpingClient* client, uint64_t seqNo,
-                               int patternId, NdnpingClientPattern* pattern,
-                               bool isData)
+NdnpingClient_ProcessRxData(NdnpingClient* client, Packet* npkt, uint64_t now)
 {
-  NdnpingClientSample* sample = NdnpingClient_FindSample(client, seqNo);
-  if (sample == NULL) {
-    return;
-  }
-  if (unlikely(sample->patternId != patternId)) {
-    ZF_LOGD("^ mismatch-sample-pattern=%d", sample->patternId);
-    return;
-  }
-  if (unlikely(!sample->isPending)) {
-    ZF_LOGD("^ duplicate-Data-or-Nack");
-    return;
-  }
-  sample->isPending = false;
+  uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
+  uint8_t patternId = NdnpingToken_GetPatternId(token);
 
-  if (isData) {
-    uint64_t now = rte_get_tsc_cycles() >> NDNPING_TIMING_PRECISION;
-    RunningStat_Push(&pattern->rtt, now - sample->sendTime);
-  }
-}
-
-static void
-NdnpingClient_ProcessRxData(NdnpingClient* client, Packet* npkt)
-{
   const PData* data = Packet_GetDataHdr(npkt);
-  uint64_t seqNo;
-  if (!unlikely(NdnpingClient_GetSeqNoFromName(&data->name, &seqNo))) {
+  uint64_t seqNum;
+  if (unlikely(!NdnpingClient_GetSeqNumFromName(client, patternId, &data->name,
+                                                &seqNum) ||
+               NdnpingClient_SelectPattern(client, seqNum) != patternId)) {
     return;
   }
 
-  int patternId = NdnpingClient_SelectPattern(client, seqNo);
-  ZF_LOGD(">D seq=%" PRIx64 " pattern=%d", seqNo, patternId);
+  ZF_LOGD(">D seq=%" PRIx64 " pattern=%d", seqNum, patternId);
 
   NdnpingClientPattern* pattern =
     NameSet_GetUsrT(&client->patterns, patternId, NdnpingClientPattern*);
   ++pattern->nData;
 
-  NdnpingClient_SampleDataOrNack(client, seqNo, patternId, pattern, true);
+  uint64_t sendTime = NdnpingToken_GetTimestamp(token);
+  RunningStat_Push(&pattern->rtt, now - sendTime);
 }
 
 static void
-NdnpingClient_ProcessRxNack(NdnpingClient* client, Packet* npkt)
+NdnpingClient_ProcessRxNack(NdnpingClient* client, Packet* npkt, uint64_t now)
 {
+  uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
+  uint8_t patternId = NdnpingToken_GetPatternId(token);
+
   const PNack* nack = Packet_GetNackHdr(npkt);
-  uint64_t seqNo;
-  if (!unlikely(NdnpingClient_GetSeqNoFromName(&nack->interest.name, &seqNo))) {
+  uint64_t seqNum;
+  if (unlikely(!NdnpingClient_GetSeqNumFromName(
+                 client, patternId, &nack->interest.name, &seqNum) ||
+               NdnpingClient_SelectPattern(client, seqNum) != patternId)) {
     return;
   }
 
-  int patternId = NdnpingClient_SelectPattern(client, seqNo);
-  ZF_LOGD(">N seq=%" PRIx64 " pattern=%d", seqNo, patternId);
+  ZF_LOGD(">D seq=%" PRIx64 " pattern=%d", seqNum, patternId);
 
   NdnpingClientPattern* pattern =
     NameSet_GetUsrT(&client->patterns, patternId, NdnpingClientPattern*);
   ++pattern->nNacks;
-
-  NdnpingClient_SampleDataOrNack(client, seqNo, patternId, pattern, false);
 }
 
 void
@@ -239,14 +177,18 @@ NdnpingClient_RunRx(NdnpingClient* client)
   while (true) {
     uint16_t nRx =
       rte_ring_sc_dequeue_bulk(client->rxQueue, (void**)rx, burstSize, NULL);
+    uint64_t now = Ndnping_Now();
     for (uint16_t i = 0; i < nRx; ++i) {
       Packet* npkt = rx[i];
+      if (unlikely(Packet_GetL2PktType(npkt) != L2PktType_NdnlpV2)) {
+        continue;
+      }
       switch (Packet_GetL3PktType(npkt)) {
         case L3PktType_Data:
-          NdnpingClient_ProcessRxData(client, npkt);
+          NdnpingClient_ProcessRxData(client, npkt, now);
           break;
         case L3PktType_Nack:
-          NdnpingClient_ProcessRxNack(client, npkt);
+          NdnpingClient_ProcessRxNack(client, npkt, now);
           break;
         default:
           assert(false);

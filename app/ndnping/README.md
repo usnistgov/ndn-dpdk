@@ -15,7 +15,7 @@ Strictly speaking, binary sequence numbers violate the [ndnping Protocol](https:
 However, the current C++ `ndnpingserver` implementation can respond to such Interests.
 
 The client maintains Interest, Data, Nack counters under each pattern.
-Optionally, the client can sample a subset of Interests and report round-trip time.
+It also writes Interest sending time in the "PIT token" field, and uses that to collect round-trip time of Data retrievals.
 
 ## Server
 
@@ -25,17 +25,3 @@ Interests that fall under one of the prefixes are responded with Data.
 Optionally, the server can respond Nack to Interests not matching any pattern.
 
 The server maintains counters for the number of processed Interests under each pattern.
-
-## Details on RTT Sampling
-
-`Client.EnableRtt` method enables RTT sampling on a client.
-If enabled, the C code will sample a subset of Interests.
-For a sampled Interest, it records when the Interest is sent in `sampleTable`, and calculates RTT when the Data arrives.
-
-`sampleFreq` argument controls sampling frequency.
-If the last `sampleFreq` bits of a sequence number is all zeros, the client samples the Interest.
-Because of this decision method, the number of patterns must be odd in order to obtain RTT samples on every pattern.
-
-`sampleTableSize` argument sets the `sampleTable` to have `2 ^ sampleTableSize` entries.
-The same entry will be reused after `2 ^ (sampleTableSize + sampleFreq)` Interests.
-If an Interest is unanswered when its entry is due for reuse, the Interest is treated as timeout and its RTT not counted.
