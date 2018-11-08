@@ -28,8 +28,8 @@ func (FaceMgmt) Get(args IdArg, reply *FaceInfo) error {
 	}
 
 	reply.Id = face.GetFaceId()
-	reply.LocalUri = face.GetLocalUri().String()
-	reply.RemoteUri = face.GetRemoteUri().String()
+	reply.LocalUri = face.GetLocalUri()
+	reply.RemoteUri = face.GetRemoteUri()
 	reply.IsDown = face.IsDown()
 	reply.Counters = face.ReadCounters()
 	reply.ExCounters = face.ReadExCounters()
@@ -38,24 +38,12 @@ func (FaceMgmt) Get(args IdArg, reply *FaceInfo) error {
 	return nil
 }
 
-func (FaceMgmt) Create(args CreateArg, reply *IdArg) error {
+func (FaceMgmt) Create(args CreateArg, reply *IdArg) (e error) {
 	if CreateFace == nil {
 		return errors.New("face creation is unavailable")
 	}
 
-	remote, e := faceuri.Parse(args.RemoteUri)
-	if e != nil {
-		return e
-	}
-
-	var local *faceuri.FaceUri
-	if args.LocalUri != "" {
-		if local, e = faceuri.Parse(args.LocalUri); e != nil {
-			return e
-		}
-	}
-
-	reply.Id, e = CreateFace(remote, local)
+	reply.Id, e = CreateFace(args.RemoteUri, args.LocalUri)
 	return e
 }
 

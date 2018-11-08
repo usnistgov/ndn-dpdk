@@ -32,14 +32,9 @@ func (mg FibMgmt) List(args struct{}, reply *[]string) error {
 func (mg FibMgmt) Insert(args InsertArg, reply *InsertReply) error {
 	entry := new(fib.Entry)
 
-	name, e := ndn.ParseName(args.Name)
-	if e != nil {
-		return e
-	}
-	entry.SetName(name)
+	entry.SetName(args.Name)
 
-	e = entry.SetNexthops(args.Nexthops)
-	if e != nil {
+	if e := entry.SetNexthops(args.Nexthops); e != nil {
 		return e
 	}
 
@@ -63,12 +58,7 @@ func (mg FibMgmt) Insert(args InsertArg, reply *InsertReply) error {
 }
 
 func (mg FibMgmt) Erase(args NameArg, reply *struct{}) error {
-	name, e := ndn.ParseName(args.Name)
-	if e != nil {
-		return e
-	}
-
-	return mg.Fib.Erase(name)
+	return mg.Fib.Erase(args.Name)
 }
 
 func (mg FibMgmt) Find(args NameArg, reply *LookupReply) error {
@@ -80,15 +70,10 @@ func (mg FibMgmt) Lpm(args NameArg, reply *LookupReply) error {
 }
 
 func (mg FibMgmt) lookup(args NameArg, reply *LookupReply, lookup func(name *ndn.Name) *fib.Entry) error {
-	name, e := ndn.ParseName(args.Name)
-	if e != nil {
-		return e
-	}
-
-	entry := lookup(name)
+	entry := lookup(args.Name)
 	if entry != nil {
 		reply.HasEntry = true
-		reply.Name = entry.GetName().String()
+		reply.Name = entry.GetName()
 		reply.Nexthops = entry.GetNexthops()
 		reply.StrategyId = entry.GetStrategy().GetId()
 	}
@@ -96,11 +81,6 @@ func (mg FibMgmt) lookup(args NameArg, reply *LookupReply, lookup func(name *ndn
 }
 
 func (mg FibMgmt) ReadEntryCounters(args NameArg, reply *fib.EntryCounters) error {
-	name, e := ndn.ParseName(args.Name)
-	if e != nil {
-		return e
-	}
-
-	*reply = mg.Fib.ReadEntryCounters(name)
+	*reply = mg.Fib.ReadEntryCounters(args.Name)
 	return nil
 }

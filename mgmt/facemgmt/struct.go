@@ -3,6 +3,7 @@ package facemgmt
 import (
 	"ndn-dpdk/core/running_stat"
 	"ndn-dpdk/iface"
+	"ndn-dpdk/iface/faceuri"
 )
 
 type IdArg struct {
@@ -10,14 +11,14 @@ type IdArg struct {
 }
 
 type CreateArg struct {
-	LocalUri  string
-	RemoteUri string
+	LocalUri  *faceuri.FaceUri
+	RemoteUri *faceuri.FaceUri
 }
 
 type FaceInfo struct {
 	Id        iface.FaceId
-	LocalUri  string
-	RemoteUri string
+	LocalUri  *faceuri.FaceUri
+	RemoteUri *faceuri.FaceUri
 	IsDown    bool
 
 	// Basic counters.

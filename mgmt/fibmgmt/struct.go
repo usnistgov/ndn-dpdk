@@ -2,6 +2,7 @@ package fibmgmt
 
 import (
 	"ndn-dpdk/iface"
+	"ndn-dpdk/ndn"
 )
 
 type FibInfo struct {
@@ -12,11 +13,11 @@ type FibInfo struct {
 }
 
 type NameArg struct {
-	Name string
+	Name *ndn.Name
 }
 
 type InsertArg struct {
-	Name       string
+	Name       *ndn.Name
 	Nexthops   []iface.FaceId
 	StrategyId int
 }
@@ -27,7 +28,7 @@ type InsertReply struct {
 
 type LookupReply struct {
 	HasEntry   bool
-	Name       string
+	Name       *ndn.Name
 	Nexthops   []iface.FaceId
 	StrategyId int
 }
