@@ -2,6 +2,9 @@ package ndnping
 
 import (
 	"time"
+
+	"ndn-dpdk/iface/faceuri"
+	"ndn-dpdk/ndn"
 )
 
 type TaskConfig struct {
@@ -11,8 +14,8 @@ type TaskConfig struct {
 }
 
 type FaceConfig struct {
-	Remote string
-	Local  string
+	Remote *faceuri.FaceUri
+	Local  *faceuri.FaceUri
 }
 
 type ClientConfig struct {
@@ -21,7 +24,7 @@ type ClientConfig struct {
 }
 
 type ClientPattern struct {
-	Prefix string
+	Prefix *ndn.Name
 	Repeat int
 }
 
@@ -31,7 +34,7 @@ type ServerConfig struct {
 }
 
 type ServerPattern struct {
-	Prefix     string
+	Prefix     *ndn.Name
 	PayloadLen int
-	Suffix     string
+	Suffix     *ndn.Name
 }

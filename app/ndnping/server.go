@@ -47,27 +47,13 @@ func newServer2(face iface.IFace, cfg ServerConfig) (server *Server, e error) {
 	}
 
 	for _, patternCfg := range cfg.Patterns {
-		name, e := ndn.ParseName(patternCfg.Prefix)
-		if e != nil {
-			server.Close()
-			return nil, fmt.Errorf("ndn.ParseName(%s): %v", patternCfg.Prefix, e)
-		}
-		// TODO make PayloadLen and Suffix per-pattern
-		server.AddPattern(name)
+		server.AddPattern(patternCfg.Prefix)
 	}
 
-	server.SetNackNoRoute(cfg.Nack)
-
-	if suffix := cfg.Patterns[0].Suffix; suffix != "" {
-		suffixName, e := ndn.ParseName(suffix)
-		if e != nil {
-			server.Close()
-			return nil, fmt.Errorf("ndn.ParseName(%s): %v", suffix, e)
-		}
-		server.SetNameSuffix(suffixName)
-	}
-
+	// TODO make PayloadLen and Suffix per-pattern
+	server.SetNameSuffix(cfg.Patterns[0].Suffix)
 	server.SetPayloadLen(cfg.Patterns[0].PayloadLen)
+	server.SetNackNoRoute(cfg.Nack)
 
 	return server, nil
 }

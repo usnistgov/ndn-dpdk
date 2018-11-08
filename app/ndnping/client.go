@@ -49,12 +49,8 @@ func newClient2(face iface.IFace, cfg ClientConfig) (client *Client, e error) {
 	}
 
 	for _, patternCfg := range cfg.Patterns {
-		name, e := ndn.ParseName(patternCfg.Prefix)
-		if e != nil {
-			return nil, fmt.Errorf("ndn.ParseName(%s): %v", patternCfg.Prefix, e)
-		}
 		// TODO process Repeat
-		client.AddPattern(name, 1)
+		client.AddPattern(patternCfg.Prefix, 0.0)
 	}
 
 	client.SetInterval(cfg.Interval)

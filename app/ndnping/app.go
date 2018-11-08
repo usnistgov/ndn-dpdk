@@ -12,7 +12,6 @@ import (
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/ethface"
-	"ndn-dpdk/iface/faceuri"
 )
 
 type App struct {
@@ -114,18 +113,7 @@ type Task struct {
 }
 
 func newTask(cfg TaskConfig) (task Task, e error) {
-	remoteUri, e := faceuri.Parse(cfg.Face.Remote)
-	if e != nil {
-		return Task{}, fmt.Errorf("faceuri.Parse(remote): %v", e)
-	}
-	var localUri *faceuri.FaceUri
-	if cfg.Face.Local != "" {
-		localUri, e = faceuri.Parse(cfg.Face.Local)
-		if e != nil {
-			return Task{}, fmt.Errorf("faceuri.Parse(local): %v", e)
-		}
-	}
-	task.Face, e = appinit.NewFaceFromUri(remoteUri, localUri)
+	task.Face, e = appinit.NewFaceFromUri(cfg.Face.Remote, cfg.Face.Local)
 	if e != nil {
 		return Task{}, fmt.Errorf("appinit.NewFaceFromUri: %v", e)
 	}
