@@ -18,7 +18,7 @@ NdnpingClient_Init(NdnpingClient* client)
   client->suffixComponent.compL = 8;
   client->suffixComponent.compV = rte_rand();
 
-  client->interestTpl.canBePrefix = false;
+  client->interestTpl.canBePrefix = true;
   client->interestTpl.mustBeFresh = true;
   client->interestTpl.fhL = 0;
   client->interestTpl.fhV = NULL;

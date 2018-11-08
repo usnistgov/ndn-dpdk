@@ -46,9 +46,11 @@ func (set NameSet) Insert(name *ndn.Name) {
 	set.InsertWithZeroUsr(name, 0)
 }
 
-func (set NameSet) InsertWithZeroUsr(name *ndn.Name, usrLen int) {
+func (set NameSet) InsertWithZeroUsr(name *ndn.Name, usrLen int) (index int, usr unsafe.Pointer) {
+	index = set.Len()
 	C.__NameSet_Insert(set.c, (C.uint16_t)(name.Size()), (*C.uint8_t)(name.GetValue().GetPtr()),
 		nil, C.size_t(usrLen))
+	return index, set.GetUsr(index)
 }
 
 func (set NameSet) GetName(index int) (name *ndn.Name) {

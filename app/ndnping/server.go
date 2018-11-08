@@ -26,7 +26,9 @@ type Server struct {
 	c *C.NdnpingServer
 }
 
-func NewServer(face iface.IFace) (server Server, e error) {
+func newServer(face iface.IFace, cfg ServerConfig) *Server {
+	var server Server
+
 	socket := face.GetNumaSocket()
 	server.c = (*C.NdnpingServer)(dpdk.Zmalloc("NdnpingServer", C.sizeof_NdnpingServer, socket))
 	server.c.face = (C.FaceId)(face.GetFaceId())
@@ -36,79 +38,46 @@ func NewServer(face iface.IFace) (server Server, e error) {
 		appinit.MP_DATA, socket).GetPtr())
 	server.c.dataMbufHeadroom = C.uint16_t(appinit.SizeofEthLpHeaders() + ndn.EncodeData_GetHeadroom())
 
-	return server, e
-}
-
-func newServer2(face iface.IFace, cfg ServerConfig) (server *Server, e error) {
-	if server2, e := NewServer(face); e != nil {
-		return nil, e
-	} else {
-		server = &server2
-	}
-
 	for _, patternCfg := range cfg.Patterns {
-		server.AddPattern(patternCfg.Prefix)
+		server.addPattern(patternCfg)
 	}
 
-	// TODO make PayloadLen and Suffix per-pattern
-	server.SetNameSuffix(cfg.Patterns[0].Suffix)
-	server.SetPayloadLen(cfg.Patterns[0].PayloadLen)
-	server.SetNackNoRoute(cfg.Nack)
+	server.c.wantNackNoRoute = C.bool(cfg.Nack)
 
-	return server, nil
+	return &server
 }
 
 func (server Server) Close() error {
-	server.SetNameSuffix(nil)
-	server.SetPayloadLen(0)
 	server.getPatterns().Close()
 	dpdk.Free(server.c)
 	return nil
-}
-
-func (server Server) GetFace() iface.IFace {
-	return iface.Get(iface.FaceId(server.c.face))
-}
-
-func (server Server) SetNackNoRoute(enable bool) {
-	server.c.wantNackNoRoute = C.bool(enable)
-}
-
-func (server Server) SetNameSuffix(n *ndn.Name) {
-	if server.c.nameSuffix.value != nil {
-		dpdk.Free(server.c.nameSuffix.value)
-		server.c.nameSuffix.value = nil
-	}
-	if len := n.Size(); len > 0 {
-		v := uintptr(dpdk.Zmalloc("NdnpingServerSuffix", len, dpdk.NUMA_SOCKET_ANY))
-		for i, ch := range n.GetValue() {
-			*(*byte)(unsafe.Pointer(v + uintptr(i))) = ch
-		}
-		server.c.nameSuffix.value = (*C.uint8_t)(unsafe.Pointer(v))
-		server.c.nameSuffix.length = (C.uint16_t)(len)
-	}
 }
 
 func (server Server) SetFreshnessPeriod(freshness time.Duration) {
 	server.c.freshnessPeriod = C.uint32_t(freshness / time.Millisecond)
 }
 
-func (server Server) SetPayloadLen(len int) {
-	if server.c.payloadV != nil {
-		dpdk.Free(server.c.payloadV)
-	}
-	if len > 0 {
-		server.c.payloadV = (*C.uint8_t)(dpdk.Zmalloc("NdnpingServerPayload", len, dpdk.NUMA_SOCKET_ANY))
-		server.c.payloadL = C.uint16_t(len)
-	}
-}
-
 func (server Server) getPatterns() nameset.NameSet {
 	return nameset.FromPtr(unsafe.Pointer(&server.c.patterns))
 }
 
-func (server Server) AddPattern(name *ndn.Name) {
-	server.getPatterns().InsertWithZeroUsr(name, int(C.sizeof_NdnpingServerPattern))
+func (server Server) addPattern(cfg ServerPattern) {
+	suffixL := 0
+	if cfg.Suffix != nil {
+		suffixL = cfg.Suffix.Size()
+	}
+	sizeofUsr := int(C.sizeof_NdnpingServerPattern) + suffixL
+
+	_, usr := server.getPatterns().InsertWithZeroUsr(cfg.Prefix, sizeofUsr)
+	patternC := (*C.NdnpingServerPattern)(usr)
+	patternC.payloadL = C.uint16_t(cfg.PayloadLen)
+	if suffixL > 0 {
+		suffixV := unsafe.Pointer(uintptr(usr) + uintptr(C.sizeof_NdnpingServerPattern))
+		oldSuffixV := cfg.Suffix.GetValue()
+		C.memcpy(suffixV, unsafe.Pointer(&oldSuffixV[0]), C.size_t(suffixL))
+		patternC.nameSuffix.value = (*C.uint8_t)(suffixV)
+		patternC.nameSuffix.length = (C.uint16_t)(suffixL)
+	}
 }
 
 func (server Server) Run() int {

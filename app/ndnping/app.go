@@ -128,11 +128,7 @@ func newTask(cfg TaskConfig) (task Task, e error) {
 	}
 
 	if cfg.Server != nil {
-		task.Server, e = newServer2(task.Face, *cfg.Server)
-		if e != nil {
-			task.Close()
-			return Task{}, e
-		}
+		task.Server = newServer(task.Face, *cfg.Server)
 	}
 
 	return task, nil

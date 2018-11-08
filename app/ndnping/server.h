@@ -6,11 +6,18 @@
 #include "../../container/nameset/nameset.h"
 #include "../../iface/face.h"
 
+#define NDNPINGSERVER_PAYLOAD_MAX 65536
+
 /** \brief Per-pattern information in ndnping server.
  */
 typedef struct NdnpingServerPattern
 {
+  LName nameSuffix;
+  uint16_t payloadL;
+
   uint64_t nInterests;
+
+  char nameSuffixV[0];
 } NdnpingServerPattern;
 
 /** \brief ndnping server.
@@ -22,10 +29,7 @@ typedef struct NdnpingServer
 
   NameSet patterns;     ///< served prefixes
   bool wantNackNoRoute; ///< whether to Nack unserved Interests
-  LName nameSuffix;
   uint32_t freshnessPeriod;
-  uint16_t payloadL;
-  const uint8_t* payloadV;
 
   struct rte_mempool* dataMp; ///< mempool for Data
   uint16_t dataMbufHeadroom;
