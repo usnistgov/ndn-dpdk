@@ -1,6 +1,7 @@
 package faceuri
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -8,6 +9,10 @@ import (
 
 type FaceUri struct {
 	url.URL
+}
+
+func (u *FaceUri) String() string {
+	return u.URL.String()
 }
 
 func Parse(raw string) (*FaceUri, error) {
@@ -41,8 +46,31 @@ func MustParse(raw string) *FaceUri {
 	return u
 }
 
-func (u *FaceUri) String() string {
-	return u.URL.String()
+func (u *FaceUri) MarshalJSON() ([]byte, error) {
+	return json.Marshal(u.String())
+}
+
+func (u *FaceUri) UnmarshalJSON(data []byte) error {
+	return u.UnmarshalYAML(func(v interface{}) error {
+		return json.Unmarshal(data, v)
+	})
+}
+
+func (u *FaceUri) MarshalYAML() (interface{}, error) {
+	return u.String(), nil
+}
+
+func (u *FaceUri) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var raw string
+	if e := unmarshal(&raw); e != nil {
+		return e
+	}
+	if u2, e := Parse(raw); e != nil {
+		return e
+	} else {
+		*u = *u2
+	}
+	return nil
 }
 
 type iImpl interface {
