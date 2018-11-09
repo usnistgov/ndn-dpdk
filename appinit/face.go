@@ -53,15 +53,15 @@ func NewFaceFromUri(remote, local *faceuri.FaceUri) (face iface.IFace, e error) 
 
 // Functions to create face by FaceUri for each FaceUri scheme.
 var newFaceByScheme = map[string]func(remote, local *faceuri.FaceUri) (iface.IFace, error){
-	"dev":  newEthFace,
-	"udp4": newSocketFace,
-	"tcp4": newSocketFace,
-	"mock": newMockFace,
+	"ether": newEthFace,
+	"udp4":  newSocketFace,
+	"tcp4":  newSocketFace,
+	"mock":  newMockFace,
 }
 
 func newEthFace(remote, local *faceuri.FaceUri) (iface.IFace, error) {
 	if local != nil {
-		return nil, errors.New("dev scheme does not accept local FaceUri")
+		return nil, errors.New("ether scheme does not accept local FaceUri")
 	}
 
 	port := ethface.FindPortByUri(remote.String())

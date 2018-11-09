@@ -1,6 +1,8 @@
 package faceuri
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type rejects struct{}
 
@@ -8,6 +10,14 @@ var no rejects
 
 func (rejects) user(u *FaceUri) (bool, string) {
 	return u.User != nil, "user information"
+}
+
+func (rejects) password(u *FaceUri) (bool, string) {
+	hasPassword := false
+	if u.User != nil {
+		_, hasPassword = u.User.Password()
+	}
+	return hasPassword, "password"
 }
 
 func (rejects) host(u *FaceUri) (bool, string) {
@@ -37,7 +47,7 @@ func (rejects) fragment(u *FaceUri) (bool, string) {
 func (u *FaceUri) verifyNo(rejects ...func(*FaceUri) (bool, string)) error {
 	for _, reject := range rejects {
 		if bad, field := reject(u); bad {
-			return fmt.Errorf("%s FaceUri cannot have %s", u.Scheme, field)
+			return fmt.Errorf("should not contain %s", field)
 		}
 	}
 	return nil

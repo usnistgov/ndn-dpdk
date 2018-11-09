@@ -1,8 +1,9 @@
 package faceuri
 
 import (
-	"fmt"
+	"errors"
 	"net"
+	"strconv"
 
 	"ndn-dpdk/ndn"
 )
@@ -12,32 +13,30 @@ type udpTcpImpl struct {
 	defaultPort uint16
 }
 
-func (impl udpTcpImpl) Verify(u *FaceUri) error {
-	if e := u.verifyNo(no.user, no.path, no.query, no.fragment); e != nil {
+func (impl udpTcpImpl) Verify(u *FaceUri) (e error) {
+	if e = u.verifyNo(no.user, no.path, no.query, no.fragment); e != nil {
 		return e
 	}
 
 	ip := net.ParseIP(u.Hostname()).To4()
 	if ip == nil || ip[0] < 1 || ip[0] > 223 {
-		return fmt.Errorf("%s FaceUri must contain IPv4 unicast address", u.Scheme)
+		return errors.New("not an IPv4 unicast address")
 	}
 
-	if u.Port() == "" {
-		u.Host = net.JoinHostPort(u.Host, fmt.Sprintf("%d", impl.defaultPort))
-	} else {
-		var portNo uint16
-		_, e := fmt.Sscan(u.Port(), &portNo)
-		if e != nil {
-			return fmt.Errorf("%s FaceUri needs a valid port number but %s has error %v",
-				u.Scheme, u.Port(), e)
-		}
-		if portNo == 0 {
-			return fmt.Errorf("%s FaceUri cannot have port number 0", u.Scheme)
+	port := int(impl.defaultPort)
+	if u.Port() != "" {
+		if port, e = strconv.Atoi(u.Port()); e != nil || !impl.checkPort(port) {
+			return errors.New("invalid port number")
 		}
 	}
 
+	u.Host = net.JoinHostPort(ip.String(), strconv.Itoa(port))
 	u.Scheme = impl.scheme
 	return nil
+}
+
+func (udpTcpImpl) checkPort(port int) bool {
+	return port > 0 && port <= 65535
 }
 
 func init() {

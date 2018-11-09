@@ -5,12 +5,12 @@ package ethface
 */
 import "C"
 import (
-	"fmt"
-	"strings"
+	"bytes"
 
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/faceuri"
+	"ndn-dpdk/ndn"
 )
 
 func SizeofTxHeader() int {
@@ -20,14 +20,23 @@ func SizeofTxHeader() int {
 // List RemoteUris of available ports.
 func ListPortUris() (a []string) {
 	for _, port := range dpdk.ListEthDevs() {
-		a = append(a, makeRemoteUri(port))
+		a = append(a, faceuri.MustMakeEtherUri(port.GetName(), nil, 0).String())
 	}
 	return a
 }
 
 func FindPortByUri(uri string) dpdk.EthDev {
+	u, e := faceuri.Parse(uri)
+	if e != nil || u.Scheme != "ether" {
+		return dpdk.ETHDEV_INVALID
+	}
+	devName, mac, vid := u.ExtractEther()
+	if !bytes.Equal([]byte(mac), []byte(ndn.GetEtherMcastAddr())) || vid != 0 {
+		// non-default remote address or VLAN identifier are not supported
+		return dpdk.ETHDEV_INVALID
+	}
 	for _, port := range dpdk.ListEthDevs() {
-		if makeRemoteUri(port) == uri {
+		if faceuri.CleanEthdevName(port.GetName()) == devName {
 			return port
 		}
 	}
@@ -65,21 +74,13 @@ func (face *EthFace) GetPort() dpdk.EthDev {
 }
 
 func (face *EthFace) GetLocalUri() *faceuri.FaceUri {
-	return faceuri.MustParse(fmt.Sprintf("ether://[%s]", face.GetPort().GetMacAddr()))
-}
-
-func makeRemoteUri(port dpdk.EthDev) string {
-	hostname := strings.Map(func(c rune) rune {
-		if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' {
-			return c
-		}
-		return '-'
-	}, port.GetName())
-	return fmt.Sprintf("dev://%s", hostname)
+	port := face.GetPort()
+	return faceuri.MustMakeEtherUri(port.GetName(), port.GetMacAddr(), 0)
 }
 
 func (face *EthFace) GetRemoteUri() *faceuri.FaceUri {
-	return faceuri.MustParse(makeRemoteUri(face.GetPort()))
+	port := face.GetPort()
+	return faceuri.MustMakeEtherUri(port.GetName(), nil, 0)
 }
 
 func (face *EthFace) Close() error {

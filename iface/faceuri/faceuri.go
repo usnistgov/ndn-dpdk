@@ -16,13 +16,17 @@ func (u *FaceUri) String() string {
 }
 
 func Parse(raw string) (*FaceUri, error) {
+	return parseImpl(raw, "parse")
+}
+
+func parseImpl(raw, op string) (*FaceUri, error) {
 	base, e := url.Parse(raw)
 	if e != nil {
 		return nil, e
 	}
 
 	if !base.IsAbs() {
-		return nil, errors.New("FaceUri must be absolute")
+		return nil, &url.Error{op, raw, errors.New("FaceUri must be absolute")}
 	}
 
 	if impl, ok := implByScheme[base.Scheme]; ok {
@@ -30,12 +34,12 @@ func Parse(raw string) (*FaceUri, error) {
 		u.URL = *base
 		e = impl.Verify(u)
 		if e != nil {
-			return nil, e
+			return nil, &url.Error{op, raw, e}
 		}
 		return u, nil
 	}
 
-	return nil, fmt.Errorf("unknown scheme %s", base.Scheme)
+	return nil, &url.Error{op, raw, fmt.Errorf("unknown scheme %s", base.Scheme)}
 }
 
 func MustParse(raw string) *FaceUri {

@@ -3,8 +3,16 @@
 This package implements a face using DPDK ethdev as transport.
 
 FaceId of EthFace is in the range 0x1000-0x1FFF, where the lower 12 bits is the ethdev's port number.
-LocalUri indicates ethdev's MAC address.
-RemoteUri indicates ethdev's name, as presented by DPDK; it does not show the actual remote address, which is a hard-coded multicast group address.
+
+FaceUri of EthFace has three parts:
+
+*   User information portion contains the local or remote Ethernet address.
+    It is a MAC-48 address, written as upper case hexadecimal, using hyphen to separate octets.
+*   Hostname portion contains the port name as presented by DPDK.
+    Characters other than alphanumeric and underscore are replaced by hyphens.
+*   Port number portion contains the VLAN identifier.
+
+Current implementation does not support non-default remote Ethernet address or VLAN identifier.
 
 ## Receive Path
 
