@@ -2,6 +2,7 @@ package ethface_test
 
 import (
 	"fmt"
+	"net"
 	"testing"
 	"time"
 
@@ -13,40 +14,85 @@ import (
 )
 
 func TestEthFace(t *testing.T) {
-	assert, require := dpdktestenv.MakeAR(t)
+	_, require := dpdktestenv.MakeAR(t)
 
-	dpdktestenv.MakeDirectMp(4095, ndn.SizeofPacketPriv(), 2000)
+	mp := dpdktestenv.MakeDirectMp(4095, ndn.SizeofPacketPriv(), 2000)
 	mempools := iface.Mempools{
 		IndirectMp: dpdktestenv.MakeIndirectMp(4095),
 		NameMp:     dpdktestenv.MakeMp("name", 4095, 0, ndn.NAME_MAX_LENGTH),
 		HeaderMp:   dpdktestenv.MakeMp("header", 4095, 0, ethface.SizeofTxHeader()),
 	}
-	evl := dpdktestenv.NewEthVLink(2, 1024, 64, dpdktestenv.MPID_DIRECT)
-	defer evl.Close()
+	evn := dpdktestenv.NewEthVNet(3, 1024, 64, dpdktestenv.MPID_DIRECT)
+	defer evn.Close()
 
-	faceA, e := ethface.New(evl.PortA, mempools)
+	macA, _ := net.ParseMAC("02-02-02-00-00-01")
+	macB, _ := net.ParseMAC("02-02-02-00-00-02")
+	macC, _ := net.ParseMAC("02-02-02-00-00-03")
+
+	var cfgA ethface.PortConfig
+	cfgA.Mempools = mempools
+	cfgA.EthDev = evn.Ports[0]
+	cfgA.RxMp = mp
+	cfgA.RxqCapacity = 64
+	cfgA.TxqCapacity = 64
+	cfgA.Local = macA
+	cfgA.Multicast = true
+	cfgA.Unicast = []net.HardwareAddr{macB, macC}
+	portA, e := ethface.NewPort(cfgA)
 	require.NoError(e)
-	defer faceA.Close()
-	faceB, e := ethface.New(evl.PortB, mempools)
+	defer portA.Close()
+
+	cfgB := cfgA
+	cfgB.EthDev = evn.Ports[1]
+	cfgB.Local = macB
+	cfgB.Unicast = []net.HardwareAddr{macA}
+	portB, e := ethface.NewPort(cfgB)
 	require.NoError(e)
-	defer faceB.Close()
+	defer portB.Close()
 
-	rxlA := ethface.NewRxLoop(3, faceA.GetNumaSocket())
-	defer rxlA.Close()
-	require.NoError(rxlA.Add(faceA)) // queue 0
-	require.NoError(rxlA.Add(faceA)) // queue 1
-	assert.Error(rxlA.Add(faceA))    // queue 2 does not exist
+	cfgC := cfgB
+	cfgC.EthDev = evn.Ports[2]
+	cfgC.Local = macC
+	cfgC.Multicast = false
+	portC, e := ethface.NewPort(cfgC)
+	require.NoError(e)
+	defer portC.Close()
 
-	fixture := ifacetestfixture.New(t, faceA, rxlA, faceB)
-	dpdktestenv.Eal.Slaves[2].RemoteLaunch(evl.Bridge)
+	faceAB := portA.ListUnicastFaces()[0]
+	faceAC := portA.ListUnicastFaces()[1]
+	faceAm := portA.GetMulticastFace()
+	faceBA := portB.ListUnicastFaces()[0]
+	faceBm := portB.GetMulticastFace()
+	faceCA := portC.ListUnicastFaces()[0]
+
+	rxl := ethface.NewRxLoop(3, portA.GetNumaSocket())
+	defer rxl.Close()
+	require.NoError(rxl.AddPort(portA))
+	require.NoError(rxl.AddPort(portB))
+	require.NoError(rxl.AddPort(portC))
+
+	evn.LaunchBridge(dpdktestenv.Eal.Slaves[2])
 	time.Sleep(time.Second)
-	fixture.RunTest()
-	fixture.CheckCounters()
 
-	fmt.Println("TX port", evl.PortB.GetStats())
-	fmt.Println("TX face", faceB.ReadCounters())
-	fmt.Println("RX port", evl.PortA.GetStats())
-	fmt.Println("RX face", faceA.ReadCounters())
-	fmt.Println("AtoB", evl.AtoB)
-	fmt.Println("BtoA", evl.BtoA)
+	fixtureBA := ifacetestfixture.New(t, faceAB, rxl, faceBA)
+	fixtureBA.RunTest()
+	fixtureBA.CheckCounters()
+
+	fixtureCA := ifacetestfixture.New(t, faceAC, rxl, faceCA)
+	fixtureCA.RunTest()
+	fixtureCA.CheckCounters()
+
+	fixtureAm := ifacetestfixture.New(t, faceAm, rxl, faceBm)
+	fixtureAm.RunTest()
+	fixtureAm.CheckCounters()
+
+	fmt.Println("portA", evn.Ports[0].GetStats())
+	fmt.Println("portB", evn.Ports[1].GetStats())
+	fmt.Println("portC", evn.Ports[2].GetStats())
+	fmt.Println("faceAB", faceAB.ReadCounters())
+	fmt.Println("faceAC", faceAC.ReadCounters())
+	fmt.Println("faceAm", faceAm.ReadCounters())
+	fmt.Println("faceBA", faceBA.ReadCounters())
+	fmt.Println("faceBm", faceBm.ReadCounters())
+	fmt.Println("faceCA", faceCA.ReadCounters())
 }

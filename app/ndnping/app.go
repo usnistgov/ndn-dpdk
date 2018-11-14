@@ -54,7 +54,7 @@ func (app *App) launchRx() {
 	minFaceId := iface.FaceId(0xFFFF)
 	maxFaceId := iface.FaceId(0x0000)
 	for _, task := range app.Tasks {
-		rxl.Add(task.Face.(*ethface.EthFace))
+		rxl.AddPort(task.Face.(*ethface.EthFace).GetPort())
 
 		faceId := task.Face.GetFaceId()
 		if faceId < minFaceId {

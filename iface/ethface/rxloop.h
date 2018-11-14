@@ -10,9 +10,9 @@ typedef struct EthRxTask
   uint16_t port;
   uint16_t queue;
   int rxThread;
-  Face* face;
-} EthRxTask;
-static_assert(sizeof(EthRxTask) == 16, "");
+  FaceId multicast;
+  FaceId unicast[256];
+} __rte_cache_aligned EthRxTask;
 
 /** \brief Ethernet RX loop.
  */

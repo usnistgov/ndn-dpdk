@@ -10,7 +10,7 @@ import (
 	"ndn-dpdk/container/ndt"
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
-	"ndn-dpdk/iface/ethface"
+	// "ndn-dpdk/iface/ethface"
 	"ndn-dpdk/iface/socketface"
 )
 
@@ -54,7 +54,7 @@ func startDp(ndtCfg ndt.Config, fibCfg fib.Config, dpInit fwdpInitConfig) {
 		if nRxThreads == 0 {
 			nRxThreads = dpInit.EthInputsPerNuma
 		}
-		rxlPerNuma := make(map[dpdk.NumaSocket][]*ethface.RxLoop)
+		// rxlPerNuma := make(map[dpdk.NumaSocket][]*ethface.RxLoop)
 		txlPerNuma := make(map[dpdk.NumaSocket]*iface.MultiTxLoop)
 
 		ethDevs := dpdk.ListEthDevs()
@@ -81,27 +81,28 @@ func startDp(ndtCfg ndt.Config, fibCfg fib.Config, dpInit fwdpInitConfig) {
 				}
 				logEntry = logEntry.WithField("rx-lcores", lcores)
 			} else {
-				rxls, ok := rxlPerNuma[socket]
-				if !ok {
-					lcores := make([]dpdk.LCore, dpInit.EthInputsPerNuma)
-					rxls = make([]*ethface.RxLoop, dpInit.EthInputsPerNuma)
-					for i := range rxls {
-						lcores[i] = lcr.MustReserve(socket)
-						rxls[i] = ethface.NewRxLoop(len(ethDevs), socket)
-						dpCfg.InputLCores = append(dpCfg.InputLCores, lcores[i])
-						dpCfg.InputRxLoopers = append(dpCfg.InputRxLoopers, rxls[i])
-					}
-					rxlPerNuma[socket] = rxls
-					logEntry = logEntry.WithField("shared-rx-lcores", lcores)
-				} else {
-					logEntry = logEntry.WithField("shared-rx-lcores", "reuse")
-				}
+				panic("EthInputsPerNuma is not supported")
+				// rxls, ok := rxlPerNuma[socket]
+				// if !ok {
+				// 	lcores := make([]dpdk.LCore, dpInit.EthInputsPerNuma)
+				// 	rxls = make([]*ethface.RxLoop, dpInit.EthInputsPerNuma)
+				// 	for i := range rxls {
+				// 		lcores[i] = lcr.MustReserve(socket)
+				// 		rxls[i] = ethface.NewRxLoop(len(ethDevs), socket)
+				// 		dpCfg.InputLCores = append(dpCfg.InputLCores, lcores[i])
+				// 		dpCfg.InputRxLoopers = append(dpCfg.InputRxLoopers, rxls[i])
+				// 	}
+				// 	rxlPerNuma[socket] = rxls
+				// 	logEntry = logEntry.WithField("shared-rx-lcores", lcores)
+				// } else {
+				// 	logEntry = logEntry.WithField("shared-rx-lcores", "reuse")
+				// }
 
-				for _, rxl := range rxls {
-					if e := rxl.Add(face.(*ethface.EthFace)); e != nil {
-						logEntry.WithError(e).Fatal("rxl.Add failed")
-					}
-				}
+				// for _, rxl := range rxls {
+				// 	if e := rxl.Add(face.(*ethface.EthFace)); e != nil {
+				// 		logEntry.WithError(e).Fatal("rxl.Add failed")
+				// 	}
+				// }
 			}
 
 			if e := face.EnableThreadSafeTx(appinit.TheFaceQueueCapacityConfig.EthTxPkts); e != nil {

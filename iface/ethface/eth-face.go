@@ -5,60 +5,59 @@ package ethface
 */
 import "C"
 import (
-	"bytes"
+	"encoding/binary"
+	"net"
+	"unsafe"
 
-	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/faceuri"
 	"ndn-dpdk/ndn"
 )
 
-func SizeofTxHeader() int {
-	return int(C.EthFace_SizeofTxHeader())
+type faceFactory struct {
+	port     *Port
+	mempools iface.Mempools
+	local    net.HardwareAddr
+	mtu      int
 }
 
-// List RemoteUris of available ports.
-func ListPortUris() (a []string) {
-	for _, port := range dpdk.ListEthDevs() {
-		a = append(a, faceuri.MustMakeEtherUri(port.GetName(), nil, 0).String())
+func copyHwaddrToC(a net.HardwareAddr, c *C.struct_ether_addr) {
+	for i := 0; i < C.ETHER_ADDR_LEN; i++ {
+		c.addr_bytes[i] = C.uint8_t(a[i])
 	}
-	return a
 }
 
-func FindPortByUri(uri string) dpdk.EthDev {
-	u, e := faceuri.Parse(uri)
-	if e != nil || u.Scheme != "ether" {
-		return dpdk.ETHDEV_INVALID
+func (f *faceFactory) newFace(id iface.FaceId, addr net.HardwareAddr) (face *EthFace) {
+	face = new(EthFace)
+	face.InitBaseFace(id, int(C.sizeof_EthFacePriv), f.port.GetNumaSocket())
+	face.port = f.port
+	face.addr = addr
+
+	priv := face.getPriv()
+	priv.port = C.uint16_t(f.port.dev)
+	copyHwaddrToC(f.local, &priv.txHdr.s_addr)
+	if addr == nil {
+		copyHwaddrToC(ndn.GetEtherMcastAddr(), &priv.txHdr.d_addr)
+	} else {
+		copyHwaddrToC(addr, &priv.txHdr.d_addr)
 	}
-	devName, mac, vid := u.ExtractEther()
-	if !bytes.Equal([]byte(mac), []byte(ndn.GetEtherMcastAddr())) || vid != 0 {
-		// non-default remote address or VLAN identifier are not supported
-		return dpdk.ETHDEV_INVALID
-	}
-	for _, port := range dpdk.ListEthDevs() {
-		if faceuri.CleanEthdevName(port.GetName()) == devName {
-			return port
-		}
-	}
-	return dpdk.ETHDEV_INVALID
+
+	var etherType [2]byte
+	binary.BigEndian.PutUint16(etherType[:], ndn.NDN_ETHERTYPE)
+	C.memcpy(unsafe.Pointer(&priv.txHdr.ether_type), unsafe.Pointer(&etherType[0]), 2)
+
+	faceC := face.getPtr()
+	faceC.txBurstOp = (C.FaceImpl_TxBurst)(C.EthFace_TxBurst)
+	C.FaceImpl_Init(faceC, C.uint16_t(f.mtu), C.sizeof_struct_ether_hdr,
+		(*C.FaceMempools)(f.mempools.GetPtr()))
+	iface.Put(face)
+	return face
 }
 
 type EthFace struct {
 	iface.BaseFace
-	nRxThreads int // how many RxProc threads are assigned to RxLoops
-}
-
-func New(port dpdk.EthDev, mempools iface.Mempools) (*EthFace, error) {
-	var face EthFace
-	id := iface.FaceId(iface.FaceKind_Eth<<12) | iface.FaceId(port)
-	face.InitBaseFace(id, int(C.sizeof_EthFacePriv), port.GetNumaSocket())
-
-	if ok := C.EthFace_Init(face.getPtr(), (*C.FaceMempools)(mempools.GetPtr())); !ok {
-		return nil, dpdk.GetErrno()
-	}
-
-	iface.Put(&face)
-	return &face, nil
+	port *Port
+	addr net.HardwareAddr // nil means multicast
 }
 
 func (face *EthFace) getPtr() *C.Face {
@@ -69,18 +68,16 @@ func (face *EthFace) getPriv() *C.EthFacePriv {
 	return (*C.EthFacePriv)(C.Face_GetPriv(face.getPtr()))
 }
 
-func (face *EthFace) GetPort() dpdk.EthDev {
-	return dpdk.EthDev(face.GetFaceId() & 0x0FFF)
+func (face *EthFace) GetPort() *Port {
+	return face.port
 }
 
 func (face *EthFace) GetLocalUri() *faceuri.FaceUri {
-	port := face.GetPort()
-	return faceuri.MustMakeEtherUri(port.GetName(), port.GetMacAddr(), 0)
+	return face.port.GetLocalUri()
 }
 
 func (face *EthFace) GetRemoteUri() *faceuri.FaceUri {
-	port := face.GetPort()
-	return faceuri.MustMakeEtherUri(port.GetName(), nil, 0)
+	return faceuri.MustMakeEtherUri(face.port.dev.GetName(), face.addr, 0)
 }
 
 func (face *EthFace) Close() error {
@@ -90,5 +87,5 @@ func (face *EthFace) Close() error {
 }
 
 func (face *EthFace) ReadExCounters() interface{} {
-	return face.GetPort().GetStats()
+	return face.port.dev.GetStats()
 }

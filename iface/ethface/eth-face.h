@@ -11,18 +11,10 @@
  */
 typedef struct EthFacePriv
 {
-  struct ether_hdr ethhdr; // TX Ethernet header
+  struct ether_hdr txHdr;
+  uint16_t port;
 } EthFacePriv;
 
-static uint16_t
-EthFace_SizeofTxHeader()
-{
-  return sizeof(struct ether_hdr) + PrependLpHeader_GetHeadroom();
-}
-
-/** \brief Initialize a face to communicate on Ethernet.
- *  \param mempools headerMp must have \c EthFace_SizeofTxHeader() dataroom
- */
-bool EthFace_Init(Face* face, FaceMempools* mempools);
+uint16_t EthFace_TxBurst(Face* face, struct rte_mbuf** pkts, uint16_t nPkts);
 
 #endif // NDN_DPDK_IFACE_ETHFACE_ETH_FACE_H

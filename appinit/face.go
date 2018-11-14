@@ -60,53 +60,42 @@ var newFaceByScheme = map[string]func(remote, local *faceuri.FaceUri) (iface.IFa
 }
 
 func newEthFace(remote, local *faceuri.FaceUri) (iface.IFace, error) {
-	if local != nil {
-		return nil, errors.New("ether scheme does not accept local FaceUri")
+	hostname := remote.Hostname()
+	for _, ethdev := range dpdk.ListEthDevs() {
+		if faceuri.CleanEthdevName(ethdev.GetName()) == hostname {
+			return newEthFaceFromDev(ethdev, 1)
+		}
 	}
-
-	port := ethface.FindPortByUri(remote.String())
-	if !port.IsValid() {
-		return nil, fmt.Errorf("DPDK device %s not found (available ports: %v)",
-			remote.Host, ethface.ListPortUris())
-	}
-	return newEthFaceFromDev(port, 1)
+	return nil, fmt.Errorf("DPDK device %s not found", hostname)
 }
 
 // Create face on DPDK device.
-func NewFaceFromEthDev(port dpdk.EthDev, nRxThreads int) (face iface.IFace, e error) {
-	if !port.IsValid() {
+func NewFaceFromEthDev(ethdev dpdk.EthDev, nRxThreads int) (face iface.IFace, e error) {
+	if !ethdev.IsValid() {
 		return nil, errors.New("DPDK device is invalid")
 	}
-	face, e = newEthFaceFromDev(port, nRxThreads)
+	face, e = newEthFaceFromDev(ethdev, nRxThreads)
 	return face, e
 }
 
-func newEthFaceFromDev(port dpdk.EthDev, nRxThreads int) (iface.IFace, error) {
-	var cfg dpdk.EthDevConfig
-	for i := 0; i < nRxThreads; i++ {
-		cfg.AddRxQueue(dpdk.EthRxQueueConfig{Capacity: TheFaceQueueCapacityConfig.EthRxFrames,
-			Socket: port.GetNumaSocket(),
-			Mp:     MakePktmbufPool(MP_ETHRX, port.GetNumaSocket())})
-	}
-	cfg.AddTxQueue(dpdk.EthTxQueueConfig{Capacity: TheFaceQueueCapacityConfig.EthTxFrames,
-		Socket: port.GetNumaSocket()})
-	_, _, e := port.Configure(cfg)
+func newEthFaceFromDev(ethdev dpdk.EthDev, nRxThreads int) (iface.IFace, error) {
+	numaSocket := ethdev.GetNumaSocket()
+	var cfg ethface.PortConfig
+	cfg.Mempools = makeFaceMempools(numaSocket)
+	cfg.EthDev = ethdev
+	cfg.RxMp = MakePktmbufPool(MP_ETHRX, numaSocket)
+	cfg.RxqCapacity = TheFaceQueueCapacityConfig.EthRxFrames
+	cfg.TxqCapacity = TheFaceQueueCapacityConfig.EthTxFrames
+	cfg.Local = nil
+	cfg.Multicast = true
+
+	port, e := ethface.NewPort(cfg)
 	if e != nil {
-		return nil, fmt.Errorf("port(%d).Configure: %v", port, e)
+		return nil, e
 	}
 
-	port.SetPromiscuous(true)
-
-	e = port.Start()
-	if e != nil {
-		return nil, fmt.Errorf("port(%d).Start: %v", port, e)
-	}
-
-	face, e := ethface.New(port, makeFaceMempools(port.GetNumaSocket()))
-	if e != nil {
-		return nil, fmt.Errorf("ethface.New(%d): %v", port, e)
-	}
-	return face, nil
+	return port.GetMulticastFace(), nil
+	// XXX nRxThreads is ignored
 }
 
 func newSocketFace(remote, local *faceuri.FaceUri) (face iface.IFace, e error) {
@@ -145,7 +134,7 @@ func MakeRxLooper(face iface.IFace) iface.IRxLooper {
 		return mockface.TheRxLoop
 	case iface.FaceKind_Eth:
 		rxl := ethface.NewRxLoop(1, face.GetNumaSocket())
-		if e := rxl.Add(face.(*ethface.EthFace)); e != nil {
+		if e := rxl.AddPort(face.(*ethface.EthFace).GetPort()); e != nil {
 			return nil
 		}
 		return rxl

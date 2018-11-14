@@ -26,7 +26,8 @@ EthRxLoop_AddTask(EthRxLoop* rxl, EthRxTask* task)
 }
 
 static bool
-EthRxLoop_StripEtherHdr(struct rte_mbuf* frame)
+EthRxLoop_Accept(EthRxLoop* rxl, EthRxTask* rxt, struct rte_mbuf* frame,
+                 uint64_t now)
 {
   assert(frame->data_len >= sizeof(struct ether_hdr));
   const struct ether_hdr* eth =
@@ -37,6 +38,17 @@ EthRxLoop_StripEtherHdr(struct rte_mbuf* frame)
     rte_pktmbuf_free(frame);
     return false;
   }
+
+  bool isMulticast = eth->d_addr.addr_bytes[0] & 0x01;
+  if (isMulticast) {
+    frame->port = rxt->multicast;
+  } else {
+    uint8_t srcLastOctet = eth->s_addr.addr_bytes[5];
+    frame->port = rxt->unicast[srcLastOctet];
+  }
+
+  // TODO offload timestamping to hardware where available
+  frame->timestamp = now;
 
   rte_pktmbuf_adj(frame, sizeof(struct ether_hdr));
   return true;
@@ -58,12 +70,7 @@ EthRxLoop_Run(EthRxLoop* rxl, FaceRxBurst* burst, Face_RxCb cb, void* cbarg)
       uint16_t nRx = 0;
       for (uint16_t i = 0; i < nInput; ++i) {
         struct rte_mbuf* frame = frames[i];
-        frame->port = rxt->face->id;
-
-        // TODO offload timestamping to hardware where available
-        frame->timestamp = now;
-
-        if (likely(EthRxLoop_StripEtherHdr(frame))) {
+        if (likely(EthRxLoop_Accept(rxl, rxt, frame, now))) {
           frames[nRx++] = frame;
         }
       }

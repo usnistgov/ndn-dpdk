@@ -32,26 +32,31 @@ func (rxl *RxLoop) Close() error {
 	return nil
 }
 
-func (rxl *RxLoop) Add(face *EthFace) error {
+func (rxl *RxLoop) AddPort(port *Port) error {
 	if rxl.c.nTasks >= rxl.c.maxTasks {
 		return fmt.Errorf("this RxLoop is full")
 	}
 
-	if face.nRxThreads >= C.RXPROC_MAX_THREADS {
-		return fmt.Errorf("cannot add face to more than %d RxLoops", C.RXPROC_MAX_THREADS)
+	if port.nRxThreads >= C.RXPROC_MAX_THREADS {
+		return fmt.Errorf("cannot add port to more than %d RxLoops", C.RXPROC_MAX_THREADS)
 	}
-	if ethDevInfo := face.GetPort().GetDevInfo(); face.nRxThreads >= int(ethDevInfo.Nb_rx_queues) {
-		return fmt.Errorf("cannot add this face to more than %d RxLoops", ethDevInfo.Nb_rx_queues)
+	if di := port.dev.GetDevInfo(); port.nRxThreads >= int(di.Nb_rx_queues) {
+		return fmt.Errorf("cannot add this face to more than %d RxLoops", di.Nb_rx_queues)
 	}
 
-	var task C.EthRxTask
-	task.port = C.uint16_t(face.GetPort())
-	task.queue = C.uint16_t(face.nRxThreads)
-	task.rxThread = C.int(face.nRxThreads)
-	task.face = face.getPtr()
-	C.EthRxLoop_AddTask(rxl.c, &task)
+	var taskC C.EthRxTask
+	taskC.port = C.uint16_t(port.dev)
+	taskC.queue = C.uint16_t(port.nRxThreads)
+	taskC.rxThread = C.int(port.nRxThreads)
+	if port.multicast != nil {
+		taskC.multicast = C.FaceId(port.multicast.GetFaceId())
+	}
+	for _, face := range port.unicast {
+		taskC.unicast[face.addr[5]] = C.FaceId(face.GetFaceId())
+	}
+	C.EthRxLoop_AddTask(rxl.c, &taskC)
 
-	face.nRxThreads++
+	port.nRxThreads++
 	return nil
 }
 
@@ -69,11 +74,17 @@ func (rxl *RxLoop) StopRxLoop() error {
 	return nil
 }
 
-func (rxl *RxLoop) ListFacesInRxLoop() []iface.FaceId {
-	list := make([]iface.FaceId, int(rxl.c.nTasks))
-	for i := range list {
+func (rxl *RxLoop) ListFacesInRxLoop() (list []iface.FaceId) {
+	for i := C.int(0); i < rxl.c.nTasks; i++ {
 		taskC := C.__EthRxLoop_GetTask(rxl.c, C.int(i))
-		list[i] = iface.FaceId(taskC.face.id)
+		if taskC.multicast != 0 {
+			list = append(list, iface.FaceId(taskC.multicast))
+		}
+		for j := 0; j < 256; j++ {
+			if taskC.unicast[j] != 0 {
+				list = append(list, iface.FaceId(taskC.unicast[j]))
+			}
+		}
 	}
 	return list
 }

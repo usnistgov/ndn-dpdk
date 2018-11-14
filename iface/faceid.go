@@ -52,11 +52,25 @@ func (id FaceId) GetKind() FaceKind {
 }
 
 // Allocate a random FaceId for a kind of face.
+// Warning: endless loop if all FaceIds are used up.
 func AllocId(kind FaceKind) (id FaceId) {
 	for id.GetKind() != kind || gFaces[id] != nil {
 		id = FaceId(kind<<12) | FaceId(rand.Uint32()&0x0FFF)
 	}
 	return id
+}
+
+// Allocate random FaceIds for a kind of face.
+// Warning: endless loop if all FaceIds are used up.
+func AllocIds(kind FaceKind, count int) (ids []FaceId) {
+	allocated := make(map[FaceId]bool)
+	for len(allocated) < count {
+		allocated[AllocId(kind)] = true
+	}
+	for id := range allocated {
+		ids = append(ids, id)
+	}
+	return ids
 }
 
 type State uint8

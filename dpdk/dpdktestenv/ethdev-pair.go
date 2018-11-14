@@ -19,10 +19,17 @@ type EthDevPair struct {
 
 	ringsAB []dpdk.Ring
 	ringsBA []dpdk.Ring
+
+	wantStopPortA bool
 }
 
 func NewEthDevPair(nQueues int, ringCapacity int, queueCapacity int) *EthDevPair {
+	return newEthDevPair2(nQueues, ringCapacity, queueCapacity, true)
+}
+
+func newEthDevPair2(nQueues int, ringCapacity int, queueCapacity int, wantStartPortA bool) *EthDevPair {
 	var edp EthDevPair
+	edp.wantStopPortA = wantStartPortA
 	mp := GetMp(MPID_DIRECT)
 
 	var e error
@@ -57,16 +64,19 @@ func NewEthDevPair(nQueues int, ringCapacity int, queueCapacity int) *EthDevPair
 		portConf.AddTxQueue(dpdk.EthTxQueueConfig{Capacity: queueCapacity, Socket: dpdk.NUMA_SOCKET_ANY})
 	}
 
-	edp.RxqA, edp.TxqA, e = edp.PortA.Configure(portConf)
-	if e != nil {
-		panic(fmt.Sprintf("EthDev(A).Configure error %v", e))
+	if wantStartPortA {
+		edp.RxqA, edp.TxqA, e = edp.PortA.Configure(portConf)
+		if e != nil {
+			panic(fmt.Sprintf("EthDev(A).Configure error %v", e))
+		}
+		edp.PortA.Start()
 	}
+
 	edp.RxqB, edp.TxqB, e = edp.PortB.Configure(portConf)
 	if e != nil {
 		panic(fmt.Sprintf("EthDev(B).Configure error %v", e))
 	}
 
-	edp.PortA.Start()
 	edp.PortB.Start()
 
 	nEthDevPairs++
@@ -74,9 +84,11 @@ func NewEthDevPair(nQueues int, ringCapacity int, queueCapacity int) *EthDevPair
 }
 
 func (edp *EthDevPair) Close() error {
-	edp.PortA.Stop()
+	if edp.wantStopPortA {
+		edp.PortA.Stop()
+		edp.PortA.Close()
+	}
 	edp.PortB.Stop()
-	edp.PortA.Close()
 	edp.PortB.Close()
 	for _, r := range edp.ringsAB {
 		r.Close()
