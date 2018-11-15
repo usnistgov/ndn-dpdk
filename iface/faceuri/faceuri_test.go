@@ -74,6 +74,7 @@ func TestParse(t *testing.T) {
 
 type marshalTestStruct struct {
 	U *faceuri.FaceUri
+	M faceuri.MacAddress
 	I int
 }
 
@@ -82,11 +83,12 @@ func TestMarshal(t *testing.T) {
 
 	var obj marshalTestStruct
 	obj.U = faceuri.MustParse("udp4://192.0.2.1:6363")
+	obj.M, _ = faceuri.ParseMacAddress("02-02-02-AA-BB-CC")
 	obj.I = 50
 
 	jsonEncoding, e := json.Marshal(obj)
 	if assert.NoError(e) {
-		assert.Equal([]byte("{\"U\":\"udp4://192.0.2.1:6363\",\"I\":50}"), jsonEncoding)
+		assert.Equal([]byte("{\"U\":\"udp4://192.0.2.1:6363\",\"M\":\"02-02-02-AA-BB-CC\",\"I\":50}"), jsonEncoding)
 	}
 
 	var jsonDecoded marshalTestStruct
@@ -96,20 +98,24 @@ func TestMarshal(t *testing.T) {
 	}
 
 	var jsonDecoded2 marshalTestStruct
-	assert.Error(json.Unmarshal([]byte("{\"U\":\"bad-scheme://\",\"I\":50}"), &jsonDecoded2))
-	assert.Error(json.Unmarshal([]byte("{\"U\":4,\"I\":50}"), &jsonDecoded2))
-	if assert.NoError(json.Unmarshal([]byte("{\"U\":null,\"I\":50}"), &jsonDecoded2)) {
+	assert.Error(json.Unmarshal([]byte("{\"U\":\"bad-scheme://\"}"), &jsonDecoded2))
+	assert.Error(json.Unmarshal([]byte("{\"U\":4}"), &jsonDecoded2))
+	assert.Error(json.Unmarshal([]byte("{\"M\":\"02-02-02-02-AA-BB-CC-DD\"}"), &jsonDecoded2))
+	assert.Error(json.Unmarshal([]byte("{\"M\":4}"), &jsonDecoded2))
+	if assert.NoError(json.Unmarshal([]byte("{\"U\":null,\"M\":null,\"I\":50}"), &jsonDecoded2)) {
 		assert.Nil(jsonDecoded2.U)
+		assert.Nil(jsonDecoded2.M)
 	}
 
 	yamlEncoding, e := yaml.Marshal(obj)
 	if assert.NoError(e) {
-		assert.Equal([]byte("u: udp4://192.0.2.1:6363\ni: 50\n"), yamlEncoding)
+		assert.Equal([]byte("u: udp4://192.0.2.1:6363\nm: 02-02-02-AA-BB-CC\ni: 50\n"), yamlEncoding)
 	}
 
 	var yamlDecoded marshalTestStruct
 	if e := yaml.Unmarshal(yamlEncoding, &yamlDecoded); assert.NoError(e) {
 		assert.Equal("udp4://192.0.2.1:6363", yamlDecoded.U.String())
+		assert.Equal("02-02-02-AA-BB-CC", yamlDecoded.M.String())
 		assert.Equal(50, yamlDecoded.I)
 	}
 }

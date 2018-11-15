@@ -18,17 +18,13 @@ func (etherImpl) Verify(u *FaceUri) (e error) {
 		return e
 	}
 
-	mac := ndn.GetEtherMcastAddr()
+	mac := MacAddress(ndn.GetEtherMcastAddr())
 	if u.User != nil {
-		if mac, e = net.ParseMAC(u.User.Username()); e != nil {
+		if mac, e = ParseMacAddress(u.User.Username()); e != nil {
 			return e
 		}
 	}
-	if username, e := etherMakeUsername(mac); e != nil {
-		return e
-	} else {
-		u.User = url.User(username)
-	}
+	u.User = url.User(mac.String())
 
 	devName := u.Hostname()
 	if devName == "" {
@@ -45,13 +41,6 @@ func (etherImpl) Verify(u *FaceUri) (e error) {
 	u.Host = net.JoinHostPort(devName, strconv.Itoa(vid))
 
 	return nil
-}
-
-func etherMakeUsername(mac net.HardwareAddr) (string, error) {
-	if len(mac) != 6 {
-		return "", errors.New("invalid MAC-48 address")
-	}
-	return fmt.Sprintf("%02X-%02X-%02X-%02X-%02X-%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]), nil
 }
 
 func etherCheckVlan(vid int) bool {
@@ -78,8 +67,11 @@ func MakeEtherUri(devName string, mac net.HardwareAddr, vid int) (*FaceUri, erro
 	if len(mac) == 0 {
 		mac = ndn.GetEtherMcastAddr()
 	}
-	username, _ := etherMakeUsername(mac)
-	return parseImpl(fmt.Sprintf("ether://%s@%s:%d", username, CleanEthdevName(devName), vid), "MakeEtherUri")
+	mac2 := MacAddress(mac)
+	if !mac2.Valid() {
+		return nil, errInvalidMacAddress
+	}
+	return parseImpl(fmt.Sprintf("ether://%s@%s:%d", mac, CleanEthdevName(devName), vid), "MakeEtherUri")
 }
 
 func MustMakeEtherUri(devName string, mac net.HardwareAddr, vid int) *FaceUri {
