@@ -6,6 +6,34 @@ ctx.declareType('iface.FaceUri', {
   format: 'uri',
 });
 
+ctx.declareType('facemgmt.IdArg', ctx.markAllRequired({
+  type: 'object',
+  properties: {
+    Id: ctx.useType('iface.FaceId'),
+  },
+}));
+
+ctx.declareType('facemgmt.localRemoteUris', {
+  type: 'object',
+  properties: {
+    LocalUri: ctx.useType('iface.FaceUri'),
+    RemoteUri: ctx.useType('iface.FaceUri'),
+  },
+  required: ['RemoteUri'],
+});
+
+ctx.declareType('facemgmt.BasicInfo', {
+  allOf: [
+    ctx.useType('facemgmt.IdArg'),
+    ctx.useType('facemgmt.localRemoteUris'),
+  ],
+});
+
+ctx.declareType('facemgmt.BasicInfo[]', {
+  type: 'array',
+  items: ctx.useType('facemgmt.BasicInfo'),
+});
+
 ctx.declareType('iface.InOrderReassemblerCounters', {
   type: 'object',
   properties: {
@@ -48,12 +76,9 @@ ctx.declareType('socketface.ExCounters', {
   type: 'object',
 });
 
-ctx.declareType('facemgmt.FaceInfo', {
+ctx.declareType('facemgmt.extendFaceInfo', {
   type: 'object',
   properties: {
-    Id: ctx.useType('iface.FaceId'),
-    LocalUri: ctx.useType('iface.FaceUri'),
-    RemoteUri: ctx.useType('iface.FaceUri'),
     IsDown: ctx.useType('boolean'),
     Counters: ctx.useType('iface.Counters'),
     ExCounters: {
@@ -67,26 +92,24 @@ ctx.declareType('facemgmt.FaceInfo', {
   },
 });
 
-ctx.declareType('facemgmt.IdArg', ctx.markAllRequired({
-  type: 'object',
-  properties: {
-    Id: ctx.useType('iface.FaceId'),
-  },
-}));
+ctx.declareType('facemgmt.FaceInfo', {
+  allOf: [
+    ctx.useType('facemgmt.BasicInfo'),
+    ctx.useType('facemgmt.extendFaceInfo'),
+  ],
+});
 
-ctx.declareMethod('Face.List', true, 'iface.FaceId[]');
+ctx.declareMethod('Face.List', true, 'facemgmt.BasicInfo[]');
 
 ctx.declareMethod('Face.Get', 'facemgmt.IdArg', 'facemgmt.FaceInfo');
 
 ctx.declareMethod('Face.Create',
-  ctx.markAllRequired({
-    type: 'object',
-    properties: {
-      LocalUri: ctx.useType('iface.FaceUri'),
-      RemoteUri: ctx.useType('iface.FaceUri'),
-    },
-  }),
-  'facemgmt.IdArg');
+  {
+    type: 'array',
+    items: ctx.useType('facemgmt.localRemoteUris'),
+    uniqueItems: true,
+  },
+  'facemgmt.BasicInfo[]');
 
 ctx.declareMethod('Face.Destroy', 'facemgmt.IdArg', true);
 

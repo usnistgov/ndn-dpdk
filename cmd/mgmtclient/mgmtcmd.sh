@@ -69,7 +69,19 @@ elif [[ $1 == 'face' ]]; then
   elif [[ $2 == 'show' ]]; then
     jsonrpc Face.Get '{"Id":'$3'}'
   elif [[ $2 == 'create' ]]; then
-    jsonrpc Face.Create '{"RemoteUri":"'$3'","LocalUri":"'$4'"}'
+    PARAMS=''
+    shift 2
+    while [[ $# -ge 2 ]]; do
+      if [[ $PARAMS == '' ]]; then
+        PARAMS='['
+      else
+        PARAMS=$PARAMS','
+      fi
+      PARAMS=$PARAMS'{"RemoteUri":"'$1'","LocalUri":"'$2'"}'
+      shift 2
+    done
+    PARAMS=$PARAMS']'
+    jsonrpc Face.Create $PARAMS
   elif [[ $2 == 'destroy' ]]; then
     jsonrpc Face.Destroy '{"Id":'$3'}'
   fi

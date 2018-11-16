@@ -4,20 +4,17 @@ import (
 	"errors"
 
 	"ndn-dpdk/iface"
-	"ndn-dpdk/iface/faceuri"
+	"ndn-dpdk/iface/createface"
 )
-
-// Function to create a face.
-var CreateFace func(remote, local *faceuri.FaceUri) (iface.FaceId, error)
 
 type FaceMgmt struct{}
 
-func (FaceMgmt) List(args struct{}, reply *[]iface.FaceId) error {
-	list := make([]iface.FaceId, 0)
+func (FaceMgmt) List(args struct{}, reply *[]BasicInfo) error {
+	result := make([]BasicInfo, 0)
 	for it := iface.IterFaces(); it.Valid(); it.Next() {
-		list = append(list, it.Id)
+		result = append(result, newBasicInfo(it.Face))
 	}
-	*reply = list
+	*reply = result
 	return nil
 }
 
@@ -38,13 +35,23 @@ func (FaceMgmt) Get(args IdArg, reply *FaceInfo) error {
 	return nil
 }
 
-func (FaceMgmt) Create(args CreateArg, reply *IdArg) (e error) {
-	if CreateFace == nil {
-		return errors.New("face creation is unavailable")
+func (FaceMgmt) Create(args []CreateArg, reply *[]BasicInfo) (e error) {
+	var list []createface.CreateArg
+	for _, a := range args {
+		list = append(list, a.toIfaceCreateArg())
 	}
 
-	reply.Id, e = CreateFace(args.RemoteUri, args.LocalUri)
-	return e
+	faces, e := createface.Create(list...)
+	if e != nil {
+		return e
+	}
+
+	result := make([]BasicInfo, 0)
+	for _, face := range faces {
+		result = append(result, newBasicInfo(face))
+	}
+	*reply = result
+	return nil
 }
 
 func (FaceMgmt) Destroy(args IdArg, reply *struct{}) error {

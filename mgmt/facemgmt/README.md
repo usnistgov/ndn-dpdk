@@ -8,5 +8,4 @@ This package implements [face](../../iface/) management.
 
 **Face.Get** retrieves information about a specific face.
 
-**Face.Create** creates a face.
-This requires `CreateFace` function to be set.
+**Face.Create** creates one or more faces.
