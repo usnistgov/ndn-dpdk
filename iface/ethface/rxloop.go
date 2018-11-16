@@ -61,7 +61,7 @@ func (rxl *RxLoop) AddPort(port *Port) error {
 		taskC.multicast = C.FaceId(port.multicast.GetFaceId())
 	}
 	for _, face := range port.unicast {
-		taskC.unicast[face.addr[5]] = C.FaceId(face.GetFaceId())
+		taskC.unicast[face.remote[5]] = C.FaceId(face.GetFaceId())
 	}
 	C.EthRxLoop_AddTask(rxl.c, &taskC)
 

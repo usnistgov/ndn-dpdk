@@ -11,7 +11,6 @@ import (
 
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
-	"ndn-dpdk/iface/faceuri"
 	"ndn-dpdk/ndn"
 )
 
@@ -143,14 +142,6 @@ func (port *Port) GetEthDev() dpdk.EthDev {
 
 func (port *Port) GetNumaSocket() dpdk.NumaSocket {
 	return port.dev.GetNumaSocket()
-}
-
-func (port *Port) GetLocalUri() *faceuri.FaceUri {
-	return port.makeLocalUri(0)
-}
-
-func (port *Port) makeLocalUri(vid int) *faceuri.FaceUri {
-	return faceuri.MustMakeEtherUri(port.dev.GetName(), port.dev.GetMacAddr(), vid)
 }
 
 func (port *Port) GetMulticastFace() *EthFace {
