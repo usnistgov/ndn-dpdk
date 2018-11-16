@@ -32,6 +32,15 @@ func (rxl *RxLoop) Close() error {
 	return nil
 }
 
+func (rxl *RxLoop) GetNumaSocket() dpdk.NumaSocket {
+	if rxl.c.nTasks == 0 {
+		return dpdk.NUMA_SOCKET_ANY
+	}
+	taskC := C.__EthRxLoop_GetTask(rxl.c, 0)
+	port := FindPort(dpdk.EthDev(taskC.port))
+	return port.GetNumaSocket()
+}
+
 func (rxl *RxLoop) AddPort(port *Port) error {
 	if rxl.c.nTasks >= rxl.c.maxTasks {
 		return fmt.Errorf("this RxLoop is full")

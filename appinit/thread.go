@@ -18,6 +18,7 @@ type IThread interface {
 
 	SetLCore(lc dpdk.LCore) // Assign an LCore.
 	GetLCore() dpdk.LCore   // Return assigned LCore.
+	IsRunning() bool
 
 	Launch() error // Launch the thread.
 	Stop() error   // Stop the thread.
@@ -44,6 +45,10 @@ func (t *ThreadBase) GetLCore() dpdk.LCore {
 	return t.lc
 }
 
+func (t *ThreadBase) IsRunning() bool {
+	return t.lc.GetState() != dpdk.LCORE_STATE_WAIT
+}
+
 func (t *ThreadBase) MustHaveLCore() {
 	if t.lc == dpdk.LCORE_INVALID {
 		panic("lcore unassigned")
@@ -57,8 +62,8 @@ func (t *ThreadBase) GetNumaSocket() dpdk.NumaSocket {
 
 func (t *ThreadBase) LaunchImpl(f dpdk.LCoreFunc) error {
 	t.MustHaveLCore()
-	if state := t.lc.GetState(); state != dpdk.LCORE_STATE_WAIT {
-		return fmt.Errorf("lcore %d is %s", t.lc, state)
+	if t.IsRunning() {
+		return fmt.Errorf("lcore %d is running", t.lc)
 	}
 	if ok := t.lc.RemoteLaunch(f); !ok {
 		return fmt.Errorf("unable to launch on %d", t.lc)
@@ -68,7 +73,7 @@ func (t *ThreadBase) LaunchImpl(f dpdk.LCoreFunc) error {
 
 func (t *ThreadBase) StopImpl(stop IStop) error {
 	t.MustHaveLCore()
-	if state := t.lc.GetState(); state == dpdk.LCORE_STATE_WAIT { // not running
+	if !t.IsRunning() {
 		return nil
 	}
 	stop.BeforeWait()

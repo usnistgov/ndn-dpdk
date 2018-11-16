@@ -85,6 +85,10 @@ func (rxg *RxGroup) RemoveFace(face *SocketFace) error {
 	return nil
 }
 
+func (*RxGroup) GetNumaSocket() dpdk.NumaSocket {
+	return dpdk.NUMA_SOCKET_ANY
+}
+
 func (rxg *RxGroup) RxLoop(burstSize int, cb unsafe.Pointer, cbarg unsafe.Pointer) {
 	burst := iface.NewRxBurst(burstSize)
 	defer burst.Close()

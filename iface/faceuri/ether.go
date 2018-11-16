@@ -71,7 +71,7 @@ func MakeEtherUri(devName string, mac net.HardwareAddr, vid int) (*FaceUri, erro
 	if !mac2.Valid() {
 		return nil, errInvalidMacAddress
 	}
-	return parseImpl(fmt.Sprintf("ether://%s@%s:%d", mac, CleanEthdevName(devName), vid), "MakeEtherUri")
+	return parseImpl(fmt.Sprintf("ether://%s@%s:%d", mac2, CleanEthdevName(devName), vid), "MakeEtherUri")
 }
 
 func MustMakeEtherUri(devName string, mac net.HardwareAddr, vid int) *FaceUri {

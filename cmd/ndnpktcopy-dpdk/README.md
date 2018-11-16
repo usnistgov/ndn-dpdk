@@ -1,5 +1,7 @@
 # ndnpktcopy-dpdk
 
+**This program is currently broken.**
+
 This program reads NDN packets from one interface, and writes them on one or more interfaces.
 
 ## Usage

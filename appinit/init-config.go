@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 
 	"gopkg.in/yaml.v2"
+
+	"ndn-dpdk/iface/createface"
 )
 
 type yamlFlagValue struct {
@@ -46,6 +48,6 @@ func DeclareInitConfigFlag(flags *flag.FlagSet, value interface{}) {
 // Config sections defined by appinit package.
 // To add more sections, embed with `yaml:",inline"` tag.
 type InitConfig struct {
-	Mempool           MempoolsCapacityConfig
-	FaceQueueCapacity FaceQueueCapacityConfig
+	Mempool MempoolsCapacityConfig
+	Face    createface.Config
 }

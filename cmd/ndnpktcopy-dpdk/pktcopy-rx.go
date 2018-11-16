@@ -6,7 +6,7 @@ package main
 import "C"
 import (
 	"fmt"
-	"unsafe"
+	// "unsafe"
 
 	"ndn-dpdk/appinit"
 	"ndn-dpdk/dpdk"
@@ -52,7 +52,7 @@ func (pcrx *PktcopyRx) AddTxFace(txFace iface.IFace) error {
 }
 
 func (pcrx *PktcopyRx) Run() int {
-	appinit.MakeRxLooper(pcrx.face).RxLoop(C.PKTCOPYRX_RXBURST_SIZE,
-		unsafe.Pointer(C.PktcopyRx_Rx), unsafe.Pointer(pcrx.c))
+	// appinit.MakeRxLooper(pcrx.face).RxLoop(C.PKTCOPYRX_RXBURST_SIZE,
+	// 	unsafe.Pointer(C.PktcopyRx_Rx), unsafe.Pointer(pcrx.c))
 	return 0
 }

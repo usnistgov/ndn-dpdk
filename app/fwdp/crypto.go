@@ -96,6 +96,5 @@ func (fwc *Crypto) Close() error {
 	fwc.dev.Close()
 	dpdk.MempoolFromPtr(unsafe.Pointer(fwc.c.opPool)).Close()
 	dpdk.RingFromPtr(unsafe.Pointer(fwc.c.input)).Close()
-	dpdk.Free(fwc.c.output)
 	return nil
 }

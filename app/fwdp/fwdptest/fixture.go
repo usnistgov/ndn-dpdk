@@ -12,6 +12,7 @@ import (
 	"ndn-dpdk/container/strategycode"
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
+	"ndn-dpdk/iface/createface"
 	"ndn-dpdk/iface/faceuri"
 	"ndn-dpdk/iface/mockface"
 	"ndn-dpdk/ndn"
@@ -27,8 +28,7 @@ type Fixture struct {
 	Ndt       *ndt.Ndt
 	Fib       *fib.Fib
 
-	outputTxLoop *iface.MultiTxLoop
-	faceIds      []iface.FaceId
+	faceIds []iface.FaceId
 }
 
 func NewFixture(t *testing.T) (fixture *Fixture) {
@@ -38,26 +38,18 @@ func NewFixture(t *testing.T) (fixture *Fixture) {
 	var dpCfg fwdp.Config
 	lcr := appinit.NewLCoreReservations()
 
-	faceInputLc := lcr.Reserve(dpdk.NUMA_SOCKET_ANY)
-	fixture.require.True(faceInputLc.IsValid())
-	dpCfg.InputLCores = []dpdk.LCore{faceInputLc}
-	dpCfg.InputRxLoopers = []iface.IRxLooper{mockface.TheRxLoop}
-
 	for i := 0; i < nFwds; i++ {
-		lc := lcr.Reserve(dpdk.NUMA_SOCKET_ANY)
-		fixture.require.True(lc.IsValid())
+		lc := lcr.MustReserve(dpdk.NUMA_SOCKET_ANY)
 		dpCfg.FwdLCores = append(dpCfg.FwdLCores, lc)
 	}
 
-	outputLc := lcr.Reserve(dpdk.NUMA_SOCKET_ANY)
-	fixture.require.True(outputLc.IsValid())
+	faceInputLc := lcr.MustReserve(dpdk.NUMA_SOCKET_ANY)
+	dpCfg.InputLCores = append(dpCfg.InputLCores, faceInputLc)
 
 	dpCfg.Crypto.InputCapacity = 64
 	dpCfg.Crypto.OpPoolCapacity = 1023
 	dpCfg.Crypto.OpPoolCacheSize = 31
-
-	cryptoLc := lcr.Reserve(dpdk.NUMA_SOCKET_ANY)
-	fixture.require.True(cryptoLc.IsValid())
+	cryptoLc := lcr.MustReserve(dpdk.NUMA_SOCKET_ANY)
 	dpCfg.CryptoLCore = cryptoLc
 
 	dpCfg.Ndt.PrefixLen = 2
@@ -80,35 +72,42 @@ func NewFixture(t *testing.T) (fixture *Fixture) {
 	fixture.Ndt = theDp.GetNdt()
 	fixture.Fib = theDp.GetFib()
 
-	fixture.outputTxLoop = iface.NewMultiTxLoop()
-	outputLc.RemoteLaunch(func() int {
-		fixture.outputTxLoop.TxLoop()
-		return 0
-	})
-
 	e = theDp.Launch()
 	fixture.require.NoError(e)
+
+	appinit.StartRxl = func(rxl iface.IRxLooper) (usr interface{}, e error) {
+		fwi, e := theDp.LaunchInput(rxl)
+		return fwi, e
+	}
+	appinit.StopRxl = func(rxl iface.IRxLooper, usr interface{}) {
+		fwi := usr.(*fwdp.Input)
+		fwi.Stop()
+	}
+	appinit.TxlLCoreReservation = lcr
+	var faceCfg createface.Config
+	faceCfg.EnableMock = true
+	faceCfg.MockTxqPkts = 16
+	appinit.EnableCreateFace(faceCfg) // ignore double-init error
 
 	return fixture
 }
 
 func (fixture *Fixture) Close() error {
-	fixture.DataPlane.Stop()
-	fixture.outputTxLoop.StopTxLoop()
-
-	fixture.DataPlane.Close()
 	iface.CloseAll()
+	fixture.DataPlane.Stop()
+	fixture.DataPlane.Close()
 	strategycode.CloseAll()
 	return nil
 }
 
 func (fixture *Fixture) CreateFace() *mockface.MockFace {
-	face, e := appinit.NewFaceFromUri(faceuri.MustParse("mock:"), nil)
+	var faceArg createface.CreateArg
+	faceArg.Remote = faceuri.MustParse("mock:")
+	faces, e := createface.Create(faceArg)
 	fixture.require.NoError(e)
-	e = face.EnableThreadSafeTx(16)
-	fixture.require.NoError(e)
+	fixture.require.Len(faces, 1)
 
-	fixture.outputTxLoop.AddFace(face)
+	face := faces[0]
 	faceId := face.GetFaceId()
 	fixture.faceIds = append(fixture.faceIds, faceId)
 	return face.(*mockface.MockFace)

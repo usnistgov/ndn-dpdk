@@ -18,6 +18,10 @@ var TheRxLoop iface.IRxLooper = rxLoop{}
 var rxQueue chan dpdk.Packet = make(chan dpdk.Packet)
 var rxStop chan struct{} = make(chan struct{})
 
+func (rxLoop) GetNumaSocket() dpdk.NumaSocket {
+	return dpdk.NUMA_SOCKET_ANY
+}
+
 func (rxLoop) RxLoop(burstSize int, cb unsafe.Pointer, cbarg unsafe.Pointer) {
 	burst := iface.NewRxBurst(1)
 	defer burst.Close()

@@ -17,10 +17,9 @@ import (
 )
 
 type Config struct {
-	InputLCores    []dpdk.LCore
-	InputRxLoopers []iface.IRxLooper
-	CryptoLCore    dpdk.LCore
-	FwdLCores      []dpdk.LCore
+	InputLCores []dpdk.LCore
+	CryptoLCore dpdk.LCore
+	FwdLCores   []dpdk.LCore
 
 	Ndt  ndt.Config  // NDT config
 	Fib  fib.Config  // FIB config (Id ignored)
@@ -41,10 +40,6 @@ type DataPlane struct {
 }
 
 func New(cfg Config) (dp *DataPlane, e error) {
-	if len(cfg.InputLCores) != len(cfg.InputRxLoopers) {
-		return nil, fmt.Errorf("%d InputLCores but %d InputRxLoopers", len(cfg.InputLCores), len(cfg.InputRxLoopers))
-	}
-
 	dp = new(DataPlane)
 
 	{
@@ -73,7 +68,7 @@ func New(cfg Config) (dp *DataPlane, e error) {
 	}
 
 	for i, lc := range cfg.InputLCores {
-		fwi := newInput(i, cfg.InputRxLoopers[i])
+		fwi := newInput(i)
 		fwi.SetLCore(lc)
 		if e := fwi.Init(dp.ndt, dp.fwds); e != nil {
 			dp.Close()
@@ -102,15 +97,27 @@ func (dp *DataPlane) Launch() error {
 	for _, fwd := range dp.fwds {
 		fwd.Launch()
 	}
-	for _, fwi := range dp.inputs {
-		fwi.Launch()
-	}
 	return nil
+}
+
+func (dp *DataPlane) LaunchInput(rxl iface.IRxLooper) (fwi *Input, e error) {
+	wantNumaSocket := rxl.GetNumaSocket()
+	for _, fwi = range dp.inputs {
+		if fwi.IsRunning() ||
+			(wantNumaSocket != dpdk.NUMA_SOCKET_ANY && fwi.GetLCore().GetNumaSocket() != wantNumaSocket) {
+			continue
+		}
+		fwi.rxl = rxl
+		return fwi, fwi.Launch()
+	}
+	return nil, fmt.Errorf("no FwInput available on NUMA socket %d", wantNumaSocket)
 }
 
 func (dp *DataPlane) Stop() error {
 	for _, fwi := range dp.inputs {
-		fwi.Stop()
+		if fwi.IsRunning() {
+			fwi.Stop()
+		}
 	}
 	if dp.crypto != nil {
 		dp.crypto.Stop()

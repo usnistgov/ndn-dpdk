@@ -39,7 +39,16 @@ type Port struct {
 	nRxThreads int
 }
 
+var portByEthDev = make(map[dpdk.EthDev]*Port)
+
+func FindPort(ethdev dpdk.EthDev) *Port {
+	return portByEthDev[ethdev]
+}
+
 func NewPort(cfg PortConfig) (port *Port, e error) {
+	if FindPort(cfg.EthDev) != nil {
+		return nil, errors.New("cfg.EthDev matches existing Port")
+	}
 	if cfg.Local != nil && len(cfg.Local) != 6 {
 		return nil, errors.New("cfg.Local is invalid")
 	}
@@ -85,6 +94,7 @@ func NewPort(cfg PortConfig) (port *Port, e error) {
 		port.unicast = append(port.unicast, face)
 	}
 
+	portByEthDev[cfg.EthDev] = port
 	return port, nil
 }
 
@@ -123,6 +133,7 @@ func (port *Port) Close() error {
 		face.Close()
 	}
 	port.dev.Stop()
+	delete(portByEthDev, port.dev)
 	return nil
 }
 

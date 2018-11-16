@@ -51,6 +51,13 @@ func NewLCoreReservations() LCoreReservations {
 	return make(LCoreReservations)
 }
 
+// Indicate lcores are reserved.
+func (lcr LCoreReservations) MarkReserved(lcores ...dpdk.LCore) {
+	for _, lc := range lcores {
+		lcr[lc] = true
+	}
+}
+
 // Reserve an idle lcore in specified NumaSocket.
 // Return dpdk.LCORE_INVALID if no lcore available.
 func (lcr LCoreReservations) Reserve(socket dpdk.NumaSocket) dpdk.LCore {

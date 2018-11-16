@@ -8,6 +8,8 @@ import (
 	"ndn-dpdk/appinit"
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/ndt"
+	"ndn-dpdk/dpdk"
+	"ndn-dpdk/iface/createface"
 )
 
 type initConfig struct {
@@ -18,29 +20,26 @@ type initConfig struct {
 }
 
 type fwdpInitConfig struct {
-	EthInputsPerFace int
-	EthInputsPerNuma int
-	EthShareTx       bool
-	EnableSocketFace bool
+	InputLCores  []dpdk.LCore
+	CryptoLCores []dpdk.LCore
+	FwdLCores    []dpdk.LCore
 
 	FwdQueueCapacity  int
 	LatencySampleFreq int
 	PcctCapacity      int
 	CsCapacity        int
+
+	AutoFaces bool
 }
 
 func parseCommand(args []string) (initCfg initConfig, e error) {
-	initCfg.FaceQueueCapacity = appinit.TheFaceQueueCapacityConfig
+	initCfg.Face = createface.GetDefaultConfig()
 	initCfg.Ndt.PrefixLen = 2
 	initCfg.Ndt.IndexBits = 16
 	initCfg.Ndt.SampleFreq = 8
 	initCfg.Fib.MaxEntries = 65535
 	initCfg.Fib.NBuckets = 256
 	initCfg.Fib.StartDepth = 8
-	initCfg.Fwdp.EthInputsPerFace = 1
-	initCfg.Fwdp.EthInputsPerNuma = 0
-	initCfg.Fwdp.EthShareTx = false
-	initCfg.Fwdp.EnableSocketFace = true
 	initCfg.Fwdp.FwdQueueCapacity = 128
 	initCfg.Fwdp.LatencySampleFreq = 16
 	initCfg.Fwdp.PcctCapacity = 131071

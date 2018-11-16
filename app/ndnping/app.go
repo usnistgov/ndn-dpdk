@@ -11,20 +11,33 @@ import (
 	"ndn-dpdk/appinit"
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
-	"ndn-dpdk/iface/ethface"
+	"ndn-dpdk/iface/createface"
 )
 
 type App struct {
 	Tasks []Task
-	rxl   *ethface.RxLoop
-	txl   *iface.MultiTxLoop
+	rxls  []iface.IRxLooper
 }
 
 func NewApp(cfg []TaskConfig) (app *App, e error) {
 	app = new(App)
 
+	appinit.StartRxl = app.addRxl
+	if e = appinit.EnableCreateFace(createface.GetDefaultConfig()); e != nil {
+		return nil, e
+	}
+
+	var faceCreateArgs []createface.CreateArg
+	for _, taskCfg := range cfg {
+		faceCreateArgs = append(faceCreateArgs, taskCfg.Face)
+	}
+	faces, e := createface.Create(faceCreateArgs...)
+	if e != nil {
+		return nil, e
+	}
+
 	for i, taskCfg := range cfg {
-		task, e := newTask(taskCfg)
+		task, e := newTask(taskCfg, faces[i])
 		if e != nil {
 			return nil, fmt.Errorf("[%d] init error: %v", i, e)
 		}
@@ -37,26 +50,24 @@ func NewApp(cfg []TaskConfig) (app *App, e error) {
 	return app, nil
 }
 
-func (app *App) getNumaSocket() dpdk.NumaSocket {
-	return app.Tasks[0].Face.GetNumaSocket()
+func (app *App) addRxl(rxl iface.IRxLooper) (usr interface{}, e error) {
+	app.rxls = append(app.rxls, rxl)
+	return nil, nil
 }
 
 func (app *App) Launch() {
-	app.launchRx()
-	app.launchTx()
+	for _, rxl := range app.rxls {
+		app.launchRxl(rxl)
+	}
 	for _, task := range app.Tasks {
 		task.Launch()
 	}
 }
 
-func (app *App) launchRx() {
-	rxl := ethface.NewRxLoop(len(app.Tasks), app.getNumaSocket())
-	minFaceId := iface.FaceId(0xFFFF)
-	maxFaceId := iface.FaceId(0x0000)
-	for _, task := range app.Tasks {
-		rxl.AddPort(task.Face.(*ethface.EthFace).GetPort())
-
-		faceId := task.Face.GetFaceId()
+func (app *App) launchRxl(rxl iface.IRxLooper) {
+	minFaceId := iface.FACEID_MAX
+	maxFaceId := iface.FACEID_MIN
+	for _, faceId := range rxl.ListFacesInRxLoop() {
 		if faceId < minFaceId {
 			minFaceId = faceId
 		}
@@ -65,9 +76,12 @@ func (app *App) launchRx() {
 		}
 	}
 
-	inputC := C.NdnpingInput_New(C.uint16_t(minFaceId), C.uint16_t(maxFaceId), C.unsigned(app.getNumaSocket()))
+	inputC := C.NdnpingInput_New(C.uint16_t(minFaceId), C.uint16_t(maxFaceId), C.unsigned(rxl.GetNumaSocket()))
 	for i, task := range app.Tasks {
 		entryC := C.__NdnpingInput_GetEntry(inputC, C.uint16_t(task.Face.GetFaceId()))
+		if entryC == nil {
+			continue
+		}
 		if task.Client != nil {
 			queue, e := dpdk.NewRing(fmt.Sprintf("client-rx-%d", i), 256,
 				task.Face.GetNumaSocket(), true, true)
@@ -91,19 +105,7 @@ func (app *App) launchRx() {
 	appinit.MustLaunch(func() int {
 		rxl.RxLoop(64, unsafe.Pointer(C.NdnpingInput_FaceRx), unsafe.Pointer(inputC))
 		return 0
-	}, app.getNumaSocket())
-}
-
-func (app *App) launchTx() {
-	txl := iface.NewMultiTxLoop()
-	for _, task := range app.Tasks {
-		txl.AddFace(task.Face)
-	}
-
-	appinit.MustLaunch(func() int {
-		txl.TxLoop()
-		return 0
-	}, app.getNumaSocket())
+	}, rxl.GetNumaSocket())
 }
 
 type Task struct {
@@ -112,12 +114,8 @@ type Task struct {
 	Server *Server
 }
 
-func newTask(cfg TaskConfig) (task Task, e error) {
-	task.Face, e = appinit.NewFaceFromUri(cfg.Face.Remote, cfg.Face.Local)
-	if e != nil {
-		return Task{}, fmt.Errorf("appinit.NewFaceFromUri: %v", e)
-	}
-	task.Face.EnableThreadSafeTx(256)
+func newTask(cfg TaskConfig, face iface.IFace) (task Task, e error) {
+	task.Face = face
 
 	if cfg.Client != nil {
 		task.Client, e = newClient2(task.Face, *cfg.Client)

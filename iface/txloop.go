@@ -4,9 +4,14 @@ package iface
 #include "txloop.h"
 */
 import "C"
-import "ndn-dpdk/core/urcu"
+import (
+	"ndn-dpdk/core/urcu"
+	"ndn-dpdk/dpdk"
+)
 
 type ITxLooper interface {
+	GetNumaSocket() dpdk.NumaSocket
+
 	// Run TxLoop.
 	TxLoop()
 
@@ -27,6 +32,10 @@ func NewSingleTxLoop(face IFace) (txl *SingleTxLoop) {
 	return txl
 }
 
+func (txl *SingleTxLoop) GetNumaSocket() dpdk.NumaSocket {
+	return Get(FaceId(txl.c.face.id)).GetNumaSocket()
+}
+
 func (txl *SingleTxLoop) TxLoop() {
 	C.SingleTxLoop_Run(&txl.c)
 	txl.stopped <- true
@@ -41,17 +50,21 @@ func (txl *SingleTxLoop) StopTxLoop() error {
 
 // TX loop for multiple faces that enabled thread-safe TX.
 type MultiTxLoop struct {
-	c       C.MultiTxLoop
-	stopped chan bool
+	c          C.MultiTxLoop
+	stopped    chan bool
+	numaSocket dpdk.NumaSocket
 }
 
 func NewMultiTxLoop(faces ...IFace) (txl *MultiTxLoop) {
 	txl = new(MultiTxLoop)
-	for _, face := range faces {
-		txl.AddFace(face)
-	}
 	txl.stopped = make(chan bool)
+	txl.numaSocket = dpdk.NUMA_SOCKET_ANY
+	txl.AddFace(faces...)
 	return txl
+}
+
+func (txl *MultiTxLoop) GetNumaSocket() dpdk.NumaSocket {
+	return txl.numaSocket
 }
 
 func (txl *MultiTxLoop) TxLoop() {
@@ -68,16 +81,21 @@ func (txl *MultiTxLoop) StopTxLoop() error {
 	return nil
 }
 
-func (txl *MultiTxLoop) AddFace(face IFace) {
+func (txl *MultiTxLoop) AddFace(faces ...IFace) {
 	rs := urcu.NewReadSide()
 	defer rs.Close()
-	faceC := face.getPtr()
-	C.cds_hlist_add_head_rcu(&faceC.threadSafeTxNode, &txl.c.head)
+	for _, face := range faces {
+		txl.numaSocket = face.GetNumaSocket()
+		faceC := face.getPtr()
+		C.cds_hlist_add_head_rcu(&faceC.threadSafeTxNode, &txl.c.head)
+	}
 }
 
-func (txl *MultiTxLoop) RemoveFace(face IFace) {
+func (txl *MultiTxLoop) RemoveFace(faces ...IFace) {
 	rs := urcu.NewReadSide()
 	defer rs.Close()
-	faceC := face.getPtr()
-	C.cds_hlist_del_rcu(&faceC.threadSafeTxNode)
+	for _, face := range faces {
+		faceC := face.getPtr()
+		C.cds_hlist_del_rcu(&faceC.threadSafeTxNode)
+	}
 }

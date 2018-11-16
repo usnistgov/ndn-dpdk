@@ -6,7 +6,7 @@ import (
 	"ndn-dpdk/appinit"
 	"ndn-dpdk/container/ndt/ndtupdater"
 	"ndn-dpdk/container/strategycode"
-	"ndn-dpdk/iface/socketface"
+	// "ndn-dpdk/iface/socketface"
 	"ndn-dpdk/mgmt/facemgmt"
 	"ndn-dpdk/mgmt/fibmgmt"
 	"ndn-dpdk/mgmt/fwdpmgmt"
@@ -19,11 +19,11 @@ import (
 func startMgmt() {
 	appinit.RegisterMgmt(versionmgmt.VersionMgmt{})
 
-	if theSocketRxg != nil {
-		facemgmt.CreateFace = socketface.MakeMgmtCreateFace(
-			appinit.NewSocketFaceCfg(theSocketFaceNumaSocket), theSocketRxg, theSocketTxl,
-			appinit.TheFaceQueueCapacityConfig.SocketTxPkts)
-	}
+	// if theSocketRxg != nil {
+	// 	facemgmt.CreateFace = socketface.MakeMgmtCreateFace(
+	// 		appinit.NewSocketFaceCfg(theSocketFaceNumaSocket), theSocketRxg, theSocketTxl,
+	// 		appinit.TheFaceQueueCapacityConfig.SocketTxPkts)
+	// }
 	appinit.RegisterMgmt(facemgmt.FaceMgmt{})
 
 	appinit.RegisterMgmt(ndtmgmt.NdtMgmt{

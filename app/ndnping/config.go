@@ -3,19 +3,14 @@ package ndnping
 import (
 	"time"
 
-	"ndn-dpdk/iface/faceuri"
+	"ndn-dpdk/iface/createface"
 	"ndn-dpdk/ndn"
 )
 
 type TaskConfig struct {
-	Face   FaceConfig
+	Face   createface.CreateArg
 	Client *ClientConfig
 	Server *ServerConfig
-}
-
-type FaceConfig struct {
-	Remote *faceuri.FaceUri
-	Local  *faceuri.FaceUri
 }
 
 type ClientConfig struct {

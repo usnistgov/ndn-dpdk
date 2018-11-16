@@ -34,6 +34,10 @@ func (a MacAddress) String() string {
 	return fmt.Sprintf("%02X-%02X-%02X-%02X-%02X-%02X", a[0], a[1], a[2], a[3], a[4], a[5])
 }
 
+func (a MacAddress) IsGroupAddress() bool {
+	return a.Valid() && (a[0]&0x01) != 0
+}
+
 func (a MacAddress) MarshalJSON() ([]byte, error) {
 	return json.Marshal(a.String())
 }

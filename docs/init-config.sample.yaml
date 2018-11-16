@@ -28,20 +28,25 @@ mempool:
     capacity: 65535
     cachesize: 255
 
-# face queue capacity
-facequeuecapacity:
-  # Ethernet face, RX frames before decoding
-  ethrxframes: 256
-  # Ethernet face, TX packets before fragmentation
-  ethtxpkts: 256
-  # Ethernet face, TX frames after fragmentation
-  ethtxframes: 256
-  # socket face, RX frames before decoding
-  socketrxframes: 256
-  # socket face, TX packets before fragmentation
-  sockettxpkts: 256
-  # socket face, TX frames after fragmentation
-  sockettxframes: 256
+# FACE CREATION
+face:
+  # whether to enable Ethernet faces
+  enableeth: true
+  # Ethernet RX queue capacity
+  ethrxqframes: 4096
+  # Ethernet before-TX queue capacity
+  ethtxqpkts: 256
+  # Ethernet after-TX queue capacity
+  ethtxqframes: 4096
+
+  # whether to enable socket faces
+  enablesock: true
+  # socket RX queue capacity
+  sockrxqframes: 256
+  # socket before-TX queue capacity
+  socktxqpkts: 256
+  # socket after-TX queue capacity
+  socktxqframes: 256
 
 # NDT
 ndt:
@@ -65,14 +70,12 @@ fib:
 
 # FORWARDER DATA PLANE
 fwdp:
-  # How many FwInputs per EthDev. If non-zero, ethinputspernuma is ignored.
-  ethinputsperface: 1
-  # How many FwInputs per NUMA socket, shared for all EthDevs.
-  ethinputspernuma: 0
-  # Whether to share TxLoop among EthDev on same NUMA socket.
-  ethsharetx: false
-  # Whether to launch FwInput and TxLoop for socket faces.
-  enablesocketface: true
+  # Input thread LCores.
+  inputlcores: [1, 2]
+  # Crypto helper thread LCores.
+  cryptolcores: [3]
+  # Forwarding thread LCores.
+  fwdlcores: [4, 5, 6, 7]
 
   # Capacity of queue between FwInput and FwFwd.
   fwdqueuecapacity: 128
@@ -83,3 +86,6 @@ fwdp:
   pcctcapacity: 131071
   # Capacity of CS. Must not exceed pcctcapacity.
   cscapacity: 32768
+
+  # True to create multicast Ethernet faces automatically.
+  autofaces: false

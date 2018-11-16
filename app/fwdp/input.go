@@ -6,6 +6,7 @@ package fwdp
 import "C"
 
 import (
+	"errors"
 	"fmt"
 	"unsafe"
 
@@ -47,11 +48,10 @@ type Input struct {
 	rxl iface.IRxLooper
 }
 
-func newInput(id int, rxl iface.IRxLooper) *Input {
+func newInput(id int) *Input {
 	var fwi Input
 	fwi.ResetThreadBase()
 	fwi.id = id
-	fwi.rxl = rxl
 	return &fwi
 }
 
@@ -59,15 +59,10 @@ func (fwi *Input) String() string {
 	return fmt.Sprintf("input%d", fwi.id)
 }
 
-func (fwi *Input) SuggestNumaSocket() (socket dpdk.NumaSocket) {
-	socket = dpdk.NUMA_SOCKET_ANY
-	for _, faceId := range fwi.rxl.ListFacesInRxLoop() {
-		socket = iface.Get(faceId).GetNumaSocket()
-	}
-	return socket
-}
-
 func (fwi *Input) Launch() error {
+	if fwi.rxl == nil {
+		return errors.New("rxl is unset")
+	}
 	return fwi.LaunchImpl(func() int {
 		const burstSize = 64
 		fwi.rxl.RxLoop(burstSize, unsafe.Pointer(C.FwInput_FaceRx), unsafe.Pointer(fwi.c))
