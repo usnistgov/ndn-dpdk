@@ -1,32 +1,37 @@
 # ndn-dpdk/iface/ethface
 
-This package implements a face using DPDK ethdev as transport.
+This package implements Ethernet faces using DPDK ethdev as transport.
 
-FaceId of EthFace is in the range 0x1000-0x1FFF, where the lower 12 bits is the ethdev's port number.
-
-FaceUri of EthFace has three parts:
+**EthFace** type represents an Ethernet face.
+Its FaceId is randomly assigned from the range 0x1000-0x1FFF.
+Its FaceUri has three parts:
 
 *   User information portion contains the local or remote Ethernet address.
     It is a MAC-48 address, written as upper case hexadecimal, using hyphen to separate octets.
 *   Hostname portion contains the port name as presented by DPDK.
     Characters other than alphanumeric and underscore are replaced by hyphens.
-*   Port number portion contains the VLAN identifier.
+*   Port number portion contains the VLAN identifier (currently not supported).
 
-Current implementation does not support non-default remote Ethernet address or VLAN identifier.
+Multiple EthFaces can co-exist on the same DPDK ethdev.
+They are organized by the **Port** type.
+Each Port can have zero or one multiple EthFace, and zero or more unicast EthFaces.
+Currently, every unicast EthFace must have distinct last octet in its remote MAC address.
+All EthFaces on the same Port must be created and destroyed together.
 
 ## Receive Path
 
-`EthRxLoop` type implements the receive path.
-It polls the ethdev, accepts all Ethernet frames with NDN EtherType, and discards all frames with non-NDN EtherType (such as VLAN-tagged frames, IP packets, and NDN packets over UDP/TCP tunnels).
+**EthRxLoop** type implements the receive path.
+Currently, the receive path only uses ethdev queue 0.
+It polls one or more ethdevs, accepts all Ethernet frames with NDN EtherType, and discards all frames with non-NDN EtherType (such as VLAN-tagged frames, IP packets, and NDN packets over UDP/TCP tunnels).
 
-Each RxLoop runs on a separate DPDK lcore.
-It can receive on multiple faces, which allows a node to support a large number of low-traffic faces.
-On the other hand, one may add the same face to multiple RxLoops to handle the workload on high-traffic faces.
-In that case, each RxLoop must use a different RxProc thread number to avoid conflicts.
+Accepted frames are then labelled with incoming FaceIds, and passed to `FaceImpl_RxBurst` function for decoding and further processing.
+If a frame arrives on a non-existent face (e.g. unknown remote MAC address), its incoming FaceId is set to `FACEID_INVALID`, and `FaceImpl_RxBurst` would drop the frame.
 
 ## Send Path
 
-The send path requires every outgoing packet to have sufficient headroom for the Ethernet header.
+`EthFace_TxBurst` function implements the send path.
+Currently, the send path only uses ethdev queue 0.
+It requires every outgoing packet to have sufficient headroom for the Ethernet header.
 
 The send path is thread safe only if the underlying DPDK PMD is thread safe, which generally is not the case.
-Currently, the send path only uses queue 0.
+Otherwise, the caller must ensure that transmissions on all EthFaces of the same ethdev occur on the same thread.
