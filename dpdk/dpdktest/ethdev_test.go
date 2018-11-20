@@ -73,6 +73,7 @@ func TestEthDev(t *testing.T) {
 	dpdktestenv.Eal.Slaves[1].Wait()
 	time.Sleep(RX_FINISH_WAIT)
 	rxQuit <- true
+	dpdktestenv.Eal.Slaves[0].Wait()
 
 	log.Println("portA.stats=", edp.PortA.GetStats())
 	log.Println("portB.stats=", edp.PortB.GetStats())
