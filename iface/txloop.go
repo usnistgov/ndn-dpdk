@@ -19,35 +19,6 @@ type ITxLooper interface {
 	StopTxLoop() error
 }
 
-// TX loop for one face that enabled thread-safe TX.
-type SingleTxLoop struct {
-	c       C.SingleTxLoop
-	stopped chan bool
-}
-
-func NewSingleTxLoop(face IFace) (txl *SingleTxLoop) {
-	txl = new(SingleTxLoop)
-	txl.c.face = face.getPtr()
-	txl.stopped = make(chan bool)
-	return txl
-}
-
-func (txl *SingleTxLoop) GetNumaSocket() dpdk.NumaSocket {
-	return Get(FaceId(txl.c.face.id)).GetNumaSocket()
-}
-
-func (txl *SingleTxLoop) TxLoop() {
-	C.SingleTxLoop_Run(&txl.c)
-	txl.stopped <- true
-}
-
-func (txl *SingleTxLoop) StopTxLoop() error {
-	txl.c.stop = true
-	<-txl.stopped
-	txl.c.stop = false
-	return nil
-}
-
 // TX loop for multiple faces that enabled thread-safe TX.
 type MultiTxLoop struct {
 	c          C.MultiTxLoop

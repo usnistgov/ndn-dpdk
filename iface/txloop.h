@@ -5,16 +5,6 @@
 
 #include "face.h"
 
-/** \brief TX loop for one face that enabled thread-safe TX.
- */
-typedef struct SingleTxLoop
-{
-  Face* face;
-  bool stop;
-} SingleTxLoop;
-
-void SingleTxLoop_Run(SingleTxLoop* txl);
-
 /** \brief TX loop for multiple faces that enabled thread-safe TX.
  */
 typedef struct MultiTxLoop

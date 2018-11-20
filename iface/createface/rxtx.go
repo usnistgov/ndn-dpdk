@@ -40,11 +40,7 @@ func startEthRxtx(port *ethface.Port) (e error) {
 		face.EnableThreadSafeTx(theConfig.EthTxqPkts)
 	}
 
-	if len(faces) == 1 {
-		rxtx.txl = iface.NewSingleTxLoop(faces[0])
-	} else {
-		rxtx.txl = iface.NewMultiTxLoop(faces...)
-	}
+	rxtx.txl = iface.NewMultiTxLoop(faces...)
 	if rxtx.txlUsr, e = theCallbacks.StartTxl(rxtx.txl); e != nil {
 		return e
 	}

@@ -12,14 +12,6 @@ TxLoop_Transfer(Face* face)
 }
 
 void
-SingleTxLoop_Run(SingleTxLoop* txl)
-{
-  while (!txl->stop) {
-    TxLoop_Transfer(txl->face);
-  }
-}
-
-void
 MultiTxLoop_Run(MultiTxLoop* txl)
 {
   while (!txl->stop) {
