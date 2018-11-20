@@ -3,16 +3,18 @@
 
 /// \file
 
+#include "../dpdk/thread.h"
+
 #include "face.h"
 
-/** \brief TX loop for multiple faces that enabled thread-safe TX.
+/** \brief TX loop for faces that enabled thread-safe TX.
  */
-typedef struct MultiTxLoop
+typedef struct TxLoop
 {
   struct cds_hlist_head head;
-  bool stop;
-} MultiTxLoop;
+  ThreadStopFlag stop;
+} TxLoop;
 
-void MultiTxLoop_Run(MultiTxLoop* txl);
+void TxLoop_Run(TxLoop* txl);
 
 #endif // NDN_DPDK_IFACE_TXLOOP_H

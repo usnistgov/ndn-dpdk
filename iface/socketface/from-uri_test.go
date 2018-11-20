@@ -12,7 +12,7 @@ func TestMgmtCreateFace(t *testing.T) {
 	assert, require := makeAR(t)
 
 	rxg := socketface.NewRxGroup()
-	txl := iface.NewMultiTxLoop()
+	txl := iface.NewTxLoop()
 	createFace := socketface.MakeMgmtCreateFace(socketfaceCfg, rxg, txl, 64)
 
 	id1, e := createFace(faceuri.MustParse("udp4://127.0.0.1:7001"), nil)

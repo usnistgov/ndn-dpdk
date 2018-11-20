@@ -58,10 +58,10 @@ type ICallbacks interface {
 	StopRxl(rxl iface.IRxLooper, usr interface{})
 
 	// Callback when a new TxLoop should be launched.
-	StartTxl(txl iface.ITxLooper) (usr interface{}, e error)
+	StartTxl(txl *iface.TxLoop) (usr interface{}, e error)
 
 	// Callback when a TxLoop is no longer needed.
-	StopTxl(txl iface.ITxLooper, usr interface{})
+	StopTxl(txl *iface.TxLoop, usr interface{})
 }
 
 var isInitialized bool

@@ -51,19 +51,15 @@ func (createfaceCallbacks) StopRxl(rxl iface.IRxLooper, usr interface{}) {
 	}
 }
 
-func (createfaceCallbacks) StartTxl(txl iface.ITxLooper) (usr interface{}, e error) {
-	f := func() int {
-		txl.TxLoop()
-		return 0
+func (createfaceCallbacks) StartTxl(txl *iface.TxLoop) (usr interface{}, e error) {
+	lcr := TxlLCoreReservation
+	if lcr == nil {
+		lcr = NewLCoreReservations()
 	}
-	if TxlLCoreReservation == nil {
-		MustLaunch(f, txl.GetNumaSocket())
-	} else {
-		TxlLCoreReservation.MustReserve(txl.GetNumaSocket()).RemoteLaunch(f)
-	}
-	return nil, nil
+	txl.SetLCore(TxlLCoreReservation.MustReserve(txl.GetNumaSocket()))
+	return nil, txl.Launch()
 }
 
-func (createfaceCallbacks) StopTxl(txl iface.ITxLooper, usr interface{}) {
-	txl.StopTxLoop()
+func (createfaceCallbacks) StopTxl(txl *iface.TxLoop, usr interface{}) {
+	txl.Stop()
 }

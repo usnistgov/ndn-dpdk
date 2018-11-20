@@ -11,7 +11,7 @@ import (
 type ethRxtx struct {
 	rxl    *ethface.RxLoop
 	rxlUsr interface{}
-	txl    iface.ITxLooper
+	txl    *iface.TxLoop
 	txlUsr interface{}
 }
 
@@ -40,7 +40,7 @@ func startEthRxtx(port *ethface.Port) (e error) {
 		face.EnableThreadSafeTx(theConfig.EthTxqPkts)
 	}
 
-	rxtx.txl = iface.NewMultiTxLoop(faces...)
+	rxtx.txl = iface.NewTxLoop(faces...)
 	if rxtx.txlUsr, e = theCallbacks.StartTxl(rxtx.txl); e != nil {
 		return e
 	}
@@ -63,12 +63,12 @@ var (
 	sockRxl        *socketface.RxGroup
 	sockRxlUsr     interface{}
 	mockRxlUsr     interface{}
-	sockMockTxl    *iface.MultiTxLoop
+	sockMockTxl    *iface.TxLoop
 	sockMockTxlUsr interface{}
 )
 
 func startSockMockTxl() (e error) {
-	sockMockTxl = iface.NewMultiTxLoop()
+	sockMockTxl = iface.NewTxLoop()
 	sockMockTxlUsr, e = theCallbacks.StartTxl(sockMockTxl)
 	return e
 }

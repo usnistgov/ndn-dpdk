@@ -12,9 +12,9 @@ TxLoop_Transfer(Face* face)
 }
 
 void
-MultiTxLoop_Run(MultiTxLoop* txl)
+TxLoop_Run(TxLoop* txl)
 {
-  while (!txl->stop) {
+  while (ThreadStopFlag_ShouldContinue(&txl->stop)) {
     rcu_quiescent_state();
     rcu_read_lock();
     Face* face;
