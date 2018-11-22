@@ -21,7 +21,7 @@ import (
 )
 
 type Fwd struct {
-	appinit.ThreadBase
+	dpdk.ThreadBase
 	id int
 	c  *C.FwFwd
 }
@@ -54,6 +54,7 @@ func (fwd *Fwd) Init(fib *fib.Fib, pcctCfg pcct.Config, queueCap int, latencySam
 	}
 
 	fwd.c = (*C.FwFwd)(dpdk.Zmalloc("FwFwd", C.sizeof_FwFwd, numaSocket))
+	dpdk.InitStopFlag(unsafe.Pointer(&fwd.c.stop))
 	fwd.c.id = C.uint8_t(fwd.id)
 	fwd.c.queue = (*C.struct_rte_ring)(queue.GetPtr())
 
@@ -88,7 +89,7 @@ func (fwd *Fwd) Launch() error {
 }
 
 func (fwd *Fwd) Stop() error {
-	return fwd.StopImpl(appinit.NewStopFlag(unsafe.Pointer(&fwd.c.stop)))
+	return fwd.StopImpl(dpdk.NewStopFlag(unsafe.Pointer(&fwd.c.stop)))
 }
 
 func (fwd *Fwd) Close() error {

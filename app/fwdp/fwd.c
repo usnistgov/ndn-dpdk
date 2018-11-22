@@ -18,7 +18,7 @@ FwFwd_Run(FwFwd* fwd)
           fwd->id, fwd, fwd->queue, fwd->fib, fwd->pcct, fwd->crypto);
 
   Packet* npkts[FW_FWD_BURST_SIZE];
-  while (!fwd->stop) {
+  while (ThreadStopFlag_ShouldContinue(&fwd->stop)) {
     rcu_quiescent_state();
     MinSched_Trigger(Pit_GetPriv(fwd->pit)->timeoutSched);
 

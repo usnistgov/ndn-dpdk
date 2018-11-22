@@ -7,6 +7,7 @@
 #include "../../container/pcct/cs.h"
 #include "../../container/pcct/pit.h"
 #include "../../core/running_stat/running-stat.h"
+#include "../../dpdk/thread.h"
 #include "../../iface/face.h"
 #include <ubpf.h>
 
@@ -27,7 +28,7 @@ typedef struct FwFwd
   PitSuppressConfig suppressCfg;
 
   uint8_t id; ///< fwd process id
-  bool stop;  ///< set to true to stop the process
+  ThreadStopFlag stop;
 
   uint64_t nNoFibMatch;   ///< Interests dropped due to no FIB match
   uint64_t nDupNonce;     ///< Interests dropped due duplicate nonce

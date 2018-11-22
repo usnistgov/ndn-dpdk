@@ -3,6 +3,7 @@
 
 /// \file
 
+#include "../../dpdk/thread.h"
 #include "input.h"
 
 /** \brief Forwarder data plane, crypto helper.
@@ -13,7 +14,7 @@ typedef struct FwCrypto
   struct rte_mempool* opPool;
   FwInput* output;
 
-  bool stop;
+  ThreadStopFlag stop;
 
   uint8_t devId;
   uint16_t qpId;

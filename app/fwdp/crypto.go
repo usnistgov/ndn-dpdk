@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"unsafe"
 
-	"ndn-dpdk/appinit"
 	"ndn-dpdk/container/ndt"
 	"ndn-dpdk/dpdk"
 )
@@ -31,6 +30,7 @@ func newCrypto(id int, lc dpdk.LCore) *Crypto {
 	fwc.ResetThreadBase()
 	fwc.id = id
 	fwc.SetLCore(lc)
+	dpdk.InitStopFlag(unsafe.Pointer(&fwc.c.stop))
 	return &fwc
 }
 
@@ -46,7 +46,7 @@ func (fwc *Crypto) Init(cfg CryptoConfig, ndt *ndt.Ndt, fwds []*Fwd) error {
 		fwc.c.output = fwc.InputBase.c
 	}
 
-	input, e := dpdk.NewRing("crypto0_queue", cfg.InputCapacity, numaSocket, false, true)
+	input, e := dpdk.NewRing(fwc.String()+"_queue", cfg.InputCapacity, numaSocket, false, true)
 	if e != nil {
 		fwc.InputBase.Close()
 		return fmt.Errorf("dpdk.NewRing: %v", e)
@@ -54,7 +54,7 @@ func (fwc *Crypto) Init(cfg CryptoConfig, ndt *ndt.Ndt, fwds []*Fwd) error {
 		fwc.c.input = (*C.struct_rte_ring)(input.GetPtr())
 	}
 
-	opPool, e := dpdk.NewCryptoOpPool("crypto0_pool", cfg.OpPoolCapacity, cfg.OpPoolCacheSize, 0, numaSocket)
+	opPool, e := dpdk.NewCryptoOpPool(fwc.String()+"_pool", cfg.OpPoolCapacity, cfg.OpPoolCacheSize, 0, numaSocket)
 	if e != nil {
 		input.Close()
 		fwc.InputBase.Close()
@@ -63,7 +63,7 @@ func (fwc *Crypto) Init(cfg CryptoConfig, ndt *ndt.Ndt, fwds []*Fwd) error {
 		fwc.c.opPool = (*C.struct_rte_mempool)(opPool.GetPtr())
 	}
 
-	fwc.dev, e = dpdk.NewOpensslCryptoDev("crypto0_dev", 1, numaSocket)
+	fwc.dev, e = dpdk.NewOpensslCryptoDev(fwc.String()+"_dev", 1, numaSocket)
 	if e != nil {
 		opPool.Close()
 		input.Close()
@@ -89,7 +89,7 @@ func (fwc *Crypto) Launch() error {
 }
 
 func (fwc *Crypto) Stop() error {
-	return fwc.StopImpl(appinit.NewStopFlag(unsafe.Pointer(&fwc.c.stop)))
+	return fwc.StopImpl(dpdk.NewStopFlag(unsafe.Pointer(&fwc.c.stop)))
 }
 
 func (fwc *Crypto) Close() error {

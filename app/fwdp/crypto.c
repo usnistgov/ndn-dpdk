@@ -64,7 +64,7 @@ FwCrypto_Run(FwCrypto* fwc)
 {
   ZF_LOGI("fwc=%p input=%p pool=%p cryptodev=%" PRIu8 "-%" PRIu16 " output=%p",
           fwc, fwc->input, fwc->opPool, fwc->devId, fwc->qpId, fwc->output);
-  while (!fwc->stop) {
+  while (ThreadStopFlag_ShouldContinue(&fwc->stop)) {
     FwCrypto_Output(fwc);
     FwCrypto_Input(fwc);
   }
