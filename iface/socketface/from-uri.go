@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 
-	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/faceuri"
 )
 
@@ -41,28 +40,4 @@ func NewFromUri(remote, local *faceuri.FaceUri, cfg Config) (face *SocketFace, e
 	}
 
 	return New(conn, cfg)
-}
-
-// Make a facemgmt.CreateFace function that creates a SocketFace and adds it to RxGroup and TxLoop.
-func MakeMgmtCreateFace(cfg Config, rxg *RxGroup, txl *iface.TxLoop,
-	txQueueCapacity int) func(remote, local *faceuri.FaceUri) (iface.FaceId, error) {
-	iface.OnFaceClosing(func(id iface.FaceId) {
-		if id.GetKind() != iface.FaceKind_Socket {
-			return
-		}
-		face := iface.Get(id).(*SocketFace)
-		if e := rxg.RemoveFace(face); e != errFaceNotInRxGroup {
-			txl.RemoveFace(face)
-		}
-	})
-	return func(remote, local *faceuri.FaceUri) (iface.FaceId, error) {
-		face, e := NewFromUri(remote, local, cfg)
-		if e != nil {
-			return iface.FACEID_INVALID, e
-		}
-		rxg.AddFace(face)
-		face.EnableThreadSafeTx(txQueueCapacity)
-		txl.AddFace(face)
-		return face.GetFaceId(), nil
-	}
 }

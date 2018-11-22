@@ -9,7 +9,6 @@ import (
 	"unsafe"
 
 	"ndn-dpdk/dpdk"
-	"ndn-dpdk/iface"
 )
 
 // An application thread.
@@ -107,21 +106,4 @@ func (stop StopFlag) BeforeWait() {
 
 func (stop StopFlag) AfterWait() {
 	*stop.c = C.bool(false)
-}
-
-// Stop a thread by stopping an RxLooper.
-type StopRxLooper struct {
-	rxl iface.IRxLooper
-}
-
-func NewStopRxLooper(rxl iface.IRxLooper) (stop StopRxLooper) {
-	stop.rxl = rxl
-	return stop
-}
-
-func (stop StopRxLooper) BeforeWait() {
-	stop.rxl.StopRxLoop()
-}
-
-func (stop StopRxLooper) AfterWait() {
 }

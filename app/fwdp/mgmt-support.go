@@ -38,9 +38,9 @@ func (dp *DataPlane) ReadInputInfo(i int) (info *InputInfo) {
 	input := dp.inputs[i]
 
 	info = new(InputInfo)
-	info.LCore = input.GetLCore()
+	info.LCore = input.lc
 	if input.rxl != nil {
-		info.Faces = input.rxl.ListFacesInRxLoop()
+		info.Faces = input.rxl.ListFaces()
 	}
 
 	info.NNameDisp = uint64(input.c.nNameDisp)

@@ -7,14 +7,13 @@ LocalUri and RemoteUri reflect local and remote endpoint addresses, except that 
 
 ## Receive Path
 
-A goroutine running `impl.RxLoop` function reads from the socket, and places L2 frames on the `SocketFace.rxQueue` channel.
+A goroutine running `impl.RxLoop` function reads from the socket, and queues L2 frames in `iface.ChanRxGroup`.
+Calling code must run `iface.ChanRxGroup` in an LCore to receive these packets.
 
 On a datagram-oriented socket, each incoming datagram is an L2 frame.
 The implementation casts DPDK mbuf's internal buffer as a `[]byte`, and does not copy the frame bytes.
 
 On a stream-oriented socket, the implementation reads the incoming stream into a `[]byte`, extracts completed TLV elements with `ndn.TlvBytes.ExtractElement` function, and copies them to DPDK mbufs.
-
-Calling code must run `RxGroup.RxLoop` in an LCore to retrieve L2 frames from the `SocketFace.rxQueue` channel and pass them to `FaceImpl_RxBurst`.
 
 ## Send Path
 

@@ -75,14 +75,6 @@ func NewFixture(t *testing.T) (fixture *Fixture) {
 	e = theDp.Launch()
 	fixture.require.NoError(e)
 
-	appinit.StartRxl = func(rxl iface.IRxLooper) (usr interface{}, e error) {
-		fwi, e := theDp.LaunchInput(rxl)
-		return fwi, e
-	}
-	appinit.StopRxl = func(rxl iface.IRxLooper, usr interface{}) {
-		fwi := usr.(*fwdp.Input)
-		fwi.Stop()
-	}
 	appinit.TxlLCoreReservation = lcr
 	var faceCfg createface.Config
 	faceCfg.EnableMock = true

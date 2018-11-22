@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/dpdk/dpdktestenv"
@@ -15,29 +16,29 @@ import (
 
 // Test fixture for sending and receiving packets between a pair of connected faces.
 type Fixture struct {
-	assert *assert.Assertions
+	assert  *assert.Assertions
+	require *require.Assertions
 
-	RxBurstSize   int        // RxBurst burst size
 	TxLoops       int        // number of TX loops
 	LossTolerance float64    // permitted packet loss
-	RxLCore       dpdk.LCore // LCore for executing rxProc
-	TxLCore       dpdk.LCore // LCore for txProc
+	RxLCore       dpdk.LCore // LCore for executing RxLoop
+	TxLCore       dpdk.LCore // LCore for executing txProc
 
-	rxFace   IRxFace
-	rxLooper iface.IRxLooper
-	txFace   ITxFace
+	rxFace    iface.IFace
+	rxDiscard map[iface.FaceId]iface.IFace
+	rxl       *iface.RxLoop
+	txFace    iface.IFace
 
 	NRxInterests int
 	NRxData      int
 	NRxNacks     int
 }
 
-func New(t *testing.T, rxFace IRxFace, rxLooper iface.IRxLooper,
-	txFace ITxFace) (fixture *Fixture) {
+func New(t *testing.T, rxFace, txFace iface.IFace) (fixture *Fixture) {
 	fixture = new(Fixture)
 	fixture.assert = assert.New(t)
+	fixture.require = require.New(t)
 
-	fixture.RxBurstSize = 8
 	fixture.TxLoops = 10000
 	fixture.LossTolerance = 0.1
 
@@ -46,32 +47,43 @@ func New(t *testing.T, rxFace IRxFace, rxLooper iface.IRxLooper,
 	fixture.TxLCore = eal.Slaves[1]
 
 	fixture.rxFace = rxFace
-	fixture.rxLooper = rxLooper
+	fixture.rxDiscard = make(map[iface.FaceId]iface.IFace)
 	fixture.txFace = txFace
 	return fixture
 }
 
+func (fixture *Fixture) AddRxDiscard(face iface.IFace) {
+	fixture.rxDiscard[face.GetFaceId()] = face
+}
+
 func (fixture *Fixture) RunTest() {
-	fixture.RxLCore.RemoteLaunch(fixture.rxProc)
+	fixture.launchRx()
 	time.Sleep(200 * time.Millisecond)
 	fixture.TxLCore.RemoteLaunch(fixture.txProc)
 
 	fixture.TxLCore.Wait()
 	time.Sleep(800 * time.Millisecond)
-	fixture.rxLooper.StopRxLoop()
-	fixture.RxLCore.Wait()
+	fixture.rxl.Stop()
+	fixture.rxl.Close()
 }
 
-func (fixture *Fixture) rxProc() int {
-	assert := fixture.assert
+func (fixture *Fixture) launchRx() {
+	assert, require := fixture.assert, fixture.require
+
+	fixture.rxl = iface.NewRxLoop(fixture.rxFace.GetNumaSocket())
+	fixture.rxl.SetLCore(fixture.RxLCore)
 
 	cb, cbarg := iface.WrapRxCb(func(burst iface.RxBurst) {
 		check := func(l3pkt ndn.IL3Packet) {
 			pkt := l3pkt.GetPacket().AsDpdkPacket()
-			assert.Equal(fixture.rxFace.GetFaceId(), iface.FaceId(pkt.GetPort()))
-			assert.NotZero(pkt.GetTimestamp())
+			faceId := iface.FaceId(pkt.GetPort())
+			if _, ok := fixture.rxDiscard[faceId]; !ok {
+				assert.Equal(fixture.rxFace.GetFaceId(), faceId)
+				assert.NotZero(pkt.GetTimestamp())
+			}
 			pkt.Close()
 		}
+
 		for _, interest := range burst.ListInterests() {
 			fixture.NRxInterests++
 			check(interest)
@@ -85,8 +97,18 @@ func (fixture *Fixture) rxProc() int {
 			check(nack)
 		}
 	})
-	fixture.rxLooper.RxLoop(fixture.RxBurstSize, cb, cbarg)
-	return 0
+	fixture.rxl.SetCallback(cb, cbarg)
+
+	require.NoError(fixture.rxl.Launch())
+	time.Sleep(50 * time.Millisecond)
+	for _, rxg := range fixture.rxFace.ListRxGroups() {
+		require.NoError(fixture.rxl.AddRxGroup(rxg))
+	}
+	for _, face := range fixture.rxDiscard {
+		for _, rxg := range face.ListRxGroups() {
+			fixture.rxl.AddRxGroup(rxg)
+		}
+	}
 }
 
 func (fixture *Fixture) txProc() int {

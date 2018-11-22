@@ -65,24 +65,21 @@ func TestEthFace(t *testing.T) {
 	faceBm := portB.GetMulticastFace()
 	faceCA := portC.ListUnicastFaces()[0]
 
-	rxl := ethface.NewRxLoop(3, portA.GetNumaSocket())
-	defer rxl.Close()
-	require.NoError(rxl.AddPort(portA))
-	require.NoError(rxl.AddPort(portB))
-	require.NoError(rxl.AddPort(portC))
-
 	evn.LaunchBridge(dpdktestenv.Eal.Slaves[2])
 	time.Sleep(time.Second)
 
-	fixtureBA := ifacetestfixture.New(t, faceAB, rxl, faceBA)
+	fixtureBA := ifacetestfixture.New(t, faceAB, faceBA)
+	fixtureBA.AddRxDiscard(faceCA)
 	fixtureBA.RunTest()
 	fixtureBA.CheckCounters()
 
-	fixtureCA := ifacetestfixture.New(t, faceAC, rxl, faceCA)
+	fixtureCA := ifacetestfixture.New(t, faceAC, faceCA)
+	fixtureCA.AddRxDiscard(faceBm)
 	fixtureCA.RunTest()
 	fixtureCA.CheckCounters()
 
-	fixtureAm := ifacetestfixture.New(t, faceAm, rxl, faceBm)
+	fixtureAm := ifacetestfixture.New(t, faceAm, faceBm)
+	fixtureAm.AddRxDiscard(faceCA)
 	fixtureAm.RunTest()
 	fixtureAm.CheckCounters()
 

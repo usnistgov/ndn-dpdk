@@ -28,15 +28,16 @@ type MockFace struct {
 	TxBadPkts   []ndn.Packet    // sent unparsable packets
 }
 
-func New() *MockFace {
-	var face MockFace
+func New() (face *MockFace) {
+	face = new(MockFace)
 	face.InitBaseFace(iface.AllocId(iface.FaceKind_Mock), 0, dpdk.NUMA_SOCKET_ANY)
+	iface.TheChanRxGroup.AddFace(face)
 
 	faceC := face.getPtr()
 	faceC.txBurstOp = (C.FaceImpl_TxBurst)(C.go_MockFace_TxBurst)
 	C.FaceImpl_Init(faceC, 0, 0, (*C.FaceMempools)(FaceMempools.GetPtr()))
-	iface.Put(&face)
-	return &face
+	iface.Put(face)
+	return face
 }
 
 func (face *MockFace) getPtr() *C.Face {
@@ -53,6 +54,7 @@ func (*MockFace) GetRemoteUri() *faceuri.FaceUri {
 
 func (face *MockFace) Close() error {
 	face.BeforeClose()
+	iface.TheChanRxGroup.RemoveFace(face)
 	face.isClosed = true
 	face.CloseBaseFace()
 	return nil
@@ -60,6 +62,10 @@ func (face *MockFace) Close() error {
 
 func (face *MockFace) IsClosed() bool {
 	return face.isClosed
+}
+
+func (face *MockFace) ListRxGroups() []iface.IRxGroup {
+	return []iface.IRxGroup{iface.TheChanRxGroup}
 }
 
 // Cause the face to receive a packet.
@@ -95,7 +101,7 @@ func (face *MockFace) Rx(l3pkt ndn.IL3Packet) {
 
 	pkt.SetPort(uint16(face.GetFaceId()))
 	pkt.SetTimestamp(dpdk.TscNow())
-	rxQueue <- pkt
+	iface.TheChanRxGroup.Rx(pkt)
 }
 
 func (face *MockFace) recordTx(pkt ndn.Packet) {

@@ -9,8 +9,6 @@ import "C"
 import (
 	"sync"
 	"unsafe"
-
-	"ndn-dpdk/dpdk"
 )
 
 type RxCbFunc func(burst RxBurst)
@@ -35,12 +33,4 @@ func go_Face_RxCb(burst *C.FaceRxBurst, cbarg unsafe.Pointer) {
 	rxCbFuncsLock.RUnlock()
 
 	f(RxBurst{burst})
-}
-
-// Interface containing RxLoop and related functions.
-type IRxLooper interface {
-	GetNumaSocket() dpdk.NumaSocket
-	RxLoop(burstSize int, cb unsafe.Pointer, cbarg unsafe.Pointer)
-	StopRxLoop() error
-	ListFacesInRxLoop() []FaceId
 }

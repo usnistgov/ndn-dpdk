@@ -9,7 +9,6 @@ import (
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/ndt"
 	"ndn-dpdk/dpdk"
-	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/createface"
 	"ndn-dpdk/iface/faceuri"
 )
@@ -88,15 +87,6 @@ func startDp(ndtCfg ndt.Config, fibCfg fib.Config, dpInit fwdpInitConfig) {
 }
 
 func startFaces(faceCfg createface.Config, wantAutoFaces bool) {
-	appinit.StartRxl = func(rxl iface.IRxLooper) (usr interface{}, e error) {
-		fwi, e := theDp.LaunchInput(rxl)
-		return fwi, e
-	}
-	appinit.StopRxl = func(rxl iface.IRxLooper, usr interface{}) {
-		fwi := usr.(*fwdp.Input)
-		fwi.Stop()
-	}
-
 	if e := appinit.EnableCreateFace(faceCfg); e != nil {
 		log.WithError(e).Fatal("face init error")
 	}

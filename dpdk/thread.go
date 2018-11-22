@@ -5,6 +5,7 @@ package dpdk
 */
 import "C"
 import (
+	"errors"
 	"fmt"
 	"unsafe"
 )
@@ -30,8 +31,8 @@ func (t *ThreadBase) ResetThreadBase() {
 }
 
 func (t *ThreadBase) SetLCore(lc LCore) {
-	if t.lc != LCORE_INVALID {
-		panic("lcore already assigned")
+	if t.lc != LCORE_INVALID && t.IsRunning() {
+		panic("cannot change lcore while running")
 	}
 	t.lc = lc
 }
@@ -79,6 +80,8 @@ func (t *ThreadBase) StopImpl(stop IStop) error {
 	}
 	return nil
 }
+
+var ErrCloseRunningThread = errors.New("cannot close a running thread")
 
 // Thread stop helper.
 type IStop interface {

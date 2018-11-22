@@ -9,6 +9,7 @@ import "C"
 import (
 	"fmt"
 
+	"ndn-dpdk/appinit"
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/ndt"
 	"ndn-dpdk/container/pcct"
@@ -68,9 +69,8 @@ func New(cfg Config) (dp *DataPlane, e error) {
 	}
 
 	for i, lc := range cfg.InputLCores {
-		fwi := newInput(i)
-		fwi.SetLCore(lc)
-		if e := fwi.Init(dp.ndt, dp.fwds); e != nil {
+		fwi := newInput(i, lc)
+		if e := fwi.Init(dp.ndt, dp.fwds, lc.GetNumaSocket()); e != nil {
 			dp.Close()
 			return nil, fmt.Errorf("Input.Init(%d): %v", i, e)
 		}
@@ -78,8 +78,7 @@ func New(cfg Config) (dp *DataPlane, e error) {
 	}
 
 	if cfg.CryptoLCore != dpdk.LCORE_INVALID {
-		fwc := newCrypto(len(dp.inputs))
-		fwc.SetLCore(cfg.CryptoLCore)
+		fwc := newCrypto(len(dp.inputs), cfg.CryptoLCore)
 		if e := fwc.Init(cfg.Crypto, dp.ndt, dp.fwds); e != nil {
 			dp.Close()
 			return nil, fmt.Errorf("Crypto.Init(): %v", e)
@@ -91,6 +90,15 @@ func New(cfg Config) (dp *DataPlane, e error) {
 }
 
 func (dp *DataPlane) Launch() error {
+	appinit.StartRxl = func(rxl *iface.RxLoop) (usr interface{}, e error) {
+		fwi, e := dp.launchInput(rxl)
+		return fwi, e
+	}
+	appinit.AfterStopRxl = func(rxl *iface.RxLoop, usr interface{}) {
+		fwi := usr.(*Input)
+		fwi.rxl = nil
+	}
+
 	if dp.crypto != nil {
 		dp.crypto.Launch()
 	}
@@ -100,24 +108,24 @@ func (dp *DataPlane) Launch() error {
 	return nil
 }
 
-func (dp *DataPlane) LaunchInput(rxl iface.IRxLooper) (fwi *Input, e error) {
+func (dp *DataPlane) launchInput(rxl *iface.RxLoop) (fwi *Input, e error) {
 	wantNumaSocket := rxl.GetNumaSocket()
 	for _, fwi = range dp.inputs {
-		if fwi.IsRunning() ||
-			(wantNumaSocket != dpdk.NUMA_SOCKET_ANY && fwi.GetLCore().GetNumaSocket() != wantNumaSocket) {
+		if fwi.rxl != nil || !wantNumaSocket.Match(fwi.lc.GetNumaSocket()) {
 			continue
 		}
 		fwi.rxl = rxl
-		return fwi, fwi.Launch()
+		return fwi, fwi.launch()
 	}
 	return nil, fmt.Errorf("no FwInput available on NUMA socket %d", wantNumaSocket)
 }
 
 func (dp *DataPlane) Stop() error {
+	appinit.StartRxl = nil
+	appinit.AfterStopRxl = nil
+
 	for _, fwi := range dp.inputs {
-		if fwi.IsRunning() {
-			fwi.Stop()
-		}
+		fwi.Stop()
 	}
 	if dp.crypto != nil {
 		dp.crypto.Stop()

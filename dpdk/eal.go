@@ -22,6 +22,10 @@ type NumaSocket int
 
 const NUMA_SOCKET_ANY = NumaSocket(C.SOCKET_ID_ANY)
 
+func (socket NumaSocket) Match(other NumaSocket) bool {
+	return socket == NUMA_SOCKET_ANY || other == NUMA_SOCKET_ANY || socket == other
+}
+
 func (socket NumaSocket) String() string {
 	if socket == NUMA_SOCKET_ANY {
 		return "any"

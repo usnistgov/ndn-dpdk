@@ -88,6 +88,10 @@ func (face *EthFace) Close() error {
 	return nil
 }
 
+func (face *EthFace) ListRxGroups() []iface.IRxGroup {
+	return face.port.ListRxGroups()
+}
+
 func (face *EthFace) ReadExCounters() interface{} {
 	return face.port.dev.GetStats()
 }

@@ -3,8 +3,6 @@ package createface
 import (
 	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/ethface"
-	"ndn-dpdk/iface/mockface"
-	"ndn-dpdk/iface/socketface"
 )
 
 func handleFaceClosing(id iface.FaceId) {
@@ -13,12 +11,10 @@ func handleFaceClosing(id iface.FaceId) {
 	}
 	face := iface.Get(id)
 	switch id.GetKind() {
-	case iface.FaceKind_Mock:
-		stopMockRxtx(face.(*mockface.MockFace))
 	case iface.FaceKind_Eth:
-		stopEthRxtx(face.(*ethface.EthFace).GetPort())
-	case iface.FaceKind_Socket:
-		stopSockRxtx(face.(*socketface.SocketFace))
+		stopEthRxtx(face.(*ethface.EthFace))
+	case iface.FaceKind_Mock, iface.FaceKind_Socket:
+		stopSmRxtx(face)
 	}
 }
 

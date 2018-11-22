@@ -16,7 +16,7 @@ import (
 
 type App struct {
 	Tasks []Task
-	rxls  []iface.IRxLooper
+	rxls  []*iface.RxLoop
 }
 
 func NewApp(cfg []TaskConfig) (app *App, e error) {
@@ -50,7 +50,7 @@ func NewApp(cfg []TaskConfig) (app *App, e error) {
 	return app, nil
 }
 
-func (app *App) addRxl(rxl iface.IRxLooper) (usr interface{}, e error) {
+func (app *App) addRxl(rxl *iface.RxLoop) (usr interface{}, e error) {
 	app.rxls = append(app.rxls, rxl)
 	return nil, nil
 }
@@ -64,10 +64,10 @@ func (app *App) Launch() {
 	}
 }
 
-func (app *App) launchRxl(rxl iface.IRxLooper) {
+func (app *App) launchRxl(rxl *iface.RxLoop) {
 	minFaceId := iface.FACEID_MAX
 	maxFaceId := iface.FACEID_MIN
-	for _, faceId := range rxl.ListFacesInRxLoop() {
+	for _, faceId := range rxl.ListFaces() {
 		if faceId < minFaceId {
 			minFaceId = faceId
 		}
@@ -102,10 +102,8 @@ func (app *App) launchRxl(rxl iface.IRxLooper) {
 		}
 	}
 
-	appinit.MustLaunch(func() int {
-		rxl.RxLoop(64, unsafe.Pointer(C.NdnpingInput_FaceRx), unsafe.Pointer(inputC))
-		return 0
-	}, rxl.GetNumaSocket())
+	rxl.SetCallback(unsafe.Pointer(C.NdnpingInput_FaceRx), unsafe.Pointer(inputC))
+	appinit.MustLaunchThread(rxl, rxl.GetNumaSocket())
 }
 
 type Task struct {

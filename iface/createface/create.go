@@ -36,10 +36,8 @@ func Create(args ...CreateArg) (faces []iface.IFace, e error) {
 }
 
 type createContext struct {
-	Faces   []iface.IFace
-	eth     map[dpdk.EthDev]*createContextEth
-	sockRxg *socketface.RxGroup
-	hasMock bool
+	Faces []iface.IFace
+	eth   map[dpdk.EthDev]*createContextEth
 }
 
 type createContextEth struct {
@@ -146,7 +144,6 @@ func (ctx *createContext) addSock(i int, arg CreateArg) (e error) {
 	if cfg.RxMp, e = theCallbacks.CreateRxMp(-1, dpdk.NUMA_SOCKET_ANY); e != nil {
 		return e
 	}
-	cfg.RxqCapacity = theConfig.SockRxqFrames
 	cfg.TxqCapacity = theConfig.SockTxqFrames
 
 	face, e := socketface.NewFromUri(arg.Remote, arg.Local, cfg)
@@ -154,7 +151,7 @@ func (ctx *createContext) addSock(i int, arg CreateArg) (e error) {
 		return e
 	}
 	ctx.Faces[i] = face
-	return startSockRxtx(face)
+	return startSmRxtx(face)
 }
 
 var hasMockFaces = false
@@ -172,7 +169,7 @@ func (ctx *createContext) addMock(i int) (e error) {
 
 	face := mockface.New()
 	ctx.Faces[i] = face
-	return startMockRxtx(face)
+	return startSmRxtx(face)
 }
 
 func (ctx *createContext) Launch() error {

@@ -32,10 +32,10 @@ type PortConfig struct {
 
 // Collection of EthFaces on a DPDK EthDev.
 type Port struct {
-	dev        dpdk.EthDev
-	multicast  *EthFace
-	unicast    []*EthFace
-	nRxThreads int
+	dev       dpdk.EthDev
+	multicast *EthFace
+	unicast   []*EthFace
+	rxg       *RxGroup
 }
 
 var portByEthDev = make(map[dpdk.EthDev]*Port)
@@ -93,6 +93,8 @@ func NewPort(cfg PortConfig) (port *Port, e error) {
 		port.unicast = append(port.unicast, face)
 	}
 
+	port.rxg = newRxGroup(port, 0, 0)
+
 	portByEthDev[cfg.EthDev] = port
 	return port, nil
 }
@@ -138,6 +140,10 @@ func (port *Port) Close() error {
 
 func (port *Port) GetEthDev() dpdk.EthDev {
 	return port.dev
+}
+
+func (port *Port) ListRxGroups() []iface.IRxGroup {
+	return []iface.IRxGroup{port.rxg}
 }
 
 func (port *Port) GetNumaSocket() dpdk.NumaSocket {

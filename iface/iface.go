@@ -38,6 +38,9 @@ type IFace interface {
 	// Determine whether the face is DOWN or UP.
 	IsDown() bool
 
+	// Get RxGroups that contain this face.
+	ListRxGroups() []IRxGroup
+
 	// Enable thread-safety on C.Face_TxBurst function.
 	EnableThreadSafeTx(queueCapacity int) error
 

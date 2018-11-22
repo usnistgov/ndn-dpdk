@@ -4,28 +4,30 @@ import (
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/ethface"
-	"ndn-dpdk/iface/mockface"
-	"ndn-dpdk/iface/socketface"
 )
 
 type ethRxtx struct {
-	rxl    *ethface.RxLoop
-	rxlUsr interface{}
+	rxgUsr interface{}
 	txl    *iface.TxLoop
 	txlUsr interface{}
+	nFaces int
 }
 
 var ethRxtxByPort = make(map[dpdk.EthDev]ethRxtx)
 
+func ethRxgFromPort(port *ethface.Port) iface.IRxGroup {
+	rxgs := port.ListRxGroups()
+	if len(rxgs) != 1 {
+		panic("unexpected len(Port.ListRxGroups())")
+	}
+	return rxgs[0]
+}
+
 func startEthRxtx(port *ethface.Port) (e error) {
-	numaSocket := port.GetNumaSocket()
 	var rxtx ethRxtx
 
-	rxtx.rxl = ethface.NewRxLoop(1, numaSocket)
-	if e = rxtx.rxl.AddPort(port); e != nil {
-		return e
-	}
-	if rxtx.rxlUsr, e = theCallbacks.StartRxl(rxtx.rxl); e != nil {
+	rxg := ethRxgFromPort(port)
+	if rxtx.rxgUsr, e = theCallbacks.StartRxg(rxg); e != nil {
 		return e
 	}
 
@@ -45,102 +47,67 @@ func startEthRxtx(port *ethface.Port) (e error) {
 		return e
 	}
 
+	rxtx.nFaces = len(faces)
 	ethRxtxByPort[port.GetEthDev()] = rxtx
 	return nil
 }
 
-func stopEthRxtx(port *ethface.Port) {
+func stopEthRxtx(face *ethface.EthFace) {
+	port := face.GetPort()
 	ethdev := port.GetEthDev()
 	rxtx := ethRxtxByPort[ethdev]
-	theCallbacks.StopRxl(rxtx.rxl, rxtx.rxlUsr)
+	rxtx.nFaces--
+	if rxtx.nFaces > 0 {
+		ethRxtxByPort[ethdev] = rxtx
+		return
+	}
+
+	theCallbacks.StopRxg(ethRxgFromPort(port), rxtx.rxgUsr)
 	theCallbacks.StopTxl(rxtx.txl, rxtx.txlUsr)
 	delete(ethRxtxByPort, ethdev)
 }
 
 var (
-	nSockActive    = 0
-	nMockActive    = 0
-	sockRxl        *socketface.RxGroup
-	sockRxlUsr     interface{}
-	mockRxlUsr     interface{}
-	sockMockTxl    *iface.TxLoop
-	sockMockTxlUsr interface{}
+	nSmFaces = 0
+	smRxlUsr interface{}
+	smTxl    *iface.TxLoop
+	smTxlUsr interface{}
 )
 
-func startSockMockTxl() (e error) {
-	sockMockTxl = iface.NewTxLoop()
-	sockMockTxlUsr, e = theCallbacks.StartTxl(sockMockTxl)
-	return e
-}
-
-func stopSockMockTxl() {
-	theCallbacks.StopTxl(sockMockTxl, sockMockTxlUsr)
-	sockMockTxl = nil
-	sockMockTxlUsr = nil
-}
-
-func startSockRxtx(face *socketface.SocketFace) (e error) {
-	if nSockActive == 0 {
-		sockRxl = socketface.NewRxGroup()
-		if sockRxlUsr, e = theCallbacks.StartRxl(sockRxl); e != nil {
+func startSmRxtx(face iface.IFace) (e error) {
+	if nSmFaces == 0 {
+		if smRxlUsr, e = theCallbacks.StartRxg(iface.TheChanRxGroup); e != nil {
 			return e
 		}
-	}
-	if nSockActive+nMockActive == 0 {
-		if e = startSockMockTxl(); e != nil {
+		smTxl = iface.NewTxLoop()
+		if smTxlUsr, e = theCallbacks.StartTxl(smTxl); e != nil {
 			return e
 		}
 	}
 
-	face.EnableThreadSafeTx(theConfig.SockTxqPkts)
-	sockRxl.AddFace(face)
-	sockMockTxl.AddFace(face)
-	nSockActive++
+	switch face.GetFaceId().GetKind() {
+	case iface.FaceKind_Mock:
+		face.EnableThreadSafeTx(theConfig.MockTxqPkts)
+	case iface.FaceKind_Socket:
+		face.EnableThreadSafeTx(theConfig.SockTxqPkts)
+	}
+	smTxl.AddFace(face)
+	nSmFaces++
+
 	return nil
 }
 
-func stopSockRxtx(face *socketface.SocketFace) {
-	sockRxl.RemoveFace(face)
-	sockMockTxl.RemoveFace(face)
-	nSockActive--
+func stopSmRxtx(face iface.IFace) {
+	nSmFaces--
+	smTxl.RemoveFace(face)
 
-	if nSockActive == 0 {
-		theCallbacks.StopRxl(sockRxl, sockRxlUsr)
-		sockRxl = nil
-		sockRxlUsr = nil
-	}
-	if nSockActive+nMockActive == 0 {
-		stopSockMockTxl()
-	}
-}
+	if nSmFaces == 0 {
+		theCallbacks.StopRxg(iface.TheChanRxGroup, smRxlUsr)
+		smRxlUsr = nil
 
-func startMockRxtx(face *mockface.MockFace) (e error) {
-	if nMockActive == 0 {
-		if mockRxlUsr, e = theCallbacks.StartRxl(mockface.TheRxLoop); e != nil {
-			return e
-		}
-	}
-	if nSockActive+nMockActive == 0 {
-		if e = startSockMockTxl(); e != nil {
-			return e
-		}
-	}
-
-	face.EnableThreadSafeTx(theConfig.MockTxqPkts)
-	sockMockTxl.AddFace(face)
-	nMockActive++
-	return nil
-}
-
-func stopMockRxtx(face *mockface.MockFace) {
-	sockMockTxl.RemoveFace(face)
-	nMockActive--
-
-	if nMockActive == 0 {
-		theCallbacks.StopRxl(mockface.TheRxLoop, mockRxlUsr)
-		mockRxlUsr = nil
-	}
-	if nSockActive+nMockActive == 0 {
-		stopSockMockTxl()
+		theCallbacks.StopTxl(smTxl, smTxlUsr)
+		smTxl.Close()
+		smTxl = nil
+		smTxlUsr = nil
 	}
 }

@@ -14,7 +14,6 @@ type Config struct {
 	EthTxqFrames int  // Ethernet after-TX queue capacity
 
 	EnableSock    bool // whether to enable socket faces
-	SockRxqFrames int  // socket RX queue capacity
 	SockTxqPkts   int  // socket before-TX queue capacity
 	SockTxqFrames int  // socket after-TX queue capacity
 
@@ -29,12 +28,11 @@ func GetDefaultConfig() (cfg Config) {
 	cfg.EthTxqFrames = 256
 
 	cfg.EnableSock = true
-	cfg.SockRxqFrames = 256
 	cfg.SockTxqPkts = 256
 	cfg.SockTxqFrames = 256
 
 	cfg.EnableMock = false
-	cfg.MockTxqPkts = 16
+	cfg.MockTxqPkts = 256
 
 	return cfg
 }
@@ -51,11 +49,11 @@ type ICallbacks interface {
 	// mtu '-1' means unspecified.
 	CreateRxMp(mtu int, numaSocket dpdk.NumaSocket) (dpdk.PktmbufPool, error)
 
-	// Callback when a new RxLoop should be launched.
-	StartRxl(rxl iface.IRxLooper) (usr interface{}, e error)
+	// Callback when a new RxGroup should be added.
+	StartRxg(rxl iface.IRxGroup) (usr interface{}, e error)
 
-	// Callback when an RxLoop is no longer needed.
-	StopRxl(rxl iface.IRxLooper, usr interface{})
+	// Callback when an RxGroup should be removed.
+	StopRxg(rxl iface.IRxGroup, usr interface{})
 
 	// Callback when a new TxLoop should be launched.
 	StartTxl(txl *iface.TxLoop) (usr interface{}, e error)

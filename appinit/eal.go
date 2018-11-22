@@ -81,3 +81,13 @@ func (lcr LCoreReservations) MustReserve(socket dpdk.NumaSocket) dpdk.LCore {
 	}
 	return lc
 }
+
+// Launch a thread.
+// Fatal error if no lcore available or launch error.
+func MustLaunchThread(thread dpdk.IThread, socket dpdk.NumaSocket) {
+	lc := NewLCoreReservations().MustReserve(socket)
+	thread.SetLCore(lc)
+	if e := thread.Launch(); e != nil {
+		log.WithError(e).Fatal("thread launch failed")
+	}
+}

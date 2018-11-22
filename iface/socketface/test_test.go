@@ -21,7 +21,6 @@ func TestMain(m *testing.M) {
 			HeaderMp:   dpdktestenv.MakeMp("header", 4095, 0, ndn.PrependLpHeader_GetHeadroom()),
 		},
 		RxMp:        dpdktestenv.MakeDirectMp(255, ndn.SizeofPacketPriv(), 2000),
-		RxqCapacity: 64,
 		TxqCapacity: 64,
 	}
 

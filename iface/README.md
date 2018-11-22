@@ -24,12 +24,13 @@ That instance should embed **BaseFace** struct that implements many methods requ
 
 ## Receive Path
 
-The receive path starts from an "RX loop" function offered by lower layer implementations.
-The RX loop continually retrieves L2 frames from one or more faces, and passes a received burst of L2 frames to `FaceImpl_RxBurst`.
+**RxLoop** type implements the receive path.
+Lower layer implementation places each face into one or more **RxGroup**s, which are then added into RxLoops.
+`RxLoop_Run` function continually invokes `RxGroup.rxBurstOp` function to retrieves L2 frames.
+It then passes a burst of L2 frames to `FaceImpl_RxBurst`.
 
 `FaceImpl_RxBurst` first calls **RxProc** to decode L2 frames into L3 packets.
 It then passes a burst of L3 packets to a **Face\_RxCb** callback provided by the user of face system (such as forwarder's input function).
-
 RxProc is thread safe as long as different "RxProc thread number" is being used.
 Currently, only thread 0 is capable of NDNLP reassembly.
 
@@ -42,7 +43,6 @@ It then passes a burst of L2 frames to a **FaceImpl\_TxBurst** function provided
 TxProc is normally not thread safe.
 It can be made thread safe by `EnableThreadSafeTx` function that adds an output queue.
 The face must then join a **TxLooper** that dequeues and sends packets.
-This package provides two variants of TxLooper: **SingleTxLoop** for a single high-traffic face, and **MultiTxLoop** for multiple low-traffic faces (slower due to use of RCU).
 
 ## NDNLPv2
 

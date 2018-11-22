@@ -25,7 +25,7 @@ func TestDatagram(t *testing.T) {
 	require.NoError(e)
 	defer faceB.Close()
 
-	fixture := ifacetestfixture.New(t, faceA, socketface.NewRxGroup(faceA), faceB)
+	fixture := ifacetestfixture.New(t, faceA, faceB)
 	fixture.RunTest()
 	fixture.CheckCounters()
 }

@@ -25,7 +25,6 @@ import (
 type Config struct {
 	iface.Mempools
 	RxMp        dpdk.PktmbufPool // mempool for received frames, dataroom must fit NDNLP frame
-	RxqCapacity int              // receive queue length in frames
 	TxqCapacity int              // send queue length in frames
 }
 
@@ -41,16 +40,14 @@ type SocketFace struct {
 	redialing int32          // 1 if face is redialing, need atomic access
 	quitWg    sync.WaitGroup // wait until rxLoop and txLoop quits
 
-	rxMp          dpdk.PktmbufPool
-	rxQueue       chan dpdk.Packet
-	rxCongestions int // L2 frames dropped due to rxQueue full
+	rxMp dpdk.PktmbufPool
 
 	txQueue chan dpdk.Packet
 }
 
 // Create a SocketFace on a net.Conn.
 func New(conn net.Conn, cfg Config) (face *SocketFace, e error) {
-	face = &SocketFace{}
+	face = new(SocketFace)
 	network := conn.LocalAddr().Network()
 	if impl, ok := implByNetwork[network]; ok {
 		face.impl = impl
@@ -62,8 +59,8 @@ func New(conn net.Conn, cfg Config) (face *SocketFace, e error) {
 
 	face.logger = newLogger(face.GetFaceId())
 	face.conn.Store(conn)
+	iface.TheChanRxGroup.AddFace(face)
 	face.rxMp = cfg.RxMp
-	face.rxQueue = make(chan dpdk.Packet, cfg.RxqCapacity)
 	face.txQueue = make(chan dpdk.Packet, cfg.TxqCapacity)
 
 	face.quitWg.Add(2)
@@ -101,8 +98,13 @@ func (face *SocketFace) Close() error {
 	close(face.txQueue)
 	face.GetConn().Close() // ignore error
 	face.quitWg.Wait()
+	iface.TheChanRxGroup.RemoveFace(face)
 	face.CloseBaseFace()
 	return nil
+}
+
+func (face *SocketFace) ListRxGroups() []iface.IRxGroup {
+	return []iface.IRxGroup{iface.TheChanRxGroup}
 }
 
 func (face *SocketFace) rxLoop() {
@@ -114,16 +116,7 @@ func (face *SocketFace) rxLoop() {
 func (face *SocketFace) rxPkt(pkt dpdk.Packet) {
 	pkt.SetPort(uint16(face.GetFaceId()))
 	pkt.SetTimestamp(dpdk.TscNow())
-
-	select {
-	case face.rxQueue <- pkt:
-	default:
-		pkt.Close()
-		face.rxCongestions++
-		if face.rxCongestions%1024 == 0 {
-			face.logger.WithField("rxCongestions", face.rxCongestions).Warn("RX queue is full")
-		}
-	}
+	iface.TheChanRxGroup.Rx(pkt)
 }
 
 func (face *SocketFace) txLoop() {

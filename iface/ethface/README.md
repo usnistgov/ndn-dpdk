@@ -20,11 +20,11 @@ All EthFaces on the same Port must be created and destroyed together.
 
 ## Receive Path
 
-**EthRxLoop** type implements the receive path.
+**EthRxGroup** type implements the receive path.
 Currently, the receive path only uses ethdev queue 0.
 It polls one or more ethdevs, accepts all Ethernet frames with NDN EtherType, and discards all frames with non-NDN EtherType (such as VLAN-tagged frames, IP packets, and NDN packets over UDP/TCP tunnels).
 
-Accepted frames are then labelled with incoming FaceIds, and passed to `FaceImpl_RxBurst` function for decoding and further processing.
+Accepted frames are then labelled with incoming FaceIds and timestamp.
 If a frame arrives on a non-existent face (e.g. unknown remote MAC address), its incoming FaceId is set to `FACEID_INVALID`, and `FaceImpl_RxBurst` would drop the frame.
 
 ## Send Path

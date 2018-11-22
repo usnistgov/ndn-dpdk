@@ -21,14 +21,16 @@ type CryptoConfig struct {
 
 type Crypto struct {
 	InputBase
+	dpdk.ThreadBase
 	c   C.FwCrypto
 	dev dpdk.CryptoDev
 }
 
-func newCrypto(id int) *Crypto {
+func newCrypto(id int, lc dpdk.LCore) *Crypto {
 	var fwc Crypto
 	fwc.ResetThreadBase()
 	fwc.id = id
+	fwc.SetLCore(lc)
 	return &fwc
 }
 
@@ -37,13 +39,12 @@ func (fwc *Crypto) String() string {
 }
 
 func (fwc *Crypto) Init(cfg CryptoConfig, ndt *ndt.Ndt, fwds []*Fwd) error {
-	if e := fwc.InputBase.Init(ndt, fwds); e != nil {
+	numaSocket := fwc.GetNumaSocket()
+	if e := fwc.InputBase.Init(ndt, fwds, numaSocket); e != nil {
 		return e
 	} else {
 		fwc.c.output = fwc.InputBase.c
 	}
-
-	numaSocket := fwc.GetNumaSocket()
 
 	input, e := dpdk.NewRing("crypto0_queue", cfg.InputCapacity, numaSocket, false, true)
 	if e != nil {
