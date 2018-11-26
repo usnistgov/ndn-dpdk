@@ -15,12 +15,11 @@ type EthDev uint16
 
 const ETHDEV_INVALID = EthDev(0xFFFF)
 
-func ListEthDevs() []EthDev {
-	var l []EthDev
+func ListEthDevs() (list []EthDev) {
 	for p := C.rte_eth_find_next(0); p < C.RTE_MAX_ETHPORTS; p = C.rte_eth_find_next(p + 1) {
-		l = append(l, EthDev(p))
+		list = append(list, EthDev(p))
 	}
-	return l
+	return list
 }
 
 func FindEthDev(name string) EthDev {
