@@ -44,6 +44,13 @@ func FindPort(ethdev dpdk.EthDev) *Port {
 	return portByEthDev[ethdev]
 }
 
+func ListPorts() (list []*Port) {
+	for _, port := range portByEthDev {
+		list = append(list, port)
+	}
+	return list
+}
+
 func NewPort(cfg PortConfig) (port *Port, e error) {
 	if FindPort(cfg.EthDev) != nil {
 		return nil, errors.New("cfg.EthDev matches existing Port")
@@ -148,6 +155,14 @@ func (port *Port) ListRxGroups() []iface.IRxGroup {
 
 func (port *Port) GetNumaSocket() dpdk.NumaSocket {
 	return port.dev.GetNumaSocket()
+}
+
+func (port *Port) CountFaces() int {
+	n := len(port.unicast)
+	if port.multicast != nil {
+		n++
+	}
+	return n
 }
 
 func (port *Port) GetMulticastFace() *EthFace {

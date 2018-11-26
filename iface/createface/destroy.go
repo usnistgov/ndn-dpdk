@@ -9,13 +9,24 @@ func handleFaceClosing(id iface.FaceId) {
 	if !isInitialized {
 		return
 	}
-	face := iface.Get(id)
-	switch id.GetKind() {
-	case iface.FaceKind_Eth:
-		stopEthRxtx(face.(*ethface.EthFace))
-	case iface.FaceKind_Mock, iface.FaceKind_Socket:
-		stopSmRxtx(face)
+	if kind := id.GetKind(); kind != iface.FaceKind_Mock && kind != iface.FaceKind_Socket {
+		return
+	}
+	stopSmRxtx(iface.Get(id))
+}
+
+func handleFaceClosed(id iface.FaceId) {
+	if !isInitialized || id.GetKind() != iface.FaceKind_Eth {
+		return
+	}
+	for _, port := range ethface.ListPorts() {
+		if port.CountFaces() == 0 {
+			stopEthRxtx(port)
+		}
 	}
 }
 
-var theFaceClosingEvt = iface.OnFaceClosing(handleFaceClosing)
+var (
+	theFaceClosingEvt = iface.OnFaceClosing(handleFaceClosing)
+	theFaceClosedEvt  = iface.OnFaceClosed(handleFaceClosed)
+)

@@ -10,7 +10,6 @@ type ethRxtx struct {
 	rxgUsr interface{}
 	txl    *iface.TxLoop
 	txlUsr interface{}
-	nFaces int
 }
 
 var ethRxtxByPort = make(map[dpdk.EthDev]ethRxtx)
@@ -32,8 +31,8 @@ func startEthRxtx(port *ethface.Port) (e error) {
 	}
 
 	var faces []iface.IFace
-	if port.GetMulticastFace() != nil {
-		faces = append(faces, port.GetMulticastFace())
+	if face := port.GetMulticastFace(); face != nil {
+		faces = append(faces, face)
 	}
 	for _, face := range port.ListUnicastFaces() {
 		faces = append(faces, face)
@@ -47,23 +46,17 @@ func startEthRxtx(port *ethface.Port) (e error) {
 		return e
 	}
 
-	rxtx.nFaces = len(faces)
 	ethRxtxByPort[port.GetEthDev()] = rxtx
 	return nil
 }
 
-func stopEthRxtx(face *ethface.EthFace) {
-	port := face.GetPort()
+func stopEthRxtx(port *ethface.Port) {
 	ethdev := port.GetEthDev()
 	rxtx := ethRxtxByPort[ethdev]
-	rxtx.nFaces--
-	if rxtx.nFaces > 0 {
-		ethRxtxByPort[ethdev] = rxtx
-		return
-	}
 
 	theCallbacks.StopRxg(ethRxgFromPort(port), rxtx.rxgUsr)
 	theCallbacks.StopTxl(rxtx.txl, rxtx.txlUsr)
+	port.Close()
 	delete(ethRxtxByPort, ethdev)
 }
 

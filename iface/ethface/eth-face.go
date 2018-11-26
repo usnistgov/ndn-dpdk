@@ -84,6 +84,17 @@ func (face *EthFace) GetRemoteUri() *faceuri.FaceUri {
 
 func (face *EthFace) Close() error {
 	face.BeforeClose()
+	if face.port.multicast == face {
+		face.port.multicast = nil
+	} else {
+		for i, entry := range face.port.unicast {
+			if entry == face {
+				face.port.unicast[i] = face.port.unicast[len(face.port.unicast)-1]
+				face.port.unicast = face.port.unicast[:len(face.port.unicast)-1]
+				break
+			}
+		}
+	}
 	face.CloseBaseFace()
 	return nil
 }
