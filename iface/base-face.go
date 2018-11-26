@@ -17,12 +17,12 @@ type BaseFace struct {
 	id FaceId
 }
 
-func (face BaseFace) getPtr() *C.Face {
+func (face *BaseFace) getPtr() *C.Face {
 	return &C.__gFaces[face.id]
 }
 
 // Get native *C.Face pointer to use in other packages.
-func (face BaseFace) GetPtr() unsafe.Pointer {
+func (face *BaseFace) GetPtr() unsafe.Pointer {
 	return unsafe.Pointer(face.getPtr())
 }
 
@@ -49,16 +49,20 @@ func (face *BaseFace) InitBaseFace(id FaceId, sizeofPriv int, socket dpdk.NumaSo
 	faceC.impl = (*C.FaceImpl)(dpdk.ZmallocAligned("FaceImpl", sizeofImpl, 1, socket))
 }
 
-func (face BaseFace) GetFaceId() FaceId {
+func (face *BaseFace) GetFaceId() FaceId {
 	return face.id
 }
 
-func (face BaseFace) GetNumaSocket() dpdk.NumaSocket {
+func (face *BaseFace) GetNumaSocket() dpdk.NumaSocket {
 	return dpdk.NumaSocket(face.getPtr().numaSocket)
 }
 
+func (face *BaseFace) IsClosed() bool {
+	return face == nil || face.getPtr().id == C.FACEID_INVALID
+}
+
 // Prepare to close face.
-func (face BaseFace) BeforeClose() {
+func (face *BaseFace) BeforeClose() {
 	id := face.GetFaceId()
 	faceC := face.getPtr()
 	faceC.state = C.FACESTA_DOWN
@@ -67,7 +71,7 @@ func (face BaseFace) BeforeClose() {
 
 // Close BaseFace.
 // Deallocate FaceImpl.
-func (face BaseFace) CloseBaseFace() {
+func (face *BaseFace) CloseBaseFace() {
 	id := face.GetFaceId()
 	faceC := face.getPtr()
 	faceC.state = C.FACESTA_REMOVED
@@ -80,11 +84,11 @@ func (face BaseFace) CloseBaseFace() {
 	emitter.EmitSync(evt_FaceClosed, id)
 }
 
-func (face BaseFace) IsDown() bool {
+func (face *BaseFace) IsDown() bool {
 	return face.getPtr().state != C.FACESTA_UP
 }
 
-func (face BaseFace) SetDown(isDown bool) {
+func (face *BaseFace) SetDown(isDown bool) {
 	if face.IsDown() == isDown {
 		return
 	}
@@ -106,7 +110,7 @@ func (face BaseFace) SetDown(isDown bool) {
 // The face must then be added to a TxLooper.
 //
 // queueCapacity must be (2^q).
-func (face BaseFace) EnableThreadSafeTx(queueCapacity int) error {
+func (face *BaseFace) EnableThreadSafeTx(queueCapacity int) error {
 	faceC := face.getPtr()
 	if faceC.threadSafeTxQueue != nil {
 		return fmt.Errorf("Face %d already has thread-safe TX", face.GetFaceId())
@@ -122,14 +126,14 @@ func (face BaseFace) EnableThreadSafeTx(queueCapacity int) error {
 	return nil
 }
 
-func (face BaseFace) TxBurst(pkts []ndn.Packet) {
+func (face *BaseFace) TxBurst(pkts []ndn.Packet) {
 	if len(pkts) == 0 {
 		return
 	}
 	C.Face_TxBurst(C.FaceId(face.id), (**C.Packet)(unsafe.Pointer(&pkts[0])), C.uint16_t(len(pkts)))
 }
 
-func (face BaseFace) ReadLatency() running_stat.Snapshot {
+func (face *BaseFace) ReadLatency() running_stat.Snapshot {
 	faceC := face.getPtr()
 	latencyStat := running_stat.FromPtr(unsafe.Pointer(&faceC.impl.latencyStat))
 	return running_stat.TakeSnapshot(latencyStat).Multiply(dpdk.GetNanosInTscUnit())

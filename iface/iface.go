@@ -30,8 +30,12 @@ type IFace interface {
 	// Get NUMA socket of this face's data structures.
 	GetNumaSocket() dpdk.NumaSocket
 
+	// Determine whether the face has been closed.
+	IsClosed() bool
+
 	// Close the face.
 	// Lower layer implementation must provide this method.
+	// It should return nil if BaseFace.IsClosed() returns true.
 	// It should call BaseFace.BeforeClose and BaseFace.CloseBaseFace.
 	Close() error
 

@@ -20,7 +20,6 @@ var FaceMempools iface.Mempools
 
 type MockFace struct {
 	iface.BaseFace
-	isClosed bool
 
 	TxInterests []*ndn.Interest // sent Interest packets
 	TxData      []*ndn.Data     // sent Data packets
@@ -53,15 +52,13 @@ func (*MockFace) GetRemoteUri() *faceuri.FaceUri {
 }
 
 func (face *MockFace) Close() error {
+	if face.IsClosed() {
+		return nil
+	}
 	face.BeforeClose()
 	iface.TheChanRxGroup.RemoveFace(face)
-	face.isClosed = true
 	face.CloseBaseFace()
 	return nil
-}
-
-func (face *MockFace) IsClosed() bool {
-	return face.isClosed
 }
 
 func (face *MockFace) ListRxGroups() []iface.IRxGroup {
