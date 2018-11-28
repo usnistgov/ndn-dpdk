@@ -194,6 +194,7 @@ func (ctx *createContext) launchEth(ectx *createContextEth) (e error) {
 	}
 	cfg.RxqCapacity = theConfig.EthRxqFrames
 	cfg.TxqCapacity = theConfig.EthTxqFrames
+	cfg.Mtu = theConfig.EthMtu
 
 	port, e := ethface.NewPort(cfg)
 	if e != nil {

@@ -70,6 +70,7 @@ func (port EthDev) GetDevInfo() (info EthDevInfo) {
 type EthDevConfig struct {
 	RxQueues []EthRxQueueConfig
 	TxQueues []EthTxQueueConfig
+	Mtu      int            // if non-zero, change MTU
 	Conf     unsafe.Pointer // pointer to rte_eth_conf, nil means default
 }
 
@@ -96,10 +97,16 @@ type EthTxQueueConfig struct {
 
 func (port EthDev) Configure(cfg EthDevConfig) (rxQueues []EthRxQueue, txQueues []EthTxQueue, e error) {
 	portId := C.uint16_t(port)
-	var defaultConf C.struct_rte_eth_conf
-	defaultConf.rxmode.max_rx_pkt_len = C.ETHER_MAX_LEN
+	if cfg.Mtu > 0 {
+		if res := C.rte_eth_dev_set_mtu(C.uint16_t(port), C.uint16_t(cfg.Mtu)); res != 0 {
+			return nil, nil, fmt.Errorf("rte_eth_dev_set_mtu(%d,%d) error code %d", port, cfg.Mtu, res)
+		}
+	}
+
 	conf := (*C.struct_rte_eth_conf)(cfg.Conf)
+	var defaultConf C.struct_rte_eth_conf
 	if conf == nil {
+		defaultConf.rxmode.max_rx_pkt_len = C.uint32_t(port.GetMtu())
 		conf = &defaultConf
 	}
 

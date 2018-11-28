@@ -9,6 +9,7 @@ import (
 
 type Config struct {
 	EnableEth    bool // whether to enable Ethernet faces
+	EthMtu       int  // Ethernet device MTU
 	EthRxqFrames int  // Ethernet RX queue capacity
 	EthTxqPkts   int  // Ethernet before-TX queue capacity
 	EthTxqFrames int  // Ethernet after-TX queue capacity
@@ -23,6 +24,7 @@ type Config struct {
 
 func GetDefaultConfig() (cfg Config) {
 	cfg.EnableEth = true
+	cfg.EthMtu = 0 // default MTU
 	cfg.EthRxqFrames = 256
 	cfg.EthTxqPkts = 256
 	cfg.EthTxqFrames = 256

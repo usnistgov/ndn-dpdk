@@ -14,7 +14,11 @@ func main() {
 	if e != nil {
 		log.WithError(e).Fatal("command line error")
 	}
+
 	pc.initcfg.Mempool.Apply()
+	if e := appinit.EnableCreateFace(pc.initcfg.Face); e != nil {
+		log.WithError(e).Fatal("appinit.EnableCreateFace error")
+	}
 
 	app, e := ndnping.NewApp(pc.tasks)
 	if e != nil {

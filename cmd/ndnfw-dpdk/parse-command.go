@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"os"
 
 	"ndn-dpdk/appinit"
@@ -52,8 +51,6 @@ func parseCommand(args []string) (initCfg initConfig, e error) {
 	if e != nil {
 		return initConfig{}, e
 	}
-
-	fmt.Println(initCfg.Mempool)
 
 	return initCfg, nil
 }

@@ -49,22 +49,31 @@ func ConfigureMempool(key string, capacity int, cacheSize int) {
 }
 
 type MempoolCapacityConfig struct {
-	Capacity  int
-	CacheSize int
+	Capacity     int
+	CacheSize    int
+	DataroomSize int
 }
 
 // Init config section for mempool capacity.
 type MempoolsCapacityConfig map[string]MempoolCapacityConfig
 
 func (cfg MempoolsCapacityConfig) Apply() {
-	for key, cfg1 := range cfg {
+	for key, entry := range cfg {
 		tpl, ok := mempoolCfgs[key]
 		if !ok {
 			log.WithField("key", key).Warn("unknown mempool template")
 			continue
 		}
-		tpl.Capacity = cfg1.Capacity
-		tpl.CacheSize = cfg1.CacheSize
+		tpl.Capacity = entry.Capacity
+		tpl.CacheSize = entry.CacheSize
+		if entry.DataroomSize > 0 {
+			if entry.DataroomSize < tpl.DataroomSize {
+				log.WithFields(makeLogFields(
+					"key", key, "oldDataroom", tpl.DataroomSize,
+					"newDataroom", entry.DataroomSize)).Info("decreasing dataroom size")
+			}
+			tpl.DataroomSize = entry.DataroomSize
+		}
 	}
 }
 

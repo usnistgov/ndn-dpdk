@@ -4,6 +4,7 @@
 # MEMORY POOL
 # 'capacity' affects hugepage memory usage; (2^q-1) is optimal.
 # 'cachesize' cannot exceed 512; (capacity % cachesize == 0) is optimal.
+# 'dataroomsize' should be greater than MTU.
 # Each NUMA socket has its own mempool with the given name.
 mempool:
   IND:  # indirect mbufs
@@ -12,6 +13,7 @@ mempool:
   ETHRX:  # RX Ethernet frames
     capacity: 1048575
     cachesize: 465
+    dataroomsize: 2000
   NAME:  # name linearize
     capacity: 65535
     cachesize: 255
@@ -27,11 +29,14 @@ mempool:
   DATA:  # TX Ethernet+NDNLP and encoding Data
     capacity: 65535
     cachesize: 255
+    dataroomsize: 2000
 
 # FACE CREATION
 face:
   # whether to enable Ethernet faces
   enableeth: true
+  # Ethernet device MTU
+  ethmtu: 1500
   # Ethernet RX queue capacity
   ethrxqframes: 4096
   # Ethernet before-TX queue capacity

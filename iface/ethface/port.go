@@ -25,6 +25,7 @@ type PortConfig struct {
 	RxMp        dpdk.PktmbufPool   // mempool for received frames
 	RxqCapacity int                // receive queue length in frames
 	TxqCapacity int                // send queue length in frames
+	Mtu         int                // set MTU, 0 to keep default
 	Local       net.HardwareAddr   // local address, nil for hardware default
 	Multicast   bool               // whether to enable multicast face
 	Unicast     []net.HardwareAddr // remote addresses for unicast faces
@@ -120,6 +121,7 @@ func (port *Port) startEthDev(portCfg PortConfig, nRxThreads int) error {
 		Capacity: portCfg.TxqCapacity,
 		Socket:   numaSocket,
 	})
+	cfg.Mtu = portCfg.Mtu
 	if _, _, e := port.dev.Configure(cfg); e != nil {
 		return fmt.Errorf("EthDev(%d).Configure: %v", port.dev, e)
 	}

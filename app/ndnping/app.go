@@ -23,9 +23,6 @@ func NewApp(cfg []TaskConfig) (app *App, e error) {
 	app = new(App)
 
 	appinit.StartRxl = app.addRxl
-	if e = appinit.EnableCreateFace(createface.GetDefaultConfig()); e != nil {
-		return nil, e
-	}
 
 	var faceCreateArgs []createface.CreateArg
 	for _, taskCfg := range cfg {
