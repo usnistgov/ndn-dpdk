@@ -1,15 +1,17 @@
 package createface
 
 import (
+	"unsafe"
+
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/ethface"
 )
 
 type ethRxtx struct {
-	rxgUsr interface{}
-	txl    *iface.TxLoop
-	txlUsr interface{}
+	rxgUsrs map[unsafe.Pointer]interface{}
+	txl     *iface.TxLoop
+	txlUsr  interface{}
 }
 
 var ethRxtxByPort = make(map[dpdk.EthDev]ethRxtx)
@@ -25,9 +27,13 @@ func ethRxgFromPort(port *ethface.Port) iface.IRxGroup {
 func startEthRxtx(port *ethface.Port) (e error) {
 	var rxtx ethRxtx
 
-	rxg := ethRxgFromPort(port)
-	if rxtx.rxgUsr, e = theCallbacks.StartRxg(rxg); e != nil {
-		return e
+	rxtx.rxgUsrs = make(map[unsafe.Pointer]interface{})
+	for _, rxg := range port.ListRxGroups() {
+		rxgUsr, e := theCallbacks.StartRxg(rxg)
+		if e != nil {
+			return e
+		}
+		rxtx.rxgUsrs[rxg.GetPtr()] = rxgUsr
 	}
 
 	var faces []iface.IFace
@@ -54,7 +60,10 @@ func stopEthRxtx(port *ethface.Port) {
 	ethdev := port.GetEthDev()
 	rxtx := ethRxtxByPort[ethdev]
 
-	theCallbacks.StopRxg(ethRxgFromPort(port), rxtx.rxgUsr)
+	for _, rxg := range port.ListRxGroups() {
+		rxgUsr := rxtx.rxgUsrs[rxg.GetPtr()]
+		theCallbacks.StopRxg(rxg, rxgUsr)
+	}
 	theCallbacks.StopTxl(rxtx.txl, rxtx.txlUsr)
 	port.Close()
 	delete(ethRxtxByPort, ethdev)
