@@ -35,6 +35,8 @@ mempool:
 face:
   # whether to enable Ethernet faces
   enableeth: true
+  # whether to disable RxFlow dispatching
+  ethdisablerxflow: false
   # Ethernet device MTU
   ethmtu: 1500
   # Ethernet RX queue capacity

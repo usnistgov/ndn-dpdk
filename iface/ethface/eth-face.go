@@ -19,6 +19,7 @@ type faceFactory struct {
 	mempools iface.Mempools
 	local    net.HardwareAddr
 	mtu      int
+	flows    map[iface.FaceId]*RxFlow
 }
 
 func copyHwaddrToC(a net.HardwareAddr, c *C.struct_ether_addr) {
@@ -36,6 +37,9 @@ func (f *faceFactory) newFace(id iface.FaceId, remote net.HardwareAddr) (face *E
 		face.remote = ndn.GetEtherMcastAddr()
 	} else {
 		face.remote = remote
+	}
+	if f.flows != nil {
+		face.rxf = f.flows[id]
 	}
 
 	priv := face.getPriv()
@@ -60,6 +64,7 @@ type EthFace struct {
 	port   *Port
 	local  net.HardwareAddr
 	remote net.HardwareAddr
+	rxf    *RxFlow
 }
 
 func (face *EthFace) getPtr() *C.Face {
@@ -84,6 +89,9 @@ func (face *EthFace) GetRemoteUri() *faceuri.FaceUri {
 
 func (face *EthFace) Close() error {
 	face.BeforeClose()
+	if face.rxf != nil {
+		face.rxf.Close()
+	}
 	if face.port.multicast == face {
 		face.port.multicast = nil
 	} else {
@@ -100,6 +108,9 @@ func (face *EthFace) Close() error {
 }
 
 func (face *EthFace) ListRxGroups() []iface.IRxGroup {
+	if face.rxf != nil {
+		return []iface.IRxGroup{face.rxf}
+	}
 	return face.port.ListRxGroups()
 }
 

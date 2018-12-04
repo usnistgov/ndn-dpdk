@@ -56,11 +56,29 @@ func startEthRxtx(port *ethface.Port) (e error) {
 	return nil
 }
 
-func stopEthRxtx(port *ethface.Port) {
+func stopEthFaceRxtx(face *ethface.EthFace) {
+	port := face.GetPort()
+	ethdev := port.GetEthDev()
+	rxtx := ethRxtxByPort[ethdev]
+
+	for _, rxg := range face.ListRxGroups() {
+		if _, ok := rxg.(*ethface.RxFlow); !ok {
+			continue
+		}
+		rxgUsr := rxtx.rxgUsrs[rxg.GetPtr()]
+		theCallbacks.StopRxg(rxg, rxgUsr)
+	}
+	rxtx.txl.RemoveFace(face)
+}
+
+func stopEthPortRxtx(port *ethface.Port) {
 	ethdev := port.GetEthDev()
 	rxtx := ethRxtxByPort[ethdev]
 
 	for _, rxg := range port.ListRxGroups() {
+		if _, ok := rxg.(*ethface.RxTable); !ok {
+			continue
+		}
 		rxgUsr := rxtx.rxgUsrs[rxg.GetPtr()]
 		theCallbacks.StopRxg(rxg, rxgUsr)
 	}

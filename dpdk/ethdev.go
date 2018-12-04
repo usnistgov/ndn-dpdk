@@ -202,6 +202,14 @@ func (port EthDev) Close() error {
 	return nil
 }
 
+func (port EthDev) Reset() error {
+	res := C.rte_eth_dev_reset(C.uint16_t(port))
+	if res != 0 {
+		return Errno(-res)
+	}
+	return nil
+}
+
 type EthRxQueue struct {
 	port  C.uint16_t
 	queue C.uint16_t

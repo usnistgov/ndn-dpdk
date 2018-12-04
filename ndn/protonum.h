@@ -3,7 +3,7 @@
 
 /// \file
 
-#define NDN_ETHER_MCAST 0x01, 0x00, 0x5E, 0x00, 0x17, 0xAA
+#define NDN_ETHER_MCAST "\x01\x00\x5E\x00\x17\xAA"
 #define NDN_ETHERTYPE 0x8624
 #define NDN_UDP_MCAST 0xE00017AA
 #define NDN_UDP_PORT 6363

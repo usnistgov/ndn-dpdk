@@ -5,14 +5,16 @@ import (
 
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
+	"ndn-dpdk/iface/ethface"
 )
 
 type Config struct {
-	EnableEth    bool // whether to enable Ethernet faces
-	EthMtu       int  // Ethernet device MTU
-	EthRxqFrames int  // Ethernet RX queue capacity
-	EthTxqPkts   int  // Ethernet before-TX queue capacity
-	EthTxqFrames int  // Ethernet after-TX queue capacity
+	EnableEth        bool // whether to enable Ethernet faces
+	EthDisableRxFlow bool // whether to disable RxFlow dispatching
+	EthMtu           int  // Ethernet device MTU
+	EthRxqFrames     int  // Ethernet RX queue capacity
+	EthTxqPkts       int  // Ethernet before-TX queue capacity
+	EthTxqFrames     int  // Ethernet after-TX queue capacity
 
 	EnableSock    bool // whether to enable socket faces
 	SockTxqPkts   int  // socket before-TX queue capacity
@@ -24,6 +26,7 @@ type Config struct {
 
 func GetDefaultConfig() (cfg Config) {
 	cfg.EnableEth = true
+	cfg.EthDisableRxFlow = false
 	cfg.EthMtu = 0 // default MTU
 	cfg.EthRxqFrames = 256
 	cfg.EthTxqPkts = 256
@@ -80,5 +83,7 @@ func Init(cfg Config, callbacks ICallbacks) error {
 	theConfig = cfg
 	theCallbacks = callbacks
 	isInitialized = true
+
+	ethface.DisableRxFlow = cfg.EthDisableRxFlow
 	return nil
 }
