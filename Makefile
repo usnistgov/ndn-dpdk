@@ -43,15 +43,10 @@ dpdk/cgoflags.go: dpdk/cgostruct.go
 ndn/error.go ndn/error.h: ndn/make-error.sh ndn/error.tsv
 	ndn/make-error.sh
 
-ndn/namehash.h: ndn/namehash.c
-	gcc -o /tmp/namehash.exe ndn/namehash.c -m64 -march=native $(INCLUDEFLAGS) -DNAMEHASH_GENERATOR
-	openssl rand 16 | /tmp/namehash.exe > ndn/namehash.h
-	rm /tmp/namehash.exe
-
 ndn/tlv-type.go ndn/tlv-type.h: ndn/make-tlv-type.sh ndn/tlv-type.tsv
 	ndn/make-tlv-type.sh
 
-$(CLIBPREFIX)-ndn.a: $(CLIBPREFIX)-dpdk.a ndn/*.h ndn/*.c ndn/error.h ndn/namehash.h ndn/tlv-type.h
+$(CLIBPREFIX)-ndn.a: $(CLIBPREFIX)-dpdk.a ndn/*.h ndn/*.c ndn/error.h ndn/tlv-type.h
 	./cbuild.sh ndn
 
 ndn/cgoflags.go: dpdk/cgoflags.go
@@ -199,6 +194,6 @@ godochttp:
 	godoc -http ':6060' 2>/dev/null &
 
 clean:
-	rm -rf build cmd/nfdemu/node_modules cmd/nfdemu/build cmd/nfdemu/tlv-type.ts docs/doxygen docs/codedoc docs/mgmtschema/schema.json ndn/error.go ndn/error.h ndn/namehash.h ndn/tlv-type.go ndn/tlv-type.h strategy/strategy_elf/bindata.go app/version/version.go
+	rm -rf build cmd/nfdemu/node_modules cmd/nfdemu/build cmd/nfdemu/tlv-type.ts docs/doxygen docs/codedoc docs/mgmtschema/schema.json ndn/error.go ndn/error.h ndn/tlv-type.go ndn/tlv-type.h strategy/strategy_elf/bindata.go app/version/version.go
 	find \( -name 'cgoflags.go' -o -name 'cgostruct.go' \) -delete
 	go clean ./...

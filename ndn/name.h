@@ -3,8 +3,9 @@
 
 /// \file
 
-#include "namehash.h"
 #include "tlv-element.h"
+
+extern uint64_t __NameHash_Empty;
 
 /** \brief Maximum supported name length (TLV-LENGTH of Name element).
  */
@@ -161,7 +162,7 @@ static uint64_t
 PName_ComputePrefixHash(const PName* n, const uint8_t* input, uint16_t i)
 {
   if (i == 0) {
-    return NAMEHASH_EMPTYHASH;
+    return __NameHash_Empty;
   }
 
   assert(i <= n->nComps);

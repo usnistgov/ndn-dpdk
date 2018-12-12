@@ -1,7 +1,5 @@
 #include "fib.h"
 
-#include "../../ndn/namehash.h"
-
 static bool
 Fib_LookupMatch(TshtMatchNode node, const void* key0)
 {

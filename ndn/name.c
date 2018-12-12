@@ -1,6 +1,28 @@
 #include "name.h"
 #include "tlv-decode.h"
 
+#include "../core/pcg_basic.h"
+#include "../core/siphash.h"
+
+static SipHashKey theNameHashKey;
+uint64_t __NameHash_Empty;
+
+RTE_INIT(NameHash_Init)
+{
+  pcg32_random_t rng;
+  pcg32_srandom_r(&rng, rte_get_tsc_cycles(), 0);
+
+  uint8_t key[SIPHASHKEY_SIZE];
+  for (uint8_t* k = key; k != key + SIPHASHKEY_SIZE; ++k) {
+    *k = (uint8_t)pcg32_random_r(&rng);
+  }
+  SipHashKey_FromBuffer(&theNameHashKey, key);
+
+  SipHash h;
+  SipHash_Init(&h, &theNameHashKey);
+  __NameHash_Empty = SipHash_Final(&h);
+}
+
 uint64_t
 __LName_ComputeHash(uint16_t length, const uint8_t* value)
 {
