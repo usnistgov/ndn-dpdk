@@ -75,3 +75,5 @@ func TestPrefixMatch(t *testing.T) {
 	assert.Equal(1, fixture.Cs.CountEntries(cs.CSL_MD))
 	assert.Equal(2, fixture.Cs.CountEntries(cs.CSL_MI))
 }
+
+// TODO implicit digest test case

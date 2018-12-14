@@ -75,12 +75,19 @@ func TestEvict(t *testing.T) {
 
 	for i := 1; i <= 2000; i++ {
 		name := fmt.Sprintf("/N/%d", i)
-		ok := fixture.Insert(ndntestutil.MakeInterest(name), ndntestutil.MakeData(name))
+		ok := fixture.Insert(ndntestutil.MakeInterest(name, ndn.CanBePrefixFlag),
+			ndntestutil.MakeData(name+"/Z"))
 		assert.True(ok)
 		assert.True(fixture.Cs.CountEntries(cs.CSL_MD) <= CAP_MD)
+		assert.True(fixture.Cs.CountEntries(cs.CSL_MI) <= CAP_MI)
 	}
+
+	fixture.Cs.SetCapacity(cs.CSL_MI, 100)
+	assert.Equal(100, fixture.Cs.GetCapacity(cs.CSL_MI))
+	assert.True(fixture.Cs.CountEntries(cs.CSL_MI) <= 100)
 
 	fixture.Cs.SetCapacity(cs.CSL_MD, 64)
 	assert.Equal(64, fixture.Cs.GetCapacity(cs.CSL_MD))
 	assert.True(fixture.Cs.CountEntries(cs.CSL_MD) <= 64)
+	assert.True(fixture.Cs.CountEntries(cs.CSL_MI) <= 64)
 }
