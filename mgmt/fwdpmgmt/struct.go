@@ -9,9 +9,15 @@ type FwdpInfo struct {
 	NFwds   int
 }
 
-type CsCounters struct {
+type CsListCounters struct {
+	Count    int
 	Capacity int
-	NEntries int
-	NHits    uint64
-	NMisses  uint64
+}
+
+type CsCounters struct {
+	MD CsListCounters // in-memory direct entries
+	MI CsListCounters // in-memory indirect entries
+
+	NHits   uint64
+	NMisses uint64
 }

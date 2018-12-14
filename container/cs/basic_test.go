@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"ndn-dpdk/container/cs"
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/ndn"
 	"ndn-dpdk/ndn/ndntestutil"
@@ -13,14 +14,13 @@ import (
 func TestInsertErase(t *testing.T) {
 	assert, require := makeAR(t)
 
-	fixture := NewFixture(255, 128)
+	fixture := NewFixture()
 	defer fixture.Close()
 
 	ok := fixture.Insert(ndntestutil.MakeInterest("/A/B"),
 		ndntestutil.MakeData("/A/B"))
 	assert.True(ok)
-	assert.Equal(1, fixture.Cs.Len())
-	assert.Len(fixture.Cs.List(), 1)
+	assert.Equal(1, fixture.Cs.CountEntries(cs.CSL_MD))
 	assert.Zero(fixture.Pit.Len())
 	assert.Equal(1, fixture.CountMpInUse())
 
@@ -31,7 +31,7 @@ func TestInsertErase(t *testing.T) {
 	ok = fixture.Insert(ndntestutil.MakeInterest("/A/B", ndn.MustBeFreshFlag),
 		ndntestutil.MakeData("/A/B", 100*time.Millisecond))
 	assert.True(ok)
-	assert.Equal(1, fixture.Cs.Len())
+	assert.Equal(1, fixture.Cs.CountEntries(cs.CSL_MD))
 
 	csEntry = fixture.Find(ndntestutil.MakeInterest("/A/B"))
 	require.NotNil(csEntry)
@@ -43,7 +43,7 @@ func TestInsertErase(t *testing.T) {
 		ndntestutil.MakeInterest("/A/B", ndn.FHDelegation{1, "/F"}, ndn.ActiveFHDelegation(0)),
 		ndntestutil.MakeData("/A/B", 200*time.Millisecond))
 	assert.True(ok)
-	assert.Equal(2, fixture.Cs.Len())
+	assert.Equal(2, fixture.Cs.CountEntries(cs.CSL_MD))
 
 	csEntry3 := fixture.Find(ndntestutil.MakeInterest("/A/B",
 		ndn.FHDelegation{1, "/G"}, ndn.FHDelegation{2, "/F"}, ndn.ActiveFHDelegation(1)))
@@ -60,31 +60,27 @@ func TestInsertErase(t *testing.T) {
 
 	fixture.Cs.Erase(*csEntry)
 	fixture.Cs.Erase(*csEntry3)
-	assert.Zero(fixture.Cs.Len())
-	assert.Len(fixture.Cs.List(), 0)
+	assert.Zero(fixture.Cs.CountEntries(cs.CSL_MD))
 	assert.Zero(fixture.CountMpInUse())
 }
 
 func TestEvict(t *testing.T) {
 	assert, _ := makeAR(t)
 
-	capacity := 256
-	fixture := NewFixture(511, capacity)
+	fixture := NewFixture()
 	defer fixture.Close()
 
-	assert.Equal(capacity, fixture.Cs.GetCapacity())
+	assert.Equal(CAP_MD, fixture.Cs.GetCapacity(cs.CSL_MD))
+	assert.Equal(CAP_MI, fixture.Cs.GetCapacity(cs.CSL_MI))
 
 	for i := 1; i <= 2000; i++ {
 		name := fmt.Sprintf("/N/%d", i)
 		ok := fixture.Insert(ndntestutil.MakeInterest(name), ndntestutil.MakeData(name))
 		assert.True(ok)
-		assert.True(fixture.Cs.Len() <= capacity)
-		assert.Len(fixture.Cs.List(), fixture.Cs.Len())
+		assert.True(fixture.Cs.CountEntries(cs.CSL_MD) <= CAP_MD)
 	}
 
-	capacity = 64
-	fixture.Cs.SetCapacity(capacity)
-	assert.Equal(capacity, fixture.Cs.GetCapacity())
-	assert.True(fixture.Cs.Len() <= capacity)
-	assert.Len(fixture.Cs.List(), fixture.Cs.Len())
+	fixture.Cs.SetCapacity(cs.CSL_MD, 64)
+	assert.Equal(64, fixture.Cs.GetCapacity(cs.CSL_MD))
+	assert.True(fixture.Cs.CountEntries(cs.CSL_MD) <= 64)
 }

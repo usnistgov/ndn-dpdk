@@ -98,10 +98,10 @@ CsEntry_Assoc(CsEntry* indirect, CsEntry* direct)
   return true;
 }
 
-/** \brief Unassociate an indirect entry.
+/** \brief Disassociate an indirect entry.
  */
 static void
-CsEntry_Unassoc(CsEntry* entry)
+CsEntry_Disassoc(CsEntry* entry)
 {
   assert(!CsEntry_IsDirect(entry));
 
@@ -130,11 +130,11 @@ CsEntry_Clear(CsEntry* entry)
     rte_pktmbuf_free(Packet_ToMbuf(entry->data));
     entry->data = NULL;
   } else {
-    CsEntry_Unassoc(entry);
+    CsEntry_Disassoc(entry);
   }
 }
 
-/** \brief Finalize an entry entry.
+/** \brief Finalize an entry.
  *  \pre If entry is direct, no indirect entry depends on it.
  */
 static void

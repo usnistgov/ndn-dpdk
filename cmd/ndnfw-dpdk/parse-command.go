@@ -26,7 +26,8 @@ type fwdpInitConfig struct {
 	FwdQueueCapacity  int
 	LatencySampleFreq int
 	PcctCapacity      int
-	CsCapacity        int
+	CsCapMd           int
+	CsCapMi           int
 
 	AutoFaces bool
 }
@@ -42,7 +43,8 @@ func parseCommand(args []string) (initCfg initConfig, e error) {
 	initCfg.Fwdp.FwdQueueCapacity = 128
 	initCfg.Fwdp.LatencySampleFreq = 16
 	initCfg.Fwdp.PcctCapacity = 131071
-	initCfg.Fwdp.CsCapacity = 32768
+	initCfg.Fwdp.CsCapMd = 32768
+	initCfg.Fwdp.CsCapMi = 32768
 
 	flags := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	appinit.DeclareInitConfigFlag(flags, &initCfg)

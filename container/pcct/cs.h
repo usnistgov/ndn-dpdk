@@ -6,12 +6,6 @@
 #include "pcct.h"
 #include "pit-result.h"
 
-/** \brief Bulk size of CS eviction.
- *
- *  This is also the minimum CS capacity.
- */
-#define CS_EVICT_BULK 64
-
 /** \brief Cast Pcct* as Cs*.
  */
 static Cs*
@@ -38,27 +32,19 @@ Cs_GetPriv(const Cs* cs)
 
 /** \brief Constructor.
  */
-void Cs_Init(Cs* cs, uint32_t capacity);
+void Cs_Init(Cs* cs);
 
 /** \brief Get capacity in number of entries.
  */
-static uint32_t
-Cs_GetCapacity(const Cs* cs)
-{
-  return Cs_GetPriv(cs)->capacity;
-}
+uint32_t Cs_GetCapacity(const Cs* cs, CsListId cslId);
 
 /** \brief Set capacity in number of entries.
  */
-void Cs_SetCapacity(Cs* cs, uint32_t capacity);
+void Cs_SetCapacity(Cs* cs, CsListId cslId, uint32_t capacity);
 
-/** \brief Get number of CS entries.
+/** \brief Get number of entries.
  */
-static uint32_t
-Cs_CountEntries(const Cs* cs)
-{
-  return Cs_GetPriv(cs)->nEntries;
-}
+uint32_t Cs_CountEntries(const Cs* cs, CsListId cslId);
 
 /** \brief Insert a CS entry.
  *  \param npkt the Data packet. CS takes ownership.

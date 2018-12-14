@@ -3,6 +3,7 @@ package cs_test
 import (
 	"testing"
 
+	"ndn-dpdk/container/cs"
 	"ndn-dpdk/ndn"
 	"ndn-dpdk/ndn/ndntestutil"
 )
@@ -10,13 +11,14 @@ import (
 func TestPrefixMatch(t *testing.T) {
 	assert, require := makeAR(t)
 
-	fixture := NewFixture(255, 128)
+	fixture := NewFixture()
 	defer fixture.Close()
 
 	ok := fixture.Insert(ndntestutil.MakeInterest("/A/B", ndn.CanBePrefixFlag),
 		ndntestutil.MakeData("/A/B/C/D"))
 	assert.True(ok)
-	assert.Equal(2, fixture.Cs.Len())
+	assert.Equal(1, fixture.Cs.CountEntries(cs.CSL_MD))
+	assert.Equal(1, fixture.Cs.CountEntries(cs.CSL_MI))
 
 	direct := fixture.Find(ndntestutil.MakeInterest("/A/B/C/D"))
 	require.NotNil(direct)
@@ -32,7 +34,8 @@ func TestPrefixMatch(t *testing.T) {
 	ok = fixture.Insert(ndntestutil.MakeInterest("/A/B/C", ndn.CanBePrefixFlag),
 		ndntestutil.MakeData("/A/B/C/D"))
 	assert.True(ok)
-	assert.Equal(3, fixture.Cs.Len())
+	assert.Equal(1, fixture.Cs.CountEntries(cs.CSL_MD))
+	assert.Equal(2, fixture.Cs.CountEntries(cs.CSL_MI))
 
 	indirect2 = fixture.Find(ndntestutil.MakeInterest("/A/B", ndn.CanBePrefixFlag))
 	require.NotNil(indirect2)
@@ -44,26 +47,31 @@ func TestPrefixMatch(t *testing.T) {
 	assert.Len(direct.ListIndirects(), 2)
 
 	assert.Nil(fixture.Find(ndntestutil.MakeInterest("/A/B", ndn.MustBeFreshFlag))) // CanBePrefix=0
-	assert.Equal(3, fixture.Cs.Len())
+	assert.Equal(1, fixture.Cs.CountEntries(cs.CSL_MD))
+	assert.Equal(2, fixture.Cs.CountEntries(cs.CSL_MI))
 
 	assert.Nil(fixture.Find(ndntestutil.MakeInterest("/A/B"))) // CanBePrefix=0
-	assert.Equal(2, fixture.Cs.Len())                          // erasing 'indirect2' to make room for PIT entry
+	assert.Equal(1, fixture.Cs.CountEntries(cs.CSL_MD))        // erasing 'indirect2' to make room for PIT entry
+	assert.Equal(1, fixture.Cs.CountEntries(cs.CSL_MI))
 	assert.Len(direct.ListIndirects(), 1)
 
 	fixture.Cs.Erase(*direct)
-	assert.Equal(0, fixture.Cs.Len())
+	assert.Equal(0, fixture.Cs.CountEntries(cs.CSL_MD))
+	assert.Equal(0, fixture.Cs.CountEntries(cs.CSL_MI))
 
 	ok = fixture.Insert(
 		ndntestutil.MakeInterest("/A/B", ndn.CanBePrefixFlag,
 			ndn.FHDelegation{1, "/F"}, ndn.ActiveFHDelegation(0)),
 		ndntestutil.MakeData("/A/B/C/D"))
 	assert.True(ok)
-	assert.Equal(2, fixture.Cs.Len())
+	assert.Equal(1, fixture.Cs.CountEntries(cs.CSL_MD))
+	assert.Equal(1, fixture.Cs.CountEntries(cs.CSL_MI))
 
 	ok = fixture.Insert(
 		ndntestutil.MakeInterest("/A/B/C", ndn.CanBePrefixFlag,
 			ndn.FHDelegation{1, "/F"}, ndn.ActiveFHDelegation(0)),
 		ndntestutil.MakeData("/A/B/C/D"))
 	assert.True(ok)
-	assert.Equal(3, fixture.Cs.Len())
+	assert.Equal(1, fixture.Cs.CountEntries(cs.CSL_MD))
+	assert.Equal(2, fixture.Cs.CountEntries(cs.CSL_MI))
 }

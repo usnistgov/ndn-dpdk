@@ -11,7 +11,12 @@ import (
 	"ndn-dpdk/ndn"
 )
 
-const MIN_CAPACITY = int(C.CS_EVICT_BULK)
+type ListId int
+
+const (
+	CSL_MD = ListId(C.CSL_MD)
+	CSL_MI = ListId(C.CSL_MI)
+)
 
 // The Content Store (CS).
 type Cs struct {
@@ -27,28 +32,18 @@ func (cs Cs) Close() error {
 }
 
 // Get capacity in number of entries.
-func (cs Cs) GetCapacity() int {
-	return int(C.Cs_GetCapacity(cs.getPtr()))
+func (cs Cs) GetCapacity(cslId ListId) int {
+	return int(C.Cs_GetCapacity(cs.getPtr(), C.CsListId(cslId)))
 }
 
 // Set capacity in number of entries.
-func (cs Cs) SetCapacity(capacity int) {
-	C.Cs_SetCapacity(cs.getPtr(), C.uint32_t(capacity))
+func (cs Cs) SetCapacity(cslId ListId, capacity int) {
+	C.Cs_SetCapacity(cs.getPtr(), C.CsListId(cslId), C.uint32_t(capacity))
 }
 
-// Get number of CS entries.
-func (cs Cs) Len() int {
-	return int(C.Cs_CountEntries(cs.getPtr()))
-}
-
-// Enumerate all CS entries.
-func (cs Cs) List() (list []Entry) {
-	list = make([]Entry, 0, cs.Len())
-	head := &C.Cs_GetPriv(cs.getPtr()).head
-	for node := head.next; node != head; node = node.next {
-		list = append(list, cs.EntryFromPtr(unsafe.Pointer(node)))
-	}
-	return list
+// Get number of entries.
+func (cs Cs) CountEntries(cslId ListId) int {
+	return int(C.Cs_CountEntries(cs.getPtr(), C.CsListId(cslId)))
 }
 
 type iPitFindResult interface {

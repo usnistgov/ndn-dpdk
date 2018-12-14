@@ -45,16 +45,22 @@ func (mg DpInfoMgmt) Pit(arg IndexArg, reply *pit.Counters) error {
 	return nil
 }
 
+func readCslCnt(cs cs.Cs, cslId cs.ListId) (cnt CsListCounters) {
+	cnt.Count = cs.CountEntries(cslId)
+	cnt.Capacity = cs.GetCapacity(cslId)
+	return cnt
+}
+
 func (mg DpInfoMgmt) Cs(arg IndexArg, reply *CsCounters) error {
 	pcct := mg.Dp.GetFwdPcct(arg.Index)
 	if pcct == nil {
 		return errors.New("index out of range")
 	}
-	pit, cs := pit.Pit{pcct}, cs.Cs{pcct}
+	pit, theCs := pit.Pit{pcct}, cs.Cs{pcct}
 	pitCnt := pit.ReadCounters()
 
-	reply.Capacity = cs.GetCapacity()
-	reply.NEntries = cs.Len()
+	reply.MD = readCslCnt(theCs, cs.CSL_MD)
+	reply.MI = readCslCnt(theCs, cs.CSL_MI)
 	reply.NHits = pitCnt.NCsMatch
 	reply.NMisses = pitCnt.NInsert + pitCnt.NFound
 

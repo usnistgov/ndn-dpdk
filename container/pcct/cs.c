@@ -5,109 +5,59 @@
 
 INIT_ZF_LOG(Cs);
 
-static void
-CsPriv_AppendNode(CsPriv* csp, CsNode* node)
+// Bulk size of CS eviction, also the minimum CS capacity.
+#define CS_EVICT_BULK 64
+static void Cs_Evict(Cs* cs);
+
+static CsList*
+CsPriv_GetList(CsPriv* csp, CsListId cslId)
 {
-  CsNode* head = &csp->head;
-  CsNode* last = head->prev;
-  node->prev = last;
-  node->next = head;
-  last->next = node;
-  head->prev = node;
-}
-
-static void
-CsPriv_RemoveNode(CsPriv* csp, CsNode* node)
-{
-  CsNode* prev = node->prev;
-  CsNode* next = node->next;
-  assert(prev->next == node);
-  assert(next->prev == node);
-  prev->next = next;
-  next->prev = prev;
-}
-
-static void
-CsPriv_AppendEntry(CsPriv* csp, CsEntry* entry)
-{
-  CsPriv_AppendNode(csp, &entry->node);
-  ++csp->nEntries;
-}
-
-static void
-CsPriv_RemoveEntry(CsPriv* csp, CsEntry* entry)
-{
-  CsPriv_RemoveNode(csp, &entry->node);
-  assert(csp->nEntries > 0);
-  --csp->nEntries;
-}
-
-static void
-CsPriv_MoveEntryToLast(CsPriv* csp, CsEntry* entry)
-{
-  CsNode* node = &entry->node;
-  CsPriv_RemoveNode(csp, node);
-  CsPriv_AppendNode(csp, node);
-}
-
-static void
-Cs_EvictBulk(Cs* cs)
-{
-  CsPriv* csp = Cs_GetPriv(cs);
-  assert(csp->nEntries >= CS_EVICT_BULK);
-
-  ZF_LOGD("%p EvictBulk() count=%" PRIu32, cs, csp->nEntries);
-
-  CsNode* head = &csp->head;
-  CsNode* node = head->next;
-
-  PccEntry* pccErase[CS_EVICT_BULK];
-  uint32_t nPccErase = 0;
-
-  for (int i = 0; i < CS_EVICT_BULK; ++i) {
-    assert(node != head);
-    CsEntry* entry = container_of(node, CsEntry, node);
-    node = node->next;
-    CsEntry_Finalize(entry);
-
-    PccEntry* pccEntry = PccEntry_FromCsEntry(entry);
-    if (likely(!pccEntry->hasPitEntry1)) {
-      pccErase[nPccErase++] = pccEntry;
-    } else {
-      pccEntry->hasCsEntry = false;
-    }
-    ZF_LOGD("^ cs=%p pcc=%p%s", entry, pccEntry,
-            pccEntry->hasPitEntry1 ? "(retain)" : "(erase)");
+  switch (cslId) {
+    case CSL_MD:
+      return &csp->directFifo;
+    case CSL_MI:
+      return &csp->indirectFifo;
   }
-
-  node->prev = head;
-  head->next = node;
-  csp->nEntries -= CS_EVICT_BULK;
-  ZF_LOGD("^ end-count=%" PRIu32, csp->nEntries);
-  Pcct_EraseBulk(Cs_ToPcct(cs), pccErase, nPccErase);
+  assert(false);
 }
 
 void
-Cs_Init(Cs* cs, uint32_t capacity)
+Cs_Init(Cs* cs)
 {
   CsPriv* csp = Cs_GetPriv(cs);
-  csp->capacity = RTE_MAX(capacity, CS_EVICT_BULK);
-  ZF_LOGI("%p Init() priv=%p capacity=%" PRIu32, cs, csp, csp->capacity);
+  CsList_Init(&csp->directFifo);
+  CsList_Init(&csp->indirectFifo);
 
-  CsNode* head = &csp->head;
-  head->prev = head->next = head;
+  csp->directFifo.capacity = CS_EVICT_BULK;
+  csp->indirectFifo.capacity = CS_EVICT_BULK;
+
+  ZF_LOGI("%p Init() priv=%p", cs, csp);
+}
+
+uint32_t
+Cs_GetCapacity(const Cs* cs, CsListId cslId)
+{
+  CsPriv* csp = Cs_GetPriv(cs);
+  return CsPriv_GetList(csp, cslId)->capacity;
 }
 
 void
-Cs_SetCapacity(Cs* cs, uint32_t capacity)
+Cs_SetCapacity(Cs* cs, CsListId cslId, uint32_t capacity)
 {
   CsPriv* csp = Cs_GetPriv(cs);
-  csp->capacity = RTE_MAX(capacity, CS_EVICT_BULK);
-  ZF_LOGI("%p SetCapacity(%" PRIu32 ")", cs, csp->capacity);
+  capacity = RTE_MAX(capacity, CS_EVICT_BULK);
+  CsPriv_GetList(csp, cslId)->capacity = capacity;
+  ZF_LOGI("%p SetCapacity(%s, %" PRIu32 ")", cs, CsListId_GetName(cslId),
+          capacity);
 
-  while (likely(csp->nEntries >= csp->capacity)) {
-    Cs_EvictBulk(cs);
-  }
+  Cs_Evict(cs);
+}
+
+uint32_t
+Cs_CountEntries(const Cs* cs, CsListId cslId)
+{
+  CsPriv* csp = Cs_GetPriv(cs);
+  return CsPriv_GetList(csp, cslId)->count;
 }
 
 static bool
@@ -126,9 +76,9 @@ __Cs_PutDirect(Cs* cs, Packet* npkt, PccEntry* pccEntry)
     // change the implicit digest, and cause that indirect entry to become
     // non-matching. This code does not handle this case correctly.
     CsEntry_Clear(entry);
-    CsPriv_MoveEntryToLast(csp, entry);
+    CsList_MoveToLast(&csp->directFifo, entry);
     ZF_LOGD("%p PutDirect(%p, pcc=%p) cs=%p count=%" PRIu32 " refresh", cs,
-            npkt, pccEntry, entry, csp->nEntries);
+            npkt, pccEntry, entry, csp->directFifo.count);
   } else if (unlikely(pccEntry->hasPitEntry0)) {
     ZF_LOGD("%p PutDirect(%p, pcc=%p) drop=has-pit0", cs, npkt, pccEntry);
     return false;
@@ -136,9 +86,9 @@ __Cs_PutDirect(Cs* cs, Packet* npkt, PccEntry* pccEntry)
     // insert direct entry
     pccEntry->hasCsEntry = true;
     entry->nIndirects = 0;
-    CsPriv_AppendEntry(csp, entry);
+    CsList_Append(&csp->directFifo, entry);
     ZF_LOGD("%p PutDirect(%p, pcc=%p) cs=%p count=%" PRIu32 " insert", cs, npkt,
-            pccEntry, entry, csp->nEntries);
+            pccEntry, entry, csp->directFifo.count);
   }
   entry->data = npkt;
   entry->freshUntil =
@@ -194,26 +144,24 @@ __Cs_PutIndirect(Cs* cs, CsEntry* direct, PccEntry* pccEntry)
     // refresh indirect entry
     // old entry can be either direct without dependency or indirect
     CsEntry_Clear(entry);
-    CsPriv_MoveEntryToLast(csp, entry);
+    CsList_MoveToLast(&csp->indirectFifo, entry);
     ZF_LOGD("%p PutIndirect(%p, pcc=%p) cs=%p count=%" PRIu32 " refresh", cs,
-            direct, pccEntry, entry, csp->nEntries);
+            direct, pccEntry, entry, csp->indirectFifo.count);
   } else {
     // insert indirect entry
     pccEntry->hasCsEntry = true;
     entry->nIndirects = 0;
-    CsPriv_AppendEntry(csp, entry);
+    CsList_Append(&csp->indirectFifo, entry);
     ZF_LOGD("%p PutIndirect(%p, pcc=%p) cs=%p count=%" PRIu32 " insert", cs,
-            direct, pccEntry, entry, csp->nEntries);
+            direct, pccEntry, entry, csp->indirectFifo.count);
   }
 
   if (likely(CsEntry_Assoc(entry, direct))) {
-    // ensure direct entry is evicted later than indirect entry
-    CsPriv_MoveEntryToLast(csp, direct);
     return true;
   }
 
   ZF_LOGD("^ drop=indirect-assoc-err");
-  CsPriv_RemoveEntry(csp, entry);
+  CsList_Remove(&csp->indirectFifo, entry);
   pccEntry->hasCsEntry = false;
   Pcct_Erase(Cs_ToPcct(cs), pccEntry);
   return false;
@@ -260,9 +208,7 @@ Cs_Insert(Cs* cs, Packet* npkt, PitFindResult pitFound)
   }
 
   // evict if over capacity
-  if (unlikely(csp->nEntries > csp->capacity)) {
-    Cs_EvictBulk(cs);
-  }
+  Cs_Evict(cs);
 }
 
 void
@@ -272,12 +218,15 @@ __Cs_RawErase(Cs* cs, CsEntry* entry)
   PccEntry* pccEntry = PccEntry_FromCsEntry(entry);
 
   if (CsEntry_IsDirect(entry)) {
+    // TODO bulk-erase PccEntry containing indirect entries
     for (int i = 0; i < entry->nIndirects; ++i) {
       Cs_Erase(cs, entry->indirect[i]);
     }
+    CsList_Remove(&csp->directFifo, entry);
+  } else {
+    CsList_Remove(&csp->indirectFifo, entry);
   }
 
-  CsPriv_RemoveEntry(csp, entry);
   CsEntry_Finalize(entry);
   pccEntry->hasCsEntry = false;
 }
@@ -294,4 +243,76 @@ Cs_Erase(Cs* cs, CsEntry* entry)
   }
 
   ZF_LOGD("%p Erase(%p) pcc=%p", cs, entry, pccEntry);
+}
+
+typedef struct CsEvictContext
+{
+  Cs* cs;
+  PccEntry* pccErase[CS_EVICT_BULK];
+  uint32_t nPccErase;
+} CsEvictContext;
+
+static void
+CsEvictContext_Add(CsEvictContext* ctx, CsEntry* entry)
+{
+  CsEntry_Finalize(entry);
+
+  PccEntry* pccEntry = PccEntry_FromCsEntry(entry);
+  if (likely(!pccEntry->hasPitEntry1)) {
+    ctx->pccErase[ctx->nPccErase++] = pccEntry;
+    ZF_LOGD("^ cs=%p pcc=%p(erase)", entry, pccEntry);
+  } else {
+    pccEntry->hasCsEntry = false;
+    ZF_LOGD("^ cs=%p pcc=%p(retain)", entry, pccEntry);
+  }
+}
+
+static void
+CsEvictContext_AddIndirect(void* ctx0, CsEntry* entry)
+{
+  CsEvictContext* ctx = (CsEvictContext*)ctx0;
+  assert(!CsEntry_IsDirect(entry));
+  CsEvictContext_Add(ctx, entry);
+}
+
+static void
+CsEvictContext_AddDirect(void* ctx0, CsEntry* entry)
+{
+  CsEvictContext* ctx = (CsEvictContext*)ctx0;
+  assert(CsEntry_IsDirect(entry));
+  // TODO bulk-erase PccEntry containing indirect entries
+  for (int i = 0; i < entry->nIndirects; ++i) {
+    Cs_Erase(ctx->cs, entry->indirect[i]);
+  }
+  CsEvictContext_Add(ctx, entry);
+}
+
+static bool
+CsEvictContext_Finish(CsEvictContext* ctx)
+{
+  Pcct_EraseBulk(Cs_ToPcct(ctx->cs), ctx->pccErase, ctx->nPccErase);
+}
+
+static void
+__Cs_EvictBulk(Cs* cs, CsList* csl, const char* cslName, CsList_EvictCb evictCb)
+{
+  CsEvictContext ctx = { 0 };
+  ctx.cs = cs;
+  ZF_LOGD("%p Evict(%s) count=%" PRIu32, cs, cslName, csl->count);
+  CsList_EvictBulk(csl, CS_EVICT_BULK, evictCb, &ctx);
+  CsEvictContext_Finish(&ctx);
+  ZF_LOGD("^ end-count=%" PRIu32, csl->count);
+}
+
+static void
+Cs_Evict(Cs* cs)
+{
+  CsPriv* csp = Cs_GetPriv(cs);
+  while (unlikely(csp->indirectFifo.capacity <= csp->indirectFifo.count)) {
+    __Cs_EvictBulk(cs, &csp->indirectFifo, "indirect",
+                   CsEvictContext_AddIndirect);
+  }
+  while (unlikely(csp->directFifo.capacity <= csp->directFifo.count)) {
+    __Cs_EvictBulk(cs, &csp->directFifo, "direct", CsEvictContext_AddDirect);
+  }
 }

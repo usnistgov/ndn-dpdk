@@ -15,7 +15,8 @@ import (
 type Config struct {
 	Id         string
 	MaxEntries int
-	CsCapacity int
+	CsCapMd    int
+	CsCapMi    int
 	NumaSocket dpdk.NumaSocket
 }
 
@@ -34,8 +35,12 @@ func New(cfg Config) (pcct *Pcct, e error) {
 		return nil, dpdk.GetErrno()
 	}
 
-	C.Pit_Init(C.Pit_FromPcct(pcct.c))
-	C.Cs_Init(C.Cs_FromPcct(pcct.c), C.uint32_t(cfg.CsCapacity))
+	pitC := C.Pit_FromPcct(pcct.c)
+	C.Pit_Init(pitC)
+	csC := C.Cs_FromPcct(pcct.c)
+	C.Cs_Init(csC)
+	C.Cs_SetCapacity(csC, C.CSL_MD, C.uint32_t(cfg.CsCapMd))
+	C.Cs_SetCapacity(csC, C.CSL_MI, C.uint32_t(cfg.CsCapMi))
 	return pcct, nil
 }
 

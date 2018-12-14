@@ -68,7 +68,8 @@ func startDp(ndtCfg ndt.Config, fibCfg fib.Config, dpInit fwdpInitConfig) {
 	dpCfg.FwdQueueCapacity = dpInit.FwdQueueCapacity
 	dpCfg.LatencySampleFreq = dpInit.LatencySampleFreq
 	dpCfg.Pcct.MaxEntries = dpInit.PcctCapacity
-	dpCfg.Pcct.CsCapacity = dpInit.CsCapacity
+	dpCfg.Pcct.CsCapMd = dpInit.CsCapMd
+	dpCfg.Pcct.CsCapMi = dpInit.CsCapMi
 
 	// create dataplane
 	{

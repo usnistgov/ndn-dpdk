@@ -63,12 +63,20 @@ ctx.declareMethod('DPInfo.Pit', 'fwdpmgmt.IndexArg',
     },
   });
 
+ctx.declareType('fwdpmgmt.CsListCounters', {
+  type: 'object',
+  properties: {
+    Count: ctx.useType('counter'),
+    Capacity: ctx.useType('counter'),
+  },
+});
+
 ctx.declareMethod('DPInfo.Cs', 'fwdpmgmt.IndexArg',
   {
     type: 'object',
     properties: {
-      Capacity: ctx.useType('counter'),
-      NEntries: ctx.useType('counter'),
+      MD: ctx.useType('fwdpmgmt.CsListCounters'),
+      MI: ctx.useType('fwdpmgmt.CsListCounters'),
       NHits: ctx.useType('counter'),
       NMisses: ctx.useType('counter'),
     },

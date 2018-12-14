@@ -61,7 +61,8 @@ func NewFixture(t *testing.T) (fixture *Fixture) {
 	dpCfg.Fib.StartDepth = 8
 
 	dpCfg.Pcct.MaxEntries = 65535
-	dpCfg.Pcct.CsCapacity = 32767
+	dpCfg.Pcct.CsCapMd = 16384
+	dpCfg.Pcct.CsCapMi = 16384
 
 	dpCfg.FwdQueueCapacity = 64
 	dpCfg.LatencySampleFreq = 0

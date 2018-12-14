@@ -22,17 +22,23 @@ func TestMain(m *testing.M) {
 
 var makeAR = dpdktestenv.MakeAR
 
+const (
+	CAP_MD = 200
+	CAP_MI = 300
+)
+
 type Fixture struct {
 	Cs            cs.Cs
 	Pit           pit.Pit
 	emptyFibEntry *fib.Entry
 }
 
-func NewFixture(pcctMaxEntries int, csCapacity int) (fixture *Fixture) {
+func NewFixture() (fixture *Fixture) {
 	cfg := pcct.Config{
 		Id:         "TestPcct",
-		MaxEntries: pcctMaxEntries,
-		CsCapacity: csCapacity,
+		MaxEntries: 1023,
+		CsCapMd:    CAP_MD,
+		CsCapMi:    CAP_MI,
 		NumaSocket: dpdk.NUMA_SOCKET_ANY,
 	}
 	pcct, e := pcct.New(cfg)
