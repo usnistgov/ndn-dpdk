@@ -211,6 +211,35 @@ Cs_Insert(Cs* cs, Packet* npkt, PitFindResult pitFound)
   Cs_Evict(cs);
 }
 
+bool
+__Cs_MatchInterest(Cs* cs, PccEntry* pccEntry, Packet* interestNpkt)
+{
+  assert(pccEntry->hasCsEntry);
+  CsEntry* csEntry = PccEntry_GetCsEntry(pccEntry);
+  PInterest* interest = Packet_GetInterestHdr(interestNpkt);
+  Packet* dataNpkt = CsEntry_GetData(csEntry);
+  assert(dataNpkt != NULL);
+  PData* data = Packet_GetDataHdr(dataNpkt);
+
+  bool violateCanBePrefix =
+    !interest->canBePrefix && interest->name.p.nComps < data->name.p.nComps;
+  bool violateMustBeFresh =
+    interest->mustBeFresh &&
+    !CsEntry_IsFresh(csEntry, Packet_ToMbuf(interestNpkt)->timestamp);
+
+  if (likely(!violateCanBePrefix && !violateMustBeFresh)) {
+    return true;
+  }
+
+  if (unlikely(violateCanBePrefix && !interest->mustBeFresh)) {
+    // erase CS entry to make room for pitEntry0
+    ZF_LOGD("%p MatchInterest(%p) erase-conflict-PIT cs=%p", cs, pccEntry,
+            csEntry);
+    __Cs_RawErase(cs, csEntry);
+  }
+  return false;
+}
+
 void
 __Cs_RawErase(Cs* cs, CsEntry* entry)
 {

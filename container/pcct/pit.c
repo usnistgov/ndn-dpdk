@@ -25,7 +25,6 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
 {
   Pcct* pcct = Pit_ToPcct(pit);
   PitPriv* pitp = Pit_GetPriv(pit);
-  struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   PInterest* interest = Packet_GetInterestHdr(npkt);
 
   // construct PccSearch
@@ -47,30 +46,13 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
   }
 
   // check for CS match
-  if (pccEntry->hasCsEntry) {
-    CsEntry* csEntry = PccEntry_GetCsEntry(pccEntry);
-    Packet* dataNpkt = CsEntry_GetData(csEntry);
-    PData* data = Packet_GetDataHdr(dataNpkt);
-
-    bool violateCanBePrefix =
-      !interest->canBePrefix && interest->name.p.nComps < data->name.p.nComps;
-    bool violateMustBeFresh =
-      interest->mustBeFresh && !CsEntry_IsFresh(csEntry, pkt->timestamp);
-
-    if (likely(!violateCanBePrefix && !violateMustBeFresh)) {
-      // CS entry satisfies Interest
-      ZF_LOGD("%p Insert(%s) pcc=%p has-CS cs=%p", pit,
-              PccSearch_ToDebugString(&search), pccEntry, csEntry);
-      ++pitp->nCsMatch;
-      return __PitResult_New(pccEntry, PIT_INSERT_CS);
-    }
-
-    if (unlikely(violateCanBePrefix && !interest->mustBeFresh)) {
-      // erase CS entry to make room for pitEntry0
-      ZF_LOGD("%p Insert(%s) pcc=%p evict-conflict-CS cs=%p", pit,
-              PccSearch_ToDebugString(&search), pccEntry, csEntry);
-      __Cs_RawErase(Cs_FromPcct(pcct), csEntry);
-    }
+  if (pccEntry->hasCsEntry &&
+      likely(__Cs_MatchInterest(Cs_FromPcct(pcct), pccEntry, npkt))) {
+    // CS entry satisfies Interest
+    ZF_LOGD("%p Insert(%s) pcc=%p has-CS", pit,
+            PccSearch_ToDebugString(&search), pccEntry);
+    ++pitp->nCsMatch;
+    return __PitResult_New(pccEntry, PIT_INSERT_CS);
   }
 
   // add token now, to avoid token allocation error later

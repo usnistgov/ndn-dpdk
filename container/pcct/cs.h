@@ -54,6 +54,12 @@ uint32_t Cs_CountEntries(const Cs* cs, CsListId cslId);
  */
 void Cs_Insert(Cs* cs, Packet* npkt, PitFindResult pitFound);
 
+/** \brief Determine whether the CS entry matches an Interest during PIT insertion.
+ *  \param pccEntry the PCC entry containing CS entry
+ *  \post the CS entry is erased if it would conflict with a PIT entry for the Interest.
+ */
+bool __Cs_MatchInterest(Cs* cs, PccEntry* pccEntry, Packet* interestNpkt);
+
 /** \brief Erase CS entry but retain the PccEntry.
  */
 void __Cs_RawErase(Cs* cs, CsEntry* entry);
