@@ -70,7 +70,7 @@ CsEraseBatch_AddDirect(CsEraseBatch* ceb, CsEntry* entry, bool wantKeepSelfPcc)
   CsPriv* csp = Cs_GetPriv(ceb->cs);
   for (int i = 0; i < entry->nIndirects; ++i) {
     CsEntry* indirect = entry->indirect[i];
-    CsList_Remove(&csp->indirectFifo, indirect);
+    CsList_Remove(&csp->indirectLru, indirect);
     __CsEraseBatch_Append(ceb, indirect, false, "indirect-dep");
   }
   entry->nIndirects = 0;
@@ -100,7 +100,7 @@ CsEraseBatch_DelistAndErase(CsEraseBatch* ceb, CsEntry* entry,
     CsList_Remove(&csp->directFifo, entry);
     CsEraseBatch_AddDirect(ceb, entry, wantKeepSelfPcc);
   } else {
-    CsList_Remove(&csp->indirectFifo, entry);
+    CsList_Remove(&csp->indirectLru, entry);
     CsEraseBatch_AddIndirect(ceb, entry, wantKeepSelfPcc);
   }
 }
@@ -127,8 +127,8 @@ static void
 Cs_Evict(Cs* cs)
 {
   CsPriv* csp = Cs_GetPriv(cs);
-  while (unlikely(csp->indirectFifo.capacity <= csp->indirectFifo.count)) {
-    __Cs_EvictBulk(cs, &csp->indirectFifo, "indirect",
+  while (unlikely(csp->indirectLru.capacity <= csp->indirectLru.count)) {
+    __Cs_EvictBulk(cs, &csp->indirectLru, "indirect",
                    CsEraseBatch_EvictIndirect);
   }
   while (unlikely(csp->directFifo.capacity <= csp->directFifo.count)) {
@@ -143,7 +143,7 @@ CsPriv_GetList(CsPriv* csp, CsListId cslId)
     case CSL_MD:
       return &csp->directFifo;
     case CSL_MI:
-      return &csp->indirectFifo;
+      return &csp->indirectLru;
   }
   assert(false);
 }
@@ -153,10 +153,10 @@ Cs_Init(Cs* cs)
 {
   CsPriv* csp = Cs_GetPriv(cs);
   CsList_Init(&csp->directFifo);
-  CsList_Init(&csp->indirectFifo);
+  CsList_Init(&csp->indirectLru);
 
   csp->directFifo.capacity = CS_EVICT_BULK;
-  csp->indirectFifo.capacity = CS_EVICT_BULK;
+  csp->indirectLru.capacity = CS_EVICT_BULK;
 
   ZF_LOGI("%p Init() priv=%p", cs, csp);
 }
@@ -271,16 +271,16 @@ Cs_PutIndirect(Cs* cs, CsEntry* direct, PccEntry* pccEntry)
     // refresh indirect entry
     // old entry can be either direct without dependency or indirect
     CsEntry_Clear(entry);
-    CsList_MoveToLast(&csp->indirectFifo, entry);
+    CsList_MoveToLast(&csp->indirectLru, entry);
     ZF_LOGD("%p PutIndirect(%p, pcc=%p) cs=%p count=%" PRIu32 " refresh", cs,
-            direct, pccEntry, entry, csp->indirectFifo.count);
+            direct, pccEntry, entry, csp->indirectLru.count);
   } else {
     // insert indirect entry
     pccEntry->hasCsEntry = true;
     entry->nIndirects = 0;
-    CsList_Append(&csp->indirectFifo, entry);
+    CsList_Append(&csp->indirectLru, entry);
     ZF_LOGD("%p PutIndirect(%p, pcc=%p) cs=%p count=%" PRIu32 " insert", cs,
-            direct, pccEntry, entry, csp->indirectFifo.count);
+            direct, pccEntry, entry, csp->indirectLru.count);
   }
 
   if (likely(CsEntry_Assoc(entry, direct))) {
@@ -290,7 +290,7 @@ Cs_PutIndirect(Cs* cs, CsEntry* direct, PccEntry* pccEntry)
   }
 
   ZF_LOGD("^ drop=indirect-assoc-err");
-  CsList_Remove(&csp->indirectFifo, entry);
+  CsList_Remove(&csp->indirectLru, entry);
   pccEntry->hasCsEntry = false;
   Pcct_Erase(Cs_ToPcct(cs), pccEntry);
   return false;
@@ -357,6 +357,10 @@ __Cs_MatchInterest(Cs* cs, PccEntry* pccEntry, Packet* interestNpkt)
     !CsEntry_IsFresh(entry, Packet_ToMbuf(interestNpkt)->timestamp);
 
   if (likely(!violateCanBePrefix && !violateMustBeFresh)) {
+    CsPriv* csp = Cs_GetPriv(cs);
+    if (!CsEntry_IsDirect(entry)) {
+      CsList_MoveToLast(&csp->indirectLru, entry);
+    }
     return true;
   }
 

@@ -31,8 +31,8 @@ typedef struct Cs
  */
 typedef struct CsPriv
 {
-  CsList directFifo;   ///< FIFO list of direct entries
-  CsList indirectFifo; ///< FIFO list of indirect entries
+  CsList directFifo;  ///< FIFO list of direct entries
+  CsList indirectLru; ///< LRU list of indirect entries
 } CsPriv;
 
 #endif // NDN_DPDK_CONTAINER_PCCT_CS_STRUCT_H

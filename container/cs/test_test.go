@@ -1,6 +1,7 @@
 package cs_test
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -87,6 +88,19 @@ func (fixture *Fixture) Insert(interest *ndn.Interest, data *ndn.Data) (isReplac
 	return true
 }
 
+func (fixture *Fixture) InsertBulk(minId, maxId int, dataNameFmt, interestNameFmt string, makeInterestArgs ...interface{}) (nInserted int) {
+	for i := minId; i <= maxId; i++ {
+		dataName := fmt.Sprintf(dataNameFmt, i)
+		interestName := fmt.Sprintf(interestNameFmt, i)
+		interest := ndntestutil.MakeInterest(interestName, makeInterestArgs...)
+		ok := fixture.Insert(interest, ndntestutil.MakeData(dataName))
+		if ok {
+			nInserted++
+		}
+	}
+	return nInserted
+}
+
 // Find a CS entry.
 // If a PIT entry is created in Pit.Insert invocation, it is erased immediately.
 // This function takes ownership of interest.
@@ -98,4 +112,16 @@ func (fixture *Fixture) Find(interest *ndn.Interest) *cs.Entry {
 		ndntestutil.ClosePacket(interest)
 	}
 	return csEntry
+}
+
+func (fixture *Fixture) FindBulk(minId, maxId int, interestNameFmt string, makeInterestArgs ...interface{}) (nFound int) {
+	for i := minId; i <= maxId; i++ {
+		interestName := fmt.Sprintf(interestNameFmt, i)
+		interest := ndntestutil.MakeInterest(interestName, makeInterestArgs...)
+		csEntry := fixture.Find(interest)
+		if csEntry != nil {
+			nFound++
+		}
+	}
+	return nFound
 }
