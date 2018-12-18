@@ -1,6 +1,7 @@
 #include "cs-list.h"
 
-static_assert(offsetof(CsEntry, node) == 0, "");
+static_assert(offsetof(CsNode, prev) == offsetof(CsEntry, prev), "");
+static_assert(offsetof(CsNode, next) == offsetof(CsEntry, next), "");
 static_assert(offsetof(CsNode, prev) == offsetof(CsList, prev), "");
 static_assert(offsetof(CsNode, next) == offsetof(CsList, next), "");
 
@@ -36,7 +37,7 @@ CsList_RemoveNode(CsList* csl, CsNode* node)
 void
 CsList_Append(CsList* csl, CsEntry* entry)
 {
-  CsList_AppendNode(csl, &entry->node);
+  CsList_AppendNode(csl, (CsNode*)entry);
   ++csl->count;
 }
 
@@ -44,16 +45,15 @@ void
 CsList_Remove(CsList* csl, CsEntry* entry)
 {
   assert(csl->count > 0);
-  CsList_RemoveNode(csl, &entry->node);
+  CsList_RemoveNode(csl, (CsNode*)entry);
   --csl->count;
 }
 
 void
 CsList_MoveToLast(CsList* csl, CsEntry* entry)
 {
-  CsNode* node = &entry->node;
-  CsList_RemoveNode(csl, node);
-  CsList_AppendNode(csl, node);
+  CsList_RemoveNode(csl, (CsNode*)entry);
+  CsList_AppendNode(csl, (CsNode*)entry);
 }
 
 uint32_t

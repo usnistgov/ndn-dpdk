@@ -5,15 +5,9 @@
 
 #include "common.h"
 
-typedef struct CsNode CsNode;
-
-/** \brief A node embedded in CsEntry to organize them in a doubly linked list.
+/** \brief prev-next pointers common in CsEntry and CsList.
  */
-struct CsNode
-{
-  CsNode* prev;
-  CsNode* next;
-};
+typedef struct CsNode CsNode;
 
 /** \brief A doubly linked list within CS.
  */

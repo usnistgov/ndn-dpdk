@@ -15,7 +15,8 @@ typedef struct CsEntry CsEntry;
  */
 struct CsEntry
 {
-  CsNode node;
+  CsNode* prev;
+  CsNode* next;
 
   union
   {
