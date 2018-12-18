@@ -75,7 +75,7 @@ var (
 )
 
 // A global function that registers CALL-able functions available to BPF program.
-// fib.Load is available only if this is specified.
+// strategycode.Load is available only if this is specified.
 var RegisterStrategyFuncs func(vm unsafe.Pointer) error
 
 func fromUbpfError(funcName string, errC *C.char) error {
