@@ -1,5 +1,4 @@
-#include "cs-struct.h"
-#include "cs-entry.h"
+#include "cs-list.h"
 
 static_assert(offsetof(CsEntry, node) == 0, "");
 static_assert(offsetof(CsNode, prev) == offsetof(CsList, prev), "");
@@ -65,7 +64,7 @@ CsList_EvictBulk(CsList* csl, uint32_t max, CsList_EvictCb cb, void* cbarg)
 
   for (int i = 0; i < nErase; ++i) {
     assert(node != (CsNode*)csl);
-    CsEntry* entry = CsNode_AsEntry(node);
+    CsEntry* entry = (CsEntry*)node;
     node = node->next;
     cb(cbarg, entry);
   }

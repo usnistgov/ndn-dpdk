@@ -3,6 +3,7 @@
 
 /// \file
 
+#include "cs-list.h"
 #include "pcct.h"
 #include "pit-result.h"
 
