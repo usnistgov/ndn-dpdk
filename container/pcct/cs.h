@@ -60,10 +60,6 @@ void Cs_Insert(Cs* cs, Packet* npkt, PitFindResult pitFound);
  */
 bool __Cs_MatchInterest(Cs* cs, PccEntry* pccEntry, Packet* interestNpkt);
 
-/** \brief Erase CS entry but retain the PccEntry.
- */
-void __Cs_RawErase(Cs* cs, CsEntry* entry);
-
 /** \brief Erase a CS entry.
  *  \post \p entry is no longer valid.
  */

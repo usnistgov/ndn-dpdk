@@ -51,7 +51,6 @@ struct CsEntry
    */
   CsEntry* indirect[CS_ENTRY_MAX_INDIRECTS];
 };
-static_assert(offsetof(CsEntry, node) == 0, ""); // Cs.List() assumes this
 static_assert(CS_ENTRY_MAX_INDIRECTS < INT8_MAX, "");
 
 static bool
@@ -101,15 +100,15 @@ CsEntry_Assoc(CsEntry* indirect, CsEntry* direct)
 /** \brief Disassociate an indirect entry.
  */
 static void
-CsEntry_Disassoc(CsEntry* entry)
+CsEntry_Disassoc(CsEntry* indirect)
 {
-  assert(!CsEntry_IsDirect(entry));
+  assert(!CsEntry_IsDirect(indirect));
 
-  CsEntry* direct = entry->direct;
+  CsEntry* direct = indirect->direct;
   assert(direct->nIndirects > 0);
   int8_t i = 0;
   for (; i < direct->nIndirects; ++i) {
-    if (direct->indirect[i] == entry) {
+    if (direct->indirect[i] == indirect) {
       break;
     }
   }
@@ -117,8 +116,8 @@ CsEntry_Disassoc(CsEntry* entry)
   direct->indirect[i] = direct->indirect[direct->nIndirects - 1];
   --direct->nIndirects;
 
-  entry->direct = NULL;
-  entry->nIndirects = 0;
+  indirect->direct = NULL;
+  indirect->nIndirects = 0;
 }
 
 /** \brief Clear an entry and prepare it for refresh.
