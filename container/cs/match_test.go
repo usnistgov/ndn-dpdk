@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"ndn-dpdk/container/cs"
+	"ndn-dpdk/container/pcct"
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/ndn"
 	"ndn-dpdk/ndn/ndntestutil"
@@ -12,8 +13,8 @@ import (
 
 func TestInsertErase(t *testing.T) {
 	assert, require := makeAR(t)
-
-	fixture := NewFixture()
+	var cfg pcct.Config
+	fixture := NewFixture(cfg)
 	defer fixture.Close()
 
 	ok := fixture.Insert(ndntestutil.MakeInterest("/A/B"),
@@ -65,8 +66,8 @@ func TestInsertErase(t *testing.T) {
 
 func TestPrefixMatch(t *testing.T) {
 	assert, require := makeAR(t)
-
-	fixture := NewFixture()
+	var cfg pcct.Config
+	fixture := NewFixture(cfg)
 	defer fixture.Close()
 
 	ok := fixture.Insert(ndntestutil.MakeInterest("/A/B", ndn.CanBePrefixFlag),

@@ -23,25 +23,23 @@ func TestMain(m *testing.M) {
 
 var makeAR = dpdktestenv.MakeAR
 
-const (
-	CAP_MD = 200
-	CAP_MI = 300
-)
-
 type Fixture struct {
 	Cs            cs.Cs
 	Pit           pit.Pit
 	emptyFibEntry *fib.Entry
 }
 
-func NewFixture() (fixture *Fixture) {
-	cfg := pcct.Config{
-		Id:         "TestPcct",
-		MaxEntries: 1023,
-		CsCapMd:    CAP_MD,
-		CsCapMi:    CAP_MI,
-		NumaSocket: dpdk.NUMA_SOCKET_ANY,
+func NewFixture(cfg pcct.Config) (fixture *Fixture) {
+	cfg.Id = "TestPcct"
+	cfg.MaxEntries = 4095
+	cfg.NumaSocket = dpdk.NUMA_SOCKET_ANY
+	if cfg.CsCapMd == 0 {
+		cfg.CsCapMd = 200
 	}
+	if cfg.CsCapMi == 0 {
+		cfg.CsCapMd = 200
+	}
+
 	pcct, e := pcct.New(cfg)
 	if e != nil {
 		panic(e)

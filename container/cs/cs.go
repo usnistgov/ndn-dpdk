@@ -36,11 +36,6 @@ func (cs Cs) GetCapacity(cslId ListId) int {
 	return int(C.Cs_GetCapacity(cs.getPtr(), C.CsListId(cslId)))
 }
 
-// Set capacity in number of entries.
-func (cs Cs) SetCapacity(cslId ListId, capacity int) {
-	C.Cs_SetCapacity(cs.getPtr(), C.CsListId(cslId), C.uint32_t(capacity))
-}
-
 // Get number of entries.
 func (cs Cs) CountEntries(cslId ListId) int {
 	return int(C.Cs_CountEntries(cs.getPtr(), C.CsListId(cslId)))
