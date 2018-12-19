@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	"ndn-dpdk/container/cs"
 	"ndn-dpdk/container/fib"
@@ -91,7 +92,8 @@ func (fixture *Fixture) InsertBulk(minId, maxId int, dataNameFmt, interestNameFm
 		dataName := fmt.Sprintf(dataNameFmt, i)
 		interestName := fmt.Sprintf(interestNameFmt, i)
 		interest := ndntestutil.MakeInterest(interestName, makeInterestArgs...)
-		ok := fixture.Insert(interest, ndntestutil.MakeData(dataName))
+		data := ndntestutil.MakeData(dataName, time.Second)
+		ok := fixture.Insert(interest, data)
 		if ok {
 			nInserted++
 		}

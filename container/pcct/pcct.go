@@ -38,9 +38,7 @@ func New(cfg Config) (pcct *Pcct, e error) {
 	pitC := C.Pit_FromPcct(pcct.c)
 	C.Pit_Init(pitC)
 	csC := C.Cs_FromPcct(pcct.c)
-	C.Cs_Init(csC)
-	C.Cs_SetCapacity(csC, C.CSL_MD, C.uint32_t(cfg.CsCapMd))
-	C.Cs_SetCapacity(csC, C.CSL_MI, C.uint32_t(cfg.CsCapMi))
+	C.Cs_Init(csC, C.uint32_t(cfg.CsCapMd), C.uint32_t(cfg.CsCapMi))
 	return pcct, nil
 }
 

@@ -3,7 +3,7 @@
 
 /// \file
 
-#include "cs-list.h"
+#include "cs-arc.h"
 #include "pcct.h"
 #include "pit-result.h"
 
@@ -33,15 +33,11 @@ Cs_GetPriv(const Cs* cs)
 
 /** \brief Constructor.
  */
-void Cs_Init(Cs* cs);
+void Cs_Init(Cs* cs, uint32_t capMd, uint32_t capMi);
 
 /** \brief Get capacity in number of entries.
  */
 uint32_t Cs_GetCapacity(const Cs* cs, CsListId cslId);
-
-/** \brief Set capacity in number of entries.
- */
-void Cs_SetCapacity(Cs* cs, CsListId cslId, uint32_t capacity);
 
 /** \brief Get number of entries.
  */

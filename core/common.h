@@ -7,6 +7,8 @@
 
 #include "common1.h"
 
+#include <math.h>
+
 #include <rte_branch_prediction.h>
 #include <rte_cycles.h>
 #include <rte_errno.h>

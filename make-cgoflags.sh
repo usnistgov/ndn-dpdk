@@ -17,7 +17,7 @@ if [[ -n $GOFILES ]]; then
 fi
 
 CFLAGS='-Werror -Wno-error=deprecated-declarations -m64 -pthread -O3 -g -march=native -I/usr/local/include/dpdk -I/usr/include/dpdk'
-LIBS='-L/usr/local/lib -lurcu-qsbr -lurcu-cds -lubpf -ldpdk -ldl -lnuma'
+LIBS='-L/usr/local/lib -lurcu-qsbr -lurcu-cds -lubpf -ldpdk -ldl -lnuma -lm'
 if [[ -n $RELEASE ]]; then
   CFLAGS=$CFLAGS' -DNDEBUG -DZF_LOG_DEF_LEVEL=ZF_LOG_INFO'
 fi

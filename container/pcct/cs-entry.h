@@ -47,6 +47,8 @@ struct CsEntry
    */
   int8_t nIndirects;
 
+  CsArcListId arcList : 8;
+
   /** \brief Associated indirect entries.
    *  \pre Valid if entry is indirect.
    */
@@ -78,6 +80,18 @@ static bool
 CsEntry_IsFresh(CsEntry* entry, TscTime now)
 {
   return CsEntry_GetDirect(entry)->freshUntil > now;
+}
+
+/** \brief Release enclosed Data packet on a direct entry.
+ */
+static void
+CsEntry_ClearData(CsEntry* entry)
+{
+  assert(CsEntry_IsDirect(entry));
+  if (likely(entry->data != NULL)) {
+    rte_pktmbuf_free(Packet_ToMbuf(entry->data));
+    entry->data = NULL;
+  }
 }
 
 /** \brief Associate an indirect entry.
@@ -127,8 +141,7 @@ static void
 CsEntry_Clear(CsEntry* entry)
 {
   if (likely(CsEntry_IsDirect(entry))) {
-    rte_pktmbuf_free(Packet_ToMbuf(entry->data));
-    entry->data = NULL;
+    CsEntry_ClearData(entry);
   } else {
     CsEntry_Disassoc(entry);
   }

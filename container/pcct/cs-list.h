@@ -21,6 +21,15 @@ void CsList_Append(CsList* csl, CsEntry* entry);
  */
 void CsList_Remove(CsList* csl, CsEntry* entry);
 
+/** \brief Access the front entry of list.
+ */
+static CsEntry*
+CsList_GetFront(CsList* csl)
+{
+  assert(csl->count > 0);
+  return (CsEntry*)csl->next;
+}
+
 /** \brief Move an entry to back of list.
  */
 void CsList_MoveToLast(CsList* csl, CsEntry* entry);
@@ -36,8 +45,13 @@ uint32_t CsList_EvictBulk(CsList* csl, uint32_t max, CsList_EvictCb cb,
 /** \brief Identify a list within CS.
  */
 typedef enum CsListId {
-  CSL_MD, ///< in-memory direct entries
-  CSL_MI, ///< in-memory indirect entries
+  CSL_MD = 100, ///< in-memory direct entries
+  CSL_MD_T1,
+  CSL_MD_B1,
+  CSL_MD_T2,
+  CSL_MD_B2,
+  CSL_MD_DEL,
+  CSL_MI = 200, ///< in-memory indirect entries
 } CsListId;
 
 const char* CsListId_GetName(CsListId cslId);
