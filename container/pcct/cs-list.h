@@ -5,12 +5,6 @@
 
 #include "cs-entry.h"
 
-struct CsNode
-{
-  CsNode* prev;
-  CsNode* next;
-};
-
 void CsList_Init(CsList* csl);
 
 /** \brief Append an entry to back of list.

@@ -35,7 +35,7 @@ typedef struct PcctPriv
   CsPriv csPriv;
 } PcctPriv;
 
-/** \brief Access TshtPriv* struct.
+/** \brief Access PcctPriv* struct.
  */
 static PcctPriv*
 Pcct_GetPriv(const Pcct* pcct)

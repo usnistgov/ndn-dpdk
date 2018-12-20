@@ -1,5 +1,11 @@
 #include "cs-list.h"
 
+struct CsNode
+{
+  CsNode* prev;
+  CsNode* next;
+};
+
 static_assert(offsetof(CsNode, prev) == offsetof(CsEntry, prev), "");
 static_assert(offsetof(CsNode, next) == offsetof(CsEntry, next), "");
 static_assert(offsetof(CsNode, prev) == offsetof(CsList, prev), "");

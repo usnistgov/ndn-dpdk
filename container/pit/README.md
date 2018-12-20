@@ -13,7 +13,7 @@ Since each `PccEntry` can contain up to two PIT entries (one for MustBeFresh=0 a
 
 ## PIT Entry
 
-Each **PIT entry** contains some **PIT downstream records** (`PitDn` type) and **PIT upstream records** (`PitUp`).
+Each **PIT entry** contains some **PIT downstream records** (`PitDn` type) and **PIT upstream records** (`PitUp` type).
 The `PitEntry` type directly stores a small number of `PitDn` and `PitUp`.
 If a PIT entry needs more DN or UP records, the PIT extends the `PitEntry` with more DN and UP slots with a `PitEntryExt`, allocated from PCCT's mempool.
 
