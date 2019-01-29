@@ -28,33 +28,22 @@ type Client struct {
 	c *C.NdnpingClient
 }
 
-func NewClient(face iface.IFace) (client Client, e error) {
+func newClient(face iface.IFace, cfg ClientConfig) (client Client) {
 	socket := face.GetNumaSocket()
 	client.c = (*C.NdnpingClient)(dpdk.Zmalloc("NdnpingClient", C.sizeof_NdnpingClient, socket))
 	client.c.face = (C.FaceId)(face.GetFaceId())
+	client.c.interestInterval = C.float(float64(cfg.Interval) / float64(time.Millisecond))
+
 	client.c.interestMp = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
 		appinit.MP_INT, socket).GetPtr())
 	client.c.interestMbufHeadroom = C.uint16_t(appinit.SizeofEthLpHeaders() + ndn.EncodeInterest_GetHeadroom())
-	client.SetInterval(time.Second)
 
 	C.NdnpingClient_Init(client.c)
-	return client, nil
-}
-
-func newClient2(face iface.IFace, cfg ClientConfig) (client *Client, e error) {
-	if client2, e := NewClient(face); e != nil {
-		return nil, e
-	} else {
-		client = &client2
-	}
-
 	for _, patternCfg := range cfg.Patterns {
-		// TODO process Repeat
-		client.AddPattern(patternCfg.Prefix, 0.0)
+		client.getPatterns().InsertWithZeroUsr(patternCfg.Prefix, int(C.sizeof_NdnpingClientPattern))
 	}
 
-	client.SetInterval(cfg.Interval)
-	return client, nil
+	return client
 }
 
 func (client Client) Close() error {
@@ -69,14 +58,6 @@ func (client Client) GetFace() iface.IFace {
 
 func (client Client) getPatterns() nameset.NameSet {
 	return nameset.FromPtr(unsafe.Pointer(&client.c.patterns))
-}
-
-func (client Client) AddPattern(name *ndn.Name, pct float32) {
-	client.getPatterns().InsertWithZeroUsr(name, int(C.sizeof_NdnpingClientPattern))
-}
-
-func (client Client) SetInterval(interval time.Duration) {
-	client.c.interestInterval = C.float(float64(interval) / float64(time.Millisecond))
 }
 
 func (client Client) RunTx() int {

@@ -6,7 +6,6 @@ package ndnping
 import "C"
 import (
 	"fmt"
-	"time"
 	"unsafe"
 
 	"ndn-dpdk/appinit"
@@ -26,9 +25,7 @@ type Server struct {
 	c *C.NdnpingServer
 }
 
-func newServer(face iface.IFace, cfg ServerConfig) *Server {
-	var server Server
-
+func newServer(face iface.IFace, cfg ServerConfig) (server Server) {
 	socket := face.GetNumaSocket()
 	server.c = (*C.NdnpingServer)(dpdk.Zmalloc("NdnpingServer", C.sizeof_NdnpingServer, socket))
 	server.c.face = (C.FaceId)(face.GetFaceId())
@@ -44,17 +41,13 @@ func newServer(face iface.IFace, cfg ServerConfig) *Server {
 
 	server.c.wantNackNoRoute = C.bool(cfg.Nack)
 
-	return &server
+	return server
 }
 
 func (server Server) Close() error {
 	server.getPatterns().Close()
 	dpdk.Free(server.c)
 	return nil
-}
-
-func (server Server) SetFreshnessPeriod(freshness time.Duration) {
-	server.c.freshnessPeriod = C.uint32_t(freshness / time.Millisecond)
 }
 
 func (server Server) getPatterns() nameset.NameSet {

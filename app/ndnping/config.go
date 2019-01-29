@@ -20,7 +20,6 @@ type ClientConfig struct {
 
 type ClientPattern struct {
 	Prefix *ndn.Name
-	Repeat int
 }
 
 type ServerConfig struct {

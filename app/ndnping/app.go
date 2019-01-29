@@ -113,15 +113,13 @@ func newTask(cfg TaskConfig, face iface.IFace) (task Task, e error) {
 	task.Face = face
 
 	if cfg.Client != nil {
-		task.Client, e = newClient2(task.Face, *cfg.Client)
-		if e != nil {
-			task.Close()
-			return Task{}, e
-		}
+		client := newClient(task.Face, *cfg.Client)
+		task.Client = &client
 	}
 
 	if cfg.Server != nil {
-		task.Server = newServer(task.Face, *cfg.Server)
+		server := newServer(task.Face, *cfg.Server)
+		task.Server = &server
 	}
 
 	return task, nil
