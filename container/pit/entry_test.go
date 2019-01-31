@@ -1,10 +1,12 @@
 package pit_test
 
 import (
+	"strings"
 	"testing"
 	"time"
 
 	"ndn-dpdk/container/pit"
+	"ndn-dpdk/ndn"
 	"ndn-dpdk/ndn/ndntestutil"
 )
 
@@ -59,6 +61,28 @@ func TestEntryExtend(t *testing.T) {
 		require.NotNil(entry)
 		assert.NotNil(entry.InsertDn(interest))
 	}
+
+	assert.Equal(1, fixture.Pit.Len())
+	assert.True(fixture.CountMpInUse() > 1)
+
+	fixture.Pit.Erase(*entry)
+	assert.Zero(fixture.Pit.Len())
+	assert.Zero(fixture.CountMpInUse())
+}
+
+func TestEntryLongName(t *testing.T) {
+	assert, require := makeAR(t)
+	fixture := NewFixture(255)
+	defer fixture.Close()
+
+	interest := ndntestutil.MakeInterest(strings.Repeat("/LLLLLLLL", 180),
+		ndn.FHDelegation{1, strings.Repeat("/FHFHFHFH", 70)},
+		ndn.ActiveFHDelegation(0))
+	ndntestutil.SetPitToken(interest, 0xB0B1B2B3B4B5B6B7)
+	ndntestutil.SetFaceId(interest, 1000)
+
+	entry := fixture.Insert(interest)
+	require.NotNil(entry)
 
 	assert.Equal(1, fixture.Pit.Len())
 	assert.True(fixture.CountMpInUse() > 1)

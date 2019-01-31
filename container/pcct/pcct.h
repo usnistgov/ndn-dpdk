@@ -61,13 +61,17 @@ void Pcct_Close(Pcct* pcct);
  */
 PccEntry* Pcct_Insert(Pcct* pcct, PccSearch* search, bool* isNew);
 
-/** \brief Erase an entry.
- */
-void Pcct_Erase(Pcct* pcct, PccEntry* entry);
-
 /** \brief Erase multiple entries.
  */
 void Pcct_EraseBulk(Pcct* pcct, PccEntry* entries[], uint32_t count);
+
+/** \brief Erase an entry.
+ */
+static void
+Pcct_Erase(Pcct* pcct, PccEntry* entry)
+{
+  Pcct_EraseBulk(pcct, &entry, 1);
+}
 
 uint64_t __Pcct_AddToken(Pcct* pcct, PccEntry* entry);
 

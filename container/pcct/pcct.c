@@ -90,13 +90,16 @@ Pcct_Insert(Pcct* pcct, PccSearch* search, bool* isNew)
     return entry;
   }
 
-  int res = rte_mempool_get(Pcct_ToMempool(pcct), (void**)&entry);
+  void* objs[1 + PCC_KEY_MAX_EXTS];
+  int nExts = PccKey_CountExtensions(search);
+  int res = rte_mempool_get_bulk(Pcct_ToMempool(pcct), objs, 1 + nExts);
   if (unlikely(res != 0)) {
     ZF_LOGE("%p Insert() table-full", pcct);
     return NULL;
   }
+  entry = (PccEntry*)objs[0];
 
-  PccKey_CopyFromSearch(&entry->key, search);
+  PccKey_CopyFromSearch(&entry->key, search, (PccKeyExt**)&objs[1], nExts);
   entry->__tokenQword = 0;
   HASH_ADD_BYHASHVALUE(hh, pcctp->keyHt, key, 0, hash, entry);
   *isNew = true;
@@ -107,25 +110,20 @@ Pcct_Insert(Pcct* pcct, PccSearch* search, bool* isNew)
 }
 
 void
-Pcct_Erase(Pcct* pcct, PccEntry* entry)
-{
-  ZF_LOGD("%p Erase(%p)", pcct, entry);
-  assert(!entry->hasEntries);
-
-  PcctPriv* pcctp = Pcct_GetPriv(pcct);
-  Pcct_RemoveToken(pcct, entry);
-  HASH_DELETE(hh, pcctp->keyHt, entry);
-  rte_mempool_put(Pcct_ToMempool(pcct), entry);
-}
-
-void
 Pcct_EraseBulk(Pcct* pcct, PccEntry* entries[], uint32_t count)
 {
   PcctPriv* pcctp = Pcct_GetPriv(pcct);
   for (uint32_t i = 0; i < count; ++i) {
     PccEntry* entry = entries[i];
-    ZF_LOGD("%p EraseBulk() entry=%p", pcct, entry);
+    ZF_LOGD("%p Erase(%p)", pcct, entry);
+    assert(!entry->hasEntries);
     Pcct_RemoveToken(pcct, entry);
+    PccKeyExt* exts[PCC_KEY_MAX_EXTS];
+    int nExts = PccKey_StripExts(&entry->key, exts);
+    if (unlikely(nExts > 0)) {
+      // TODO move this to CsEraseBatch or similar
+      rte_mempool_put_bulk(Pcct_ToMempool(pcct), (void**)exts, nExts);
+    }
     HASH_DELETE(hh, pcctp->keyHt, entry);
   }
   rte_mempool_put_bulk(Pcct_ToMempool(pcct), (void**)entries, count);

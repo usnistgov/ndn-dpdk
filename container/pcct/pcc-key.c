@@ -1,5 +1,8 @@
 #include "pcc-key.h"
 #include "debug-string.h"
+#include "pcc-entry.h"
+
+static_assert(sizeof(PccKeyExt) <= sizeof(PccEntry), "");
 
 const char*
 PccSearch_ToDebugString(const PccSearch* search)
@@ -16,15 +19,4 @@ PccSearch_ToDebugString(const PccSearch* search)
     snprintf(nameStr, sizeof(nameStr), "(empty)");
   }
   return PccDebugString_Appendf(" fh=%s", nameStr);
-}
-
-void
-PccKey_CopyFromSearch(PccKey* key, const PccSearch* search)
-{
-  assert(search->name.length <= sizeof(key->nameV));
-  assert(search->fh.length <= sizeof(key->fhV));
-  key->nameL = search->name.length;
-  rte_memcpy(key->nameV, search->name.value, key->nameL);
-  key->fhL = search->fh.length;
-  rte_memcpy(key->fhV, search->fh.value, key->fhL);
 }

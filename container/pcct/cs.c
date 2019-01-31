@@ -27,12 +27,12 @@ __CsEraseBatch_Append(CsEraseBatch* ceb, CsEntry* entry, bool wantKeepPcc,
                       const char* isDirectDbg)
 {
   PccEntry* pccEntry = PccEntry_FromCsEntry(entry);
+  pccEntry->hasCsEntry = false;
   if (likely(!pccEntry->hasPitEntry1 && !wantKeepPcc)) {
     assert(ceb->nPccErase < RTE_DIM(ceb->pccErase));
     ceb->pccErase[ceb->nPccErase++] = pccEntry;
     ZF_LOGD("^ cs=%p(%s) pcc=%p(erase)", entry, isDirectDbg, pccEntry);
   } else {
-    pccEntry->hasCsEntry = false;
     ZF_LOGD("^ cs=%p(%s) pcc=%p(keep)", entry, isDirectDbg, pccEntry);
   }
 }
