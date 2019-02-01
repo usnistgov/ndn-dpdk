@@ -142,4 +142,46 @@ func TestPrefixMatch(t *testing.T) {
 	assert.False(indirect2.IsDirect())
 }
 
-// TODO implicit digest test case
+func TestImplicitDigestMatch(t *testing.T) {
+	assert, _ := makeAR(t)
+	var cfg pcct.Config
+	fixture := NewFixture(cfg)
+	defer fixture.Close()
+
+	// /A/B/C/D {0x01} <- [/A/B]
+	data01 := ndntestutil.MakeData("/A/B/C/D", ndn.TlvBytes{0x01})
+	fullName01 := data01.GetFullName().String()
+	ok := fixture.Insert(ndntestutil.MakeInterest("/A/B", ndn.CanBePrefixFlag), data01)
+	assert.True(ok)
+	assert.Equal(1, fixture.Cs.CountEntries(cs.CSL_MD))
+	assert.Equal(1, fixture.Cs.CountEntries(cs.CSL_MI))
+
+	// /A/B/C/D {0x01} <- [/A/B, /A/B/C/D/implicit-digest-01]
+	data01 = ndntestutil.MakeData("/A/B/C/D", ndn.TlvBytes{0x01})
+	assert.Equal(fullName01, data01.GetFullName().String())
+	ok = fixture.Insert(ndntestutil.MakeInterest(fullName01), data01)
+	assert.True(ok)
+	assert.Equal(1, fixture.Cs.CountEntries(cs.CSL_MD))
+	assert.Equal(2, fixture.Cs.CountEntries(cs.CSL_MI))
+
+	assert.NotNil(fixture.Find(ndntestutil.MakeInterest("/A/B/C/D")))
+	assert.NotNil(fixture.Find(ndntestutil.MakeInterest("/A/B", ndn.CanBePrefixFlag)))
+	assert.NotNil(fixture.Find(ndntestutil.MakeInterest(fullName01)))
+	assert.NotNil(fixture.Find(ndntestutil.MakeInterest(fullName01, ndn.CanBePrefixFlag)))
+
+	// /A/B/C/D {0x02} <- [/A/B, /A/B/C/D/implicit-digest-02]
+	data02 := ndntestutil.MakeData("/A/B/C/D", ndn.TlvBytes{0x02})
+	fullName02 := data02.GetFullName().String()
+	assert.NotEqual(fullName01, fullName02)
+	ok = fixture.Insert(ndntestutil.MakeInterest(fullName02), data02)
+	assert.True(ok)
+	assert.Equal(1, fixture.Cs.CountEntries(cs.CSL_MD))
+	assert.Equal(2, fixture.Cs.CountEntries(cs.CSL_MI))
+
+	assert.NotNil(fixture.Find(ndntestutil.MakeInterest("/A/B/C/D")))
+	assert.NotNil(fixture.Find(ndntestutil.MakeInterest("/A/B", ndn.CanBePrefixFlag)))
+	assert.NotNil(fixture.Find(ndntestutil.MakeInterest(fullName02)))
+	assert.NotNil(fixture.Find(ndntestutil.MakeInterest(fullName02, ndn.CanBePrefixFlag)))
+	assert.Nil(fixture.Find(ndntestutil.MakeInterest(fullName01)))
+	assert.Nil(fixture.Find(ndntestutil.MakeInterest(fullName01, ndn.CanBePrefixFlag)))
+}

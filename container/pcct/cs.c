@@ -201,12 +201,24 @@ Cs_PutDirect(Cs* cs, Packet* npkt, PccEntry* pccEntry)
   CsEntry* entry = NULL;
   if (unlikely(pccEntry->hasCsEntry)) {
     // refresh direct entry
-    // old entry can be either direct or indirect
     entry = PccEntry_GetCsEntry(pccEntry);
-    CsEntry_Clear(entry);
-    CsArc_Add(&csp->directArc, entry);
     ZF_LOGD("%p PutDirect(%p, pcc=%p) cs=%p refresh", cs, npkt, pccEntry,
             entry);
+    if (CsEntry_IsDirect(entry)) {
+      // erase any indirect entry with implicit digest name, because it may not match new Data
+      for (int8_t i = 0; i < entry->nIndirects; ++i) {
+        CsEntry* indirect = entry->indirect[i];
+        PccEntry* indirectPcc = PccEntry_FromCsEntry(indirect);
+        if (unlikely(indirectPcc->key.nameL > data->name.p.nOctets)) {
+          CsEraseBatch ceb = CsEraseBatch_New(cs);
+          CsEraseBatch_DelistAndErase(&ceb, indirect, false);
+          CsEraseBatch_Finish(&ceb);
+          break;
+        }
+      }
+    }
+    CsEntry_Clear(entry);
+    CsArc_Add(&csp->directArc, entry);
   } else {
     // insert direct entry
     entry = PccEntry_AddCsEntry(pccEntry);
@@ -214,10 +226,10 @@ Cs_PutDirect(Cs* cs, Packet* npkt, PccEntry* pccEntry)
       ZF_LOGW("%p PutDirect(%p, pcc=%p) drop=alloc-err", cs, npkt, pccEntry);
       return NULL;
     }
+    ZF_LOGD("%p PutDirect(%p, pcc=%p) cs=%p insert", cs, npkt, pccEntry, entry);
     entry->arcList = CSL_ARC_NONE;
     entry->nIndirects = 0;
     CsArc_Add(&csp->directArc, entry);
-    ZF_LOGD("%p PutDirect(%p, pcc=%p) cs=%p insert", cs, npkt, pccEntry, entry);
   }
   entry->data = npkt;
   entry->freshUntil =
