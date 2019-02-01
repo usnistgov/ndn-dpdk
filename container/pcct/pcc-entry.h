@@ -14,7 +14,7 @@ typedef struct PccSlot PccSlot;
 
 struct PccSlot
 {
-  PccEntry* pccEntry;
+  PccEntry* pccEntry; ///< NULL indicates unoccupied slot
   union
   {
     PitEntry pitEntry;
@@ -96,13 +96,9 @@ __PccEntry_GetSlot(PccEntry* entry, PccSlotIndex slot)
   assert(false);
 }
 
-static void
-__PccEntry_ClearSlot(PccEntry* entry, PccSlotIndex slot)
-{
-  if (likely(slot != PCC_SLOT_NONE)) {
-    __PccEntry_GetSlot(entry, slot)->pccEntry = NULL;
-  }
-}
+PccSlotIndex __PccEntry_AllocateSlot(PccEntry* entry, PccSlot** slot);
+
+void __PccEntry_ClearSlot(PccEntry* entry, PccSlotIndex slot);
 
 /** \brief Get PIT entry of MustBeFresh=0 from \p entry.
  */
@@ -117,11 +113,15 @@ PccEntry_GetPitEntry0(PccEntry* entry)
 static PitEntry*
 PccEntry_AddPitEntry0(PccEntry* entry)
 {
-  if (!entry->hasPitEntry0) {
-    entry->pitEntry0Slot = PCC_SLOT1;
-    entry->slot1.pccEntry = entry;
+  if (entry->hasPitEntry0) {
+    return PccEntry_GetPitEntry0(entry);
   }
-  return PccEntry_GetPitEntry0(entry);
+  PccSlot* slot = NULL;
+  entry->pitEntry0Slot = __PccEntry_AllocateSlot(entry, &slot);
+  if (unlikely(slot == NULL)) {
+    return NULL;
+  }
+  return &slot->pitEntry;
 }
 
 /** \brief Remove PIT entry of MustBeFresh=0 from \p entry.
@@ -146,12 +146,15 @@ PccEntry_GetPitEntry1(PccEntry* entry)
 static PitEntry*
 PccEntry_AddPitEntry1(PccEntry* entry)
 {
-  if (!entry->hasPitEntry1) {
-    entry->pitEntry1Slot = PCC_SLOT2;
-    assert(entry->ext != NULL);
-    entry->ext->slot2.pccEntry = entry;
+  if (entry->hasPitEntry1) {
+    return PccEntry_GetPitEntry1(entry);
   }
-  return PccEntry_GetPitEntry1(entry);
+  PccSlot* slot = NULL;
+  entry->pitEntry1Slot = __PccEntry_AllocateSlot(entry, &slot);
+  if (unlikely(slot == NULL)) {
+    return NULL;
+  }
+  return &slot->pitEntry;
 }
 
 /** \brief Remove PIT entry of MustBeFresh=1 from \p entry.
@@ -184,12 +187,15 @@ PccEntry_GetCsEntry(PccEntry* entry)
 static CsEntry*
 PccEntry_AddCsEntry(PccEntry* entry)
 {
-  if (!entry->hasCsEntry) {
-    entry->csEntrySlot = PCC_SLOT3;
-    assert(entry->ext != NULL);
-    entry->ext->slot3.pccEntry = entry;
+  if (entry->hasCsEntry) {
+    return PccEntry_GetCsEntry(entry);
   }
-  return PccEntry_GetCsEntry(entry);
+  PccSlot* slot = NULL;
+  entry->csEntrySlot = __PccEntry_AllocateSlot(entry, &slot);
+  if (unlikely(slot == NULL)) {
+    return NULL;
+  }
+  return &slot->csEntry;
 }
 
 /** \brief Remove CS entry from \p entry.

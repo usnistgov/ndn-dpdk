@@ -191,7 +191,7 @@ Cs_CountEntries(const Cs* cs, CsListId cslId)
 
 /** \brief Add or refresh a direct entry for \p npkt in \p pccEntry.
  */
-static bool
+static CsEntry*
 Cs_PutDirect(Cs* cs, Packet* npkt, PccEntry* pccEntry)
 {
   CsPriv* csp = Cs_GetPriv(cs);
@@ -210,6 +210,10 @@ Cs_PutDirect(Cs* cs, Packet* npkt, PccEntry* pccEntry)
   } else {
     // insert direct entry
     entry = PccEntry_AddCsEntry(pccEntry);
+    if (unlikely(entry == NULL)) {
+      ZF_LOGW("%p PutDirect(%p, pcc=%p) drop=alloc-err", cs, npkt, pccEntry);
+      return NULL;
+    }
     entry->arcList = CSL_ARC_NONE;
     entry->nIndirects = 0;
     CsArc_Add(&csp->directArc, entry);
@@ -218,7 +222,7 @@ Cs_PutDirect(Cs* cs, Packet* npkt, PccEntry* pccEntry)
   entry->data = npkt;
   entry->freshUntil =
     pkt->timestamp + TscDuration_FromMillis(data->freshnessPeriod);
-  return true;
+  return entry;
 }
 
 /** \brief Insert a direct entry for \p npkt that was retrieved by \p interest.
@@ -248,10 +252,7 @@ Cs_InsertDirect(Cs* cs, Packet* npkt, PInterest* interest)
   }
 
   // put direct entry on PCC entry
-  if (likely(Cs_PutDirect(cs, npkt, pccEntry))) {
-    return PccEntry_GetCsEntry(pccEntry);
-  }
-  return NULL;
+  return Cs_PutDirect(cs, npkt, pccEntry);
 }
 
 /** \brief Add or refresh an indirect entry in \p pccEntry and associate with \p direct.
@@ -280,6 +281,11 @@ Cs_PutIndirect(Cs* cs, CsEntry* direct, PccEntry* pccEntry)
   } else {
     // insert indirect entry
     entry = PccEntry_AddCsEntry(pccEntry);
+    if (unlikely(entry == NULL)) {
+      ZF_LOGW("%p PutIndirect(%p, pcc=%p) drop=alloc-err", cs, direct,
+              pccEntry);
+      return NULL;
+    }
     entry->nIndirects = 0;
     CsList_Append(&csp->indirectLru, entry);
     ZF_LOGD("%p PutIndirect(%p, pcc=%p) cs=%p count=%" PRIu32 " insert", cs,
@@ -331,8 +337,8 @@ Cs_Insert(Cs* cs, Packet* npkt, PitFindResult pitFound)
 
   if (likely(direct == NULL)) {
     // put direct CS entry at pccEntry
-    bool ok = Cs_PutDirect(cs, npkt, pccEntry);
-    assert(ok);
+    direct = Cs_PutDirect(cs, npkt, pccEntry);
+    assert(direct != NULL);
   } else {
     // put indirect CS entry at pccEntry
     Cs_PutIndirect(cs, direct, pccEntry);

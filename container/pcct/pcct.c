@@ -91,22 +91,19 @@ Pcct_Insert(Pcct* pcct, PccSearch* search, bool* isNew)
     return entry;
   }
 
-  void* objs[2 + PCC_KEY_MAX_EXTS];
+  void* objs[1 + PCC_KEY_MAX_EXTS];
   int nExts = PccKey_CountExtensions(search);
-  int res = rte_mempool_get_bulk(Pcct_ToMempool(pcct), objs, 2 + nExts);
+  int res = rte_mempool_get_bulk(Pcct_ToMempool(pcct), objs, 1 + nExts);
   if (unlikely(res != 0)) {
     ZF_LOGE("%p Insert() table-full", pcct);
     return NULL;
   }
   entry = (PccEntry*)objs[0];
-  // TODO allocate PccEntryExt on demand
-  entry->ext = (PccEntryExt*)objs[1];
 
-  PccKey_CopyFromSearch(&entry->key, search, (PccKeyExt**)&objs[2], nExts);
+  PccKey_CopyFromSearch(&entry->key, search, (PccKeyExt**)&objs[1], nExts);
   entry->__tokenQword = 0;
   entry->slot1.pccEntry = NULL;
-  entry->ext->slot2.pccEntry = NULL;
-  entry->ext->slot3.pccEntry = NULL;
+  entry->ext = NULL;
   HASH_ADD_BYHASHVALUE(hh, pcctp->keyHt, key, 0, hash, entry);
   *isNew = true;
 

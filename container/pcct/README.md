@@ -1,10 +1,12 @@
 # ndn-dpdk/container/pcct
 
-This package implements the **PIT-CS Composite Table (PCCT)**.
+This package implements the **PIT-CS Composite Table (PCCT)**, a non-thread-safe hash table that carries both the Pending Interest Table (PIT) and the Content Store (CS).
 
-PCCT is a non-thread-safe hash table that carries both the Pending Interest Table (PIT) and the Content Store (CS).
-Each combination of Interest/Data name and chosen delegation in the forwarding hint has a PCC entry.
-Each PCC entry has room to store a PIT entry for MustBeFresh=0 (denoted "PitEntry0"), a PIT entry for MustBeFresh=1 (denoted "PitEntry1"), and a CS entry.
+Each **PCC entry** contains PIT and CS entries for a combination of Interest/Data name and chosen delegation name in the forwarding hint.
+It can store a PIT entry for MustBeFresh=0 (denoted "PitEntry0"), a PIT entry for MustBeFresh=1 (denoted "PitEntry1"), and a CS entry.
+The main `PccEntry` type has one `PccSlot` providing room for one PIT entry or one CS entry.
+An `PccEntryExt` can be allocated from the PCCT's mempool to provide two additional slots.
+Regardless of available slots, each PCC entry can only have one each of PitEntry0, PitEntry1, and CS entry.
 
 C code for [PIT](../pit/) and [CS](../cs/) is in this directory to avoid circular dependency problems, but their Go bindings and documentation are in their own packages.
 
@@ -17,7 +19,9 @@ DPDK hash library is unsuitable for this hash table because it requires fixed-le
 The `PccKey` type represents an index key of the name hash table,
 For a PIT entry, `PccKey` contains the Interest name and, if the Interest has a forwarding hint, the name of the chosen delegation.
 For a CS entry, `PccKey` contains the Data name and, if the Interest used to retrieve this Data has a forwarding hint, the name of the chosen delegation.
-The `PccKey` type stores a copy of Interest/Data name and delegation name.
+Interest/Data name and delegation name are copied into `PccKey`, which has room for short and medium length names.
+If the names are too long to fit into `PccKey` itself, `PccKeyExt` objects can be allocated from the PCCT's mempool to provide extra room.
+Copying the names, rather than referencing them from the packet (usually an Interest), ensures the name buffers are NUMA-local, and allows the packet buffer holding the Interest to be freed when the Interest is satisfied.
 
 Searching the name hash table uses `PccSearch` type instead of `PccKey` type.
 `PccSearch` contains pointers to linearized names.

@@ -61,7 +61,8 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
     if (isNewPcc) {
       Pcct_Erase(pcct, pccEntry);
     }
-    return __PitResult_New(pccEntry, PIT_INSERT_FULL);
+    ++pitp->nAllocErr;
+    return __PitResult_New(NULL, PIT_INSERT_FULL);
   }
 
   PitEntry* entry = NULL;
@@ -77,6 +78,12 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
     isNew = !pccEntry->hasPitEntry1;
     entry = PccEntry_AddPitEntry1(pccEntry);
     resKind = PIT_INSERT_PIT1;
+  }
+
+  if (unlikely(entry == NULL)) {
+    assert(!isNewPcc); // new PccEntry must have occupied slot1
+    ++pitp->nAllocErr;
+    return __PitResult_New(NULL, PIT_INSERT_FULL);
   }
 
   // initialize new PIT entry, or refresh FIB entry reference on old PIT entry

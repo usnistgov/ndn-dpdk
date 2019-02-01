@@ -39,12 +39,12 @@ typedef struct PccKeyExt PccKeyExt;
  */
 typedef struct PccKey
 {
-  uint8_t nameV[PCC_KEY_NAME_CAP];
-  uint8_t fhV[PCC_KEY_FH_CAP];
   PccKeyExt* nameExt;
   PccKeyExt* fhExt;
   uint16_t nameL;
   uint16_t fhL;
+  uint8_t nameV[PCC_KEY_NAME_CAP];
+  uint8_t fhV[PCC_KEY_FH_CAP];
 } PccKey;
 
 struct PccKeyExt

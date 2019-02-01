@@ -31,9 +31,9 @@ Direct entries and indirect entries are organized separately and have separate c
 The cache replacement policy for indirect entries is **LRU-1**.
 `CsList` type implements this policy by placing all indirect entries on a doubly linked list.
 
-Back end of this list is the most recently used entry.
-When CS inserts an indirect entry, it is appended to the list's back end.
-When an indirect entry is found during a lookup, it is moved to the list's back end.
+Rear end of this list is the most recently used entry.
+When CS inserts an indirect entry, it is appended to the list's rear end.
+When an indirect entry is found during a lookup, it is moved to the list's rear end.
 
 Front end of this list is the least recently used entry.
 After an insertion causes the list to exceed its capacity limit, some entries are evicted from its front end.
@@ -55,12 +55,6 @@ ARC's four LRU lists are implemented using `CsList` type.
 T1 and T2 contain actual cache entries that have Data packets.
 B1 and B2 are *ghost* lists that track history of recently evicted cache entries.
 Since an entry in B1 or B2 lacks a Data packet, when it's found during a CS lookup, `__Cs_MatchInterest` would report it as non-match.
-
-There's one caveat in current implementation: an incoming Interest could force the removal of a CS entry in B1 or B2, causing inaccuracy in ARC's accounting.
-When an incoming Interest with MustBeFresh=0 finds a CS entry with same name in B1 or B2, there's no Data packet available, so that a PIT entry must be inserted.
-Since PitEntry0 occupies the same slot as CsEntry in a PccEntry, the CS entry has to be removed to make room for the PIT entry.
-Consequently, when the Data comes back, it is not found in B1 or B2, and instead treated as "cache miss in DBL(2c)" by ARC algorithm.
-Due to this problem, ARC is only effective if all Interests have MustBeFresh=1; otherwise, it is partially degraded to LRU.
 
 `CsArc` also has a fifth DEL list that contains entries no longer needed by ARC.
 When ARC algorithm deletes an entry, instead of releasing the entry and dependent indirect entries right away, the entry is moved to the DEL list for bulk deletion later; if the entry was in T1 or T2, its Data packet is released immediately.

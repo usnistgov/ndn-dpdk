@@ -50,13 +50,16 @@ func TestInsertErase(t *testing.T) {
 	assert.NotEqual(uintptr(entry2.GetPtr()), uintptr(entry6.GetPtr()))
 
 	assert.Equal(5, fixture.Pit.Len())
-	assert.Equal(4*2, fixture.CountMpInUse()) // entry2 and entry6 share a PccEntry; PccEntry+PccEntryExt
+	assert.Equal(5, fixture.CountMpInUse()) // entry2 and entry6 share a PccEntry but it has PccEntryExt
+
+	fixture.Pit.Erase(*entry6) // entry6 is on PccEntryExt, removing it should release PccEntryExt
+	assert.Equal(4, fixture.Pit.Len())
+	assert.Equal(4, fixture.CountMpInUse())
 
 	fixture.Pit.Erase(*entry1)
 	fixture.Pit.Erase(*entry2)
 	fixture.Pit.Erase(*entry4)
 	fixture.Pit.Erase(*entry5)
-	fixture.Pit.Erase(*entry6)
 	assert.Zero(fixture.Pit.Len())
 	assert.Zero(fixture.CountMpInUse())
 }
@@ -66,7 +69,7 @@ func TestToken(t *testing.T) {
 	interestNames := make([]string, 255)
 	dataPkts := make([]*ndn.Data, 255)
 	entries := make([]pit.Entry, 255)
-	fixture := NewFixture(511) // fits 254 PccEntry+PccEntryExt
+	fixture := NewFixture(255)
 	defer fixture.Close()
 	pit := fixture.Pit
 
