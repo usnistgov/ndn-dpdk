@@ -189,6 +189,8 @@ Cs_CountEntries(const Cs* cs, CsListId cslId)
   return CsPriv_GetList(csp, cslId)->count;
 }
 
+/** \brief Add or refresh a direct entry for \p npkt in \p pccEntry.
+ */
 static bool
 Cs_PutDirect(Cs* cs, Packet* npkt, PccEntry* pccEntry)
 {
@@ -198,21 +200,13 @@ Cs_PutDirect(Cs* cs, Packet* npkt, PccEntry* pccEntry)
 
   CsEntry* entry = NULL;
   if (unlikely(pccEntry->hasCsEntry)) {
-    entry = PccEntry_GetCsEntry(pccEntry);
     // refresh direct entry
     // old entry can be either direct or indirect
-    // XXX If old entry is direct, and an indirect entry with full name (incl
-    // implicit digest) depends on it, refreshing with a different Data could
-    // change the implicit digest, and cause that indirect entry to become
-    // non-matching. This code does not handle this case correctly.
+    entry = PccEntry_GetCsEntry(pccEntry);
     CsEntry_Clear(entry);
     CsArc_Add(&csp->directArc, entry);
     ZF_LOGD("%p PutDirect(%p, pcc=%p) cs=%p refresh", cs, npkt, pccEntry,
             entry);
-  } else if (unlikely(pccEntry->hasPitEntry0)) {
-    // TODO remove this case
-    ZF_LOGD("%p PutDirect(%p, pcc=%p) drop=has-pit0", cs, npkt, pccEntry);
-    return false;
   } else {
     // insert direct entry
     entry = PccEntry_AddCsEntry(pccEntry);
@@ -227,6 +221,8 @@ Cs_PutDirect(Cs* cs, Packet* npkt, PccEntry* pccEntry)
   return true;
 }
 
+/** \brief Insert a direct entry for \p npkt that was retrieved by \p interest.
+ */
 static CsEntry*
 Cs_InsertDirect(Cs* cs, Packet* npkt, PInterest* interest)
 {
@@ -258,6 +254,8 @@ Cs_InsertDirect(Cs* cs, Packet* npkt, PInterest* interest)
   return NULL;
 }
 
+/** \brief Add or refresh an indirect entry in \p pccEntry and associate with \p direct.
+ */
 static bool
 Cs_PutIndirect(Cs* cs, CsEntry* direct, PccEntry* pccEntry)
 {
@@ -313,11 +311,10 @@ Cs_Insert(Cs* cs, Packet* npkt, PitFindResult pitFound)
   PInterest* interest = __PitFindResult_GetInterest(pitFound);
   CsEntry* direct = NULL;
 
-  // if Interest name is shorter or longer than Data name, insert a direct CS
-  // entry in another PCC entry, and put an indirect CS entry at pccEntry
+  // if Interest name differs from Data name, insert a direct entry elsewhere
   if (unlikely(interest->name.p.nComps != data->name.p.nComps)) {
     direct = Cs_InsertDirect(cs, npkt, interest);
-    if (unlikely(direct == NULL)) {
+    if (unlikely(direct == NULL)) { // direct entry insertion failed
       __Pit_RawErase01(pit, pccEntry);
       rte_pktmbuf_free(pkt);
       if (likely(!pccEntry->hasCsEntry)) {
@@ -373,15 +370,6 @@ __Cs_MatchInterest(Cs* cs, PccEntry* pccEntry, Packet* interestNpkt)
       CsArc_Add(&csp->directArc, direct);
       return true;
     }
-  }
-
-  if (!interest->mustBeFresh) {
-    // erase CS entry to make room for pitEntry0
-    ZF_LOGD("%p MatchInterest(%p) erase-conflict-PIT cs=%p", cs, pccEntry,
-            entry);
-    CsEraseBatch ceb = CsEraseBatch_New(cs);
-    CsEraseBatch_DelistAndErase(&ceb, entry, true);
-    CsEraseBatch_Finish(&ceb);
   }
   return false;
 }

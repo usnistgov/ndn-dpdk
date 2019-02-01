@@ -142,6 +142,8 @@ CsEntry_Clear(CsEntry* entry)
 {
   if (likely(CsEntry_IsDirect(entry))) {
     CsEntry_ClearData(entry);
+    // TODO disassoc any indirect entry with implicit digest, because the new Data
+    // may have a different implicit digest and cause non-match.
   } else {
     CsEntry_Disassoc(entry);
   }

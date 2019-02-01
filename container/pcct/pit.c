@@ -55,7 +55,7 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
     return __PitResult_New(pccEntry, PIT_INSERT_CS);
   }
 
-  // add token now, to avoid token allocation error later
+  // add token
   uint64_t token = Pcct_AddToken(pcct, pccEntry);
   if (unlikely(token == 0)) {
     if (isNewPcc) {
@@ -68,7 +68,7 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
   bool isNew = false;
   PitInsertResultKind resKind = 0;
 
-  // select slot 0 or 1 according to MustBeFresh
+  // add PIT entry if it does not exist
   if (!interest->mustBeFresh) {
     isNew = !pccEntry->hasPitEntry0;
     entry = PccEntry_AddPitEntry0(pccEntry);
