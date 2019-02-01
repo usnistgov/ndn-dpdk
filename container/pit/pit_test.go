@@ -50,7 +50,7 @@ func TestInsertErase(t *testing.T) {
 	assert.NotEqual(uintptr(entry2.GetPtr()), uintptr(entry6.GetPtr()))
 
 	assert.Equal(5, fixture.Pit.Len())
-	assert.Equal(4, fixture.CountMpInUse()) // entry2 and entry6 share a PccEntry
+	assert.Equal(4*2, fixture.CountMpInUse()) // entry2 and entry6 share a PccEntry; PccEntry+PccEntryExt
 
 	fixture.Pit.Erase(*entry1)
 	fixture.Pit.Erase(*entry2)
@@ -66,7 +66,7 @@ func TestToken(t *testing.T) {
 	interestNames := make([]string, 255)
 	dataPkts := make([]*ndn.Data, 255)
 	entries := make([]pit.Entry, 255)
-	fixture := NewFixture(255)
+	fixture := NewFixture(511) // fits 254 PccEntry+PccEntryExt
 	defer fixture.Close()
 	pit := fixture.Pit
 
@@ -85,7 +85,7 @@ func TestToken(t *testing.T) {
 			ndntestutil.ClosePacket(interest)
 			continue
 		}
-		require.NotNil(entry)
+		require.NotNil(entry, "unexpected PCCT full at %d", i)
 
 		token := entry.GetToken()
 		assert.Equal(token&(1<<48-1), token) // token has 48 bits

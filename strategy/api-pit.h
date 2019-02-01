@@ -26,8 +26,8 @@ typedef struct SgPitUp
 
 #define SG_PIT_ENTRY_MAX_DNS 6
 #define SG_PIT_ENTRY_MAX_UPS 2
-#define SG_PIT_ENTRY_EXT_MAX_DNS 18
-#define SG_PIT_ENTRY_EXT_MAX_UPS 12
+#define SG_PIT_ENTRY_EXT_MAX_DNS 16
+#define SG_PIT_ENTRY_EXT_MAX_UPS 8
 #define SG_PIT_ENTRY_SCRATCH 64
 
 typedef struct SgPitEntryExt SgPitEntryExt;

@@ -43,8 +43,9 @@ Pcct_New(const char* id, uint32_t maxEntries, unsigned numaSocket)
   }
 
   Pcct* pcct = (Pcct*)rte_mempool_create(
-    id, maxEntries, sizeof(PccEntry), 0, sizeof(PcctPriv), NULL, NULL, NULL,
-    NULL, numaSocket, MEMPOOL_F_SP_PUT | MEMPOOL_F_SC_GET);
+    id, maxEntries, RTE_MAX(sizeof(PccEntry), sizeof(PccEntryExt)), 0,
+    sizeof(PcctPriv), NULL, NULL, NULL, NULL, numaSocket,
+    MEMPOOL_F_SP_PUT | MEMPOOL_F_SC_GET);
   if (unlikely(pcct == NULL)) {
     return NULL;
   }
@@ -90,17 +91,22 @@ Pcct_Insert(Pcct* pcct, PccSearch* search, bool* isNew)
     return entry;
   }
 
-  void* objs[1 + PCC_KEY_MAX_EXTS];
+  void* objs[2 + PCC_KEY_MAX_EXTS];
   int nExts = PccKey_CountExtensions(search);
-  int res = rte_mempool_get_bulk(Pcct_ToMempool(pcct), objs, 1 + nExts);
+  int res = rte_mempool_get_bulk(Pcct_ToMempool(pcct), objs, 2 + nExts);
   if (unlikely(res != 0)) {
     ZF_LOGE("%p Insert() table-full", pcct);
     return NULL;
   }
   entry = (PccEntry*)objs[0];
+  // TODO allocate PccEntryExt on demand
+  entry->ext = (PccEntryExt*)objs[1];
 
-  PccKey_CopyFromSearch(&entry->key, search, (PccKeyExt**)&objs[1], nExts);
+  PccKey_CopyFromSearch(&entry->key, search, (PccKeyExt**)&objs[2], nExts);
   entry->__tokenQword = 0;
+  entry->slot1.pccEntry = NULL;
+  entry->ext->slot2.pccEntry = NULL;
+  entry->ext->slot3.pccEntry = NULL;
   HASH_ADD_BYHASHVALUE(hh, pcctp->keyHt, key, 0, hash, entry);
   *isNew = true;
 
@@ -118,11 +124,15 @@ Pcct_EraseBulk(Pcct* pcct, PccEntry* entries[], uint32_t count)
     ZF_LOGD("%p Erase(%p)", pcct, entry);
     assert(!entry->hasEntries);
     Pcct_RemoveToken(pcct, entry);
-    PccKeyExt* exts[PCC_KEY_MAX_EXTS];
-    int nExts = PccKey_StripExts(&entry->key, exts);
-    if (unlikely(nExts > 0)) {
-      // TODO move this to CsEraseBatch or similar
-      rte_mempool_put_bulk(Pcct_ToMempool(pcct), (void**)exts, nExts);
+
+    // TODO move these to CsEraseBatch or similar
+    void* exts[PCC_KEY_MAX_EXTS + 1];
+    int nExts = PccKey_StripExts(&entry->key, (PccKeyExt**)exts);
+    if (entry->ext != NULL) {
+      exts[nExts++] = entry->ext;
+    }
+    if (nExts > 0) {
+      rte_mempool_put_bulk(Pcct_ToMempool(pcct), exts, nExts);
     }
     HASH_DELETE(hh, pcctp->keyHt, entry);
   }

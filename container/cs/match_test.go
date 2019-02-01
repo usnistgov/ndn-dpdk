@@ -22,7 +22,7 @@ func TestInsertErase(t *testing.T) {
 	assert.True(ok)
 	assert.Equal(1, fixture.Cs.CountEntries(cs.CSL_MD))
 	assert.Zero(fixture.Pit.Len())
-	assert.Equal(1, fixture.CountMpInUse())
+	assert.Equal(1*2, fixture.CountMpInUse()) // PccEntry+PccEntryExt
 
 	csEntry := fixture.Find(ndntestutil.MakeInterest("/A/B"))
 	require.NotNil(csEntry)

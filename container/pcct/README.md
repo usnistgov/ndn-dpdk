@@ -3,10 +3,8 @@
 This package implements the **PIT-CS Composite Table (PCCT)**.
 
 PCCT is a non-thread-safe hash table that carries both the Pending Interest Table (PIT) and the Content Store (CS).
-PCCT combines a DPDK mempool for `PccEntry` allocation, a name hash table, and a token hash table.
-
-A separate `PccEntry` is created for each combination of Interest/Data name and chosen delegation in the forwarding hint has .
-Each `PccEntry` contains a PIT entry for MustBeFresh=0 (denoted "PitEntry0"), a PIT entry for MustBeFresh=1 (denoted "PitEntry1"), and a CS entry; however, PitEntry0 and CsEntry cannot coexist.
+Each combination of Interest/Data name and chosen delegation in the forwarding hint has a PCC entry.
+Each PCC entry has room to store a PIT entry for MustBeFresh=0 (denoted "PitEntry0"), a PIT entry for MustBeFresh=1 (denoted "PitEntry1"), and a CS entry.
 
 C code for [PIT](../pit/) and [CS](../cs/) is in this directory to avoid circular dependency problems, but their Go bindings and documentation are in their own packages.
 
@@ -32,9 +30,9 @@ Hash value for an index key with forwarding hint is `Name_ComputeHash(name) ^ Na
 
 ## Token hash table
 
-Each `PccEntry` can have an optional 48-bit token.
+Each PCC entry can have an optional 48-bit token.
 The **token hash table** is indexed by this token.
 It uses DPDK hash library, where the index key is the token padded to `uint64_t`, the hash value is the lower 32 bits of the token, and the user data field is a `PccEntry` pointer.
 
-A newly-inserted `PccEntry` does not have a token.
+A newly-inserted PCC entry does not have a token.
 Calling code must invoke `Pcct_AddToken` to assign a token, and then it can invoke `Pcct_FindByToken` to retrieve the entry by token.

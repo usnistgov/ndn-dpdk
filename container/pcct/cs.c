@@ -27,8 +27,8 @@ __CsEraseBatch_Append(CsEraseBatch* ceb, CsEntry* entry, bool wantKeepPcc,
                       const char* isDirectDbg)
 {
   PccEntry* pccEntry = PccEntry_FromCsEntry(entry);
-  pccEntry->hasCsEntry = false;
-  if (likely(!pccEntry->hasPitEntry1 && !wantKeepPcc)) {
+  PccEntry_RemoveCsEntry(pccEntry);
+  if (likely(!pccEntry->hasEntries && !wantKeepPcc)) {
     assert(ceb->nPccErase < RTE_DIM(ceb->pccErase));
     ceb->pccErase[ceb->nPccErase++] = pccEntry;
     ZF_LOGD("^ cs=%p(%s) pcc=%p(erase)", entry, isDirectDbg, pccEntry);
@@ -196,8 +196,9 @@ Cs_PutDirect(Cs* cs, Packet* npkt, PccEntry* pccEntry)
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   PData* data = Packet_GetDataHdr(npkt);
 
-  CsEntry* entry = &pccEntry->csEntry;
+  CsEntry* entry = NULL;
   if (unlikely(pccEntry->hasCsEntry)) {
+    entry = PccEntry_GetCsEntry(pccEntry);
     // refresh direct entry
     // old entry can be either direct or indirect
     // XXX If old entry is direct, and an indirect entry with full name (incl
@@ -209,11 +210,12 @@ Cs_PutDirect(Cs* cs, Packet* npkt, PccEntry* pccEntry)
     ZF_LOGD("%p PutDirect(%p, pcc=%p) cs=%p refresh", cs, npkt, pccEntry,
             entry);
   } else if (unlikely(pccEntry->hasPitEntry0)) {
+    // TODO remove this case
     ZF_LOGD("%p PutDirect(%p, pcc=%p) drop=has-pit0", cs, npkt, pccEntry);
     return false;
   } else {
     // insert direct entry
-    pccEntry->hasCsEntry = true;
+    entry = PccEntry_AddCsEntry(pccEntry);
     entry->arcList = CSL_ARC_NONE;
     entry->nIndirects = 0;
     CsArc_Add(&csp->directArc, entry);
@@ -262,8 +264,9 @@ Cs_PutIndirect(Cs* cs, CsEntry* direct, PccEntry* pccEntry)
   assert(!pccEntry->hasPitEntry0);
   CsPriv* csp = Cs_GetPriv(cs);
 
-  CsEntry* entry = &pccEntry->csEntry;
+  CsEntry* entry = NULL;
   if (unlikely(pccEntry->hasCsEntry)) {
+    entry = PccEntry_GetCsEntry(pccEntry);
     if (unlikely(CsEntry_IsDirect(entry) && entry->nIndirects > 0)) {
       // don't overwrite direct entry with dependencies
       ZF_LOGD("%p PutIndirect(%p, pcc=%p) cs=%p drop=has-dependency", cs,
@@ -278,7 +281,7 @@ Cs_PutIndirect(Cs* cs, CsEntry* direct, PccEntry* pccEntry)
             direct, pccEntry, entry, csp->indirectLru.count);
   } else {
     // insert indirect entry
-    pccEntry->hasCsEntry = true;
+    entry = PccEntry_AddCsEntry(pccEntry);
     entry->nIndirects = 0;
     CsList_Append(&csp->indirectLru, entry);
     ZF_LOGD("%p PutIndirect(%p, pcc=%p) cs=%p count=%" PRIu32 " insert", cs,
@@ -293,7 +296,7 @@ Cs_PutIndirect(Cs* cs, CsEntry* direct, PccEntry* pccEntry)
 
   ZF_LOGD("^ drop=indirect-assoc-err");
   CsList_Remove(&csp->indirectLru, entry);
-  pccEntry->hasCsEntry = false;
+  PccEntry_RemoveCsEntry(pccEntry);
   Pcct_Erase(Cs_ToPcct(cs), pccEntry);
   return false;
 }

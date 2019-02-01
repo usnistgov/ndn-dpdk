@@ -70,19 +70,12 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
 
   // select slot 0 or 1 according to MustBeFresh
   if (!interest->mustBeFresh) {
-    if (!pccEntry->hasPitEntry0) {
-      assert(!pccEntry->hasCsEntry);
-      pccEntry->hasPitEntry0 = true;
-      isNew = true;
-    }
-    entry = PccEntry_GetPitEntry0(pccEntry);
+    isNew = !pccEntry->hasPitEntry0;
+    entry = PccEntry_AddPitEntry0(pccEntry);
     resKind = PIT_INSERT_PIT0;
   } else {
-    if (!pccEntry->hasPitEntry1) {
-      pccEntry->hasPitEntry1 = true;
-      isNew = true;
-    }
-    entry = PccEntry_GetPitEntry1(pccEntry);
+    isNew = !pccEntry->hasPitEntry1;
+    entry = PccEntry_AddPitEntry1(pccEntry);
     resKind = PIT_INSERT_PIT1;
   }
 
@@ -108,17 +101,15 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
 void
 Pit_Erase(Pit* pit, PitEntry* entry)
 {
-  PccEntry* pccEntry;
-  if (entry->mustBeFresh) {
-    pccEntry = PccEntry_FromPitEntry1(entry);
-    assert(pccEntry->hasPitEntry1);
-    pccEntry->hasPitEntry1 = false;
-    ZF_LOGD("%p Erase(%p) del-PIT1 pcc=%p", pit, entry, pccEntry);
-  } else {
-    pccEntry = PccEntry_FromPitEntry0(entry);
+  PccEntry* pccEntry = PccEntry_FromPitEntry(entry);
+  if (!entry->mustBeFresh) {
     assert(pccEntry->hasPitEntry0);
-    pccEntry->hasPitEntry0 = false;
+    PccEntry_RemovePitEntry0(pccEntry);
     ZF_LOGD("%p Erase(%p) del-PIT0 pcc=%p", pit, entry, pccEntry);
+  } else {
+    assert(pccEntry->hasPitEntry1);
+    PccEntry_RemovePitEntry1(pccEntry);
+    ZF_LOGD("%p Erase(%p) del-PIT1 pcc=%p", pit, entry, pccEntry);
   }
   PitEntry_Finalize(entry);
 
@@ -138,12 +129,13 @@ __Pit_RawErase01(Pit* pit, PccEntry* pccEntry)
   if (pccEntry->hasPitEntry0) {
     --pitp->nEntries;
     PitEntry_Finalize(PccEntry_GetPitEntry0(pccEntry));
+    PccEntry_RemovePitEntry0(pccEntry);
   }
   if (pccEntry->hasPitEntry1) {
     --pitp->nEntries;
     PitEntry_Finalize(PccEntry_GetPitEntry1(pccEntry));
+    PccEntry_RemovePitEntry1(pccEntry);
   }
-  pccEntry->hasPitEntries = 0;
   Pcct_RemoveToken(Pit_ToPcct(pit), pccEntry);
 }
 
@@ -172,11 +164,11 @@ Pit_FindByData(Pit* pit, Packet* npkt)
   PInterest* interest = NULL;
   if (pccEntry->hasPitEntry1) {
     flags |= PIT_FIND_PIT1;
-    interest = Packet_GetInterestHdr(pccEntry->pitEntry1.npkt);
+    interest = Packet_GetInterestHdr(PccEntry_GetPitEntry1(pccEntry)->npkt);
   }
   if (pccEntry->hasPitEntry0) {
     flags |= PIT_FIND_PIT0;
-    interest = Packet_GetInterestHdr(pccEntry->pitEntry0.npkt);
+    interest = Packet_GetInterestHdr(PccEntry_GetPitEntry0(pccEntry)->npkt);
   }
 
   if (likely(flags != PIT_FIND_NONE)) {

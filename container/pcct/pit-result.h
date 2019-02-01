@@ -44,9 +44,9 @@ PitInsertResult_GetPitEntry(PitInsertResult res)
 {
   switch (res.kind) {
     case PIT_INSERT_PIT0:
-      return &res.entry->pitEntry0;
+      return PccEntry_GetPitEntry0(res.entry);
     case PIT_INSERT_PIT1:
-      return &res.entry->pitEntry1;
+      return PccEntry_GetPitEntry1(res.entry);
     default:
       assert(false);
       return NULL;
@@ -57,7 +57,7 @@ static CsEntry*
 PitInsertResult_GetCsEntry(PitInsertResult res)
 {
   assert(res.kind == PIT_INSERT_CS);
-  return &res.entry->csEntry;
+  return PccEntry_GetCsEntry(res.entry);
 }
 
 /** \brief Result of PIT find.
@@ -92,7 +92,7 @@ PitFindResult_GetPitEntry0(PitFindResult res)
   if (!PitFindResult_Is(res, PIT_FIND_PIT0)) {
     return NULL;
   }
-  return &res.entry->pitEntry0;
+  return PccEntry_GetPitEntry0(res.entry);
 }
 
 static PitEntry*
@@ -101,7 +101,7 @@ PitFindResult_GetPitEntry1(PitFindResult res)
   if (!PitFindResult_Is(res, PIT_FIND_PIT1)) {
     return NULL;
   }
-  return &res.entry->pitEntry1;
+  return PccEntry_GetPitEntry1(res.entry);
 }
 
 /** \brief Get a representative Interest from either PIT entry.

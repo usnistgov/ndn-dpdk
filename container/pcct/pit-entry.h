@@ -10,8 +10,8 @@
 
 #define PIT_ENTRY_MAX_DNS 6
 #define PIT_ENTRY_MAX_UPS 2
-#define PIT_ENTRY_EXT_MAX_DNS 18
-#define PIT_ENTRY_EXT_MAX_UPS 12
+#define PIT_ENTRY_EXT_MAX_DNS 16
+#define PIT_ENTRY_EXT_MAX_UPS 8
 #define PIT_ENTRY_SG_SCRATCH 64
 
 typedef struct PitEntryExt PitEntryExt;
