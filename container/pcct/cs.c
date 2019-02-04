@@ -9,12 +9,12 @@ INIT_ZF_LOG(Cs);
 #define CS_EVICT_BULK 64
 
 static void
-__CsEraseBatch_Append(PcctEraseBatch* peb, CsEntry* entry, bool wantKeepPcc,
+__CsEraseBatch_Append(PcctEraseBatch* peb, CsEntry* entry,
                       const char* isDirectDbg)
 {
   PccEntry* pccEntry = PccEntry_FromCsEntry(entry);
   PccEntry_RemoveCsEntry(pccEntry);
-  if (likely(!pccEntry->hasEntries && !wantKeepPcc)) {
+  if (likely(!pccEntry->hasEntries)) {
     ZF_LOGD("^ cs=%p(%s) pcc=%p(erase)", entry, isDirectDbg, pccEntry);
     PcctEraseBatch_Append(peb, pccEntry);
   } else {
@@ -23,66 +23,49 @@ __CsEraseBatch_Append(PcctEraseBatch* peb, CsEntry* entry, bool wantKeepPcc,
 }
 
 /** \brief Erase an indirect CS entry.
- *  \param wantKeepPcc if true, PCC entry for \p entry is not erased.
  */
 static void
-CsEraseBatch_AddIndirect(PcctEraseBatch* peb, CsEntry* entry, bool wantKeepPcc)
+CsEraseBatch_AddIndirect(PcctEraseBatch* peb, CsEntry* entry)
 {
   assert(!CsEntry_IsDirect(entry));
   ZF_LOGV("^ indirect=%p direct=%p(%" PRId8 ")", entry, entry->direct,
           entry->direct->nIndirects);
   CsEntry_Finalize(entry);
-  __CsEraseBatch_Append(peb, entry, wantKeepPcc, "indirect");
-}
-
-static void
-CsEraseBatch_EvictIndirect(void* peb0, CsEntry* entry)
-{
-  CsEraseBatch_AddIndirect((PcctEraseBatch*)peb0, entry, false);
+  __CsEraseBatch_Append(peb, entry, "indirect");
 }
 
 /** \brief Erase a direct CS entry; delist and erase indirect entries.
- *  \param wantKeepSelfPcc if true, PCC entry for \p entry is not erased.
  */
 static void
-CsEraseBatch_AddDirect(PcctEraseBatch* peb, CsEntry* entry,
-                       bool wantKeepSelfPcc)
+CsEraseBatch_AddDirect(PcctEraseBatch* peb, CsEntry* entry)
 {
   assert(CsEntry_IsDirect(entry));
   CsPriv* csp = Cs_GetPriv(Cs_FromPcct(peb->pcct));
   for (int i = 0; i < entry->nIndirects; ++i) {
     CsEntry* indirect = entry->indirect[i];
     CsList_Remove(&csp->indirectLru, indirect);
-    __CsEraseBatch_Append(peb, indirect, false, "indirect-dep");
+    __CsEraseBatch_Append(peb, indirect, "indirect-dep");
   }
   entry->nIndirects = 0;
   CsEntry_Finalize(entry);
-  __CsEraseBatch_Append(peb, entry, wantKeepSelfPcc, "direct");
+  __CsEraseBatch_Append(peb, entry, "direct");
 }
 
-/** \brief Erase a direct CS entry; delist and erase indirect entries.
+/** \brief Erase a CS entry including dependents.
  */
 static void
-CsEraseBatch_EvictDirect(void* peb0, CsEntry* entry)
+__Cs_Erase(Cs* cs, CsEntry* entry)
 {
-  CsEraseBatch_AddDirect((PcctEraseBatch*)peb0, entry, false);
-}
-
-/** \brief Remove an entry from CsList and erase it including dependents.
- *  \param wantKeepSelfPcc if true, PCC entry for \p entry is not erased.
- */
-static void
-CsEraseBatch_DelistAndErase(PcctEraseBatch* peb, CsEntry* entry,
-                            bool wantKeepSelfPcc)
-{
-  CsPriv* csp = Cs_GetPriv(Cs_FromPcct(peb->pcct));
+  CsPriv* csp = Cs_GetPriv(cs);
+  PcctEraseBatch peb = PcctEraseBatch_New(Cs_ToPcct(cs));
   if (CsEntry_IsDirect(entry)) {
     CsArc_Remove(&csp->directArc, entry);
-    CsEraseBatch_AddDirect(peb, entry, wantKeepSelfPcc);
+    CsEraseBatch_AddDirect(&peb, entry);
   } else {
     CsList_Remove(&csp->indirectLru, entry);
-    CsEraseBatch_AddIndirect(peb, entry, wantKeepSelfPcc);
+    CsEraseBatch_AddIndirect(&peb, entry);
   }
+  PcctEraseBatch_Finish(&peb);
 }
 
 static void
@@ -101,10 +84,11 @@ Cs_Evict(Cs* cs)
   CsPriv* csp = Cs_GetPriv(cs);
   if (unlikely(csp->indirectLru.count > csp->indirectLru.capacity)) {
     __Cs_EvictBulk(cs, &csp->indirectLru, "indirect",
-                   CsEraseBatch_EvictIndirect);
+                   (CsList_EvictCb)CsEraseBatch_AddIndirect);
   }
   if (unlikely(csp->directArc.DEL.count >= CS_EVICT_BULK)) {
-    __Cs_EvictBulk(cs, &csp->directArc.DEL, "direct", CsEraseBatch_EvictDirect);
+    __Cs_EvictBulk(cs, &csp->directArc.DEL, "direct",
+                   (CsList_EvictCb)CsEraseBatch_AddDirect);
   }
 }
 
@@ -182,9 +166,8 @@ Cs_PutDirect(Cs* cs, Packet* npkt, PccEntry* pccEntry)
         CsEntry* indirect = entry->indirect[i];
         PccEntry* indirectPcc = PccEntry_FromCsEntry(indirect);
         if (unlikely(indirectPcc->key.nameL > data->name.p.nOctets)) {
-          PcctEraseBatch peb = PcctEraseBatch_New(Cs_ToPcct(cs));
-          CsEraseBatch_DelistAndErase(&peb, indirect, false);
-          PcctEraseBatch_Finish(&peb);
+          ZF_LOGD("  ^ erase-implicit-digest-indirect");
+          __Cs_Erase(cs, indirect);
           break;
         }
       }
@@ -368,7 +351,5 @@ void
 Cs_Erase(Cs* cs, CsEntry* entry)
 {
   ZF_LOGD("%p Erase(%p)", cs, entry);
-  PcctEraseBatch peb = PcctEraseBatch_New(Cs_ToPcct(cs));
-  CsEraseBatch_DelistAndErase(&peb, entry, false);
-  PcctEraseBatch_Finish(&peb);
+  __Cs_Erase(cs, entry);
 }
