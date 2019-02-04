@@ -113,27 +113,11 @@ Pcct_Insert(Pcct* pcct, PccSearch* search, bool* isNew)
 }
 
 void
-Pcct_EraseBulk(Pcct* pcct, PccEntry* entries[], uint32_t count)
+Pcct_Erase(Pcct* pcct, PccEntry* entry)
 {
-  PcctPriv* pcctp = Pcct_GetPriv(pcct);
-  for (uint32_t i = 0; i < count; ++i) {
-    PccEntry* entry = entries[i];
-    ZF_LOGD("%p Erase(%p)", pcct, entry);
-    assert(!entry->hasEntries);
-    Pcct_RemoveToken(pcct, entry);
-
-    // TODO move these to CsEraseBatch or similar
-    void* exts[PCC_KEY_MAX_EXTS + 1];
-    int nExts = PccKey_StripExts(&entry->key, (PccKeyExt**)exts);
-    if (entry->ext != NULL) {
-      exts[nExts++] = entry->ext;
-    }
-    if (nExts > 0) {
-      rte_mempool_put_bulk(Pcct_ToMempool(pcct), exts, nExts);
-    }
-    HASH_DELETE(hh, pcctp->keyHt, entry);
-  }
-  rte_mempool_put_bulk(Pcct_ToMempool(pcct), (void**)entries, count);
+  PcctEraseBatch peb = PcctEraseBatch_New(pcct);
+  PcctEraseBatch_Append(&peb, entry);
+  PcctEraseBatch_Finish(&peb);
 }
 
 uint64_t
@@ -202,4 +186,27 @@ Pcct_FindByToken(const Pcct* pcct, uint64_t token)
   // but in DPDK 17.11 code it returns entry position if found, -ENOENT if not found.
   assert((res >= 0 && entry != NULL) || (res == -ENOENT && entry == NULL));
   return (PccEntry*)entry;
+}
+
+void
+__PcctEraseBatch_EraseBurst(PcctEraseBatch* peb)
+{
+  assert(peb->pcct != NULL);
+  PcctPriv* pcctp = Pcct_GetPriv(peb->pcct);
+  int nObjs = peb->nEntries;
+  for (int i = 0; i < peb->nEntries; ++i) {
+    PccEntry* entry = (PccEntry*)peb->objs[i];
+    ZF_LOGD("%p Erase(%p)", peb->pcct, entry);
+    assert(!entry->hasEntries);
+    Pcct_RemoveToken(peb->pcct, entry);
+    HASH_DELETE(hh, pcctp->keyHt, entry);
+
+    nObjs += PccKey_StripExts(&entry->key, (PccKeyExt**)&peb->objs[nObjs]);
+    if (entry->ext != NULL) {
+      peb->objs[nObjs++] = entry->ext;
+    }
+    assert(nObjs < RTE_DIM(peb->objs));
+  }
+  rte_mempool_put_bulk(Pcct_ToMempool(peb->pcct), peb->objs, nObjs);
+  peb->nEntries = 0;
 }

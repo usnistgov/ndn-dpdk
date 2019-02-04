@@ -8,30 +8,15 @@ INIT_ZF_LOG(Cs);
 // Bulk size of CS eviction, also the minimum CS capacity.
 #define CS_EVICT_BULK 64
 
-/** \brief Context for erasing several CS entries.
- */
-typedef struct CsEraseBatch
-{
-  Cs* cs;
-  uint32_t nPccErase;
-  PccEntry* pccErase[CS_EVICT_BULK * (1 + CS_ENTRY_MAX_INDIRECTS)];
-} CsEraseBatch;
-
-#define CsEraseBatch_New(theCs)                                                \
-  {                                                                            \
-    0, .cs = theCs                                                             \
-  }
-
 static void
-__CsEraseBatch_Append(CsEraseBatch* ceb, CsEntry* entry, bool wantKeepPcc,
+__CsEraseBatch_Append(PcctEraseBatch* peb, CsEntry* entry, bool wantKeepPcc,
                       const char* isDirectDbg)
 {
   PccEntry* pccEntry = PccEntry_FromCsEntry(entry);
   PccEntry_RemoveCsEntry(pccEntry);
   if (likely(!pccEntry->hasEntries && !wantKeepPcc)) {
-    assert(ceb->nPccErase < RTE_DIM(ceb->pccErase));
-    ceb->pccErase[ceb->nPccErase++] = pccEntry;
     ZF_LOGD("^ cs=%p(%s) pcc=%p(erase)", entry, isDirectDbg, pccEntry);
+    PcctEraseBatch_Append(peb, pccEntry);
   } else {
     ZF_LOGD("^ cs=%p(%s) pcc=%p(keep)", entry, isDirectDbg, pccEntry);
   }
@@ -41,85 +26,72 @@ __CsEraseBatch_Append(CsEraseBatch* ceb, CsEntry* entry, bool wantKeepPcc,
  *  \param wantKeepPcc if true, PCC entry for \p entry is not erased.
  */
 static void
-CsEraseBatch_AddIndirect(CsEraseBatch* ceb, CsEntry* entry, bool wantKeepPcc)
+CsEraseBatch_AddIndirect(PcctEraseBatch* peb, CsEntry* entry, bool wantKeepPcc)
 {
   assert(!CsEntry_IsDirect(entry));
   ZF_LOGV("^ indirect=%p direct=%p(%" PRId8 ")", entry, entry->direct,
           entry->direct->nIndirects);
   CsEntry_Finalize(entry);
-  __CsEraseBatch_Append(ceb, entry, wantKeepPcc, "indirect");
+  __CsEraseBatch_Append(peb, entry, wantKeepPcc, "indirect");
 }
 
-/** \brief Erase an indirect CS entry.
- *  \param ceb0 pointer to CsEraseBatch.
- */
 static void
-CsEraseBatch_EvictIndirect(void* ceb0, CsEntry* entry)
+CsEraseBatch_EvictIndirect(void* peb0, CsEntry* entry)
 {
-  CsEraseBatch* ceb = (CsEraseBatch*)ceb0;
-  CsEraseBatch_AddIndirect(ceb, entry, false);
+  CsEraseBatch_AddIndirect((PcctEraseBatch*)peb0, entry, false);
 }
 
 /** \brief Erase a direct CS entry; delist and erase indirect entries.
  *  \param wantKeepSelfPcc if true, PCC entry for \p entry is not erased.
  */
 static void
-CsEraseBatch_AddDirect(CsEraseBatch* ceb, CsEntry* entry, bool wantKeepSelfPcc)
+CsEraseBatch_AddDirect(PcctEraseBatch* peb, CsEntry* entry,
+                       bool wantKeepSelfPcc)
 {
   assert(CsEntry_IsDirect(entry));
-  CsPriv* csp = Cs_GetPriv(ceb->cs);
+  CsPriv* csp = Cs_GetPriv(Cs_FromPcct(peb->pcct));
   for (int i = 0; i < entry->nIndirects; ++i) {
     CsEntry* indirect = entry->indirect[i];
     CsList_Remove(&csp->indirectLru, indirect);
-    __CsEraseBatch_Append(ceb, indirect, false, "indirect-dep");
+    __CsEraseBatch_Append(peb, indirect, false, "indirect-dep");
   }
   entry->nIndirects = 0;
   CsEntry_Finalize(entry);
-  __CsEraseBatch_Append(ceb, entry, wantKeepSelfPcc, "direct");
+  __CsEraseBatch_Append(peb, entry, wantKeepSelfPcc, "direct");
 }
 
 /** \brief Erase a direct CS entry; delist and erase indirect entries.
- *  \param ceb0 pointer to CsEraseBatch.
  */
 static void
-CsEraseBatch_EvictDirect(void* ceb0, CsEntry* entry)
+CsEraseBatch_EvictDirect(void* peb0, CsEntry* entry)
 {
-  CsEraseBatch* ceb = (CsEraseBatch*)ceb0;
-  CsEraseBatch_AddDirect(ceb, entry, false);
+  CsEraseBatch_AddDirect((PcctEraseBatch*)peb0, entry, false);
 }
 
 /** \brief Remove an entry from CsList and erase it including dependents.
  *  \param wantKeepSelfPcc if true, PCC entry for \p entry is not erased.
  */
 static void
-CsEraseBatch_DelistAndErase(CsEraseBatch* ceb, CsEntry* entry,
+CsEraseBatch_DelistAndErase(PcctEraseBatch* peb, CsEntry* entry,
                             bool wantKeepSelfPcc)
 {
-  CsPriv* csp = Cs_GetPriv(ceb->cs);
+  CsPriv* csp = Cs_GetPriv(Cs_FromPcct(peb->pcct));
   if (CsEntry_IsDirect(entry)) {
     CsArc_Remove(&csp->directArc, entry);
-    CsEraseBatch_AddDirect(ceb, entry, wantKeepSelfPcc);
+    CsEraseBatch_AddDirect(peb, entry, wantKeepSelfPcc);
   } else {
     CsList_Remove(&csp->indirectLru, entry);
-    CsEraseBatch_AddIndirect(ceb, entry, wantKeepSelfPcc);
+    CsEraseBatch_AddIndirect(peb, entry, wantKeepSelfPcc);
   }
-}
-
-/** \brief Erase empty PCC entries used by erased CS entries.
- */
-static bool
-CsEraseBatch_Finish(CsEraseBatch* ceb)
-{
-  Pcct_EraseBulk(Cs_ToPcct(ceb->cs), ceb->pccErase, ceb->nPccErase);
 }
 
 static void
 __Cs_EvictBulk(Cs* cs, CsList* csl, const char* cslName, CsList_EvictCb evictCb)
 {
   ZF_LOGD("%p Evict(%s) count=%" PRIu32, cs, cslName, csl->count);
-  CsEraseBatch ceb = CsEraseBatch_New(cs);
-  CsList_EvictBulk(csl, CS_EVICT_BULK, evictCb, &ceb);
-  CsEraseBatch_Finish(&ceb);
+  PcctEraseBatch peb = PcctEraseBatch_New(Cs_ToPcct(cs));
+  CsList_EvictBulk(csl, CS_EVICT_BULK, evictCb, &peb);
+  PcctEraseBatch_Finish(&peb);
   ZF_LOGD("^ end-count=%" PRIu32, csl->count);
 }
 
@@ -210,9 +182,9 @@ Cs_PutDirect(Cs* cs, Packet* npkt, PccEntry* pccEntry)
         CsEntry* indirect = entry->indirect[i];
         PccEntry* indirectPcc = PccEntry_FromCsEntry(indirect);
         if (unlikely(indirectPcc->key.nameL > data->name.p.nOctets)) {
-          CsEraseBatch ceb = CsEraseBatch_New(cs);
-          CsEraseBatch_DelistAndErase(&ceb, indirect, false);
-          CsEraseBatch_Finish(&ceb);
+          PcctEraseBatch peb = PcctEraseBatch_New(Cs_ToPcct(cs));
+          CsEraseBatch_DelistAndErase(&peb, indirect, false);
+          PcctEraseBatch_Finish(&peb);
           break;
         }
       }
@@ -396,7 +368,7 @@ void
 Cs_Erase(Cs* cs, CsEntry* entry)
 {
   ZF_LOGD("%p Erase(%p)", cs, entry);
-  CsEraseBatch ceb = CsEraseBatch_New(cs);
-  CsEraseBatch_DelistAndErase(&ceb, entry, false);
-  CsEraseBatch_Finish(&ceb);
+  PcctEraseBatch peb = PcctEraseBatch_New(Cs_ToPcct(cs));
+  CsEraseBatch_DelistAndErase(&peb, entry, false);
+  PcctEraseBatch_Finish(&peb);
 }

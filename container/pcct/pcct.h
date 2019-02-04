@@ -61,17 +61,10 @@ void Pcct_Close(Pcct* pcct);
  */
 PccEntry* Pcct_Insert(Pcct* pcct, PccSearch* search, bool* isNew);
 
-/** \brief Erase multiple entries.
- */
-void Pcct_EraseBulk(Pcct* pcct, PccEntry* entries[], uint32_t count);
-
 /** \brief Erase an entry.
+ *  \sa PcctEraseBatch
  */
-static void
-Pcct_Erase(Pcct* pcct, PccEntry* entry)
-{
-  Pcct_EraseBulk(pcct, &entry, 1);
-}
+void Pcct_Erase(Pcct* pcct, PccEntry* entry);
 
 uint64_t __Pcct_AddToken(Pcct* pcct, PccEntry* entry);
 
@@ -105,5 +98,53 @@ Pcct_RemoveToken(Pcct* pcct, PccEntry* entry)
  *  \param token the token, only lower 48 bits are significant.
  */
 PccEntry* Pcct_FindByToken(const Pcct* pcct, uint64_t token);
+
+// Burst size of PCCT erasing.
+#define PCCT_ERASE_BURST 32
+
+/** \brief Context for erasing several PCC entries.
+ */
+typedef struct PcctEraseBatch
+{
+  Pcct* pcct;
+  int nEntries;
+  void* objs[PCCT_ERASE_BURST * (2 + PCC_KEY_MAX_EXTS)];
+} PcctEraseBatch;
+
+/** \brief Create a PcctEraseBatch.
+ *  \code
+ *  PcctEraseBatch peb = PcctEraseBatch_New(pcct);
+ *  PcctEraseBatch_Append(&peb, entry);
+ *  PcctEraseBatch_Finish(&peb);
+ *  \endcode
+ */
+#define PcctEraseBatch_New(thePcct)                                            \
+  {                                                                            \
+    0, .pcct = thePcct                                                         \
+  }
+
+void __PcctEraseBatch_EraseBurst(PcctEraseBatch* peb);
+
+/** \brief Add an entry for erasing.
+ */
+static void
+PcctEraseBatch_Append(PcctEraseBatch* peb, PccEntry* entry)
+{
+  peb->objs[peb->nEntries] = entry;
+  if (unlikely(++peb->nEntries == PCCT_ERASE_BURST)) {
+    __PcctEraseBatch_EraseBurst(peb);
+  }
+}
+
+/** \brief Erase entries.
+ */
+static void
+PcctEraseBatch_Finish(PcctEraseBatch* peb)
+{
+  if (likely(peb->nEntries > 0)) {
+    __PcctEraseBatch_EraseBurst(peb);
+  }
+  peb->pcct = NULL;
+}
 
 #endif // NDN_DPDK_CONTAINER_PCCT_PCCT_H
