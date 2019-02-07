@@ -40,6 +40,9 @@ dpdk/cgoflags.go: dpdk/cgostruct.go
 	./make-cgoflags.sh dpdk core
 	./make-cgoflags.sh dpdk/dpdktest dpdk
 
+spdk/cgoflags.go: dpdk/cgoflags.go
+	./make-cgoflags.sh spdk dpdk
+
 ndn/error.go ndn/error.h: ndn/make-error.sh ndn/error.tsv
 	ndn/make-error.sh
 

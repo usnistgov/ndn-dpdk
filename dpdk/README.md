@@ -1,6 +1,6 @@
 # ndn-dpdk/dpdk
 
-This package contains Go bindings for DPDK, as well as extensions to DPDK in C.
+This package contains Go bindings for [Data Plane Development Kit (DPDK)](https://www.dpdk.org/), as well as extensions to DPDK in C.
 
 Unit tests of this package are in [dpdktest](dpdktest/) subdirectory.
 

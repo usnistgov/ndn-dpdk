@@ -8,10 +8,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Create a logger.
 func New(pkg string) logrus.FieldLogger {
 	return NewWithPrefix(pkg, pkg)
 }
 
+// Create a logger with specified prefix.
 func NewWithPrefix(pkg string, prefix string) logrus.FieldLogger {
 	logger := logrus.New()
 	logger.SetLevel(parseLevel(pkg))
@@ -25,7 +27,8 @@ func NewWithPrefix(pkg string, prefix string) logrus.FieldLogger {
 	return logger
 }
 
-func parseLevel(pkg string) logrus.Level {
+// Get configured log level of a package as a letter.
+func GetLevel(pkg string) rune {
 	lvl, ok := os.LookupEnv("LOG_" + pkg)
 	if !ok {
 		lvl, ok = os.LookupEnv("LOG")
@@ -33,8 +36,12 @@ func parseLevel(pkg string) logrus.Level {
 	if len(lvl) == 0 {
 		lvl = "I"
 	}
+	return rune(lvl[0])
+}
 
-	switch lvl[0] {
+func parseLevel(pkg string) logrus.Level {
+	lvl := GetLevel(pkg)
+	switch lvl {
 	case 'V', 'D':
 		return logrus.DebugLevel
 	case 'I':
