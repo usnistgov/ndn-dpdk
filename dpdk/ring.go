@@ -15,8 +15,8 @@ type Ring struct {
 
 func NewRing(name string, capacity int, socket NumaSocket,
 	isSingleProducer bool, isSingleConsumer bool) (Ring, error) {
-	cName := C.CString(name)
-	defer C.free(unsafe.Pointer(cName))
+	nameC := C.CString(name)
+	defer C.free(unsafe.Pointer(nameC))
 
 	var flags C.uint
 	if isSingleProducer {
@@ -27,7 +27,7 @@ func NewRing(name string, capacity int, socket NumaSocket,
 	}
 
 	var r Ring
-	r.c = C.rte_ring_create(cName, C.uint(capacity), C.int(socket), flags)
+	r.c = C.rte_ring_create(nameC, C.uint(capacity), C.int(socket), flags)
 	if r.c == nil {
 		return r, GetErrno()
 	}

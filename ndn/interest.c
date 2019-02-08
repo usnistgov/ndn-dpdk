@@ -46,6 +46,7 @@ PInterest_FromPacket(PInterest* interest, struct rte_mbuf* pkt,
   interest->mustBeFresh = false;
   interest->nFhs = 0;
   interest->activeFh = -1;
+  interest->diskData = NULL;
 
   D1_NEXT;
   if (ele1.type == TT_CanBePrefix) {

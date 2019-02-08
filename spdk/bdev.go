@@ -60,6 +60,11 @@ func (bd *Bdev) Close() error {
 	return nil
 }
 
+// Get native *C.struct_spdk_bdev_desc pointer to use in other packages.
+func (bd *Bdev) GetPtr() unsafe.Pointer {
+	return unsafe.Pointer(bd.c)
+}
+
 // Obtain BdevInfo.
 func (bd *Bdev) GetInfo() (bdi BdevInfo) {
 	bdi.c = C.spdk_bdev_desc_get_bdev(bd.c)

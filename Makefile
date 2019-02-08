@@ -40,6 +40,9 @@ dpdk/cgoflags.go: dpdk/cgostruct.go
 	./make-cgoflags.sh dpdk core
 	./make-cgoflags.sh dpdk/dpdktest dpdk
 
+$(CLIBPREFIX)-spdk.a: $(CLIBPREFIX)-dpdk.a spdk/*.h
+	./cbuild.sh spdk
+
 spdk/cgoflags.go: dpdk/cgoflags.go
 	./make-cgoflags.sh spdk dpdk
 
@@ -107,6 +110,12 @@ $(CLIBPREFIX)-fib.a: $(CLIBPREFIX)-tsht.a $(CLIBPREFIX)-ndt.a container/fib/*.h 
 
 container/fib/cgoflags.go: container/tsht/cgoflags.go container/strategycode/cgoflags.go ndn/cgoflags.go
 	./make-cgoflags.sh container/fib container/strategycode container/tsht ndn
+
+$(CLIBPREFIX)-diskstore.a: $(CLIBPREFIX)-ndn.a container/diskstore/*.h container/diskstore/*.c
+	./cbuild.sh container/diskstore
+
+container/diskstore/cgoflags.go: spdk/cgoflags.go ndn/cgoflags.go
+	./make-cgoflags.sh container/diskstore spdk ndn
 
 $(CLIBPREFIX)-pcct.a: $(CLIBPREFIX)-mintmr.a $(CLIBPREFIX)-fib.a container/pcct/*.h container/pcct/*.c
 	./cbuild.sh container/pcct

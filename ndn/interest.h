@@ -11,6 +11,8 @@
 
 #define DEFAULT_INTEREST_LIFETIME 4000
 
+typedef struct Packet Packet;
+
 /** \brief Parsed Interest packet.
  */
 typedef struct PInterest
@@ -35,6 +37,9 @@ typedef struct PInterest
   const uint8_t* fhNameV[INTEREST_MAX_FHS];
   uint16_t fhNameL[INTEREST_MAX_FHS];
   Name activeFhName; ///< a parsed forwarding hint at index \c activeFh
+
+  uint64_t diskSlotId; ///< DiskStore slot number
+  Packet* diskData;    ///< DiskStore loaded Data
 } PInterest;
 
 /** \brief Parse a packet as Interest.

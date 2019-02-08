@@ -45,6 +45,11 @@ func NewThread(name string) (th *Thread, e error) {
 	return th, nil
 }
 
+// Get native *C.struct_spdk_thread pointer to use in other packages.
+func (th *Thread) GetPtr() unsafe.Pointer {
+	return unsafe.Pointer(th.c.spdkTh)
+}
+
 func (th *Thread) Launch() error {
 	return th.LaunchImpl(func() int {
 		C.SpdkThread_Run(th.c)

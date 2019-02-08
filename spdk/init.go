@@ -6,6 +6,8 @@ package spdk
 */
 import "C"
 import (
+	"fmt"
+
 	"ndn-dpdk/core/dlopen"
 	"ndn-dpdk/core/logger"
 	"ndn-dpdk/dpdk"
@@ -43,6 +45,12 @@ func Init(eal *dpdk.Eal, mainThreadLcore dpdk.LCore) (e error) {
 	}
 
 	return nil
+}
+
+func MustInit(eal *dpdk.Eal, mainThreadLcore dpdk.LCore) {
+	if e := Init(eal, mainThreadLcore); e != nil {
+		panic(fmt.Sprintf("spdk.Init error %v", e))
+	}
 }
 
 func initLogging() {
