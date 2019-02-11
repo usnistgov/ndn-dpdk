@@ -1,16 +1,26 @@
 package spdk_test
 
 import (
+	"bytes"
 	"io"
 	"io/ioutil"
 	"os"
 	"testing"
 
+	"ndn-dpdk/dpdk/dpdktestenv"
 	"ndn-dpdk/spdk"
+)
+
+const (
+	bdevBlockSize  = 1024
+	bdevBlockCount = 256
 )
 
 func testBdev(t *testing.T, bdi spdk.BdevInfo) {
 	assert, require := makeAR(t)
+
+	assert.Equal(bdevBlockSize, bdi.GetBlockSize())
+	assert.Equal(bdevBlockCount, bdi.CountBlocks())
 
 	bd, e := spdk.OpenBdev(bdi, spdk.BDEV_MODE_READ_WRITE)
 	require.NoError(e)
@@ -26,6 +36,17 @@ func testBdev(t *testing.T, bdi spdk.BdevInfo) {
 	assert.NoError(e)
 	assert.Equal([]byte{0xA1, 0xA2, 0xA3, 0xA4}, buf)
 
+	pkt1 := dpdktestenv.PacketFromBytes(bytes.Repeat([]byte{0xB0}, 500), bytes.Repeat([]byte{0xB1}, 400), bytes.Repeat([]byte{0xB2}, 134))
+	defer pkt1.Close()
+	e = bd.WritePacket(100, 16, pkt1)
+	assert.NoError(e)
+
+	pkt2 := dpdktestenv.PacketFromBytes(bytes.Repeat([]byte{0xC0}, 124), bytes.Repeat([]byte{0xC1}, 400), bytes.Repeat([]byte{0xC2}, 510))
+	defer pkt2.Close()
+	e = bd.ReadPacket(100, 12, pkt2)
+	assert.NoError(e)
+	assert.Equal(pkt1.ReadAll(), pkt2.ReadAll())
+
 	e = bd.Close()
 	assert.NoError(e)
 }
@@ -34,10 +55,8 @@ func TestMallocBdev(t *testing.T) {
 	spdk.InitBdevLib()
 	assert, require := makeAR(t)
 
-	bdi, e := spdk.NewMallocBdev(1024, 256)
+	bdi, e := spdk.NewMallocBdev(bdevBlockSize, bdevBlockCount)
 	require.NoError(e)
-	assert.Equal(1024, bdi.GetBlockSize())
-	assert.Equal(256, bdi.CountBlocks())
 
 	testBdev(t, bdi)
 
@@ -51,15 +70,13 @@ func TestAioBdev(t *testing.T) {
 
 	file, e := ioutil.TempFile("", "")
 	require.NoError(e)
-	require.NoError(file.Truncate(1024 * 256))
+	require.NoError(file.Truncate(bdevBlockSize * bdevBlockCount))
 	filename := file.Name()
 	file.Close()
 	defer os.Remove(filename)
 
-	bdi, e := spdk.NewAioBdev(filename, 1024)
+	bdi, e := spdk.NewAioBdev(filename, bdevBlockSize)
 	require.NoError(e)
-	assert.Equal(1024, bdi.GetBlockSize())
-	assert.Equal(256, bdi.CountBlocks())
 
 	testBdev(t, bdi)
 

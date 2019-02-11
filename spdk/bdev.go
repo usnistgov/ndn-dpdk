@@ -1,8 +1,7 @@
 package spdk
 
 /*
-#include <rte_memcpy.h>
-#include <spdk/bdev.h>
+#include "bdev.h"
 #include <spdk/thread.h>
 
 extern void go_bdevInit(void* ctx, int rc);
@@ -71,7 +70,7 @@ func (bd *Bdev) GetInfo() (bdi BdevInfo) {
 	return bdi
 }
 
-// Read from block device.
+// Read blocks.
 func (bd *Bdev) ReadBlocks(blockOffset, blockCount int64, buf []byte) error {
 	if blockOffset < 0 || blockOffset+blockCount >= bd.nBlocks {
 		return io.ErrUnexpectedEOF
@@ -102,7 +101,7 @@ func (bd *Bdev) ReadBlocks(blockOffset, blockCount int64, buf []byte) error {
 	return nil
 }
 
-// Write to block device.
+// Write blocks.
 func (bd *Bdev) WriteBlocks(blockOffset, blockCount int64, buf []byte) error {
 	if blockOffset < 0 || blockOffset+blockCount >= bd.nBlocks {
 		return io.ErrShortWrite
@@ -129,6 +128,38 @@ func (bd *Bdev) WriteBlocks(blockOffset, blockCount int64, buf []byte) error {
 	return <-done
 }
 
+// Read blocks via scatter gather list.
+func (bd *Bdev) ReadPacket(blockOffset, blockCount int64, pkt dpdk.Packet) error {
+	done := make(chan error)
+	MainThread.Post(func() {
+		ctx := ctxPut(done)
+		res := C.SpdkBdev_ReadPacket(bd.c, bd.ch, (*C.struct_rte_mbuf)(pkt.GetPtr()),
+			C.uint64_t(blockOffset), C.uint64_t(blockCount), C.uint32_t(bd.blockSize),
+			C.spdk_bdev_io_completion_cb(C.go_bdevIoComplete), ctx)
+		if res != 0 {
+			done <- dpdk.Errno(-res)
+			ctxClear(ctx)
+		}
+	})
+	return <-done
+}
+
+// Write blocks via scatter gather list.
+func (bd *Bdev) WritePacket(blockOffset, blockCount int64, pkt dpdk.Packet) error {
+	done := make(chan error)
+	MainThread.Post(func() {
+		ctx := ctxPut(done)
+		res := C.SpdkBdev_WritePacket(bd.c, bd.ch, (*C.struct_rte_mbuf)(pkt.GetPtr()),
+			C.uint64_t(blockOffset), C.uint64_t(blockCount), C.uint32_t(bd.blockSize),
+			C.spdk_bdev_io_completion_cb(C.go_bdevIoComplete), ctx)
+		if res != 0 {
+			done <- dpdk.Errno(-res)
+			ctxClear(ctx)
+		}
+	})
+	return <-done
+}
+
 //export go_bdevIoComplete
 func go_bdevIoComplete(io *C.struct_spdk_bdev_io, success C.bool, ctx unsafe.Pointer) {
 	done := ctxPop(ctx).(chan error)
@@ -141,6 +172,7 @@ func go_bdevIoComplete(io *C.struct_spdk_bdev_io, success C.bool, ctx unsafe.Poi
 	C.spdk_bdev_free_io(io)
 }
 
+// Read bytes at specific offset.
 func (bd *Bdev) ReadAt(p []byte, off int64) (n int, e error) {
 	if len(p) == 0 {
 		return 0, nil
@@ -168,6 +200,8 @@ func (bd *Bdev) ReadAt(p []byte, off int64) (n int, e error) {
 	return copy(p, buf[off%bd.blockSize:]), nil
 }
 
+// Write bytes at specific offset.
+// Since bdev can only write whole blocks, other bytes in affected blocks will be zeroed.
 func (bd *Bdev) WriteAt(p []byte, off int64) (n int, e error) {
 	if len(p) == 0 {
 		return 0, nil

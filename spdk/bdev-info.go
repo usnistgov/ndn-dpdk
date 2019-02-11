@@ -1,7 +1,7 @@
 package spdk
 
 /*
-#include <spdk/bdev.h>
+#include "bdev.h"
 
 extern void go_bdevInitialized(void* ctx, int rc);
 extern void go_bdevRemove(void* ctx);
@@ -29,6 +29,7 @@ func go_bdevInitialized(ctx unsafe.Pointer, rc C.int) {
 	if rc != 0 {
 		panic(fmt.Sprintf("spdk_bdev_initialize error %v", dpdk.Errno(rc)))
 	}
+	C.SpdkBdev_InitFiller()
 }
 
 // Information about a block device.
