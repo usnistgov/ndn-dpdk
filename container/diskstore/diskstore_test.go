@@ -19,7 +19,7 @@ func TestDiskStore(t *testing.T) {
 	require.NoError(e)
 	defer spdk.DestroyMallocBdev(bdi)
 
-	mp := dpdktestenv.MakeMp("TestDiskStore", 255, ndn.SizeofPacketPriv(), diskstore.SizeofDataroom(8))
+	mp := dpdktestenv.MakeMp("TestDiskStore", 255, ndn.SizeofPacketPriv(), 1500)
 	defer mp.Close()
 
 	store, e := diskstore.New(bdi, spdk.MainThread, mp, 8)
@@ -30,14 +30,18 @@ func TestDiskStore(t *testing.T) {
 	assert.Equal(uint64(1), minSlotId)
 	assert.Equal(uint64(31), maxSlotId)
 
+	dataLens := make([]int, 33)
+	dataLens[2] = 1024
+
 	for _, n := range []uint64{1, 31, 32} {
 		data := ndntestutil.MakeData(fmt.Sprintf("/A/%d", n), time.Duration(n)*time.Millisecond)
+		dataLens[n] = data.GetPacket().AsDpdkPacket().Len()
 		store.PutData(n, data)
 	}
 
 	for _, n := range []uint64{1, 31} {
 		interest := ndntestutil.MakeInterest(fmt.Sprintf("/A/%d", n))
-		data, e := store.GetData(n, interest)
+		data, e := store.GetData(n, dataLens[n], interest)
 		if !assert.NoError(e, n) {
 			continue
 		}
@@ -50,7 +54,7 @@ func TestDiskStore(t *testing.T) {
 
 	for _, n := range []uint64{2, 32} {
 		interest := ndntestutil.MakeInterest(fmt.Sprintf("/A/%d", n))
-		data, e := store.GetData(n, interest)
+		data, e := store.GetData(n, dataLens[n], interest)
 		if !assert.NoError(e, n) {
 			continue
 		}

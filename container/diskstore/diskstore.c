@@ -57,9 +57,9 @@ DiskStore_PutData_Begin(void* npkt0)
 
   uint64_t blockOffset = DiskStore_ComputeBlockOffset(store, slotId);
   uint64_t blockCount = DiskStore_ComputeBlockCount(store, npkt);
-  int res = spdk_bdev_write_blocks(
-    store->bdev, store->ch, rte_pktmbuf_mtod(Packet_ToMbuf(npkt), void*),
-    blockOffset, blockCount, DiskStore_PutData_End, npkt);
+  int res = SpdkBdev_WritePacket(store->bdev, store->ch, Packet_ToMbuf(npkt),
+                                 blockOffset, blockCount, store->blockSize,
+                                 DiskStore_PutData_End, npkt);
   if (unlikely(res != 0)) {
     ZF_LOGW("PutData_Begin(%" PRIu64 ", %p): fail=write(%d)", slotId, npkt,
             res);
@@ -67,35 +67,13 @@ DiskStore_PutData_Begin(void* npkt0)
   }
 }
 
-static bool
-DiskStore_PutData_CheckBuffer(DiskStore* store, uint64_t slotId, Packet* npkt)
-{
-  struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
-  if (unlikely(pkt->nb_segs > 1)) {
-    // TODO use spdk_bdev_writev_blocks to support multi-segment packets
-    ZF_LOGW("PutData(%" PRIu64 ", %p): fail=segmented", slotId, npkt);
-    return false;
-  }
-  uint64_t blockCount = DiskStore_ComputeBlockCount(store, npkt);
-  if (unlikely(blockCount > store->nBlocksPerSlot)) {
-    ZF_LOGW("PutData(%" PRIu64 ", %p): fail=packet-too-long", slotId, npkt);
-    return false;
-  }
-  if (unlikely(blockCount * DISK_STORE_BLOCK_SIZE >
-               pkt->data_len + rte_pktmbuf_tailroom(pkt))) {
-    // TODO accommodate buffer shorter than total size of blocks
-    ZF_LOGW("PutData(%" PRIu64 ", %p): fail=short-buffer", slotId, npkt);
-    rte_pktmbuf_free(pkt);
-    return false;
-  }
-  return true;
-}
-
 void
 DiskStore_PutData(DiskStore* store, uint64_t slotId, Packet* npkt)
 {
   assert(slotId > 0);
-  if (unlikely(!DiskStore_PutData_CheckBuffer(store, slotId, npkt))) {
+  uint64_t blockCount = DiskStore_ComputeBlockCount(store, npkt);
+  if (unlikely(blockCount > store->nBlocksPerSlot)) {
+    ZF_LOGW("PutData(%" PRIu64 ", %p): fail=packet-too-long", slotId, npkt);
     rte_pktmbuf_free(Packet_ToMbuf(npkt));
     return;
   }
@@ -177,13 +155,10 @@ DiskStore_GetData_Begin(void* npkt0)
   DiskStore* store = req->store;
 
   uint64_t blockOffset = DiskStore_ComputeBlockOffset(store, slotId);
-  char* buf =
-    rte_pktmbuf_append(dataPkt, store->nBlocksPerSlot * DISK_STORE_BLOCK_SIZE);
-  assert(buf != NULL);
 
-  int res =
-    spdk_bdev_read_blocks(store->bdev, store->ch, buf, blockOffset,
-                          store->nBlocksPerSlot, DiskStore_GetData_End, npkt);
+  int res = SpdkBdev_ReadPacket(store->bdev, store->ch, dataPkt, blockOffset,
+                                store->nBlocksPerSlot, store->blockSize,
+                                DiskStore_GetData_End, npkt);
   if (unlikely(res != 0)) {
     ZF_LOGW("GetData_Begin(%" PRIu64 ", %p): fail=read(%d)", slotId, npkt, res);
     DiskStore_GetData_Fail(req->reply, npkt);
@@ -191,8 +166,8 @@ DiskStore_GetData_Begin(void* npkt0)
 }
 
 void
-DiskStore_GetData(DiskStore* store, uint64_t slotId, Packet* npkt,
-                  struct rte_ring* reply)
+DiskStore_GetData(DiskStore* store, uint64_t slotId, uint16_t dataLen,
+                  Packet* npkt, struct rte_ring* reply)
 {
   assert(slotId > 0);
   PInterest* interest = Packet_GetInterestHdr(npkt);
@@ -209,6 +184,12 @@ DiskStore_GetData(DiskStore* store, uint64_t slotId, Packet* npkt,
     return;
   }
   interest->diskData = Packet_FromMbuf(dataPkt);
+
+  if (unlikely(rte_pktmbuf_append(dataPkt, dataLen) == NULL)) {
+    ZF_LOGW("GetData(%" PRIu64 ", %p): fail=resize-err", slotId, npkt);
+    DiskStore_GetData_Fail(reply, npkt);
+    return;
+  }
 
   assert(dataPkt->priv_size >= sizeof(DiskStore_GetDataRequest));
   DiskStore_GetDataRequest* req =

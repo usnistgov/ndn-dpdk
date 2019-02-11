@@ -4,8 +4,8 @@
 /// \file
 
 #include "../../ndn/packet.h"
+#include "../../spdk/bdev.h"
 
-#include <spdk/bdev.h>
 #include <spdk/thread.h>
 
 /** \brief Expected block size of the underlying block device.
@@ -19,8 +19,9 @@ typedef struct DiskStore
   struct spdk_thread* th;
   struct spdk_bdev_desc* bdev;
   struct spdk_io_channel* ch;
-  uint64_t nBlocksPerSlot;
   struct rte_mempool* mp;
+  uint64_t nBlocksPerSlot;
+  uint32_t blockSize;
 } DiskStore;
 
 /** \brief Store a Data packet.
@@ -33,6 +34,7 @@ void DiskStore_PutData(DiskStore* store, uint64_t slotId, Packet* npkt);
 
 /** \brief Retrieve a Data packet.
  *  \param slotId disk slot number.
+ *  \param dataLen Data packet length.
  *  \param npkt an Interest packet. DiskStore takes ownership.
  *  \param reply where to return results.
  *
@@ -44,7 +46,7 @@ void DiskStore_PutData(DiskStore* store, uint64_t slotId, Packet* npkt);
  *
  *  This function may be invoked on any thread, including non-SPDK thread.
  */
-void DiskStore_GetData(DiskStore* store, uint64_t slotId, Packet* npkt,
-                       struct rte_ring* reply);
+void DiskStore_GetData(DiskStore* store, uint64_t slotId, uint16_t dataLen,
+                       Packet* npkt, struct rte_ring* reply);
 
 #endif // NDN_DPDK_CONTAINER_DISKSTORE_DISKSTORE_H

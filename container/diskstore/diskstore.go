@@ -16,10 +16,6 @@ import (
 
 const BLOCK_SIZE = int(C.DISK_STORE_BLOCK_SIZE)
 
-func SizeofDataroom(nBlocksPerSlot int) int {
-	return nBlocksPerSlot*BLOCK_SIZE + int(C.RTE_PKTMBUF_HEADROOM)
-}
-
 // Disk-backed Data Store.
 type DiskStore struct {
 	c  *C.DiskStore
@@ -32,9 +28,6 @@ func New(bdi spdk.BdevInfo, th *spdk.Thread, mp dpdk.PktmbufPool, nBlocksPerSlot
 	if bdi.GetBlockSize() != int(C.DISK_STORE_BLOCK_SIZE) {
 		return nil, fmt.Errorf("bdev block size must be %d", C.DISK_STORE_BLOCK_SIZE)
 	}
-	if sizeofDataroom := SizeofDataroom(nBlocksPerSlot); mp.GetDataroom() < sizeofDataroom {
-		return nil, fmt.Errorf("mempool dataroom must be at least %d", sizeofDataroom)
-	}
 
 	store = new(DiskStore)
 	store.th = th
@@ -46,8 +39,9 @@ func New(bdi spdk.BdevInfo, th *spdk.Thread, mp dpdk.PktmbufPool, nBlocksPerSlot
 	store.c = (*C.DiskStore)(dpdk.Zmalloc("DiskStore", C.sizeof_DiskStore, numaSocket))
 	store.c.th = (*C.struct_spdk_thread)(th.GetPtr())
 	store.c.bdev = (*C.struct_spdk_bdev_desc)(store.bd.GetPtr())
-	store.c.nBlocksPerSlot = C.uint64_t(nBlocksPerSlot)
 	store.c.mp = (*C.struct_rte_mempool)(mp.GetPtr())
+	store.c.nBlocksPerSlot = C.uint64_t(nBlocksPerSlot)
+	store.c.blockSize = C.uint32_t(bdi.GetBlockSize())
 	th.Call(func() { store.c.ch = C.spdk_bdev_get_io_channel(store.c.bdev) })
 	return store, nil
 }
@@ -68,7 +62,7 @@ func (store *DiskStore) PutData(slotId uint64, data *ndn.Data) {
 }
 
 // Retrieve a Data packet and wait for completion.
-func (store *DiskStore) GetData(slotId uint64, interest *ndn.Interest) (data *ndn.Data, e error) {
+func (store *DiskStore) GetData(slotId uint64, dataLen int, interest *ndn.Interest) (data *ndn.Data, e error) {
 	var reply dpdk.Ring
 	if reply, e = dpdk.NewRing(fmt.Sprintf("DiskStoreGetData%x", slotId), 64, dpdk.NUMA_SOCKET_ANY, false, false); e != nil {
 		return nil, e
@@ -76,7 +70,7 @@ func (store *DiskStore) GetData(slotId uint64, interest *ndn.Interest) (data *nd
 	defer reply.Close()
 
 	interestPtr := interest.GetPacket().GetPtr()
-	C.DiskStore_GetData(store.c, C.uint64_t(slotId), (*C.Packet)(interestPtr), (*C.struct_rte_ring)(reply.GetPtr()))
+	C.DiskStore_GetData(store.c, C.uint64_t(slotId), C.uint16_t(dataLen), (*C.Packet)(interestPtr), (*C.struct_rte_ring)(reply.GetPtr()))
 
 	for {
 		pkts := make([]ndn.Packet, 1)
