@@ -126,6 +126,7 @@ __PccKey_CopyNameOrFhV(LName name, uint8_t* value, uint16_t cap,
                RTE_MIN(name.length - offset, PCC_KEY_EXT_CAP));
     next = &ext->next;
   }
+  *next = NULL;
   return nExts;
 }
 
