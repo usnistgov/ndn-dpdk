@@ -122,7 +122,7 @@ TxProc_OutputNoFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames,
   assert(maxFrames >= 1);
 
   struct rte_mbuf* frame;
-  if (RTE_MBUF_INDIRECT(pkt) || pkt->refcnt > 1 ||
+  if (RTE_MBUF_CLONED(pkt) || pkt->refcnt > 1 ||
       rte_pktmbuf_headroom(pkt) < tx->headerHeadroom) {
     frame = rte_pktmbuf_alloc(tx->headerMp);
     if (unlikely(frame == NULL)) {

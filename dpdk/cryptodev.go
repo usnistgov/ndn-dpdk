@@ -136,10 +136,13 @@ func NewCryptoDev(name string, maxSessions, nQueuePairs int, socket NumaSocket) 
 		cd.devId = C.uint8_t(devId)
 	}
 
-	cd.sessionPool, e = NewMempool(name+"_sess", maxSessions*2, 0,
-		int(C.rte_cryptodev_sym_get_private_session_size(cd.devId)), socket)
-	if e != nil {
-		return CryptoDev{}, e
+	mpNameC := C.CString(name + "_sess")
+	defer C.free(unsafe.Pointer(mpNameC))
+	if mpC := C.rte_cryptodev_sym_session_pool_create(mpNameC, C.uint32_t(maxSessions*2),
+		C.uint32_t(C.rte_cryptodev_sym_get_private_session_size(cd.devId)), 0, 0, C.int(socket)); mpC == nil {
+		return CryptoDev{}, errors.New("rte_cryptodev_sym_session_pool_create error")
+	} else {
+		cd.sessionPool.c = mpC
 	}
 
 	var devConf C.struct_rte_cryptodev_config
@@ -151,9 +154,10 @@ func NewCryptoDev(name string, maxSessions, nQueuePairs int, socket NumaSocket) 
 
 	var qpConf C.struct_rte_cryptodev_qp_conf
 	qpConf.nb_descriptors = 2048
+	qpConf.mp_session = cd.sessionPool.c
+	qpConf.mp_session_private = cd.sessionPool.c
 	for i := C.uint16_t(0); i < devConf.nb_queue_pairs; i++ {
-		if res := C.rte_cryptodev_queue_pair_setup(cd.devId, i, &qpConf, C.int(socket),
-			cd.sessionPool.c); res < 0 {
+		if res := C.rte_cryptodev_queue_pair_setup(cd.devId, i, &qpConf, C.int(socket)); res < 0 {
 			return CryptoDev{}, fmt.Errorf("rte_cryptodev_queue_pair_setup(%d) error %d", i, res)
 		}
 	}
