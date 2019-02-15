@@ -156,16 +156,13 @@ app/fwdp/cgoflags.go: container/ndt/cgoflags.go container/fib/cgoflags.go contai
 app/version/version.go:
 	app/version/make-version.sh
 
-cmds: cmd-ndnfw-dpdk cmd-ndnping-dpdk cmd-ndnpktcopy-dpdk mgmtclient nfdemu
+cmds: cmd-ndnfw-dpdk cmd-ndnping-dpdk mgmtclient nfdemu
 
 cmd-%: cmd/%/* godeps
 	go install ./cmd/$*
 
 cmd-ndnfw-dpdk: cmd/ndnfw-dpdk/* godeps strategies
 	go install ./cmd/ndnfw-dpdk
-
-cmd/ndnpktcopy-dpdk/cgoflags.go: iface/cgoflags.go
-	./make-cgoflags.sh cmd/ndnpktcopy-dpdk iface
 
 mgmtclient: cmd/mgmtclient/*
 	mkdir -p build
