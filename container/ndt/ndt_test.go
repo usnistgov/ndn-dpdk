@@ -7,13 +7,12 @@ import (
 
 	"ndn-dpdk/container/ndt"
 	"ndn-dpdk/dpdk"
-	"ndn-dpdk/dpdk/dpdktestenv"
 	"ndn-dpdk/ndn"
 )
 
 func TestNdt(t *testing.T) {
 	assert, require := makeAR(t)
-	slaves := dpdktestenv.Eal.Slaves[:8]
+	slaves := dpdk.ListSlaveLCores()[:8]
 
 	cfg := ndt.Config{
 		PrefixLen:  2,

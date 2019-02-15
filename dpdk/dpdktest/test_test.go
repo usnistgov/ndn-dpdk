@@ -8,16 +8,12 @@ import (
 	"ndn-dpdk/dpdk/dpdktestenv"
 )
 
+// Command line arguments checked in TestEal test case.
+var initEalRemainingArgs []string
+
 func TestMain(m *testing.M) {
-	// TestEal test case needs these parameters.
-	if eal, e := dpdk.NewEal([]string{"testprog", "-l", "0,2,3", "-n", "1", "--no-pci", "--", "X"}); e == nil {
-		dpdktestenv.Eal = eal
-	} else {
-		panic(e)
-	}
-
+	initEalRemainingArgs = dpdk.MustInitEal([]string{"testprog", "-l", "0,2,3", "-n", "1", "--no-pci", "--", "X"})
 	dpdktestenv.MakeDirectMp(4095, 0, 256)
-
 	os.Exit(m.Run())
 }
 

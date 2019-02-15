@@ -2,6 +2,7 @@ package main
 
 import (
 	"math/rand"
+	"os"
 	"time"
 
 	"ndn-dpdk/app/fwdp"
@@ -17,8 +18,7 @@ var theDp *fwdp.DataPlane
 
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
-	appinit.InitEal()
-	initCfg, e := parseCommand(appinit.Eal.Args[1:])
+	initCfg, e := parseCommand(dpdk.MustInitEal(os.Args)[1:])
 	if e != nil {
 		log.WithError(e).Fatal("command line error")
 	}
@@ -32,7 +32,7 @@ func main() {
 }
 
 func startDp(ndtCfg ndt.Config, fibCfg fib.Config, dpInit fwdpInitConfig) {
-	log.WithField("nSlaves", len(appinit.Eal.Slaves)).Info("EAL ready")
+	log.WithField("nSlaves", len(dpdk.ListSlaveLCores())).Info("EAL ready")
 	lcr := appinit.NewLCoreReservations()
 	appinit.TxlLCoreReservation = lcr
 

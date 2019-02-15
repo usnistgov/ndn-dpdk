@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"ndn-dpdk/dpdk"
-	"ndn-dpdk/dpdk/dpdktestenv"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/ndn"
 	"ndn-dpdk/ndn/ndntestutil"
@@ -42,9 +41,9 @@ func New(t *testing.T, rxFace, txFace iface.IFace) (fixture *Fixture) {
 	fixture.TxLoops = 10000
 	fixture.LossTolerance = 0.1
 
-	eal := dpdktestenv.Eal
-	fixture.RxLCore = eal.Slaves[0]
-	fixture.TxLCore = eal.Slaves[1]
+	slaves := dpdk.ListSlaveLCores()
+	fixture.RxLCore = slaves[0]
+	fixture.TxLCore = slaves[1]
 
 	fixture.rxFace = rxFace
 	fixture.rxDiscard = make(map[iface.FaceId]iface.IFace)

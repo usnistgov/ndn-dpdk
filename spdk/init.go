@@ -17,7 +17,7 @@ import (
 var MainThread *Thread
 
 // Initialize SPDK environment and create a main thread.
-func Init(eal *dpdk.Eal, mainThreadLcore dpdk.LCore) (e error) {
+func Init(mainThreadLcore dpdk.LCore) (e error) {
 	if MainThread != nil && MainThread.IsRunning() { // already initialized
 		return nil
 	}
@@ -47,8 +47,8 @@ func Init(eal *dpdk.Eal, mainThreadLcore dpdk.LCore) (e error) {
 	return nil
 }
 
-func MustInit(eal *dpdk.Eal, mainThreadLcore dpdk.LCore) {
-	if e := Init(eal, mainThreadLcore); e != nil {
+func MustInit(mainThreadLcore dpdk.LCore) {
+	if e := Init(mainThreadLcore); e != nil {
 		panic(fmt.Sprintf("spdk.Init error %v", e))
 	}
 }

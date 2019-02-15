@@ -11,12 +11,50 @@ extern int go_lcoreLaunch(void*);
 */
 import "C"
 import (
+	"errors"
 	"fmt"
 	"unsafe"
 
 	"ndn-dpdk/core/dlopen"
 )
 
+var isEalInitialized = false
+
+var ErrEalInitialized = errors.New("EAL is already initialized")
+
+// Initialize DPDK Environment Abstraction Layer (EAL).
+func InitEal(args []string) (remainingArgs []string, e error) {
+	if isEalInitialized {
+		return nil, ErrEalInitialized
+	}
+
+	if e = dlopen.LoadDynLibs("/usr/local/lib/libdpdk.so"); e != nil {
+		return nil, e
+	}
+
+	a := NewCArgs(args)
+	defer a.Close()
+
+	res := int(C.rte_eal_init(C.int(a.Argc), (**C.char)(a.Argv)))
+	if res < 0 {
+		return nil, GetErrno()
+	}
+
+	isEalInitialized = true
+	return a.GetRemainingArgs(res), nil
+}
+
+// Initialize EAL, and panic if it fails.
+func MustInitEal(args []string) (remainingArgs []string) {
+	var e error
+	remainingArgs, e = InitEal(args)
+	if e != nil && e != ErrEalInitialized {
+		panic(e)
+	}
+	return remainingArgs
+}
+
+// Indicate a NUMA socket.
 type NumaSocket int
 
 const NUMA_SOCKET_ANY = NumaSocket(C.SOCKET_ID_ANY)
@@ -32,6 +70,7 @@ func (socket NumaSocket) String() string {
 	return fmt.Sprintf("%d", socket)
 }
 
+// Indicate state of LCore.
 type LCoreState int
 
 const (
@@ -52,27 +91,10 @@ func (s LCoreState) String() string {
 	return fmt.Sprintf("LCoreState(%d)", s)
 }
 
+// A logical core.
 type LCore uint
 
 const LCORE_INVALID = LCore(C.LCORE_ID_ANY)
-
-func GetCurrentLCore() LCore {
-	return LCore(C.rte_lcore_id())
-}
-
-func GetMasterLCore() LCore {
-	return LCore(C.rte_get_master_lcore())
-}
-
-// Prevent a function to be executed in slave lcore.
-func panicInSlave(funcName string) {
-	lc := GetCurrentLCore()
-	if lc.IsValid() && !lc.IsMaster() {
-		panic(fmt.Sprintf("%s is unavailable in slave lcore; current=%d master=%d",
-			funcName, lc, GetMasterLCore()))
-	}
-	// 'invalid' lcore is permitted, because Golang runtime could use another thread
-}
 
 func (lc LCore) IsValid() bool {
 	return lc != LCORE_INVALID
@@ -94,30 +116,12 @@ func (lc LCore) GetState() LCoreState {
 	return LCoreState(C.rte_eal_get_lcore_state(C.uint(lc)))
 }
 
-func ListNumaSocketsOfLCores(lcores []LCore) (a []NumaSocket) {
-	a = make([]NumaSocket, len(lcores))
-	for i, lcore := range lcores {
-		a[i] = lcore.GetNumaSocket()
-	}
-	return a
-}
-
-type LCoreFunc func() int
-
-var lcoreFuncs = make([]LCoreFunc, int(C.RTE_MAX_LCORE))
-
-//export go_lcoreLaunch
-func go_lcoreLaunch(lc unsafe.Pointer) C.int {
-	return C.int(lcoreFuncs[uintptr(lc)]())
-}
-
 // Asynchronously launch a function on an lcore.
 // Returns whether success.
-func (lc LCore) RemoteLaunch(f LCoreFunc) bool {
+func (lc LCore) RemoteLaunch(f func() int) bool {
 	panicInSlave("LCore.RemoteLaunch()")
 	lcoreFuncs[lc] = f
-	res := C.rte_eal_remote_launch((*C.lcore_function_t)(C.go_lcoreLaunch),
-		unsafe.Pointer(uintptr(lc)), C.uint(lc))
+	res := C.rte_eal_remote_launch((*C.lcore_function_t)(C.go_lcoreLaunch), nil, C.uint(lc))
 	return res == 0
 }
 
@@ -128,33 +132,42 @@ func (lc LCore) Wait() int {
 	return int(C.rte_eal_wait_lcore(C.uint(lc)))
 }
 
-type Eal struct {
-	Args   []string // remaining command-line arguments
-	Master LCore
-	Slaves []LCore
+var lcoreFuncs [C.RTE_MAX_LCORE]func() int
+
+//export go_lcoreLaunch
+func go_lcoreLaunch(ctx unsafe.Pointer) C.int {
+	return C.int(lcoreFuncs[C.rte_lcore_id()]())
 }
 
-// Initialize DPDK Environment Abstraction Layer (EAL).
-func NewEal(args []string) (eal *Eal, e error) {
-	if e = dlopen.LoadDynLibs("/usr/local/lib/libdpdk.so"); e != nil {
-		return nil, e
+// Prevent a function to be executed in slave lcore.
+func panicInSlave(funcName string) {
+	lc := GetCurrentLCore()
+	if lc.IsValid() && !lc.IsMaster() {
+		panic(fmt.Sprintf("%s is unavailable in slave lcore; current=%d master=%d",
+			funcName, lc, GetMasterLCore()))
 	}
-	eal = new(Eal)
+	// 'invalid' lcore is permitted, because Golang runtime could use another thread
+}
 
-	a := NewCArgs(args)
-	defer a.Close()
+func GetCurrentLCore() LCore {
+	return LCore(C.rte_lcore_id())
+}
 
-	res := int(C.rte_eal_init(C.int(a.Argc), (**C.char)(a.Argv)))
-	if res < 0 {
-		return nil, GetErrno()
-	}
-	eal.Args = a.GetRemainingArgs(res)
+func GetMasterLCore() LCore {
+	return LCore(C.rte_get_master_lcore())
+}
 
-	eal.Master = LCore(C.rte_get_master_lcore())
-
+func ListSlaveLCores() (list []LCore) {
 	for i := C.rte_get_next_lcore(C.RTE_MAX_LCORE, 1, 1); i < C.RTE_MAX_LCORE; i = C.rte_get_next_lcore(i, 1, 0) {
-		eal.Slaves = append(eal.Slaves, LCore(i))
+		list = append(list, LCore(i))
 	}
+	return list
+}
 
-	return eal, nil
+func ListNumaSocketsOfLCores(lcores []LCore) (a []NumaSocket) {
+	a = make([]NumaSocket, len(lcores))
+	for i, lcore := range lcores {
+		a[i] = lcore.GetNumaSocket()
+	}
+	return a
 }

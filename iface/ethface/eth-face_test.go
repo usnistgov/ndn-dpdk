@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"ndn-dpdk/dpdk"
 	"ndn-dpdk/dpdk/dpdktestenv"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/ethface"
@@ -65,7 +66,7 @@ func TestEthFace(t *testing.T) {
 	faceBm := portB.GetMulticastFace()
 	faceCA := portC.ListUnicastFaces()[0]
 
-	evn.LaunchBridge(dpdktestenv.Eal.Slaves[2])
+	evn.LaunchBridge(dpdk.ListSlaveLCores()[2])
 	time.Sleep(time.Second)
 
 	fixtureBA := ifacetestfixture.New(t, faceAB, faceBA)

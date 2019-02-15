@@ -2,15 +2,16 @@ package main
 
 import (
 	stdlog "log"
+	"os"
 	"time"
 
 	"ndn-dpdk/app/ndnping"
 	"ndn-dpdk/appinit"
+	"ndn-dpdk/dpdk"
 )
 
 func main() {
-	appinit.InitEal()
-	pc, e := parseCommand(appinit.Eal.Args[1:])
+	pc, e := parseCommand(dpdk.MustInitEal(os.Args)[1:])
 	if e != nil {
 		log.WithError(e).Fatal("command line error")
 	}

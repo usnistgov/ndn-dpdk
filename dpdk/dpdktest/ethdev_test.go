@@ -11,6 +11,7 @@ import (
 
 func TestEthDev(t *testing.T) {
 	assert, _ := makeAR(t)
+	slaves := dpdk.ListSlaveLCores()
 
 	edp := dpdktestenv.NewEthDevPair(1, 1024, 64)
 	rxq, txq := edp.RxqA[0], edp.TxqB[0]
@@ -27,7 +28,7 @@ func TestEthDev(t *testing.T) {
 	nReceived := 0
 	rxBurstSizeFreq := make(map[int]int)
 	rxQuit := make(chan bool)
-	dpdktestenv.Eal.Slaves[0].RemoteLaunch(func() int {
+	slaves[0].RemoteLaunch(func() int {
 		pkts := make([]dpdk.Packet, RX_BURST_SIZE)
 		for {
 			burstSize := rxq.RxBurst(pkts)
@@ -47,7 +48,7 @@ func TestEthDev(t *testing.T) {
 	})
 
 	txRetryFreq := make(map[int]int)
-	dpdktestenv.Eal.Slaves[1].RemoteLaunch(func() int {
+	slaves[1].RemoteLaunch(func() int {
 		for i := 0; i < TX_LOOPS; i++ {
 			var pkts [TX_BURST_SIZE]dpdk.Packet
 			dpdktestenv.AllocBulk(dpdktestenv.MPID_DIRECT, pkts[:])
@@ -70,10 +71,10 @@ func TestEthDev(t *testing.T) {
 		}
 		return 0
 	})
-	dpdktestenv.Eal.Slaves[1].Wait()
+	slaves[1].Wait()
 	time.Sleep(RX_FINISH_WAIT)
 	rxQuit <- true
-	dpdktestenv.Eal.Slaves[0].Wait()
+	slaves[0].Wait()
 
 	log.Println("portA.stats=", edp.PortA.GetStats())
 	log.Println("portB.stats=", edp.PortB.GetStats())

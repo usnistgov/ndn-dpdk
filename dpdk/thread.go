@@ -56,7 +56,7 @@ func (t *ThreadBase) GetNumaSocket() NumaSocket {
 	return t.lc.GetNumaSocket()
 }
 
-func (t *ThreadBase) LaunchImpl(f LCoreFunc) error {
+func (t *ThreadBase) LaunchImpl(f func() int) error {
 	t.MustHaveLCore()
 	if t.IsRunning() {
 		return fmt.Errorf("lcore %d is running", t.lc)
