@@ -111,28 +111,23 @@ type Task struct {
 
 func newTask(cfg TaskConfig, face iface.IFace) (task Task, e error) {
 	task.Face = face
-
 	if cfg.Client != nil {
-		client := newClient(task.Face, *cfg.Client)
-		task.Client = &client
+		task.Client = newClient(task.Face, *cfg.Client)
 	}
-
 	if cfg.Server != nil {
-		server := newServer(task.Face, *cfg.Server)
-		task.Server = &server
+		task.Server = newServer(task.Face, *cfg.Server)
 	}
-
 	return task, nil
 }
 
 func (task *Task) Launch() {
 	numaSocket := task.Face.GetNumaSocket()
 	if task.Server != nil {
-		appinit.MustLaunch(task.Server.Run, numaSocket)
+		appinit.MustLaunchThread(task.Server, numaSocket)
 	}
 	if task.Client != nil {
-		appinit.MustLaunch(task.Client.RunRx, numaSocket)
-		appinit.MustLaunch(task.Client.RunTx, numaSocket)
+		appinit.MustLaunchThread(task.Client, numaSocket)
+		appinit.MustLaunchThread(task.Client.Tx, numaSocket)
 	}
 }
 

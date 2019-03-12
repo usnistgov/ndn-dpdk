@@ -21,53 +21,109 @@ import (
 
 // Client internal config.
 const (
-	Client_BurstSize = 64
+	Client_BurstSize        = C.NDNPINGCLIENT_TX_BURST_SIZE
+	Client_InterestLifetime = 1000
 )
 
+// Client instance and RX thread.
 type Client struct {
-	c *C.NdnpingClient
+	dpdk.ThreadBase
+	c  *C.NdnpingClient
+	Tx *ClientTxThread
 }
 
-func newClient(face iface.IFace, cfg ClientConfig) (client Client) {
+func newClient(face iface.IFace, cfg ClientConfig) (client *Client) {
 	socket := face.GetNumaSocket()
-	client.c = (*C.NdnpingClient)(dpdk.Zmalloc("NdnpingClient", C.sizeof_NdnpingClient, socket))
-	client.c.face = (C.FaceId)(face.GetFaceId())
-	client.c.interestInterval = C.float(float64(cfg.Interval) / float64(time.Millisecond))
+	clientC := (*C.NdnpingClient)(dpdk.Zmalloc("NdnpingClient", C.sizeof_NdnpingClient, socket))
+	clientC.face = (C.FaceId)(face.GetFaceId())
 
-	client.c.interestMp = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
+	clientC.interestMbufHeadroom = C.uint16_t(appinit.SizeofEthLpHeaders() + ndn.EncodeInterest_GetHeadroom())
+	clientC.interestLifetime = C.uint16_t(Client_InterestLifetime)
+	clientC.interestMp = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
 		appinit.MP_INT, socket).GetPtr())
-	client.c.interestMbufHeadroom = C.uint16_t(appinit.SizeofEthLpHeaders() + ndn.EncodeInterest_GetHeadroom())
 
-	C.NdnpingClient_Init(client.c)
+	C.NdnpingClient_Init(clientC)
+	client = new(Client)
+	client.c = clientC
+	client.ResetThreadBase()
+	dpdk.InitStopFlag(unsafe.Pointer(&clientC.rxStop))
+	client.Tx = new(ClientTxThread)
+	client.Tx.c = clientC
+	client.Tx.ResetThreadBase()
+	dpdk.InitStopFlag(unsafe.Pointer(&clientC.txStop))
+
+	patterns := client.getPatterns()
 	for _, patternCfg := range cfg.Patterns {
-		client.getPatterns().InsertWithZeroUsr(patternCfg.Prefix, int(C.sizeof_NdnpingClientPattern))
+		patterns.InsertWithZeroUsr(patternCfg.Prefix, int(C.sizeof_NdnpingClientPattern))
 	}
 
+	client.SetInterval(cfg.Interval)
 	return client
 }
 
-func (client Client) Close() error {
+func (client *Client) GetFace() iface.IFace {
+	return iface.Get(iface.FaceId(client.c.face))
+}
+
+func (client *Client) getPatterns() nameset.NameSet {
+	return nameset.FromPtr(unsafe.Pointer(&client.c.patterns))
+}
+
+// Get average Interest interval.
+func (client *Client) GetInterval() time.Duration {
+	return dpdk.FromTscDuration(int64(client.c.burstInterval)) / Client_BurstSize
+}
+
+// Set average Interest interval.
+// TX thread transmits Interests in bursts, so the specified interval will be converted to
+// a burst interval with equivalent traffic amount.
+func (client *Client) SetInterval(interval time.Duration) {
+	client.c.burstInterval = C.TscDuration(dpdk.ToTscDuration(interval * Client_BurstSize))
+}
+
+// Launch the RX thread.
+func (client *Client) Launch() error {
+	return client.LaunchImpl(func() int {
+		C.NdnpingClient_RunRx(client.c)
+		return 0
+	})
+}
+
+// Stop the RX thread.
+func (client *Client) Stop() error {
+	return client.StopImpl(dpdk.NewStopFlag(unsafe.Pointer(&client.c.rxStop)))
+}
+
+// Close the client.
+// Both RX and TX threads must be stopped before calling this.
+func (client *Client) Close() error {
 	client.getPatterns().Close()
 	dpdk.Free(client.c)
 	return nil
 }
 
-func (client Client) GetFace() iface.IFace {
-	return iface.Get(iface.FaceId(client.c.face))
+// Client TX thread.
+type ClientTxThread struct {
+	dpdk.ThreadBase
+	c *C.NdnpingClient
 }
 
-func (client Client) getPatterns() nameset.NameSet {
-	return nameset.FromPtr(unsafe.Pointer(&client.c.patterns))
+// Launch the TX thread.
+func (tx *ClientTxThread) Launch() error {
+	return tx.LaunchImpl(func() int {
+		C.NdnpingClient_RunTx(tx.c)
+		return 0
+	})
 }
 
-func (client Client) RunTx() int {
-	C.NdnpingClient_RunTx(client.c)
-	return 0
+// Stop the TX thread.
+func (tx *ClientTxThread) Stop() error {
+	return tx.StopImpl(dpdk.NewStopFlag(unsafe.Pointer(&tx.c.txStop)))
 }
 
-func (client Client) RunRx() int {
-	C.NdnpingClient_RunRx(client.c)
-	return 0
+// No-op.
+func (tx *ClientTxThread) Close() error {
+	return nil
 }
 
 type ClientPatternCounters struct {

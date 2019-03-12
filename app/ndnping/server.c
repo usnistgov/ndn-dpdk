@@ -5,8 +5,6 @@
 
 INIT_ZF_LOG(NdnpingServer);
 
-#define NDNPINGSERVER_BURST_SIZE 64
-
 static uint8_t NdnpingServer_payloadV[NDNPINGSERVER_PAYLOAD_MAX];
 
 static Packet*
@@ -73,7 +71,7 @@ NdnpingServer_Run(NdnpingServer* server)
   Packet* rx[burstSize];
   Packet* tx[burstSize];
 
-  while (true) {
+  while (ThreadStopFlag_ShouldContinue(&server->stop)) {
     uint16_t nRx =
       rte_ring_sc_dequeue_bulk(server->rxQueue, (void**)rx, burstSize, NULL);
     uint16_t nTx = 0;

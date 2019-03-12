@@ -17,44 +17,44 @@ import (
 
 // Server internal config.
 const (
-	Server_BurstSize       = 64
+	Server_BurstSize       = C.NDNPINGSERVER_BURST_SIZE
 	Server_FreshnessPeriod = 60000
 )
 
+// Server instance and thread.
 type Server struct {
+	dpdk.ThreadBase
 	c *C.NdnpingServer
 }
 
-func newServer(face iface.IFace, cfg ServerConfig) (server Server) {
+func newServer(face iface.IFace, cfg ServerConfig) (server *Server) {
 	socket := face.GetNumaSocket()
-	server.c = (*C.NdnpingServer)(dpdk.Zmalloc("NdnpingServer", C.sizeof_NdnpingServer, socket))
-	server.c.face = (C.FaceId)(face.GetFaceId())
-	server.c.freshnessPeriod = C.uint32_t(Server_FreshnessPeriod)
+	serverC := (*C.NdnpingServer)(dpdk.Zmalloc("NdnpingServer", C.sizeof_NdnpingServer, socket))
+	serverC.face = (C.FaceId)(face.GetFaceId())
+	serverC.freshnessPeriod = C.uint32_t(Server_FreshnessPeriod)
 
-	server.c.dataMp = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
+	serverC.dataMp = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
 		appinit.MP_DATA, socket).GetPtr())
-	server.c.dataMbufHeadroom = C.uint16_t(appinit.SizeofEthLpHeaders() + ndn.EncodeData_GetHeadroom())
+	serverC.dataMbufHeadroom = C.uint16_t(appinit.SizeofEthLpHeaders() + ndn.EncodeData_GetHeadroom())
+
+	server = new(Server)
+	server.c = serverC
+	server.ResetThreadBase()
+	dpdk.InitStopFlag(unsafe.Pointer(&serverC.stop))
 
 	for _, patternCfg := range cfg.Patterns {
 		server.addPattern(patternCfg)
 	}
-
-	server.c.wantNackNoRoute = C.bool(cfg.Nack)
+	serverC.wantNackNoRoute = C.bool(cfg.Nack)
 
 	return server
 }
 
-func (server Server) Close() error {
-	server.getPatterns().Close()
-	dpdk.Free(server.c)
-	return nil
-}
-
-func (server Server) getPatterns() nameset.NameSet {
+func (server *Server) getPatterns() nameset.NameSet {
 	return nameset.FromPtr(unsafe.Pointer(&server.c.patterns))
 }
 
-func (server Server) addPattern(cfg ServerPattern) {
+func (server *Server) addPattern(cfg ServerPattern) {
 	suffixL := 0
 	if cfg.Suffix != nil {
 		suffixL = cfg.Suffix.Size()
@@ -73,9 +73,25 @@ func (server Server) addPattern(cfg ServerPattern) {
 	}
 }
 
-func (server Server) Run() int {
-	C.NdnpingServer_Run(server.c)
-	return 0
+// Launch the thread.
+func (server *Server) Launch() error {
+	return server.LaunchImpl(func() int {
+		C.NdnpingServer_Run(server.c)
+		return 0
+	})
+}
+
+// Stop the thread.
+func (server *Server) Stop() error {
+	return server.StopImpl(dpdk.NewStopFlag(unsafe.Pointer(&server.c.stop)))
+}
+
+// Close the server.
+// The thread must be stopped before calling this.
+func (server *Server) Close() error {
+	server.getPatterns().Close()
+	dpdk.Free(server.c)
+	return nil
 }
 
 type ServerPatternCounters struct {
@@ -101,7 +117,7 @@ func (cnt ServerCounters) String() string {
 	return s
 }
 
-func (server Server) ReadCounters() (cnt ServerCounters) {
+func (server *Server) ReadCounters() (cnt ServerCounters) {
 	patterns := server.getPatterns()
 	cnt.PerPattern = make([]ServerPatternCounters, patterns.Len())
 	for i := 0; i < len(cnt.PerPattern); i++ {

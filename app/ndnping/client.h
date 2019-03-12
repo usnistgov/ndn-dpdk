@@ -5,9 +5,12 @@
 
 #include "../../container/nameset/nameset.h"
 #include "../../core/running_stat/running-stat.h"
+#include "../../dpdk/thread.h"
 #include "../../dpdk/tsc.h"
 #include "../../iface/face.h"
 #include "../../ndn/encode-interest.h"
+
+#define NDNPINGCLIENT_TX_BURST_SIZE 64
 
 /** \brief Per-pattern information in ndnping client.
  */
@@ -28,10 +31,14 @@ typedef struct NdnpingClient
   struct rte_ring* rxQueue;
   FaceId face;
 
+  ThreadStopFlag txStop;
+  ThreadStopFlag rxStop;
+
+  uint16_t interestMbufHeadroom;
+  uint16_t interestLifetime;
   NameSet patterns;
   struct rte_mempool* interestMp; ///< mempool for Interests
-  uint16_t interestMbufHeadroom;
-  float interestInterval; ///< average interval between two Interests (millis)
+  TscDuration burstInterval;      ///< interval between two bursts
 
   // counters:
   uint64_t nAllocError;
@@ -40,7 +47,7 @@ typedef struct NdnpingClient
   InterestTemplate interestTpl;
   struct
   {
-    char _padding[6];
+    char _padding[6]; // make compV aligned
     uint8_t compT;
     uint8_t compL;
     uint64_t compV; ///< sequence number in native endianness
@@ -54,8 +61,6 @@ typedef struct NdnpingClient
  *  \pre Basic config fields are initialized.
  */
 void NdnpingClient_Init(NdnpingClient* client);
-
-void NdnpingClient_Close(NdnpingClient* client);
 
 void NdnpingClient_RunTx(NdnpingClient* client);
 

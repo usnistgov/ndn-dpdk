@@ -7,13 +7,9 @@
 
 INIT_ZF_LOG(NdnpingClient);
 
-#define NDNPINGCLIENT_TX_BURST_SIZE 64
-#define NDNPINGCLIENT_INTEREST_LIFETIME 1000
-
 void
 NdnpingClient_Init(NdnpingClient* client)
 {
-  static_assert(sizeof(client->suffixComponent) == 16, "");
   client->suffixComponent.compT = TT_GenericNameComponent;
   client->suffixComponent.compL = 8;
   client->suffixComponent.compV = rte_rand();
@@ -22,7 +18,7 @@ NdnpingClient_Init(NdnpingClient* client)
   client->interestTpl.mustBeFresh = true;
   client->interestTpl.fhL = 0;
   client->interestTpl.fhV = NULL;
-  client->interestTpl.lifetime = NDNPINGCLIENT_INTEREST_LIFETIME;
+  client->interestTpl.lifetime = client->interestLifetime;
   client->interestTpl.hopLimit = 255;
 
   uint16_t res = InterestTemplate_Prepare(
@@ -30,11 +26,6 @@ NdnpingClient_Init(NdnpingClient* client)
     sizeof(client->interestPrepareBuffer));
   assert(res == 0);
   NonceGen_Init(&client->nonceGen);
-}
-
-void
-NdnpingClient_Close(NdnpingClient* client)
-{
 }
 
 static uint8_t
@@ -87,21 +78,14 @@ NdnpingClient_TxBurst(NdnpingClient* client)
 void
 NdnpingClient_RunTx(NdnpingClient* client)
 {
-  uint64_t tscHz = rte_get_tsc_hz();
-  uint64_t txBurstInterval =
-    client->interestInterval / 1000.0 * tscHz * NDNPINGCLIENT_TX_BURST_SIZE;
-  ZF_LOGI("face=%" PRI_FaceId " client=%p "
-          "tx-burst-interval=%" PRIu64 " @%" PRIu64 "Hz",
-          client->face, client, txBurstInterval, tscHz);
-
-  uint64_t nextTxBurst = rte_get_tsc_cycles();
-  while (true) {
+  TscTime nextTxBurst = rte_get_tsc_cycles();
+  while (ThreadStopFlag_ShouldContinue(&client->txStop)) {
     if (rte_get_tsc_cycles() < nextTxBurst) {
       rte_pause();
       continue;
     }
     NdnpingClient_TxBurst(client);
-    nextTxBurst += txBurstInterval;
+    nextTxBurst += client->burstInterval;
   }
 }
 
@@ -174,7 +158,7 @@ NdnpingClient_RunRx(NdnpingClient* client)
   const int burstSize = 64;
   Packet* rx[burstSize];
 
-  while (true) {
+  while (ThreadStopFlag_ShouldContinue(&client->rxStop)) {
     uint16_t nRx =
       rte_ring_sc_dequeue_bulk(client->rxQueue, (void**)rx, burstSize, NULL);
     uint64_t now = Ndnping_Now();

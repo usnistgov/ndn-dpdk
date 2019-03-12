@@ -4,8 +4,10 @@
 /// \file
 
 #include "../../container/nameset/nameset.h"
+#include "../../dpdk/thread.h"
 #include "../../iface/face.h"
 
+#define NDNPINGSERVER_BURST_SIZE 64
 #define NDNPINGSERVER_PAYLOAD_MAX 65536
 
 /** \brief Per-pattern information in ndnping server.
@@ -25,14 +27,15 @@ typedef struct NdnpingServerPattern
 typedef struct NdnpingServer
 {
   struct rte_ring* rxQueue;
-  FaceId face;
-
-  NameSet patterns;     ///< served prefixes
-  bool wantNackNoRoute; ///< whether to Nack unserved Interests
-  uint32_t freshnessPeriod;
-
   struct rte_mempool* dataMp; ///< mempool for Data
   uint16_t dataMbufHeadroom;
+  FaceId face;
+
+  uint32_t freshnessPeriod;
+  NameSet patterns;     ///< served prefixes
+  bool wantNackNoRoute; ///< whether to Nack unserved Interests
+
+  ThreadStopFlag stop;
 
   uint64_t nNoMatch;
   uint64_t nAllocError;

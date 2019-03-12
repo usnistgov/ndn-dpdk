@@ -4,17 +4,6 @@ import (
 	"ndn-dpdk/dpdk"
 )
 
-// Asynchronously launch a function on an lcore in specified NumaSocket.
-// Fatal error if no lcore available or other failure.
-func MustLaunch(f func() int, socket dpdk.NumaSocket) dpdk.LCore {
-	lc := NewLCoreReservations().Reserve(socket)
-	ok := lc.RemoteLaunch(f)
-	if !ok {
-		log.WithFields(makeLogFields("lcore", lc, "socket", socket)).Fatal("lcore launch failed")
-	}
-	return lc
-}
-
 // Reserve lcores for launching later.
 // The same LCoreReservations instance must be for reserving multiple lcores,
 // and no other launching is allowed during reservation process.
