@@ -1,57 +1,16 @@
 import ndn = require("ndn-js");
 import * as net from "net";
 
-import { AppConn, FwConn } from "./conn";
+import { AppConn } from "./app-conn";
+import { FwConn } from "./fw-conn";
 import { Packet, PktType } from "./packet";
+import { PendingInterest } from "./pending-interest";
+import { PendingInterestList } from "./pending-interest-list";
 
-class PendingInterest {
-  public name: ndn.Name;
-  public expiry: Date;
-  public pitToken?: string;
-
-  constructor(interest: ndn.Interest, pitToken?: string) {
-    this.name = interest.getName();
-    const lifetime = interest.getInterestLifetimeMilliseconds() || 4000;
-    this.expiry = new Date(new Date().getTime() + lifetime);
-    this.pitToken = pitToken;
-  }
-}
-
-class PendingInterestList {
-  public get length() { return this.list.length; }
-  private list: PendingInterest[];
-
-  constructor() {
-    this.list = [];
-  }
-
-  public insert(pi: PendingInterest): void {
-    this.cleanup();
-    this.list.push(pi);
-  }
-
-  public find(name: ndn.Name): PendingInterest|undefined {
-    this.cleanup();
-    for (let i = 0; i < this.length; ++i) {
-      const pi = this.list[i];
-      if (pi.name.isPrefixOf(name)) {
-        this.list.splice(i, 1);
-      }
-      return pi;
-    }
-    return undefined;
-  }
-
-  private cleanup(): void {
-    const now = new Date();
-    while (this.length && this.list[0].expiry < now) {
-      this.list.shift();
-    }
-  }
-}
+const ndnjs = ndn as any;
 
 const keyChain = new ndn.KeyChain("pib-memory:", "tpm-memory:");
-const signingInfo = new ndn.SigningInfo(ndn.SigningInfo.SignerType.SHA256);
+const signingInfo = new ndnjs.SigningInfo(ndnjs.SigningInfo.SignerType.SHA256);
 const ribRegisterPrefix = new ndn.Name("/localhost/nfd/rib/register");
 
 export class Transfer {
@@ -62,14 +21,16 @@ export class Transfer {
 
   constructor(appSocket: net.Socket) {
     this.pil = new PendingInterestList();
-
     this.fc = new FwConn();
+    this.ac = new AppConn(appSocket);
+  }
+
+  public begin(): void {
     this.fc.on("connected", () => {
       this.log(">", "CONNECTED");
     });
     this.fc.on("packet", (pkt: Packet) => { this.handleFwPacket(pkt); });
 
-    this.ac = new AppConn(appSocket);
     this.ac.on("close", () => {
       this.log("<", "CLOSE");
       this.fc.close();
@@ -78,13 +39,14 @@ export class Transfer {
   }
 
   private log(direction: string, name: string, pitToken: string = ""): void {
+    // tslint:disable-next-line no-console
     console.log("%d %s%s %s", this.id, direction, name, pitToken);
   }
 
   private handleFwPacket(pkt: Packet): void {
     this.log(">", pkt.toString(), pkt.pitToken);
     if (pkt.type === PktType.Interest) {
-      this.pil.insert(new PendingInterest(pkt.interest, pkt.pitToken));
+      this.pil.insert(new PendingInterest(pkt.interest!, pkt.pitToken));
     }
     this.ac.send(pkt.wireEncode(false));
   }
@@ -92,14 +54,14 @@ export class Transfer {
   private handleAppPacket(pkt: Packet): void {
     switch (pkt.type) {
       case PktType.Interest:
-        if (ribRegisterPrefix.isPrefixOf(pkt.interest.getName())) {
-          this.handleAppPrefixReg(pkt.interest);
+        if (ribRegisterPrefix.match(pkt.interest!.getName())) {
+          this.handleAppPrefixReg(pkt.interest!);
           return;
         }
         break;
       case PktType.Data:
       case PktType.Nack:
-        const pi = this.pil.find(pkt.name);
+        const pi = this.pil.find(pkt.name!);
         if (pi) {
           pkt.pitToken = pi.pitToken;
         }
@@ -110,14 +72,14 @@ export class Transfer {
   }
 
   private handleAppPrefixReg(interest: ndn.Interest): void {
-    const cp = new ndn.ControlParameters();
-    cp.wireDecode(interest.getName().getComponent(ribRegisterPrefix.size()));
+    const cp = new ndnjs.ControlParameters();
+    cp.wireDecode(interest.getName().get(ribRegisterPrefix.size()));
     this.log("<R ", cp.getName().toUri());
     this.fc.registerPrefix(cp.getName(), (ok: boolean) => {
-      const cr = new ndn.ControlResponse();
+      const cr = new ndnjs.ControlResponse();
       if (ok) {
         this.log(">R ", cp.getName().toUri());
-        const flags = new ndn.ForwardingFlags();
+        const flags = new ndnjs.ForwardingFlags();
         flags.setChildInherit(false);
         flags.setCapture(true);
         cr.setStatusCode(200).setStatusText("OK");

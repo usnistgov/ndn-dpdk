@@ -9,5 +9,5 @@ if (fs.existsSync(listenerPath)) {
 }
 
 const server = new net.Server();
-server.on("connection", (socket: net.Socket) => { new Transfer(socket); });
+server.on("connection", (socket: net.Socket) => { new Transfer(socket).begin(); });
 server.listen(listenerPath);

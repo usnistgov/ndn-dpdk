@@ -2,3 +2,4 @@ _obj
 build
 cgoflags.go
 cgostruct.go
+node_modules

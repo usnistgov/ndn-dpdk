@@ -10,7 +10,7 @@ rm $OUTDIR/*
   echo '<h1>ndn-dpdk codedoc</h1>'
   echo '<ul>'
 
-  for PKG in $(find -mindepth 2 -type f \( -name '*.go' -o -name '*.md' \) -printf '%h\n' | sort -u); do
+  for PKG in $(find -mindepth 2 -type f \( -name '*.go' -o -name '*.md' \) -printf '%h\n' | grep -v node_modules | sort -u); do
     PKGNAME=$(echo $PKG | sed 's|^\./|ndn-dpdk/|')
     PREFIX=$(echo $PKG | sed -e 's|^\./||' -e 's|/|\.|g')
     echo '<li><b>'$PKGNAME'</b>'

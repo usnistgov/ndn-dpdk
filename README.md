@@ -12,7 +12,7 @@ Requirements:
 * DPDK 19.02 shared libraries installed to `/usr/local`; including OpenSSL PMD
 * SPDK 19.01 shared libraries installed to `/usr/local`
 * [ubpf](https://github.com/iovisor/ubpf/tree/10e0a45b11ea27696add38c33e24dbc631caffb6) library, installed to `/usr/local/include/ubpf.h` and `/usr/local/lib/libubpf.a`
-* NodeJS 11.x and `sudo npm install -g jayson tslint typescript`
+* Node.js 11.x and `sudo npm install -g jayson`
 * Note: see [Dockerfile](./Dockerfile) on how to install dependencies.
 
 Build steps:
@@ -20,8 +20,10 @@ Build steps:
 1. Clone repository into `$GOPATH/src/ndn-dpdk`.
 2. Execute `make godeps` to compile C code and generate certain Go source files.
 3. Execute `go get -d -t ./...` to download Go dependencies.
-4. Execute `make cmds` to compile and install commands.
+4. Execute `make cmds` to compile and install Go commands.
    They are in `$GOPATH/bin`, `./build/*.sh`, and `./cmd/nfdemu/build`.
+5. Execute `npm install` to download NPM dependencies.
+6. Execute `npm run build` to build TypeScript modules and commands.
 
 Other build targets and commands:
 

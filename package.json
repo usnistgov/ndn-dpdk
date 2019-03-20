@@ -1,0 +1,17 @@
+{
+  "dependencies": {
+    "jayson": "^2.1.2",
+    "ndn-js": "0.18.0",
+    "node-noop": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/ndn-js": "7th-ndn-hackathon/types-ndnjs",
+    "tslint": "^5.14.0",
+    "typescript": "^3.3.4000"
+  },
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "lint": "find . -path ./node_modules -prune -o \\( -name '*.ts' \\) -print | xargs tslint --fix || true"
+  }
+}

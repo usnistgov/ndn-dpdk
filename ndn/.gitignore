@@ -2,3 +2,4 @@ error.go
 error.h
 tlv-type.go
 tlv-type.h
+tlv-type.ts

@@ -39,3 +39,10 @@ cd "$( dirname "${BASH_SOURCE[0]}" )"
   echo '  return fmt.Sprintf("%d", tt)'
   echo '}'
 ) | gofmt > tlv-type.go
+
+
+(
+  echo 'export enum TT {'
+  awk  'NF==2 { print "  " $1 " = 0x" $2 "," }' tlv-type.tsv
+  echo '}'
+) > tlv-type.ts

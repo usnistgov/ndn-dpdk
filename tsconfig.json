@@ -6,6 +6,7 @@
     "noImplicitReturns": true,
     "noUnusedLocals": true,
     "outDir": "build",
+    "removeComments": true,
     "strict": true,
     "target": "es2017"
   },

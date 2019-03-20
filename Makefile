@@ -156,7 +156,7 @@ app/fwdp/cgoflags.go: container/ndt/cgoflags.go container/fib/cgoflags.go contai
 app/version/version.go:
 	app/version/make-version.sh
 
-cmds: cmd-ndnfw-dpdk cmd-ndnping-dpdk mgmtclient nfdemu
+cmds: cmd-ndnfw-dpdk cmd-ndnping-dpdk mgmtclient
 
 cmd-%: cmd/%/* godeps
 	go install ./cmd/$*
@@ -169,15 +169,6 @@ mgmtclient: cmd/mgmtclient/*
 	cd build && rm -f mgmt*.sh
 	cd cmd/mgmtclient && cp mgmt*.sh ../../build/
 	chmod +x build/mgmt*.sh
-
-cmd/nfdemu/node_modules/.installed: cmd/nfdemu/package*.json
-	cd cmd/nfdemu && npm install && touch node_modules/.installed
-
-cmd/nfdemu/tlv-type.ts: ndn/tlv-type.tsv
-	cmd/nfdemu/make-tlv-type.sh
-
-nfdemu: cmd/nfdemu/node_modules/.installed cmd/nfdemu/tlv-type.ts cmd/nfdemu/*.ts
-	cd cmd/nfdemu && tsc
 
 test: godeps
 	./gotest.sh

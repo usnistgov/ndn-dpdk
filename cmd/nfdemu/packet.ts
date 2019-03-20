@@ -4,7 +4,7 @@ import { TlvDecoder } from "ndn-js/js/encoding/tlv/tlv-decoder.js";
 import { TlvEncoder } from "ndn-js/js/encoding/tlv/tlv-encoder.js";
 import { Tlv } from "ndn-js/js/encoding/tlv/tlv.js";
 
-import { TT } from "./tlv-type";
+import { TT } from "../../ndn/tlv-type";
 
 export enum PktType {
   None = 0,
@@ -19,10 +19,10 @@ export class Packet {
   public type: PktType = PktType.None;
   public pitToken?: string;
 
-  public name: ndn.Name;
-  public interest: ndn.Interest;
-  public data: ndn.Data;
-  public nack: ndn.NetworkNack;
+  public name?: ndn.Name;
+  public interest?: ndn.Interest;
+  public data?: ndn.Data;
+  public nack?: ndn.NetworkNack;
 
   constructor(buf: Buffer) {
     this.buf = Buffer.from(buf);
@@ -36,7 +36,7 @@ export class Packet {
     e.writeBlobTlv(TT.LpPayload, this.netPkt);
     if (this.type === PktType.Nack) {
       const len1 = e.getLength();
-      e.writeNonNegativeIntegerTlv(TT.NackReason, this.nack.getReason());
+      e.writeNonNegativeIntegerTlv(TT.NackReason, this.nack!.getReason());
       e.writeTypeAndLength(TT.Nack, e.getLength() - len1);
     }
     if (wantPitToken && this.pitToken) {
@@ -49,11 +49,11 @@ export class Packet {
   public toString(): string {
     switch (this.type) {
       case PktType.Interest:
-        return "I " + this.interest.getName().toUri();
+        return "I " + this.interest!.getName().toUri();
       case PktType.Data:
-        return "D " + this.data.getName().toUri();
+        return "D " + this.data!.getName().toUri();
       case PktType.Nack:
-        return "N " + this.interest.getName().toUri() + "~" + this.nack.getReason();
+        return "N " + this.interest!.getName().toUri() + "~" + this.nack!.getReason();
     }
     return "X";
   }
@@ -104,7 +104,7 @@ export class Packet {
           this.nack = new ndn.NetworkNack();
           const code = d.readOptionalNonNegativeIntegerTlv(TT.NackReason, tlvValueEnd);
           if (code > 0) {
-            this.nack.setReason(code);
+            (this.nack as any).setReason(code);
             this.type = PktType.Nack;
           }
           break;
@@ -113,9 +113,11 @@ export class Packet {
           this.parsePacket(true);
           break;
         default:
+          // tslint:disable-next-line no-bitwise
+          const lastBit = tlvType & 0x01;
           const canIgnore = tlvType >= Tlv.LpPacket_IGNORE_MIN &&
-                          tlvType <= Tlv.LpPacket_IGNORE_MAX &&
-                          (tlvType & 0x01) === 1;
+                            tlvType <= Tlv.LpPacket_IGNORE_MAX &&
+                            lastBit === 1;
           if (!canIgnore) {
             throw new DecodingException();
           }
