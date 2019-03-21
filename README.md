@@ -32,7 +32,7 @@ Other build targets and commands:
 * Execute `make docs` to build documentation.
   You may omit `doxygen pandoc` dependencies if this is not needed.
 * Execute `./format-code.sh` to fix code style before committing.
-  You may omit `clang-format-3.9 yamllint tslint` dependencies if this is not needed.
+  You may omit `clang-format-3.9 yamllint` dependencies if this is not needed.
 * Prepend `RELEASE=1` to all `make` commands to select release mode that disables asserts and verbose logging.
 * Note: you cannot use `go get` installation due to dependency between C code.
 
