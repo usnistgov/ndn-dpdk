@@ -14,14 +14,14 @@ getTestPkg() {
 if [[ $# -eq 0 ]]; then
   # run all tests
 
-  find -name '*_test.go' -printf '%h\n' | uniq | xargs -I{} sudo $(which go) test {} -count=1
+  find -name '*_test.go' -printf '%h\n' | uniq | xargs -I{} sudo -E $(which go) test {} -count=1
 
 elif [[ $# -eq 1 ]]; then
   # run tests in one package
   PKG=${1%/}
   TESTPKG=$(getTestPkg $PKG)
 
-  sudo $(which go) test -cover -covermode count -coverpkg ./$PKG -coverprofile /tmp/gotest.cover ./$TESTPKG -v
+  sudo -E $(which go) test -cover -covermode count -coverpkg ./$PKG -coverprofile /tmp/gotest.cover ./$TESTPKG -v
   go tool cover -html /tmp/gotest.cover -o /tmp/gotest.cover.html
 
 elif [[ $# -eq 2 ]]; then
@@ -30,7 +30,7 @@ elif [[ $# -eq 2 ]]; then
   TESTPKG=$(getTestPkg $PKG)
   TEST=$2
 
-  sudo GODEBUG=cgocheck=2 $DBG $(which go) test ./$TESTPKG -count=1 -v -run 'Test'$TEST'.*'
+  sudo -E GODEBUG=cgocheck=2 $DBG $(which go) test ./$TESTPKG -count=1 -v -run 'Test'$TEST'.*'
 
 elif [[ $# -eq 3 ]]; then
   # run one test with debug tool
@@ -47,7 +47,7 @@ elif [[ $# -eq 3 ]]; then
   fi
 
   go test -c ./$TESTPKG -o /tmp/gotest.exe
-  sudo $DBG /tmp/gotest.exe -test.v -test.run 'Test'$TEST'.*'
+  sudo -E $DBG /tmp/gotest.exe -test.v -test.run 'Test'$TEST'.*'
 else
   echo 'USAGE: ./gotest.sh [debug-tool] [directory] [test-name]' >/dev/stderr
   exit 1

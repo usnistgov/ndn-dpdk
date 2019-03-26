@@ -79,3 +79,7 @@ func (bdi BdevInfo) GetBlockSize() int {
 func (bdi BdevInfo) CountBlocks() int {
 	return int(C.spdk_bdev_get_num_blocks(bdi.c))
 }
+
+func (bdi BdevInfo) IsNvme() bool {
+	return bool(C.spdk_bdev_io_type_supported(bdi.c, C.SPDK_BDEV_IO_TYPE_NVME_ADMIN))
+}

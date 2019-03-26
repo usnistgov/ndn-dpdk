@@ -263,3 +263,8 @@ func (port EthDev) GetStats() (es EthStats) {
 func (port EthDev) ResetStats() {
 	C.rte_eth_stats_reset(C.uint16_t(port))
 }
+
+func (es EthStats) String() string {
+	return fmt.Sprintf("RX %d pkts, %d bytes, %d missed, %d errors, %d nombuf; TX %d pkts, %d bytes, %d errors",
+		es.Ipackets, es.Ibytes, es.Imissed, es.Ierrors, es.Rx_nombuf, es.Opackets, es.Obytes, es.Oerrors)
+}

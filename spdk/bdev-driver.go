@@ -7,6 +7,8 @@ import "C"
 import (
 	"fmt"
 	"sync"
+
+	"ndn-dpdk/dpdk"
 )
 
 var initCopyEngineOnce sync.Once
@@ -79,4 +81,42 @@ func DestroyAioBdev(bdi BdevInfo) (e error) {
 	args.Name = bdi.GetName()
 	var ok bool
 	return RpcCall("delete_aio_bdev", args, &ok)
+}
+
+func makeNvmeName(pciAddr dpdk.PciAddress) string {
+	return fmt.Sprintf("nvme%02x%02x%01x", pciAddr.Bus, pciAddr.Devid, pciAddr.Function)
+}
+
+type constructNvmeBdevArgs struct {
+	Name   string `json:"name"`
+	TrType string `json:"trtype"`
+	TrAddr string `json:"traddr"`
+}
+
+func AttachNvmeBdevs(pciAddr dpdk.PciAddress) (bdis []BdevInfo, e error) {
+	var args constructNvmeBdevArgs
+	args.Name = makeNvmeName(pciAddr)
+	args.TrType = "pcie"
+	args.TrAddr = pciAddr.String()
+
+	var namespaces []string
+	if e = RpcCall("construct_nvme_bdev", args, &namespaces); e != nil {
+		return nil, e
+	}
+
+	for _, namespace := range namespaces {
+		bdis = append(bdis, mustFindBdev(namespace))
+	}
+	return bdis, nil
+}
+
+type deleteNvmeControllerArgs struct {
+	Name string `json:"name"`
+}
+
+func DetachNvmeBdevs(pciAddr dpdk.PciAddress) (e error) {
+	var args deleteNvmeControllerArgs
+	args.Name = makeNvmeName(pciAddr)
+	var ok bool
+	return RpcCall("delete_nvme_controller", args, &ok)
 }

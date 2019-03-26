@@ -2,6 +2,7 @@ package spdk_test
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -81,5 +82,31 @@ func TestAioBdev(t *testing.T) {
 	testBdev(t, bdi)
 
 	e = spdk.DestroyAioBdev(bdi)
+	assert.NoError(e)
+}
+
+func TestNvmeBdev(t *testing.T) {
+	spdk.InitBdevLib()
+	assert, require := makeAR(t)
+
+	nvmes, e := spdk.ListNvmes()
+	require.NoError(e)
+	if len(nvmes) == 0 {
+		fmt.Println("skipping TestNvmeBdev: no NVMe drive available; rerun test suite with DPDKTESTENV_PCI=1 environ?")
+		return
+	}
+
+	pciAddr := nvmes[0]
+	fmt.Printf("%d NVMe drives available (%v), testing on %s\n", len(nvmes), nvmes, pciAddr)
+
+	bdis, e := spdk.AttachNvmeBdevs(pciAddr)
+	require.NoError(e)
+	require.True(len(bdis) > 0)
+
+	bdi := bdis[0]
+	assert.True(bdi.IsNvme())
+	// testBdev(t, bdi)
+
+	e = spdk.DetachNvmeBdevs(pciAddr)
 	assert.NoError(e)
 }
