@@ -2,15 +2,13 @@
 
 static const size_t SPDK_BDEV_FILLER_LEN = 65536;
 static const size_t SPDK_BDEV_FILLER_MAX = 16;
-static rte_iova_t SpdkBdev_Filler = 0;
+static void* SpdkBdev_Filler = 0;
 
 void
 SpdkBdev_InitFiller()
 {
-  void* ptr = rte_malloc("SpdkBdevFiller", SPDK_BDEV_FILLER_LEN, 0);
-  assert(ptr != NULL);
-  SpdkBdev_Filler = rte_malloc_virt2iova(ptr);
-  assert(SpdkBdev_Filler != 0);
+  SpdkBdev_Filler = rte_malloc("SpdkBdevFiller", SPDK_BDEV_FILLER_LEN, 0);
+  assert(SpdkBdev_Filler != NULL);
 }
 
 static int
@@ -24,12 +22,15 @@ SpdkBdev_MakeIovec(
 
   int i = 0;
   for (struct rte_mbuf* seg = pkt; seg != NULL; seg = seg->next) {
-    assert(seg->data_len > 0);
-    iov[i].iov_base = (void*)rte_pktmbuf_iova(seg);
+    if (unlikely(seg->data_len == 0)) {
+      continue;
+    }
+    iov[i].iov_base = rte_pktmbuf_mtod(seg, void*);
     iov[i].iov_len = seg->data_len;
     ++i;
   }
 
+  // XXX filler is unnecessary for AIO and NVMe
   for (uint64_t len = pkt->pkt_len; unlikely(len < minLen);
        len += SPDK_BDEV_FILLER_LEN) {
     if (unlikely(i >= SPDK_BDEV_MAX_MBUF_SEGS + SPDK_BDEV_FILLER_MAX)) {

@@ -22,6 +22,7 @@ elif [[ $# -eq 1 ]]; then
   TESTPKG=$(getTestPkg $PKG)
 
   sudo -E $(which go) test -cover -covermode count -coverpkg ./$PKG -coverprofile /tmp/gotest.cover ./$TESTPKG -v
+  sudo chown $(id -u) /tmp/gotest.cover
   go tool cover -html /tmp/gotest.cover -o /tmp/gotest.cover.html
 
 elif [[ $# -eq 2 ]]; then
