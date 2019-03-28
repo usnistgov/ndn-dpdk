@@ -92,8 +92,10 @@ __PccEntry_GetSlot(PccEntry* entry, PccSlotIndex slot)
     case PCC_SLOT3:
       assert(entry->ext != NULL);
       return &entry->ext->slot3;
+    default:
+      assert(false);
+      return NULL;
   }
-  assert(false);
 }
 
 PccSlotIndex __PccEntry_AllocateSlot(PccEntry* entry, PccSlot** slot);

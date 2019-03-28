@@ -107,6 +107,7 @@ CsPriv_GetList(CsPriv* csp, CsListId cslId)
     case CSL_MD:
     default:
       assert(false);
+      return NULL;
   }
 }
 

@@ -53,6 +53,7 @@ MbufLoc_Diff(const MbufLoc* a, const MbufLoc* b)
     return -dist;
   }
   assert(false);
+  return 0;
 }
 
 void

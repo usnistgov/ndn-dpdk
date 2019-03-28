@@ -55,7 +55,7 @@ FwFwd_DataSatisfy(FwFwd* fwd, FwFwdRxDataContext* ctx)
        PitDnIt_Next(&it)) {
     PitDn* dn = it.dn;
     if (unlikely(dn->face == FACEID_INVALID)) {
-      if (index == 0) {
+      if (it.index == 0) {
         ZF_LOGD("^ drop=PitDn-empty");
       }
       break;

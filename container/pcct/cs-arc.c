@@ -33,8 +33,10 @@ CsArc_GetList(CsArc* arc, CsArcListId cslId)
       return &arc->B2;
     case CSL_ARC_DEL:
       return &arc->DEL;
+    default:
+      assert(false);
+      return NULL;
   }
-  assert(false);
 }
 
 #define CsArc_Move(arc, entry, src, dst)                                       \

@@ -87,6 +87,9 @@ FaceImpl_RxBurst(FaceRxBurst* burst, uint16_t nFrames, int rxThread,
       case L3PktType_Nack:
         FaceRxBurst_PutNack(burst, npkt);
         break;
+      default:
+        assert(false);
+        break;
     }
   }
 

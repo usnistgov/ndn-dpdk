@@ -16,11 +16,7 @@ if [[ -n $GOFILES ]]; then
   PKGNAME=$(grep -h '^package ' $GOFILES | head -1 | awk '{print $2}')
 fi
 
-CFLAGS='-Werror -Wno-error=deprecated-declarations -m64 -pthread -O3 -g -march=native -I/usr/local/include/dpdk'
-LIBS='-L/usr/local/lib -lurcu-qsbr -lurcu-cds -lubpf -lspdk -lspdk_env_dpdk -ldpdk -lnuma -lm'
-if [[ -n $RELEASE ]]; then
-  CFLAGS=$CFLAGS' -DNDEBUG -DZF_LOG_DEF_LEVEL=ZF_LOG_INFO'
-fi
+source cflags.sh
 
 (
   echo 'package '$PKGNAME
@@ -43,4 +39,4 @@ fi
   echo ' '$LIBS
   echo '*/'
   echo 'import "C"'
-) > $PKG/cgoflags.go
+) | gofmt > $PKG/cgoflags.go

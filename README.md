@@ -33,7 +33,9 @@ Other build targets and commands:
   You may omit `doxygen pandoc` dependencies if this is not needed.
 * Execute `./format-code.sh` to fix code style before committing.
   You may omit `clang-format-3.9 yamllint` dependencies if this is not needed.
-* Prepend `RELEASE=1` to all `make` commands to select release mode that disables asserts and verbose logging.
+* Prepend `RELEASE=1` to any `make` command to select release mode that disables asserts and verbose logging.
+* Prepend `CC=clang` to any `make` command to compile C code with `clang`.
+  The programs are currently not working, but this is a good way to find potential code errors.
 * Note: you cannot use `go get` installation due to dependency between C code.
 
 Docker packaging:

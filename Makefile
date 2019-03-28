@@ -3,6 +3,9 @@ STRATEGYPREFIX=build/strategy-bpf
 INCLUDEFLAGS=-I/usr/local/include/dpdk -I/usr/include/dpdk
 BPFFLAGS=-O2 -target bpf $(INCLUDEFLAGS) -Wno-int-to-void-pointer-cast -mllvm -inline-threshold=65536
 
+export CGO_CFLAGS_ALLOW='.*'
+export CC_FOR_TARGET=${CC:-gcc}
+
 all: godeps
 	go build -v ./...
 

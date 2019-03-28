@@ -130,7 +130,7 @@ PitUpIt_Valid(PitUpIt* it)
   return it->i < it->max;
 }
 
-static bool
+static void
 PitUpIt_Next(PitUpIt* it)
 {
   __PitDnUpIt_Next(it, PIT_ENTRY_EXT_MAX_UPS, offsetof(PitEntryExt, ups));

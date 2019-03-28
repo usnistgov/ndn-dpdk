@@ -49,7 +49,7 @@ static uint8_t*
 TlvEncoder_Prepend(TlvEncoder* en, uint16_t len)
 {
   struct rte_mbuf* m = (struct rte_mbuf*)en;
-  return rte_pktmbuf_prepend(m, len);
+  return (uint8_t*)rte_pktmbuf_prepend(m, len);
 }
 
 /** \brief Compute size of a TLV-TYPE or TLV-LENGTH number.

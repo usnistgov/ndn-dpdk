@@ -1,16 +1,17 @@
 #!/bin/bash
 set -e
+CC=${CC:-gcc}
 
 if [[ $# -ne 1 ]]; then
   echo 'USAGE: ./cbuild.sh [directory|file]' >/dev/stderr
   exit 1
 fi
 
-CFLAGS='-Werror -Wno-error=deprecated-declarations -m64 -pthread -O3 -g -march=native -I/usr/local/include/dpdk -I/usr/include/dpdk'
+source cflags.sh
 
 if [[ -f $1 ]]; then
   CFILE=$1
-  gcc -c $CFLAGS -o /dev/null $CFILE
+  $CC -c $CFLAGS -o /dev/null $CFILE
   exit
 fi
 
@@ -30,7 +31,7 @@ rm -f $LIBNAME $BUILDDIR/*.o
 ar rc $LIBNAME
 for CFILE in $(find $INPUTDIR -maxdepth 1 -name '*.c'); do
   OBJ=$BUILDDIR/$(basename $CFILE .c).o
-  gcc -c -Werror -o $OBJ $CFLAGS $CFILE
+  $CC -c -Werror -o $OBJ $CFLAGS $CFILE
   ar r $LIBNAME $OBJ
 done
 ar s $LIBNAME
