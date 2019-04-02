@@ -25,7 +25,8 @@ Emulate classical ndnping client:
 sudo ndnping-dpdk EAL-ARGS -- -tasks="
 ---
 - face:
-    remote: dev://net_af_packet0
+    remote: ether://01-00-5E-00-17-AA@net_af_packet0:0
+    remote: ether://02-00-00-00-00-01@net_af_packet0:0
   client:
     patterns:
       - prefix: /prefix/ping
@@ -39,7 +40,8 @@ Emulate classical ndnping server:
 sudo ndnping-dpdk EAL-ARGS -- -tasks="
 ---
 - face:
-    remote: dev://net_af_packet0
+    remote: ether://01-00-5E-00-17-AA@net_af_packet0:0
+    remote: ether://02-00-00-00-00-02@net_af_packet0:0
   server:
     patterns:
       - prefix: /prefix/ping
@@ -57,3 +59,35 @@ To watch progress, enable logging with `LOG_ThroughputBenchmark=V` environ.
 Throughput benchmark module attempts to find **minimum sustained interval** (MSI).
 It minimizes the Interest sending interval, such that Interest satisfaction ratio stays near 100% within a period of time.
 Measured MSI can be used to calculate the throughput of a forwarder or a network.
+
+Example:
+
+```
+sudo LOG_ThroughputBenchmark=V ndnping-dpdk EAL-ARGS -- -cnt=0 -tasks="
+---
+- face:
+    remote: ether://01-00-5E-00-17-AA@net_af_packet0:0
+    remote: ether://02-00-00-00-00-01@net_af_packet0:0
+  client:
+    patterns:
+      - prefix: /prefix/ping
+    interval: 1ms
+" -throughput-benchmark="
+---
+intervalmin: 500ns
+intervalmax: 2500ns
+intervalstep: 1ns
+
+txcount: 24000000
+txdurationmin: 15s
+txdurationmax: 60s
+
+warmuptime: 5s
+cooldowntime: 2s
+readcountersfreq: 100ms
+
+satisfythreshold: 0.999
+retestthreshold: 0.950
+retestcount: 1
+"
+```
