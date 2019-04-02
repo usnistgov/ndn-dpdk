@@ -1,6 +1,7 @@
 CLIBPREFIX=build/libndn-dpdk
-STRATEGYPREFIX=build/strategy-bpf
 INCLUDEFLAGS=-I/usr/local/include/dpdk -I/usr/include/dpdk
+BPFPATH=build/strategy-bpf
+BPFCC=clang-3.9
 BPFFLAGS=-O2 -target bpf $(INCLUDEFLAGS) -Wno-int-to-void-pointer-cast -mllvm -inline-threshold=65536
 
 export CGO_CFLAGS_ALLOW='.*'
@@ -130,15 +131,15 @@ container/pcct/cgoflags.go: container/mintmr/cgoflags.go container/fib/cgoflags.
 
 strategies: strategy/strategy_elf/bindata.go
 
-strategy/strategy_elf/bindata.go: $(STRATEGYPREFIX)/multicast.o $(STRATEGYPREFIX)/fastroute.o $(STRATEGYPREFIX)/roundrobin.o
-	go-bindata -nomemcopy -pkg strategy_elf -prefix $(STRATEGYPREFIX) -o /dev/stdout $(STRATEGYPREFIX) | gofmt > strategy/strategy_elf/bindata.go
+strategy/strategy_elf/bindata.go: $(BPFPATH)/multicast.o $(BPFPATH)/fastroute.o $(BPFPATH)/roundrobin.o
+	go-bindata -nomemcopy -pkg strategy_elf -prefix $(BPFPATH) -o /dev/stdout $(BPFPATH) | gofmt > strategy/strategy_elf/bindata.go
 
-$(STRATEGYPREFIX)/%.o: strategy/%.c $(CLIBPREFIX)-strategy.a
-	mkdir -p $(STRATEGYPREFIX)
-	clang-3.9 $(BPFFLAGS) -c $< -o $(STRATEGYPREFIX)/$*.o
+$(BPFPATH)/%.o: strategy/%.c $(CLIBPREFIX)-strategy.a
+	mkdir -p $(BPFPATH)
+	$(BPFCC) $(BPFFLAGS) -c $< -o $(BPFPATH)/$*.o
 
 strategy-%.s: strategy/%.c
-	clang-3.9 $(BPFFLAGS) -c $< -S -o -
+	$(BPFCC) $(BPFFLAGS) -c $< -S -o -
 
 $(CLIBPREFIX)-strategy.a: strategy/api* $(CLIBPREFIX)-pcct.a
 	./cbuild.sh strategy
