@@ -101,13 +101,8 @@ func (fwd *Fwd) Close() error {
 	return nil
 }
 
-func registerStrategyFuncs(vm unsafe.Pointer) error {
-	if nErrors := C.SgRegisterFuncs((*C.struct_ubpf_vm)(vm)); nErrors > 0 {
-		return fmt.Errorf("SgRegisterFuncs: %d errors", nErrors)
-	}
-	return nil
-}
-
 func init() {
-	strategycode.RegisterStrategyFuncs = registerStrategyFuncs
+	var nXsyms C.int
+	strategycode.Xsyms = unsafe.Pointer(C.SgGetXsyms(&nXsyms))
+	strategycode.NXsyms = int(nXsyms)
 }

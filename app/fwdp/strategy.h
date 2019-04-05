@@ -22,17 +22,16 @@ typedef struct SgContext
   int nForwarded;   // SGEVT_INTEREST and SGEVT_NACK only
 } SgContext;
 
-/** \brief Register BPF-CALLable functions.
- *  \return number of errors.
+/** \brief Obtain external symbols available to strategy eBPF program.
  */
-int SgRegisterFuncs(struct ubpf_vm* vm);
+const struct rte_bpf_xsym* SgGetXsyms(int* nXsyms);
 
 /** \brief Invoke the strategy.
  */
 static uint64_t
 SgInvoke(StrategyCode* strategy, SgContext* ctx)
 {
-  return (*strategy->jit)(ctx, sizeof(SgContext));
+  return StrategyCode_Execute(strategy, ctx, sizeof(SgCtx));
 }
 
 #endif // NDN_DPDK_APP_FWDP_STRATEGY_H
