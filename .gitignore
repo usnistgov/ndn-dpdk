@@ -2,4 +2,5 @@ _obj
 build
 cgoflags.go
 cgostruct.go
+kernel-headers.tgz
 node_modules

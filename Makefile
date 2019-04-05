@@ -198,6 +198,6 @@ godochttp:
 	godoc -http ':6060' 2>/dev/null &
 
 clean:
-	rm -rf build docs/doxygen docs/codedoc docs/mgmtschema/schema.json ndn/error.go ndn/error.h ndn/tlv-type.go ndn/tlv-type.h ndn/tlv-type.ts strategy/strategy_elf/bindata.go app/version/version.go
-	find \( -name 'cgoflags.go' -o -name 'cgostruct.go' \) -delete
+	awk '!(/node_modules/ || /\*\*/)' .dockerignore | xargs rm -rf
+	awk 'BEGIN{FS="/"} $1=="**"{print $2}' .dockerignore | xargs -I{} -n1 find -name {} -delete
 	go clean ./...
