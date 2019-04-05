@@ -104,3 +104,18 @@ func TestNackDuplicate(t *testing.T) {
 	assert.Equal(uint64(2), fibCnt.NRxNacks)
 	assert.Equal(uint64(2), fibCnt.NTxInterests)
 }
+
+func TestReturnNacks(t *testing.T) {
+	assert, _ := makeAR(t)
+	fixture := NewFixture(t)
+	defer fixture.Close()
+
+	face1 := fixture.CreateFace()
+	face2 := fixture.CreateFace()
+	fixture.SetFibEntry("/A", "reject", face2.GetFaceId())
+
+	interest1 := ndntestutil.MakeInterest("/A/1", uint32(0x2ea29515))
+	face1.Rx(interest1)
+	time.Sleep(10 * time.Millisecond)
+	assert.Len(face1.TxNacks, 1)
+}

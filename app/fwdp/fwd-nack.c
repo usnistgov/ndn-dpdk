@@ -7,6 +7,66 @@
 
 INIT_ZF_LOG(FwFwd);
 
+static void
+FwFwd_TxNacks(FwFwd* fwd,
+              PitEntry* pitEntry,
+              TscTime now,
+              NackReason reason,
+              uint8_t nackHopLimit)
+{
+  PitDnIt it;
+  for (PitDnIt_Init(&it, pitEntry); PitDnIt_Valid(&it); PitDnIt_Next(&it)) {
+    PitDn* dn = it.dn;
+    if (dn->face == FACEID_INVALID) {
+      break;
+    }
+    if (dn->expiry < now) {
+      continue;
+    }
+
+    if (unlikely(Face_IsDown(dn->face))) {
+      ZF_LOGD("^ no-nack-to=%" PRI_FaceId " drop=face-down", dn->face);
+      continue;
+    }
+
+    Packet* outNpkt = ModifyInterest(pitEntry->npkt,
+                                     dn->nonce,
+                                     0,
+                                     nackHopLimit,
+                                     fwd->headerMp,
+                                     fwd->guiderMp,
+                                     fwd->indirectMp);
+    if (unlikely(outNpkt == NULL)) {
+      ZF_LOGD("^ no-nack-to=%" PRI_FaceId " drop=alloc-error", dn->face);
+      break;
+    }
+
+    MakeNack(outNpkt, reason);
+    Packet_GetLpL3Hdr(outNpkt)->pitToken = dn->token;
+    ZF_LOGD("^ nack-to=%" PRI_FaceId " reason=%s npkt=%p nonce=%08" PRIx32
+            " dn-token=%016" PRIx64,
+            dn->face,
+            NackReason_ToString(reason),
+            outNpkt,
+            dn->nonce,
+            dn->token);
+    Face_Tx(dn->face, outNpkt);
+  }
+}
+
+void
+SgReturnNacks(SgCtx* ctx0, SgNackReason reason)
+{
+  SgContext* ctx = (SgContext*)ctx0;
+  assert(ctx->inner.eventKind == SGEVT_INTEREST);
+
+  FwFwd* fwd = ctx->fwd;
+  PitEntry* pitEntry = (PitEntry*)ctx->inner.pitEntry;
+  TscTime now = rte_get_tsc_cycles();
+
+  FwFwd_TxNacks(fwd, pitEntry, now, (NackReason)reason, 1);
+}
+
 typedef struct FwFwdRxNackContext
 {
   union
@@ -185,43 +245,8 @@ FwFwd_RxNack(FwFwd* fwd, Packet* npkt)
   }
 
   // return Nacks to downstream
-  PitDnIt it;
-  for (PitDnIt_Init(&it, ctx.pitEntry); PitDnIt_Valid(&it); PitDnIt_Next(&it)) {
-    PitDn* dn = it.dn;
-    if (dn->face == FACEID_INVALID) {
-      break;
-    }
-    if (dn->expiry < ctx.pkt->timestamp) {
-      continue;
-    }
-
-    if (unlikely(Face_IsDown(dn->face))) {
-      ZF_LOGD("^ no-nack-to=%" PRI_FaceId " drop=face-down", dn->face);
-      continue;
-    }
-
-    Packet* outNpkt = ModifyInterest(ctx.pitEntry->npkt,
-                                     dn->nonce,
-                                     0,
-                                     nackHopLimit,
-                                     fwd->headerMp,
-                                     fwd->guiderMp,
-                                     fwd->indirectMp);
-    if (unlikely(outNpkt == NULL)) {
-      ZF_LOGD("^ no-nack-to=%" PRI_FaceId " drop=alloc-error", dn->face);
-      break;
-    }
-
-    MakeNack(outNpkt, ctx.leastSevereReason);
-    Packet_GetLpL3Hdr(outNpkt)->pitToken = dn->token;
-    ZF_LOGD("^ nack-to=%" PRI_FaceId " npkt=%p nonce=%08" PRIx32
-            " dn-token=%016" PRIx64,
-            dn->face,
-            outNpkt,
-            dn->nonce,
-            dn->token);
-    Face_Tx(dn->face, outNpkt);
-  }
+  FwFwd_TxNacks(
+    fwd, ctx.pitEntry, ctx.pkt->timestamp, ctx.leastSevereReason, nackHopLimit);
   rte_pktmbuf_free(ctx.pkt);
 
   // erase PIT entry

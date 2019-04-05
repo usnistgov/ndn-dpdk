@@ -105,6 +105,7 @@ FwFwd_InterestForward(FwFwd* fwd, FwFwdRxInterestContext* ctx)
   sgCtx.inner.nhFlt = (SgFibNexthopFilter)ctx->nhFlt;
   sgCtx.inner.pitEntry = (SgPitEntry*)ctx->pitEntry;
   uint64_t res = SgInvoke(ctx->fibEntry->strategy, &sgCtx);
+  ctx->pitEntry = NULL; // strategy may have deleted PIT entry via SgReturnNacks
   ZF_LOGD("^ sg-res=%" PRIu64 " sg-forwarded=%d", res, sgCtx.nForwarded);
   if (unlikely(sgCtx.nForwarded == 0)) {
     ++fwd->nSgNoFwd;

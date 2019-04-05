@@ -26,6 +26,9 @@ NackReason_GetMin(NackReason a, NackReason b)
   return RTE_MIN(a, b);
 }
 
+const char*
+NackReason_ToString(NackReason reason);
+
 /** \brief Parsed Nack packet.
  */
 typedef struct PNack

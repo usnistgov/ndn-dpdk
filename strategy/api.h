@@ -80,9 +80,10 @@ SgForwardInterestResult
 SgForwardInterest(SgCtx* ctx, FaceId nh);
 
 /** \brief Return Nacks downstream and erase PIT entry.
+ *  \warning Only available in \c SGEVT_INTEREST.
  */
 void
-SgReturnNacks(SgCtx* ctx);
+SgReturnNacks(SgCtx* ctx, SgNackReason reason);
 
 /** \brief The strategy program.
  *  \return status code, ignored by forwarding but appears in logs.
