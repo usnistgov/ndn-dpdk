@@ -1,3 +1,4 @@
+// import * as _ from "lodash";
 import ndn = require("ndn-js");
 import { DecodingException } from "ndn-js/js/encoding/decoding-exception.js";
 import { TlvDecoder } from "ndn-js/js/encoding/tlv/tlv-decoder.js";
@@ -5,6 +6,10 @@ import { TlvEncoder } from "ndn-js/js/encoding/tlv/tlv-encoder.js";
 import { Tlv } from "ndn-js/js/encoding/tlv/tlv.js";
 
 import { TT } from "../../ndn/tlv-type";
+
+const ndnjs = ndn as any;
+
+const ribRegisterPrefix = new ndn.Name("/localhost/nfd/rib/register");
 
 export enum PktType {
   None = 0,
@@ -30,10 +35,18 @@ export class Packet {
     this.parsePacket(false);
   }
 
-  public wireEncode(wantPitToken: boolean = true): Buffer {
+  public wireEncode(wantPitToken: boolean, force03: boolean): Buffer {
     const e = new TlvEncoder();
     const len0 = e.getLength();
-    e.writeBlobTlv(TT.LpPayload, this.netPkt);
+
+    if (force03 && (this.type === PktType.Interest || this.type === PktType.Nack)) {
+      const interest = new ndn.Interest(this.interest!);
+      interest.setApplicationParameters(Buffer.alloc(0));
+      e.writeBlobTlv(TT.LpPayload, ndnjs.Tlv0_2WireFormat.encodeInterestV03_(this.interest).encoding.buf());
+    } else {
+      e.writeBlobTlv(TT.LpPayload, this.netPkt);
+    }
+
     if (this.type === PktType.Nack) {
       const len1 = e.getLength();
       e.writeNonNegativeIntegerTlv(TT.NackReason, this.nack!.getReason());
@@ -44,6 +57,25 @@ export class Packet {
     }
     e.writeTypeAndLength(TT.LpPacket, e.getLength() - len0);
     return e.getOutput();
+  }
+
+  public tryParsePrefixReg(): ndn.Name|undefined {
+    if (this.type !== PktType.Interest) {
+      return undefined;
+    }
+    const interestName = this.interest!.getName();
+    if (!ribRegisterPrefix.match(interestName)) {
+      return undefined;
+    }
+
+    const d = new TlvDecoder(interestName.get(ribRegisterPrefix.size()).getValue().buf());
+    const endOffset = d.readNestedTlvsStart(Tlv.ControlParameters_ControlParameters);
+    if (!d.peekType(TT.Name, endOffset)) {
+      return undefined;
+    }
+    const name = new ndn.Name();
+    ndnjs.Tlv0_2WireFormat.decodeName(name, d, true);
+    return name;
   }
 
   public toString(): string {

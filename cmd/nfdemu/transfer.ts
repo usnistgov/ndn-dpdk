@@ -11,7 +11,6 @@ const ndnjs = ndn as any;
 
 const keyChain = new ndn.KeyChain("pib-memory:", "tpm-memory:");
 const signingInfo = new ndnjs.SigningInfo(ndnjs.SigningInfo.SignerType.SHA256);
-const ribRegisterPrefix = new ndn.Name("/localhost/nfd/rib/register");
 
 export class Transfer {
   public get id(): number { return this.fc.id; }
@@ -48,14 +47,15 @@ export class Transfer {
     if (pkt.type === PktType.Interest) {
       this.pil.insert(new PendingInterest(pkt.interest!, pkt.pitToken));
     }
-    this.ac.send(pkt.wireEncode(false));
+    this.ac.send(pkt.wireEncode(false, false));
   }
 
   private handleAppPacket(pkt: Packet): void {
     switch (pkt.type) {
       case PktType.Interest:
-        if (ribRegisterPrefix.match(pkt.interest!.getName())) {
-          this.handleAppPrefixReg(pkt.interest!);
+        const prefixRegName = pkt.tryParsePrefixReg();
+        if (prefixRegName) {
+          this.handleAppPrefixReg(pkt.interest!, prefixRegName);
           return;
         }
         break;
@@ -68,25 +68,25 @@ export class Transfer {
         break;
     }
     this.log("<", pkt.toString(), pkt.pitToken);
-    this.fc.send(pkt.wireEncode(true));
+    this.fc.send(pkt.wireEncode(true, true));
   }
 
-  private handleAppPrefixReg(interest: ndn.Interest): void {
-    const cp = new ndnjs.ControlParameters();
-    cp.wireDecode(interest.getName().get(ribRegisterPrefix.size()));
-    this.log("<R ", cp.getName().toUri());
-    this.fc.registerPrefix(cp.getName(), (ok: boolean) => {
+  private handleAppPrefixReg(interest: ndn.Interest, name: ndn.Name): void {
+    this.log("<R ", name.toUri());
+    this.fc.registerPrefix(name, (ok: boolean) => {
       const cr = new ndnjs.ControlResponse();
       if (ok) {
-        this.log(">R ", cp.getName().toUri());
-        const flags = new ndnjs.ForwardingFlags();
-        flags.setChildInherit(false);
-        flags.setCapture(true);
-        cr.setStatusCode(200).setStatusText("OK");
+        this.log(">R ", name.toUri());
+        const cp = new ndnjs.ControlParameters();
+        cp.setName(name);
         cp.setFaceId(1);
         cp.setOrigin(0);
         cp.setCost(0);
+        const flags = new ndnjs.ForwardingFlags();
+        flags.setChildInherit(false);
+        flags.setCapture(true);
         cp.setForwardingFlags(flags);
+        cr.setStatusCode(200).setStatusText("OK");
         cr.setBodyAsControlParameters(cp);
       } else {
         cr.setStatusCode(500).setStatusText("ERROR");

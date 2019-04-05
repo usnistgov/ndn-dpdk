@@ -1,7 +1,7 @@
 import EventEmitter = require("events");
+import * as _ from "lodash";
 import { ElementReader as ndn_ElementReader } from "ndn-js/js/encoding/element-reader.js";
 import * as net from "net";
-import { noop } from "node-noop";
 
 import { Packet } from "./packet";
 
@@ -33,7 +33,7 @@ export class SocketConn extends EventEmitter {
     this.socket = socket;
     this.er = new ndn_ElementReader(this);
     this.socket.on("data", (buf: Buffer) => { this.er.onReceivedData(buf); });
-    this.socket.on("error", noop);
+    this.socket.on("error", _.noop);
     this.socket.on("close", () => {
       if (!this.isConnected) {
         return;

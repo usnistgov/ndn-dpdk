@@ -1,11 +1,7 @@
 import { ArgumentParser } from "argparse";
 import * as jayson from "jayson";
 
-interface IFaceMgmtBasicInfo {
-  Id: number;
-  LocalUri: string;
-  RemoteUri: string;
-}
+import * as mgmt from "../../docs/mgmttypes";
 
 const parser = new ArgumentParser({
   addHelp: true,
@@ -22,8 +18,8 @@ mgmtClient.request("Face.Create",
       LocalUri: args.local,
       RemoteUri: args.remote,
     },
-  ],
-  (err, error, result: ReadonlyArray<IFaceMgmtBasicInfo>) => {
+  ] as mgmt.facemgmt.CreateArg,
+  (err, error, result: mgmt.facemgmt.CreateRes) => {
     if (err || error) {
       process.stderr.write((err || error).toString() + "\n");
       process.exit(1);

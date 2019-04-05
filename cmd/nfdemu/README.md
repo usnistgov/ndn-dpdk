@@ -18,11 +18,11 @@ Start ndnfw-dpdk:
 
 Run NDN producer program:
 
-    ndnpingserver /Z
+    NDN_CLIENT_TRANSPORT=unix:///tmp/nfdemu.sock ndnpingserver /Z
 
 Run NDN consumer program:
 
-    ndnping -a /Z
+    NDN_CLIENT_TRANSPORT=unix:///tmp/nfdemu.sock ndnping -a /Z
 
 ## Limitations
 

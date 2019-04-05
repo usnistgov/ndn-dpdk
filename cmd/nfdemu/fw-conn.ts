@@ -1,9 +1,10 @@
 import * as fs from "fs";
 import * as jayson from "jayson";
+import * as _ from "lodash";
 import ndn = require("ndn-js");
 import * as net from "net";
-import { noop } from "node-noop";
 
+import * as mgmt from "../../docs/mgmttypes";
 import { SocketConn } from "./socket-conn";
 
 const mgmtClient = jayson.Client.tcp({port: 6345});
@@ -22,40 +23,41 @@ export class FwConn extends SocketConn {
     this.server = new net.Server();
     this.server.once("connection", (socket: net.Socket) => {
       this.server.close();
-      fs.unlink(this.path, noop);
+      fs.unlink(this.path, _.noop);
       this.accept(socket);
     });
     this.server.listen(this.path);
     this.faceId = 0;
 
     mgmtClient.request("Face.Create",
-      {
-        RemoteUri: "unix://" + this.path,
-      },
-      (err, response) => {
-        if (response && response.result) {
-          this.faceId = response.result.Id;
-          this.emit("faceidready", this.faceId);
+      [
+        {
+          RemoteUri: "unix://" + this.path,
+        },
+      ] as mgmt.facemgmt.CreateArg,
+      (err, error, result: mgmt.facemgmt.CreateRes) => {
+        if (err || error || result.length < 1) {
+          return;
         }
+        this.faceId = result[0].Id;
+        this.emit("faceidready", this.faceId);
       });
   }
 
-  public registerPrefix(name: ndn.Name, cb: (bool) => void): void {
+  public registerPrefix(name: ndn.Name, cb: (ok: boolean) => void): void {
     if (!this.faceId) {
       this.once("faceidready", () => { this.registerPrefix(name, cb); });
       return;
     }
-    let done = false;
+    const cb2 = _.once(cb);
     mgmtClient.request("Fib.Insert",
       {
         Name: name.toUri(),
         Nexthops: [this.faceId],
-      },
-      (err, response) => {
-        if (!done) {
-          cb(!!(response && response.result));
-        }
-        done = true;
+      } as mgmt.fibmgmt.InsertArg,
+      (err, error, result: mgmt.fibmgmt.InsertRes) => {
+        const ok = !(err || error);
+        cb2(ok);
       });
   }
 
@@ -66,8 +68,8 @@ export class FwConn extends SocketConn {
     mgmtClient.request("Face.Destroy",
       {
         Id: this.faceId,
-      },
-      noop);
+      } as mgmt.facemgmt.DestroyArg,
+      _.noop);
     return true;
   }
 }
