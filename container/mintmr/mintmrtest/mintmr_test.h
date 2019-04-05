@@ -11,8 +11,10 @@ typedef struct MinTmrTestRecord
   int n;
 } MinTmrTestRecord;
 
-MinSched* MinTmrTest_MakeSched(int nSlotBits, TscDuration interval);
+MinSched*
+MinTmrTest_MakeSched(int nSlotBits, TscDuration interval);
 
-MinTmrTestRecord* MinTmrTest_NewRecord(int n);
+MinTmrTestRecord*
+MinTmrTest_NewRecord(int n);
 
 #endif // NDN_DPDK_CONTAINER_MINTMR_MINTMRTEST_MINTMRTEST_H

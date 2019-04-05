@@ -27,7 +27,9 @@ typedef struct __PitDnUpIt
 } __PitDnUpIt;
 
 static void
-__PitDnUpIt_Init(__PitDnUpIt* it, PitEntry* entry, int maxInEntry,
+__PitDnUpIt_Init(__PitDnUpIt* it,
+                 PitEntry* entry,
+                 int maxInEntry,
                  size_t offsetInEntry)
 {
   it->index = 0;
@@ -57,8 +59,8 @@ __PitDnUpIt_Next(__PitDnUpIt* it, int maxInExt, size_t offsetInExt)
   it->nextPtr = &ext->next;
 }
 
-bool __PitDnUpIt_Extend(__PitDnUpIt* it, Pit* pit, int maxInExt,
-                        size_t offsetInExt);
+bool
+__PitDnUpIt_Extend(__PitDnUpIt* it, Pit* pit, int maxInExt, size_t offsetInExt);
 
 /** \brief Iterator of DN slots in PIT entry.
  *
@@ -99,8 +101,8 @@ PitDnIt_Next(PitDnIt* it)
 static bool
 PitDnIt_Extend(PitDnIt* it, Pit* pit)
 {
-  bool ok = __PitDnUpIt_Extend(it, pit, PIT_ENTRY_EXT_MAX_DNS,
-                               offsetof(PitEntryExt, dns));
+  bool ok = __PitDnUpIt_Extend(
+    it, pit, PIT_ENTRY_EXT_MAX_DNS, offsetof(PitEntryExt, dns));
   it->dn = &it->dns[it->i];
   return ok;
 }
@@ -144,8 +146,8 @@ PitUpIt_Next(PitUpIt* it)
 static bool
 PitUpIt_Extend(PitDnIt* it, Pit* pit)
 {
-  bool ok = __PitDnUpIt_Extend(it, pit, PIT_ENTRY_EXT_MAX_UPS,
-                               offsetof(PitEntryExt, ups));
+  bool ok = __PitDnUpIt_Extend(
+    it, pit, PIT_ENTRY_EXT_MAX_UPS, offsetof(PitEntryExt, ups));
   it->up = &it->ups[it->i];
   return ok;
 }

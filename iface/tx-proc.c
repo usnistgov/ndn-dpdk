@@ -7,14 +7,23 @@ INIT_ZF_LOG(TxProc);
 // minimum payload size per fragment
 static const int MIN_PAYLOAD_SIZE_PER_FRAGMENT = 512;
 
-uint16_t TxProc_OutputFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames,
-                           uint16_t maxFrames);
-uint16_t TxProc_OutputNoFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames,
-                             uint16_t maxFrames);
+uint16_t
+TxProc_OutputFrag(TxProc* tx,
+                  Packet* npkt,
+                  struct rte_mbuf** frames,
+                  uint16_t maxFrames);
+uint16_t
+TxProc_OutputNoFrag(TxProc* tx,
+                    Packet* npkt,
+                    struct rte_mbuf** frames,
+                    uint16_t maxFrames);
 
 int
-TxProc_Init(TxProc* tx, uint16_t mtu, uint16_t headroom,
-            struct rte_mempool* indirectMp, struct rte_mempool* headerMp)
+TxProc_Init(TxProc* tx,
+            uint16_t mtu,
+            uint16_t headroom,
+            struct rte_mempool* indirectMp,
+            struct rte_mempool* headerMp)
 {
   assert(indirectMp != NULL);
   assert(headerMp != NULL);
@@ -39,7 +48,9 @@ TxProc_Init(TxProc* tx, uint16_t mtu, uint16_t headroom,
 }
 
 uint16_t
-TxProc_OutputFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames,
+TxProc_OutputFrag(TxProc* tx,
+                  Packet* npkt,
+                  struct rte_mbuf** frames,
                   uint16_t maxFrames)
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
@@ -50,7 +61,9 @@ TxProc_OutputFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames,
     return TxProc_OutputNoFrag(tx, npkt, frames, maxFrames);
   }
   ZF_LOGV("pktLen=%" PRIu32 " nFragments=%" PRIu16 " seq=%" PRIu64,
-          pkt->pkt_len, nFragments, tx->lastSeqNo + 1);
+          pkt->pkt_len,
+          nFragments,
+          tx->lastSeqNo + 1);
   if (unlikely(nFragments > maxFrames)) {
     ++tx->nL3OverLength;
     return 0;
@@ -113,7 +126,9 @@ TxProc_OutputFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames,
 }
 
 uint16_t
-TxProc_OutputNoFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames,
+TxProc_OutputNoFrag(TxProc* tx,
+                    Packet* npkt,
+                    struct rte_mbuf** frames,
                     uint16_t maxFrames)
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);

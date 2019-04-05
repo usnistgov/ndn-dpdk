@@ -19,7 +19,8 @@ typedef struct LName
   uint16_t length;
 } LName;
 
-uint64_t __LName_ComputeHash(uint16_t length, const uint8_t* value);
+uint64_t
+__LName_ComputeHash(uint16_t length, const uint8_t* value);
 
 /** \brief Compute hash for a name.
  */
@@ -31,7 +32,8 @@ LName_ComputeHash(LName n)
 
 /** \brief Indicate the result of name comparison.
  */
-typedef enum NameCompareResult {
+typedef enum NameCompareResult
+{
   NAMECMP_LT = -2,      ///< \c lhs is less than, but not a prefix of \c rhs
   NAMECMP_LPREFIX = -1, ///< \c lhs is a prefix of \c rhs
   NAMECMP_EQUAL = 0,    ///< \c lhs and \c rhs are equal
@@ -41,7 +43,8 @@ typedef enum NameCompareResult {
 
 /** \brief Compare two names for <, ==, >, and prefix relations.
  */
-NameCompareResult LName_Compare(LName lhs, LName rhs);
+NameCompareResult
+LName_Compare(LName lhs, LName rhs);
 
 #define LNAME_MAX_STRING_SIZE (NAME_MAX_LENGTH * 2)
 
@@ -50,7 +53,8 @@ NameCompareResult LName_Compare(LName lhs, LName rhs);
  *  \param bufsz size of \p buf; (LNAME_MAX_STRING_SIZE+1) avoids truncation
  *  \return number of characters written excluding terminating null character
  */
-int LName_ToString(LName n, char* buf, size_t bufsz);
+int
+LName_ToString(LName n, char* buf, size_t bufsz);
 
 /** \brief Number of name components whose information are cached in Name struct
  *         for efficient processing.
@@ -87,16 +91,19 @@ PName_Clear(PName* n)
  *  \retval NdnError_BadDigestComponentLength ImplicitSha256DigestComponent is not 32 octets
  *  \retval NdnError_NameHasComponentAfterDigest ImplicitSha256DigestComponent is not at last
  */
-NdnError PName_Parse(PName* n, uint32_t length, const uint8_t* value);
+NdnError
+PName_Parse(PName* n, uint32_t length, const uint8_t* value);
 
 /** \brief Parse a name from TlvElement.
  *  \param ele TLV Name element, TLV-TYPE must be TT_Name
  *  \retval NdnError_Fragmented TLV-VALUE is not in consecutive memory
  *  \return return value of \c PName_Parse
  */
-NdnError PName_FromElement(PName* n, const TlvElement* ele);
+NdnError
+PName_FromElement(PName* n, const TlvElement* ele);
 
-uint16_t __PName_SeekCompEnd(const PName* n, const uint8_t* input, uint16_t i);
+uint16_t
+__PName_SeekCompEnd(const PName* n, const uint8_t* input, uint16_t i);
 
 /** \brief Get past-end offset of i-th component.
  *  \param input a buffer containing TLV-VALUE of Name element
@@ -152,7 +159,8 @@ PName_SizeofPrefix(const PName* n, const uint8_t* input, uint16_t i)
   return PName_GetCompEnd(n, input, i - 1);
 }
 
-void __PName_HashToCache(PName* n, const uint8_t* input);
+void
+__PName_HashToCache(PName* n, const uint8_t* input);
 
 /** \brief Compute hash for a prefix with i components.
  *  \param input a buffer containing TLV-VALUE of Name element

@@ -60,10 +60,13 @@ typedef struct NdnpingClient
 /** \brief Initialize NdnpingClient.
  *  \pre Basic config fields are initialized.
  */
-void NdnpingClient_Init(NdnpingClient* client);
+void
+NdnpingClient_Init(NdnpingClient* client);
 
-void NdnpingClient_RunTx(NdnpingClient* client);
+void
+NdnpingClient_RunTx(NdnpingClient* client);
 
-void NdnpingClient_RunRx(NdnpingClient* client);
+void
+NdnpingClient_RunRx(NdnpingClient* client);
 
 #endif // NDN_DPDK_APP_NDNPING_CLIENT_H

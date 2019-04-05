@@ -25,12 +25,17 @@ NameSet_Close(NameSet* set)
 }
 
 void
-__NameSet_Insert(NameSet* set, uint16_t nameL, const uint8_t* nameV,
-                 const void* usr, size_t usrLen)
+__NameSet_Insert(NameSet* set,
+                 uint16_t nameL,
+                 const uint8_t* nameV,
+                 const void* usr,
+                 size_t usrLen)
 {
   NameSetRecord* record =
-    rte_zmalloc_socket("NameSetRecord", sizeof(NameSetRecord) + nameL + usrLen,
-                       0, set->numaSocket);
+    rte_zmalloc_socket("NameSetRecord",
+                       sizeof(NameSetRecord) + nameL + usrLen,
+                       0,
+                       set->numaSocket);
   assert(record != NULL);
   record->nameL = nameL;
   rte_memcpy(record->nameV, nameV, nameL);
@@ -42,7 +47,8 @@ __NameSet_Insert(NameSet* set, uint16_t nameL, const uint8_t* nameV,
 
   if (set->records == NULL) {
     set->records = rte_malloc_socket("NameSetRecords",
-                                     set->nRecords * sizeof(NameSetRecord*), 0,
+                                     set->nRecords * sizeof(NameSetRecord*),
+                                     0,
                                      set->numaSocket);
   } else {
     set->records =
@@ -66,7 +72,7 @@ NameSet_GetName(const NameSet* set, int index)
 {
   assert(index >= 0 && index < set->nRecords);
   NameSetRecord* record = set->records[index];
-  LName name = {.length = record->nameL, .value = record->nameV };
+  LName name = { .length = record->nameL, .value = record->nameV };
   return name;
 }
 

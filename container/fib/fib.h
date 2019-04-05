@@ -43,8 +43,12 @@ Fib_GetPriv(const Fib* fib)
  *  \param nBuckets number of hashtable buckets, must be (2^q).
  *  \param numaSocket where to allocate memory.
  */
-Fib* Fib_New(const char* id, uint32_t maxEntries, uint32_t nBuckets,
-             unsigned numaSocket, uint8_t startDepth);
+Fib*
+Fib_New(const char* id,
+        uint32_t maxEntries,
+        uint32_t nBuckets,
+        unsigned numaSocket,
+        uint8_t startDepth);
 
 /** \brief Release all memory.
  */
@@ -77,7 +81,8 @@ Fib_Free(Fib* fib, FibEntry* entry)
  *  \retval false old entry replaced by new entry.
  *  \pre Calling thread holds rcu_read_lock.
  */
-bool Fib_Insert(Fib* fib, FibEntry* entry);
+bool
+Fib_Insert(Fib* fib, FibEntry* entry);
 
 /** \brief Erase given FIB entry.
  *  \return whether success
@@ -102,11 +107,12 @@ Fib_Find(Fib* fib, LName name, uint64_t hash)
 static const FibEntry*
 __Fib_Find(Fib* fib, uint16_t nameL, const uint8_t* nameV, uint64_t hash)
 {
-  LName name = {.length = nameL, .value = nameV };
+  LName name = { .length = nameL, .value = nameV };
   return Fib_Find(fib, name, hash);
 }
 
-const FibEntry* __Fib_Lpm(Fib* fib, const PName* name, const uint8_t* nameV);
+const FibEntry*
+__Fib_Lpm(Fib* fib, const PName* name, const uint8_t* nameV);
 
 /** \brief Perform longest prefix match.
  *  \pre Calling thread holds rcu_read_lock, which must be retained until it stops

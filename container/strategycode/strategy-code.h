@@ -29,10 +29,13 @@ StrategyCode_Execute(StrategyCode* sc, void* arg, size_t sizeofArg)
   return (*sc->jit)(arg, sizeofArg);
 }
 
-void StrategyCode_Ref(StrategyCode* sc);
+void
+StrategyCode_Ref(StrategyCode* sc);
 
-void StrategyCode_Unref(StrategyCode* sc);
+void
+StrategyCode_Unref(StrategyCode* sc);
 
-const struct ebpf_insn* __StrategyCode_GetEmptyProgram(uint32_t* nInsn);
+const struct ebpf_insn*
+__StrategyCode_GetEmptyProgram(uint32_t* nInsn);
 
 #endif // NDN_DPDK_CONTAINER_STRATEGYCODE_STRATEGY_CODE_H

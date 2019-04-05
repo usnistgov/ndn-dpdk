@@ -1,7 +1,10 @@
 #include "packet.h"
 
 static const char* L3PktType_Strings[L3PktType_MAX] = {
-  "none", "interest", "data", "nack",
+  "none",
+  "interest",
+  "data",
+  "nack",
 };
 
 const char*
@@ -60,7 +63,8 @@ Packet_ParseL3(Packet* npkt, struct rte_mempool* nameMp)
 }
 
 Packet*
-ClonePacket(Packet* npkt, struct rte_mempool* headerMp,
+ClonePacket(Packet* npkt,
+            struct rte_mempool* headerMp,
             struct rte_mempool* indirectMp)
 {
   struct rte_mbuf* header = rte_pktmbuf_alloc(headerMp);
@@ -79,8 +83,8 @@ ClonePacket(Packet* npkt, struct rte_mempool* headerMp,
   // copy PacketPriv
   Packet_SetL2PktType(outNpkt, Packet_GetL2PktType(npkt));
   Packet_SetL3PktType(outNpkt, Packet_GetL3PktType(npkt));
-  rte_memcpy(__Packet_GetPriv(outNpkt), __Packet_GetPriv(npkt),
-             sizeof(PacketPriv));
+  rte_memcpy(
+    __Packet_GetPriv(outNpkt), __Packet_GetPriv(npkt), sizeof(PacketPriv));
   Packet_CopyTimestamp(outNpkt, npkt);
   return outNpkt;
 }

@@ -50,23 +50,28 @@ Pcct_GetPriv(const Pcct* pcct)
  *
  *  Caller must invoke \p Pit_Init and \p Cs_Init to initialize each table.
  */
-Pcct* Pcct_New(const char* id, uint32_t maxEntries, unsigned numaSocket);
+Pcct*
+Pcct_New(const char* id, uint32_t maxEntries, unsigned numaSocket);
 
 /** \brief Release all memory.
  */
-void Pcct_Close(Pcct* pcct);
+void
+Pcct_Close(Pcct* pcct);
 
 /** \brief Insert or find an entry.
  *  \param[out] isNew whether the entry is new
  */
-PccEntry* Pcct_Insert(Pcct* pcct, PccSearch* search, bool* isNew);
+PccEntry*
+Pcct_Insert(Pcct* pcct, PccSearch* search, bool* isNew);
 
 /** \brief Erase an entry.
  *  \sa PcctEraseBatch
  */
-void Pcct_Erase(Pcct* pcct, PccEntry* entry);
+void
+Pcct_Erase(Pcct* pcct, PccEntry* entry);
 
-uint64_t __Pcct_AddToken(Pcct* pcct, PccEntry* entry);
+uint64_t
+__Pcct_AddToken(Pcct* pcct, PccEntry* entry);
 
 /** \brief Assign a token to an entry.
  *  \retval 0 No token available.
@@ -81,7 +86,8 @@ Pcct_AddToken(Pcct* pcct, PccEntry* entry)
   return __Pcct_AddToken(pcct, entry);
 }
 
-void __Pcct_RemoveToken(Pcct* pcct, PccEntry* entry);
+void
+__Pcct_RemoveToken(Pcct* pcct, PccEntry* entry);
 
 /** \brief Clear the token on an entry.
  */
@@ -97,7 +103,8 @@ Pcct_RemoveToken(Pcct* pcct, PccEntry* entry)
 /** \brief Find an entry by token.
  *  \param token the token, only lower 48 bits are significant.
  */
-PccEntry* Pcct_FindByToken(const Pcct* pcct, uint64_t token);
+PccEntry*
+Pcct_FindByToken(const Pcct* pcct, uint64_t token);
 
 // Burst size of PCCT erasing.
 #define PCCT_ERASE_BURST 32
@@ -123,7 +130,8 @@ typedef struct PcctEraseBatch
     0, .pcct = thePcct                                                         \
   }
 
-void __PcctEraseBatch_EraseBurst(PcctEraseBatch* peb);
+void
+__PcctEraseBatch_EraseBurst(PcctEraseBatch* peb);
 
 /** \brief Add an entry for erasing.
  */

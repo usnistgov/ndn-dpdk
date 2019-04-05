@@ -74,8 +74,9 @@ TestSipHash()
   // clang-format on
 
   SipHashKey k;
-  SipHashKey_FromBuffer(&k, (const uint8_t*)"\x00\x01\x02\x03\x04\x05\x06\x07"
-                                            "\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f");
+  SipHashKey_FromBuffer(&k,
+                        (const uint8_t*)"\x00\x01\x02\x03\x04\x05\x06\x07"
+                                        "\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f");
   SipHash h;
   SipHash_Init(&h, &k);
 

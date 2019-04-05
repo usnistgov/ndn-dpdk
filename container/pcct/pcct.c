@@ -42,10 +42,18 @@ Pcct_New(const char* id, uint32_t maxEntries, unsigned numaSocket)
     return NULL;
   }
 
-  Pcct* pcct = (Pcct*)rte_mempool_create(
-    id, maxEntries, RTE_MAX(sizeof(PccEntry), sizeof(PccEntryExt)), 0,
-    sizeof(PcctPriv), NULL, NULL, NULL, NULL, numaSocket,
-    MEMPOOL_F_SP_PUT | MEMPOOL_F_SC_GET);
+  Pcct* pcct =
+    (Pcct*)rte_mempool_create(id,
+                              maxEntries,
+                              RTE_MAX(sizeof(PccEntry), sizeof(PccEntryExt)),
+                              0,
+                              sizeof(PcctPriv),
+                              NULL,
+                              NULL,
+                              NULL,
+                              NULL,
+                              numaSocket,
+                              MEMPOOL_F_SP_PUT | MEMPOOL_F_SC_GET);
   if (unlikely(pcct == NULL)) {
     return NULL;
   }
@@ -107,8 +115,11 @@ Pcct_Insert(Pcct* pcct, PccSearch* search, bool* isNew)
   HASH_ADD_BYHASHVALUE(hh, pcctp->keyHt, key, 0, hash, entry);
   *isNew = true;
 
-  ZF_LOGD("%p Insert(%016" PRIx64 ", %s) %p", pcct, hash,
-          PccSearch_ToDebugString(search), entry);
+  ZF_LOGD("%p Insert(%016" PRIx64 ", %s) %p",
+          pcct,
+          hash,
+          PccSearch_ToDebugString(search),
+          entry);
   return entry;
 }
 

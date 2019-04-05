@@ -21,8 +21,8 @@
  */
 typedef MbufLoc TlvDecodePos;
 
-NdnError __DecodeVarNum_32or64(TlvDecodePos* d, uint8_t firstOctet,
-                               uint64_t* n);
+NdnError
+__DecodeVarNum_32or64(TlvDecodePos* d, uint8_t firstOctet, uint64_t* n);
 
 /** \brief Decode a TLV-TYPE or TLV-LENGTH number.
  *  \param[out] n the number.

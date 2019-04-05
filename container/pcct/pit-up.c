@@ -37,7 +37,10 @@ PitUp_ChooseNonce(PitUp* up, PitEntry* entry, TscTime now, uint32_t* nonce)
 }
 
 void
-PitUp_RecordTx(PitUp* up, PitEntry* entry, TscTime now, uint32_t nonce,
+PitUp_RecordTx(PitUp* up,
+               PitEntry* entry,
+               TscTime now,
+               uint32_t nonce,
                PitSuppressConfig* suppressCfg)
 {
   up->nonce = nonce;

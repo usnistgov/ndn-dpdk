@@ -1,7 +1,8 @@
 #include "ethdev.h"
 
-static struct ether_addr ethPcapDefaultMac = {.addr_bytes = { 0, 0, 0, 0x1, 0x2,
-                                                              0x3 } };
+static struct ether_addr ethPcapDefaultMac = {
+  .addr_bytes = { 0, 0, 0, 0x1, 0x2, 0x3 }
+};
 
 void
 EthDev_GetMacAddr(uint16_t port, struct ether_addr* macaddr)

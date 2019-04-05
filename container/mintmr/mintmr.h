@@ -37,14 +37,19 @@ typedef struct MinSched
  *  \param interval duration between executing slots
  *  \param cb callback function when a timer expires
  */
-MinSched* MinSched_New(int nSlotBits, TscDuration interval, MinTmrCallback cb,
-                       void* cbarg);
+MinSched*
+MinSched_New(int nSlotBits,
+             TscDuration interval,
+             MinTmrCallback cb,
+             void* cbarg);
 
 /** \brief Destroy a minute scheduler.
  */
-void MinSched_Close(MinSched* sched);
+void
+MinSched_Close(MinSched* sched);
 
-void __MinSched_Trigger(MinSched* sched, TscTime now);
+void
+__MinSched_Trigger(MinSched* sched, TscTime now);
 
 /** \brief Trigger callback function on expired timers.
  */
@@ -77,7 +82,8 @@ MinSched_GetMaxDelay(MinSched* sched)
 /** \brief Schedule a timer to expire \p after since current time.
  *  \param tmr the timer, must not be running.
  */
-bool MinTmr_After(MinTmr* tmr, TscDuration after, MinSched* sched);
+bool
+MinTmr_After(MinTmr* tmr, TscDuration after, MinSched* sched);
 
 /** \brief Schedule a timer to expire at \p at.
  *  \param tmr the timer, must not be running.
@@ -90,7 +96,8 @@ MinTmr_At(MinTmr* tmr, TscTime at, MinSched* sched)
   return MinTmr_After(tmr, after, sched);
 }
 
-void __MinTmr_Cancel(MinTmr* tmr);
+void
+__MinTmr_Cancel(MinTmr* tmr);
 
 /** \brief Cancel a timer.
  */

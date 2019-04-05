@@ -59,13 +59,17 @@ MbufLoc_IsEnd(const MbufLoc* ml)
   return ml->m == NULL || ml->rem == 0;
 }
 
-typedef void (*MbufLoc_AdvanceCb)(void* arg, const struct rte_mbuf* m,
-                                  uint16_t off, uint16_t len);
+typedef void (*MbufLoc_AdvanceCb)(void* arg,
+                                  const struct rte_mbuf* m,
+                                  uint16_t off,
+                                  uint16_t len);
 
 /** \brief Advance the position by \p n octets and invoke \p cb on each mbuf.
  */
 static uint32_t
-__MbufLoc_AdvanceWithCb(MbufLoc* ml, uint32_t n, MbufLoc_AdvanceCb cb,
+__MbufLoc_AdvanceWithCb(MbufLoc* ml,
+                        uint32_t n,
+                        MbufLoc_AdvanceCb cb,
                         void* cbarg)
 {
   assert(n <= ml->rem);
@@ -117,7 +121,8 @@ MbufLoc_Advance(MbufLoc* ml, uint32_t n)
  *  Behavior is undefined if a and b do not point to the same packet.
  *  This function does not honor the iterator boundary.
  */
-ptrdiff_t MbufLoc_Diff(const MbufLoc* a, const MbufLoc* b);
+ptrdiff_t
+MbufLoc_Diff(const MbufLoc* a, const MbufLoc* b);
 
 /** \brief Determine the distance in octets from a to b.
  *
@@ -143,8 +148,11 @@ typedef struct __MbufLoc_MakeIndirectCtx
   struct rte_mbuf* tail;
 } __MbufLoc_MakeIndirectCtx;
 
-void __MbufLoc_MakeIndirectCb(void* arg, const struct rte_mbuf* m, uint16_t off,
-                              uint16_t len);
+void
+__MbufLoc_MakeIndirectCb(void* arg,
+                         const struct rte_mbuf* m,
+                         uint16_t off,
+                         uint16_t len);
 
 /** \brief Advance the position by n octets, and clone the range into indirect mbufs.
  *  \return head of indirect mbufs
@@ -175,8 +183,11 @@ MbufLoc_MakeIndirect(MbufLoc* ml, uint32_t n, struct rte_mempool* mp)
   return ctx.head;
 }
 
-void __MbufLoc_ReadCb(void* arg, const struct rte_mbuf* m, uint16_t off,
-                      uint16_t len);
+void
+__MbufLoc_ReadCb(void* arg,
+                 const struct rte_mbuf* m,
+                 uint16_t off,
+                 uint16_t len);
 
 /** \brief Read next n octets, and advance the position.
  *  \param buf a buffer to copy octets into, used only if crossing segment boundary.
@@ -270,11 +281,17 @@ MbufLoc_PeekOctet(const MbufLoc* ml)
  *  \post pkt->nb_segs and pkt->pkt_len are updated.
  *  \warning Undefined behavior if there are less than \p n octets after \p ml.
  */
-void MbufLoc_Delete(MbufLoc* ml, uint32_t n, struct rte_mbuf* pkt,
-                    struct rte_mbuf* prev);
+void
+MbufLoc_Delete(MbufLoc* ml,
+               uint32_t n,
+               struct rte_mbuf* pkt,
+               struct rte_mbuf* prev);
 
-uint8_t* __MbufLoc_Linearize(MbufLoc* first, MbufLoc* last,
-                             struct rte_mbuf* pkt, struct rte_mempool* mp);
+uint8_t*
+__MbufLoc_Linearize(MbufLoc* first,
+                    MbufLoc* last,
+                    struct rte_mbuf* pkt,
+                    struct rte_mempool* mp);
 
 /** \brief Ensure [first, last) are in the same mbuf.
  *  \param[inout] first begin range iterator, will be updated if needed
@@ -289,7 +306,9 @@ uint8_t* __MbufLoc_Linearize(MbufLoc* first, MbufLoc* last,
  *  \warning Undefined behavior if advancing \p first cannot reach \p last
  */
 static uint8_t*
-MbufLoc_Linearize(MbufLoc* first, MbufLoc* last, struct rte_mbuf* pkt,
+MbufLoc_Linearize(MbufLoc* first,
+                  MbufLoc* last,
+                  struct rte_mbuf* pkt,
                   struct rte_mempool* mp)
 {
   if (likely(first->m == last->m)) {

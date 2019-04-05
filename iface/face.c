@@ -45,20 +45,25 @@ Face_TxBurst_Nts(Face* face, Packet** npkts, uint16_t count)
 }
 
 void
-FaceImpl_Init(Face* face, uint16_t mtu, uint16_t headroom,
+FaceImpl_Init(Face* face,
+              uint16_t mtu,
+              uint16_t headroom,
               FaceMempools* mempools)
 {
   face->threadSafeTxQueue = NULL;
 
   RunningStat_SetSampleRate(&face->impl->latencyStat, LATENCY_STAT_SAMPLE_FREQ);
-  TxProc_Init(&face->impl->tx, mtu, headroom, mempools->indirectMp,
-              mempools->headerMp);
+  TxProc_Init(
+    &face->impl->tx, mtu, headroom, mempools->indirectMp, mempools->headerMp);
   RxProc_Init(&face->impl->rx, mempools->nameMp);
 }
 
 void
-FaceImpl_RxBurst(FaceRxBurst* burst, uint16_t nFrames, int rxThread,
-                 Face_RxCb cb, void* cbarg)
+FaceImpl_RxBurst(FaceRxBurst* burst,
+                 uint16_t nFrames,
+                 int rxThread,
+                 Face_RxCb cb,
+                 void* cbarg)
 {
   FaceRxBurst_Clear(burst);
 

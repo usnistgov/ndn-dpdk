@@ -41,6 +41,7 @@
   RTE_INIT(InitLogOutputLvl) { gZfLogOutputLvl = ParseLogLevel(#module); }     \
   struct __AllowTrailingSemicolon
 
-int ParseLogLevel(const char* module);
+int
+ParseLogLevel(const char* module);
 
 #endif // NDN_DPDK_CORE_LOGGER_H

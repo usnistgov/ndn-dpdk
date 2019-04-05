@@ -3,8 +3,8 @@
 static void
 RxLoop_Transfer(RxLoop* rxl, RxGroup* rxg)
 {
-  uint16_t nRx = (*rxg->rxBurstOp)(rxg, FaceRxBurst_GetScratch(rxl->burst),
-                                   rxl->burst->capacity);
+  uint16_t nRx = (*rxg->rxBurstOp)(
+    rxg, FaceRxBurst_GetScratch(rxl->burst), rxl->burst->capacity);
   FaceImpl_RxBurst(rxl->burst, nRx, rxg->rxThread, rxl->cb, rxl->cbarg);
 }
 

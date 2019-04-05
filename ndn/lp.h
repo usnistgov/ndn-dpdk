@@ -52,8 +52,11 @@ typedef struct LpHeader
  *  \retval NdnError_FragIndexExceedFragCount FragIndex is not less than FragCount.
  *  \retval NdnError_LpHasTrailer found trailer fields after LpFragment.
  */
-NdnError LpHeader_FromPacket(LpHeader* lph, struct rte_mbuf* pkt,
-                             uint32_t* payloadOff, uint32_t* tlvSize);
+NdnError
+LpHeader_FromPacket(LpHeader* lph,
+                    struct rte_mbuf* pkt,
+                    uint32_t* payloadOff,
+                    uint32_t* tlvSize);
 
 static uint16_t
 PrependLpHeader_GetHeadroom()
@@ -73,7 +76,7 @@ PrependLpHeader_GetHeadroom()
  *           \c PrependLpHeader_GetHeadroom() in headroom.
  *  \param payloadL TLV-LENGTH of LpPayload, or 0 to indicate no payload
  */
-void PrependLpHeader(struct rte_mbuf* m, const LpHeader* lph,
-                     uint32_t payloadL);
+void
+PrependLpHeader(struct rte_mbuf* m, const LpHeader* lph, uint32_t payloadL);
 
 #endif // NDN_DPDK_NDN_LP_H

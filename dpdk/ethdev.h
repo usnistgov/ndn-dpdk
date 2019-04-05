@@ -14,7 +14,8 @@
  *
  *  In all other cases, this function is equivalent to \c rte_eth_macaddr_get.
  */
-void EthDev_GetMacAddr(uint16_t port, struct ether_addr* macaddr);
+void
+EthDev_GetMacAddr(uint16_t port, struct ether_addr* macaddr);
 
 /** \brief Retrieve whether an Ethernet device is DOWN.
  */

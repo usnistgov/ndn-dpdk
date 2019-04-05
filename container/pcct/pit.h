@@ -36,7 +36,8 @@ Pit_GetPriv(const Pit* pit)
 
 /** \brief Constructor.
  */
-void Pit_Init(Pit* pit);
+void
+Pit_Init(Pit* pit);
 
 /** \brief Get number of PIT entries.
  */
@@ -59,7 +60,8 @@ Pit_CountEntries(const Pit* pit)
  *  When a new PIT entry is inserted, the PIT entry owns \p npkt but does not
  *  free it, so the caller may continue using it until \c PitEntry_InsertDn.
  */
-PitInsertResult Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry);
+PitInsertResult
+Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry);
 
 /** \brief Get a token of a PIT entry.
  */
@@ -74,20 +76,24 @@ Pit_GetEntryToken(Pit* pit, PitEntry* entry)
 /** \brief Erase a PIT entry.
  *  \post \p entry is no longer valid.
  */
-void Pit_Erase(Pit* pit, PitEntry* entry);
+void
+Pit_Erase(Pit* pit, PitEntry* entry);
 
 /** \brief Erase both PIT entries on a PccEntry but retain the PccEntry.
  */
-void __Pit_RawErase01(Pit* pit, PccEntry* pccEntry);
+void
+__Pit_RawErase01(Pit* pit, PccEntry* pccEntry);
 
 /** \brief Find PIT entries matching a Data.
  *  \param npkt Data packet, its token will be used.
  */
-PitFindResult Pit_FindByData(Pit* pit, Packet* npkt);
+PitFindResult
+Pit_FindByData(Pit* pit, Packet* npkt);
 
 /** \brief Find PIT entry matching a Nack.
  *  \param npkt Nack packet, its token will be used.
  */
-PitEntry* Pit_FindByNack(Pit* pit, Packet* npkt);
+PitEntry*
+Pit_FindByNack(Pit* pit, Packet* npkt);
 
 #endif // NDN_DPDK_CONTAINER_PCCT_PIT_H

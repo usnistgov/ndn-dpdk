@@ -20,7 +20,8 @@ typedef struct FaceCounters FaceCounters;
  *  \return successfully queued frames
  *  \post FaceImpl owns queued frames, but does not own remaining frames
  */
-typedef uint16_t (*FaceImpl_TxBurst)(Face* face, struct rte_mbuf** pkts,
+typedef uint16_t (*FaceImpl_TxBurst)(Face* face,
+                                     struct rte_mbuf** pkts,
                                      uint16_t nPkts);
 
 typedef struct FaceImpl
@@ -90,7 +91,8 @@ typedef void (*Face_RxCb)(FaceRxBurst* burst, void* cbarg);
 
 /** \brief Send a burst of packets (non-thread-safe).
  */
-void Face_TxBurst_Nts(Face* face, Packet** npkts, uint16_t count);
+void
+Face_TxBurst_Nts(Face* face, Packet** npkts, uint16_t count);
 
 /** \brief Send a burst of packets.
  *  \param npkts array of L3 packets; face takes ownership
@@ -109,8 +111,8 @@ Face_TxBurst(FaceId faceId, Packet** npkts, uint16_t count)
   }
 
   if (likely(face->threadSafeTxQueue != NULL)) {
-    uint16_t nQueued = rte_ring_mp_enqueue_burst(face->threadSafeTxQueue,
-                                                 (void**)npkts, count, NULL);
+    uint16_t nQueued = rte_ring_mp_enqueue_burst(
+      face->threadSafeTxQueue, (void**)npkts, count, NULL);
     uint16_t nRejects = count - nQueued;
     FreeMbufs((struct rte_mbuf**)&npkts[nQueued], nRejects);
     // TODO count nRejects
@@ -154,8 +156,11 @@ typedef struct FaceMempools
  *  \param mtu transport MTU available for NDNLP packets.
  *  \param headroom headroom before NDNLP header, as required by transport.
  */
-void FaceImpl_Init(Face* face, uint16_t mtu, uint16_t headroom,
-                   FaceMempools* mempools);
+void
+FaceImpl_Init(Face* face,
+              uint16_t mtu,
+              uint16_t headroom,
+              FaceMempools* mempools);
 
 /** \brief Process received frames and invoke upper layer callback.
  *  \param burst FaceRxBurst_GetScratch(burst) must contain received frames.
@@ -163,8 +168,12 @@ void FaceImpl_Init(Face* face, uint16_t mtu, uint16_t headroom,
  *  \param rxThread RX thread number within each face. Threads receiving frames on the
  *                  same face must use distinct numbers to avoid race condition.
  */
-void FaceImpl_RxBurst(FaceRxBurst* burst, uint16_t nFrames, int rxThread,
-                      Face_RxCb cb, void* cbarg);
+void
+FaceImpl_RxBurst(FaceRxBurst* burst,
+                 uint16_t nFrames,
+                 int rxThread,
+                 Face_RxCb cb,
+                 void* cbarg);
 
 /** \brief Update counters after a frame is transmitted.
  */

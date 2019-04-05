@@ -27,7 +27,8 @@ PccSearch_ComputeHash(const PccSearch* search)
  *  \return A string from thread-local buffer.
  *  \warning Subsequent *ToDebugString calls on the same thread overwrite the buffer.
  */
-const char* PccSearch_ToDebugString(const PccSearch* search);
+const char*
+PccSearch_ToDebugString(const PccSearch* search);
 
 #define PCC_KEY_NAME_CAP 240
 #define PCC_KEY_FH_CAP 160
@@ -54,7 +55,9 @@ struct PccKeyExt
 };
 
 static bool
-__PccKey_MatchNameOrFhV(LName name, const uint8_t* value, uint16_t cap,
+__PccKey_MatchNameOrFhV(LName name,
+                        const uint8_t* value,
+                        uint16_t cap,
                         const PccKeyExt* ext)
 {
   if (memcmp(value, name.value, RTE_MIN(name.length, cap)) != 0) {
@@ -63,7 +66,8 @@ __PccKey_MatchNameOrFhV(LName name, const uint8_t* value, uint16_t cap,
   for (uint16_t offset = cap; unlikely(offset < name.length);
        offset += PCC_KEY_EXT_CAP) {
     assert(ext != NULL);
-    if (memcmp(ext->value, RTE_PTR_ADD(name.value, offset),
+    if (memcmp(ext->value,
+               RTE_PTR_ADD(name.value, offset),
                RTE_MIN(name.length - offset, PCC_KEY_EXT_CAP)) != 0) {
       return false;
     }
@@ -78,8 +82,8 @@ static bool
 PccKey_MatchName(const PccKey* key, LName name)
 {
   return name.length == key->nameL &&
-         __PccKey_MatchNameOrFhV(name, key->nameV, PCC_KEY_NAME_CAP,
-                                 key->nameExt);
+         __PccKey_MatchNameOrFhV(
+           name, key->nameV, PCC_KEY_NAME_CAP, key->nameExt);
 }
 
 /** \brief Determine if \p key matches \p search.
@@ -88,8 +92,8 @@ static bool
 PccKey_MatchSearchKey(const PccKey* key, const PccSearch* search)
 {
   return search->fh.length == key->fhL && PccKey_MatchName(key, search->name) &&
-         __PccKey_MatchNameOrFhV(search->fh, key->fhV, PCC_KEY_FH_CAP,
-                                 key->fhExt);
+         __PccKey_MatchNameOrFhV(
+           search->fh, key->fhV, PCC_KEY_FH_CAP, key->fhExt);
 }
 
 #define __PccKey_CountExtensionsOn(excess)                                     \
@@ -113,8 +117,11 @@ PccKey_CountExtensions(const PccSearch* search)
   __PccKey_CountExtensions(NAME_MAX_LENGTH, NAME_MAX_LENGTH)
 
 static int
-__PccKey_CopyNameOrFhV(LName name, uint8_t* value, uint16_t cap,
-                       PccKeyExt** next, PccKeyExt* exts[])
+__PccKey_CopyNameOrFhV(LName name,
+                       uint8_t* value,
+                       uint16_t cap,
+                       PccKeyExt** next,
+                       PccKeyExt* exts[])
 {
   rte_memcpy(value, name.value, RTE_MIN(name.length, cap));
   int nExts = 0;
@@ -122,7 +129,8 @@ __PccKey_CopyNameOrFhV(LName name, uint8_t* value, uint16_t cap,
        offset += PCC_KEY_EXT_CAP) {
     PccKeyExt* ext = exts[nExts++];
     *next = ext;
-    rte_memcpy(ext->value, RTE_PTR_ADD(name.value, offset),
+    rte_memcpy(ext->value,
+               RTE_PTR_ADD(name.value, offset),
                RTE_MIN(name.length - offset, PCC_KEY_EXT_CAP));
     next = &ext->next;
   }
@@ -133,16 +141,18 @@ __PccKey_CopyNameOrFhV(LName name, uint8_t* value, uint16_t cap,
 /** \brief Copy \c search into \p key.
  */
 static void
-PccKey_CopyFromSearch(PccKey* key, const PccSearch* search, PccKeyExt* exts[],
+PccKey_CopyFromSearch(PccKey* key,
+                      const PccSearch* search,
+                      PccKeyExt* exts[],
                       int nExts)
 {
   assert(nExts == PccKey_CountExtensions(search));
   key->nameL = search->name.length;
   key->fhL = search->fh.length;
-  int nNameExts = __PccKey_CopyNameOrFhV(search->name, key->nameV,
-                                         PCC_KEY_NAME_CAP, &key->nameExt, exts);
-  __PccKey_CopyNameOrFhV(search->fh, key->fhV, PCC_KEY_FH_CAP, &key->fhExt,
-                         &exts[nNameExts]);
+  int nNameExts = __PccKey_CopyNameOrFhV(
+    search->name, key->nameV, PCC_KEY_NAME_CAP, &key->nameExt, exts);
+  __PccKey_CopyNameOrFhV(
+    search->fh, key->fhV, PCC_KEY_FH_CAP, &key->fhExt, &exts[nNameExts]);
 }
 
 /** \brief Move PccKeyExts into \p exts to prepare for removal.

@@ -6,14 +6,27 @@ static_assert(sizeof(((struct cds_lfht_node*)NULL)->reverse_hash) ==
               "");
 
 Tsht*
-Tsht_New(const char* id, uint32_t maxEntries, uint32_t nBuckets,
-         Tsht_Match match, Tsht_Finalize finalize, size_t sizeofEntry,
-         size_t sizeofHead, unsigned numaSocket)
+Tsht_New(const char* id,
+         uint32_t maxEntries,
+         uint32_t nBuckets,
+         Tsht_Match match,
+         Tsht_Finalize finalize,
+         size_t sizeofEntry,
+         size_t sizeofHead,
+         unsigned numaSocket)
 {
   uint32_t nodeSize = sizeof(TshtNode) + sizeofEntry;
   uint32_t privSize = sizeof(TshtPriv) + sizeofHead;
-  Tsht* ht = (Tsht*)rte_mempool_create(id, maxEntries, nodeSize, 0, privSize,
-                                       NULL, NULL, NULL, NULL, numaSocket,
+  Tsht* ht = (Tsht*)rte_mempool_create(id,
+                                       maxEntries,
+                                       nodeSize,
+                                       0,
+                                       privSize,
+                                       NULL,
+                                       NULL,
+                                       NULL,
+                                       NULL,
+                                       numaSocket,
                                        MEMPOOL_F_SP_PUT | MEMPOOL_F_SC_GET);
   if (unlikely(ht == NULL)) {
     return NULL;

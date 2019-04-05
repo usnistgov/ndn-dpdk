@@ -60,7 +60,8 @@ SizeofVarNum(uint64_t n)
   return n <= UINT16_MAX ? (n < 253 ? 1 : 3) : (n <= UINT32_MAX ? 5 : 9);
 }
 
-uint8_t* __EncodeVarNum_32or64(uint8_t* room, uint64_t n);
+uint8_t*
+__EncodeVarNum_32or64(uint8_t* room, uint64_t n);
 
 /** \brief Encode a TLV-TYPE or TLV-LENGTH number.
  *  \param[out] room output buffer, must have \c SizeofVarNum(n) octets

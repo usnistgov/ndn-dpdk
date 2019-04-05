@@ -15,8 +15,11 @@ CryptoOp_GetStatus(const struct rte_crypto_op* op)
 extern struct rte_crypto_sym_xform theSha256DigestXform;
 
 static void
-CryptoOp_PrepareSha256Digest(struct rte_crypto_op* op, struct rte_mbuf* src,
-                             uint32_t offset, uint32_t length, uint8_t* output)
+CryptoOp_PrepareSha256Digest(struct rte_crypto_op* op,
+                             struct rte_mbuf* src,
+                             uint32_t offset,
+                             uint32_t length,
+                             uint8_t* output)
 {
   op->sym->m_src = src;
   op->sym->xform = &theSha256DigestXform;

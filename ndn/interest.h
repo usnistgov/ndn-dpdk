@@ -50,15 +50,18 @@ typedef struct PInterest
  *  \retval NdnError_BadType packet is not Interest.
  *  \retval NdnError_AllocError unable to allocate mbuf.
  */
-NdnError PInterest_FromPacket(PInterest* interest, struct rte_mbuf* pkt,
-                              struct rte_mempool* nameMp);
+NdnError
+PInterest_FromPacket(PInterest* interest,
+                     struct rte_mbuf* pkt,
+                     struct rte_mempool* nameMp);
 
 /** \brief Set active forwarding hint.
  *  \param index fwhint index, must be less than \c interest->nFhs, or -1 for none.
  *  \post interest->activeFh == index
  *  \post interest->activeFhName reflects the index-th fwhint.
  */
-NdnError PInterest_SelectActiveFh(PInterest* interest, int8_t index);
+NdnError
+PInterest_SelectActiveFh(PInterest* interest, int8_t index);
 
 static uint16_t
 ModifyInterest_SizeofGuider()
@@ -81,9 +84,13 @@ ModifyInterest_SizeofGuider()
  *  \return cloned and modified packet that has \c Packet_GetInterestHdr().
  *  \retval NULL allocation failure.
  */
-Packet* ModifyInterest(Packet* npkt, uint32_t nonce, uint32_t lifetime,
-                       uint8_t hopLimit, struct rte_mempool* headerMp,
-                       struct rte_mempool* guiderMp,
-                       struct rte_mempool* indirectMp);
+Packet*
+ModifyInterest(Packet* npkt,
+               uint32_t nonce,
+               uint32_t lifetime,
+               uint8_t hopLimit,
+               struct rte_mempool* headerMp,
+               struct rte_mempool* guiderMp,
+               struct rte_mempool* indirectMp);
 
 #endif // NDN_DPDK_NDN_INTEREST_H

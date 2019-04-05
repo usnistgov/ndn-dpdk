@@ -75,7 +75,8 @@ static_assert(CHAR_BIT * sizeof(FibNexthopFilter) >= FIB_ENTRY_MAX_NEXTHOPS,
  *  \return how many nexthops pass the filter after the update.
  */
 static int
-FibNexthopFilter_Reject(FibNexthopFilter* filter, const FibEntry* entry,
+FibNexthopFilter_Reject(FibNexthopFilter* filter,
+                        const FibEntry* entry,
                         FaceId nh)
 {
   int count = 0;

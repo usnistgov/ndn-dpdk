@@ -18,8 +18,8 @@ typedef struct EthRxTable
   FaceId unicast[256]; ///< unicast faces, by last octet of sender address
 } EthRxTable;
 
-uint16_t EthRxTable_RxBurst(RxGroup* rxg, struct rte_mbuf** pkts,
-                            uint16_t nPkts);
+uint16_t
+EthRxTable_RxBurst(RxGroup* rxg, struct rte_mbuf** pkts, uint16_t nPkts);
 
 /** \brief rte_flow-based hardware RX dispatching.
  */
@@ -35,10 +35,12 @@ typedef struct EthRxFlow
 /** \brief Setup rte_flow on EthDev for hardware dispatching.
  *  \param sender remote unicast MAC address, or NULL for multicast
  */
-bool EthRxFlow_Setup(EthRxFlow* rxf, struct ether_addr* sender,
-                     struct rte_flow_error* error);
+bool
+EthRxFlow_Setup(EthRxFlow* rxf,
+                struct ether_addr* sender,
+                struct rte_flow_error* error);
 
-uint16_t EthRxFlow_RxBurst(RxGroup* rxg, struct rte_mbuf** pkts,
-                           uint16_t nPkts);
+uint16_t
+EthRxFlow_RxBurst(RxGroup* rxg, struct rte_mbuf** pkts, uint16_t nPkts);
 
 #endif // NDN_DPDK_IFACE_ETHFACE_RXLOOP_H

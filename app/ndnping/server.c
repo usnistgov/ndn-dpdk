@@ -8,7 +8,8 @@ INIT_ZF_LOG(NdnpingServer);
 static uint8_t NdnpingServer_payloadV[NDNPINGSERVER_PAYLOAD_MAX];
 
 static Packet*
-NdnpingServer_MakeData(NdnpingServer* server, NdnpingServerPattern* pattern,
+NdnpingServer_MakeData(NdnpingServer* server,
+                       NdnpingServerPattern* pattern,
                        LName name)
 {
   struct rte_mbuf* m = rte_pktmbuf_alloc(server->dataMp);
@@ -17,8 +18,12 @@ NdnpingServer_MakeData(NdnpingServer* server, NdnpingServerPattern* pattern,
     return NULL;
   }
   m->data_off = server->dataMbufHeadroom;
-  EncodeData(m, name, pattern->nameSuffix, server->freshnessPeriod,
-             pattern->payloadL, NdnpingServer_payloadV);
+  EncodeData(m,
+             name,
+             pattern->nameSuffix,
+             server->freshnessPeriod,
+             pattern->payloadL,
+             NdnpingServer_payloadV);
 
   Packet* npkt = Packet_FromMbuf(m);
   Packet_SetL2PktType(npkt, L2PktType_None);
@@ -82,8 +87,10 @@ NdnpingServer_Run(NdnpingServer* server)
       nTx += (tx[nTx] != NULL);
     }
     if (likely(nRx > 0)) {
-      ZF_LOGD("face=%" PRI_FaceId "nRx=%" PRIu16 " nTx=%" PRIu16, server->face,
-              nRx, nTx);
+      ZF_LOGD("face=%" PRI_FaceId "nRx=%" PRIu16 " nTx=%" PRIu16,
+              server->face,
+              nRx,
+              nTx);
     }
     Face_TxBurst(server->face, tx, nTx);
   }

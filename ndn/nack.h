@@ -8,7 +8,8 @@
 
 /** \brief Indicate a Nack reason.
  */
-typedef enum NackReason {
+typedef enum NackReason
+{
   NackReason_None = 0, ///< packet is not a Nack
   NackReason_Congestion = 50,
   NackReason_Duplicate = 100,
@@ -43,6 +44,7 @@ PNack_GetReason(const PNack* nack)
  *  \pre Packet_GetL3PktType(npkt) == L3PktType_Interest
  *  \post Packet_GetL3PktType(npkt) == L3PktType_Nack
  */
-void MakeNack(Packet* npkt, NackReason reason);
+void
+MakeNack(Packet* npkt, NackReason reason);
 
 #endif // NDN_DPDK_NDN_NACK_H

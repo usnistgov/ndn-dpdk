@@ -30,7 +30,8 @@ typedef struct DiskStore
  *
  *  This function may be invoked on any thread, including non-SPDK thread.
  */
-void DiskStore_PutData(DiskStore* store, uint64_t slotId, Packet* npkt);
+void
+DiskStore_PutData(DiskStore* store, uint64_t slotId, Packet* npkt);
 
 /** \brief Retrieve a Data packet.
  *  \param slotId disk slot number.
@@ -46,7 +47,11 @@ void DiskStore_PutData(DiskStore* store, uint64_t slotId, Packet* npkt);
  *
  *  This function may be invoked on any thread, including non-SPDK thread.
  */
-void DiskStore_GetData(DiskStore* store, uint64_t slotId, uint16_t dataLen,
-                       Packet* npkt, struct rte_ring* reply);
+void
+DiskStore_GetData(DiskStore* store,
+                  uint64_t slotId,
+                  uint16_t dataLen,
+                  Packet* npkt,
+                  struct rte_ring* reply);
 
 #endif // NDN_DPDK_CONTAINER_DISKSTORE_DISKSTORE_H

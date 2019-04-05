@@ -20,10 +20,14 @@ __StrategyCode_GetEmptyProgram(uint32_t* nInsn)
 {
   static const struct ebpf_insn program[] = {
     {
-      0, .code = BPF_ALU | EBPF_MOV | BPF_K, .dst_reg = EBPF_REG_0, .imm = 0,
+      0,
+      .code = BPF_ALU | EBPF_MOV | BPF_K,
+      .dst_reg = EBPF_REG_0,
+      .imm = 0,
     },
     {
-      0, .code = BPF_JMP | EBPF_EXIT,
+      0,
+      .code = BPF_JMP | EBPF_EXIT,
     },
   };
   *nInsn = RTE_DIM(program);

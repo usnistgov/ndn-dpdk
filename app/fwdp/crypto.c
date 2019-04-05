@@ -10,8 +10,8 @@ static void
 FwCrypto_Input(FwCrypto* fwc)
 {
   Packet* npkts[FW_CRYPTO_BURST_SIZE];
-  uint16_t nDeq = rte_ring_dequeue_burst(fwc->input, (void**)npkts,
-                                         FW_CRYPTO_BURST_SIZE, NULL);
+  uint16_t nDeq = rte_ring_dequeue_burst(
+    fwc->input, (void**)npkts, FW_CRYPTO_BURST_SIZE, NULL);
   if (nDeq == 0) {
     return;
   }
@@ -40,8 +40,8 @@ static void
 FwCrypto_Output(FwCrypto* fwc)
 {
   struct rte_crypto_op* ops[FW_CRYPTO_BURST_SIZE];
-  uint16_t nDeq = rte_cryptodev_dequeue_burst(fwc->devId, fwc->qpId, ops,
-                                              FW_CRYPTO_BURST_SIZE);
+  uint16_t nDeq = rte_cryptodev_dequeue_burst(
+    fwc->devId, fwc->qpId, ops, FW_CRYPTO_BURST_SIZE);
 
   Packet* npkts[FW_CRYPTO_BURST_SIZE];
   uint16_t nFinish = 0;
@@ -63,7 +63,12 @@ void
 FwCrypto_Run(FwCrypto* fwc)
 {
   ZF_LOGI("fwc=%p input=%p pool=%p cryptodev=%" PRIu8 "-%" PRIu16 " output=%p",
-          fwc, fwc->input, fwc->opPool, fwc->devId, fwc->qpId, fwc->output);
+          fwc,
+          fwc->input,
+          fwc->opPool,
+          fwc->devId,
+          fwc->qpId,
+          fwc->output);
   while (ThreadStopFlag_ShouldContinue(&fwc->stop)) {
     FwCrypto_Output(fwc);
     FwCrypto_Input(fwc);

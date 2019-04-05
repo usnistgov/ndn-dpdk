@@ -50,7 +50,8 @@ struct PitEntryExt
 };
 
 static void
-__PitEntry_SetFibEntry(PitEntry* entry, PInterest* interest,
+__PitEntry_SetFibEntry(PitEntry* entry,
+                       PInterest* interest,
                        const FibEntry* fibEntry)
 {
   entry->fibPrefixL = fibEntry->nameL;
@@ -106,13 +107,15 @@ PitEntry_Finalize(PitEntry* entry)
  *  \return A string from thread-local buffer.
  *  \warning Subsequent *ToDebugString calls on the same thread overwrite the buffer.
  */
-const char* PitEntry_ToDebugString(PitEntry* entry);
+const char*
+PitEntry_ToDebugString(PitEntry* entry);
 
 /** \brief Reference FIB entry from PIT entry, clear scratch if FIB entry changed.
  *  \param npkt the Interest packet.
  */
 static void
-PitEntry_RefreshFibEntry(PitEntry* entry, Packet* npkt,
+PitEntry_RefreshFibEntry(PitEntry* entry,
+                         Packet* npkt,
                          const FibEntry* fibEntry)
 {
   if (likely(entry->fibSeqNo == fibEntry->seqNo)) {
@@ -131,7 +134,7 @@ static const FibEntry*
 PitEntry_FindFibEntry(PitEntry* entry, Fib* fib)
 {
   PInterest* interest = Packet_GetInterestHdr(entry->npkt);
-  LName name = {.length = entry->fibPrefixL, .value = interest->name.v };
+  LName name = { .length = entry->fibPrefixL, .value = interest->name.v };
   if (unlikely(interest->activeFh >= 0)) {
     name.value = interest->activeFhName.v;
   }
@@ -145,15 +148,16 @@ PitEntry_FindFibEntry(PitEntry* entry, Fib* fib)
 /** \brief Find duplicate nonce among DN records other than \p rxFace.
  *  \return FaceId of PitDn with duplicate nonce, or \c FACEID_INVALID if none.
  */
-FaceId PitEntry_FindDuplicateNonce(PitEntry* entry, uint32_t nonce,
-                                   FaceId rxFace);
+FaceId
+PitEntry_FindDuplicateNonce(PitEntry* entry, uint32_t nonce, FaceId rxFace);
 
 /** \brief Insert new DN record, or update existing DN record.
  *  \param entry PIT entry, must be initialized.
  *  \param npkt received Interest; will take ownership unless returning NULL.
  *  \return DN record, or NULL if no slot is available.
  */
-PitDn* PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt);
+PitDn*
+PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt);
 
 /** \brief Find existing UP record, or reserve slot for new UP record.
  *  \param entry PIT entry, must be initialized.
@@ -162,7 +166,8 @@ PitDn* PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt);
  *  \note If returned UP record is unused (no \c PitUp_RecordTx invocation),
  *        it will be overwritten on the next \c PitEntry_ReserveUp invocation.
  */
-PitUp* PitEntry_ReserveUp(PitEntry* entry, Pit* pit, FaceId face);
+PitUp*
+PitEntry_ReserveUp(PitEntry* entry, Pit* pit, FaceId face);
 
 /** \brief Calculate InterestLifetime for TX Interest.
  *  \return InterestLifetime in millis.

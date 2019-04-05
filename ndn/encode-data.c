@@ -16,10 +16,14 @@ static const uint8_t FAKESIG[] = {
 const uint16_t __EncodeData_FakeSigLen = sizeof(FAKESIG);
 
 void
-__EncodeData(struct rte_mbuf* m, uint16_t namePrefixL,
-             const uint8_t* namePrefixV, uint16_t nameSuffixL,
-             const uint8_t* nameSuffixV, uint32_t freshnessPeriod,
-             uint16_t contentL, const uint8_t* contentV)
+__EncodeData(struct rte_mbuf* m,
+             uint16_t namePrefixL,
+             const uint8_t* namePrefixV,
+             uint16_t nameSuffixL,
+             const uint8_t* nameSuffixV,
+             uint32_t freshnessPeriod,
+             uint16_t contentL,
+             const uint8_t* contentV)
 {
   assert(rte_pktmbuf_headroom(m) >= EncodeData_GetHeadroom());
   assert(rte_pktmbuf_tailroom(m) >=
@@ -62,7 +66,8 @@ __EncodeData(struct rte_mbuf* m, uint16_t namePrefixL,
     rte_memcpy(rte_pktmbuf_append(m, contentL), contentV, contentL);
   }
 
-  rte_memcpy(rte_pktmbuf_append(m, __EncodeData_FakeSigLen), FAKESIG,
+  rte_memcpy(rte_pktmbuf_append(m, __EncodeData_FakeSigLen),
+             FAKESIG,
              __EncodeData_FakeSigLen);
 
   PrependVarNum(en, m->pkt_len);

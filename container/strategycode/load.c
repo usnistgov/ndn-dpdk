@@ -15,13 +15,14 @@ struct rte_bpf
 };
 
 static int
-StrategyCode_LoadUbpf(struct rte_bpf* bpf, const struct rte_bpf_prm* prm,
+StrategyCode_LoadUbpf(struct rte_bpf* bpf,
+                      const struct rte_bpf_prm* prm,
                       struct ubpf_vm* vm)
 {
   for (uint32_t i = 0; i < prm->nb_xsym; ++i) {
     if (prm->xsym[i].type != RTE_BPF_XTYPE_FUNC) {
-      ZF_LOGE("prm->xsym[%" PRIu32 "].type=%d unsupported", i,
-              prm->xsym[i].type);
+      ZF_LOGE(
+        "prm->xsym[%" PRIu32 "].type=%d unsupported", i, prm->xsym[i].type);
       return ENOTSUP;
     }
 

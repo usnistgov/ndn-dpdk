@@ -57,12 +57,17 @@ DiskStore_PutData_Begin(void* npkt0)
 
   uint64_t blockOffset = DiskStore_ComputeBlockOffset(store, slotId);
   uint64_t blockCount = DiskStore_ComputeBlockCount(store, npkt);
-  int res = SpdkBdev_WritePacket(store->bdev, store->ch, Packet_ToMbuf(npkt),
-                                 blockOffset, blockCount, store->blockSize,
-                                 DiskStore_PutData_End, npkt);
+  int res = SpdkBdev_WritePacket(store->bdev,
+                                 store->ch,
+                                 Packet_ToMbuf(npkt),
+                                 blockOffset,
+                                 blockCount,
+                                 store->blockSize,
+                                 DiskStore_PutData_End,
+                                 npkt);
   if (unlikely(res != 0)) {
-    ZF_LOGW("PutData_Begin(%" PRIu64 ", %p): fail=write(%d)", slotId, npkt,
-            res);
+    ZF_LOGW(
+      "PutData_Begin(%" PRIu64 ", %p): fail=write(%d)", slotId, npkt, res);
     rte_pktmbuf_free(Packet_ToMbuf(npkt));
   }
 }
@@ -156,9 +161,14 @@ DiskStore_GetData_Begin(void* npkt0)
 
   uint64_t blockOffset = DiskStore_ComputeBlockOffset(store, slotId);
 
-  int res = SpdkBdev_ReadPacket(store->bdev, store->ch, dataPkt, blockOffset,
-                                store->nBlocksPerSlot, store->blockSize,
-                                DiskStore_GetData_End, npkt);
+  int res = SpdkBdev_ReadPacket(store->bdev,
+                                store->ch,
+                                dataPkt,
+                                blockOffset,
+                                store->nBlocksPerSlot,
+                                store->blockSize,
+                                DiskStore_GetData_End,
+                                npkt);
   if (unlikely(res != 0)) {
     ZF_LOGW("GetData_Begin(%" PRIu64 ", %p): fail=read(%d)", slotId, npkt, res);
     DiskStore_GetData_Fail(req->reply, npkt);
@@ -166,8 +176,11 @@ DiskStore_GetData_Begin(void* npkt0)
 }
 
 void
-DiskStore_GetData(DiskStore* store, uint64_t slotId, uint16_t dataLen,
-                  Packet* npkt, struct rte_ring* reply)
+DiskStore_GetData(DiskStore* store,
+                  uint64_t slotId,
+                  uint16_t dataLen,
+                  Packet* npkt,
+                  struct rte_ring* reply)
 {
   assert(slotId > 0);
   PInterest* interest = Packet_GetInterestHdr(npkt);

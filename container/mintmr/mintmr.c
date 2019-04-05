@@ -5,7 +5,9 @@
 INIT_ZF_LOG(MinTmr);
 
 MinSched*
-MinSched_New(int nSlotBits, TscDuration interval, MinTmrCallback cb,
+MinSched_New(int nSlotBits,
+             TscDuration interval,
+             MinTmrCallback cb,
              void* cbarg)
 {
   uint16_t nSlots = 1 << nSlotBits;
@@ -21,8 +23,11 @@ MinSched_New(int nSlotBits, TscDuration interval, MinTmrCallback cb,
   sched->lastSlot = nSlots - 1;
   sched->nextTime = rte_get_tsc_cycles();
 
-  ZF_LOGI("%p New(slots=%" PRIu16 " interval=%" PRIu64 " cb=%p)", sched,
-          sched->nSlots, sched->interval, cb);
+  ZF_LOGI("%p New(slots=%" PRIu16 " interval=%" PRIu64 " cb=%p)",
+          sched,
+          sched->nSlots,
+          sched->interval,
+          cb);
 
   for (uint16_t i = 0; i < nSlots; ++i) {
     MinTmr* slot = &sched->slot[i];
@@ -44,14 +49,17 @@ __MinSched_Trigger(MinSched* sched, TscTime now)
     sched->lastSlot = (sched->lastSlot + 1) & sched->slotMask;
     MinTmr* slot = &sched->slot[sched->lastSlot];
     ZF_LOGV("%p Trigger() slot=%" PRIu16 " time=%" PRIu64 " now=%" PRIu64,
-            sched, sched->lastSlot, sched->nextTime, now);
+            sched,
+            sched->lastSlot,
+            sched->nextTime,
+            now);
     sched->nextTime += sched->interval;
 
     MinTmr* next;
     for (MinTmr* tmr = slot->next; tmr != slot; tmr = next) {
       next = tmr->next;
-      ZF_LOGD("%p Trigger() slot=%" PRIu16 " tmr=%p", sched, sched->lastSlot,
-              tmr);
+      ZF_LOGD(
+        "%p Trigger() slot=%" PRIu16 " tmr=%p", sched, sched->lastSlot, tmr);
       ++sched->nTriggered;
       (sched->cb)(tmr, sched->cbarg);
       MinTmr_Init(tmr);
@@ -67,14 +75,21 @@ MinTmr_After(MinTmr* tmr, TscDuration after, MinSched* sched)
 
   uint64_t nSlotsAway = after / sched->interval + 1;
   if (unlikely(nSlotsAway >= sched->nSlots)) {
-    ZF_LOGW("%p After(%p, %" PRIu64 ") too-far nSlotsAway=%" PRIu64, sched, tmr,
-            after, nSlotsAway);
+    ZF_LOGW("%p After(%p, %" PRIu64 ") too-far nSlotsAway=%" PRIu64,
+            sched,
+            tmr,
+            after,
+            nSlotsAway);
     return false;
   }
 
   uint16_t slotNo = (sched->lastSlot + nSlotsAway) & sched->slotMask;
-  ZF_LOGD("%p After(%p, %" PRIu64 ") slot=%" PRIu16 " last=%" PRIu16, sched,
-          tmr, after, slotNo, sched->lastSlot);
+  ZF_LOGD("%p After(%p, %" PRIu64 ") slot=%" PRIu16 " last=%" PRIu16,
+          sched,
+          tmr,
+          after,
+          slotNo,
+          sched->lastSlot);
   MinTmr* slot = &sched->slot[slotNo];
   tmr->next = slot->next;
   tmr->next->prev = tmr;

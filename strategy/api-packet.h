@@ -29,7 +29,8 @@ typedef struct SgPacket
   uint8_t congMark;
 } SgPacket;
 
-typedef enum SgNackReason {
+typedef enum SgNackReason
+{
   SgNackReason_Congestion = 50,
   SgNackReason_Duplicate = 100,
   SgNackReason_NoRoute = 150,

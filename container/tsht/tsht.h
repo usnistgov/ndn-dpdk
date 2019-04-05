@@ -51,26 +51,35 @@ Tsht_GetPriv(const Tsht* ht)
  *  \param sizeofHead size of private area after TshtPriv.
  *  \param numaSocket where to allocate memory.
  */
-Tsht* Tsht_New(const char* id, uint32_t maxEntries, uint32_t nBuckets,
-               Tsht_Match match, Tsht_Finalize finalize, size_t sizeofEntry,
-               size_t sizeofHead, unsigned numaSocket);
+Tsht*
+Tsht_New(const char* id,
+         uint32_t maxEntries,
+         uint32_t nBuckets,
+         Tsht_Match match,
+         Tsht_Finalize finalize,
+         size_t sizeofEntry,
+         size_t sizeofHead,
+         unsigned numaSocket);
 
 /** \brief Release all memory.
  *  \pre Calling thread is registered as RCU read-side thread, but does not hold rcu_read_lock.
  *  \post \p ht pointer is no longer valid.
  *  \warning This function is not thread-safe.
  */
-void Tsht_Close(Tsht* ht);
+void
+Tsht_Close(Tsht* ht);
 
 /** \brief Allocate entries from TSHT's mempool.
  */
-bool Tsht_AllocBulk(Tsht* ht, TshtEntryPtr entries[], unsigned count);
+bool
+Tsht_AllocBulk(Tsht* ht, TshtEntryPtr entries[], unsigned count);
 
 /** \brief Deallocate an unused entry.
  *
  *  \c Tsht_Finalize will not be invoked for this entry.
  */
-void Tsht_Free(Tsht* ht, TshtEntryPtr entry);
+void
+Tsht_Free(Tsht* ht, TshtEntryPtr entry);
 
 /** \brief Insert an entry, or replace an entry with same key.
  *  \pre Calling thread holds rcu_read_lock.
@@ -79,8 +88,8 @@ void Tsht_Free(Tsht* ht, TshtEntryPtr entry);
  *
  *  \c Tsht_Finalize will be invoked for the old entry when it can be released.
  */
-bool Tsht_Insert(Tsht* ht, uint64_t hash, const void* key,
-                 TshtEntryPtr newEntry);
+bool
+Tsht_Insert(Tsht* ht, uint64_t hash, const void* key, TshtEntryPtr newEntry);
 
 /** \brief Erase an entry.
  *  \pre Calling thread holds rcu_read_lock.
@@ -88,12 +97,14 @@ bool Tsht_Insert(Tsht* ht, uint64_t hash, const void* key,
  *
  *  \c Tsht_Finalize will be invoked for this entry when it can be released.
  */
-bool Tsht_Erase(Tsht* ht, TshtEntryPtr entry);
+bool
+Tsht_Erase(Tsht* ht, TshtEntryPtr entry);
 
 /** \brief Find an entry with specified key.
  *  \pre Calling thread holds rcu_read_lock.
  */
-TshtEntryPtr Tsht_Find(Tsht* ht, uint64_t hash, const void* key);
+TshtEntryPtr
+Tsht_Find(Tsht* ht, uint64_t hash, const void* key);
 
 /** \brief Find an entry with specified key, and cast as const T* type.
  */

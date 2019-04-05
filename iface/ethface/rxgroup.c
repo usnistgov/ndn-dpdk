@@ -44,7 +44,8 @@ EthRxTable_RxBurst(RxGroup* rxg, struct rte_mbuf** pkts, uint16_t nPkts)
 }
 
 bool
-EthRxFlow_Setup(EthRxFlow* rxf, struct ether_addr* sender,
+EthRxFlow_Setup(EthRxFlow* rxf,
+                struct ether_addr* sender,
                 struct rte_flow_error* error)
 {
   struct rte_flow_attr attr = { 0 };
@@ -70,7 +71,7 @@ EthRxFlow_Setup(EthRxFlow* rxf, struct ether_addr* sender,
   pattern[0].spec = &ethSpec;
   pattern[1].type = RTE_FLOW_ITEM_TYPE_END;
 
-  struct rte_flow_action_queue queue = {.index = rxf->queue };
+  struct rte_flow_action_queue queue = { .index = rxf->queue };
 
   struct rte_flow_action actions[2] = { 0 };
   actions[0].type = RTE_FLOW_ACTION_TYPE_QUEUE;

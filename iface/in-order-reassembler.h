@@ -24,6 +24,7 @@ typedef struct InOrderReassembler
  *              and \c Packet_GetLpHdr must be available.
  *  \return reassembled packet, or NULL if still waiting for more fragments.
  */
-Packet* InOrderReassembler_Receive(InOrderReassembler* r, Packet* npkt);
+Packet*
+InOrderReassembler_Receive(InOrderReassembler* r, Packet* npkt);
 
 #endif // NDN_DPDK_IFACE_IN_ORDER_REASSEMBLER_H

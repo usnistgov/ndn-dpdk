@@ -11,7 +11,8 @@ typedef struct NonceGen
   pcg32_random_t rng;
 } NonceGen;
 
-void NonceGen_Init(NonceGen* g);
+void
+NonceGen_Init(NonceGen* g);
 
 static uint32_t
 NonceGen_Next(NonceGen* g)
@@ -36,8 +37,11 @@ typedef struct InterestTemplate
   uint16_t nonceOff;   ///< (pvt) nonce offset within buffer
 } InterestTemplate;
 
-uint16_t __InterestTemplate_Prepare(InterestTemplate* tpl, uint8_t* buffer,
-                                    uint16_t bufferSize, const uint8_t* fhV);
+uint16_t
+__InterestTemplate_Prepare(InterestTemplate* tpl,
+                           uint8_t* buffer,
+                           uint16_t bufferSize,
+                           const uint8_t* fhV);
 
 /** \brief Prepare a buffer of "middle" fields.
  *  \param[out] buffer buffer space for CanBePrefix, MustBeFresh, ForwardingHint,
@@ -45,7 +49,8 @@ uint16_t __InterestTemplate_Prepare(InterestTemplate* tpl, uint8_t* buffer,
  *  \return 0 if success, otherwise a positive number indicates the required buffer size
  */
 static uint16_t
-InterestTemplate_Prepare(InterestTemplate* tpl, uint8_t* buffer,
+InterestTemplate_Prepare(InterestTemplate* tpl,
+                         uint8_t* buffer,
                          uint16_t bufferSize)
 {
   return __InterestTemplate_Prepare(tpl, buffer, bufferSize, tpl->fhV);
@@ -58,7 +63,8 @@ EncodeInterest_GetHeadroom()
 }
 
 static uint16_t
-__EncodeInterest_GetTailroom(uint16_t bufferSize, uint16_t nameL,
+__EncodeInterest_GetTailroom(uint16_t bufferSize,
+                             uint16_t nameL,
                              uint16_t paramL)
 {
   return 1 + 3 + nameL +              // Name
@@ -66,7 +72,8 @@ __EncodeInterest_GetTailroom(uint16_t bufferSize, uint16_t nameL,
 }
 
 static uint16_t
-EncodeInterest_GetTailroom(const InterestTemplate* tpl, uint16_t nameSuffixL,
+EncodeInterest_GetTailroom(const InterestTemplate* tpl,
+                           uint16_t nameSuffixL,
                            uint16_t paramL)
 {
   return __EncodeInterest_GetTailroom(
@@ -91,11 +98,16 @@ EncodeInterest_GetTailroomMax()
   return __EncodeInterest_GetTailroom(maxBufferSize, NAME_MAX_LENGTH, 0);
 }
 
-void __EncodeInterest(struct rte_mbuf* m, const InterestTemplate* tpl,
-                      uint8_t* preparedBuffer, uint16_t nameSuffixL,
-                      const uint8_t* nameSuffixV, uint32_t nonce,
-                      uint16_t paramL, const uint8_t* paramV,
-                      const uint8_t* namePrefixV);
+void
+__EncodeInterest(struct rte_mbuf* m,
+                 const InterestTemplate* tpl,
+                 uint8_t* preparedBuffer,
+                 uint16_t nameSuffixL,
+                 const uint8_t* nameSuffixV,
+                 uint32_t nonce,
+                 uint16_t paramL,
+                 const uint8_t* paramV,
+                 const uint8_t* namePrefixV);
 
 /** \brief Encode an Interest.
  *  \param m output mbuf, must be empty and is the only segment, must have
@@ -110,12 +122,23 @@ void __EncodeInterest(struct rte_mbuf* m, const InterestTemplate* tpl,
  *  \param paramV Parameters TLV-VALUE
  */
 static void
-EncodeInterest(struct rte_mbuf* m, const InterestTemplate* tpl,
-               uint8_t* preparedBuffer, LName nameSuffix, uint32_t nonce,
-               uint16_t paramL, const uint8_t* paramV)
+EncodeInterest(struct rte_mbuf* m,
+               const InterestTemplate* tpl,
+               uint8_t* preparedBuffer,
+               LName nameSuffix,
+               uint32_t nonce,
+               uint16_t paramL,
+               const uint8_t* paramV)
 {
-  __EncodeInterest(m, tpl, preparedBuffer, nameSuffix.length, nameSuffix.value,
-                   nonce, paramL, paramV, tpl->namePrefix.value);
+  __EncodeInterest(m,
+                   tpl,
+                   preparedBuffer,
+                   nameSuffix.length,
+                   nameSuffix.value,
+                   nonce,
+                   paramL,
+                   paramV,
+                   tpl->namePrefix.value);
 }
 
 #endif // NDN_DPDK_NDN_ENCODE_INTEREST_H

@@ -35,11 +35,14 @@ __ParseVarNum64(const uint8_t* input, uint32_t rem, uint64_t* n)
   return 9;
 }
 
-typedef uint32_t (*__ParseVarNumSized)(const uint8_t* input, uint32_t rem,
+typedef uint32_t (*__ParseVarNumSized)(const uint8_t* input,
+                                       uint32_t rem,
                                        uint64_t* n);
 
 static const __ParseVarNumSized __ParseVarNum_Jmp[3] = {
-  __ParseVarNum16, __ParseVarNum32, __ParseVarNum64,
+  __ParseVarNum16,
+  __ParseVarNum32,
+  __ParseVarNum64,
 };
 
 /** \brief Parse a TLV-TYPE or TLV-LENGTH number.
@@ -69,7 +72,9 @@ ParseVarNum(const uint8_t* input, uint32_t rem, uint64_t* n)
  *  \return number of consumed bytes, or 0 if input is incomplete.
  */
 static __rte_always_inline uint32_t
-ParseTlvTypeLength(const uint8_t* input, uint32_t rem, uint64_t* type,
+ParseTlvTypeLength(const uint8_t* input,
+                   uint32_t rem,
+                   uint64_t* type,
                    uint64_t* length)
 {
   uint32_t sizeofType = ParseVarNum(input, rem, type);

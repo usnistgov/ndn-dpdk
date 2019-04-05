@@ -5,9 +5,11 @@
 
 #include "cs-list.h"
 
-void CsArc_Init(CsArc* arc, uint32_t capacity);
+void
+CsArc_Init(CsArc* arc, uint32_t capacity);
 
-CsList* CsArc_GetList(CsArc* arc, CsArcListId cslId);
+CsList*
+CsArc_GetList(CsArc* arc, CsArcListId cslId);
 
 static uint32_t
 CsArc_GetCapacity(CsArc* arc)
@@ -21,8 +23,10 @@ CsArc_CountEntries(CsArc* arc)
   return arc->T1.count + arc->T2.count;
 }
 
-void CsArc_Add(CsArc* arc, CsEntry* entry);
+void
+CsArc_Add(CsArc* arc, CsEntry* entry);
 
-void CsArc_Remove(CsArc* arc, CsEntry* entry);
+void
+CsArc_Remove(CsArc* arc, CsEntry* entry);
 
 #endif // NDN_DPDK_CONTAINER_PCCT_CS_ARC_H

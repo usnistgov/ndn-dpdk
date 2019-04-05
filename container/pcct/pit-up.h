@@ -66,14 +66,18 @@ PitUp_AddRejectedNonce(PitUp* up, uint32_t nonce)
  *  \retval true a valid nonce is found.
  *  \retval false all DN nonces have been rejected.
  */
-bool PitUp_ChooseNonce(PitUp* up, PitEntry* entry, TscTime now,
-                       uint32_t* nonce);
+bool
+PitUp_ChooseNonce(PitUp* up, PitEntry* entry, TscTime now, uint32_t* nonce);
 
 /** \brief Record Interest transmission.
  *  \param now time used for calculating InterestLifetime.
  *  \param nonce nonce of TX Interest.
  */
-void PitUp_RecordTx(PitUp* up, PitEntry* entry, TscTime now, uint32_t nonce,
-                    PitSuppressConfig* suppressCfg);
+void
+PitUp_RecordTx(PitUp* up,
+               PitEntry* entry,
+               TscTime now,
+               uint32_t nonce,
+               PitSuppressConfig* suppressCfg);
 
 #endif // NDN_DPDK_CONTAINER_PCCT_PIT_UP_H

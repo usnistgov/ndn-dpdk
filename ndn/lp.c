@@ -9,7 +9,9 @@ CanIgnoreLpHeader(uint64_t tlvType)
 }
 
 NdnError
-LpHeader_FromPacket(LpHeader* lph, struct rte_mbuf* pkt, uint32_t* payloadOff,
+LpHeader_FromPacket(LpHeader* lph,
+                    struct rte_mbuf* pkt,
+                    uint32_t* payloadOff,
                     uint32_t* tlvSize)
 {
   memset(lph, 0, sizeof(LpHeader));

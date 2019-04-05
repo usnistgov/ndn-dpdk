@@ -31,10 +31,14 @@ typedef struct FwInput
   FwInputFwdConn conn[0];
 } FwInput;
 
-FwInput* FwInput_New(const Ndt* ndt, uint8_t ndtThreadId, uint8_t nFwds,
-                     unsigned numaSocket);
+FwInput*
+FwInput_New(const Ndt* ndt,
+            uint8_t ndtThreadId,
+            uint8_t nFwds,
+            unsigned numaSocket);
 
-void FwInput_Connect(FwInput* fwi, FwFwd* fwd);
+void
+FwInput_Connect(FwInput* fwi, FwFwd* fwd);
 
 static FwInputFwdConn*
 FwInput_GetConn(FwInput* fwi, uint8_t i)
@@ -43,9 +47,12 @@ FwInput_GetConn(FwInput* fwi, uint8_t i)
   return &fwi->conn[i];
 }
 
-void FwInput_DispatchByName(FwInput* fwi, Packet* npkt, const Name* name);
-void FwInput_DispatchByToken(FwInput* fwi, Packet* npkt, uint64_t token);
+void
+FwInput_DispatchByName(FwInput* fwi, Packet* npkt, const Name* name);
+void
+FwInput_DispatchByToken(FwInput* fwi, Packet* npkt, uint64_t token);
 
-void FwInput_FaceRx(FaceRxBurst* burst, void* fwi0);
+void
+FwInput_FaceRx(FaceRxBurst* burst, void* fwi0);
 
 #endif // NDN_DPDK_APP_FWDP_INPUT_H

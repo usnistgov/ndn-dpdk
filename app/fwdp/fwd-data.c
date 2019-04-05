@@ -47,7 +47,8 @@ FwFwd_DataNeedDigest(FwFwd* fwd, FwFwdRxDataContext* ctx)
 static void
 FwFwd_DataSatisfy(FwFwd* fwd, FwFwdRxDataContext* ctx)
 {
-  ZF_LOGD("^ pit-entry=%p pit-key=%s", ctx->pitEntry,
+  ZF_LOGD("^ pit-entry=%p pit-key=%s",
+          ctx->pitEntry,
           PitEntry_ToDebugString(ctx->pitEntry));
 
   PitDnIt it;
@@ -70,8 +71,10 @@ FwFwd_DataSatisfy(FwFwd* fwd, FwFwdRxDataContext* ctx)
     }
 
     Packet* outNpkt = ClonePacket(ctx->npkt, fwd->headerMp, fwd->indirectMp);
-    ZF_LOGD("^ data-to=%" PRI_FaceId " npkt=%p dn-token=%016" PRIx64, dn->face,
-            outNpkt, dn->token);
+    ZF_LOGD("^ data-to=%" PRI_FaceId " npkt=%p dn-token=%016" PRIx64,
+            dn->face,
+            outNpkt,
+            dn->token);
     if (likely(outNpkt != NULL)) {
       Packet_GetLpL3Hdr(outNpkt)->pitToken = dn->token;
       Face_Tx(dn->face, outNpkt);
@@ -89,7 +92,9 @@ FwFwd_DataSatisfy(FwFwd* fwd, FwFwdRxDataContext* ctx)
     sgCtx.inner.pitEntry = (SgPitEntry*)ctx->pitEntry;
     uint64_t res = SgInvoke(ctx->fibEntry->strategy, &sgCtx);
     ZF_LOGD("^ fib-entry-depth=%" PRIu8 " sg-id=%d sg-res=%" PRIu64,
-            ctx->fibEntry->nComps, ctx->fibEntry->strategy->id, res);
+            ctx->fibEntry->nComps,
+            ctx->fibEntry->strategy->id,
+            res);
   }
 }
 
@@ -101,8 +106,10 @@ FwFwd_RxData(FwFwd* fwd, Packet* npkt)
   ctx.upFace = ctx.pkt->port;
   uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
 
-  ZF_LOGD("data-from=%" PRI_FaceId " npkt=%p up-token=%016" PRIx64, ctx.upFace,
-          npkt, token);
+  ZF_LOGD("data-from=%" PRI_FaceId " npkt=%p up-token=%016" PRIx64,
+          ctx.upFace,
+          npkt,
+          token);
 
   PitFindResult pitFound = Pit_FindByData(fwd->pit, npkt);
   if (PitFindResult_Is(pitFound, PIT_FIND_NONE)) {

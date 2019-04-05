@@ -5,7 +5,8 @@
 
 INIT_ZF_LOG(Pit);
 
-static void __Pit_Timeout(MinTmr* tmr, void* pit0);
+static void
+__Pit_Timeout(MinTmr* tmr, void* pit0);
 
 void
 Pit_Init(Pit* pit)
@@ -49,8 +50,10 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
   if (pccEntry->hasCsEntry &&
       likely(__Cs_MatchInterest(Cs_FromPcct(pcct), pccEntry, npkt))) {
     // CS entry satisfies Interest
-    ZF_LOGD("%p Insert(%s) pcc=%p has-CS", pit,
-            PccSearch_ToDebugString(&search), pccEntry);
+    ZF_LOGD("%p Insert(%s) pcc=%p has-CS",
+            pit,
+            PccSearch_ToDebugString(&search),
+            pccEntry);
     ++pitp->nCsMatch;
     return __PitResult_New(pccEntry, PIT_INSERT_CS);
   }
@@ -91,14 +94,20 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
     ++pitp->nEntries;
     ++pitp->nInsert;
     PitEntry_Init(entry, npkt, fibEntry);
-    ZF_LOGD("%p Insert(%s) pcc=%p ins-PIT%d pit=%p", pit,
-            PccSearch_ToDebugString(&search), pccEntry, (int)entry->mustBeFresh,
+    ZF_LOGD("%p Insert(%s) pcc=%p ins-PIT%d pit=%p",
+            pit,
+            PccSearch_ToDebugString(&search),
+            pccEntry,
+            (int)entry->mustBeFresh,
             entry);
   } else {
     ++pitp->nFound;
     PitEntry_RefreshFibEntry(entry, npkt, fibEntry);
-    ZF_LOGD("%p Insert(%s) pcc=%p has-PIT%d pit=%p", pit,
-            PccSearch_ToDebugString(&search), pccEntry, (int)entry->mustBeFresh,
+    ZF_LOGD("%p Insert(%s) pcc=%p has-PIT%d pit=%p",
+            pit,
+            PccSearch_ToDebugString(&search),
+            pccEntry,
+            (int)entry->mustBeFresh,
             entry);
   }
 

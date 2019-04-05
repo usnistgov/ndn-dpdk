@@ -22,7 +22,8 @@ struct PccSlot
   };
 };
 
-typedef enum PccSlotIndex {
+typedef enum PccSlotIndex
+{
   PCC_SLOT_NONE = 0,
   PCC_SLOT1 = 1,
   PCC_SLOT2 = 2,
@@ -98,9 +99,11 @@ __PccEntry_GetSlot(PccEntry* entry, PccSlotIndex slot)
   }
 }
 
-PccSlotIndex __PccEntry_AllocateSlot(PccEntry* entry, PccSlot** slot);
+PccSlotIndex
+__PccEntry_AllocateSlot(PccEntry* entry, PccSlot** slot);
 
-void __PccEntry_ClearSlot(PccEntry* entry, PccSlotIndex slot);
+void
+__PccEntry_ClearSlot(PccEntry* entry, PccSlotIndex slot);
 
 /** \brief Get PIT entry of MustBeFresh=0 from \p entry.
  */

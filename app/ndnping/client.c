@@ -21,9 +21,10 @@ NdnpingClient_Init(NdnpingClient* client)
   client->interestTpl.lifetime = client->interestLifetime;
   client->interestTpl.hopLimit = 255;
 
-  uint16_t res = InterestTemplate_Prepare(
-    &client->interestTpl, client->interestPrepareBuffer,
-    sizeof(client->interestPrepareBuffer));
+  uint16_t res =
+    InterestTemplate_Prepare(&client->interestTpl,
+                             client->interestPrepareBuffer,
+                             sizeof(client->interestPrepareBuffer));
   assert(res == 0);
   NonceGen_Init(&client->nonceGen);
 }
@@ -35,7 +36,8 @@ NdnpingClient_SelectPattern(NdnpingClient* client, uint64_t seqNum)
 }
 
 static void
-NdnpingClient_PrepareTxInterest(NdnpingClient* client, Packet* npkt,
+NdnpingClient_PrepareTxInterest(NdnpingClient* client,
+                                Packet* npkt,
                                 uint64_t now)
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
@@ -48,9 +50,14 @@ NdnpingClient_PrepareTxInterest(NdnpingClient* client, Packet* npkt,
 
   client->interestTpl.namePrefix =
     NameSet_GetName(&client->patterns, patternId);
-  LName nameSuffix = {.length = 10, .value = &client->suffixComponent.compT };
-  EncodeInterest(pkt, &client->interestTpl, client->interestPrepareBuffer,
-                 nameSuffix, NonceGen_Next(&client->nonceGen), 0, NULL);
+  LName nameSuffix = { .length = 10, .value = &client->suffixComponent.compT };
+  EncodeInterest(pkt,
+                 &client->interestTpl,
+                 client->interestPrepareBuffer,
+                 nameSuffix,
+                 NonceGen_Next(&client->nonceGen),
+                 0,
+                 NULL);
   Packet_SetL3PktType(npkt, L3PktType_Interest); // for stats; no PInterest*
   ZF_LOGD("<I seq=%" PRIx64 " pattern=%d", seqNum, patternId);
 
@@ -61,8 +68,8 @@ static void
 NdnpingClient_TxBurst(NdnpingClient* client)
 {
   Packet* npkts[NDNPINGCLIENT_TX_BURST_SIZE];
-  int res = rte_pktmbuf_alloc_bulk(client->interestMp, (struct rte_mbuf**)npkts,
-                                   NDNPINGCLIENT_TX_BURST_SIZE);
+  int res = rte_pktmbuf_alloc_bulk(
+    client->interestMp, (struct rte_mbuf**)npkts, NDNPINGCLIENT_TX_BURST_SIZE);
   if (unlikely(res != 0)) {
     ZF_LOGW("interestMp-full");
     return;
@@ -90,8 +97,10 @@ NdnpingClient_RunTx(NdnpingClient* client)
 }
 
 static bool
-NdnpingClient_GetSeqNumFromName(NdnpingClient* client, uint8_t patternId,
-                                const Name* name, uint64_t* seqNum)
+NdnpingClient_GetSeqNumFromName(NdnpingClient* client,
+                                uint8_t patternId,
+                                const Name* name,
+                                uint64_t* seqNum)
 {
   LName prefix = NameSet_GetName(&client->patterns, patternId);
   if (unlikely(name->p.nOctets < prefix.length + 10)) {
@@ -115,8 +124,8 @@ NdnpingClient_ProcessRxData(NdnpingClient* client, Packet* npkt, uint64_t now)
 
   const PData* data = Packet_GetDataHdr(npkt);
   uint64_t seqNum;
-  if (unlikely(!NdnpingClient_GetSeqNumFromName(client, patternId, &data->name,
-                                                &seqNum) ||
+  if (unlikely(!NdnpingClient_GetSeqNumFromName(
+                 client, patternId, &data->name, &seqNum) ||
                NdnpingClient_SelectPattern(client, seqNum) != patternId)) {
     return;
   }

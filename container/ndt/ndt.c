@@ -3,8 +3,12 @@
 #define NDT_INDEX_MASK (NDT_MAX_INDEX - 1)
 
 NdtThread**
-Ndt_Init(Ndt* ndt, uint16_t prefixLen, uint8_t indexBits, uint8_t sampleFreq,
-         uint8_t nThreads, const unsigned* numaSockets)
+Ndt_Init(Ndt* ndt,
+         uint16_t prefixLen,
+         uint8_t indexBits,
+         uint8_t sampleFreq,
+         uint8_t nThreads,
+         const unsigned* numaSockets)
 {
   uint64_t tableSize = 1 << indexBits;
   ndt->prefixLen = prefixLen;
@@ -18,9 +22,11 @@ Ndt_Init(Ndt* ndt, uint16_t prefixLen, uint8_t indexBits, uint8_t sampleFreq,
     "NdtThreads", nThreads * sizeof(ndt->threads[0]), 0, numaSockets[0]);
   for (uint8_t i = 0; i < nThreads; ++i) {
     ndt->threads[i] = (NdtThread*)rte_zmalloc_socket(
-      "NdtThread", offsetof(NdtThread, nHits) +
-                     tableSize * sizeof(ndt->threads[i]->nHits[0]),
-      0, numaSockets[i]);
+      "NdtThread",
+      offsetof(NdtThread, nHits) +
+        tableSize * sizeof(ndt->threads[i]->nHits[0]),
+      0,
+      numaSockets[i]);
   }
   return ndt->threads;
 }

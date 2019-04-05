@@ -25,12 +25,13 @@ typedef struct PData
  *  \retval NdnError_BadType packet is not Data.
  *  \retval NdnError_AllocError unable to allocate mbuf.
  */
-NdnError PData_FromPacket(PData* data, struct rte_mbuf* pkt,
-                          struct rte_mempool* nameMp);
+NdnError
+PData_FromPacket(PData* data, struct rte_mbuf* pkt, struct rte_mempool* nameMp);
 
 /** \brief Result of PData_CanSatisfy.
  */
-typedef enum DataSatisfyResult {
+typedef enum DataSatisfyResult
+{
   DATA_SATISFY_YES = 0,         ///< Data satisfies Interest
   DATA_SATISFY_NO = 1,          ///< Data does not satisfy Interest
   DATA_SATISFY_NEED_DIGEST = 2, ///< need Data digest to determine
@@ -38,18 +39,21 @@ typedef enum DataSatisfyResult {
 
 /** \brief Determine whether Data can satisfy Interest.
  */
-DataSatisfyResult PData_CanSatisfy(PData* data, PInterest* interest);
+DataSatisfyResult
+PData_CanSatisfy(PData* data, PInterest* interest);
 
 /** \brief Prepare a crypto_op for Data digest computation.
  *  \param npkt Data packet.
  *  \param[out] op an allocated crypto_op; will be populated but not enqueued.
  */
-void DataDigest_Prepare(Packet* npkt, struct rte_crypto_op* op);
+void
+DataDigest_Prepare(Packet* npkt, struct rte_crypto_op* op);
 
 /** \brief Finish Data digest computation.
  *  \param op a dequeued crypto_op; will be freed.
  *  \return the Data packet, or NULL if crypto_op was unsuccessful.
  */
-Packet* DataDigest_Finish(struct rte_crypto_op* op);
+Packet*
+DataDigest_Finish(struct rte_crypto_op* op);
 
 #endif // NDN_DPDK_NDN_DATA_H

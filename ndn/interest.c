@@ -5,7 +5,8 @@
 #include "tlv-encoder.h"
 
 NdnError
-PInterest_FromPacket(PInterest* interest, struct rte_mbuf* pkt,
+PInterest_FromPacket(PInterest* interest,
+                     struct rte_mbuf* pkt,
                      struct rte_mempool* nameMp)
 {
   TlvDecodePos d0;
@@ -142,7 +143,8 @@ PInterest_SelectActiveFh(PInterest* interest, int8_t index)
     return NdnError_OK;
   }
 
-  NdnError e = PName_Parse(&interest->activeFhName.p, interest->fhNameL[index],
+  NdnError e = PName_Parse(&interest->activeFhName.p,
+                           interest->fhNameL[index],
                            interest->fhNameV[index]);
   RETURN_IF_ERROR;
   interest->activeFhName.v = interest->fhNameV[index];
@@ -151,9 +153,13 @@ PInterest_SelectActiveFh(PInterest* interest, int8_t index)
 }
 
 Packet*
-ModifyInterest(Packet* npkt, uint32_t nonce, uint32_t lifetime,
-               uint8_t hopLimit, struct rte_mempool* headerMp,
-               struct rte_mempool* guiderMp, struct rte_mempool* indirectMp)
+ModifyInterest(Packet* npkt,
+               uint32_t nonce,
+               uint32_t lifetime,
+               uint8_t hopLimit,
+               struct rte_mempool* headerMp,
+               struct rte_mempool* guiderMp,
+               struct rte_mempool* indirectMp)
 {
   assert(rte_pktmbuf_data_room_size(headerMp) >= EncodeInterest_GetHeadroom());
   assert(rte_pktmbuf_data_room_size(guiderMp) >= ModifyInterest_SizeofGuider());
@@ -246,8 +252,8 @@ ModifyInterest(Packet* npkt, uint32_t nonce, uint32_t lifetime,
   // copy LpL3 and PInterest
   Packet_SetL2PktType(outNpkt, Packet_GetL2PktType(npkt));
   Packet_SetL3PktType(outNpkt, L3PktType_Interest);
-  rte_memcpy(__Packet_GetPriv(outNpkt), __Packet_GetPriv(npkt),
-             sizeof(PacketPriv));
+  rte_memcpy(
+    __Packet_GetPriv(outNpkt), __Packet_GetPriv(npkt), sizeof(PacketPriv));
   PInterest* outInterest = Packet_GetInterestHdr(outNpkt);
   outInterest->nonce = nonce;
   outInterest->lifetime = lifetime;

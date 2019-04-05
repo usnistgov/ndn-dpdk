@@ -18,7 +18,8 @@ typedef uint16_t FaceId;
 
 /** \brief Face state.
  */
-typedef enum FaceState {
+typedef enum FaceState
+{
   FACESTA_UNUSED = 0,
   FACESTA_UP = 1,
   FACESTA_DOWN = 2,

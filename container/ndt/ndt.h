@@ -34,9 +34,13 @@ typedef struct Ndt
  *                     lookup thread; numaSockets[0] will be used for the table
  *  \return array of threads
  */
-NdtThread** Ndt_Init(Ndt* ndt, uint16_t prefixLen, uint8_t indexBits,
-                     uint8_t sampleFreq, uint8_t nThreads,
-                     const unsigned* numaSockets);
+NdtThread**
+Ndt_Init(Ndt* ndt,
+         uint16_t prefixLen,
+         uint8_t indexBits,
+         uint8_t sampleFreq,
+         uint8_t nThreads,
+         const unsigned* numaSockets);
 
 /** \brief Access NdtThread struct.
  */
@@ -51,7 +55,8 @@ Ndt_GetThread(const Ndt* ndt, uint8_t id)
  *  \param index table index.
  *  \param value new PIT partition number in the table entry.
  */
-void Ndt_Update(Ndt* ndt, uint64_t index, uint8_t value);
+void
+Ndt_Update(Ndt* ndt, uint64_t index, uint8_t value);
 
 /** \brief Read NDT element.
  */
@@ -64,7 +69,9 @@ Ndt_ReadElement(const Ndt* ndt, uint64_t index)
 /** \brief Query NDT without counting.
  */
 static uint8_t
-Ndt_Lookup(const Ndt* ndt, const PName* name, const uint8_t* nameV,
+Ndt_Lookup(const Ndt* ndt,
+           const PName* name,
+           const uint8_t* nameV,
            uint64_t* index)
 {
   uint16_t prefixLen =
@@ -75,7 +82,9 @@ Ndt_Lookup(const Ndt* ndt, const PName* name, const uint8_t* nameV,
 }
 
 static uint8_t
-__Ndtt_Lookup(const Ndt* ndt, NdtThread* ndtt, const PName* name,
+__Ndtt_Lookup(const Ndt* ndt,
+              NdtThread* ndtt,
+              const PName* name,
               const uint8_t* nameV)
 {
   uint64_t index;

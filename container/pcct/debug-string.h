@@ -11,11 +11,13 @@
 
 /** \brief Clear current lcore's debug string.
  */
-void PccDebugString_Clear();
+void
+PccDebugString_Clear();
 
 /** \brief Append text to current lcore's debug string.
  *  \return beginning of current lcore's debug string
  */
-const char* PccDebugString_Appendf(const char* fmt, ...);
+const char*
+PccDebugString_Appendf(const char* fmt, ...);
 
 #endif // NDN_DPDK_CONTAINER_PCCT_DEBUG_STRING_H

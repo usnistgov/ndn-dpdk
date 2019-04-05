@@ -64,7 +64,8 @@ Packet_ToMbuf(const Packet* npkt)
  *
  *  L2PktType is stored in rte_mbuf.inner_l2_type field.
  */
-typedef enum L2PktType {
+typedef enum L2PktType
+{
   L2PktType_None,
   L2PktType_NdnlpV2,
 } L2PktType;
@@ -89,7 +90,8 @@ Packet_SetL2PktType(Packet* npkt, L2PktType t)
  *
  *  L3PktType is stored in rte_mbuf.inner_l3_type field.
  */
-typedef enum L3PktType {
+typedef enum L3PktType
+{
   L3PktType_None,
   L3PktType_Interest,
   L3PktType_Data,
@@ -99,7 +101,8 @@ typedef enum L3PktType {
 
 /** \brief Get \p t as lower case string.
  */
-const char* L3PktType_ToString(L3PktType t);
+const char*
+L3PktType_ToString(L3PktType t);
 
 /** \brief Get layer 3 packet type.
  */
@@ -214,7 +217,8 @@ Packet_GetNackHdr(Packet* npkt)
  *  \post Packet_GetL2Type(npkt) == L2PktType_NdnlpV2
  *  \post LpHeader is stripped, leaving payload TLV-VALUE in the packet.
  */
-NdnError Packet_ParseL2(Packet* npkt);
+NdnError
+Packet_ParseL2(Packet* npkt);
 
 /** \brief Parse packet as Interest or Data.
  *  \param nameMp mempool for allocating Name linearize mbufs,
@@ -224,7 +228,8 @@ NdnError Packet_ParseL2(Packet* npkt);
  *  \retval NdnError_AllocError unable to allocate mbuf.
  *  \post Packet_GetL3Type(npkt) is L3PktType_Interest or L3PktType_Data or L3PktType_Nack.
  */
-NdnError Packet_ParseL3(Packet* npkt, struct rte_mempool* nameMp);
+NdnError
+Packet_ParseL3(Packet* npkt, struct rte_mempool* nameMp);
 
 /** \brief Copy timestamp from \p src to \p dst.
  */
@@ -243,7 +248,9 @@ Packet_CopyTimestamp(Packet* dst, Packet* src)
  *  \return cloned packet with copied PacketPriv.
  *  \retval NULL allocation failure.
  */
-Packet* ClonePacket(Packet* npkt, struct rte_mempool* headerMp,
-                    struct rte_mempool* indirectMp);
+Packet*
+ClonePacket(Packet* npkt,
+            struct rte_mempool* headerMp,
+            struct rte_mempool* indirectMp);
 
 #endif // NDN_DPDK_NDN_PACKET_H

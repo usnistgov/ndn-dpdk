@@ -57,7 +57,9 @@ MbufLoc_Diff(const MbufLoc* a, const MbufLoc* b)
 }
 
 void
-__MbufLoc_MakeIndirectCb(void* arg, const struct rte_mbuf* m, uint16_t off,
+__MbufLoc_MakeIndirectCb(void* arg,
+                         const struct rte_mbuf* m,
+                         uint16_t off,
                          uint16_t len)
 {
   __MbufLoc_MakeIndirectCtx* ctx = (__MbufLoc_MakeIndirectCtx*)arg;
@@ -90,7 +92,9 @@ __MbufLoc_MakeIndirectCb(void* arg, const struct rte_mbuf* m, uint16_t off,
 }
 
 void
-__MbufLoc_ReadCb(void* arg, const struct rte_mbuf* m, uint16_t off,
+__MbufLoc_ReadCb(void* arg,
+                 const struct rte_mbuf* m,
+                 uint16_t off,
                  uint16_t len)
 {
   uint8_t** output = (uint8_t**)arg;
@@ -112,7 +116,9 @@ __MbufLoc_FindPrev(const struct rte_mbuf* m, struct rte_mbuf* pkt)
 }
 
 void
-MbufLoc_Delete(MbufLoc* ml, uint32_t n, struct rte_mbuf* pkt,
+MbufLoc_Delete(MbufLoc* ml,
+               uint32_t n,
+               struct rte_mbuf* pkt,
                struct rte_mbuf* prev)
 {
   if (unlikely(n == 0)) {
@@ -194,7 +200,9 @@ MbufLoc_Delete(MbufLoc* ml, uint32_t n, struct rte_mbuf* pkt,
 }
 
 uint8_t*
-__MbufLoc_Linearize(MbufLoc* first, MbufLoc* last, struct rte_mbuf* pkt,
+__MbufLoc_Linearize(MbufLoc* first,
+                    MbufLoc* last,
+                    struct rte_mbuf* pkt,
                     struct rte_mempool* mp)
 {
   struct rte_mbuf* firstM = (struct rte_mbuf*)first->m;

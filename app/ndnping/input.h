@@ -20,8 +20,8 @@ typedef struct NdnpingInput
   NdnpingInputEntry entry[0];
 } NdnpingInput;
 
-NdnpingInput* NdnpingInput_New(uint16_t minFaceId, uint16_t maxFaceId,
-                               unsigned numaSocket);
+NdnpingInput*
+NdnpingInput_New(uint16_t minFaceId, uint16_t maxFaceId, unsigned numaSocket);
 
 static NdnpingInputEntry*
 __NdnpingInput_GetEntry(NdnpingInput* input, uint16_t faceId)
@@ -32,6 +32,7 @@ __NdnpingInput_GetEntry(NdnpingInput* input, uint16_t faceId)
   return NULL;
 }
 
-void NdnpingInput_FaceRx(FaceRxBurst* burst, void* input0);
+void
+NdnpingInput_FaceRx(FaceRxBurst* burst, void* input0);
 
 #endif // NDN_DPDK_APP_NDNPING_INPUT_H

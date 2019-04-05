@@ -16,7 +16,7 @@ typedef struct PitResult
 static PitResult
 __PitResult_New(PccEntry* entry, int kind)
 {
-  PitResult pr = {.entry = entry, .kind = kind };
+  PitResult pr = { .entry = entry, .kind = kind };
   return pr;
 }
 
@@ -26,7 +26,8 @@ typedef PitResult PitInsertResult;
 
 /** \brief Result kind of PIT insert.
  */
-typedef enum PitInsertResultKind {
+typedef enum PitInsertResultKind
+{
   PIT_INSERT_FULL = 0, ///< PIT is full, cannot insert
   PIT_INSERT_PIT0 = 1, ///< created or found PIT entry of MustBeFresh=0
   PIT_INSERT_PIT1 = 2, ///< created or found PIT entry of MustBeFresh=1
@@ -66,7 +67,8 @@ typedef PitResult PitFindResult;
 
 /** \brief Result flag of PIT find, bitwise OR.
  */
-typedef enum PitFindResultFlag {
+typedef enum PitFindResultFlag
+{
   PIT_FIND_NONE = 0, ///< no PIT match
 
   PIT_FIND_PIT0 = (1 << 0), ///< matched PIT entry of MustBeFresh=0

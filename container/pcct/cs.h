@@ -33,15 +33,18 @@ Cs_GetPriv(const Cs* cs)
 
 /** \brief Constructor.
  */
-void Cs_Init(Cs* cs, uint32_t capMd, uint32_t capMi);
+void
+Cs_Init(Cs* cs, uint32_t capMd, uint32_t capMi);
 
 /** \brief Get capacity in number of entries.
  */
-uint32_t Cs_GetCapacity(const Cs* cs, CsListId cslId);
+uint32_t
+Cs_GetCapacity(const Cs* cs, CsListId cslId);
 
 /** \brief Get number of entries.
  */
-uint32_t Cs_CountEntries(const Cs* cs, CsListId cslId);
+uint32_t
+Cs_CountEntries(const Cs* cs, CsListId cslId);
 
 /** \brief Insert a CS entry.
  *  \param npkt the Data packet. CS takes ownership.
@@ -49,17 +52,20 @@ uint32_t Cs_CountEntries(const Cs* cs, CsListId cslId);
  *                  satisfied by this Data; its kind must not be PIT_FIND_NONE.
  *  \post PIT entries contained in \p pitFound are removed.
  */
-void Cs_Insert(Cs* cs, Packet* npkt, PitFindResult pitFound);
+void
+Cs_Insert(Cs* cs, Packet* npkt, PitFindResult pitFound);
 
 /** \brief Determine whether the CS entry matches an Interest during PIT insertion.
  *  \param pccEntry the PCC entry containing CS entry
  *  \post the CS entry is erased if it would conflict with a PIT entry for the Interest.
  */
-bool __Cs_MatchInterest(Cs* cs, PccEntry* pccEntry, Packet* interestNpkt);
+bool
+__Cs_MatchInterest(Cs* cs, PccEntry* pccEntry, Packet* interestNpkt);
 
 /** \brief Erase a CS entry.
  *  \post \p entry is no longer valid.
  */
-void Cs_Erase(Cs* cs, CsEntry* entry);
+void
+Cs_Erase(Cs* cs, CsEntry* entry);
 
 #endif // NDN_DPDK_CONTAINER_PCCT_CS_H

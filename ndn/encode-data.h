@@ -31,10 +31,15 @@ EncodeData_GetTailroomMax()
   return EncodeData_GetTailroom(NAME_MAX_LENGTH, 0);
 }
 
-void __EncodeData(struct rte_mbuf* m, uint16_t namePrefixL,
-                  const uint8_t* namePrefixV, uint16_t nameSuffixL,
-                  const uint8_t* nameSuffixV, uint32_t freshnessPeriod,
-                  uint16_t contentL, const uint8_t* contentV);
+void
+__EncodeData(struct rte_mbuf* m,
+             uint16_t namePrefixL,
+             const uint8_t* namePrefixV,
+             uint16_t nameSuffixL,
+             const uint8_t* nameSuffixV,
+             uint32_t freshnessPeriod,
+             uint16_t contentL,
+             const uint8_t* contentV);
 
 /** \brief Encode a Data.
  *  \param m output mbuf, must be empty and is the only segment, must have
@@ -45,11 +50,21 @@ void __EncodeData(struct rte_mbuf* m, uint16_t namePrefixL,
  *  \param contentV the payload, will be copied.
  */
 static void
-EncodeData(struct rte_mbuf* m, LName namePrefix, LName nameSuffix,
-           uint32_t freshnessPeriod, uint16_t contentL, const uint8_t* contentV)
+EncodeData(struct rte_mbuf* m,
+           LName namePrefix,
+           LName nameSuffix,
+           uint32_t freshnessPeriod,
+           uint16_t contentL,
+           const uint8_t* contentV)
 {
-  __EncodeData(m, namePrefix.length, namePrefix.value, nameSuffix.length,
-               nameSuffix.value, freshnessPeriod, contentL, contentV);
+  __EncodeData(m,
+               namePrefix.length,
+               namePrefix.value,
+               nameSuffix.length,
+               nameSuffix.value,
+               freshnessPeriod,
+               contentL,
+               contentV);
 }
 
 #endif // NDN_DPDK_NDN_ENCODE_DATA_H

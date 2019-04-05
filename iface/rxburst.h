@@ -18,9 +18,11 @@ typedef struct FaceRxBurst
 
 /** \brief Allocate a FaceRxBurst of specified capacity.
  */
-FaceRxBurst* FaceRxBurst_New(uint16_t capacity);
+FaceRxBurst*
+FaceRxBurst_New(uint16_t capacity);
 
-void FaceRxBurst_Close(FaceRxBurst* burst);
+void
+FaceRxBurst_Close(FaceRxBurst* burst);
 
 /** \brief Access the array of Interests.
  */

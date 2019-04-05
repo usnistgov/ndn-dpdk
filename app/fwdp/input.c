@@ -7,7 +7,9 @@
 INIT_ZF_LOG(FwInput);
 
 FwInput*
-FwInput_New(const Ndt* ndt, uint8_t ndtThreadId, uint8_t nFwds,
+FwInput_New(const Ndt* ndt,
+            uint8_t ndtThreadId,
+            uint8_t nFwds,
             unsigned numaSocket)
 {
   size_t size = sizeof(FwInput) + sizeof(FwInputFwdConn) * nFwds;
@@ -45,8 +47,11 @@ FwInput_DispatchByName(FwInput* fwi, Packet* npkt, const Name* name)
 
   ZF_LOGD("%s-from=%" PRI_FaceId " npkt=%p token=%016" PRIx64
           " ndt-fwd=%" PRIu8,
-          L3PktType_ToString(Packet_GetL3PktType(npkt)), pkt->port, npkt,
-          Packet_GetLpL3Hdr(npkt)->pitToken, fwdId);
+          L3PktType_ToString(Packet_GetL3PktType(npkt)),
+          pkt->port,
+          npkt,
+          Packet_GetLpL3Hdr(npkt)->pitToken,
+          fwdId);
   ++fwi->nNameDisp;
   FwInput_PassTo(fwi, npkt, fwdId);
 }
@@ -58,7 +63,9 @@ FwInput_DispatchByToken(FwInput* fwi, Packet* npkt, uint64_t token)
 
   if (unlikely(token == 0)) {
     ZF_LOGD("%s-from=%" PRI_FaceId " npkt=%p bad-token=%016" PRIx64,
-            L3PktType_ToString(Packet_GetL3PktType(npkt)), pkt->port, npkt,
+            L3PktType_ToString(Packet_GetL3PktType(npkt)),
+            pkt->port,
+            npkt,
             token);
     ++fwi->nBadToken;
     rte_pktmbuf_free(pkt);
@@ -69,15 +76,20 @@ FwInput_DispatchByToken(FwInput* fwi, Packet* npkt, uint64_t token)
 
   if (unlikely(fwdId >= fwi->nFwds)) {
     ZF_LOGD("%s-from=%" PRI_FaceId " npkt=%p bad-token=%016" PRIx64,
-            L3PktType_ToString(Packet_GetL3PktType(npkt)), pkt->port, npkt,
+            L3PktType_ToString(Packet_GetL3PktType(npkt)),
+            pkt->port,
+            npkt,
             token);
     ++fwi->nBadToken;
     rte_pktmbuf_free(pkt);
   } else {
     ZF_LOGD("%s-from=%" PRI_FaceId " npkt=%p token=%016" PRIx64
             " token-fwd=%" PRIu8,
-            L3PktType_ToString(Packet_GetL3PktType(npkt)), pkt->port, npkt,
-            token, fwdId);
+            L3PktType_ToString(Packet_GetL3PktType(npkt)),
+            pkt->port,
+            npkt,
+            token,
+            fwdId);
     ++fwi->nTokenDisp;
     FwInput_PassTo(fwi, npkt, fwdId);
   }
@@ -87,8 +99,11 @@ void
 FwInput_FaceRx(FaceRxBurst* burst, void* fwi0)
 {
   FwInput* fwi = (FwInput*)fwi0;
-  ZF_LOGD("fwi=%p burst=(%" PRIu16 "I %" PRIu16 "D %" PRIu16 "N)", fwi,
-          burst->nInterests, burst->nData, burst->nNacks);
+  ZF_LOGD("fwi=%p burst=(%" PRIu16 "I %" PRIu16 "D %" PRIu16 "N)",
+          fwi,
+          burst->nInterests,
+          burst->nData,
+          burst->nNacks);
   for (uint16_t i = 0; i < burst->nInterests; ++i) {
     Packet* npkt = FaceRxBurst_GetInterest(burst, i);
     PInterest* interest = Packet_GetInterestHdr(npkt);

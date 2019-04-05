@@ -13,8 +13,8 @@ MinTmrTest_TriggerRecord(MinTmr* tmr, void* arg)
 MinSched*
 MinTmrTest_MakeSched(int nSlotBits, TscDuration interval)
 {
-  return MinSched_New(nSlotBits, interval, MinTmrTest_TriggerRecord,
-                      (void*)0xEFAB9817);
+  return MinSched_New(
+    nSlotBits, interval, MinTmrTest_TriggerRecord, (void*)0xEFAB9817);
 }
 
 MinTmrTestRecord*

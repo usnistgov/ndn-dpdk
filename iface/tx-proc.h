@@ -7,7 +7,8 @@
 
 typedef struct TxProc TxProc;
 
-typedef uint16_t (*__TxProc_OutputFunc)(TxProc* tx, Packet* npkt,
+typedef uint16_t (*__TxProc_OutputFunc)(TxProc* tx,
+                                        Packet* npkt,
                                         struct rte_mbuf** frames,
                                         uint16_t maxFrames);
 
@@ -51,8 +52,12 @@ typedef struct TxProc
  *  \retval 0 success
  *  \retval ENOSPC MTU is too small
  */
-int TxProc_Init(TxProc* tx, uint16_t mtu, uint16_t headroom,
-                struct rte_mempool* indirectMp, struct rte_mempool* headerMp);
+int
+TxProc_Init(TxProc* tx,
+            uint16_t mtu,
+            uint16_t headroom,
+            struct rte_mempool* indirectMp,
+            struct rte_mempool* headerMp);
 
 /** \brief Process an outgoing L3 packet.
  *  \param npkt outgoing L3 packet; TxProc takes ownership
@@ -61,7 +66,9 @@ int TxProc_Init(TxProc* tx, uint16_t mtu, uint16_t headroom,
  *  \return number of L2 frames to be transmitted
  */
 static uint16_t
-TxProc_Output(TxProc* tx, Packet* npkt, struct rte_mbuf** frames,
+TxProc_Output(TxProc* tx,
+              Packet* npkt,
+              struct rte_mbuf** frames,
               uint16_t maxFrames)
 {
   return (*tx->outputFunc)(tx, npkt, frames, maxFrames);

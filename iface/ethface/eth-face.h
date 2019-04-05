@@ -15,6 +15,7 @@ typedef struct EthFacePriv
   uint16_t port;
 } EthFacePriv;
 
-uint16_t EthFace_TxBurst(Face* face, struct rte_mbuf** pkts, uint16_t nPkts);
+uint16_t
+EthFace_TxBurst(Face* face, struct rte_mbuf** pkts, uint16_t nPkts);
 
 #endif // NDN_DPDK_IFACE_ETHFACE_ETH_FACE_H

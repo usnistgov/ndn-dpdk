@@ -72,7 +72,8 @@ DecodeTlvElement(TlvDecodePos* d, TlvElement* ele)
  *  \retval NdnError_BadType TLV-TYPE does not equal \p expectedType.
  */
 static NdnError
-DecodeTlvElementExpectType(TlvDecodePos* d, uint64_t expectedType,
+DecodeTlvElementExpectType(TlvDecodePos* d,
+                           uint64_t expectedType,
                            TlvElement* ele)
 {
   NdnError e = DecodeTlvHeader(d, ele);
@@ -109,8 +110,10 @@ TlvElement_GetLinearValue(const TlvElement* ele)
  *  \post parent/following TlvElements and TlvDecodePos may be invalidated.
  */
 static const uint8_t*
-TlvElement_LinearizeValue(TlvElement* ele, struct rte_mbuf* pkt,
-                          struct rte_mempool* mp, TlvDecodePos* d)
+TlvElement_LinearizeValue(TlvElement* ele,
+                          struct rte_mbuf* pkt,
+                          struct rte_mempool* mp,
+                          TlvDecodePos* d)
 {
   assert(ele->length > 0);
   const uint8_t* linear = MbufLoc_Linearize(&ele->value, &ele->last, pkt, mp);

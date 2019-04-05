@@ -24,7 +24,8 @@ typedef struct SgContext
 
 /** \brief Obtain external symbols available to strategy eBPF program.
  */
-const struct rte_bpf_xsym* SgGetXsyms(int* nXsyms);
+const struct rte_bpf_xsym*
+SgGetXsyms(int* nXsyms);
 
 /** \brief Invoke the strategy.
  */

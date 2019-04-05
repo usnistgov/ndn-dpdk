@@ -36,7 +36,8 @@ typedef struct CsArc
   // T2.capacity and DEL.capacity are unused
 } CsArc;
 
-typedef enum CsArcListId {
+typedef enum CsArcListId
+{
   CSL_ARC_NONE,
   CSL_ARC_T1,
   CSL_ARC_B1,

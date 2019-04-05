@@ -51,12 +51,16 @@ __FwFwd_GetPcctPtr(FwFwd* fwd)
   return &fwd->pcct;
 }
 
-void FwFwd_Run(FwFwd* fwd);
+void
+FwFwd_Run(FwFwd* fwd);
 
-void FwFwd_RxInterest(FwFwd* fwd, Packet* npkt);
+void
+FwFwd_RxInterest(FwFwd* fwd, Packet* npkt);
 
-void FwFwd_RxData(FwFwd* fwd, Packet* npkt);
+void
+FwFwd_RxData(FwFwd* fwd, Packet* npkt);
 
-void FwFwd_RxNack(FwFwd* fwd, Packet* npkt);
+void
+FwFwd_RxNack(FwFwd* fwd, Packet* npkt);
 
 #endif // NDN_DPDK_APP_FWDP_FWD_H

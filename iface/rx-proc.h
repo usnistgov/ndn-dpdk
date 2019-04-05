@@ -40,7 +40,8 @@ typedef struct RxProc
  *  \pre *rx is zeroized.
  *  \param nameMp mempool for name linearize; dataroom must be at least NAME_MAX_LENGTH.
  */
-void RxProc_Init(RxProc* rx, struct rte_mempool* nameMp);
+void
+RxProc_Init(RxProc* rx, struct rte_mempool* nameMp);
 
 /** \brief Process an incoming L2 frame.
  *  \param pkt incoming L2 frame, starting from NDNLP header;
@@ -49,6 +50,7 @@ void RxProc_Init(RxProc* rx, struct rte_mempool* nameMp);
  *          RxProc releases ownership of this packet
  *  \retval NULL no L3 packet is ready at this moment
  */
-Packet* RxProc_Input(RxProc* rx, int thread, struct rte_mbuf* pkt);
+Packet*
+RxProc_Input(RxProc* rx, int thread, struct rte_mbuf* pkt);
 
 #endif // NDN_DPDK_IFACE_RX_PROC_H

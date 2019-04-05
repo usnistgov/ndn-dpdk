@@ -20,6 +20,7 @@ typedef struct FwCrypto
   uint16_t qpId;
 } FwCrypto;
 
-void FwCrypto_Run(FwCrypto* fwc);
+void
+FwCrypto_Run(FwCrypto* fwc);
 
 #endif // NDN_DPDK_APP_FWDP_CRYPTO_H
