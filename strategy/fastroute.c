@@ -11,7 +11,7 @@ typedef struct FibEntryInfo
   uint8_t selectedNexthop;
 } FibEntryInfo;
 
-inline uint64_t
+SUBROUTINE uint64_t
 RxInterest(SgCtx* ctx)
 {
   FibEntryInfo* fei = SgCtx_FibScratchT(ctx, FibEntryInfo);
@@ -43,7 +43,7 @@ RxInterest(SgCtx* ctx)
   return 4;
 }
 
-inline uint64_t
+SUBROUTINE uint64_t
 RxData(SgCtx* ctx)
 {
   FibEntryInfo* fei = SgCtx_FibScratchT(ctx, FibEntryInfo);
@@ -60,7 +60,7 @@ RxData(SgCtx* ctx)
   return 5;
 }
 
-inline uint64_t
+SUBROUTINE uint64_t
 RxNack(SgCtx* ctx)
 {
   FibEntryInfo* fei = SgCtx_FibScratchT(ctx, FibEntryInfo);

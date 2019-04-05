@@ -10,7 +10,7 @@ typedef struct PitEntryInfo
   uint8_t nextNexthopIndex;
 } PitEntryInfo;
 
-inline uint64_t
+SUBROUTINE uint64_t
 RxInterest(SgCtx* ctx)
 {
   PitEntryInfo* pei = SgCtx_PitScratchT(ctx, PitEntryInfo);

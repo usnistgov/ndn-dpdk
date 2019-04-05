@@ -3,7 +3,7 @@
  */
 #include "api.h"
 
-inline uint64_t
+SUBROUTINE uint64_t
 RxInterest(SgCtx* ctx)
 {
   SgFibNexthopIt it;

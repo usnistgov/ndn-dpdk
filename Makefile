@@ -2,7 +2,7 @@ CLIBPREFIX=build/libndn-dpdk
 INCLUDEFLAGS=-I/usr/local/include/dpdk -I/usr/include/dpdk
 BPFPATH=build/strategy-bpf
 BPFCC=clang-6.0
-BPFFLAGS=-O2 -target bpf $(INCLUDEFLAGS) -Wno-int-to-void-pointer-cast -mllvm -inline-threshold=65536
+BPFFLAGS=-O2 -target bpf $(INCLUDEFLAGS) -Wno-int-to-void-pointer-cast
 
 export CGO_CFLAGS_ALLOW='.*'
 export CC_FOR_TARGET=${CC:-gcc}
