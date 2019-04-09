@@ -48,12 +48,13 @@ face:
 
   # whether to enable socket faces
   enablesock: true
-  # socket RX queue capacity
-  sockrxqframes: 256
   # socket before-TX queue capacity
   socktxqpkts: 256
   # socket after-TX queue capacity
-  socktxqframes: 256
+  socktxqframes: 1024
+
+  # ChanRxGroup queue capacity (shared among all socket/mock faces)
+  chanrxgframes: 4096
 
 # NDT
 ndt:

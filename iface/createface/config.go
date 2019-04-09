@@ -22,22 +22,26 @@ type Config struct {
 
 	EnableMock  bool // whether to enable mock faces
 	MockTxqPkts int  // mock before-TX queue capacity
+
+	ChanRxgFrames int // ChanRxGroup queue capacity
 }
 
 func GetDefaultConfig() (cfg Config) {
 	cfg.EnableEth = true
 	cfg.EthDisableRxFlow = false
 	cfg.EthMtu = 0 // default MTU
-	cfg.EthRxqFrames = 256
+	cfg.EthRxqFrames = 4096
 	cfg.EthTxqPkts = 256
-	cfg.EthTxqFrames = 256
+	cfg.EthTxqFrames = 4096
 
 	cfg.EnableSock = true
 	cfg.SockTxqPkts = 256
-	cfg.SockTxqFrames = 256
+	cfg.SockTxqFrames = 1024
 
 	cfg.EnableMock = false
 	cfg.MockTxqPkts = 256
+
+	cfg.ChanRxgFrames = 4096
 
 	return cfg
 }
@@ -85,5 +89,6 @@ func Init(cfg Config, callbacks ICallbacks) error {
 	isInitialized = true
 
 	ethface.DisableRxFlow = cfg.EthDisableRxFlow
+	iface.TheChanRxGroup.SetQueueCapacity(cfg.ChanRxgFrames)
 	return nil
 }

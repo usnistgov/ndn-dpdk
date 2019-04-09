@@ -9,6 +9,7 @@ import "C"
 import (
 	"errors"
 	"io"
+	"sync"
 	"unsafe"
 
 	"ndn-dpdk/core/urcu"
@@ -57,17 +58,21 @@ func (rxg *RxGroupBase) setRxLoop(rxl *RxLoop) {
 // An RxGroup using a Go channel as receive queue.
 type ChanRxGroup struct {
 	RxGroupBase
-	faces map[FaceId]IFace
+	faces sync.Map // map[FaceId]IFace
 	queue chan dpdk.Packet
 }
 
-func newChanRxGroup(queueCapacity int) (rxg *ChanRxGroup) {
+func newChanRxGroup() (rxg *ChanRxGroup) {
 	rxg = new(ChanRxGroup)
 	C.__theChanRxGroup.rxBurstOp = C.RxGroup_RxBurst(C.go_ChanRxGroup_RxBurst)
 	rxg.InitRxgBase(unsafe.Pointer(&C.__theChanRxGroup))
-	rxg.faces = make(map[FaceId]IFace)
-	rxg.queue = make(chan dpdk.Packet, queueCapacity)
+	rxg.queue = make(chan dpdk.Packet, 1024)
 	return rxg
+}
+
+// Change queue capacity (not thread safe).
+func (rxg *ChanRxGroup) SetQueueCapacity(queueCapacity int) {
+	rxg.queue = make(chan dpdk.Packet, queueCapacity)
 }
 
 func (rxg *ChanRxGroup) Close() error {
@@ -80,18 +85,19 @@ func (rxg *ChanRxGroup) GetNumaSocket() dpdk.NumaSocket {
 }
 
 func (rxg *ChanRxGroup) ListFaces() (list []FaceId) {
-	for faceId := range rxg.faces {
-		list = append(list, faceId)
-	}
+	rxg.faces.Range(func(faceId, face interface{}) bool {
+		list = append(list, faceId.(FaceId))
+		return true
+	})
 	return list
 }
 
 func (rxg *ChanRxGroup) AddFace(face IFace) {
-	rxg.faces[face.GetFaceId()] = face
+	rxg.faces.Store(face.GetFaceId(), face)
 }
 
 func (rxg *ChanRxGroup) RemoveFace(face IFace) {
-	delete(rxg.faces, face.GetFaceId())
+	rxg.faces.Delete(face.GetFaceId())
 }
 
 func (rxg *ChanRxGroup) Rx(pkt dpdk.Packet) {
@@ -114,7 +120,7 @@ func go_ChanRxGroup_RxBurst(rxg *C.RxGroup, pkts **C.struct_rte_mbuf, nPkts C.ui
 	return 0
 }
 
-var TheChanRxGroup = newChanRxGroup(1024)
+var TheChanRxGroup = newChanRxGroup()
 
 // RX loop.
 type RxLoop struct {
