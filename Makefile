@@ -199,5 +199,5 @@ godochttp:
 
 clean:
 	awk '!(/node_modules/ || /\*\*/)' .dockerignore | xargs rm -rf
-	awk 'BEGIN{FS="/"} $1=="**"{print $2}' .dockerignore | xargs -I{} -n1 find -name {} -delete
+	awk 'BEGIN{FS="/"} $$1=="**"{print $$2}' .dockerignore | xargs -I{} -n1 find -name {} -delete
 	go clean ./...

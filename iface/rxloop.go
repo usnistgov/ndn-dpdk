@@ -57,24 +57,21 @@ func (rxg *RxGroupBase) setRxLoop(rxl *RxLoop) {
 // An RxGroup using a Go channel as receive queue.
 type ChanRxGroup struct {
 	RxGroupBase
-	c     *C.RxGroup
 	faces map[FaceId]IFace
 	queue chan dpdk.Packet
 }
 
 func newChanRxGroup(queueCapacity int) (rxg *ChanRxGroup) {
 	rxg = new(ChanRxGroup)
-	rxg.c = (*C.RxGroup)(C.malloc(C.sizeof_RxGroup)) // dpdk.Zmalloc is unavailable during init()
-	rxg.c.rxBurstOp = C.RxGroup_RxBurst(C.go_ChanRxGroup_RxBurst)
-	rxg.c.rxThread = 0
-	rxg.InitRxgBase(unsafe.Pointer(rxg.c))
+	C.__theChanRxGroup.rxBurstOp = C.RxGroup_RxBurst(C.go_ChanRxGroup_RxBurst)
+	rxg.InitRxgBase(unsafe.Pointer(&C.__theChanRxGroup))
 	rxg.faces = make(map[FaceId]IFace)
 	rxg.queue = make(chan dpdk.Packet, queueCapacity)
 	return rxg
 }
 
 func (rxg *ChanRxGroup) Close() error {
-	C.free(unsafe.Pointer(rxg.c))
+	C.free(rxg.GetPtr())
 	return nil
 }
 
@@ -98,14 +95,10 @@ func (rxg *ChanRxGroup) RemoveFace(face IFace) {
 }
 
 func (rxg *ChanRxGroup) Rx(pkt dpdk.Packet) {
-	faceId := FaceId(pkt.GetPort())
-	if _, ok := rxg.faces[faceId]; !ok {
-		panic("face not in ChanRxGroup")
-	}
-
 	select {
 	case rxg.queue <- pkt:
 	default:
+		// TODO count drops
 		pkt.Close()
 	}
 }

@@ -23,6 +23,9 @@ func Create(args ...CreateArg) (faces []iface.IFace, e error) {
 		return nil, errors.New("facecreate package is uninitialized")
 	}
 
+	createDestroyLock.Lock()
+	defer createDestroyLock.Unlock()
+
 	ctx := newCreateContext(len(args))
 	for i, arg := range args {
 		if e = ctx.Add(i, arg); e != nil {
