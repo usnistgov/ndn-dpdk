@@ -8,13 +8,11 @@ The emulator recognizes NFD-style prefix registration commands and translates th
 
 ## Usage
 
-In `$HOME/.ndn/client.conf`, write:
+Before starting nfdemu, launch [ndnfw-dpdk](../ndnfw-dpdk/) and [mgmtproxy.sh](../mgmtclient/)/
 
-    transport=unix:///tmp/nfdemu.sock
+Start nfdemu:
 
-Start ndnfw-dpdk:
-
-    sudo MGMT=tcp4://127.0.0.1:6345 ndnfw-dpdk
+    nodejs build/cmd/nfdemu/
 
 Run NDN producer program:
 
@@ -22,9 +20,4 @@ Run NDN producer program:
 
 Run NDN consumer program:
 
-    NDN_CLIENT_TRANSPORT=unix:///tmp/nfdemu.sock ndnping -a /Z
-
-## Limitations
-
-NDN.JS v0.16 only accepts NDN Packet Format v0.2, while ndn-dpdk only accepts NDN Packet Format v0.3.
-As a result, a packet can go through only if it is valid under both v0.2 and v0.3 formats.
+    NDN_CLIENT_TRANSPORT=unix:///tmp/nfdemu.sock ndnping /Z

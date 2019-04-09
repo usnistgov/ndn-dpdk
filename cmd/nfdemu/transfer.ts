@@ -1,3 +1,4 @@
+import * as loglevel from "loglevel";
 import ndn = require("ndn-js");
 import * as net from "net";
 
@@ -13,37 +14,34 @@ const keyChain = new ndn.KeyChain("pib-memory:", "tpm-memory:");
 const signingInfo = new ndnjs.SigningInfo(ndnjs.SigningInfo.SignerType.SHA256);
 
 export class Transfer {
-  public get id(): number { return this.fc.id; }
   private fc: FwConn;
   private ac: AppConn;
   private pil: PendingInterestList;
+  private log: loglevel.Logger;
 
   constructor(appSocket: net.Socket) {
     this.pil = new PendingInterestList();
     this.fc = new FwConn();
     this.ac = new AppConn(appSocket);
+    this.log = loglevel.getLogger("new-" + this.fc.id);
   }
 
   public begin(): void {
-    this.fc.on("connected", () => {
-      this.log(">", "CONNECTED");
+    this.fc.on("faceidready", (faceId: number) => {
+      this.log.info("> CONNECTED", faceId);
+      this.log = loglevel.getLogger("" + faceId);
     });
     this.fc.on("packet", (pkt: Packet) => { this.handleFwPacket(pkt); });
 
     this.ac.on("close", () => {
-      this.log("<", "CLOSE");
+      this.log.info("< CLOSE");
       this.fc.close();
     });
     this.ac.on("packet", (pkt: Packet) => { this.handleAppPacket(pkt); });
   }
 
-  private log(direction: string, name: string, pitToken: string = ""): void {
-    // tslint:disable-next-line no-console
-    console.log("%d %s%s %s", this.id, direction, name, pitToken);
-  }
-
   private handleFwPacket(pkt: Packet): void {
-    this.log(">", pkt.toString(), pkt.pitToken);
+    this.log.debug(">" + pkt.toString(), pkt.pitToken || "no-token");
     if (pkt.type === PktType.Interest) {
       this.pil.insert(new PendingInterest(pkt.interest!, pkt.pitToken));
     }
@@ -67,16 +65,16 @@ export class Transfer {
         }
         break;
     }
-    this.log("<", pkt.toString(), pkt.pitToken);
+    this.log.debug("<" + pkt.toString(), pkt.pitToken || "no-token");
     this.fc.send(pkt.wireEncode(true, true));
   }
 
   private handleAppPrefixReg(interest: ndn.Interest, name: ndn.Name): void {
-    this.log("<R ", name.toUri());
+    this.log.info("<R", name.toUri());
     this.fc.registerPrefix(name, (ok: boolean) => {
       const cr = new ndnjs.ControlResponse();
       if (ok) {
-        this.log(">R ", name.toUri());
+        this.log.info(">R", name.toUri());
         const cp = new ndnjs.ControlParameters();
         cp.setName(name);
         cp.setFaceId(1);
