@@ -21,8 +21,8 @@ export class PendingInterestList {
       const pi = this.list[i];
       if (pi.name.match(name)) {
         this.list.splice(i, 1);
+        return pi;
       }
-      return pi;
     }
     return undefined;
   }
