@@ -23,13 +23,15 @@ export class Transfer {
     this.pil = new PendingInterestList();
     this.fc = new FwConn();
     this.ac = new AppConn(appSocket);
-    this.log = loglevel.getLogger("new-" + this.fc.id);
+    this.log = loglevel;
   }
 
   public begin(): void {
-    this.fc.on("faceidready", (faceId: number) => {
-      this.log.info("> CONNECTED", faceId);
-      this.log = loglevel.getLogger("" + faceId);
+    this.fc.on("error", (reason) => { this.log.error(reason); });
+    this.fc.on("connected", () => {
+      this.log = loglevel.getLogger("" + this.fc.faceId);
+      this.log.info("> CONNECTED", "pid=" + process.pid);
+      this.ac.begin();
     });
     this.fc.on("packet", (pkt: Packet) => { this.handleFwPacket(pkt); });
 
@@ -70,31 +72,37 @@ export class Transfer {
   }
 
   private handleAppPrefixReg(interest: ndn.Interest, name: ndn.Name): void {
-    this.log.info("<R", name.toUri());
-    this.fc.registerPrefix(name, (ok: boolean) => {
-      const cr = new ndnjs.ControlResponse();
-      if (ok) {
-        this.log.info(">R", name.toUri());
-        const cp = new ndnjs.ControlParameters();
-        cp.setName(name);
-        cp.setFaceId(1);
-        cp.setOrigin(0);
-        cp.setCost(0);
-        const flags = new ndnjs.ForwardingFlags();
-        flags.setChildInherit(false);
-        flags.setCapture(true);
-        cp.setForwardingFlags(flags);
-        cr.setStatusCode(200).setStatusText("OK");
-        cr.setBodyAsControlParameters(cp);
-      } else {
-        cr.setStatusCode(500).setStatusText("ERROR");
-      }
-
+    const respond = (cr: any) => {
       const data = new ndn.Data();
       data.setName(interest.getName());
       data.setContent(cr.wireEncode());
       keyChain.sign(data, signingInfo);
       this.ac.send(data.wireEncode().buf());
+    };
+
+    this.log.info("<R", name.toUri());
+    this.fc.registerPrefix(name)
+    .then(() => {
+      this.log.info(">R", name.toUri());
+      const flags = new ndnjs.ForwardingFlags();
+      flags.setChildInherit(false);
+      flags.setCapture(true);
+      const cp = new ndnjs.ControlParameters();
+      cp.setName(name);
+      cp.setFaceId(1);
+      cp.setOrigin(0);
+      cp.setCost(0);
+      cp.setForwardingFlags(flags);
+      const cr = new ndnjs.ControlResponse();
+      cr.setStatusCode(200).setStatusText("OK");
+      cr.setBodyAsControlParameters(cp);
+      respond(cr);
+    })
+    .catch((reason) => {
+      this.log.error(">R", name.toUri(), reason);
+      const cr = new ndnjs.ControlResponse();
+      cr.setStatusCode(500).setStatusText("ERROR");
+      respond(cr);
     });
   }
 }

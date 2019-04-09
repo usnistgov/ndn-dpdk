@@ -1,3 +1,4 @@
+import delay = require("delay");
 import * as fs from "fs";
 import * as jayson from "jayson";
 import * as _ from "lodash";
@@ -10,55 +11,43 @@ import { SocketConn } from "./socket-conn";
 const mgmtClient = jayson.Client.tcp({port: 6345});
 
 export class FwConn extends SocketConn {
-  public id: number;
-  private path: string;
-  private server: net.Server;
-  private faceId: number;
+  public faceId: number;
 
   constructor() {
     super();
-
-    this.id = Math.floor(Math.random() * 100000000);
-    this.path = "/tmp/nfdemu-" + this.id + ".sock";
-    this.server = new net.Server();
-    this.server.once("connection", (socket: net.Socket) => {
-      this.server.close();
-      fs.unlink(this.path, _.noop);
-      this.accept(socket);
-    });
-    this.server.listen(this.path);
     this.faceId = 0;
-
-    mgmtClient.request("Face.Create",
-      [
-        {
-          RemoteUri: "unix://" + this.path,
-        },
-      ] as mgmt.facemgmt.CreateArg,
-      (err, error, result: mgmt.facemgmt.CreateRes) => {
-        if (err || error || result.length < 1) {
-          return;
-        }
-        this.faceId = result[0].Id;
-        this.emit("faceidready", this.faceId);
-      });
+    const path = "/tmp/nfdemu-" + Math.floor(Math.random() * 100000000) + ".sock";
+    Promise.all([
+      this.listen(path),
+      delay(10).then(() => this.faceCreate(path)),
+    ])
+    .then(([socket, faceId]) => {
+      this.faceId = faceId;
+      this.accept(socket);
+    })
+    .catch((reason) => {
+      this.emit("error", reason);
+    });
   }
 
-  public registerPrefix(name: ndn.Name, cb: (ok: boolean) => void): void {
+  public async registerPrefix(name: ndn.Name): Promise<void> {
     if (!this.faceId) {
-      this.once("faceidready", () => { this.registerPrefix(name, cb); });
-      return;
+      throw new Error("not connected");
     }
-    const cb2 = _.once(cb);
-    mgmtClient.request("Fib.Insert",
-      {
-        Name: name.toUri(),
-        Nexthops: [this.faceId],
-      } as mgmt.fibmgmt.InsertArg,
-      (err, error, result: mgmt.fibmgmt.InsertRes) => {
-        const ok = !(err || error);
-        cb2(ok);
-      });
+    return new Promise<void>((resolve, reject) => {
+      mgmtClient.request("Fib.Insert",
+        {
+          Name: name.toUri(),
+          Nexthops: [this.faceId],
+        } as mgmt.fibmgmt.InsertArg,
+        (err, error, result: mgmt.fibmgmt.InsertRes) => {
+          if (err || error) {
+            reject(err || error);
+          } else {
+            resolve();
+          }
+        });
+    });
   }
 
   public close(): boolean {
@@ -71,5 +60,35 @@ export class FwConn extends SocketConn {
       } as mgmt.facemgmt.DestroyArg,
       _.noop);
     return true;
+  }
+
+  private listen(path: string): Promise<net.Socket> {
+    return new Promise<net.Socket>((resolve, reject) => {
+      const server = new net.Server();
+      server.once("connection", (socket: net.Socket) => {
+        server.close();
+        fs.unlink(path, _.noop);
+        resolve(socket);
+      });
+      server.listen({ path, exclusive: true });
+    });
+  }
+
+  private faceCreate(path: string): Promise<number> {
+    return new Promise<number>((resolve, reject) => {
+      mgmtClient.request("Face.Create",
+        [
+          {
+            RemoteUri: "unix://" + path,
+          },
+        ] as mgmt.facemgmt.CreateArg,
+        (err, error, result: mgmt.facemgmt.CreateRes) => {
+          if (err || error || result.length < 1) {
+            reject(err || error);
+            return;
+          }
+          resolve(result[0].Id);
+        });
+    });
   }
 }

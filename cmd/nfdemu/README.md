@@ -12,7 +12,11 @@ Before starting nfdemu, launch [ndnfw-dpdk](../ndnfw-dpdk/) and [mgmtproxy.sh](.
 
 Start nfdemu:
 
-    nodejs build/cmd/nfdemu/
+    nodejs build/cmd/nfdemu/ -vv -w 4
+
+* `-v` enables connect/disconnect and prefix registration logging.
+* `-vv` enables per-packet logging.
+* `-w N` creates N worker processes.
 
 Run NDN producer program:
 

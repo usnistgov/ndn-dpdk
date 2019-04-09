@@ -2,6 +2,7 @@
   "dependencies": {
     "argparse": "^1.0.10",
     "debug": "^4.1.1",
+    "delay": "^4.2.0",
     "get-stream": "^5.0.0",
     "jayson": "^2.1.2",
     "js-yaml": "^3.13.0",
