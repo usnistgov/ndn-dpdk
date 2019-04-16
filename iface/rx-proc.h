@@ -40,7 +40,7 @@ typedef struct RxProc
  *  \pre *rx is zeroized.
  *  \param nameMp mempool for name linearize; dataroom must be at least NAME_MAX_LENGTH.
  */
-void
+int
 RxProc_Init(RxProc* rx, struct rte_mempool* nameMp);
 
 /** \brief Process an incoming L2 frame.

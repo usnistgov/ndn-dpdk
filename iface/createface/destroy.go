@@ -20,7 +20,7 @@ func handleFaceClosing(id iface.FaceId) {
 	face := iface.Get(id)
 	switch id.GetKind() {
 	case iface.FaceKind_Mock, iface.FaceKind_Socket:
-		stopSmRxtx(face)
+		stopChanRxtx(face)
 	case iface.FaceKind_Eth:
 		stopEthFaceRxtx(face.(*ethface.EthFace))
 	}

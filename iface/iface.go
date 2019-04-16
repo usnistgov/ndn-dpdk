@@ -45,9 +45,6 @@ type IFace interface {
 	// Get RxGroups that contain this face.
 	ListRxGroups() []IRxGroup
 
-	// Enable thread-safety on C.Face_TxBurst function.
-	EnableThreadSafeTx(queueCapacity int) error
-
 	// Transmit a burst of L3 packets.
 	TxBurst(pkts []ndn.Packet)
 

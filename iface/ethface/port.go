@@ -25,15 +25,16 @@ func SizeofTxHeader() int {
 // Port creation arguments.
 type PortConfig struct {
 	iface.Mempools
-	EthDev      dpdk.EthDev
-	RxMp        dpdk.PktmbufPool   // mempool for received frames
-	RxqCapacity int                // receive queue length in frames
-	TxqCapacity int                // send queue length in frames
-	Mtu         int                // set MTU, 0 to keep default
-	Local       net.HardwareAddr   // local address, nil for hardware default
-	Multicast   bool               // whether to enable multicast face
-	Unicast     []net.HardwareAddr // remote addresses for unicast faces
-	faceIds     []iface.FaceId     // assigned FaceIds
+	EthDev    dpdk.EthDev
+	RxMp      dpdk.PktmbufPool   // mempool for received frames
+	RxqFrames int                // TX queue capacity
+	TxqPkts   int                // before-TX queue capacity
+	TxqFrames int                // after-TX queue capacity
+	Mtu       int                // set MTU, 0 to keep default
+	Local     net.HardwareAddr   // local address, nil for hardware default
+	Multicast bool               // whether to enable multicast face
+	Unicast   []net.HardwareAddr // remote addresses for unicast faces
+	faceIds   []iface.FaceId     // assigned FaceIds
 }
 
 func (cfg PortConfig) check() error {
@@ -152,13 +153,13 @@ func (port *Port) configureDev(portCfg PortConfig, nRxThreads int) error {
 	numaSocket := port.GetNumaSocket()
 	for i := 0; i < nRxThreads; i++ {
 		cfg.AddRxQueue(dpdk.EthRxQueueConfig{
-			Capacity: portCfg.RxqCapacity,
+			Capacity: portCfg.RxqFrames,
 			Socket:   numaSocket,
 			Mp:       portCfg.RxMp,
 		})
 	}
 	cfg.AddTxQueue(dpdk.EthTxQueueConfig{
-		Capacity: portCfg.TxqCapacity,
+		Capacity: portCfg.TxqFrames,
 		Socket:   numaSocket,
 	})
 	cfg.Mtu = portCfg.Mtu
@@ -175,26 +176,33 @@ func (port *Port) startDev() error {
 	return nil
 }
 
-func (port *Port) createFaces(cfg PortConfig, flows map[iface.FaceId]*RxFlow) {
+func (port *Port) createFaces(cfg PortConfig, flows map[iface.FaceId]*RxFlow) error {
 	var f faceFactory
-	f.port = port
-	f.mempools = cfg.Mempools
-	f.local = port.dev.GetMacAddr()
+	f.Port = port
+	f.Mempools = cfg.Mempools
+	f.Local = port.dev.GetMacAddr()
 	if cfg.Local != nil {
-		f.local = append(net.HardwareAddr{}, cfg.Local...)
+		f.Local = append(net.HardwareAddr{}, cfg.Local...)
 	}
-	f.mtu = port.dev.GetMtu()
-	f.flows = flows
+	f.Mtu = port.dev.GetMtu()
+	f.TxqPkts = cfg.TxqPkts
+	f.Flows = flows
 
 	for i, nFaces := 0, cfg.countFaces(); i < nFaces; i++ {
 		id, addr := cfg.getFaceIdAddr(i)
-		face := f.newFace(id, addr)
+		face, e := f.NewFace(id, addr)
+		if e != nil {
+			return e
+		}
+
 		if addr == nil {
 			port.multicast = face
 		} else {
 			port.unicast = append(port.unicast, face)
 		}
 	}
+
+	return nil
 }
 
 func (port *Port) Close() error {

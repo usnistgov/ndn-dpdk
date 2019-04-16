@@ -21,12 +21,14 @@ type Fixture struct {
 	TxLoops       int        // number of TX loops
 	LossTolerance float64    // permitted packet loss
 	RxLCore       dpdk.LCore // LCore for executing RxLoop
-	TxLCore       dpdk.LCore // LCore for executing txProc
+	TxLCore       dpdk.LCore // LCore for executing TxLoop
+	SendLCore     dpdk.LCore // LCore for executing txProc
 
 	rxFace    iface.IFace
 	rxDiscard map[iface.FaceId]iface.IFace
 	rxl       *iface.RxLoop
 	txFace    iface.IFace
+	txl       *iface.TxLoop
 
 	NRxInterests int
 	NRxData      int
@@ -44,6 +46,7 @@ func New(t *testing.T, rxFace, txFace iface.IFace) (fixture *Fixture) {
 	slaves := dpdk.ListSlaveLCores()
 	fixture.RxLCore = slaves[0]
 	fixture.TxLCore = slaves[1]
+	fixture.SendLCore = slaves[2]
 
 	fixture.rxFace = rxFace
 	fixture.rxDiscard = make(map[iface.FaceId]iface.IFace)
@@ -57,12 +60,18 @@ func (fixture *Fixture) AddRxDiscard(face iface.IFace) {
 
 func (fixture *Fixture) RunTest() {
 	fixture.launchRx()
+	fixture.txl = iface.NewTxLoop(fixture.txFace)
+	fixture.txl.SetLCore(fixture.TxLCore)
+	fixture.txl.Launch()
 	time.Sleep(200 * time.Millisecond)
-	fixture.TxLCore.RemoteLaunch(fixture.txProc)
 
-	fixture.TxLCore.Wait()
+	fixture.SendLCore.RemoteLaunch(fixture.txProc)
+	fixture.SendLCore.Wait()
 	time.Sleep(800 * time.Millisecond)
+
+	fixture.txl.Stop()
 	fixture.rxl.Stop()
+	fixture.txl.Close()
 	fixture.rxl.Close()
 }
 

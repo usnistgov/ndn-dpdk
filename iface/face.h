@@ -49,8 +49,8 @@ typedef struct Face
   FaceState state;
   int numaSocket;
 
-  struct rte_ring* threadSafeTxQueue;
-  struct cds_hlist_node threadSafeTxNode;
+  struct rte_ring* txQueue;
+  struct cds_hlist_node txLoopNode;
 } __rte_cache_aligned Face;
 
 static void*
@@ -98,8 +98,7 @@ Face_TxBurst_Nts(Face* face, Packet** npkts, uint16_t count);
  *  \param npkts array of L3 packets; face takes ownership
  *  \param count size of \p npkts array
  *
- *  This function is non-thread-safe by default.
- *  Invoke Face.EnableThreadSafeTx in Go API to make this thread-safe.
+ *  This function is thread-safe.
  */
 static void
 Face_TxBurst(FaceId faceId, Packet** npkts, uint16_t count)
@@ -110,15 +109,11 @@ Face_TxBurst(FaceId faceId, Packet** npkts, uint16_t count)
     return;
   }
 
-  if (likely(face->threadSafeTxQueue != NULL)) {
-    uint16_t nQueued = rte_ring_mp_enqueue_burst(
-      face->threadSafeTxQueue, (void**)npkts, count, NULL);
-    uint16_t nRejects = count - nQueued;
-    FreeMbufs((struct rte_mbuf**)&npkts[nQueued], nRejects);
-    // TODO count nRejects
-  } else {
-    Face_TxBurst_Nts(face, npkts, count);
-  }
+  uint16_t nQueued =
+    rte_ring_mp_enqueue_burst(face->txQueue, (void**)npkts, count, NULL);
+  uint16_t nRejects = count - nQueued;
+  FreeMbufs((struct rte_mbuf**)&npkts[nQueued], nRejects);
+  // TODO count nRejects
 }
 
 /** \brief Send a packet.
@@ -131,36 +126,6 @@ Face_Tx(FaceId faceId, Packet* npkt)
 }
 
 // ---- functions invoked by face implementation ----
-
-typedef struct FaceMempools
-{
-  /** \brief mempool for indirect mbufs
-   */
-  struct rte_mempool* indirectMp;
-
-  /** \brief mempool for name linearize upon RX
-   *
-   *  Dataroom must be at least NAME_MAX_LENGTH.
-   */
-  struct rte_mempool* nameMp;
-
-  /** \brief mempool for NDNLP headers upon TX
-   *
-   *  Dataroom must be at least transport-specific-headroom +
-   *  PrependLpHeader_GetHeadroom().
-   */
-  struct rte_mempool* headerMp;
-} FaceMempools;
-
-/** \brief Initialize face RX and TX.
- *  \param mtu transport MTU available for NDNLP packets.
- *  \param headroom headroom before NDNLP header, as required by transport.
- */
-void
-FaceImpl_Init(Face* face,
-              uint16_t mtu,
-              uint16_t headroom,
-              FaceMempools* mempools);
 
 /** \brief Process received frames and invoke upper layer callback.
  *  \param burst FaceRxBurst_GetScratch(burst) must contain received frames.

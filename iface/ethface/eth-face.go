@@ -15,11 +15,12 @@ import (
 )
 
 type faceFactory struct {
-	port     *Port
-	mempools iface.Mempools
-	local    net.HardwareAddr
-	mtu      int
-	flows    map[iface.FaceId]*RxFlow
+	Port     *Port
+	Mempools iface.Mempools
+	Local    net.HardwareAddr
+	Mtu      int
+	TxqPkts  int
+	Flows    map[iface.FaceId]*RxFlow
 }
 
 func copyHwaddrToC(a net.HardwareAddr, c *C.struct_ether_addr) {
@@ -28,18 +29,21 @@ func copyHwaddrToC(a net.HardwareAddr, c *C.struct_ether_addr) {
 	}
 }
 
-func (f *faceFactory) newFace(id iface.FaceId, remote net.HardwareAddr) (face *EthFace) {
+func (f *faceFactory) NewFace(id iface.FaceId, remote net.HardwareAddr) (face *EthFace, e error) {
 	face = new(EthFace)
-	face.InitBaseFace(id, int(C.sizeof_EthFacePriv), f.port.GetNumaSocket())
-	face.port = f.port
-	face.local = f.local
+	if e := face.InitBaseFace(id, int(C.sizeof_EthFacePriv), f.Port.GetNumaSocket()); e != nil {
+		return nil, e
+	}
+
+	face.port = f.Port
+	face.local = f.Local
 	if remote == nil {
 		face.remote = ndn.GetEtherMcastAddr()
 	} else {
 		face.remote = remote
 	}
-	if f.flows != nil {
-		face.rxf = f.flows[id]
+	if f.Flows != nil {
+		face.rxf = f.Flows[id]
 	}
 
 	priv := face.getPriv()
@@ -53,10 +57,10 @@ func (f *faceFactory) newFace(id iface.FaceId, remote net.HardwareAddr) (face *E
 
 	faceC := face.getPtr()
 	faceC.txBurstOp = (C.FaceImpl_TxBurst)(C.EthFace_TxBurst)
-	C.FaceImpl_Init(faceC, C.uint16_t(f.mtu), C.sizeof_struct_ether_hdr,
-		(*C.FaceMempools)(f.mempools.GetPtr()))
+
+	face.FinishInitBaseFace(f.TxqPkts, f.Mtu, int(C.sizeof_struct_ether_hdr), f.Mempools)
 	iface.Put(face)
-	return face
+	return face, nil
 }
 
 type EthFace struct {

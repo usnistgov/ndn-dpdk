@@ -13,6 +13,20 @@ import (
 	"ndn-dpdk/ndn"
 )
 
+// Mempools for face construction.
+type Mempools struct {
+	// mempool for indirect mbufs
+	IndirectMp dpdk.PktmbufPool
+
+	// mempool for name linearize upon RX;
+	// dataroom must be at least NAME_MAX_LENGTH
+	NameMp dpdk.PktmbufPool
+
+	// mempool for NDNLP headers upon TX;
+	// dataroom must be at least transport-specific-headroom + PrependLpHeader_GetHeadroom()
+	HeaderMp dpdk.PktmbufPool
+}
+
 type BaseFace struct {
 	id FaceId
 }
@@ -26,9 +40,9 @@ func (face *BaseFace) GetPtr() unsafe.Pointer {
 	return unsafe.Pointer(face.getPtr())
 }
 
-// Initialize BaseFace.
+// Initialize BaseFace before lower-layer initialization.
 // Allocate FaceImpl on specified NumaSocket.
-func (face *BaseFace) InitBaseFace(id FaceId, sizeofPriv int, socket dpdk.NumaSocket) {
+func (face *BaseFace) InitBaseFace(id FaceId, sizeofPriv int, socket dpdk.NumaSocket) error {
 	face.id = id
 
 	if socket == dpdk.NUMA_SOCKET_ANY {
@@ -47,6 +61,39 @@ func (face *BaseFace) InitBaseFace(id FaceId, sizeofPriv int, socket dpdk.NumaSo
 
 	sizeofImpl := int(C.sizeof_FaceImpl) + sizeofPriv
 	faceC.impl = (*C.FaceImpl)(dpdk.ZmallocAligned("FaceImpl", sizeofImpl, 1, socket))
+
+	return nil
+
+}
+
+// Initialize BaseFace after lower-layer initialization.
+// mtu: transport MTU available for NDNLP packets.
+// headroom: headroom before NDNLP header, as required by transport.
+func (face *BaseFace) FinishInitBaseFace(txQueueCapacity, mtu, headroom int, mempools Mempools) error {
+	faceC := face.getPtr()
+
+	r, e := dpdk.NewRing(fmt.Sprintf("FaceTx_%d", face.GetFaceId()),
+		txQueueCapacity, face.GetNumaSocket(), false, true)
+	if e != nil {
+		face.clear()
+		return e
+	}
+	faceC.txQueue = (*C.struct_rte_ring)(r.GetPtr())
+
+	C.RunningStat_SetSampleRate(&faceC.impl.latencyStat, 16) // collect latency once every 2^16 packets
+
+	if res := C.TxProc_Init(&faceC.impl.tx, C.uint16_t(mtu), C.uint16_t(headroom),
+		(*C.struct_rte_mempool)(mempools.IndirectMp.GetPtr()), (*C.struct_rte_mempool)(mempools.HeaderMp.GetPtr())); res != 0 {
+		face.clear()
+		return dpdk.Errno(res)
+	}
+
+	if res := C.RxProc_Init(&faceC.impl.rx, (*C.struct_rte_mempool)(mempools.NameMp.GetPtr())); res != 0 {
+		face.clear()
+		return dpdk.Errno(res)
+	}
+
+	return nil
 }
 
 func (face *BaseFace) GetFaceId() FaceId {
@@ -69,18 +116,25 @@ func (face *BaseFace) BeforeClose() {
 	emitter.EmitSync(evt_FaceClosing, id)
 }
 
+func (face *BaseFace) clear() {
+	id := face.GetFaceId()
+	faceC := face.getPtr()
+	faceC.state = C.FACESTA_REMOVED
+	if faceC.impl != nil {
+		dpdk.Free(faceC.impl)
+	}
+	if faceC.txQueue != nil {
+		dpdk.RingFromPtr(unsafe.Pointer(faceC.txQueue)).Close()
+	}
+	faceC.id = C.FACEID_INVALID
+	gFaces[id] = nil
+}
+
 // Close BaseFace.
 // Deallocate FaceImpl.
 func (face *BaseFace) CloseBaseFace() {
 	id := face.GetFaceId()
-	faceC := face.getPtr()
-	faceC.state = C.FACESTA_REMOVED
-	dpdk.Free(faceC.impl)
-	faceC.id = C.FACEID_INVALID
-	if faceC.threadSafeTxQueue != nil {
-		dpdk.RingFromPtr(unsafe.Pointer(faceC.threadSafeTxQueue)).Close()
-	}
-	gFaces[id] = nil
+	face.clear()
 	emitter.EmitSync(evt_FaceClosed, id)
 }
 
@@ -101,29 +155,6 @@ func (face *BaseFace) SetDown(isDown bool) {
 		faceC.state = C.FACESTA_UP
 		emitter.EmitSync(evt_FaceUp, id)
 	}
-}
-
-// Make TxBurst thread-safe.
-//
-// Initially, Face_TxBurst (or Face.TxBurst in Go) is non-thread-safe.
-// This function adds a software queue on the face, to make TxBurst thread safe.
-// The face must then be added to a TxLooper.
-//
-// queueCapacity must be (2^q).
-func (face *BaseFace) EnableThreadSafeTx(queueCapacity int) error {
-	faceC := face.getPtr()
-	if faceC.threadSafeTxQueue != nil {
-		return fmt.Errorf("Face %d already has thread-safe TX", face.GetFaceId())
-	}
-
-	r, e := dpdk.NewRing(fmt.Sprintf("FaceTsTx_%d", face.GetFaceId()),
-		queueCapacity, face.GetNumaSocket(), false, true)
-	if e != nil {
-		return e
-	}
-
-	faceC.threadSafeTxQueue = (*C.struct_rte_ring)(r.GetPtr())
-	return nil
 }
 
 func (face *BaseFace) TxBurst(pkts []ndn.Packet) {

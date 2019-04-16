@@ -20,8 +20,7 @@ type Config struct {
 	SockTxqPkts   int  // socket before-TX queue capacity
 	SockTxqFrames int  // socket after-TX queue capacity
 
-	EnableMock  bool // whether to enable mock faces
-	MockTxqPkts int  // mock before-TX queue capacity
+	EnableMock bool // whether to enable mock faces
 
 	ChanRxgFrames int // ChanRxGroup queue capacity
 }
@@ -39,7 +38,6 @@ func GetDefaultConfig() (cfg Config) {
 	cfg.SockTxqFrames = 1024
 
 	cfg.EnableMock = false
-	cfg.MockTxqPkts = 256
 
 	cfg.ChanRxgFrames = 4096
 

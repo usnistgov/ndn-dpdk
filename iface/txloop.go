@@ -11,7 +11,7 @@ import (
 	"ndn-dpdk/dpdk"
 )
 
-// TX loop for faces that enabled thread-safe TX.
+// TX loop.
 type TxLoop struct {
 	dpdk.ThreadBase
 	c          *C.TxLoop
@@ -62,7 +62,7 @@ func (txl *TxLoop) AddFace(faces ...IFace) {
 		txl.faces[face.GetFaceId()] = face
 
 		faceC := face.getPtr()
-		C.cds_hlist_add_head_rcu(&faceC.threadSafeTxNode, &txl.c.head)
+		C.cds_hlist_add_head_rcu(&faceC.txLoopNode, &txl.c.head)
 	}
 }
 
@@ -76,7 +76,7 @@ func (txl *TxLoop) RemoveFace(faces ...IFace) {
 		delete(txl.faces, face.GetFaceId())
 
 		faceC := face.getPtr()
-		C.cds_hlist_del_rcu(&faceC.threadSafeTxNode)
+		C.cds_hlist_del_rcu(&faceC.txLoopNode)
 	}
 	urcu.Barrier()
 }

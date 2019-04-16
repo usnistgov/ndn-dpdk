@@ -43,9 +43,6 @@ func startEthRxtx(port *ethface.Port) (e error) {
 	for _, face := range port.ListUnicastFaces() {
 		faces = append(faces, face)
 	}
-	for _, face := range faces {
-		face.EnableThreadSafeTx(theConfig.EthTxqPkts)
-	}
 
 	rxtx.txl = iface.NewTxLoop(faces...)
 	if rxtx.txlUsr, e = theCallbacks.StartTxl(rxtx.txl); e != nil {
@@ -88,46 +85,39 @@ func stopEthPortRxtx(port *ethface.Port) {
 }
 
 var (
-	nSmFaces = 0
-	smRxlUsr interface{}
-	smTxl    *iface.TxLoop
-	smTxlUsr interface{}
+	nChanFaces = 0
+	chanRxlUsr interface{}
+	chanTxl    *iface.TxLoop
+	chanTxlUsr interface{}
 )
 
-func startSmRxtx(face iface.IFace) (e error) {
-	if nSmFaces == 0 {
-		if smRxlUsr, e = theCallbacks.StartRxg(iface.TheChanRxGroup); e != nil {
+func startChanRxtx(face iface.IFace) (e error) {
+	if nChanFaces == 0 {
+		if chanRxlUsr, e = theCallbacks.StartRxg(iface.TheChanRxGroup); e != nil {
 			return e
 		}
-		smTxl = iface.NewTxLoop()
-		if smTxlUsr, e = theCallbacks.StartTxl(smTxl); e != nil {
+		chanTxl = iface.NewTxLoop()
+		if chanTxlUsr, e = theCallbacks.StartTxl(chanTxl); e != nil {
 			return e
 		}
 	}
 
-	switch face.GetFaceId().GetKind() {
-	case iface.FaceKind_Mock:
-		face.EnableThreadSafeTx(theConfig.MockTxqPkts)
-	case iface.FaceKind_Socket:
-		face.EnableThreadSafeTx(theConfig.SockTxqPkts)
-	}
-	smTxl.AddFace(face)
-	nSmFaces++
-
+	chanTxl.AddFace(face)
+	nChanFaces++
 	return nil
 }
 
-func stopSmRxtx(face iface.IFace) {
-	nSmFaces--
-	smTxl.RemoveFace(face)
+func stopChanRxtx(face iface.IFace) {
+	nChanFaces--
+	chanTxl.RemoveFace(face)
 
-	if nSmFaces == 0 {
-		theCallbacks.StopRxg(iface.TheChanRxGroup, smRxlUsr)
-		smRxlUsr = nil
+	if nChanFaces == 0 {
+		theCallbacks.StopRxg(iface.TheChanRxGroup, chanRxlUsr)
+		chanRxlUsr = nil
 
-		theCallbacks.StopTxl(smTxl, smTxlUsr)
-		smTxl.Close()
-		smTxl = nil
-		smTxlUsr = nil
+		theCallbacks.StopTxl(chanTxl, chanTxlUsr)
+		chanTxl.Close()
+		chanTxl = nil
+		chanTxlUsr = nil
 	}
 }

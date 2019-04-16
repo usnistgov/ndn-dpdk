@@ -20,8 +20,9 @@ func TestMain(m *testing.M) {
 			NameMp:     dpdktestenv.MakeMp("name", 4095, 0, ndn.NAME_MAX_LENGTH),
 			HeaderMp:   dpdktestenv.MakeMp("header", 4095, 0, ndn.PrependLpHeader_GetHeadroom()),
 		},
-		RxMp:        dpdktestenv.MakeDirectMp(255, ndn.SizeofPacketPriv(), 2000),
-		TxqCapacity: 64,
+		RxMp:      dpdktestenv.MakeDirectMp(255, ndn.SizeofPacketPriv(), 2000),
+		TxqPkts:   64,
+		TxqFrames: 64,
 	}
 
 	os.Exit(m.Run())

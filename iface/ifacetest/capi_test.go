@@ -2,7 +2,9 @@ package ifacetest
 
 import (
 	"testing"
+	"time"
 
+	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/mockface"
 	"ndn-dpdk/ndn"
@@ -24,7 +26,6 @@ func TestCApi(t *testing.T) {
 	assert, _ := makeAR(t)
 
 	face := mockface.New()
-	defer face.Close()
 	id := face.GetFaceId()
 	assert.False(Face_IsDown(id))
 
@@ -33,9 +34,19 @@ func TestCApi(t *testing.T) {
 	face.SetDown(false)
 	assert.False(Face_IsDown(id))
 
+	txl := iface.NewTxLoop(face)
+	txl.SetLCore(dpdk.ListSlaveLCores()[0])
+	txl.Launch()
+	time.Sleep(100 * time.Millisecond)
+
 	pkts := make([]ndn.Packet, 1)
 	pkts[0] = ndntestutil.MakeInterest("/A").GetPacket()
 	Face_TxBurst(id, pkts)
 
+	time.Sleep(100 * time.Millisecond)
 	assert.Len(face.TxInterests, 1)
+
+	txl.Stop()
+	txl.Close()
+	face.Close()
 }

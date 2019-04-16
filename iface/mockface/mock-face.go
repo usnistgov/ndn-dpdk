@@ -29,12 +29,17 @@ type MockFace struct {
 
 func New() (face *MockFace) {
 	face = new(MockFace)
-	face.InitBaseFace(iface.AllocId(iface.FaceKind_Mock), 0, dpdk.NUMA_SOCKET_ANY)
+	if e := face.InitBaseFace(iface.AllocId(iface.FaceKind_Mock), 0, dpdk.NUMA_SOCKET_ANY); e != nil {
+		panic(e)
+	}
 	iface.TheChanRxGroup.AddFace(face)
 
 	faceC := face.getPtr()
 	faceC.txBurstOp = (C.FaceImpl_TxBurst)(C.go_MockFace_TxBurst)
-	C.FaceImpl_Init(faceC, 0, 0, (*C.FaceMempools)(FaceMempools.GetPtr()))
+
+	if e := face.FinishInitBaseFace(256, 0, 0, FaceMempools); e != nil {
+		panic(e)
+	}
 	iface.Put(face)
 	return face
 }

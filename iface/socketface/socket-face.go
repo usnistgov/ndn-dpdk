@@ -24,8 +24,9 @@ import (
 // Configuration for creating SocketFace.
 type Config struct {
 	iface.Mempools
-	RxMp        dpdk.PktmbufPool // mempool for received frames, dataroom must fit NDNLP frame
-	TxqCapacity int              // send queue length in frames
+	RxMp      dpdk.PktmbufPool // mempool for received frames, dataroom must fit NDNLP frame
+	TxqPkts   int              // before-TX queue capacity
+	TxqFrames int              // after-TX queue capacity
 }
 
 // A face using socket as transport.
@@ -55,23 +56,27 @@ func New(conn net.Conn, cfg Config) (face *SocketFace, e error) {
 		return nil, fmt.Errorf("unknown network %s", network)
 	}
 
-	face.InitBaseFace(iface.AllocId(iface.FaceKind_Socket), 0, dpdk.NUMA_SOCKET_ANY)
+	if e := face.InitBaseFace(iface.AllocId(iface.FaceKind_Socket), 0, dpdk.NUMA_SOCKET_ANY); e != nil {
+		return nil, e
+	}
 
 	face.logger = newLogger(face.GetFaceId())
 	face.conn.Store(conn)
-	iface.TheChanRxGroup.AddFace(face)
 	face.rxMp = cfg.RxMp
-	face.txQueue = make(chan dpdk.Packet, cfg.TxqCapacity)
+	face.txQueue = make(chan dpdk.Packet, cfg.TxqFrames)
 
+	faceC := face.getPtr()
+	faceC.txBurstOp = (C.FaceImpl_TxBurst)(C.go_SocketFace_TxBurst)
+	if e := face.FinishInitBaseFace(cfg.TxqPkts, 0, 0, cfg.Mempools); e != nil {
+		return nil, e
+	}
+
+	iface.TheChanRxGroup.AddFace(face)
 	face.quitWg.Add(2)
 	go face.rxLoop()
 	go face.txLoop()
 
-	faceC := face.getPtr()
-	faceC.txBurstOp = (C.FaceImpl_TxBurst)(C.go_SocketFace_TxBurst)
-	C.FaceImpl_Init(faceC, 0, 0, (*C.FaceMempools)(cfg.Mempools.GetPtr()))
 	iface.Put(face)
-
 	face.logger.Infof("new %s face %s->%s", conn.LocalAddr().Network(), conn.LocalAddr(), conn.RemoteAddr())
 	return face, nil
 }

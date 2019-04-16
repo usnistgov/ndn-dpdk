@@ -37,12 +37,11 @@ Currently, only thread 0 is capable of NDNLP reassembly.
 ## Send Path
 
 The send path starts from `Face_TxBurst` function.
-It first calls **TxProc** to encode L3 packets into L2 frames.
-It then passes a burst of L2 frames to a **FaceImpl\_TxBurst** function provided by the lower layer implementation.
+It enqueues a burst of L3 packets in `Face.txQueue` (the "before-Tx queue").
 
-TxProc is normally not thread safe.
-It can be made thread safe by `EnableThreadSafeTx` function that adds an output queue.
-The face must then join a **TxLooper** that dequeues and sends packets.
+**TxLoop** type implements the send path.
+It dequeues a burst of L3 packets from `Face.txQueue`, calls **TxProc** to encode them into L2 frames.
+It then passes a burst of L2 frames to a **FaceImpl\_TxBurst** function provided by the lower layer implementation.
 
 ## NDNLPv2
 

@@ -77,9 +77,10 @@ func NewFixture(t *testing.T) (fixture *Fixture) {
 	fixture.require.NoError(e)
 
 	appinit.TxlLCoreReservation = lcr
-	var faceCfg createface.Config
+	faceCfg := createface.GetDefaultConfig()
+	faceCfg.EnableEth = false
+	faceCfg.EnableSock = false
 	faceCfg.EnableMock = true
-	faceCfg.MockTxqPkts = 16
 	appinit.EnableCreateFace(faceCfg) // ignore double-init error
 
 	return fixture

@@ -4,10 +4,11 @@
 
 INIT_ZF_LOG(RxProc);
 
-void
+int
 RxProc_Init(RxProc* rx, struct rte_mempool* nameMp)
 {
   rx->nameMp = nameMp;
+  return 0;
 }
 
 Packet*

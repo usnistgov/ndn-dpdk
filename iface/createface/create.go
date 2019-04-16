@@ -147,14 +147,15 @@ func (ctx *createContext) addSock(i int, arg CreateArg) (e error) {
 	if cfg.RxMp, e = theCallbacks.CreateRxMp(-1, dpdk.NUMA_SOCKET_ANY); e != nil {
 		return e
 	}
-	cfg.TxqCapacity = theConfig.SockTxqFrames
+	cfg.TxqPkts = theConfig.SockTxqPkts
+	cfg.TxqFrames = theConfig.SockTxqFrames
 
 	face, e := socketface.NewFromUri(arg.Remote, arg.Local, cfg)
 	if e != nil {
 		return e
 	}
 	ctx.Faces[i] = face
-	return startSmRxtx(face)
+	return startChanRxtx(face)
 }
 
 var hasMockFaces = false
@@ -172,7 +173,7 @@ func (ctx *createContext) addMock(i int) (e error) {
 
 	face := mockface.New()
 	ctx.Faces[i] = face
-	return startSmRxtx(face)
+	return startChanRxtx(face)
 }
 
 func (ctx *createContext) Launch() error {
@@ -195,8 +196,9 @@ func (ctx *createContext) launchEth(ectx *createContextEth) (e error) {
 	if cfg.RxMp, e = theCallbacks.CreateRxMp(-1, numaSocket); e != nil {
 		return e
 	}
-	cfg.RxqCapacity = theConfig.EthRxqFrames
-	cfg.TxqCapacity = theConfig.EthTxqFrames
+	cfg.RxqFrames = theConfig.EthRxqFrames
+	cfg.TxqPkts = theConfig.EthTxqPkts
+	cfg.TxqFrames = theConfig.EthTxqFrames
 	cfg.Mtu = theConfig.EthMtu
 
 	port, e := ethface.NewPort(cfg)

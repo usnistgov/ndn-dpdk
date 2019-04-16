@@ -34,8 +34,9 @@ func TestEthFace(t *testing.T) {
 	cfgA.Mempools = mempools
 	cfgA.EthDev = evn.Ports[0]
 	cfgA.RxMp = mp
-	cfgA.RxqCapacity = 64
-	cfgA.TxqCapacity = 64
+	cfgA.RxqFrames = 64
+	cfgA.TxqPkts = 64
+	cfgA.TxqFrames = 64
 	cfgA.Local = macA
 	cfgA.Multicast = true
 	cfgA.Unicast = []net.HardwareAddr{macB, macC}
@@ -66,7 +67,7 @@ func TestEthFace(t *testing.T) {
 	faceBm := portB.GetMulticastFace()
 	faceCA := portC.ListUnicastFaces()[0]
 
-	evn.LaunchBridge(dpdk.ListSlaveLCores()[2])
+	evn.LaunchBridge(dpdk.ListSlaveLCores()[3])
 	time.Sleep(time.Second)
 
 	fixtureBA := ifacetestfixture.New(t, faceAB, faceBA)
