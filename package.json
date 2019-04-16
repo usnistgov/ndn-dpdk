@@ -3,9 +3,9 @@
     "argparse": "^1.0.10",
     "debug": "^4.1.1",
     "delay": "^4.2.0",
-    "get-stream": "^5.0.0",
-    "jayson": "^2.1.2",
-    "js-yaml": "^3.13.0",
+    "get-stream": "^5.1.0",
+    "jayson": "^3.0.1",
+    "js-yaml": "^3.13.1",
     "lodash": "^4.17.11",
     "loglevel": "^1.6.1",
     "loglevel-plugin-prefix": "0.8.4",
@@ -14,14 +14,14 @@
   },
   "devDependencies": {
     "@types/argparse": "^1.0.36",
-    "@types/debug": "^4.1.2",
-    "@types/js-yaml": "^3.12.0",
+    "@types/debug": "^4.1.4",
+    "@types/js-yaml": "^3.12.1",
     "@types/lodash": "^4.14.123",
     "@types/loglevel": "^1.5.4",
     "@types/ndn-js": "7th-ndn-hackathon/types-ndnjs",
     "@types/object-path": "0.11.0",
-    "tslint": "^5.14.0",
-    "typescript": "^3.3.4000"
+    "tslint": "^5.15.0",
+    "typescript": "^3.4.3"
   },
   "private": true,
   "scripts": {
