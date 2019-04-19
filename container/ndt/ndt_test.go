@@ -1,6 +1,7 @@
 package ndt_test
 
 import (
+	"math/rand"
 	"sort"
 	"testing"
 	"time"
@@ -10,19 +11,63 @@ import (
 	"ndn-dpdk/ndn"
 )
 
+type ndtLookupTestEntry struct {
+	Name    *ndn.Name
+	Results []uint8
+}
+
+type ndtLookupTestThread struct {
+	dpdk.ThreadBase
+	stop    dpdk.StopChan
+	ndtt    ndt.NdtThread
+	Entries []ndtLookupTestEntry
+}
+
+func newNdtLookupTestThread(ndt *ndt.Ndt, threadIndex int, names []*ndn.Name) (th *ndtLookupTestThread) {
+	th = new(ndtLookupTestThread)
+	th.stop = dpdk.NewStopChan()
+	th.ndtt = ndt.GetThread(threadIndex)
+	for _, name := range names {
+		th.Entries = append(th.Entries, ndtLookupTestEntry{name, nil})
+	}
+	return th
+}
+
+func (th *ndtLookupTestThread) run() int {
+	for th.stop.Continue() {
+		i := rand.Intn(len(th.Entries))
+		entry := &th.Entries[i]
+		result := th.ndtt.Lookup(entry.Name)
+		if len(entry.Results) == 0 || entry.Results[len(entry.Results)-1] != result {
+			entry.Results = append(entry.Results, result)
+		}
+	}
+	return 0
+}
+
+func (th *ndtLookupTestThread) Launch() error {
+	return th.LaunchImpl(th.run)
+}
+
+func (th *ndtLookupTestThread) Stop() error {
+	return th.StopImpl(th.stop)
+}
+
+func (th *ndtLookupTestThread) Close() error {
+	return nil
+}
+
 func TestNdt(t *testing.T) {
 	assert, require := makeAR(t)
-	slaves := dpdk.ListSlaveLCores()[:8]
 
+	slaves := dpdk.ListSlaveLCores()[:4]
 	cfg := ndt.Config{
 		PrefixLen:  2,
 		IndexBits:  8,
 		SampleFreq: 2,
 	}
-	numaSockets := make([]dpdk.NumaSocket, len(slaves))
-	for i, slave := range slaves {
-		numaSockets[i] = slave.GetNumaSocket()
-	}
+	ndt := ndt.New(cfg, dpdk.ListNumaSocketsOfLCores(slaves))
+	defer ndt.Close()
 
 	nameStrs := []string{
 		"/",
@@ -35,74 +80,70 @@ func TestNdt(t *testing.T) {
 		"/B/C",
 	}
 	names := make([]*ndn.Name, len(nameStrs))
+	nameIndices := make(map[uint64]bool)
 	for i, nameStr := range nameStrs {
 		names[i] = ndn.MustParseName(nameStr)
+		nameIndices[ndt.GetIndex(ndt.ComputeHash(names[i]))] = true
+	}
+	assert.Len(nameIndices, 7)
+
+	threads := []*ndtLookupTestThread{
+		newNdtLookupTestThread(ndt, 0, names[:6]),
+		newNdtLookupTestThread(ndt, 1, names[:6]),
+		newNdtLookupTestThread(ndt, 2, names[:6]),
+		newNdtLookupTestThread(ndt, 3, names[6:]),
 	}
 
-	ndt := ndt.New(cfg, numaSockets)
-	defer ndt.Close()
-
-	ndt.Randomize(256)
+	ndt.Randomize(250)
 	cnt0 := ndt.ReadCounters()
-
-	const NLOOPS = 100000
-	result1 := make([]uint8, len(slaves))
-	result2 := make([]uint8, len(slaves))
-	for i, slave := range slaves {
-		ii := i
-		ndtt := ndt.GetThread(i)
-		name := names[i]
-		slave.RemoteLaunch(func() int {
-			for j := 0; j < NLOOPS; j++ {
-				result := ndtt.Lookup(name)
-				if result1[ii] == 0 || result1[ii] == result {
-					result1[ii] = result // initial result
-				} else if result2[ii] == 0 {
-					result2[ii] = result // result after random update
-				} else if result2[ii] != result {
-					return j // shouldn't have third result
-				}
-			}
-			return 0
-		})
+	for j, th := range threads {
+		th.SetLCore(slaves[j])
+		th.Launch()
 	}
 
 	time.Sleep(10 * time.Millisecond)
 	cnt1 := ndt.ReadCounters()
-	ndt.Randomize(256)
+	ndt.Randomize(250)
+	time.Sleep(10 * time.Millisecond)
 
-	for i, slave := range slaves {
-		assert.Zero(slave.Wait(), "%d", i)
-		assert.NotZero(result1[i], "%d", i)
+	for _, th := range threads {
+		th.Stop()
 	}
+	time.Sleep(10 * time.Millisecond)
 	cnt2 := ndt.ReadCounters()
 
-	for a := range names {
-		for b := range names {
-			if a >= b {
-				continue
-			}
-			if a == 3 && b == 4 { // /A/A/C and /A/A/D have same 2-component prefix
-				assert.True(result1[a] == result1[b] && result2[a] == result2[b],
-					"%d[%d,%d]-%d[%d,%d]", a, result1[a], result2[a], b, result1[b], result2[b])
-			} else {
-				assert.False(result1[a] == result1[b] && result2[a] == result2[b],
-					"%d[%d,%d]-%d[%d,%d]", a, result1[a], result2[a], b, result1[b], result2[b])
-			}
+	// all counters are zero initially
+	require.Len(cnt0, 256)
+	sort.Ints(cnt0)
+	assert.Zero(cnt0[255])
+
+	// each name has one or two results
+	for j, th := range threads {
+		for i, entry := range th.Entries {
+			assert.True(len(entry.Results) == 1 || len(entry.Results) == 2, "threads[%d].Entries[%d].Results len=%d", j, i, len(entry.Results))
 		}
 	}
 
-	require.Len(cnt0, 256)
-	sort.Ints(cnt0)
-	assert.Zero(cnt0[255]) // all counters are zero initially
+	// th0, th1, th2 should have consistent results
+	for i := range names[:6] {
+		for j := 1; j <= 2; j++ {
+			assert.Equal(threads[0].Entries[i].Results, threads[j].Entries[i].Results)
+		}
+	}
 
-	require.Len(cnt1, 256)
-	sort.Ints(cnt1)
-	assert.Zero(cnt1[248])
-	assert.NotZero(cnt1[249]) // seven counters are not zero, others are zero
+	// /A/A/C and /A/A/D should have same results
+	assert.Equal(threads[0].Entries[3].Results, threads[0].Entries[4].Results)
 
-	require.Len(cnt2, 256)
-	sort.Ints(cnt2)
-	unitCnt := NLOOPS >> uint(cfg.SampleFreq)
-	assert.Equal([]int{0, unitCnt, unitCnt, unitCnt, unitCnt, unitCnt, unitCnt, unitCnt * 2}, cnt2[248:])
+	verifyCnt := func(cnt []int) {
+		require.Len(cnt, 256)
+		for i, n := range cnt {
+			if nameIndices[uint64(i)] {
+				assert.NotZero(n)
+			} else {
+				assert.Zero(n)
+			}
+		}
+	}
+	verifyCnt(cnt1)
+	verifyCnt(cnt2)
 }

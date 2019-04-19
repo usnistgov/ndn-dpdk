@@ -11,6 +11,9 @@ import (
 	"ndn-dpdk/dpdk"
 )
 
+// LCoreAlloc role for TxLoop.
+const LCoreRole_TxLoop = "TX"
+
 // TX loop.
 type TxLoop struct {
 	dpdk.ThreadBase

@@ -55,10 +55,9 @@ func (fwi *Input) String() string {
 	return fmt.Sprintf("input%d", fwi.id)
 }
 
-func (fwi *Input) launch() error {
-	fwi.rxl.SetCallback(unsafe.Pointer(C.FwInput_FaceRx), unsafe.Pointer(fwi.c))
-	fwi.rxl.SetLCore(fwi.lc)
-	return fwi.rxl.Launch()
+func (fwi *Input) prepareLaunch(rxl *iface.RxLoop) {
+	fwi.rxl = rxl
+	rxl.SetCallback(unsafe.Pointer(C.FwInput_FaceRx), unsafe.Pointer(fwi.c))
 }
 
 func (fwi *Input) Stop() {
@@ -66,5 +65,4 @@ func (fwi *Input) Stop() {
 		return
 	}
 	fwi.rxl.Stop()
-	fwi.rxl = nil
 }

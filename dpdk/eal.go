@@ -13,6 +13,7 @@ import "C"
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"unsafe"
 
 	"ndn-dpdk/core/dlopen"
@@ -102,6 +103,13 @@ func (lc LCore) IsValid() bool {
 
 func (lc LCore) IsMaster() bool {
 	return lc == GetMasterLCore()
+}
+
+func (lc LCore) String() string {
+	if !lc.IsValid() {
+		return "(invalid)"
+	}
+	return strconv.Itoa(int(lc))
 }
 
 func (lc LCore) GetNumaSocket() NumaSocket {

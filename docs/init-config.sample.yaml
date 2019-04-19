@@ -31,6 +31,22 @@ mempool:
     cachesize: 255
     dataroomsize: 2000
 
+# LCORE ALLOCATION
+# This is a mapping from LCore role to its reservations.
+# Roles for ndnfw-dpdk: RX, TX, CRYPTO, FWD.
+# Roles for ndnping-dpdk: RX, TX, SVR, CLIR, CLIT.
+# Within each role:
+# 'lcores' is a list of lcores reserved for a role.
+# 'pernuma' is a map of { NumaSocket => max number of lcores } for a role.
+# Leaving this section blank results in default allocation.
+lcorealloc:
+# ROLE1: # this role has lcore 1 and lcore 3
+#   lcores: [1, 3]
+# ROLE2: # this role can have up to 3 and 2 lcores on two NUMA sockets
+#   pernuma:
+#     0: 3
+#     1: 2
+
 # FACE CREATION
 face:
   # whether to enable Ethernet faces
@@ -78,13 +94,6 @@ fib:
 
 # FORWARDER DATA PLANE
 fwdp:
-  # Input thread LCores.
-  inputlcores: [1, 2]
-  # Crypto helper thread LCores.
-  cryptolcores: [3]
-  # Forwarding thread LCores.
-  fwdlcores: [4, 5, 6, 7]
-
   # Capacity of queue between FwInput and FwFwd.
   fwdqueuecapacity: 128
   # Collect RX-FwFwd latency sample every 2^latencysamplefreq packets.

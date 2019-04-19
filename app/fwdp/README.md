@@ -2,12 +2,12 @@
 
 This package implements the forwarder's data plane.
 
-The data plane consists two types of threads, "input thread" and "forwarding thread".
-Each thread runs in a DPDK lcore.
+The data plane consists two types of threads, *input thread* and *forwarding thread*.
+Each thread runs in a DPDK lcore, allocated from "RX" or "FWD" role.
 
 ## Input Thread (FwInput)
 
-A FwInput runs an **iface.RxLooper** as the main loop, which reads and decodes packets from one or more network interfaces.
+A FwInput runs an **iface.RxLoop** as the main loop ("RX" role), which reads and decodes packets from one or more network interfaces.
 Every burst of receives L3 packets triggers `FwInput_FaceRx` function.
 
 For each incoming packet, FwInput decides which forwarding thread should handle the packet:
@@ -25,7 +25,7 @@ All FwInputs have read-only access to a shared NDT.
 ### Crypto Helper (FwCrypto)
 
 FwCrypto provides Data implicit digest computation.
-It is a special kind of FwInput that runs `FwCrypto_Run` as the main loop.
+It is a special kind of FwInput that runs `FwCrypto_Run` as the main loop ("CRYPTO" role).
 
 When FwFwd threads an incoming Data packet and finds a PIT entry whose Interest carries the ImplicitSha256DigestComponent, it needs to compute the Data's implicit digest in order to determine whether the Data satisfies the Interest.
 Instead of doing the computation in FwFwd and blocking other packet processing, the FwFwd passes the Data to FwCrypto.
@@ -34,7 +34,7 @@ FwFwd can then re-process the Data, and use the computed implicit digest to dete
 
 ## Forwarding Thread (FwFwd)
 
-A FwFwd runs `FwFwd_Run` function as the main loop.
+A FwFwd runs `FwFwd_Run` function as the main loop ("FWD" role).
 The main loop first performs some maintenance work:
 
 * Mark a URCU quiescent state, as required by FIB.

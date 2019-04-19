@@ -7,7 +7,6 @@ import (
 	"ndn-dpdk/appinit"
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/ndt"
-	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface/createface"
 )
 
@@ -19,10 +18,6 @@ type initConfig struct {
 }
 
 type fwdpInitConfig struct {
-	InputLCores  []dpdk.LCore
-	CryptoLCores []dpdk.LCore
-	FwdLCores    []dpdk.LCore
-
 	FwdQueueCapacity  int
 	LatencySampleFreq int
 	PcctCapacity      int

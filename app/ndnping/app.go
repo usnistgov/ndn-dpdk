@@ -14,6 +14,13 @@ import (
 	"ndn-dpdk/iface/createface"
 )
 
+// LCoreAlloc roles.
+const (
+	LCoreRole_Server   = "SVR"
+	LCoreRole_ClientRx = "CLIR"
+	LCoreRole_ClientTx = "CLIT"
+)
+
 type App struct {
 	Tasks []Task
 	rxls  []*iface.RxLoop
@@ -22,7 +29,8 @@ type App struct {
 func NewApp(cfg []TaskConfig) (app *App, e error) {
 	app = new(App)
 
-	appinit.StartRxl = app.addRxl
+	appinit.BeforeStartRxl = app.addRxl
+	appinit.WantLaunchRxl = false
 
 	var faceCreateArgs []createface.CreateArg
 	for _, taskCfg := range cfg {
@@ -100,7 +108,7 @@ func (app *App) launchRxl(rxl *iface.RxLoop) {
 	}
 
 	rxl.SetCallback(unsafe.Pointer(C.NdnpingInput_FaceRx), unsafe.Pointer(inputC))
-	appinit.MustLaunchThread(rxl, rxl.GetNumaSocket())
+	rxl.Launch()
 }
 
 type Task struct {
@@ -110,24 +118,27 @@ type Task struct {
 }
 
 func newTask(cfg TaskConfig, face iface.IFace) (task Task, e error) {
+	numaSocket := face.GetNumaSocket()
 	task.Face = face
 	if cfg.Client != nil {
 		task.Client = newClient(task.Face, *cfg.Client)
+		task.Client.SetLCore(dpdk.LCoreAlloc.Alloc(LCoreRole_ClientRx, numaSocket))
+		task.Client.Tx.SetLCore(dpdk.LCoreAlloc.Alloc(LCoreRole_ClientTx, numaSocket))
 	}
 	if cfg.Server != nil {
 		task.Server = newServer(task.Face, *cfg.Server)
+		task.Server.SetLCore(dpdk.LCoreAlloc.Alloc(LCoreRole_Server, numaSocket))
 	}
 	return task, nil
 }
 
 func (task *Task) Launch() {
-	numaSocket := task.Face.GetNumaSocket()
 	if task.Server != nil {
-		appinit.MustLaunchThread(task.Server, numaSocket)
+		task.Server.Launch()
 	}
 	if task.Client != nil {
-		appinit.MustLaunchThread(task.Client, numaSocket)
-		appinit.MustLaunchThread(task.Client.Tx, numaSocket)
+		task.Client.Launch()
+		task.Client.Tx.Launch()
 	}
 }
 
@@ -136,7 +147,7 @@ func (task *Task) Close() error {
 		task.Server.Close()
 	}
 	if task.Client != nil {
-		task.Server.Close()
+		task.Client.Close()
 	}
 	task.Face.Close()
 	return nil

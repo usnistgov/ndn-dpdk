@@ -42,7 +42,7 @@ func (t *ThreadBase) GetLCore() LCore {
 }
 
 func (t *ThreadBase) IsRunning() bool {
-	return t.lc.GetState() != LCORE_STATE_WAIT
+	return t.lc != LCORE_INVALID && t.lc.GetState() != LCORE_STATE_WAIT
 }
 
 func (t *ThreadBase) MustHaveLCore() {
@@ -115,4 +115,27 @@ func (stop StopFlag) BeforeWait() {
 
 func (stop StopFlag) AfterWait() {
 	C.ThreadStopFlag_FinishStop(stop.c)
+}
+
+// Stop a thread by sending to a channel.
+type StopChan chan bool
+
+func NewStopChan() (stop StopChan) {
+	return make(StopChan)
+}
+
+func (stop StopChan) Continue() bool {
+	select {
+	case <-stop:
+		return false
+	default:
+		return true
+	}
+}
+
+func (stop StopChan) BeforeWait() {
+	stop <- true
+}
+
+func (stop StopChan) AfterWait() {
 }

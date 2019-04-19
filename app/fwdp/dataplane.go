@@ -18,10 +18,6 @@ import (
 )
 
 type Config struct {
-	InputLCores []dpdk.LCore
-	CryptoLCore dpdk.LCore
-	FwdLCores   []dpdk.LCore
-
 	Ndt  ndt.Config  // NDT config
 	Fib  fib.Config  // FIB config (Id ignored)
 	Pcct pcct.Config // PCCT config template (Id and NumaSocket ignored)
@@ -33,6 +29,7 @@ type Config struct {
 
 // Forwarder data plane.
 type DataPlane struct {
+	la     DpLCores
 	ndt    *ndt.Ndt
 	fib    *fib.Fib
 	inputs []*Input
@@ -43,22 +40,27 @@ type DataPlane struct {
 func New(cfg Config) (dp *DataPlane, e error) {
 	dp = new(DataPlane)
 
+	dp.la.Allocator = &dpdk.LCoreAlloc
+	if e = dp.la.Alloc(); e != nil {
+		return nil, e
+	}
+
 	{
-		inputLCores := append([]dpdk.LCore{}, cfg.InputLCores...)
-		if cfg.CryptoLCore != dpdk.LCORE_INVALID {
-			inputLCores = append(inputLCores, cfg.CryptoLCore)
+		inputLCores := append([]dpdk.LCore{}, dp.la.Inputs...)
+		if dp.la.Crypto != dpdk.LCORE_INVALID {
+			inputLCores = append(inputLCores, dp.la.Crypto)
 		}
 		dp.ndt = ndt.New(cfg.Ndt, dpdk.ListNumaSocketsOfLCores(inputLCores))
-		dp.ndt.Randomize(len(cfg.FwdLCores))
+		dp.ndt.Randomize(len(dp.la.Fwds))
 	}
 
 	cfg.Fib.Id = "FIB"
-	if dp.fib, e = fib.New(cfg.Fib, dp.ndt, dpdk.ListNumaSocketsOfLCores(cfg.FwdLCores)); e != nil {
+	if dp.fib, e = fib.New(cfg.Fib, dp.ndt, dpdk.ListNumaSocketsOfLCores(dp.la.Fwds)); e != nil {
 		dp.Close()
 		return nil, fmt.Errorf("fib.New: %v", e)
 	}
 
-	for i, lc := range cfg.FwdLCores {
+	for i, lc := range dp.la.Fwds {
 		fwd := newFwd(i)
 		fwd.SetLCore(lc)
 		if e := fwd.Init(dp.fib, cfg.Pcct, cfg.FwdQueueCapacity, cfg.LatencySampleFreq); e != nil {
@@ -68,7 +70,7 @@ func New(cfg Config) (dp *DataPlane, e error) {
 		dp.fwds = append(dp.fwds, fwd)
 	}
 
-	for i, lc := range cfg.InputLCores {
+	for i, lc := range dp.la.Inputs {
 		fwi := newInput(i, lc)
 		if e := fwi.Init(dp.ndt, dp.fwds, lc.GetNumaSocket()); e != nil {
 			dp.Close()
@@ -77,8 +79,8 @@ func New(cfg Config) (dp *DataPlane, e error) {
 		dp.inputs = append(dp.inputs, fwi)
 	}
 
-	if cfg.CryptoLCore != dpdk.LCORE_INVALID {
-		fwc := newCrypto(len(dp.inputs), cfg.CryptoLCore)
+	if dp.la.Crypto != dpdk.LCORE_INVALID {
+		fwc := newCrypto(len(dp.inputs), dp.la.Crypto)
 		if e := fwc.Init(cfg.Crypto, dp.ndt, dp.fwds); e != nil {
 			dp.Close()
 			return nil, fmt.Errorf("Crypto.Init(): %v", e)
@@ -90,7 +92,7 @@ func New(cfg Config) (dp *DataPlane, e error) {
 }
 
 func (dp *DataPlane) Launch() error {
-	appinit.StartRxl = func(rxl *iface.RxLoop) (usr interface{}, e error) {
+	appinit.BeforeStartRxl = func(rxl *iface.RxLoop) (usr interface{}, e error) {
 		fwi, e := dp.launchInput(rxl)
 		return fwi, e
 	}
@@ -109,19 +111,18 @@ func (dp *DataPlane) Launch() error {
 }
 
 func (dp *DataPlane) launchInput(rxl *iface.RxLoop) (fwi *Input, e error) {
-	wantNumaSocket := rxl.GetNumaSocket()
+	lc := rxl.GetLCore()
 	for _, fwi = range dp.inputs {
-		if fwi.rxl != nil || !wantNumaSocket.Match(fwi.lc.GetNumaSocket()) {
-			continue
+		if fwi.lc == lc {
+			fwi.prepareLaunch(rxl)
+			return fwi, nil
 		}
-		fwi.rxl = rxl
-		return fwi, fwi.launch()
 	}
-	return nil, fmt.Errorf("no FwInput available on NUMA socket %d", wantNumaSocket)
+	return nil, fmt.Errorf("no FwInput lcore %d", lc)
 }
 
 func (dp *DataPlane) Stop() error {
-	appinit.StartRxl = nil
+	appinit.BeforeStartRxl = nil
 	appinit.AfterStopRxl = nil
 
 	for _, fwi := range dp.inputs {
@@ -152,5 +153,6 @@ func (dp *DataPlane) Close() error {
 	if dp.ndt != nil {
 		dp.ndt.Close()
 	}
+	dp.la.Close()
 	return nil
 }

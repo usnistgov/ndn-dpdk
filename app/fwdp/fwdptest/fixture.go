@@ -10,7 +10,6 @@ import (
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/ndt"
 	"ndn-dpdk/container/strategycode"
-	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/createface"
 	"ndn-dpdk/iface/faceuri"
@@ -35,22 +34,17 @@ func NewFixture(t *testing.T) (fixture *Fixture) {
 	fixture = new(Fixture)
 	fixture.require = require.New(t)
 
+	faceCfg := createface.GetDefaultConfig()
+	faceCfg.EnableEth = false
+	faceCfg.EnableSock = false
+	faceCfg.EnableMock = true
+	appinit.EnableCreateFace(faceCfg)
+
 	var dpCfg fwdp.Config
-	lcr := appinit.NewLCoreReservations()
-
-	for i := 0; i < nFwds; i++ {
-		lc := lcr.MustReserve(dpdk.NUMA_SOCKET_ANY)
-		dpCfg.FwdLCores = append(dpCfg.FwdLCores, lc)
-	}
-
-	faceInputLc := lcr.MustReserve(dpdk.NUMA_SOCKET_ANY)
-	dpCfg.InputLCores = append(dpCfg.InputLCores, faceInputLc)
 
 	dpCfg.Crypto.InputCapacity = 64
 	dpCfg.Crypto.OpPoolCapacity = 1023
 	dpCfg.Crypto.OpPoolCacheSize = 31
-	cryptoLc := lcr.MustReserve(dpdk.NUMA_SOCKET_ANY)
-	dpCfg.CryptoLCore = cryptoLc
 
 	dpCfg.Ndt.PrefixLen = 2
 	dpCfg.Ndt.IndexBits = 16
@@ -75,13 +69,6 @@ func NewFixture(t *testing.T) (fixture *Fixture) {
 
 	e = theDp.Launch()
 	fixture.require.NoError(e)
-
-	appinit.TxlLCoreReservation = lcr
-	faceCfg := createface.GetDefaultConfig()
-	faceCfg.EnableEth = false
-	faceCfg.EnableSock = false
-	faceCfg.EnableMock = true
-	appinit.EnableCreateFace(faceCfg) // ignore double-init error
 
 	return fixture
 }

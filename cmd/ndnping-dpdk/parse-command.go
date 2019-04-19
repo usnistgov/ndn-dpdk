@@ -10,7 +10,7 @@ import (
 )
 
 type parsedCommand struct {
-	initcfg             appinit.InitConfig
+	initCfg             appinit.InitConfig
 	tasks               []ndnping.TaskConfig
 	counterInterval     time.Duration
 	throughputBenchmark ThroughputBenchmarkConfig
@@ -22,7 +22,7 @@ func (pc parsedCommand) wantThroughputBenchmark() bool {
 
 func parseCommand(args []string) (pc parsedCommand, e error) {
 	flags := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-	appinit.DeclareInitConfigFlag(flags, &pc.initcfg)
+	appinit.DeclareInitConfigFlag(flags, &pc.initCfg)
 	appinit.DeclareConfigFlag(flags, &pc.tasks, "tasks", "ndnping task description")
 	flags.DurationVar(&pc.counterInterval, "cnt", time.Second*10,
 		"interval between printing counters (zero to disable)")

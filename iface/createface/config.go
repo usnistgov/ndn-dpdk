@@ -90,3 +90,20 @@ func Init(cfg Config, callbacks ICallbacks) error {
 	iface.TheChanRxGroup.SetQueueCapacity(cfg.ChanRxgFrames)
 	return nil
 }
+
+// List NumaSockets for RxLoops and TxLoops to satisfy enabled devices.
+func ListRxlTxlNumaSockets() (list []dpdk.NumaSocket) {
+	if !isInitialized {
+		return nil
+	}
+
+	if theConfig.EnableEth {
+		for _, port := range dpdk.ListEthDevs() {
+			list = append(list, port.GetNumaSocket())
+		}
+	}
+	if theConfig.EnableSock || theConfig.EnableMock {
+		list = append(list, dpdk.NUMA_SOCKET_ANY)
+	}
+	return list
+}

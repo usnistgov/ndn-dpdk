@@ -114,9 +114,9 @@ func (ndt *Ndt) ReadCounters() (cnt []int) {
 	for i := 0; i < ndt.CountThreads(); i++ {
 		threadC := ndt.getThreadC(i)
 		first := uintptr(unsafe.Pointer(threadC)) + C.sizeof_NdtThread
-		for i := range cnt {
-			offset := uintptr(i) * C.sizeof_uint16_t
-			cnt[i] += int(*(*C.uint16_t)(unsafe.Pointer(first + offset)))
+		for j := range cnt {
+			offset := uintptr(j) * C.sizeof_uint16_t
+			cnt[j] += int(*(*C.uint16_t)(unsafe.Pointer(first + offset)))
 		}
 	}
 	return cnt

@@ -7,6 +7,7 @@ import (
 
 	"gopkg.in/yaml.v2"
 
+	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface/createface"
 )
 
@@ -48,6 +49,17 @@ func DeclareInitConfigFlag(flags *flag.FlagSet, value interface{}) {
 // Config sections defined by appinit package.
 // To add more sections, embed with `yaml:",inline"` tag.
 type InitConfig struct {
-	Mempool MempoolsCapacityConfig
-	Face    createface.Config
+	Mempool    MempoolsCapacityConfig
+	LCoreAlloc dpdk.LCoreAllocConfig
+	Face       createface.Config
+}
+
+func (initCfg InitConfig) Apply() {
+	initCfg.Mempool.Apply()
+
+	dpdk.LCoreAlloc.Config = initCfg.LCoreAlloc
+
+	if e := EnableCreateFace(initCfg.Face); e != nil {
+		log.WithError(e).Fatal("face init error")
+	}
 }

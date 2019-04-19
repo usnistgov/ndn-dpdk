@@ -122,6 +122,9 @@ func go_ChanRxGroup_RxBurst(rxg *C.RxGroup, pkts **C.struct_rte_mbuf, nPkts C.ui
 
 var TheChanRxGroup = newChanRxGroup()
 
+// LCoreAlloc role for RxLoop.
+const LCoreRole_RxLoop = "RX"
+
 // RX loop.
 type RxLoop struct {
 	dpdk.ThreadBase

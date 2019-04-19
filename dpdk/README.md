@@ -19,3 +19,10 @@ This package has Go bindings for:
 * cryptodev
 
 Go bindings are object-oriented when possible.
+
+## Other Go types
+
+*IThread* abstracts a thread that can be executed on an LCore and controls its lifetime.
+
+*LCoreAllocator* provides an LCore allocator.
+It allows a program to reserve a number of LCores for each "role", and then obtain a NUMA-local LCore reserved for a certain role when needed.
