@@ -23,7 +23,10 @@ func TestEthFace(t *testing.T) {
 		NameMp:     dpdktestenv.MakeMp("name", 4095, 0, ndn.NAME_MAX_LENGTH),
 		HeaderMp:   dpdktestenv.MakeMp("header", 4095, 0, ethface.SizeofTxHeader()),
 	}
-	evn := dpdktestenv.NewEthVNet(3, 1024, 64, dpdktestenv.MPID_DIRECT)
+
+	var evnCfg dpdktestenv.EthVNetConfig
+	evnCfg.NNodes = 3
+	evn := dpdktestenv.NewEthVNet(evnCfg)
 	defer evn.Close()
 
 	macA, _ := net.ParseMAC("02-02-02-00-00-01")

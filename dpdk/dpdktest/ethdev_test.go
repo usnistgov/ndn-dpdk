@@ -13,7 +13,10 @@ func TestEthDev(t *testing.T) {
 	assert, _ := makeAR(t)
 	slaves := dpdk.ListSlaveLCores()
 
-	edp := dpdktestenv.NewEthDevPair(1, 1024, 64)
+	edp := dpdktestenv.NewEthDevPair(dpdktestenv.EthDevPairConfig{})
+	edp.StartPortA()
+	edp.StartPortB()
+
 	rxq, txq := edp.RxqA[0], edp.TxqB[0]
 	assert.False(edp.PortA.IsDown())
 	assert.False(edp.PortB.IsDown())

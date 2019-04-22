@@ -6,10 +6,44 @@ import (
 	"ndn-dpdk/dpdk"
 )
 
-var nEthDevPairs = 0 // to ensure unique IDs
+// Configuration for EthDevPair.
+type EthDevPairConfig struct {
+	NQueues       int    // number of queues on EthDev
+	RingCapacity  int    // ring capacity connecting pair of EthDevs
+	QueueCapacity int    // queue capacity in each EthDev
+	MempoolId     string // mempool for packet reception, created via MakeMp()
+}
+
+func (cfg *EthDevPairConfig) ApplyDefaults() {
+	if cfg.NQueues <= 0 {
+		cfg.NQueues = 1
+	}
+	if cfg.RingCapacity <= 0 {
+		cfg.RingCapacity = 1024
+	}
+	if cfg.QueueCapacity <= 0 {
+		cfg.QueueCapacity = 64
+	}
+	if cfg.MempoolId == "" {
+		cfg.MempoolId = MPID_DIRECT
+	}
+}
+
+func (cfg EthDevPairConfig) asPortConf() (portConf dpdk.EthDevConfig) {
+	mp := GetMp(cfg.MempoolId)
+	for i := 0; i < cfg.NQueues; i++ {
+		portConf.AddRxQueue(dpdk.EthRxQueueConfig{Capacity: cfg.QueueCapacity, Socket: dpdk.NUMA_SOCKET_ANY, Mp: mp})
+		portConf.AddTxQueue(dpdk.EthTxQueueConfig{Capacity: cfg.QueueCapacity, Socket: dpdk.NUMA_SOCKET_ANY})
+	}
+	return portConf
+}
+
+var lastEthDevPairId = 0
 
 // A pair of EthDevs connected via ring-based PMD.
 type EthDevPair struct {
+	cfg EthDevPairConfig
+
 	PortA dpdk.EthDev
 	RxqA  []dpdk.EthRxQueue
 	TxqA  []dpdk.EthTxQueue
@@ -20,35 +54,36 @@ type EthDevPair struct {
 	ringsAB []dpdk.Ring
 	ringsBA []dpdk.Ring
 
-	wantStopPortA bool
+	startedA bool
+	startedB bool
 }
 
-func NewEthDevPair(nQueues int, ringCapacity int, queueCapacity int) *EthDevPair {
-	return newEthDevPair2(nQueues, ringCapacity, queueCapacity, true)
-}
+func NewEthDevPair(cfg EthDevPairConfig) (edp *EthDevPair) {
+	lastEthDevPairId++
+	id := lastEthDevPairId
 
-func newEthDevPair2(nQueues int, ringCapacity int, queueCapacity int, wantStartPortA bool) *EthDevPair {
-	var edp EthDevPair
-	edp.wantStopPortA = wantStartPortA
-	mp := GetMp(MPID_DIRECT)
+	edp = new(EthDevPair)
+	edp.cfg = cfg
+	edp.cfg.ApplyDefaults()
 
-	var e error
-	edp.ringsAB = make([]dpdk.Ring, nQueues)
-	edp.ringsBA = make([]dpdk.Ring, nQueues)
-	createRings := func(label string, rings []dpdk.Ring) {
-		for i := range rings {
-			name := fmt.Sprintf("EthDevPair_%d_%s_%d", nEthDevPairs, label, i)
-			rings[i], e = dpdk.NewRing(name, ringCapacity, dpdk.NUMA_SOCKET_ANY, true, true)
+	edp.ringsAB = make([]dpdk.Ring, edp.cfg.NQueues)
+	edp.ringsBA = make([]dpdk.Ring, edp.cfg.NQueues)
+	createRings := func(label string) (rings []dpdk.Ring) {
+		for i := 0; i < edp.cfg.NQueues; i++ {
+			name := fmt.Sprintf("EthDevPair_%d%s%d", id, label, i)
+			ring, e := dpdk.NewRing(name, edp.cfg.RingCapacity, dpdk.NUMA_SOCKET_ANY, true, true)
 			if e != nil {
 				panic(fmt.Sprintf("dpdk.NewRing(%s) error %v", name, e))
 			}
+			rings = append(rings, ring)
 		}
+		return rings
 	}
-	createRings("AB", edp.ringsAB)
-	createRings("BA", edp.ringsBA)
+	edp.ringsAB = createRings("AB")
+	edp.ringsBA = createRings("BA")
 
 	createPort := func(label string, rxRings []dpdk.Ring, txRings []dpdk.Ring) dpdk.EthDev {
-		name := fmt.Sprintf("EthDevPair_%d_%s", nEthDevPairs, label)
+		name := fmt.Sprintf("EthDevPair_%d%s", id, label)
 		port, e := dpdk.NewEthDevFromRings(name, rxRings, txRings, dpdk.NUMA_SOCKET_ANY)
 		if e != nil {
 			panic(fmt.Sprintf("dpdk.NewEthDevFromRings(%s) error %v", name, e))
@@ -58,38 +93,44 @@ func newEthDevPair2(nQueues int, ringCapacity int, queueCapacity int, wantStartP
 	edp.PortA = createPort("A", edp.ringsBA, edp.ringsAB)
 	edp.PortB = createPort("B", edp.ringsAB, edp.ringsBA)
 
-	var portConf dpdk.EthDevConfig
-	for i := 0; i < nQueues; i++ {
-		portConf.AddRxQueue(dpdk.EthRxQueueConfig{Capacity: queueCapacity, Socket: dpdk.NUMA_SOCKET_ANY, Mp: mp})
-		portConf.AddTxQueue(dpdk.EthTxQueueConfig{Capacity: queueCapacity, Socket: dpdk.NUMA_SOCKET_ANY})
-	}
+	return edp
+}
 
-	if wantStartPortA {
-		edp.RxqA, edp.TxqA, e = edp.PortA.Configure(portConf)
-		if e != nil {
-			panic(fmt.Sprintf("EthDev(A).Configure error %v", e))
-		}
-		edp.PortA.Start()
+func (edp *EthDevPair) StartPortA() {
+	if edp.startedA {
+		return
 	}
+	var e error
+	edp.RxqA, edp.TxqA, e = edp.PortA.Configure(edp.cfg.asPortConf())
+	if e != nil {
+		panic(fmt.Sprintf("EthDev(A).Configure error %v", e))
+	}
+	edp.PortA.Start()
+	edp.startedA = true
+}
 
-	edp.RxqB, edp.TxqB, e = edp.PortB.Configure(portConf)
+func (edp *EthDevPair) StartPortB() {
+	if edp.startedB {
+		return
+	}
+	var e error
+	edp.RxqB, edp.TxqB, e = edp.PortB.Configure(edp.cfg.asPortConf())
 	if e != nil {
 		panic(fmt.Sprintf("EthDev(B).Configure error %v", e))
 	}
-
 	edp.PortB.Start()
-
-	nEthDevPairs++
-	return &edp
+	edp.startedB = true
 }
 
 func (edp *EthDevPair) Close() error {
-	if edp.wantStopPortA {
+	if edp.startedA {
 		edp.PortA.Stop()
 		edp.PortA.Close()
 	}
-	edp.PortB.Stop()
-	edp.PortB.Close()
+	if edp.startedB {
+		edp.PortB.Stop()
+		edp.PortB.Close()
+	}
 	for _, r := range edp.ringsAB {
 		r.Close()
 	}
@@ -97,8 +138,5 @@ func (edp *EthDevPair) Close() error {
 		r.Close()
 	}
 
-	// Do not decrement nEthDevPairs, to avoid duplicate IDs.
-
-	// All errors are ignored. Returning 'error' to fulfill io.Closer interface.
 	return nil
 }

@@ -4,25 +4,39 @@ import (
 	"ndn-dpdk/dpdk"
 )
 
+// Configuration for EthVNet.
+type EthVNetConfig struct {
+	EthDevPairConfig
+	NNodes int
+}
+
+func (cfg *EthVNetConfig) ApplyDefaults() {
+	cfg.EthDevPairConfig.ApplyDefaults()
+}
+
 // A virtual Ethernet subnet.
 type EthVNet struct {
-	Ports       []dpdk.EthDev
-	pairs       []*EthDevPair
-	mpid        string
+	cfg EthVNetConfig
+
+	Ports []dpdk.EthDev
+	pairs []*EthDevPair
+
 	bridgeLcore dpdk.LCore
 	stop        chan bool
 }
 
-func NewEthVNet(nNodes, ringCapacity, queueCapacity int, mpid string) *EthVNet {
-	var evn EthVNet
-	evn.mpid = mpid
+func NewEthVNet(cfg EthVNetConfig) (evn *EthVNet) {
+	evn = new(EthVNet)
+	evn.cfg = cfg
+	evn.cfg.ApplyDefaults()
 	evn.stop = make(chan bool)
-	for i := 0; i < nNodes; i++ {
-		pair := newEthDevPair2(1, ringCapacity, queueCapacity, false)
+	for i := 0; i < evn.cfg.NNodes; i++ {
+		pair := NewEthDevPair(evn.cfg.EthDevPairConfig)
+		pair.StartPortB()
 		evn.pairs = append(evn.pairs, pair)
 		evn.Ports = append(evn.Ports, pair.PortA)
 	}
-	return &evn
+	return evn
 }
 
 func (evn *EthVNet) bridge() int {
@@ -38,7 +52,7 @@ func (evn *EthVNet) bridge() int {
 					continue
 				}
 				for k, rxPkt := range rxPkts[:nRx] {
-					txPkts[k] = packetFromBytesInMp(evn.mpid, rxPkt.ReadAll())
+					txPkts[k] = packetFromBytesInMp(evn.cfg.MempoolId, rxPkt.ReadAll())
 				}
 				dst.TxqB[0].TxBurst(txPkts[:nRx])
 			}
