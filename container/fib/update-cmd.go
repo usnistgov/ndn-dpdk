@@ -26,7 +26,7 @@ func (fib *Fib) allocC(fibC *C.Fib) (entryC *C.FibEntry) {
 
 func (fib *Fib) insertC(fibC *C.Fib, entryC *C.FibEntry) (isNew bool) {
 	insertSeqNo++
-	entryC.seqNo = C.uint32_t(insertSeqNo)
+	entryC.seqNum = C.uint32_t(insertSeqNo)
 
 	isNew = bool(C.Fib_Insert(fibC, entryC))
 	if isNew {

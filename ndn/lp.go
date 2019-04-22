@@ -39,8 +39,8 @@ type LpHeader struct {
 	// DO NOT add other fields: *C.LpHeader is casted as *LpHeader
 }
 
-func (lph *LpHeader) GetFragFields() (seqNo uint64, fragIndex uint16, fragCount uint16) {
-	return uint64(lph.l2.seqNo), uint16(lph.l2.fragIndex), uint16(lph.l2.fragCount)
+func (lph *LpHeader) GetFragFields() (seqNum uint64, fragIndex uint16, fragCount uint16) {
+	return uint64(lph.l2.seqNum), uint16(lph.l2.fragIndex), uint16(lph.l2.fragCount)
 }
 
 func PrependLpHeader_GetHeadroom() int {

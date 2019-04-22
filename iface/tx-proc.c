@@ -63,7 +63,7 @@ TxProc_OutputFrag(TxProc* tx,
   ZF_LOGV("pktLen=%" PRIu32 " nFragments=%" PRIu16 " seq=%" PRIu64,
           pkt->pkt_len,
           nFragments,
-          tx->lastSeqNo + 1);
+          tx->lastSeqNum + 1);
   if (unlikely(nFragments > maxFrames)) {
     ++tx->nL3OverLength;
     return 0;
@@ -98,7 +98,7 @@ TxProc_OutputFrag(TxProc* tx,
       return 0;
     }
 
-    lph.l2.seqNo = ++tx->lastSeqNo;
+    lph.l2.seqNum = ++tx->lastSeqNum;
     lph.l2.fragIndex = (uint16_t)i;
 
     struct rte_mbuf* frame = frames[i];

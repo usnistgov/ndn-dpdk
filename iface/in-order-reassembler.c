@@ -12,7 +12,7 @@ InOrderReassembler_Receive(InOrderReassembler* r, Packet* npkt)
   assert(lpl2->fragCount > 1);
 #define PKTDBG(fmt, ...)                                                       \
   ZF_LOGD("%016" PRIX64 ",%" PRIu16 ",%" PRIu16 " " fmt,                       \
-          lpl2->seqNo,                                                         \
+          lpl2->seqNum,                                                        \
           lpl2->fragIndex,                                                     \
           lpl2->fragCount,                                                     \
           ##__VA_ARGS__)
@@ -28,11 +28,11 @@ InOrderReassembler_Receive(InOrderReassembler* r, Packet* npkt)
     ++r->nAccepted;
     r->head = frame;
     r->tail = rte_pktmbuf_lastseg(frame);
-    r->nextSeqNo = lpl2->seqNo + 1;
+    r->nextSeqNo = lpl2->seqNum + 1;
     return NULL;
   }
 
-  if (unlikely(r->tail == NULL || lpl2->seqNo != r->nextSeqNo)) {
+  if (unlikely(r->tail == NULL || lpl2->seqNum != r->nextSeqNo)) {
     PKTDBG("out-of-order");
     ++r->nOutOfOrder;
     rte_pktmbuf_free(frame);
@@ -43,7 +43,7 @@ InOrderReassembler_Receive(InOrderReassembler* r, Packet* npkt)
   struct rte_mbuf* newTail = rte_pktmbuf_lastseg(frame);
   Packet_Chain(r->head, r->tail, frame);
   r->tail = newTail;
-  r->nextSeqNo = lpl2->seqNo + 1;
+  r->nextSeqNo = lpl2->seqNum + 1;
 
   if (lpl2->fragIndex + 1 < lpl2->fragCount) {
     PKTDBG("accepted-chained");

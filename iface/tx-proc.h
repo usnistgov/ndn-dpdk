@@ -23,7 +23,7 @@ typedef struct TxProc
   uint16_t headerHeadroom;      ///< headroom for header mbuf
   uint16_t fragmentPayloadSize; ///< max payload size per fragment
 
-  uint64_t lastSeqNo; ///< last used NDNLP sequence number
+  uint64_t lastSeqNum; ///< last used NDNLP sequence number
 
   uint64_t nL3Fragmented; ///< L3 packets that required fragmentation
   uint64_t nL3OverLength; ///< dropped L3 packets due to over length

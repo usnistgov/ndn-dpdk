@@ -9,7 +9,7 @@
  */
 typedef struct LpL2
 {
-  uint64_t seqNo;
+  uint64_t seqNum;
   uint16_t fragIndex;
   uint16_t fragCount;
 } LpL2;

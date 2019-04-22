@@ -42,7 +42,7 @@ LpHeader_FromPacket(LpHeader* lph,
         // NDNLPv2 spec defines SeqNo as "fixed-width unsigned integer",
         // but ndn-cxx implements it as nonNegativeInteger.
         // https://redmine.named-data.net/issues/4403
-        TlvElement_ReadNonNegativeInteger(&ele1, &lph->l2.seqNo);
+        TlvElement_ReadNonNegativeInteger(&ele1, &lph->l2.seqNum);
         break;
       case TT_FragIndex: {
         uint64_t v;
@@ -189,9 +189,9 @@ PrependLpHeader(struct rte_mbuf* m, const LpHeader* lph, uint32_t payloadL)
   if (lph->l2.fragCount > 1) {
     typedef struct FragF
     {
-      uint8_t seqNoT;
-      uint8_t seqNoL;
-      rte_be64_t seqNoV;
+      uint8_t seqNumT;
+      uint8_t seqNumL;
+      rte_be64_t seqNumV;
 
       // FragIndex and FragCount are NonNegativeInteger fields, but NDN protocol does not
       // require NonNegativeInteger to use minimal length encoding.
@@ -205,9 +205,9 @@ PrependLpHeader(struct rte_mbuf* m, const LpHeader* lph, uint32_t payloadL)
     } __rte_packed FragF;
 
     FragF* f = (FragF*)TlvEncoder_Prepend(en, sizeof(FragF));
-    f->seqNoT = TT_LpSeqNo;
-    f->seqNoL = 8;
-    *(unaligned_uint64_t*)&f->seqNoV = rte_cpu_to_be_64(lph->l2.seqNo);
+    f->seqNumT = TT_LpSeqNo;
+    f->seqNumL = 8;
+    *(unaligned_uint64_t*)&f->seqNumV = rte_cpu_to_be_64(lph->l2.seqNum);
     f->fragIndexT = TT_FragIndex;
     f->fragIndexL = 2;
     *(unaligned_uint16_t*)&f->fragIndexV = rte_cpu_to_be_16(lph->l2.fragIndex);

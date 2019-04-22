@@ -55,7 +55,7 @@ __PitEntry_SetFibEntry(PitEntry* entry,
                        const FibEntry* fibEntry)
 {
   entry->fibPrefixL = fibEntry->nameL;
-  entry->fibSeqNo = fibEntry->seqNo;
+  entry->fibSeqNo = fibEntry->seqNum;
   Name* name = &interest->name;
   if (unlikely(interest->activeFh >= 0)) {
     name = &interest->activeFhName;
@@ -118,7 +118,7 @@ PitEntry_RefreshFibEntry(PitEntry* entry,
                          Packet* npkt,
                          const FibEntry* fibEntry)
 {
-  if (likely(entry->fibSeqNo == fibEntry->seqNo)) {
+  if (likely(entry->fibSeqNo == fibEntry->seqNum)) {
     return;
   }
 
@@ -139,7 +139,7 @@ PitEntry_FindFibEntry(PitEntry* entry, Fib* fib)
     name.value = interest->activeFhName.v;
   }
   const FibEntry* fibEntry = Fib_Find(fib, name, entry->fibPrefixHash);
-  if (unlikely(fibEntry == NULL || fibEntry->seqNo != entry->fibSeqNo)) {
+  if (unlikely(fibEntry == NULL || fibEntry->seqNum != entry->fibSeqNo)) {
     return NULL;
   }
   return fibEntry;

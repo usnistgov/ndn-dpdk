@@ -36,7 +36,7 @@ typedef struct FibEntry
   StrategyCode* strategy;
   FibEntryDyn* dyn;
 
-  uint32_t seqNo; ///< sequence number to detect FIB changes
+  uint32_t seqNum; ///< sequence number to detect FIB changes
 
   uint16_t nameL;    ///< TLV-LENGTH of name
   uint8_t nComps;    ///< number of name components

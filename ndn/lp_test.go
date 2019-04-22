@@ -20,7 +20,7 @@ func TestLpHeaderDecode(t *testing.T) {
 	tests := []struct {
 		input      string
 		bad        bool
-		seqNo      uint64
+		seqNum     uint64
 		fragIndex  uint16
 		fragCount  uint16
 		pitToken   uint64
@@ -35,11 +35,11 @@ func TestLpHeaderDecode(t *testing.T) {
 		{input: "6404 unknown-critical=FD03BF00", bad: true},
 		{input: "6404 unknown-ignored=FD03BC00", fragCount: 1},
 		{input: "6413 seq=5108A0A1A2A3A4A5A600 fragcount=530102 payload=" + payloadFragment,
-			seqNo: 0xA0A1A2A3A4A5A600, fragIndex: 0, fragCount: 2,
+			seqNum: 0xA0A1A2A3A4A5A600, fragIndex: 0, fragCount: 2,
 			payloadL: payloadFragmentL},
 		{input: "6416 seq=5108A0A1A2A3A4A5A601 fragindex=520101 fragcount=530102 " +
 			"payload=" + payloadFragment,
-			seqNo: 0xA0A1A2A3A4A5A601, fragIndex: 1, fragCount: 2,
+			seqNum: 0xA0A1A2A3A4A5A601, fragIndex: 1, fragCount: 2,
 			payloadL: payloadFragmentL},
 		{input: "6417 seq=5108A0A1A2A3A4A5A601 fragindex=520102 fragcount=530102 " +
 			"payload=" + payloadFragment, bad: true}, // FragIndex >= FragCount
@@ -64,8 +64,8 @@ func TestLpHeaderDecode(t *testing.T) {
 				continue
 			}
 			lph := pkt.GetLpHdr()
-			seqNo, fragIndex, fragCount := lph.GetFragFields()
-			assert.Equal(tt.seqNo, seqNo, tt.input)
+			seqNum, fragIndex, fragCount := lph.GetFragFields()
+			assert.Equal(tt.seqNum, seqNum, tt.input)
 			assert.Equal(tt.fragIndex, fragIndex, tt.input)
 			assert.Equal(tt.fragCount, fragCount, tt.input)
 			assert.Equal(tt.pitToken, lph.GetPitToken(), tt.input)

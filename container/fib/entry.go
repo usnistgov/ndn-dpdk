@@ -21,7 +21,7 @@ type Entry struct {
 }
 
 func (entry *Entry) GetSeqNo() uint32 {
-	return uint32(entry.c.seqNo)
+	return uint32(entry.c.seqNum)
 }
 
 func (entry *Entry) GetName() (name *ndn.Name) {
