@@ -18,11 +18,12 @@ type Fixture struct {
 	assert  *assert.Assertions
 	require *require.Assertions
 
+	PayloadLen    int        // Data payload length
 	TxLoops       int        // number of TX loops
 	LossTolerance float64    // permitted packet loss
 	RxLCore       dpdk.LCore // LCore for executing RxLoop
 	TxLCore       dpdk.LCore // LCore for executing TxLoop
-	SendLCore     dpdk.LCore // LCore for executing txProc
+	SendLCore     dpdk.LCore // LCore for executing sendProc
 
 	rxFace    iface.IFace
 	rxDiscard map[iface.FaceId]iface.IFace
@@ -65,7 +66,7 @@ func (fixture *Fixture) RunTest() {
 	fixture.txl.Launch()
 	time.Sleep(200 * time.Millisecond)
 
-	fixture.SendLCore.RemoteLaunch(fixture.txProc)
+	fixture.SendLCore.RemoteLaunch(fixture.sendProc)
 	fixture.SendLCore.Wait()
 	time.Sleep(800 * time.Millisecond)
 
@@ -81,31 +82,29 @@ func (fixture *Fixture) launchRx() {
 	fixture.rxl = iface.NewRxLoop(fixture.rxFace.GetNumaSocket())
 	fixture.rxl.SetLCore(fixture.RxLCore)
 
-	cb, cbarg := iface.WrapRxCb(func(burst iface.RxBurst) {
-		check := func(l3pkt ndn.IL3Packet) {
+	fixture.rxl.SetCallback(iface.WrapRxCb(func(burst iface.RxBurst) {
+		check := func(l3pkt ndn.IL3Packet) (increment int) {
 			pkt := l3pkt.GetPacket().AsDpdkPacket()
 			faceId := iface.FaceId(pkt.GetPort())
 			if _, ok := fixture.rxDiscard[faceId]; !ok {
 				assert.Equal(fixture.rxFace.GetFaceId(), faceId)
 				assert.NotZero(pkt.GetTimestamp())
+				increment = 1
 			}
 			pkt.Close()
+			return increment
 		}
 
 		for _, interest := range burst.ListInterests() {
-			fixture.NRxInterests++
-			check(interest)
+			fixture.NRxInterests += check(interest)
 		}
 		for _, data := range burst.ListData() {
-			fixture.NRxData++
-			check(data)
+			fixture.NRxData += check(data)
 		}
 		for _, nack := range burst.ListNacks() {
-			fixture.NRxNacks++
-			check(nack)
+			fixture.NRxNacks += check(nack)
 		}
-	})
-	fixture.rxl.SetCallback(cb, cbarg)
+	}))
 
 	require.NoError(fixture.rxl.Launch())
 	time.Sleep(50 * time.Millisecond)
@@ -119,11 +118,12 @@ func (fixture *Fixture) launchRx() {
 	}
 }
 
-func (fixture *Fixture) txProc() int {
+func (fixture *Fixture) sendProc() int {
+	content := make(ndn.TlvBytes, fixture.PayloadLen)
 	for i := 0; i < fixture.TxLoops; i++ {
 		pkts := make([]ndn.Packet, 3)
 		pkts[0] = ndntestutil.MakeInterest("/A").GetPacket()
-		pkts[1] = ndntestutil.MakeData("/A").GetPacket()
+		pkts[1] = ndntestutil.MakeData("/A", content).GetPacket()
 		pkts[2] = ndn.MakeNackFromInterest(ndntestutil.MakeInterest("/A"), ndn.NackReason_NoRoute).GetPacket()
 		fixture.txFace.TxBurst(pkts)
 		time.Sleep(time.Millisecond)

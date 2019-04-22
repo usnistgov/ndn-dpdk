@@ -28,7 +28,7 @@ func (rxTableStarter) Start(port *Port, cfg PortConfig) error {
 		unicastByLastOctet[addr[5]] = i
 	}
 
-	if e := port.configureDev(cfg, 1); e != nil {
+	if e := port.configureDev(cfg, cfg.NRxThreads); e != nil {
 		return e
 	}
 	port.dev.SetPromiscuous(true)
@@ -37,7 +37,9 @@ func (rxTableStarter) Start(port *Port, cfg PortConfig) error {
 	}
 
 	port.createFaces(cfg, nil)
-	port.rxt = newRxTable(port)
+	for i := 0; i < cfg.NRxThreads; i++ {
+		port.rxt = append(port.rxt, newRxTable(port, i))
+	}
 	return nil
 }
 
@@ -48,16 +50,16 @@ type RxTable struct {
 	port *Port
 }
 
-func newRxTable(port *Port) (rxt *RxTable) {
+func newRxTable(port *Port, rxThreadId int) (rxt *RxTable) {
 	rxt = new(RxTable)
 	rxt.c = (*C.EthRxTable)(dpdk.Zmalloc("EthRxTable", C.sizeof_EthRxTable, port.GetNumaSocket()))
 	rxt.InitRxgBase(unsafe.Pointer(rxt.c))
 	rxt.port = port
 
 	rxt.c.port = C.uint16_t(port.dev)
-	rxt.c.queue = 0
+	rxt.c.queue = C.uint16_t(rxThreadId)
 	rxt.c.base.rxBurstOp = C.RxGroup_RxBurst(C.EthRxTable_RxBurst)
-	rxt.c.base.rxThread = 0
+	rxt.c.base.rxThread = C.int(rxThreadId)
 
 	if port.multicast != nil {
 		rxt.c.multicast = C.FaceId(port.multicast.GetFaceId())

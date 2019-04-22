@@ -89,11 +89,6 @@ Face_IsDown(FaceId faceId)
  */
 typedef void (*Face_RxCb)(FaceRxBurst* burst, void* cbarg);
 
-/** \brief Send a burst of packets (non-thread-safe).
- */
-void
-Face_TxBurst_Nts(Face* face, Packet** npkts, uint16_t count);
-
 /** \brief Send a burst of packets.
  *  \param npkts array of L3 packets; face takes ownership
  *  \param count size of \p npkts array

@@ -25,16 +25,17 @@ func SizeofTxHeader() int {
 // Port creation arguments.
 type PortConfig struct {
 	iface.Mempools
-	EthDev    dpdk.EthDev
-	RxMp      dpdk.PktmbufPool   // mempool for received frames
-	RxqFrames int                // TX queue capacity
-	TxqPkts   int                // before-TX queue capacity
-	TxqFrames int                // after-TX queue capacity
-	Mtu       int                // set MTU, 0 to keep default
-	Local     net.HardwareAddr   // local address, nil for hardware default
-	Multicast bool               // whether to enable multicast face
-	Unicast   []net.HardwareAddr // remote addresses for unicast faces
-	faceIds   []iface.FaceId     // assigned FaceIds
+	EthDev     dpdk.EthDev
+	RxMp       dpdk.PktmbufPool   // mempool for received frames
+	NRxThreads int                // number of RX threads (RxTable only)
+	RxqFrames  int                // RX queue capacity
+	TxqPkts    int                // before-TX queue capacity
+	TxqFrames  int                // after-TX queue capacity
+	Mtu        int                // set MTU, 0 to keep default
+	Local      net.HardwareAddr   // local address, nil for hardware default
+	Multicast  bool               // whether to enable multicast face
+	Unicast    []net.HardwareAddr // remote addresses for unicast faces
+	faceIds    []iface.FaceId     // assigned FaceIds
 }
 
 func (cfg PortConfig) check() error {
@@ -98,7 +99,7 @@ type Port struct {
 	logger    logrus.FieldLogger
 	multicast *EthFace
 	unicast   []*EthFace
-	rxt       *RxTable
+	rxt       []*RxTable
 }
 
 var portByEthDev = make(map[dpdk.EthDev]*Port)
@@ -223,8 +224,11 @@ func (port *Port) GetEthDev() dpdk.EthDev {
 }
 
 func (port *Port) ListRxGroups() (list []iface.IRxGroup) {
-	if port.rxt != nil {
-		return []iface.IRxGroup{port.rxt}
+	if len(port.rxt) > 0 {
+		for _, rxt := range port.rxt {
+			list = append(list, rxt)
+		}
+		return list
 	}
 
 	if port.multicast != nil {

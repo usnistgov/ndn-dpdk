@@ -196,6 +196,7 @@ func (ctx *createContext) launchEth(ectx *createContextEth) (e error) {
 	if cfg.RxMp, e = theCallbacks.CreateRxMp(-1, numaSocket); e != nil {
 		return e
 	}
+	cfg.NRxThreads = 1
 	cfg.RxqFrames = theConfig.EthRxqFrames
 	cfg.TxqPkts = theConfig.EthTxqPkts
 	cfg.TxqFrames = theConfig.EthTxqFrames

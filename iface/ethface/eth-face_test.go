@@ -17,7 +17,7 @@ import (
 func TestEthFace(t *testing.T) {
 	_, require := dpdktestenv.MakeAR(t)
 
-	mp := dpdktestenv.MakeDirectMp(4095, ndn.SizeofPacketPriv(), 2000)
+	mp := dpdktestenv.MakeDirectMp(4095, ndn.SizeofPacketPriv(), 5000)
 	mempools := iface.Mempools{
 		IndirectMp: dpdktestenv.MakeIndirectMp(4095),
 		NameMp:     dpdktestenv.MakeMp("name", 4095, 0, ndn.NAME_MAX_LENGTH),
@@ -26,6 +26,7 @@ func TestEthFace(t *testing.T) {
 
 	var evnCfg dpdktestenv.EthVNetConfig
 	evnCfg.NNodes = 3
+	evnCfg.NQueues = 2
 	evn := dpdktestenv.NewEthVNet(evnCfg)
 	defer evn.Close()
 
@@ -37,6 +38,7 @@ func TestEthFace(t *testing.T) {
 	cfgA.Mempools = mempools
 	cfgA.EthDev = evn.Ports[0]
 	cfgA.RxMp = mp
+	cfgA.NRxThreads = evnCfg.NQueues
 	cfgA.RxqFrames = 64
 	cfgA.TxqPkts = 64
 	cfgA.TxqFrames = 64
@@ -88,6 +90,7 @@ func TestEthFace(t *testing.T) {
 	fixtureAm.RunTest()
 	fixtureAm.CheckCounters()
 
+	fmt.Println("evn.NDrops", evn.NDrops)
 	fmt.Println("portA", evn.Ports[0].GetStats())
 	fmt.Println("portB", evn.Ports[1].GetStats())
 	fmt.Println("portC", evn.Ports[2].GetStats())

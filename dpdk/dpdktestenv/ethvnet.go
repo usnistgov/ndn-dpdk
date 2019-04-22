@@ -1,6 +1,8 @@
 package dpdktestenv
 
 import (
+	"math/rand"
+
 	"ndn-dpdk/dpdk"
 )
 
@@ -21,6 +23,7 @@ type EthVNet struct {
 	Ports []dpdk.EthDev
 	pairs []*EthDevPair
 
+	NDrops      int
 	bridgeLcore dpdk.LCore
 	stop        chan bool
 }
@@ -40,24 +43,34 @@ func NewEthVNet(cfg EthVNetConfig) (evn *EthVNet) {
 }
 
 func (evn *EthVNet) bridge() int {
-	const BURST_SIZE = 64
+	const BURST_SIZE = 25
 	rxPkts := make([]dpdk.Packet, BURST_SIZE)
-	txPkts := make([]dpdk.Packet, BURST_SIZE)
-
 	for {
-		for i, src := range evn.pairs {
-			nRx := src.RxqB[0].RxBurst(rxPkts)
-			for j, dst := range evn.pairs {
-				if i == j {
-					continue
+		for srcIndex, src := range evn.pairs {
+			for _, srcQ := range src.RxqB {
+				nRx := srcQ.RxBurst(rxPkts)
+
+				for dstIndex, dst := range evn.pairs {
+					if srcIndex == dstIndex {
+						continue
+					}
+
+					var txPkts []dpdk.Packet
+					for _, pkt := range rxPkts[:nRx] {
+						txPkts = append(txPkts, packetFromBytesInMp(evn.cfg.MempoolId, pkt.ReadAll()))
+					}
+
+					dstQ := dst.TxqB[rand.Intn(len(dst.TxqB))]
+					nTx := dstQ.TxBurst(txPkts)
+					for i := nTx; i < len(txPkts); i++ {
+						evn.NDrops++
+						txPkts[i].Close()
+					}
 				}
-				for k, rxPkt := range rxPkts[:nRx] {
-					txPkts[k] = packetFromBytesInMp(evn.cfg.MempoolId, rxPkt.ReadAll())
+
+				for _, rxPkt := range rxPkts[:nRx] {
+					rxPkt.Close()
 				}
-				dst.TxqB[0].TxBurst(txPkts[:nRx])
-			}
-			for _, rxPkt := range rxPkts[:nRx] {
-				rxPkt.Close()
 			}
 		}
 
