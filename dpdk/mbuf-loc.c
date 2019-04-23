@@ -62,6 +62,10 @@ __MbufLoc_MakeIndirectCb(void* arg,
                          uint16_t off,
                          uint16_t len)
 {
+  if (unlikely(len == 0)) {
+    return;
+  }
+
   __MbufLoc_MakeIndirectCtx* ctx = (__MbufLoc_MakeIndirectCtx*)arg;
   if (unlikely(ctx->mp == NULL)) {
     return;

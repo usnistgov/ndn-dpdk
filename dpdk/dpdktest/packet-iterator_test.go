@@ -71,7 +71,7 @@ func TestPktItMakeIndirect(t *testing.T) {
 	payload := dpdktestenv.BytesFromHex("A0A1A2A3B0B1B2C0C1D0")
 
 	for offset := 0; offset <= pktlen; offset++ {
-		for count := 0; count < pktlen-offset; count++ {
+		for count := 1; count < pktlen-offset; count++ {
 			pi := dpdk.NewPacketIterator(pkt)
 			pi.Advance(offset)
 			clone, e := pi.MakeIndirect(count, mpi)
@@ -80,6 +80,9 @@ func TestPktItMakeIndirect(t *testing.T) {
 			}
 			assert.Equal(count, clone.Len())
 			assert.Equal(payload[offset:offset+count], clone.ReadAll(), "%d-%d", offset, count)
+			for seg, ok := clone.GetFirstSegment(), true; ok; seg, ok = seg.GetNext() {
+				assert.NotZero(seg.Len())
+			}
 			clone.Close()
 
 			if offset+count < pktlen {

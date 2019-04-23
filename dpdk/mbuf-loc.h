@@ -162,6 +162,7 @@ __MbufLoc_MakeIndirectCb(void* arg,
 static struct rte_mbuf*
 MbufLoc_MakeIndirect(MbufLoc* ml, uint32_t n, struct rte_mempool* mp)
 {
+  assert(n > 0);
   if (unlikely(MbufLoc_IsEnd(ml) || n > ml->rem)) {
     rte_errno = ERANGE;
     return NULL;
