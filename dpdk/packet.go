@@ -118,7 +118,8 @@ func (pkt Packet) DeleteRange(offset interface{}, len int) {
 func (pkt Packet) LinearizeRange(first interface{}, last interface{}, mp PktmbufPool) (unsafe.Pointer, error) {
 	firstPi := makePacketIteratorFromOffset(pkt, first)
 	lastPi := makePacketIteratorFromOffset(pkt, last)
-	res := C.MbufLoc_Linearize(&firstPi.ml, &lastPi.ml, pkt.c, mp.c)
+	n := firstPi.ml.rem - lastPi.ml.rem
+	res := C.MbufLoc_Linearize(&firstPi.ml, &lastPi.ml, C.uint32_t(n), pkt.c, mp.c)
 	if res == nil {
 		return nil, GetErrno()
 	}

@@ -115,18 +115,8 @@ MbufLoc_Advance(MbufLoc* ml, uint32_t n)
 }
 
 /** \brief Determine the distance in octets from a to b.
+ *  \pre \p a is a copy of \p b at an earlier time.
  *
- *  If MbufLoc_Diff(a, b) == n and n >= 0, it implies MbufLoc_Advance(a, n) equals b.
- *  If MbufLoc_Diff(a, b) == n and n <= 0, it implies MbufLoc_Advance(b, -n) equals a.
- *  Behavior is undefined if a and b do not point to the same packet.
- *  This function does not honor the iterator boundary.
- */
-ptrdiff_t
-MbufLoc_Diff(const MbufLoc* a, const MbufLoc* b);
-
-/** \brief Determine the distance in octets from a to b.
- *
- *  This is faster than MbufLoc_Diff, but it requires \p a to be a copy of \p b at an earlier time.
  *  \code
  *  // initialize b
  *  MbufLoc a;
@@ -291,14 +281,16 @@ MbufLoc_Delete(MbufLoc* ml,
 uint8_t*
 __MbufLoc_Linearize(MbufLoc* first,
                     MbufLoc* last,
+                    uint32_t n,
                     struct rte_mbuf* pkt,
                     struct rte_mempool* mp);
 
 /** \brief Ensure [first, last) are in the same mbuf.
  *  \param[inout] first begin range iterator, will be updated if needed
  *  \param[inout] last past-end range iterator, will be updated if needed
+ *  \param n size of range; must match the distance from first to last
  *  \param pkt first segment of the packet
- *  \param mp mempool for copying [first, last)
+ *  \param mp mempool for copying [first, last) when necessary
  *  \return pointer to consecutive memory at \p first , or NULL on failure
  *  \post [first, last) is in consecutive memory
  *  \post any MbufLoc at or after \p first is invalidated
@@ -309,14 +301,16 @@ __MbufLoc_Linearize(MbufLoc* first,
 static uint8_t*
 MbufLoc_Linearize(MbufLoc* first,
                   MbufLoc* last,
+                  uint32_t n,
                   struct rte_mbuf* pkt,
                   struct rte_mempool* mp)
 {
+  assert(n > 0 && n <= first->rem);
   if (likely(first->m == last->m)) {
     return rte_pktmbuf_mtod_offset(first->m, uint8_t*, first->off);
   }
 
-  return __MbufLoc_Linearize(first, last, pkt, mp);
+  return __MbufLoc_Linearize(first, last, n, pkt, mp);
 }
 
 #endif // NDN_DPDK_DPDK_MBUF_LOC_H

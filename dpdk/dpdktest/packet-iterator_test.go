@@ -44,17 +44,6 @@ func TestPktItAdvanceDistance(t *testing.T) {
 			} else {
 				assert.True(pi1[i] == pi2[i], "%d-%d", step, i)
 			}
-
-			assert.Zero(pi1[i].ComputeDistance(pi2[i]), "%d-%d", step, i)
-			assert.Equal(i, pi2[0].ComputeDistance(pi2[i]), "%d-%d", step, i)
-			assert.Equal(-i, pi2[i].ComputeDistance(pi2[0]), "%d-%d", step, i)
-			assert.Equal(pktlen-i, pi2[i].ComputeDistance(end), "%d-%d", step, i)
-			assert.Equal(i-pktlen, end.ComputeDistance(pi2[i]), "%d-%d", step, i)
-
-			if i > 0 {
-				assert.Equal(step, pi2[i-step].ComputeDistance(pi2[i]), "%d-%d", step, i)
-				assert.Equal(-step, pi2[i].ComputeDistance(pi2[i-step]), "%d-%d", step, i)
-			}
 		}
 	}
 }

@@ -116,7 +116,8 @@ TlvElement_LinearizeValue(TlvElement* ele,
                           TlvDecodePos* d)
 {
   assert(ele->length > 0);
-  const uint8_t* linear = MbufLoc_Linearize(&ele->value, &ele->last, pkt, mp);
+  const uint8_t* linear =
+    MbufLoc_Linearize(&ele->value, &ele->last, ele->length, pkt, mp);
   if (d != NULL) {
     // in case MbufLoc_Linearize fails, this is meaningless but harmless
     MbufLoc_Copy(d, &ele->last);

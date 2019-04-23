@@ -1,61 +1,5 @@
 #include "mbuf-loc.h"
 
-// Determine the distance advancing a to reach b.
-static bool
-__MbufLoc_Diff_Forward(const MbufLoc* a, const MbufLoc* b, ptrdiff_t* dist)
-{
-  *dist = 0;
-  const struct rte_mbuf* am = a->m;
-  uint16_t aOff = a->off;
-  const struct rte_mbuf* bm = b->m;
-  while (am != NULL) {
-    if (am == bm) {
-      *dist += b->off - aOff;
-      return true;
-    }
-    *dist += am->data_len - aOff;
-    am = am->next;
-    aOff = 0;
-  }
-  return false;
-}
-
-// Determine the distance advancing ml to reach the end.
-static ptrdiff_t
-__MbufLoc_Diff_ToEnd(const MbufLoc* ml)
-{
-  ptrdiff_t dist = 0;
-  const struct rte_mbuf* m = ml->m;
-  uint16_t off = ml->off;
-  while (m != NULL) {
-    dist += m->data_len - off;
-    m = m->next;
-    off = 0;
-  }
-  return dist;
-}
-
-ptrdiff_t
-MbufLoc_Diff(const MbufLoc* a, const MbufLoc* b)
-{
-  if (b->m == NULL) {
-    return __MbufLoc_Diff_ToEnd(a);
-  }
-  if (a->m == NULL) {
-    return -__MbufLoc_Diff_ToEnd(b);
-  }
-
-  ptrdiff_t dist = 0;
-  if (__MbufLoc_Diff_Forward(a, b, &dist)) {
-    return dist;
-  }
-  if (__MbufLoc_Diff_Forward(b, a, &dist)) {
-    return -dist;
-  }
-  assert(false);
-  return 0;
-}
-
 void
 __MbufLoc_MakeIndirectCb(void* arg,
                          const struct rte_mbuf* m,
@@ -206,19 +150,12 @@ MbufLoc_Delete(MbufLoc* ml,
 uint8_t*
 __MbufLoc_Linearize(MbufLoc* first,
                     MbufLoc* last,
+                    uint32_t n,
                     struct rte_mbuf* pkt,
                     struct rte_mempool* mp)
 {
   struct rte_mbuf* firstM = (struct rte_mbuf*)first->m;
   assert(firstM != last->m); // simple case handled by MbufLoc_Linearize
-
-  ptrdiff_t distance = MbufLoc_Diff(first, last);
-  if (unlikely(distance == 0)) {
-    return rte_pktmbuf_mtod_offset(firstM, uint8_t*, first->off);
-  }
-  assert(distance > 0);
-  uint32_t n = distance;
-  assert(n <= first->rem);
 
   uint32_t oldPktLen = pkt->pkt_len;
 
