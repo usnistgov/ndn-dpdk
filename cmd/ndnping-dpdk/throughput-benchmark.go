@@ -98,6 +98,7 @@ func (tb *ThroughputBenchmark) Once(interval time.Duration) (ok bool, cnt ndnpin
 	readCountersTicker := time.NewTicker(tb.cfg.ReadCountersFreq)
 	var stopRxTimer *time.Timer
 	var stopRxTimerC <-chan time.Time = make(chan time.Time)
+	isEarlyFail := false
 
 L:
 	for {
@@ -106,7 +107,8 @@ L:
 			cnt = tb.client.ReadCounters()
 			dataRatio, _ := cnt.ComputeRatios()
 			if dataRatio < tb.cfg.SatisfyThreshold {
-				tblog.Debugf("early fail after %0.2fs", now.Sub(startTime).Seconds())
+				tblog.Debugf("%0.2f%%, early fail after %0.2fs", dataRatio*100, now.Sub(startTime).Seconds())
+				isEarlyFail = true
 				break L
 			}
 		case <-stopTxTimer.C:
@@ -119,11 +121,17 @@ L:
 	}
 
 	tb.client.Tx.Stop()
+	if isEarlyFail {
+		time.Sleep(tb.cfg.CooldownTime)
+	}
 	tb.client.Stop()
 	readCountersTicker.Stop()
 	stopTxTimer.Stop()
 	if stopRxTimer != nil {
 		stopRxTimer.Stop()
+	}
+	if isEarlyFail {
+		return
 	}
 
 	cnt = tb.client.ReadCounters()
