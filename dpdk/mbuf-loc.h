@@ -180,50 +180,28 @@ __MbufLoc_ReadCb(void* arg,
                  uint16_t off,
                  uint16_t len);
 
-/** \brief Read next n octets, and advance the position.
- *  \param buf a buffer to copy octets into, used only if crossing segment boundary.
- *  \param n requested length
- *  \param[out] nRead actual length before reaching end or boundary
- *  \return pointer to in-segment data or the buffer.
- */
-static const uint8_t*
-MbufLoc_Read(MbufLoc* ml, void* buf, uint32_t n, uint32_t* nRead)
-{
-  if (unlikely(MbufLoc_IsEnd(ml))) {
-    *nRead = 0;
-    return buf;
-  }
-
-  if (n > ml->rem) {
-    n = ml->rem;
-  }
-
-  if (unlikely(ml->off + n >= ml->m->data_len)) {
-    uint8_t* output = (uint8_t*)buf;
-    *nRead = __MbufLoc_AdvanceWithCb(ml, n, __MbufLoc_ReadCb, &output);
-    return (const uint8_t*)buf;
-  }
-
-  *nRead = n;
-  uint16_t off = ml->off;
-  ml->off = off + (uint16_t)n;
-  ml->rem -= n;
-  return rte_pktmbuf_mtod_offset(ml->m, uint8_t*, off);
-}
-
 /** \brief Copy next n octets, and advance the position.
  *  \return number of octets copied.
  */
-static uint32_t
+static __rte_noinline uint32_t
 MbufLoc_ReadTo(MbufLoc* ml, void* output, uint32_t n)
 {
-  uint32_t nRead;
-  const uint8_t* data = MbufLoc_Read(ml, output, n, &nRead);
-
-  if (likely(data != output)) {
-    rte_memcpy(output, data, nRead);
+  n = RTE_MIN(n, ml->rem);
+  if (unlikely(MbufLoc_IsEnd(ml) || n == 0)) {
+    return 0;
   }
-  return nRead;
+
+  void* src = rte_pktmbuf_mtod_offset(ml->m, uint8_t*, ml->off);
+  rte_prefetch0(src);
+
+  if (unlikely(ml->off + n >= ml->m->data_len)) {
+    return __MbufLoc_AdvanceWithCb(ml, n, __MbufLoc_ReadCb, &output);
+  }
+
+  ml->off += (uint16_t)n;
+  ml->rem -= n;
+  rte_memcpy(output, src, n);
+  return n;
 }
 
 static bool
