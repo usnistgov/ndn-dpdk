@@ -1,8 +1,8 @@
 package ndn
 
 /*
-#include "tlv-decode.h"
 #include "tlv-encoder.h"
+#include "tlv-varnum.h"
 */
 import "C"
 import (

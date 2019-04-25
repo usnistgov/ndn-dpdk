@@ -1,5 +1,5 @@
 #include "name.h"
-#include "tlv-decode.h"
+#include "tlv-varnum.h"
 
 #include "../core/pcg_basic.h"
 #include "../core/siphash.h"
@@ -82,13 +82,15 @@ PName_Parse(PName* n, uint32_t length, const uint8_t* value)
   uint32_t off = 0;
   while (off < length) {
     uint32_t compT, compL;
-    uint32_t sizeofTL =
-      ParseTlvTypeLength(value + off, length - off, &compT, &compL);
-    if (unlikely(sizeofTL) == 0) {
+    uint32_t sizeofT = ParseVarNum(value + off, length - off, &compT);
+    uint32_t sizeofL =
+      ParseVarNum(value + off + sizeofT, length - off - sizeofT, &compL);
+    if (unlikely(sizeofT == 0 || sizeofL == 0)) {
       return NdnError_Incomplete;
     }
-    uint64_t end = off + sizeofTL + compL;
-    if (unlikely(end > length)) {
+
+    off += sizeofT + sizeofL + compL;
+    if (unlikely(off > length)) {
       return NdnError_Incomplete;
     }
 
@@ -104,11 +106,9 @@ PName_Parse(PName* n, uint32_t length, const uint8_t* value)
     }
 
     if (likely(n->nComps < PNAME_N_CACHED_COMPS)) {
-      n->comp[n->nComps] = end;
+      n->comp[n->nComps] = off;
     }
-
     ++n->nComps;
-    off = end;
   }
 
   return NdnError_OK;
@@ -131,7 +131,8 @@ __PName_SeekCompEnd(const PName* n, const uint8_t* input, uint16_t i)
   uint16_t off = n->comp[PNAME_N_CACHED_COMPS - 1];
   for (uint16_t j = PNAME_N_CACHED_COMPS - 1; j < i; ++j) {
     uint32_t compT, compL;
-    off += ParseTlvTypeLength(input + off, n->nOctets - off, &compT, &compL);
+    off += ParseVarNum(input + off, n->nOctets - off, &compT);
+    off += ParseVarNum(input + off, n->nOctets - off, &compL);
     off += compL;
   }
   return off;

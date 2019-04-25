@@ -3,9 +3,6 @@
 
 /** \file
  *
- *  \par Common parameters of decoding functions:
- *  \param[inout] d the decoder.
- *
  *  \par Common return values of decoding functions:
  *  \retval NdnError_OK successful; decoder is advanced past end of decoded item.
  *  \retval NdnError_Incomplete reaching input boundary before decoding finishes.
