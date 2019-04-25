@@ -21,14 +21,28 @@
  */
 typedef MbufLoc TlvDecodePos;
 
-static __rte_noinline NdnError
-__DecodeVarNum_5or9(TlvDecodePos* d, uint8_t firstOctet, uint32_t* n)
+/** \brief Decode a TLV-TYPE or TLV-LENGTH number.
+ *  \param[out] n the number.
+ */
+static NdnError
+DecodeVarNum(TlvDecodePos* d, uint32_t* n)
 {
-  if (unlikely(MbufLoc_IsEnd(d))) {
+  uint8_t firstOctet;
+  bool ok = MbufLoc_ReadU8(d, &firstOctet);
+  if (unlikely(!ok)) {
     return NdnError_Incomplete;
   }
 
   switch (firstOctet) {
+    case 253: {
+      rte_be16_t v;
+      bool ok = MbufLoc_ReadU16(d, &v);
+      if (unlikely(!ok)) {
+        return NdnError_Incomplete;
+      }
+      *n = rte_be_to_cpu_16(v);
+      break;
+    }
     case 254: {
       rte_be32_t v;
       bool ok = MbufLoc_ReadU32(d, &v);
@@ -52,42 +66,9 @@ __DecodeVarNum_5or9(TlvDecodePos* d, uint8_t firstOctet, uint32_t* n)
       break;
     }
     default:
-      assert(false);
+      *n = firstOctet;
+      break;
   }
-  return NdnError_OK;
-}
-
-/** \brief Decode a TLV-TYPE or TLV-LENGTH number.
- *  \param[out] n the number.
- */
-static NdnError
-DecodeVarNum(TlvDecodePos* d, uint32_t* n)
-{
-  if (unlikely(MbufLoc_IsEnd(d))) {
-    return NdnError_Incomplete;
-  }
-
-  uint8_t firstOctet;
-  bool ok = MbufLoc_ReadU8(d, &firstOctet);
-  if (unlikely(!ok)) {
-    return NdnError_Incomplete;
-  }
-
-  if (likely(firstOctet < 253)) {
-    *n = firstOctet;
-    return NdnError_OK;
-  }
-
-  if (firstOctet > 253) {
-    return __DecodeVarNum_5or9(d, firstOctet, n);
-  }
-
-  rte_be16_t v;
-  ok = MbufLoc_ReadU16(d, &v);
-  if (unlikely(!ok)) {
-    return NdnError_Incomplete;
-  }
-  *n = rte_be_to_cpu_16(v);
   return NdnError_OK;
 }
 

@@ -5,50 +5,6 @@
 
 #include "common.h"
 
-static uint32_t
-__ParseVarNum3(const uint8_t* input, uint32_t rem, uint32_t* n)
-{
-  if (unlikely(rem < 3)) {
-    return 0;
-  }
-  *n = rte_be_to_cpu_16(*(unaligned_uint16_t*)(input + 1));
-  return 3;
-}
-
-static uint32_t
-__ParseVarNum5(const uint8_t* input, uint32_t rem, uint32_t* n)
-{
-  if (unlikely(rem < 5)) {
-    return 0;
-  }
-  *n = rte_be_to_cpu_32(*(unaligned_uint32_t*)(input + 1));
-  return 5;
-}
-
-static uint32_t
-__ParseVarNum9(const uint8_t* input, uint32_t rem, uint32_t* n)
-{
-  if (unlikely(rem < 9)) {
-    return 0;
-  }
-  uint64_t number = rte_be_to_cpu_64(*(unaligned_uint64_t*)(input + 1));
-  if (unlikely(number > UINT32_MAX)) {
-    return NdnError_LengthOverflow;
-  }
-  *n = (uint32_t)number;
-  return 9;
-}
-
-typedef uint32_t (*__ParseVarNumSized)(const uint8_t* input,
-                                       uint32_t rem,
-                                       uint32_t* n);
-
-static const __ParseVarNumSized __ParseVarNum_Jmp[3] = {
-  __ParseVarNum3,
-  __ParseVarNum5,
-  __ParseVarNum9,
-};
-
 /** \brief Parse a TLV-TYPE or TLV-LENGTH number.
  *  \param[out] n the number.
  *  \return number of consumed bytes, or 0 if input is incomplete.
@@ -61,13 +17,29 @@ ParseVarNum(const uint8_t* input, uint32_t rem, uint32_t* n)
   }
 
   uint8_t firstOctet = *input;
-  int jmpIndex = firstOctet - 253;
-  if (likely(jmpIndex < 0)) {
-    *n = firstOctet;
-    return 1;
+  switch (firstOctet) {
+    case 253:
+      if (unlikely(rem < 3)) {
+        return 0;
+      }
+      *n = rte_be_to_cpu_16(*(unaligned_uint16_t*)(input + 1));
+      return 3;
+    case 254:
+      if (unlikely(rem < 5)) {
+        return 0;
+      }
+      *n = rte_be_to_cpu_32(*(unaligned_uint32_t*)(input + 1));
+      return 5;
+    case 255:
+      if (unlikely(rem < 9)) {
+        return 0;
+      }
+      *n = rte_be_to_cpu_64(*(unaligned_uint64_t*)(input + 1));
+      return 9;
+    default:
+      *n = firstOctet;
+      return 1;
   }
-
-  return __ParseVarNum_Jmp[jmpIndex](input, rem, n);
 }
 
 /** \brief Parse TLV-TYPE and TLV-LENGTH.
