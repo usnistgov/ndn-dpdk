@@ -128,7 +128,6 @@ func TestPacketDeleteRange(t *testing.T) {
 			pi.Advance(tt.offset)
 			pkt.DeleteRange(&pi, tt.count)
 
-			assert.Equal(tt.offset, begin.ComputeDistance(pi))
 			assert.Equal(expected, pkt.ReadAll())
 			assert.Equal(tt.nSegs, mp.CountInUse())
 		})
@@ -179,8 +178,6 @@ func TestPacketLinearizeRange(t *testing.T) {
 			assert.Equal(uintptr(pkt.GetSegment(tt.inSeg).GetData())+tt.atOffset, uintptr(linear))
 			assert.Equal(payload, pkt.ReadAll())
 			assert.Equal(len(tt.segLen), mp.CountInUse())
-			assert.Equal(tt.first, begin.ComputeDistance(first))
-			assert.Equal(tt.last, begin.ComputeDistance(last))
 		})
 	}
 }

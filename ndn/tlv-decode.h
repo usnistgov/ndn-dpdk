@@ -6,7 +6,7 @@
 #include "common.h"
 
 static uint32_t
-__ParseVarNum16(const uint8_t* input, uint32_t rem, uint64_t* n)
+__ParseVarNum3(const uint8_t* input, uint32_t rem, uint32_t* n)
 {
   if (unlikely(rem < 3)) {
     return 0;
@@ -16,7 +16,7 @@ __ParseVarNum16(const uint8_t* input, uint32_t rem, uint64_t* n)
 }
 
 static uint32_t
-__ParseVarNum32(const uint8_t* input, uint32_t rem, uint64_t* n)
+__ParseVarNum5(const uint8_t* input, uint32_t rem, uint32_t* n)
 {
   if (unlikely(rem < 5)) {
     return 0;
@@ -26,23 +26,27 @@ __ParseVarNum32(const uint8_t* input, uint32_t rem, uint64_t* n)
 }
 
 static uint32_t
-__ParseVarNum64(const uint8_t* input, uint32_t rem, uint64_t* n)
+__ParseVarNum9(const uint8_t* input, uint32_t rem, uint32_t* n)
 {
   if (unlikely(rem < 9)) {
     return 0;
   }
-  *n = rte_be_to_cpu_64(*(unaligned_uint64_t*)(input + 1));
+  uint64_t number = rte_be_to_cpu_64(*(unaligned_uint64_t*)(input + 1));
+  if (unlikely(number > UINT32_MAX)) {
+    return NdnError_LengthOverflow;
+  }
+  *n = (uint32_t)number;
   return 9;
 }
 
 typedef uint32_t (*__ParseVarNumSized)(const uint8_t* input,
                                        uint32_t rem,
-                                       uint64_t* n);
+                                       uint32_t* n);
 
 static const __ParseVarNumSized __ParseVarNum_Jmp[3] = {
-  __ParseVarNum16,
-  __ParseVarNum32,
-  __ParseVarNum64,
+  __ParseVarNum3,
+  __ParseVarNum5,
+  __ParseVarNum9,
 };
 
 /** \brief Parse a TLV-TYPE or TLV-LENGTH number.
@@ -50,7 +54,7 @@ static const __ParseVarNumSized __ParseVarNum_Jmp[3] = {
  *  \return number of consumed bytes, or 0 if input is incomplete.
  */
 static __rte_always_inline uint32_t
-ParseVarNum(const uint8_t* input, uint32_t rem, uint64_t* n)
+ParseVarNum(const uint8_t* input, uint32_t rem, uint32_t* n)
 {
   if (unlikely(rem == 0)) {
     return 0;
@@ -74,8 +78,8 @@ ParseVarNum(const uint8_t* input, uint32_t rem, uint64_t* n)
 static __rte_always_inline uint32_t
 ParseTlvTypeLength(const uint8_t* input,
                    uint32_t rem,
-                   uint64_t* type,
-                   uint64_t* length)
+                   uint32_t* type,
+                   uint32_t* length)
 {
   uint32_t sizeofType = ParseVarNum(input, rem, type);
   uint32_t sizeofLength =

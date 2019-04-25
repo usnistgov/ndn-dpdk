@@ -12,23 +12,14 @@ PInterest_FromPacket(PInterest* interest,
   TlvDecodePos d0;
   MbufLoc_Init(&d0, pkt);
   TlvElement interestEle;
-  NdnError e = DecodeTlvElementExpectType(&d0, TT_Interest, &interestEle);
+  NdnError e = TlvElement_Decode(&interestEle, &d0, TT_Interest);
   RETURN_IF_ERROR;
 
   TlvDecodePos d1;
   TlvElement_MakeValueDecoder(&interestEle, &d1);
   TlvElement ele1;
 
-#define D1_NEXT                                                                \
-  do {                                                                         \
-    if (MbufLoc_IsEnd(&d1)) {                                                  \
-      return NdnError_OK;                                                      \
-    }                                                                          \
-    e = DecodeTlvElement(&d1, &ele1);                                          \
-    RETURN_IF_ERROR;                                                           \
-  } while (false)
-
-  e = DecodeTlvElementExpectType(&d1, TT_Name, &ele1);
+  e = TlvElement_Decode(&ele1, &d1, TT_Name);
   RETURN_IF_ERROR;
   if (unlikely(ele1.length == 0)) {
     return NdnError_NameIsEmpty;
@@ -48,6 +39,15 @@ PInterest_FromPacket(PInterest* interest,
   interest->nFhs = 0;
   interest->activeFh = -1;
   interest->diskData = NULL;
+
+#define D1_NEXT                                                                \
+  do {                                                                         \
+    if (MbufLoc_IsEnd(&d1)) {                                                  \
+      return NdnError_OK;                                                      \
+    }                                                                          \
+    e = TlvElement_Decode(&ele1, &d1, TT_Invalid);                             \
+    RETURN_IF_ERROR;                                                           \
+  } while (false)
 
   D1_NEXT;
   if (ele1.type == TT_CanBePrefix) {
@@ -70,15 +70,15 @@ PInterest_FromPacket(PInterest* interest,
         break;
       }
       TlvElement delegationEle;
-      e = DecodeTlvElementExpectType(&d2, TT_Delegation, &delegationEle);
+      e = TlvElement_Decode(&delegationEle, &d2, TT_Delegation);
       RETURN_IF_ERROR;
 
       TlvDecodePos d3;
       TlvElement_MakeValueDecoder(&delegationEle, &d3);
       TlvElement ele3;
-      e = DecodeTlvElementExpectType(&d3, TT_Preference, &ele3);
+      e = TlvElement_Decode(&ele3, &d3, TT_Preference);
       RETURN_IF_ERROR;
-      e = DecodeTlvElementExpectType(&d3, TT_Name, &ele3);
+      e = TlvElement_Decode(&ele3, &d3, TT_Name);
       interest->fhNameV[i] = TlvElement_LinearizeValue(&ele3, pkt, nameMp, &d3);
       RETURN_IF_NULL(interest->fhNameV[i], NdnError_AllocError);
       interest->fhNameL[i] = ele3.length;
@@ -91,10 +91,10 @@ PInterest_FromPacket(PInterest* interest,
   }
 
   if (ele1.type == TT_Nonce) {
-    if (unlikely(ele1.length != 4)) {
+    rte_le32_t nonceV;
+    if (unlikely(ele1.length != sizeof(nonceV))) {
       return NdnError_BadNonceLength;
     }
-    rte_le32_t nonceV;
     bool ok = MbufLoc_ReadU32(&ele1.value, &nonceV);
     // overwriting ele1.value, but it's okay because we don't need it later
     assert(ok); // must succeed because length is checked
@@ -115,7 +115,7 @@ PInterest_FromPacket(PInterest* interest,
   }
 
   if (ele1.type == TT_HopLimit) {
-    if (unlikely(ele1.length != 1)) {
+    if (unlikely(ele1.length != sizeof(interest->hopLimit))) {
       return NdnError_BadHopLimitLength;
     }
     const uint8_t* hopLimitV = TlvElement_GetLinearValue(&ele1);
@@ -184,7 +184,7 @@ ModifyInterest(Packet* npkt,
   TlvDecodePos d0;
   MbufLoc_Init(&d0, inPkt);
   TlvElement interestEle;
-  NdnError e = DecodeTlvHeader(&d0, &interestEle);
+  NdnError e = TlvElement_DecodeTL(&interestEle, &d0, TT_Interest);
   assert(e == NdnError_OK);
 
   // make indirect mbufs over Name thru ForwardingHint

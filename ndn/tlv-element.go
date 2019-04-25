@@ -4,7 +4,9 @@ package ndn
 #include "tlv-element.h"
 */
 import "C"
-import "fmt"
+import (
+	"fmt"
+)
 
 type TlvElement struct {
 	c C.TlvElement
@@ -12,8 +14,7 @@ type TlvElement struct {
 
 // Decode a TLV element.
 func (d *TlvDecodePos) ReadTlvElement() (ele TlvElement, e error) {
-	res := C.DecodeTlvElement(d.getPtr(), &ele.c)
-	if res != C.NdnError_OK {
+	if res := C.TlvElement_Decode(&ele.c, d.getPtr(), C.TT_Invalid); res != C.NdnError_OK {
 		return TlvElement{}, NdnError(res)
 	}
 	return ele, nil

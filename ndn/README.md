@@ -6,14 +6,14 @@ Layer 2 implementation follows [**NDN Link Protocol v2 (NDNLPv2)** specification
 It supports indexed fragmentation, network nack, and congestion mark features.
 As a protocol extension, it supports [PIT token](https://redmine.named-data.net/issues/4432) field.
 
-Layer 3 implementation follows [**NDN Packet Format** specification](https://named-data.net/doc/NDN-TLV/current/), [version 0.3](https://gerrit.named-data.net/gitweb?p=NDN-TLV.git;a=tree;hb=e9f48510fe62589334309641a378e591317b8b33).
+Layer 3 implementation follows [**NDN Packet Format** specification](https://named-data.net/doc/NDN-TLV/current/), [version 0.3](https://gerrit.named-data.net/gitweb?p=NDN-TLV.git;a=tree;h=0c04fd8af4b7a488ecc487a7aa7fdce5bc1543f7).
 However, it does not support TLV encoding evolvability: encountering an unrecognized or out-of-order TLV element would cause the packet to be treated as invalid, regardless of whether its TLV-TYPE is critical or non-critical.
 
 ## Low-Level TLV Functions
 
 This package provides low-level TLV functions including:
 
-* Encoding and decoding of variable size numbers used in TLV-TYPE and TLV-LENGTH.
+* Encoding and decoding of VAR-NUMBER used in TLV-TYPE and TLV-LENGTH.
 * TLV element representation.
 
 ## Name Representation
@@ -27,7 +27,8 @@ Three C types can represent a name:
 * **PName** contains offsets of parsed name components, but does not have a pointer to the buffer.
 * **Name** combines a pointer to the buffer with a `PName`.
 
-It is required that all name components are in a consecutive memory buffer. If this condition is not met, calling code must linearize the Name element's TLV-VALUE with `TlvElement_LinearizeValue` function.
+It is required that all name components are in a consecutive memory buffer.
+If this condition is not met, calling code must linearize the Name element's TLV-VALUE with `TlvElement_LinearizeValue` function.
 Having a linearized buffer, one can trivially construct an `LName`, or invoke `PName_Parse` function to construct a `PName`.
 `Name` is for enclosing into a larger struct; `Name*` can be cast to `LName*`.
 None of these types own the name components buffer.
@@ -82,6 +83,6 @@ The decoder stores the position of Nonce and InterestLifetime fields as `PIntere
 
 There are limited support for packet encoding.
 
-* **InterestTemplate** struct and related functions encode an Interest. Its Go binding does not support forwarding hint and Parameters field.
+* **InterestTemplate** struct and related functions encode an Interest.
 * `EncodeData` functions make a Data with given name and payload. It will attach an invalid HMAC signature.
-* `MakeNack` turns an Interest into a Nack in-place. It does not have Go binding.
+* `MakeNack` turns an Interest into a Nack in-place.

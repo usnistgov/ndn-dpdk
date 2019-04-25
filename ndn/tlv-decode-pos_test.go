@@ -13,7 +13,7 @@ func TestReadVarNum(t *testing.T) {
 	tests := []struct {
 		input string
 		bad   bool
-		v     uint64
+		v     uint32
 	}{
 		{input: "", bad: true},
 		{input: "00", v: 0x00},
@@ -23,11 +23,13 @@ func TestReadVarNum(t *testing.T) {
 		{input: "FD 0100", v: 0x0100},
 		{input: "FD FFFF", v: 0xFFFF},
 		{input: "FE 000000", bad: true},
+		{input: "FE 00000100", v: 0x0100},
 		{input: "FE 01000000", v: 0x01000000},
 		{input: "FE FFFFFFFF", v: 0xFFFFFFFF},
 		{input: "FF 00000000000000", bad: true},
-		{input: "FF 0100000000000000", v: 0x0100000000000000},
-		{input: "FF FFFFFFFFFFFFFFFF", v: 0xFFFFFFFFFFFFFFFF},
+		{input: "FF 0000000000000100", v: 0x0100},
+		{input: "FF 0100000000000000", bad: true},
+		{input: "FF FFFFFFFFFFFFFFFF", bad: true},
 	}
 	for _, tt := range tests {
 		input := dpdktestenv.BytesFromHex(tt.input)

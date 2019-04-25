@@ -114,7 +114,7 @@ __EncodeInterest(struct rte_mbuf* m,
              tpl->bufferSize);
 
   if (paramL > 0) {
-    AppendVarNum(en, TT_Parameters);
+    AppendVarNum(en, TT_ApplicationParameters);
     AppendVarNum(en, paramL);
     rte_memcpy(rte_pktmbuf_append(m, paramL), paramV, paramL);
   }

@@ -7,6 +7,7 @@ Fragmented
 UnknownCriticalLpHeader
 FragIndexExceedFragCount
 LpHasTrailer
+BadLpSeqNum
 BadPitToken
 NameIsEmpty
 NameTooLong

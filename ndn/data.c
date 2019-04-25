@@ -8,7 +8,7 @@ PData_FromPacket(PData* data, struct rte_mbuf* pkt, struct rte_mempool* nameMp)
   TlvDecodePos d0;
   MbufLoc_Init(&d0, pkt);
   TlvElement dataEle;
-  NdnError e = DecodeTlvElementExpectType(&d0, TT_Data, &dataEle);
+  NdnError e = TlvElement_Decode(&dataEle, &d0, TT_Data);
   RETURN_IF_ERROR;
   data->size = dataEle.size;
 
@@ -16,7 +16,7 @@ PData_FromPacket(PData* data, struct rte_mbuf* pkt, struct rte_mempool* nameMp)
   TlvElement_MakeValueDecoder(&dataEle, &d1);
 
   TlvElement nameEle;
-  e = DecodeTlvElementExpectType(&d1, TT_Name, &nameEle);
+  e = TlvElement_Decode(&nameEle, &d1, TT_Name);
   RETURN_IF_ERROR;
   if (unlikely(nameEle.length == 0)) {
     data->name.v = NULL;
@@ -30,7 +30,7 @@ PData_FromPacket(PData* data, struct rte_mbuf* pkt, struct rte_mempool* nameMp)
 
   data->freshnessPeriod = 0;
   TlvElement metaEle;
-  e = DecodeTlvElementExpectType(&d1, TT_MetaInfo, &metaEle);
+  e = TlvElement_Decode(&metaEle, &d1, TT_MetaInfo);
   if (e == NdnError_Incomplete || e == NdnError_BadType) {
     return NdnError_OK; // MetaInfo not present
   }
@@ -40,7 +40,7 @@ PData_FromPacket(PData* data, struct rte_mbuf* pkt, struct rte_mempool* nameMp)
   TlvElement_MakeValueDecoder(&metaEle, &d2);
   while (!MbufLoc_IsEnd(&d2)) {
     TlvElement metaChild;
-    e = DecodeTlvElement(&d2, &metaChild);
+    e = TlvElement_Decode(&metaChild, &d2, TT_Invalid);
     RETURN_IF_ERROR;
 
     if (metaChild.type != TT_FreshnessPeriod) {
@@ -50,11 +50,7 @@ PData_FromPacket(PData* data, struct rte_mbuf* pkt, struct rte_mempool* nameMp)
     uint64_t fpV;
     bool ok = TlvElement_ReadNonNegativeInteger(&metaChild, &fpV);
     RETURN_IF_ERROR;
-    if (unlikely(fpV > UINT32_MAX)) {
-      data->freshnessPeriod = UINT32_MAX;
-    } else {
-      data->freshnessPeriod = (uint32_t)fpV;
-    }
+    data->freshnessPeriod = (uint32_t)RTE_MIN(UINT32_MAX, fpV);
     break;
   }
 

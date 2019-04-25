@@ -20,7 +20,7 @@ LpHeader_FromPacket(LpHeader* lph,
   TlvDecodePos d0;
   MbufLoc_Init(&d0, pkt);
   TlvElement lppEle;
-  NdnError e = DecodeTlvElement(&d0, &lppEle);
+  NdnError e = TlvElement_Decode(&lppEle, &d0, TT_Invalid);
   RETURN_IF_ERROR;
   *tlvSize = lppEle.size;
   if (lppEle.type == TT_Interest || lppEle.type == TT_Data) {
@@ -33,16 +33,20 @@ LpHeader_FromPacket(LpHeader* lph,
   TlvDecodePos d1;
   TlvElement_MakeValueDecoder(&lppEle, &d1);
   TlvElement ele1;
-  while ((e = DecodeTlvElement(&d1, &ele1)) == NdnError_OK) {
+  while ((e = TlvElement_Decode(&ele1, &d1, TT_Invalid)) == NdnError_OK) {
     switch (ele1.type) {
       case TT_LpPayload:
         *payloadOff = lppEle.size - ele1.length;
         goto FOUND_PAYLOAD;
       case TT_LpSeqNo:
-        // NDNLPv2 spec defines SeqNo as "fixed-width unsigned integer",
-        // but ndn-cxx implements it as nonNegativeInteger.
-        // https://redmine.named-data.net/issues/4403
-        TlvElement_ReadNonNegativeInteger(&ele1, &lph->l2.seqNum);
+        if (unlikely(ele1.length != 8)) {
+          return NdnError_BadLpSeqNum;
+        }
+        TlvDecodePos d2;
+        TlvElement_MakeValueDecoder(&ele1, &d2);
+        rte_le64_t v;
+        MbufLoc_ReadU64(&d2, &v);
+        lph->l2.seqNum = rte_be_to_cpu_64(v);
         break;
       case TT_FragIndex: {
         uint64_t v;
@@ -77,7 +81,7 @@ LpHeader_FromPacket(LpHeader* lph,
         TlvDecodePos d2;
         TlvElement_MakeValueDecoder(&ele1, &d2);
         TlvElement ele2;
-        if (likely(DecodeTlvElementExpectType(&d2, TT_NackReason, &ele2) ==
+        if (likely(TlvElement_Decode(&ele2, &d2, TT_NackReason) ==
                    NdnError_OK)) {
           uint64_t v;
           TlvElement_ReadNonNegativeInteger(&ele2, &v);

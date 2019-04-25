@@ -1,3 +1,5 @@
+Invalid 00
+
 LpPacket 64
 LpPayload 50
 LpSeqNo 51
@@ -11,6 +13,7 @@ CongestionMark 0340
 Name 07
 GenericNameComponent 08
 ImplicitSha256DigestComponent 01
+ParametersSha256DigestComponent 02
 
 Interest 05
 CanBePrefix 21
@@ -21,14 +24,22 @@ Preference 1E
 Nonce 0A
 InterestLifetime 0C
 HopLimit 22
-Parameters 23
+ApplicationParameters 24
+InterestSignatureInfo 2C
+InterestSignatureValue 2E
 
 Data 06
 MetaInfo 14
+ContentType 18
 FreshnessPeriod 19
+FinalBlockId 1A
 Content 15
 SignatureInfo 16
+SignatureValue 17
+
 SignatureType 1B
 KeyLocator 1C
 KeyDigest 1D
-SignatureValue 17
+SignatureNonce 26
+SignatureTime 28
+SignatureSeqNum 2A

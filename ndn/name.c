@@ -81,7 +81,7 @@ PName_Parse(PName* n, uint32_t length, const uint8_t* value)
 
   uint32_t off = 0;
   while (off < length) {
-    uint64_t compT, compL;
+    uint32_t compT, compL;
     uint32_t sizeofTL =
       ParseTlvTypeLength(value + off, length - off, &compT, &compL);
     if (unlikely(sizeofTL) == 0) {
@@ -130,7 +130,7 @@ __PName_SeekCompEnd(const PName* n, const uint8_t* input, uint16_t i)
   assert(i >= PNAME_N_CACHED_COMPS);
   uint16_t off = n->comp[PNAME_N_CACHED_COMPS - 1];
   for (uint16_t j = PNAME_N_CACHED_COMPS - 1; j < i; ++j) {
-    uint64_t compT, compL;
+    uint32_t compT, compL;
     off += ParseTlvTypeLength(input + off, n->nOctets - off, &compT, &compL);
     off += compL;
   }

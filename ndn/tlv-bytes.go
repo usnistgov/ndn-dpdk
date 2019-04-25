@@ -32,11 +32,11 @@ func (tb TlvBytes) Equal(other TlvBytes) bool {
 
 // Decode a TLV-TYPE or TLV-LENGTH number.
 // Return the number and remaining bytes, or (0, nil) if failed.
-func (tb TlvBytes) DecodeVarNum() (v uint64, tail TlvBytes) {
+func (tb TlvBytes) DecodeVarNum() (v uint32, tail TlvBytes) {
 	if len(tb) < 1 {
 		return 0, nil
 	}
-	res := C.ParseVarNum((*C.uint8_t)(tb.GetPtr()), C.uint32_t(len(tb)), (*C.uint64_t)(&v))
+	res := C.ParseVarNum((*C.uint8_t)(tb.GetPtr()), C.uint32_t(len(tb)), (*C.uint32_t)(&v))
 	if res == 0 {
 		return 0, nil
 	}
@@ -49,7 +49,7 @@ func (tb TlvBytes) ExtractElement() (element TlvBytes, tail TlvBytes) {
 	if _, tail = tb.DecodeVarNum(); tail == nil {
 		return nil, tb
 	}
-	var length uint64
+	var length uint32
 	if length, tail = tail.DecodeVarNum(); tail == nil || len(tail) < int(length) {
 		return nil, tb
 	}

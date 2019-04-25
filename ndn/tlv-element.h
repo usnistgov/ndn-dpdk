@@ -10,7 +10,7 @@
  */
 typedef struct TlvElement
 {
-  uint64_t type;   ///< TLV-TYPE number
+  uint32_t type;   ///< TLV-TYPE number
   uint32_t length; ///< TLV-LENGTH
   uint32_t size;   ///< total length
   MbufLoc first;   ///< start position
@@ -20,37 +20,31 @@ typedef struct TlvElement
 
 /** \brief Decode a TLV header including TLV-TYPE and TLV-LENGTH but excluding TLV-VALUE.
  *  \param[out] ele the element; will assign all fields except \c last.
+ *  \retval NdnError_BadType expectedType is non-zero and TLV-TYPE does not equal \p expectedType.
  */
 static NdnError
-DecodeTlvHeader(TlvDecodePos* d, TlvElement* ele)
+TlvElement_DecodeTL(TlvElement* ele, TlvDecodePos* d, uint32_t expectedType)
 {
   MbufLoc_Copy(&ele->first, d);
 
   NdnError e = DecodeVarNum(d, &ele->type);
   RETURN_IF_ERROR;
 
-  uint64_t tlvLength;
-  e = DecodeVarNum(d, &tlvLength);
-  RETURN_IF_ERROR;
-  if (unlikely(tlvLength > UINT32_MAX)) {
-    return NdnError_LengthOverflow;
+  if (expectedType == TT_Invalid) {
+    if (unlikely(ele->type == TT_Invalid)) {
+      return NdnError_BadType;
+    }
+  } else {
+    if (unlikely(ele->type != expectedType)) {
+      return NdnError_BadType;
+    }
   }
-  ele->length = (uint32_t)tlvLength;
+
+  e = DecodeVarNum(d, &ele->length);
+  RETURN_IF_ERROR;
   ele->size = MbufLoc_FastDiff(&ele->first, d) + ele->length;
 
   MbufLoc_Copy(&ele->value, d);
-  return NdnError_OK;
-}
-
-static NdnError
-__DecodeTlvElement_Value(TlvDecodePos* d, TlvElement* ele)
-{
-  uint32_t n = MbufLoc_Advance(d, ele->length);
-  if (unlikely(n != ele->length)) {
-    return NdnError_Incomplete;
-  }
-
-  MbufLoc_Copy(&ele->last, d);
   return NdnError_OK;
 }
 
@@ -58,30 +52,21 @@ __DecodeTlvElement_Value(TlvDecodePos* d, TlvElement* ele)
  *  \param[out] ele the element.
  *  \note ele.first.rem, ele.value.rem, and ele.last.rem are unchanged, so that
  *        MbufLoc_FastDiff may be used on them.
+ *  \retval NdnError_BadType expectedType is non-zero and TLV-TYPE does not equal \p expectedType.
  */
 static NdnError
-DecodeTlvElement(TlvDecodePos* d, TlvElement* ele)
+TlvElement_Decode(TlvElement* ele, TlvDecodePos* d, uint32_t expectedType)
 {
-  NdnError e = DecodeTlvHeader(d, ele);
+  NdnError e = TlvElement_DecodeTL(ele, d, expectedType);
   RETURN_IF_ERROR;
-  return __DecodeTlvElement_Value(d, ele);
-}
 
-/** \brief Decode a TLV element of an expected type.
- *
- *  \retval NdnError_BadType TLV-TYPE does not equal \p expectedType.
- */
-static NdnError
-DecodeTlvElementExpectType(TlvDecodePos* d,
-                           uint64_t expectedType,
-                           TlvElement* ele)
-{
-  NdnError e = DecodeTlvHeader(d, ele);
-  RETURN_IF_ERROR;
-  if (unlikely(ele->type != expectedType)) {
-    return NdnError_BadType;
+  uint32_t n = MbufLoc_Advance(d, ele->length);
+  if (unlikely(n != ele->length)) {
+    return NdnError_Incomplete;
   }
-  return __DecodeTlvElement_Value(d, ele);
+
+  MbufLoc_Copy(&ele->last, d);
+  return NdnError_OK;
 }
 
 /** \brief Determine if the element's TLV-VALUE is in consecutive memory.

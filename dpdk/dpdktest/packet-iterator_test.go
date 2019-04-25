@@ -23,9 +23,6 @@ func TestPktItAdvanceDistance(t *testing.T) {
 	const pktlen = 10
 	require.Equal(pktlen, pkt.Len())
 
-	var end dpdk.PacketIterator
-	assert.Zero(end.ComputeDistance(end))
-
 	var pi1 [pktlen]dpdk.PacketIterator
 	var pi2 [pktlen]dpdk.PacketIterator
 

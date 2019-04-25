@@ -232,7 +232,5 @@ __MbufLoc_Linearize(MbufLoc* first,
   }
 
   assert(pkt->pkt_len == oldPktLen);
-  assert(MbufLoc_Diff(first, last) == distance);
-
   return rte_pktmbuf_mtod_offset(first->m, uint8_t*, first->off);
 }

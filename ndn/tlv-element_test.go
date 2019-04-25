@@ -14,7 +14,7 @@ func TestTlvElement(t *testing.T) {
 	tests := []struct {
 		input string
 		bad   bool
-		t     uint64
+		t     uint32
 		v     string
 		nni   uint64
 	}{
@@ -23,7 +23,7 @@ func TestTlvElement(t *testing.T) {
 		{input: "01 01", bad: true},                    // incomplete TLV-VALUE
 		{input: "01 FF00", bad: true},                  // incomplete TLV-LENGTH
 		{input: "01 FF0000000100000000 A0", bad: true}, // TLV-LENGTH overflow
-		{input: "01 04 A0A1", bad: true},               // incomplete TLV-LENGTH
+		{input: "01 04 A0A1", bad: true},               // incomplete TLV-VALUE
 		{input: "01 00", t: 0x01, v: "", nni: NOT_NNI}, // zero TLV-LENGTH
 		{input: "01 01 01", t: 0x01, v: "01", nni: 0x01},
 		{input: "01 02 A0A1", t: 0x01, v: "A0A1", nni: 0xA0A1},
