@@ -78,7 +78,13 @@ func (streamImpl) Send(face *SocketFace, pkt dpdk.Packet) error {
 
 type tcpImpl struct {
 	streamImpl
+	noLocalAddrDialer
 	localAddrRedialer
+}
+
+func (tcpImpl) ValidateAddr(network, address string, isLocal bool) error {
+	_, e := net.ResolveTCPAddr(network, address)
+	return e
 }
 
 func (tcpImpl) FormatFaceUri(addr net.Addr) *faceuri.FaceUri {
@@ -92,6 +98,8 @@ func (tcpImpl) FormatFaceUri(addr net.Addr) *faceuri.FaceUri {
 
 type unixImpl struct {
 	streamImpl
+	unixAddrValidator
+	noLocalAddrDialer
 	noLocalAddrRedialer
 }
 
@@ -101,11 +109,4 @@ func (unixImpl) FormatFaceUri(addr net.Addr) *faceuri.FaceUri {
 		return faceuri.MustParse("unix:///invalid")
 	}
 	return faceuri.MustParse(fmt.Sprintf("unix://%s", a.Name))
-}
-
-func init() {
-	implByNetwork["tcp"] = tcpImpl{}
-	implByNetwork["tcp4"] = tcpImpl{}
-	implByNetwork["tcp6"] = tcpImpl{}
-	implByNetwork["unix"] = unixImpl{}
 }

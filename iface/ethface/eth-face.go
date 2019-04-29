@@ -83,6 +83,15 @@ func (face *EthFace) GetPort() *Port {
 	return face.port
 }
 
+func (face *EthFace) GetLocator() iface.Locator {
+	var loc Locator
+	loc.Scheme = locatorScheme
+	loc.Port = face.port.GetEthDev().GetName()
+	loc.Local = face.local
+	loc.Remote = face.remote
+	return loc
+}
+
 func (face *EthFace) GetLocalUri() *faceuri.FaceUri {
 	return faceuri.MustMakeEtherUri(face.port.dev.GetName(), face.local, 0)
 }

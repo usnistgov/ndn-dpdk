@@ -48,6 +48,12 @@ func (face *MockFace) getPtr() *C.Face {
 	return (*C.Face)(face.GetPtr())
 }
 
+func (*MockFace) GetLocator() iface.Locator {
+	var loc Locator
+	loc.Scheme = locatorScheme
+	return loc
+}
+
 func (*MockFace) GetLocalUri() *faceuri.FaceUri {
 	return faceuri.MustParse("mock:")
 }

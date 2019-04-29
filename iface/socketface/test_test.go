@@ -6,24 +6,18 @@ import (
 	"testing"
 
 	"ndn-dpdk/dpdk/dpdktestenv"
-	"ndn-dpdk/iface"
+	"ndn-dpdk/iface/ifacetestfixture"
 	"ndn-dpdk/iface/socketface"
-	"ndn-dpdk/ndn"
 )
 
 var socketfaceCfg socketface.Config
 
 func TestMain(m *testing.M) {
 	socketfaceCfg = socketface.Config{
-		Mempools: iface.Mempools{
-			IndirectMp: dpdktestenv.MakeIndirectMp(4095),
-			NameMp:     dpdktestenv.MakeMp("name", 4095, 0, ndn.NAME_MAX_LENGTH),
-			HeaderMp:   dpdktestenv.MakeMp("header", 4095, 0, ndn.PrependLpHeader_GetHeadroom()),
-		},
-		RxMp:      dpdktestenv.MakeDirectMp(255, ndn.SizeofPacketPriv(), 2000),
 		TxqPkts:   64,
 		TxqFrames: 64,
 	}
+	socketfaceCfg.RxMp, socketfaceCfg.Mempools = ifacetestfixture.MakeMempools()
 
 	os.Exit(m.Run())
 }

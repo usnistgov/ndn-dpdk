@@ -8,21 +8,15 @@ import (
 
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/dpdk/dpdktestenv"
-	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/ethface"
 	"ndn-dpdk/iface/ifacetestfixture"
 	"ndn-dpdk/ndn"
 )
 
 func TestEthFace(t *testing.T) {
-	_, require := dpdktestenv.MakeAR(t)
+	assert, require := dpdktestenv.MakeAR(t)
 
-	mp := dpdktestenv.MakeDirectMp(4095, ndn.SizeofPacketPriv(), 5000)
-	mempools := iface.Mempools{
-		IndirectMp: dpdktestenv.MakeIndirectMp(4095),
-		NameMp:     dpdktestenv.MakeMp("name", 4095, 0, ndn.NAME_MAX_LENGTH),
-		HeaderMp:   dpdktestenv.MakeMp("header", 4095, 0, ethface.SizeofTxHeader()),
-	}
+	mp, mempools := ifacetestfixture.MakeMempools()
 
 	var evnCfg dpdktestenv.EthVNetConfig
 	evnCfg.NNodes = 3
@@ -71,6 +65,12 @@ func TestEthFace(t *testing.T) {
 	faceBA := portB.ListUnicastFaces()[0]
 	faceBm := portB.GetMulticastFace()
 	faceCA := portC.ListUnicastFaces()[0]
+
+	locAm := faceAm.GetLocator().(ethface.Locator)
+	assert.Equal("ether", locAm.Scheme)
+	assert.Equal(portA.GetEthDev().GetName(), locAm.Port)
+	assert.Equal(macA, locAm.Local)
+	assert.Equal(ndn.GetEtherMcastAddr(), locAm.Remote)
 
 	evn.LaunchBridge(dpdk.ListSlaveLCores()[3])
 	time.Sleep(time.Second)

@@ -150,7 +150,14 @@ func (ctx *createContext) addSock(i int, arg CreateArg) (e error) {
 	cfg.TxqPkts = theConfig.SockTxqPkts
 	cfg.TxqFrames = theConfig.SockTxqFrames
 
-	face, e := socketface.NewFromUri(arg.Remote, arg.Local, cfg)
+	var loc socketface.Locator
+	loc.Scheme = arg.Remote.Scheme
+	loc.Remote = arg.Remote.Host + arg.Remote.Path
+	if arg.Local != nil {
+		loc.Local = arg.Local.Host + arg.Local.Path
+	}
+
+	face, e := socketface.Create(loc, cfg)
 	if e != nil {
 		return e
 	}

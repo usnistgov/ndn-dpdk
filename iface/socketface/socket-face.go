@@ -89,6 +89,19 @@ func (face *SocketFace) GetConn() net.Conn {
 	return face.conn.Load().(net.Conn)
 }
 
+func (face *SocketFace) GetLocator() iface.Locator {
+	conn := face.GetConn()
+	laddr, raddr := conn.LocalAddr(), conn.RemoteAddr()
+
+	var loc Locator
+	loc.Scheme = raddr.Network()
+	loc.Remote = raddr.String()
+	if laddr != nil {
+		loc.Local = laddr.String()
+	}
+	return loc
+}
+
 func (face *SocketFace) GetLocalUri() *faceuri.FaceUri {
 	return face.impl.FormatFaceUri(face.GetConn().LocalAddr())
 }

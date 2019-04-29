@@ -12,7 +12,6 @@ import (
 	"golang.org/x/sys/unix"
 
 	"ndn-dpdk/iface"
-	"ndn-dpdk/iface/faceuri"
 	"ndn-dpdk/iface/ifacetestfixture"
 	"ndn-dpdk/iface/socketface"
 )
@@ -77,14 +76,17 @@ func TestTcp(t *testing.T) {
 	defer listener.Close()
 	*addr = *listener.Addr().(*net.TCPAddr)
 
-	remoteUri := faceuri.MustParse(fmt.Sprintf("tcp4://127.0.0.1:%d", addr.Port))
-	face, e := socketface.NewFromUri(remoteUri, nil, socketfaceCfg)
+	loc := iface.MustParseLocator(fmt.Sprintf("{ scheme: tcp, remote: '127.0.0.1:%d' }", addr.Port)).(socketface.Locator)
+	face, e := socketface.Create(loc, socketfaceCfg)
 	require.NoError(e)
 	defer face.Close()
 
 	assert.Equal(iface.FaceKind_Socket, face.GetFaceId().GetKind())
-	assert.Equal(fmt.Sprintf("tcp4://%s", face.GetConn().LocalAddr()), face.GetLocalUri().String())
-	assert.Equal(fmt.Sprintf("tcp4://127.0.0.1:%d", addr.Port), face.GetRemoteUri().String())
+	loc = face.GetLocator().(socketface.Locator)
+	assert.Equal("tcp", loc.Scheme)
+	assert.Equal(face.GetConn().LocalAddr().String(), loc.Local)
+	assert.Equal(fmt.Sprintf("127.0.0.1:%d", addr.Port), loc.Remote)
+	ifacetestfixture.CheckLocatorMarshal(t, loc)
 
 	checkStreamRedialing(t, listener, face)
 }
@@ -100,14 +102,16 @@ func TestUnix(t *testing.T) {
 	require.NoError(e)
 	defer listener.Close()
 
-	remoteUri := faceuri.MustParse(fmt.Sprintf("unix://%s", addr))
-	face, e := socketface.NewFromUri(remoteUri, nil, socketfaceCfg)
+	loc := iface.MustParseLocator(fmt.Sprintf("{ scheme: unix, remote: '%s' }", addr)).(socketface.Locator)
+	face, e := socketface.Create(loc, socketfaceCfg)
 	require.NoError(e)
 	defer face.Close()
 
 	assert.Equal(iface.FaceKind_Socket, face.GetFaceId().GetKind())
-	assert.Equal("unix:///invalid", face.GetLocalUri().String())
-	assert.Equal(fmt.Sprintf("unix://%s", addr), face.GetRemoteUri().String())
+	loc = face.GetLocator().(socketface.Locator)
+	assert.Equal("unix", loc.Scheme)
+	assert.Equal(addr, loc.Remote)
+	ifacetestfixture.CheckLocatorMarshal(t, loc)
 
 	checkStreamRedialing(t, listener, face)
 }

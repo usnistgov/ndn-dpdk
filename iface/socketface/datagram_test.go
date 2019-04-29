@@ -1,13 +1,11 @@
 package socketface_test
 
 import (
-	"fmt"
 	"testing"
 
 	"golang.org/x/sys/unix"
 
 	"ndn-dpdk/iface"
-	"ndn-dpdk/iface/faceuri"
 	"ndn-dpdk/iface/ifacetestfixture"
 	"ndn-dpdk/iface/socketface"
 )
@@ -33,12 +31,15 @@ func TestDatagram(t *testing.T) {
 func TestUdp(t *testing.T) {
 	assert, require := makeAR(t)
 
-	remoteUri := faceuri.MustParse("udp4://127.0.0.1:7000")
-	face, e := socketface.NewFromUri(remoteUri, nil, socketfaceCfg)
+	loc := iface.MustParseLocator("{ scheme: udp, remote: '127.0.0.1:7000' }").(socketface.Locator)
+	face, e := socketface.Create(loc, socketfaceCfg)
 	require.NoError(e)
 	defer face.Close()
 
 	assert.Equal(iface.FaceKind_Socket, face.GetFaceId().GetKind())
-	assert.Equal(fmt.Sprintf("udp4://%s", face.GetConn().LocalAddr()), face.GetLocalUri().String())
-	assert.Equal("udp4://127.0.0.1:7000", face.GetRemoteUri().String())
+	loc = face.GetLocator().(socketface.Locator)
+	assert.Equal("udp", loc.Scheme)
+	assert.Equal(face.GetConn().LocalAddr().String(), loc.Local)
+	assert.Equal("127.0.0.1:7000", loc.Remote)
+	ifacetestfixture.CheckLocatorMarshal(t, loc)
 }

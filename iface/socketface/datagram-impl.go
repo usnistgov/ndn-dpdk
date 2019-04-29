@@ -2,6 +2,7 @@ package socketface
 
 import "C"
 import (
+	"errors"
 	"fmt"
 	"net"
 
@@ -56,6 +57,11 @@ type udpImpl struct {
 	nopRedialer
 }
 
+func (udpImpl) ValidateAddr(network, address string, isLocal bool) error {
+	_, e := net.ResolveUDPAddr(network, address)
+	return e
+}
+
 func (udpImpl) FormatFaceUri(addr net.Addr) *faceuri.FaceUri {
 	a := addr.(*net.UDPAddr)
 	if a.IP.To4() == nil {
@@ -65,8 +71,24 @@ func (udpImpl) FormatFaceUri(addr net.Addr) *faceuri.FaceUri {
 	return faceuri.MustParse(fmt.Sprintf("udp4://%s", a))
 }
 
+func (udpImpl) Dial(network, local, remote string) (net.Conn, error) {
+	raddr, e := net.ResolveUDPAddr(network, remote)
+	if e != nil {
+		return nil, fmt.Errorf("Remote: %v", e)
+	}
+	laddr := &net.UDPAddr{Port: raddr.Port}
+	if local != "" {
+		if laddr, e = net.ResolveUDPAddr(network, local); e != nil {
+			return nil, fmt.Errorf("Local: %v", e)
+		}
+	}
+	return net.DialUDP(network, laddr, raddr)
+}
+
 type unixgramImpl struct {
 	datagramImpl
+	unixAddrValidator
+	noLocalAddrDialer
 	noLocalAddrRedialer
 }
 
@@ -75,9 +97,6 @@ func (unixgramImpl) FormatFaceUri(addr net.Addr) *faceuri.FaceUri {
 	return faceuri.MustParse("udp4://192.0.2.0:1")
 }
 
-func init() {
-	implByNetwork["udp"] = udpImpl{}
-	implByNetwork["udp4"] = udpImpl{}
-	implByNetwork["udp6"] = udpImpl{}
-	implByNetwork["unixgram"] = unixgramImpl{}
+func (unixgramImpl) Dial(network, local, remote string) (net.Conn, error) {
+	return nil, errors.New("not implemented")
 }

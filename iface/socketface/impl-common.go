@@ -1,8 +1,30 @@
 package socketface
 
 import (
+	"errors"
 	"net"
 )
+
+// Provides a ValidateAddr function for unix and unixgram schemes.
+type unixAddrValidator struct{}
+
+func (unixAddrValidator) ValidateAddr(network, address string, isLocal bool) (e error) {
+	if isLocal {
+		if address != "" && address != "@" {
+			return errors.New("must be empty or '@'")
+		}
+		return nil
+	}
+	_, e = net.ResolveUnixAddr(network, address)
+	return e
+}
+
+// Provides a Dial function that only uses remote addr.
+type noLocalAddrDialer struct{}
+
+func (noLocalAddrDialer) Dial(network, local, remote string) (net.Conn, error) {
+	return net.Dial(network, remote)
+}
 
 // Provides a Redial function that reuses LocalAddr.
 type localAddrRedialer struct{}

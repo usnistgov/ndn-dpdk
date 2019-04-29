@@ -4,10 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
 	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/dpdktestenv"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/ndn"
 	"ndn-dpdk/ndn/ndntestutil"
@@ -15,8 +13,7 @@ import (
 
 // Test fixture for sending and receiving packets between a pair of connected faces.
 type Fixture struct {
-	assert  *assert.Assertions
-	require *require.Assertions
+	t *testing.T
 
 	PayloadLen    int        // Data payload length
 	TxLoops       int        // number of TX loops
@@ -38,8 +35,7 @@ type Fixture struct {
 
 func New(t *testing.T, rxFace, txFace iface.IFace) (fixture *Fixture) {
 	fixture = new(Fixture)
-	fixture.assert = assert.New(t)
-	fixture.require = require.New(t)
+	fixture.t = t
 
 	fixture.TxLoops = 10000
 	fixture.LossTolerance = 0.1
@@ -52,6 +48,9 @@ func New(t *testing.T, rxFace, txFace iface.IFace) (fixture *Fixture) {
 	fixture.rxFace = rxFace
 	fixture.rxDiscard = make(map[iface.FaceId]iface.IFace)
 	fixture.txFace = txFace
+
+	CheckLocatorMarshal(t, rxFace.GetLocator())
+	CheckLocatorMarshal(t, txFace.GetLocator())
 	return fixture
 }
 
@@ -77,7 +76,7 @@ func (fixture *Fixture) RunTest() {
 }
 
 func (fixture *Fixture) launchRx() {
-	assert, require := fixture.assert, fixture.require
+	assert, require := dpdktestenv.MakeAR(fixture.t)
 
 	fixture.rxl = iface.NewRxLoop(fixture.rxFace.GetNumaSocket())
 	fixture.rxl.SetLCore(fixture.RxLCore)
@@ -132,7 +131,7 @@ func (fixture *Fixture) sendProc() int {
 }
 
 func (fixture *Fixture) CheckCounters() {
-	assert := fixture.assert
+	assert, _ := dpdktestenv.MakeAR(fixture.t)
 
 	txCnt := fixture.txFace.ReadCounters()
 	assert.Equal(3*fixture.TxLoops, int(txCnt.TxFrames))

@@ -19,6 +19,10 @@ type IFace interface {
 	// Get FaceId.
 	GetFaceId() FaceId
 
+	// Get a Locator describing face endpoints.
+	// Lower layer implementation must provide this method.
+	GetLocator() Locator
+
 	// Get a FaceUri representing the local endpoint.
 	// Lower layer implementation must provide this method.
 	GetLocalUri() *faceuri.FaceUri
