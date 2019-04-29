@@ -7,7 +7,6 @@ import (
 	"net"
 
 	"ndn-dpdk/dpdk"
-	"ndn-dpdk/iface/faceuri"
 )
 
 // SocketFace implementation for datagram-oriented sockets.
@@ -62,15 +61,6 @@ func (udpImpl) ValidateAddr(network, address string, isLocal bool) error {
 	return e
 }
 
-func (udpImpl) FormatFaceUri(addr net.Addr) *faceuri.FaceUri {
-	a := addr.(*net.UDPAddr)
-	if a.IP.To4() == nil {
-		// FaceUri cannot represent IPv6 address
-		return faceuri.MustParse(fmt.Sprintf("udp4://192.0.2.6:%d", a.Port))
-	}
-	return faceuri.MustParse(fmt.Sprintf("udp4://%s", a))
-}
-
 func (udpImpl) Dial(network, local, remote string) (net.Conn, error) {
 	raddr, e := net.ResolveUDPAddr(network, remote)
 	if e != nil {
@@ -90,11 +80,6 @@ type unixgramImpl struct {
 	unixAddrValidator
 	noLocalAddrDialer
 	noLocalAddrRedialer
-}
-
-func (unixgramImpl) FormatFaceUri(addr net.Addr) *faceuri.FaceUri {
-	// FaceUri cannot represent non-UDP
-	return faceuri.MustParse("udp4://192.0.2.0:1")
 }
 
 func (unixgramImpl) Dial(network, local, remote string) (net.Conn, error) {

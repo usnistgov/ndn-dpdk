@@ -12,15 +12,13 @@ type IdArg struct {
 }
 
 type BasicInfo struct {
-	Id        iface.FaceId
-	LocalUri  *faceuri.FaceUri
-	RemoteUri *faceuri.FaceUri
+	Id      iface.FaceId
+	Locator iface.LocatorWrapper
 }
 
 func newBasicInfo(face iface.IFace) (b BasicInfo) {
 	b.Id = face.GetFaceId()
-	b.LocalUri = face.GetLocalUri()
-	b.RemoteUri = face.GetRemoteUri()
+	b.Locator.Locator = face.GetLocator()
 	return b
 }
 
@@ -36,10 +34,9 @@ func (a CreateArg) toIfaceCreateArg() (c createface.CreateArg) {
 }
 
 type FaceInfo struct {
-	Id        iface.FaceId
-	LocalUri  *faceuri.FaceUri
-	RemoteUri *faceuri.FaceUri
-	IsDown    bool
+	Id      iface.FaceId
+	Locator iface.LocatorWrapper
+	IsDown  bool
 
 	// Basic counters.
 	Counters iface.Counters

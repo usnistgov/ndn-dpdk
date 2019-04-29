@@ -7,7 +7,6 @@ import "C"
 import (
 	"ndn-dpdk/core/running_stat"
 	"ndn-dpdk/dpdk"
-	"ndn-dpdk/iface/faceuri"
 	"ndn-dpdk/ndn"
 )
 
@@ -22,14 +21,6 @@ type IFace interface {
 	// Get a Locator describing face endpoints.
 	// Lower layer implementation must provide this method.
 	GetLocator() Locator
-
-	// Get a FaceUri representing the local endpoint.
-	// Lower layer implementation must provide this method.
-	GetLocalUri() *faceuri.FaceUri
-
-	// Get a FaceUri representing the remote endpoint.
-	// Lower layer implementation must provide this method.
-	GetRemoteUri() *faceuri.FaceUri
 
 	// Get NUMA socket of this face's data structures.
 	GetNumaSocket() dpdk.NumaSocket

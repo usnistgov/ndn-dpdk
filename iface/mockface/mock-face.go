@@ -10,7 +10,6 @@ import (
 
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
-	"ndn-dpdk/iface/faceuri"
 	"ndn-dpdk/ndn"
 )
 
@@ -52,14 +51,6 @@ func (*MockFace) GetLocator() iface.Locator {
 	var loc Locator
 	loc.Scheme = locatorScheme
 	return loc
-}
-
-func (*MockFace) GetLocalUri() *faceuri.FaceUri {
-	return faceuri.MustParse("mock:")
-}
-
-func (*MockFace) GetRemoteUri() *faceuri.FaceUri {
-	return faceuri.MustParse("mock:")
 }
 
 func (face *MockFace) Close() error {

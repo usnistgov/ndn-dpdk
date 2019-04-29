@@ -10,7 +10,6 @@ import (
 	"unsafe"
 
 	"ndn-dpdk/iface"
-	"ndn-dpdk/iface/faceuri"
 	"ndn-dpdk/ndn"
 )
 
@@ -90,14 +89,6 @@ func (face *EthFace) GetLocator() iface.Locator {
 	loc.Local = face.local
 	loc.Remote = face.remote
 	return loc
-}
-
-func (face *EthFace) GetLocalUri() *faceuri.FaceUri {
-	return faceuri.MustMakeEtherUri(face.port.dev.GetName(), face.local, 0)
-}
-
-func (face *EthFace) GetRemoteUri() *faceuri.FaceUri {
-	return faceuri.MustMakeEtherUri(face.port.dev.GetName(), face.remote, 0)
 }
 
 func (face *EthFace) Close() error {

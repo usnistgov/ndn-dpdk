@@ -18,7 +18,6 @@ import (
 
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
-	"ndn-dpdk/iface/faceuri"
 )
 
 // Configuration for creating SocketFace.
@@ -100,14 +99,6 @@ func (face *SocketFace) GetLocator() iface.Locator {
 		loc.Local = laddr.String()
 	}
 	return loc
-}
-
-func (face *SocketFace) GetLocalUri() *faceuri.FaceUri {
-	return face.impl.FormatFaceUri(face.GetConn().LocalAddr())
-}
-
-func (face *SocketFace) GetRemoteUri() *faceuri.FaceUri {
-	return face.impl.FormatFaceUri(face.GetConn().RemoteAddr())
 }
 
 func (face *SocketFace) Close() error {

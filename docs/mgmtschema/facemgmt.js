@@ -1,9 +1,53 @@
 (function(exports){
 exports.provideDefinitions = function(ctx) {
 
+ctx.declareType('net.HardwareAddr', {
+  type: 'string',
+});
+
 ctx.declareType('iface.FaceUri', {
   type: 'string',
   format: 'uri',
+});
+
+ctx.declareType('ethface.Locator', ctx.markAllRequired({
+  type: 'object',
+  properties: {
+    Scheme: { const: 'ether' },
+    Port: {
+      type: 'string',
+    },
+    Local: ctx.useType('net.HardwareAddr'),
+    Remote: ctx.useType('net.HardwareAddr'),
+  },
+}));
+
+ctx.declareType('socketface.Locator', {
+  type: 'object',
+  properties: {
+    Scheme: {
+      oneOf: [
+        { const: 'udp' },
+        { const: 'unixgram' },
+        { const: 'tcp' },
+        { const: 'unix' },
+      ],
+    },
+    Local: {
+      type: 'string',
+    },
+    Remote: {
+      type: 'string',
+    },
+  },
+  required: ['Scheme', 'Remote'],
+});
+
+ctx.declareType('iface.Locator', {
+  oneOf: [
+    ctx.useType('ethface.Locator'),
+    ctx.useType('socketface.Locator'),
+  ],
 });
 
 ctx.declareType('facemgmt.IdArg', ctx.markAllRequired({
@@ -25,7 +69,11 @@ ctx.declareType('facemgmt.localRemoteUris', {
 ctx.declareType('facemgmt.BasicInfo', {
   allOf: [
     ctx.useType('facemgmt.IdArg'),
-    ctx.useType('facemgmt.localRemoteUris'),
+    {
+      properties: {
+        Locator: ctx.useType('iface.Locator'),
+      },
+    },
   ],
 });
 

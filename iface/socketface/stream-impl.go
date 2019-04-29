@@ -2,11 +2,9 @@ package socketface
 
 import "C"
 import (
-	"fmt"
 	"net"
 
 	"ndn-dpdk/dpdk"
-	"ndn-dpdk/iface/faceuri"
 	"ndn-dpdk/ndn"
 )
 
@@ -87,26 +85,9 @@ func (tcpImpl) ValidateAddr(network, address string, isLocal bool) error {
 	return e
 }
 
-func (tcpImpl) FormatFaceUri(addr net.Addr) *faceuri.FaceUri {
-	a := addr.(*net.TCPAddr)
-	if a.IP.To4() == nil {
-		// FaceUri cannot represent IPv6 address
-		return faceuri.MustParse(fmt.Sprintf("tcp4://192.0.2.6:%d", a.Port))
-	}
-	return faceuri.MustParse(fmt.Sprintf("tcp4://%s", a))
-}
-
 type unixImpl struct {
 	streamImpl
 	unixAddrValidator
 	noLocalAddrDialer
 	noLocalAddrRedialer
-}
-
-func (unixImpl) FormatFaceUri(addr net.Addr) *faceuri.FaceUri {
-	a := addr.(*net.UnixAddr)
-	if a.Name == "@" {
-		return faceuri.MustParse("unix:///invalid")
-	}
-	return faceuri.MustParse(fmt.Sprintf("unix://%s", a.Name))
 }

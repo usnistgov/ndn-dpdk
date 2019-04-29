@@ -4,15 +4,11 @@ import (
 	"net"
 
 	"ndn-dpdk/dpdk"
-	"ndn-dpdk/iface/faceuri"
 )
 
 type iImpl interface {
 	// Validate address in Locator.
 	ValidateAddr(network, address string, isLocal bool) error
-
-	// Return FaceUri describing an endpoint.
-	FormatFaceUri(addr net.Addr) *faceuri.FaceUri
 
 	// Dial the socket.
 	Dial(network, local, remote string) (net.Conn, error)

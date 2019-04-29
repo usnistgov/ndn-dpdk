@@ -25,8 +25,7 @@ func (FaceMgmt) Get(args IdArg, reply *FaceInfo) error {
 	}
 
 	reply.Id = face.GetFaceId()
-	reply.LocalUri = face.GetLocalUri()
-	reply.RemoteUri = face.GetRemoteUri()
+	reply.Locator.Locator = face.GetLocator()
 	reply.IsDown = face.IsDown()
 	reply.Counters = face.ReadCounters()
 	reply.ExCounters = face.ReadExCounters()
