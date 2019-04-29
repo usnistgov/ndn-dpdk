@@ -79,7 +79,8 @@ export class FwConn extends SocketConn {
       mgmtClient.request("Face.Create",
         [
           {
-            RemoteUri: "unix://" + path,
+            Remote: path,
+            Scheme: "unix",
           },
         ] as mgmt.facemgmt.CreateArg,
         (err, error, result: mgmt.facemgmt.CreateRes) => {

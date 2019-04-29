@@ -4,8 +4,28 @@ import (
 	"errors"
 	"net"
 
+	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
+	"ndn-dpdk/ndn"
 )
+
+type classifyMac48Result int
+
+const (
+	mac48_no classifyMac48Result = iota
+	mac48_unicast
+	mac48_multicast
+)
+
+func classifyMac48(addr net.HardwareAddr) classifyMac48Result {
+	switch {
+	case len(addr) != 6:
+		return mac48_no
+	case (addr[0] & 0x01) == 1:
+		return mac48_multicast
+	}
+	return mac48_unicast
+}
 
 const locatorScheme = "ether"
 
@@ -16,21 +36,29 @@ type Locator struct {
 	Remote            net.HardwareAddr
 }
 
+func NewLocator(ethdev dpdk.EthDev) (loc Locator) {
+	loc.Scheme = locatorScheme
+	loc.Port = ethdev.GetName()
+	loc.Local = ethdev.GetMacAddr()
+	loc.Remote = ndn.GetEtherMcastAddr()
+	return loc
+}
+
 func (loc Locator) Validate() error {
 	if loc.Port == "" {
 		return errors.New("Port must be non-empty")
 	}
-	if len(loc.Local) != 6 || (loc.Local[0]&0x01) != 0 {
+	if classifyMac48(loc.Local) != mac48_unicast {
 		return errors.New("Local must be MAC-48 unicast address")
 	}
-	if len(loc.Remote) != 6 {
+	if classifyMac48(loc.Remote) == mac48_no {
 		return errors.New("Remote must be MAC-48 address")
 	}
 	return nil
 }
 
 func (loc Locator) IsRemoteMulticast() bool {
-	return len(loc.Remote) == 6 && (loc.Remote[0]&0x01) != 0
+	return classifyMac48(loc.Remote) == mac48_multicast
 }
 
 type locatorYaml struct {
@@ -66,5 +94,5 @@ func (loc *Locator) UnmarshalYAML(unmarshal func(interface{}) error) (e error) {
 }
 
 func init() {
-	iface.RegisterLocatorType(Locator{}, "ether")
+	iface.RegisterLocatorType(Locator{}, locatorScheme)
 }

@@ -24,9 +24,9 @@ func TestEthFace(t *testing.T) {
 	evn := dpdktestenv.NewEthVNet(evnCfg)
 	defer evn.Close()
 
-	macA, _ := net.ParseMAC("02-02-02-00-00-01")
-	macB, _ := net.ParseMAC("02-02-02-00-00-02")
-	macC, _ := net.ParseMAC("02-02-02-00-00-03")
+	macA, _ := net.ParseMAC("02:00:00:00:00:01")
+	macB, _ := net.ParseMAC("02:00:00:00:00:02")
+	macC, _ := net.ParseMAC("02:00:00:00:00:03")
 
 	var cfgA ethface.PortConfig
 	cfgA.Mempools = mempools

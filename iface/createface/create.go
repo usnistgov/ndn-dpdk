@@ -7,18 +7,12 @@ import (
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/ethface"
-	"ndn-dpdk/iface/faceuri"
 	"ndn-dpdk/iface/mockface"
 	"ndn-dpdk/iface/socketface"
 	"ndn-dpdk/ndn"
 )
 
-type CreateArg struct {
-	Remote *faceuri.FaceUri
-	Local  *faceuri.FaceUri
-}
-
-func Create(args ...CreateArg) (faces []iface.IFace, e error) {
+func Create(locs ...iface.Locator) (faces []iface.IFace, e error) {
 	if !isInitialized {
 		return nil, errors.New("facecreate package is uninitialized")
 	}
@@ -26,10 +20,10 @@ func Create(args ...CreateArg) (faces []iface.IFace, e error) {
 	createDestroyLock.Lock()
 	defer createDestroyLock.Unlock()
 
-	ctx := newCreateContext(len(args))
-	for i, arg := range args {
-		if e = ctx.Add(i, arg); e != nil {
-			return nil, fmt.Errorf("arg[%d]: %v", i, e)
+	ctx := newCreateContext(len(locs))
+	for i, loc := range locs {
+		if e = ctx.Add(i, loc); e != nil {
+			return nil, fmt.Errorf("loc[%d]: %v", i, e)
 		}
 	}
 	if e = ctx.Launch(); e != nil {
@@ -55,53 +49,31 @@ func newCreateContext(count int) (ctx createContext) {
 	return ctx
 }
 
-func (ctx *createContext) Add(i int, arg CreateArg) error {
-	if arg.Remote == nil {
-		return errors.New("remote FaceUri is missing")
-	}
-	if arg.Local != nil && arg.Remote.Scheme != arg.Local.Scheme {
-		return errors.New("local scheme differs from remote scheme")
+func (ctx *createContext) Add(i int, loc iface.Locator) error {
+	if e := loc.Validate(); e != nil {
+		return e
 	}
 
-	switch arg.Remote.Scheme {
+	switch loc.GetScheme() {
 	case "ether":
-		return ctx.addEth(i, arg)
+		return ctx.addEth(i, loc.(ethface.Locator))
 	case "mock":
 		return ctx.addMock(i)
 	}
-	return ctx.addSock(i, arg)
+	return ctx.addSock(i, loc.(socketface.Locator))
 }
 
-func findEthDev(devName string) dpdk.EthDev {
-	for _, ethdev := range dpdk.ListEthDevs() {
-		if faceuri.CleanEthdevName(ethdev.GetName()) == devName {
-			return ethdev
-		}
-	}
-	return dpdk.ETHDEV_INVALID
-}
-
-func (ctx *createContext) addEth(i int, arg CreateArg) error {
+func (ctx *createContext) addEth(i int, loc ethface.Locator) error {
 	if !theConfig.EnableEth {
 		return errors.New("Ethernet face feature is disabled")
 	}
-	if arg.Local == nil {
-		return errors.New("local FaceUri is missing")
-	}
-	devName, remote, vid := arg.Remote.ExtractEther()
-	_, local, _ := arg.Local.ExtractEther()
-	if vid != 0 {
-		return errors.New("VLAN is not implemented")
-	}
-	if faceuri.MacAddress(local).IsGroupAddress() {
-		return errors.New("local MAC address must be unicast")
-	}
-	isMulticast := faceuri.MacAddress(remote).IsGroupAddress()
-	if isMulticast && remote.String() != ndn.GetEtherMcastAddr().String() {
+
+	isMulticast := loc.IsRemoteMulticast()
+	if isMulticast && loc.Remote.String() != ndn.GetEtherMcastAddr().String() {
 		return errors.New("remote MAC address must be either unicast or well-known NDN multicast group")
 	}
 
-	ethdev := findEthDev(devName)
+	ethdev := dpdk.FindEthDev(loc.Port)
 	if ethdev == dpdk.ETHDEV_INVALID {
 		return errors.New("EthDev not found")
 	}
@@ -113,12 +85,12 @@ func (ctx *createContext) addEth(i int, arg CreateArg) error {
 	if ectx == nil {
 		ectx = new(createContextEth)
 		ectx.EthDev = ethdev
-		ectx.Local = local
+		ectx.Local = loc.Local
 		ectx.multicastIndex = -1
 		ctx.eth[ethdev] = ectx
 	}
 
-	if ectx.Local.String() != local.String() {
+	if ectx.Local.String() != loc.Local.String() {
 		return errors.New("conflicting local MAC address")
 	}
 	if isMulticast {
@@ -128,14 +100,14 @@ func (ctx *createContext) addEth(i int, arg CreateArg) error {
 		ectx.Multicast = true
 		ectx.multicastIndex = i
 	} else {
-		ectx.Unicast = append(ectx.Unicast, remote)
+		ectx.Unicast = append(ectx.Unicast, loc.Remote)
 		ectx.unicastIndex = append(ectx.unicastIndex, i)
 	}
 
 	return nil
 }
 
-func (ctx *createContext) addSock(i int, arg CreateArg) (e error) {
+func (ctx *createContext) addSock(i int, loc socketface.Locator) (e error) {
 	if !theConfig.EnableSock {
 		return errors.New("socket face feature is disabled")
 	}
@@ -149,13 +121,6 @@ func (ctx *createContext) addSock(i int, arg CreateArg) (e error) {
 	}
 	cfg.TxqPkts = theConfig.SockTxqPkts
 	cfg.TxqFrames = theConfig.SockTxqFrames
-
-	var loc socketface.Locator
-	loc.Scheme = arg.Remote.Scheme
-	loc.Remote = arg.Remote.Host + arg.Remote.Path
-	if arg.Local != nil {
-		loc.Local = arg.Local.Host + arg.Local.Path
-	}
 
 	face, e := socketface.Create(loc, cfg)
 	if e != nil {

@@ -7,16 +7,20 @@ const parser = new ArgumentParser({
   addHelp: true,
   description: "Create a face",
 });
-parser.addArgument("remote", { help: "remote FaceUri" });
-parser.addArgument("local", { help: "local FaceUri" });
+parser.addArgument("--scheme", { required: true });
+parser.addArgument("--port", { required: false });
+parser.addArgument("--local", { required: false });
+parser.addArgument("--remote", { required: true });
 const args = parser.parseArgs();
 
 const mgmtClient = jayson.Client.tcp({port: 6345});
 mgmtClient.request("Face.Create",
   [
     {
-      LocalUri: args.local,
-      RemoteUri: args.remote,
+      Local: args.local,
+      Port: args.port,
+      Remote: args.remote,
+      Scheme: args.scheme,
     },
   ] as mgmt.facemgmt.CreateArg,
   (err, error, result: mgmt.facemgmt.CreateRes) => {

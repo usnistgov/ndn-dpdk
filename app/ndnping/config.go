@@ -3,12 +3,12 @@ package ndnping
 import (
 	"time"
 
-	"ndn-dpdk/iface/createface"
+	"ndn-dpdk/iface"
 	"ndn-dpdk/ndn"
 )
 
 type TaskConfig struct {
-	Face   createface.CreateArg
+	Face   iface.LocatorWrapper
 	Client *ClientConfig
 	Server *ServerConfig
 }

@@ -58,15 +58,6 @@ ctx.declareType('facemgmt.IdArg', ctx.markAllRequired({
   },
 }));
 
-ctx.declareType('facemgmt.localRemoteUris', {
-  type: 'object',
-  properties: {
-    LocalUri: ctx.useType('iface.FaceUri'),
-    RemoteUri: ctx.useType('iface.FaceUri'),
-  },
-  required: ['RemoteUri'],
-});
-
 ctx.declareType('facemgmt.BasicInfo', {
   allOf: [
     ctx.useType('facemgmt.IdArg'),
@@ -155,8 +146,7 @@ ctx.declareMethod('Face.Get', 'facemgmt.IdArg', 'facemgmt.FaceInfo');
 ctx.declareMethod('Face.Create',
   {
     type: 'array',
-    items: ctx.useType('facemgmt.localRemoteUris'),
-    uniqueItems: true,
+    items: ctx.useType('iface.Locator'),
   },
   'facemgmt.BasicInfo[]');
 

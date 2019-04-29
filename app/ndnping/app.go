@@ -32,11 +32,11 @@ func NewApp(cfg []TaskConfig) (app *App, e error) {
 	appinit.BeforeStartRxl = app.addRxl
 	appinit.WantLaunchRxl = false
 
-	var faceCreateArgs []createface.CreateArg
+	var faceLocators []iface.Locator
 	for _, taskCfg := range cfg {
-		faceCreateArgs = append(faceCreateArgs, taskCfg.Face)
+		faceLocators = append(faceLocators, taskCfg.Face.Locator)
 	}
-	faces, e := createface.Create(faceCreateArgs...)
+	faces, e := createface.Create(faceLocators...)
 	if e != nil {
 		return nil, e
 	}

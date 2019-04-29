@@ -13,7 +13,6 @@ import (
 
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
-	"ndn-dpdk/iface/faceuri"
 	"ndn-dpdk/ndn"
 )
 
@@ -40,7 +39,7 @@ type PortConfig struct {
 
 func (cfg PortConfig) check() error {
 	if cfg.Local != nil {
-		if addr := faceuri.MacAddress(cfg.Local); !addr.Valid() || addr.IsGroupAddress() {
+		if classifyMac48(cfg.Local) != mac48_unicast {
 			return errors.New("cfg.Local is not a MAC-48 unicast address")
 		}
 	}
@@ -50,9 +49,8 @@ func (cfg PortConfig) check() error {
 	}
 
 	unicastAddressStr := make(map[string]int)
-	for i, unicastAddr := range cfg.Unicast {
-		addr := faceuri.MacAddress(unicastAddr)
-		if !addr.Valid() || addr.IsGroupAddress() {
+	for i, addr := range cfg.Unicast {
+		if classifyMac48(addr) != mac48_unicast {
 			return fmt.Errorf("cfg.Unicast[%d] is not a MAC-48 unicast address", i)
 		}
 		if j, ok := unicastAddressStr[addr.String()]; ok {

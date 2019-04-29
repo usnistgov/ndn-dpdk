@@ -1,9 +1,4 @@
 export namespace facemgmt {
-  export interface localRemoteUris {
-    LocalUri: string;
-    RemoteUri: string;
-  }
-
   export interface ethfaceLocator {
     Scheme: "ether";
     Port: string;
@@ -27,7 +22,7 @@ export namespace facemgmt {
     Locator: Locator;
   }
 
-  export type CreateArg = localRemoteUris[];
+  export type CreateArg = Locator[];
   export type CreateRes = ReadonlyArray<BasicInfo>;
 
   export type DestroyArg = IdArg;

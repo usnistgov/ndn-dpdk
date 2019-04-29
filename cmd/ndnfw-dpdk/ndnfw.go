@@ -10,7 +10,7 @@ import (
 	"ndn-dpdk/container/ndt"
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface/createface"
-	"ndn-dpdk/iface/faceuri"
+	"ndn-dpdk/iface/ethface"
 )
 
 var theDp *fwdp.DataPlane
@@ -69,10 +69,8 @@ func startDp(ndtCfg ndt.Config, fibCfg fib.Config, dpInit fwdpInitConfig) {
 
 func createAutoFaces() {
 	for _, ethdev := range dpdk.ListEthDevs() {
-		var a createface.CreateArg
-		a.Remote = faceuri.MustMakeEtherUri(ethdev.GetName(), nil, 0)
-		a.Local = faceuri.MustMakeEtherUri(ethdev.GetName(), ethdev.GetMacAddr(), 0)
-		if _, e := createface.Create(a); e != nil {
+		loc := ethface.NewLocator(ethdev)
+		if _, e := createface.Create(loc); e != nil {
 			log.WithError(e).WithField("ethdev", ethdev).Fatal("auto-face create error")
 		}
 	}

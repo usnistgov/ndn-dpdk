@@ -8,8 +8,6 @@ Subcommands:
     List faces.
   face show <ID>
     Show face counters.
-  face create <REMOTEURI> [<LOCALURI>]
-    Create a socket face.
   face destroy <ID>
     Destroy a face.
   ndt show
@@ -68,20 +66,6 @@ elif [[ $1 == 'face' ]]; then
     jsonrpc Face.List
   elif [[ $2 == 'show' ]]; then
     jsonrpc Face.Get '{"Id":'$3'}'
-  elif [[ $2 == 'create' ]]; then
-    PARAMS=''
-    shift 2
-    while [[ $# -ge 2 ]]; do
-      if [[ $PARAMS == '' ]]; then
-        PARAMS='['
-      else
-        PARAMS=$PARAMS','
-      fi
-      PARAMS=$PARAMS'{"RemoteUri":"'$1'","LocalUri":"'$2'"}'
-      shift 2
-    done
-    PARAMS=$PARAMS']'
-    jsonrpc Face.Create $PARAMS
   elif [[ $2 == 'destroy' ]]; then
     jsonrpc Face.Destroy '{"Id":'$3'}'
   fi

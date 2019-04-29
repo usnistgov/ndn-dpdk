@@ -12,7 +12,6 @@ import (
 	"ndn-dpdk/container/strategycode"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/createface"
-	"ndn-dpdk/iface/faceuri"
 	"ndn-dpdk/iface/mockface"
 	"ndn-dpdk/ndn"
 	"ndn-dpdk/strategy/strategy_elf"
@@ -82,9 +81,7 @@ func (fixture *Fixture) Close() error {
 }
 
 func (fixture *Fixture) CreateFace() *mockface.MockFace {
-	var faceArg createface.CreateArg
-	faceArg.Remote = faceuri.MustParse("mock:")
-	faces, e := createface.Create(faceArg)
+	faces, e := createface.Create(mockface.NewLocator())
 	fixture.require.NoError(e)
 	fixture.require.Len(faces, 1)
 

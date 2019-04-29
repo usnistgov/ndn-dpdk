@@ -48,9 +48,7 @@ func (face *MockFace) getPtr() *C.Face {
 }
 
 func (*MockFace) GetLocator() iface.Locator {
-	var loc Locator
-	loc.Scheme = locatorScheme
-	return loc
+	return NewLocator()
 }
 
 func (face *MockFace) Close() error {

@@ -68,7 +68,7 @@ type LocatorWrapper struct {
 	Locator
 }
 
-func (locw *LocatorWrapper) MarshalJSON() ([]byte, error) {
+func (locw LocatorWrapper) MarshalJSON() ([]byte, error) {
 	obj, e := locw.MarshalYAML()
 	if e != nil {
 		return nil, e
@@ -82,7 +82,7 @@ func (locw *LocatorWrapper) UnmarshalJSON(data []byte) error {
 	})
 }
 
-func (locw *LocatorWrapper) MarshalYAML() (interface{}, error) {
+func (locw LocatorWrapper) MarshalYAML() (interface{}, error) {
 	if locw.Locator == nil {
 		return nil, nil
 	}
