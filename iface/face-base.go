@@ -27,22 +27,23 @@ type Mempools struct {
 	HeaderMp dpdk.PktmbufPool
 }
 
-type BaseFace struct {
+// Base type to implement IFace.
+type FaceBase struct {
 	id FaceId
 }
 
-func (face *BaseFace) getPtr() *C.Face {
+func (face *FaceBase) getPtr() *C.Face {
 	return &C.__gFaces[face.id]
 }
 
 // Get native *C.Face pointer to use in other packages.
-func (face *BaseFace) GetPtr() unsafe.Pointer {
+func (face *FaceBase) GetPtr() unsafe.Pointer {
 	return unsafe.Pointer(face.getPtr())
 }
 
-// Initialize BaseFace before lower-layer initialization.
+// Initialize FaceBase before lower-layer initialization.
 // Allocate FaceImpl on specified NumaSocket.
-func (face *BaseFace) InitBaseFace(id FaceId, sizeofPriv int, socket dpdk.NumaSocket) error {
+func (face *FaceBase) InitFaceBase(id FaceId, sizeofPriv int, socket dpdk.NumaSocket) error {
 	face.id = id
 
 	if socket == dpdk.NUMA_SOCKET_ANY {
@@ -66,10 +67,10 @@ func (face *BaseFace) InitBaseFace(id FaceId, sizeofPriv int, socket dpdk.NumaSo
 
 }
 
-// Initialize BaseFace after lower-layer initialization.
+// Initialize FaceBase after lower-layer initialization.
 // mtu: transport MTU available for NDNLP packets.
 // headroom: headroom before NDNLP header, as required by transport.
-func (face *BaseFace) FinishInitBaseFace(txQueueCapacity, mtu, headroom int, mempools Mempools) error {
+func (face *FaceBase) FinishInitFaceBase(txQueueCapacity, mtu, headroom int, mempools Mempools) error {
 	faceC := face.getPtr()
 
 	r, e := dpdk.NewRing(fmt.Sprintf("FaceTx_%d", face.GetFaceId()),
@@ -96,27 +97,27 @@ func (face *BaseFace) FinishInitBaseFace(txQueueCapacity, mtu, headroom int, mem
 	return nil
 }
 
-func (face *BaseFace) GetFaceId() FaceId {
+func (face *FaceBase) GetFaceId() FaceId {
 	return face.id
 }
 
-func (face *BaseFace) GetNumaSocket() dpdk.NumaSocket {
+func (face *FaceBase) GetNumaSocket() dpdk.NumaSocket {
 	return dpdk.NumaSocket(face.getPtr().numaSocket)
 }
 
-func (face *BaseFace) IsClosed() bool {
+func (face *FaceBase) IsClosed() bool {
 	return face == nil || face.getPtr().id == C.FACEID_INVALID
 }
 
 // Prepare to close face.
-func (face *BaseFace) BeforeClose() {
+func (face *FaceBase) BeforeClose() {
 	id := face.GetFaceId()
 	faceC := face.getPtr()
 	faceC.state = C.FACESTA_DOWN
 	emitter.EmitSync(evt_FaceClosing, id)
 }
 
-func (face *BaseFace) clear() {
+func (face *FaceBase) clear() {
 	id := face.GetFaceId()
 	faceC := face.getPtr()
 	faceC.state = C.FACESTA_REMOVED
@@ -130,19 +131,19 @@ func (face *BaseFace) clear() {
 	gFaces[id] = nil
 }
 
-// Close BaseFace.
+// Close FaceBase.
 // Deallocate FaceImpl.
-func (face *BaseFace) CloseBaseFace() {
+func (face *FaceBase) CloseFaceBase() {
 	id := face.GetFaceId()
 	face.clear()
 	emitter.EmitSync(evt_FaceClosed, id)
 }
 
-func (face *BaseFace) IsDown() bool {
+func (face *FaceBase) IsDown() bool {
 	return face.getPtr().state != C.FACESTA_UP
 }
 
-func (face *BaseFace) SetDown(isDown bool) {
+func (face *FaceBase) SetDown(isDown bool) {
 	if face.IsDown() == isDown {
 		return
 	}
@@ -157,14 +158,14 @@ func (face *BaseFace) SetDown(isDown bool) {
 	}
 }
 
-func (face *BaseFace) TxBurst(pkts []ndn.Packet) {
+func (face *FaceBase) TxBurst(pkts []ndn.Packet) {
 	if len(pkts) == 0 {
 		return
 	}
 	C.Face_TxBurst(C.FaceId(face.id), (**C.Packet)(unsafe.Pointer(&pkts[0])), C.uint16_t(len(pkts)))
 }
 
-func (face *BaseFace) ReadLatency() running_stat.Snapshot {
+func (face *FaceBase) ReadLatency() running_stat.Snapshot {
 	faceC := face.getPtr()
 	latencyStat := running_stat.FromPtr(unsafe.Pointer(&faceC.impl.latencyStat))
 	return running_stat.TakeSnapshot(latencyStat).Multiply(dpdk.GetNanosInTscUnit())

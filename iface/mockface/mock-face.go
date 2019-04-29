@@ -19,7 +19,7 @@ import (
 var FaceMempools iface.Mempools
 
 type MockFace struct {
-	iface.BaseFace
+	iface.FaceBase
 
 	TxInterests []*ndn.Interest // sent Interest packets
 	TxData      []*ndn.Data     // sent Data packets
@@ -29,7 +29,7 @@ type MockFace struct {
 
 func New() (face *MockFace) {
 	face = new(MockFace)
-	if e := face.InitBaseFace(iface.AllocId(iface.FaceKind_Mock), 0, dpdk.NUMA_SOCKET_ANY); e != nil {
+	if e := face.InitFaceBase(iface.AllocId(iface.FaceKind_Mock), 0, dpdk.NUMA_SOCKET_ANY); e != nil {
 		panic(e)
 	}
 	iface.TheChanRxGroup.AddFace(face)
@@ -37,7 +37,7 @@ func New() (face *MockFace) {
 	faceC := face.getPtr()
 	faceC.txBurstOp = (C.FaceImpl_TxBurst)(C.go_MockFace_TxBurst)
 
-	if e := face.FinishInitBaseFace(256, 0, 0, FaceMempools); e != nil {
+	if e := face.FinishInitFaceBase(256, 0, 0, FaceMempools); e != nil {
 		panic(e)
 	}
 	iface.Put(face)
@@ -68,7 +68,7 @@ func (face *MockFace) Close() error {
 	}
 	face.BeforeClose()
 	iface.TheChanRxGroup.RemoveFace(face)
-	face.CloseBaseFace()
+	face.CloseFaceBase()
 	return nil
 }
 

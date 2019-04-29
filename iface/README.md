@@ -19,7 +19,7 @@ Notably, there isn't a function to receive packets; instead, each lower layer im
 
 In Go, **IFace** interface defines what methods a face must provide.
 Each lower layer implementation offers a `New` function that creates an instance that implements IFace interface.
-That instance should embed **BaseFace** struct that implements many methods required by IFace.
+That instance should embed **FaceBase** struct that implements many methods required by IFace.
 `Get` function retrieves an existing IFace by FaceId; `IterFaces` enumerates all faces.
 
 ## Receive Path

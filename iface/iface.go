@@ -12,7 +12,7 @@ import (
 )
 
 // Interface for a face.
-// Most functions are implemented by BaseFace type.
+// Most functions are implemented by FaceBase type.
 type IFace interface {
 	getPtr() *C.Face
 
@@ -39,8 +39,8 @@ type IFace interface {
 
 	// Close the face.
 	// Lower layer implementation must provide this method.
-	// It should return nil if BaseFace.IsClosed() returns true.
-	// It should call BaseFace.BeforeClose and BaseFace.CloseBaseFace.
+	// It should return nil if FaceBase.IsClosed() returns true.
+	// It should call FaceBase.BeforeClose and FaceBase.CloseFaceBase.
 	Close() error
 
 	// Determine whether the face is DOWN or UP.

@@ -31,7 +31,7 @@ type Config struct {
 
 // A face using socket as transport.
 type SocketFace struct {
-	iface.BaseFace
+	iface.FaceBase
 	logger logrus.FieldLogger
 	conn   atomic.Value
 	impl   iImpl
@@ -56,7 +56,7 @@ func New(conn net.Conn, cfg Config) (face *SocketFace, e error) {
 		return nil, fmt.Errorf("unknown network %s", network)
 	}
 
-	if e := face.InitBaseFace(iface.AllocId(iface.FaceKind_Socket), 0, dpdk.NUMA_SOCKET_ANY); e != nil {
+	if e := face.InitFaceBase(iface.AllocId(iface.FaceKind_Socket), 0, dpdk.NUMA_SOCKET_ANY); e != nil {
 		return nil, e
 	}
 
@@ -67,7 +67,7 @@ func New(conn net.Conn, cfg Config) (face *SocketFace, e error) {
 
 	faceC := face.getPtr()
 	faceC.txBurstOp = (C.FaceImpl_TxBurst)(C.go_SocketFace_TxBurst)
-	if e := face.FinishInitBaseFace(cfg.TxqPkts, 0, 0, cfg.Mempools); e != nil {
+	if e := face.FinishInitFaceBase(cfg.TxqPkts, 0, 0, cfg.Mempools); e != nil {
 		return nil, e
 	}
 
@@ -117,7 +117,7 @@ func (face *SocketFace) Close() error {
 	face.GetConn().Close() // ignore error
 	face.quitWg.Wait()
 	iface.TheChanRxGroup.RemoveFace(face)
-	face.CloseBaseFace()
+	face.CloseFaceBase()
 	return nil
 }
 

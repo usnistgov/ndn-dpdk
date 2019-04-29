@@ -31,7 +31,7 @@ func copyHwaddrToC(a net.HardwareAddr, c *C.struct_ether_addr) {
 
 func (f *faceFactory) NewFace(id iface.FaceId, remote net.HardwareAddr) (face *EthFace, e error) {
 	face = new(EthFace)
-	if e := face.InitBaseFace(id, int(C.sizeof_EthFacePriv), f.Port.GetNumaSocket()); e != nil {
+	if e := face.InitFaceBase(id, int(C.sizeof_EthFacePriv), f.Port.GetNumaSocket()); e != nil {
 		return nil, e
 	}
 
@@ -58,13 +58,13 @@ func (f *faceFactory) NewFace(id iface.FaceId, remote net.HardwareAddr) (face *E
 	faceC := face.getPtr()
 	faceC.txBurstOp = (C.FaceImpl_TxBurst)(C.EthFace_TxBurst)
 
-	face.FinishInitBaseFace(f.TxqPkts, f.Mtu, int(C.sizeof_struct_ether_hdr), f.Mempools)
+	face.FinishInitFaceBase(f.TxqPkts, f.Mtu, int(C.sizeof_struct_ether_hdr), f.Mempools)
 	iface.Put(face)
 	return face, nil
 }
 
 type EthFace struct {
-	iface.BaseFace
+	iface.FaceBase
 	port   *Port
 	local  net.HardwareAddr
 	remote net.HardwareAddr
@@ -116,7 +116,7 @@ func (face *EthFace) Close() error {
 			}
 		}
 	}
-	face.CloseBaseFace()
+	face.CloseFaceBase()
 	return nil
 }
 

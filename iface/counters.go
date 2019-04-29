@@ -44,7 +44,7 @@ func (cnt Counters) String() string {
 		cnt.TxFrames, cnt.TxOctets, cnt.TxInterests, cnt.TxData, cnt.TxNacks, cnt.FragGood, cnt.FragBad, cnt.TxAllocErrs, cnt.TxQueued, cnt.TxDropped)
 }
 
-func (face BaseFace) ReadCounters() (cnt Counters) {
+func (face FaceBase) ReadCounters() (cnt Counters) {
 	faceC := face.getPtr()
 	if faceC.impl == nil {
 		return cnt
@@ -78,6 +78,6 @@ func (face BaseFace) ReadCounters() (cnt Counters) {
 	return cnt
 }
 
-func (face BaseFace) ReadExCounters() interface{} {
+func (face FaceBase) ReadExCounters() interface{} {
 	return nil
 }
