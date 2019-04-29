@@ -59,7 +59,11 @@ type LocatorWrapper struct {
 }
 
 func (locw *LocatorWrapper) MarshalJSON() ([]byte, error) {
-	return json.Marshal(locw.Locator)
+	obj, e := locw.MarshalYAML()
+	if e != nil {
+		return nil, e
+	}
+	return json.Marshal(obj)
 }
 
 func (locw *LocatorWrapper) UnmarshalJSON(data []byte) error {
@@ -83,6 +87,10 @@ func (locw *LocatorWrapper) MarshalYAML() (interface{}, error) {
 	if e := locw.Locator.Validate(); e != nil {
 		return nil, e
 	}
+
+	if locM, ok := locw.Locator.(yaml.Marshaler); ok {
+		return locM.MarshalYAML()
+	}
 	return locw.Locator, nil
 }
 
@@ -100,7 +108,14 @@ func (locw *LocatorWrapper) UnmarshalYAML(unmarshal func(interface{}) error) (e 
 	}
 
 	ptr := reflect.New(typ)
-	if e = unmarshal(ptr.Interface()); e != nil {
+	ptrI := ptr.Interface()
+
+	if ptrM, ok := ptrI.(yaml.Unmarshaler); ok {
+		e = ptrM.UnmarshalYAML(unmarshal)
+	} else {
+		e = unmarshal(ptrI)
+	}
+	if e != nil {
 		return e
 	}
 

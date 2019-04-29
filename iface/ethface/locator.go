@@ -33,6 +33,38 @@ func (loc Locator) IsRemoteMulticast() bool {
 	return len(loc.Remote) == 6 && (loc.Remote[0]&0x01) != 0
 }
 
+type locatorYaml struct {
+	iface.LocatorBase `yaml:",inline"`
+	Port              string
+	Local             string
+	Remote            string
+}
+
+func (loc Locator) MarshalYAML() (interface{}, error) {
+	var output locatorYaml
+	output.LocatorBase = loc.LocatorBase
+	output.Port = loc.Port
+	output.Local = loc.Local.String()
+	output.Remote = loc.Remote.String()
+	return output, nil
+}
+
+func (loc *Locator) UnmarshalYAML(unmarshal func(interface{}) error) (e error) {
+	var input locatorYaml
+	if e = unmarshal(&input); e != nil {
+		return e
+	}
+	loc.LocatorBase = input.LocatorBase
+	loc.Port = input.Port
+	if loc.Local, e = net.ParseMAC(input.Local); e != nil {
+		return e
+	}
+	if loc.Remote, e = net.ParseMAC(input.Remote); e != nil {
+		return e
+	}
+	return nil
+}
+
 func init() {
 	iface.RegisterLocatorType(Locator{}, "ether")
 }

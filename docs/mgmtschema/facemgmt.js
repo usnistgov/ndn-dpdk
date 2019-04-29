@@ -3,6 +3,7 @@ exports.provideDefinitions = function(ctx) {
 
 ctx.declareType('net.HardwareAddr', {
   type: 'string',
+  pattern: '^[0-9a-f]{2}(?::[0-9a-f]{2}){5}$',
 });
 
 ctx.declareType('iface.FaceUri', {
