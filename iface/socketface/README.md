@@ -3,7 +3,11 @@
 This package implements a face using socket as transport.
 
 FaceId of SocketFace is randomly assigned from the range 0xE000-0xEFFF.
-LocalUri and RemoteUri reflect local and remote endpoint addresses, except that IPv6 addresses become "192.0.2.6", and unknown Unix endpoints become "/invalid".
+Locator has the following fields:
+
+*   *Scheme* is one of "udp", "unixgram", "tcp", "unix".
+*   *Remote* is an address string acceptable to Go [net.Dial](https://golang.org/pkg/net/#Dial) function.
+*   *Local* has the same format as *Remote*, and is accepted only with "udp" scheme.
 
 ## Receive Path
 

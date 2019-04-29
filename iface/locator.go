@@ -8,12 +8,19 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// Identifies the endpoints of a face.
+//
+// Lower layer implementation must embed LocatorBase struct and provide Validate method.
+// To customize serialization, implement yaml.Marshaler and yaml.Unmarshaler interfaces.
 type Locator interface {
 	isLocator()
 	GetScheme() string
+
+	// Check whether Locator fields are correct according to the chosen Scheme.
 	Validate() error
 }
 
+// Base type to implement Locator interface.
 type LocatorBase struct {
 	Scheme string
 }
@@ -25,6 +32,7 @@ func (loc LocatorBase) GetScheme() string {
 	return loc.Scheme
 }
 
+// Parse Locator from YAML string.
 func ParseLocator(input string) (loc Locator, e error) {
 	var locw LocatorWrapper
 	if e = yaml.Unmarshal([]byte(input), &locw); e != nil {
@@ -44,6 +52,7 @@ func MustParseLocator(input string) (loc Locator) {
 
 var locatorTypes = make(map[string]reflect.Type)
 
+// Register a Locator implementation.
 func RegisterLocatorType(locator Locator, schemes ...string) {
 	typ := reflect.TypeOf(locator)
 	if typ.Kind() != reflect.Struct {
@@ -54,6 +63,7 @@ func RegisterLocatorType(locator Locator, schemes ...string) {
 	}
 }
 
+// Wraps Locator to facilitate JSON/YAML serialization.
 type LocatorWrapper struct {
 	Locator
 }

@@ -3,18 +3,20 @@
 This package implements Ethernet faces using DPDK ethdev as transport.
 
 **EthFace** type represents an Ethernet face.
-Its FaceId is randomly assigned from the range 0x1000-0x1FFF.
-Its FaceUri has three parts:
+FaceId is randomly assigned from the range 0x1000-0x1FFF.
+Locator has the following fields:
 
-*   User information portion contains the local or remote Ethernet address.
-    It is a MAC-48 address, written as upper case hexadecimal, using hyphen to separate octets.
-*   Hostname portion contains the port name as presented by DPDK.
-    Characters other than alphanumeric and underscore are replaced by hyphens.
-*   Port number portion contains the VLAN identifier (currently not supported).
+*   *Scheme* is set to "ether".
+*   *Port* is the port name as presented by DPDK.
+    For a PCI device, it has the form bus:device.function, e.g. "06:00.0".
+*   *Local* and *Remote* are MAC-48 addresses written in the six groups of two lower-case hexadecimal digits separated by colons.
+*   *Local* must be a unicast address.
+*   *Remote* may be unicast or multicast.
+    Every face is assumed to be point-to-point, even when using a multicast remote address.
 
 Multiple EthFaces can co-exist on the same DPDK ethdev.
 They are organized by the **Port** type.
-Each Port can have zero or one multiple EthFace, and zero or more unicast EthFaces.
+Each Port can have zero or one EthFace with multicast remote address, and zero or more EthFaces with unicast remote addresses.
 All EthFaces on the same Port must be created together.
 
 ## Receive Path

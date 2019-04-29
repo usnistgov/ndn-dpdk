@@ -15,12 +15,17 @@ Unit tests of this package are in [ifacetest](ifacetest/) subdirectory.
 
 In C, public APIs are defined in term of **FaceId**.
 There are functions to query face status, and to transmit a burst of packets.
-Notably, there isn't a function to receive packets; instead, each lower layer implementation offers an "RX loop" function for receiving packets.
+Notably, there isn't a function to receive packets; instead, RxLoop type is used for receiving packets.
 
-In Go, **IFace** interface defines what methods a face must provide.
-Each lower layer implementation offers a `New` function that creates an instance that implements IFace interface.
+In Go, **IFace** type defines what methods a face must provide.
+Each lower layer implementation offers functions to create an instance that implements IFace interface.
 That instance should embed **FaceBase** struct that implements many methods required by IFace.
 `Get` function retrieves an existing IFace by FaceId; `IterFaces` enumerates all faces.
+
+All faces are assumed to be point-to-point.
+**Locator** type identifies the endpoints of a face.
+It has a `Scheme` field that indicates the underlying network protocol, as well as other fields added by each lower layer implementation.
+This type can be marshaled as JSON and YAML.
 
 ## Receive Path
 
