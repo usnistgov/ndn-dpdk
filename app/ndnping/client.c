@@ -61,7 +61,8 @@ NdnpingClient_PrepareTxInterest(NdnpingClient* client,
   Packet_SetL3PktType(npkt, L3PktType_Interest); // for stats; no PInterest*
   ZF_LOGD("<I seq=%" PRIx64 " pattern=%d", seqNum, patternId);
 
-  Packet_InitLpL3Hdr(npkt)->pitToken = NdnpingToken_New(patternId, now);
+  Packet_InitLpL3Hdr(npkt)->pitToken =
+    NdnpingToken_New(patternId, client->runNum, now);
 }
 
 static void
@@ -124,7 +125,8 @@ NdnpingClient_ProcessRxData(NdnpingClient* client, Packet* npkt, uint64_t now)
 
   const PData* data = Packet_GetDataHdr(npkt);
   uint64_t seqNum;
-  if (unlikely(!NdnpingClient_GetSeqNumFromName(
+  if (unlikely(NdnpingToken_GetRunNum(token) != client->runNum ||
+               !NdnpingClient_GetSeqNumFromName(
                  client, patternId, &data->name, &seqNum) ||
                NdnpingClient_SelectPattern(client, seqNum) != patternId)) {
     return;
@@ -148,7 +150,8 @@ NdnpingClient_ProcessRxNack(NdnpingClient* client, Packet* npkt, uint64_t now)
 
   const PNack* nack = Packet_GetNackHdr(npkt);
   uint64_t seqNum;
-  if (unlikely(!NdnpingClient_GetSeqNumFromName(
+  if (unlikely(NdnpingToken_GetRunNum(token) != client->runNum ||
+               !NdnpingClient_GetSeqNumFromName(
                  client, patternId, &nack->interest.name, &seqNum) ||
                NdnpingClient_SelectPattern(client, seqNum) != patternId)) {
     return;

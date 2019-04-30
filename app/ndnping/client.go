@@ -79,6 +79,7 @@ func (client *Client) SetInterval(interval time.Duration) {
 
 // Launch the RX thread.
 func (client *Client) Launch() error {
+	client.c.runNum++
 	return client.LaunchImpl(func() int {
 		C.NdnpingClient_RunRx(client.c)
 		return 0

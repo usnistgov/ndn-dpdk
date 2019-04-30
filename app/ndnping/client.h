@@ -53,6 +53,7 @@ typedef struct NdnpingClient
     uint64_t compV; ///< sequence number in native endianness
   } __rte_packed suffixComponent;
   NonceGen nonceGen;
+  uint8_t runNum;
 
   uint8_t interestPrepareBuffer[8192];
 } NdnpingClient;
