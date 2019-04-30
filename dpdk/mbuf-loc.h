@@ -59,21 +59,17 @@ MbufLoc_IsEnd(const MbufLoc* ml)
   return ml->m == NULL || ml->rem == 0;
 }
 
-typedef void (*MbufLoc_AdvanceCb)(void* arg,
-                                  const struct rte_mbuf* m,
-                                  uint16_t off,
-                                  uint16_t len);
+typedef void (*__MbufLoc_WalkCb)(void* arg,
+                                 const struct rte_mbuf* m,
+                                 uint16_t off,
+                                 uint16_t len);
 
 /** \brief Advance the position by \p n octets and invoke \p cb on each mbuf.
  */
 static uint32_t
-__MbufLoc_AdvanceWithCb(MbufLoc* ml,
-                        uint32_t n,
-                        MbufLoc_AdvanceCb cb,
-                        void* cbarg)
+__MbufLoc_Walk(MbufLoc* ml, uint32_t n, __MbufLoc_WalkCb cb, void* cbarg)
 {
   assert(n <= ml->rem);
-
   if (unlikely(MbufLoc_IsEnd(ml))) {
     return 0;
   }
@@ -105,13 +101,11 @@ __MbufLoc_AdvanceWithCb(MbufLoc* ml,
 /** \brief Advance the position by \p n octets.
  *  \return Actually advanced distance.
  */
-static uint32_t
+static __rte_noinline uint32_t
 MbufLoc_Advance(MbufLoc* ml, uint32_t n)
 {
-  if (n > ml->rem) {
-    n = ml->rem;
-  }
-  return __MbufLoc_AdvanceWithCb(ml, n, NULL, NULL);
+  n = RTE_MIN(n, ml->rem);
+  return __MbufLoc_Walk(ml, n, NULL, NULL);
 }
 
 /** \brief Determine the distance in octets from a to b.
@@ -149,7 +143,7 @@ __MbufLoc_MakeIndirectCb(void* arg,
  *  \retval NULL remaining range is less than \p n (rte_errno=ERANGE), or
                  allocation failure (rte_errno=ENOENT)
  */
-static struct rte_mbuf*
+static __rte_noinline struct rte_mbuf*
 MbufLoc_MakeIndirect(MbufLoc* ml, uint32_t n, struct rte_mempool* mp)
 {
   assert(n > 0);
@@ -162,7 +156,7 @@ MbufLoc_MakeIndirect(MbufLoc* ml, uint32_t n, struct rte_mempool* mp)
   ctx.mp = mp;
   ctx.head = ctx.tail = NULL;
 
-  __MbufLoc_AdvanceWithCb(ml, n, __MbufLoc_MakeIndirectCb, &ctx);
+  __MbufLoc_Walk(ml, n, __MbufLoc_MakeIndirectCb, &ctx);
 
   if (unlikely(ctx.mp == NULL)) {
     rte_errno = ENOENT;
@@ -195,7 +189,7 @@ MbufLoc_ReadTo(MbufLoc* ml, void* output, uint32_t n)
   rte_prefetch0(src);
 
   if (unlikely(ml->off + n >= ml->m->data_len)) {
-    return __MbufLoc_AdvanceWithCb(ml, n, __MbufLoc_ReadCb, &output);
+    return __MbufLoc_Walk(ml, n, __MbufLoc_ReadCb, &output);
   }
 
   ml->off += (uint16_t)n;
