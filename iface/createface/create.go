@@ -116,7 +116,7 @@ func (ctx *createContext) addSock(i int, loc socketface.Locator) (e error) {
 	if cfg.Mempools, e = theCallbacks.CreateFaceMempools(dpdk.NUMA_SOCKET_ANY); e != nil {
 		return e
 	}
-	if cfg.RxMp, e = theCallbacks.CreateRxMp(-1, dpdk.NUMA_SOCKET_ANY); e != nil {
+	if cfg.RxMp, e = theCallbacks.CreateRxMp(dpdk.NUMA_SOCKET_ANY); e != nil {
 		return e
 	}
 	cfg.TxqPkts = theConfig.SockTxqPkts
@@ -165,7 +165,7 @@ func (ctx *createContext) launchEth(ectx *createContextEth) (e error) {
 	if cfg.Mempools, e = theCallbacks.CreateFaceMempools(numaSocket); e != nil {
 		return e
 	}
-	if cfg.RxMp, e = theCallbacks.CreateRxMp(-1, numaSocket); e != nil {
+	if cfg.RxMp, e = theCallbacks.CreateRxMp(numaSocket); e != nil {
 		return e
 	}
 	cfg.NRxThreads = 1

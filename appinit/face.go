@@ -42,7 +42,7 @@ func (createfaceCallbacks) CreateFaceMempools(numaSocket dpdk.NumaSocket) (mempo
 	return mempools, nil
 }
 
-func (createfaceCallbacks) CreateRxMp(mtu int, numaSocket dpdk.NumaSocket) (dpdk.PktmbufPool, error) {
+func (createfaceCallbacks) CreateRxMp(numaSocket dpdk.NumaSocket) (dpdk.PktmbufPool, error) {
 	return MakePktmbufPool(MP_ETHRX, numaSocket), nil
 }
 

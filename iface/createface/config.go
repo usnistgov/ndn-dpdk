@@ -45,6 +45,30 @@ func GetDefaultConfig() (cfg Config) {
 }
 
 func (cfg Config) Verify() error {
+	if cfg.EnableEth {
+		if cfg.EthRxqFrames < 64 {
+			return errors.New("cfg.EthRxqFrames must be at least 64")
+		}
+		if cfg.EthTxqPkts < 64 {
+			return errors.New("cfg.EthTxqPkts must be at least 64")
+		}
+		if cfg.EthTxqFrames < 64 {
+			return errors.New("cfg.EthTxqFrames must be at least 64")
+		}
+	}
+	if cfg.EnableSock {
+		if cfg.SockTxqPkts < 64 {
+			return errors.New("cfg.SockTxqPkts must be at least 64")
+		}
+		if cfg.SockTxqFrames < 64 {
+			return errors.New("cfg.SockTxqFrames must be at least 64")
+		}
+	}
+	if cfg.EnableSock || cfg.EnableMock {
+		if cfg.ChanRxgFrames < 64 {
+			return errors.New("cfg.ChanRxgFrames must be at least 64")
+		}
+	}
 	return nil
 }
 
@@ -53,8 +77,7 @@ type ICallbacks interface {
 	CreateFaceMempools(numaSocket dpdk.NumaSocket) (iface.Mempools, error)
 
 	// Callback when RX mempool is needed.
-	// mtu '-1' means unspecified.
-	CreateRxMp(mtu int, numaSocket dpdk.NumaSocket) (dpdk.PktmbufPool, error)
+	CreateRxMp(numaSocket dpdk.NumaSocket) (dpdk.PktmbufPool, error)
 
 	// Callback when a new RxGroup should be added.
 	StartRxg(rxl iface.IRxGroup) (usr interface{}, e error)
