@@ -20,8 +20,8 @@
     "@types/loglevel": "^1.5.4",
     "@types/ndn-js": "7th-ndn-hackathon/types-ndnjs",
     "@types/object-path": "0.11.0",
-    "tslint": "^5.15.0",
-    "typescript": "^3.4.3"
+    "tslint": "^5.16.0",
+    "typescript": "^3.4.5"
   },
   "private": true,
   "scripts": {

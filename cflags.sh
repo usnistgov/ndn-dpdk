@@ -5,6 +5,6 @@ if [[ -n $RELEASE ]]; then
   CFLAGS=$CFLAGS' -DNDEBUG -DZF_LOG_DEF_LEVEL=ZF_LOG_INFO'
 fi
 
-if [[ $CC == 'clang' ]]; then
+if [[ $CC =~ clang ]]; then
   CFLAGS=$CFLAGS' -Wno-error=address-of-packed-member -Wno-error=initializer-overrides'
 fi

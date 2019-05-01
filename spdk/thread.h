@@ -20,6 +20,7 @@ SpdkThread_Run(SpdkThread* th)
     spdk_thread_poll(th->spdkTh, 64);
   }
   spdk_thread_exit(th->spdkTh);
+  return 0;
 }
 
 #endif // NDN_DPDK_SPDK_THREAD_H
