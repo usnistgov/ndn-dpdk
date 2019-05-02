@@ -39,9 +39,7 @@ func newClient(face iface.IFace, cfg ClientConfig) (client *Client) {
 	ctC.interestMbufHeadroom = C.uint16_t(appinit.SizeofEthLpHeaders() + ndn.EncodeInterest_GetHeadroom())
 	ctC.interestMp = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
 		appinit.MP_INT, socket).GetPtr())
-	ctC.suffixComponent.compT = C.TT_GenericNameComponent
-	ctC.suffixComponent.compL = C.uint8_t(C.sizeof_uint64_t)
-	ctC.suffixComponent.compV = C.uint64_t(rand.Uint64())
+	C.pcg32_srandom_r(&ctC.trafficRng, C.uint64_t(rand.Uint64()), C.uint64_t(time.Now().Unix()))
 	C.NonceGen_Init(&ctC.nonceGen)
 
 	client = new(Client)
@@ -73,6 +71,9 @@ func (client *Client) AddPattern(pattern ClientPattern) (index int, e error) {
 	rxP := &client.c.pattern[index]
 	rxP.prefixLen = C.uint16_t(pattern.Prefix.Size())
 	txP := &client.Tx.c.pattern[index]
+	txP.seqNum.compT = C.TT_GenericNameComponent
+	txP.seqNum.compL = C.uint8_t(C.sizeof_uint64_t)
+	txP.seqNum.compV = C.uint64_t(rand.Uint64())
 	if e = pattern.AsInterestTemplate().CopyToC(unsafe.Pointer(&txP.tpl),
 		unsafe.Pointer(&txP.tplPrepareBuffer), int(unsafe.Sizeof(txP.tplPrepareBuffer)),
 		unsafe.Pointer(&txP.prefixBuffer), int(unsafe.Sizeof(txP.prefixBuffer))); e != nil {

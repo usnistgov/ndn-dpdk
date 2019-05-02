@@ -5,6 +5,7 @@
 
 #include "client-common.h"
 
+#include "../../core/pcg_basic.h"
 #include "../../dpdk/thread.h"
 #include "../../dpdk/tsc.h"
 #include "../../iface/face.h"
@@ -15,6 +16,14 @@
 typedef struct PingClientTxPattern
 {
   uint64_t nInterests;
+
+  struct
+  {
+    char _padding[6]; // make compV aligned
+    uint8_t compT;
+    uint8_t compL;
+    uint64_t compV;      ///< sequence number in native endianness
+  } __rte_packed seqNum; ///< sequence number component
 
   InterestTemplate tpl;
   uint8_t tplPrepareBuffer[64];
@@ -33,15 +42,8 @@ typedef struct PingClientTx
   struct rte_mempool* interestMp; ///< mempool for Interests
   TscDuration burstInterval;      ///< interval between two bursts
 
-  struct
-  {
-    char _padding[6]; // make compV aligned
-    uint8_t compT;
-    uint8_t compL;
-    uint64_t compV; ///< sequence number in native endianness
-  } __rte_packed suffixComponent;
+  pcg32_random_t trafficRng;
   NonceGen nonceGen;
-
   uint64_t nAllocError;
 
   PingClientTxPattern pattern[PINGCLIENT_MAX_PATTERNS];

@@ -9,7 +9,4 @@
 
 #define PINGCLIENT_SUFFIX_LEN 10 // T+L+sizeof(uint64)
 
-#define PINGCLIENT_SELECT_PATTERN(client, seqNum)                              \
-  ((seqNum) % (client)->nPatterns)
-
 #endif // NDN_DPDK_APP_NDNPING_CLIENT_COMMON_H

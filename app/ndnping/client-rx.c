@@ -38,8 +38,7 @@ PingClientRx_ProcessData(PingClientRx* cr, Packet* npkt, uint64_t now)
   if (unlikely(
         PingToken_GetRunNum(token) != cr->runNum ||
         patternId >= cr->nPatterns ||
-        !PingClientRx_GetSeqNumFromName(cr, pattern, &data->name, &seqNum) ||
-        PINGCLIENT_SELECT_PATTERN(cr, seqNum) != patternId)) {
+        !PingClientRx_GetSeqNumFromName(cr, pattern, &data->name, &seqNum))) {
     return;
   }
 
@@ -62,8 +61,7 @@ PingClientRx_ProcessNack(PingClientRx* cr, Packet* npkt, uint64_t now)
   if (unlikely(PingToken_GetRunNum(token) != cr->runNum ||
                patternId >= cr->nPatterns ||
                !PingClientRx_GetSeqNumFromName(
-                 cr, pattern, &nack->interest.name, &seqNum) ||
-               PINGCLIENT_SELECT_PATTERN(cr, seqNum) != patternId)) {
+                 cr, pattern, &nack->interest.name, &seqNum))) {
     return;
   }
 
