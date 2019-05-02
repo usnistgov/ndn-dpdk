@@ -1,7 +1,8 @@
 package ndnping
 
 /*
-#include "client.h"
+#include "client-rx.h"
+#include "client-tx.h"
 #include "token.h"
 */
 import "C"
@@ -69,37 +70,43 @@ func (client *Client) ReadCounters() (cnt ClientCounters) {
 		return time.Duration(d * durationUnit)
 	}
 
-	patterns := client.getPatterns()
-	cnt.PerPattern = make([]ClientPatternCounters, patterns.Len())
-	for i := 0; i < len(cnt.PerPattern); i++ {
-		pattern := (*C.NdnpingClientPattern)(patterns.GetUsr(i))
-		rtt := running_stat.FromPtr(unsafe.Pointer(&pattern.rtt))
-		perPattern := ClientPatternCounters{
-			NInterests:  uint64(pattern.nInterests),
-			NData:       uint64(pattern.nData),
-			NNacks:      uint64(pattern.nNacks),
+	nPatterns := int(client.c.nPatterns)
+	cnt.PerPattern = make([]ClientPatternCounters, nPatterns)
+	for i := 0; i < nPatterns; i++ {
+		crP := client.c.pattern[i]
+		ctP := client.Tx.c.pattern[i]
+		rtt := running_stat.FromPtr(unsafe.Pointer(&crP.rtt))
+		cnt.PerPattern[i] = ClientPatternCounters{
+			NInterests:  uint64(ctP.nInterests),
+			NData:       uint64(crP.nData),
+			NNacks:      uint64(crP.nNacks),
 			NRttSamples: rtt.Len64(),
 			RttMin:      toDuration(rtt.Min()),
 			RttMax:      toDuration(rtt.Max()),
 			RttAvg:      toDuration(rtt.Mean()),
 			RttStdev:    toDuration(rtt.Stdev()),
 		}
-		cnt.PerPattern[i] = perPattern
-		cnt.NInterests += perPattern.NInterests
-		cnt.NData += perPattern.NData
-		cnt.NNacks += perPattern.NNacks
+		cnt.NInterests += cnt.PerPattern[i].NInterests
+		cnt.NData += cnt.PerPattern[i].NData
+		cnt.NNacks += cnt.PerPattern[i].NNacks
 	}
 
-	cnt.NAllocError = uint64(client.c.nAllocError)
+	cnt.NAllocError = uint64(client.Tx.c.nAllocError)
 	return cnt
 }
 
 // Clear counters. Both RX and TX threads should be stopped before calling this,
 // otherwise race conditions may occur.
 func (client *Client) ClearCounters() {
-	patterns := client.getPatterns()
-	for i := 0; i < patterns.Len(); i++ {
-		pattern := (*C.NdnpingClientPattern)(patterns.GetUsr(i))
-		*pattern = C.NdnpingClientPattern{}
+	nPatterns := int(client.c.nPatterns)
+	for i := 0; i < nPatterns; i++ {
+		client.clearCounter(i)
 	}
+}
+
+func (client *Client) clearCounter(index int) {
+	client.c.pattern[index].nData = 0
+	client.c.pattern[index].nNacks = 0
+	client.c.pattern[index].rtt = C.RunningStat{}
+	client.Tx.c.pattern[index].nInterests = 0
 }

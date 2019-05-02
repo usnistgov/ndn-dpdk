@@ -40,7 +40,7 @@ __InterestTemplate_Prepare(InterestTemplate* tpl,
     size += SizeofVarNum(TT_HopLimit) + SizeofVarNum(1) + 1;
   }
   if (size > bufferSize) {
-    return size;
+    return tpl->bufferOff + size;
   }
 
   uint8_t* p = buffer + tpl->bufferOff;

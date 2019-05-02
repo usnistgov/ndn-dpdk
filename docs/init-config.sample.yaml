@@ -13,7 +13,7 @@ mempool:
   ETHRX:  # RX Ethernet frames
     capacity: 1048575
     cachesize: 465
-    dataroomsize: 2000
+    dataroomsize: 2200
   NAME:  # name linearize
     capacity: 65535
     cachesize: 255

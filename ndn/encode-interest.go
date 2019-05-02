@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"math/rand"
 	"time"
+	"unsafe"
 
 	"ndn-dpdk/dpdk"
 )
@@ -94,6 +95,19 @@ func (tpl *InterestTemplate) Encode(m dpdk.IMbuf, nameSuffix *Name, nonce uint32
 		C.uint16_t(len(nameSuffixV)), (*C.uint8_t)(nameSuffixV.GetPtr()),
 		C.uint32_t(nonce), C.uint16_t(len(paramV)), (*C.uint8_t)(paramV.GetPtr()),
 		(*C.uint8_t)(tpl.namePrefix.GetPtr()))
+}
+
+func (tpl *InterestTemplate) CopyToC(tplC unsafe.Pointer, buffer unsafe.Pointer, sizeofBuffer int, namePrefix unsafe.Pointer, sizeofNamePrefix int) error {
+	tpl.prepare()
+	if sizeofBuffer < len(tpl.buffer) || sizeofNamePrefix < len(tpl.namePrefix) {
+		return fmt.Errorf("buffer too short, need %d and %d", len(tpl.buffer), len(tpl.namePrefix))
+	}
+
+	C.memcpy(tplC, unsafe.Pointer(&tpl.c), C.sizeof_InterestTemplate)
+	C.memcpy(buffer, tpl.buffer.GetPtr(), C.size_t(len(tpl.buffer)))
+	C.memcpy(namePrefix, tpl.namePrefix.GetPtr(), C.size_t(len(tpl.namePrefix)))
+	((*C.InterestTemplate)(tplC)).namePrefix.value = (*C.uint8_t)(namePrefix)
+	return nil
 }
 
 type tCanBePrefix bool
