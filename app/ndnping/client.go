@@ -34,10 +34,8 @@ func newClient(face iface.IFace, cfg ClientConfig) (client *Client) {
 	socket := face.GetNumaSocket()
 	crC := (*C.PingClientRx)(dpdk.Zmalloc("PingClientRx", C.sizeof_PingClientRx, socket))
 	ctC := (*C.PingClientTx)(dpdk.Zmalloc("PingClientTx", C.sizeof_PingClientTx, socket))
-	dpdk.InitStopFlag(unsafe.Pointer(&crC.stop))
 
 	ctC.face = (C.FaceId)(face.GetFaceId())
-	dpdk.InitStopFlag(unsafe.Pointer(&ctC.stop))
 	ctC.interestMbufHeadroom = C.uint16_t(appinit.SizeofEthLpHeaders() + ndn.EncodeInterest_GetHeadroom())
 	ctC.interestMp = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
 		appinit.MP_INT, socket).GetPtr())
@@ -49,8 +47,10 @@ func newClient(face iface.IFace, cfg ClientConfig) (client *Client) {
 	client = new(Client)
 	client.c = crC
 	client.ResetThreadBase()
+	dpdk.InitStopFlag(unsafe.Pointer(&crC.stop))
 	client.Tx.c = ctC
 	client.Tx.ResetThreadBase()
+	dpdk.InitStopFlag(unsafe.Pointer(&ctC.stop))
 
 	for _, pattern := range cfg.Patterns {
 		client.AddPattern(pattern)
@@ -76,7 +76,7 @@ func (client *Client) AddPattern(pattern ClientPattern) (index int, e error) {
 	if e = pattern.AsInterestTemplate().CopyToC(unsafe.Pointer(&txP.tpl),
 		unsafe.Pointer(&txP.tplPrepareBuffer), int(unsafe.Sizeof(txP.tplPrepareBuffer)),
 		unsafe.Pointer(&txP.prefixBuffer), int(unsafe.Sizeof(txP.prefixBuffer))); e != nil {
-		return -1, nil
+		return -1, e
 	}
 
 	client.c.nPatterns++

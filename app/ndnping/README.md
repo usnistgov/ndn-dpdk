@@ -6,11 +6,11 @@ Unlike named-data.net's [ndnping](https://github.com/named-data/ndn-tools/tree/m
 
 This packet generator has five kinds of threads:
 
-*   A single **input thread** ("RX" role) runs an *iface.RxLoop* that invokes `NdnpingInput_FaceRx` when a burst of L3 packets arrives on any face.
+*   A single **input thread** ("RX" role) runs an *iface.RxLoop* that invokes `PingInput_FaceRx` when a burst of L3 packets arrives on any face.
     It dispatches Data and Nacks to client-RX threads, and dispatches Interests to server threads.
-*   A per-face **client-TX thread** ("CLIT" role) executes `NdnpingClient_RunTx` function that periodically sends Interests.
-*   A per-face **client-RX thread** ("CLIR" role) executes `NdnpingClient_RunRx` function that receives Data and Nacks from the input thread, and collects statistics about them.
-*   A per-face **server thread** ("SVR" role) executes `NdnpingServer_Run` function that receives Interest from the input thread via a queue, and responds to them.
+*   A per-face **client-TX thread** ("CLIT" role) executes `PingClientTx_Run` function that periodically sends Interests.
+*   A per-face **client-RX thread** ("CLIR" role) executes `PingClientRx_Run` function that receives Data and Nacks from the input thread, and collects statistics about them.
+*   A per-face **server thread** ("SVR" role) executes `PingServer_Run` function that receives Interests from the input thread, and responds to them.
 *   A single **output thread** ("TX" role) runs an *iface.TxLoop* that transmits Interests, Data, and Nacks created by any client-RX thread or server thread.
 
 ```

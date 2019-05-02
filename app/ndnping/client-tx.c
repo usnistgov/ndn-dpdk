@@ -27,7 +27,7 @@ PingClientTx_MakeInterest(PingClientTx* ct, Packet* npkt, uint64_t now)
   ZF_LOGD("<I seq=%" PRIx64 " pattern=%d", seqNum, patternId);
 
   Packet_InitLpL3Hdr(npkt)->pitToken =
-    NdnpingToken_New(patternId, ct->runNum, now);
+    PingToken_New(patternId, ct->runNum, now);
 }
 
 static void
@@ -41,7 +41,7 @@ PingClientTx_Burst(PingClientTx* ct)
     return;
   }
 
-  uint64_t now = Ndnping_Now();
+  uint64_t now = Ping_Now();
   for (uint16_t i = 0; i < PINGCLIENT_TX_BURST_SIZE; ++i) {
     PingClientTx_MakeInterest(ct, npkts[i], now);
   }

@@ -85,12 +85,6 @@ container/mintmr/cgoflags.go: dpdk/cgoflags.go
 	./make-cgoflags.sh container/mintmr dpdk
 	./make-cgoflags.sh container/mintmr/mintmrtest container/mintmr
 
-$(CLIBPREFIX)-nameset.a: $(CLIBPREFIX)-ndn.a container/nameset/*.h container/nameset/*.c
-	./cbuild.sh container/nameset
-
-container/nameset/cgoflags.go: ndn/cgoflags.go
-	./make-cgoflags.sh container/nameset ndn
-
 $(CLIBPREFIX)-ndt.a: $(CLIBPREFIX)-ndn.a container/ndt/*.h container/ndt/*.c
 	./cbuild.sh container/ndt
 
@@ -147,8 +141,8 @@ $(CLIBPREFIX)-strategy.a: strategy/api* $(CLIBPREFIX)-pcct.a
 appinit/cgoflags.go: dpdk/cgoflags.go
 	./make-cgoflags.sh appinit dpdk
 
-app/ndnping/cgoflags.go: container/nameset/cgoflags.go iface/cgoflags.go
-	./make-cgoflags.sh app/ndnping container/nameset iface
+app/ndnping/cgoflags.go: iface/cgoflags.go
+	./make-cgoflags.sh app/ndnping iface
 
 $(CLIBPREFIX)-fwdp.a: $(CLIBPREFIX)-pcct.a $(CLIBPREFIX)-iface.a app/fwdp/*.h app/fwdp/*.c
 	./cbuild.sh app/fwdp

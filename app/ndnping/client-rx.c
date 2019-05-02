@@ -30,13 +30,13 @@ static void
 PingClientRx_ProcessData(PingClientRx* cr, Packet* npkt, uint64_t now)
 {
   uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
-  uint8_t patternId = NdnpingToken_GetPatternId(token);
+  uint8_t patternId = PingToken_GetPatternId(token);
   PingClientRxPattern* pattern = &cr->pattern[patternId];
 
   const PData* data = Packet_GetDataHdr(npkt);
   uint64_t seqNum;
   if (unlikely(
-        NdnpingToken_GetRunNum(token) != cr->runNum ||
+        PingToken_GetRunNum(token) != cr->runNum ||
         patternId >= cr->nPatterns ||
         !PingClientRx_GetSeqNumFromName(cr, pattern, &data->name, &seqNum) ||
         PINGCLIENT_SELECT_PATTERN(cr, seqNum) != patternId)) {
@@ -46,7 +46,7 @@ PingClientRx_ProcessData(PingClientRx* cr, Packet* npkt, uint64_t now)
   ZF_LOGD(">D seq=%" PRIx64 " pattern=%d", seqNum, patternId);
 
   ++pattern->nData;
-  uint64_t sendTime = NdnpingToken_GetTimestamp(token);
+  uint64_t sendTime = PingToken_GetTimestamp(token);
   RunningStat_Push(&pattern->rtt, now - sendTime);
 }
 
@@ -54,12 +54,12 @@ static void
 PingClientRx_ProcessNack(PingClientRx* cr, Packet* npkt, uint64_t now)
 {
   uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
-  uint8_t patternId = NdnpingToken_GetPatternId(token);
+  uint8_t patternId = PingToken_GetPatternId(token);
   PingClientRxPattern* pattern = &cr->pattern[patternId];
 
   const PNack* nack = Packet_GetNackHdr(npkt);
   uint64_t seqNum;
-  if (unlikely(NdnpingToken_GetRunNum(token) != cr->runNum ||
+  if (unlikely(PingToken_GetRunNum(token) != cr->runNum ||
                patternId >= cr->nPatterns ||
                !PingClientRx_GetSeqNumFromName(
                  cr, pattern, &nack->interest.name, &seqNum) ||
@@ -80,7 +80,7 @@ PingClientRx_Run(PingClientRx* cr)
   while (ThreadStopFlag_ShouldContinue(&cr->stop)) {
     uint16_t nRx = rte_ring_sc_dequeue_bulk(
       cr->rxQueue, (void**)npkts, PINGCLIENT_RX_BURST_SIZE, NULL);
-    uint64_t now = Ndnping_Now();
+    uint64_t now = Ping_Now();
     for (uint16_t i = 0; i < nRx; ++i) {
       Packet* npkt = npkts[i];
       if (unlikely(Packet_GetL2PktType(npkt) != L2PktType_NdnlpV2)) {

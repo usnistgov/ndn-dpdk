@@ -81,9 +81,9 @@ func (app *App) launchRxl(rxl *iface.RxLoop) {
 		}
 	}
 
-	inputC := C.NdnpingInput_New(C.uint16_t(minFaceId), C.uint16_t(maxFaceId), C.unsigned(rxl.GetNumaSocket()))
+	inputC := C.PingInput_New(C.uint16_t(minFaceId), C.uint16_t(maxFaceId), C.unsigned(rxl.GetNumaSocket()))
 	for i, task := range app.Tasks {
-		entryC := C.__NdnpingInput_GetEntry(inputC, C.uint16_t(task.Face.GetFaceId()))
+		entryC := C.__PingInput_GetEntry(inputC, C.uint16_t(task.Face.GetFaceId()))
 		if entryC == nil {
 			continue
 		}
@@ -107,7 +107,7 @@ func (app *App) launchRxl(rxl *iface.RxLoop) {
 		}
 	}
 
-	rxl.SetCallback(unsafe.Pointer(C.NdnpingInput_FaceRx), unsafe.Pointer(inputC))
+	rxl.SetCallback(unsafe.Pointer(C.PingInput_FaceRx), unsafe.Pointer(inputC))
 	rxl.Launch()
 }
 

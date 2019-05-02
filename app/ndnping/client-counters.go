@@ -65,7 +65,7 @@ func (cnt ClientCounters) String() string {
 // Read counters.
 func (client *Client) ReadCounters() (cnt ClientCounters) {
 	durationUnit := dpdk.GetNanosInTscUnit() *
-		math.Pow(2.0, float64(C.NDNPING_TIMING_PRECISION))
+		math.Pow(2.0, float64(C.PING_TIMING_PRECISION))
 	toDuration := func(d float64) time.Duration {
 		return time.Duration(d * durationUnit)
 	}

@@ -73,6 +73,23 @@ func (n *Name) Encode() TlvBytes {
 	return EncodeTlv(TT_Name, n.b)
 }
 
+// Copy to C.LName.
+func (n *Name) CopyToLName(lname unsafe.Pointer, buffer unsafe.Pointer, sizeofBuffer int) error {
+	sz := n.Size()
+	if sizeofBuffer < sz {
+		return fmt.Errorf("buffer too short, need %d", sz)
+	}
+
+	if sz > 0 {
+		C.memcpy(buffer, unsafe.Pointer(n.getValuePtr()), C.size_t(sz))
+	}
+
+	lnameC := (*C.LName)(lname)
+	lnameC.length = C.uint16_t(sz)
+	lnameC.value = (*C.uint8_t)(buffer)
+	return nil
+}
+
 // Test whether the name ends with an implicit digest.
 func (n *Name) HasDigestComp() bool {
 	return bool(n.p.hasDigestComp)

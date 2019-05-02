@@ -1,21 +1,21 @@
 #include "input.h"
 
-NdnpingInput*
-NdnpingInput_New(uint16_t minFaceId, uint16_t maxFaceId, unsigned numaSocket)
+PingInput*
+PingInput_New(uint16_t minFaceId, uint16_t maxFaceId, unsigned numaSocket)
 {
-  size_t size = sizeof(NdnpingInput) +
-                sizeof(NdnpingInputEntry) * (maxFaceId - minFaceId + 1);
-  NdnpingInput* input =
-    (NdnpingInput*)rte_zmalloc_socket("NdnpingInput", size, 0, numaSocket);
+  size_t size =
+    sizeof(PingInput) + sizeof(PingInputEntry) * (maxFaceId - minFaceId + 1);
+  PingInput* input =
+    (PingInput*)rte_zmalloc_socket("PingInput", size, 0, numaSocket);
   input->minFaceId = minFaceId;
   input->maxFaceId = maxFaceId;
   return input;
 }
 
 void
-NdnpingInput_FaceRx(FaceRxBurst* burst, void* input0)
+PingInput_FaceRx(FaceRxBurst* burst, void* input0)
 {
-  NdnpingInput* input = (NdnpingInput*)input0;
+  PingInput* input = (PingInput*)input0;
 
 #define DISPATCH_TO(queueName)                                                 \
   do {                                                                         \
