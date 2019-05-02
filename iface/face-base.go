@@ -81,7 +81,9 @@ func (face *FaceBase) FinishInitFaceBase(txQueueCapacity, mtu, headroom int, mem
 	}
 	faceC.txQueue = (*C.struct_rte_ring)(r.GetPtr())
 
-	C.RunningStat_SetSampleRate(&faceC.impl.latencyStat, 16) // collect latency once every 2^16 packets
+	latencyStat := running_stat.FromPtr(unsafe.Pointer(&faceC.impl.latencyStat))
+	latencyStat.Clear(false)
+	latencyStat.SetSampleRate(16) // collect latency once every 2^16 packets
 
 	if res := C.TxProc_Init(&faceC.impl.tx, C.uint16_t(mtu), C.uint16_t(headroom),
 		(*C.struct_rte_mempool)(mempools.IndirectMp.GetPtr()), (*C.struct_rte_mempool)(mempools.HeaderMp.GetPtr())); res != 0 {

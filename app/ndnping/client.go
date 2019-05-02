@@ -33,8 +33,8 @@ type Client struct {
 func newClient(face iface.IFace, cfg ClientConfig) (client *Client) {
 	socket := face.GetNumaSocket()
 	crC := (*C.PingClientRx)(dpdk.Zmalloc("PingClientRx", C.sizeof_PingClientRx, socket))
-	ctC := (*C.PingClientTx)(dpdk.Zmalloc("PingClientTx", C.sizeof_PingClientTx, socket))
 
+	ctC := (*C.PingClientTx)(dpdk.Zmalloc("PingClientTx", C.sizeof_PingClientTx, socket))
 	ctC.face = (C.FaceId)(face.GetFaceId())
 	ctC.interestMbufHeadroom = C.uint16_t(appinit.SizeofEthLpHeaders() + ndn.EncodeInterest_GetHeadroom())
 	ctC.interestMp = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(

@@ -1,6 +1,9 @@
 package running_stat
 
-import "math"
+import (
+	"encoding/json"
+	"math"
+)
 
 // A snapshot of RunningStat output.
 type Snapshot struct {
@@ -29,4 +32,19 @@ func (s Snapshot) Multiply(ratio float64) (o Snapshot) {
 	o.Mean *= ratio
 	o.Stdev *= math.Abs(ratio)
 	return o
+}
+
+func (s Snapshot) MarshalJSON() ([]byte, error) {
+	m := make(map[string]interface{})
+	m["Count"] = s.Count
+	addUnlessNaN := func(key string, value float64) {
+		if !math.IsNaN(value) {
+			m[key] = value
+		}
+	}
+	addUnlessNaN("Min", s.Min)
+	addUnlessNaN("Max", s.Max)
+	addUnlessNaN("Mean", s.Mean)
+	addUnlessNaN("Stdev", s.Stdev)
+	return json.Marshal(m)
 }

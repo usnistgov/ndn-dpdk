@@ -70,6 +70,7 @@ func (fwd *Fwd) Init(fib *fib.Fib, pcctCfg pcct.Config, queueCap int, latencySam
 	fwd.c.indirectMp = (*C.struct_rte_mempool)(indirectMp.GetPtr())
 
 	latencyStat := running_stat.FromPtr(unsafe.Pointer(&fwd.c.latencyStat))
+	latencyStat.Clear(false)
 	latencyStat.SetSampleRate(latencySampleFreq)
 
 	fwd.c.suppressCfg.min = C.TscDuration(dpdk.ToTscDuration(10 * time.Millisecond))

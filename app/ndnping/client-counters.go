@@ -107,6 +107,7 @@ func (client *Client) ClearCounters() {
 func (client *Client) clearCounter(index int) {
 	client.c.pattern[index].nData = 0
 	client.c.pattern[index].nNacks = 0
-	client.c.pattern[index].rtt = C.RunningStat{}
+	rtt := running_stat.FromPtr(unsafe.Pointer(&client.c.pattern[index].rtt))
+	rtt.Clear(true)
 	client.Tx.c.pattern[index].nInterests = 0
 }

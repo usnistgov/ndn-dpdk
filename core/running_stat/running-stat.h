@@ -4,6 +4,8 @@
 /// \file
 
 #include "../common.h"
+
+#include <float.h>
 #include <math.h>
 
 /** \brief Facility to compute min, max, mean, and variance.
@@ -15,10 +17,8 @@ typedef struct RunningStat
   uint64_t n;    ///< count of taken samples
   double min;
   double max;
-  double oldM;
-  double newM;
-  double oldS;
-  double newS;
+  double m1;
+  double m2;
 } RunningStat;
 static_assert(sizeof(RunningStat) <= RTE_CACHE_LINE_SIZE, "");
 
@@ -32,43 +32,42 @@ RunningStat_SetSampleRate(RunningStat* s, int q)
   s->mask = (1 << q) - 1;
 }
 
-static __rte_always_inline void
-__RunningStat_UpdateMS(RunningStat* s, double x)
+/** \brief Clear statistics portion of \p s.
+ */
+static void
+RunningStat_Clear(RunningStat* s, bool enableMinMax)
 {
-  s->newM = s->oldM + (x - s->oldM) / s->n;
-  s->newS = s->oldS + (x - s->oldM) * (x - s->newM);
-  s->oldM = s->newM;
-  s->oldS = s->newS;
+  s->n = 0;
+  if (enableMinMax) {
+    s->min = DBL_MAX;
+    s->max = DBL_MIN;
+  } else {
+    s->min = NAN;
+    s->max = NAN;
+  }
+  s->m1 = 0.0;
+  s->m2 = 0.0;
 }
 
 static void
-__RunningStat_Update(RunningStat* s, double x)
+__RunningStat_UpdateMinMax(RunningStat* s, double x)
 {
-  ++s->n;
-  if (unlikely(s->n == 1)) {
-    s->min = s->max = s->oldM = s->newM = x;
-    s->oldS = 0.0;
-  } else {
-    s->min = RTE_MIN(s->min, x);
-    s->max = RTE_MAX(s->max, x);
-    __RunningStat_UpdateMS(s, x);
-  }
+  s->min = RTE_MIN(s->min, x);
+  s->max = RTE_MAX(s->max, x);
 }
 
 static void
-__RunningStat_Update1(RunningStat* s, double x)
+__RunningStat_UpdateM(RunningStat* s, double x)
 {
+  uint64_t n1 = s->n;
   ++s->n;
-  if (unlikely(s->n == 1)) {
-    s->min = s->max = NAN;
-    s->oldM = s->newM = x;
-    s->oldS = 0.0;
-  } else {
-    __RunningStat_UpdateMS(s, x);
-  }
+  double delta = x - s->m1;
+  double deltaN = delta / s->n;
+  s->m1 += deltaN;
+  s->m2 += delta * deltaN * n1;
 }
 
-/** \brief Add a sample to RunningStat.
+/** \brief Add a sample to RunningStat with min-max update.
  */
 static __rte_always_inline void
 RunningStat_Push(RunningStat* s, double x)
@@ -77,10 +76,11 @@ RunningStat_Push(RunningStat* s, double x)
   if (likely((s->i & s->mask) != 0)) {
     return;
   }
-  __RunningStat_Update(s, x);
+  __RunningStat_UpdateMinMax(s, x);
+  __RunningStat_UpdateM(s, x);
 }
 
-/** \brief Add a sample to RunningStat, and disable min-max.
+/** \brief Add a sample to RunningStat without min-max update.
  */
 static __rte_always_inline void
 RunningStat_Push1(RunningStat* s, double x)
@@ -89,7 +89,7 @@ RunningStat_Push1(RunningStat* s, double x)
   if (likely((s->i & s->mask) != 0)) {
     return;
   }
-  __RunningStat_Update1(s, x);
+  __RunningStat_UpdateM(s, x);
 }
 
 #endif // NDN_DPDK_CORE_RUNNING_STAT_H
