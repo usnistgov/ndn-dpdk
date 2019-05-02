@@ -16,46 +16,68 @@ import (
 	"ndn-dpdk/dpdk"
 )
 
-type ClientPatternCounters struct {
+type ClientPacketCounters struct {
 	NInterests uint64
 	NData      uint64
 	NNacks     uint64
+}
 
+func (cnt ClientPacketCounters) ComputeDataRatio() float64 {
+	return float64(cnt.NData) / float64(cnt.NInterests)
+}
+
+func (cnt ClientPacketCounters) ComputeNackRatio() float64 {
+	return float64(cnt.NNacks) / float64(cnt.NInterests)
+}
+
+func (cnt ClientPacketCounters) String() string {
+	return fmt.Sprintf("%dI %dD(%0.2f%%) %dN(%0.2f%%)",
+		cnt.NInterests,
+		cnt.NData, cnt.ComputeDataRatio()*100.0,
+		cnt.NNacks, cnt.ComputeNackRatio()*100.0)
+}
+
+type ClientRttCounters struct {
+	Min   time.Duration
+	Max   time.Duration
+	Avg   time.Duration
+	Stdev time.Duration
+}
+
+func (cnt *ClientRttCounters) Set(s running_stat.RunningStat) {
+	durationUnit := dpdk.GetNanosInTscUnit() * math.Pow(2.0, float64(C.PING_TIMING_PRECISION))
+	cnt.Min = time.Duration(s.Min() * durationUnit)
+	cnt.Max = time.Duration(s.Max() * durationUnit)
+	cnt.Avg = time.Duration(s.Mean() * durationUnit)
+	cnt.Stdev = time.Duration(s.Stdev() * durationUnit)
+}
+
+func (cnt ClientRttCounters) String() string {
+	return fmt.Sprintf("%0.3f/%0.3f/%0.3f/%0.3fms",
+		float64(cnt.Min)/float64(time.Millisecond), float64(cnt.Avg)/float64(time.Millisecond),
+		float64(cnt.Max)/float64(time.Millisecond), float64(cnt.Stdev)/float64(time.Millisecond))
+}
+
+type ClientPatternCounters struct {
+	ClientPacketCounters
+	Rtt         ClientRttCounters
 	NRttSamples uint64
-	RttMin      time.Duration
-	RttMax      time.Duration
-	RttAvg      time.Duration
-	RttStdev    time.Duration
 }
 
 func (cnt ClientPatternCounters) String() string {
-	return fmt.Sprintf("%dI %dD(%0.2f%%) %dN(%0.2f%%) rtt=%0.3f/%0.3f/%0.3f/%0.3fms(%dsamp)",
-		cnt.NInterests,
-		cnt.NData, float64(cnt.NData)/float64(cnt.NInterests)*100.0,
-		cnt.NNacks, float64(cnt.NNacks)/float64(cnt.NInterests)*100.0,
-		float64(cnt.RttMin)/float64(time.Millisecond), float64(cnt.RttAvg)/float64(time.Millisecond),
-		float64(cnt.RttMax)/float64(time.Millisecond), float64(cnt.RttStdev)/float64(time.Millisecond),
-		cnt.NRttSamples)
+	return fmt.Sprintf("%s rtt=%s(%dsamp)",
+		cnt.ClientPacketCounters, cnt.Rtt, cnt.NRttSamples)
 }
 
 type ClientCounters struct {
-	PerPattern  []ClientPatternCounters
-	NInterests  uint64
-	NData       uint64
-	NNacks      uint64
+	ClientPacketCounters
 	NAllocError uint64
-}
-
-func (cnt ClientCounters) ComputeRatios() (dataRatio, nackRatio float64) {
-	dataRatio = float64(cnt.NData) / float64(cnt.NInterests)
-	nackRatio = float64(cnt.NNacks) / float64(cnt.NInterests)
-	return
+	Rtt         ClientRttCounters
+	PerPattern  []ClientPatternCounters
 }
 
 func (cnt ClientCounters) String() string {
-	dataRatio, nackRatio := cnt.ComputeRatios()
-	s := fmt.Sprintf("%dI %dD(%0.2f%%) %dN(%0.2f%%) %dalloc-error", cnt.NInterests,
-		cnt.NData, dataRatio*100.0, cnt.NNacks, nackRatio*100.0, cnt.NAllocError)
+	s := fmt.Sprintf("%s %dalloc-error rtt=%s", cnt.ClientPacketCounters, cnt.NAllocError, cnt.Rtt)
 	for i, pcnt := range cnt.PerPattern {
 		s += fmt.Sprintf(", pattern(%d) %s", i, pcnt)
 	}
@@ -64,34 +86,28 @@ func (cnt ClientCounters) String() string {
 
 // Read counters.
 func (client *Client) ReadCounters() (cnt ClientCounters) {
-	durationUnit := dpdk.GetNanosInTscUnit() *
-		math.Pow(2.0, float64(C.PING_TIMING_PRECISION))
-	toDuration := func(d float64) time.Duration {
-		return time.Duration(d * durationUnit)
-	}
-
-	nPatterns := int(client.c.nPatterns)
-	cnt.PerPattern = make([]ClientPatternCounters, nPatterns)
-	for i := 0; i < nPatterns; i++ {
+	rttCombined := running_stat.New()
+	for i := 0; i < int(client.c.nPatterns); i++ {
 		crP := client.c.pattern[i]
 		ctP := client.Tx.c.pattern[i]
 		rtt := running_stat.FromPtr(unsafe.Pointer(&crP.rtt))
-		cnt.PerPattern[i] = ClientPatternCounters{
-			NInterests:  uint64(ctP.nInterests),
-			NData:       uint64(crP.nData),
-			NNacks:      uint64(crP.nNacks),
-			NRttSamples: rtt.Len64(),
-			RttMin:      toDuration(rtt.Min()),
-			RttMax:      toDuration(rtt.Max()),
-			RttAvg:      toDuration(rtt.Mean()),
-			RttStdev:    toDuration(rtt.Stdev()),
-		}
-		cnt.NInterests += cnt.PerPattern[i].NInterests
-		cnt.NData += cnt.PerPattern[i].NData
-		cnt.NNacks += cnt.PerPattern[i].NNacks
+
+		var pcnt ClientPatternCounters
+		pcnt.NInterests = uint64(ctP.nInterests)
+		pcnt.NData = uint64(crP.nData)
+		pcnt.NNacks = uint64(crP.nNacks)
+		pcnt.NRttSamples = rtt.Len64()
+		pcnt.Rtt.Set(rtt)
+		cnt.PerPattern = append(cnt.PerPattern, pcnt)
+
+		cnt.NInterests += pcnt.NInterests
+		cnt.NData += pcnt.NData
+		cnt.NNacks += pcnt.NNacks
+		rttCombined = running_stat.Combine(rttCombined, rtt)
 	}
 
 	cnt.NAllocError = uint64(client.Tx.c.nAllocError)
+	cnt.Rtt.Set(rttCombined)
 	return cnt
 }
 

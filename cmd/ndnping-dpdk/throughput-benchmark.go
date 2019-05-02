@@ -59,8 +59,7 @@ func (tb *ThroughputBenchmark) Run() (ok bool, msi time.Duration, cnt ndnping.Cl
 		for j := 0; j <= tb.cfg.RetestCount; j++ {
 			nTests++
 			ok, tb.cnts[i] = tb.Once(interval)
-			dataRatio, _ := tb.cnts[i].ComputeRatios()
-			if ok || dataRatio < tb.cfg.RetestThreshold {
+			if ok || tb.cnts[i].ComputeDataRatio() < tb.cfg.RetestThreshold {
 				break
 			}
 		}
@@ -105,7 +104,7 @@ L:
 		select {
 		case now := <-readCountersTicker.C:
 			cnt = tb.client.ReadCounters()
-			dataRatio, _ := cnt.ComputeRatios()
+			dataRatio := cnt.ComputeDataRatio()
 			if dataRatio < tb.cfg.SatisfyThreshold {
 				tblog.Debugf("%0.2f%%, early fail after %0.2fs", dataRatio*100, now.Sub(startTime).Seconds())
 				isEarlyFail = true
@@ -135,7 +134,7 @@ L:
 	}
 
 	cnt = tb.client.ReadCounters()
-	dataRatio, _ := cnt.ComputeRatios()
+	dataRatio := cnt.ComputeDataRatio()
 	ok = dataRatio >= tb.cfg.SatisfyThreshold
 	if ok {
 		tblog.Debugf("satisfy ratio %0.2f%% above threshold", dataRatio*100)
