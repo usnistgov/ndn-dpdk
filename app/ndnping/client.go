@@ -6,7 +6,7 @@ package ndnping
 */
 import "C"
 import (
-	"errors"
+	"fmt"
 	"math/rand"
 	"time"
 	"unsafe"
@@ -57,14 +57,21 @@ func (client *Client) GetFace() iface.IFace {
 
 func (client *Client) AddPattern(cfg ClientPattern) (index int, e error) {
 	if client.c.nPatterns >= C.PINGCLIENT_MAX_PATTERNS {
-		return -1, errors.New("too many patterns")
+		return -1, fmt.Errorf("cannot add more than %d patterns", C.PINGCLIENT_MAX_PATTERNS)
+	}
+	weight := cfg.Weight
+	if weight < 1 {
+		weight = 1
+	}
+	if client.Tx.c.nWeights+C.uint16_t(weight) >= C.PINGCLIENT_MAX_SUM_WEIGHT {
+		return -1, fmt.Errorf("sum of weight cannot exceed %d", C.PINGCLIENT_MAX_SUM_WEIGHT)
 	}
 
 	tpl := ndn.NewInterestTemplate()
 	tpl.SetNamePrefix(cfg.Prefix)
 	tpl.SetCanBePrefix(cfg.CanBePrefix)
 	tpl.SetMustBeFresh(cfg.MustBeFresh)
-	if cfg.InterestLifetime != time.Duration(0) {
+	if cfg.InterestLifetime != 0 {
 		tpl.SetInterestLifetime(cfg.InterestLifetime)
 	}
 	if cfg.HopLimit != 0 {
@@ -86,7 +93,10 @@ func (client *Client) AddPattern(cfg ClientPattern) (index int, e error) {
 	}
 
 	client.c.nPatterns++
-	client.Tx.c.nPatterns = client.c.nPatterns
+	for i := 0; i < weight; i++ {
+		client.Tx.c.weight[client.Tx.c.nWeights] = C.PingPatternId(index)
+		client.Tx.c.nWeights++
+	}
 	return index, nil
 }
 

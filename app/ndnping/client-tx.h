@@ -38,7 +38,7 @@ typedef struct PingClientTx
   uint16_t interestMbufHeadroom;
   ThreadStopFlag stop;
   uint8_t runNum;
-  uint16_t nPatterns;
+  uint16_t nWeights;
   struct rte_mempool* interestMp; ///< mempool for Interests
   TscDuration burstInterval;      ///< interval between two bursts
 
@@ -46,6 +46,7 @@ typedef struct PingClientTx
   NonceGen nonceGen;
   uint64_t nAllocError;
 
+  PingPatternId weight[PINGCLIENT_MAX_SUM_WEIGHT];
   PingClientTxPattern pattern[PINGCLIENT_MAX_PATTERNS];
 } PingClientTx;
 

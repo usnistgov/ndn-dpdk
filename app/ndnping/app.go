@@ -26,9 +26,8 @@ type App struct {
 	rxls  []*iface.RxLoop
 }
 
-func NewApp(cfg []TaskConfig) (app *App, e error) {
+func New(cfg []TaskConfig) (app *App, e error) {
 	app = new(App)
-
 	appinit.BeforeStartRxl = app.addRxl
 	appinit.WantLaunchRxl = false
 
@@ -42,7 +41,7 @@ func NewApp(cfg []TaskConfig) (app *App, e error) {
 	}
 
 	for i, taskCfg := range cfg {
-		task, e := newTask(taskCfg, faces[i])
+		task, e := newTask(faces[i], taskCfg)
 		if e != nil {
 			return nil, fmt.Errorf("[%d] init error: %v", i, e)
 		}
@@ -117,7 +116,7 @@ type Task struct {
 	Server *Server
 }
 
-func newTask(cfg TaskConfig, face iface.IFace) (task Task, e error) {
+func newTask(face iface.IFace, cfg TaskConfig) (task Task, e error) {
 	numaSocket := face.GetNumaSocket()
 	task.Face = face
 	if cfg.Client != nil {

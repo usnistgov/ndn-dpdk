@@ -18,7 +18,7 @@ func main() {
 
 	pc.initCfg.Apply()
 
-	app, e := ndnping.NewApp(pc.tasks)
+	app, e := ndnping.New(pc.tasks)
 	if e != nil {
 		log.WithError(e).Fatal("ndnping.NewApp error")
 	}

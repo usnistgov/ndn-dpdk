@@ -7,33 +7,40 @@ import (
 	"ndn-dpdk/ndn"
 )
 
+// Per-face task config, consists of a client and/or a server.
 type TaskConfig struct {
-	Face   iface.LocatorWrapper
-	Client *ClientConfig
-	Server *ServerConfig
+	Face   iface.LocatorWrapper // face locator for face creation
+	Client *ClientConfig        // if not nil, create a client on the face
+	Server *ServerConfig        // if not nil, create a server on the face
 }
 
+// Client config.
 type ClientConfig struct {
-	Patterns []ClientPattern
-	Interval time.Duration
+	Patterns []ClientPattern // traffic patterns
+	Interval time.Duration   // sending interval
 }
 
+// Client pattern defintion.
 type ClientPattern struct {
-	Prefix           *ndn.Name
-	CanBePrefix      bool
-	MustBeFresh      bool
-	InterestLifetime time.Duration
-	HopLimit         int
+	Weight int // weight of random choice, minimum is 1
+
+	Prefix           *ndn.Name     // name prefix
+	CanBePrefix      bool          // whether to set CanBePrefix
+	MustBeFresh      bool          // whether to set MustBeFresh
+	InterestLifetime time.Duration // InterestLifetime value, zero means default
+	HopLimit         int           // HopLimit value, zero means default
 }
 
+// Server config.
 type ServerConfig struct {
-	Patterns []ServerPattern
-	Nack     bool
+	Patterns []ServerPattern // traffic patterns
+	Nack     bool            // whether to respond Nacks to unmatched Interests
 }
 
+// Server pattern definition.
 type ServerPattern struct {
-	Prefix          *ndn.Name
-	Suffix          *ndn.Name
-	FreshnessPeriod time.Duration
-	PayloadLen      int
+	Prefix          *ndn.Name     // name prefix
+	Suffix          *ndn.Name     // suffix to append to Interest name
+	FreshnessPeriod time.Duration // FreshnessPeriod value
+	PayloadLen      int           // Content payload length
 }

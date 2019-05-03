@@ -10,24 +10,18 @@ typedef struct PingClientTxTraffic
   uint8_t patternId;
 } PingClientTxTraffic;
 
-static PingClientTxTraffic
-PingClientTx_SelectTraffic(PingClientTx* ct)
+static PingPatternId
+PingClientTx_SelectPattern(PingClientTx* ct)
 {
   uint32_t rnd = pcg32_random_r(&ct->trafficRng);
-  // 32-bit random number
-  // 16 bits select a pattern
-  // 16 bits unused
-
-  PingClientTxTraffic traffic = { 0 };
-  traffic.patternId = (rnd >> 16) % ct->nPatterns;
-  return traffic;
+  return ct->weight[rnd % ct->nWeights];
 }
 
 static void
 PingClientTx_MakeInterest(PingClientTx* ct, Packet* npkt, uint64_t now)
 {
-  PingClientTxTraffic traffic = PingClientTx_SelectTraffic(ct);
-  PingClientTxPattern* pattern = &ct->pattern[traffic.patternId];
+  PingPatternId patternId = PingClientTx_SelectPattern(ct);
+  PingClientTxPattern* pattern = &ct->pattern[patternId];
   ++pattern->nInterests;
   uint64_t seqNum = ++pattern->seqNum.compV;
 
@@ -45,8 +39,8 @@ PingClientTx_MakeInterest(PingClientTx* ct, Packet* npkt, uint64_t now)
 
   Packet_SetL3PktType(npkt, L3PktType_Interest); // for stats; no PInterest*
   Packet_InitLpL3Hdr(npkt)->pitToken =
-    PingToken_New(traffic.patternId, ct->runNum, now);
-  ZF_LOGD("<I pattern=%" PRIu8 " seq=%" PRIx64 "", traffic.patternId, seqNum);
+    PingToken_New(patternId, ct->runNum, now);
+  ZF_LOGD("<I pattern=%" PRIu8 " seq=%" PRIx64 "", patternId, seqNum);
 }
 
 static void

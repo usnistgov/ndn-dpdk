@@ -29,13 +29,14 @@ input-+--client1-RX             |
 The client sends Interests and receives Data or Nacks.
 It supports multiple patterns that allow setting:
 
+* probability weight of selecting this pattern relative to other patterns
 * Name prefix
 * CanBePrefix flag
 * MustBeFresh flag
 * InterestLifetime value
 * HopLimit value
 
-The client randomly selects a pattern with equal probability, and makes an Interest with the pattern settings.
+The client randomly selects a pattern, and makes an Interest with the pattern settings.
 The Interest name ends with a sequence number, which is a 64-bit number encoded in binary format and native endianness.
 Strictly speaking, these sequence numbers violate the [ndnping Protocol](https://github.com/named-data/ndn-tools/blob/1fda67dc75692ccf0283a410f70db55686e2ff48/tools/ping/README.md#ndnping-protocol) that requires the sequence number to be encoded as ASCII.
 However, the current C++ `ndnpingserver` implementation can respond to such Interests.
