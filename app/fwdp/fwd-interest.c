@@ -128,6 +128,7 @@ FwFwd_InterestHitCs(FwFwd* fwd, FwFwdRxInterestContext* ctx)
     Packet_CopyTimestamp(outNpkt, ctx->npkt);
     Face_Tx(ctx->dnFace, outNpkt);
   }
+  rte_pktmbuf_free(ctx->pkt);
 }
 
 void
