@@ -17,12 +17,6 @@ import (
 	"ndn-dpdk/ndn"
 )
 
-// Client internal config.
-const (
-	Client_BurstSize        = C.PINGCLIENT_TX_BURST_SIZE
-	Client_InterestLifetime = 1000
-)
-
 // Client instance and RX thread.
 type Client struct {
 	dpdk.ThreadBase
@@ -98,14 +92,14 @@ func (client *Client) AddPattern(cfg ClientPattern) (index int, e error) {
 
 // Get average Interest interval.
 func (client *Client) GetInterval() time.Duration {
-	return dpdk.FromTscDuration(int64(client.Tx.c.burstInterval)) / Client_BurstSize
+	return dpdk.FromTscDuration(int64(client.Tx.c.burstInterval)) / C.PINGCLIENT_TX_BURST_SIZE
 }
 
 // Set average Interest interval.
 // TX thread transmits Interests in bursts, so the specified interval will be converted to
 // a burst interval with equivalent traffic amount.
 func (client *Client) SetInterval(interval time.Duration) {
-	client.Tx.c.burstInterval = C.TscDuration(dpdk.ToTscDuration(interval * Client_BurstSize))
+	client.Tx.c.burstInterval = C.TscDuration(dpdk.ToTscDuration(interval * C.PINGCLIENT_TX_BURST_SIZE))
 }
 
 // Launch the RX thread.

@@ -46,10 +46,17 @@ type ClientRttCounters struct {
 
 func (cnt *ClientRttCounters) Set(s running_stat.RunningStat) {
 	durationUnit := dpdk.GetNanosInTscUnit() * math.Pow(2.0, float64(C.PING_TIMING_PRECISION))
-	cnt.Min = time.Duration(s.Min() * durationUnit)
-	cnt.Max = time.Duration(s.Max() * durationUnit)
-	cnt.Avg = time.Duration(s.Mean() * durationUnit)
-	cnt.Stdev = time.Duration(s.Stdev() * durationUnit)
+	toDuration := func(x float64) time.Duration {
+		if math.IsNaN(x) {
+			return 0
+		}
+		return time.Duration(x * durationUnit)
+	}
+
+	cnt.Min = toDuration(s.Min())
+	cnt.Max = toDuration(s.Max())
+	cnt.Avg = toDuration(s.Mean())
+	cnt.Stdev = toDuration(s.Stdev())
 }
 
 func (cnt ClientRttCounters) String() string {
