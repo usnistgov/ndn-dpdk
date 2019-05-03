@@ -35,6 +35,7 @@ It supports multiple patterns that allow setting:
 * MustBeFresh flag
 * InterestLifetime value
 * HopLimit value
+* override sequece number by subtracting previous pattern's sequence number with a fixed offset, allowing retrieving cached Data
 
 The client randomly selects a pattern, and makes an Interest with the pattern settings.
 The Interest name ends with a sequence number, which is a 64-bit number encoded in binary format and native endianness.

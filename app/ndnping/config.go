@@ -29,6 +29,11 @@ type ClientPattern struct {
 	MustBeFresh      bool          // whether to set MustBeFresh
 	InterestLifetime time.Duration // InterestLifetime value, zero means default
 	HopLimit         int           // HopLimit value, zero means default
+
+	// If non-zero, request cached Data. This must appear after a pattern without SeqNumOffset.
+	// The client derives sequece number by subtracting SeqNumOffset from the previous pattern's
+	// sequence number. Sufficient CS capacity is necessary for Data to actually come from CS.
+	SeqNumOffset int
 }
 
 // Server config.

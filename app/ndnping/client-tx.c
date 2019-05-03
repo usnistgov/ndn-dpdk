@@ -23,7 +23,18 @@ PingClientTx_MakeInterest(PingClientTx* ct, Packet* npkt, uint64_t now)
   PingPatternId patternId = PingClientTx_SelectPattern(ct);
   PingClientTxPattern* pattern = &ct->pattern[patternId];
   ++pattern->nInterests;
-  uint64_t seqNum = ++pattern->seqNum.compV;
+
+  uint64_t seqNum = 0;
+  if (unlikely(pattern->seqNumOffset != 0)) {
+    PingClientTxPattern* basePattern = &ct->pattern[patternId - 1];
+    seqNum = basePattern->seqNum.compV - pattern->seqNumOffset;
+    if (unlikely(seqNum == pattern->seqNum.compV)) {
+      ++seqNum;
+    }
+    pattern->seqNum.compV = seqNum;
+  } else {
+    seqNum = ++pattern->seqNum.compV;
+  }
 
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   pkt->data_off = ct->interestMbufHeadroom;

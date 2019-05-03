@@ -6,6 +6,7 @@ package ndnping
 */
 import "C"
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 	"time"
@@ -61,12 +62,15 @@ func (client *Client) AddPattern(cfg ClientPattern) (index int, e error) {
 	if client.c.nPatterns >= C.PINGCLIENT_MAX_PATTERNS {
 		return -1, fmt.Errorf("cannot add more than %d patterns", C.PINGCLIENT_MAX_PATTERNS)
 	}
-	weight := cfg.Weight
-	if weight < 1 {
-		weight = 1
+	if cfg.Weight < 1 {
+		cfg.Weight = 1
 	}
-	if client.Tx.c.nWeights+C.uint16_t(weight) >= C.PINGCLIENT_MAX_SUM_WEIGHT {
+	if client.Tx.c.nWeights+C.uint16_t(cfg.Weight) >= C.PINGCLIENT_MAX_SUM_WEIGHT {
 		return -1, fmt.Errorf("sum of weight cannot exceed %d", C.PINGCLIENT_MAX_SUM_WEIGHT)
+	}
+	index = int(client.c.nPatterns)
+	if cfg.SeqNumOffset != 0 && index == 0 {
+		return -1, errors.New("first pattern cannot have SeqNumOffset")
 	}
 
 	tpl := ndn.NewInterestTemplate()
@@ -80,22 +84,22 @@ func (client *Client) AddPattern(cfg ClientPattern) (index int, e error) {
 		tpl.SetHopLimit(uint8(cfg.HopLimit))
 	}
 
-	index = int(client.c.nPatterns)
 	client.clearCounter(index)
 	rxP := &client.c.pattern[index]
 	rxP.prefixLen = C.uint16_t(cfg.Prefix.Size())
 	txP := &client.Tx.c.pattern[index]
-	txP.seqNum.compT = C.TT_GenericNameComponent
-	txP.seqNum.compL = C.uint8_t(C.sizeof_uint64_t)
-	txP.seqNum.compV = C.uint64_t(rand.Uint64())
 	if e = tpl.CopyToC(unsafe.Pointer(&txP.tpl),
 		unsafe.Pointer(&txP.tplPrepareBuffer), int(unsafe.Sizeof(txP.tplPrepareBuffer)),
 		unsafe.Pointer(&txP.prefixBuffer), int(unsafe.Sizeof(txP.prefixBuffer))); e != nil {
 		return -1, e
 	}
+	txP.seqNum.compT = C.TT_GenericNameComponent
+	txP.seqNum.compL = C.uint8_t(C.sizeof_uint64_t)
+	txP.seqNum.compV = C.uint64_t(rand.Uint64())
+	txP.seqNumOffset = C.uint32_t(cfg.SeqNumOffset)
 
 	client.c.nPatterns++
-	for i := 0; i < weight; i++ {
+	for i := 0; i < cfg.Weight; i++ {
 		client.Tx.c.weight[client.Tx.c.nWeights] = C.PingPatternId(index)
 		client.Tx.c.nWeights++
 	}

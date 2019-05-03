@@ -25,10 +25,16 @@ typedef struct PingClientTxPattern
     uint64_t compV;      ///< sequence number in native endianness
   } __rte_packed seqNum; ///< sequence number component
 
+  uint32_t seqNumOffset;
+
   InterestTemplate tpl;
   uint8_t tplPrepareBuffer[64];
   uint8_t prefixBuffer[NAME_MAX_LENGTH];
 } PingClientTxPattern;
+
+static_assert(offsetof(PingClientTxPattern, seqNum.compV) % sizeof(uint64_t) ==
+                0,
+              "");
 
 /** \brief ndnping client.
  */
