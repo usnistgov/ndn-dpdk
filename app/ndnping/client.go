@@ -61,20 +61,31 @@ func (client *Client) GetFace() iface.IFace {
 	return iface.Get(iface.FaceId(client.Tx.c.face))
 }
 
-func (client *Client) AddPattern(pattern ClientPattern) (index int, e error) {
+func (client *Client) AddPattern(cfg ClientPattern) (index int, e error) {
 	if client.c.nPatterns >= C.PINGCLIENT_MAX_PATTERNS {
 		return -1, errors.New("too many patterns")
+	}
+
+	tpl := ndn.NewInterestTemplate()
+	tpl.SetNamePrefix(cfg.Prefix)
+	tpl.SetCanBePrefix(cfg.CanBePrefix)
+	tpl.SetMustBeFresh(cfg.MustBeFresh)
+	if cfg.InterestLifetime != time.Duration(0) {
+		tpl.SetInterestLifetime(cfg.InterestLifetime)
+	}
+	if cfg.HopLimit != 0 {
+		tpl.SetHopLimit(uint8(cfg.HopLimit))
 	}
 
 	index = int(client.c.nPatterns)
 	client.clearCounter(index)
 	rxP := &client.c.pattern[index]
-	rxP.prefixLen = C.uint16_t(pattern.Prefix.Size())
+	rxP.prefixLen = C.uint16_t(cfg.Prefix.Size())
 	txP := &client.Tx.c.pattern[index]
 	txP.seqNum.compT = C.TT_GenericNameComponent
 	txP.seqNum.compL = C.uint8_t(C.sizeof_uint64_t)
 	txP.seqNum.compV = C.uint64_t(rand.Uint64())
-	if e = pattern.AsInterestTemplate().CopyToC(unsafe.Pointer(&txP.tpl),
+	if e = tpl.CopyToC(unsafe.Pointer(&txP.tpl),
 		unsafe.Pointer(&txP.tplPrepareBuffer), int(unsafe.Sizeof(txP.tplPrepareBuffer)),
 		unsafe.Pointer(&txP.prefixBuffer), int(unsafe.Sizeof(txP.prefixBuffer))); e != nil {
 		return -1, e

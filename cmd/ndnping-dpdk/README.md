@@ -25,11 +25,15 @@ Emulate classical ndnping client:
 sudo ndnping-dpdk EAL-ARGS -- -tasks="
 ---
 - face:
-    remote: ether://01-00-5E-00-17-AA@net_af_packet0:0
-    remote: ether://02-00-00-00-00-01@net_af_packet0:0
+    scheme: ether
+    port: net_af_packet0
+    local: "02:00:00:00:00:01"
+    remote: "01:00:5e:00:17:aa"
   client:
     patterns:
       - prefix: /prefix/ping
+        canbeprefix: false
+        mustbefresh: true
     interval: 1ms
 "
 ```
@@ -40,11 +44,15 @@ Emulate classical ndnping server:
 sudo ndnping-dpdk EAL-ARGS -- -tasks="
 ---
 - face:
-    remote: ether://01-00-5E-00-17-AA@net_af_packet0:0
-    remote: ether://02-00-00-00-00-02@net_af_packet0:0
+    scheme: ether
+    port: net_af_packet0
+    local: "02:00:00:00:00:02"
+    remote: "01:00:5e:00:17:aa"
   server:
     patterns:
       - prefix: /prefix/ping
+        freshnessperiod: 1000ms
+        payloadlen: 1024
     nack: true
 "
 ```
@@ -66,11 +74,15 @@ Example:
 sudo LOG_ThroughputBenchmark=V ndnping-dpdk EAL-ARGS -- -cnt=0 -tasks="
 ---
 - face:
-    remote: ether://01-00-5E-00-17-AA@net_af_packet0:0
-    remote: ether://02-00-00-00-00-01@net_af_packet0:0
+    scheme: ether
+    port: net_af_packet0
+    local: "02:00:00:00:00:01"
+    remote: "01:00:5e:00:17:aa"
   client:
     patterns:
       - prefix: /prefix/ping
+        canbeprefix: false
+        mustbefresh: true
     interval: 1ms
 " -throughput-benchmark="
 ---

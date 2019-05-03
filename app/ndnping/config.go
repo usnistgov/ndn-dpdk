@@ -19,17 +19,11 @@ type ClientConfig struct {
 }
 
 type ClientPattern struct {
-	Prefix *ndn.Name
-}
-
-func (pattern ClientPattern) AsInterestTemplate() (tpl *ndn.InterestTemplate) {
-	tpl = ndn.NewInterestTemplate()
-	tpl.SetNamePrefix(pattern.Prefix)
-	tpl.SetCanBePrefix(true)
-	tpl.SetMustBeFresh(true)
-	tpl.SetInterestLifetime(1000 * time.Millisecond)
-	tpl.SetHopLimit(255)
-	return tpl
+	Prefix           *ndn.Name
+	CanBePrefix      bool
+	MustBeFresh      bool
+	InterestLifetime time.Duration
+	HopLimit         int
 }
 
 type ServerConfig struct {
@@ -38,7 +32,8 @@ type ServerConfig struct {
 }
 
 type ServerPattern struct {
-	Prefix     *ndn.Name
-	PayloadLen int
-	Suffix     *ndn.Name
+	Prefix          *ndn.Name
+	Suffix          *ndn.Name
+	FreshnessPeriod time.Duration
+	PayloadLen      int
 }

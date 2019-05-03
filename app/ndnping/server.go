@@ -7,18 +7,13 @@ import "C"
 import (
 	"errors"
 	"fmt"
+	"time"
 	"unsafe"
 
 	"ndn-dpdk/appinit"
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/ndn"
-)
-
-// Server internal config.
-const (
-	Server_BurstSize       = C.PINGSERVER_BURST_SIZE
-	Server_FreshnessPeriod = 60000
 )
 
 // Server instance and thread.
@@ -71,7 +66,7 @@ func (server *Server) AddPattern(cfg ServerPattern) (index int, e error) {
 	}
 
 	patternC.payloadL = C.uint16_t(cfg.PayloadLen)
-	patternC.freshnessPeriod = C.uint32_t(Server_FreshnessPeriod)
+	patternC.freshnessPeriod = C.uint32_t(cfg.FreshnessPeriod / time.Millisecond)
 
 	server.c.nPatterns++
 	return index, nil
