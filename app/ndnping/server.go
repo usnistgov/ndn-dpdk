@@ -22,7 +22,7 @@ type Server struct {
 	c *C.PingServer
 }
 
-func newServer(face iface.IFace, cfg ServerConfig) (server *Server) {
+func newServer(face iface.IFace, cfg ServerConfig) (server *Server, e error) {
 	socket := face.GetNumaSocket()
 	serverC := (*C.PingServer)(dpdk.Zmalloc("PingServer", C.sizeof_PingServer, socket))
 	serverC.dataMp = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
@@ -36,11 +36,13 @@ func newServer(face iface.IFace, cfg ServerConfig) (server *Server) {
 	server.ResetThreadBase()
 	dpdk.InitStopFlag(unsafe.Pointer(&serverC.stop))
 
-	for _, patternCfg := range cfg.Patterns {
-		server.AddPattern(patternCfg)
+	for i, pattern := range cfg.Patterns {
+		if _, e := server.AddPattern(pattern); e != nil {
+			return nil, fmt.Errorf("pattern(%d): %s", i, e)
+		}
 	}
 
-	return server
+	return server, nil
 }
 
 func (server *Server) AddPattern(cfg ServerPattern) (index int, e error) {

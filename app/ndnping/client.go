@@ -24,7 +24,7 @@ type Client struct {
 	Tx ClientTxThread
 }
 
-func newClient(face iface.IFace, cfg ClientConfig) (client *Client) {
+func newClient(face iface.IFace, cfg ClientConfig) (client *Client, e error) {
 	socket := face.GetNumaSocket()
 	crC := (*C.PingClientRx)(dpdk.Zmalloc("PingClientRx", C.sizeof_PingClientRx, socket))
 
@@ -44,11 +44,13 @@ func newClient(face iface.IFace, cfg ClientConfig) (client *Client) {
 	client.Tx.ResetThreadBase()
 	dpdk.InitStopFlag(unsafe.Pointer(&ctC.stop))
 
-	for _, pattern := range cfg.Patterns {
-		client.AddPattern(pattern)
+	for i, pattern := range cfg.Patterns {
+		if _, e := client.AddPattern(pattern); e != nil {
+			return nil, fmt.Errorf("pattern(%d): %s", i, e)
+		}
 	}
 	client.SetInterval(cfg.Interval)
-	return client
+	return client, nil
 }
 
 func (client *Client) GetFace() iface.IFace {

@@ -120,12 +120,16 @@ func newTask(face iface.IFace, cfg TaskConfig) (task Task, e error) {
 	numaSocket := face.GetNumaSocket()
 	task.Face = face
 	if cfg.Client != nil {
-		task.Client = newClient(task.Face, *cfg.Client)
+		if task.Client, e = newClient(task.Face, *cfg.Client); e != nil {
+			return Task{}, e
+		}
 		task.Client.SetLCore(dpdk.LCoreAlloc.Alloc(LCoreRole_ClientRx, numaSocket))
 		task.Client.Tx.SetLCore(dpdk.LCoreAlloc.Alloc(LCoreRole_ClientTx, numaSocket))
 	}
 	if cfg.Server != nil {
-		task.Server = newServer(task.Face, *cfg.Server)
+		if task.Server, e = newServer(task.Face, *cfg.Server); e != nil {
+			return Task{}, e
+		}
 		task.Server.SetLCore(dpdk.LCoreAlloc.Alloc(LCoreRole_Server, numaSocket))
 	}
 	return task, nil
