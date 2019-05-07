@@ -97,15 +97,21 @@ func (tpl *InterestTemplate) Encode(m dpdk.IMbuf, nameSuffix *Name, nonce uint32
 		(*C.uint8_t)(tpl.namePrefix.GetPtr()))
 }
 
-func (tpl *InterestTemplate) CopyToC(tplC unsafe.Pointer, buffer unsafe.Pointer, sizeofBuffer int, namePrefix unsafe.Pointer, sizeofNamePrefix int) error {
+func (tpl *InterestTemplate) CopyToC(tplC unsafe.Pointer, buffer unsafe.Pointer, sizeofBuffer uintptr, namePrefix unsafe.Pointer, sizeofNamePrefix uintptr) error {
 	tpl.prepare()
-	if sizeofBuffer < len(tpl.buffer) || sizeofNamePrefix < len(tpl.namePrefix) {
+	if sizeofBuffer < uintptr(len(tpl.buffer)) || sizeofNamePrefix < uintptr(len(tpl.namePrefix)) {
 		return fmt.Errorf("buffer too short, need %d and %d", len(tpl.buffer), len(tpl.namePrefix))
 	}
 
-	C.memcpy(tplC, unsafe.Pointer(&tpl.c), C.sizeof_InterestTemplate)
-	C.memcpy(buffer, tpl.buffer.GetPtr(), C.size_t(len(tpl.buffer)))
-	C.memcpy(namePrefix, tpl.namePrefix.GetPtr(), C.size_t(len(tpl.namePrefix)))
+	*(*C.InterestTemplate)(tplC) = tpl.c
+	for i, sz := uintptr(0), uintptr(len(tpl.buffer)); i < sz; i++ {
+		dst := unsafe.Pointer(uintptr(buffer) + i)
+		*(*uint8)(dst) = tpl.buffer[i]
+	}
+	for i, sz := uintptr(0), uintptr(len(tpl.namePrefix)); i < sz; i++ {
+		dst := unsafe.Pointer(uintptr(namePrefix) + i)
+		*(*uint8)(dst) = tpl.namePrefix[i]
+	}
 	((*C.InterestTemplate)(tplC)).namePrefix.value = (*C.uint8_t)(namePrefix)
 	return nil
 }

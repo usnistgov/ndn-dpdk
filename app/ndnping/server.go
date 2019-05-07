@@ -58,8 +58,7 @@ func (server *Server) AddPattern(cfg ServerPattern) (index int, e error) {
 	patternC := &server.c.pattern[index]
 	*patternC = C.PingServerPattern{}
 
-	if e = cfg.Prefix.CopyToLName(unsafe.Pointer(&patternC.prefix),
-		unsafe.Pointer(&patternC.prefixBuffer[0]), int(unsafe.Sizeof(patternC.prefixBuffer))); e != nil {
+	if e = cfg.Prefix.CopyToLName(unsafe.Pointer(&patternC.prefix), unsafe.Pointer(&patternC.prefixBuffer[0]), unsafe.Sizeof(patternC.prefixBuffer)); e != nil {
 		return -1, e
 	}
 
@@ -85,8 +84,7 @@ func (server *Server) AddPattern(cfg ServerPattern) (index int, e error) {
 		default:
 			replyC.kind = C.PINGSERVER_REPLY_DATA
 			if reply.Suffix != nil {
-				if e = reply.Suffix.CopyToLName(unsafe.Pointer(&replyC.suffix),
-					unsafe.Pointer(&replyC.suffixBuffer[0]), int(unsafe.Sizeof(replyC.suffixBuffer))); e != nil {
+				if e = reply.Suffix.CopyToLName(unsafe.Pointer(&replyC.suffix), unsafe.Pointer(&replyC.suffixBuffer), unsafe.Sizeof(replyC.suffixBuffer)); e != nil {
 					return -1, e
 				}
 			}

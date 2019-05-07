@@ -30,7 +30,7 @@ typedef struct PingServerReply
   uint8_t kind;
   uint8_t nackReason;
   LName suffix;
-  char suffixBuffer[NAME_MAX_LENGTH];
+  uint8_t suffixBuffer[NAME_MAX_LENGTH];
 } PingServerReply;
 
 /** \brief Per-prefix information in ndnping server.
@@ -42,7 +42,7 @@ typedef struct PingServerPattern
   uint16_t nWeights;
   PingReplyId weight[PINGSERVER_MAX_SUM_WEIGHT];
   PingServerReply reply[PINGSERVER_MAX_REPLIES];
-  char prefixBuffer[NAME_MAX_LENGTH];
+  uint8_t prefixBuffer[NAME_MAX_LENGTH];
 } PingServerPattern;
 
 /** \brief ndnping server.

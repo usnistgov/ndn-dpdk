@@ -89,8 +89,8 @@ func (client *Client) AddPattern(cfg ClientPattern) (index int, e error) {
 	rxP.prefixLen = C.uint16_t(cfg.Prefix.Size())
 	txP := &client.Tx.c.pattern[index]
 	if e = tpl.CopyToC(unsafe.Pointer(&txP.tpl),
-		unsafe.Pointer(&txP.tplPrepareBuffer), int(unsafe.Sizeof(txP.tplPrepareBuffer)),
-		unsafe.Pointer(&txP.prefixBuffer), int(unsafe.Sizeof(txP.prefixBuffer))); e != nil {
+		unsafe.Pointer(&txP.tplPrepareBuffer), unsafe.Sizeof(txP.tplPrepareBuffer),
+		unsafe.Pointer(&txP.prefixBuffer), unsafe.Sizeof(txP.prefixBuffer)); e != nil {
 		return -1, e
 	}
 	txP.seqNum.compT = C.TT_GenericNameComponent

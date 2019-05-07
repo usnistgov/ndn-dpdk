@@ -74,14 +74,17 @@ func (n *Name) Encode() TlvBytes {
 }
 
 // Copy to C.LName.
-func (n *Name) CopyToLName(lname unsafe.Pointer, buffer unsafe.Pointer, sizeofBuffer int) error {
-	sz := n.Size()
+func (n *Name) CopyToLName(lname, buffer unsafe.Pointer, sizeofBuffer uintptr) error {
+	sz := uintptr(n.Size())
 	if sizeofBuffer < sz {
 		return fmt.Errorf("buffer too short, need %d", sz)
 	}
 
-	if sz > 0 {
-		C.memcpy(buffer, unsafe.Pointer(n.getValuePtr()), C.size_t(sz))
+	nameV := unsafe.Pointer(n.getValuePtr())
+	for i := uintptr(0); i < sz; i++ {
+		src := unsafe.Pointer(uintptr(nameV) + i)
+		dst := unsafe.Pointer(uintptr(buffer) + i)
+		*(*uint8)(dst) = *(*uint8)(src)
 	}
 
 	lnameC := (*C.LName)(lname)
