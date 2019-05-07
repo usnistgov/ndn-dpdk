@@ -51,8 +51,9 @@ sudo ndnping-dpdk EAL-ARGS -- -tasks="
   server:
     patterns:
       - prefix: /prefix/ping
-        freshnessperiod: 1000ms
-        payloadlen: 1024
+        replies:
+          - freshnessperiod: 1000ms
+            payloadlen: 1024
     nack: true
 "
 ```

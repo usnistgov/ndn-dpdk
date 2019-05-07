@@ -44,8 +44,19 @@ type ServerConfig struct {
 
 // Server pattern definition.
 type ServerPattern struct {
-	Prefix          *ndn.Name     // name prefix
+	Prefix  *ndn.Name     // name prefix
+	Replies []ServerReply // reply settings
+}
+
+// Server reply definition.
+type ServerReply struct {
+	Weight int // weight of random choice, minimum is 1
+
 	Suffix          *ndn.Name     // suffix to append to Interest name
 	FreshnessPeriod time.Duration // FreshnessPeriod value
 	PayloadLen      int           // Content payload length
+
+	Nack ndn.NackReason // if not NackReason_None, reply with Nack instead of Data
+
+	Timeout bool // if true, drop the Interest instead of sending Data
 }

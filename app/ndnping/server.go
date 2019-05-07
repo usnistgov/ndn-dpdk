@@ -5,8 +5,8 @@ package ndnping
 */
 import "C"
 import (
-	"errors"
 	"fmt"
+	"math/rand"
 	"time"
 	"unsafe"
 
@@ -30,6 +30,7 @@ func newServer(face iface.IFace, cfg ServerConfig) (server *Server, e error) {
 	serverC.dataMbufHeadroom = C.uint16_t(appinit.SizeofEthLpHeaders() + ndn.EncodeData_GetHeadroom())
 	serverC.face = (C.FaceId)(face.GetFaceId())
 	serverC.wantNackNoRoute = C.bool(cfg.Nack)
+	C.pcg32_srandom_r(&serverC.replyRng, C.uint64_t(rand.Uint64()), C.uint64_t(time.Now().Unix()))
 
 	server = new(Server)
 	server.c = serverC
@@ -47,7 +48,10 @@ func newServer(face iface.IFace, cfg ServerConfig) (server *Server, e error) {
 
 func (server *Server) AddPattern(cfg ServerPattern) (index int, e error) {
 	if server.c.nPatterns >= C.PINGSERVER_MAX_PATTERNS {
-		return -1, errors.New("too many patterns")
+		return -1, fmt.Errorf("cannot add more than %d patterns", C.PINGSERVER_MAX_PATTERNS)
+	}
+	if len(cfg.Replies) < 1 || len(cfg.Replies) > C.PINGSERVER_MAX_REPLIES {
+		return -1, fmt.Errorf("must have between 1 and %d reply definitions", C.PINGSERVER_MAX_REPLIES)
 	}
 
 	index = int(server.c.nPatterns)
@@ -55,20 +59,42 @@ func (server *Server) AddPattern(cfg ServerPattern) (index int, e error) {
 	*patternC = C.PingServerPattern{}
 
 	if e = cfg.Prefix.CopyToLName(unsafe.Pointer(&patternC.prefix),
-		unsafe.Pointer(&patternC.nameBuffer[0]), int(unsafe.Sizeof(patternC.nameBuffer))); e != nil {
+		unsafe.Pointer(&patternC.prefixBuffer[0]), int(unsafe.Sizeof(patternC.prefixBuffer))); e != nil {
 		return -1, e
 	}
-	if cfg.Suffix != nil {
-		nameBufferUsed := int(patternC.prefix.length)
-		nameBufferFree := int(unsafe.Sizeof(patternC.nameBuffer)) - nameBufferUsed
-		if e = cfg.Suffix.CopyToLName(unsafe.Pointer(&patternC.suffix),
-			unsafe.Pointer(&patternC.nameBuffer[nameBufferUsed]), nameBufferFree); e != nil {
-			return -1, e
+
+	for i, reply := range cfg.Replies {
+		if reply.Weight < 1 {
+			reply.Weight = 1
+		}
+		if patternC.nWeights+C.uint16_t(reply.Weight) >= C.PINGSERVER_MAX_SUM_WEIGHT {
+			return -1, fmt.Errorf("sum of weight cannot exceed %d", C.PINGSERVER_MAX_SUM_WEIGHT)
+		}
+		for j := 0; j < reply.Weight; j++ {
+			patternC.weight[patternC.nWeights] = C.PingReplyId(i)
+			patternC.nWeights++
+		}
+
+		replyC := &patternC.reply[i]
+		switch {
+		case reply.Timeout:
+			replyC.kind = C.PINGSERVER_REPLY_TIMEOUT
+		case reply.Nack != ndn.NackReason_None:
+			replyC.kind = C.PINGSERVER_REPLY_NACK
+			replyC.nackReason = C.uint8_t(reply.Nack)
+		default:
+			replyC.kind = C.PINGSERVER_REPLY_DATA
+			if reply.Suffix != nil {
+				if e = reply.Suffix.CopyToLName(unsafe.Pointer(&replyC.suffix),
+					unsafe.Pointer(&replyC.suffixBuffer[0]), int(unsafe.Sizeof(replyC.suffixBuffer))); e != nil {
+					return -1, e
+				}
+			}
+			replyC.freshnessPeriod = C.uint32_t(reply.FreshnessPeriod / time.Millisecond)
+			replyC.payloadL = C.uint16_t(reply.PayloadLen)
 		}
 	}
-
-	patternC.payloadL = C.uint16_t(cfg.PayloadLen)
-	patternC.freshnessPeriod = C.uint32_t(cfg.FreshnessPeriod / time.Millisecond)
+	patternC.nReplies = C.uint16_t(len(cfg.Replies))
 
 	server.c.nPatterns++
 	return index, nil
@@ -92,39 +118,4 @@ func (server *Server) Stop() error {
 func (server *Server) Close() error {
 	dpdk.Free(server.c)
 	return nil
-}
-
-type ServerPatternCounters struct {
-	NInterests uint64
-}
-
-func (cnt ServerPatternCounters) String() string {
-	return fmt.Sprintf("%dI", cnt.NInterests)
-}
-
-type ServerCounters struct {
-	PerPattern  []ServerPatternCounters
-	NInterests  uint64
-	NNoMatch    uint64
-	NAllocError uint64
-}
-
-func (cnt ServerCounters) String() string {
-	s := fmt.Sprintf("%dI %dno-match %dalloc-error", cnt.NInterests, cnt.NNoMatch, cnt.NAllocError)
-	for i, pcnt := range cnt.PerPattern {
-		s += fmt.Sprintf(", pattern(%d) %s", i, pcnt)
-	}
-	return s
-}
-
-func (server *Server) ReadCounters() (cnt ServerCounters) {
-	cnt.PerPattern = make([]ServerPatternCounters, int(server.c.nPatterns))
-	for i := 0; i < int(server.c.nPatterns); i++ {
-		pattern := server.c.pattern[i]
-		cnt.PerPattern[i].NInterests = uint64(pattern.nInterests)
-		cnt.NInterests += uint64(pattern.nInterests)
-	}
-	cnt.NNoMatch = uint64(server.c.nNoMatch)
-	cnt.NAllocError = uint64(server.c.nAllocError)
-	return cnt
 }

@@ -5,11 +5,6 @@
 
 INIT_ZF_LOG(PingClient);
 
-typedef struct PingClientTxTraffic
-{
-  uint8_t patternId;
-} PingClientTxTraffic;
-
 static PingPatternId
 PingClientTx_SelectPattern(PingClientTx* ct)
 {

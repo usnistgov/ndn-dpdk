@@ -7,7 +7,7 @@ INIT_ZF_LOG(PingServer);
 
 static uint8_t PingServer_payloadV[PINGSERVER_PAYLOAD_MAX];
 
-static uint16_t
+static int
 PingServer_FindPattern(PingServer* server, LName name)
 {
   for (uint16_t i = 0; i < server->nPatterns; ++i) {
@@ -21,36 +21,83 @@ PingServer_FindPattern(PingServer* server, LName name)
   return -1;
 }
 
-static Packet*
-PingServer_MakeData(PingServer* server, PingServerPattern* pattern, LName name)
+static PingReplyId
+PingServer_SelectReply(PingServer* server, PingServerPattern* pattern)
 {
+  uint32_t rnd = pcg32_random_r(&server->replyRng);
+  return pattern->weight[rnd % pattern->nWeights];
+}
+
+static Packet*
+PingServer_RespondData(PingServer* server,
+                       PingServerPattern* pattern,
+                       PingServerReply* reply,
+                       Packet* npkt)
+{
+  uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
+  const LName name = *(const LName*)&Packet_GetInterestHdr(npkt)->name;
+
   struct rte_mbuf* m = rte_pktmbuf_alloc(server->dataMp);
   if (unlikely(m == NULL)) {
     ZF_LOGW("dataMp-full");
+    ++server->nAllocError;
+    rte_pktmbuf_free(Packet_ToMbuf(npkt));
     return NULL;
   }
   m->data_off = server->dataMbufHeadroom;
   EncodeData(m,
              name,
-             pattern->suffix,
-             pattern->freshnessPeriod,
-             pattern->payloadL,
+             reply->suffix,
+             reply->freshnessPeriod,
+             reply->payloadL,
              PingServer_payloadV);
+  rte_pktmbuf_free(Packet_ToMbuf(npkt));
 
-  Packet* npkt = Packet_FromMbuf(m);
-  Packet_SetL2PktType(npkt, L2PktType_None);
-  Packet_SetL3PktType(npkt, L3PktType_Data); // for stats; no PData*
+  Packet* response = Packet_FromMbuf(m);
+  Packet_SetL2PktType(response, L2PktType_None);
+  Packet_InitLpL3Hdr(response)->pitToken = token;
+  Packet_SetL3PktType(response, L3PktType_Data); // for stats; no PData*
+  return response;
+}
+
+static Packet*
+PingServer_RespondNack(PingServer* server,
+                       PingServerPattern* pattern,
+                       PingServerReply* reply,
+                       Packet* npkt)
+{
+  MakeNack(npkt, reply->nackReason);
   return npkt;
 }
 
 static Packet*
+PingServer_RespondTimeout(PingServer* server,
+                          PingServerPattern* pattern,
+                          PingServerReply* reply,
+                          Packet* npkt)
+{
+  rte_pktmbuf_free(Packet_ToMbuf(npkt));
+  return NULL;
+}
+
+typedef Packet* (*PingServer_Respond)(PingServer* server,
+                                      PingServerPattern* pattern,
+                                      PingServerReply* reply,
+                                      Packet* npkt);
+
+static const PingServer_Respond PingServer_RespondJmp[3] = {
+  [PINGSERVER_REPLY_DATA] = PingServer_RespondData,
+  [PINGSERVER_REPLY_NACK] = PingServer_RespondNack,
+  [PINGSERVER_REPLY_TIMEOUT] = PingServer_RespondTimeout,
+};
+
+static Packet*
 PingServer_ProcessInterest(PingServer* server, Packet* npkt)
 {
-  struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
-
   const LName name = *(const LName*)&Packet_GetInterestHdr(npkt)->name;
-  uint16_t patternId = PingServer_FindPattern(server, name);
+
+  int patternId = PingServer_FindPattern(server, name);
   if (unlikely(patternId < 0)) {
     ZF_LOGD(">I dn-token=%016" PRIx64 " no-pattern", token);
     ++server->nNoMatch;
@@ -58,25 +105,21 @@ PingServer_ProcessInterest(PingServer* server, Packet* npkt)
       MakeNack(npkt, NackReason_NoRoute);
       return npkt;
     } else {
-      rte_pktmbuf_free(pkt);
+      rte_pktmbuf_free(Packet_ToMbuf(npkt));
       return NULL;
     }
   }
 
-  ZF_LOGD(">I dn-token=%016" PRIx64 " pattern=%" PRIu16, token, patternId);
   PingServerPattern* pattern = &server->pattern[patternId];
-  ++pattern->nInterests;
+  uint8_t replyId = PingServer_SelectReply(server, pattern);
+  PingServerReply* reply = &pattern->reply[replyId];
 
-  Packet* dataPkt = PingServer_MakeData(server, pattern, name);
-  if (unlikely(dataPkt == NULL)) {
-    ++server->nAllocError;
-    MakeNack(npkt, NackReason_Congestion);
-    return npkt;
-  }
-
-  Packet_InitLpL3Hdr(dataPkt)->pitToken = token;
-  rte_pktmbuf_free(pkt);
-  return dataPkt;
+  ZF_LOGD(">I dn-token=%016" PRIx64 " pattern=%d reply=%" PRIu8,
+          token,
+          patternId,
+          replyId);
+  ++reply->nInterests;
+  return PingServer_RespondJmp[reply->kind](server, pattern, reply, npkt);
 }
 
 void
