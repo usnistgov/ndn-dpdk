@@ -13,7 +13,7 @@ PingClientTx_SelectPattern(PingClientTx* ct)
 }
 
 static void
-PingClientTx_MakeInterest(PingClientTx* ct, Packet* npkt, uint64_t now)
+PingClientTx_MakeInterest(PingClientTx* ct, Packet* npkt, PingTime now)
 {
   PingPatternId patternId = PingClientTx_SelectPattern(ct);
   PingClientTxPattern* pattern = &ct->pattern[patternId];
@@ -60,7 +60,7 @@ PingClientTx_Burst(PingClientTx* ct)
     return;
   }
 
-  uint64_t now = Ping_Now();
+  PingTime now = PingTime_Now();
   for (uint16_t i = 0; i < PINGCLIENT_TX_BURST_SIZE; ++i) {
     PingClientTx_MakeInterest(ct, npkts[i], now);
   }

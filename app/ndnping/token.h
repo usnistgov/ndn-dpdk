@@ -3,7 +3,7 @@
 
 /// \file
 
-#include "../../core/common.h"
+#include "../../dpdk/tsc.h"
 
 /** \brief Precision of timing measurements.
  *
@@ -11,10 +11,18 @@
  */
 #define PING_TIMING_PRECISION 16
 
-static uint64_t
-Ping_Now()
+typedef uint64_t PingTime;
+
+static PingTime
+PingTime_FromTsc(TscTime t)
 {
-  return rte_get_tsc_cycles() >> PING_TIMING_PRECISION;
+  return t >> PING_TIMING_PRECISION;
+}
+
+static PingTime
+PingTime_Now()
+{
+  return PingTime_FromTsc(rte_get_tsc_cycles());
 }
 
 /** \brief Construct a "PIT token" from ndnping client.
@@ -25,7 +33,7 @@ Ping_Now()
  *  \li 48 bits of timestamp (see PING_TIMING_PRECISION).
  */
 static uint64_t
-PingToken_New(uint8_t patternId, uint8_t runNum, uint64_t timestamp)
+PingToken_New(uint8_t patternId, uint8_t runNum, PingTime timestamp)
 {
   return ((uint64_t)patternId << 56) | ((uint64_t)runNum << 48) |
          (timestamp & 0xFFFFFFFFFFFF);
@@ -43,7 +51,7 @@ PingToken_GetRunNum(uint64_t token)
   return token >> 48;
 }
 
-static uint64_t
+static PingTime
 PingToken_GetTimestamp(uint64_t token)
 {
   return token & 0xFFFFFFFFFFFF;

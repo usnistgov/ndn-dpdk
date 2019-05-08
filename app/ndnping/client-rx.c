@@ -27,7 +27,7 @@ PingClientRx_GetSeqNumFromName(PingClientRx* cr,
 }
 
 static void
-PingClientRx_ProcessData(PingClientRx* cr, Packet* npkt, uint64_t now)
+PingClientRx_ProcessData(PingClientRx* cr, Packet* npkt)
 {
   uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
   uint8_t patternId = PingToken_GetPatternId(token);
@@ -43,14 +43,14 @@ PingClientRx_ProcessData(PingClientRx* cr, Packet* npkt, uint64_t now)
   }
 
   ZF_LOGD(">D seq=%" PRIx64 " pattern=%d", seqNum, patternId);
-
   ++pattern->nData;
-  uint64_t sendTime = PingToken_GetTimestamp(token);
-  RunningStat_Push(&pattern->rtt, now - sendTime);
+  PingTime recvTime = PingTime_FromTsc(Packet_ToMbuf(npkt)->timestamp);
+  PingTime sendTime = PingToken_GetTimestamp(token);
+  RunningStat_Push(&pattern->rtt, recvTime - sendTime);
 }
 
 static void
-PingClientRx_ProcessNack(PingClientRx* cr, Packet* npkt, uint64_t now)
+PingClientRx_ProcessNack(PingClientRx* cr, Packet* npkt)
 {
   uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
   uint8_t patternId = PingToken_GetPatternId(token);
@@ -66,7 +66,6 @@ PingClientRx_ProcessNack(PingClientRx* cr, Packet* npkt, uint64_t now)
   }
 
   ZF_LOGD(">N seq=%" PRIx64 " pattern=%d", seqNum, patternId);
-
   ++pattern->nNacks;
 }
 
@@ -78,7 +77,6 @@ PingClientRx_Run(PingClientRx* cr)
   while (ThreadStopFlag_ShouldContinue(&cr->stop)) {
     uint16_t nRx = rte_ring_sc_dequeue_bulk(
       cr->rxQueue, (void**)npkts, PINGCLIENT_RX_BURST_SIZE, NULL);
-    uint64_t now = Ping_Now();
     for (uint16_t i = 0; i < nRx; ++i) {
       Packet* npkt = npkts[i];
       if (unlikely(Packet_GetL2PktType(npkt) != L2PktType_NdnlpV2)) {
@@ -86,10 +84,10 @@ PingClientRx_Run(PingClientRx* cr)
       }
       switch (Packet_GetL3PktType(npkt)) {
         case L3PktType_Data:
-          PingClientRx_ProcessData(cr, npkt, now);
+          PingClientRx_ProcessData(cr, npkt);
           break;
         case L3PktType_Nack:
-          PingClientRx_ProcessNack(cr, npkt, now);
+          PingClientRx_ProcessNack(cr, npkt);
           break;
         default:
           assert(false);
