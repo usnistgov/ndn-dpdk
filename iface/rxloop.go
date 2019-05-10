@@ -67,6 +67,7 @@ func newChanRxGroup() (rxg *ChanRxGroup) {
 	C.__theChanRxGroup.rxBurstOp = C.RxGroup_RxBurst(C.go_ChanRxGroup_RxBurst)
 	rxg.InitRxgBase(unsafe.Pointer(&C.__theChanRxGroup))
 	rxg.queue = make(chan dpdk.Packet, 1024)
+	EmitRxGroupAdd(rxg)
 	return rxg
 }
 
@@ -76,6 +77,7 @@ func (rxg *ChanRxGroup) SetQueueCapacity(queueCapacity int) {
 }
 
 func (rxg *ChanRxGroup) Close() error {
+	EmitRxGroupRemove(rxg)
 	C.free(rxg.GetPtr())
 	return nil
 }

@@ -92,7 +92,7 @@ func (ctx *createContext) addEth(i int, loc ethface.Locator) (e error) {
 		return e
 	}
 	ctx.Faces[i] = face
-	return startEthRxtx(face)
+	return nil
 }
 
 func (ctx *createContext) addSock(i int, loc socketface.Locator) (e error) {
@@ -115,7 +115,7 @@ func (ctx *createContext) addSock(i int, loc socketface.Locator) (e error) {
 		return e
 	}
 	ctx.Faces[i] = face
-	return startChanRxtx(face)
+	return nil
 }
 
 var hasMockFaces = false
@@ -133,5 +133,5 @@ func (ctx *createContext) addMock(i int) (e error) {
 
 	face := mockface.New()
 	ctx.Faces[i] = face
-	return startChanRxtx(face)
+	return nil
 }

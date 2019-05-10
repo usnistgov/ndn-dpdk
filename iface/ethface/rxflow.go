@@ -100,6 +100,7 @@ func (impl *rxFlowImpl) Start(face *EthFace) error {
 
 	impl.port.logger.WithFields(makeLogFields("rx-queue", index, "face", face.GetFaceId())).Debug("create RxFlow")
 	impl.queueFlow[index] = rxf
+	iface.EmitRxGroupAdd(rxf)
 	return nil
 }
 
@@ -108,6 +109,7 @@ func (impl *rxFlowImpl) Stop(face *EthFace) error {
 	if index < 0 {
 		return nil
 	}
+	iface.EmitRxGroupRemove(rxf)
 
 	if e := impl.destroyFlow(rxf); e != nil {
 		impl.port.logger.WithField("rx-queue", index).WithError(e).Debug("destroy RxFlow deferred")
