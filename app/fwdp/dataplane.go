@@ -100,6 +100,9 @@ func (dp *DataPlane) Launch() error {
 		fwi := usr.(*Input)
 		fwi.rxl = nil
 	}
+	if e := appinit.EnableCreateFace(); e != nil {
+		return e
+	}
 
 	if dp.crypto != nil {
 		dp.crypto.Launch()

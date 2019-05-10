@@ -59,7 +59,5 @@ func (initCfg InitConfig) Apply() {
 
 	dpdk.LCoreAlloc.Config = initCfg.LCoreAlloc
 
-	if e := EnableCreateFace(initCfg.Face); e != nil {
-		log.WithError(e).Fatal("face init error")
-	}
+	createfaceConfig = initCfg.Face
 }

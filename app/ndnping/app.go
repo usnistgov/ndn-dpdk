@@ -30,6 +30,9 @@ func New(cfg []TaskConfig) (app *App, e error) {
 	app = new(App)
 	appinit.BeforeStartRxl = app.addRxl
 	appinit.WantLaunchRxl = false
+	if e = appinit.EnableCreateFace(); e != nil {
+		return nil, e
+	}
 
 	var faceLocators []iface.Locator
 	for _, taskCfg := range cfg {

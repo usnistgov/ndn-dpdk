@@ -78,19 +78,13 @@ type ICallbacks interface {
 
 	// Callback when RX mempool is needed.
 	CreateRxMp(numaSocket dpdk.NumaSocket) (dpdk.PktmbufPool, error)
-
-	// Callback when a new RxGroup should be added.
-	StartRxg(rxl iface.IRxGroup) (usr interface{}, e error)
-
-	// Callback when an RxGroup should be removed.
-	StopRxg(rxl iface.IRxGroup, usr interface{})
-
-	// Callback when a new TxLoop should be launched.
-	StartTxl(txl *iface.TxLoop) (usr interface{}, e error)
-
-	// Callback when a TxLoop is no longer needed.
-	StopTxl(txl *iface.TxLoop, usr interface{})
 }
+
+// Global RxLoop and TxLoop (temporarily during ethface-create refactoring)
+var (
+	TheRxl *iface.RxLoop
+	TheTxl *iface.TxLoop
+)
 
 var isInitialized bool
 var theConfig Config
@@ -116,17 +110,19 @@ func Init(cfg Config, callbacks ICallbacks) error {
 
 // List NumaSockets for RxLoops and TxLoops to satisfy enabled devices.
 func ListRxlTxlNumaSockets() (list []dpdk.NumaSocket) {
-	if !isInitialized {
-		return nil
-	}
+	return []dpdk.NumaSocket{dpdk.NUMA_SOCKET_ANY}
 
-	if theConfig.EnableEth {
-		for _, port := range dpdk.ListEthDevs() {
-			list = append(list, port.GetNumaSocket())
-		}
-	}
-	if theConfig.EnableSock || theConfig.EnableMock {
-		list = append(list, dpdk.NUMA_SOCKET_ANY)
-	}
-	return list
+	// if !isInitialized {
+	// 	return nil
+	// }
+
+	// if theConfig.EnableEth {
+	// 	for _, port := range dpdk.ListEthDevs() {
+	// 		list = append(list, port.GetNumaSocket())
+	// 	}
+	// }
+	// if theConfig.EnableSock || theConfig.EnableMock {
+	// 	list = append(list, dpdk.NUMA_SOCKET_ANY)
+	// }
+	// return list
 }

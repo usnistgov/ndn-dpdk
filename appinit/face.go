@@ -27,10 +27,46 @@ var (
 	// Should this package allocate/free TxLoop LCores?
 	// If false, LCores with role iface.LCoreRole_TxLoop must be pre-allocated.
 	WantAllocTxlLCore bool = true
+
+	createfaceConfig createface.Config
 )
 
-func EnableCreateFace(cfg createface.Config) error {
-	return createface.Init(cfg, createfaceCallbacks{})
+func EnableCreateFace() error {
+	if BeforeStartRxl == nil {
+		return errors.New("appinit.BeforeStartRxl is unset")
+	}
+
+	rxl := iface.NewRxLoop(dpdk.NUMA_SOCKET_ANY)
+	if WantAllocRxlLCore {
+		rxl.SetLCore(dpdk.LCoreAlloc.Alloc(iface.LCoreRole_RxLoop, dpdk.NUMA_SOCKET_ANY))
+	} else {
+		rxl.SetLCore(dpdk.LCoreAlloc.Find(iface.LCoreRole_RxLoop, dpdk.NUMA_SOCKET_ANY))
+	}
+	if _, e := BeforeStartRxl(rxl); e != nil {
+		return e
+	}
+	if WantLaunchRxl {
+		if e := rxl.Launch(); e != nil {
+			return e
+		}
+	}
+
+	txl := iface.NewTxLoop()
+	if WantAllocTxlLCore {
+		txl.SetLCore(dpdk.LCoreAlloc.Alloc(iface.LCoreRole_TxLoop, txl.GetNumaSocket()))
+	} else {
+		txl.SetLCore(dpdk.LCoreAlloc.Find(iface.LCoreRole_TxLoop, txl.GetNumaSocket()))
+	}
+	if e := txl.Launch(); e != nil {
+		if WantAllocTxlLCore {
+			dpdk.LCoreAlloc.Free(txl.GetLCore())
+		}
+		return e
+	}
+
+	createface.TheRxl = rxl
+	createface.TheTxl = txl
+	return createface.Init(createfaceConfig, createfaceCallbacks{})
 }
 
 type createfaceCallbacks struct{}
@@ -44,76 +80,4 @@ func (createfaceCallbacks) CreateFaceMempools(numaSocket dpdk.NumaSocket) (mempo
 
 func (createfaceCallbacks) CreateRxMp(numaSocket dpdk.NumaSocket) (dpdk.PktmbufPool, error) {
 	return MakePktmbufPool(MP_ETHRX, numaSocket), nil
-}
-
-type rxgUsr struct {
-	rxl *iface.RxLoop
-	usr interface{}
-}
-
-func (createfaceCallbacks) StartRxg(rxg iface.IRxGroup) (usr interface{}, e error) {
-	if BeforeStartRxl == nil {
-		return nil, errors.New("appinit.BeforeStartRxl is unset")
-	}
-
-	rxl := iface.NewRxLoop(rxg.GetNumaSocket())
-	rxl.AddRxGroup(rxg)
-	if WantAllocRxlLCore {
-		rxl.SetLCore(dpdk.LCoreAlloc.Alloc(iface.LCoreRole_RxLoop, rxl.GetNumaSocket()))
-	} else {
-		rxl.SetLCore(dpdk.LCoreAlloc.Find(iface.LCoreRole_RxLoop, rxl.GetNumaSocket()))
-	}
-
-	defer func() {
-		if e == nil {
-			return
-		}
-		if lc := rxl.GetLCore(); WantAllocRxlLCore && lc != dpdk.LCORE_INVALID {
-			dpdk.LCoreAlloc.Free(lc)
-		}
-		rxl.Close()
-	}()
-
-	var usr2 interface{}
-	if usr2, e = BeforeStartRxl(rxl); e != nil {
-		return nil, e
-	}
-	if WantLaunchRxl {
-		if e = rxl.Launch(); e != nil {
-			return nil, e
-		}
-	}
-	return rxgUsr{rxl, usr2}, nil
-}
-
-func (createfaceCallbacks) StopRxg(rxg iface.IRxGroup, usr interface{}) {
-	usr2 := usr.(rxgUsr)
-	usr2.rxl.Stop()
-	if AfterStopRxl != nil {
-		AfterStopRxl(usr2.rxl, usr2.usr)
-	}
-	if WantAllocRxlLCore {
-		dpdk.LCoreAlloc.Free(usr2.rxl.GetLCore())
-	}
-	usr2.rxl.Close()
-}
-
-func (createfaceCallbacks) StartTxl(txl *iface.TxLoop) (usr interface{}, e error) {
-	if WantAllocTxlLCore {
-		txl.SetLCore(dpdk.LCoreAlloc.Alloc(iface.LCoreRole_TxLoop, txl.GetNumaSocket()))
-	} else {
-		txl.SetLCore(dpdk.LCoreAlloc.Find(iface.LCoreRole_TxLoop, txl.GetNumaSocket()))
-	}
-
-	if e = txl.Launch(); e != nil && WantAllocTxlLCore {
-		dpdk.LCoreAlloc.Free(txl.GetLCore())
-	}
-	return nil, e
-}
-
-func (createfaceCallbacks) StopTxl(txl *iface.TxLoop, usr interface{}) {
-	txl.Stop()
-	if WantAllocTxlLCore {
-		dpdk.LCoreAlloc.Free(txl.GetLCore())
-	}
 }
