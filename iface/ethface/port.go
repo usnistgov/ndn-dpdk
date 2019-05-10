@@ -5,100 +5,15 @@ package ethface
 */
 import "C"
 import (
+	"bytes"
 	"errors"
-	"fmt"
 	"net"
 
 	"github.com/sirupsen/logrus"
 
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
-	"ndn-dpdk/ndn"
 )
-
-// Minimum dataroom of PortConfig.HeaderMp.
-func SizeofTxHeader() int {
-	return int(C.sizeof_struct_ether_hdr) + ndn.PrependLpHeader_GetHeadroom()
-}
-
-// Port creation arguments.
-type PortConfig struct {
-	iface.Mempools
-	EthDev     dpdk.EthDev
-	RxMp       dpdk.PktmbufPool   // mempool for received frames
-	NRxThreads int                // number of RX threads (RxTable only)
-	RxqFrames  int                // RX queue capacity
-	TxqPkts    int                // before-TX queue capacity
-	TxqFrames  int                // after-TX queue capacity
-	Mtu        int                // set MTU, 0 to keep default
-	Local      net.HardwareAddr   // local address, nil for hardware default
-	Multicast  bool               // whether to enable multicast face
-	Unicast    []net.HardwareAddr // remote addresses for unicast faces
-	faceIds    []iface.FaceId     // assigned FaceIds
-}
-
-func (cfg PortConfig) check() error {
-	if cfg.Local != nil {
-		if classifyMac48(cfg.Local) != mac48_unicast {
-			return errors.New("cfg.Local is not a MAC-48 unicast address")
-		}
-	}
-
-	if cfg.countFaces() == 0 {
-		return errors.New("cfg declares no face")
-	}
-
-	unicastAddressStr := make(map[string]int)
-	for i, addr := range cfg.Unicast {
-		if classifyMac48(addr) != mac48_unicast {
-			return fmt.Errorf("cfg.Unicast[%d] is not a MAC-48 unicast address", i)
-		}
-		if j, ok := unicastAddressStr[addr.String()]; ok {
-			return fmt.Errorf("cfg.Unicast[%d] duplicates cfg.Unicast[%d]", i, j)
-		}
-		unicastAddressStr[addr.String()] = i
-	}
-
-	if cfg.HeaderMp.GetDataroom() < SizeofTxHeader() {
-		return errors.New("cfg.HeaderMp dataroom is too small")
-	}
-
-	return nil
-}
-
-func (cfg PortConfig) countFaces() int {
-	nFaces := len(cfg.Unicast)
-	if cfg.Multicast {
-		nFaces++
-	}
-	return nFaces
-}
-
-func (cfg *PortConfig) allocIds() {
-	cfg.faceIds = iface.AllocIds(iface.FaceKind_Eth, cfg.countFaces())
-}
-
-func (cfg PortConfig) getFaceIdAddr(i int) (id iface.FaceId, addr net.HardwareAddr) {
-	if cfg.faceIds != nil {
-		id = cfg.faceIds[i]
-	} else {
-		id = iface.FACEID_INVALID
-	}
-
-	if i == len(cfg.Unicast) {
-		return id, nil
-	}
-	return id, cfg.Unicast[i]
-}
-
-// Collection of EthFaces on a DPDK EthDev.
-type Port struct {
-	dev       dpdk.EthDev
-	logger    logrus.FieldLogger
-	multicast *EthFace
-	unicast   []*EthFace
-	rxt       []*RxTable
-}
 
 var portByEthDev = make(map[dpdk.EthDev]*Port)
 
@@ -113,6 +28,16 @@ func ListPorts() (list []*Port) {
 	return list
 }
 
+// Collection of EthFaces on a DPDK EthDev.
+type Port struct {
+	cfg    PortConfig
+	logger logrus.FieldLogger
+	dev    dpdk.EthDev
+	impl   iImpl
+	faces  map[iface.FaceId]*EthFace
+}
+
+// Create a port without starting it.
 func NewPort(cfg PortConfig) (port *Port, e error) {
 	if e = cfg.check(); e != nil {
 		return nil, e
@@ -120,140 +45,98 @@ func NewPort(cfg PortConfig) (port *Port, e error) {
 	if FindPort(cfg.EthDev) != nil {
 		return nil, errors.New("cfg.EthDev matches existing Port")
 	}
-	cfg.allocIds()
+	if cfg.Local == nil {
+		cfg.Local = port.dev.GetMacAddr()
+	}
 
 	port = new(Port)
+	port.cfg = cfg
 	port.logger = newPortLogger(cfg.EthDev)
 	port.dev = cfg.EthDev
-	rxgErr := make(rxgStartErrors, 0)
-	for _, rxgStarter := range rxgStarters {
-		cfg.EthDev.Reset()
-		name := rxgStarter.String()
-		e = rxgStarter.Start(port, cfg)
-		if e == nil {
-			port.logger.WithField("rxg", name).Info("started")
-			rxgErr = nil
-			break
-		} else {
-			rxgErr = append(rxgErr, rxgStartError{name, e})
-		}
-	}
-	if rxgErr != nil {
-		port.logger.WithError(rxgErr).Error("no RxGroup impl available")
-		return nil, rxgErr
+	port.impl = newRxFlowImpl(port)
+	port.faces = make(map[iface.FaceId]*EthFace)
+	if e = port.impl.Init(); e != nil {
+		return nil, e
 	}
 
 	portByEthDev[cfg.EthDev] = port
 	return port, nil
 }
 
-func (port *Port) configureDev(portCfg PortConfig, nRxThreads int) error {
-	var cfg dpdk.EthDevConfig
-	numaSocket := port.GetNumaSocket()
-	for i := 0; i < nRxThreads; i++ {
-		cfg.AddRxQueue(dpdk.EthRxQueueConfig{
-			Capacity: portCfg.RxqFrames,
-			Socket:   numaSocket,
-			Mp:       portCfg.RxMp,
-		})
-	}
-	cfg.AddTxQueue(dpdk.EthTxQueueConfig{
-		Capacity: portCfg.TxqFrames,
-		Socket:   numaSocket,
-	})
-	cfg.Mtu = portCfg.Mtu
-	if _, _, e := port.dev.Configure(cfg); e != nil {
-		return fmt.Errorf("EthDev(%d).Configure: %v", port.dev, e)
-	}
-	return nil
-}
-
-func (port *Port) startDev() error {
-	if e := port.dev.Start(); e != nil {
-		return fmt.Errorf("EthDev(%d).Start: %v", port.dev, e)
-	}
-	return nil
-}
-
-func (port *Port) createFaces(cfg PortConfig, flows map[iface.FaceId]*RxFlow) error {
-	var f faceFactory
-	f.Port = port
-	f.Mempools = cfg.Mempools
-	f.Local = port.dev.GetMacAddr()
-	if cfg.Local != nil {
-		f.Local = append(net.HardwareAddr{}, cfg.Local...)
-	}
-	f.Mtu = port.dev.GetMtu()
-	f.TxqPkts = cfg.TxqPkts
-	f.Flows = flows
-
-	for i, nFaces := 0, cfg.countFaces(); i < nFaces; i++ {
-		id, addr := cfg.getFaceIdAddr(i)
-		face, e := f.NewFace(id, addr)
-		if e != nil {
-			return e
-		}
-
-		if addr == nil {
-			port.multicast = face
-		} else {
-			port.unicast = append(port.unicast, face)
-		}
-	}
-
-	return nil
-}
-
-func (port *Port) Close() error {
-	if port.multicast != nil {
-		port.multicast.Close()
-	}
-	for _, face := range port.unicast {
-		face.Close()
-	}
-	port.dev.Stop()
-	delete(portByEthDev, port.dev)
-	port.logger.Info("closed")
-	return nil
-}
-
 func (port *Port) GetEthDev() dpdk.EthDev {
 	return port.dev
 }
 
-func (port *Port) ListRxGroups() (list []iface.IRxGroup) {
-	if len(port.rxt) > 0 {
-		for _, rxt := range port.rxt {
-			list = append(list, rxt)
-		}
-		return list
+func (port *Port) Close() error {
+	if e := port.impl.Close(); e != nil {
+		return e
+	}
+	delete(portByEthDev, port.dev)
+	port.logger.Debug("closing")
+	return nil
+}
+
+func (port *Port) startDev(nRxQueues int, promisc bool) error {
+	var cfg dpdk.EthDevConfig
+	numaSocket := port.dev.GetNumaSocket()
+	for i := 0; i < nRxQueues; i++ {
+		cfg.AddRxQueue(dpdk.EthRxQueueConfig{
+			Capacity: port.cfg.RxqFrames,
+			Socket:   numaSocket,
+			Mp:       port.cfg.RxMp,
+		})
+	}
+	cfg.AddTxQueue(dpdk.EthTxQueueConfig{
+		Capacity: port.cfg.TxqFrames,
+		Socket:   numaSocket,
+	})
+	cfg.Mtu = port.cfg.Mtu
+	if _, _, e := port.dev.Configure(cfg); e != nil {
+		return e
 	}
 
-	if port.multicast != nil {
-		list = append(list, port.multicast.rxf)
+	port.dev.SetPromiscuous(promisc)
+	return port.dev.Start()
+}
+
+func (port *Port) findFace(filter func(face *EthFace) bool) *EthFace {
+	for _, face := range port.faces {
+		if filter(face) {
+			return face
+		}
 	}
-	for _, face := range port.unicast {
-		list = append(list, face.rxf)
+	return nil
+}
+
+// FindFace(nil) returns a face with multicast address.
+// FindFace(unicastAddr) returns a face with matching address.
+func (port *Port) FindFace(remote net.HardwareAddr) *EthFace {
+	if remote == nil {
+		return port.findFace(func(face *EthFace) bool {
+			return classifyMac48(face.remote) == mac48_multicast
+		})
+	}
+	return port.findFace(func(face *EthFace) bool {
+		return bytes.Compare(([]byte)(remote), ([]byte)(face.remote)) == 0
+	})
+}
+
+func (port *Port) startFace(face *EthFace) error {
+	if e := port.impl.Start(face); e != nil {
+		return e
+	}
+	port.faces[face.GetFaceId()] = face
+	return nil
+}
+
+func (port *Port) stopFace(face *EthFace) error {
+	delete(port.faces, face.GetFaceId())
+	return port.impl.Stop(face)
+}
+
+func (port *Port) ListFaces() (list []*EthFace) {
+	for _, face := range port.faces {
+		list = append(list, face)
 	}
 	return list
-}
-
-func (port *Port) GetNumaSocket() dpdk.NumaSocket {
-	return port.dev.GetNumaSocket()
-}
-
-func (port *Port) CountFaces() int {
-	n := len(port.unicast)
-	if port.multicast != nil {
-		n++
-	}
-	return n
-}
-
-func (port *Port) GetMulticastFace() *EthFace {
-	return port.multicast
-}
-
-func (port *Port) ListUnicastFaces() []*EthFace {
-	return append([]*EthFace{}, port.unicast...)
 }

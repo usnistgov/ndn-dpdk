@@ -5,7 +5,10 @@ package ethface
 */
 import "C"
 import (
+	"bytes"
 	"encoding/binary"
+	"errors"
+	"fmt"
 	"net"
 	"unsafe"
 
@@ -13,43 +16,45 @@ import (
 	"ndn-dpdk/ndn"
 )
 
-type faceFactory struct {
-	Port     *Port
-	Mempools iface.Mempools
-	Local    net.HardwareAddr
-	Mtu      int
-	TxqPkts  int
-	Flows    map[iface.FaceId]*RxFlow
+type EthFace struct {
+	iface.FaceBase
+	port   *Port
+	remote net.HardwareAddr
+	rxf    *RxFlow
 }
 
-func copyHwaddrToC(a net.HardwareAddr, c *C.struct_ether_addr) {
-	for i := 0; i < C.ETHER_ADDR_LEN; i++ {
-		c.addr_bytes[i] = C.uint8_t(a[i])
+func New(port *Port, loc Locator) (face *EthFace, e error) {
+	if loc.Local != nil && bytes.Compare(([]byte)(port.cfg.Local), ([]byte)(loc.Local)) != 0 {
+		return nil, errors.New("conflicting local address")
 	}
-}
+	if loc.Remote == nil {
+		loc.Remote = ndn.GetEtherMcastAddr()
+	}
+	switch classifyMac48(loc.Remote) {
+	case mac48_multicast:
+		if face = port.FindFace(nil); face != nil {
+			return nil, fmt.Errorf("face %d has multicast address", face.GetFaceId())
+		}
+	case mac48_unicast:
+		if face = port.FindFace(loc.Remote); face != nil {
+			return nil, fmt.Errorf("face %d has same unicast address", face.GetFaceId())
+		}
+	default:
+		return nil, fmt.Errorf("invalid MAC-48 address")
+	}
 
-func (f *faceFactory) NewFace(id iface.FaceId, remote net.HardwareAddr) (face *EthFace, e error) {
 	face = new(EthFace)
-	if e := face.InitFaceBase(id, int(C.sizeof_EthFacePriv), f.Port.GetNumaSocket()); e != nil {
+	if e := face.InitFaceBase(iface.AllocId(iface.FaceKind_Eth), int(C.sizeof_EthFacePriv), port.dev.GetNumaSocket()); e != nil {
 		return nil, e
 	}
-
-	face.port = f.Port
-	face.local = f.Local
-	if remote == nil {
-		face.remote = ndn.GetEtherMcastAddr()
-	} else {
-		face.remote = remote
-	}
-	if f.Flows != nil {
-		face.rxf = f.Flows[id]
-	}
+	face.port = port
+	face.remote = loc.Remote
 
 	priv := face.getPriv()
 	priv.port = C.uint16_t(face.port.dev)
-	copyHwaddrToC(face.local, &priv.txHdr.s_addr)
-	copyHwaddrToC(face.remote, &priv.txHdr.d_addr)
-
+	priv.faceId = C.FaceId(face.GetFaceId())
+	copyMac48ToC(port.cfg.Local, &priv.txHdr.s_addr)
+	copyMac48ToC(face.remote, &priv.txHdr.d_addr)
 	var etherType [2]byte
 	binary.BigEndian.PutUint16(etherType[:], ndn.NDN_ETHERTYPE)
 	C.memcpy(unsafe.Pointer(&priv.txHdr.ether_type), unsafe.Pointer(&etherType[0]), 2)
@@ -57,17 +62,14 @@ func (f *faceFactory) NewFace(id iface.FaceId, remote net.HardwareAddr) (face *E
 	faceC := face.getPtr()
 	faceC.txBurstOp = (C.FaceImpl_TxBurst)(C.EthFace_TxBurst)
 
-	face.FinishInitFaceBase(f.TxqPkts, f.Mtu, int(C.sizeof_struct_ether_hdr), f.Mempools)
+	face.FinishInitFaceBase(port.cfg.TxqPkts, port.cfg.Mtu, int(C.sizeof_struct_ether_hdr), port.cfg.Mempools)
+
+	if e = face.port.startFace(face); e != nil {
+		return nil, e
+	}
+
 	iface.Put(face)
 	return face, nil
-}
-
-type EthFace struct {
-	iface.FaceBase
-	port   *Port
-	local  net.HardwareAddr
-	remote net.HardwareAddr
-	rxf    *RxFlow
 }
 
 func (face *EthFace) getPtr() *C.Face {
@@ -85,37 +87,23 @@ func (face *EthFace) GetPort() *Port {
 func (face *EthFace) GetLocator() iface.Locator {
 	var loc Locator
 	loc.Scheme = locatorScheme
-	loc.Port = face.port.GetEthDev().GetName()
-	loc.Local = face.local
+	loc.Port = face.port.dev.GetName()
+	loc.Local = face.port.cfg.Local
 	loc.Remote = face.remote
 	return loc
 }
 
 func (face *EthFace) Close() error {
 	face.BeforeClose()
-	if face.rxf != nil {
-		face.rxf.Close()
-	}
-	if face.port.multicast == face {
-		face.port.multicast = nil
-	} else {
-		for i, entry := range face.port.unicast {
-			if entry == face {
-				face.port.unicast[i] = face.port.unicast[len(face.port.unicast)-1]
-				face.port.unicast = face.port.unicast[:len(face.port.unicast)-1]
-				break
-			}
-		}
-	}
+	face.port.stopFace(face)
 	face.CloseFaceBase()
 	return nil
 }
 
 func (face *EthFace) ListRxGroups() []iface.IRxGroup {
-	if face.rxf != nil {
-		return []iface.IRxGroup{face.rxf}
-	}
-	return face.port.ListRxGroups()
+	portImpl := face.port.impl.(*rxFlowImpl)
+	_, rxf := portImpl.findQueue(func(rxf *RxFlow) bool { return rxf != nil && rxf.face == face })
+	return []iface.IRxGroup{rxf}
 }
 
 func (face *EthFace) ReadExCounters() interface{} {

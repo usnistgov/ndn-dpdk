@@ -1,5 +1,9 @@
 package ethface
 
+/*
+#include <rte_ether.h>
+*/
+import "C"
 import (
 	"errors"
 	"net"
@@ -25,6 +29,12 @@ func classifyMac48(addr net.HardwareAddr) classifyMac48Result {
 		return mac48_multicast
 	}
 	return mac48_unicast
+}
+
+func copyMac48ToC(a net.HardwareAddr, c *C.struct_ether_addr) {
+	for i := 0; i < C.ETHER_ADDR_LEN; i++ {
+		c.addr_bytes[i] = C.uint8_t(a[i])
+	}
 }
 
 const locatorScheme = "ether"

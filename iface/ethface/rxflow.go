@@ -1,12 +1,11 @@
 package ethface
 
 /*
-#include "rxgroup.h"
+#include "eth-face.h"
 */
 import "C"
 import (
 	"errors"
-	"net"
 	"unsafe"
 
 	"ndn-dpdk/dpdk"
@@ -23,104 +22,156 @@ func readFlowErr(flowErr C.struct_rte_flow_error) error {
 	return errors.New(C.GoString(flowErr.message))
 }
 
-type rxFlowStarter struct{}
+type rxFlowImpl struct {
+	port      *Port
+	queueFlow []*RxFlow
+}
 
-func (rxFlowStarter) String() string {
+func newRxFlowImpl(port *Port) (impl *rxFlowImpl) {
+	impl = new(rxFlowImpl)
+	impl.port = port
+	return impl
+}
+
+func (*rxFlowImpl) String() string {
 	return "RxFlow"
 }
 
-// Start port with hardware-dispatched RxFlows.
-func (rxFlowStarter) Start(port *Port, cfg PortConfig) (e error) {
-	if DisableRxFlow {
-		return errors.New("RxFlow disabled")
+// Enter or leave flow isolation mode.
+func (impl *rxFlowImpl) setIsolate(enable bool) error {
+	var set C.int
+	if enable {
+		set = 1
 	}
-
 	var flowErr C.struct_rte_flow_error
-	if res := C.rte_flow_isolate(C.uint16_t(port.dev), 1, &flowErr); res != 0 {
+	if res := C.rte_flow_isolate(C.uint16_t(impl.port.dev), set, &flowErr); res != 0 {
 		return readFlowErr(flowErr)
 	}
+	return nil
+}
 
-	flows := make(map[iface.FaceId]*RxFlow)
-	defer func() {
-		if e == nil {
+func (impl *rxFlowImpl) Init() error {
+	if DisableRxFlow {
+		return errors.New("disabled")
+	}
+
+	if e := impl.setIsolate(true); e != nil {
+		return e
+	}
+
+	devInfo := impl.port.dev.GetDevInfo()
+	nRxQueues := int(devInfo.Max_rx_queues)
+	if nRxQueues == 0 {
+		return errors.New("unable to retrieve max_rx_queues")
+	}
+	if nRxQueues > C.RTE_MAX_QUEUES_PER_PORT {
+		nRxQueues = C.RTE_MAX_QUEUES_PER_PORT
+	}
+	nRxQueues = 4
+
+	if e := impl.port.startDev(nRxQueues, false); e != nil {
+		return e
+	}
+
+	impl.queueFlow = make([]*RxFlow, nRxQueues)
+	return nil
+}
+
+func (impl *rxFlowImpl) findQueue(filter func(rxf *RxFlow) bool) (i int, rxf *RxFlow) {
+	for i, rxf = range impl.queueFlow {
+		if filter(rxf) {
 			return
 		}
-		for _, flow := range flows {
-			flow.Close()
-		}
-		C.rte_flow_isolate(C.uint16_t(port.dev), 0, &flowErr)
-	}()
+	}
+	return -1, nil
+}
 
-	nFaces := cfg.countFaces()
-	if e = port.configureDev(cfg, nFaces); e != nil {
+func (impl *rxFlowImpl) Start(face *EthFace) error {
+	index, _ := impl.findQueue(func(rxf *RxFlow) bool { return rxf == nil })
+	if index < 0 {
+		// TODO reclaim deferred-destroy queues
+		return errors.New("no available queue")
+	}
+
+	rxf, e := newRxFlow(face, index)
+	if e != nil {
 		return e
 	}
 
-	for i := 0; i < nFaces; i++ {
-		id, addr := cfg.getFaceIdAddr(i)
-		flow := newRxFlow(port, i, id)
-		flows[id] = flow
-		if e = flow.setup(addr); e != nil {
-			return e
+	impl.port.logger.WithFields(makeLogFields("rx-queue", index, "face", face.GetFaceId())).Debug("create RxFlow")
+	impl.queueFlow[index] = rxf
+	return nil
+}
+
+func (impl *rxFlowImpl) Stop(face *EthFace) error {
+	index, rxf := impl.findQueue(func(rxf *RxFlow) bool { return rxf != nil && rxf.face == face })
+	if index < 0 {
+		return nil
+	}
+
+	if e := impl.destroyFlow(rxf); e != nil {
+		impl.port.logger.WithField("rx-queue", index).WithError(e).Debug("destroy RxFlow deferred")
+		rxf.face = nil
+	} else {
+		impl.port.logger.WithField("rx-queue", index).Debug("destroy RxFlow success")
+		impl.queueFlow[index] = nil
+	}
+	return nil
+}
+
+func (impl *rxFlowImpl) destroyFlow(rxf *RxFlow) error {
+	var flowErr C.struct_rte_flow_error
+	if res := C.rte_flow_destroy(C.uint16_t(impl.port.dev), rxf.flow, &flowErr); res != 0 {
+		return readFlowErr(flowErr)
+	}
+	return nil
+}
+
+func (impl *rxFlowImpl) Close() error {
+	for _, rxf := range impl.queueFlow {
+		if rxf != nil {
+			impl.destroyFlow(rxf)
 		}
 	}
-
-	if e = port.startDev(); e != nil {
-		return e
-	}
-
-	port.createFaces(cfg, flows)
+	impl.queueFlow = nil
+	impl.port.dev.Stop()
+	impl.setIsolate(false)
 	return nil
 }
 
 // rte_flow-based hardware RX dispatching.
 type RxFlow struct {
 	iface.RxGroupBase
-	c    *C.EthRxFlow
-	port *Port
+	face *EthFace
+	flow *C.struct_rte_flow
 }
 
-func newRxFlow(port *Port, queue int, face iface.FaceId) (rxf *RxFlow) {
-	rxf = new(RxFlow)
-	rxf.c = (*C.EthRxFlow)(dpdk.Zmalloc("EthRxFlow", C.sizeof_EthRxFlow, port.GetNumaSocket()))
-	rxf.InitRxgBase(unsafe.Pointer(rxf.c))
-	rxf.port = port
-
-	rxf.c.port = C.uint16_t(port.dev)
-	rxf.c.queue = C.uint16_t(queue)
-	rxf.c.base.rxBurstOp = C.RxGroup_RxBurst(C.EthRxFlow_RxBurst)
-	rxf.c.base.rxThread = 0
-
-	rxf.c.face = C.FaceId(face)
-	return rxf
-}
-
-func (rxf *RxFlow) setup(addr net.HardwareAddr) error {
-	var addrC C.struct_ether_addr
-	var addrCP *C.struct_ether_addr
-	if addr != nil {
-		addrCP = &addrC
-		copyHwaddrToC(addr, addrCP)
+func newRxFlow(face *EthFace, queue int) (rxf *RxFlow, e error) {
+	priv := face.getPriv()
+	priv.rxQueue = C.uint16_t(queue)
+	var flowErr C.struct_rte_flow_error
+	flow := C.EthFace_SetupFlow(priv, &flowErr)
+	if flow == nil {
+		return nil, readFlowErr(flowErr)
 	}
 
-	var flowErr C.struct_rte_flow_error
-	C.EthRxFlow_Setup(rxf.c, addrCP, &flowErr)
-	return readFlowErr(flowErr)
+	rxf = new(RxFlow)
+	rxf.InitRxgBase(unsafe.Pointer(&priv.flowRxg))
+	rxf.face = face
+	rxf.flow = flow
+	priv.flowRxg.rxBurstOp = C.RxGroup_RxBurst(C.EthFace_FlowRxBurst)
+	priv.flowRxg.rxThread = 0
+	return rxf, nil
 }
 
 func (rxf *RxFlow) Close() error {
-	if rxf.c.flow != nil {
-		var flowErr C.struct_rte_flow_error
-		C.rte_flow_destroy(C.uint16_t(rxf.port.dev), rxf.c.flow, &flowErr)
-	}
-	dpdk.Free(rxf.c)
 	return nil
 }
 
 func (rxf *RxFlow) GetNumaSocket() dpdk.NumaSocket {
-	return rxf.port.GetNumaSocket()
+	return rxf.face.GetNumaSocket()
 }
 
 func (rxf *RxFlow) ListFaces() []iface.FaceId {
-	return []iface.FaceId{iface.FaceId(rxf.c.face)}
+	return []iface.FaceId{rxf.face.GetFaceId()}
 }

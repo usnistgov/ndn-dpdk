@@ -5,38 +5,22 @@ import (
 	"ndn-dpdk/iface/ethface"
 )
 
-func startEthRxtx(port *ethface.Port) (e error) {
-	for _, rxg := range port.ListRxGroups() {
+func startEthRxtx(face *ethface.EthFace) (e error) {
+	for _, rxg := range face.ListRxGroups() {
 		TheRxl.AddRxGroup(rxg)
 	}
-
-	if face := port.GetMulticastFace(); face != nil {
-		TheTxl.AddFace(face)
-	}
-	for _, face := range port.ListUnicastFaces() {
-		TheTxl.AddFace(face)
-	}
-
+	TheTxl.AddFace(face)
 	return nil
 }
 
 func stopEthFaceRxtx(face *ethface.EthFace) {
 	for _, rxg := range face.ListRxGroups() {
-		if _, ok := rxg.(*ethface.RxFlow); !ok {
-			continue
-		}
 		TheRxl.RemoveRxGroup(rxg)
 	}
 	TheTxl.RemoveFace(face)
 }
 
 func stopEthPortRxtx(port *ethface.Port) {
-	for _, rxg := range port.ListRxGroups() {
-		if _, ok := rxg.(*ethface.RxTable); !ok {
-			continue
-		}
-		TheRxl.RemoveRxGroup(rxg)
-	}
 	port.Close()
 }
 

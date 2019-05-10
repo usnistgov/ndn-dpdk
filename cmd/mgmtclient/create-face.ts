@@ -25,7 +25,7 @@ mgmtClient.request("Face.Create",
   ] as mgmt.facemgmt.CreateArg,
   (err, error, result: mgmt.facemgmt.CreateRes) => {
     if (err || error) {
-      process.stderr.write((err || error).toString() + "\n");
+      process.stderr.write(JSON.stringify(err || error) + "\n");
       process.exit(1);
       return;
     }

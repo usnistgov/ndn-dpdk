@@ -35,7 +35,7 @@ func handleFaceClosed(id iface.FaceId) {
 	defer createDestroyLock.Unlock()
 
 	for _, port := range ethface.ListPorts() {
-		if port.CountFaces() == 0 {
+		if len(port.ListFaces()) == 0 {
 			stopEthPortRxtx(port)
 		}
 	}

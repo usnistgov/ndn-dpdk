@@ -3,13 +3,13 @@ package createface
 import (
 	"errors"
 	"fmt"
+	"net"
 
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/ethface"
 	"ndn-dpdk/iface/mockface"
 	"ndn-dpdk/iface/socketface"
-	"ndn-dpdk/ndn"
 )
 
 func Create(locs ...iface.Locator) (faces []iface.IFace, e error) {
@@ -26,26 +26,15 @@ func Create(locs ...iface.Locator) (faces []iface.IFace, e error) {
 			return nil, fmt.Errorf("loc[%d]: %v", i, e)
 		}
 	}
-	if e = ctx.Launch(); e != nil {
-		return nil, e
-	}
 	return ctx.Faces, nil
 }
 
 type createContext struct {
 	Faces []iface.IFace
-	eth   map[dpdk.EthDev]*createContextEth
-}
-
-type createContextEth struct {
-	ethface.PortConfig
-	multicastIndex int
-	unicastIndex   []int
 }
 
 func newCreateContext(count int) (ctx createContext) {
 	ctx.Faces = make([]iface.IFace, count)
-	ctx.eth = make(map[dpdk.EthDev]*createContextEth)
 	return ctx
 }
 
@@ -63,48 +52,47 @@ func (ctx *createContext) Add(i int, loc iface.Locator) error {
 	return ctx.addSock(i, loc.(socketface.Locator))
 }
 
-func (ctx *createContext) addEth(i int, loc ethface.Locator) error {
+func (ctx *createContext) createEthPort(dev dpdk.EthDev, local net.HardwareAddr) (port *ethface.Port, e error) {
+	numaSocket := dev.GetNumaSocket()
+	var cfg ethface.PortConfig
+	cfg.EthDev = dev
+	if cfg.Mempools, e = theCallbacks.CreateFaceMempools(numaSocket); e != nil {
+		return nil, e
+	}
+	if cfg.RxMp, e = theCallbacks.CreateRxMp(numaSocket); e != nil {
+		return nil, e
+	}
+	cfg.RxqFrames = theConfig.EthRxqFrames
+	cfg.TxqPkts = theConfig.EthTxqPkts
+	cfg.TxqFrames = theConfig.EthTxqFrames
+	cfg.Mtu = theConfig.EthMtu
+	cfg.Local = local
+	return ethface.NewPort(cfg)
+}
+
+func (ctx *createContext) addEth(i int, loc ethface.Locator) (e error) {
 	if !theConfig.EnableEth {
 		return errors.New("Ethernet face feature is disabled")
 	}
 
-	isMulticast := loc.IsRemoteMulticast()
-	if isMulticast && loc.Remote.String() != ndn.GetEtherMcastAddr().String() {
-		return errors.New("remote MAC address must be either unicast or well-known NDN multicast group")
-	}
-
-	ethdev := dpdk.FindEthDev(loc.Port)
-	if ethdev == dpdk.ETHDEV_INVALID {
+	dev := dpdk.FindEthDev(loc.Port)
+	if dev == dpdk.ETHDEV_INVALID {
 		return errors.New("EthDev not found")
 	}
-	if ethface.FindPort(ethdev) != nil {
-		return errors.New("EthDev is already active")
-	}
 
-	ectx := ctx.eth[ethdev]
-	if ectx == nil {
-		ectx = new(createContextEth)
-		ectx.EthDev = ethdev
-		ectx.Local = loc.Local
-		ectx.multicastIndex = -1
-		ctx.eth[ethdev] = ectx
-	}
-
-	if ectx.Local.String() != loc.Local.String() {
-		return errors.New("conflicting local MAC address")
-	}
-	if isMulticast {
-		if ectx.Multicast {
-			return errors.New("EthDev already has multicast face")
+	port := ethface.FindPort(dev)
+	if port == nil {
+		if port, e = ctx.createEthPort(dev, loc.Local); e != nil {
+			return e
 		}
-		ectx.Multicast = true
-		ectx.multicastIndex = i
-	} else {
-		ectx.Unicast = append(ectx.Unicast, loc.Remote)
-		ectx.unicastIndex = append(ectx.unicastIndex, i)
 	}
 
-	return nil
+	face, e := ethface.New(port, loc)
+	if e != nil {
+		return e
+	}
+	ctx.Faces[i] = face
+	return startEthRxtx(face)
 }
 
 func (ctx *createContext) addSock(i int, loc socketface.Locator) (e error) {
@@ -146,49 +134,4 @@ func (ctx *createContext) addMock(i int) (e error) {
 	face := mockface.New()
 	ctx.Faces[i] = face
 	return startChanRxtx(face)
-}
-
-func (ctx *createContext) Launch() error {
-	for ethdev, ectx := range ctx.eth {
-		e := ctx.launchEth(ectx)
-		if e != nil {
-			return fmt.Errorf("eth[%s]: %v", ethdev.GetName(), e)
-		}
-	}
-	return nil
-}
-
-func (ctx *createContext) launchEth(ectx *createContextEth) (e error) {
-	numaSocket := ectx.EthDev.GetNumaSocket()
-
-	cfg := ectx.PortConfig
-	if cfg.Mempools, e = theCallbacks.CreateFaceMempools(numaSocket); e != nil {
-		return e
-	}
-	if cfg.RxMp, e = theCallbacks.CreateRxMp(numaSocket); e != nil {
-		return e
-	}
-	cfg.NRxThreads = 1
-	cfg.RxqFrames = theConfig.EthRxqFrames
-	cfg.TxqPkts = theConfig.EthTxqPkts
-	cfg.TxqFrames = theConfig.EthTxqFrames
-	cfg.Mtu = theConfig.EthMtu
-
-	port, e := ethface.NewPort(cfg)
-	if e != nil {
-		return e
-	}
-
-	if e := startEthRxtx(port); e != nil {
-		return e
-	}
-
-	if ectx.multicastIndex >= 0 {
-		face := port.GetMulticastFace()
-		ctx.Faces[ectx.multicastIndex] = face
-	}
-	for i, face := range port.ListUnicastFaces() {
-		ctx.Faces[ectx.unicastIndex[i]] = face
-	}
-	return nil
 }
