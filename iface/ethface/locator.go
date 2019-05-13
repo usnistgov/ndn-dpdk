@@ -46,10 +46,10 @@ type Locator struct {
 	Remote            net.HardwareAddr
 }
 
-func NewLocator(ethdev dpdk.EthDev) (loc Locator) {
+func NewLocator(dev dpdk.EthDev) (loc Locator) {
 	loc.Scheme = locatorScheme
-	loc.Port = ethdev.GetName()
-	loc.Local = ethdev.GetMacAddr()
+	loc.Port = dev.GetName()
+	loc.Local = dev.GetMacAddr()
 	loc.Remote = ndn.GetEtherMcastAddr()
 	return loc
 }
@@ -58,10 +58,10 @@ func (loc Locator) Validate() error {
 	if loc.Port == "" {
 		return errors.New("Port must be non-empty")
 	}
-	if classifyMac48(loc.Local) != mac48_unicast {
+	if loc.Local != nil && classifyMac48(loc.Local) != mac48_unicast {
 		return errors.New("Local must be MAC-48 unicast address")
 	}
-	if classifyMac48(loc.Remote) == mac48_no {
+	if loc.Remote != nil && classifyMac48(loc.Remote) == mac48_no {
 		return errors.New("Remote must be MAC-48 address")
 	}
 	return nil
@@ -105,4 +105,30 @@ func (loc *Locator) UnmarshalYAML(unmarshal func(interface{}) error) (e error) {
 
 func init() {
 	iface.RegisterLocatorType(Locator{}, locatorScheme)
+}
+
+// Create a face from locator.
+// cfg is only used for initial port creation, and would be ignored if port exists.
+// If cfg.Local is omitted, it is copied from loc.Local.
+func Create(loc Locator, cfg PortConfig) (face *EthFace, e error) {
+	if e = loc.Validate(); e != nil {
+		return nil, e
+	}
+
+	dev := dpdk.FindEthDev(loc.Port)
+	if !dev.IsValid() {
+		return nil, errors.New("EthDev not found")
+	}
+
+	port := FindPort(dev)
+	if port == nil {
+		if cfg.Local == nil {
+			cfg.Local = loc.Local
+		}
+		if port, e = NewPort(dev, cfg); e != nil {
+			return nil, e
+		}
+	}
+
+	return New(port, loc)
 }

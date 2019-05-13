@@ -30,36 +30,34 @@ func ListPorts() (list []*Port) {
 
 // Collection of EthFaces on a DPDK EthDev.
 type Port struct {
-	cfg    PortConfig
-	logger logrus.FieldLogger
-	dev    dpdk.EthDev
-	impl   iImpl
-	faces  map[iface.FaceId]*EthFace
+	cfg      PortConfig
+	logger   logrus.FieldLogger
+	dev      dpdk.EthDev
+	faces    map[iface.FaceId]*EthFace
+	impl     iImpl
+	nextImpl int
 }
 
-// Create a port without starting it.
-func NewPort(cfg PortConfig) (port *Port, e error) {
+// Open a port.
+func NewPort(dev dpdk.EthDev, cfg PortConfig) (port *Port, e error) {
 	if e = cfg.check(); e != nil {
 		return nil, e
 	}
-	if FindPort(cfg.EthDev) != nil {
-		return nil, errors.New("cfg.EthDev matches existing Port")
+	if FindPort(dev) != nil {
+		return nil, errors.New("Port already exists")
 	}
 	if cfg.Local == nil {
-		cfg.Local = port.dev.GetMacAddr()
+		cfg.Local = dev.GetMacAddr()
 	}
 
 	port = new(Port)
 	port.cfg = cfg
-	port.logger = newPortLogger(cfg.EthDev)
-	port.dev = cfg.EthDev
-	port.impl = newRxFlowImpl(port)
+	port.logger = newPortLogger(dev)
+	port.dev = dev
 	port.faces = make(map[iface.FaceId]*EthFace)
-	if e = port.impl.Init(); e != nil {
-		return nil, e
-	}
 
-	portByEthDev[cfg.EthDev] = port
+	port.logger.Debug("opening")
+	portByEthDev[port.dev] = port
 	return port, nil
 }
 
@@ -67,36 +65,13 @@ func (port *Port) GetEthDev() dpdk.EthDev {
 	return port.dev
 }
 
-func (port *Port) Close() error {
-	if e := port.impl.Close(); e != nil {
-		return e
+func (port *Port) Close() (e error) {
+	if port.impl != nil {
+		e = port.impl.Close()
 	}
 	delete(portByEthDev, port.dev)
 	port.logger.Debug("closing")
 	return nil
-}
-
-func (port *Port) startDev(nRxQueues int, promisc bool) error {
-	var cfg dpdk.EthDevConfig
-	numaSocket := port.dev.GetNumaSocket()
-	for i := 0; i < nRxQueues; i++ {
-		cfg.AddRxQueue(dpdk.EthRxQueueConfig{
-			Capacity: port.cfg.RxqFrames,
-			Socket:   numaSocket,
-			Mp:       port.cfg.RxMp,
-		})
-	}
-	cfg.AddTxQueue(dpdk.EthTxQueueConfig{
-		Capacity: port.cfg.TxqFrames,
-		Socket:   numaSocket,
-	})
-	cfg.Mtu = port.cfg.Mtu
-	if _, _, e := port.dev.Configure(cfg); e != nil {
-		return e
-	}
-
-	port.dev.SetPromiscuous(promisc)
-	return port.dev.Start()
 }
 
 func (port *Port) findFace(filter func(face *EthFace) bool) *EthFace {
@@ -121,17 +96,71 @@ func (port *Port) FindFace(remote net.HardwareAddr) *EthFace {
 	})
 }
 
-func (port *Port) startFace(face *EthFace) error {
-	if e := port.impl.Start(face); e != nil {
-		return e
+// Switch to next impl.
+func (port *Port) fallbackImpl() error {
+	logEntry := port.logger
+	if port.impl != nil {
+		for _, face := range port.faces {
+			face.SetDown(true)
+		}
+
+		logEntry = logEntry.WithField("old-impl", port.impl.String())
+		if e := port.impl.Close(); e != nil {
+			logEntry.WithError(e).Warn("impl close error")
+			return e
+		}
 	}
+
+	if port.nextImpl >= len(impls) {
+		logEntry.Warn("no feasible impl")
+		return errors.New("no feasible impl")
+	}
+	newImpl := impls[port.nextImpl]
+	port.nextImpl++
+	logEntry = logEntry.WithField("impl", newImpl.String())
+	port.impl = newImpl.New(port)
+
+	if e := port.impl.Init(); e != nil {
+		logEntry.WithError(e).Info("impl init error, trying next impl")
+		return port.fallbackImpl()
+	}
+
+	for faceId, face := range port.faces {
+		if e := port.impl.Start(face); e != nil {
+			logEntry.WithField("face", faceId).WithError(e).Info("face restart error, trying next impl")
+			return port.fallbackImpl()
+		}
+		face.SetDown(false)
+	}
+
+	logEntry.Info("impl initialized")
+	return nil
+}
+
+// Start face in impl (called by New).
+func (port *Port) startFace(face *EthFace, forceFallback bool) error {
+	if port.impl == nil || forceFallback {
+		if e := port.fallbackImpl(); e != nil {
+			return e
+		}
+	}
+
+	if e := port.impl.Start(face); e != nil {
+		port.logger.WithError(e).Info("face start error, trying next impl")
+		return port.startFace(face, true)
+	}
+
+	port.logger.WithFields(makeLogFields("impl", port.impl.String(), "face", face.GetFaceId())).Info("face started")
 	port.faces[face.GetFaceId()] = face
 	return nil
 }
 
-func (port *Port) stopFace(face *EthFace) error {
+// Stop face in impl (called by EthFace.Close).
+func (port *Port) stopFace(face *EthFace) (e error) {
 	delete(port.faces, face.GetFaceId())
-	return port.impl.Stop(face)
+	e = port.impl.Stop(face)
+	port.logger.WithError(e).Info("face stopped")
+	return nil
 }
 
 func (port *Port) ListFaces() (list []*EthFace) {

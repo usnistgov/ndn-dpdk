@@ -64,7 +64,7 @@ func New(port *Port, loc Locator) (face *EthFace, e error) {
 
 	face.FinishInitFaceBase(port.cfg.TxqPkts, port.cfg.Mtu, int(C.sizeof_struct_ether_hdr), port.cfg.Mempools)
 
-	if e = face.port.startFace(face); e != nil {
+	if e = face.port.startFace(face, false); e != nil {
 		return nil, e
 	}
 
@@ -101,9 +101,14 @@ func (face *EthFace) Close() error {
 }
 
 func (face *EthFace) ListRxGroups() []iface.IRxGroup {
-	portImpl := face.port.impl.(*rxFlowImpl)
-	_, rxf := portImpl.findQueue(func(rxf *RxFlow) bool { return rxf != nil && rxf.face == face })
-	return []iface.IRxGroup{rxf}
+	switch impl := face.port.impl.(type) {
+	case *rxFlowImpl:
+		_, rxf := impl.findQueue(func(rxf *RxFlow) bool { return rxf != nil && rxf.face == face })
+		return []iface.IRxGroup{rxf}
+	case *rxTableImpl:
+		return []iface.IRxGroup{impl.rxt}
+	}
+	panic(face.port.impl)
 }
 
 func (face *EthFace) ReadExCounters() interface{} {

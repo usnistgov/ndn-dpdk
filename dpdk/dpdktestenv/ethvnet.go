@@ -88,8 +88,10 @@ func (evn *EthVNet) LaunchBridge(lcore dpdk.LCore) {
 }
 
 func (evn *EthVNet) Close() error {
-	evn.stop <- true
-	evn.bridgeLcore.Wait()
+	if evn.bridgeLcore.GetState() != dpdk.LCORE_STATE_WAIT {
+		evn.stop <- true
+		evn.bridgeLcore.Wait()
+	}
 	for _, pair := range evn.pairs {
 		pair.Close()
 	}

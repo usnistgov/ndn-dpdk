@@ -3,35 +3,52 @@ package ethface
 import (
 	"fmt"
 	"io"
+
+	"ndn-dpdk/dpdk"
 )
 
-// Ethernet RxGroup implementation.
+// RX/TX setup implementation.
 type iImpl interface {
 	fmt.Stringer
 	io.Closer
 
+	// Construct new instance.
+	New(port *Port) iImpl
+
+	// Initialize.
 	Init() error
 
+	// Start a face.
 	Start(face *EthFace) error
 
+	// Stop a face.
 	Stop(face *EthFace) error
 }
 
-// var rxgStarters = []iRxgStarter{rxFlowStarter{}, rxTableStarter{}}
+var impls = []iImpl{&rxFlowImpl{}, &rxTableImpl{}}
 
-// type rxgStartError struct {
-// 	Name  string
-// 	Error error
-// }
+// Start EthDev (called by impl).
+func startDev(port *Port, nRxQueues int, promisc bool) error {
+	var cfg dpdk.EthDevConfig
+	numaSocket := port.dev.GetNumaSocket()
+	for i := 0; i < nRxQueues; i++ {
+		cfg.AddRxQueue(dpdk.EthRxQueueConfig{
+			Capacity: port.cfg.RxqFrames,
+			Socket:   numaSocket,
+			Mp:       port.cfg.RxMp,
+		})
+	}
+	cfg.AddTxQueue(dpdk.EthTxQueueConfig{
+		Capacity: port.cfg.TxqFrames,
+		Socket:   numaSocket,
+	})
+	cfg.Mtu = port.cfg.Mtu
+	if _, _, e := port.dev.Configure(cfg); e != nil {
+		return e
+	}
 
-// type rxgStartErrors []rxgStartError
-
-// func (list rxgStartErrors) Error() (s string) {
-// 	for i, e := range list {
-// 		if i > 0 {
-// 			s += "; "
-// 		}
-// 		s += fmt.Sprintf("%s: %s", e.Name, e.Error)
-// 	}
-// 	return s
-// }
+	if promisc {
+		port.dev.SetPromiscuous(true)
+	}
+	return port.dev.Start()
+}

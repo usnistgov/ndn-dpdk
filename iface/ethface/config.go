@@ -21,7 +21,6 @@ func SizeofTxHeader() int {
 // Port creation arguments.
 type PortConfig struct {
 	iface.Mempools
-	EthDev    dpdk.EthDev
 	RxMp      dpdk.PktmbufPool // mempool for received frames
 	RxqFrames int              // RX queue capacity
 	TxqPkts   int              // before-TX queue capacity
@@ -31,9 +30,6 @@ type PortConfig struct {
 }
 
 func (cfg PortConfig) check() error {
-	if devInfo := cfg.EthDev.GetDevInfo(); devInfo.Device == nil {
-		return errors.New("cfg.EthDev is invalid")
-	}
 	if cfg.Local != nil && classifyMac48(cfg.Local) != mac48_unicast {
 		return errors.New("cfg.Local is not a MAC-48 unicast address")
 	}

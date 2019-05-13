@@ -8,7 +8,6 @@ uint16_t go_ChanRxGroup_RxBurst(RxGroup* rxg, struct rte_mbuf** pkts, uint16_t n
 import "C"
 import (
 	"errors"
-	"io"
 	"sync"
 	"unsafe"
 
@@ -18,8 +17,6 @@ import (
 
 // Receive channel for a group of faces.
 type IRxGroup interface {
-	io.Closer
-
 	GetPtr() unsafe.Pointer
 	getPtr() *C.RxGroup
 	GetRxLoop() *RxLoop
@@ -58,8 +55,9 @@ func (rxg *RxGroupBase) setRxLoop(rxl *RxLoop) {
 // An RxGroup using a Go channel as receive queue.
 type ChanRxGroup struct {
 	RxGroupBase
-	faces sync.Map // map[FaceId]IFace
-	queue chan dpdk.Packet
+	addRxgOnce sync.Once
+	faces      sync.Map // map[FaceId]IFace
+	queue      chan dpdk.Packet
 }
 
 func newChanRxGroup() (rxg *ChanRxGroup) {
@@ -67,19 +65,12 @@ func newChanRxGroup() (rxg *ChanRxGroup) {
 	C.__theChanRxGroup.rxBurstOp = C.RxGroup_RxBurst(C.go_ChanRxGroup_RxBurst)
 	rxg.InitRxgBase(unsafe.Pointer(&C.__theChanRxGroup))
 	rxg.queue = make(chan dpdk.Packet, 1024)
-	EmitRxGroupAdd(rxg)
 	return rxg
 }
 
 // Change queue capacity (not thread safe).
 func (rxg *ChanRxGroup) SetQueueCapacity(queueCapacity int) {
 	rxg.queue = make(chan dpdk.Packet, queueCapacity)
-}
-
-func (rxg *ChanRxGroup) Close() error {
-	EmitRxGroupRemove(rxg)
-	C.free(rxg.GetPtr())
-	return nil
 }
 
 func (rxg *ChanRxGroup) GetNumaSocket() dpdk.NumaSocket {
@@ -95,6 +86,7 @@ func (rxg *ChanRxGroup) ListFaces() (list []FaceId) {
 }
 
 func (rxg *ChanRxGroup) AddFace(face IFace) {
+	rxg.addRxgOnce.Do(func() { EmitRxGroupAdd(rxg) })
 	rxg.faces.Store(face.GetFaceId(), face)
 }
 

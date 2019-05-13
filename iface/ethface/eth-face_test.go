@@ -20,55 +20,45 @@ func TestEthFace(t *testing.T) {
 
 	var evnCfg dpdktestenv.EthVNetConfig
 	evnCfg.NNodes = 3
-	evnCfg.NQueues = 2
+	evnCfg.NQueues = 1
 	evn := dpdktestenv.NewEthVNet(evnCfg)
-	defer evn.Close()
+	defer func() {
+		for _, port := range ethface.ListPorts() {
+			port.Close()
+		}
+		evn.Close()
+	}()
 
 	macA, _ := net.ParseMAC("02:00:00:00:00:01")
 	macB, _ := net.ParseMAC("02:00:00:00:00:02")
 	macC, _ := net.ParseMAC("02:00:00:00:00:03")
 
-	var cfgA ethface.PortConfig
-	cfgA.Mempools = mempools
-	cfgA.EthDev = evn.Ports[0]
-	cfgA.RxMp = mp
-	cfgA.NRxThreads = evnCfg.NQueues
-	cfgA.RxqFrames = 64
-	cfgA.TxqPkts = 64
-	cfgA.TxqFrames = 64
-	cfgA.Local = macA
-	cfgA.Multicast = true
-	cfgA.Unicast = []net.HardwareAddr{macB, macC}
-	portA, e := ethface.NewPort(cfgA)
-	require.NoError(e)
-	defer portA.Close()
+	var cfg ethface.PortConfig
+	cfg.Mempools = mempools
+	cfg.RxMp = mp
+	cfg.RxqFrames = 64
+	cfg.TxqPkts = 64
+	cfg.TxqFrames = 64
 
-	cfgB := cfgA
-	cfgB.EthDev = evn.Ports[1]
-	cfgB.Local = macB
-	cfgB.Unicast = []net.HardwareAddr{macA}
-	portB, e := ethface.NewPort(cfgB)
-	require.NoError(e)
-	defer portB.Close()
+	makeFace := func(dev dpdk.EthDev, local, remote net.HardwareAddr) *ethface.EthFace {
+		loc := ethface.NewLocator(dev)
+		loc.Local = local
+		loc.Remote = remote
+		face, e := ethface.Create(loc, cfg)
+		require.NoError(e, "%s %s %s", dev.GetName(), local, remote)
+		return face
+	}
 
-	cfgC := cfgB
-	cfgC.EthDev = evn.Ports[2]
-	cfgC.Local = macC
-	cfgC.Multicast = false
-	portC, e := ethface.NewPort(cfgC)
-	require.NoError(e)
-	defer portC.Close()
-
-	faceAB := portA.ListUnicastFaces()[0]
-	faceAC := portA.ListUnicastFaces()[1]
-	faceAm := portA.GetMulticastFace()
-	faceBA := portB.ListUnicastFaces()[0]
-	faceBm := portB.GetMulticastFace()
-	faceCA := portC.ListUnicastFaces()[0]
+	faceAB := makeFace(evn.Ports[0], macA, macB)
+	faceAC := makeFace(evn.Ports[0], macA, macC)
+	faceAm := makeFace(evn.Ports[0], nil, nil)
+	faceBm := makeFace(evn.Ports[1], macB, nil)
+	faceBA := makeFace(evn.Ports[1], nil, macA)
+	faceCA := makeFace(evn.Ports[2], macC, macA)
 
 	locAm := faceAm.GetLocator().(ethface.Locator)
 	assert.Equal("ether", locAm.Scheme)
-	assert.Equal(portA.GetEthDev().GetName(), locAm.Port)
+	assert.Equal(evn.Ports[0].GetName(), locAm.Port)
 	assert.Equal(macA, locAm.Local)
 	assert.Equal(ndn.GetEtherMcastAddr(), locAm.Remote)
 

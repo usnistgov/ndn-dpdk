@@ -3,7 +3,6 @@ package createface
 import (
 	"errors"
 	"fmt"
-	"net"
 
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
@@ -52,24 +51,6 @@ func (ctx *createContext) Add(i int, loc iface.Locator) error {
 	return ctx.addSock(i, loc.(socketface.Locator))
 }
 
-func (ctx *createContext) createEthPort(dev dpdk.EthDev, local net.HardwareAddr) (port *ethface.Port, e error) {
-	numaSocket := dev.GetNumaSocket()
-	var cfg ethface.PortConfig
-	cfg.EthDev = dev
-	if cfg.Mempools, e = theCallbacks.CreateFaceMempools(numaSocket); e != nil {
-		return nil, e
-	}
-	if cfg.RxMp, e = theCallbacks.CreateRxMp(numaSocket); e != nil {
-		return nil, e
-	}
-	cfg.RxqFrames = theConfig.EthRxqFrames
-	cfg.TxqPkts = theConfig.EthTxqPkts
-	cfg.TxqFrames = theConfig.EthTxqFrames
-	cfg.Mtu = theConfig.EthMtu
-	cfg.Local = local
-	return ethface.NewPort(cfg)
-}
-
 func (ctx *createContext) addEth(i int, loc ethface.Locator) (e error) {
 	if !theConfig.EnableEth {
 		return errors.New("Ethernet face feature is disabled")
@@ -80,14 +61,20 @@ func (ctx *createContext) addEth(i int, loc ethface.Locator) (e error) {
 		return errors.New("EthDev not found")
 	}
 
-	port := ethface.FindPort(dev)
-	if port == nil {
-		if port, e = ctx.createEthPort(dev, loc.Local); e != nil {
-			return e
-		}
+	numaSocket := dev.GetNumaSocket()
+	var cfg ethface.PortConfig
+	if cfg.Mempools, e = theCallbacks.CreateFaceMempools(numaSocket); e != nil {
+		return e
 	}
+	if cfg.RxMp, e = theCallbacks.CreateRxMp(numaSocket); e != nil {
+		return e
+	}
+	cfg.RxqFrames = theConfig.EthRxqFrames
+	cfg.TxqPkts = theConfig.EthTxqPkts
+	cfg.TxqFrames = theConfig.EthTxqFrames
+	cfg.Mtu = theConfig.EthMtu
 
-	face, e := ethface.New(port, loc)
+	face, e := ethface.Create(loc, cfg)
 	if e != nil {
 		return e
 	}
