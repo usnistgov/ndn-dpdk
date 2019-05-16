@@ -60,9 +60,10 @@ func (fixture *Fixture) AddRxDiscard(face iface.IFace) {
 
 func (fixture *Fixture) RunTest() {
 	fixture.launchRx()
-	fixture.txl = iface.NewTxLoop(fixture.txFace)
+	fixture.txl = iface.NewTxLoop(fixture.txFace.GetNumaSocket())
 	fixture.txl.SetLCore(fixture.TxLCore)
 	fixture.txl.Launch()
+	fixture.txl.AddFace(fixture.txFace)
 	time.Sleep(200 * time.Millisecond)
 
 	fixture.SendLCore.RemoteLaunch(fixture.sendProc)

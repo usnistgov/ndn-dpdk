@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"ndn-dpdk/dpdk"
+	"ndn-dpdk/iface"
+	"ndn-dpdk/iface/createface"
 	"ndn-dpdk/iface/ethface"
 	"ndn-dpdk/ndn"
 )
@@ -183,4 +185,27 @@ func init() {
 			DataroomSize: SizeofEthLpHeaders() + ndn.EncodeData_GetHeadroom() +
 				ndn.EncodeData_GetTailroomMax(),
 		})
+}
+
+// Provide mempools to createface package.
+// This should be called after createface.Config has been applied.
+func ProvideCreateFaceMempools() {
+	numaSockets := make(map[dpdk.NumaSocket]bool)
+	for _, numaSocket := range createface.ListRxTxNumaSockets() {
+		numaSockets[numaSocket] = true
+	}
+	if len(numaSockets) == 0 {
+		numaSockets[dpdk.NUMA_SOCKET_ANY] = true
+	} else if len(numaSockets) > 1 && numaSockets[dpdk.NUMA_SOCKET_ANY] {
+		delete(numaSockets, dpdk.NUMA_SOCKET_ANY)
+	}
+	for numaSocket := range numaSockets {
+		createface.AddMempools(numaSocket,
+			MakePktmbufPool(MP_ETHRX, numaSocket),
+			iface.Mempools{
+				IndirectMp: MakePktmbufPool(MP_IND, numaSocket),
+				NameMp:     MakePktmbufPool(MP_NAME, numaSocket),
+				HeaderMp:   MakePktmbufPool(MP_HDR, numaSocket),
+			})
+	}
 }

@@ -54,10 +54,11 @@ type InitConfig struct {
 	Face       createface.Config
 }
 
-func (initCfg InitConfig) Apply() {
-	initCfg.Mempool.Apply()
+func (cfg InitConfig) Apply() {
+	cfg.Mempool.Apply()
+	dpdk.LCoreAlloc.Config = cfg.LCoreAlloc
 
-	dpdk.LCoreAlloc.Config = initCfg.LCoreAlloc
-
-	createfaceConfig = initCfg.Face
+	if e := cfg.Face.Apply(); e != nil {
+		log.WithError(e).Warn("face init-config not applied")
+	}
 }

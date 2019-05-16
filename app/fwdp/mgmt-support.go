@@ -38,7 +38,7 @@ func (dp *DataPlane) ReadInputInfo(i int) (info *InputInfo) {
 	input := dp.inputs[i]
 
 	info = new(InputInfo)
-	info.LCore = input.lc
+	info.LCore = input.rxl.GetLCore()
 	if input.rxl != nil {
 		info.Faces = input.rxl.ListFaces()
 	}

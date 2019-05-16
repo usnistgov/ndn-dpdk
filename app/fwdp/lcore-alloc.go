@@ -3,7 +3,6 @@ package fwdp
 import (
 	"fmt"
 
-	"ndn-dpdk/appinit"
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/createface"
@@ -29,10 +28,7 @@ type DpLCores struct {
 
 // Allocate LCores for all necessary roles.
 func (la *DpLCores) Alloc() (e error) {
-	appinit.WantAllocRxlLCore = false
-	appinit.WantAllocTxlLCore = false
-
-	rxlTxlNuma := createface.ListRxlTxlNumaSockets()
+	rxlTxlNuma := createface.ListRxTxNumaSockets()
 	if la.Inputs, e = la.allocNuma(LCoreRole_Input, rxlTxlNuma); e != nil {
 		return e
 	}

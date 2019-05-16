@@ -12,10 +12,9 @@ import (
 )
 
 func Create(locs ...iface.Locator) (faces []iface.IFace, e error) {
-	if !isInitialized {
-		return nil, errors.New("facecreate package is uninitialized")
+	if theConfig.Disabled {
+		return nil, errors.New("createface package is disabled")
 	}
-
 	createDestroyLock.Lock()
 	defer createDestroyLock.Unlock()
 
@@ -63,10 +62,7 @@ func (ctx *createContext) addEth(i int, loc ethface.Locator) (e error) {
 
 	numaSocket := dev.GetNumaSocket()
 	var cfg ethface.PortConfig
-	if cfg.Mempools, e = theCallbacks.CreateFaceMempools(numaSocket); e != nil {
-		return e
-	}
-	if cfg.RxMp, e = theCallbacks.CreateRxMp(numaSocket); e != nil {
+	if cfg.RxMp, cfg.Mempools, e = getMempools(numaSocket); e != nil {
 		return e
 	}
 	cfg.RxqFrames = theConfig.EthRxqFrames
@@ -88,10 +84,7 @@ func (ctx *createContext) addSock(i int, loc socketface.Locator) (e error) {
 	}
 
 	var cfg socketface.Config
-	if cfg.Mempools, e = theCallbacks.CreateFaceMempools(dpdk.NUMA_SOCKET_ANY); e != nil {
-		return e
-	}
-	if cfg.RxMp, e = theCallbacks.CreateRxMp(dpdk.NUMA_SOCKET_ANY); e != nil {
+	if cfg.RxMp, cfg.Mempools, e = getMempools(dpdk.NUMA_SOCKET_ANY); e != nil {
 		return e
 	}
 	cfg.TxqPkts = theConfig.SockTxqPkts
@@ -112,7 +105,7 @@ func (ctx *createContext) addMock(i int) (e error) {
 		return errors.New("mock face feature is disabled")
 	}
 	if !hasMockFaces {
-		if mockface.FaceMempools, e = theCallbacks.CreateFaceMempools(dpdk.NUMA_SOCKET_ANY); e != nil {
+		if _, mockface.FaceMempools, e = getMempools(dpdk.NUMA_SOCKET_ANY); e != nil {
 			return e
 		}
 		hasMockFaces = true

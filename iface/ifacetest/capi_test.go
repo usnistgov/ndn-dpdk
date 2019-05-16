@@ -34,10 +34,12 @@ func TestCApi(t *testing.T) {
 	face.SetDown(false)
 	assert.False(Face_IsDown(id))
 
-	txl := iface.NewTxLoop(face)
+	txl := iface.NewTxLoop(dpdk.NUMA_SOCKET_ANY)
 	txl.SetLCore(dpdk.ListSlaveLCores()[0])
 	txl.Launch()
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(10 * time.Millisecond)
+	txl.AddFace(face)
+	time.Sleep(90 * time.Millisecond)
 
 	pkts := make([]ndn.Packet, 1)
 	pkts[0] = ndntestutil.MakeInterest("/A").GetPacket()

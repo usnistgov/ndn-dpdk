@@ -6,7 +6,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"ndn-dpdk/app/fwdp"
-	"ndn-dpdk/appinit"
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/ndt"
 	"ndn-dpdk/container/strategycode"
@@ -37,7 +36,7 @@ func NewFixture(t *testing.T) (fixture *Fixture) {
 	faceCfg.EnableEth = false
 	faceCfg.EnableSock = false
 	faceCfg.EnableMock = true
-	appinit.EnableCreateFace(faceCfg)
+	faceCfg.Apply()
 
 	var dpCfg fwdp.Config
 
@@ -73,8 +72,6 @@ func NewFixture(t *testing.T) (fixture *Fixture) {
 }
 
 func (fixture *Fixture) Close() error {
-	iface.CloseAll()
-	fixture.DataPlane.Stop()
 	fixture.DataPlane.Close()
 	strategycode.CloseAll()
 	return nil

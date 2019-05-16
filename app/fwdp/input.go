@@ -40,29 +40,26 @@ func (fwi *InputBase) Close() error {
 
 type Input struct {
 	InputBase
-	lc  dpdk.LCore
 	rxl *iface.RxLoop
 }
 
 func newInput(id int, lc dpdk.LCore) *Input {
 	var fwi Input
 	fwi.id = id
-	fwi.lc = lc
+	fwi.rxl = iface.NewRxLoop(lc.GetNumaSocket())
+	fwi.rxl.SetLCore(lc)
+	fwi.rxl.SetCallback(unsafe.Pointer(C.FwInput_FaceRx), unsafe.Pointer(fwi.c))
 	return &fwi
+}
+
+func (fwi *Input) Init(ndt *ndt.Ndt, fwds []*Fwd) error {
+	if e := fwi.InputBase.Init(ndt, fwds, fwi.rxl.GetLCore().GetNumaSocket()); e != nil {
+		return e
+	}
+	fwi.rxl.SetCallback(unsafe.Pointer(C.FwInput_FaceRx), unsafe.Pointer(fwi.c))
+	return nil
 }
 
 func (fwi *Input) String() string {
 	return fmt.Sprintf("input%d", fwi.id)
-}
-
-func (fwi *Input) prepareLaunch(rxl *iface.RxLoop) {
-	fwi.rxl = rxl
-	rxl.SetCallback(unsafe.Pointer(C.FwInput_FaceRx), unsafe.Pointer(fwi.c))
-}
-
-func (fwi *Input) Stop() {
-	if fwi.rxl == nil {
-		return
-	}
-	fwi.rxl.Stop()
 }

@@ -9,6 +9,7 @@ import "C"
 import (
 	"errors"
 	"sync"
+	"sync/atomic"
 	"unsafe"
 
 	"ndn-dpdk/core/urcu"
@@ -55,9 +56,9 @@ func (rxg *RxGroupBase) setRxLoop(rxl *RxLoop) {
 // An RxGroup using a Go channel as receive queue.
 type ChanRxGroup struct {
 	RxGroupBase
-	addRxgOnce sync.Once
-	faces      sync.Map // map[FaceId]IFace
-	queue      chan dpdk.Packet
+	nFaces int32    // accessed via atomic.AddInt32
+	faces  sync.Map // map[FaceId]IFace
+	queue  chan dpdk.Packet
 }
 
 func newChanRxGroup() (rxg *ChanRxGroup) {
@@ -86,12 +87,17 @@ func (rxg *ChanRxGroup) ListFaces() (list []FaceId) {
 }
 
 func (rxg *ChanRxGroup) AddFace(face IFace) {
-	rxg.addRxgOnce.Do(func() { EmitRxGroupAdd(rxg) })
+	if atomic.AddInt32(&rxg.nFaces, 1) == 1 {
+		EmitRxGroupAdd(rxg)
+	}
 	rxg.faces.Store(face.GetFaceId(), face)
 }
 
 func (rxg *ChanRxGroup) RemoveFace(face IFace) {
 	rxg.faces.Delete(face.GetFaceId())
+	if atomic.AddInt32(&rxg.nFaces, -1) == 0 {
+		EmitRxGroupRemove(rxg)
+	}
 }
 
 func (rxg *ChanRxGroup) Rx(pkt dpdk.Packet) {
