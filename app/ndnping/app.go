@@ -16,6 +16,8 @@ import (
 
 // LCoreAlloc roles.
 const (
+	LCoreRole_Input    = iface.LCoreRole_RxLoop
+	LCoreRole_Output   = iface.LCoreRole_TxLoop
 	LCoreRole_Server   = "SVR"
 	LCoreRole_ClientRx = "CLIR"
 	LCoreRole_ClientTx = "CLIT"
@@ -28,38 +30,36 @@ type App struct {
 
 func New(cfg []TaskConfig) (app *App, e error) {
 	app = new(App)
-	appinit.BeforeStartRxl = app.addRxl
-	appinit.WantLaunchRxl = false
-	if e = appinit.EnableCreateFace(); e != nil {
-		return nil, e
-	}
 
-	var faceLocators []iface.Locator
-	for _, taskCfg := range cfg {
-		faceLocators = append(faceLocators, taskCfg.Face.Locator)
-	}
-	faces, e := createface.Create(faceLocators...)
-	if e != nil {
-		return nil, e
+	appinit.ProvideCreateFaceMempools()
+	for _, numaSocket := range createface.ListRxTxNumaSockets() {
+		// TODO create rxl and txl for configured faces only
+		rxLCore := dpdk.LCoreAlloc.Alloc(LCoreRole_Input, numaSocket)
+		rxl := iface.NewRxLoop(rxLCore.GetNumaSocket())
+		rxl.SetLCore(rxLCore)
+		app.rxls = append(app.rxls, rxl)
+		createface.AddRxLoop(rxl)
+
+		txLCore := dpdk.LCoreAlloc.Alloc(LCoreRole_Output, numaSocket)
+		txl := iface.NewTxLoop(txLCore.GetNumaSocket())
+		txl.SetLCore(txLCore)
+		txl.Launch()
+		createface.AddTxLoop(txl)
 	}
 
 	for i, taskCfg := range cfg {
-		task, e := newTask(faces[i], taskCfg)
+		face, e := createface.Create(taskCfg.Face.Locator)
+		if e != nil {
+			return nil, fmt.Errorf("[%d] face creation error: %v", i, e)
+		}
+		task, e := newTask(face[0], taskCfg)
 		if e != nil {
 			return nil, fmt.Errorf("[%d] init error: %v", i, e)
-		}
-		if faceKind := task.Face.GetFaceId().GetKind(); faceKind != iface.FaceKind_Eth {
-			return nil, fmt.Errorf("[%d] FaceKind %v is not supported", i, faceKind)
 		}
 		app.Tasks = append(app.Tasks, task)
 	}
 
 	return app, nil
-}
-
-func (app *App) addRxl(rxl *iface.RxLoop) (usr interface{}, e error) {
-	app.rxls = append(app.rxls, rxl)
-	return nil, nil
 }
 
 func (app *App) Launch() {
@@ -85,7 +85,7 @@ func (app *App) launchRxl(rxl *iface.RxLoop) {
 
 	inputC := C.PingInput_New(C.uint16_t(minFaceId), C.uint16_t(maxFaceId), C.unsigned(rxl.GetNumaSocket()))
 	for i, task := range app.Tasks {
-		entryC := C.__PingInput_GetEntry(inputC, C.uint16_t(task.Face.GetFaceId()))
+		entryC := C.PingInput_GetEntry(inputC, C.uint16_t(task.Face.GetFaceId()))
 		if entryC == nil {
 			continue
 		}

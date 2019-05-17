@@ -24,7 +24,7 @@ PingInput*
 PingInput_New(uint16_t minFaceId, uint16_t maxFaceId, unsigned numaSocket);
 
 static PingInputEntry*
-__PingInput_GetEntry(PingInput* input, uint16_t faceId)
+PingInput_GetEntry(PingInput* input, uint16_t faceId)
 {
   if (faceId >= input->minFaceId && faceId <= input->maxFaceId) {
     return &input->entry[faceId - input->minFaceId];
