@@ -24,8 +24,6 @@ type Fixture struct {
 	DataPlane *fwdp.DataPlane
 	Ndt       *ndt.Ndt
 	Fib       *fib.Fib
-
-	faceIds []iface.FaceId
 }
 
 func NewFixture(t *testing.T) (fixture *Fixture) {
@@ -78,13 +76,8 @@ func (fixture *Fixture) Close() error {
 }
 
 func (fixture *Fixture) CreateFace() *mockface.MockFace {
-	faces, e := createface.Create(mockface.NewLocator())
+	face, e := createface.Create(mockface.NewLocator())
 	fixture.require.NoError(e)
-	fixture.require.Len(faces, 1)
-
-	face := faces[0]
-	faceId := face.GetFaceId()
-	fixture.faceIds = append(fixture.faceIds, faceId)
 	return face.(*mockface.MockFace)
 }
 

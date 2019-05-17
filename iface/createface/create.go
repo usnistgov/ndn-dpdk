@@ -2,7 +2,6 @@ package createface
 
 import (
 	"errors"
-	"fmt"
 
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
@@ -11,20 +10,18 @@ import (
 	"ndn-dpdk/iface/socketface"
 )
 
-func Create(locs ...iface.Locator) (faces []iface.IFace, e error) {
+func Create(loc iface.Locator) (face iface.IFace, e error) {
 	if theConfig.Disabled {
 		return nil, errors.New("createface package is disabled")
 	}
 	createDestroyLock.Lock()
 	defer createDestroyLock.Unlock()
 
-	ctx := newCreateContext(len(locs))
-	for i, loc := range locs {
-		if e = ctx.Add(i, loc); e != nil {
-			return nil, fmt.Errorf("loc[%d]: %v", i, e)
-		}
+	ctx := newCreateContext(1)
+	if e = ctx.Add(0, loc); e != nil {
+		return nil, e
 	}
-	return ctx.Faces, nil
+	return ctx.Faces[0], nil
 }
 
 type createContext struct {

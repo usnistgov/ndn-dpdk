@@ -22,8 +22,8 @@ export namespace facemgmt {
     Locator: Locator;
   }
 
-  export type CreateArg = Locator[];
-  export type CreateRes = ReadonlyArray<BasicInfo>;
+  export type CreateArg = Locator;
+  export type CreateRes = BasicInfo;
 
   export type DestroyArg = IdArg;
 }

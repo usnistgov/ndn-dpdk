@@ -77,18 +77,16 @@ export class FwConn extends SocketConn {
   private faceCreate(path: string): Promise<number> {
     return new Promise<number>((resolve, reject) => {
       mgmtClient.request("Face.Create",
-        [
-          {
-            Remote: path,
-            Scheme: "unix",
-          },
-        ] as mgmt.facemgmt.CreateArg,
+        {
+          Remote: path,
+          Scheme: "unix",
+        } as mgmt.facemgmt.CreateArg,
         (err, error, result: mgmt.facemgmt.CreateRes) => {
-          if (err || error || result.length < 1) {
+          if (err || error) {
             reject(err || error);
             return;
           }
-          resolve(result[0].Id);
+          resolve(result.Id);
         });
     });
   }

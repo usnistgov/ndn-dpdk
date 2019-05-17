@@ -143,12 +143,7 @@ ctx.declareMethod('Face.List', true, 'facemgmt.BasicInfo[]');
 
 ctx.declareMethod('Face.Get', 'facemgmt.IdArg', 'facemgmt.FaceInfo');
 
-ctx.declareMethod('Face.Create',
-  {
-    type: 'array',
-    items: ctx.useType('iface.Locator'),
-  },
-  'facemgmt.BasicInfo[]');
+ctx.declareMethod('Face.Create', 'iface.Locator', 'facemgmt.BasicInfo');
 
 ctx.declareMethod('Face.Destroy', 'facemgmt.IdArg', true);
 

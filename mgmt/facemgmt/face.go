@@ -34,22 +34,13 @@ func (FaceMgmt) Get(args IdArg, reply *FaceInfo) error {
 	return nil
 }
 
-func (FaceMgmt) Create(args []iface.LocatorWrapper, reply *[]BasicInfo) (e error) {
-	var locs []iface.Locator
-	for _, locw := range args {
-		locs = append(locs, locw.Locator)
-	}
-
-	faces, e := createface.Create(locs...)
+func (FaceMgmt) Create(args iface.LocatorWrapper, reply *BasicInfo) (e error) {
+	face, e := createface.Create(args.Locator)
 	if e != nil {
 		return e
 	}
 
-	result := make([]BasicInfo, 0)
-	for _, face := range faces {
-		result = append(result, newBasicInfo(face))
-	}
-	*reply = result
+	*reply = newBasicInfo(face)
 	return nil
 }
 

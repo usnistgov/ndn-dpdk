@@ -52,7 +52,7 @@ func New(cfg []TaskConfig) (app *App, e error) {
 		if e != nil {
 			return nil, fmt.Errorf("[%d] face creation error: %v", i, e)
 		}
-		task, e := newTask(face[0], taskCfg)
+		task, e := newTask(face, taskCfg)
 		if e != nil {
 			return nil, fmt.Errorf("[%d] init error: %v", i, e)
 		}
