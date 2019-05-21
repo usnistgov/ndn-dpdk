@@ -14,29 +14,44 @@ Locator has the following fields:
 *   *Remote* may be unicast or multicast.
     Every face is assumed to be point-to-point, even when using a multicast remote address.
 
-Multiple EthFaces can co-exist on the same DPDK ethdev.
-They are organized by the **Port** type.
-Each Port can have zero or one EthFace with multicast remote address, and zero or more EthFaces with unicast remote addresses.
-All EthFaces on the same Port must be created together.
+**Port** type organizes EthFaces on the same DPDK ethdev.
+Each port can have zero or one face with multicast remote address, and zero or more faces with unicast remote addresses.
+EthFaces on the same port can be created and destroyed individually.
 
 ## Receive Path
 
+There are two receive path implementations.
+Currently, all faces on the same port must use the same receive path implementation.
+
 **EthRxFlow** type implements a hardware-accelerated receive path.
-It requires the ethdev to support rte\_flow API.
-It uses one RX queue per face, and creates a flow to steering incoming frames with matching MAC address to that queue.
+It uses one RX queue per face, and creates an rte\_flow to steering incoming frames with matching MAC address to that queue.
 There is minimal checking on software side.
 
-**EthRxTable** type implements a software receive path as a fallback.
-It polls RX queue 0, accepts all Ethernet frames with NDN EtherType, and discards all frames with non-NDN EtherType (such as VLAN-tagged frames, IP packets, and NDN packets over UDP/TCP tunnels).
-Then, it labels each accepted frame with incoming FaceId: if the destination MAC address is a group address, the FaceId is set to the multicast face; otherwise, the last octet of source MAC address is looked up in a 256-element array of unicast FaceIds.
-In case a face selected as above does not exist, the frame's incoming FaceId is set to `FACEID_INVALID`, so that `FaceImpl_RxBurst` would drop the frame.
-Because of this dispatching procedure, EthRxTable requires every unicast EthFace on the same port to have distinct last octet in its remote MAC address.
+**EthRxTable** type implements a software receive path.
+Its procedure is:
+
+1.  Poll ethdev RX queue 0 for incoming frames.
+2.  Discard frames with non-NDN EtherType (such as VLAN-tagged frames, IP packets, and NDN packets over UDP/TCP tunnels).
+3.  Label each frame with incoming FaceId:
+
+    * If the destination MAC address is a group address, the FaceId is set to the face with multicast remote address.
+    * Otherwise, the last octet of source MAC address is looked up in a 256-element array of unicast FaceIds.
+      This requires every face with unicast remote address to have distinct last octet.
+    * In case a face selected as above does not exist, the frame's incoming FaceId is set to `FACEID_INVALID`.
+      Later, `FaceImpl_RxBurst` would drop the frame.
+
+Port/face setup procedure is dominated by the choice of receive path implementation.
+Initially, the port attempts to operate with EthRxFlows.
+This can fail if the ethdev does not support rte\_flow, does not support the specific rte\_flow features used in `EthFace_SetupFlow`, or has fewer RX queues or rte\_flows than the number of requested faces.
+If EthRxFlows fail to setup for these or any other reason, the port falls back to EthRxTable.
+It can fail if multiple faces with unicast remote addresses have the same last octet.
+In case both receive path implementations fail to setup, the port would remain in an inoperational state.
 
 ## Send Path
 
 `EthFace_TxBurst` function implements the send path.
-Currently, the send path only uses ethdev queue 0.
+Currently, the send path only uses ethdev TX queue 0.
 It requires every outgoing packet to have sufficient headroom for the Ethernet header.
 
-The send path is thread safe only if the underlying DPDK PMD is thread safe, which generally is not the case.
-Otherwise, the caller must ensure that transmissions on all EthFaces of the same ethdev occur on the same thread.
+The send path is thread-safe only if the underlying DPDK PMD is thread safe, which generally is not the case.
+Normally, **iface.TxLoop** invokes `EthFace_TxBurst` from the same thread.

@@ -2,7 +2,8 @@
 
 This package implements a face using socket as transport.
 
-FaceId of SocketFace is randomly assigned from the range 0xE000-0xEFFF.
+**SocketFace** type represents a socket face.
+FaceId is randomly assigned from the range 0xE000-0xEFFF.
 Locator has the following fields:
 
 *   *Scheme* is one of "udp", "unixgram", "tcp", "unix".
@@ -12,7 +13,7 @@ Locator has the following fields:
 ## Receive Path
 
 A goroutine running `impl.RxLoop` function reads from the socket, and queues L2 frames in `iface.ChanRxGroup`.
-Calling code must run `iface.ChanRxGroup` in an LCore to receive these packets.
+Calling code must add `iface.ChanRxGroup` to a TxLoop to receive these packets.
 
 On a datagram-oriented socket, each incoming datagram is an L2 frame.
 The implementation casts DPDK mbuf's internal buffer as a `[]byte`, and does not copy the frame bytes.
@@ -24,10 +25,10 @@ On a stream-oriented socket, the implementation reads the incoming stream into a
 The transmission function provided in `Face.txBurstOp` is `go_SocketFace_TxBurst`.
 It places outgoing L2 frames on the `SocketFace.txQueue` channel.
 
-A goroutine running `SocketFace.txLoop` function then retrieves framesfrom the `SocketFace.txQueue` channel, and passes them to `impl.Send`.
+A goroutine running `SocketFace.txLoop` function then retrieves frames from the `SocketFace.txQueue` channel, and passes them to `impl.Send`.
 In most cases, DPDK mbuf's internal buffer is casted as a `[]byte`, and does not need copying; however, sending a segmented mbuf to a datagram-oriented socket requires copying.
 
-The send path is thread safe.
+The send path is thread-safe.
 
 ## Error Handling
 
