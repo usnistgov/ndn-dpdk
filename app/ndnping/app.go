@@ -72,15 +72,20 @@ func (app *App) Launch() {
 }
 
 func (app *App) launchRxl(rxl *iface.RxLoop) {
+	hasFace := false
 	minFaceId := iface.FACEID_MAX
 	maxFaceId := iface.FACEID_MIN
 	for _, faceId := range rxl.ListFaces() {
+		hasFace = true
 		if faceId < minFaceId {
 			minFaceId = faceId
 		}
 		if faceId > maxFaceId {
 			maxFaceId = faceId
 		}
+	}
+	if !hasFace {
+		return
 	}
 
 	inputC := C.PingInput_New(C.uint16_t(minFaceId), C.uint16_t(maxFaceId), C.unsigned(rxl.GetNumaSocket()))
