@@ -1,6 +1,7 @@
 package spdk
 
 /*
+#include "../core/common.h"
 #include <spdk/env_dpdk.h>
 #include <spdk/log.h>
 */
