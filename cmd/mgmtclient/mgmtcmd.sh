@@ -20,7 +20,7 @@ Subcommands:
     Update an NDT element by name.
   strategy [list]
     List forwarding strategies.
-  strategy get <ID>
+  strategy show <ID>
     Get forwarding strategy information.
   strategy load <NAME> <ELF-FILE>
     Load forwarding strategy.
