@@ -14,3 +14,9 @@ The value of this environment variable shall be one of:
 * **E**: ERROR level
 * **F**: FATAL level
 * **N**: disabled (in C), PANIC level (in Go)
+
+To find log module names in this codebase, execute:
+
+```
+git grep -E 'INIT_ZF_LOG\|logger\.New'
+```
