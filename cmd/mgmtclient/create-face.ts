@@ -1,7 +1,8 @@
 import { ArgumentParser } from "argparse";
 import * as jayson from "jayson";
 
-import * as mgmt from "../../docs/mgmttypes";
+import * as iface from "../../iface";
+import * as facemgmt from "../../mgmt/facemgmt";
 
 const parser = new ArgumentParser({
   addHelp: true,
@@ -20,8 +21,8 @@ mgmtClient.request("Face.Create",
     Port: args.port,
     Remote: args.remote,
     Scheme: args.scheme,
-  } as mgmt.facemgmt.CreateArg,
-  (err, error, result: mgmt.facemgmt.CreateRes) => {
+  } as iface.Locator,
+  (err, error, result: facemgmt.BasicInfo) => {
     if (err || error) {
       process.stderr.write(JSON.stringify(err || error) + "\n");
       process.exit(1);

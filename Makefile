@@ -53,7 +53,7 @@ spdk/cgoflags.go: dpdk/cgoflags.go
 ndn/error.go ndn/error.h: ndn/make-error.sh ndn/error.tsv
 	ndn/make-error.sh
 
-ndn/tlv-type.go ndn/tlv-type.h: ndn/make-tlv-type.sh ndn/tlv-type.tsv
+ndn/tlv-type.go ndn/tlv-type.h ndn/tlv-type.ts: ndn/make-tlv-type.sh ndn/tlv-type.tsv
 	ndn/make-tlv-type.sh
 
 $(CLIBPREFIX)-ndn.a: $(CLIBPREFIX)-dpdk.a ndn/*.h ndn/*.c ndn/error.h ndn/tlv-type.h
@@ -154,13 +154,20 @@ app/fwdp/cgoflags.go: container/ndt/cgoflags.go container/fib/cgoflags.go contai
 app/version/version.go:
 	app/version/make-version.sh
 
+mgmt/jrgen-spec-schema.ts: node_modules/jrgen/jrgen-spec.schema.json
+	node_modules/.bin/json2ts -i $< -o $@
+
+.PHONY: tsdeps
+tsdeps: ndn/tlv-type.ts mgmt/jrgen-spec-schema.ts
+
+.PHONY: tsc
+tsc: tsdeps
+	node_modules/.bin/tsc
+
 cmds: cmd-ndnfw-dpdk cmd-ndnping-dpdk mgmtclient
 
 cmd-%: cmd/%/* godeps
 	go install ./cmd/$*
-
-cmd-ndnfw-dpdk: cmd/ndnfw-dpdk/* godeps strategies
-	go install ./cmd/ndnfw-dpdk
 
 mgmtclient: cmd/mgmtclient/*
 	mkdir -p build
@@ -177,13 +184,13 @@ doxygen:
 codedoc:
 	bash docs/codedoc.sh
 
-docs/mgmtschema/schema.json: docs/mgmtschema/*.js
-	nodejs docs/mgmtschema/ > docs/mgmtschema/schema.json
+mgmtspec: docs/mgmtspec.json
 
-mgmtschema: docs/mgmtschema/schema.json
+docs/mgmtspec.json: tsc
+	nodejs build/mgmt/make-spec >$@
 
 .PHONY: docs
-docs: doxygen codedoc mgmtschema
+docs: doxygen codedoc mgmtspec
 
 dochttp: docs
 	cd docs && python3 -m http.server 2>/dev/null &

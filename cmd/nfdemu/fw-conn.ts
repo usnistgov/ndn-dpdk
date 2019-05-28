@@ -5,7 +5,10 @@ import * as _ from "lodash";
 import ndn = require("ndn-js");
 import * as net from "net";
 
-import * as mgmt from "../../docs/mgmttypes";
+import * as iface from "../../iface";
+import * as facemgmt from "../../mgmt/facemgmt";
+import * as fibmgmt from "../../mgmt/fibmgmt";
+
 import { SocketConn } from "./socket-conn";
 
 const mgmtClient = jayson.Client.tcp({port: 6345});
@@ -39,8 +42,8 @@ export class FwConn extends SocketConn {
         {
           Name: name.toUri(),
           Nexthops: [this.faceId],
-        } as mgmt.fibmgmt.InsertArg,
-        (err, error, result: mgmt.fibmgmt.InsertRes) => {
+        } as fibmgmt.InsertArg,
+        (err, error, result: fibmgmt.InsertReply) => {
           if (err || error) {
             reject(err || error);
           } else {
@@ -57,7 +60,7 @@ export class FwConn extends SocketConn {
     mgmtClient.request("Face.Destroy",
       {
         Id: this.faceId,
-      } as mgmt.facemgmt.DestroyArg,
+      } as facemgmt.IdArg,
       _.noop);
     return true;
   }
@@ -80,8 +83,8 @@ export class FwConn extends SocketConn {
         {
           Remote: path,
           Scheme: "unix",
-        } as mgmt.facemgmt.CreateArg,
-        (err, error, result: mgmt.facemgmt.CreateRes) => {
+        } as iface.Locator,
+        (err, error, result: facemgmt.BasicInfo) => {
           if (err || error) {
             reject(err || error);
             return;

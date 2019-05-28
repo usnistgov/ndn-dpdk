@@ -19,4 +19,5 @@ The RPC server does not perform authentication.
 The default Unix stream socket is reachable by root only, as a form of protection.
 Client processes should start as root and open the socket, then drop root privileges if desired.
 
-[mgmtschema](../docs/mgmtschema/) documents the management API.
+This directory also offers `make-spec.ts`, a program to create a [jrgen](https://www.npmjs.com/package/jrgen) specification file for the management API.
+`make mgmtspec` writes the spec to `docs/mgmtspec.json`.

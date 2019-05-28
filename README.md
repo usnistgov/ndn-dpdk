@@ -18,11 +18,11 @@ Requirements:
 Build steps:
 
 1. Clone repository into `$GOPATH/src/ndn-dpdk`.
-2. Execute `make godeps` to compile C code and generate certain Go source files.
-3. Execute `go get -d -t ./...` to download Go dependencies.
-4. Execute `make cmds` to install Go commands to `$GOPATH/bin`, and copy bash commands to `./build`.
-5. Execute `npm install` to download NPM dependencies.
-6. Execute `npm run build` to build TypeScript modules and commands.
+2. Execute `npm install` to download NPM dependencies.
+3. Execute `make godeps` to compile C code and generate certain Go/TypeScript source files.
+4. Execute `go get -d -t ./...` to download Go dependencies.
+5. Execute `make cmds` to install Go commands to `$GOPATH/bin`.
+6. Execute `make tsc` to build TypeScript modules and commands.
 
 Other build targets and commands:
 

@@ -16,16 +16,17 @@
     "@types/argparse": "^1.0.36",
     "@types/debug": "^4.1.4",
     "@types/js-yaml": "^3.12.1",
+    "@types/json-stable-stringify": "^1.0.32",
     "@types/lodash": "^4.14.130",
     "@types/loglevel": "^1.5.4",
     "@types/ndn-js": "0.18.0",
     "@types/object-path": "0.11.0",
+    "jrgen": "^2.0.0",
+    "json-schema-to-typescript": "^6.1.3",
+    "json-stable-stringify": "^1.0.1",
     "tslint": "^5.16.0",
-    "typescript": "^3.4.5"
+    "typescript": "^3.4.5",
+    "typescript-json-schema": "0.38.0"
   },
-  "private": true,
-  "scripts": {
-    "build": "tsc",
-    "lint": "find . -path ./node_modules -prune -o \\( -name '*.ts' \\) -print | xargs tslint --fix || true"
-  }
+  "private": true
 }
