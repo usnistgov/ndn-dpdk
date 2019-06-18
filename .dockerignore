@@ -3,7 +3,6 @@ build
 docs/codedoc
 docs/doxygen
 docs/mgmtspec.json
-mgmt/jrgen-spec-schema.ts
 ndn/error.go
 ndn/error.h
 ndn/tlv-type.go

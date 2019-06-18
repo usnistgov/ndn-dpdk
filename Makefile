@@ -154,9 +154,6 @@ app/fwdp/cgoflags.go: container/ndt/cgoflags.go container/fib/cgoflags.go contai
 app/version/version.go:
 	app/version/make-version.sh
 
-mgmt/jrgen-spec-schema.ts: node_modules/jrgen/jrgen-spec.schema.json
-	node_modules/.bin/json2ts -i $< -o $@
-
 .PHONY: tsdeps
 tsdeps: ndn/tlv-type.ts mgmt/jrgen-spec-schema.ts
 
