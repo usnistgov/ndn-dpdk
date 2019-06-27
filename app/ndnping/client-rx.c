@@ -75,7 +75,7 @@ PingClientRx_Run(PingClientRx* cr)
   Packet* npkts[PINGCLIENT_RX_BURST_SIZE];
 
   while (ThreadStopFlag_ShouldContinue(&cr->stop)) {
-    uint16_t nRx = rte_ring_sc_dequeue_bulk(
+    uint16_t nRx = rte_ring_sc_dequeue_burst(
       cr->rxQueue, (void**)npkts, PINGCLIENT_RX_BURST_SIZE, NULL);
     for (uint16_t i = 0; i < nRx; ++i) {
       Packet* npkt = npkts[i];

@@ -129,7 +129,7 @@ PingServer_Run(PingServer* server)
   Packet* tx[PINGSERVER_BURST_SIZE];
 
   while (ThreadStopFlag_ShouldContinue(&server->stop)) {
-    uint16_t nRx = rte_ring_sc_dequeue_bulk(
+    uint16_t nRx = rte_ring_sc_dequeue_burst(
       server->rxQueue, (void**)rx, PINGSERVER_BURST_SIZE, NULL);
     uint16_t nTx = 0;
     for (uint16_t i = 0; i < nRx; ++i) {
