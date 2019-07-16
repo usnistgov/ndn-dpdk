@@ -104,10 +104,12 @@ func (port EthDev) Configure(cfg EthDevConfig) (rxQueues []EthRxQueue, txQueues 
 	}
 
 	conf := (*C.struct_rte_eth_conf)(cfg.Conf)
-	var defaultConf C.struct_rte_eth_conf
 	if conf == nil {
-		defaultConf.rxmode.max_rx_pkt_len = C.uint32_t(port.GetMtu())
-		conf = &defaultConf
+		conf = new(C.struct_rte_eth_conf)
+		conf.rxmode.max_rx_pkt_len = C.uint32_t(port.GetMtu())
+		if info := port.GetDevInfo(); info.Tx_offload_capa&C.DEV_TX_OFFLOAD_MULTI_SEGS != 0 {
+			conf.txmode.offloads = C.DEV_TX_OFFLOAD_MULTI_SEGS
+		}
 	}
 
 	res := C.rte_eth_dev_configure(portId, C.uint16_t(len(cfg.RxQueues)),
