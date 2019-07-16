@@ -2,12 +2,12 @@
   "dependencies": {
     "argparse": "^1.0.10",
     "debug": "^4.1.1",
-    "delay": "^4.2.0",
+    "delay": "^4.3.0",
     "get-stream": "^5.1.0",
     "jayson": "^3.0.2",
     "js-yaml": "^3.13.1",
-    "lodash": "^4.17.11",
-    "loglevel": "^1.6.2",
+    "lodash": "^4.17.14",
+    "loglevel": "^1.6.3",
     "loglevel-plugin-prefix": "0.8.4",
     "ndn-js": "0.18.0",
     "object-path": "0.11.4"
@@ -17,15 +17,14 @@
     "@types/debug": "^4.1.4",
     "@types/js-yaml": "^3.12.1",
     "@types/json-stable-stringify": "^1.0.32",
-    "@types/lodash": "^4.14.132",
-    "@types/loglevel": "^1.5.4",
+    "@types/lodash": "^4.14.136",
     "@types/ndn-js": "0.18.0",
     "@types/object-path": "0.11.0",
-    "jrgen": "^2.0.0",
+    "jrgen": "^2.0.1",
     "json-stable-stringify": "^1.0.1",
     "tslint": "^5.16.0",
-    "typescript": "^3.5.1",
-    "typescript-json-schema": "0.38.1"
+    "typescript": "^3.5.3",
+    "typescript-json-schema": "0.38.3"
   },
   "private": true
 }
