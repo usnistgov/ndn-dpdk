@@ -5,6 +5,8 @@
 
 #include "../../core/logger.h"
 
+#include <rte_jhash.h>
+
 INIT_ZF_LOG(Pcct);
 
 #undef uthash_malloc
@@ -20,8 +22,9 @@ INIT_ZF_LOG(Pcct);
 static uint32_t
 __Pcct_TokenHt_Hash(const void* key, uint32_t keyLen, uint32_t initVal)
 {
-  assert(false); // rte_hash_function should not be invoked
-  return 0;
+  assert(keyLen == sizeof(uint32_t) * 2);
+  const uint32_t* words = (const uint32_t*)key;
+  return rte_jhash_2words(words[0], words[1], initVal);
 }
 
 static int
@@ -60,6 +63,7 @@ Pcct_New(const char* id, uint32_t maxEntries, unsigned numaSocket)
 
   PcctPriv* pcctp = Pcct_GetPriv(pcct);
   memset(pcctp, 0, sizeof(*pcctp));
+  pcctp->lastToken = PCCT_TOKEN_MASK - 16;
 
   struct rte_hash_parameters tokenHtParams = {
     .name = tokenHtName,
@@ -137,29 +141,32 @@ __Pcct_AddToken(Pcct* pcct, PccEntry* entry)
   assert(!entry->hasToken);
   PcctPriv* pcctp = Pcct_GetPriv(pcct);
 
-  // find an available token
   uint64_t token = pcctp->lastToken;
-  uint32_t hash;
-  do {
+  while (true) {
     ++token;
-    token &= PCCT_TOKEN_MASK;
-    if (unlikely(token == 0)) {
-      ++token;
+    if (unlikely(token > PCCT_TOKEN_MASK)) {
+      token = 1;
     }
-    hash = (uint32_t)token;
-  } while (rte_hash_lookup_with_hash(pcctp->tokenHt, &token, hash) >= 0);
-  pcctp->lastToken = token;
 
-  int res =
-    rte_hash_add_key_with_hash_data(pcctp->tokenHt, &token, hash, entry);
-  if (unlikely(res != 0)) {
-    ZF_LOGW("%p AddToken(%p) tokenHt-full", pcct, entry);
-    return 0;
+    uint32_t hash = rte_hash_hash(pcctp->tokenHt, &token);
+    if (unlikely(rte_hash_lookup_with_hash(pcctp->tokenHt, &token, hash) >=
+                 0)) {
+      // token is in use
+      continue;
+    }
+
+    int res =
+      rte_hash_add_key_with_hash_data(pcctp->tokenHt, &token, hash, entry);
+    if (likely(res == 0)) {
+      break;
+    }
+    // token insertion failed
+    assert(res == -ENOSPC);
   }
+  pcctp->lastToken = token;
 
   entry->token = token;
   entry->hasToken = true;
-
   ZF_LOGD("%p AddToken(%p) %012" PRIx64, pcct, entry, token);
   return token;
 }
@@ -173,12 +180,10 @@ __Pcct_RemoveToken(Pcct* pcct, PccEntry* entry)
   PcctPriv* pcctp = Pcct_GetPriv(pcct);
 
   uint64_t token = entry->token;
-  uint32_t hash = (uint32_t)token;
-
   ZF_LOGD("%p RemoveToken(%p, %012" PRIx64 ")", pcct, entry, token);
 
   entry->hasToken = false;
-  int res = rte_hash_del_key_with_hash(pcctp->tokenHt, &token, hash);
+  int res = rte_hash_del_key(pcctp->tokenHt, &token);
   assert(res >= 0);
 }
 
@@ -188,13 +193,9 @@ Pcct_FindByToken(const Pcct* pcct, uint64_t token)
   PcctPriv* pcctp = Pcct_GetPriv(pcct);
 
   token &= PCCT_TOKEN_MASK;
-  uint32_t hash = (uint32_t)token;
 
   void* entry = NULL;
-  int res =
-    rte_hash_lookup_with_hash_data(pcctp->tokenHt, &token, hash, &entry);
-  // DPDK Doxygen says rte_hash_lookup_with_hash_data returns 0 if found, ENOENT if not found;
-  // but in DPDK 17.11 code it returns entry position if found, -ENOENT if not found.
+  int res = rte_hash_lookup_data(pcctp->tokenHt, &token, &entry);
   assert((res >= 0 && entry != NULL) || (res == -ENOENT && entry == NULL));
   return (PccEntry*)entry;
 }
