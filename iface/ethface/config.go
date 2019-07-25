@@ -15,7 +15,7 @@ import (
 
 // Minimum dataroom of PortConfig.HeaderMp.
 func SizeofTxHeader() int {
-	return int(C.sizeof_struct_ether_hdr) + ndn.PrependLpHeader_GetHeadroom()
+	return int(C.sizeof_struct_rte_ether_hdr) + ndn.PrependLpHeader_GetHeadroom()
 }
 
 // Port creation arguments.

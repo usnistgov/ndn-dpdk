@@ -7,10 +7,10 @@ This repository contains high-performance [Named Data Networking (NDN)](https://
 Requirements:
 
 * Ubuntu 16.04 or 18.04 on *amd64* architecture
-* Go 1.12.6
+* Go 1.12.7
 * `clang-6.0 clang-format-6.0 curl doxygen git go-bindata libc6-dev-i386 libelf-dev libnuma-dev libssl-dev liburcu-dev socat sudo yamllint` packages
-* DPDK 19.05 with `CONFIG_RTE_BUILD_SHARED_LIB` `CONFIG_RTE_LIBRTE_BPF_ELF` `CONFIG_RTE_LIBRTE_PMD_OPENSSL` enabled, and installed to `/usr/local`
-* SPDK 19.04.1 shared libraries installed to `/usr/local`
+* DPDK 19.08-rc2 with `CONFIG_RTE_BUILD_SHARED_LIB` `CONFIG_RTE_LIBRTE_BPF_ELF` `CONFIG_RTE_LIBRTE_PMD_OPENSSL` enabled, and installed to `/usr/local`
+* SPDK 19.04.1 +[patch](https://github.com/spdk/spdk/commit/cf35beccf406200595dd63394a0d880850579916) shared libraries installed to `/usr/local`
 * [ubpf](https://github.com/iovisor/ubpf/tree/644ad3ded2f015878f502765081e166ce8112baf) library, installed to `/usr/local/include/ubpf.h` and `/usr/local/lib/libubpf.a`
 * Node.js 12.x and `sudo npm install -g jayson`
 * Note: see [Dockerfile](./Dockerfile) on how to install dependencies.

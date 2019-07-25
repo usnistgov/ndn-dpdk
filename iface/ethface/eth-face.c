@@ -36,11 +36,11 @@ EthFace_SetupFlow(EthFacePriv* priv, struct rte_flow_error* error)
   struct rte_flow_item_eth ethMask = { 0 };
   struct rte_flow_item_eth ethSpec = { 0 };
   if ((priv->txHdr.d_addr.addr_bytes[0] & 0x01) != 0) { // multicast
-    memset(&ethMask.dst, 0xFF, ETHER_ADDR_LEN);
-    memcpy(&ethSpec.dst, &priv->txHdr.d_addr, ETHER_ADDR_LEN);
+    memset(&ethMask.dst, 0xFF, RTE_ETHER_ADDR_LEN);
+    memcpy(&ethSpec.dst, &priv->txHdr.d_addr, RTE_ETHER_ADDR_LEN);
   } else { // unicast
-    memset(&ethMask.src, 0xFF, ETHER_ADDR_LEN);
-    memcpy(&ethSpec.src, &priv->txHdr.d_addr, ETHER_ADDR_LEN);
+    memset(&ethMask.src, 0xFF, RTE_ETHER_ADDR_LEN);
+    memcpy(&ethSpec.src, &priv->txHdr.d_addr, RTE_ETHER_ADDR_LEN);
   }
   ethMask.type = 0xFFFF;
   ethSpec.type = priv->txHdr.ether_type;
@@ -72,7 +72,7 @@ EthFace_FlowRxBurst(RxGroup* flowRxg, struct rte_mbuf** pkts, uint16_t nPkts)
     frame->port = priv->faceId;
     // TODO offload timestamping to hardware where available
     frame->timestamp = now;
-    rte_pktmbuf_adj(frame, sizeof(struct ether_hdr));
+    rte_pktmbuf_adj(frame, sizeof(struct rte_ether_hdr));
   }
   return nRx;
 }

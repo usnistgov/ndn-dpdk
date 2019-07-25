@@ -144,9 +144,9 @@ func (port EthDev) Configure(cfg EthDevConfig) (rxQueues []EthRxQueue, txQueues 
 }
 
 func (port EthDev) GetMacAddr() net.HardwareAddr {
-	var macAddr C.struct_ether_addr
+	var macAddr C.struct_rte_ether_addr
 	C.rte_eth_macaddr_get(C.uint16_t(port), &macAddr)
-	return net.HardwareAddr(C.GoBytes(unsafe.Pointer(&macAddr.addr_bytes[0]), C.ETHER_ADDR_LEN))
+	return net.HardwareAddr(C.GoBytes(unsafe.Pointer(&macAddr.addr_bytes[0]), C.RTE_ETHER_ADDR_LEN))
 }
 
 func (port EthDev) GetMtu() int {

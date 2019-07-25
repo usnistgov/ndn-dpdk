@@ -16,7 +16,7 @@
 typedef struct EthFacePriv
 {
   RxGroup flowRxg;
-  struct ether_hdr txHdr;
+  struct rte_ether_hdr txHdr;
   uint16_t port;
   uint16_t rxQueue;
   FaceId faceId;

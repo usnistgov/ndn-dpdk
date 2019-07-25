@@ -6,9 +6,9 @@
 static bool
 EthRxTable_Accept(EthRxTable* rxt, struct rte_mbuf* frame, uint64_t now)
 {
-  assert(frame->data_len >= sizeof(struct ether_hdr));
-  const struct ether_hdr* eth =
-    rte_pktmbuf_mtod(frame, const struct ether_hdr*);
+  assert(frame->data_len >= sizeof(struct rte_ether_hdr));
+  const struct rte_ether_hdr* eth =
+    rte_pktmbuf_mtod(frame, const struct rte_ether_hdr*);
 
   if (unlikely(eth->ether_type != rte_cpu_to_be_16(NDN_ETHERTYPE))) {
     rte_pktmbuf_free(frame);
@@ -26,7 +26,7 @@ EthRxTable_Accept(EthRxTable* rxt, struct rte_mbuf* frame, uint64_t now)
 
   frame->timestamp = now;
 
-  rte_pktmbuf_adj(frame, sizeof(struct ether_hdr));
+  rte_pktmbuf_adj(frame, sizeof(struct rte_ether_hdr));
   return true;
 }
 

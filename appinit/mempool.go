@@ -146,7 +146,7 @@ func init() {
 			Capacity:     1048575,
 			CacheSize:    465,
 			PrivSize:     ndn.SizeofPacketPriv(),
-			DataroomSize: 2560, // >= MTU+sizeof(ether_hdr)
+			DataroomSize: 2560, // >= MTU+sizeof(rte_ether_hdr)
 		})
 	RegisterMempool(MP_NAME,
 		MempoolConfig{

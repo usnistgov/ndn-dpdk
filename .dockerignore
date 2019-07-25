@@ -2,6 +2,7 @@ app/version/version.go
 build
 docs/doxygen
 docs/mgmtspec.json
+node_modules
 ndn/error.go
 ndn/error.h
 ndn/tlv-type.go
