@@ -1,6 +1,5 @@
 app/version/version.go
 build
-docs/codedoc
 docs/doxygen
 docs/mgmtspec.json
 ndn/error.go

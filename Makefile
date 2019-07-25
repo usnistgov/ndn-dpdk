@@ -178,21 +178,15 @@ test: godeps
 doxygen:
 	cd docs && doxygen Doxyfile 2>&1 | ./filter-Doxygen-warning.awk 1>&2
 
-codedoc:
-	bash docs/codedoc.sh
-
 mgmtspec: docs/mgmtspec.json
 
 docs/mgmtspec.json: tsc
 	nodejs build/mgmt/make-spec >$@
 
 .PHONY: docs
-docs: doxygen codedoc mgmtspec
+docs: doxygen mgmtspec
 
-dochttp: docs
-	cd docs && python3 -m http.server 2>/dev/null &
-
-godochttp:
+godoc:
 	godoc -http ':6060' 2>/dev/null &
 
 clean:
