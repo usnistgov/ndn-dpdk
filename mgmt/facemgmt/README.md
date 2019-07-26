@@ -4,8 +4,10 @@ This package implements [face](../../iface/) management.
 
 ## Face
 
-**Face.List** lists available FaceIds.
+**Face.List** lists existing faces.
 
-**Face.Get** retrieves information about a specific face.
+**Face.Get** retrieves information and counters of a specific face.
 
-**Face.Create** creates one or more faces.
+**Face.Create** creates a face.
+
+**Face.Destroy** destroys a face.

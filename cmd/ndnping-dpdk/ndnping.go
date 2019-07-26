@@ -1,13 +1,16 @@
 package main
 
 import (
-	"fmt"
 	stdlog "log"
 	"os"
 	"time"
 
 	"ndn-dpdk/app/ndnping"
+	"ndn-dpdk/appinit"
 	"ndn-dpdk/dpdk"
+	"ndn-dpdk/mgmt/facemgmt"
+	"ndn-dpdk/mgmt/pingmgmt"
+	"ndn-dpdk/mgmt/versionmgmt"
 )
 
 func main() {
@@ -29,16 +32,10 @@ func main() {
 		go printPeriodicCounters(app, pc.counterInterval)
 	}
 
-	if pc.wantThroughputBenchmark() {
-		tb := NewThroughputBenchmark(app.Tasks[0].Client, pc.throughputBenchmark)
-		if ok, msi, cnt := tb.Run(); ok {
-			fmt.Println(msi.Nanoseconds())
-			fmt.Println(cnt)
-			os.Exit(0)
-		} else {
-			os.Exit(3)
-		}
-	}
+	appinit.RegisterMgmt(versionmgmt.VersionMgmt{})
+	appinit.RegisterMgmt(facemgmt.FaceMgmt{})
+	appinit.RegisterMgmt(pingmgmt.PingClientMgmt{app})
+	appinit.StartMgmt()
 
 	select {}
 }

@@ -46,6 +46,12 @@ Subcommands:
   dpinfo pit <I>
   dpinfo cs <I>
     Show dataplane i-th input/fwd/PIT/CS counters.
+  pingc start <I> <INTERVAL>
+    Start i-th ping client.
+  pingc stop <I>
+    Stop i-th ping client.
+  pingc counters <I>
+    Show i-th ping client counters.
 EOT
   exit 0
 fi
@@ -110,5 +116,15 @@ elif [[ $1 == 'dpinfo' ]]; then
     jsonrpc DpInfo.Global ''
   elif [[ $2 == 'input' ]] || [[ $2 == 'fwd' ]] || [[ $2 == 'pit' ]] || [[ $2 == 'cs' ]]; then
     jsonrpc DpInfo."${2^}" '{"Index":'$3'}'
+  fi
+elif [[ $1 == 'pingc' ]]; then
+  if [[ -z $2 ]] || [[ $2 == 'list' ]]; then
+    jsonrpc PingClient.List ''
+  elif [[ $2 == 'start' ]]; then
+    jsonrpc PingClient.Start '{"Index":'$3',"Interval":'$4',"ClearCounters":true}'
+  elif [[ $2 == 'stop' ]]; then
+    jsonrpc PingClient.Stop '{"Index":'$3'}'
+  elif [[ $2 == 'counters' ]]; then
+    jsonrpc PingClient.ReadCounters '{"Index":'$3'}'
   fi
 fi
