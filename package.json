@@ -9,6 +9,7 @@
     "lodash": "^4.17.15",
     "loglevel": "^1.6.3",
     "loglevel-plugin-prefix": "0.8.4",
+    "moment": "^2.24.0",
     "ndn-js": "0.18.0",
     "object-path": "0.11.4"
   },
