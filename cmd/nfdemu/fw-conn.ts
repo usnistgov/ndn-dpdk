@@ -40,6 +40,8 @@ export class FwConn extends SocketConn {
     return new Promise<void>((resolve, reject) => {
       mgmtClient.request("Fib.Insert",
         {
+          // https://github.com/palantir/tslint/issues/3586
+          // tslint:disable-next-line:object-literal-sort-keys
           Name: name.toUri(),
           Nexthops: [this.faceId],
         } as fibmgmt.InsertArg,

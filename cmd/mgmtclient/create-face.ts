@@ -2,6 +2,7 @@ import { ArgumentParser } from "argparse";
 import * as jayson from "jayson";
 
 import * as iface from "../../iface";
+import * as ethface from "../../iface/ethface";
 import * as facemgmt from "../../mgmt/facemgmt";
 
 const parser = new ArgumentParser({
@@ -17,11 +18,11 @@ const args = parser.parseArgs();
 const mgmtClient = jayson.Client.tcp({port: 6345});
 mgmtClient.request("Face.Create",
   {
-    Local: args.local,
-    Port: args.port,
-    Remote: args.remote,
     Scheme: args.scheme,
-  } as iface.Locator,
+    Port: args.port,
+    Local: args.local,
+    Remote: args.remote,
+  } as ethface.Locator as iface.Locator,
   (err, error, result: facemgmt.BasicInfo) => {
     if (err || error) {
       process.stderr.write(JSON.stringify(err || error) + "\n");
