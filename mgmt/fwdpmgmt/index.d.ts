@@ -1,14 +1,11 @@
 import * as fwdp from "../../app/fwdp";
 import * as pit from "../../container/pit";
-import { Counter } from "../../core";
+import { Counter, Index } from "../../core";
 
 export as namespace fwdpmgmt;
 
 export interface IndexArg {
-  /**
-   * @TJS-type integer
-   */
-  Index: number;
+  Index: Index;
 }
 
 export interface FwdpInfo {
