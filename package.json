@@ -2,6 +2,7 @@
   "dependencies": {
     "@zingle/fail": "0.0.1",
     "argparse": "^1.0.10",
+    "compute-stdev": "^1.0.0",
     "debug": "^4.1.1",
     "delay": "^4.3.0",
     "get-stream": "^5.1.0",
@@ -17,6 +18,7 @@
   },
   "devDependencies": {
     "@types/argparse": "^1.0.36",
+    "@types/compute-stdev": "^1.0.0",
     "@types/debug": "^4.1.4",
     "@types/js-yaml": "^3.12.1",
     "@types/json-stable-stringify": "^1.0.32",
