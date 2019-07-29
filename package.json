@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@zingle/fail": "0.0.1",
     "argparse": "^1.0.10",
     "debug": "^4.1.1",
     "delay": "^4.3.0",
@@ -11,7 +12,8 @@
     "loglevel-plugin-prefix": "0.8.4",
     "moment": "^2.24.0",
     "ndn-js": "0.18.0",
-    "object-path": "0.11.4"
+    "object-path": "0.11.4",
+    "yargs": "^13.3.0"
   },
   "devDependencies": {
     "@types/argparse": "^1.0.36",
@@ -21,6 +23,7 @@
     "@types/lodash": "^4.14.136",
     "@types/ndn-js": "0.18.0",
     "@types/object-path": "0.11.0",
+    "@types/yargs": "^13.0.0",
     "jrgen": "^2.0.1",
     "json-stable-stringify": "^1.0.1",
     "tslint": "^5.18.0",

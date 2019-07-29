@@ -1,11 +1,14 @@
+import fail = require("@zingle/fail");
 import Debug = require("debug");
 import delay = require("delay");
 import * as _ from "lodash";
 import moment = require("moment");
+import * as yargs from "yargs";
 
 import { NNDuration } from "../../core";
+import * as mgmt from "../../mgmt";
 
-import { ITrafficGen, TrafficGenCounters } from "./trafficgen";
+import { ITrafficGen, NdnpingTrafficGen, TrafficGenCounters } from "./trafficgen";
 
 const debug = Debug("msi");
 
@@ -78,9 +81,12 @@ export async function measure(gen: ITrafficGen, options: Partial<Options> = {}):
   } as Options, options);
 
   const res: MeasureResult = {
-    isUnderflow: false,
-    isOverflow: false,
+    isUnderflow: true,
+    isOverflow: true,
   };
+  if (opt.IntervalMin > opt.IntervalMax) {
+    return res;
+  }
 
   const range = _.range(opt.IntervalMin, opt.IntervalMax, opt.IntervalStep);
   let left = 0;
@@ -103,4 +109,27 @@ export async function measure(gen: ITrafficGen, options: Partial<Options> = {}):
   res.isUnderflow = right < 0;
   res.isOverflow = left >= range.length;
   return res;
+}
+
+async function main() {
+  const argv = yargs
+    .option("IntervalMin", {
+      alias: "min",
+      number: true,
+    })
+    .option("IntervalMax", {
+      alias: "max",
+      number: true,
+    })
+    .parse();
+
+  const rpcClient = new mgmt.RpcClient();
+  const gen = await NdnpingTrafficGen.create(rpcClient);
+  const res = await measure(gen, argv);
+  process.stdout.write(JSON.stringify(res) + "\n");
+}
+
+if (require.main === module) {
+  main()
+  .catch(fail);
 }

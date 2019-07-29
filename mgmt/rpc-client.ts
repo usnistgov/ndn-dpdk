@@ -6,7 +6,7 @@ import * as jayson from "jayson";
 export class RpcClient {
   private jaysonClient: jayson.Client;
 
-  constructor(jaysonClient: jayson.Client) {
+  constructor(jaysonClient: jayson.Client = jayson.Client.tcp({port: 6345})) {
     this.jaysonClient = jaysonClient;
   }
 

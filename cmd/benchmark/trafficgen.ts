@@ -13,14 +13,22 @@ export interface TrafficGenCounters {
   satisfyRatio: number;
 }
 
+/**
+ * Abstract traffic generator.
+ */
 export interface ITrafficGen {
   start(interval: NNDuration): Promise<void>;
   stop(rxDelay: moment.Duration): Promise<void>;
   readCounters(): Promise<TrafficGenCounters>;
 }
 
+/**
+ * Use ndnping-dpdk as traffic generator, controlling over JSON-RPC API.
+ */
 export class NdnpingTrafficGen implements ITrafficGen {
-
+  /**
+   * Construct NdnpingTrafficGen that controls all clients in ndnping-dpdk program.
+   */
   public static async create(rpc: RpcClient): Promise<ITrafficGen> {
     const self = new NdnpingTrafficGen(rpc);
     self.cList = await self.rpc.request<{}, Index[]>("PingClient.List", {});
