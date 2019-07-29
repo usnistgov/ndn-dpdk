@@ -1,4 +1,5 @@
 import * as jayson from "jayson";
+import { URL } from "url";
 
 /**
  * Wrapper of jayson.Client that provides async API.
@@ -6,7 +7,7 @@ import * as jayson from "jayson";
 export class RpcClient {
   private jaysonClient: jayson.Client;
 
-  constructor(jaysonClient: jayson.Client = jayson.Client.tcp({port: 6345})) {
+  constructor(jaysonClient: jayson.Client) {
     this.jaysonClient = jaysonClient;
   }
 
@@ -23,4 +24,23 @@ export class RpcClient {
         });
     });
   }
+}
+
+export function makeMgmtClient(): RpcClient {
+  let mgmtEnv = process.env.MGMT;
+  if (mgmtEnv === "0") {
+    throw new Error("management socket disabled");
+  }
+  mgmtEnv = mgmtEnv || "tcp://127.0.0.1:6345";
+
+  const u = new URL(mgmtEnv);
+  if (!/^tcp[46]?:$/.test(u.protocol)) {
+    throw new Error("unsupported MGMT scheme " + u.protocol);
+  }
+
+  const jaysonClient = jayson.Client.tcp({
+    host: u.hostname,
+    port: parseInt(u.port, 10),
+  });
+  return new RpcClient(jaysonClient);
 }

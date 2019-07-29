@@ -6,7 +6,6 @@ import moment = require("moment");
 import * as yargs from "yargs";
 
 import { NNDuration } from "../../core";
-import * as mgmt from "../../mgmt";
 
 import { ITrafficGen, NdnpingTrafficGen, TrafficGenCounters } from "./trafficgen";
 
@@ -123,8 +122,7 @@ async function main() {
     })
     .parse();
 
-  const rpcClient = new mgmt.RpcClient();
-  const gen = await NdnpingTrafficGen.create(rpcClient);
+  const gen = await NdnpingTrafficGen.create();
   const res = await measure(gen, argv);
   process.stdout.write(JSON.stringify(res) + "\n");
 }

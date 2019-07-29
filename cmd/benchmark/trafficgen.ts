@@ -3,7 +3,7 @@ import moment = require("moment");
 
 import * as ndnping from "../../app/ndnping";
 import { Counter, Index, NNDuration } from "../../core";
-import { RpcClient } from "../../mgmt";
+import * as mgmt from "../../mgmt";
 import * as pingmgmt from "../../mgmt/pingmgmt";
 
 export interface TrafficGenCounters {
@@ -29,16 +29,16 @@ export class NdnpingTrafficGen implements ITrafficGen {
   /**
    * Construct NdnpingTrafficGen that controls all clients in ndnping-dpdk program.
    */
-  public static async create(rpc: RpcClient): Promise<ITrafficGen> {
+  public static async create(rpc: mgmt.RpcClient = mgmt.makeMgmtClient()): Promise<ITrafficGen> {
     const self = new NdnpingTrafficGen(rpc);
     self.cList = await self.rpc.request<{}, Index[]>("PingClient.List", {});
     await self.stop(moment.duration(0));
     return self;
   }
-  private rpc: RpcClient;
+  private rpc: mgmt.RpcClient;
   private cList: Index[];
 
-  private constructor(rpc: RpcClient) {
+  private constructor(rpc: mgmt.RpcClient) {
     this.rpc = rpc;
     this.cList = [];
   }
