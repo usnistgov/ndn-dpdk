@@ -17,12 +17,12 @@ export interface Options {
   IntervalStep: NNDuration; /// TX interval step
 
   TxCount: number; // expected number of Interests
-  TxDurationMin: moment.Duration; /// minimum test duration
-  TxDurationMax: moment.Duration; /// maximum test duration
+  TxDurationMin: number; /// minimum test duration (secs)
+  TxDurationMax: number; /// maximum test duration (secs)
 
-  WarmupTime: moment.Duration; /// don't early fail during this warmup period
-  CooldownTime: moment.Duration; /// wait period between stopping TX and stopping RX
-  ReadCountersFreq: moment.Duration; /// how often to read counters
+  WarmupTime: number; /// don't early fail during this warmup period (secs)
+  CooldownTime: number; /// wait period (secs) between stopping TX and stopping RX
+  ReadCountersFreq: number; /// how often (secs) to read counters
 
   SatisfyThreshold: number; /// pass if Interest satisfy ratio above
   EarlyFailThreshold: number; /// early-fail if Interest satisfy ratio below
@@ -31,13 +31,12 @@ export interface Options {
 async function runOnce(gen: ITrafficGen, interval: NNDuration, opt: Options): Promise<[boolean, TrafficGenCounters]> {
   await gen.start(interval);
 
-  const txDuration = moment.duration(_.clamp(interval * opt.TxCount / 1000000,
-                                             opt.TxDurationMin.asMilliseconds(),
-                                             opt.TxDurationMax.asMilliseconds()));
+  const txDuration = moment.duration(_.clamp(interval * opt.TxCount / 1e9,
+                                             opt.TxDurationMin, opt.TxDurationMax), "s");
   const endTime = moment().add(txDuration);
   debug("interval=%d txDuration=%d ending-at=%s", interval, txDuration.asSeconds(), endTime.format());
 
-  await delay(opt.WarmupTime.asMilliseconds());
+  await delay(opt.WarmupTime * 1000);
 
   let cnt: TrafficGenCounters;
   while (moment().isBefore(endTime)) {
@@ -47,10 +46,10 @@ async function runOnce(gen: ITrafficGen, interval: NNDuration, opt: Options): Pr
       await gen.stop(moment.duration(0));
       return [false, cnt];
     }
-    await delay(opt.ReadCountersFreq.asMilliseconds());
+    await delay(opt.ReadCountersFreq * 1000);
   }
 
-  await gen.stop(opt.CooldownTime);
+  await gen.stop(moment.duration(opt.CooldownTime, "s"));
   cnt = await gen.readCounters();
   const pass = cnt.satisfyRatio >= opt.SatisfyThreshold;
   debug("interval=%d %s satisfy-ratio=%d", interval, pass ? "pass" : "fail", cnt.satisfyRatio);
@@ -70,13 +69,13 @@ export async function measure(gen: ITrafficGen, options: Partial<Options> = {}):
     IntervalMax: 3500,
     IntervalStep: 1,
     TxCount: 24000000,
-    TxDurationMin: moment.duration(15, "s"),
-    TxDurationMax: moment.duration(60, "s"),
-    WarmupTime: moment.duration(5, "s"),
-    CooldownTime: moment.duration(2, "s"),
-    ReadCountersFreq: moment.duration(1, "s"),
+    TxDurationMin: 15,
+    TxDurationMax: 60,
+    WarmupTime: 5,
+    CooldownTime: 2,
+    ReadCountersFreq: 1,
     SatisfyThreshold: 0.999,
-    EarlyFailThreshold: 0.995,
+    EarlyFailThreshold: 0.970,
   } as Options, options);
 
   const res: MeasureResult = {
@@ -87,7 +86,7 @@ export async function measure(gen: ITrafficGen, options: Partial<Options> = {}):
     return res;
   }
 
-  const range = _.range(opt.IntervalMin, opt.IntervalMax, opt.IntervalStep);
+  const range = _.range(opt.IntervalMin, opt.IntervalMax + 1, opt.IntervalStep);
   let left = 0;
   let right = range.length - 1;
   while (left <= right) {
@@ -111,17 +110,7 @@ export async function measure(gen: ITrafficGen, options: Partial<Options> = {}):
 }
 
 async function main() {
-  const argv = yargs
-    .option("IntervalMin", {
-      alias: "min",
-      number: true,
-    })
-    .option("IntervalMax", {
-      alias: "max",
-      number: true,
-    })
-    .parse();
-
+  const argv = yargs.parse() as Partial<Options>;
   const gen = await NdnpingTrafficGen.create();
   const res = await measure(gen, argv);
   process.stdout.write(JSON.stringify(res) + "\n");
