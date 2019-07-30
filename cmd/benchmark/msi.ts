@@ -38,14 +38,16 @@ async function runOnce(gen: ITrafficGen, interval: NNDuration, opt: Options): Pr
 
   await delay(opt.WarmupTime * 1000);
 
+  let lastSatisfyRatio: number = 0.0;
   let cnt: TrafficGenCounters;
   while (moment().isBefore(endTime)) {
     cnt = await gen.readCounters();
-    if (cnt.satisfyRatio < opt.EarlyFailThreshold) {
+    if (cnt.satisfyRatio < Math.min(opt.EarlyFailThreshold, lastSatisfyRatio)) {
       debug("interval=%d early-fail satisfy-ratio=%d", interval, cnt.satisfyRatio);
       await gen.stop(moment.duration(0));
       return [false, cnt];
     }
+    lastSatisfyRatio = cnt.satisfyRatio;
     await delay(opt.ReadCountersFreq * 1000);
   }
 
