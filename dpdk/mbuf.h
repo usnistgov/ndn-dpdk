@@ -6,20 +6,6 @@
 #include "../core/common.h"
 #include <rte_mbuf.h>
 
-/** \brief Get private header after struct rte_mbuf.
- *  \param m pointer to struct rte_mbuf
- *  \param T type to cast result to
- *  \param off offset in private header
- */
-#define MbufPriv(m, T, off) ((T)((char*)(m) + sizeof(struct rte_mbuf) + (off)))
-
-/** \brief Get direct mbuf's private header after struct rte_mbuf.
- *  \param mi pointer to (possibly indirect) struct rte_mbuf
- *  \param T type to cast result to
- *  \param off offset in private header
- */
-#define MbufDirectPriv(mi, T, off) MbufPriv(rte_mbuf_from_indirect(mi), T, off)
-
 /** \brief Free an array of mbufs[0..count-1].
  */
 static __rte_always_inline void
