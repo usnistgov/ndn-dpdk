@@ -1,11 +1,8 @@
 #include "server.h"
 
 #include "../../core/logger.h"
-#include "../../ndn/encode-data.h"
 
 INIT_ZF_LOG(PingServer);
-
-static uint8_t PingServer_payloadV[PINGSERVER_PAYLOAD_MAX];
 
 static int
 PingServer_FindPattern(PingServer* server, LName name)
@@ -37,23 +34,26 @@ PingServer_RespondData(PingServer* server,
   uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
   const LName name = *(const LName*)&Packet_GetInterestHdr(npkt)->name;
 
-  struct rte_mbuf* m = rte_pktmbuf_alloc(server->dataMp);
-  if (unlikely(m == NULL)) {
+  struct rte_mbuf* seg0 = rte_pktmbuf_alloc(server->dataMp);
+  if (unlikely(seg0 == NULL)) {
     ZF_LOGW("dataMp-full");
     ++server->nAllocError;
     rte_pktmbuf_free(Packet_ToMbuf(npkt));
     return NULL;
   }
-  m->data_off = server->dataMbufHeadroom;
-  EncodeData(m,
-             name,
-             reply->suffix,
-             reply->freshnessPeriod,
-             reply->payloadL,
-             PingServer_payloadV);
+  struct rte_mbuf* seg1 = rte_pktmbuf_alloc(server->indirectMp);
+  if (unlikely(seg0 == NULL)) {
+    ZF_LOGW("indirectMp-full");
+    ++server->nAllocError;
+    rte_pktmbuf_free(Packet_ToMbuf(npkt));
+    rte_pktmbuf_free(seg0);
+    return NULL;
+  }
+
+  DataGen_Encode(reply->dataGen, seg0, seg1, name);
   rte_pktmbuf_free(Packet_ToMbuf(npkt));
 
-  Packet* response = Packet_FromMbuf(m);
+  Packet* response = Packet_FromMbuf(seg0);
   Packet_SetL2PktType(response, L2PktType_None);
   Packet_InitLpL3Hdr(response)->pitToken = token;
   Packet_SetL3PktType(response, L3PktType_Data); // for stats; no PData*

@@ -128,7 +128,9 @@ const (
 	MP_HDR   = "HDR"   // TX Ethernet+NDNLP+Interest headers
 	MP_INTG  = "INTG"  // modifying Interest guiders
 	MP_INT   = "INT"   // TX Ethernet+NDNLP and encoding Interest
-	MP_DATA  = "DATA"  // TX Ethernet+NDNLP and encoding Data
+	MP_DATA  = "DATA"  // TX Ethernet+NDNLP and encoding Data (currently unused)
+	MP_DATA0 = "DATA0" // TX Ethernet+NDNLP+Data name prefix
+	MP_DATA1 = "DATA1" // TX Data name suffix and payload
 )
 
 var SizeofEthLpHeaders = ethface.SizeofTxHeader
@@ -184,6 +186,20 @@ func init() {
 			PrivSize:  ndn.SizeofPacketPriv(),
 			DataroomSize: SizeofEthLpHeaders() + ndn.EncodeData_GetHeadroom() +
 				ndn.EncodeData_GetTailroomMax(),
+		})
+	RegisterMempool(MP_DATA0,
+		MempoolConfig{
+			Capacity:     65535,
+			CacheSize:    255,
+			PrivSize:     ndn.SizeofPacketPriv(),
+			DataroomSize: dpdk.MBUF_DEFAULT_HEADROOM + ndn.DataGen_GetTailroom0(ndn.NAME_MAX_LENGTH),
+		})
+	RegisterMempool(MP_DATA1,
+		MempoolConfig{
+			Capacity:     255,
+			CacheSize:    0,
+			PrivSize:     0,
+			DataroomSize: dpdk.MBUF_DEFAULT_HEADROOM + ndn.DataGen_GetTailroom1(ndn.NAME_MAX_LENGTH, 1500),
 		})
 }
 

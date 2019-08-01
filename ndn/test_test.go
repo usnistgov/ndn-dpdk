@@ -13,6 +13,7 @@ var theMp dpdk.PktmbufPool
 
 func TestMain(m *testing.M) {
 	theMp = dpdktestenv.MakeDirectMp(255, ndn.SizeofPacketPriv(), 2000)
+	dpdktestenv.MakeIndirectMp(255)
 
 	os.Exit(m.Run())
 }

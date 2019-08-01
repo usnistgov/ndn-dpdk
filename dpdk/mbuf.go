@@ -8,6 +8,8 @@ import (
 	"unsafe"
 )
 
+const MBUF_DEFAULT_HEADROOM = C.RTE_PKTMBUF_HEADROOM
+
 type IMbuf interface {
 	Close() error
 	GetPtr() unsafe.Pointer

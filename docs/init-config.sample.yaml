@@ -26,10 +26,13 @@ mempool:
   INT:  # TX Ethernet+NDNLP and encoding Interest
     capacity: 65535
     cachesize: 255
-  DATA:  # TX Ethernet+NDNLP and encoding Data
+  DATA0:  # TX Ethernet+NDNLP+Data name prefix
     capacity: 65535
     cachesize: 255
-    dataroomsize: 2000
+  DATA1:  # TX Data name suffix and payload
+    capacity: 255
+    cachesize: 0
+    dataroomsize: 9000
 
 # LCORE ALLOCATION
 # This is a mapping from LCore role to its reservations.

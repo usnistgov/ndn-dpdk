@@ -6,12 +6,12 @@
 #include "../../core/pcg_basic.h"
 #include "../../dpdk/thread.h"
 #include "../../iface/face.h"
+#include "../../ndn/encode-data.h"
 
 #define PINGSERVER_MAX_PATTERNS 256
 #define PINGSERVER_MAX_REPLIES 8
 #define PINGSERVER_MAX_SUM_WEIGHT 256
 #define PINGSERVER_BURST_SIZE 64
-#define PINGSERVER_PAYLOAD_MAX 65536
 
 typedef uint8_t PingReplyId;
 
@@ -25,12 +25,9 @@ typedef enum PingServerReplyKind
 typedef struct PingServerReply
 {
   uint64_t nInterests;
-  uint32_t freshnessPeriod;
-  uint16_t payloadL;
+  DataGen* dataGen;
   uint8_t kind;
   uint8_t nackReason;
-  LName suffix;
-  uint8_t suffixBuffer[NAME_MAX_LENGTH];
 } PingServerReply;
 
 /** \brief Per-prefix information in ndnping server.
@@ -50,8 +47,8 @@ typedef struct PingServerPattern
 typedef struct PingServer
 {
   struct rte_ring* rxQueue;
-  struct rte_mempool* dataMp; ///< mempool for Data
-  uint16_t dataMbufHeadroom;
+  struct rte_mempool* dataMp; ///< mempool for Data seg0
+  struct rte_mempool* indirectMp;
   FaceId face;
   uint16_t nPatterns;
   bool wantNackNoRoute; ///< whether to Nack Interests not matching any pattern

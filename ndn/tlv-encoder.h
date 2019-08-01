@@ -33,10 +33,16 @@ MakeTlvEncoder_Unchecked(struct rte_mbuf* m)
   return (TlvEncoder*)(void*)m;
 }
 
+static struct rte_mbuf*
+TlvEncoder_AsMbuf(TlvEncoder* en)
+{
+  return (struct rte_mbuf*)en;
+}
+
 static uint8_t*
 TlvEncoder_Append(TlvEncoder* en, uint16_t len)
 {
-  struct rte_mbuf* m = (struct rte_mbuf*)en;
+  struct rte_mbuf* m = TlvEncoder_AsMbuf(en);
   if (unlikely(len > rte_pktmbuf_tailroom(m))) {
     return NULL;
   }
@@ -48,7 +54,7 @@ TlvEncoder_Append(TlvEncoder* en, uint16_t len)
 static uint8_t*
 TlvEncoder_Prepend(TlvEncoder* en, uint16_t len)
 {
-  struct rte_mbuf* m = (struct rte_mbuf*)en;
+  struct rte_mbuf* m = TlvEncoder_AsMbuf(en);
   return (uint8_t*)rte_pktmbuf_prepend(m, len);
 }
 

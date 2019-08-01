@@ -19,20 +19,23 @@ import (
 // Server instance and thread.
 type Server struct {
 	dpdk.ThreadBase
-	c *C.PingServer
+	c      *C.PingServer
+	seg1Mp dpdk.PktmbufPool
 }
 
 func newServer(face iface.IFace, cfg ServerConfig) (server *Server, e error) {
 	socket := face.GetNumaSocket()
 	serverC := (*C.PingServer)(dpdk.Zmalloc("PingServer", C.sizeof_PingServer, socket))
 	serverC.dataMp = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
-		appinit.MP_DATA, socket).GetPtr())
-	serverC.dataMbufHeadroom = C.uint16_t(appinit.SizeofEthLpHeaders() + ndn.EncodeData_GetHeadroom())
+		appinit.MP_DATA0, socket).GetPtr())
+	serverC.indirectMp = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
+		appinit.MP_IND, socket).GetPtr())
 	serverC.face = (C.FaceId)(face.GetFaceId())
 	serverC.wantNackNoRoute = C.bool(cfg.Nack)
 	C.pcg32_srandom_r(&serverC.replyRng, C.uint64_t(rand.Uint64()), C.uint64_t(time.Now().Unix()))
 
 	server = new(Server)
+	server.seg1Mp = appinit.MakePktmbufPool(appinit.MP_DATA1, socket)
 	server.c = serverC
 	server.ResetThreadBase()
 	dpdk.InitStopFlag(unsafe.Pointer(&serverC.stop))
@@ -83,13 +86,12 @@ func (server *Server) AddPattern(cfg ServerPattern) (index int, e error) {
 			replyC.nackReason = C.uint8_t(reply.Nack)
 		default:
 			replyC.kind = C.PINGSERVER_REPLY_DATA
-			if reply.Suffix != nil {
-				if e = reply.Suffix.CopyToLName(unsafe.Pointer(&replyC.suffix), unsafe.Pointer(&replyC.suffixBuffer), unsafe.Sizeof(replyC.suffixBuffer)); e != nil {
-					return -1, e
-				}
+			m, e := server.seg1Mp.Alloc()
+			if e != nil {
+				return -1, fmt.Errorf("cannot allocate from MP_DATA1 for reply definition %d", i)
 			}
-			replyC.freshnessPeriod = C.uint32_t(reply.FreshnessPeriod / time.Millisecond)
-			replyC.payloadL = C.uint16_t(reply.PayloadLen)
+			dataGen := ndn.NewDataGen(m, reply.Suffix, reply.FreshnessPeriod, make(ndn.TlvBytes, reply.PayloadLen))
+			replyC.dataGen = (*C.DataGen)(dataGen.GetPtr())
 		}
 	}
 	patternC.nReplies = C.uint16_t(len(cfg.Replies))
