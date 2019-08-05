@@ -7,12 +7,13 @@ import { NdnpingTrafficGen } from "./trafficgen";
 import * as msi from "./msi";
 import { Uncertainty } from "./uncertainty";
 
+const debug = Debug("msibench");
+
 interface Argv extends Partial<msi.Options> {
   DesiredUncertainty?: number;
 }
 
 async function main() {
-  const debug = Debug("main");
   const argv = yargs.parse() as Argv;
 
   const gen = await NdnpingTrafficGen.create();
