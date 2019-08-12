@@ -28,6 +28,9 @@ export interface Options {
   EarlyFailThreshold: number; /// early-fail if Interest satisfy ratio below
 }
 
+/**
+ * Run traffic generator once at the specified Interest interval.
+ */
 async function runOnce(gen: ITrafficGen, interval: NNDuration, opt: Options): Promise<[boolean, TrafficGenCounters]> {
   await gen.start(interval);
 
@@ -58,13 +61,16 @@ async function runOnce(gen: ITrafficGen, interval: NNDuration, opt: Options): Pr
   return [pass, cnt];
 }
 
-interface MeasureResult {
+export interface MeasureResult {
   isUnderflow: boolean;
   isOverflow: boolean;
   MSI?: NNDuration;
   cnt?: TrafficGenCounters;
 }
 
+/**
+ * Perform MSI measurement.
+ */
 export async function measure(gen: ITrafficGen, options: Partial<Options> = {}): Promise<MeasureResult> {
   const opt: Options = Object.assign({
     IntervalMin: 500,
