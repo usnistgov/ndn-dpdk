@@ -126,7 +126,7 @@ async function main() {
     process.stdout.write(JSON.stringify(ucState) + "\n");
   });
 
-  mb.run();
+  await mb.run();
 }
 
 if (require.main === module) {
