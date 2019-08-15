@@ -108,6 +108,3 @@ fwdp:
   cscapmd: 32768
   # Capacity of CS in-memory indirect entries. Must not exceed pcctcapacity.
   cscapmi: 32768
-
-  # True to create multicast Ethernet faces automatically.
-  autofaces: false

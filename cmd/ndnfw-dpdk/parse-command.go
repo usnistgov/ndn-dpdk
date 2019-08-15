@@ -23,8 +23,6 @@ type fwdpInitConfig struct {
 	PcctCapacity      int
 	CsCapMd           int
 	CsCapMi           int
-
-	AutoFaces bool
 }
 
 func parseCommand(args []string) (initCfg initConfig, e error) {

@@ -9,8 +9,6 @@ import (
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/ndt"
 	"ndn-dpdk/dpdk"
-	"ndn-dpdk/iface/createface"
-	"ndn-dpdk/iface/ethface"
 )
 
 var theDp *fwdp.DataPlane
@@ -26,9 +24,6 @@ func main() {
 	initCfg.InitConfig.Apply()
 
 	startDp(initCfg.Ndt, initCfg.Fib, initCfg.Fwdp)
-	if initCfg.Fwdp.AutoFaces {
-		createAutoFaces()
-	}
 	startMgmt()
 
 	select {}
@@ -65,13 +60,4 @@ func startDp(ndtCfg ndt.Config, fibCfg fib.Config, dpInit fwdpInitConfig) {
 		log.WithError(e).Fatal("dataplane launch error")
 	}
 	log.Info("dataplane started")
-}
-
-func createAutoFaces() {
-	for _, ethdev := range dpdk.ListEthDevs() {
-		loc := ethface.NewLocator(ethdev)
-		if _, e := createface.Create(loc); e != nil {
-			log.WithError(e).WithField("ethdev", ethdev).Fatal("auto-face create error")
-		}
-	}
 }
