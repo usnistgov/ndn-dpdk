@@ -7,7 +7,6 @@ import "C"
 import (
 	"fmt"
 	"math/rand"
-	"time"
 	"unsafe"
 
 	"ndn-dpdk/appinit"
@@ -32,7 +31,7 @@ func newServer(face iface.IFace, cfg ServerConfig) (server *Server, e error) {
 		appinit.MP_IND, socket).GetPtr())
 	serverC.face = (C.FaceId)(face.GetFaceId())
 	serverC.wantNackNoRoute = C.bool(cfg.Nack)
-	C.pcg32_srandom_r(&serverC.replyRng, C.uint64_t(rand.Uint64()), C.uint64_t(time.Now().Unix()))
+	C.pcg32_srandom_r(&serverC.replyRng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
 
 	server = new(Server)
 	server.seg1Mp = appinit.MakePktmbufPool(appinit.MP_DATA1, socket)

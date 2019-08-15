@@ -8,11 +8,13 @@ extern int go_lcoreLaunch(void*);
 #include <rte_launch.h>
 #include <rte_lcore.h>
 #include <rte_memory.h>
+#include <rte_random.h>
 */
 import "C"
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"strconv"
 	"unsafe"
 
@@ -40,6 +42,8 @@ func InitEal(args []string) (remainingArgs []string, e error) {
 	if res < 0 {
 		return nil, GetErrno()
 	}
+
+	rand.Seed(int64(C.rte_rand()))
 
 	isEalInitialized = true
 	return a.GetRemainingArgs(res), nil

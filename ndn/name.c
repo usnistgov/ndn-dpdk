@@ -10,6 +10,7 @@ uint64_t __NameHash_Empty;
 RTE_INIT(NameHash_Init)
 {
   pcg32_random_t rng;
+  // seed with time, because rte_rand() is unavailable before EAL init
   pcg32_srandom_r(&rng, rte_get_tsc_cycles(), 0);
 
   uint8_t key[SIPHASHKEY_SIZE];

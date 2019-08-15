@@ -1,9 +1,7 @@
 package main
 
 import (
-	"math/rand"
 	"os"
-	"time"
 
 	"ndn-dpdk/app/fwdp"
 	"ndn-dpdk/container/fib"
@@ -14,7 +12,6 @@ import (
 var theDp *fwdp.DataPlane
 
 func main() {
-	rand.Seed(time.Now().UTC().UnixNano())
 	initCfg, e := parseCommand(dpdk.MustInitEal(os.Args)[1:])
 	if e != nil {
 		log.WithError(e).Fatal("command line error")

@@ -1,10 +1,12 @@
 #include "encode-interest.h"
 #include "tlv-encoder.h"
 
+#include <rte_random.h>
+
 void
 NonceGen_Init(NonceGen* g)
 {
-  pcg32_srandom_r(&g->rng, rte_get_tsc_cycles(), 0);
+  pcg32_srandom_r(&g->rng, rte_rand(), rte_rand());
 }
 
 uint16_t
