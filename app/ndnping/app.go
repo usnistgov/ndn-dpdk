@@ -24,12 +24,14 @@ const (
 )
 
 type App struct {
-	Tasks []Task
-	rxls  []*iface.RxLoop
+	Tasks   []Task
+	rxls    []*iface.RxLoop
+	initCfg InitConfig
 }
 
-func New(cfg []TaskConfig) (app *App, e error) {
+func New(cfg []TaskConfig, initCfg InitConfig) (app *App, e error) {
 	app = new(App)
+	app.initCfg = initCfg
 
 	appinit.ProvideCreateFaceMempools()
 	for _, numaSocket := range createface.ListRxTxNumaSockets() {
@@ -95,7 +97,7 @@ func (app *App) launchRxl(rxl *iface.RxLoop) {
 			continue
 		}
 		if task.Client != nil {
-			queue, e := dpdk.NewRing(fmt.Sprintf("client-rx-%d", i), 256,
+			queue, e := dpdk.NewRing(fmt.Sprintf("client-rx-%d", i), app.initCfg.QueueCapacity,
 				task.Face.GetNumaSocket(), true, true)
 			if e != nil {
 				panic(e)
@@ -104,7 +106,7 @@ func (app *App) launchRxl(rxl *iface.RxLoop) {
 			task.Client.c.rxQueue = entryC.clientQueue
 		}
 		if task.Server != nil {
-			queue, e := dpdk.NewRing(fmt.Sprintf("server-rx-%d", i), 256,
+			queue, e := dpdk.NewRing(fmt.Sprintf("server-rx-%d", i), app.initCfg.QueueCapacity,
 				task.Face.GetNumaSocket(), true, true)
 			if e != nil {
 				panic(e)

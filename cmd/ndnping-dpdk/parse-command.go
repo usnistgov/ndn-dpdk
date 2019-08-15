@@ -9,13 +9,20 @@ import (
 	"ndn-dpdk/appinit"
 )
 
+type initConfig struct {
+	appinit.InitConfig `yaml:",inline"`
+	Ping               ndnping.InitConfig
+}
+
 type parsedCommand struct {
-	initCfg         appinit.InitConfig
+	initCfg         initConfig
 	tasks           []ndnping.TaskConfig
 	counterInterval time.Duration
 }
 
 func parseCommand(args []string) (pc parsedCommand, e error) {
+	pc.initCfg.Ping.QueueCapacity = 256
+
 	flags := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	appinit.DeclareInitConfigFlag(flags, &pc.initCfg)
 	appinit.DeclareConfigFlag(flags, &pc.tasks, "tasks", "ndnping task description")

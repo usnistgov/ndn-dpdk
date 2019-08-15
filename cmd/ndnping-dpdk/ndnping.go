@@ -19,9 +19,9 @@ func main() {
 		log.WithError(e).Fatal("command line error")
 	}
 
-	pc.initCfg.Apply()
+	pc.initCfg.InitConfig.Apply()
 
-	app, e := ndnping.New(pc.tasks)
+	app, e := ndnping.New(pc.tasks, pc.initCfg.Ping)
 	if e != nil {
 		log.WithError(e).Fatal("ndnping.NewApp error")
 	}
