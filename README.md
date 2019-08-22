@@ -1,6 +1,6 @@
-# High-Performance NDN Programs with DPDK
+# NDN-DPDK: High-Speed Named Data Networking Forwarder
 
-This repository contains high-performance [Named Data Networking (NDN)](https://named-data.net/) programs developed with [Data Plane Development Kit (DPDK)](https://www.dpdk.org/).
+NDN-DPDK is a set of high-speed [Named Data Networking (NDN)](https://named-data.net/) programs developed with [Data Plane Development Kit (DPDK)](https://www.dpdk.org/). It includes a network forwarder and a traffic generator.
 
 ## Installation
 
