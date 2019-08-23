@@ -24,14 +24,14 @@ const spec: JrgenSpecSchema = {
 
 const mgmtModules: { [k: string]: string; } = {};
 for (const [propName, propSchema] of Object.entries(schema.properties!)) {
-  const typeName = (propSchema.$ref as string).replace("#/definitions/", "");
+  const typeName = (propSchema as TJS.Definition).$ref!.replace("#/definitions/", "");
   mgmtModules[typeName] = propName;
 }
 
 for (const [typeName, typeSchema] of Object.entries(schema.definitions!)) {
   if (mgmtModules[typeName]) {
     const methodPrefix = mgmtModules[typeName];
-    for (const [methodSuffix, methodSchema] of Object.entries(typeSchema.properties)) {
+    for (const [methodSuffix, methodSchema] of Object.entries((typeSchema as TJS.Definition).properties!)) {
       spec.methods[methodPrefix + "." + methodSuffix] = {
         params: (methodSchema as TJS.Definition).properties!.args,
         result: (methodSchema as TJS.Definition).properties!.reply,
