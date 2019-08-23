@@ -27,11 +27,11 @@ Build steps:
 Other build targets and commands:
 
 * Execute `make` to build all Go packages.
-* Execute `make test` or `./gotest.sh` to run unit tests.
+* Execute `make test` or `mk/gotest.sh MODULE_NAME` to run unit tests.
 * Execute `make doxygen` to build C documentation.
   You may omit `doxygen` dependencies if this is not needed.
 * Execute `make godoc` to start godoc server at port 6060.
-* Execute `./format-code.sh` to fix code style before committing.
+* Execute `make lint` to fix code style before committing.
   You may omit `clang-format-6.0 yamllint` dependencies if this is not needed.
 * Prepend `RELEASE=1` to any `make` command to select release mode that disables asserts and verbose logging.
 * Prepend `CC=clang-6.0` to any `make` command to compile C code with `clang-6.0`.
@@ -40,13 +40,14 @@ Other build targets and commands:
 
 Docker packaging:
 
-1. Build the image: `./build-docker.sh`
+1. Build the image: `mk/build-docker.sh`
 2. Launch a container in privileged mode: `docker run --rm -it --privileged -v /sys/bus/pci/devices:/sys/bus/pci/devices -v /sys/kernel/mm/hugepages:/sys/kernel/mm/hugepages -v /sys/devices/system/node:/sys/devices/system/node -v /dev:/dev --network host ndn-dpdk`
 3. Setup environment inside the container: `mkdir /mnt/huge1G && mount -t hugetlbfs nodev /mnt/huge1G -o pagesize=1G && export PATH=$PATH:/usr/local/go/bin && export GOPATH=/root/go`
 4. Only a subset of the programs would work in Docker container, unfortunately.
 
 ## Code Organization
 
+* [mk](mk/): build helper scripts.
 * [core](core/): common shared code.
 * [dpdk](dpdk/): DPDK bindings and extensions.
 * [spdk](spdk/): SPDK bindings and extensions.

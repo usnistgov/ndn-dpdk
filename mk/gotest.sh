@@ -50,6 +50,6 @@ elif [[ $# -eq 3 ]]; then
   go test -c ./$TESTPKG -o /tmp/gotest.exe
   sudo -E $DBG /tmp/gotest.exe -test.v -test.run 'Test'$TEST'.*'
 else
-  echo 'USAGE: ./gotest.sh [debug-tool] [directory] [test-name]' >/dev/stderr
+  echo 'USAGE: mk/gotest.sh [debug-tool] [directory] [test-name]' >/dev/stderr
   exit 1
 fi

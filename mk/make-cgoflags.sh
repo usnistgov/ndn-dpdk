@@ -2,7 +2,7 @@
 set -e
 
 if [[ $# -lt 1 ]]; then
-  echo 'USAGE: ./make-cgoflags.sh package libname...' >/dev/stderr
+  echo 'USAGE: mk/make-cgoflags.sh package libname...' >/dev/stderr
   exit 1
 fi
 
@@ -16,7 +16,7 @@ if [[ -n $GOFILES ]]; then
   PKGNAME=$(grep -h '^package ' $GOFILES | head -1 | awk '{print $2}')
 fi
 
-source cflags.sh
+source mk/cflags.sh
 
 (
   echo 'package '$PKGNAME
