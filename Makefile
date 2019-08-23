@@ -7,7 +7,9 @@ BPFFLAGS=-O2 -target bpf $(INCLUDEFLAGS) -Wno-int-to-void-pointer-cast
 export CGO_CFLAGS_ALLOW='.*'
 export CC_FOR_TARGET=${CC:-gcc}
 
-all: godeps
+all: gopkg tsc
+
+gopkg: godeps
 	go build -v ./...
 
 godeps: cbuilds cgoflags strategies app/version/version.go
@@ -161,16 +163,16 @@ tsdeps: ndn/tlv-type.ts mgmt/jrgen-spec-schema.ts
 tsc: tsdeps
 	node_modules/.bin/tsc
 
-cmds: cmd-ndnfw-dpdk cmd-ndnping-dpdk mgmtclient
+cmds: cmd-ndnfw-dpdk cmd-ndnping-dpdk
 
 cmd-%: cmd/%/* godeps
 	go install ./cmd/$*
 
-mgmtclient: cmd/mgmtclient/*
-	mkdir -p build
-	cd build && rm -f mgmt*.sh
-	cd cmd/mgmtclient && cp mgmt*.sh ../../build/
-	chmod +x build/mgmt*.sh
+install:
+	mk/install.sh
+
+uninstall:
+	mk/uninstall.sh
 
 doxygen:
 	cd docs && doxygen Doxyfile 2>&1 | ./filter-Doxygen-warning.awk 1>&2

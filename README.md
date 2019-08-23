@@ -26,8 +26,10 @@ Build steps:
 
 Other build targets and commands:
 
-* Execute `make` to build all Go packages.
-* Execute `make test` or `mk/gotest.sh MODULE_NAME` to run unit tests.
+* Execute `sudo make install` to install commands to `/usr/local`, and `sudo make uninstall` to uninstall.
+  You may prepend `DESTDIR=/opt` to choose a different location.
+* Execute `make gopkg` to build all Go packages.
+* Execute `make test` to run unit tests,  or `mk/gotest.sh PKG` to run tests for a package.
 * Execute `make doxygen` to build C documentation.
   You may omit `doxygen` dependencies if this is not needed.
 * Execute `make godoc` to start godoc server at port 6060.

@@ -35,4 +35,5 @@ RUN export PATH=$PATH:/usr/local/go/bin && \
     npm install && \
     make godeps && \
     go get -d -t ./... && \
-    make all cmds tsc
+    make && \
+    make install
