@@ -21,6 +21,7 @@ done
 install -m0644 package.json package-lock.json $DESTNODE
 pushd $DESTNODE >/dev/null
 npm install --production
+chmod -R go-w node_modules
 popd >/dev/null
 
 install_node_command() {
