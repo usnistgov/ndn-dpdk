@@ -20,6 +20,7 @@ export interface Options {
   TxDurationMin: number; /// minimum test duration (secs)
   TxDurationMax: number; /// maximum test duration (secs)
 
+  BeforeStartTime: number; // delay duration between generator runs (secs)
   WarmupTime: number; /// don't early fail during this warmup period (secs)
   CooldownTime: number; /// wait period (secs) between stopping TX and stopping RX
   ReadCountersFreq: number; /// how often (secs) to read counters
@@ -32,6 +33,7 @@ export interface Options {
  * Run traffic generator once at the specified Interest interval.
  */
 async function runOnce(gen: ITrafficGen, interval: NNDuration, opt: Options): Promise<[boolean, TrafficGenCounters]> {
+  await delay(opt.BeforeStartTime * 1000);
   await gen.start(interval);
 
   const txDuration = moment.duration(_.clamp(interval * opt.TxCount / 1e9,
@@ -79,6 +81,7 @@ export async function measure(gen: ITrafficGen, options: Partial<Options> = {}):
     TxCount: 24000000,
     TxDurationMin: 15,
     TxDurationMax: 60,
+    BeforeStartTime: 4,
     WarmupTime: 5,
     CooldownTime: 2,
     ReadCountersFreq: 1,
