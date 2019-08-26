@@ -2,6 +2,8 @@
 
 NDN-DPDK is a set of high-speed [Named Data Networking (NDN)](https://named-data.net/) programs developed with [Data Plane Development Kit (DPDK)](https://www.dpdk.org/). It includes a network forwarder and a traffic generator.
 
+This software is developed at [Advanced Network Technologies Division](https://www.nist.gov/itl/antd) of [National Institute of Standards and Technology](https://www.nist.gov). It is in pre-release stage and will continue to be updated.
+
 ## Installation
 
 Requirements:
@@ -37,8 +39,7 @@ Other build targets and commands:
   You may omit `clang-format-6.0 yamllint` dependencies if this is not needed.
 * Prepend `RELEASE=1` to any `make` command to select release mode that disables asserts and verbose logging.
 * Prepend `CC=clang-6.0` to any `make` command to compile C code with `clang-6.0`.
-  The programs are currently not working, but this is a good way to find potential code errors.
-* Note: you cannot use `go get` installation due to dependency between C code.
+  The programs compiled with clang are currently not working, but this is a good way to find potential code errors.
 
 Docker packaging:
 
