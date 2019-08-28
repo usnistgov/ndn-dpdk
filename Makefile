@@ -7,7 +7,7 @@ BPFFLAGS=-O2 -target bpf $(INCLUDEFLAGS) -Wno-int-to-void-pointer-cast
 export CGO_CFLAGS_ALLOW='.*'
 export CC_FOR_TARGET=${CC:-gcc}
 
-all: gopkg tsc
+all: gopkg tsc cmds
 
 gopkg: godeps
 	go build -v ./...

@@ -1,0 +1,93 @@
+dist: bionic
+
+language: go
+go: "1.x"
+
+env:
+  global:
+    - UBPFCOMMIT=644ad3ded2f015878f502765081e166ce8112baf
+    - DPDKVER=19.08
+    - SPDKVER=19.07
+
+addons:
+  apt:
+    update: true
+    packages:
+    - clang-6.0
+    - clang-format-6.0
+    - curl
+    - doxygen
+    - gcc-multilib
+    - go-bindata
+    - libelf-dev
+    - libnuma-dev
+    - libssl-dev
+    - liburcu-dev
+    - linux-headers-$(uname -r)
+    - linux-libc-dev
+    - socat
+    - yamllint
+
+cache:
+  npm: true
+  directories:
+    - $HOME/dpdk-$DPDKVER
+    - $HOME/spdk-$SPDKVER
+
+before_install:
+  - nvm install node
+
+install:
+  - |
+    : install uBPF
+    cd $HOME
+    curl -L https://github.com/iovisor/ubpf/archive/$UBPFCOMMIT.tar.gz | tar -xz
+    cd ubpf-$UBPFCOMMIT/vm
+    make
+    sudo mkdir -p /usr/local/include /usr/local/lib
+    sudo cp inc/ubpf.h /usr/local/include/
+    sudo cp libubpf.a /usr/local/lib/
+  - |
+    : install DPDK
+    cd $HOME
+    if [[ -f dpdk-$DPDKVER/build/lib/librte_eal.so ]]; then
+      cd dpdk-$DPDKVER
+    else
+      curl -L http://fast.dpdk.org/rel/dpdk-$DPDKVER.tar.xz | tar -xJ
+      cd dpdk-$DPDKVER
+      make config T=x86_64-native-linuxapp-gcc
+      sed -ri 's,(CONFIG_RTE_BUILD_SHARED_LIB=).*,\1y,' build/.config
+      sed -ri 's,(CONFIG_RTE_LIBRTE_BPF_ELF=).*,\1y,' build/.config
+      sed -ri 's,(CONFIG_RTE_LIBRTE_PMD_OPENSSL=).*,\1y,' build/.config
+      make -j$(nproc) EXTRA_CFLAGS=-g
+    fi
+    sudo make install
+    sudo ldconfig
+  - |
+    : install SPDK
+    cd $HOME
+    if [[ -f spdk-$SPDKVER/build/lib/libspdk_env_dpdk.so ]]; then
+      cd spdk-$SPDKVER
+      sudo ./scripts/pkgdep.sh
+    else
+      curl -L https://github.com/spdk/spdk/archive/v$SPDKVER.tar.gz | tar -xz
+      cd spdk-$SPDKVER
+      sudo ./scripts/pkgdep.sh
+      ./configure --enable-debug --with-shared --with-dpdk=/usr/local
+      make -j$(nproc)
+    fi
+    sudo make install
+    sudo ldconfig
+
+before_script:
+  - |
+    export GOPATH=$HOME/go
+    mkdir -p $GOPATH/src
+    cp -r $TRAVIS_BUILD_DIR $GOPATH/src/ndn-dpdk
+
+script:
+  - cd $GOPATH/src/ndn-dpdk
+  - npm install
+  - make godeps
+  - go get -d -t ./...
+  - make
