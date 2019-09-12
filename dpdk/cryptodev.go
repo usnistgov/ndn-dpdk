@@ -7,6 +7,7 @@ import "C"
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"unsafe"
 )
 
@@ -136,7 +137,7 @@ func NewCryptoDev(name string, maxSessions, nQueuePairs int, socket NumaSocket) 
 		cd.devId = C.uint8_t(devId)
 	}
 
-	mpNameC := C.CString(name + "_sess")
+	mpNameC := C.CString(strings.TrimPrefix(name, "crypto_") + "_sess")
 	defer C.free(unsafe.Pointer(mpNameC))
 	if mpC := C.rte_cryptodev_sym_session_pool_create(mpNameC, C.uint32_t(maxSessions*2),
 		C.uint32_t(C.rte_cryptodev_sym_get_private_session_size(cd.devId)), 0, 0, C.int(socket)); mpC == nil {
@@ -169,14 +170,9 @@ func NewCryptoDev(name string, maxSessions, nQueuePairs int, socket NumaSocket) 
 	return cd, nil
 }
 
-var lastOpensslCryptoDevId int
-
 // Create an OpenSSL virtual crypto device.
 func NewOpensslCryptoDev(id string, nQueuePairs int, socket NumaSocket) (cd CryptoDev, e error) {
-	// XXX due to https://bugs.dpdk.org/show_bug.cgi?id=105, device name
-	// is currently a sequence number to ensure uniqueness.
-	lastOpensslCryptoDevId++
-	name := fmt.Sprintf("crypto_openssl_%d", lastOpensslCryptoDevId)
+	name := fmt.Sprintf("crypto_openssl_%s", id)
 	var args string
 	if socket != NUMA_SOCKET_ANY {
 		args = fmt.Sprintf("socket_id=%d", socket)
@@ -192,16 +188,14 @@ func NewOpensslCryptoDev(id string, nQueuePairs int, socket NumaSocket) (cd Cryp
 }
 
 func (cd CryptoDev) Close() error {
-	// name := cd.GetName()
+	defer cd.sessionPool.Close()
+	name := cd.GetName()
 	C.rte_cryptodev_stop(cd.devId)
 	if res := C.rte_cryptodev_close(cd.devId); res < 0 {
-		return fmt.Errorf("rte_cryptodev_close error %d", res)
+		return fmt.Errorf("rte_cryptodev_close(%s) error %d", name, res)
 	}
 	if cd.ownsVdev {
-		// XXX not releasing device leaks memory, but DestroyVdev triggers
-		// https://bugs.dpdk.org/show_bug.cgi?id=105
-		return nil
-		// return DestroyVdev(name)
+		return DestroyVdev(name)
 	}
 	return nil
 }

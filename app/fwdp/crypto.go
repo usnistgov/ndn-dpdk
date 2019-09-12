@@ -63,7 +63,7 @@ func (fwc *Crypto) Init(cfg CryptoConfig, ndt *ndt.Ndt, fwds []*Fwd) error {
 		fwc.c.opPool = (*C.struct_rte_mempool)(opPool.GetPtr())
 	}
 
-	fwc.dev, e = dpdk.NewOpensslCryptoDev(fwc.String()+"_dev", 1, numaSocket)
+	fwc.dev, e = dpdk.NewOpensslCryptoDev(fmt.Sprintf("fwc%d", fwc.id), 1, numaSocket)
 	if e != nil {
 		opPool.Close()
 		input.Close()

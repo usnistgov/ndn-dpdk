@@ -10,6 +10,7 @@ import (
 	"unsafe"
 )
 
+// Create virtual device.
 func CreateVdev(name, args string) error {
 	nameC := C.CString(name)
 	defer C.free(unsafe.Pointer(nameC))
@@ -22,6 +23,7 @@ func CreateVdev(name, args string) error {
 	return nil
 }
 
+// Destroy virtual device.
 func DestroyVdev(name string) error {
 	nameC := C.CString(name)
 	defer C.free(unsafe.Pointer(nameC))
