@@ -3,6 +3,7 @@ package ndn_test
 import (
 	"testing"
 
+	"ndn-dpdk/dpdk"
 	"ndn-dpdk/dpdk/dpdktestenv"
 	"ndn-dpdk/ndn"
 )
@@ -38,9 +39,8 @@ func TestTlvElement(t *testing.T) {
 	for _, tt := range tests {
 		pkt := dpdktestenv.PacketFromHex(tt.input)
 		defer pkt.Close()
-		d := ndn.NewTlvDecodePos(pkt)
+		ele, e := ndn.ParseTlvElement(dpdk.NewPacketIterator(pkt))
 
-		ele, e := d.ReadTlvElement()
 		if tt.bad {
 			assert.Error(e, tt.input)
 		} else if assert.NoError(e, tt.input) {

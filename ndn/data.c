@@ -5,14 +5,14 @@
 NdnError
 PData_FromPacket(PData* data, struct rte_mbuf* pkt, struct rte_mempool* nameMp)
 {
-  TlvDecodePos d0;
+  MbufLoc d0;
   MbufLoc_Init(&d0, pkt);
   TlvElement dataEle;
   NdnError e = TlvElement_Decode(&dataEle, &d0, TT_Data);
   RETURN_IF_ERROR;
   data->size = dataEle.size;
 
-  TlvDecodePos d1;
+  MbufLoc d1;
   TlvElement_MakeValueDecoder(&dataEle, &d1);
 
   TlvElement nameEle;
@@ -36,7 +36,7 @@ PData_FromPacket(PData* data, struct rte_mbuf* pkt, struct rte_mempool* nameMp)
   }
   RETURN_IF_ERROR;
 
-  TlvDecodePos d2;
+  MbufLoc d2;
   TlvElement_MakeValueDecoder(&metaEle, &d2);
   while (!MbufLoc_IsEnd(&d2)) {
     TlvElement metaChild;

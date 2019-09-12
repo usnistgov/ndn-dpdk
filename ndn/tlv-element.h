@@ -3,7 +3,7 @@
 
 /// \file
 
-#include "tlv-decode-pos.h"
+#include "common.h"
 #include "tlv-type.h"
 
 /** \brief TLV element
@@ -18,16 +18,67 @@ typedef struct TlvElement
   MbufLoc last;    ///< past end position
 } TlvElement;
 
+/** \brief Decode a TLV-TYPE or TLV-LENGTH number.
+ *  \param[out] n the number.
+ */
+static NdnError
+__TlvElement_DecodeVarNum(MbufLoc* d, uint32_t* n)
+{
+  uint8_t firstOctet;
+  bool ok = MbufLoc_ReadU8(d, &firstOctet);
+  if (unlikely(!ok)) {
+    return NdnError_Incomplete;
+  }
+
+  switch (firstOctet) {
+    case 253: {
+      rte_be16_t v;
+      bool ok = MbufLoc_ReadU16(d, &v);
+      if (unlikely(!ok)) {
+        return NdnError_Incomplete;
+      }
+      *n = rte_be_to_cpu_16(v);
+      break;
+    }
+    case 254: {
+      rte_be32_t v;
+      bool ok = MbufLoc_ReadU32(d, &v);
+      if (unlikely(!ok)) {
+        return NdnError_Incomplete;
+      }
+      *n = rte_be_to_cpu_32(v);
+      break;
+    }
+    case 255: {
+      rte_be64_t v;
+      bool ok = MbufLoc_ReadU64(d, &v);
+      if (unlikely(!ok)) {
+        return NdnError_Incomplete;
+      }
+      uint64_t number = rte_be_to_cpu_64(v);
+      if (unlikely(number > UINT32_MAX)) {
+        return NdnError_LengthOverflow;
+      }
+      *n = (uint32_t)number;
+      break;
+    }
+    default:
+      *n = firstOctet;
+      break;
+  }
+  return NdnError_OK;
+}
+
 /** \brief Decode a TLV header including TLV-TYPE and TLV-LENGTH but excluding TLV-VALUE.
  *  \param[out] ele the element; will assign all fields except \c last.
  *  \retval NdnError_BadType expectedType is non-zero and TLV-TYPE does not equal \p expectedType.
  */
 static NdnError
-TlvElement_DecodeTL(TlvElement* ele, TlvDecodePos* d, uint32_t expectedType)
+TlvElement_DecodeTL(TlvElement* ele, MbufLoc* d, uint32_t expectedType)
 {
   MbufLoc_Copy(&ele->first, d);
 
-  NdnError e = DecodeVarNum(d, &ele->type);
+  NdnError e = __TlvElement_DecodeVarNum(d, &ele->type);
   RETURN_IF_ERROR;
 
   if (expectedType == TT_Invalid) {
@@ -40,7 +91,7 @@ TlvElement_DecodeTL(TlvElement* ele, TlvDecodePos* d, uint32_t expectedType)
     }
   }
 
-  e = DecodeVarNum(d, &ele->length);
+  e = __TlvElement_DecodeVarNum(d, &ele->length);
   RETURN_IF_ERROR;
   ele->size = MbufLoc_FastDiff(&ele->first, d) + ele->length;
 
@@ -55,7 +106,7 @@ TlvElement_DecodeTL(TlvElement* ele, TlvDecodePos* d, uint32_t expectedType)
  *  \retval NdnError_BadType expectedType is non-zero and TLV-TYPE does not equal \p expectedType.
  */
 static NdnError
-TlvElement_Decode(TlvElement* ele, TlvDecodePos* d, uint32_t expectedType)
+TlvElement_Decode(TlvElement* ele, MbufLoc* d, uint32_t expectedType)
 {
   NdnError e = TlvElement_DecodeTL(ele, d, expectedType);
   RETURN_IF_ERROR;
@@ -91,14 +142,14 @@ TlvElement_GetLinearValue(const TlvElement* ele)
  *  \param[inout] ele this TlvElement; TLV-LENGTH must be positive; will be updated.
  *  \param[inout] pkt enclosing packet.
  *  \param mp mempool for copying TLV-VALUE if necessary, requires TLV-LENGTH in dataroom.
- *  \param[out] d a TlvDecodePos pointing to past-end position; NULL if not needed.
- *  \post parent/following TlvElements and TlvDecodePos may be invalidated.
+ *  \param[out] d a MbufLoc pointing to past-end position; NULL if not needed.
+ *  \post parent/following TlvElements and MbufLoc may be invalidated.
  */
 static const uint8_t*
 TlvElement_LinearizeValue(TlvElement* ele,
                           struct rte_mbuf* pkt,
                           struct rte_mempool* mp,
-                          TlvDecodePos* d)
+                          MbufLoc* d)
 {
   assert(ele->length > 0);
   const uint8_t* linear =
@@ -114,7 +165,7 @@ TlvElement_LinearizeValue(TlvElement* ele,
  *  \param[out] d an iterator bounded inside TLV-VALUE.
  */
 static void
-TlvElement_MakeValueDecoder(const TlvElement* ele, TlvDecodePos* d)
+TlvElement_MakeValueDecoder(const TlvElement* ele, MbufLoc* d)
 {
   MbufLoc_Copy(d, &ele->value);
   d->rem = ele->length;
@@ -127,7 +178,7 @@ TlvElement_MakeValueDecoder(const TlvElement* ele, TlvDecodePos* d)
 static bool
 TlvElement_ReadNonNegativeInteger(const TlvElement* ele, uint64_t* n)
 {
-  TlvDecodePos vd;
+  MbufLoc vd;
   TlvElement_MakeValueDecoder(ele, &vd);
 
   switch (ele->length) {

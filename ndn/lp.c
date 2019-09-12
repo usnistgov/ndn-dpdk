@@ -17,7 +17,7 @@ LpHeader_FromPacket(LpHeader* lph,
   memset(lph, 0, sizeof(LpHeader));
   lph->l2.fragCount = 1;
 
-  TlvDecodePos d0;
+  MbufLoc d0;
   MbufLoc_Init(&d0, pkt);
   TlvElement lppEle;
   NdnError e = TlvElement_Decode(&lppEle, &d0, TT_Invalid);
@@ -30,7 +30,7 @@ LpHeader_FromPacket(LpHeader* lph,
 
   *payloadOff = lppEle.size;
 
-  TlvDecodePos d1;
+  MbufLoc d1;
   TlvElement_MakeValueDecoder(&lppEle, &d1);
   TlvElement ele1;
   while ((e = TlvElement_Decode(&ele1, &d1, TT_Invalid)) == NdnError_OK) {
@@ -42,7 +42,7 @@ LpHeader_FromPacket(LpHeader* lph,
         if (unlikely(ele1.length != 8)) {
           return NdnError_BadLpSeqNum;
         }
-        TlvDecodePos d2;
+        MbufLoc d2;
         TlvElement_MakeValueDecoder(&ele1, &d2);
         rte_le64_t v;
         MbufLoc_ReadU64(&d2, &v);
@@ -70,7 +70,7 @@ LpHeader_FromPacket(LpHeader* lph,
         if (unlikely(ele1.length != 8)) {
           return NdnError_BadPitToken;
         }
-        TlvDecodePos d2;
+        MbufLoc d2;
         TlvElement_MakeValueDecoder(&ele1, &d2);
         rte_le64_t v;
         MbufLoc_ReadU64(&d2, &v);
@@ -78,7 +78,7 @@ LpHeader_FromPacket(LpHeader* lph,
         break;
       }
       case TT_Nack: {
-        TlvDecodePos d2;
+        MbufLoc d2;
         TlvElement_MakeValueDecoder(&ele1, &d2);
         TlvElement ele2;
         if (likely(TlvElement_Decode(&ele2, &d2, TT_NackReason) ==

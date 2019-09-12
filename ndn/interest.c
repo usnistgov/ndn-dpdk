@@ -9,13 +9,13 @@ PInterest_FromPacket(PInterest* interest,
                      struct rte_mbuf* pkt,
                      struct rte_mempool* nameMp)
 {
-  TlvDecodePos d0;
+  MbufLoc d0;
   MbufLoc_Init(&d0, pkt);
   TlvElement interestEle;
   NdnError e = TlvElement_Decode(&interestEle, &d0, TT_Interest);
   RETURN_IF_ERROR;
 
-  TlvDecodePos d1;
+  MbufLoc d1;
   TlvElement_MakeValueDecoder(&interestEle, &d1);
   TlvElement ele1;
 
@@ -63,7 +63,7 @@ PInterest_FromPacket(PInterest* interest,
   }
 
   if (ele1.type == TT_ForwardingHint) {
-    TlvDecodePos d2;
+    MbufLoc d2;
     TlvElement_MakeValueDecoder(&ele1, &d2);
     for (int i = 0; i < INTEREST_MAX_FHS; ++i) {
       if (MbufLoc_IsEnd(&d2)) {
@@ -73,7 +73,7 @@ PInterest_FromPacket(PInterest* interest,
       e = TlvElement_Decode(&delegationEle, &d2, TT_Delegation);
       RETURN_IF_ERROR;
 
-      TlvDecodePos d3;
+      MbufLoc d3;
       TlvElement_MakeValueDecoder(&delegationEle, &d3);
       TlvElement ele3;
       e = TlvElement_Decode(&ele3, &d3, TT_Preference);
@@ -181,7 +181,7 @@ ModifyInterest(Packet* npkt,
   Packet* outNpkt = Packet_FromMbuf(header);
 
   // skip Interest TL
-  TlvDecodePos d0;
+  MbufLoc d0;
   MbufLoc_Init(&d0, inPkt);
   TlvElement interestEle;
   NdnError e = TlvElement_DecodeTL(&interestEle, &d0, TT_Interest);
