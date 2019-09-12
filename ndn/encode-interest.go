@@ -56,9 +56,7 @@ func (tpl *InterestTemplate) AppendFH(preference int, name *Name) {
 	prefV := make([]byte, 4)
 	binary.BigEndian.PutUint32(prefV, uint32(preference))
 	prefTLV := EncodeTlv(TT_Preference, TlvBytes(prefV))
-
-	delV := JoinTlvBytes(prefTLV, name.Encode())
-	delTLV := EncodeTlv(TT_Delegation, delV)
+	delTLV := EncodeTlv(TT_Delegation, prefTLV, name.Encode())
 
 	tpl.fh = append(tpl.fh, delTLV...)
 	tpl.c.fhL = C.uint16_t(len(tpl.fh))

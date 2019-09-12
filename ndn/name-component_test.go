@@ -66,7 +66,7 @@ func TestNameComponentFromNumber(t *testing.T) {
 		output  string
 	}{
 		{ndn.TT_GenericNameComponent, uint8(0x5B), "08015B"},
-		{ndn.TlvType(0x02), uint16(0x7ED2), "02027ED2"},
+		{ndn.TlvType(0x03), uint16(0x7ED2), "03027ED2"},
 		{ndn.TlvType(0xFF), uint32(0xD6793), "FD00FF04000D6793"},
 		{ndn.TlvType(0xFFFF), uint64(0xEFF5DE886FF), "FDFFFF0800000EFF5DE886FF"},
 	}

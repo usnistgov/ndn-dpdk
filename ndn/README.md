@@ -2,11 +2,10 @@
 
 This package implements NDN layer 2 and layer 3 packet representations.
 
-Layer 2 implementation follows [**NDN Link Protocol v2 (NDNLPv2)** specification](https://redmine.named-data.net/projects/nfd/wiki/NDNLPv2), [revision 27](https://redmine.named-data.net/projects/nfd/wiki/NDNLPv2/27).
-It supports indexed fragmentation, network nack, and congestion mark features.
-As a protocol extension, it supports [PIT token](https://redmine.named-data.net/issues/4432) field.
+Layer 2 implementation follows [**NDN Link Protocol v2 (NDNLPv2)** specification](https://redmine.named-data.net/projects/nfd/wiki/NDNLPv2), [revision 55](https://redmine.named-data.net/projects/nfd/wiki/NDNLPv2/55).
+It supports indexed fragmentation, PIT token, network nack, and congestion mark features.
 
-Layer 3 implementation follows [**NDN Packet Format** specification](https://named-data.net/doc/NDN-TLV/current/), [version 0.3](https://gerrit.named-data.net/gitweb?p=NDN-TLV.git;a=tree;h=0c04fd8af4b7a488ecc487a7aa7fdce5bc1543f7).
+Layer 3 implementation follows [**NDN Packet Format** specification](https://named-data.net/doc/NDN-TLV/current/), [version 0.3](https://github.com/named-data/NDN-packet-spec/tree/459e46670b48c8c513034ef53fd8f03d92df1385).
 However, it does not support TLV encoding evolvability: encountering an unrecognized or out-of-order TLV element would cause the packet to be treated as invalid, regardless of whether its TLV-TYPE is critical or non-critical.
 
 ## Low-Level TLV Functions
@@ -73,9 +72,7 @@ To receive and parse a packet, calling code should:
 
 If the Interest carries a *forwarding hint*, up to `INTEREST_MAX_FHS` delegations are recognized, and any remaining delegations are ignored.
 `PInterest.fh` array stores the recognized delegation names as `LName`; this implies that the decoder only determines the length of each name, but does not parse at component level.
-`PInterest_ParseFh` function can parse a delegation name into components on demand, but only one delegation name can be stored as as `PName` in a `PInterest`.
-
-If the Interest carries the *HopLimit* field, it is automatically decremented in place.
+`PInterest_ParseFh` function can parse a delegation name into components on demand, but only one delegation name can be stored as `PName` in a `PInterest`.
 
 The decoder stores the position of Nonce and InterestLifetime fields as `PInterest.guiderLoc`. It can be used to insert a missing Nonce field, or to modify InterestLifetime.
 
@@ -84,5 +81,5 @@ The decoder stores the position of Nonce and InterestLifetime fields as `PIntere
 There are limited support for packet encoding.
 
 * **InterestTemplate** struct and related functions encode an Interest.
-* `EncodeData` functions make a Data with given name and payload. It will attach an invalid HMAC signature.
+* `EncodeData` functions make a Data with given name and payload. It will attach an invalid SHA256 signature.
 * `MakeNack` turns an Interest into a Nack in-place.

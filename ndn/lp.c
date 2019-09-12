@@ -3,7 +3,7 @@
 #include "tlv-encoder.h"
 
 static bool
-CanIgnoreLpHeader(uint64_t tlvType)
+CanIgnoreLpHeader(uint32_t tlvType)
 {
   return 800 <= tlvType && tlvType <= 959 && (tlvType & 0x3) == 0x0;
 }

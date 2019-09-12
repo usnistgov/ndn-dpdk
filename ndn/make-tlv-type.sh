@@ -19,7 +19,7 @@ cd "$( dirname "${BASH_SOURCE[0]}" )"
   echo
   echo 'import "fmt"'
   echo
-  echo 'type TlvType uint64'
+  echo 'type TlvType uint32'
   echo
   echo 'const ('
   awk 'NF==2 { print "TT_" $1 " TlvType = 0x" $2  }' tlv-type.tsv

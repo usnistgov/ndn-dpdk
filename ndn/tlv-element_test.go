@@ -22,7 +22,7 @@ func TestTlvElement(t *testing.T) {
 		{input: "", bad: true},                         // empty
 		{input: "01", bad: true},                       // missing TLV-LENGTH
 		{input: "01 01", bad: true},                    // incomplete TLV-VALUE
-		{input: "01 FF00", bad: true},                  // incomplete TLV-LENGTH
+		{input: "01 FD00", bad: true},                  // incomplete TLV-LENGTH
 		{input: "01 FF0000000100000000 A0", bad: true}, // TLV-LENGTH overflow
 		{input: "01 04 A0A1", bad: true},               // incomplete TLV-VALUE
 		{input: "01 00", t: 0x01, v: "", nni: NOT_NNI}, // zero TLV-LENGTH

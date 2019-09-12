@@ -3,8 +3,8 @@
 
 /// \file
 
-#include "common.h"
 #include "tlv-type.h"
+#include "tlv-varnum.h"
 
 /** \brief TLV element
  */
@@ -18,57 +18,6 @@ typedef struct TlvElement
   MbufLoc last;    ///< past end position
 } TlvElement;
 
-/** \brief Decode a TLV-TYPE or TLV-LENGTH number.
- *  \param[out] n the number.
- */
-static NdnError
-__TlvElement_DecodeVarNum(MbufLoc* d, uint32_t* n)
-{
-  uint8_t firstOctet;
-  bool ok = MbufLoc_ReadU8(d, &firstOctet);
-  if (unlikely(!ok)) {
-    return NdnError_Incomplete;
-  }
-
-  switch (firstOctet) {
-    case 253: {
-      rte_be16_t v;
-      bool ok = MbufLoc_ReadU16(d, &v);
-      if (unlikely(!ok)) {
-        return NdnError_Incomplete;
-      }
-      *n = rte_be_to_cpu_16(v);
-      break;
-    }
-    case 254: {
-      rte_be32_t v;
-      bool ok = MbufLoc_ReadU32(d, &v);
-      if (unlikely(!ok)) {
-        return NdnError_Incomplete;
-      }
-      *n = rte_be_to_cpu_32(v);
-      break;
-    }
-    case 255: {
-      rte_be64_t v;
-      bool ok = MbufLoc_ReadU64(d, &v);
-      if (unlikely(!ok)) {
-        return NdnError_Incomplete;
-      }
-      uint64_t number = rte_be_to_cpu_64(v);
-      if (unlikely(number > UINT32_MAX)) {
-        return NdnError_LengthOverflow;
-      }
-      *n = (uint32_t)number;
-      break;
-    }
-    default:
-      *n = firstOctet;
-      break;
-  }
-  return NdnError_OK;
-}
-
 /** \brief Decode a TLV header including TLV-TYPE and TLV-LENGTH but excluding TLV-VALUE.
  *  \param[out] ele the element; will assign all fields except \c last.
  *  \retval NdnError_BadType expectedType is non-zero and TLV-TYPE does not equal \p expectedType.
@@ -78,7 +27,7 @@ TlvElement_DecodeTL(TlvElement* ele, MbufLoc* d, uint32_t expectedType)
 {
   MbufLoc_Copy(&ele->first, d);
 
-  NdnError e = __TlvElement_DecodeVarNum(d, &ele->type);
+  NdnError e = MbufLoc_ReadVarNum(d, &ele->type);
   RETURN_IF_ERROR;
 
   if (expectedType == TT_Invalid) {
@@ -91,7 +40,7 @@ TlvElement_DecodeTL(TlvElement* ele, MbufLoc* d, uint32_t expectedType)
     }
   }
 
-  e = __TlvElement_DecodeVarNum(d, &ele->length);
+  e = MbufLoc_ReadVarNum(d, &ele->length);
   RETURN_IF_ERROR;
   ele->size = MbufLoc_FastDiff(&ele->first, d) + ele->length;
 

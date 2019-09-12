@@ -61,7 +61,7 @@ TlvEncoder_Prepend(TlvEncoder* en, uint16_t len)
 /** \brief Append a TLV-TYPE or TLV-LENGTH number.
  */
 static NdnError
-AppendVarNum(TlvEncoder* en, uint64_t n)
+AppendVarNum(TlvEncoder* en, uint32_t n)
 {
   uint8_t* room = TlvEncoder_Append(en, SizeofVarNum(n));
   if (unlikely(room == NULL)) {
@@ -75,7 +75,7 @@ AppendVarNum(TlvEncoder* en, uint64_t n)
 /** \brief Prepend a TLV-TYPE or TLV-LENGTH number.
  */
 static NdnError
-PrependVarNum(TlvEncoder* en, uint64_t n)
+PrependVarNum(TlvEncoder* en, uint32_t n)
 {
   uint8_t* room = TlvEncoder_Prepend(en, SizeofVarNum(n));
   if (unlikely(room == NULL)) {

@@ -22,7 +22,7 @@ func TestNameDecode(t *testing.T) {
 		hasDigest bool
 	}{
 		{input: "", nComps: 0},
-		{input: "08FF DDDD", err: ndn.NdnError_Incomplete},
+		{input: "08F0 DDDD", err: ndn.NdnError_Incomplete},
 		{input: "FE0001000000", err: ndn.NdnError_BadNameComponentType},
 		{input: "080141 080142 080100 0801FF 800141 0800 08012E", nComps: 7},
 		{input: strings.Repeat("080141 ", 32) + "080142", nComps: 33},

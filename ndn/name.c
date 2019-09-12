@@ -63,7 +63,7 @@ LName_ToString(LName n, char* buf, size_t bufsz)
 }
 
 static bool
-IsValidNameComponentType(uint64_t type)
+IsValidNameComponentType(uint32_t type)
 {
   return 1 <= type && type <= 65535;
 }
@@ -82,12 +82,17 @@ PName_Parse(PName* n, uint32_t length, const uint8_t* value)
 
   uint32_t off = 0;
   while (off < length) {
-    uint32_t compT, compL;
-    uint32_t sizeofT = ParseVarNum(value + off, length - off, &compT);
-    uint32_t sizeofL =
-      ParseVarNum(value + off + sizeofT, length - off - sizeofT, &compL);
-    if (unlikely(sizeofT == 0 || sizeofL == 0)) {
-      return NdnError_Incomplete;
+    uint32_t compT;
+    int sizeofT = DecodeVarNum(value + off, length - off, &compT);
+    if (unlikely(sizeofT <= 0)) {
+      return -sizeofT;
+    }
+
+    uint32_t compL;
+    int sizeofL =
+      DecodeVarNum(value + off + sizeofT, length - off - sizeofT, &compL);
+    if (unlikely(sizeofL <= 0)) {
+      return -sizeofL;
     }
 
     off += sizeofT + sizeofL + compL;
@@ -132,8 +137,8 @@ __PName_SeekCompEnd(const PName* n, const uint8_t* input, uint16_t i)
   uint16_t off = n->comp[PNAME_N_CACHED_COMPS - 1];
   for (uint16_t j = PNAME_N_CACHED_COMPS - 1; j < i; ++j) {
     uint32_t compT, compL;
-    off += ParseVarNum(input + off, n->nOctets - off, &compT);
-    off += ParseVarNum(input + off, n->nOctets - off, &compL);
+    off += DecodeVarNum(input + off, n->nOctets - off, &compT);
+    off += DecodeVarNum(input + off, n->nOctets - off, &compL);
     off += compL;
   }
   return off;

@@ -36,8 +36,8 @@ func (tb TlvBytes) DecodeVarNum() (v uint32, tail TlvBytes) {
 	if len(tb) < 1 {
 		return 0, nil
 	}
-	res := C.ParseVarNum((*C.uint8_t)(tb.GetPtr()), C.uint32_t(len(tb)), (*C.uint32_t)(&v))
-	if res == 0 {
+	res := C.DecodeVarNum((*C.uint8_t)(tb.GetPtr()), C.uint32_t(len(tb)), (*C.uint32_t)(&v))
+	if res <= 0 {
 		return 0, nil
 	}
 	return v, tb[res:]
@@ -62,19 +62,21 @@ func (tb TlvBytes) String() string {
 	return strings.ToUpper(hex.EncodeToString(([]byte)(tb)))
 }
 
-func JoinTlvBytes(a ...TlvBytes) TlvBytes {
-	return TlvBytes(bytes.Join(*(*[][]byte)(unsafe.Pointer(&a)), nil))
-}
+// Encode TLV from TLV-TYPE and TLV-VALUE chunks.
+func EncodeTlv(tlvType TlvType, value ...TlvBytes) TlvBytes {
+	a := [][]byte{nil}
+	length := 0
+	for _, v := range value {
+		a = append(a, ([]byte)(v))
+		length += len(v)
+	}
 
-func EncodeVarNum(n uint64) TlvBytes {
-	buf := make([]byte, int(C.SizeofVarNum(C.uint64_t(n))))
-	C.EncodeVarNum((*C.uint8_t)(unsafe.Pointer(&buf[0])), C.uint64_t(n))
-	return buf
-}
+	sizeofT := C.SizeofVarNum(C.uint32_t(tlvType))
+	sizeofL := C.SizeofVarNum(C.uint32_t(length))
+	tl := make([]byte, int(sizeofT+sizeofL))
+	C.EncodeVarNum((*C.uint8_t)(unsafe.Pointer(&tl[0])), C.uint32_t(tlvType))
+	C.EncodeVarNum((*C.uint8_t)(unsafe.Pointer(&tl[sizeofT])), C.uint32_t(length))
 
-func EncodeTlv(tlvType TlvType, value TlvBytes) TlvBytes {
-	return JoinTlvBytes(
-		EncodeVarNum(uint64(tlvType)),
-		EncodeVarNum(uint64(len(value))),
-		value)
+	a[0] = tl
+	return TlvBytes(bytes.Join(a, nil))
 }
