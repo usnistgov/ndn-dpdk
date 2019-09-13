@@ -100,9 +100,7 @@ PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt)
   dn->token = lpl3->pitToken;
   dn->canBePrefix = interest->canBePrefix;
   dn->nonce = interest->nonce;
-  uint32_t lifetime = interest->lifetime <= PIT_MAX_LIFETIME
-                        ? interest->lifetime
-                        : PIT_MAX_LIFETIME;
+  uint32_t lifetime = RTE_MIN(interest->lifetime, PIT_MAX_LIFETIME);
   dn->expiry = pkt->timestamp + TscDuration_FromMillis(lifetime);
 
   // record CanBePrefix and prefer CBP=1 for representative Interest
@@ -122,7 +120,6 @@ PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt)
   // set timer
   if (dn->expiry > entry->expiry) {
     entry->expiry = dn->expiry;
-    MinTmr_Cancel(&entry->timeout);
     bool ok = MinTmr_At(&entry->timeout, entry->expiry, pitp->timeoutSched);
     assert(ok); // unless PIT_MAX_LIFETIME is higher than scheduler limit
   }

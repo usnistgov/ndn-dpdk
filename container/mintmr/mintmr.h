@@ -53,7 +53,7 @@ MinSched_Trigger_(MinSched* sched, TscTime now);
 
 /** \brief Trigger callback function on expired timers.
  */
-static void
+static __rte_always_inline void
 MinSched_Trigger(MinSched* sched)
 {
   TscTime now = rte_get_tsc_cycles();
@@ -65,7 +65,7 @@ MinSched_Trigger(MinSched* sched)
 
 /** \brief Initialize a timer.
  */
-static void
+static __rte_always_inline void
 MinTmr_Init(MinTmr* tmr)
 {
   tmr->next = tmr->prev = NULL;
@@ -79,35 +79,35 @@ MinSched_GetMaxDelay(MinSched* sched)
   return sched->interval * (sched->nSlots - 2);
 }
 
-/** \brief Schedule a timer to expire \p after since current time.
- *  \param tmr the timer, must not be running.
- */
-bool
-MinTmr_After(MinTmr* tmr, TscDuration after, MinSched* sched);
-
-/** \brief Schedule a timer to expire at \p at.
- *  \param tmr the timer, must not be running.
- */
-static bool
-MinTmr_At(MinTmr* tmr, TscTime at, MinSched* sched)
-{
-  TscTime now = rte_get_tsc_cycles();
-  TscDuration after = at > now ? at - now : 0;
-  return MinTmr_After(tmr, after, sched);
-}
-
 void
 MinTmr_Cancel_(MinTmr* tmr);
 
 /** \brief Cancel a timer.
  */
-static void
+static __rte_always_inline void
 MinTmr_Cancel(MinTmr* tmr)
 {
   if (tmr->next == NULL) {
     return;
   }
   MinTmr_Cancel_(tmr);
+}
+
+/** \brief Schedule a timer to expire \p after since current time.
+ *  \param tmr the timer; any previous setting will be cancelled.
+ *  \param after expiration delay, should be below <tt>MinSched_GetMaxDelay(sched)</tt>
+ */
+bool
+MinTmr_After(MinTmr* tmr, TscDuration after, MinSched* sched);
+
+/** \brief Schedule a timer to expire at \p at.
+ */
+static bool
+MinTmr_At(MinTmr* tmr, TscTime at, MinSched* sched)
+{
+  TscTime now = rte_get_tsc_cycles();
+  TscDuration after = RTE_MAX(at - now, 0);
+  return MinTmr_After(tmr, after, sched);
 }
 
 #endif // NDN_DPDK_CONTAINER_MINTMR_MINTMR_H
