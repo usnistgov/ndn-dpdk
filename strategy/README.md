@@ -5,7 +5,7 @@ Code in this directory is compiled to BPF target using LLVM-6.0, except that `ap
 
 To implement a strategy named `foo`:
 
-1.  Add `foo.c`, and include `api.h`.
-2.  Implement the `SgMain` function as declared in `api.h`.
-3.  All other functions must be `inline`.
-4.  If necessary, spread other functions to `foo-*.h`.
+1. Add `foo.c`, and include `api.h`.
+2. Implement the `SgMain` function as declared in `api.h`.
+3. All other functions must be `inline`.
+4. If necessary, spread other functions to `foo-*.h`.

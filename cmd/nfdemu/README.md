@@ -12,7 +12,9 @@ Before starting nfdemu, launch [ndnfw-dpdk](../ndnfw-dpdk/) and [mgmtproxy.sh](.
 
 Start nfdemu:
 
-    nodejs build/cmd/nfdemu/ -vv -w 4
+```
+nodejs build/cmd/nfdemu/ -vv -w 4
+```
 
 * `-v` enables connect/disconnect and prefix registration logging.
 * `-vv` enables per-packet logging.
@@ -20,8 +22,12 @@ Start nfdemu:
 
 Run NDN producer program:
 
-    NDN_CLIENT_TRANSPORT=unix:///tmp/nfdemu.sock ndnpingserver /Z
+```
+NDN_CLIENT_TRANSPORT=unix:///tmp/nfdemu.sock ndnpingserver /Z
+```
 
 Run NDN consumer program:
 
-    NDN_CLIENT_TRANSPORT=unix:///tmp/nfdemu.sock ndnping /Z
+```
+NDN_CLIENT_TRANSPORT=unix:///tmp/nfdemu.sock ndnping /Z
+```

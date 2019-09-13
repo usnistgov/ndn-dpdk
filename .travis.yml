@@ -1,3 +1,4 @@
+---
 dist: bionic
 
 language: go
@@ -13,20 +14,20 @@ addons:
   apt:
     update: true
     packages:
-    - clang-6.0
-    - clang-format-6.0
-    - curl
-    - doxygen
-    - gcc-multilib
-    - go-bindata
-    - libelf-dev
-    - libnuma-dev
-    - libssl-dev
-    - liburcu-dev
-    - linux-headers-$(uname -r)
-    - linux-libc-dev
-    - socat
-    - yamllint
+      - clang-6.0
+      - clang-format-6.0
+      - curl
+      - doxygen
+      - gcc-multilib
+      - go-bindata
+      - libelf-dev
+      - libnuma-dev
+      - libssl-dev
+      - liburcu-dev
+      - linux-headers-$(uname -r)
+      - linux-libc-dev
+      - socat
+      - yamllint
 
 cache:
   npm: true
@@ -91,3 +92,4 @@ script:
   - make godeps
   - go get -d -t ./...
   - make
+  - make lint

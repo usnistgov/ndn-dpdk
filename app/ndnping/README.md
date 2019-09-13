@@ -6,12 +6,12 @@ Unlike named-data.net's [ndnping](https://github.com/named-data/ndn-tools/tree/m
 
 This packet generator has up to five threads for each face:
 
-*   The *input thread* ("RX" role) runs an **iface.RxLoop** that invokes `PingInput_FaceRx` when a burst of L3 packets arrives on a face.
-    It dispatches Data and Nacks to client-RX thread, and dispatches Interests to server thread.
-*   The *client-TX thread* ("CLIT" role) executes `PingClientTx_Run` function that periodically sends Interests.
-*   The *client-RX thread* ("CLIR" role) executes `PingClientRx_Run` function that receives Data and Nacks from the input thread, and collects statistics about them.
-*   The *server thread* ("SVR" role) executes `PingServer_Run` function that receives Interests from the input thread, and responds to them.
-*   The *output thread* ("TX" role) runs an **iface.TxLoop** that transmits Interests, Data, and Nacks created by client-RX thread or server thread.
+* The *input thread* ("RX" role) runs an **iface.RxLoop** that invokes `PingInput_FaceRx` when a burst of L3 packets arrives on a face.
+  It dispatches Data and Nacks to client-RX thread, and dispatches Interests to server thread.
+* The *client-TX thread* ("CLIT" role) executes `PingClientTx_Run` function that periodically sends Interests.
+* The *client-RX thread* ("CLIR" role) executes `PingClientRx_Run` function that receives Data and Nacks from the input thread, and collects statistics about them.
+* The *server thread* ("SVR" role) executes `PingServer_Run` function that receives Interests from the input thread, and responds to them.
+* The *output thread* ("TX" role) runs an **iface.TxLoop** that transmits Interests, Data, and Nacks created by client-RX thread or server thread.
 
 ```
       /--client0-RX
@@ -60,12 +60,11 @@ However, the client would not be able to detect network faults, such as unsolici
 The server responds to every Interest with Data or Nack.
 It supports multiple patterns that allow setting:
 
-*   Name prefix
-*   a list of possible reply definitions, each with a probability of selecting this reply relative to other replies, and one of:
-
-    * Data template: Name suffix, FreshnessPeriod value, Content payload length
-    * Nack reason
-    * timeout/drop
+* Name prefix
+* a list of possible reply definitions, each with a probability of selecting this reply relative to other replies, and one of:
+  * Data template: Name suffix, FreshnessPeriod value, Content payload length
+  * Nack reason
+  * timeout/drop
 
 Upon receiving an Interest, the server finds a pattern whose name prefix is a prefix of Interest name, and randomly selects a reply definition.
 It then makes a Data or Nack according to the reply definition, unless it's a "timeout" reply.

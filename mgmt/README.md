@@ -11,9 +11,9 @@ By default, the server listens on Unix stream socket `/var/run/ndn-dpdk-mgmt.soc
 Sysadmin may change this path or switch to TCP through environment variable.
 For example:
 
-    MGMT=unix:///tmp/ndn-dpdk-mgmt.sock
-    MGMT=tcp4://127.0.0.1:6345
-    MGMT=tcp6://[::1]:6345
+* `MGMT=unix:///tmp/ndn-dpdk-mgmt.sock`
+* `MGMT=tcp4://127.0.0.1:6345`
+* `MGMT=tcp6://[::1]:6345`
 
 To disable management, set environment variable `MGMT=0`.
 `Start` would have no effect after that.

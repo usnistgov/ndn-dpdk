@@ -6,13 +6,13 @@ This package implements Ethernet faces using DPDK ethdev as transport.
 FaceId is randomly assigned from the range 0x1000-0x1FFF.
 Locator has the following fields:
 
-*   *Scheme* is set to "ether".
-*   *Port* is the port name as presented by DPDK.
-    For a PCI device, it has the form bus:device.function, e.g. "06:00.0".
-*   *Local* and *Remote* are MAC-48 addresses written in the six groups of two lower-case hexadecimal digits separated by colons.
-*   *Local* must be a unicast address.
-*   *Remote* may be unicast or multicast.
-    Every face is assumed to be point-to-point, even when using a multicast remote address.
+* *Scheme* is set to "ether".
+* *Port* is the port name as presented by DPDK.
+  For a PCI device, it has the form bus:device.function, e.g. "06:00.0".
+* *Local* and *Remote* are MAC-48 addresses written in the six groups of two lower-case hexadecimal digits separated by colons.
+* *Local* must be a unicast address.
+* *Remote* may be unicast or multicast.
+  Every face is assumed to be point-to-point, even when using a multicast remote address.
 
 **Port** type organizes EthFaces on the same DPDK ethdev.
 Each port can have zero or one face with multicast remote address, and zero or more faces with unicast remote addresses.
@@ -30,10 +30,9 @@ There is minimal checking on software side.
 **EthRxTable** type implements a software receive path.
 Its procedure is:
 
-1.  Poll ethdev RX queue 0 for incoming frames.
-2.  Discard frames with non-NDN EtherType (such as VLAN-tagged frames, IP packets, and NDN packets over UDP/TCP tunnels).
-3.  Label each frame with incoming FaceId:
-
+1. Poll ethdev RX queue 0 for incoming frames.
+2. Discard frames with non-NDN EtherType (such as VLAN-tagged frames, IP packets, and NDN packets over UDP/TCP tunnels).
+3. Label each frame with incoming FaceId:
     * If the destination MAC address is a group address, the FaceId is set to the face with multicast remote address.
     * Otherwise, the last octet of source MAC address is looked up in a 256-element array of unicast FaceIds.
       This requires every face with unicast remote address to have distinct last octet.

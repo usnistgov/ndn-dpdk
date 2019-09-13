@@ -6,9 +6,9 @@ This package implements a face using socket as transport.
 FaceId is randomly assigned from the range 0xE000-0xEFFF.
 Locator has the following fields:
 
-*   *Scheme* is one of "udp", "unixgram", "tcp", "unix".
-*   *Remote* is an address string acceptable to Go [net.Dial](https://golang.org/pkg/net/#Dial) function.
-*   *Local* has the same format as *Remote*, and is accepted only with "udp" scheme.
+* *Scheme* is one of "udp", "unixgram", "tcp", "unix".
+* *Remote* is an address string acceptable to Go [net.Dial](https://golang.org/pkg/net/#Dial) function.
+* *Local* has the same format as *Remote*, and is accepted only with "udp" scheme.
 
 ## Receive Path
 

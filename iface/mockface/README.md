@@ -6,7 +6,7 @@ This package implements a mock face for unit testing.
 FaceId is randomly assigned from the range 0x0001-0x0FFF.
 Locator has the following fields:
 
-*   *Scheme* is set to "mock".
+* *Scheme* is set to "mock".
 
 Test code can invoke `MockFace.Rx` to cause the face to receive a packet.
 These packets are queued in `iface.ChanRxGroup`.
