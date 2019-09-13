@@ -82,7 +82,7 @@ Pit_Erase(Pit* pit, PitEntry* entry);
 /** \brief Erase both PIT entries on a PccEntry but retain the PccEntry.
  */
 void
-__Pit_RawErase01(Pit* pit, PccEntry* pccEntry);
+Pit_RawErase01_(Pit* pit, PccEntry* pccEntry);
 
 /** \brief Find PIT entries matching a Data.
  *  \param npkt Data packet, its token will be used.

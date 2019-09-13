@@ -71,7 +71,7 @@ func Load(name string, elf []byte) (sc StrategyCode, e error) {
 // Load an empty BPF program (mainly for unit testing).
 func MakeEmpty(name string) StrategyCode {
 	var prm C.struct_rte_bpf_prm
-	prm.ins = C.__StrategyCode_GetEmptyProgram(&prm.nb_ins)
+	prm.ins = C.StrategyCode_GetEmptyProgram_(&prm.nb_ins)
 	prm.prog_arg._type = C.RTE_BPF_ARG_RAW
 
 	bpf := C.rte_bpf_load(&prm)

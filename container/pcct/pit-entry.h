@@ -50,9 +50,9 @@ struct PitEntryExt
 };
 
 static void
-__PitEntry_SetFibEntry(PitEntry* entry,
-                       PInterest* interest,
-                       const FibEntry* fibEntry)
+PitEntry_SetFibEntry_(PitEntry* entry,
+                      PInterest* interest,
+                      const FibEntry* fibEntry)
 {
   entry->fibPrefixL = fibEntry->nameL;
   entry->fibSeqNo = fibEntry->seqNum;
@@ -84,7 +84,7 @@ PitEntry_Init(PitEntry* entry, Packet* npkt, const FibEntry* fibEntry)
   entry->ups[0].face = FACEID_INVALID;
   entry->ext = NULL;
 
-  __PitEntry_SetFibEntry(entry, interest, fibEntry);
+  PitEntry_SetFibEntry_(entry, interest, fibEntry);
 }
 
 /** \brief Finalize a PIT entry.
@@ -123,7 +123,7 @@ PitEntry_RefreshFibEntry(PitEntry* entry,
   }
 
   PInterest* interest = Packet_GetInterestHdr(npkt);
-  __PitEntry_SetFibEntry(entry, interest, fibEntry);
+  PitEntry_SetFibEntry_(entry, interest, fibEntry);
 }
 
 /** \brief Retrieve FIB entry via PIT entry's FIB reference.

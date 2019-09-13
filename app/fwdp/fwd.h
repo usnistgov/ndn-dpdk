@@ -46,7 +46,7 @@ typedef struct FwFwd
 } FwFwd;
 
 static Pcct**
-__FwFwd_GetPcctPtr(FwFwd* fwd)
+FwFwd_GetPcctPtr_(FwFwd* fwd)
 {
   return &fwd->pcct;
 }

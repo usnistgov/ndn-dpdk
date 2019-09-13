@@ -5,7 +5,7 @@
 
 #include "tlv-element.h"
 
-extern uint64_t __NameHash_Empty;
+extern uint64_t NameHash_Empty_;
 
 /** \brief Maximum supported name length (TLV-LENGTH of Name element).
  */
@@ -20,14 +20,14 @@ typedef struct LName
 } LName;
 
 uint64_t
-__LName_ComputeHash(uint16_t length, const uint8_t* value);
+LName_ComputeHash_(uint16_t length, const uint8_t* value);
 
 /** \brief Compute hash for a name.
  */
 static inline uint64_t
 LName_ComputeHash(LName n)
 {
-  return __LName_ComputeHash(n.length, n.value);
+  return LName_ComputeHash_(n.length, n.value);
 }
 
 /** \brief Indicate the result of name comparison.
@@ -103,7 +103,7 @@ NdnError
 PName_FromElement(PName* n, const TlvElement* ele);
 
 uint16_t
-__PName_SeekCompEnd(const PName* n, const uint8_t* input, uint16_t i);
+PName_SeekCompEnd_(const PName* n, const uint8_t* input, uint16_t i);
 
 /** \brief Get past-end offset of i-th component.
  *  \param input a buffer containing TLV-VALUE of Name element
@@ -119,7 +119,7 @@ PName_GetCompEnd(const PName* n, const uint8_t* input, uint16_t i)
   if (i == n->nComps - 1) {
     return n->nOctets;
   }
-  return __PName_SeekCompEnd(n, input, i);
+  return PName_SeekCompEnd_(n, input, i);
 }
 
 /** \brief Get begin offset of i-th component.
@@ -160,7 +160,7 @@ PName_SizeofPrefix(const PName* n, const uint8_t* input, uint16_t i)
 }
 
 void
-__PName_HashToCache(PName* n, const uint8_t* input);
+PName_HashToCache_(PName* n, const uint8_t* input);
 
 /** \brief Compute hash for a prefix with i components.
  *  \param input a buffer containing TLV-VALUE of Name element
@@ -170,16 +170,16 @@ static uint64_t
 PName_ComputePrefixHash(const PName* n, const uint8_t* input, uint16_t i)
 {
   if (i == 0) {
-    return __NameHash_Empty;
+    return NameHash_Empty_;
   }
 
   assert(i <= n->nComps);
   if (unlikely(i > PNAME_N_CACHED_COMPS)) {
-    return __LName_ComputeHash(PName_GetCompEnd(n, input, i - 1), input);
+    return LName_ComputeHash_(PName_GetCompEnd(n, input, i - 1), input);
   }
 
   if (!n->hasHashes) {
-    __PName_HashToCache((PName*)n, input);
+    PName_HashToCache_((PName*)n, input);
   }
   return n->hash[i - 1];
 }

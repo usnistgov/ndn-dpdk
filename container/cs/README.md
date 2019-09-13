@@ -6,7 +6,7 @@ CS is part of the [PIT-CS Composite Table (PCCT)](../pcct/).
 PCCT provides storage and lookup functions for CS.
 
 CS's APIs are tied to the PIT.
-`Pit_Insert` attempts to insert a PIT entry, but if a CS entry is found on the PCC entry and `__Cs_MatchInterest` determines that the CS entry can satisfy the incoming Interest, it returns the CS entry without inserting a PIT entry, effectively performing a CS lookup.
+`Pit_Insert` attempts to insert a PIT entry, but if a CS entry is found on the PCC entry and `Cs_MatchInterest_` determines that the CS entry can satisfy the incoming Interest, it returns the CS entry without inserting a PIT entry, effectively performing a CS lookup.
 `Cs_Insert` requires a PIT find result, and the new CS entry would take the place of satisfied PIT entries.
 
 ## Prefix and Full Name Match via Indirect Entries
@@ -54,7 +54,7 @@ Therefore, instead of treating an incoming Interest as a request, this implement
 ARC's four LRU lists are implemented using `CsList` type.
 T1 and T2 contain actual cache entries that have Data packets.
 B1 and B2 are *ghost* lists that track history of recently evicted cache entries.
-Since an entry in B1 or B2 lacks a Data packet, when it's found during a CS lookup, `__Cs_MatchInterest` would report it as non-match.
+Since an entry in B1 or B2 lacks a Data packet, when it's found during a CS lookup, `Cs_MatchInterest_` would report it as non-match.
 
 `CsArc` also has a fifth DEL list that contains entries no longer needed by ARC.
 When ARC algorithm deletes an entry, instead of releasing the entry and dependent indirect entries right away, the entry is moved to the DEL list for bulk deletion later; if the entry was in T1 or T2, its Data packet is released immediately.

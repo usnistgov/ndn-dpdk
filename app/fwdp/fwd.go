@@ -59,7 +59,7 @@ func (fwd *Fwd) Init(fib *fib.Fib, pcctCfg pcct.Config, queueCap int, latencySam
 	fwd.c.queue = (*C.struct_rte_ring)(queue.GetPtr())
 
 	fwd.c.fib = (*C.Fib)(fib.GetPtr(fwd.id))
-	*C.__FwFwd_GetPcctPtr(fwd.c) = (*C.Pcct)(pcct.GetPtr())
+	*C.FwFwd_GetPcctPtr_(fwd.c) = (*C.Pcct)(pcct.GetPtr())
 
 	headerMp := appinit.MakePktmbufPool(appinit.MP_HDR, numaSocket)
 	guiderMp := appinit.MakePktmbufPool(appinit.MP_INTG, numaSocket)
@@ -96,7 +96,7 @@ func (fwd *Fwd) Stop() error {
 func (fwd *Fwd) Close() error {
 	queue := dpdk.RingFromPtr(unsafe.Pointer(fwd.c.queue))
 	queue.Close()
-	pcct := pcct.PcctFromPtr(unsafe.Pointer(*C.__FwFwd_GetPcctPtr(fwd.c)))
+	pcct := pcct.PcctFromPtr(unsafe.Pointer(*C.FwFwd_GetPcctPtr_(fwd.c)))
 	pcct.Close()
 	dpdk.Free(fwd.c)
 	return nil

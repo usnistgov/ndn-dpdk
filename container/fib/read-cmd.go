@@ -24,7 +24,7 @@ func (fib *Fib) ListNames() (names []*ndn.Name) {
 }
 
 func findC(fibC *C.Fib, nameV ndn.TlvBytes, hash uint64) (entryC *C.FibEntry) {
-	return C.__Fib_Find(fibC, C.uint16_t(len(nameV)), (*C.uint8_t)(nameV.GetPtr()),
+	return C.Fib_Find_(fibC, C.uint16_t(len(nameV)), (*C.uint8_t)(nameV.GetPtr()),
 		C.uint64_t(hash))
 }
 
@@ -76,7 +76,7 @@ func (fib *Fib) Lpm(name *ndn.Name) (entry *Entry) {
 		rs.Lock()
 		defer rs.Unlock()
 		_, partition := fib.ndt.Lookup(name)
-		entryC := C.__Fib_Lpm(fib.c[partition], (*C.PName)(name.GetPNamePtr()),
+		entryC := C.Fib_Lpm_(fib.c[partition], (*C.PName)(name.GetPNamePtr()),
 			(*C.uint8_t)(name.GetValue().GetPtr()))
 		if entryC != nil {
 			entry = &Entry{*entryC}

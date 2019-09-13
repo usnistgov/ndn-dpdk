@@ -63,12 +63,12 @@ Face_GetPriv(Face* face)
 
 /** \brief Static array of all faces.
  */
-extern Face __gFaces[FACEID_MAX + 1];
+extern Face gFaces_[FACEID_MAX + 1];
 
 static Face*
-__Face_Get(FaceId faceId)
+Face_Get_(FaceId faceId)
 {
-  return &__gFaces[faceId];
+  return &gFaces_[faceId];
 }
 
 // ---- functions invoked by user of face system ----
@@ -78,7 +78,7 @@ __Face_Get(FaceId faceId)
 static bool
 Face_IsDown(FaceId faceId)
 {
-  Face* face = __Face_Get(faceId);
+  Face* face = Face_Get_(faceId);
   return face->state != FACESTA_UP;
 }
 
@@ -98,7 +98,7 @@ typedef void (*Face_RxCb)(FaceRxBurst* burst, void* cbarg);
 static void
 Face_TxBurst(FaceId faceId, Packet** npkts, uint16_t count)
 {
-  Face* face = __Face_Get(faceId);
+  Face* face = Face_Get_(faceId);
   if (unlikely(face->state != FACESTA_UP)) {
     FreeMbufs((struct rte_mbuf**)npkts, count);
     return;

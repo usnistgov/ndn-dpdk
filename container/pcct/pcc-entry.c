@@ -8,14 +8,14 @@ PccEntry_ToMempool(PccEntry* entry)
 }
 
 static PccSlot*
-__PccEntry_AssignSlot(PccEntry* entry, PccSlot* slot)
+PccEntry_AssignSlot_(PccEntry* entry, PccSlot* slot)
 {
   slot->pccEntry = entry;
   return slot;
 }
 
 PccSlotIndex
-__PccEntry_AllocateSlot(PccEntry* entry, PccSlot** slot)
+PccEntry_AllocateSlot_(PccEntry* entry, PccSlot** slot)
 {
 #define AssignSlot(s)                                                          \
   do {                                                                         \
@@ -56,7 +56,7 @@ __PccEntry_AllocateSlot(PccEntry* entry, PccSlot** slot)
 }
 
 void
-__PccEntry_ClearSlot(PccEntry* entry, PccSlotIndex slot)
+PccEntry_ClearSlot_(PccEntry* entry, PccSlotIndex slot)
 {
   switch (slot) {
     case PCC_SLOT1:

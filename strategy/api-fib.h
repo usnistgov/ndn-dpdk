@@ -54,7 +54,7 @@ SgFibNexthopIt_Valid(const SgFibNexthopIt* it)
 }
 
 inline void
-__SgFibNexthopIt_Advance(SgFibNexthopIt* it)
+SgFibNexthopIt_Advance_(SgFibNexthopIt* it)
 {
   for (; SgFibNexthopIt_Valid(it); ++it->i) {
     if (it->filter & (1 << it->i)) {
@@ -74,14 +74,14 @@ SgFibNexthopIt_Init(SgFibNexthopIt* it,
   it->entry = entry;
   it->filter = filter;
   it->i = 0;
-  __SgFibNexthopIt_Advance(it);
+  SgFibNexthopIt_Advance_(it);
 }
 
 inline void
 SgFibNexthopIt_Next(SgFibNexthopIt* it)
 {
   ++it->i;
-  __SgFibNexthopIt_Advance(it);
+  SgFibNexthopIt_Advance_(it);
 }
 
 #endif // NDN_DPDK_STRATEGY_API_FIB_H

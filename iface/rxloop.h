@@ -26,7 +26,7 @@ typedef struct RxGroup
   int rxThread; ///< RX thread number for FaceImpl_RxBurst
 } RxGroup;
 
-extern RxGroup __theChanRxGroup;
+extern RxGroup theChanRxGroup_;
 
 /** \brief RX loop.
  */

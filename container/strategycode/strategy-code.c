@@ -16,7 +16,7 @@ StrategyCode_Unref(StrategyCode* sc)
 }
 
 const struct ebpf_insn*
-__StrategyCode_GetEmptyProgram(uint32_t* nInsn)
+StrategyCode_GetEmptyProgram_(uint32_t* nInsn)
 {
   static const struct ebpf_insn program[] = {
     {

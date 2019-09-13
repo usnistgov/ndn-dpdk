@@ -60,7 +60,7 @@ Cs_Insert(Cs* cs, Packet* npkt, PitFindResult pitFound);
  *  \post the CS entry is erased if it would conflict with a PIT entry for the Interest.
  */
 bool
-__Cs_MatchInterest(Cs* cs, PccEntry* pccEntry, Packet* interestNpkt);
+Cs_MatchInterest_(Cs* cs, PccEntry* pccEntry, Packet* interestNpkt);
 
 /** \brief Erase a CS entry.
  *  \post \p entry is no longer valid.

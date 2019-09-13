@@ -2,7 +2,7 @@
 
 static const int LATENCY_STAT_SAMPLE_FREQ = 16;
 
-Face __gFaces[FACEID_MAX + 1];
+Face gFaces_[FACEID_MAX + 1];
 
 void
 FaceImpl_RxBurst(FaceRxBurst* burst,
@@ -16,7 +16,7 @@ FaceImpl_RxBurst(FaceRxBurst* burst,
   struct rte_mbuf** frames = FaceRxBurst_GetScratch(burst);
   for (uint16_t i = 0; i < nFrames; ++i) {
     struct rte_mbuf* frame = frames[i];
-    Face* face = __Face_Get(frame->port);
+    Face* face = Face_Get_(frame->port);
     if (unlikely(face->impl == NULL)) {
       rte_pktmbuf_free(frame);
       continue;

@@ -5,7 +5,7 @@
 
 #include "pit-entry.h"
 
-typedef struct __PitDnUpIt
+typedef struct PitDnUpIt_
 {
   union
   {
@@ -24,13 +24,13 @@ typedef struct __PitDnUpIt
   };
 
   PitEntryExt** nextPtr; ///< (pvt) next extension
-} __PitDnUpIt;
+} PitDnUpIt_;
 
 static void
-__PitDnUpIt_Init(__PitDnUpIt* it,
-                 PitEntry* entry,
-                 int maxInEntry,
-                 size_t offsetInEntry)
+PitDnUpIt_Init_(PitDnUpIt_* it,
+                PitEntry* entry,
+                int maxInEntry,
+                size_t offsetInEntry)
 {
   it->index = 0;
   it->i = 0;
@@ -40,7 +40,7 @@ __PitDnUpIt_Init(__PitDnUpIt* it,
 }
 
 static void
-__PitDnUpIt_Next(__PitDnUpIt* it, int maxInExt, size_t offsetInExt)
+PitDnUpIt_Next_(PitDnUpIt_* it, int maxInExt, size_t offsetInExt)
 {
   assert(it->i < it->max);
   ++it->index;
@@ -60,7 +60,7 @@ __PitDnUpIt_Next(__PitDnUpIt* it, int maxInExt, size_t offsetInExt)
 }
 
 bool
-__PitDnUpIt_Extend(__PitDnUpIt* it, Pit* pit, int maxInExt, size_t offsetInExt);
+PitDnUpIt_Extend_(PitDnUpIt_* it, Pit* pit, int maxInExt, size_t offsetInExt);
 
 /** \brief Iterator of DN slots in PIT entry.
  *
@@ -72,12 +72,12 @@ __PitDnUpIt_Extend(__PitDnUpIt* it, Pit* pit, int maxInExt, size_t offsetInExt);
  *  }
  *  \endcode
  */
-typedef __PitDnUpIt PitDnIt;
+typedef PitDnUpIt_ PitDnIt;
 
 static void
 PitDnIt_Init(PitDnIt* it, PitEntry* entry)
 {
-  __PitDnUpIt_Init(it, entry, PIT_ENTRY_MAX_DNS, offsetof(PitEntry, dns));
+  PitDnUpIt_Init_(it, entry, PIT_ENTRY_MAX_DNS, offsetof(PitEntry, dns));
   it->dn = &it->dns[it->i];
 }
 
@@ -90,7 +90,7 @@ PitDnIt_Valid(PitDnIt* it)
 static void
 PitDnIt_Next(PitDnIt* it)
 {
-  __PitDnUpIt_Next(it, PIT_ENTRY_EXT_MAX_DNS, offsetof(PitEntryExt, dns));
+  PitDnUpIt_Next_(it, PIT_ENTRY_EXT_MAX_DNS, offsetof(PitEntryExt, dns));
   it->dn = &it->dns[it->i];
 }
 
@@ -101,7 +101,7 @@ PitDnIt_Next(PitDnIt* it)
 static bool
 PitDnIt_Extend(PitDnIt* it, Pit* pit)
 {
-  bool ok = __PitDnUpIt_Extend(
+  bool ok = PitDnUpIt_Extend_(
     it, pit, PIT_ENTRY_EXT_MAX_DNS, offsetof(PitEntryExt, dns));
   it->dn = &it->dns[it->i];
   return ok;
@@ -117,12 +117,12 @@ PitDnIt_Extend(PitDnIt* it, Pit* pit)
  *  }
  *  \endcode
  */
-typedef __PitDnUpIt PitUpIt;
+typedef PitDnUpIt_ PitUpIt;
 
 static void
 PitUpIt_Init(PitUpIt* it, PitEntry* entry)
 {
-  __PitDnUpIt_Init(it, entry, PIT_ENTRY_MAX_UPS, offsetof(PitEntry, ups));
+  PitDnUpIt_Init_(it, entry, PIT_ENTRY_MAX_UPS, offsetof(PitEntry, ups));
   it->up = &it->ups[it->i];
 }
 
@@ -135,7 +135,7 @@ PitUpIt_Valid(PitUpIt* it)
 static void
 PitUpIt_Next(PitUpIt* it)
 {
-  __PitDnUpIt_Next(it, PIT_ENTRY_EXT_MAX_UPS, offsetof(PitEntryExt, ups));
+  PitDnUpIt_Next_(it, PIT_ENTRY_EXT_MAX_UPS, offsetof(PitEntryExt, ups));
   it->up = &it->ups[it->i];
 }
 
@@ -146,7 +146,7 @@ PitUpIt_Next(PitUpIt* it)
 static bool
 PitUpIt_Extend(PitDnIt* it, Pit* pit)
 {
-  bool ok = __PitDnUpIt_Extend(
+  bool ok = PitDnUpIt_Extend_(
     it, pit, PIT_ENTRY_EXT_MAX_UPS, offsetof(PitEntryExt, ups));
   it->up = &it->ups[it->i];
   return ok;

@@ -9,9 +9,9 @@ INIT_ZF_LOG(Cs);
 #define CS_EVICT_BULK 64
 
 static void
-__CsEraseBatch_Append(PcctEraseBatch* peb,
-                      CsEntry* entry,
-                      const char* isDirectDbg)
+CsEraseBatch_Append_(PcctEraseBatch* peb,
+                     CsEntry* entry,
+                     const char* isDirectDbg)
 {
   PccEntry* pccEntry = PccEntry_FromCsEntry(entry);
   PccEntry_RemoveCsEntry(pccEntry);
@@ -34,7 +34,7 @@ CsEraseBatch_AddIndirect(PcctEraseBatch* peb, CsEntry* entry)
           entry->direct,
           entry->direct->nIndirects);
   CsEntry_Finalize(entry);
-  __CsEraseBatch_Append(peb, entry, "indirect");
+  CsEraseBatch_Append_(peb, entry, "indirect");
 }
 
 /** \brief Erase a direct CS entry; delist and erase indirect entries.
@@ -47,17 +47,17 @@ CsEraseBatch_AddDirect(PcctEraseBatch* peb, CsEntry* entry)
   for (int i = 0; i < entry->nIndirects; ++i) {
     CsEntry* indirect = entry->indirect[i];
     CsList_Remove(&csp->indirectLru, indirect);
-    __CsEraseBatch_Append(peb, indirect, "indirect-dep");
+    CsEraseBatch_Append_(peb, indirect, "indirect-dep");
   }
   entry->nIndirects = 0;
   CsEntry_Finalize(entry);
-  __CsEraseBatch_Append(peb, entry, "direct");
+  CsEraseBatch_Append_(peb, entry, "direct");
 }
 
 /** \brief Erase a CS entry including dependents.
  */
 static void
-__Cs_Erase(Cs* cs, CsEntry* entry)
+Cs_Erase_(Cs* cs, CsEntry* entry)
 {
   CsPriv* csp = Cs_GetPriv(cs);
   PcctEraseBatch peb = PcctEraseBatch_New(Cs_ToPcct(cs));
@@ -72,7 +72,7 @@ __Cs_Erase(Cs* cs, CsEntry* entry)
 }
 
 static void
-__Cs_EvictBulk(Cs* cs, CsList* csl, const char* cslName, CsList_EvictCb evictCb)
+Cs_EvictBulk_(Cs* cs, CsList* csl, const char* cslName, CsList_EvictCb evictCb)
 {
   ZF_LOGD("%p Evict(%s) count=%" PRIu32, cs, cslName, csl->count);
   PcctEraseBatch peb = PcctEraseBatch_New(Cs_ToPcct(cs));
@@ -86,16 +86,16 @@ Cs_Evict(Cs* cs)
 {
   CsPriv* csp = Cs_GetPriv(cs);
   if (unlikely(csp->indirectLru.count > csp->indirectLru.capacity)) {
-    __Cs_EvictBulk(cs,
-                   &csp->indirectLru,
-                   "indirect",
-                   (CsList_EvictCb)CsEraseBatch_AddIndirect);
+    Cs_EvictBulk_(cs,
+                  &csp->indirectLru,
+                  "indirect",
+                  (CsList_EvictCb)CsEraseBatch_AddIndirect);
   }
   if (unlikely(csp->directArc.DEL.count >= CS_EVICT_BULK)) {
-    __Cs_EvictBulk(cs,
-                   &csp->directArc.DEL,
-                   "direct",
-                   (CsList_EvictCb)CsEraseBatch_AddDirect);
+    Cs_EvictBulk_(cs,
+                  &csp->directArc.DEL,
+                  "direct",
+                  (CsList_EvictCb)CsEraseBatch_AddDirect);
   }
 }
 
@@ -178,7 +178,7 @@ Cs_PutDirect(Cs* cs, Packet* npkt, PccEntry* pccEntry)
         PccEntry* indirectPcc = PccEntry_FromCsEntry(indirect);
         if (unlikely(indirectPcc->key.nameL > data->name.p.nOctets)) {
           ZF_LOGD("  ^ erase-implicit-digest-indirect");
-          __Cs_Erase(cs, indirect);
+          Cs_Erase_(cs, indirect);
           break;
         }
       }
@@ -305,14 +305,14 @@ Cs_Insert(Cs* cs, Packet* npkt, PitFindResult pitFound)
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   PData* data = Packet_GetDataHdr(npkt);
   PccEntry* pccEntry = pitFound.entry;
-  PInterest* interest = __PitFindResult_GetInterest(pitFound);
+  PInterest* interest = PitFindResult_GetInterest_(pitFound);
   CsEntry* direct = NULL;
 
   // if Interest name differs from Data name, insert a direct entry elsewhere
   if (unlikely(interest->name.p.nComps != data->name.p.nComps)) {
     direct = Cs_InsertDirect(cs, npkt, interest);
     if (unlikely(direct == NULL)) { // direct entry insertion failed
-      __Pit_RawErase01(pit, pccEntry);
+      Pit_RawErase01_(pit, pccEntry);
       rte_pktmbuf_free(pkt);
       if (likely(!pccEntry->hasCsEntry)) {
         Pcct_Erase(pcct, pccEntry);
@@ -323,7 +323,7 @@ Cs_Insert(Cs* cs, Packet* npkt, PitFindResult pitFound)
   }
 
   // delete PIT entries
-  __Pit_RawErase01(pit, pccEntry);
+  Pit_RawErase01_(pit, pccEntry);
   interest = NULL;
 
   if (likely(direct == NULL)) {
@@ -340,7 +340,7 @@ Cs_Insert(Cs* cs, Packet* npkt, PitFindResult pitFound)
 }
 
 bool
-__Cs_MatchInterest(Cs* cs, PccEntry* pccEntry, Packet* interestNpkt)
+Cs_MatchInterest_(Cs* cs, PccEntry* pccEntry, Packet* interestNpkt)
 {
   CsEntry* entry = PccEntry_GetCsEntry(pccEntry);
   CsEntry* direct = CsEntry_GetDirect(entry);
@@ -379,5 +379,5 @@ void
 Cs_Erase(Cs* cs, CsEntry* entry)
 {
   ZF_LOGD("%p Erase(%p)", cs, entry);
-  __Cs_Erase(cs, entry);
+  Cs_Erase_(cs, entry);
 }

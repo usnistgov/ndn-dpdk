@@ -105,14 +105,14 @@ Fib_Find(Fib* fib, LName name, uint64_t hash)
 }
 
 static const FibEntry*
-__Fib_Find(Fib* fib, uint16_t nameL, const uint8_t* nameV, uint64_t hash)
+Fib_Find_(Fib* fib, uint16_t nameL, const uint8_t* nameV, uint64_t hash)
 {
   LName name = { .length = nameL, .value = nameV };
   return Fib_Find(fib, name, hash);
 }
 
 const FibEntry*
-__Fib_Lpm(Fib* fib, const PName* name, const uint8_t* nameV);
+Fib_Lpm_(Fib* fib, const PName* name, const uint8_t* nameV);
 
 /** \brief Perform longest prefix match.
  *  \pre Calling thread holds rcu_read_lock, which must be retained until it stops
@@ -121,7 +121,7 @@ __Fib_Lpm(Fib* fib, const PName* name, const uint8_t* nameV);
 static const FibEntry*
 Fib_Lpm(Fib* fib, const Name* name)
 {
-  return __Fib_Lpm(fib, &name->p, name->v);
+  return Fib_Lpm_(fib, &name->p, name->v);
 }
 
 #endif // NDN_DPDK_CONTAINER_FIB_FIB_H

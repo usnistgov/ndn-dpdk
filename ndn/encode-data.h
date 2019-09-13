@@ -11,15 +11,15 @@ EncodeData_GetHeadroom()
   return 1 + 5; // Data TL
 }
 
-extern const uint16_t __EncodeData_FakeSigLen;
+extern const uint16_t EncodeData_FakeSigLen_;
 
 static uint16_t
 EncodeData_GetTailroom(uint16_t nameL, uint16_t contentL)
 {
-  return 1 + 3 + nameL +          // Name
-         1 + 1 + 1 + 1 + 4 +      // MetaInfo with FreshnessPeriod
-         1 + 3 + contentL +       // Content
-         __EncodeData_FakeSigLen; // SignatureInfo + SignatureValue
+  return 1 + 3 + nameL +         // Name
+         1 + 1 + 1 + 1 + 4 +     // MetaInfo with FreshnessPeriod
+         1 + 3 + contentL +      // Content
+         EncodeData_FakeSigLen_; // SignatureInfo + SignatureValue
 }
 
 /** \brief Get required tailroom for EncodeData output mbuf,
@@ -32,14 +32,14 @@ EncodeData_GetTailroomMax()
 }
 
 void
-__EncodeData(struct rte_mbuf* m,
-             uint16_t namePrefixL,
-             const uint8_t* namePrefixV,
-             uint16_t nameSuffixL,
-             const uint8_t* nameSuffixV,
-             uint32_t freshnessPeriod,
-             uint16_t contentL,
-             const uint8_t* contentV);
+EncodeData_(struct rte_mbuf* m,
+            uint16_t namePrefixL,
+            const uint8_t* namePrefixV,
+            uint16_t nameSuffixL,
+            const uint8_t* nameSuffixV,
+            uint32_t freshnessPeriod,
+            uint16_t contentL,
+            const uint8_t* contentV);
 
 /** \brief Encode a Data.
  *  \param m output mbuf, must be empty and is the only segment, must have
@@ -57,14 +57,14 @@ EncodeData(struct rte_mbuf* m,
            uint16_t contentL,
            const uint8_t* contentV)
 {
-  __EncodeData(m,
-               namePrefix.length,
-               namePrefix.value,
-               nameSuffix.length,
-               nameSuffix.value,
-               freshnessPeriod,
-               contentL,
-               contentV);
+  EncodeData_(m,
+              namePrefix.length,
+              namePrefix.value,
+              nameSuffix.length,
+              nameSuffix.value,
+              freshnessPeriod,
+              contentL,
+              contentV);
 }
 
 /** \brief Data encoder optimized for NdnpingServer.
@@ -94,19 +94,19 @@ DataGen_GetTailroom0(uint16_t namePrefixL)
 static uint16_t
 DataGen_GetTailroom1(uint16_t nameSuffixL, uint16_t contentL)
 {
-  return nameSuffixL +            // Name
-         1 + 1 + 1 + 1 + 4 +      // MetaInfo with FreshnessPeriod
-         1 + 3 + contentL +       // Content
-         __EncodeData_FakeSigLen; // SignatureInfo + SignatureValue
+  return nameSuffixL +           // Name
+         1 + 1 + 1 + 1 + 4 +     // MetaInfo with FreshnessPeriod
+         1 + 3 + contentL +      // Content
+         EncodeData_FakeSigLen_; // SignatureInfo + SignatureValue
 }
 
 DataGen*
-__MakeDataGen(struct rte_mbuf* m,
-              uint16_t nameSuffixL,
-              const uint8_t* nameSuffixV,
-              uint32_t freshnessPeriod,
-              uint16_t contentL,
-              const uint8_t* contentV);
+MakeDataGen_(struct rte_mbuf* m,
+             uint16_t nameSuffixL,
+             const uint8_t* nameSuffixV,
+             uint32_t freshnessPeriod,
+             uint16_t contentL,
+             const uint8_t* contentV);
 
 /** \brief Prepare DataGen template.
  *  \param m template mbuf, must be empty and is the only segment, must have
@@ -124,11 +124,11 @@ void
 DataGen_Close(DataGen* gen);
 
 void
-__DataGen_Encode(DataGen* gen,
-                 struct rte_mbuf* seg0,
-                 struct rte_mbuf* seg1,
-                 uint16_t namePrefixL,
-                 const uint8_t* namePrefixV);
+DataGen_Encode_(DataGen* gen,
+                struct rte_mbuf* seg0,
+                struct rte_mbuf* seg1,
+                uint16_t namePrefixL,
+                const uint8_t* namePrefixV);
 
 /** \brief Encode Data with DataGen template.
  *  \param seg0 segment 0 mbuf, must be empty and is the only segment, must
@@ -143,7 +143,7 @@ DataGen_Encode(DataGen* gen,
                struct rte_mbuf* seg1,
                LName namePrefix)
 {
-  __DataGen_Encode(gen, seg0, seg1, namePrefix.length, namePrefix.value);
+  DataGen_Encode_(gen, seg0, seg1, namePrefix.length, namePrefix.value);
 }
 
 #endif // NDN_DPDK_NDN_ENCODE_DATA_H

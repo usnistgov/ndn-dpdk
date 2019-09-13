@@ -6,7 +6,7 @@
 INIT_ZF_LOG(Pit);
 
 static void
-__Pit_Timeout(MinTmr* tmr, void* pit0);
+Pit_Timeout_(MinTmr* tmr, void* pit0);
 
 void
 Pit_Init(Pit* pit)
@@ -16,7 +16,7 @@ Pit_Init(Pit* pit)
 
   // 2^12 slots of 33ms interval, accommodates InterestLifetime up to 136533ms
   pitp->timeoutSched =
-    MinSched_New(12, rte_get_tsc_hz() / 30, __Pit_Timeout, pit);
+    MinSched_New(12, rte_get_tsc_hz() / 30, Pit_Timeout_, pit);
   assert(MinSched_GetMaxDelay(pitp->timeoutSched) >=
          PIT_MAX_LIFETIME * rte_get_tsc_hz() / 1000);
 }
@@ -43,19 +43,19 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
   PccEntry* pccEntry = Pcct_Insert(pcct, &search, &isNewPcc);
   if (unlikely(pccEntry == NULL)) {
     ++pitp->nAllocErr;
-    return __PitResult_New(NULL, PIT_INSERT_FULL);
+    return PitResult_New_(NULL, PIT_INSERT_FULL);
   }
 
   // check for CS match
   if (pccEntry->hasCsEntry &&
-      likely(__Cs_MatchInterest(Cs_FromPcct(pcct), pccEntry, npkt))) {
+      likely(Cs_MatchInterest_(Cs_FromPcct(pcct), pccEntry, npkt))) {
     // CS entry satisfies Interest
     ZF_LOGD("%p Insert(%s) pcc=%p has-CS",
             pit,
             PccSearch_ToDebugString(&search),
             pccEntry);
     ++pitp->nCsMatch;
-    return __PitResult_New(pccEntry, PIT_INSERT_CS);
+    return PitResult_New_(pccEntry, PIT_INSERT_CS);
   }
 
   // add token
@@ -65,7 +65,7 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
       Pcct_Erase(pcct, pccEntry);
     }
     ++pitp->nAllocErr;
-    return __PitResult_New(NULL, PIT_INSERT_FULL);
+    return PitResult_New_(NULL, PIT_INSERT_FULL);
   }
 
   PitEntry* entry = NULL;
@@ -86,7 +86,7 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
   if (unlikely(entry == NULL)) {
     assert(!isNewPcc); // new PccEntry must have occupied slot1
     ++pitp->nAllocErr;
-    return __PitResult_New(NULL, PIT_INSERT_FULL);
+    return PitResult_New_(NULL, PIT_INSERT_FULL);
   }
 
   // initialize new PIT entry, or refresh FIB entry reference on old PIT entry
@@ -111,7 +111,7 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
             entry);
   }
 
-  return __PitResult_New(pccEntry, resKind);
+  return PitResult_New_(pccEntry, resKind);
 }
 
 void
@@ -139,7 +139,7 @@ Pit_Erase(Pit* pit, PitEntry* entry)
 }
 
 void
-__Pit_RawErase01(Pit* pit, PccEntry* pccEntry)
+Pit_RawErase01_(Pit* pit, PccEntry* pccEntry)
 {
   PitPriv* pitp = Pit_GetPriv(pit);
   if (pccEntry->hasPitEntry0) {
@@ -156,7 +156,7 @@ __Pit_RawErase01(Pit* pit, PccEntry* pccEntry)
 }
 
 static void
-__Pit_Timeout(MinTmr* tmr, void* pit0)
+Pit_Timeout_(MinTmr* tmr, void* pit0)
 {
   Pit* pit = (Pit*)pit0;
   PitEntry* entry = container_of(tmr, PitEntry, timeout);
@@ -173,7 +173,7 @@ Pit_FindByData(Pit* pit, Packet* npkt)
   PccEntry* pccEntry = Pcct_FindByToken(Pit_ToPcct(pit), token);
   if (unlikely(pccEntry == NULL)) {
     ++pitp->nDataMiss;
-    return __PitResult_New(NULL, PIT_FIND_NONE);
+    return PitResult_New_(NULL, PIT_FIND_NONE);
   }
 
   PitFindResultFlag flags = PIT_FIND_NONE;
@@ -205,7 +205,7 @@ Pit_FindByData(Pit* pit, Packet* npkt)
         break;
     }
   }
-  return __PitResult_New(pccEntry, flags);
+  return PitResult_New_(pccEntry, flags);
 }
 
 PitEntry*

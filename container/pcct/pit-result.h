@@ -14,7 +14,7 @@ typedef struct PitResult
 } PitResult;
 
 static PitResult
-__PitResult_New(PccEntry* entry, int kind)
+PitResult_New_(PccEntry* entry, int kind)
 {
   PitResult pr = { .entry = entry, .kind = kind };
   return pr;
@@ -109,7 +109,7 @@ PitFindResult_GetPitEntry1(PitFindResult res)
 /** \brief Get a representative Interest from either PIT entry.
  */
 static PInterest*
-__PitFindResult_GetInterest(PitFindResult res)
+PitFindResult_GetInterest_(PitFindResult res)
 {
   PitEntry* pitEntry = PitFindResult_GetPitEntry0(res);
   if (pitEntry == NULL) {

@@ -10,10 +10,10 @@ NonceGen_Init(NonceGen* g)
 }
 
 uint16_t
-__InterestTemplate_Prepare(InterestTemplate* tpl,
-                           uint8_t* buffer,
-                           uint16_t bufferSize,
-                           const uint8_t* fhV)
+InterestTemplate_Prepare_(InterestTemplate* tpl,
+                          uint8_t* buffer,
+                          uint16_t bufferSize,
+                          const uint8_t* fhV)
 {
   tpl->bufferOff = 0;
   uint16_t size = 0;
@@ -84,15 +84,15 @@ __InterestTemplate_Prepare(InterestTemplate* tpl,
 }
 
 void
-__EncodeInterest(struct rte_mbuf* m,
-                 const InterestTemplate* tpl,
-                 uint8_t* preparedBuffer,
-                 uint16_t nameSuffixL,
-                 const uint8_t* nameSuffixV,
-                 uint32_t nonce,
-                 uint16_t paramL,
-                 const uint8_t* paramV,
-                 const uint8_t* namePrefixV)
+EncodeInterest_(struct rte_mbuf* m,
+                const InterestTemplate* tpl,
+                uint8_t* preparedBuffer,
+                uint16_t nameSuffixL,
+                const uint8_t* nameSuffixV,
+                uint32_t nonce,
+                uint16_t paramL,
+                const uint8_t* paramV,
+                const uint8_t* namePrefixV)
 {
   assert(rte_pktmbuf_headroom(m) >= EncodeInterest_GetHeadroom());
   assert(rte_pktmbuf_tailroom(m) >=

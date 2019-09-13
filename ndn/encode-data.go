@@ -26,7 +26,7 @@ func EncodeData_GetTailroomMax() int {
 
 // Encode a Data.
 func EncodeData(m dpdk.IMbuf, namePrefix *Name, nameSuffix *Name, freshnessPeriod time.Duration, content TlvBytes) {
-	C.__EncodeData((*C.struct_rte_mbuf)(m.GetPtr()),
+	C.EncodeData_((*C.struct_rte_mbuf)(m.GetPtr()),
 		C.uint16_t(namePrefix.Size()), namePrefix.getValuePtr(),
 		C.uint16_t(nameSuffix.Size()), nameSuffix.getValuePtr(),
 		C.uint32_t(freshnessPeriod/time.Millisecond),
@@ -89,7 +89,7 @@ type DataGen struct {
 }
 
 func NewDataGen(m dpdk.IMbuf, nameSuffix *Name, freshnessPeriod time.Duration, content TlvBytes) (gen DataGen) {
-	gen.c = C.__MakeDataGen((*C.struct_rte_mbuf)(m.GetPtr()),
+	gen.c = C.MakeDataGen_((*C.struct_rte_mbuf)(m.GetPtr()),
 		C.uint16_t(nameSuffix.Size()), nameSuffix.getValuePtr(),
 		C.uint32_t(freshnessPeriod/time.Millisecond),
 		C.uint16_t(len(content)), (*C.uint8_t)(content.GetPtr()))
@@ -110,7 +110,7 @@ func (gen DataGen) Close() error {
 }
 
 func (gen DataGen) Encode(seg0, seg1 dpdk.IMbuf, namePrefix *Name) {
-	C.__DataGen_Encode(gen.c,
+	C.DataGen_Encode_(gen.c,
 		(*C.struct_rte_mbuf)(seg0.GetPtr()), (*C.struct_rte_mbuf)(seg1.GetPtr()),
 		C.uint16_t(namePrefix.Size()), namePrefix.getValuePtr())
 }

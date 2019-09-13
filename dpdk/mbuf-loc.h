@@ -59,15 +59,15 @@ MbufLoc_IsEnd(const MbufLoc* ml)
   return ml->m == NULL || ml->rem == 0;
 }
 
-typedef void (*__MbufLoc_WalkCb)(void* arg,
-                                 const struct rte_mbuf* m,
-                                 uint16_t off,
-                                 uint16_t len);
+typedef void (*MbufLoc_WalkCb_)(void* arg,
+                                const struct rte_mbuf* m,
+                                uint16_t off,
+                                uint16_t len);
 
 /** \brief Advance the position by \p n octets and invoke \p cb on each mbuf.
  */
 static uint32_t
-__MbufLoc_Walk(MbufLoc* ml, uint32_t n, __MbufLoc_WalkCb cb, void* cbarg)
+MbufLoc_Walk_(MbufLoc* ml, uint32_t n, MbufLoc_WalkCb_ cb, void* cbarg)
 {
   assert(n <= ml->rem);
   if (unlikely(MbufLoc_IsEnd(ml))) {
@@ -105,7 +105,7 @@ static __rte_noinline uint32_t
 MbufLoc_Advance(MbufLoc* ml, uint32_t n)
 {
   n = RTE_MIN(n, ml->rem);
-  return __MbufLoc_Walk(ml, n, NULL, NULL);
+  return MbufLoc_Walk_(ml, n, NULL, NULL);
 }
 
 /** \brief Determine the distance in octets from a to b.
@@ -125,18 +125,18 @@ MbufLoc_FastDiff(const MbufLoc* a, const MbufLoc* b)
   return a->rem - b->rem;
 }
 
-typedef struct __MbufLoc_MakeIndirectCtx
+typedef struct MbufLoc_MakeIndirectCtx_
 {
   struct rte_mempool* mp;
   struct rte_mbuf* head;
   struct rte_mbuf* tail;
-} __MbufLoc_MakeIndirectCtx;
+} MbufLoc_MakeIndirectCtx_;
 
 void
-__MbufLoc_MakeIndirectCb(void* arg,
-                         const struct rte_mbuf* m,
-                         uint16_t off,
-                         uint16_t len);
+MbufLoc_MakeIndirectCb_(void* arg,
+                        const struct rte_mbuf* m,
+                        uint16_t off,
+                        uint16_t len);
 
 /** \brief Advance the position by n octets, and clone the range into indirect mbufs.
  *  \return head of indirect mbufs
@@ -152,11 +152,11 @@ MbufLoc_MakeIndirect(MbufLoc* ml, uint32_t n, struct rte_mempool* mp)
     return NULL;
   }
 
-  __MbufLoc_MakeIndirectCtx ctx;
+  MbufLoc_MakeIndirectCtx_ ctx;
   ctx.mp = mp;
   ctx.head = ctx.tail = NULL;
 
-  __MbufLoc_Walk(ml, n, __MbufLoc_MakeIndirectCb, &ctx);
+  MbufLoc_Walk_(ml, n, MbufLoc_MakeIndirectCb_, &ctx);
 
   if (unlikely(ctx.mp == NULL)) {
     rte_errno = ENOENT;
@@ -169,10 +169,10 @@ MbufLoc_MakeIndirect(MbufLoc* ml, uint32_t n, struct rte_mempool* mp)
 }
 
 void
-__MbufLoc_ReadCb(void* arg,
-                 const struct rte_mbuf* m,
-                 uint16_t off,
-                 uint16_t len);
+MbufLoc_ReadCb_(void* arg,
+                const struct rte_mbuf* m,
+                uint16_t off,
+                uint16_t len);
 
 /** \brief Copy next n octets, and advance the position.
  *  \return number of octets copied.
@@ -189,7 +189,7 @@ MbufLoc_ReadTo(MbufLoc* ml, void* output, uint32_t n)
   rte_prefetch0(src);
 
   if (unlikely(ml->off + n >= ml->m->data_len)) {
-    return __MbufLoc_Walk(ml, n, __MbufLoc_ReadCb, &output);
+    return MbufLoc_Walk_(ml, n, MbufLoc_ReadCb_, &output);
   }
 
   ml->off += (uint16_t)n;
@@ -251,11 +251,11 @@ MbufLoc_Delete(MbufLoc* ml,
                struct rte_mbuf* prev);
 
 uint8_t*
-__MbufLoc_Linearize(MbufLoc* first,
-                    MbufLoc* last,
-                    uint32_t n,
-                    struct rte_mbuf* pkt,
-                    struct rte_mempool* mp);
+MbufLoc_Linearize_(MbufLoc* first,
+                   MbufLoc* last,
+                   uint32_t n,
+                   struct rte_mbuf* pkt,
+                   struct rte_mempool* mp);
 
 /** \brief Ensure [first, last) are in the same mbuf.
  *  \param[inout] first begin range iterator, will be updated if needed
@@ -282,7 +282,7 @@ MbufLoc_Linearize(MbufLoc* first,
     return rte_pktmbuf_mtod_offset(first->m, uint8_t*, first->off);
   }
 
-  return __MbufLoc_Linearize(first, last, n, pkt, mp);
+  return MbufLoc_Linearize_(first, last, n, pkt, mp);
 }
 
 #endif // NDN_DPDK_DPDK_MBUF_LOC_H

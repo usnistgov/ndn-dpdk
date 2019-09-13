@@ -7,10 +7,10 @@
 
 typedef struct TxProc TxProc;
 
-typedef uint16_t (*__TxProc_OutputFunc)(TxProc* tx,
-                                        Packet* npkt,
-                                        struct rte_mbuf** frames,
-                                        uint16_t maxFrames);
+typedef uint16_t (*TxProc_OutputFunc_)(TxProc* tx,
+                                       Packet* npkt,
+                                       struct rte_mbuf** frames,
+                                       uint16_t maxFrames);
 
 /** \brief Outgoing packet processing procedure.
  */
@@ -18,7 +18,7 @@ typedef struct TxProc
 {
   struct rte_mempool* indirectMp;
   struct rte_mempool* headerMp;
-  __TxProc_OutputFunc outputFunc;
+  TxProc_OutputFunc_ outputFunc;
 
   uint16_t headerHeadroom;      ///< headroom for header mbuf
   uint16_t fragmentPayloadSize; ///< max payload size per fragment

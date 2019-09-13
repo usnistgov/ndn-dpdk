@@ -1,16 +1,16 @@
 #include "mbuf-loc.h"
 
 void
-__MbufLoc_MakeIndirectCb(void* arg,
-                         const struct rte_mbuf* m,
-                         uint16_t off,
-                         uint16_t len)
+MbufLoc_MakeIndirectCb_(void* arg,
+                        const struct rte_mbuf* m,
+                        uint16_t off,
+                        uint16_t len)
 {
   if (unlikely(len == 0)) {
     return;
   }
 
-  __MbufLoc_MakeIndirectCtx* ctx = (__MbufLoc_MakeIndirectCtx*)arg;
+  MbufLoc_MakeIndirectCtx_* ctx = (MbufLoc_MakeIndirectCtx_*)arg;
   if (unlikely(ctx->mp == NULL)) {
     return;
   }
@@ -40,10 +40,7 @@ __MbufLoc_MakeIndirectCb(void* arg,
 }
 
 void
-__MbufLoc_ReadCb(void* arg,
-                 const struct rte_mbuf* m,
-                 uint16_t off,
-                 uint16_t len)
+MbufLoc_ReadCb_(void* arg, const struct rte_mbuf* m, uint16_t off, uint16_t len)
 {
   uint8_t** output = (uint8_t**)arg;
   uint8_t* input = rte_pktmbuf_mtod_offset(m, uint8_t*, off);
@@ -53,7 +50,7 @@ __MbufLoc_ReadCb(void* arg,
 
 // Find previous segment.
 static struct rte_mbuf*
-__MbufLoc_FindPrev(const struct rte_mbuf* m, struct rte_mbuf* pkt)
+MbufLoc_FindPrev_(const struct rte_mbuf* m, struct rte_mbuf* pkt)
 {
   assert(m != pkt);
   struct rte_mbuf* prev = pkt;
@@ -134,7 +131,7 @@ MbufLoc_Delete(MbufLoc* ml,
   // free firstM if it is empty, unless it is the first segment
   if (firstM != pkt && firstM->data_len == 0) {
     if (prev == NULL) {
-      prev = __MbufLoc_FindPrev(firstM, pkt);
+      prev = MbufLoc_FindPrev_(firstM, pkt);
     } else {
       assert(prev->next == firstM);
     }
@@ -148,11 +145,11 @@ MbufLoc_Delete(MbufLoc* ml,
 }
 
 uint8_t*
-__MbufLoc_Linearize(MbufLoc* first,
-                    MbufLoc* last,
-                    uint32_t n,
-                    struct rte_mbuf* pkt,
-                    struct rte_mempool* mp)
+MbufLoc_Linearize_(MbufLoc* first,
+                   MbufLoc* last,
+                   uint32_t n,
+                   struct rte_mbuf* pkt,
+                   struct rte_mempool* mp)
 {
   struct rte_mbuf* firstM = (struct rte_mbuf*)first->m;
   assert(firstM != last->m); // simple case handled by MbufLoc_Linearize
@@ -208,7 +205,7 @@ __MbufLoc_Linearize(MbufLoc* first,
     bool isFreeingFirst = first->off == 0 && firstM != pkt;
     struct rte_mbuf* prev = NULL;
     if (isFreeingFirst) {
-      prev = __MbufLoc_FindPrev(firstM, pkt);
+      prev = MbufLoc_FindPrev_(firstM, pkt);
     }
 
     // delete copied range

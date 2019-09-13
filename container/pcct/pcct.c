@@ -20,7 +20,7 @@ INIT_ZF_LOG(Pcct);
 #define PCCT_TOKEN_MASK (((uint64_t)1 << 48) - 1)
 
 static uint32_t
-__Pcct_TokenHt_Hash(const void* key, uint32_t keyLen, uint32_t initVal)
+Pcct_TokenHt_Hash_(const void* key, uint32_t keyLen, uint32_t initVal)
 {
   assert(keyLen == sizeof(uint32_t) * 2);
   const uint32_t* words = (const uint32_t*)key;
@@ -28,7 +28,7 @@ __Pcct_TokenHt_Hash(const void* key, uint32_t keyLen, uint32_t initVal)
 }
 
 static int
-__Pcct_TokenHt_Cmp(const void* key1, const void* key2, size_t kenLen)
+Pcct_TokenHt_Cmp_(const void* key1, const void* key2, size_t kenLen)
 {
   assert(kenLen == sizeof(uint64_t));
   return *(const uint64_t*)key1 != *(const uint64_t*)key2;
@@ -69,11 +69,11 @@ Pcct_New(const char* id, uint32_t maxEntries, unsigned numaSocket)
     .name = tokenHtName,
     .entries = maxEntries * 2,   // keep occupancy under 50%
     .key_len = sizeof(uint64_t), // 64-bit compares faster than 48-bit
-    .hash_func = __Pcct_TokenHt_Hash,
+    .hash_func = Pcct_TokenHt_Hash_,
     .socket_id = numaSocket,
   };
   pcctp->tokenHt = rte_hash_create(&tokenHtParams);
-  rte_hash_set_cmp_func(pcctp->tokenHt, __Pcct_TokenHt_Cmp);
+  rte_hash_set_cmp_func(pcctp->tokenHt, Pcct_TokenHt_Cmp_);
 
   ZF_LOGI("%p New('%s')", pcct, id);
   return pcct;
@@ -113,7 +113,7 @@ Pcct_Insert(Pcct* pcct, PccSearch* search, bool* isNew)
   entry = (PccEntry*)objs[0];
 
   PccKey_CopyFromSearch(&entry->key, search, (PccKeyExt**)&objs[1], nExts);
-  entry->__tokenQword = 0;
+  entry->tokenQword = 0;
   entry->slot1.pccEntry = NULL;
   entry->ext = NULL;
   HASH_ADD_BYHASHVALUE(hh, pcctp->keyHt, key, 0, hash, entry);
@@ -136,7 +136,7 @@ Pcct_Erase(Pcct* pcct, PccEntry* entry)
 }
 
 uint64_t
-__Pcct_AddToken(Pcct* pcct, PccEntry* entry)
+Pcct_AddToken_(Pcct* pcct, PccEntry* entry)
 {
   assert(!entry->hasToken);
   PcctPriv* pcctp = Pcct_GetPriv(pcct);
@@ -172,7 +172,7 @@ __Pcct_AddToken(Pcct* pcct, PccEntry* entry)
 }
 
 void
-__Pcct_RemoveToken(Pcct* pcct, PccEntry* entry)
+Pcct_RemoveToken_(Pcct* pcct, PccEntry* entry)
 {
   assert(entry->hasToken);
   assert(Pcct_FindByToken(pcct, entry->token) == entry);
@@ -201,7 +201,7 @@ Pcct_FindByToken(const Pcct* pcct, uint64_t token)
 }
 
 void
-__PcctEraseBatch_EraseBurst(PcctEraseBatch* peb)
+PcctEraseBatch_EraseBurst_(PcctEraseBatch* peb)
 {
   assert(peb->pcct != NULL);
   PcctPriv* pcctp = Pcct_GetPriv(peb->pcct);

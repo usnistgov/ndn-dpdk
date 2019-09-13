@@ -68,7 +68,7 @@ struct PccEntry
       const int hasEntries : 6;
       uint64_t : 56;
     } __rte_packed;
-    uint64_t __tokenQword;
+    uint64_t tokenQword;
   };
 
   PccSlot slot1;
@@ -82,7 +82,7 @@ struct PccEntryExt
 };
 
 static PccSlot*
-__PccEntry_GetSlot(PccEntry* entry, PccSlotIndex slot)
+PccEntry_GetSlot_(PccEntry* entry, PccSlotIndex slot)
 {
   switch (slot) {
     case PCC_SLOT1:
@@ -100,17 +100,17 @@ __PccEntry_GetSlot(PccEntry* entry, PccSlotIndex slot)
 }
 
 PccSlotIndex
-__PccEntry_AllocateSlot(PccEntry* entry, PccSlot** slot);
+PccEntry_AllocateSlot_(PccEntry* entry, PccSlot** slot);
 
 void
-__PccEntry_ClearSlot(PccEntry* entry, PccSlotIndex slot);
+PccEntry_ClearSlot_(PccEntry* entry, PccSlotIndex slot);
 
 /** \brief Get PIT entry of MustBeFresh=0 from \p entry.
  */
 static PitEntry*
 PccEntry_GetPitEntry0(PccEntry* entry)
 {
-  return &__PccEntry_GetSlot(entry, entry->pitEntry0Slot)->pitEntry;
+  return &PccEntry_GetSlot_(entry, entry->pitEntry0Slot)->pitEntry;
 }
 
 /** \brief Add PIT entry of MustBeFresh=0 to \p entry.
@@ -122,7 +122,7 @@ PccEntry_AddPitEntry0(PccEntry* entry)
     return PccEntry_GetPitEntry0(entry);
   }
   PccSlot* slot = NULL;
-  entry->pitEntry0Slot = __PccEntry_AllocateSlot(entry, &slot);
+  entry->pitEntry0Slot = PccEntry_AllocateSlot_(entry, &slot);
   if (unlikely(slot == NULL)) {
     return NULL;
   }
@@ -134,7 +134,7 @@ PccEntry_AddPitEntry0(PccEntry* entry)
 static void
 PccEntry_RemovePitEntry0(PccEntry* entry)
 {
-  __PccEntry_ClearSlot(entry, entry->pitEntry0Slot);
+  PccEntry_ClearSlot_(entry, entry->pitEntry0Slot);
   entry->pitEntry0Slot = PCC_SLOT_NONE;
 }
 
@@ -143,7 +143,7 @@ PccEntry_RemovePitEntry0(PccEntry* entry)
 static PitEntry*
 PccEntry_GetPitEntry1(PccEntry* entry)
 {
-  return &__PccEntry_GetSlot(entry, entry->pitEntry1Slot)->pitEntry;
+  return &PccEntry_GetSlot_(entry, entry->pitEntry1Slot)->pitEntry;
 }
 
 /** \brief Add PIT entry of MustBeFresh=1 to \p entry.
@@ -155,7 +155,7 @@ PccEntry_AddPitEntry1(PccEntry* entry)
     return PccEntry_GetPitEntry1(entry);
   }
   PccSlot* slot = NULL;
-  entry->pitEntry1Slot = __PccEntry_AllocateSlot(entry, &slot);
+  entry->pitEntry1Slot = PccEntry_AllocateSlot_(entry, &slot);
   if (unlikely(slot == NULL)) {
     return NULL;
   }
@@ -167,7 +167,7 @@ PccEntry_AddPitEntry1(PccEntry* entry)
 static void
 PccEntry_RemovePitEntry1(PccEntry* entry)
 {
-  __PccEntry_ClearSlot(entry, entry->pitEntry1Slot);
+  PccEntry_ClearSlot_(entry, entry->pitEntry1Slot);
   entry->pitEntry1Slot = PCC_SLOT_NONE;
 }
 
@@ -184,7 +184,7 @@ PccEntry_FromPitEntry(PitEntry* pitEntry)
 static CsEntry*
 PccEntry_GetCsEntry(PccEntry* entry)
 {
-  return &__PccEntry_GetSlot(entry, entry->csEntrySlot)->csEntry;
+  return &PccEntry_GetSlot_(entry, entry->csEntrySlot)->csEntry;
 }
 
 /** \brief Add CS entry to \p entry.
@@ -196,7 +196,7 @@ PccEntry_AddCsEntry(PccEntry* entry)
     return PccEntry_GetCsEntry(entry);
   }
   PccSlot* slot = NULL;
-  entry->csEntrySlot = __PccEntry_AllocateSlot(entry, &slot);
+  entry->csEntrySlot = PccEntry_AllocateSlot_(entry, &slot);
   if (unlikely(slot == NULL)) {
     return NULL;
   }
@@ -208,7 +208,7 @@ PccEntry_AddCsEntry(PccEntry* entry)
 static void
 PccEntry_RemoveCsEntry(PccEntry* entry)
 {
-  __PccEntry_ClearSlot(entry, entry->csEntrySlot);
+  PccEntry_ClearSlot_(entry, entry->csEntrySlot);
   entry->csEntrySlot = PCC_SLOT_NONE;
 }
 

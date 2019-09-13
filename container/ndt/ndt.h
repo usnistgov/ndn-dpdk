@@ -82,10 +82,10 @@ Ndt_Lookup(const Ndt* ndt,
 }
 
 static uint8_t
-__Ndtt_Lookup(const Ndt* ndt,
-              NdtThread* ndtt,
-              const PName* name,
-              const uint8_t* nameV)
+Ndtt_Lookup_(const Ndt* ndt,
+             NdtThread* ndtt,
+             const PName* name,
+             const uint8_t* nameV)
 {
   uint64_t index;
   uint8_t value = Ndt_Lookup(ndt, name, nameV, &index);
@@ -100,7 +100,7 @@ __Ndtt_Lookup(const Ndt* ndt,
 static uint8_t
 Ndtt_Lookup(const Ndt* ndt, NdtThread* ndtt, const Name* name)
 {
-  return __Ndtt_Lookup(ndt, ndtt, &name->p, name->v);
+  return Ndtt_Lookup_(ndt, ndtt, &name->p, name->v);
 }
 
 #endif // NDN_DPDK_CONTAINER_NDT_NDT_H

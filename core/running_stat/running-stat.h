@@ -50,14 +50,14 @@ RunningStat_Clear(RunningStat* s, bool enableMinMax)
 }
 
 static void
-__RunningStat_UpdateMinMax(RunningStat* s, double x)
+RunningStat_UpdateMinMax_(RunningStat* s, double x)
 {
   s->min = RTE_MIN(s->min, x);
   s->max = RTE_MAX(s->max, x);
 }
 
 static void
-__RunningStat_UpdateM(RunningStat* s, double x)
+RunningStat_UpdateM_(RunningStat* s, double x)
 {
   uint64_t n1 = s->n;
   ++s->n;
@@ -76,8 +76,8 @@ RunningStat_Push(RunningStat* s, double x)
   if (likely((s->i & s->mask) != 0)) {
     return;
   }
-  __RunningStat_UpdateMinMax(s, x);
-  __RunningStat_UpdateM(s, x);
+  RunningStat_UpdateMinMax_(s, x);
+  RunningStat_UpdateM_(s, x);
 }
 
 /** \brief Add a sample to RunningStat without min-max update.
@@ -89,7 +89,7 @@ RunningStat_Push1(RunningStat* s, double x)
   if (likely((s->i & s->mask) != 0)) {
     return;
   }
-  __RunningStat_UpdateM(s, x);
+  RunningStat_UpdateM_(s, x);
 }
 
 #endif // NDN_DPDK_CORE_RUNNING_STAT_H

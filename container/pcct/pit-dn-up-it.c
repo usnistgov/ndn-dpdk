@@ -2,7 +2,7 @@
 #include "pit.h"
 
 bool
-__PitDnUpIt_Extend(__PitDnUpIt* it, Pit* pit, int maxInExt, size_t offsetInExt)
+PitDnUpIt_Extend_(PitDnUpIt_* it, Pit* pit, int maxInExt, size_t offsetInExt)
 {
   assert(it->i == it->max);
   assert(*it->nextPtr == NULL);

@@ -39,7 +39,7 @@
 #define INIT_ZF_LOG(module)                                                    \
   static int gZfLogOutputLvl;                                                  \
   RTE_INIT(InitLogOutputLvl) { gZfLogOutputLvl = ParseLogLevel(#module); }     \
-  struct __AllowTrailingSemicolon
+  struct AllowTrailingSemicolon_
 
 int
 ParseLogLevel(const char* module);

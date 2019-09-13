@@ -253,7 +253,7 @@ ModifyInterest(Packet* npkt,
   Packet_SetL2PktType(outNpkt, Packet_GetL2PktType(npkt));
   Packet_SetL3PktType(outNpkt, L3PktType_Interest);
   rte_memcpy(
-    __Packet_GetPriv(outNpkt), __Packet_GetPriv(npkt), sizeof(PacketPriv));
+    Packet_GetPriv_(outNpkt), Packet_GetPriv_(npkt), sizeof(PacketPriv));
   PInterest* outInterest = Packet_GetInterestHdr(outNpkt);
   outInterest->nonce = nonce;
   outInterest->lifetime = lifetime;

@@ -43,7 +43,7 @@ MinSched_Close(MinSched* sched)
 }
 
 void
-__MinSched_Trigger(MinSched* sched, TscTime now)
+MinSched_Trigger_(MinSched* sched, TscTime now)
 {
   while (sched->nextTime <= now) {
     sched->lastSlot = (sched->lastSlot + 1) & sched->slotMask;
@@ -99,7 +99,7 @@ MinTmr_After(MinTmr* tmr, TscDuration after, MinSched* sched)
 }
 
 void
-__MinTmr_Cancel(MinTmr* tmr)
+MinTmr_Cancel_(MinTmr* tmr)
 {
   ZF_LOGD("? Cancel(%p)", tmr);
   tmr->next->prev = tmr->prev;

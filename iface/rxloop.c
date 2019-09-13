@@ -1,6 +1,6 @@
 #include "rxloop.h"
 
-RxGroup __theChanRxGroup;
+RxGroup theChanRxGroup_;
 
 static void
 RxLoop_Transfer(RxLoop* rxl, RxGroup* rxg)

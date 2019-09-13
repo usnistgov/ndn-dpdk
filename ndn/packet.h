@@ -121,7 +121,7 @@ Packet_SetL3PktType(Packet* npkt, L3PktType t)
 }
 
 static PacketPriv*
-__Packet_GetPriv(Packet* npkt)
+Packet_GetPriv_(Packet* npkt)
 {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
@@ -131,9 +131,9 @@ __Packet_GetPriv(Packet* npkt)
 }
 
 static LpHeader*
-__Packet_GetLpHdr(Packet* npkt)
+Packet_GetLpHdr_(Packet* npkt)
 {
-  return &__Packet_GetPriv(npkt)->lp;
+  return &Packet_GetPriv_(npkt)->lp;
 }
 
 /** \brief Access LpHeader* header.
@@ -143,13 +143,13 @@ Packet_GetLpHdr(Packet* npkt)
 {
   assert(Packet_GetL2PktType(npkt) == L2PktType_NdnlpV2 &&
          Packet_GetL3PktType(npkt) == L3PktType_None);
-  return __Packet_GetLpHdr(npkt);
+  return Packet_GetLpHdr_(npkt);
 }
 
 static LpL3*
-__Packet_GetLpL3Hdr(Packet* npkt)
+Packet_GetLpL3Hdr_(Packet* npkt)
 {
-  return &__Packet_GetPriv(npkt)->lpl3;
+  return &Packet_GetPriv_(npkt)->lpl3;
 }
 
 /** \brief Access LpL3* header.
@@ -158,7 +158,7 @@ static LpL3*
 Packet_GetLpL3Hdr(Packet* npkt)
 {
   assert(Packet_GetL2PktType(npkt) == L2PktType_NdnlpV2);
-  return __Packet_GetLpL3Hdr(npkt);
+  return Packet_GetLpL3Hdr_(npkt);
 }
 
 /** \brief Access LpL3* header, initialize it if it does not exist.
@@ -166,7 +166,7 @@ Packet_GetLpL3Hdr(Packet* npkt)
 static LpL3*
 Packet_InitLpL3Hdr(Packet* npkt)
 {
-  LpL3* lpl3 = __Packet_GetLpL3Hdr(npkt);
+  LpL3* lpl3 = Packet_GetLpL3Hdr_(npkt);
   if (Packet_GetL2PktType(npkt) != L2PktType_NdnlpV2) {
     Packet_SetL2PktType(npkt, L2PktType_NdnlpV2);
     memset(lpl3, 0, sizeof(*lpl3));
@@ -175,9 +175,9 @@ Packet_InitLpL3Hdr(Packet* npkt)
 }
 
 static PInterest*
-__Packet_GetInterestHdr(Packet* npkt)
+Packet_GetInterestHdr_(Packet* npkt)
 {
-  return &__Packet_GetPriv(npkt)->interest;
+  return &Packet_GetPriv_(npkt)->interest;
 }
 
 /** \brief Access PInterest* header.
@@ -187,14 +187,14 @@ Packet_GetInterestHdr(Packet* npkt)
 {
   assert(Packet_GetL3PktType(npkt) == L3PktType_Interest &&
          (Packet_GetL2PktType(npkt) != L2PktType_NdnlpV2 ||
-          __Packet_GetLpL3Hdr(npkt)->nackReason == NackReason_None));
-  return __Packet_GetInterestHdr(npkt);
+          Packet_GetLpL3Hdr_(npkt)->nackReason == NackReason_None));
+  return Packet_GetInterestHdr_(npkt);
 }
 
 static PData*
-__Packet_GetDataHdr(Packet* npkt)
+Packet_GetDataHdr_(Packet* npkt)
 {
-  return &__Packet_GetPriv(npkt)->data;
+  return &Packet_GetPriv_(npkt)->data;
 }
 
 /** \brief Access PData* header
@@ -203,7 +203,7 @@ static PData*
 Packet_GetDataHdr(Packet* npkt)
 {
   assert(Packet_GetL3PktType(npkt) == L3PktType_Data);
-  return __Packet_GetDataHdr(npkt);
+  return Packet_GetDataHdr_(npkt);
 }
 
 /** \brief Access PNack* header.
@@ -213,7 +213,7 @@ Packet_GetNackHdr(Packet* npkt)
 {
   assert(Packet_GetL3PktType(npkt) == L3PktType_Nack &&
          Packet_GetLpL3Hdr(npkt)->nackReason != NackReason_None);
-  return &__Packet_GetPriv(npkt)->nack;
+  return &Packet_GetPriv_(npkt)->nack;
 }
 
 /** \brief Parse packet as LpPacket (including bare Interest/Data).

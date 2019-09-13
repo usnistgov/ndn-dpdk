@@ -76,9 +76,9 @@ func (tpl *InterestTemplate) prepare() {
 	if tpl.buffer != nil {
 		return
 	}
-	size := C.__InterestTemplate_Prepare(&tpl.c, nil, 0, nil)
+	size := C.InterestTemplate_Prepare_(&tpl.c, nil, 0, nil)
 	tpl.buffer = make(TlvBytes, int(size))
-	C.__InterestTemplate_Prepare(&tpl.c, (*C.uint8_t)(tpl.buffer.GetPtr()), size, (*C.uint8_t)(tpl.fh.GetPtr()))
+	C.InterestTemplate_Prepare_(&tpl.c, (*C.uint8_t)(tpl.buffer.GetPtr()), size, (*C.uint8_t)(tpl.fh.GetPtr()))
 }
 
 // Encode an Interest from template.
@@ -89,7 +89,7 @@ func (tpl *InterestTemplate) Encode(m dpdk.IMbuf, nameSuffix *Name, nonce uint32
 	if nameSuffix != nil {
 		nameSuffixV = nameSuffix.GetValue()
 	}
-	C.__EncodeInterest((*C.struct_rte_mbuf)(m.GetPtr()), &tpl.c, (*C.uint8_t)(tpl.buffer.GetPtr()),
+	C.EncodeInterest_((*C.struct_rte_mbuf)(m.GetPtr()), &tpl.c, (*C.uint8_t)(tpl.buffer.GetPtr()),
 		C.uint16_t(len(nameSuffixV)), (*C.uint8_t)(nameSuffixV.GetPtr()),
 		C.uint32_t(nonce), C.uint16_t(len(paramV)), (*C.uint8_t)(paramV.GetPtr()),
 		(*C.uint8_t)(tpl.namePrefix.GetPtr()))

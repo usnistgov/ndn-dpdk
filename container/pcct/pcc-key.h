@@ -55,10 +55,10 @@ struct PccKeyExt
 };
 
 static bool
-__PccKey_MatchNameOrFhV(LName name,
-                        const uint8_t* value,
-                        uint16_t cap,
-                        const PccKeyExt* ext)
+PccKey_MatchNameOrFhV_(LName name,
+                       const uint8_t* value,
+                       uint16_t cap,
+                       const PccKeyExt* ext)
 {
   if (memcmp(value, name.value, RTE_MIN(name.length, cap)) != 0) {
     return false;
@@ -82,7 +82,7 @@ static bool
 PccKey_MatchName(const PccKey* key, LName name)
 {
   return name.length == key->nameL &&
-         __PccKey_MatchNameOrFhV(
+         PccKey_MatchNameOrFhV_(
            name, key->nameV, PCC_KEY_NAME_CAP, key->nameExt);
 }
 
@@ -92,36 +92,36 @@ static bool
 PccKey_MatchSearchKey(const PccKey* key, const PccSearch* search)
 {
   return search->fh.length == key->fhL && PccKey_MatchName(key, search->name) &&
-         __PccKey_MatchNameOrFhV(
+         PccKey_MatchNameOrFhV_(
            search->fh, key->fhV, PCC_KEY_FH_CAP, key->fhExt);
 }
 
-#define __PccKey_CountExtensionsOn(excess)                                     \
+#define PccKey_CountExtensionsOn_(excess)                                      \
   ((excess) / PCC_KEY_EXT_CAP + (bool)((excess) % PCC_KEY_EXT_CAP > 0))
 
-#define __PccKey_CountExtensions(nameL, fhL)                                   \
-  (__PccKey_CountExtensionsOn(nameL - PCC_KEY_NAME_CAP) +                      \
-   __PccKey_CountExtensionsOn(fhL - PCC_KEY_FH_CAP))
+#define PccKey_CountExtensions_(nameL, fhL)                                    \
+  (PccKey_CountExtensionsOn_(nameL - PCC_KEY_NAME_CAP) +                       \
+   PccKey_CountExtensionsOn_(fhL - PCC_KEY_FH_CAP))
 
 /** \brief Determine how many PccKeyExts are needed to copy \p search into PccKey.
  */
 static int
 PccKey_CountExtensions(const PccSearch* search)
 {
-  return __PccKey_CountExtensions(search->name.length, search->fh.length);
+  return PccKey_CountExtensions_(search->name.length, search->fh.length);
 }
 
 /** \brief Maximum return value of PccKey_CountExtensions.
  */
 #define PCC_KEY_MAX_EXTS                                                       \
-  __PccKey_CountExtensions(NAME_MAX_LENGTH, NAME_MAX_LENGTH)
+  PccKey_CountExtensions_(NAME_MAX_LENGTH, NAME_MAX_LENGTH)
 
 static int
-__PccKey_CopyNameOrFhV(LName name,
-                       uint8_t* value,
-                       uint16_t cap,
-                       PccKeyExt** next,
-                       PccKeyExt* exts[])
+PccKey_CopyNameOrFhV_(LName name,
+                      uint8_t* value,
+                      uint16_t cap,
+                      PccKeyExt** next,
+                      PccKeyExt* exts[])
 {
   rte_memcpy(value, name.value, RTE_MIN(name.length, cap));
   int nExts = 0;
@@ -149,9 +149,9 @@ PccKey_CopyFromSearch(PccKey* key,
   assert(nExts == PccKey_CountExtensions(search));
   key->nameL = search->name.length;
   key->fhL = search->fh.length;
-  int nNameExts = __PccKey_CopyNameOrFhV(
+  int nNameExts = PccKey_CopyNameOrFhV_(
     search->name, key->nameV, PCC_KEY_NAME_CAP, &key->nameExt, exts);
-  __PccKey_CopyNameOrFhV(
+  PccKey_CopyNameOrFhV_(
     search->fh, key->fhV, PCC_KEY_FH_CAP, &key->fhExt, &exts[nNameExts]);
 }
 
@@ -167,7 +167,7 @@ PccKey_StripExts(PccKey* key, PccKeyExt* exts[PCC_KEY_MAX_EXTS])
   for (PccKeyExt* ext = key->fhExt; unlikely(ext != NULL); ext = ext->next) {
     exts[nExts++] = ext;
   }
-  assert(nExts == __PccKey_CountExtensions(key->nameL, key->fhL));
+  assert(nExts == PccKey_CountExtensions_(key->nameL, key->fhL));
   return nExts;
 }
 

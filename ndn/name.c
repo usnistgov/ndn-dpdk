@@ -5,7 +5,7 @@
 #include "../core/siphash.h"
 
 static SipHashKey theNameHashKey;
-uint64_t __NameHash_Empty;
+uint64_t NameHash_Empty_;
 
 RTE_INIT(NameHash_Init)
 {
@@ -21,11 +21,11 @@ RTE_INIT(NameHash_Init)
 
   SipHash h;
   SipHash_Init(&h, &theNameHashKey);
-  __NameHash_Empty = SipHash_Final(&h);
+  NameHash_Empty_ = SipHash_Final(&h);
 }
 
 uint64_t
-__LName_ComputeHash(uint16_t length, const uint8_t* value)
+LName_ComputeHash_(uint16_t length, const uint8_t* value)
 {
   SipHash h;
   SipHash_Init(&h, &theNameHashKey);
@@ -131,7 +131,7 @@ PName_FromElement(PName* n, const TlvElement* ele)
 }
 
 uint16_t
-__PName_SeekCompEnd(const PName* n, const uint8_t* input, uint16_t i)
+PName_SeekCompEnd_(const PName* n, const uint8_t* input, uint16_t i)
 {
   assert(i >= PNAME_N_CACHED_COMPS);
   uint16_t off = n->comp[PNAME_N_CACHED_COMPS - 1];
@@ -145,7 +145,7 @@ __PName_SeekCompEnd(const PName* n, const uint8_t* input, uint16_t i)
 }
 
 void
-__PName_HashToCache(PName* n, const uint8_t* input)
+PName_HashToCache_(PName* n, const uint8_t* input)
 {
   SipHash h;
   SipHash_Init(&h, &theNameHashKey);

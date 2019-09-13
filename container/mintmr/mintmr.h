@@ -49,7 +49,7 @@ void
 MinSched_Close(MinSched* sched);
 
 void
-__MinSched_Trigger(MinSched* sched, TscTime now);
+MinSched_Trigger_(MinSched* sched, TscTime now);
 
 /** \brief Trigger callback function on expired timers.
  */
@@ -60,7 +60,7 @@ MinSched_Trigger(MinSched* sched)
   if (sched->nextTime > now) {
     return;
   }
-  __MinSched_Trigger(sched, now);
+  MinSched_Trigger_(sched, now);
 }
 
 /** \brief Initialize a timer.
@@ -97,7 +97,7 @@ MinTmr_At(MinTmr* tmr, TscTime at, MinSched* sched)
 }
 
 void
-__MinTmr_Cancel(MinTmr* tmr);
+MinTmr_Cancel_(MinTmr* tmr);
 
 /** \brief Cancel a timer.
  */
@@ -107,7 +107,7 @@ MinTmr_Cancel(MinTmr* tmr)
   if (tmr->next == NULL) {
     return;
   }
-  __MinTmr_Cancel(tmr);
+  MinTmr_Cancel_(tmr);
 }
 
 #endif // NDN_DPDK_CONTAINER_MINTMR_MINTMR_H

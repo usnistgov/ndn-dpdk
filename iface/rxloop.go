@@ -63,8 +63,8 @@ type ChanRxGroup struct {
 
 func newChanRxGroup() (rxg *ChanRxGroup) {
 	rxg = new(ChanRxGroup)
-	C.__theChanRxGroup.rxBurstOp = C.RxGroup_RxBurst(C.go_ChanRxGroup_RxBurst)
-	rxg.InitRxgBase(unsafe.Pointer(&C.__theChanRxGroup))
+	C.theChanRxGroup_.rxBurstOp = C.RxGroup_RxBurst(C.go_ChanRxGroup_RxBurst)
+	rxg.InitRxgBase(unsafe.Pointer(&C.theChanRxGroup_))
 	rxg.queue = make(chan dpdk.Packet, 1024)
 	return rxg
 }

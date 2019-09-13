@@ -33,7 +33,7 @@ type FaceBase struct {
 }
 
 func (face *FaceBase) getPtr() *C.Face {
-	return &C.__gFaces[face.id]
+	return &C.gFaces_[face.id]
 }
 
 // Get native *C.Face pointer to use in other packages.

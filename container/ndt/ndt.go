@@ -153,6 +153,6 @@ type NdtThread struct {
 
 // Lookup a name with counting.
 func (ndtt *NdtThread) Lookup(name *ndn.Name) uint8 {
-	return uint8(C.__Ndtt_Lookup(ndtt.ndt.c, ndtt.c, (*C.PName)(name.GetPNamePtr()),
+	return uint8(C.Ndtt_Lookup_(ndtt.ndt.c, ndtt.c, (*C.PName)(name.GetPNamePtr()),
 		(*C.uint8_t)(name.GetValue().GetPtr())))
 }

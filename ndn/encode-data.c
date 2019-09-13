@@ -13,7 +13,7 @@ static const uint8_t FAKESIG[] = {
 };
 // clang-format on
 
-const uint16_t __EncodeData_FakeSigLen = sizeof(FAKESIG);
+const uint16_t EncodeData_FakeSigLen_ = sizeof(FAKESIG);
 
 static void
 EncodeData_AppendNameNoSuffix(TlvEncoder* en,
@@ -62,9 +62,9 @@ EncodeData_AppendFreshnessContentSignature(TlvEncoder* en,
     rte_memcpy(rte_pktmbuf_append(m, contentL), contentV, contentL);
   }
 
-  rte_memcpy(rte_pktmbuf_append(m, __EncodeData_FakeSigLen),
+  rte_memcpy(rte_pktmbuf_append(m, EncodeData_FakeSigLen_),
              FAKESIG,
-             __EncodeData_FakeSigLen);
+             EncodeData_FakeSigLen_);
 }
 
 static void
@@ -76,14 +76,14 @@ EncodeData_PrependDataTypeLength(TlvEncoder* en)
 }
 
 void
-__EncodeData(struct rte_mbuf* m,
-             uint16_t namePrefixL,
-             const uint8_t* namePrefixV,
-             uint16_t nameSuffixL,
-             const uint8_t* nameSuffixV,
-             uint32_t freshnessPeriod,
-             uint16_t contentL,
-             const uint8_t* contentV)
+EncodeData_(struct rte_mbuf* m,
+            uint16_t namePrefixL,
+            const uint8_t* namePrefixV,
+            uint16_t nameSuffixL,
+            const uint8_t* nameSuffixV,
+            uint32_t freshnessPeriod,
+            uint16_t contentL,
+            const uint8_t* contentV)
 {
   assert(rte_pktmbuf_headroom(m) >= EncodeData_GetHeadroom());
   assert(rte_pktmbuf_tailroom(m) >=
@@ -100,12 +100,12 @@ __EncodeData(struct rte_mbuf* m,
 }
 
 DataGen*
-__MakeDataGen(struct rte_mbuf* m,
-              uint16_t nameSuffixL,
-              const uint8_t* nameSuffixV,
-              uint32_t freshnessPeriod,
-              uint16_t contentL,
-              const uint8_t* contentV)
+MakeDataGen_(struct rte_mbuf* m,
+             uint16_t nameSuffixL,
+             const uint8_t* nameSuffixV,
+             uint32_t freshnessPeriod,
+             uint16_t contentL,
+             const uint8_t* contentV)
 {
   assert(rte_pktmbuf_tailroom(m) >=
          DataGen_GetTailroom1(nameSuffixL, contentL));
@@ -128,11 +128,11 @@ DataGen_Close(DataGen* gen)
 }
 
 void
-__DataGen_Encode(DataGen* gen,
-                 struct rte_mbuf* seg0,
-                 struct rte_mbuf* seg1,
-                 uint16_t namePrefixL,
-                 const uint8_t* namePrefixV)
+DataGen_Encode_(DataGen* gen,
+                struct rte_mbuf* seg0,
+                struct rte_mbuf* seg1,
+                uint16_t namePrefixL,
+                const uint8_t* namePrefixV)
 {
   assert(rte_pktmbuf_tailroom(seg0) >= DataGen_GetTailroom0(namePrefixL));
 

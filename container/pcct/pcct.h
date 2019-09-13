@@ -71,7 +71,7 @@ void
 Pcct_Erase(Pcct* pcct, PccEntry* entry);
 
 uint64_t
-__Pcct_AddToken(Pcct* pcct, PccEntry* entry);
+Pcct_AddToken_(Pcct* pcct, PccEntry* entry);
 
 /** \brief Assign a token to an entry.
  *  \retval 0 No token available.
@@ -83,11 +83,11 @@ Pcct_AddToken(Pcct* pcct, PccEntry* entry)
   if (entry->hasToken) {
     return entry->token;
   }
-  return __Pcct_AddToken(pcct, entry);
+  return Pcct_AddToken_(pcct, entry);
 }
 
 void
-__Pcct_RemoveToken(Pcct* pcct, PccEntry* entry);
+Pcct_RemoveToken_(Pcct* pcct, PccEntry* entry);
 
 /** \brief Clear the token on an entry.
  */
@@ -97,7 +97,7 @@ Pcct_RemoveToken(Pcct* pcct, PccEntry* entry)
   if (!entry->hasToken) {
     return;
   }
-  __Pcct_RemoveToken(pcct, entry);
+  Pcct_RemoveToken_(pcct, entry);
 }
 
 /** \brief Find an entry by token.
@@ -131,7 +131,7 @@ typedef struct PcctEraseBatch
   }
 
 void
-__PcctEraseBatch_EraseBurst(PcctEraseBatch* peb);
+PcctEraseBatch_EraseBurst_(PcctEraseBatch* peb);
 
 /** \brief Add an entry for erasing.
  */
@@ -140,7 +140,7 @@ PcctEraseBatch_Append(PcctEraseBatch* peb, PccEntry* entry)
 {
   peb->objs[peb->nEntries] = entry;
   if (unlikely(++peb->nEntries == PCCT_ERASE_BURST)) {
-    __PcctEraseBatch_EraseBurst(peb);
+    PcctEraseBatch_EraseBurst_(peb);
   }
 }
 
@@ -150,7 +150,7 @@ static void
 PcctEraseBatch_Finish(PcctEraseBatch* peb)
 {
   if (likely(peb->nEntries > 0)) {
-    __PcctEraseBatch_EraseBurst(peb);
+    PcctEraseBatch_EraseBurst_(peb);
   }
   peb->pcct = NULL;
 }
