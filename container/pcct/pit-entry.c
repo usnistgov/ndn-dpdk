@@ -3,6 +3,10 @@
 #include "pit-dn-up-it.h"
 #include "pit.h"
 
+#include "../../core/logger.h"
+
+INIT_ZF_LOG(PitEntry);
+
 static_assert(sizeof(PitEntryExt) <= sizeof(PccEntry), "");
 
 const char*
@@ -38,6 +42,42 @@ PitEntry_ToDebugString(PitEntry* entry)
   return PccDebugString_Appendf("]");
 }
 
+void
+PitEntry_SetExpiryTimer(PitEntry* entry, Pit* pit)
+{
+  PitPriv* pitp = Pit_GetPriv(pit);
+  entry->hasSgTimer = false;
+  bool ok = MinTmr_At(&entry->timeout, entry->expiry, pitp->timeoutSched);
+  assert(ok); // unless PIT_MAX_LIFETIME is higher than scheduler limit
+}
+
+bool
+PitEntry_SetSgTimer(PitEntry* entry, Pit* pit, TscDuration after)
+{
+  PitPriv* pitp = Pit_GetPriv(pit);
+  entry->hasSgTimer = true;
+  bool ok = MinTmr_After(&entry->timeout, after, pitp->timeoutSched);
+  if (unlikely(!ok)) {
+    PitEntry_SetExpiryTimer(entry, pit);
+  }
+  return ok;
+}
+
+void
+PitEntry_Timeout_(MinTmr* tmr, void* pit0)
+{
+  Pit* pit = (Pit*)pit0;
+  PitEntry* entry = container_of(tmr, PitEntry, timeout);
+  if (entry->hasSgTimer) {
+    ZF_LOGD("%p Timeout() reason=sgtimer", entry);
+    PitEntry_SetExpiryTimer(entry, pit);
+    Pit_InvokeSgTimerCb_(pit, entry);
+  } else {
+    ZF_LOGD("%p Timeout() reason=expiry", entry);
+    Pit_Erase(pit, entry);
+  }
+}
+
 FaceId
 PitEntry_FindDuplicateNonce(PitEntry* entry, uint32_t nonce, FaceId dnFace)
 {
@@ -60,7 +100,6 @@ PitEntry_FindDuplicateNonce(PitEntry* entry, uint32_t nonce, FaceId dnFace)
 PitDn*
 PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt)
 {
-  PitPriv* pitp = Pit_GetPriv(pit);
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   FaceId face = pkt->port;
   LpL3* lpl3 = Packet_GetLpL3Hdr(npkt);
@@ -117,11 +156,10 @@ PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt)
   assert(interest->hopLimit > 0); // decoder rejects HopLimit=0
   entry->txHopLimit = RTE_MAX(entry->txHopLimit, interest->hopLimit - 1);
 
-  // set timer
+  // set expiry timer
   if (dn->expiry > entry->expiry) {
     entry->expiry = dn->expiry;
-    bool ok = MinTmr_At(&entry->timeout, entry->expiry, pitp->timeoutSched);
-    assert(ok); // unless PIT_MAX_LIFETIME is higher than scheduler limit
+    PitEntry_SetExpiryTimer(entry, pit);
   }
 
   return dn;

@@ -13,6 +13,12 @@ typedef struct Pit
 {
 } Pit;
 
+typedef struct PitEntry PitEntry;
+
+/** \brief Callback to handle strategy timer triggers.
+ */
+typedef void (*Pit_SgTimerCb)(Pit* pit, PitEntry* entry, void* arg);
+
 /** \brief PCCT private data for PIT.
  */
 typedef struct PitPriv
@@ -30,6 +36,8 @@ typedef struct PitPriv
   uint64_t nNackMiss; ///< how many find-by-Nack did not find PIT entry
 
   MinSched* timeoutSched;
+  Pit_SgTimerCb sgTimerCb;
+  void* sgTimerCbArg;
 } PitPriv;
 
 #endif // NDN_DPDK_CONTAINER_PCCT_PIT_STRUCT_H

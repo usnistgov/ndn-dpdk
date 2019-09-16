@@ -14,32 +14,36 @@
 #define PIT_ENTRY_EXT_MAX_UPS 8
 #define PIT_ENTRY_SG_SCRATCH 64
 
+#define PIT_ENTRY_FIBPREFIXL_NBITS_ 9
+static_assert((1 << PIT_ENTRY_FIBPREFIXL_NBITS_) > FIB_ENTRY_MAX_NAME_LEN, "");
+
 typedef struct PitEntryExt PitEntryExt;
 
 /** \brief A PIT entry.
  *
  *  This struct is enclosed in \c PccEntry.
  */
-typedef struct PitEntry
+struct PitEntry
 {
   Packet* npkt;   ///< representative Interest packet
   MinTmr timeout; ///< timeout timer
   TscTime expiry; ///< when all DNs expire
 
-  uint8_t nCanBePrefix; ///< how many DNs want CanBePrefix?
-  uint8_t txHopLimit;   ///< HopLimit for outgoing Interests
-  bool mustBeFresh : 1; ///< entry for MustBeFresh 0 or 1?
-
-  uint16_t fibPrefixL : 15; ///< TLV-LENGTH of FIB prefix
-  uint32_t fibSeqNo;        ///< FIB entry sequence number
-  uint64_t fibPrefixHash;   ///< hash value of FIB prefix
+  uint64_t fibPrefixHash; ///< hash value of FIB prefix
+  uint32_t fibSeqNum;     ///< FIB entry sequence number
+  uint8_t nCanBePrefix;   ///< how many DNs want CanBePrefix?
+  uint8_t txHopLimit;     ///< HopLimit for outgoing Interests
+  uint16_t fibPrefixL
+    : PIT_ENTRY_FIBPREFIXL_NBITS_; ///< TLV-LENGTH of FIB prefix
+  bool mustBeFresh : 1;            ///< entry for MustBeFresh 0 or 1?
+  bool hasSgTimer : 1; ///< whether timeout is set by strategy or expiry
 
   PitEntryExt* ext;
   PitDn dns[PIT_ENTRY_MAX_DNS];
   PitUp ups[PIT_ENTRY_MAX_UPS];
 
   char sgScratch[PIT_ENTRY_SG_SCRATCH];
-} PitEntry;
+};
 static_assert(offsetof(PitEntry, dns) <= RTE_CACHE_LINE_SIZE, "");
 
 struct PitEntryExt
@@ -55,7 +59,7 @@ PitEntry_SetFibEntry_(PitEntry* entry,
                       const FibEntry* fibEntry)
 {
   entry->fibPrefixL = fibEntry->nameL;
-  entry->fibSeqNo = fibEntry->seqNum;
+  entry->fibSeqNum = fibEntry->seqNum;
   Name* name = &interest->name;
   if (unlikely(interest->activeFh >= 0)) {
     name = &interest->activeFhName;
@@ -118,7 +122,7 @@ PitEntry_RefreshFibEntry(PitEntry* entry,
                          Packet* npkt,
                          const FibEntry* fibEntry)
 {
-  if (likely(entry->fibSeqNo == fibEntry->seqNum)) {
+  if (likely(entry->fibSeqNum == fibEntry->seqNum)) {
     return;
   }
 
@@ -139,11 +143,26 @@ PitEntry_FindFibEntry(PitEntry* entry, Fib* fib)
     name.value = interest->activeFhName.v;
   }
   const FibEntry* fibEntry = Fib_Find(fib, name, entry->fibPrefixHash);
-  if (unlikely(fibEntry == NULL || fibEntry->seqNum != entry->fibSeqNo)) {
+  if (unlikely(fibEntry == NULL || fibEntry->seqNum != entry->fibSeqNum)) {
     return NULL;
   }
   return fibEntry;
 }
+
+/** \brief Set timer to erase PIT entry when its last PitDn expires.
+ */
+void
+PitEntry_SetExpiryTimer(PitEntry* entry, Pit* pit);
+
+/** \brief Set timer to invoke strategy after \p after.
+ *  \retval Timer set successfully.
+ *  \retval Unable to set timer; reverted to expiry timer.
+ */
+bool
+PitEntry_SetSgTimer(PitEntry* entry, Pit* pit, TscDuration after);
+
+void
+PitEntry_Timeout_(MinTmr* tmr, void* pit0);
 
 /** \brief Find duplicate nonce among DN records other than \p rxFace.
  *  \return FaceId of PitDn with duplicate nonce, or \c FACEID_INVALID if none.

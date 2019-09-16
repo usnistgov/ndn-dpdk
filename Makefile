@@ -127,7 +127,7 @@ container/pcct/cgoflags.go: container/mintmr/cgoflags.go container/fib/cgoflags.
 
 strategies: strategy/strategy_elf/bindata.go
 
-strategy/strategy_elf/bindata.go: $(BPFPATH)/fastroute.o $(BPFPATH)/multicast.o $(BPFPATH)/reject.o $(BPFPATH)/roundrobin.o
+strategy/strategy_elf/bindata.go: $(BPFPATH)/delay.o $(BPFPATH)/fastroute.o $(BPFPATH)/multicast.o $(BPFPATH)/reject.o $(BPFPATH)/roundrobin.o
 	go-bindata -nomemcopy -pkg strategy_elf -prefix $(BPFPATH) -o /dev/stdout $(BPFPATH) | gofmt > strategy/strategy_elf/bindata.go
 
 $(BPFPATH)/%.o: strategy/%.c $(CLIBPREFIX)-strategy.a

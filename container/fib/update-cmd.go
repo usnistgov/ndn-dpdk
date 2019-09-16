@@ -14,7 +14,7 @@ import (
 )
 
 // A sequence number on every inserted C.FibEntry, allowing to detect FIB changes.
-var insertSeqNo uint32
+var insertSeqNum uint32
 
 func (fib *Fib) allocC(fibC *C.Fib) (entryC *C.FibEntry) {
 	ok := bool(C.Fib_AllocBulk(fibC, &entryC, 1))
@@ -25,8 +25,8 @@ func (fib *Fib) allocC(fibC *C.Fib) (entryC *C.FibEntry) {
 }
 
 func (fib *Fib) insertC(fibC *C.Fib, entryC *C.FibEntry) (isNew bool) {
-	insertSeqNo++
-	entryC.seqNum = C.uint32_t(insertSeqNo)
+	insertSeqNum++
+	entryC.seqNum = C.uint32_t(insertSeqNum)
 
 	isNew = bool(C.Fib_Insert(fibC, entryC))
 	if isNew {

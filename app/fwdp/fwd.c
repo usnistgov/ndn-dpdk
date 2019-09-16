@@ -1,4 +1,5 @@
 #include "fwd.h"
+#include "strategy.h"
 
 #include "../../core/logger.h"
 
@@ -25,10 +26,12 @@ FwFwd_Run(FwFwd* fwd)
           fwd->pcct,
           fwd->crypto);
 
+  Pit_SetSgTimerCb(fwd->pit, SgTriggerTimer, fwd);
+
   Packet* npkts[FW_FWD_BURST_SIZE];
   while (ThreadStopFlag_ShouldContinue(&fwd->stop)) {
     rcu_quiescent_state();
-    MinSched_Trigger(Pit_GetPriv(fwd->pit)->timeoutSched);
+    Pit_TriggerTimers(fwd->pit);
 
     unsigned count = rte_ring_dequeue_burst(
       fwd->queue, (void**)npkts, FW_FWD_BURST_SIZE, NULL);

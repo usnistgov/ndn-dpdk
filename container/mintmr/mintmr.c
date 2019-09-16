@@ -68,20 +68,27 @@ MinSched_Trigger_(MinSched* sched, TscTime now)
   }
 }
 
+static __rte_always_inline void
+MinTmr_Cancel2(MinTmr* tmr)
+{
+  tmr->next->prev = tmr->prev;
+  tmr->prev->next = tmr->next;
+}
+
 void
 MinTmr_Cancel_(MinTmr* tmr)
 {
   ZF_LOGD("? Cancel(%p)", tmr);
-  tmr->next->prev = tmr->prev;
-  tmr->prev->next = tmr->next;
+  MinTmr_Cancel2(tmr);
   MinTmr_Init(tmr);
 }
 
 bool
 MinTmr_After(MinTmr* tmr, TscDuration after, MinSched* sched)
 {
-  MinTmr_Cancel(tmr);
-  MinSched_Trigger(sched);
+  if (tmr->next != NULL) {
+    MinTmr_Cancel2(tmr);
+  }
 
   uint64_t nSlotsAway = after / sched->interval + 1;
   if (unlikely(nSlotsAway >= sched->nSlots)) {

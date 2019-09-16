@@ -22,10 +22,26 @@ typedef enum SgEvent
  */
 typedef struct SgCtx
 {
+  /** \brief Why strategy is triggered.
+   */
   SgEvent eventKind;
+
+  /** \brief A bitmask filter on which FIB nexthops should be used.
+   *  \warning Not available in \c SGEVT_TIMER and \c SGEVT_DATA and \c SGEVT_NACK.
+   */
   SgFibNexthopFilter nhFlt;
+
+  /** \brief Incoming packet.
+   *  \warning Not available in \c SGEVT_TIMER.
+   */
   const SgPacket* pkt;
+
+  /** \brief FIB entry.
+   */
   const SgFibEntry* fibEntry;
+
+  /** \brief PIT entry.
+   */
   SgPitEntry* pitEntry;
 } SgCtx;
 
@@ -55,13 +71,14 @@ SgFibNexthopIt_Init2(SgFibNexthopIt* it, const SgCtx* ctx)
   })
 
 /** \brief Set a timer to invoke strategy after a duration.
+ *  \warning Not available in \c SGEVT_DATA.
  *
- *  \c Program will be invoked again with \c SGEVT_TIMER after \p after.
- *  However, the timer would be cancelled if \c Program is invoked for any other event,
+ *  Strategy program will be invoked again with \c SGEVT_TIMER after \p after.
+ *  However, the timer would be cancelled if strategy program is invoked for any other event,
  *  a different timer is set, or the strategy choice has been changed.
  */
-void
-SgSetTimer(SgCtx* ctx, TscDuration after);
+bool
+SgSetTimer(SgCtx* ctx, int afterMillis);
 
 typedef enum SgForwardInterestResult
 {

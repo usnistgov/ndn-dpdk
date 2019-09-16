@@ -6,7 +6,10 @@
 INIT_ZF_LOG(Pit);
 
 static void
-Pit_Timeout_(MinTmr* tmr, void* pit0);
+Pit_SgTimerCb_Empty(Pit* pit, PitEntry* entry, void* arg)
+{
+  ZF_LOGD("%p SgTimerCb(%p) no-callback", pit, entry);
+}
 
 void
 Pit_Init(Pit* pit)
@@ -16,9 +19,19 @@ Pit_Init(Pit* pit)
 
   // 2^12 slots of 33ms interval, accommodates InterestLifetime up to 136533ms
   pitp->timeoutSched =
-    MinSched_New(12, rte_get_tsc_hz() / 30, Pit_Timeout_, pit);
+    MinSched_New(12, rte_get_tsc_hz() / 30, PitEntry_Timeout_, pit);
   assert(MinSched_GetMaxDelay(pitp->timeoutSched) >=
          PIT_MAX_LIFETIME * rte_get_tsc_hz() / 1000);
+
+  pitp->sgTimerCb = Pit_SgTimerCb_Empty;
+}
+
+void
+Pit_SetSgTimerCb(Pit* pit, Pit_SgTimerCb cb, void* arg)
+{
+  PitPriv* pitp = Pit_GetPriv(pit);
+  pitp->sgTimerCb = cb;
+  pitp->sgTimerCbArg = arg;
 }
 
 PitInsertResult
@@ -153,15 +166,6 @@ Pit_RawErase01_(Pit* pit, PccEntry* pccEntry)
     PccEntry_RemovePitEntry1(pccEntry);
   }
   Pcct_RemoveToken(Pit_ToPcct(pit), pccEntry);
-}
-
-static void
-Pit_Timeout_(MinTmr* tmr, void* pit0)
-{
-  Pit* pit = (Pit*)pit0;
-  PitEntry* entry = container_of(tmr, PitEntry, timeout);
-  ZF_LOGD("%p Timeout(%p)", pit, entry);
-  Pit_Erase(pit, entry);
 }
 
 PitFindResult

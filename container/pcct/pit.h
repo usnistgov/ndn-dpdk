@@ -47,6 +47,27 @@ Pit_CountEntries(const Pit* pit)
   return Pit_GetPriv(pit)->nEntries;
 }
 
+/** \brief Trigger expired timers.
+ */
+static void
+Pit_TriggerTimers(Pit* pit)
+{
+  PitPriv* pitp = Pit_GetPriv(pit);
+  MinSched_Trigger(pitp->timeoutSched);
+}
+
+/** \brief Set callback when strategy timer expires.
+ */
+void
+Pit_SetSgTimerCb(Pit* pit, Pit_SgTimerCb cb, void* arg);
+
+static void
+Pit_InvokeSgTimerCb_(Pit* pit, PitEntry* entry)
+{
+  PitPriv* pitp = Pit_GetPriv(pit);
+  (*pitp->sgTimerCb)(pit, entry, pitp->sgTimerCbArg);
+}
+
 /** \brief Insert or find a PIT entry for the given Interest.
  *  \param npkt Interest packet.
  *

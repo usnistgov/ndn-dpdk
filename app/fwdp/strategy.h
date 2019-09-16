@@ -19,13 +19,16 @@ typedef struct SgContext
 
   TscTime rxTime;   // SGEVT_INTEREST and SGEVT_NACK only
   uint32_t dnNonce; // SGEVT_INTEREST and SGEVT_NACK only
-  int nForwarded;   // SGEVT_INTEREST and SGEVT_NACK only
+  int nForwarded;   // SGEVT_TIMER and SGEVT_INTEREST and SGEVT_NACK only
 } SgContext;
 
 /** \brief Obtain external symbols available to strategy eBPF program.
  */
 const struct rte_bpf_xsym*
 SgGetXsyms(int* nXsyms);
+
+void
+SgTriggerTimer(Pit* pit, PitEntry* pitEntry, void* fwd0);
 
 /** \brief Invoke the strategy.
  */

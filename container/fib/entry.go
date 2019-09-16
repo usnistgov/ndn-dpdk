@@ -20,7 +20,7 @@ type Entry struct {
 	c C.FibEntry
 }
 
-func (entry *Entry) GetSeqNo() uint32 {
+func (entry *Entry) GetSeqNum() uint32 {
 	return uint32(entry.c.seqNum)
 }
 
