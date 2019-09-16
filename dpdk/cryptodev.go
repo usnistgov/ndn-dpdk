@@ -139,7 +139,7 @@ func NewCryptoDev(name string, maxSessions, nQueuePairs int, socket NumaSocket) 
 
 	mpNameC := C.CString(strings.TrimPrefix(name, "crypto_") + "_sess")
 	defer C.free(unsafe.Pointer(mpNameC))
-	if mpC := C.rte_cryptodev_sym_session_pool_create(mpNameC, C.uint32_t(maxSessions*2),
+	if mpC := C.rte_cryptodev_sym_session_pool_create_(mpNameC, C.uint32_t(maxSessions*2),
 		C.uint32_t(C.rte_cryptodev_sym_get_private_session_size(cd.devId)), 0, 0, C.int(socket)); mpC == nil {
 		return CryptoDev{}, errors.New("rte_cryptodev_sym_session_pool_create error")
 	} else {

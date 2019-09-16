@@ -123,11 +123,8 @@ Packet_SetL3PktType(Packet* npkt, L3PktType t)
 static PacketPriv*
 Packet_GetPriv_(Packet* npkt)
 {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-  return (PacketPriv*)rte_mbuf_to_priv(
+  return (PacketPriv*)rte_mbuf_to_priv_(
     rte_mbuf_from_indirect(Packet_ToMbuf(npkt)));
-#pragma GCC diagnostic pop
 }
 
 static LpHeader*

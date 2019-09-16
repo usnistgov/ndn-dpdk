@@ -75,4 +75,13 @@ Packet_Chain(struct rte_mbuf* head,
   return 0;
 }
 
+static __rte_always_inline void*
+rte_mbuf_to_priv_(struct rte_mbuf* m)
+{
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+  return rte_mbuf_to_priv(m);
+#pragma GCC diagnostic pop
+}
+
 #endif // NDN_DPDK_DPDK_MBUF_H

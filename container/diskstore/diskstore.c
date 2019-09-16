@@ -125,7 +125,7 @@ DiskStore_GetData_End(struct spdk_bdev_io* io, bool success, void* npkt0)
   uint64_t slotId = interest->diskSlotId;
   struct rte_mbuf* dataPkt = Packet_ToMbuf(interest->diskData);
   struct rte_ring* reply =
-    ((DiskStore_GetDataRequest*)rte_mbuf_to_priv(dataPkt))->reply;
+    ((DiskStore_GetDataRequest*)rte_mbuf_to_priv_(dataPkt))->reply;
 
   if (unlikely(!success)) {
     ZF_LOGW("GetData_End(%" PRIu64 ", %p): fail=io-err", slotId, npkt);
@@ -156,7 +156,7 @@ DiskStore_GetData_Begin(void* npkt0)
   uint64_t slotId = interest->diskSlotId;
   struct rte_mbuf* dataPkt = Packet_ToMbuf(interest->diskData);
   DiskStore_GetDataRequest* req =
-    (DiskStore_GetDataRequest*)rte_mbuf_to_priv(dataPkt);
+    (DiskStore_GetDataRequest*)rte_mbuf_to_priv_(dataPkt);
   DiskStore* store = req->store;
 
   uint64_t blockOffset = DiskStore_ComputeBlockOffset(store, slotId);
@@ -206,7 +206,7 @@ DiskStore_GetData(DiskStore* store,
 
   assert(dataPkt->priv_size >= sizeof(DiskStore_GetDataRequest));
   DiskStore_GetDataRequest* req =
-    (DiskStore_GetDataRequest*)rte_mbuf_to_priv(dataPkt);
+    (DiskStore_GetDataRequest*)rte_mbuf_to_priv_(dataPkt);
   req->store = store;
   req->reply = reply;
 

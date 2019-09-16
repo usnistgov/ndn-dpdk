@@ -52,7 +52,7 @@ func (sc StrategyCode) Close() error {
 
 	tableLock.Lock()
 	defer tableLock.Unlock()
-	C.rte_bpf_destroy(sc.c.bpf)
+	C.rte_bpf_destroy_(sc.c.bpf)
 	delete(table, sc.GetId())
 	C.free(unsafe.Pointer(sc.c.name))
 	dpdk.Free(sc.c)

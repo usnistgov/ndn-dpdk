@@ -24,9 +24,9 @@ func makeStrategyCode(name string, bpf *C.struct_rte_bpf) (sc StrategyCode, e er
 	}
 
 	var jit C.struct_rte_bpf_jit
-	res := C.rte_bpf_get_jit(bpf, &jit)
+	res := C.rte_bpf_get_jit_(bpf, &jit)
 	if res != 0 {
-		C.rte_bpf_destroy(bpf)
+		C.rte_bpf_destroy_(bpf)
 		return sc, dpdk.Errno(-res)
 	}
 
@@ -64,7 +64,7 @@ func Load(name string, elf []byte) (sc StrategyCode, e error) {
 
 	filenameC := C.CString(filename)
 	defer C.free(unsafe.Pointer(filenameC))
-	bpf := C.rte_bpf_elf_load(&prm, filenameC, dotTextSection)
+	bpf := C.rte_bpf_elf_load_(&prm, filenameC, dotTextSection)
 	return makeStrategyCode(name, bpf)
 }
 
@@ -74,7 +74,7 @@ func MakeEmpty(name string) StrategyCode {
 	prm.ins = C.StrategyCode_GetEmptyProgram_(&prm.nb_ins)
 	prm.prog_arg._type = C.RTE_BPF_ARG_RAW
 
-	bpf := C.rte_bpf_load(&prm)
+	bpf := C.rte_bpf_load_(&prm)
 	sc, e := makeStrategyCode(name, bpf)
 	if e != nil {
 		panic(e)
