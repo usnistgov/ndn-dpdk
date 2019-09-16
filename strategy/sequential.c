@@ -1,5 +1,5 @@
 /** \file
- *  The round-robin strategy uses each FIB nexthop sequentially for each
+ *  The sequential strategy uses each FIB nexthop sequentially for each
  *  retransmitted Interest on the same PIT entry. It skips any unusable
  *  nexthops (e.g. face is down).
  */
@@ -18,7 +18,6 @@ RxInterest(SgCtx* ctx)
     pei->nextNexthopIndex = 0;
   }
 
-  SgForwardInterestResult res = SGFWDI_BADFACE;
   SgFibNexthopIt it;
   for (SgFibNexthopIt_Init2(&it, ctx); SgFibNexthopIt_Valid(&it);
        SgFibNexthopIt_Next(&it)) {
@@ -26,12 +25,12 @@ RxInterest(SgCtx* ctx)
       continue;
     }
     pei->nextNexthopIndex = it.i + 1;
-    res = SgForwardInterest(ctx, it.nh);
+    SgForwardInterestResult res = SgForwardInterest(ctx, it.nh);
     if (res == SGFWDI_OK) {
-      break;
+      return 0;
     }
   }
-  return res == SGFWDI_OK ? 0 : 3;
+  return 3;
 }
 
 uint64_t

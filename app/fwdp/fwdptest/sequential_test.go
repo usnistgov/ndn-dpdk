@@ -7,7 +7,7 @@ import (
 	"ndn-dpdk/ndn/ndntestutil"
 )
 
-func TestRoundrobin(t *testing.T) {
+func TestSequential(t *testing.T) {
 	assert, _ := makeAR(t)
 	fixture := NewFixture(t)
 	defer fixture.Close()
@@ -16,7 +16,7 @@ func TestRoundrobin(t *testing.T) {
 	face2 := fixture.CreateFace()
 	face3 := fixture.CreateFace()
 	face4 := fixture.CreateFace()
-	fixture.SetFibEntry("/A", "roundrobin", face1.GetFaceId(), face2.GetFaceId(), face3.GetFaceId())
+	fixture.SetFibEntry("/A", "sequential", face1.GetFaceId(), face2.GetFaceId(), face3.GetFaceId())
 
 	interest1 := ndntestutil.MakeInterest("/A/1")
 	face4.Rx(interest1)
