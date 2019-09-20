@@ -58,11 +58,12 @@ MinSched_Trigger_(MinSched* sched, TscTime now)
     MinTmr* next;
     for (MinTmr* tmr = slot->next; tmr != slot; tmr = next) {
       next = tmr->next;
+      MinTmr_Init(tmr);
+      // clear timer before invoking callback, because callback could reschedule timer
       ZF_LOGD(
         "%p Trigger() slot=%" PRIu16 " tmr=%p", sched, sched->lastSlot, tmr);
       ++sched->nTriggered;
       (sched->cb)(tmr, sched->cbarg);
-      MinTmr_Init(tmr);
     }
     slot->next = slot->prev = slot;
   }
@@ -90,9 +91,9 @@ MinTmr_After(MinTmr* tmr, TscDuration after, MinSched* sched)
     MinTmr_Cancel2(tmr);
   }
 
-  uint64_t nSlotsAway = after / sched->interval + 1;
+  uint64_t nSlotsAway = RTE_MAX(after, 0) / sched->interval + 1;
   if (unlikely(nSlotsAway >= sched->nSlots)) {
-    ZF_LOGW("%p After(%p, %" PRIu64 ") too-far nSlotsAway=%" PRIu64,
+    ZF_LOGW("%p After(%p, %" PRId64 ") too-far nSlotsAway=%" PRIu64,
             sched,
             tmr,
             after,
@@ -101,7 +102,7 @@ MinTmr_After(MinTmr* tmr, TscDuration after, MinSched* sched)
   }
 
   uint16_t slotNum = (sched->lastSlot + nSlotsAway) & sched->slotMask;
-  ZF_LOGD("%p After(%p, %" PRIu64 ") slot=%" PRIu16 " last=%" PRIu16,
+  ZF_LOGD("%p After(%p, %" PRId64 ") slot=%" PRIu16 " last=%" PRIu16,
           sched,
           tmr,
           after,

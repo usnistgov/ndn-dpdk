@@ -95,7 +95,8 @@ MinTmr_Cancel(MinTmr* tmr)
 
 /** \brief Schedule a timer to expire \p after since current time.
  *  \param tmr the timer; any previous setting will be cancelled.
- *  \param after expiration delay, should be below <tt>MinSched_GetMaxDelay(sched)</tt>
+ *  \param after expiration delay; negative value is changed to zero
+ *  \retval false \p after >= MinSched_GetMaxDelay(sched)
  */
 bool
 MinTmr_After(MinTmr* tmr, TscDuration after, MinSched* sched);
@@ -106,8 +107,7 @@ static bool
 MinTmr_At(MinTmr* tmr, TscTime at, MinSched* sched)
 {
   TscTime now = rte_get_tsc_cycles();
-  TscDuration after = RTE_MAX(at - now, 0);
-  return MinTmr_After(tmr, after, sched);
+  return MinTmr_After(tmr, at - now, sched);
 }
 
 #endif // NDN_DPDK_CONTAINER_MINTMR_MINTMR_H

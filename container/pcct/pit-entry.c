@@ -55,6 +55,9 @@ bool
 PitEntry_SetSgTimer(PitEntry* entry, Pit* pit, TscDuration after)
 {
   PitPriv* pitp = Pit_GetPriv(pit);
+  if (rte_get_tsc_cycles() + after > entry->expiry) {
+    return false;
+  }
   entry->hasSgTimer = true;
   bool ok = MinTmr_After(&entry->timeout, after, pitp->timeoutSched);
   if (unlikely(!ok)) {

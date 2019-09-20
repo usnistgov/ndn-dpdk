@@ -71,6 +71,7 @@ SgFibNexthopIt_Init2(SgFibNexthopIt* it, const SgCtx* ctx)
   })
 
 /** \brief Set a timer to invoke strategy after a duration.
+ *  \param afterMillis duration in milliseconds, cannot exceed PIT entry expiration time.
  *  \warning Not available in \c SGEVT_DATA.
  *
  *  Strategy program will be invoked again with \c SGEVT_TIMER after \p after.
