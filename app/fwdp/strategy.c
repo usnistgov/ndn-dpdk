@@ -7,12 +7,15 @@ INIT_ZF_LOG(FwFwd);
 void
 SgTriggerTimer(Pit* pit, PitEntry* pitEntry, void* fwd0)
 {
-  FwFwd* fwd = (FwFwd*)fwd0;
+  FwFwdCtx ctx = { 0 };
+  ctx.eventKind = SGEVT_TIMER;
+  ctx.fwd = (FwFwd*)fwd0;
+  ctx.pitEntry = pitEntry;
 
   // find FIB entry
   rcu_read_lock();
-  const FibEntry* fibEntry = PitEntry_FindFibEntry(pitEntry, fwd->fib);
-  if (unlikely(fibEntry == NULL)) {
+  ctx.fibEntry = PitEntry_FindFibEntry(pitEntry, ctx.fwd->fib);
+  if (unlikely(ctx.fibEntry == NULL)) {
     ZF_LOGD("sgtimer-at=%p drop=no-FIB-match", pitEntry);
     rcu_read_unlock();
     return;
@@ -21,15 +24,12 @@ SgTriggerTimer(Pit* pit, PitEntry* pitEntry, void* fwd0)
   // invoke strategy
   ZF_LOGD("sgtimer-at=%p fib-entry=%p sg-id=%d",
           pitEntry,
-          fibEntry,
-          fibEntry->strategy->id);
-  SgContext sgCtx = { 0 };
-  sgCtx.inner.eventKind = SGEVT_TIMER;
-  sgCtx.inner.fibEntry = (const SgFibEntry*)fibEntry;
-  sgCtx.inner.pitEntry = (SgPitEntry*)pitEntry;
-  sgCtx.fwd = fwd;
-  uint64_t res = SgInvoke(fibEntry->strategy, &sgCtx);
-  ZF_LOGD("^ sg-res=%" PRIu64 " sg-forwarded=%d", res, sgCtx.nForwarded);
+          ctx.fibEntry,
+          ctx.fibEntry->strategy->id);
+  uint64_t res = SgInvoke(ctx.fibEntry->strategy, &ctx);
+  ZF_LOGD("^ sg-res=%" PRIu64 " sg-forwarded=%d", res, ctx.nForwarded);
+
+  FwFwd_NULLize(ctx.fibEntry); // fibEntry is inaccessible upon RCU unlock
   rcu_read_unlock();
 }
 
@@ -37,9 +37,8 @@ bool
 SgSetTimer(SgCtx* ctx0, int afterMillis)
 {
   TscDuration after = TscDuration_FromMillis(afterMillis);
-  SgContext* ctx = (SgContext*)ctx0;
-  PitEntry* pitEntry = (PitEntry*)ctx->inner.pitEntry;
-  bool ok = PitEntry_SetSgTimer(pitEntry, ctx->fwd->pit, after);
+  FwFwdCtx* ctx = (FwFwdCtx*)ctx0;
+  bool ok = PitEntry_SetSgTimer(ctx->pitEntry, ctx->fwd->pit, after);
   ZF_LOGD("^ sgtimer-after=%dms %s", afterMillis, ok ? "OK" : "FAIL");
   return ok;
 }

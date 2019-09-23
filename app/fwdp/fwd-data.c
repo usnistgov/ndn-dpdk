@@ -6,32 +6,21 @@
 
 INIT_ZF_LOG(FwFwd);
 
-typedef struct FwFwdRxDataContext
-{
-  union
-  {
-    Packet* npkt;
-    struct rte_mbuf* pkt;
-  };
-  FaceId upFace;
-
-  const FibEntry* fibEntry;
-  PitEntry* pitEntry;
-} FwFwdRxDataContext;
-
 static void
-FwFwd_DataUnsolicited(FwFwd* fwd, FwFwdRxDataContext* ctx)
+FwFwd_DataUnsolicited(FwFwd* fwd, FwFwdCtx* ctx)
 {
   ZF_LOGD("^ drop=unsolicited");
   rte_pktmbuf_free(ctx->pkt);
+  ctx->pkt = NULL;
 }
 
 static void
-FwFwd_DataNeedDigest(FwFwd* fwd, FwFwdRxDataContext* ctx)
+FwFwd_DataNeedDigest(FwFwd* fwd, FwFwdCtx* ctx)
 {
   if (unlikely(fwd->crypto == NULL)) {
     ZF_LOGD("^ error=crypto-unavailable");
     rte_pktmbuf_free(ctx->pkt);
+    FwFwd_NULLize(ctx->pkt);
     return;
   }
 
@@ -39,13 +28,15 @@ FwFwd_DataNeedDigest(FwFwd* fwd, FwFwdRxDataContext* ctx)
   if (unlikely(res != 0)) {
     ZF_LOGD("^ error=crypto-enqueue-error-%d", res);
     rte_pktmbuf_free(ctx->pkt);
+    FwFwd_NULLize(ctx->pkt);
   } else {
     ZF_LOGD("^ helper=crypto");
+    FwFwd_NULLize(ctx->npkt); // npkt is now owned by FwCrypto
   }
 }
 
 static void
-FwFwd_DataSatisfy(FwFwd* fwd, FwFwdRxDataContext* ctx)
+FwFwd_DataSatisfy(FwFwd* fwd, FwFwdCtx* ctx)
 {
   ZF_LOGD("^ pit-entry=%p pit-key=%s",
           ctx->pitEntry,
@@ -61,7 +52,7 @@ FwFwd_DataSatisfy(FwFwd* fwd, FwFwdRxDataContext* ctx)
       }
       break;
     }
-    if (unlikely(dn->expiry < ctx->pkt->timestamp)) {
+    if (unlikely(dn->expiry < ctx->rxTime)) {
       ZF_LOGD("^ dn-expired=%" PRI_FaceId, dn->face);
       continue;
     }
@@ -76,6 +67,7 @@ FwFwd_DataSatisfy(FwFwd* fwd, FwFwdRxDataContext* ctx)
             outNpkt,
             dn->token);
     if (likely(outNpkt != NULL)) {
+      Packet_ToMbuf(outNpkt)->timestamp = ctx->rxTime;
       Packet_GetLpL3Hdr(outNpkt)->pitToken = dn->token;
       Face_Tx(dn->face, outNpkt);
     }
@@ -83,14 +75,7 @@ FwFwd_DataSatisfy(FwFwd* fwd, FwFwdRxDataContext* ctx)
 
   if (likely(ctx->fibEntry != NULL)) {
     ++ctx->fibEntry->dyn->nRxData;
-    SgContext sgCtx = { 0 };
-    sgCtx.fwd = fwd;
-    sgCtx.inner.eventKind = SGEVT_DATA;
-    sgCtx.inner.pkt = (const SgPacket*)ctx->pkt;
-    sgCtx.inner.fibEntry = (const SgFibEntry*)ctx->fibEntry;
-    sgCtx.inner.nhFlt = ~0;
-    sgCtx.inner.pitEntry = (SgPitEntry*)ctx->pitEntry;
-    uint64_t res = SgInvoke(ctx->fibEntry->strategy, &sgCtx);
+    uint64_t res = SgInvoke(ctx->fibEntry->strategy, ctx);
     ZF_LOGD("^ fib-entry-depth=%" PRIu8 " sg-id=%d sg-res=%" PRIu64,
             ctx->fibEntry->nComps,
             ctx->fibEntry->strategy->id,
@@ -99,43 +84,44 @@ FwFwd_DataSatisfy(FwFwd* fwd, FwFwdRxDataContext* ctx)
 }
 
 void
-FwFwd_RxData(FwFwd* fwd, Packet* npkt)
+FwFwd_RxData(FwFwd* fwd, FwFwdCtx* ctx)
 {
-  FwFwdRxDataContext ctx = { 0 };
-  ctx.npkt = npkt;
-  ctx.upFace = ctx.pkt->port;
-  uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
-
   ZF_LOGD("data-from=%" PRI_FaceId " npkt=%p up-token=%016" PRIx64,
-          ctx.upFace,
-          npkt,
-          token);
+          ctx->rxFace,
+          ctx->npkt,
+          ctx->rxToken);
 
-  PitFindResult pitFound = Pit_FindByData(fwd->pit, npkt);
+  PitFindResult pitFound = Pit_FindByData(fwd->pit, ctx->npkt);
   if (PitFindResult_Is(pitFound, PIT_FIND_NONE)) {
-    FwFwd_DataUnsolicited(fwd, &ctx);
+    FwFwd_DataUnsolicited(fwd, ctx);
     return;
   }
   if (PitFindResult_Is(pitFound, PIT_FIND_NEED_DIGEST)) {
-    FwFwd_DataNeedDigest(fwd, &ctx);
+    FwFwd_DataNeedDigest(fwd, ctx);
     return;
   }
 
+  ctx->nhFlt = ~0; // disallow all forwarding
   rcu_read_lock();
+
   if (PitFindResult_Is(pitFound, PIT_FIND_PIT0)) {
-    ctx.pitEntry = PitFindResult_GetPitEntry0(pitFound);
-    ctx.fibEntry = PitEntry_FindFibEntry(ctx.pitEntry, fwd->fib);
-    FwFwd_DataSatisfy(fwd, &ctx);
+    ctx->pitEntry = PitFindResult_GetPitEntry0(pitFound);
+    ctx->fibEntry = PitEntry_FindFibEntry(ctx->pitEntry, fwd->fib);
+    FwFwd_DataSatisfy(fwd, ctx);
   }
   if (PitFindResult_Is(pitFound, PIT_FIND_PIT1)) {
-    ctx.pitEntry = PitFindResult_GetPitEntry1(pitFound);
-    if (likely(ctx.fibEntry == NULL)) {
-      ctx.fibEntry = PitEntry_FindFibEntry(ctx.pitEntry, fwd->fib);
+    ctx->pitEntry = PitFindResult_GetPitEntry1(pitFound);
+    if (likely(ctx->fibEntry == NULL)) {
+      ctx->fibEntry = PitEntry_FindFibEntry(ctx->pitEntry, fwd->fib);
     }
     // XXX if both PIT entries have the same downstream, Data is sent twice
-    FwFwd_DataSatisfy(fwd, &ctx);
+    FwFwd_DataSatisfy(fwd, ctx);
   }
+
+  FwFwd_NULLize(ctx->fibEntry); // fibEntry is inaccessible upon RCU unlock
   rcu_read_unlock();
 
-  Cs_Insert(fwd->cs, npkt, pitFound);
+  Cs_Insert(fwd->cs, ctx->npkt, pitFound);
+  FwFwd_NULLize(ctx->npkt);     // npkt is owned by CS
+  FwFwd_NULLize(ctx->pitEntry); // pitEntry is replaced by csEntry
 }

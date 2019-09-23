@@ -85,6 +85,5 @@ ClonePacket(Packet* npkt,
   Packet_SetL3PktType(outNpkt, Packet_GetL3PktType(npkt));
   rte_memcpy(
     Packet_GetPriv_(outNpkt), Packet_GetPriv_(npkt), sizeof(PacketPriv));
-  Packet_CopyTimestamp(outNpkt, npkt);
   return outNpkt;
 }

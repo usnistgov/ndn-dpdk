@@ -9,6 +9,7 @@
 #include "../../core/running_stat/running-stat.h"
 #include "../../dpdk/thread.h"
 #include "../../iface/face.h"
+#include "../../strategy/api.h"
 
 /** \brief Forwarder data plane, forwarding process.
  */
@@ -54,13 +55,56 @@ FwFwd_GetPcctPtr_(FwFwd* fwd)
 void
 FwFwd_Run(FwFwd* fwd);
 
-void
-FwFwd_RxInterest(FwFwd* fwd, Packet* npkt);
+/** \brief Per-packet context in forwarding.
+ *
+ *  Field availablility:
+ *  T: set by SgTriggerTimer and available during SGEVT_TIMER
+ *  F: set by FwFwd_Run
+ *  I: available during SGEVT_INTEREST
+ *  D: available during SGEVT_DATA
+ *  N: available during SGEVT_NACK
+ */
+typedef struct FwFwdCtx
+{
+  SgEvent eventKind;      // T,F,I,D,N
+  FibNexthopFilter nhFlt; // T,I,D,N
+  union
+  {
+    Packet* npkt;
+    struct rte_mbuf* pkt;
+  };                        // F,D,N
+  const FibEntry* fibEntry; // T,I,D,N
+  PitEntry* pitEntry;       // T,I,D,N
+
+  // end of SgCtx fields
+
+  FwFwd* fwd;       // T,F,I,D,N
+  PitUp* pitUp;     // N
+  TscTime rxTime;   // F,I,D,N
+  uint64_t rxToken; // F,I,D,N
+  uint32_t dnNonce; // I
+  int nForwarded;   // T,I,N
+  FaceId rxFace;    // F,I,D
+} FwFwdCtx;
 
 void
-FwFwd_RxData(FwFwd* fwd, Packet* npkt);
+FwFwd_RxInterest(FwFwd* fwd, FwFwdCtx* ctx);
 
 void
-FwFwd_RxNack(FwFwd* fwd, Packet* npkt);
+FwFwd_RxData(FwFwd* fwd, FwFwdCtx* ctx);
+
+void
+FwFwd_RxNack(FwFwd* fwd, FwFwdCtx* ctx);
+
+#ifdef NDEBUG
+#define FwFwd_NULLize(x) (void)(x)
+#else
+/** \brief Set x to NULL to crash on memory access bugs.
+ */
+#define FwFwd_NULLize(x)                                                       \
+  do {                                                                         \
+    (x) = NULL;                                                                \
+  } while (false)
+#endif
 
 #endif // NDN_DPDK_APP_FWDP_FWD_H

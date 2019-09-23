@@ -12,10 +12,10 @@
 typedef enum SgEvent
 {
   SGEVT_NONE,
-  SGEVT_TIMER,    ///< timer expires
   SGEVT_INTEREST, ///< Interest arrives
   SGEVT_DATA,     ///< Data arrives
   SGEVT_NACK,     ///< Nack arrives
+  SGEVT_TIMER,    ///< timer expires
 } SgEvent;
 
 /** \brief Context of strategy invocation.
@@ -23,24 +23,32 @@ typedef enum SgEvent
 typedef struct SgCtx
 {
   /** \brief Why strategy is triggered.
+   *
+   *  Available during all events.
    */
   SgEvent eventKind;
 
   /** \brief A bitmask filter on which FIB nexthops should be used.
-   *  \warning Not available in \c SGEVT_TIMER and \c SGEVT_DATA and \c SGEVT_NACK.
+   *
+   *  Available during all events.
    */
   SgFibNexthopFilter nhFlt;
 
   /** \brief Incoming packet.
-   *  \warning Not available in \c SGEVT_TIMER.
+   *
+   *  Available during SGEVT_DATA and SGEVT_NACK.
    */
   const SgPacket* pkt;
 
   /** \brief FIB entry.
+   *
+   *  Available during all events.
    */
   const SgFibEntry* fibEntry;
 
   /** \brief PIT entry.
+   *
+   *  Available during all events.
    */
   SgPitEntry* pitEntry;
 } SgCtx;

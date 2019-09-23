@@ -5,9 +5,19 @@
 
 INIT_ZF_LOG(FwFwd);
 
+static_assert(SGEVT_INTEREST == L3PktType_Interest, "");
+static_assert(SGEVT_DATA == L3PktType_Data, "");
+static_assert(SGEVT_NACK == L3PktType_Nack, "");
+static_assert(offsetof(SgCtx, eventKind) == offsetof(FwFwdCtx, eventKind), "");
+static_assert(offsetof(SgCtx, nhFlt) == offsetof(FwFwdCtx, nhFlt), "");
+static_assert(offsetof(SgCtx, pkt) == offsetof(FwFwdCtx, pkt), "");
+static_assert(offsetof(SgCtx, fibEntry) == offsetof(FwFwdCtx, fibEntry), "");
+static_assert(offsetof(SgCtx, pitEntry) == offsetof(FwFwdCtx, pitEntry), "");
+static_assert(sizeof(SgCtx) == offsetof(FwFwdCtx, fwd), "");
+
 #define FW_FWD_BURST_SIZE 16
 
-typedef void (*FwFwd_RxFunc)(FwFwd* fwd, Packet* npkt);
+typedef void (*FwFwd_RxFunc)(FwFwd* fwd, FwFwdCtx* ctx);
 static const FwFwd_RxFunc FwFwd_RxFuncs[L3PktType_MAX] = {
   NULL,
   FwFwd_RxInterest,
@@ -37,14 +47,18 @@ FwFwd_Run(FwFwd* fwd)
       fwd->queue, (void**)npkts, FW_FWD_BURST_SIZE, NULL);
     TscTime now = rte_get_tsc_cycles();
     for (unsigned i = 0; i < count; ++i) {
-      Packet* npkt = npkts[i];
-      TscDuration timeSinceRx = now - Packet_ToMbuf(npkt)->timestamp;
+      FwFwdCtx ctx = { 0 };
+      ctx.fwd = fwd;
+      ctx.npkt = npkts[i];
+      ctx.rxFace = ctx.pkt->port;
+      ctx.rxTime = ctx.pkt->timestamp;
+      ctx.rxToken = Packet_GetLpL3Hdr(ctx.npkt)->pitToken;
+      ctx.eventKind = Packet_GetL3PktType(ctx.npkt);
+
+      TscDuration timeSinceRx = now - ctx.rxTime;
       RunningStat_Push1(&fwd->latencyStat, timeSinceRx);
 
-      L3PktType l3type = Packet_GetL3PktType(npkt);
-      assert(l3type != L3PktType_None && l3type < L3PktType_MAX);
-      FwFwd_RxFunc rxFunc = FwFwd_RxFuncs[l3type];
-      (*rxFunc)(fwd, npkt);
+      (*FwFwd_RxFuncs[ctx.eventKind])(fwd, &ctx);
     }
   }
 
