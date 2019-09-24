@@ -1,7 +1,7 @@
 FROM ubuntu:18.04
 RUN apt-get update && \
-    apt-get install -y -qq clang-6.0 clang-format-6.0 curl doxygen git go-bindata libc6-dev-i386 libelf-dev libnuma-dev libssl-dev liburcu-dev socat sudo yamllint
-RUN curl -L https://dl.google.com/go/go1.12.9.linux-amd64.tar.gz | tar -C /usr/local -xz
+    apt-get install -y -qq clang-6.0 clang-format-6.0 curl doxygen git go-bindata libc6-dev-i386 libelf-dev libnuma-dev libssl-dev liburcu-dev rake socat sudo yamllint
+RUN curl -L https://dl.google.com/go/go1.13.linux-amd64.tar.gz | tar -C /usr/local -xz
 RUN curl -L https://github.com/iovisor/ubpf/archive/644ad3ded2f015878f502765081e166ce8112baf.tar.gz | tar -C /tmp -xz && \
     cd /tmp/ubpf-*/vm && \
     make && \

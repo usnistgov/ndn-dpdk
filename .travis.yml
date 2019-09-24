@@ -26,6 +26,7 @@ addons:
       - liburcu-dev
       - linux-headers-$(uname -r)
       - linux-libc-dev
+      - rake
       - socat
       - yamllint
 
