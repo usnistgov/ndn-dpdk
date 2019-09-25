@@ -217,9 +217,9 @@ func TestCsHit(t *testing.T) {
 	assert.Equal(uint64(0xaec62dad2f669e6b), ndntestutil.GetPitToken(face1.TxData[2]))
 	assert.Equal(2500*time.Millisecond, face1.TxData[2].GetFreshnessPeriod())
 
-	interestB1mbf = ndntestutil.MakeInterest("/B/1")
-	ndntestutil.SetPitToken(interestB1, 0xb5565a4e715c858d)
-	face1.Rx(interestB1)
+	interestB1mbf = ndntestutil.MakeInterest("/B/1", ndn.MustBeFreshFlag)
+	ndntestutil.SetPitToken(interestB1mbf, 0xb5565a4e715c858d)
+	face1.Rx(interestB1mbf)
 	time.Sleep(100 * time.Millisecond)
 	assert.Len(face2.TxInterests, 2)
 	require.Len(face1.TxData, 4)

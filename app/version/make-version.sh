@@ -11,4 +11,4 @@ COMMIT=$(git -C $R describe --match=NeVeRmAtCh --always --abbrev=40 --dirty)
   echo 'func GetBuildTime() time.Time {'
   echo 'return time.Unix('$(date +%s)',0)'
   echo '}'
-) | gofmt > $R/version.go
+) | gofmt -s > $R/version.go

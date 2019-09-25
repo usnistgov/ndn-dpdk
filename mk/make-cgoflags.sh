@@ -39,4 +39,4 @@ source mk/cflags.sh
   echo ' '$LIBS
   echo '*/'
   echo 'import "C"'
-) | gofmt > $PKG/cgoflags.go
+) | gofmt -s > $PKG/cgoflags.go

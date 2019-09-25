@@ -13,10 +13,10 @@ func TestCptrArray(t *testing.T) {
 	assert.Panics(func() { dpdk.ParseCptrArray("x") })
 	assert.Panics(func() { dpdk.ParseCptrArray([]string{"x", "y"}) })
 
-	ptr, count := dpdk.ParseCptrArray([]cIntPtr{})
+	_, count := dpdk.ParseCptrArray([]cIntPtr{})
 	assert.Equal(0, count)
 
-	ptr, count = dpdk.ParseCptrArray([]cIntPtr{getCIntPtr(0), getCIntPtr(1)})
+	ptr, count := dpdk.ParseCptrArray([]cIntPtr{getCIntPtr(0), getCIntPtr(1)})
 	assert.Equal(2, count)
 	assert.True(checkCIntPtrArray(ptr))
 }

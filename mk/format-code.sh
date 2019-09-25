@@ -1,5 +1,5 @@
 #!/bin/bash
-go fmt ./...
+gofmt -l -w -s .
 find -name '*.h' -o -name '*.c' \
   | grep -vE 'pcg_basic|siphash-20121104|uthash|zf_log' \
   | xargs clang-format-6.0 -i -style='{BasedOnStyle: Mozilla, ReflowComments: false}'

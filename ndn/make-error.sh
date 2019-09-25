@@ -14,30 +14,6 @@ cd "$( dirname "${BASH_SOURCE[0]}" )"
   echo '#endif // NDN_DPDK_NDN_ERROR_H'
 ) > error.h
 
-awk '
-BEGIN {
-  print "package ndn"
-  print ""
-  print "import \"fmt\""
-  print ""
-  print "type NdnError int"
-  print ""
-  print "func (e NdnError) Error() string {"
-  print "  return fmt.Sprintf(\"NDN error code %d\", e)"
-  print "}"
-  print ""
-  print "const ("
-}
-NR == 1 {
-  print "\tNdnError_" $1 " NdnError = iota"
-}
-NR > 1 {
-  print "\tNdnError_" $1
-}
-END {
-  print ")"
-}
-' error.tsv > error.go
 (
   echo 'package ndn'
   echo
@@ -56,4 +32,4 @@ END {
   echo '  }'
   echo '  return fmt.Sprintf("%d", e)'
   echo '}'
-) | gofmt > error.go
+) | gofmt -s > error.go

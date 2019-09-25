@@ -25,7 +25,7 @@ type ClientConfig struct {
 	Interval time.Duration   // sending interval
 }
 
-// Client pattern defintion.
+// Client pattern definition.
 type ClientPattern struct {
 	Weight int // weight of random choice, minimum is 1
 

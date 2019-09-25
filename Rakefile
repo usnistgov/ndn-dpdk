@@ -7,7 +7,7 @@ task "cgostruct"
 Rake::FileList["**/cgostruct.in.go"].each do |f|
   name = f.pathmap("%d/cgostruct.go")
   file name => f do |t|
-    sh "cd #{f.pathmap("%d")}; go tool cgo -godefs -- #{INCLUDEFLAGS} cgostruct.in.go | gofmt > cgostruct.go; rm -rf _obj"
+    sh "cd #{f.pathmap("%d")}; go tool cgo -godefs -- #{INCLUDEFLAGS} cgostruct.in.go | gofmt -s > cgostruct.go; rm -rf _obj"
   end
   task "cgostruct" => name
 end
@@ -83,7 +83,7 @@ task "strategies" => "strategy/strategy_elf/bindata.go"
 SgBpfPath = "build/strategy-bpf"
 directory SgBpfPath
 file "strategy/strategy_elf/bindata.go" do |t|
-  sh "go-bindata -nomemcopy -pkg strategy_elf -prefix #{SgBpfPath} -o /dev/stdout #{SgBpfPath} | gofmt > #{t.name}"
+  sh "go-bindata -nomemcopy -pkg strategy_elf -prefix #{SgBpfPath} -o /dev/stdout #{SgBpfPath} | gofmt -s > #{t.name}"
 end
 SgSrc = Rake::FileList["strategy/*.c"]
 SgSrc.exclude("strategy/api*")

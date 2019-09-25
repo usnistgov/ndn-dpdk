@@ -33,7 +33,7 @@ func GetLevel(pkg string) rune {
 	if !ok {
 		lvl, ok = os.LookupEnv("LOG")
 	}
-	if len(lvl) == 0 {
+	if !ok || len(lvl) == 0 {
 		lvl = "I"
 	}
 	return rune(lvl[0])

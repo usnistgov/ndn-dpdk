@@ -46,7 +46,7 @@ func (pkt Packet) GetFirstSegment() Segment {
 func (pkt Packet) GetSegment(i int) *Segment {
 	s := pkt.GetFirstSegment()
 	for j := 0; j < i; j++ {
-		ok := false
+		var ok bool
 		s, ok = s.GetNext()
 		if !ok {
 			return nil
