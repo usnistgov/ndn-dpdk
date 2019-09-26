@@ -46,7 +46,7 @@ CgoflagsPathmap = "%p/cgoflags.go"
 CDeps.each do |key,value|
   name = key.pathmap(CgoflagsPathmap)
   file name => value.map{|v| v.pathmap(CgoflagsPathmap)} do |t|
-    sh "mk/make-cgoflags.sh #{key} #{value.join(" ")}"
+    sh "mk/cgoflags.sh #{key} #{value.join(" ")}"
   end
   task "cgoflags" => name
 end

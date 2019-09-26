@@ -2,7 +2,7 @@
 set -e
 
 if [[ $# -lt 1 ]]; then
-  echo 'USAGE: mk/make-cgoflags.sh package libname...' >/dev/stderr
+  echo 'USAGE: mk/cgoflags.sh package libname...' >/dev/stderr
   exit 1
 fi
 
@@ -29,13 +29,29 @@ source mk/cflags.sh
     DEPLIB=$(basename $DEP)
     shift
 
-    echo -n ' -lndn-dpdk-'$DEPLIB
+    echo '-lndn-dpdk-'$DEPLIB
     if [[ -f $DEP/cgoflags.go ]]; then
       for DEPDEP in $(grep LDFLAGS $DEP/cgoflags.go | tr ' ' '\n' | grep 'lndn-dpdk-'); do
-        echo -n ' '$DEPDEP
+        echo $DEPDEP
       done
     fi
-  done
+  done | awk '
+    { line[NR] = $1 }
+    END {
+      for (i=NR; i>0; --i) {
+        if (found[line[i]]) {
+          line[i] = ""
+        } else {
+          found[line[i]] = 1
+        }
+      }
+      for (i=1; i<=NR; ++i) {
+        if (line[i]) {
+          printf " " line[i]
+        }
+      }
+    }
+  '
   echo ' '$LIBS
   echo '*/'
   echo 'import "C"'
