@@ -8,8 +8,9 @@ void
 SgTriggerTimer(Pit* pit, PitEntry* pitEntry, void* fwd0)
 {
   FwFwdCtx ctx = { 0 };
-  ctx.eventKind = SGEVT_TIMER;
+  ctx.rxTime = rte_get_tsc_cycles();
   ctx.fwd = (FwFwd*)fwd0;
+  ctx.eventKind = SGEVT_TIMER;
   ctx.pitEntry = pitEntry;
 
   // find FIB entry
@@ -34,12 +35,11 @@ SgTriggerTimer(Pit* pit, PitEntry* pitEntry, void* fwd0)
 }
 
 bool
-SgSetTimer(SgCtx* ctx0, int afterMillis)
+SgSetTimer(SgCtx* ctx0, TscDuration after)
 {
-  TscDuration after = TscDuration_FromMillis(afterMillis);
   FwFwdCtx* ctx = (FwFwdCtx*)ctx0;
   bool ok = PitEntry_SetSgTimer(ctx->pitEntry, ctx->fwd->pit, after);
-  ZF_LOGD("^ sgtimer-after=%dms %s", afterMillis, ok ? "OK" : "FAIL");
+  ZF_LOGD("^ sgtimer-after=%" PRId64 " %s", after, ok ? "OK" : "FAIL");
   return ok;
 }
 

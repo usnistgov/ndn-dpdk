@@ -8,12 +8,15 @@ INIT_ZF_LOG(FwFwd);
 static_assert(SGEVT_INTEREST == L3PktType_Interest, "");
 static_assert(SGEVT_DATA == L3PktType_Data, "");
 static_assert(SGEVT_NACK == L3PktType_Nack, "");
+static_assert(offsetof(SgCtx, global) == offsetof(FwFwdCtx, fwd), "");
+static_assert(offsetof(FwFwd, sgGlobal) == 0, "");
+static_assert(offsetof(SgCtx, now) == offsetof(FwFwdCtx, rxTime), "");
 static_assert(offsetof(SgCtx, eventKind) == offsetof(FwFwdCtx, eventKind), "");
 static_assert(offsetof(SgCtx, nhFlt) == offsetof(FwFwdCtx, nhFlt), "");
 static_assert(offsetof(SgCtx, pkt) == offsetof(FwFwdCtx, pkt), "");
 static_assert(offsetof(SgCtx, fibEntry) == offsetof(FwFwdCtx, fibEntry), "");
 static_assert(offsetof(SgCtx, pitEntry) == offsetof(FwFwdCtx, pitEntry), "");
-static_assert(sizeof(SgCtx) == offsetof(FwFwdCtx, fwd), "");
+static_assert(sizeof(SgCtx) == offsetof(FwFwdCtx, endofSgCtx), "");
 
 #define FW_FWD_BURST_SIZE 16
 
@@ -36,6 +39,7 @@ FwFwd_Run(FwFwd* fwd)
           fwd->pcct,
           fwd->crypto);
 
+  fwd->sgGlobal.tscHz = rte_get_tsc_hz();
   Pit_SetSgTimerCb(fwd->pit, SgTriggerTimer, fwd);
 
   Packet* npkts[FW_FWD_BURST_SIZE];

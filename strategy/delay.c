@@ -21,7 +21,7 @@ Timer(SgCtx* ctx)
 SUBROUTINE uint64_t
 RxInterest(SgCtx* ctx)
 {
-  bool ok = SgSetTimer(ctx, 200);
+  bool ok = SgSetTimer(ctx, SgTscFromMillis(ctx, 200));
   return ok ? 0 : 3;
 }
 

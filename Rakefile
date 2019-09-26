@@ -85,11 +85,12 @@ directory SgBpfPath
 file "strategy/strategy_elf/bindata.go" do |t|
   sh "go-bindata -nomemcopy -pkg strategy_elf -prefix #{SgBpfPath} -o /dev/stdout #{SgBpfPath} | gofmt -s > #{t.name}"
 end
+SgDeps = [SgBpfPath] + Rake::FileList["strategy/api*"] + ["ndn", "container/fib", "container/pcct"].map{|v| v.pathmap(ClibPathmap)}
 SgSrc = Rake::FileList["strategy/*.c"]
 SgSrc.exclude("strategy/api*")
 SgSrc.each do |f|
   name = f.pathmap("build/strategy-bpf/%n.o")
-  file name => [f, SgBpfPath] do |t|
+  file name => [f] + SgDeps do |t|
     sh "#{BPFCC} #{BPFFLAGS} -c #{t.source} -o #{t.name}"
   end
   task "strategy/strategy_elf/bindata.go" => name

@@ -7,6 +7,11 @@
 #include "api-packet.h"
 #include "api-pit.h"
 
+typedef struct SgGlobal
+{
+  uint64_t tscHz;
+} SgGlobal;
+
 /** \brief Indicate why the strategy program is invoked.
  */
 typedef enum SgEvent
@@ -22,36 +27,40 @@ typedef enum SgEvent
  */
 typedef struct SgCtx
 {
+  /** \brief Global static parameters.
+   */
+  const SgGlobal* global;
+
+  /** \brief Packet arrival time or current time.
+   */
+  TscTime now;
+
   /** \brief Why strategy is triggered.
-   *
-   *  Available during all events.
    */
   SgEvent eventKind;
 
   /** \brief A bitmask filter on which FIB nexthops should be used.
-   *
-   *  Available during all events.
    */
   SgFibNexthopFilter nhFlt;
 
   /** \brief Incoming packet.
    *
-   *  Available during SGEVT_DATA and SGEVT_NACK.
+   *  Available during SGEVT_DATA and SGEVT_NACK only.
    */
   const SgPacket* pkt;
 
   /** \brief FIB entry.
-   *
-   *  Available during all events.
    */
   const SgFibEntry* fibEntry;
 
   /** \brief PIT entry.
-   *
-   *  Available during all events.
    */
   SgPitEntry* pitEntry;
 } SgCtx;
+
+/** \brief Convert milliseconds to TscDuration.
+ */
+#define SgTscFromMillis(ctx, millis) ((millis) * (ctx)->global->tscHz / 1000)
 
 /** \brief Iterate over FIB nexthops passing ctx->nhFlt.
  *  \sa SgFibNexthopIt
@@ -67,7 +76,7 @@ SgFibNexthopIt_Init2(SgFibNexthopIt* it, const SgCtx* ctx)
 #define SgCtx_FibScratchT(ctx, T)                                              \
   __extension__({                                                              \
     static_assert(sizeof(T) <= SG_FIB_DYN_SCRATCH, "");                        \
-    (T*)ctx->fibEntry->dyn->scratch;                                           \
+    (T*)(ctx)->fibEntry->dyn->scratch;                                         \
   })
 
 /** \brief Access PIT entry scratch area as T* type.
@@ -75,11 +84,11 @@ SgFibNexthopIt_Init2(SgFibNexthopIt* it, const SgCtx* ctx)
 #define SgCtx_PitScratchT(ctx, T)                                              \
   __extension__({                                                              \
     static_assert(sizeof(T) <= SG_PIT_ENTRY_SCRATCH, "");                      \
-    (T*)ctx->pitEntry->scratch;                                                \
+    (T*)(ctx)->pitEntry->scratch;                                              \
   })
 
 /** \brief Set a timer to invoke strategy after a duration.
- *  \param afterMillis duration in milliseconds, cannot exceed PIT entry expiration time.
+ *  \param after duration in TSC unit, cannot exceed PIT entry expiration time.
  *  \warning Not available in \c SGEVT_DATA.
  *
  *  Strategy program will be invoked again with \c SGEVT_TIMER after \p after.
@@ -87,7 +96,7 @@ SgFibNexthopIt_Init2(SgFibNexthopIt* it, const SgCtx* ctx)
  *  a different timer is set, or the strategy choice has been changed.
  */
 bool
-SgSetTimer(SgCtx* ctx, int afterMillis);
+SgSetTimer(SgCtx* ctx, TscDuration after);
 
 typedef enum SgForwardInterestResult
 {

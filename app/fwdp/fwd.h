@@ -15,6 +15,7 @@
  */
 typedef struct FwFwd
 {
+  SgGlobal sgGlobal;
   struct rte_ring* queue; ///< input queue
 
   Fib* fib;
@@ -66,6 +67,8 @@ FwFwd_Run(FwFwd* fwd);
  */
 typedef struct FwFwdCtx
 {
+  FwFwd* fwd;             // T,F,I,D,N
+  TscTime rxTime;         // T(=now),F,I,D,N
   SgEvent eventKind;      // T,F,I,D,N
   FibNexthopFilter nhFlt; // T,I,D,N
   union
@@ -77,10 +80,9 @@ typedef struct FwFwdCtx
   PitEntry* pitEntry;       // T,I,D,N
 
   // end of SgCtx fields
+  char endofSgCtx[0];
 
-  FwFwd* fwd;       // T,F,I,D,N
   PitUp* pitUp;     // N
-  TscTime rxTime;   // F,I,D,N
   uint64_t rxToken; // F,I,D,N
   uint32_t dnNonce; // I
   int nForwarded;   // T,I,N
