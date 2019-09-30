@@ -106,23 +106,14 @@ func (n *Name) GetComp(i int) NameComponent {
 }
 
 // Get a name prefix of certain length.
-func (n *Name) GetPrefix(prefixLen int) *Name {
-	prefix, _ := NewName(JoinNameComponents(n.ListPrefixComps(prefixLen)))
-	return prefix
-}
-
-// Get first several name components.
-func (n *Name) ListPrefixComps(prefixLen int) (comps []NameComponent) {
-	comps = make([]NameComponent, prefixLen)
-	for i := range comps {
-		comps[i] = n.GetComp(i)
+func (n *Name) GetPrefix(prefixLen int) (prefix *Name) {
+	if prefixLen <= 0 {
+		prefix, _ = NewName(nil)
+	} else {
+		end := C.PName_GetCompEnd(n.p, n.getValuePtr(), C.uint16_t(prefixLen-1))
+		prefix, _ = NewName(n.GetValue()[:end])
 	}
-	return comps
-}
-
-// Get all name component TLVs.
-func (n *Name) ListComps() []NameComponent {
-	return n.ListPrefixComps(n.Len())
+	return prefix
 }
 
 // Compute hash for prefix with i components.
@@ -165,8 +156,8 @@ func (n *Name) WriteTo(w io.Writer) (nn int64, e error) {
 		n2, e := fmt.Fprint(w, "/")
 		return int64(n2), e
 	}
-
-	for _, comp := range n.ListComps() {
+	for i := 0; i < n.Len(); i++ {
+		comp := n.GetComp(i)
 		if n2, e := fmt.Fprint(w, "/"); e != nil {
 			return nn, e
 		} else {

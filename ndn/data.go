@@ -40,20 +40,11 @@ func (data *Data) GetName() (n *Name) {
 
 // Compute Data full name (written in Go, for unit testing).
 func (data *Data) GetFullName() (n *Name) {
-	name := data.GetName()
-	comps := name.ListComps()
-
-	digestComp := data.ComputeDigest(false)
-	digestComp = append([]byte{
-		byte(TT_ImplicitSha256DigestComponent),
-		byte(len(digestComp)),
-	}, digestComp...)
-	comps = append(comps, digestComp)
-
-	n, e := NewName(JoinNameComponents(comps))
-	if e != nil {
-		panic(e)
-	}
+	digest := data.ComputeDigest(false)
+	nameV := data.GetName().GetValue()
+	nameV = append(nameV, byte(TT_ImplicitSha256DigestComponent), byte(len(digest)))
+	nameV = append(nameV, digest...)
+	n, _ = NewName(nameV)
 	return n
 }
 

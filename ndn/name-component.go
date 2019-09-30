@@ -3,14 +3,12 @@ package ndn
 import (
 	"bytes"
 	"crypto/sha256"
-	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
 	"strconv"
 	"strings"
-	"unsafe"
 )
 
 // A name component.
@@ -171,16 +169,4 @@ func parseImplicitSha256DigestComponent(hexStr string) (comp NameComponent, e er
 		return nil, errors.New("invalid TLV-LENGTH in ImplicitSha256DigestComponent")
 	}
 	return NameComponent(EncodeTlv(TT_ImplicitSha256DigestComponent, TlvBytes(value))), nil
-}
-
-// Create a name component whose TLV-VALUE is a big endian number.
-func MakeNameComponentFromNumber(tlvType TlvType, v interface{}) NameComponent {
-	var buf bytes.Buffer
-	binary.Write(&buf, binary.BigEndian, v)
-	return NameComponent(EncodeTlv(tlvType, buf.Bytes()))
-}
-
-// Join name components as TlvBytes.
-func JoinNameComponents(comps []NameComponent) TlvBytes {
-	return TlvBytes(bytes.Join(*(*[][]byte)(unsafe.Pointer(&comps)), nil))
 }
