@@ -8,37 +8,50 @@ import (
 	"errors"
 	"fmt"
 
+	"ndn-dpdk/container/fib/fibtree"
 	"ndn-dpdk/core/urcu"
-	"ndn-dpdk/dpdk"
 	"ndn-dpdk/ndn"
 )
 
-// A sequence number on every inserted C.FibEntry, allowing to detect FIB changes.
-var insertSeqNum uint32
+type updateAct int
 
-func (fib *Fib) allocC(fibC *C.Fib) (entryC *C.FibEntry) {
-	ok := bool(C.Fib_AllocBulk(fibC, &entryC, 1))
-	if !ok {
-		entryC = nil
-	}
-	return entryC
+const (
+	updateActInsert updateAct = 1
+	updateActErase  updateAct = 2
+)
+
+type updateItem struct {
+	act   updateAct
+	part  *partition
+	entry *C.FibEntry
 }
 
-func (fib *Fib) insertC(fibC *C.Fib, entryC *C.FibEntry) (isNew bool) {
-	insertSeqNum++
-	entryC.seqNum = C.uint32_t(insertSeqNum)
+type updateBatch []updateItem
 
-	isNew = bool(C.Fib_Insert(fibC, entryC))
-	if isNew {
-		fib.nEntriesC++
+func (batch updateBatch) Apply() {
+	for _, item := range batch {
+		if item.act == updateActInsert {
+			item.part.Insert(item.entry)
+		} else if item.act == updateActErase {
+			item.part.Erase(item.entry)
+		}
 	}
-	return isNew
 }
 
-func (fib *Fib) eraseC(fibC *C.Fib, entryC *C.FibEntry) {
-	entryC.shouldFreeDyn = true
-	C.Fib_Erase(fibC, entryC)
-	fib.nEntriesC--
+func (batch updateBatch) Discard(part *partition) error {
+	for _, item := range batch {
+		if item.act == updateActInsert {
+			C.Fib_Free(item.part.c, item.entry)
+		}
+	}
+	return fmt.Errorf("allocation error in partition %d", part.index)
+}
+
+func (fib *Fib) getVirtName(name *ndn.Name) *ndn.Name {
+	if name.Len() < fib.cfg.StartDepth {
+		return nil
+	}
+	return name.GetPrefix(fib.cfg.StartDepth)
 }
 
 // Insert a FIB entry.
@@ -51,97 +64,86 @@ func (fib *Fib) Insert(entry *Entry) (isNew bool, e error) {
 		return false, errors.New("cannot insert FIB entry without strategy")
 	}
 	name := entry.GetName()
-	nComps := name.Len()
+	virtName := fib.getVirtName(name)
 	logEntry := log.WithFields(makeLogFields("name", name, "nexthops", entry.GetNexthops(), "strategy", entry.GetStrategy().GetId()))
 
 	e = fib.postCommand(func(rs *urcu.ReadSide) error {
 		rs.Lock()
 		defer rs.Unlock()
 
+		// update tree
+		isNewInTree, oldMd, newMd, virtIsEntry := fib.tree.Insert(name)
+		success := false
+		defer func() {
+			if !success && isNewInTree {
+				fib.tree.Erase(name)
+			}
+		}()
+		logEntry = logEntry.WithField("isNew", isNewInTree)
+		isNew = isNewInTree
+
 		// determine what partition(s) should receive new entry
-		var fibsC []*C.Fib
-		var dynMps []dpdk.Mempool
-		var ndtIndex uint64
-		if nComps < fib.ndt.GetPrefixLen() {
-			logEntry = logEntry.WithField("partition", "all")
-			fibsC = fib.c
-			dynMps = fib.dynMps
-		} else {
-			var partition uint8
-			ndtIndex, partition = fib.ndt.Lookup(name)
-			logEntry = logEntry.WithFields(makeLogFields("partition", partition, "ndt-index", ndtIndex))
-			if int(partition) >= len(fib.c) {
-				return errors.New("bad partition")
-			}
-			fibsC = []*C.Fib{fib.c[partition]}
-			dynMps = []dpdk.Mempool{fib.dynMps[partition]}
-		}
+		parts := fib.listPartitionsForName(name)
+		logEntry = logEntry.WithField("partition", listPartitionNumbers(parts))
 
-		// allocate and populate new entries
-		var newEntriesC []*C.FibEntry
-		for i, fibC := range fibsC {
-			newEntryC := fib.allocC(fibC)
-			if newEntryC == nil {
-				break
+		var batch updateBatch
+		for _, part := range parts {
+			// prepare new entry
+			newEntry := part.Alloc()
+			if newEntry == nil {
+				return batch.Discard(part)
 			}
-			*newEntryC = entry.c
-			newEntryC.dyn = (*C.FibEntryDyn)(dynMps[i].Alloc())
-			if newEntryC.dyn == nil {
-				C.Fib_Free(fibC, newEntryC)
-				break
+			*newEntry = entry.c
+			batch = append(batch, updateItem{updateActInsert, part, newEntry})
+			if dyn := (*C.FibEntryDyn)(part.dynMp.Alloc()); dyn == nil {
+				return batch.Discard(part)
+			} else {
+				newEntry.dyn = dyn
 			}
-			*newEntryC.dyn = C.FibEntryDyn{}
-			newEntriesC = append(newEntriesC, newEntryC)
-		}
-		if len(newEntriesC) != len(fibsC) {
-			for i, newEntryC := range newEntriesC {
-				C.Fib_Free(fibsC[i], newEntryC)
-			}
-			return errors.New("allocation error")
-		}
 
-		// insert virtual entry if needed
-		if name.Len() > fib.startDepth {
-			// only one partition because cfg.StartDepth > ndt.GetPrefixLen()
-			fibC := fibsC[0]
-			virtNameV := ndn.JoinNameComponents(name.ListPrefixComps(fib.startDepth))
-			virtNameHash := name.ComputePrefixHash(fib.startDepth)
-			oldVirtC := findC(fibC, virtNameV, virtNameHash)
-			if oldVirtC == nil || int(oldVirtC.maxDepth) < nComps-fib.startDepth {
-				newVirtC := fib.allocC(fibC)
-				if newVirtC == nil {
-					C.Fib_Free(fibC, newEntriesC[0])
-					return errors.New("allocation error")
+			switch {
+			case name.Len() < fib.cfg.StartDepth:
+				// virtual entry not involved
+
+			case name.Len() == fib.cfg.StartDepth:
+				// inherit maxDepth; it would be zero if there wasn't a virtual entry at name
+				newEntry.maxDepth = C.uint8_t(newMd)
+
+			case name.Len() > fib.cfg.StartDepth && oldMd == newMd:
+				// no virtual entry update necessary
+
+			case name.Len() > fib.cfg.StartDepth && virtIsEntry:
+				// update maxDepth on entry at virtName
+				oldVirt := part.Find(virtName)
+				if oldVirt == nil {
+					panic(fmt.Errorf("entry %s missing in partition %d", virtName, part.index))
 				}
-				if oldVirtC == nil {
-					*newVirtC = C.FibEntry{}
-					entrySetName(newVirtC, virtNameV, fib.startDepth)
-				} else {
-					*newVirtC = *oldVirtC
+				newVirt := part.Alloc()
+				if newVirt == nil {
+					return batch.Discard(part)
 				}
-				newVirtC.maxDepth = C.uint8_t(nComps - fib.startDepth)
-				fib.insertC(fibC, newVirtC)
+				*newVirt = *oldVirt
+				newVirt.maxDepth = C.uint8_t(newMd)
+				batch = append(batch, updateItem{updateActInsert, part, newVirt})
+
+			case name.Len() > fib.cfg.StartDepth && !virtIsEntry:
+				// insert or update virtual entry
+				newVirt := part.Alloc()
+				if newVirt == nil {
+					return batch.Discard(part)
+				}
+				entrySetName(newVirt, virtName)
+				newVirt.maxDepth = C.uint8_t(newMd)
+				batch = append(batch, updateItem{updateActInsert, part, newVirt})
+
+			default:
+				panic("unexpected case")
 			}
 		}
 
-		// if there was a virtual entry at the same place as the new entry, copy its maxDepth
-		isReplacingVirtual := false
-		if nComps == fib.startDepth {
-			// only one partition because cfg.StartDepth > ndt.GetPrefixLen()
-			oldEntryC := findC(fibsC[0], name.GetValue(), name.ComputeHash())
-			if oldEntryC != nil && oldEntryC.maxDepth > 0 {
-				newEntriesC[0].maxDepth = oldEntryC.maxDepth
-				isReplacingVirtual = true
-			}
-		}
-
-		// insert new entries
-		for i, newEntryC := range newEntriesC {
-			isNew = fib.insertC(fibsC[i], newEntryC) || isReplacingVirtual
-		}
-		if isNew {
-			fib.insertNode(name, ndtIndex)
-		}
+		// perform batch updates
+		batch.Apply()
+		success = true
 		return nil
 	})
 
@@ -155,87 +157,103 @@ func (fib *Fib) Insert(entry *Entry) (isNew bool, e error) {
 
 // Erase a FIB entry by name.
 func (fib *Fib) Erase(name *ndn.Name) (e error) {
-	nComps := name.Len()
+	virtName := fib.getVirtName(name)
 	logEntry := log.WithField("name", name)
 
 	e = fib.postCommand(func(rs *urcu.ReadSide) error {
 		rs.Lock()
 		defer rs.Unlock()
 
-		// determine what partition(s) are affected
-		var fibsC []*C.Fib
-		var ndtIndex uint64
-		if nComps < fib.ndt.GetPrefixLen() {
-			logEntry = logEntry.WithField("partition", "all")
-			fibsC = fib.c
-		} else {
-			var partition uint8
-			ndtIndex, partition = fib.ndt.Lookup(name)
-			logEntry = logEntry.WithFields(makeLogFields("partition", partition, "ndt-index", ndtIndex))
-			if int(partition) >= len(fib.c) {
-				return errors.New("bad partition")
-			}
-			fibsC = []*C.Fib{fib.c[partition]}
-		}
-
-		// retrieve old entries
-		var oldEntriesC []*C.FibEntry
-		for _, fibC := range fibsC {
-			if oldEntryC := findC(fibC, name.GetValue(), name.ComputeHash()); oldEntryC == nil {
-				return errors.New("entry does not exist")
-			} else {
-				oldEntriesC = append(oldEntriesC, oldEntryC)
-			}
-		}
-
 		// update tree
-		oldMd, newMd := fib.eraseNode(name, ndtIndex)
+		isErasedInTree, oldMd, newMd, virtIsEntry := fib.tree.Erase(name)
+		if !isErasedInTree {
+			logEntry = logEntry.WithField("skip", "no-entry")
+			return errors.New("entry does not exist")
+		}
 		success := false
 		defer func() {
 			if !success {
-				fib.insertNode(name, ndtIndex)
+				fib.tree.Insert(name)
 			}
 		}()
 
-		if nComps >= fib.startDepth {
-			// only one partition because cfg.StartDepth > ndt.GetPrefixLen()
-			fibC := fibsC[0]
+		// determine what partition(s) are affected
+		parts := fib.listPartitionsForName(name)
+		logEntry = logEntry.WithField("partition", listPartitionNumbers(parts))
 
-			if nComps > fib.startDepth && oldMd != newMd {
-				virtNameV := ndn.JoinNameComponents(name.ListPrefixComps(fib.startDepth))
-				virtNameHash := name.ComputePrefixHash(fib.startDepth)
-				oldVirtC := findC(fibC, virtNameV, virtNameHash) // is not nil
+		var batch updateBatch
+		for _, part := range parts {
+			// retrieve old entry
+			oldEntry := part.Find(name)
+			if oldEntry == nil {
+				panic(fmt.Errorf("entry %s missing in partition %d", name, part.index))
+			}
+
+			switch {
+			case name.Len() < fib.cfg.StartDepth:
+				// virtual entry not involved
+
+			case name.Len() == fib.cfg.StartDepth && newMd == 0:
+				// erase old entry without replacing with virtual entry
+
+			case name.Len() == fib.cfg.StartDepth && newMd > 0:
+				// replace old entry with virtual entry
+				newVirt := part.Alloc()
+				if newVirt == nil {
+					return batch.Discard(part)
+				}
+				entrySetName(newVirt, virtName)
+				newVirt.maxDepth = C.uint8_t(newMd)
+				batch = append(batch, updateItem{updateActInsert, part, newVirt})
+				oldEntry = nil // don't erase oldEntry: it will be replaced by newVirt
+				// XXX is dyn released correctly?
+
+			case name.Len() > fib.cfg.StartDepth && oldMd == newMd:
+				// no virtual entry update necessary
+
+			case name.Len() > fib.cfg.StartDepth && virtIsEntry:
+				// update maxDepth on entry at virtName
+				oldVirt := part.Find(virtName)
+				if oldVirt == nil {
+					panic(fmt.Errorf("virtual entry %s missing in partition %d", virtName, part.index))
+				}
+				newVirt := part.Alloc()
+				if newVirt == nil {
+					return batch.Discard(part)
+				}
+				*newVirt = *oldVirt // copy nexthops/strategy/dyn/etc
+				newVirt.maxDepth = C.uint8_t(newMd)
+				batch = append(batch, updateItem{updateActInsert, part, newVirt})
+
+			case name.Len() > fib.cfg.StartDepth && !virtIsEntry:
+				oldVirt := part.Find(virtName)
+				if oldVirt == nil {
+					panic(fmt.Errorf("virtual entry %s missing in partition %d", virtName, part.index))
+				}
 				if newMd == 0 {
 					// erase virtual entry
-					fib.eraseC(fibC, oldVirtC)
+					batch = append(batch, updateItem{updateActErase, part, oldVirt})
 				} else {
 					// update virtual entry
-					newVirtC := fib.allocC(fibC)
-					if newVirtC == nil {
-						return errors.New("allocation error")
+					newVirt := part.Alloc()
+					if newVirt == nil {
+						return batch.Discard(part)
 					}
-					*newVirtC = *oldVirtC
-					newVirtC.maxDepth = C.uint8_t(newMd)
-					fib.insertC(fibC, newVirtC)
+					newVirt.maxDepth = C.uint8_t(newMd)
+					batch = append(batch, updateItem{updateActInsert, part, newVirt})
 				}
-			} else if nComps == fib.startDepth && newMd != 0 {
-				// replace oldEntriesC[0] with virtual entry
-				newVirtC := fib.allocC(fibC)
-				if newVirtC == nil {
-					return errors.New("allocation error")
-				}
-				*newVirtC = C.FibEntry{}
-				entrySetName(newVirtC, name.GetValue(), nComps)
-				newVirtC.maxDepth = C.uint8_t(newMd)
-				fib.insertC(fibC, newVirtC)
-				oldEntriesC = nil // don't delete oldEntriesC[0]
+
+			default:
+				panic("unexpected case")
+			}
+
+			if oldEntry != nil {
+				batch = append(batch, updateItem{updateActErase, part, oldEntry})
 			}
 		}
 
-		// erase old entries
-		for i, oldEntryC := range oldEntriesC {
-			fib.eraseC(fibsC[i], oldEntryC)
-		}
+		// perform batch updates
+		batch.Apply()
 		success = true
 		return nil
 	})
@@ -248,35 +266,24 @@ func (fib *Fib) Erase(name *ndn.Name) (e error) {
 	return e
 }
 
-// Context of relocate operation.
-type RelocateContext struct {
-	oldFibC     *C.Fib
-	newFibC     *C.Fib
-	newDynMp    dpdk.Mempool
-	oldEntriesC []*C.FibEntry
-	nOldDyns    int
-	newEntriesC []*C.FibEntry
-	newDynsC    []*C.FibEntryDyn
-
-	NoRevertOnError bool // If true, relocating is not reverted even if callback has error.
-}
-
-// Get how many FIB entries are being moved.
-func (ctx *RelocateContext) Len() int {
-	return len(ctx.oldEntriesC)
-}
-
 // Callback during relocate operation.
 // It is invoked after entries are inserted to new partition, but before entries are erased
 // from old partition. The callback should perform NDT update, then sleep long enough for
 // previous dispatched packets that depend on old entries to be processed. Note that the FIB
 // could not process other commands during this sleep period. In case the callback errors,
-// relocating operation will be reverted, unless ctx.NoRevertOnError is set to true.
-type RelocateCallback func(ctx *RelocateContext) error
+// relocating operation will be reverted.
+type RelocateCallback func(nRelocated int) error
 
 // Relocate entries under an NDT index from one partition to another.
 func (fib *Fib) Relocate(ndtIndex uint64, oldPartition, newPartition uint8,
 	cb RelocateCallback) (e error) {
+	if int(oldPartition) >= len(fib.parts) {
+		return errors.New("bad old partition")
+	}
+	if int(newPartition) >= len(fib.parts) {
+		return errors.New("bad new partition")
+	}
+
 	logEntry := log.WithFields(makeLogFields("ndtIndex", ndtIndex,
 		"oldPartition", oldPartition, "newPartition", newPartition))
 	if oldPartition == newPartition {
@@ -285,92 +292,71 @@ func (fib *Fib) Relocate(ndtIndex uint64, oldPartition, newPartition uint8,
 	}
 
 	e = fib.postCommand(func(rs *urcu.ReadSide) error {
-		if int(oldPartition) >= len(fib.c) {
-			return errors.New("bad old partition")
-		}
-		if int(newPartition) >= len(fib.c) {
-			return errors.New("bad new partition")
-		}
-
 		rs.Lock()
 		defer rs.Unlock()
-
-		var ctx RelocateContext
-		ctx.oldFibC = fib.c[oldPartition]
-		ctx.newFibC = fib.c[newPartition]
-		ctx.newDynMp = fib.dynMps[newPartition]
+		oldPart := fib.parts[oldPartition]
+		newPart := fib.parts[newPartition]
 
 		// find old entries
-		for n, nameV := range fib.sti[ndtIndex] {
-			nn := nodeName{NameV: string(nameV), NComps: fib.ndt.GetPrefixLen()}
-			n.Walk(nn, func(nn nodeName, node *node) {
-				name := nn.GetName()
-				if node.IsEntry || (node.MaxDepth > 0 && nn.NComps == fib.startDepth) {
-					oldEntryC := findC(ctx.oldFibC, name.GetValue(), name.ComputeHash())
-					if oldEntryC == nil {
-						panic(fmt.Sprintf("entry not found %s", name))
-					}
-					ctx.oldEntriesC = append(ctx.oldEntriesC, oldEntryC)
-					if oldEntryC.dyn != nil {
-						ctx.nOldDyns++
-					}
+		var oldEntries []*C.FibEntry
+		nDyns := 0
+		fib.tree.TraverseSubtree(ndtIndex, func(name *ndn.Name, n *fibtree.Node) bool {
+			if n.IsEntry || (n.MaxDepth > 0 && name.Len() == fib.cfg.StartDepth) {
+				oldEntry := oldPart.Find(name)
+				if oldEntry == nil {
+					panic(fmt.Errorf("entry %s missing in old partition", name))
 				}
-			})
-		}
-		logEntry = logEntry.WithFields(makeLogFields("nEntries", len(ctx.oldEntriesC),
-			"nSubtrees", len(fib.sti[ndtIndex])))
-
-		// allocate new dyns
-		if ctx.nOldDyns > 0 {
-			ctx.newDynsC = make([]*C.FibEntryDyn, ctx.nOldDyns)
-			if e := ctx.newDynMp.AllocBulk(ctx.newDynsC); e != nil {
-				return e
+				oldEntries = append(oldEntries, oldEntry)
+				if oldEntry.dyn != nil {
+					nDyns++
+				}
 			}
-		}
+			return true
+		})
+		logEntry = logEntry.WithFields(makeLogFields("nEntries", len(oldEntries), "nDyns", nDyns))
 
 		// allocate new entries
-		if len(ctx.oldEntriesC) > 0 {
-			ctx.newEntriesC = make([]*C.FibEntry, len(ctx.oldEntriesC))
-			if ok := bool(C.Fib_AllocBulk(ctx.newFibC, &ctx.newEntriesC[0], C.unsigned(len(ctx.newEntriesC)))); !ok {
-				ctx.newDynMp.FreeBulk(ctx.newDynsC)
-				return errors.New("allocation error")
+		newDyns := make([]*C.FibEntryDyn, nDyns)
+		if e := newPart.dynMp.AllocBulk(newDyns); e != nil {
+			return e
+		}
+		newEntries := make([]*C.FibEntry, len(oldEntries))
+		if len(oldEntries) > 0 {
+			if ok := bool(C.Fib_AllocBulk(newPart.c, &newEntries[0], C.unsigned(len(newEntries)))); !ok {
+				newPart.dynMp.FreeBulk(newDyns)
+				return errors.New("new entries allocation error")
 			}
 		}
 
 		// insert new entries
-		j := 0
-		for i, oldEntryC := range ctx.oldEntriesC {
-			newEntryC := ctx.newEntriesC[i]
-			*newEntryC = *oldEntryC
-			if oldEntryC.dyn != nil {
-				newEntryC.dyn = ctx.newDynsC[j]
-				j++
-				C.FibEntryDyn_Copy(newEntryC.dyn, oldEntryC.dyn)
+		nextNewDyn := 0
+		for i, oldEntry := range oldEntries {
+			newEntry := newEntries[i]
+			*newEntry = *oldEntry
+			if oldEntry.dyn != nil {
+				newEntry.dyn = newDyns[nextNewDyn]
+				nextNewDyn++
+				C.FibEntryDyn_Copy(newEntry.dyn, oldEntry.dyn)
 			}
-			if isNew := fib.insertC(ctx.newFibC, newEntryC); !isNew {
-				newEntry := Entry{*oldEntryC}
-				panic(fmt.Sprintf("entry should not exist %s", newEntry.GetName()))
+			if isNew := newPart.Insert(newEntry); !isNew {
+				entry := Entry{*oldEntry}
+				panic(fmt.Errorf("unexpected entry %s in new partition", entry.GetName()))
 			}
-			fib.nRelocatingEntriesC++
 		}
 
-		// invoke callback
-		cbErr := cb(&ctx)
-		if cbErr == nil || ctx.NoRevertOnError {
-			// erase old entries
-			for _, oldEntryC := range ctx.oldEntriesC {
-				fib.eraseC(ctx.oldFibC, oldEntryC)
-				fib.nRelocatingEntriesC--
-			}
-		} else {
+		// invoke callback, revert on error
+		if cbErr := cb(len(oldEntries)); cbErr != nil {
 			// revert: erase new entries
-			for _, newEntryC := range ctx.newEntriesC {
-				fib.eraseC(ctx.newFibC, newEntryC)
-				fib.nRelocatingEntriesC--
+			for _, newEntry := range newEntries {
+				newPart.Erase(newEntry)
 			}
 		}
 
-		return cbErr
+		// erase old entries
+		for _, oldEntry := range oldEntries {
+			oldPart.Erase(oldEntry)
+		}
+		return nil
 	})
 
 	if e != nil {

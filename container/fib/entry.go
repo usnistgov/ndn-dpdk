@@ -20,6 +20,13 @@ type Entry struct {
 	c C.FibEntry
 }
 
+func entryFromC(c *C.FibEntry) *Entry {
+	if c == nil {
+		return nil
+	}
+	return &Entry{*c}
+}
+
 func (entry *Entry) GetSeqNum() uint32 {
 	return uint32(entry.c.seqNum)
 }
@@ -37,21 +44,20 @@ func (entry *Entry) CountComps() int {
 	return int(entry.c.nComps)
 }
 
-func entrySetName(entryC *C.FibEntry, nameV ndn.TlvBytes, nComps int) error {
-	nameL := len(nameV)
-	if nameL > C.FIB_ENTRY_MAX_NAME_LEN {
+func entrySetName(entryC *C.FibEntry, name *ndn.Name) error {
+	if name.Size() > C.FIB_ENTRY_MAX_NAME_LEN {
 		return fmt.Errorf("FIB entry name cannot exceed %d octets", C.FIB_ENTRY_MAX_NAME_LEN)
 	}
-	entryC.nameL = C.uint16_t(nameL)
-	for i, b := range nameV {
+	entryC.nameL = C.uint16_t(name.Size())
+	for i, b := range name.GetValue() {
 		entryC.nameV[i] = C.uint8_t(b)
 	}
-	entryC.nComps = C.uint8_t(nComps)
+	entryC.nComps = C.uint8_t(name.Len())
 	return nil
 }
 
 func (entry *Entry) SetName(name *ndn.Name) error {
-	return entrySetName(&entry.c, name.GetValue(), name.Len())
+	return entrySetName(&entry.c, name)
 }
 
 func (entry *Entry) GetNexthops() (nexthops []iface.FaceId) {

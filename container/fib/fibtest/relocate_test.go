@@ -35,33 +35,28 @@ func TestFibRelocate(t *testing.T) {
 
 	fib.Insert(fixture.MakeEntry(name0.String(), strategyP, 5000))
 	assert.Equal([]int{0, 1, 2, 3}, fixture.FindInPartitions(name0))
-	assert.Equal(1, fib.CountEntries(false))
-	assert.Equal(4, fib.CountEntries(true))
-	assert.Equal(0, fib.CountVirtuals())
+	assert.Equal(1, fib.Len())
+	assert.Equal(4, fib.CountEntries()) // replicated /
 
 	fib.Insert(fixture.MakeEntry(nameA.String(), strategyP, 5001))
 	assert.Equal([]int{0, 1, 2, 3}, fixture.FindInPartitions(nameA))
-	assert.Equal(2, fib.CountEntries(false))
-	assert.Equal(8, fib.CountEntries(true))
-	assert.Equal(0, fib.CountVirtuals())
+	assert.Equal(2, fib.Len())
+	assert.Equal(8, fib.CountEntries()) // replicated /,/A
 
 	fib.Insert(fixture.MakeEntry(nameAB.String(), strategyP, 5002))
 	assert.Equal([]int{1}, fixture.FindInPartitions(nameAB))
-	assert.Equal(3, fib.CountEntries(false))
-	assert.Equal(9, fib.CountEntries(true))
-	assert.Equal(0, fib.CountVirtuals())
+	assert.Equal(3, fib.Len())
+	assert.Equal(9, fib.CountEntries()) // replicated /,/A
 
 	fib.Insert(fixture.MakeEntry(nameCDW.String(), strategyP, 5003))
 	assert.Equal([]int{2}, fixture.FindInPartitions(nameCDW))
-	assert.Equal(4, fib.CountEntries(false))
-	assert.Equal(10, fib.CountEntries(true))
-	assert.Equal(0, fib.CountVirtuals())
+	assert.Equal(4, fib.Len())
+	assert.Equal(10, fib.CountEntries()) // replicated /,/A
 
 	fib.Insert(fixture.MakeEntry(nameEFXYZ.String(), strategyP, 5004))
 	assert.Equal([]int{3}, fixture.FindInPartitions(nameEFXYZ))
-	assert.Equal(5, fib.CountEntries(false))
-	assert.Equal(11, fib.CountEntries(true))
-	assert.Equal(1, fib.CountVirtuals())
+	assert.Equal(5, fib.Len())
+	assert.Equal(12, fib.CountEntries()) // replicated /,/A; virtual /E/F/X/Y
 
 	nu := ndtupdater.NdtUpdater{
 		Ndt:      fixture.Ndt,
@@ -77,9 +72,8 @@ func TestFibRelocate(t *testing.T) {
 	}()
 	time.Sleep(20 * time.Millisecond)
 	assert.Equal([]int{1, 3}, fixture.FindInPartitions(nameEFXYZ))
-	assert.Equal(5, fib.CountEntries(false))
-	assert.Equal(11, fib.CountEntries(true))
-	assert.Equal(1, fib.CountVirtuals())
+	assert.Equal(5, fib.Len())
+	assert.Equal(14, fib.CountEntries()) // replicated /,/A; duplicated /E/F/X/Y/Z; duplicated & virtual /E/F/X/Y
 	<-done
 	assert.Equal([]int{1}, fixture.FindInPartitions(nameEFXYZ))
 
@@ -87,7 +81,6 @@ func TestFibRelocate(t *testing.T) {
 	assert.Equal(index4, indexEFXYZ)
 	assert.Equal(uint8(1), value4)
 
-	assert.Equal(5, fib.CountEntries(false))
-	assert.Equal(11, fib.CountEntries(true))
-	assert.Equal(1, fib.CountVirtuals())
+	assert.Equal(5, fib.Len())
+	assert.Equal(12, fib.CountEntries())
 }

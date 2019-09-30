@@ -8,9 +8,6 @@ export as namespace fibmgmt;
 
 export interface FibInfo {
   NEntries: Counter;
-  NEntriesDup: Counter;
-  NVirtuals: Counter;
-  NNodes: Counter;
 }
 
 export interface NameArg {

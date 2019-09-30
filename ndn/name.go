@@ -105,6 +105,12 @@ func (n *Name) GetComp(i int) NameComponent {
 	return NameComponent(n.b[begin:end])
 }
 
+// Get a name prefix of certain length.
+func (n *Name) GetPrefix(prefixLen int) *Name {
+	prefix, _ := NewName(JoinNameComponents(n.ListPrefixComps(prefixLen)))
+	return prefix
+}
+
 // Get first several name components.
 func (n *Name) ListPrefixComps(prefixLen int) (comps []NameComponent) {
 	comps = make([]NameComponent, prefixLen)

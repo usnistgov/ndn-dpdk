@@ -19,9 +19,9 @@ func (nu *NdtUpdater) Update(index uint64, value uint8) (nRelocated int, e error
 		return 0, nil
 	}
 
-	e = nu.Fib.Relocate(index, oldValue, value, func(ctx *fib.RelocateContext) error {
+	e = nu.Fib.Relocate(index, oldValue, value, func(n int) error {
 		nu.Ndt.Update(index, value)
-		nRelocated = ctx.Len()
+		nRelocated = n
 		if nRelocated > 0 {
 			time.Sleep(nu.SleepFor)
 		}

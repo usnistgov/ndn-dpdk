@@ -113,7 +113,7 @@ func TestFibLpm(t *testing.T) {
 	fib.Insert(fixture.MakeEntry("/X/Y", strategyP, 5006))
 	fib.Insert(fixture.MakeEntry("/X", strategyP, 5007))
 	assert.Equal(8, fib.Len())
-	assert.Equal(1, fib.CountVirtuals()) // '/A/B' is the only virtual entry
+	assert.Equal(9, fib.CountEntries()) // '/A/B' is the only virtual entry
 
 	names := fib.ListNames()
 	assert.Len(names, 8)
@@ -142,15 +142,15 @@ func TestFibLpm(t *testing.T) {
 
 	assert.NoError(fib.Erase(ndn.MustParseName("/")))
 	assert.Equal(7, fib.Len())
-	assert.Equal(1, fib.CountVirtuals())
+	assert.Equal(8, fib.CountEntries())
 
 	assert.NoError(fib.Erase(ndn.MustParseName("/A/B/C")))
 	assert.Equal(6, fib.Len())
-	assert.Equal(0, fib.CountVirtuals()) // '/A/B' is gone
+	assert.Equal(6, fib.CountEntries()) // '/A/B' is gone
 
 	assert.NoError(fib.Erase(ndn.MustParseName("/M/N")))
 	assert.NoError(fib.Erase(ndn.MustParseName("/X/Y")))
 	assert.Equal(4, fib.Len())
-	assert.Equal(2, fib.CountVirtuals()) // '/M/N' and '/X/Y' become virtual
+	assert.Equal(6, fib.CountEntries()) // '/M/N' and '/X/Y' become virtual
 	assert.Len(fib.ListNames(), 4)
 }

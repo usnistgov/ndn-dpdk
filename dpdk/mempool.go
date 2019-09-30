@@ -65,6 +65,9 @@ func (mp Mempool) Alloc() (ptr unsafe.Pointer) {
 
 func (mp Mempool) AllocBulk(objs interface{}) error {
 	ptr, count := ParseCptrArray(objs)
+	if count == 0 {
+		return nil
+	}
 	res := C.rte_mempool_get_bulk(mp.c, (*unsafe.Pointer)(ptr), C.uint(count))
 	if res != 0 {
 		return errors.New("mbuf allocation failed")
@@ -78,6 +81,9 @@ func (mp Mempool) Free(obj unsafe.Pointer) {
 
 func (mp Mempool) FreeBulk(objs interface{}) {
 	ptr, count := ParseCptrArray(objs)
+	if count == 0 {
+		return
+	}
 	C.rte_mempool_put_bulk(mp.c, (*unsafe.Pointer)(ptr), C.uint(count))
 }
 

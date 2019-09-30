@@ -5,6 +5,7 @@ package fib
 */
 import "C"
 import (
+	"ndn-dpdk/container/fib/fibtree"
 	"ndn-dpdk/core/urcu"
 	"ndn-dpdk/ndn"
 )
@@ -12,20 +13,15 @@ import (
 // List all FIB entry names.
 func (fib *Fib) ListNames() (names []*ndn.Name) {
 	fib.postCommand(func(rs *urcu.ReadSide) error {
-		names = make([]*ndn.Name, 0)
-		fib.treeRoot.Walk(nodeName{}, func(nn nodeName, node *node) {
-			if node.IsEntry {
-				names = append(names, nn.GetName())
+		fib.tree.Traverse(func(name *ndn.Name, n *fibtree.Node) bool {
+			if n.IsEntry {
+				names = append(names, name)
 			}
+			return true
 		})
 		return nil
 	})
 	return names
-}
-
-func findC(fibC *C.Fib, nameV ndn.TlvBytes, hash uint64) (entryC *C.FibEntry) {
-	return C.Fib_Find_(fibC, C.uint16_t(len(nameV)), (*C.uint8_t)(nameV.GetPtr()),
-		C.uint64_t(hash))
 }
 
 // Perform an exact match lookup.
@@ -43,25 +39,24 @@ func (fib *Fib) Find(name *ndn.Name) (entry *Entry) {
 func (fib *Fib) FindInPartition(name *ndn.Name, partition int, rs *urcu.ReadSide) (entry *Entry) {
 	rs.Lock()
 	defer rs.Unlock()
-	entryC := findC(fib.c[partition], name.GetValue(), name.ComputeHash())
-	if entryC != nil {
-		entry = &Entry{*entryC}
+	return entryFromC(fib.parts[partition].Find(name))
+}
+
+// Determine what partitions would a name appear in.
+// This method is non-thread-safe.
+func (fib *Fib) listPartitionsForName(name *ndn.Name) (parts []*partition) {
+	if name.Len() < fib.ndt.GetPrefixLen() {
+		return fib.parts
 	}
-	return entry
+	_, partition := fib.ndt.Lookup(name)
+	return append(parts, fib.parts[partition])
 }
 
 // Read entry counters, aggregate across all partitions if necessary.
 func (fib *Fib) ReadEntryCounters(name *ndn.Name) (cnt EntryCounters) {
 	fib.postCommand(func(rs *urcu.ReadSide) error {
-		if name.Len() < fib.ndt.GetPrefixLen() {
-			for partition := 0; partition < len(fib.c); partition++ {
-				if entry := fib.FindInPartition(name, partition, rs); entry != nil {
-					cnt.Add(entry)
-				}
-			}
-		} else {
-			_, partition := fib.ndt.Lookup(name)
-			if entry := fib.FindInPartition(name, int(partition), rs); entry != nil {
+		for _, part := range fib.listPartitionsForName(name) {
+			if entry := fib.FindInPartition(name, part.index, rs); entry != nil {
 				cnt.Add(entry)
 			}
 		}
@@ -76,11 +71,8 @@ func (fib *Fib) Lpm(name *ndn.Name) (entry *Entry) {
 		rs.Lock()
 		defer rs.Unlock()
 		_, partition := fib.ndt.Lookup(name)
-		entryC := C.Fib_Lpm_(fib.c[partition], (*C.PName)(name.GetPNamePtr()),
-			(*C.uint8_t)(name.GetValue().GetPtr()))
-		if entryC != nil {
-			entry = &Entry{*entryC}
-		}
+		entry = entryFromC(C.Fib_Lpm_(fib.parts[partition].c, (*C.PName)(name.GetPNamePtr()),
+			(*C.uint8_t)(name.GetValue().GetPtr())))
 		return nil
 	})
 	return entry

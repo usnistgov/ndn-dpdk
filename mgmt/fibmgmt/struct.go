@@ -6,10 +6,7 @@ import (
 )
 
 type FibInfo struct {
-	NEntries    int // Number of entries, counting duplicates only once.
-	NEntriesDup int // Number of entries, counting duplicates multiple times.
-	NVirtuals   int // Number of virtual entries for two-stage LPM.
-	NNodes      int // Number of tree nodes.
+	NEntries int // Number of entries.
 }
 
 type NameArg struct {

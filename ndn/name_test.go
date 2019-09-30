@@ -55,15 +55,13 @@ func TestNamePrefixHash(t *testing.T) {
 	assert.Equal(len(input), n.Size())
 
 	hashes := make(map[uint64]bool)
-	var prefixB ndn.TlvBytes
 	for i := 0; i < 39; i++ {
-		prefix, e := ndn.NewName(prefixB)
+		prefix := n.GetPrefix(i)
 		require.NoError(e)
 		assert.Equal(i, prefix.Len())
 		hash := prefix.ComputeHash()
 		hashes[hash] = true
 		assert.Equal(hash, n.ComputePrefixHash(i))
-		prefixB = append(prefixB, n.GetComp(i)...)
 	}
 
 	assert.InDelta(39, len(hashes), 9.1) // expect at least 30 different hash values

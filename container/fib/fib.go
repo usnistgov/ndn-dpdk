@@ -6,12 +6,13 @@ package fib
 import "C"
 import (
 	"errors"
-	"fmt"
 	"unsafe"
 
+	"ndn-dpdk/container/fib/fibtree"
 	"ndn-dpdk/container/ndt"
 	"ndn-dpdk/core/urcu"
 	"ndn-dpdk/dpdk"
+	"ndn-dpdk/ndn"
 )
 
 type Config struct {
@@ -23,19 +24,11 @@ type Config struct {
 
 // The FIB.
 type Fib struct {
-	c          []*C.Fib
-	dynMps     []dpdk.Mempool
-	commands   chan command
-	startDepth int
-	ndt        *ndt.Ndt
-	treeRoot   *node
-	sti        subtreeIndex
-
-	nNodes              int // Nodes in tree.
-	nShortEntries       int // Entries with name shorter than NDT PrefixLen.
-	nLongEntries        int // Entries with name not shorter than NDT PrefixLen.
-	nEntriesC           int // Entries in C.Fib.
-	nRelocatingEntriesC int // Duplicate entries due to relocating.
+	cfg      Config
+	ndt      *ndt.Ndt
+	parts    []*partition
+	tree     *fibtree.Tree
+	commands chan command
 }
 
 func New(cfg Config, ndt *ndt.Ndt, numaSockets []dpdk.NumaSocket) (fib *Fib, e error) {
@@ -44,33 +37,20 @@ func New(cfg Config, ndt *ndt.Ndt, numaSockets []dpdk.NumaSocket) (fib *Fib, e e
 	}
 
 	fib = new(Fib)
-	for i, numaSocket := range numaSockets {
-		idC := C.CString(fmt.Sprintf("%s_%d", cfg.Id, i))
-		defer C.free(unsafe.Pointer(idC))
-		fibC := C.Fib_New(idC, C.uint32_t(cfg.MaxEntries), C.uint32_t(cfg.NBuckets),
-			C.unsigned(numaSocket), C.uint8_t(cfg.StartDepth))
-		if fibC == nil {
-			fib.doClose(nil)
-			return nil, dpdk.GetErrno()
-		}
-		fib.c = append(fib.c, fibC)
+	fib.cfg = cfg
+	fib.ndt = ndt
 
-		dynMp, e := dpdk.NewMempool(fmt.Sprintf("%s_dyn%d", cfg.Id, i), cfg.MaxEntries, 0,
-			int(C.sizeof_FibEntryDyn), numaSocket)
+	for i, numaSocket := range numaSockets {
+		part, e := newPartition(fib, i, numaSocket)
 		if e != nil {
 			fib.doClose(nil)
 			return nil, e
 		}
-		fib.dynMps = append(fib.dynMps, dynMp)
+		fib.parts = append(fib.parts, part)
 	}
 
-	fib.startDepth = cfg.StartDepth
-	fib.ndt = ndt
-
-	fib.treeRoot = newNode()
-	fib.nNodes++
-
-	fib.sti = newSubtreeIndex(ndt)
+	fib.tree = fibtree.New(cfg.StartDepth, ndt.GetPrefixLen(), ndt.CountElements(),
+		func(name *ndn.Name) uint64 { return ndt.GetIndex(ndt.ComputeHash(name)) })
 
 	fib.commands = make(chan command)
 	go fib.commandLoop()
@@ -78,34 +58,30 @@ func New(cfg Config, ndt *ndt.Ndt, numaSockets []dpdk.NumaSocket) (fib *Fib, e e
 	return fib, nil
 }
 
+// Get number of entries.
+// This excludes virtual entries. Replicated entries count only once.
+func (fib *Fib) Len() int {
+	return fib.tree.CountEntries()
+}
+
 // Get number of partitions.
 func (fib *Fib) CountPartitions() int {
-	return len(fib.c)
+	return len(fib.parts)
 }
 
-func (fib *Fib) Len() int {
-	return fib.CountEntries(false)
-}
-
-// Get number of entries.
-// If an entry name is shorter than NDT PrefixLen, it is duplicated across all partitions.
-// Such entry is counted once if withDup is false, or counted multiple times if withDup is true.
-func (fib *Fib) CountEntries(withDup bool) int {
-	if withDup {
-		return fib.nShortEntries*fib.CountPartitions() + fib.nLongEntries
+// Count number of entries in all partitions.
+// This includes virtual entries. Replicated entries count multiple times.
+func (fib *Fib) CountEntries() (n int) {
+	for _, part := range fib.parts {
+		n += part.nEntries
 	}
-	return fib.nShortEntries + fib.nLongEntries
-}
-
-// Get number of virtual entries.
-func (fib *Fib) CountVirtuals() int {
-	return fib.nEntriesC - fib.nRelocatingEntriesC - fib.CountEntries(true)
+	return n
 }
 
 // Get *C.Fib pointer for specified partition.
 func (fib *Fib) GetPtr(partition int) (ptr unsafe.Pointer) {
-	if partition >= 0 && partition < len(fib.c) {
-		ptr = unsafe.Pointer(fib.c[partition])
+	if partition >= 0 && partition < len(fib.parts) {
+		ptr = unsafe.Pointer(fib.parts[partition].c)
 	}
 	return ptr
 }
@@ -141,11 +117,10 @@ func (fib *Fib) Close() (e error) {
 }
 
 func (fib *Fib) doClose(rs *urcu.ReadSide) error {
-	for _, fibC := range fib.c {
-		C.Fib_Close(fibC)
-	}
-	for _, dynMp := range fib.dynMps {
-		dynMp.Close()
+	for _, part := range fib.parts {
+		if part != nil {
+			part.Close()
+		}
 	}
 	return nil
 }
