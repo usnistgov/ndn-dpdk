@@ -61,45 +61,40 @@ Tsht_Close(Tsht* ht)
 }
 
 bool
-Tsht_AllocBulk(Tsht* ht, TshtEntryPtr entries[], unsigned count)
+Tsht_AllocBulk(Tsht* ht, TshtNode* nodes[], unsigned count)
 {
-  int res = rte_mempool_get_bulk(Tsht_ToMempool(ht), (void**)entries, count);
+  int res = rte_mempool_get_bulk(Tsht_ToMempool(ht), (void**)nodes, count);
   if (unlikely(res != 0)) {
     return false;
   }
 
   for (unsigned i = 0; i < count; ++i) {
-    TshtNode* node = (TshtNode*)entries[i];
-    cds_lfht_node_init(&node->lfhtnode);
-    entries[i] = node->entry;
+    cds_lfht_node_init(&nodes[i]->lfhtnode);
   }
   return true;
 }
 
 void
-Tsht_Free(Tsht* ht, TshtEntryPtr entry)
+Tsht_Free(Tsht* ht, TshtNode* node)
 {
-  TshtNode* node = TshtNode_FromEntry(entry);
   rte_mempool_put(Tsht_ToMempool(ht), node);
 }
 
 static void
 Tsht_FreeNode(struct rcu_head* rcuhead)
 {
-  TshtNode* node = caa_container_of(rcuhead, TshtNode, rcuhead);
+  TshtNode* node = container_of(rcuhead, TshtNode, rcuhead);
   struct rte_mempool* mempool = rte_mempool_from_obj(node);
   Tsht* ht = (Tsht*)mempool;
   TshtPriv* htp = Tsht_GetPriv(ht);
-  (*htp->finalize)(node->entry, ht);
+  (*htp->finalize)(node, ht);
   rte_mempool_put(mempool, node);
 }
 
 bool
-Tsht_Insert(Tsht* ht, uint64_t hash, const void* key, TshtEntryPtr newEntry)
+Tsht_Insert(Tsht* ht, uint64_t hash, const void* key, TshtNode* newNode)
 {
   TshtPriv* htp = Tsht_GetPriv(ht);
-  TshtNode* newNode = TshtNode_FromEntry(newEntry);
-
   struct cds_lfht_node* oldLfhtNode =
     cds_lfht_add_replace(htp->lfht, hash, htp->match, key, &newNode->lfhtnode);
 
@@ -107,16 +102,15 @@ Tsht_Insert(Tsht* ht, uint64_t hash, const void* key, TshtEntryPtr newEntry)
     return true;
   }
 
-  TshtNode* oldNode = caa_container_of(oldLfhtNode, TshtNode, lfhtnode);
+  TshtNode* oldNode = container_of(oldLfhtNode, TshtNode, lfhtnode);
   call_rcu(&oldNode->rcuhead, Tsht_FreeNode);
   return false;
 }
 
 bool
-Tsht_Erase(Tsht* ht, TshtEntryPtr entry)
+Tsht_Erase(Tsht* ht, TshtNode* node)
 {
   TshtPriv* htp = Tsht_GetPriv(ht);
-  TshtNode* node = TshtNode_FromEntry(entry);
   bool ok = cds_lfht_del(htp->lfht, &node->lfhtnode) == 0;
 
   if (likely(ok)) {
@@ -125,7 +119,7 @@ Tsht_Erase(Tsht* ht, TshtEntryPtr entry)
   return ok;
 }
 
-TshtEntryPtr
+TshtNode*
 Tsht_Find(Tsht* ht, uint64_t hash, const void* key)
 {
   TshtPriv* htp = Tsht_GetPriv(ht);
@@ -134,8 +128,7 @@ Tsht_Find(Tsht* ht, uint64_t hash, const void* key)
   cds_lfht_lookup(htp->lfht, hash, htp->match, key, &it);
   struct cds_lfht_node* lfhtnode = cds_lfht_iter_get_node(&it);
 
-  if (lfhtnode == NULL) {
-    return NULL;
-  }
-  return caa_container_of(lfhtnode, TshtNode, lfhtnode)->entry;
+  static_assert(offsetof(TshtNode, lfhtnode) == 0,
+                ""); // container_of(NULL, TshtNode, lfhtnode) == NULL
+  return container_of(lfhtnode, TshtNode, lfhtnode);
 }

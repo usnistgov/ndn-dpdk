@@ -63,7 +63,7 @@ Fib_Close(Fib* fib)
 static bool
 Fib_AllocBulk(Fib* fib, FibEntry* entries[], unsigned count)
 {
-  return Tsht_AllocBulk(Fib_ToTsht(fib), (TshtEntryPtr*)entries, count);
+  return Tsht_AllocBulk(Fib_ToTsht(fib), (TshtNode**)entries, count);
 }
 
 /** \brief Deallocate an unused FIB entry.
@@ -72,7 +72,7 @@ static void
 Fib_Free(Fib* fib, FibEntry* entry)
 {
   assert(entry->strategy == NULL);
-  Tsht_Free(Fib_ToTsht(fib), entry);
+  Tsht_Free(Fib_ToTsht(fib), &entry->tshtNode);
 }
 
 /** \brief Insert a FIB entry, or replace an existing entry with same name.
@@ -91,7 +91,7 @@ Fib_Insert(Fib* fib, FibEntry* entry);
 static void
 Fib_Erase(Fib* fib, FibEntry* entry)
 {
-  Tsht_Erase(Fib_ToTsht(fib), entry);
+  Tsht_Erase(Fib_ToTsht(fib), &entry->tshtNode);
 }
 
 /** \brief Perform exact match.

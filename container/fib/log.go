@@ -5,7 +5,7 @@ import (
 )
 
 var (
-	log           = logger.New("fib")
+	log           = logger.New("Fib")
 	makeLogFields = logger.MakeFields
 	addressOf     = logger.AddressOf
 )

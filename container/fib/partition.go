@@ -69,7 +69,7 @@ func (part *partition) Alloc() (entry *C.FibEntry) {
 	if !bool(C.Fib_AllocBulk(part.c, &entry, 1)) {
 		return nil
 	}
-	*entry = C.FibEntry{}
+	C.FibEntry_Copy(entry, &emptyEntry.c)
 	return entry
 }
 

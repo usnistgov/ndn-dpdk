@@ -12,49 +12,47 @@
 typedef struct Tsht Tsht;
 
 /** \brief A node in TSHT.
+ *
+ *  This must be embedded in an entry at offset 0 and named 'tshtNode'.
+ *  Example:
+ *  \code
+ *  typedef MyEntry {
+ *    TshtNode tshtNode;
+ *    char key[32];
+ *  } MyEntry;
+ *  \endcode
  */
 typedef struct TshtNode
 {
   struct cds_lfht_node lfhtnode;
   struct rcu_head rcuhead;
-  char entry[0];
 } TshtNode;
+static_assert(sizeof(TshtNode) == 32, "");
 
-/** \brief Represents an entry enclosed in TshtNode.
+/** \brief A callback to finalize an erased node.
  */
-typedef void* TshtEntryPtr;
-
-/** \brief A callback to finalize an erased entry.
- */
-typedef void (*Tsht_Finalize)(TshtEntryPtr entry, Tsht* ht);
-
-/** \brief Get the node enclosing an entry.
- *  \param entry1 a TshtEntryPtr.
- */
-#define TshtNode_FromEntry(entry1)                                             \
-  ((TshtNode*)RTE_PTR_SUB((entry1), offsetof(TshtNode, entry)))
+typedef void (*Tsht_Finalize)(TshtNode* node, Tsht* ht);
 
 /** \brief Argument to \c Tsht_Match.
  */
-typedef struct cds_lfht_node* TshtMatchNode;
+typedef struct cds_lfht_node* TshtMatchNodeRef;
 
-/** \brief Recover entry from \c TshtMatchNode.
- *  \tparam T type of entry.
+/** \brief Recover TshtNode pointer from \c TshtMatchNodeRef.
  */
-#define TshtMatch_GetEntry(node, T)                                            \
-  ((const T*)caa_container_of((node), TshtNode, lfhtnode)->entry)
+#define TshtMatch_GetNode(nodeRef)                                             \
+  container_of(nodeRef, const TshtNode, lfhtnode)
 
-/** \brief A callback to match entry with key.
+/** \brief A callback to match node with key.
  *
  *  Example:
  *  \code
- *  bool ExampleMatch(TshtMatchNode node, const void* key)
+ *  bool ExampleMatch(TshtMatchNodeRef nodeRef, const void* key)
  *  {
- *    const MyEntry* entry = TshtMatch_GetEntry(node, MyEntry);
- *    return memcmp(entry, key, sizeof(*entry)) == 0;
+ *    const MyEntry* entry = (const MyEntry*)TshtMatch_GetNode(node);
+ *    return memcmp(entry->key, key, sizeof(entry->key)) == 0;
  *  }
  *  \endcode
  */
-typedef bool (*Tsht_Match)(TshtMatchNode node, const void* key);
+typedef bool (*Tsht_Match)(TshtMatchNodeRef nodeRef, const void* key);
 
 #endif // NDN_DPDK_CONTAINER_TSHT_NODE_H

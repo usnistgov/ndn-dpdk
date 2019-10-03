@@ -5,6 +5,7 @@
 
 #include "../../iface/faceid.h"
 #include "../strategycode/strategy-code.h"
+#include "../tsht/node.h"
 
 #define FIB_ENTRY_MAX_NAME_LEN 500
 #define FIB_ENTRY_MAX_NEXTHOPS 8
@@ -33,6 +34,8 @@ FibEntryDyn_Copy(FibEntryDyn* dst, const FibEntryDyn* src)
  */
 typedef struct FibEntry
 {
+  TshtNode tshtNode;
+
   StrategyCode* strategy;
   FibEntryDyn* dyn;
 
@@ -60,6 +63,14 @@ typedef struct FibEntry
 // FibEntry.nComps must be able to represent maximum number of name components that
 // can fit in FIB_ENTRY_MAX_NAME_LEN octets.
 static_assert(UINT8_MAX >= FIB_ENTRY_MAX_NAME_LEN / 2, "");
+
+static void
+FibEntry_Copy(FibEntry* dst, const FibEntry* src)
+{
+  rte_memcpy(RTE_PTR_ADD(dst, sizeof(dst->tshtNode)),
+             RTE_PTR_ADD(src, sizeof(src->tshtNode)),
+             sizeof(*src) + sizeof(src->tshtNode));
+}
 
 /** \brief A filter over FIB nexthops.
  *

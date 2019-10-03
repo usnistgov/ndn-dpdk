@@ -16,6 +16,8 @@ import (
 const MAX_NAME_LEN = int(C.FIB_ENTRY_MAX_NAME_LEN)
 const MAX_NEXTHOPS = int(C.FIB_ENTRY_MAX_NEXTHOPS)
 
+var emptyEntry Entry
+
 type Entry struct {
 	c C.FibEntry
 }

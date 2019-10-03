@@ -39,6 +39,7 @@ CDeps["iface/mockface"] = ["iface"]
 CDeps["iface/socketface"] = ["iface"]
 CDeps["ndn"] = ["dpdk"]
 CDeps["spdk"] = ["dpdk"]
+CDeps["strategy"] = ["container/fib", "container/pcct", "ndn"]
 
 desc "Generate **/cgoflags.go"
 task "cgoflags"
@@ -50,6 +51,7 @@ CDeps.each do |key,value|
   end
   task "cgoflags" => name
 end
+Rake::Task["strategy".pathmap(CgoflagsPathmap)].clear
 
 desc "Compile build/libndn-dpdk-*.a"
 task "cbuilds"
@@ -57,6 +59,7 @@ ClibPathmap = "build/libndn-dpdk-%n.a"
 CDeps.each do |key,value|
   name = key.pathmap(ClibPathmap)
   cSrc = Rake::FileList["#{key}/*.h", "#{key}/*.c"]
+  cSrc = Rake::FileList["#{key}/api-*"] if key == "strategy"
   deps = value.map{|v| v.pathmap(ClibPathmap)} + cSrc
   if cSrc.length > 0 && !key.end_with?("test")
     file name => deps do |t|
@@ -67,6 +70,7 @@ CDeps.each do |key,value|
   end
   task "cbuilds" => name
 end
+Rake::Task["container/mintmr/mintmrtest".pathmap(ClibPathmap)].clear
 
 file "ndn/error.h" => "ndn/error.tsv" do
   sh "ndn/make-error.sh"
@@ -76,8 +80,6 @@ file "ndn/tlv-type.h" => "ndn/tlv-type.tsv" do
 end
 task "ndn".pathmap(ClibPathmap) => ["ndn/error.h", "ndn/tlv-type.h"]
 
-Rake::Task["container/mintmr/mintmrtest".pathmap(ClibPathmap)].clear
-
 desc "Build forwarding strategies"
 task "strategies" => "strategy/strategy_elf/bindata.go"
 SgBpfPath = "build/strategy-bpf"
@@ -85,7 +87,7 @@ directory SgBpfPath
 file "strategy/strategy_elf/bindata.go" do |t|
   sh "go-bindata -nomemcopy -pkg strategy_elf -prefix #{SgBpfPath} -o /dev/stdout #{SgBpfPath} | gofmt -s > #{t.name}"
 end
-SgDeps = [SgBpfPath] + Rake::FileList["strategy/api*"] + ["ndn", "container/fib", "container/pcct"].map{|v| v.pathmap(ClibPathmap)}
+SgDeps = [SgBpfPath, "strategy".pathmap(ClibPathmap)] + ["ndn", "container/fib", "container/pcct"].map{|v| v.pathmap(ClibPathmap)}
 SgSrc = Rake::FileList["strategy/*.c"]
 SgSrc.exclude("strategy/api*")
 SgSrc.each do |f|

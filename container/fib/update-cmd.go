@@ -93,7 +93,7 @@ func (fib *Fib) Insert(entry *Entry) (isNew bool, e error) {
 			if newEntry == nil {
 				return batch.Discard(part)
 			}
-			*newEntry = entry.c
+			C.FibEntry_Copy(newEntry, &entry.c)
 			batch = append(batch, updateItem{updateActInsert, part, newEntry})
 			if dyn := (*C.FibEntryDyn)(part.dynMp.Alloc()); dyn == nil {
 				return batch.Discard(part)
@@ -122,7 +122,7 @@ func (fib *Fib) Insert(entry *Entry) (isNew bool, e error) {
 				if newVirt == nil {
 					return batch.Discard(part)
 				}
-				*newVirt = *oldVirt
+				C.FibEntry_Copy(newVirt, oldVirt)
 				newVirt.maxDepth = C.uint8_t(newMd)
 				batch = append(batch, updateItem{updateActInsert, part, newVirt})
 
@@ -221,7 +221,7 @@ func (fib *Fib) Erase(name *ndn.Name) (e error) {
 				if newVirt == nil {
 					return batch.Discard(part)
 				}
-				*newVirt = *oldVirt // copy nexthops/strategy/dyn/etc
+				C.FibEntry_Copy(newVirt, oldVirt) // copy nexthops/strategy/dyn/etc
 				newVirt.maxDepth = C.uint8_t(newMd)
 				batch = append(batch, updateItem{updateActInsert, part, newVirt})
 
@@ -332,7 +332,7 @@ func (fib *Fib) Relocate(ndtIndex uint64, oldPartition, newPartition uint8,
 		nextNewDyn := 0
 		for i, oldEntry := range oldEntries {
 			newEntry := newEntries[i]
-			*newEntry = *oldEntry
+			C.FibEntry_Copy(newEntry, oldEntry)
 			if oldEntry.dyn != nil {
 				newEntry.dyn = newDyns[nextNewDyn]
 				nextNewDyn++

@@ -16,7 +16,7 @@ typedef struct SgFibEntryDyn
 
 typedef struct SgFibEntry
 {
-  char _a[8];
+  char _a[40];
   SgFibEntryDyn* dyn;
   char _b[7];
   uint8_t nNexthops;

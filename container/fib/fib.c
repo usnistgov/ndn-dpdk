@@ -1,18 +1,19 @@
 #include "fib.h"
 
 static bool
-Fib_LookupMatch(TshtMatchNode node, const void* key0)
+Fib_LookupMatch(TshtMatchNodeRef nodeRef, const void* key0)
 {
-  const FibEntry* entry = TshtMatch_GetEntry(node, FibEntry);
+  const TshtNode* node = TshtMatch_GetNode(nodeRef);
+  const FibEntry* entry = container_of(node, FibEntry, tshtNode);
   const LName* key = (const LName*)key0;
   return entry->nameL == key->length &&
          memcmp(entry->nameV, key->value, key->length) == 0;
 }
 
 static void
-Fib_FinalizeEntry(TshtEntryPtr entry0, Tsht* tsht)
+Fib_FinalizeEntry(TshtNode* node, Tsht* tsht)
 {
-  FibEntry* entry = (FibEntry*)entry0;
+  const FibEntry* entry = container_of(node, FibEntry, tshtNode);
   Fib* fib = (Fib*)tsht;
   if (likely(entry->dyn != NULL) && entry->shouldFreeDyn) {
     struct rte_mempool* dynMp = rte_mempool_from_obj(entry->dyn);
@@ -60,7 +61,7 @@ Fib_Insert(Fib* fib, FibEntry* entry)
   key.value = entry->nameV;
   uint64_t hash = LName_ComputeHash(key);
 
-  return Tsht_Insert(Fib_ToTsht(fib), hash, &key, entry);
+  return Tsht_Insert(Fib_ToTsht(fib), hash, &key, &entry->tshtNode);
 }
 
 static const FibEntry*

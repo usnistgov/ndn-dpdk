@@ -20,7 +20,7 @@ Supported commands include:
 * Erase an entry.
 * Relocate entries during NDT update (see [NdtUpdater](../ndt/ndtupdater/)).
 
-`Fib` type internally maintains a tree of FIB entry names for computing *MD* used in 2-stage LPM algorithm and for determining affected entries during NDT update.
+FIB uses [fibtree](./fibtree/) package to maintain a tree of FIB entry names for computing *MD* used in 2-stage LPM algorithm and for determining affected entries during NDT update.
 
 ## C code
 
