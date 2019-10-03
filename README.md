@@ -9,11 +9,12 @@ This software is developed at [Advanced Network Technologies Division](https://w
 Requirements:
 
 * Ubuntu 16.04 or 18.04 on *amd64* architecture
-* Go 1.13
-* `clang-6.0 clang-format-6.0 curl doxygen git go-bindata libc6-dev-i386 libelf-dev libnuma-dev libssl-dev liburcu-dev rake socat sudo yamllint` packages
-* DPDK 19.08 with `CONFIG_RTE_BUILD_SHARED_LIB` `CONFIG_RTE_LIBRTE_BPF_ELF` `CONFIG_RTE_LIBRTE_PMD_OPENSSL` enabled, and installed to `/usr/local`
-* SPDK 19.07 shared libraries installed to `/usr/local`
-* [ubpf](https://github.com/iovisor/ubpf/tree/644ad3ded2f015878f502765081e166ce8112baf) library, installed to `/usr/local/include/ubpf.h` and `/usr/local/lib/libubpf.a`
+* Go 1.13.1
+* `clang-6.0 clang-format-6.0 curl doxygen gcc-7 git go-bindata libc6-dev-i386 libelf-dev libnuma-dev libssl-dev liburcu-dev rake socat sudo yamllint` packages
+  (add [ppa:ubuntu-toolchain-r/test](https://launchpad.net/~ubuntu-toolchain-r/+archive/ubuntu/test) on Ubuntu 16.04)
+* DPDK 19.08 with `CONFIG_RTE_BUILD_SHARED_LIB` `CONFIG_RTE_LIBRTE_BPF_ELF` `CONFIG_RTE_LIBRTE_PMD_OPENSSL` enabled, compiled with gcc-7, and installed to `/usr/local`
+* SPDK 19.07 shared libraries, compiled with gcc-7, and installed to `/usr/local`
+* [ubpf](https://github.com/iovisor/ubpf/tree/644ad3ded2f015878f502765081e166ce8112baf) library, compiled with gcc-7, and installed to `/usr/local/include/ubpf.h` and `/usr/local/lib/libubpf.a`
 * Node.js 12.x and `sudo npm install -g jayson`
 * Note: see [Dockerfile](./Dockerfile) on how to install dependencies.
 
@@ -22,7 +23,7 @@ Build steps:
 1. Clone repository into `$GOPATH/src/ndn-dpdk`.
 2. Execute `npm install` to download NPM dependencies.
 3. Execute `make godeps` to compile C code and generate certain Go/TypeScript source files.
-4. Execute `go get -d -t ./...` to download Go dependencies.
+4. Execute `make goget` to download Go dependencies.
 5. Execute `make cmds` to install Go commands to `$GOPATH/bin`.
 6. Execute `make tsc` to build TypeScript modules and commands.
 

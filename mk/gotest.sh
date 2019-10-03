@@ -1,4 +1,5 @@
 #!/bin/bash
+source mk/cflags.sh
 
 getTestPkg() {
   # determine $TESTPKG from $PKG

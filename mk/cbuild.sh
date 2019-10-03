@@ -1,13 +1,11 @@
 #!/bin/bash
 set -e
-CC=${CC:-gcc}
+source mk/cflags.sh
 
 if [[ $# -ne 1 ]]; then
   echo 'USAGE: mk/cbuild.sh [directory|file]' >/dev/stderr
   exit 1
 fi
-
-source mk/cflags.sh
 
 if [[ -f $1 ]]; then
   CFILE=$1

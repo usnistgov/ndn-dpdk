@@ -18,6 +18,7 @@ addons:
       - clang-format-6.0
       - curl
       - doxygen
+      - gcc-7
       - gcc-multilib
       - go-bindata
       - libelf-dev

@@ -1,5 +1,7 @@
-export CGO_CFLAGS_ALLOW='.*'
-export CC_FOR_TARGET=${CC:-gcc}
+CGO_CFLAGS_ALLOW := '.*'
+ifeq ($(CC),cc)
+	CC = gcc-7
+endif
 
 all: gopkg tsc cmds
 
@@ -24,6 +26,9 @@ cmds: cmd-ndnfw-dpdk cmd-ndnping-dpdk
 
 cmd-%: cmd/%/* godeps
 	go install ./cmd/$*
+
+goget:
+	go get -d -t ./...
 
 install:
 	mk/install.sh
