@@ -9,6 +9,9 @@ env:
     - UBPFCOMMIT=644ad3ded2f015878f502765081e166ce8112baf
     - DPDKVER=19.08
     - SPDKVER=19.07
+  matrix:
+    - TOOLCHAIN=gcc CC=gcc-7
+    - TOOLCHAIN=clang CC=clang-6.0
 
 addons:
   apt:
@@ -58,7 +61,7 @@ install:
     else
       curl -L http://fast.dpdk.org/rel/dpdk-$DPDKVER.tar.xz | tar -xJ
       cd dpdk-$DPDKVER
-      make config T=x86_64-native-linuxapp-gcc
+      make config T=x86_64-native-linuxapp-$TOOLCHAIN
       sed -ri 's,(CONFIG_RTE_BUILD_SHARED_LIB=).*,\1y,' build/.config
       sed -ri 's,(CONFIG_RTE_LIBRTE_BPF_ELF=).*,\1y,' build/.config
       sed -ri 's,(CONFIG_RTE_LIBRTE_PMD_OPENSSL=).*,\1y,' build/.config
@@ -92,6 +95,5 @@ script:
   - cd $GOPATH/src/ndn-dpdk
   - npm install
   - make godeps
-  - go get -d -t ./...
+  - make goget
   - make
-  - make lint

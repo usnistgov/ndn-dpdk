@@ -57,7 +57,7 @@ FwFwd_Run(FwFwd* fwd)
       ctx.rxFace = ctx.pkt->port;
       ctx.rxTime = ctx.pkt->timestamp;
       ctx.rxToken = Packet_GetLpL3Hdr(ctx.npkt)->pitToken;
-      ctx.eventKind = Packet_GetL3PktType(ctx.npkt);
+      ctx.eventKind = (SgEvent)Packet_GetL3PktType(ctx.npkt);
 
       TscDuration timeSinceRx = now - ctx.rxTime;
       RunningStat_Push1(&fwd->latencyStat, timeSinceRx);
