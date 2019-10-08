@@ -10,19 +10,19 @@
 
 typedef struct SgFibEntryDyn
 {
-  char _a[16];
+  char a_[16];
   char scratch[SG_FIB_DYN_SCRATCH];
 } SgFibEntryDyn;
 
 typedef struct SgFibEntry
 {
-  char _a[40];
+  char a_[520];
   SgFibEntryDyn* dyn;
-  char _b[7];
+  char b_[5];
   uint8_t nNexthops;
-  char _c[2];
+  char c_[2];
   FaceId nexthops[SG_FIB_ENTRY_MAX_NEXTHOPS];
-  char _d[500];
+  char d_[88];
 } SgFibEntry;
 
 typedef uint32_t SgFibNexthopFilter;

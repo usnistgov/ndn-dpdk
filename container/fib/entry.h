@@ -3,11 +3,13 @@
 
 /// \file
 
+#include "../../core/urcu/urcu.h"
 #include "../../iface/faceid.h"
 #include "../strategycode/strategy-code.h"
-#include "../tsht/node.h"
 
-#define FIB_ENTRY_MAX_NAME_LEN 500
+#include <urcu/rculfhash.h>
+
+#define FIB_ENTRY_MAX_NAME_LEN 494
 #define FIB_ENTRY_MAX_NEXTHOPS 8
 #define FIB_DYN_SCRATCH 96
 
@@ -34,14 +36,17 @@ FibEntryDyn_Copy(FibEntryDyn* dst, const FibEntryDyn* src)
  */
 typedef struct FibEntry
 {
-  TshtNode tshtNode;
+  struct cds_lfht_node lfhtnode;
+  char copyBegin_[0];
+  uint16_t nameL; ///< TLV-LENGTH of name
+  uint8_t nameV[FIB_ENTRY_MAX_NAME_LEN];
+  char cachelineA_[0];
 
   StrategyCode* strategy;
   FibEntryDyn* dyn;
 
   uint32_t seqNum; ///< sequence number to detect FIB changes
 
-  uint16_t nameL;    ///< TLV-LENGTH of name
   uint8_t nComps;    ///< number of name components
   uint8_t nNexthops; ///< number of nexthops
 
@@ -54,22 +59,28 @@ typedef struct FibEntry
    */
   uint8_t maxDepth;
 
-  bool shouldFreeDyn; ///< (private) read by Fib_FinalizeEntry
-
   FaceId nexthops[FIB_ENTRY_MAX_NEXTHOPS];
-  uint8_t nameV[FIB_ENTRY_MAX_NAME_LEN];
-} FibEntry;
+
+  char padB_[24];
+  char cachelineB_[0];
+  char copyEnd_[0];
+  struct rcu_head rcuhead;
+  bool shouldFreeDyn; ///< (private) read by Fib_FreeEntry
+} __rte_cache_aligned FibEntry;
 
 // FibEntry.nComps must be able to represent maximum number of name components that
 // can fit in FIB_ENTRY_MAX_NAME_LEN octets.
 static_assert(UINT8_MAX >= FIB_ENTRY_MAX_NAME_LEN / 2, "");
 
+static_assert(offsetof(FibEntry, cachelineA_) % RTE_CACHE_LINE_SIZE == 0, "");
+static_assert(offsetof(FibEntry, cachelineB_) % RTE_CACHE_LINE_SIZE == 0, "");
+
 static void
 FibEntry_Copy(FibEntry* dst, const FibEntry* src)
 {
-  rte_memcpy(RTE_PTR_ADD(dst, sizeof(dst->tshtNode)),
-             RTE_PTR_ADD(src, sizeof(src->tshtNode)),
-             sizeof(*src) + sizeof(src->tshtNode));
+  rte_memcpy(dst->copyBegin_,
+             src->copyBegin_,
+             offsetof(FibEntry, copyEnd_) - offsetof(FibEntry, copyBegin_));
 }
 
 /** \brief A filter over FIB nexthops.

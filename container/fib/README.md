@@ -24,7 +24,9 @@ FIB uses [fibtree](./fibtree/) package to maintain a tree of FIB entry names for
 
 ## C code
 
-`Fib` struct is a hash table, a customization of [Thread-Safe Hash Table (TSHT)](../tsht/).
+`Fib` struct is a thread-safe hash table.
+It combines a DPDK mempool and a URCU lock-free resizable RCU hash table (lfht).
+
 Key type is name TLV-VALUE.
 Hash value is SipHash of name.
 Element type is `FibEntry` that represents either a FIB entry or a virtual entry (in 2-stage LPM).

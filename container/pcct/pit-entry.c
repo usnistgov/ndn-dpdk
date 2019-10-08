@@ -42,6 +42,21 @@ PitEntry_ToDebugString(PitEntry* entry)
   return PccDebugString_Appendf("]");
 }
 
+const FibEntry*
+PitEntry_FindFibEntry(PitEntry* entry, Fib* fib)
+{
+  PInterest* interest = Packet_GetInterestHdr(entry->npkt);
+  LName name = { .length = entry->fibPrefixL, .value = interest->name.v };
+  if (unlikely(interest->activeFh >= 0)) {
+    name.value = interest->activeFhName.v;
+  }
+  const FibEntry* fibEntry = Fib_Find(fib, name, entry->fibPrefixHash);
+  if (unlikely(fibEntry == NULL || fibEntry->seqNum != entry->fibSeqNum)) {
+    return NULL;
+  }
+  return fibEntry;
+}
+
 void
 PitEntry_SetExpiryTimer(PitEntry* entry, Pit* pit)
 {

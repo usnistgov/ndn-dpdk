@@ -3,30 +3,30 @@
 
 /// \file
 
-#include "../tsht/tsht.h"
 #include "entry.h"
 
 /** \brief A partition of the Forwarding Information Base (FIB).
  *
- *  Fib* is Tsht* with \c FibPriv at its 'head' field.
+ *  Fib* is struct rte_mempool* with \c FibPriv is attached to its private data area.
  */
 typedef struct Fib
 {
 } Fib;
 
-/** \brief Cast Fib* as Tsht*.
+/** \brief Cast Fib* as rte_mempool*.
  */
-static Tsht*
-Fib_ToTsht(const Fib* fib)
+static struct rte_mempool*
+Fib_ToMempool(const Fib* fib)
 {
-  return (Tsht*)fib;
+  return (struct rte_mempool*)fib;
 }
 
 /** \brief TSHT private data for FIB.
  */
 typedef struct FibPriv
 {
-  int startDepth; ///< starting depth ('M' in 2-stage LPM paper)
+  struct cds_lfht* lfht; ///< URCU hashtable
+  int startDepth;        ///< starting depth ('M' of 2-stage LPM algorithm)
 } FibPriv;
 
 /** \brief Access FibPriv* struct.
@@ -34,7 +34,7 @@ typedef struct FibPriv
 static FibPriv*
 Fib_GetPriv(const Fib* fib)
 {
-  return Tsht_GetHead(Fib_ToTsht(fib), FibPriv);
+  return (FibPriv*)rte_mempool_get_priv(Fib_ToMempool(fib));
 }
 
 /** \brief Create a FIB.
@@ -51,29 +51,22 @@ Fib_New(const char* id,
         uint8_t startDepth);
 
 /** \brief Release all memory.
+ *  \pre Calling thread is registered as RCU read-side thread, but does not hold rcu_read_lock.
+ *  \post \p ht pointer is no longer valid.
+ *  \warning This function is non-thread-safe.
  */
-static void
-Fib_Close(Fib* fib)
-{
-  Tsht_Close(Fib_ToTsht(fib));
-}
+void
+Fib_Close(Fib* fib);
 
 /** \brief Allocate FIB entries from mempool.
  */
-static bool
-Fib_AllocBulk(Fib* fib, FibEntry* entries[], unsigned count)
-{
-  return Tsht_AllocBulk(Fib_ToTsht(fib), (TshtNode**)entries, count);
-}
+bool
+Fib_AllocBulk(Fib* fib, FibEntry* entries[], unsigned count);
 
 /** \brief Deallocate an unused FIB entry.
  */
-static void
-Fib_Free(Fib* fib, FibEntry* entry)
-{
-  assert(entry->strategy == NULL);
-  Tsht_Free(Fib_ToTsht(fib), &entry->tshtNode);
-}
+void
+Fib_Free(Fib* fib, FibEntry* entry);
 
 /** \brief Insert a FIB entry, or replace an existing entry with same name.
  *  \param entry an entry allocated from \c Fib_Alloc.
@@ -88,21 +81,15 @@ Fib_Insert(Fib* fib, FibEntry* entry);
  *  \return whether success
  *  \pre Calling thread holds rcu_read_lock.
  */
-static void
-Fib_Erase(Fib* fib, FibEntry* entry)
-{
-  Tsht_Erase(Fib_ToTsht(fib), &entry->tshtNode);
-}
+void
+Fib_Erase(Fib* fib, FibEntry* entry);
 
 /** \brief Perform exact match.
  *  \pre Calling thread holds rcu_read_lock, which must be retained until it stops
  *       using the returned entry.
  */
-static const FibEntry*
-Fib_Find(Fib* fib, LName name, uint64_t hash)
-{
-  return Tsht_FindT(Fib_ToTsht(fib), hash, &name, FibEntry);
-}
+const FibEntry*
+Fib_Find(Fib* fib, LName name, uint64_t hash);
 
 static const FibEntry*
 Fib_Find_(Fib* fib, uint16_t nameL, const uint8_t* nameV, uint64_t hash)

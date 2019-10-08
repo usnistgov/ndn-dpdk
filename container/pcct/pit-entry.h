@@ -134,20 +134,8 @@ PitEntry_RefreshFibEntry(PitEntry* entry,
  *  \pre Calling thread holds rcu_read_lock, which must be retained until it stops
  *       using the returned entry.
  */
-static const FibEntry*
-PitEntry_FindFibEntry(PitEntry* entry, Fib* fib)
-{
-  PInterest* interest = Packet_GetInterestHdr(entry->npkt);
-  LName name = { .length = entry->fibPrefixL, .value = interest->name.v };
-  if (unlikely(interest->activeFh >= 0)) {
-    name.value = interest->activeFhName.v;
-  }
-  const FibEntry* fibEntry = Fib_Find(fib, name, entry->fibPrefixHash);
-  if (unlikely(fibEntry == NULL || fibEntry->seqNum != entry->fibSeqNum)) {
-    return NULL;
-  }
-  return fibEntry;
-}
+const FibEntry*
+PitEntry_FindFibEntry(PitEntry* entry, Fib* fib);
 
 /** \brief Set timer to erase PIT entry when its last PitDn expires.
  */
