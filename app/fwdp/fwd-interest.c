@@ -6,14 +6,14 @@
 
 INIT_ZF_LOG(FwFwd);
 
-static const FibEntry*
+static FibEntry*
 FwFwd_InterestLookupFib(FwFwd* fwd, Packet* npkt, FibNexthopFilter* nhFlt)
 {
   PInterest* interest = Packet_GetInterestHdr(npkt);
   FaceId dnFace = Packet_ToMbuf(npkt)->port;
 
   if (likely(interest->nFhs == 0)) {
-    const FibEntry* entry = Fib_Lpm(fwd->fib, &interest->name);
+    FibEntry* entry = Fib_Lpm(fwd->fib, &interest->name);
     if (unlikely(entry == NULL)) {
       return NULL;
     }
@@ -32,7 +32,7 @@ FwFwd_InterestLookupFib(FwFwd* fwd, Packet* npkt, FibNexthopFilter* nhFlt)
       return false;
     }
 
-    const FibEntry* entry = Fib_Lpm(fwd->fib, &interest->activeFhName);
+    FibEntry* entry = Fib_Lpm(fwd->fib, &interest->activeFhName);
     if (unlikely(entry == NULL)) {
       continue;
     }
@@ -133,7 +133,7 @@ FwFwd_RxInterest(FwFwd* fwd, FwFwdCtx* ctx)
           interest->activeFh,
           ctx->fibEntry->nComps,
           ctx->fibEntry->strategy->id);
-  ++ctx->fibEntry->dyn->nRxInterests;
+  ++ctx->fibEntry->nRxInterests;
 
   // lookup PIT-CS
   PitInsertResult pitIns = Pit_Insert(fwd->pit, ctx->npkt, ctx->fibEntry);
@@ -225,7 +225,7 @@ SgForwardInterest(SgCtx* ctx0, FaceId nh)
           upHopLimit,
           token);
   Face_Tx(nh, outNpkt);
-  ++ctx->fibEntry->dyn->nTxInterests;
+  ++ctx->fibEntry->nTxInterests;
 
   PitUp_RecordTx(up, ctx->pitEntry, now, upNonce, &fwd->suppressCfg);
   ++ctx->nForwarded;

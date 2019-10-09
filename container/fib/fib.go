@@ -59,23 +59,8 @@ func New(cfg Config, ndt *ndt.Ndt, numaSockets []dpdk.NumaSocket) (fib *Fib, e e
 }
 
 // Get number of entries.
-// This excludes virtual entries. Replicated entries count only once.
 func (fib *Fib) Len() int {
 	return fib.tree.CountEntries()
-}
-
-// Get number of partitions.
-func (fib *Fib) CountPartitions() int {
-	return len(fib.parts)
-}
-
-// Count number of entries in all partitions.
-// This includes virtual entries. Replicated entries count multiple times.
-func (fib *Fib) CountEntries() (n int) {
-	for _, part := range fib.parts {
-		n += part.nEntries
-	}
-	return n
 }
 
 // Get *C.Fib pointer for specified partition.

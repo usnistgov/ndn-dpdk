@@ -9,20 +9,6 @@ Fib_LookupMatch(struct cds_lfht_node* lfhtnode, const void* key0)
          memcmp(entry->nameV, key->value, key->length) == 0;
 }
 
-static void
-Fib_FreeEntry(struct rcu_head* rcuhead)
-{
-  FibEntry* entry = container_of(rcuhead, FibEntry, rcuhead);
-  if (likely(entry->dyn != NULL) && entry->shouldFreeDyn) {
-    struct rte_mempool* dynMp = rte_mempool_from_obj(entry->dyn);
-    rte_mempool_put(dynMp, entry->dyn);
-  }
-  if (likely(entry->strategy != NULL)) {
-    StrategyCode_Unref(entry->strategy);
-  }
-  rte_mempool_put(rte_mempool_from_obj(entry), entry);
-}
-
 Fib*
 Fib_New(const char* id,
         uint32_t maxEntries,
@@ -52,6 +38,7 @@ Fib_New(const char* id,
     return NULL;
   }
   fibp->startDepth = startDepth;
+  fibp->insertSeqNum = 0;
   return fib;
 }
 
@@ -80,56 +67,115 @@ Fib_AllocBulk(Fib* fib, FibEntry* entries[], unsigned count)
   }
 
   for (unsigned i = 0; i < count; ++i) {
-    cds_lfht_node_init(&entries[i]->lfhtnode);
+    FibEntry* entry = entries[i];
+    memset(entry, 0, sizeof(*entry));
+    cds_lfht_node_init(&entry->lfhtnode);
   }
   return true;
+}
+
+static void
+Fib_Free_(FibEntry* entry)
+{
+  rte_mempool_put(rte_mempool_from_obj(entry), entry);
 }
 
 void
 Fib_Free(Fib* fib, FibEntry* entry)
 {
-  assert(entry->strategy == NULL);
-  rte_mempool_put(Fib_ToMempool(fib), entry);
+  Fib_Free_(entry);
 }
 
-bool
-Fib_Insert(Fib* fib, FibEntry* entry)
+static void
+Fib_RcuFreeVirt(struct rcu_head* rcuhead)
+{
+  FibEntry* oldVirt = container_of(rcuhead, FibEntry, rcuhead);
+  assert(oldVirt->maxDepth > 0);
+  assert(oldVirt->nNexthops == 0);
+  Fib_Free_(oldVirt);
+}
+
+static void
+Fib_RcuFreeReal(struct rcu_head* rcuhead)
+{
+  FibEntry* oldReal = container_of(rcuhead, FibEntry, rcuhead);
+  assert(oldReal->maxDepth == 0);
+  assert(oldReal->nNexthops > 0);
+  StrategyCode_Unref(oldReal->strategy);
+  Fib_Free_(oldReal);
+}
+
+static void
+Fib_FreeOld_(FibEntry* entry, Fib_FreeOld freeVirt, Fib_FreeOld freeReal)
+{
+  FibEntry* oldReal = NULL;
+  if (entry != NULL && entry->maxDepth > 0) {
+    FibEntry* oldVirt = entry;
+    oldReal = oldVirt->realEntry;
+    assert(freeVirt != Fib_FreeOld_MustNotExist);
+    if (freeVirt == Fib_FreeOld_Yes || freeVirt == Fib_FreeOld_YesIfExists) {
+      call_rcu(&oldVirt->rcuhead, Fib_RcuFreeVirt);
+    }
+  } else {
+    oldReal = entry;
+    assert(freeVirt == Fib_FreeOld_MustNotExist ||
+           freeVirt == Fib_FreeOld_YesIfExists);
+  }
+
+  if (oldReal != NULL) {
+    assert(freeReal != Fib_FreeOld_MustNotExist);
+    if (freeReal == Fib_FreeOld_Yes || freeReal == Fib_FreeOld_YesIfExists) {
+      call_rcu(&oldReal->rcuhead, Fib_RcuFreeReal);
+    }
+  } else {
+    assert(freeReal == Fib_FreeOld_MustNotExist ||
+           freeReal == Fib_FreeOld_YesIfExists);
+  }
+}
+
+void
+Fib_Insert(Fib* fib,
+           FibEntry* entry,
+           Fib_FreeOld freeVirt,
+           Fib_FreeOld freeReal)
 {
   FibPriv* fibp = Fib_GetPriv(fib);
 
-  if (likely(entry->strategy != NULL)) {
+  if (entry->maxDepth == 0) {
+    assert(entry->nNexthops > 0);
     StrategyCode_Ref(entry->strategy);
-    assert(entry->dyn != NULL);
   } else {
     assert(entry->nNexthops == 0);
+    FibEntry* newReal = entry->realEntry;
+    if (newReal != NULL) {
+      assert(newReal->maxDepth == 0);
+      assert(newReal->nNexthops > 0);
+      StrategyCode_Ref(newReal->strategy);
+      newReal->seqNum = ++fibp->insertSeqNum;
+    }
   }
+  entry->seqNum = ++fibp->insertSeqNum;
 
   LName name = { .length = entry->nameL, .value = entry->nameV };
   uint64_t hash = LName_ComputeHash(name);
   struct cds_lfht_node* oldNode = cds_lfht_add_replace(
     fibp->lfht, hash, Fib_LookupMatch, &name, &entry->lfhtnode);
-  if (oldNode == NULL) {
-    return true;
-  }
-
-  FibEntry* oldEntry = container_of(oldNode, FibEntry, lfhtnode);
-  call_rcu(&oldEntry->rcuhead, Fib_FreeEntry);
-  return false;
+  FibEntry* oldEntry =
+    oldNode == NULL ? NULL : container_of(oldNode, FibEntry, lfhtnode);
+  Fib_FreeOld_(oldEntry, freeVirt, freeReal);
 }
 
 void
-Fib_Erase(Fib* fib, FibEntry* entry)
+Fib_Erase(Fib* fib, FibEntry* entry, Fib_FreeOld freeVirt, Fib_FreeOld freeReal)
 {
   FibPriv* fibp = Fib_GetPriv(fib);
   bool ok = cds_lfht_del(fibp->lfht, &entry->lfhtnode) == 0;
-
-  if (likely(ok)) {
-    call_rcu(&entry->rcuhead, Fib_FreeEntry);
-  }
+  assert(ok);
+  Fib_FreeOld_(entry, freeVirt, freeReal);
 }
 
-const FibEntry*
-Fib_Find(Fib* fib, LName name, uint64_t hash)
+FibEntry*
+Fib_Get(Fib* fib, LName name, uint64_t hash)
 {
   FibPriv* fibp = Fib_GetPriv(fib);
 
@@ -142,19 +188,17 @@ Fib_Find(Fib* fib, LName name, uint64_t hash)
   return container_of(lfhtnode, FibEntry, lfhtnode);
 }
 
-static const FibEntry*
+static FibEntry*
 Fib_GetEntryByPrefix(Fib* fib,
                      const PName* name,
                      const uint8_t* nameV,
                      uint16_t prefixLen)
 {
   uint64_t hash = PName_ComputePrefixHash(name, nameV, prefixLen);
-  LName key = { .length = PName_SizeofPrefix(name, nameV, prefixLen),
-                .value = nameV };
-  return Fib_Find(fib, key, hash);
+  return Fib_Get_(fib, PName_SizeofPrefix(name, nameV, prefixLen), nameV, hash);
 }
 
-const FibEntry*
+FibEntry*
 Fib_Lpm_(Fib* fib, const PName* name, const uint8_t* nameV)
 {
   FibPriv* fibp = Fib_GetPriv(fib);
@@ -162,8 +206,7 @@ Fib_Lpm_(Fib* fib, const PName* name, const uint8_t* nameV)
   // first stage
   int prefixLen = name->nComps;
   if (fibp->startDepth < prefixLen) {
-    const FibEntry* entry =
-      Fib_GetEntryByPrefix(fib, name, nameV, fibp->startDepth);
+    FibEntry* entry = Fib_GetEntryByPrefix(fib, name, nameV, fibp->startDepth);
     if (entry == NULL) { // continue to shorter prefixes
       prefixLen = fibp->startDepth - 1;
     } else if (entry->maxDepth > 0) { // restart at a longest prefix
@@ -171,15 +214,16 @@ Fib_Lpm_(Fib* fib, const PName* name, const uint8_t* nameV)
       if (prefixLen > name->nComps) {
         prefixLen = name->nComps;
       }
-    } else if (entry->nNexthops > 0) { // the start entry itself is a match
-      return entry;
+    } else if (entry->realEntry != NULL) { // the start entry itself is a match
+      return entry->realEntry;
     }
   }
 
   // second stage
   for (; prefixLen >= 0; --prefixLen) {
-    const FibEntry* entry = Fib_GetEntryByPrefix(fib, name, nameV, prefixLen);
-    if (entry != NULL && entry->nNexthops > 0) {
+    FibEntry* entry =
+      FibEntry_GetReal(Fib_GetEntryByPrefix(fib, name, nameV, prefixLen));
+    if (entry != NULL) {
       return entry;
     }
   }

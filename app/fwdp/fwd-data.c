@@ -74,7 +74,7 @@ FwFwd_DataSatisfy(FwFwd* fwd, FwFwdCtx* ctx)
   }
 
   if (likely(ctx->fibEntry != NULL)) {
-    ++ctx->fibEntry->dyn->nRxData;
+    ++ctx->fibEntry->nRxData;
     uint64_t res = SgInvoke(ctx->fibEntry->strategy, ctx);
     ZF_LOGD("^ fib-entry-depth=%" PRIu8 " sg-id=%d sg-res=%" PRIu64,
             ctx->fibEntry->nComps,

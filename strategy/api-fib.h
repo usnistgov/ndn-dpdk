@@ -6,23 +6,22 @@
 #include "api-common.h"
 
 #define SG_FIB_ENTRY_MAX_NEXTHOPS 8
-#define SG_FIB_DYN_SCRATCH 96
+#define SG_FIB_ENTRY_SCRATCH 96
 
 typedef struct SgFibEntryDyn
 {
   char a_[16];
-  char scratch[SG_FIB_DYN_SCRATCH];
 } SgFibEntryDyn;
 
 typedef struct SgFibEntry
 {
-  char a_[520];
-  SgFibEntryDyn* dyn;
-  char b_[5];
+  char a_[525];
   uint8_t nNexthops;
-  char c_[2];
+  char b_[2];
   FaceId nexthops[SG_FIB_ENTRY_MAX_NEXTHOPS];
-  char d_[88];
+  char c_[32];
+  char scratch[SG_FIB_ENTRY_SCRATCH];
+  char d_[96];
 } SgFibEntry;
 
 typedef uint32_t SgFibNexthopFilter;

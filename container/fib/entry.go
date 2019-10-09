@@ -2,11 +2,17 @@ package fib
 
 /*
 #include "entry.h"
+
+void**
+FibEntry_GetStrategyPtr_(FibEntry* entry)
+{
+	assert(entry->maxDepth == 0);
+	return (void**)&entry->strategy;
+}
 */
 import "C"
 import (
 	"fmt"
-	"unsafe"
 
 	"ndn-dpdk/container/strategycode"
 	"ndn-dpdk/iface"
@@ -15,8 +21,6 @@ import (
 
 const MAX_NAME_LEN = int(C.FIB_ENTRY_MAX_NAME_LEN)
 const MAX_NEXTHOPS = int(C.FIB_ENTRY_MAX_NEXTHOPS)
-
-var emptyEntry Entry
 
 type Entry struct {
 	c C.FibEntry
@@ -82,9 +86,9 @@ func (entry *Entry) SetNexthops(nexthops []iface.FaceId) error {
 }
 
 func (entry *Entry) GetStrategy() strategycode.StrategyCode {
-	return strategycode.FromPtr(unsafe.Pointer(entry.c.strategy))
+	return strategycode.FromPtr(*(C.FibEntry_GetStrategyPtr_(&entry.c)))
 }
 
 func (entry *Entry) SetStrategy(sc strategycode.StrategyCode) {
-	entry.c.strategy = (*C.StrategyCode)(sc.GetPtr())
+	*(C.FibEntry_GetStrategyPtr_(&entry.c)) = sc.GetPtr()
 }

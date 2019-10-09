@@ -11,30 +11,13 @@
 
 #define FIB_ENTRY_MAX_NAME_LEN 494
 #define FIB_ENTRY_MAX_NEXTHOPS 8
-#define FIB_DYN_SCRATCH 96
+#define FIB_ENTRY_SCRATCH 96
 
-/** \brief Counters and strategy scratch area on FIB entry.
- */
-typedef struct FibEntryDyn
-{
-  uint32_t nRxInterests;
-  uint32_t nRxData;
-  uint32_t nRxNacks;
-  uint32_t nTxInterests;
-
-  char scratch[FIB_DYN_SCRATCH];
-} FibEntryDyn;
-
-static void
-FibEntryDyn_Copy(FibEntryDyn* dst, const FibEntryDyn* src)
-{
-  rte_memcpy(dst, src, offsetof(FibEntryDyn, scratch));
-  memset(dst->scratch, 0, sizeof(dst->scratch));
-}
+typedef struct FibEntry FibEntry;
 
 /** \brief A FIB entry.
  */
-typedef struct FibEntry
+struct FibEntry
 {
   struct cds_lfht_node lfhtnode;
   char copyBegin_[0];
@@ -42,8 +25,18 @@ typedef struct FibEntry
   uint8_t nameV[FIB_ENTRY_MAX_NAME_LEN];
   char cachelineA_[0];
 
-  StrategyCode* strategy;
-  FibEntryDyn* dyn;
+  union
+  {
+    /** \brief Forwarding strategy.
+     *  \pre maxDepth == 0
+     */
+    StrategyCode* strategy;
+
+    /** \brief Real FIB entry.
+     *  \pre maxDepth > 0
+     */
+    FibEntry* realEntry;
+  };
 
   uint32_t seqNum; ///< sequence number to detect FIB changes
 
@@ -52,21 +45,30 @@ typedef struct FibEntry
 
   /** \brief maximum potential LPM match relative to this entry
    *
-   *  This field is known as '(MD - M)' in 2-stage LPM paper.
+   *  This field is known as '(MD - M)' in 2-stage LPM algorithm.
    *  This number must be no less than the depth of all FIB entries whose name starts
    *  with the name of this FIB entry, minus the depth of this entry.
    *  'depth' means number of name components.
+   *
+   *  \pre nComps == startDepth
    */
   uint8_t maxDepth;
 
   FaceId nexthops[FIB_ENTRY_MAX_NEXTHOPS];
 
-  char padB_[24];
-  char cachelineB_[0];
+  uint32_t nRxInterests;
+  uint32_t nRxData;
+  uint32_t nRxNacks;
+  uint32_t nTxInterests;
   char copyEnd_[0];
+  char padB_[16];
+  char cachelineB_[0];
+
+  char scratch[FIB_ENTRY_SCRATCH];
+  char padC_[32];
+  char cachelineC_[0];
   struct rcu_head rcuhead;
-  bool shouldFreeDyn; ///< (private) read by Fib_FreeEntry
-} __rte_cache_aligned FibEntry;
+} __rte_cache_aligned;
 
 // FibEntry.nComps must be able to represent maximum number of name components that
 // can fit in FIB_ENTRY_MAX_NAME_LEN octets.
@@ -74,6 +76,7 @@ static_assert(UINT8_MAX >= FIB_ENTRY_MAX_NAME_LEN / 2, "");
 
 static_assert(offsetof(FibEntry, cachelineA_) % RTE_CACHE_LINE_SIZE == 0, "");
 static_assert(offsetof(FibEntry, cachelineB_) % RTE_CACHE_LINE_SIZE == 0, "");
+static_assert(offsetof(FibEntry, cachelineC_) % RTE_CACHE_LINE_SIZE == 0, "");
 
 static void
 FibEntry_Copy(FibEntry* dst, const FibEntry* src)
@@ -81,6 +84,15 @@ FibEntry_Copy(FibEntry* dst, const FibEntry* src)
   rte_memcpy(dst->copyBegin_,
              src->copyBegin_,
              offsetof(FibEntry, copyEnd_) - offsetof(FibEntry, copyBegin_));
+}
+
+static FibEntry*
+FibEntry_GetReal(FibEntry* entry)
+{
+  if (unlikely(entry == NULL) || likely(entry->maxDepth == 0)) {
+    return entry;
+  }
+  return entry->realEntry;
 }
 
 /** \brief A filter over FIB nexthops.

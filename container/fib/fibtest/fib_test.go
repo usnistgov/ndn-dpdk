@@ -21,35 +21,35 @@ func TestFibInsertErase(t *testing.T) {
 
 	fib := fixture.Fib
 	assert.Equal(0, fib.Len())
-	assert.Equal(0, fixture.CountMpInUse(0))
+	assert.Equal(0, fixture.CountEntries())
 
 	nameA := ndn.MustParseName("/A")
 	assert.Nil(fib.Find(nameA))
 
 	_, e := fib.Insert(fixture.MakeEntry("/A", badStrategy, 2851))
 	assert.Error(e) // cannot insert: entry has no strategy
-	assert.Equal(0, fixture.CountMpInUse(0))
+	assert.Equal(0, fixture.CountEntries())
 
 	_, e = fib.Insert(fixture.MakeEntry("/A", strategyP))
 	assert.Error(e) // cannot insert: entry has no nexthop
-	assert.Equal(0, fixture.CountMpInUse(0))
+	assert.Equal(0, fixture.CountEntries())
 	assert.Equal(0, strategyP.CountRefs())
 
 	isNew, e := fib.Insert(fixture.MakeEntry("/A", strategyP, 4076))
 	assert.NoError(e)
 	assert.True(isNew)
 	assert.Equal(1, fib.Len())
-	assert.Equal(1, fixture.CountMpInUse(0))
+	assert.Equal(1, fixture.CountEntries())
 	assert.Equal(1, strategyP.CountRefs())
 
 	isNew, e = fib.Insert(fixture.MakeEntry("/A", strategyP, 3092))
 	assert.NoError(e)
 	assert.False(isNew)
 	assert.Equal(1, fib.Len())
-	assert.True(fixture.CountMpInUse(0) >= 1)
+	assert.True(fixture.CountEntries() >= 1)
 	assert.True(strategyP.CountRefs() >= 1)
 	urcu.Barrier()
-	assert.Equal(1, fixture.CountMpInUse(0))
+	assert.Equal(1, fixture.CountEntries())
 	assert.Equal(1, strategyP.CountRefs())
 	entryA := fib.Find(nameA)
 	require.NotNil(entryA)
@@ -60,12 +60,12 @@ func TestFibInsertErase(t *testing.T) {
 	assert.NoError(e)
 	assert.False(isNew)
 	assert.Equal(1, fib.Len())
-	assert.True(fixture.CountMpInUse(0) >= 1)
+	assert.True(fixture.CountEntries() >= 1)
 	assert.True(strategyP.CountRefs() >= 0)
 	assert.Equal(1, strategyQ.CountRefs())
 	urcu.Barrier()
 	assert.Equal(0, strategyP.CountRefs())
-	assert.Equal(1, fixture.CountMpInUse(0))
+	assert.Equal(1, fixture.CountEntries())
 	assert.Equal(1, strategyQ.CountRefs())
 
 	entryA = fib.Find(nameA)
@@ -86,7 +86,7 @@ func TestFibInsertErase(t *testing.T) {
 	assert.Equal(0, fib.Len())
 	urcu.Barrier()
 	assert.Equal(0, strategyQ.CountRefs())
-	assert.Equal(0, fixture.CountMpInUse(0))
+	assert.Equal(0, fixture.CountEntries())
 }
 
 func TestFibLpm(t *testing.T) {
@@ -106,14 +106,14 @@ func TestFibLpm(t *testing.T) {
 
 	fib.Insert(fixture.MakeEntry("/", strategyP, 5000))
 	fib.Insert(fixture.MakeEntry("/A", strategyP, 5001))
-	fib.Insert(fixture.MakeEntry("/A/B/C", strategyP, 5002))
+	fib.Insert(fixture.MakeEntry("/A/B/C", strategyP, 5002)) // + virtual /A/B
 	fib.Insert(fixture.MakeEntry("/M/N", strategyP, 5003))
-	fib.Insert(fixture.MakeEntry("/M/N/O", strategyP, 5004))
-	fib.Insert(fixture.MakeEntry("/X/Y/Z", strategyP, 5005))
+	fib.Insert(fixture.MakeEntry("/M/N/O", strategyP, 5004)) // + virtual /M/N
+	fib.Insert(fixture.MakeEntry("/X/Y/Z", strategyP, 5005)) // + virtual /X/Y
 	fib.Insert(fixture.MakeEntry("/X/Y", strategyP, 5006))
 	fib.Insert(fixture.MakeEntry("/X", strategyP, 5007))
 	assert.Equal(8, fib.Len())
-	assert.Equal(9, fib.CountEntries()) // '/A/B' is the only virtual entry
+	assert.Equal(11, fixture.CountEntries())
 
 	names := fib.ListNames()
 	assert.Len(names, 8)
@@ -142,15 +142,20 @@ func TestFibLpm(t *testing.T) {
 
 	assert.NoError(fib.Erase(ndn.MustParseName("/")))
 	assert.Equal(7, fib.Len())
-	assert.Equal(8, fib.CountEntries())
+	assert.Equal(10, fixture.CountEntries())
 
-	assert.NoError(fib.Erase(ndn.MustParseName("/A/B/C")))
+	assert.NoError(fib.Erase(ndn.MustParseName("/A/B/C"))) // - virtual /A/B
 	assert.Equal(6, fib.Len())
-	assert.Equal(6, fib.CountEntries()) // '/A/B' is gone
+	assert.Equal(8, fixture.CountEntries())
 
-	assert.NoError(fib.Erase(ndn.MustParseName("/M/N")))
-	assert.NoError(fib.Erase(ndn.MustParseName("/X/Y")))
+	assert.NoError(fib.Erase(ndn.MustParseName("/M/N/O"))) // - virtual /M/N
+	assert.Equal(5, fib.Len())
+	assert.Equal(6, fixture.CountEntries())
+	assert.Equal(5003, lpm("/M/N")) // real /M/N stays
+
+	assert.NoError(fib.Erase(ndn.MustParseName("/X/Y"))) // - real /X/Y
 	assert.Equal(4, fib.Len())
-	assert.Equal(6, fib.CountEntries()) // '/M/N' and '/X/Y' become virtual
+	assert.Equal(5, fixture.CountEntries())
+	assert.Equal(5005, lpm("/X/Y/Z/W")) // virtual /X/Y stays
 	assert.Len(fib.ListNames(), 4)
 }

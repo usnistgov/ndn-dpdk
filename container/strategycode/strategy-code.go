@@ -17,6 +17,10 @@ type StrategyCode struct {
 	c *C.StrategyCode
 }
 
+func (sc StrategyCode) Valid() bool {
+	return sc.c != nil
+}
+
 func (sc StrategyCode) GetPtr() unsafe.Pointer {
 	return unsafe.Pointer(sc.c)
 }

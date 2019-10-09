@@ -18,10 +18,10 @@ type EntryCounters struct {
 
 // Add an entry's counters into cnt.
 func (cnt *EntryCounters) Add(entry *Entry) {
-	cnt.NRxInterests += uint64(entry.c.dyn.nRxInterests)
-	cnt.NRxData += uint64(entry.c.dyn.nRxData)
-	cnt.NRxNacks += uint64(entry.c.dyn.nRxNacks)
-	cnt.NTxInterests += uint64(entry.c.dyn.nTxInterests)
+	cnt.NRxInterests += uint64(entry.c.nRxInterests)
+	cnt.NRxData += uint64(entry.c.nRxData)
+	cnt.NRxNacks += uint64(entry.c.nRxNacks)
+	cnt.NTxInterests += uint64(entry.c.nTxInterests)
 }
 
 func (cnt EntryCounters) String() string {

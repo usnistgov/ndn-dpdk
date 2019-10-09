@@ -134,7 +134,7 @@ PitEntry_RefreshFibEntry(PitEntry* entry,
  *  \pre Calling thread holds rcu_read_lock, which must be retained until it stops
  *       using the returned entry.
  */
-const FibEntry*
+FibEntry*
 PitEntry_FindFibEntry(PitEntry* entry, Fib* fib);
 
 /** \brief Set timer to erase PIT entry when its last PitDn expires.

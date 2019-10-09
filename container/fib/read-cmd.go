@@ -39,7 +39,10 @@ func (fib *Fib) Find(name *ndn.Name) (entry *Entry) {
 func (fib *Fib) FindInPartition(name *ndn.Name, partition int, rs *urcu.ReadSide) (entry *Entry) {
 	rs.Lock()
 	defer rs.Unlock()
-	return entryFromC(fib.parts[partition].Find(name))
+	nameV := name.GetValue()
+	hash := name.ComputeHash()
+	return entryFromC(C.Fib_Find_(fib.parts[partition].c, C.uint16_t(len(nameV)),
+		(*C.uint8_t)(nameV.GetPtr()), C.uint64_t(hash)))
 }
 
 // Determine what partitions would a name appear in.

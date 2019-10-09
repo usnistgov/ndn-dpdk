@@ -107,7 +107,7 @@ FwFwd_RxNackDuplicate(FwFwd* fwd, FwFwdCtx* ctx)
           token);
   Face_Tx(ctx->pitUp->face, outNpkt);
   if (ctx->fibEntry != NULL) {
-    ++ctx->fibEntry->dyn->nTxInterests;
+    ++ctx->fibEntry->nTxInterests;
   }
 
   PitUp_RecordTx(ctx->pitUp, ctx->pitEntry, now, upNonce, &fwd->suppressCfg);
@@ -174,7 +174,7 @@ FwFwd_ProcessNack(FwFwd* fwd, FwFwdCtx* ctx)
   rcu_read_lock();
   ctx->fibEntry = PitEntry_FindFibEntry(ctx->pitEntry, fwd->fib);
   if (likely(ctx->fibEntry != NULL)) {
-    ++ctx->fibEntry->dyn->nRxNacks;
+    ++ctx->fibEntry->nRxNacks;
   }
 
   // Duplicate: record rejected nonce, resend with an alternate nonce if possible

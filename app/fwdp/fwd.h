@@ -75,9 +75,9 @@ typedef struct FwFwdCtx
   {
     Packet* npkt;
     struct rte_mbuf* pkt;
-  };                        // F,D,N
-  const FibEntry* fibEntry; // T,I,D,N
-  PitEntry* pitEntry;       // T,I,D,N
+  };                  // F,D,N
+  FibEntry* fibEntry; // T,I,D,N
+  PitEntry* pitEntry; // T,I,D,N
 
   // end of SgCtx fields
   char endofSgCtx[0];

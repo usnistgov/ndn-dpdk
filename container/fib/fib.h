@@ -27,6 +27,7 @@ typedef struct FibPriv
 {
   struct cds_lfht* lfht; ///< URCU hashtable
   int startDepth;        ///< starting depth ('M' of 2-stage LPM algorithm)
+  uint32_t insertSeqNum;
 } FibPriv;
 
 /** \brief Access FibPriv* struct.
@@ -68,44 +69,75 @@ Fib_AllocBulk(Fib* fib, FibEntry* entries[], unsigned count);
 void
 Fib_Free(Fib* fib, FibEntry* entry);
 
+typedef enum Fib_FreeOld
+{
+  Fib_FreeOld_MustNotExist = -1,
+  Fib_FreeOld_No = 0,
+  Fib_FreeOld_Yes = 1,
+  Fib_FreeOld_YesIfExists = 2,
+} Fib_FreeOld;
+
 /** \brief Insert a FIB entry, or replace an existing entry with same name.
  *  \param entry an entry allocated from \c Fib_Alloc.
- *  \retval true new entry inserted.
- *  \retval false old entry replaced by new entry.
- *  \pre Calling thread holds rcu_read_lock.
- */
-bool
-Fib_Insert(Fib* fib, FibEntry* entry);
-
-/** \brief Erase given FIB entry.
- *  \return whether success
  *  \pre Calling thread holds rcu_read_lock.
  */
 void
-Fib_Erase(Fib* fib, FibEntry* entry);
+Fib_Insert(Fib* fib,
+           FibEntry* entry,
+           Fib_FreeOld freeVirt,
+           Fib_FreeOld freeReal);
+
+/** \brief Erase given FIB entry.
+ *  \pre Calling thread holds rcu_read_lock.
+ */
+void
+Fib_Erase(Fib* fib,
+          FibEntry* entry,
+          Fib_FreeOld freeVirt,
+          Fib_FreeOld freeReal);
+
+/** \brief Retrieve FIB entry.
+ *  \pre Calling thread holds rcu_read_lock, which must be retained until it stops
+ *       using the returned entry.
+ *  \return Virtual or real entry, or NULL if it does not exist.
+ */
+FibEntry*
+Fib_Get(Fib* fib, LName name, uint64_t hash);
+
+static FibEntry*
+Fib_Get_(Fib* fib, uint16_t nameL, const uint8_t* nameV, uint64_t hash)
+{
+  LName name = { .length = nameL, .value = nameV };
+  return Fib_Get(fib, name, hash);
+}
 
 /** \brief Perform exact match.
  *  \pre Calling thread holds rcu_read_lock, which must be retained until it stops
  *       using the returned entry.
+ *  \return Real entry, or NULL if it does not exist.
  */
-const FibEntry*
-Fib_Find(Fib* fib, LName name, uint64_t hash);
+static FibEntry*
+Fib_Find(Fib* fib, LName name, uint64_t hash)
+{
+  return FibEntry_GetReal(Fib_Get(fib, name, hash));
+}
 
-static const FibEntry*
+static FibEntry*
 Fib_Find_(Fib* fib, uint16_t nameL, const uint8_t* nameV, uint64_t hash)
 {
   LName name = { .length = nameL, .value = nameV };
   return Fib_Find(fib, name, hash);
 }
 
-const FibEntry*
+FibEntry*
 Fib_Lpm_(Fib* fib, const PName* name, const uint8_t* nameV);
 
 /** \brief Perform longest prefix match.
  *  \pre Calling thread holds rcu_read_lock, which must be retained until it stops
  *       using the returned entry.
+ *  \return Real entry, or NULL if it does not exist.
  */
-static const FibEntry*
+static FibEntry*
 Fib_Lpm(Fib* fib, const Name* name)
 {
   return Fib_Lpm_(fib, &name->p, name->v);

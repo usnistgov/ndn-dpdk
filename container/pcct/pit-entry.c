@@ -42,7 +42,7 @@ PitEntry_ToDebugString(PitEntry* entry)
   return PccDebugString_Appendf("]");
 }
 
-const FibEntry*
+FibEntry*
 PitEntry_FindFibEntry(PitEntry* entry, Fib* fib)
 {
   PInterest* interest = Packet_GetInterestHdr(entry->npkt);
@@ -50,7 +50,7 @@ PitEntry_FindFibEntry(PitEntry* entry, Fib* fib)
   if (unlikely(interest->activeFh >= 0)) {
     name.value = interest->activeFhName.v;
   }
-  const FibEntry* fibEntry = Fib_Find(fib, name, entry->fibPrefixHash);
+  FibEntry* fibEntry = Fib_Find(fib, name, entry->fibPrefixHash);
   if (unlikely(fibEntry == NULL || fibEntry->seqNum != entry->fibSeqNum)) {
     return NULL;
   }

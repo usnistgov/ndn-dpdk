@@ -11,8 +11,9 @@ import (
 )
 
 type Fixture struct {
-	Ndt *ndt.Ndt
-	Fib *fib.Fib
+	Ndt         *ndt.Ndt
+	Fib         *fib.Fib
+	NPartitions int
 }
 
 func NewFixture(ndtPrefixLen, fibStartDepth, nPartitions int) (fixture *Fixture) {
@@ -39,7 +40,7 @@ func NewFixture(ndtPrefixLen, fibStartDepth, nPartitions int) (fixture *Fixture)
 		panic(e)
 	}
 
-	return &Fixture{Ndt: ndt, Fib: fib}
+	return &Fixture{Ndt: ndt, Fib: fib, NPartitions: nPartitions}
 }
 
 func (fixture *Fixture) Close() error {
@@ -48,9 +49,13 @@ func (fixture *Fixture) Close() error {
 	return fixture.Ndt.Close()
 }
 
-// Return number of in-use entries in FIB's underlying mempool.
-func (fixture *Fixture) CountMpInUse(i int) int {
-	return dpdk.MempoolFromPtr(fixture.Fib.GetPtr(i)).CountInUse()
+// Count number of in-use entries in FIB's underlying mempool.
+func (fixture *Fixture) CountEntries() (n int) {
+	urcu.Barrier()
+	for partition := 0; partition < fixture.NPartitions; partition++ {
+		n += dpdk.MempoolFromPtr(fixture.Fib.GetPtr(partition)).CountInUse()
+	}
+	return n
 }
 
 // Allocate and initialize a FIB entry.
@@ -68,7 +73,7 @@ func (fixture *Fixture) MakeEntry(name string, sc strategycode.StrategyCode,
 func (fixture *Fixture) FindInPartitions(name *ndn.Name) (partitions []int) {
 	rs := urcu.NewReadSide()
 	defer rs.Close()
-	for partition := 0; partition < fixture.Fib.CountPartitions(); partition++ {
+	for partition := 0; partition < fixture.NPartitions; partition++ {
 		if fixture.Fib.FindInPartition(name, partition, rs) != nil {
 			partitions = append(partitions, partition)
 		}
