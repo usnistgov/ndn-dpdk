@@ -171,6 +171,7 @@ Fib_Erase(Fib* fib, FibEntry* entry, Fib_FreeOld freeVirt, Fib_FreeOld freeReal)
   FibPriv* fibp = Fib_GetPriv(fib);
   bool ok = cds_lfht_del(fibp->lfht, &entry->lfhtnode) == 0;
   assert(ok);
+  RTE_SET_USED(ok);
   Fib_FreeOld_(entry, freeVirt, freeReal);
 }
 
@@ -214,8 +215,8 @@ Fib_Lpm_(Fib* fib, const PName* name, const uint8_t* nameV)
       if (prefixLen > name->nComps) {
         prefixLen = name->nComps;
       }
-    } else if (entry->realEntry != NULL) { // the start entry itself is a match
-      return entry->realEntry;
+    } else { // the start entry itself is a match
+      return entry;
     }
   }
 

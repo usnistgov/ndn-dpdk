@@ -9,7 +9,7 @@ import (
 	"ndn-dpdk/ndn"
 )
 
-func TestFibRelocate(t *testing.T) {
+func TestRelocate(t *testing.T) {
 	assert, require := makeAR(t)
 	fixture := NewFixture(2, 4, 4)
 	defer fixture.Close()

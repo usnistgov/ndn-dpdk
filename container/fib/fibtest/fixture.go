@@ -1,6 +1,8 @@
 package fibtest
 
 import (
+	"sort"
+
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/ndt"
 	"ndn-dpdk/container/strategycode"
@@ -79,4 +81,13 @@ func (fixture *Fixture) FindInPartitions(name *ndn.Name) (partitions []int) {
 		}
 	}
 	return partitions
+}
+
+func (fixture *Fixture) ListNames() (list []string) {
+	names := fixture.Fib.ListNames()
+	for _, name := range names {
+		list = append(list, name.String())
+	}
+	sort.Strings(list)
+	return list
 }

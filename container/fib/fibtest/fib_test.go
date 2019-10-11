@@ -1,7 +1,6 @@
 package fibtest
 
 import (
-	"sort"
 	"testing"
 
 	"ndn-dpdk/container/strategycode"
@@ -9,7 +8,7 @@ import (
 	"ndn-dpdk/ndn"
 )
 
-func TestFibInsertErase(t *testing.T) {
+func TestInsertErase(t *testing.T) {
 	assert, require := makeAR(t)
 	fixture := NewFixture(0, 2, 1)
 	defer fixture.Close()
@@ -89,7 +88,7 @@ func TestFibInsertErase(t *testing.T) {
 	assert.Equal(0, fixture.CountEntries())
 }
 
-func TestFibLpm(t *testing.T) {
+func TestLpm(t *testing.T) {
 	assert, _ := makeAR(t)
 	fixture := NewFixture(0, 2, 1)
 	defer fixture.Close()
@@ -103,59 +102,115 @@ func TestFibLpm(t *testing.T) {
 		}
 		return int(entry.GetNexthops()[0])
 	}
+	lpms := func() []int {
+		return []int{
+			lpm("/"),
+			lpm("/A"),
+			lpm("/AB"),
+			lpm("/A/B"),
+			lpm("/A/B/C"),
+			lpm("/A/B/C/D"),
+			lpm("/A/B/CD"),
+			lpm("/E/F/G/H"),
+			lpm("/E/F/I"),
+			lpm("/J"),
+			lpm("/J/K"),
+			lpm("/J/K/L"),
+			lpm("/J/K/M/N/O"),
+			lpm("/U/V/W/X/Y/Z"),
+			lpm("/U/V/W"),
+			lpm("/U/V"),
+			lpm("/U"),
+		}
+	}
 
 	fib.Insert(fixture.MakeEntry("/", strategyP, 5000))
-	fib.Insert(fixture.MakeEntry("/A", strategyP, 5001))
-	fib.Insert(fixture.MakeEntry("/A/B/C", strategyP, 5002)) // + virtual /A/B
-	fib.Insert(fixture.MakeEntry("/M/N", strategyP, 5003))
-	fib.Insert(fixture.MakeEntry("/M/N/O", strategyP, 5004)) // + virtual /M/N
-	fib.Insert(fixture.MakeEntry("/X/Y/Z", strategyP, 5005)) // + virtual /X/Y
-	fib.Insert(fixture.MakeEntry("/X/Y", strategyP, 5006))
-	fib.Insert(fixture.MakeEntry("/X", strategyP, 5007))
-	assert.Equal(8, fib.Len())
-	assert.Equal(11, fixture.CountEntries())
+	fib.Insert(fixture.MakeEntry("/A", strategyP, 5100))
+	fib.Insert(fixture.MakeEntry("/A/B/C", strategyP, 5101))   // insert virtual /A/B
+	fib.Insert(fixture.MakeEntry("/E/F/G/H", strategyP, 5200)) // insert virtual /E/F
+	fib.Insert(fixture.MakeEntry("/E/F/I", strategyP, 5201))   // don't update virtual /E/F
+	fib.Insert(fixture.MakeEntry("/J/K", strategyP, 5300))
+	fib.Insert(fixture.MakeEntry("/J/K/L", strategyP, 5301))   // insert virtual /J/K
+	fib.Insert(fixture.MakeEntry("/J/K/M/N", strategyP, 5302)) // update virtual /J/K
+	fib.Insert(fixture.MakeEntry("/U/V/W/X", strategyP, 5400)) // insert virtual /U/V
+	fib.Insert(fixture.MakeEntry("/U/V/W", strategyP, 5401))   // don't update virtual /U/V
+	fib.Insert(fixture.MakeEntry("/U/V", strategyP, 5402))
+	fib.Insert(fixture.MakeEntry("/U", strategyP, 5403))
 
-	names := fib.ListNames()
-	assert.Len(names, 8)
-	nameUris := make([]string, len(names))
-	for i, name := range names {
-		nameUris[i] = name.String()
-	}
-	sort.Strings(nameUris)
-	assert.Equal([]string{"/", "/A", "/A/B/C", "/M/N", "/M/N/O", "/X", "/X/Y", "/X/Y/Z"}, nameUris)
-
-	assert.Equal(5000, lpm("/"))
-	assert.Equal(5001, lpm("/A"))
-	assert.Equal(5000, lpm("/AB"))
-	assert.Equal(5001, lpm("/A/B"))
-	assert.Equal(5002, lpm("/A/B/C"))
-	assert.Equal(5002, lpm("/A/B/C/D"))
-	assert.Equal(5001, lpm("/A/B/CD"))
-	assert.Equal(5000, lpm("/M"))
-	assert.Equal(5003, lpm("/M/N"))
-	assert.Equal(5004, lpm("/M/N/O"))
-	assert.Equal(5004, lpm("/M/N/O/P"))
-	assert.Equal(5005, lpm("/X/Y/Z/W"))
-	assert.Equal(5005, lpm("/X/Y/Z"))
-	assert.Equal(5006, lpm("/X/Y"))
-	assert.Equal(5007, lpm("/X"))
+	assert.Equal(12, fib.Len())
+	assert.Equal(16, fixture.CountEntries())
+	assert.Equal([]string{"/", "/A", "/A/B/C", "/E/F/G/H", "/E/F/I", "/J/K", "/J/K/L", "/J/K/M/N", "/U", "/U/V", "/U/V/W", "/U/V/W/X"}, fixture.ListNames())
+	assert.Equal([]int{5000, 5100, 5000, 5100, 5101, 5101, 5100, 5200, 5201, 5000, 5300, 5301, 5302, 5400, 5401, 5402, 5403}, lpms())
 
 	assert.NoError(fib.Erase(ndn.MustParseName("/")))
-	assert.Equal(7, fib.Len())
-	assert.Equal(10, fixture.CountEntries())
+	assert.Equal(11, fib.Len())
+	assert.Equal(15, fixture.CountEntries())
+	assert.Equal([]string{"/A", "/A/B/C", "/E/F/G/H", "/E/F/I", "/J/K", "/J/K/L", "/J/K/M/N", "/U", "/U/V", "/U/V/W", "/U/V/W/X"}, fixture.ListNames())
+	assert.Equal([]int{0, 5100, 0, 5100, 5101, 5101, 5100, 5200, 5201, 0, 5300, 5301, 5302, 5400, 5401, 5402, 5403}, lpms())
 
-	assert.NoError(fib.Erase(ndn.MustParseName("/A/B/C"))) // - virtual /A/B
+	assert.NoError(fib.Erase(ndn.MustParseName("/A")))
+	assert.Equal(10, fib.Len())
+	assert.Equal(14, fixture.CountEntries())
+	assert.Equal([]string{"/A/B/C", "/E/F/G/H", "/E/F/I", "/J/K", "/J/K/L", "/J/K/M/N", "/U", "/U/V", "/U/V/W", "/U/V/W/X"}, fixture.ListNames())
+	assert.Equal([]int{0, 0, 0, 0, 5101, 5101, 0, 5200, 5201, 0, 5300, 5301, 5302, 5400, 5401, 5402, 5403}, lpms())
+
+	assert.NoError(fib.Erase(ndn.MustParseName("/A/B/C"))) // erase virtual /A/B
+	assert.Equal(9, fib.Len())
+	assert.Equal(12, fixture.CountEntries())
+	assert.Equal([]string{"/E/F/G/H", "/E/F/I", "/J/K", "/J/K/L", "/J/K/M/N", "/U", "/U/V", "/U/V/W", "/U/V/W/X"}, fixture.ListNames())
+	assert.Equal([]int{0, 0, 0, 0, 0, 0, 0, 5200, 5201, 0, 5300, 5301, 5302, 5400, 5401, 5402, 5403}, lpms())
+
+	assert.NoError(fib.Erase(ndn.MustParseName("/E/F/G/H"))) // update virtual /E/F
+	assert.Equal(8, fib.Len())
+	assert.Equal(11, fixture.CountEntries())
+	assert.Equal([]string{"/E/F/I", "/J/K", "/J/K/L", "/J/K/M/N", "/U", "/U/V", "/U/V/W", "/U/V/W/X"}, fixture.ListNames())
+	assert.Equal([]int{0, 0, 0, 0, 0, 0, 0, 0, 5201, 0, 5300, 5301, 5302, 5400, 5401, 5402, 5403}, lpms())
+
+	assert.NoError(fib.Erase(ndn.MustParseName("/E/F/I"))) // erase virtual /E/F
+	assert.Equal(7, fib.Len())
+	assert.Equal(9, fixture.CountEntries())
+	assert.Equal([]string{"/J/K", "/J/K/L", "/J/K/M/N", "/U", "/U/V", "/U/V/W", "/U/V/W/X"}, fixture.ListNames())
+	assert.Equal([]int{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5300, 5301, 5302, 5400, 5401, 5402, 5403}, lpms())
+
+	assert.NoError(fib.Erase(ndn.MustParseName("/J/K")))
 	assert.Equal(6, fib.Len())
 	assert.Equal(8, fixture.CountEntries())
+	assert.Equal([]string{"/J/K/L", "/J/K/M/N", "/U", "/U/V", "/U/V/W", "/U/V/W/X"}, fixture.ListNames())
+	assert.Equal([]int{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5301, 5302, 5400, 5401, 5402, 5403}, lpms())
 
-	assert.NoError(fib.Erase(ndn.MustParseName("/M/N/O"))) // - virtual /M/N
+	assert.NoError(fib.Erase(ndn.MustParseName("/J/K/L"))) // don't update virtual /J/K
 	assert.Equal(5, fib.Len())
-	assert.Equal(6, fixture.CountEntries())
-	assert.Equal(5003, lpm("/M/N")) // real /M/N stays
+	assert.Equal(7, fixture.CountEntries())
+	assert.Equal([]string{"/J/K/M/N", "/U", "/U/V", "/U/V/W", "/U/V/W/X"}, fixture.ListNames())
+	assert.Equal([]int{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5302, 5400, 5401, 5402, 5403}, lpms())
 
-	assert.NoError(fib.Erase(ndn.MustParseName("/X/Y"))) // - real /X/Y
+	assert.NoError(fib.Erase(ndn.MustParseName("/J/K/M/N"))) // erase virtual /J/K
 	assert.Equal(4, fib.Len())
 	assert.Equal(5, fixture.CountEntries())
-	assert.Equal(5005, lpm("/X/Y/Z/W")) // virtual /X/Y stays
-	assert.Len(fib.ListNames(), 4)
+	assert.Equal([]string{"/U", "/U/V", "/U/V/W", "/U/V/W/X"}, fixture.ListNames())
+	assert.Equal([]int{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5400, 5401, 5402, 5403}, lpms())
+
+	assert.NoError(fib.Erase(ndn.MustParseName("/U/V/W/X"))) // update virtual /U/V
+	assert.Equal(3, fib.Len())
+	assert.Equal(4, fixture.CountEntries())
+	assert.Equal([]string{"/U", "/U/V", "/U/V/W"}, fixture.ListNames())
+	assert.Equal([]int{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5401, 5401, 5402, 5403}, lpms())
+
+	assert.NoError(fib.Erase(ndn.MustParseName("/U/V/W"))) // erase virtual /U/V
+	assert.Equal(2, fib.Len())
+	assert.Equal(2, fixture.CountEntries())
+	assert.Equal([]string{"/U", "/U/V"}, fixture.ListNames())
+	assert.Equal([]int{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5402, 5402, 5402, 5403}, lpms())
+
+	assert.NoError(fib.Erase(ndn.MustParseName("/U/V")))
+	assert.Equal(1, fib.Len())
+	assert.Equal(1, fixture.CountEntries())
+	assert.Equal([]string{"/U"}, fixture.ListNames())
+	assert.Equal([]int{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5403, 5403, 5403, 5403}, lpms())
+
+	assert.NoError(fib.Erase(ndn.MustParseName("/U")))
+	assert.Equal(0, fib.Len())
+	assert.Equal(0, fixture.CountEntries())
+	assert.Len(fixture.ListNames(), 0)
+	assert.Equal([]int{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, lpms())
 }

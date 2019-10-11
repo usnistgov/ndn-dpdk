@@ -23,8 +23,9 @@ import (
 type updateAct int
 
 const (
-	updateActInsert updateAct = 1
-	updateActErase  updateAct = 2
+	updateActInsert updateAct = iota
+	updateActInsertNoDiscard
+	updateActErase
 )
 
 type updateItem struct {
@@ -39,9 +40,10 @@ type updateBatch []updateItem
 
 func (batch updateBatch) Apply() {
 	for _, item := range batch {
-		if item.act == updateActInsert {
+		switch item.act {
+		case updateActInsert, updateActInsertNoDiscard:
 			item.part.Insert(item.entry, item.freeVirt, item.freeReal)
-		} else if item.act == updateActErase {
+		case updateActErase:
 			item.part.Erase(item.entry, item.freeVirt, item.freeReal)
 		}
 	}
@@ -236,7 +238,7 @@ func (fib *Fib) Erase(name *ndn.Name) (e error) {
 				if oldReal == nil {
 					panic(fmt.Errorf("real entry %s missing in partition %d", virtName, part.index))
 				}
-				batch = append(batch, updateItem{updateActInsert, part, oldReal, C.Fib_FreeOld_Yes, C.Fib_FreeOld_No})
+				batch = append(batch, updateItem{updateActInsertNoDiscard, part, oldReal, C.Fib_FreeOld_Yes, C.Fib_FreeOld_No})
 
 			case name.Len() > fib.cfg.StartDepth && oldMd != newMd && newMd > 0 && !virtIsEntry:
 				// replace virtual entry; no real entry at virtName
@@ -247,7 +249,7 @@ func (fib *Fib) Erase(name *ndn.Name) (e error) {
 				newVirt.maxDepth = C.uint8_t(newMd)
 				batch = append(batch, updateItem{updateActInsert, part, newVirt, C.Fib_FreeOld_Yes, C.Fib_FreeOld_MustNotExist})
 
-			case name.Len() > fib.cfg.StartDepth && oldMd != newMd && newMd > 0 && !virtIsEntry:
+			case name.Len() > fib.cfg.StartDepth && oldMd != newMd && newMd > 0 && virtIsEntry:
 				// replace virtual entry; keep real entry at virtName
 				oldReal := C.FibEntry_GetReal(part.Get(virtName))
 				if oldReal == nil {
