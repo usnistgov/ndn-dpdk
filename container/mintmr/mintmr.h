@@ -73,7 +73,7 @@ MinTmr_Init(MinTmr* tmr)
 
 /** \brief Calculate the maximum delay allowed in \c MinTmr_After.
  */
-static TscDuration
+static inline TscDuration
 MinSched_GetMaxDelay(MinSched* sched)
 {
   return sched->interval * (sched->nSlots - 2);
@@ -103,7 +103,7 @@ MinTmr_After(MinTmr* tmr, TscDuration after, MinSched* sched);
 
 /** \brief Schedule a timer to expire at \p at.
  */
-static bool
+static inline bool
 MinTmr_At(MinTmr* tmr, TscTime at, MinSched* sched)
 {
   TscTime now = rte_get_tsc_cycles();

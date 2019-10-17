@@ -78,7 +78,7 @@ static_assert(offsetof(FibEntry, cachelineA_) % RTE_CACHE_LINE_SIZE == 0, "");
 static_assert(offsetof(FibEntry, cachelineB_) % RTE_CACHE_LINE_SIZE == 0, "");
 static_assert(offsetof(FibEntry, cachelineC_) % RTE_CACHE_LINE_SIZE == 0, "");
 
-static void
+static inline void
 FibEntry_Copy(FibEntry* dst, const FibEntry* src)
 {
   rte_memcpy(dst->copyBegin_,
@@ -86,7 +86,7 @@ FibEntry_Copy(FibEntry* dst, const FibEntry* src)
              offsetof(FibEntry, copyEnd_) - offsetof(FibEntry, copyBegin_));
 }
 
-static FibEntry*
+static inline FibEntry*
 FibEntry_GetReal(FibEntry* entry)
 {
   if (unlikely(entry == NULL) || likely(entry->maxDepth == 0)) {
@@ -108,7 +108,7 @@ static_assert(CHAR_BIT * sizeof(FibNexthopFilter) >= FIB_ENTRY_MAX_NEXTHOPS,
  *  \param[inout] filter original and updated filter.
  *  \return how many nexthops pass the filter after the update.
  */
-static int
+static inline int
 FibNexthopFilter_Reject(FibNexthopFilter* filter,
                         const FibEntry* entry,
                         FaceId nh)

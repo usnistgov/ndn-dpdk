@@ -44,7 +44,7 @@ Ndt_Init(Ndt* ndt,
 
 /** \brief Access NdtThread struct.
  */
-static NdtThread*
+static inline NdtThread*
 Ndt_GetThread(const Ndt* ndt, uint8_t id)
 {
   assert(id < ndt->nThreads);
@@ -60,7 +60,7 @@ Ndt_Update(Ndt* ndt, uint64_t index, uint8_t value);
 
 /** \brief Read NDT element.
  */
-static uint8_t
+static inline uint8_t
 Ndt_ReadElement(const Ndt* ndt, uint64_t index)
 {
   return atomic_load_explicit(&ndt->table[index], memory_order_relaxed);
@@ -68,7 +68,7 @@ Ndt_ReadElement(const Ndt* ndt, uint64_t index)
 
 /** \brief Query NDT without counting.
  */
-static uint8_t
+static inline uint8_t
 Ndt_Lookup(const Ndt* ndt,
            const PName* name,
            const uint8_t* nameV,
@@ -81,7 +81,7 @@ Ndt_Lookup(const Ndt* ndt,
   return Ndt_ReadElement(ndt, *index);
 }
 
-static uint8_t
+static inline uint8_t
 Ndtt_Lookup_(const Ndt* ndt,
              NdtThread* ndtt,
              const PName* name,
@@ -97,7 +97,7 @@ Ndtt_Lookup_(const Ndt* ndt,
 
 /** \brief Query NDT with counting.
  */
-static uint8_t
+static inline uint8_t
 Ndtt_Lookup(const Ndt* ndt, NdtThread* ndtt, const Name* name)
 {
   return Ndtt_Lookup_(ndt, ndtt, &name->p, name->v);

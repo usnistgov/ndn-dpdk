@@ -8,7 +8,7 @@
 
 /** \brief Retrieve whether an Ethernet device is DOWN.
  */
-static bool
+static inline bool
 EthDev_IsDown(uint16_t port)
 {
   struct rte_eth_link link;

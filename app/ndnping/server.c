@@ -32,7 +32,7 @@ PingServer_RespondData(PingServer* server,
                        Packet* npkt)
 {
   uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
-  const LName name = *(const LName*)&Packet_GetInterestHdr(npkt)->name;
+  const LName* name = (const LName*)&Packet_GetInterestHdr(npkt)->name;
 
   struct rte_mbuf* seg0 = rte_pktmbuf_alloc(server->dataMp);
   if (unlikely(seg0 == NULL)) {
@@ -50,7 +50,7 @@ PingServer_RespondData(PingServer* server,
     return NULL;
   }
 
-  DataGen_Encode(reply->dataGen, seg0, seg1, name);
+  DataGen_Encode(reply->dataGen, seg0, seg1, *name);
   rte_pktmbuf_free(Packet_ToMbuf(npkt));
 
   Packet* response = Packet_FromMbuf(seg0);
@@ -95,9 +95,9 @@ static Packet*
 PingServer_ProcessInterest(PingServer* server, Packet* npkt)
 {
   uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
-  const LName name = *(const LName*)&Packet_GetInterestHdr(npkt)->name;
+  const LName* name = (const LName*)&Packet_GetInterestHdr(npkt)->name;
 
-  int patternId = PingServer_FindPattern(server, name);
+  int patternId = PingServer_FindPattern(server, *name);
   if (unlikely(patternId < 0)) {
     ZF_LOGD(">I dn-token=%016" PRIx64 " no-pattern", token);
     ++server->nNoMatch;

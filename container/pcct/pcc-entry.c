@@ -7,13 +7,6 @@ PccEntry_ToMempool(PccEntry* entry)
   return rte_mempool_from_obj(entry);
 }
 
-static PccSlot*
-PccEntry_AssignSlot_(PccEntry* entry, PccSlot* slot)
-{
-  slot->pccEntry = entry;
-  return slot;
-}
-
 PccSlotIndex
 PccEntry_AllocateSlot_(PccEntry* entry, PccSlot** slot)
 {

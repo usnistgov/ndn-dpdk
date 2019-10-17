@@ -16,7 +16,8 @@ PitEntry_ToDebugString(PitEntry* entry)
 
   PInterest* interest = Packet_GetInterestHdr(entry->npkt);
   char nameStr[LNAME_MAX_STRING_SIZE + 1];
-  if (LName_ToString(*(LName*)&interest->name, nameStr, sizeof(nameStr)) == 0) {
+  const LName* interestLName = (const LName*)&interest->name;
+  if (LName_ToString(*interestLName, nameStr, sizeof(nameStr)) == 0) {
     snprintf(nameStr, sizeof(nameStr), "(empty)");
   }
 

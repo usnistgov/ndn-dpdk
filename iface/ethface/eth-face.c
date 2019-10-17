@@ -28,13 +28,14 @@ EthFace_TxBurst(Face* face, struct rte_mbuf** pkts, uint16_t nPkts)
 struct rte_flow*
 EthFace_SetupFlow(EthFacePriv* priv, struct rte_flow_error* error)
 {
-  struct rte_flow_attr attr = { 0 };
-  attr.group = 0;
-  attr.priority = 1;
-  attr.ingress = true;
+  struct rte_flow_attr attr = {
+    .group = 0,
+    .priority = 1,
+    .ingress = true,
+  };
 
-  struct rte_flow_item_eth ethMask = { 0 };
-  struct rte_flow_item_eth ethSpec = { 0 };
+  struct rte_flow_item_eth ethMask = { .type = 0xFFFF };
+  struct rte_flow_item_eth ethSpec = { .type = priv->txHdr.ether_type };
   if ((priv->txHdr.d_addr.addr_bytes[0] & 0x01) != 0) { // multicast
     memset(&ethMask.dst, 0xFF, RTE_ETHER_ADDR_LEN);
     memcpy(&ethSpec.dst, &priv->txHdr.d_addr, RTE_ETHER_ADDR_LEN);
@@ -42,21 +43,26 @@ EthFace_SetupFlow(EthFacePriv* priv, struct rte_flow_error* error)
     memset(&ethMask.src, 0xFF, RTE_ETHER_ADDR_LEN);
     memcpy(&ethSpec.src, &priv->txHdr.d_addr, RTE_ETHER_ADDR_LEN);
   }
-  ethMask.type = 0xFFFF;
-  ethSpec.type = priv->txHdr.ether_type;
 
-  struct rte_flow_item pattern[2] = { 0 };
-  pattern[0].type = RTE_FLOW_ITEM_TYPE_ETH;
-  pattern[0].mask = &ethMask;
-  pattern[0].spec = &ethSpec;
-  pattern[1].type = RTE_FLOW_ITEM_TYPE_END;
+  struct rte_flow_item pattern[2] = {
+    {
+      .type = RTE_FLOW_ITEM_TYPE_ETH,
+      .mask = &ethMask,
+      .spec = &ethSpec,
+    },
+    {
+      .type = RTE_FLOW_ITEM_TYPE_END,
+    },
+  };
 
   struct rte_flow_action_queue queue = { .index = priv->rxQueue };
 
-  struct rte_flow_action actions[2] = { 0 };
-  actions[0].type = RTE_FLOW_ACTION_TYPE_QUEUE;
-  actions[0].conf = &queue;
-  actions[1].type = RTE_FLOW_ACTION_TYPE_END;
+  struct rte_flow_action actions[2] = {
+    { .type = RTE_FLOW_ACTION_TYPE_QUEUE, .conf = &queue },
+    {
+      .type = RTE_FLOW_ACTION_TYPE_END,
+    },
+  };
 
   return rte_flow_create(priv->port, &attr, pattern, actions, error);
 }

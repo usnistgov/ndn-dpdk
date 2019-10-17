@@ -63,7 +63,7 @@ PInterest_FromPacket(PInterest* interest,
 NdnError
 PInterest_SelectActiveFh(PInterest* interest, int8_t index);
 
-static uint16_t
+static inline uint16_t
 ModifyInterest_SizeofGuider()
 {
   return 1 + 1 + 4 + // Nonce

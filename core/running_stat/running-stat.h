@@ -25,7 +25,7 @@ static_assert(sizeof(RunningStat) <= RTE_CACHE_LINE_SIZE, "");
 /** \brief Set sample rate to once every 2^q inputs.
  *  \param q sample rate, must be between 0 and 30.
  */
-static void
+static inline void
 RunningStat_SetSampleRate(RunningStat* s, int q)
 {
   assert(q >= 0 && q <= 30);
@@ -34,7 +34,7 @@ RunningStat_SetSampleRate(RunningStat* s, int q)
 
 /** \brief Clear statistics portion of \p s.
  */
-static void
+static inline void
 RunningStat_Clear(RunningStat* s, bool enableMinMax)
 {
   s->n = 0;
@@ -49,14 +49,14 @@ RunningStat_Clear(RunningStat* s, bool enableMinMax)
   s->m2 = 0.0;
 }
 
-static void
+static inline void
 RunningStat_UpdateMinMax_(RunningStat* s, double x)
 {
   s->min = RTE_MIN(s->min, x);
   s->max = RTE_MAX(s->max, x);
 }
 
-static void
+static inline void
 RunningStat_UpdateM_(RunningStat* s, double x)
 {
   uint64_t n1 = s->n;

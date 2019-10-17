@@ -15,7 +15,7 @@ typedef struct Fib
 
 /** \brief Cast Fib* as rte_mempool*.
  */
-static struct rte_mempool*
+static inline struct rte_mempool*
 Fib_ToMempool(const Fib* fib)
 {
   return (struct rte_mempool*)fib;
@@ -32,7 +32,7 @@ typedef struct FibPriv
 
 /** \brief Access FibPriv* struct.
  */
-static FibPriv*
+static inline FibPriv*
 Fib_GetPriv(const Fib* fib)
 {
   return (FibPriv*)rte_mempool_get_priv(Fib_ToMempool(fib));
@@ -104,7 +104,7 @@ Fib_Erase(Fib* fib,
 FibEntry*
 Fib_Get(Fib* fib, LName name, uint64_t hash);
 
-static FibEntry*
+static inline FibEntry*
 Fib_Get_(Fib* fib, uint16_t nameL, const uint8_t* nameV, uint64_t hash)
 {
   LName name = { .length = nameL, .value = nameV };
@@ -116,13 +116,13 @@ Fib_Get_(Fib* fib, uint16_t nameL, const uint8_t* nameV, uint64_t hash)
  *       using the returned entry.
  *  \return Real entry, or NULL if it does not exist.
  */
-static FibEntry*
+static inline FibEntry*
 Fib_Find(Fib* fib, LName name, uint64_t hash)
 {
   return FibEntry_GetReal(Fib_Get(fib, name, hash));
 }
 
-static FibEntry*
+static inline FibEntry*
 Fib_Find_(Fib* fib, uint16_t nameL, const uint8_t* nameV, uint64_t hash)
 {
   LName name = { .length = nameL, .value = nameV };
@@ -137,7 +137,7 @@ Fib_Lpm_(Fib* fib, const PName* name, const uint8_t* nameV);
  *       using the returned entry.
  *  \return Real entry, or NULL if it does not exist.
  */
-static FibEntry*
+static inline FibEntry*
 Fib_Lpm(Fib* fib, const Name* name)
 {
   return Fib_Lpm_(fib, &name->p, name->v);

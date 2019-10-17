@@ -40,7 +40,7 @@ FwInput_New(const Ndt* ndt,
 void
 FwInput_Connect(FwInput* fwi, FwFwd* fwd);
 
-static FwInputFwdConn*
+static inline FwInputFwdConn*
 FwInput_GetConn(FwInput* fwi, uint8_t i)
 {
   assert(i < fwi->nFwds);

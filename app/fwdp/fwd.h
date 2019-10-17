@@ -47,7 +47,7 @@ typedef struct FwFwd
   RunningStat latencyStat;
 } FwFwd;
 
-static Pcct**
+static inline Pcct**
 FwFwd_GetPcctPtr_(FwFwd* fwd)
 {
   return &fwd->pcct;

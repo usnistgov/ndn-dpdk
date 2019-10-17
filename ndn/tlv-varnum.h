@@ -55,7 +55,7 @@ DecodeVarNum(const uint8_t* input, uint32_t rem, uint32_t* n)
 /** \brief Decode a TLV-TYPE or TLV-LENGTH number.
  *  \param[out] n the number.
  */
-static NdnError
+static inline NdnError
 MbufLoc_ReadVarNum(MbufLoc* ml, uint32_t* n)
 {
   if (unlikely(MbufLoc_IsEnd(ml))) {

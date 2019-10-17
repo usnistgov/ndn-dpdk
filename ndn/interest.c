@@ -104,9 +104,9 @@ PInterest_FromPacket(PInterest* interest,
   }
 
   if (ele1.type == TT_InterestLifetime) {
-    uint64_t lifetimeV;
-    bool ok = TlvElement_ReadNonNegativeInteger(&ele1, &lifetimeV);
-    if (unlikely(!ok || lifetimeV >= UINT32_MAX)) {
+    uint64_t lifetimeV = 0;
+    e = TlvElement_ReadNonNegativeInteger(&ele1, &lifetimeV);
+    if (unlikely(e != NdnError_OK || lifetimeV >= UINT32_MAX)) {
       return NdnError_BadInterestLifetime;
     }
     interest->lifetime = (uint32_t)lifetimeV;

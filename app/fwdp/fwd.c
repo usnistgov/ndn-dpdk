@@ -5,9 +5,9 @@
 
 INIT_ZF_LOG(FwFwd);
 
-static_assert(SGEVT_INTEREST == L3PktType_Interest, "");
-static_assert(SGEVT_DATA == L3PktType_Data, "");
-static_assert(SGEVT_NACK == L3PktType_Nack, "");
+static_assert((int)SGEVT_INTEREST == (int)L3PktType_Interest, "");
+static_assert((int)SGEVT_DATA == (int)L3PktType_Data, "");
+static_assert((int)SGEVT_NACK == (int)L3PktType_Nack, "");
 static_assert(offsetof(SgCtx, global) == offsetof(FwFwdCtx, fwd), "");
 static_assert(offsetof(FwFwd, sgGlobal) == 0, "");
 static_assert(offsetof(SgCtx, now) == offsetof(FwFwdCtx, rxTime), "");
@@ -51,9 +51,10 @@ FwFwd_Run(FwFwd* fwd)
       fwd->queue, (void**)npkts, FW_FWD_BURST_SIZE, NULL);
     TscTime now = rte_get_tsc_cycles();
     for (unsigned i = 0; i < count; ++i) {
-      FwFwdCtx ctx = { 0 };
-      ctx.fwd = fwd;
-      ctx.npkt = npkts[i];
+      FwFwdCtx ctx = {
+        .fwd = fwd,
+        .npkt = npkts[i],
+      };
       ctx.rxFace = ctx.pkt->port;
       ctx.rxTime = ctx.pkt->timestamp;
       ctx.rxToken = Packet_GetLpL3Hdr(ctx.npkt)->pitToken;

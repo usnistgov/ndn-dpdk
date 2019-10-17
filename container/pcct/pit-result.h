@@ -13,7 +13,7 @@ typedef struct PitResult
   int kind;
 } PitResult;
 
-static PitResult
+static inline PitResult
 PitResult_New_(PccEntry* entry, int kind)
 {
   PitResult pr = { .entry = entry, .kind = kind };
@@ -34,13 +34,13 @@ typedef enum PitInsertResultKind
   PIT_INSERT_CS = 3,   ///< found existing CS entry that matches the Interest
 } PitInsertResultKind;
 
-static PitInsertResultKind
+static inline PitInsertResultKind
 PitInsertResult_GetKind(PitInsertResult res)
 {
   return res.kind;
 }
 
-static PitEntry*
+static inline PitEntry*
 PitInsertResult_GetPitEntry(PitInsertResult res)
 {
   switch (res.kind) {
@@ -54,7 +54,7 @@ PitInsertResult_GetPitEntry(PitInsertResult res)
   }
 }
 
-static CsEntry*
+static inline CsEntry*
 PitInsertResult_GetCsEntry(PitInsertResult res)
 {
   assert(res.kind == PIT_INSERT_CS);
@@ -79,7 +79,7 @@ typedef enum PitFindResultFlag
   PIT_FIND_NEED_DIGEST = (1 << 2),
 } PitFindResultFlag;
 
-static bool
+static inline bool
 PitFindResult_Is(PitFindResult res, PitFindResultFlag flag)
 {
   if (flag == PIT_FIND_NONE) {
@@ -88,7 +88,7 @@ PitFindResult_Is(PitFindResult res, PitFindResultFlag flag)
   return (res.kind & flag) != 0;
 }
 
-static PitEntry*
+static inline PitEntry*
 PitFindResult_GetPitEntry0(PitFindResult res)
 {
   if (!PitFindResult_Is(res, PIT_FIND_PIT0)) {
@@ -97,7 +97,7 @@ PitFindResult_GetPitEntry0(PitFindResult res)
   return PccEntry_GetPitEntry0(res.entry);
 }
 
-static PitEntry*
+static inline PitEntry*
 PitFindResult_GetPitEntry1(PitFindResult res)
 {
   if (!PitFindResult_Is(res, PIT_FIND_PIT1)) {
@@ -108,7 +108,7 @@ PitFindResult_GetPitEntry1(PitFindResult res)
 
 /** \brief Get a representative Interest from either PIT entry.
  */
-static PInterest*
+static inline PInterest*
 PitFindResult_GetInterest_(PitFindResult res)
 {
   PitEntry* pitEntry = PitFindResult_GetPitEntry0(res);

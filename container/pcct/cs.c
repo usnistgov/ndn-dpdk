@@ -212,14 +212,8 @@ Cs_InsertDirect(Cs* cs, Packet* npkt, PInterest* interest)
   PData* data = Packet_GetDataHdr(npkt);
 
   // construct PccSearch
-  PccSearch search = { 0 };
-  search.name = *(const LName*)(&data->name);
-  search.nameHash = PName_ComputeHash(&data->name.p, data->name.v);
-  if (interest->activeFh >= 0) {
-    search.fh = *(const LName*)(&interest->activeFhName);
-    search.fhHash =
-      PName_ComputeHash(&interest->activeFhName.p, interest->activeFhName.v);
-  }
+  PccSearch search;
+  PccSearch_FromNames(&search, &data->name, interest);
 
   // seek PCC entry
   bool isNewPcc = false;
@@ -301,7 +295,6 @@ Cs_Insert(Cs* cs, Packet* npkt, PitFindResult pitFound)
 {
   Pcct* pcct = Cs_ToPcct(cs);
   Pit* pit = Pit_FromPcct(pcct);
-  CsPriv* csp = Cs_GetPriv(cs);
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   PData* data = Packet_GetDataHdr(npkt);
   PccEntry* pccEntry = pitFound.entry;

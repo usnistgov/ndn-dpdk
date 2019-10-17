@@ -3,6 +3,7 @@ Incomplete
 AllocError
 LengthOverflow
 BadType
+BadNni
 Fragmented
 UnknownCriticalLpHeader
 FragIndexExceedFragCount

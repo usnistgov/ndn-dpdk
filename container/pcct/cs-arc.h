@@ -11,13 +11,13 @@ CsArc_Init(CsArc* arc, uint32_t capacity);
 CsList*
 CsArc_GetList(CsArc* arc, CsArcListId cslId);
 
-static uint32_t
+static inline uint32_t
 CsArc_GetCapacity(CsArc* arc)
 {
   return arc->B1.capacity;
 }
 
-static uint32_t
+static inline uint32_t
 CsArc_CountEntries(CsArc* arc)
 {
   return arc->T1.count + arc->T2.count;

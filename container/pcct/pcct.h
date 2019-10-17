@@ -17,7 +17,7 @@ typedef struct Pcct
 
 /** \brief Cast Pcct* as rte_mempool*.
  */
-static struct rte_mempool*
+static inline struct rte_mempool*
 Pcct_ToMempool(const Pcct* pcct)
 {
   return (struct rte_mempool*)pcct;
@@ -37,7 +37,7 @@ typedef struct PcctPriv
 
 /** \brief Access PcctPriv* struct.
  */
-static PcctPriv*
+static inline PcctPriv*
 Pcct_GetPriv(const Pcct* pcct)
 {
   return (PcctPriv*)rte_mempool_get_priv(Pcct_ToMempool(pcct));
@@ -77,7 +77,7 @@ Pcct_AddToken_(Pcct* pcct, PccEntry* entry);
  *  \retval 0 No token available.
  *  \return New or existing token.
  */
-static uint64_t
+static inline uint64_t
 Pcct_AddToken(Pcct* pcct, PccEntry* entry)
 {
   if (entry->hasToken) {
@@ -91,7 +91,7 @@ Pcct_RemoveToken_(Pcct* pcct, PccEntry* entry);
 
 /** \brief Clear the token on an entry.
  */
-static void
+static inline void
 Pcct_RemoveToken(Pcct* pcct, PccEntry* entry)
 {
   if (!entry->hasToken) {
@@ -127,7 +127,7 @@ typedef struct PcctEraseBatch
  */
 #define PcctEraseBatch_New(thePcct)                                            \
   {                                                                            \
-    0, .pcct = thePcct                                                         \
+    .pcct = thePcct                                                            \
   }
 
 void
@@ -135,7 +135,7 @@ PcctEraseBatch_EraseBurst_(PcctEraseBatch* peb);
 
 /** \brief Add an entry for erasing.
  */
-static void
+static inline void
 PcctEraseBatch_Append(PcctEraseBatch* peb, PccEntry* entry)
 {
   peb->objs[peb->nEntries] = entry;
@@ -146,7 +146,7 @@ PcctEraseBatch_Append(PcctEraseBatch* peb, PccEntry* entry)
 
 /** \brief Erase entries.
  */
-static void
+static inline void
 PcctEraseBatch_Finish(PcctEraseBatch* peb)
 {
   if (likely(peb->nEntries > 0)) {

@@ -136,7 +136,7 @@ PName_SeekCompEnd_(const PName* n, const uint8_t* input, uint16_t i)
   assert(i >= PNAME_N_CACHED_COMPS);
   uint16_t off = n->comp[PNAME_N_CACHED_COMPS - 1];
   for (uint16_t j = PNAME_N_CACHED_COMPS - 1; j < i; ++j) {
-    uint32_t compT, compL;
+    uint32_t compT = 0, compL = 0;
     off += DecodeVarNum(input + off, n->nOctets - off, &compT);
     off += DecodeVarNum(input + off, n->nOctets - off, &compL);
     off += compL;

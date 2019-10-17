@@ -53,7 +53,7 @@ typedef struct Face
   struct cds_hlist_node txLoopNode;
 } __rte_cache_aligned Face;
 
-static void*
+static inline void*
 Face_GetPriv(Face* face)
 {
   return face->impl->priv;
@@ -65,7 +65,7 @@ Face_GetPriv(Face* face)
  */
 extern Face gFaces_[FACEID_MAX + 1];
 
-static Face*
+static inline Face*
 Face_Get_(FaceId faceId)
 {
   return &gFaces_[faceId];
@@ -75,7 +75,7 @@ Face_Get_(FaceId faceId)
 
 /** \brief Return whether the face is DOWN.
  */
-static bool
+static inline bool
 Face_IsDown(FaceId faceId)
 {
   Face* face = Face_Get_(faceId);
@@ -95,7 +95,7 @@ typedef void (*Face_RxCb)(FaceRxBurst* burst, void* cbarg);
  *
  *  This function is thread-safe.
  */
-static void
+static inline void
 Face_TxBurst(FaceId faceId, Packet** npkts, uint16_t count)
 {
   Face* face = Face_Get_(faceId);
@@ -114,7 +114,7 @@ Face_TxBurst(FaceId faceId, Packet** npkts, uint16_t count)
 /** \brief Send a packet.
  *  \param npkt an L3 packet; face takes ownership
  */
-static void
+static inline void
 Face_Tx(FaceId faceId, Packet* npkt)
 {
   Face_TxBurst(faceId, &npkt, 1);
@@ -137,7 +137,7 @@ FaceImpl_RxBurst(FaceRxBurst* burst,
 
 /** \brief Update counters after a frame is transmitted.
  */
-static void
+static inline void
 FaceImpl_CountSent(Face* face, struct rte_mbuf* pkt)
 {
   TxProc_CountSent(&face->impl->tx, pkt);

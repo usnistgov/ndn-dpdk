@@ -45,7 +45,7 @@ static_assert(offsetof(PacketPriv, nack) + offsetof(PNack, interest) ==
 /** \brief Convert Packet* from rte_mbuf*.
  *  \param pkt mbuf of first fragment; must have sizeof(PacketPriv) privSize.
  */
-static Packet*
+static inline Packet*
 Packet_FromMbuf(struct rte_mbuf* pkt)
 {
   assert(pkt->priv_size >= sizeof(PacketPriv));
@@ -54,7 +54,7 @@ Packet_FromMbuf(struct rte_mbuf* pkt)
 
 /** \brief Convert Packet* to rte_mbuf*.
  */
-static struct rte_mbuf*
+static inline struct rte_mbuf*
 Packet_ToMbuf(const Packet* npkt)
 {
   return (struct rte_mbuf*)npkt;
@@ -72,7 +72,7 @@ typedef enum L2PktType
 
 /** \brief Get layer 2 packet type.
  */
-static L2PktType
+static inline L2PktType
 Packet_GetL2PktType(const Packet* npkt)
 {
   return Packet_ToMbuf(npkt)->inner_l2_type;
@@ -80,7 +80,7 @@ Packet_GetL2PktType(const Packet* npkt)
 
 /** \brief Set layer 2 packet type.
  */
-static void
+static inline void
 Packet_SetL2PktType(Packet* npkt, L2PktType t)
 {
   Packet_ToMbuf(npkt)->inner_l2_type = t;
@@ -106,7 +106,7 @@ L3PktType_ToString(L3PktType t);
 
 /** \brief Get layer 3 packet type.
  */
-static L3PktType
+static inline L3PktType
 Packet_GetL3PktType(const Packet* npkt)
 {
   return Packet_ToMbuf(npkt)->inner_l3_type;
@@ -114,20 +114,20 @@ Packet_GetL3PktType(const Packet* npkt)
 
 /** \brief Set layer 3 packet type.
  */
-static void
+static inline void
 Packet_SetL3PktType(Packet* npkt, L3PktType t)
 {
   Packet_ToMbuf(npkt)->inner_l3_type = t;
 }
 
-static PacketPriv*
+static inline PacketPriv*
 Packet_GetPriv_(Packet* npkt)
 {
   return (PacketPriv*)rte_mbuf_to_priv_(
     rte_mbuf_from_indirect(Packet_ToMbuf(npkt)));
 }
 
-static LpHeader*
+static inline LpHeader*
 Packet_GetLpHdr_(Packet* npkt)
 {
   return &Packet_GetPriv_(npkt)->lp;
@@ -135,7 +135,7 @@ Packet_GetLpHdr_(Packet* npkt)
 
 /** \brief Access LpHeader* header.
  */
-static LpHeader*
+static inline LpHeader*
 Packet_GetLpHdr(Packet* npkt)
 {
   assert(Packet_GetL2PktType(npkt) == L2PktType_NdnlpV2 &&
@@ -143,7 +143,7 @@ Packet_GetLpHdr(Packet* npkt)
   return Packet_GetLpHdr_(npkt);
 }
 
-static LpL3*
+static inline LpL3*
 Packet_GetLpL3Hdr_(Packet* npkt)
 {
   return &Packet_GetPriv_(npkt)->lpl3;
@@ -151,7 +151,7 @@ Packet_GetLpL3Hdr_(Packet* npkt)
 
 /** \brief Access LpL3* header.
  */
-static LpL3*
+static inline LpL3*
 Packet_GetLpL3Hdr(Packet* npkt)
 {
   assert(Packet_GetL2PktType(npkt) == L2PktType_NdnlpV2);
@@ -160,7 +160,7 @@ Packet_GetLpL3Hdr(Packet* npkt)
 
 /** \brief Access LpL3* header, initialize it if it does not exist.
  */
-static LpL3*
+static inline LpL3*
 Packet_InitLpL3Hdr(Packet* npkt)
 {
   LpL3* lpl3 = Packet_GetLpL3Hdr_(npkt);
@@ -171,7 +171,7 @@ Packet_InitLpL3Hdr(Packet* npkt)
   return lpl3;
 }
 
-static PInterest*
+static inline PInterest*
 Packet_GetInterestHdr_(Packet* npkt)
 {
   return &Packet_GetPriv_(npkt)->interest;
@@ -179,7 +179,7 @@ Packet_GetInterestHdr_(Packet* npkt)
 
 /** \brief Access PInterest* header.
  */
-static PInterest*
+static inline PInterest*
 Packet_GetInterestHdr(Packet* npkt)
 {
   assert(Packet_GetL3PktType(npkt) == L3PktType_Interest &&
@@ -188,7 +188,7 @@ Packet_GetInterestHdr(Packet* npkt)
   return Packet_GetInterestHdr_(npkt);
 }
 
-static PData*
+static inline PData*
 Packet_GetDataHdr_(Packet* npkt)
 {
   return &Packet_GetPriv_(npkt)->data;
@@ -196,7 +196,7 @@ Packet_GetDataHdr_(Packet* npkt)
 
 /** \brief Access PData* header
  */
-static PData*
+static inline PData*
 Packet_GetDataHdr(Packet* npkt)
 {
   assert(Packet_GetL3PktType(npkt) == L3PktType_Data);
@@ -205,7 +205,7 @@ Packet_GetDataHdr(Packet* npkt)
 
 /** \brief Access PNack* header.
  */
-static PNack*
+static inline PNack*
 Packet_GetNackHdr(Packet* npkt)
 {
   assert(Packet_GetL3PktType(npkt) == L3PktType_Nack &&

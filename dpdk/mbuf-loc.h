@@ -22,7 +22,7 @@ typedef struct MbufLoc
 
 /** \brief Initialize a MbufLoc to the beginning of a packet.
  */
-static void
+static inline void
 MbufLoc_Init(MbufLoc* ml, const struct rte_mbuf* pkt)
 {
   ml->m = pkt;
@@ -36,7 +36,7 @@ MbufLoc_Init(MbufLoc* ml, const struct rte_mbuf* pkt)
 
 /** \brief Copy MbufLoc \p src to \p dst.
  */
-static void
+static inline void
 MbufLoc_Copy(MbufLoc* dst, const MbufLoc* src)
 {
   rte_memcpy(dst, src, sizeof(*dst));
@@ -44,7 +44,7 @@ MbufLoc_Copy(MbufLoc* dst, const MbufLoc* src)
 
 /** \brief Copy MbufLoc \p src to \p dst but retain \c rem field.
  */
-static void
+static inline void
 MbufLoc_CopyPos(MbufLoc* dst, const MbufLoc* src)
 {
   dst->m = src->m;
@@ -53,7 +53,7 @@ MbufLoc_CopyPos(MbufLoc* dst, const MbufLoc* src)
 
 /** \brief Test if the iterator points past the end of packet or boundary.
  */
-static bool
+static inline bool
 MbufLoc_IsEnd(const MbufLoc* ml)
 {
   return ml->m == NULL || ml->rem == 0;
@@ -66,7 +66,7 @@ typedef void (*MbufLoc_WalkCb_)(void* arg,
 
 /** \brief Advance the position by \p n octets and invoke \p cb on each mbuf.
  */
-static uint32_t
+static inline uint32_t
 MbufLoc_Walk_(MbufLoc* ml, uint32_t n, MbufLoc_WalkCb_ cb, void* cbarg)
 {
   assert(n <= ml->rem);
@@ -101,7 +101,7 @@ MbufLoc_Walk_(MbufLoc* ml, uint32_t n, MbufLoc_WalkCb_ cb, void* cbarg)
 /** \brief Advance the position by \p n octets.
  *  \return Actually advanced distance.
  */
-static __rte_noinline uint32_t
+static __rte_noinline __rte_unused uint32_t
 MbufLoc_Advance(MbufLoc* ml, uint32_t n)
 {
   n = RTE_MIN(n, ml->rem);
@@ -119,7 +119,7 @@ MbufLoc_Advance(MbufLoc* ml, uint32_t n)
  *  uint32_t diff = MbufLoc_FastDiff(a, b);
  *  \endcode
  */
-static uint32_t
+static inline uint32_t
 MbufLoc_FastDiff(const MbufLoc* a, const MbufLoc* b)
 {
   return a->rem - b->rem;
@@ -143,7 +143,7 @@ MbufLoc_MakeIndirectCb_(void* arg,
  *  \retval NULL remaining range is less than \p n (rte_errno=ERANGE), or
                  allocation failure (rte_errno=ENOENT)
  */
-static __rte_noinline struct rte_mbuf*
+static __rte_noinline __rte_unused struct rte_mbuf*
 MbufLoc_MakeIndirect(MbufLoc* ml, uint32_t n, struct rte_mempool* mp)
 {
   assert(n > 0);
@@ -198,25 +198,25 @@ MbufLoc_ReadTo(MbufLoc* ml, void* output, uint32_t n)
   return n;
 }
 
-static bool
+static inline bool
 MbufLoc_ReadU8(MbufLoc* ml, uint8_t* output)
 {
   return sizeof(uint8_t) == MbufLoc_ReadTo(ml, output, sizeof(uint8_t));
 }
 
-static bool
+static inline bool
 MbufLoc_ReadU16(MbufLoc* ml, uint16_t* output)
 {
   return sizeof(uint16_t) == MbufLoc_ReadTo(ml, output, sizeof(uint16_t));
 }
 
-static bool
+static inline bool
 MbufLoc_ReadU32(MbufLoc* ml, uint32_t* output)
 {
   return sizeof(uint32_t) == MbufLoc_ReadTo(ml, output, sizeof(uint32_t));
 }
 
-static bool
+static inline bool
 MbufLoc_ReadU64(MbufLoc* ml, uint64_t* output)
 {
   return sizeof(uint64_t) == MbufLoc_ReadTo(ml, output, sizeof(uint64_t));
@@ -226,7 +226,7 @@ MbufLoc_ReadU64(MbufLoc* ml, uint64_t* output)
  *  \return the next octet
  *  \retval -1 iterator is at the end
  */
-static int
+static inline int
 MbufLoc_PeekOctet(const MbufLoc* ml)
 {
   if (unlikely(MbufLoc_IsEnd(ml))) {
@@ -270,7 +270,7 @@ MbufLoc_Linearize_(MbufLoc* first,
  *  \exception EMSGSIZE mp dataroom is less than MbufLoc_Diff(first, last)
  *  \warning Undefined behavior if advancing \p first cannot reach \p last
  */
-static uint8_t*
+static inline uint8_t*
 MbufLoc_Linearize(MbufLoc* first,
                   MbufLoc* last,
                   uint32_t n,

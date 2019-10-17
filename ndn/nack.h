@@ -20,7 +20,7 @@ typedef enum NackReason
 
 /** \brief Return the less severe NackReason.
  */
-static NackReason
+static inline NackReason
 NackReason_GetMin(NackReason a, NackReason b)
 {
   return RTE_MIN(a, b);
@@ -37,7 +37,7 @@ typedef struct PNack
   PInterest interest;
 } PNack;
 
-static NackReason
+static inline NackReason
 PNack_GetReason(const PNack* nack)
 {
   return nack->lpl3.nackReason;

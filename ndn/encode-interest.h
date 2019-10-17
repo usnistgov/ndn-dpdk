@@ -14,7 +14,7 @@ typedef struct NonceGen
 void
 NonceGen_Init(NonceGen* g);
 
-static uint32_t
+static inline uint32_t
 NonceGen_Next(NonceGen* g)
 {
   return pcg32_random_r(&g->rng);
@@ -48,7 +48,7 @@ InterestTemplate_Prepare_(InterestTemplate* tpl,
  *                     Nonce, InterestLifetime, HopLimit fields.
  *  \return 0 if success, otherwise a positive number indicates the required buffer size
  */
-static uint16_t
+static inline uint16_t
 InterestTemplate_Prepare(InterestTemplate* tpl,
                          uint8_t* buffer,
                          uint16_t bufferSize)
@@ -56,13 +56,13 @@ InterestTemplate_Prepare(InterestTemplate* tpl,
   return InterestTemplate_Prepare_(tpl, buffer, bufferSize, tpl->fhV);
 }
 
-static uint16_t
+static inline uint16_t
 EncodeInterest_GetHeadroom()
 {
   return 1 + 5; // Interest TL
 }
 
-static uint16_t
+static inline uint16_t
 EncodeInterest_GetTailroom_(uint16_t bufferSize,
                             uint16_t nameL,
                             uint16_t paramL)
@@ -71,7 +71,7 @@ EncodeInterest_GetTailroom_(uint16_t bufferSize,
          bufferSize + 1 + 5 + paramL; // Parameters
 }
 
-static uint16_t
+static inline uint16_t
 EncodeInterest_GetTailroom(const InterestTemplate* tpl,
                            uint16_t nameSuffixL,
                            uint16_t paramL)
@@ -83,7 +83,7 @@ EncodeInterest_GetTailroom(const InterestTemplate* tpl,
 /** \brief Get required tailroom for EncodeInterest output mbuf, assuming
  *         max name length, one delegation in forwarding hint, no parameters.
  */
-static uint16_t
+static inline uint16_t
 EncodeInterest_GetTailroomMax()
 {
   const uint16_t maxBufferSize = 1 + 1 +                   // CanBePrefix
@@ -121,7 +121,7 @@ EncodeInterest_(struct rte_mbuf* m,
  *  \param paramL Parameters TLV-LENGTH
  *  \param paramV Parameters TLV-VALUE
  */
-static void
+static inline void
 EncodeInterest(struct rte_mbuf* m,
                const InterestTemplate* tpl,
                uint8_t* preparedBuffer,

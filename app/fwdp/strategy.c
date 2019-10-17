@@ -7,11 +7,12 @@ INIT_ZF_LOG(FwFwd);
 void
 SgTriggerTimer(Pit* pit, PitEntry* pitEntry, void* fwd0)
 {
-  FwFwdCtx ctx = { 0 };
-  ctx.rxTime = rte_get_tsc_cycles();
-  ctx.fwd = (FwFwd*)fwd0;
-  ctx.eventKind = SGEVT_TIMER;
-  ctx.pitEntry = pitEntry;
+  FwFwdCtx ctx = {
+    .rxTime = rte_get_tsc_cycles(),
+    .fwd = (FwFwd*)fwd0,
+    .eventKind = SGEVT_TIMER,
+    .pitEntry = pitEntry,
+  };
 
   // find FIB entry
   rcu_read_lock();
@@ -48,7 +49,6 @@ SgGetXsyms(int* nXsyms)
 {
   static const struct rte_bpf_xsym xsyms[] =
     { {
-        0,
         .name = "SgSetTimer",
         .type = RTE_BPF_XTYPE_FUNC,
         .func =
@@ -70,7 +70,6 @@ SgGetXsyms(int* nXsyms)
           },
       },
       {
-        0,
         .name = "SgForwardInterest",
         .type = RTE_BPF_XTYPE_FUNC,
         .func =
@@ -91,8 +90,7 @@ SgGetXsyms(int* nXsyms)
               },
           },
       },
-      { 0,
-        .name = "SgReturnNacks",
+      { .name = "SgReturnNacks",
         .type = RTE_BPF_XTYPE_FUNC,
         .func = {
           .val = (void*)SgReturnNacks,

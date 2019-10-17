@@ -1,7 +1,5 @@
 #include "face.h"
 
-static const int LATENCY_STAT_SAMPLE_FREQ = 16;
-
 Face gFaces_[FACEID_MAX + 1];
 
 void

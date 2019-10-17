@@ -27,14 +27,14 @@ typedef struct PitUp
 } __rte_aligned(64) PitUp;
 static_assert(sizeof(PitUp) == 64, "");
 
-static void
+static inline void
 PitUp_Reset(PitUp* up, FaceId face)
 {
   memset(up, 0, sizeof(PitUp));
   up->face = face;
 }
 
-static void
+static inline void
 PitUp_Copy(PitUp* dst, PitUp* src)
 {
   rte_mov64((uint8_t*)dst, (const uint8_t*)src);
@@ -43,7 +43,7 @@ PitUp_Copy(PitUp* dst, PitUp* src)
 
 /** \brief Determine if forwarding should be suppressed.
  */
-static bool
+static inline bool
 PitUp_ShouldSuppress(PitUp* up, TscTime now)
 {
   return up->lastTx + up->suppress > now;
@@ -51,7 +51,7 @@ PitUp_ShouldSuppress(PitUp* up, TscTime now)
 
 /** \brief Record that \p nonce is rejected by upstream.
  */
-static void
+static inline void
 PitUp_AddRejectedNonce(PitUp* up, uint32_t nonce)
 {
   for (int i = PIT_UP_MAX_REJ_NONCES - 1; i > 0; --i) {

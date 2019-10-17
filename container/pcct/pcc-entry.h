@@ -81,7 +81,7 @@ struct PccEntryExt
   PccSlot slot3;
 };
 
-static PccSlot*
+static inline PccSlot*
 PccEntry_GetSlot_(PccEntry* entry, PccSlotIndex slot)
 {
   switch (slot) {
@@ -107,7 +107,7 @@ PccEntry_ClearSlot_(PccEntry* entry, PccSlotIndex slot);
 
 /** \brief Get PIT entry of MustBeFresh=0 from \p entry.
  */
-static PitEntry*
+static inline PitEntry*
 PccEntry_GetPitEntry0(PccEntry* entry)
 {
   return &PccEntry_GetSlot_(entry, entry->pitEntry0Slot)->pitEntry;
@@ -115,7 +115,7 @@ PccEntry_GetPitEntry0(PccEntry* entry)
 
 /** \brief Add PIT entry of MustBeFresh=0 to \p entry.
  */
-static PitEntry*
+static inline PitEntry*
 PccEntry_AddPitEntry0(PccEntry* entry)
 {
   if (entry->hasPitEntry0) {
@@ -131,7 +131,7 @@ PccEntry_AddPitEntry0(PccEntry* entry)
 
 /** \brief Remove PIT entry of MustBeFresh=0 from \p entry.
  */
-static void
+static inline void
 PccEntry_RemovePitEntry0(PccEntry* entry)
 {
   PccEntry_ClearSlot_(entry, entry->pitEntry0Slot);
@@ -140,7 +140,7 @@ PccEntry_RemovePitEntry0(PccEntry* entry)
 
 /** \brief Get PIT entry of MustBeFresh=1 from \p entry.
  */
-static PitEntry*
+static inline PitEntry*
 PccEntry_GetPitEntry1(PccEntry* entry)
 {
   return &PccEntry_GetSlot_(entry, entry->pitEntry1Slot)->pitEntry;
@@ -148,7 +148,7 @@ PccEntry_GetPitEntry1(PccEntry* entry)
 
 /** \brief Add PIT entry of MustBeFresh=1 to \p entry.
  */
-static PitEntry*
+static inline PitEntry*
 PccEntry_AddPitEntry1(PccEntry* entry)
 {
   if (entry->hasPitEntry1) {
@@ -164,7 +164,7 @@ PccEntry_AddPitEntry1(PccEntry* entry)
 
 /** \brief Remove PIT entry of MustBeFresh=1 from \p entry.
  */
-static void
+static inline void
 PccEntry_RemovePitEntry1(PccEntry* entry)
 {
   PccEntry_ClearSlot_(entry, entry->pitEntry1Slot);
@@ -173,7 +173,7 @@ PccEntry_RemovePitEntry1(PccEntry* entry)
 
 /** \brief Access \c PccEntry struct containing given PIT entry.
  */
-static PccEntry*
+static inline PccEntry*
 PccEntry_FromPitEntry(PitEntry* pitEntry)
 {
   return container_of(pitEntry, PccSlot, pitEntry)->pccEntry;
@@ -181,7 +181,7 @@ PccEntry_FromPitEntry(PitEntry* pitEntry)
 
 /** \brief Get CS entry from \p entry.
  */
-static CsEntry*
+static inline CsEntry*
 PccEntry_GetCsEntry(PccEntry* entry)
 {
   return &PccEntry_GetSlot_(entry, entry->csEntrySlot)->csEntry;
@@ -189,7 +189,7 @@ PccEntry_GetCsEntry(PccEntry* entry)
 
 /** \brief Add CS entry to \p entry.
  */
-static CsEntry*
+static inline CsEntry*
 PccEntry_AddCsEntry(PccEntry* entry)
 {
   if (entry->hasCsEntry) {
@@ -205,7 +205,7 @@ PccEntry_AddCsEntry(PccEntry* entry)
 
 /** \brief Remove CS entry from \p entry.
  */
-static void
+static inline void
 PccEntry_RemoveCsEntry(PccEntry* entry)
 {
   PccEntry_ClearSlot_(entry, entry->csEntrySlot);
@@ -214,7 +214,7 @@ PccEntry_RemoveCsEntry(PccEntry* entry)
 
 /** \brief Access \c PccEntry struct containing given CS entry.
  */
-static PccEntry*
+static inline PccEntry*
 PccEntry_FromCsEntry(CsEntry* csEntry)
 {
   PccEntry* entry = container_of(csEntry, PccSlot, csEntry)->pccEntry;

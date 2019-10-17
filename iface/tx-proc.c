@@ -78,9 +78,8 @@ TxProc_OutputFrag(TxProc* tx,
 
   MbufLoc pos;
   MbufLoc_Init(&pos, pkt);
-  LpHeader lph = { 0 };
+  LpHeader lph = { .l2 = { .fragCount = (uint16_t)nFragments } };
   rte_memcpy(&lph.l3, Packet_InitLpL3Hdr(npkt), sizeof(lph.l3));
-  lph.l2.fragCount = (uint16_t)nFragments;
   L3PktType l3type = Packet_GetL3PktType(npkt);
 
   for (int i = 0; i < nFragments; ++i) {
@@ -162,9 +161,8 @@ TxProc_OutputNoFrag(TxProc* tx,
     ZF_LOGV("pktLen=%" PRIu32 " one-fragment(prepend)", pkt->pkt_len);
   }
 
-  LpHeader lph = { 0 };
+  LpHeader lph = { .l2 = { .fragCount = 1 } };
   rte_memcpy(&lph.l3, Packet_InitLpL3Hdr(npkt), sizeof(lph.l3));
-  lph.l2.fragCount = 1;
   PrependLpHeader(frame, &lph, payloadL);
   frames[0] = frame;
   return 1;

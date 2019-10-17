@@ -101,4 +101,5 @@ CsListId_GetName(CsListId cslId)
     case CSL_MI:
       return "MI";
   }
+  return "(unknown)";
 }

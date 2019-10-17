@@ -26,7 +26,7 @@ FaceRxBurst_Close(FaceRxBurst* burst);
 
 /** \brief Access the array of Interests.
  */
-static Packet**
+static inline Packet**
 FaceRxBurst_ListInterests(FaceRxBurst* burst)
 {
   return &burst->npkt[0];
@@ -34,7 +34,7 @@ FaceRxBurst_ListInterests(FaceRxBurst* burst)
 
 /** \brief Access the array of Data.
  */
-static Packet**
+static inline Packet**
 FaceRxBurst_ListData(FaceRxBurst* burst)
 {
   return &burst->npkt[burst->capacity];
@@ -42,7 +42,7 @@ FaceRxBurst_ListData(FaceRxBurst* burst)
 
 /** \brief Access the array of Nacks.
  */
-static Packet**
+static inline Packet**
 FaceRxBurst_ListNacks(FaceRxBurst* burst)
 {
   return &burst->npkt[burst->capacity + burst->capacity];
@@ -50,7 +50,7 @@ FaceRxBurst_ListNacks(FaceRxBurst* burst)
 
 /** \brief Get i-th Interest.
  */
-static Packet*
+static inline Packet*
 FaceRxBurst_GetInterest(FaceRxBurst* burst, uint16_t i)
 {
   assert(i < burst->nInterests);
@@ -59,7 +59,7 @@ FaceRxBurst_GetInterest(FaceRxBurst* burst, uint16_t i)
 
 /** \brief Get i-th Data.
  */
-static Packet*
+static inline Packet*
 FaceRxBurst_GetData(FaceRxBurst* burst, uint16_t i)
 {
   assert(i < burst->nData);
@@ -68,7 +68,7 @@ FaceRxBurst_GetData(FaceRxBurst* burst, uint16_t i)
 
 /** \brief Get i-th Nack.
  */
-static Packet*
+static inline Packet*
 FaceRxBurst_GetNack(FaceRxBurst* burst, uint16_t i)
 {
   assert(i < burst->nNacks);
@@ -81,7 +81,7 @@ FaceRxBurst_GetNack(FaceRxBurst* burst, uint16_t i)
  *  \c FaceRxBurst_PutInterest as long as processing each frame adds at most
  *  one Interest.
  */
-static struct rte_mbuf**
+static inline struct rte_mbuf**
 FaceRxBurst_GetScratch(FaceRxBurst* burst)
 {
   return (struct rte_mbuf**)burst->npkt;
@@ -90,7 +90,7 @@ FaceRxBurst_GetScratch(FaceRxBurst* burst)
 /** \brief Clear all packets.
  *  \note This does not deallocate packets.
  */
-static void
+static inline void
 FaceRxBurst_Clear(FaceRxBurst* burst)
 {
   burst->nInterests = 0;
@@ -101,7 +101,7 @@ FaceRxBurst_Clear(FaceRxBurst* burst)
 /** \brief Add an Interest.
  *  \pre burst->nInterests < burst->capacity
  */
-static void
+static inline void
 FaceRxBurst_PutInterest(FaceRxBurst* burst, Packet* npkt)
 {
   assert(burst->nInterests < burst->capacity);
@@ -112,7 +112,7 @@ FaceRxBurst_PutInterest(FaceRxBurst* burst, Packet* npkt)
 /** \brief Add a Data.
  *  \pre burst->nData < burst->capacity
  */
-static void
+static inline void
 FaceRxBurst_PutData(FaceRxBurst* burst, Packet* npkt)
 {
   assert(burst->nData < burst->capacity);
@@ -123,7 +123,7 @@ FaceRxBurst_PutData(FaceRxBurst* burst, Packet* npkt)
 /** \brief Add a Nack.
  *  \pre burst->nNacks < burst->capacity
  */
-static void
+static inline void
 FaceRxBurst_PutNack(FaceRxBurst* burst, Packet* npkt)
 {
   assert(burst->nNacks < burst->capacity);

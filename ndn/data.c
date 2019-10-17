@@ -48,7 +48,7 @@ PData_FromPacket(PData* data, struct rte_mbuf* pkt, struct rte_mempool* nameMp)
     }
 
     uint64_t fpV;
-    bool ok = TlvElement_ReadNonNegativeInteger(&metaChild, &fpV);
+    e = TlvElement_ReadNonNegativeInteger(&metaChild, &fpV);
     RETURN_IF_ERROR;
     data->freshnessPeriod = (uint32_t)RTE_MIN(UINT32_MAX, fpV);
     break;
@@ -64,8 +64,9 @@ PData_CanSatisfy(PData* data, PInterest* interest)
     return DATA_SATISFY_NO;
   }
 
-  NameCompareResult cmp =
-    LName_Compare(*(const LName*)&interest->name, *(const LName*)&data->name);
+  const LName* interestLName = (const LName*)&interest->name;
+  const LName* dataLName = (const LName*)&data->name;
+  NameCompareResult cmp = LName_Compare(*interestLName, *dataLName);
 
   if (unlikely(interest->name.p.hasDigestComp)) {
     if (cmp != NAMECMP_RPREFIX ||

@@ -76,7 +76,7 @@ typedef struct PName
 
 /** \brief Initialize a PName to indicate an empty name.
  */
-static void
+static inline void
 PName_Clear(PName* n)
 {
   memset(n, 0, sizeof(PName));
@@ -109,7 +109,7 @@ PName_SeekCompEnd_(const PName* n, const uint8_t* input, uint16_t i);
  *  \param input a buffer containing TLV-VALUE of Name element
  *  \param i component index, must be less than n->nComps
  */
-static uint16_t
+static inline uint16_t
 PName_GetCompEnd(const PName* n, const uint8_t* input, uint16_t i)
 {
   assert(i < n->nComps);
@@ -126,7 +126,7 @@ PName_GetCompEnd(const PName* n, const uint8_t* input, uint16_t i)
  *  \param input a buffer containing TLV-VALUE of Name element
  *  \param i component index, must be less than n->nComps
  */
-static uint16_t
+static inline uint16_t
 PName_GetCompBegin(const PName* n, const uint8_t* input, uint16_t i)
 {
   assert(i < n->nComps);
@@ -140,7 +140,7 @@ PName_GetCompBegin(const PName* n, const uint8_t* input, uint16_t i)
  *  \param input a buffer containing TLV-VALUE of Name element
  *  \param i component index, must be less than n->nComps
  */
-static uint16_t
+static inline uint16_t
 PName_SizeofComp(const PName* n, const uint8_t* input, uint16_t i)
 {
   return PName_GetCompEnd(n, input, i) - PName_GetCompBegin(n, input, i);
@@ -150,7 +150,7 @@ PName_SizeofComp(const PName* n, const uint8_t* input, uint16_t i)
  *  \param input a buffer containing TLV-VALUE of Name element
  *  \param i prefix length, must be no greater than n->nComps
  */
-static uint16_t
+static inline uint16_t
 PName_SizeofPrefix(const PName* n, const uint8_t* input, uint16_t i)
 {
   if (i == 0) {
@@ -166,7 +166,7 @@ PName_HashToCache_(PName* n, const uint8_t* input);
  *  \param input a buffer containing TLV-VALUE of Name element
  *  \param i prefix length, must be no greater than n->nComps
  */
-static uint64_t
+static inline uint64_t
 PName_ComputePrefixHash(const PName* n, const uint8_t* input, uint16_t i)
 {
   if (i == 0) {
@@ -187,7 +187,7 @@ PName_ComputePrefixHash(const PName* n, const uint8_t* input, uint16_t i)
 /** \brief Compute hash for whole name.
  *  \param input a buffer containing TLV-VALUE of Name element
  */
-static uint64_t
+static inline uint64_t
 PName_ComputeHash(const PName* n, const uint8_t* input)
 {
   return PName_ComputePrefixHash(n, input, n->nComps);
@@ -214,7 +214,7 @@ typedef struct NameComp
 /** \brief Get i-th component.
  *  \param i component index, must be less than n->p.nComps
  */
-static NameComp
+static inline NameComp
 Name_GetComp(const Name* n, uint16_t i)
 {
   NameComp comp = {

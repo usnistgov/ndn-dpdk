@@ -42,14 +42,8 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
   PInterest* interest = Packet_GetInterestHdr(npkt);
 
   // construct PccSearch
-  PccSearch search = { 0 };
-  search.name = *(const LName*)(&interest->name);
-  search.nameHash = PName_ComputeHash(&interest->name.p, interest->name.v);
-  if (interest->activeFh >= 0) {
-    search.fh = *(const LName*)(&interest->activeFhName);
-    search.fhHash =
-      PName_ComputeHash(&interest->activeFhName.p, interest->activeFhName.v);
-  }
+  PccSearch search;
+  PccSearch_FromNames(&search, &interest->name, interest);
 
   // seek PCC entry
   bool isNewPcc = false;
@@ -244,8 +238,8 @@ Pit_FindByNack(Pit* pit, Packet* npkt)
   }
 
   // verify Interest name matches PCC key
-  LName interestName = *(const LName*)(&interest->name);
-  if (unlikely(!PccKey_MatchName(&pccEntry->key, interestName))) {
+  const LName* interestName = (const LName*)(&interest->name);
+  if (unlikely(!PccKey_MatchName(&pccEntry->key, *interestName))) {
     ++pitp->nNackMiss;
     return NULL;
   }

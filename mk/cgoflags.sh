@@ -16,6 +16,7 @@ if [[ -n $GOFILES ]]; then
   PKGNAME=$(grep -h '^package ' $GOFILES | head -1 | awk '{print $2}')
 fi
 
+MK_CGOFLAGS=1
 source mk/cflags.sh
 
 (

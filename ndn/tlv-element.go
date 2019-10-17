@@ -51,7 +51,7 @@ func (ele *TlvElement) GetValue() (v TlvBytes) {
 func (ele *TlvElement) ReadNonNegativeInteger() (n uint64, ok bool) {
 	var v C.uint64_t
 	res := C.TlvElement_ReadNonNegativeInteger(&ele.c, &v)
-	return uint64(v), bool(res)
+	return uint64(v), res == C.NdnError_OK
 }
 
 func (ele *TlvElement) String() string {

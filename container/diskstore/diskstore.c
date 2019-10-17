@@ -35,7 +35,6 @@ DiskStore_PutData_End(struct spdk_bdev_io* io, bool success, void* npkt0)
   Packet* npkt = (Packet*)npkt0;
   PData* data = Packet_GetDataHdr(npkt);
   DiskStore_PutDataRequest* req = (DiskStore_PutDataRequest*)&data->digest[0];
-  DiskStore* store = req->store;
   uint64_t slotId = req->slotId;
 
   if (unlikely(!success)) {

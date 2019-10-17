@@ -23,7 +23,7 @@ typedef struct PingInput
 PingInput*
 PingInput_New(uint16_t minFaceId, uint16_t maxFaceId, unsigned numaSocket);
 
-static PingInputEntry*
+static inline PingInputEntry*
 PingInput_GetEntry(PingInput* input, uint16_t faceId)
 {
   if (faceId >= input->minFaceId && faceId <= input->maxFaceId) {

@@ -53,7 +53,7 @@ struct PitEntryExt
   PitEntryExt* next;
 };
 
-static void
+static inline void
 PitEntry_SetFibEntry_(PitEntry* entry,
                       PInterest* interest,
                       const FibEntry* fibEntry)
@@ -72,7 +72,7 @@ PitEntry_SetFibEntry_(PitEntry* entry,
 /** \brief Initialize a PIT entry.
  *  \param npkt the Interest packet.
  */
-static void
+static inline void
 PitEntry_Init(PitEntry* entry, Packet* npkt, const FibEntry* fibEntry)
 {
   PInterest* interest = Packet_GetInterestHdr(npkt);
@@ -93,7 +93,7 @@ PitEntry_Init(PitEntry* entry, Packet* npkt, const FibEntry* fibEntry)
 
 /** \brief Finalize a PIT entry.
  */
-static void
+static inline void
 PitEntry_Finalize(PitEntry* entry)
 {
   if (likely(entry->npkt != NULL)) {
@@ -117,7 +117,7 @@ PitEntry_ToDebugString(PitEntry* entry);
 /** \brief Reference FIB entry from PIT entry, clear scratch if FIB entry changed.
  *  \param npkt the Interest packet.
  */
-static void
+static inline void
 PitEntry_RefreshFibEntry(PitEntry* entry,
                          Packet* npkt,
                          const FibEntry* fibEntry)
@@ -179,7 +179,7 @@ PitEntry_ReserveUp(PitEntry* entry, Pit* pit, FaceId face);
 /** \brief Calculate InterestLifetime for TX Interest.
  *  \return InterestLifetime in millis.
  */
-static uint32_t
+static inline uint32_t
 PitEntry_GetTxInterestLifetime(PitEntry* entry, TscTime now)
 {
   return TscDuration_ToMillis(entry->expiry - now);
@@ -187,7 +187,7 @@ PitEntry_GetTxInterestLifetime(PitEntry* entry, TscTime now)
 
 /** \brief Calculate HopLimit for TX Interest.
  */
-static uint8_t
+static inline uint8_t
 PitEntry_GetTxInterestHopLimit(PitEntry* entry)
 {
   return entry->txHopLimit;

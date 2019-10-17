@@ -20,7 +20,7 @@ CsList_Remove(CsList* csl, CsEntry* entry);
 
 /** \brief Access the front entry of list.
  */
-static CsEntry*
+static inline CsEntry*
 CsList_GetFront(CsList* csl)
 {
   assert(csl->count > 0);

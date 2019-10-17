@@ -22,7 +22,7 @@ typedef struct TlvElement
  *  \param[out] ele the element; will assign all fields except \c last.
  *  \retval NdnError_BadType expectedType is non-zero and TLV-TYPE does not equal \p expectedType.
  */
-static NdnError
+static inline NdnError
 TlvElement_DecodeTL(TlvElement* ele, MbufLoc* d, uint32_t expectedType)
 {
   MbufLoc_Copy(&ele->first, d);
@@ -54,7 +54,7 @@ TlvElement_DecodeTL(TlvElement* ele, MbufLoc* d, uint32_t expectedType)
  *        MbufLoc_FastDiff may be used on them.
  *  \retval NdnError_BadType expectedType is non-zero and TLV-TYPE does not equal \p expectedType.
  */
-static NdnError
+static inline NdnError
 TlvElement_Decode(TlvElement* ele, MbufLoc* d, uint32_t expectedType)
 {
   NdnError e = TlvElement_DecodeTL(ele, d, expectedType);
@@ -71,7 +71,7 @@ TlvElement_Decode(TlvElement* ele, MbufLoc* d, uint32_t expectedType)
 
 /** \brief Determine if the element's TLV-VALUE is in consecutive memory.
  */
-static bool
+static inline bool
 TlvElement_IsValueLinear(const TlvElement* ele)
 {
   return ele->value.off + ele->length <= ele->value.m->data_len;
@@ -80,7 +80,7 @@ TlvElement_IsValueLinear(const TlvElement* ele)
 /** \brief Get pointer to element's TLV-VALUE.
  *  \pre TlvElement_IsValueLinear(ele)
  */
-static const uint8_t*
+static inline const uint8_t*
 TlvElement_GetLinearValue(const TlvElement* ele)
 {
   assert(TlvElement_IsValueLinear(ele));
@@ -94,7 +94,7 @@ TlvElement_GetLinearValue(const TlvElement* ele)
  *  \param[out] d a MbufLoc pointing to past-end position; NULL if not needed.
  *  \post parent/following TlvElements and MbufLoc may be invalidated.
  */
-static const uint8_t*
+static inline const uint8_t*
 TlvElement_LinearizeValue(TlvElement* ele,
                           struct rte_mbuf* pkt,
                           struct rte_mempool* mp,
@@ -113,7 +113,7 @@ TlvElement_LinearizeValue(TlvElement* ele,
 /** \brief Create a decoder to decode the element's TLV-VALUE.
  *  \param[out] d an iterator bounded inside TLV-VALUE.
  */
-static void
+static inline void
 TlvElement_MakeValueDecoder(const TlvElement* ele, MbufLoc* d)
 {
   MbufLoc_Copy(d, &ele->value);
@@ -124,7 +124,7 @@ TlvElement_MakeValueDecoder(const TlvElement* ele, MbufLoc* d)
  *  \param[out] n the number.
  *  \return whether decoding succeeded
  */
-static bool
+static inline NdnError
 TlvElement_ReadNonNegativeInteger(const TlvElement* ele, uint64_t* n)
 {
   MbufLoc vd;
@@ -135,41 +135,41 @@ TlvElement_ReadNonNegativeInteger(const TlvElement* ele, uint64_t* n)
       uint8_t v;
       bool ok = MbufLoc_ReadU8(&vd, &v);
       if (unlikely(!ok)) {
-        return false;
+        return NdnError_BadNni;
       }
       *n = v;
-      return true;
+      return NdnError_OK;
     }
     case 2: {
       rte_be16_t v;
       bool ok = MbufLoc_ReadU16(&vd, &v);
       if (unlikely(!ok)) {
-        return false;
+        return NdnError_BadNni;
       }
       *n = rte_be_to_cpu_16(v);
-      return true;
+      return NdnError_OK;
     }
     case 4: {
       rte_be32_t v;
       bool ok = MbufLoc_ReadU32(&vd, &v);
       if (unlikely(!ok)) {
-        return false;
+        return NdnError_BadNni;
       }
       *n = rte_be_to_cpu_32(v);
-      return true;
+      return NdnError_OK;
     }
     case 8: {
       rte_be64_t v;
       bool ok = MbufLoc_ReadU64(&vd, &v);
       if (unlikely(!ok)) {
-        return false;
+        return NdnError_BadNni;
       }
       *n = rte_be_to_cpu_64(v);
-      return true;
+      return NdnError_OK;
     }
   }
 
-  return false;
+  return NdnError_BadNni;
 }
 
 #endif // NDN_DPDK_NDN_TLV_ELEMENT_H

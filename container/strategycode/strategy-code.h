@@ -23,7 +23,7 @@ typedef struct StrategyCode
  *  \param arg argument to BPF program.
  *  \param sizeofArg sizeof(*arg)
  */
-static uint64_t
+static inline uint64_t
 StrategyCode_Execute(StrategyCode* sc, void* arg, size_t sizeofArg)
 {
   return (*sc->jit)(arg, sizeofArg);

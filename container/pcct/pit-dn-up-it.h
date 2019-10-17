@@ -26,7 +26,7 @@ typedef struct PitDnUpIt_
   PitEntryExt** nextPtr; ///< (pvt) next extension
 } PitDnUpIt_;
 
-static void
+static inline void
 PitDnUpIt_Init_(PitDnUpIt_* it,
                 PitEntry* entry,
                 int maxInEntry,
@@ -39,7 +39,7 @@ PitDnUpIt_Init_(PitDnUpIt_* it,
   it->nextPtr = &entry->ext;
 }
 
-static void
+static inline void
 PitDnUpIt_Next_(PitDnUpIt_* it, int maxInExt, size_t offsetInExt)
 {
   assert(it->i < it->max);
@@ -74,20 +74,20 @@ PitDnUpIt_Extend_(PitDnUpIt_* it, Pit* pit, int maxInExt, size_t offsetInExt);
  */
 typedef PitDnUpIt_ PitDnIt;
 
-static void
+static inline void
 PitDnIt_Init(PitDnIt* it, PitEntry* entry)
 {
   PitDnUpIt_Init_(it, entry, PIT_ENTRY_MAX_DNS, offsetof(PitEntry, dns));
   it->dn = &it->dns[it->i];
 }
 
-static bool
+static inline bool
 PitDnIt_Valid(PitDnIt* it)
 {
   return it->i < it->max;
 }
 
-static void
+static inline void
 PitDnIt_Next(PitDnIt* it)
 {
   PitDnUpIt_Next_(it, PIT_ENTRY_EXT_MAX_DNS, offsetof(PitEntryExt, dns));
@@ -98,7 +98,7 @@ PitDnIt_Next(PitDnIt* it)
  *  \retval true extension added, iterator points to next slot.
  *  \retval false unable to allocate extension
  */
-static bool
+static inline bool
 PitDnIt_Extend(PitDnIt* it, Pit* pit)
 {
   bool ok = PitDnUpIt_Extend_(
@@ -119,20 +119,20 @@ PitDnIt_Extend(PitDnIt* it, Pit* pit)
  */
 typedef PitDnUpIt_ PitUpIt;
 
-static void
+static inline void
 PitUpIt_Init(PitUpIt* it, PitEntry* entry)
 {
   PitDnUpIt_Init_(it, entry, PIT_ENTRY_MAX_UPS, offsetof(PitEntry, ups));
   it->up = &it->ups[it->i];
 }
 
-static bool
+static inline bool
 PitUpIt_Valid(PitUpIt* it)
 {
   return it->i < it->max;
 }
 
-static void
+static inline void
 PitUpIt_Next(PitUpIt* it)
 {
   PitDnUpIt_Next_(it, PIT_ENTRY_EXT_MAX_UPS, offsetof(PitEntryExt, ups));
@@ -143,7 +143,7 @@ PitUpIt_Next(PitUpIt* it)
  *  \retval true extension added, iterator points to next slot.
  *  \retval false unable to allocate extension
  */
-static bool
+static inline bool
 PitUpIt_Extend(PitDnIt* it, Pit* pit)
 {
   bool ok = PitDnUpIt_Extend_(

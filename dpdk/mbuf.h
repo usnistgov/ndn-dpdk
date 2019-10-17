@@ -20,7 +20,7 @@ FreeMbufs(struct rte_mbuf* mbufs[], int count)
  *
  *  This function does not require first segment to have enough length.
  */
-static bool
+static inline bool
 Packet_Adj(struct rte_mbuf* pkt, uint16_t len)
 {
   if (unlikely(pkt->pkt_len < len)) {
@@ -56,7 +56,7 @@ Packet_Adj(struct rte_mbuf* pkt, uint16_t len)
  *  \retval 0 success
  *  \retval -EOVERFLOW total segment count exceeds limit
  */
-static int
+static inline int
 Packet_Chain(struct rte_mbuf* head,
              struct rte_mbuf* lastSeg,
              struct rte_mbuf* tail)

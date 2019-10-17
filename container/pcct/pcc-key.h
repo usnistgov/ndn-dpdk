@@ -15,9 +15,30 @@ typedef struct PccSearch
   uint64_t fhHash;
 } PccSearch;
 
+/** \brief Initialize PccSearch from name and Interest fwhint.
+ */
+static inline void
+PccSearch_FromNames(PccSearch* search,
+                    const Name* name,
+                    const PInterest* interest)
+{
+  const LName* lname = (const LName*)name;
+  search->name = *lname;
+  search->nameHash = PName_ComputeHash(&name->p, name->v);
+  if (interest->activeFh >= 0) {
+    const LName* fhLName = (const LName*)&interest->activeFhName;
+    search->fh = *fhLName;
+    search->fhHash =
+      PName_ComputeHash(&interest->activeFhName.p, interest->activeFhName.v);
+  } else {
+    search->fh.length = 0;
+    search->fhHash = 0;
+  }
+}
+
 /** \brief Compute hash value for use in PCCT.
  */
-static uint64_t
+static inline uint64_t
 PccSearch_ComputeHash(const PccSearch* search)
 {
   return search->nameHash ^ search->fhHash;
@@ -54,7 +75,7 @@ struct PccKeyExt
   uint8_t value[PCC_KEY_EXT_CAP];
 };
 
-static bool
+static inline bool
 PccKey_MatchNameOrFhV_(LName name,
                        const uint8_t* value,
                        uint16_t cap,
@@ -78,7 +99,7 @@ PccKey_MatchNameOrFhV_(LName name,
 
 /** \brief Determine if \p key->name equals \p name.
  */
-static bool
+static inline bool
 PccKey_MatchName(const PccKey* key, LName name)
 {
   return name.length == key->nameL &&
@@ -88,7 +109,7 @@ PccKey_MatchName(const PccKey* key, LName name)
 
 /** \brief Determine if \p key matches \p search.
  */
-static bool
+static inline bool
 PccKey_MatchSearchKey(const PccKey* key, const PccSearch* search)
 {
   return search->fh.length == key->fhL && PccKey_MatchName(key, search->name) &&
@@ -105,7 +126,7 @@ PccKey_MatchSearchKey(const PccKey* key, const PccSearch* search)
 
 /** \brief Determine how many PccKeyExts are needed to copy \p search into PccKey.
  */
-static int
+static inline int
 PccKey_CountExtensions(const PccSearch* search)
 {
   return PccKey_CountExtensions_(search->name.length, search->fh.length);
@@ -116,7 +137,7 @@ PccKey_CountExtensions(const PccSearch* search)
 #define PCC_KEY_MAX_EXTS                                                       \
   PccKey_CountExtensions_(NAME_MAX_LENGTH, NAME_MAX_LENGTH)
 
-static int
+static inline int
 PccKey_CopyNameOrFhV_(LName name,
                       uint8_t* value,
                       uint16_t cap,
@@ -140,7 +161,7 @@ PccKey_CopyNameOrFhV_(LName name,
 
 /** \brief Copy \c search into \p key.
  */
-static void
+static inline void
 PccKey_CopyFromSearch(PccKey* key,
                       const PccSearch* search,
                       PccKeyExt* exts[],
@@ -157,7 +178,7 @@ PccKey_CopyFromSearch(PccKey* key,
 
 /** \brief Move PccKeyExts into \p exts to prepare for removal.
  */
-static int
+static inline int
 PccKey_StripExts(PccKey* key, PccKeyExt* exts[PCC_KEY_MAX_EXTS])
 {
   int nExts = 0;

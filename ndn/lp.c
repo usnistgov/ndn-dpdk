@@ -44,12 +44,12 @@ LpHeader_FromPacket(LpHeader* lph,
         }
         MbufLoc d2;
         TlvElement_MakeValueDecoder(&ele1, &d2);
-        rte_le64_t v;
+        rte_le64_t v = 0;
         MbufLoc_ReadU64(&d2, &v);
         lph->l2.seqNum = rte_be_to_cpu_64(v);
         break;
       case TT_FragIndex: {
-        uint64_t v;
+        uint64_t v = 0;
         TlvElement_ReadNonNegativeInteger(&ele1, &v);
         if (v > UINT16_MAX) {
           return NdnError_LengthOverflow;
@@ -58,7 +58,7 @@ LpHeader_FromPacket(LpHeader* lph,
         break;
       }
       case TT_FragCount: {
-        uint64_t v;
+        uint64_t v = 0;
         TlvElement_ReadNonNegativeInteger(&ele1, &v);
         if (v > UINT16_MAX) {
           return NdnError_LengthOverflow;
@@ -83,7 +83,7 @@ LpHeader_FromPacket(LpHeader* lph,
         TlvElement ele2;
         if (likely(TlvElement_Decode(&ele2, &d2, TT_NackReason) ==
                    NdnError_OK)) {
-          uint64_t v;
+          uint64_t v = 0;
           TlvElement_ReadNonNegativeInteger(&ele2, &v);
           if (v > UINT8_MAX) {
             return NdnError_LengthOverflow;
@@ -95,7 +95,7 @@ LpHeader_FromPacket(LpHeader* lph,
         break;
       }
       case TT_CongestionMark: {
-        uint64_t v;
+        uint64_t v = 0;
         TlvElement_ReadNonNegativeInteger(&ele1, &v);
         if (v > UINT8_MAX) {
           return NdnError_LengthOverflow;

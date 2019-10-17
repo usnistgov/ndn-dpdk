@@ -58,7 +58,7 @@ LpHeader_FromPacket(LpHeader* lph,
                     uint32_t* payloadOff,
                     uint32_t* tlvSize);
 
-static uint16_t
+static inline uint16_t
 PrependLpHeader_GetHeadroom()
 {
   return 1 + 5 +             // LpPacket TL

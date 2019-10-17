@@ -12,7 +12,7 @@
 
 /** \brief Cast Pcct* as Pit*.
  */
-static Pit*
+static inline Pit*
 Pit_FromPcct(const Pcct* pcct)
 {
   return (Pit*)pcct;
@@ -20,7 +20,7 @@ Pit_FromPcct(const Pcct* pcct)
 
 /** \brief Cast Pit* as Pcct*.
  */
-static Pcct*
+static inline Pcct*
 Pit_ToPcct(const Pit* pit)
 {
   return (Pcct*)pit;
@@ -28,7 +28,7 @@ Pit_ToPcct(const Pit* pit)
 
 /** \brief Access PitPriv* struct.
  */
-static PitPriv*
+static inline PitPriv*
 Pit_GetPriv(const Pit* pit)
 {
   return &Pcct_GetPriv(Pit_ToPcct(pit))->pitPriv;
@@ -41,7 +41,7 @@ Pit_Init(Pit* pit);
 
 /** \brief Get number of PIT entries.
  */
-static uint32_t
+static inline uint32_t
 Pit_CountEntries(const Pit* pit)
 {
   return Pit_GetPriv(pit)->nEntries;
@@ -49,7 +49,7 @@ Pit_CountEntries(const Pit* pit)
 
 /** \brief Trigger expired timers.
  */
-static void
+static inline void
 Pit_TriggerTimers(Pit* pit)
 {
   PitPriv* pitp = Pit_GetPriv(pit);
@@ -61,7 +61,7 @@ Pit_TriggerTimers(Pit* pit)
 void
 Pit_SetSgTimerCb(Pit* pit, Pit_SgTimerCb cb, void* arg);
 
-static void
+static inline void
 Pit_InvokeSgTimerCb_(Pit* pit, PitEntry* entry)
 {
   PitPriv* pitp = Pit_GetPriv(pit);
@@ -86,7 +86,7 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry);
 
 /** \brief Get a token of a PIT entry.
  */
-static uint64_t
+static inline uint64_t
 Pit_GetEntryToken(Pit* pit, PitEntry* entry)
 {
   PccEntry* pccEntry = PccEntry_FromPitEntry(entry);

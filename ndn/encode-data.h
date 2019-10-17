@@ -5,7 +5,7 @@
 
 #include "name.h"
 
-static uint16_t
+static inline uint16_t
 EncodeData_GetHeadroom()
 {
   return 1 + 5; // Data TL
@@ -13,7 +13,7 @@ EncodeData_GetHeadroom()
 
 extern const uint16_t EncodeData_FakeSigLen_;
 
-static uint16_t
+static inline uint16_t
 EncodeData_GetTailroom(uint16_t nameL, uint16_t contentL)
 {
   return 1 + 3 + nameL +         // Name
@@ -25,7 +25,7 @@ EncodeData_GetTailroom(uint16_t nameL, uint16_t contentL)
 /** \brief Get required tailroom for EncodeData output mbuf,
  *         assuming max name length and empty payload.
  */
-static uint16_t
+static inline uint16_t
 EncodeData_GetTailroomMax()
 {
   return EncodeData_GetTailroom(NAME_MAX_LENGTH, 0);
@@ -49,7 +49,7 @@ EncodeData_(struct rte_mbuf* m,
  *           headers may be included if needed.
  *  \param contentV the payload, will be copied.
  */
-static void
+static inline void
 EncodeData(struct rte_mbuf* m,
            LName namePrefix,
            LName nameSuffix,
@@ -78,20 +78,20 @@ typedef struct DataGen
 {
 } DataGen;
 
-static uint16_t
+static inline uint16_t
 DataGen_GetHeadroom0()
 {
   return EncodeData_GetHeadroom();
 }
 
-static uint16_t
+static inline uint16_t
 DataGen_GetTailroom0(uint16_t namePrefixL)
 {
   return 1 + 5 +              // Data TL
          1 + 3 + namePrefixL; // Name
 }
 
-static uint16_t
+static inline uint16_t
 DataGen_GetTailroom1(uint16_t nameSuffixL, uint16_t contentL)
 {
   return nameSuffixL +           // Name
@@ -137,7 +137,7 @@ DataGen_Encode_(DataGen* gen,
  *              This becomes the encoded Data packet.
  *  \param seg1 segment 1 indirect mbuf. This is chained onto \p seg0 .
  */
-static void
+static inline void
 DataGen_Encode(DataGen* gen,
                struct rte_mbuf* seg0,
                struct rte_mbuf* seg1,

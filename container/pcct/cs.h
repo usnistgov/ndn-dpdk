@@ -9,7 +9,7 @@
 
 /** \brief Cast Pcct* as Cs*.
  */
-static Cs*
+static inline Cs*
 Cs_FromPcct(const Pcct* pcct)
 {
   return (Cs*)pcct;
@@ -17,7 +17,7 @@ Cs_FromPcct(const Pcct* pcct)
 
 /** \brief Cast Cs* as Pcct*.
  */
-static Pcct*
+static inline Pcct*
 Cs_ToPcct(const Cs* cs)
 {
   return (Pcct*)cs;
@@ -25,7 +25,7 @@ Cs_ToPcct(const Cs* cs)
 
 /** \brief Access CsPriv* struct.
  */
-static CsPriv*
+static inline CsPriv*
 Cs_GetPriv(const Cs* cs)
 {
   return &Pcct_GetPriv(Cs_ToPcct(cs))->csPriv;

@@ -33,6 +33,7 @@ FwCrypto_Input(FwCrypto* fwc)
   for (uint16_t i = nEnq; i < nDeq; ++i) {
     Packet* npkt = DataDigest_Finish(ops[i]);
     RTE_ASSERT(npkt == NULL);
+    RTE_SET_USED(npkt);
   }
 }
 

@@ -17,7 +17,7 @@ typedef struct PitDn
 } __rte_aligned(32) PitDn;
 static_assert(sizeof(PitDn) == 32, "");
 
-static void
+static inline void
 PitDn_Copy(PitDn* dst, PitDn* src)
 {
   rte_mov32((uint8_t*)dst, (const uint8_t*)src);
