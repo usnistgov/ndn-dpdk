@@ -16,8 +16,10 @@ RxLoop_Run(RxLoop* rxl)
   while (ThreadStopFlag_ShouldContinue(&rxl->stop)) {
     rcu_quiescent_state();
     rcu_read_lock();
+
     RxGroup* rxg;
-    cds_hlist_for_each_entry_rcu_2(rxg, &rxl->head, rxlNode)
+    struct cds_hlist_node* pos;
+    cds_hlist_for_each_entry_rcu(rxg, pos, &rxl->head, rxlNode)
     {
       RxLoop_Transfer(rxl, rxg);
     }

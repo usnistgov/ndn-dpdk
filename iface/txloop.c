@@ -50,8 +50,10 @@ TxLoop_Run(TxLoop* txl)
   while (ThreadStopFlag_ShouldContinue(&txl->stop)) {
     rcu_quiescent_state();
     rcu_read_lock();
+
     Face* face;
-    cds_hlist_for_each_entry_rcu_2(face, &txl->head, txLoopNode)
+    struct cds_hlist_node* pos;
+    cds_hlist_for_each_entry_rcu(face, pos, &txl->head, txLoopNode)
     {
       TxLoop_Transfer(face);
     }
