@@ -41,8 +41,8 @@ doxygen:
 
 mgmtspec: docs/mgmtspec.json
 
-docs/mgmtspec.json: tsc
-	nodejs build/mgmt/make-spec >$@
+docs/mgmtspec.json:
+	./node_modules/.bin/ts-node mgmt/make-spec.ts >$@
 
 .PHONY: docs
 docs: doxygen mgmtspec

@@ -14,7 +14,7 @@
     "moment": "^2.24.0",
     "ndn-js": "^0.19.0",
     "object-path": "^0.11.4",
-    "yargs": "^14.0.0"
+    "yargs": "^14.2.0"
   },
   "devDependencies": {
     "@types/argparse": "^1.0.36",
@@ -22,14 +22,15 @@
     "@types/debug": "^4.1.5",
     "@types/js-yaml": "^3.12.1",
     "@types/json-stable-stringify": "^1.0.32",
-    "@types/lodash": "^4.14.139",
+    "@types/lodash": "^4.14.144",
     "@types/ndn-js": "^0.18.0",
     "@types/object-path": "^0.11.0",
     "@types/yargs": "^13.0.3",
     "json-stable-stringify": "^1.0.1",
     "markdownlint-cli": "^0.18.0",
+    "ts-node": "^8.4.1",
     "tslint": "^5.20.0",
-    "typescript": "^3.6.3",
+    "typescript": "^3.6.4",
     "typescript-json-schema": "^0.40.0"
   },
   "private": true
