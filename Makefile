@@ -1,7 +1,8 @@
-CGO_CFLAGS_ALLOW := '.*'
-ifeq ($(CC),cc)
+export CGO_CFLAGS_ALLOW := '.*'
+ifeq ($(origin CC),default)
 	CC = gcc-7
 endif
+export CC
 
 all: gopkg tsc cmds
 
