@@ -50,7 +50,15 @@ Fib_Close(Fib* fib)
   rcu_read_lock();
   struct cds_lfht_iter it;
   struct cds_lfht_node* node;
-  cds_lfht_for_each(fibp->lfht, &it, node) { cds_lfht_del(fibp->lfht, node); }
+  cds_lfht_for_each(fibp->lfht, &it, node)
+  {
+    FibEntry* oldEntry = container_of(node, FibEntry, lfhtnode);
+    FibEntry* oldReal = FibEntry_GetReal(oldEntry);
+    if (likely(oldReal != NULL)) {
+      StrategyCode_Unref(oldReal->strategy);
+    }
+    cds_lfht_del(fibp->lfht, node);
+  }
   rcu_read_unlock();
 
   int res = cds_lfht_destroy(fibp->lfht, NULL);
@@ -101,7 +109,6 @@ Fib_RcuFreeReal(struct rcu_head* rcuhead)
   FibEntry* oldReal = container_of(rcuhead, FibEntry, rcuhead);
   assert(oldReal->maxDepth == 0);
   assert(oldReal->nNexthops > 0);
-  StrategyCode_Unref(oldReal->strategy);
   Fib_Free_(oldReal);
 }
 
@@ -124,6 +131,8 @@ Fib_FreeOld_(FibEntry* entry, Fib_FreeOld freeVirt, Fib_FreeOld freeReal)
 
   if (oldReal != NULL) {
     assert(freeReal != Fib_FreeOld_MustNotExist);
+    // reused entry is not freed but its strategy was ref'ed in Fib_Insert
+    StrategyCode_Unref(oldReal->strategy);
     if (freeReal == Fib_FreeOld_Yes || freeReal == Fib_FreeOld_YesIfExists) {
       call_rcu(&oldReal->rcuhead, Fib_RcuFreeReal);
     }
@@ -141,20 +150,18 @@ Fib_Insert(Fib* fib,
 {
   FibPriv* fibp = Fib_GetPriv(fib);
 
-  if (entry->maxDepth == 0) {
-    assert(entry->nNexthops > 0);
-    StrategyCode_Ref(entry->strategy);
-  } else {
+  FibEntry* newReal = entry;
+  if (entry->maxDepth > 0) {
     assert(entry->nNexthops == 0);
-    FibEntry* newReal = entry->realEntry;
-    if (newReal != NULL) {
-      assert(newReal->maxDepth == 0);
-      assert(newReal->nNexthops > 0);
-      StrategyCode_Ref(newReal->strategy);
-      newReal->seqNum = ++fibp->insertSeqNum;
-    }
+    newReal = entry->realEntry;
+    entry->seqNum = ++fibp->insertSeqNum;
   }
-  entry->seqNum = ++fibp->insertSeqNum;
+  if (newReal != NULL) {
+    assert(newReal->maxDepth == 0);
+    assert(newReal->nNexthops > 0);
+    StrategyCode_Ref(newReal->strategy);
+    newReal->seqNum = ++fibp->insertSeqNum;
+  }
 
   LName name = { .length = entry->nameL, .value = entry->nameV };
   uint64_t hash = LName_ComputeHash(name);

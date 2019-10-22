@@ -13,6 +13,13 @@ StrategyCode_Unref(StrategyCode* sc)
 {
   int oldNRefs = atomic_fetch_sub_explicit(&sc->nRefs, 1, memory_order_acq_rel);
   assert(oldNRefs > 0);
+  if (oldNRefs > 1) {
+    return;
+  }
+
+  rte_bpf_destroy_(sc->bpf);
+  free(sc->name);
+  rte_free(sc);
 }
 
 const struct ebpf_insn*

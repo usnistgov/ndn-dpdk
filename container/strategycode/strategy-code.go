@@ -5,66 +5,56 @@ package strategycode
 */
 import "C"
 import (
-	"errors"
 	"fmt"
+	"io"
 	"unsafe"
-
-	"ndn-dpdk/dpdk"
 )
 
 // BPF program of a forwarding strategy.
-type StrategyCode struct {
+type StrategyCode interface {
+	fmt.Stringer
+	io.Closer
+	GetPtr() unsafe.Pointer
+	GetId() int
+	GetName() string
+	CountRefs() int
+}
+
+type scImpl struct {
 	c *C.StrategyCode
 }
 
-func (sc StrategyCode) Valid() bool {
-	return sc.c != nil
-}
-
-func (sc StrategyCode) GetPtr() unsafe.Pointer {
+// Retrieve *C.StrategyCode pointer.
+func (sc *scImpl) GetPtr() unsafe.Pointer {
 	return unsafe.Pointer(sc.c)
 }
 
-func FromPtr(ptr unsafe.Pointer) StrategyCode {
-	return StrategyCode{(*C.StrategyCode)(ptr)}
-}
-
-func (sc StrategyCode) GetId() int {
+// Get numeric ID.
+func (sc *scImpl) GetId() int {
 	return int(sc.c.id)
 }
 
-func (sc StrategyCode) GetName() string {
+// Get short name.
+func (sc *scImpl) GetName() string {
 	return C.GoString(sc.c.name)
 }
 
-func (sc StrategyCode) CountRefs() int {
+// Get number of references, including a reference from table.go.
+func (sc *scImpl) CountRefs() int {
 	return int(sc.c.nRefs)
 }
 
-func (sc StrategyCode) Ref() {
-	C.StrategyCode_Ref(sc.c)
-}
-
-func (sc StrategyCode) Unref() {
-	C.StrategyCode_Unref(sc.c)
-}
-
-func (sc StrategyCode) Close() error {
-	if sc.CountRefs() > 0 {
-		return errors.New("StrategyCode has references")
-	}
-
+// Unreference. Strategy will be unloaded when no FIB entry is using it.
+func (sc *scImpl) Close() error {
 	tableLock.Lock()
 	defer tableLock.Unlock()
-	C.rte_bpf_destroy_(sc.c.bpf)
 	delete(table, sc.GetId())
-	C.free(unsafe.Pointer(sc.c.name))
-	dpdk.Free(sc.c)
+	C.StrategyCode_Unref(sc.c)
 	return nil
 }
 
-func (sc StrategyCode) String() string {
-	if sc.c == nil {
+func (sc *scImpl) String() string {
+	if sc == nil {
 		return "0@nil"
 	}
 	return fmt.Sprintf("%d@%p", sc.GetId(), sc.c)

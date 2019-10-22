@@ -54,7 +54,6 @@ func NewFixture(pcctMaxEntries int) (fixture *Fixture) {
 }
 
 func (fixture *Fixture) Close() error {
-	strategycode.CloseAll()
 	fixture.fibFixture.Close()
 	return fixture.Pit.Pcct.Close()
 }

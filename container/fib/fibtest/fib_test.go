@@ -15,7 +15,7 @@ func TestInsertErase(t *testing.T) {
 
 	var badStrategy strategycode.StrategyCode
 	strategyP := strategycode.MakeEmpty("P")
-	assert.Equal(0, strategyP.CountRefs())
+	assert.Equal(1, strategyP.CountRefs())
 	strategyQ := strategycode.MakeEmpty("Q")
 
 	fib := fixture.Fib
@@ -32,24 +32,24 @@ func TestInsertErase(t *testing.T) {
 	_, e = fib.Insert(fixture.MakeEntry("/A", strategyP))
 	assert.Error(e) // cannot insert: entry has no nexthop
 	assert.Equal(0, fixture.CountEntries())
-	assert.Equal(0, strategyP.CountRefs())
+	assert.Equal(1, strategyP.CountRefs())
 
 	isNew, e := fib.Insert(fixture.MakeEntry("/A", strategyP, 4076))
 	assert.NoError(e)
 	assert.True(isNew)
 	assert.Equal(1, fib.Len())
 	assert.Equal(1, fixture.CountEntries())
-	assert.Equal(1, strategyP.CountRefs())
+	assert.Equal(2, strategyP.CountRefs())
 
 	isNew, e = fib.Insert(fixture.MakeEntry("/A", strategyP, 3092))
 	assert.NoError(e)
 	assert.False(isNew)
 	assert.Equal(1, fib.Len())
 	assert.True(fixture.CountEntries() >= 1)
-	assert.True(strategyP.CountRefs() >= 1)
+	assert.True(strategyP.CountRefs() >= 2)
 	urcu.Barrier()
 	assert.Equal(1, fixture.CountEntries())
-	assert.Equal(1, strategyP.CountRefs())
+	assert.Equal(2, strategyP.CountRefs())
 	entryA := fib.Find(nameA)
 	require.NotNil(entryA)
 	assert.True(entryA.GetName().Equal(nameA))
@@ -60,12 +60,12 @@ func TestInsertErase(t *testing.T) {
 	assert.False(isNew)
 	assert.Equal(1, fib.Len())
 	assert.True(fixture.CountEntries() >= 1)
-	assert.True(strategyP.CountRefs() >= 0)
-	assert.Equal(1, strategyQ.CountRefs())
+	assert.True(strategyP.CountRefs() >= 1)
+	assert.Equal(2, strategyQ.CountRefs())
 	urcu.Barrier()
-	assert.Equal(0, strategyP.CountRefs())
+	assert.Equal(1, strategyP.CountRefs())
 	assert.Equal(1, fixture.CountEntries())
-	assert.Equal(1, strategyQ.CountRefs())
+	assert.Equal(2, strategyQ.CountRefs())
 
 	entryA = fib.Find(nameA)
 	require.NotNil(entryA)
@@ -84,7 +84,7 @@ func TestInsertErase(t *testing.T) {
 	assert.Error(fib.Erase(nameA))
 	assert.Equal(0, fib.Len())
 	urcu.Barrier()
-	assert.Equal(0, strategyQ.CountRefs())
+	assert.Equal(1, strategyQ.CountRefs())
 	assert.Equal(0, fixture.CountEntries())
 }
 

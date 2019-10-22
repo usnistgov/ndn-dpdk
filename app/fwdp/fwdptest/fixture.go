@@ -71,7 +71,7 @@ func NewFixture(t *testing.T) (fixture *Fixture) {
 
 func (fixture *Fixture) Close() error {
 	fixture.DataPlane.Close()
-	strategycode.CloseAll()
+	strategycode.DestroyAll()
 	return nil
 }
 
@@ -100,7 +100,7 @@ func (fixture *Fixture) ReadFibCounters(name string) fib.EntryCounters {
 }
 
 func (fixture *Fixture) makeStrategy(shortname string) strategycode.StrategyCode {
-	if sc, ok := strategycode.Find(shortname); ok {
+	if sc := strategycode.Find(shortname); sc != nil {
 		return sc
 	}
 

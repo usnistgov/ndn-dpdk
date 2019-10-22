@@ -18,8 +18,8 @@ func (StrategyMgmt) List(args struct{}, reply *[]StrategyInfo) error {
 }
 
 func (StrategyMgmt) Get(args IdArg, reply *StrategyInfo) error {
-	sc, ok := strategycode.Get(args.Id)
-	if !ok {
+	sc := strategycode.Get(args.Id)
+	if sc == nil {
 		return errors.New("strategy not found")
 	}
 	*reply = makeStrategyInfo(sc)
@@ -27,7 +27,7 @@ func (StrategyMgmt) Get(args IdArg, reply *StrategyInfo) error {
 }
 
 func (StrategyMgmt) Load(args LoadArg, reply *StrategyInfo) error {
-	if _, ok := strategycode.Find(args.Name); ok {
+	if strategycode.Find(args.Name) != nil {
 		return errors.New("duplicate name")
 	}
 
@@ -41,8 +41,8 @@ func (StrategyMgmt) Load(args LoadArg, reply *StrategyInfo) error {
 }
 
 func (StrategyMgmt) Unload(args IdArg, reply *StrategyInfo) error {
-	sc, ok := strategycode.Get(args.Id)
-	if !ok {
+	sc := strategycode.Get(args.Id)
+	if sc == nil {
 		return errors.New("strategy not found")
 	}
 	*reply = makeStrategyInfo(sc)

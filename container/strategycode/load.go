@@ -18,24 +18,27 @@ var (
 	NXsyms int
 )
 
-func makeStrategyCode(name string, bpf *C.struct_rte_bpf) (sc StrategyCode, e error) {
+func makeStrategyCode(name string, bpf *C.struct_rte_bpf) (sc *scImpl, e error) {
 	if bpf == nil {
-		return sc, dpdk.GetErrno()
+		return nil, dpdk.GetErrno()
 	}
 
 	var jit C.struct_rte_bpf_jit
 	res := C.rte_bpf_get_jit_(bpf, &jit)
 	if res != 0 {
 		C.rte_bpf_destroy_(bpf)
-		return sc, dpdk.Errno(-res)
+		return nil, dpdk.Errno(-res)
 	}
 
 	tableLock.Lock()
 	defer tableLock.Unlock()
 	lastId++
+
+	sc = new(scImpl)
 	sc.c = (*C.StrategyCode)(dpdk.Zmalloc("StrategyCode", C.sizeof_StrategyCode, dpdk.NUMA_SOCKET_ANY))
 	sc.c.id = C.int(lastId)
 	sc.c.name = C.CString(name)
+	sc.c.nRefs = 1
 	sc.c.bpf = bpf
 	sc.c.jit = jit._func
 	table[lastId] = sc
@@ -48,10 +51,10 @@ var dotTextSection = C.CString(".text")
 func Load(name string, elf []byte) (sc StrategyCode, e error) {
 	file, e := ioutil.TempFile("", "strategy*.so")
 	if e != nil {
-		return sc, e
+		return nil, e
 	}
 	if _, e := file.Write(elf); e != nil {
-		return sc, e
+		return nil, e
 	}
 	filename := file.Name()
 	file.Close()

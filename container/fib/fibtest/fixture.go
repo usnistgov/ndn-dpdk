@@ -47,7 +47,7 @@ func NewFixture(ndtPrefixLen, fibStartDepth, nPartitions int) (fixture *Fixture)
 
 func (fixture *Fixture) Close() error {
 	fixture.Fib.Close()
-	strategycode.CloseAll()
+	strategycode.DestroyAll()
 	return fixture.Ndt.Close()
 }
 
@@ -67,7 +67,9 @@ func (fixture *Fixture) MakeEntry(name string, sc strategycode.StrategyCode,
 	n := ndn.MustParseName(name)
 	entry.SetName(n)
 	entry.SetNexthops(nexthops)
-	entry.SetStrategy(sc)
+	if sc != nil {
+		entry.SetStrategy(sc)
+	}
 	return entry
 }
 

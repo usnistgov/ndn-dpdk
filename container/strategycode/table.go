@@ -5,32 +5,47 @@ package strategycode
 */
 import "C"
 import (
+	"fmt"
 	"sync"
+	"unsafe"
 )
 
 // Table of StrategyCode instances.
 var (
 	lastId    int
-	table     map[int]StrategyCode = make(map[int]StrategyCode)
+	table     = make(map[int]*scImpl)
 	tableLock sync.Mutex
 )
 
-func Get(id int) (sc StrategyCode, ok bool) {
+// Retrieve by numeric ID.
+func Get(id int) StrategyCode {
 	tableLock.Lock()
 	defer tableLock.Unlock()
-	sc, ok = table[id]
-	return
+	return table[id]
 }
 
-func Find(name string) (sc StrategyCode, ok bool) {
+// Retrieve by name.
+func Find(name string) StrategyCode {
 	tableLock.Lock()
 	defer tableLock.Unlock()
-	for _, sc = range table {
+	for _, sc := range table {
 		if sc.GetName() == name {
-			return sc, true
+			return sc
 		}
 	}
-	return StrategyCode{}, false
+	return nil
+}
+
+// Retrieve by pointer.
+func FromPtr(ptr unsafe.Pointer) StrategyCode {
+	tableLock.Lock()
+	defer tableLock.Unlock()
+	for _, sc := range table {
+		if sc.c == (*C.StrategyCode)(ptr) {
+			return sc
+		}
+	}
+	return nil
 }
 
 func List() []StrategyCode {
@@ -43,8 +58,13 @@ func List() []StrategyCode {
 	return list
 }
 
-func CloseAll() {
+// Immediately unload all strategies.
+// Panics if some strategies are still used in FIB entry.
+func DestroyAll() {
 	for _, sc := range List() {
+		if nRefs := sc.CountRefs(); nRefs > 1 {
+			panic(fmt.Errorf("%s has %d refs", sc, nRefs))
+		}
 		sc.Close()
 	}
 }

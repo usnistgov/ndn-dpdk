@@ -102,6 +102,7 @@ func (fib *Fib) Close() (e error) {
 }
 
 func (fib *Fib) doClose(rs *urcu.ReadSide) error {
+	urcu.Barrier() // allow call_rcu to complete; otherwise they could invoke rte_mempool_put on free'd objects
 	for _, part := range fib.parts {
 		if part != nil {
 			part.Close()

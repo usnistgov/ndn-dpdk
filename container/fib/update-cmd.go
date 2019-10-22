@@ -71,7 +71,7 @@ func (fib *Fib) Insert(entry *Entry) (isNew bool, e error) {
 	if entry.c.nNexthops == 0 {
 		return false, errors.New("cannot insert FIB entry with no nexthop")
 	}
-	if !entry.GetStrategy().Valid() {
+	if entry.GetStrategy() == nil {
 		return false, errors.New("cannot insert FIB entry with no strategy")
 	}
 	name := entry.GetName()

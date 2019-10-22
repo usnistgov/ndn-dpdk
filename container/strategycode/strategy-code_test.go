@@ -11,34 +11,30 @@ func TestTable(t *testing.T) {
 
 	scP := strategycode.MakeEmpty("P")
 	idP := scP.GetId()
+	assert.Equal("P", scP.GetName())
+	ptrP := scP.GetPtr()
+	assert.NotNil(ptrP)
+
 	scQ := strategycode.MakeEmpty("Q")
 	assert.NotEqual(idP, scQ.GetId())
 	assert.Len(strategycode.List(), 2)
 
-	if sc, ok := strategycode.Get(idP); assert.True(ok) {
-		assert.Equal(idP, sc.GetId())
-		assert.Equal("P", sc.GetName())
-	}
-	if sc, ok := strategycode.Find("P"); assert.True(ok) {
-		assert.Equal(idP, sc.GetId())
-	}
+	assert.Same(scP, strategycode.Get(idP))
+	assert.Same(scP, strategycode.Find("P"))
+	assert.Same(scP, strategycode.FromPtr(ptrP))
 
 	scP2 := strategycode.MakeEmpty("P")
 	assert.NotEqual(idP, scP2.GetId())
 	assert.Len(strategycode.List(), 3)
-
-	if sc, ok := strategycode.Get(idP); assert.True(ok) {
-		assert.Equal(idP, sc.GetId())
-	}
+	assert.Same(scP, strategycode.Get(idP))
 
 	scP2.Close()
 	assert.Len(strategycode.List(), 2)
 
-	strategycode.CloseAll()
+	strategycode.DestroyAll()
 	assert.Len(strategycode.List(), 0)
 
-	_, ok := strategycode.Get(idP)
-	assert.False(ok)
-	_, ok = strategycode.Find("P")
-	assert.False(ok)
+	assert.Nil(strategycode.Get(idP))
+	assert.Nil(strategycode.Find("P"))
+	assert.Nil(strategycode.FromPtr(ptrP))
 }

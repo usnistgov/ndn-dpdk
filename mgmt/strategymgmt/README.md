@@ -12,4 +12,4 @@ This package implements [strategy table](../../container/strategycode/) manageme
 It requires every strategy to have a unique short name.
 
 **Strategy.Unload** unloads a strategy.
-It cannot unload a strategy that is in use by a FIB entry.
+If the strategy is in use by a FIB entry, this operation simply unreferences the strategy, and the strategy will be unloaded when the last FIB entry stops using it.
