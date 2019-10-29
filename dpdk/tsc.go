@@ -4,7 +4,9 @@ package dpdk
 #include "tsc.h"
 */
 import "C"
-import "time"
+import (
+	"time"
+)
 
 // TSC clock time point.
 type TscTime uint64

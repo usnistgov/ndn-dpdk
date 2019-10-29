@@ -14,6 +14,7 @@ end
 
 CDeps = {}
 CDeps["app/fwdp"] = ["container/fib", "container/ndt", "container/pcct", "iface"]
+CDeps["app/fetch"] = ["dpdk"]
 CDeps["app/ndnping"] = ["iface"]
 CDeps["appinit"] = ["dpdk"]
 CDeps["container/cs"] = ["container/pcct"]
