@@ -4,14 +4,15 @@ import (
 	"errors"
 	"time"
 
-	"ndn-dpdk/app/ndnping"
+	"ndn-dpdk/app/ping"
+	"ndn-dpdk/app/pingclient"
 )
 
 type PingClientMgmt struct {
-	App *ndnping.App
+	App *ping.App
 }
 
-func (mg PingClientMgmt) getClient(index int) (client *ndnping.Client, e error) {
+func (mg PingClientMgmt) getClient(index int) (client *pingclient.Client, e error) {
 	if index >= len(mg.App.Tasks) {
 		return nil, errors.New("Index out of range")
 	}
@@ -65,7 +66,7 @@ func (mg PingClientMgmt) Stop(args ClientStopArgs, reply *struct{}) error {
 	return nil
 }
 
-func (mg PingClientMgmt) ReadCounters(args IndexArg, reply *ndnping.ClientCounters) error {
+func (mg PingClientMgmt) ReadCounters(args IndexArg, reply *pingclient.Counters) error {
 	client, e := mg.getClient(args.Index)
 	if e != nil {
 		return e

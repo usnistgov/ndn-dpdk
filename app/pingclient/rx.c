@@ -1,4 +1,4 @@
-#include "client-rx.h"
+#include "rx.h"
 
 #include "../../core/logger.h"
 #include "../../ndn/packet.h"

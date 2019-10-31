@@ -1,9 +1,9 @@
-#ifndef NDN_DPDK_APP_NDNPING_CLIENT_RX_H
-#define NDN_DPDK_APP_NDNPING_CLIENT_RX_H
+#ifndef NDN_DPDK_APP_PINGCLIENT_RX_H
+#define NDN_DPDK_APP_PINGCLIENT_RX_H
 
 /// \file
 
-#include "client-common.h"
+#include "common.h"
 
 #include "../../core/running_stat/running-stat.h"
 #include "../../dpdk/thread.h"
@@ -32,4 +32,4 @@ typedef struct PingClientRx
 void
 PingClientRx_Run(PingClientRx* cr);
 
-#endif // NDN_DPDK_APP_NDNPING_CLIENT_RX_H
+#endif // NDN_DPDK_APP_PINGCLIENT_RX_H

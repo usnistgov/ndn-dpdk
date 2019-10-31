@@ -1,7 +1,6 @@
 import * as _ from "lodash";
 import moment = require("moment");
 
-import * as ndnping from "../../app/ndnping";
 import { Counter, Index, NNDuration } from "../../core";
 import * as mgmt from "../../mgmt";
 import * as pingmgmt from "../../mgmt/pingmgmt";
@@ -59,7 +58,7 @@ export class NdnpingTrafficGen implements ITrafficGen {
 
   public async readCounters(): Promise<TrafficGenCounters> {
     const cnts = await Promise.all(this.cList.map((index) =>
-      this.rpc.request<pingmgmt.IndexArg, ndnping.ClientCounters>("PingClient.ReadCounters",
+      this.rpc.request<pingmgmt.IndexArg, pingmgmt.ClientCounters>("PingClient.ReadCounters",
       { Index: index }),
     ));
     const nInterests = _.sumBy(cnts, "NInterests");

@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"ndn-dpdk/app/ndnping"
+	"ndn-dpdk/app/ping"
 	"ndn-dpdk/appinit"
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/mgmt/facemgmt"
@@ -21,9 +21,9 @@ func main() {
 
 	pc.initCfg.InitConfig.Apply()
 
-	app, e := ndnping.New(pc.tasks, pc.initCfg.Ping)
+	app, e := ping.New(pc.tasks, pc.initCfg.Ping)
 	if e != nil {
-		log.WithError(e).Fatal("ndnping.NewApp error")
+		log.WithError(e).Fatal("ping.NewApp error")
 	}
 
 	app.Launch()
@@ -40,7 +40,7 @@ func main() {
 	select {}
 }
 
-func printPeriodicCounters(app *ndnping.App, counterInterval time.Duration) {
+func printPeriodicCounters(app *ping.App, counterInterval time.Duration) {
 	tick := time.Tick(counterInterval)
 	for {
 		<-tick

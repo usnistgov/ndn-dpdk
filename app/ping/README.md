@@ -1,4 +1,4 @@
-# ndn-dpdk/app/ndnping
+# ndn-dpdk/app/ping
 
 This package implements a NDN packet generator that doubles as **ndnping** client and server.
 

@@ -1,4 +1,4 @@
-package ndnping
+package ping
 
 /*
 #include "input.h"
@@ -103,7 +103,7 @@ func (app *App) launchRxl(rxl *iface.RxLoop) {
 				panic(e)
 			}
 			entryC.clientQueue = (*C.struct_rte_ring)(queue.GetPtr())
-			task.Client.c.rxQueue = entryC.clientQueue
+			task.Client.SetRxQueue(queue)
 		}
 		if task.Server != nil {
 			queue, e := dpdk.NewRing(fmt.Sprintf("server-rx-%d", i), app.initCfg.QueueCapacity,
@@ -112,56 +112,10 @@ func (app *App) launchRxl(rxl *iface.RxLoop) {
 				panic(e)
 			}
 			entryC.serverQueue = (*C.struct_rte_ring)(queue.GetPtr())
-			task.Server.c.rxQueue = entryC.serverQueue
+			task.Server.SetRxQueue(queue)
 		}
 	}
 
 	rxl.SetCallback(unsafe.Pointer(C.PingInput_FaceRx), unsafe.Pointer(inputC))
 	rxl.Launch()
-}
-
-type Task struct {
-	Face   iface.IFace
-	Client *Client
-	Server *Server
-}
-
-func newTask(face iface.IFace, cfg TaskConfig) (task Task, e error) {
-	numaSocket := face.GetNumaSocket()
-	task.Face = face
-	if cfg.Client != nil {
-		if task.Client, e = newClient(task.Face, *cfg.Client); e != nil {
-			return Task{}, e
-		}
-		task.Client.SetLCore(dpdk.LCoreAlloc.Alloc(LCoreRole_ClientRx, numaSocket))
-		task.Client.Tx.SetLCore(dpdk.LCoreAlloc.Alloc(LCoreRole_ClientTx, numaSocket))
-	}
-	if cfg.Server != nil {
-		if task.Server, e = newServer(task.Face, *cfg.Server); e != nil {
-			return Task{}, e
-		}
-		task.Server.SetLCore(dpdk.LCoreAlloc.Alloc(LCoreRole_Server, numaSocket))
-	}
-	return task, nil
-}
-
-func (task *Task) Launch() {
-	if task.Server != nil {
-		task.Server.Launch()
-	}
-	if task.Client != nil {
-		task.Client.Launch()
-		task.Client.Tx.Launch()
-	}
-}
-
-func (task *Task) Close() error {
-	if task.Server != nil {
-		task.Server.Close()
-	}
-	if task.Client != nil {
-		task.Client.Close()
-	}
-	task.Face.Close()
-	return nil
 }

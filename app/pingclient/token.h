@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_APP_NDNPING_TOKEN_H
-#define NDN_DPDK_APP_NDNPING_TOKEN_H
+#ifndef NDN_DPDK_APP_PINGCLIENT_TOKEN_H
+#define NDN_DPDK_APP_PINGCLIENT_TOKEN_H
 
 /// \file
 
@@ -57,4 +57,4 @@ PingToken_GetTimestamp(uint64_t token)
   return token & 0xFFFFFFFFFFFF;
 }
 
-#endif // NDN_DPDK_APP_NDNPING_TOKEN_H
+#endif // NDN_DPDK_APP_PINGCLIENT_TOKEN_H

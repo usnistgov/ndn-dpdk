@@ -1,9 +1,9 @@
-#ifndef NDN_DPDK_APP_NDNPING_CLIENT_TX_H
-#define NDN_DPDK_APP_NDNPING_CLIENT_TX_H
+#ifndef NDN_DPDK_APP_PINGCLIENT_TX_H
+#define NDN_DPDK_APP_PINGCLIENT_TX_H
 
 /// \file
 
-#include "client-common.h"
+#include "common.h"
 
 #include "../../core/pcg_basic.h"
 #include "../../dpdk/thread.h"
@@ -59,4 +59,4 @@ typedef struct PingClientTx
 void
 PingClientTx_Run(PingClientTx* ct);
 
-#endif // NDN_DPDK_APP_NDNPING_CLIENT_TX_H
+#endif // NDN_DPDK_APP_PINGCLIENT_TX_H

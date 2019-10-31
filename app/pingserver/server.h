@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_APP_NDNPING_SERVER_H
-#define NDN_DPDK_APP_NDNPING_SERVER_H
+#ifndef NDN_DPDK_APP_PINGSERVER_SERVER_H
+#define NDN_DPDK_APP_PINGSERVER_SERVER_H
 
 /// \file
 
@@ -64,4 +64,4 @@ typedef struct PingServer
 void
 PingServer_Run(PingServer* server);
 
-#endif // NDN_DPDK_APP_NDNPING_SERVER_H
+#endif // NDN_DPDK_APP_PINGSERVER_SERVER_H

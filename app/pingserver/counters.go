@@ -1,4 +1,4 @@
-package ndnping
+package pingserver
 
 /*
 #include "server.h"
@@ -9,12 +9,12 @@ import (
 	"strconv"
 )
 
-type ServerPatternCounters struct {
+type PatternCounters struct {
 	NInterests uint64
 	PerReply   []uint64
 }
 
-func (cnt ServerPatternCounters) String() string {
+func (cnt PatternCounters) String() string {
 	var b []byte
 	for i, n := range cnt.PerReply {
 		if i > 0 {
@@ -28,14 +28,14 @@ func (cnt ServerPatternCounters) String() string {
 	return string(b)
 }
 
-type ServerCounters struct {
-	PerPattern  []ServerPatternCounters
+type Counters struct {
+	PerPattern  []PatternCounters
 	NInterests  uint64
 	NNoMatch    uint64
 	NAllocError uint64
 }
 
-func (cnt ServerCounters) String() string {
+func (cnt Counters) String() string {
 	s := fmt.Sprintf("%dI %dno-match %dalloc-error", cnt.NInterests, cnt.NNoMatch, cnt.NAllocError)
 	for i, pcnt := range cnt.PerPattern {
 		s += fmt.Sprintf(", pattern(%d) %s", i, pcnt)
@@ -43,10 +43,10 @@ func (cnt ServerCounters) String() string {
 	return s
 }
 
-func (server *Server) ReadCounters() (cnt ServerCounters) {
+func (server *Server) ReadCounters() (cnt Counters) {
 	for i := 0; i < int(server.c.nPatterns); i++ {
 		patternC := server.c.pattern[i]
-		var pcnt ServerPatternCounters
+		var pcnt PatternCounters
 		for j := 0; j < int(patternC.nReplies); j++ {
 			replyC := patternC.reply[j]
 			pcnt.PerReply = append(pcnt.PerReply, uint64(replyC.nInterests))

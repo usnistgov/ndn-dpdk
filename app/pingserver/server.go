@@ -1,4 +1,4 @@
-package ndnping
+package pingserver
 
 /*
 #include "server.h"
@@ -22,7 +22,7 @@ type Server struct {
 	seg1Mp dpdk.PktmbufPool
 }
 
-func newServer(face iface.IFace, cfg ServerConfig) (server *Server, e error) {
+func New(face iface.IFace, cfg Config) (server *Server, e error) {
 	socket := face.GetNumaSocket()
 	serverC := (*C.PingServer)(dpdk.Zmalloc("PingServer", C.sizeof_PingServer, socket))
 	serverC.dataMp = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
@@ -48,7 +48,7 @@ func newServer(face iface.IFace, cfg ServerConfig) (server *Server, e error) {
 	return server, nil
 }
 
-func (server *Server) AddPattern(cfg ServerPattern) (index int, e error) {
+func (server *Server) AddPattern(cfg Pattern) (index int, e error) {
 	if server.c.nPatterns >= C.PINGSERVER_MAX_PATTERNS {
 		return -1, fmt.Errorf("cannot add more than %d patterns", C.PINGSERVER_MAX_PATTERNS)
 	}
@@ -97,6 +97,10 @@ func (server *Server) AddPattern(cfg ServerPattern) (index int, e error) {
 
 	server.c.nPatterns++
 	return index, nil
+}
+
+func (server *Server) SetRxQueue(queue dpdk.Ring) {
+	server.c.rxQueue = (*C.struct_rte_ring)(queue.GetPtr())
 }
 
 // Launch the thread.

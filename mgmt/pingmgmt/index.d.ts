@@ -1,5 +1,5 @@
 import { Index, NNDuration } from "../../core";
-import * as ndnping from "../../app/ndnping";
+import { Counters as ClientCounters_ } from "../../app/pingclient";
 
 export as namespace pingmgmt;
 
@@ -18,9 +18,11 @@ export interface ClientStopArgs {
   RxDelay: NNDuration;
 }
 
+export type ClientCounters = ClientCounters_;
+
 export interface PingClientMgmt {
   List: {args: {}, reply: Index[]};
   Start: {args: ClientStartArgs, reply: {}};
   Stop: {args: ClientStopArgs, reply: {}};
-  ReadCounters: {args: IndexArg, reply: ndnping.ClientCounters};
+  ReadCounters: {args: IndexArg, reply: ClientCounters};
 }

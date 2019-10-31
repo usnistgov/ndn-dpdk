@@ -1,8 +1,8 @@
-package ndnping
+package pingclient
 
 /*
-#include "client-rx.h"
-#include "client-tx.h"
+#include "rx.h"
+#include "tx.h"
 */
 import "C"
 import (
@@ -25,7 +25,7 @@ type Client struct {
 	Tx ClientTxThread
 }
 
-func newClient(face iface.IFace, cfg ClientConfig) (client *Client, e error) {
+func New(face iface.IFace, cfg Config) (client *Client, e error) {
 	socket := face.GetNumaSocket()
 	crC := (*C.PingClientRx)(dpdk.Zmalloc("PingClientRx", C.sizeof_PingClientRx, socket))
 
@@ -58,7 +58,7 @@ func (client *Client) GetFace() iface.IFace {
 	return iface.Get(iface.FaceId(client.Tx.c.face))
 }
 
-func (client *Client) AddPattern(cfg ClientPattern) (index int, e error) {
+func (client *Client) AddPattern(cfg Pattern) (index int, e error) {
 	if client.c.nPatterns >= C.PINGCLIENT_MAX_PATTERNS {
 		return -1, fmt.Errorf("cannot add more than %d patterns", C.PINGCLIENT_MAX_PATTERNS)
 	}
@@ -116,6 +116,10 @@ func (client *Client) GetInterval() time.Duration {
 // a burst interval with equivalent traffic amount.
 func (client *Client) SetInterval(interval time.Duration) {
 	client.Tx.c.burstInterval = C.TscDuration(dpdk.ToTscDuration(interval * C.PINGCLIENT_TX_BURST_SIZE))
+}
+
+func (client *Client) SetRxQueue(queue dpdk.Ring) {
+	client.c.rxQueue = (*C.struct_rte_ring)(queue.GetPtr())
 }
 
 // Launch the RX thread.
