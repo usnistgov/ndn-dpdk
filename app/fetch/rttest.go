@@ -5,32 +5,36 @@ package fetch
 */
 import "C"
 import (
+	"time"
+	"unsafe"
+
 	"ndn-dpdk/dpdk"
 )
 
-type RttEst struct {
-	c *C.RttEst
+func rttEstFromC(c *C.RttEst) (rtte *RttEst) {
+	return (*RttEst)(unsafe.Pointer(c))
 }
 
-func NewRttEst() (rtte *RttEst) {
-	rtte = new(RttEst)
-	rtte.c = new(C.RttEst)
-	C.RttEst_Init(rtte.c)
-	return rtte
+func (rtte *RttEst) getPtr() *C.RttEst {
+	return (*C.RttEst)(unsafe.Pointer(rtte))
 }
 
-func (rtte *RttEst) GetRtt() int64 {
-	return int64(rtte.c.rtt)
+func (rtte *RttEst) Init() {
+	C.RttEst_Init(rtte.getPtr())
 }
 
-func (rtte *RttEst) GetRto() int64 {
-	return int64(rtte.c.rto)
+func (rtte *RttEst) GetSRtt() time.Duration {
+	return dpdk.FromTscDuration(int64(rtte.SRtt))
 }
 
-func (rtte *RttEst) Push(since, now dpdk.TscTime) {
-	C.RttEst_Push(rtte.c, C.TscTime(since), C.TscTime(now))
+func (rtte *RttEst) GetRto() time.Duration {
+	return dpdk.FromTscDuration(int64(rtte.Rto))
+}
+
+func (rtte *RttEst) Push(now dpdk.TscTime, rtt time.Duration) {
+	C.RttEst_Push(rtte.getPtr(), C.TscTime(now), C.TscDuration(dpdk.ToTscDuration(rtt)))
 }
 
 func (rtte *RttEst) Backoff() {
-	C.RttEst_Backoff(rtte.c)
+	C.RttEst_Backoff(rtte.getPtr())
 }

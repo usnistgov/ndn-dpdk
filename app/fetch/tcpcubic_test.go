@@ -17,7 +17,7 @@ func TestTcpCubic(t *testing.T) {
 	assert.Equal(2, ca.GetCwnd())
 
 	now := dpdk.TscNow()
-	rtt := dpdk.ToTscDuration(100 * time.Millisecond)
+	rtt := 100 * time.Millisecond
 
 	// slow start
 	for i := 0; i < 98; i++ {

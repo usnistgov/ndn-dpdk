@@ -27,9 +27,9 @@ TcpCubic_GetCwnd(TcpCubic* ca)
 }
 
 void
-TcpCubic_Increase(TcpCubic* ca, TscTime now, TscDuration sRtt);
+TcpCubic_Increase(TcpCubic* ca, TscTime now, double sRtt);
 
 void
-TcpCubic_Decrease(TcpCubic* ca, TscTime now, TscDuration sRtt);
+TcpCubic_Decrease(TcpCubic* ca, TscTime now, double sRtt);
 
 #endif // NDN_DPDK_APP_FETCH_TCPCUBIC_H

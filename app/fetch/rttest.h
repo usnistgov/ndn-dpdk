@@ -19,7 +19,6 @@ extern TscDuration RTTEST_MAXRTO;
  */
 typedef struct RttEst
 {
-  TscDuration rtt; // equals sRtt
   double sRtt;
   double rttVar;
   TscDuration rto;
@@ -30,19 +29,16 @@ void
 RttEst_Init(RttEst* rtte);
 
 /** \brief Add RTT sample.
- *  \param since packet transmission time.
- *  \param now acknowledgement receipt time.
  *  \pre packet has not been retransmitted.
  */
 inline void
-RttEst_Push(RttEst* rtte, TscTime since, TscTime now)
+RttEst_Push(RttEst* rtte, TscTime now, TscDuration rtt)
 {
   if (likely(rtte->next_ > now)) {
     return;
   }
-  TscDuration rtt = now - since;
 
-  if (unlikely(rtte->rtt == 0)) {
+  if (unlikely(rtte->next_ == 0)) {
     rtte->sRtt = rtt;
     rtte->rttVar = rtt / 2.0;
   } else {
@@ -50,11 +46,10 @@ RttEst_Push(RttEst* rtte, TscTime since, TscTime now)
       (1.0 - RTTEST_BETA) * rtte->rttVar + RTTEST_BETA * fabs(rtte->sRtt - rtt);
     rtte->sRtt = (1.0 - RTTEST_ALPHA) * rtte->sRtt + RTTEST_ALPHA * rtt;
   }
-  rtte->rtt = rtte->sRtt;
   TscDuration rto = rtte->sRtt + RTTEST_K * rtte->rttVar;
   rtte->rto = RTE_MAX(RTTEST_MINRTO, RTE_MIN(rto, RTTEST_MAXRTO));
 
-  rtte->next_ = now + rtt;
+  rtte->next_ = now + rtte->sRtt;
 }
 
 /** \brief Back off the RTO timer.

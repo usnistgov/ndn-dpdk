@@ -10,57 +10,53 @@ import (
 
 func TestRttEst(t *testing.T) {
 	assert, _ := makeAR(t)
-	durationDelta := float64(dpdk.ToTscDuration(time.Millisecond))
+	durationDelta := float64(time.Millisecond)
 
-	rtte := fetch.NewRttEst()
-	assert.InDelta(dpdk.ToTscDuration(time.Second), rtte.GetRto(), durationDelta)
+	var rtte fetch.RttEst
+	rtte.Init()
+	assert.InDelta(time.Second, rtte.GetRto(), durationDelta)
 
 	now := dpdk.TscNow()
-	since := now.Add(-500 * time.Millisecond)
-	rtte.Push(since, now)
+	rtte.Push(now, 500*time.Millisecond)
 	// sRtt=500ms, rttVar=250ms
-	assert.InDelta(dpdk.ToTscDuration(500*time.Millisecond), rtte.GetRtt(), durationDelta)
-	assert.InDelta(dpdk.ToTscDuration(1500*time.Millisecond), rtte.GetRto(), durationDelta)
+	assert.InDelta(500*time.Millisecond, rtte.GetSRtt(), durationDelta)
+	assert.InDelta(1500*time.Millisecond, rtte.GetRto(), durationDelta)
 
 	now = now.Add(300 * time.Millisecond)
-	since = now.Add(-800 * time.Millisecond)
-	rtte.Push(since, now) // not collected within RTT
-	assert.InDelta(dpdk.ToTscDuration(500*time.Millisecond), rtte.GetRtt(), durationDelta)
-	assert.InDelta(dpdk.ToTscDuration(1500*time.Millisecond), rtte.GetRto(), durationDelta)
+	rtte.Push(now, 800*time.Millisecond) // not collected within RTT
+	assert.InDelta(500*time.Millisecond, rtte.GetSRtt(), durationDelta)
+	assert.InDelta(1500*time.Millisecond, rtte.GetRto(), durationDelta)
 
 	now = now.Add(300 * time.Millisecond)
-	since = now.Add(-800 * time.Millisecond)
-	rtte.Push(since, now)
+	rtte.Push(now, 800*time.Millisecond)
 	// sRtt=537.5ms, rttVar=262.5ms
-	assert.InDelta(dpdk.ToTscDuration(537500*time.Microsecond), rtte.GetRtt(), durationDelta)
-	assert.InDelta(dpdk.ToTscDuration(1587500*time.Microsecond), rtte.GetRto(), durationDelta)
+	assert.InDelta(537*time.Millisecond, rtte.GetSRtt(), durationDelta)
+	assert.InDelta(1587*time.Millisecond, rtte.GetRto(), durationDelta)
 
 	rtte.Backoff()
-	assert.InDelta(dpdk.ToTscDuration(537500*time.Microsecond), rtte.GetRtt(), durationDelta)
-	assert.InDelta(dpdk.ToTscDuration(3175*time.Millisecond), rtte.GetRto(), durationDelta)
+	assert.InDelta(537*time.Millisecond, rtte.GetSRtt(), durationDelta)
+	assert.InDelta(3175*time.Millisecond, rtte.GetRto(), durationDelta)
 
 	now = now.Add(800 * time.Millisecond)
-	since = now.Add(-100 * time.Millisecond)
-	rtte.Push(since, now)
+	rtte.Push(now, 100*time.Millisecond)
 	// sRtt=482.8175ms, rttVar=306.25ms
-	assert.InDelta(dpdk.ToTscDuration(482817*time.Microsecond), rtte.GetRtt(), durationDelta)
-	assert.InDelta(dpdk.ToTscDuration(1707817*time.Microsecond), rtte.GetRto(), durationDelta)
+	assert.InDelta(482*time.Millisecond, rtte.GetSRtt(), durationDelta)
+	assert.InDelta(1707*time.Millisecond, rtte.GetRto(), durationDelta)
 
 	rtte.Backoff()
-	assert.InDelta(dpdk.ToTscDuration(482817*time.Microsecond), rtte.GetRtt(), durationDelta)
-	assert.InDelta(dpdk.ToTscDuration(3415635*time.Microsecond), rtte.GetRto(), durationDelta)
+	assert.InDelta(482*time.Millisecond, rtte.GetSRtt(), durationDelta)
+	assert.InDelta(3415*time.Millisecond, rtte.GetRto(), durationDelta)
 
 	for i := 0; i < 20; i++ {
 		rtte.Backoff()
 	}
-	assert.InDelta(dpdk.ToTscDuration(482817*time.Microsecond), rtte.GetRtt(), durationDelta)
-	assert.InDelta(dpdk.ToTscDuration(60*time.Second), rtte.GetRto(), durationDelta)
+	assert.InDelta(482*time.Millisecond, rtte.GetSRtt(), durationDelta)
+	assert.InDelta(60*time.Second, rtte.GetRto(), durationDelta)
 
 	for i := 0; i < 80; i++ {
 		now = now.Add(800 * time.Millisecond)
-		since = now.Add(-10 * time.Millisecond)
-		rtte.Push(since, now)
+		rtte.Push(now, 10*time.Millisecond)
 	}
-	assert.InDelta(dpdk.ToTscDuration(10*time.Millisecond), rtte.GetRtt(), durationDelta)
-	assert.InDelta(dpdk.ToTscDuration(200*time.Millisecond), rtte.GetRto(), durationDelta)
+	assert.InDelta(10*time.Millisecond, rtte.GetSRtt(), durationDelta)
+	assert.InDelta(200*time.Millisecond, rtte.GetRto(), durationDelta)
 }

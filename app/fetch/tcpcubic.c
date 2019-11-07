@@ -32,7 +32,7 @@ TcpCubic_ComputeWEst(TcpCubic* ca, double t, double rtt)
 }
 
 void
-TcpCubic_Increase(TcpCubic* ca, TscTime now, TscDuration sRtt)
+TcpCubic_Increase(TcpCubic* ca, TscTime now, double sRtt)
 {
   if (ca->cwnd < ca->ssthresh) { // slow start
     ca->cwnd += 1.0;
@@ -56,9 +56,9 @@ TcpCubic_Increase(TcpCubic* ca, TscTime now, TscDuration sRtt)
 }
 
 void
-TcpCubic_Decrease(TcpCubic* ca, TscTime now, TscDuration sRtt)
+TcpCubic_Decrease(TcpCubic* ca, TscTime now, double sRtt)
 {
-  if (ca->t0 + sRtt >= now) {
+  if (ca->t0 + (TscDuration)sRtt >= now) {
     // last decrease was within RTT
     return;
   }
