@@ -14,7 +14,6 @@ func fetchSegFromC(c *C.FetchSeg) *FetchSeg {
 	return (*FetchSeg)(unsafe.Pointer(c))
 }
 
-// Initialize FetchWindow.
 func NewFetchWindowAt(c *C.FetchWindow, capacity int, socket dpdk.NumaSocket) (win *FetchWindow) {
 	win = (*FetchWindow)(unsafe.Pointer(c))
 	win.Init(capacity, socket)

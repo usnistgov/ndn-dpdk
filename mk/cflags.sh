@@ -1,6 +1,6 @@
 export CC=${CC:-gcc-7}
 export CGO_CFLAGS_ALLOW='.*'
-CFLAGS='-Werror -Wno-error=deprecated-declarations -m64 -pthread -O3 -g -march=native -I/usr/local/include/dpdk -I/usr/include/dpdk'
+CFLAGS='-Werror -Wno-error=deprecated-declarations -m64 -pthread -O3 -ffast-math -g -march=native -I/usr/local/include/dpdk -I/usr/include/dpdk'
 LIBS='-L/usr/local/lib -lurcu-qsbr -lurcu-cds -lubpf -lspdk -lspdk_env_dpdk -ldpdk -lnuma -lm'
 
 if ! [[ $MK_CGOFLAGS ]]; then

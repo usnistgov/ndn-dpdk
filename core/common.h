@@ -7,6 +7,7 @@
 
 #include "common1.h"
 
+#include <float.h>
 #include <math.h>
 
 #include <rte_branch_prediction.h>
