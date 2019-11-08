@@ -7,24 +7,24 @@
 
 /** \brief Per-segment state.
  */
-typedef struct FetchSeg FetchSeg;
-
-struct FetchSeg
+typedef struct FetchSeg
 {
-  TscTime txTime;     ///< last Interest tx time
-  MinTmr rtoExpiry;   ///< RTO expiration timer
-  FetchSeg* retxPrev; ///< retx queue prev
-  FetchSeg* retxNext; ///< retx queue next
-  bool deleted_; ///< (private for FetchWindow) whether seg has been deleted
-  uint8_t nRetx; ///< number of Interest retx, excluding first Interest
-} __rte_cache_aligned;
+  uint64_t segNum;             ///< segment number
+  TscTime txTime;              ///< last Interest tx time
+  MinTmr rtoExpiry;            ///< RTO expiration timer
+  TAILQ_ENTRY(FetchSeg) retxQ; ///< retx queue node
+  bool deleted_;  ///< (private for FetchWindow) whether seg has been deleted
+  bool inRetxQ;   ///< whether segment is scheduled for retx
+  uint16_t nRetx; ///< number of Interest retx, increment upon TX
+} __rte_cache_aligned FetchSeg;
 
 static inline void
-FetchSeg_Init(FetchSeg* seg)
+FetchSeg_Init(FetchSeg* seg, uint64_t segNum)
 {
+  seg->segNum = segNum;
   seg->txTime = 0;
   MinTmr_Init(&seg->rtoExpiry);
-  seg->retxPrev = seg->retxNext = NULL;
+  seg->inRetxQ = false;
   seg->nRetx = 0;
 }
 

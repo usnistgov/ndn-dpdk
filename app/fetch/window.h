@@ -51,21 +51,19 @@ FetchWindow_Get(FetchWindow* win, uint64_t segNum)
 }
 
 /** \brief Create state for the next segment.
- *  \param[out] segNum segment number.
  *  \retval NULL window has reached its capacity limit.
  */
 static inline FetchSeg*
-FetchWindow_Append(FetchWindow* win, uint64_t* segNum)
+FetchWindow_Append(FetchWindow* win)
 {
-  uint64_t segNum1 = win->hiSegNum;
-  if (unlikely(segNum1 - win->loSegNum > win->capacityMask)) {
+  uint64_t segNum = win->hiSegNum;
+  if (unlikely(segNum - win->loSegNum > win->capacityMask)) {
     return NULL;
   }
   ++win->hiSegNum;
-  FetchSeg* seg = FetchWindow_Access_(win, segNum1);
+  FetchSeg* seg = FetchWindow_Access_(win, segNum);
   seg->deleted_ = false;
-  FetchSeg_Init(seg);
-  *segNum = segNum1;
+  FetchSeg_Init(seg, segNum);
   return seg;
 }
 

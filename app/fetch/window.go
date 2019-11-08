@@ -10,37 +10,37 @@ import (
 	"ndn-dpdk/dpdk"
 )
 
-func fetchSegFromC(c *C.FetchSeg) *FetchSeg {
-	return (*FetchSeg)(unsafe.Pointer(c))
+func segStateFromC(c *C.FetchSeg) *SegState {
+	return (*SegState)(unsafe.Pointer(c))
 }
 
-func fetchWindowFromC(c *C.FetchWindow) (win *FetchWindow) {
-	return (*FetchWindow)(unsafe.Pointer(c))
+func WindowFromPtr(ptr unsafe.Pointer) (win *Window) {
+	return (*Window)(ptr)
 }
 
-func (win *FetchWindow) getPtr() *C.FetchWindow {
+func (win *Window) getPtr() *C.FetchWindow {
 	return (*C.FetchWindow)(unsafe.Pointer(win))
 }
 
-func (win *FetchWindow) Init(capacity int, socket dpdk.NumaSocket) {
-	win.Array = (*FetchSeg)(dpdk.ZmallocAligned("FetchWindow", capacity*int(C.sizeof_FetchSeg), 1, socket))
+func (win *Window) Init(capacity int, socket dpdk.NumaSocket) {
+	capacity = int(C.rte_align32pow2(C.uint32_t(capacity)))
+	win.Array = (*SegState)(dpdk.ZmallocAligned("FetchWindow", capacity*int(C.sizeof_FetchSeg), 1, socket))
 	win.CapacityMask = uint32(capacity - 1)
 }
 
-func (win *FetchWindow) Close() error {
+func (win *Window) Close() error {
 	dpdk.Free(win.Array)
 	return nil
 }
 
-func (win *FetchWindow) Get(segNum uint64) *FetchSeg {
-	return fetchSegFromC(C.FetchWindow_Get(win.getPtr(), C.uint64_t(segNum)))
+func (win *Window) Get(segNum uint64) *SegState {
+	return segStateFromC(C.FetchWindow_Get(win.getPtr(), C.uint64_t(segNum)))
 }
 
-func (win *FetchWindow) Append() (segNum uint64, seg *FetchSeg) {
-	seg = fetchSegFromC(C.FetchWindow_Append(win.getPtr(), (*C.uint64_t)(unsafe.Pointer(&segNum))))
-	return
+func (win *Window) Append() *SegState {
+	return segStateFromC(C.FetchWindow_Append(win.getPtr()))
 }
 
-func (win *FetchWindow) Delete(segNum uint64) {
+func (win *Window) Delete(segNum uint64) {
 	C.FetchWindow_Delete(win.getPtr(), C.uint64_t(segNum))
 }

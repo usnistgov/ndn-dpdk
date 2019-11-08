@@ -11,8 +11,8 @@ import (
 	"ndn-dpdk/dpdk"
 )
 
-func rttEstFromC(c *C.RttEst) (rtte *RttEst) {
-	return (*RttEst)(unsafe.Pointer(c))
+func RttEstFromPtr(ptr unsafe.Pointer) (rtte *RttEst) {
+	return (*RttEst)(ptr)
 }
 
 func (rtte *RttEst) getPtr() *C.RttEst {

@@ -9,6 +9,7 @@
 
 #include <float.h>
 #include <math.h>
+#include <sys/queue.h>
 
 #include <rte_branch_prediction.h>
 #include <rte_cycles.h>

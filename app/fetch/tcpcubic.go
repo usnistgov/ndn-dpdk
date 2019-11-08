@@ -11,8 +11,8 @@ import (
 	"ndn-dpdk/dpdk"
 )
 
-func tcpCubicFromC(c *C.TcpCubic) (ca *TcpCubic) {
-	return (*TcpCubic)(unsafe.Pointer(c))
+func TcpCubicFromC(ptr unsafe.Pointer) (ca *TcpCubic) {
+	return (*TcpCubic)(ptr)
 }
 
 func (ca *TcpCubic) getPtr() *C.TcpCubic {

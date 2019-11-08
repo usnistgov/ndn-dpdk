@@ -26,9 +26,9 @@ typedef struct MinSched
   MinTmrCallback cb;
   void* cbarg;
   uint64_t nTriggered; ///< count of triggered events
-  uint16_t lastSlot;
-  uint16_t slotMask;
-  uint16_t nSlots;
+  uint32_t lastSlot;
+  uint32_t slotMask;
+  uint32_t nSlots;
   MinTmr slot[0];
 } MinSched;
 

@@ -10,21 +10,20 @@ import (
 func TestWindow(t *testing.T) {
 	assert, require := makeAR(t)
 
-	var win fetch.FetchWindow
+	var win fetch.Window
 	win.Init(8, dpdk.NUMA_SOCKET_ANY)
 	defer win.Close()
 
-	var seg1 *fetch.FetchSeg
+	var seg1 *fetch.SegState
 	for i := 0; i <= 7; i++ {
-		segNum, seg := win.Append()
+		seg := win.Append()
 		if i == 1 {
 			seg1 = seg
 		}
 		require.NotNil(seg, "%d", i)
-		assert.Equal(i, int(segNum))
+		assert.Equal(i, int(seg.SegNum))
 	}
-	_, noSeg := win.Append()
-	assert.Nil(noSeg)
+	assert.Nil(win.Append())
 
 	win.Delete(2)
 	win.Delete(4)
@@ -34,10 +33,9 @@ func TestWindow(t *testing.T) {
 	win.Delete(0)
 
 	for i := 8; i <= 10; i++ {
-		segNum, seg := win.Append()
+		seg := win.Append()
 		require.NotNil(seg, "%d", i)
-		assert.Equal(i, int(segNum))
+		assert.Equal(i, int(seg.SegNum))
 	}
-	_, noSeg = win.Append()
-	assert.Nil(noSeg)
+	assert.Nil(win.Append())
 }

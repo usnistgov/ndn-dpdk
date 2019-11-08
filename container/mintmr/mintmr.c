@@ -10,7 +10,7 @@ MinSched_New(int nSlotBits,
              MinTmrCallback cb,
              void* cbarg)
 {
-  uint16_t nSlots = 1 << nSlotBits;
+  uint32_t nSlots = 1 << nSlotBits;
   assert(nSlots != 0);
 
   MinSched* sched =
@@ -29,7 +29,7 @@ MinSched_New(int nSlotBits,
           sched->interval,
           cb);
 
-  for (uint16_t i = 0; i < nSlots; ++i) {
+  for (uint32_t i = 0; i < nSlots; ++i) {
     MinTmr* slot = &sched->slot[i];
     slot->next = slot->prev = slot;
   }
@@ -101,7 +101,7 @@ MinTmr_After(MinTmr* tmr, TscDuration after, MinSched* sched)
     return false;
   }
 
-  uint16_t slotNum = (sched->lastSlot + nSlotsAway) & sched->slotMask;
+  uint32_t slotNum = (sched->lastSlot + nSlotsAway) & sched->slotMask;
   ZF_LOGD("%p After(%p, %" PRId64 ") slot=%" PRIu16 " last=%" PRIu16,
           sched,
           tmr,
