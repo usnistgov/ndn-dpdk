@@ -22,6 +22,7 @@ type TcpCubic C.TcpCubic
 // Fetcher congestion control and scheduling logic.
 type Logic C.FetchLogic
 
+type fetchRetxNode C.FetchRetxNode
 type fetchRetxQueue C.FetchRetxQueue
 type minSched C.MinSched
 type minTmr C.MinTmr

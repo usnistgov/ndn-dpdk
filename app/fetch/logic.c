@@ -1,6 +1,6 @@
 #include "logic.h"
 
-int
+size_t
 FetchLogic_TxInterestBurst(FetchLogic* fl, uint64_t* segNums, size_t limit)
 {
   TscTime now = rte_get_tsc_cycles();

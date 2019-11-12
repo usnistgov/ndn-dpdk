@@ -14,6 +14,12 @@ Name 07
 GenericNameComponent 08
 ImplicitSha256DigestComponent 01
 ParametersSha256DigestComponent 02
+KeywordNameComponent 20
+SegmentNameComponent 21
+ByteOffsetNameComponent 22
+VersionNameComponent 23
+TimestampNameComponent 24
+SequenceNumNameComponent 25
 
 Interest 05
 CanBePrefix 21

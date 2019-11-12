@@ -31,7 +31,7 @@ func (t *ThreadBase) ResetThreadBase() {
 }
 
 func (t *ThreadBase) SetLCore(lc LCore) {
-	if t.lc != LCORE_INVALID && t.IsRunning() {
+	if t.IsRunning() {
 		panic("cannot change lcore while running")
 	}
 	t.lc = lc

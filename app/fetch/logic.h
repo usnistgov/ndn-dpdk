@@ -46,7 +46,7 @@ FetchLogic_Finished(FetchLogic* fl)
  *  \param[out] segNums segment numbers to retrieve.
  *  \param limit size of segNums array.
  */
-int
+size_t
 FetchLogic_TxInterestBurst(FetchLogic* fl, uint64_t* segNums, size_t limit);
 
 /** \brief Notify Data arrival.
