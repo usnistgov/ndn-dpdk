@@ -3,7 +3,7 @@ package iface
 import (
 	"io"
 
-	"github.com/chuckpreslar/emission"
+	"ndn-dpdk/core/emission"
 )
 
 var emitter = emission.NewEmitter()
@@ -22,63 +22,46 @@ type FaceIdEventCallback func(faceId FaceId)
 
 type RxGroupEventCallback func(rxg IRxGroup)
 
-type eventCanceler struct {
-	evt int
-	cb  interface{}
-}
-
-func (c eventCanceler) Close() error {
-	emitter.Off(c.evt, c.cb)
-	return nil
-}
-
 // Register a callback when a new face is created.
 // Return a Closer that cancels the callback registration.
 func OnFaceNew(cb FaceIdEventCallback) io.Closer {
-	emitter.On(evt_FaceNew, cb)
-	return eventCanceler{evt_FaceNew, cb}
+	return emitter.On(evt_FaceNew, cb)
 }
 
 // Register a callback when a face becomes UP.
 // Return a Closer that cancels the callback registration.
 func OnFaceUp(cb FaceIdEventCallback) io.Closer {
-	emitter.On(evt_FaceUp, cb)
-	return eventCanceler{evt_FaceUp, cb}
+	return emitter.On(evt_FaceUp, cb)
 }
 
 // Register a callback when a face becomes DOWN.
 // Return a Closer that cancels the callback registration.
 func OnFaceDown(cb FaceIdEventCallback) io.Closer {
-	emitter.On(evt_FaceDown, cb)
-	return eventCanceler{evt_FaceDown, cb}
+	return emitter.On(evt_FaceDown, cb)
 }
 
 // Register a callback when a face is closing.
 // Return a Closer that cancels the callback registration.
 func OnFaceClosing(cb FaceIdEventCallback) io.Closer {
-	emitter.On(evt_FaceClosing, cb)
-	return eventCanceler{evt_FaceClosing, cb}
+	return emitter.On(evt_FaceClosing, cb)
 }
 
 // Register a callback when a face is closed.
 // Return a Closer that cancels the callback registration.
 func OnFaceClosed(cb FaceIdEventCallback) io.Closer {
-	emitter.On(evt_FaceClosed, cb)
-	return eventCanceler{evt_FaceClosed, cb}
+	return emitter.On(evt_FaceClosed, cb)
 }
 
 // Register a callback when an RxGroup is added.
 // Return a Closer that cancels the callback registration.
 func OnRxGroupAdd(cb RxGroupEventCallback) io.Closer {
-	emitter.On(evt_RxGroupAdd, cb)
-	return eventCanceler{evt_RxGroupAdd, cb}
+	return emitter.On(evt_RxGroupAdd, cb)
 }
 
 // Register a callback when an RxGroup is removed.
 // Return a Closer that cancels the callback registration.
 func OnRxGroupRemove(cb RxGroupEventCallback) io.Closer {
-	emitter.On(evt_RxGroupRemove, cb)
-	return eventCanceler{evt_RxGroupRemove, cb}
+	return emitter.On(evt_RxGroupRemove, cb)
 }
 
 func EmitRxGroupAdd(rxg IRxGroup) {

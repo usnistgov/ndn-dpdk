@@ -27,30 +27,12 @@ func TestFetcher(t *testing.T) {
 	require.NoError(e)
 	fetcher.SetRxQueue(rxQueue)
 
-	stop := make(chan bool)
-	go func() {
-		i := 0
-		for {
-			select {
-			case <-stop:
-				return
-			default:
-			}
-			for ; i < len(face.TxInterests); i++ {
-				interest := face.TxInterests[i]
-				for interest == nil { // workaround thread-unsafe append
-					// TODO add a TX channel in MockFace for intercepting packets
-					time.Sleep(time.Millisecond)
-					interest = face.TxInterests[i]
-				}
-				fmt.Println(interest)
-				data := ndntestutil.MakeData(interest.GetName().String())
-				pkts := make([]ndn.Packet, 1)
-				pkts[0] = data.GetPacket()
-				rxQueue.BurstEnqueue(pkts)
-			}
-		}
-	}()
+	face.OnTxInterest(func(interest *ndn.Interest) {
+		fmt.Println(interest)
+		data := ndntestutil.MakeData(interest.GetName().String())
+		pkts := []ndn.Packet{data.GetPacket()}
+		rxQueue.BurstEnqueue(pkts)
+	})
 
 	fetcher.Logic.SetFinalSegNum(4999)
 	fetcher.Launch()
@@ -59,7 +41,6 @@ func TestFetcher(t *testing.T) {
 	time.Sleep(5 * time.Second)
 
 	e = fetcher.Stop()
-	stop <- true
 	assert.NoError(e)
 	assert.Len(face.TxInterests, 5000)
 }
