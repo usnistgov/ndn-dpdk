@@ -65,6 +65,10 @@ func (fetcher *Fetcher) Launch() error {
 	})
 }
 
+func (fetcher *Fetcher) WaitForCompletion() error {
+	return fetcher.StopImpl(dpdk.StopWait{})
+}
+
 func (fetcher *Fetcher) Stop() error {
 	return fetcher.StopImpl(dpdk.NewStopFlag(unsafe.Pointer(&fetcher.c.stop)))
 }

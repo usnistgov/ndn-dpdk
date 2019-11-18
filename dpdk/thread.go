@@ -89,6 +89,12 @@ type IStop interface {
 	AfterWait()  // What to do after lcore.Wait().
 }
 
+// Stop a thread by waiting for it indefinitely.
+type StopWait struct{}
+
+func (stop StopWait) BeforeWait() {}
+func (stop StopWait) AfterWait()  {}
+
 // Stop a thread by setting a boolean flag.
 type StopFlag struct {
 	c *C.ThreadStopFlag
