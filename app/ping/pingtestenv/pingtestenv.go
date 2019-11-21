@@ -7,6 +7,7 @@ import (
 	"ndn-dpdk/iface/createface"
 	"ndn-dpdk/iface/ifacetestfixture"
 	"ndn-dpdk/iface/mockface"
+	"ndn-dpdk/ndn"
 )
 
 func Init() {
@@ -42,4 +43,32 @@ func MakeMockFace() *mockface.MockFace {
 		panic(e)
 	}
 	return face.(*mockface.MockFace)
+}
+
+type IRxQueueSettable interface {
+	SetRxQueue(queue dpdk.Ring)
+}
+
+type RxQueueWrapper struct {
+	dpdk.Ring
+}
+
+func AttachRxQueue(t IRxQueueSettable) RxQueueWrapper {
+	ring, e := dpdk.NewRing("PingRxQueue", 1024, dpdk.NUMA_SOCKET_ANY, false, true)
+	if e != nil {
+		panic(e)
+	}
+	t.SetRxQueue(ring)
+	return RxQueueWrapper{ring}
+}
+
+func (q RxQueueWrapper) Rx(pkts ...ndn.IL3Packet) {
+	npkts := make([]ndn.Packet, len(pkts))
+	for i, pkt := range pkts {
+		npkts[i] = pkt.GetPacket()
+	}
+	nEnqueued, _ := q.BurstEnqueue(npkts)
+	for i := nEnqueued; i < len(npkts); i++ {
+		npkts[i].AsDpdkPacket().Close()
+	}
 }

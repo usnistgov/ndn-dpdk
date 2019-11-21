@@ -7,7 +7,6 @@ import (
 
 	"ndn-dpdk/app/ping/pingtestenv"
 	"ndn-dpdk/app/pingclient"
-	"ndn-dpdk/dpdk"
 	"ndn-dpdk/ndn"
 	"ndn-dpdk/ndn/ndntestutil"
 )
@@ -47,13 +46,10 @@ func TestClient(t *testing.T) {
 	client, e := pingclient.New(face, cfg)
 	require.NoError(e)
 	defer client.Close()
-	client.SetLCore(pingtestenv.SlaveLCores[0])
-	client.Tx.SetLCore(pingtestenv.SlaveLCores[1])
+	client.SetLCores(pingtestenv.SlaveLCores[0], pingtestenv.SlaveLCores[1])
 
-	rxQueue, e := dpdk.NewRing("PingClientRxQ", 1024, dpdk.NUMA_SOCKET_ANY, false, true)
-	require.NoError(e)
+	rxQueue := pingtestenv.AttachRxQueue(client)
 	defer rxQueue.Close()
-	client.SetRxQueue(rxQueue)
 
 	nInterestsA := 0
 	nInterestsB1 := 0
@@ -85,19 +81,18 @@ func TestClient(t *testing.T) {
 		}
 		data := ndntestutil.MakeData(interest.GetName().String())
 		ndntestutil.CopyPitToken(data, interest)
-		rxQueue.BurstEnqueue([]ndn.Packet{data.GetPacket()})
+		rxQueue.Rx(data)
 	})
 
 	assert.InDelta(100*time.Microsecond, client.GetInterval(), float64(1*time.Microsecond))
 	client.Launch()
-	client.Tx.Launch()
 
 	time.Sleep(900 * time.Millisecond)
 
-	e = client.Tx.Stop()
+	timeBeforeStop := time.Now()
+	e = client.Stop(100 * time.Millisecond)
 	assert.NoError(e)
-	e = client.Stop()
-	assert.NoError(e)
+	assert.InDelta(100*time.Millisecond, time.Since(timeBeforeStop), float64(10*time.Millisecond))
 
 	nInterests := float64(nInterestsA + nInterestsB1 + nInterestsB2)
 	assert.InDelta(9000, nInterests, 1000)

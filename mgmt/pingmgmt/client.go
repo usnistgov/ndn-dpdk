@@ -2,7 +2,6 @@ package pingmgmt
 
 import (
 	"errors"
-	"time"
 
 	"ndn-dpdk/app/ping"
 	"ndn-dpdk/app/pingclient"
@@ -39,7 +38,7 @@ func (mg PingClientMgmt) Start(args ClientStartArgs, reply *struct{}) error {
 	if e != nil {
 		return e
 	}
-	if client.IsRunning() || client.Tx.IsRunning() {
+	if client.Rx.IsRunning() || client.Tx.IsRunning() {
 		return errors.New("Client is running")
 	}
 
@@ -50,7 +49,6 @@ func (mg PingClientMgmt) Start(args ClientStartArgs, reply *struct{}) error {
 		client.ClearCounters()
 	}
 	client.Launch()
-	client.Tx.Launch()
 	return nil
 }
 
@@ -60,9 +58,7 @@ func (mg PingClientMgmt) Stop(args ClientStopArgs, reply *struct{}) error {
 		return e
 	}
 
-	client.Tx.Stop()
-	time.Sleep(args.RxDelay)
-	client.Stop()
+	client.Stop(args.RxDelay)
 	return nil
 }
 

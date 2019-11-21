@@ -64,7 +64,7 @@ func (tpl *InterestTemplate) AppendFH(preference int, name *Name) {
 
 func (tpl *InterestTemplate) SetInterestLifetime(v time.Duration) {
 	tpl.buffer = nil
-	tpl.c.lifetime = C.uint32_t(v / time.Millisecond)
+	tpl.c.lifetime = C.uint32_t(v.Milliseconds())
 }
 
 func (tpl *InterestTemplate) SetHopLimit(v uint8) {

@@ -6,9 +6,7 @@ import (
 	"unsafe"
 )
 
-var dummyPtr unsafe.Pointer
-
-const sizeofPtr = unsafe.Sizeof(dummyPtr)
+const sizeofPtr = unsafe.Sizeof(unsafe.Pointer(nil))
 
 // Cast an interface{} of any slice or array type as C void*[] type.
 func ParseCptrArray(arr interface{}) (ptr unsafe.Pointer, count int) {

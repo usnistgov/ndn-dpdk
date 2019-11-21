@@ -94,8 +94,8 @@ func (cnt Counters) String() string {
 // Read counters.
 func (client *Client) ReadCounters() (cnt Counters) {
 	rttCombined := running_stat.New()
-	for i := 0; i < int(client.c.nPatterns); i++ {
-		crP := client.c.pattern[i]
+	for i := 0; i < int(client.Rx.c.nPatterns); i++ {
+		crP := client.Rx.c.pattern[i]
 		ctP := client.Tx.c.pattern[i]
 		rtt := running_stat.FromPtr(unsafe.Pointer(&crP.rtt))
 
@@ -121,16 +121,16 @@ func (client *Client) ReadCounters() (cnt Counters) {
 // Clear counters. Both RX and TX threads should be stopped before calling this,
 // otherwise race conditions may occur.
 func (client *Client) ClearCounters() {
-	nPatterns := int(client.c.nPatterns)
+	nPatterns := int(client.Rx.c.nPatterns)
 	for i := 0; i < nPatterns; i++ {
 		client.clearCounter(i)
 	}
 }
 
 func (client *Client) clearCounter(index int) {
-	client.c.pattern[index].nData = 0
-	client.c.pattern[index].nNacks = 0
-	rtt := running_stat.FromPtr(unsafe.Pointer(&client.c.pattern[index].rtt))
+	client.Rx.c.pattern[index].nData = 0
+	client.Rx.c.pattern[index].nNacks = 0
+	rtt := running_stat.FromPtr(unsafe.Pointer(&client.Rx.c.pattern[index].rtt))
 	rtt.Clear(true)
 	client.Tx.c.pattern[index].nInterests = 0
 }

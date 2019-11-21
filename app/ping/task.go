@@ -24,8 +24,7 @@ func newTask(face iface.IFace, cfg TaskConfig) (task Task, e error) {
 		if task.Client, e = pingclient.New(task.Face, *cfg.Client); e != nil {
 			return Task{}, e
 		}
-		task.Client.SetLCore(dpdk.LCoreAlloc.Alloc(LCoreRole_ClientRx, numaSocket))
-		task.Client.Tx.SetLCore(dpdk.LCoreAlloc.Alloc(LCoreRole_ClientTx, numaSocket))
+		task.Client.SetLCores(dpdk.LCoreAlloc.Alloc(LCoreRole_ClientRx, numaSocket), dpdk.LCoreAlloc.Alloc(LCoreRole_ClientTx, numaSocket))
 	}
 	if cfg.Server != nil {
 		if task.Server, e = pingserver.New(task.Face, *cfg.Server); e != nil {
@@ -42,7 +41,6 @@ func (task *Task) Launch() {
 	}
 	if task.Client != nil {
 		task.Client.Launch()
-		task.Client.Tx.Launch()
 	}
 }
 

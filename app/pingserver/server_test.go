@@ -7,7 +7,6 @@ import (
 
 	"ndn-dpdk/app/ping/pingtestenv"
 	"ndn-dpdk/app/pingserver"
-	"ndn-dpdk/dpdk"
 	"ndn-dpdk/ndn"
 	"ndn-dpdk/ndn/ndntestutil"
 )
@@ -88,10 +87,8 @@ func TestServer(t *testing.T) {
 	defer server.Close()
 	server.SetLCore(pingtestenv.SlaveLCores[0])
 
-	rxQueue, e := dpdk.NewRing("PingServerRxQ", 1024, dpdk.NUMA_SOCKET_ANY, false, true)
-	require.NoError(e)
+	rxQueue := pingtestenv.AttachRxQueue(server)
 	defer rxQueue.Close()
-	server.SetRxQueue(rxQueue)
 
 	server.Launch()
 
@@ -99,7 +96,7 @@ func TestServer(t *testing.T) {
 		interestA := ndntestutil.MakeInterest(fmt.Sprintf("/A/%d", i))
 		interestB := ndntestutil.MakeInterest(fmt.Sprintf("/B/%d", i))
 		interestC := ndntestutil.MakeInterest(fmt.Sprintf("/C/%d", i))
-		rxQueue.BurstEnqueue([]ndn.Packet{interestA.GetPacket(), interestB.GetPacket(), interestC.GetPacket()})
+		rxQueue.Rx(interestA, interestB, interestC)
 		time.Sleep(50 * time.Microsecond)
 	}
 	time.Sleep(20 * time.Millisecond)

@@ -20,8 +20,7 @@ import (
 
 // Client instance and RX thread.
 type Client struct {
-	dpdk.ThreadBase
-	c  *C.PingClientRx
+	Rx ClientRxThread
 	Tx ClientTxThread
 }
 
@@ -38,8 +37,8 @@ func New(face iface.IFace, cfg Config) (client *Client, e error) {
 	C.NonceGen_Init(&ctC.nonceGen)
 
 	client = new(Client)
-	client.c = crC
-	client.ResetThreadBase()
+	client.Rx.c = crC
+	client.Rx.ResetThreadBase()
 	dpdk.InitStopFlag(unsafe.Pointer(&crC.stop))
 	client.Tx.c = ctC
 	client.Tx.ResetThreadBase()
@@ -59,7 +58,7 @@ func (client *Client) GetFace() iface.IFace {
 }
 
 func (client *Client) AddPattern(cfg Pattern) (index int, e error) {
-	if client.c.nPatterns >= C.PINGCLIENT_MAX_PATTERNS {
+	if client.Rx.c.nPatterns >= C.PINGCLIENT_MAX_PATTERNS {
 		return -1, fmt.Errorf("cannot add more than %d patterns", C.PINGCLIENT_MAX_PATTERNS)
 	}
 	if cfg.Weight < 1 {
@@ -68,7 +67,7 @@ func (client *Client) AddPattern(cfg Pattern) (index int, e error) {
 	if client.Tx.c.nWeights+C.uint16_t(cfg.Weight) >= C.PINGCLIENT_MAX_SUM_WEIGHT {
 		return -1, fmt.Errorf("sum of weight cannot exceed %d", C.PINGCLIENT_MAX_SUM_WEIGHT)
 	}
-	index = int(client.c.nPatterns)
+	index = int(client.Rx.c.nPatterns)
 	if cfg.SeqNumOffset != 0 && index == 0 {
 		return -1, errors.New("first pattern cannot have SeqNumOffset")
 	}
@@ -85,7 +84,7 @@ func (client *Client) AddPattern(cfg Pattern) (index int, e error) {
 	}
 
 	client.clearCounter(index)
-	rxP := &client.c.pattern[index]
+	rxP := &client.Rx.c.pattern[index]
 	rxP.prefixLen = C.uint16_t(cfg.Prefix.Size())
 	txP := &client.Tx.c.pattern[index]
 	if e = tpl.CopyToC(unsafe.Pointer(&txP.tpl),
@@ -98,7 +97,7 @@ func (client *Client) AddPattern(cfg Pattern) (index int, e error) {
 	txP.seqNum.compV = C.uint64_t(rand.Uint64())
 	txP.seqNumOffset = C.uint32_t(cfg.SeqNumOffset)
 
-	client.c.nPatterns++
+	client.Rx.c.nPatterns++
 	for i := 0; i < cfg.Weight; i++ {
 		client.Tx.c.weight[client.Tx.c.nWeights] = C.PingPatternId(index)
 		client.Tx.c.nWeights++
@@ -119,29 +118,66 @@ func (client *Client) SetInterval(interval time.Duration) {
 }
 
 func (client *Client) SetRxQueue(queue dpdk.Ring) {
-	client.c.rxQueue = (*C.struct_rte_ring)(queue.GetPtr())
+	client.Rx.c.rxQueue = (*C.struct_rte_ring)(queue.GetPtr())
 }
 
-// Launch the RX thread.
+func (client *Client) SetLCores(rxLCore, txLCore dpdk.LCore) {
+	client.Rx.SetLCore(rxLCore)
+	client.Tx.SetLCore(txLCore)
+}
+
+// Launch RX and TX threads.
 func (client *Client) Launch() error {
-	client.c.runNum++
-	client.Tx.c.runNum = client.c.runNum
-	return client.LaunchImpl(func() int {
-		C.PingClientRx_Run(client.c)
-		return 0
-	})
+	client.Rx.c.runNum++
+	client.Tx.c.runNum = client.Rx.c.runNum
+	eRx := client.Rx.Launch()
+	eTx := client.Tx.Launch()
+	if eRx != nil || eTx != nil {
+		return fmt.Errorf("RX %v; TX %v", eRx, eTx)
+	}
+	return nil
 }
 
-// Stop the RX thread.
-func (client *Client) Stop() error {
-	return client.StopImpl(dpdk.NewStopFlag(unsafe.Pointer(&client.c.stop)))
+// Stop RX and TX threads.
+func (client *Client) Stop(delay time.Duration) error {
+	eTx := client.Tx.Stop()
+	time.Sleep(delay)
+	eRx := client.Rx.Stop()
+	if eRx != nil || eTx != nil {
+		return fmt.Errorf("RX %v; TX %v", eRx, eTx)
+	}
+	return nil
 }
 
 // Close the client.
 // Both RX and TX threads must be stopped before calling this.
 func (client *Client) Close() error {
-	dpdk.Free(client.c)
+	dpdk.Free(client.Rx.c)
 	dpdk.Free(client.Tx.c)
+	return nil
+}
+
+// Client RX thread.
+type ClientRxThread struct {
+	dpdk.ThreadBase
+	c *C.PingClientRx
+}
+
+// Launch the RX thread.
+func (rx *ClientRxThread) Launch() error {
+	return rx.LaunchImpl(func() int {
+		C.PingClientRx_Run(rx.c)
+		return 0
+	})
+}
+
+// Stop the RX thread.
+func (rx *ClientRxThread) Stop() error {
+	return rx.StopImpl(dpdk.NewStopFlag(unsafe.Pointer(&rx.c.stop)))
+}
+
+// No-op.
+func (rx *ClientRxThread) Close() error {
 	return nil
 }
 
