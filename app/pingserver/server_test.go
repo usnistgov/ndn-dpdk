@@ -2,7 +2,6 @@ package pingserver_test
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 	"time"
 
@@ -20,10 +19,12 @@ func TestServer(t *testing.T) {
 	defer face.Close()
 	face.DisableTxRecorders()
 
+	nameA := ndn.MustParseName("/A")
+	nameB := ndn.MustParseName("/B")
 	cfg := pingserver.Config{
 		Patterns: []pingserver.Pattern{
 			{
-				Prefix: ndn.MustParseName("/A"),
+				Prefix: nameA,
 				Replies: []pingserver.Reply{
 					{
 						Weight:          60,
@@ -39,7 +40,7 @@ func TestServer(t *testing.T) {
 				},
 			},
 			{
-				Prefix: ndn.MustParseName("/B"),
+				Prefix: nameB,
 				Replies: []pingserver.Reply{
 					{
 						Nack: ndn.NackReason_Congestion,
@@ -63,11 +64,10 @@ func TestServer(t *testing.T) {
 	nNacksB := 0
 	face.OnTxData(func(data *ndn.Data) {
 		dataName := data.GetName()
-		dataNameUri := dataName.String()
 		switch {
-		case strings.HasPrefix(dataNameUri, "/A") && dataName.Len() == 2:
+		case dataName.Compare(nameA) == ndn.NAMECMP_RPREFIX && dataName.Len() == 2:
 			nDataA0++
-		case strings.HasPrefix(dataNameUri, "/A") && dataName.Len() == 3 && strings.HasSuffix(dataNameUri, "/Z"):
+		case dataName.Compare(nameA) == ndn.NAMECMP_RPREFIX && dataName.Len() == 3:
 			nDataA1++
 		default:
 			assert.Fail("unexpected Data", "%s", data)
@@ -75,9 +75,8 @@ func TestServer(t *testing.T) {
 	})
 	face.OnTxNack(func(nack *ndn.Nack) {
 		interestName := nack.GetInterest().GetName()
-		interestNameUri := interestName.String()
 		switch {
-		case strings.HasPrefix(interestNameUri, "/B") && interestName.Len() == 2:
+		case interestName.Compare(nameB) == ndn.NAMECMP_RPREFIX && interestName.Len() == 2:
 			nNacksB++
 		default:
 			assert.Fail("unexpected Nack", "%s", nack)
@@ -108,7 +107,7 @@ func TestServer(t *testing.T) {
 	e = server.Stop()
 	assert.NoError(e)
 	assert.Equal(100, nDataA0+nDataA1)
-	assert.InDelta(nDataA0, 60, 10)
-	assert.InDelta(nDataA1, 40, 10)
+	assert.InDelta(60, nDataA0, 10)
+	assert.InDelta(40, nDataA1, 10)
 	assert.Equal(100, nNacksB)
 }
