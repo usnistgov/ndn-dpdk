@@ -96,21 +96,17 @@ func (app *App) launchRxl(rxl *iface.RxLoop) {
 		if entryC == nil {
 			continue
 		}
-		if task.Client != nil {
-			queue, e := dpdk.NewRing(fmt.Sprintf("client-rx-%d", i), app.initCfg.QueueCapacity,
-				task.Face.GetNumaSocket(), true, true)
-			if e != nil {
-				panic(e)
-			}
+		if task.Fetch != nil || task.Client != nil {
+			queue := app.makeRxQueue(fmt.Sprintf("client-rx-%d", i), task.Face.GetNumaSocket())
 			entryC.clientQueue = (*C.struct_rte_ring)(queue.GetPtr())
-			task.Client.SetRxQueue(queue)
+			if task.Fetch != nil {
+				task.Fetch.SetRxQueue(queue)
+			} else {
+				task.Client.SetRxQueue(queue)
+			}
 		}
 		if task.Server != nil {
-			queue, e := dpdk.NewRing(fmt.Sprintf("server-rx-%d", i), app.initCfg.QueueCapacity,
-				task.Face.GetNumaSocket(), true, true)
-			if e != nil {
-				panic(e)
-			}
+			queue := app.makeRxQueue(fmt.Sprintf("server-rx-%d", i), task.Face.GetNumaSocket())
 			entryC.serverQueue = (*C.struct_rte_ring)(queue.GetPtr())
 			task.Server.SetRxQueue(queue)
 		}
@@ -118,4 +114,12 @@ func (app *App) launchRxl(rxl *iface.RxLoop) {
 
 	rxl.SetCallback(unsafe.Pointer(C.PingInput_FaceRx), unsafe.Pointer(inputC))
 	rxl.Launch()
+}
+
+func (app *App) makeRxQueue(id string, numaSocket dpdk.NumaSocket) (queue dpdk.Ring) {
+	queue, e := dpdk.NewRing(id, app.initCfg.QueueCapacity, numaSocket, true, true)
+	if e != nil {
+		panic(e)
+	}
+	return queue
 }

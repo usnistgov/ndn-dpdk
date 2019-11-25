@@ -35,14 +35,25 @@ Fetcher_TxBurst(Fetcher* fetcher)
   uint64_t segNums[FETCHER_TX_BURST_SIZE];
   size_t count =
     FetchLogic_TxInterestBurst(&fetcher->logic, segNums, FETCHER_TX_BURST_SIZE);
+  if (unlikely(count == 0)) {
+    return;
+  }
 
   Packet* npkts[FETCHER_TX_BURST_SIZE];
   int res = rte_pktmbuf_alloc_bulk(
     fetcher->interestMp, (struct rte_mbuf**)npkts, count);
   if (unlikely(res != 0)) {
-    ZF_LOGW("interestMp-full");
+    ZF_LOGW("%p interestMp-full", fetcher);
     return;
   }
+  ZF_LOGV("%p win=[%" PRIu64 ",%" PRIu64 ") rto=%" PRId64 " cwnd=%" PRIu32
+          " nInFlight=%" PRIu32 "",
+          fetcher,
+          fetcher->logic.win.loSegNum,
+          fetcher->logic.win.hiSegNum,
+          TscDuration_ToMillis(fetcher->logic.rtte.rto),
+          TcpCubic_GetCwnd(&fetcher->logic.ca),
+          fetcher->logic.nInFlight);
 
   for (int i = 0; i < count; ++i) {
     Fetcher_Encode(fetcher, npkts[i], segNums[i]);
@@ -53,6 +64,9 @@ Fetcher_TxBurst(Fetcher* fetcher)
 static bool
 Fetcher_Decode(Fetcher* fetcher, Packet* npkt, uint64_t* segNum)
 {
+  if (unlikely(Packet_GetL3PktType(npkt) != L3PktType_Data)) {
+    return false;
+  }
   const PData* data = Packet_GetDataHdr(npkt);
   LName* name = (LName*)&data->name;
   const uint8_t* comp =

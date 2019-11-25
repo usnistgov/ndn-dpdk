@@ -75,6 +75,9 @@ FetchLogic_RtoTimeout(MinTmr* tmr, void* cbarg)
 
   --fl->nInFlight;
 
+  TscTime now = rte_get_tsc_cycles();
+  TcpCubic_Decrease(&fl->ca, now, fl->rtte.sRtt);
+
   if (unlikely(seg->segNum > fl->finalSegNum)) {
     return;
   }
