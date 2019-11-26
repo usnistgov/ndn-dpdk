@@ -19,6 +19,7 @@ typedef struct FetchLogic
   FetchRetxQueue retxQ;
   MinSched* sched;
   uint64_t finalSegNum;
+  uint64_t lastCwndDecreaseSegNum;
   uint32_t nInFlight;
 } FetchLogic;
 

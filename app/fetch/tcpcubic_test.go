@@ -27,7 +27,7 @@ func TestTcpCubic(t *testing.T) {
 	assert.Equal(100, ca.GetCwnd())
 
 	// enter congestion avoidance
-	ca.Decrease(now, rtt)
+	ca.Decrease(now)
 	assert.Equal(70, ca.GetCwnd())
 	now = now.Add(5 * time.Millisecond)
 
@@ -44,17 +44,8 @@ func TestTcpCubic(t *testing.T) {
 	assert.Greater(lastCwnd, firstCwnd)
 
 	// decrease window
-	ca.Decrease(now, rtt)
+	ca.Decrease(now)
 	thisCwnd := ca.GetCwnd()
 	assert.Less(thisCwnd, lastCwnd)
 	now = now.Add(5 * time.Millisecond)
-
-	ca.Increase(now, rtt)
-	lastCwnd = ca.GetCwnd()
-	now = now.Add(5 * time.Millisecond)
-
-	// decrease window again within RTT should have no effect
-	ca.Decrease(now, rtt)
-	thisCwnd = ca.GetCwnd()
-	assert.Equal(lastCwnd, thisCwnd)
 }

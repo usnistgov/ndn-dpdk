@@ -31,6 +31,6 @@ func (ca *TcpCubic) Increase(now dpdk.TscTime, sRtt time.Duration) {
 	C.TcpCubic_Increase(ca.getPtr(), C.TscTime(now), C.double(dpdk.ToTscDuration(sRtt)))
 }
 
-func (ca *TcpCubic) Decrease(now dpdk.TscTime, sRtt time.Duration) {
-	C.TcpCubic_Decrease(ca.getPtr(), C.TscTime(now), C.double(dpdk.ToTscDuration(sRtt)))
+func (ca *TcpCubic) Decrease(now dpdk.TscTime) {
+	C.TcpCubic_Decrease(ca.getPtr(), C.TscTime(now))
 }

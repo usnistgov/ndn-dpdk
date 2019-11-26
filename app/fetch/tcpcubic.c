@@ -56,12 +56,8 @@ TcpCubic_Increase(TcpCubic* ca, TscTime now, double sRtt)
 }
 
 void
-TcpCubic_Decrease(TcpCubic* ca, TscTime now, double sRtt)
+TcpCubic_Decrease(TcpCubic* ca, TscTime now)
 {
-  if (ca->t0 + (TscDuration)sRtt >= now) {
-    // last decrease was within RTT
-    return;
-  }
   ca->t0 = now;
 
   ca->wMax = ca->cwnd;

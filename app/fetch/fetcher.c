@@ -46,14 +46,6 @@ Fetcher_TxBurst(Fetcher* fetcher)
     ZF_LOGW("%p interestMp-full", fetcher);
     return;
   }
-  ZF_LOGV("%p win=[%" PRIu64 ",%" PRIu64 ") rto=%" PRId64 " cwnd=%" PRIu32
-          " nInFlight=%" PRIu32 "",
-          fetcher,
-          fetcher->logic.win.loSegNum,
-          fetcher->logic.win.hiSegNum,
-          TscDuration_ToMillis(fetcher->logic.rtte.rto),
-          TcpCubic_GetCwnd(&fetcher->logic.ca),
-          fetcher->logic.nInFlight);
 
   for (int i = 0; i < count; ++i) {
     Fetcher_Encode(fetcher, npkts[i], segNums[i]);
