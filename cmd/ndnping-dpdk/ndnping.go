@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"ndn-dpdk/app/fetch"
 	"ndn-dpdk/app/ping"
 	"ndn-dpdk/appinit"
 	"ndn-dpdk/dpdk"
@@ -41,12 +42,15 @@ func main() {
 }
 
 func printPeriodicCounters(app *ping.App, counterInterval time.Duration) {
-	tick := time.Tick(counterInterval)
-	for {
-		<-tick
+	var fetchCnt fetch.Counters
+	for range time.Tick(counterInterval) {
 		for _, task := range app.Tasks {
 			stdlog.Printf("face(%d): %v %v", task.Face.GetFaceId(),
 				task.Face.ReadCounters(), task.Face.ReadExCounters())
+			if task.Fetch != nil {
+				fetchCnt = task.Fetch.Logic.ReadCounters(fetchCnt)
+				stdlog.Printf("  fetch: %v", fetchCnt)
+			}
 			if task.Client != nil {
 				stdlog.Printf("  client: %v", task.Client.ReadCounters())
 			}

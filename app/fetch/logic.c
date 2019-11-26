@@ -48,6 +48,7 @@ FetchLogic_TxInterestBurst(FetchLogic* fl, uint64_t* segNums, size_t limit)
             cwnd,
             fl->nInFlight);
   }
+  fl->nTxRetx += nRetx;
 
   return count;
 }
@@ -59,6 +60,7 @@ FetchLogic_RxData(FetchLogic* fl, TscTime now, uint64_t segNum)
   if (unlikely(seg == NULL)) {
     return;
   }
+  ++fl->nRxData;
 
   if (unlikely(seg->inRetxQ)) {
     // cancel retransmission
@@ -125,6 +127,8 @@ void
 FetchLogic_Init_(FetchLogic* fl)
 {
   TAILQ_INIT(&fl->retxQ);
+  fl->nTxRetx = 0;
+  fl->nRxData = 0;
   fl->finalSegNum = UINT64_MAX;
   fl->lastCwndDecreaseSegNum = 0;
   fl->nInFlight = 0;

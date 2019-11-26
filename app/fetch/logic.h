@@ -18,6 +18,8 @@ typedef struct FetchLogic
   TcpCubic ca;
   FetchRetxQueue retxQ;
   MinSched* sched;
+  uint64_t nTxRetx;
+  uint64_t nRxData;
   uint64_t finalSegNum;
   uint64_t lastCwndDecreaseSegNum;
   uint32_t nInFlight;
