@@ -51,6 +51,7 @@ TcpCubic_Increase(TcpCubic* ca, TscTime now, double sRtt)
   }
 
   // concave region or convex region
+  // double wCubic = TcpCubic_ComputeWCubic(ca, t + rtt);
   double wCubic = TcpCubic_ComputeWCubic(ca, t + rtt);
   ca->cwnd += (wCubic - ca->cwnd) / ca->cwnd;
 }

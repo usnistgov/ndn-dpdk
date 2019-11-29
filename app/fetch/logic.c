@@ -77,6 +77,7 @@ FetchLogic_RxData(FetchLogic* fl, TscTime now, uint64_t segNum)
     RttEst_Push(&fl->rtte, now, rtt);
   }
   TcpCubic_Increase(&fl->ca, now, fl->rtte.sRtt);
+  fl->hiDataSegNum = RTE_MAX(fl->hiDataSegNum, segNum);
 
   FetchWindow_Delete(&fl->win, segNum);
 }
@@ -102,18 +103,20 @@ FetchLogic_RtoTimeout(MinTmr* tmr, void* cbarg)
     return;
   }
 
-  if (likely(fl->win.hiSegNum > fl->lastCwndDecreaseSegNum)) {
+  if (likely(fl->hiDataSegNum > fl->cwndDecreaseInterestSegNum)) {
     TscTime now = rte_get_tsc_cycles();
     TcpCubic_Decrease(&fl->ca, now);
     RttEst_Backoff(&fl->rtte);
-    fl->lastCwndDecreaseSegNum = fl->win.hiSegNum;
+    fl->cwndDecreaseInterestSegNum = fl->win.hiSegNum;
 
     ZF_LOGD("%p RtoTimeout(%" PRIu64 ") win=[%" PRIu64 ",%" PRIu64
-            ") rto=%" PRId64 " cwnd=%" PRIu32 " nInFlight=%" PRIu32 "",
+            ") hi-data=%" PRIu64 " rto=%" PRId64 " cwnd=%" PRIu32
+            " nInFlight=%" PRIu32 "",
             fl,
             seg->segNum,
             fl->win.loSegNum,
             fl->win.hiSegNum,
+            fl->hiDataSegNum,
             TscDuration_ToMillis(fl->rtte.rto),
             TcpCubic_GetCwnd(&fl->ca),
             fl->nInFlight);
@@ -130,7 +133,8 @@ FetchLogic_Init_(FetchLogic* fl)
   fl->nTxRetx = 0;
   fl->nRxData = 0;
   fl->finalSegNum = UINT64_MAX;
-  fl->lastCwndDecreaseSegNum = 0;
+  fl->hiDataSegNum = 0;
+  fl->cwndDecreaseInterestSegNum = 0;
   fl->nInFlight = 0;
 
   // 2^16 slots of 1ms interval, accommodates RTO up to 65536ms

@@ -21,7 +21,8 @@ typedef struct FetchLogic
   uint64_t nTxRetx;
   uint64_t nRxData;
   uint64_t finalSegNum;
-  uint64_t lastCwndDecreaseSegNum;
+  uint64_t hiDataSegNum;
+  uint64_t cwndDecreaseInterestSegNum;
   uint32_t nInFlight;
 } FetchLogic;
 

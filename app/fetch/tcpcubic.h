@@ -33,9 +33,7 @@ TcpCubic_Increase(TcpCubic* ca, TscTime now, double sRtt);
 
 /** \brief Window decrease.
  *
- *  This should be invoked at most once per RTT. Specifically, caller should record the sequence
- *  number when this function is invoked, and avoid invoking again for sequence number below the
- *  recorded sequence number.
+ *  Caller must ensure this is invoked no more than once per RTT.
  */
 void
 TcpCubic_Decrease(TcpCubic* ca, TscTime now);
