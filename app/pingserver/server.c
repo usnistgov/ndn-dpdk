@@ -42,7 +42,7 @@ PingServer_RespondData(PingServer* server,
     return NULL;
   }
   struct rte_mbuf* seg1 = rte_pktmbuf_alloc(server->indirectMp);
-  if (unlikely(seg0 == NULL)) {
+  if (unlikely(seg1 == NULL)) {
     ZF_LOGW("indirectMp-full");
     ++server->nAllocError;
     rte_pktmbuf_free(Packet_ToMbuf(npkt));

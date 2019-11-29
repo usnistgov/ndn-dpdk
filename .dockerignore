@@ -10,4 +10,4 @@ ndn/tlv-type.h
 ndn/tlv-type.ts
 strategy/strategy_elf/bindata.go
 **/cgoflags.go
-**/cgostructs.go
+**/cgostruct.go
