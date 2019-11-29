@@ -7,8 +7,8 @@ go: "1.x"
 env:
   global:
     - UBPFCOMMIT=644ad3ded2f015878f502765081e166ce8112baf
-    - DPDKVER=19.08
-    - SPDKVER=19.07
+    - DPDKVER=19.11
+    - SPDKVER=19.10
   matrix:
     - TOOLCHAIN=gcc CC=gcc-7
     - TOOLCHAIN=clang CC=clang-6.0
