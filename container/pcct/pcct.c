@@ -183,7 +183,7 @@ Pcct_RemoveToken_(Pcct* pcct, PccEntry* entry)
   ZF_LOGD("%p RemoveToken(%p, %012" PRIx64 ")", pcct, entry, token);
 
   entry->hasToken = false;
-  int res = rte_hash_del_key(pcctp->tokenHt, &token);
+  int res __rte_unused = rte_hash_del_key(pcctp->tokenHt, &token);
   assert(res >= 0);
 }
 
@@ -195,7 +195,7 @@ Pcct_FindByToken(const Pcct* pcct, uint64_t token)
   token &= PCCT_TOKEN_MASK;
 
   void* entry = NULL;
-  int res = rte_hash_lookup_data(pcctp->tokenHt, &token, &entry);
+  int res __rte_unused = rte_hash_lookup_data(pcctp->tokenHt, &token, &entry);
   assert((res >= 0 && entry != NULL) || (res == -ENOENT && entry == NULL));
   return (PccEntry*)entry;
 }

@@ -97,3 +97,5 @@ script:
   - make godeps
   - make goget
   - make
+  - make clean
+  - RELEASE=1 make cmds

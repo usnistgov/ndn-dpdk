@@ -61,7 +61,7 @@ Fib_Close(Fib* fib)
   }
   rcu_read_unlock();
 
-  int res = cds_lfht_destroy(fibp->lfht, NULL);
+  int res __rte_unused = cds_lfht_destroy(fibp->lfht, NULL);
   assert(res == 0);
   rte_mempool_free(Fib_ToMempool(fib));
 }

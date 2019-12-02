@@ -72,7 +72,7 @@ MbufLoc_Delete(MbufLoc* ml,
   assert(!MbufLoc_IsEnd(ml));
   assert(prev == NULL || prev->next == ml->m);
 
-  uint32_t oldPktLen = pkt->pkt_len;
+  uint32_t oldPktLen __rte_unused = pkt->pkt_len;
   struct rte_mbuf* firstM = (struct rte_mbuf*)ml->m;
 
   if (ml->off + n <= firstM->data_len) { // is the range inside firstM?
@@ -154,7 +154,7 @@ MbufLoc_Linearize_(MbufLoc* first,
   struct rte_mbuf* firstM = (struct rte_mbuf*)first->m;
   assert(firstM != last->m); // simple case handled by MbufLoc_Linearize
 
-  uint32_t oldPktLen = pkt->pkt_len;
+  uint32_t oldPktLen __rte_unused = pkt->pkt_len;
 
   // how many octets are in firstM?
   uint16_t nInFirst = firstM->data_len - first->off;
@@ -172,7 +172,7 @@ MbufLoc_Linearize_(MbufLoc* first,
 
     // append to firstM
     uint8_t* dst = rte_pktmbuf_mtod_offset(firstM, uint8_t*, firstM->data_len);
-    uint32_t nCopied = MbufLoc_ReadTo(&ml, dst, nCopyingToFirst);
+    uint32_t nCopied __rte_unused = MbufLoc_ReadTo(&ml, dst, nCopyingToFirst);
     assert(nCopied == nCopyingToFirst);
     firstM->data_len += nCopied;
     pkt->pkt_len += nCopied;
@@ -197,7 +197,7 @@ MbufLoc_Linearize_(MbufLoc* first,
     MbufLoc ml;
     MbufLoc_Copy(&ml, first);
     uint8_t* dst = rte_pktmbuf_mtod(linearM, uint8_t*);
-    uint32_t nCopied = MbufLoc_ReadTo(&ml, dst, n);
+    uint32_t nCopied __rte_unused = MbufLoc_ReadTo(&ml, dst, n);
     assert(nCopied == n);
     linearM->data_len = n;
 

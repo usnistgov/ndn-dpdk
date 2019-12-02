@@ -95,8 +95,8 @@ PInterest_FromPacket(PInterest* interest,
     if (unlikely(ele1.length != sizeof(nonceV))) {
       return NdnError_BadNonceLength;
     }
-    bool ok = MbufLoc_ReadU32(&ele1.value, &nonceV);
     // overwriting ele1.value, but it's okay because we don't need it later
+    bool ok __rte_unused = MbufLoc_ReadU32(&ele1.value, &nonceV);
     assert(ok); // must succeed because length is checked
     interest->nonce = rte_le_to_cpu_32(nonceV);
     interest->guiderSize += ele1.size;
@@ -184,7 +184,7 @@ ModifyInterest(Packet* npkt,
   MbufLoc d0;
   MbufLoc_Init(&d0, inPkt);
   TlvElement interestEle;
-  NdnError e = TlvElement_DecodeTL(&interestEle, &d0, TT_Interest);
+  NdnError e __rte_unused = TlvElement_DecodeTL(&interestEle, &d0, TT_Interest);
   assert(e == NdnError_OK);
 
   // make indirect mbufs over Name thru ForwardingHint

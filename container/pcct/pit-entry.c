@@ -63,7 +63,8 @@ PitEntry_SetExpiryTimer(PitEntry* entry, Pit* pit)
 {
   PitPriv* pitp = Pit_GetPriv(pit);
   entry->hasSgTimer = false;
-  bool ok = MinTmr_At(&entry->timeout, entry->expiry, pitp->timeoutSched);
+  bool ok __rte_unused =
+    MinTmr_At(&entry->timeout, entry->expiry, pitp->timeoutSched);
   assert(ok); // unless PIT_MAX_LIFETIME is higher than scheduler limit
 }
 

@@ -30,7 +30,8 @@ FetchLogic_TxInterestBurst(FetchLogic* fl, uint64_t* segNums, size_t limit)
     }
 
     seg->txTime = now;
-    bool ok = MinTmr_After(&seg->rtoExpiry, fl->rtte.rto, fl->sched);
+    bool ok __rte_unused =
+      MinTmr_After(&seg->rtoExpiry, fl->rtte.rto, fl->sched);
     assert(ok);
     segNums[count++] = seg->segNum;
     ++fl->nInFlight;
