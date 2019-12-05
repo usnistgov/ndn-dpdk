@@ -3,12 +3,12 @@
 #define TCPCUBIC_IW 2.0
 #define TCPCUBIC_C 0.4
 #define TCPCUBIC_BETACUBIC 0.7
-static double TCPCUBIC_TSCHZ = NAN;
+static double TCPCUBIC_TSCHZ_INV = NAN;
 
 void
 TcpCubic_Init(TcpCubic* ca)
 {
-  TCPCUBIC_TSCHZ = rte_get_tsc_hz();
+  TCPCUBIC_TSCHZ_INV = 1.0 / rte_get_tsc_hz();
   ca->t0 = 0;
   ca->cwnd = TCPCUBIC_IW;
   ca->wMax = NAN;
@@ -41,8 +41,8 @@ TcpCubic_Increase(TcpCubic* ca, TscTime now, double sRtt)
   assert(isfinite(ca->wMax));
   assert(isfinite(ca->k));
 
-  double t = (now - ca->t0) / TCPCUBIC_TSCHZ;
-  double rtt = sRtt / TCPCUBIC_TSCHZ;
+  double t = (now - ca->t0) * TCPCUBIC_TSCHZ_INV;
+  double rtt = sRtt * TCPCUBIC_TSCHZ_INV;
 
   double wEst = TcpCubic_ComputeWEst(ca, t, rtt);
   if (TcpCubic_ComputeWCubic(ca, t) < wEst) { // TCP friendly region
@@ -51,7 +51,6 @@ TcpCubic_Increase(TcpCubic* ca, TscTime now, double sRtt)
   }
 
   // concave region or convex region
-  // double wCubic = TcpCubic_ComputeWCubic(ca, t + rtt);
   double wCubic = TcpCubic_ComputeWCubic(ca, t + rtt);
   ca->cwnd += (wCubic - ca->cwnd) / ca->cwnd;
 }
