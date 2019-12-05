@@ -40,14 +40,12 @@ Other build targets and commands:
   You may omit `clang-format-6.0 yamllint` dependencies if this is not needed.
 * Prepend `RELEASE=1` to any `make` command to select release mode that disables asserts and verbose logging.
 * Prepend `CC=clang-6.0` to any `make` command to compile C code with `clang-6.0`.
-  The programs compiled with clang are currently not working, but this is a good way to find potential code errors.
 
 Docker packaging:
 
 1. Build the image: `mk/build-docker.sh`
 2. Launch a container in privileged mode: `docker run --rm -it --privileged -v /sys/bus/pci/devices:/sys/bus/pci/devices -v /sys/kernel/mm/hugepages:/sys/kernel/mm/hugepages -v /sys/devices/system/node:/sys/devices/system/node -v /dev:/dev --network host ndn-dpdk`
 3. Setup environment inside the container: `mkdir /mnt/huge1G && mount -t hugetlbfs nodev /mnt/huge1G -o pagesize=1G && export PATH=$PATH:/usr/local/go/bin && export GOPATH=/root/go`
-4. Only a subset of the programs would work in Docker container, unfortunately.
 
 ## Code Organization
 

@@ -1,7 +1,7 @@
 FROM ubuntu:18.04
 RUN apt-get update && \
     apt-get install -y -qq clang-6.0 clang-format-6.0 curl doxygen gcc-7 git go-bindata libc6-dev-i386 libelf-dev libnuma-dev libssl-dev liburcu-dev rake socat sudo yamllint
-RUN curl -L https://dl.google.com/go/go1.13.linux-amd64.tar.gz | tar -C /usr/local -xz
+RUN curl -L https://dl.google.com/go/go1.13.4.linux-amd64.tar.gz | tar -C /usr/local -xz
 RUN curl -L https://github.com/iovisor/ubpf/archive/644ad3ded2f015878f502765081e166ce8112baf.tar.gz | tar -C /tmp -xz && \
     cd /tmp/ubpf-*/vm && \
     make CC=gcc-7 && \
@@ -13,7 +13,7 @@ RUN curl -sL https://deb.nodesource.com/setup_12.x | bash - && \
     npm install -g jayson
 ADD . /root/go/src/ndn-dpdk/
 RUN tar -C / -xzf /root/go/src/ndn-dpdk/kernel-headers.tgz
-RUN curl -L http://fast.dpdk.org/rel/dpdk-19.08.tar.xz | tar -C /tmp -xJ && \
+RUN curl -L http://fast.dpdk.org/rel/dpdk-19.11.tar.xz | tar -C /tmp -xJ && \
     cd /tmp/dpdk-* && \
     make config T=x86_64-native-linuxapp-gcc && \
     sed -ri 's,(CONFIG_RTE_BUILD_SHARED_LIB=).*,\1y,' build/.config && \
@@ -22,10 +22,10 @@ RUN curl -L http://fast.dpdk.org/rel/dpdk-19.08.tar.xz | tar -C /tmp -xJ && \
     make -j12 CC=gcc-7 EXTRA_CFLAGS=-g && \
     make install && \
     ldconfig
-RUN curl -L https://github.com/spdk/spdk/archive/v19.07.tar.gz | tar -C /tmp -xz && \
+RUN curl -L https://github.com/spdk/spdk/archive/v19.10.tar.gz | tar -C /tmp -xz && \
     cd /tmp/spdk-* && \
-    ./scripts/pkgdep.sh && \
-    CC=gcc-7 ./configure --enable-debug --with-shared --with-dpdk=/usr/local && \
+    sed '/libfuse3-dev/ d' ./scripts/pkgdep.sh | bash && \
+    CC=gcc-7 ./configure --enable-debug --with-shared --with-dpdk=/usr/local --without-vhost --without-isal --without-fuse && \
     make -j12 && \
     make install && \
     ldconfig
