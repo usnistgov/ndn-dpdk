@@ -6,10 +6,14 @@ package dpdk
 int getErrno() { return rte_errno; }
 */
 import "C"
-import "syscall"
+import (
+	"syscall"
+)
 
+// DPDK error number.
 type Errno syscall.Errno
 
+// Get rte_errno.
 func GetErrno() Errno {
 	return Errno(C.getErrno())
 }

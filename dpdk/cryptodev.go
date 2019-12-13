@@ -170,23 +170,6 @@ func NewCryptoDev(name string, maxSessions, nQueuePairs int, socket NumaSocket) 
 	return cd, nil
 }
 
-// Create an OpenSSL virtual crypto device.
-func NewOpensslCryptoDev(id string, nQueuePairs int, socket NumaSocket) (cd CryptoDev, e error) {
-	name := fmt.Sprintf("crypto_openssl_%s", id)
-	var args string
-	if socket != NUMA_SOCKET_ANY {
-		args = fmt.Sprintf("socket_id=%d", socket)
-	}
-	if e = CreateVdev(name, args); e != nil {
-		return CryptoDev{}, e
-	}
-	if cd, e = NewCryptoDev(name, 1024, nQueuePairs, socket); e != nil {
-		return CryptoDev{}, e
-	}
-	cd.ownsVdev = true
-	return cd, nil
-}
-
 func (cd CryptoDev) Close() error {
 	defer cd.sessionPool.Close()
 	name := cd.GetName()
@@ -223,6 +206,13 @@ type CryptoQueuePair struct {
 	qpId C.uint16_t
 }
 
+// Copy to C.CryptoQueuePair .
+func (qp CryptoQueuePair) CopyToC(ptr unsafe.Pointer) {
+	c := (*C.CryptoQueuePair)(ptr)
+	c.dev = qp.devId
+	c.qp = qp.qpId
+}
+
 // Submit a burst of crypto operations.
 func (qp CryptoQueuePair) EnqueueBurst(ops []CryptoOp) int {
 	ptr, count := ParseCptrArray(ops)
@@ -243,4 +233,44 @@ func (qp CryptoQueuePair) DequeueBurst(ops []CryptoOp) int {
 	res := C.rte_cryptodev_dequeue_burst(qp.devId, qp.qpId,
 		(**C.struct_rte_crypto_op)(ptr), C.uint16_t(count))
 	return int(res)
+}
+
+// A priority list of CryptoDev drivers.
+type CryptoDevDriverPref []string
+
+var (
+	// CryptoDev drivers capable of computing SHA256 on single-segment mbufs.
+	CryptoDevDriverPref_SingleSeg = CryptoDevDriverPref{"aesni_mb", "openssl"}
+
+	// CryptoDev drivers capable of computing SHA256 on multi-segment mbufs.
+	CryptoDevDriverPref_MultiSeg = CryptoDevDriverPref{"openssl"}
+)
+
+// Create a CryptoDev from a list of drivers.
+func (drvs CryptoDevDriverPref) Create(id string, nQueuePairs int, socket NumaSocket) (cd CryptoDev, e error) {
+	args := fmt.Sprintf("max_nb_queue_pairs=%d", nQueuePairs)
+	if socket != NUMA_SOCKET_ANY {
+		args += fmt.Sprintf(",socket_id=%d", socket)
+	}
+
+	var name string
+	var drvErrors []string
+	for _, drv := range drvs {
+		name = fmt.Sprintf("crypto_%s_%s", drv, id)
+		if e := CreateVdev(name, args); e != nil {
+			drvErrors = append(drvErrors, fmt.Sprintf("%s: %s", drv, e))
+			name = ""
+		} else {
+			break
+		}
+	}
+	if name == "" {
+		return CryptoDev{}, fmt.Errorf("virtual cryptodev unavailable: %s", strings.Join(drvErrors, "; "))
+	}
+
+	if cd, e = NewCryptoDev(name, 1024, nQueuePairs, socket); e != nil {
+		return CryptoDev{}, e
+	}
+	cd.ownsVdev = true
+	return cd, nil
 }

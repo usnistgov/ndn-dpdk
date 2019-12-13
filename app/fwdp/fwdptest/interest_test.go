@@ -1,10 +1,12 @@
 package fwdptest
 
 import (
+	"bytes"
 	"testing"
 	"time"
 
 	"ndn-dpdk/app/fwdp"
+	"ndn-dpdk/dpdk/dpdktestenv"
 	"ndn-dpdk/ndn"
 	"ndn-dpdk/ndn/ndntestutil"
 )
@@ -356,4 +358,23 @@ func TestImplicitDigest(t *testing.T) {
 	assert.Equal(uint64(1), fibCnt.NRxData)
 	assert.Equal(uint64(0), fibCnt.NRxNacks)
 	assert.Equal(uint64(1), fibCnt.NTxInterests)
+
+	// /B/2 is fragmented, which is not supported in some cryptodev
+	dataB2 := ndntestutil.MakeData("/B/2", ndn.TlvBytes(bytes.Repeat([]byte{0xC0}, 300)))
+	fullNameB2orig := dataB2.GetFullName().String()
+	dpdktestenv.PacketSplitTailSegment(dataB2.GetPacket().AsDpdkPacket(), 5)
+	fullNameB2 := dataB2.GetFullName().String()
+	assert.Equal(fullNameB2orig, fullNameB2)
+
+	interestB2 := ndntestutil.MakeInterest(fullNameB2)
+	ndntestutil.SetPitToken(interestB2, 0x02a0f62d1828a80c)
+	face1.Rx(interestB2)
+	time.Sleep(100 * time.Millisecond)
+	require.Len(face2.TxInterests, 2)
+
+	ndntestutil.CopyPitToken(dataB2, face2.TxInterests[1])
+	face2.Rx(dataB2)
+	time.Sleep(100 * time.Millisecond)
+	require.Len(face1.TxData, 3)
+	assert.Equal(uint64(0x02a0f62d1828a80c), ndntestutil.GetPitToken(face1.TxData[2]))
 }

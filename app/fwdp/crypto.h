@@ -14,10 +14,11 @@ typedef struct FwCrypto
   struct rte_mempool* opPool;
   FwInput* output;
 
-  ThreadStopFlag stop;
+  uint64_t nDrops;
 
-  uint8_t devId;
-  uint16_t qpId;
+  CryptoQueuePair singleSeg; ///< CryptoDev for single-segment packets
+  CryptoQueuePair multiSeg;  ///< CryptoDev for multi-segment packets
+  ThreadStopFlag stop;
 } FwCrypto;
 
 void

@@ -18,7 +18,7 @@ func CreateVdev(name, args string) error {
 	defer C.free(unsafe.Pointer(argsC))
 
 	if res := C.rte_vdev_init(nameC, argsC); res != 0 {
-		return GetErrno()
+		return Errno(-res)
 	}
 	return nil
 }
@@ -29,7 +29,7 @@ func DestroyVdev(name string) error {
 	defer C.free(unsafe.Pointer(nameC))
 
 	if res := C.rte_vdev_uninit(nameC); res != 0 {
-		return GetErrno()
+		return Errno(-res)
 	}
 	return nil
 }

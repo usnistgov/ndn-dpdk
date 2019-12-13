@@ -94,7 +94,7 @@ func TestDataSatisfy(t *testing.T) {
 func TestDataDigest(t *testing.T) {
 	assert, require := makeAR(t)
 
-	cd, e := dpdk.NewOpensslCryptoDev("", 1, dpdk.NUMA_SOCKET_ANY)
+	cd, e := dpdk.CryptoDevDriverPref_MultiSeg.Create("", 1, dpdk.NUMA_SOCKET_ANY)
 	require.NoError(e)
 	defer cd.Close()
 	qp, ok := cd.GetQueuePair(0)

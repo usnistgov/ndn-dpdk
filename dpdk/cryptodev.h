@@ -43,4 +43,10 @@ rte_cryptodev_sym_session_pool_create_(const char* name,
 #pragma GCC diagnostic pop
 }
 
+typedef struct CryptoQueuePair
+{
+  uint8_t dev;
+  uint16_t qp;
+} CryptoQueuePair;
+
 #endif // NDN_DPDK_DPDK_CRYPTODEV_H

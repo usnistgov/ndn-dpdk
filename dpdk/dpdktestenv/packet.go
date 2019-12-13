@@ -66,3 +66,20 @@ func PacketFromHex(inputs ...string) dpdk.Packet {
 	}
 	return PacketFromBytes(byteSlices...)
 }
+
+// Split last n octets of last segment into a separate segment.
+func PacketSplitTailSegment(pkt dpdk.Packet, n int) dpdk.Packet {
+	seg := pkt.GetLastSegment()
+	segLen := seg.Len()
+	if segLen <= n {
+		panic(fmt.Errorf("last segment has %d octets, cannot remove %d octets", segLen, n))
+	}
+	segBytes := seg.AsByteSlice()
+	tail := PacketFromBytes(segBytes[segLen-n:])
+	for i := segLen - n; i < segLen; i++ {
+		segBytes[i]++
+	}
+	seg.Trim(n)
+	pkt.AppendPacket(tail)
+	return pkt
+}

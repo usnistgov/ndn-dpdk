@@ -7,6 +7,25 @@ INIT_ZF_LOG(FwCrypto);
 #define FW_CRYPTO_BURST_SIZE 16
 
 static void
+FwCrypto_InputEnqueue(FwCrypto* fwc,
+                      const CryptoQueuePair* cqp,
+                      struct rte_crypto_op** ops,
+                      uint16_t count)
+{
+  if (unlikely(count == 0)) {
+    return;
+  }
+
+  uint16_t nEnq = rte_cryptodev_enqueue_burst(cqp->dev, cqp->qp, ops, count);
+  for (uint16_t i = nEnq; i < count; ++i) {
+    Packet* npkt = DataDigest_Finish(ops[i]);
+    RTE_ASSERT(npkt == NULL);
+    RTE_SET_USED(npkt);
+    ++fwc->nDrops;
+  }
+}
+
+static void
 FwCrypto_Input(FwCrypto* fwc)
 {
   Packet* npkts[FW_CRYPTO_BURST_SIZE];
@@ -25,24 +44,28 @@ FwCrypto_Input(FwCrypto* fwc)
     return;
   }
 
+  uint16_t posS = 0, posM = nDeq;
   for (uint16_t i = 0; i < nDeq; ++i) {
-    DataDigest_Prepare(npkts[i], ops[i]);
+    Packet* npkt = npkts[i];
+    struct rte_mbuf* pkt = Packet_ToMbuf(npkts[i]);
+    if (likely(pkt->nb_segs == 1)) {
+      DataDigest_Prepare(npkt, ops[posS++]);
+    } else {
+      DataDigest_Prepare(npkt, ops[--posM]);
+    }
   }
+  assert(posS == posM);
 
-  uint16_t nEnq = rte_cryptodev_enqueue_burst(fwc->devId, fwc->qpId, ops, nDeq);
-  for (uint16_t i = nEnq; i < nDeq; ++i) {
-    Packet* npkt = DataDigest_Finish(ops[i]);
-    RTE_ASSERT(npkt == NULL);
-    RTE_SET_USED(npkt);
-  }
+  FwCrypto_InputEnqueue(fwc, &fwc->singleSeg, ops, posS);
+  FwCrypto_InputEnqueue(fwc, &fwc->multiSeg, &ops[posM], nDeq - posM);
 }
 
 static void
-FwCrypto_Output(FwCrypto* fwc)
+FwCrypto_Output(FwCrypto* fwc, const CryptoQueuePair* cqp)
 {
   struct rte_crypto_op* ops[FW_CRYPTO_BURST_SIZE];
-  uint16_t nDeq = rte_cryptodev_dequeue_burst(
-    fwc->devId, fwc->qpId, ops, FW_CRYPTO_BURST_SIZE);
+  uint16_t nDeq =
+    rte_cryptodev_dequeue_burst(cqp->dev, cqp->qp, ops, FW_CRYPTO_BURST_SIZE);
 
   Packet* npkts[FW_CRYPTO_BURST_SIZE];
   uint16_t nFinish = 0;
@@ -63,15 +86,19 @@ FwCrypto_Output(FwCrypto* fwc)
 void
 FwCrypto_Run(FwCrypto* fwc)
 {
-  ZF_LOGI("fwc=%p input=%p pool=%p cryptodev=%" PRIu8 "-%" PRIu16 " output=%p",
+  ZF_LOGI("fwc=%p input=%p pool=%p cryptodev=%" PRIu8 "-%" PRIu16 ",%" PRIu8
+          "-%" PRIu16 " output=%p",
           fwc,
           fwc->input,
           fwc->opPool,
-          fwc->devId,
-          fwc->qpId,
+          fwc->singleSeg.dev,
+          fwc->singleSeg.qp,
+          fwc->multiSeg.dev,
+          fwc->multiSeg.qp,
           fwc->output);
   while (ThreadStopFlag_ShouldContinue(&fwc->stop)) {
-    FwCrypto_Output(fwc);
+    FwCrypto_Output(fwc, &fwc->singleSeg);
+    FwCrypto_Output(fwc, &fwc->multiSeg);
     FwCrypto_Input(fwc);
   }
 }

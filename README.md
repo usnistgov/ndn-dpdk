@@ -9,10 +9,11 @@ This software is developed at [Advanced Network Technologies Division](https://w
 Requirements:
 
 * Ubuntu 16.04 or 18.04 on *amd64* architecture
-* Go 1.13.4
+* Go 1.13.5
 * `clang-6.0 clang-format-6.0 curl doxygen gcc-7 git go-bindata libc6-dev-i386 libelf-dev libnuma-dev libssl-dev liburcu-dev rake socat sudo yamllint` packages
   (add [ppa:ubuntu-toolchain-r/test](https://launchpad.net/~ubuntu-toolchain-r/+archive/ubuntu/test) on Ubuntu 16.04)
-* DPDK 19.11 with `CONFIG_RTE_BUILD_SHARED_LIB` `CONFIG_RTE_LIBRTE_BPF_ELF` `CONFIG_RTE_LIBRTE_PMD_OPENSSL` enabled, compiled with gcc-7, and installed to `/usr/local`
+* [Intel Multi-Buffer Crypto for IPsec Library](https://github.com/intel/intel-ipsec-mb) v0.53
+* DPDK 19.11 with [patch 63727](https://patches.dpdk.org/patch/63727/), with `CONFIG_RTE_BUILD_SHARED_LIB` `CONFIG_RTE_LIBRTE_BPF_ELF` `CONFIG_RTE_LIBRTE_PMD_OPENSSL` `CONFIG_RTE_LIBRTE_PMD_AESNI_MB` enabled, compiled with gcc-7, and installed to `/usr/local`
 * SPDK 19.10 shared libraries, compiled with gcc-7, and installed to `/usr/local`
 * [ubpf](https://github.com/iovisor/ubpf/tree/644ad3ded2f015878f502765081e166ce8112baf) library, compiled with gcc-7, and installed to `/usr/local/include/ubpf.h` and `/usr/local/lib/libubpf.a`
 * Node.js 12.x and `sudo npm install -g jayson`

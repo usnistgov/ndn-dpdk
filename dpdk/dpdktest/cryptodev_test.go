@@ -10,7 +10,7 @@ import (
 func TestCryptoDev(t *testing.T) {
 	assert, require := makeAR(t)
 
-	cd, e := dpdk.NewOpensslCryptoDev("", 2, dpdk.NUMA_SOCKET_ANY)
+	cd, e := dpdk.CryptoDevDriverPref_SingleSeg.Create("", 2, dpdk.NUMA_SOCKET_ANY)
 	require.NoError(e)
 	defer cd.Close()
 
