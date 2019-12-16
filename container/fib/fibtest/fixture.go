@@ -1,7 +1,7 @@
 package fibtest
 
 import (
-	"sort"
+	"github.com/stretchr/testify/assert"
 
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/ndt"
@@ -85,11 +85,17 @@ func (fixture *Fixture) FindInPartitions(name *ndn.Name) (partitions []int) {
 	return partitions
 }
 
-func (fixture *Fixture) ListNames() (list []string) {
-	names := fixture.Fib.ListNames()
-	for _, name := range names {
-		list = append(list, name.String())
+func (fixture *Fixture) CheckEntryNames(a *assert.Assertions, expectedInput []string) bool {
+	expected := make([]string, len(expectedInput))
+	for i, uri := range expectedInput {
+		expected[i] = ndn.MustParseName(uri).String()
 	}
-	sort.Strings(list)
-	return list
+
+	entryNames := fixture.Fib.ListNames()
+	actual := make([]string, len(entryNames))
+	for i, name := range entryNames {
+		actual[i] = name.String()
+	}
+
+	return a.ElementsMatch(expected, actual)
 }

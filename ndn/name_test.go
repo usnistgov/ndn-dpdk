@@ -131,16 +131,17 @@ func TestNameParse(t *testing.T) {
 	}{
 		{input: "ndn:/", output: "", canonical: "/"},
 		{input: "/", output: ""},
-		{input: "/G", output: "080147"},
-		{input: "/H/I", output: "080148 080149"},
-		{input: "/.../..../.....", output: "0800 08012E 08022E2E"},
+		{input: "/G", output: "080147", canonical: "/8=G"},
+		{input: "/8=H/I", output: "080148 080149", canonical: "/8=H/8=I"},
+		{input: "/.../..../.....", output: "0800 08012E 08022E2E", canonical: "/8=.../8=..../8=....."},
 		{input: "//A", bad: true},
 		{input: "/.", bad: true},
 		{input: "/..", bad: true},
-		{input: "/%00GH%ab%cD%EF", output: "0806004748ABCDEF", canonical: "/%00GH%AB%CD%EF"},
+		{input: "/8=%00GH%ab%cD%EF", output: "0806004748ABCDEF", canonical: "/8=%00GH%AB%CD%EF"},
 		{input: "/2=A", output: "020141"},
 		{input: "/255=A", output: "FD00FF0141"},
 		{input: "/65535=A", output: "FDFFFF0141"},
+		{input: "/0=A", bad: true},
 		{input: "/65536=A", bad: true},
 		{input: "/hello=A", bad: true},
 	}
@@ -173,7 +174,7 @@ func TestNameMarshal(t *testing.T) {
 
 	jsonEncoding, e := json.Marshal(obj)
 	if assert.NoError(e) {
-		assert.Equal([]byte("{\"Name\":\"/A/B\",\"I\":50}"), jsonEncoding)
+		assert.Equal([]byte("{\"Name\":\"/8=A/8=B\",\"I\":50}"), jsonEncoding)
 	}
 
 	var jsonDecoded marshalTestStruct
@@ -190,7 +191,7 @@ func TestNameMarshal(t *testing.T) {
 
 	yamlEncoding, e := yaml.Marshal(obj)
 	if assert.NoError(e) {
-		assert.Equal([]byte("name: /A/B\ni: 50\n"), yamlEncoding)
+		assert.Equal([]byte("name: /8=A/8=B\ni: 50\n"), yamlEncoding)
 	}
 
 	var yamlDecoded marshalTestStruct

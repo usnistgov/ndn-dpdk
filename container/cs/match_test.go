@@ -36,7 +36,7 @@ func TestInsertErase(t *testing.T) {
 	csEntry = fixture.Find(ndntestutil.MakeInterest("/A/B"))
 	require.NotNil(csEntry)
 	csData := csEntry.GetData()
-	assert.Equal("/A/B", csData.GetName().String())
+	ndntestutil.NameEqual(assert, "/A/B", csData)
 	assert.Equal(100*time.Millisecond, csData.GetFreshnessPeriod())
 
 	ok = fixture.Insert(
@@ -49,7 +49,7 @@ func TestInsertErase(t *testing.T) {
 		ndn.FHDelegation{1, "/G"}, ndn.FHDelegation{2, "/F"}, ndn.ActiveFHDelegation(1)))
 	require.NotNil(csEntry3)
 	csData3 := csEntry3.GetData()
-	assert.Equal("/A/B", csData3.GetName().String())
+	ndntestutil.NameEqual(assert, "/A/B", csData3)
 	assert.Equal(200*time.Millisecond, csData3.GetFreshnessPeriod())
 
 	time.Sleep(10 * time.Millisecond)

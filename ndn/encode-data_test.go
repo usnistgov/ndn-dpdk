@@ -7,6 +7,7 @@ import (
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/dpdk/dpdktestenv"
 	"ndn-dpdk/ndn"
+	"ndn-dpdk/ndn/ndntestutil"
 )
 
 func TestEncodeData(t *testing.T) {
@@ -28,7 +29,7 @@ func TestEncodeData(t *testing.T) {
 	require.NoError(e)
 	data := pkt.AsData()
 
-	assert.Equal("/A/B/C", data.GetName().String())
+	ndntestutil.NameEqual(assert, "/A/B/C", data)
 	assert.Equal(freshnessPeriod, data.GetFreshnessPeriod())
 }
 
@@ -56,6 +57,6 @@ func TestDataGen(t *testing.T) {
 	require.NoError(e)
 	data := pkt.AsData()
 
-	assert.Equal("/A/B/C", data.GetName().String())
+	ndntestutil.NameEqual(assert, "/A/B/C", data)
 	assert.Equal(freshnessPeriod, data.GetFreshnessPeriod())
 }

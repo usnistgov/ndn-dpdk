@@ -36,7 +36,7 @@ func TestDataDecode(t *testing.T) {
 			}
 			data := pkt.AsData()
 			assert.Implements((*ndn.IL3Packet)(nil), data)
-			assert.Equal(tt.name, data.GetName().String(), tt.input)
+			ndntestutil.NameEqual(assert, tt.name, data, tt.input)
 			assert.EqualValues(tt.freshness, data.GetFreshnessPeriod()/time.Millisecond, tt.input)
 		}
 	}
@@ -127,7 +127,7 @@ func TestDataDigest(t *testing.T) {
 		data, e := ndn.DataDigest_Finish(op)
 		assert.NoError(e)
 		if assert.NotNil(data) {
-			assert.Equal(names[i], data.GetName().String())
+			ndntestutil.NameEqual(assert, names[i], data)
 			assert.Equal(data.ComputeDigest(false), data.GetDigest())
 		}
 	}

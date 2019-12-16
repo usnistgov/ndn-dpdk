@@ -26,7 +26,7 @@ Three C types can represent a name:
 * **PName** contains offsets of parsed name components, but does not have a pointer to the buffer.
 * **Name** combines a pointer to the buffer with a `PName`.
 
-It is required that all name components are in a consecutive memory buffer.
+All name components must are in a consecutive memory buffer.
 If this condition is not met, calling code must linearize the Name element's TLV-VALUE with `TlvElement_LinearizeValue` function.
 Having a linearized buffer, one can trivially construct an `LName`, or invoke `PName_Parse` function to construct a `PName`.
 `Name` is for enclosing into a larger struct; `Name*` can be cast to `LName*`.
@@ -42,6 +42,7 @@ All `PName` APIs require a pointer to the name components buffer that the `PName
 In Go, **Name** type represents a name.
 It contains a name components buffer and a `C.PName` instance.
 There are also functions to convert between `Name` and the corresponding NDN URI representation.
+These functions primarily use *canonical* URI representation, except that `ParseName` allows omitting "8=" prefix of GenericNameComponent.
 
 ## Packet Representation
 

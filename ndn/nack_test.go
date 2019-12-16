@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"ndn-dpdk/ndn"
+	"ndn-dpdk/ndn/ndntestutil"
 )
 
 func TestNackDecode(t *testing.T) {
@@ -34,7 +35,7 @@ func TestNackDecode(t *testing.T) {
 		assert.Implements((*ndn.IL3Packet)(nil), nack)
 		assert.Equal(tt.reason, nack.GetReason(), tt.input)
 		interest := nack.GetInterest()
-		assert.Equal("/A", interest.GetName().String(), tt.input)
+		ndntestutil.NameEqual(assert, "/A", interest, tt.input)
 		assert.Equal(uint32(0xA3A2A1A0), interest.GetNonce(), tt.input)
 	}
 }

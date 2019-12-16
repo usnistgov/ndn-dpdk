@@ -6,6 +6,7 @@ import (
 
 	"ndn-dpdk/dpdk/dpdktestenv"
 	"ndn-dpdk/ndn"
+	"ndn-dpdk/ndn/ndntestutil"
 )
 
 func TestInterestDecode(t *testing.T) {
@@ -52,13 +53,13 @@ func TestInterestDecode(t *testing.T) {
 				continue
 			}
 			interest := pkt.AsInterest()
-			assert.Equal(tt.name, interest.GetName().String(), tt.input)
+			ndntestutil.NameEqual(assert, tt.name, interest, tt.input)
 			assert.Equal(tt.canBePrefix, interest.HasCanBePrefix(), tt.input)
 			assert.Equal(tt.mustBeFresh, interest.HasMustBeFresh(), tt.input)
 			assert.Equal(-1, interest.GetActiveFhIndex(), tt.input)
 			if fhs := interest.GetFhs(); assert.Len(fhs, len(tt.fhs), tt.input) {
 				for i, fhName := range fhs {
-					assert.Equal(tt.fhs[i], fhName.String(), "%s %i", tt.input, i)
+					ndntestutil.NameEqual(assert, tt.fhs[i], fhName, "%s %i", tt.input, i)
 				}
 				if len(tt.fhs) > 0 {
 					assert.Error(interest.SelectActiveFh(len(tt.fhs)), tt.input)

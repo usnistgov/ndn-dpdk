@@ -2,7 +2,6 @@ package ndn
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -14,18 +13,16 @@ import (
 // A name component.
 type NameComponent TlvBytes
 
+// Test if a TLV-TYPE is valid as a component type.
+func IsValidNameComponentType(tt TlvType) bool {
+	return tt > 0 && tt <= 65535
+}
+
 // Test if the component is valid.
 func (comp NameComponent) IsValid() bool {
 	tlvType, tail := TlvBytes(comp).DecodeVarNum()
-	if tail == nil || tlvType < 1 || tlvType > 65535 {
-		return false
-	}
 	length, tail := tail.DecodeVarNum()
-	if tail == nil || (TlvType(tlvType) == TT_ImplicitSha256DigestComponent &&
-		length != implicitSha256DigestComponent_Length) {
-		return false
-	}
-	return int(length) == len(tail)
+	return tail != nil && int(length) == len(tail) && IsValidNameComponentType(TlvType(tlvType))
 }
 
 // Compare equality.
@@ -46,63 +43,41 @@ func (comp NameComponent) GetValue() TlvBytes {
 	return tail
 }
 
-const (
-	implicitSha256DigestComponent_UriPrefix = "sha256digest"
-	implicitSha256DigestComponent_Length    = sha256.Size
-)
-
-// Print as URI.
+// Print as URI in canonical format.
 // Implements io.WriterTo.
 func (comp NameComponent) WriteTo(w io.Writer) (n int64, e error) {
-	switch comp.GetType() {
-	case TT_ImplicitSha256DigestComponent:
-		if n2, e := fmt.Fprintf(w, "%s=", implicitSha256DigestComponent_UriPrefix); e != nil {
-			return n, e
-		} else {
-			n += int64(n2)
-		}
-		for _, b := range comp.GetValue() {
-			if n2, e := fmt.Fprintf(w, "%02x", b); e != nil {
-				return n, e
-			} else {
-				n += int64(n2)
-			}
-		}
+	if c, e := fmt.Fprintf(w, "%d=", comp.GetType()); e != nil {
 		return n, e
-	case TT_GenericNameComponent:
-	default:
-		if n2, e := fmt.Fprintf(w, "%d=", comp.GetType()); e != nil {
-			return n, e
-		} else {
-			n += int64(n2)
-		}
+	} else {
+		n += int64(c)
 	}
 
 	nNonPeriods := 0
 	for _, b := range comp.GetValue() {
+		var c int
 		if ('A' <= b && b <= 'Z') || ('a' <= b && b <= 'z') || ('0' <= b && b <= '9') ||
 			b == '-' || b == '.' || b == '_' || b == '~' {
-			if n2, e := fmt.Fprint(w, string(b)); e != nil {
-				return n, e
-			} else {
-				n += int64(n2)
-			}
+			c, e = fmt.Fprint(w, string(b))
 		} else {
-			if n2, e := fmt.Fprintf(w, "%%%02X", b); e != nil {
-				return n, e
-			} else {
-				n += int64(n2)
-			}
+			c, e = fmt.Fprintf(w, "%%%02X", b)
 		}
+
+		if e != nil {
+			return n, e
+		} else {
+			n += int64(c)
+		}
+
 		if b != '.' {
 			nNonPeriods++
 		}
 	}
+
 	if nNonPeriods == 0 {
-		if n2, e := fmt.Fprint(w, "..."); e != nil {
+		if c, e := fmt.Fprint(w, "..."); e != nil {
 			return n, e
 		} else {
-			n += int64(n2)
+			n += int64(c)
 		}
 	}
 	return n, nil
@@ -119,26 +94,18 @@ func (comp NameComponent) String() string {
 func ParseNameComponent(uri string) (comp NameComponent, e error) {
 	tlvType := TT_GenericNameComponent
 	if eqPos := strings.IndexByte(uri, '='); eqPos >= 0 {
-		tlvTypeStr := uri[:eqPos]
-		uri = uri[eqPos+1:]
-		if tlvTypeStr == implicitSha256DigestComponent_UriPrefix {
-			return parseImplicitSha256DigestComponent(uri)
-		}
-		if tlvTypeN, e := strconv.ParseUint(tlvTypeStr, 10, 16); e != nil {
+		if tlvTypeN, e := strconv.ParseUint(uri[:eqPos], 10, 16); e != nil {
 			return nil, e
 		} else {
 			tlvType = TlvType(tlvTypeN)
-			switch tlvType {
-			case TlvType(0), TT_GenericNameComponent, TT_ImplicitSha256DigestComponent:
-				return nil, errors.New("bad type indicator")
-			}
+			uri = uri[eqPos+1:]
 		}
 	}
 
 	var buf bytes.Buffer
 	if strings.TrimLeft(uri, ".") == "" {
 		if len(uri) < 3 {
-			return nil, errors.New("less than three periods")
+			return nil, errors.New("fewer than three periods")
 		}
 		buf.WriteString(uri[3:])
 	} else {
@@ -158,15 +125,4 @@ func ParseNameComponent(uri string) (comp NameComponent, e error) {
 	}
 
 	return NameComponent(EncodeTlv(tlvType, buf.Bytes())), nil
-}
-
-func parseImplicitSha256DigestComponent(hexStr string) (comp NameComponent, e error) {
-	value, e := hex.DecodeString(hexStr)
-	if e != nil {
-		return nil, e
-	}
-	if len(value) != implicitSha256DigestComponent_Length {
-		return nil, errors.New("invalid TLV-LENGTH in ImplicitSha256DigestComponent")
-	}
-	return NameComponent(EncodeTlv(TT_ImplicitSha256DigestComponent, TlvBytes(value))), nil
 }
