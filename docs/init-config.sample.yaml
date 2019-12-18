@@ -2,37 +2,37 @@
 ---
 
 # MEMORY POOL
-# 'capacity' affects hugepage memory usage; (2^q-1) is optimal.
-# 'cachesize' cannot exceed 512; (capacity % cachesize == 0) is optimal.
-# 'dataroomsize' should be greater than MTU.
+# 'Capacity' affects hugepage memory usage; (2^q-1) is optimal.
+# 'CacheSize' cannot exceed 512; (Capacity % CacheSize == 0) is optimal.
+# 'DataroomSize' should be greater than MTU.
 # Each NUMA socket has its own mempool with the given name.
-mempool:
+Mempool:
   IND:  # indirect mbufs
-    capacity: 2097151
-    cachesize: 337
+    Capacity: 2097151
+    CacheSize: 337
   ETHRX:  # RX Ethernet frames
-    capacity: 1048575
-    cachesize: 465
-    dataroomsize: 2200
+    Capacity: 1048575
+    CacheSize: 465
+    DataroomSize: 2200
   NAME:  # name linearize
-    capacity: 65535
-    cachesize: 255
+    Capacity: 65535
+    CacheSize: 255
   HDR:  # TX Ethernet+NDNLP+Interest headers
-    capacity: 65535
-    cachesize: 255
+    Capacity: 65535
+    CacheSize: 255
   INTG:  # modifying Interest guiders
-    capacity: 65535
-    cachesize: 255
+    Capacity: 65535
+    CacheSize: 255
   INT:  # TX Ethernet+NDNLP and encoding Interest
-    capacity: 65535
-    cachesize: 255
+    Capacity: 65535
+    CacheSize: 255
   DATA0:  # TX Ethernet+NDNLP+Data name prefix
-    capacity: 65535
-    cachesize: 255
+    Capacity: 65535
+    CacheSize: 255
   DATA1:  # TX Data name suffix and payload
-    capacity: 255
-    cachesize: 0
-    dataroomsize: 9000
+    Capacity: 255
+    CacheSize: 0
+    DataroomSize: 9000
 
 # LCORE ALLOCATION
 # This is a mapping from LCore role to its reservations.
@@ -42,7 +42,7 @@ mempool:
 # 'lcores' is a list of lcores reserved for a role.
 # 'pernuma' is a map of { NumaSocket => max number of lcores } for a role.
 # Leaving this section blank results in default allocation.
-lcorealloc:
+LCoreAlloc:
 # ROLE1: # this role has lcore 1 and lcore 3
 #   lcores: [1, 3]
 # ROLE2: # this role can have up to 3 and 2 lcores on two NUMA sockets
@@ -51,65 +51,66 @@ lcorealloc:
 #     1: 2
 
 # FACE CREATION
-face:
+Face:
   # whether to enable Ethernet faces
-  enableeth: true
+  EnableEth: true
   # whether to disable RxFlow dispatching
-  ethdisablerxflow: false
+  EthDisableRxFlow: false
   # Ethernet device MTU
-  ethmtu: 1500
+  EthMtu: 1500
   # Ethernet RX queue capacity
-  ethrxqframes: 4096
+  EthRxqFrames: 4096
   # Ethernet before-TX queue capacity
-  ethtxqpkts: 256
+  EthTxqPkts: 256
   # Ethernet after-TX queue capacity
-  ethtxqframes: 4096
+  EthTxqFrames: 4096
 
   # whether to enable socket faces
-  enablesock: true
+  EnableSock: true
   # socket before-TX queue capacity
-  socktxqpkts: 256
+  SockTxqPkts: 256
   # socket after-TX queue capacity
-  socktxqframes: 1024
+  SockTxqFrames: 1024
 
   # ChanRxGroup queue capacity (shared among all socket/mock faces)
-  chanrxgframes: 4096
+  ChanRxgFrames: 4096
 
 # NDT
-ndt:
+Ndt:
   # Names are dispatched using prefix with this number of components.
-  prefixlen: 2
-  # There are (2^indexbits) elements.
-  indexbits: 16
-  # Collect per-element sample every (2^samplefreq) lookups. Must not exceed 30.
-  samplefreq: 8
+  PrefixLen: 2
+  # There are (2^IndexBits) elements.
+  IndexBits: 16
+  # Collect per-element sample every (2^SampleFreq) lookups. Must not exceed 30.
+  SampleFreq: 8
 
 # FIB
-fib:
+Fib:
   # Capacity in each partition. Affects hugepage memory usage.
   # (2^q-1) is optimal.
-  maxentries: 65535
+  MaxEntries: 65535
   # Number of hash table buckets in each partition. Must be power of 2.
-  nbuckets: 256
+  NBuckets: 256
   # 'M' parameter in 2-stage LPM algorithm.
   # Should be greater than length of most FIB entry names.
-  startdepth: 8
+  StartDepth: 8
 
 # FORWARDER DATA PLANE
-fwdp:
+Fwdp:
   # Capacity of queue between FwInput and FwFwd.
-  fwdqueuecapacity: 128
-  # Collect RX-FwFwd latency sample every 2^latencysamplefreq packets.
+  FwdQueueCapacity: 128
+  # Collect RX-FwFwd latency sample every 2^LatencySampleFreq packets.
   # Must not exceed 30.
-  latencysamplefreq: 16
+  LatencySampleFreq: 16
   # Capacity of PCCT. (2^q-1) is optimal.
-  pcctcapacity: 131071
+  PcctCapacity: 131071
   # Capacity of CS in-memory direct entries. Must not exceed pcctcapacity.
-  cscapmd: 32768
+  CsCapMd: 32768
   # Capacity of CS in-memory indirect entries. Must not exceed pcctcapacity.
-  cscapmi: 32768
+  CsCapMi: 32768
 
 # NDNPING TRAFFIC GENERATOR
-ping:
+Ping:
   # Capacity of queue between PingInput and PingClientRx/PingServer.
-  queuecapacity: 256
+  # Must be power of 2.
+  QueueCapacity: 256

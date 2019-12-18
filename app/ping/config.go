@@ -23,7 +23,7 @@ type TaskConfig struct {
 
 // Fetcher config and initial job.
 type FetchConfig struct {
-	fetch.FetcherConfig `yaml:",inline"`
-	Name                *ndn.Name // if not nil, start a fetch job for this name
-	FinalSegNum         *uint64
+	fetch.FetcherConfig
+	Name        *ndn.Name // if not nil, start a fetch job for this name
+	FinalSegNum *uint64
 }

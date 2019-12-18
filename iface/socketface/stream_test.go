@@ -76,7 +76,7 @@ func TestTcp(t *testing.T) {
 	defer listener.Close()
 	*addr = *listener.Addr().(*net.TCPAddr)
 
-	loc := iface.MustParseLocator(fmt.Sprintf("{ scheme: tcp, remote: '127.0.0.1:%d' }", addr.Port)).(socketface.Locator)
+	loc := iface.MustParseLocator(fmt.Sprintf(`{ "Scheme": "tcp", "Remote": "127.0.0.1:%d" }`, addr.Port)).(socketface.Locator)
 	face, e := socketface.Create(loc, socketfaceCfg)
 	require.NoError(e)
 	defer face.Close()
@@ -102,7 +102,7 @@ func TestUnix(t *testing.T) {
 	require.NoError(e)
 	defer listener.Close()
 
-	loc := iface.MustParseLocator(fmt.Sprintf("{ scheme: unix, remote: '%s' }", addr)).(socketface.Locator)
+	loc := iface.MustParseLocator(fmt.Sprintf(`{ "Scheme": "unix", "Remote": "%s" }`, addr)).(socketface.Locator)
 	face, e := socketface.Create(loc, socketfaceCfg)
 	require.NoError(e)
 	defer face.Close()

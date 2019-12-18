@@ -31,7 +31,7 @@ func TestDatagram(t *testing.T) {
 func TestUdp(t *testing.T) {
 	assert, require := makeAR(t)
 
-	loc := iface.MustParseLocator("{ scheme: udp, remote: '127.0.0.1:7000' }").(socketface.Locator)
+	loc := iface.MustParseLocator(`{ "Scheme": "udp", "remote": "127.0.0.1:7000" }`).(socketface.Locator)
 	face, e := socketface.Create(loc, socketfaceCfg)
 	require.NoError(e)
 	defer face.Close()

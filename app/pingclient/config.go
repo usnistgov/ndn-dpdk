@@ -1,26 +1,26 @@
 package pingclient
 
 import (
-	"time"
+	"github.com/avarenyk/jtime"
 
 	"ndn-dpdk/ndn"
 )
 
 // Client config.
 type Config struct {
-	Patterns []Pattern     // traffic patterns
-	Interval time.Duration // sending interval
+	Patterns []Pattern      // traffic patterns
+	Interval jtime.Duration // sending interval
 }
 
 // Client pattern definition.
 type Pattern struct {
 	Weight int // weight of random choice, minimum is 1
 
-	Prefix           *ndn.Name     // name prefix
-	CanBePrefix      bool          // whether to set CanBePrefix
-	MustBeFresh      bool          // whether to set MustBeFresh
-	InterestLifetime time.Duration // InterestLifetime value, zero means default
-	HopLimit         int           // HopLimit value, zero means default
+	Prefix           *ndn.Name      // name prefix
+	CanBePrefix      bool           // whether to set CanBePrefix
+	MustBeFresh      bool           // whether to set MustBeFresh
+	InterestLifetime jtime.Duration // InterestLifetime value, zero means default
+	HopLimit         int            // HopLimit value, zero means default
 
 	// If non-zero, request cached Data. This must appear after a pattern without SeqNumOffset.
 	// The client derives sequece number by subtracting SeqNumOffset from the previous pattern's

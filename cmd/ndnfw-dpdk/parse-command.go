@@ -11,10 +11,10 @@ import (
 )
 
 type initConfig struct {
-	appinit.InitConfig `yaml:",inline"`
-	Ndt                ndt.Config
-	Fib                fib.Config
-	Fwdp               fwdpInitConfig
+	appinit.InitConfig
+	Ndt  ndt.Config
+	Fib  fib.Config
+	Fwdp fwdpInitConfig
 }
 
 type fwdpInitConfig struct {

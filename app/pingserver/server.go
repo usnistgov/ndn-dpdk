@@ -89,7 +89,7 @@ func (server *Server) AddPattern(cfg Pattern) (index int, e error) {
 			if e != nil {
 				return -1, fmt.Errorf("cannot allocate from MP_DATA1 for reply definition %d", i)
 			}
-			dataGen := ndn.NewDataGen(m, reply.Suffix, reply.FreshnessPeriod, make(ndn.TlvBytes, reply.PayloadLen))
+			dataGen := ndn.NewDataGen(m, reply.Suffix, reply.FreshnessPeriod.Duration, make(ndn.TlvBytes, reply.PayloadLen))
 			replyC.dataGen = (*C.DataGen)(dataGen.GetPtr())
 		}
 	}

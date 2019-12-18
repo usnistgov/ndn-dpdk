@@ -5,6 +5,7 @@ package ethface
 */
 import "C"
 import (
+	"encoding/json"
 	"errors"
 	"net"
 
@@ -40,10 +41,10 @@ func copyMac48ToC(a net.HardwareAddr, c *C.struct_rte_ether_addr) {
 const locatorScheme = "ether"
 
 type Locator struct {
-	iface.LocatorBase `yaml:",inline"`
-	Port              string
-	Local             net.HardwareAddr
-	Remote            net.HardwareAddr
+	iface.LocatorBase
+	Port   string
+	Local  net.HardwareAddr
+	Remote net.HardwareAddr
 }
 
 func NewLocator(dev dpdk.EthDev) (loc Locator) {
@@ -71,25 +72,25 @@ func (loc Locator) IsRemoteMulticast() bool {
 	return classifyMac48(loc.Remote) == mac48_multicast
 }
 
-type locatorYaml struct {
-	iface.LocatorBase `yaml:",inline"`
-	Port              string
-	Local             string
-	Remote            string
+type locatorJson struct {
+	iface.LocatorBase
+	Port   string
+	Local  string
+	Remote string
 }
 
-func (loc Locator) MarshalYAML() (interface{}, error) {
-	var output locatorYaml
+func (loc Locator) MarshalJSON() ([]byte, error) {
+	var output locatorJson
 	output.LocatorBase = loc.LocatorBase
 	output.Port = loc.Port
 	output.Local = loc.Local.String()
 	output.Remote = loc.Remote.String()
-	return output, nil
+	return json.Marshal(output)
 }
 
-func (loc *Locator) UnmarshalYAML(unmarshal func(interface{}) error) (e error) {
-	var input locatorYaml
-	if e = unmarshal(&input); e != nil {
+func (loc *Locator) UnmarshalJSON(data []byte) (e error) {
+	var input locatorJson
+	if e = json.Unmarshal(data, &input); e != nil {
 		return e
 	}
 	loc.LocatorBase = input.LocatorBase

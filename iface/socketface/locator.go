@@ -7,9 +7,9 @@ import (
 )
 
 type Locator struct {
-	iface.LocatorBase `yaml:",inline"`
-	Local             string
-	Remote            string
+	iface.LocatorBase
+	Local  string
+	Remote string
 }
 
 func (loc Locator) Validate() error {

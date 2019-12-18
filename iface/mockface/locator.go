@@ -7,7 +7,7 @@ import (
 const locatorScheme = "mock"
 
 type Locator struct {
-	iface.LocatorBase `yaml:",inline"`
+	iface.LocatorBase
 }
 
 func NewLocator() (loc Locator) {

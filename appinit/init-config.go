@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"gopkg.in/yaml.v2"
+	"github.com/ghodss/yaml"
 
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface/createface"
@@ -47,7 +47,7 @@ func DeclareInitConfigFlag(flags *flag.FlagSet, value interface{}) {
 }
 
 // Config sections defined by appinit package.
-// To add more sections, embed with `yaml:",inline"` tag.
+// Embed this struct to add more sections.
 type InitConfig struct {
 	Mempool    MempoolsCapacityConfig
 	LCoreAlloc dpdk.LCoreAllocConfig

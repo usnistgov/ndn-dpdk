@@ -49,7 +49,7 @@ func New(face iface.IFace, cfg Config) (client *Client, e error) {
 			return nil, fmt.Errorf("pattern(%d): %s", i, e)
 		}
 	}
-	client.SetInterval(cfg.Interval)
+	client.SetInterval(cfg.Interval.Duration)
 	return client, nil
 }
 
@@ -76,8 +76,8 @@ func (client *Client) AddPattern(cfg Pattern) (index int, e error) {
 	tpl.SetNamePrefix(cfg.Prefix)
 	tpl.SetCanBePrefix(cfg.CanBePrefix)
 	tpl.SetMustBeFresh(cfg.MustBeFresh)
-	if cfg.InterestLifetime != 0 {
-		tpl.SetInterestLifetime(cfg.InterestLifetime)
+	if cfg.InterestLifetime.Duration != 0 {
+		tpl.SetInterestLifetime(cfg.InterestLifetime.Duration)
 	}
 	if cfg.HopLimit != 0 {
 		tpl.SetHopLimit(uint8(cfg.HopLimit))

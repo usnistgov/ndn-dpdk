@@ -4,14 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-
-	"gopkg.in/yaml.v2"
 )
 
 // Identifies the endpoints of a face.
 //
 // Lower layer implementation must embed LocatorBase struct and provide Validate method.
-// To customize serialization, implement yaml.Marshaler and yaml.Unmarshaler interfaces.
+// To customize serialization, implement json.Marshaler and json.Unmarshaler interfaces.
 type Locator interface {
 	isLocator()
 	GetScheme() string
@@ -32,10 +30,10 @@ func (loc LocatorBase) GetScheme() string {
 	return loc.Scheme
 }
 
-// Parse Locator from YAML string.
+// Parse Locator from JSON string.
 func ParseLocator(input string) (loc Locator, e error) {
 	var locw LocatorWrapper
-	if e = yaml.Unmarshal([]byte(input), &locw); e != nil {
+	if e = json.Unmarshal([]byte(input), &locw); e != nil {
 		return loc, e
 	}
 	loc = locw.Locator
@@ -63,26 +61,12 @@ func RegisterLocatorType(locator Locator, schemes ...string) {
 	}
 }
 
-// Wraps Locator to facilitate JSON/YAML serialization.
+// Wraps Locator to facilitate JSON serialization.
 type LocatorWrapper struct {
 	Locator
 }
 
 func (locw LocatorWrapper) MarshalJSON() ([]byte, error) {
-	obj, e := locw.MarshalYAML()
-	if e != nil {
-		return nil, e
-	}
-	return json.Marshal(obj)
-}
-
-func (locw *LocatorWrapper) UnmarshalJSON(data []byte) error {
-	return locw.UnmarshalYAML(func(v interface{}) error {
-		return json.Unmarshal(data, v)
-	})
-}
-
-func (locw LocatorWrapper) MarshalYAML() (interface{}, error) {
 	if locw.Locator == nil {
 		return nil, nil
 	}
@@ -98,17 +82,14 @@ func (locw LocatorWrapper) MarshalYAML() (interface{}, error) {
 		return nil, e
 	}
 
-	if locM, ok := locw.Locator.(yaml.Marshaler); ok {
-		return locM.MarshalYAML()
-	}
-	return locw.Locator, nil
+	return json.Marshal(locw.Locator)
 }
 
-func (locw *LocatorWrapper) UnmarshalYAML(unmarshal func(interface{}) error) (e error) {
+func (locw *LocatorWrapper) UnmarshalJSON(data []byte) error {
 	schemeObj := struct {
 		Scheme string
 	}{}
-	if e = unmarshal(&schemeObj); e != nil {
+	if e := json.Unmarshal(data, &schemeObj); e != nil {
 		return e
 	}
 
@@ -119,18 +100,12 @@ func (locw *LocatorWrapper) UnmarshalYAML(unmarshal func(interface{}) error) (e 
 
 	ptr := reflect.New(typ)
 	ptrI := ptr.Interface()
-
-	if ptrM, ok := ptrI.(yaml.Unmarshaler); ok {
-		e = ptrM.UnmarshalYAML(unmarshal)
-	} else {
-		e = unmarshal(ptrI)
-	}
-	if e != nil {
+	if e := json.Unmarshal(data, ptrI); e != nil {
 		return e
 	}
 
 	loc := ptr.Elem().Interface().(Locator)
-	if e = loc.Validate(); e != nil {
+	if e := loc.Validate(); e != nil {
 		return e
 	}
 
