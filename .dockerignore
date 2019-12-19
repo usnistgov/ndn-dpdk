@@ -1,4 +1,5 @@
 app/version/version.go
+app/version/version.go.new
 build
 docs/doxygen
 docs/mgmtspec.json
