@@ -3,7 +3,7 @@ import Debug = require("debug");
 import EventEmitter = require("events");
 import * as yargs from "yargs";
 
-import { NNDuration } from "../../core";
+import { Nanoseconds } from "../../core/nnduration";
 
 import * as msi from "./msi";
 import { ITrafficGen, NdnpingTrafficGen } from "./trafficgen";
@@ -37,7 +37,7 @@ export class MsiBenchmark extends EventEmitter {
 
   private gen: ITrafficGen;
   private uncertainty: Uncertainty;
-  private intervalNearby: NNDuration;
+  private intervalNearby: Nanoseconds;
 
   constructor(gen: ITrafficGen, uncertainty: Uncertainty) {
     super();
@@ -56,7 +56,7 @@ export class MsiBenchmark extends EventEmitter {
    * would require fewer iterations and thus run faster. If the hint is incorrect,
    * hint mode will be disabled for the remaider of the benchmark.
    */
-  public enableHint(nearby: NNDuration) {
+  public enableHint(nearby: Nanoseconds) {
     this.intervalNearby = nearby;
   }
 
@@ -104,7 +104,7 @@ export class MsiBenchmark extends EventEmitter {
 
 interface Argv extends msi.Options {
   DesiredUncertainty: number;
-  IntervalNearby: NNDuration;
+  IntervalNearby: Nanoseconds;
 }
 
 async function main() {

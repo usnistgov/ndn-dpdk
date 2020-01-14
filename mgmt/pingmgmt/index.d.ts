@@ -1,4 +1,5 @@
-import { Index, NNDuration } from "../../core";
+import { Index } from "../../core";
+import { Nanoseconds } from "../../core/nnduration";
 import { Counters as ClientCounters_ } from "../../app/pingclient";
 
 export as namespace pingmgmt;
@@ -9,13 +10,13 @@ export interface IndexArg {
 
 export interface ClientStartArgs {
   Index: Index;
-  Interval: NNDuration;
+  Interval: Nanoseconds;
   ClearCounters: boolean;
 }
 
 export interface ClientStopArgs {
   Index: Index;
-  RxDelay: NNDuration;
+  RxDelay: Nanoseconds;
 }
 
 export type ClientCounters = ClientCounters_;

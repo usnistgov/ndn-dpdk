@@ -1,8 +1,7 @@
 package pingserver
 
 import (
-	"github.com/avarenyk/jtime"
-
+	"ndn-dpdk/core/nnduration"
 	"ndn-dpdk/ndn"
 )
 
@@ -22,9 +21,9 @@ type Pattern struct {
 type Reply struct {
 	Weight int // weight of random choice, minimum is 1
 
-	Suffix          *ndn.Name      // suffix to append to Interest name
-	FreshnessPeriod jtime.Duration // FreshnessPeriod value
-	PayloadLen      int            // Content payload length
+	Suffix          *ndn.Name               // suffix to append to Interest name
+	FreshnessPeriod nnduration.Milliseconds // FreshnessPeriod value
+	PayloadLen      int                     // Content payload length
 
 	Nack ndn.NackReason // if not NackReason_None, reply with Nack instead of Data
 

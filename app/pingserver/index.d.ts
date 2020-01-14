@@ -1,4 +1,4 @@
-import { NNDuration } from "../../core";
+import { Milliseconds } from "../../core/nnduration";
 import * as ndn from "../../ndn";
 
 export as namespace pingserver;
@@ -19,7 +19,7 @@ interface ReplyCommon {
 
 interface ReplyData {
   Suffix: ndn.Name;
-  FreshnessPeriod: NNDuration;
+  FreshnessPeriod: Milliseconds;
   PayloadLen: number;
 }
 

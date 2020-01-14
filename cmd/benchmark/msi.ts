@@ -5,16 +5,16 @@ import * as _ from "lodash";
 import moment = require("moment");
 import * as yargs from "yargs";
 
-import { NNDuration } from "../../core";
+import { Nanoseconds } from "../../core/nnduration";
 
 import { ITrafficGen, NdnpingTrafficGen, TrafficGenCounters } from "./trafficgen";
 
 const debug = Debug("msi");
 
 export interface Options {
-  IntervalMin: NNDuration; /// minimum TX interval to test for
-  IntervalMax: NNDuration; /// maximum TX interval to test for
-  IntervalStep: NNDuration; /// TX interval step
+  IntervalMin: Nanoseconds; /// minimum TX interval to test for
+  IntervalMax: Nanoseconds; /// maximum TX interval to test for
+  IntervalStep: Nanoseconds; /// TX interval step
 
   TxCount: number; // expected number of Interests
   TxDurationMin: number; /// minimum test duration (secs)
@@ -32,7 +32,7 @@ export interface Options {
 /**
  * Run traffic generator once at the specified Interest interval.
  */
-async function runOnce(gen: ITrafficGen, interval: NNDuration, opt: Options): Promise<[boolean, TrafficGenCounters]> {
+async function runOnce(gen: ITrafficGen, interval: Nanoseconds, opt: Options): Promise<[boolean, TrafficGenCounters]> {
   await delay(opt.BeforeStartTime * 1000);
   await gen.start(interval);
 
@@ -66,7 +66,7 @@ async function runOnce(gen: ITrafficGen, interval: NNDuration, opt: Options): Pr
 export interface MeasureResult {
   isUnderflow: boolean;
   isOverflow: boolean;
-  MSI?: NNDuration;
+  MSI?: Nanoseconds;
   cnt?: TrafficGenCounters;
 }
 

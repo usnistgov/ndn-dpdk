@@ -1,11 +1,12 @@
-import { Counter, NNDuration } from "../../core";
+import { Counter } from "../../core";
+import { Milliseconds, Nanoseconds } from "../../core/nnduration";
 import * as ndn from "../../ndn";
 
 export as namespace pingclient;
 
 export interface Config {
   Patterns: Pattern[];
-  Interval: NNDuration;
+  Interval: Nanoseconds;
 }
 
 export interface Pattern {
@@ -13,7 +14,7 @@ export interface Pattern {
   Prefix: ndn.Name;
   CanBePrefix: boolean;
   MustBeFresh: boolean;
-  InterestLifetime: NNDuration;
+  InterestLifetime: Milliseconds;
   HopLimit: number;
   SeqNumOffset?: number;
 }
@@ -25,10 +26,10 @@ interface PacketCounters {
 }
 
 interface RttCounters {
-  Min: NNDuration;
-  Max: NNDuration;
-  Avg: NNDuration;
-  Stdev: NNDuration;
+  Min: Nanoseconds;
+  Max: Nanoseconds;
+  Avg: Nanoseconds;
+  Stdev: Nanoseconds;
 }
 
 interface PatternCounters extends PacketCounters {

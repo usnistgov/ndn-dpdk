@@ -1,7 +1,8 @@
 import * as _ from "lodash";
 import moment = require("moment");
 
-import { Counter, Index, NNDuration } from "../../core";
+import { Counter, Index } from "../../core";
+import { Nanoseconds } from "../../core/nnduration";
 import * as mgmt from "../../mgmt";
 import * as pingmgmt from "../../mgmt/pingmgmt";
 
@@ -16,7 +17,7 @@ export interface TrafficGenCounters {
  * Abstract traffic generator.
  */
 export interface ITrafficGen {
-  start(interval: NNDuration): Promise<void>;
+  start(interval: Nanoseconds): Promise<void>;
   stop(rxDelay: moment.Duration): Promise<void>;
   readCounters(): Promise<TrafficGenCounters>;
 }
@@ -42,7 +43,7 @@ export class NdnpingTrafficGen implements ITrafficGen {
     this.cList = [];
   }
 
-  public async start(interval: NNDuration): Promise<void> {
+  public async start(interval: Nanoseconds): Promise<void> {
     await Promise.all(this.cList.map((index) =>
       this.rpc.request<pingmgmt.ClientStartArgs, {}>("PingClient.Start",
       { Index: index, Interval: interval, ClearCounters: true }),
