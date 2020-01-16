@@ -27,13 +27,13 @@ func TestServer(t *testing.T) {
 				Replies: []pingserver.Reply{
 					{
 						Weight:          60,
-						FreshnessPeriod: 100 * time.Millisecond,
+						FreshnessPeriod: 100,
 						PayloadLen:      1000,
 					},
 					{
 						Weight:          40,
 						Suffix:          ndn.MustParseName("/Z"),
-						FreshnessPeriod: 100 * time.Millisecond,
+						FreshnessPeriod: 100,
 						PayloadLen:      2000,
 					},
 				},

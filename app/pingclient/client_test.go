@@ -7,6 +7,7 @@ import (
 
 	"ndn-dpdk/app/ping/pingtestenv"
 	"ndn-dpdk/app/pingclient"
+	"ndn-dpdk/core/nnduration"
 	"ndn-dpdk/ndn"
 	"ndn-dpdk/ndn/ndntestutil"
 )
@@ -27,7 +28,7 @@ func TestClient(t *testing.T) {
 				Prefix:           nameA,
 				CanBePrefix:      true,
 				MustBeFresh:      true,
-				InterestLifetime: 500 * time.Millisecond,
+				InterestLifetime: 500,
 				HopLimit:         10,
 			},
 			{
@@ -40,7 +41,7 @@ func TestClient(t *testing.T) {
 				SeqNumOffset: 100,
 			},
 		},
-		Interval: 100 * time.Microsecond,
+		Interval: nnduration.Nanoseconds(100000),
 	}
 
 	client, e := pingclient.New(face, cfg)

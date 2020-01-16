@@ -35,6 +35,7 @@ func TestTable(t *testing.T) {
 	assert.Len(strategycode.List(), 0)
 
 	assert.Nil(strategycode.Get(idP))
+	assert.True(strategycode.Get(idP) == nil) // reject interface with nil underlying value
 	assert.Nil(strategycode.Find("P"))
 	assert.Nil(strategycode.FromPtr(ptrP))
 }

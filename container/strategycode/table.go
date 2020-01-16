@@ -21,7 +21,12 @@ var (
 func Get(id int) StrategyCode {
 	tableLock.Lock()
 	defer tableLock.Unlock()
-	return table[id]
+	if sc := table[id]; sc != nil {
+		// Directly 'return table[id]' would return interface with nil underlying
+		// value. This conditional prevents that.
+		return sc
+	}
+	return nil
 }
 
 // Retrieve by name.

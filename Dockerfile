@@ -1,6 +1,6 @@
 FROM ubuntu:18.04
 RUN apt-get update && \
-    apt-get install -y -qq clang-6.0 clang-format-6.0 curl doxygen gcc-7 git go-bindata libc6-dev-i386 libelf-dev libnuma-dev libssl-dev liburcu-dev rake socat sudo yamllint && \
+    apt-get install -y -qq build-essential clang-6.0 clang-format-6.0 curl doxygen gcc-7 git go-bindata libc6-dev-i386 libelf-dev libnuma-dev libssl-dev liburcu-dev rake socat sudo yamllint && \
     curl -L https://deb.nodesource.com/setup_12.x | bash - && \
     apt-get install -y -qq nodejs && \
     /usr/bin/npm install -g jayson && \
