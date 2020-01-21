@@ -9,13 +9,16 @@ This software is developed at [Advanced Network Technologies Division](https://w
 Requirements:
 
 * Ubuntu 16.04 or 18.04 on *amd64* architecture
-* Go 1.13.6
-* `build-essential clang-6.0 clang-format-6.0 curl doxygen gcc-7 git go-bindata libc6-dev-i386 libelf-dev libnuma-dev libssl-dev liburcu-dev rake socat sudo yamllint` packages
-  (add [ppa:ubuntu-toolchain-r/test](https://launchpad.net/~ubuntu-toolchain-r/+archive/ubuntu/test) on Ubuntu 16.04)
+* Required packages: `build-essential clang-6.0 curl gcc-7 git go-bindata libc6-dev-i386 libelf-dev libnuma-dev libssl-dev liburcu-dev ninja-build pkg-config python3.8 python3-distutils rake socat sudo` packages
+  (Ubuntu 16.04: add [ppa:ubuntu-toolchain-r/test](https://launchpad.net/~ubuntu-toolchain-r/+archive/ubuntu/test) and [ppa:deadsnakes/ppa](https://launchpad.net/~deadsnakes/+archive/ubuntu/ppa), change `python3-distutils` to `python3.8-distutils`)
+* Optional packages: `clang-format-6.0 doxygen yamllint`
+  (see other build targets list for explanation)
+* [pip](https://pip.pypa.io/en/stable/installing/) and `sudo pip install meson`
 * [Intel Multi-Buffer Crypto for IPsec Library](https://github.com/intel/intel-ipsec-mb) v0.53
-* DPDK 19.11 with [patch 63727](https://patches.dpdk.org/patch/63727/), with `CONFIG_RTE_BUILD_SHARED_LIB` `CONFIG_RTE_LIBRTE_BPF_ELF` `CONFIG_RTE_LIBRTE_PMD_OPENSSL` `CONFIG_RTE_LIBRTE_PMD_AESNI_MB` enabled, compiled with gcc-7, and installed to `/usr/local`
-* SPDK 19.10 shared libraries, compiled with gcc-7, and installed to `/usr/local`
+* DPDK 19.11 with [patch 63727](https://patches.dpdk.org/patch/63727/), configured with `CC=gcc-7 meson -Dtests=false --libdir=lib build`
+* SPDK 19.10.1, configured with `CC=gcc-7 ./configure --enable-debug --disable-tests --with-shared --with-dpdk=/usr/local --without-vhost --without-isal --without-fuse`
 * [ubpf](https://github.com/iovisor/ubpf/tree/644ad3ded2f015878f502765081e166ce8112baf) library, compiled with gcc-7, and installed to `/usr/local/include/ubpf.h` and `/usr/local/lib/libubpf.a`
+* Go 1.13.6 or newer
 * Node.js 12.x and `sudo npm install -g jayson`
 * Note: see [Dockerfile](./Dockerfile) on how to install dependencies.
 
@@ -28,17 +31,15 @@ Build steps:
 5. Execute `make cmds` to install Go commands to `$GOPATH/bin`.
 6. Execute `make tsc` to build TypeScript modules and commands.
 
-Other build targets and commands:
+Other build targets:
 
 * Execute `sudo make install` to install commands to `/usr/local`, and `sudo make uninstall` to uninstall.
   You may prepend `DESTDIR=/opt` to choose a different location.
 * Execute `make gopkg` to build all Go packages.
 * Execute `make test` to run unit tests,  or `mk/gotest.sh PKG` to run tests for a package.
-* Execute `make doxygen` to build C documentation.
-  You may omit `doxygen` dependencies if this is not needed.
+* Execute `make doxygen` to build C documentation (requires `doxygen` package).
 * Execute `make godoc` to start godoc server at port 6060.
-* Execute `make lint` to fix code style before committing.
-  You may omit `clang-format-6.0 yamllint` dependencies if this is not needed.
+* Execute `make lint` to fix code style before committing (requires `clang-format-6.0 yamllint` package).
 * Prepend `RELEASE=1` to any `make` command to select release mode that disables asserts and verbose logging.
 * Prepend `CC=clang-6.0` to any `make` command to compile C code with `clang-6.0`.
 

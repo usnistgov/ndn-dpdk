@@ -1,22 +1,21 @@
 ---
 dist: bionic
 
-language: go
-go: "1.x"
+language: generic
 
 env:
   global:
     - UBPFCOMMIT=644ad3ded2f015878f502765081e166ce8112baf
     - DPDKVER=19.11
-    - SPDKVER=19.10
+    - SPDKVER=19.10.1
   matrix:
-    - TOOLCHAIN=gcc CC=gcc-7
-    - TOOLCHAIN=clang CC=clang-6.0
+    - CC=gcc-7
+    - CC=clang-6.0
 
 addons:
   apt:
-    update: true
     packages:
+      - build-essential
       - clang-6.0
       - clang-format-6.0
       - curl
@@ -30,18 +29,30 @@ addons:
       - liburcu-dev
       - linux-headers-$(uname -r)
       - linux-libc-dev
+      - ninja-build
+      - pkg-config
+      - python3.8
+      - python3-distutils
       - rake
       - socat
       - yamllint
 
 cache:
   npm: true
+  pip: true
   directories:
     - $HOME/dpdk-$DPDKVER
     - $HOME/spdk-$SPDKVER
 
 before_install:
-  - nvm install node
+  - eval "$(gimme 1.x)"
+  - nvm install 12
+  - |
+    : install meson
+    cd $HOME
+    curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+    sudo python3.8 get-pip.py
+    sudo pip install meson
 
 install:
   - |
@@ -50,36 +61,37 @@ install:
     curl -L https://github.com/iovisor/ubpf/archive/$UBPFCOMMIT.tar.gz | tar -xz
     cd ubpf-$UBPFCOMMIT/vm
     make
-    sudo mkdir -p /usr/local/include /usr/local/lib
-    sudo cp inc/ubpf.h /usr/local/include/
-    sudo cp libubpf.a /usr/local/lib/
+    sudo install -d /usr/local/include /usr/local/lib
+    sudo install -m 0644 -t /usr/local/include/ inc/ubpf.h
+    sudo install -m 0644 -t /usr/local/lib/ libubpf.a
   - |
     : install DPDK
     cd $HOME
     if [[ -f dpdk-$DPDKVER/build/lib/librte_eal.so ]]; then
-      cd dpdk-$DPDKVER
+      cd dpdk-$DPDKVER/build
     else
       curl -L http://fast.dpdk.org/rel/dpdk-$DPDKVER.tar.xz | tar -xJ
       cd dpdk-$DPDKVER
-      make config T=x86_64-native-linuxapp-$TOOLCHAIN
-      sed -ri 's,(CONFIG_RTE_BUILD_SHARED_LIB=).*,\1y,' build/.config
-      sed -ri 's,(CONFIG_RTE_LIBRTE_BPF_ELF=).*,\1y,' build/.config
-      sed -ri 's,(CONFIG_RTE_LIBRTE_PMD_OPENSSL=).*,\1y,' build/.config
-      make -j$(nproc) EXTRA_CFLAGS=-g
+      meson -Dtests=false --libdir=lib build
+      cd build
+      ninja
     fi
-    sudo make install
+    sudo ninja install
+    sudo find /usr/local/lib -name 'librte_*.a' -delete
+    sudo install -m 0644 -t /usr/local/include/ \
+      ../lib/librte_bpf/rte_bpf.h ../lib/librte_bpf/bpf_def.h
     sudo ldconfig
   - |
     : install SPDK
     cd $HOME
-    if [[ -f spdk-$SPDKVER/build/lib/libspdk_env_dpdk.so ]]; then
-      cd spdk-$SPDKVER
-      sudo ./scripts/pkgdep.sh
-    else
-      curl -L https://github.com/spdk/spdk/archive/v$SPDKVER.tar.gz | tar -xz
-      cd spdk-$SPDKVER
-      sudo ./scripts/pkgdep.sh
-      ./configure --enable-debug --with-shared --with-dpdk=/usr/local
+    if ! [[ -f spdk-$SPDKVER/build/lib/libspdk_env_dpdk.so ]]; then
+      curl -L https://github.com/spdk/spdk/archive/v$SPDKVER.tar.gz | tar -x$z
+    fi
+    cd spdk-$SPDKVER
+    sed '/libfuse3-dev/ d' ./scripts/pkgdep.sh | sudo bash
+    if ! [[ -f spdk-$SPDKVER/build/lib/libspdk_env_dpdk.so ]]; then
+      ./configure --enable-debug --disable-tests --with-shared \
+        --with-dpdk=/usr/local --without-vhost --without-isal --without-fuse
       make -j$(nproc)
     fi
     sudo make install

@@ -4,7 +4,6 @@ package dpdk
 
 /*
 #include "ethdev.h"
-
 #include <rte_pci.h>
 */
 import "C"

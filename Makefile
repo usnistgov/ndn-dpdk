@@ -10,7 +10,7 @@ gopkg: godeps
 	go build -v ./...
 
 godeps: app/version/version.go
-	rake cgostruct cgoflags cbuilds strategies
+	rake cgoflags cgostruct cbuilds strategies
 
 .PHONY: app/version/version.go
 app/version/version.go:

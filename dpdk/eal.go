@@ -17,8 +17,6 @@ import (
 	"math/rand"
 	"strconv"
 	"unsafe"
-
-	"ndn-dpdk/core/dlopen"
 )
 
 var isEalInitialized = false
@@ -29,10 +27,6 @@ var ErrEalInitialized = errors.New("EAL is already initialized")
 func InitEal(args []string) (remainingArgs []string, e error) {
 	if isEalInitialized {
 		return nil, ErrEalInitialized
-	}
-
-	if e = dlopen.LoadDynLibs("/usr/local/lib/libdpdk.so"); e != nil {
-		return nil, e
 	}
 
 	a := NewCArgs(args)

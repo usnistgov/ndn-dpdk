@@ -1,7 +1,7 @@
 export CC=${CC:-gcc-7}
 export CGO_CFLAGS_ALLOW='.*'
-CFLAGS='-Werror -Wno-error=deprecated-declarations -m64 -pthread -O3 -g -march=native -I/usr/local/include/dpdk'
-LIBS='-L/usr/local/lib -lurcu-qsbr -lurcu-cds -lubpf -lspdk -lspdk_env_dpdk -lrte_eal -ldpdk -lnuma -lm'
+CFLAGS='-Werror -Wno-error=deprecated-declarations -m64 -pthread -O3 -g '$(pkg-config --cflags libdpdk | sed 's/-include [^ ]*//')
+LIBS='-L/usr/local/lib -lurcu-qsbr -lurcu-cds -lubpf -lspdk -lspdk_env_dpdk -lrte_bus_pci -lrte_bus_vdev -lrte_pmd_ring '$(pkg-config --libs libdpdk)' -lnuma -lm'
 
 if ! [[ $MK_CGOFLAGS ]]; then
   CFLAGS='-Wall '$CFLAGS

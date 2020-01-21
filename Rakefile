@@ -1,14 +1,16 @@
-INCLUDEFLAGS= "-I/usr/local/include/dpdk -I/usr/include/dpdk"
 BPFCC = "clang-6.0"
-BPFFLAGS = "-O2 -target bpf #{INCLUDEFLAGS} -Wno-int-to-void-pointer-cast"
+BPFFLAGS = "-O2 -target bpf -Wno-int-to-void-pointer-cast"
 
 desc "Generate **/cgostruct.go"
 task "cgostruct"
 Rake::FileList["**/cgostruct.in.go"].each do |f|
   name = f.pathmap("%d/cgostruct.go")
   file name => f do |t|
-    sh "cd #{f.pathmap("%d")}; go tool cgo -godefs -- #{INCLUDEFLAGS} cgostruct.in.go | gofmt -s > cgostruct.go; rm -rf _obj"
+    # force gcc here; clang has errors regarding __m256i symbol
+    # override $GODEFCC if other version of gcc is desired
+    sh "cd #{f.pathmap("%d")}; CC=${GODEFCC:-gcc-7} go tool cgo -godefs -- cgostruct.in.go | gofmt -s > cgostruct.go; rm -rf _obj"
   end
+  task name => f.pathmap("%d/cgoflags.go")
   task "cgostruct" => name
 end
 
