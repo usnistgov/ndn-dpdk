@@ -85,7 +85,7 @@ install:
     : install SPDK
     cd $HOME
     if ! [[ -f spdk-$SPDKVER/build/lib/libspdk_env_dpdk.so ]]; then
-      curl -L https://github.com/spdk/spdk/archive/v$SPDKVER.tar.gz | tar -x$z
+      curl -L https://github.com/spdk/spdk/archive/v$SPDKVER.tar.gz | tar -xz
     fi
     cd spdk-$SPDKVER
     sed '/libfuse3-dev/ d' ./scripts/pkgdep.sh | sudo bash
