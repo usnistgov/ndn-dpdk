@@ -1,7 +1,5 @@
-import * as running_stat from "../../core/running_stat";
-import * as iface from "../../iface";
-
-export as namespace facemgmt;
+import * as running_stat from "../../core/running_stat/mod.js";
+import * as iface from "../../iface/mod.js";
 
 export interface IdArg {
   /**

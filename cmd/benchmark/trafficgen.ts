@@ -1,10 +1,10 @@
 import * as _ from "lodash";
 import moment = require("moment");
 
-import { Counter, Index } from "../../core";
-import { Nanoseconds } from "../../core/nnduration";
-import * as mgmt from "../../mgmt";
-import * as pingmgmt from "../../mgmt/pingmgmt";
+import { Counter, Index } from "../../core/mod.js";
+import { Nanoseconds } from "../../core/nnduration/mod.js";
+import * as mgmt from "../../mgmt/mod.js";
+import * as pingmgmt from "../../mgmt/pingmgmt/mod.js";
 
 export interface TrafficGenCounters {
   raw: any; // raw counters

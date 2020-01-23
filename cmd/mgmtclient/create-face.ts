@@ -1,10 +1,10 @@
 import { ArgumentParser } from "argparse";
 import * as jayson from "jayson";
 
-import * as iface from "../../iface";
-import * as ethface from "../../iface/ethface";
-import * as mgmt from "../../mgmt";
-import * as facemgmt from "../../mgmt/facemgmt";
+import * as ethface from "../../iface/ethface/mod.js";
+import * as iface from "../../iface/mod.js";
+import * as facemgmt from "../../mgmt/facemgmt/mod.js";
+import * as mgmt from "../../mgmt/mod.js";
 
 const parser = new ArgumentParser({
   addHelp: true,

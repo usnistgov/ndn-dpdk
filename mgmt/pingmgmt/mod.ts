@@ -1,8 +1,6 @@
-import { Index } from "../../core";
-import { Nanoseconds } from "../../core/nnduration";
-import { Counters as ClientCounters_ } from "../../app/pingclient";
-
-export as namespace pingmgmt;
+import { Counters as ClientCounters_ } from "../../app/pingclient/mod.js";
+import { Index } from "../../core/mod.js";
+import { Nanoseconds } from "../../core/nnduration/mod.js";
 
 export interface IndexArg {
   Index: Index;

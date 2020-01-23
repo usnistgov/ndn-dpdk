@@ -1,8 +1,6 @@
-import * as fwdp from "../../app/fwdp";
-import * as pit from "../../container/pit";
-import { Counter, Index } from "../../core";
-
-export as namespace fwdpmgmt;
+import * as fwdp from "../../app/fwdp/mod.js";
+import * as pit from "../../container/pit/mod.js";
+import { Counter, Index } from "../../core/mod.js";
 
 export interface IndexArg {
   Index: Index;

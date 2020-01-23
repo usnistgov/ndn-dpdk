@@ -1,7 +1,5 @@
-import * as strategycode from "../../container/strategycode";
-import { Blob } from "../../core";
-
-export as namespace strategymgmt;
+import * as strategycode from "../../container/strategycode/mod.js";
+import { Blob } from "../../core/mod.js";
 
 export interface IdArg {
   Id: strategycode.Id;

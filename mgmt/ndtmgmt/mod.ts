@@ -1,7 +1,5 @@
-import { Blob, Counter } from "../../core";
-import * as ndn from "../../ndn";
-
-export as namespace ndtmgmt;
+import { Blob, Counter } from "../../core/mod.js";
+import * as ndn from "../../ndn/mod.js";
 
 interface UpdateArgBase {
   /**

@@ -1,5 +1,3 @@
-export as namespace ndn;
-
 export type Name = string;
 
 export enum NackReason {

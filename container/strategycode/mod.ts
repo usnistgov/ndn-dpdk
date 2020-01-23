@@ -1,5 +1,3 @@
-export as namespace strategycode;
-
 /**
  * @TJS-type integer
  * @minimum 1

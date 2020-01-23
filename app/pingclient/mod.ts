@@ -1,8 +1,6 @@
-import { Counter } from "../../core";
-import { Milliseconds, Nanoseconds } from "../../core/nnduration";
-import * as ndn from "../../ndn";
-
-export as namespace pingclient;
+import { Counter } from "../../core/mod.js";
+import { Milliseconds, Nanoseconds } from "../../core/nnduration/mod.js";
+import * as ndn from "../../ndn/mod.js";
 
 export interface Config {
   Patterns: Pattern[];

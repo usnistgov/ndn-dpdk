@@ -1,6 +1,4 @@
-import { Counter } from "../../core";
-
-export as namespace pit;
+import { Counter } from "../../core/mod.js";
 
 export interface Counters {
   NEntries: Counter;

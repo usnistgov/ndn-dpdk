@@ -7,7 +7,7 @@ import { JrgenSpecSchema } from "./jrgen-spec-schema";
 const tjsArgs: TJS.PartialArgs = {};
 tjsArgs.validationKeywords = ["contentEncoding", "contentMediaType"];
 
-const program = TJS.getProgramFromFiles([path.resolve("mgmt/index.d.ts")]);
+const program = TJS.getProgramFromFiles([path.resolve("mgmt/mod.ts")]);
 const schema = TJS.generateSchema(program, "Mgmt", tjsArgs)!;
 
 const spec: JrgenSpecSchema = {

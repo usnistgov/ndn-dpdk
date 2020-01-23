@@ -1,5 +1,3 @@
-export as namespace core;
-
 /**
  * @TJS-type integer
  * @minimum 0

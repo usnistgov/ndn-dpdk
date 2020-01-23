@@ -1,5 +1,3 @@
-export as namespace versionmgmt;
-
 export interface VersionReply {
   Commit: string;
 }

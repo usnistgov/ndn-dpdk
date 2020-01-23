@@ -1,6 +1,4 @@
-import { Counter } from "..";
-
-export as namespace running_stat;
+import { Counter } from "../mod.js";
 
 export interface Snapshot {
   Count: Counter;

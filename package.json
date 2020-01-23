@@ -1,6 +1,5 @@
 {
   "dependencies": {
-    "@zingle/fail": "^0.0.1",
     "argparse": "^1.0.10",
     "compute-stdev": "^1.0.0",
     "debug": "^4.1.1",

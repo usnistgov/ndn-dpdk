@@ -2,11 +2,11 @@ import Debug = require("debug");
 import EventEmitter = require("events");
 import * as yargs from "yargs";
 
-import { Nanoseconds } from "../../core/nnduration";
+import { Nanoseconds } from "../../core/nnduration/mod.js";
 
-import * as msi from "./msi";
-import { ITrafficGen, NdnpingTrafficGen } from "./trafficgen";
-import { Uncertainty, UncertaintyState } from "./uncertainty";
+import * as msi from "./msi.js";
+import { ITrafficGen, NdnpingTrafficGen } from "./trafficgen.js";
+import { Uncertainty, UncertaintyState } from "./uncertainty.js";
 
 const debug = Debug("msibench");
 

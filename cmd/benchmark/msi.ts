@@ -4,9 +4,9 @@ import * as _ from "lodash";
 import moment = require("moment");
 import * as yargs from "yargs";
 
-import { Nanoseconds } from "../../core/nnduration";
+import { Nanoseconds } from "../../core/nnduration/mod.js";
 
-import { ITrafficGen, NdnpingTrafficGen, TrafficGenCounters } from "./trafficgen";
+import { ITrafficGen, NdnpingTrafficGen, TrafficGenCounters } from "./trafficgen.js";
 
 const debug = Debug("msi");
 

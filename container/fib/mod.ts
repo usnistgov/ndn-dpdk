@@ -1,6 +1,4 @@
-import { Counter } from "../../core";
-
-export as namespace fib;
+import { Counter } from "../../core/mod.js";
 
 export interface EntryCounters {
   NRxInterests: Counter;

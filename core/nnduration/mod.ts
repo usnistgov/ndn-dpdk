@@ -1,5 +1,3 @@
-export as namespace nnduration;
-
 /**
  * non-negative duration in milliseconds
  * @TJS-type integer

@@ -1,7 +1,5 @@
-import { Milliseconds } from "../../core/nnduration";
-import * as ndn from "../../ndn";
-
-export as namespace pingserver;
+import { Milliseconds } from "../../core/nnduration/mod.js";
+import * as ndn from "../../ndn/mod.js";
 
 export interface Config {
   Patterns: Pattern[];
