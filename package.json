@@ -9,10 +9,7 @@
     "jayson": "^3.2.0",
     "js-yaml": "^3.13.1",
     "lodash": "^4.17.15",
-    "loglevel": "^1.6.6",
-    "loglevel-plugin-prefix": "^0.8.4",
     "moment": "^2.24.0",
-    "ndn-js": "^0.19.0",
     "object-path": "^0.11.4",
     "yargs": "^15.1.0"
   },
@@ -23,7 +20,6 @@
     "@types/js-yaml": "^3.12.1",
     "@types/json-stable-stringify": "^1.0.32",
     "@types/lodash": "^4.14.149",
-    "@types/ndn-js": "^0.18.0",
     "@types/object-path": "^0.11.0",
     "@types/yargs": "^15.0.0",
     "json-stable-stringify": "^1.0.1",

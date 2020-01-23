@@ -1,4 +1,3 @@
-import fail = require("@zingle/fail");
 import Debug = require("debug");
 import delay = require("delay");
 import * as _ from "lodash";
@@ -129,5 +128,5 @@ async function main() {
 
 if (require.main === module) {
   main()
-  .catch(fail);
+  .catch((err) => { process.stderr.write(err); process.exit(1); });
 }

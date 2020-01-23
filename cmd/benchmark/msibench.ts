@@ -1,4 +1,3 @@
-import fail = require("@zingle/fail");
 import Debug = require("debug");
 import EventEmitter = require("events");
 import * as yargs from "yargs";
@@ -131,5 +130,5 @@ async function main() {
 
 if (require.main === module) {
   main()
-  .catch(fail);
+  .catch((err) => { process.stderr.write(err); process.exit(1); });
 }
