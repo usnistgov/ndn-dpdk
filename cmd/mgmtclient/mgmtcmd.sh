@@ -52,6 +52,10 @@ Subcommands:
     Stop i-th ping client.
   pingc counters <I>
     Show i-th ping client counters.
+  fetch benchmark <I> <NAME> [<WARMUP>] <INTERVAL> <COUNT>
+    Run benchmark on i-th fetcher.
+  fetch counters <I>
+    Show i-th fetcher counters.
 EOT
   exit 0
 fi
@@ -126,5 +130,17 @@ elif [[ $1 == 'pingc' ]]; then
     jsonrpc PingClient.Stop '{"Index":'$3'}'
   elif [[ $2 == 'counters' ]]; then
     jsonrpc PingClient.ReadCounters '{"Index":'$3'}'
+  fi
+elif [[ $1 == 'fetch' ]]; then
+  if [[ -z $2 ]] || [[ $2 == 'list' ]]; then
+    jsonrpc Fetch.List ''
+  elif [[ $2 == 'benchmark' ]]; then
+    if [[ -z $7 ]]; then
+      jsonrpc Fetch.Benchmark '{"Index":'$3',"Name":"'$4'","Warmup":0,"Interval":'$5',"Count":'$6'}'
+    else
+      jsonrpc Fetch.Benchmark '{"Index":'$3',"Name":"'$4'","Warmup":'$5',"Interval":'$6',"Count":'$7'}'
+    fi
+  elif [[ $2 == 'counters' ]]; then
+    jsonrpc Fetch.ReadCounters '{"Index":'$3'}'
   fi
 fi

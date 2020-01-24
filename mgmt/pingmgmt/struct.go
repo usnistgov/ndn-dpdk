@@ -1,7 +1,9 @@
 package pingmgmt
 
 import (
-	"time"
+	"ndn-dpdk/app/fetch"
+	"ndn-dpdk/core/nnduration"
+	"ndn-dpdk/ndn"
 )
 
 type IndexArg struct {
@@ -9,12 +11,24 @@ type IndexArg struct {
 }
 
 type ClientStartArgs struct {
-	Index         int           // Task index
-	Interval      time.Duration // Interest sending Interval
-	ClearCounters bool          // whether to clear counters
+	Index         int                    // Task index
+	Interval      nnduration.Nanoseconds // Interest sending Interval
+	ClearCounters bool                   // whether to clear counters
 }
 
 type ClientStopArgs struct {
-	Index   int           // Task index
-	RxDelay time.Duration // sleep duration between stopping TX and stopping RX
+	Index   int                    // Task index
+	RxDelay nnduration.Nanoseconds // sleep duration between stopping TX and stopping RX
+}
+
+type FetchBenchmarkArgs struct {
+	Index    int // Task index
+	Name     *ndn.Name
+	Warmup   nnduration.Milliseconds
+	Interval nnduration.Milliseconds
+	Count    int
+}
+
+type FetchBenchmarkReply struct {
+	Counters []fetch.Counters
 }

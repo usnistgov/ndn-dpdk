@@ -2,7 +2,6 @@ package fetch
 
 import (
 	"fmt"
-	"math"
 	"time"
 )
 
@@ -23,7 +22,7 @@ func (fl *Logic) ReadCounters(prev Counters) (cnt Counters) {
 	cnt.NInFlight = fl.NInFlight
 	cnt.NTxRetx = fl.NTxRetx
 	cnt.NRxData = fl.NRxData
-	cnt.Goodput = math.NaN()
+	cnt.Goodput = 0.0
 	if !prev.Time.IsZero() {
 		t := cnt.Time.Sub(prev.Time).Seconds()
 		cnt.Goodput = float64(cnt.NRxData-prev.NRxData) / t

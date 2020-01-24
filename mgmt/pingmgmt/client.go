@@ -43,7 +43,7 @@ func (mg PingClientMgmt) Start(args ClientStartArgs, reply *struct{}) error {
 	}
 
 	if args.Interval != 0 {
-		client.SetInterval(args.Interval)
+		client.SetInterval(args.Interval.Duration())
 	}
 	if args.ClearCounters {
 		client.ClearCounters()
@@ -58,7 +58,7 @@ func (mg PingClientMgmt) Stop(args ClientStopArgs, reply *struct{}) error {
 		return e
 	}
 
-	client.Stop(args.RxDelay)
+	client.Stop(args.RxDelay.Duration())
 	return nil
 }
 

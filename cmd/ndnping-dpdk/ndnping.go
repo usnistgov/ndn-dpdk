@@ -36,6 +36,7 @@ func main() {
 	appinit.RegisterMgmt(versionmgmt.VersionMgmt{})
 	appinit.RegisterMgmt(facemgmt.FaceMgmt{})
 	appinit.RegisterMgmt(pingmgmt.PingClientMgmt{app})
+	appinit.RegisterMgmt(pingmgmt.FetchMgmt{app})
 	appinit.StartMgmt()
 
 	select {}
