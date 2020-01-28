@@ -70,16 +70,17 @@ install:
     if [[ -f dpdk-$DPDKVER/build/lib/librte_eal.so ]]; then
       cd dpdk-$DPDKVER/build
     else
-      curl -L http://fast.dpdk.org/rel/dpdk-$DPDKVER.tar.xz | tar -xJ
+      curl -L https://static.dpdk.org/rel/dpdk-$DPDKVER.tar.xz | tar -xJ
       cd dpdk-$DPDKVER
+      curl -L https://patches.dpdk.org/patch/65156/raw/ | patch -p1
+      curl -L https://patches.dpdk.org/patch/65158/raw/ | patch -p1
+      curl -L https://patches.dpdk.org/patch/65270/raw/ | patch -p1
       meson -Dtests=false --libdir=lib build
       cd build
       ninja
     fi
     sudo ninja install
     sudo find /usr/local/lib -name 'librte_*.a' -delete
-    sudo install -m 0644 -t /usr/local/include/ \
-      ../lib/librte_bpf/rte_bpf.h ../lib/librte_bpf/bpf_def.h
     sudo ldconfig
   - |
     : install SPDK
