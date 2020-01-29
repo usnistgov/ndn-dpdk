@@ -23,6 +23,10 @@ func (rtte *RttEst) Init() {
 	C.RttEst_Init(rtte.getPtr())
 }
 
+func (rtte *RttEst) GetLastRtt() time.Duration {
+	return dpdk.FromTscDuration(rtte.Last)
+}
+
 func (rtte *RttEst) GetSRtt() time.Duration {
 	return dpdk.FromTscDuration(int64(rtte.SRtt))
 }

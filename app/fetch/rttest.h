@@ -19,6 +19,7 @@ extern TscDuration RTTEST_MAXRTO;
  */
 typedef struct RttEst
 {
+  TscDuration last; // last input RTT (for external sampling only)
   double sRtt;
   double rttVar;
   TscDuration rto;
@@ -34,6 +35,7 @@ RttEst_Init(RttEst* rtte);
 inline void
 RttEst_Push(RttEst* rtte, TscTime now, TscDuration rtt)
 {
+  rtte->last = rtt;
   if (likely(rtte->next_ > now)) {
     return;
   }

@@ -2,6 +2,7 @@ package main
 
 import (
 	stdlog "log"
+	"math"
 	"os"
 	"time"
 
@@ -43,20 +44,25 @@ func main() {
 }
 
 func printPeriodicCounters(app *ping.App, counterInterval time.Duration) {
-	var fetchCnt fetch.Counters
+	prevFetchCnt := make(map[*fetch.Fetcher]fetch.Counters)
 	for range time.Tick(counterInterval) {
 		for _, task := range app.Tasks {
-			stdlog.Printf("face(%d): %v %v", task.Face.GetFaceId(),
-				task.Face.ReadCounters(), task.Face.ReadExCounters())
-			if task.Fetch != nil {
-				fetchCnt = task.Fetch.Logic.ReadCounters(fetchCnt)
-				stdlog.Printf("  fetch: %v", fetchCnt)
+			face := task.Face
+			stdlog.Printf("face(%d): %v %v", face.GetFaceId(), face.ReadCounters(), face.ReadExCounters())
+			if fetcher := task.Fetch; fetcher != nil {
+				cnt := fetcher.Logic.ReadCounters()
+				goodput := math.NaN()
+				if prev, ok := prevFetchCnt[fetcher]; ok {
+					goodput = cnt.ComputeGoodput(prev)
+				}
+				prevFetchCnt[fetcher] = cnt
+				stdlog.Printf("  fetch: %v %0.0fD/s", cnt, goodput)
 			}
-			if task.Client != nil {
-				stdlog.Printf("  client: %v", task.Client.ReadCounters())
+			if client := task.Client; client != nil {
+				stdlog.Printf("  client: %v", client.ReadCounters())
 			}
-			if task.Server != nil {
-				stdlog.Printf("  server: %v", task.Server.ReadCounters())
+			if server := task.Server; server != nil {
+				stdlog.Printf("  server: %v", server.ReadCounters())
 			}
 		}
 	}

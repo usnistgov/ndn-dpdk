@@ -31,4 +31,5 @@ type FetchBenchmarkArgs struct {
 
 type FetchBenchmarkReply struct {
 	Counters []fetch.Counters
+	Goodput  float64
 }

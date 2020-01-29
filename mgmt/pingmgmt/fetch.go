@@ -46,7 +46,8 @@ func (mg FetchMgmt) Benchmark(args FetchBenchmarkArgs, reply *FetchBenchmarkRepl
 	fetcher.SetName(args.Name)
 	fetcher.Launch()
 	time.Sleep(args.Warmup.Duration())
-	cnt := fetcher.Logic.ReadCounters(fetch.Counters{})
+	firstCnt := fetcher.Logic.ReadCounters()
+	cnt := firstCnt
 
 	ticker := time.NewTicker(args.Interval.Duration())
 	defer ticker.Stop()
@@ -55,9 +56,10 @@ func (mg FetchMgmt) Benchmark(args FetchBenchmarkArgs, reply *FetchBenchmarkRepl
 		if !fetcher.IsRunning() {
 			return errors.New("Fetcher stopped prematurely")
 		}
-		cnt = fetcher.Logic.ReadCounters(cnt)
+		cnt = fetcher.Logic.ReadCounters()
 		reply.Counters = append(reply.Counters, cnt)
 	}
+	reply.Goodput = cnt.ComputeGoodput(firstCnt)
 	fetcher.Stop()
 	return nil
 }
@@ -68,6 +70,6 @@ func (mg FetchMgmt) ReadCounters(args IndexArg, reply *fetch.Counters) error {
 		return e
 	}
 
-	*reply = fetcher.Logic.ReadCounters(fetch.Counters{})
+	*reply = fetcher.Logic.ReadCounters()
 	return nil
 }
