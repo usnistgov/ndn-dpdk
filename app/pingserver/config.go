@@ -7,8 +7,9 @@ import (
 
 // Server config.
 type Config struct {
-	Patterns []Pattern // traffic patterns
-	Nack     bool      // whether to respond Nacks to unmatched Interests
+	Patterns []Pattern              // traffic patterns
+	Nack     bool                   // whether to respond Nacks to unmatched Interests
+	Delay    nnduration.Nanoseconds // minimum processing delay
 }
 
 // Server pattern definition.

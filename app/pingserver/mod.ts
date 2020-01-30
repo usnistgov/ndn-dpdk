@@ -1,9 +1,10 @@
-import { Milliseconds } from "../../core/nnduration/mod.js";
+import { Milliseconds, Nanoseconds } from "../../core/nnduration/mod.js";
 import * as ndn from "../../ndn/mod.js";
 
 export interface Config {
   Patterns: Pattern[];
   Nack: boolean;
+  Delay: Nanoseconds;
 }
 
 export interface Pattern {

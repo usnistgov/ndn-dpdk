@@ -29,6 +29,7 @@ func New(face iface.IFace, cfg Config) (server *Server, e error) {
 		appinit.MP_DATA0, socket).GetPtr())
 	serverC.indirectMp = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
 		appinit.MP_IND, socket).GetPtr())
+	serverC.delay = C.TscDuration(dpdk.ToTscDuration(cfg.Delay.Duration()))
 	serverC.face = (C.FaceId)(face.GetFaceId())
 	serverC.wantNackNoRoute = C.bool(cfg.Nack)
 	C.pcg32_srandom_r(&serverC.replyRng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))

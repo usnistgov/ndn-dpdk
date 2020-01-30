@@ -49,6 +49,7 @@ typedef struct PingServer
   struct rte_ring* rxQueue;
   struct rte_mempool* dataMp; ///< mempool for Data seg0
   struct rte_mempool* indirectMp;
+  TscDuration delay; ///< minimum processing delay
   FaceId face;
   uint16_t nPatterns;
   bool wantNackNoRoute; ///< whether to Nack Interests not matching any pattern

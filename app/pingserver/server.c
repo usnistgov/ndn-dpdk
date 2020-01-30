@@ -131,6 +131,12 @@ PingServer_Run(PingServer* server)
   while (ThreadStopFlag_ShouldContinue(&server->stop)) {
     uint16_t nRx = rte_ring_sc_dequeue_burst(
       server->rxQueue, (void**)rx, PINGSERVER_BURST_SIZE, NULL);
+    if (unlikely(nRx == 0)) {
+      rte_pause();
+      continue;
+    }
+    TscTime delayUntil = Packet_ToMbuf(rx[nRx - 1])->timestamp + server->delay;
+
     uint16_t nTx = 0;
     for (uint16_t i = 0; i < nRx; ++i) {
       Packet* npkt = rx[i];
@@ -138,12 +144,14 @@ PingServer_Run(PingServer* server)
       tx[nTx] = PingServer_ProcessInterest(server, npkt);
       nTx += (tx[nTx] != NULL);
     }
-    if (likely(nRx > 0)) {
-      ZF_LOGD("face=%" PRI_FaceId "nRx=%" PRIu16 " nTx=%" PRIu16,
-              server->face,
-              nRx,
-              nTx);
+
+    while (rte_get_tsc_cycles() < delayUntil) {
+      rte_pause();
     }
+    ZF_LOGD("face=%" PRI_FaceId "nRx=%" PRIu16 " nTx=%" PRIu16,
+            server->face,
+            nRx,
+            nTx);
     Face_TxBurst(server->face, tx, nTx);
   }
 }
