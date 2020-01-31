@@ -44,14 +44,16 @@ TcpCubic_Increase(TcpCubic* ca, TscTime now, double sRtt)
   double t = (now - ca->t0) * TCPCUBIC_TSCHZ_INV;
   double rtt = sRtt * TCPCUBIC_TSCHZ_INV;
 
+  double wCubic = TcpCubic_ComputeWCubic(ca, t);
   double wEst = TcpCubic_ComputeWEst(ca, t, rtt);
-  if (TcpCubic_ComputeWCubic(ca, t) < wEst) { // TCP friendly region
+  if (wCubic < wEst) { // TCP friendly region
     ca->cwnd = wEst;
     return;
   }
 
   // concave region or convex region
-  double wCubic = TcpCubic_ComputeWCubic(ca, t + rtt);
+  // note: RFC8312 specifies `(W_cubic(t+RTT) - cwnd) / cwnd`, but benchmark shows that
+  //       using `(W_cubic(t) - cwnd) / cwnd` increases throughput by 10%
   ca->cwnd += (wCubic - ca->cwnd) / ca->cwnd;
 }
 
