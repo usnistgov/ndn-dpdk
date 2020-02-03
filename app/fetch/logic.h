@@ -53,11 +53,19 @@ FetchLogic_Finished(FetchLogic* fl)
 size_t
 FetchLogic_TxInterestBurst(FetchLogic* fl, uint64_t* segNums, size_t limit);
 
+typedef struct FetchLogicRxData
+{
+  uint64_t segNum;
+  uint8_t congMark;
+} FetchLogicRxData;
+
 /** \brief Notify Data arrival.
- *  \param segNums segment numbers in arrived Data.
+ *  \param pkts fields extracted from arrived Data.
  *  \param count size of segNums array.
  */
 void
-FetchLogic_RxDataBurst(FetchLogic* fl, const uint64_t* segNums, size_t count);
+FetchLogic_RxDataBurst(FetchLogic* fl,
+                       const FetchLogicRxData* pkts,
+                       size_t count);
 
 #endif // NDN_DPDK_APP_FETCH_LOGIC_H

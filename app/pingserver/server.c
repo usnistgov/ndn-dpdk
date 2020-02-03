@@ -31,7 +31,9 @@ PingServer_RespondData(PingServer* server,
                        PingServerReply* reply,
                        Packet* npkt)
 {
-  uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
+  LpL3* lpl3 = Packet_GetLpL3Hdr(npkt);
+  uint64_t token = lpl3->pitToken;
+  uint8_t congMark = lpl3->congMark;
   const LName* name = (const LName*)&Packet_GetInterestHdr(npkt)->name;
 
   struct rte_mbuf* seg0 = rte_pktmbuf_alloc(server->dataMp);
@@ -55,7 +57,9 @@ PingServer_RespondData(PingServer* server,
 
   Packet* response = Packet_FromMbuf(seg0);
   Packet_SetL2PktType(response, L2PktType_None);
-  Packet_InitLpL3Hdr(response)->pitToken = token;
+  lpl3 = Packet_InitLpL3Hdr(response);
+  lpl3->pitToken = token;
+  lpl3->congMark = congMark;
   Packet_SetL3PktType(response, L3PktType_Data); // for stats; no PData*
   return response;
 }

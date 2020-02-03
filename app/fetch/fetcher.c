@@ -54,18 +54,20 @@ Fetcher_TxBurst(Fetcher* fetcher)
 }
 
 static bool
-Fetcher_Decode(Fetcher* fetcher, Packet* npkt, uint64_t* segNum)
+Fetcher_Decode(Fetcher* fetcher, Packet* npkt, FetchLogicRxData* lpkt)
 {
   if (unlikely(Packet_GetL3PktType(npkt) != L3PktType_Data)) {
     return false;
   }
+  lpkt->congMark = Packet_GetLpL3Hdr(npkt)->congMark;
+
   const PData* data = Packet_GetDataHdr(npkt);
   LName* name = (LName*)&data->name;
   const uint8_t* comp =
     RTE_PTR_ADD(name->value, fetcher->tpl.namePrefix.length);
   return LName_Compare(fetcher->tpl.namePrefix, *name) == NAMECMP_LPREFIX &&
          comp[0] == TT_SegmentNameComponent &&
-         DecodeNni(comp[1], &comp[2], segNum) == NdnError_OK;
+         DecodeNni(comp[1], &comp[2], &lpkt->segNum) == NdnError_OK;
 }
 
 static void
@@ -75,15 +77,15 @@ Fetcher_RxBurst(Fetcher* fetcher)
   uint16_t nRx = rte_ring_sc_dequeue_burst(
     fetcher->rxQueue, (void**)npkts, FETCHER_RX_BURST_SIZE, NULL);
 
-  uint64_t segNums[FETCHER_RX_BURST_SIZE];
+  FetchLogicRxData lpkts[FETCHER_RX_BURST_SIZE];
   size_t count = 0;
   for (uint16_t i = 0; i < nRx; ++i) {
-    bool ok = Fetcher_Decode(fetcher, npkts[i], &segNums[count]);
+    bool ok = Fetcher_Decode(fetcher, npkts[i], &lpkts[count]);
     if (likely(ok)) {
       ++count;
     }
   }
-  FetchLogic_RxDataBurst(&fetcher->logic, segNums, count);
+  FetchLogic_RxDataBurst(&fetcher->logic, lpkts, count);
   FreeMbufs((struct rte_mbuf**)npkts, nRx);
 }
 

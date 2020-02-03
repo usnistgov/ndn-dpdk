@@ -32,7 +32,7 @@ func TestLogic(t *testing.T) {
 		for {
 			select {
 			case rxSegNum := <-rxData:
-				fl.RxData(rxSegNum)
+				fl.RxData(rxSegNum, false)
 			default:
 				break RX
 			}

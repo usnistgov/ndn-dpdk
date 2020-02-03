@@ -67,7 +67,11 @@ func (fl *Logic) TxInterest() (need bool, segNum uint64) {
 }
 
 // Notify Data arrival.
-func (fl *Logic) RxData(segNum uint64) {
-	segNumC := C.uint64_t(segNum)
-	C.FetchLogic_RxDataBurst(fl.getPtr(), &segNumC, 1)
+func (fl *Logic) RxData(segNum uint64, hasCongMark bool) {
+	var pkt C.FetchLogicRxData
+	pkt.segNum = C.uint64_t(segNum)
+	if hasCongMark {
+		pkt.congMark = 1
+	}
+	C.FetchLogic_RxDataBurst(fl.getPtr(), &pkt, 1)
 }
