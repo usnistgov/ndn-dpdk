@@ -37,7 +37,9 @@ func startDp(ndtCfg ndt.Config, fibCfg fib.Config, dpInit fwdpInitConfig) {
 	dpCfg.Crypto.OpPoolCacheSize = 31
 
 	// set dataplane config
-	dpCfg.FwdQueueCapacity = dpInit.FwdQueueCapacity
+	dpCfg.FwdInterestQueue = dpInit.FwdInterestQueue
+	dpCfg.FwdDataQueue = dpInit.FwdDataQueue
+	dpCfg.FwdNackQueue = dpInit.FwdNackQueue
 	dpCfg.LatencySampleFreq = dpInit.LatencySampleFreq
 	dpCfg.Pcct.MaxEntries = dpInit.PcctCapacity
 	dpCfg.Pcct.CsCapMd = dpInit.CsCapMd

@@ -12,8 +12,10 @@
  */
 typedef struct FwInputFwdConn
 {
-  struct rte_ring* queue; ///< FwFwd's queue
-  uint64_t nDrops;        ///< dropped packets due to full queue
+  FwFwd* fwd;
+  uint64_t nInterestDrops; ///< dropped Interests due to full queue
+  uint64_t nDataDrops;     ///< dropped Data due to full queue
+  uint64_t nNackDrops;     ///< dropped Nacks due to full queue
 } FwInputFwdConn;
 
 /** \brief Forwarder data plane, input process.
@@ -49,8 +51,9 @@ FwInput_GetConn(FwInput* fwi, uint8_t i)
 
 void
 FwInput_DispatchByName(FwInput* fwi, Packet* npkt, const Name* name);
+
 void
-FwInput_DispatchByToken(FwInput* fwi, Packet* npkt, uint64_t token);
+FwInput_DispatchByToken(FwInput* fwi, Packet* npkt);
 
 void
 FwInput_FaceRx(FaceRxBurst* burst, void* fwi0);

@@ -4,6 +4,7 @@ import (
 	"flag"
 	"os"
 
+	"ndn-dpdk/app/fwdp"
 	"ndn-dpdk/appinit"
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/ndt"
@@ -18,7 +19,9 @@ type initConfig struct {
 }
 
 type fwdpInitConfig struct {
-	FwdQueueCapacity  int
+	FwdInterestQueue  fwdp.FwdQueueConfig
+	FwdDataQueue      fwdp.FwdQueueConfig
+	FwdNackQueue      fwdp.FwdQueueConfig
 	LatencySampleFreq int
 	PcctCapacity      int
 	CsCapMd           int
@@ -33,7 +36,9 @@ func parseCommand(args []string) (initCfg initConfig, e error) {
 	initCfg.Fib.MaxEntries = 65535
 	initCfg.Fib.NBuckets = 256
 	initCfg.Fib.StartDepth = 8
-	initCfg.Fwdp.FwdQueueCapacity = 128
+	initCfg.Fwdp.FwdInterestQueue.DequeueBurstSize = 48
+	initCfg.Fwdp.FwdDataQueue.DequeueBurstSize = 64
+	initCfg.Fwdp.FwdNackQueue.DequeueBurstSize = 64
 	initCfg.Fwdp.LatencySampleFreq = 16
 	initCfg.Fwdp.PcctCapacity = 131071
 	initCfg.Fwdp.CsCapMd = 32768

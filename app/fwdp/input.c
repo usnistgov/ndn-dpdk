@@ -4,6 +4,13 @@
 
 #include "../../core/logger.h"
 
+static const size_t FwInputFwdConn_OffsetofDropCounter[L3PktType_MAX] = {
+  SIZE_MAX,
+  offsetof(FwInputFwdConn, nInterestDrops),
+  offsetof(FwInputFwdConn, nDataDrops),
+  offsetof(FwInputFwdConn, nNackDrops),
+};
+
 INIT_ZF_LOG(FwInput);
 
 FwInput*
@@ -23,18 +30,22 @@ FwInput_New(const Ndt* ndt,
 void
 FwInput_Connect(FwInput* fwi, FwFwd* fwd)
 {
-  FwInputFwdConn* conn = &fwi->conn[fwd->id];
-  assert(conn->queue == NULL);
-  conn->queue = fwd->queue;
+  FwInputFwdConn* conn = FwInput_GetConn(fwi, fwd->id);
+  assert(conn->fwd == NULL);
+  conn->fwd = fwd;
 }
 
 static void
 FwInput_PassTo(FwInput* fwi, Packet* npkt, uint8_t fwdId)
 {
-  int res = rte_ring_enqueue(fwi->conn[fwdId].queue, npkt);
-  if (res != 0) {
-    ++fwi->conn[fwdId].nDrops;
-    rte_pktmbuf_free(Packet_ToMbuf(npkt));
+  FwInputFwdConn* conn = FwInput_GetConn(fwi, fwdId);
+  L3PktType l3type = Packet_GetL3PktType(npkt);
+  CoDelQueue* q = RTE_PTR_ADD(conn->fwd, FwFwd_OffsetofQueue[l3type]);
+  uint32_t nRej = CoDelQueue_PushPlain(q, (struct rte_mbuf**)&npkt, 1);
+  if (unlikely(nRej != 0)) {
+    uint64_t* nDrops =
+      RTE_PTR_ADD(conn, FwInputFwdConn_OffsetofDropCounter[l3type]);
+    *nDrops += nRej;
   }
 }
 
@@ -57,9 +68,10 @@ FwInput_DispatchByName(FwInput* fwi, Packet* npkt, const Name* name)
 }
 
 void
-FwInput_DispatchByToken(FwInput* fwi, Packet* npkt, uint64_t token)
+FwInput_DispatchByToken(FwInput* fwi, Packet* npkt)
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
+  uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
 
   if (unlikely(token == 0)) {
     ZF_LOGD("%s-from=%" PRI_FaceId " npkt=%p bad-token=%016" PRIx64,
@@ -111,12 +123,10 @@ FwInput_FaceRx(FaceRxBurst* burst, void* fwi0)
   }
   for (uint16_t i = 0; i < burst->nData; ++i) {
     Packet* npkt = FaceRxBurst_GetData(burst, i);
-    LpL3* lpl3 = Packet_GetLpL3Hdr(npkt);
-    FwInput_DispatchByToken(fwi, npkt, lpl3->pitToken);
+    FwInput_DispatchByToken(fwi, npkt);
   }
   for (uint16_t i = 0; i < burst->nNacks; ++i) {
     Packet* npkt = FaceRxBurst_GetNack(burst, i);
-    LpL3* lpl3 = Packet_GetLpL3Hdr(npkt);
-    FwInput_DispatchByToken(fwi, npkt, lpl3->pitToken);
+    FwInput_DispatchByToken(fwi, npkt);
   }
 }

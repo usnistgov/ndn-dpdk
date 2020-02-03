@@ -13,8 +13,12 @@ export interface InputInfo {
 
 export interface FwdInfo {
   LCore: number;
-  QueueCapacity: Counter;
-  NQueueDrops: Counter;
+  NInterestDrops: Counter;
+  NDataDrops: Counter;
+  NNackDrops: Counter;
+  NInterestCongMarks: Counter;
+  NDataCongMarks: Counter;
+  NNackCongMarks: Counter;
   InputLatency: running_stat.Snapshot;
   NNoFibMatch: Counter;
   NDupNonce: Counter;

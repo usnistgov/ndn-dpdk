@@ -8,15 +8,14 @@ Each thread runs in a DPDK lcore, allocated from "RX" or "FWD" role.
 ## Input Thread (FwInput)
 
 A FwInput runs an **iface.RxLoop** as the main loop ("RX" role), which reads and decodes packets from one or more network interfaces.
-Every burst of receives L3 packets triggers `FwInput_FaceRx` function.
+Every burst of received L3 packets triggers `FwInput_FaceRx` function.
 
 For each incoming packet, FwInput decides which forwarding thread should handle the packet:
 
 * For an Interest, lookup the [NDT](../../container/ndt/) with the Interest name.
 * For a Data or Nack, take the first 8 bits of its PIT token.
 
-Then, FwInput passes the packet to the chosen forwarding thread's input queue (a DPDK ring in multi-producer single-consumer mode).
-In case the queue is full, FwInput drops the packet, and increments a drop counter.
+Then, FwInput passes the packet to the chosen forwarding thread's input queue.
 
 ### Data Structure Usage
 
@@ -40,11 +39,24 @@ The main loop first performs some maintenance work:
 * Mark a URCU quiescent state, as required by FIB.
 * Trigger the PIT timeout scheduler.
 
-Then it reads packets from its input queue, and handles each packet separately:
+Then it reads packets from input queues, and handles each packet separately:
 
 * `FwFwd_RxInterest` function handles an incoming Interest.
 * `FwFwd_RxData` function handles an incoming Data.
 * `FwFwd_RxNack` function handles an incoming Nack.
+
+Each FwFwd has three [CoDel queues](../../container/codel_queue/), one for each L3 packet type.
+They are backed by DPDK rings in multi-producer single-consumer mode.
+FwInputs enqueue packets to these queues; in case the DPDK ring is full, FwInput drops the packet.
+FwFwds dequeue packets from these queues; if CoDel algorithms indicates a packet could be dropped, FwFwd places a congestion mark on the packet but does not drop the packet.
+The ratio of dequeue burst size among the three queues determines relative weight among L3 packet types; for example, dequeuing up to 48 Interests, 64 Data, and 64 Nacks would give Data/Nack a priority over Interest.
+
+Congestion mark handling is incomplete.
+Some limitations are:
+
+* FwFwd can place congestion mark only on ingress side (i.e. insufficient processing power), not on egress side (i.e. link congestion).
+* FwFwd does not add or remove congestion mark during Interest aggregation or Data caching.
+* FwFwd does not place congestion mark on reply Data/Nack when Interest congestion occurs, although the producer could do so.
 
 ### Data Structure Usage
 

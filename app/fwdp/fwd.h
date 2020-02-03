@@ -3,6 +3,7 @@
 
 /// \file
 
+#include "../../container/codel_queue/queue.h"
 #include "../../container/fib/fib.h"
 #include "../../container/pcct/cs.h"
 #include "../../container/pcct/pit.h"
@@ -16,7 +17,9 @@
 typedef struct FwFwd
 {
   SgGlobal sgGlobal;
-  struct rte_ring* queue; ///< input queue
+  CoDelQueue inInterestQueue;
+  CoDelQueue inDataQueue;
+  CoDelQueue inNackQueue;
 
   Fib* fib;
   union
@@ -108,5 +111,12 @@ FwFwd_RxNack(FwFwd* fwd, FwFwdCtx* ctx);
     (x) = NULL;                                                                \
   } while (false)
 #endif
+
+static const size_t FwFwd_OffsetofQueue[L3PktType_MAX] = {
+  SIZE_MAX,
+  offsetof(FwFwd, inInterestQueue),
+  offsetof(FwFwd, inDataQueue),
+  offsetof(FwFwd, inNackQueue),
+};
 
 #endif // NDN_DPDK_APP_FWDP_FWD_H

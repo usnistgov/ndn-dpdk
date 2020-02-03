@@ -77,9 +77,7 @@ FwCrypto_Output(FwCrypto* fwc, const CryptoQueuePair* cqp)
   }
 
   for (uint16_t i = 0; i < nFinish; ++i) {
-    Packet* npkt = npkts[i];
-    LpL3* lpl3 = Packet_GetLpL3Hdr(npkt);
-    FwInput_DispatchByToken(fwc->output, npkt, lpl3->pitToken);
+    FwInput_DispatchByToken(fwc->output, npkts[i]);
   }
 }
 

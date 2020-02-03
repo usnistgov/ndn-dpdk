@@ -97,8 +97,18 @@ Fib:
 
 # FORWARDER DATA PLANE
 Fwdp:
-  # Capacity of queue between FwInput and FwFwd.
-  FwdQueueCapacity: 128
+  # Settings of Interest queue between FwInput and FwFwd.
+  FwdInterestQueue:
+    Capacity: 131072
+    DequeueBurstSize: 32
+  # Settings of Data queue between FwInput and FwFwd.
+  FwdDataQueue:
+    Capacity: 131072
+    DequeueBurstSize: 64
+  # Settings of Nack queue between FwInput and FwFwd.
+  FwdNackQueue:
+    Capacity: 131072
+    DequeueBurstSize: 64
   # Collect RX-FwFwd latency sample every 2^LatencySampleFreq packets.
   # Must not exceed 30.
   LatencySampleFreq: 16

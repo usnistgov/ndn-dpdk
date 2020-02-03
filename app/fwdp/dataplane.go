@@ -24,7 +24,9 @@ type Config struct {
 	Pcct pcct.Config // PCCT config template (Id and NumaSocket ignored)
 
 	Crypto            CryptoConfig
-	FwdQueueCapacity  int // input-fwd queue capacity, must be power of 2
+	FwdInterestQueue  FwdQueueConfig
+	FwdDataQueue      FwdQueueConfig
+	FwdNackQueue      FwdQueueConfig
 	LatencySampleFreq int // latency sample frequency, between 0 and 30
 }
 
@@ -64,7 +66,7 @@ func New(cfg Config) (dp *DataPlane, e error) {
 	for i, lc := range dp.la.Fwds {
 		fwd := newFwd(i)
 		fwd.SetLCore(lc)
-		if e := fwd.Init(dp.fib, cfg.Pcct, cfg.FwdQueueCapacity, cfg.LatencySampleFreq); e != nil {
+		if e := fwd.Init(dp.fib, cfg.Pcct, cfg.FwdInterestQueue, cfg.FwdDataQueue, cfg.FwdNackQueue, cfg.LatencySampleFreq); e != nil {
 			dp.Close()
 			return nil, fmt.Errorf("Fwd.Init(%d): %v", i, e)
 		}

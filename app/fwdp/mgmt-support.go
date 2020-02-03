@@ -54,9 +54,13 @@ func (dp *DataPlane) ReadInputInfo(i int) (info *InputInfo) {
 type FwdInfo struct {
 	LCore dpdk.LCore // LCore executing this fwd process
 
-	QueueCapacity int                   // input queue capacity
-	NQueueDrops   uint64                // packets dropped because input queue is full
-	InputLatency  running_stat.Snapshot // input latency in nanos
+	NInterestDrops     uint64                // dropped Interests due to full queue
+	NDataDrops         uint64                // dropped Data due to full queue
+	NNackDrops         uint64                // dropped Nacks due to full queue
+	NInterestCongMarks uint64                // inserted cong-marks on Interests
+	NDataCongMarks     uint64                // inserted cong-marks on Data
+	NNackCongMarks     uint64                // inserted cong-marks on Nacks
+	InputLatency       running_stat.Snapshot // input latency in nanos
 
 	NNoFibMatch   uint64 // Interests dropped due to no FIB match
 	NDupNonce     uint64 // Interests dropped due duplicate nonce
@@ -77,8 +81,6 @@ func (dp *DataPlane) ReadFwdInfo(i int) (info *FwdInfo) {
 	fwd := dp.fwds[i]
 	info.LCore = fwd.GetLCore()
 
-	fwdQ := dpdk.RingFromPtr(unsafe.Pointer(fwd.c.queue))
-	info.QueueCapacity = fwdQ.GetCapacity()
 	latencyStat := running_stat.FromPtr(unsafe.Pointer(&fwd.c.latencyStat))
 	info.InputLatency = running_stat.TakeSnapshot(latencyStat).Multiply(dpdk.GetNanosInTscUnit())
 
@@ -92,8 +94,13 @@ func (dp *DataPlane) ReadFwdInfo(i int) (info *FwdInfo) {
 
 	for _, input := range dp.inputs {
 		inputConn := C.FwInput_GetConn(input.c, C.uint8_t(i))
-		info.NQueueDrops += uint64(inputConn.nDrops)
+		info.NInterestDrops += uint64(inputConn.nInterestDrops)
+		info.NDataDrops += uint64(inputConn.nDataDrops)
+		info.NNackDrops += uint64(inputConn.nNackDrops)
 	}
+	info.NInterestCongMarks = uint64(fwd.c.inInterestQueue.nDrops)
+	info.NDataCongMarks = uint64(fwd.c.inDataQueue.nDrops)
+	info.NNackCongMarks = uint64(fwd.c.inNackQueue.nDrops)
 
 	return info
 }
