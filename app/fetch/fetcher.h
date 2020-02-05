@@ -3,6 +3,7 @@
 
 /// \file
 
+#include "../../container/pktqueue/queue.h"
 #include "../../dpdk/thread.h"
 #include "../../iface/face.h"
 #include "../../ndn/encode-interest.h"
@@ -12,7 +13,7 @@
  */
 typedef struct Fetcher
 {
-  struct rte_ring* rxQueue;
+  PktQueue rxQueue;
   struct rte_mempool* interestMp;
   FetchLogic logic;
   FaceId face;

@@ -1,12 +1,14 @@
 package pingclient
 
 import (
+	"ndn-dpdk/container/pktqueue"
 	"ndn-dpdk/core/nnduration"
 	"ndn-dpdk/ndn"
 )
 
 // Client config.
 type Config struct {
+	RxQueue  pktqueue.Config
 	Patterns []Pattern              // traffic patterns
 	Interval nnduration.Nanoseconds // sending interval
 }

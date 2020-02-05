@@ -13,6 +13,7 @@ import (
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/ndt"
 	"ndn-dpdk/container/pcct"
+	"ndn-dpdk/container/pktqueue"
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/createface"
@@ -24,9 +25,9 @@ type Config struct {
 	Pcct pcct.Config // PCCT config template (Id and NumaSocket ignored)
 
 	Crypto            CryptoConfig
-	FwdInterestQueue  FwdQueueConfig
-	FwdDataQueue      FwdQueueConfig
-	FwdNackQueue      FwdQueueConfig
+	FwdInterestQueue  pktqueue.Config
+	FwdDataQueue      pktqueue.Config
+	FwdNackQueue      pktqueue.Config
 	LatencySampleFreq int // latency sample frequency, between 0 and 30
 }
 

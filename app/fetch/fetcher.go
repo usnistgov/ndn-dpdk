@@ -5,15 +5,18 @@ package fetch
 */
 import "C"
 import (
+	"fmt"
 	"unsafe"
 
 	"ndn-dpdk/appinit"
+	"ndn-dpdk/container/pktqueue"
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/ndn"
 )
 
 type FetcherConfig struct {
+	RxQueue        pktqueue.Config
 	WindowCapacity int
 }
 
@@ -25,11 +28,17 @@ type Fetcher struct {
 }
 
 func New(face iface.IFace, cfg FetcherConfig) (fetcher *Fetcher, e error) {
+	faceId := face.GetFaceId()
 	socket := face.GetNumaSocket()
 
 	fetcher = new(Fetcher)
 	fetcher.c = (*C.Fetcher)(dpdk.Zmalloc("Fetcher", C.sizeof_Fetcher, socket))
-	fetcher.c.face = (C.FaceId)(face.GetFaceId())
+	fetcher.c.face = (C.FaceId)(faceId)
+	cfg.RxQueue.DisableCoDel = true
+	if _, e := pktqueue.NewAt(unsafe.Pointer(&fetcher.c.rxQueue), cfg.RxQueue, fmt.Sprintf("Fetcher%d_rxQ", faceId), socket); e != nil {
+		dpdk.Free(fetcher.c)
+		return nil, nil
+	}
 	fetcher.c.interestMbufHeadroom = C.uint16_t(appinit.SizeofEthLpHeaders() + ndn.EncodeInterest_GetHeadroom())
 	fetcher.c.interestMp = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(appinit.MP_INT, socket).GetPtr())
 	C.NonceGen_Init(&fetcher.c.nonceGen)
@@ -55,8 +64,8 @@ func (fetcher *Fetcher) SetName(name *ndn.Name) error {
 		unsafe.Pointer(&fetcher.c.prefixBuffer), unsafe.Sizeof(fetcher.c.prefixBuffer))
 }
 
-func (fetcher *Fetcher) SetRxQueue(queue dpdk.Ring) {
-	fetcher.c.rxQueue = (*C.struct_rte_ring)(queue.GetPtr())
+func (fetcher *Fetcher) GetRxQueue() pktqueue.PktQueue {
+	return pktqueue.FromPtr(unsafe.Pointer(&fetcher.c.rxQueue))
 }
 
 func (fetcher *Fetcher) Launch() error {
@@ -75,6 +84,7 @@ func (fetcher *Fetcher) Stop() error {
 
 func (fetcher *Fetcher) Close() error {
 	fetcher.Logic.Close()
+	fetcher.GetRxQueue().Close()
 	dpdk.Free(fetcher.c)
 	return nil
 }

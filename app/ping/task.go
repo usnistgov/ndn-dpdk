@@ -50,6 +50,23 @@ func newTask(face iface.IFace, cfg TaskConfig) (task Task, e error) {
 	return task, nil
 }
 
+func (task *Task) connectInput(inputC *C.PingInput) {
+	entryC := C.PingInput_GetEntry(inputC, C.uint16_t(task.Face.GetFaceId()))
+	if entryC == nil {
+		return
+	}
+
+	if task.Fetch != nil {
+		entryC.clientQueue = (*C.PktQueue)(task.Fetch.GetRxQueue().GetPtr())
+	} else if task.Client != nil {
+		entryC.clientQueue = (*C.PktQueue)(task.Client.GetRxQueue().GetPtr())
+	}
+
+	if task.Server != nil {
+		entryC.serverQueue = (*C.PktQueue)(task.Server.GetRxQueue().GetPtr())
+	}
+}
+
 func (task *Task) Launch() {
 	if task.Server != nil {
 		task.Server.Launch()

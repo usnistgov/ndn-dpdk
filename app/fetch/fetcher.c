@@ -6,7 +6,6 @@
 INIT_ZF_LOG(Fetcher);
 
 #define FETCHER_TX_BURST_SIZE 64
-#define FETCHER_RX_BURST_SIZE 64
 
 static void
 Fetcher_Encode(Fetcher* fetcher, Packet* npkt, uint64_t segNum)
@@ -73,11 +72,14 @@ Fetcher_Decode(Fetcher* fetcher, Packet* npkt, FetchLogicRxData* lpkt)
 static void
 Fetcher_RxBurst(Fetcher* fetcher)
 {
-  Packet* npkts[FETCHER_RX_BURST_SIZE];
-  uint16_t nRx = rte_ring_sc_dequeue_burst(
-    fetcher->rxQueue, (void**)npkts, FETCHER_RX_BURST_SIZE, NULL);
+  Packet* npkts[PKTQUEUE_BURST_SIZE_MAX];
+  uint32_t nRx = PktQueue_Pop(&fetcher->rxQueue,
+                              (struct rte_mbuf**)npkts,
+                              PKTQUEUE_BURST_SIZE_MAX,
+                              rte_get_tsc_cycles())
+                   .count;
 
-  FetchLogicRxData lpkts[FETCHER_RX_BURST_SIZE];
+  FetchLogicRxData lpkts[PKTQUEUE_BURST_SIZE_MAX];
   size_t count = 0;
   for (uint16_t i = 0; i < nRx; ++i) {
     bool ok = Fetcher_Decode(fetcher, npkts[i], &lpkts[count]);

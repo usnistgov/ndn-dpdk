@@ -30,9 +30,9 @@ static __rte_always_inline void
 FwFwd_RxByType(FwFwd* fwd, L3PktType l3type)
 {
   TscTime now = rte_get_tsc_cycles();
-  CoDelQueue* q = RTE_PTR_ADD(fwd, FwFwd_OffsetofQueue[l3type]);
-  struct rte_mbuf* pkts[CODELQUEUE_BURST_SIZE_MAX];
-  CoDelPopResult pop = CoDelQueue_Pop(q, pkts, RTE_DIM(pkts), now);
+  PktQueue* q = RTE_PTR_ADD(fwd, FwFwd_OffsetofQueue[l3type]);
+  struct rte_mbuf* pkts[PKTQUEUE_BURST_SIZE_MAX];
+  PktQueuePopResult pop = PktQueue_Pop(q, pkts, RTE_DIM(pkts), now);
   if (unlikely(pop.drop)) {
     Packet_GetLpL3Hdr(Packet_FromMbuf(pkts[0]))->congMark = 1;
   }

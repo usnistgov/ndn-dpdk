@@ -87,16 +87,14 @@ func TestServer(t *testing.T) {
 	defer server.Close()
 	server.SetLCore(pingtestenv.SlaveLCores[0])
 
-	rxQueue := pingtestenv.AttachRxQueue(server)
-	defer rxQueue.Close()
-
 	server.Launch()
 
+	rx := pingtestenv.MakeRxFunc(server)
 	for i := 0; i < 100; i++ {
 		interestA := ndntestutil.MakeInterest(fmt.Sprintf("/A/%d", i))
 		interestB := ndntestutil.MakeInterest(fmt.Sprintf("/B/%d", i))
 		interestC := ndntestutil.MakeInterest(fmt.Sprintf("/C/%d", i))
-		rxQueue.Rx(interestA, interestB, interestC)
+		rx(interestA, interestB, interestC)
 		time.Sleep(50 * time.Microsecond)
 	}
 	time.Sleep(20 * time.Millisecond)

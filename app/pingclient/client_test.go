@@ -49,9 +49,7 @@ func TestClient(t *testing.T) {
 	defer client.Close()
 	client.SetLCores(pingtestenv.SlaveLCores[0], pingtestenv.SlaveLCores[1])
 
-	rxQueue := pingtestenv.AttachRxQueue(client)
-	defer rxQueue.Close()
-
+	rx := pingtestenv.MakeRxFunc(client)
 	nInterestsA := 0
 	nInterestsB1 := 0
 	nInterestsB2 := 0
@@ -82,7 +80,7 @@ func TestClient(t *testing.T) {
 		}
 		data := ndntestutil.MakeData(interest.GetName().String())
 		ndntestutil.CopyPitToken(data, interest)
-		rxQueue.Rx(data)
+		rx(data)
 	})
 
 	assert.InDelta(100*time.Microsecond, client.GetInterval(), float64(1*time.Microsecond))

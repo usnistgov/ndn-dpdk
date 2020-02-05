@@ -19,6 +19,8 @@
     Local: "02:00:00:00:00:02"
     Remote: "01:00:5e:00:17:aa"
   Server:
+    RxQueue:
+      Delay: 0ms
     Patterns:
       - Prefix: /B/1
         Replies:

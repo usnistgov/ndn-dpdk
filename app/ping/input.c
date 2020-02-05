@@ -22,10 +22,9 @@ PingInput_FaceRx(FaceRxBurst* burst, void* input0)
     struct rte_mbuf* m = Packet_ToMbuf(npkt);                                  \
     uint16_t faceId = m->port;                                                 \
     if (likely(faceId >= input->minFaceId && faceId <= input->maxFaceId)) {    \
-      struct rte_ring* queue =                                                 \
-        input->entry[faceId - input->minFaceId].queueName;                     \
-      if (likely(queue != NULL) &&                                             \
-          likely(rte_ring_sp_enqueue(queue, npkt) == 0)) {                     \
+      PktQueue* q = input->entry[faceId - input->minFaceId].queueName;         \
+      if (likely(q != NULL)) {                                                 \
+        PktQueue_PushPlain(q, &m, 1);                                          \
         break;                                                                 \
       }                                                                        \
     }                                                                          \

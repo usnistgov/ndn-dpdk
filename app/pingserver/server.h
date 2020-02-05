@@ -3,6 +3,7 @@
 
 /// \file
 
+#include "../../container/pktqueue/queue.h"
 #include "../../core/pcg_basic.h"
 #include "../../dpdk/thread.h"
 #include "../../iface/face.h"
@@ -11,7 +12,6 @@
 #define PINGSERVER_MAX_PATTERNS 256
 #define PINGSERVER_MAX_REPLIES 8
 #define PINGSERVER_MAX_SUM_WEIGHT 256
-#define PINGSERVER_BURST_SIZE 64
 
 typedef uint8_t PingReplyId;
 
@@ -46,10 +46,9 @@ typedef struct PingServerPattern
  */
 typedef struct PingServer
 {
-  struct rte_ring* rxQueue;
+  PktQueue rxQueue;
   struct rte_mempool* dataMp; ///< mempool for Data seg0
   struct rte_mempool* indirectMp;
-  TscDuration delay; ///< minimum processing delay
   FaceId face;
   uint16_t nPatterns;
   bool wantNackNoRoute; ///< whether to Nack Interests not matching any pattern

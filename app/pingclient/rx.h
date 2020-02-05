@@ -5,6 +5,7 @@
 
 #include "common.h"
 
+#include "../../container/pktqueue/queue.h"
 #include "../../core/running_stat/running-stat.h"
 #include "../../dpdk/thread.h"
 
@@ -22,7 +23,7 @@ typedef struct PingClientRxPattern
  */
 typedef struct PingClientRx
 {
-  struct rte_ring* rxQueue;
+  PktQueue rxQueue;
   ThreadStopFlag stop;
   uint8_t runNum;
   uint16_t nPatterns;

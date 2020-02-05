@@ -45,7 +45,7 @@ Then it reads packets from input queues, and handles each packet separately:
 * `FwFwd_RxData` function handles an incoming Data.
 * `FwFwd_RxNack` function handles an incoming Nack.
 
-Each FwFwd has three [CoDel queues](../../container/codel_queue/), one for each L3 packet type.
+Each FwFwd has three [CoDel queues](../../container/pktqueue/), one for each L3 packet type.
 They are backed by DPDK rings in multi-producer single-consumer mode.
 FwInputs enqueue packets to these queues; in case the DPDK ring is full, FwInput drops the packet.
 FwFwds dequeue packets from these queues; if CoDel algorithms indicates a packet could be dropped, FwFwd places a congestion mark on the packet but does not drop the packet.

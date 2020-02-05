@@ -13,6 +13,7 @@ import (
 	"unsafe"
 
 	"ndn-dpdk/appinit"
+	"ndn-dpdk/container/pktqueue"
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/ndn"
@@ -27,6 +28,11 @@ type Client struct {
 func New(face iface.IFace, cfg Config) (client *Client, e error) {
 	socket := face.GetNumaSocket()
 	crC := (*C.PingClientRx)(dpdk.Zmalloc("PingClientRx", C.sizeof_PingClientRx, socket))
+	cfg.RxQueue.DisableCoDel = true
+	if _, e := pktqueue.NewAt(unsafe.Pointer(&crC.rxQueue), cfg.RxQueue, fmt.Sprintf("PingClient%d_rxQ", face.GetFaceId()), socket); e != nil {
+		dpdk.Free(crC)
+		return nil, nil
+	}
 
 	ctC := (*C.PingClientTx)(dpdk.Zmalloc("PingClientTx", C.sizeof_PingClientTx, socket))
 	ctC.face = (C.FaceId)(face.GetFaceId())
@@ -117,8 +123,8 @@ func (client *Client) SetInterval(interval time.Duration) {
 	client.Tx.c.burstInterval = C.TscDuration(dpdk.ToTscDuration(interval * C.PINGCLIENT_TX_BURST_SIZE))
 }
 
-func (client *Client) SetRxQueue(queue dpdk.Ring) {
-	client.Rx.c.rxQueue = (*C.struct_rte_ring)(queue.GetPtr())
+func (client *Client) GetRxQueue() pktqueue.PktQueue {
+	return pktqueue.FromPtr(unsafe.Pointer(&client.Rx.c.rxQueue))
 }
 
 func (client *Client) SetLCores(rxLCore, txLCore dpdk.LCore) {
@@ -152,6 +158,7 @@ func (client *Client) Stop(delay time.Duration) error {
 // Close the client.
 // Both RX and TX threads must be stopped before calling this.
 func (client *Client) Close() error {
+	client.GetRxQueue().Close()
 	dpdk.Free(client.Rx.c)
 	dpdk.Free(client.Tx.c)
 	return nil

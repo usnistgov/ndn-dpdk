@@ -1,15 +1,16 @@
 package pingserver
 
 import (
+	"ndn-dpdk/container/pktqueue"
 	"ndn-dpdk/core/nnduration"
 	"ndn-dpdk/ndn"
 )
 
 // Server config.
 type Config struct {
-	Patterns []Pattern              // traffic patterns
-	Nack     bool                   // whether to respond Nacks to unmatched Interests
-	Delay    nnduration.Nanoseconds // minimum processing delay
+	RxQueue  pktqueue.Config
+	Patterns []Pattern // traffic patterns
+	Nack     bool      // whether to respond Nacks to unmatched Interests
 }
 
 // Server pattern definition.

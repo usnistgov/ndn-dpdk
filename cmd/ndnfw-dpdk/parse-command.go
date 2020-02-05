@@ -4,10 +4,10 @@ import (
 	"flag"
 	"os"
 
-	"ndn-dpdk/app/fwdp"
 	"ndn-dpdk/appinit"
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/ndt"
+	"ndn-dpdk/container/pktqueue"
 	"ndn-dpdk/iface/createface"
 )
 
@@ -19,9 +19,9 @@ type initConfig struct {
 }
 
 type fwdpInitConfig struct {
-	FwdInterestQueue  fwdp.FwdQueueConfig
-	FwdDataQueue      fwdp.FwdQueueConfig
-	FwdNackQueue      fwdp.FwdQueueConfig
+	FwdInterestQueue  pktqueue.Config
+	FwdDataQueue      pktqueue.Config
+	FwdNackQueue      pktqueue.Config
 	LatencySampleFreq int
 	PcctCapacity      int
 	CsCapMd           int

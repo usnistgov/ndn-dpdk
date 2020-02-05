@@ -72,11 +72,14 @@ PingClientRx_ProcessNack(PingClientRx* cr, Packet* npkt)
 void
 PingClientRx_Run(PingClientRx* cr)
 {
-  Packet* npkts[PINGCLIENT_RX_BURST_SIZE];
+  Packet* npkts[PKTQUEUE_BURST_SIZE_MAX];
 
   while (ThreadStopFlag_ShouldContinue(&cr->stop)) {
-    uint16_t nRx = rte_ring_sc_dequeue_burst(
-      cr->rxQueue, (void**)npkts, PINGCLIENT_RX_BURST_SIZE, NULL);
+    uint32_t nRx = PktQueue_Pop(&cr->rxQueue,
+                                (struct rte_mbuf**)npkts,
+                                PKTQUEUE_BURST_SIZE_MAX,
+                                rte_get_tsc_cycles())
+                     .count;
     for (uint16_t i = 0; i < nRx; ++i) {
       Packet* npkt = npkts[i];
       if (unlikely(Packet_GetL2PktType(npkt) != L2PktType_NdnlpV2)) {

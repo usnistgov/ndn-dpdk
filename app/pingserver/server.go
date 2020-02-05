@@ -10,6 +10,7 @@ import (
 	"unsafe"
 
 	"ndn-dpdk/appinit"
+	"ndn-dpdk/container/pktqueue"
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/ndn"
@@ -23,14 +24,21 @@ type Server struct {
 }
 
 func New(face iface.IFace, cfg Config) (server *Server, e error) {
+	faceId := face.GetFaceId()
 	socket := face.GetNumaSocket()
 	serverC := (*C.PingServer)(dpdk.Zmalloc("PingServer", C.sizeof_PingServer, socket))
+
+	cfg.RxQueue.DisableCoDel = true
+	if _, e := pktqueue.NewAt(unsafe.Pointer(&serverC.rxQueue), cfg.RxQueue, fmt.Sprintf("PingServer%d_rxQ", faceId), socket); e != nil {
+		dpdk.Free(serverC)
+		return nil, nil
+	}
+
 	serverC.dataMp = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
 		appinit.MP_DATA0, socket).GetPtr())
 	serverC.indirectMp = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
 		appinit.MP_IND, socket).GetPtr())
-	serverC.delay = C.TscDuration(dpdk.ToTscDuration(cfg.Delay.Duration()))
-	serverC.face = (C.FaceId)(face.GetFaceId())
+	serverC.face = (C.FaceId)(faceId)
 	serverC.wantNackNoRoute = C.bool(cfg.Nack)
 	C.pcg32_srandom_r(&serverC.replyRng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
 
@@ -100,8 +108,8 @@ func (server *Server) AddPattern(cfg Pattern) (index int, e error) {
 	return index, nil
 }
 
-func (server *Server) SetRxQueue(queue dpdk.Ring) {
-	server.c.rxQueue = (*C.struct_rte_ring)(queue.GetPtr())
+func (server *Server) GetRxQueue() pktqueue.PktQueue {
+	return pktqueue.FromPtr(unsafe.Pointer(&server.c.rxQueue))
 }
 
 // Launch the thread.
@@ -120,6 +128,7 @@ func (server *Server) Stop() error {
 // Close the server.
 // The thread must be stopped before calling this.
 func (server *Server) Close() error {
+	server.GetRxQueue().Close()
 	dpdk.Free(server.c)
 	return nil
 }

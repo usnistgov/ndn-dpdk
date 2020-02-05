@@ -1,8 +1,10 @@
+import * as pktqueue from "../../container/pktqueue/mod.js";
 import { Counter } from "../../core/mod.js";
 import { Milliseconds, Nanoseconds } from "../../core/nnduration/mod.js";
 import * as ndn from "../../ndn/mod.js";
 
 export interface Config {
+  RxQueue: pktqueue.Config;
   Patterns: Pattern[];
   Interval: Nanoseconds;
 }

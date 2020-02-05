@@ -1,14 +1,15 @@
-#ifndef NDN_DPDK_APP_NDNPING_INPUT_H
-#define NDN_DPDK_APP_NDNPING_INPUT_H
+#ifndef NDN_DPDK_APP_PING_INPUT_H
+#define NDN_DPDK_APP_PING_INPUT_H
 
 /// \file
 
+#include "../../container/pktqueue/queue.h"
 #include "../../iface/face.h"
 
 typedef struct PingInputEntry
 {
-  struct rte_ring* clientQueue; ///< queue toward client for Data and Nack
-  struct rte_ring* serverQueue; ///< queue toward server for Interest
+  PktQueue* clientQueue; ///< queue toward client for Data and Nack
+  PktQueue* serverQueue; ///< queue toward server for Interest
 } PingInputEntry;
 
 /** \brief Input thread.
@@ -35,4 +36,4 @@ PingInput_GetEntry(PingInput* input, uint16_t faceId)
 void
 PingInput_FaceRx(FaceRxBurst* burst, void* input0);
 
-#endif // NDN_DPDK_APP_NDNPING_INPUT_H
+#endif // NDN_DPDK_APP_PING_INPUT_H

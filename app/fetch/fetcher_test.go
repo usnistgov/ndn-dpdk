@@ -25,14 +25,12 @@ func TestFetcher(t *testing.T) {
 	fetcher.SetLCore(pingtestenv.SlaveLCores[0])
 	fetcher.SetName(ndn.MustParseName("/A"))
 
-	rxQueue := pingtestenv.AttachRxQueue(fetcher)
-	defer rxQueue.Close()
-
+	rx := pingtestenv.MakeRxFunc(fetcher)
 	nInterests := 0
 	face.OnTxInterest(func(interest *ndn.Interest) {
 		nInterests++
 		data := ndntestutil.MakeData(interest.GetName().String())
-		rxQueue.Rx(data)
+		rx(data)
 	})
 
 	fetcher.Logic.SetFinalSegNum(4999)

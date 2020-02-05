@@ -40,8 +40,8 @@ FwInput_PassTo(FwInput* fwi, Packet* npkt, uint8_t fwdId)
 {
   FwInputFwdConn* conn = FwInput_GetConn(fwi, fwdId);
   L3PktType l3type = Packet_GetL3PktType(npkt);
-  CoDelQueue* q = RTE_PTR_ADD(conn->fwd, FwFwd_OffsetofQueue[l3type]);
-  uint32_t nRej = CoDelQueue_PushPlain(q, (struct rte_mbuf**)&npkt, 1);
+  PktQueue* q = RTE_PTR_ADD(conn->fwd, FwFwd_OffsetofQueue[l3type]);
+  uint32_t nRej = PktQueue_PushPlain(q, (struct rte_mbuf**)&npkt, 1);
   if (unlikely(nRej != 0)) {
     uint64_t* nDrops =
       RTE_PTR_ADD(conn, FwInputFwdConn_OffsetofDropCounter[l3type]);

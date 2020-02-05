@@ -91,25 +91,8 @@ func (app *App) launchRxl(rxl *iface.RxLoop) {
 	}
 
 	inputC := C.PingInput_New(C.uint16_t(minFaceId), C.uint16_t(maxFaceId), C.unsigned(rxl.GetNumaSocket()))
-	for i, task := range app.Tasks {
-		entryC := C.PingInput_GetEntry(inputC, C.uint16_t(task.Face.GetFaceId()))
-		if entryC == nil {
-			continue
-		}
-		if task.Fetch != nil || task.Client != nil {
-			queue := app.makeRxQueue(fmt.Sprintf("client-rx-%d", i), task.Face.GetNumaSocket())
-			entryC.clientQueue = (*C.struct_rte_ring)(queue.GetPtr())
-			if task.Fetch != nil {
-				task.Fetch.SetRxQueue(queue)
-			} else {
-				task.Client.SetRxQueue(queue)
-			}
-		}
-		if task.Server != nil {
-			queue := app.makeRxQueue(fmt.Sprintf("server-rx-%d", i), task.Face.GetNumaSocket())
-			entryC.serverQueue = (*C.struct_rte_ring)(queue.GetPtr())
-			task.Server.SetRxQueue(queue)
-		}
+	for _, task := range app.Tasks {
+		task.connectInput(inputC)
 	}
 
 	rxl.SetCallback(unsafe.Pointer(C.PingInput_FaceRx), unsafe.Pointer(inputC))

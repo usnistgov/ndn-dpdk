@@ -3,10 +3,10 @@
 
 /// \file
 
-#include "../../container/codel_queue/queue.h"
 #include "../../container/fib/fib.h"
 #include "../../container/pcct/cs.h"
 #include "../../container/pcct/pit.h"
+#include "../../container/pktqueue/queue.h"
 #include "../../core/running_stat/running-stat.h"
 #include "../../dpdk/thread.h"
 #include "../../iface/face.h"
@@ -17,9 +17,9 @@
 typedef struct FwFwd
 {
   SgGlobal sgGlobal;
-  CoDelQueue inInterestQueue;
-  CoDelQueue inDataQueue;
-  CoDelQueue inNackQueue;
+  PktQueue inInterestQueue;
+  PktQueue inDataQueue;
+  PktQueue inNackQueue;
 
   Fib* fib;
   union
