@@ -95,10 +95,14 @@ func (loc *Locator) UnmarshalJSON(data []byte) (e error) {
 	}
 	loc.LocatorBase = input.LocatorBase
 	loc.Port = input.Port
-	if loc.Local, e = net.ParseMAC(input.Local); e != nil {
+	if input.Local == "" {
+		loc.Local = nil
+	} else if loc.Local, e = net.ParseMAC(input.Local); e != nil {
 		return e
 	}
-	if loc.Remote, e = net.ParseMAC(input.Remote); e != nil {
+	if input.Remote == "" {
+		loc.Remote = nil
+	} else if loc.Remote, e = net.ParseMAC(input.Remote); e != nil {
 		return e
 	}
 	return nil

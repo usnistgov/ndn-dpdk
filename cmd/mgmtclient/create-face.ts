@@ -1,20 +1,26 @@
-import { ArgumentParser } from "argparse";
 import * as jayson from "jayson";
+import * as yargs from "yargs";
 
 import * as ethface from "../../iface/ethface/mod.js";
 import * as iface from "../../iface/mod.js";
 import * as facemgmt from "../../mgmt/facemgmt/mod.js";
 import * as mgmt from "../../mgmt/mod.js";
 
-const parser = new ArgumentParser({
-  addHelp: true,
-  description: "Create a face",
-});
-parser.addArgument("--scheme", { required: true });
-parser.addArgument("--port", { required: false });
-parser.addArgument("--local", { required: false });
-parser.addArgument("--remote", { required: true });
-const args = parser.parseArgs();
+const args = yargs
+  .option("scheme", {
+    default: "ether",
+    type: "string",
+  })
+  .option("port", {
+    demandOption: true,
+    type: "string",
+  })
+  .option("local", {
+    type: "string",
+  })
+  .option("remote", {
+    type: "string",
+  }).parse();
 
 const mgmtClient = new mgmt.RpcClient(jayson.Client.tcp({port: 6345}));
 mgmtClient.request<iface.Locator, facemgmt.BasicInfo>("Face.Create",
