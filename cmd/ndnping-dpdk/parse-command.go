@@ -10,20 +10,14 @@ import (
 	"ndn-dpdk/iface/createface"
 )
 
-type initConfig struct {
-	appinit.InitConfig
-	Ping ping.InitConfig
-}
-
 type parsedCommand struct {
-	initCfg         initConfig
+	initCfg         appinit.InitConfig
 	tasks           []ping.TaskConfig
 	counterInterval time.Duration
 }
 
 func parseCommand(args []string) (pc parsedCommand, e error) {
 	pc.initCfg.Face = createface.GetDefaultConfig()
-	pc.initCfg.Ping.QueueCapacity = 256
 
 	flags := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	appinit.DeclareInitConfigFlag(flags, &pc.initCfg)

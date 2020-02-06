@@ -21,9 +21,9 @@ func main() {
 		log.WithError(e).Fatal("command line error")
 	}
 
-	pc.initCfg.InitConfig.Apply()
+	pc.initCfg.Apply()
 
-	app, e := ping.New(pc.tasks, pc.initCfg.Ping)
+	app, e := ping.New(pc.tasks)
 	if e != nil {
 		log.WithError(e).Fatal("ping.NewApp error")
 	}

@@ -118,9 +118,3 @@ Fwdp:
   CsCapMd: 32768
   # Capacity of CS in-memory indirect entries. Must not exceed pcctcapacity.
   CsCapMi: 32768
-
-# NDNPING TRAFFIC GENERATOR
-Ping:
-  # Capacity of queue between PingInput and PingClientRx/PingServer.
-  # Must be power of 2.
-  QueueCapacity: 256

@@ -24,14 +24,12 @@ const (
 )
 
 type App struct {
-	Tasks   []Task
-	rxls    []*iface.RxLoop
-	initCfg InitConfig
+	Tasks []Task
+	rxls  []*iface.RxLoop
 }
 
-func New(cfg []TaskConfig, initCfg InitConfig) (app *App, e error) {
+func New(cfg []TaskConfig) (app *App, e error) {
 	app = new(App)
-	app.initCfg = initCfg
 
 	appinit.ProvideCreateFaceMempools()
 	for _, numaSocket := range createface.ListRxTxNumaSockets() {
@@ -97,12 +95,4 @@ func (app *App) launchRxl(rxl *iface.RxLoop) {
 
 	rxl.SetCallback(unsafe.Pointer(C.PingInput_FaceRx), unsafe.Pointer(inputC))
 	rxl.Launch()
-}
-
-func (app *App) makeRxQueue(id string, numaSocket dpdk.NumaSocket) (queue dpdk.Ring) {
-	queue, e := dpdk.NewRing(id, app.initCfg.QueueCapacity, numaSocket, true, true)
-	if e != nil {
-		panic(e)
-	}
-	return queue
 }

@@ -8,11 +8,6 @@ import (
 	"ndn-dpdk/ndn"
 )
 
-// Package initialization config.
-type InitConfig struct {
-	QueueCapacity int // input-client/server queue capacity, must be power of 2
-}
-
 // Per-face task config, consists of a client and/or a server.
 type TaskConfig struct {
 	Face   iface.LocatorWrapper // face locator for face creation
