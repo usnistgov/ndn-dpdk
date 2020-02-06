@@ -5,6 +5,7 @@ import (
 
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/strategycode"
+	"ndn-dpdk/iface"
 	"ndn-dpdk/ndn"
 )
 
@@ -80,4 +81,29 @@ func (mg FibMgmt) lookup(args NameArg, reply *LookupReply, lookup func(name *ndn
 func (mg FibMgmt) ReadEntryCounters(args NameArg, reply *fib.EntryCounters) error {
 	*reply = mg.Fib.ReadEntryCounters(args.Name)
 	return nil
+}
+
+type FibInfo struct {
+	NEntries int // Number of entries.
+}
+
+type NameArg struct {
+	Name *ndn.Name
+}
+
+type InsertArg struct {
+	Name       *ndn.Name
+	Nexthops   []iface.FaceId
+	StrategyId int
+}
+
+type InsertReply struct {
+	IsNew bool
+}
+
+type LookupReply struct {
+	HasEntry   bool
+	Name       *ndn.Name
+	Nexthops   []iface.FaceId
+	StrategyId int
 }

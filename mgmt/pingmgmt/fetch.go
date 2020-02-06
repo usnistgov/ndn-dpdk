@@ -6,6 +6,8 @@ import (
 
 	"ndn-dpdk/app/fetch"
 	"ndn-dpdk/app/ping"
+	"ndn-dpdk/core/nnduration"
+	"ndn-dpdk/ndn"
 )
 
 type FetchMgmt struct {
@@ -72,4 +74,17 @@ func (mg FetchMgmt) ReadCounters(args IndexArg, reply *fetch.Counters) error {
 
 	*reply = fetcher.Logic.ReadCounters()
 	return nil
+}
+
+type FetchBenchmarkArgs struct {
+	Index    int // Task index
+	Name     *ndn.Name
+	Warmup   nnduration.Milliseconds
+	Interval nnduration.Milliseconds
+	Count    int
+}
+
+type FetchBenchmarkReply struct {
+	Counters []fetch.Counters
+	Goodput  float64
 }

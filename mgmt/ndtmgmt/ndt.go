@@ -3,6 +3,7 @@ package ndtmgmt
 import (
 	"ndn-dpdk/container/ndt"
 	"ndn-dpdk/container/ndt/ndtupdater"
+	"ndn-dpdk/ndn"
 )
 
 type NdtMgmt struct {
@@ -27,4 +28,14 @@ func (mg NdtMgmt) Update(args UpdateArgs, reply *UpdateReply) error {
 	reply.Index = mg.Ndt.GetIndex(args.Hash)
 	mg.Updater.Update(reply.Index, args.Value)
 	return nil
+}
+
+type UpdateArgs struct {
+	Hash  uint64
+	Name  *ndn.Name // If not empty, overrides Hash with the hash of this name.
+	Value uint8
+}
+
+type UpdateReply struct {
+	Index uint64
 }

@@ -5,6 +5,7 @@ import (
 
 	"ndn-dpdk/app/ping"
 	"ndn-dpdk/app/pingclient"
+	"ndn-dpdk/core/nnduration"
 )
 
 type PingClientMgmt struct {
@@ -70,4 +71,15 @@ func (mg PingClientMgmt) ReadCounters(args IndexArg, reply *pingclient.Counters)
 
 	*reply = client.ReadCounters()
 	return nil
+}
+
+type ClientStartArgs struct {
+	Index         int                    // Task index
+	Interval      nnduration.Nanoseconds // Interest sending Interval
+	ClearCounters bool                   // whether to clear counters
+}
+
+type ClientStopArgs struct {
+	Index   int                    // Task index
+	RxDelay nnduration.Nanoseconds // sleep duration between stopping TX and stopping RX
 }

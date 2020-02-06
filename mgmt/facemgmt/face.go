@@ -3,6 +3,7 @@ package facemgmt
 import (
 	"errors"
 
+	"ndn-dpdk/core/running_stat"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/createface"
 )
@@ -12,7 +13,7 @@ type FaceMgmt struct{}
 func (FaceMgmt) List(args struct{}, reply *[]BasicInfo) error {
 	result := make([]BasicInfo, 0)
 	for it := iface.IterFaces(); it.Valid(); it.Next() {
-		result = append(result, newBasicInfo(it.Face))
+		result = append(result, makeBasicInfo(it.Face))
 	}
 	*reply = result
 	return nil
@@ -24,8 +25,7 @@ func (FaceMgmt) Get(args IdArg, reply *FaceInfo) error {
 		return errors.New("face not found")
 	}
 
-	reply.Id = face.GetFaceId()
-	reply.Locator.Locator = face.GetLocator()
+	reply.BasicInfo = makeBasicInfo(face)
 	reply.IsDown = face.IsDown()
 	reply.Counters = face.ReadCounters()
 	reply.ExCounters = face.ReadExCounters()
@@ -40,7 +40,7 @@ func (FaceMgmt) Create(args iface.LocatorWrapper, reply *BasicInfo) (e error) {
 		return e
 	}
 
-	*reply = newBasicInfo(face)
+	*reply = makeBasicInfo(face)
 	return nil
 }
 
@@ -51,4 +51,34 @@ func (FaceMgmt) Destroy(args IdArg, reply *struct{}) error {
 	}
 
 	return face.Close()
+}
+
+type IdArg struct {
+	Id iface.FaceId
+}
+
+type BasicInfo struct {
+	Id      iface.FaceId
+	Locator iface.LocatorWrapper
+}
+
+func makeBasicInfo(face iface.IFace) (b BasicInfo) {
+	b.Id = face.GetFaceId()
+	b.Locator.Locator = face.GetLocator()
+	return b
+}
+
+type FaceInfo struct {
+	BasicInfo
+	IsDown bool
+
+	// Basic counters.
+	Counters iface.Counters
+
+	// Extended counters.
+	// This is *dpdk.EthStats for EthFace, and nil for other types.
+	ExCounters interface{}
+
+	// Latency for TX packets since arrival/generation (in nanos).
+	Latency running_stat.Snapshot
 }

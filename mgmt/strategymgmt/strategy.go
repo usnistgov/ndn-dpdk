@@ -48,3 +48,23 @@ func (StrategyMgmt) Unload(args IdArg, reply *StrategyInfo) error {
 	*reply = makeStrategyInfo(sc)
 	return sc.Close()
 }
+
+type IdArg struct {
+	Id int
+}
+
+type StrategyInfo struct {
+	Id   int
+	Name string
+}
+
+func makeStrategyInfo(sc strategycode.StrategyCode) (si StrategyInfo) {
+	si.Id = sc.GetId()
+	si.Name = sc.GetName()
+	return si
+}
+
+type LoadArg struct {
+	Name string
+	Elf  []byte
+}
