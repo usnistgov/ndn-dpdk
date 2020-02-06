@@ -6,7 +6,6 @@ DESTSBIN=$DESTDIR/sbin
 install -d -m0755 $DESTSBIN
 install -m0744 ../../bin/ndnfw-dpdk $DESTSBIN
 install -m0744 ../../bin/ndnping-dpdk $DESTSBIN
-install -m0744 cmd/mgmtclient/mgmtproxy.sh $DESTSBIN/ndndpdk-mgmtproxy
 
 DESTBIN=$DESTDIR/bin
 install -d -m0755 $DESTBIN

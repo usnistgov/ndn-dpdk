@@ -72,7 +72,7 @@ jsonrpc() {
   METHOD=$1
   PARAMS=$2
   if [[ -z $2 ]]; then PARAMS='{}'; fi
-  jayson -s 127.0.0.1:6345 -m $METHOD -p "$PARAMS"
+  jsonrpc2client -transport=tcp -tcp.addr=127.0.0.1:6345 $METHOD "$PARAMS"
 }
 
 if [[ $1 == 'version' ]]; then

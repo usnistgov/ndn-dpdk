@@ -9,7 +9,7 @@ This software is developed at [Advanced Network Technologies Division](https://w
 Requirements:
 
 * Ubuntu 16.04 or 18.04 on *amd64* architecture
-* Required packages: `build-essential clang-6.0 curl gcc-7 git go-bindata libc6-dev-i386 libelf-dev libnuma-dev libssl-dev liburcu-dev ninja-build pkg-config python3.8 python3-distutils rake socat sudo` packages
+* Required packages: `build-essential clang-6.0 curl gcc-7 git go-bindata libc6-dev-i386 libelf-dev libnuma-dev libssl-dev liburcu-dev ninja-build pkg-config python3.8 python3-distutils rake sudo` packages
   (Ubuntu 16.04: add [ppa:ubuntu-toolchain-r/test](https://launchpad.net/~ubuntu-toolchain-r/+archive/ubuntu/test) and [ppa:deadsnakes/ppa](https://launchpad.net/~deadsnakes/+archive/ubuntu/ppa), change `python3-distutils` to `python3.8-distutils`)
 * Optional packages: `clang-format-6.0 doxygen yamllint`
   (see other build targets list for explanation)
@@ -19,7 +19,8 @@ Requirements:
 * SPDK 19.10.1, configured with `CC=gcc-7 ./configure --enable-debug --disable-tests --with-shared --with-dpdk=/usr/local --without-vhost --without-isal --without-fuse`
 * [ubpf](https://github.com/iovisor/ubpf/tree/644ad3ded2f015878f502765081e166ce8112baf) library, compiled with gcc-7, and installed to `/usr/local/include/ubpf.h` and `/usr/local/lib/libubpf.a`
 * Go 1.13.7 or newer
-* Node.js 12.x and `sudo npm install -g jayson`
+* Node.js 12.x
+* [jsonrpc2client](https://github.com/powerman/rpc-codec/releases) 1.1.3 or newer, installed to `/usr/local/bin/jsonrpc2client`
 * Note: see [Dockerfile](./Dockerfile) on how to install dependencies.
 
 Build steps:
