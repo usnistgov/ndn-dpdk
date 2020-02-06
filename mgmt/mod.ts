@@ -9,7 +9,9 @@ import * as strategymgmt from "./strategymgmt/mod.js";
 import * as versionmgmt from "./versionmgmt/mod.js";
 
 export interface Mgmt {
+  EthFace: facemgmt.EthFaceMgmt;
   Face: facemgmt.FaceMgmt;
+  Fetch: pingmgmt.FetchMgmt;
   Fib: fibmgmt.FibMgmt;
   Fwdp: fwdpmgmt.FwdpMgmt;
   Ndt: ndtmgmt.NdtMgmt;

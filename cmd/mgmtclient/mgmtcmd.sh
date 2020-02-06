@@ -10,6 +10,14 @@ Subcommands:
     Show face counters.
   face destroy <ID>
     Destroy a face.
+  eth ports
+    List Ethernet ports.
+  eth faces <PORT>
+    List Ethernet faces on port.
+  eth stats <PORT>
+    Read Ethernet port stats.
+  eth reset-stats <PORT>
+    Read and reset Ethernet port stats.
   ndt show
     Show NDT content.
   ndt counters
@@ -78,6 +86,16 @@ elif [[ $1 == 'face' ]]; then
     jsonrpc Face.Get '{"Id":'$3'}'
   elif [[ $2 == 'destroy' ]]; then
     jsonrpc Face.Destroy '{"Id":'$3'}'
+  fi
+elif [[ $1 == 'eth' ]]; then
+  if [[ $2 == 'ports' ]]; then
+    jsonrpc EthFace.ListPorts
+  elif [[ $2 == 'faces' ]]; then
+    jsonrpc EthFace.ListPortFaces '{"Port":"'$3'"}'
+  elif [[ $2 == 'stats' ]]; then
+    jsonrpc EthFace.ReadPortStats '{"Port":"'$3'","Reset":false}'
+  elif [[ $2 == 'reset-stats' ]]; then
+    jsonrpc EthFace.ReadPortStats '{"Port":"'$3'","Reset":true}'
   fi
 elif [[ $1 == 'ndt' ]]; then
   if [[ $2 == 'show' ]]; then

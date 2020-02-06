@@ -76,7 +76,6 @@ type FaceInfo struct {
 	Counters iface.Counters
 
 	// Extended counters.
-	// This is *dpdk.EthStats for EthFace, and nil for other types.
 	ExCounters interface{}
 
 	// Latency for TX packets since arrival/generation (in nanos).

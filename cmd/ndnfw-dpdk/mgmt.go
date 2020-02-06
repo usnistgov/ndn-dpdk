@@ -19,6 +19,7 @@ func startMgmt() {
 	appinit.RegisterMgmt(versionmgmt.VersionMgmt{})
 
 	appinit.RegisterMgmt(facemgmt.FaceMgmt{})
+	appinit.RegisterMgmt(facemgmt.EthFaceMgmt{})
 
 	appinit.RegisterMgmt(ndtmgmt.NdtMgmt{
 		Ndt: theDp.GetNdt(),

@@ -96,6 +96,11 @@ func (port *Port) FindFace(remote net.HardwareAddr) *EthFace {
 	})
 }
 
+// Retrieve impl name.
+func (port *Port) GetImplName() string {
+	return port.impl.String()
+}
+
 // Switch to next impl.
 func (port *Port) fallbackImpl() error {
 	logEntry := port.logger

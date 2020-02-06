@@ -111,6 +111,14 @@ func (face *EthFace) ListRxGroups() []iface.IRxGroup {
 	panic(face.port.impl)
 }
 
+type ExCounters struct {
+	RxQueue int
+}
+
+// EthFace extended counters are available at Port granularity.
+// This function provides information to locate relevant fields in EthStats.
 func (face *EthFace) ReadExCounters() interface{} {
-	return face.port.dev.GetStats()
+	var cnt ExCounters
+	cnt.RxQueue = int(face.getPriv().rxQueue)
+	return cnt
 }

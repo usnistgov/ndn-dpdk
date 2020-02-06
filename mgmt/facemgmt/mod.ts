@@ -25,3 +25,24 @@ export interface FaceMgmt {
   Create: {args: iface.Locator, reply: BasicInfo};
   Destroy: {args: iface.Locator, reply: {}};
 }
+
+export interface PortArg {
+  Port: string;
+}
+
+export interface PortStatsArg extends PortArg {
+  Reset: boolean;
+}
+
+export interface PortInfo {
+  Name: string;
+  NumaSocket: number;
+  Active: boolean;
+  ImplName?: string;
+}
+
+export interface EthFaceMgmt {
+  ListPorts: {args: {}, reply: PortInfo[]};
+  ListPortFaces: {args: PortArg, reply: BasicInfo[]};
+  ReadPortStats: {args: PortStatsArg, reply: object};
+}
