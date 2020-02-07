@@ -45,6 +45,7 @@ func (mg FetchMgmt) Benchmark(args FetchBenchmarkArgs, reply *FetchBenchmarkRepl
 		return errors.New("Fetcher is running")
 	}
 
+	fetcher.Logic.Reset()
 	fetcher.SetName(args.Name)
 	fetcher.Launch()
 	time.Sleep(args.Warmup.Duration())

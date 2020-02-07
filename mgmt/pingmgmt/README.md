@@ -20,8 +20,9 @@ It optionally allows changing Interest sending interval and clearing counters.
 ## Fetch
 
 Fetchers must be defined in `ndnping.TaskConfig` when starting ndnping application.
-The fetcher must be stopped (`ping.FetchConfig` should have `Name` set to nil), and benchmark can be executed only once on a fetcher.
 
 **Fetch.List** lists defined fetchers.
 
 **Fetch.Benchmark** executes a fetcher in benchmark mode.
+To use the benchmark, the fetcher must be created in "stopped" state (`ping.FetchConfig.Name` should be nil).
+It's allowed to run benchmarks multiple times, and the counters will be cleared prior to each benchmark.

@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"testing"
 	"time"
+	"unsafe"
 
 	"ndn-dpdk/app/fetch"
 	"ndn-dpdk/dpdk"
@@ -13,9 +14,11 @@ import (
 func TestLogic(t *testing.T) {
 	assert, _ := makeAR(t)
 
-	fl := fetch.NewLogic()
+	flPtr := dpdk.Zmalloc("FetchLogic", unsafe.Sizeof(fetch.Logic{}), dpdk.NUMA_SOCKET_ANY)
+	defer dpdk.Free(flPtr)
+	fl := fetch.LogicFromPtr(flPtr)
 	fl.Init(64, dpdk.NUMA_SOCKET_ANY)
-	defer fl.CloseAndFree()
+	defer fl.Close()
 
 	const FINAL_SEG = 1999
 	const LOSS_RATE = 0.05

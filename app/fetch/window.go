@@ -28,6 +28,12 @@ func (win *Window) Init(capacity int, socket dpdk.NumaSocket) {
 	win.CapacityMask = uint32(capacity - 1)
 }
 
+func (win *Window) Reset() {
+	win.LoPos = 0
+	win.LoSegNum = 0
+	win.HiSegNum = 0
+}
+
 func (win *Window) Close() error {
 	dpdk.Free(win.Array)
 	return nil

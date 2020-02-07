@@ -10,14 +10,8 @@ import (
 	"ndn-dpdk/dpdk"
 )
 
-// Allocate *Logic in C memory.
-// It's unsafe to use Logic in Go memory due to TAILQ_HEAD usage.
-// Init() must be called separately.
-func NewLogic() (fl *Logic) {
-	return LogicFromPtr(dpdk.Zmalloc("FetchLogic", C.sizeof_FetchLogic, dpdk.NUMA_SOCKET_ANY))
-}
-
 // Convert *C.FetchLogic to *Logic.
+// ptr must be in C memory due to TAILQ_HEAD usage.
 func LogicFromPtr(ptr unsafe.Pointer) (fl *Logic) {
 	return (*Logic)(ptr)
 }
@@ -33,15 +27,19 @@ func (fl *Logic) Init(windowCapacity int, socket dpdk.NumaSocket) {
 	C.FetchLogic_Init_(fl.getPtr())
 }
 
+// Reset to initial state.
+func (fl *Logic) Reset() {
+	C.MinSched_Close(fl.getPtr().sched)
+	*fl = Logic{Win: fl.Win}
+	fl.Win.Reset()
+	fl.Rtte.Init()
+	fl.Ca.Init()
+	C.FetchLogic_Init_(fl.getPtr())
+}
+
 func (fl *Logic) Close() error {
 	C.MinSched_Close(fl.getPtr().sched)
 	return fl.Win.Close()
-}
-
-// Deallocate. Use only if this was allocated via NewLogic().
-func (fl *Logic) CloseAndFree() {
-	fl.Close()
-	dpdk.Free(unsafe.Pointer(fl))
 }
 
 // Set (inclusive) final segment number.
