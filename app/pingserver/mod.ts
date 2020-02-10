@@ -3,7 +3,7 @@ import { Milliseconds } from "../../core/nnduration/mod.js";
 import * as ndn from "../../ndn/mod.js";
 
 export interface Config {
-  RxQueue: pktqueue.Config;
+  RxQueue?: Omit<pktqueue.Config, "DisableCoDel">;
   Patterns: Pattern[];
   Nack: boolean;
 }
@@ -14,13 +14,28 @@ export interface Pattern {
 }
 
 interface ReplyCommon {
-  Weight: number;
+  /**
+   * @TJS-type integer
+   * @default 1
+   * @minimum 1
+   */
+  Weight?: number;
 }
 
 interface ReplyData {
   Suffix: ndn.Name;
-  FreshnessPeriod: Milliseconds;
-  PayloadLen: number;
+
+  /**
+   * @default 0
+   */
+  FreshnessPeriod?: Milliseconds;
+
+  /**
+   * @TJS-type integer
+   * @default 0
+   * @minimum 0
+   */
+  PayloadLen?: number;
 }
 
 interface ReplyNack {

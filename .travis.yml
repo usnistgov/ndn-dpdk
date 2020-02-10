@@ -1,4 +1,6 @@
 ---
+# yamllint disable rule:line-length
+
 dist: bionic
 
 language: generic
@@ -56,7 +58,6 @@ before_install:
 install:
   - |
     : install jsonrpc2client
-    # yamllint disable-line rule:line-length
     curl -L https://github.com/powerman/rpc-codec/releases/download/v1.1.3/jsonrpc2client-linux-x86_64 | \
       sudo install /dev/stdin /usr/local/bin/jsonrpc2client
   - |

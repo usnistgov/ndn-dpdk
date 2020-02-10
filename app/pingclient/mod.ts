@@ -4,18 +4,47 @@ import { Milliseconds, Nanoseconds } from "../../core/nnduration/mod.js";
 import * as ndn from "../../ndn/mod.js";
 
 export interface Config {
-  RxQueue: pktqueue.Config;
+  RxQueue?: pktqueue.Config;
   Patterns: Pattern[];
   Interval: Nanoseconds;
 }
 
 export interface Pattern {
-  Weight: number;
+  /**
+   * @TJS-type integer
+   * @default 1
+   * @minimum 1
+   */
+  Weight?: number;
+
   Prefix: ndn.Name;
-  CanBePrefix: boolean;
-  MustBeFresh: boolean;
-  InterestLifetime: Milliseconds;
-  HopLimit: number;
+
+  /**
+   * @default false
+   */
+  CanBePrefix?: boolean;
+
+  /**
+   * @default false
+   */
+  MustBeFresh?: boolean;
+
+  /**
+   * @default 4000
+   */
+  InterestLifetime?: Milliseconds;
+
+  /**
+   * @TJS-type integer
+   * @default 255
+   * @minimum 1
+   * @maximum 255
+   */
+  HopLimit?: number;
+
+  /**
+   * @TJS-type integer
+   */
   SeqNumOffset?: number;
 }
 

@@ -1,11 +1,11 @@
 import { Nanoseconds } from "../../core/nnduration/mod.js";
 
-export interface Config {
+interface ConfigCommon {
   /**
    * @TJS-type integer
    * @minimum 64
    */
-  Capacity: number;
+  Capacity?: number;
 
   /**
    * @TJS-type integer
@@ -13,22 +13,29 @@ export interface Config {
    * @minimum 1
    * @maximum 64
    */
-  DequeueBurstSize: number;
+  DequeueBurstSize?: number;
+}
 
-  /**
-   * @default 0
-   */
+interface ConfigPlain extends ConfigCommon {
+  DisableCoDel: true;
+}
+
+interface ConfigDelay extends ConfigCommon {
   Delay: Nanoseconds;
+}
 
-  DisableCoDel: boolean;
+interface ConfigCoDel extends ConfigCommon {
+  DisableCoDel?: false;
 
   /**
    * @default 5000000
    */
-  Target: Nanoseconds;
+  Target?: Nanoseconds;
 
   /**
    * @default 100000000
    */
-  Interval: Nanoseconds;
+  Interval?: Nanoseconds;
 }
+
+export type Config = ConfigPlain | ConfigDelay | ConfigCoDel;

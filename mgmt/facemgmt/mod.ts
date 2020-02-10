@@ -31,7 +31,10 @@ export interface PortArg {
 }
 
 export interface PortStatsArg extends PortArg {
-  Reset: boolean;
+  /**
+   * @default false
+   */
+  Reset?: boolean;
 }
 
 export interface PortInfo {

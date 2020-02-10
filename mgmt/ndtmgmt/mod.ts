@@ -1,7 +1,7 @@
 import { Blob, Counter } from "../../core/mod.js";
 import * as ndn from "../../ndn/mod.js";
 
-interface UpdateArgBase {
+interface UpdateArgCommon {
   /**
    * @TJS-type integer
    * @minimum 0
@@ -10,7 +10,7 @@ interface UpdateArgBase {
   Value: number;
 }
 
-interface UpdateArgHash extends UpdateArgBase {
+interface UpdateArgHash extends UpdateArgCommon {
   /**
    * @TJS-type integer
    * @minimum 0
@@ -18,7 +18,7 @@ interface UpdateArgHash extends UpdateArgBase {
   Hash: number;
 }
 
-interface UpdateArgName extends UpdateArgBase {
+interface UpdateArgName extends UpdateArgCommon {
   Name: ndn.Name;
 }
 

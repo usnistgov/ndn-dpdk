@@ -14,7 +14,7 @@ export interface NameArg {
 
 export interface InsertArg extends NameArg {
   Nexthops: iface.FaceId[];
-  StrategyId: strategycode.Id;
+  StrategyId?: strategycode.Id;
 }
 
 export interface InsertReply {

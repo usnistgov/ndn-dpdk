@@ -1,5 +1,5 @@
 export interface Locator {
   Scheme: "udp"|"unixgram"|"tcp"|"unix";
-  Local: string;
+  Local?: string;
   Remote: string;
 }

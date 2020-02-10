@@ -7,15 +7,17 @@ export interface IndexArg {
   Index: Index;
 }
 
-export interface ClientStartArgs {
-  Index: Index;
+export interface ClientStartArgs extends IndexArg {
   Interval: Nanoseconds;
-  ClearCounters: boolean;
+
+  /**
+   * @default false
+   */
+  ClearCounters?: boolean;
 }
 
-export interface ClientStopArgs {
-  Index: Index;
-  RxDelay: Nanoseconds;
+export interface ClientStopArgs extends IndexArg {
+  RxDelay?: Nanoseconds;
 }
 
 export type ClientCounters = ClientCounters_;
