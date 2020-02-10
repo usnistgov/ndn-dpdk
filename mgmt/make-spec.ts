@@ -22,7 +22,7 @@ const spec: JrgenSpecSchema = {
   methods: {},
 };
 
-const mgmtModules: { [k: string]: string; } = {};
+const mgmtModules: { [k: string]: string } = {};
 for (const [propName, propSchema] of Object.entries(schema.properties!)) {
   const typeName = (propSchema as TJS.Definition).$ref!.replace("#/definitions/", "");
   mgmtModules[typeName] = propName;
@@ -32,7 +32,7 @@ for (const [typeName, typeSchema] of Object.entries(schema.definitions!)) {
   if (mgmtModules[typeName]) {
     const methodPrefix = mgmtModules[typeName];
     for (const [methodSuffix, methodSchema] of Object.entries((typeSchema as TJS.Definition).properties!)) {
-      spec.methods[methodPrefix + "." + methodSuffix] = {
+      spec.methods[`${methodPrefix}.${methodSuffix}`] = {
         params: (methodSchema as TJS.Definition).properties!.args,
         result: (methodSchema as TJS.Definition).properties!.reply,
         summary: "",
@@ -43,4 +43,4 @@ for (const [typeName, typeSchema] of Object.entries(schema.definitions!)) {
   }
 }
 
-process.stdout.write(jsonStringify(spec, {space: 2}));
+process.stdout.write(jsonStringify(spec, { space: 2 }));

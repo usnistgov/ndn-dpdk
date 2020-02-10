@@ -35,7 +35,7 @@ export function makeMgmtClient(): RpcClient {
 
   const u = new URL(mgmtEnv);
   if (!/^tcp[46]?:$/.test(u.protocol)) {
-    throw new Error("unsupported MGMT scheme " + u.protocol);
+    throw new Error(`unsupported MGMT scheme ${u.protocol}`);
   }
 
   const jaysonClient = jayson.Client.tcp({
