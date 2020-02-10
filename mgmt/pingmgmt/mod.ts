@@ -2,6 +2,7 @@ import { Counters as FetchCounters_ } from "../../app/fetch/mod.js";
 import { Counters as ClientCounters_ } from "../../app/pingclient/mod.js";
 import { Index } from "../../core/mod.js";
 import { Milliseconds, Nanoseconds } from "../../core/nnduration/mod.js";
+import { Name } from "../../ndn/mod.js";
 
 export interface IndexArg {
   Index: Index;
@@ -33,6 +34,7 @@ export type FetchCounters = FetchCounters_;
 
 export interface FetchBenchmarkArgs {
   Index: Index;
+  Name: Name;
   Warmup: Milliseconds;
   Interval: Milliseconds;
   Count: number;
@@ -40,6 +42,7 @@ export interface FetchBenchmarkArgs {
 
 export interface FetchBenchmarkReply {
   Counters: FetchCounters[];
+  Goodput: number;
 }
 
 export interface FetchMgmt {

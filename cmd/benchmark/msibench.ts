@@ -1,47 +1,22 @@
 import Debug = require("debug");
-import EventEmitter = require("events");
 import * as yargs from "yargs";
 
 import { Nanoseconds } from "../../core/nnduration/mod.js";
 
 import * as msi from "./msi.js";
 import { ITrafficGen, NdnpingTrafficGen } from "./trafficgen.js";
-import { Uncertainty, UncertaintyState } from "./uncertainty.js";
+import { UcBenchmark } from "./ucbench.js"
+import { Uncertainty } from "./uncertainty.js";
 
 const debug = Debug("msibench");
 
-export class MsiBenchmark extends EventEmitter {
-  /**
-   * Event after each MSI measurement.
-   * Arguments: msi.MeasureResult, UncertaintyState
-   * @event
-   */
-  public static EVENT_PROGRESS = "progress";
-
-  /**
-   * Event upon failed MSI measurement.
-   * Arguments: msi.MeasureResult
-   * @event
-   */
-  public static EVENT_MSIERROR = "msi-error";
-
-  /**
-   * Event upon benchmark completion.
-   * Arguments: UncertaintyState
-   * @event
-   */
-  public static EVENT_DONE = "done";
-
+export class MsiBenchmark extends UcBenchmark<msi.MeasureResult> {
   public msiOpts: Partial<msi.Options>;
 
-  private gen: ITrafficGen;
-  private uncertainty: Uncertainty;
   private intervalNearby: Nanoseconds;
 
-  constructor(gen: ITrafficGen, uncertainty: Uncertainty) {
-    super();
-    this.gen = gen;
-    this.uncertainty = uncertainty;
+  constructor(private readonly gen: ITrafficGen, uncertainty: Uncertainty) {
+    super(uncertainty);
     this.msiOpts = {};
     this.intervalNearby = 0;
   }
@@ -63,41 +38,26 @@ export class MsiBenchmark extends EventEmitter {
     this.enableHint(0);
   }
 
-  public async run(): Promise<boolean> {
-    let ucState = this.uncertainty.getState();
-    while (!ucState.isSufficient) {
-      const res = await this.observe();
-      debug("observe result %j", res);
-      if (!res.MSI || res.isUnderflow || res.isOverflow) {
-        this.emit(MsiBenchmark.EVENT_MSIERROR, res);
-        return false;
-      }
-
-      this.uncertainty.addObservation(res.MSI);
-      ucState = this.uncertainty.getState();
-      debug("ucState %j", ucState);
-      this.emit(MsiBenchmark.EVENT_PROGRESS, res, ucState);
-    }
-    this.emit(MsiBenchmark.EVENT_DONE, ucState);
-    return true;
-  }
-
-  private async observe(): Promise<msi.MeasureResult> {
+  protected async observe(): Promise<[msi.MeasureResult, number]> {
     const { mean } = this.uncertainty.getState();
     if (this.intervalNearby !== 0 && !isNaN(mean)) {
       const hint = Math.round(mean);
-      const msiOpts = Object.assign({}, this.msiOpts);
-      msiOpts.IntervalMin = Math.max(hint - this.intervalNearby, 0);
-      msiOpts.IntervalMax = hint + this.intervalNearby;
+      const msiOpts = {
+        ...this.msiOpts,
+        IntervalMin: Math.max(hint - this.intervalNearby, 0),
+        IntervalMax: hint + this.intervalNearby,
+      };
       debug("applying hint %d ± %d", hint, this.intervalNearby);
-      const res1 = await msi.measure(this.gen, msiOpts);
-      if (!res1.isUnderflow && !res1.isOverflow) {
-        return res1;
+      const res = await msi.measure(this.gen, msiOpts);
+      if (!res.isUnderflow && !res.isOverflow) {
+        return [res, res.MSI!];
       }
       debug("observe with hint failed, disable hint and retry");
       this.disableHint();
     }
-    return await msi.measure(this.gen, this.msiOpts);
+
+    const res = await msi.measure(this.gen, this.msiOpts);
+    return [res, res.isUnderflow || res.isOverflow ? NaN : res.MSI!];
   }
 }
 
@@ -109,19 +69,19 @@ interface Argv extends msi.Options {
 async function main() {
   const argv = yargs.parse() as Partial<Argv>;
   const gen = await NdnpingTrafficGen.create();
-  const uncertainty = new Uncertainty(argv.DesiredUncertainty || 10);
+  const uncertainty = new Uncertainty(argv.DesiredUncertainty ?? 10);
 
   const mb = new MsiBenchmark(gen, uncertainty);
   mb.msiOpts = argv;
-  mb.enableHint(argv.IntervalNearby || 500);
+  mb.enableHint(argv.IntervalNearby ?? 500);
 
-  mb.on(MsiBenchmark.EVENT_MSIERROR, (msiResult) => {
+  mb.on("oberror", () => {
     throw new Error("MSI underflow or overflow");
   });
-  mb.on(MsiBenchmark.EVENT_PROGRESS, (msiResult: msi.MeasureResult, ucState) => {
+  mb.on("progress", (msiResult) => {
     process.stdout.write(JSON.stringify(msiResult) + "\n");
   });
-  mb.on(MsiBenchmark.EVENT_DONE, (ucState: UncertaintyState) => {
+  mb.on("done", (ucState) => {
     process.stdout.write(JSON.stringify(ucState) + "\n");
   });
 
@@ -130,5 +90,5 @@ async function main() {
 
 if (require.main === module) {
   main()
-  .catch((err) => { process.stderr.write(err); process.exit(1); });
+  .catch((err) => { process.stderr.write(`${err}\n`); process.exit(1); });
 }

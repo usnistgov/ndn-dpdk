@@ -73,7 +73,7 @@ export interface MeasureResult {
  * Perform MSI measurement.
  */
 export async function measure(gen: ITrafficGen, options: Partial<Options> = {}): Promise<MeasureResult> {
-  const opt: Options = Object.assign({
+  const opt: Options = {
     IntervalMin: 500,
     IntervalMax: 3500,
     IntervalStep: 1,
@@ -86,7 +86,8 @@ export async function measure(gen: ITrafficGen, options: Partial<Options> = {}):
     ReadCountersFreq: 1,
     SatisfyThreshold: 0.999,
     EarlyFailThreshold: 0.970,
-  } as Options, options);
+    ...options,
+  };
 
   const res: MeasureResult = {
     isUnderflow: true,
@@ -128,5 +129,5 @@ async function main() {
 
 if (require.main === module) {
   main()
-  .catch((err) => { process.stderr.write(err); process.exit(1); });
+  .catch((err) => { process.stderr.write(`${err}\n`); process.exit(1); });
 }
