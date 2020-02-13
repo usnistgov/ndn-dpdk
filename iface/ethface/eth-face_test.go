@@ -2,7 +2,6 @@ package ethface_test
 
 import (
 	"fmt"
-	"net"
 	"testing"
 	"time"
 
@@ -29,9 +28,10 @@ func TestEthFace(t *testing.T) {
 		evn.Close()
 	}()
 
-	macA, _ := net.ParseMAC("02:00:00:00:00:01")
-	macB, _ := net.ParseMAC("02:00:00:00:00:02")
-	macC, _ := net.ParseMAC("02:00:00:00:00:03")
+	var macZero dpdk.EtherAddr
+	macA, _ := dpdk.ParseEtherAddr("02:00:00:00:00:01")
+	macB, _ := dpdk.ParseEtherAddr("02:00:00:00:00:02")
+	macC, _ := dpdk.ParseEtherAddr("02:00:00:00:00:03")
 
 	var cfg ethface.PortConfig
 	cfg.Mempools = mempools
@@ -40,7 +40,7 @@ func TestEthFace(t *testing.T) {
 	cfg.TxqPkts = 64
 	cfg.TxqFrames = 64
 
-	makeFace := func(dev dpdk.EthDev, local, remote net.HardwareAddr) *ethface.EthFace {
+	makeFace := func(dev dpdk.EthDev, local, remote dpdk.EtherAddr) *ethface.EthFace {
 		loc := ethface.NewLocator(dev)
 		loc.Local = local
 		loc.Remote = remote
@@ -51,16 +51,16 @@ func TestEthFace(t *testing.T) {
 
 	faceAB := makeFace(evn.Ports[0], macA, macB)
 	faceAC := makeFace(evn.Ports[0], macA, macC)
-	faceAm := makeFace(evn.Ports[0], nil, nil)
-	faceBm := makeFace(evn.Ports[1], macB, nil)
-	faceBA := makeFace(evn.Ports[1], nil, macA)
+	faceAm := makeFace(evn.Ports[0], macZero, macZero)
+	faceBm := makeFace(evn.Ports[1], macB, macZero)
+	faceBA := makeFace(evn.Ports[1], macZero, macA)
 	faceCA := makeFace(evn.Ports[2], macC, macA)
 
 	locAm := faceAm.GetLocator().(ethface.Locator)
 	assert.Equal("ether", locAm.Scheme)
 	assert.Equal(evn.Ports[0].GetName(), locAm.Port)
-	assert.Equal(macA, locAm.Local)
-	assert.Equal(ndn.GetEtherMcastAddr(), locAm.Remote)
+	assert.True(locAm.Local.Equal(macA))
+	assert.True(locAm.Remote.Equal(ndn.NDN_ETHER_MCAST_ADDR))
 
 	evn.LaunchBridge(dpdk.ListSlaveLCores()[3])
 	time.Sleep(time.Second)

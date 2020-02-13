@@ -5,13 +5,12 @@ package ethface
 */
 import "C"
 import (
-	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"net"
 	"unsafe"
 
+	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/ndn"
 )
@@ -19,28 +18,28 @@ import (
 type EthFace struct {
 	iface.FaceBase
 	port   *Port
-	remote net.HardwareAddr
+	remote dpdk.EtherAddr
 	rxf    *RxFlow
 }
 
 func New(port *Port, loc Locator) (face *EthFace, e error) {
-	if loc.Local != nil && bytes.Compare(([]byte)(port.cfg.Local), ([]byte)(loc.Local)) != 0 {
-		return nil, errors.New("conflicting local address")
+	if !loc.Local.IsZero() && !loc.Local.Equal(port.cfg.Local) {
+		return nil, errors.New("port has a different local address")
 	}
-	if loc.Remote == nil {
-		loc.Remote = ndn.GetEtherMcastAddr()
-	}
-	switch classifyMac48(loc.Remote) {
-	case mac48_multicast:
+	switch {
+	case loc.Remote.IsZero():
+		loc.Remote = ndn.NDN_ETHER_MCAST_ADDR
+		fallthrough
+	case loc.Remote.IsGroup():
 		if face = port.FindFace(nil); face != nil {
-			return nil, fmt.Errorf("face %d has multicast address", face.GetFaceId())
+			return nil, fmt.Errorf("port has another face %d with a group address", face.GetFaceId())
 		}
-	case mac48_unicast:
-		if face = port.FindFace(loc.Remote); face != nil {
-			return nil, fmt.Errorf("face %d has same unicast address", face.GetFaceId())
+	case loc.Remote.IsUnicast():
+		if face = port.FindFace(&loc.Remote); face != nil {
+			return nil, fmt.Errorf("port has another face %d with same unicast address", face.GetFaceId())
 		}
 	default:
-		return nil, fmt.Errorf("invalid MAC-48 address")
+		return nil, fmt.Errorf("invalid MAC address")
 	}
 
 	face = new(EthFace)
@@ -53,8 +52,8 @@ func New(port *Port, loc Locator) (face *EthFace, e error) {
 	priv := face.getPriv()
 	priv.port = C.uint16_t(face.port.dev)
 	priv.faceId = C.FaceId(face.GetFaceId())
-	copyMac48ToC(port.cfg.Local, &priv.txHdr.s_addr)
-	copyMac48ToC(face.remote, &priv.txHdr.d_addr)
+	port.cfg.Local.CopyToC(unsafe.Pointer(&priv.txHdr.s_addr))
+	face.remote.CopyToC(unsafe.Pointer(&priv.txHdr.d_addr))
 	var etherType [2]byte
 	binary.BigEndian.PutUint16(etherType[:], ndn.NDN_ETHERTYPE)
 	C.memcpy(unsafe.Pointer(&priv.txHdr.ether_type), unsafe.Pointer(&etherType[0]), 2)

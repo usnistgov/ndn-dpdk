@@ -45,10 +45,10 @@ func (impl *rxTableImpl) setFace(slot *C.FaceId, faceId iface.FaceId) error {
 }
 
 func (impl *rxTableImpl) Start(face *EthFace) error {
-	if classifyMac48(face.remote) == mac48_multicast {
+	if face.remote.IsGroup() {
 		return impl.setFace(&impl.rxt.c.multicast, face.GetFaceId())
 	}
-	lastOctet := face.remote[5]
+	lastOctet := face.remote.Bytes[5]
 	return impl.setFace(&impl.rxt.c.unicast[lastOctet], face.GetFaceId())
 }
 

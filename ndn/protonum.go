@@ -5,7 +5,7 @@ package ndn
 */
 import "C"
 import (
-	"net"
+	"ndn-dpdk/dpdk"
 )
 
 const (
@@ -15,6 +15,8 @@ const (
 	NDN_WS_PORT   = uint16(C.NDN_WS_PORT)
 )
 
-func GetEtherMcastAddr() net.HardwareAddr {
-	return net.HardwareAddr{0x01, 0x00, 0x5E, 0x00, 0x17, 0xAA}
+var NDN_ETHER_MCAST_ADDR dpdk.EtherAddr
+
+func init() {
+	NDN_ETHER_MCAST_ADDR, _ = dpdk.ParseEtherAddr("01:00:5E:00:17:AA")
 }

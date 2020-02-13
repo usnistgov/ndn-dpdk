@@ -5,53 +5,27 @@ package ethface
 */
 import "C"
 import (
-	"encoding/json"
 	"errors"
-	"net"
 
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/ndn"
 )
 
-type classifyMac48Result int
-
-const (
-	mac48_no classifyMac48Result = iota
-	mac48_unicast
-	mac48_multicast
-)
-
-func classifyMac48(addr net.HardwareAddr) classifyMac48Result {
-	switch {
-	case len(addr) != 6:
-		return mac48_no
-	case (addr[0] & 0x01) == 1:
-		return mac48_multicast
-	}
-	return mac48_unicast
-}
-
-func copyMac48ToC(a net.HardwareAddr, c *C.struct_rte_ether_addr) {
-	for i := 0; i < C.RTE_ETHER_ADDR_LEN; i++ {
-		c.addr_bytes[i] = C.uint8_t(a[i])
-	}
-}
-
 const locatorScheme = "ether"
 
 type Locator struct {
 	iface.LocatorBase
 	Port   string
-	Local  net.HardwareAddr
-	Remote net.HardwareAddr
+	Local  dpdk.EtherAddr
+	Remote dpdk.EtherAddr
 }
 
 func NewLocator(dev dpdk.EthDev) (loc Locator) {
 	loc.Scheme = locatorScheme
 	loc.Port = dev.GetName()
 	loc.Local = dev.GetMacAddr()
-	loc.Remote = ndn.GetEtherMcastAddr()
+	loc.Remote = ndn.NDN_ETHER_MCAST_ADDR
 	return loc
 }
 
@@ -59,51 +33,8 @@ func (loc Locator) Validate() error {
 	if loc.Port == "" {
 		return errors.New("Port must be non-empty")
 	}
-	if loc.Local != nil && classifyMac48(loc.Local) != mac48_unicast {
-		return errors.New("Local must be MAC-48 unicast address")
-	}
-	if loc.Remote != nil && classifyMac48(loc.Remote) == mac48_no {
-		return errors.New("Remote must be MAC-48 address")
-	}
-	return nil
-}
-
-func (loc Locator) IsRemoteMulticast() bool {
-	return classifyMac48(loc.Remote) == mac48_multicast
-}
-
-type locatorJson struct {
-	iface.LocatorBase
-	Port   string
-	Local  string
-	Remote string
-}
-
-func (loc Locator) MarshalJSON() ([]byte, error) {
-	var output locatorJson
-	output.LocatorBase = loc.LocatorBase
-	output.Port = loc.Port
-	output.Local = loc.Local.String()
-	output.Remote = loc.Remote.String()
-	return json.Marshal(output)
-}
-
-func (loc *Locator) UnmarshalJSON(data []byte) (e error) {
-	var input locatorJson
-	if e = json.Unmarshal(data, &input); e != nil {
-		return e
-	}
-	loc.LocatorBase = input.LocatorBase
-	loc.Port = input.Port
-	if input.Local == "" {
-		loc.Local = nil
-	} else if loc.Local, e = net.ParseMAC(input.Local); e != nil {
-		return e
-	}
-	if input.Remote == "" {
-		loc.Remote = nil
-	} else if loc.Remote, e = net.ParseMAC(input.Remote); e != nil {
-		return e
+	if !loc.Local.IsZero() && !loc.Local.IsUnicast() {
+		return errors.New("Local is not unicast")
 	}
 	return nil
 }
@@ -127,7 +58,7 @@ func Create(loc Locator, cfg PortConfig) (face *EthFace, e error) {
 
 	port := FindPort(dev)
 	if port == nil {
-		if cfg.Local == nil {
+		if cfg.Local.IsZero() {
 			cfg.Local = loc.Local
 		}
 		if port, e = NewPort(dev, cfg); e != nil {

@@ -5,9 +5,7 @@ package ethface
 */
 import "C"
 import (
-	"bytes"
 	"errors"
-	"net"
 
 	"github.com/sirupsen/logrus"
 
@@ -46,7 +44,7 @@ func NewPort(dev dpdk.EthDev, cfg PortConfig) (port *Port, e error) {
 	if FindPort(dev) != nil {
 		return nil, errors.New("Port already exists")
 	}
-	if cfg.Local == nil {
+	if cfg.Local.IsZero() {
 		cfg.Local = dev.GetMacAddr()
 	}
 
@@ -85,14 +83,14 @@ func (port *Port) findFace(filter func(face *EthFace) bool) *EthFace {
 
 // FindFace(nil) returns a face with multicast address.
 // FindFace(unicastAddr) returns a face with matching address.
-func (port *Port) FindFace(remote net.HardwareAddr) *EthFace {
+func (port *Port) FindFace(remote *dpdk.EtherAddr) *EthFace {
 	if remote == nil {
 		return port.findFace(func(face *EthFace) bool {
-			return classifyMac48(face.remote) == mac48_multicast
+			return face.remote.IsGroup()
 		})
 	}
 	return port.findFace(func(face *EthFace) bool {
-		return bytes.Compare(([]byte)(remote), ([]byte)(face.remote)) == 0
+		return remote.Equal(face.remote)
 	})
 }
 

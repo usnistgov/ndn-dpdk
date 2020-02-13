@@ -6,7 +6,6 @@ package ethface
 import "C"
 import (
 	"errors"
-	"net"
 
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
@@ -26,15 +25,15 @@ type PortConfig struct {
 	TxqPkts   int              // before-TX queue capacity
 	TxqFrames int              // after-TX queue capacity
 	Mtu       int              // set MTU, 0 to keep default
-	Local     net.HardwareAddr // local address, nil for hardware default
+	Local     dpdk.EtherAddr   // local address, zero for hardware default
 }
 
 func (cfg PortConfig) check() error {
-	if cfg.Local != nil && classifyMac48(cfg.Local) != mac48_unicast {
-		return errors.New("cfg.Local is not a MAC-48 unicast address")
+	if !cfg.Local.IsZero() && !cfg.Local.IsUnicast() {
+		return errors.New("Local is not unicast")
 	}
 	if cfg.HeaderMp.GetDataroom() < SizeofTxHeader() {
-		return errors.New("cfg.HeaderMp dataroom is too small")
+		return errors.New("HeaderMp dataroom is too small")
 	}
 	return nil
 }

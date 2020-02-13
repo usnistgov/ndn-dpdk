@@ -7,7 +7,6 @@ package dpdk
 import "C"
 import (
 	"fmt"
-	"net"
 	"unsafe"
 )
 
@@ -143,10 +142,9 @@ func (port EthDev) Configure(cfg EthDevConfig) (rxQueues []EthRxQueue, txQueues 
 	return rxQueues, txQueues, nil
 }
 
-func (port EthDev) GetMacAddr() net.HardwareAddr {
-	var macAddr C.struct_rte_ether_addr
-	C.rte_eth_macaddr_get(C.uint16_t(port), &macAddr)
-	return net.HardwareAddr(C.GoBytes(unsafe.Pointer(&macAddr.addr_bytes[0]), C.RTE_ETHER_ADDR_LEN))
+func (port EthDev) GetMacAddr() (a EtherAddr) {
+	C.rte_eth_macaddr_get(C.uint16_t(port), a.getPtr())
+	return a
 }
 
 func (port EthDev) GetMtu() int {
