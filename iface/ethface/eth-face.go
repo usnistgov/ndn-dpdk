@@ -5,27 +5,26 @@ package ethface
 */
 import "C"
 import (
-	"encoding/binary"
 	"errors"
 	"fmt"
-	"unsafe"
 
-	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/ndn"
 )
 
 type EthFace struct {
 	iface.FaceBase
-	port   *Port
-	remote dpdk.EtherAddr
-	rxf    *RxFlow
+	port *Port
+	loc  Locator
+	rxf  *RxFlow
 }
 
 func New(port *Port, loc Locator) (face *EthFace, e error) {
 	if !loc.Local.IsZero() && !loc.Local.Equal(port.cfg.Local) {
 		return nil, errors.New("port has a different local address")
 	}
+	loc.Local = port.cfg.Local
+
 	switch {
 	case loc.Remote.IsZero():
 		loc.Remote = ndn.NDN_ETHER_MCAST_ADDR
@@ -47,16 +46,18 @@ func New(port *Port, loc Locator) (face *EthFace, e error) {
 		return nil, e
 	}
 	face.port = port
-	face.remote = loc.Remote
+	face.loc = loc
 
 	priv := face.getPriv()
 	priv.port = C.uint16_t(face.port.dev)
 	priv.faceId = C.FaceId(face.GetFaceId())
-	port.cfg.Local.CopyToC(unsafe.Pointer(&priv.txHdr.s_addr))
-	face.remote.CopyToC(unsafe.Pointer(&priv.txHdr.d_addr))
-	var etherType [2]byte
-	binary.BigEndian.PutUint16(etherType[:], ndn.NDN_ETHERTYPE)
-	C.memcpy(unsafe.Pointer(&priv.txHdr.ether_type), unsafe.Pointer(&etherType[0]), 2)
+
+	vlan := make([]uint16, 2)
+	copy(vlan, loc.Vlan)
+	priv.txHdrLen = C.EthFaceEtherHdr_Init(&priv.txHdr,
+		(*C.struct_rte_ether_addr)(port.cfg.Local.GetPtr()),
+		(*C.struct_rte_ether_addr)(face.loc.Remote.GetPtr()),
+		C.uint16_t(vlan[0]), C.uint16_t(vlan[1]))
 
 	faceC := face.getPtr()
 	faceC.txBurstOp = (C.FaceImpl_TxBurst)(C.EthFace_TxBurst)
@@ -84,12 +85,7 @@ func (face *EthFace) GetPort() *Port {
 }
 
 func (face *EthFace) GetLocator() iface.Locator {
-	var loc Locator
-	loc.Scheme = locatorScheme
-	loc.Port = face.port.dev.GetName()
-	loc.Local = face.port.cfg.Local
-	loc.Remote = face.remote
-	return loc
+	return face.loc
 }
 
 func (face *EthFace) Close() error {

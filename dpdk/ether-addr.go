@@ -30,8 +30,13 @@ func ParseEtherAddr(input string) (a EtherAddr, e error) {
 	return MakeEtherAddr(hw)
 }
 
+// Convert to *C.struct_rte_ether_addr.
+func (a *EtherAddr) GetPtr() unsafe.Pointer {
+	return unsafe.Pointer(a)
+}
+
 func (a *EtherAddr) getPtr() *C.struct_rte_ether_addr {
-	return (*C.struct_rte_ether_addr)(unsafe.Pointer(a))
+	return (*C.struct_rte_ether_addr)(a.GetPtr())
 }
 
 // Copy to *C.struct_rte_ether_addr or other 6-octet buffer.

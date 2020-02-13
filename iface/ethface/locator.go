@@ -6,6 +6,7 @@ package ethface
 import "C"
 import (
 	"errors"
+	"fmt"
 
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
@@ -19,6 +20,7 @@ type Locator struct {
 	Port   string
 	Local  dpdk.EtherAddr
 	Remote dpdk.EtherAddr
+	Vlan   []uint16 `json:",omitempty"`
 }
 
 func NewLocator(dev dpdk.EthDev) (loc Locator) {
@@ -35,6 +37,14 @@ func (loc Locator) Validate() error {
 	}
 	if !loc.Local.IsZero() && !loc.Local.IsUnicast() {
 		return errors.New("Local is not unicast")
+	}
+	if len(loc.Vlan) > 2 {
+		return errors.New("too many Vlan tags")
+	}
+	for i, vid := range loc.Vlan {
+		if vid == 0 || vid >= C.RTE_ETHER_MAX_VLAN_ID {
+			return fmt.Errorf("Vlan[%d] is invalid", i)
+		}
 	}
 	return nil
 }

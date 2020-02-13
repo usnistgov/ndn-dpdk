@@ -6,8 +6,21 @@
 #include "../../dpdk/ethdev.h"
 #include "../face.h"
 #include "../rxloop.h"
-#include <rte_ether.h>
 #include <rte_flow.h>
+
+typedef struct EthFaceEtherHdr
+{
+  struct rte_ether_hdr eth;
+  struct rte_vlan_hdr vlan0;
+  struct rte_vlan_hdr vlan1;
+} __rte_packed EthFaceEtherHdr;
+
+uint8_t
+EthFaceEtherHdr_Init(EthFaceEtherHdr* hdr,
+                     const struct rte_ether_addr* local,
+                     const struct rte_ether_addr* remote,
+                     uint16_t vlan0,
+                     uint16_t vlan1);
 
 /** \brief Ethernet face private data.
  *
@@ -16,10 +29,11 @@
 typedef struct EthFacePriv
 {
   RxGroup flowRxg;
-  struct rte_ether_hdr txHdr;
+  EthFaceEtherHdr txHdr;
   uint16_t port;
   uint16_t rxQueue;
   FaceId faceId;
+  uint8_t txHdrLen;
 } EthFacePriv;
 
 uint16_t

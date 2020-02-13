@@ -83,14 +83,14 @@ func (port *Port) findFace(filter func(face *EthFace) bool) *EthFace {
 
 // FindFace(nil) returns a face with multicast address.
 // FindFace(unicastAddr) returns a face with matching address.
-func (port *Port) FindFace(remote *dpdk.EtherAddr) *EthFace {
-	if remote == nil {
+func (port *Port) FindFace(query *dpdk.EtherAddr) *EthFace {
+	if query == nil {
 		return port.findFace(func(face *EthFace) bool {
-			return face.remote.IsGroup()
+			return face.loc.Remote.IsGroup()
 		})
 	}
 	return port.findFace(func(face *EthFace) bool {
-		return remote.Equal(face.remote)
+		return face.loc.Remote.Equal(*query)
 	})
 }
 

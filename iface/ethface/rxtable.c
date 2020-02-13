@@ -1,32 +1,32 @@
 #include "rxtable.h"
-
-#include <rte_ethdev.h>
-#include <rte_ether.h>
+#include "eth-face.h"
 
 static bool
 EthRxTable_Accept(EthRxTable* rxt, struct rte_mbuf* frame, uint64_t now)
 {
-  assert(frame->data_len >= sizeof(struct rte_ether_hdr));
-  const struct rte_ether_hdr* eth =
-    rte_pktmbuf_mtod(frame, const struct rte_ether_hdr*);
+  assert(frame->data_len >= sizeof(EthFaceEtherHdr));
+  const EthFaceEtherHdr* hdr = rte_pktmbuf_mtod(frame, const EthFaceEtherHdr*);
 
-  if (unlikely(eth->ether_type != rte_cpu_to_be_16(NDN_ETHERTYPE))) {
-    rte_pktmbuf_free(frame);
-    return false;
-  }
-
-  bool isMulticast = eth->d_addr.addr_bytes[0] & 0x01;
-  if (isMulticast) {
+  if (rte_is_multicast_ether_addr(&hdr->eth.d_addr)) {
     frame->port = atomic_load_explicit(&rxt->multicast, memory_order_relaxed);
   } else {
-    uint8_t srcLastOctet = eth->s_addr.addr_bytes[5];
+    uint8_t srcLastOctet = hdr->eth.s_addr.addr_bytes[5];
     frame->port =
       atomic_load_explicit(&rxt->unicast[srcLastOctet], memory_order_relaxed);
   }
 
-  frame->timestamp = now;
+  if (likely(hdr->eth.ether_type == rte_cpu_to_be_16(NDN_ETHERTYPE))) {
+    rte_pktmbuf_adj(frame, offsetof(EthFaceEtherHdr, vlan0));
+  } else if (likely(hdr->vlan0.eth_proto == rte_cpu_to_be_16(NDN_ETHERTYPE))) {
+    rte_pktmbuf_adj(frame, offsetof(EthFaceEtherHdr, vlan1));
+  } else if (likely(hdr->vlan1.eth_proto == rte_cpu_to_be_16(NDN_ETHERTYPE))) {
+    rte_pktmbuf_adj(frame, sizeof(EthFaceEtherHdr));
+  } else {
+    rte_pktmbuf_free(frame);
+    return false;
+  }
 
-  rte_pktmbuf_adj(frame, sizeof(struct rte_ether_hdr));
+  frame->timestamp = now;
   return true;
 }
 

@@ -20,16 +20,23 @@ const args = yargs
   })
   .option("remote", {
     type: "string",
+  })
+  .option("vlan", {
+    type: "number",
   }).parse();
 
+const loc = {
+  Scheme: args.scheme,
+  Port: args.port,
+  Local: args.local,
+  Remote: args.remote,
+} as ethface.Locator;
+if (args.vlan) {
+  loc.Vlan = [args.vlan];
+}
+
 const mgmtClient = new mgmt.RpcClient(jayson.Client.tcp({port: 6345}));
-mgmtClient.request<iface.Locator, facemgmt.BasicInfo>("Face.Create",
-  {
-    Scheme: args.scheme,
-    Port: args.port,
-    Local: args.local,
-    Remote: args.remote,
-  } as ethface.Locator)
+mgmtClient.request<iface.Locator, facemgmt.BasicInfo>("Face.Create", loc)
 .then((result: facemgmt.BasicInfo) => {
   process.stdout.write(result.Id.toString() + "\n");
   process.exit(0);
