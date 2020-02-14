@@ -25,8 +25,6 @@ func parseL2L3(pkt ndn.Packet) {
 	}
 }
 
-var interestTpl = ndn.NewInterestTemplate()
-
 // Make Interest on dpdktestenv DirectMp.
 // input: packet bytes as []byte or HEX, or name URI.
 // args: additional arguments to ndn.MakeInterest.
@@ -40,7 +38,8 @@ func MakeInterest(input interface{}, args ...interface{}) *ndn.Interest {
 		if inp[0] == '/' {
 			m := dpdktestenv.Alloc(dpdktestenv.MPID_DIRECT)
 			m.AsPacket().SetTimestamp(dpdk.TscNow())
-			interest, e := ndn.MakeInterest(m, inp, args...)
+			args = append(args, inp)
+			interest, e := ndn.MakeInterest(m, args...)
 			if e != nil {
 				panic(e)
 			}

@@ -162,22 +162,21 @@ func init() {
 			Capacity:     65535,
 			CacheSize:    255,
 			PrivSize:     ndn.SizeofPacketPriv(),
-			DataroomSize: SizeofEthLpHeaders() + ndn.EncodeInterest_GetHeadroom(),
+			DataroomSize: SizeofEthLpHeaders() + ndn.Interest_Headroom,
 		})
 	RegisterMempool(MP_INTG,
 		MempoolConfig{
 			Capacity:     65535,
 			CacheSize:    255,
 			PrivSize:     0,
-			DataroomSize: ndn.ModifyInterest_SizeofGuider(),
+			DataroomSize: ndn.Interest_SizeofGuider,
 		})
 	RegisterMempool(MP_INT,
 		MempoolConfig{
-			Capacity:  65535,
-			CacheSize: 255,
-			PrivSize:  ndn.SizeofPacketPriv(),
-			DataroomSize: SizeofEthLpHeaders() + ndn.EncodeInterest_GetHeadroom() +
-				ndn.EncodeInterest_GetTailroomMax(),
+			Capacity:     65535,
+			CacheSize:    255,
+			PrivSize:     ndn.SizeofPacketPriv(),
+			DataroomSize: SizeofEthLpHeaders() + ndn.Interest_Headroom + ndn.Interest_TailroomMax,
 		})
 	RegisterMempool(MP_DATA,
 		MempoolConfig{

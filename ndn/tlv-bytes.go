@@ -58,25 +58,30 @@ func (tb TlvBytes) ExtractElement() (element TlvBytes, tail TlvBytes) {
 	return element, tail
 }
 
+func (tb TlvBytes) Join(tail ...TlvBytes) TlvBytes {
+	a := [][]byte{tb}
+	for _, part := range tail {
+		a = append(a, ([]byte)(part))
+	}
+	return TlvBytes(bytes.Join(a, nil))
+}
+
 func (tb TlvBytes) String() string {
 	return strings.ToUpper(hex.EncodeToString(([]byte)(tb)))
 }
 
 // Encode TLV from TLV-TYPE and TLV-VALUE chunks.
 func EncodeTlv(tlvType TlvType, value ...TlvBytes) TlvBytes {
-	a := [][]byte{nil}
 	length := 0
 	for _, v := range value {
-		a = append(a, ([]byte)(v))
 		length += len(v)
 	}
 
 	sizeofT := C.SizeofVarNum(C.uint32_t(tlvType))
 	sizeofL := C.SizeofVarNum(C.uint32_t(length))
-	tl := make([]byte, int(sizeofT+sizeofL))
+	tl := make(TlvBytes, int(sizeofT+sizeofL))
 	C.EncodeVarNum((*C.uint8_t)(unsafe.Pointer(&tl[0])), C.uint32_t(tlvType))
 	C.EncodeVarNum((*C.uint8_t)(unsafe.Pointer(&tl[sizeofT])), C.uint32_t(length))
 
-	a[0] = tl
-	return TlvBytes(bytes.Join(a, nil))
+	return tl.Join(value...)
 }

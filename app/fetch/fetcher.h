@@ -6,7 +6,6 @@
 #include "../../container/pktqueue/queue.h"
 #include "../../dpdk/thread.h"
 #include "../../iface/face.h"
-#include "../../ndn/encode-interest.h"
 #include "logic.h"
 
 /** \brief Fetcher thread.
@@ -17,13 +16,9 @@ typedef struct Fetcher
   struct rte_mempool* interestMp;
   FetchLogic logic;
   FaceId face;
-  uint16_t interestMbufHeadroom;
   ThreadStopFlag stop;
   NonceGen nonceGen;
   InterestTemplate tpl;
-  uint8_t tplPrepareBuffer[64];
-  uint8_t suffixBuffer[2 + sizeof(uint64_t)];
-  uint8_t prefixBuffer[NAME_MAX_LENGTH];
 } Fetcher;
 
 enum

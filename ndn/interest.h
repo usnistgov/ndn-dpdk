@@ -3,6 +3,7 @@
 
 /// \file
 
+#include "../core/pcg_basic.h"
 #include "name.h"
 
 /** \brief maximum number of forwarding hints
@@ -10,8 +11,6 @@
 #define INTEREST_MAX_FHS 4
 
 #define DEFAULT_INTEREST_LIFETIME 4000
-
-typedef struct Packet Packet;
 
 /** \brief Parsed Interest packet.
  */
@@ -63,24 +62,25 @@ PInterest_FromPacket(PInterest* interest,
 NdnError
 PInterest_SelectActiveFh(PInterest* interest, int8_t index);
 
-static inline uint16_t
-ModifyInterest_SizeofGuider()
+/** \brief Random nonce generator.
+ */
+typedef struct NonceGen
 {
-  return 1 + 1 + 4 + // Nonce
-         1 + 1 + 4 + // InterestLifetime
-         1 + 1 + 1;  // HopLimit
+  pcg32_random_t rng;
+} NonceGen;
+
+void
+NonceGen_Init(NonceGen* g);
+
+static inline uint32_t
+NonceGen_Next(NonceGen* g)
+{
+  return pcg32_random_r(&g->rng);
 }
 
 /** \brief Modify Interest nonce and lifetime.
  *  \param[in] npkt the original Interest packet;
  *                  must have \c Packet_GetInterestHdr().
- *  \param headerMp mempool for storing Interest TL;
- *                  must have \c EncodeInterest_GetHeadroom() dataroom,
- *                  and must fulfill requirements of \c Packet_FromMbuf();
- *                  may have additional headroom for lower layer headers.
- *  \param guiderMp mempool for storing Nonce and InterestLifetime;
- *                  must have \c ModifyInterest_SizeofGuider() dataroom.
- *  \param indirectMp mempool for allocating indirect mbufs.
  *  \return cloned and modified packet that has \c Packet_GetInterestHdr().
  *  \retval NULL allocation failure.
  */
@@ -92,5 +92,37 @@ ModifyInterest(Packet* npkt,
                struct rte_mempool* headerMp,
                struct rte_mempool* guiderMp,
                struct rte_mempool* indirectMp);
+
+#define INTEREST_TEMPLATE_BUFLEN (2 * NAME_MAX_LENGTH + 256)
+
+/** \brief Template for Interest encoding.
+ */
+typedef struct InterestTemplate
+{
+  uint16_t headroom;
+  uint16_t prefixL;                         ///< Name prefix length
+  uint16_t midLen;                          ///< midBuffer length
+  uint16_t nonceOff;                        ///< NonceV offset within midBuffer
+  uint8_t prefixV[NAME_MAX_LENGTH];         ///< Name prefix
+  uint8_t midBuf[INTEREST_TEMPLATE_BUFLEN]; ///< "middle" field
+} InterestTemplate;
+
+void
+EncodeInterest_(struct rte_mbuf* m,
+                const InterestTemplate* tpl,
+                uint16_t suffixL,
+                const uint8_t* suffixV,
+                uint32_t nonce);
+
+/** \brief Encode an Interest.
+ */
+static inline void
+EncodeInterest(struct rte_mbuf* m,
+               const InterestTemplate* tpl,
+               LName suffix,
+               uint32_t nonce)
+{
+  EncodeInterest_(m, tpl, suffix.length, suffix.value, nonce);
+}
 
 #endif // NDN_DPDK_NDN_INTEREST_H

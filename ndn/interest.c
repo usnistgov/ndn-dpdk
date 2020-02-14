@@ -1,8 +1,8 @@
 #include "interest.h"
-#include "data.h"
-#include "encode-interest.h"
 #include "packet.h"
 #include "tlv-encoder.h"
+
+#include <rte_random.h>
 
 NdnError
 PInterest_FromPacket(PInterest* interest,
@@ -152,6 +152,12 @@ PInterest_SelectActiveFh(PInterest* interest, int8_t index)
   return NdnError_OK;
 }
 
+void
+NonceGen_Init(NonceGen* g)
+{
+  pcg32_srandom_r(&g->rng, rte_rand(), rte_rand());
+}
+
 Packet*
 ModifyInterest(Packet* npkt,
                uint32_t nonce,
@@ -161,9 +167,6 @@ ModifyInterest(Packet* npkt,
                struct rte_mempool* guiderMp,
                struct rte_mempool* indirectMp)
 {
-  assert(rte_pktmbuf_data_room_size(headerMp) >= EncodeInterest_GetHeadroom());
-  assert(rte_pktmbuf_data_room_size(guiderMp) >= ModifyInterest_SizeofGuider());
-
   struct rte_mbuf* header = rte_pktmbuf_alloc(headerMp);
   if (unlikely(header == NULL)) {
     return NULL;
@@ -236,7 +239,6 @@ ModifyInterest(Packet* npkt,
       rte_pktmbuf_free(guider);
       return NULL;
     }
-
     rte_pktmbuf_chain(guider, m2);
   }
 
@@ -259,4 +261,30 @@ ModifyInterest(Packet* npkt,
   outInterest->lifetime = lifetime;
   outInterest->guiderSize = sizeof(GuiderF);
   return outNpkt;
+}
+
+void
+EncodeInterest_(struct rte_mbuf* m,
+                const InterestTemplate* tpl,
+                uint16_t suffixL,
+                const uint8_t* suffixV,
+                uint32_t nonce)
+{
+  m->data_off = tpl->headroom;
+  TlvEncoder* en = MakeTlvEncoder(m);
+  AppendVarNum(en, TT_Name);
+  AppendVarNum(en, tpl->prefixL + suffixL);
+
+  uint8_t* room = TlvEncoder_Append(en, tpl->prefixL + suffixL + tpl->midLen);
+  assert(room != NULL);
+  rte_memcpy(room, tpl->prefixV, tpl->prefixL);
+  room = RTE_PTR_ADD(room, tpl->prefixL);
+  rte_memcpy(room, suffixV, suffixL);
+  room = RTE_PTR_ADD(room, suffixL);
+  rte_memcpy(room, tpl->midBuf, tpl->midLen);
+  *(unaligned_uint32_t*)RTE_PTR_ADD(room, tpl->nonceOff) =
+    rte_cpu_to_le_32(nonce);
+
+  PrependVarNum(en, m->pkt_len);
+  PrependVarNum(en, TT_Interest);
 }

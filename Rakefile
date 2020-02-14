@@ -8,7 +8,7 @@ Rake::FileList["**/cgostruct.in.go"].each do |f|
   file name => f do |t|
     # force gcc here; clang has errors regarding __m256i symbol
     # override $GODEFCC if other version of gcc is desired
-    sh "cd #{f.pathmap("%d")}; CC=${GODEFCC:-gcc-7} go tool cgo -godefs -- cgostruct.in.go | gofmt -s > cgostruct.go; rm -rf _obj"
+    sh "mk/godef.sh #{name}"
   end
   task name => f.pathmap("%d/cgoflags.go")
   task "cgostruct" => name
@@ -84,6 +84,7 @@ file "ndn/tlv-type.h" => "ndn/tlv-type.tsv" do
   sh "ndn/make-tlv-type.sh"
 end
 task "ndn".pathmap(ClibPathmap) => ["ndn/error.h", "ndn/tlv-type.h"]
+task "ndn/cgostruct.go" => ["ndn/error.h", "ndn/tlv-type.h"]
 
 desc "Build forwarding strategies"
 task "strategies" => "strategy/strategy_elf/bindata.go"

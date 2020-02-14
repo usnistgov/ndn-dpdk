@@ -36,7 +36,6 @@ func New(face iface.IFace, cfg Config) (client *Client, e error) {
 
 	ctC := (*C.PingClientTx)(dpdk.Zmalloc("PingClientTx", C.sizeof_PingClientTx, socket))
 	ctC.face = (C.FaceId)(face.GetFaceId())
-	ctC.interestMbufHeadroom = C.uint16_t(appinit.SizeofEthLpHeaders() + ndn.EncodeInterest_GetHeadroom())
 	ctC.interestMp = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
 		appinit.MP_INT, socket).GetPtr())
 	C.pcg32_srandom_r(&ctC.trafficRng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
@@ -78,24 +77,25 @@ func (client *Client) AddPattern(cfg Pattern) (index int, e error) {
 		return -1, errors.New("first pattern cannot have SeqNumOffset")
 	}
 
-	tpl := ndn.NewInterestTemplate()
-	tpl.SetNamePrefix(cfg.Prefix)
-	tpl.SetCanBePrefix(cfg.CanBePrefix)
-	tpl.SetMustBeFresh(cfg.MustBeFresh)
+	tplArgs := []interface{}{ndn.InterestMbufExtraHeadroom(appinit.SizeofEthLpHeaders()), cfg.Prefix}
+	if cfg.CanBePrefix {
+		tplArgs = append(tplArgs, ndn.CanBePrefixFlag)
+	}
+	if cfg.MustBeFresh {
+		tplArgs = append(tplArgs, ndn.MustBeFreshFlag)
+	}
 	if lifetime := cfg.InterestLifetime.Duration(); lifetime != 0 {
-		tpl.SetInterestLifetime(lifetime)
+		tplArgs = append(tplArgs, lifetime)
 	}
 	if cfg.HopLimit != 0 {
-		tpl.SetHopLimit(uint8(cfg.HopLimit))
+		tplArgs = append(tplArgs, uint8(cfg.HopLimit))
 	}
 
 	client.clearCounter(index)
 	rxP := &client.Rx.c.pattern[index]
 	rxP.prefixLen = C.uint16_t(cfg.Prefix.Size())
 	txP := &client.Tx.c.pattern[index]
-	if e = tpl.CopyToC(unsafe.Pointer(&txP.tpl),
-		unsafe.Pointer(&txP.tplPrepareBuffer), unsafe.Sizeof(txP.tplPrepareBuffer),
-		unsafe.Pointer(&txP.prefixBuffer), unsafe.Sizeof(txP.prefixBuffer)); e != nil {
+	if e = ndn.InterestTemplateFromPtr(unsafe.Pointer(&txP.tpl)).Init(tplArgs...); e != nil {
 		return -1, e
 	}
 	txP.seqNum.compT = C.TT_GenericNameComponent

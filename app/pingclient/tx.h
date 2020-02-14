@@ -9,7 +9,6 @@
 #include "../../dpdk/thread.h"
 #include "../../dpdk/tsc.h"
 #include "../../iface/face.h"
-#include "../../ndn/encode-interest.h"
 
 /** \brief Per-pattern information in ndnping client.
  */
@@ -28,8 +27,6 @@ typedef struct PingClientTxPattern
   uint32_t seqNumOffset;
 
   InterestTemplate tpl;
-  uint8_t tplPrepareBuffer[64];
-  uint8_t prefixBuffer[NAME_MAX_LENGTH];
 } PingClientTxPattern;
 
 static_assert(offsetof(PingClientTxPattern, seqNum.compV) % sizeof(uint64_t) ==
@@ -41,7 +38,6 @@ static_assert(offsetof(PingClientTxPattern, seqNum.compV) % sizeof(uint64_t) ==
 typedef struct PingClientTx
 {
   FaceId face;
-  uint16_t interestMbufHeadroom;
   ThreadStopFlag stop;
   uint8_t runNum;
   uint16_t nWeights;

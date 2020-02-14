@@ -32,16 +32,9 @@ PingClientTx_MakeInterest(PingClientTx* ct, Packet* npkt, PingTime now)
   }
 
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
-  pkt->data_off = ct->interestMbufHeadroom;
   LName nameSuffix = { .length = PINGCLIENT_SUFFIX_LEN,
                        .value = &pattern->seqNum.compT };
-  EncodeInterest(pkt,
-                 &pattern->tpl,
-                 pattern->tplPrepareBuffer,
-                 nameSuffix,
-                 NonceGen_Next(&ct->nonceGen),
-                 0,
-                 NULL);
+  EncodeInterest(pkt, &pattern->tpl, nameSuffix, NonceGen_Next(&ct->nonceGen));
 
   Packet_SetL3PktType(npkt, L3PktType_Interest); // for stats; no PInterest*
   Packet_InitLpL3Hdr(npkt)->pitToken =

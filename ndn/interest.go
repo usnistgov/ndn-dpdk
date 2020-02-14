@@ -22,11 +22,20 @@ PInterest_Unpack(const PInterest* p, PInterestUnpacked* u)
 */
 import "C"
 import (
+	"encoding/binary"
 	"errors"
+	"fmt"
+	"math/rand"
 	"time"
 	"unsafe"
 
 	"ndn-dpdk/dpdk"
+)
+
+const (
+	Interest_Headroom     = 6  // InterestTL
+	Interest_SizeofGuider = 15 // Nonce(4)+InterestLifetime(4)+HopLimit(1)
+	Interest_TailroomMax  = 4 + C.NAME_MAX_LENGTH + C.INTEREST_TEMPLATE_BUFLEN
 )
 
 // Interest packet.
@@ -110,10 +119,9 @@ func (interest *Interest) SelectActiveFh(index int) error {
 	return nil
 }
 
-func ModifyInterest_SizeofGuider() int {
-	return int(C.ModifyInterest_SizeofGuider())
-}
-
+// Modify Interest guiders.
+// headerMp element size should be at least Interest_Headroom plus Ethernet and NDNLP headers.
+// guiderMp element size should be at least Interest_SizeofGuider.
 func (interest *Interest) Modify(nonce uint32, lifetime time.Duration,
 	hopLimit uint8, headerMp dpdk.PktmbufPool,
 	guiderMp dpdk.PktmbufPool, indirectMp dpdk.PktmbufPool) *Interest {
@@ -126,4 +134,163 @@ func (interest *Interest) Modify(nonce uint32, lifetime time.Duration,
 		return nil
 	}
 	return Packet{outPktC}.AsInterest()
+}
+
+type InterestMbufExtraHeadroom int
+
+type tCanBePrefix bool
+type tMustBeFresh bool
+
+const (
+	CanBePrefixFlag = tCanBePrefix(true)
+	MustBeFreshFlag = tMustBeFresh(true)
+)
+
+type FHDelegation struct {
+	Preference int
+	Name       string
+}
+
+type ActiveFHDelegation int
+
+func InterestTemplateFromPtr(ptr unsafe.Pointer) *InterestTemplate {
+	return (*InterestTemplate)(ptr)
+}
+
+// Initialize InterestTemplate from flexible arguments.
+// Increase mbuf headroom with InterestMbufExtraHeadroom.
+// Specify Name with string or *Name.
+// Specify CanBePrefix with `CanBePrefixFlag`.
+// Specify MustBeFresh with `MustBeFreshFlag`.
+// Specify ForwardingHint with FHDelegation (repeatable).
+// Specify InterestLifetime with time.Duration.
+// Specify HopLimit with uint8.
+// ApplicationParameters and Signature are not supported.
+func (tpl *InterestTemplate) Init(args ...interface{}) (e error) {
+	tpl.Headroom = Interest_Headroom
+	cbp := false
+	mbf := false
+	var fh TlvBytes
+	lifetime := uint32(C.DEFAULT_INTEREST_LIFETIME)
+	hopLimit := uint8(0xFF)
+
+	for i := 0; i < len(args); i++ {
+		switch a := args[i].(type) {
+		case InterestMbufExtraHeadroom:
+			tpl.Headroom += uint16(a)
+		case string:
+			if name, e := ParseName(a); e != nil {
+				return e
+			} else {
+				tpl.PrefixL = uint16(copy(tpl.PrefixV[:], ([]byte)(name.GetValue())))
+			}
+		case *Name:
+			tpl.PrefixL = uint16(copy(tpl.PrefixV[:], ([]byte)(a.GetValue())))
+		case tCanBePrefix:
+			cbp = true
+		case tMustBeFresh:
+			mbf = true
+		case FHDelegation:
+			if name, e := ParseName(a.Name); e != nil {
+				return e
+			} else {
+				prefV := make([]byte, 4)
+				binary.BigEndian.PutUint32(prefV, uint32(a.Preference))
+				fh = fh.Join(EncodeTlv(TT_Delegation, EncodeTlv(TT_Preference, TlvBytes(prefV)), name.Encode()))
+			}
+		case time.Duration:
+			lifetime = uint32(a / time.Millisecond)
+		case uint8:
+			hopLimit = a
+		default:
+			return fmt.Errorf("unrecognized argument type %T", a)
+		}
+	}
+
+	var mid TlvBytes
+	if cbp {
+		mid = mid.Join(EncodeTlv(TT_CanBePrefix))
+	}
+	if mbf {
+		mid = mid.Join(EncodeTlv(TT_MustBeFresh))
+	}
+	if len(fh) > 0 {
+		mid = mid.Join(EncodeTlv(TT_ForwardingHint, fh))
+	}
+	{
+		nonceV := make(TlvBytes, 4)
+		mid = mid.Join(EncodeTlv(TT_Nonce, nonceV))
+		tpl.NonceOff = uint16(len(mid) - 4)
+	}
+	if lifetime != C.DEFAULT_INTEREST_LIFETIME {
+		lifetimeV := make([]byte, 4)
+		binary.BigEndian.PutUint32(lifetimeV, lifetime)
+		mid = mid.Join(EncodeTlv(TT_InterestLifetime, TlvBytes(lifetimeV)))
+	}
+	if hopLimit != 0xFF {
+		mid = mid.Join(EncodeTlv(TT_HopLimit, TlvBytes{hopLimit}))
+	}
+	tpl.MidLen = uint16(copy(tpl.MidBuf[:], ([]byte)(mid)))
+	return nil
+}
+
+// Encode an Interest from template.
+// must be empty and is the only segment.
+// mbuf headroom should be at least Interest_Headroom plus Ethernet and NDNLP headers.
+// mbuf tailroom should fit the whole packet; a safe value is Interest_TailroomMax.
+func (tpl *InterestTemplate) Encode(m dpdk.IMbuf, suffix *Name, nonce uint32) {
+	var suffixV TlvBytes
+	if suffix != nil {
+		suffixV = suffix.GetValue()
+	}
+
+	C.EncodeInterest_((*C.struct_rte_mbuf)(m.GetPtr()), (*C.InterestTemplate)(unsafe.Pointer(tpl)),
+		C.uint16_t(len(suffixV)), (*C.uint8_t)(suffixV.GetPtr()), C.uint32_t(nonce))
+}
+
+// Encode an Interest from flexible arguments.
+// In addition to argument types supported by `func (tpl *InterestTemplate) Init`:
+// Specify Nonce with uint32.
+// Choose active ForwardingHint delegation with ActiveFHDelegation.
+func MakeInterest(m dpdk.IMbuf, args ...interface{}) (interest *Interest, e error) {
+	nonce := rand.Uint32()
+	activeFh := -1
+	var tplArgs []interface{}
+
+	for _, arg := range args {
+		switch a := arg.(type) {
+		case ActiveFHDelegation:
+			activeFh = int(a)
+		case uint32:
+			nonce = a
+		default:
+			tplArgs = append(tplArgs, arg)
+		}
+	}
+
+	var tpl InterestTemplate
+	if e = tpl.Init(tplArgs...); e != nil {
+		m.Close()
+		return nil, e
+	}
+
+	tpl.Encode(m, nil, nonce)
+	pkt := PacketFromDpdk(m)
+	if e = pkt.ParseL2(); e != nil {
+		m.Close()
+		return nil, e
+	}
+	if e = pkt.ParseL3(dpdk.PktmbufPool{}); e != nil || pkt.GetL3Type() != L3PktType_Interest {
+		m.Close()
+		return nil, e
+	}
+
+	interest = pkt.AsInterest()
+	if activeFh >= 0 {
+		if e = interest.SelectActiveFh(activeFh); e != nil {
+			m.Close()
+			return nil, e
+		}
+	}
+	return interest, nil
 }

@@ -16,14 +16,8 @@ Fetcher_Encode(Fetcher* fetcher, Packet* npkt, uint64_t segNum)
   LName nameSuffix = { .length = suffix[1] + 2, .value = suffix };
 
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
-  pkt->data_off = fetcher->interestMbufHeadroom;
-  EncodeInterest(pkt,
-                 &fetcher->tpl,
-                 fetcher->tplPrepareBuffer,
-                 nameSuffix,
-                 NonceGen_Next(&fetcher->nonceGen),
-                 0,
-                 NULL);
+  EncodeInterest(
+    pkt, &fetcher->tpl, nameSuffix, NonceGen_Next(&fetcher->nonceGen));
 
   Packet_SetL3PktType(npkt, L3PktType_Interest); // for stats; no PInterest*
 }
@@ -61,12 +55,11 @@ Fetcher_Decode(Fetcher* fetcher, Packet* npkt, FetchLogicRxData* lpkt)
   lpkt->congMark = Packet_GetLpL3Hdr(npkt)->congMark;
 
   const PData* data = Packet_GetDataHdr(npkt);
-  LName* name = (LName*)&data->name;
-  const uint8_t* comp =
-    RTE_PTR_ADD(name->value, fetcher->tpl.namePrefix.length);
-  return LName_Compare(fetcher->tpl.namePrefix, *name) == NAMECMP_LPREFIX &&
-         comp[0] == TT_SegmentNameComponent &&
-         DecodeNni(comp[1], &comp[2], &lpkt->segNum) == NdnError_OK;
+  const uint8_t* lastComp = RTE_PTR_ADD(data->name.v, fetcher->tpl.prefixL);
+  return data->name.p.nOctets >= fetcher->tpl.prefixL + 2 &&
+         memcmp(data->name.v, fetcher->tpl.prefixV, fetcher->tpl.prefixL + 1) ==
+           0 &&
+         DecodeNni(lastComp[1], &lastComp[2], &lpkt->segNum) == NdnError_OK;
 }
 
 static void

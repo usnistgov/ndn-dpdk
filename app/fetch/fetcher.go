@@ -5,6 +5,7 @@ package fetch
 */
 import "C"
 import (
+	"errors"
 	"fmt"
 	"unsafe"
 
@@ -39,7 +40,6 @@ func New(face iface.IFace, cfg FetcherConfig) (fetcher *Fetcher, e error) {
 		dpdk.Free(fetcher.c)
 		return nil, nil
 	}
-	fetcher.c.interestMbufHeadroom = C.uint16_t(appinit.SizeofEthLpHeaders() + ndn.EncodeInterest_GetHeadroom())
 	fetcher.c.interestMp = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(appinit.MP_INT, socket).GetPtr())
 	C.NonceGen_Init(&fetcher.c.nonceGen)
 
@@ -57,11 +57,18 @@ func (fetcher *Fetcher) GetFace() iface.IFace {
 }
 
 func (fetcher *Fetcher) SetName(name *ndn.Name) error {
-	tpl := ndn.NewInterestTemplate()
-	tpl.SetNamePrefix(name)
-	return tpl.CopyToC(unsafe.Pointer(&fetcher.c.tpl),
-		unsafe.Pointer(&fetcher.c.tplPrepareBuffer), unsafe.Sizeof(fetcher.c.tplPrepareBuffer),
-		unsafe.Pointer(&fetcher.c.prefixBuffer), unsafe.Sizeof(fetcher.c.prefixBuffer))
+	tpl := ndn.InterestTemplateFromPtr(unsafe.Pointer(&fetcher.c.tpl))
+	if e := tpl.Init(ndn.InterestMbufExtraHeadroom(appinit.SizeofEthLpHeaders()), name); e != nil {
+		return e
+	}
+
+	if uintptr(tpl.PrefixL+1) >= unsafe.Sizeof(tpl.PrefixV) {
+		return errors.New("prefix too long")
+	}
+	tpl.PrefixV[tpl.PrefixL] = uint8(ndn.TT_SegmentNameComponent)
+	// put SegmentNameComponent TLV-TYPE in the buffer so that it's checked in same memcmp
+
+	return nil
 }
 
 func (fetcher *Fetcher) GetRxQueue() pktqueue.PktQueue {
