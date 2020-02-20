@@ -8,18 +8,27 @@
 #include "../../iface/face.h"
 #include "logic.h"
 
+typedef struct Fetcher Fetcher;
+
+typedef const InterestTemplate* (*Fetcher_ChooseTpl)(Fetcher* fetcher,
+                                                     uint64_t segNum);
+
+#define FETCHER_TEMPLATE_MAX 16
+
 /** \brief Fetcher thread.
  */
-typedef struct Fetcher
+struct Fetcher
 {
   PktQueue rxQueue;
   struct rte_mempool* interestMp;
   FetchLogic logic;
+  NonceGen nonceGen;
   FaceId face;
   ThreadStopFlag stop;
-  NonceGen nonceGen;
-  InterestTemplate tpl;
-} Fetcher;
+  uint8_t nTpls;
+  Fetcher_ChooseTpl chooseTpl;
+  InterestTemplate tpl[FETCHER_TEMPLATE_MAX];
+};
 
 enum
 {

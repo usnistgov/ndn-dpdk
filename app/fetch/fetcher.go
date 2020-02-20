@@ -5,7 +5,6 @@ package fetch
 */
 import "C"
 import (
-	"errors"
 	"fmt"
 	"unsafe"
 
@@ -57,17 +56,26 @@ func (fetcher *Fetcher) GetFace() iface.IFace {
 }
 
 func (fetcher *Fetcher) SetName(name *ndn.Name) error {
-	tpl := ndn.InterestTemplateFromPtr(unsafe.Pointer(&fetcher.c.tpl))
-	if e := tpl.Init(ndn.InterestMbufExtraHeadroom(appinit.SizeofEthLpHeaders()), name); e != nil {
-		return e
-	}
+	return fetcher.SetNames([]*ndn.Name{name})
+}
 
-	if uintptr(tpl.PrefixL+1) >= unsafe.Sizeof(tpl.PrefixV) {
-		return errors.New("prefix too long")
+func (fetcher *Fetcher) SetNames(names []*ndn.Name) error {
+	if len(names) < 1 || len(names) > C.FETCHER_TEMPLATE_MAX {
+		return fmt.Errorf("need between 1 and %d names", C.FETCHER_TEMPLATE_MAX)
 	}
-	tpl.PrefixV[tpl.PrefixL] = uint8(ndn.TT_SegmentNameComponent)
-	// put SegmentNameComponent TLV-TYPE in the buffer so that it's checked in same memcmp
+	for i, name := range names {
+		tpl := ndn.InterestTemplateFromPtr(unsafe.Pointer(&fetcher.c.tpl[i]))
+		if e := tpl.Init(ndn.InterestMbufExtraHeadroom(appinit.SizeofEthLpHeaders()), name); e != nil {
+			return e
+		}
 
+		if uintptr(tpl.PrefixL+1) >= unsafe.Sizeof(tpl.PrefixV) {
+			return fmt.Errorf("names[%d] too long", i)
+		}
+		tpl.PrefixV[tpl.PrefixL] = uint8(ndn.TT_SegmentNameComponent)
+		// put SegmentNameComponent TLV-TYPE in the buffer so that it's checked in same memcmp
+	}
+	fetcher.c.nTpls = C.uint8_t(len(names))
 	return nil
 }
 

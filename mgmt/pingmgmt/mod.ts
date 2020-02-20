@@ -34,7 +34,7 @@ export type FetchCounters = FetchCounters_;
 
 export interface FetchBenchmarkArgs {
   Index: Index;
-  Name: Name;
+  Names: Name[];
   Warmup: Milliseconds;
   Interval: Milliseconds;
   Count: number;

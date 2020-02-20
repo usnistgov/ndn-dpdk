@@ -46,7 +46,7 @@ func (mg FetchMgmt) Benchmark(args FetchBenchmarkArgs, reply *FetchBenchmarkRepl
 	}
 
 	fetcher.Logic.Reset()
-	fetcher.SetName(args.Name)
+	fetcher.SetNames(args.Names)
 	fetcher.Launch()
 	time.Sleep(args.Warmup.Duration())
 	firstCnt := fetcher.Logic.ReadCounters()
@@ -79,7 +79,7 @@ func (mg FetchMgmt) ReadCounters(args IndexArg, reply *fetch.Counters) error {
 
 type FetchBenchmarkArgs struct {
 	Index    int // Task index
-	Name     *ndn.Name
+	Names    []*ndn.Name
 	Warmup   nnduration.Milliseconds
 	Interval nnduration.Milliseconds
 	Count    int

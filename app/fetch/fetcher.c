@@ -7,6 +7,39 @@ INIT_ZF_LOG(Fetcher);
 
 #define FETCHER_TX_BURST_SIZE 64
 
+static const InterestTemplate*
+Fetcher_ChooseTpl0(Fetcher* fetcher, uint64_t segNum)
+{
+  return &fetcher->tpl[0];
+}
+
+static const InterestTemplate*
+Fetcher_ChooseTplDiv(Fetcher* fetcher, uint64_t segNum)
+{
+  uint8_t i = segNum % fetcher->nTpls;
+  return &fetcher->tpl[i];
+}
+
+static const InterestTemplate*
+Fetcher_ChooseTplMask(Fetcher* fetcher, uint64_t segNum)
+{
+  uint8_t i = segNum & (fetcher->nTpls - 1);
+  return &fetcher->tpl[i];
+}
+
+static void
+Fetcher_SetChooseTpl(Fetcher* fetcher)
+{
+  assert(fetcher->nTpls > 0);
+  if (fetcher->nTpls == 1) {
+    fetcher->chooseTpl = Fetcher_ChooseTpl0;
+  } else if (rte_is_power_of_2(fetcher->nTpls)) {
+    fetcher->chooseTpl = Fetcher_ChooseTplMask;
+  } else {
+    fetcher->chooseTpl = Fetcher_ChooseTplDiv;
+  }
+}
+
 static void
 Fetcher_Encode(Fetcher* fetcher, Packet* npkt, uint64_t segNum)
 {
@@ -16,8 +49,9 @@ Fetcher_Encode(Fetcher* fetcher, Packet* npkt, uint64_t segNum)
   LName nameSuffix = { .length = suffix[1] + 2, .value = suffix };
 
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
-  EncodeInterest(
-    pkt, &fetcher->tpl, nameSuffix, NonceGen_Next(&fetcher->nonceGen));
+  const InterestTemplate* tpl = (*fetcher->chooseTpl)(fetcher, segNum);
+  uint32_t nonce = NonceGen_Next(&fetcher->nonceGen);
+  EncodeInterest(pkt, tpl, nameSuffix, nonce);
 
   Packet_SetL3PktType(npkt, L3PktType_Interest); // for stats; no PInterest*
 }
@@ -55,11 +89,16 @@ Fetcher_Decode(Fetcher* fetcher, Packet* npkt, FetchLogicRxData* lpkt)
   lpkt->congMark = Packet_GetLpL3Hdr(npkt)->congMark;
 
   const PData* data = Packet_GetDataHdr(npkt);
-  const uint8_t* lastComp = RTE_PTR_ADD(data->name.v, fetcher->tpl.prefixL);
-  return data->name.p.nOctets >= fetcher->tpl.prefixL + 2 &&
-         memcmp(data->name.v, fetcher->tpl.prefixV, fetcher->tpl.prefixL + 1) ==
-           0 &&
-         DecodeNni(lastComp[1], &lastComp[2], &lpkt->segNum) == NdnError_OK;
+  uint16_t lastCompOff =
+    PName_GetCompBegin(&data->name.p, data->name.v, data->name.p.nComps - 1);
+  const uint8_t* lastComp = RTE_PTR_ADD(data->name.v, lastCompOff);
+  if (unlikely(DecodeNni(lastComp[1], &lastComp[2], &lpkt->segNum) !=
+               NdnError_OK)) {
+    return false;
+  }
+  const InterestTemplate* tpl = (*fetcher->chooseTpl)(fetcher, lpkt->segNum);
+  return lastCompOff == tpl->prefixL &&
+         memcmp(data->name.v, tpl->prefixV, lastCompOff + 1) == 0;
 }
 
 static void
@@ -87,6 +126,7 @@ Fetcher_RxBurst(Fetcher* fetcher)
 int
 Fetcher_Run(Fetcher* fetcher)
 {
+  Fetcher_SetChooseTpl(fetcher);
   while (ThreadStopFlag_ShouldContinue(&fetcher->stop)) {
     if (unlikely(FetchLogic_Finished(&fetcher->logic))) {
       return FETCHER_COMPLETED;

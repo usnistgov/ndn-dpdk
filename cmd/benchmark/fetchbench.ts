@@ -1,40 +1,58 @@
+import * as _ from "lodash";
 import * as yargs from "yargs";
 
 import * as mgmt from "../../mgmt/mod.js";
+import { Name } from "../../ndn/mod.js";
 import { FetchBenchmarkArgs, FetchBenchmarkReply } from "../../mgmt/pingmgmt/mod.js";
 
 import { UcBenchmark } from "./ucbench.js"
 import { Uncertainty } from "./uncertainty.js";
 
+interface NameGenArgs {
+  NamePrefix: Name;
+  NameCount: number;
+}
+
+type BenchArgs = Omit<FetchBenchmarkArgs, "Names"> & NameGenArgs;
+
 export class FetchBenchmark extends UcBenchmark<FetchBenchmarkReply> {
   private rpc: mgmt.RpcClient;
-  private opts: FetchBenchmarkArgs;
+  private opts: BenchArgs;
   public randomizeName = false;
 
-  constructor(uncertainty: Uncertainty, opts: Partial<FetchBenchmarkArgs> = {}) {
+  constructor(uncertainty: Uncertainty, opts: Partial<BenchArgs> = {}) {
     super(uncertainty);
     this.rpc = mgmt.makeMgmtClient();
+
     this.opts = {
       Index: 0,
-      Name: "/8=fetch",
       Warmup: 5000,
       Interval: 10,
       Count: 20000,
+
+      NamePrefix: "/8=fetch",
+      NameCount: 1,
+
       ...opts,
     };
   }
 
   protected async observe(): Promise<[FetchBenchmarkReply, number]> {
-    const opts = {  ...this.opts };
-    if (this.randomizeName) {
-      opts.Name += `/${Math.floor(Math.random() * 99999999)}`;
-    }
+    const opts = {
+      ...this.opts,
+      Names: this.makeNames(),
+    };
     const res = await this.rpc.request<FetchBenchmarkArgs, FetchBenchmarkReply>("Fetch.Benchmark", opts);
     return [res, res.Goodput];
   }
+
+  private makeNames(): Name[] {
+    const suffix = this.randomizeName ? `/8=${Math.floor(Math.random() * 99999999)}` : "";
+    return _.range(this.opts.NameCount).map((i) => `${this.opts.NamePrefix}/8=${i}${suffix}`);
+  }
 }
 
-interface Argv extends FetchBenchmarkArgs {
+interface Argv extends BenchArgs {
   DesiredUncertainty: number;
 }
 

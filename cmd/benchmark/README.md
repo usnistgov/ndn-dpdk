@@ -48,8 +48,10 @@ To use this script, first start the traffic generator, with a fetcher defined in
 Then, launch the benchmark script:
 
 ```
-DEBUG=* node build/cmd/benchmark/fetchbench --Index 0 --Name /8=producer/8=prefix --DesiredUncertainty 30000
+DEBUG=* node build/cmd/benchmark/fetchbench --Index 0 --NamePrefix /8=producer/8=prefix --NameCount 6 --DesiredUncertainty 30000
 ```
 
 * `--Index` option indicates which "task" has the fetcher.
-* `--Name` is the name prefix. An additional random name prefix is appended automatically.
+* `--NamePrefix` is the name prefix.
+* `--NameCount` is the number of distinct name prefixes.
+* Interest names have format *NamePrefix*/*i*/*random*/*segment-number*, where *i* is between 0 and NameCount.
