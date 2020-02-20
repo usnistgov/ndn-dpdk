@@ -50,20 +50,21 @@ func printPeriodicCounters(app *ping.App, counterInterval time.Duration) {
 		for _, task := range app.Tasks {
 			face := task.Face
 			stdlog.Printf("face(%d): %v %v", face.GetFaceId(), face.ReadCounters(), face.ReadExCounters())
-			if fetcher := task.Fetch; fetcher != nil {
-				cnt := fetcher.Logic.ReadCounters()
-				goodput := math.NaN()
-				if prev, ok := prevFetchCnt[fetcher]; ok {
-					goodput = cnt.ComputeGoodput(prev)
-				}
-				prevFetchCnt[fetcher] = cnt
-				stdlog.Printf("  fetch: %v %0.0fD/s", cnt, goodput)
+			if server := task.Server; server != nil {
+				stdlog.Printf("  server: %v", server.ReadCounters())
 			}
 			if client := task.Client; client != nil {
 				stdlog.Printf("  client: %v", client.ReadCounters())
-			}
-			if server := task.Server; server != nil {
-				stdlog.Printf("  server: %v", server.ReadCounters())
+			} else if len(task.Fetch) > 0 {
+				for fetchId, fetcher := range task.Fetch {
+					cnt := fetcher.Logic.ReadCounters()
+					goodput := math.NaN()
+					if prev, ok := prevFetchCnt[fetcher]; ok {
+						goodput = cnt.ComputeGoodput(prev)
+					}
+					prevFetchCnt[fetcher] = cnt
+					stdlog.Printf("  fetch[%d]: %v %0.0fD/s", fetchId, cnt, goodput)
+				}
 			}
 		}
 	}

@@ -73,13 +73,17 @@ func (mg PingClientMgmt) ReadCounters(args IndexArg, reply *pingclient.Counters)
 	return nil
 }
 
+type IndexArg struct {
+	Index int // Task index
+}
+
 type ClientStartArgs struct {
-	Index         int                    // Task index
+	IndexArg
 	Interval      nnduration.Nanoseconds // Interest sending Interval
 	ClearCounters bool                   // whether to clear counters
 }
 
 type ClientStopArgs struct {
-	Index   int                    // Task index
+	IndexArg
 	RxDelay nnduration.Nanoseconds // sleep duration between stopping TX and stopping RX
 }

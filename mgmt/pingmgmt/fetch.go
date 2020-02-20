@@ -14,22 +14,25 @@ type FetchMgmt struct {
 	App *ping.App
 }
 
-func (mg FetchMgmt) getFetcher(index int) (fetcher *fetch.Fetcher, e error) {
+func (mg FetchMgmt) getFetcher(index int, fetchId int) (fetcher *fetch.Fetcher, e error) {
 	if index >= len(mg.App.Tasks) {
 		return nil, errors.New("Index out of range")
 	}
-	fetcher = mg.App.Tasks[index].Fetch
-	if fetcher == nil {
-		return nil, errors.New("Task has no Fetcher")
+	fetchers := mg.App.Tasks[index].Fetch
+	if fetchId >= len(fetchers) {
+		return nil, errors.New("FetchId out of range")
 	}
-	return fetcher, nil
+	return fetchers[fetchId], nil
 }
 
-func (mg FetchMgmt) List(args struct{}, reply *[]int) error {
-	var list []int
+func (mg FetchMgmt) List(args struct{}, reply *[]FetchIndexArg) error {
+	var list []FetchIndexArg
 	for index, task := range mg.App.Tasks {
-		if task.Fetch != nil {
-			list = append(list, index)
+		for fetchId := range task.Fetch {
+			var item FetchIndexArg
+			item.Index = index
+			item.FetchId = fetchId
+			list = append(list, item)
 		}
 	}
 	*reply = list
@@ -37,7 +40,7 @@ func (mg FetchMgmt) List(args struct{}, reply *[]int) error {
 }
 
 func (mg FetchMgmt) Benchmark(args FetchBenchmarkArgs, reply *FetchBenchmarkReply) error {
-	fetcher, e := mg.getFetcher(args.Index)
+	fetcher, e := mg.getFetcher(args.Index, args.FetchId)
 	if e != nil {
 		return e
 	}
@@ -67,8 +70,8 @@ func (mg FetchMgmt) Benchmark(args FetchBenchmarkArgs, reply *FetchBenchmarkRepl
 	return nil
 }
 
-func (mg FetchMgmt) ReadCounters(args IndexArg, reply *fetch.Counters) error {
-	fetcher, e := mg.getFetcher(args.Index)
+func (mg FetchMgmt) ReadCounters(args FetchIndexArg, reply *fetch.Counters) error {
+	fetcher, e := mg.getFetcher(args.Index, args.FetchId)
 	if e != nil {
 		return e
 	}
@@ -77,8 +80,13 @@ func (mg FetchMgmt) ReadCounters(args IndexArg, reply *fetch.Counters) error {
 	return nil
 }
 
+type FetchIndexArg struct {
+	IndexArg
+	FetchId int
+}
+
 type FetchBenchmarkArgs struct {
-	Index    int // Task index
+	FetchIndexArg
 	Names    []*ndn.Name
 	Warmup   nnduration.Milliseconds
 	Interval nnduration.Milliseconds

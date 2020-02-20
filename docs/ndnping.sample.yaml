@@ -25,17 +25,17 @@
       - Prefix: /B/1
         Replies:
           - FreshnessPeriod: 8000ms
-            PayloadLen: 0
+            PayloadLen: 1000
       - Prefix: /B/2
         Replies:
           - FreshnessPeriod: 8000ms
-            PayloadLen: 0
+            PayloadLen: 1000
     Nack: false
 - Face:
     Scheme: ether
     Port: net_af_packetC
     Local: "02:00:00:00:00:03"
     Remote: "01:00:5e:00:17:aa"
-  Fetch:
+  Fetch: 2
+  FetchCfg:
     WindowCapacity: 65536
-    Name: /U/A

@@ -5,7 +5,9 @@ package fetch
 */
 import "C"
 import (
+	"errors"
 	"fmt"
+	"math"
 	"unsafe"
 
 	"ndn-dpdk/appinit"
@@ -22,20 +24,30 @@ type FetcherConfig struct {
 
 // Fetcher thread.
 type Fetcher struct {
+	uint8
 	dpdk.ThreadBase
+	Id    uint8
 	c     *C.Fetcher
 	Logic *Logic
 }
 
-func New(face iface.IFace, cfg FetcherConfig) (fetcher *Fetcher, e error) {
+func New(id int, face iface.IFace, cfg FetcherConfig) (fetcher *Fetcher, e error) {
+	if id < 0 || id > math.MaxUint8 {
+		return nil, errors.New("id out of range")
+	}
+	if cfg.WindowCapacity == 0 {
+		cfg.WindowCapacity = 65536
+	}
 	faceId := face.GetFaceId()
 	socket := face.GetNumaSocket()
 
 	fetcher = new(Fetcher)
+	fetcher.Id = uint8(id)
 	fetcher.c = (*C.Fetcher)(dpdk.Zmalloc("Fetcher", C.sizeof_Fetcher, socket))
 	fetcher.c.face = (C.FaceId)(faceId)
+	fetcher.c.pitToken = (C.uint64_t(id) << 56) | 0x6665746368 // 'fetch'
 	cfg.RxQueue.DisableCoDel = true
-	if _, e := pktqueue.NewAt(unsafe.Pointer(&fetcher.c.rxQueue), cfg.RxQueue, fmt.Sprintf("Fetcher%d_rxQ", faceId), socket); e != nil {
+	if _, e := pktqueue.NewAt(unsafe.Pointer(&fetcher.c.rxQueue), cfg.RxQueue, fmt.Sprintf("Fetcher%d-%d_rxQ", faceId, id), socket); e != nil {
 		dpdk.Free(fetcher.c)
 		return nil, nil
 	}

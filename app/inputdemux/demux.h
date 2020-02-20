@@ -26,13 +26,13 @@ void
 InputDemux_DispatchDrop(InputDemux* demux, Packet* npkt, const Name* name);
 
 void
+InputDemux_DispatchToFirst(InputDemux* demux, Packet* npkt, const Name* name);
+
+void
 InputDemux_DispatchByNdt(InputDemux* demux, Packet* npkt, const Name* name);
 
 void
 InputDemux_DispatchByToken(InputDemux* demux, Packet* npkt, const Name* name);
-
-void
-InputDemux_DispatchToFirst(InputDemux* demux, Packet* npkt, const Name* name);
 
 #define INPUTDEMUX_DEST_MAX 128
 

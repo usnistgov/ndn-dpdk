@@ -33,6 +33,18 @@ InputDemux_DispatchDrop(InputDemux* demux, Packet* npkt, const Name* name)
 }
 
 void
+InputDemux_DispatchToFirst(InputDemux* demux, Packet* npkt, const Name* name)
+{
+  struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
+  ZF_LOGD("%s-from=%" PRI_FaceId " npkt=%p token=%016" PRIx64 " dest-index=0",
+          L3PktType_ToString(Packet_GetL3PktType(npkt)),
+          pkt->port,
+          npkt,
+          Packet_GetLpL3Hdr(npkt)->pitToken);
+  InputDemux_PassTo(demux, npkt, 0);
+}
+
+void
 InputDemux_DispatchByNdt(InputDemux* demux, Packet* npkt, const Name* name)
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
@@ -66,18 +78,6 @@ InputDemux_DispatchByToken(InputDemux* demux, Packet* npkt, const Name* name)
           token,
           index);
   InputDemux_PassTo(demux, npkt, index);
-}
-
-void
-InputDemux_DispatchToFirst(InputDemux* demux, Packet* npkt, const Name* name)
-{
-  struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
-  ZF_LOGD("%s-from=%" PRI_FaceId " npkt=%p token=%016" PRIx64 " dest-index=0",
-          L3PktType_ToString(Packet_GetL3PktType(npkt)),
-          pkt->port,
-          npkt,
-          Packet_GetLpL3Hdr(npkt)->pitToken);
-  InputDemux_PassTo(demux, npkt, 0);
 }
 
 void

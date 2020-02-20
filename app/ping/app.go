@@ -109,14 +109,18 @@ func (app *App) launchInput(input *Input) {
 
 		if task.Client != nil {
 			demuxD.InitFirst()
-			demuxD.SetDest(0, task.Client.GetRxQueue())
 			demuxN.InitFirst()
-			demuxN.SetDest(0, task.Client.GetRxQueue())
-		} else if task.Fetch != nil {
-			demuxD.InitFirst()
-			demuxD.SetDest(0, task.Fetch.GetRxQueue())
-			demuxN.InitFirst()
-			demuxN.SetDest(0, task.Fetch.GetRxQueue())
+			q := task.Client.GetRxQueue()
+			demuxD.SetDest(0, q)
+			demuxN.SetDest(0, q)
+		} else if len(task.Fetch) > 0 {
+			demuxD.InitToken()
+			demuxN.InitToken()
+			for i, fetcher := range task.Fetch {
+				q := fetcher.GetRxQueue()
+				demuxD.SetDest(i, q)
+				demuxN.SetDest(i, q)
+			}
 		}
 	}
 

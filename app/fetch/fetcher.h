@@ -26,6 +26,7 @@ struct Fetcher
   FaceId face;
   ThreadStopFlag stop;
   uint8_t nTpls;
+  uint64_t pitToken;
   Fetcher_ChooseTpl chooseTpl;
   InterestTemplate tpl[FETCHER_TEMPLATE_MAX];
 };

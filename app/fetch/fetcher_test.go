@@ -19,7 +19,7 @@ func TestFetcher(t *testing.T) {
 	var cfg fetch.FetcherConfig
 	cfg.WindowCapacity = 1024
 
-	fetcher, e := fetch.New(face, cfg)
+	fetcher, e := fetch.New(18, face, cfg)
 	require.NoError(e)
 	defer fetcher.Close()
 	fetcher.SetLCore(pingtestenv.SlaveLCores[0])
@@ -28,6 +28,7 @@ func TestFetcher(t *testing.T) {
 	rx := pingtestenv.MakeRxFunc(fetcher)
 	nInterests := 0
 	face.OnTxInterest(func(interest *ndn.Interest) {
+		assert.EqualValues(ndntestutil.GetPitToken(interest)>>56, 18)
 		nInterests++
 		data := ndntestutil.MakeData(interest.GetName().String())
 		rx(data)

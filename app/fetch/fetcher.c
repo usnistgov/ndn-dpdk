@@ -54,6 +54,7 @@ Fetcher_Encode(Fetcher* fetcher, Packet* npkt, uint64_t segNum)
   EncodeInterest(pkt, tpl, nameSuffix, nonce);
 
   Packet_SetL3PktType(npkt, L3PktType_Interest); // for stats; no PInterest*
+  Packet_InitLpL3Hdr(npkt)->pitToken = fetcher->pitToken;
 }
 
 static void

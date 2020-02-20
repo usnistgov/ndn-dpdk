@@ -54,16 +54,20 @@ Subcommands:
   dpinfo pit <I>
   dpinfo cs <I>
     Show dataplane i-th input/fwd/PIT/CS counters.
+  pingc [list]
+    List ping clients.
   pingc start <I> <INTERVAL>
     Start i-th ping client.
   pingc stop <I>
     Stop i-th ping client.
   pingc counters <I>
     Show i-th ping client counters.
-  fetch benchmark <I> <NAME> [<WARMUP>] <INTERVAL> <COUNT>
-    Run benchmark on i-th fetcher.
-  fetch counters <I>
-    Show i-th fetcher counters.
+  fetch [list]
+    List fetchers.
+  fetch benchmark <I,J> <NAME> [<WARMUP>] <INTERVAL> <COUNT>
+    Run benchmark on i-th task j-th fetcher.
+  fetch counters <I,J>
+    Show i-th task j-th fetcher counters.
 EOT
   exit 0
 fi
@@ -150,15 +154,16 @@ elif [[ $1 == 'pingc' ]]; then
     jsonrpc PingClient.ReadCounters '{"Index":'$3'}'
   fi
 elif [[ $1 == 'fetch' ]]; then
+  FETCHINDEX='"Index":'$(echo $3 | cut -d, -f1)',"FetchId":'$(echo $3 | cut -d, -f2)''
   if [[ -z $2 ]] || [[ $2 == 'list' ]]; then
     jsonrpc Fetch.List ''
   elif [[ $2 == 'benchmark' ]]; then
     if [[ -z $7 ]]; then
-      jsonrpc Fetch.Benchmark '{"Index":'$3',"Name":"'$4'","Warmup":0,"Interval":'$5',"Count":'$6'}'
+      jsonrpc Fetch.Benchmark '{'$FETCHINDEX',"Names":["'$4'"],"Warmup":0,"Interval":'$5',"Count":'$6'}'
     else
-      jsonrpc Fetch.Benchmark '{"Index":'$3',"Name":"'$4'","Warmup":'$5',"Interval":'$6',"Count":'$7'}'
+      jsonrpc Fetch.Benchmark '{'$FETCHINDEX',"Names":["'$4'"],"Warmup":'$5',"Interval":'$6',"Count":'$7'}'
     fi
   elif [[ $2 == 'counters' ]]; then
-    jsonrpc Fetch.ReadCounters '{"Index":'$3'}'
+    jsonrpc Fetch.ReadCounters '{'$FETCHINDEX'}'
   fi
 fi

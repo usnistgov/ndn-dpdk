@@ -13,6 +13,7 @@ import (
 	"ndn-dpdk/dpdk"
 )
 
+// Input packet demuxer for a single packet type.
 type Demux struct {
 	c *C.InputDemux
 }
@@ -35,22 +36,26 @@ func (demux Demux) Close() error {
 	return nil
 }
 
+// Configure to drop all packets.
 func (demux Demux) InitDrop() {
 	C.InputDemux_SetDispatchFunc_(demux.c, C.InputDemux_DispatchDrop)
 }
 
+// Configure to pass all packets to the first and only destination.
+func (demux Demux) InitFirst() {
+	C.InputDemux_SetDispatchFunc_(demux.c, C.InputDemux_DispatchToFirst)
+}
+
+// Configure to dispatch via NDT loopup.
 func (demux Demux) InitNdt(ndt *ndt.Ndt, ndtThreadId int) {
 	C.InputDemux_SetDispatchFunc_(demux.c, C.InputDemux_DispatchByNdt)
 	demux.c.ndt = (*C.Ndt)(unsafe.Pointer(ndt.GetPtr()))
 	demux.c.ndtt = C.Ndt_GetThread(demux.c.ndt, C.uint8_t(ndtThreadId))
 }
 
+// Configure to dispatch according to high 8 bits of PIT token.
 func (demux Demux) InitToken() {
 	C.InputDemux_SetDispatchFunc_(demux.c, C.InputDemux_DispatchByToken)
-}
-
-func (demux Demux) InitFirst() {
-	C.InputDemux_SetDispatchFunc_(demux.c, C.InputDemux_DispatchToFirst)
 }
 
 func (demux Demux) SetDest(index int, q pktqueue.PktQueue) {
