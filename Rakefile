@@ -15,9 +15,10 @@ Rake::FileList["**/cgostruct.in.go"].each do |f|
 end
 
 CDeps = {}
-CDeps["app/fwdp"] = ["container/fib", "container/ndt", "container/pcct", "container/pktqueue", "iface"]
+CDeps["app/fwdp"] = ["app/inputdemux", "container/fib", "container/pcct"]
 CDeps["app/fetch"] = ["container/mintmr", "iface"]
-CDeps["app/ping"] = ["app/pingclient", "app/pingserver"]
+CDeps["app/inputdemux"] = ["container/ndt", "container/pktqueue", "iface"]
+CDeps["app/ping"] = ["app/inputdemux", "app/pingclient", "app/pingserver"]
 CDeps["app/pingclient"] = ["iface"]
 CDeps["app/pingserver"] = ["iface"]
 CDeps["appinit"] = ["dpdk"]

@@ -8,27 +8,16 @@ Each thread runs in a DPDK lcore, allocated from "RX" or "FWD" role.
 ## Input Thread (FwInput)
 
 A FwInput runs an **iface.RxLoop** as the main loop ("RX" role), which reads and decodes packets from one or more network interfaces.
-Every burst of received L3 packets triggers `FwInput_FaceRx` function.
+Bursts of received L3 packets are processed by [InputDemux3](../inputdemux), configured to use NDT for Interests, and high 8 bits for Data and Nacks.
 
-For each incoming packet, FwInput decides which forwarding thread should handle the packet:
-
-* For an Interest, lookup the [NDT](../../container/ndt/) with the Interest name.
-* For a Data or Nack, take the first 8 bits of its PIT token.
-
-Then, FwInput passes the packet to the chosen forwarding thread's input queue.
-
-### Data Structure Usage
-
-All FwInputs have read-only access to a shared NDT.
-
-### Crypto Helper (FwCrypto)
+## Crypto Helper (FwCrypto)
 
 FwCrypto provides Data implicit digest computation.
-It is a special kind of FwInput that runs `FwCrypto_Run` as the main loop ("CRYPTO" role).
+It runs `FwCrypto_Run` as the main loop ("CRYPTO" role).
 
 When FwFwd threads an incoming Data packet and finds a PIT entry whose Interest carries the ImplicitSha256DigestComponent, it needs to compute the Data's implicit digest in order to determine whether the Data satisfies the Interest.
 Instead of doing the computation in FwFwd and blocking other packet processing, the FwFwd passes the Data to FwCrypto.
-FwCrypto computes Data digest using a DPDK cryptodev, stores the implicit digest in the mbuf header, and re-dispatches the Data to FwFwd.
+FwCrypto computes Data digest using a DPDK cryptodev, stores the implicit digest in the mbuf header, and re-dispatches the Data to FwFwd using [InputDemux](../inputdemux).
 FwFwd can then re-process the Data, and use the computed implicit digest to determine whether it satisfies the pending Interest.
 
 ## Forwarding Thread (FwFwd)

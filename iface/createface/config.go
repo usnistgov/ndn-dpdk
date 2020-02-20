@@ -13,6 +13,9 @@ var (
 	theMempools = make(map[dpdk.NumaSocket]numaMempools)
 	theRxls     []*iface.RxLoop
 	theTxls     []*iface.TxLoop
+
+	CustomGetRxl func(rxg iface.IRxGroup) *iface.RxLoop
+	CustomGetTxl func(rxg iface.IFace) *iface.TxLoop
 )
 
 type Config struct {

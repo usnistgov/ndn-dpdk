@@ -3,8 +3,8 @@
 
 /// \file
 
+#include "../../app/inputdemux/demux.h"
 #include "../../dpdk/thread.h"
-#include "input.h"
 
 /** \brief Forwarder data plane, crypto helper.
  */
@@ -12,7 +12,7 @@ typedef struct FwCrypto
 {
   struct rte_ring* input;
   struct rte_mempool* opPool;
-  FwInput* output;
+  InputDemux output;
 
   uint64_t nDrops;
 

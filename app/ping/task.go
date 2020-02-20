@@ -1,9 +1,5 @@
 package ping
 
-/*
-#include "input.h"
-*/
-import "C"
 import (
 	"ndn-dpdk/app/fetch"
 	"ndn-dpdk/app/pingclient"
@@ -48,23 +44,6 @@ func newTask(face iface.IFace, cfg TaskConfig) (task Task, e error) {
 		task.Server.SetLCore(dpdk.LCoreAlloc.Alloc(LCoreRole_Server, numaSocket))
 	}
 	return task, nil
-}
-
-func (task *Task) connectInput(inputC *C.PingInput) {
-	entryC := C.PingInput_GetEntry(inputC, C.uint16_t(task.Face.GetFaceId()))
-	if entryC == nil {
-		return
-	}
-
-	if task.Fetch != nil {
-		entryC.clientQueue = (*C.PktQueue)(task.Fetch.GetRxQueue().GetPtr())
-	} else if task.Client != nil {
-		entryC.clientQueue = (*C.PktQueue)(task.Client.GetRxQueue().GetPtr())
-	}
-
-	if task.Server != nil {
-		entryC.serverQueue = (*C.PktQueue)(task.Server.GetRxQueue().GetPtr())
-	}
 }
 
 func (task *Task) Launch() {

@@ -1,13 +1,9 @@
 package ping
 
-/*
-#include "input.h"
-*/
-import "C"
 import (
 	"fmt"
-	"unsafe"
 
+	"ndn-dpdk/app/inputdemux"
 	"ndn-dpdk/appinit"
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
@@ -24,27 +20,43 @@ const (
 )
 
 type App struct {
-	Tasks []Task
-	rxls  []*iface.RxLoop
+	Tasks  []Task
+	inputs []*Input
+}
+
+type Input struct {
+	rxl    *iface.RxLoop
+	demux3 inputdemux.Demux3
 }
 
 func New(cfg []TaskConfig) (app *App, e error) {
 	app = new(App)
 
 	appinit.ProvideCreateFaceMempools()
-	for _, numaSocket := range createface.ListRxTxNumaSockets() {
-		// TODO create rxl and txl for configured faces only
-		rxLCore := dpdk.LCoreAlloc.Alloc(LCoreRole_Input, numaSocket)
-		rxl := iface.NewRxLoop(rxLCore.GetNumaSocket())
-		rxl.SetLCore(rxLCore)
-		app.rxls = append(app.rxls, rxl)
-		createface.AddRxLoop(rxl)
 
-		txLCore := dpdk.LCoreAlloc.Alloc(LCoreRole_Output, numaSocket)
-		txl := iface.NewTxLoop(txLCore.GetNumaSocket())
-		txl.SetLCore(txLCore)
+	createface.CustomGetRxl = func(rxg iface.IRxGroup) *iface.RxLoop {
+		lc := dpdk.LCoreAlloc.Alloc(LCoreRole_Input, rxg.GetNumaSocket())
+		socket := lc.GetNumaSocket()
+		rxl := iface.NewRxLoop(socket)
+		rxl.SetLCore(lc)
+
+		var input Input
+		input.rxl = rxl
+		app.inputs = append(app.inputs, &input)
+
+		createface.AddRxLoop(rxl)
+		return rxl
+	}
+
+	createface.CustomGetTxl = func(face iface.IFace) *iface.TxLoop {
+		lc := dpdk.LCoreAlloc.Alloc(LCoreRole_Output, face.GetNumaSocket())
+		socket := lc.GetNumaSocket()
+		txl := iface.NewTxLoop(socket)
+		txl.SetLCore(lc)
 		txl.Launch()
+
 		createface.AddTxLoop(txl)
+		return txl
 	}
 
 	for i, taskCfg := range cfg {
@@ -63,36 +75,51 @@ func New(cfg []TaskConfig) (app *App, e error) {
 }
 
 func (app *App) Launch() {
-	for _, rxl := range app.rxls {
-		app.launchRxl(rxl)
+	for _, input := range app.inputs {
+		app.launchInput(input)
 	}
 	for _, task := range app.Tasks {
 		task.Launch()
 	}
 }
 
-func (app *App) launchRxl(rxl *iface.RxLoop) {
-	hasFace := false
-	minFaceId := iface.FACEID_MAX
-	maxFaceId := iface.FACEID_MIN
-	for _, faceId := range rxl.ListFaces() {
-		hasFace = true
-		if faceId < minFaceId {
-			minFaceId = faceId
-		}
-		if faceId > maxFaceId {
-			maxFaceId = faceId
-		}
-	}
-	if !hasFace {
-		return
+func (app *App) launchInput(input *Input) {
+	faces := input.rxl.ListFaces()
+	if len(faces) != 1 {
+		panic("RxLoop should have exactly one face")
 	}
 
-	inputC := C.PingInput_New(C.uint16_t(minFaceId), C.uint16_t(maxFaceId), C.unsigned(rxl.GetNumaSocket()))
+	input.demux3 = inputdemux.NewDemux3(input.rxl.GetNumaSocket())
+	demuxI := input.demux3.GetInterestDemux()
+	demuxI.InitDrop()
+	demuxD := input.demux3.GetDataDemux()
+	demuxD.InitDrop()
+	demuxN := input.demux3.GetNackDemux()
+	demuxN.InitDrop()
+
 	for _, task := range app.Tasks {
-		task.connectInput(inputC)
+		if task.Face.GetFaceId() != faces[0] {
+			continue
+		}
+
+		if task.Server != nil {
+			demuxI.InitFirst()
+			demuxI.SetDest(0, task.Server.GetRxQueue())
+		}
+
+		if task.Client != nil {
+			demuxD.InitFirst()
+			demuxD.SetDest(0, task.Client.GetRxQueue())
+			demuxN.InitFirst()
+			demuxN.SetDest(0, task.Client.GetRxQueue())
+		} else if task.Fetch != nil {
+			demuxD.InitFirst()
+			demuxD.SetDest(0, task.Fetch.GetRxQueue())
+			demuxN.InitFirst()
+			demuxN.SetDest(0, task.Fetch.GetRxQueue())
+		}
 	}
 
-	rxl.SetCallback(unsafe.Pointer(C.PingInput_FaceRx), unsafe.Pointer(inputC))
-	rxl.Launch()
+	input.rxl.SetCallback(inputdemux.Demux3_FaceRx, input.demux3.GetPtr())
+	input.rxl.Launch()
 }

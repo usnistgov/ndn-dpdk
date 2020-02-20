@@ -8,16 +8,31 @@ import (
 	"ndn-dpdk/iface/ethface"
 )
 
-var createDestroyLock sync.Mutex
-
-func handleFaceNew(id iface.FaceId) {
-	if theConfig.Disabled {
-		return
+func chooseRxl(rxg iface.IRxGroup) *iface.RxLoop {
+	if CustomGetRxl != nil {
+		return CustomGetRxl(rxg)
 	}
-	// lock held by Create()
 
-	face := iface.Get(id)
+	var bestRxl *iface.RxLoop
+	bestScore := math.MaxInt32
+	for _, rxl := range theRxls {
+		score := 1000*len(rxl.ListRxGroups()) + len(rxl.ListFaces())
+		if !rxl.GetNumaSocket().Match(rxg.GetNumaSocket()) {
+			score += 1000000
+		}
 
+		if score <= bestScore {
+			bestRxl = rxl
+			bestScore = score
+		}
+	}
+	return bestRxl
+}
+
+func chooseTxl(face iface.IFace) *iface.TxLoop {
+	if CustomGetTxl != nil {
+		return CustomGetTxl(face)
+	}
 	var bestTxl *iface.TxLoop
 	bestScore := math.MaxInt32
 	for _, txl := range theTxls {
@@ -31,8 +46,19 @@ func handleFaceNew(id iface.FaceId) {
 			bestScore = score
 		}
 	}
+	return bestTxl
+}
 
-	bestTxl.AddFace(face)
+var createDestroyLock sync.Mutex
+
+func handleFaceNew(id iface.FaceId) {
+	if theConfig.Disabled {
+		return
+	}
+	// lock held by Create()
+
+	face := iface.Get(id)
+	chooseTxl(face).AddFace(face)
 }
 
 func handleFaceClosing(id iface.FaceId) {
@@ -70,21 +96,7 @@ func handleRxGroupAdd(rxg iface.IRxGroup) {
 	}
 	// lock held by Create()
 
-	var bestRxl *iface.RxLoop
-	bestScore := math.MaxInt32
-	for _, rxl := range theRxls {
-		score := 1000*len(rxl.ListRxGroups()) + len(rxl.ListFaces())
-		if !rxl.GetNumaSocket().Match(rxg.GetNumaSocket()) {
-			score += 1000000
-		}
-
-		if score <= bestScore {
-			bestRxl = rxl
-			bestScore = score
-		}
-	}
-
-	bestRxl.AddRxGroup(rxg)
+	chooseRxl(rxg).AddRxGroup(rxg)
 }
 
 func handleRxGroupRemove(rxg iface.IRxGroup) {

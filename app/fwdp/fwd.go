@@ -23,8 +23,11 @@ import (
 
 type Fwd struct {
 	dpdk.ThreadBase
-	id int
-	c  *C.FwFwd
+	id            int
+	c             *C.FwFwd
+	interestQueue pktqueue.PktQueue
+	dataQueue     pktqueue.PktQueue
+	nackQueue     pktqueue.PktQueue
 }
 
 func newFwd(id int) *Fwd {
@@ -38,20 +41,20 @@ func (fwd *Fwd) String() string {
 	return fmt.Sprintf("fwd%d", fwd.id)
 }
 
-func (fwd *Fwd) Init(fib *fib.Fib, pcctCfg pcct.Config, interestQueueCfg, dataQueueCfg, nackQueueCfg pktqueue.Config, latencySampleFreq int) error {
+func (fwd *Fwd) Init(fib *fib.Fib, pcctCfg pcct.Config, interestQueueCfg, dataQueueCfg, nackQueueCfg pktqueue.Config, latencySampleFreq int) (e error) {
 	numaSocket := fwd.GetNumaSocket()
 
 	fwd.c = (*C.FwFwd)(dpdk.Zmalloc("FwFwd", C.sizeof_FwFwd, numaSocket))
 	dpdk.InitStopFlag(unsafe.Pointer(&fwd.c.stop))
 	fwd.c.id = C.uint8_t(fwd.id)
 
-	if _, e := pktqueue.NewAt(unsafe.Pointer(&fwd.c.inInterestQueue), interestQueueCfg, fmt.Sprintf("%s_qI", fwd), numaSocket); e != nil {
+	if fwd.interestQueue, e = pktqueue.NewAt(unsafe.Pointer(&fwd.c.inInterestQueue), interestQueueCfg, fmt.Sprintf("%s_qI", fwd), numaSocket); e != nil {
 		return nil
 	}
-	if _, e := pktqueue.NewAt(unsafe.Pointer(&fwd.c.inDataQueue), interestQueueCfg, fmt.Sprintf("%s_qD", fwd), numaSocket); e != nil {
+	if fwd.dataQueue, e = pktqueue.NewAt(unsafe.Pointer(&fwd.c.inDataQueue), interestQueueCfg, fmt.Sprintf("%s_qD", fwd), numaSocket); e != nil {
 		return nil
 	}
-	if _, e := pktqueue.NewAt(unsafe.Pointer(&fwd.c.inNackQueue), interestQueueCfg, fmt.Sprintf("%s_qN", fwd), numaSocket); e != nil {
+	if fwd.nackQueue, e = pktqueue.NewAt(unsafe.Pointer(&fwd.c.inNackQueue), interestQueueCfg, fmt.Sprintf("%s_qN", fwd), numaSocket); e != nil {
 		return nil
 	}
 

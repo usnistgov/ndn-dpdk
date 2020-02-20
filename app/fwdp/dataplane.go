@@ -2,7 +2,6 @@ package fwdp
 
 /*
 #include "fwd.h"
-#include "input.h"
 #include "strategy.h"
 */
 import "C"
@@ -75,17 +74,13 @@ func New(cfg Config) (dp *DataPlane, e error) {
 	}
 
 	for i, lc := range dp.la.Inputs {
-		fwi := newInput(i, lc)
-		if e := fwi.Init(dp.ndt, dp.fwds); e != nil {
-			dp.Close()
-			return nil, fmt.Errorf("Input.Init(%d): %v", i, e)
-		}
+		fwi := newInput(i, lc, dp.ndt, dp.fwds)
 		dp.inputs = append(dp.inputs, fwi)
 	}
 
 	if dp.la.Crypto != dpdk.LCORE_INVALID {
-		fwc := newCrypto(len(dp.inputs), dp.la.Crypto)
-		if e := fwc.Init(cfg.Crypto, dp.ndt, dp.fwds); e != nil {
+		fwc, e := newCrypto(len(dp.inputs), dp.la.Crypto, cfg.Crypto, dp.ndt, dp.fwds)
+		if e != nil {
 			dp.Close()
 			return nil, fmt.Errorf("Crypto.Init(): %v", e)
 		}

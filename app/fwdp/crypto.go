@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"unsafe"
 
+	"ndn-dpdk/app/inputdemux"
 	"ndn-dpdk/container/ndt"
 	"ndn-dpdk/dpdk"
 )
@@ -19,84 +20,70 @@ type CryptoConfig struct {
 }
 
 type Crypto struct {
-	InputBase
 	dpdk.ThreadBase
-	c    C.FwCrypto
-	devS dpdk.CryptoDev
-	devM dpdk.CryptoDev
+	id     int
+	c      *C.FwCrypto
+	demuxD inputdemux.Demux
+	devS   dpdk.CryptoDev
+	devM   dpdk.CryptoDev
 }
 
-func newCrypto(id int, lc dpdk.LCore) *Crypto {
-	var fwc Crypto
+func newCrypto(id int, lc dpdk.LCore, cfg CryptoConfig, ndt *ndt.Ndt, fwds []*Fwd) (fwc *Crypto, e error) {
+	socket := lc.GetNumaSocket()
+	fwc = new(Crypto)
 	fwc.ResetThreadBase()
-	fwc.id = id
 	fwc.SetLCore(lc)
+	fwc.id = id
+	fwc.c = (*C.FwCrypto)(dpdk.ZmallocAligned("FwCrypto", C.sizeof_FwCrypto, 1, socket))
 	dpdk.InitStopFlag(unsafe.Pointer(&fwc.c.stop))
-	return &fwc
+
+	input, e := dpdk.NewRing(fwc.String()+"_input", cfg.InputCapacity, socket, false, true)
+	if e != nil {
+		return nil, fmt.Errorf("dpdk.NewRing: %v", e)
+	} else {
+		fwc.c.input = (*C.struct_rte_ring)(input.GetPtr())
+	}
+
+	opPool, e := dpdk.NewCryptoOpPool(fwc.String()+"_pool", cfg.OpPoolCapacity, cfg.OpPoolCacheSize, 0, socket)
+	if e != nil {
+		return nil, fmt.Errorf("dpdk.NewCryptoOpPool: %v", e)
+	} else {
+		fwc.c.opPool = (*C.struct_rte_mempool)(opPool.GetPtr())
+	}
+
+	fwc.devS, e = dpdk.CryptoDevDriverPref_SingleSeg.Create(fmt.Sprintf("fwc%ds", fwc.id), 1, socket)
+	if e != nil {
+		return nil, fmt.Errorf("dpdk.CryptoDevDriverPref_SingleSeg.Create: %v", e)
+	} else {
+		qp, _ := fwc.devS.GetQueuePair(0)
+		qp.CopyToC(unsafe.Pointer(&fwc.c.singleSeg))
+	}
+
+	fwc.devM, e = dpdk.CryptoDevDriverPref_MultiSeg.Create(fmt.Sprintf("fwc%dm", fwc.id), 1, socket)
+	if e != nil {
+		return nil, fmt.Errorf("dpdk.CryptoDevDriverPref_MultiSeg.Create: %v", e)
+	} else {
+		qp, _ := fwc.devM.GetQueuePair(0)
+		qp.CopyToC(unsafe.Pointer(&fwc.c.multiSeg))
+	}
+
+	fwc.demuxD = inputdemux.DemuxFromPtr(unsafe.Pointer(&fwc.c.output))
+	fwc.demuxD.InitNdt(ndt, id)
+	for i, fwd := range fwds {
+		fwc.demuxD.SetDest(i, fwd.dataQueue)
+		fwd.c.crypto = fwc.c.input
+	}
+
+	return fwc, nil
 }
 
 func (fwc *Crypto) String() string {
 	return fmt.Sprintf("crypto%d", fwc.id)
 }
 
-func (fwc *Crypto) Init(cfg CryptoConfig, ndt *ndt.Ndt, fwds []*Fwd) error {
-	numaSocket := fwc.GetNumaSocket()
-	if e := fwc.InputBase.Init(ndt, fwds, numaSocket); e != nil {
-		return e
-	} else {
-		fwc.c.output = fwc.InputBase.c
-	}
-
-	input, e := dpdk.NewRing(fwc.String()+"_queue", cfg.InputCapacity, numaSocket, false, true)
-	if e != nil {
-		fwc.InputBase.Close()
-		return fmt.Errorf("dpdk.NewRing: %v", e)
-	} else {
-		fwc.c.input = (*C.struct_rte_ring)(input.GetPtr())
-	}
-
-	opPool, e := dpdk.NewCryptoOpPool(fwc.String()+"_pool", cfg.OpPoolCapacity, cfg.OpPoolCacheSize, 0, numaSocket)
-	if e != nil {
-		input.Close()
-		fwc.InputBase.Close()
-		return fmt.Errorf("dpdk.NewCryptoOpPool: %v", e)
-	} else {
-		fwc.c.opPool = (*C.struct_rte_mempool)(opPool.GetPtr())
-	}
-
-	fwc.devS, e = dpdk.CryptoDevDriverPref_SingleSeg.Create(fmt.Sprintf("fwc%ds", fwc.id), 1, numaSocket)
-	if e != nil {
-		opPool.Close()
-		input.Close()
-		fwc.InputBase.Close()
-		return fmt.Errorf("dpdk.CryptoDevDriverPref_SingleSeg.Create: %v", e)
-	} else {
-		qp, _ := fwc.devS.GetQueuePair(0)
-		qp.CopyToC(unsafe.Pointer(&fwc.c.singleSeg))
-	}
-
-	fwc.devM, e = dpdk.CryptoDevDriverPref_MultiSeg.Create(fmt.Sprintf("fwc%dm", fwc.id), 1, numaSocket)
-	if e != nil {
-		fwc.devS.Close()
-		opPool.Close()
-		input.Close()
-		fwc.InputBase.Close()
-		return fmt.Errorf("dpdk.CryptoDevDriverPref_MultiSeg.Create: %v", e)
-	} else {
-		qp, _ := fwc.devM.GetQueuePair(0)
-		qp.CopyToC(unsafe.Pointer(&fwc.c.multiSeg))
-	}
-
-	for _, fwd := range fwds {
-		fwd.c.crypto = fwc.c.input
-	}
-
-	return nil
-}
-
 func (fwc *Crypto) Launch() error {
 	return fwc.LaunchImpl(func() int {
-		C.FwCrypto_Run(&fwc.c)
+		C.FwCrypto_Run(fwc.c)
 		return 0
 	})
 }
@@ -106,10 +93,10 @@ func (fwc *Crypto) Stop() error {
 }
 
 func (fwc *Crypto) Close() error {
-	fwc.InputBase.Close()
 	fwc.devM.Close()
 	fwc.devS.Close()
 	dpdk.MempoolFromPtr(unsafe.Pointer(fwc.c.opPool)).Close()
 	dpdk.RingFromPtr(unsafe.Pointer(fwc.c.input)).Close()
+	dpdk.Free(unsafe.Pointer(fwc.c))
 	return nil
 }

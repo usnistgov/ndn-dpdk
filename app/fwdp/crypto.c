@@ -77,23 +77,24 @@ FwCrypto_Output(FwCrypto* fwc, const CryptoQueuePair* cqp)
   }
 
   for (uint16_t i = 0; i < nFinish; ++i) {
-    FwInput_DispatchByToken(fwc->output, npkts[i]);
+    Packet* npkt = npkts[i];
+    PData* data = Packet_GetDataHdr(npkt);
+    InputDemux_Dispatch(&fwc->output, npkt, &data->name);
   }
 }
 
 void
 FwCrypto_Run(FwCrypto* fwc)
 {
-  ZF_LOGI("fwc=%p input=%p pool=%p cryptodev=%" PRIu8 "-%" PRIu16 ",%" PRIu8
-          "-%" PRIu16 " output=%p",
+  ZF_LOGI("fwc=%p input=%p pool=%p cryptodev-single=%" PRIu8 "-%" PRIu16
+          " cryptodev-multi=%" PRIu8 "-%" PRIu16,
           fwc,
           fwc->input,
           fwc->opPool,
           fwc->singleSeg.dev,
           fwc->singleSeg.qp,
           fwc->multiSeg.dev,
-          fwc->multiSeg.qp,
-          fwc->output);
+          fwc->multiSeg.qp);
   while (ThreadStopFlag_ShouldContinue(&fwc->stop)) {
     FwCrypto_Output(fwc, &fwc->singleSeg);
     FwCrypto_Output(fwc, &fwc->multiSeg);

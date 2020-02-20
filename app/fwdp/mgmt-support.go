@@ -1,12 +1,13 @@
 package fwdp
 
 /*
-#include "input.h"
+#include "fwd.h"
 */
 import "C"
 import (
 	"unsafe"
 
+	"ndn-dpdk/app/inputdemux"
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/ndt"
 	"ndn-dpdk/container/pcct"
@@ -24,10 +25,6 @@ func (dp *DataPlane) CountLCores() (nInputs int, nFwds int) {
 type InputInfo struct {
 	LCore dpdk.LCore     // LCore executing this input process
 	Faces []iface.FaceId // faces served by this input process
-
-	NNameDisp  uint64 // packets dispatched by name
-	NTokenDisp uint64 // packets dispatched by token
-	NBadToken  uint64 // dropped packets due to missing or bad token
 }
 
 // Read information about i-th input.
@@ -38,14 +35,11 @@ func (dp *DataPlane) ReadInputInfo(i int) (info *InputInfo) {
 	input := dp.inputs[i]
 
 	info = new(InputInfo)
-	info.LCore = input.rxl.GetLCore()
+	info.LCore = dpdk.LCORE_INVALID
 	if input.rxl != nil {
+		info.LCore = input.rxl.GetLCore()
 		info.Faces = input.rxl.ListFaces()
 	}
-
-	info.NNameDisp = uint64(input.c.nNameDisp)
-	info.NTokenDisp = uint64(input.c.nTokenDisp)
-	info.NBadToken = uint64(input.c.nBadToken)
 
 	return info
 }
@@ -54,13 +48,10 @@ func (dp *DataPlane) ReadInputInfo(i int) (info *InputInfo) {
 type FwdInfo struct {
 	LCore dpdk.LCore // LCore executing this fwd process
 
-	NInterestDrops     uint64                // dropped Interests due to full queue
-	NDataDrops         uint64                // dropped Data due to full queue
-	NNackDrops         uint64                // dropped Nacks due to full queue
-	NInterestCongMarks uint64                // inserted cong-marks on Interests
-	NDataCongMarks     uint64                // inserted cong-marks on Data
-	NNackCongMarks     uint64                // inserted cong-marks on Nacks
-	InputLatency       running_stat.Snapshot // input latency in nanos
+	InputInterest FwdInputCounter
+	InputData     FwdInputCounter
+	InputNack     FwdInputCounter
+	InputLatency  running_stat.Snapshot // input latency in nanos
 
 	NNoFibMatch   uint64 // Interests dropped due to no FIB match
 	NDupNonce     uint64 // Interests dropped due duplicate nonce
@@ -69,6 +60,17 @@ type FwdInfo struct {
 
 	HeaderMpUsage   int // how many entries are used in header mempool
 	IndirectMpUsage int // how many entries are used in indirect mempool
+}
+
+type FwdInputCounter struct {
+	NDropped   uint64 // dropped due to full queue
+	NQueued    uint64 // queued
+	NCongMarks uint64 // inserted congestion marks
+}
+
+func (cnt *FwdInputCounter) add(m inputdemux.DestCounters) {
+	cnt.NDropped += m.NDropped
+	cnt.NQueued += m.NQueued
 }
 
 // Read information about i-th fwd.
@@ -93,14 +95,13 @@ func (dp *DataPlane) ReadFwdInfo(i int) (info *FwdInfo) {
 	info.IndirectMpUsage = dpdk.MempoolFromPtr(unsafe.Pointer(fwd.c.indirectMp)).CountInUse()
 
 	for _, input := range dp.inputs {
-		inputConn := C.FwInput_GetConn(input.c, C.uint8_t(i))
-		info.NInterestDrops += uint64(inputConn.nInterestDrops)
-		info.NDataDrops += uint64(inputConn.nDataDrops)
-		info.NNackDrops += uint64(inputConn.nNackDrops)
+		info.InputInterest.add(input.demux3.GetInterestDemux().ReadDestCounters(i))
+		info.InputData.add(input.demux3.GetDataDemux().ReadDestCounters(i))
+		info.InputNack.add(input.demux3.GetNackDemux().ReadDestCounters(i))
 	}
-	info.NInterestCongMarks = uint64(fwd.c.inInterestQueue.nDrops)
-	info.NDataCongMarks = uint64(fwd.c.inDataQueue.nDrops)
-	info.NNackCongMarks = uint64(fwd.c.inNackQueue.nDrops)
+	info.InputInterest.NCongMarks = uint64(fwd.c.inInterestQueue.nDrops)
+	info.InputData.NCongMarks = uint64(fwd.c.inDataQueue.nDrops)
+	info.InputNack.NCongMarks = uint64(fwd.c.inNackQueue.nDrops)
 
 	return info
 }

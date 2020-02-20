@@ -6,7 +6,7 @@ Unlike named-data.net's [ndnping](https://github.com/named-data/ndn-tools/tree/m
 
 This packet generator has up to five threads for each face:
 
-* The *input thread* ("RX" role) runs an **iface.RxLoop** that invokes `PingInput_FaceRx` when a burst of L3 packets arrives on a face.
+* The *input thread* ("RX" role) runs an **iface.RxLoop** with [InputDemux3](../inputdemux).
   It dispatches Data and Nacks to client-RX thread, and dispatches Interests to server thread.
 * Either the *client-TX thread* and *client-RX thread* run a [ping client](../pingclient/), or a *fetcher thread* runs a [fetcher](../fetch/).
 * The *server thread* runs a [ping server](../pingserver/).
