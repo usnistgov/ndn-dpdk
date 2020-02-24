@@ -3,52 +3,70 @@ import * as yargs from "yargs";
 
 import * as mgmt from "../../mgmt/mod.js";
 import { Name } from "../../ndn/mod.js";
-import { FetchBenchmarkArgs, FetchBenchmarkReply } from "../../mgmt/pingmgmt/mod.js";
+import { FetchIndexArg, FetchBenchmarkArgs, FetchBenchmarkReply } from "../../mgmt/pingmgmt/mod.js";
 
 import { UcBenchmark } from "./ucbench.js"
 import { Uncertainty } from "./uncertainty.js";
 
 interface NameGenArgs {
-  NamePrefix: Name;
+  NameTemplate: string;
   NameCount: number;
 }
 
-type BenchArgs = Omit<FetchBenchmarkArgs, "Names"> & NameGenArgs;
+type BenchArgs = Omit<FetchBenchmarkArgs, "Names"|keyof FetchIndexArg> & NameGenArgs & {
+  NameGen: { [k: string]: Partial<NameGenArgs> };
+};
 
-export class FetchBenchmark extends UcBenchmark<FetchBenchmarkReply> {
+interface ObserveResultEntry {
+  Names: Name[];
+  Result: FetchBenchmarkReply;
+}
+
+export class FetchBenchmark extends UcBenchmark<ObserveResultEntry[]> {
   private rpc: mgmt.RpcClient;
   private opts: BenchArgs;
-  public randomizeName = false;
+  private fetchers: FetchIndexArg[] = [];
 
   constructor(uncertainty: Uncertainty, opts: Partial<BenchArgs> = {}) {
     super(uncertainty);
     this.rpc = mgmt.makeMgmtClient();
 
     this.opts = {
-      Index: 0,
+      NameGen: {},
+      NameTemplate: "/8=fetch/8=#/8=*",
+      NameCount: 1,
       Warmup: 5000,
       Interval: 10,
       Count: 20000,
-
-      NamePrefix: "/8=fetch",
-      NameCount: 1,
-
       ...opts,
     };
   }
 
-  protected async observe(): Promise<[FetchBenchmarkReply, number]> {
-    const opts = {
-      ...this.opts,
-      Names: this.makeNames(),
-    };
-    const res = await this.rpc.request<FetchBenchmarkArgs, FetchBenchmarkReply>("Fetch.Benchmark", opts);
-    return [res, res.Goodput];
+  protected async prepare() {
+    this.fetchers = await this.rpc.request<{}, FetchIndexArg[]>("Fetch.List", {});
   }
 
-  private makeNames(): Name[] {
-    const suffix = this.randomizeName ? `/8=${Math.floor(Math.random() * 99999999)}` : "";
-    return _.range(this.opts.NameCount).map((i) => `${this.opts.NamePrefix}/8=${i}${suffix}`);
+  protected async observe(): Promise<[ObserveResultEntry[], number]> {
+    const prefixRand = Math.floor(Math.random() * 99999999);
+    const results = await Promise.all(this.fetchers.map(async (fetchIndex) => {
+      const Names = this.makeNames(prefixRand, fetchIndex);
+      const Result = await this.rpc.request<FetchBenchmarkArgs, FetchBenchmarkReply>("Fetch.Benchmark",
+                           { ...fetchIndex, ...this.opts, Names });
+      return { Names, Result } as ObserveResultEntry;
+    }));
+    const totalGoodput = _.sumBy(results, (r) => r.Result.Goodput);
+    return [results, totalGoodput];
+  }
+
+  private makeNames(prefixRand: number, { Index, FetchId }: FetchIndexArg): Name[] {
+    const fetchIndex = `${Index}-${FetchId}`;
+    const { NameTemplate, NameCount } = {
+      ...this.opts,
+      ...this.opts.NameGen[fetchIndex],
+    } as NameGenArgs;
+
+    const prefix = NameTemplate.replace(/[*]/g, `${prefixRand}`).replace(/[@]/g, fetchIndex);
+    return _.range(NameCount).map((i) => prefix.replace(/[#]/g, `${i}`));
   }
 }
 
@@ -61,7 +79,6 @@ async function main() {
   const uncertainty = new Uncertainty(argv.DesiredUncertainty ?? 1000);
 
   const ben = new FetchBenchmark(uncertainty, argv);
-  ben.randomizeName = true;
 
   ben.on("oberror", () => {
     throw new Error("Fetch.Benchmark error");

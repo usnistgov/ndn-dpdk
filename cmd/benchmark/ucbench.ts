@@ -21,6 +21,7 @@ export abstract class UcBenchmark<T> extends EventEmitter implements Emitter<T> 
   }
 
   public async run(): Promise<boolean> {
+    await this.prepare();
     let ucState = this.uncertainty.getState();
     while (!ucState.isSufficient) {
       const [res, value] = await this.observe();
@@ -38,6 +39,8 @@ export abstract class UcBenchmark<T> extends EventEmitter implements Emitter<T> 
     this.emit("done", ucState);
     return true;
   }
+
+  protected async prepare() {}
 
   protected abstract observe(): Promise<[T, number]>;
 }

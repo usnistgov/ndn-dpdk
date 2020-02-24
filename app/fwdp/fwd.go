@@ -21,6 +21,7 @@ import (
 	"ndn-dpdk/dpdk"
 )
 
+// Forwarding thread.
 type Fwd struct {
 	dpdk.ThreadBase
 	id            int

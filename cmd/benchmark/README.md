@@ -42,16 +42,19 @@ DEBUG=* node build/cmd/benchmark/msibench --IntervalMin 1000 --IntervalMax 5000 
 
 `fetchbench.ts` runs [fetch](../../app/fetch/) repeatedly until **goodput** reaches a specified desired uncertainty.
 Goodput is defined as the number of successfully retrievd Data segments per second, excluding duplicate Data segments caused by Interest retransmissions.
+It is totalled among all fetchers in the traffic generator.
 Its unit is "Data packets per second".
 
-To use this script, first start the traffic generator, with a fetcher defined in `-tasks` object.
+To use this script, first start the traffic generator, with one or more fetchers defined in `-tasks` object.
 Then, launch the benchmark script:
 
 ```
-DEBUG=* node build/cmd/benchmark/fetchbench --Index 0 --NamePrefix /8=producer/8=prefix --NameCount 6 --DesiredUncertainty 30000
+DEBUG=* node build/cmd/benchmark/fetchbench --NameTemplate '/8=producer/8=prefix/8=*_@_#' --NameCount 6 --DesiredUncertainty 30000
 ```
 
-* `--Index` option indicates which "task" has the fetcher.
-* `--NamePrefix` is the name prefix.
-* `--NameCount` is the number of distinct name prefixes.
-* Interest names have format *NamePrefix*/*i*/*random*/*segment-number*, where *i* is between 0 and NameCount.
+* `--NameCount` is the number of distinct name prefixes in each fetcher.
+* `--NameTemplate` is a template of name prefixes.
+* `*` is replaced with a random number; it differs for each observation but is the same for all fetchers in the traffic generator.
+* `@` is replaced with a string that uniquely identifies the fetcher.
+* `#` is replaced with a number in `[0, NameCount)`.
+* They can be overriden for a particular fetcher like this: `--NameGen.0_0.NameTemplate '/8=override/8=prefix' --NameGen.0_0.NameCount 1`

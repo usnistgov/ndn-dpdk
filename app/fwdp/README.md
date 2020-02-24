@@ -2,23 +2,22 @@
 
 This package implements the forwarder's data plane.
 
-The data plane consists two types of threads, *input thread* and *forwarding thread*.
-Each thread runs in a DPDK lcore, allocated from "RX" or "FWD" role.
-
 ## Input Thread (FwInput)
 
 A FwInput runs an **iface.RxLoop** as the main loop ("RX" role), which reads and decodes packets from one or more network interfaces.
-Bursts of received L3 packets are processed by [InputDemux3](../inputdemux), configured to use NDT for Interests, and high 8 bits for Data and Nacks.
+Bursts of received L3 packets are processed by [InputDemux3](../inputdemux), configured to use NDT for Interests, and use PIT token for Data and Nacks.
 
 ## Crypto Helper (FwCrypto)
 
 FwCrypto provides Data implicit digest computation.
-It runs `FwCrypto_Run` as the main loop ("CRYPTO" role).
+When FwFwd processes an incoming Data packet and finds a PIT entry whose Interest carries the ImplicitSha256DigestComponent, it needs to know the Data's implicit digest in order to determine whether the Data satisfies the Interest.
+Instead of doing the computation in FwFwd, which would block other packet processing, the FwFwd passes the Data to FwCrypto.
+After digest computation, the Data packet goes back to FwFwd, which can then re-process the Data, and use the computed implicit digest to determine whether it satisfies the pending Interest.
 
-When FwFwd threads an incoming Data packet and finds a PIT entry whose Interest carries the ImplicitSha256DigestComponent, it needs to compute the Data's implicit digest in order to determine whether the Data satisfies the Interest.
-Instead of doing the computation in FwFwd and blocking other packet processing, the FwFwd passes the Data to FwCrypto.
-FwCrypto computes Data digest using a DPDK cryptodev, stores the implicit digest in the mbuf header, and re-dispatches the Data to FwFwd using [InputDemux](../inputdemux).
-FwFwd can then re-process the Data, and use the computed implicit digest to determine whether it satisfies the pending Interest.
+FwCrypto runs `FwCrypto_Run` as the main loop ("CRYPTO" role).
+It receives Data packets from FwFwd threads through a queue, and enqueues crypto operations toward a DPDK cryptodev.
+The cryptodev computes SHA256 digest of the packet and stores it in the mbuf header.
+FwCrypto then dequeues completed crypto operations from the cryptodev, and e-dispatches the Data to FwFwd using a [InputDemux](../inputdemux) that is configured to use PIT token.
 
 ## Forwarding Thread (FwFwd)
 
@@ -34,6 +33,15 @@ Then it reads packets from input queues, and handles each packet separately:
 * `FwFwd_RxData` function handles an incoming Data.
 * `FwFwd_RxNack` function handles an incoming Nack.
 
+### Data Structure Usage
+
+All FwFwds have read-only access to a shared [FIB](../../container/fib/).
+
+Each FwFwd has a private partition of [PIT-CS](../../container/pcct/).
+An outgoing Interest from a FwFwd must carry the identifier of this FwFwd as the first 8 bits of its PIT token, so that returned Data or Nack can come back to the same FwFwd and thus use the same PIT-CS partition.
+
+### Congestion Control
+
 Each FwFwd has three [CoDel queues](../../container/pktqueue/), one for each L3 packet type.
 They are backed by DPDK rings in multi-producer single-consumer mode.
 FwInputs enqueue packets to these queues; in case the DPDK ring is full, FwInput drops the packet.
@@ -46,13 +54,6 @@ Some limitations are:
 * FwFwd can place congestion mark only on ingress side (i.e. insufficient processing power), not on egress side (i.e. link congestion).
 * FwFwd does not add or remove congestion mark during Interest aggregation or Data caching.
 * FwFwd does not place congestion mark on reply Data/Nack when Interest congestion occurs, although the producer could do so.
-
-### Data Structure Usage
-
-All FwFwds have read-only access to a shared [FIB](../../container/fib/).
-
-Each FwFwd has a private partition of [PIT-CS](../../container/pcct/).
-An outgoing Interest from a FwFwd must carry the identifier of this FwFwd as the first 8 bits of its PIT token, so that returned Data or Nack can come back to the same FwFwd and thus use the same PIT-CS partition.
 
 ### Per-Packet Logging
 

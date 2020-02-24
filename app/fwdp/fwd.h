@@ -12,7 +12,7 @@
 #include "../../iface/face.h"
 #include "../../strategy/api.h"
 
-/** \brief Forwarder data plane, forwarding process.
+/** \brief Forwarding thread.
  */
 typedef struct FwFwd
 {

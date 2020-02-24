@@ -23,7 +23,11 @@ func (win *Window) getPtr() *C.FetchWindow {
 }
 
 func (win *Window) Init(capacity int, socket dpdk.NumaSocket) {
+	if capacity < 1 {
+		capacity = 65536
+	}
 	capacity = int(C.rte_align32pow2(C.uint32_t(capacity)))
+
 	win.Array = (*SegState)(dpdk.ZmallocAligned("FetchWindow", capacity*int(C.sizeof_FetchSeg), 1, socket))
 	win.CapacityMask = uint32(capacity - 1)
 }

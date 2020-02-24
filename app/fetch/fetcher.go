@@ -35,9 +35,6 @@ func New(id int, face iface.IFace, cfg FetcherConfig) (fetcher *Fetcher, e error
 	if id < 0 || id > math.MaxUint8 {
 		return nil, errors.New("id out of range")
 	}
-	if cfg.WindowCapacity == 0 {
-		cfg.WindowCapacity = 65536
-	}
 	faceId := face.GetFaceId()
 	socket := face.GetNumaSocket()
 
