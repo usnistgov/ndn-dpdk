@@ -3,7 +3,6 @@ package facemgmt
 import (
 	"errors"
 
-	"ndn-dpdk/core/running_stat"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/createface"
 )
@@ -29,7 +28,6 @@ func (FaceMgmt) Get(args IdArg, reply *FaceInfo) error {
 	reply.IsDown = face.IsDown()
 	reply.Counters = face.ReadCounters()
 	reply.ExCounters = face.ReadExCounters()
-	reply.Latency = face.ReadLatency()
 
 	return nil
 }
@@ -72,12 +70,9 @@ type FaceInfo struct {
 	BasicInfo
 	IsDown bool
 
-	// Basic counters.
+	// General counters.
 	Counters iface.Counters
 
 	// Extended counters.
 	ExCounters interface{}
-
-	// Latency for TX packets since arrival/generation (in nanos).
-	Latency running_stat.Snapshot
 }

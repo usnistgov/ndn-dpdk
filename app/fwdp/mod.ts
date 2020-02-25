@@ -1,5 +1,5 @@
 import { Counter } from "../../core/mod.js";
-import * as running_stat from "../../core/running_stat/mod.js";
+import * as runningStat from "../../core/running_stat/mod.js";
 import * as iface from "../../iface/mod.js";
 
 export interface InputInfo {
@@ -13,7 +13,7 @@ export interface FwdInfo {
   InputInterest: FwdInputCounter;
   InputData: FwdInputCounter;
   InputNack: FwdInputCounter;
-  InputLatency: running_stat.Snapshot;
+  InputLatency: runningStat.Snapshot;
 
   NNoFibMatch: Counter;
   NDupNonce: Counter;

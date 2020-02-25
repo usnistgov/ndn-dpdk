@@ -3,6 +3,7 @@
 
 /// \file
 
+#include "../core/running_stat/running-stat.h"
 #include "common.h"
 
 typedef struct TxProc TxProc;
@@ -29,18 +30,19 @@ typedef struct TxProc
   uint64_t nL3OverLength; ///< dropped L3 packets due to over length
   uint64_t nAllocFails;   ///< dropped L3 packets due to allocation failure
 
-  uint64_t nQueueAccepts; ///< number of L2 frames accepted by queue
-  uint64_t nQueueRejects; ///< dropped L2 frames due to full queue
+  uint64_t nFrames; ///< sent+dropped L2 frames
+  uint64_t
+    nOctets; ///< sent+dropped L2 octets (including NDNLP hdr but not Ethernet hdr)
+  uint64_t nDroppedFrames; ///< dropped L2 frames
+  uint64_t nDroppedOctets; ///< dropped L2 octets
 
-  /** \brief number of L2 frames sent, seperated by L3 packet type
+  /** \brief Statistics of L3 latency, per L3 packet type.
    *
-   *  \li nFrames[L3PktType_None] idle packets and non-first fragments
-   *  \li nFrames[L3PktType_Interests] Interests
-   *  \li nFrames[L3PktType_Data] Data
-   *  \li nFrames[L3PktType_Nacks] Nacks
+   *  Latency counting starts from packet arrival or generation, and ends when
+   *  packet is queuing for transmission; this counts per L3 packet.
+   *  This is taken before fragmentation, so that it includes packets dropped due to full queue.
    */
-  uint64_t nFrames[L3PktType_MAX];
-  uint64_t nOctets; ///< octets sent, including Ethernet and NDNLP headers
+  RunningStat latency[L3PktType_MAX];
 } __rte_cache_aligned TxProc;
 
 /** \brief Initialize TX procedure.
@@ -72,22 +74,6 @@ TxProc_Output(TxProc* tx,
               uint16_t maxFrames)
 {
   return (*tx->outputFunc)(tx, npkt, frames, maxFrames);
-}
-
-static inline void
-TxProc_CountQueued(TxProc* tx, uint16_t nAccepts, uint16_t nRejects)
-{
-  tx->nQueueAccepts += nAccepts;
-  tx->nQueueRejects += nRejects;
-}
-
-/** \brief Update counters when L2 frames have been transmitted.
- */
-static inline void
-TxProc_CountSent(TxProc* tx, struct rte_mbuf* pkt)
-{
-  ++tx->nFrames[pkt->inner_l3_type];
-  tx->nOctets += pkt->pkt_len;
 }
 
 #endif // NDN_DPDK_IFACE_TX_PROC_H

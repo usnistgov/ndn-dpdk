@@ -4,21 +4,31 @@ static const int TX_BURST_FRAMES = 64;  // number of frames in a burst
 static const int TX_MAX_FRAGMENTS = 16; // max allowed number of fragments
 
 static void
-TxLoop_TxFrames(Face* face, struct rte_mbuf** frames, uint16_t nFrames)
+TxLoop_TxFrames(Face* face, struct rte_mbuf** frames, uint16_t count)
 {
-  assert(nFrames > 0);
-  uint16_t nQueued = (*face->txBurstOp)(face, frames, nFrames);
-  uint16_t nRejects = nFrames - nQueued;
-  FreeMbufs(&frames[nQueued], nRejects);
-  TxProc_CountQueued(&face->impl->tx, nQueued, nRejects);
+  assert(count > 0);
+  TxProc* tx = &face->impl->tx;
+
+  tx->nFrames += count;
+  for (uint16_t i = 0; i < count; ++i) {
+    tx->nOctets += frames[i]->pkt_len;
+  }
+
+  uint16_t nQueued = (*face->txBurstOp)(face, frames, count);
+  uint16_t nRejects = count - nQueued;
+  if (unlikely(nRejects > 0)) {
+    tx->nDroppedFrames += nRejects;
+    tx->nDroppedOctets += FreeMbufs(&frames[nQueued], nRejects);
+  }
 }
 
 static void
 TxLoop_Transfer(Face* face)
 {
+  TxProc* tx = &face->impl->tx;
   Packet* npkts[TX_BURST_FRAMES];
-  uint16_t count = rte_ring_sc_dequeue_burst(
-    face->txQueue, (void**)npkts, TX_BURST_FRAMES, NULL);
+  uint16_t count =
+    rte_ring_dequeue_burst(face->txQueue, (void**)npkts, TX_BURST_FRAMES, NULL);
 
   struct rte_mbuf* frames[TX_BURST_FRAMES + TX_MAX_FRAGMENTS];
   uint16_t nFrames = 0;
@@ -26,12 +36,12 @@ TxLoop_Transfer(Face* face)
   TscTime now = rte_get_tsc_cycles();
   for (uint16_t i = 0; i < count; ++i) {
     Packet* npkt = npkts[i];
-    TscDuration timeSinceRx = now - Packet_ToMbuf(npkt)->timestamp;
-    RunningStat_Push1(&face->impl->latencyStat, timeSinceRx);
+    L3PktType l3type = Packet_GetL3PktType(npkt);
+    TscDuration latency = now - Packet_ToMbuf(npkt)->timestamp;
+    RunningStat_Push1(&tx->latency[l3type], latency);
 
     struct rte_mbuf** outFrames = &frames[nFrames];
-    nFrames +=
-      TxProc_Output(&face->impl->tx, npkt, outFrames, TX_MAX_FRAGMENTS);
+    nFrames += TxProc_Output(tx, npkt, outFrames, TX_MAX_FRAGMENTS);
 
     if (unlikely(nFrames >= TX_BURST_FRAMES)) {
       TxLoop_TxFrames(face, frames, nFrames);

@@ -5,7 +5,6 @@ package iface
 */
 import "C"
 import (
-	"ndn-dpdk/core/running_stat"
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/ndn"
 )
@@ -49,7 +48,4 @@ type IFace interface {
 	// Read extended counters.
 	// Lower layer implementation may override this method.
 	ReadExCounters() interface{}
-
-	// Read L3 latency statistics (in nanoseconds).
-	ReadLatency() running_stat.Snapshot
 }

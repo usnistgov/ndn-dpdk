@@ -45,11 +45,6 @@ EthFace_TxBurst(Face* face, struct rte_mbuf** pkts, uint16_t nPkts)
     char* room = rte_pktmbuf_prepend(pkts[i], priv->txHdrLen);
     assert(room != NULL); // enough headroom is required
     rte_memcpy(room, &priv->txHdr, priv->txHdrLen);
-
-    // XXX (1) FaceImpl_CountSent only wants transmitted packets, not tail-dropped packets.
-    // XXX (2) FaceImpl_CountSent should be invoked after transmission, not before enqueuing.
-    // XXX note: invoking FaceImpl_CountSent from txCallback has the same problems.
-    FaceImpl_CountSent(face, pkts[i]);
   }
   return rte_eth_tx_burst(priv->port, TX_QUEUE_0, pkts, nPkts);
 }

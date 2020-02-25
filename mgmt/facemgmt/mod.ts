@@ -1,4 +1,3 @@
-import * as running_stat from "../../core/running_stat/mod.js";
 import * as iface from "../../iface/mod.js";
 
 export interface IdArg {
@@ -16,7 +15,6 @@ export interface FaceInfo extends BasicInfo {
   IsDown: boolean;
   Counters: iface.Counters;
   ExCounters: any;
-  Latency: running_stat.Snapshot;
 }
 
 export interface FaceMgmt {

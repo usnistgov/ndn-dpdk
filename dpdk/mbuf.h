@@ -8,12 +8,15 @@
 
 /** \brief Free an array of mbufs[0..count-1].
  */
-static __rte_always_inline void
+static __rte_always_inline uint32_t
 FreeMbufs(struct rte_mbuf* mbufs[], int count)
 {
+  uint32_t totalLen = 0;
   for (int i = 0; i < count; ++i) {
+    totalLen += mbufs[i]->pkt_len;
     rte_pktmbuf_free(mbufs[i]);
   }
+  return totalLen;
 }
 
 /** \brief Remove \p len bytes at the beginning of a packet.

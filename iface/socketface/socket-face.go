@@ -135,9 +135,6 @@ func (face *SocketFace) txLoop() {
 			break
 		}
 		e := face.impl.Send(face, pkt)
-		if e == nil {
-			C.FaceImpl_CountSent(face.getPtr(), (*C.struct_rte_mbuf)(pkt.GetPtr()))
-		}
 		pkt.Close()
 		if e != nil && face.handleError("TX", e) {
 			break

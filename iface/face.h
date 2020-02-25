@@ -8,7 +8,6 @@
 #include "rxburst.h"
 #include "tx-proc.h"
 
-#include "../core/running_stat/running-stat.h"
 #include "../core/urcu/urcu.h"
 #include <urcu/rcuhlist.h>
 
@@ -28,14 +27,6 @@ typedef struct FaceImpl
 {
   RxProc rx;
   TxProc tx;
-
-  /** \brief Statistics of L3 latency.
-   *
-   *  Latency counting starts from packet arrival or generation, and ends when
-   *  packet is queuing for transmission; this counts per L3 packet.
-   */
-  RunningStat latencyStat;
-
   char priv[0];
 } FaceImpl;
 
@@ -105,7 +96,7 @@ Face_TxBurst(FaceId faceId, Packet** npkts, uint16_t count)
   }
 
   uint16_t nQueued =
-    rte_ring_mp_enqueue_burst(face->txQueue, (void**)npkts, count, NULL);
+    rte_ring_enqueue_burst(face->txQueue, (void**)npkts, count, NULL);
   uint16_t nRejects = count - nQueued;
   FreeMbufs((struct rte_mbuf**)&npkts[nQueued], nRejects);
   // TODO count nRejects
@@ -134,13 +125,5 @@ FaceImpl_RxBurst(FaceRxBurst* burst,
                  int rxThread,
                  Face_RxCb cb,
                  void* cbarg);
-
-/** \brief Update counters after a frame is transmitted.
- */
-static inline void
-FaceImpl_CountSent(Face* face, struct rte_mbuf* pkt)
-{
-  TxProc_CountSent(&face->impl->tx, pkt);
-}
 
 #endif // NDN_DPDK_IFACE_FACE_H

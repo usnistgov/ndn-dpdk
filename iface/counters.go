@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"unsafe"
 
+	"ndn-dpdk/core/running_stat"
+	"ndn-dpdk/dpdk"
 	"ndn-dpdk/ndn"
 )
 
@@ -24,24 +26,26 @@ type Counters struct {
 	RxData       uint64 // RX Data packets
 	RxNacks      uint64 // RX Nack packets
 
-	FragGood uint64 // fragmentated L3 packets
-	FragBad  uint64 // fragmentation failures
+	InterestLatency running_stat.Snapshot
+	DataLatency     running_stat.Snapshot
+	NackLatency     running_stat.Snapshot
 
+	TxInterests uint64 // TX Interest packets
+	TxData      uint64 // TX Data packets
+	TxNacks     uint64 // TX Nack packets
+
+	FragGood    uint64 // fragmentated L3 packets
+	FragBad     uint64 // fragmentation failures
 	TxAllocErrs uint64 // allocation errors during TX
-	TxQueued    uint64 // L2 frames added into TX queue
-	TxDropped   uint64 // L2 frames dropped because TX queue is full
-
-	TxInterests uint64 // sent Interest packets
-	TxData      uint64 // sent Data packets
-	TxNacks     uint64 // sent Nack packets
+	TxDropped   uint64 // L2 frames dropped due to full queue
 	TxFrames    uint64 // sent total frames
 	TxOctets    uint64 // sent total bytes
 }
 
 func (cnt Counters) String() string {
-	return fmt.Sprintf("RX %dfrm %db %dI %dD %dN reass=(%v) l2=%derr l3=%derr TX %dfrm %db %dI %dD %dN frag=(%dgood %dbad) alloc=%derr %dqueued %ddropped",
+	return fmt.Sprintf("RX %dfrm %db %dI %dD %dN reass=(%v) l2=%derr l3=%derr TX %dfrm %db %dI %dD %dN frag=(%dgood %dbad) alloc=%derr %ddropped",
 		cnt.RxFrames, cnt.RxOctets, cnt.RxInterests, cnt.RxData, cnt.RxNacks, cnt.Reass, cnt.L2DecodeErrs, cnt.L3DecodeErrs,
-		cnt.TxFrames, cnt.TxOctets, cnt.TxInterests, cnt.TxData, cnt.TxNacks, cnt.FragGood, cnt.FragBad, cnt.TxAllocErrs, cnt.TxQueued, cnt.TxDropped)
+		cnt.TxFrames, cnt.TxOctets, cnt.TxInterests, cnt.TxData, cnt.TxNacks, cnt.FragGood, cnt.FragBad, cnt.TxAllocErrs, cnt.TxDropped)
 }
 
 func (face FaceBase) ReadCounters() (cnt Counters) {
@@ -64,16 +68,24 @@ func (face FaceBase) ReadCounters() (cnt Counters) {
 	}
 
 	txC := &faceC.impl.tx
+
+	cnt.InterestLatency = running_stat.TakeSnapshot(
+		running_stat.FromPtr(unsafe.Pointer(&txC.latency[ndn.L3PktType_Interest]))).Multiply(dpdk.GetNanosInTscUnit())
+	cnt.DataLatency = running_stat.TakeSnapshot(
+		running_stat.FromPtr(unsafe.Pointer(&txC.latency[ndn.L3PktType_Interest]))).Multiply(dpdk.GetNanosInTscUnit())
+	cnt.NackLatency = running_stat.TakeSnapshot(
+		running_stat.FromPtr(unsafe.Pointer(&txC.latency[ndn.L3PktType_Interest]))).Multiply(dpdk.GetNanosInTscUnit())
+	// only works if SampleRate is 2^0; TODO expose raw counter in running_stat.Snapshot
+	cnt.TxInterests = cnt.InterestLatency.Count
+	cnt.TxData = cnt.DataLatency.Count
+	cnt.TxNacks = cnt.NackLatency.Count
+
 	cnt.FragGood = uint64(txC.nL3Fragmented)
 	cnt.FragBad = uint64(txC.nL3OverLength + txC.nAllocFails)
 	cnt.TxAllocErrs = uint64(txC.nAllocFails)
-	cnt.TxQueued = uint64(txC.nQueueAccepts)
-	cnt.TxDropped = uint64(txC.nQueueRejects)
-	cnt.TxInterests = uint64(txC.nFrames[ndn.L3PktType_Interest])
-	cnt.TxData = uint64(txC.nFrames[ndn.L3PktType_Data])
-	cnt.TxNacks = uint64(txC.nFrames[ndn.L3PktType_Nack])
-	cnt.TxFrames = uint64(txC.nFrames[ndn.L3PktType_None]) + cnt.TxInterests + cnt.TxData + cnt.TxNacks
-	cnt.TxOctets = uint64(txC.nOctets)
+	cnt.TxDropped = uint64(txC.nDroppedFrames)
+	cnt.TxFrames = uint64(txC.nFrames - txC.nDroppedFrames)
+	cnt.TxOctets = uint64(txC.nOctets - txC.nDroppedOctets)
 
 	return cnt
 }

@@ -81,9 +81,13 @@ func (face *FaceBase) FinishInitFaceBase(txQueueCapacity, mtu, headroom int, mem
 	}
 	faceC.txQueue = (*C.struct_rte_ring)(r.GetPtr())
 
-	latencyStat := running_stat.FromPtr(unsafe.Pointer(&faceC.impl.latencyStat))
-	latencyStat.Clear(false)
-	latencyStat.SetSampleRate(16) // collect latency once every 2^16 packets
+	for l3type := 0; l3type < 4; l3type++ {
+		latencyStat := running_stat.FromPtr(unsafe.Pointer(&faceC.impl.tx.latency[l3type]))
+		latencyStat.Clear(false)
+		// face.ReadCounters assumes 2^0 sample rate
+		// TODO change back to 16 when that limitation is lifted
+		latencyStat.SetSampleRate(0)
+	}
 
 	if res := C.TxProc_Init(&faceC.impl.tx, C.uint16_t(mtu), C.uint16_t(headroom),
 		(*C.struct_rte_mempool)(mempools.IndirectMp.GetPtr()), (*C.struct_rte_mempool)(mempools.HeaderMp.GetPtr())); res != 0 {
@@ -165,10 +169,4 @@ func (face *FaceBase) TxBurst(pkts []ndn.Packet) {
 		return
 	}
 	C.Face_TxBurst(C.FaceId(face.id), (**C.Packet)(unsafe.Pointer(&pkts[0])), C.uint16_t(len(pkts)))
-}
-
-func (face *FaceBase) ReadLatency() running_stat.Snapshot {
-	faceC := face.getPtr()
-	latencyStat := running_stat.FromPtr(unsafe.Pointer(&faceC.impl.latencyStat))
-	return running_stat.TakeSnapshot(latencyStat).Multiply(dpdk.GetNanosInTscUnit())
 }
