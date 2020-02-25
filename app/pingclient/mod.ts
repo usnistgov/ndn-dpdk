@@ -1,5 +1,6 @@
 import * as pktqueue from "../../container/pktqueue/mod.js";
 import { Counter } from "../../core/mod.js";
+import * as runningStat from "../../core/running_stat/mod.js";
 import { Milliseconds, Nanoseconds } from "../../core/nnduration/mod.js";
 import * as ndn from "../../ndn/mod.js";
 
@@ -54,20 +55,12 @@ interface PacketCounters {
   NNacks: Counter;
 }
 
-interface RttCounters {
-  Min: Nanoseconds;
-  Max: Nanoseconds;
-  Avg: Nanoseconds;
-  Stdev: Nanoseconds;
-}
-
 interface PatternCounters extends PacketCounters {
-  Rtt: RttCounters;
-  NRttSamples: Counter;
+  Rtt: runningStat.Snapshot;
 }
 
 export interface Counters extends PacketCounters {
   NAllocError: Counter;
-  Rtt: RttCounters;
+  Rtt: runningStat.Snapshot;
   PerPattern: PatternCounters[];
 }

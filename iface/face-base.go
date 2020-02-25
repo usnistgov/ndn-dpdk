@@ -84,9 +84,7 @@ func (face *FaceBase) FinishInitFaceBase(txQueueCapacity, mtu, headroom int, mem
 	for l3type := 0; l3type < 4; l3type++ {
 		latencyStat := running_stat.FromPtr(unsafe.Pointer(&faceC.impl.tx.latency[l3type]))
 		latencyStat.Clear(false)
-		// face.ReadCounters assumes 2^0 sample rate
-		// TODO change back to 16 when that limitation is lifted
-		latencyStat.SetSampleRate(0)
+		latencyStat.SetSampleRate(12)
 	}
 
 	if res := C.TxProc_Init(&faceC.impl.tx, C.uint16_t(mtu), C.uint16_t(headroom),

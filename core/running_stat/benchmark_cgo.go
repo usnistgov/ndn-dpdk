@@ -14,6 +14,6 @@ RunningStat_BenchmarkPush(RunningStat* s, int n)
 import "C"
 
 // Push n inputs.
-func benchmarkPush(s RunningStat, n int) {
-	C.RunningStat_BenchmarkPush(s.c, C.int(n))
+func benchmarkPush(s *RunningStat, n int) {
+	C.RunningStat_BenchmarkPush(s.v.getPtr(), C.int(n))
 }

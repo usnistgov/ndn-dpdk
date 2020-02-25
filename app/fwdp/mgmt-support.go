@@ -84,7 +84,7 @@ func (dp *DataPlane) ReadFwdInfo(i int) (info *FwdInfo) {
 	info.LCore = fwd.GetLCore()
 
 	latencyStat := running_stat.FromPtr(unsafe.Pointer(&fwd.c.latencyStat))
-	info.InputLatency = running_stat.TakeSnapshot(latencyStat).Multiply(dpdk.GetNanosInTscUnit())
+	info.InputLatency = latencyStat.Read().Scale(dpdk.GetNanosInTscUnit())
 
 	info.NNoFibMatch = uint64(fwd.c.nNoFibMatch)
 	info.NDupNonce = uint64(fwd.c.nDupNonce)

@@ -69,16 +69,15 @@ func (face FaceBase) ReadCounters() (cnt Counters) {
 
 	txC := &faceC.impl.tx
 
-	cnt.InterestLatency = running_stat.TakeSnapshot(
-		running_stat.FromPtr(unsafe.Pointer(&txC.latency[ndn.L3PktType_Interest]))).Multiply(dpdk.GetNanosInTscUnit())
-	cnt.DataLatency = running_stat.TakeSnapshot(
-		running_stat.FromPtr(unsafe.Pointer(&txC.latency[ndn.L3PktType_Interest]))).Multiply(dpdk.GetNanosInTscUnit())
-	cnt.NackLatency = running_stat.TakeSnapshot(
-		running_stat.FromPtr(unsafe.Pointer(&txC.latency[ndn.L3PktType_Interest]))).Multiply(dpdk.GetNanosInTscUnit())
-	// only works if SampleRate is 2^0; TODO expose raw counter in running_stat.Snapshot
-	cnt.TxInterests = cnt.InterestLatency.Count
-	cnt.TxData = cnt.DataLatency.Count
-	cnt.TxNacks = cnt.NackLatency.Count
+	readLatencyStat := func(c *C.RunningStat) running_stat.Snapshot {
+		return running_stat.FromPtr(unsafe.Pointer(c)).Read().Scale(dpdk.GetNanosInTscUnit())
+	}
+	cnt.InterestLatency = readLatencyStat(&txC.latency[ndn.L3PktType_Interest])
+	cnt.DataLatency = readLatencyStat(&txC.latency[ndn.L3PktType_Data])
+	cnt.NackLatency = readLatencyStat(&txC.latency[ndn.L3PktType_Nack])
+	cnt.TxInterests = cnt.InterestLatency.Count()
+	cnt.TxData = cnt.DataLatency.Count()
+	cnt.TxNacks = cnt.NackLatency.Count()
 
 	cnt.FragGood = uint64(txC.nL3Fragmented)
 	cnt.FragBad = uint64(txC.nL3OverLength + txC.nAllocFails)

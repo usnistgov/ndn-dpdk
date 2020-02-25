@@ -1,13 +1,42 @@
-import { Counter } from "../mod.js";
-
 export interface Snapshot {
-  Count: Counter;
-  Min: number;
-  Max: number;
-  Mean: number;
-
   /**
+   * Number of inputs.
+   * @TJS-type integer
    * @minimum 0
    */
-  Stdev: number;
+  Count: number;
+
+  /**
+   * Number of samples.
+   * @TJS-type integer
+   * @minimum 0
+   */
+  Len: number;
+
+  /**
+   * Minimum value.
+   */
+  Min?: number;
+
+  /**
+   * Maximum value.
+   */
+  Max?: number;
+
+  /**
+   * Mean.
+   */
+  Mean?: number;
+
+  /**
+   * Variance of samples.
+   * @minimum 0
+   */
+  Variance?: number;
+
+  /**
+   * Standard deviation of samples.
+   * @minimum 0
+   */
+  Stdev?: number;
 }

@@ -12,8 +12,8 @@
  */
 typedef struct RunningStat
 {
-  uint32_t i;    ///< count of incoming inputs
-  uint32_t mask; ///< take sample only if (i & mask) == 0
+  uint64_t i;    ///< count of incoming inputs
+  uint64_t mask; ///< take sample only if (i & mask) == 0
   uint64_t n;    ///< count of taken samples
   double min;
   double max;

@@ -38,31 +38,12 @@ func (cnt PacketCounters) String() string {
 }
 
 type RttCounters struct {
-	Min   time.Duration
-	Max   time.Duration
-	Avg   time.Duration
-	Stdev time.Duration
-}
-
-func (cnt *RttCounters) Set(s running_stat.RunningStat) {
-	durationUnit := dpdk.GetNanosInTscUnit() * math.Pow(2.0, float64(C.PING_TIMING_PRECISION))
-	toDuration := func(x float64) time.Duration {
-		if math.IsNaN(x) {
-			return 0
-		}
-		return time.Duration(x * durationUnit)
-	}
-
-	cnt.Min = toDuration(s.Min())
-	cnt.Max = toDuration(s.Max())
-	cnt.Avg = toDuration(s.Mean())
-	cnt.Stdev = toDuration(s.Stdev())
+	running_stat.Snapshot
 }
 
 func (cnt RttCounters) String() string {
-	return fmt.Sprintf("%0.3f/%0.3f/%0.3f/%0.3fms",
-		float64(cnt.Min)/float64(time.Millisecond), float64(cnt.Avg)/float64(time.Millisecond),
-		float64(cnt.Max)/float64(time.Millisecond), float64(cnt.Stdev)/float64(time.Millisecond))
+	ms := cnt.Scale(1.0 / float64(time.Millisecond))
+	return fmt.Sprintf("%0.3f/%0.3f/%0.3f/%0.3fms", ms.Min(), ms.Mean(), ms.Max(), ms.Stdev())
 }
 
 type PatternCounters struct {
@@ -93,28 +74,28 @@ func (cnt Counters) String() string {
 
 // Read counters.
 func (client *Client) ReadCounters() (cnt Counters) {
-	rttCombined := running_stat.New()
+	rttScale := dpdk.GetNanosInTscUnit() * math.Exp2(C.PING_TIMING_PRECISION)
+	var rttCombined running_stat.Snapshot
 	for i := 0; i < int(client.Rx.c.nPatterns); i++ {
 		crP := client.Rx.c.pattern[i]
 		ctP := client.Tx.c.pattern[i]
-		rtt := running_stat.FromPtr(unsafe.Pointer(&crP.rtt))
+		rtt := running_stat.FromPtr(unsafe.Pointer(&crP.rtt)).Read().Scale(rttScale)
 
 		var pcnt PatternCounters
 		pcnt.NInterests = uint64(ctP.nInterests)
 		pcnt.NData = uint64(crP.nData)
 		pcnt.NNacks = uint64(crP.nNacks)
-		pcnt.NRttSamples = rtt.Len64()
-		pcnt.Rtt.Set(rtt)
+		pcnt.Rtt.Snapshot = rtt
 		cnt.PerPattern = append(cnt.PerPattern, pcnt)
 
 		cnt.NInterests += pcnt.NInterests
 		cnt.NData += pcnt.NData
 		cnt.NNacks += pcnt.NNacks
-		rttCombined = running_stat.Combine(rttCombined, rtt)
+		rttCombined.Combine(rtt)
 	}
 
 	cnt.NAllocError = uint64(client.Tx.c.nAllocError)
-	cnt.Rtt.Set(rttCombined)
+	cnt.Rtt.Snapshot = rttCombined
 	return cnt
 }
 

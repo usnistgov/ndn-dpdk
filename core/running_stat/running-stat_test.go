@@ -14,12 +14,14 @@ func TestRunningStat(t *testing.T) {
 	a := running_stat.New()
 	b := running_stat.New()
 
-	assert.Equal(0, a.Len())
-	assert.True(math.IsNaN(a.Min()))
-	assert.True(math.IsNaN(a.Max()))
-	assert.True(math.IsNaN(a.Mean()))
-	assert.True(math.IsNaN(a.Variance()))
-	assert.True(math.IsNaN(a.Stdev()))
+	o := a.Read()
+	assert.Equal(uint64(0), o.Count())
+	assert.Equal(uint64(0), o.Len())
+	assert.True(math.IsNaN(o.Min()))
+	assert.True(math.IsNaN(o.Max()))
+	assert.True(math.IsNaN(o.Mean()))
+	assert.True(math.IsNaN(o.Variance()))
+	assert.True(math.IsNaN(o.Stdev()))
 
 	// https://en.wikipedia.org/w/index.php?title=Standard_deviation&oldid=821088286
 	// "Sample standard deviation of metabolic rate of Northern Fulmars" section "female"
@@ -38,11 +40,20 @@ func TestRunningStat(t *testing.T) {
 		b.Push(x)
 	}
 
-	s := running_stat.Combine(a, b)
-	assert.Equal(6, s.Len())
-	assert.EqualValues(6, s.Len64())
-	assert.InDelta(727.7, s.Min(), 0.1)
-	assert.InDelta(1956.1, s.Max(), 0.1)
-	assert.InDelta(1285.5, s.Mean(), 0.1)
-	assert.InDelta(420.96, s.Stdev(), 0.1)
+	a.Combine(b)
+	o = a.Read()
+	assert.Equal(uint64(6), o.Count())
+	assert.Equal(uint64(6), o.Len())
+	assert.InDelta(727.7, o.Min(), 0.1)
+	assert.InDelta(1956.1, o.Max(), 0.1)
+	assert.InDelta(1285.5, o.Mean(), 0.1)
+	assert.InDelta(420.96, o.Stdev(), 0.1)
+
+	o = o.Scale(10)
+	assert.Equal(uint64(6), o.Count())
+	assert.Equal(uint64(6), o.Len())
+	assert.InDelta(7277, o.Min(), 1.0)
+	assert.InDelta(19561, o.Max(), 1.0)
+	assert.InDelta(12855, o.Mean(), 1.0)
+	assert.InDelta(4209.6, o.Stdev(), 1.0)
 }
