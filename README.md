@@ -18,7 +18,7 @@ Requirements:
 * DPDK 19.11 with [patch 65156](https://patches.dpdk.org/patch/65156/), [patch 65158](https://patches.dpdk.org/patch/65158/), [patch 65270](https://patches.dpdk.org/patch/65270/), configured with `CC=gcc-7 meson -Dtests=false --libdir=lib build`
 * SPDK 19.10.1, configured with `CC=gcc-7 ./configure --enable-debug --disable-tests --with-shared --with-dpdk=/usr/local --without-vhost --without-isal --without-fuse`
 * [ubpf](https://github.com/iovisor/ubpf/tree/644ad3ded2f015878f502765081e166ce8112baf) library, compiled with gcc-7, and installed to `/usr/local/include/ubpf.h` and `/usr/local/lib/libubpf.a`
-* Go 1.13.7 or newer
+* Go 1.14 or newer
 * Node.js 12.x
 * [jsonrpc2client](https://github.com/powerman/rpc-codec/releases) 1.1.3 or newer, installed to `/usr/local/bin/jsonrpc2client`
 * Note: see [Dockerfile](./Dockerfile) on how to install dependencies.

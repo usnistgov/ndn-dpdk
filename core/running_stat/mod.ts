@@ -39,4 +39,14 @@ export interface Snapshot {
    * @minimum 0
    */
   Stdev?: number;
+
+  /**
+   * Internal variable M1.
+   */
+  M1: number;
+
+  /**
+   * Internal variable M2.
+   */
+  M2: number;
 }

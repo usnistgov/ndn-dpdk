@@ -43,7 +43,7 @@ type RttCounters struct {
 
 func (cnt RttCounters) String() string {
 	ms := cnt.Scale(1.0 / float64(time.Millisecond))
-	return fmt.Sprintf("%0.3f/%0.3f/%0.3f/%0.3fms", ms.Min(), ms.Mean(), ms.Max(), ms.Stdev())
+	return fmt.Sprintf("%0.3f/%0.3f/%0.3f/%0.3fms(%dsamp)", ms.Min(), ms.Mean(), ms.Max(), ms.Stdev(), ms.Len())
 }
 
 type PatternCounters struct {
@@ -53,8 +53,7 @@ type PatternCounters struct {
 }
 
 func (cnt PatternCounters) String() string {
-	return fmt.Sprintf("%s rtt=%s(%dsamp)",
-		cnt.PacketCounters, cnt.Rtt, cnt.NRttSamples)
+	return fmt.Sprintf("%s rtt=%s", cnt.PacketCounters, cnt.Rtt)
 }
 
 type Counters struct {
@@ -75,7 +74,6 @@ func (cnt Counters) String() string {
 // Read counters.
 func (client *Client) ReadCounters() (cnt Counters) {
 	rttScale := dpdk.GetNanosInTscUnit() * math.Exp2(C.PING_TIMING_PRECISION)
-	var rttCombined running_stat.Snapshot
 	for i := 0; i < int(client.Rx.c.nPatterns); i++ {
 		crP := client.Rx.c.pattern[i]
 		ctP := client.Tx.c.pattern[i]
@@ -91,11 +89,10 @@ func (client *Client) ReadCounters() (cnt Counters) {
 		cnt.NInterests += pcnt.NInterests
 		cnt.NData += pcnt.NData
 		cnt.NNacks += pcnt.NNacks
-		rttCombined.Combine(rtt)
+		cnt.Rtt.Snapshot = cnt.Rtt.Snapshot.Add(rtt)
 	}
 
 	cnt.NAllocError = uint64(client.Tx.c.nAllocError)
-	cnt.Rtt.Snapshot = rttCombined
 	return cnt
 }
 

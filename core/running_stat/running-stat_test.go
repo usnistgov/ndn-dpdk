@@ -1,6 +1,7 @@
 package running_stat_test
 
 import (
+	"encoding/json"
 	"math"
 	"testing"
 
@@ -40,14 +41,29 @@ func TestRunningStat(t *testing.T) {
 		b.Push(x)
 	}
 
-	a.Combine(b)
-	o = a.Read()
+	ar := a.Read()
+	br := b.Read()
+
+	o = ar.Add(br)
 	assert.Equal(uint64(6), o.Count())
 	assert.Equal(uint64(6), o.Len())
 	assert.InDelta(727.7, o.Min(), 0.1)
 	assert.InDelta(1956.1, o.Max(), 0.1)
 	assert.InDelta(1285.5, o.Mean(), 0.1)
 	assert.InDelta(420.96, o.Stdev(), 0.1)
+
+	// bs := o.Sub(ar)
+	bsJson, e := json.Marshal(o.Sub(ar))
+	assert.NoError(e)
+	var bs running_stat.Snapshot
+	e = json.Unmarshal(bsJson, &bs)
+	assert.NoError(e)
+	assert.Equal(br.Count(), bs.Count())
+	assert.Equal(br.Len(), bs.Len())
+	assert.True(math.IsNaN(bs.Min()))
+	assert.True(math.IsNaN(bs.Max()))
+	assert.InDelta(br.Mean(), bs.Mean(), 0.1)
+	assert.InDelta(br.Stdev(), bs.Stdev(), 0.1)
 
 	o = o.Scale(10)
 	assert.Equal(uint64(6), o.Count())

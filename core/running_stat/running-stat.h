@@ -37,6 +37,7 @@ RunningStat_SetSampleRate(RunningStat* s, int q)
 static inline void
 RunningStat_Clear(RunningStat* s, bool enableMinMax)
 {
+  s->i = 0;
   s->n = 0;
   if (enableMinMax) {
     s->min = DBL_MAX;

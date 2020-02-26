@@ -5,7 +5,6 @@ package running_stat
 */
 import "C"
 import (
-	"math"
 	"unsafe"
 )
 
@@ -39,11 +38,6 @@ func (s *RunningStat) Push(x float64) {
 	C.RunningStat_Push(s.v.getPtr(), C.double(x))
 }
 
-// Combine state with another instance.
-func (s *RunningStat) Combine(other *RunningStat) {
-	s.v.combine(other.v)
-}
-
 // Read counters as snapshot.
 func (s *RunningStat) Read() (o Snapshot) {
 	o.v = s.v
@@ -52,24 +46,4 @@ func (s *RunningStat) Read() (o Snapshot) {
 
 func (s *runningStat) getPtr() *C.RunningStat {
 	return (*C.RunningStat)(unsafe.Pointer(s))
-}
-
-func (a *runningStat) combine(b runningStat) {
-	if a.I == 0 {
-		*a = b
-		return
-	} else if b.I == 0 {
-		return
-	}
-	a.I += b.I
-	a.Min = math.Min(a.Min, b.Min)
-	a.Max = math.Max(a.Max, b.Max)
-	aN := float64(a.N)
-	bN := float64(b.N)
-	a.N += b.N
-	cN := float64(a.N)
-	delta := b.M1 - a.M1
-	delta2 := delta * delta
-	a.M1 = (aN*a.M1 + bN*b.M1) / cN
-	a.M2 += b.M2 + delta2*aN*bN/cN
 }
