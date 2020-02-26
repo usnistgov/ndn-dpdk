@@ -11,7 +11,9 @@ import "C"
 type RttEst C.RttEst
 
 // Per-segment state.
-type SegState C.FetchSeg
+type SegState C.struct_FetchSeg
+
+// 'struct_' is necessary to workaround https://github.com/golang/go/issues/37479 for Go 1.14
 
 // Window of segment states.
 type Window C.FetchWindow
