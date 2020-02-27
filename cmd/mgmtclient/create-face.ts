@@ -1,4 +1,3 @@
-import * as jayson from "jayson";
 import * as yargs from "yargs";
 
 import * as ethface from "../../iface/ethface/mod.js";
@@ -35,7 +34,7 @@ if (args.vlan) {
   loc.Vlan = [args.vlan];
 }
 
-const mgmtClient = new mgmt.RpcClient(jayson.Client.tcp({port: 6345}));
+const mgmtClient = mgmt.makeMgmtClient();
 mgmtClient.request<iface.Locator, facemgmt.BasicInfo>("Face.Create", loc)
 .then((result: facemgmt.BasicInfo) => {
   process.stdout.write(result.Id.toString() + "\n");

@@ -1,9 +1,7 @@
 import * as jayson from "jayson";
 import { URL } from "url";
 
-/**
- * Wrapper of jayson.Client that provides async API.
- */
+/** Wrapper of jayson.Client that provides async API. */
 export class RpcClient {
   private jaysonClient: jayson.Client;
 
@@ -16,8 +14,9 @@ export class RpcClient {
     return new Promise<R>((resolve, reject) => {
       this.jaysonClient.request(method, args,
         (err, error, result: R) => {
-          if (err || error) {
-            reject(err || error);
+          const e = err ?? error;
+          if (e) {
+            reject(e);
             return;
           }
           resolve(result);
@@ -26,12 +25,11 @@ export class RpcClient {
   }
 }
 
-export function makeMgmtClient(): RpcClient {
-  let mgmtEnv = process.env.MGMT;
+export function makeMgmtClient(mgmtUri?: string): RpcClient {
+  const mgmtEnv = mgmtUri ?? process.env.MGMT ?? "tcp://127.0.0.1:6345";
   if (mgmtEnv === "0") {
     throw new Error("management socket disabled");
   }
-  mgmtEnv = mgmtEnv || "tcp://127.0.0.1:6345";
 
   const u = new URL(mgmtEnv);
   if (!/^tcp[46]?:$/.test(u.protocol)) {

@@ -1,6 +1,11 @@
 #!/bin/bash
+MGMT=${MGMT:-tcp://127.0.0.1:6345}
+TCPADDR=${MGMT#tcp*://}
+
 if [[ $1 == 'help' ]]; then
+  echo 'Endpoint: '$MGMT
   cat <<EOT
+  Change endpoint with MGMT environment variable.
 Subcommands:
   version [show]
     Show version.
@@ -76,7 +81,7 @@ jsonrpc() {
   METHOD=$1
   PARAMS=$2
   if [[ -z $2 ]]; then PARAMS='{}'; fi
-  jsonrpc2client -transport=tcp -tcp.addr=127.0.0.1:6345 $METHOD "$PARAMS"
+  jsonrpc2client -transport=tcp -tcp.addr=$TCPADDR $METHOD "$PARAMS"
 }
 
 if [[ $1 == 'version' ]]; then
