@@ -44,6 +44,9 @@ export class FetchBenchmark extends UcBenchmark<ObserveResultEntry[]> {
 
   protected async prepare() {
     this.fetchers = await this.rpc.request<{}, FetchIndexArg[]>("Fetch.List", {});
+
+    // perform one observation as warmup of the forwarder
+    await this.observe();
   }
 
   protected async observe(): Promise<[ObserveResultEntry[], number]> {
