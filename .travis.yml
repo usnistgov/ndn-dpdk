@@ -7,7 +7,7 @@ language: generic
 
 env:
   global:
-    - UBPFCOMMIT=644ad3ded2f015878f502765081e166ce8112baf
+    - UBPFCOMMIT=9d10569738730a7357c706bf1d62c53ef5d329ad
     - DPDKVER=19.11
     - SPDKVER=19.10.1
   matrix:
@@ -31,7 +31,6 @@ addons:
       - liburcu-dev
       - linux-headers-$(uname -r)
       - linux-libc-dev
-      - ninja-build
       - pkg-config
       - python3.8
       - python3-distutils
@@ -49,11 +48,11 @@ before_install:
   - eval "$(gimme 1.x)"
   - nvm install 12
   - |
-    : install meson
+    : install pip dependencies
     cd $HOME
     curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
     sudo python3.8 get-pip.py
-    sudo pip install meson
+    sudo pip install meson ninja
 
 install:
   - |
@@ -66,9 +65,7 @@ install:
     curl -L https://github.com/iovisor/ubpf/archive/$UBPFCOMMIT.tar.gz | tar -xz
     cd ubpf-$UBPFCOMMIT/vm
     make
-    sudo install -d /usr/local/include /usr/local/lib
-    sudo install -m 0644 -t /usr/local/include/ inc/ubpf.h
-    sudo install -m 0644 -t /usr/local/lib/ libubpf.a
+    sudo make install
   - |
     : install DPDK
     cd $HOME
