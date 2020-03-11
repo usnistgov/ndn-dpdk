@@ -128,7 +128,6 @@ const (
 	MP_HDR   = "HDR"   // TX Ethernet+NDNLP+Interest headers
 	MP_INTG  = "INTG"  // modifying Interest guiders
 	MP_INT   = "INT"   // TX Ethernet+NDNLP and encoding Interest
-	MP_DATA  = "DATA"  // TX Ethernet+NDNLP and encoding Data (currently unused)
 	MP_DATA0 = "DATA0" // TX Ethernet+NDNLP+Data name prefix
 	MP_DATA1 = "DATA1" // TX Data name suffix and payload
 )
@@ -177,14 +176,6 @@ func init() {
 			CacheSize:    255,
 			PrivSize:     ndn.SizeofPacketPriv(),
 			DataroomSize: SizeofEthLpHeaders() + ndn.Interest_Headroom + ndn.Interest_TailroomMax,
-		})
-	RegisterMempool(MP_DATA,
-		MempoolConfig{
-			Capacity:  65535,
-			CacheSize: 255,
-			PrivSize:  ndn.SizeofPacketPriv(),
-			DataroomSize: SizeofEthLpHeaders() + ndn.EncodeData_GetHeadroom() +
-				ndn.EncodeData_GetTailroomMax(),
 		})
 	RegisterMempool(MP_DATA0,
 		MempoolConfig{

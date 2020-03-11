@@ -24,5 +24,4 @@ Fetchers must be defined in `ndnping.TaskConfig` when starting ndnping applicati
 **Fetch.List** lists defined fetchers.
 
 **Fetch.Benchmark** executes a fetcher in benchmark mode.
-To use the benchmark, the fetcher must be created in "stopped" state (`ping.FetchConfig.Name` should be nil).
 It's allowed to run benchmarks multiple times, and the counters will be cleared prior to each benchmark.

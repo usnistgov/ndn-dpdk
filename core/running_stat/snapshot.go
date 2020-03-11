@@ -91,7 +91,7 @@ func (c Snapshot) Sub(a Snapshot) (b Snapshot) {
 	cN := float64(c.v.N)
 	aN := float64(a.v.N)
 	bN := float64(b.v.N)
-	b.v.M1 = (cN*c.v.M1 - bN*a.v.M1) / aN
+	b.v.M1 = (cN*c.v.M1 - aN*a.v.M1) / bN
 	delta := a.v.M1 - b.v.M1
 	delta2 := delta * delta
 	b.v.M2 = c.v.M2 - a.v.M2 - delta2*aN*bN/cN
