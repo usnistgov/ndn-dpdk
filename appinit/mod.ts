@@ -9,9 +9,9 @@ export interface MempoolCapacityConfig {
 
 export namespace MempoolCapacityConfig {
   export function create(capacity: number, dataroomSize?: number) {
-    const cfg = {
+    const cfg: MempoolCapacityConfig = {
       Capacity: capacity,
-    } as MempoolCapacityConfig;
+    };
     if (dataroomSize) {
       cfg.DataroomSize = dataroomSize;
     }

@@ -70,7 +70,7 @@ export interface JrgenSpecSchema {
       /**
        * Definition of possible error responses.
        */
-      errors?: {
+      errors?: Array<{
         /**
          * Description of what went wrong.
          */
@@ -85,7 +85,7 @@ export interface JrgenSpecSchema {
         message: string;
         data?: any;
         [k: string]: any;
-      }[];
+      }>;
       [k: string]: any;
     };
   };

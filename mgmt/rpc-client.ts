@@ -10,7 +10,7 @@ export class RpcClient {
   }
 
   public async request<A extends jayson.RequestParamsLike,
-                       R extends jayson.JSONRPCResultLike>(method: string, args: A): Promise<R> {
+    R extends jayson.JSONRPCResultLike>(method: string, args: A): Promise<R> {
     return new Promise<R>((resolve, reject) => {
       this.jaysonClient.request(method, args,
         (err, error, result: R) => {

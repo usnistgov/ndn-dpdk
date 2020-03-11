@@ -2,6 +2,10 @@ const path = require("path");
 const jsRc = require("./eslintrc-js");
 
 module.exports = {
+  extends: [
+    "xo/esnext",
+    "xo-typescript",
+  ],
   parser: "@typescript-eslint/parser",
   parserOptions: {
     project: path.resolve(__dirname, "..", "tsconfig.json"),
@@ -11,31 +15,25 @@ module.exports = {
     "simple-import-sort",
   ],
   env: {
-    node: true,
+    ...jsRc.env,
   },
-  extends: [
-    "eslint:recommended",
-    "plugin:@typescript-eslint/eslint-recommended",
-    "plugin:@typescript-eslint/recommended",
-    "plugin:@typescript-eslint/recommended-requiring-type-checking",
-  ],
   rules: {
     ...jsRc.rules,
-    "@typescript-eslint/ban-ts-ignore": "off",
+    "@typescript-eslint/ban-types": "off",
+    "@typescript-eslint/brace-style": jsRc.rules["brace-style"],
     "@typescript-eslint/explicit-function-return-type": "off",
-    "@typescript-eslint/member-delimiter-style": ["error", { singleline: { delimiter: "comma" } }],
-    "@typescript-eslint/no-empty-interface": ["error", { allowSingleExtends: true }],
-    "@typescript-eslint/no-explicit-any": "off",
-    "@typescript-eslint/no-inferrable-types": ["error", { ignoreParameters: true, ignoreProperties: true }],
-    "@typescript-eslint/no-misused-promises": ["error", { checksVoidReturn: false }],
-    "@typescript-eslint/no-namespace": "off",
-    "@typescript-eslint/no-non-null-assertion": "off",
-    "@typescript-eslint/no-unused-vars": ["warn", { args: "none" }],
-    "@typescript-eslint/no-use-before-define": "off",
-    "@typescript-eslint/require-await": "off",
-    "@typescript-eslint/unbound-method": ["error", { ignoreStatic: true }],
-    "constructor-super": "off",
-    "no-inner-declarations": "off",
-    "require-atomic-updates": "off",
+    "@typescript-eslint/indent": jsRc.rules.indent,
+    "@typescript-eslint/member-ordering": "off",
+    "@typescript-eslint/no-unnecessary-qualifier": "off",
+    "@typescript-eslint/no-unused-vars": "off",
+    "@typescript-eslint/promise-function-async": "off",
+    "@typescript-eslint/prefer-readonly": "off",
+    "@typescript-eslint/quotes": jsRc.rules.quotes,
+    "@typescript-eslint/restrict-template-expressions": "off",
+    "@typescript-eslint/switch-exhaustiveness-check": "off",
+    "@typescript-eslint/unified-signatures": "off",
+    "brace-style": "off",
+    indent: "off",
+    quotes: "off",
   },
 };
