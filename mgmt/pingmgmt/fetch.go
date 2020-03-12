@@ -48,8 +48,17 @@ func (mg FetchMgmt) Benchmark(args FetchBenchmarkArgs, reply *FetchBenchmarkRepl
 		return errors.New("Fetcher is running")
 	}
 
+	var tplArgsList [][]interface{}
+	for _, tpl := range args.Templates {
+		tplArgs := []interface{}{tpl.Prefix}
+		if tpl.CanBePrefix {
+			tplArgs = append(tplArgs, ndn.CanBePrefixFlag)
+		}
+		tplArgsList = append(tplArgsList, tplArgs)
+	}
+
 	fetcher.Logic.Reset()
-	fetcher.SetNames(args.Names)
+	fetcher.SetTemplates(tplArgsList)
 	fetcher.Launch()
 	time.Sleep(args.Warmup.Duration())
 	firstCnt := fetcher.Logic.ReadCounters()
@@ -85,12 +94,17 @@ type FetchIndexArg struct {
 	FetchId int
 }
 
+type FetchTemplate struct {
+	Prefix      *ndn.Name
+	CanBePrefix bool
+}
+
 type FetchBenchmarkArgs struct {
 	FetchIndexArg
-	Names    []*ndn.Name
-	Warmup   nnduration.Milliseconds
-	Interval nnduration.Milliseconds
-	Count    int
+	Templates []FetchTemplate
+	Warmup    nnduration.Milliseconds
+	Interval  nnduration.Milliseconds
+	Count     int
 }
 
 type FetchBenchmarkReply struct {

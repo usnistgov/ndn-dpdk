@@ -24,7 +24,6 @@ type FetcherConfig struct {
 
 // Fetcher thread.
 type Fetcher struct {
-	uint8
 	dpdk.ThreadBase
 	Id    uint8
 	c     *C.Fetcher
@@ -42,7 +41,7 @@ func New(id int, face iface.IFace, cfg FetcherConfig) (fetcher *Fetcher, e error
 	fetcher.Id = uint8(id)
 	fetcher.c = (*C.Fetcher)(dpdk.Zmalloc("Fetcher", C.sizeof_Fetcher, socket))
 	fetcher.c.face = (C.FaceId)(faceId)
-	fetcher.c.pitToken = (C.uint64_t(id) << 56) | 0x6665746368 // 'fetch'
+	fetcher.c.pitTokenBase = (C.uint64_t(id) << 56) | 0x66657463680000 // 'fetch\0\0'
 	cfg.RxQueue.DisableCoDel = true
 	if _, e := pktqueue.NewAt(unsafe.Pointer(&fetcher.c.rxQueue), cfg.RxQueue, fmt.Sprintf("Fetcher%d-%d_rxQ", faceId, id), socket); e != nil {
 		dpdk.Free(fetcher.c)
@@ -65,16 +64,18 @@ func (fetcher *Fetcher) GetFace() iface.IFace {
 }
 
 func (fetcher *Fetcher) SetName(name *ndn.Name) error {
-	return fetcher.SetNames([]*ndn.Name{name})
+	return fetcher.SetTemplates([][]interface{}{{name}})
 }
 
-func (fetcher *Fetcher) SetNames(names []*ndn.Name) error {
-	if len(names) < 1 || len(names) > C.FETCHER_TEMPLATE_MAX {
+// Set multiple name prefixes and other InterestTemplate arguments.
+// This is mainly useful for benchmarks.
+func (fetcher *Fetcher) SetTemplates(tplArgsList [][]interface{}) error {
+	if len(tplArgsList) < 1 || len(tplArgsList) > C.FETCHER_TEMPLATE_MAX {
 		return fmt.Errorf("need between 1 and %d names", C.FETCHER_TEMPLATE_MAX)
 	}
-	for i, name := range names {
+	for i, tplArgs := range tplArgsList {
 		tpl := ndn.InterestTemplateFromPtr(unsafe.Pointer(&fetcher.c.tpl[i]))
-		if e := tpl.Init(ndn.InterestMbufExtraHeadroom(appinit.SizeofEthLpHeaders()), name); e != nil {
+		if e := tpl.Init(append([]interface{}{ndn.InterestMbufExtraHeadroom(appinit.SizeofEthLpHeaders())}, tplArgs...)...); e != nil {
 			return e
 		}
 
@@ -84,7 +85,7 @@ func (fetcher *Fetcher) SetNames(names []*ndn.Name) error {
 		tpl.PrefixV[tpl.PrefixL] = uint8(ndn.TT_SegmentNameComponent)
 		// put SegmentNameComponent TLV-TYPE in the buffer so that it's checked in same memcmp
 	}
-	fetcher.c.nTpls = C.uint8_t(len(names))
+	fetcher.c.nTpls = C.uint8_t(len(tplArgsList))
 	return nil
 }
 

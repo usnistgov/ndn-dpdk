@@ -10,8 +10,7 @@
 
 typedef struct Fetcher Fetcher;
 
-typedef const InterestTemplate* (*Fetcher_ChooseTpl)(Fetcher* fetcher,
-                                                     uint64_t segNum);
+typedef uint8_t (*Fetcher_ChooseTpl)(Fetcher* fetcher, uint64_t segNum);
 
 #define FETCHER_TEMPLATE_MAX 16
 
@@ -26,7 +25,7 @@ struct Fetcher
   FaceId face;
   ThreadStopFlag stop;
   uint8_t nTpls;
-  uint64_t pitToken;
+  uint64_t pitTokenBase;
   Fetcher_ChooseTpl chooseTpl;
   InterestTemplate tpl[FETCHER_TEMPLATE_MAX];
 };

@@ -36,8 +36,13 @@ export interface FetchIndexArg extends IndexArg {
 
 export type FetchCounters = FetchCounters_;
 
+export interface FetchTemplate {
+  Prefix: Name;
+  CanBePrefix?: boolean;
+}
+
 export interface FetchBenchmarkArgs extends FetchIndexArg {
-  Names: Name[];
+  Templates: FetchTemplate[];
   Warmup: Milliseconds;
   Interval: Milliseconds;
   Count: number;
