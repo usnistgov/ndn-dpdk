@@ -39,6 +39,7 @@ export type FetchCounters = FetchCounters_;
 export interface FetchTemplate {
   Prefix: Name;
   CanBePrefix?: boolean;
+  InterestLifetime?: Milliseconds;
 }
 
 export interface FetchBenchmarkArgs extends FetchIndexArg {

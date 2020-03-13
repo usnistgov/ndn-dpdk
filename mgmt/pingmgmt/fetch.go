@@ -54,6 +54,9 @@ func (mg FetchMgmt) Benchmark(args FetchBenchmarkArgs, reply *FetchBenchmarkRepl
 		if tpl.CanBePrefix {
 			tplArgs = append(tplArgs, ndn.CanBePrefixFlag)
 		}
+		if d := tpl.InterestLifetime.Duration(); d > 0 {
+			tplArgs = append(tplArgs, d)
+		}
 		tplArgsList = append(tplArgsList, tplArgs)
 	}
 
@@ -95,8 +98,9 @@ type FetchIndexArg struct {
 }
 
 type FetchTemplate struct {
-	Prefix      *ndn.Name
-	CanBePrefix bool
+	Prefix           *ndn.Name
+	InterestLifetime nnduration.Milliseconds
+	CanBePrefix      bool
 }
 
 type FetchBenchmarkArgs struct {
