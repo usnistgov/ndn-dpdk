@@ -1,7 +1,7 @@
 FROM ubuntu:18.04
 RUN apt-get update && \
     apt-get install -y -qq build-essential clang-6.0 curl gcc-7 git go-bindata libc6-dev-i386 libelf-dev libnuma-dev libssl-dev liburcu-dev pkg-config python3.8 python3-distutils rake sudo && \
-    curl -L https://github.com/powerman/rpc-codec/releases/download/v1.1.3/jsonrpc2client-linux-x86_64 | sudo install /dev/stdin /usr/local/bin/jsonrpc2client && \
+    curl -L https://github.com/powerman/rpc-codec/releases/download/v1.1.3/jsonrpc2client-linux-x86_64 | install /dev/stdin /usr/local/bin/jsonrpc2client && \
     curl -L https://deb.nodesource.com/setup_12.x | bash - && \
     apt-get install -y -qq nodejs clang-format-6.0 doxygen yamllint && \
     curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \

@@ -32,8 +32,9 @@ typedef struct CsArc
   CsList DEL; // deleted entries
   // B1.capacity is c, the total capacity
   // B2.capacity is 2c, twice the total capacity
-  // T1.capacity is trunc(p)
-  // T2.capacity and DEL.capacity are unused
+  // T1.capacity is (uint32_t)p
+  // T2.capacity is MAX(1, (uint32_t)p)
+  // DEL.capacity is unused
 } CsArc;
 
 typedef enum CsArcListId

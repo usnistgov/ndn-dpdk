@@ -14,8 +14,13 @@ import (
 type ListId int
 
 const (
-	CSL_MD = ListId(C.CSL_MD)
-	CSL_MI = ListId(C.CSL_MI)
+	CSL_MD     = ListId(C.CSL_MD)
+	CSL_MD_T1  = ListId(C.CSL_MD_T1)
+	CSL_MD_B1  = ListId(C.CSL_MD_B1)
+	CSL_MD_T2  = ListId(C.CSL_MD_T2)
+	CSL_MD_B2  = ListId(C.CSL_MD_B2)
+	CSL_MD_DEL = ListId(C.CSL_MD_DEL)
+	CSL_MI     = ListId(C.CSL_MI)
 )
 
 // The Content Store (CS).
@@ -56,4 +61,9 @@ func (cs Cs) Insert(data *ndn.Data, pitFound iPitFindResult) {
 func (cs Cs) Erase(entry Entry) {
 	C.Cs_Erase(cs.getPtr(), entry.c)
 	entry.c = nil
+}
+
+// Read direct entries ARC algorithm 'p' variable.
+func (cs Cs) ReadDirectArcP() float64 {
+	return float64(C.Cs_GetPriv(cs.getPtr()).directArc.p)
 }

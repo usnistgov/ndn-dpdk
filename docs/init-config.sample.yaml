@@ -114,7 +114,8 @@ Fwdp:
   LatencySampleFreq: 16
   # Capacity of PCCT. (2^q-1) is optimal.
   PcctCapacity: 131071
-  # Capacity of CS in-memory direct entries. Must not exceed pcctcapacity.
+  # Capacity of CS in-memory direct entries. Twice as many PCCT entries could
+  # be occupied due to ghost lists in ARC algorithm.
   CsCapMd: 32768
-  # Capacity of CS in-memory indirect entries. Must not exceed pcctcapacity.
+  # Capacity of CS in-memory indirect entries.
   CsCapMi: 32768
