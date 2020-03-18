@@ -16,15 +16,15 @@ interface ConfigCommon {
   DequeueBurstSize?: number;
 }
 
-interface ConfigPlain extends ConfigCommon {
+export interface ConfigPlain extends ConfigCommon {
   DisableCoDel: true;
 }
 
-interface ConfigDelay extends ConfigCommon {
+export interface ConfigDelay extends ConfigCommon {
   Delay: Nanoseconds;
 }
 
-interface ConfigCoDel extends ConfigCommon {
+export interface ConfigCoDel extends ConfigCommon {
   DisableCoDel?: false;
 
   /**

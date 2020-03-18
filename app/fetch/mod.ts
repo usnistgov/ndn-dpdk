@@ -10,7 +10,7 @@ export interface Config {
    * @minimum 1
    * @default 65536
    */
-  WindowCapacity: number;
+  WindowCapacity?: number;
 }
 
 export interface Counters {

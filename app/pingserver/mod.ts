@@ -3,7 +3,7 @@ import { Milliseconds } from "../../core/nnduration/mod.js";
 import * as ndn from "../../ndn/mod.js";
 
 export interface Config {
-  RxQueue?: Omit<pktqueue.Config, "DisableCoDel">;
+  RxQueue?: pktqueue.ConfigPlain|pktqueue.ConfigDelay;
   Patterns: Pattern[];
   Nack: boolean;
 }
