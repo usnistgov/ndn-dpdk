@@ -22,6 +22,9 @@ The RPC server does not perform authentication.
 The default Unix stream socket is reachable by root only, as a form of protection.
 Client processes should start as root and open the socket, then drop root privileges if desired.
 
+Clients are responsible for ensuring the RPC requests satisfy the schema and other API requirements.
+Sending invalid RPC requests may trigger undefined behavior in NDN-DPDK, such as crashing.
+
 ## RPC Client (TypeScript)
 
 `makeMgmtClient` function reads "MGMT" environment variable and constructs an RPC client to interact with NDN-DPDK management.
