@@ -9,6 +9,8 @@ if [[ $1 == 'help' ]]; then
 Subcommands:
   version [show]
     Show version.
+  hrlog collect <FILENAME> <COUNT>
+    Collect high resolution logs.
   face [list]
     List faces.
   face show <ID>
@@ -87,6 +89,10 @@ jsonrpc() {
 if [[ $1 == 'version' ]]; then
   if [[ -z $2 ]] || [[ $2 == 'show' ]]; then
     jsonrpc Version.Version
+  fi
+elif [[ $1 == 'hrlog' ]]; then
+  if [[ $2 == 'collect' ]]; then
+    jsonrpc Hrlog.Collect '{"Filename":"'$3'","Count":'$4'}'
   fi
 elif [[ $1 == 'face' ]]; then
   if [[ -z $2 ]] || [[ $2 == 'list' ]]; then

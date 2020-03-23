@@ -7,6 +7,7 @@ import (
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/ndt"
 	"ndn-dpdk/dpdk"
+	"ndn-dpdk/mgmt/hrlog"
 )
 
 var theDp *fwdp.DataPlane
@@ -17,6 +18,7 @@ func main() {
 		log.WithError(e).Fatal("command line error")
 	}
 	log.WithField("nSlaves", len(dpdk.ListSlaveLCores())).Info("EAL ready")
+	hrlog.Init()
 
 	initCfg.InitConfig.Apply()
 

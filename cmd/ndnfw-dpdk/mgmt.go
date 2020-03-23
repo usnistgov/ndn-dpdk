@@ -9,6 +9,7 @@ import (
 	"ndn-dpdk/mgmt/facemgmt"
 	"ndn-dpdk/mgmt/fibmgmt"
 	"ndn-dpdk/mgmt/fwdpmgmt"
+	"ndn-dpdk/mgmt/hrlog"
 	"ndn-dpdk/mgmt/ndtmgmt"
 	"ndn-dpdk/mgmt/strategymgmt"
 	"ndn-dpdk/mgmt/versionmgmt"
@@ -17,6 +18,7 @@ import (
 
 func startMgmt() {
 	appinit.RegisterMgmt(versionmgmt.VersionMgmt{})
+	appinit.RegisterMgmt(hrlog.HrlogMgmt{})
 
 	appinit.RegisterMgmt(facemgmt.FaceMgmt{})
 	appinit.RegisterMgmt(facemgmt.EthFaceMgmt{})
