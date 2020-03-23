@@ -23,7 +23,7 @@ export interface CsCounters {
   NMisses: Counter;
 }
 
-export interface FwdpMgmt {
+export interface DpInfoMgmt {
   Global: {args: {}, reply: FwdpInfo};
   Input: {args: IndexArg, reply: fwdp.InputInfo};
   Fwd: {args: IndexArg, reply: fwdp.FwdInfo};

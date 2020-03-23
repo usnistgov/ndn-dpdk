@@ -1,18 +1,19 @@
 import * as jayson from "jayson";
 import { URL } from "url";
 
+import { Mgmt } from "./schema.js";
+
 /** Wrapper of jayson.Client that provides async API. */
 export class RpcClient {
-  private jaysonClient: jayson.Client;
-
-  constructor(jaysonClient: jayson.Client) {
-    this.jaysonClient = jaysonClient;
+  constructor(private readonly jaysonClient: jayson.Client) {
   }
 
-  public async request<A extends jayson.RequestParamsLike,
-    R extends jayson.JSONRPCResultLike>(method: string, args: A): Promise<R> {
+  public async request<M extends keyof Mgmt, V extends keyof Mgmt[M],
+    A extends Mgmt[M][V] extends { args: infer A } ? A : never,
+    R extends Mgmt[M][V] extends {reply: infer R}?R:never,
+  >(module: M, method: V, args: A): Promise<R> {
     return new Promise<R>((resolve, reject) => {
-      this.jaysonClient.request(method, args,
+      this.jaysonClient.request(`${module}.${method}`, args as jayson.RequestParamsLike,
         (err, error, result: R) => {
           const e = err ?? error;
           if (e) {

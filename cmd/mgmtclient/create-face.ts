@@ -1,12 +1,11 @@
 import * as yargs from "yargs";
 
 import * as ethface from "../../iface/ethface/mod.js";
-import * as iface from "../../iface/mod.js";
-import * as facemgmt from "../../mgmt/facemgmt/mod.js";
 import * as mgmt from "../../mgmt/mod.js";
 
 const args = yargs
   .option("scheme", {
+    choices: ["ether"],
     default: "ether",
     type: "string",
   })
@@ -24,19 +23,19 @@ const args = yargs
     type: "number",
   }).parse();
 
-const loc = {
-  Scheme: args.scheme,
+const loc: ethface.Locator = {
+  Scheme: "ether",
   Port: args.port,
   Local: args.local,
   Remote: args.remote,
-} as ethface.Locator;
+};
 if (args.vlan) {
   loc.Vlan = [args.vlan];
 }
 
 const mgmtClient = mgmt.makeMgmtClient();
-mgmtClient.request<iface.Locator, facemgmt.BasicInfo>("Face.Create", loc)
-.then((result: facemgmt.BasicInfo) => {
+mgmtClient.request("Face", "Create", loc)
+.then((result) => {
   process.stdout.write(result.Id.toString() + "\n");
   process.exit(0);
 })
