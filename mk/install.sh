@@ -35,4 +35,3 @@ install_node_command() {
 }
 
 install_node_command cmd/mgmtclient/create-face
-install_node_command cmd/yamledit
