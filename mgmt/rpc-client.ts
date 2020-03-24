@@ -1,7 +1,7 @@
 import * as jayson from "jayson";
 import { URL } from "url";
 
-import { Mgmt } from "./schema.js";
+import { Mgmt } from "./schema";
 
 /** Wrapper of jayson.Client that provides async API. */
 export class RpcClient {

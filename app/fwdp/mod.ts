@@ -1,6 +1,6 @@
-import { Counter } from "../../core/mod.js";
-import * as runningStat from "../../core/running_stat/mod.js";
-import * as iface from "../../iface/mod.js";
+import { Counter } from "../../core/mod";
+import * as runningStat from "../../core/running_stat/mod";
+import * as iface from "../../iface/mod";
 
 export interface InputInfo {
   LCore: number;

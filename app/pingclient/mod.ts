@@ -1,8 +1,8 @@
-import * as pktqueue from "../../container/pktqueue/mod.js";
-import { Counter } from "../../core/mod.js";
-import * as runningStat from "../../core/running_stat/mod.js";
-import { Milliseconds, Nanoseconds } from "../../core/nnduration/mod.js";
-import * as ndn from "../../ndn/mod.js";
+import * as pktqueue from "../../container/pktqueue/mod";
+import { Counter } from "../../core/mod";
+import * as runningStat from "../../core/running_stat/mod";
+import { Milliseconds, Nanoseconds } from "../../core/nnduration/mod";
+import * as ndn from "../../ndn/mod";
 
 export interface Config {
   RxQueue?: pktqueue.Config;

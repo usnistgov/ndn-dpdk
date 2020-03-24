@@ -1,5 +1,5 @@
-import { Blob, Counter } from "../../core/mod.js";
-import * as ndn from "../../ndn/mod.js";
+import { Blob, Counter } from "../../core/mod";
+import * as ndn from "../../ndn/mod";
 
 interface UpdateArgCommon {
   /**

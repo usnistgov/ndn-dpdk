@@ -1,6 +1,6 @@
-import * as fwdp from "../../app/fwdp/mod.js";
-import * as pit from "../../container/pit/mod.js";
-import { Counter, Index } from "../../core/mod.js";
+import * as fwdp from "../../app/fwdp/mod";
+import * as pit from "../../container/pit/mod";
+import { Counter, Index } from "../../core/mod";
 
 export interface IndexArg {
   Index: Index;

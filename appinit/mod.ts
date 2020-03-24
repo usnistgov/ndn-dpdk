@@ -1,5 +1,5 @@
-import { LCoreAllocConfig } from "../dpdk/mod.js";
-import { Config as CreateFaceConfig } from "../iface/createface/mod.js";
+import { LCoreAllocConfig } from "../dpdk/mod";
+import { Config as CreateFaceConfig } from "../iface/createface/mod";
 
 export interface MempoolCapacityConfig {
   Capacity: number;

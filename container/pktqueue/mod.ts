@@ -1,4 +1,4 @@
-import { Nanoseconds } from "../../core/nnduration/mod.js";
+import { Nanoseconds } from "../../core/nnduration/mod";
 
 interface ConfigCommon {
   /**

@@ -1,4 +1,4 @@
-import * as iface from "../../iface/mod.js";
+import * as iface from "../../iface/mod";
 
 export interface IdArg {
   /**

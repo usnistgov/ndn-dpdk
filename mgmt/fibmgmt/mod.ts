@@ -1,8 +1,8 @@
-import * as fib from "../../container/fib/mod.js";
-import * as strategycode from "../../container/strategycode/mod.js";
-import { Counter } from "../../core/mod.js";
-import * as iface from "../../iface/mod.js";
-import * as ndn from "../../ndn/mod.js";
+import * as fib from "../../container/fib/mod";
+import * as strategycode from "../../container/strategycode/mod";
+import { Counter } from "../../core/mod";
+import * as iface from "../../iface/mod";
+import * as ndn from "../../ndn/mod";
 
 export interface FibInfo {
   NEntries: Counter;

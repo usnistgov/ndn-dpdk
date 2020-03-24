@@ -1,7 +1,7 @@
 import * as yargs from "yargs";
 
-import * as ethface from "../../iface/ethface/mod.js";
-import * as mgmt from "../../mgmt/mod.js";
+import * as ethface from "../../iface/ethface/mod";
+import * as mgmt from "../../mgmt/mod";
 
 const args = yargs
   .option("scheme", {

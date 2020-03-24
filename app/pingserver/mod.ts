@@ -1,6 +1,6 @@
-import * as pktqueue from "../../container/pktqueue/mod.js";
-import { Milliseconds } from "../../core/nnduration/mod.js";
-import * as ndn from "../../ndn/mod.js";
+import * as pktqueue from "../../container/pktqueue/mod";
+import { Milliseconds } from "../../core/nnduration/mod";
+import * as ndn from "../../ndn/mod";
 
 export interface Config {
   RxQueue?: pktqueue.ConfigPlain|pktqueue.ConfigDelay;

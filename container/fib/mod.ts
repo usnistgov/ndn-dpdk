@@ -1,4 +1,4 @@
-import { Counter } from "../../core/mod.js";
+import { Counter } from "../../core/mod";
 
 export interface Config {
 	Id: string;

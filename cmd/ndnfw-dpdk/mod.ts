@@ -1,7 +1,7 @@
-import { InitConfig as BaseInitConfig } from "../../appinit/mod.js";
-import { Config as PktQueueConfig } from "../../container/pktqueue/mod.js";
-import { Config as NdtConfig } from "../../container/ndt/mod.js";
-import { ConfigTemplate as FibConfig } from "../../container/fib/mod.js";
+import { InitConfig as BaseInitConfig } from "../../appinit/mod";
+import { Config as PktQueueConfig } from "../../container/pktqueue/mod";
+import { Config as NdtConfig } from "../../container/ndt/mod";
+import { ConfigTemplate as FibConfig } from "../../container/fib/mod";
 
 export interface FwdpInitConfig {
   FwdInterestQueue?: PktQueueConfig;

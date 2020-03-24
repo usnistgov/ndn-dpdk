@@ -1,5 +1,5 @@
-import * as strategycode from "../../container/strategycode/mod.js";
-import { Blob } from "../../core/mod.js";
+import * as strategycode from "../../container/strategycode/mod";
+import { Blob } from "../../core/mod";
 
 export interface IdArg {
   Id: strategycode.Id;

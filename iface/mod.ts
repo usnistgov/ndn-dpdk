@@ -1,8 +1,8 @@
-import { Counter } from "../core/mod.js";
-import * as runningStat from "../core/running_stat/mod.js";
-import * as ethface from "./ethface/mod.js";
-import * as mockface from "./mockface/mod.js";
-import * as socketface from "./socketface/mod.js";
+import { Counter } from "../core/mod";
+import * as runningStat from "../core/running_stat/mod";
+import * as ethface from "./ethface/mod";
+import * as mockface from "./mockface/mod";
+import * as socketface from "./socketface/mod";
 
 /**
  * @TJS-type integer

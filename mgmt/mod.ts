@@ -1,2 +1,2 @@
-export * from "./rpc-client.js";
-export * from "./schema.js";
+export * from "./rpc-client";
+export * from "./schema";
