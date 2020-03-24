@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 MGMT=${MGMT:-tcp://127.0.0.1:6345}
 TCPADDR=${MGMT#tcp*://}
 
@@ -9,8 +10,10 @@ if [[ $1 == 'help' ]]; then
 Subcommands:
   version [show]
     Show version.
-  hrlog collect <FILENAME> <COUNT>
-    Collect high resolution logs.
+  hrlog start <FILENAME>
+    Start collecting high resolution logs.
+  hrlog stop <FILENAME>
+    Stop collecting high resolution logs.
   face [list]
     List faces.
   face show <ID>
@@ -79,9 +82,11 @@ EOT
   exit 0
 fi
 
+HAS_JSONRPC=0
 jsonrpc() {
-  METHOD=$1
-  PARAMS=$2
+  HAS_JSONRPC=1
+  local METHOD=$1
+  local PARAMS=$2
   if [[ -z $2 ]]; then PARAMS='{}'; fi
   jsonrpc2client -transport=tcp -tcp.addr=$TCPADDR $METHOD "$PARAMS"
 }
@@ -91,8 +96,10 @@ if [[ $1 == 'version' ]]; then
     jsonrpc Version.Version
   fi
 elif [[ $1 == 'hrlog' ]]; then
-  if [[ $2 == 'collect' ]]; then
-    jsonrpc Hrlog.Collect '{"Filename":"'$3'","Count":'$4'}'
+  if [[ $2 == 'start' ]]; then
+    jsonrpc Hrlog.Start '{"Filename":"'$3'"}'
+  elif [[ $2 == 'stop' ]]; then
+    jsonrpc Hrlog.Stop '{"Filename":"'$3'"}'
   fi
 elif [[ $1 == 'face' ]]; then
   if [[ -z $2 ]] || [[ $2 == 'list' ]]; then
@@ -178,4 +185,9 @@ elif [[ $1 == 'fetch' ]]; then
   elif [[ $2 == 'counters' ]]; then
     jsonrpc Fetch.ReadCounters '{'$FETCHINDEX'}'
   fi
+fi
+
+if [[ $HAS_JSONRPC -eq 0 ]]; then
+  echo 'Execute `'$0' help` to view usage.' >/dev/stderr
+  exit 1
 fi

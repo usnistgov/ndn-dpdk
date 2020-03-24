@@ -1,12 +1,16 @@
-export interface CollectArgs {
+export interface FilenameArg {
   Filename: string;
+}
 
+export interface StartArgs extends FilenameArg {
   /**
    * @TJS-type integer
+   * @default 268435456
    */
-  Count: number;
+  Count?: number;
 }
 
 export interface HrlogMgmt {
-  Collect: {args: CollectArgs, reply: {}};
+  Start: {args: StartArgs, reply: {}};
+  Stop: {args: FilenameArg, reply: {}};
 }

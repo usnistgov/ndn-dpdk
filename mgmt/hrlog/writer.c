@@ -9,24 +9,25 @@
 struct rte_ring* theHrlogRing = NULL;
 
 int
-Hrlog_RunWriter(const char* filename, int nSkip, int nTotal)
+Hrlog_RunWriter(const char* filename,
+                int nSkip,
+                int nTotal,
+                ThreadStopFlag* stop)
 {
   int fd = open(filename, O_RDWR | O_CREAT | O_TRUNC, (mode_t)0600);
   if (fd == -1) {
     return __LINE__;
   }
 
-  HrlogHeader hdr = { 0 };
-  hdr.magic = HRLOG_HEADER_MAGIC;
-  hdr.version = HRLOG_HEADER_VERSION;
-  hdr.tschz = rte_get_tsc_hz();
-  if (write(fd, &hdr, sizeof(HrlogHeader)) == -1) {
+  HrlogHeader hdr = { .magic = HRLOG_HEADER_MAGIC,
+                      .version = HRLOG_HEADER_VERSION,
+                      .tschz = rte_get_tsc_hz() };
+  if (write(fd, &hdr, sizeof(hdr)) == -1) {
     return __LINE__;
   }
 
-  void* buffer[64];
-  size_t fileSize =
-    sizeof(HrlogHeader) + nTotal * sizeof(uint64_t) + sizeof(buffer);
+  void* buf[64];
+  size_t fileSize = sizeof(hdr) + nTotal * sizeof(buf[0]) + sizeof(buf);
   if (lseek(fd, fileSize - 1, SEEK_SET) == -1) {
     return __LINE__;
   }
@@ -38,16 +39,15 @@ Hrlog_RunWriter(const char* filename, int nSkip, int nTotal)
   if (map == MAP_FAILED) {
     return __LINE__;
   }
-  HrlogEntry* output = RTE_PTR_ADD(map, sizeof(HrlogHeader));
+  HrlogEntry* output = RTE_PTR_ADD(map, sizeof(hdr));
 
   int nCollected = 0;
-  while (nCollected < nTotal) {
-    int count =
-      rte_ring_dequeue_burst(theHrlogRing, buffer, RTE_DIM(buffer), NULL);
+  while (ThreadStopFlag_ShouldContinue(stop) && nCollected < nTotal) {
+    int count = rte_ring_dequeue_burst(theHrlogRing, buf, RTE_DIM(buf), NULL);
     if (unlikely(nSkip > 0)) {
       nSkip -= count;
     } else {
-      rte_memcpy(&output[nCollected], buffer, count * sizeof(buffer[0]));
+      rte_memcpy(&output[nCollected], buf, count * sizeof(buf[0]));
       nCollected += count;
     }
   }
@@ -58,7 +58,7 @@ Hrlog_RunWriter(const char* filename, int nSkip, int nTotal)
   if (munmap(map, fileSize) == -1) {
     return __LINE__;
   }
-  if (ftruncate(fd, fileSize - sizeof(buffer)) == -1) {
+  if (ftruncate(fd, sizeof(hdr) + nCollected * sizeof(buf[0])) == -1) {
     return __LINE__;
   }
   close(fd);
