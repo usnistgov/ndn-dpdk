@@ -1,4 +1,6 @@
 {
+  "name": "@usnistgov/ndn-dpdk",
+  "version": "0.0.0",
   "dependencies": {
     "@types/yargs": "^15.0.4",
     "jayson": "^3.2.0",
@@ -13,6 +15,13 @@
     "typescript": "^3.8.3",
     "typescript-json-schema": "^0.42.0",
     "xo": "^0.28.0"
+  },
+  "files": [
+    "**/*.js",
+    "**/*.ts"
+  ],
+  "bin": {
+    "ndndpdk-create-face": "build/cmd/mgmtclient/create-face.js"
   },
   "private": true
 }
