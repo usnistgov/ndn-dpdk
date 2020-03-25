@@ -99,7 +99,9 @@ FwFwd_InterestHitCs(FwFwd* fwd, FwFwdCtx* ctx, CsEntry* csEntry)
           outNpkt,
           ctx->rxToken);
   if (likely(outNpkt != NULL)) {
-    Packet_ToMbuf(outNpkt)->timestamp = ctx->rxTime;
+    struct rte_mbuf* outPkt = Packet_ToMbuf(outNpkt);
+    outPkt->port = MBUF_INVALID_PORT;
+    outPkt->timestamp = ctx->rxTime;
     Packet_GetLpL3Hdr(outNpkt)->pitToken = ctx->rxToken;
     Face_Tx(ctx->rxFace, outNpkt);
   }

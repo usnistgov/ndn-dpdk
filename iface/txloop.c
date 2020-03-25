@@ -45,8 +45,9 @@ TxLoop_Transfer(Face* face)
     if (l3type == L3PktType_Interest) {
       hrl[nHrls++] = HrlogEntry_New(HRLOG_OI, latency);
     } else if (l3type == L3PktType_Data) {
-      // TODO distinguish OD and OC
-      hrl[nHrls++] = HrlogEntry_New(HRLOG_OD, latency);
+      hrl[nHrls++] = HrlogEntry_New(
+        Packet_ToMbuf(npkt)->port == MBUF_INVALID_PORT ? HRLOG_OC : HRLOG_OD,
+        latency);
     }
 
     struct rte_mbuf** outFrames = &frames[nFrames];
