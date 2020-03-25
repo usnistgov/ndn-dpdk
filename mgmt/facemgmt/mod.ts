@@ -18,10 +18,10 @@ export interface FaceInfo extends BasicInfo {
 }
 
 export interface FaceMgmt {
-  List: {args: {}, reply: BasicInfo[]};
-  Get: {args: IdArg, reply: FaceInfo};
-  Create: {args: iface.Locator, reply: BasicInfo};
-  Destroy: {args: iface.Locator, reply: {}};
+  List: {args: {}; reply: BasicInfo[]};
+  Get: {args: IdArg; reply: FaceInfo};
+  Create: {args: iface.Locator; reply: BasicInfo};
+  Destroy: {args: iface.Locator; reply: {}};
 }
 
 export interface PortArg {
@@ -43,7 +43,7 @@ export interface PortInfo {
 }
 
 export interface EthFaceMgmt {
-  ListPorts: {args: {}, reply: PortInfo[]};
-  ListPortFaces: {args: PortArg, reply: BasicInfo[]};
-  ReadPortStats: {args: PortStatsArg, reply: object};
+  ListPorts: {args: {}; reply: PortInfo[]};
+  ListPortFaces: {args: PortArg; reply: BasicInfo[]};
+  ReadPortStats: {args: PortStatsArg; reply: object};
 }

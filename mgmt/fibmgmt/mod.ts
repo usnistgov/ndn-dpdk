@@ -35,11 +35,11 @@ interface LookupReplyYes {
 export type LookupReply = LookupReplyNo | LookupReplyYes;
 
 export interface FibMgmt {
-  Info: {args: {}, reply: FibInfo};
-  List: {args: {}, reply: ndn.Name[]};
-  Insert: {args: InsertArg, reply: InsertReply};
-  Erase: {args: NameArg, reply: {}};
-  Find: {args: NameArg, reply: LookupReply};
-  Lpm: {args: NameArg, reply: LookupReply};
-  ReadEntryCounters: {args: NameArg, reply: fib.EntryCounters};
+  Info: {args: {}; reply: FibInfo};
+  List: {args: {}; reply: ndn.Name[]};
+  Insert: {args: InsertArg; reply: InsertReply};
+  Erase: {args: NameArg; reply: {}};
+  Find: {args: NameArg; reply: LookupReply};
+  Lpm: {args: NameArg; reply: LookupReply};
+  ReadEntryCounters: {args: NameArg; reply: fib.EntryCounters};
 }

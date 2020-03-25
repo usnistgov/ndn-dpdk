@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import * as yargs from "yargs";
 
 import * as ethface from "../../iface/ethface/mod";
@@ -35,11 +37,11 @@ if (args.vlan) {
 
 const mgmtClient = mgmt.makeMgmtClient();
 mgmtClient.request("Face", "Create", loc)
-.then((result) => {
-  process.stdout.write(result.Id.toString() + "\n");
-  process.exit(0);
-})
-.catch((err) => {
-  process.stderr.write(JSON.stringify(err) + "\n");
-  process.exit(1);
-});
+  .then((result) => {
+    process.stdout.write(`${result.Id.toString()}\n`);
+    process.exit(0);
+  })
+  .catch((err) => {
+    process.stderr.write(`${JSON.stringify(err)}\n`);
+    process.exit(1);
+  });

@@ -1,5 +1,5 @@
 export interface Config {
-	PrefixLen: number;
-	IndexBits: number;
-	SampleFreq: number;
+  PrefixLen: number;
+  IndexBits: number;
+  SampleFreq: number;
 }

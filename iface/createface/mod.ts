@@ -1,16 +1,16 @@
 export interface Config {
-	EnableEth?: boolean;
-	EthDisableRxFlow?: boolean;
-	EthMtu?: number;
-	EthRxqFrames?: number;
-	EthTxqPkts?: number;
-	EthTxqFrames?: number;
+  EnableEth?: boolean;
+  EthDisableRxFlow?: boolean;
+  EthMtu?: number;
+  EthRxqFrames?: number;
+  EthTxqPkts?: number;
+  EthTxqFrames?: number;
 
-	EnableSock?: boolean;
-	SockTxqPkts?: number;
-	SockTxqFrames?: number;
+  EnableSock?: boolean;
+  SockTxqPkts?: number;
+  SockTxqFrames?: number;
 
-	EnableMock?: boolean;
+  EnableMock?: boolean;
 
-	ChanRxgFrames?: number;
+  ChanRxgFrames?: number;
 }

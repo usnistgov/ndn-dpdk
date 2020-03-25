@@ -24,10 +24,10 @@ export interface ClientStopArgs extends IndexArg {
 export type ClientCounters = ClientCounters_;
 
 export interface PingClientMgmt {
-  List: {args: {}, reply: Index[]};
-  Start: {args: ClientStartArgs, reply: {}};
-  Stop: {args: ClientStopArgs, reply: {}};
-  ReadCounters: {args: IndexArg, reply: ClientCounters};
+  List: {args: {}; reply: Index[]};
+  Start: {args: ClientStartArgs; reply: {}};
+  Stop: {args: ClientStopArgs; reply: {}};
+  ReadCounters: {args: IndexArg; reply: ClientCounters};
 }
 
 export interface FetchIndexArg extends IndexArg {
@@ -55,7 +55,7 @@ export interface FetchBenchmarkReply {
 }
 
 export interface FetchMgmt {
-  List: {args: {}, reply: FetchIndexArg[]};
-  Benchmark: {args: FetchBenchmarkArgs, reply: FetchBenchmarkReply};
-  ReadCounters: {args: FetchIndexArg, reply: FetchCounters};
+  List: {args: {}; reply: FetchIndexArg[]};
+  Benchmark: {args: FetchBenchmarkArgs; reply: FetchBenchmarkReply};
+  ReadCounters: {args: FetchIndexArg; reply: FetchCounters};
 }

@@ -11,6 +11,6 @@ export interface StartArgs extends FilenameArg {
 }
 
 export interface HrlogMgmt {
-  Start: {args: StartArgs, reply: {}};
-  Stop: {args: FilenameArg, reply: {}};
+  Start: {args: StartArgs; reply: {}};
+  Stop: {args: FilenameArg; reply: {}};
 }

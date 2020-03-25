@@ -32,7 +32,7 @@ export interface UpdateReply {
 }
 
 export interface NdtMgmt {
-  ReadTable: {args: {}, reply: Blob};
-  ReadCounters: {args: {}, reply: Counter[]};
-  Update: {args: UpdateArgs, reply: UpdateReply};
+  ReadTable: {args: {}; reply: Blob};
+  ReadCounters: {args: {}; reply: Counter[]};
+  Update: {args: UpdateArgs; reply: UpdateReply};
 }

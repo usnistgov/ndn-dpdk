@@ -1,10 +1,10 @@
 import { Counter } from "../../core/mod";
 
 export interface Config {
-	Id: string;
-	MaxEntries: number;
-	NBuckets: number;
-	StartDepth: number;
+  Id: string;
+  MaxEntries: number;
+  NBuckets: number;
+  StartDepth: number;
 }
 
 export type ConfigTemplate = Partial<Omit<Config, "Id">>;

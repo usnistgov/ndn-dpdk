@@ -16,8 +16,8 @@ export interface LoadArg {
 }
 
 export interface StrategyMgmt {
-  List: {args: {}, reply: StrategyInfo[]};
-  Get: {args: IdArg, reply: StrategyInfo};
-  Load: {args: LoadArg, reply: StrategyInfo};
-  Unload: {args: IdArg, reply: StrategyInfo};
+  List: {args: {}; reply: StrategyInfo[]};
+  Get: {args: IdArg; reply: StrategyInfo};
+  Load: {args: LoadArg; reply: StrategyInfo};
+  Unload: {args: IdArg; reply: StrategyInfo};
 }

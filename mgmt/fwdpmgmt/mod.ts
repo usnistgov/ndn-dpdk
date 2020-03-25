@@ -24,9 +24,9 @@ export interface CsCounters {
 }
 
 export interface DpInfoMgmt {
-  Global: {args: {}, reply: FwdpInfo};
-  Input: {args: IndexArg, reply: fwdp.InputInfo};
-  Fwd: {args: IndexArg, reply: fwdp.FwdInfo};
-  Pit: {args: IndexArg, reply: pit.Counters};
-  Cs: {args: IndexArg, reply: CsCounters};
+  Global: {args: {}; reply: FwdpInfo};
+  Input: {args: IndexArg; reply: fwdp.InputInfo};
+  Fwd: {args: IndexArg; reply: fwdp.FwdInfo};
+  Pit: {args: IndexArg; reply: pit.Counters};
+  Cs: {args: IndexArg; reply: CsCounters};
 }

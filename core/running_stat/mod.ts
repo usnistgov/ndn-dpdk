@@ -72,7 +72,7 @@ export const empty: Snapshot = {
 export function add(a: Snapshot, b: Snapshot): Snapshot {
   if (a.Len === 0) {
     return b;
-  } else if (b.Len === 0) {
+  } if (b.Len === 0) {
     return a;
   }
   const cLen = a.Len + b.Len;
@@ -101,5 +101,5 @@ export function sub(c: Snapshot, a: Snapshot): Snapshot {
     M2: c.M2 - a.M2 - delta2 * a.Len * bLen / c.Len,
   };
   updateDerivedFields(b);
-	return b;
+  return b;
 }
