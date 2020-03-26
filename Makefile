@@ -23,7 +23,7 @@ tsc: ndn/tlv-type.ts
 ndn/tlv-type.ts: ndn/tlv-type.tsv
 	rake ndn/tlv-type.h
 
-cmds: cmd-ndnfw-dpdk cmd-ndnping-dpdk
+cmds: cmd-ndnfw-dpdk cmd-ndnping-dpdk cmd-ndndpdk-hrlog2histogram
 
 cmd-%: cmd/%/* godeps
 	go install ./cmd/$*

@@ -9,6 +9,7 @@ install -m0744 ../../bin/ndnping-dpdk $DESTSBIN
 
 DESTBIN=$DESTDIR/bin
 install -d -m0755 $DESTBIN
+install -m0755 ../../bin/ndndpdk-hrlog2histogram $DESTBIN
 install -m0755 cmd/mgmtclient/mgmtcmd.sh $DESTBIN/ndndpdk-mgmtcmd
 
 NPMTARBALL=$(npm pack -s .)
