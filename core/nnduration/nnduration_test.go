@@ -12,7 +12,10 @@ import (
 func TestMilliseconds(t *testing.T) {
 	assert, _ := dpdktestenv.MakeAR(t)
 
+	assert.Equal(2816*time.Millisecond, nnduration.Milliseconds(0).DurationOr(2816))
+
 	ms := nnduration.Milliseconds(5274)
+	assert.Equal(5274*time.Millisecond, ms.DurationOr(2816))
 
 	j, e := json.Marshal(ms)
 	assert.NoError(e)
@@ -32,16 +35,19 @@ func TestMilliseconds(t *testing.T) {
 func TestNanoseconds(t *testing.T) {
 	assert, _ := dpdktestenv.MakeAR(t)
 
-	ms := nnduration.Nanoseconds(7011)
+	assert.Equal(1652*time.Nanosecond, nnduration.Nanoseconds(0).DurationOr(1652))
 
-	j, e := json.Marshal(ms)
+	ns := nnduration.Nanoseconds(7011)
+	assert.Equal(7011*time.Nanosecond, ns.DurationOr(1652))
+
+	j, e := json.Marshal(ns)
 	assert.NoError(e)
 	assert.Equal(([]byte)("7011"), j)
 
 	var decoded nnduration.Nanoseconds
 	e = json.Unmarshal(j, &decoded)
 	assert.NoError(e)
-	assert.Equal(ms, decoded)
+	assert.Equal(ns, decoded)
 
 	e = json.Unmarshal(([]byte)(`"3us"`), &decoded)
 	assert.NoError(e)

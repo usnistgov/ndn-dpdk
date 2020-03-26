@@ -7,6 +7,7 @@ import (
 	"ndn-dpdk/appinit"
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/ndt"
+	"ndn-dpdk/container/pit"
 	"ndn-dpdk/container/pktqueue"
 	"ndn-dpdk/iface/createface"
 )
@@ -23,6 +24,7 @@ type fwdpInitConfig struct {
 	FwdDataQueue      pktqueue.Config
 	FwdNackQueue      pktqueue.Config
 	LatencySampleFreq int
+	Suppress          pit.SuppressConfig
 	PcctCapacity      int
 	CsCapMd           int
 	CsCapMi           int

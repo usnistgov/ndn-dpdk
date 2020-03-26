@@ -8,12 +8,12 @@ import "C"
 
 import (
 	"fmt"
-	"time"
 	"unsafe"
 
 	"ndn-dpdk/appinit"
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/pcct"
+	"ndn-dpdk/container/pit"
 	"ndn-dpdk/container/pktqueue"
 	"ndn-dpdk/container/strategycode"
 	"ndn-dpdk/core/running_stat"
@@ -42,7 +42,8 @@ func (fwd *Fwd) String() string {
 	return fmt.Sprintf("fwd%d", fwd.id)
 }
 
-func (fwd *Fwd) Init(fib *fib.Fib, pcctCfg pcct.Config, interestQueueCfg, dataQueueCfg, nackQueueCfg pktqueue.Config, latencySampleFreq int) (e error) {
+func (fwd *Fwd) Init(fib *fib.Fib, pcctCfg pcct.Config, interestQueueCfg, dataQueueCfg, nackQueueCfg pktqueue.Config,
+	latencySampleFreq int, suppressCfg pit.SuppressConfig) (e error) {
 	numaSocket := fwd.GetNumaSocket()
 
 	fwd.c = (*C.FwFwd)(dpdk.Zmalloc("FwFwd", C.sizeof_FwFwd, numaSocket))
@@ -81,9 +82,7 @@ func (fwd *Fwd) Init(fib *fib.Fib, pcctCfg pcct.Config, interestQueueCfg, dataQu
 	latencyStat.Clear(false)
 	latencyStat.SetSampleRate(latencySampleFreq)
 
-	fwd.c.suppressCfg.min = C.TscDuration(dpdk.ToTscDuration(10 * time.Millisecond))
-	fwd.c.suppressCfg.multiplier = 2.0
-	fwd.c.suppressCfg.max = C.TscDuration(dpdk.ToTscDuration(100 * time.Millisecond))
+	suppressCfg.CopyToC(unsafe.Pointer(&fwd.c.suppressCfg))
 
 	return nil
 }

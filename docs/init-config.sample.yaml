@@ -112,6 +112,11 @@ Fwdp:
   # Collect RX-FwFwd latency sample every 2^LatencySampleFreq packets.
   # Must not exceed 30.
   LatencySampleFreq: 16
+  # PIT suppression config.
+  Suppress:
+    Min: 10ms
+    Max: 100ms
+    Multiplier: 2.0
   # Capacity of PCCT. (2^q-1) is optimal.
   PcctCapacity: 131071
   # Capacity of CS in-memory direct entries. Twice as many PCCT entries could

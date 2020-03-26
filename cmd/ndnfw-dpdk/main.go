@@ -32,6 +32,7 @@ func startDp(ndtCfg ndt.Config, fibCfg fib.Config, dpInit fwdpInitConfig) {
 	var dpCfg fwdp.Config
 	dpCfg.Ndt = ndtCfg
 	dpCfg.Fib = fibCfg
+	dpCfg.Suppress = dpInit.Suppress
 
 	// set crypto config
 	dpCfg.Crypto.InputCapacity = 64

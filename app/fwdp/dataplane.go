@@ -12,6 +12,7 @@ import (
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/ndt"
 	"ndn-dpdk/container/pcct"
+	"ndn-dpdk/container/pit"
 	"ndn-dpdk/container/pktqueue"
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
@@ -19,9 +20,10 @@ import (
 )
 
 type Config struct {
-	Ndt  ndt.Config  // NDT config
-	Fib  fib.Config  // FIB config (Id ignored)
-	Pcct pcct.Config // PCCT config template (Id and NumaSocket ignored)
+	Ndt      ndt.Config         // NDT config
+	Fib      fib.Config         // FIB config (Id ignored)
+	Pcct     pcct.Config        // PCCT config template (Id and NumaSocket ignored)
+	Suppress pit.SuppressConfig // PIT suppression config
 
 	Crypto            CryptoConfig
 	FwdInterestQueue  pktqueue.Config
@@ -66,7 +68,8 @@ func New(cfg Config) (dp *DataPlane, e error) {
 	for i, lc := range dp.la.Fwds {
 		fwd := newFwd(i)
 		fwd.SetLCore(lc)
-		if e := fwd.Init(dp.fib, cfg.Pcct, cfg.FwdInterestQueue, cfg.FwdDataQueue, cfg.FwdNackQueue, cfg.LatencySampleFreq); e != nil {
+		if e := fwd.Init(dp.fib, cfg.Pcct, cfg.FwdInterestQueue, cfg.FwdDataQueue, cfg.FwdNackQueue,
+			cfg.LatencySampleFreq, cfg.Suppress); e != nil {
 			dp.Close()
 			return nil, fmt.Errorf("Fwd.Init(%d): %v", i, e)
 		}

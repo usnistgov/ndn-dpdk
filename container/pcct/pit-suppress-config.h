@@ -10,8 +10,8 @@
 typedef struct PitSuppressConfig
 {
   TscDuration min;   ///< initial/minimum suppression duration
-  double multiplier; ///< multiplier on each transmission
   TscDuration max;   ///< maximum suppression duration
+  double multiplier; ///< multiplier on each transmission
 } PitSuppressConfig;
 
 /** \brief Compute next suppression duration.
