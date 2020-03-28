@@ -102,7 +102,9 @@ FwFwd_InterestHitCs(FwFwd* fwd, FwFwdCtx* ctx, CsEntry* csEntry)
     struct rte_mbuf* outPkt = Packet_ToMbuf(outNpkt);
     outPkt->port = MBUF_INVALID_PORT;
     outPkt->timestamp = ctx->rxTime;
-    Packet_GetLpL3Hdr(outNpkt)->pitToken = ctx->rxToken;
+    LpL3* lpl3 = Packet_InitLpL3Hdr(outNpkt);
+    lpl3->pitToken = ctx->rxToken;
+    lpl3->congMark = Packet_GetLpL3Hdr(ctx->npkt)->congMark;
     Face_Tx(ctx->rxFace, outNpkt);
   }
   rte_pktmbuf_free(ctx->pkt);

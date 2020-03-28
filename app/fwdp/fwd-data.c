@@ -70,7 +70,9 @@ FwFwd_DataSatisfy(FwFwd* fwd, FwFwdCtx* ctx)
       struct rte_mbuf* outPkt = Packet_ToMbuf(outNpkt);
       outPkt->port = ctx->rxFace;
       outPkt->timestamp = ctx->rxTime;
-      Packet_GetLpL3Hdr(outNpkt)->pitToken = dn->token;
+      LpL3* lpl3 = Packet_InitLpL3Hdr(outNpkt);
+      lpl3->pitToken = dn->token;
+      lpl3->congMark = dn->congMark;
       Face_Tx(dn->face, outNpkt);
     }
   }

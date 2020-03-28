@@ -13,6 +13,7 @@ typedef struct PitDn
   uint64_t token; ///< downstream's token
   uint32_t nonce; ///< downstream's nonce
   FaceId face;
+  bool congMark;
   bool canBePrefix; ///< Interest has CanBePrefix?
 } __rte_aligned(32) PitDn;
 static_assert(sizeof(PitDn) == 32, "");

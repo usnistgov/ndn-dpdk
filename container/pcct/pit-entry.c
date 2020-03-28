@@ -157,6 +157,7 @@ PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt)
 
   // refresh DN record
   dn->token = lpl3->pitToken;
+  dn->congMark = lpl3->congMark;
   dn->canBePrefix = interest->canBePrefix;
   dn->nonce = interest->nonce;
   uint32_t lifetime = RTE_MIN(interest->lifetime, PIT_MAX_LIFETIME);
