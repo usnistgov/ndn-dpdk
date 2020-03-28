@@ -70,6 +70,8 @@ module.exports = {
         "@typescript-eslint/unified-signatures": "off",
         "brace-style": "off",
         indent: "off",
+        "no-unused-vars": "off",
+        "no-useless-constructor": "off",
         quotes: "off",
       },
     },
