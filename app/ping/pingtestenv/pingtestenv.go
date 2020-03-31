@@ -46,12 +46,7 @@ func MakeMockFace() *mockface.MockFace {
 	return face.(*mockface.MockFace)
 }
 
-type IRxQueueGettable interface {
-	GetRxQueue() pktqueue.PktQueue
-}
-
-func MakeRxFunc(t IRxQueueGettable) func(pkts ...ndn.IL3Packet) {
-	q := t.GetRxQueue()
+func MakeRxFunc(q pktqueue.PktQueue) func(pkts ...ndn.IL3Packet) {
 	return func(pkts ...ndn.IL3Packet) {
 		npkts := make([]ndn.Packet, len(pkts))
 		for i, pkt := range pkts {

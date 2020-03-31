@@ -30,10 +30,6 @@ export interface PingClientMgmt {
   ReadCounters: {args: IndexArg; reply: ClientCounters};
 }
 
-export interface FetchIndexArg extends IndexArg {
-  FetchId: Index;
-}
-
 export type FetchCounters = FetchCounters_;
 
 export interface FetchTemplate {
@@ -42,10 +38,13 @@ export interface FetchTemplate {
   InterestLifetime?: Milliseconds;
 }
 
-export interface FetchBenchmarkArgs extends FetchIndexArg {
+export interface FetchBenchmarkArgs extends IndexArg {
   Templates: FetchTemplate[];
-  Warmup: Milliseconds;
   Interval: Milliseconds;
+  /**
+   * @TJS-type integer
+   * @minimum 2
+   */
   Count: number;
 }
 
@@ -55,7 +54,6 @@ export interface FetchBenchmarkReply {
 }
 
 export interface FetchMgmt {
-  List: {args: {}; reply: FetchIndexArg[]};
-  Benchmark: {args: FetchBenchmarkArgs; reply: FetchBenchmarkReply};
-  ReadCounters: {args: FetchIndexArg; reply: FetchCounters};
+  List: {args: {}; reply: number[]};
+  Benchmark: {args: FetchBenchmarkArgs; reply: FetchBenchmarkReply[]};
 }

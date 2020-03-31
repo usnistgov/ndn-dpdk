@@ -2,11 +2,9 @@ package main
 
 import (
 	stdlog "log"
-	"math"
 	"os"
 	"time"
 
-	"ndn-dpdk/app/fetch"
 	"ndn-dpdk/app/ping"
 	"ndn-dpdk/appinit"
 	"ndn-dpdk/dpdk"
@@ -45,7 +43,6 @@ func main() {
 }
 
 func printPeriodicCounters(app *ping.App, counterInterval time.Duration) {
-	prevFetchCnt := make(map[*fetch.Fetcher]fetch.Counters)
 	for range time.Tick(counterInterval) {
 		for _, task := range app.Tasks {
 			face := task.Face
@@ -55,15 +52,10 @@ func printPeriodicCounters(app *ping.App, counterInterval time.Duration) {
 			}
 			if client := task.Client; client != nil {
 				stdlog.Printf("  client: %v", client.ReadCounters())
-			} else if len(task.Fetch) > 0 {
-				for fetchId, fetcher := range task.Fetch {
-					cnt := fetcher.Logic.ReadCounters()
-					goodput := math.NaN()
-					if prev, ok := prevFetchCnt[fetcher]; ok {
-						goodput = cnt.ComputeGoodput(prev)
-					}
-					prevFetchCnt[fetcher] = cnt
-					stdlog.Printf("  fetch[%d]: %v %0.0fD/s", fetchId, cnt, goodput)
+			} else if fetcher := task.Fetch; fetcher != nil {
+				for i, last := 0, fetcher.CountProcs(); i < last; i++ {
+					cnt := fetcher.GetLogic(i).ReadCounters()
+					stdlog.Printf("  fetch[%d]: %v", i, cnt)
 				}
 			}
 		}

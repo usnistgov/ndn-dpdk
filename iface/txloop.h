@@ -7,7 +7,7 @@
 
 #include "face.h"
 
-/** \brief TX loop for faces that enabled thread-safe TX.
+/** \brief TX loop.
  */
 typedef struct TxLoop
 {

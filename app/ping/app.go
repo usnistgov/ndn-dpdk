@@ -90,38 +90,15 @@ func (app *App) launchInput(input *Input) {
 	}
 
 	input.demux3 = inputdemux.NewDemux3(input.rxl.GetNumaSocket())
-	demuxI := input.demux3.GetInterestDemux()
-	demuxI.InitDrop()
-	demuxD := input.demux3.GetDataDemux()
-	demuxD.InitDrop()
-	demuxN := input.demux3.GetNackDemux()
-	demuxN.InitDrop()
+	input.demux3.GetInterestDemux().InitDrop()
+	input.demux3.GetDataDemux().InitDrop()
+	input.demux3.GetNackDemux().InitDrop()
 
 	for _, task := range app.Tasks {
 		if task.Face.GetFaceId() != faces[0] {
 			continue
 		}
-
-		if task.Server != nil {
-			demuxI.InitFirst()
-			demuxI.SetDest(0, task.Server.GetRxQueue())
-		}
-
-		if task.Client != nil {
-			demuxD.InitFirst()
-			demuxN.InitFirst()
-			q := task.Client.GetRxQueue()
-			demuxD.SetDest(0, q)
-			demuxN.SetDest(0, q)
-		} else if len(task.Fetch) > 0 {
-			demuxD.InitToken()
-			demuxN.InitToken()
-			for i, fetcher := range task.Fetch {
-				q := fetcher.GetRxQueue()
-				demuxD.SetDest(i, q)
-				demuxN.SetDest(i, q)
-			}
-		}
+		task.ConfigureDemux(input.demux3)
 	}
 
 	input.rxl.SetCallback(inputdemux.Demux3_FaceRx, input.demux3.GetPtr())

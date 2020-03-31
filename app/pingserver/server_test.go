@@ -89,7 +89,7 @@ func TestServer(t *testing.T) {
 
 	server.Launch()
 
-	rx := pingtestenv.MakeRxFunc(server)
+	rx := pingtestenv.MakeRxFunc(server.GetRxQueue())
 	for i := 0; i < 100; i++ {
 		interestA := ndntestutil.MakeInterest(fmt.Sprintf("/A/%d", i))
 		interestB := ndntestutil.MakeInterest(fmt.Sprintf("/B/%d", i))

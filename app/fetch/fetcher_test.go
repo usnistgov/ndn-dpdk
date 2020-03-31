@@ -2,6 +2,7 @@ package fetch_test
 
 import (
 	"testing"
+	"time"
 
 	"ndn-dpdk/app/fetch"
 	"ndn-dpdk/app/ping/pingtestenv"
@@ -17,27 +18,33 @@ func TestFetcher(t *testing.T) {
 	face.DisableTxRecorders()
 
 	var cfg fetch.FetcherConfig
+	cfg.NThreads = 1
+	cfg.NProcs = 1
 	cfg.WindowCapacity = 1024
 
-	fetcher, e := fetch.New(18, face, cfg)
+	fetcher, e := fetch.New(face, cfg)
 	require.NoError(e)
 	defer fetcher.Close()
-	fetcher.SetLCore(pingtestenv.SlaveLCores[0])
-	fetcher.SetName(ndn.MustParseName("/A"))
+	fetcher.GetThread(0).SetLCore(pingtestenv.SlaveLCores[0])
 
-	rx := pingtestenv.MakeRxFunc(fetcher)
+	rx := pingtestenv.MakeRxFunc(fetcher.GetRxQueue(0))
 	nInterests := 0
 	face.OnTxInterest(func(interest *ndn.Interest) {
-		assert.EqualValues(ndntestutil.GetPitToken(interest)>>56, 18)
+		assert.EqualValues(ndntestutil.GetPitToken(interest)>>56, 0)
 		nInterests++
 		data := ndntestutil.MakeData(interest.GetName().String())
 		rx(data)
 	})
 
-	fetcher.Logic.SetFinalSegNum(4999)
+	fetcher.Reset()
+	i, e := fetcher.AddTemplate("/A")
+	require.NoError(e)
+	assert.Equal(i, 0)
+
+	fetcher.GetLogic(i).SetFinalSegNum(4999)
 	fetcher.Launch()
 
-	e = fetcher.WaitForCompletion()
-	assert.NoError(e)
+	time.Sleep(1500 * time.Millisecond)
+	fetcher.Stop()
 	assert.Equal(5000, nInterests)
 }

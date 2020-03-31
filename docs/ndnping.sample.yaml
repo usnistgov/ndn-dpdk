@@ -36,6 +36,7 @@
     Port: net_af_packetC
     Local: "02:00:00:00:00:03"
     Remote: "01:00:5e:00:17:aa"
-  Fetch: 2
-  FetchCfg:
+  Fetch:
+    NThreads: 1
+    NProcs: 1
     WindowCapacity: 65536

@@ -74,10 +74,8 @@ Subcommands:
     Show i-th ping client counters.
   fetch [list]
     List fetchers.
-  fetch benchmark <I,J> <NAME,NAME> [<WARMUP>] <INTERVAL> <COUNT>
-    Run benchmark on i-th task j-th fetcher.
-  fetch counters <I,J>
-    Show i-th task j-th fetcher counters.
+  fetch benchmark <I> <NAME> <INTERVAL> <COUNT>
+    Run benchmark on i-th fetcher.
 EOT
   exit 0
 fi
@@ -172,18 +170,10 @@ elif [[ $1 == 'pingc' ]]; then
     jsonrpc PingClient.ReadCounters '{"Index":'$3'}'
   fi
 elif [[ $1 == 'fetch' ]]; then
-  FETCHINDEX='"Index":'$(echo $3 | cut -d, -f1)',"FetchId":'$(echo $3 | cut -d, -f2)''
   if [[ -z $2 ]] || [[ $2 == 'list' ]]; then
     jsonrpc Fetch.List ''
   elif [[ $2 == 'benchmark' ]]; then
-    TEMPLATES=$(echo $4 | awk 'BEGIN{RS=","} NR>1{printf ","} {printf "{\"Prefix\":\"%s\"}",$1}')
-    if [[ -z $7 ]]; then
-      jsonrpc Fetch.Benchmark '{'$FETCHINDEX',"Templates":['$TEMPLATES'],"Warmup":0,"Interval":'$5',"Count":'$6'}'
-    else
-      jsonrpc Fetch.Benchmark '{'$FETCHINDEX',"Templates":['$TEMPLATES'],"Warmup":'$5',"Interval":'$6',"Count":'$7'}'
-    fi
-  elif [[ $2 == 'counters' ]]; then
-    jsonrpc Fetch.ReadCounters '{'$FETCHINDEX'}'
+    jsonrpc Fetch.Benchmark '{"Index":'$3',"Templates":[{"Prefix":"'$4'"}],"Interval":'$5',"Count":'$6'}'
   fi
 fi
 

@@ -26,6 +26,10 @@ func TestMilliseconds(t *testing.T) {
 	assert.NoError(e)
 	assert.Equal(ms, decoded)
 
+	e = json.Unmarshal(([]byte)("\"5274\""), &decoded)
+	assert.NoError(e)
+	assert.Equal(ms, decoded)
+
 	e = json.Unmarshal(([]byte)(`"6s"`), &decoded)
 	assert.NoError(e)
 	assert.Equal(nnduration.Milliseconds(6000), decoded)

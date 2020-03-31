@@ -3,6 +3,20 @@ import { Counter } from "../../core/mod";
 import { Nanoseconds } from "../../core/nnduration/mod";
 
 export interface Config {
+  /**
+   * @TJS-type integer
+   * @minimum 1
+   * @default 1
+   */
+  NThreads?: number;
+
+  /**
+   * @TJS-type integer
+   * @minimum 1
+   * @default 1
+   */
+  NProcs?: number;
+
   RxQueue?: pktqueue.Config;
 
   /**

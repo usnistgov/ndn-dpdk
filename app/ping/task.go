@@ -2,6 +2,7 @@ package ping
 
 import (
 	"ndn-dpdk/app/fetch"
+	"ndn-dpdk/app/inputdemux"
 	"ndn-dpdk/app/pingclient"
 	"ndn-dpdk/app/pingserver"
 	"ndn-dpdk/dpdk"
@@ -12,7 +13,7 @@ type Task struct {
 	Face   iface.IFace
 	Server *pingserver.Server
 	Client *pingclient.Client
-	Fetch  []*fetch.Fetcher
+	Fetch  *fetch.Fetcher
 }
 
 func newTask(face iface.IFace, cfg TaskConfig) (task Task, e error) {
@@ -31,18 +32,43 @@ func newTask(face iface.IFace, cfg TaskConfig) (task Task, e error) {
 			return Task{}, e
 		}
 		task.Client.SetLCores(dpdk.LCoreAlloc.Alloc(LCoreRole_ClientRx, socket), dpdk.LCoreAlloc.Alloc(LCoreRole_ClientTx, socket))
-	} else if cfg.Fetch > 0 {
-		for fetchId := 0; fetchId < cfg.Fetch; fetchId++ {
-			fetcher, e := fetch.New(fetchId, task.Face, cfg.FetchCfg)
-			if e != nil {
-				return Task{}, e
-			}
-			fetcher.SetLCore(dpdk.LCoreAlloc.Alloc(LCoreRole_ClientRx, socket))
-			task.Fetch = append(task.Fetch, fetcher)
+	} else if cfg.Fetch != nil {
+		if task.Fetch, e = fetch.New(task.Face, *cfg.Fetch); e != nil {
+			return Task{}, e
+		}
+		for i, last := 0, task.Fetch.CountThreads(); i < last; i++ {
+			task.Fetch.GetThread(i).SetLCore(dpdk.LCoreAlloc.Alloc(LCoreRole_ClientRx, socket))
 		}
 	}
 
 	return task, nil
+}
+
+func (task *Task) ConfigureDemux(demux3 inputdemux.Demux3) {
+	demuxI := demux3.GetInterestDemux()
+	demuxD := demux3.GetDataDemux()
+	demuxN := demux3.GetNackDemux()
+
+	if task.Server != nil {
+		demuxI.InitFirst()
+		demuxI.SetDest(0, task.Server.GetRxQueue())
+	}
+
+	if task.Client != nil {
+		demuxD.InitFirst()
+		demuxN.InitFirst()
+		q := task.Client.GetRxQueue()
+		demuxD.SetDest(0, q)
+		demuxN.SetDest(0, q)
+	} else if task.Fetch != nil {
+		demuxD.InitToken()
+		demuxN.InitToken()
+		for i, last := 0, task.Fetch.CountProcs(); i < last; i++ {
+			q := task.Fetch.GetRxQueue(i)
+			demuxD.SetDest(i, q)
+			demuxN.SetDest(i, q)
+		}
+	}
 }
 
 func (task *Task) Launch() {
@@ -61,8 +87,8 @@ func (task *Task) Close() error {
 	if task.Client != nil {
 		task.Client.Close()
 	}
-	for _, fetcher := range task.Fetch {
-		fetcher.Close()
+	if task.Fetch != nil {
+		task.Fetch.Close()
 	}
 	task.Face.Close()
 	return nil

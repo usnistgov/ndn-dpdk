@@ -9,11 +9,5 @@ export interface TaskConfig {
   Face: iface.Locator;
   Server?: ServerConfig;
   Client?: ClientConfig;
-
-  /**
-   * @TJS-type integer
-   * @default 0
-   */
-  Fetch?: number;
-  FetchCfg?: FetchConfig;
+  Fetch?: FetchConfig;
 }

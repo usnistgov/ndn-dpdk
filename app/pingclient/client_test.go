@@ -49,7 +49,7 @@ func TestClient(t *testing.T) {
 	defer client.Close()
 	client.SetLCores(pingtestenv.SlaveLCores[0], pingtestenv.SlaveLCores[1])
 
-	rx := pingtestenv.MakeRxFunc(client)
+	rx := pingtestenv.MakeRxFunc(client.GetRxQueue())
 	nInterestsA := 0
 	nInterestsB1 := 0
 	nInterestsB2 := 0

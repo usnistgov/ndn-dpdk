@@ -41,7 +41,7 @@ typedef struct Face
   int numaSocket;
 
   struct rte_ring* txQueue;
-  struct cds_hlist_node txLoopNode;
+  struct cds_hlist_node txlNode;
 } __rte_cache_aligned Face;
 
 static inline void*

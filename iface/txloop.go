@@ -67,7 +67,7 @@ func (txl *TxLoop) AddFace(face IFace) {
 
 	txl.faces[face.GetFaceId()] = face
 	faceC := face.getPtr()
-	C.cds_hlist_add_head_rcu(&faceC.txLoopNode, &txl.c.head)
+	C.cds_hlist_add_head_rcu(&faceC.txlNode, &txl.c.head)
 }
 
 func (txl *TxLoop) RemoveFace(face IFace) {
@@ -80,7 +80,7 @@ func (txl *TxLoop) RemoveFace(face IFace) {
 
 	delete(txl.faces, face.GetFaceId())
 	faceC := face.getPtr()
-	C.cds_hlist_del_rcu(&faceC.txLoopNode)
+	C.cds_hlist_del_rcu(&faceC.txlNode)
 
 	urcu.Barrier()
 }

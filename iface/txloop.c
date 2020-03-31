@@ -76,7 +76,7 @@ TxLoop_Run(TxLoop* txl)
 
     Face* face;
     struct cds_hlist_node* pos;
-    cds_hlist_for_each_entry_rcu(face, pos, &txl->head, txLoopNode)
+    cds_hlist_for_each_entry_rcu(face, pos, &txl->head, txlNode)
     {
       TxLoop_Transfer(face);
     }
