@@ -74,9 +74,9 @@ Ndt_Lookup(const Ndt* ndt,
            const uint8_t* nameV,
            uint64_t* index)
 {
-  uint16_t prefixLen =
-    name->nComps < ndt->prefixLen ? name->nComps : ndt->prefixLen;
-  uint64_t hash = PName_ComputePrefixHash(name, nameV, prefixLen);
+  uint16_t prefixLen = RTE_MIN(name->nComps, ndt->prefixLen);
+  uint64_t hash = PName_ComputePrefixHashUncached(name, nameV, prefixLen);
+  // Compute hash in 'uncached' mode, to reduce workload of FwInput thread
   *index = hash & ndt->indexMask;
   return Ndt_ReadElement(ndt, *index);
 }

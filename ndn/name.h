@@ -159,6 +159,17 @@ PName_SizeofPrefix(const PName* n, const uint8_t* input, uint16_t i)
   return PName_GetCompEnd(n, input, i - 1);
 }
 
+static inline uint64_t
+PName_ComputePrefixHashUncached(const PName* n,
+                                const uint8_t* input,
+                                uint16_t i)
+{
+  if (unlikely(i == 0)) {
+    return NameHash_Empty_;
+  }
+  return LName_ComputeHash_(PName_GetCompEnd(n, input, i - 1), input);
+}
+
 void
 PName_HashToCache_(PName* n, const uint8_t* input);
 
@@ -169,13 +180,9 @@ PName_HashToCache_(PName* n, const uint8_t* input);
 static inline uint64_t
 PName_ComputePrefixHash(const PName* n, const uint8_t* input, uint16_t i)
 {
-  if (i == 0) {
-    return NameHash_Empty_;
-  }
-
   assert(i <= n->nComps);
-  if (unlikely(i > PNAME_N_CACHED_COMPS)) {
-    return LName_ComputeHash_(PName_GetCompEnd(n, input, i - 1), input);
+  if (unlikely(i == 0 || i > PNAME_N_CACHED_COMPS)) {
+    return PName_ComputePrefixHashUncached(n, input, i);
   }
 
   if (!n->hasHashes) {
