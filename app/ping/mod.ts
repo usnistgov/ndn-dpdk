@@ -7,7 +7,7 @@ export type AppConfig = TaskConfig[];
 
 export interface TaskConfig {
   Face: iface.Locator;
-  Server?: ServerConfig;
+  Server?: ServerConfig & { NThreads?: number };
   Client?: ClientConfig;
   Fetch?: FetchConfig;
 }

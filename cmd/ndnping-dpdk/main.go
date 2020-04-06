@@ -47,8 +47,8 @@ func printPeriodicCounters(app *ping.App, counterInterval time.Duration) {
 		for _, task := range app.Tasks {
 			face := task.Face
 			stdlog.Printf("face(%d): %v %v", face.GetFaceId(), face.ReadCounters(), face.ReadExCounters())
-			if server := task.Server; server != nil {
-				stdlog.Printf("  server: %v", server.ReadCounters())
+			for i, server := range task.Server {
+				stdlog.Printf("  server[%d]: %v", i, server.ReadCounters())
 			}
 			if client := task.Client; client != nil {
 				stdlog.Printf("  client: %v", client.ReadCounters())

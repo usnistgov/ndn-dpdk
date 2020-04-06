@@ -23,13 +23,13 @@ type Server struct {
 	seg1Mp dpdk.PktmbufPool
 }
 
-func New(face iface.IFace, cfg Config) (server *Server, e error) {
+func New(face iface.IFace, index int, cfg Config) (server *Server, e error) {
 	faceId := face.GetFaceId()
 	socket := face.GetNumaSocket()
 	serverC := (*C.PingServer)(dpdk.Zmalloc("PingServer", C.sizeof_PingServer, socket))
 
 	cfg.RxQueue.DisableCoDel = true
-	if _, e := pktqueue.NewAt(unsafe.Pointer(&serverC.rxQueue), cfg.RxQueue, fmt.Sprintf("PingServer%d_rxQ", faceId), socket); e != nil {
+	if _, e := pktqueue.NewAt(unsafe.Pointer(&serverC.rxQueue), cfg.RxQueue, fmt.Sprintf("PingServer%d-%d_rxQ", faceId, index), socket); e != nil {
 		dpdk.Free(serverC)
 		return nil, nil
 	}

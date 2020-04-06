@@ -11,7 +11,7 @@ import (
 
 type Task struct {
 	Face   iface.IFace
-	Server *pingserver.Server
+	Server []*pingserver.Server
 	Client *pingclient.Client
 	Fetch  *fetch.Fetcher
 }
@@ -21,10 +21,18 @@ func newTask(face iface.IFace, cfg TaskConfig) (task Task, e error) {
 	task.Face = face
 
 	if cfg.Server != nil {
-		if task.Server, e = pingserver.New(task.Face, *cfg.Server); e != nil {
-			return Task{}, e
+		nThreads := cfg.Server.NThreads
+		if nThreads <= 0 {
+			nThreads = 1
 		}
-		task.Server.SetLCore(dpdk.LCoreAlloc.Alloc(LCoreRole_Server, socket))
+		for i := 0; i < nThreads; i++ {
+			if server, e := pingserver.New(task.Face, i, cfg.Server.Config); e != nil {
+				return Task{}, e
+			} else {
+				server.SetLCore(dpdk.LCoreAlloc.Alloc(LCoreRole_Server, socket))
+				task.Server = append(task.Server, server)
+			}
+		}
 	}
 
 	if cfg.Client != nil {
@@ -49,9 +57,11 @@ func (task *Task) ConfigureDemux(demux3 inputdemux.Demux3) {
 	demuxD := demux3.GetDataDemux()
 	demuxN := demux3.GetNackDemux()
 
-	if task.Server != nil {
-		demuxI.InitFirst()
-		demuxI.SetDest(0, task.Server.GetRxQueue())
+	if nServers := len(task.Server); nServers > 0 {
+		demuxI.InitRoundrobin(nServers)
+		for i, server := range task.Server {
+			demuxI.SetDest(i, server.GetRxQueue())
+		}
 	}
 
 	if task.Client != nil {
@@ -72,8 +82,8 @@ func (task *Task) ConfigureDemux(demux3 inputdemux.Demux3) {
 }
 
 func (task *Task) Launch() {
-	if task.Server != nil {
-		task.Server.Launch()
+	for _, server := range task.Server {
+		server.Launch()
 	}
 	if task.Client != nil {
 		task.Client.Launch()
@@ -81,8 +91,8 @@ func (task *Task) Launch() {
 }
 
 func (task *Task) Close() error {
-	if task.Server != nil {
-		task.Server.Close()
+	for _, server := range task.Server {
+		server.Close()
 	}
 	if task.Client != nil {
 		task.Client.Close()

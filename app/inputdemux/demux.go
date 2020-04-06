@@ -43,7 +43,12 @@ func (demux Demux) InitDrop() {
 
 // Configure to pass all packets to the first and only destination.
 func (demux Demux) InitFirst() {
-	C.InputDemux_SetDispatchFunc_(demux.c, C.InputDemux_DispatchToFirst)
+	demux.InitRoundrobin(1)
+}
+
+// Configure to pass all packets to each destination in a round-robin fashion.
+func (demux Demux) InitRoundrobin(nDest int) {
+	C.InputDemux_SetDispatchRoundrobin_(demux.c, C.uint32_t(nDest))
 }
 
 // Configure to dispatch via NDT loopup.

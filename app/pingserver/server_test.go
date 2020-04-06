@@ -82,7 +82,7 @@ func TestServer(t *testing.T) {
 		}
 	})
 
-	server, e := pingserver.New(face, cfg)
+	server, e := pingserver.New(face, 0, cfg)
 	require.NoError(e)
 	defer server.Close()
 	server.SetLCore(pingtestenv.SlaveLCores[0])
