@@ -17,7 +17,8 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	dpdktestenv.MakeDirectMp(1023, ndn.SizeofPacketPriv(), 2000)
+	// fixture.Close() cannot release packet buffers, need a large mempool
+	dpdktestenv.MakeDirectMp(65535, ndn.SizeofPacketPriv(), 2000)
 
 	os.Exit(m.Run())
 }

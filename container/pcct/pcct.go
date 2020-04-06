@@ -56,6 +56,9 @@ func (pcct Pcct) GetMempool() dpdk.Mempool {
 	return dpdk.MempoolFromPtr(pcct.GetPtr())
 }
 
+// Destroy the PCCT.
+// Warning: currently this cannot release stored Interest/Data packets,
+// and would cause memory leak.
 func (pcct Pcct) Close() error {
 	C.Pcct_Close(pcct.c)
 	return nil
