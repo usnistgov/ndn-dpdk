@@ -5,4 +5,5 @@ kernel-headers.tgz
 *ndn-dpdk-*.tgz
 node_modules
 _obj
+package-lock.json
 .rake*

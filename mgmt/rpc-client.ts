@@ -39,7 +39,7 @@ export function makeMgmtClient(mgmtUri?: string): RpcClient {
 
   const jaysonClient = jayson.Client.tcp({
     host: u.hostname,
-    port: parseInt(u.port, 10),
+    port: Number.parseInt(u.port, 10),
   });
   return new RpcClient(jaysonClient);
 }
