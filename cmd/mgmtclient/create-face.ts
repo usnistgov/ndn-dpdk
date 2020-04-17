@@ -35,10 +35,10 @@ if (args.vlan) {
   loc.Vlan = [args.vlan];
 }
 
-const mgmtClient = mgmt.makeMgmtClient();
+const mgmtClient = mgmt.RpcClient.create();
 mgmtClient.request("Face", "Create", loc)
   .then((result) => {
-    process.stdout.write(`${result.Id.toString()}\n`);
+    process.stdout.write(`${result.Id}\n`);
     process.exit(0);
   })
   .catch((err) => {

@@ -1,45 +1,46 @@
-import * as jayson from "jayson";
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+import { TcpTransportClient } from "mole-rpc-transport-tcp";
+// @ts-ignore
+import MoleClient from "mole-rpc/MoleClient";
 import { URL } from "url";
 
 import { Mgmt } from "./schema";
 
-/** Wrapper of jayson.Client that provides async API. */
+/** Management RPC client. */
 export class RpcClient {
-  constructor(private readonly jaysonClient: jayson.Client) {
+  public static create(mgmtUri = process.env.MGMT ?? "tcp://127.0.0.1:6345"): RpcClient {
+    if (mgmtUri === "0") {
+      throw new Error("management socket disabled");
+    }
+    const { protocol, hostname, port } = new URL(mgmtUri);
+    if (!/^tcp[46]?:$/.test(protocol)) {
+      throw new Error(`unsupported MGMT scheme ${protocol}`);
+    }
+
+    const transport = new TcpTransportClient({
+      host: hostname,
+      port: Number.parseInt(port, 10),
+    });
+    const client = new MoleClient({
+      requestTimeout: 3600000,
+      transport,
+    });
+    return new RpcClient(transport, client);
+  }
+
+  private constructor(private readonly transport: TcpTransportClient, private readonly client: any) {
   }
 
   public async request<M extends keyof Mgmt, V extends keyof Mgmt[M],
     A extends Mgmt[M][V] extends { args: infer A } ? A : never,
-    R extends Mgmt[M][V] extends {reply: infer R}?R:never,
-  >(module: M, method: V, args: A): Promise<R> {
-    return new Promise<R>((resolve, reject) => {
-      this.jaysonClient.request(`${module}.${method}`, args as jayson.RequestParamsLike,
-        (err, error, result: R) => {
-          const e = err ?? error;
-          if (e) {
-            reject(e);
-            return;
-          }
-          resolve(result);
-        });
-    });
-  }
-}
-
-export function makeMgmtClient(mgmtUri?: string): RpcClient {
-  const mgmtEnv = mgmtUri ?? process.env.MGMT ?? "tcp://127.0.0.1:6345";
-  if (mgmtEnv === "0") {
-    throw new Error("management socket disabled");
+    R extends Mgmt[M][V] extends { reply: infer R } ? R : never,
+  >(module: M, method: V, arg: A): Promise<R> {
+    const params = { ...(arg as object) };
+    Object.defineProperty(params, "length", { value: true });
+    return this.client.callMethod(`${module}.${method}`, params);
   }
 
-  const u = new URL(mgmtEnv);
-  if (!/^tcp[46]?:$/.test(u.protocol)) {
-    throw new Error(`unsupported MGMT scheme ${u.protocol}`);
+  public close() {
+    this.transport.close();
   }
-
-  const jaysonClient = jayson.Client.tcp({
-    host: u.hostname,
-    port: Number.parseInt(u.port, 10),
-  });
-  return new RpcClient(jaysonClient);
 }

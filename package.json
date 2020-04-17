@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "dependencies": {
     "@types/yargs": "^15.0.4",
-    "jayson": "^3.2.0",
+    "mole-rpc": "koorchik/node-mole-rpc#ffa46f755d5dfba80a74bac5dba9d050b440eb4e",
+    "mole-rpc-transport-tcp": "gist:1153e3b799db51250dc71bc125b603a9",
     "yargs": "^15.3.1"
   },
   "devDependencies": {
