@@ -1,14 +1,19 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 import { TcpTransportClient } from "mole-rpc-transport-tcp";
 // @ts-ignore
-import MoleClient from "mole-rpc/MoleClient";
+import MoleClient = require("mole-rpc/MoleClient");
 import { URL } from "url";
 
 import { Mgmt } from "./schema";
 
+// https://github.com/microsoft/TypeScript/issues/36295 workaround
+function makeDefaultMgmtUri() {
+  return process.env.MGMT ?? "tcp://127.0.0.1:6345";
+}
+
 /** Management RPC client. */
 export class RpcClient {
-  public static create(mgmtUri = process.env.MGMT ?? "tcp://127.0.0.1:6345"): RpcClient {
+  public static create(mgmtUri = makeDefaultMgmtUri()): RpcClient {
     if (mgmtUri === "0") {
       throw new Error("management socket disabled");
     }

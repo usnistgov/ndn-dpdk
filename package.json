@@ -4,7 +4,7 @@
   "dependencies": {
     "@types/yargs": "^15.0.4",
     "mole-rpc": "koorchik/node-mole-rpc#ffa46f755d5dfba80a74bac5dba9d050b440eb4e",
-    "mole-rpc-transport-tcp": "gist:1153e3b799db51250dc71bc125b603a9",
+    "mole-rpc-transport-tcp": "^0.0.20200417",
     "yargs": "^15.3.1"
   },
   "devDependencies": {
@@ -12,7 +12,7 @@
     "eslint-plugin-simple-import-sort": "^5.0.2",
     "json-stable-stringify": "^1.0.1",
     "markdownlint-cli": "^0.22.0",
-    "ts-node": "^8.8.1",
+    "ts-node": "^8.9.0",
     "typescript": "^3.8.3",
     "typescript-json-schema": "^0.42.0",
     "xo": "^0.29.1"
