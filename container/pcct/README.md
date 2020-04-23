@@ -13,7 +13,8 @@ C code for [PIT](../pit/) and [CS](../cs/) is in this directory to avoid circula
 ## Name hash table
 
 The **name hash table** is indexed by Interest/Data and forwarding hint delegation names.
-It uses [uthash v2.0.2](https://troydhanson.github.io/uthash/) library, and stores the head in `PcctPriv` type `keyHt` field.
+It uses [uthash v2.1.0](https://troydhanson.github.io/uthash/) library, and stores the hash table head in `PcctPriv` type `keyHt` field.
+Hash table expansion has been disabled to provide more predictable performance.
 DPDK hash library is unsuitable for this hash table because it requires fixed-length keys, but names are variable length, and padding them to the maximum length would be too time consuming.
 
 The `PccKey` type represents an index key of the name hash table,

@@ -33,6 +33,8 @@ typedef struct PcctPriv
 
   PitPriv pitPriv;
   CsPriv csPriv;
+
+  uint32_t nKeyHtBuckets;
 } PcctPriv;
 
 /** \brief Access PcctPriv* struct.

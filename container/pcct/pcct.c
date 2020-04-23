@@ -11,13 +11,30 @@ INIT_ZF_LOG(Pcct);
 
 #undef uthash_malloc
 #undef uthash_free
-#undef uthash_memcmp
+#undef HASH_KEYCMP
+#undef HASH_INITIAL_NUM_BUCKETS
+#undef HASH_INITIAL_NUM_BUCKETS_LOG2
+#undef HASH_BKT_CAPACITY_THRESH
+#undef HASH_EXPAND_BUCKETS
 #define uthash_malloc(sz) rte_malloc("PCCT.uthash", (sz), 0)
 #define uthash_free(ptr, sz) rte_free((ptr))
-#define uthash_memcmp(a, b, n)                                                 \
+#define HASH_KEYCMP(a, b, n)                                                   \
   (!PccKey_MatchSearchKey((const PccKey*)(a), (const PccSearch*)(b)))
+#define HASH_INITIAL_NUM_BUCKETS (pcctp->nKeyHtBuckets)
+#define HASH_INITIAL_NUM_BUCKETS_LOG2 (rte_log2_u32(HASH_INITIAL_NUM_BUCKETS))
+#define HASH_BKT_CAPACITY_THRESH UINT_MAX
+#define HASH_EXPAND_BUCKETS(hh, tbl, oomed) Pcct_KeyHt_Expand_(tbl)
 
 #define PCCT_TOKEN_MASK (((uint64_t)1 << 48) - 1)
+
+static void
+Pcct_KeyHt_Expand_(UT_hash_table* tbl)
+{
+  ZF_LOGE("KeyHt(%p) Expand-rejected num_items=%u num_buckets=%u",
+          tbl,
+          tbl->num_items,
+          tbl->num_buckets);
+}
 
 static uint32_t
 Pcct_TokenHt_Hash_(const void* key, uint32_t keyLen, uint32_t initVal)
@@ -64,6 +81,7 @@ Pcct_New(const char* id, uint32_t maxEntries, unsigned numaSocket)
   PcctPriv* pcctp = Pcct_GetPriv(pcct);
   memset(pcctp, 0, sizeof(*pcctp));
   pcctp->lastToken = PCCT_TOKEN_MASK - 16;
+  pcctp->nKeyHtBuckets = rte_align32prevpow2(maxEntries) >> 2;
 
   struct rte_hash_parameters tokenHtParams = {
     .name = tokenHtName,

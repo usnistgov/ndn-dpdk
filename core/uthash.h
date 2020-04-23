@@ -1,5 +1,5 @@
 // Downloaded from https://github.com/troydhanson/uthash
-// commit 50b7694d60d2f050bce79fa696a8a79e4d821635
+// commit 1124f0a70b0714886402c3c0df03d037e3c4d57a
 // 'unsigned hashv' changed to 'uint64_t hashv'.
 
 /*
@@ -28,7 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef UTHASH_H
 #define UTHASH_H
 
-#define UTHASH_VERSION 2.0.2
+#define UTHASH_VERSION 2.1.0
 
 #include <string.h>   /* memcmp, memset, strlen */
 #include <stddef.h>   /* ptrdiff_t */
@@ -92,11 +92,19 @@ typedef unsigned char uint8_t;
 #ifndef uthash_bzero
 #define uthash_bzero(a,n) memset(a,'\0',n)
 #endif
-#ifndef uthash_memcmp
-#define uthash_memcmp(a,b,n) memcmp(a,b,n)
-#endif
 #ifndef uthash_strlen
 #define uthash_strlen(s) strlen(s)
+#endif
+
+#ifdef uthash_memcmp
+/* This warning will not catch programs that define uthash_memcmp AFTER including uthash.h. */
+#warning "uthash_memcmp is deprecated; please use HASH_KEYCMP instead"
+#else
+#define uthash_memcmp(a,b,n) memcmp(a,b,n)
+#endif
+
+#ifndef HASH_KEYCMP
+#define HASH_KEYCMP(a,b,n) uthash_memcmp(a,b,n)
 #endif
 
 #ifndef uthash_noexpand_fyi
@@ -140,7 +148,7 @@ typedef unsigned char uint8_t;
 /* calculate the element whose hash handle address is hhp */
 #define ELMT_FROM_HH(tbl,hhp) ((void*)(((char*)(hhp)) - ((tbl)->hho)))
 /* calculate the hash handle from element address elp */
-#define HH_FROM_ELMT(tbl,elp) ((UT_hash_handle *)(((char*)(elp)) + ((tbl)->hho)))
+#define HH_FROM_ELMT(tbl,elp) ((UT_hash_handle*)(void*)(((char*)(elp)) + ((tbl)->hho)))
 
 #define HASH_ROLLBACK_BKT(hh, head, itemptrhh)                                   \
 do {                                                                             \
@@ -171,9 +179,12 @@ do {                                                                            
 
 #define HASH_FIND(hh,head,keyptr,keylen,out)                                     \
 do {                                                                             \
-  unsigned _hf_hashv;                                                            \
-  HASH_VALUE(keyptr, keylen, _hf_hashv);                                         \
-  HASH_FIND_BYHASHVALUE(hh, head, keyptr, keylen, _hf_hashv, out);               \
+  (out) = NULL;                                                                  \
+  if (head) {                                                                    \
+    unsigned _hf_hashv;                                                          \
+    HASH_VALUE(keyptr, keylen, _hf_hashv);                                       \
+    HASH_FIND_BYHASHVALUE(hh, head, keyptr, keylen, _hf_hashv, out);             \
+  }                                                                              \
 } while (0)
 
 #ifdef HASH_BLOOM
@@ -515,7 +526,8 @@ do {                                                                            
  * This is for uthash developer only; it compiles away if HASH_DEBUG isn't defined.
  */
 #ifdef HASH_DEBUG
-#define HASH_OOPS(...) do { fprintf(stderr,__VA_ARGS__); exit(-1); } while (0)
+#include <stdio.h>   /* fprintf, stderr */
+#define HASH_OOPS(...) do { fprintf(stderr, __VA_ARGS__); exit(-1); } while (0)
 #define HASH_FSCK(hh,head,where)                                                 \
 do {                                                                             \
   struct UT_hash_handle *_thh;                                                   \
@@ -746,87 +758,6 @@ do {                                                                            
   hashv += hashv >> 6;                                                           \
 } while (0)
 
-#ifdef HASH_USING_NO_STRICT_ALIASING
-/* The MurmurHash exploits some CPU's (x86,x86_64) tolerance for unaligned reads.
- * For other types of CPU's (e.g. Sparc) an unaligned read causes a bus error.
- * MurmurHash uses the faster approach only on CPU's where we know it's safe.
- *
- * Note the preprocessor built-in defines can be emitted using:
- *
- *   gcc -m64 -dM -E - < /dev/null                  (on gcc)
- *   cc -## a.c (where a.c is a simple test file)   (Sun Studio)
- */
-#if (defined(__i386__) || defined(__x86_64__)  || defined(_M_IX86))
-#define MUR_GETBLOCK(p,i) p[i]
-#else /* non intel */
-#define MUR_PLUS0_ALIGNED(p) (((unsigned long)p & 3UL) == 0UL)
-#define MUR_PLUS1_ALIGNED(p) (((unsigned long)p & 3UL) == 1UL)
-#define MUR_PLUS2_ALIGNED(p) (((unsigned long)p & 3UL) == 2UL)
-#define MUR_PLUS3_ALIGNED(p) (((unsigned long)p & 3UL) == 3UL)
-#define WP(p) ((uint32_t*)((unsigned long)(p) & ~3UL))
-#if (defined(__BIG_ENDIAN__) || defined(SPARC) || defined(__ppc__) || defined(__ppc64__))
-#define MUR_THREE_ONE(p) ((((*WP(p))&0x00ffffff) << 8) | (((*(WP(p)+1))&0xff000000) >> 24))
-#define MUR_TWO_TWO(p)   ((((*WP(p))&0x0000ffff) <<16) | (((*(WP(p)+1))&0xffff0000) >> 16))
-#define MUR_ONE_THREE(p) ((((*WP(p))&0x000000ff) <<24) | (((*(WP(p)+1))&0xffffff00) >>  8))
-#else /* assume little endian non-intel */
-#define MUR_THREE_ONE(p) ((((*WP(p))&0xffffff00) >> 8) | (((*(WP(p)+1))&0x000000ff) << 24))
-#define MUR_TWO_TWO(p)   ((((*WP(p))&0xffff0000) >>16) | (((*(WP(p)+1))&0x0000ffff) << 16))
-#define MUR_ONE_THREE(p) ((((*WP(p))&0xff000000) >>24) | (((*(WP(p)+1))&0x00ffffff) <<  8))
-#endif
-#define MUR_GETBLOCK(p,i) (MUR_PLUS0_ALIGNED(p) ? ((p)[i]) :           \
-                            (MUR_PLUS1_ALIGNED(p) ? MUR_THREE_ONE(p) : \
-                             (MUR_PLUS2_ALIGNED(p) ? MUR_TWO_TWO(p) :  \
-                                                      MUR_ONE_THREE(p))))
-#endif
-#define MUR_ROTL32(x,r) (((x) << (r)) | ((x) >> (32 - (r))))
-#define MUR_FMIX(_h) \
-do {                 \
-  _h ^= _h >> 16;    \
-  _h *= 0x85ebca6bu; \
-  _h ^= _h >> 13;    \
-  _h *= 0xc2b2ae35u; \
-  _h ^= _h >> 16;    \
-} while (0)
-
-#define HASH_MUR(key,keylen,hashv)                                     \
-do {                                                                   \
-  const uint8_t *_mur_data = (const uint8_t*)(key);                    \
-  const int _mur_nblocks = (int)(keylen) / 4;                          \
-  uint32_t _mur_h1 = 0xf88D5353u;                                      \
-  uint32_t _mur_c1 = 0xcc9e2d51u;                                      \
-  uint32_t _mur_c2 = 0x1b873593u;                                      \
-  uint32_t _mur_k1 = 0;                                                \
-  const uint8_t *_mur_tail;                                            \
-  const uint32_t *_mur_blocks = (const uint32_t*)(_mur_data+(_mur_nblocks*4)); \
-  int _mur_i;                                                          \
-  for (_mur_i = -_mur_nblocks; _mur_i != 0; _mur_i++) {                \
-    _mur_k1 = MUR_GETBLOCK(_mur_blocks,_mur_i);                        \
-    _mur_k1 *= _mur_c1;                                                \
-    _mur_k1 = MUR_ROTL32(_mur_k1,15);                                  \
-    _mur_k1 *= _mur_c2;                                                \
-                                                                       \
-    _mur_h1 ^= _mur_k1;                                                \
-    _mur_h1 = MUR_ROTL32(_mur_h1,13);                                  \
-    _mur_h1 = (_mur_h1*5U) + 0xe6546b64u;                              \
-  }                                                                    \
-  _mur_tail = (const uint8_t*)(_mur_data + (_mur_nblocks*4));          \
-  _mur_k1=0;                                                           \
-  switch ((keylen) & 3U) {                                             \
-    case 0: break;                                                     \
-    case 3: _mur_k1 ^= (uint32_t)_mur_tail[2] << 16; /* FALLTHROUGH */ \
-    case 2: _mur_k1 ^= (uint32_t)_mur_tail[1] << 8;  /* FALLTHROUGH */ \
-    case 1: _mur_k1 ^= (uint32_t)_mur_tail[0];                         \
-    _mur_k1 *= _mur_c1;                                                \
-    _mur_k1 = MUR_ROTL32(_mur_k1,15);                                  \
-    _mur_k1 *= _mur_c2;                                                \
-    _mur_h1 ^= _mur_k1;                                                \
-  }                                                                    \
-  _mur_h1 ^= (uint32_t)(keylen);                                       \
-  MUR_FMIX(_mur_h1);                                                   \
-  hashv = _mur_h1;                                                     \
-} while (0)
-#endif  /* HASH_USING_NO_STRICT_ALIASING */
-
 /* iterate over items in a known bucket to find desired item */
 #define HASH_FIND_IN_BKT(tbl,hh,head,keyptr,keylen_in,hashval,out)               \
 do {                                                                             \
@@ -837,7 +768,7 @@ do {                                                                            
   }                                                                              \
   while ((out) != NULL) {                                                        \
     if ((out)->hh.hashv == (hashval) && (out)->hh.keylen == (keylen_in)) {       \
-      if (uthash_memcmp((out)->hh.key, keyptr, keylen_in) == 0) {                \
+      if (HASH_KEYCMP((out)->hh.key, keyptr, keylen_in) == 0) {              \
         break;                                                                   \
       }                                                                          \
     }                                                                            \
@@ -1076,7 +1007,7 @@ do {                                                                            
         _elt = ELMT_FROM_HH((src)->hh_src.tbl, _src_hh);                         \
         if (cond(_elt)) {                                                        \
           IF_HASH_NONFATAL_OOM( int _hs_oomed = 0; )                             \
-          _dst_hh = (UT_hash_handle*)(((char*)_elt) + _dst_hho);                 \
+          _dst_hh = (UT_hash_handle*)(void*)(((char*)_elt) + _dst_hho);          \
           _dst_hh->key = _src_hh->key;                                           \
           _dst_hh->keylen = _src_hh->keylen;                                     \
           _dst_hh->hashv = _src_hh->hashv;                                       \
