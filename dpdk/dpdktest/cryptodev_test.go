@@ -21,7 +21,7 @@ func TestCryptoDev(t *testing.T) {
 	_, ok = cd.GetQueuePair(2)
 	require.False(ok)
 
-	mp, e := dpdk.NewCryptoOpPool("MP-CryptoOp", 255, 5, 0, dpdk.NUMA_SOCKET_ANY)
+	mp, e := dpdk.NewCryptoOpPool("MP-CryptoOp", 255, 0, dpdk.NUMA_SOCKET_ANY)
 	require.NoError(e)
 	defer mp.Close()
 

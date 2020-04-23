@@ -99,7 +99,7 @@ func TestDataDigest(t *testing.T) {
 	defer cd.Close()
 	qp, ok := cd.GetQueuePair(0)
 	require.True(ok)
-	mp, e := dpdk.NewCryptoOpPool("MP-CryptoOp", 255, 5, 0, dpdk.NUMA_SOCKET_ANY)
+	mp, e := dpdk.NewCryptoOpPool("MP-CryptoOp", 255, 0, dpdk.NUMA_SOCKET_ANY)
 	require.NoError(e)
 	defer mp.Close()
 

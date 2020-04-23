@@ -40,7 +40,6 @@ func NewFixture(t *testing.T) (fixture *Fixture) {
 
 	dpCfg.Crypto.InputCapacity = 64
 	dpCfg.Crypto.OpPoolCapacity = 1023
-	dpCfg.Crypto.OpPoolCacheSize = 31
 
 	dpCfg.Ndt.PrefixLen = 2
 	dpCfg.Ndt.IndexBits = 16

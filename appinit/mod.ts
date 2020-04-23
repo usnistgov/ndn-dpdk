@@ -3,31 +3,7 @@ import { Config as CreateFaceConfig } from "../iface/createface/mod";
 
 export interface MempoolCapacityConfig {
   Capacity: number;
-  CacheSize?: number;
   DataroomSize?: number;
-}
-
-export namespace MempoolCapacityConfig {
-  export function create(capacity: number, dataroomSize?: number) {
-    const cfg: MempoolCapacityConfig = {
-      Capacity: capacity,
-    };
-    if (dataroomSize) {
-      cfg.DataroomSize = dataroomSize;
-    }
-    setCacheSize(cfg);
-    return cfg;
-  }
-
-  function setCacheSize(cfg: MempoolCapacityConfig) {
-    const { Capacity: capacity } = cfg;
-    cfg.CacheSize = 512;
-    for (let cacheSize = 512; cacheSize >= 64; --cacheSize) {
-      if (capacity % cacheSize === 0) {
-        cfg.CacheSize = cacheSize;
-      }
-    }
-  }
 }
 
 export interface MempoolsCapacityConfig {

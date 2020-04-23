@@ -6,7 +6,6 @@ package appinit
 import "C"
 import (
 	"fmt"
-	"math"
 	"strings"
 
 	"ndn-dpdk/dpdk"
@@ -18,7 +17,6 @@ import (
 
 type MempoolConfig struct {
 	Capacity     int
-	CacheSize    int
 	PrivSize     int
 	DataroomSize int
 }
@@ -40,19 +38,17 @@ func RegisterMempool(key string, cfg MempoolConfig) {
 }
 
 // Modify mempool capacity in template.
-func ConfigureMempool(key string, capacity int, cacheSize int) {
+func ConfigureMempool(key string, capacity int) {
 	cfg, ok := mempoolCfgs[key]
 	if !ok {
 		log.Panicf("ConfigurePktmbufPool(%s) unregistered", key)
 	}
 
 	cfg.Capacity = capacity
-	cfg.CacheSize = cacheSize
 }
 
 type MempoolCapacityConfig struct {
 	Capacity     int
-	CacheSize    int
 	DataroomSize int
 }
 
@@ -67,7 +63,6 @@ func (cfg MempoolsCapacityConfig) Apply() {
 			continue
 		}
 		tpl.Capacity = entry.Capacity
-		tpl.CacheSize = entry.CacheSize
 		if entry.DataroomSize > 0 {
 			if entry.DataroomSize < tpl.DataroomSize {
 				log.WithFields(makeLogFields(
@@ -94,14 +89,6 @@ func MakePktmbufPool(key string, socket dpdk.NumaSocket) dpdk.PktmbufPool {
 	if ((cfg.Capacity + 1) & cfg.Capacity) != 0 {
 		logEntry.Warn("mempool nonoptimal config: capacity is not 2^q-1")
 	}
-	maxCacheSize := int(math.Min(float64(int(C.RTE_MEMPOOL_CACHE_MAX_SIZE)),
-		float64(cfg.Capacity)/1.5))
-	if cfg.CacheSize < 0 || cfg.CacheSize > maxCacheSize {
-		logEntry.Fatalf("mempool bad config: cache size must be between 0 and %d", maxCacheSize)
-	}
-	if cfg.CacheSize > 0 && cfg.Capacity%cfg.CacheSize != 0 {
-		logEntry.Warn("mempool nonoptimal config: capacity is not a multiply of cacheSize")
-	}
 
 	name := fmt.Sprintf("%s#%d", key, socket)
 	logEntry = logEntry.WithFields(makeLogFields("name", name, "socket", socket))
@@ -110,8 +97,7 @@ func MakePktmbufPool(key string, socket dpdk.NumaSocket) dpdk.PktmbufPool {
 		return mp
 	}
 
-	mp, e := dpdk.NewPktmbufPool(name, cfg.Capacity, cfg.CacheSize,
-		cfg.PrivSize, cfg.DataroomSize, socket)
+	mp, e := dpdk.NewPktmbufPool(name, cfg.Capacity, cfg.PrivSize, cfg.DataroomSize, socket)
 	if e != nil {
 		logEntry.WithError(e).Fatal("mempool creation failed")
 	}
@@ -138,56 +124,48 @@ func init() {
 	RegisterMempool(MP_IND,
 		MempoolConfig{
 			Capacity:     2097151,
-			CacheSize:    337,
 			PrivSize:     0,
 			DataroomSize: 0,
 		})
 	RegisterMempool(MP_ETHRX,
 		MempoolConfig{
 			Capacity:     1048575,
-			CacheSize:    465,
 			PrivSize:     ndn.SizeofPacketPriv(),
 			DataroomSize: 2560, // >= MTU+sizeof(rte_ether_hdr)
 		})
 	RegisterMempool(MP_NAME,
 		MempoolConfig{
 			Capacity:     65535,
-			CacheSize:    255,
 			PrivSize:     0,
 			DataroomSize: ndn.NAME_MAX_LENGTH,
 		})
 	RegisterMempool(MP_HDR,
 		MempoolConfig{
 			Capacity:     65535,
-			CacheSize:    255,
 			PrivSize:     ndn.SizeofPacketPriv(),
 			DataroomSize: SizeofEthLpHeaders() + ndn.Interest_Headroom,
 		})
 	RegisterMempool(MP_INTG,
 		MempoolConfig{
 			Capacity:     65535,
-			CacheSize:    255,
 			PrivSize:     0,
 			DataroomSize: ndn.Interest_SizeofGuider,
 		})
 	RegisterMempool(MP_INT,
 		MempoolConfig{
 			Capacity:     65535,
-			CacheSize:    255,
 			PrivSize:     ndn.SizeofPacketPriv(),
 			DataroomSize: SizeofEthLpHeaders() + ndn.Interest_Headroom + ndn.Interest_TailroomMax,
 		})
 	RegisterMempool(MP_DATA0,
 		MempoolConfig{
 			Capacity:     65535,
-			CacheSize:    255,
 			PrivSize:     ndn.SizeofPacketPriv(),
 			DataroomSize: dpdk.MBUF_DEFAULT_HEADROOM + ndn.DataGen_GetTailroom0(ndn.NAME_MAX_LENGTH),
 		})
 	RegisterMempool(MP_DATA1,
 		MempoolConfig{
 			Capacity:     255,
-			CacheSize:    0,
 			PrivSize:     0,
 			DataroomSize: dpdk.MBUF_DEFAULT_HEADROOM + ndn.DataGen_GetTailroom1(ndn.NAME_MAX_LENGTH, 1500),
 		})

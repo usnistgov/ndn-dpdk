@@ -12,17 +12,30 @@ import (
 	"unsafe"
 )
 
+func computeMempoolCacheSize(capacity int) int {
+	max := C.RTE_MEMPOOL_CACHE_MAX_SIZE
+	if capacity/16 < max {
+		return capacity / 16
+	}
+	min := max / 4
+	for i := max; i >= min; i-- {
+		if capacity%i == 0 {
+			return i
+		}
+	}
+	return max
+}
+
 type Mempool struct {
 	c *C.struct_rte_mempool
 }
 
-func NewMempool(name string, capacity int, cacheSize int, elementSize int,
-	socket NumaSocket) (mp Mempool, e error) {
+func NewMempool(name string, capacity int, elementSize int, socket NumaSocket) (mp Mempool, e error) {
 	nameC := C.CString(name)
 	defer C.free(unsafe.Pointer(nameC))
 
 	mp.c = C.rte_mempool_create(nameC, C.uint(capacity), C.uint(elementSize),
-		C.uint(cacheSize), 0, nil, nil, nil, nil, C.int(socket), 0)
+		C.uint(computeMempoolCacheSize(capacity)), 0, nil, nil, nil, nil, C.int(socket), 0)
 	if mp.c == nil {
 		return mp, GetErrno()
 	}
@@ -91,7 +104,7 @@ type PktmbufPool struct {
 	Mempool
 }
 
-func NewPktmbufPool(name string, capacity int, cacheSize int, privSize int,
+func NewPktmbufPool(name string, capacity int, privSize int,
 	dataroomSize int, socket NumaSocket) (mp PktmbufPool, e error) {
 	if privSize > C.UINT16_MAX {
 		return mp, errors.New("privSize is too large")
@@ -103,7 +116,7 @@ func NewPktmbufPool(name string, capacity int, cacheSize int, privSize int,
 	nameC := C.CString(name)
 	defer C.free(unsafe.Pointer(nameC))
 
-	mp.c = C.rte_pktmbuf_pool_create(nameC, C.uint(capacity), C.uint(cacheSize),
+	mp.c = C.rte_pktmbuf_pool_create(nameC, C.uint(capacity), C.uint(computeMempoolCacheSize(capacity)),
 		C.uint16_t(privSize), C.uint16_t(dataroomSize), C.int(socket))
 	if mp.c == nil {
 		return mp, GetErrno()

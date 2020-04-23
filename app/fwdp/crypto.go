@@ -14,9 +14,8 @@ import (
 )
 
 type CryptoConfig struct {
-	InputCapacity   int
-	OpPoolCapacity  int
-	OpPoolCacheSize int
+	InputCapacity  int
+	OpPoolCapacity int
 }
 
 type Crypto struct {
@@ -44,7 +43,7 @@ func newCrypto(id int, lc dpdk.LCore, cfg CryptoConfig, ndt *ndt.Ndt, fwds []*Fw
 		fwc.c.input = (*C.struct_rte_ring)(input.GetPtr())
 	}
 
-	opPool, e := dpdk.NewCryptoOpPool(fwc.String()+"_pool", cfg.OpPoolCapacity, cfg.OpPoolCacheSize, 0, socket)
+	opPool, e := dpdk.NewCryptoOpPool(fwc.String()+"_pool", cfg.OpPoolCapacity, 0, socket)
 	if e != nil {
 		return nil, fmt.Errorf("dpdk.NewCryptoOpPool: %v", e)
 	} else {

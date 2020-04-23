@@ -98,12 +98,12 @@ type CryptoOpPool struct {
 	Mempool
 }
 
-func NewCryptoOpPool(name string, capacity int, cacheSize int, privSize int, socket NumaSocket) (mp CryptoOpPool, e error) {
+func NewCryptoOpPool(name string, capacity int, privSize int, socket NumaSocket) (mp CryptoOpPool, e error) {
 	nameC := C.CString(name)
 	defer C.free(unsafe.Pointer(nameC))
 
 	mp.c = C.rte_crypto_op_pool_create(nameC, C.RTE_CRYPTO_OP_TYPE_UNDEFINED,
-		C.uint(capacity), C.uint(cacheSize), C.uint16_t(privSize), C.int(socket))
+		C.uint(capacity), C.uint(computeMempoolCacheSize(capacity)), C.uint16_t(privSize), C.int(socket))
 	if mp.c == nil {
 		return mp, GetErrno()
 	}
