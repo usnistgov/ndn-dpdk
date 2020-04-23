@@ -7,7 +7,7 @@ RUN apt-get update && \
     curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
     python3.8 get-pip.py && \
     pip install meson ninja && \
-    curl -L https://dl.google.com/go/go1.14.linux-amd64.tar.gz | tar -C /usr/local -xz && \
+    curl -L https://dl.google.com/go/go1.14.2.linux-amd64.tar.gz | tar -C /usr/local -xz && \
     curl -L https://github.com/spdk/spdk/archive/v19.10.1.tar.gz | tar -C /tmp -xz && \
     cd /tmp/spdk-* && \
     sed '/libfuse3-dev/ d' ./scripts/pkgdep.sh | bash && \

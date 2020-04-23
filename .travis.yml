@@ -7,7 +7,7 @@ language: generic
 
 env:
   global:
-    - UBPFCOMMIT=9d10569738730a7357c706bf1d62c53ef5d329ad
+    - UBPFCOMMIT=4cbf7998e6f72f3f4d0b30cf30cb508428eb421f
     - DPDKVER=19.11
     - SPDKVER=19.10.1
   matrix:
