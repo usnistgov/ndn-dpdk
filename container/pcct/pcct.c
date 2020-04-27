@@ -81,7 +81,7 @@ Pcct_New(const char* id, uint32_t maxEntries, unsigned numaSocket)
   PcctPriv* pcctp = Pcct_GetPriv(pcct);
   memset(pcctp, 0, sizeof(*pcctp));
   pcctp->lastToken = PCCT_TOKEN_MASK - 16;
-  pcctp->nKeyHtBuckets = rte_align32prevpow2(maxEntries) >> 2;
+  pcctp->nKeyHtBuckets = rte_align32prevpow2(maxEntries);
 
   struct rte_hash_parameters tokenHtParams = {
     .name = tokenHtName,
