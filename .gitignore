@@ -1,7 +1,6 @@
 build
 cgoflags.go
 cgostruct.go
-kernel-headers.tgz
 *ndn-dpdk-*.tgz
 node_modules
 _obj

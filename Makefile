@@ -1,6 +1,6 @@
 export CGO_CFLAGS_ALLOW := '.*'
 ifeq ($(origin CC),default)
-	CC = gcc-7
+	CC = gcc
 endif
 export CC
 
@@ -27,9 +27,6 @@ cmds: cmd-ndnfw-dpdk cmd-ndnping-dpdk cmd-ndndpdk-hrlog2histogram
 
 cmd-%: cmd/%/* godeps
 	go install ./cmd/$*
-
-goget:
-	go get -d -t ./...
 
 install:
 	mk/install.sh

@@ -8,17 +8,15 @@ This software is developed at [Advanced Network Technologies Division](https://w
 
 Requirements:
 
-* Ubuntu 16.04 or Ubuntu 18.04 or Debian 10 on *amd64* architecture
-* Required packages: `build-essential clang-6.0 curl gcc-7 git go-bindata libc6-dev-i386 libelf-dev libnuma-dev libssl-dev liburcu-dev pkg-config python3.8 python3-distutils rake sudo` packages
-  * Ubuntu 16.04: add [ppa:ubuntu-toolchain-r/test](https://launchpad.net/~ubuntu-toolchain-r/+archive/ubuntu/test) and [ppa:deadsnakes/ppa](https://launchpad.net/~deadsnakes/+archive/ubuntu/ppa), change `python3-distutils` to `python3.8-distutils`
-  * Debian 10: omit `python3.8`
+* Ubuntu 18.04 or Debian 10 on *amd64* architecture
+* Required packages: `build-essential clang-6.0 curl git go-bindata libc6-dev-i386 libelf-dev libnuma-dev libssl-dev liburcu-dev pkg-config python3-distutils rake sudo` packages
 * Optional packages: `clang-format-6.0 doxygen yamllint`
   (see other build targets list for explanation)
 * [pip](https://pip.pypa.io/en/stable/installing/) and `sudo pip install meson ninja`
 * [Intel Multi-Buffer Crypto for IPsec Library](https://github.com/intel/intel-ipsec-mb) v0.53
-* DPDK 19.11 with [patch 65156](https://patches.dpdk.org/patch/65156/), [patch 65158](https://patches.dpdk.org/patch/65158/), [patch 65270](https://patches.dpdk.org/patch/65270/), configured with `CC=gcc-7 meson -Dtests=false --libdir=lib build`
-* SPDK 19.10.1, configured with `CC=gcc-7 ./configure --enable-debug --disable-tests --with-shared --with-dpdk=/usr/local --without-vhost --without-isal --without-fuse`
-* [ubpf](https://github.com/iovisor/ubpf/tree/4cbf7998e6f72f3f4d0b30cf30cb508428eb421f) library, compiled with gcc-7, and installed to `/usr/local/include/ubpf.h` and `/usr/local/lib/libubpf.a`
+* DPDK 19.11 with [patch 65156](https://patches.dpdk.org/patch/65156/), [patch 65158](https://patches.dpdk.org/patch/65158/), [patch 65270](https://patches.dpdk.org/patch/65270/), configured with `meson -Dtests=false --libdir=lib build`
+* SPDK 19.10.1, configured with `./configure --enable-debug --disable-tests --with-shared --with-dpdk=/usr/local --without-vhost --without-isal --without-fuse`
+* [ubpf](https://github.com/iovisor/ubpf/tree/4cbf7998e6f72f3f4d0b30cf30cb508428eb421f/vm) library, installed to `/usr/local`
 * Go 1.14.2 or newer
 * Node.js 12.x
 * [jsonrpc2client](https://github.com/powerman/rpc-codec/releases) 1.1.3 or newer, installed to `/usr/local/bin/jsonrpc2client`
@@ -26,17 +24,15 @@ Requirements:
 
 Build steps:
 
-1. Clone repository into `$GOPATH/src/ndn-dpdk`.
+1. Clone the repository.
 2. Execute `npm install` to download NPM dependencies.
-3. Execute `make godeps` to compile C code and generate certain Go/TypeScript source files.
-4. Execute `make goget` to download Go dependencies.
-5. Execute `make cmds` to install Go commands to `$GOPATH/bin`.
-6. Execute `make tsc` to build TypeScript modules and commands.
+3. Execute `make` to compile the project.
+4. Execute `sudo make install` to install commands to `/usr/local`, and `sudo make uninstall` to uninstall.
+   You may prepend `DESTDIR=/opt` to choose a different location.
 
 Other build targets:
 
-* Execute `sudo make install` to install commands to `/usr/local`, and `sudo make uninstall` to uninstall.
-  You may prepend `DESTDIR=/opt` to choose a different location.
+* Execute `make godeps` to build C objects and generate certain Go/TypeScript source files.
 * Execute `make gopkg` to build all Go packages.
 * Execute `make test` to run unit tests,  or `mk/gotest.sh PKG` to run tests for a package.
 * Execute `make doxygen` to build C documentation (requires `doxygen` package).

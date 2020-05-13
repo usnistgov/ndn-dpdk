@@ -22,17 +22,14 @@ addons:
       - clang-format-6.0
       - curl
       - doxygen
-      - gcc-7
       - gcc-multilib
       - go-bindata
       - libelf-dev
       - libnuma-dev
       - libssl-dev
       - liburcu-dev
-      - linux-headers-$(uname -r)
       - linux-libc-dev
       - pkg-config
-      - python3.8
       - python3-distutils
       - rake
       - yamllint
@@ -50,8 +47,7 @@ before_install:
   - |
     : install pip dependencies
     cd $HOME
-    curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
-    sudo python3.8 get-pip.py
+    curl https://bootstrap.pypa.io/get-pip.py | sudo python3
     sudo pip install meson ninja
 
 install:
@@ -100,17 +96,9 @@ install:
     sudo make install
     sudo ldconfig
 
-before_script:
-  - |
-    export GOPATH=$HOME/go
-    mkdir -p $GOPATH/src
-    cp -r $TRAVIS_BUILD_DIR $GOPATH/src/ndn-dpdk
-
 script:
-  - cd $GOPATH/src/ndn-dpdk
+  - cd $TRAVIS_BUILD_DIR
   - npm install
-  - make godeps
-  - make goget
   - make
   - make clean
-  - RELEASE=1 make cmds
+  - RELEASE=1 make
