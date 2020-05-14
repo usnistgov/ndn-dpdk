@@ -2,6 +2,7 @@ package fwdptest
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -16,6 +17,7 @@ import (
 	"ndn-dpdk/strategy/strategy_elf"
 )
 
+const STEP_DELAY = 50 * time.Millisecond
 const nFwds = 2
 
 type Fixture struct {

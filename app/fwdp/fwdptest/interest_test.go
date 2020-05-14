@@ -25,14 +25,14 @@ func TestInterestData(t *testing.T) {
 	interest := ndntestutil.MakeInterest("/B/1")
 	ndntestutil.SetPitToken(interest, 0x0290dd7089e9d790)
 	face1.Rx(interest)
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(STEP_DELAY)
 	require.Len(face2.TxInterests, 1)
 	assert.Len(face3.TxInterests, 0)
 
 	data := ndntestutil.MakeData("/B/1")
 	ndntestutil.CopyPitToken(data, face2.TxInterests[0])
 	face2.Rx(data)
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(STEP_DELAY)
 	require.Len(face1.TxData, 1)
 	assert.Len(face1.TxNacks, 0)
 	assert.Equal(uint64(0x0290dd7089e9d790), ndntestutil.GetPitToken(face1.TxData[0]))
@@ -57,13 +57,13 @@ func TestInterestDupNonce(t *testing.T) {
 	interest := ndntestutil.MakeInterest("/A/1", uint32(0x6f937a51))
 	ndntestutil.SetPitToken(interest, 0x3bddf54cffbc6ad0)
 	face1.Rx(interest)
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(STEP_DELAY)
 	assert.Len(face3.TxInterests, 1)
 
 	interest = ndntestutil.MakeInterest("/A/1", uint32(0x6f937a51))
 	ndntestutil.SetPitToken(interest, 0x3bddf54cffbc6ad0)
 	face2.Rx(interest)
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(STEP_DELAY)
 	require.Len(face3.TxInterests, 1)
 	require.Len(face2.TxNacks, 1)
 	assert.Equal(ndn.NackReason_Duplicate, face2.TxNacks[0].GetReason())
@@ -74,7 +74,7 @@ func TestInterestDupNonce(t *testing.T) {
 	data := ndntestutil.MakeData("/A/1")
 	ndntestutil.CopyPitToken(data, face3.TxInterests[0])
 	face3.Rx(data)
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(STEP_DELAY)
 	assert.Len(face1.TxData, 1)
 	assert.Len(face1.TxNacks, 0)
 	assert.Len(face2.TxData, 0)
@@ -107,9 +107,10 @@ func TestInterestSuppress(t *testing.T) {
 	}()
 
 	time.Sleep(500 * time.Millisecond)
-	assert.Len(face3.TxInterests, 7)
+	assert.InDelta(7, len(face3.TxInterests), 1)
 	// suppression config is min=10, multiplier=2, max=100,
-	// so Interests should be forwarded at 0, 10, 30, 70, 150, 250, 350
+	// so 7 Interests should be forwarded at 0, 10, 30, 70, 150, 250, 350,
+	// but this could be off by one on a slower machine.
 }
 
 func TestInterestNoRoute(t *testing.T) {
@@ -122,7 +123,7 @@ func TestInterestNoRoute(t *testing.T) {
 	interestA1 := ndntestutil.MakeInterest("/A/1")
 	ndntestutil.SetPitToken(interestA1, 0x431328d8b4075167)
 	face1.Rx(interestA1)
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(STEP_DELAY)
 	require.Len(face1.TxNacks, 1)
 	assert.Equal(uint64(0x431328d8b4075167), ndntestutil.GetPitToken(face1.TxNacks[0]))
 	assert.Equal(ndn.NackReason_NoRoute, face1.TxNacks[0].GetReason())
@@ -148,13 +149,13 @@ func TestHopLimit(t *testing.T) {
 	// HopLimit becomes zero, cannot forward
 	interest1 := ndntestutil.MakeInterest("/A/1", uint8(1))
 	face2.Rx(interest1)
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(STEP_DELAY)
 	assert.Len(face1.TxInterests, 0)
 
 	// HopLimit is 1 after decrementing, forwarded with HopLimit=1
 	interest2 := ndntestutil.MakeInterest("/A/1", uint8(2))
 	face3.Rx(interest2)
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(STEP_DELAY)
 	require.Len(face1.TxInterests, 1)
 	assert.Equal(uint8(1), face1.TxInterests[0].GetHopLimit())
 
@@ -162,14 +163,14 @@ func TestHopLimit(t *testing.T) {
 	data := ndntestutil.MakeData("/A/1")
 	ndntestutil.CopyPitToken(data, face1.TxInterests[0])
 	face1.Rx(data)
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(STEP_DELAY)
 	assert.Len(face3.TxData, 1)
 	// whether face3 receives Data or not is unspecified
 
 	// HopLimit reaches zero, can still retrieve from CS
 	interest1a := ndntestutil.MakeInterest("/A/1", uint8(1))
 	face4.Rx(interest1a)
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(STEP_DELAY)
 	assert.Len(face4.TxData, 1)
 }
 
@@ -185,13 +186,13 @@ func TestCsHit(t *testing.T) {
 	interestB1 := ndntestutil.MakeInterest("/B/1")
 	ndntestutil.SetPitToken(interestB1, 0x193d673cdb9f85ac)
 	face1.Rx(interestB1)
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(STEP_DELAY)
 	require.Len(face2.TxInterests, 1)
 
 	dataB1 := ndntestutil.MakeData("/B/1")
 	ndntestutil.CopyPitToken(dataB1, face2.TxInterests[0])
 	face2.Rx(dataB1)
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(STEP_DELAY)
 	require.Len(face1.TxData, 1)
 	assert.Equal(uint64(0x193d673cdb9f85ac), ndntestutil.GetPitToken(face1.TxData[0]))
 	assert.Equal(0*time.Millisecond, face1.TxData[0].GetFreshnessPeriod())
@@ -199,13 +200,13 @@ func TestCsHit(t *testing.T) {
 	interestB1mbf := ndntestutil.MakeInterest("/B/1", ndn.MustBeFreshFlag)
 	ndntestutil.SetPitToken(interestB1mbf, 0xf716737325e04a77)
 	face1.Rx(interestB1mbf)
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(STEP_DELAY)
 	require.Len(face2.TxInterests, 2)
 
 	dataB1fp := ndntestutil.MakeData("/B/1", 2500*time.Millisecond)
 	ndntestutil.CopyPitToken(dataB1fp, face2.TxInterests[1])
 	face2.Rx(dataB1fp)
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(STEP_DELAY)
 	require.Len(face1.TxData, 2)
 	assert.Equal(uint64(0xf716737325e04a77), ndntestutil.GetPitToken(face1.TxData[1]))
 	assert.Equal(2500*time.Millisecond, face1.TxData[1].GetFreshnessPeriod())
@@ -213,7 +214,7 @@ func TestCsHit(t *testing.T) {
 	interestB1 = ndntestutil.MakeInterest("/B/1")
 	ndntestutil.SetPitToken(interestB1, 0xaec62dad2f669e6b)
 	face1.Rx(interestB1)
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(STEP_DELAY)
 	assert.Len(face2.TxInterests, 2)
 	require.Len(face1.TxData, 3)
 	assert.Equal(uint64(0xaec62dad2f669e6b), ndntestutil.GetPitToken(face1.TxData[2]))
@@ -222,7 +223,7 @@ func TestCsHit(t *testing.T) {
 	interestB1mbf = ndntestutil.MakeInterest("/B/1", ndn.MustBeFreshFlag)
 	ndntestutil.SetPitToken(interestB1mbf, 0xb5565a4e715c858d)
 	face1.Rx(interestB1mbf)
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(STEP_DELAY)
 	assert.Len(face2.TxInterests, 2)
 	require.Len(face1.TxData, 4)
 	assert.Equal(uint64(0xb5565a4e715c858d), ndntestutil.GetPitToken(face1.TxData[3]))
@@ -252,7 +253,7 @@ func TestFwHint(t *testing.T) {
 	interest1 := ndntestutil.MakeInterest("/A/1", ndn.FHDelegation{1, "/B"}, ndn.FHDelegation{2, "/C"})
 	ndntestutil.SetPitToken(interest1, 0x5c2fc6c972d830e7)
 	face4.Rx(interest1)
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(STEP_DELAY)
 	assert.Len(face1.TxInterests, 0)
 	assert.Len(face2.TxInterests, 1)
 	assert.Len(face3.TxInterests, 0)
@@ -260,7 +261,7 @@ func TestFwHint(t *testing.T) {
 	interest2 := ndntestutil.MakeInterest("/A/1", ndn.FHDelegation{1, "/C"}, ndn.FHDelegation{2, "/B"})
 	ndntestutil.SetPitToken(interest2, 0x52e61e9eee7025b7)
 	face5.Rx(interest2)
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(STEP_DELAY)
 	assert.Len(face1.TxInterests, 0)
 	require.Len(face2.TxInterests, 1)
 	assert.Len(face3.TxInterests, 1)
@@ -268,7 +269,7 @@ func TestFwHint(t *testing.T) {
 	interest3 := ndntestutil.MakeInterest("/A/1", ndn.FHDelegation{1, "/Z"}, ndn.FHDelegation{2, "/B"})
 	ndntestutil.SetPitToken(interest3, 0xa4291e2123c8211e)
 	face5.Rx(interest3)
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(STEP_DELAY)
 	assert.Len(face1.TxInterests, 0)
 	assert.True(len(face2.TxInterests) <= 2)
 	require.Len(face2.TxInterests, 2)
@@ -278,7 +279,7 @@ func TestFwHint(t *testing.T) {
 	data1 := ndntestutil.MakeData("/A/1", 1*time.Second) // satisfies interest1 and interest3
 	ndntestutil.CopyPitToken(data1, face2.TxInterests[0])
 	face2.Rx(data1)
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(STEP_DELAY)
 	require.Len(face4.TxData, 1)
 	assert.Equal(uint64(0x5c2fc6c972d830e7), ndntestutil.GetPitToken(face4.TxData[0]))
 	assert.Equal(1*time.Second, face4.TxData[0].GetFreshnessPeriod())
@@ -289,7 +290,7 @@ func TestFwHint(t *testing.T) {
 	data2 := ndntestutil.MakeData("/A/1", 2*time.Second) // satisfies interest2
 	ndntestutil.CopyPitToken(data2, face3.TxInterests[0])
 	face3.Rx(data2)
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(STEP_DELAY)
 	require.Len(face5.TxData, 2)
 	assert.Equal(uint64(0x52e61e9eee7025b7), ndntestutil.GetPitToken(face5.TxData[1]))
 	assert.Equal(2*time.Second, face5.TxData[1].GetFreshnessPeriod())
@@ -297,7 +298,7 @@ func TestFwHint(t *testing.T) {
 	interest4 := ndntestutil.MakeInterest("/A/1", ndn.FHDelegation{1, "/C"}) // matches data2
 	ndntestutil.SetPitToken(interest4, 0xbb19e173f937f221)
 	face4.Rx(interest4)
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(STEP_DELAY)
 	require.Len(face4.TxData, 2)
 	assert.Equal(uint64(0xbb19e173f937f221), ndntestutil.GetPitToken(face4.TxData[1]))
 	assert.Equal(2*time.Second, face4.TxData[1].GetFreshnessPeriod())
@@ -334,19 +335,19 @@ func TestImplicitDigest(t *testing.T) {
 	interestB1 := ndntestutil.MakeInterest(fullNameB1)
 	ndntestutil.SetPitToken(interestB1, 0xce2e9bce22327e97)
 	face1.Rx(interestB1)
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(STEP_DELAY)
 	require.Len(face2.TxInterests, 1)
 
 	ndntestutil.CopyPitToken(dataB1, face2.TxInterests[0])
 	face2.Rx(dataB1)
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(STEP_DELAY)
 	require.Len(face1.TxData, 1)
 	assert.Equal(uint64(0xce2e9bce22327e97), ndntestutil.GetPitToken(face1.TxData[0]))
 
 	interestB1 = ndntestutil.MakeInterest(fullNameB1)
 	ndntestutil.SetPitToken(interestB1, 0x5446c548dd1a5c89)
 	face1.Rx(interestB1)
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(STEP_DELAY)
 	assert.Len(face2.TxInterests, 1)
 
 	// CS hit
@@ -369,12 +370,12 @@ func TestImplicitDigest(t *testing.T) {
 	interestB2 := ndntestutil.MakeInterest(fullNameB2)
 	ndntestutil.SetPitToken(interestB2, 0x02a0f62d1828a80c)
 	face1.Rx(interestB2)
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(STEP_DELAY)
 	require.Len(face2.TxInterests, 2)
 
 	ndntestutil.CopyPitToken(dataB2, face2.TxInterests[1])
 	face2.Rx(dataB2)
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(STEP_DELAY)
 	require.Len(face1.TxData, 3)
 	assert.Equal(uint64(0x02a0f62d1828a80c), ndntestutil.GetPitToken(face1.TxData[2]))
 }

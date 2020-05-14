@@ -22,7 +22,7 @@ func TestNackMerge(t *testing.T) {
 	interest := ndntestutil.MakeInterest("/A/1", uint32(0x2ea29515))
 	ndntestutil.SetPitToken(interest, 0xf3fb4ef802d3a9d3)
 	face1.Rx(interest)
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(STEP_DELAY)
 	require.Len(face2.TxInterests, 1)
 	require.Len(face3.TxInterests, 1)
 
@@ -30,21 +30,21 @@ func TestNackMerge(t *testing.T) {
 	nack2 := ndn.MakeNackFromInterest(ndntestutil.MakeInterest("/A/1", uint32(0x2ea29515)), ndn.NackReason_NoRoute)
 	ndntestutil.CopyPitToken(nack2, face2.TxInterests[0])
 	face2.Rx(nack2)
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(STEP_DELAY)
 	assert.Len(face1.TxNacks, 0)
 
 	// Nack again from first upstream, no action
 	nack2 = ndn.MakeNackFromInterest(ndntestutil.MakeInterest("/A/1", uint32(0x2ea29515)), ndn.NackReason_NoRoute)
 	ndntestutil.CopyPitToken(nack2, face2.TxInterests[0])
 	face2.Rx(nack2)
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(STEP_DELAY)
 	assert.Len(face1.TxNacks, 0)
 
 	// Nack from second upstream, Nack to downstream
 	nack3 := ndn.MakeNackFromInterest(ndntestutil.MakeInterest("/A/1", uint32(0x2ea29515)), ndn.NackReason_Congestion)
 	ndntestutil.CopyPitToken(nack3, face3.TxInterests[0])
 	face3.Rx(nack3)
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(STEP_DELAY)
 	require.Len(face1.TxNacks, 1)
 
 	nack1 := face1.TxNacks[0]
@@ -56,7 +56,7 @@ func TestNackMerge(t *testing.T) {
 	data2 := ndntestutil.MakeData("/A/1")
 	ndntestutil.CopyPitToken(data2, face2.TxInterests[0])
 	face2.Rx(data2)
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(STEP_DELAY)
 	assert.Len(face1.TxData, 0)
 }
 
@@ -75,7 +75,7 @@ func TestNackDuplicate(t *testing.T) {
 	face1.Rx(interest1)
 	interest2 := ndntestutil.MakeInterest("/A/1", uint32(0xc33b0c68))
 	face2.Rx(interest2)
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(STEP_DELAY)
 	require.Len(face3.TxInterests, 1)
 
 	// upstream node returns Nack against first Interest
@@ -83,7 +83,7 @@ func TestNackDuplicate(t *testing.T) {
 	nonce1 := face3.TxInterests[0].GetNonce()
 	nack1 := ndn.MakeNackFromInterest(face3.TxInterests[0], ndn.NackReason_Duplicate)
 	face3.Rx(nack1)
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(STEP_DELAY)
 	require.Len(face3.TxInterests, 2)
 	nonce2 := face3.TxInterests[1].GetNonce()
 	assert.NotEqual(nonce1, nonce2)
@@ -94,7 +94,7 @@ func TestNackDuplicate(t *testing.T) {
 	// forwarder should return Nack to downstream
 	nack2 := ndn.MakeNackFromInterest(face3.TxInterests[1], ndn.NackReason_Duplicate)
 	face3.Rx(nack2)
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(STEP_DELAY)
 	assert.Len(face1.TxNacks, 1)
 	assert.Len(face2.TxNacks, 1)
 
@@ -116,6 +116,6 @@ func TestReturnNacks(t *testing.T) {
 
 	interest1 := ndntestutil.MakeInterest("/A/1", uint32(0x2ea29515))
 	face1.Rx(interest1)
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(STEP_DELAY)
 	assert.Len(face1.TxNacks, 1)
 }
