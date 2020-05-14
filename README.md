@@ -9,8 +9,8 @@ This software is developed at [Advanced Network Technologies Division](https://w
 Requirements:
 
 * Ubuntu 18.04 or Debian 10 on *amd64* architecture
-* Required packages: `build-essential clang-6.0 curl git go-bindata libc6-dev-i386 libelf-dev libnuma-dev libssl-dev liburcu-dev pkg-config python3-distutils rake sudo` packages
-* Optional packages: `clang-format-6.0 doxygen yamllint`
+* Required packages: `build-essential clang-8 curl git go-bindata libc6-dev-i386 libelf-dev libnuma-dev libssl-dev liburcu-dev pkg-config python3-distutils rake sudo` packages
+* Optional packages: `clang-format-8 doxygen yamllint`
   (see other build targets list for explanation)
 * [pip](https://pip.pypa.io/en/stable/installing/) and `sudo pip install meson ninja`
 * [Intel Multi-Buffer Crypto for IPsec Library](https://github.com/intel/intel-ipsec-mb) v0.53
@@ -37,9 +37,10 @@ Other build targets:
 * Execute `make test` to run unit tests,  or `mk/gotest.sh PKG` to run tests for a package.
 * Execute `make doxygen` to build C documentation (requires `doxygen` package).
 * Execute `make godoc` to start godoc server at port 6060.
-* Execute `make lint` to fix code style before committing (requires `clang-format-6.0 yamllint` package).
-* Prepend `RELEASE=1` to any `make` command to select release mode that disables asserts and verbose logging.
-* Prepend `CC=clang-6.0` to any `make` command to compile C code with `clang-6.0`.
+* Execute `make lint` to fix code style before committing (requires `clang-format-8 yamllint` package).
+* To select release mode that disables asserts and verbose logging in C code, prepend `RELEASE=1`.
+* To select a C compiler, prepend `CC=clang-8`, `CC=gcc-7`, `CC=gcc-8`, or similar.
+  This does not apply to strategy code, which is always compiled with `clang-8`.
 
 Docker packaging:
 

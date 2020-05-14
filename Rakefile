@@ -1,4 +1,4 @@
-BPFCC = "clang-6.0"
+BPFCC = "clang-8"
 BPFFLAGS = "-O2 -target bpf -Wno-int-to-void-pointer-cast -I/usr/include/x86_64-linux-gnu"
 
 desc "Generate **/cgostruct.go"

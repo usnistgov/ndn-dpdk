@@ -41,7 +41,7 @@ func TestClient(t *testing.T) {
 				SeqNumOffset: 100,
 			},
 		},
-		Interval: nnduration.Nanoseconds(100000),
+		Interval: nnduration.Nanoseconds(200000),
 	}
 
 	client, e := pingclient.New(face, cfg)
@@ -83,7 +83,7 @@ func TestClient(t *testing.T) {
 		rx(data)
 	})
 
-	assert.InDelta(100*time.Microsecond, client.GetInterval(), float64(1*time.Microsecond))
+	assert.InDelta(200*time.Microsecond, client.GetInterval(), float64(1*time.Microsecond))
 	client.Launch()
 
 	time.Sleep(900 * time.Millisecond)
@@ -94,16 +94,16 @@ func TestClient(t *testing.T) {
 	assert.InDelta(100*time.Millisecond, time.Since(timeBeforeStop), float64(10*time.Millisecond))
 
 	nInterests := float64(nInterestsA + nInterestsB1 + nInterestsB2)
-	assert.InDelta(9000, nInterests, 1000)
+	assert.InDelta(4500, nInterests, 1000)
 	assert.InDelta(nInterests*0.50, nInterestsA, 100)
 	assert.InDelta(nInterests*0.45, nInterestsB1, 100)
 	assert.InDelta(nInterests*0.05, nInterestsB2, 100)
 
 	cnt := client.ReadCounters()
-	assert.InDelta(nInterests, cnt.NInterests, 20)
-	assert.InDelta(nInterests, cnt.NData, 20)
+	assert.InDelta(nInterests, cnt.NInterests, 100)
+	assert.InDelta(nInterests, cnt.NData, 100)
 	require.Len(cnt.PerPattern, 3)
-	assert.InDelta(nInterestsA, cnt.PerPattern[0].NData, 20)
-	assert.InDelta(nInterestsB1, cnt.PerPattern[1].NData, 20)
-	assert.InDelta(nInterestsB2, cnt.PerPattern[2].NData, 20)
+	assert.InDelta(nInterestsA, cnt.PerPattern[0].NData, 100)
+	assert.InDelta(nInterestsB1, cnt.PerPattern[1].NData, 100)
+	assert.InDelta(nInterestsB2, cnt.PerPattern[2].NData, 100)
 }

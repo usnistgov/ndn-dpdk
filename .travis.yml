@@ -12,14 +12,14 @@ env:
     - SPDKVER=19.10.1
   matrix:
     - CC=gcc-7
-    - CC=clang-6.0
+    - CC=clang-8
 
 addons:
   apt:
     packages:
       - build-essential
-      - clang-6.0
-      - clang-format-6.0
+      - clang-8
+      - clang-format-8
       - curl
       - doxygen
       - gcc-multilib
