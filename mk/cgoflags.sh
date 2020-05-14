@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+set -o pipefail
 
 if [[ $# -lt 1 ]]; then
   echo 'USAGE: mk/cgoflags.sh package libname...' >/dev/stderr

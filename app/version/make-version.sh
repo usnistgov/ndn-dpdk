@@ -1,4 +1,6 @@
 #!/bin/bash
+set -e
+set -o pipefail
 R="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 COMMIT=$(git -C $R describe --match=NeVeRmAtCh --always --abbrev=40 --dirty)

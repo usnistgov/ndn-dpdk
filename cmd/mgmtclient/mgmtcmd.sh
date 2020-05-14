@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+set -o pipefail
 MGMT=${MGMT:-tcp://127.0.0.1:6345}
 TCPADDR=${MGMT#tcp*://}
 

@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+set -o pipefail
 DESTDIR=${DESTDIR:-/usr/local}
 
 DESTSBIN=$DESTDIR/sbin

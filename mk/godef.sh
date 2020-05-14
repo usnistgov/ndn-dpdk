@@ -1,5 +1,8 @@
 #!/bin/bash
+set -e
+set -o pipefail
 source mk/cflags.sh
+
 export GODEFCC=$CC
 export CC=$PWD/mk/godefcc.sh
 

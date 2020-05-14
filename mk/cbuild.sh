@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+set -o pipefail
 source mk/cflags.sh
 
 if [[ $# -ne 1 ]]; then

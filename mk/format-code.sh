@@ -1,4 +1,7 @@
 #!/bin/bash
+set -e
+set -o pipefail
+
 gofmt -l -w -s .
 find -name '*.h' -o -name '*.c' \
   | grep -vE 'pcg_basic|siphash-20121104|uthash|zf_log' \
