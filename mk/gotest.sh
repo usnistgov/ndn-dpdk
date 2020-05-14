@@ -15,11 +15,9 @@ getTestPkg() {
 }
 
 if [[ $# -eq 0 ]]; then
-  # run all tests
-  MK_GOTEST_INCLUDE=${MK_GOTEST_INCLUDE:-.}
-  MK_GOTEST_EXCLUDE=${MK_GOTEST_EXCLUDE:-366dbe12-79c5-40fe-b0a8-9f4c92c8d476}
+  # run all tests, optional filter in $MK_GOTEST_FILTER
 
-  find -name '*_test.go' -printf '%h\n' | uniq | grep $MK_GOTEST_INCLUDE | grep -v $MK_GOTEST_EXCLUDE \
+  find -name '*_test.go' -printf '%h\n' | uniq | sed -E "${MK_GOTEST_FILTER:-}" \
     | xargs -I{} sudo -E $(which go) test {} -count=1
 
 elif [[ $# -eq 1 ]]; then

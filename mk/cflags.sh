@@ -12,5 +12,5 @@ if [[ -n $RELEASE ]]; then
 fi
 
 if [[ $CC =~ clang ]]; then
-  CFLAGS=$CFLAGS' -Wno-error=address-of-packed-member'
+  CFLAGS=$CFLAGS' -Wno-address-of-packed-member'
 fi

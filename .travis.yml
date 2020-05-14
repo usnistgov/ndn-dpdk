@@ -10,9 +10,10 @@ env:
     - UBPFCOMMIT=4cbf7998e6f72f3f4d0b30cf30cb508428eb421f
     - DPDKVER=19.11
     - SPDKVER=19.10.1
+    - TEST_ACCEPTABLE_FAILURES="diskstore|fetch|fwdp|ndt|pingclient"
   matrix:
-    - CC=gcc-7
-    - CC=clang-8
+    - CC=gcc-7 CXX=g++-7
+    - CC=clang-8 CXX=clang++-8
 
 addons:
   apt:
@@ -40,6 +41,7 @@ cache:
   directories:
     - $HOME/dpdk-$DPDKVER
     - $HOME/spdk-$SPDKVER
+    - $HOME/go/pkg
 
 before_install:
   - eval "$(gimme 1.x)"
@@ -88,7 +90,7 @@ install:
     fi
     cd spdk-$SPDKVER
     sed '/libfuse3-dev/ d' ./scripts/pkgdep.sh | sudo bash
-    if ! [[ -f spdk-$SPDKVER/build/lib/libspdk_env_dpdk.so ]]; then
+    if ! [[ -f build/lib/libspdk_env_dpdk.so ]]; then
       ./configure --enable-debug --disable-tests --with-shared \
         --with-dpdk=/usr/local --without-vhost --without-isal --without-fuse
       make -j$(nproc)
@@ -96,9 +98,18 @@ install:
     sudo make install
     sudo ldconfig
 
+before_script:
+  - |
+    : configure hugepages
+    echo 2048 | sudo tee /sys/devices/system/node/node0/hugepages/hugepages-2048kB/nr_hugepages >/dev/null
+    sudo mkdir -p /mnt/huge2M
+    sudo mount -t hugetlbfs nodev /mnt/huge2M -o pagesize=2M
+
 script:
   - cd $TRAVIS_BUILD_DIR
   - npm install
   - make
+  - MK_GOTEST_FILTER="/${TEST_ACCEPTABLE_FAILURES}/ d" make test
+  - MK_GOTEST_FILTER="/${TEST_ACCEPTABLE_FAILURES}/! d" make test || true
   - make clean
   - RELEASE=1 make

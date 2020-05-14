@@ -89,9 +89,9 @@ func TestClient(t *testing.T) {
 	time.Sleep(900 * time.Millisecond)
 
 	timeBeforeStop := time.Now()
-	e = client.Stop(100 * time.Millisecond)
+	e = client.Stop(200 * time.Millisecond)
 	assert.NoError(e)
-	assert.InDelta(100*time.Millisecond, time.Since(timeBeforeStop), float64(10*time.Millisecond))
+	assert.InDelta(200*time.Millisecond, time.Since(timeBeforeStop), float64(50*time.Millisecond))
 
 	nInterests := float64(nInterestsA + nInterestsB1 + nInterestsB2)
 	assert.InDelta(4500, nInterests, 1000)

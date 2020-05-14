@@ -7,6 +7,9 @@ import "C"
 import (
 	"fmt"
 	"strings"
+	"sync"
+
+	"github.com/jaypipes/ghw"
 
 	"ndn-dpdk/dpdk"
 	"ndn-dpdk/iface"
@@ -21,8 +24,12 @@ type MempoolConfig struct {
 	DataroomSize int
 }
 
-var mempoolCfgs = make(map[string]*MempoolConfig)
-var mempools = make(map[string]dpdk.PktmbufPool)
+var (
+	mempoolEnableNuma = false
+	mempoolDecideNuma sync.Once
+	mempoolCfgs       = make(map[string]*MempoolConfig)
+	mempools          = make(map[string]dpdk.PktmbufPool)
+)
 
 // Register template for mempool creation.
 func RegisterMempool(key string, cfg MempoolConfig) {
@@ -76,6 +83,14 @@ func (cfg MempoolsCapacityConfig) Apply() {
 
 // Get or create a mempool on specified NumaSocket.
 func MakePktmbufPool(key string, socket dpdk.NumaSocket) dpdk.PktmbufPool {
+	mempoolDecideNuma.Do(func() {
+		topology, e := ghw.Topology()
+		if e != nil {
+			return
+		}
+		mempoolEnableNuma = len(topology.Nodes) > 1
+	})
+
 	logEntry := log.WithField("template", key)
 
 	cfg, ok := mempoolCfgs[key]
@@ -90,14 +105,18 @@ func MakePktmbufPool(key string, socket dpdk.NumaSocket) dpdk.PktmbufPool {
 		logEntry.Warn("mempool nonoptimal config: capacity is not 2^q-1")
 	}
 
-	name := fmt.Sprintf("%s#%d", key, socket)
-	logEntry = logEntry.WithFields(makeLogFields("name", name, "socket", socket))
+	useSocket := socket
+	if !mempoolEnableNuma {
+		useSocket = dpdk.NUMA_SOCKET_ANY
+	}
+	name := fmt.Sprintf("%s#%d", key, useSocket)
+	logEntry = logEntry.WithFields(makeLogFields("name", name, "socket", socket, "use-socket", useSocket))
 	if mp, ok := mempools[name]; ok {
 		logEntry.Debug("mempool found")
 		return mp
 	}
 
-	mp, e := dpdk.NewPktmbufPool(name, cfg.Capacity, cfg.PrivSize, cfg.DataroomSize, socket)
+	mp, e := dpdk.NewPktmbufPool(name, cfg.Capacity, cfg.PrivSize, cfg.DataroomSize, useSocket)
 	if e != nil {
 		logEntry.WithError(e).Fatal("mempool creation failed")
 	}
@@ -123,13 +142,13 @@ var SizeofEthLpHeaders = ethface.SizeofTxHeader
 func init() {
 	RegisterMempool(MP_IND,
 		MempoolConfig{
-			Capacity:     2097151,
+			Capacity:     1048575,
 			PrivSize:     0,
 			DataroomSize: 0,
 		})
 	RegisterMempool(MP_ETHRX,
 		MempoolConfig{
-			Capacity:     1048575,
+			Capacity:     524287,
 			PrivSize:     ndn.SizeofPacketPriv(),
 			DataroomSize: 2560, // >= MTU+sizeof(rte_ether_hdr)
 		})

@@ -9,7 +9,7 @@ import (
 func TestEal(t *testing.T) {
 	assert, require := makeAR(t)
 
-	assert.Equal([]string{"testprog", "X"}, initEalRemainingArgs)
+	assert.Equal([]string{"testprog", "c7f36046-faa5-46dc-9855-e93d00217b8f"}, initEalRemainingArgs)
 
 	master := dpdk.GetMasterLCore()
 	assert.Equal(dpdk.LCore(0), master)
@@ -17,7 +17,7 @@ func TestEal(t *testing.T) {
 	assert.True(master.IsMaster())
 
 	slaves := dpdk.ListSlaveLCores()
-	require.Equal([]dpdk.LCore{2, 3}, slaves)
+	require.Equal([]dpdk.LCore{1, 2, 3, 4, 5}, slaves)
 	for _, slave := range slaves {
 		assert.True(slave.IsValid())
 		assert.False(slave.IsMaster())
@@ -26,7 +26,7 @@ func TestEal(t *testing.T) {
 
 	isSlaveExecuted := false
 	slaves[0].RemoteLaunch(func() int {
-		assert.Equal(dpdk.LCore(2), dpdk.GetCurrentLCore())
+		assert.Equal(dpdk.LCore(1), dpdk.GetCurrentLCore())
 		isSlaveExecuted = true
 
 		done := make(chan bool)
