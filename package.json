@@ -2,7 +2,7 @@
   "name": "@usnistgov/ndn-dpdk",
   "version": "0.0.0",
   "dependencies": {
-    "@types/yargs": "^15.0.4",
+    "@types/yargs": "^15.0.5",
     "mole-rpc": "koorchik/node-mole-rpc#ffa46f755d5dfba80a74bac5dba9d050b440eb4e",
     "mole-rpc-transport-tcp": "^0.0.20200417",
     "yargs": "^15.3.1"
@@ -11,11 +11,11 @@
     "@types/json-stable-stringify": "^1.0.32",
     "eslint-plugin-simple-import-sort": "^5.0.2",
     "json-stable-stringify": "^1.0.1",
-    "markdownlint-cli": "^0.22.0",
+    "markdownlint-cli": "^0.23.0",
     "ts-node": "^8.9.0",
-    "typescript": "^3.8.3",
+    "typescript": "^3.9.2",
     "typescript-json-schema": "^0.42.0",
-    "xo": "^0.29.1"
+    "xo": "^0.30.0"
   },
   "files": [
     "**/*.js",

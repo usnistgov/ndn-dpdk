@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { TcpTransportClient } from "mole-rpc-transport-tcp";
 // @ts-ignore
 import MoleClient = require("mole-rpc/MoleClient");

@@ -45,7 +45,7 @@ cache:
 
 before_install:
   - eval "$(gimme 1.x)"
-  - nvm install 12
+  - nvm install 14
   - |
     : install pip dependencies
     cd $HOME

@@ -3,7 +3,7 @@ RUN ( echo 'APT::Install-Recommends "no";'; echo 'APT::Install-Suggests "no";' )
     apt-get update && \
     apt-get install -y -qq build-essential clang-8 curl git go-bindata libc6-dev-i386 libelf-dev libnuma-dev libssl-dev liburcu-dev pkg-config python3-distutils rake sudo && \
     curl -L https://github.com/powerman/rpc-codec/releases/download/v1.1.3/jsonrpc2client-linux-x86_64 | install /dev/stdin /usr/local/bin/jsonrpc2client && \
-    curl -L https://deb.nodesource.com/setup_12.x | bash - && \
+    curl -L https://deb.nodesource.com/setup_14.x | bash - && \
     apt-get install -y -qq nodejs clang-format-8 doxygen yamllint && \
     curl https://bootstrap.pypa.io/get-pip.py | python3 && \
     pip install meson ninja && \

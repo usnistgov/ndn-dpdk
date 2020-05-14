@@ -18,7 +18,7 @@ Requirements:
 * SPDK 19.10.1, configured with `./configure --enable-debug --disable-tests --with-shared --with-dpdk=/usr/local --without-vhost --without-isal --without-fuse`
 * [ubpf](https://github.com/iovisor/ubpf/tree/4cbf7998e6f72f3f4d0b30cf30cb508428eb421f/vm) library, installed to `/usr/local`
 * Go 1.14.2 or newer
-* Node.js 12.x
+* Node.js 14.x
 * [jsonrpc2client](https://github.com/powerman/rpc-codec/releases) 1.1.3 or newer, installed to `/usr/local/bin/jsonrpc2client`
 * Note: see [Dockerfile](./Dockerfile) on how to install dependencies.
 
