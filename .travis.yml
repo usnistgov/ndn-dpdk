@@ -12,17 +12,22 @@ env:
     - SPDKVER=19.10.1
     - TEST_ACCEPTABLE_FAILURES="diskstore|fetch|fwdp|ndt|pingclient"
   matrix:
-    - CC=gcc-7 CXX=g++-7
-    - CC=clang-8 CXX=clang++-8
+    - CC=gcc-7
+    - CC=gcc-8
+    - CC=clang-8
 
 addons:
   apt:
+    sources:
+      - sourceline: deb https://deb.nodesource.com/node_14.x bionic main
+        key_url: https://deb.nodesource.com/gpgkey/nodesource.gpg.key
     packages:
       - build-essential
       - clang-8
       - clang-format-8
       - curl
       - doxygen
+      - gcc-8
       - gcc-multilib
       - go-bindata
       - libelf-dev
@@ -30,6 +35,7 @@ addons:
       - libssl-dev
       - liburcu-dev
       - linux-libc-dev
+      - nodejs
       - pkg-config
       - python3-distutils
       - rake
@@ -45,7 +51,6 @@ cache:
 
 before_install:
   - eval "$(gimme 1.x)"
-  - nvm install 14
   - |
     : install pip dependencies
     cd $HOME
@@ -113,3 +118,4 @@ script:
   - MK_GOTEST_FILTER="/${TEST_ACCEPTABLE_FAILURES}/! d" make test || true
   - make clean
   - RELEASE=1 make
+  - sudo make install

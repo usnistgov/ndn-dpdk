@@ -1,4 +1,4 @@
-BPFCC = "clang-8"
+BPFCC = ENV["BPFCC"] || "clang-8"
 BPFFLAGS = "-O2 -target bpf -Wno-int-to-void-pointer-cast -I/usr/include/x86_64-linux-gnu"
 
 desc "Generate **/cgostruct.go"
@@ -6,8 +6,6 @@ task "cgostruct"
 Rake::FileList["**/cgostruct.in.go"].each do |f|
   name = f.pathmap("%d/cgostruct.go")
   file name => f do |t|
-    # force gcc here; clang has errors regarding __m256i symbol
-    # override $GODEFCC if other version of gcc is desired
     sh "mk/godef.sh #{name}"
   end
   task name => f.pathmap("%d/cgoflags.go")

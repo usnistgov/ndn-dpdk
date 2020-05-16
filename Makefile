@@ -4,7 +4,7 @@ ifeq ($(origin CC),default)
 endif
 export CC
 
-all: gopkg tsc cmds
+all: gopkg npm cmds
 
 gopkg: godeps
 	go build -v ./...
@@ -23,10 +23,15 @@ tsc: ndn/tlv-type.ts
 ndn/tlv-type.ts: ndn/tlv-type.tsv
 	rake ndn/tlv-type.h
 
-cmds: cmd-ndnfw-dpdk cmd-ndnping-dpdk cmd-ndndpdk-hrlog2histogram
+.PHONY: npm
+npm: tsc
+	mv $$(npm pack -s .) build/ndn-dpdk.tgz
 
-cmd-%: cmd/%/* godeps
-	go install ./cmd/$*
+.PHONY: cmds
+cmds: build/bin/ndnfw-dpdk build/bin/ndnping-dpdk build/bin/ndndpdk-hrlog2histogram
+
+build/bin/%: cmd/%/* godeps
+	GOBIN=$$(realpath build/bin) go install ./cmd/$*
 
 install:
 	mk/install.sh

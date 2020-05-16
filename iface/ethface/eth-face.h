@@ -13,7 +13,7 @@ typedef struct EthFaceEtherHdr
   struct rte_ether_hdr eth;
   struct rte_vlan_hdr vlan0;
   struct rte_vlan_hdr vlan1;
-} __rte_packed EthFaceEtherHdr;
+} __rte_packed __rte_aligned(2) EthFaceEtherHdr;
 
 uint8_t
 EthFaceEtherHdr_Init(EthFaceEtherHdr* hdr,

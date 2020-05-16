@@ -28,7 +28,6 @@ Build steps:
 2. Execute `npm install` to download NPM dependencies.
 3. Execute `make` to compile the project.
 4. Execute `sudo make install` to install commands to `/usr/local`, and `sudo make uninstall` to uninstall.
-   You may prepend `DESTDIR=/opt` to choose a different location.
 
 Other build targets:
 
@@ -39,8 +38,8 @@ Other build targets:
 * Execute `make godoc` to start godoc server at port 6060.
 * Execute `make lint` to fix code style before committing (requires `clang-format-8 yamllint` package).
 * To select release mode that disables asserts and verbose logging in C code, prepend `RELEASE=1`.
-* To select a C compiler, prepend `CC=clang-8`, `CC=gcc-7`, `CC=gcc-8`, or similar.
-  This does not apply to strategy code, which is always compiled with `clang-8`.
+* C code other than strategy is compiled with `gcc` by default; override by setting `CC` environment variable.
+* Strategy code is compiled with `clang-8` by default; override by setting `BPFCC` environment variable.
 
 Docker packaging:
 
