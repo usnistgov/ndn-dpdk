@@ -19,6 +19,7 @@ RxProc_Input(RxProc* rx, int thread, struct rte_mbuf* frame)
   RxProcThread* rxt = &rx->threads[thread];
   ++rxt->nFrames[L3PktType_None];
   rxt->nOctets += frame->pkt_len;
+  frame->packet_type = 0;
 
   Packet* npkt = Packet_FromMbuf(frame);
   NdnError e = Packet_ParseL2(npkt);
