@@ -1,14 +1,14 @@
 package dpdk
 
 /*
-extern int go_lcoreLaunch(void*);
+#include "../core/common.h"
 
-#include <rte_config.h>
 #include <rte_eal.h>
 #include <rte_launch.h>
 #include <rte_lcore.h>
-#include <rte_memory.h>
 #include <rte_random.h>
+
+extern int go_lcoreLaunch(void*);
 */
 import "C"
 import (

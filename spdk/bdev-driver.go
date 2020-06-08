@@ -1,7 +1,8 @@
 package spdk
 
 /*
-#include <spdk/copy_engine.h>
+#include "../core/common.h"
+#include <spdk/accel_engine.h>
 */
 import "C"
 import (
@@ -11,11 +12,11 @@ import (
 	"ndn-dpdk/dpdk"
 )
 
-var initCopyEngineOnce sync.Once
+var initAccelEngineOnce sync.Once
 
-func initCopyEngine() {
-	initCopyEngineOnce.Do(func() {
-		MainThread.Call(func() { C.spdk_copy_engine_initialize() })
+func initAccelEngine() {
+	initAccelEngineOnce.Do(func() {
+		MainThread.Call(func() { C.spdk_accel_engine_initialize() })
 	})
 }
 
@@ -26,7 +27,7 @@ type constructMallocBdevArgs struct {
 
 // Create Malloc block device.
 func NewMallocBdev(blockSize int, nBlocks int) (bdi BdevInfo, e error) {
-	initCopyEngine() // Malloc bdev depends on copy engine
+	initAccelEngine() // Malloc bdev depends on accelerator engine
 	var args constructMallocBdevArgs
 	args.BlockSize = blockSize
 	args.NumBlocks = nBlocks

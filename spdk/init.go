@@ -27,7 +27,7 @@ func Init(mainThreadLcore dpdk.LCore) (e error) {
 		return e
 	}
 
-	if res := int(C.spdk_env_dpdk_post_init()); res != 0 {
+	if res := int(C.spdk_env_dpdk_post_init(C.bool(false))); res != 0 {
 		return dpdk.Errno(-res)
 	}
 

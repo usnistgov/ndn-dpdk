@@ -1,6 +1,7 @@
 package dpdk
 
 /*
+#include "../core/common.h"
 #include <rte_errno.h>
 
 int getErrno() { return rte_errno; }

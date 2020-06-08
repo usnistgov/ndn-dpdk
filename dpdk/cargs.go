@@ -1,7 +1,7 @@
 package dpdk
 
 /*
-#include <stdlib.h>
+#include "../core/common.h"
 */
 import "C"
 import "unsafe"

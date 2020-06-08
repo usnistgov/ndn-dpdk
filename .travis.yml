@@ -7,9 +7,9 @@ language: generic
 
 env:
   global:
-    - UBPFCOMMIT=4cbf7998e6f72f3f4d0b30cf30cb508428eb421f
-    - DPDKVER=19.11
-    - SPDKVER=19.10.1
+    - UBPFCOMMIT=089f6279752adfb01386600d119913403ed326ee
+    - DPDKVER=20.05
+    - SPDKVER=20.04.1
     - TEST_ACCEPTABLE_FAILURES="diskstore|fetch|fwdp|ndt|pingclient"
   matrix:
     - CC=gcc-7
@@ -77,9 +77,6 @@ install:
     else
       curl -L https://static.dpdk.org/rel/dpdk-$DPDKVER.tar.xz | tar -xJ
       cd dpdk-$DPDKVER
-      curl -L https://patches.dpdk.org/patch/65156/raw/ | patch -p1
-      curl -L https://patches.dpdk.org/patch/65158/raw/ | patch -p1
-      curl -L https://patches.dpdk.org/patch/65270/raw/ | patch -p1
       meson -Dtests=false --libdir=lib build
       cd build
       ninja
@@ -94,7 +91,7 @@ install:
       curl -L https://github.com/spdk/spdk/archive/v$SPDKVER.tar.gz | tar -xz
     fi
     cd spdk-$SPDKVER
-    sed '/libfuse3-dev/ d' ./scripts/pkgdep.sh | sudo bash
+    sudo ./scripts/pkgdep.sh
     if ! [[ -f build/lib/libspdk_env_dpdk.so ]]; then
       ./configure --enable-debug --disable-tests --with-shared \
         --with-dpdk=/usr/local --without-vhost --without-isal --without-fuse

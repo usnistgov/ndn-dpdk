@@ -14,10 +14,10 @@ Requirements:
   (see other build targets list for explanation)
 * [pip](https://pip.pypa.io/en/stable/installing/) and `sudo pip install meson ninja`
 * [Intel Multi-Buffer Crypto for IPsec Library](https://github.com/intel/intel-ipsec-mb) v0.53
-* DPDK 19.11 with [patch 65156](https://patches.dpdk.org/patch/65156/), [patch 65158](https://patches.dpdk.org/patch/65158/), [patch 65270](https://patches.dpdk.org/patch/65270/), configured with `meson -Dtests=false --libdir=lib build`
-* SPDK 19.10.1, configured with `./configure --enable-debug --disable-tests --with-shared --with-dpdk=/usr/local --without-vhost --without-isal --without-fuse`
-* [ubpf](https://github.com/iovisor/ubpf/tree/4cbf7998e6f72f3f4d0b30cf30cb508428eb421f/vm) library, installed to `/usr/local`
-* Go 1.14.2 or newer
+* DPDK 20.05, configured with `meson -Dtests=false --libdir=lib build`
+* SPDK 20.04.1, configured with `./configure --enable-debug --disable-tests --with-shared --with-dpdk=/usr/local --without-vhost --without-isal --without-fuse`
+* [ubpf](https://github.com/iovisor/ubpf/tree/089f6279752adfb01386600d119913403ed326ee/vm) library, installed to `/usr/local`
+* Go 1.14.4 or newer
 * Node.js 14.x
 * [jsonrpc2client](https://github.com/powerman/rpc-codec/releases) 1.1.3 or newer, installed to `/usr/local/bin/jsonrpc2client`
 * Note: see [Dockerfile](./Dockerfile) on how to install dependencies.
@@ -45,7 +45,7 @@ Docker packaging:
 
 1. Build the image: `mk/build-docker.sh`
 2. Launch a container in privileged mode: `docker run --rm -it --privileged -v /sys/bus/pci/devices:/sys/bus/pci/devices -v /sys/kernel/mm/hugepages:/sys/kernel/mm/hugepages -v /sys/devices/system/node:/sys/devices/system/node -v /dev:/dev --network host ndn-dpdk`
-3. Setup environment inside the container: `mkdir /mnt/huge1G && mount -t hugetlbfs nodev /mnt/huge1G -o pagesize=1G && export PATH=$PATH:/usr/local/go/bin && export GOPATH=/root/go`
+3. Setup environment inside the container: `mkdir /mnt/huge1G && mount -t hugetlbfs nodev /mnt/huge1G -o pagesize=1G && export PATH=$PATH:/usr/local/go/bin`
 
 ## Code Organization
 

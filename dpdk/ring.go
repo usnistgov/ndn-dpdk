@@ -1,9 +1,8 @@
 package dpdk
 
 /*
-#include <rte_config.h>
+#include "../core/common.h"
 #include <rte_ring.h>
-#include <stdlib.h>
 */
 import "C"
 import "unsafe"

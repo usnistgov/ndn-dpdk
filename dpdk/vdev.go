@@ -1,9 +1,8 @@
 package dpdk
 
 /*
-#include <rte_config.h>
+#include "../core/common.h"
 #include <rte_bus_vdev.h>
-#include <stdlib.h>
 */
 import "C"
 import (

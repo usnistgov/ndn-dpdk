@@ -1,9 +1,7 @@
 package dpdk
 
 /*
-#include <rte_config.h>
-#include <rte_malloc.h>
-#include <stdlib.h>
+#include "../core/common.h"
 */
 import "C"
 import (

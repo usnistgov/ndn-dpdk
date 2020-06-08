@@ -1,6 +1,7 @@
 package spdk
 
 /*
+#include "../core/common.h"
 #include <spdk/rpc.h>
 */
 import "C"

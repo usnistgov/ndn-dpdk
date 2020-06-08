@@ -1,6 +1,7 @@
 package spdk
 
 /*
+#include "../core/common.h"
 #include <spdk/nvme.h>
 
 extern bool go_nvmeProbed(void* ctx, struct spdk_nvme_transport_id* trid, struct spdk_nvme_ctrlr_opts* opts);
