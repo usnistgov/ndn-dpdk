@@ -4,7 +4,7 @@ package spdk
 #include "bdev.h"
 #include <spdk/thread.h>
 
-extern void go_bdevInit(void* ctx, int rc);
+extern void go_bdevEvent(enum spdk_bdev_event_type type, struct spdk_bdev* bdev, void* ctx);
 extern void go_bdevIoComplete(struct spdk_bdev_io* io, bool success, void* ctx);
 */
 import "C"
@@ -36,7 +36,8 @@ type Bdev struct {
 func OpenBdev(bdi BdevInfo, mode BdevMode) (bd *Bdev, e error) {
 	bd = new(Bdev)
 	MainThread.Call(func() {
-		if res := C.spdk_bdev_open(bdi.c, C.bool(mode), nil, nil, &bd.c); res != 0 {
+		if res := C.spdk_bdev_open_ext(C.spdk_bdev_get_name(bdi.c), C.bool(mode),
+			C.spdk_bdev_event_cb_t(C.go_bdevEvent), nil, &bd.c); res != 0 {
 			e = dpdk.Errno(res)
 			return
 		}
@@ -48,6 +49,10 @@ func OpenBdev(bdi BdevInfo, mode BdevMode) (bd *Bdev, e error) {
 	bd.blockSize = int64(bdi.GetBlockSize())
 	bd.nBlocks = int64(bdi.CountBlocks())
 	return bd, nil
+}
+
+//export go_bdevEvent
+func go_bdevEvent(typ C.enum_spdk_bdev_event_type, bdev *C.struct_spdk_bdev, ctx unsafe.Pointer) {
 }
 
 // Close the block device.
