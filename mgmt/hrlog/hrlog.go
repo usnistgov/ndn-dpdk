@@ -17,7 +17,7 @@ const ringCapacity = 65536
 
 // Initialize high resolution logger.
 func Init() error {
-	r, e := dpdk.NewRing("theHrlogRing", ringCapacity, dpdk.NUMA_SOCKET_ANY, false, true)
+	r, e := dpdk.NewRing("theHrlogRing", ringCapacity, dpdk.NumaSocket{}, false, true)
 	if e != nil {
 		return e
 	}

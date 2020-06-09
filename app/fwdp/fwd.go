@@ -33,7 +33,6 @@ type Fwd struct {
 
 func newFwd(id int) *Fwd {
 	var fwd Fwd
-	fwd.ResetThreadBase()
 	fwd.id = id
 	return &fwd
 }

@@ -26,7 +26,7 @@ func NewRing(name string, capacity int, socket NumaSocket,
 	}
 
 	var r Ring
-	r.c = C.rte_ring_create(nameC, C.uint(capacity), C.int(socket), flags)
+	r.c = C.rte_ring_create(nameC, C.uint(capacity), C.int(socket.ID()), flags)
 	if r.c == nil {
 		return r, GetErrno()
 	}

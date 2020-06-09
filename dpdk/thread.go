@@ -26,10 +26,6 @@ type ThreadBase struct {
 	lc LCore
 }
 
-func (t *ThreadBase) ResetThreadBase() {
-	t.lc = LCORE_INVALID
-}
-
 func (t *ThreadBase) SetLCore(lc LCore) {
 	if t.IsRunning() {
 		panic("cannot change lcore while running")
@@ -42,11 +38,11 @@ func (t *ThreadBase) GetLCore() LCore {
 }
 
 func (t *ThreadBase) IsRunning() bool {
-	return t.lc != LCORE_INVALID && t.lc.GetState() != LCORE_STATE_WAIT
+	return t.lc.IsValid() && t.lc.IsBusy()
 }
 
 func (t *ThreadBase) MustHaveLCore() {
-	if t.lc == LCORE_INVALID {
+	if !t.lc.IsValid() {
 		panic("lcore unassigned")
 	}
 }

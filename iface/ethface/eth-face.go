@@ -49,7 +49,7 @@ func New(port *Port, loc Locator) (face *EthFace, e error) {
 	face.loc = loc
 
 	priv := face.getPriv()
-	priv.port = C.uint16_t(face.port.dev)
+	priv.port = C.uint16_t(face.port.dev.ID())
 	priv.faceId = C.FaceId(face.GetFaceId())
 
 	vlan := make([]uint16, 2)

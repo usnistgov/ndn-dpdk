@@ -52,7 +52,6 @@ func New(face iface.IFace, cfg FetcherConfig) (fetcher *Fetcher, e error) {
 		fth.c.face = (C.FaceId)(faceId)
 		fth.c.interestMp = interestMp
 		C.NonceGen_Init(&fth.c.nonceGen)
-		fth.ResetThreadBase()
 		dpdk.InitStopFlag(unsafe.Pointer(&fth.c.stop))
 		fetcher.fth[i] = fth
 	}

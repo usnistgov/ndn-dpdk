@@ -13,16 +13,14 @@ func TestEal(t *testing.T) {
 
 	master := dpdk.GetMasterLCore()
 	assert.True(master.IsValid())
-	assert.True(master.IsMaster())
 
 	slaves := dpdk.ListSlaveLCores()
 	require.Len(slaves, 5)
-	slavesSet := make(map[int]bool)
+	slavesSet := make(map[dpdk.LCore]bool)
 	for _, slave := range slaves {
-		slavesSet[int(slave)] = true
+		slavesSet[slave] = true
 		assert.True(slave.IsValid())
-		assert.False(slave.IsMaster())
-		assert.Equal(dpdk.LCORE_STATE_WAIT, slave.GetState())
+		assert.False(slave.IsBusy())
 	}
 	require.Len(slavesSet, 5)
 

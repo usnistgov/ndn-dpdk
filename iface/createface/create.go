@@ -36,7 +36,7 @@ func createEth(loc ethface.Locator) (face iface.IFace, e error) {
 	}
 
 	dev := dpdk.FindEthDev(loc.Port)
-	if dev == dpdk.ETHDEV_INVALID {
+	if !dev.IsValid() {
 		return nil, errors.New("EthDev not found")
 	}
 
@@ -58,7 +58,7 @@ func createSock(loc socketface.Locator) (face iface.IFace, e error) {
 	}
 
 	var cfg socketface.Config
-	if cfg.RxMp, cfg.Mempools, e = getMempools(dpdk.NUMA_SOCKET_ANY); e != nil {
+	if cfg.RxMp, cfg.Mempools, e = getMempools(dpdk.NumaSocket{}); e != nil {
 		return nil, e
 	}
 	cfg.TxqPkts = theConfig.SockTxqPkts
@@ -74,7 +74,7 @@ func createMock() (face iface.IFace, e error) {
 	}
 
 	if !hasMockFaces {
-		if _, mockface.FaceMempools, e = getMempools(dpdk.NUMA_SOCKET_ANY); e != nil {
+		if _, mockface.FaceMempools, e = getMempools(dpdk.NumaSocket{}); e != nil {
 			return nil, e
 		}
 		hasMockFaces = true

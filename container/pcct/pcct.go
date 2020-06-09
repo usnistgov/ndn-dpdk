@@ -30,7 +30,7 @@ func New(cfg Config) (pcct *Pcct, e error) {
 	idC := C.CString(cfg.Id)
 	defer C.free(unsafe.Pointer(idC))
 	pcct = new(Pcct)
-	pcct.c = C.Pcct_New(idC, C.uint32_t(cfg.MaxEntries), C.unsigned(cfg.NumaSocket))
+	pcct.c = C.Pcct_New(idC, C.uint32_t(cfg.MaxEntries), C.unsigned(cfg.NumaSocket.ID()))
 	if pcct.c == nil {
 		return nil, dpdk.GetErrno()
 	}

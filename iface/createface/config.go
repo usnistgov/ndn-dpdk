@@ -104,7 +104,7 @@ func ListRxTxNumaSockets() (list []dpdk.NumaSocket) {
 		}
 	}
 	if theConfig.EnableSock || theConfig.EnableMock {
-		list = append(list, dpdk.NUMA_SOCKET_ANY)
+		list = append(list, dpdk.NumaSocket{})
 	}
 	return list
 }
@@ -122,15 +122,15 @@ func AddMempools(numaSocket dpdk.NumaSocket, rxMp dpdk.PktmbufPool, faceMempools
 	}
 }
 
-func getMempools(numaSocket dpdk.NumaSocket) (rxMp dpdk.PktmbufPool, faceMempools iface.Mempools, e error) {
+func getMempools(socket dpdk.NumaSocket) (rxMp dpdk.PktmbufPool, faceMempools iface.Mempools, e error) {
 	// allocate from preferred NumaSocket
-	if numaMp, ok := theMempools[numaSocket]; ok {
+	if numaMp, ok := theMempools[socket]; ok {
 		return numaMp.RxMp, numaMp.FaceMempools, nil
 	}
 
 	// allocate from any NumaSocket
-	if numaSocket != dpdk.NUMA_SOCKET_ANY {
-		return getMempools(dpdk.NUMA_SOCKET_ANY)
+	if !socket.IsAny() {
+		return getMempools(dpdk.NumaSocket{})
 	}
 
 	// allocate from other NumaSocket

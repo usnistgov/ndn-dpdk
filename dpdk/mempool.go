@@ -33,7 +33,7 @@ func NewMempool(name string, capacity int, elementSize int, socket NumaSocket) (
 	defer C.free(unsafe.Pointer(nameC))
 
 	mp.c = C.rte_mempool_create(nameC, C.uint(capacity), C.uint(elementSize),
-		C.uint(computeMempoolCacheSize(capacity)), 0, nil, nil, nil, nil, C.int(socket), 0)
+		C.uint(computeMempoolCacheSize(capacity)), 0, nil, nil, nil, nil, C.int(socket.ID()), 0)
 	if mp.c == nil {
 		return mp, GetErrno()
 	}
@@ -115,7 +115,7 @@ func NewPktmbufPool(name string, capacity int, privSize int,
 	defer C.free(unsafe.Pointer(nameC))
 
 	mp.c = C.rte_pktmbuf_pool_create(nameC, C.uint(capacity), C.uint(computeMempoolCacheSize(capacity)),
-		C.uint16_t(privSize), C.uint16_t(dataroomSize), C.int(socket))
+		C.uint16_t(privSize), C.uint16_t(dataroomSize), C.int(socket.ID()))
 	if mp.c == nil {
 		return mp, GetErrno()
 	}

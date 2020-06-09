@@ -55,7 +55,7 @@ func New(conn net.Conn, cfg Config) (face *SocketFace, e error) {
 		return nil, fmt.Errorf("unknown network %s", network)
 	}
 
-	if e := face.InitFaceBase(iface.AllocId(iface.FaceKind_Socket), 0, dpdk.NUMA_SOCKET_ANY); e != nil {
+	if e := face.InitFaceBase(iface.AllocId(iface.FaceKind_Socket), 0, dpdk.NumaSocket{}); e != nil {
 		return nil, e
 	}
 

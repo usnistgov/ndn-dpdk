@@ -30,7 +30,7 @@ func ZmallocAligned(dbgtype string, size interface{}, align int, socket NumaSock
 		sizeC = C.size_t(reflect.ValueOf(size).Int())
 	}
 
-	ptr := C.rte_zmalloc_socket(typeC, sizeC, C.unsigned(align*C.RTE_CACHE_LINE_SIZE), C.int(socket))
+	ptr := C.rte_zmalloc_socket(typeC, sizeC, C.unsigned(align*C.RTE_CACHE_LINE_SIZE), C.int(socket.ID()))
 	if ptr == nil {
 		panic(fmt.Sprintf("ZmallocAligned(%d) failed", size))
 	}

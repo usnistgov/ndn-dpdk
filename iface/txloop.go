@@ -25,7 +25,6 @@ type TxLoop struct {
 func NewTxLoop(numaSocket dpdk.NumaSocket) (txl *TxLoop) {
 	txl = new(TxLoop)
 	txl.c = (*C.TxLoop)(dpdk.Zmalloc("TxLoop", C.sizeof_TxLoop, numaSocket))
-	txl.ResetThreadBase()
 	dpdk.InitStopFlag(unsafe.Pointer(&txl.c.stop))
 	txl.numaSocket = numaSocket
 	txl.faces = make(map[FaceId]IFace)

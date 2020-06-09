@@ -76,7 +76,7 @@ func newRxTable(port *Port) (rxt *RxTable) {
 	rxt.c = (*C.EthRxTable)(dpdk.Zmalloc("EthRxTable", C.sizeof_EthRxTable, port.dev.GetNumaSocket()))
 	rxt.InitRxgBase(unsafe.Pointer(rxt.c))
 
-	rxt.c.port = C.uint16_t(port.dev)
+	rxt.c.port = C.uint16_t(port.dev.ID())
 	rxt.c.queue = 0
 	rxt.c.base.rxBurstOp = C.RxGroup_RxBurst(C.EthRxTable_RxBurst)
 	rxt.c.base.rxThread = 0
@@ -92,7 +92,7 @@ func (rxt *RxTable) Close() error {
 }
 
 func (rxt *RxTable) GetNumaSocket() dpdk.NumaSocket {
-	return dpdk.EthDev(rxt.c.port).GetNumaSocket()
+	return dpdk.EthDevFromID(int(rxt.c.port)).GetNumaSocket()
 }
 
 func (rxt *RxTable) ListFaces() (list []iface.FaceId) {

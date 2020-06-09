@@ -29,13 +29,15 @@ func (cfg *EthDevPairConfig) ApplyDefaults() {
 	}
 }
 
-func (cfg EthDevPairConfig) asPortConf() (portConf dpdk.EthDevConfig) {
+func (cfg EthDevPairConfig) asPortConf() (portCfg dpdk.EthDevConfig) {
 	mp := GetMp(cfg.MempoolId)
 	for i := 0; i < cfg.NQueues; i++ {
-		portConf.AddRxQueue(dpdk.EthRxQueueConfig{Capacity: cfg.QueueCapacity, Socket: dpdk.NUMA_SOCKET_ANY, Mp: mp})
-		portConf.AddTxQueue(dpdk.EthTxQueueConfig{Capacity: cfg.QueueCapacity, Socket: dpdk.NUMA_SOCKET_ANY})
+		portCfg.RxQueues = append(portCfg.RxQueues,
+			dpdk.EthRxQueueConfig{Capacity: cfg.QueueCapacity, Mp: mp})
+		portCfg.TxQueues = append(portCfg.TxQueues,
+			dpdk.EthTxQueueConfig{Capacity: cfg.QueueCapacity})
 	}
-	return portConf
+	return portCfg
 }
 
 var lastEthDevPairId = 0
@@ -71,7 +73,7 @@ func NewEthDevPair(cfg EthDevPairConfig) (edp *EthDevPair) {
 	createRings := func(label string) (rings []dpdk.Ring) {
 		for i := 0; i < edp.cfg.NQueues; i++ {
 			name := fmt.Sprintf("EthDevPair_%d%s%d", id, label, i)
-			ring, e := dpdk.NewRing(name, edp.cfg.RingCapacity, dpdk.NUMA_SOCKET_ANY, true, true)
+			ring, e := dpdk.NewRing(name, edp.cfg.RingCapacity, dpdk.NumaSocket{}, true, true)
 			if e != nil {
 				panic(fmt.Sprintf("dpdk.NewRing(%s) error %v", name, e))
 			}
@@ -84,7 +86,7 @@ func NewEthDevPair(cfg EthDevPairConfig) (edp *EthDevPair) {
 
 	createPort := func(label string, rxRings []dpdk.Ring, txRings []dpdk.Ring) dpdk.EthDev {
 		name := fmt.Sprintf("EthDevPair_%d%s", id, label)
-		port, e := dpdk.NewEthDevFromRings(name, rxRings, txRings, dpdk.NUMA_SOCKET_ANY)
+		port, e := dpdk.NewEthDevFromRings(name, rxRings, txRings, dpdk.NumaSocket{})
 		if e != nil {
 			panic(fmt.Sprintf("dpdk.NewEthDevFromRings(%s) error %v", name, e))
 		}

@@ -64,7 +64,7 @@ func (store *DiskStore) PutData(slotId uint64, data *ndn.Data) {
 // Retrieve a Data packet and wait for completion.
 func (store *DiskStore) GetData(slotId uint64, dataLen int, interest *ndn.Interest) (data *ndn.Data, e error) {
 	var reply dpdk.Ring
-	if reply, e = dpdk.NewRing(fmt.Sprintf("DiskStoreGetData%x", slotId), 64, dpdk.NUMA_SOCKET_ANY, false, false); e != nil {
+	if reply, e = dpdk.NewRing(fmt.Sprintf("DiskStoreGetData%x", slotId), 64, dpdk.NumaSocket{}, false, false); e != nil {
 		return nil, e
 	}
 	defer reply.Close()

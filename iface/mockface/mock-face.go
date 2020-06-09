@@ -44,7 +44,7 @@ func New() (face *MockFace) {
 	face.emitter = emission.NewEmitter()
 	face.EnableTxRecorders()
 
-	if e := face.InitFaceBase(iface.AllocId(iface.FaceKind_Mock), 0, dpdk.NUMA_SOCKET_ANY); e != nil {
+	if e := face.InitFaceBase(iface.AllocId(iface.FaceKind_Mock), 0, dpdk.NumaSocket{}); e != nil {
 		panic(e)
 	}
 	iface.TheChanRxGroup.AddFace(face)

@@ -36,7 +36,7 @@ func (la *DpLCores) Alloc() (e error) {
 		return e
 	}
 
-	la.Crypto = la.Allocator.Alloc(LCoreRole_Crypto, dpdk.NUMA_SOCKET_ANY)
+	la.Crypto = la.Allocator.Alloc(LCoreRole_Crypto, dpdk.NumaSocket{})
 
 	if la.Fwds = la.allocMax(LCoreRole_Fwd); len(la.Fwds) == 0 {
 		return fmt.Errorf("no lcore available for %s", LCoreRole_Fwd)
@@ -48,7 +48,7 @@ func (la *DpLCores) Alloc() (e error) {
 // Allocate LCores on list of NumaSockets.
 func (la *DpLCores) allocNuma(role string, numaSockets []dpdk.NumaSocket) (list []dpdk.LCore, e error) {
 	for _, numaSocket := range numaSockets {
-		if lc := la.Allocator.Alloc(role, numaSocket); lc != dpdk.LCORE_INVALID {
+		if lc := la.Allocator.Alloc(role, numaSocket); lc.IsValid() {
 			list = append(list, lc)
 		} else {
 			return nil, fmt.Errorf("no lcore available for %s", role)
@@ -60,7 +60,7 @@ func (la *DpLCores) allocNuma(role string, numaSockets []dpdk.NumaSocket) (list 
 // Allocate all remaining LCores to a role.
 func (la *DpLCores) allocMax(role string) (list []dpdk.LCore) {
 	for {
-		if lc := la.Allocator.Alloc(role, dpdk.NUMA_SOCKET_ANY); lc != dpdk.LCORE_INVALID {
+		if lc := la.Allocator.Alloc(role, dpdk.NumaSocket{}); lc.IsValid() {
 			list = append(list, lc)
 		} else {
 			break

@@ -34,7 +34,7 @@ func TestCApi(t *testing.T) {
 	face.SetDown(false)
 	assert.False(Face_IsDown(id))
 
-	txl := iface.NewTxLoop(dpdk.NUMA_SOCKET_ANY)
+	txl := iface.NewTxLoop(dpdk.NumaSocket{})
 	txl.SetLCore(dpdk.ListSlaveLCores()[0])
 	txl.Launch()
 	time.Sleep(10 * time.Millisecond)

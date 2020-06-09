@@ -6,7 +6,6 @@ package ndn
 import "C"
 import (
 	"crypto/sha256"
-	"fmt"
 	"time"
 	"unsafe"
 
@@ -86,8 +85,8 @@ func (data *Data) DigestPrepare(op dpdk.CryptoOp) {
 }
 
 func DataDigest_Finish(op dpdk.CryptoOp) (data *Data, e error) {
-	if status := op.GetStatus(); status != dpdk.CRYPTO_OP_SUCCESS {
-		return nil, fmt.Errorf("crypto_op: %v", status)
+	if !op.IsSuccess() {
+		return nil, op.Error()
 	}
 
 	npktC := C.DataDigest_Finish((*C.struct_rte_crypto_op)(op.GetPtr()))

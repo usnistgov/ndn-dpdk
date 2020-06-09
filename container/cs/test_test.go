@@ -10,7 +10,6 @@ import (
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/pcct"
 	"ndn-dpdk/container/pit"
-	"ndn-dpdk/dpdk"
 	"ndn-dpdk/dpdk/dpdktestenv"
 	"ndn-dpdk/ndn"
 	"ndn-dpdk/ndn/ndntestutil"
@@ -34,7 +33,6 @@ type Fixture struct {
 func NewFixture(cfg pcct.Config) (fixture *Fixture) {
 	cfg.Id = "TestPcct"
 	cfg.MaxEntries = 4095
-	cfg.NumaSocket = dpdk.NUMA_SOCKET_ANY
 	if cfg.CsCapMd == 0 {
 		cfg.CsCapMd = 200
 	}

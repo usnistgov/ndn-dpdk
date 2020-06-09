@@ -88,7 +88,7 @@ func (evn *EthVNet) LaunchBridge(lcore dpdk.LCore) {
 }
 
 func (evn *EthVNet) Close() error {
-	if evn.bridgeLcore.GetState() != dpdk.LCORE_STATE_WAIT {
+	if evn.bridgeLcore.IsBusy() {
 		evn.stop <- true
 		evn.bridgeLcore.Wait()
 	}

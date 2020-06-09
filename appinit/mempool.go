@@ -107,7 +107,7 @@ func MakePktmbufPool(key string, socket dpdk.NumaSocket) dpdk.PktmbufPool {
 
 	useSocket := socket
 	if !mempoolEnableNuma {
-		useSocket = dpdk.NUMA_SOCKET_ANY
+		useSocket = dpdk.NumaSocket{}
 	}
 	name := fmt.Sprintf("%s#%d", key, useSocket)
 	logEntry = logEntry.WithFields(makeLogFields("name", name, "socket", socket, "use-socket", useSocket))
@@ -193,22 +193,22 @@ func init() {
 // Provide mempools to createface package.
 // This should be called after createface.Config has been applied.
 func ProvideCreateFaceMempools() {
-	numaSockets := make(map[dpdk.NumaSocket]bool)
-	for _, numaSocket := range createface.ListRxTxNumaSockets() {
-		numaSockets[numaSocket] = true
+	sockets := make(map[dpdk.NumaSocket]bool)
+	for _, socket := range createface.ListRxTxNumaSockets() {
+		sockets[socket] = true
 	}
-	if len(numaSockets) == 0 {
-		numaSockets[dpdk.NUMA_SOCKET_ANY] = true
-	} else if len(numaSockets) > 1 && numaSockets[dpdk.NUMA_SOCKET_ANY] {
-		delete(numaSockets, dpdk.NUMA_SOCKET_ANY)
+	if len(sockets) == 0 {
+		sockets[dpdk.NumaSocket{}] = true
+	} else if len(sockets) > 1 && sockets[dpdk.NumaSocket{}] {
+		delete(sockets, dpdk.NumaSocket{})
 	}
-	for numaSocket := range numaSockets {
-		createface.AddMempools(numaSocket,
-			MakePktmbufPool(MP_ETHRX, numaSocket),
+	for socket := range sockets {
+		createface.AddMempools(socket,
+			MakePktmbufPool(MP_ETHRX, socket),
 			iface.Mempools{
-				IndirectMp: MakePktmbufPool(MP_IND, numaSocket),
-				NameMp:     MakePktmbufPool(MP_NAME, numaSocket),
-				HeaderMp:   MakePktmbufPool(MP_HDR, numaSocket),
+				IndirectMp: MakePktmbufPool(MP_IND, socket),
+				NameMp:     MakePktmbufPool(MP_NAME, socket),
+				HeaderMp:   MakePktmbufPool(MP_HDR, socket),
 			})
 	}
 }

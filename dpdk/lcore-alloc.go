@@ -12,7 +12,7 @@ import (
 // Mock of this interface allows unit testing of LCoreAllocator.
 type lCoreProvider interface {
 	ListSlaves() []LCore
-	GetState(lc LCore) LCoreState
+	IsBusy(lc LCore) bool
 	GetNumaSocket(lc LCore) NumaSocket
 }
 
@@ -22,15 +22,15 @@ func (ealLCoreProvider) ListSlaves() []LCore {
 	return ListSlaveLCores()
 }
 
-func (ealLCoreProvider) GetState(lc LCore) LCoreState {
-	return lc.GetState()
+func (ealLCoreProvider) IsBusy(lc LCore) bool {
+	return lc.IsBusy()
 }
 
 func (ealLCoreProvider) GetNumaSocket(lc LCore) NumaSocket {
 	return lc.GetNumaSocket()
 }
 
-// LCore allocation config for a role.
+// LCoreAllocRoleConfig contains lcore allocation config for a role.
 type LCoreAllocRoleConfig struct {
 	// List of LCores reserved for this role.
 	LCores []int
@@ -43,16 +43,16 @@ func (roleCfg LCoreAllocRoleConfig) getLimitOn(numaSocket NumaSocket) int {
 	if roleCfg.PerNuma == nil {
 		return 0
 	}
-	if n, ok := roleCfg.PerNuma[int(numaSocket)]; ok {
+	if n, ok := roleCfg.PerNuma[numaSocket.ID()]; ok {
 		return n
 	}
 	return roleCfg.PerNuma[-1]
 }
 
-// Per-role LCore allocation config.
+// LCoreAllocConfig contains per-role lcore allocation config.
 type LCoreAllocConfig map[string]LCoreAllocRoleConfig
 
-// Role-based LCore allocator.
+// LCoreAllocator allocates lcores to roles.
 type LCoreAllocator struct {
 	Provider  lCoreProvider
 	Config    LCoreAllocConfig
@@ -69,19 +69,19 @@ func (la *LCoreAllocator) invert(pred lCorePredicate) lCorePredicate {
 
 func (la *LCoreAllocator) lcIsIdle() lCorePredicate {
 	return func(lc LCore) bool {
-		return la.Provider.GetState(lc) == LCORE_STATE_WAIT
+		return !la.Provider.IsBusy(lc)
 	}
 }
 
 func (la *LCoreAllocator) lcIsAvailable() lCorePredicate {
 	return func(lc LCore) bool {
-		return la.allocated[lc] == "" && la.Provider.GetState(lc) == LCORE_STATE_WAIT
+		return la.allocated[lc.ID()] == "" && !la.Provider.IsBusy(lc)
 	}
 }
 
 func (la *LCoreAllocator) lcOnNuma(numaSocket NumaSocket) lCorePredicate {
 	return func(lc LCore) bool {
-		return numaSocket == NUMA_SOCKET_ANY || la.Provider.GetNumaSocket(lc) == numaSocket
+		return numaSocket.IsAny() || la.Provider.GetNumaSocket(lc).ID() == numaSocket.ID()
 	}
 }
 
@@ -90,14 +90,14 @@ func (la *LCoreAllocator) lcInList(list []int) lCorePredicate {
 	sort.Ints(sorted)
 
 	return func(lc LCore) bool {
-		i := sort.SearchInts(sorted, int(lc))
-		return i < len(sorted) && sorted[i] == int(lc)
+		i := sort.SearchInts(sorted, lc.ID())
+		return i < len(sorted) && sorted[i] == lc.ID()
 	}
 }
 
 func (la *LCoreAllocator) lcAllocatedTo(role string) lCorePredicate {
 	return func(lc LCore) bool {
-		return la.allocated[lc] == role
+		return la.allocated[lc.ID()] == role
 	}
 }
 
@@ -129,19 +129,19 @@ func (la *LCoreAllocator) pick(role string, numaSocket NumaSocket) LCore {
 	lcores := la.Provider.ListSlaves()
 	avails := la.filter(lcores, la.lcIsAvailable())
 	if len(avails) == 0 {
-		return LCORE_INVALID
+		return LCore{}
 	}
 	numaAvails := la.filter(avails, la.lcOnNuma(numaSocket))
 
 	// 0. When Config is empty, satisfy every request.
 	if len(la.Config) == 0 {
 		// (1) Allocate from requested NumaSocket.
-		if numaSocket != NUMA_SOCKET_ANY && len(numaAvails) > 0 {
+		if !numaSocket.IsAny() && len(numaAvails) > 0 {
 			return numaAvails[0]
 		}
 		// (2) Allocate from least occupied NumaSocket.
 		availsByNuma := la.classifyByNuma(avails)
-		candidate := LCORE_INVALID
+		var candidate LCore
 		candidateRem := 0
 		for _, availsOnNuma := range availsByNuma {
 			// (4) Prefer the NumaSocket with most unreserved lcores.
@@ -187,7 +187,7 @@ func (la *LCoreAllocator) pick(role string, numaSocket NumaSocket) LCore {
 	// 4. Allocate on other NumaSocket within roleCfg.PerNuma limit.
 	// (1) Find LCores on other NumaSockets unreserved by other roles.
 	remoteUnreservedByNuma := la.classifyByNuma(la.filter(remoteAvails, unreservedPred...))
-	candidate := LCORE_INVALID
+	var candidate LCore
 	candidateRem := 0
 	for remoteSocket, remoteUnreserved := range remoteUnreservedByNuma {
 		// (2) Determine how many LCores on remoteSocket is used by role.
@@ -203,61 +203,46 @@ func (la *LCoreAllocator) pick(role string, numaSocket NumaSocket) LCore {
 			candidateRem = len(remoteUnreserved)
 		}
 	}
-	if candidate != LCORE_INVALID {
+	if candidate.IsValid() {
 		return candidate
 	}
 
 	// 4. Fail.
-	return LCORE_INVALID
+	return LCore{}
 }
 
-// Allocate an LCore for a role.
+// Alloc allocates an lcore for a role.
 func (la *LCoreAllocator) Alloc(role string, numaSocket NumaSocket) (lc LCore) {
-
 	lc = la.pick(role, numaSocket)
-	if lc == LCORE_INVALID {
+	if !lc.IsValid() {
 		return lc
 	}
 
-	la.allocated[lc] = role
+	la.allocated[lc.ID()] = role
 	log.WithFields(makeLogFields("role", role, "socket", numaSocket,
 		"lc", lc, "lc-socket", la.Provider.GetNumaSocket(lc))).Info("lcore allocated")
 	return lc
 }
 
-// Find an idle LCore for a role.
-func (la *LCoreAllocator) Find(role string, numaSocket NumaSocket) (lc LCore) {
-	lcores := la.Provider.ListSlaves()
-	allocated := la.filter(lcores, la.lcAllocatedTo(role), la.lcIsIdle())
-	numaAllocated := la.filter(allocated, la.lcOnNuma(numaSocket))
-	if len(numaAllocated) > 0 {
-		return numaAllocated[0]
-	}
-	if len(allocated) > 0 {
-		return allocated[0]
-	}
-	return LCORE_INVALID
-}
-
-// Release an LCore.
+// Free release an allocated lcore.
 func (la *LCoreAllocator) Free(lc LCore) {
-	if la.allocated[lc] == "" {
+	if la.allocated[lc.ID()] == "" {
 		panic("lcore double free")
 	}
-	log.WithFields(makeLogFields("lc", lc, "role", la.allocated[lc], "socket", la.Provider.GetNumaSocket(lc))).Info("lcore freed")
-	la.allocated[lc] = ""
+	log.WithFields(makeLogFields("lc", lc, "role", la.allocated[lc.ID()], "socket", la.Provider.GetNumaSocket(lc))).Info("lcore freed")
+	la.allocated[lc.ID()] = ""
 }
 
-// Clear all allocations.
+// Clear deletes all allocations.
 func (la *LCoreAllocator) Clear() {
 	for lc, role := range la.allocated {
 		if role != "" {
-			la.Free(LCore(lc))
+			la.Free(LCoreFromID(lc))
 		}
 	}
 }
 
-// Global instance of LCoreAlloc using EAL provider.
+// LCoreAlloc is a global instance of LCoreAlloc using EAL provider.
 var LCoreAlloc LCoreAllocator
 
 func init() {

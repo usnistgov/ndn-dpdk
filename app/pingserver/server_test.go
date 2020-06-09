@@ -102,7 +102,7 @@ func TestServer(t *testing.T) {
 	e = server.Stop()
 	assert.NoError(e)
 	assert.Equal(100, nDataA0+nDataA1)
-	assert.InDelta(60, nDataA0, 10)
-	assert.InDelta(40, nDataA1, 10)
+	assert.InDelta(60, nDataA0, 20)
+	assert.InDelta(40, nDataA1, 20)
 	assert.Equal(100, nNacksB)
 }

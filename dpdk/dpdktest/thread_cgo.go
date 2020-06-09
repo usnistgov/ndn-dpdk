@@ -30,8 +30,7 @@ type testThread struct {
 
 func newTestThread() (th *testThread) {
 	th = new(testThread)
-	th.ResetThreadBase()
-	th.c = (*C.TestThread)(dpdk.Zmalloc("TestThread", C.sizeof_TestThread, dpdk.NUMA_SOCKET_ANY))
+	th.c = (*C.TestThread)(dpdk.Zmalloc("TestThread", C.sizeof_TestThread, dpdk.NumaSocket{}))
 	dpdk.InitStopFlag(unsafe.Pointer(&th.c.stop))
 	return th
 }

@@ -35,7 +35,7 @@ func makeStrategyCode(name string, bpf *C.struct_rte_bpf) (sc *scImpl, e error) 
 	lastId++
 
 	sc = new(scImpl)
-	sc.c = (*C.StrategyCode)(dpdk.Zmalloc("StrategyCode", C.sizeof_StrategyCode, dpdk.NUMA_SOCKET_ANY))
+	sc.c = (*C.StrategyCode)(dpdk.Zmalloc("StrategyCode", C.sizeof_StrategyCode, dpdk.NumaSocket{}))
 	sc.c.id = C.int(lastId)
 	sc.c.name = C.CString(name)
 	sc.c.nRefs = 1

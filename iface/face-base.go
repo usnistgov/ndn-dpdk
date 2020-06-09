@@ -46,11 +46,11 @@ func (face *FaceBase) GetPtr() unsafe.Pointer {
 func (face *FaceBase) InitFaceBase(id FaceId, sizeofPriv int, socket dpdk.NumaSocket) error {
 	face.id = id
 
-	if socket == dpdk.NUMA_SOCKET_ANY {
+	if socket.IsAny() {
 		if lc := dpdk.GetCurrentLCore(); lc.IsValid() {
 			socket = lc.GetNumaSocket()
 		} else {
-			socket = 0
+			socket = dpdk.NumaSocketFromID(0) // TODO what if socket 0 is unavailable?
 		}
 	}
 
@@ -58,7 +58,7 @@ func (face *FaceBase) InitFaceBase(id FaceId, sizeofPriv int, socket dpdk.NumaSo
 	*faceC = C.Face{}
 	faceC.id = C.FaceId(face.id)
 	faceC.state = C.FACESTA_UP
-	faceC.numaSocket = C.int(socket)
+	faceC.numaSocket = C.int(socket.ID())
 
 	sizeofImpl := int(C.sizeof_FaceImpl) + sizeofPriv
 	faceC.impl = (*C.FaceImpl)(dpdk.ZmallocAligned("FaceImpl", sizeofImpl, 1, socket))
@@ -106,7 +106,7 @@ func (face *FaceBase) GetFaceId() FaceId {
 }
 
 func (face *FaceBase) GetNumaSocket() dpdk.NumaSocket {
-	return dpdk.NumaSocket(face.getPtr().numaSocket)
+	return dpdk.NumaSocketFromID(int(face.getPtr().numaSocket))
 }
 
 func (face *FaceBase) IsClosed() bool {

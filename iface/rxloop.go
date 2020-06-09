@@ -75,7 +75,7 @@ func (rxg *ChanRxGroup) SetQueueCapacity(queueCapacity int) {
 }
 
 func (rxg *ChanRxGroup) GetNumaSocket() dpdk.NumaSocket {
-	return dpdk.NUMA_SOCKET_ANY
+	return dpdk.NumaSocket{}
 }
 
 func (rxg *ChanRxGroup) ListFaces() (list []FaceId) {
@@ -135,7 +135,6 @@ type RxLoop struct {
 
 func NewRxLoop(numaSocket dpdk.NumaSocket) (rxl *RxLoop) {
 	rxl = new(RxLoop)
-	rxl.ResetThreadBase()
 	rxl.c = (*C.RxLoop)(dpdk.Zmalloc("RxLoop", C.sizeof_RxLoop, numaSocket))
 	dpdk.InitStopFlag(unsafe.Pointer(&rxl.c.stop))
 	rxl.numaSocket = numaSocket
@@ -209,7 +208,7 @@ func (rxl *RxLoop) AddRxGroup(rxg IRxGroup) error {
 	rs := urcu.NewReadSide()
 	defer rs.Close()
 
-	if rxl.numaSocket == dpdk.NUMA_SOCKET_ANY {
+	if rxl.numaSocket.IsAny() {
 		rxl.numaSocket = rxg.GetNumaSocket()
 	}
 	rxl.rxgs[rxgC] = rxg

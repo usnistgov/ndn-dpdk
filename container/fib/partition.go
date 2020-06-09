@@ -39,7 +39,7 @@ func newPartition(fib *Fib, index int, numaSocket dpdk.NumaSocket) (part *partit
 	idC := C.CString(fmt.Sprintf("%s_%d", fib.cfg.Id, index))
 	defer C.free(unsafe.Pointer(idC))
 	part.c = C.Fib_New(idC, C.uint32_t(fib.cfg.MaxEntries), C.uint32_t(fib.cfg.NBuckets),
-		C.unsigned(numaSocket), C.uint8_t(fib.cfg.StartDepth))
+		C.unsigned(numaSocket.ID()), C.uint8_t(fib.cfg.StartDepth))
 	if part.c == nil {
 		return nil, dpdk.GetErrno()
 	}

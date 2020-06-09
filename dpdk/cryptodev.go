@@ -11,105 +11,90 @@ import (
 	"unsafe"
 )
 
-// Crypto operation type.
+// CryptoOpType represents a crypto operation type.
 type CryptoOpType int
 
 const (
-	CRYPTO_OP_SYM CryptoOpType = C.RTE_CRYPTO_OP_TYPE_SYMMETRIC
+	// CryptoOpSym indicates symmetric crypto operation type.
+	CryptoOpSym CryptoOpType = C.RTE_CRYPTO_OP_TYPE_SYMMETRIC
 )
 
 func (t CryptoOpType) String() string {
 	switch t {
-	case CRYPTO_OP_SYM:
+	case CryptoOpSym:
 		return "symmetric"
 	}
 	return fmt.Sprintf("%d", t)
 }
 
-// Crypto operation status.
-type CryptoOpStatus int
-
-const (
-	CRYPTO_OP_SUCCESS  CryptoOpStatus = C.RTE_CRYPTO_OP_STATUS_SUCCESS
-	CRYPTO_OP_NEW      CryptoOpStatus = C.RTE_CRYPTO_OP_STATUS_NOT_PROCESSED
-	CRYPTO_OP_AUTHFAIL CryptoOpStatus = C.RTE_CRYPTO_OP_STATUS_AUTH_FAILED
-	CRYPTO_OP_BADARG   CryptoOpStatus = C.RTE_CRYPTO_OP_STATUS_INVALID_ARGS
-	CRYPTO_OP_ERROR    CryptoOpStatus = C.RTE_CRYPTO_OP_STATUS_ERROR
-)
-
-func (s CryptoOpStatus) String() string {
-	switch s {
-	case CRYPTO_OP_SUCCESS:
-		return "success"
-	case CRYPTO_OP_NEW:
-		return "new"
-	case CRYPTO_OP_AUTHFAIL:
-		return "authfail"
-	case CRYPTO_OP_BADARG:
-		return "badarg"
-	case CRYPTO_OP_ERROR:
-		return "error"
-	}
-	return fmt.Sprintf("%d", s)
-}
-
-func (s CryptoOpStatus) Error() string {
-	if s == CRYPTO_OP_SUCCESS {
-		panic("not an error")
-	}
-	return fmt.Sprintf("CryptoOp-%s", s)
-}
-
-// Crypto operation.
+// CryptoOp holds a pointer to a crypto operation structure.
 type CryptoOp struct {
 	c *C.struct_rte_crypto_op
 	// DO NOT add other fields: *CryptoOp is passed to C code as rte_crypto_op**
 }
 
+// GetPtr returns the C pointer.
 func (op CryptoOp) GetPtr() unsafe.Pointer {
 	return unsafe.Pointer(op.c)
 }
 
-func (op CryptoOp) GetStatus() CryptoOpStatus {
-	return CryptoOpStatus(C.CryptoOp_GetStatus(op.c))
+// IsNew returns true if this operation has not been processed.
+func (op CryptoOp) IsNew() bool {
+	return C.CryptoOp_GetStatus(op.c) == C.RTE_CRYPTO_OP_STATUS_NOT_PROCESSED
 }
 
-// Setup SHA256 digest generation operation.
-// m: input packet.
-// offset, length: range of input packet.
-// output: digest output, 32 bytes in C memory.
-func (op CryptoOp) PrepareSha256Digest(m Packet, offset, length int, output unsafe.Pointer) error {
-	if offset < 0 || length < 0 || offset+length > m.Len() {
+// IsSuccess returns true if this operation has completed successfully.
+func (op CryptoOp) IsSuccess() bool {
+	return C.CryptoOp_GetStatus(op.c) == C.RTE_CRYPTO_OP_STATUS_SUCCESS
+}
+
+// Error returns an error if this operation has failed, otherwise returns nil.
+func (op CryptoOp) Error() error {
+	switch {
+	case op.IsNew(), op.IsSuccess():
+		return nil
+	}
+	return fmt.Errorf("CryptoOpStatus %d", C.CryptoOp_GetStatus(op.c))
+}
+
+// PrepareSha256Digest prepares a SHA256 digest generation operation.
+// The input is from the given offset and length in the packet.
+// The output must have 32 bytes in C memory.
+func (op CryptoOp) PrepareSha256Digest(input Packet, offset, length int, output unsafe.Pointer) error {
+	if offset < 0 || length < 0 || offset+length > input.Len() {
 		return errors.New("offset+length exceeds packet boundary")
 	}
 
-	C.CryptoOp_PrepareSha256Digest(op.c, m.c, C.uint32_t(offset), C.uint32_t(length), (*C.uint8_t)(output))
+	C.CryptoOp_PrepareSha256Digest(op.c, input.c, C.uint32_t(offset), C.uint32_t(length), (*C.uint8_t)(output))
 	return nil
 }
 
+// Close discards this instance.
 func (op CryptoOp) Close() error {
 	mp := CryptoOpPool{Mempool{c: op.c.mempool}}
 	mp.Free(unsafe.Pointer(op.c))
 	return nil
 }
 
-// Mempool for CryptoOp.
+// CryptoOpPool holds a pointer to a CryptoOp mempool.
 type CryptoOpPool struct {
 	Mempool
 }
 
+// NewCryptoOpPool creates a CryptoOpPool.
 func NewCryptoOpPool(name string, capacity int, privSize int, socket NumaSocket) (mp CryptoOpPool, e error) {
 	nameC := C.CString(name)
 	defer C.free(unsafe.Pointer(nameC))
 
 	mp.c = C.rte_crypto_op_pool_create(nameC, C.RTE_CRYPTO_OP_TYPE_UNDEFINED,
-		C.uint(capacity), C.uint(computeMempoolCacheSize(capacity)), C.uint16_t(privSize), C.int(socket))
+		C.uint(capacity), C.uint(computeMempoolCacheSize(capacity)), C.uint16_t(privSize), C.int(socket.ID()))
 	if mp.c == nil {
 		return mp, GetErrno()
 	}
 	return mp, nil
 }
 
+// AllocBulk allocates CryptoOp objects.
 func (mp CryptoOpPool) AllocBulk(opType CryptoOpType, ops []CryptoOp) error {
 	ptr, count := ParseCptrArray(ops)
 	res := C.rte_crypto_op_bulk_alloc(mp.c, C.enum_rte_crypto_op_type(opType),
@@ -120,14 +105,14 @@ func (mp CryptoOpPool) AllocBulk(opType CryptoOpType, ops []CryptoOp) error {
 	return nil
 }
 
-// Crypto device.
+// CryptoDev represents a crypto device.
 type CryptoDev struct {
 	devId       C.uint8_t
 	sessionPool Mempool
 	ownsVdev    bool
 }
 
-// Initialize a crypto device.
+// NewCryptoDev initializes a crypto device.
 func NewCryptoDev(name string, maxSessions, nQueuePairs int, socket NumaSocket) (cd CryptoDev, e error) {
 	nameC := C.CString(name)
 	defer C.free(unsafe.Pointer(nameC))
@@ -140,14 +125,14 @@ func NewCryptoDev(name string, maxSessions, nQueuePairs int, socket NumaSocket) 
 	mpNameC := C.CString(strings.TrimPrefix(name, "crypto_") + "_sess")
 	defer C.free(unsafe.Pointer(mpNameC))
 	if mpC := C.rte_cryptodev_sym_session_pool_create_(mpNameC, C.uint32_t(maxSessions*2),
-		C.uint32_t(C.rte_cryptodev_sym_get_private_session_size(cd.devId)), 0, 0, C.int(socket)); mpC == nil {
+		C.uint32_t(C.rte_cryptodev_sym_get_private_session_size(cd.devId)), 0, 0, C.int(socket.ID())); mpC == nil {
 		return CryptoDev{}, errors.New("rte_cryptodev_sym_session_pool_create error")
 	} else {
 		cd.sessionPool.c = mpC
 	}
 
 	var devConf C.struct_rte_cryptodev_config
-	devConf.socket_id = C.int(socket)
+	devConf.socket_id = C.int(socket.ID())
 	devConf.nb_queue_pairs = C.uint16_t(nQueuePairs)
 	if res := C.rte_cryptodev_configure(cd.devId, &devConf); res < 0 {
 		return CryptoDev{}, fmt.Errorf("rte_cryptodev_configure error %d", res)
@@ -158,7 +143,7 @@ func NewCryptoDev(name string, maxSessions, nQueuePairs int, socket NumaSocket) 
 	qpConf.mp_session = cd.sessionPool.c
 	qpConf.mp_session_private = cd.sessionPool.c
 	for i := C.uint16_t(0); i < devConf.nb_queue_pairs; i++ {
-		if res := C.rte_cryptodev_queue_pair_setup(cd.devId, i, &qpConf, C.int(socket)); res < 0 {
+		if res := C.rte_cryptodev_queue_pair_setup(cd.devId, i, &qpConf, C.int(socket.ID())); res < 0 {
 			return CryptoDev{}, fmt.Errorf("rte_cryptodev_queue_pair_setup(%d) error %d", i, res)
 		}
 	}
@@ -170,6 +155,7 @@ func NewCryptoDev(name string, maxSessions, nQueuePairs int, socket NumaSocket) 
 	return cd, nil
 }
 
+// Close releases a crypto device.
 func (cd CryptoDev) Close() error {
 	defer cd.sessionPool.Close()
 	name := cd.GetName()
@@ -183,34 +169,37 @@ func (cd CryptoDev) Close() error {
 	return nil
 }
 
-func (cd CryptoDev) GetId() int {
+// ID returns crypto device ID.
+func (cd CryptoDev) ID() int {
 	return int(cd.devId)
 }
 
+// GetName returns crypto device name.
 func (cd CryptoDev) GetName() string {
 	return C.GoString(C.rte_cryptodev_name_get(cd.devId))
 }
 
+// GetQueuePair retrieves a crypto queue pair.
 func (cd CryptoDev) GetQueuePair(i int) (qp CryptoQueuePair, ok bool) {
 	qp.CryptoDev = cd
-	qp.qpId = C.uint16_t(i)
-	if qp.qpId >= C.rte_cryptodev_queue_pair_count(cd.devId) {
+	qp.qpID = C.uint16_t(i)
+	if qp.qpID >= C.rte_cryptodev_queue_pair_count(cd.devId) {
 		return CryptoQueuePair{}, false
 	}
 	return qp, true
 }
 
-// Crypto device queue pair.
+// CryptoQueuePair represents a crypto device queue pair.
 type CryptoQueuePair struct {
 	CryptoDev
-	qpId C.uint16_t
+	qpID C.uint16_t
 }
 
 // Copy to C.CryptoQueuePair .
 func (qp CryptoQueuePair) CopyToC(ptr unsafe.Pointer) {
 	c := (*C.CryptoQueuePair)(ptr)
 	c.dev = qp.devId
-	c.qp = qp.qpId
+	c.qp = qp.qpID
 }
 
 // Submit a burst of crypto operations.
@@ -219,7 +208,7 @@ func (qp CryptoQueuePair) EnqueueBurst(ops []CryptoOp) int {
 	if count == 0 {
 		return 0
 	}
-	res := C.rte_cryptodev_enqueue_burst(qp.devId, qp.qpId,
+	res := C.rte_cryptodev_enqueue_burst(qp.devId, qp.qpID,
 		(**C.struct_rte_crypto_op)(ptr), C.uint16_t(count))
 	return int(res)
 }
@@ -230,26 +219,26 @@ func (qp CryptoQueuePair) DequeueBurst(ops []CryptoOp) int {
 	if count == 0 {
 		return 0
 	}
-	res := C.rte_cryptodev_dequeue_burst(qp.devId, qp.qpId,
+	res := C.rte_cryptodev_dequeue_burst(qp.devId, qp.qpID,
 		(**C.struct_rte_crypto_op)(ptr), C.uint16_t(count))
 	return int(res)
 }
 
-// A priority list of CryptoDev drivers.
+// CryptoDevDriverPref is a priority list of CryptoDev drivers.
 type CryptoDevDriverPref []string
 
 var (
-	// CryptoDev drivers capable of computing SHA256 on single-segment mbufs.
-	CryptoDevDriverPref_SingleSeg = CryptoDevDriverPref{"aesni_mb", "openssl"}
+	// CryptoDrvSingleSeg lists CryptoDev drivers capable of computing SHA256 on single-segment mbufs.
+	CryptoDrvSingleSeg = CryptoDevDriverPref{"aesni_mb", "openssl"}
 
-	// CryptoDev drivers capable of computing SHA256 on multi-segment mbufs.
-	CryptoDevDriverPref_MultiSeg = CryptoDevDriverPref{"openssl"}
+	// CryptoDrvMultiSeg lists CryptoDev drivers capable of computing SHA256 on multi-segment mbufs.
+	CryptoDrvMultiSeg = CryptoDevDriverPref{"openssl"}
 )
 
-// Create a CryptoDev from a list of drivers.
+// Create constructs a CryptoDev from a list of drivers.
 func (drvs CryptoDevDriverPref) Create(id string, nQueuePairs int, socket NumaSocket) (cd CryptoDev, e error) {
 	args := fmt.Sprintf("max_nb_queue_pairs=%d", nQueuePairs)
-	if socket != NUMA_SOCKET_ANY {
+	if !socket.IsAny() {
 		args += fmt.Sprintf(",socket_id=%d", socket)
 	}
 

@@ -21,12 +21,12 @@ import (
 
 var isEalInitialized = false
 
-var ErrEalInitialized = errors.New("EAL is already initialized")
+var errEalInitialized = errors.New("EAL is already initialized")
 
-// Initialize DPDK Environment Abstraction Layer (EAL).
+// InitEal initializes the DPDK Environment Abstraction Layer (EAL).
 func InitEal(args []string) (remainingArgs []string, e error) {
 	if isEalInitialized {
-		return nil, ErrEalInitialized
+		return nil, errEalInitialized
 	}
 
 	a := NewCArgs(args)
@@ -43,99 +43,111 @@ func InitEal(args []string) (remainingArgs []string, e error) {
 	return a.GetRemainingArgs(res), nil
 }
 
-// Initialize EAL, and panic if it fails.
+// MustInitEal initializes EAL, and panics if it fails.
 func MustInitEal(args []string) (remainingArgs []string) {
 	var e error
 	remainingArgs, e = InitEal(args)
-	if e != nil && e != ErrEalInitialized {
+	if e != nil && e != errEalInitialized {
 		panic(e)
 	}
 	return remainingArgs
 }
 
-// Indicate a NUMA socket.
-type NumaSocket int
+// NumaSocket represents a NUMA socket.
+// Zero value is SOCKET_ID_ANY.
+type NumaSocket struct {
+	v int // socket ID + 1
+}
 
-const NUMA_SOCKET_ANY = NumaSocket(C.SOCKET_ID_ANY)
+// NumaSocketFromID converts socket ID to NumaSocket.
+func NumaSocketFromID(id int) (socket NumaSocket) {
+	if id < 0 || id > C.RTE_MAX_NUMA_NODES {
+		return socket
+	}
+	socket.v = id + 1
+	return socket
+}
 
-func (socket NumaSocket) Match(other NumaSocket) bool {
-	return socket == NUMA_SOCKET_ANY || other == NUMA_SOCKET_ANY || socket == other
+// ID returns NUMA socket ID.
+func (socket NumaSocket) ID() int {
+	return socket.v - 1
+}
+
+// IsAny returns true if this represents SOCKET_ID_ANY.
+func (socket NumaSocket) IsAny() bool {
+	return socket.v == 0
 }
 
 func (socket NumaSocket) String() string {
-	if socket == NUMA_SOCKET_ANY {
+	if socket.IsAny() {
 		return "any"
 	}
-	return fmt.Sprintf("%d", socket)
+	return strconv.Itoa(socket.ID())
 }
 
-// Indicate state of LCore.
-type LCoreState int
+// LCore represents a logical core.
+// Zero value is invalid lcore.
+type LCore struct {
+	v int // lcore ID + 1
+}
 
-const (
-	LCORE_STATE_WAIT LCoreState = iota
-	LCORE_STATE_RUNNING
-	LCORE_STATE_FINISHED
-)
-
-func (s LCoreState) String() string {
-	switch s {
-	case LCORE_STATE_WAIT:
-		return "WAIT"
-	case LCORE_STATE_RUNNING:
-		return "RUNNING"
-	case LCORE_STATE_FINISHED:
-		return "FINISHED"
+// LCoreFromID converts lcore ID to LCore.
+func LCoreFromID(id int) (lc LCore) {
+	if id < 0 || id > C.RTE_MAX_LCORE {
+		return lc
 	}
-	return fmt.Sprintf("LCoreState(%d)", s)
+	lc.v = id + 1
+	return lc
 }
 
-// A logical core.
-type LCore uint
+// ID returns lcore ID.
+func (lc LCore) ID() int {
+	return lc.v - 1
+}
 
-const LCORE_INVALID = LCore(C.LCORE_ID_ANY)
-
+// IsValid returns true if this is a valid lcore (not zero value).
 func (lc LCore) IsValid() bool {
-	return lc != LCORE_INVALID
-}
-
-func (lc LCore) IsMaster() bool {
-	return lc == GetMasterLCore()
+	return lc.v != 0
 }
 
 func (lc LCore) String() string {
 	if !lc.IsValid() {
 		return "(invalid)"
 	}
-	return strconv.Itoa(int(lc))
+	return strconv.Itoa(int(lc.ID()))
 }
 
-func (lc LCore) GetNumaSocket() NumaSocket {
+// GetNumaSocket returns the NUMA socket where this lcore is located.
+func (lc LCore) GetNumaSocket() (socket NumaSocket) {
 	if !lc.IsValid() {
-		return NUMA_SOCKET_ANY
+		return socket
 	}
-	return NumaSocket(C.rte_lcore_to_socket_id(C.uint(lc)))
+	return NumaSocketFromID(int(C.rte_lcore_to_socket_id(C.uint(lc.ID()))))
 }
 
-func (lc LCore) GetState() LCoreState {
+// IsBusy returns true if this lcore is running a function.
+func (lc LCore) IsBusy() bool {
 	panicInSlave("LCore.GetState()")
-	return LCoreState(C.rte_eal_get_lcore_state(C.uint(lc)))
+	return C.rte_eal_get_lcore_state(C.uint(lc.ID())) != C.WAIT
 }
 
-// Asynchronously launch a function on an lcore.
+// RemoteLaunch asynchronously launches a function on this lcore.
 // Returns whether success.
 func (lc LCore) RemoteLaunch(f func() int) bool {
 	panicInSlave("LCore.RemoteLaunch()")
-	lcoreFuncs[lc] = f
-	res := C.rte_eal_remote_launch((*C.lcore_function_t)(C.go_lcoreLaunch), nil, C.uint(lc))
+	if !lc.IsValid() {
+		panic("invalid lcore")
+	}
+	lcoreFuncs[lc.ID()] = f
+	res := C.rte_eal_remote_launch((*C.lcore_function_t)(C.go_lcoreLaunch), nil, C.uint(lc.ID()))
 	return res == 0
 }
 
-// Wait for lcore to finish running, and return lcore function's return value.
-// If lcore is not running, return 0 immediately.
+// Wait blocks until this lcore finishes running, and returns lcore function's return value.
+// If this lcore is not running, returns 0 immediately.
 func (lc LCore) Wait() int {
 	panicInSlave("LCore.Wait()")
-	return int(C.rte_eal_wait_lcore(C.uint(lc)))
+	return int(C.rte_eal_wait_lcore(C.uint(lc.ID())))
 }
 
 var lcoreFuncs [C.RTE_MAX_LCORE]func() int
@@ -145,31 +157,35 @@ func go_lcoreLaunch(ctx unsafe.Pointer) C.int {
 	return C.int(lcoreFuncs[C.rte_lcore_id()]())
 }
 
-// Prevent a function to be executed in slave lcore.
+// Prevent a function from executing in slave lcore.
 func panicInSlave(funcName string) {
 	lc := GetCurrentLCore()
-	if lc.IsValid() && !lc.IsMaster() {
-		panic(fmt.Sprintf("%s is unavailable in slave lcore; current=%d master=%d",
-			funcName, lc, GetMasterLCore()))
+	if master := GetMasterLCore(); lc.IsValid() && lc.ID() != master.ID() {
+		panic(fmt.Sprintf("%s is unavailable in slave lcore; current=%s master=%s",
+			funcName, lc, master))
 	}
-	// 'invalid' lcore is permitted, because Golang runtime could use another thread
+	// 'invalid' lcore is permitted, because Go runtime could use another thread
 }
 
+// GetCurrentLCore returns the current lcore.
 func GetCurrentLCore() LCore {
-	return LCore(C.rte_lcore_id())
+	return LCoreFromID(int(C.rte_lcore_id()))
 }
 
+// GetMasterLCore returns the master lcore.
 func GetMasterLCore() LCore {
-	return LCore(C.rte_get_master_lcore())
+	return LCoreFromID(int(C.rte_get_master_lcore()))
 }
 
+// ListSlaveLCores returns a list of slave lcores.
 func ListSlaveLCores() (list []LCore) {
 	for i := C.rte_get_next_lcore(C.RTE_MAX_LCORE, 1, 1); i < C.RTE_MAX_LCORE; i = C.rte_get_next_lcore(i, 1, 0) {
-		list = append(list, LCore(i))
+		list = append(list, LCoreFromID(int(i)))
 	}
 	return list
 }
 
+// ListNumaSocketsOfLCores maps lcores into NUMA sockets.
 func ListNumaSocketsOfLCores(lcores []LCore) (a []NumaSocket) {
 	a = make([]NumaSocket, len(lcores))
 	for i, lcore := range lcores {

@@ -43,10 +43,8 @@ func New(face iface.IFace, cfg Config) (client *Client, e error) {
 
 	client = new(Client)
 	client.Rx.c = crC
-	client.Rx.ResetThreadBase()
 	dpdk.InitStopFlag(unsafe.Pointer(&crC.stop))
 	client.Tx.c = ctC
-	client.Tx.ResetThreadBase()
 	dpdk.InitStopFlag(unsafe.Pointer(&ctC.stop))
 
 	for i, pattern := range cfg.Patterns {

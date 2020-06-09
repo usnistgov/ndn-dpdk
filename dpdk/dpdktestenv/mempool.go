@@ -16,7 +16,7 @@ func MakeMp(id string, capacity int, privSize int, dataroomSize int) dpdk.Pktmbu
 		mp.Close()
 	}
 
-	mp, e := dpdk.NewPktmbufPool(name, capacity, privSize, dataroomSize, dpdk.NUMA_SOCKET_ANY)
+	mp, e := dpdk.NewPktmbufPool(name, capacity, privSize, dataroomSize, dpdk.NumaSocket{})
 	if e != nil {
 		panic(fmt.Sprintf("dpdk.NewPktmbufPool(%s) error %v", name, e))
 	}

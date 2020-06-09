@@ -85,7 +85,7 @@ func (bd *Bdev) ReadBlocks(blockOffset, blockCount int64, buf []byte) error {
 		return io.ErrShortBuffer
 	}
 
-	bufC := dpdk.Zmalloc("SpdkBdevBuf", sizeofBuf, dpdk.NUMA_SOCKET_ANY)
+	bufC := dpdk.Zmalloc("SpdkBdevBuf", sizeofBuf, dpdk.NumaSocket{})
 	defer dpdk.Free(bufC)
 
 	done := make(chan error)
@@ -116,7 +116,7 @@ func (bd *Bdev) WriteBlocks(blockOffset, blockCount int64, buf []byte) error {
 		return io.ErrShortBuffer
 	}
 
-	bufC := dpdk.Zmalloc("SpdkBdevBuf", sizeofBuf, dpdk.NUMA_SOCKET_ANY)
+	bufC := dpdk.Zmalloc("SpdkBdevBuf", sizeofBuf, dpdk.NumaSocket{})
 	defer dpdk.Free(bufC)
 	C.rte_memcpy(bufC, unsafe.Pointer(&buf[0]), C.size_t(sizeofBuf))
 

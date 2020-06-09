@@ -9,7 +9,6 @@ import (
 	"ndn-dpdk/container/pcct"
 	"ndn-dpdk/container/pit"
 	"ndn-dpdk/container/strategycode"
-	"ndn-dpdk/dpdk"
 	"ndn-dpdk/dpdk/dpdktestenv"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/ndn"
@@ -38,7 +37,6 @@ func NewFixture(pcctMaxEntries int) (fixture *Fixture) {
 	pcctCfg := pcct.Config{
 		Id:         "TestPcct",
 		MaxEntries: pcctMaxEntries,
-		NumaSocket: dpdk.NUMA_SOCKET_ANY,
 	}
 	pcct, e := pcct.New(pcctCfg)
 	if e != nil {

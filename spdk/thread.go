@@ -38,8 +38,7 @@ func NewThread(name string) (th *Thread, e error) {
 	}
 
 	th = new(Thread)
-	th.ResetThreadBase()
-	th.c = (*C.SpdkThread)(dpdk.Zmalloc("SpdkThread", C.sizeof_SpdkThread, dpdk.NUMA_SOCKET_ANY))
+	th.c = (*C.SpdkThread)(dpdk.Zmalloc("SpdkThread", C.sizeof_SpdkThread, dpdk.NumaSocket{}))
 	th.c.spdkTh = spdkThread
 	dpdk.InitStopFlag(unsafe.Pointer(&th.c.stop))
 	return th, nil

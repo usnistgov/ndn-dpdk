@@ -94,12 +94,12 @@ func TestDataSatisfy(t *testing.T) {
 func TestDataDigest(t *testing.T) {
 	assert, require := makeAR(t)
 
-	cd, e := dpdk.CryptoDevDriverPref_MultiSeg.Create("", 1, dpdk.NUMA_SOCKET_ANY)
+	cd, e := dpdk.CryptoDrvMultiSeg.Create("", 1, dpdk.NumaSocket{})
 	require.NoError(e)
 	defer cd.Close()
 	qp, ok := cd.GetQueuePair(0)
 	require.True(ok)
-	mp, e := dpdk.NewCryptoOpPool("MP-CryptoOp", 255, 0, dpdk.NUMA_SOCKET_ANY)
+	mp, e := dpdk.NewCryptoOpPool("MP-CryptoOp", 255, 0, dpdk.NumaSocket{})
 	require.NoError(e)
 	defer mp.Close()
 
@@ -115,7 +115,7 @@ func TestDataDigest(t *testing.T) {
 	}
 
 	ops := make([]dpdk.CryptoOp, 4)
-	require.NoError(mp.AllocBulk(dpdk.CRYPTO_OP_SYM, ops))
+	require.NoError(mp.AllocBulk(dpdk.CryptoOpSym, ops))
 	for i, data := range inputs {
 		assert.Nil(data.GetDigest())
 		data.DigestPrepare(ops[i])

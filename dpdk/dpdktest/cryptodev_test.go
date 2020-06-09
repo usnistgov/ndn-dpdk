@@ -10,7 +10,7 @@ import (
 func TestCryptoDev(t *testing.T) {
 	assert, require := makeAR(t)
 
-	cd, e := dpdk.CryptoDevDriverPref_SingleSeg.Create("", 2, dpdk.NUMA_SOCKET_ANY)
+	cd, e := dpdk.CryptoDrvSingleSeg.Create("", 2, dpdk.NumaSocket{})
 	require.NoError(e)
 	defer cd.Close()
 
@@ -21,15 +21,15 @@ func TestCryptoDev(t *testing.T) {
 	_, ok = cd.GetQueuePair(2)
 	require.False(ok)
 
-	mp, e := dpdk.NewCryptoOpPool("MP-CryptoOp", 255, 0, dpdk.NUMA_SOCKET_ANY)
+	mp, e := dpdk.NewCryptoOpPool("MP-CryptoOp", 255, 0, dpdk.NumaSocket{})
 	require.NoError(e)
 	defer mp.Close()
 
 	ops0 := make([]dpdk.CryptoOp, 2)
-	require.NoError(mp.AllocBulk(dpdk.CRYPTO_OP_SYM, ops0))
+	require.NoError(mp.AllocBulk(dpdk.CryptoOpSym, ops0))
 	ops1 := make([]dpdk.CryptoOp, 1)
-	require.NoError(mp.AllocBulk(dpdk.CRYPTO_OP_SYM, ops1))
-	assert.Equal(dpdk.CRYPTO_OP_NEW, ops1[0].GetStatus())
+	require.NoError(mp.AllocBulk(dpdk.CryptoOpSym, ops1))
+	assert.True(ops1[0].IsNew())
 
 	allocOutBuf := func() (out dpdk.Segment) {
 		out = dpdktestenv.Alloc(dpdktestenv.MPID_DIRECT).AsPacket().GetFirstSegment()
@@ -49,15 +49,15 @@ func TestCryptoDev(t *testing.T) {
 
 	ops := make([]dpdk.CryptoOp, 2)
 	assert.Equal(1, qp1.DequeueBurst(ops))
-	assert.Equal(dpdk.CRYPTO_OP_SUCCESS, ops[0].GetStatus())
+	assert.True(ops[0].IsSuccess())
 	assert.Equal(dpdktestenv.BytesFromHex("72D2A70D03005439DE209BBE9FFC050FAFD891082E9F3150F05A61054D25990F"),
 		out2.AsByteSlice())
 
 	assert.Equal(2, qp0.DequeueBurst(ops))
-	assert.Equal(dpdk.CRYPTO_OP_SUCCESS, ops[0].GetStatus())
+	assert.True(ops[0].IsSuccess())
 	assert.Equal(dpdktestenv.BytesFromHex("73B92B68882B199971462A2614C6691CBA581DA958740466030A64CE7DE66ED3"),
 		out0.AsByteSlice())
-	assert.Equal(dpdk.CRYPTO_OP_SUCCESS, ops[1].GetStatus())
+	assert.True(ops[1].IsSuccess())
 	assert.Equal(dpdktestenv.BytesFromHex("A6662B764A4468DF70CA2CAD1B17DA26C62E53439DA8E4E8A80D9B91E59D09BA"),
 		out1.AsByteSlice())
 	assert.Equal(0, qp0.DequeueBurst(ops))

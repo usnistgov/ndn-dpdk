@@ -32,13 +32,13 @@ func startDev(port *Port, nRxQueues int, promisc bool) error {
 	var cfg dpdk.EthDevConfig
 	numaSocket := port.dev.GetNumaSocket()
 	for i := 0; i < nRxQueues; i++ {
-		cfg.AddRxQueue(dpdk.EthRxQueueConfig{
+		cfg.RxQueues = append(cfg.RxQueues, dpdk.EthRxQueueConfig{
 			Capacity: port.cfg.RxqFrames,
 			Socket:   numaSocket,
 			Mp:       port.cfg.RxMp,
 		})
 	}
-	cfg.AddTxQueue(dpdk.EthTxQueueConfig{
+	cfg.TxQueues = append(cfg.TxQueues, dpdk.EthTxQueueConfig{
 		Capacity: port.cfg.TxqFrames,
 		Socket:   numaSocket,
 	})

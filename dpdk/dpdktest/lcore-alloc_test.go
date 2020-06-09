@@ -9,21 +9,29 @@ import (
 type mockLCoreProvider struct{}
 
 func (mockLCoreProvider) ListSlaves() []dpdk.LCore {
-	return []dpdk.LCore{1, 2, 3, 4, 5, 6, 7}
+	return []dpdk.LCore{
+		dpdk.LCoreFromID(1),
+		dpdk.LCoreFromID(2),
+		dpdk.LCoreFromID(3),
+		dpdk.LCoreFromID(4),
+		dpdk.LCoreFromID(5),
+		dpdk.LCoreFromID(6),
+		dpdk.LCoreFromID(7),
+	}
 }
 
-func (mockLCoreProvider) GetState(lc dpdk.LCore) dpdk.LCoreState {
-	if lc == 7 {
-		return dpdk.LCORE_STATE_RUNNING
+func (mockLCoreProvider) IsBusy(lc dpdk.LCore) bool {
+	if lc.ID() == 7 {
+		return true
 	}
-	return dpdk.LCORE_STATE_WAIT
+	return false
 }
 
 func (mockLCoreProvider) GetNumaSocket(lc dpdk.LCore) dpdk.NumaSocket {
-	if lc < 4 {
-		return 0
+	if lc.ID() < 4 {
+		return dpdk.NumaSocketFromID(0)
 	}
-	return 1
+	return dpdk.NumaSocketFromID(1)
 }
 
 func TestLCoreAllocator(t *testing.T) {
@@ -45,41 +53,51 @@ func TestLCoreAllocator(t *testing.T) {
 		PerNuma: map[int]int{0: 3, 1: 4},
 	}
 
+	numa0 := dpdk.NumaSocketFromID(0)
+	numa1 := dpdk.NumaSocketFromID(1)
+
 	// 1=reserved-AC, 2=idle, 3=idle, 4=reserved-B, 5=idle, 6=reserved-A, 7=busy
 	// pick from reserved-A on NUMA 0
-	assert.Equal(dpdk.LCore(1), la.Alloc("A", 0))
+	lc1 := la.Alloc("A", numa0)
+	assert.Equal(1, lc1.ID())
 
 	// 1=allocated-A, 2=idle, 3=idle, 4=reserved-B, 5=idle, 6=reserved-A, 7=busy
 	// pick from reserved-A on NUMA 1
-	assert.Equal(dpdk.LCore(6), la.Alloc("A", 1))
+	lc6 := la.Alloc("A", numa1)
+	assert.Equal(6, lc6.ID())
 
 	// 1=allocated-A, 2=idle, 3=idle, 4=reserved-B, 5=idle, 6=allocated-A, 7=busy
 	// pick from idle on NUMA 1
-	assert.Equal(dpdk.LCore(5), la.Alloc("A", 1))
+	lc5 := la.Alloc("A", numa1)
+	assert.Equal(5, lc5.ID())
 
 	// 1=allocated-A, 2=idle, 3=idle, 4=reserved-B, 5=allocated-A, 6=allocated-A, 7=busy
 	// pick from idle on remote NUMA
-	assert.Equal(dpdk.LCore(2), la.Alloc("A", 1))
+	lc2 := la.Alloc("A", numa1)
+	assert.Equal(2, lc2.ID())
 
 	// 1=allocated-A, 2=allocated-A, 3=idle, 4=reserved-B, 5=allocated-A, 6=allocated-A, 7=busy
 	// fail because exceeding PerNuma limit
-	assert.Equal(dpdk.LCORE_INVALID, la.Alloc("A", 1))
+	assert.False(la.Alloc("A", numa1).IsValid())
 
 	// 1=allocated-A, 2=allocated-A, 3=idle, 4=reserved-B, 5=allocated-A, 6=allocated-A, 7=busy
 	// pick from idle on NUMA 0
-	assert.Equal(dpdk.LCore(3), la.Alloc("B", 0))
+	lc3 := la.Alloc("B", numa0)
+	assert.Equal(3, lc3.ID())
 
 	// 1=allocated-A, 2=allocated-A, 3=allocated-B, 4=reserved-B, 5=allocated-A, 6=allocated-A, 7=busy
 	// pick from reserved-B on remote NUMA
-	assert.Equal(dpdk.LCore(4), la.Alloc("B", 0))
+	lc4 := la.Alloc("B", numa0)
+	assert.Equal(4, lc4.ID())
 
 	// 1=allocated-A, 2=allocated-A, 3=allocated-B, 4=allocated-B, 5=allocated-A, 6=allocated-A, 7=busy
 	// fail because no lcore available
-	assert.Equal(dpdk.LCORE_INVALID, la.Alloc("C", 0))
+	assert.False(la.Alloc("C", numa0).IsValid())
 
-	la.Free(2)
+	la.Free(lc2)
 
 	// 1=allocated-A, 2=idle, 3=allocated-B, 4=allocated-B, 5=allocated-A, 6=allocated-A, 7=busy
 	// pick from reserved-A on NUMA 0
-	assert.Equal(dpdk.LCore(2), la.Alloc("C", 0))
+	lc2 = la.Alloc("C", numa0)
+	assert.Equal(2, lc2.ID())
 }

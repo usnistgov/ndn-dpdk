@@ -44,7 +44,7 @@ func (impl *rxFlowImpl) setIsolate(enable bool) error {
 		set = 1
 	}
 	var flowErr C.struct_rte_flow_error
-	if res := C.rte_flow_isolate(C.uint16_t(impl.port.dev), set, &flowErr); res != 0 {
+	if res := C.rte_flow_isolate(C.uint16_t(impl.port.dev.ID()), set, &flowErr); res != 0 {
 		return readFlowErr(flowErr)
 	}
 	return nil
@@ -123,7 +123,7 @@ func (impl *rxFlowImpl) Stop(face *EthFace) error {
 
 func (impl *rxFlowImpl) destroyFlow(rxf *RxFlow) error {
 	var flowErr C.struct_rte_flow_error
-	if res := C.rte_flow_destroy(C.uint16_t(impl.port.dev), rxf.flow, &flowErr); res != 0 {
+	if res := C.rte_flow_destroy(C.uint16_t(impl.port.dev.ID()), rxf.flow, &flowErr); res != 0 {
 		return readFlowErr(flowErr)
 	}
 	return nil

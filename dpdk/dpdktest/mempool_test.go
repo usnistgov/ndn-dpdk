@@ -10,7 +10,7 @@ import (
 func TestMempool(t *testing.T) {
 	assert, require := makeAR(t)
 
-	mp, e := dpdk.NewMempool("MP", 63, 256, dpdk.NUMA_SOCKET_ANY)
+	mp, e := dpdk.NewMempool("MP", 63, 256, dpdk.NumaSocket{})
 	require.NoError(e)
 	defer mp.Close()
 
@@ -44,7 +44,7 @@ func TestMempool(t *testing.T) {
 func TestPktmbufPool(t *testing.T) {
 	assert, require := makeAR(t)
 
-	mp, e := dpdk.NewPktmbufPool("MP", 63, 0, 1000, dpdk.NUMA_SOCKET_ANY)
+	mp, e := dpdk.NewPktmbufPool("MP", 63, 0, 1000, dpdk.NumaSocket{})
 	require.NoError(e)
 	defer mp.Close()
 

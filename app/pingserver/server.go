@@ -45,7 +45,6 @@ func New(face iface.IFace, index int, cfg Config) (server *Server, e error) {
 	server = new(Server)
 	server.seg1Mp = appinit.MakePktmbufPool(appinit.MP_DATA1, socket)
 	server.c = serverC
-	server.ResetThreadBase()
 	dpdk.InitStopFlag(unsafe.Pointer(&serverC.stop))
 
 	for i, pattern := range cfg.Patterns {

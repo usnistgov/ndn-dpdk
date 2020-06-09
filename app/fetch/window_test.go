@@ -11,7 +11,7 @@ func TestWindow(t *testing.T) {
 	assert, require := makeAR(t)
 
 	var win fetch.Window
-	win.Init(8, dpdk.NUMA_SOCKET_ANY)
+	win.Init(8, dpdk.NumaSocket{})
 	defer win.Close()
 
 	var seg1 *fetch.SegState

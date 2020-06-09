@@ -29,7 +29,7 @@ func New(cfg Config, numaSockets []dpdk.NumaSocket) (ndt *Ndt) {
 
 	numaSocketsC := make([]C.unsigned, len(numaSockets))
 	for i, socket := range numaSockets {
-		numaSocketsC[i] = C.unsigned(socket)
+		numaSocketsC[i] = C.unsigned(socket.ID())
 	}
 
 	ndt.c = (*C.Ndt)(dpdk.Zmalloc("Ndt", C.sizeof_Ndt, numaSockets[0]))

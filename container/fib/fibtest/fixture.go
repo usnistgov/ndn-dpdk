@@ -24,7 +24,7 @@ func NewFixture(ndtPrefixLen, fibStartDepth, nPartitions int) (fixture *Fixture)
 		IndexBits:  8,
 		SampleFreq: 32,
 	}
-	ndt := ndt.New(ndtCfg, []dpdk.NumaSocket{dpdk.NUMA_SOCKET_ANY})
+	ndt := ndt.New(ndtCfg, []dpdk.NumaSocket{{}})
 	ndt.Randomize(nPartitions)
 
 	fibCfg := fib.Config{
@@ -35,7 +35,7 @@ func NewFixture(ndtPrefixLen, fibStartDepth, nPartitions int) (fixture *Fixture)
 	}
 	partitionNumaSockets := make([]dpdk.NumaSocket, nPartitions)
 	for i := range partitionNumaSockets {
-		partitionNumaSockets[i] = dpdk.NUMA_SOCKET_ANY
+		partitionNumaSockets[i] = dpdk.NumaSocket{}
 	}
 	fib, e := fib.New(fibCfg, ndt, partitionNumaSockets)
 	if e != nil {

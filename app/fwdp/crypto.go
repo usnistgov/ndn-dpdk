@@ -30,7 +30,6 @@ type Crypto struct {
 func newCrypto(id int, lc dpdk.LCore, cfg CryptoConfig, ndt *ndt.Ndt, fwds []*Fwd) (fwc *Crypto, e error) {
 	socket := lc.GetNumaSocket()
 	fwc = new(Crypto)
-	fwc.ResetThreadBase()
 	fwc.SetLCore(lc)
 	fwc.id = id
 	fwc.c = (*C.FwCrypto)(dpdk.ZmallocAligned("FwCrypto", C.sizeof_FwCrypto, 1, socket))
@@ -50,17 +49,17 @@ func newCrypto(id int, lc dpdk.LCore, cfg CryptoConfig, ndt *ndt.Ndt, fwds []*Fw
 		fwc.c.opPool = (*C.struct_rte_mempool)(opPool.GetPtr())
 	}
 
-	fwc.devS, e = dpdk.CryptoDevDriverPref_SingleSeg.Create(fmt.Sprintf("fwc%ds", fwc.id), 1, socket)
+	fwc.devS, e = dpdk.CryptoDrvSingleSeg.Create(fmt.Sprintf("fwc%ds", fwc.id), 1, socket)
 	if e != nil {
-		return nil, fmt.Errorf("dpdk.CryptoDevDriverPref_SingleSeg.Create: %v", e)
+		return nil, fmt.Errorf("dpdk.CryptoDrvSingleSeg.Create: %v", e)
 	} else {
 		qp, _ := fwc.devS.GetQueuePair(0)
 		qp.CopyToC(unsafe.Pointer(&fwc.c.singleSeg))
 	}
 
-	fwc.devM, e = dpdk.CryptoDevDriverPref_MultiSeg.Create(fmt.Sprintf("fwc%dm", fwc.id), 1, socket)
+	fwc.devM, e = dpdk.CryptoDrvMultiSeg.Create(fmt.Sprintf("fwc%dm", fwc.id), 1, socket)
 	if e != nil {
-		return nil, fmt.Errorf("dpdk.CryptoDevDriverPref_MultiSeg.Create: %v", e)
+		return nil, fmt.Errorf("dpdk.CryptoDrvMultiSeg.Create: %v", e)
 	} else {
 		qp, _ := fwc.devM.GetQueuePair(0)
 		qp.CopyToC(unsafe.Pointer(&fwc.c.multiSeg))

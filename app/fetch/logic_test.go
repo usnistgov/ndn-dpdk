@@ -14,10 +14,10 @@ import (
 func TestLogic(t *testing.T) {
 	assert, _ := makeAR(t)
 
-	flPtr := dpdk.Zmalloc("FetchLogic", unsafe.Sizeof(fetch.Logic{}), dpdk.NUMA_SOCKET_ANY)
+	flPtr := dpdk.Zmalloc("FetchLogic", unsafe.Sizeof(fetch.Logic{}), dpdk.NumaSocket{})
 	defer dpdk.Free(flPtr)
 	fl := fetch.LogicFromPtr(flPtr)
-	fl.Init(64, dpdk.NUMA_SOCKET_ANY)
+	fl.Init(64, dpdk.NumaSocket{})
 	defer fl.Close()
 
 	const FINAL_SEG = 1999
