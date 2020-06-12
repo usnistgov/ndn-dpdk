@@ -3,7 +3,7 @@
 
 /// \file
 
-#include "../../dpdk/tsc.h"
+#include "../../dpdk/eal/tsc.h"
 
 /** \brief Precision of timing measurements.
  *

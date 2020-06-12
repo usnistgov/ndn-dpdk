@@ -4,9 +4,10 @@ import (
 	"testing"
 	"time"
 
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/cryptodev"
+	"ndn-dpdk/dpdk/eal"
 	"ndn-dpdk/ndn"
-	"ndn-dpdk/ndn/ndntestutil"
+	"ndn-dpdk/ndn/ndntestenv"
 )
 
 func TestDataDecode(t *testing.T) {
@@ -26,8 +27,8 @@ func TestDataDecode(t *testing.T) {
 	}
 	for _, tt := range tests {
 		pkt := packetFromHex(tt.input)
-		defer pkt.AsDpdkPacket().Close()
-		e := pkt.ParseL3(theMp)
+		defer pkt.AsMbuf().Close()
+		e := pkt.ParseL3(ndntestenv.Name.Pool())
 		if tt.bad {
 			assert.Error(e, tt.input)
 		} else if assert.NoError(e, tt.input) {
@@ -36,7 +37,7 @@ func TestDataDecode(t *testing.T) {
 			}
 			data := pkt.AsData()
 			assert.Implements((*ndn.IL3Packet)(nil), data)
-			ndntestutil.NameEqual(assert, tt.name, data, tt.input)
+			ndntestenv.NameEqual(assert, tt.name, data, tt.input)
 			assert.EqualValues(tt.freshness, data.GetFreshnessPeriod()/time.Millisecond, tt.input)
 		}
 	}
@@ -45,9 +46,9 @@ func TestDataDecode(t *testing.T) {
 func TestDataSatisfy(t *testing.T) {
 	assert, _ := makeAR(t)
 
-	interestExact := ndntestutil.MakeInterest("/B")
-	interestPrefix := ndntestutil.MakeInterest("/B", ndn.CanBePrefixFlag)
-	interestFresh := ndntestutil.MakeInterest("/B", ndn.MustBeFreshFlag)
+	interestExact := makeInterest("/B")
+	interestPrefix := makeInterest("/B", ndn.CanBePrefixFlag)
+	interestFresh := makeInterest("/B", ndn.MustBeFreshFlag)
 
 	tests := []struct {
 		data        *ndn.Data
@@ -55,19 +56,19 @@ func TestDataSatisfy(t *testing.T) {
 		prefixMatch ndn.DataSatisfyResult
 		freshMatch  ndn.DataSatisfyResult
 	}{
-		{ndntestutil.MakeData("/A", time.Second),
+		{makeData("/A", time.Second),
 			ndn.DATA_SATISFY_NO, ndn.DATA_SATISFY_NO, ndn.DATA_SATISFY_NO},
-		{ndntestutil.MakeData("/2=B", time.Second),
+		{makeData("/2=B", time.Second),
 			ndn.DATA_SATISFY_NO, ndn.DATA_SATISFY_NO, ndn.DATA_SATISFY_NO},
-		{ndntestutil.MakeData("/B", time.Second),
+		{makeData("/B", time.Second),
 			ndn.DATA_SATISFY_YES, ndn.DATA_SATISFY_YES, ndn.DATA_SATISFY_YES},
-		{ndntestutil.MakeData("/B", time.Duration(0)),
+		{makeData("/B", time.Duration(0)),
 			ndn.DATA_SATISFY_YES, ndn.DATA_SATISFY_YES, ndn.DATA_SATISFY_NO},
-		{ndntestutil.MakeData("/B/0", time.Second),
+		{makeData("/B/0", time.Second),
 			ndn.DATA_SATISFY_NO, ndn.DATA_SATISFY_YES, ndn.DATA_SATISFY_NO},
-		{ndntestutil.MakeData("/", time.Second),
+		{makeData("/", time.Second),
 			ndn.DATA_SATISFY_NO, ndn.DATA_SATISFY_NO, ndn.DATA_SATISFY_NO},
-		{ndntestutil.MakeData("/C", time.Second),
+		{makeData("/C", time.Second),
 			ndn.DATA_SATISFY_NO, ndn.DATA_SATISFY_NO, ndn.DATA_SATISFY_NO},
 	}
 	for i, tt := range tests {
@@ -76,30 +77,29 @@ func TestDataSatisfy(t *testing.T) {
 		assert.Equal(tt.freshMatch, tt.data.CanSatisfy(interestFresh), "%d", i)
 
 		if tt.exactMatch == ndn.DATA_SATISFY_YES {
-			interestImplicit := ndntestutil.MakeInterest(tt.data.GetFullName().String())
+			interestImplicit := makeInterest(tt.data.GetFullName().String())
 			assert.Equal(ndn.DATA_SATISFY_NEED_DIGEST, tt.data.CanSatisfy(interestImplicit))
 			tt.data.ComputeDigest(true)
 			assert.Equal(ndn.DATA_SATISFY_YES, tt.data.CanSatisfy(interestImplicit))
-			ndntestutil.ClosePacket(interestImplicit)
+			ndntestenv.ClosePacket(interestImplicit)
 		}
 
-		ndntestutil.ClosePacket(tt.data)
+		ndntestenv.ClosePacket(tt.data)
 	}
 
-	ndntestutil.ClosePacket(interestExact)
-	ndntestutil.ClosePacket(interestPrefix)
-	ndntestutil.ClosePacket(interestFresh)
+	ndntestenv.ClosePacket(interestExact)
+	ndntestenv.ClosePacket(interestPrefix)
+	ndntestenv.ClosePacket(interestFresh)
 }
 
 func TestDataDigest(t *testing.T) {
 	assert, require := makeAR(t)
 
-	cd, e := dpdk.CryptoDrvMultiSeg.Create("", 1, dpdk.NumaSocket{})
+	cd, e := cryptodev.MultiSegDrv.Create("", cryptodev.Config{}, eal.NumaSocket{})
 	require.NoError(e)
 	defer cd.Close()
-	qp, ok := cd.GetQueuePair(0)
-	require.True(ok)
-	mp, e := dpdk.NewCryptoOpPool("MP-CryptoOp", 255, 0, dpdk.NumaSocket{})
+	qp := cd.GetQueuePair(0)
+	mp, e := cryptodev.NewOpPool("MP-CryptoOp", cryptodev.OpPoolConfig{}, eal.NumaSocket{})
 	require.NoError(e)
 	defer mp.Close()
 
@@ -111,11 +111,11 @@ func TestDataDigest(t *testing.T) {
 	}
 	inputs := make([]*ndn.Data, 4)
 	for i, name := range names {
-		inputs[i] = ndntestutil.MakeData(name)
+		inputs[i] = makeData(name)
 	}
 
-	ops := make([]dpdk.CryptoOp, 4)
-	require.NoError(mp.AllocBulk(dpdk.CryptoOpSym, ops))
+	ops, e := mp.Alloc(cryptodev.OpSymmetric, 4)
+	require.NoError(e)
 	for i, data := range inputs {
 		assert.Nil(data.GetDigest())
 		data.DigestPrepare(ops[i])
@@ -127,7 +127,7 @@ func TestDataDigest(t *testing.T) {
 		data, e := ndn.DataDigest_Finish(op)
 		assert.NoError(e)
 		if assert.NotNil(data) {
-			ndntestutil.NameEqual(assert, names[i], data)
+			ndntestenv.NameEqual(assert, names[i], data)
 			assert.Equal(data.ComputeDigest(false), data.GetDigest())
 		}
 	}

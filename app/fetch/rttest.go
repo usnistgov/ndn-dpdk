@@ -8,7 +8,7 @@ import (
 	"time"
 	"unsafe"
 
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
 )
 
 func RttEstFromPtr(ptr unsafe.Pointer) (rtte *RttEst) {
@@ -24,19 +24,19 @@ func (rtte *RttEst) Init() {
 }
 
 func (rtte *RttEst) GetLastRtt() time.Duration {
-	return dpdk.FromTscDuration(rtte.Last)
+	return eal.FromTscDuration(rtte.Last)
 }
 
 func (rtte *RttEst) GetSRtt() time.Duration {
-	return dpdk.FromTscDuration(int64(rtte.SRtt))
+	return eal.FromTscDuration(int64(rtte.SRtt))
 }
 
 func (rtte *RttEst) GetRto() time.Duration {
-	return dpdk.FromTscDuration(int64(rtte.Rto))
+	return eal.FromTscDuration(int64(rtte.Rto))
 }
 
-func (rtte *RttEst) Push(now dpdk.TscTime, rtt time.Duration) {
-	C.RttEst_Push(rtte.getPtr(), C.TscTime(now), C.TscDuration(dpdk.ToTscDuration(rtt)))
+func (rtte *RttEst) Push(now eal.TscTime, rtt time.Duration) {
+	C.RttEst_Push(rtte.getPtr(), C.TscTime(now), C.TscDuration(eal.ToTscDuration(rtt)))
 }
 
 func (rtte *RttEst) Backoff() {

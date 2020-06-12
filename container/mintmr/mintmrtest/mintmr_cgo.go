@@ -9,23 +9,23 @@ import (
 	"time"
 
 	_ "ndn-dpdk/container/mintmr"
-	"ndn-dpdk/dpdk"
-	"ndn-dpdk/dpdk/dpdktestenv"
+	"ndn-dpdk/core/testenv"
+	"ndn-dpdk/dpdk/eal"
 )
 
 var triggered map[int]bool
 
 func testMinTmr(t *testing.T) {
-	assert, _ := dpdktestenv.MakeAR(t)
+	assert, _ := testenv.MakeAR(t)
 	triggered = make(map[int]bool)
 
 	// 32 slots * 100ms = 3200ms
 	sched := C.MinTmrTest_MakeSched(C.int(5),
-		C.TscDuration(dpdk.ToTscDuration(100*time.Millisecond)))
+		C.TscDuration(eal.ToTscDuration(100*time.Millisecond)))
 
 	setTimer := func(n int, after time.Duration) bool {
 		rec := C.MinTmrTest_NewRecord(C.int(n))
-		return bool(C.MinTmr_After(&rec.tmr, C.TscDuration(dpdk.ToTscDuration(after)), sched))
+		return bool(C.MinTmr_After(&rec.tmr, C.TscDuration(eal.ToTscDuration(after)), sched))
 	}
 
 	assert.False(setTimer(1, 3300*time.Millisecond)) // tmr1 is too far into the future

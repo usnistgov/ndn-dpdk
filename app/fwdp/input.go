@@ -5,18 +5,18 @@ import (
 
 	"ndn-dpdk/app/inputdemux"
 	"ndn-dpdk/container/ndt"
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
 	"ndn-dpdk/iface"
 )
 
 // Input thread.
 type Input struct {
 	id     int
-	demux3 inputdemux.Demux3
+	demux3 *inputdemux.Demux3
 	rxl    *iface.RxLoop
 }
 
-func newInput(id int, lc dpdk.LCore, ndt *ndt.Ndt, fwds []*Fwd) *Input {
+func newInput(id int, lc eal.LCore, ndt *ndt.Ndt, fwds []*Fwd) *Input {
 	socket := lc.GetNumaSocket()
 	var fwi Input
 	fwi.id = id

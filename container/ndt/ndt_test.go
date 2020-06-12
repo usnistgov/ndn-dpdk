@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"ndn-dpdk/container/ndt"
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
 	"ndn-dpdk/ndn"
 )
 
@@ -17,15 +17,15 @@ type ndtLookupTestEntry struct {
 }
 
 type ndtLookupTestThread struct {
-	dpdk.ThreadBase
-	stop    dpdk.StopChan
+	eal.ThreadBase
+	stop    eal.StopChan
 	ndtt    ndt.NdtThread
 	Entries []ndtLookupTestEntry
 }
 
 func newNdtLookupTestThread(ndt *ndt.Ndt, threadIndex int, names []*ndn.Name) (th *ndtLookupTestThread) {
 	th = new(ndtLookupTestThread)
-	th.stop = dpdk.NewStopChan()
+	th.stop = eal.NewStopChan()
 	th.ndtt = ndt.GetThread(threadIndex)
 	for _, name := range names {
 		th.Entries = append(th.Entries, ndtLookupTestEntry{name, nil})
@@ -60,13 +60,13 @@ func (th *ndtLookupTestThread) Close() error {
 func TestNdt(t *testing.T) {
 	assert, require := makeAR(t)
 
-	slaves := dpdk.ListSlaveLCores()[:4]
+	slaves := eal.ListSlaveLCores()[:4]
 	cfg := ndt.Config{
 		PrefixLen:  2,
 		IndexBits:  8,
 		SampleFreq: 2,
 	}
-	ndt := ndt.New(cfg, dpdk.ListNumaSocketsOfLCores(slaves))
+	ndt := ndt.New(cfg, eal.ListNumaSocketsOfLCores(slaves))
 	defer ndt.Close()
 
 	nameStrs := []string{

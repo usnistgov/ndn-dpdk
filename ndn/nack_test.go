@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"ndn-dpdk/ndn"
-	"ndn-dpdk/ndn/ndntestutil"
+	"ndn-dpdk/ndn/ndntestenv"
 )
 
 func TestNackDecode(t *testing.T) {
@@ -21,11 +21,11 @@ func TestNackDecode(t *testing.T) {
 	}
 	for _, tt := range tests {
 		pkt := packetFromHex(tt.input)
-		defer pkt.AsDpdkPacket().Close()
+		defer pkt.AsMbuf().Close()
 		if !assert.NoError(pkt.ParseL2(), tt.input) {
 			continue
 		}
-		if !assert.NoError(pkt.ParseL3(theMp), tt.input) {
+		if !assert.NoError(pkt.ParseL3(ndntestenv.Name.Pool()), tt.input) {
 			continue
 		}
 		if !assert.Equal(ndn.L3PktType_Nack, pkt.GetL3Type(), tt.input) {
@@ -35,7 +35,7 @@ func TestNackDecode(t *testing.T) {
 		assert.Implements((*ndn.IL3Packet)(nil), nack)
 		assert.Equal(tt.reason, nack.GetReason(), tt.input)
 		interest := nack.GetInterest()
-		ndntestutil.NameEqual(assert, "/A", interest, tt.input)
+		ndntestenv.NameEqual(assert, "/A", interest, tt.input)
 		assert.Equal(uint32(0xA3A2A1A0), interest.GetNonce(), tt.input)
 	}
 }

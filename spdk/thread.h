@@ -3,7 +3,7 @@
 
 /// \file
 
-#include "../dpdk/thread.h"
+#include "../dpdk/eal/thread.h"
 
 #include <spdk/thread.h>
 

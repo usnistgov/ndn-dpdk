@@ -4,11 +4,11 @@ import (
 	"os"
 	"testing"
 
-	"ndn-dpdk/dpdk/dpdktestenv"
+	"ndn-dpdk/dpdk/eal/ealtestenv"
 )
 
 func TestMain(m *testing.M) {
-	dpdktestenv.InitEal()
+	ealtestenv.InitEal()
 
 	os.Exit(m.Run())
 }

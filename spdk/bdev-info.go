@@ -12,7 +12,7 @@ import (
 	"sync"
 	"unsafe"
 
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
 )
 
 var initBdevLibOnce sync.Once
@@ -27,7 +27,7 @@ func InitBdevLib() {
 //export go_bdevInitialized
 func go_bdevInitialized(ctx unsafe.Pointer, rc C.int) {
 	if rc != 0 {
-		panic(fmt.Sprintf("spdk_bdev_initialize error %v", dpdk.Errno(rc)))
+		panic(fmt.Sprintf("spdk_bdev_initialize error %v", eal.Errno(rc)))
 	}
 	C.SpdkBdev_InitFiller()
 }

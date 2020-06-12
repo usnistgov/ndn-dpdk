@@ -6,16 +6,11 @@ package ndn
 import "C"
 import (
 	"fmt"
+	"strconv"
 	"unsafe"
 
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/pktmbuf"
 )
-
-// Get size of PacketPriv structure.
-// PktmbufPool's privSize must be no less than this size.
-func SizeofPacketPriv() int {
-	return int(C.sizeof_PacketPriv)
-}
 
 type L2PktType int
 
@@ -29,7 +24,7 @@ func (t L2PktType) String() string {
 	case L2PktType_NdnlpV2:
 		return "NDNLPv2"
 	}
-	return fmt.Sprintf("%d", int(t))
+	return strconv.Itoa(int(t))
 }
 
 type L3PktType int
@@ -50,65 +45,80 @@ func (t L3PktType) String() string {
 	case L3PktType_Nack:
 		return "Nack"
 	}
-	return fmt.Sprintf("%d", int(t))
+	return strconv.Itoa(int(t))
 }
 
-// NDN network layer packet with parsed LP and Interest/Data headers.
-type Packet struct {
-	c *C.Packet
-	// DO NOT add other fields: *Packet is passed to C code as Packet**
-}
+// Packet represents a NDN network layer packet with parsed LP and Interest/Data headers.
+type Packet C.Packet
 
-// Construct Packet from *C.Packet.
-// This function can accept nil pointer.
-func PacketFromPtr(ptr unsafe.Pointer) (pkt Packet) {
-	if ptr != nil {
-		pkt.c = C.Packet_FromMbuf((*C.struct_rte_mbuf)(ptr))
+// PacketFromPtr converts *C.Packet or *C.struct_rte_mbuf pointer to Packet.
+func PacketFromPtr(ptr unsafe.Pointer) (pkt *Packet) {
+	if ptr == nil {
+		return nil
 	}
-	return pkt
+	return (*Packet)(C.Packet_FromMbuf((*C.struct_rte_mbuf)(ptr)))
 }
 
-func PacketFromDpdk(m dpdk.IMbuf) (pkt Packet) {
+// PacketFromMbuf converts pktmbuf.Packet to Packet.
+func PacketFromMbuf(m *pktmbuf.Packet) (pkt *Packet) {
 	return PacketFromPtr(m.GetPtr())
 }
 
-func (pkt Packet) GetPtr() unsafe.Pointer {
-	return unsafe.Pointer(pkt.c)
+// GetPtr returns *C.Packet or *C.struct_rte_mbuf pointer.
+func (pkt *Packet) GetPtr() unsafe.Pointer {
+	return unsafe.Pointer(pkt)
 }
 
-func (pkt Packet) AsDpdkPacket() dpdk.Packet {
-	return dpdk.MbufFromPtr(unsafe.Pointer(pkt.c)).AsPacket()
+func (pkt *Packet) getPtr() *C.Packet {
+	return (*C.Packet)(pkt)
 }
 
-func (pkt Packet) GetL2Type() L2PktType {
-	return L2PktType(C.Packet_GetL2PktType(pkt.c))
+// AsMbuf converts to pktmbuf.Packet.
+func (pkt *Packet) AsMbuf() *pktmbuf.Packet {
+	return pktmbuf.PacketFromPtr(pkt.GetPtr())
 }
 
-func (pkt Packet) GetL3Type() L3PktType {
-	return L3PktType(C.Packet_GetL3PktType(pkt.c))
+// GetL2Type returns layer 2 packet type.
+func (pkt *Packet) GetL2Type() L2PktType {
+	return L2PktType(C.Packet_GetL2PktType(pkt.getPtr()))
 }
 
-func (pkt Packet) GetLpHdr() *LpHeader {
-	return (*LpHeader)(unsafe.Pointer(C.Packet_GetLpHdr(pkt.c)))
+// GetL3Type returns layer 3 packet type.
+func (pkt *Packet) GetL3Type() L3PktType {
+	return L3PktType(C.Packet_GetL3PktType(pkt.getPtr()))
 }
 
-func (pkt Packet) GetLpL3() *LpL3 {
-	return (*LpL3)(unsafe.Pointer(C.Packet_GetLpL3Hdr(pkt.c)))
+// GetLpHdr returns NDNLP header.
+// L2 must be parsed as NDNLP and L3 must be unparsed.
+func (pkt *Packet) GetLpHdr() *LpHeader {
+	return (*LpHeader)(unsafe.Pointer(C.Packet_GetLpHdr(pkt.getPtr())))
 }
 
-func (pkt Packet) AsInterest() *Interest {
-	return &Interest{pkt, C.Packet_GetInterestHdr(pkt.c)}
+// GetLpL3 returns NDNLP layer 3 header.
+// Packet must be parsed as NDNLP.
+func (pkt *Packet) GetLpL3() *LpL3 {
+	return (*LpL3)(unsafe.Pointer(C.Packet_GetLpL3Hdr(pkt.getPtr())))
 }
 
-func (pkt Packet) AsData() *Data {
-	return &Data{pkt, C.Packet_GetDataHdr(pkt.c)}
+// AsInterest converts to Interest type.
+// Packet must be parsed as Interest.
+func (pkt *Packet) AsInterest() *Interest {
+	return &Interest{pkt, C.Packet_GetInterestHdr(pkt.getPtr())}
 }
 
-func (pkt Packet) AsNack() *Nack {
-	return &Nack{pkt, C.Packet_GetNackHdr(pkt.c)}
+// AsData converts to Data type.
+// Packet must be parsed as Data.
+func (pkt *Packet) AsData() *Data {
+	return &Data{pkt, C.Packet_GetDataHdr(pkt.getPtr())}
 }
 
-func (pkt Packet) String() string {
+// AsNack converts to Nack type.
+// Packet must be parsed as Nack.
+func (pkt *Packet) AsNack() *Nack {
+	return &Nack{pkt, C.Packet_GetNackHdr(pkt.getPtr())}
+}
+
+func (pkt *Packet) String() string {
 	switch pkt.GetL3Type() {
 	case L3PktType_Interest:
 		return fmt.Sprintf("I %s", pkt.AsInterest())
@@ -120,35 +130,34 @@ func (pkt Packet) String() string {
 	return fmt.Sprintf("Packet(l3=%d)", pkt.GetL3Type())
 }
 
-func (pkt Packet) ParseL2() error {
-	res := NdnError(C.Packet_ParseL2(pkt.c))
+// ParseL2 performs layer 2 parsing.
+func (pkt *Packet) ParseL2() error {
+	res := NdnError(C.Packet_ParseL2(pkt.getPtr()))
 	if res != NdnError_OK {
 		return res
 	}
 	return nil
 }
 
-func (pkt Packet) ParseL3(nameMp dpdk.PktmbufPool) error {
-	res := NdnError(C.Packet_ParseL3(pkt.c, (*C.struct_rte_mempool)(nameMp.GetPtr())))
+// ParseL3 performs layer 3 parsing.
+func (pkt *Packet) ParseL3(nameMp *pktmbuf.Pool) error {
+	var mpC *C.struct_rte_mempool
+	if nameMp != nil {
+		mpC = (*C.struct_rte_mempool)(nameMp.GetPtr())
+	}
+	res := NdnError(C.Packet_ParseL3(pkt.getPtr(), mpC))
 	if res != NdnError_OK {
 		return res
 	}
 	return nil
 }
 
-// L3 packet interface type that allows conversion to Packet.
+// IL3Packet represents a layer 3 packet that allows conversion to Packet.
 type IL3Packet interface {
-	GetPacket() Packet
+	GetPacket() *Packet
 }
 
-// Implement IL3Packet.
-func (pkt Packet) GetPacket() Packet {
+// GetPacket implements IL3Packet interface.
+func (pkt *Packet) GetPacket() *Packet {
 	return pkt
-}
-
-func init() {
-	var pkt Packet
-	if unsafe.Sizeof(pkt) != unsafe.Sizeof(pkt.c) {
-		panic("sizeof ndn.Packet differs from *C.Packet")
-	}
 }

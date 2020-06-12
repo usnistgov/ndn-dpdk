@@ -4,7 +4,7 @@
 /// \file
 
 #include "../../app/inputdemux/demux.h"
-#include "../../dpdk/thread.h"
+#include "../../dpdk/eal/thread.h"
 
 /** \brief Forwarder data plane, crypto helper.
  */

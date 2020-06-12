@@ -7,12 +7,11 @@ import "C"
 import (
 	"testing"
 
-	_ "ndn-dpdk/core"
-	"ndn-dpdk/dpdk/dpdktestenv"
+	"ndn-dpdk/core/testenv"
 )
 
 func testSipHash(t *testing.T) {
-	assert, _ := dpdktestenv.MakeAR(t)
+	assert, _ := testenv.MakeAR(t)
 
 	assert.EqualValues(0, C.TestSipHash())
 }

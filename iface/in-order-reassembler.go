@@ -23,7 +23,7 @@ func InOrderReassemblerFromPtr(ptr unsafe.Pointer) InOrderReassembler {
 	return InOrderReassembler{(*C.InOrderReassembler)(ptr)}
 }
 
-func (r InOrderReassembler) Receive(pkt ndn.Packet) ndn.Packet {
+func (r InOrderReassembler) Receive(pkt *ndn.Packet) *ndn.Packet {
 	res := C.InOrderReassembler_Receive(r.c, (*C.Packet)(pkt.GetPtr()))
 	return ndn.PacketFromPtr(unsafe.Pointer(res))
 }

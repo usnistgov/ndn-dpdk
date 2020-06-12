@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"ndn-dpdk/app/fetch"
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
 )
 
 func TestRttEst(t *testing.T) {
@@ -16,7 +16,7 @@ func TestRttEst(t *testing.T) {
 	rtte.Init()
 	assert.InDelta(time.Second, rtte.GetRto(), durationDelta)
 
-	now := dpdk.TscNow()
+	now := eal.TscNow()
 	rtte.Push(now, 500*time.Millisecond)
 	// sRtt=500ms, rttVar=250ms
 	assert.InDelta(500*time.Millisecond, rtte.GetSRtt(), durationDelta)

@@ -8,13 +8,12 @@ import "C"
 import (
 	"fmt"
 
-	"ndn-dpdk/appinit"
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/ndt"
 	"ndn-dpdk/container/pcct"
 	"ndn-dpdk/container/pit"
 	"ndn-dpdk/container/pktqueue"
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/createface"
 )
@@ -45,22 +44,22 @@ type DataPlane struct {
 func New(cfg Config) (dp *DataPlane, e error) {
 	dp = new(DataPlane)
 
-	dp.la.Allocator = &dpdk.LCoreAlloc
+	dp.la.Allocator = &eal.LCoreAlloc
 	if e = dp.la.Alloc(); e != nil {
 		return nil, e
 	}
 
 	{
-		inputLCores := append([]dpdk.LCore{}, dp.la.Inputs...)
+		inputLCores := append([]eal.LCore{}, dp.la.Inputs...)
 		if dp.la.Crypto.IsValid() {
 			inputLCores = append(inputLCores, dp.la.Crypto)
 		}
-		dp.ndt = ndt.New(cfg.Ndt, dpdk.ListNumaSocketsOfLCores(inputLCores))
+		dp.ndt = ndt.New(cfg.Ndt, eal.ListNumaSocketsOfLCores(inputLCores))
 		dp.ndt.Randomize(len(dp.la.Fwds))
 	}
 
 	cfg.Fib.Id = "FIB"
-	if dp.fib, e = fib.New(cfg.Fib, dp.ndt, dpdk.ListNumaSocketsOfLCores(dp.la.Fwds)); e != nil {
+	if dp.fib, e = fib.New(cfg.Fib, dp.ndt, eal.ListNumaSocketsOfLCores(dp.la.Fwds)); e != nil {
 		dp.Close()
 		return nil, fmt.Errorf("fib.New: %v", e)
 	}
@@ -94,7 +93,6 @@ func New(cfg Config) (dp *DataPlane, e error) {
 }
 
 func (dp *DataPlane) Launch() error {
-	appinit.ProvideCreateFaceMempools()
 	for _, txLCore := range dp.la.Outputs {
 		txl := iface.NewTxLoop(txLCore.GetNumaSocket())
 		txl.SetLCore(txLCore)

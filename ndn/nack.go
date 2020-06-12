@@ -7,6 +7,7 @@ package ndn
 import "C"
 import (
 	"fmt"
+	"strconv"
 	"unsafe"
 )
 
@@ -30,7 +31,7 @@ func (reason NackReason) String() string {
 	case NackReason_NoRoute:
 		return "NoRoute"
 	}
-	return fmt.Sprintf("%d", reason)
+	return strconv.Itoa(int(reason))
 }
 
 func ParseNackReason(s string) NackReason {
@@ -47,18 +48,18 @@ func ParseNackReason(s string) NackReason {
 
 // Nack packet.
 type Nack struct {
-	m Packet
+	m *Packet
 	p *C.PNack
 }
 
 // Turn Interest into Nack.
 // This overwrites the Interest.
 func MakeNackFromInterest(interest *Interest, reason NackReason) *Nack {
-	C.MakeNack(interest.m.c, C.NackReason(reason))
+	C.MakeNack(interest.m.getPtr(), C.NackReason(reason))
 	return interest.m.AsNack()
 }
 
-func (nack *Nack) GetPacket() Packet {
+func (nack *Nack) GetPacket() *Packet {
 	return nack.m
 }
 

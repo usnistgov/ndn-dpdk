@@ -28,7 +28,7 @@ mkdir -p $BUILDDIR
 rm -f $LIBNAME $BUILDDIR/*.o
 
 ar rc $LIBNAME
-for CFILE in $(find $INPUTDIR -maxdepth 1 -name '*.c'); do
+for CFILE in $(find $INPUTDIR -maxdepth 1 -name '*.c' | sort); do
   OBJ=$BUILDDIR/$(basename $CFILE .c).o
   $CC -c -Werror -o $OBJ $CFLAGS $CFILE
   ar r $LIBNAME $OBJ

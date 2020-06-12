@@ -19,7 +19,7 @@ cd "$( dirname "${BASH_SOURCE[0]}" )"
 (
   echo 'package ndn'
   echo
-  echo 'import "fmt"'
+  echo 'import "strconv"'
   echo
   echo 'type TlvType uint32'
   echo
@@ -38,7 +38,7 @@ cd "$( dirname "${BASH_SOURCE[0]}" )"
           }
         }' tlv-type.tsv
   echo '  }'
-  echo '  return fmt.Sprintf("%d", tt)'
+  echo '  return strconv.Itoa(int(tt))'
   echo '}'
 ) | gofmt -s > tlv-type.go
 

@@ -3,7 +3,7 @@ package ifacetest
 import (
 	"testing"
 
-	"ndn-dpdk/dpdk/dpdktestenv"
+	"ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/ndn"
 )
@@ -39,7 +39,7 @@ func TestInOrderReassembler(t *testing.T) {
 			"F0F1F2F3"}, // accepted, delivering
 	}
 	for _, step := range steps {
-		fragPkt := ndn.PacketFromDpdk(dpdktestenv.PacketFromHex(step.input))
+		fragPkt := ndn.PacketFromMbuf(mbuftestenv.MakePacket(step.input))
 		e := fragPkt.ParseL2()
 		require.NoError(e, step.input)
 
@@ -47,8 +47,8 @@ func TestInOrderReassembler(t *testing.T) {
 		if step.output == "" {
 			assert.True(reassPkt.GetPtr() == nil, step.input)
 		} else if assert.NotNil(reassPkt.GetPtr(), step.input) {
-			payload := reassPkt.AsDpdkPacket().ReadAll()
-			assert.Equal(dpdktestenv.BytesFromHex(step.output), payload, step.input)
+			payload := reassPkt.AsMbuf().ReadAll()
+			assert.Equal(mbuftestenv.BytesFromHex(step.output), payload, step.input)
 		}
 	}
 

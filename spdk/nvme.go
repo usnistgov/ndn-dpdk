@@ -11,14 +11,14 @@ import (
 	"errors"
 	"unsafe"
 
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
 )
 
 type listNvmesResult struct {
-	nvmes []dpdk.PciAddress
+	nvmes []eal.PciAddress
 }
 
-func ListNvmes() (nvmes []dpdk.PciAddress, e error) {
+func ListNvmes() (nvmes []eal.PciAddress, e error) {
 	var result listNvmesResult
 	ctx := ctxPut(&result)
 	res := MainThread.Call(func() int {
@@ -34,7 +34,7 @@ func ListNvmes() (nvmes []dpdk.PciAddress, e error) {
 
 //export go_nvmeProbed
 func go_nvmeProbed(ctx unsafe.Pointer, trid *C.struct_spdk_nvme_transport_id, opts *C.struct_spdk_nvme_ctrlr_opts) C.bool {
-	pciAddr := dpdk.MustParsePciAddress(C.GoString(&trid.traddr[0]))
+	pciAddr := eal.MustParsePciAddress(C.GoString(&trid.traddr[0]))
 	result := ctxGet(ctx).(*listNvmesResult)
 	result.nvmes = append(result.nvmes, pciAddr)
 	return C.bool(false)

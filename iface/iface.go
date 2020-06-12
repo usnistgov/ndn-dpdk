@@ -5,7 +5,7 @@ package iface
 */
 import "C"
 import (
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
 	"ndn-dpdk/ndn"
 )
 
@@ -22,7 +22,7 @@ type IFace interface {
 	GetLocator() Locator
 
 	// Get NUMA socket of this face's data structures.
-	GetNumaSocket() dpdk.NumaSocket
+	GetNumaSocket() eal.NumaSocket
 
 	// Determine whether the face has been closed.
 	IsClosed() bool
@@ -40,7 +40,7 @@ type IFace interface {
 	ListRxGroups() []IRxGroup
 
 	// Transmit a burst of L3 packets.
-	TxBurst(pkts []ndn.Packet)
+	TxBurst(pkts []*ndn.Packet)
 
 	// Read basic face counters.
 	ReadCounters() Counters

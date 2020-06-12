@@ -4,20 +4,23 @@ import (
 	"os"
 	"testing"
 
-	"ndn-dpdk/dpdk"
-	"ndn-dpdk/dpdk/dpdktestenv"
-	"ndn-dpdk/ndn"
+	"ndn-dpdk/core/testenv"
+	"ndn-dpdk/dpdk/eal"
+	"ndn-dpdk/dpdk/eal/ealtestenv"
+	"ndn-dpdk/ndn/ndntestenv"
 	"ndn-dpdk/spdk"
 )
 
 func TestMain(m *testing.M) {
-	dpdktestenv.InitEal()
-	spdk.MustInit(dpdk.ListSlaveLCores()[0])
+	ealtestenv.InitEal()
+	spdk.MustInit(eal.ListSlaveLCores()[0])
 	spdk.InitBdevLib()
-
-	dpdktestenv.MakeDirectMp(255, ndn.SizeofPacketPriv(), 2000)
 
 	os.Exit(m.Run())
 }
 
-var makeAR = dpdktestenv.MakeAR
+var (
+	makeAR       = testenv.MakeAR
+	makeInterest = ndntestenv.MakeInterest
+	makeData     = ndntestenv.MakeData
+)

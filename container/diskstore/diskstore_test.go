@@ -6,9 +6,10 @@ import (
 	"time"
 
 	"ndn-dpdk/container/diskstore"
-	"ndn-dpdk/dpdk/dpdktestenv"
+	"ndn-dpdk/dpdk/eal"
+	"ndn-dpdk/dpdk/pktmbuf"
 	"ndn-dpdk/ndn"
-	"ndn-dpdk/ndn/ndntestutil"
+	"ndn-dpdk/ndn/ndntestenv"
 	"ndn-dpdk/spdk"
 )
 
@@ -19,7 +20,8 @@ func TestDiskStore(t *testing.T) {
 	require.NoError(e)
 	defer spdk.DestroyMallocBdev(bdi)
 
-	mp := dpdktestenv.MakeMp("TestDiskStore", 255, ndn.SizeofPacketPriv(), 1500)
+	mp, e := pktmbuf.NewPool("TestDiskStore", ndn.PacketMempool.GetConfig(), eal.NumaSocket{})
+	require.NoError(e)
 	defer mp.Close()
 
 	store, e := diskstore.New(bdi, spdk.MainThread, mp, 8)
@@ -34,32 +36,32 @@ func TestDiskStore(t *testing.T) {
 	dataLens[2] = 1024
 
 	for _, n := range []uint64{1, 31, 32} {
-		data := ndntestutil.MakeData(fmt.Sprintf("/A/%d", n), time.Duration(n)*time.Millisecond)
-		dataLens[n] = data.GetPacket().AsDpdkPacket().Len()
+		data := makeData(fmt.Sprintf("/A/%d", n), time.Duration(n)*time.Millisecond)
+		dataLens[n] = data.GetPacket().AsMbuf().Len()
 		store.PutData(n, data)
 	}
 
 	for _, n := range []uint64{1, 31} {
-		interest := ndntestutil.MakeInterest(fmt.Sprintf("/A/%d", n))
+		interest := makeInterest(fmt.Sprintf("/A/%d", n))
 		data, e := store.GetData(n, dataLens[n], interest)
 		if !assert.NoError(e, n) {
 			continue
 		}
 		if assert.NotNil(data, n) {
 			assert.Equal(time.Duration(n)*time.Millisecond, data.GetFreshnessPeriod(), n)
-			ndntestutil.ClosePacket(data)
+			ndntestenv.ClosePacket(data)
 		}
-		ndntestutil.ClosePacket(interest)
+		ndntestenv.ClosePacket(interest)
 	}
 
 	for _, n := range []uint64{2, 32} {
-		interest := ndntestutil.MakeInterest(fmt.Sprintf("/A/%d", n))
+		interest := makeInterest(fmt.Sprintf("/A/%d", n))
 		data, e := store.GetData(n, dataLens[n], interest)
 		if !assert.NoError(e, n) {
 			continue
 		}
 		assert.Nil(data, n)
-		ndntestutil.ClosePacket(interest)
+		ndntestenv.ClosePacket(interest)
 	}
 
 	assert.Zero(mp.CountInUse())

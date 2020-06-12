@@ -11,7 +11,7 @@ import (
 	"ndn-dpdk/container/fib/fibtree"
 	"ndn-dpdk/container/ndt"
 	"ndn-dpdk/core/urcu"
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
 	"ndn-dpdk/ndn"
 )
 
@@ -31,7 +31,7 @@ type Fib struct {
 	commands chan command
 }
 
-func New(cfg Config, ndt *ndt.Ndt, numaSockets []dpdk.NumaSocket) (fib *Fib, e error) {
+func New(cfg Config, ndt *ndt.Ndt, numaSockets []eal.NumaSocket) (fib *Fib, e error) {
 	if cfg.StartDepth <= ndt.GetPrefixLen() {
 		return nil, errors.New("FIB StartDepth must be greater than NDT PrefixLen")
 	}

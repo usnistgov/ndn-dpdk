@@ -6,11 +6,10 @@ import (
 	"unsafe"
 
 	"ndn-dpdk/core/urcu"
-	"ndn-dpdk/dpdk/dpdktestenv"
 )
 
 func TestReadSide(t *testing.T) {
-	assert, _ := dpdktestenv.MakeAR(t)
+	assert, _ := makeAR(t)
 
 	rs := urcu.NewReadSide()
 	defer rs.Close()
@@ -19,7 +18,7 @@ func TestReadSide(t *testing.T) {
 }
 
 func TestPointer(t *testing.T) {
-	assert, _ := dpdktestenv.MakeAR(t)
+	assert, _ := makeAR(t)
 
 	rs := urcu.NewReadSide()
 	defer rs.Close()

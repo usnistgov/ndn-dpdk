@@ -24,7 +24,7 @@ func (cnt Counters) String() string {
 }
 
 // Read PIT counters.
-func (pit Pit) ReadCounters() (cnt Counters) {
+func (pit *Pit) ReadCounters() (cnt Counters) {
 	pitp := pit.getPriv()
 	cnt.NEntries = uint64(pitp.nEntries)
 	cnt.NInsert = uint64(pitp.nInsert)

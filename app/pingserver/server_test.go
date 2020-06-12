@@ -8,7 +8,7 @@ import (
 	"ndn-dpdk/app/ping/pingtestenv"
 	"ndn-dpdk/app/pingserver"
 	"ndn-dpdk/ndn"
-	"ndn-dpdk/ndn/ndntestutil"
+	"ndn-dpdk/ndn/ndntestenv"
 )
 
 func TestServer(t *testing.T) {
@@ -91,9 +91,9 @@ func TestServer(t *testing.T) {
 
 	rx := pingtestenv.MakeRxFunc(server.GetRxQueue())
 	for i := 0; i < 100; i++ {
-		interestA := ndntestutil.MakeInterest(fmt.Sprintf("/A/%d", i))
-		interestB := ndntestutil.MakeInterest(fmt.Sprintf("/B/%d", i))
-		interestC := ndntestutil.MakeInterest(fmt.Sprintf("/C/%d", i))
+		interestA := ndntestenv.MakeInterest(fmt.Sprintf("/A/%d", i))
+		interestB := ndntestenv.MakeInterest(fmt.Sprintf("/B/%d", i))
+		interestC := ndntestenv.MakeInterest(fmt.Sprintf("/C/%d", i))
 		rx(interestA, interestB, interestC)
 		time.Sleep(50 * time.Microsecond)
 	}

@@ -5,13 +5,12 @@ source mk/cflags.sh
 
 getTestPkg() {
   # determine $TESTPKG from $PKG
-  if [[ $1 == 'app/fwdp' ]]; then echo app/fwdp/fwdptest
-  elif [[ $1 == 'container/fib' ]]; then echo container/fib/fibtest
-  elif [[ $1 == 'container/mintmr' ]]; then echo container/mintmr/mintmrtest
-  elif [[ $1 == 'core' ]]; then echo core/coretest
-  elif [[ $1 == 'dpdk' ]]; then echo dpdk/dpdktest
-  elif [[ $1 == 'iface' ]]; then echo iface/ifacetest
-  else echo $PKG; fi
+  TESTDIR=$1/$(basename $1)test
+  if [[ -d $TESTDIR ]]; then
+    echo $TESTDIR
+  else
+    echo $1
+  fi
 }
 
 if [[ $# -eq 0 ]]; then

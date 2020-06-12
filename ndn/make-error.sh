@@ -19,7 +19,7 @@ cd "$( dirname "${BASH_SOURCE[0]}" )"
 (
   echo 'package ndn'
   echo
-  echo 'import "fmt"'
+  echo 'import "strconv"'
   echo
   echo 'type NdnError int'
   echo
@@ -32,6 +32,6 @@ cd "$( dirname "${BASH_SOURCE[0]}" )"
   echo '  switch e {'
   awk '{ print "  case NdnError_" $1 ": return \"" $1 "\""  }' error.tsv
   echo '  }'
-  echo '  return fmt.Sprintf("%d", e)'
+  echo '  return strconv.Itoa(int(e))'
   echo '}'
 ) | gofmt -s > error.go

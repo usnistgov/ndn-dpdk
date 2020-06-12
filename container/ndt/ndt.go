@@ -8,7 +8,7 @@ import (
 	"math/rand"
 	"unsafe"
 
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
 	"ndn-dpdk/ndn"
 )
 
@@ -24,15 +24,15 @@ type Ndt struct {
 }
 
 // Create an NDT.
-func New(cfg Config, numaSockets []dpdk.NumaSocket) (ndt *Ndt) {
+func New(cfg Config, numaSockets []eal.NumaSocket) (ndt *Ndt) {
 	ndt = new(Ndt)
 
-	numaSocketsC := make([]C.unsigned, len(numaSockets))
+	numaSocketsC := make([]C.uint, len(numaSockets))
 	for i, socket := range numaSockets {
-		numaSocketsC[i] = C.unsigned(socket.ID())
+		numaSocketsC[i] = C.uint(socket.ID())
 	}
 
-	ndt.c = (*C.Ndt)(dpdk.Zmalloc("Ndt", C.sizeof_Ndt, numaSockets[0]))
+	ndt.c = (*C.Ndt)(eal.Zmalloc("Ndt", C.sizeof_Ndt, numaSockets[0]))
 	C.Ndt_Init(ndt.c, C.uint16_t(cfg.PrefixLen), C.uint8_t(cfg.IndexBits), C.uint8_t(cfg.SampleFreq),
 		C.uint8_t(len(numaSockets)), &numaSocketsC[0])
 	return ndt
@@ -41,11 +41,11 @@ func New(cfg Config, numaSockets []dpdk.NumaSocket) (ndt *Ndt) {
 // Destroy the NDT.
 func (ndt *Ndt) Close() error {
 	for i := 0; i < ndt.CountThreads(); i++ {
-		dpdk.Free(ndt.getThreadC(i))
+		eal.Free(ndt.getThreadC(i))
 	}
-	dpdk.Free(ndt.c.threads)
-	dpdk.Free(ndt.c.table)
-	dpdk.Free(ndt.c)
+	eal.Free(ndt.c.threads)
+	eal.Free(ndt.c.table)
+	eal.Free(ndt.c)
 	return nil
 }
 

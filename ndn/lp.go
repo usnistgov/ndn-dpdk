@@ -5,9 +5,8 @@ package ndn
 */
 import "C"
 import (
+	"ndn-dpdk/dpdk/pktmbuf"
 	"unsafe"
-
-	"ndn-dpdk/dpdk"
 )
 
 type LpL3 struct {
@@ -47,7 +46,7 @@ func PrependLpHeader_GetHeadroom() int {
 	return int(C.PrependLpHeader_GetHeadroom())
 }
 
-func (lph *LpHeader) Prepend(pkt dpdk.IMbuf, payloadL int) {
+func (lph *LpHeader) Prepend(pkt *pktmbuf.Packet, payloadL int) {
 	lphC := (*C.LpHeader)(unsafe.Pointer(lph))
 	C.PrependLpHeader((*C.struct_rte_mbuf)(pkt.GetPtr()), lphC, C.uint32_t(payloadL))
 }

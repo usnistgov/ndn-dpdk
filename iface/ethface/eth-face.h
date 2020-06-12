@@ -3,7 +3,7 @@
 
 /// \file
 
-#include "../../dpdk/ethdev.h"
+#include "../../dpdk/ethdev/ethdev.h"
 #include "../face.h"
 #include "../rxloop.h"
 #include <rte_flow.h>

@@ -8,16 +8,16 @@ import (
 	"unsafe"
 
 	"ndn-dpdk/app/fetch"
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
 )
 
 func TestLogic(t *testing.T) {
 	assert, _ := makeAR(t)
 
-	flPtr := dpdk.Zmalloc("FetchLogic", unsafe.Sizeof(fetch.Logic{}), dpdk.NumaSocket{})
-	defer dpdk.Free(flPtr)
+	flPtr := eal.Zmalloc("FetchLogic", unsafe.Sizeof(fetch.Logic{}), eal.NumaSocket{})
+	defer eal.Free(flPtr)
 	fl := fetch.LogicFromPtr(flPtr)
-	fl.Init(64, dpdk.NumaSocket{})
+	fl.Init(64, eal.NumaSocket{})
 	defer fl.Close()
 
 	const FINAL_SEG = 1999

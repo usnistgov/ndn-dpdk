@@ -13,7 +13,7 @@ import (
 	"unsafe"
 
 	"ndn-dpdk/core/running_stat"
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
 )
 
 type PacketCounters struct {
@@ -73,7 +73,7 @@ func (cnt Counters) String() string {
 
 // Read counters.
 func (client *Client) ReadCounters() (cnt Counters) {
-	rttScale := dpdk.GetNanosInTscUnit() * math.Exp2(C.PING_TIMING_PRECISION)
+	rttScale := eal.GetNanosInTscUnit() * math.Exp2(C.PING_TIMING_PRECISION)
 	for i := 0; i < int(client.Rx.c.nPatterns); i++ {
 		crP := client.Rx.c.pattern[i]
 		ctP := client.Tx.c.pattern[i]

@@ -14,14 +14,14 @@ import (
 	"time"
 	"unsafe"
 
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
 )
 
 var threadLibInitOnce sync.Once
 
 // SPDK thread.
 type Thread struct {
-	dpdk.ThreadBase
+	eal.ThreadBase
 	c *C.SpdkThread
 }
 
@@ -38,9 +38,9 @@ func NewThread(name string) (th *Thread, e error) {
 	}
 
 	th = new(Thread)
-	th.c = (*C.SpdkThread)(dpdk.Zmalloc("SpdkThread", C.sizeof_SpdkThread, dpdk.NumaSocket{}))
+	th.c = (*C.SpdkThread)(eal.Zmalloc("SpdkThread", C.sizeof_SpdkThread, eal.NumaSocket{}))
 	th.c.spdkTh = spdkThread
-	dpdk.InitStopFlag(unsafe.Pointer(&th.c.stop))
+	eal.InitStopFlag(unsafe.Pointer(&th.c.stop))
 	return th, nil
 }
 
@@ -57,14 +57,14 @@ func (th *Thread) Launch() error {
 }
 
 func (th *Thread) Stop() error {
-	return th.StopImpl(dpdk.NewStopFlag(unsafe.Pointer(&th.c.stop)))
+	return th.StopImpl(eal.NewStopFlag(unsafe.Pointer(&th.c.stop)))
 }
 
 func (th *Thread) Close() error {
 	if th.IsRunning() {
-		return dpdk.ErrCloseRunningThread
+		return errors.New("cannot close a running thread")
 	}
-	dpdk.Free(th.c)
+	eal.Free(th.c)
 	return nil
 }
 

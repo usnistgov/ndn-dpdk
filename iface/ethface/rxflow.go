@@ -8,7 +8,8 @@ import (
 	"errors"
 	"unsafe"
 
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
+	"ndn-dpdk/dpdk/ethdev"
 	"ndn-dpdk/iface"
 )
 
@@ -136,8 +137,7 @@ func (impl *rxFlowImpl) Close() error {
 		}
 	}
 	impl.queueFlow = nil
-	impl.port.dev.Stop()
-	impl.setIsolate(false)
+	impl.port.dev.Stop(ethdev.StopDetach)
 	return nil
 }
 
@@ -166,7 +166,7 @@ func newRxFlow(face *EthFace, queue int) (rxf *RxFlow, e error) {
 	return rxf, nil
 }
 
-func (rxf *RxFlow) GetNumaSocket() dpdk.NumaSocket {
+func (rxf *RxFlow) GetNumaSocket() eal.NumaSocket {
 	return rxf.face.GetNumaSocket()
 }
 

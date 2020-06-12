@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"sync"
 
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
 )
 
 var initAccelEngineOnce sync.Once
@@ -84,7 +84,7 @@ func DestroyAioBdev(bdi BdevInfo) (e error) {
 	return RpcCall("bdev_aio_delete", args, &ok)
 }
 
-func makeNvmeName(pciAddr dpdk.PciAddress) string {
+func makeNvmeName(pciAddr eal.PciAddress) string {
 	return fmt.Sprintf("nvme%02x%02x%01x", pciAddr.Bus, pciAddr.Devid, pciAddr.Function)
 }
 
@@ -94,7 +94,7 @@ type bdevNvmeAttachController struct {
 	TrAddr string `json:"traddr"`
 }
 
-func AttachNvmeBdevs(pciAddr dpdk.PciAddress) (bdis []BdevInfo, e error) {
+func AttachNvmeBdevs(pciAddr eal.PciAddress) (bdis []BdevInfo, e error) {
 	var args bdevNvmeAttachController
 	args.Name = makeNvmeName(pciAddr)
 	args.TrType = "pcie"
@@ -115,7 +115,7 @@ type bdevNvmeDetachControllerArgs struct {
 	Name string `json:"name"`
 }
 
-func DetachNvmeBdevs(pciAddr dpdk.PciAddress) (e error) {
+func DetachNvmeBdevs(pciAddr eal.PciAddress) (e error) {
 	var args bdevNvmeDetachControllerArgs
 	args.Name = makeNvmeName(pciAddr)
 	var ok bool

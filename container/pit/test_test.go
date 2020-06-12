@@ -9,22 +9,29 @@ import (
 	"ndn-dpdk/container/pcct"
 	"ndn-dpdk/container/pit"
 	"ndn-dpdk/container/strategycode"
-	"ndn-dpdk/dpdk/dpdktestenv"
+	"ndn-dpdk/core/testenv"
+	"ndn-dpdk/dpdk/eal/ealtestenv"
+	"ndn-dpdk/dpdk/pktmbuf"
+	"ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/ndn"
-	"ndn-dpdk/ndn/ndntestutil"
+	"ndn-dpdk/ndn/ndntestenv"
 )
 
 func TestMain(m *testing.M) {
-	dpdktestenv.MakeDirectMp(4095, ndn.SizeofPacketPriv(), 8000)
-
+	mbuftestenv.Direct.Template.Update(pktmbuf.PoolConfig{Dataroom: 8000}) // needed for TestEntryLongName
+	ealtestenv.InitEal()
 	os.Exit(m.Run())
 }
 
-var makeAR = dpdktestenv.MakeAR
+var (
+	makeAR       = testenv.MakeAR
+	makeInterest = ndntestenv.MakeInterest
+	makeData     = ndntestenv.MakeData
+)
 
 type Fixture struct {
-	Pit pit.Pit
+	Pit *pit.Pit
 
 	fibFixture    *fibtest.Fixture
 	emptyStrategy strategycode.StrategyCode
@@ -43,7 +50,7 @@ func NewFixture(pcctMaxEntries int) (fixture *Fixture) {
 		panic(e)
 	}
 
-	fixture.Pit = pit.Pit{pcct}
+	fixture.Pit = pit.FromPcct(pcct)
 
 	fixture.fibFixture = fibtest.NewFixture(2, 4, 1)
 	fixture.emptyStrategy = strategycode.MakeEmpty("empty")
@@ -67,7 +74,7 @@ func (fixture *Fixture) CountMpInUse() int {
 func (fixture *Fixture) Insert(interest *ndn.Interest) *pit.Entry {
 	pitEntry, csEntry := fixture.Pit.Insert(interest, fixture.EmptyFibEntry)
 	if csEntry != nil {
-		ndntestutil.ClosePacket(interest)
+		ndntestenv.ClosePacket(interest)
 		return nil
 	}
 	if pitEntry == nil {

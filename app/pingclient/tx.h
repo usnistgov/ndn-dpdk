@@ -6,8 +6,8 @@
 #include "common.h"
 
 #include "../../core/pcg_basic.h"
-#include "../../dpdk/thread.h"
-#include "../../dpdk/tsc.h"
+#include "../../dpdk/eal/thread.h"
+#include "../../dpdk/eal/tsc.h"
 #include "../../iface/face.h"
 
 /** \brief Per-pattern information in ndnping client.

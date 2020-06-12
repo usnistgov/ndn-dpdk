@@ -4,11 +4,10 @@ import (
 	"testing"
 
 	"ndn-dpdk/core/emission"
-	"ndn-dpdk/dpdk/dpdktestenv"
 )
 
 func TestOnCancel(t *testing.T) {
-	assert, _ := dpdktestenv.MakeAR(t)
+	assert, _ := makeAR(t)
 
 	nA, nB := 0, 0
 	fA := func() { nA++ }

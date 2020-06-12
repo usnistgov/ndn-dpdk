@@ -4,11 +4,11 @@ import (
 	"testing"
 	"time"
 
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/mockface"
 	"ndn-dpdk/ndn"
-	"ndn-dpdk/ndn/ndntestutil"
+	"ndn-dpdk/ndn/ndntestenv"
 )
 
 func TestCApiNoFace(t *testing.T) {
@@ -17,8 +17,8 @@ func TestCApiNoFace(t *testing.T) {
 	id := iface.AllocId(iface.FaceKind_Mock) // non-existent face
 	assert.True(Face_IsDown(id))
 
-	pkts := make([]ndn.Packet, 1)
-	pkts[0] = ndntestutil.MakeInterest("/A").GetPacket()
+	pkts := make([]*ndn.Packet, 1)
+	pkts[0] = ndntestenv.MakeInterest("/A").GetPacket()
 	Face_TxBurst(id, pkts) // should not crash
 }
 
@@ -34,15 +34,15 @@ func TestCApi(t *testing.T) {
 	face.SetDown(false)
 	assert.False(Face_IsDown(id))
 
-	txl := iface.NewTxLoop(dpdk.NumaSocket{})
-	txl.SetLCore(dpdk.ListSlaveLCores()[0])
+	txl := iface.NewTxLoop(eal.NumaSocket{})
+	txl.SetLCore(eal.ListSlaveLCores()[0])
 	txl.Launch()
 	time.Sleep(10 * time.Millisecond)
 	txl.AddFace(face)
 	time.Sleep(90 * time.Millisecond)
 
-	pkts := make([]ndn.Packet, 1)
-	pkts[0] = ndntestutil.MakeInterest("/A").GetPacket()
+	pkts := make([]*ndn.Packet, 1)
+	pkts[0] = ndntestenv.MakeInterest("/A").GetPacket()
 	Face_TxBurst(id, pkts)
 
 	time.Sleep(100 * time.Millisecond)

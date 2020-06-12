@@ -10,14 +10,15 @@ import (
 	"sync"
 	"unsafe"
 
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
+	"ndn-dpdk/dpdk/ringbuffer"
 )
 
 const ringCapacity = 65536
 
 // Initialize high resolution logger.
 func Init() error {
-	r, e := dpdk.NewRing("theHrlogRing", ringCapacity, dpdk.NumaSocket{}, false, true)
+	r, e := ringbuffer.New("theHrlogRing", ringCapacity, eal.NumaSocket{}, ringbuffer.ProducerMulti, ringbuffer.ConsumerSingle)
 	if e != nil {
 		return e
 	}
@@ -41,7 +42,7 @@ func (HrlogMgmt) Start(args StartArgs, reply *struct{}) error {
 	if job.Count == 0 {
 		job.Count = 1 << 28 // 268 million samples, 2GB file
 	}
-	dpdk.InitStopFlag(unsafe.Pointer(&job.stop))
+	eal.InitStopFlag(unsafe.Pointer(&job.stop))
 	job.finish = make(chan error, 1)
 
 	collectJobs[args.Filename] = job
@@ -59,7 +60,7 @@ func (HrlogMgmt) Stop(args FilenameArg, reply *struct{}) error {
 		return errors.New("job not found")
 	}
 
-	stop := dpdk.InitStopFlag(unsafe.Pointer(&job.stop))
+	stop := eal.InitStopFlag(unsafe.Pointer(&job.stop))
 	stop.BeforeWait()
 	e := <-job.finish
 	stop.AfterWait()

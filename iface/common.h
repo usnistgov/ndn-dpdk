@@ -3,7 +3,7 @@
 
 /// \file
 
-#include "../dpdk/tsc.h"
+#include "../dpdk/eal/tsc.h"
 #include "../ndn/packet.h"
 #include "../ndn/protonum.h"
 

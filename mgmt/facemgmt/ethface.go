@@ -3,7 +3,8 @@ package facemgmt
 import (
 	"errors"
 
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
+	"ndn-dpdk/dpdk/ethdev"
 	"ndn-dpdk/iface/ethface"
 )
 
@@ -11,7 +12,7 @@ type EthFaceMgmt struct{}
 
 func (EthFaceMgmt) ListPorts(args struct{}, reply *[]PortInfo) error {
 	result := make([]PortInfo, 0)
-	for _, dev := range dpdk.ListEthDevs() {
+	for _, dev := range ethdev.List() {
 		result = append(result, makePortInfo(dev))
 	}
 	*reply = result
@@ -19,7 +20,7 @@ func (EthFaceMgmt) ListPorts(args struct{}, reply *[]PortInfo) error {
 }
 
 func (EthFaceMgmt) ListPortFaces(args PortArg, reply *[]BasicInfo) error {
-	dev := dpdk.FindEthDev(args.Port)
+	dev := ethdev.Find(args.Port)
 	if !dev.IsValid() {
 		return errors.New("EthDev not found")
 	}
@@ -34,8 +35,8 @@ func (EthFaceMgmt) ListPortFaces(args PortArg, reply *[]BasicInfo) error {
 	return nil
 }
 
-func (EthFaceMgmt) ReadPortStats(args PortStatsArg, reply *dpdk.EthStats) error {
-	dev := dpdk.FindEthDev(args.Port)
+func (EthFaceMgmt) ReadPortStats(args PortStatsArg, reply *ethdev.Stats) error {
+	dev := ethdev.Find(args.Port)
 	if !dev.IsValid() {
 		return errors.New("EthDev not found")
 	}
@@ -52,13 +53,13 @@ type PortArg struct {
 }
 
 type PortInfo struct {
-	Name       string          // port name
-	NumaSocket dpdk.NumaSocket // NUMA socket
-	Active     bool            // whether port is active
-	ImplName   string          // internal implementation name
+	Name       string         // port name
+	NumaSocket eal.NumaSocket // NUMA socket
+	Active     bool           // whether port is active
+	ImplName   string         // internal implementation name
 }
 
-func makePortInfo(dev dpdk.EthDev) (info PortInfo) {
+func makePortInfo(dev ethdev.EthDev) (info PortInfo) {
 	info.Name = dev.GetName()
 	info.NumaSocket = dev.GetNumaSocket()
 	port := ethface.FindPort(dev)

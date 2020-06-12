@@ -7,17 +7,17 @@ import "C"
 import (
 	"unsafe"
 
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
 	"ndn-dpdk/ndn"
 )
 
 // A CS entry.
 type Entry struct {
 	c  *C.CsEntry
-	cs Cs
+	cs *Cs
 }
 
-func (cs Cs) EntryFromPtr(ptr unsafe.Pointer) Entry {
+func (cs *Cs) EntryFromPtr(ptr unsafe.Pointer) Entry {
 	return Entry{(*C.CsEntry)(ptr), cs}
 }
 
@@ -45,11 +45,11 @@ func (entry Entry) GetData() *ndn.Data {
 	return ndn.PacketFromPtr(unsafe.Pointer(C.CsEntry_GetData(entry.c))).AsData()
 }
 
-func (entry Entry) GetFreshUntil() dpdk.TscTime {
-	return dpdk.TscTime(C.CsEntry_GetDirect(entry.c).freshUntil)
+func (entry Entry) GetFreshUntil() eal.TscTime {
+	return eal.TscTime(C.CsEntry_GetDirect(entry.c).freshUntil)
 }
 
 // Determine whether entry is fresh at a timestamp.
-func (entry Entry) IsFresh(now dpdk.TscTime) bool {
+func (entry Entry) IsFresh(now eal.TscTime) bool {
 	return entry.GetFreshUntil() > now
 }

@@ -9,7 +9,7 @@ import (
 	"os"
 	"unsafe"
 
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
 )
 
 // External symbols available to eBPF programs, provided by ndn-dpdk/app/fwdp package.
@@ -20,14 +20,14 @@ var (
 
 func makeStrategyCode(name string, bpf *C.struct_rte_bpf) (sc *scImpl, e error) {
 	if bpf == nil {
-		return nil, dpdk.GetErrno()
+		return nil, eal.GetErrno()
 	}
 
 	var jit C.struct_rte_bpf_jit
 	res := C.rte_bpf_get_jit_(bpf, &jit)
 	if res != 0 {
 		C.rte_bpf_destroy_(bpf)
-		return nil, dpdk.Errno(-res)
+		return nil, eal.Errno(-res)
 	}
 
 	tableLock.Lock()
@@ -35,7 +35,7 @@ func makeStrategyCode(name string, bpf *C.struct_rte_bpf) (sc *scImpl, e error) 
 	lastId++
 
 	sc = new(scImpl)
-	sc.c = (*C.StrategyCode)(dpdk.Zmalloc("StrategyCode", C.sizeof_StrategyCode, dpdk.NumaSocket{}))
+	sc.c = (*C.StrategyCode)(eal.Zmalloc("StrategyCode", C.sizeof_StrategyCode, eal.NumaSocket{}))
 	sc.c.id = C.int(lastId)
 	sc.c.name = C.CString(name)
 	sc.c.nRefs = 1

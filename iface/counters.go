@@ -9,7 +9,7 @@ import (
 	"unsafe"
 
 	"ndn-dpdk/core/running_stat"
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
 	"ndn-dpdk/ndn"
 )
 
@@ -70,7 +70,7 @@ func (face FaceBase) ReadCounters() (cnt Counters) {
 	txC := &faceC.impl.tx
 
 	readLatencyStat := func(c *C.RunningStat) running_stat.Snapshot {
-		return running_stat.FromPtr(unsafe.Pointer(c)).Read().Scale(dpdk.GetNanosInTscUnit())
+		return running_stat.FromPtr(unsafe.Pointer(c)).Read().Scale(eal.GetNanosInTscUnit())
 	}
 	cnt.InterestLatency = readLatencyStat(&txC.latency[ndn.L3PktType_Interest])
 	cnt.DataLatency = readLatencyStat(&txC.latency[ndn.L3PktType_Data])

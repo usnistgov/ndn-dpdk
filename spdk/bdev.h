@@ -3,8 +3,7 @@
 
 /// \file
 
-#include "../dpdk/mbuf.h"
-
+#include "../dpdk/pktmbuf/mbuf.h"
 #include <spdk/bdev.h>
 
 /** \brief Maximum number of segments in packet acceptable to

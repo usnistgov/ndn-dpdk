@@ -13,7 +13,8 @@ import (
 	"io"
 	"unsafe"
 
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
+	"ndn-dpdk/dpdk/pktmbuf"
 )
 
 // Mode of opening a block device.
@@ -38,7 +39,7 @@ func OpenBdev(bdi BdevInfo, mode BdevMode) (bd *Bdev, e error) {
 	MainThread.Call(func() {
 		if res := C.spdk_bdev_open_ext(C.spdk_bdev_get_name(bdi.c), C.bool(mode),
 			C.spdk_bdev_event_cb_t(C.go_bdevEvent), nil, &bd.c); res != 0 {
-			e = dpdk.Errno(res)
+			e = eal.Errno(res)
 			return
 		}
 		bd.ch = C.spdk_bdev_get_io_channel(bd.c)
@@ -85,8 +86,8 @@ func (bd *Bdev) ReadBlocks(blockOffset, blockCount int64, buf []byte) error {
 		return io.ErrShortBuffer
 	}
 
-	bufC := dpdk.Zmalloc("SpdkBdevBuf", sizeofBuf, dpdk.NumaSocket{})
-	defer dpdk.Free(bufC)
+	bufC := eal.Zmalloc("SpdkBdevBuf", sizeofBuf, eal.NumaSocket{})
+	defer eal.Free(bufC)
 
 	done := make(chan error)
 	MainThread.Post(func() {
@@ -94,7 +95,7 @@ func (bd *Bdev) ReadBlocks(blockOffset, blockCount int64, buf []byte) error {
 		res := C.spdk_bdev_read_blocks(bd.c, bd.ch, bufC, C.uint64_t(blockOffset), C.uint64_t(blockCount),
 			C.spdk_bdev_io_completion_cb(C.go_bdevIoComplete), ctx)
 		if res != 0 {
-			done <- dpdk.Errno(-res)
+			done <- eal.Errno(-res)
 			ctxClear(ctx)
 		}
 	})
@@ -116,8 +117,8 @@ func (bd *Bdev) WriteBlocks(blockOffset, blockCount int64, buf []byte) error {
 		return io.ErrShortBuffer
 	}
 
-	bufC := dpdk.Zmalloc("SpdkBdevBuf", sizeofBuf, dpdk.NumaSocket{})
-	defer dpdk.Free(bufC)
+	bufC := eal.Zmalloc("SpdkBdevBuf", sizeofBuf, eal.NumaSocket{})
+	defer eal.Free(bufC)
 	C.rte_memcpy(bufC, unsafe.Pointer(&buf[0]), C.size_t(sizeofBuf))
 
 	done := make(chan error)
@@ -126,7 +127,7 @@ func (bd *Bdev) WriteBlocks(blockOffset, blockCount int64, buf []byte) error {
 		res := C.spdk_bdev_write_blocks(bd.c, bd.ch, bufC, C.uint64_t(blockOffset), C.uint64_t(blockCount),
 			C.spdk_bdev_io_completion_cb(C.go_bdevIoComplete), ctx)
 		if res != 0 {
-			done <- dpdk.Errno(-res)
+			done <- eal.Errno(-res)
 			ctxClear(ctx)
 		}
 	})
@@ -134,7 +135,7 @@ func (bd *Bdev) WriteBlocks(blockOffset, blockCount int64, buf []byte) error {
 }
 
 // Read blocks via scatter gather list.
-func (bd *Bdev) ReadPacket(blockOffset, blockCount int64, pkt dpdk.Packet) error {
+func (bd *Bdev) ReadPacket(blockOffset, blockCount int64, pkt pktmbuf.Packet) error {
 	done := make(chan error)
 	MainThread.Post(func() {
 		ctx := ctxPut(done)
@@ -142,7 +143,7 @@ func (bd *Bdev) ReadPacket(blockOffset, blockCount int64, pkt dpdk.Packet) error
 			C.uint64_t(blockOffset), C.uint64_t(blockCount), C.uint32_t(bd.blockSize),
 			C.spdk_bdev_io_completion_cb(C.go_bdevIoComplete), ctx)
 		if res != 0 {
-			done <- dpdk.Errno(-res)
+			done <- eal.Errno(-res)
 			ctxClear(ctx)
 		}
 	})
@@ -150,7 +151,7 @@ func (bd *Bdev) ReadPacket(blockOffset, blockCount int64, pkt dpdk.Packet) error
 }
 
 // Write blocks via scatter gather list.
-func (bd *Bdev) WritePacket(blockOffset, blockCount int64, pkt dpdk.Packet) error {
+func (bd *Bdev) WritePacket(blockOffset, blockCount int64, pkt pktmbuf.Packet) error {
 	done := make(chan error)
 	MainThread.Post(func() {
 		ctx := ctxPut(done)
@@ -158,7 +159,7 @@ func (bd *Bdev) WritePacket(blockOffset, blockCount int64, pkt dpdk.Packet) erro
 			C.uint64_t(blockOffset), C.uint64_t(blockCount), C.uint32_t(bd.blockSize),
 			C.spdk_bdev_io_completion_cb(C.go_bdevIoComplete), ctx)
 		if res != 0 {
-			done <- dpdk.Errno(-res)
+			done <- eal.Errno(-res)
 			ctxClear(ctx)
 		}
 	})

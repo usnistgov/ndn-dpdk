@@ -99,7 +99,6 @@ ModifyInterest(Packet* npkt,
  */
 typedef struct InterestTemplate
 {
-  uint16_t headroom;
   uint16_t prefixL;                         ///< Name prefix length
   uint16_t midLen;                          ///< midBuffer length
   uint16_t nonceOff;                        ///< NonceV offset within midBuffer

@@ -9,13 +9,13 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/ethdev"
 	"ndn-dpdk/iface"
 )
 
-var portByEthDev = make(map[dpdk.EthDev]*Port)
+var portByEthDev = make(map[ethdev.EthDev]*Port)
 
-func FindPort(ethdev dpdk.EthDev) *Port {
+func FindPort(ethdev ethdev.EthDev) *Port {
 	return portByEthDev[ethdev]
 }
 
@@ -30,14 +30,14 @@ func ListPorts() (list []*Port) {
 type Port struct {
 	cfg      PortConfig
 	logger   logrus.FieldLogger
-	dev      dpdk.EthDev
+	dev      ethdev.EthDev
 	faces    map[iface.FaceId]*EthFace
 	impl     iImpl
 	nextImpl int
 }
 
 // Open a port.
-func NewPort(dev dpdk.EthDev, cfg PortConfig) (port *Port, e error) {
+func NewPort(dev ethdev.EthDev, cfg PortConfig) (port *Port, e error) {
 	if e = cfg.check(); e != nil {
 		return nil, e
 	}
@@ -59,7 +59,7 @@ func NewPort(dev dpdk.EthDev, cfg PortConfig) (port *Port, e error) {
 	return port, nil
 }
 
-func (port *Port) GetEthDev() dpdk.EthDev {
+func (port *Port) GetEthDev() ethdev.EthDev {
 	return port.dev
 }
 
@@ -83,7 +83,7 @@ func (port *Port) findFace(filter func(face *EthFace) bool) *EthFace {
 
 // FindFace(nil) returns a face with multicast address.
 // FindFace(unicastAddr) returns a face with matching address.
-func (port *Port) FindFace(query *dpdk.EtherAddr) *EthFace {
+func (port *Port) FindFace(query *ethdev.EtherAddr) *EthFace {
 	if query == nil {
 		return port.findFace(func(face *EthFace) bool {
 			return face.loc.Remote.IsGroup()

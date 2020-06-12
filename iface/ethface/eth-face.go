@@ -62,7 +62,7 @@ func New(port *Port, loc Locator) (face *EthFace, e error) {
 	faceC := face.getPtr()
 	faceC.txBurstOp = (C.FaceImpl_TxBurst)(C.EthFace_TxBurst)
 
-	face.FinishInitFaceBase(port.cfg.TxqPkts, port.cfg.Mtu, int(C.sizeof_struct_rte_ether_hdr), port.cfg.Mempools)
+	face.FinishInitFaceBase(port.cfg.TxqPkts, port.cfg.Mtu, int(C.sizeof_struct_rte_ether_hdr))
 
 	if e = face.port.startFace(face, false); e != nil {
 		return nil, e

@@ -16,16 +16,16 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
+	"ndn-dpdk/dpdk/pktmbuf"
 	"ndn-dpdk/iface"
+	"ndn-dpdk/ndn"
 )
 
 // Configuration for creating SocketFace.
 type Config struct {
-	iface.Mempools
-	RxMp      dpdk.PktmbufPool // mempool for received frames, dataroom must fit NDNLP frame
-	TxqPkts   int              // before-TX queue capacity
-	TxqFrames int              // after-TX queue capacity
+	TxqPkts   int // before-TX queue capacity
+	TxqFrames int // after-TX queue capacity
 }
 
 // A face using socket as transport.
@@ -40,9 +40,9 @@ type SocketFace struct {
 	redialing int32          // 1 if face is redialing, need atomic access
 	quitWg    sync.WaitGroup // wait until rxLoop and txLoop quits
 
-	rxMp dpdk.PktmbufPool
+	rxMp *pktmbuf.Pool
 
-	txQueue chan dpdk.Packet
+	txQueue chan *pktmbuf.Packet
 }
 
 // Create a SocketFace on a net.Conn.
@@ -55,18 +55,18 @@ func New(conn net.Conn, cfg Config) (face *SocketFace, e error) {
 		return nil, fmt.Errorf("unknown network %s", network)
 	}
 
-	if e := face.InitFaceBase(iface.AllocId(iface.FaceKind_Socket), 0, dpdk.NumaSocket{}); e != nil {
+	if e := face.InitFaceBase(iface.AllocId(iface.FaceKind_Socket), 0, eal.NumaSocket{}); e != nil {
 		return nil, e
 	}
 
 	face.logger = newLogger(face.GetFaceId())
+	face.rxMp = ndn.PacketMempool.MakePool(eal.NumaSocket{})
 	face.conn.Store(conn)
-	face.rxMp = cfg.RxMp
-	face.txQueue = make(chan dpdk.Packet, cfg.TxqFrames)
+	face.txQueue = make(chan *pktmbuf.Packet, cfg.TxqFrames)
 
 	faceC := face.getPtr()
 	faceC.txBurstOp = (C.FaceImpl_TxBurst)(C.go_SocketFace_TxBurst)
-	if e := face.FinishInitFaceBase(cfg.TxqPkts, 0, 0, cfg.Mempools); e != nil {
+	if e := face.FinishInitFaceBase(cfg.TxqPkts, 0, 0); e != nil {
 		return nil, e
 	}
 
@@ -122,9 +122,9 @@ func (face *SocketFace) rxLoop() {
 }
 
 // Report congestion when RxLoop is unable to send into rxQueue.
-func (face *SocketFace) rxPkt(pkt dpdk.Packet) {
+func (face *SocketFace) rxPkt(pkt *pktmbuf.Packet) {
 	pkt.SetPort(uint16(face.GetFaceId()))
-	pkt.SetTimestamp(dpdk.TscNow())
+	pkt.SetTimestamp(eal.TscNow())
 	iface.TheChanRxGroup.Rx(pkt)
 }
 
@@ -186,7 +186,7 @@ func go_SocketFace_TxBurst(faceC *C.Face, pkts **C.struct_rte_mbuf, nPkts C.uint
 	for i := C.uint16_t(0); i < nPkts; i++ {
 		pktsEle := (**C.struct_rte_mbuf)(unsafe.Pointer(uintptr(unsafe.Pointer(pkts)) +
 			uintptr(i)*unsafe.Sizeof(*pkts)))
-		pkt := dpdk.MbufFromPtr(unsafe.Pointer(*pktsEle)).AsPacket()
+		pkt := pktmbuf.PacketFromPtr(unsafe.Pointer(*pktsEle))
 		select {
 		case face.txQueue <- pkt:
 			nQueued++

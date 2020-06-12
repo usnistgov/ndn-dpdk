@@ -3,7 +3,7 @@ package createface
 import (
 	"errors"
 
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/ethdev"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/ethface"
 	"ndn-dpdk/iface/mockface"
@@ -35,16 +35,12 @@ func createEth(loc ethface.Locator) (face iface.IFace, e error) {
 		return nil, errors.New("Ethernet face feature is disabled")
 	}
 
-	dev := dpdk.FindEthDev(loc.Port)
+	dev := ethdev.Find(loc.Port)
 	if !dev.IsValid() {
 		return nil, errors.New("EthDev not found")
 	}
 
-	numaSocket := dev.GetNumaSocket()
 	var cfg ethface.PortConfig
-	if cfg.RxMp, cfg.Mempools, e = getMempools(numaSocket); e != nil {
-		return nil, e
-	}
 	cfg.RxqFrames = theConfig.EthRxqFrames
 	cfg.TxqPkts = theConfig.EthTxqPkts
 	cfg.TxqFrames = theConfig.EthTxqFrames
@@ -58,9 +54,6 @@ func createSock(loc socketface.Locator) (face iface.IFace, e error) {
 	}
 
 	var cfg socketface.Config
-	if cfg.RxMp, cfg.Mempools, e = getMempools(dpdk.NumaSocket{}); e != nil {
-		return nil, e
-	}
 	cfg.TxqPkts = theConfig.SockTxqPkts
 	cfg.TxqFrames = theConfig.SockTxqFrames
 	return socketface.Create(loc, cfg)
@@ -73,12 +66,6 @@ func createMock() (face iface.IFace, e error) {
 		return nil, errors.New("mock face feature is disabled")
 	}
 
-	if !hasMockFaces {
-		if _, mockface.FaceMempools, e = getMempools(dpdk.NumaSocket{}); e != nil {
-			return nil, e
-		}
-		hasMockFaces = true
-	}
-
+	hasMockFaces = true
 	return mockface.New(), nil
 }

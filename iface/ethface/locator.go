@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/ethdev"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/ndn"
 )
@@ -18,12 +18,12 @@ const locatorScheme = "ether"
 type Locator struct {
 	iface.LocatorBase
 	Port   string
-	Local  dpdk.EtherAddr
-	Remote dpdk.EtherAddr
+	Local  ethdev.EtherAddr
+	Remote ethdev.EtherAddr
 	Vlan   []uint16 `json:",omitempty"`
 }
 
-func NewLocator(dev dpdk.EthDev) (loc Locator) {
+func NewLocator(dev ethdev.EthDev) (loc Locator) {
 	loc.Scheme = locatorScheme
 	loc.Port = dev.GetName()
 	loc.Local = dev.GetMacAddr()
@@ -61,7 +61,7 @@ func Create(loc Locator, cfg PortConfig) (face *EthFace, e error) {
 		return nil, e
 	}
 
-	dev := dpdk.FindEthDev(loc.Port)
+	dev := ethdev.Find(loc.Port)
 	if !dev.IsValid() {
 		return nil, errors.New("EthDev not found")
 	}

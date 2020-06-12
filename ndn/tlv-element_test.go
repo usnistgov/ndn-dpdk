@@ -3,8 +3,8 @@ package ndn_test
 import (
 	"testing"
 
-	"ndn-dpdk/dpdk"
-	"ndn-dpdk/dpdk/dpdktestenv"
+	"ndn-dpdk/dpdk/pktmbuf"
+	"ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 	"ndn-dpdk/ndn"
 )
 
@@ -37,9 +37,9 @@ func TestTlvElement(t *testing.T) {
 		{input: "01 09 A0A1A2A3A4A5A6A7A8", t: 0x01, v: "A0A1A2A3A4A5A6A7A8", nni: NOT_NNI},
 	}
 	for _, tt := range tests {
-		pkt := dpdktestenv.PacketFromHex(tt.input)
+		pkt := mbuftestenv.MakePacket(tt.input)
 		defer pkt.Close()
-		ele, e := ndn.ParseTlvElement(dpdk.NewPacketIterator(pkt))
+		ele, e := ndn.ParseTlvElement(pktmbuf.NewPacketIterator(pkt))
 
 		if tt.bad {
 			assert.Error(e, tt.input)
@@ -47,7 +47,7 @@ func TestTlvElement(t *testing.T) {
 			assert.Equal(pkt.Len(), ele.Len(), tt.input)
 			assert.Equal(ndn.TlvType(tt.t), ele.GetType(), tt.input)
 
-			v := ndn.TlvBytes(dpdktestenv.BytesFromHex(tt.v))
+			v := ndn.TlvBytes(mbuftestenv.BytesFromHex(tt.v))
 			assert.Equal(len(v), ele.GetLength(), tt.input)
 			assert.Equal(v, ele.GetValue(), tt.input)
 

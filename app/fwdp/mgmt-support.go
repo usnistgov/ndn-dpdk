@@ -8,11 +8,13 @@ import (
 	"unsafe"
 
 	"ndn-dpdk/app/inputdemux"
+	"ndn-dpdk/container/cs"
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/container/ndt"
-	"ndn-dpdk/container/pcct"
+	"ndn-dpdk/container/pit"
 	"ndn-dpdk/core/running_stat"
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
+	"ndn-dpdk/dpdk/mempool"
 	"ndn-dpdk/iface"
 )
 
@@ -23,7 +25,7 @@ func (dp *DataPlane) CountLCores() (nInputs int, nFwds int) {
 
 // Information and counters about an input process.
 type InputInfo struct {
-	LCore dpdk.LCore     // LCore executing this input process
+	LCore eal.LCore      // LCore executing this input process
 	Faces []iface.FaceId // faces served by this input process
 }
 
@@ -45,7 +47,7 @@ func (dp *DataPlane) ReadInputInfo(i int) (info *InputInfo) {
 
 // Information and counters about a fwd process.
 type FwdInfo struct {
-	LCore dpdk.LCore // LCore executing this fwd process
+	LCore eal.LCore // LCore executing this fwd process
 
 	InputInterest FwdInputCounter
 	InputData     FwdInputCounter
@@ -83,15 +85,15 @@ func (dp *DataPlane) ReadFwdInfo(i int) (info *FwdInfo) {
 	info.LCore = fwd.GetLCore()
 
 	latencyStat := running_stat.FromPtr(unsafe.Pointer(&fwd.c.latencyStat))
-	info.InputLatency = latencyStat.Read().Scale(dpdk.GetNanosInTscUnit())
+	info.InputLatency = latencyStat.Read().Scale(eal.GetNanosInTscUnit())
 
 	info.NNoFibMatch = uint64(fwd.c.nNoFibMatch)
 	info.NDupNonce = uint64(fwd.c.nDupNonce)
 	info.NSgNoFwd = uint64(fwd.c.nSgNoFwd)
 	info.NNackMismatch = uint64(fwd.c.nNackMismatch)
 
-	info.HeaderMpUsage = dpdk.MempoolFromPtr(unsafe.Pointer(fwd.c.headerMp)).CountInUse()
-	info.IndirectMpUsage = dpdk.MempoolFromPtr(unsafe.Pointer(fwd.c.indirectMp)).CountInUse()
+	info.HeaderMpUsage = mempool.FromPtr(unsafe.Pointer(fwd.c.headerMp)).CountInUse()
+	info.IndirectMpUsage = mempool.FromPtr(unsafe.Pointer(fwd.c.indirectMp)).CountInUse()
 
 	for _, input := range dp.inputs {
 		info.InputInterest.add(input.demux3.GetInterestDemux().ReadDestCounters(i))
@@ -115,11 +117,16 @@ func (dp *DataPlane) GetFib() *fib.Fib {
 	return dp.fib
 }
 
-// Access i-th fwd's PCCT.
-func (dp *DataPlane) GetFwdPcct(i int) *pcct.Pcct {
+func (dp *DataPlane) GetFwdPit(i int) *pit.Pit {
 	if i < 0 || i >= len(dp.fwds) {
 		return nil
 	}
-	pcct := pcct.PcctFromPtr(unsafe.Pointer(*C.FwFwd_GetPcctPtr_(dp.fwds[i].c)))
-	return &pcct
+	return pit.FromPcct(dp.fwds[i].pcct)
+}
+
+func (dp *DataPlane) GetFwdCs(i int) *cs.Cs {
+	if i < 0 || i >= len(dp.fwds) {
+		return nil
+	}
+	return cs.FromPcct(dp.fwds[i].pcct)
 }

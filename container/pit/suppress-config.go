@@ -8,7 +8,7 @@ import (
 	"unsafe"
 
 	"ndn-dpdk/core/nnduration"
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
 )
 
 // PIT suppression configuration.
@@ -20,8 +20,8 @@ type SuppressConfig struct {
 
 func (sc SuppressConfig) CopyToC(ptr unsafe.Pointer) {
 	c := (*C.PitSuppressConfig)(ptr)
-	c.min = C.TscDuration(dpdk.ToTscDuration(sc.Min.DurationOr(10e6)))
-	c.max = C.TscDuration(dpdk.ToTscDuration(sc.Max.DurationOr(100e6)))
+	c.min = C.TscDuration(eal.ToTscDuration(sc.Min.DurationOr(10e6)))
+	c.max = C.TscDuration(eal.ToTscDuration(sc.Max.DurationOr(100e6)))
 	if sc.Multiplier < 1.0 {
 		c.multiplier = 2.0
 	} else {

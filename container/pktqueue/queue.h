@@ -3,8 +3,8 @@
 
 /// \file
 
-#include "../../dpdk/mbuf.h"
-#include "../../dpdk/tsc.h"
+#include "../../dpdk/eal/tsc.h"
+#include "../../dpdk/pktmbuf/mbuf.h"
 #include <rte_ring.h>
 
 #define PKTQUEUE_BURST_SIZE_MAX 64

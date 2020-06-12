@@ -5,8 +5,8 @@ package iface
 */
 import "C"
 import (
-	"fmt"
 	"math/rand"
+	"strconv"
 )
 
 type FaceKind int
@@ -29,7 +29,7 @@ func (kind FaceKind) String() string {
 	if s, ok := faceKinds[kind]; ok {
 		return s
 	}
-	return fmt.Sprintf("%d", kind)
+	return strconv.Itoa(int(kind))
 }
 
 type FaceId uint16
@@ -93,5 +93,5 @@ func (st State) String() string {
 	if s, ok := states[st]; ok {
 		return s
 	}
-	return fmt.Sprintf("%d", st)
+	return strconv.Itoa(int(st))
 }

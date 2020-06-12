@@ -1,9 +1,8 @@
 package socketface
 
 import (
+	"ndn-dpdk/dpdk/pktmbuf"
 	"net"
-
-	"ndn-dpdk/dpdk"
 )
 
 type iImpl interface {
@@ -21,7 +20,7 @@ type iImpl interface {
 	RxLoop(face *SocketFace)
 
 	// Transmit one packet on the socket.
-	Send(face *SocketFace, pkt dpdk.Packet) error
+	Send(face *SocketFace, pkt *pktmbuf.Packet) error
 }
 
 var implByNetwork = make(map[string]iImpl)

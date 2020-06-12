@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"ndn-dpdk/dpdk/dpdktestenv"
+	"ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 	"ndn-dpdk/ndn"
-	"ndn-dpdk/ndn/ndntestutil"
+	"ndn-dpdk/ndn/ndntestenv"
 )
 
 func TestInterestDecode(t *testing.T) {
@@ -44,8 +44,8 @@ func TestInterestDecode(t *testing.T) {
 	}
 	for _, tt := range tests {
 		pkt := packetFromHex(tt.input)
-		defer pkt.AsDpdkPacket().Close()
-		e := pkt.ParseL3(theMp)
+		defer pkt.AsMbuf().Close()
+		e := pkt.ParseL3(ndntestenv.Name.Pool())
 		if tt.bad {
 			assert.Error(e, tt.input)
 		} else if assert.NoError(e, tt.input) {
@@ -53,13 +53,13 @@ func TestInterestDecode(t *testing.T) {
 				continue
 			}
 			interest := pkt.AsInterest()
-			ndntestutil.NameEqual(assert, tt.name, interest, tt.input)
+			ndntestenv.NameEqual(assert, tt.name, interest, tt.input)
 			assert.Equal(tt.canBePrefix, interest.HasCanBePrefix(), tt.input)
 			assert.Equal(tt.mustBeFresh, interest.HasMustBeFresh(), tt.input)
 			assert.Equal(-1, interest.GetActiveFhIndex(), tt.input)
 			if fhs := interest.GetFhs(); assert.Len(fhs, len(tt.fhs), tt.input) {
 				for i, fhName := range fhs {
-					ndntestutil.NameEqual(assert, tt.fhs[i], fhName, "%s %i", tt.input, i)
+					ndntestenv.NameEqual(assert, tt.fhs[i], fhName, "%s %i", tt.input, i)
 				}
 				if len(tt.fhs) > 0 {
 					assert.Error(interest.SelectActiveFh(len(tt.fhs)), tt.input)
@@ -107,23 +107,24 @@ func TestInterestModify(t *testing.T) {
 	}
 	for i, tt := range tests {
 		pkt := packetFromHex(tt.input)
-		defer pkt.AsDpdkPacket().Close()
+		defer pkt.AsMbuf().Close()
 		if e := pkt.ParseL2(); !assert.NoError(e, tt.input) {
 			continue
 		}
-		if e := pkt.ParseL3(theMp); !assert.NoError(e, tt.input) {
+		if e := pkt.ParseL3(ndntestenv.Name.Pool()); !assert.NoError(e, tt.input) {
 			continue
 		}
 		interest := pkt.AsInterest()
 		assert.Implements((*ndn.IL3Packet)(nil), interest)
 
-		modified := interest.Modify(0xABAAA9A8, 27938*time.Millisecond, 125, theMp, theMp, theMp)
+		modified := interest.Modify(0xABAAA9A8, 27938*time.Millisecond, 125,
+			ndntestenv.Header.Pool(), ndntestenv.Guider.Pool(), ndntestenv.Indirect.Pool())
 		if assert.NotNil(modified, tt.input) {
 			npkt := modified.GetPacket()
-			pkt := npkt.AsDpdkPacket()
+			pkt := npkt.AsMbuf()
 			defer pkt.Close()
 
-			assert.Equal(dpdktestenv.BytesFromHex(tt.output), pkt.ReadAll(), tt.input)
+			assert.Equal(mbuftestenv.BytesFromHex(tt.output), pkt.ReadAll(), tt.input)
 			if i == 0 {
 				assert.Equal(pitToken0, npkt.GetLpL3().GetPitToken(), tt.input)
 			}
@@ -134,21 +135,21 @@ func TestInterestModify(t *testing.T) {
 func TestMakeInterest(t *testing.T) {
 	assert, require := makeAR(t)
 
-	m1 := dpdktestenv.Alloc(dpdktestenv.MPID_DIRECT)
+	m1 := ndntestenv.Packet.Alloc()
 	_, e := ndn.MakeInterest(m1, "/A/B", uint32(0xA0A1A2A3))
 	require.NoError(e)
 	defer m1.Close()
-	encoded1 := m1.AsPacket().ReadAll()
-	assert.Equal(dpdktestenv.BytesFromHex("050E name=0706080141080142 nonce=0A04A3A2A1A0"), encoded1)
+	encoded1 := m1.ReadAll()
+	assert.Equal(mbuftestenv.BytesFromHex("050E name=0706080141080142 nonce=0A04A3A2A1A0"), encoded1)
 
-	m2 := dpdktestenv.Alloc(dpdktestenv.MPID_DIRECT)
+	m2 := ndntestenv.Packet.Alloc()
 	_, e = ndn.MakeInterest(m2, "/A/B/C/D", ndn.CanBePrefixFlag, ndn.MustBeFreshFlag,
 		ndn.FHDelegation{15601, "/E"}, ndn.FHDelegation{6323, "/F"},
 		uint32(0xA0A1A2A3), 9000*time.Millisecond, uint8(125))
 	require.NoError(e)
 	defer m2.Close()
-	encoded2 := m2.AsPacket().ReadAll()
-	assert.Equal(dpdktestenv.BytesFromHex("053D name=070C080141080142080143080144 "+
+	encoded2 := m2.ReadAll()
+	assert.Equal(mbuftestenv.BytesFromHex("053D name=070C080141080142080143080144 "+
 		"canbeprefix=2100 mustbefresh=1200 "+
 		"fh=1E1A(1F0B pref=1E0400003CF1 name=0703080145)(1F0B pref=1E04000018B3 name=0703080146) "+
 		"nonce=0A04A3A2A1A0 lifetime=0C0400002328 hoplimit=22017D"), encoded2)

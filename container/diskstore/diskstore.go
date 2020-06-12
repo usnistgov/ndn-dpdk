@@ -9,7 +9,9 @@ import (
 	"runtime"
 	"unsafe"
 
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
+	"ndn-dpdk/dpdk/pktmbuf"
+	"ndn-dpdk/dpdk/ringbuffer"
 	"ndn-dpdk/ndn"
 	"ndn-dpdk/spdk"
 )
@@ -24,7 +26,7 @@ type DiskStore struct {
 }
 
 // Create a DiskStore.
-func New(bdi spdk.BdevInfo, th *spdk.Thread, mp dpdk.PktmbufPool, nBlocksPerSlot int) (store *DiskStore, e error) {
+func New(bdi spdk.BdevInfo, th *spdk.Thread, mp *pktmbuf.Pool, nBlocksPerSlot int) (store *DiskStore, e error) {
 	if bdi.GetBlockSize() != int(C.DISK_STORE_BLOCK_SIZE) {
 		return nil, fmt.Errorf("bdev block size must be %d", C.DISK_STORE_BLOCK_SIZE)
 	}
@@ -36,7 +38,7 @@ func New(bdi spdk.BdevInfo, th *spdk.Thread, mp dpdk.PktmbufPool, nBlocksPerSlot
 	}
 
 	numaSocket := th.GetLCore().GetNumaSocket()
-	store.c = (*C.DiskStore)(dpdk.Zmalloc("DiskStore", C.sizeof_DiskStore, numaSocket))
+	store.c = (*C.DiskStore)(eal.Zmalloc("DiskStore", C.sizeof_DiskStore, numaSocket))
 	store.c.th = (*C.struct_spdk_thread)(th.GetPtr())
 	store.c.bdev = (*C.struct_spdk_bdev_desc)(store.bd.GetPtr())
 	store.c.mp = (*C.struct_rte_mempool)(mp.GetPtr())
@@ -48,7 +50,7 @@ func New(bdi spdk.BdevInfo, th *spdk.Thread, mp dpdk.PktmbufPool, nBlocksPerSlot
 
 func (store *DiskStore) Close() error {
 	store.th.Call(func() { C.spdk_put_io_channel(store.c.ch) })
-	dpdk.Free(store.c)
+	eal.Free(store.c)
 	return store.bd.Close()
 }
 
@@ -63,8 +65,9 @@ func (store *DiskStore) PutData(slotId uint64, data *ndn.Data) {
 
 // Retrieve a Data packet and wait for completion.
 func (store *DiskStore) GetData(slotId uint64, dataLen int, interest *ndn.Interest) (data *ndn.Data, e error) {
-	var reply dpdk.Ring
-	if reply, e = dpdk.NewRing(fmt.Sprintf("DiskStoreGetData%x", slotId), 64, dpdk.NumaSocket{}, false, false); e != nil {
+	var reply *ringbuffer.Ring
+	if reply, e = ringbuffer.New(fmt.Sprintf("DiskStoreGetData%x", slotId), 64, eal.NumaSocket{},
+		ringbuffer.ProducerMulti, ringbuffer.ConsumerMulti); e != nil {
 		return nil, e
 	}
 	defer reply.Close()
@@ -73,8 +76,8 @@ func (store *DiskStore) GetData(slotId uint64, dataLen int, interest *ndn.Intere
 	C.DiskStore_GetData(store.c, C.uint64_t(slotId), C.uint16_t(dataLen), (*C.Packet)(interestPtr), (*C.struct_rte_ring)(reply.GetPtr()))
 
 	for {
-		pkts := make([]ndn.Packet, 1)
-		n, _ := reply.BurstDequeue(pkts)
+		pkts := make([]*ndn.Packet, 1)
+		n := reply.Dequeue(pkts)
 		if n != 1 {
 			runtime.Gosched()
 			continue

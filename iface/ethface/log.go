@@ -6,7 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"ndn-dpdk/core/logger"
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/ethdev"
 )
 
 var (
@@ -15,6 +15,6 @@ var (
 	addressOf     = logger.AddressOf
 )
 
-func newPortLogger(ethDev dpdk.EthDev) logrus.FieldLogger {
-	return logger.NewWithPrefix("ethface", fmt.Sprintf("port %d", ethDev))
+func newPortLogger(ethDev ethdev.EthDev) logrus.FieldLogger {
+	return logger.NewWithPrefix("ethface", fmt.Sprintf("port %s", ethDev))
 }

@@ -6,7 +6,7 @@ import (
 	"golang.org/x/sys/unix"
 
 	"ndn-dpdk/iface"
-	"ndn-dpdk/iface/ifacetestfixture"
+	"ndn-dpdk/iface/ifacetestenv"
 	"ndn-dpdk/iface/socketface"
 )
 
@@ -23,7 +23,7 @@ func TestDatagram(t *testing.T) {
 	require.NoError(e)
 	defer faceB.Close()
 
-	fixture := ifacetestfixture.New(t, faceA, faceB)
+	fixture := ifacetestenv.New(t, faceA, faceB)
 	fixture.RunTest()
 	fixture.CheckCounters()
 }
@@ -41,5 +41,5 @@ func TestUdp(t *testing.T) {
 	assert.Equal("udp", loc.Scheme)
 	assert.Equal(face.GetConn().LocalAddr().String(), loc.Local)
 	assert.Equal("127.0.0.1:7000", loc.Remote)
-	ifacetestfixture.CheckLocatorMarshal(t, loc)
+	ifacetestenv.CheckLocatorMarshal(t, loc)
 }

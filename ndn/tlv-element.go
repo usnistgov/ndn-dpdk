@@ -6,8 +6,7 @@ package ndn
 import "C"
 import (
 	"fmt"
-
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/pktmbuf"
 )
 
 type TlvElement struct {
@@ -15,7 +14,7 @@ type TlvElement struct {
 }
 
 // Decode a TLV element.
-func ParseTlvElement(it dpdk.PacketIterator) (ele TlvElement, e error) {
+func ParseTlvElement(it pktmbuf.PacketIterator) (ele TlvElement, e error) {
 	if res := C.TlvElement_Decode(&ele.c, (*C.MbufLoc)(it.GetPtr()), C.TT_Invalid); res != C.NdnError_OK {
 		return TlvElement{}, NdnError(res)
 	}
@@ -39,7 +38,7 @@ func (ele *TlvElement) GetLength() int {
 
 // Get TLV-VALUE.
 func (ele *TlvElement) GetValue() (v TlvBytes) {
-	var it dpdk.PacketIterator
+	var it pktmbuf.PacketIterator
 	C.TlvElement_MakeValueDecoder(&ele.c, (*C.MbufLoc)(it.GetPtr()))
 
 	v = make(TlvBytes, ele.GetLength())

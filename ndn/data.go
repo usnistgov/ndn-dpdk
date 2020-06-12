@@ -9,16 +9,16 @@ import (
 	"time"
 	"unsafe"
 
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/cryptodev"
 )
 
 // Data packet.
 type Data struct {
-	m Packet
+	m *Packet
 	p *C.PData
 }
 
-func (data *Data) GetPacket() Packet {
+func (data *Data) GetPacket() *Packet {
 	return data.m
 }
 
@@ -72,7 +72,7 @@ func (data *Data) GetDigest() []byte {
 
 // Compute Data digest (written in Go, for unit testing).
 func (data *Data) ComputeDigest(wantSave bool) []byte {
-	d := sha256.Sum256(data.GetPacket().AsDpdkPacket().ReadAll())
+	d := sha256.Sum256(data.GetPacket().AsMbuf().ReadAll())
 	if wantSave {
 		data.p.hasDigest = true
 		C.memcpy(unsafe.Pointer(&data.p.digest[0]), unsafe.Pointer(&d[0]), sha256.Size)
@@ -80,11 +80,11 @@ func (data *Data) ComputeDigest(wantSave bool) []byte {
 	return d[:]
 }
 
-func (data *Data) DigestPrepare(op dpdk.CryptoOp) {
-	C.DataDigest_Prepare(data.m.c, (*C.struct_rte_crypto_op)(op.GetPtr()))
+func (data *Data) DigestPrepare(op *cryptodev.Op) {
+	C.DataDigest_Prepare(data.m.getPtr(), (*C.struct_rte_crypto_op)(op.GetPtr()))
 }
 
-func DataDigest_Finish(op dpdk.CryptoOp) (data *Data, e error) {
+func DataDigest_Finish(op *cryptodev.Op) (data *Data, e error) {
 	if !op.IsSuccess() {
 		return nil, op.Error()
 	}

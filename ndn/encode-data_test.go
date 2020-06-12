@@ -4,16 +4,15 @@ import (
 	"testing"
 	"time"
 
-	"ndn-dpdk/dpdk"
-	"ndn-dpdk/dpdk/dpdktestenv"
+	"ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 	"ndn-dpdk/ndn"
-	"ndn-dpdk/ndn/ndntestutil"
+	"ndn-dpdk/ndn/ndntestenv"
 )
 
 func TestEncodeData(t *testing.T) {
 	assert, require := makeAR(t)
 
-	m := dpdktestenv.Alloc(dpdktestenv.MPID_DIRECT)
+	m := ndntestenv.Packet.Alloc()
 	defer m.Close()
 
 	namePrefix, e := ndn.ParseName("/A/B")
@@ -24,21 +23,20 @@ func TestEncodeData(t *testing.T) {
 	content := ndn.TlvBytes{0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7}
 
 	ndn.EncodeData(m, namePrefix, nameSuffix, freshnessPeriod, content)
-	pkt := ndn.PacketFromDpdk(m)
-	e = pkt.ParseL3(theMp)
+	pkt := ndn.PacketFromMbuf(m)
+	e = pkt.ParseL3(ndntestenv.Name.Pool())
 	require.NoError(e)
 	data := pkt.AsData()
 
-	ndntestutil.NameEqual(assert, "/A/B/C", data)
+	ndntestenv.NameEqual(assert, "/A/B/C", data)
 	assert.Equal(freshnessPeriod, data.GetFreshnessPeriod())
 }
 
 func TestDataGen(t *testing.T) {
 	assert, require := makeAR(t)
 
-	mbufs := make([]dpdk.Mbuf, 2)
-	dpdktestenv.AllocBulk(dpdktestenv.MPID_DIRECT, mbufs)
-	mi := dpdktestenv.Alloc(dpdktestenv.MPID_INDIRECT)
+	mbufs := ndntestenv.Packet.Pool().MustAlloc(2)
+	mi := mbuftestenv.Indirect.Alloc()
 
 	namePrefix, e := ndn.ParseName("/A/B")
 	require.NoError(e)
@@ -51,12 +49,12 @@ func TestDataGen(t *testing.T) {
 	defer gen.Close()
 	gen.Encode(mbufs[0], mi, namePrefix)
 
-	pkt := ndn.PacketFromDpdk(mbufs[0])
+	pkt := ndn.PacketFromMbuf(mbufs[0])
 	defer mbufs[0].Close()
-	e = pkt.ParseL3(theMp)
+	e = pkt.ParseL3(ndntestenv.Name.Pool())
 	require.NoError(e)
 	data := pkt.AsData()
 
-	ndntestutil.NameEqual(assert, "/A/B/C", data)
+	ndntestenv.NameEqual(assert, "/A/B/C", data)
 	assert.Equal(freshnessPeriod, data.GetFreshnessPeriod())
 }

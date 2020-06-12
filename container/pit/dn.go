@@ -5,7 +5,7 @@ package pit
 */
 import "C"
 import (
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
 	"ndn-dpdk/iface"
 )
 
@@ -27,6 +27,6 @@ func (dn Dn) GetNonce() uint32 {
 	return uint32(dn.c.nonce)
 }
 
-func (dn Dn) GetExpiry() dpdk.TscTime {
-	return dpdk.TscTime(dn.c.expiry)
+func (dn Dn) GetExpiry() eal.TscTime {
+	return eal.TscTime(dn.c.expiry)
 }

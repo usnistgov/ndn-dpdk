@@ -3,7 +3,7 @@
 
 /// \file
 
-#include "../../dpdk/tsc.h"
+#include "../../dpdk/eal/tsc.h"
 
 #define RTTEST_K 4.0
 #define RTTEST_ALPHA (1.0 / 8.0)

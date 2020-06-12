@@ -5,7 +5,7 @@
 
 #include "../../container/pktqueue/queue.h"
 #include "../../core/pcg_basic.h"
-#include "../../dpdk/thread.h"
+#include "../../dpdk/eal/thread.h"
 #include "../../iface/face.h"
 #include "../../ndn/encode-data.h"
 

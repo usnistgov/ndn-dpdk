@@ -5,42 +5,35 @@ import (
 	"testing"
 	"time"
 
-	"ndn-dpdk/dpdk"
-	"ndn-dpdk/dpdk/dpdktestenv"
+	"ndn-dpdk/dpdk/eal"
+	"ndn-dpdk/dpdk/ethdev"
 	"ndn-dpdk/iface/ethface"
-	"ndn-dpdk/iface/ifacetestfixture"
+	"ndn-dpdk/iface/ifacetestenv"
 	"ndn-dpdk/ndn"
+	"ndn-dpdk/ndn/ndntestenv"
 )
 
 func TestEthFace(t *testing.T) {
-	assert, require := dpdktestenv.MakeAR(t)
+	assert, require := makeAR(t)
+	rxPool := ndntestenv.Packet.Pool()
 
-	mp, mempools := ifacetestfixture.MakeMempools()
+	var vnetCfg ethdev.VNetConfig
+	vnetCfg.RxPool = rxPool
+	vnetCfg.NNodes = 3
+	vnet := ethdev.NewVNet(vnetCfg)
+	defer vnet.Close()
 
-	var evnCfg dpdktestenv.EthVNetConfig
-	evnCfg.NNodes = 3
-	evnCfg.NQueues = 1
-	evn := dpdktestenv.NewEthVNet(evnCfg)
-	defer func() {
-		for _, port := range ethface.ListPorts() {
-			port.Close()
-		}
-		evn.Close()
-	}()
-
-	var macZero dpdk.EtherAddr
-	macA, _ := dpdk.ParseEtherAddr("02:00:00:00:00:01")
-	macB, _ := dpdk.ParseEtherAddr("02:00:00:00:00:02")
-	macC, _ := dpdk.ParseEtherAddr("02:00:00:00:00:03")
+	var macZero ethdev.EtherAddr
+	macA, _ := ethdev.ParseEtherAddr("02:00:00:00:00:01")
+	macB, _ := ethdev.ParseEtherAddr("02:00:00:00:00:02")
+	macC, _ := ethdev.ParseEtherAddr("02:00:00:00:00:03")
 
 	var cfg ethface.PortConfig
-	cfg.Mempools = mempools
-	cfg.RxMp = mp
 	cfg.RxqFrames = 64
 	cfg.TxqPkts = 64
 	cfg.TxqFrames = 64
 
-	makeFace := func(dev dpdk.EthDev, local, remote dpdk.EtherAddr) *ethface.EthFace {
+	makeFace := func(dev ethdev.EthDev, local, remote ethdev.EtherAddr) *ethface.EthFace {
 		loc := ethface.NewLocator(dev)
 		loc.Local = local
 		loc.Remote = remote
@@ -49,41 +42,41 @@ func TestEthFace(t *testing.T) {
 		return face
 	}
 
-	faceAB := makeFace(evn.Ports[0], macA, macB)
-	faceAC := makeFace(evn.Ports[0], macA, macC)
-	faceAm := makeFace(evn.Ports[0], macZero, macZero)
-	faceBm := makeFace(evn.Ports[1], macB, macZero)
-	faceBA := makeFace(evn.Ports[1], macZero, macA)
-	faceCA := makeFace(evn.Ports[2], macC, macA)
+	faceAB := makeFace(vnet.Ports[0], macA, macB)
+	faceAC := makeFace(vnet.Ports[0], macA, macC)
+	faceAm := makeFace(vnet.Ports[0], macZero, macZero)
+	faceBm := makeFace(vnet.Ports[1], macB, macZero)
+	faceBA := makeFace(vnet.Ports[1], macZero, macA)
+	faceCA := makeFace(vnet.Ports[2], macC, macA)
 
 	locAm := faceAm.GetLocator().(ethface.Locator)
 	assert.Equal("ether", locAm.Scheme)
-	assert.Equal(evn.Ports[0].GetName(), locAm.Port)
+	assert.Equal(vnet.Ports[0].GetName(), locAm.Port)
 	assert.True(locAm.Local.Equal(macA))
 	assert.True(locAm.Remote.Equal(ndn.NDN_ETHER_MCAST_ADDR))
 
-	evn.LaunchBridge(dpdk.ListSlaveLCores()[3])
+	vnet.LaunchBridge(eal.ListSlaveLCores()[3])
 	time.Sleep(time.Second)
 
-	fixtureBA := ifacetestfixture.New(t, faceAB, faceBA)
+	fixtureBA := ifacetestenv.New(t, faceAB, faceBA)
 	fixtureBA.AddRxDiscard(faceCA)
 	fixtureBA.RunTest()
 	fixtureBA.CheckCounters()
 
-	fixtureCA := ifacetestfixture.New(t, faceAC, faceCA)
+	fixtureCA := ifacetestenv.New(t, faceAC, faceCA)
 	fixtureCA.AddRxDiscard(faceBm)
 	fixtureCA.RunTest()
 	fixtureCA.CheckCounters()
 
-	fixtureAm := ifacetestfixture.New(t, faceAm, faceBm)
+	fixtureAm := ifacetestenv.New(t, faceAm, faceBm)
 	fixtureAm.AddRxDiscard(faceCA)
 	fixtureAm.RunTest()
 	fixtureAm.CheckCounters()
 
-	fmt.Println("evn.NDrops", evn.NDrops)
-	fmt.Println("portA", evn.Ports[0].GetStats())
-	fmt.Println("portB", evn.Ports[1].GetStats())
-	fmt.Println("portC", evn.Ports[2].GetStats())
+	fmt.Println("vnet.NDrops", vnet.NDrops)
+	fmt.Println("portA", vnet.Ports[0].GetStats())
+	fmt.Println("portB", vnet.Ports[1].GetStats())
+	fmt.Println("portC", vnet.Ports[2].GetStats())
 	fmt.Println("faceAB", faceAB.ReadCounters())
 	fmt.Println("faceAC", faceAC.ReadCounters())
 	fmt.Println("faceAm", faceAm.ReadCounters())

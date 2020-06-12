@@ -6,11 +6,10 @@ import (
 	"time"
 
 	"ndn-dpdk/core/nnduration"
-	"ndn-dpdk/dpdk/dpdktestenv"
 )
 
 func TestMilliseconds(t *testing.T) {
-	assert, _ := dpdktestenv.MakeAR(t)
+	assert, _ := makeAR(t)
 
 	assert.Equal(2816*time.Millisecond, nnduration.Milliseconds(0).DurationOr(2816))
 
@@ -37,7 +36,7 @@ func TestMilliseconds(t *testing.T) {
 }
 
 func TestNanoseconds(t *testing.T) {
-	assert, _ := dpdktestenv.MakeAR(t)
+	assert, _ := makeAR(t)
 
 	assert.Equal(1652*time.Nanosecond, nnduration.Nanoseconds(0).DurationOr(1652))
 

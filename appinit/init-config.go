@@ -7,7 +7,8 @@ import (
 
 	"github.com/ghodss/yaml"
 
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
+	"ndn-dpdk/dpdk/pktmbuf"
 	"ndn-dpdk/iface/createface"
 )
 
@@ -49,14 +50,14 @@ func DeclareInitConfigFlag(flags *flag.FlagSet, value interface{}) {
 // Config sections defined by appinit package.
 // Embed this struct to add more sections.
 type InitConfig struct {
-	Mempool    MempoolsCapacityConfig
-	LCoreAlloc dpdk.LCoreAllocConfig
+	Mempool    pktmbuf.TemplateUpdates
+	LCoreAlloc eal.LCoreAllocConfig
 	Face       createface.Config
 }
 
 func (cfg InitConfig) Apply() {
 	cfg.Mempool.Apply()
-	dpdk.LCoreAlloc.Config = cfg.LCoreAlloc
+	eal.LCoreAlloc.Config = cfg.LCoreAlloc
 
 	if e := cfg.Face.Apply(); e != nil {
 		log.WithError(e).Warn("face init-config not applied")

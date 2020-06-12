@@ -7,7 +7,8 @@ import (
 	"ndn-dpdk/container/ndt"
 	"ndn-dpdk/container/strategycode"
 	"ndn-dpdk/core/urcu"
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
+	"ndn-dpdk/dpdk/mempool"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/ndn"
 )
@@ -24,7 +25,7 @@ func NewFixture(ndtPrefixLen, fibStartDepth, nPartitions int) (fixture *Fixture)
 		IndexBits:  8,
 		SampleFreq: 32,
 	}
-	ndt := ndt.New(ndtCfg, []dpdk.NumaSocket{{}})
+	ndt := ndt.New(ndtCfg, []eal.NumaSocket{{}})
 	ndt.Randomize(nPartitions)
 
 	fibCfg := fib.Config{
@@ -33,9 +34,9 @@ func NewFixture(ndtPrefixLen, fibStartDepth, nPartitions int) (fixture *Fixture)
 		NBuckets:   64,
 		StartDepth: fibStartDepth,
 	}
-	partitionNumaSockets := make([]dpdk.NumaSocket, nPartitions)
+	partitionNumaSockets := make([]eal.NumaSocket, nPartitions)
 	for i := range partitionNumaSockets {
-		partitionNumaSockets[i] = dpdk.NumaSocket{}
+		partitionNumaSockets[i] = eal.NumaSocket{}
 	}
 	fib, e := fib.New(fibCfg, ndt, partitionNumaSockets)
 	if e != nil {
@@ -55,7 +56,7 @@ func (fixture *Fixture) Close() error {
 func (fixture *Fixture) CountEntries() (n int) {
 	urcu.Barrier()
 	for partition := 0; partition < fixture.NPartitions; partition++ {
-		n += dpdk.MempoolFromPtr(fixture.Fib.GetPtr(partition)).CountInUse()
+		n += mempool.FromPtr(fixture.Fib.GetPtr(partition)).CountInUse()
 	}
 	return n
 }

@@ -8,7 +8,7 @@ import (
 	"os"
 	"testing"
 
-	"ndn-dpdk/dpdk/dpdktestenv"
+	"ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 	"ndn-dpdk/spdk"
 )
 
@@ -37,14 +37,14 @@ func testBdev(t *testing.T, bdi spdk.BdevInfo) {
 	assert.NoError(e)
 	assert.Equal([]byte{0xA1, 0xA2, 0xA3, 0xA4}, buf)
 
-	pkt1 := dpdktestenv.PacketFromBytes(bytes.Repeat([]byte{0xB0}, 500), bytes.Repeat([]byte{0xB1}, 400), bytes.Repeat([]byte{0xB2}, 134))
+	pkt1 := mbuftestenv.MakePacket(bytes.Repeat([]byte{0xB0}, 500), bytes.Repeat([]byte{0xB1}, 400), bytes.Repeat([]byte{0xB2}, 134))
 	defer pkt1.Close()
-	e = bd.WritePacket(100, 16, pkt1)
+	e = bd.WritePacket(100, 16, *pkt1)
 	assert.NoError(e)
 
-	pkt2 := dpdktestenv.PacketFromBytes(bytes.Repeat([]byte{0xC0}, 124), bytes.Repeat([]byte{0xC1}, 400), bytes.Repeat([]byte{0xC2}, 510))
+	pkt2 := mbuftestenv.MakePacket(bytes.Repeat([]byte{0xC0}, 124), bytes.Repeat([]byte{0xC1}, 400), bytes.Repeat([]byte{0xC2}, 510))
 	defer pkt2.Close()
-	e = bd.ReadPacket(100, 12, pkt2)
+	e = bd.ReadPacket(100, 12, *pkt2)
 	assert.NoError(e)
 	assert.Equal(pkt1.ReadAll(), pkt2.ReadAll())
 

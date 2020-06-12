@@ -4,7 +4,7 @@
 /// \file
 
 #include "../../container/pktqueue/queue.h"
-#include "../../dpdk/thread.h"
+#include "../../dpdk/eal/thread.h"
 #include "../../iface/face.h"
 #include "logic.h"
 

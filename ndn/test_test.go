@@ -1,29 +1,22 @@
 package ndn_test
 
 import (
-	"os"
-	"testing"
-
-	"ndn-dpdk/dpdk"
-	"ndn-dpdk/dpdk/dpdktestenv"
+	"ndn-dpdk/core/testenv"
+	"ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 	"ndn-dpdk/ndn"
+	"ndn-dpdk/ndn/ndntestenv"
 )
 
-var theMp dpdk.PktmbufPool
+var (
+	makeAR       = testenv.MakeAR
+	makeInterest = ndntestenv.MakeInterest
+	makeData     = ndntestenv.MakeData
+)
 
-func TestMain(m *testing.M) {
-	theMp = dpdktestenv.MakeDirectMp(255, ndn.SizeofPacketPriv(), 2000)
-	dpdktestenv.MakeIndirectMp(255)
-
-	os.Exit(m.Run())
+func packetFromHex(input string) *ndn.Packet {
+	return ndn.PacketFromPtr(mbuftestenv.MakePacket(input).GetPtr())
 }
 
-var makeAR = dpdktestenv.MakeAR
-
-func packetFromHex(input string) ndn.Packet {
-	return ndn.PacketFromPtr(dpdktestenv.PacketFromHex(input).GetPtr())
-}
-
-func TlvBytesFromHex(input string) ndn.TlvBytes {
-	return ndn.TlvBytes(dpdktestenv.BytesFromHex(input))
+func tlvBytesFromHex(input string) ndn.TlvBytes {
+	return ndn.TlvBytes(mbuftestenv.BytesFromHex(input))
 }

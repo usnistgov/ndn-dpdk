@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"unsafe"
 
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
 	"ndn-dpdk/ndn"
 )
 
@@ -31,7 +31,7 @@ type partition struct {
 }
 
 // Allocate C structs in FIB partition.
-func newPartition(fib *Fib, index int, numaSocket dpdk.NumaSocket) (part *partition, e error) {
+func newPartition(fib *Fib, index int, numaSocket eal.NumaSocket) (part *partition, e error) {
 	part = new(partition)
 	part.fib = fib
 	part.index = index
@@ -39,9 +39,9 @@ func newPartition(fib *Fib, index int, numaSocket dpdk.NumaSocket) (part *partit
 	idC := C.CString(fmt.Sprintf("%s_%d", fib.cfg.Id, index))
 	defer C.free(unsafe.Pointer(idC))
 	part.c = C.Fib_New(idC, C.uint32_t(fib.cfg.MaxEntries), C.uint32_t(fib.cfg.NBuckets),
-		C.unsigned(numaSocket.ID()), C.uint8_t(fib.cfg.StartDepth))
+		C.uint(numaSocket.ID()), C.uint8_t(fib.cfg.StartDepth))
 	if part.c == nil {
-		return nil, dpdk.GetErrno()
+		return nil, eal.GetErrno()
 	}
 
 	return part, nil

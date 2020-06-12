@@ -36,28 +36,26 @@ func (mg DpInfoMgmt) Fwd(arg IndexArg, reply *fwdp.FwdInfo) error {
 }
 
 func (mg DpInfoMgmt) Pit(arg IndexArg, reply *pit.Counters) error {
-	pcct := mg.Dp.GetFwdPcct(arg.Index)
-	if pcct == nil {
+	pit := mg.Dp.GetFwdPit(arg.Index)
+	if pit == nil {
 		return errors.New("index out of range")
 	}
-	pit := pit.Pit{pcct}
 	*reply = pit.ReadCounters()
 	return nil
 }
 
-func readCslCnt(cs cs.Cs, cslId cs.ListId) (cnt CsListCounters) {
+func readCslCnt(cs *cs.Cs, cslId cs.ListId) (cnt CsListCounters) {
 	cnt.Count = cs.CountEntries(cslId)
 	cnt.Capacity = cs.GetCapacity(cslId)
 	return cnt
 }
 
 func (mg DpInfoMgmt) Cs(arg IndexArg, reply *CsCounters) error {
-	pcct := mg.Dp.GetFwdPcct(arg.Index)
-	if pcct == nil {
+	thePit, theCs := mg.Dp.GetFwdPit(arg.Index), mg.Dp.GetFwdCs(arg.Index)
+	if thePit == nil || theCs == nil {
 		return errors.New("index out of range")
 	}
-	pit, theCs := pit.Pit{pcct}, cs.Cs{pcct}
-	pitCnt := pit.ReadCounters()
+	pitCnt := thePit.ReadCounters()
 
 	reply.MD = readCslCnt(theCs, cs.CSL_MD)
 	reply.MI = readCslCnt(theCs, cs.CSL_MI)

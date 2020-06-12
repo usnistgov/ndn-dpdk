@@ -13,7 +13,7 @@ import "C"
 import (
 	"unsafe"
 
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/pktmbuf"
 	"ndn-dpdk/ndn"
 )
 
@@ -68,6 +68,6 @@ func (burst RxBurst) ListNacks() (list []*ndn.Nack) {
 }
 
 // Put received frame in scratch space.
-func (burst RxBurst) SetFrame(i int, frame dpdk.IMbuf) {
+func (burst RxBurst) SetFrame(i int, frame *pktmbuf.Packet) {
 	C.c_FaceRxBurst_SetFrame(burst.c, C.int(i), (*C.struct_rte_mbuf)(frame.GetPtr()))
 }

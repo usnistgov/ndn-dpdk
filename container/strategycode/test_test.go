@@ -4,13 +4,13 @@ import (
 	"os"
 	"testing"
 
-	"ndn-dpdk/dpdk/dpdktestenv"
+	"ndn-dpdk/core/testenv"
+	"ndn-dpdk/dpdk/eal/ealtestenv"
 )
 
 func TestMain(m *testing.M) {
-	dpdktestenv.InitEal()
-
+	ealtestenv.InitEal()
 	os.Exit(m.Run())
 }
 
-var makeAR = dpdktestenv.MakeAR
+var makeAR = testenv.MakeAR

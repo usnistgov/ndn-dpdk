@@ -4,14 +4,14 @@ import (
 	"testing"
 
 	"ndn-dpdk/app/fetch"
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
 )
 
 func TestWindow(t *testing.T) {
 	assert, require := makeAR(t)
 
 	var win fetch.Window
-	win.Init(8, dpdk.NumaSocket{})
+	win.Init(8, eal.NumaSocket{})
 	defer win.Close()
 
 	var seg1 *fetch.SegState

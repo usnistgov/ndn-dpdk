@@ -5,9 +5,8 @@ package fetch
 */
 import "C"
 import (
+	"ndn-dpdk/dpdk/eal"
 	"unsafe"
-
-	"ndn-dpdk/dpdk"
 )
 
 func segStateFromC(c *C.FetchSeg) *SegState {
@@ -22,13 +21,13 @@ func (win *Window) getPtr() *C.FetchWindow {
 	return (*C.FetchWindow)(unsafe.Pointer(win))
 }
 
-func (win *Window) Init(capacity int, socket dpdk.NumaSocket) {
+func (win *Window) Init(capacity int, socket eal.NumaSocket) {
 	if capacity < 1 {
 		capacity = 65536
 	}
 	capacity = int(C.rte_align32pow2(C.uint32_t(capacity)))
 
-	win.Array = (*SegState)(dpdk.ZmallocAligned("FetchWindow", capacity*int(C.sizeof_FetchSeg), 1, socket))
+	win.Array = (*SegState)(eal.ZmallocAligned("FetchWindow", capacity*int(C.sizeof_FetchSeg), 1, socket))
 	win.CapacityMask = uint32(capacity - 1)
 }
 
@@ -39,7 +38,7 @@ func (win *Window) Reset() {
 }
 
 func (win *Window) Close() error {
-	dpdk.Free(win.Array)
+	eal.Free(win.Array)
 	return nil
 }
 

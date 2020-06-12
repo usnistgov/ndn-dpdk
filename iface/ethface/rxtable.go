@@ -8,7 +8,8 @@ import (
 	"fmt"
 	"unsafe"
 
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
+	"ndn-dpdk/dpdk/ethdev"
 	"ndn-dpdk/iface"
 )
 
@@ -61,7 +62,7 @@ func (impl *rxTableImpl) Close() error {
 		impl.rxt.Close()
 		impl.rxt = nil
 	}
-	impl.port.dev.Stop()
+	impl.port.dev.Stop(ethdev.StopDetach)
 	return nil
 }
 
@@ -73,7 +74,7 @@ type RxTable struct {
 
 func newRxTable(port *Port) (rxt *RxTable) {
 	rxt = new(RxTable)
-	rxt.c = (*C.EthRxTable)(dpdk.Zmalloc("EthRxTable", C.sizeof_EthRxTable, port.dev.GetNumaSocket()))
+	rxt.c = (*C.EthRxTable)(eal.Zmalloc("EthRxTable", C.sizeof_EthRxTable, port.dev.GetNumaSocket()))
 	rxt.InitRxgBase(unsafe.Pointer(rxt.c))
 
 	rxt.c.port = C.uint16_t(port.dev.ID())
@@ -87,12 +88,12 @@ func newRxTable(port *Port) (rxt *RxTable) {
 
 func (rxt *RxTable) Close() error {
 	iface.EmitRxGroupRemove(rxt)
-	dpdk.Free(rxt.c)
+	eal.Free(rxt.c)
 	return nil
 }
 
-func (rxt *RxTable) GetNumaSocket() dpdk.NumaSocket {
-	return dpdk.EthDevFromID(int(rxt.c.port)).GetNumaSocket()
+func (rxt *RxTable) GetNumaSocket() eal.NumaSocket {
+	return ethdev.FromID(int(rxt.c.port)).GetNumaSocket()
 }
 
 func (rxt *RxTable) ListFaces() (list []iface.FaceId) {

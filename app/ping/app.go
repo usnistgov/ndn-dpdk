@@ -4,8 +4,7 @@ import (
 	"fmt"
 
 	"ndn-dpdk/app/inputdemux"
-	"ndn-dpdk/appinit"
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/createface"
 )
@@ -26,16 +25,14 @@ type App struct {
 
 type Input struct {
 	rxl    *iface.RxLoop
-	demux3 inputdemux.Demux3
+	demux3 *inputdemux.Demux3
 }
 
 func New(cfg []TaskConfig) (app *App, e error) {
 	app = new(App)
 
-	appinit.ProvideCreateFaceMempools()
-
 	createface.CustomGetRxl = func(rxg iface.IRxGroup) *iface.RxLoop {
-		lc := dpdk.LCoreAlloc.Alloc(LCoreRole_Input, rxg.GetNumaSocket())
+		lc := eal.LCoreAlloc.Alloc(LCoreRole_Input, rxg.GetNumaSocket())
 		socket := lc.GetNumaSocket()
 		rxl := iface.NewRxLoop(socket)
 		rxl.SetLCore(lc)
@@ -49,7 +46,7 @@ func New(cfg []TaskConfig) (app *App, e error) {
 	}
 
 	createface.CustomGetTxl = func(face iface.IFace) *iface.TxLoop {
-		lc := dpdk.LCoreAlloc.Alloc(LCoreRole_Output, face.GetNumaSocket())
+		lc := eal.LCoreAlloc.Alloc(LCoreRole_Output, face.GetNumaSocket())
 		socket := lc.GetNumaSocket()
 		txl := iface.NewTxLoop(socket)
 		txl.SetLCore(lc)

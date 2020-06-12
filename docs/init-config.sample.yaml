@@ -5,24 +5,23 @@
 # 'Capacity' affects hugepage memory usage; (2^q-1) is optimal.
 # Each NUMA socket has its own mempool with the given name.
 Mempool:
-  IND:  # indirect mbufs
-    Capacity: 2097151
-  ETHRX:  # RX Ethernet frames
+  DIRECT:  # RX incoming packets
+    Capacity: 524287
+    Dataroom: 2176
+  INDIRECT:  # indirect mbufs
     Capacity: 1048575
-    DataroomSize: 2200  # MTU+256, minimum 2200
   NAME:  # name linearize
     Capacity: 65535
-  HDR:  # TX Ethernet+NDNLP+Interest headers
+  HEADER:  # TX packet headers
     Capacity: 65535
-  INTG:  # modifying Interest guiders
+  GUIDER:  # TX modified Interest guiders (forwarder only)
     Capacity: 65535
-  INT:  # TX Ethernet+NDNLP and encoding Interest
+  INT:  # TX Interests (trafficgen only)
     Capacity: 65535
-  DATA0:  # TX Ethernet+NDNLP+Data name prefix
+  DATA:  # TX Data hader (trafficgen only)
     Capacity: 65535
-  DATA1:  # TX Data name suffix and payload
+  PAYLOAD:  # TX Data payload (trafficgen only)
     Capacity: 255
-    DataroomSize: 9000
 
 # LCORE ALLOCATION
 # This is a mapping from LCore role to its reservations.

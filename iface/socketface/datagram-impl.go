@@ -6,48 +6,38 @@ import (
 	"fmt"
 	"net"
 
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/pktmbuf"
 )
 
 // SocketFace implementation for datagram-oriented sockets.
 type datagramImpl struct{}
 
 func (datagramImpl) RxLoop(face *SocketFace) {
+	buf := make([]byte, face.rxMp.GetDataroom())
 	for {
-		mbuf, e := face.rxMp.Alloc()
+		nOctets, e := face.GetConn().Read(buf)
+		if e != nil {
+			if face.handleError("RX", e) {
+				return
+			}
+			continue
+		}
+
+		vec, e := face.rxMp.Alloc(1)
 		if e != nil {
 			face.logger.WithError(e).Error("RX alloc error")
 			continue
 		}
 
-		pkt := mbuf.AsPacket()
-		seg0 := pkt.GetFirstSegment()
-		seg0.SetHeadroom(0)
-
-		buf := seg0.AsByteSlice()
-		buf = buf[:cap(buf)]
-		nOctets, e := face.GetConn().Read(buf)
-		if e != nil {
-			if face.handleError("RX", e) {
-				pkt.Close()
-				return
-			}
-			continue
-		}
-		seg0.Append(buf[:nOctets])
-
+		pkt := vec[0]
+		pkt.SetHeadroom(0)
+		pkt.Append(buf[:nOctets])
 		face.rxPkt(pkt)
 	}
 }
 
-func (datagramImpl) Send(face *SocketFace, pkt dpdk.Packet) error {
-	var buf []byte
-	if pkt.CountSegments() > 1 {
-		buf = pkt.ReadAll()
-	} else {
-		buf = pkt.GetFirstSegment().AsByteSlice()
-	}
-	_, e := face.GetConn().Write(buf)
+func (datagramImpl) Send(face *SocketFace, pkt *pktmbuf.Packet) error {
+	_, e := face.GetConn().Write(pkt.ReadAll())
 	return e
 }
 

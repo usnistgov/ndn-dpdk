@@ -3,7 +3,7 @@
 
 /// \file
 
-#include "../../dpdk/tsc.h"
+#include "../../dpdk/eal/tsc.h"
 
 /** \brief TCP CUBIC algorithm.
  *  \sa https://tools.ietf.org/html/rfc8312

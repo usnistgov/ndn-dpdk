@@ -6,11 +6,11 @@ import (
 	"testing"
 
 	"ndn-dpdk/container/fib/fibtree"
-	"ndn-dpdk/dpdk/dpdktestenv"
+	"ndn-dpdk/core/testenv"
 	"ndn-dpdk/ndn"
 )
 
-var makeAR = dpdktestenv.MakeAR
+var makeAR = testenv.MakeAR
 
 func makeTree() *fibtree.Tree {
 	return fibtree.New(2, 1, 16, func(name *ndn.Name) uint64 {

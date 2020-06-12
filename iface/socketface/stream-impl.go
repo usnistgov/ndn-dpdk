@@ -4,7 +4,7 @@ import "C"
 import (
 	"net"
 
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/pktmbuf"
 	"ndn-dpdk/ndn"
 )
 
@@ -48,28 +48,23 @@ func (streamImpl) postPacket(face *SocketFace, buf ndn.TlvBytes) (n int) {
 		return 0
 	}
 
-	mbuf, e := face.rxMp.Alloc()
+	vec, e := face.rxMp.Alloc(1)
 	if e != nil {
 		face.logger.WithError(e).Error("RX alloc error")
 		return n
 	}
 
-	pkt := mbuf.AsPacket()
-	seg0 := pkt.GetFirstSegment()
-	seg0.SetHeadroom(0)
-	seg0.Append([]byte(element))
-
+	pkt := vec[0]
+	pkt.SetHeadroom(0)
+	pkt.Append([]byte(element))
 	face.rxPkt(pkt)
 	return len(element)
 }
 
-func (streamImpl) Send(face *SocketFace, pkt dpdk.Packet) error {
-	for seg, ok := pkt.GetFirstSegment(), true; ok; seg, ok = seg.GetNext() {
-		buf := seg.AsByteSlice()
-		_, e := face.GetConn().Write(buf)
-		if e != nil {
-			return e
-		}
+func (streamImpl) Send(face *SocketFace, pkt *pktmbuf.Packet) error {
+	_, e := face.GetConn().Write(pkt.ReadAll())
+	if e != nil {
+		return e
 	}
 	return nil
 }

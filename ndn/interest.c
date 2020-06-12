@@ -270,7 +270,6 @@ EncodeInterest_(struct rte_mbuf* m,
                 const uint8_t* suffixV,
                 uint32_t nonce)
 {
-  m->data_off = tpl->headroom;
   TlvEncoder* en = MakeTlvEncoder(m);
   AppendVarNum(en, TT_Name);
   AppendVarNum(en, tpl->prefixL + suffixL);

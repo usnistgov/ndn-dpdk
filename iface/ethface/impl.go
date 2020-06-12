@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"io"
 
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/ethdev"
+	"ndn-dpdk/ndn"
 )
 
 // RX/TX setup implementation.
@@ -29,26 +30,18 @@ var impls = []iImpl{&rxFlowImpl{}, &rxTableImpl{}}
 
 // Start EthDev (called by impl).
 func startDev(port *Port, nRxQueues int, promisc bool) error {
-	var cfg dpdk.EthDevConfig
-	numaSocket := port.dev.GetNumaSocket()
-	for i := 0; i < nRxQueues; i++ {
-		cfg.RxQueues = append(cfg.RxQueues, dpdk.EthRxQueueConfig{
-			Capacity: port.cfg.RxqFrames,
-			Socket:   numaSocket,
-			Mp:       port.cfg.RxMp,
-		})
-	}
-	cfg.TxQueues = append(cfg.TxQueues, dpdk.EthTxQueueConfig{
+	socket := port.dev.GetNumaSocket()
+	var cfg ethdev.Config
+	cfg.AddRxQueues(nRxQueues, ethdev.RxQueueConfig{
+		Capacity: port.cfg.RxqFrames,
+		Socket:   socket,
+		RxPool:   ndn.PacketMempool.MakePool(socket),
+	})
+	cfg.AddTxQueues(1, ethdev.TxQueueConfig{
 		Capacity: port.cfg.TxqFrames,
-		Socket:   numaSocket,
+		Socket:   socket,
 	})
 	cfg.Mtu = port.cfg.Mtu
-	if _, _, e := port.dev.Configure(cfg); e != nil {
-		return e
-	}
-
-	if promisc {
-		port.dev.SetPromiscuous(true)
-	}
-	return port.dev.Start()
+	cfg.Promisc = promisc
+	return port.dev.Start(cfg)
 }

@@ -4,12 +4,12 @@ import (
 	"math"
 	"sync"
 
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/ethface"
 )
 
-func isNumaSocketMatch(a, b dpdk.NumaSocket) bool {
+func isNumaSocketMatch(a, b eal.NumaSocket) bool {
 	return a.IsAny() || b.IsAny() || a.ID() == b.ID()
 }
 

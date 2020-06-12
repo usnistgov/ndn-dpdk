@@ -9,7 +9,7 @@ import (
 	"ndn-dpdk/app/pingclient"
 	"ndn-dpdk/core/nnduration"
 	"ndn-dpdk/ndn"
-	"ndn-dpdk/ndn/ndntestutil"
+	"ndn-dpdk/ndn/ndntestenv"
 )
 
 func TestClient(t *testing.T) {
@@ -78,8 +78,8 @@ func TestClient(t *testing.T) {
 		default:
 			assert.Fail("unexpected Interest", "%s", interest)
 		}
-		data := ndntestutil.MakeData(interest.GetName().String())
-		ndntestutil.CopyPitToken(data, interest)
+		data := ndntestenv.MakeData(interest.GetName().String())
+		ndntestenv.CopyPitToken(data, interest)
 		rx(data)
 	})
 

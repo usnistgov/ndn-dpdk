@@ -12,9 +12,9 @@ import (
 	"time"
 	"unsafe"
 
-	"ndn-dpdk/appinit"
+	"ndn-dpdk/app/ping/pingmempool"
 	"ndn-dpdk/container/pktqueue"
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/ndn"
 )
@@ -27,25 +27,24 @@ type Client struct {
 
 func New(face iface.IFace, cfg Config) (client *Client, e error) {
 	socket := face.GetNumaSocket()
-	crC := (*C.PingClientRx)(dpdk.Zmalloc("PingClientRx", C.sizeof_PingClientRx, socket))
+	crC := (*C.PingClientRx)(eal.Zmalloc("PingClientRx", C.sizeof_PingClientRx, socket))
 	cfg.RxQueue.DisableCoDel = true
 	if _, e := pktqueue.NewAt(unsafe.Pointer(&crC.rxQueue), cfg.RxQueue, fmt.Sprintf("PingClient%d_rxQ", face.GetFaceId()), socket); e != nil {
-		dpdk.Free(crC)
+		eal.Free(crC)
 		return nil, nil
 	}
 
-	ctC := (*C.PingClientTx)(dpdk.Zmalloc("PingClientTx", C.sizeof_PingClientTx, socket))
+	ctC := (*C.PingClientTx)(eal.Zmalloc("PingClientTx", C.sizeof_PingClientTx, socket))
 	ctC.face = (C.FaceId)(face.GetFaceId())
-	ctC.interestMp = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
-		appinit.MP_INT, socket).GetPtr())
+	ctC.interestMp = (*C.struct_rte_mempool)(pingmempool.Interest.MakePool(socket).GetPtr())
 	C.pcg32_srandom_r(&ctC.trafficRng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
 	C.NonceGen_Init(&ctC.nonceGen)
 
 	client = new(Client)
 	client.Rx.c = crC
-	dpdk.InitStopFlag(unsafe.Pointer(&crC.stop))
+	eal.InitStopFlag(unsafe.Pointer(&crC.stop))
 	client.Tx.c = ctC
-	dpdk.InitStopFlag(unsafe.Pointer(&ctC.stop))
+	eal.InitStopFlag(unsafe.Pointer(&ctC.stop))
 
 	for i, pattern := range cfg.Patterns {
 		if _, e := client.AddPattern(pattern); e != nil {
@@ -75,7 +74,7 @@ func (client *Client) AddPattern(cfg Pattern) (index int, e error) {
 		return -1, errors.New("first pattern cannot have SeqNumOffset")
 	}
 
-	tplArgs := []interface{}{ndn.InterestMbufExtraHeadroom(appinit.SizeofEthLpHeaders()), cfg.Prefix}
+	tplArgs := []interface{}{cfg.Prefix}
 	if cfg.CanBePrefix {
 		tplArgs = append(tplArgs, ndn.CanBePrefixFlag)
 	}
@@ -111,21 +110,21 @@ func (client *Client) AddPattern(cfg Pattern) (index int, e error) {
 
 // Get average Interest interval.
 func (client *Client) GetInterval() time.Duration {
-	return dpdk.FromTscDuration(int64(client.Tx.c.burstInterval)) / C.PINGCLIENT_TX_BURST_SIZE
+	return eal.FromTscDuration(int64(client.Tx.c.burstInterval)) / C.PINGCLIENT_TX_BURST_SIZE
 }
 
 // Set average Interest interval.
 // TX thread transmits Interests in bursts, so the specified interval will be converted to
 // a burst interval with equivalent traffic amount.
 func (client *Client) SetInterval(interval time.Duration) {
-	client.Tx.c.burstInterval = C.TscDuration(dpdk.ToTscDuration(interval * C.PINGCLIENT_TX_BURST_SIZE))
+	client.Tx.c.burstInterval = C.TscDuration(eal.ToTscDuration(interval * C.PINGCLIENT_TX_BURST_SIZE))
 }
 
-func (client *Client) GetRxQueue() pktqueue.PktQueue {
+func (client *Client) GetRxQueue() *pktqueue.PktQueue {
 	return pktqueue.FromPtr(unsafe.Pointer(&client.Rx.c.rxQueue))
 }
 
-func (client *Client) SetLCores(rxLCore, txLCore dpdk.LCore) {
+func (client *Client) SetLCores(rxLCore, txLCore eal.LCore) {
 	client.Rx.SetLCore(rxLCore)
 	client.Tx.SetLCore(txLCore)
 }
@@ -157,14 +156,14 @@ func (client *Client) Stop(delay time.Duration) error {
 // Both RX and TX threads must be stopped before calling this.
 func (client *Client) Close() error {
 	client.GetRxQueue().Close()
-	dpdk.Free(client.Rx.c)
-	dpdk.Free(client.Tx.c)
+	eal.Free(client.Rx.c)
+	eal.Free(client.Tx.c)
 	return nil
 }
 
 // Client RX thread.
 type ClientRxThread struct {
-	dpdk.ThreadBase
+	eal.ThreadBase
 	c *C.PingClientRx
 }
 
@@ -178,7 +177,7 @@ func (rx *ClientRxThread) Launch() error {
 
 // Stop the RX thread.
 func (rx *ClientRxThread) Stop() error {
-	return rx.StopImpl(dpdk.NewStopFlag(unsafe.Pointer(&rx.c.stop)))
+	return rx.StopImpl(eal.NewStopFlag(unsafe.Pointer(&rx.c.stop)))
 }
 
 // No-op.
@@ -188,7 +187,7 @@ func (rx *ClientRxThread) Close() error {
 
 // Client TX thread.
 type ClientTxThread struct {
-	dpdk.ThreadBase
+	eal.ThreadBase
 	c *C.PingClientTx
 }
 
@@ -202,7 +201,7 @@ func (tx *ClientTxThread) Launch() error {
 
 // Stop the TX thread.
 func (tx *ClientTxThread) Stop() error {
-	return tx.StopImpl(dpdk.NewStopFlag(unsafe.Pointer(&tx.c.stop)))
+	return tx.StopImpl(eal.NewStopFlag(unsafe.Pointer(&tx.c.stop)))
 }
 
 // No-op.

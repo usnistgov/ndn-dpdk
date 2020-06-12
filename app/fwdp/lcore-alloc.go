@@ -3,7 +3,7 @@ package fwdp
 import (
 	"fmt"
 
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/createface"
 )
@@ -18,12 +18,12 @@ const (
 
 // LCore allocator for dataplane.
 type DpLCores struct {
-	Allocator *dpdk.LCoreAllocator
+	Allocator *eal.LCoreAllocator
 
-	Inputs  []dpdk.LCore
-	Outputs []dpdk.LCore
-	Crypto  dpdk.LCore
-	Fwds    []dpdk.LCore
+	Inputs  []eal.LCore
+	Outputs []eal.LCore
+	Crypto  eal.LCore
+	Fwds    []eal.LCore
 }
 
 // Allocate LCores for all necessary roles.
@@ -36,7 +36,7 @@ func (la *DpLCores) Alloc() (e error) {
 		return e
 	}
 
-	la.Crypto = la.Allocator.Alloc(LCoreRole_Crypto, dpdk.NumaSocket{})
+	la.Crypto = la.Allocator.Alloc(LCoreRole_Crypto, eal.NumaSocket{})
 
 	if la.Fwds = la.allocMax(LCoreRole_Fwd); len(la.Fwds) == 0 {
 		return fmt.Errorf("no lcore available for %s", LCoreRole_Fwd)
@@ -46,7 +46,7 @@ func (la *DpLCores) Alloc() (e error) {
 }
 
 // Allocate LCores on list of NumaSockets.
-func (la *DpLCores) allocNuma(role string, numaSockets []dpdk.NumaSocket) (list []dpdk.LCore, e error) {
+func (la *DpLCores) allocNuma(role string, numaSockets []eal.NumaSocket) (list []eal.LCore, e error) {
 	for _, numaSocket := range numaSockets {
 		if lc := la.Allocator.Alloc(role, numaSocket); lc.IsValid() {
 			list = append(list, lc)
@@ -58,9 +58,9 @@ func (la *DpLCores) allocNuma(role string, numaSockets []dpdk.NumaSocket) (list 
 }
 
 // Allocate all remaining LCores to a role.
-func (la *DpLCores) allocMax(role string) (list []dpdk.LCore) {
+func (la *DpLCores) allocMax(role string) (list []eal.LCore) {
 	for {
-		if lc := la.Allocator.Alloc(role, dpdk.NumaSocket{}); lc.IsValid() {
+		if lc := la.Allocator.Alloc(role, eal.NumaSocket{}); lc.IsValid() {
 			list = append(list, lc)
 		} else {
 			break

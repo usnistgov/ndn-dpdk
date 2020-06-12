@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"ndn-dpdk/dpdk/dpdktestenv"
+	"ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 	"ndn-dpdk/ndn"
 )
 
@@ -29,7 +29,7 @@ func TestNameDecode(t *testing.T) {
 		{input: "0102 DDDD", err: ndn.NdnError_BadDigestComponentLength},
 	}
 	for _, tt := range tests {
-		n, e := ndn.NewName(TlvBytesFromHex(tt.input))
+		n, e := ndn.NewName(tlvBytesFromHex(tt.input))
 		if tt.bad || tt.err != nil {
 			assert.Error(e, tt.input)
 			if tt.err != nil {
@@ -45,7 +45,7 @@ func TestNameDecode(t *testing.T) {
 func TestNamePrefixHash(t *testing.T) {
 	assert, require := makeAR(t)
 
-	input := TlvBytesFromHex("080141 080142 080100 0801FF 800141 0800 08012E" +
+	input := tlvBytesFromHex("080141 080142 080100 0801FF 800141 0800 08012E" +
 		strings.Repeat(" 080141", 32))
 	n, e := ndn.NewName(input)
 	require.NoError(e)
@@ -85,7 +85,7 @@ func TestNameCompare(t *testing.T) {
 	names := make([]*ndn.Name, len(nameStrs))
 	for i, nameStr := range nameStrs {
 		var e error
-		names[i], e = ndn.NewName(TlvBytesFromHex(nameStr))
+		names[i], e = ndn.NewName(tlvBytesFromHex(nameStr))
 		require.NoError(e, nameStr)
 	}
 
@@ -148,7 +148,7 @@ func TestNameParse(t *testing.T) {
 		if tt.bad {
 			assert.Error(e, tt.input)
 		} else if assert.NoError(e, tt.input) {
-			expected := ndn.TlvBytes(dpdktestenv.BytesFromHex(tt.output))
+			expected := ndn.TlvBytes(mbuftestenv.BytesFromHex(tt.output))
 			assert.Equal(expected, n.GetValue(), tt.input)
 			if tt.canonical == "" {
 				tt.canonical = tt.input

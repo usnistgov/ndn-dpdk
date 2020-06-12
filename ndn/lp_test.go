@@ -55,7 +55,7 @@ func TestLpHeaderDecode(t *testing.T) {
 	}
 	for _, tt := range tests {
 		pkt := packetFromHex(tt.input)
-		defer pkt.AsDpdkPacket().Close()
+		defer pkt.AsMbuf().Close()
 		e := pkt.ParseL2()
 		if tt.bad {
 			assert.Error(e, tt.input)
@@ -71,7 +71,7 @@ func TestLpHeaderDecode(t *testing.T) {
 			assert.Equal(tt.pitToken, lph.GetPitToken(), tt.input)
 			assert.Equal(tt.nackReason, lph.GetNackReason(), tt.input)
 			assert.Equal(tt.congMark, lph.GetCongMark(), tt.input)
-			assert.Equal(tt.payloadL, pkt.AsDpdkPacket().Len(), tt.input)
+			assert.Equal(tt.payloadL, pkt.AsMbuf().Len(), tt.input)
 		}
 	}
 }

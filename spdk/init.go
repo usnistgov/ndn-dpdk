@@ -11,14 +11,14 @@ import (
 
 	"ndn-dpdk/core/dlopen"
 	"ndn-dpdk/core/logger"
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
 )
 
 // SPDK thread for most operations invoked from Go API.
 var MainThread *Thread
 
 // Initialize SPDK environment and create a main thread.
-func Init(mainThreadLcore dpdk.LCore) (e error) {
+func Init(mainThreadLcore eal.LCore) (e error) {
 	if MainThread != nil && MainThread.IsRunning() { // already initialized
 		return nil
 	}
@@ -28,7 +28,7 @@ func Init(mainThreadLcore dpdk.LCore) (e error) {
 	}
 
 	if res := int(C.spdk_env_dpdk_post_init(C.bool(false))); res != 0 {
-		return dpdk.Errno(-res)
+		return eal.Errno(-res)
 	}
 
 	initLogging()
@@ -48,7 +48,7 @@ func Init(mainThreadLcore dpdk.LCore) (e error) {
 	return nil
 }
 
-func MustInit(mainThreadLcore dpdk.LCore) {
+func MustInit(mainThreadLcore eal.LCore) {
 	if e := Init(mainThreadLcore); e != nil {
 		panic(fmt.Sprintf("spdk.Init error %v", e))
 	}

@@ -6,7 +6,7 @@ import (
 
 	"ndn-dpdk/container/pit"
 	"ndn-dpdk/ndn"
-	"ndn-dpdk/ndn/ndntestutil"
+	"ndn-dpdk/ndn/ndntestenv"
 )
 
 func TestInsertErase(t *testing.T) {
@@ -17,34 +17,34 @@ func TestInsertErase(t *testing.T) {
 	assert.Zero(fixture.Pit.Len())
 	assert.Zero(fixture.CountMpInUse())
 
-	interest1 := ndntestutil.MakeInterest("/A/1")
+	interest1 := makeInterest("/A/1")
 	entry1 := fixture.Insert(interest1)
 	assert.NotNil(entry1)
 
-	interest2 := ndntestutil.MakeInterest("/A/2")
+	interest2 := makeInterest("/A/2")
 	entry2 := fixture.Insert(interest2)
 	assert.NotNil(entry2)
 	assert.NotEqual(uintptr(entry1.GetPtr()), uintptr(entry2.GetPtr()))
 
-	interest3 := ndntestutil.MakeInterest("/A/2",
+	interest3 := makeInterest("/A/2",
 		ndn.FHDelegation{1, "/F"}, ndn.FHDelegation{1, "/G"})
 	entry3 := fixture.Insert(interest3)
-	ndntestutil.ClosePacket(interest3)
+	ndntestenv.ClosePacket(interest3)
 	assert.NotNil(entry3)
 	assert.Equal(uintptr(entry2.GetPtr()), uintptr(entry3.GetPtr()))
 
-	entry4 := fixture.Insert(ndntestutil.MakeInterest("/A/2",
+	entry4 := fixture.Insert(makeInterest("/A/2",
 		ndn.FHDelegation{1, "/F"}, ndn.FHDelegation{1, "/G"}, ndn.ActiveFHDelegation(0)))
 	assert.NotNil(entry4)
 	assert.NotEqual(uintptr(entry2.GetPtr()), uintptr(entry4.GetPtr()))
 
-	entry5 := fixture.Insert(ndntestutil.MakeInterest("/A/2",
+	entry5 := fixture.Insert(makeInterest("/A/2",
 		ndn.FHDelegation{1, "/F"}, ndn.FHDelegation{1, "/G"}, ndn.ActiveFHDelegation(1)))
 	assert.NotNil(entry5)
 	assert.NotEqual(uintptr(entry2.GetPtr()), uintptr(entry5.GetPtr()))
 	assert.NotEqual(uintptr(entry4.GetPtr()), uintptr(entry5.GetPtr()))
 
-	interest6 := ndntestutil.MakeInterest("/A/2", ndn.MustBeFreshFlag)
+	interest6 := makeInterest("/A/2", ndn.MustBeFreshFlag)
 	entry6 := fixture.Insert(interest6)
 	assert.NotNil(entry6)
 	assert.NotEqual(uintptr(entry2.GetPtr()), uintptr(entry6.GetPtr()))
@@ -74,25 +74,25 @@ func TestToken(t *testing.T) {
 	pit := fixture.Pit
 
 	for i := 0; i <= 255; i++ {
-		data := ndntestutil.MakeData(fmt.Sprintf("/I/%d", i))
+		data := makeData(fmt.Sprintf("/I/%d", i))
 		name := data.GetName().String()
 		if i < 32 {
 			name = data.GetFullName().String()
 		}
-		interest := ndntestutil.MakeInterest(name)
+		interest := makeInterest(name)
 
 		entry, _ := pit.Insert(interest, fixture.EmptyFibEntry)
 		if i == 255 { // PCCT is full
 			assert.Nil(entry)
-			ndntestutil.ClosePacket(data)
-			ndntestutil.ClosePacket(interest)
+			ndntestenv.ClosePacket(data)
+			ndntestenv.ClosePacket(interest)
 			continue
 		}
 		require.NotNil(entry, "unexpected PCCT full at %d", i)
 
 		token := entry.GetToken()
 		assert.Equal(token&(1<<48-1), token) // token has 48 bits
-		ndntestutil.SetPitToken(data, token)
+		ndntestenv.SetPitToken(data, token)
 
 		interestNames[i] = name
 		dataPkts[i] = data
@@ -105,7 +105,7 @@ func TestToken(t *testing.T) {
 	for i, entry := range entries {
 		name := interestNames[i]
 		data := dataPkts[i]
-		token := ndntestutil.GetPitToken(data)
+		token := ndntestenv.GetPitToken(data)
 
 		found := pit.FindByData(data)
 		foundEntries := found.ListEntries()
@@ -126,17 +126,17 @@ func TestToken(t *testing.T) {
 
 		// high 16 bits of the token should be ignored
 		token2 := token ^ 0x79BC000000000000
-		nack := ndn.MakeNackFromInterest(ndntestutil.MakeInterest(name),
+		nack := ndn.MakeNackFromInterest(makeInterest(name),
 			ndn.NackReason_NoRoute)
-		ndntestutil.SetPitToken(nack, token2)
+		ndntestenv.SetPitToken(nack, token2)
 		foundEntry := pit.FindByNack(nack)
 		if assert.NotNil(foundEntry) {
 			assert.Equal(uintptr(entry.GetPtr()), uintptr(foundEntry.GetPtr()))
 		}
 
 		// name mismatch
-		data2 := ndntestutil.MakeData(fmt.Sprintf("/K/%d", i))
-		ndntestutil.SetPitToken(data2, token)
+		data2 := makeData(fmt.Sprintf("/K/%d", i))
+		ndntestenv.SetPitToken(data2, token)
 		foundEntries = pit.FindByData(data2).ListEntries()
 		assert.Len(foundEntries, 0)
 
@@ -144,9 +144,9 @@ func TestToken(t *testing.T) {
 		foundEntry = pit.FindByNack(nack)
 		assert.Nil(foundEntry)
 
-		ndntestutil.ClosePacket(data)
-		ndntestutil.ClosePacket(nack)
-		ndntestutil.ClosePacket(data2)
+		ndntestenv.ClosePacket(data)
+		ndntestenv.ClosePacket(nack)
+		ndntestenv.ClosePacket(data2)
 	}
 
 	cnt := pit.ReadCounters()

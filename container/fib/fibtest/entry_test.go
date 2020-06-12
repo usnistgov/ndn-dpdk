@@ -6,14 +6,14 @@ import (
 	"ndn-dpdk/container/fib"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/ndn"
-	"ndn-dpdk/ndn/ndntestutil"
+	"ndn-dpdk/ndn/ndntestenv"
 )
 
 func TestEntry(t *testing.T) {
 	assert, _ := makeAR(t)
 
 	var entry fib.Entry
-	ndntestutil.NameEqual(assert, "/", entry.GetName())
+	ndntestenv.NameEqual(assert, "/", entry.GetName())
 	assert.Equal(0, entry.CountComps())
 	assert.Len(entry.GetNexthops(), 0)
 

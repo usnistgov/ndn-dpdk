@@ -5,10 +5,9 @@ package fetch
 */
 import "C"
 import (
+	"ndn-dpdk/dpdk/eal"
 	"time"
 	"unsafe"
-
-	"ndn-dpdk/dpdk"
 )
 
 func TcpCubicFromC(ptr unsafe.Pointer) (ca *TcpCubic) {
@@ -27,10 +26,10 @@ func (ca *TcpCubic) GetCwnd() int {
 	return int(C.TcpCubic_GetCwnd(ca.getPtr()))
 }
 
-func (ca *TcpCubic) Increase(now dpdk.TscTime, sRtt time.Duration) {
-	C.TcpCubic_Increase(ca.getPtr(), C.TscTime(now), C.double(dpdk.ToTscDuration(sRtt)))
+func (ca *TcpCubic) Increase(now eal.TscTime, sRtt time.Duration) {
+	C.TcpCubic_Increase(ca.getPtr(), C.TscTime(now), C.double(eal.ToTscDuration(sRtt)))
 }
 
-func (ca *TcpCubic) Decrease(now dpdk.TscTime) {
+func (ca *TcpCubic) Decrease(now eal.TscTime) {
 	C.TcpCubic_Decrease(ca.getPtr(), C.TscTime(now))
 }

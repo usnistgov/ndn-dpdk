@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"ndn-dpdk/app/fetch"
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
 )
 
 func TestTcpCubic(t *testing.T) {
@@ -16,7 +16,7 @@ func TestTcpCubic(t *testing.T) {
 
 	assert.Equal(2, ca.GetCwnd())
 
-	now := dpdk.TscNow()
+	now := eal.TscNow()
 	rtt := 100 * time.Millisecond
 
 	// slow start

@@ -1,27 +1,25 @@
 package pingtestenv
 
 import (
-	"ndn-dpdk/appinit"
 	"ndn-dpdk/container/pktqueue"
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
+	"ndn-dpdk/dpdk/eal/ealtestenv"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/createface"
-	"ndn-dpdk/iface/ifacetestfixture"
 	"ndn-dpdk/iface/mockface"
 	"ndn-dpdk/ndn"
 )
 
 func Init() {
+	ealtestenv.InitEal()
+
 	faceCfg := createface.GetDefaultConfig()
 	faceCfg.EnableEth = false
 	faceCfg.EnableSock = false
 	faceCfg.EnableMock = true
 	faceCfg.Apply()
 
-	appinit.ProvideCreateFaceMempools()
-	_, mockface.FaceMempools = ifacetestfixture.MakeMempools()
-
-	slaves := dpdk.ListSlaveLCores()
+	slaves := eal.ListSlaveLCores()
 
 	rxl := iface.NewRxLoop(slaves[0].GetNumaSocket())
 	rxl.SetLCore(slaves[0])
@@ -36,7 +34,7 @@ func Init() {
 	SlaveLCores = slaves[2:]
 }
 
-var SlaveLCores []dpdk.LCore
+var SlaveLCores []eal.LCore
 
 func MakeMockFace() *mockface.MockFace {
 	face, e := createface.Create(mockface.NewLocator())
@@ -46,12 +44,12 @@ func MakeMockFace() *mockface.MockFace {
 	return face.(*mockface.MockFace)
 }
 
-func MakeRxFunc(q pktqueue.PktQueue) func(pkts ...ndn.IL3Packet) {
+func MakeRxFunc(q *pktqueue.PktQueue) func(pkts ...ndn.IL3Packet) {
 	return func(pkts ...ndn.IL3Packet) {
-		npkts := make([]ndn.Packet, len(pkts))
+		npkts := make([]*ndn.Packet, len(pkts))
 		for i, pkt := range pkts {
 			npkts[i] = pkt.GetPacket()
 		}
-		q.Push(npkts, dpdk.TscNow())
+		q.Push(npkts, eal.TscNow())
 	}
 }

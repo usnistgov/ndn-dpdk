@@ -14,10 +14,10 @@ import (
 // A PIT entry.
 type Entry struct {
 	c   *C.PitEntry
-	pit Pit
+	pit *Pit
 }
 
-func (pit Pit) EntryFromPtr(ptr unsafe.Pointer) Entry {
+func (pit *Pit) EntryFromPtr(ptr unsafe.Pointer) Entry {
 	return Entry{(*C.PitEntry)(ptr), pit}
 }
 

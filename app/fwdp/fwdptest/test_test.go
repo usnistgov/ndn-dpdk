@@ -1,16 +1,23 @@
 package fwdptest
 
 import (
+	"ndn-dpdk/core/testenv"
+	"ndn-dpdk/dpdk/eal/ealtestenv"
+	"ndn-dpdk/ndn/ndntestenv"
 	"os"
 	"testing"
-
-	"ndn-dpdk/dpdk/dpdktestenv"
-	"ndn-dpdk/ndn"
 )
 
 func TestMain(m *testing.M) {
-	dpdktestenv.MakeDirectMp(255, ndn.SizeofPacketPriv(), 2000)
+	ealtestenv.InitEal()
 	os.Exit(m.Run())
 }
 
-var makeAR = dpdktestenv.MakeAR
+var (
+	makeAR       = testenv.MakeAR
+	makeInterest = ndntestenv.MakeInterest
+	makeData     = ndntestenv.MakeData
+	getPitToken  = ndntestenv.GetPitToken
+	setPitToken  = ndntestenv.SetPitToken
+	copyPitToken = ndntestenv.CopyPitToken
+)

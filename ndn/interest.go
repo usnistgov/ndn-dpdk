@@ -29,7 +29,7 @@ import (
 	"time"
 	"unsafe"
 
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/pktmbuf"
 )
 
 const (
@@ -40,11 +40,11 @@ const (
 
 // Interest packet.
 type Interest struct {
-	m Packet
+	m *Packet
 	p *C.PInterest
 }
 
-func (interest *Interest) GetPacket() Packet {
+func (interest *Interest) GetPacket() *Packet {
 	return interest.m
 }
 
@@ -123,9 +123,8 @@ func (interest *Interest) SelectActiveFh(index int) error {
 // headerMp element size should be at least Interest_Headroom plus Ethernet and NDNLP headers.
 // guiderMp element size should be at least Interest_SizeofGuider.
 func (interest *Interest) Modify(nonce uint32, lifetime time.Duration,
-	hopLimit uint8, headerMp dpdk.PktmbufPool,
-	guiderMp dpdk.PktmbufPool, indirectMp dpdk.PktmbufPool) *Interest {
-	outPktC := C.ModifyInterest(interest.m.c, C.uint32_t(nonce),
+	hopLimit uint8, headerMp, guiderMp, indirectMp *pktmbuf.Pool) *Interest {
+	outPktC := C.ModifyInterest(interest.m.getPtr(), C.uint32_t(nonce),
 		C.uint32_t(lifetime/time.Millisecond), C.uint8_t(hopLimit),
 		(*C.struct_rte_mempool)(headerMp.GetPtr()),
 		(*C.struct_rte_mempool)(guiderMp.GetPtr()),
@@ -133,10 +132,8 @@ func (interest *Interest) Modify(nonce uint32, lifetime time.Duration,
 	if outPktC == nil {
 		return nil
 	}
-	return Packet{outPktC}.AsInterest()
+	return PacketFromPtr(unsafe.Pointer(outPktC)).AsInterest()
 }
-
-type InterestMbufExtraHeadroom int
 
 type tCanBePrefix bool
 type tMustBeFresh bool
@@ -167,7 +164,6 @@ func InterestTemplateFromPtr(ptr unsafe.Pointer) *InterestTemplate {
 // Specify HopLimit with uint8.
 // ApplicationParameters and Signature are not supported.
 func (tpl *InterestTemplate) Init(args ...interface{}) (e error) {
-	tpl.Headroom = Interest_Headroom
 	cbp := false
 	mbf := false
 	var fh TlvBytes
@@ -176,8 +172,6 @@ func (tpl *InterestTemplate) Init(args ...interface{}) (e error) {
 
 	for i := 0; i < len(args); i++ {
 		switch a := args[i].(type) {
-		case InterestMbufExtraHeadroom:
-			tpl.Headroom += uint16(a)
 		case string:
 			if name, e := ParseName(a); e != nil {
 				return e
@@ -238,7 +232,7 @@ func (tpl *InterestTemplate) Init(args ...interface{}) (e error) {
 // must be empty and is the only segment.
 // mbuf headroom should be at least Interest_Headroom plus Ethernet and NDNLP headers.
 // mbuf tailroom should fit the whole packet; a safe value is Interest_TailroomMax.
-func (tpl *InterestTemplate) Encode(m dpdk.IMbuf, suffix *Name, nonce uint32) {
+func (tpl *InterestTemplate) Encode(m *pktmbuf.Packet, suffix *Name, nonce uint32) {
 	var suffixV TlvBytes
 	if suffix != nil {
 		suffixV = suffix.GetValue()
@@ -252,7 +246,7 @@ func (tpl *InterestTemplate) Encode(m dpdk.IMbuf, suffix *Name, nonce uint32) {
 // In addition to argument types supported by `func (tpl *InterestTemplate) Init`:
 // Specify Nonce with uint32.
 // Choose active ForwardingHint delegation with ActiveFHDelegation.
-func MakeInterest(m dpdk.IMbuf, args ...interface{}) (interest *Interest, e error) {
+func MakeInterest(m *pktmbuf.Packet, args ...interface{}) (interest *Interest, e error) {
 	nonce := rand.Uint32()
 	activeFh := -1
 	var tplArgs []interface{}
@@ -275,12 +269,12 @@ func MakeInterest(m dpdk.IMbuf, args ...interface{}) (interest *Interest, e erro
 	}
 
 	tpl.Encode(m, nil, nonce)
-	pkt := PacketFromDpdk(m)
+	pkt := PacketFromMbuf(m)
 	if e = pkt.ParseL2(); e != nil {
 		m.Close()
 		return nil, e
 	}
-	if e = pkt.ParseL3(dpdk.PktmbufPool{}); e != nil || pkt.GetL3Type() != L3PktType_Interest {
+	if e = pkt.ParseL3(nil); e != nil || pkt.GetL3Type() != L3PktType_Interest {
 		m.Close()
 		return nil, e
 	}

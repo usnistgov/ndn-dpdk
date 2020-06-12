@@ -9,43 +9,42 @@ import (
 	"math/rand"
 	"unsafe"
 
-	"ndn-dpdk/appinit"
+	"ndn-dpdk/app/ping/pingmempool"
 	"ndn-dpdk/container/pktqueue"
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
+	"ndn-dpdk/dpdk/pktmbuf"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/ndn"
 )
 
 // Server instance and thread.
 type Server struct {
-	dpdk.ThreadBase
+	eal.ThreadBase
 	c      *C.PingServer
-	seg1Mp dpdk.PktmbufPool
+	seg1Mp *pktmbuf.Pool
 }
 
 func New(face iface.IFace, index int, cfg Config) (server *Server, e error) {
 	faceId := face.GetFaceId()
 	socket := face.GetNumaSocket()
-	serverC := (*C.PingServer)(dpdk.Zmalloc("PingServer", C.sizeof_PingServer, socket))
+	serverC := (*C.PingServer)(eal.Zmalloc("PingServer", C.sizeof_PingServer, socket))
 
 	cfg.RxQueue.DisableCoDel = true
 	if _, e := pktqueue.NewAt(unsafe.Pointer(&serverC.rxQueue), cfg.RxQueue, fmt.Sprintf("PingServer%d-%d_rxQ", faceId, index), socket); e != nil {
-		dpdk.Free(serverC)
+		eal.Free(serverC)
 		return nil, nil
 	}
 
-	serverC.dataMp = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
-		appinit.MP_DATA0, socket).GetPtr())
-	serverC.indirectMp = (*C.struct_rte_mempool)(appinit.MakePktmbufPool(
-		appinit.MP_IND, socket).GetPtr())
+	serverC.dataMp = (*C.struct_rte_mempool)(pingmempool.Data.MakePool(socket).GetPtr())
+	serverC.indirectMp = (*C.struct_rte_mempool)(pktmbuf.Indirect.MakePool(socket).GetPtr())
 	serverC.face = (C.FaceId)(faceId)
 	serverC.wantNackNoRoute = C.bool(cfg.Nack)
 	C.pcg32_srandom_r(&serverC.replyRng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
 
 	server = new(Server)
-	server.seg1Mp = appinit.MakePktmbufPool(appinit.MP_DATA1, socket)
+	server.seg1Mp = pingmempool.Payload.MakePool(socket)
 	server.c = serverC
-	dpdk.InitStopFlag(unsafe.Pointer(&serverC.stop))
+	eal.InitStopFlag(unsafe.Pointer(&serverC.stop))
 
 	for i, pattern := range cfg.Patterns {
 		if _, e := server.AddPattern(pattern); e != nil {
@@ -93,11 +92,11 @@ func (server *Server) AddPattern(cfg Pattern) (index int, e error) {
 			replyC.nackReason = C.uint8_t(reply.Nack)
 		default:
 			replyC.kind = C.PINGSERVER_REPLY_DATA
-			m, e := server.seg1Mp.Alloc()
+			vec, e := server.seg1Mp.Alloc(1)
 			if e != nil {
 				return -1, fmt.Errorf("cannot allocate from MP_DATA1 for reply definition %d", i)
 			}
-			dataGen := ndn.NewDataGen(m, reply.Suffix, reply.FreshnessPeriod.Duration(), make(ndn.TlvBytes, reply.PayloadLen))
+			dataGen := ndn.NewDataGen(vec[0], reply.Suffix, reply.FreshnessPeriod.Duration(), make(ndn.TlvBytes, reply.PayloadLen))
 			replyC.dataGen = (*C.DataGen)(dataGen.GetPtr())
 		}
 	}
@@ -107,7 +106,7 @@ func (server *Server) AddPattern(cfg Pattern) (index int, e error) {
 	return index, nil
 }
 
-func (server *Server) GetRxQueue() pktqueue.PktQueue {
+func (server *Server) GetRxQueue() *pktqueue.PktQueue {
 	return pktqueue.FromPtr(unsafe.Pointer(&server.c.rxQueue))
 }
 
@@ -121,13 +120,13 @@ func (server *Server) Launch() error {
 
 // Stop the thread.
 func (server *Server) Stop() error {
-	return server.StopImpl(dpdk.NewStopFlag(unsafe.Pointer(&server.c.stop)))
+	return server.StopImpl(eal.NewStopFlag(unsafe.Pointer(&server.c.stop)))
 }
 
 // Close the server.
 // The thread must be stopped before calling this.
 func (server *Server) Close() error {
 	server.GetRxQueue().Close()
-	dpdk.Free(server.c)
+	eal.Free(server.c)
 	return nil
 }

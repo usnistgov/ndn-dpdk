@@ -9,7 +9,7 @@ import (
 	"time"
 	"unsafe"
 
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/pktmbuf"
 )
 
 func EncodeData_GetHeadroom() int {
@@ -25,8 +25,8 @@ func EncodeData_GetTailroomMax() int {
 }
 
 // Encode a Data.
-func EncodeData(m dpdk.IMbuf, namePrefix *Name, nameSuffix *Name, freshnessPeriod time.Duration, content TlvBytes) {
-	C.EncodeData_((*C.struct_rte_mbuf)(m.GetPtr()),
+func EncodeData(pkt *pktmbuf.Packet, namePrefix *Name, nameSuffix *Name, freshnessPeriod time.Duration, content TlvBytes) {
+	C.EncodeData_((*C.struct_rte_mbuf)(pkt.GetPtr()),
 		C.uint16_t(namePrefix.Size()), namePrefix.getValuePtr(),
 		C.uint16_t(nameSuffix.Size()), nameSuffix.getValuePtr(),
 		C.uint32_t(freshnessPeriod/time.Millisecond),
@@ -35,7 +35,7 @@ func EncodeData(m dpdk.IMbuf, namePrefix *Name, nameSuffix *Name, freshnessPerio
 
 // Encode a Data from flexible arguments.
 // This alternate API is easier to use but less efficient.
-func MakeData(m dpdk.IMbuf, name string, args ...interface{}) (*Data, error) {
+func MakeData(m *pktmbuf.Packet, name string, args ...interface{}) (*Data, error) {
 	n, e := ParseName(name)
 	if e != nil {
 		m.Close()
@@ -58,13 +58,13 @@ func MakeData(m dpdk.IMbuf, name string, args ...interface{}) (*Data, error) {
 
 	EncodeData(m, n, nil, freshnessPeriod, content)
 
-	pkt := PacketFromDpdk(m)
+	pkt := PacketFromMbuf(m)
 	e = pkt.ParseL2()
 	if e != nil {
 		m.Close()
 		return nil, e
 	}
-	e = pkt.ParseL3(dpdk.PktmbufPool{})
+	e = pkt.ParseL3(nil)
 	if e != nil || pkt.GetL3Type() != L3PktType_Data {
 		m.Close()
 		return nil, e
@@ -88,7 +88,7 @@ type DataGen struct {
 	c *C.DataGen
 }
 
-func NewDataGen(m dpdk.IMbuf, nameSuffix *Name, freshnessPeriod time.Duration, content TlvBytes) (gen DataGen) {
+func NewDataGen(m *pktmbuf.Packet, nameSuffix *Name, freshnessPeriod time.Duration, content TlvBytes) (gen DataGen) {
 	gen.c = C.MakeDataGen_((*C.struct_rte_mbuf)(m.GetPtr()),
 		C.uint16_t(nameSuffix.Size()), nameSuffix.getValuePtr(),
 		C.uint32_t(freshnessPeriod/time.Millisecond),
@@ -109,7 +109,7 @@ func (gen DataGen) Close() error {
 	return nil
 }
 
-func (gen DataGen) Encode(seg0, seg1 dpdk.IMbuf, namePrefix *Name) {
+func (gen DataGen) Encode(seg0, seg1 *pktmbuf.Packet, namePrefix *Name) {
 	C.DataGen_Encode_(gen.c,
 		(*C.struct_rte_mbuf)(seg0.GetPtr()), (*C.struct_rte_mbuf)(seg1.GetPtr()),
 		C.uint16_t(namePrefix.Size()), namePrefix.getValuePtr())

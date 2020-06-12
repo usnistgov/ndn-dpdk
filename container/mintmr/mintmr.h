@@ -3,7 +3,7 @@
 
 /// \file
 
-#include "../../dpdk/tsc.h"
+#include "../../dpdk/eal/tsc.h"
 
 typedef struct MinTmr MinTmr;
 

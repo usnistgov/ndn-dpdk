@@ -7,23 +7,27 @@ uint16_t go_MockFace_TxBurst(Face* faceC, struct rte_mbuf** pkts, uint16_t nPkts
 import "C"
 import (
 	"io"
+	"sync"
 	"unsafe"
 
 	"ndn-dpdk/core/emission"
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
+	"ndn-dpdk/dpdk/pktmbuf"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/ndn"
 )
-
-// Face mempools.
-// These must be assigned before calling New().
-var FaceMempools iface.Mempools
 
 const (
 	evt_TxInterest = iota
 	evt_TxData
 	evt_TxNack
 	evt_TxBadPkt
+)
+
+var (
+	headerMempool   *pktmbuf.Pool
+	nameMempool     *pktmbuf.Pool
+	mempoolInitOnce sync.Once
 )
 
 type MockFace struct {
@@ -39,12 +43,17 @@ type MockFace struct {
 }
 
 func New() (face *MockFace) {
+	mempoolInitOnce.Do(func() {
+		headerMempool = ndn.HeaderMempool.MakePool(eal.NumaSocket{})
+		nameMempool = ndn.NameMempool.MakePool(eal.NumaSocket{})
+	})
+
 	face = new(MockFace)
 
 	face.emitter = emission.NewEmitter()
 	face.EnableTxRecorders()
 
-	if e := face.InitFaceBase(iface.AllocId(iface.FaceKind_Mock), 0, dpdk.NumaSocket{}); e != nil {
+	if e := face.InitFaceBase(iface.AllocId(iface.FaceKind_Mock), 0, eal.NumaSocket{}); e != nil {
 		panic(e)
 	}
 	iface.TheChanRxGroup.AddFace(face)
@@ -52,7 +61,7 @@ func New() (face *MockFace) {
 	faceC := face.getPtr()
 	faceC.txBurstOp = (C.FaceImpl_TxBurst)(C.go_MockFace_TxBurst)
 
-	if e := face.FinishInitFaceBase(256, 0, 0, FaceMempools); e != nil {
+	if e := face.FinishInitFaceBase(256, 0, 0); e != nil {
 		panic(e)
 	}
 	iface.Put(face)
@@ -87,17 +96,17 @@ func (face *MockFace) Rx(l3pkt ndn.IL3Packet) {
 	var lph ndn.LpHeader
 	lph.LpL3 = *l3pkt.GetPacket().GetLpL3()
 
-	pkt := l3pkt.GetPacket().AsDpdkPacket()
+	pkt := l3pkt.GetPacket().AsMbuf()
 	payloadL := pkt.Len()
-	if pkt.GetFirstSegment().GetHeadroom() <= ndn.PrependLpHeader_GetHeadroom() {
-		hdrMbuf, e := FaceMempools.HeaderMp.Alloc()
+	if pkt.GetHeadroom() <= ndn.PrependLpHeader_GetHeadroom() {
+		hdrMbufs, e := headerMempool.Alloc(1)
 		if e != nil {
 			pkt.Close()
 			return
 		}
-		hdr := hdrMbuf.AsPacket()
-		hdr.GetFirstSegment().SetHeadroom(ndn.PrependLpHeader_GetHeadroom())
-		e = hdr.AppendPacket(pkt)
+		hdr := hdrMbufs[0]
+		hdr.SetHeadroom(ndn.PrependLpHeader_GetHeadroom())
+		e = hdr.Chain(pkt)
 		if e != nil {
 			hdr.Close()
 			pkt.Close()
@@ -113,7 +122,7 @@ func (face *MockFace) Rx(l3pkt ndn.IL3Packet) {
 	lph.Prepend(pkt, payloadL)
 
 	pkt.SetPort(uint16(face.GetFaceId()))
-	pkt.SetTimestamp(dpdk.TscNow())
+	pkt.SetTimestamp(eal.TscNow())
 	iface.TheChanRxGroup.Rx(pkt)
 }
 
@@ -150,10 +159,10 @@ func (face *MockFace) DisableTxRecorders() {
 	face.txRecorders = nil
 }
 
-func (face *MockFace) handleTx(pkt ndn.Packet) {
+func (face *MockFace) handleTx(pkt *ndn.Packet) {
 	e := pkt.ParseL2()
 	if e == nil {
-		e = pkt.ParseL3(FaceMempools.NameMp)
+		e = pkt.ParseL3(nameMempool)
 	}
 	if e != nil {
 		face.emitter.EmitSync(evt_TxBadPkt, pkt)

@@ -5,9 +5,8 @@ package fetch
 */
 import "C"
 import (
+	"ndn-dpdk/dpdk/eal"
 	"unsafe"
-
-	"ndn-dpdk/dpdk"
 )
 
 // Convert *C.FetchLogic to *Logic.
@@ -20,7 +19,7 @@ func (fl *Logic) getPtr() *C.FetchLogic {
 	return (*C.FetchLogic)(unsafe.Pointer(fl))
 }
 
-func (fl *Logic) Init(windowCapacity int, socket dpdk.NumaSocket) {
+func (fl *Logic) Init(windowCapacity int, socket eal.NumaSocket) {
 	fl.Win.Init(windowCapacity, socket)
 	fl.Rtte.Init()
 	fl.Ca.Init()

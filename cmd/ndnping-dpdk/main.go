@@ -7,14 +7,14 @@ import (
 
 	"ndn-dpdk/app/ping"
 	"ndn-dpdk/appinit"
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
 	"ndn-dpdk/mgmt/facemgmt"
 	"ndn-dpdk/mgmt/pingmgmt"
 	"ndn-dpdk/mgmt/versionmgmt"
 )
 
 func main() {
-	pc, e := parseCommand(dpdk.MustInitEal(os.Args)[1:])
+	pc, e := parseCommand(eal.MustInitEal(os.Args)[1:])
 	if e != nil {
 		log.WithError(e).Fatal("command line error")
 	}

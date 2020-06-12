@@ -3,7 +3,7 @@ package ndn_test
 import (
 	"testing"
 
-	"ndn-dpdk/dpdk/dpdktestenv"
+	"ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 	"ndn-dpdk/ndn"
 )
 
@@ -39,12 +39,12 @@ func TestNameComponent(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		comp := ndn.NameComponent(dpdktestenv.BytesFromHex(tt.input))
+		comp := ndn.NameComponent(mbuftestenv.BytesFromHex(tt.input))
 		if tt.bad {
 			assert.False(comp.IsValid(), tt.input)
 		} else if assert.True(comp.IsValid(), tt.input) {
 			assert.Equal(ndn.TlvType(tt.t), comp.GetType(), tt.input)
-			assert.Equal(ndn.TlvBytes(dpdktestenv.BytesFromHex(tt.v)), comp.GetValue(), tt.input)
+			assert.Equal(ndn.TlvBytes(mbuftestenv.BytesFromHex(tt.v)), comp.GetValue(), tt.input)
 			assert.Equal(tt.str, comp.String(), tt.input)
 
 			parsed, e := ndn.ParseNameComponent(tt.str)

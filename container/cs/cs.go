@@ -25,24 +25,28 @@ const (
 
 // The Content Store (CS).
 type Cs struct {
-	*pcct.Pcct
+	pcct.Pcct
 }
 
-func (cs Cs) getPtr() *C.Cs {
-	return (*C.Cs)(cs.GetPtr())
+func FromPcct(pcct *pcct.Pcct) *Cs {
+	return (*Cs)(pcct.GetPtr())
 }
 
-func (cs Cs) Close() error {
+func (cs *Cs) getPtr() *C.Cs {
+	return (*C.Cs)(cs.Pcct.GetPtr())
+}
+
+func (cs *Cs) Close() error {
 	panic("Cs.Close() method is explicitly deleted; use Pcct.Close() to close underlying PCCT")
 }
 
 // Get capacity in number of entries.
-func (cs Cs) GetCapacity(cslId ListId) int {
+func (cs *Cs) GetCapacity(cslId ListId) int {
 	return int(C.Cs_GetCapacity(cs.getPtr(), C.CsListId(cslId)))
 }
 
 // Get number of entries.
-func (cs Cs) CountEntries(cslId ListId) int {
+func (cs *Cs) CountEntries(cslId ListId) int {
 	return int(C.Cs_CountEntries(cs.getPtr(), C.CsListId(cslId)))
 }
 
@@ -51,19 +55,19 @@ type iPitFindResult interface {
 }
 
 // Insert a CS entry by replacing a PIT entry with same key.
-func (cs Cs) Insert(data *ndn.Data, pitFound iPitFindResult) {
+func (cs *Cs) Insert(data *ndn.Data, pitFound iPitFindResult) {
 	var pitFoundC C.PitFindResult
 	pitFound.CopyToCPitFindResult(unsafe.Pointer(&pitFoundC))
 	C.Cs_Insert(cs.getPtr(), (*C.Packet)(data.GetPacket().GetPtr()), pitFoundC)
 }
 
 // Erase a CS entry.
-func (cs Cs) Erase(entry Entry) {
+func (cs *Cs) Erase(entry Entry) {
 	C.Cs_Erase(cs.getPtr(), entry.c)
 	entry.c = nil
 }
 
 // Read direct entries ARC algorithm 'p' variable.
-func (cs Cs) ReadDirectArcP() float64 {
+func (cs *Cs) ReadDirectArcP() float64 {
 	return float64(C.Cs_GetPriv(cs.getPtr()).directArc.p)
 }

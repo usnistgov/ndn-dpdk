@@ -3,16 +3,16 @@ package createface
 import (
 	"errors"
 
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
+	"ndn-dpdk/dpdk/ethdev"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/iface/ethface"
 )
 
 var (
-	theConfig   Config
-	theMempools = make(map[dpdk.NumaSocket]numaMempools)
-	theRxls     []*iface.RxLoop
-	theTxls     []*iface.TxLoop
+	theConfig Config
+	theRxls   []*iface.RxLoop
+	theTxls   []*iface.TxLoop
 
 	CustomGetRxl func(rxg iface.IRxGroup) *iface.RxLoop
 	CustomGetTxl func(rxg iface.IFace) *iface.TxLoop
@@ -97,49 +97,16 @@ func (cfg Config) Apply() error {
 }
 
 // List NumaSockets for RxLoops and TxLoops to satisfy enabled devices.
-func ListRxTxNumaSockets() (list []dpdk.NumaSocket) {
+func ListRxTxNumaSockets() (list []eal.NumaSocket) {
 	if theConfig.EnableEth {
-		for _, port := range dpdk.ListEthDevs() {
+		for _, port := range ethdev.List() {
 			list = append(list, port.GetNumaSocket())
 		}
 	}
 	if theConfig.EnableSock || theConfig.EnableMock {
-		list = append(list, dpdk.NumaSocket{})
+		list = append(list, eal.NumaSocket{})
 	}
 	return list
-}
-
-type numaMempools struct {
-	RxMp         dpdk.PktmbufPool
-	FaceMempools iface.Mempools
-}
-
-// Provide a set of mempools for face creation.
-func AddMempools(numaSocket dpdk.NumaSocket, rxMp dpdk.PktmbufPool, faceMempools iface.Mempools) {
-	theMempools[numaSocket] = numaMempools{
-		RxMp:         rxMp,
-		FaceMempools: faceMempools,
-	}
-}
-
-func getMempools(socket dpdk.NumaSocket) (rxMp dpdk.PktmbufPool, faceMempools iface.Mempools, e error) {
-	// allocate from preferred NumaSocket
-	if numaMp, ok := theMempools[socket]; ok {
-		return numaMp.RxMp, numaMp.FaceMempools, nil
-	}
-
-	// allocate from any NumaSocket
-	if !socket.IsAny() {
-		return getMempools(dpdk.NumaSocket{})
-	}
-
-	// allocate from other NumaSocket
-	for _, numaMp := range theMempools {
-		return numaMp.RxMp, numaMp.FaceMempools, nil
-	}
-
-	// fail
-	return dpdk.PktmbufPool{}, iface.Mempools{}, errors.New("mempools unavailable")
 }
 
 // Provide an RxLoop for face creation.
@@ -153,7 +120,7 @@ func AddTxLoop(txl *iface.TxLoop) {
 }
 
 // Close all faces and stop RxLoops and TxLoops.
-func CloseAll() (threads []dpdk.IThread) {
+func CloseAll() (threads []eal.IThread) {
 	iface.CloseAll()
 	for _, rxl := range theRxls {
 		rxl.Stop()

@@ -12,7 +12,7 @@ import (
 	"golang.org/x/sys/unix"
 
 	"ndn-dpdk/iface"
-	"ndn-dpdk/iface/ifacetestfixture"
+	"ndn-dpdk/iface/ifacetestenv"
 	"ndn-dpdk/iface/socketface"
 )
 
@@ -29,7 +29,7 @@ func TestStream(t *testing.T) {
 	require.NoError(e)
 	defer faceB.Close()
 
-	fixture := ifacetestfixture.New(t, faceA, faceB)
+	fixture := ifacetestenv.New(t, faceA, faceB)
 	fixture.RunTest()
 	fixture.CheckCounters()
 }
@@ -86,7 +86,7 @@ func TestTcp(t *testing.T) {
 	assert.Equal("tcp", loc.Scheme)
 	assert.Equal(face.GetConn().LocalAddr().String(), loc.Local)
 	assert.Equal(fmt.Sprintf("127.0.0.1:%d", addr.Port), loc.Remote)
-	ifacetestfixture.CheckLocatorMarshal(t, loc)
+	ifacetestenv.CheckLocatorMarshal(t, loc)
 
 	checkStreamRedialing(t, listener, face)
 }
@@ -111,7 +111,7 @@ func TestUnix(t *testing.T) {
 	loc = face.GetLocator().(socketface.Locator)
 	assert.Equal("unix", loc.Scheme)
 	assert.Equal(addr, loc.Remote)
-	ifacetestfixture.CheckLocatorMarshal(t, loc)
+	ifacetestenv.CheckLocatorMarshal(t, loc)
 
 	checkStreamRedialing(t, listener, face)
 }

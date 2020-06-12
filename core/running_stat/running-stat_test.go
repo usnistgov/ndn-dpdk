@@ -6,11 +6,10 @@ import (
 	"testing"
 
 	"ndn-dpdk/core/running_stat"
-	"ndn-dpdk/dpdk/dpdktestenv"
 )
 
 func TestRunningStat(t *testing.T) {
-	assert, _ := dpdktestenv.MakeAR(t)
+	assert, _ := makeAR(t)
 
 	a := running_stat.New()
 	b := running_stat.New()

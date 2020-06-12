@@ -15,51 +15,51 @@ import (
 
 // The Pending Interest Table (PIT).
 type Pit struct {
-	*pcct.Pcct
+	pcct.Pcct
 }
 
-func (pit Pit) getPtr() *C.Pit {
-	return (*C.Pit)(pit.GetPtr())
+func FromPcct(pcct *pcct.Pcct) *Pit {
+	return (*Pit)(pcct.GetPtr())
 }
 
-func (pit Pit) getPriv() *C.PitPriv {
+func (pit *Pit) getPtr() *C.Pit {
+	return (*C.Pit)(pit.Pcct.GetPtr())
+}
+
+func (pit *Pit) getPriv() *C.PitPriv {
 	return C.Pit_GetPriv(pit.getPtr())
 }
 
-func (pit Pit) getCs() cs.Cs {
-	return cs.Cs{pit.Pcct}
-}
-
-func (pit Pit) Close() error {
+func (pit *Pit) Close() error {
 	panic("Pit.Close() method is explicitly deleted; use Pcct.Close() to close underlying PCCT")
 }
 
 // Count number of PIT entries.
-func (pit Pit) Len() int {
+func (pit *Pit) Len() int {
 	return int(C.Pit_CountEntries(pit.getPtr()))
 }
 
 // Trigger the internal timeout scheduler.
-func (pit Pit) TriggerTimeoutSched() {
+func (pit *Pit) TriggerTimeoutSched() {
 	C.MinSched_Trigger(pit.getPriv().timeoutSched)
 }
 
 // Insert or find a PIT entry for the given Interest.
-func (pit Pit) Insert(interest *ndn.Interest, fibEntry *fib.Entry) (pitEntry *Entry, csEntry *cs.Entry) {
+func (pit *Pit) Insert(interest *ndn.Interest, fibEntry *fib.Entry) (pitEntry *Entry, csEntry *cs.Entry) {
 	res := C.Pit_Insert(pit.getPtr(), (*C.Packet)(interest.GetPacket().GetPtr()),
 		(*C.FibEntry)(unsafe.Pointer(fibEntry)))
 	switch C.PitInsertResult_GetKind(res) {
 	case C.PIT_INSERT_PIT0, C.PIT_INSERT_PIT1:
 		pitEntry = &Entry{C.PitInsertResult_GetPitEntry(res), pit}
 	case C.PIT_INSERT_CS:
-		csEntry1 := pit.getCs().EntryFromPtr(unsafe.Pointer(C.PitInsertResult_GetCsEntry(res)))
+		csEntry1 := cs.FromPcct(&pit.Pcct).EntryFromPtr(unsafe.Pointer(C.PitInsertResult_GetCsEntry(res)))
 		csEntry = &csEntry1
 	}
 	return
 }
 
 // Erase a PIT entry.
-func (pit Pit) Erase(entry Entry) {
+func (pit *Pit) Erase(entry Entry) {
 	C.Pit_Erase(pit.getPtr(), entry.c)
 	entry.c = nil
 }
@@ -67,7 +67,7 @@ func (pit Pit) Erase(entry Entry) {
 // Result of Pit.FindByData.
 type FindResult struct {
 	resC C.PitFindResult
-	pit  Pit
+	pit  *Pit
 }
 
 // Copy to *C.PitFindResult for use in another package.
@@ -94,13 +94,13 @@ func (fr FindResult) NeedDataDigest() bool {
 }
 
 // Find PIT entries matching a Data.
-func (pit Pit) FindByData(data *ndn.Data) FindResult {
+func (pit *Pit) FindByData(data *ndn.Data) FindResult {
 	resC := C.Pit_FindByData(pit.getPtr(), (*C.Packet)(data.GetPacket().GetPtr()))
 	return FindResult{resC, pit}
 }
 
 // Find PIT entries matching a Nack.
-func (pit Pit) FindByNack(nack *ndn.Nack) *Entry {
+func (pit *Pit) FindByNack(nack *ndn.Nack) *Entry {
 	entryC := C.Pit_FindByNack(pit.getPtr(), (*C.Packet)(nack.GetPacket().GetPtr()))
 	if entryC == nil {
 		return nil

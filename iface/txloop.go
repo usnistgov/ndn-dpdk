@@ -8,7 +8,7 @@ import (
 	"unsafe"
 
 	"ndn-dpdk/core/urcu"
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
 )
 
 // LCoreAlloc role for TxLoop.
@@ -16,22 +16,22 @@ const LCoreRole_TxLoop = "TX"
 
 // TX loop.
 type TxLoop struct {
-	dpdk.ThreadBase
+	eal.ThreadBase
 	c          *C.TxLoop
-	numaSocket dpdk.NumaSocket
+	numaSocket eal.NumaSocket
 	faces      map[FaceId]IFace
 }
 
-func NewTxLoop(numaSocket dpdk.NumaSocket) (txl *TxLoop) {
+func NewTxLoop(numaSocket eal.NumaSocket) (txl *TxLoop) {
 	txl = new(TxLoop)
-	txl.c = (*C.TxLoop)(dpdk.Zmalloc("TxLoop", C.sizeof_TxLoop, numaSocket))
-	dpdk.InitStopFlag(unsafe.Pointer(&txl.c.stop))
+	txl.c = (*C.TxLoop)(eal.Zmalloc("TxLoop", C.sizeof_TxLoop, numaSocket))
+	eal.InitStopFlag(unsafe.Pointer(&txl.c.stop))
 	txl.numaSocket = numaSocket
 	txl.faces = make(map[FaceId]IFace)
 	return txl
 }
 
-func (txl *TxLoop) GetNumaSocket() dpdk.NumaSocket {
+func (txl *TxLoop) GetNumaSocket() eal.NumaSocket {
 	return txl.numaSocket
 }
 
@@ -45,11 +45,11 @@ func (txl *TxLoop) Launch() error {
 }
 
 func (txl *TxLoop) Stop() error {
-	return txl.StopImpl(dpdk.NewStopFlag(unsafe.Pointer(&txl.c.stop)))
+	return txl.StopImpl(eal.NewStopFlag(unsafe.Pointer(&txl.c.stop)))
 }
 
 func (txl *TxLoop) Close() error {
-	dpdk.Free(txl.c)
+	eal.Free(txl.c)
 	return nil
 }
 

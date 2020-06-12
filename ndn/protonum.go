@@ -5,7 +5,7 @@ package ndn
 */
 import "C"
 import (
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/ethdev"
 )
 
 const (
@@ -15,8 +15,8 @@ const (
 	NDN_WS_PORT   = uint16(C.NDN_WS_PORT)
 )
 
-var NDN_ETHER_MCAST_ADDR dpdk.EtherAddr
+var NDN_ETHER_MCAST_ADDR ethdev.EtherAddr
 
 func init() {
-	NDN_ETHER_MCAST_ADDR, _ = dpdk.ParseEtherAddr("01:00:5E:00:17:AA")
+	NDN_ETHER_MCAST_ADDR, _ = ethdev.ParseEtherAddr("01:00:5E:00:17:AA")
 }

@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"ndn-dpdk/ndn"
-	"ndn-dpdk/ndn/ndntestutil"
 )
 
 func TestNackMerge(t *testing.T) {
@@ -19,30 +18,30 @@ func TestNackMerge(t *testing.T) {
 	fixture.SetFibEntry("/A", "multicast", face2.GetFaceId(), face3.GetFaceId())
 
 	// Interest is forwarded to two upstream nodes
-	interest := ndntestutil.MakeInterest("/A/1", uint32(0x2ea29515))
-	ndntestutil.SetPitToken(interest, 0xf3fb4ef802d3a9d3)
+	interest := makeInterest("/A/1", uint32(0x2ea29515))
+	setPitToken(interest, 0xf3fb4ef802d3a9d3)
 	face1.Rx(interest)
 	time.Sleep(STEP_DELAY)
 	require.Len(face2.TxInterests, 1)
 	require.Len(face3.TxInterests, 1)
 
 	// Nack from first upstream, no action
-	nack2 := ndn.MakeNackFromInterest(ndntestutil.MakeInterest("/A/1", uint32(0x2ea29515)), ndn.NackReason_NoRoute)
-	ndntestutil.CopyPitToken(nack2, face2.TxInterests[0])
+	nack2 := ndn.MakeNackFromInterest(makeInterest("/A/1", uint32(0x2ea29515)), ndn.NackReason_NoRoute)
+	copyPitToken(nack2, face2.TxInterests[0])
 	face2.Rx(nack2)
 	time.Sleep(STEP_DELAY)
 	assert.Len(face1.TxNacks, 0)
 
 	// Nack again from first upstream, no action
-	nack2 = ndn.MakeNackFromInterest(ndntestutil.MakeInterest("/A/1", uint32(0x2ea29515)), ndn.NackReason_NoRoute)
-	ndntestutil.CopyPitToken(nack2, face2.TxInterests[0])
+	nack2 = ndn.MakeNackFromInterest(makeInterest("/A/1", uint32(0x2ea29515)), ndn.NackReason_NoRoute)
+	copyPitToken(nack2, face2.TxInterests[0])
 	face2.Rx(nack2)
 	time.Sleep(STEP_DELAY)
 	assert.Len(face1.TxNacks, 0)
 
 	// Nack from second upstream, Nack to downstream
-	nack3 := ndn.MakeNackFromInterest(ndntestutil.MakeInterest("/A/1", uint32(0x2ea29515)), ndn.NackReason_Congestion)
-	ndntestutil.CopyPitToken(nack3, face3.TxInterests[0])
+	nack3 := ndn.MakeNackFromInterest(makeInterest("/A/1", uint32(0x2ea29515)), ndn.NackReason_Congestion)
+	copyPitToken(nack3, face3.TxInterests[0])
 	face3.Rx(nack3)
 	time.Sleep(STEP_DELAY)
 	require.Len(face1.TxNacks, 1)
@@ -50,11 +49,11 @@ func TestNackMerge(t *testing.T) {
 	nack1 := face1.TxNacks[0]
 	assert.Equal(ndn.NackReason_Congestion, nack1.GetReason())
 	assert.Equal(uint32(0x2ea29515), nack1.GetInterest().GetNonce())
-	assert.Equal(uint64(0xf3fb4ef802d3a9d3), ndntestutil.GetPitToken(nack1))
+	assert.Equal(uint64(0xf3fb4ef802d3a9d3), getPitToken(nack1))
 
 	// Data from first upstream, should not reach downstream because PIT entry is gone
-	data2 := ndntestutil.MakeData("/A/1")
-	ndntestutil.CopyPitToken(data2, face2.TxInterests[0])
+	data2 := makeData("/A/1")
+	copyPitToken(data2, face2.TxInterests[0])
 	face2.Rx(data2)
 	time.Sleep(STEP_DELAY)
 	assert.Len(face1.TxData, 0)
@@ -71,9 +70,9 @@ func TestNackDuplicate(t *testing.T) {
 	fixture.SetFibEntry("/A", "multicast", face3.GetFaceId())
 
 	// two Interests come from two downstream nodes
-	interest1 := ndntestutil.MakeInterest("/A/1", uint32(0x2ea29515))
+	interest1 := makeInterest("/A/1", uint32(0x2ea29515))
 	face1.Rx(interest1)
-	interest2 := ndntestutil.MakeInterest("/A/1", uint32(0xc33b0c68))
+	interest2 := makeInterest("/A/1", uint32(0xc33b0c68))
 	face2.Rx(interest2)
 	time.Sleep(STEP_DELAY)
 	require.Len(face3.TxInterests, 1)
@@ -114,7 +113,7 @@ func TestReturnNacks(t *testing.T) {
 	face2 := fixture.CreateFace()
 	fixture.SetFibEntry("/A", "reject", face2.GetFaceId())
 
-	interest1 := ndntestutil.MakeInterest("/A/1", uint32(0x2ea29515))
+	interest1 := makeInterest("/A/1", uint32(0x2ea29515))
 	face1.Rx(interest1)
 	time.Sleep(STEP_DELAY)
 	assert.Len(face1.TxNacks, 1)

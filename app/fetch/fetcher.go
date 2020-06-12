@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"unsafe"
 
-	"ndn-dpdk/appinit"
+	"ndn-dpdk/app/ping/pingmempool"
 	"ndn-dpdk/container/pktqueue"
 	"ndn-dpdk/core/urcu"
-	"ndn-dpdk/dpdk"
+	"ndn-dpdk/dpdk/eal"
 	"ndn-dpdk/iface"
 	"ndn-dpdk/ndn"
 )
@@ -42,23 +42,23 @@ func New(face iface.IFace, cfg FetcherConfig) (fetcher *Fetcher, e error) {
 
 	faceId := face.GetFaceId()
 	socket := face.GetNumaSocket()
-	interestMp := (*C.struct_rte_mempool)(appinit.MakePktmbufPool(appinit.MP_INT, socket).GetPtr())
+	interestMp := (*C.struct_rte_mempool)(pingmempool.Interest.MakePool(socket).GetPtr())
 
 	fetcher = new(Fetcher)
 	fetcher.fth = make([]*fetchThread, cfg.NThreads)
 	for i := range fetcher.fth {
 		fth := new(fetchThread)
-		fth.c = (*C.FetchThread)(dpdk.Zmalloc("FetchThread", C.sizeof_FetchThread, socket))
+		fth.c = (*C.FetchThread)(eal.Zmalloc("FetchThread", C.sizeof_FetchThread, socket))
 		fth.c.face = (C.FaceId)(faceId)
 		fth.c.interestMp = interestMp
 		C.NonceGen_Init(&fth.c.nonceGen)
-		dpdk.InitStopFlag(unsafe.Pointer(&fth.c.stop))
+		eal.InitStopFlag(unsafe.Pointer(&fth.c.stop))
 		fetcher.fth[i] = fth
 	}
 
 	fetcher.fp = make([]*C.FetchProc, cfg.NProcs)
 	for i := range fetcher.fp {
-		fp := (*C.FetchProc)(dpdk.Zmalloc("FetchProc", C.sizeof_FetchProc, socket))
+		fp := (*C.FetchProc)(eal.Zmalloc("FetchProc", C.sizeof_FetchProc, socket))
 		if _, e := pktqueue.NewAt(unsafe.Pointer(&fp.rxQueue), cfg.RxQueue, fmt.Sprintf("Fetcher%d-%d_rxQ", faceId, i), socket); e != nil {
 			return nil, e
 		}
@@ -78,7 +78,7 @@ func (fetcher *Fetcher) CountThreads() int {
 	return len(fetcher.fth)
 }
 
-func (fetcher *Fetcher) GetThread(i int) dpdk.IThread {
+func (fetcher *Fetcher) GetThread(i int) eal.IThread {
 	return fetcher.fth[i]
 }
 
@@ -86,7 +86,7 @@ func (fetcher *Fetcher) CountProcs() int {
 	return len(fetcher.fp)
 }
 
-func (fetcher *Fetcher) GetRxQueue(i int) pktqueue.PktQueue {
+func (fetcher *Fetcher) GetRxQueue(i int) *pktqueue.PktQueue {
 	return pktqueue.FromPtr(unsafe.Pointer(&fetcher.fp[i].rxQueue))
 }
 
@@ -113,7 +113,7 @@ func (fetcher *Fetcher) AddTemplate(tplArgs ...interface{}) (i int, e error) {
 
 	fp := fetcher.fp[i]
 	tpl := ndn.InterestTemplateFromPtr(unsafe.Pointer(&fp.tpl))
-	if e := tpl.Init(append([]interface{}{ndn.InterestMbufExtraHeadroom(appinit.SizeofEthLpHeaders())}, tplArgs...)...); e != nil {
+	if e := tpl.Init(tplArgs...); e != nil {
 		return -1, e
 	}
 
@@ -147,7 +147,7 @@ func (fetcher *Fetcher) Close() error {
 	for i, fp := range fetcher.fp {
 		fetcher.GetRxQueue(i).Close()
 		fetcher.GetLogic(i).Close()
-		dpdk.Free(fp)
+		eal.Free(fp)
 	}
 	for _, fth := range fetcher.fth {
 		fth.Close()
@@ -156,7 +156,7 @@ func (fetcher *Fetcher) Close() error {
 }
 
 type fetchThread struct {
-	dpdk.ThreadBase
+	eal.ThreadBase
 	c *C.FetchThread
 }
 
@@ -167,10 +167,10 @@ func (fth *fetchThread) Launch() error {
 }
 
 func (fth *fetchThread) Stop() error {
-	return fth.StopImpl(dpdk.NewStopFlag(unsafe.Pointer(&fth.c.stop)))
+	return fth.StopImpl(eal.NewStopFlag(unsafe.Pointer(&fth.c.stop)))
 }
 
 func (fth *fetchThread) Close() error {
-	dpdk.Free(fth.c)
+	eal.Free(fth.c)
 	return nil
 }
