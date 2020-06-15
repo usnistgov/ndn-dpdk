@@ -7,5 +7,4 @@ import (
 var (
 	log           = logger.New("pktmbuf")
 	makeLogFields = logger.MakeFields
-	addressOf     = logger.AddressOf
 )

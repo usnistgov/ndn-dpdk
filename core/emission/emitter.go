@@ -6,20 +6,20 @@ import (
 	chuckpreslar_emission "github.com/chuckpreslar/emission"
 )
 
-// Simple event emitter.
+// Emitter is a simple event emitter.
 type Emitter struct {
 	*chuckpreslar_emission.Emitter
 }
 
-// Create simple event emitter.
+// NewEmitter creates a simple event emitter.
 func NewEmitter() (emitter *Emitter) {
 	emitter = new(Emitter)
 	emitter.Emitter = chuckpreslar_emission.NewEmitter()
 	return emitter
 }
 
-// Register a callback when an event occurs.
-// Return a Closer that cancels the callback registration.
+// On registers a callback when an event occurs.
+// Returns an io.Closer that cancels the callback registration.
 func (emitter *Emitter) On(event, listener interface{}) io.Closer {
 	emitter.Emitter.On(event, listener)
 	return canceler{emitter.Emitter, event, listener}

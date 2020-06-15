@@ -1,7 +1,7 @@
 import * as pktqueue from "../../container/pktqueue/mod";
 import { Counter } from "../../core/mod";
 import { Milliseconds, Nanoseconds } from "../../core/nnduration/mod";
-import * as runningStat from "../../core/running_stat/mod";
+import * as runningStat from "../../core/runningstat/mod";
 import * as ndn from "../../ndn/mod";
 
 export interface Config {

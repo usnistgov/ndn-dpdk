@@ -1,4 +1,4 @@
-package running_stat
+package runningstat
 
 import (
 	"testing"

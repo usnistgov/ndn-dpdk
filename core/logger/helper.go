@@ -1,11 +1,11 @@
 package logger
 
 import (
-	"fmt"
-
 	"github.com/sirupsen/logrus"
 )
 
+// MakeFields constructs logrus.Fields from a sequence of arguments.
+// Arguments must appear in key-value pairs.
 func MakeFields(args ...interface{}) logrus.Fields {
 	fields := make(logrus.Fields)
 	key := ""
@@ -18,8 +18,4 @@ func MakeFields(args ...interface{}) logrus.Fields {
 		}
 	}
 	return fields
-}
-
-func AddressOf(ptr interface{}) string {
-	return fmt.Sprintf("%p", ptr)
 }

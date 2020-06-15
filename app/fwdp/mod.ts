@@ -1,5 +1,5 @@
 import { Counter } from "../../core/mod";
-import * as runningStat from "../../core/running_stat/mod";
+import * as runningStat from "../../core/runningstat/mod";
 import * as iface from "../../iface/mod";
 
 export interface InputInfo {

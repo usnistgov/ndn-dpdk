@@ -12,7 +12,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/usnistgov/ndn-dpdk/core/running_stat"
+	"github.com/usnistgov/ndn-dpdk/core/runningstat"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
@@ -38,7 +38,7 @@ func (cnt PacketCounters) String() string {
 }
 
 type RttCounters struct {
-	running_stat.Snapshot
+	runningstat.Snapshot
 }
 
 func (cnt RttCounters) String() string {
@@ -77,7 +77,7 @@ func (client *Client) ReadCounters() (cnt Counters) {
 	for i := 0; i < int(client.Rx.c.nPatterns); i++ {
 		crP := client.Rx.c.pattern[i]
 		ctP := client.Tx.c.pattern[i]
-		rtt := running_stat.FromPtr(unsafe.Pointer(&crP.rtt)).Read().Scale(rttScale)
+		rtt := runningstat.FromPtr(unsafe.Pointer(&crP.rtt)).Read().Scale(rttScale)
 
 		var pcnt PatternCounters
 		pcnt.NInterests = uint64(ctP.nInterests)
@@ -108,7 +108,7 @@ func (client *Client) ClearCounters() {
 func (client *Client) clearCounter(index int) {
 	client.Rx.c.pattern[index].nData = 0
 	client.Rx.c.pattern[index].nNacks = 0
-	rtt := running_stat.FromPtr(unsafe.Pointer(&client.Rx.c.pattern[index].rtt))
+	rtt := runningstat.FromPtr(unsafe.Pointer(&client.Rx.c.pattern[index].rtt))
 	rtt.Clear(true)
 	client.Tx.c.pattern[index].nInterests = 0
 }

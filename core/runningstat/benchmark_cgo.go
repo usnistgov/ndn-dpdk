@@ -1,4 +1,4 @@
-package running_stat
+package runningstat
 
 /*
 #include "../../csrc/core/running-stat.h"

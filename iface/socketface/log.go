@@ -12,7 +12,6 @@ import (
 var (
 	log           = logger.New("socketface")
 	makeLogFields = logger.MakeFields
-	addressOf     = logger.AddressOf
 )
 
 func newLogger(id iface.FaceId) logrus.FieldLogger {

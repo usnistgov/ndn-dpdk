@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"unsafe"
 
-	"github.com/usnistgov/ndn-dpdk/core/running_stat"
+	"github.com/usnistgov/ndn-dpdk/core/runningstat"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 )
@@ -26,9 +26,9 @@ type Counters struct {
 	RxData       uint64 // RX Data packets
 	RxNacks      uint64 // RX Nack packets
 
-	InterestLatency running_stat.Snapshot
-	DataLatency     running_stat.Snapshot
-	NackLatency     running_stat.Snapshot
+	InterestLatency runningstat.Snapshot
+	DataLatency     runningstat.Snapshot
+	NackLatency     runningstat.Snapshot
 
 	TxInterests uint64 // TX Interest packets
 	TxData      uint64 // TX Data packets
@@ -69,8 +69,8 @@ func (face FaceBase) ReadCounters() (cnt Counters) {
 
 	txC := &faceC.impl.tx
 
-	readLatencyStat := func(c *C.RunningStat) running_stat.Snapshot {
-		return running_stat.FromPtr(unsafe.Pointer(c)).Read().Scale(eal.GetNanosInTscUnit())
+	readLatencyStat := func(c *C.RunningStat) runningstat.Snapshot {
+		return runningstat.FromPtr(unsafe.Pointer(c)).Read().Scale(eal.GetNanosInTscUnit())
 	}
 	cnt.InterestLatency = readLatencyStat(&txC.latency[ndn.L3PktType_Interest])
 	cnt.DataLatency = readLatencyStat(&txC.latency[ndn.L3PktType_Data])

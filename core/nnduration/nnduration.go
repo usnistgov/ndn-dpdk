@@ -14,22 +14,27 @@ func parse(input string, unit time.Duration) (value uint64, e error) {
 	return strconv.ParseUint(input, 10, 64)
 }
 
-func parseJson(ptr interface{}, p []byte, unit time.Duration) error {
+func parseJSON(ptr interface{}, p []byte, unit time.Duration) error {
 	value, e := parse(strings.Trim(string(p), `"`), unit)
 	reflect.ValueOf(ptr).Elem().SetUint(value)
 	return e
 }
 
+// Milliseconds is a duration in milliseconds unit.
 type Milliseconds uint64
 
+// UnmarshalJSON implements json.Unmarshaler interface.
+// It accepts either an integer as milliseconds, or a duration string specified by time.ParseDuration.
 func (d *Milliseconds) UnmarshalJSON(p []byte) (e error) {
-	return parseJson(d, p, time.Millisecond)
+	return parseJSON(d, p, time.Millisecond)
 }
 
+// Duration converts this to time.Duration.
 func (d Milliseconds) Duration() time.Duration {
 	return time.Duration(d) * time.Millisecond
 }
 
+// DurationOr converts this to time.Duration, but returns dflt if this is zero.
 func (d Milliseconds) DurationOr(dflt Milliseconds) time.Duration {
 	if d == 0 {
 		return dflt.Duration()
@@ -37,16 +42,21 @@ func (d Milliseconds) DurationOr(dflt Milliseconds) time.Duration {
 	return d.Duration()
 }
 
+// Nanoseconds is a duration in nanoseconds unit.
 type Nanoseconds uint64
 
+// UnmarshalJSON implements json.Unmarshaler interface.
+// It accepts either an integer as nanoseconds, or a duration string specified by time.ParseDuration.
 func (d *Nanoseconds) UnmarshalJSON(p []byte) (e error) {
-	return parseJson(d, p, time.Nanosecond)
+	return parseJSON(d, p, time.Nanosecond)
 }
 
+// Duration converts this to time.Duration.
 func (d Nanoseconds) Duration() time.Duration {
 	return time.Duration(d) * time.Nanosecond
 }
 
+// DurationOr converts this to time.Duration, but returns dflt if this is zero.
 func (d Nanoseconds) DurationOr(dflt Nanoseconds) time.Duration {
 	if d == 0 {
 		return dflt.Duration()

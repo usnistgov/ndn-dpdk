@@ -12,7 +12,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/container/fib"
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
 	"github.com/usnistgov/ndn-dpdk/container/pit"
-	"github.com/usnistgov/ndn-dpdk/core/running_stat"
+	"github.com/usnistgov/ndn-dpdk/core/runningstat"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/mempool"
 	"github.com/usnistgov/ndn-dpdk/iface"
@@ -52,7 +52,7 @@ type FwdInfo struct {
 	InputInterest FwdInputCounter
 	InputData     FwdInputCounter
 	InputNack     FwdInputCounter
-	InputLatency  running_stat.Snapshot // input latency in nanos
+	InputLatency  runningstat.Snapshot // input latency in nanos
 
 	NNoFibMatch   uint64 // Interests dropped due to no FIB match
 	NDupNonce     uint64 // Interests dropped due duplicate nonce
@@ -84,7 +84,7 @@ func (dp *DataPlane) ReadFwdInfo(i int) (info *FwdInfo) {
 	fwd := dp.fwds[i]
 	info.LCore = fwd.GetLCore()
 
-	latencyStat := running_stat.FromPtr(unsafe.Pointer(&fwd.c.latencyStat))
+	latencyStat := runningstat.FromPtr(unsafe.Pointer(&fwd.c.latencyStat))
 	info.InputLatency = latencyStat.Read().Scale(eal.GetNanosInTscUnit())
 
 	info.NNoFibMatch = uint64(fwd.c.nNoFibMatch)

@@ -1,4 +1,4 @@
-package running_stat
+package runningstat
 
 /*
 #include "../../csrc/core/running-stat.h"
@@ -9,22 +9,22 @@ import (
 	"math"
 )
 
-// A snapshot of RunningStat reading.
+// Snapshot contains a snapshot of RunningStat reading.
 type Snapshot struct {
 	v runningStat
 }
 
-// Return number of inputs.
+// Count returns number of inputs.
 func (s Snapshot) Count() uint64 {
 	return s.v.I
 }
 
-// Return number of samples.
+// Len returns number of samples.
 func (s Snapshot) Len() uint64 {
 	return s.v.N
 }
 
-// Return minimum value, if enabled.
+// Min returns minimum value, if enabled.
 func (s Snapshot) Min() float64 {
 	if s.v.N == 0 {
 		return math.NaN()
@@ -32,7 +32,7 @@ func (s Snapshot) Min() float64 {
 	return s.v.Min
 }
 
-// Return maximum value, if enabled.
+// Max returns maximum value, if enabled.
 func (s Snapshot) Max() float64 {
 	if s.v.N == 0 {
 		return math.NaN()
@@ -40,7 +40,7 @@ func (s Snapshot) Max() float64 {
 	return s.v.Max
 }
 
-// Compute mean.
+// Means returns mean value.
 func (s Snapshot) Mean() float64 {
 	if s.v.N == 0 {
 		return math.NaN()
@@ -48,7 +48,7 @@ func (s Snapshot) Mean() float64 {
 	return s.v.M1
 }
 
-// Compute variance of samples.
+// Variance returns variance of samples.
 func (s Snapshot) Variance() float64 {
 	if s.v.N <= 1 {
 		return math.NaN()
@@ -56,12 +56,12 @@ func (s Snapshot) Variance() float64 {
 	return s.v.M2 / float64(s.v.N-1)
 }
 
-// Compute standard deviation of samples.
+// Stdev returns standard deviation of samples.
 func (s Snapshot) Stdev() float64 {
 	return math.Sqrt(s.Variance())
 }
 
-// Combine stats with another instance.
+// Add combines stats with another instance.
 func (a Snapshot) Add(b Snapshot) (c Snapshot) {
 	if a.v.I == 0 {
 		return b
@@ -82,7 +82,7 @@ func (a Snapshot) Add(b Snapshot) (c Snapshot) {
 	return
 }
 
-// Subtract stats in another instance.
+// Sub subtracts stats in another instance.
 func (c Snapshot) Sub(a Snapshot) (b Snapshot) {
 	b.v.I = c.v.I - a.v.I
 	b.v.N = c.v.N - a.v.N
@@ -98,7 +98,7 @@ func (c Snapshot) Sub(a Snapshot) (b Snapshot) {
 	return b
 }
 
-// Multiple every number by a ratio.
+// Scale multiplies every number by a ratio.
 func (s Snapshot) Scale(ratio float64) (o Snapshot) {
 	o = s
 	o.v.Min *= ratio
@@ -108,6 +108,7 @@ func (s Snapshot) Scale(ratio float64) (o Snapshot) {
 	return o
 }
 
+// MarshalJSON implements json.Marshaler interface.
 func (s Snapshot) MarshalJSON() ([]byte, error) {
 	m := make(map[string]interface{})
 	m["Count"] = s.Count()
@@ -128,6 +129,7 @@ func (s Snapshot) MarshalJSON() ([]byte, error) {
 	return json.Marshal(m)
 }
 
+// UnmarshalJSON implements json.Unmarshaler interface.
 func (s *Snapshot) UnmarshalJSON(p []byte) (e error) {
 	m := make(map[string]interface{})
 	if e = json.Unmarshal(p, &m); e != nil {

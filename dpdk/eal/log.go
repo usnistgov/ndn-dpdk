@@ -7,5 +7,4 @@ import (
 var (
 	log           = logger.New("eal")
 	makeLogFields = logger.MakeFields
-	addressOf     = logger.AddressOf
 )

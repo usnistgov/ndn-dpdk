@@ -7,5 +7,4 @@ import (
 var (
 	log           = logger.New("appinit")
 	makeLogFields = logger.MakeFields
-	addressOf     = logger.AddressOf
 )

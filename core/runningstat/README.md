@@ -1,4 +1,4 @@
-# ndn-dpdk/core/running_stat
+# ndn-dpdk/core/runningstat
 
 This package implements [Knuth and Welford method for computing standard deviation](https://www.johndcook.com/blog/skewness_kurtosis/).
 Compared to the original `RunningStats` C++ class, this implementation removes skewness and kurtosis support, tracks minimum and maximum, and can be configured to periodically sample the input instead of sampling every input.

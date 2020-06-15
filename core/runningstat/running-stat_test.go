@@ -1,18 +1,18 @@
-package running_stat_test
+package runningstat_test
 
 import (
 	"encoding/json"
 	"math"
 	"testing"
 
-	"github.com/usnistgov/ndn-dpdk/core/running_stat"
+	"github.com/usnistgov/ndn-dpdk/core/runningstat"
 )
 
 func TestRunningStat(t *testing.T) {
 	assert, _ := makeAR(t)
 
-	a := running_stat.New()
-	b := running_stat.New()
+	a := runningstat.New()
+	b := runningstat.New()
 
 	o := a.Read()
 	assert.Equal(uint64(0), o.Count())
@@ -54,7 +54,7 @@ func TestRunningStat(t *testing.T) {
 	// bs := o.Sub(ar)
 	bsJson, e := json.Marshal(o.Sub(ar))
 	assert.NoError(e)
-	var bs running_stat.Snapshot
+	var bs runningstat.Snapshot
 	e = json.Unmarshal(bsJson, &bs)
 	assert.NoError(e)
 	assert.Equal(br.Count(), bs.Count())

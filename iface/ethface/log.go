@@ -12,7 +12,6 @@ import (
 var (
 	log           = logger.New("ethface")
 	makeLogFields = logger.MakeFields
-	addressOf     = logger.AddressOf
 )
 
 func newPortLogger(ethDev ethdev.EthDev) logrus.FieldLogger {

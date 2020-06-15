@@ -15,7 +15,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/container/pit"
 	"github.com/usnistgov/ndn-dpdk/container/pktqueue"
 	"github.com/usnistgov/ndn-dpdk/container/strategycode"
-	"github.com/usnistgov/ndn-dpdk/core/running_stat"
+	"github.com/usnistgov/ndn-dpdk/core/runningstat"
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
@@ -75,7 +75,7 @@ func (fwd *Fwd) Init(fib *fib.Fib, pcctCfg pcct.Config, interestQueueCfg, dataQu
 	fwd.c.guiderMp = (*C.struct_rte_mempool)(ndn.NameMempool.MakePool(socket).GetPtr())
 	fwd.c.indirectMp = (*C.struct_rte_mempool)(pktmbuf.Indirect.MakePool(socket).GetPtr())
 
-	latencyStat := running_stat.FromPtr(unsafe.Pointer(&fwd.c.latencyStat))
+	latencyStat := runningstat.FromPtr(unsafe.Pointer(&fwd.c.latencyStat))
 	latencyStat.Clear(false)
 	latencyStat.SetSampleRate(latencySampleFreq)
 

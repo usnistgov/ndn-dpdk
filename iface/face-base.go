@@ -9,7 +9,7 @@ import (
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
-	"github.com/usnistgov/ndn-dpdk/core/running_stat"
+	"github.com/usnistgov/ndn-dpdk/core/runningstat"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
@@ -75,7 +75,7 @@ func (face *FaceBase) FinishInitFaceBase(txQueueCapacity, mtu, headroom int) err
 	faceC.txQueue = (*C.struct_rte_ring)(r.GetPtr())
 
 	for l3type := 0; l3type < 4; l3type++ {
-		latencyStat := running_stat.FromPtr(unsafe.Pointer(&faceC.impl.tx.latency[l3type]))
+		latencyStat := runningstat.FromPtr(unsafe.Pointer(&faceC.impl.tx.latency[l3type]))
 		latencyStat.Clear(false)
 		latencyStat.SetSampleRate(12)
 	}

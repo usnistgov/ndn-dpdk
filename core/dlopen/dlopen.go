@@ -14,7 +14,7 @@ import (
 	"unsafe"
 )
 
-// dlopen shared libraries listed in a GROUP.
+// LoadDynLibs dlopens shared libraries listed in a GROUP.
 func LoadDynLibs(paths ...string) (e error) {
 	var path string
 	var content []byte
