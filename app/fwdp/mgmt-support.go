@@ -1,7 +1,7 @@
 package fwdp
 
 /*
-#include "fwd.h"
+#include "../../csrc/fwdp/fwd.h"
 */
 import "C"
 import (

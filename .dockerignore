@@ -1,13 +1,13 @@
 app/version/version.go
 app/version/version.go.new
 build
+csrc/ndn/error.h
+csrc/ndn/tlv-type.h
 docs/doxygen
 docs/mgmtspec.json
 node_modules
 ndn/error.go
-ndn/error.h
 ndn/tlv-type.go
-ndn/tlv-type.h
 ndn/tlv-type.ts
 strategy/strategy_elf/bindata.go
 **/cgoflags.go

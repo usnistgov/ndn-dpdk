@@ -14,7 +14,7 @@ cd "$( dirname "${BASH_SOURCE[0]}" )"
   echo '} NdnError;'
   echo
   echo '#endif // NDN_DPDK_NDN_ERROR_H'
-) > error.h
+) > ../csrc/ndn/error.h
 
 (
   echo 'package ndn'

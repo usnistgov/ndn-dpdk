@@ -1,7 +1,7 @@
 package spdk
 
 /*
-#include "../core/common.h"
+#include "../csrc/core/common.h"
 #include <spdk/accel_engine.h>
 */
 import "C"

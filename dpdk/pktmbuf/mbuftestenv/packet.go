@@ -1,7 +1,7 @@
 package mbuftestenv
 
 /*
-#include "../mbuf.h"
+#include "../../../csrc/dpdk/mbuf.h"
 */
 import "C"
 import (

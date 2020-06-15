@@ -1,7 +1,7 @@
 package socketface
 
 /*
-#include "../face.h"
+#include "../../csrc/iface/face.h"
 uint16_t go_SocketFace_TxBurst(Face* faceC, struct rte_mbuf** pkts, uint16_t nPkts);
 */
 import "C"

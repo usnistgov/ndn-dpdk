@@ -1,7 +1,7 @@
 package eal
 
 /*
-#include "tsc.h"
+#include "../../csrc/dpdk/tsc.h"
 */
 import "C"
 import (

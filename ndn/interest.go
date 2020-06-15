@@ -1,7 +1,7 @@
 package ndn
 
 /*
-#include "interest.h"
+#include "../csrc/ndn/interest.h"
 
 typedef struct PInterestUnpacked
 {

@@ -4,7 +4,7 @@ package spdk
 extern void go_SpdkThread_RecvMsg(void* ctx);
 extern void go_SpdkThread_InvokePoller(void* ctx);
 
-#include "thread.h"
+#include "../csrc/spdk/thread.h"
 */
 import "C"
 import (

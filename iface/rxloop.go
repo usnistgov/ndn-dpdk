@@ -1,7 +1,7 @@
 package iface
 
 /*
-#include "rxloop.h"
+#include "../csrc/iface/rxloop.h"
 
 uint16_t go_ChanRxGroup_RxBurst(RxGroup* rxg, struct rte_mbuf** pkts, uint16_t nPkts);
 */

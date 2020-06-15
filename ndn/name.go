@@ -1,7 +1,7 @@
 package ndn
 
 /*
-#include "name.h"
+#include "../csrc/ndn/name.h"
 */
 import "C"
 import (

@@ -3,7 +3,7 @@
 package fetch
 
 /*
-#include "logic.h"
+#include "../../csrc/fetch/logic.h"
 */
 import "C"
 

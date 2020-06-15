@@ -1,7 +1,7 @@
 package ndn
 
 /*
-#include "protonum.h"
+#include "../csrc/ndn/protonum.h"
 */
 import "C"
 import (

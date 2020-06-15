@@ -3,7 +3,7 @@
 package ndn
 
 /*
-#include "interest.h"
+#include "../csrc/ndn/interest.h"
 */
 import "C"
 

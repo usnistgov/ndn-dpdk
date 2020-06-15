@@ -1,7 +1,7 @@
 package hrlog
 
 /*
-#include "writer.h"
+#include "../../csrc/hrlog/writer.h"
 */
 import "C"
 import (

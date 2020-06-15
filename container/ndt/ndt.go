@@ -1,7 +1,7 @@
 package ndt
 
 /*
-#include "ndt.h"
+#include "../../csrc/ndt/ndt.h"
 */
 import "C"
 import (

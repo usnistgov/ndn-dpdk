@@ -1,7 +1,7 @@
 package pktqueue
 
 /*
-#include "queue.h"
+#include "../../csrc/pktqueue/queue.h"
 */
 import "C"
 import (

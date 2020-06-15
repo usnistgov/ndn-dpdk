@@ -1,7 +1,7 @@
 package strategycode
 
 /*
-#include "strategy-code.h"
+#include "../../csrc/strategycode/strategy-code.h"
 */
 import "C"
 import (

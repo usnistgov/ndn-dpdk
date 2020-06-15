@@ -1,7 +1,7 @@
 package fetch
 
 /*
-#include "fetcher.h"
+#include "../../csrc/fetch/fetcher.h"
 */
 import "C"
 import (

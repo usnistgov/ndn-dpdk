@@ -1,7 +1,7 @@
 package ealtest
 
 /*
-#include "../thread.h"
+#include "../../../csrc/dpdk/thread.h"
 
 typedef struct TestThread {
 	int n;

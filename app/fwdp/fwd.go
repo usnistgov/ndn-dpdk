@@ -1,8 +1,8 @@
 package fwdp
 
 /*
-#include "fwd.h"
-#include "strategy.h"
+#include "../../csrc/fwdp/fwd.h"
+#include "../../csrc/fwdp/strategy.h"
 */
 import "C"
 

@@ -1,8 +1,8 @@
 package pingclient
 
 /*
-#include "rx.h"
-#include "tx.h"
+#include "../../csrc/pingclient/rx.h"
+#include "../../csrc/pingclient/tx.h"
 */
 import "C"
 import (

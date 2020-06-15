@@ -1,7 +1,7 @@
 package fetch
 
 /*
-#include "window.h"
+#include "../../csrc/fetch/window.h"
 */
 import "C"
 import (

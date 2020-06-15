@@ -1,7 +1,7 @@
 package fetch
 
 /*
-#include "rttest.h"
+#include "../../csrc/fetch/rttest.h"
 */
 import "C"
 import (

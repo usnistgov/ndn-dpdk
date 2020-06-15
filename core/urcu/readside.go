@@ -1,7 +1,7 @@
 package urcu
 
 /*
-#include "urcu.h"
+#include "../../csrc/core/urcu.h"
 */
 import "C"
 import "runtime"

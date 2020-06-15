@@ -1,7 +1,7 @@
 package iface
 
 /*
-#include "faceid.h"
+#include "../csrc/iface/faceid.h"
 */
 import "C"
 import (

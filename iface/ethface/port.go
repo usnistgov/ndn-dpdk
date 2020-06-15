@@ -1,7 +1,7 @@
 package ethface
 
 /*
-#include "eth-face.h"
+#include "../../csrc/ethface/eth-face.h"
 */
 import "C"
 import (

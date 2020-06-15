@@ -1,7 +1,7 @@
 package fib
 
 /*
-#include "entry.h"
+#include "../../csrc/fib/entry.h"
 
 void**
 FibEntry_GetStrategyPtr_(FibEntry* entry)

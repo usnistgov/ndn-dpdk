@@ -38,6 +38,7 @@ Other build targets:
 * Execute `make godoc` to start godoc server at port 6060.
 * Execute `make lint` to fix code style before committing (requires `clang-format-8 yamllint` package).
 * To select release mode that disables asserts and verbose logging in C code, prepend `RELEASE=1`.
+  You must run `make clean` when switching between debug and release modes.
 * C code other than strategy is compiled with `gcc` by default; override by setting `CC` environment variable.
 * Strategy code is compiled with `clang-8` by default; override by setting `BPFCC` environment variable.
 
@@ -50,6 +51,7 @@ Docker packaging:
 ## Code Organization
 
 * [mk](mk/): build helper scripts.
+* [csrc](csrc/): C source code.
 * [core](core/): common shared code.
 * [dpdk](dpdk/): DPDK bindings and extensions.
 * [spdk](spdk/): SPDK bindings and extensions.

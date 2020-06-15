@@ -1,7 +1,7 @@
 package fetch
 
 /*
-#include "tcpcubic.h"
+#include "../../csrc/fetch/tcpcubic.h"
 */
 import "C"
 import (

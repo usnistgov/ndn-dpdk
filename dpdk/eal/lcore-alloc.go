@@ -1,7 +1,7 @@
 package eal
 
 /*
-#include "../../core/common.h"
+#include "../../csrc/core/common.h"
 */
 import "C"
 import (

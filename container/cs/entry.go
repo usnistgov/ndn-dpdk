@@ -1,7 +1,7 @@
 package cs
 
 /*
-#include "../pcct/cs-entry.h"
+#include "../../csrc/pcct/cs-entry.h"
 */
 import "C"
 import (

@@ -1,7 +1,7 @@
 package inputdemux
 
 /*
-#include "demux.h"
+#include "../../csrc/inputdemux/demux.h"
 */
 import "C"
 

@@ -1,7 +1,7 @@
 package eal
 
 /*
-#include "thread.h"
+#include "../../csrc/dpdk/thread.h"
 */
 import "C"
 import (

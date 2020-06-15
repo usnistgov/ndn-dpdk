@@ -1,7 +1,7 @@
 package urcu
 
 /*
-#include "urcu.h"
+#include "../../csrc/core/urcu.h"
 
 static inline void
 c_defer_rcu(void* f, void* p)

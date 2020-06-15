@@ -1,7 +1,7 @@
 package ringbuffer
 
 /*
-#include "../../core/common.h"
+#include "../../csrc/core/common.h"
 #include <rte_ring.h>
 */
 import "C"

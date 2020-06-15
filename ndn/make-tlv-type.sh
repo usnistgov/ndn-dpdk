@@ -14,7 +14,7 @@ cd "$( dirname "${BASH_SOURCE[0]}" )"
   echo '} TlvType;'
   echo
   echo '#endif // NDN_DPDK_NDN_TLV_TYPE_H'
-) > tlv-type.h
+) > ../csrc/ndn/tlv-type.h
 
 (
   echo 'package ndn'

@@ -1,7 +1,7 @@
 package ethdev
 
 /*
-#include "ethdev.h"
+#include "../../csrc/dpdk/ethdev.h"
 #include <rte_eth_ring.h>
 */
 import "C"

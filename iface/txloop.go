@@ -1,7 +1,7 @@
 package iface
 
 /*
-#include "txloop.h"
+#include "../csrc/iface/txloop.h"
 */
 import "C"
 import (

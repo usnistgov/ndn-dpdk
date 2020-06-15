@@ -1,7 +1,7 @@
 package spdk
 
 /*
-#include "bdev.h"
+#include "../csrc/spdk/bdev.h"
 #include <spdk/thread.h>
 
 extern void go_bdevEvent(enum spdk_bdev_event_type type, struct spdk_bdev* bdev, void* ctx);

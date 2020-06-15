@@ -1,7 +1,7 @@
 package spdk
 
 /*
-#include "bdev.h"
+#include "../csrc/spdk/bdev.h"
 
 extern void go_bdevInitialized(void* ctx, int rc);
 extern void go_bdevRemove(void* ctx);

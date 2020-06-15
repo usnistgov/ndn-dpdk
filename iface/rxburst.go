@@ -1,7 +1,7 @@
 package iface
 
 /*
-#include "rxburst.h"
+#include "../csrc/iface/rxburst.h"
 
 void
 c_FaceRxBurst_SetFrame(FaceRxBurst* burst, int i, struct rte_mbuf* frame)

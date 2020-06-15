@@ -1,4 +1,4 @@
-#include "../siphash.h"
+#include "../../csrc/core/siphash.h"
 #include <rte_byteorder.h>
 
 int

@@ -1,7 +1,7 @@
 package ethface
 
 /*
-#include "rxtable.h"
+#include "../../csrc/ethface/rxtable.h"
 */
 import "C"
 import (

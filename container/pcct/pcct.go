@@ -1,9 +1,9 @@
 package pcct
 
 /*
-#include "pcct.h"
-#include "pit.h"
-#include "cs.h"
+#include "../../csrc/pcct/pcct.h"
+#include "../../csrc/pcct/pit.h"
+#include "../../csrc/pcct/cs.h"
 */
 import "C"
 import (

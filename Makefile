@@ -9,8 +9,8 @@ all: gopkg npm cmds
 gopkg: godeps
 	go build -v ./...
 
-godeps: app/version/version.go
-	rake cgoflags cgostruct cbuilds strategies
+godeps: app/version/version.go build/libndn-dpdk-c.a
+	rake cgoflags cgostruct strategies
 
 .PHONY: app/version/version.go
 app/version/version.go:
@@ -20,8 +20,21 @@ app/version/version.go:
 tsc: ndn/tlv-type.ts
 	node_modules/.bin/tsc
 
-ndn/tlv-type.ts: ndn/tlv-type.tsv
-	rake ndn/tlv-type.h
+csrc/ndn/error.h: ndn/error.tsv
+	rake ndn/error.go
+
+ndn/tlv-type.ts csrc/ndn/tlv-type.h: ndn/tlv-type.tsv
+	rake ndn/tlv-type.go
+
+.PHONY: build/libndn-dpdk-c.a
+build/libndn-dpdk-c.a: build/build.ninja csrc/ndn/error.h csrc/ndn/tlv-type.h
+	cd build && ninja
+
+build/build.ninja: meson.build csrc/meson.build
+	bash -c 'source mk/cflags.sh; meson build'
+
+csrc/meson.build:
+	mk/update-list.sh
 
 .PHONY: npm
 npm: tsc

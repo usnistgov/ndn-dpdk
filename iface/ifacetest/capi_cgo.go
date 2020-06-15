@@ -1,7 +1,7 @@
 package ifacetest
 
 /*
-#include "../face.h"
+#include "../../csrc/iface/face.h"
 */
 import "C"
 import (

@@ -1,7 +1,7 @@
 package pit
 
 /*
-#include "../pcct/pit-suppress-config.h"
+#include "../../csrc/pcct/pit-suppress-config.h"
 */
 import "C"
 import (

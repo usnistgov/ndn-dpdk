@@ -1,7 +1,7 @@
 package ndn
 
 /*
-#include "tlv-element.h"
+#include "../csrc/ndn/tlv-element.h"
 */
 import "C"
 import (

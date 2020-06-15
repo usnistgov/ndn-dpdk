@@ -1,7 +1,7 @@
 package fwdp
 
 /*
-#include "crypto.h"
+#include "../../csrc/fwdp/crypto.h"
 */
 import "C"
 import (

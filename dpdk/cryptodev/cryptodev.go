@@ -1,7 +1,7 @@
 package cryptodev
 
 /*
-#include "cryptodev.h"
+#include "../../csrc/dpdk/cryptodev.h"
 */
 import "C"
 import (

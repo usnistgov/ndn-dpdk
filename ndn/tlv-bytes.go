@@ -1,8 +1,8 @@
 package ndn
 
 /*
-#include "tlv-encoder.h"
-#include "tlv-varnum.h"
+#include "../csrc/ndn/tlv-encoder.h"
+#include "../csrc/ndn/tlv-varnum.h"
 */
 import "C"
 import (

@@ -1,8 +1,8 @@
 package ndn
 
 /*
-#include "nack.h"
-#include "packet.h"
+#include "../csrc/ndn/nack.h"
+#include "../csrc/ndn/packet.h"
 */
 import "C"
 import (

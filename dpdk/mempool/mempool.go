@@ -1,7 +1,7 @@
 package mempool
 
 /*
-#include "../../core/common.h"
+#include "../../csrc/core/common.h"
 #include <rte_mempool.h>
 */
 import "C"

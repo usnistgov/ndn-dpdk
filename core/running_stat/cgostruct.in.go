@@ -3,7 +3,7 @@
 package running_stat
 
 /*
-#include "running-stat.h"
+#include "../../csrc/core/running-stat.h"
 */
 import "C"
 

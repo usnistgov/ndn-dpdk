@@ -1,7 +1,7 @@
 package fib
 
 /*
-#include "fib.h"
+#include "../../csrc/fib/fib.h"
 */
 import "C"
 import (

@@ -1,7 +1,7 @@
 package pktmbuf
 
 /*
-#include "loc.h"
+#include "../../csrc/dpdk/mbuf-loc.h"
 */
 import "C"
 import (

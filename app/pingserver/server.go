@@ -1,7 +1,7 @@
 package pingserver
 
 /*
-#include "server.h"
+#include "../../csrc/pingserver/server.h"
 */
 import "C"
 import (

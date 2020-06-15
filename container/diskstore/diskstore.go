@@ -1,7 +1,7 @@
 package diskstore
 
 /*
-#include "diskstore.h"
+#include "../../csrc/diskstore/diskstore.h"
 */
 import "C"
 import (

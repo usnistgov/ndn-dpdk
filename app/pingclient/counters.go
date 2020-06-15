@@ -1,9 +1,9 @@
 package pingclient
 
 /*
-#include "rx.h"
-#include "token.h"
-#include "tx.h"
+#include "../../csrc/pingclient/rx.h"
+#include "../../csrc/pingclient/token.h"
+#include "../../csrc/pingclient/tx.h"
 */
 import "C"
 import (

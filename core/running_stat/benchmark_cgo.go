@@ -1,7 +1,7 @@
 package running_stat
 
 /*
-#include "running-stat.h"
+#include "../../csrc/core/running-stat.h"
 
 void
 RunningStat_BenchmarkPush(RunningStat* s, int n)

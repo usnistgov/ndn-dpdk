@@ -1,7 +1,7 @@
 package pit
 
 /*
-#include "../pcct/pit.h"
+#include "../../csrc/pcct/pit.h"
 */
 import "C"
 import (

@@ -64,33 +64,13 @@ CDeps.each do |key,value|
 end
 Rake::Task["strategy".pathmap(CgoflagsPathmap)].clear
 
-desc "Compile build/libndn-dpdk-*.a"
-task "cbuilds"
-ClibPathmap = "build/libndn-dpdk-%n.a"
-CDeps.each do |key,value|
-  name = key.pathmap(ClibPathmap)
-  cSrc = Rake::FileList["#{key}/*.h", "#{key}/*.c"]
-  cSrc = Rake::FileList["#{key}/api-*"] if key == "strategy"
-  deps = value.map{|v| v.pathmap(ClibPathmap)} + cSrc
-  if !key.end_with?("test")
-    file name => deps do |t|
-      sh "mk/cbuild.sh #{key}"
-    end
-  else
-    task name => deps
-  end
-  task "cbuilds" => name
-end
-Rake::Task["container/mintmr/mintmrtest".pathmap(ClibPathmap)].clear
-
-file "ndn/error.h" => "ndn/error.tsv" do
+file "ndn/error.go" => "ndn/error.tsv" do
   sh "ndn/make-error.sh"
 end
-file "ndn/tlv-type.h" => "ndn/tlv-type.tsv" do
+file "ndn/tlv-type.go" => "ndn/tlv-type.tsv" do
   sh "ndn/make-tlv-type.sh"
 end
-task "ndn".pathmap(ClibPathmap) => ["ndn/error.h", "ndn/tlv-type.h"]
-task "ndn/cgostruct.go" => ["ndn/error.h", "ndn/tlv-type.h"]
+task "ndn/cgostruct.go" => ["ndn/error.go", "ndn/tlv-type.go"]
 
 desc "Build forwarding strategies"
 task "strategies" => "strategy/strategy_elf/bindata.go"
@@ -99,7 +79,7 @@ directory SgBpfPath
 file "strategy/strategy_elf/bindata.go" do |t|
   sh "go-bindata -nomemcopy -pkg strategy_elf -prefix #{SgBpfPath} -o /dev/stdout #{SgBpfPath} | gofmt -s > #{t.name}"
 end
-SgDeps = [SgBpfPath, "strategy".pathmap(ClibPathmap)] + ["ndn", "container/fib", "container/pcct"].map{|v| v.pathmap(ClibPathmap)}
+SgDeps = [SgBpfPath, "build/libndn-dpdk-c.a"]
 SgSrc = Rake::FileList["strategy/*.c"]
 SgSrc.exclude("strategy/api*")
 SgSrc.each do |f|

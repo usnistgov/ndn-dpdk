@@ -1,7 +1,7 @@
 package ndn
 
 /*
-#include "encode-data.h"
+#include "../csrc/ndn/encode-data.h"
 */
 import "C"
 import (
