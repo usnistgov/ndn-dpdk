@@ -1,9 +1,9 @@
 package ndtmgmt
 
 import (
-	"ndn-dpdk/container/ndt"
-	"ndn-dpdk/container/ndt/ndtupdater"
-	"ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/container/ndt"
+	"github.com/usnistgov/ndn-dpdk/container/ndt/ndtupdater"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 type NdtMgmt struct {

@@ -7,9 +7,9 @@ import (
 
 	"github.com/ghodss/yaml"
 
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/dpdk/pktmbuf"
-	"ndn-dpdk/iface/createface"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
+	"github.com/usnistgov/ndn-dpdk/iface/createface"
 )
 
 type yamlFlagValue struct {

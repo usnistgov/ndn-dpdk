@@ -7,8 +7,8 @@ import "C"
 import (
 	"unsafe"
 
-	"ndn-dpdk/core/nnduration"
-	"ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/core/nnduration"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
 // PIT suppression configuration.

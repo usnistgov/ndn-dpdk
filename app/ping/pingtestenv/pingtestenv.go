@@ -1,13 +1,13 @@
 package pingtestenv
 
 import (
-	"ndn-dpdk/container/pktqueue"
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/dpdk/eal/ealtestenv"
-	"ndn-dpdk/iface"
-	"ndn-dpdk/iface/createface"
-	"ndn-dpdk/iface/mockface"
-	"ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/container/pktqueue"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal/ealtestenv"
+	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/iface/createface"
+	"github.com/usnistgov/ndn-dpdk/iface/mockface"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 func Init() {

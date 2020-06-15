@@ -3,10 +3,10 @@ package fibtest
 import (
 	"testing"
 
-	"ndn-dpdk/container/fib"
-	"ndn-dpdk/iface"
-	"ndn-dpdk/ndn"
-	"ndn-dpdk/ndn/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/container/fib"
+	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 )
 
 func TestEntry(t *testing.T) {

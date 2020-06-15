@@ -8,9 +8,9 @@ import (
 	"errors"
 	"fmt"
 
-	"ndn-dpdk/dpdk/ethdev"
-	"ndn-dpdk/iface"
-	"ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
+	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 const locatorScheme = "ether"

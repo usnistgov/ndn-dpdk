@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"unsafe"
 
-	"ndn-dpdk/core/running_stat"
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/core/running_stat"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 // Basic face counters.

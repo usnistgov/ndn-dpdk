@@ -1,10 +1,10 @@
 package ndn_test
 
 import (
-	"ndn-dpdk/core/testenv"
-	"ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
-	"ndn-dpdk/ndn"
-	"ndn-dpdk/ndn/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/core/testenv"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
+	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 )
 
 var (

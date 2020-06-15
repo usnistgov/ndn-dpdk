@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"ndn-dpdk/dpdk/eal/ealtestenv"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal/ealtestenv"
 )
 
 func TestMain(m *testing.M) {

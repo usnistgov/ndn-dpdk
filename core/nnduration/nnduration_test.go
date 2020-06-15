@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"ndn-dpdk/core/nnduration"
+	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 )
 
 func TestMilliseconds(t *testing.T) {

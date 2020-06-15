@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"unsafe"
 
-	"ndn-dpdk/dpdk/pktmbuf"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 )
 
 type L2PktType int

@@ -4,11 +4,11 @@ import (
 	"testing"
 	"time"
 
-	"ndn-dpdk/core/testenv"
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/iface"
-	"ndn-dpdk/ndn"
-	"ndn-dpdk/ndn/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/core/testenv"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 )
 
 // Test fixture for sending and receiving packets between a pair of connected faces.

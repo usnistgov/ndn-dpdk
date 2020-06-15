@@ -1,7 +1,7 @@
 package fibtree
 
 import (
-	"ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 type Node struct {

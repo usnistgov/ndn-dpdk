@@ -1,9 +1,9 @@
 package pingserver
 
 import (
-	"ndn-dpdk/container/pktqueue"
-	"ndn-dpdk/core/nnduration"
-	"ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/container/pktqueue"
+	"github.com/usnistgov/ndn-dpdk/core/nnduration"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 // Server config.

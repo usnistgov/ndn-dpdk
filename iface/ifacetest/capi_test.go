@@ -4,11 +4,11 @@ import (
 	"testing"
 	"time"
 
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/iface"
-	"ndn-dpdk/iface/mockface"
-	"ndn-dpdk/ndn"
-	"ndn-dpdk/ndn/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/iface/mockface"
+	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 )
 
 func TestCApiNoFace(t *testing.T) {

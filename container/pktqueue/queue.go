@@ -8,10 +8,10 @@ import (
 	"time"
 	"unsafe"
 
-	"ndn-dpdk/core/cptr"
-	"ndn-dpdk/core/nnduration"
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/dpdk/ringbuffer"
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
+	"github.com/usnistgov/ndn-dpdk/core/nnduration"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
 )
 
 const BURST_SIZE_MAX = C.PKTQUEUE_BURST_SIZE_MAX

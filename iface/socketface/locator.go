@@ -3,7 +3,7 @@ package socketface
 import (
 	"fmt"
 
-	"ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
 type Locator struct {

@@ -3,8 +3,8 @@ package fetch_test
 import (
 	"testing"
 
-	"ndn-dpdk/app/fetch"
-	"ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/app/fetch"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
 func TestWindow(t *testing.T) {

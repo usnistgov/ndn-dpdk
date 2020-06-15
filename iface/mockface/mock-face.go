@@ -10,11 +10,11 @@ import (
 	"sync"
 	"unsafe"
 
-	"ndn-dpdk/core/emission"
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/dpdk/pktmbuf"
-	"ndn-dpdk/iface"
-	"ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/core/emission"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
+	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 const (

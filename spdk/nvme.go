@@ -11,7 +11,7 @@ import (
 	"errors"
 	"unsafe"
 
-	"ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
 type listNvmesResult struct {

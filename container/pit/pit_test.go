@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"ndn-dpdk/container/pit"
-	"ndn-dpdk/ndn"
-	"ndn-dpdk/ndn/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/container/pit"
+	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 )
 
 func TestInsertErase(t *testing.T) {

@@ -3,7 +3,7 @@ package strategymgmt
 import (
 	"errors"
 
-	"ndn-dpdk/container/strategycode"
+	"github.com/usnistgov/ndn-dpdk/container/strategycode"
 )
 
 type StrategyMgmt struct{}

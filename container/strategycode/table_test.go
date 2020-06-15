@@ -3,7 +3,7 @@ package strategycode_test
 import (
 	"testing"
 
-	"ndn-dpdk/container/strategycode"
+	"github.com/usnistgov/ndn-dpdk/container/strategycode"
 )
 
 func TestTable(t *testing.T) {

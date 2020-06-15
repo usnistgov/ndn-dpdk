@@ -3,7 +3,7 @@ package appinit
 import (
 	"fmt"
 
-	"ndn-dpdk/mgmt"
+	"github.com/usnistgov/ndn-dpdk/mgmt"
 )
 
 func RegisterMgmt(mg interface{}) {

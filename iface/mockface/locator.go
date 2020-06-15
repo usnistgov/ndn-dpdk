@@ -1,7 +1,7 @@
 package mockface
 
 import (
-	"ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
 const locatorScheme = "mock"

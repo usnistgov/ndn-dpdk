@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/dpdk/ethdev"
-	"ndn-dpdk/dpdk/pktmbuf"
-	"ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 )
 
 func TestEthDev(t *testing.T) {

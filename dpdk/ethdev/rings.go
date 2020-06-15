@@ -8,9 +8,9 @@ import "C"
 import (
 	"unsafe"
 
-	"ndn-dpdk/core/cptr"
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/dpdk/ringbuffer"
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
 )
 
 // NewFromRings creates an EthDev using net/ring driver.

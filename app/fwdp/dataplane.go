@@ -8,14 +8,14 @@ import "C"
 import (
 	"fmt"
 
-	"ndn-dpdk/container/fib"
-	"ndn-dpdk/container/ndt"
-	"ndn-dpdk/container/pcct"
-	"ndn-dpdk/container/pit"
-	"ndn-dpdk/container/pktqueue"
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/iface"
-	"ndn-dpdk/iface/createface"
+	"github.com/usnistgov/ndn-dpdk/container/fib"
+	"github.com/usnistgov/ndn-dpdk/container/ndt"
+	"github.com/usnistgov/ndn-dpdk/container/pcct"
+	"github.com/usnistgov/ndn-dpdk/container/pit"
+	"github.com/usnistgov/ndn-dpdk/container/pktqueue"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/iface/createface"
 )
 
 type Config struct {

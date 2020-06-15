@@ -5,7 +5,7 @@ package ethdev
 */
 import "C"
 import (
-	"ndn-dpdk/dpdk/pktmbuf"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 )
 
 // RxQueue represents an RX queue.

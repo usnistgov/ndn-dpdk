@@ -5,9 +5,9 @@ package fib
 */
 import "C"
 import (
-	"ndn-dpdk/container/fib/fibtree"
-	"ndn-dpdk/core/urcu"
-	"ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/container/fib/fibtree"
+	"github.com/usnistgov/ndn-dpdk/core/urcu"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 // List all FIB entry names.

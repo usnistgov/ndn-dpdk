@@ -3,17 +3,17 @@ package main
 import (
 	"time"
 
-	"ndn-dpdk/appinit"
-	"ndn-dpdk/container/ndt/ndtupdater"
-	"ndn-dpdk/container/strategycode"
-	"ndn-dpdk/mgmt/facemgmt"
-	"ndn-dpdk/mgmt/fibmgmt"
-	"ndn-dpdk/mgmt/fwdpmgmt"
-	"ndn-dpdk/mgmt/hrlog"
-	"ndn-dpdk/mgmt/ndtmgmt"
-	"ndn-dpdk/mgmt/strategymgmt"
-	"ndn-dpdk/mgmt/versionmgmt"
-	"ndn-dpdk/strategy/strategy_elf"
+	"github.com/usnistgov/ndn-dpdk/appinit"
+	"github.com/usnistgov/ndn-dpdk/container/ndt/ndtupdater"
+	"github.com/usnistgov/ndn-dpdk/container/strategycode"
+	"github.com/usnistgov/ndn-dpdk/mgmt/facemgmt"
+	"github.com/usnistgov/ndn-dpdk/mgmt/fibmgmt"
+	"github.com/usnistgov/ndn-dpdk/mgmt/fwdpmgmt"
+	"github.com/usnistgov/ndn-dpdk/mgmt/hrlog"
+	"github.com/usnistgov/ndn-dpdk/mgmt/ndtmgmt"
+	"github.com/usnistgov/ndn-dpdk/mgmt/strategymgmt"
+	"github.com/usnistgov/ndn-dpdk/mgmt/versionmgmt"
+	"github.com/usnistgov/ndn-dpdk/strategy/strategy_elf"
 )
 
 func startMgmt() {

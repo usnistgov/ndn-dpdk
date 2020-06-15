@@ -8,7 +8,7 @@ import "C"
 import (
 	"unsafe"
 
-	"ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 // A PIT entry.

@@ -3,8 +3,8 @@ package facemgmt
 import (
 	"errors"
 
-	"ndn-dpdk/iface"
-	"ndn-dpdk/iface/createface"
+	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/iface/createface"
 )
 
 type FaceMgmt struct{}

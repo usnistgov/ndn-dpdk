@@ -11,9 +11,9 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"ndn-dpdk/iface"
-	"ndn-dpdk/iface/ifacetestenv"
-	"ndn-dpdk/iface/socketface"
+	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/iface/ifacetestenv"
+	"github.com/usnistgov/ndn-dpdk/iface/socketface"
 )
 
 func TestStream(t *testing.T) {

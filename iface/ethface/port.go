@@ -9,8 +9,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"ndn-dpdk/dpdk/ethdev"
-	"ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
+	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
 var portByEthDev = make(map[ethdev.EthDev]*Port)

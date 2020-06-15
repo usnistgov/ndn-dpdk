@@ -5,12 +5,12 @@ import (
 	"testing"
 	"time"
 
-	"ndn-dpdk/container/diskstore"
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/dpdk/pktmbuf"
-	"ndn-dpdk/ndn"
-	"ndn-dpdk/ndn/ndntestenv"
-	"ndn-dpdk/spdk"
+	"github.com/usnistgov/ndn-dpdk/container/diskstore"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
+	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/spdk"
 )
 
 func TestDiskStore(t *testing.T) {

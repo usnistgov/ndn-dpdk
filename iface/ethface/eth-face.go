@@ -8,8 +8,8 @@ import (
 	"errors"
 	"fmt"
 
-	"ndn-dpdk/iface"
-	"ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 type EthFace struct {

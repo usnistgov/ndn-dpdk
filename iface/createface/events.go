@@ -4,9 +4,9 @@ import (
 	"math"
 	"sync"
 
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/iface"
-	"ndn-dpdk/iface/ethface"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/iface/ethface"
 )
 
 func isNumaSocketMatch(a, b eal.NumaSocket) bool {

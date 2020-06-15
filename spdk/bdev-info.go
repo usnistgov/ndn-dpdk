@@ -12,7 +12,7 @@ import (
 	"sync"
 	"unsafe"
 
-	"ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
 var initBdevLibOnce sync.Once

@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
 func TestThread(t *testing.T) {

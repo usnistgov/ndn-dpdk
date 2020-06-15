@@ -1,8 +1,8 @@
 package pingmempool
 
 import (
-	"ndn-dpdk/dpdk/pktmbuf"
-	"ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 // Predefined mempool templates.

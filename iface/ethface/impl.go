@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"io"
 
-	"ndn-dpdk/dpdk/ethdev"
-	"ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 // RX/TX setup implementation.

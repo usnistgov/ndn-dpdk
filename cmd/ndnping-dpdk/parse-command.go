@@ -5,9 +5,9 @@ import (
 	"os"
 	"time"
 
-	"ndn-dpdk/app/ping"
-	"ndn-dpdk/appinit"
-	"ndn-dpdk/iface/createface"
+	"github.com/usnistgov/ndn-dpdk/app/ping"
+	"github.com/usnistgov/ndn-dpdk/appinit"
+	"github.com/usnistgov/ndn-dpdk/iface/createface"
 )
 
 type parsedCommand struct {

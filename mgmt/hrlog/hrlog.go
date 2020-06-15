@@ -10,8 +10,8 @@ import (
 	"sync"
 	"unsafe"
 
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/dpdk/ringbuffer"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
 )
 
 const ringCapacity = 65536

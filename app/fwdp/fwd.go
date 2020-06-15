@@ -10,16 +10,16 @@ import (
 	"fmt"
 	"unsafe"
 
-	"ndn-dpdk/container/fib"
-	"ndn-dpdk/container/pcct"
-	"ndn-dpdk/container/pit"
-	"ndn-dpdk/container/pktqueue"
-	"ndn-dpdk/container/strategycode"
-	"ndn-dpdk/core/running_stat"
-	"ndn-dpdk/core/urcu"
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/dpdk/pktmbuf"
-	"ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/container/fib"
+	"github.com/usnistgov/ndn-dpdk/container/pcct"
+	"github.com/usnistgov/ndn-dpdk/container/pit"
+	"github.com/usnistgov/ndn-dpdk/container/pktqueue"
+	"github.com/usnistgov/ndn-dpdk/container/strategycode"
+	"github.com/usnistgov/ndn-dpdk/core/running_stat"
+	"github.com/usnistgov/ndn-dpdk/core/urcu"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 // Forwarding thread.

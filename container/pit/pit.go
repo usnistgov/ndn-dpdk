@@ -7,10 +7,10 @@ import "C"
 import (
 	"unsafe"
 
-	"ndn-dpdk/container/cs"
-	"ndn-dpdk/container/fib"
-	"ndn-dpdk/container/pcct"
-	"ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/container/cs"
+	"github.com/usnistgov/ndn-dpdk/container/fib"
+	"github.com/usnistgov/ndn-dpdk/container/pcct"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 // The Pending Interest Table (PIT).

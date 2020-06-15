@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"ndn-dpdk/core/testenv"
-	"ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/core/testenv"
+	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
 func CheckLocatorMarshal(t *testing.T, loc iface.Locator) {

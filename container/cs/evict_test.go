@@ -3,9 +3,9 @@ package cs_test
 import (
 	"testing"
 
-	"ndn-dpdk/container/cs"
-	"ndn-dpdk/container/pcct"
-	"ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/container/cs"
+	"github.com/usnistgov/ndn-dpdk/container/pcct"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 // Direct entries use ARC algorithm, but this only tests its LRU behavior.

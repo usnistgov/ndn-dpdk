@@ -8,11 +8,11 @@ import (
 	"errors"
 	"unsafe"
 
-	"ndn-dpdk/container/fib/fibtree"
-	"ndn-dpdk/container/ndt"
-	"ndn-dpdk/core/urcu"
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/container/fib/fibtree"
+	"github.com/usnistgov/ndn-dpdk/container/ndt"
+	"github.com/usnistgov/ndn-dpdk/core/urcu"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 type Config struct {

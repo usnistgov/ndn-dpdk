@@ -4,10 +4,10 @@ import (
 	"testing"
 	"time"
 
-	"ndn-dpdk/dpdk/cryptodev"
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/ndn"
-	"ndn-dpdk/ndn/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/dpdk/cryptodev"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 )
 
 func TestDataDecode(t *testing.T) {

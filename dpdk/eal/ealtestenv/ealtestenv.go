@@ -8,7 +8,7 @@ import (
 
 	"github.com/jaypipes/ghw"
 
-	"ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
 // InitEal initializes EAL for testing purpose.

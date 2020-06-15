@@ -5,12 +5,12 @@ import (
 	"os"
 	"time"
 
-	"ndn-dpdk/app/ping"
-	"ndn-dpdk/appinit"
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/mgmt/facemgmt"
-	"ndn-dpdk/mgmt/pingmgmt"
-	"ndn-dpdk/mgmt/versionmgmt"
+	"github.com/usnistgov/ndn-dpdk/app/ping"
+	"github.com/usnistgov/ndn-dpdk/appinit"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/mgmt/facemgmt"
+	"github.com/usnistgov/ndn-dpdk/mgmt/pingmgmt"
+	"github.com/usnistgov/ndn-dpdk/mgmt/versionmgmt"
 )
 
 func main() {

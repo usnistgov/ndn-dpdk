@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	"ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
 // Template represents a template to create mempools.

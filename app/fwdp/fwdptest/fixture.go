@@ -6,15 +6,15 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"ndn-dpdk/app/fwdp"
-	"ndn-dpdk/container/fib"
-	"ndn-dpdk/container/ndt"
-	"ndn-dpdk/container/strategycode"
-	"ndn-dpdk/iface"
-	"ndn-dpdk/iface/createface"
-	"ndn-dpdk/iface/mockface"
-	"ndn-dpdk/ndn"
-	"ndn-dpdk/strategy/strategy_elf"
+	"github.com/usnistgov/ndn-dpdk/app/fwdp"
+	"github.com/usnistgov/ndn-dpdk/container/fib"
+	"github.com/usnistgov/ndn-dpdk/container/ndt"
+	"github.com/usnistgov/ndn-dpdk/container/strategycode"
+	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/iface/createface"
+	"github.com/usnistgov/ndn-dpdk/iface/mockface"
+	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/strategy/strategy_elf"
 )
 
 const STEP_DELAY = 50 * time.Millisecond

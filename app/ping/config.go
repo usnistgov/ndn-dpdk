@@ -1,10 +1,10 @@
 package ping
 
 import (
-	"ndn-dpdk/app/fetch"
-	"ndn-dpdk/app/pingclient"
-	"ndn-dpdk/app/pingserver"
-	"ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/app/fetch"
+	"github.com/usnistgov/ndn-dpdk/app/pingclient"
+	"github.com/usnistgov/ndn-dpdk/app/pingserver"
+	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
 // Per-face task config.

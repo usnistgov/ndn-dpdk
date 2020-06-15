@@ -5,9 +5,9 @@ import (
 	"os"
 	"testing"
 
-	"ndn-dpdk/core/testenv"
-	"ndn-dpdk/dpdk/eal/ealtestenv"
-	"ndn-dpdk/iface/socketface"
+	"github.com/usnistgov/ndn-dpdk/core/testenv"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal/ealtestenv"
+	"github.com/usnistgov/ndn-dpdk/iface/socketface"
 )
 
 var socketfaceCfg socketface.Config

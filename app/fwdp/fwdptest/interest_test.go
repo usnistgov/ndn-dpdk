@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"ndn-dpdk/app/fwdp"
-	"ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
-	"ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/app/fwdp"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 func TestInterestData(t *testing.T) {

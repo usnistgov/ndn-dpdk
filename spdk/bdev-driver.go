@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"sync"
 
-	"ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
 var initAccelEngineOnce sync.Once

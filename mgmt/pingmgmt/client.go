@@ -3,9 +3,9 @@ package pingmgmt
 import (
 	"errors"
 
-	"ndn-dpdk/app/ping"
-	"ndn-dpdk/app/pingclient"
-	"ndn-dpdk/core/nnduration"
+	"github.com/usnistgov/ndn-dpdk/app/ping"
+	"github.com/usnistgov/ndn-dpdk/app/pingclient"
+	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 )
 
 type PingClientMgmt struct {

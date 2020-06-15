@@ -1,7 +1,7 @@
 package main
 
 import (
-	"ndn-dpdk/core/logger"
+	"github.com/usnistgov/ndn-dpdk/core/logger"
 )
 
 var (

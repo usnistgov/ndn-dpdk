@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"ndn-dpdk/dpdk/ethdev"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 )
 
 func TestEtherAddr(t *testing.T) {

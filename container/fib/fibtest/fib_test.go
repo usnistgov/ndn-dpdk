@@ -3,9 +3,9 @@ package fibtest
 import (
 	"testing"
 
-	"ndn-dpdk/container/strategycode"
-	"ndn-dpdk/core/urcu"
-	"ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/container/strategycode"
+	"github.com/usnistgov/ndn-dpdk/core/urcu"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 func TestInsertErase(t *testing.T) {

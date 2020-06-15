@@ -3,8 +3,8 @@ package ndn_test
 import (
 	"testing"
 
-	"ndn-dpdk/ndn"
-	"ndn-dpdk/ndn/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 )
 
 func TestNackDecode(t *testing.T) {

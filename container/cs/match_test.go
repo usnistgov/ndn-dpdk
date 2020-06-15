@@ -4,11 +4,11 @@ import (
 	"testing"
 	"time"
 
-	"ndn-dpdk/container/cs"
-	"ndn-dpdk/container/pcct"
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/ndn"
-	"ndn-dpdk/ndn/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/container/cs"
+	"github.com/usnistgov/ndn-dpdk/container/pcct"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 )
 
 func TestInsertErase(t *testing.T) {

@@ -3,7 +3,7 @@ package cptrtest
 import (
 	"testing"
 
-	"ndn-dpdk/core/cptr"
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
 )
 
 func TestCptrArray(t *testing.T) {

@@ -21,7 +21,9 @@ int verifyCArgs(int argc, char** const argv) {
 }
 */
 import "C"
-import "ndn-dpdk/core/cptr"
+import (
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
+)
 
 func verifyCArgs(a *cptr.CArgs) int {
 	return int(C.verifyCArgs(C.int(a.Argc), (**C.char)(a.Argv)))

@@ -3,10 +3,10 @@ package fwdp
 import (
 	"fmt"
 
-	"ndn-dpdk/app/inputdemux"
-	"ndn-dpdk/container/ndt"
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/app/inputdemux"
+	"github.com/usnistgov/ndn-dpdk/container/ndt"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
 // Input thread.

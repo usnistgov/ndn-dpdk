@@ -3,7 +3,7 @@ package ealtest
 import (
 	"testing"
 
-	"ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
 type mockLCoreProvider struct{}

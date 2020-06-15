@@ -5,7 +5,7 @@ package pktmbuf
 */
 import "C"
 import (
-	"ndn-dpdk/core/cptr"
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"unsafe"
 )
 

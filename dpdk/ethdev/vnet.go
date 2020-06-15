@@ -3,8 +3,8 @@ package ethdev
 import (
 	"math/rand"
 
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/dpdk/pktmbuf"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 )
 
 // VNetConfig contains configuration for VNet.

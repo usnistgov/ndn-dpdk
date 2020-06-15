@@ -4,8 +4,8 @@ import (
 	"os"
 	"testing"
 
-	"ndn-dpdk/app/ping/pingtestenv"
-	"ndn-dpdk/core/testenv"
+	"github.com/usnistgov/ndn-dpdk/app/ping/pingtestenv"
+	"github.com/usnistgov/ndn-dpdk/core/testenv"
 )
 
 func TestMain(m *testing.M) {

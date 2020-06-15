@@ -5,7 +5,7 @@ import (
 	"math"
 	"testing"
 
-	"ndn-dpdk/core/running_stat"
+	"github.com/usnistgov/ndn-dpdk/core/running_stat"
 )
 
 func TestRunningStat(t *testing.T) {

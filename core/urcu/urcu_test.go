@@ -5,7 +5,7 @@ import (
 	"testing"
 	"unsafe"
 
-	"ndn-dpdk/core/urcu"
+	"github.com/usnistgov/ndn-dpdk/core/urcu"
 )
 
 func TestReadSide(t *testing.T) {

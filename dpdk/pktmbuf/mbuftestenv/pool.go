@@ -3,9 +3,9 @@ package mbuftestenv
 import (
 	"sync"
 
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/dpdk/eal/ealtestenv"
-	"ndn-dpdk/dpdk/pktmbuf"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal/ealtestenv"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 )
 
 // TestPool adds convenience functions to pktmbuf.Pool for unit testing.

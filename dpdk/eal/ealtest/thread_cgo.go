@@ -20,7 +20,7 @@ import "C"
 import (
 	"unsafe"
 
-	"ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
 type testThread struct {

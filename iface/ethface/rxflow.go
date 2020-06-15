@@ -8,9 +8,9 @@ import (
 	"errors"
 	"unsafe"
 
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/dpdk/ethdev"
-	"ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
+	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
 var DisableRxFlow = false

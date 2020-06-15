@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"ndn-dpdk/container/fib/fibtree"
-	"ndn-dpdk/core/testenv"
-	"ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/container/fib/fibtree"
+	"github.com/usnistgov/ndn-dpdk/core/testenv"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 var makeAR = testenv.MakeAR

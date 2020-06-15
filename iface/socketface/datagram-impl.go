@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net"
 
-	"ndn-dpdk/dpdk/pktmbuf"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 )
 
 // SocketFace implementation for datagram-oriented sockets.

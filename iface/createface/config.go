@@ -3,10 +3,10 @@ package createface
 import (
 	"errors"
 
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/dpdk/ethdev"
-	"ndn-dpdk/iface"
-	"ndn-dpdk/iface/ethface"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
+	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/iface/ethface"
 )
 
 var (

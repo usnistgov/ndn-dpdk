@@ -14,7 +14,7 @@ import (
 	"math/rand"
 	"sync"
 
-	"ndn-dpdk/core/cptr"
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
 )
 
 var (

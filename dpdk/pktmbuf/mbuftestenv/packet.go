@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"strings"
 
-	"ndn-dpdk/dpdk/pktmbuf"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 )
 
 // BytesFromHex converts a hexadecimal string to a byte slice.

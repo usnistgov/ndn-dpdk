@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"ndn-dpdk/app/ping/pingtestenv"
-	"ndn-dpdk/app/pingserver"
-	"ndn-dpdk/ndn"
-	"ndn-dpdk/ndn/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/app/ping/pingtestenv"
+	"github.com/usnistgov/ndn-dpdk/app/pingserver"
+	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 )
 
 func TestServer(t *testing.T) {

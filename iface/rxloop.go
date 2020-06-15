@@ -12,9 +12,9 @@ import (
 	"sync/atomic"
 	"unsafe"
 
-	"ndn-dpdk/core/urcu"
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/dpdk/pktmbuf"
+	"github.com/usnistgov/ndn-dpdk/core/urcu"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 )
 
 // Receive channel for a group of faces.

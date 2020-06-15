@@ -7,7 +7,7 @@ import "C"
 import (
 	"unsafe"
 
-	"ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
 // PacketIterator represents an iterator over a packet.

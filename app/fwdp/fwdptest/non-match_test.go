@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"ndn-dpdk/app/fwdp"
-	"ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/app/fwdp"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 func TestDataWrongName(t *testing.T) {

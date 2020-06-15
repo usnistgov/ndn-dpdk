@@ -3,10 +3,10 @@ package ping
 import (
 	"fmt"
 
-	"ndn-dpdk/app/inputdemux"
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/iface"
-	"ndn-dpdk/iface/createface"
+	"github.com/usnistgov/ndn-dpdk/app/inputdemux"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/iface/createface"
 )
 
 // LCoreAlloc roles.

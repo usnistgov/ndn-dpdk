@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"unsafe"
 
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 // Collect partition numbers into a list for logging purpose.

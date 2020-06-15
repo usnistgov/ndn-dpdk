@@ -8,8 +8,8 @@ import "C"
 import (
 	"unsafe"
 
-	"ndn-dpdk/core/cptr"
-	"ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
 // ProducerMode indicates ring producer synchronization mode.

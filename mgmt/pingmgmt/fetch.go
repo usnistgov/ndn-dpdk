@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"ndn-dpdk/app/fetch"
-	"ndn-dpdk/app/ping"
-	"ndn-dpdk/core/nnduration"
-	"ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/app/fetch"
+	"github.com/usnistgov/ndn-dpdk/app/ping"
+	"github.com/usnistgov/ndn-dpdk/core/nnduration"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 type FetchMgmt struct {

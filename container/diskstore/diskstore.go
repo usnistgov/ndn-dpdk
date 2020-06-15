@@ -9,11 +9,11 @@ import (
 	"runtime"
 	"unsafe"
 
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/dpdk/pktmbuf"
-	"ndn-dpdk/dpdk/ringbuffer"
-	"ndn-dpdk/ndn"
-	"ndn-dpdk/spdk"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
+	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/spdk"
 )
 
 const BLOCK_SIZE = int(C.DISK_STORE_BLOCK_SIZE)

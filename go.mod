@@ -1,4 +1,4 @@
-module ndn-dpdk
+module github.com/usnistgov/ndn-dpdk
 
 go 1.14
 

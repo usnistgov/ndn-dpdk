@@ -1,7 +1,7 @@
 package socketface
 
 import (
-	"ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
 func init() {

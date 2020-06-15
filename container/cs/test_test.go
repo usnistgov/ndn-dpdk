@@ -6,16 +6,16 @@ import (
 	"testing"
 	"time"
 
-	"ndn-dpdk/container/cs"
-	"ndn-dpdk/container/fib"
-	"ndn-dpdk/container/pcct"
-	"ndn-dpdk/container/pit"
-	"ndn-dpdk/core/testenv"
-	"ndn-dpdk/dpdk/eal/ealtestenv"
-	"ndn-dpdk/dpdk/pktmbuf"
-	"ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
-	"ndn-dpdk/ndn"
-	"ndn-dpdk/ndn/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/container/cs"
+	"github.com/usnistgov/ndn-dpdk/container/fib"
+	"github.com/usnistgov/ndn-dpdk/container/pcct"
+	"github.com/usnistgov/ndn-dpdk/container/pit"
+	"github.com/usnistgov/ndn-dpdk/core/testenv"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal/ealtestenv"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
+	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 )
 
 func TestMain(m *testing.M) {

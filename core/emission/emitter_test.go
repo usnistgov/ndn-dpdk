@@ -3,7 +3,7 @@ package emission_test
 import (
 	"testing"
 
-	"ndn-dpdk/core/emission"
+	"github.com/usnistgov/ndn-dpdk/core/emission"
 )
 
 func TestOnCancel(t *testing.T) {

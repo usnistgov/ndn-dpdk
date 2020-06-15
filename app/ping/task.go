@@ -1,12 +1,12 @@
 package ping
 
 import (
-	"ndn-dpdk/app/fetch"
-	"ndn-dpdk/app/inputdemux"
-	"ndn-dpdk/app/pingclient"
-	"ndn-dpdk/app/pingserver"
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/app/fetch"
+	"github.com/usnistgov/ndn-dpdk/app/inputdemux"
+	"github.com/usnistgov/ndn-dpdk/app/pingclient"
+	"github.com/usnistgov/ndn-dpdk/app/pingserver"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
 type Task struct {

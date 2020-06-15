@@ -3,14 +3,14 @@ package fibtest
 import (
 	"github.com/stretchr/testify/assert"
 
-	"ndn-dpdk/container/fib"
-	"ndn-dpdk/container/ndt"
-	"ndn-dpdk/container/strategycode"
-	"ndn-dpdk/core/urcu"
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/dpdk/mempool"
-	"ndn-dpdk/iface"
-	"ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/container/fib"
+	"github.com/usnistgov/ndn-dpdk/container/ndt"
+	"github.com/usnistgov/ndn-dpdk/container/strategycode"
+	"github.com/usnistgov/ndn-dpdk/core/urcu"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/mempool"
+	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 type Fixture struct {

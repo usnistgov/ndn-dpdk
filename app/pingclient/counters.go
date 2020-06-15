@@ -12,8 +12,8 @@ import (
 	"time"
 	"unsafe"
 
-	"ndn-dpdk/core/running_stat"
-	"ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/core/running_stat"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
 type PacketCounters struct {

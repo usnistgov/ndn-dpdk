@@ -3,7 +3,7 @@ package ndn_test
 import (
 	"testing"
 
-	"ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 func TestLpHeaderDecode(t *testing.T) {

@@ -7,7 +7,7 @@ import "C"
 import (
 	"testing"
 
-	"ndn-dpdk/core/testenv"
+	"github.com/usnistgov/ndn-dpdk/core/testenv"
 )
 
 func testSipHash(t *testing.T) {

@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 type getNamer interface {

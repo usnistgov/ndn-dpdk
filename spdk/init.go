@@ -9,9 +9,9 @@ import "C"
 import (
 	"fmt"
 
-	"ndn-dpdk/core/dlopen"
-	"ndn-dpdk/core/logger"
-	"ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/core/dlopen"
+	"github.com/usnistgov/ndn-dpdk/core/logger"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
 // SPDK thread for most operations invoked from Go API.

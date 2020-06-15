@@ -1,9 +1,9 @@
 package ndntestenv
 
 import (
-	"ndn-dpdk/dpdk/pktmbuf"
-	"ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
-	"ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 // TestPool instances.

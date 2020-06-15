@@ -5,9 +5,9 @@ package ifacetest
 */
 import "C"
 import (
-	"ndn-dpdk/core/cptr"
-	"ndn-dpdk/iface"
-	"ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
+	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 func Face_IsDown(faceId iface.FaceId) bool {

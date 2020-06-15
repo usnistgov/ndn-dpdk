@@ -8,7 +8,7 @@ import (
 	"time"
 	"unsafe"
 
-	"ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
 func RttEstFromPtr(ptr unsafe.Pointer) (rtte *RttEst) {

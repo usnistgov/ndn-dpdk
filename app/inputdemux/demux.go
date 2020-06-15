@@ -8,9 +8,9 @@ import "C"
 import (
 	"unsafe"
 
-	"ndn-dpdk/container/ndt"
-	"ndn-dpdk/container/pktqueue"
-	"ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/container/ndt"
+	"github.com/usnistgov/ndn-dpdk/container/pktqueue"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
 // Input packet demuxer for a single packet type.

@@ -3,7 +3,7 @@ package iface
 import (
 	"io"
 
-	"ndn-dpdk/core/emission"
+	"github.com/usnistgov/ndn-dpdk/core/emission"
 )
 
 var emitter = emission.NewEmitter()

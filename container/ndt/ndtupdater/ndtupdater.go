@@ -3,8 +3,8 @@ package ndtupdater
 import (
 	"time"
 
-	"ndn-dpdk/container/fib"
-	"ndn-dpdk/container/ndt"
+	"github.com/usnistgov/ndn-dpdk/container/fib"
+	"github.com/usnistgov/ndn-dpdk/container/ndt"
 )
 
 type NdtUpdater struct {

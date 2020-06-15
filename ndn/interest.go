@@ -29,7 +29,7 @@ import (
 	"time"
 	"unsafe"
 
-	"ndn-dpdk/dpdk/pktmbuf"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 )
 
 const (

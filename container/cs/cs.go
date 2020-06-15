@@ -7,8 +7,8 @@ import "C"
 import (
 	"unsafe"
 
-	"ndn-dpdk/container/pcct"
-	"ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/container/pcct"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 type ListId int

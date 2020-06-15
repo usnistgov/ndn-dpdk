@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"unsafe"
 
-	"ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 type InOrderReassembler struct {

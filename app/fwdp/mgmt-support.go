@@ -7,15 +7,15 @@ import "C"
 import (
 	"unsafe"
 
-	"ndn-dpdk/app/inputdemux"
-	"ndn-dpdk/container/cs"
-	"ndn-dpdk/container/fib"
-	"ndn-dpdk/container/ndt"
-	"ndn-dpdk/container/pit"
-	"ndn-dpdk/core/running_stat"
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/dpdk/mempool"
-	"ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/app/inputdemux"
+	"github.com/usnistgov/ndn-dpdk/container/cs"
+	"github.com/usnistgov/ndn-dpdk/container/fib"
+	"github.com/usnistgov/ndn-dpdk/container/ndt"
+	"github.com/usnistgov/ndn-dpdk/container/pit"
+	"github.com/usnistgov/ndn-dpdk/core/running_stat"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/mempool"
+	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
 // Count number of input and forwarding processes.

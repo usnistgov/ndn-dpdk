@@ -9,8 +9,8 @@ import (
 	"errors"
 	"unsafe"
 
-	"ndn-dpdk/core/cptr"
-	"ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
 // ComputeCacheSize calculates the appropriate cache size for given mempool capacity.

@@ -5,7 +5,7 @@ package fetch
 */
 import "C"
 import (
-	"ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"unsafe"
 )
 

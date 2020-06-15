@@ -3,8 +3,8 @@ package ifacetest
 import (
 	"testing"
 
-	"ndn-dpdk/iface"
-	"ndn-dpdk/iface/mockface"
+	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/iface/mockface"
 )
 
 func TestEvents(t *testing.T) {

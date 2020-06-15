@@ -3,10 +3,10 @@ package mockface_test
 import (
 	"testing"
 
-	"ndn-dpdk/core/testenv"
-	"ndn-dpdk/dpdk/eal/ealtestenv"
-	"ndn-dpdk/iface/ifacetestenv"
-	"ndn-dpdk/iface/mockface"
+	"github.com/usnistgov/ndn-dpdk/core/testenv"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal/ealtestenv"
+	"github.com/usnistgov/ndn-dpdk/iface/ifacetestenv"
+	"github.com/usnistgov/ndn-dpdk/iface/mockface"
 )
 
 func TestMockFace(t *testing.T) {

@@ -5,12 +5,12 @@ import (
 	"testing"
 	"time"
 
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/dpdk/ethdev"
-	"ndn-dpdk/iface/ethface"
-	"ndn-dpdk/iface/ifacetestenv"
-	"ndn-dpdk/ndn"
-	"ndn-dpdk/ndn/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
+	"github.com/usnistgov/ndn-dpdk/iface/ethface"
+	"github.com/usnistgov/ndn-dpdk/iface/ifacetestenv"
+	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 )
 
 func TestEthFace(t *testing.T) {

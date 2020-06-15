@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"ndn-dpdk/app/fwdp"
+	"github.com/usnistgov/ndn-dpdk/app/fwdp"
 )
 
 func TestSgTimer(t *testing.T) {

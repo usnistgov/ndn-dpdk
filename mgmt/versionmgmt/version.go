@@ -1,7 +1,7 @@
 package versionmgmt
 
 import (
-	"ndn-dpdk/app/version"
+	"github.com/usnistgov/ndn-dpdk/app/version"
 )
 
 type VersionMgmt struct{}

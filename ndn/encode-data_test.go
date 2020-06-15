@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
-	"ndn-dpdk/ndn"
-	"ndn-dpdk/ndn/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
+	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 )
 
 func TestEncodeData(t *testing.T) {

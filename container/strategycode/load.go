@@ -9,7 +9,7 @@ import (
 	"os"
 	"unsafe"
 
-	"ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
 // External symbols available to eBPF programs, provided by ndn-dpdk/app/fwdp package.

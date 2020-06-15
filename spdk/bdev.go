@@ -13,8 +13,8 @@ import (
 	"io"
 	"unsafe"
 
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/dpdk/pktmbuf"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 )
 
 // Mode of opening a block device.

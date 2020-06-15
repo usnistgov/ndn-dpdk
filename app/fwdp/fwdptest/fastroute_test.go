@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 func TestFastroute(t *testing.T) {

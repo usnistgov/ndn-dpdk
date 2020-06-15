@@ -4,12 +4,12 @@ import (
 	"flag"
 	"os"
 
-	"ndn-dpdk/appinit"
-	"ndn-dpdk/container/fib"
-	"ndn-dpdk/container/ndt"
-	"ndn-dpdk/container/pit"
-	"ndn-dpdk/container/pktqueue"
-	"ndn-dpdk/iface/createface"
+	"github.com/usnistgov/ndn-dpdk/appinit"
+	"github.com/usnistgov/ndn-dpdk/container/fib"
+	"github.com/usnistgov/ndn-dpdk/container/ndt"
+	"github.com/usnistgov/ndn-dpdk/container/pit"
+	"github.com/usnistgov/ndn-dpdk/container/pktqueue"
+	"github.com/usnistgov/ndn-dpdk/iface/createface"
 )
 
 type initConfig struct {

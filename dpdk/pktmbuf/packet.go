@@ -9,7 +9,7 @@ import (
 	"errors"
 	"unsafe"
 
-	"ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
 // DefaultHeadroom is the default headroom of a mbuf.

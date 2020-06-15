@@ -7,7 +7,7 @@ import "C"
 import (
 	"unsafe"
 
-	"ndn-dpdk/core/cptr"
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
 )
 
 // QueuePair represents a crypto device queue pair.

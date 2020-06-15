@@ -3,10 +3,10 @@ package fibmgmt
 import (
 	"errors"
 
-	"ndn-dpdk/container/fib"
-	"ndn-dpdk/container/strategycode"
-	"ndn-dpdk/iface"
-	"ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/container/fib"
+	"github.com/usnistgov/ndn-dpdk/container/strategycode"
+	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 type FibMgmt struct {

@@ -6,7 +6,7 @@ package ndn
 import "C"
 import (
 	"fmt"
-	"ndn-dpdk/dpdk/pktmbuf"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 )
 
 type TlvElement struct {

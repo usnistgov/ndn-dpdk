@@ -10,8 +10,8 @@ import (
 	"strings"
 	"unsafe"
 
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/dpdk/mempool"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/mempool"
 )
 
 // Config contains configuration of CryptoDev.

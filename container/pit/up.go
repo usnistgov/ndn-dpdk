@@ -5,7 +5,7 @@ package pit
 */
 import "C"
 import (
-	"ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
 // A PIT upstream record.

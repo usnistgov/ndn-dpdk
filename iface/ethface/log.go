@@ -5,8 +5,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"ndn-dpdk/core/logger"
-	"ndn-dpdk/dpdk/ethdev"
+	"github.com/usnistgov/ndn-dpdk/core/logger"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 )
 
 var (

@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"unsafe"
 
-	"ndn-dpdk/dpdk/pktmbuf"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 )
 
 // OpType represents a crypto operation type.

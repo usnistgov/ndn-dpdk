@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	_ "ndn-dpdk/container/mintmr"
-	"ndn-dpdk/core/testenv"
-	"ndn-dpdk/dpdk/eal"
+	_ "github.com/usnistgov/ndn-dpdk/container/mintmr"
+	"github.com/usnistgov/ndn-dpdk/core/testenv"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
 var triggered map[int]bool

@@ -3,8 +3,8 @@ package pktmbuf_test
 import (
 	"testing"
 
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/dpdk/pktmbuf"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 )
 
 func TestPool(t *testing.T) {

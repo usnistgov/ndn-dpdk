@@ -15,9 +15,9 @@ import (
 	"errors"
 	"fmt"
 
-	"ndn-dpdk/container/fib/fibtree"
-	"ndn-dpdk/core/urcu"
-	"ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/container/fib/fibtree"
+	"github.com/usnistgov/ndn-dpdk/core/urcu"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 type updateAct int

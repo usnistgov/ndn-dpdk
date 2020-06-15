@@ -9,8 +9,8 @@ import (
 	"math"
 	"unsafe"
 
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/dpdk/mempool"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/mempool"
 )
 
 // PoolConfig contains configuration for NewPool.

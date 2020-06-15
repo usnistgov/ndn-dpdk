@@ -4,11 +4,11 @@ import (
 	"os"
 	"testing"
 
-	"ndn-dpdk/core/testenv"
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/dpdk/eal/ealtestenv"
-	"ndn-dpdk/ndn/ndntestenv"
-	"ndn-dpdk/spdk"
+	"github.com/usnistgov/ndn-dpdk/core/testenv"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal/ealtestenv"
+	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/spdk"
 )
 
 func TestMain(m *testing.M) {

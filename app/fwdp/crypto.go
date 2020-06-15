@@ -8,12 +8,12 @@ import (
 	"fmt"
 	"unsafe"
 
-	"ndn-dpdk/app/inputdemux"
-	"ndn-dpdk/container/ndt"
-	"ndn-dpdk/dpdk/cryptodev"
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/dpdk/mempool"
-	"ndn-dpdk/dpdk/ringbuffer"
+	"github.com/usnistgov/ndn-dpdk/app/inputdemux"
+	"github.com/usnistgov/ndn-dpdk/container/ndt"
+	"github.com/usnistgov/ndn-dpdk/dpdk/cryptodev"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/mempool"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
 )
 
 type CryptoConfig struct {

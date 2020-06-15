@@ -5,7 +5,7 @@ package ndn
 */
 import "C"
 import (
-	"ndn-dpdk/dpdk/pktmbuf"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"unsafe"
 )
 

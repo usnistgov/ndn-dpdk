@@ -4,10 +4,10 @@ import (
 	"testing"
 	"time"
 
-	"ndn-dpdk/app/fetch"
-	"ndn-dpdk/app/ping/pingtestenv"
-	"ndn-dpdk/ndn"
-	"ndn-dpdk/ndn/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/app/fetch"
+	"github.com/usnistgov/ndn-dpdk/app/ping/pingtestenv"
+	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 )
 
 func TestFetcher(t *testing.T) {

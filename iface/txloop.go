@@ -7,8 +7,8 @@ import "C"
 import (
 	"unsafe"
 
-	"ndn-dpdk/core/urcu"
-	"ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/core/urcu"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
 // LCoreAlloc role for TxLoop.

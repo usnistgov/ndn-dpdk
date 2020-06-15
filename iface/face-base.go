@@ -8,12 +8,12 @@ import (
 	"fmt"
 	"unsafe"
 
-	"ndn-dpdk/core/cptr"
-	"ndn-dpdk/core/running_stat"
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/dpdk/pktmbuf"
-	"ndn-dpdk/dpdk/ringbuffer"
-	"ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
+	"github.com/usnistgov/ndn-dpdk/core/running_stat"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 // Base type to implement IFace.

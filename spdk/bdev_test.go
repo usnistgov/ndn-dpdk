@@ -8,8 +8,8 @@ import (
 	"os"
 	"testing"
 
-	"ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
-	"ndn-dpdk/spdk"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
+	"github.com/usnistgov/ndn-dpdk/spdk"
 )
 
 const (

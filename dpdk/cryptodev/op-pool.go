@@ -9,9 +9,9 @@ import (
 	"math"
 	"unsafe"
 
-	"ndn-dpdk/core/cptr"
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/dpdk/mempool"
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/mempool"
 )
 
 // OpPoolConfig contains configuration for NewPool.

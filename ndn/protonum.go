@@ -5,7 +5,7 @@ package ndn
 */
 import "C"
 import (
-	"ndn-dpdk/dpdk/ethdev"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 )
 
 const (

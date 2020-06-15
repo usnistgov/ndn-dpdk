@@ -14,9 +14,9 @@ import "C"
 import (
 	"fmt"
 
-	"ndn-dpdk/container/strategycode"
-	"ndn-dpdk/iface"
-	"ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/container/strategycode"
+	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 const MAX_NAME_LEN = int(C.FIB_ENTRY_MAX_NAME_LEN)

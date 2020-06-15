@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"ndn-dpdk/app/fetch"
-	"ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/app/fetch"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
 func TestTcpCubic(t *testing.T) {

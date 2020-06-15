@@ -3,9 +3,9 @@ package fwdpmgmt
 import (
 	"errors"
 
-	"ndn-dpdk/app/fwdp"
-	"ndn-dpdk/container/cs"
-	"ndn-dpdk/container/pit"
+	"github.com/usnistgov/ndn-dpdk/app/fwdp"
+	"github.com/usnistgov/ndn-dpdk/container/cs"
+	"github.com/usnistgov/ndn-dpdk/container/pit"
 )
 
 type DpInfoMgmt struct {

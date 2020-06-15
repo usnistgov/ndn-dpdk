@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"ndn-dpdk/container/ndt"
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/container/ndt"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 type ndtLookupTestEntry struct {

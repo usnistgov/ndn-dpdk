@@ -3,11 +3,11 @@ package main
 import (
 	"os"
 
-	"ndn-dpdk/app/fwdp"
-	"ndn-dpdk/container/fib"
-	"ndn-dpdk/container/ndt"
-	"ndn-dpdk/dpdk/eal"
-	"ndn-dpdk/mgmt/hrlog"
+	"github.com/usnistgov/ndn-dpdk/app/fwdp"
+	"github.com/usnistgov/ndn-dpdk/container/fib"
+	"github.com/usnistgov/ndn-dpdk/container/ndt"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/mgmt/hrlog"
 )
 
 var theDp *fwdp.DataPlane

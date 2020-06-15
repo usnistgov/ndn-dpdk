@@ -9,7 +9,7 @@ import (
 	"time"
 	"unsafe"
 
-	"ndn-dpdk/dpdk/cryptodev"
+	"github.com/usnistgov/ndn-dpdk/dpdk/cryptodev"
 )
 
 // Data packet.

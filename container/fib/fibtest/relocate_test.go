@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"ndn-dpdk/container/ndt/ndtupdater"
-	"ndn-dpdk/container/strategycode"
-	"ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/container/ndt/ndtupdater"
+	"github.com/usnistgov/ndn-dpdk/container/strategycode"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 func TestRelocate(t *testing.T) {
