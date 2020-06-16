@@ -183,8 +183,6 @@ DiskStore_GetData(DiskStore* store,
 {
   assert(slotId > 0);
   PInterest* interest = Packet_GetInterestHdr(npkt);
-  assert(interest->diskSlotId ==
-         0); // an Interest can go through DiskStore_GetData only once
   interest->diskSlotId = slotId;
   interest->diskData = NULL;
 

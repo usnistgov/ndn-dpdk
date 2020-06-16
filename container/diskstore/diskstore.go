@@ -13,27 +13,30 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
 	"github.com/usnistgov/ndn-dpdk/ndn"
-	"github.com/usnistgov/ndn-dpdk/spdk"
+	"github.com/usnistgov/ndn-dpdk/spdk/bdev"
+	"github.com/usnistgov/ndn-dpdk/spdk/spdkenv"
 )
 
-const BLOCK_SIZE = int(C.DISK_STORE_BLOCK_SIZE)
+// BlockSize is the supported bdev block size.
+const BlockSize = int(C.DISK_STORE_BLOCK_SIZE)
 
-// Disk-backed Data Store.
+// DiskStore represents a disk-backed Data Store.
 type DiskStore struct {
 	c  *C.DiskStore
-	bd *spdk.Bdev
-	th *spdk.Thread
+	bd *bdev.Bdev
+	th *spdkenv.Thread
 }
 
-// Create a DiskStore.
-func New(bdi spdk.BdevInfo, th *spdk.Thread, mp *pktmbuf.Pool, nBlocksPerSlot int) (store *DiskStore, e error) {
-	if bdi.GetBlockSize() != int(C.DISK_STORE_BLOCK_SIZE) {
-		return nil, fmt.Errorf("bdev block size must be %d", C.DISK_STORE_BLOCK_SIZE)
+// New creates a DiskStore.
+func New(device bdev.Device, th *spdkenv.Thread, mp *pktmbuf.Pool, nBlocksPerSlot int) (store *DiskStore, e error) {
+	bdi := device.GetInfo()
+	if bdi.GetBlockSize() != BlockSize {
+		return nil, fmt.Errorf("bdev block size must be %d", BlockSize)
 	}
 
 	store = new(DiskStore)
 	store.th = th
-	if store.bd, e = spdk.OpenBdev(bdi, spdk.BDEV_MODE_READ_WRITE); e != nil {
+	if store.bd, e = bdev.Open(device, bdev.ReadWrite); e != nil {
 		return nil, e
 	}
 
@@ -48,32 +51,34 @@ func New(bdi spdk.BdevInfo, th *spdk.Thread, mp *pktmbuf.Pool, nBlocksPerSlot in
 	return store, nil
 }
 
+// Close closes this DiskStore.
 func (store *DiskStore) Close() error {
 	store.th.Call(func() { C.spdk_put_io_channel(store.c.ch) })
 	eal.Free(store.c)
 	return store.bd.Close()
 }
 
+// GetSlotIdRange returns a range of possible slot numbers.
 func (store *DiskStore) GetSlotIdRange() (min, max uint64) {
 	return 1, uint64(store.bd.GetInfo().CountBlocks()/int(store.c.nBlocksPerSlot) - 1)
 }
 
-// Asynchronously store a Data packet.
-func (store *DiskStore) PutData(slotId uint64, data *ndn.Data) {
-	C.DiskStore_PutData(store.c, C.uint64_t(slotId), (*C.Packet)(data.GetPacket().GetPtr()))
+// PutData asynchronously stores a Data packet.
+func (store *DiskStore) PutData(slotID uint64, data *ndn.Data) {
+	C.DiskStore_PutData(store.c, C.uint64_t(slotID), (*C.Packet)(data.GetPacket().GetPtr()))
 }
 
-// Retrieve a Data packet and wait for completion.
-func (store *DiskStore) GetData(slotId uint64, dataLen int, interest *ndn.Interest) (data *ndn.Data, e error) {
+// GetData retrieves a Data packet from specified slot and waits for completion.
+func (store *DiskStore) GetData(slotID uint64, dataLen int, interest *ndn.Interest) (data *ndn.Data, e error) {
 	var reply *ringbuffer.Ring
-	if reply, e = ringbuffer.New(fmt.Sprintf("DiskStoreGetData%x", slotId), 64, eal.NumaSocket{},
+	if reply, e = ringbuffer.New(fmt.Sprintf("DiskStoreGetData%x", slotID), 64, eal.NumaSocket{},
 		ringbuffer.ProducerMulti, ringbuffer.ConsumerMulti); e != nil {
 		return nil, e
 	}
 	defer reply.Close()
 
 	interestPtr := interest.GetPacket().GetPtr()
-	C.DiskStore_GetData(store.c, C.uint64_t(slotId), C.uint16_t(dataLen), (*C.Packet)(interestPtr), (*C.struct_rte_ring)(reply.GetPtr()))
+	C.DiskStore_GetData(store.c, C.uint64_t(slotID), C.uint16_t(dataLen), (*C.Packet)(interestPtr), (*C.struct_rte_ring)(reply.GetPtr()))
 
 	for {
 		pkts := make([]*ndn.Packet, 1)
@@ -89,7 +94,7 @@ func (store *DiskStore) GetData(slotId uint64, dataLen int, interest *ndn.Intere
 
 		interest = pkt.AsInterest()
 		interestC := (*C.PInterest)(interest.GetPInterestPtr())
-		if uint64(interestC.diskSlotId) != slotId {
+		if uint64(interestC.diskSlotId) != slotID {
 			panic("unexpected PInterest.diskSlotId")
 		}
 		if interestC.diskData != nil {

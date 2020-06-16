@@ -13,6 +13,8 @@ import (
 	"fmt"
 	"strconv"
 	"unsafe"
+
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
 )
 
 // LCore represents a logical core.
@@ -68,8 +70,8 @@ func (lc LCore) RemoteLaunch(f func() int) bool {
 	if !lc.IsValid() {
 		panic("invalid lcore")
 	}
-	lcoreFuncs[lc.ID()] = f
-	res := C.rte_eal_remote_launch((*C.lcore_function_t)(C.go_lcoreLaunch), nil, C.uint(lc.ID()))
+	ctx := cptr.CtxPut(f)
+	res := C.rte_eal_remote_launch((*C.lcore_function_t)(C.go_lcoreLaunch), ctx, C.uint(lc.ID()))
 	return res == 0
 }
 
@@ -80,11 +82,10 @@ func (lc LCore) Wait() int {
 	return int(C.rte_eal_wait_lcore(C.uint(lc.ID())))
 }
 
-var lcoreFuncs [C.RTE_MAX_LCORE]func() int
-
 //export go_lcoreLaunch
 func go_lcoreLaunch(ctx unsafe.Pointer) C.int {
-	return C.int(lcoreFuncs[C.rte_lcore_id()]())
+	f := cptr.CtxPop(ctx).(func() int)
+	return C.int(f())
 }
 
 // Prevent a function from executing in slave lcore.

@@ -28,7 +28,7 @@ func InitEal(extraArgs ...string) (remainingArgs []string) {
 	}
 
 	args = append(args, extraArgs...)
-	return eal.MustInitEal(args)
+	return eal.InitEal(args)
 }
 
 func listCpus(max int) (cpus string, n int) {

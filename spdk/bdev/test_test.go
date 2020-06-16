@@ -1,4 +1,4 @@
-package spdk_test
+package bdev_test
 
 import (
 	"os"
@@ -7,12 +7,12 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal/ealtestenv"
-	"github.com/usnistgov/ndn-dpdk/spdk"
+	"github.com/usnistgov/ndn-dpdk/spdk/spdkenv"
 )
 
 func TestMain(m *testing.M) {
 	ealtestenv.InitEal()
-	spdk.MustInit(eal.ListSlaveLCores()[0])
+	spdkenv.Init(eal.ListSlaveLCores()[0])
 	os.Exit(m.Run())
 }
 

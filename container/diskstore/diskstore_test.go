@@ -9,22 +9,22 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/ndn"
-	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
-	"github.com/usnistgov/ndn-dpdk/spdk"
+	"github.com/usnistgov/ndn-dpdk/spdk/bdev"
+	"github.com/usnistgov/ndn-dpdk/spdk/spdkenv"
 )
 
 func TestDiskStore(t *testing.T) {
 	assert, require := makeAR(t)
 
-	bdi, e := spdk.NewMallocBdev(diskstore.BLOCK_SIZE, 256)
+	device, e := bdev.NewMalloc(diskstore.BlockSize, 256)
 	require.NoError(e)
-	defer spdk.DestroyMallocBdev(bdi)
+	defer device.Close()
 
 	mp, e := pktmbuf.NewPool("TestDiskStore", ndn.PacketMempool.GetConfig(), eal.NumaSocket{})
 	require.NoError(e)
 	defer mp.Close()
 
-	store, e := diskstore.New(bdi, spdk.MainThread, mp, 8)
+	store, e := diskstore.New(device, spdkenv.MainThread, mp, 8)
 	require.NoError(e)
 	defer store.Close()
 
@@ -40,6 +40,7 @@ func TestDiskStore(t *testing.T) {
 		dataLens[n] = data.GetPacket().AsMbuf().Len()
 		store.PutData(n, data)
 	}
+	time.Sleep(100 * time.Millisecond) // give time for asynchronous PutData operation
 
 	for _, n := range []uint64{1, 31} {
 		interest := makeInterest(fmt.Sprintf("/A/%d", n))
@@ -49,9 +50,9 @@ func TestDiskStore(t *testing.T) {
 		}
 		if assert.NotNil(data, n) {
 			assert.Equal(time.Duration(n)*time.Millisecond, data.GetFreshnessPeriod(), n)
-			ndntestenv.ClosePacket(data)
+			closePacket(data)
 		}
-		ndntestenv.ClosePacket(interest)
+		closePacket(interest)
 	}
 
 	for _, n := range []uint64{2, 32} {
@@ -61,7 +62,7 @@ func TestDiskStore(t *testing.T) {
 			continue
 		}
 		assert.Nil(data, n)
-		ndntestenv.ClosePacket(interest)
+		closePacket(interest)
 	}
 
 	assert.Zero(mp.CountInUse())

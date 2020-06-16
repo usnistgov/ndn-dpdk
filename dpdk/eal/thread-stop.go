@@ -10,15 +10,21 @@ import (
 
 // IStop abstracts how to tell a thread top stop.
 type IStop interface {
-	BeforeWait() // What to do before lcore.Wait().
-	AfterWait()  // What to do after lcore.Wait().
+	// BeforeWait is invoked before lcore.Wait().
+	BeforeWait()
+
+	// AfterWait is invoked after lcore.Wait().
+	AfterWait()
 }
 
 // StopWait stops a thread by waiting for it indefinitely.
 type StopWait struct{}
 
+// BeforeWait implements IStop interface.
 func (stop StopWait) BeforeWait() {}
-func (stop StopWait) AfterWait()  {}
+
+// AfterWait implements IStop interface.
+func (stop StopWait) AfterWait() {}
 
 // StopFlag stops a thread by setting a boolean flag.
 type StopFlag struct {

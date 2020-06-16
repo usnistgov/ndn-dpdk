@@ -13,7 +13,7 @@ import (
 var theDp *fwdp.DataPlane
 
 func main() {
-	initCfg, e := parseCommand(eal.MustInitEal(os.Args)[1:])
+	initCfg, e := parseCommand(eal.InitEal(os.Args)[1:])
 	if e != nil {
 		log.WithError(e).Fatal("command line error")
 	}

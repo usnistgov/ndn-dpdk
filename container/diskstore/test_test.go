@@ -8,14 +8,12 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal/ealtestenv"
 	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
-	"github.com/usnistgov/ndn-dpdk/spdk"
+	"github.com/usnistgov/ndn-dpdk/spdk/spdkenv"
 )
 
 func TestMain(m *testing.M) {
 	ealtestenv.InitEal()
-	spdk.MustInit(eal.ListSlaveLCores()[0])
-	spdk.InitBdevLib()
-
+	spdkenv.Init(eal.ListSlaveLCores()[0])
 	os.Exit(m.Run())
 }
 
@@ -23,4 +21,5 @@ var (
 	makeAR       = testenv.MakeAR
 	makeInterest = ndntestenv.MakeInterest
 	makeData     = ndntestenv.MakeData
+	closePacket  = ndntestenv.ClosePacket
 )

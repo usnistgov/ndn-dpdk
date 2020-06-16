@@ -1,7 +1,7 @@
-package spdk
+package spdkenv
 
 /*
-#include "../csrc/core/common.h"
+#include "../../csrc/core/common.h"
 #include <spdk/rpc.h>
 */
 import "C"
@@ -20,7 +20,7 @@ var (
 )
 
 // Enable SPDK RPC server and internal RPC client.
-func initRpc() error {
+func initRPC() error {
 	port, e := freeport.GetFreePort()
 	if e != nil {
 		return fmt.Errorf("TCP listen port unavailable: %v", e)
@@ -45,7 +45,7 @@ func initRpc() error {
 	return nil
 }
 
-// Call a method on SPDK RPC server.
-func RpcCall(method string, args interface{}, reply interface{}) error {
+// RPC calls a method on SPDK RPC server.
+func RPC(method string, args interface{}, reply interface{}) error {
 	return rpcClient.Call(method, args, reply)
 }

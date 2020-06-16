@@ -8,25 +8,25 @@ import (
 	"time"
 )
 
-// TSC clock time point.
+// TscTime represents a time point on TSC clock.
 type TscTime uint64
 
-// Get current TscTime.
+// TscNow returns current TscTime.
 func TscNow() TscTime {
 	return TscTime(C.rte_get_tsc_cycles())
 }
 
-// Return t+d.
+// Add returns t+d.
 func (t TscTime) Add(d time.Duration) TscTime {
 	return t + TscTime(ToTscDuration(d))
 }
 
-// Return t1-t0.
-func (t1 TscTime) Sub(t0 TscTime) time.Duration {
-	return FromTscDuration(int64(t1 - t0))
+// Sub returns t-t0.
+func (t TscTime) Sub(t0 TscTime) time.Duration {
+	return FromTscDuration(int64(t - t0))
 }
 
-// Convert to time.Time.
+// ToTime converts to time.Time.
 func (t TscTime) ToTime() time.Time {
 	tsc1 := TscNow()
 	std0 := time.Now()
@@ -37,20 +37,22 @@ func (t TscTime) ToTime() time.Time {
 	return std0.Add(since)
 }
 
-// Get number of nanoseconds in a TSC time unit.
+// GetNanosInTscUnit returns number of nanoseconds in a TSC time unit.
 func GetNanosInTscUnit() float64 {
 	return float64(time.Second) / float64(C.rte_get_tsc_hz())
 }
 
-// Get TSC time unit as time.Duration.
+// GetTscUnit returns TSC time unit as time.Duration.
 func GetTscUnit() time.Duration {
 	return time.Duration(GetNanosInTscUnit())
 }
 
+// FromTscDuration converts TSC duration to time.Duration.
 func FromTscDuration(d int64) time.Duration {
 	return time.Duration(GetNanosInTscUnit() * float64(d))
 }
 
+// ToTscDuration converts time.Duration to TSC duration.
 func ToTscDuration(d time.Duration) int64 {
 	return int64(float64(d) / GetNanosInTscUnit())
 }

@@ -17,36 +17,24 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 )
 
-var (
-	ealInitOnce  sync.Once
-	ealInitError error
-)
+var ealInitOnce sync.Once
 
 // InitEal initializes the DPDK Environment Abstraction Layer (EAL).
-func InitEal(args []string) (remainingArgs []string, e error) {
+// Errors are fatal.
+func InitEal(args []string) (remainingArgs []string) {
 	ealInitOnce.Do(func() {
 		a := cptr.NewCArgs(args)
 		defer a.Close()
 
 		res := C.rte_eal_init(C.int(a.Argc), (**C.char)(a.Argv))
 		if res < 0 {
-			ealInitError = GetErrno()
+			log.Fatalf("EAL init error %s", GetErrno())
 			return
 		}
 
 		rand.Seed(int64(C.rte_rand()))
 		remainingArgs = a.GetRemainingArgs(int(res))
 	})
-	return remainingArgs, ealInitError
-}
-
-// MustInitEal initializes EAL, and panics if it fails.
-func MustInitEal(args []string) (remainingArgs []string) {
-	var e error
-	remainingArgs, e = InitEal(args)
-	if e != nil {
-		panic(e)
-	}
 	return remainingArgs
 }
 
