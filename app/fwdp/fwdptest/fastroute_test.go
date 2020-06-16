@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 func TestFastroute(t *testing.T) {
@@ -74,7 +74,7 @@ func TestFastroute(t *testing.T) {
 	assert.Len(face3.TxInterests, 3)
 
 	// face1 replies Nack~NoRoute, retry on other faces
-	nack5 := ndn.MakeNackFromInterest(makeInterest("/A/B/5", uint32(0x422e9f49)), ndn.NackReason_NoRoute)
+	nack5 := ndni.MakeNackFromInterest(makeInterest("/A/B/5", uint32(0x422e9f49)), ndni.NackReason_NoRoute)
 	copyPitToken(nack5, face1.TxInterests[2])
 	face1.Rx(nack5)
 	time.Sleep(STEP_DELAY)
@@ -83,7 +83,7 @@ func TestFastroute(t *testing.T) {
 	assert.Len(face3.TxInterests, 3) // no Interest to face3 because it's DOWN
 
 	// face2 replies Nack~NoRoute as well, return Nack to downstream
-	nack5 = ndn.MakeNackFromInterest(makeInterest("/A/B/5", uint32(0x422e9f49)), ndn.NackReason_NoRoute)
+	nack5 = ndni.MakeNackFromInterest(makeInterest("/A/B/5", uint32(0x422e9f49)), ndni.NackReason_NoRoute)
 	copyPitToken(nack5, face2.TxInterests[2])
 	face2.Rx(nack5)
 	time.Sleep(STEP_DELAY)

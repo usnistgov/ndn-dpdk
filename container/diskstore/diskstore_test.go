@@ -8,7 +8,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/container/diskstore"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 	"github.com/usnistgov/ndn-dpdk/spdk/bdev"
 	"github.com/usnistgov/ndn-dpdk/spdk/spdkenv"
 )
@@ -20,7 +20,7 @@ func TestDiskStore(t *testing.T) {
 	require.NoError(e)
 	defer device.Close()
 
-	mp, e := pktmbuf.NewPool("TestDiskStore", ndn.PacketMempool.GetConfig(), eal.NumaSocket{})
+	mp, e := pktmbuf.NewPool("TestDiskStore", ndni.PacketMempool.GetConfig(), eal.NumaSocket{})
 	require.NoError(e)
 	defer mp.Close()
 

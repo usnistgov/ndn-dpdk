@@ -8,7 +8,7 @@ import "C"
 import (
 	"unsafe"
 
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 // A PIT entry.
@@ -56,7 +56,7 @@ func (entry Entry) ListDns() (list []Dn) {
 }
 
 // Insert new DN record, or update existing DN record.
-func (entry Entry) InsertDn(interest *ndn.Interest) *Dn {
+func (entry Entry) InsertDn(interest *ndni.Interest) *Dn {
 	npktC := (*C.Packet)(interest.GetPacket().GetPtr())
 	dnC := C.PitEntry_InsertDn(entry.c, entry.pit.getPtr(), npktC)
 	return &Dn{dnC, entry}

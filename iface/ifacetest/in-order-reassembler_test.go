@@ -5,7 +5,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 func TestInOrderReassembler(t *testing.T) {
@@ -39,7 +39,7 @@ func TestInOrderReassembler(t *testing.T) {
 			"F0F1F2F3"}, // accepted, delivering
 	}
 	for _, step := range steps {
-		fragPkt := ndn.PacketFromMbuf(mbuftestenv.MakePacket(step.input))
+		fragPkt := ndni.PacketFromMbuf(mbuftestenv.MakePacket(step.input))
 		e := fragPkt.ParseL2()
 		require.NoError(e, step.input)
 

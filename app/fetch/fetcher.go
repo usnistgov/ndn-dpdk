@@ -14,7 +14,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 type FetcherConfig struct {
@@ -112,7 +112,7 @@ func (fetcher *Fetcher) AddTemplate(tplArgs ...interface{}) (i int, e error) {
 	}
 
 	fp := fetcher.fp[i]
-	tpl := ndn.InterestTemplateFromPtr(unsafe.Pointer(&fp.tpl))
+	tpl := ndni.InterestTemplateFromPtr(unsafe.Pointer(&fp.tpl))
 	if e := tpl.Init(tplArgs...); e != nil {
 		return -1, e
 	}
@@ -120,7 +120,7 @@ func (fetcher *Fetcher) AddTemplate(tplArgs ...interface{}) (i int, e error) {
 	if uintptr(tpl.PrefixL+1) >= unsafe.Sizeof(tpl.PrefixV) {
 		return -1, errors.New("name too long")
 	}
-	tpl.PrefixV[tpl.PrefixL] = uint8(ndn.TT_SegmentNameComponent)
+	tpl.PrefixV[tpl.PrefixL] = uint8(ndni.TT_SegmentNameComponent)
 	// put SegmentNameComponent TLV-TYPE in the buffer so that it's checked in same memcmp
 
 	rs := urcu.NewReadSide()

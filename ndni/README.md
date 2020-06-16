@@ -1,6 +1,6 @@
-# ndn-dpdk/ndn
+# ndn-dpdk/ndni
 
-This package implements NDN layer 2 and layer 3 packet representations.
+This package implements NDN layer 2 and layer 3 packet representations for internal use in NDN-DPDK codebase.
 
 Layer 2 implementation follows [**NDN Link Protocol v2 (NDNLPv2)** specification](https://redmine.named-data.net/projects/nfd/wiki/NDNLPv2), [revision 55](https://redmine.named-data.net/projects/nfd/wiki/NDNLPv2/55).
 It supports indexed fragmentation, PIT token, network nack, and congestion mark features.

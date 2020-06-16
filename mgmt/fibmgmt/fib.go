@@ -6,7 +6,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/container/fib"
 	"github.com/usnistgov/ndn-dpdk/container/strategycode"
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 type FibMgmt struct {
@@ -67,7 +67,7 @@ func (mg FibMgmt) Lpm(args NameArg, reply *LookupReply) error {
 	return mg.lookup(args, reply, mg.Fib.Lpm)
 }
 
-func (mg FibMgmt) lookup(args NameArg, reply *LookupReply, lookup func(name *ndn.Name) *fib.Entry) error {
+func (mg FibMgmt) lookup(args NameArg, reply *LookupReply, lookup func(name *ndni.Name) *fib.Entry) error {
 	entry := lookup(args.Name)
 	if entry != nil {
 		reply.HasEntry = true
@@ -88,11 +88,11 @@ type FibInfo struct {
 }
 
 type NameArg struct {
-	Name *ndn.Name
+	Name *ndni.Name
 }
 
 type InsertArg struct {
-	Name       *ndn.Name
+	Name       *ndni.Name
 	Nexthops   []iface.FaceId
 	StrategyId int
 }
@@ -103,7 +103,7 @@ type InsertReply struct {
 
 type LookupReply struct {
 	HasEntry   bool
-	Name       *ndn.Name
+	Name       *ndni.Name
 	Nexthops   []iface.FaceId
 	StrategyId int
 }

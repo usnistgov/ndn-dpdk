@@ -2,7 +2,7 @@ import { Counters as FetchCounters_ } from "../../app/fetch/mod";
 import { Counters as ClientCounters_ } from "../../app/pingclient/mod";
 import { Index } from "../../core/mod";
 import { Milliseconds, Nanoseconds } from "../../core/nnduration/mod";
-import { Name } from "../../ndn/mod";
+import { Name } from "../../ndni/mod";
 
 export interface IndexArg {
   Index: Index;

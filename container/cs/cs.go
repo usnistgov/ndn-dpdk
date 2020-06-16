@@ -8,7 +8,7 @@ import (
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/container/pcct"
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 type ListId int
@@ -55,7 +55,7 @@ type iPitFindResult interface {
 }
 
 // Insert a CS entry by replacing a PIT entry with same key.
-func (cs *Cs) Insert(data *ndn.Data, pitFound iPitFindResult) {
+func (cs *Cs) Insert(data *ndni.Data, pitFound iPitFindResult) {
 	var pitFoundC C.PitFindResult
 	pitFound.CopyToCPitFindResult(unsafe.Pointer(&pitFoundC))
 	C.Cs_Insert(cs.getPtr(), (*C.Packet)(data.GetPacket().GetPtr()), pitFoundC)

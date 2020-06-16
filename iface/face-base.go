@@ -13,7 +13,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 // Base type to implement IFace.
@@ -63,8 +63,8 @@ func (face *FaceBase) FinishInitFaceBase(txQueueCapacity, mtu, headroom int) err
 	faceC := face.getPtr()
 	socket := face.GetNumaSocket()
 	indirectMp := pktmbuf.Indirect.MakePool(socket)
-	headerMp := ndn.HeaderMempool.MakePool(socket)
-	nameMp := ndn.NameMempool.MakePool(socket)
+	headerMp := ndni.HeaderMempool.MakePool(socket)
+	nameMp := ndni.NameMempool.MakePool(socket)
 
 	r, e := ringbuffer.New(fmt.Sprintf("FaceTx_%d", face.GetFaceId()),
 		txQueueCapacity, socket, ringbuffer.ProducerMulti, ringbuffer.ConsumerSingle)
@@ -155,7 +155,7 @@ func (face *FaceBase) SetDown(isDown bool) {
 	}
 }
 
-func (face *FaceBase) TxBurst(pkts []*ndn.Packet) {
+func (face *FaceBase) TxBurst(pkts []*ndni.Packet) {
 	ptr, count := cptr.ParseCptrArray(pkts)
 	if count == 0 {
 		return

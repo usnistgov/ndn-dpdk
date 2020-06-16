@@ -7,13 +7,13 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/container/fib/fibtree"
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 var makeAR = testenv.MakeAR
 
 func makeTree() *fibtree.Tree {
-	return fibtree.New(2, 1, 16, func(name *ndn.Name) uint64 {
+	return fibtree.New(2, 1, 16, func(name *ndni.Name) uint64 {
 		return uint64(name.GetComp(0).GetValue()[0] & 0x0F)
 	})
 }
@@ -24,7 +24,7 @@ func TestInsertErase(testingT *testing.T) {
 	assert.Equal(0, t.CountEntries())
 	assert.Equal(1, t.CountNodes())
 
-	ok, oldMd, newMd, virtIsEntry := t.Insert(ndn.MustParseName("/%00/A/B/B"))
+	ok, oldMd, newMd, virtIsEntry := t.Insert(ndni.MustParseName("/%00/A/B/B"))
 	assert.True(ok)
 	assert.Equal(0, oldMd)
 	assert.Equal(2, newMd)
@@ -32,12 +32,12 @@ func TestInsertErase(testingT *testing.T) {
 	assert.Equal(1, t.CountEntries())
 	assert.Equal(5, t.CountNodes())
 
-	ok, oldMd, newMd, virtIsEntry = t.Insert(ndn.MustParseName("/%00/A/B/B"))
+	ok, oldMd, newMd, virtIsEntry = t.Insert(ndni.MustParseName("/%00/A/B/B"))
 	assert.False(ok)
 	assert.Equal(1, t.CountEntries())
 	assert.Equal(5, t.CountNodes())
 
-	ok, oldMd, newMd, virtIsEntry = t.Insert(ndn.MustParseName("/%00/A/C"))
+	ok, oldMd, newMd, virtIsEntry = t.Insert(ndni.MustParseName("/%00/A/C"))
 	assert.True(ok)
 	assert.Equal(2, oldMd)
 	assert.Equal(2, newMd)
@@ -45,7 +45,7 @@ func TestInsertErase(testingT *testing.T) {
 	assert.Equal(2, t.CountEntries())
 	assert.Equal(6, t.CountNodes())
 
-	ok, oldMd, newMd, virtIsEntry = t.Erase(ndn.MustParseName("/%00/A/B/B"))
+	ok, oldMd, newMd, virtIsEntry = t.Erase(ndni.MustParseName("/%00/A/B/B"))
 	assert.True(ok)
 	assert.Equal(2, oldMd)
 	assert.Equal(1, newMd)
@@ -53,7 +53,7 @@ func TestInsertErase(testingT *testing.T) {
 	assert.Equal(1, t.CountEntries())
 	assert.Equal(4, t.CountNodes())
 
-	ok, oldMd, newMd, virtIsEntry = t.Insert(ndn.MustParseName("/%00/A"))
+	ok, oldMd, newMd, virtIsEntry = t.Insert(ndni.MustParseName("/%00/A"))
 	assert.True(ok)
 	assert.Equal(1, oldMd)
 	assert.Equal(1, newMd)
@@ -61,15 +61,15 @@ func TestInsertErase(testingT *testing.T) {
 	assert.Equal(2, t.CountEntries())
 	assert.Equal(4, t.CountNodes())
 
-	ok, oldMd, newMd, virtIsEntry = t.Erase(ndn.MustParseName("/%00/A/B/B"))
+	ok, oldMd, newMd, virtIsEntry = t.Erase(ndni.MustParseName("/%00/A/B/B"))
 	assert.False(ok)
 	assert.Equal(2, t.CountEntries())
 	assert.Equal(4, t.CountNodes())
 
-	ok, oldMd, newMd, virtIsEntry = t.Erase(ndn.MustParseName("/%00"))
+	ok, oldMd, newMd, virtIsEntry = t.Erase(ndni.MustParseName("/%00"))
 	assert.False(ok)
 
-	ok, oldMd, newMd, virtIsEntry = t.Erase(ndn.MustParseName("/%00/A/C"))
+	ok, oldMd, newMd, virtIsEntry = t.Erase(ndni.MustParseName("/%00/A/C"))
 	assert.True(ok)
 	assert.Equal(1, oldMd)
 	assert.Equal(0, newMd)
@@ -77,7 +77,7 @@ func TestInsertErase(testingT *testing.T) {
 	assert.Equal(1, t.CountEntries())
 	assert.Equal(3, t.CountNodes())
 
-	ok, oldMd, newMd, virtIsEntry = t.Erase(ndn.MustParseName("/%00/A"))
+	ok, oldMd, newMd, virtIsEntry = t.Erase(ndni.MustParseName("/%00/A"))
 	assert.True(ok)
 	assert.Equal(0, oldMd)
 	assert.Equal(0, newMd)
@@ -98,7 +98,7 @@ func newVisitor() (v *visitor) {
 	return v
 }
 
-func (v *visitor) TraverseCallback(name *ndn.Name, n *fibtree.Node) bool {
+func (v *visitor) TraverseCallback(name *ndni.Name, n *fibtree.Node) bool {
 	uri := name.String()
 	letter := uri[len(uri)-1:]
 	v.nodes = append(v.nodes, letter)
@@ -123,17 +123,17 @@ func TestTraverse(testingT *testing.T) {
 	assert, _ := makeAR(testingT)
 	t := makeTree()
 
-	t.Insert(ndn.MustParseName("/%00/A"))
-	t.Insert(ndn.MustParseName("/%00/A/B"))
-	t.Insert(ndn.MustParseName("/%00/A/B/C"))
-	t.Insert(ndn.MustParseName("/%00/A/B/C/D/E/F/G"))
-	t.Insert(ndn.MustParseName("/%00/A/H"))
-	t.Insert(ndn.MustParseName("/%00/I"))
-	t.Insert(ndn.MustParseName("/%01/J"))
-	t.Insert(ndn.MustParseName("/%01/J/K/L"))
-	t.Insert(ndn.MustParseName("/%01/M"))
-	t.Insert(ndn.MustParseName("/%04/N/O"))
-	t.Insert(ndn.MustParseName("/%07/P/Q/R"))
+	t.Insert(ndni.MustParseName("/%00/A"))
+	t.Insert(ndni.MustParseName("/%00/A/B"))
+	t.Insert(ndni.MustParseName("/%00/A/B/C"))
+	t.Insert(ndni.MustParseName("/%00/A/B/C/D/E/F/G"))
+	t.Insert(ndni.MustParseName("/%00/A/H"))
+	t.Insert(ndni.MustParseName("/%00/I"))
+	t.Insert(ndni.MustParseName("/%01/J"))
+	t.Insert(ndni.MustParseName("/%01/J/K/L"))
+	t.Insert(ndni.MustParseName("/%01/M"))
+	t.Insert(ndni.MustParseName("/%04/N/O"))
+	t.Insert(ndni.MustParseName("/%07/P/Q/R"))
 
 	v := newVisitor()
 	t.Traverse(v.TraverseCallback)

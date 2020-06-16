@@ -1,6 +1,6 @@
 import * as pktqueue from "../../container/pktqueue/mod";
 import { Milliseconds } from "../../core/nnduration/mod";
-import * as ndn from "../../ndn/mod";
+import * as ndni from "../../ndni/mod";
 
 export interface Config {
   RxQueue?: pktqueue.ConfigPlain|pktqueue.ConfigDelay;
@@ -9,7 +9,7 @@ export interface Config {
 }
 
 export interface Pattern {
-  Prefix: ndn.Name;
+  Prefix: ndni.Name;
   Replies: Reply[];
 }
 
@@ -23,7 +23,7 @@ interface ReplyCommon {
 }
 
 interface ReplyData {
-  Suffix: ndn.Name;
+  Suffix: ndni.Name;
 
   /**
    * @default 0
@@ -39,7 +39,7 @@ interface ReplyData {
 }
 
 interface ReplyNack {
-  Nack: ndn.NackReason;
+  Nack: ndni.NackReason;
 }
 
 interface ReplyTimeout {

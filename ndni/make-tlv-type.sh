@@ -17,7 +17,7 @@ cd "$( dirname "${BASH_SOURCE[0]}" )"
 ) > ../csrc/ndn/tlv-type.h
 
 (
-  echo 'package ndn'
+  echo 'package ndni'
   echo
   echo 'import "strconv"'
   echo

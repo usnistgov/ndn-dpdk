@@ -14,7 +14,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 // Server instance and thread.
@@ -87,7 +87,7 @@ func (server *Server) AddPattern(cfg Pattern) (index int, e error) {
 		switch {
 		case reply.Timeout:
 			replyC.kind = C.PINGSERVER_REPLY_TIMEOUT
-		case reply.Nack != ndn.NackReason_None:
+		case reply.Nack != ndni.NackReason_None:
 			replyC.kind = C.PINGSERVER_REPLY_NACK
 			replyC.nackReason = C.uint8_t(reply.Nack)
 		default:
@@ -96,7 +96,7 @@ func (server *Server) AddPattern(cfg Pattern) (index int, e error) {
 			if e != nil {
 				return -1, fmt.Errorf("cannot allocate from MP_DATA1 for reply definition %d", i)
 			}
-			dataGen := ndn.NewDataGen(vec[0], reply.Suffix, reply.FreshnessPeriod.Duration(), make(ndn.TlvBytes, reply.PayloadLen))
+			dataGen := ndni.NewDataGen(vec[0], reply.Suffix, reply.FreshnessPeriod.Duration(), make(ndni.TlvBytes, reply.PayloadLen))
 			replyC.dataGen = (*C.DataGen)(dataGen.GetPtr())
 		}
 	}

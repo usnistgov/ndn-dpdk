@@ -1,11 +1,11 @@
-package ndn_test
+package ndni_test
 
 import (
 	"testing"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 func TestTlvElement(t *testing.T) {
@@ -39,15 +39,15 @@ func TestTlvElement(t *testing.T) {
 	for _, tt := range tests {
 		pkt := mbuftestenv.MakePacket(tt.input)
 		defer pkt.Close()
-		ele, e := ndn.ParseTlvElement(pktmbuf.NewPacketIterator(pkt))
+		ele, e := ndni.ParseTlvElement(pktmbuf.NewPacketIterator(pkt))
 
 		if tt.bad {
 			assert.Error(e, tt.input)
 		} else if assert.NoError(e, tt.input) {
 			assert.Equal(pkt.Len(), ele.Len(), tt.input)
-			assert.Equal(ndn.TlvType(tt.t), ele.GetType(), tt.input)
+			assert.Equal(ndni.TlvType(tt.t), ele.GetType(), tt.input)
 
-			v := ndn.TlvBytes(mbuftestenv.BytesFromHex(tt.v))
+			v := ndni.TlvBytes(mbuftestenv.BytesFromHex(tt.v))
 			assert.Equal(len(v), ele.GetLength(), tt.input)
 			assert.Equal(v, ele.GetValue(), tt.input)
 

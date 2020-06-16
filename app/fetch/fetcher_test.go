@@ -6,8 +6,8 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/app/fetch"
 	"github.com/usnistgov/ndn-dpdk/app/ping/pingtestenv"
-	"github.com/usnistgov/ndn-dpdk/ndn"
-	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/usnistgov/ndn-dpdk/ndni/ndntestenv"
 )
 
 func TestFetcher(t *testing.T) {
@@ -29,7 +29,7 @@ func TestFetcher(t *testing.T) {
 
 	rx := pingtestenv.MakeRxFunc(fetcher.GetRxQueue(0))
 	nInterests := 0
-	face.OnTxInterest(func(interest *ndn.Interest) {
+	face.OnTxInterest(func(interest *ndni.Interest) {
 		assert.EqualValues(ndntestenv.GetPitToken(interest)>>56, 0)
 		nInterests++
 		data := ndntestenv.MakeData(interest.GetName().String())

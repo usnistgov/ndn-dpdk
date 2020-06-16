@@ -14,7 +14,7 @@ import (
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 // A burst of received packets.
@@ -40,28 +40,28 @@ func (burst RxBurst) GetCapacity() int {
 	return int(burst.c.capacity)
 }
 
-func (burst RxBurst) ListInterests() (list []*ndn.Interest) {
-	list = make([]*ndn.Interest, int(burst.c.nInterests))
+func (burst RxBurst) ListInterests() (list []*ndni.Interest) {
+	list = make([]*ndni.Interest, int(burst.c.nInterests))
 	for i := range list {
-		npkt := ndn.PacketFromPtr(unsafe.Pointer(C.FaceRxBurst_GetInterest(burst.c, C.uint16_t(i))))
+		npkt := ndni.PacketFromPtr(unsafe.Pointer(C.FaceRxBurst_GetInterest(burst.c, C.uint16_t(i))))
 		list[i] = npkt.AsInterest()
 	}
 	return list
 }
 
-func (burst RxBurst) ListData() (list []*ndn.Data) {
-	list = make([]*ndn.Data, int(burst.c.nData))
+func (burst RxBurst) ListData() (list []*ndni.Data) {
+	list = make([]*ndni.Data, int(burst.c.nData))
 	for i := range list {
-		npkt := ndn.PacketFromPtr(unsafe.Pointer(C.FaceRxBurst_GetData(burst.c, C.uint16_t(i))))
+		npkt := ndni.PacketFromPtr(unsafe.Pointer(C.FaceRxBurst_GetData(burst.c, C.uint16_t(i))))
 		list[i] = npkt.AsData()
 	}
 	return list
 }
 
-func (burst RxBurst) ListNacks() (list []*ndn.Nack) {
-	list = make([]*ndn.Nack, int(burst.c.nNacks))
+func (burst RxBurst) ListNacks() (list []*ndni.Nack) {
+	list = make([]*ndni.Nack, int(burst.c.nNacks))
 	for i := range list {
-		npkt := ndn.PacketFromPtr(unsafe.Pointer(C.FaceRxBurst_GetNack(burst.c, C.uint16_t(i))))
+		npkt := ndni.PacketFromPtr(unsafe.Pointer(C.FaceRxBurst_GetNack(burst.c, C.uint16_t(i))))
 		list[i] = npkt.AsNack()
 	}
 	return list

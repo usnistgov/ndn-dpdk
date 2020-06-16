@@ -8,8 +8,8 @@ import (
 	"github.com/usnistgov/ndn-dpdk/app/ping/pingtestenv"
 	"github.com/usnistgov/ndn-dpdk/app/pingclient"
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
-	"github.com/usnistgov/ndn-dpdk/ndn"
-	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/usnistgov/ndn-dpdk/ndni/ndntestenv"
 )
 
 func TestClient(t *testing.T) {
@@ -19,8 +19,8 @@ func TestClient(t *testing.T) {
 	defer face.Close()
 	face.DisableTxRecorders()
 
-	nameA := ndn.MustParseName("/A")
-	nameB := ndn.MustParseName("/B")
+	nameA := ndni.MustParseName("/A")
+	nameB := ndni.MustParseName("/B")
 	cfg := pingclient.Config{
 		Patterns: []pingclient.Pattern{
 			{
@@ -54,12 +54,12 @@ func TestClient(t *testing.T) {
 	nInterestsB1 := 0
 	nInterestsB2 := 0
 	var lastSeqB uint64
-	face.OnTxInterest(func(interest *ndn.Interest) {
+	face.OnTxInterest(func(interest *ndni.Interest) {
 		interestName := interest.GetName()
 		switch {
-		case interestName.Compare(nameA) == ndn.NAMECMP_RPREFIX && interestName.Len() == 2:
+		case interestName.Compare(nameA) == ndni.NAMECMP_RPREFIX && interestName.Len() == 2:
 			nInterestsA++
-		case interestName.Compare(nameB) == ndn.NAMECMP_RPREFIX && interestName.Len() == 2:
+		case interestName.Compare(nameB) == ndni.NAMECMP_RPREFIX && interestName.Len() == 2:
 			lastComp := interestName.GetComp(interestName.Len() - 1)
 			seqnum := binary.LittleEndian.Uint64(lastComp.GetValue())
 			diff := int64(seqnum - lastSeqB)

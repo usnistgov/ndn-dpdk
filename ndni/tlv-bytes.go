@@ -1,4 +1,4 @@
-package ndn
+package ndni
 
 /*
 #include "../csrc/ndn/tlv-encoder.h"

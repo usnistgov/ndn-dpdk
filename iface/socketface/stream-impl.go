@@ -5,14 +5,14 @@ import (
 	"net"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 // SocketFace implementation for stream-oriented sockets.
 type streamImpl struct{}
 
 func (impl streamImpl) RxLoop(face *SocketFace) {
-	buf := make(ndn.TlvBytes, face.rxMp.GetDataroom())
+	buf := make(ndni.TlvBytes, face.rxMp.GetDataroom())
 	nAvail := 0
 	for {
 		nRead, e := face.GetConn().Read(buf[nAvail:])
@@ -42,7 +42,7 @@ func (impl streamImpl) RxLoop(face *SocketFace) {
 	}
 }
 
-func (streamImpl) postPacket(face *SocketFace, buf ndn.TlvBytes) (n int) {
+func (streamImpl) postPacket(face *SocketFace, buf ndni.TlvBytes) (n int) {
 	element, _ := buf.ExtractElement()
 	if element == nil {
 		return 0

@@ -3,7 +3,7 @@ package fwdptest
 import (
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal/ealtestenv"
-	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/ndni/ndntestenv"
 	"os"
 	"testing"
 )

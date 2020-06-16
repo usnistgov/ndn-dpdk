@@ -14,8 +14,8 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal/ealtestenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
-	"github.com/usnistgov/ndn-dpdk/ndn"
-	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/usnistgov/ndn-dpdk/ndni/ndntestenv"
 )
 
 func TestMain(m *testing.M) {
@@ -74,7 +74,7 @@ func (fixture *Fixture) CountMpInUse() int {
 // Returns false if CS entry is found during PIT entry insertion.
 // Returns true if CS entry is replacing PIT entry.
 // This function takes ownership of interest and data.
-func (fixture *Fixture) Insert(interest *ndn.Interest, data *ndn.Data) (isReplacing bool) {
+func (fixture *Fixture) Insert(interest *ndni.Interest, data *ndni.Data) (isReplacing bool) {
 	pitEntry, csEntry := fixture.Pit.Insert(interest, fixture.emptyFibEntry)
 	if csEntry != nil {
 		ndntestenv.ClosePacket(interest)
@@ -112,7 +112,7 @@ func (fixture *Fixture) InsertBulk(minId, maxId int, dataNameFmt, interestNameFm
 // Find a CS entry.
 // If a PIT entry is created in Pit.Insert invocation, it is erased immediately.
 // This function takes ownership of interest.
-func (fixture *Fixture) Find(interest *ndn.Interest) *cs.Entry {
+func (fixture *Fixture) Find(interest *ndni.Interest) *cs.Entry {
 	pitEntry, csEntry := fixture.Pit.Insert(interest, fixture.emptyFibEntry)
 	if pitEntry != nil {
 		fixture.Pit.Erase(*pitEntry)

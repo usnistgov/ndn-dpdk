@@ -9,7 +9,7 @@ import (
 	"fmt"
 
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 type EthFace struct {
@@ -27,7 +27,7 @@ func New(port *Port, loc Locator) (face *EthFace, e error) {
 
 	switch {
 	case loc.Remote.IsZero():
-		loc.Remote = ndn.NDN_ETHER_MCAST_ADDR
+		loc.Remote = ndni.NDN_ETHER_MCAST_ADDR
 		fallthrough
 	case loc.Remote.IsGroup():
 		if face = port.FindFace(nil); face != nil {

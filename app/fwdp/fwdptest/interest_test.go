@@ -7,7 +7,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/app/fwdp"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 func TestInterestData(t *testing.T) {
@@ -65,7 +65,7 @@ func TestInterestDupNonce(t *testing.T) {
 	time.Sleep(STEP_DELAY)
 	require.Len(face3.TxInterests, 1)
 	require.Len(face2.TxNacks, 1)
-	assert.Equal(ndn.NackReason_Duplicate, face2.TxNacks[0].GetReason())
+	assert.Equal(ndni.NackReason_Duplicate, face2.TxNacks[0].GetReason())
 	assert.Equal(uint64(1), fixture.SumCounter(func(dp *fwdp.DataPlane, i int) uint64 {
 		return dp.ReadFwdInfo(i).NDupNonce
 	}))
@@ -125,7 +125,7 @@ func TestInterestNoRoute(t *testing.T) {
 	time.Sleep(STEP_DELAY)
 	require.Len(face1.TxNacks, 1)
 	assert.Equal(uint64(0x431328d8b4075167), getPitToken(face1.TxNacks[0]))
-	assert.Equal(ndn.NackReason_NoRoute, face1.TxNacks[0].GetReason())
+	assert.Equal(ndni.NackReason_NoRoute, face1.TxNacks[0].GetReason())
 	assert.Equal(uint64(1), fixture.SumCounter(func(dp *fwdp.DataPlane, i int) uint64 {
 		return dp.ReadFwdInfo(i).NNoFibMatch
 	}))
@@ -196,7 +196,7 @@ func TestCsHit(t *testing.T) {
 	assert.Equal(uint64(0x193d673cdb9f85ac), getPitToken(face1.TxData[0]))
 	assert.Equal(0*time.Millisecond, face1.TxData[0].GetFreshnessPeriod())
 
-	interestB1mbf := makeInterest("/B/1", ndn.MustBeFreshFlag)
+	interestB1mbf := makeInterest("/B/1", ndni.MustBeFreshFlag)
 	setPitToken(interestB1mbf, 0xf716737325e04a77)
 	face1.Rx(interestB1mbf)
 	time.Sleep(STEP_DELAY)
@@ -219,7 +219,7 @@ func TestCsHit(t *testing.T) {
 	assert.Equal(uint64(0xaec62dad2f669e6b), getPitToken(face1.TxData[2]))
 	assert.Equal(2500*time.Millisecond, face1.TxData[2].GetFreshnessPeriod())
 
-	interestB1mbf = makeInterest("/B/1", ndn.MustBeFreshFlag)
+	interestB1mbf = makeInterest("/B/1", ndni.MustBeFreshFlag)
 	setPitToken(interestB1mbf, 0xb5565a4e715c858d)
 	face1.Rx(interestB1mbf)
 	time.Sleep(STEP_DELAY)
@@ -249,7 +249,7 @@ func TestFwHint(t *testing.T) {
 	fixture.SetFibEntry("/B", "multicast", face2.GetFaceId())
 	fixture.SetFibEntry("/C", "multicast", face3.GetFaceId())
 
-	interest1 := makeInterest("/A/1", ndn.FHDelegation{1, "/B"}, ndn.FHDelegation{2, "/C"})
+	interest1 := makeInterest("/A/1", ndni.FHDelegation{1, "/B"}, ndni.FHDelegation{2, "/C"})
 	setPitToken(interest1, 0x5c2fc6c972d830e7)
 	face4.Rx(interest1)
 	time.Sleep(STEP_DELAY)
@@ -257,7 +257,7 @@ func TestFwHint(t *testing.T) {
 	assert.Len(face2.TxInterests, 1)
 	assert.Len(face3.TxInterests, 0)
 
-	interest2 := makeInterest("/A/1", ndn.FHDelegation{1, "/C"}, ndn.FHDelegation{2, "/B"})
+	interest2 := makeInterest("/A/1", ndni.FHDelegation{1, "/C"}, ndni.FHDelegation{2, "/B"})
 	setPitToken(interest2, 0x52e61e9eee7025b7)
 	face5.Rx(interest2)
 	time.Sleep(STEP_DELAY)
@@ -265,7 +265,7 @@ func TestFwHint(t *testing.T) {
 	require.Len(face2.TxInterests, 1)
 	assert.Len(face3.TxInterests, 1)
 
-	interest3 := makeInterest("/A/1", ndn.FHDelegation{1, "/Z"}, ndn.FHDelegation{2, "/B"})
+	interest3 := makeInterest("/A/1", ndni.FHDelegation{1, "/Z"}, ndni.FHDelegation{2, "/B"})
 	setPitToken(interest3, 0xa4291e2123c8211e)
 	face5.Rx(interest3)
 	time.Sleep(STEP_DELAY)
@@ -294,7 +294,7 @@ func TestFwHint(t *testing.T) {
 	assert.Equal(uint64(0x52e61e9eee7025b7), getPitToken(face5.TxData[1]))
 	assert.Equal(2*time.Second, face5.TxData[1].GetFreshnessPeriod())
 
-	interest4 := makeInterest("/A/1", ndn.FHDelegation{1, "/C"}) // matches data2
+	interest4 := makeInterest("/A/1", ndni.FHDelegation{1, "/C"}) // matches data2
 	setPitToken(interest4, 0xbb19e173f937f221)
 	face4.Rx(interest4)
 	time.Sleep(STEP_DELAY)
@@ -360,7 +360,7 @@ func TestImplicitDigest(t *testing.T) {
 	assert.Equal(uint64(1), fibCnt.NTxInterests)
 
 	// /B/2 is fragmented, which is not supported in some cryptodev
-	dataB2 := makeData("/B/2", ndn.TlvBytes(bytes.Repeat([]byte{0xC0}, 300)))
+	dataB2 := makeData("/B/2", ndni.TlvBytes(bytes.Repeat([]byte{0xC0}, 300)))
 	fullNameB2orig := dataB2.GetFullName().String()
 	mbuftestenv.PacketSplitTailSegment(dataB2.GetPacket().AsMbuf(), 5)
 	fullNameB2 := dataB2.GetFullName().String()

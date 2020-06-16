@@ -1,12 +1,12 @@
-package ndn_test
+package ndni_test
 
 import (
 	"testing"
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
-	"github.com/usnistgov/ndn-dpdk/ndn"
-	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/usnistgov/ndn-dpdk/ndni/ndntestenv"
 )
 
 func TestInterestDecode(t *testing.T) {
@@ -49,7 +49,7 @@ func TestInterestDecode(t *testing.T) {
 		if tt.bad {
 			assert.Error(e, tt.input)
 		} else if assert.NoError(e, tt.input) {
-			if !assert.Equal(ndn.L3PktType_Interest, pkt.GetL3Type(), tt.input) {
+			if !assert.Equal(ndni.L3PktType_Interest, pkt.GetL3Type(), tt.input) {
 				continue
 			}
 			interest := pkt.AsInterest()
@@ -115,7 +115,7 @@ func TestInterestModify(t *testing.T) {
 			continue
 		}
 		interest := pkt.AsInterest()
-		assert.Implements((*ndn.IL3Packet)(nil), interest)
+		assert.Implements((*ndni.IL3Packet)(nil), interest)
 
 		modified := interest.Modify(0xABAAA9A8, 27938*time.Millisecond, 125,
 			ndntestenv.Header.Pool(), ndntestenv.Guider.Pool(), ndntestenv.Indirect.Pool())
@@ -136,15 +136,15 @@ func TestMakeInterest(t *testing.T) {
 	assert, require := makeAR(t)
 
 	m1 := ndntestenv.Packet.Alloc()
-	_, e := ndn.MakeInterest(m1, "/A/B", uint32(0xA0A1A2A3))
+	_, e := ndni.MakeInterest(m1, "/A/B", uint32(0xA0A1A2A3))
 	require.NoError(e)
 	defer m1.Close()
 	encoded1 := m1.ReadAll()
 	assert.Equal(mbuftestenv.BytesFromHex("050E name=0706080141080142 nonce=0A04A3A2A1A0"), encoded1)
 
 	m2 := ndntestenv.Packet.Alloc()
-	_, e = ndn.MakeInterest(m2, "/A/B/C/D", ndn.CanBePrefixFlag, ndn.MustBeFreshFlag,
-		ndn.FHDelegation{15601, "/E"}, ndn.FHDelegation{6323, "/F"},
+	_, e = ndni.MakeInterest(m2, "/A/B/C/D", ndni.CanBePrefixFlag, ndni.MustBeFreshFlag,
+		ndni.FHDelegation{15601, "/E"}, ndni.FHDelegation{6323, "/F"},
 		uint32(0xA0A1A2A3), 9000*time.Millisecond, uint8(125))
 	require.NoError(e)
 	defer m2.Close()

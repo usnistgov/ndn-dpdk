@@ -16,11 +16,11 @@ godeps: app/version/version.go build/libndn-dpdk-c.a build/cgoflags.done build/c
 app/version/version.go:
 	app/version/make-version.sh
 
-csrc/ndn/error.h: ndn/error.tsv
-	rake ndn/error.go
+csrc/ndn/error.h: ndni/error.tsv
+	rake ndni/error.go
 
-ndn/tlv-type.ts csrc/ndn/tlv-type.h: ndn/tlv-type.tsv
-	rake ndn/tlv-type.go
+ndni/tlv-type.ts csrc/ndn/tlv-type.h: ndni/tlv-type.tsv
+	rake ndni/tlv-type.go
 
 .PHONY: build/libndn-dpdk-c.a
 build/libndn-dpdk-c.a: build/build.ninja
@@ -39,7 +39,7 @@ csrc/meson.build mk/meson.build: csrc/ndn/error.h csrc/ndn/tlv-type.h
 	mk/update-list.sh
 
 .PHONY: tsc
-tsc: ndn/tlv-type.ts
+tsc: ndni/tlv-type.ts
 	node_modules/.bin/tsc
 
 .PHONY: npm

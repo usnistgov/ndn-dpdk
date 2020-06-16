@@ -6,7 +6,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/container/ndt/ndtupdater"
 	"github.com/usnistgov/ndn-dpdk/container/strategycode"
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 func TestRelocate(t *testing.T) {
@@ -17,11 +17,11 @@ func TestRelocate(t *testing.T) {
 	fib := fixture.Fib
 	strategyP := strategycode.MakeEmpty("P")
 
-	name0 := ndn.MustParseName("/")
-	nameA := ndn.MustParseName("/A")
-	nameAB := ndn.MustParseName("/A/B")
-	nameCDW := ndn.MustParseName("/C/D/W")
-	nameEFXYZ := ndn.MustParseName("/E/F/X/Y/Z")
+	name0 := ndni.MustParseName("/")
+	nameA := ndni.MustParseName("/A")
+	nameAB := ndni.MustParseName("/A/B")
+	nameCDW := ndni.MustParseName("/C/D/W")
+	nameEFXYZ := ndni.MustParseName("/E/F/X/Y/Z")
 
 	indexAB := ndt.GetIndex(ndt.ComputeHash(nameAB))
 	indexCDW := ndt.GetIndex(ndt.ComputeHash(nameCDW))

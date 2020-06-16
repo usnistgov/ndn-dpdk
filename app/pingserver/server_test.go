@@ -7,8 +7,8 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/app/ping/pingtestenv"
 	"github.com/usnistgov/ndn-dpdk/app/pingserver"
-	"github.com/usnistgov/ndn-dpdk/ndn"
-	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/usnistgov/ndn-dpdk/ndni/ndntestenv"
 )
 
 func TestServer(t *testing.T) {
@@ -18,8 +18,8 @@ func TestServer(t *testing.T) {
 	defer face.Close()
 	face.DisableTxRecorders()
 
-	nameA := ndn.MustParseName("/A")
-	nameB := ndn.MustParseName("/B")
+	nameA := ndni.MustParseName("/A")
+	nameB := ndni.MustParseName("/B")
 	cfg := pingserver.Config{
 		Patterns: []pingserver.Pattern{
 			{
@@ -32,7 +32,7 @@ func TestServer(t *testing.T) {
 					},
 					{
 						Weight:          40,
-						Suffix:          ndn.MustParseName("/Z"),
+						Suffix:          ndni.MustParseName("/Z"),
 						FreshnessPeriod: 100,
 						PayloadLen:      2000,
 					},
@@ -42,12 +42,12 @@ func TestServer(t *testing.T) {
 				Prefix: nameB,
 				Replies: []pingserver.Reply{
 					{
-						Nack: ndn.NackReason_Congestion,
+						Nack: ndni.NackReason_Congestion,
 					},
 				},
 			},
 			{
-				Prefix: ndn.MustParseName("/C"),
+				Prefix: ndni.MustParseName("/C"),
 				Replies: []pingserver.Reply{
 					{
 						Timeout: true,
@@ -61,21 +61,21 @@ func TestServer(t *testing.T) {
 	nDataA0 := 0
 	nDataA1 := 0
 	nNacksB := 0
-	face.OnTxData(func(data *ndn.Data) {
+	face.OnTxData(func(data *ndni.Data) {
 		dataName := data.GetName()
 		switch {
-		case dataName.Compare(nameA) == ndn.NAMECMP_RPREFIX && dataName.Len() == 2:
+		case dataName.Compare(nameA) == ndni.NAMECMP_RPREFIX && dataName.Len() == 2:
 			nDataA0++
-		case dataName.Compare(nameA) == ndn.NAMECMP_RPREFIX && dataName.Len() == 3:
+		case dataName.Compare(nameA) == ndni.NAMECMP_RPREFIX && dataName.Len() == 3:
 			nDataA1++
 		default:
 			assert.Fail("unexpected Data", "%s", data)
 		}
 	})
-	face.OnTxNack(func(nack *ndn.Nack) {
+	face.OnTxNack(func(nack *ndni.Nack) {
 		interestName := nack.GetInterest().GetName()
 		switch {
-		case interestName.Compare(nameB) == ndn.NAMECMP_RPREFIX && interestName.Len() == 2:
+		case interestName.Compare(nameB) == ndni.NAMECMP_RPREFIX && interestName.Len() == 2:
 			nNacksB++
 		default:
 			assert.Fail("unexpected Nack", "%s", nack)

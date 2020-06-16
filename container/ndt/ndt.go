@@ -9,7 +9,7 @@ import (
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 type Config struct {
@@ -81,7 +81,7 @@ func (ndt *Ndt) GetThread(i int) NdtThread {
 }
 
 // Compute the hash used for a name.
-func (ndt *Ndt) ComputeHash(name *ndn.Name) uint64 {
+func (ndt *Ndt) ComputeHash(name *ndni.Name) uint64 {
 	prefixLen := name.Len()
 	if prefixLen > int(ndt.c.prefixLen) {
 		prefixLen = int(ndt.c.prefixLen)
@@ -138,7 +138,7 @@ func (ndt *Ndt) Randomize(max int) {
 }
 
 // Lookup a name without counting.
-func (ndt *Ndt) Lookup(name *ndn.Name) (index uint64, value uint8) {
+func (ndt *Ndt) Lookup(name *ndni.Name) (index uint64, value uint8) {
 	var indexC C.uint64_t
 	value = uint8(C.Ndt_Lookup(ndt.c, (*C.PName)(name.GetPNamePtr()),
 		(*C.uint8_t)(name.GetValue().GetPtr()), &indexC))
@@ -152,7 +152,7 @@ type NdtThread struct {
 }
 
 // Lookup a name with counting.
-func (ndtt *NdtThread) Lookup(name *ndn.Name) uint8 {
+func (ndtt *NdtThread) Lookup(name *ndni.Name) uint8 {
 	return uint8(C.Ndtt_Lookup_(ndtt.ndt.c, ndtt.c, (*C.PName)(name.GetPNamePtr()),
 		(*C.uint8_t)(name.GetValue().GetPtr())))
 }

@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 func TestNackMerge(t *testing.T) {
@@ -26,28 +26,28 @@ func TestNackMerge(t *testing.T) {
 	require.Len(face3.TxInterests, 1)
 
 	// Nack from first upstream, no action
-	nack2 := ndn.MakeNackFromInterest(makeInterest("/A/1", uint32(0x2ea29515)), ndn.NackReason_NoRoute)
+	nack2 := ndni.MakeNackFromInterest(makeInterest("/A/1", uint32(0x2ea29515)), ndni.NackReason_NoRoute)
 	copyPitToken(nack2, face2.TxInterests[0])
 	face2.Rx(nack2)
 	time.Sleep(STEP_DELAY)
 	assert.Len(face1.TxNacks, 0)
 
 	// Nack again from first upstream, no action
-	nack2 = ndn.MakeNackFromInterest(makeInterest("/A/1", uint32(0x2ea29515)), ndn.NackReason_NoRoute)
+	nack2 = ndni.MakeNackFromInterest(makeInterest("/A/1", uint32(0x2ea29515)), ndni.NackReason_NoRoute)
 	copyPitToken(nack2, face2.TxInterests[0])
 	face2.Rx(nack2)
 	time.Sleep(STEP_DELAY)
 	assert.Len(face1.TxNacks, 0)
 
 	// Nack from second upstream, Nack to downstream
-	nack3 := ndn.MakeNackFromInterest(makeInterest("/A/1", uint32(0x2ea29515)), ndn.NackReason_Congestion)
+	nack3 := ndni.MakeNackFromInterest(makeInterest("/A/1", uint32(0x2ea29515)), ndni.NackReason_Congestion)
 	copyPitToken(nack3, face3.TxInterests[0])
 	face3.Rx(nack3)
 	time.Sleep(STEP_DELAY)
 	require.Len(face1.TxNacks, 1)
 
 	nack1 := face1.TxNacks[0]
-	assert.Equal(ndn.NackReason_Congestion, nack1.GetReason())
+	assert.Equal(ndni.NackReason_Congestion, nack1.GetReason())
 	assert.Equal(uint32(0x2ea29515), nack1.GetInterest().GetNonce())
 	assert.Equal(uint64(0xf3fb4ef802d3a9d3), getPitToken(nack1))
 
@@ -80,7 +80,7 @@ func TestNackDuplicate(t *testing.T) {
 	// upstream node returns Nack against first Interest
 	// forwarder should resend Interest with another nonce
 	nonce1 := face3.TxInterests[0].GetNonce()
-	nack1 := ndn.MakeNackFromInterest(face3.TxInterests[0], ndn.NackReason_Duplicate)
+	nack1 := ndni.MakeNackFromInterest(face3.TxInterests[0], ndni.NackReason_Duplicate)
 	face3.Rx(nack1)
 	time.Sleep(STEP_DELAY)
 	require.Len(face3.TxInterests, 2)
@@ -91,7 +91,7 @@ func TestNackDuplicate(t *testing.T) {
 
 	// upstream node returns Nack against second Interest as well
 	// forwarder should return Nack to downstream
-	nack2 := ndn.MakeNackFromInterest(face3.TxInterests[1], ndn.NackReason_Duplicate)
+	nack2 := ndni.MakeNackFromInterest(face3.TxInterests[1], ndni.NackReason_Duplicate)
 	face3.Rx(nack2)
 	time.Sleep(STEP_DELAY)
 	assert.Len(face1.TxNacks, 1)

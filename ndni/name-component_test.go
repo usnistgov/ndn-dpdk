@@ -1,10 +1,10 @@
-package ndn_test
+package ndni_test
 
 import (
 	"testing"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 func TestNameComponent(t *testing.T) {
@@ -39,15 +39,15 @@ func TestNameComponent(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		comp := ndn.NameComponent(mbuftestenv.BytesFromHex(tt.input))
+		comp := ndni.NameComponent(mbuftestenv.BytesFromHex(tt.input))
 		if tt.bad {
 			assert.False(comp.IsValid(), tt.input)
 		} else if assert.True(comp.IsValid(), tt.input) {
-			assert.Equal(ndn.TlvType(tt.t), comp.GetType(), tt.input)
-			assert.Equal(ndn.TlvBytes(mbuftestenv.BytesFromHex(tt.v)), comp.GetValue(), tt.input)
+			assert.Equal(ndni.TlvType(tt.t), comp.GetType(), tt.input)
+			assert.Equal(ndni.TlvBytes(mbuftestenv.BytesFromHex(tt.v)), comp.GetValue(), tt.input)
 			assert.Equal(tt.str, comp.String(), tt.input)
 
-			parsed, e := ndn.ParseNameComponent(tt.str)
+			parsed, e := ndni.ParseNameComponent(tt.str)
 			if assert.NoError(e, tt.input) {
 				assert.True(comp.Equal(parsed))
 			}

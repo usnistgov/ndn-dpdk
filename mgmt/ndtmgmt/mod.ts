@@ -1,5 +1,5 @@
 import { Blob, Counter } from "../../core/mod";
-import * as ndn from "../../ndn/mod";
+import * as ndni from "../../ndni/mod";
 
 interface UpdateArgCommon {
   /**
@@ -19,7 +19,7 @@ interface UpdateArgHash extends UpdateArgCommon {
 }
 
 interface UpdateArgName extends UpdateArgCommon {
-  Name: ndn.Name;
+  Name: ndni.Name;
 }
 
 export type UpdateArgs = UpdateArgHash | UpdateArgName;

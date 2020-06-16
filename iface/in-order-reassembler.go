@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"unsafe"
 
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 type InOrderReassembler struct {
@@ -23,9 +23,9 @@ func InOrderReassemblerFromPtr(ptr unsafe.Pointer) InOrderReassembler {
 	return InOrderReassembler{(*C.InOrderReassembler)(ptr)}
 }
 
-func (r InOrderReassembler) Receive(pkt *ndn.Packet) *ndn.Packet {
+func (r InOrderReassembler) Receive(pkt *ndni.Packet) *ndni.Packet {
 	res := C.InOrderReassembler_Receive(r.c, (*C.Packet)(pkt.GetPtr()))
-	return ndn.PacketFromPtr(unsafe.Pointer(res))
+	return ndni.PacketFromPtr(unsafe.Pointer(res))
 }
 
 type InOrderReassemblerCounters struct {

@@ -18,7 +18,7 @@ Calling code must add `iface.ChanRxGroup` to a TxLoop to receive these packets.
 On a datagram-oriented socket, each incoming datagram is an L2 frame.
 The implementation casts DPDK mbuf's internal buffer as a `[]byte`, and does not copy the frame bytes.
 
-On a stream-oriented socket, the implementation reads the incoming stream into a `[]byte`, extracts completed TLV elements with `ndn.TlvBytes.ExtractElement` function, and copies them to DPDK mbufs.
+On a stream-oriented socket, the implementation reads the incoming stream into a `[]byte`, extracts completed TLV elements with `ndni.TlvBytes.ExtractElement` function, and copies them to DPDK mbufs.
 
 ## Send Path
 

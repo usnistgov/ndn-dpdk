@@ -9,7 +9,7 @@ import (
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 // Collect partition numbers into a list for logging purpose.
@@ -55,7 +55,7 @@ func (part *partition) Close() error {
 }
 
 // Allocate an unused entry.
-func (part *partition) Alloc(name *ndn.Name) (entry *C.FibEntry) {
+func (part *partition) Alloc(name *ndni.Name) (entry *C.FibEntry) {
 	if !bool(C.Fib_AllocBulk(part.c, &entry, 1)) {
 		return nil
 	}
@@ -64,7 +64,7 @@ func (part *partition) Alloc(name *ndn.Name) (entry *C.FibEntry) {
 }
 
 // Retrieve an entry (either virtual or non-virtual).
-func (part *partition) Get(name *ndn.Name) *C.FibEntry {
+func (part *partition) Get(name *ndni.Name) *C.FibEntry {
 	nameV := name.GetValue()
 	hash := name.ComputeHash()
 	return C.Fib_Get_(part.c, C.uint16_t(len(nameV)), (*C.uint8_t)(nameV.GetPtr()),

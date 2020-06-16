@@ -3,7 +3,7 @@ package pingclient
 import (
 	"github.com/usnistgov/ndn-dpdk/container/pktqueue"
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 // Client config.
@@ -17,7 +17,7 @@ type Config struct {
 type Pattern struct {
 	Weight int // weight of random choice, minimum is 1
 
-	Prefix           *ndn.Name               // name prefix
+	Prefix           *ndni.Name              // name prefix
 	CanBePrefix      bool                    // whether to set CanBePrefix
 	MustBeFresh      bool                    // whether to set MustBeFresh
 	InterestLifetime nnduration.Milliseconds // InterestLifetime value, zero means default

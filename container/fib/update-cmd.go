@@ -17,7 +17,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/container/fib/fibtree"
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 type updateAct int
@@ -58,7 +58,7 @@ func (batch updateBatch) Discard(part *partition) error {
 	return fmt.Errorf("allocation error in partition %d", part.index)
 }
 
-func (fib *Fib) getVirtName(name *ndn.Name) *ndn.Name {
+func (fib *Fib) getVirtName(name *ndni.Name) *ndni.Name {
 	if name.Len() < fib.cfg.StartDepth {
 		return nil
 	}
@@ -170,7 +170,7 @@ func (fib *Fib) Insert(entry *Entry) (isNew bool, e error) {
 }
 
 // Erase a FIB entry by name.
-func (fib *Fib) Erase(name *ndn.Name) (e error) {
+func (fib *Fib) Erase(name *ndni.Name) (e error) {
 	virtName := fib.getVirtName(name)
 	logEntry := log.WithField("name", name)
 
@@ -318,7 +318,7 @@ func (fib *Fib) Relocate(ndtIndex uint64, oldPartition, newPartition uint8,
 		var newBatch updateBatch
 		var oldBatch updateBatch
 		var revertBatch updateBatch
-		fib.tree.TraverseSubtree(ndtIndex, func(name *ndn.Name, n *fibtree.Node) bool {
+		fib.tree.TraverseSubtree(ndtIndex, func(name *ndni.Name, n *fibtree.Node) bool {
 			if hasAllocErr {
 				return false
 			}

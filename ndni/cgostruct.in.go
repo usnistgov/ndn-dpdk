@@ -1,6 +1,6 @@
 // +build ignore
 
-package ndn
+package ndni
 
 /*
 #include "../csrc/ndn/interest.h"

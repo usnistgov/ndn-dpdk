@@ -1,4 +1,4 @@
-package ndn
+package ndni
 
 /*
 #include "../csrc/ndn/protonum.h"

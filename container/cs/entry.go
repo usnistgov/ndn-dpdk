@@ -8,7 +8,7 @@ import (
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 // A CS entry.
@@ -41,8 +41,8 @@ func (entry Entry) ListIndirects() (indirects []Entry) {
 	return indirects
 }
 
-func (entry Entry) GetData() *ndn.Data {
-	return ndn.PacketFromPtr(unsafe.Pointer(C.CsEntry_GetData(entry.c))).AsData()
+func (entry Entry) GetData() *ndni.Data {
+	return ndni.PacketFromPtr(unsafe.Pointer(C.CsEntry_GetData(entry.c))).AsData()
 }
 
 func (entry Entry) GetFreshUntil() eal.TscTime {

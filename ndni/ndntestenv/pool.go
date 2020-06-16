@@ -3,7 +3,7 @@ package ndntestenv
 import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 // TestPool instances.
@@ -16,13 +16,13 @@ var (
 )
 
 func init() {
-	Name.Template = ndn.NameMempool.Update(pktmbuf.PoolConfig{
+	Name.Template = ndni.NameMempool.Update(pktmbuf.PoolConfig{
 		Capacity: 4095,
 	})
-	Header.Template = ndn.HeaderMempool.Update(pktmbuf.PoolConfig{
+	Header.Template = ndni.HeaderMempool.Update(pktmbuf.PoolConfig{
 		Capacity: 4095,
 	})
-	Guider.Template = ndn.GuiderMempool.Update(pktmbuf.PoolConfig{
+	Guider.Template = ndni.GuiderMempool.Update(pktmbuf.PoolConfig{
 		Capacity: 4095,
 	})
 

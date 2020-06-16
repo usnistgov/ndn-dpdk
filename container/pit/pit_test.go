@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/usnistgov/ndn-dpdk/container/pit"
-	"github.com/usnistgov/ndn-dpdk/ndn"
-	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/usnistgov/ndn-dpdk/ndni/ndntestenv"
 )
 
 func TestInsertErase(t *testing.T) {
@@ -27,24 +27,24 @@ func TestInsertErase(t *testing.T) {
 	assert.NotEqual(uintptr(entry1.GetPtr()), uintptr(entry2.GetPtr()))
 
 	interest3 := makeInterest("/A/2",
-		ndn.FHDelegation{1, "/F"}, ndn.FHDelegation{1, "/G"})
+		ndni.FHDelegation{1, "/F"}, ndni.FHDelegation{1, "/G"})
 	entry3 := fixture.Insert(interest3)
 	ndntestenv.ClosePacket(interest3)
 	assert.NotNil(entry3)
 	assert.Equal(uintptr(entry2.GetPtr()), uintptr(entry3.GetPtr()))
 
 	entry4 := fixture.Insert(makeInterest("/A/2",
-		ndn.FHDelegation{1, "/F"}, ndn.FHDelegation{1, "/G"}, ndn.ActiveFHDelegation(0)))
+		ndni.FHDelegation{1, "/F"}, ndni.FHDelegation{1, "/G"}, ndni.ActiveFHDelegation(0)))
 	assert.NotNil(entry4)
 	assert.NotEqual(uintptr(entry2.GetPtr()), uintptr(entry4.GetPtr()))
 
 	entry5 := fixture.Insert(makeInterest("/A/2",
-		ndn.FHDelegation{1, "/F"}, ndn.FHDelegation{1, "/G"}, ndn.ActiveFHDelegation(1)))
+		ndni.FHDelegation{1, "/F"}, ndni.FHDelegation{1, "/G"}, ndni.ActiveFHDelegation(1)))
 	assert.NotNil(entry5)
 	assert.NotEqual(uintptr(entry2.GetPtr()), uintptr(entry5.GetPtr()))
 	assert.NotEqual(uintptr(entry4.GetPtr()), uintptr(entry5.GetPtr()))
 
-	interest6 := makeInterest("/A/2", ndn.MustBeFreshFlag)
+	interest6 := makeInterest("/A/2", ndni.MustBeFreshFlag)
 	entry6 := fixture.Insert(interest6)
 	assert.NotNil(entry6)
 	assert.NotEqual(uintptr(entry2.GetPtr()), uintptr(entry6.GetPtr()))
@@ -67,7 +67,7 @@ func TestInsertErase(t *testing.T) {
 func TestToken(t *testing.T) {
 	assert, require := makeAR(t)
 	interestNames := make([]string, 255)
-	dataPkts := make([]*ndn.Data, 255)
+	dataPkts := make([]*ndni.Data, 255)
 	entries := make([]pit.Entry, 255)
 	fixture := NewFixture(255)
 	defer fixture.Close()
@@ -126,8 +126,8 @@ func TestToken(t *testing.T) {
 
 		// high 16 bits of the token should be ignored
 		token2 := token ^ 0x79BC000000000000
-		nack := ndn.MakeNackFromInterest(makeInterest(name),
-			ndn.NackReason_NoRoute)
+		nack := ndni.MakeNackFromInterest(makeInterest(name),
+			ndni.NackReason_NoRoute)
 		ndntestenv.SetPitToken(nack, token2)
 		foundEntry := pit.FindByNack(nack)
 		if assert.NotNil(foundEntry) {

@@ -19,7 +19,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 // Forwarding thread.
@@ -71,8 +71,8 @@ func (fwd *Fwd) Init(fib *fib.Fib, pcctCfg pcct.Config, interestQueueCfg, dataQu
 	}
 	*C.FwFwd_GetPcctPtr_(fwd.c) = (*C.Pcct)(fwd.pcct.GetPtr())
 
-	fwd.c.headerMp = (*C.struct_rte_mempool)(ndn.HeaderMempool.MakePool(socket).GetPtr())
-	fwd.c.guiderMp = (*C.struct_rte_mempool)(ndn.NameMempool.MakePool(socket).GetPtr())
+	fwd.c.headerMp = (*C.struct_rte_mempool)(ndni.HeaderMempool.MakePool(socket).GetPtr())
+	fwd.c.guiderMp = (*C.struct_rte_mempool)(ndni.NameMempool.MakePool(socket).GetPtr())
 	fwd.c.indirectMp = (*C.struct_rte_mempool)(pktmbuf.Indirect.MakePool(socket).GetPtr())
 
 	latencyStat := runningstat.FromPtr(unsafe.Pointer(&fwd.c.latencyStat))

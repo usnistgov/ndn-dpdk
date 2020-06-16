@@ -6,7 +6,7 @@ package iface
 import "C"
 import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 // Interface for a face.
@@ -40,7 +40,7 @@ type IFace interface {
 	ListRxGroups() []IRxGroup
 
 	// Transmit a burst of L3 packets.
-	TxBurst(pkts []*ndn.Packet)
+	TxBurst(pkts []*ndni.Packet)
 
 	// Read basic face counters.
 	ReadCounters() Counters

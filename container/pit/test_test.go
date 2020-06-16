@@ -14,8 +14,8 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"github.com/usnistgov/ndn-dpdk/ndn"
-	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/usnistgov/ndn-dpdk/ndni/ndntestenv"
 )
 
 func TestMain(m *testing.M) {
@@ -71,7 +71,7 @@ func (fixture *Fixture) CountMpInUse() int {
 // Insert a PIT entry.
 // Returns the PIT entry.
 // If CS entry is found, returns nil and frees interest.
-func (fixture *Fixture) Insert(interest *ndn.Interest) *pit.Entry {
+func (fixture *Fixture) Insert(interest *ndni.Interest) *pit.Entry {
 	pitEntry, csEntry := fixture.Pit.Insert(interest, fixture.EmptyFibEntry)
 	if csEntry != nil {
 		ndntestenv.ClosePacket(interest)
@@ -88,5 +88,5 @@ func (fixture *Fixture) InsertFibEntry(name string, nexthop iface.FaceId) *fib.E
 		fixture.emptyStrategy, nexthop)); e != nil {
 		panic(e)
 	}
-	return fixture.fibFixture.Fib.Find(ndn.MustParseName(name))
+	return fixture.fibFixture.Fib.Find(ndni.MustParseName(name))
 }

@@ -1,10 +1,10 @@
 package fibtree
 
 import (
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
-type GetNdtIndexCallback func(name *ndn.Name) uint64
+type GetNdtIndexCallback func(name *ndni.Name) uint64
 
 // FIB tree structure.
 type Tree struct {
@@ -44,7 +44,7 @@ func (t *Tree) CountNodes() int {
 
 // Traversal visitor.
 // Returns whether to visit descendants of current node.
-type TraverseCallback func(name *ndn.Name, n *Node) bool
+type TraverseCallback func(name *ndni.Name, n *Node) bool
 
 // Traverse entire tree.
 func (t *Tree) Traverse(cb TraverseCallback) {
@@ -64,7 +64,7 @@ func (t *Tree) TraverseSubtree(ndtIndex uint64, cb TraverseCallback) {
 //   oldMd: old MaxDepth at name.GetPrefix(startDepth)
 //   newMd: new MaxDepth at name.GetPrefix(startDepth)
 //   virtIsEntry: whether node at name.GetPrefix(startDepth) is an entry
-func (t *Tree) Insert(name *ndn.Name) (ok bool, oldMd int, newMd int, virtIsEntry bool) {
+func (t *Tree) Insert(name *ndni.Name) (ok bool, oldMd int, newMd int, virtIsEntry bool) {
 	nComps := name.Len()
 	// create node at name and ancestors
 	nodes := make([]*Node, nComps+1)
@@ -118,7 +118,7 @@ func (t *Tree) Insert(name *ndn.Name) (ok bool, oldMd int, newMd int, virtIsEntr
 //   oldMd: old MaxDepth at name.GetPrefix(startDepth)
 //   newMd: new MaxDepth at name.GetPrefix(startDepth)
 //   virtIsEntry: whether node at name.GetPrefix(startDepth) is an entry
-func (t *Tree) Erase(name *ndn.Name) (ok bool, oldMd int, newMd int, virtIsEntry bool) {
+func (t *Tree) Erase(name *ndni.Name) (ok bool, oldMd int, newMd int, virtIsEntry bool) {
 	nComps := name.Len()
 	// find node at name and ancestors
 	nodes := make([]*Node, nComps+1)

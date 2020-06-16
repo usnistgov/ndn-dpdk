@@ -12,7 +12,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 	"github.com/usnistgov/ndn-dpdk/spdk/bdev"
 	"github.com/usnistgov/ndn-dpdk/spdk/spdkenv"
 )
@@ -64,12 +64,12 @@ func (store *DiskStore) GetSlotIdRange() (min, max uint64) {
 }
 
 // PutData asynchronously stores a Data packet.
-func (store *DiskStore) PutData(slotID uint64, data *ndn.Data) {
+func (store *DiskStore) PutData(slotID uint64, data *ndni.Data) {
 	C.DiskStore_PutData(store.c, C.uint64_t(slotID), (*C.Packet)(data.GetPacket().GetPtr()))
 }
 
 // GetData retrieves a Data packet from specified slot and waits for completion.
-func (store *DiskStore) GetData(slotID uint64, dataLen int, interest *ndn.Interest) (data *ndn.Data, e error) {
+func (store *DiskStore) GetData(slotID uint64, dataLen int, interest *ndni.Interest) (data *ndni.Data, e error) {
 	var reply *ringbuffer.Ring
 	if reply, e = ringbuffer.New(fmt.Sprintf("DiskStoreGetData%x", slotID), 64, eal.NumaSocket{},
 		ringbuffer.ProducerMulti, ringbuffer.ConsumerMulti); e != nil {
@@ -81,7 +81,7 @@ func (store *DiskStore) GetData(slotID uint64, dataLen int, interest *ndn.Intere
 	C.DiskStore_GetData(store.c, C.uint64_t(slotID), C.uint16_t(dataLen), (*C.Packet)(interestPtr), (*C.struct_rte_ring)(reply.GetPtr()))
 
 	for {
-		pkts := make([]*ndn.Packet, 1)
+		pkts := make([]*ndni.Packet, 1)
 		n := reply.Dequeue(pkts)
 		if n != 1 {
 			runtime.Gosched()
@@ -98,7 +98,7 @@ func (store *DiskStore) GetData(slotID uint64, dataLen int, interest *ndn.Intere
 			panic("unexpected PInterest.diskSlotId")
 		}
 		if interestC.diskData != nil {
-			data = ndn.PacketFromPtr(unsafe.Pointer(interestC.diskData)).AsData()
+			data = ndni.PacketFromPtr(unsafe.Pointer(interestC.diskData)).AsData()
 		}
 		return data, nil
 	}

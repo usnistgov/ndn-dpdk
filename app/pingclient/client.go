@@ -16,7 +16,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/container/pktqueue"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 // Client instance and RX thread.
@@ -76,10 +76,10 @@ func (client *Client) AddPattern(cfg Pattern) (index int, e error) {
 
 	tplArgs := []interface{}{cfg.Prefix}
 	if cfg.CanBePrefix {
-		tplArgs = append(tplArgs, ndn.CanBePrefixFlag)
+		tplArgs = append(tplArgs, ndni.CanBePrefixFlag)
 	}
 	if cfg.MustBeFresh {
-		tplArgs = append(tplArgs, ndn.MustBeFreshFlag)
+		tplArgs = append(tplArgs, ndni.MustBeFreshFlag)
 	}
 	if lifetime := cfg.InterestLifetime.Duration(); lifetime != 0 {
 		tplArgs = append(tplArgs, lifetime)
@@ -92,7 +92,7 @@ func (client *Client) AddPattern(cfg Pattern) (index int, e error) {
 	rxP := &client.Rx.c.pattern[index]
 	rxP.prefixLen = C.uint16_t(cfg.Prefix.Size())
 	txP := &client.Tx.c.pattern[index]
-	if e = ndn.InterestTemplateFromPtr(unsafe.Pointer(&txP.tpl)).Init(tplArgs...); e != nil {
+	if e = ndni.InterestTemplateFromPtr(unsafe.Pointer(&txP.tpl)).Init(tplArgs...); e != nil {
 		return -1, e
 	}
 	txP.seqNum.compT = C.TT_GenericNameComponent

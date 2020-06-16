@@ -1,10 +1,10 @@
-package ndn_test
+package ndni_test
 
 import (
 	"testing"
 
-	"github.com/usnistgov/ndn-dpdk/ndn"
-	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/usnistgov/ndn-dpdk/ndni/ndntestenv"
 )
 
 func TestNackDecode(t *testing.T) {
@@ -12,12 +12,12 @@ func TestNackDecode(t *testing.T) {
 
 	tests := []struct {
 		input  string
-		reason ndn.NackReason
+		reason ndni.NackReason
 	}{
 		{input: "6413 nack=FD032000(noreason) payload=500D 050B 0703080141 0A04A0A1A2A3",
-			reason: ndn.NackReason_Unspecified},
+			reason: ndni.NackReason_Unspecified},
 		{input: "6418 nack=FD032005(FD03210196~noroute) payload=500D 050B 0703080141 0A04A0A1A2A3",
-			reason: ndn.NackReason_NoRoute},
+			reason: ndni.NackReason_NoRoute},
 	}
 	for _, tt := range tests {
 		pkt := packetFromHex(tt.input)
@@ -28,11 +28,11 @@ func TestNackDecode(t *testing.T) {
 		if !assert.NoError(pkt.ParseL3(ndntestenv.Name.Pool()), tt.input) {
 			continue
 		}
-		if !assert.Equal(ndn.L3PktType_Nack, pkt.GetL3Type(), tt.input) {
+		if !assert.Equal(ndni.L3PktType_Nack, pkt.GetL3Type(), tt.input) {
 			continue
 		}
 		nack := pkt.AsNack()
-		assert.Implements((*ndn.IL3Packet)(nil), nack)
+		assert.Implements((*ndni.IL3Packet)(nil), nack)
 		assert.Equal(tt.reason, nack.GetReason(), tt.input)
 		interest := nack.GetInterest()
 		ndntestenv.NameEqual(assert, "/A", interest, tt.input)

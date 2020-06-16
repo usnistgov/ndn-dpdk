@@ -5,7 +5,7 @@ import (
 	"io"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 // RX/TX setup implementation.
@@ -35,7 +35,7 @@ func startDev(port *Port, nRxQueues int, promisc bool) error {
 	cfg.AddRxQueues(nRxQueues, ethdev.RxQueueConfig{
 		Capacity: port.cfg.RxqFrames,
 		Socket:   socket,
-		RxPool:   ndn.PacketMempool.MakePool(socket),
+		RxPool:   ndni.PacketMempool.MakePool(socket),
 	})
 	cfg.AddTxQueues(1, ethdev.TxQueueConfig{
 		Capacity: port.cfg.TxqFrames,

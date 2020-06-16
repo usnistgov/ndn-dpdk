@@ -10,7 +10,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 const locatorScheme = "ether"
@@ -27,7 +27,7 @@ func NewLocator(dev ethdev.EthDev) (loc Locator) {
 	loc.Scheme = locatorScheme
 	loc.Port = dev.GetName()
 	loc.Local = dev.GetMacAddr()
-	loc.Remote = ndn.NDN_ETHER_MCAST_ADDR
+	loc.Remote = ndni.NDN_ETHER_MCAST_ADDR
 	return loc
 }
 

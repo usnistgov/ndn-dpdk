@@ -1,4 +1,4 @@
-package ndn_test
+package ndni_test
 
 import (
 	"testing"
@@ -6,8 +6,8 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/cryptodev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
-	"github.com/usnistgov/ndn-dpdk/ndn"
-	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/usnistgov/ndn-dpdk/ndni/ndntestenv"
 )
 
 func TestDataDecode(t *testing.T) {
@@ -32,11 +32,11 @@ func TestDataDecode(t *testing.T) {
 		if tt.bad {
 			assert.Error(e, tt.input)
 		} else if assert.NoError(e, tt.input) {
-			if !assert.Equal(ndn.L3PktType_Data, pkt.GetL3Type(), tt.input) {
+			if !assert.Equal(ndni.L3PktType_Data, pkt.GetL3Type(), tt.input) {
 				continue
 			}
 			data := pkt.AsData()
-			assert.Implements((*ndn.IL3Packet)(nil), data)
+			assert.Implements((*ndni.IL3Packet)(nil), data)
 			ndntestenv.NameEqual(assert, tt.name, data, tt.input)
 			assert.EqualValues(tt.freshness, data.GetFreshnessPeriod()/time.Millisecond, tt.input)
 		}
@@ -47,40 +47,40 @@ func TestDataSatisfy(t *testing.T) {
 	assert, _ := makeAR(t)
 
 	interestExact := makeInterest("/B")
-	interestPrefix := makeInterest("/B", ndn.CanBePrefixFlag)
-	interestFresh := makeInterest("/B", ndn.MustBeFreshFlag)
+	interestPrefix := makeInterest("/B", ndni.CanBePrefixFlag)
+	interestFresh := makeInterest("/B", ndni.MustBeFreshFlag)
 
 	tests := []struct {
-		data        *ndn.Data
-		exactMatch  ndn.DataSatisfyResult
-		prefixMatch ndn.DataSatisfyResult
-		freshMatch  ndn.DataSatisfyResult
+		data        *ndni.Data
+		exactMatch  ndni.DataSatisfyResult
+		prefixMatch ndni.DataSatisfyResult
+		freshMatch  ndni.DataSatisfyResult
 	}{
 		{makeData("/A", time.Second),
-			ndn.DATA_SATISFY_NO, ndn.DATA_SATISFY_NO, ndn.DATA_SATISFY_NO},
+			ndni.DATA_SATISFY_NO, ndni.DATA_SATISFY_NO, ndni.DATA_SATISFY_NO},
 		{makeData("/2=B", time.Second),
-			ndn.DATA_SATISFY_NO, ndn.DATA_SATISFY_NO, ndn.DATA_SATISFY_NO},
+			ndni.DATA_SATISFY_NO, ndni.DATA_SATISFY_NO, ndni.DATA_SATISFY_NO},
 		{makeData("/B", time.Second),
-			ndn.DATA_SATISFY_YES, ndn.DATA_SATISFY_YES, ndn.DATA_SATISFY_YES},
+			ndni.DATA_SATISFY_YES, ndni.DATA_SATISFY_YES, ndni.DATA_SATISFY_YES},
 		{makeData("/B", time.Duration(0)),
-			ndn.DATA_SATISFY_YES, ndn.DATA_SATISFY_YES, ndn.DATA_SATISFY_NO},
+			ndni.DATA_SATISFY_YES, ndni.DATA_SATISFY_YES, ndni.DATA_SATISFY_NO},
 		{makeData("/B/0", time.Second),
-			ndn.DATA_SATISFY_NO, ndn.DATA_SATISFY_YES, ndn.DATA_SATISFY_NO},
+			ndni.DATA_SATISFY_NO, ndni.DATA_SATISFY_YES, ndni.DATA_SATISFY_NO},
 		{makeData("/", time.Second),
-			ndn.DATA_SATISFY_NO, ndn.DATA_SATISFY_NO, ndn.DATA_SATISFY_NO},
+			ndni.DATA_SATISFY_NO, ndni.DATA_SATISFY_NO, ndni.DATA_SATISFY_NO},
 		{makeData("/C", time.Second),
-			ndn.DATA_SATISFY_NO, ndn.DATA_SATISFY_NO, ndn.DATA_SATISFY_NO},
+			ndni.DATA_SATISFY_NO, ndni.DATA_SATISFY_NO, ndni.DATA_SATISFY_NO},
 	}
 	for i, tt := range tests {
 		assert.Equal(tt.exactMatch, tt.data.CanSatisfy(interestExact), "%d", i)
 		assert.Equal(tt.prefixMatch, tt.data.CanSatisfy(interestPrefix), "%d", i)
 		assert.Equal(tt.freshMatch, tt.data.CanSatisfy(interestFresh), "%d", i)
 
-		if tt.exactMatch == ndn.DATA_SATISFY_YES {
+		if tt.exactMatch == ndni.DATA_SATISFY_YES {
 			interestImplicit := makeInterest(tt.data.GetFullName().String())
-			assert.Equal(ndn.DATA_SATISFY_NEED_DIGEST, tt.data.CanSatisfy(interestImplicit))
+			assert.Equal(ndni.DATA_SATISFY_NEED_DIGEST, tt.data.CanSatisfy(interestImplicit))
 			tt.data.ComputeDigest(true)
-			assert.Equal(ndn.DATA_SATISFY_YES, tt.data.CanSatisfy(interestImplicit))
+			assert.Equal(ndni.DATA_SATISFY_YES, tt.data.CanSatisfy(interestImplicit))
 			ndntestenv.ClosePacket(interestImplicit)
 		}
 
@@ -109,7 +109,7 @@ func TestDataDigest(t *testing.T) {
 		"/B",
 		"/C",
 	}
-	inputs := make([]*ndn.Data, 4)
+	inputs := make([]*ndni.Data, 4)
 	for i, name := range names {
 		inputs[i] = makeData(name)
 	}
@@ -124,7 +124,7 @@ func TestDataDigest(t *testing.T) {
 
 	assert.Equal(4, qp.DequeueBurst(ops))
 	for i, op := range ops {
-		data, e := ndn.DataDigest_Finish(op)
+		data, e := ndni.DataDigest_Finish(op)
 		assert.NoError(e)
 		if assert.NotNil(data) {
 			ndntestenv.NameEqual(assert, names[i], data)

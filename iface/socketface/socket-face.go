@@ -19,7 +19,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 // Configuration for creating SocketFace.
@@ -60,7 +60,7 @@ func New(conn net.Conn, cfg Config) (face *SocketFace, e error) {
 	}
 
 	face.logger = newLogger(face.GetFaceId())
-	face.rxMp = ndn.PacketMempool.MakePool(eal.NumaSocket{})
+	face.rxMp = ndni.PacketMempool.MakePool(eal.NumaSocket{})
 	face.conn.Store(conn)
 	face.txQueue = make(chan *pktmbuf.Packet, cfg.TxqFrames)
 

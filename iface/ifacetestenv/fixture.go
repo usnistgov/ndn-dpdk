@@ -7,8 +7,8 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"github.com/usnistgov/ndn-dpdk/ndn"
-	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/usnistgov/ndn-dpdk/ndni/ndntestenv"
 )
 
 // Test fixture for sending and receiving packets between a pair of connected faces.
@@ -83,7 +83,7 @@ func (fixture *Fixture) launchRx() {
 	fixture.rxl.SetLCore(fixture.RxLCore)
 
 	fixture.rxl.SetCallback(iface.WrapRxCb(func(burst iface.RxBurst) {
-		check := func(l3pkt ndn.IL3Packet) (increment int) {
+		check := func(l3pkt ndni.IL3Packet) (increment int) {
 			pkt := l3pkt.GetPacket().AsMbuf()
 			faceId := iface.FaceId(pkt.GetPort())
 			if _, ok := fixture.rxDiscard[faceId]; !ok {
@@ -119,12 +119,12 @@ func (fixture *Fixture) launchRx() {
 }
 
 func (fixture *Fixture) sendProc() int {
-	content := make(ndn.TlvBytes, fixture.PayloadLen)
+	content := make(ndni.TlvBytes, fixture.PayloadLen)
 	for i := 0; i < fixture.TxLoops; i++ {
-		pkts := make([]*ndn.Packet, 3)
+		pkts := make([]*ndni.Packet, 3)
 		pkts[0] = ndntestenv.MakeInterest("/A").GetPacket()
 		pkts[1] = ndntestenv.MakeData("/A", content).GetPacket()
-		pkts[2] = ndn.MakeNackFromInterest(ndntestenv.MakeInterest("/A"), ndn.NackReason_NoRoute).GetPacket()
+		pkts[2] = ndni.MakeNackFromInterest(ndntestenv.MakeInterest("/A"), ndni.NackReason_NoRoute).GetPacket()
 		fixture.txFace.TxBurst(pkts)
 		time.Sleep(time.Millisecond)
 	}

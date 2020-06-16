@@ -10,7 +10,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/container/cs"
 	"github.com/usnistgov/ndn-dpdk/container/fib"
 	"github.com/usnistgov/ndn-dpdk/container/pcct"
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 // The Pending Interest Table (PIT).
@@ -45,7 +45,7 @@ func (pit *Pit) TriggerTimeoutSched() {
 }
 
 // Insert or find a PIT entry for the given Interest.
-func (pit *Pit) Insert(interest *ndn.Interest, fibEntry *fib.Entry) (pitEntry *Entry, csEntry *cs.Entry) {
+func (pit *Pit) Insert(interest *ndni.Interest, fibEntry *fib.Entry) (pitEntry *Entry, csEntry *cs.Entry) {
 	res := C.Pit_Insert(pit.getPtr(), (*C.Packet)(interest.GetPacket().GetPtr()),
 		(*C.FibEntry)(unsafe.Pointer(fibEntry)))
 	switch C.PitInsertResult_GetKind(res) {
@@ -94,13 +94,13 @@ func (fr FindResult) NeedDataDigest() bool {
 }
 
 // Find PIT entries matching a Data.
-func (pit *Pit) FindByData(data *ndn.Data) FindResult {
+func (pit *Pit) FindByData(data *ndni.Data) FindResult {
 	resC := C.Pit_FindByData(pit.getPtr(), (*C.Packet)(data.GetPacket().GetPtr()))
 	return FindResult{resC, pit}
 }
 
 // Find PIT entries matching a Nack.
-func (pit *Pit) FindByNack(nack *ndn.Nack) *Entry {
+func (pit *Pit) FindByNack(nack *ndni.Nack) *Entry {
 	entryC := C.Pit_FindByNack(pit.getPtr(), (*C.Packet)(nack.GetPacket().GetPtr()))
 	if entryC == nil {
 		return nil

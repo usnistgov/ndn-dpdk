@@ -14,7 +14,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 const (
@@ -36,16 +36,16 @@ type MockFace struct {
 	emitter     *emission.Emitter
 	txRecorders []io.Closer
 
-	TxInterests []*ndn.Interest // sent Interest packets
-	TxData      []*ndn.Data     // sent Data packets
-	TxNacks     []*ndn.Nack     // sent Nack packets
-	TxBadPkts   []ndn.Packet    // sent unparsable packets
+	TxInterests []*ndni.Interest // sent Interest packets
+	TxData      []*ndni.Data     // sent Data packets
+	TxNacks     []*ndni.Nack     // sent Nack packets
+	TxBadPkts   []ndni.Packet    // sent unparsable packets
 }
 
 func New() (face *MockFace) {
 	mempoolInitOnce.Do(func() {
-		headerMempool = ndn.HeaderMempool.MakePool(eal.NumaSocket{})
-		nameMempool = ndn.NameMempool.MakePool(eal.NumaSocket{})
+		headerMempool = ndni.HeaderMempool.MakePool(eal.NumaSocket{})
+		nameMempool = ndni.NameMempool.MakePool(eal.NumaSocket{})
 	})
 
 	face = new(MockFace)
@@ -92,20 +92,20 @@ func (face *MockFace) ListRxGroups() []iface.IRxGroup {
 
 // Cause the face to receive a packet.
 // MockFace takes ownership of the underlying mbuf.
-func (face *MockFace) Rx(l3pkt ndn.IL3Packet) {
-	var lph ndn.LpHeader
+func (face *MockFace) Rx(l3pkt ndni.IL3Packet) {
+	var lph ndni.LpHeader
 	lph.LpL3 = *l3pkt.GetPacket().GetLpL3()
 
 	pkt := l3pkt.GetPacket().AsMbuf()
 	payloadL := pkt.Len()
-	if pkt.GetHeadroom() <= ndn.PrependLpHeader_GetHeadroom() {
+	if pkt.GetHeadroom() <= ndni.PrependLpHeader_GetHeadroom() {
 		hdrMbufs, e := headerMempool.Alloc(1)
 		if e != nil {
 			pkt.Close()
 			return
 		}
 		hdr := hdrMbufs[0]
-		hdr.SetHeadroom(ndn.PrependLpHeader_GetHeadroom())
+		hdr.SetHeadroom(ndni.PrependLpHeader_GetHeadroom())
 		e = hdr.Chain(pkt)
 		if e != nil {
 			hdr.Close()
@@ -126,29 +126,29 @@ func (face *MockFace) Rx(l3pkt ndn.IL3Packet) {
 	iface.TheChanRxGroup.Rx(pkt)
 }
 
-func (face *MockFace) OnTxInterest(cb func(interest *ndn.Interest)) io.Closer {
+func (face *MockFace) OnTxInterest(cb func(interest *ndni.Interest)) io.Closer {
 	return face.emitter.On(evt_TxInterest, cb)
 }
 
-func (face *MockFace) OnTxData(cb func(data *ndn.Data)) io.Closer {
+func (face *MockFace) OnTxData(cb func(data *ndni.Data)) io.Closer {
 	return face.emitter.On(evt_TxData, cb)
 }
 
-func (face *MockFace) OnTxNack(cb func(nack *ndn.Nack)) io.Closer {
+func (face *MockFace) OnTxNack(cb func(nack *ndni.Nack)) io.Closer {
 	return face.emitter.On(evt_TxNack, cb)
 }
 
-func (face *MockFace) OnTxBadPkt(cb func(pkt ndn.Packet)) io.Closer {
+func (face *MockFace) OnTxBadPkt(cb func(pkt ndni.Packet)) io.Closer {
 	return face.emitter.On(evt_TxBadPkt, cb)
 }
 
 func (face *MockFace) EnableTxRecorders() {
 	face.DisableTxRecorders()
 	face.txRecorders = []io.Closer{
-		face.OnTxInterest(func(interest *ndn.Interest) { face.TxInterests = append(face.TxInterests, interest) }),
-		face.OnTxData(func(data *ndn.Data) { face.TxData = append(face.TxData, data) }),
-		face.OnTxNack(func(nack *ndn.Nack) { face.TxNacks = append(face.TxNacks, nack) }),
-		face.OnTxBadPkt(func(pkt ndn.Packet) { face.TxBadPkts = append(face.TxBadPkts, pkt) }),
+		face.OnTxInterest(func(interest *ndni.Interest) { face.TxInterests = append(face.TxInterests, interest) }),
+		face.OnTxData(func(data *ndni.Data) { face.TxData = append(face.TxData, data) }),
+		face.OnTxNack(func(nack *ndni.Nack) { face.TxNacks = append(face.TxNacks, nack) }),
+		face.OnTxBadPkt(func(pkt ndni.Packet) { face.TxBadPkts = append(face.TxBadPkts, pkt) }),
 	}
 }
 
@@ -159,7 +159,7 @@ func (face *MockFace) DisableTxRecorders() {
 	face.txRecorders = nil
 }
 
-func (face *MockFace) handleTx(pkt *ndn.Packet) {
+func (face *MockFace) handleTx(pkt *ndni.Packet) {
 	e := pkt.ParseL2()
 	if e == nil {
 		e = pkt.ParseL3(nameMempool)
@@ -170,11 +170,11 @@ func (face *MockFace) handleTx(pkt *ndn.Packet) {
 	}
 
 	switch pkt.GetL3Type() {
-	case ndn.L3PktType_Interest:
+	case ndni.L3PktType_Interest:
 		face.emitter.EmitSync(evt_TxInterest, pkt.AsInterest())
-	case ndn.L3PktType_Data:
+	case ndni.L3PktType_Data:
 		face.emitter.EmitSync(evt_TxData, pkt.AsData())
-	case ndn.L3PktType_Nack:
+	case ndni.L3PktType_Nack:
 		face.emitter.EmitSync(evt_TxNack, pkt.AsNack())
 	}
 }
@@ -185,7 +185,7 @@ func go_MockFace_TxBurst(faceC *C.Face, pkts **C.struct_rte_mbuf, nPkts C.uint16
 	for i := C.uint16_t(0); i < nPkts; i++ {
 		pktsEle := (**C.struct_rte_mbuf)(unsafe.Pointer(uintptr(unsafe.Pointer(pkts)) +
 			uintptr(i)*unsafe.Sizeof(*pkts)))
-		pkt := ndn.PacketFromPtr(unsafe.Pointer(*pktsEle))
+		pkt := ndni.PacketFromPtr(unsafe.Pointer(*pktsEle))
 		face.handleTx(pkt)
 	}
 	return C.uint16_t(nPkts)

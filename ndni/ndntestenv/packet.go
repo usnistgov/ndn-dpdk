@@ -3,16 +3,16 @@ package ndntestenv
 import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
-func makePacket(b []byte) *ndn.Packet {
+func makePacket(b []byte) *ndni.Packet {
 	m := mbuftestenv.MakePacket(b)
 	m.SetTimestamp(eal.TscNow())
-	return ndn.PacketFromPtr(m.GetPtr())
+	return ndni.PacketFromPtr(m.GetPtr())
 }
 
-func parseL2L3(pkt *ndn.Packet) {
+func parseL2L3(pkt *ndni.Packet) {
 	e := pkt.ParseL2()
 	if e != nil {
 		panic(e)
@@ -26,10 +26,10 @@ func parseL2L3(pkt *ndn.Packet) {
 
 // Make Interest on dpdktestenv DirectMp.
 // input: packet bytes as []byte or HEX, or name URI.
-// args: additional arguments to ndn.MakeInterest.
+// args: additional arguments to ndni.MakeInterest.
 // Panics if packet constructed from bytes is not Interest.
-func MakeInterest(input interface{}, args ...interface{}) *ndn.Interest {
-	var pkt *ndn.Packet
+func MakeInterest(input interface{}, args ...interface{}) *ndni.Interest {
+	var pkt *ndni.Packet
 	switch inp := input.(type) {
 	case []byte:
 		pkt = makePacket(inp)
@@ -38,7 +38,7 @@ func MakeInterest(input interface{}, args ...interface{}) *ndn.Interest {
 			m := Packet.Alloc()
 			m.SetTimestamp(eal.TscNow())
 			args = append(args, inp)
-			interest, e := ndn.MakeInterest(m, args...)
+			interest, e := ndni.MakeInterest(m, args...)
 			if e != nil {
 				panic(e)
 			}
@@ -56,10 +56,10 @@ func MakeInterest(input interface{}, args ...interface{}) *ndn.Interest {
 
 // Make Data on dpdktestenv DirectMp.
 // input: packet bytes as []byte or HEX, or name URI.
-// args: additional arguments to ndn.MakeData.
+// args: additional arguments to ndni.MakeData.
 // Panics if packet constructed from bytes is not Data.
-func MakeData(input interface{}, args ...interface{}) *ndn.Data {
-	var pkt *ndn.Packet
+func MakeData(input interface{}, args ...interface{}) *ndni.Data {
+	var pkt *ndni.Packet
 	switch inp := input.(type) {
 	case []byte:
 		pkt = makePacket(inp)
@@ -67,7 +67,7 @@ func MakeData(input interface{}, args ...interface{}) *ndn.Data {
 		if inp[0] == '/' {
 			m := Packet.Alloc()
 			m.SetTimestamp(eal.TscNow())
-			data, e := ndn.MakeData(m, inp, args...)
+			data, e := ndni.MakeData(m, inp, args...)
 			if e != nil {
 				panic(e)
 			}
@@ -83,22 +83,22 @@ func MakeData(input interface{}, args ...interface{}) *ndn.Data {
 	return pkt.AsData()
 }
 
-func SetFaceId(pkt ndn.IL3Packet, port uint16) {
+func SetFaceId(pkt ndni.IL3Packet, port uint16) {
 	pkt.GetPacket().AsMbuf().SetPort(port)
 }
 
-func GetPitToken(pkt ndn.IL3Packet) uint64 {
+func GetPitToken(pkt ndni.IL3Packet) uint64 {
 	return pkt.GetPacket().GetLpL3().GetPitToken()
 }
 
-func SetPitToken(pkt ndn.IL3Packet, token uint64) {
+func SetPitToken(pkt ndni.IL3Packet, token uint64) {
 	pkt.GetPacket().GetLpL3().SetPitToken(token)
 }
 
-func CopyPitToken(pkt ndn.IL3Packet, src ndn.IL3Packet) {
+func CopyPitToken(pkt ndni.IL3Packet, src ndni.IL3Packet) {
 	SetPitToken(pkt, GetPitToken(src))
 }
 
-func ClosePacket(pkt ndn.IL3Packet) {
+func ClosePacket(pkt ndni.IL3Packet) {
 	pkt.GetPacket().AsMbuf().Close()
 }

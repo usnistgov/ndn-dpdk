@@ -5,8 +5,8 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/container/fib"
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"github.com/usnistgov/ndn-dpdk/ndn"
-	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/usnistgov/ndn-dpdk/ndni/ndntestenv"
 )
 
 func TestEntry(t *testing.T) {
@@ -17,7 +17,7 @@ func TestEntry(t *testing.T) {
 	assert.Equal(0, entry.CountComps())
 	assert.Len(entry.GetNexthops(), 0)
 
-	name, _ := ndn.ParseName("/A/B")
+	name, _ := ndni.ParseName("/A/B")
 	assert.NoError(entry.SetName(name))
 	assert.True(name.Equal(entry.GetName()))
 	assert.Equal(2, entry.CountComps())
@@ -30,7 +30,7 @@ func TestEntry(t *testing.T) {
 	for len(name2V) <= fib.MAX_NAME_LEN {
 		name2V = append(name2V, name2V...)
 	}
-	name2, _ := ndn.NewName(name2V)
+	name2, _ := ndni.NewName(name2V)
 	assert.Error(entry.SetName(name2))
 
 	nexthops2 := make([]iface.FaceId, 0)

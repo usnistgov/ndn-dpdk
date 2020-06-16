@@ -2,7 +2,7 @@ import * as pktqueue from "../../container/pktqueue/mod";
 import { Counter } from "../../core/mod";
 import { Milliseconds, Nanoseconds } from "../../core/nnduration/mod";
 import * as runningStat from "../../core/runningstat/mod";
-import * as ndn from "../../ndn/mod";
+import * as ndni from "../../ndni/mod";
 
 export interface Config {
   RxQueue?: pktqueue.Config;
@@ -18,7 +18,7 @@ export interface Pattern {
    */
   Weight?: number;
 
-  Prefix: ndn.Name;
+  Prefix: ndni.Name;
 
   /**
    * @default false

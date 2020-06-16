@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/container/pit"
-	"github.com/usnistgov/ndn-dpdk/ndn"
-	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/usnistgov/ndn-dpdk/ndni/ndntestenv"
 )
 
 func TestEntryExpiry(t *testing.T) {
@@ -76,8 +76,8 @@ func TestEntryLongName(t *testing.T) {
 	defer fixture.Close()
 
 	interest := makeInterest(strings.Repeat("/LLLLLLLL", 180),
-		ndn.FHDelegation{1, strings.Repeat("/FHFHFHFH", 70)},
-		ndn.ActiveFHDelegation(0))
+		ndni.FHDelegation{1, strings.Repeat("/FHFHFHFH", 70)},
+		ndni.ActiveFHDelegation(0))
 	ndntestenv.SetPitToken(interest, 0xB0B1B2B3B4B5B6B7)
 	ndntestenv.SetFaceId(interest, 1000)
 

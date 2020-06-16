@@ -1,11 +1,11 @@
 BPFCC = ENV["BPFCC"] || "clang-8"
 BPFFLAGS = "-O2 -target bpf -Wno-int-to-void-pointer-cast -I/usr/include/x86_64-linux-gnu"
 
-file "ndn/error.go" => "ndn/error.tsv" do
-  sh "ndn/make-error.sh"
+file "ndni/error.go" => "ndni/error.tsv" do
+  sh "ndni/make-error.sh"
 end
-file "ndn/tlv-type.go" => "ndn/tlv-type.tsv" do
-  sh "ndn/make-tlv-type.sh"
+file "ndni/tlv-type.go" => "ndni/tlv-type.tsv" do
+  sh "ndni/make-tlv-type.sh"
 end
 
 desc "Build forwarding strategies"

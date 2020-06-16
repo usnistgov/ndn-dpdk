@@ -7,7 +7,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/createface"
 	"github.com/usnistgov/ndn-dpdk/iface/mockface"
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 func Init() {
@@ -44,9 +44,9 @@ func MakeMockFace() *mockface.MockFace {
 	return face.(*mockface.MockFace)
 }
 
-func MakeRxFunc(q *pktqueue.PktQueue) func(pkts ...ndn.IL3Packet) {
-	return func(pkts ...ndn.IL3Packet) {
-		npkts := make([]*ndn.Packet, len(pkts))
+func MakeRxFunc(q *pktqueue.PktQueue) func(pkts ...ndni.IL3Packet) {
+	return func(pkts ...ndni.IL3Packet) {
+		npkts := make([]*ndni.Packet, len(pkts))
 		for i, pkt := range pkts {
 			npkts[i] = pkt.GetPacket()
 		}

@@ -8,11 +8,11 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 type ndtLookupTestEntry struct {
-	Name    *ndn.Name
+	Name    *ndni.Name
 	Results []uint8
 }
 
@@ -23,7 +23,7 @@ type ndtLookupTestThread struct {
 	Entries []ndtLookupTestEntry
 }
 
-func newNdtLookupTestThread(ndt *ndt.Ndt, threadIndex int, names []*ndn.Name) (th *ndtLookupTestThread) {
+func newNdtLookupTestThread(ndt *ndt.Ndt, threadIndex int, names []*ndni.Name) (th *ndtLookupTestThread) {
 	th = new(ndtLookupTestThread)
 	th.stop = eal.NewStopChan()
 	th.ndtt = ndt.GetThread(threadIndex)
@@ -79,10 +79,10 @@ func TestNdt(t *testing.T) {
 		"/B/2=C",
 		"/B/C",
 	}
-	names := make([]*ndn.Name, len(nameStrs))
+	names := make([]*ndni.Name, len(nameStrs))
 	nameIndices := make(map[uint64]bool)
 	for i, nameStr := range nameStrs {
-		names[i] = ndn.MustParseName(nameStr)
+		names[i] = ndni.MustParseName(nameStr)
 		nameIndices[ndt.GetIndex(ndt.ComputeHash(names[i]))] = true
 	}
 	assert.Len(nameIndices, 7)
