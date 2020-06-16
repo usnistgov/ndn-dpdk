@@ -68,7 +68,7 @@ CsList_EvictBulk(CsList* csl, uint32_t max, CsList_EvictCb cb, void* cbarg)
   uint32_t nErase = RTE_MIN(max, csl->count);
   CsNode* node = csl->next;
 
-  for (int i = 0; i < nErase; ++i) {
+  for (uint32_t i = 0; i < nErase; ++i) {
     assert(node != (CsNode*)csl);
     CsEntry* entry = (CsEntry*)node;
     node = node->next;

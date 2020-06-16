@@ -57,7 +57,7 @@ Pcct_New(const char* id, uint32_t maxEntries, unsigned numaSocket)
   char tokenHtName[RTE_HASH_NAMESIZE];
   int tokenHtNameLen =
     snprintf(tokenHtName, sizeof(tokenHtName), "%s.token", id);
-  if (tokenHtNameLen < 0 || tokenHtNameLen >= sizeof(tokenHtName)) {
+  if (tokenHtNameLen < 0 || tokenHtNameLen >= (int)sizeof(tokenHtName)) {
     rte_errno = ENAMETOOLONG;
     return NULL;
   }
@@ -235,7 +235,7 @@ PcctEraseBatch_EraseBurst_(PcctEraseBatch* peb)
     if (entry->ext != NULL) {
       peb->objs[nObjs++] = entry->ext;
     }
-    assert(nObjs < RTE_DIM(peb->objs));
+    assert((size_t)nObjs < RTE_DIM(peb->objs));
   }
   rte_mempool_put_bulk(Pcct_ToMempool(peb->pcct), peb->objs, nObjs);
   peb->nEntries = 0;

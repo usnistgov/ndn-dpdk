@@ -8,17 +8,10 @@ project('NDN-DPDK', 'c',
   ])
 
 add_global_arguments(
-  '-Wno-error=sign-compare',
   '-Wno-unused-function',
   '-Wno-unused-parameter',
   language: 'c'
 )
-if meson.get_compiler('c').get_id() == 'gcc'
-  add_global_arguments(
-    '-Wno-error=implicit-fallthrough',
-    language: 'c'
-  )
-endif
 if meson.get_compiler('c').get_id() == 'clang'
   add_global_arguments(
     '-Wno-error=address-of-packed-member',

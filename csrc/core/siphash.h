@@ -4,8 +4,12 @@
 /// \file
 
 #include "common.h"
-#include "siphash-20121104.h"
 #include <rte_memcpy.h>
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+#include "siphash-20121104.h"
+#pragma GCC diagnostic pop
 
 /** \brief a key for SipHash
  */

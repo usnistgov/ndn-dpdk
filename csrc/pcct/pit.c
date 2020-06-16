@@ -21,7 +21,7 @@ Pit_Init(Pit* pit)
   pitp->timeoutSched =
     MinSched_New(12, rte_get_tsc_hz() / 30, PitEntry_Timeout_, pit);
   assert(MinSched_GetMaxDelay(pitp->timeoutSched) >=
-         PIT_MAX_LIFETIME * rte_get_tsc_hz() / 1000);
+         (TscDuration)(PIT_MAX_LIFETIME * rte_get_tsc_hz() / 1000));
 
   pitp->sgTimerCb = Pit_SgTimerCb_Empty;
 }

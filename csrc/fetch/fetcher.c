@@ -41,7 +41,7 @@ FetchProc_TxBurst(FetchProc* fp, FetchThread* fth)
     return;
   }
 
-  for (int i = 0; i < count; ++i) {
+  for (size_t i = 0; i < count; ++i) {
     FetchProc_Encode(fp, fth, npkts[i], segNums[i]);
   }
   Face_TxBurst(fth->face, npkts, count);

@@ -108,7 +108,7 @@ PktQueue_PopCoDel(PktQueue* q,
   } else if (res.drop) {
     q->dropping = true;
     uint32_t delta = q->count - q->lastCount;
-    if (delta > 1 && now - q->dropNext < 16 * q->interval) {
+    if (delta > 1 && (TscDuration)(now - q->dropNext) < 16 * q->interval) {
       q->count = delta;
       CoDel_NewtonStep(q);
     } else {

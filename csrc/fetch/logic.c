@@ -164,5 +164,5 @@ FetchLogic_Init_(FetchLogic* fl)
   fl->sched =
     MinSched_New(16, rte_get_tsc_hz() / 1000, FetchLogic_RtoTimeout, fl);
   assert(MinSched_GetMaxDelay(fl->sched) >=
-         RTTEST_MAXRTO_MS * rte_get_tsc_hz() / 1000);
+         (TscDuration)(RTTEST_MAXRTO_MS * rte_get_tsc_hz() / 1000));
 }
