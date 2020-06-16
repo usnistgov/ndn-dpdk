@@ -14,6 +14,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
@@ -120,7 +121,7 @@ func (fetcher *Fetcher) AddTemplate(tplArgs ...interface{}) (i int, e error) {
 	if uintptr(tpl.PrefixL+1) >= unsafe.Sizeof(tpl.PrefixV) {
 		return -1, errors.New("name too long")
 	}
-	tpl.PrefixV[tpl.PrefixL] = uint8(ndni.TT_SegmentNameComponent)
+	tpl.PrefixV[tpl.PrefixL] = uint8(an.TtSegmentNameComponent)
 	// put SegmentNameComponent TLV-TYPE in the buffer so that it's checked in same memcmp
 
 	rs := urcu.NewReadSide()

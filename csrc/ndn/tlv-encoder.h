@@ -4,8 +4,8 @@
 /** \file
  *
  *  \par Common return values of encoding functions:
- *  \retval NdnError_OK successful; encoder is advanced past end of encoded item.
- *  \retval NdnError_Incomplete reaching output boundary before encoding finishes.
+ *  \retval NdnErrOK successful; encoder is advanced past end of encoded item.
+ *  \retval NdnErrIncomplete reaching output boundary before encoding finishes.
  */
 
 #include "tlv-varnum.h"
@@ -65,11 +65,11 @@ AppendVarNum(TlvEncoder* en, uint32_t n)
 {
   uint8_t* room = TlvEncoder_Append(en, SizeofVarNum(n));
   if (unlikely(room == NULL)) {
-    return NdnError_Incomplete;
+    return NdnErrIncomplete;
   }
 
   EncodeVarNum(room, n);
-  return NdnError_OK;
+  return NdnErrOK;
 }
 
 /** \brief Prepend a TLV-TYPE or TLV-LENGTH number.
@@ -79,11 +79,11 @@ PrependVarNum(TlvEncoder* en, uint32_t n)
 {
   uint8_t* room = TlvEncoder_Prepend(en, SizeofVarNum(n));
   if (unlikely(room == NULL)) {
-    return NdnError_Incomplete;
+    return NdnErrIncomplete;
   }
 
   EncodeVarNum(room, n);
-  return NdnError_OK;
+  return NdnErrOK;
 }
 
 #endif // NDN_DPDK_NDN_TLV_ENCODER_H

@@ -31,10 +31,10 @@ typedef struct SgPacket
 
 typedef enum SgNackReason
 {
-  SgNackReason_Congestion = 50,
-  SgNackReason_Duplicate = 100,
-  SgNackReason_NoRoute = 150,
-  SgNackReason_Unspecified = 255,
+  SgNackCongestion = 50,
+  SgNackDuplicate = 100,
+  SgNackNoRoute = 150,
+  SgNackUnspecified = 255,
 } SgNackReason;
 
 #endif // NDN_DPDK_STRATEGYAPI_PACKET_H

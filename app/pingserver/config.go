@@ -3,6 +3,7 @@ package pingserver
 import (
 	"github.com/usnistgov/ndn-dpdk/container/pktqueue"
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
+	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
@@ -27,7 +28,7 @@ type Reply struct {
 	FreshnessPeriod nnduration.Milliseconds // FreshnessPeriod value
 	PayloadLen      int                     // Content payload length
 
-	Nack ndni.NackReason // if not NackReason_None, reply with Nack instead of Data
+	Nack an.NackReason // if not NackNone, reply with Nack instead of Data
 
 	Timeout bool // if true, drop the Interest instead of sending Data
 }

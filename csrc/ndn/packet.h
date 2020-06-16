@@ -184,7 +184,7 @@ Packet_GetInterestHdr(Packet* npkt)
 {
   assert(Packet_GetL3PktType(npkt) == L3PktType_Interest &&
          (Packet_GetL2PktType(npkt) != L2PktType_NdnlpV2 ||
-          Packet_GetLpL3Hdr_(npkt)->nackReason == NackReason_None));
+          Packet_GetLpL3Hdr_(npkt)->nackReason == NackNone));
   return Packet_GetInterestHdr_(npkt);
 }
 
@@ -209,12 +209,12 @@ static inline PNack*
 Packet_GetNackHdr(Packet* npkt)
 {
   assert(Packet_GetL3PktType(npkt) == L3PktType_Nack &&
-         Packet_GetLpL3Hdr(npkt)->nackReason != NackReason_None);
+         Packet_GetLpL3Hdr(npkt)->nackReason != NackNone);
   return &Packet_GetPriv_(npkt)->nack;
 }
 
 /** \brief Parse packet as LpPacket (including bare Interest/Data).
- *  \retval NdnError_BadType packet type is not LpPacket.
+ *  \retval NdnErrBadType packet type is not LpPacket.
  *  \post Packet_GetL2Type(npkt) == L2PktType_NdnlpV2
  *  \post LpHeader is stripped, leaving payload TLV-VALUE in the packet.
  */
@@ -225,8 +225,8 @@ Packet_ParseL2(Packet* npkt);
  *  \param nameMp mempool for allocating Name linearize mbufs,
  *                requires at least \c NAME_MAX_LENGTH dataroom;
  *                if NULL, will panic when Name linearize becomes necessary.
- *  \retval NdnError_BadType packet type is neither Interest nor Data.
- *  \retval NdnError_AllocError unable to allocate mbuf.
+ *  \retval NdnErrBadType packet type is neither Interest nor Data.
+ *  \retval NdnErrAllocError unable to allocate mbuf.
  *  \post Packet_GetL3Type(npkt) is L3PktType_Interest or L3PktType_Data or L3PktType_Nack.
  */
 NdnError

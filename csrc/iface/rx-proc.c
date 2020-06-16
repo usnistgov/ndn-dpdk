@@ -23,7 +23,7 @@ RxProc_Input(RxProc* rx, int thread, struct rte_mbuf* frame)
 
   Packet* npkt = Packet_FromMbuf(frame);
   NdnError e = Packet_ParseL2(npkt);
-  if (unlikely(e != NdnError_OK)) {
+  if (unlikely(e != NdnErrOK)) {
     ++rxt->nL2DecodeErr;
     ZF_LOGD("%" PRI_FaceId "-%d lp-decode-error=%d", faceId, thread, e);
     rte_pktmbuf_free(frame);
@@ -51,7 +51,7 @@ RxProc_Input(RxProc* rx, int thread, struct rte_mbuf* frame)
   }
 
   e = Packet_ParseL3(npkt, rx->nameMp);
-  if (unlikely(e != NdnError_OK)) {
+  if (unlikely(e != NdnErrOK)) {
     ++rxt->nL3DecodeErr;
     ZF_LOGD("%" PRI_FaceId "-%d l3-decode-error=%d", faceId, thread, e);
     rte_pktmbuf_free(Packet_ToMbuf(npkt));

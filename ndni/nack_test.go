@@ -3,6 +3,7 @@ package ndni_test
 import (
 	"testing"
 
+	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"github.com/usnistgov/ndn-dpdk/ndni/ndntestenv"
 )
@@ -12,12 +13,12 @@ func TestNackDecode(t *testing.T) {
 
 	tests := []struct {
 		input  string
-		reason ndni.NackReason
+		reason an.NackReason
 	}{
 		{input: "6413 nack=FD032000(noreason) payload=500D 050B 0703080141 0A04A0A1A2A3",
-			reason: ndni.NackReason_Unspecified},
+			reason: an.NackUnspecified},
 		{input: "6418 nack=FD032005(FD03210196~noroute) payload=500D 050B 0703080141 0A04A0A1A2A3",
-			reason: ndni.NackReason_NoRoute},
+			reason: an.NackNoRoute},
 	}
 	for _, tt := range tests {
 		pkt := packetFromHex(tt.input)

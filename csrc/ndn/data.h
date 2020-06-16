@@ -22,8 +22,8 @@ typedef struct PData
  *  \param pkt the packet.
  *  \param nameMp mempool for allocating Name linearize mbufs,
  *                requires at least \c NAME_MAX_LENGTH dataroom.
- *  \retval NdnError_BadType packet is not Data.
- *  \retval NdnError_AllocError unable to allocate mbuf.
+ *  \retval NdnErrBadType packet is not Data.
+ *  \retval NdnErrAllocError unable to allocate mbuf.
  */
 NdnError
 PData_FromPacket(PData* data, struct rte_mbuf* pkt, struct rte_mempool* nameMp);

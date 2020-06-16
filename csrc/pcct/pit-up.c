@@ -45,7 +45,7 @@ PitUp_RecordTx(PitUp* up,
 {
   up->nonce = nonce;
   up->canBePrefix = (bool)entry->nCanBePrefix;
-  up->nack = NackReason_None;
+  up->nack = NackNone;
 
   up->lastTx = now;
   up->suppress = PitSuppressConfig_Compute(suppressCfg, up->suppress);

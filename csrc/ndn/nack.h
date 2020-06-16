@@ -6,18 +6,6 @@
 #include "interest.h"
 #include "lp.h"
 
-/** \brief Indicate a Nack reason.
- */
-typedef enum NackReason
-{
-  NackReason_None = 0, ///< packet is not a Nack
-  NackReason_Congestion = 50,
-  NackReason_Duplicate = 100,
-  NackReason_NoRoute = 150,
-  NackReason_Unspecified = 255, ///< reason unspecified
-  NackReason_Max = 255,
-} NackReason;
-
 /** \brief Return the less severe NackReason.
  */
 static inline NackReason

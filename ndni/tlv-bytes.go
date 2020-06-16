@@ -10,6 +10,8 @@ import (
 	"encoding/hex"
 	"strings"
 	"unsafe"
+
+	"github.com/usnistgov/ndn-dpdk/ndn/an"
 )
 
 // TLV bytes in Go memory.
@@ -71,7 +73,7 @@ func (tb TlvBytes) String() string {
 }
 
 // Encode TLV from TLV-TYPE and TLV-VALUE chunks.
-func EncodeTlv(tlvType TlvType, value ...TlvBytes) TlvBytes {
+func EncodeTlv(tlvType an.TlvType, value ...TlvBytes) TlvBytes {
 	length := 0
 	for _, v := range value {
 		length += len(v)

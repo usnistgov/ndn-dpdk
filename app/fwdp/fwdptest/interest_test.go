@@ -7,6 +7,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/app/fwdp"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
+	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
@@ -65,7 +66,7 @@ func TestInterestDupNonce(t *testing.T) {
 	time.Sleep(STEP_DELAY)
 	require.Len(face3.TxInterests, 1)
 	require.Len(face2.TxNacks, 1)
-	assert.Equal(ndni.NackReason_Duplicate, face2.TxNacks[0].GetReason())
+	assert.Equal(an.NackDuplicate, face2.TxNacks[0].GetReason())
 	assert.Equal(uint64(1), fixture.SumCounter(func(dp *fwdp.DataPlane, i int) uint64 {
 		return dp.ReadFwdInfo(i).NDupNonce
 	}))
@@ -125,7 +126,7 @@ func TestInterestNoRoute(t *testing.T) {
 	time.Sleep(STEP_DELAY)
 	require.Len(face1.TxNacks, 1)
 	assert.Equal(uint64(0x431328d8b4075167), getPitToken(face1.TxNacks[0]))
-	assert.Equal(ndni.NackReason_NoRoute, face1.TxNacks[0].GetReason())
+	assert.Equal(an.NackNoRoute, face1.TxNacks[0].GetReason())
 	assert.Equal(uint64(1), fixture.SumCounter(func(dp *fwdp.DataPlane, i int) uint64 {
 		return dp.ReadFwdInfo(i).NNoFibMatch
 	}))

@@ -14,6 +14,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
@@ -87,7 +88,7 @@ func (server *Server) AddPattern(cfg Pattern) (index int, e error) {
 		switch {
 		case reply.Timeout:
 			replyC.kind = C.PINGSERVER_REPLY_TIMEOUT
-		case reply.Nack != ndni.NackReason_None:
+		case reply.Nack != an.NackNone:
 			replyC.kind = C.PINGSERVER_REPLY_NACK
 			replyC.nackReason = C.uint8_t(reply.Nack)
 		default:

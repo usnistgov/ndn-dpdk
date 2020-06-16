@@ -6,7 +6,7 @@
 SUBROUTINE uint64_t
 RxInterest(SgCtx* ctx)
 {
-  SgReturnNacks(ctx, SgNackReason_NoRoute);
+  SgReturnNacks(ctx, SgNackNoRoute);
   return 0;
 }
 

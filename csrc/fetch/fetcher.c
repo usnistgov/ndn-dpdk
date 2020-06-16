@@ -11,7 +11,7 @@ static void
 FetchProc_Encode(FetchProc* fp, FetchThread* fth, Packet* npkt, uint64_t segNum)
 {
   uint8_t suffix[10];
-  suffix[0] = TT_SegmentNameComponent;
+  suffix[0] = TtSegmentNameComponent;
   suffix[1] = EncodeNni(&suffix[2], segNum);
   LName nameSuffix = { .length = suffix[1] + 2, .value = suffix };
 
@@ -60,7 +60,7 @@ FetchProc_Decode(FetchProc* fp, Packet* npkt, FetchLogicRxData* lpkt)
   const uint8_t* seqNumComp = RTE_PTR_ADD(data->name.v, fp->tpl.prefixL);
   return data->name.p.nOctets > fp->tpl.prefixL + 1 &&
          memcmp(data->name.v, fp->tpl.prefixV, fp->tpl.prefixL + 1) == 0 &&
-         DecodeNni(seqNumComp[1], &seqNumComp[2], &lpkt->segNum) == NdnError_OK;
+         DecodeNni(seqNumComp[1], &seqNumComp[2], &lpkt->segNum) == NdnErrOK;
 }
 
 static void

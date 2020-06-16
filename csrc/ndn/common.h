@@ -17,7 +17,7 @@ typedef struct PData PData;
 
 #define RETURN_IF_ERROR                                                        \
   do {                                                                         \
-    if (unlikely(e != NdnError_OK))                                            \
+    if (unlikely(e != NdnErrOK))                                               \
       return e;                                                                \
   } while (false)
 

@@ -55,7 +55,7 @@ Docker packaging:
 * [core](core/): common shared code.
 * [dpdk](dpdk/): DPDK bindings and extensions.
 * [spdk](spdk/): SPDK bindings and extensions.
-* [ndn](ndn/): NDN packet representations.
+* [ndni](ndn/): NDN packet representation for internal use.
 * [iface](iface/): network interfaces.
 * [container](container/): data structures.
 * [strategy](strategy/): forwarding strategy BPF programs.

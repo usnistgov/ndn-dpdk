@@ -9,21 +9,24 @@ all: gopkg npm cmds
 gopkg: godeps
 	go build -v ./...
 
-godeps: app/version/version.go build/libndn-dpdk-c.a build/cgoflags.done build/cgostruct.done
+godeps: app/version/version.go ndni/error_string.go build/libndn-dpdk-c.a build/cgoflags.done build/cgostruct.done
 	rake strategies
 
 .PHONY: app/version/version.go
 app/version/version.go:
 	app/version/make-version.sh
 
-csrc/ndn/error.h: ndni/error.tsv
-	rake ndni/error.go
+csrc/ndn/an.h: ndn/an/*.go
+	go run ./mk/enumgen/ -type=TlvType,NackReason -guard=NDN_DPDK_NDN_AN_H -out=$@ ./$(<D)
 
-ndni/tlv-type.ts csrc/ndn/tlv-type.h: ndni/tlv-type.tsv
-	rake ndni/tlv-type.go
+csrc/ndn/error.h: ndni/error.go
+	go run ./mk/enumgen/ -type=NdnError -guard=NDN_DPDK_NDN_ERROR_H -out=$@ ./$(<D)
+
+ndni/error_string.go: ndni/error.go
+	mk/gogenerate.sh ./$(@D)
 
 .PHONY: build/libndn-dpdk-c.a
-build/libndn-dpdk-c.a: build/build.ninja
+build/libndn-dpdk-c.a: build/build.ninja csrc/ndn/an.h csrc/ndn/error.h
 	cd build && ninja
 
 build/cgoflags.done: build/build.ninja
@@ -35,11 +38,11 @@ build/cgostruct.done: build/build.ninja
 build/build.ninja: meson.build csrc/meson.build mk/meson.build
 	bash -c 'source mk/cflags.sh; meson build'
 
-csrc/meson.build mk/meson.build: csrc/ndn/error.h csrc/ndn/tlv-type.h
+csrc/meson.build mk/meson.build:
 	mk/update-list.sh
 
 .PHONY: tsc
-tsc: ndni/tlv-type.ts
+tsc:
 	node_modules/.bin/tsc
 
 .PHONY: npm

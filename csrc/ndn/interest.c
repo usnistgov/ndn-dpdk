@@ -12,20 +12,20 @@ PInterest_FromPacket(PInterest* interest,
   MbufLoc d0;
   MbufLoc_Init(&d0, pkt);
   TlvElement interestEle;
-  NdnError e = TlvElement_Decode(&interestEle, &d0, TT_Interest);
+  NdnError e = TlvElement_Decode(&interestEle, &d0, TtInterest);
   RETURN_IF_ERROR;
 
   MbufLoc d1;
   TlvElement_MakeValueDecoder(&interestEle, &d1);
   TlvElement ele1;
 
-  e = TlvElement_Decode(&ele1, &d1, TT_Name);
+  e = TlvElement_Decode(&ele1, &d1, TtName);
   RETURN_IF_ERROR;
   if (unlikely(ele1.length == 0)) {
-    return NdnError_NameIsEmpty;
+    return NdnErrNameIsEmpty;
   }
   interest->name.v = TlvElement_LinearizeValue(&ele1, pkt, nameMp, &d1);
-  RETURN_IF_NULL(interest->name.v, NdnError_AllocError);
+  RETURN_IF_NULL(interest->name.v, NdnErrAllocError);
   e = PName_Parse(&interest->name.p, ele1.length, interest->name.v);
   RETURN_IF_ERROR;
 
@@ -43,26 +43,26 @@ PInterest_FromPacket(PInterest* interest,
 #define D1_NEXT                                                                \
   do {                                                                         \
     if (MbufLoc_IsEnd(&d1)) {                                                  \
-      return NdnError_OK;                                                      \
+      return NdnErrOK;                                                         \
     }                                                                          \
-    e = TlvElement_Decode(&ele1, &d1, TT_Invalid);                             \
+    e = TlvElement_Decode(&ele1, &d1, TtInvalid);                              \
     RETURN_IF_ERROR;                                                           \
   } while (false)
 
   D1_NEXT;
-  if (ele1.type == TT_CanBePrefix) {
+  if (ele1.type == TtCanBePrefix) {
     interest->canBePrefix = true;
     interest->guiderOff += ele1.size;
     D1_NEXT;
   }
 
-  if (ele1.type == TT_MustBeFresh) {
+  if (ele1.type == TtMustBeFresh) {
     interest->mustBeFresh = true;
     interest->guiderOff += ele1.size;
     D1_NEXT;
   }
 
-  if (ele1.type == TT_ForwardingHint) {
+  if (ele1.type == TtForwardingHint) {
     MbufLoc d2;
     TlvElement_MakeValueDecoder(&ele1, &d2);
     for (int i = 0; i < INTEREST_MAX_FHS; ++i) {
@@ -70,17 +70,17 @@ PInterest_FromPacket(PInterest* interest,
         break;
       }
       TlvElement delegationEle;
-      e = TlvElement_Decode(&delegationEle, &d2, TT_Delegation);
+      e = TlvElement_Decode(&delegationEle, &d2, TtDelegation);
       RETURN_IF_ERROR;
 
       MbufLoc d3;
       TlvElement_MakeValueDecoder(&delegationEle, &d3);
       TlvElement ele3;
-      e = TlvElement_Decode(&ele3, &d3, TT_Preference);
+      e = TlvElement_Decode(&ele3, &d3, TtPreference);
       RETURN_IF_ERROR;
-      e = TlvElement_Decode(&ele3, &d3, TT_Name);
+      e = TlvElement_Decode(&ele3, &d3, TtName);
       interest->fhNameV[i] = TlvElement_LinearizeValue(&ele3, pkt, nameMp, &d3);
-      RETURN_IF_NULL(interest->fhNameV[i], NdnError_AllocError);
+      RETURN_IF_NULL(interest->fhNameV[i], NdnErrAllocError);
       interest->fhNameL[i] = ele3.length;
       ++interest->nFhs;
       MbufLoc_CopyPos(&d2, &d3);
@@ -90,10 +90,10 @@ PInterest_FromPacket(PInterest* interest,
     D1_NEXT;
   }
 
-  if (ele1.type == TT_Nonce) {
+  if (ele1.type == TtNonce) {
     rte_le32_t nonceV;
     if (unlikely(ele1.length != sizeof(nonceV))) {
-      return NdnError_BadNonceLength;
+      return NdnErrBadNonceLength;
     }
     // overwriting ele1.value, but it's okay because we don't need it later
     bool ok __rte_unused = MbufLoc_ReadU32(&ele1.value, &nonceV);
@@ -103,31 +103,31 @@ PInterest_FromPacket(PInterest* interest,
     D1_NEXT;
   }
 
-  if (ele1.type == TT_InterestLifetime) {
+  if (ele1.type == TtInterestLifetime) {
     uint64_t lifetimeV = 0;
     e = TlvElement_ReadNonNegativeInteger(&ele1, &lifetimeV);
-    if (unlikely(e != NdnError_OK || lifetimeV >= UINT32_MAX)) {
-      return NdnError_BadInterestLifetime;
+    if (unlikely(e != NdnErrOK || lifetimeV >= UINT32_MAX)) {
+      return NdnErrBadInterestLifetime;
     }
     interest->lifetime = (uint32_t)lifetimeV;
     interest->guiderSize += ele1.size;
     D1_NEXT;
   }
 
-  if (ele1.type == TT_HopLimit) {
+  if (ele1.type == TtHopLimit) {
     if (unlikely(ele1.length != sizeof(interest->hopLimit))) {
-      return NdnError_BadHopLimitLength;
+      return NdnErrBadHopLimitLength;
     }
     const uint8_t* hopLimitV = TlvElement_GetLinearValue(&ele1);
     if (unlikely(*hopLimitV == 0)) {
-      return NdnError_HopLimitZero;
+      return NdnErrHopLimitZero;
     }
     interest->hopLimit = *hopLimitV;
     interest->guiderSize += ele1.size;
     D1_NEXT;
   }
 
-  return NdnError_OK;
+  return NdnErrOK;
 #undef D1_NEXT
 }
 
@@ -136,11 +136,11 @@ PInterest_SelectActiveFh(PInterest* interest, int8_t index)
 {
   assert(index >= -1 && index < interest->nFhs);
   if (interest->activeFh == index) {
-    return NdnError_OK;
+    return NdnErrOK;
   }
   interest->activeFh = -1;
   if (index < 0) {
-    return NdnError_OK;
+    return NdnErrOK;
   }
 
   NdnError e = PName_Parse(&interest->activeFhName.p,
@@ -149,7 +149,7 @@ PInterest_SelectActiveFh(PInterest* interest, int8_t index)
   RETURN_IF_ERROR;
   interest->activeFhName.v = interest->fhNameV[index];
   interest->activeFh = index;
-  return NdnError_OK;
+  return NdnErrOK;
 }
 
 void
@@ -187,8 +187,8 @@ ModifyInterest(Packet* npkt,
   MbufLoc d0;
   MbufLoc_Init(&d0, inPkt);
   TlvElement interestEle;
-  NdnError e __rte_unused = TlvElement_DecodeTL(&interestEle, &d0, TT_Interest);
-  assert(e == NdnError_OK);
+  NdnError e __rte_unused = TlvElement_DecodeTL(&interestEle, &d0, TtInterest);
+  assert(e == NdnErrOK);
 
   // make indirect mbufs over Name thru ForwardingHint
   struct rte_mbuf* m1 =
@@ -220,13 +220,13 @@ ModifyInterest(Packet* npkt,
   } __rte_packed GuiderF;
 
   GuiderF* f = (GuiderF*)TlvEncoder_Append(enG, sizeof(GuiderF));
-  f->nonceT = TT_Nonce;
+  f->nonceT = TtNonce;
   f->nonceL = 4;
   *(unaligned_uint32_t*)&f->nonceV = rte_cpu_to_le_32(nonce);
-  f->lifetimeT = TT_InterestLifetime;
+  f->lifetimeT = TtInterestLifetime;
   f->lifetimeL = 4;
   *(unaligned_uint32_t*)&f->lifetimeV = rte_cpu_to_be_32(lifetime);
-  f->hopLimitT = TT_HopLimit;
+  f->hopLimitT = TtHopLimit;
   f->hopLimitL = 1;
   f->hopLimitV = hopLimit;
 
@@ -248,7 +248,7 @@ ModifyInterest(Packet* npkt,
   // prepend Interest TL
   TlvEncoder* enH = MakeTlvEncoder(header);
   PrependVarNum(enH, m1->pkt_len);
-  PrependVarNum(enH, TT_Interest);
+  PrependVarNum(enH, TtInterest);
   rte_pktmbuf_chain(header, m1);
 
   // copy LpL3 and PInterest
@@ -271,7 +271,7 @@ EncodeInterest_(struct rte_mbuf* m,
                 uint32_t nonce)
 {
   TlvEncoder* en = MakeTlvEncoder(m);
-  AppendVarNum(en, TT_Name);
+  AppendVarNum(en, TtName);
   AppendVarNum(en, tpl->prefixL + suffixL);
 
   uint8_t* room = TlvEncoder_Append(en, tpl->prefixL + suffixL + tpl->midLen);
@@ -285,5 +285,5 @@ EncodeInterest_(struct rte_mbuf* m,
     rte_cpu_to_le_32(nonce);
 
   PrependVarNum(en, m->pkt_len);
-  PrependVarNum(en, TT_Interest);
+  PrependVarNum(en, TtInterest);
 }

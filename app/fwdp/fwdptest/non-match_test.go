@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/app/fwdp"
+	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
@@ -100,7 +101,7 @@ func TestNackWrongName(t *testing.T) {
 	time.Sleep(STEP_DELAY)
 	require.Len(face2.TxInterests, 1)
 
-	nack := ndni.MakeNackFromInterest(makeInterest("/B/2", uint32(0xdb22330b)), ndni.NackReason_NoRoute)
+	nack := ndni.MakeNackFromInterest(makeInterest("/B/2", uint32(0xdb22330b)), an.NackNoRoute)
 	copyPitToken(nack, face2.TxInterests[0])
 	face2.Rx(nack)
 	time.Sleep(STEP_DELAY)
@@ -126,7 +127,7 @@ func TestNackWrongNonce(t *testing.T) {
 	time.Sleep(STEP_DELAY)
 	require.Len(face2.TxInterests, 1)
 
-	nack := ndni.MakeNackFromInterest(makeInterest("/B/1", uint32(0xf4d9aad1)), ndni.NackReason_NoRoute)
+	nack := ndni.MakeNackFromInterest(makeInterest("/B/1", uint32(0xf4d9aad1)), an.NackNoRoute)
 	copyPitToken(nack, face2.TxInterests[0])
 	face2.Rx(nack)
 	time.Sleep(STEP_DELAY)

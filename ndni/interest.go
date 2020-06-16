@@ -30,6 +30,7 @@ import (
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
+	"github.com/usnistgov/ndn-dpdk/ndn/an"
 )
 
 const (
@@ -113,7 +114,7 @@ func (interest *Interest) SelectActiveFh(index int) error {
 	}
 
 	e := C.PInterest_SelectActiveFh(interest.p, C.int8_t(index))
-	if e != C.NdnError_OK {
+	if e != C.NdnErrOK {
 		return NdnError(e)
 	}
 	return nil
@@ -190,7 +191,7 @@ func (tpl *InterestTemplate) Init(args ...interface{}) (e error) {
 			} else {
 				prefV := make([]byte, 4)
 				binary.BigEndian.PutUint32(prefV, uint32(a.Preference))
-				fh = fh.Join(EncodeTlv(TT_Delegation, EncodeTlv(TT_Preference, TlvBytes(prefV)), name.Encode()))
+				fh = fh.Join(EncodeTlv(an.TtDelegation, EncodeTlv(an.TtPreference, TlvBytes(prefV)), name.Encode()))
 			}
 		case time.Duration:
 			lifetime = uint32(a / time.Millisecond)
@@ -203,26 +204,26 @@ func (tpl *InterestTemplate) Init(args ...interface{}) (e error) {
 
 	var mid TlvBytes
 	if cbp {
-		mid = mid.Join(EncodeTlv(TT_CanBePrefix))
+		mid = mid.Join(EncodeTlv(an.TtCanBePrefix))
 	}
 	if mbf {
-		mid = mid.Join(EncodeTlv(TT_MustBeFresh))
+		mid = mid.Join(EncodeTlv(an.TtMustBeFresh))
 	}
 	if len(fh) > 0 {
-		mid = mid.Join(EncodeTlv(TT_ForwardingHint, fh))
+		mid = mid.Join(EncodeTlv(an.TtForwardingHint, fh))
 	}
 	{
 		nonceV := make(TlvBytes, 4)
-		mid = mid.Join(EncodeTlv(TT_Nonce, nonceV))
+		mid = mid.Join(EncodeTlv(an.TtNonce, nonceV))
 		tpl.NonceOff = uint16(len(mid) - 4)
 	}
 	if lifetime != C.DEFAULT_INTEREST_LIFETIME {
 		lifetimeV := make([]byte, 4)
 		binary.BigEndian.PutUint32(lifetimeV, lifetime)
-		mid = mid.Join(EncodeTlv(TT_InterestLifetime, TlvBytes(lifetimeV)))
+		mid = mid.Join(EncodeTlv(an.TtInterestLifetime, TlvBytes(lifetimeV)))
 	}
 	if hopLimit != 0xFF {
-		mid = mid.Join(EncodeTlv(TT_HopLimit, TlvBytes{hopLimit}))
+		mid = mid.Join(EncodeTlv(an.TtHopLimit, TlvBytes{hopLimit}))
 	}
 	tpl.MidLen = uint16(copy(tpl.MidBuf[:], ([]byte)(mid)))
 	return nil

@@ -6,7 +6,9 @@ package ndni
 import "C"
 import (
 	"fmt"
+
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
+	"github.com/usnistgov/ndn-dpdk/ndn/an"
 )
 
 type TlvElement struct {
@@ -15,7 +17,7 @@ type TlvElement struct {
 
 // Decode a TLV element.
 func ParseTlvElement(it pktmbuf.PacketIterator) (ele TlvElement, e error) {
-	if res := C.TlvElement_Decode(&ele.c, (*C.MbufLoc)(it.GetPtr()), C.TT_Invalid); res != C.NdnError_OK {
+	if res := C.TlvElement_Decode(&ele.c, (*C.MbufLoc)(it.GetPtr()), C.TtInvalid); res != C.NdnErrOK {
 		return TlvElement{}, NdnError(res)
 	}
 	return ele, nil
@@ -27,8 +29,8 @@ func (ele *TlvElement) Len() int {
 }
 
 // Get TLV-TYPE.
-func (ele *TlvElement) GetType() TlvType {
-	return TlvType(ele.c._type)
+func (ele *TlvElement) GetType() an.TlvType {
+	return an.TlvType(ele.c._type)
 }
 
 // Get TLV-LENGTH.
@@ -50,7 +52,7 @@ func (ele *TlvElement) GetValue() (v TlvBytes) {
 func (ele *TlvElement) ReadNonNegativeInteger() (n uint64, ok bool) {
 	var v C.uint64_t
 	res := C.TlvElement_ReadNonNegativeInteger(&ele.c, &v)
-	return uint64(v), res == C.NdnError_OK
+	return uint64(v), res == C.NdnErrOK
 }
 
 func (ele *TlvElement) String() string {

@@ -27,25 +27,25 @@ static __rte_always_inline int
 DecodeVarNum(const uint8_t* input, uint32_t rem, uint32_t* n)
 {
   if (unlikely(rem == 0)) {
-    return -NdnError_Incomplete;
+    return -NdnErrIncomplete;
   }
 
   uint8_t firstOctet = *input;
   switch (firstOctet) {
     case 253:
       if (unlikely(rem < 3)) {
-        return -NdnError_Incomplete;
+        return -NdnErrIncomplete;
       }
       *n = rte_be_to_cpu_16(*(unaligned_uint16_t*)(input + 1));
       return 3;
     case 254:
       if (unlikely(rem < 5)) {
-        return -NdnError_Incomplete;
+        return -NdnErrIncomplete;
       }
       *n = rte_be_to_cpu_32(*(unaligned_uint32_t*)(input + 1));
       return 5;
     case 255:
-      return -NdnError_LengthOverflow;
+      return -NdnErrLengthOverflow;
     default:
       *n = firstOctet;
       return 1;
@@ -59,7 +59,7 @@ static inline NdnError
 MbufLoc_ReadVarNum(MbufLoc* ml, uint32_t* n)
 {
   if (unlikely(MbufLoc_IsEnd(ml))) {
-    return NdnError_Incomplete;
+    return NdnErrIncomplete;
   }
 
   const uint8_t* src = rte_pktmbuf_mtod_offset(ml->m, uint8_t*, ml->off);
@@ -70,7 +70,7 @@ MbufLoc_ReadVarNum(MbufLoc* ml, uint32_t* n)
     if (likely(res > 0)) {
       ml->off += res;
       ml->rem -= res;
-      return NdnError_OK;
+      return NdnErrOK;
     }
     return -res;
   }
@@ -78,7 +78,7 @@ MbufLoc_ReadVarNum(MbufLoc* ml, uint32_t* n)
   uint8_t firstOctet;
   bool ok = MbufLoc_ReadU8(ml, &firstOctet);
   if (unlikely(!ok)) {
-    return NdnError_Incomplete;
+    return NdnErrIncomplete;
   }
 
   switch (firstOctet) {
@@ -86,7 +86,7 @@ MbufLoc_ReadVarNum(MbufLoc* ml, uint32_t* n)
       rte_be16_t v;
       bool ok = MbufLoc_ReadU16(ml, &v);
       if (unlikely(!ok)) {
-        return NdnError_Incomplete;
+        return NdnErrIncomplete;
       }
       *n = rte_be_to_cpu_16(v);
       break;
@@ -95,18 +95,18 @@ MbufLoc_ReadVarNum(MbufLoc* ml, uint32_t* n)
       rte_be32_t v;
       bool ok = MbufLoc_ReadU32(ml, &v);
       if (unlikely(!ok)) {
-        return NdnError_Incomplete;
+        return NdnErrIncomplete;
       }
       *n = rte_be_to_cpu_32(v);
       break;
     }
     case 255:
-      return NdnError_LengthOverflow;
+      return NdnErrLengthOverflow;
     default:
       *n = firstOctet;
       break;
   }
-  return NdnError_OK;
+  return NdnErrOK;
 }
 
 /** \brief Encode a TLV-TYPE or TLV-LENGTH number.

@@ -72,7 +72,7 @@ NdnError
 PName_Parse(PName* n, uint32_t length, const uint8_t* value)
 {
   if (unlikely(length > NAME_MAX_LENGTH)) {
-    return NdnError_NameTooLong;
+    return NdnErrNameTooLong;
   }
 
   n->nOctets = length;
@@ -97,16 +97,16 @@ PName_Parse(PName* n, uint32_t length, const uint8_t* value)
 
     off += sizeofT + sizeofL + compL;
     if (unlikely(off > length)) {
-      return NdnError_Incomplete;
+      return NdnErrIncomplete;
     }
 
     if (unlikely(!IsValidNameComponentType(compT))) {
-      return NdnError_BadNameComponentType;
+      return NdnErrBadNameComponentType;
     }
 
-    if (unlikely(compT == TT_ImplicitSha256DigestComponent)) {
+    if (unlikely(compT == TtImplicitSha256DigestComponent)) {
       if (unlikely(compL != 32)) {
-        return NdnError_BadDigestComponentLength;
+        return NdnErrBadDigestComponentLength;
       }
       n->hasDigestComp = true;
     }
@@ -117,15 +117,15 @@ PName_Parse(PName* n, uint32_t length, const uint8_t* value)
     ++n->nComps;
   }
 
-  return NdnError_OK;
+  return NdnErrOK;
 }
 
 NdnError
 PName_FromElement(PName* n, const TlvElement* ele)
 {
-  assert(ele->type == TT_Name);
+  assert(ele->type == TtName);
   if (unlikely(!TlvElement_IsValueLinear(ele))) {
-    return NdnError_Fragmented;
+    return NdnErrFragmented;
   }
   return PName_Parse(n, ele->length, TlvElement_GetLinearValue(ele));
 }

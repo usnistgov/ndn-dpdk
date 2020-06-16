@@ -20,13 +20,13 @@ func TestNameDecode(t *testing.T) {
 		hasDigest bool
 	}{
 		{input: "", nComps: 0},
-		{input: "08F0 DDDD", err: ndni.NdnError_Incomplete},
-		{input: "FE0001000000", err: ndni.NdnError_BadNameComponentType},
+		{input: "08F0 DDDD", err: ndni.NdnErrIncomplete},
+		{input: "FE0001000000", err: ndni.NdnErrBadNameComponentType},
 		{input: "080141 080142 080100 0801FF 800141 0800 08012E", nComps: 7},
 		{input: strings.Repeat("080141 ", 32) + "080142", nComps: 33},
 		{input: "0120(DC6D6840C6FAFB773D583CDBF465661C7B4B968E04ACD4D9015B1C4E53E59D6A)",
 			nComps: 1, hasDigest: true},
-		{input: "0102 DDDD", err: ndni.NdnError_BadDigestComponentLength},
+		{input: "0102 DDDD", err: ndni.NdnErrBadDigestComponentLength},
 	}
 	for _, tt := range tests {
 		n, e := ndni.NewName(tlvBytesFromHex(tt.input))

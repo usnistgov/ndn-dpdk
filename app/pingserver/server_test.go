@@ -7,6 +7,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/app/ping/pingtestenv"
 	"github.com/usnistgov/ndn-dpdk/app/pingserver"
+	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"github.com/usnistgov/ndn-dpdk/ndni/ndntestenv"
 )
@@ -42,7 +43,7 @@ func TestServer(t *testing.T) {
 				Prefix: nameB,
 				Replies: []pingserver.Reply{
 					{
-						Nack: ndni.NackReason_Congestion,
+						Nack: an.NackCongestion,
 					},
 				},
 			},

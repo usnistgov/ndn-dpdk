@@ -20,7 +20,7 @@ func TestEntryExpiry(t *testing.T) {
 	ndntestenv.SetPitToken(interest1, 0xB0B1B2B3B4B5B6B7)
 	ndntestenv.SetFaceId(interest1, 1001)
 
-	// lifetime 200ms
+	// lifetime 300ms
 	interest2 := makeInterest("/A/B", 200*time.Millisecond)
 	ndntestenv.SetPitToken(interest2, 0xB8B9BABBBCBDBEBF)
 	ndntestenv.SetFaceId(interest2, 1002)
@@ -40,7 +40,7 @@ func TestEntryExpiry(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 	fixture.Pit.TriggerTimeoutSched()
 	assert.Equal(1, fixture.Pit.Len())
-	time.Sleep(150 * time.Millisecond)
+	time.Sleep(250 * time.Millisecond)
 	fixture.Pit.TriggerTimeoutSched()
 	assert.Zero(fixture.Pit.Len())
 }

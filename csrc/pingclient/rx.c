@@ -17,7 +17,7 @@ PingClientRx_GetSeqNumFromName(PingClientRx* cr,
   }
 
   const uint8_t* comp = RTE_PTR_ADD(name->v, pattern->prefixLen);
-  if (unlikely(comp[0] != TT_GenericNameComponent ||
+  if (unlikely(comp[0] != TtGenericNameComponent ||
                comp[1] != sizeof(uint64_t))) {
     return false;
   }

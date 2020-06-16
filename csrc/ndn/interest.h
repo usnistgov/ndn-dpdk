@@ -46,8 +46,8 @@ typedef struct PInterest
  *  \param pkt the packet.
  *  \param nameMp mempool for allocating Name linearize mbufs,
  *                requires at least \c NAME_MAX_LENGTH dataroom.
- *  \retval NdnError_BadType packet is not Interest.
- *  \retval NdnError_AllocError unable to allocate mbuf.
+ *  \retval NdnErrBadType packet is not Interest.
+ *  \retval NdnErrAllocError unable to allocate mbuf.
  */
 NdnError
 PInterest_FromPacket(PInterest* interest,

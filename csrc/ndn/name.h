@@ -85,18 +85,18 @@ PName_Clear(PName* n)
 /** \brief Parse a name from memory buffer.
  *  \param length TLV-LENGTH of Name element
  *  \param value TLV-VALUE of Name element
- *  \retval NdnError_OK success
- *  \retval NdnError_NameTooLong TLV-LENGTH exceeds \c NAME_MAX_LENGTH
- *  \retval NdnError_BadNameComponentType component type not in 1-32767 range
- *  \retval NdnError_BadDigestComponentLength ImplicitSha256DigestComponent is not 32 octets
- *  \retval NdnError_NameHasComponentAfterDigest ImplicitSha256DigestComponent is not at last
+ *  \retval NdnErrOK success
+ *  \retval NdnErrNameTooLong TLV-LENGTH exceeds \c NAME_MAX_LENGTH
+ *  \retval NdnErrBadNameComponentType component type not in 1-32767 range
+ *  \retval NdnErrBadDigestComponentLength ImplicitSha256DigestComponent is not 32 octets
+ *  \retval NdnErrNameHasComponentAfterDigest ImplicitSha256DigestComponent is not at last
  */
 NdnError
 PName_Parse(PName* n, uint32_t length, const uint8_t* value);
 
 /** \brief Parse a name from TlvElement.
- *  \param ele TLV Name element, TLV-TYPE must be TT_Name
- *  \retval NdnError_Fragmented TLV-VALUE is not in consecutive memory
+ *  \param ele TLV Name element, TLV-TYPE must be TtName
+ *  \retval NdnErrFragmented TLV-VALUE is not in consecutive memory
  *  \return return value of \c PName_Parse
  */
 NdnError

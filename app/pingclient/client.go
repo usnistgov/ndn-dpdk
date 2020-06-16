@@ -95,7 +95,7 @@ func (client *Client) AddPattern(cfg Pattern) (index int, e error) {
 	if e = ndni.InterestTemplateFromPtr(unsafe.Pointer(&txP.tpl)).Init(tplArgs...); e != nil {
 		return -1, e
 	}
-	txP.seqNum.compT = C.TT_GenericNameComponent
+	txP.seqNum.compT = C.TtGenericNameComponent
 	txP.seqNum.compL = C.uint8_t(C.sizeof_uint64_t)
 	txP.seqNum.compV = C.uint64_t(rand.Uint64())
 	txP.seqNumOffset = C.uint32_t(cfg.SeqNumOffset)

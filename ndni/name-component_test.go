@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
+	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
@@ -43,7 +44,7 @@ func TestNameComponent(t *testing.T) {
 		if tt.bad {
 			assert.False(comp.IsValid(), tt.input)
 		} else if assert.True(comp.IsValid(), tt.input) {
-			assert.Equal(ndni.TlvType(tt.t), comp.GetType(), tt.input)
+			assert.Equal(an.TlvType(tt.t), comp.GetType(), tt.input)
 			assert.Equal(ndni.TlvBytes(mbuftestenv.BytesFromHex(tt.v)), comp.GetValue(), tt.input)
 			assert.Equal(tt.str, comp.String(), tt.input)
 

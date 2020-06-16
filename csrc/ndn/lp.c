@@ -20,12 +20,12 @@ LpHeader_FromPacket(LpHeader* lph,
   MbufLoc d0;
   MbufLoc_Init(&d0, pkt);
   TlvElement lppEle;
-  NdnError e = TlvElement_Decode(&lppEle, &d0, TT_Invalid);
+  NdnError e = TlvElement_Decode(&lppEle, &d0, TtInvalid);
   RETURN_IF_ERROR;
   *tlvSize = lppEle.size;
-  if (lppEle.type == TT_Interest || lppEle.type == TT_Data) {
+  if (lppEle.type == TtInterest || lppEle.type == TtData) {
     *payloadOff = 0;
-    return NdnError_OK;
+    return NdnErrOK;
   }
 
   *payloadOff = lppEle.size;
@@ -33,14 +33,14 @@ LpHeader_FromPacket(LpHeader* lph,
   MbufLoc d1;
   TlvElement_MakeValueDecoder(&lppEle, &d1);
   TlvElement ele1;
-  while ((e = TlvElement_Decode(&ele1, &d1, TT_Invalid)) == NdnError_OK) {
+  while ((e = TlvElement_Decode(&ele1, &d1, TtInvalid)) == NdnErrOK) {
     switch (ele1.type) {
-      case TT_LpPayload:
+      case TtLpPayload:
         *payloadOff = lppEle.size - ele1.length;
         goto FOUND_PAYLOAD;
-      case TT_LpSeqNo:
+      case TtLpSeqNo:
         if (unlikely(ele1.length != 8)) {
-          return NdnError_BadLpSeqNum;
+          return NdnErrBadLpSeqNum;
         }
         MbufLoc d2;
         TlvElement_MakeValueDecoder(&ele1, &d2);
@@ -48,27 +48,27 @@ LpHeader_FromPacket(LpHeader* lph,
         MbufLoc_ReadU64(&d2, &v);
         lph->l2.seqNum = rte_be_to_cpu_64(v);
         break;
-      case TT_FragIndex: {
+      case TtFragIndex: {
         uint64_t v = 0;
         TlvElement_ReadNonNegativeInteger(&ele1, &v);
         if (v > UINT16_MAX) {
-          return NdnError_LengthOverflow;
+          return NdnErrLengthOverflow;
         }
         lph->l2.fragIndex = v;
         break;
       }
-      case TT_FragCount: {
+      case TtFragCount: {
         uint64_t v = 0;
         TlvElement_ReadNonNegativeInteger(&ele1, &v);
         if (v > UINT16_MAX) {
-          return NdnError_LengthOverflow;
+          return NdnErrLengthOverflow;
         }
         lph->l2.fragCount = v;
         break;
       }
-      case TT_PitToken: {
+      case TtPitToken: {
         if (unlikely(ele1.length != 8)) {
-          return NdnError_BadPitToken;
+          return NdnErrBadPitToken;
         }
         MbufLoc d2;
         TlvElement_MakeValueDecoder(&ele1, &d2);
@@ -77,35 +77,34 @@ LpHeader_FromPacket(LpHeader* lph,
         lph->l3.pitToken = rte_le_to_cpu_64(v);
         break;
       }
-      case TT_Nack: {
+      case TtNack: {
         MbufLoc d2;
         TlvElement_MakeValueDecoder(&ele1, &d2);
         TlvElement ele2;
-        if (likely(TlvElement_Decode(&ele2, &d2, TT_NackReason) ==
-                   NdnError_OK)) {
+        if (likely(TlvElement_Decode(&ele2, &d2, TtNackReason) == NdnErrOK)) {
           uint64_t v = 0;
           TlvElement_ReadNonNegativeInteger(&ele2, &v);
           if (v > UINT8_MAX) {
-            return NdnError_LengthOverflow;
+            return NdnErrLengthOverflow;
           }
           lph->l3.nackReason = v;
         } else {
-          lph->l3.nackReason = NackReason_Unspecified;
+          lph->l3.nackReason = NackUnspecified;
         }
         break;
       }
-      case TT_CongestionMark: {
+      case TtCongestionMark: {
         uint64_t v = 0;
         TlvElement_ReadNonNegativeInteger(&ele1, &v);
         if (v > UINT8_MAX) {
-          return NdnError_LengthOverflow;
+          return NdnErrLengthOverflow;
         }
         lph->l3.congMark = v;
         break;
       }
       default:
         if (!CanIgnoreLpHeader(ele1.type)) {
-          return NdnError_UnknownCriticalLpHeader;
+          return NdnErrUnknownCriticalLpHeader;
         }
         break;
     }
@@ -113,12 +112,12 @@ LpHeader_FromPacket(LpHeader* lph,
 
 FOUND_PAYLOAD:;
   if (unlikely(!MbufLoc_IsEnd(&d1))) {
-    return NdnError_LpHasTrailer;
+    return NdnErrLpHasTrailer;
   }
   if (unlikely(lph->l2.fragIndex >= lph->l2.fragCount)) {
-    return NdnError_FragIndexExceedFragCount;
+    return NdnErrFragIndexExceedFragCount;
   }
-  return NdnError_OK;
+  return NdnErrOK;
 }
 
 void
@@ -130,7 +129,7 @@ PrependLpHeader(struct rte_mbuf* m, const LpHeader* lph, uint32_t payloadL)
   uint16_t size0 = m->data_len;
   if (likely(payloadL) != 0) {
     PrependVarNum(en, payloadL);
-    PrependVarNum(en, TT_LpPayload);
+    PrependVarNum(en, TtLpPayload);
   }
   uint16_t size1 = m->data_len;
 
@@ -144,16 +143,16 @@ PrependLpHeader(struct rte_mbuf* m, const LpHeader* lph, uint32_t payloadL)
       } __rte_packed CongMarkF;
 
       CongMarkF* f = (CongMarkF*)TlvEncoder_Prepend(en, sizeof(CongMarkF));
-      assert(SizeofVarNum(TT_CongestionMark) == sizeof(f->congMarkT));
-      EncodeVarNum(f->congMarkT, TT_CongestionMark);
+      assert(SizeofVarNum(TtCongestionMark) == sizeof(f->congMarkT));
+      EncodeVarNum(f->congMarkT, TtCongestionMark);
       f->congMarkL = 1;
       f->congMarkV = lph->l3.congMark;
     }
 
-    if (lph->l3.nackReason != NackReason_None) {
-      if (unlikely(lph->l3.nackReason == NackReason_Unspecified)) {
+    if (lph->l3.nackReason != NackNone) {
+      if (unlikely(lph->l3.nackReason == NackUnspecified)) {
         PrependVarNum(en, 0);
-        PrependVarNum(en, TT_Nack);
+        PrependVarNum(en, TtNack);
       } else {
         typedef struct NackF
         {
@@ -165,11 +164,11 @@ PrependLpHeader(struct rte_mbuf* m, const LpHeader* lph, uint32_t payloadL)
         } __rte_packed NackF;
 
         NackF* f = (NackF*)TlvEncoder_Prepend(en, sizeof(NackF));
-        assert(SizeofVarNum(TT_Nack) == sizeof(f->nackT));
-        EncodeVarNum(f->nackT, TT_Nack);
+        assert(SizeofVarNum(TtNack) == sizeof(f->nackT));
+        EncodeVarNum(f->nackT, TtNack);
         f->nackL = 5;
-        assert(SizeofVarNum(TT_NackReason) == sizeof(f->nackReasonT));
-        EncodeVarNum(f->nackReasonT, TT_NackReason);
+        assert(SizeofVarNum(TtNackReason) == sizeof(f->nackReasonT));
+        EncodeVarNum(f->nackReasonT, TtNackReason);
         f->nackReasonL = 1;
         f->nackReasonV = lph->l3.nackReason;
       }
@@ -184,7 +183,7 @@ PrependLpHeader(struct rte_mbuf* m, const LpHeader* lph, uint32_t payloadL)
       } __rte_packed PitTokenF;
 
       PitTokenF* f = (PitTokenF*)TlvEncoder_Prepend(en, sizeof(PitTokenF));
-      f->pitTokenT = TT_PitToken;
+      f->pitTokenT = TtPitToken;
       f->pitTokenL = 8;
       *(unaligned_uint64_t*)&f->pitTokenV = rte_cpu_to_le_64(lph->l3.pitToken);
     }
@@ -209,13 +208,13 @@ PrependLpHeader(struct rte_mbuf* m, const LpHeader* lph, uint32_t payloadL)
     } __rte_packed FragF;
 
     FragF* f = (FragF*)TlvEncoder_Prepend(en, sizeof(FragF));
-    f->seqNumT = TT_LpSeqNo;
+    f->seqNumT = TtLpSeqNo;
     f->seqNumL = 8;
     *(unaligned_uint64_t*)&f->seqNumV = rte_cpu_to_be_64(lph->l2.seqNum);
-    f->fragIndexT = TT_FragIndex;
+    f->fragIndexT = TtFragIndex;
     f->fragIndexL = 2;
     *(unaligned_uint16_t*)&f->fragIndexV = rte_cpu_to_be_16(lph->l2.fragIndex);
-    f->fragCountT = TT_FragCount;
+    f->fragCountT = TtFragCount;
     f->fragCountL = 2;
     *(unaligned_uint16_t*)&f->fragCountV = rte_cpu_to_be_16(lph->l2.fragCount);
   }
@@ -226,5 +225,5 @@ PrependLpHeader(struct rte_mbuf* m, const LpHeader* lph, uint32_t payloadL)
   }
 
   PrependVarNum(en, m->data_len - size0 + payloadL);
-  PrependVarNum(en, TT_LpPacket);
+  PrependVarNum(en, TtLpPacket);
 }

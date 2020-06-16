@@ -3,6 +3,7 @@ package ndni_test
 import (
 	"testing"
 
+	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
@@ -24,7 +25,7 @@ func TestLpHeaderDecode(t *testing.T) {
 		fragIndex  uint16
 		fragCount  uint16
 		pitToken   uint64
-		nackReason ndni.NackReason
+		nackReason an.NackReason
 		congMark   ndni.CongMark
 		payloadL   int
 	}{
@@ -47,9 +48,9 @@ func TestLpHeaderDecode(t *testing.T) {
 			fragCount: 1, pitToken: 0xB28EC32B414B419A, payloadL: payloadInterestL},
 		{input: "6406 pittoken=620420A3C0D7", bad: true}, // PitToken is not 8-octet
 		{input: "640D nack=FD032000(noreason) payload=" + payloadInterest,
-			fragCount: 1, nackReason: ndni.NackReason_Unspecified, payloadL: payloadInterestL},
+			fragCount: 1, nackReason: an.NackUnspecified, payloadL: payloadInterestL},
 		{input: "6412 nack=FD032005(FD03210196~noroute) payload=" + payloadInterest,
-			fragCount: 1, nackReason: ndni.NackReason_NoRoute, payloadL: payloadInterestL},
+			fragCount: 1, nackReason: an.NackNoRoute, payloadL: payloadInterestL},
 		{input: "640E congmark=FD03400104 payload=" + payloadInterest,
 			fragCount: 1, congMark: 4, payloadL: payloadInterestL},
 	}

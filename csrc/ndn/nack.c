@@ -5,13 +5,13 @@ const char*
 NackReason_ToString(NackReason reason)
 {
   switch (reason) {
-    case NackReason_Congestion:
+    case NackCongestion:
       return "Congestion";
-    case NackReason_Duplicate:
+    case NackDuplicate:
       return "Duplicate";
-    case NackReason_NoRoute:
+    case NackNoRoute:
       return "NoRoute";
-    case NackReason_Unspecified:
+    case NackUnspecified:
       return "Unspecified";
     default:
       return "(other)";

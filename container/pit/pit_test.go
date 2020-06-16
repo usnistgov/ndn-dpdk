@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/usnistgov/ndn-dpdk/container/pit"
+	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"github.com/usnistgov/ndn-dpdk/ndni/ndntestenv"
 )
@@ -127,7 +128,7 @@ func TestToken(t *testing.T) {
 		// high 16 bits of the token should be ignored
 		token2 := token ^ 0x79BC000000000000
 		nack := ndni.MakeNackFromInterest(makeInterest(name),
-			ndni.NackReason_NoRoute)
+			an.NackNoRoute)
 		ndntestenv.SetPitToken(nack, token2)
 		foundEntry := pit.FindByNack(nack)
 		if assert.NotNil(foundEntry) {

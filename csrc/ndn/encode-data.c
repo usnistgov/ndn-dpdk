@@ -3,9 +3,9 @@
 
 // clang-format off
 static const uint8_t FAKESIG[] = {
-  TT_SignatureInfo, 0x03,
-    TT_SignatureType, 0x01, 0x00,
-  TT_SignatureValue, 0x20,
+  TtSignatureInfo, 0x03,
+    TtSignatureType, 0x01, 0x00,
+  TtSignatureValue, 0x20,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -22,7 +22,7 @@ EncodeData_AppendNameNoSuffix(TlvEncoder* en,
                               uint16_t nameSuffixL)
 {
   struct rte_mbuf* m = TlvEncoder_AsMbuf(en);
-  AppendVarNum(en, TT_Name);
+  AppendVarNum(en, TtName);
   AppendVarNum(en, namePrefixL + nameSuffixL);
   if (likely(namePrefixL > 0)) {
     rte_memcpy(rte_pktmbuf_append(m, namePrefixL), namePrefixV, namePrefixL);
@@ -48,16 +48,16 @@ EncodeData_AppendFreshnessContentSignature(TlvEncoder* en,
     } __rte_packed MetaInfoF;
 
     MetaInfoF* f = (MetaInfoF*)TlvEncoder_Append(en, sizeof(MetaInfoF));
-    f->metaInfoT = TT_MetaInfo;
+    f->metaInfoT = TtMetaInfo;
     f->metaInfoL = 6;
-    f->freshnessPeriodT = TT_FreshnessPeriod;
+    f->freshnessPeriodT = TtFreshnessPeriod;
     f->freshnessPeriodL = 4;
     *(unaligned_uint32_t*)&f->freshnessPeriodV =
       rte_cpu_to_be_32(freshnessPeriod);
   }
 
   if (contentL != 0) {
-    AppendVarNum(en, TT_Content);
+    AppendVarNum(en, TtContent);
     AppendVarNum(en, contentL);
     rte_memcpy(rte_pktmbuf_append(m, contentL), contentV, contentL);
   }
@@ -72,7 +72,7 @@ EncodeData_PrependDataTypeLength(TlvEncoder* en)
 {
   struct rte_mbuf* m = TlvEncoder_AsMbuf(en);
   PrependVarNum(en, m->pkt_len);
-  PrependVarNum(en, TT_Data);
+  PrependVarNum(en, TtData);
 }
 
 void

@@ -7,6 +7,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"github.com/usnistgov/ndn-dpdk/ndni/ndntestenv"
 )
@@ -124,7 +125,7 @@ func (fixture *Fixture) sendProc() int {
 		pkts := make([]*ndni.Packet, 3)
 		pkts[0] = ndntestenv.MakeInterest("/A").GetPacket()
 		pkts[1] = ndntestenv.MakeData("/A", content).GetPacket()
-		pkts[2] = ndni.MakeNackFromInterest(ndntestenv.MakeInterest("/A"), ndni.NackReason_NoRoute).GetPacket()
+		pkts[2] = ndni.MakeNackFromInterest(ndntestenv.MakeInterest("/A"), an.NackNoRoute).GetPacket()
 		fixture.txFace.TxBurst(pkts)
 		time.Sleep(time.Millisecond)
 	}

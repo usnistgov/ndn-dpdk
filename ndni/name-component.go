@@ -8,13 +8,15 @@ import (
 	"io"
 	"strconv"
 	"strings"
+
+	"github.com/usnistgov/ndn-dpdk/ndn/an"
 )
 
 // A name component.
 type NameComponent TlvBytes
 
 // Test if a TLV-TYPE is valid as a component type.
-func IsValidNameComponentType(tt TlvType) bool {
+func IsValidNameComponentType(tt an.TlvType) bool {
 	return tt > 0 && tt <= 65535
 }
 
@@ -22,7 +24,7 @@ func IsValidNameComponentType(tt TlvType) bool {
 func (comp NameComponent) IsValid() bool {
 	tlvType, tail := TlvBytes(comp).DecodeVarNum()
 	length, tail := tail.DecodeVarNum()
-	return tail != nil && int(length) == len(tail) && IsValidNameComponentType(TlvType(tlvType))
+	return tail != nil && int(length) == len(tail) && IsValidNameComponentType(an.TlvType(tlvType))
 }
 
 // Compare equality.
@@ -31,9 +33,9 @@ func (comp NameComponent) Equal(other NameComponent) bool {
 }
 
 // Get TLV-TYPE.
-func (comp NameComponent) GetType() TlvType {
+func (comp NameComponent) GetType() an.TlvType {
 	t, _ := TlvBytes(comp).DecodeVarNum()
-	return TlvType(t)
+	return an.TlvType(t)
 }
 
 // Get TLV-VALUE.
@@ -92,12 +94,12 @@ func (comp NameComponent) String() string {
 
 // Parse name component from URI.
 func ParseNameComponent(uri string) (comp NameComponent, e error) {
-	tlvType := TT_GenericNameComponent
+	tlvType := an.TtGenericNameComponent
 	if eqPos := strings.IndexByte(uri, '='); eqPos >= 0 {
 		if tlvTypeN, e := strconv.ParseUint(uri[:eqPos], 10, 16); e != nil {
 			return nil, e
 		} else {
-			tlvType = TlvType(tlvTypeN)
+			tlvType = an.TlvType(tlvTypeN)
 			uri = uri[eqPos+1:]
 		}
 	}

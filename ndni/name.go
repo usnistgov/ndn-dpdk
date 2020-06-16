@@ -10,6 +10,8 @@ import (
 	"io"
 	"strings"
 	"unsafe"
+
+	"github.com/usnistgov/ndn-dpdk/ndn/an"
 )
 
 const NAME_MAX_LENGTH = C.NAME_MAX_LENGTH
@@ -26,7 +28,7 @@ func NewName(b TlvBytes) (n *Name, e error) {
 	n.b = b
 	n.p = new(C.PName)
 	res := C.PName_Parse(n.p, C.uint32_t(len(b)), n.getValuePtr())
-	if res != C.NdnError_OK {
+	if res != C.NdnErrOK {
 		return nil, NdnError(res)
 	}
 	return n, nil
@@ -70,7 +72,7 @@ func (n *Name) GetValue() TlvBytes {
 
 // Encode Name element to TlvBytes.
 func (n *Name) Encode() TlvBytes {
-	return EncodeTlv(TT_Name, n.b)
+	return EncodeTlv(an.TtName, n.b)
 }
 
 // Copy to C.LName.

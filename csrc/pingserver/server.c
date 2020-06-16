@@ -104,7 +104,7 @@ PingServer_ProcessInterest(PingServer* server, Packet* npkt)
     ZF_LOGD(">I dn-token=%016" PRIx64 " no-pattern", token);
     ++server->nNoMatch;
     if (server->wantNackNoRoute) {
-      MakeNack(npkt, NackReason_NoRoute);
+      MakeNack(npkt, NackNoRoute);
       return npkt;
     } else {
       rte_pktmbuf_free(Packet_ToMbuf(npkt));

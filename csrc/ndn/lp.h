@@ -46,11 +46,11 @@ typedef struct LpHeader
  *  because network layer type is unknown before reassembly. For example, it would accept Nack
  *  header on Data packet.
  *
- *  \retval NdnError_BadType packet is not LpPacket or bare Interest/Data.
- *  \retval NdnError_LengthOverflow FragIndex, FragCount, NackReason, or CongestionMark
+ *  \retval NdnErrBadType packet is not LpPacket or bare Interest/Data.
+ *  \retval NdnErrLengthOverflow FragIndex, FragCount, NackReason, or CongestionMark
  *          number is too large to be stored in the header field.
- *  \retval NdnError_FragIndexExceedFragCount FragIndex is not less than FragCount.
- *  \retval NdnError_LpHasTrailer found trailer fields after LpFragment.
+ *  \retval NdnErrFragIndexExceedFragCount FragIndex is not less than FragCount.
+ *  \retval NdnErrLpHasTrailer found trailer fields after LpFragment.
  */
 NdnError
 LpHeader_FromPacket(LpHeader* lph,

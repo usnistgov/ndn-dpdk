@@ -156,7 +156,7 @@ FwFwd_ProcessNack(FwFwd* fwd, FwFwdCtx* ctx)
       continue;
     }
 
-    if (it.up->nack == NackReason_None) {
+    if (it.up->nack == NackNone) {
       ++nPending;
     } else {
       leastSevere = NackReason_GetMin(leastSevere, it.up->nack);
@@ -178,7 +178,7 @@ FwFwd_ProcessNack(FwFwd* fwd, FwFwdCtx* ctx)
   }
 
   // Duplicate: record rejected nonce, resend with an alternate nonce if possible
-  if (reason == NackReason_Duplicate && FwFwd_RxNackDuplicate(fwd, ctx)) {
+  if (reason == NackDuplicate && FwFwd_RxNackDuplicate(fwd, ctx)) {
     FwFwd_NULLize(ctx->fibEntry); // fibEntry is inaccessible upon RCU unlock
     rcu_read_unlock();
     return;

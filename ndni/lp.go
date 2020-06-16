@@ -5,8 +5,10 @@ package ndni
 */
 import "C"
 import (
-	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"unsafe"
+
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
+	"github.com/usnistgov/ndn-dpdk/ndn/an"
 )
 
 type LpL3 struct {
@@ -22,8 +24,8 @@ func (l3 *LpL3) SetPitToken(token uint64) {
 	l3.c.pitToken = C.uint64_t(token)
 }
 
-func (l3 *LpL3) GetNackReason() NackReason {
-	return NackReason(l3.c.nackReason)
+func (l3 *LpL3) GetNackReason() an.NackReason {
+	return an.NackReason(l3.c.nackReason)
 }
 
 type CongMark uint8

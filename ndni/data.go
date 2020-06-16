@@ -10,6 +10,7 @@ import (
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/cryptodev"
+	"github.com/usnistgov/ndn-dpdk/ndn/an"
 )
 
 // Data packet.
@@ -41,7 +42,7 @@ func (data *Data) GetName() (n *Name) {
 func (data *Data) GetFullName() (n *Name) {
 	digest := data.ComputeDigest(false)
 	nameV := data.GetName().GetValue()
-	nameV = append(nameV, byte(TT_ImplicitSha256DigestComponent), byte(len(digest)))
+	nameV = append(nameV, byte(an.TtImplicitSha256DigestComponent), byte(len(digest)))
 	nameV = append(nameV, digest...)
 	n, _ = NewName(nameV)
 	return n

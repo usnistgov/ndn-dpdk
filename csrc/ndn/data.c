@@ -8,7 +8,7 @@ PData_FromPacket(PData* data, struct rte_mbuf* pkt, struct rte_mempool* nameMp)
   MbufLoc d0;
   MbufLoc_Init(&d0, pkt);
   TlvElement dataEle;
-  NdnError e = TlvElement_Decode(&dataEle, &d0, TT_Data);
+  NdnError e = TlvElement_Decode(&dataEle, &d0, TtData);
   RETURN_IF_ERROR;
   data->size = dataEle.size;
 
@@ -16,23 +16,23 @@ PData_FromPacket(PData* data, struct rte_mbuf* pkt, struct rte_mempool* nameMp)
   TlvElement_MakeValueDecoder(&dataEle, &d1);
 
   TlvElement nameEle;
-  e = TlvElement_Decode(&nameEle, &d1, TT_Name);
+  e = TlvElement_Decode(&nameEle, &d1, TtName);
   RETURN_IF_ERROR;
   if (unlikely(nameEle.length == 0)) {
     data->name.v = NULL;
     PName_Clear(&data->name.p);
   } else {
     data->name.v = TlvElement_LinearizeValue(&nameEle, pkt, nameMp, &d1);
-    RETURN_IF_NULL(data->name.v, NdnError_AllocError);
+    RETURN_IF_NULL(data->name.v, NdnErrAllocError);
     e = PName_Parse(&data->name.p, nameEle.length, data->name.v);
     RETURN_IF_ERROR;
   }
 
   data->freshnessPeriod = 0;
   TlvElement metaEle;
-  e = TlvElement_Decode(&metaEle, &d1, TT_MetaInfo);
-  if (e == NdnError_Incomplete || e == NdnError_BadType) {
-    return NdnError_OK; // MetaInfo not present
+  e = TlvElement_Decode(&metaEle, &d1, TtMetaInfo);
+  if (e == NdnErrIncomplete || e == NdnErrBadType) {
+    return NdnErrOK; // MetaInfo not present
   }
   RETURN_IF_ERROR;
 
@@ -40,10 +40,10 @@ PData_FromPacket(PData* data, struct rte_mbuf* pkt, struct rte_mempool* nameMp)
   TlvElement_MakeValueDecoder(&metaEle, &d2);
   while (!MbufLoc_IsEnd(&d2)) {
     TlvElement metaChild;
-    e = TlvElement_Decode(&metaChild, &d2, TT_Invalid);
+    e = TlvElement_Decode(&metaChild, &d2, TtInvalid);
     RETURN_IF_ERROR;
 
-    if (metaChild.type != TT_FreshnessPeriod) {
+    if (metaChild.type != TtFreshnessPeriod) {
       continue; // ignore other children of MetaInfo
     }
 
@@ -54,7 +54,7 @@ PData_FromPacket(PData* data, struct rte_mbuf* pkt, struct rte_mempool* nameMp)
     break;
   }
 
-  return NdnError_OK;
+  return NdnErrOK;
 }
 
 DataSatisfyResult

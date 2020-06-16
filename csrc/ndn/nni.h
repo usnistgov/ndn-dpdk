@@ -25,9 +25,9 @@ DecodeNni(uint8_t length, const uint8_t* value, uint64_t* n)
       *n = rte_be_to_cpu_64(*(unaligned_uint64_t*)(value));
       break;
     default:
-      return NdnError_BadNni;
+      return NdnErrBadNni;
   }
-  return NdnError_OK;
+  return NdnErrOK;
 }
 
 /** \brief Encode a NonNegativeInteger in minimum size.

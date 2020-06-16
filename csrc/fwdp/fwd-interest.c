@@ -27,7 +27,7 @@ FwFwd_InterestLookupFib(FwFwd* fwd, Packet* npkt, FibNexthopFilter* nhFlt)
 
   for (int fhIndex = 0; fhIndex < interest->nFhs; ++fhIndex) {
     NdnError e = PInterest_SelectActiveFh(interest, fhIndex);
-    if (unlikely(e != NdnError_OK)) {
+    if (unlikely(e != NdnErrOK)) {
       // caller would treat this as "no FIB match" and reply Nack
       return false;
     }
@@ -60,7 +60,7 @@ FwFwd_InterestForward(FwFwd* fwd, FwFwdCtx* ctx)
             ctx->pitEntry,
             dupNonce,
             ctx->rxFace);
-    MakeNack(ctx->npkt, NackReason_Duplicate);
+    MakeNack(ctx->npkt, NackDuplicate);
     Face_Tx(ctx->rxFace, ctx->npkt);
     ++fwd->nDupNonce;
     return;
@@ -72,7 +72,7 @@ FwFwd_InterestForward(FwFwd* fwd, FwFwdCtx* ctx)
     ZF_LOGD("^ pit-entry=%p drop=PitDn-full nack-to=%" PRI_FaceId,
             ctx->pitEntry,
             ctx->rxFace);
-    MakeNack(ctx->npkt, NackReason_Congestion);
+    MakeNack(ctx->npkt, NackCongestion);
     Face_Tx(ctx->rxFace, ctx->npkt);
     return;
   }
@@ -127,7 +127,7 @@ FwFwd_RxInterest(FwFwd* fwd, FwFwdCtx* ctx)
   ctx->fibEntry = FwFwd_InterestLookupFib(fwd, ctx->npkt, &ctx->nhFlt);
   if (unlikely(ctx->fibEntry == NULL)) {
     ZF_LOGD("^ drop=no-FIB-match nack-to=%" PRI_FaceId, ctx->rxFace);
-    MakeNack(ctx->npkt, NackReason_NoRoute);
+    MakeNack(ctx->npkt, NackNoRoute);
     Face_Tx(ctx->rxFace, ctx->npkt);
     ++fwd->nNoFibMatch;
     rcu_read_unlock();
@@ -155,7 +155,7 @@ FwFwd_RxInterest(FwFwd* fwd, FwFwdCtx* ctx)
     }
     case PIT_INSERT_FULL:
       ZF_LOGD("^ drop=PIT-full nack-to=%" PRI_FaceId, ctx->rxFace);
-      MakeNack(ctx->npkt, NackReason_Congestion);
+      MakeNack(ctx->npkt, NackCongestion);
       Face_Tx(ctx->rxFace, ctx->npkt);
       break;
     default:

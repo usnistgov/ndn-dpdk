@@ -3,7 +3,7 @@
 
 /// \file
 
-#include "tlv-type.h"
+#include "an.h"
 #include "tlv-varnum.h"
 
 /** \brief TLV element
@@ -20,7 +20,7 @@ typedef struct TlvElement
 
 /** \brief Decode a TLV header including TLV-TYPE and TLV-LENGTH but excluding TLV-VALUE.
  *  \param[out] ele the element; will assign all fields except \c last.
- *  \retval NdnError_BadType expectedType is non-zero and TLV-TYPE does not equal \p expectedType.
+ *  \retval NdnErrBadType expectedType is non-zero and TLV-TYPE does not equal \p expectedType.
  */
 static inline NdnError
 TlvElement_DecodeTL(TlvElement* ele, MbufLoc* d, uint32_t expectedType)
@@ -30,13 +30,13 @@ TlvElement_DecodeTL(TlvElement* ele, MbufLoc* d, uint32_t expectedType)
   NdnError e = MbufLoc_ReadVarNum(d, &ele->type);
   RETURN_IF_ERROR;
 
-  if (expectedType == TT_Invalid) {
-    if (unlikely(ele->type == TT_Invalid)) {
-      return NdnError_BadType;
+  if (expectedType == TtInvalid) {
+    if (unlikely(ele->type == TtInvalid)) {
+      return NdnErrBadType;
     }
   } else {
     if (unlikely(ele->type != expectedType)) {
-      return NdnError_BadType;
+      return NdnErrBadType;
     }
   }
 
@@ -45,14 +45,14 @@ TlvElement_DecodeTL(TlvElement* ele, MbufLoc* d, uint32_t expectedType)
   ele->size = MbufLoc_FastDiff(&ele->first, d) + ele->length;
 
   MbufLoc_Copy(&ele->value, d);
-  return NdnError_OK;
+  return NdnErrOK;
 }
 
 /** \brief Decode a TLV element.
  *  \param[out] ele the element.
  *  \note ele.first.rem, ele.value.rem, and ele.last.rem are unchanged, so that
  *        MbufLoc_FastDiff may be used on them.
- *  \retval NdnError_BadType expectedType is non-zero and TLV-TYPE does not equal \p expectedType.
+ *  \retval NdnErrBadType expectedType is non-zero and TLV-TYPE does not equal \p expectedType.
  */
 static inline NdnError
 TlvElement_Decode(TlvElement* ele, MbufLoc* d, uint32_t expectedType)
@@ -62,11 +62,11 @@ TlvElement_Decode(TlvElement* ele, MbufLoc* d, uint32_t expectedType)
 
   uint32_t n = MbufLoc_Advance(d, ele->length);
   if (unlikely(n != ele->length)) {
-    return NdnError_Incomplete;
+    return NdnErrIncomplete;
   }
 
   MbufLoc_Copy(&ele->last, d);
-  return NdnError_OK;
+  return NdnErrOK;
 }
 
 /** \brief Determine if the element's TLV-VALUE is in consecutive memory.
@@ -135,41 +135,41 @@ TlvElement_ReadNonNegativeInteger(const TlvElement* ele, uint64_t* n)
       uint8_t v;
       bool ok = MbufLoc_ReadU8(&vd, &v);
       if (unlikely(!ok)) {
-        return NdnError_BadNni;
+        return NdnErrBadNni;
       }
       *n = v;
-      return NdnError_OK;
+      return NdnErrOK;
     }
     case 2: {
       rte_be16_t v;
       bool ok = MbufLoc_ReadU16(&vd, &v);
       if (unlikely(!ok)) {
-        return NdnError_BadNni;
+        return NdnErrBadNni;
       }
       *n = rte_be_to_cpu_16(v);
-      return NdnError_OK;
+      return NdnErrOK;
     }
     case 4: {
       rte_be32_t v;
       bool ok = MbufLoc_ReadU32(&vd, &v);
       if (unlikely(!ok)) {
-        return NdnError_BadNni;
+        return NdnErrBadNni;
       }
       *n = rte_be_to_cpu_32(v);
-      return NdnError_OK;
+      return NdnErrOK;
     }
     case 8: {
       rte_be64_t v;
       bool ok = MbufLoc_ReadU64(&vd, &v);
       if (unlikely(!ok)) {
-        return NdnError_BadNni;
+        return NdnErrBadNni;
       }
       *n = rte_be_to_cpu_64(v);
-      return NdnError_OK;
+      return NdnErrOK;
     }
   }
 
-  return NdnError_BadNni;
+  return NdnErrBadNni;
 }
 
 #endif // NDN_DPDK_NDN_TLV_ELEMENT_H

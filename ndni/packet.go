@@ -133,7 +133,7 @@ func (pkt *Packet) String() string {
 // ParseL2 performs layer 2 parsing.
 func (pkt *Packet) ParseL2() error {
 	res := NdnError(C.Packet_ParseL2(pkt.getPtr()))
-	if res != NdnError_OK {
+	if res != NdnErrOK {
 		return res
 	}
 	return nil
@@ -146,7 +146,7 @@ func (pkt *Packet) ParseL3(nameMp *pktmbuf.Pool) error {
 		mpC = (*C.struct_rte_mempool)(nameMp.GetPtr())
 	}
 	res := NdnError(C.Packet_ParseL3(pkt.getPtr(), mpC))
-	if res != NdnError_OK {
+	if res != NdnErrOK {
 		return res
 	}
 	return nil
