@@ -2,6 +2,7 @@ build*
 cgoflags.go
 cgostruct.go
 csrc/meson.build
+mk/meson.build
 *ndn-dpdk-*.tgz
 node_modules
 _obj

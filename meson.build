@@ -26,9 +26,26 @@ if meson.get_compiler('c').get_id() == 'clang'
   )
 endif
 
+subdir('csrc')
+subdir('mk')
+
 dpdk = dependency('libdpdk')
 
-subdir('csrc')
 static_library('ndn-dpdk-c', csrc,
   dependencies: [dpdk],
-  pic: true)
+  pic: true
+)
+
+alias_target('cgoflags', custom_target('cgoflags',
+  build_always_stale: true,
+  command: [find_program('mk/cgoflags.sh'), cgoflags_dirs],
+  output: 'cgoflags.done',
+  input: []
+))
+
+alias_target('cgostruct', custom_target('cgostruct',
+  build_always_stale: true,
+  command: [find_program('mk/cgostruct.sh'), cgostruct_dirs],
+  output: 'cgostruct.done',
+  input: []
+))

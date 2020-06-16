@@ -9,16 +9,12 @@ all: gopkg npm cmds
 gopkg: godeps
 	go build -v ./...
 
-godeps: app/version/version.go build/libndn-dpdk-c.a
-	rake cgoflags cgostruct strategies
+godeps: app/version/version.go build/libndn-dpdk-c.a build/cgoflags.done build/cgostruct.done
+	rake strategies
 
 .PHONY: app/version/version.go
 app/version/version.go:
 	app/version/make-version.sh
-
-.PHONY: tsc
-tsc: ndn/tlv-type.ts
-	node_modules/.bin/tsc
 
 csrc/ndn/error.h: ndn/error.tsv
 	rake ndn/error.go
@@ -27,14 +23,24 @@ ndn/tlv-type.ts csrc/ndn/tlv-type.h: ndn/tlv-type.tsv
 	rake ndn/tlv-type.go
 
 .PHONY: build/libndn-dpdk-c.a
-build/libndn-dpdk-c.a: build/build.ninja csrc/ndn/error.h csrc/ndn/tlv-type.h
+build/libndn-dpdk-c.a: build/build.ninja
 	cd build && ninja
 
-build/build.ninja: meson.build csrc/meson.build
+build/cgoflags.done: build/build.ninja
+	cd build && ninja cgoflags
+
+build/cgostruct.done: build/build.ninja
+	cd build && ninja cgostruct
+
+build/build.ninja: meson.build csrc/meson.build mk/meson.build
 	bash -c 'source mk/cflags.sh; meson build'
 
-csrc/meson.build:
+csrc/meson.build mk/meson.build: csrc/ndn/error.h csrc/ndn/tlv-type.h
 	mk/update-list.sh
+
+.PHONY: tsc
+tsc: ndn/tlv-type.ts
+	node_modules/.bin/tsc
 
 .PHONY: npm
 npm: tsc

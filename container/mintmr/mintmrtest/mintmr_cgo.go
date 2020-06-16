@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	_ "github.com/usnistgov/ndn-dpdk/container/mintmr"
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
