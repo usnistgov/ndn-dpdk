@@ -1,2 +1,2 @@
 #!/bin/bash
-$GODEFCC $(pkg-config --cflags libdpdk) "$@"
+$GODEFCC $(pkg-config --cflags libdpdk) -DGODEF "$@"

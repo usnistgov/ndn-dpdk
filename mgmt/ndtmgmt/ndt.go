@@ -3,7 +3,7 @@ package ndtmgmt
 import (
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
 	"github.com/usnistgov/ndn-dpdk/container/ndt/ndtupdater"
-	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 type NdtMgmt struct {
@@ -32,7 +32,7 @@ func (mg NdtMgmt) Update(args UpdateArgs, reply *UpdateReply) error {
 
 type UpdateArgs struct {
 	Hash  uint64
-	Name  *ndni.Name // If not empty, overrides Hash with the hash of this name.
+	Name  ndn.Name // If not empty, overrides Hash with the hash of this name.
 	Value uint8
 }
 

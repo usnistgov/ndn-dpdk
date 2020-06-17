@@ -26,7 +26,7 @@ func TestLpHeaderDecode(t *testing.T) {
 		fragCount  uint16
 		pitToken   uint64
 		nackReason an.NackReason
-		congMark   ndni.CongMark
+		congMark   uint8
 		payloadL   int
 	}{
 		{input: "", bad: true},
@@ -65,13 +65,12 @@ func TestLpHeaderDecode(t *testing.T) {
 				continue
 			}
 			lph := pkt.GetLpHdr()
-			seqNum, fragIndex, fragCount := lph.GetFragFields()
-			assert.Equal(tt.seqNum, seqNum, tt.input)
-			assert.Equal(tt.fragIndex, fragIndex, tt.input)
-			assert.Equal(tt.fragCount, fragCount, tt.input)
-			assert.Equal(tt.pitToken, lph.GetPitToken(), tt.input)
-			assert.Equal(tt.nackReason, lph.GetNackReason(), tt.input)
-			assert.Equal(tt.congMark, lph.GetCongMark(), tt.input)
+			assert.Equal(tt.seqNum, lph.L2.SeqNum, tt.input)
+			assert.Equal(tt.fragIndex, lph.L2.FragIndex, tt.input)
+			assert.Equal(tt.fragCount, lph.L2.FragCount, tt.input)
+			assert.Equal(tt.pitToken, lph.L3.PitToken, tt.input)
+			assert.Equal(uint8(tt.nackReason), lph.L3.NackReason, tt.input)
+			assert.Equal(tt.congMark, lph.L3.CongMark, tt.input)
 			assert.Equal(tt.payloadL, pkt.AsMbuf().Len(), tt.input)
 		}
 	}

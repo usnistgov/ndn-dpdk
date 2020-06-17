@@ -25,12 +25,6 @@ typedef struct PNack
   PInterest interest;
 } PNack;
 
-static inline NackReason
-PNack_GetReason(const PNack* nack)
-{
-  return nack->lpl3.nackReason;
-}
-
 /** \brief Turn an Interest into a Nack.
  *  \pre Packet_GetL3PktType(npkt) == L3PktType_Interest
  *  \post Packet_GetL3PktType(npkt) == L3PktType_Nack

@@ -7,6 +7,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/app/ping/pingtestenv"
 	"github.com/usnistgov/ndn-dpdk/app/pingserver"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"github.com/usnistgov/ndn-dpdk/ndni/ndntestenv"
@@ -19,8 +20,8 @@ func TestServer(t *testing.T) {
 	defer face.Close()
 	face.DisableTxRecorders()
 
-	nameA := ndni.MustParseName("/A")
-	nameB := ndni.MustParseName("/B")
+	nameA := ndn.ParseName("/A")
+	nameB := ndn.ParseName("/B")
 	cfg := pingserver.Config{
 		Patterns: []pingserver.Pattern{
 			{
@@ -33,7 +34,7 @@ func TestServer(t *testing.T) {
 					},
 					{
 						Weight:          40,
-						Suffix:          ndni.MustParseName("/Z"),
+						Suffix:          ndn.ParseName("/Z"),
 						FreshnessPeriod: 100,
 						PayloadLen:      2000,
 					},
@@ -48,7 +49,7 @@ func TestServer(t *testing.T) {
 				},
 			},
 			{
-				Prefix: ndni.MustParseName("/C"),
+				Prefix: ndn.ParseName("/C"),
 				Replies: []pingserver.Reply{
 					{
 						Timeout: true,
@@ -65,9 +66,9 @@ func TestServer(t *testing.T) {
 	face.OnTxData(func(data *ndni.Data) {
 		dataName := data.GetName()
 		switch {
-		case dataName.Compare(nameA) == ndni.NAMECMP_RPREFIX && dataName.Len() == 2:
+		case nameA.IsPrefixOf(dataName) && len(dataName) == 2:
 			nDataA0++
-		case dataName.Compare(nameA) == ndni.NAMECMP_RPREFIX && dataName.Len() == 3:
+		case nameA.IsPrefixOf(dataName) && len(dataName) == 3:
 			nDataA1++
 		default:
 			assert.Fail("unexpected Data", "%s", data)
@@ -76,7 +77,7 @@ func TestServer(t *testing.T) {
 	face.OnTxNack(func(nack *ndni.Nack) {
 		interestName := nack.GetInterest().GetName()
 		switch {
-		case interestName.Compare(nameB) == ndni.NAMECMP_RPREFIX && interestName.Len() == 2:
+		case nameB.IsPrefixOf(interestName) && len(interestName) == 2:
 			nNacksB++
 		default:
 			assert.Fail("unexpected Nack", "%s", nack)

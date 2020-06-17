@@ -16,7 +16,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/container/strategycode"
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 const MAX_NAME_LEN = int(C.FIB_ENTRY_MAX_NAME_LEN)
@@ -37,12 +37,12 @@ func (entry *Entry) GetSeqNum() uint32 {
 	return uint32(entry.c.seqNum)
 }
 
-func (entry *Entry) GetName() (name *ndni.Name) {
-	nameV := make(ndni.TlvBytes, int(entry.c.nameL))
+func (entry *Entry) GetName() (name ndn.Name) {
+	nameV := make([]byte, int(entry.c.nameL))
 	for i := range nameV {
 		nameV[i] = byte(entry.c.nameV[i])
 	}
-	name, _ = ndni.NewName(nameV)
+	name.UnmarshalBinary(nameV)
 	return name
 }
 
@@ -50,19 +50,20 @@ func (entry *Entry) CountComps() int {
 	return int(entry.c.nComps)
 }
 
-func entrySetName(entryC *C.FibEntry, name *ndni.Name) error {
-	if name.Size() > C.FIB_ENTRY_MAX_NAME_LEN {
+func entrySetName(entryC *C.FibEntry, name ndn.Name) error {
+	nameV, _ := name.MarshalBinary()
+	if len(nameV) > C.FIB_ENTRY_MAX_NAME_LEN {
 		return fmt.Errorf("FIB entry name cannot exceed %d octets", C.FIB_ENTRY_MAX_NAME_LEN)
 	}
-	entryC.nameL = C.uint16_t(name.Size())
-	for i, b := range name.GetValue() {
+	entryC.nameL = C.uint16_t(len(nameV))
+	for i, b := range nameV {
 		entryC.nameV[i] = C.uint8_t(b)
 	}
-	entryC.nComps = C.uint8_t(name.Len())
+	entryC.nComps = C.uint8_t(len(name))
 	return nil
 }
 
-func (entry *Entry) SetName(name *ndni.Name) error {
+func (entry *Entry) SetName(name ndn.Name) error {
 	return entrySetName(&entry.c, name)
 }
 

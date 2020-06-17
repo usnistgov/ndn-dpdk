@@ -5,14 +5,14 @@ import (
 	"net"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
-	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
 
 // SocketFace implementation for stream-oriented sockets.
 type streamImpl struct{}
 
 func (impl streamImpl) RxLoop(face *SocketFace) {
-	buf := make(ndni.TlvBytes, face.rxMp.GetDataroom())
+	buf := make([]byte, face.rxMp.GetDataroom())
 	nAvail := 0
 	for {
 		nRead, e := face.GetConn().Read(buf[nAvail:])
@@ -42,11 +42,13 @@ func (impl streamImpl) RxLoop(face *SocketFace) {
 	}
 }
 
-func (streamImpl) postPacket(face *SocketFace, buf ndni.TlvBytes) (n int) {
-	element, _ := buf.ExtractElement()
-	if element == nil {
+func (streamImpl) postPacket(face *SocketFace, buf []byte) (n int) {
+	var element tlv.Element
+	_, e := element.UnmarshalTlv(buf)
+	if e != nil {
 		return 0
 	}
+	sz := element.Size()
 
 	vec, e := face.rxMp.Alloc(1)
 	if e != nil {
@@ -56,9 +58,9 @@ func (streamImpl) postPacket(face *SocketFace, buf ndni.TlvBytes) (n int) {
 
 	pkt := vec[0]
 	pkt.SetHeadroom(0)
-	pkt.Append([]byte(element))
+	pkt.Append(buf[:sz])
 	face.rxPkt(pkt)
-	return len(element)
+	return sz
 }
 
 func (streamImpl) Send(face *SocketFace, pkt *pktmbuf.Packet) error {

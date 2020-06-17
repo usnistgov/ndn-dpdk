@@ -10,7 +10,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/mempool"
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 type Fixture struct {
@@ -65,7 +65,7 @@ func (fixture *Fixture) CountEntries() (n int) {
 func (fixture *Fixture) MakeEntry(name string, sc strategycode.StrategyCode,
 	nexthops ...iface.FaceId) (entry *fib.Entry) {
 	entry = new(fib.Entry)
-	n := ndni.MustParseName(name)
+	n := ndn.ParseName(name)
 	entry.SetName(n)
 	entry.SetNexthops(nexthops)
 	if sc != nil {
@@ -75,7 +75,7 @@ func (fixture *Fixture) MakeEntry(name string, sc strategycode.StrategyCode,
 }
 
 // Find what partitions contain the given name.
-func (fixture *Fixture) FindInPartitions(name *ndni.Name) (partitions []int) {
+func (fixture *Fixture) FindInPartitions(name ndn.Name) (partitions []int) {
 	rs := urcu.NewReadSide()
 	defer rs.Close()
 	for partition := 0; partition < fixture.NPartitions; partition++ {
@@ -89,7 +89,7 @@ func (fixture *Fixture) FindInPartitions(name *ndni.Name) (partitions []int) {
 func (fixture *Fixture) CheckEntryNames(a *assert.Assertions, expectedInput []string) bool {
 	expected := make([]string, len(expectedInput))
 	for i, uri := range expectedInput {
-		expected[i] = ndni.MustParseName(uri).String()
+		expected[i] = ndn.ParseName(uri).String()
 	}
 
 	entryNames := fixture.Fib.ListNames()

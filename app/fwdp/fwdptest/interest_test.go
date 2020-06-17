@@ -361,7 +361,7 @@ func TestImplicitDigest(t *testing.T) {
 	assert.Equal(uint64(1), fibCnt.NTxInterests)
 
 	// /B/2 is fragmented, which is not supported in some cryptodev
-	dataB2 := makeData("/B/2", ndni.TlvBytes(bytes.Repeat([]byte{0xC0}, 300)))
+	dataB2 := makeData("/B/2", bytes.Repeat([]byte{0xC0}, 300))
 	fullNameB2orig := dataB2.GetFullName().String()
 	mbuftestenv.PacketSplitTailSegment(dataB2.GetPacket().AsMbuf(), 5)
 	fullNameB2 := dataB2.GetFullName().String()

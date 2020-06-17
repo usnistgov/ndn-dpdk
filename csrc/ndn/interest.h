@@ -23,6 +23,9 @@ typedef struct PInterest
   uint16_t guiderSize; ///< size of Nonce+InterestLifetime+HopLimit
 
   uint8_t hopLimit; ///< HopLimit value, "omitted" is same as 0xFF
+#ifdef GODEF
+  uint8_t _a;
+#else
   struct
   {
     bool canBePrefix : 1;
@@ -30,6 +33,7 @@ typedef struct PInterest
     uint8_t nFhs : 3;    ///< number of fwhints, up to INTEREST_MAX_FHS
     int8_t activeFh : 3; ///< index of active fwhint, -1 for none
   } __rte_packed;
+#endif
 
   Name name;
 

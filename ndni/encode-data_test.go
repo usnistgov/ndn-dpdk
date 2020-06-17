@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"github.com/usnistgov/ndn-dpdk/ndni/ndntestenv"
 )
@@ -15,16 +16,14 @@ func TestEncodeData(t *testing.T) {
 	m := ndntestenv.Packet.Alloc()
 	defer m.Close()
 
-	namePrefix, e := ndni.ParseName("/A/B")
-	require.NoError(e)
-	nameSuffix, e := ndni.ParseName("/C")
-	require.NoError(e)
+	prefix := ndn.ParseName("/A/B")
+	suffix := ndn.ParseName("/C")
 	freshnessPeriod := 11742 * time.Millisecond
-	content := ndni.TlvBytes{0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7}
+	content := []byte{0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7}
 
-	ndni.EncodeData(m, namePrefix, nameSuffix, freshnessPeriod, content)
+	ndni.EncodeData(m, prefix, suffix, freshnessPeriod, content)
 	pkt := ndni.PacketFromMbuf(m)
-	e = pkt.ParseL3(ndntestenv.Name.Pool())
+	e := pkt.ParseL3(ndntestenv.Name.Pool())
 	require.NoError(e)
 	data := pkt.AsData()
 
@@ -38,20 +37,18 @@ func TestDataGen(t *testing.T) {
 	mbufs := ndntestenv.Packet.Pool().MustAlloc(2)
 	mi := mbuftestenv.Indirect.Alloc()
 
-	namePrefix, e := ndni.ParseName("/A/B")
-	require.NoError(e)
-	nameSuffix, e := ndni.ParseName("/C")
-	require.NoError(e)
+	prefix := ndn.ParseName("/A/B")
+	suffix := ndn.ParseName("/C")
 	freshnessPeriod := 11742 * time.Millisecond
-	content := ndni.TlvBytes{0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7}
+	content := []byte{0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7}
 
-	gen := ndni.NewDataGen(mbufs[1], nameSuffix, freshnessPeriod, content)
+	gen := ndni.NewDataGen(mbufs[1], suffix, freshnessPeriod, content)
 	defer gen.Close()
-	gen.Encode(mbufs[0], mi, namePrefix)
+	gen.Encode(mbufs[0], mi, prefix)
 
 	pkt := ndni.PacketFromMbuf(mbufs[0])
 	defer mbufs[0].Close()
-	e = pkt.ParseL3(ndntestenv.Name.Pool())
+	e := pkt.ParseL3(ndntestenv.Name.Pool())
 	require.NoError(e)
 	data := pkt.AsData()
 

@@ -5,7 +5,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/container/strategycode"
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
-	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 func TestInsertErase(t *testing.T) {
@@ -22,7 +22,7 @@ func TestInsertErase(t *testing.T) {
 	assert.Equal(0, fib.Len())
 	assert.Equal(0, fixture.CountEntries())
 
-	nameA := ndni.MustParseName("/A")
+	nameA := ndn.ParseName("/A")
 	assert.Nil(fib.Find(nameA))
 
 	_, e := fib.Insert(fixture.MakeEntry("/A", badStrategy, 2851))
@@ -52,7 +52,7 @@ func TestInsertErase(t *testing.T) {
 	assert.Equal(2, strategyP.CountRefs())
 	entryA := fib.Find(nameA)
 	require.NotNil(entryA)
-	assert.True(entryA.GetName().Equal(nameA))
+	assert.Zero(entryA.GetName().Compare(nameA))
 	seqNum1 := entryA.GetSeqNum()
 
 	isNew, e = fib.Insert(fixture.MakeEntry("/A", strategyQ, 3092))
@@ -69,7 +69,7 @@ func TestInsertErase(t *testing.T) {
 
 	entryA = fib.Find(nameA)
 	require.NotNil(entryA)
-	assert.True(entryA.GetName().Equal(nameA))
+	assert.Zero(entryA.GetName().Compare(nameA))
 	seqNum2 := entryA.GetSeqNum()
 	assert.NotEqual(seqNum1, seqNum2)
 	fixture.CheckEntryNames(assert, []string{"/A"})
@@ -94,7 +94,7 @@ func TestLpm(t *testing.T) {
 	strategyP := strategycode.MakeEmpty("P")
 
 	lpm := func(name string) int {
-		entry := fib.Lpm(ndni.MustParseName(name))
+		entry := fib.Lpm(ndn.ParseName(name))
 		if entry == nil {
 			return 0
 		}
@@ -140,73 +140,73 @@ func TestLpm(t *testing.T) {
 	fixture.CheckEntryNames(assert, []string{"/", "/A", "/A/B/C", "/E/F/G/H", "/E/F/I", "/J/K", "/J/K/L", "/J/K/M/N", "/U", "/U/V", "/U/V/W", "/U/V/W/X"})
 	assert.Equal([]int{5000, 5100, 5000, 5100, 5101, 5101, 5100, 5200, 5201, 5000, 5300, 5301, 5302, 5400, 5401, 5402, 5403}, lpms())
 
-	assert.NoError(fib.Erase(ndni.MustParseName("/")))
+	assert.NoError(fib.Erase(ndn.ParseName("/")))
 	assert.Equal(11, fib.Len())
 	assert.Equal(15, fixture.CountEntries())
 	fixture.CheckEntryNames(assert, []string{"/A", "/A/B/C", "/E/F/G/H", "/E/F/I", "/J/K", "/J/K/L", "/J/K/M/N", "/U", "/U/V", "/U/V/W", "/U/V/W/X"})
 	assert.Equal([]int{0, 5100, 0, 5100, 5101, 5101, 5100, 5200, 5201, 0, 5300, 5301, 5302, 5400, 5401, 5402, 5403}, lpms())
 
-	assert.NoError(fib.Erase(ndni.MustParseName("/A")))
+	assert.NoError(fib.Erase(ndn.ParseName("/A")))
 	assert.Equal(10, fib.Len())
 	assert.Equal(14, fixture.CountEntries())
 	fixture.CheckEntryNames(assert, []string{"/A/B/C", "/E/F/G/H", "/E/F/I", "/J/K", "/J/K/L", "/J/K/M/N", "/U", "/U/V", "/U/V/W", "/U/V/W/X"})
 	assert.Equal([]int{0, 0, 0, 0, 5101, 5101, 0, 5200, 5201, 0, 5300, 5301, 5302, 5400, 5401, 5402, 5403}, lpms())
 
-	assert.NoError(fib.Erase(ndni.MustParseName("/A/B/C"))) // erase virtual /A/B
+	assert.NoError(fib.Erase(ndn.ParseName("/A/B/C"))) // erase virtual /A/B
 	assert.Equal(9, fib.Len())
 	assert.Equal(12, fixture.CountEntries())
 	fixture.CheckEntryNames(assert, []string{"/E/F/G/H", "/E/F/I", "/J/K", "/J/K/L", "/J/K/M/N", "/U", "/U/V", "/U/V/W", "/U/V/W/X"})
 	assert.Equal([]int{0, 0, 0, 0, 0, 0, 0, 5200, 5201, 0, 5300, 5301, 5302, 5400, 5401, 5402, 5403}, lpms())
 
-	assert.NoError(fib.Erase(ndni.MustParseName("/E/F/G/H"))) // update virtual /E/F
+	assert.NoError(fib.Erase(ndn.ParseName("/E/F/G/H"))) // update virtual /E/F
 	assert.Equal(8, fib.Len())
 	assert.Equal(11, fixture.CountEntries())
 	fixture.CheckEntryNames(assert, []string{"/E/F/I", "/J/K", "/J/K/L", "/J/K/M/N", "/U", "/U/V", "/U/V/W", "/U/V/W/X"})
 	assert.Equal([]int{0, 0, 0, 0, 0, 0, 0, 0, 5201, 0, 5300, 5301, 5302, 5400, 5401, 5402, 5403}, lpms())
 
-	assert.NoError(fib.Erase(ndni.MustParseName("/E/F/I"))) // erase virtual /E/F
+	assert.NoError(fib.Erase(ndn.ParseName("/E/F/I"))) // erase virtual /E/F
 	assert.Equal(7, fib.Len())
 	assert.Equal(9, fixture.CountEntries())
 	fixture.CheckEntryNames(assert, []string{"/J/K", "/J/K/L", "/J/K/M/N", "/U", "/U/V", "/U/V/W", "/U/V/W/X"})
 	assert.Equal([]int{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5300, 5301, 5302, 5400, 5401, 5402, 5403}, lpms())
 
-	assert.NoError(fib.Erase(ndni.MustParseName("/J/K")))
+	assert.NoError(fib.Erase(ndn.ParseName("/J/K")))
 	assert.Equal(6, fib.Len())
 	assert.Equal(8, fixture.CountEntries())
 	fixture.CheckEntryNames(assert, []string{"/J/K/L", "/J/K/M/N", "/U", "/U/V", "/U/V/W", "/U/V/W/X"})
 	assert.Equal([]int{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5301, 5302, 5400, 5401, 5402, 5403}, lpms())
 
-	assert.NoError(fib.Erase(ndni.MustParseName("/J/K/L"))) // don't update virtual /J/K
+	assert.NoError(fib.Erase(ndn.ParseName("/J/K/L"))) // don't update virtual /J/K
 	assert.Equal(5, fib.Len())
 	assert.Equal(7, fixture.CountEntries())
 	fixture.CheckEntryNames(assert, []string{"/J/K/M/N", "/U", "/U/V", "/U/V/W", "/U/V/W/X"})
 	assert.Equal([]int{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5302, 5400, 5401, 5402, 5403}, lpms())
 
-	assert.NoError(fib.Erase(ndni.MustParseName("/J/K/M/N"))) // erase virtual /J/K
+	assert.NoError(fib.Erase(ndn.ParseName("/J/K/M/N"))) // erase virtual /J/K
 	assert.Equal(4, fib.Len())
 	assert.Equal(5, fixture.CountEntries())
 	fixture.CheckEntryNames(assert, []string{"/U", "/U/V", "/U/V/W", "/U/V/W/X"})
 	assert.Equal([]int{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5400, 5401, 5402, 5403}, lpms())
 
-	assert.NoError(fib.Erase(ndni.MustParseName("/U/V/W/X"))) // update virtual /U/V
+	assert.NoError(fib.Erase(ndn.ParseName("/U/V/W/X"))) // update virtual /U/V
 	assert.Equal(3, fib.Len())
 	assert.Equal(4, fixture.CountEntries())
 	fixture.CheckEntryNames(assert, []string{"/U", "/U/V", "/U/V/W"})
 	assert.Equal([]int{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5401, 5401, 5402, 5403}, lpms())
 
-	assert.NoError(fib.Erase(ndni.MustParseName("/U/V/W"))) // erase virtual /U/V
+	assert.NoError(fib.Erase(ndn.ParseName("/U/V/W"))) // erase virtual /U/V
 	assert.Equal(2, fib.Len())
 	assert.Equal(2, fixture.CountEntries())
 	fixture.CheckEntryNames(assert, []string{"/U", "/U/V"})
 	assert.Equal([]int{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5402, 5402, 5402, 5403}, lpms())
 
-	assert.NoError(fib.Erase(ndni.MustParseName("/U/V")))
+	assert.NoError(fib.Erase(ndn.ParseName("/U/V")))
 	assert.Equal(1, fib.Len())
 	assert.Equal(1, fixture.CountEntries())
 	fixture.CheckEntryNames(assert, []string{"/U"})
 	assert.Equal([]int{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5403, 5403, 5403, 5403}, lpms())
 
-	assert.NoError(fib.Erase(ndni.MustParseName("/U")))
+	assert.NoError(fib.Erase(ndn.ParseName("/U")))
 	assert.Equal(0, fib.Len())
 	assert.Equal(0, fixture.CountEntries())
 	fixture.CheckEntryNames(assert, []string{})

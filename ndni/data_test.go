@@ -72,15 +72,15 @@ func TestDataSatisfy(t *testing.T) {
 			ndni.DATA_SATISFY_NO, ndni.DATA_SATISFY_NO, ndni.DATA_SATISFY_NO},
 	}
 	for i, tt := range tests {
-		assert.Equal(tt.exactMatch, tt.data.CanSatisfy(interestExact), "%d", i)
-		assert.Equal(tt.prefixMatch, tt.data.CanSatisfy(interestPrefix), "%d", i)
-		assert.Equal(tt.freshMatch, tt.data.CanSatisfy(interestFresh), "%d", i)
+		assert.Equal(tt.exactMatch, tt.data.CanSatisfy(*interestExact), "%d", i)
+		assert.Equal(tt.prefixMatch, tt.data.CanSatisfy(*interestPrefix), "%d", i)
+		assert.Equal(tt.freshMatch, tt.data.CanSatisfy(*interestFresh), "%d", i)
 
 		if tt.exactMatch == ndni.DATA_SATISFY_YES {
 			interestImplicit := makeInterest(tt.data.GetFullName().String())
-			assert.Equal(ndni.DATA_SATISFY_NEED_DIGEST, tt.data.CanSatisfy(interestImplicit))
+			assert.Equal(ndni.DATA_SATISFY_NEED_DIGEST, tt.data.CanSatisfy(*interestImplicit))
 			tt.data.ComputeDigest(true)
-			assert.Equal(ndni.DATA_SATISFY_YES, tt.data.CanSatisfy(interestImplicit))
+			assert.Equal(ndni.DATA_SATISFY_YES, tt.data.CanSatisfy(*interestImplicit))
 			ndntestenv.ClosePacket(interestImplicit)
 		}
 

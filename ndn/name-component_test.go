@@ -1,11 +1,9 @@
-package ndni_test
+package ndn_test
 
 import (
 	"testing"
 
-	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
-	"github.com/usnistgov/ndn-dpdk/ndn/an"
-	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 func TestNameComponent(t *testing.T) {
@@ -14,16 +12,17 @@ func TestNameComponent(t *testing.T) {
 	tests := []struct {
 		input string
 		bad   bool
-		t     uint64
+		rest  int
+		t     uint32
 		v     string
 		str   string
 	}{
 		{input: "FD01", bad: true},                                             // incomplete TLV-TYPE
 		{input: "08FD01", bad: true},                                           // incomplete TLV-LENGTH
 		{input: "0802B0", bad: true},                                           // incomplete TLV-VALUE
-		{input: "0802B0B1B2", bad: true},                                       // junk at end
 		{input: "0001B0", bad: true},                                           // TLV-TYPE too small
 		{input: "FE00010000", bad: true},                                       // TLV-TYPE too large
+		{input: "0802B0B1B2", rest: 1, t: 0x08, v: "B0B1", str: "8=%B0%B1"},    // junk at end
 		{input: "0104B0B1B2B3", t: 0x01, v: "B0B1B2B3", str: "1=%B0%B1%B2%B3"}, // ImplicitDigest wrong TLV-LENGTH
 
 		{input: "0800", t: 0x08, v: "", str: "8=..."},
@@ -40,17 +39,21 @@ func TestNameComponent(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		comp := ndni.NameComponent(mbuftestenv.BytesFromHex(tt.input))
+		var comp ndn.NameComponent
+		rest, e := comp.UnmarshalTlv(bytesFromHex(tt.input))
 		if tt.bad {
-			assert.False(comp.IsValid(), tt.input)
-		} else if assert.True(comp.IsValid(), tt.input) {
-			assert.Equal(an.TlvType(tt.t), comp.GetType(), tt.input)
-			assert.Equal(ndni.TlvBytes(mbuftestenv.BytesFromHex(tt.v)), comp.GetValue(), tt.input)
+			assert.False(comp.Valid(), tt.input)
+			assert.Error(e, tt.input)
+		} else if assert.True(comp.Valid(), tt.input) {
+			assert.NoError(e, tt.input)
+			assert.Len(rest, tt.rest, tt.input)
+			assert.Equal(tt.t, comp.Type, tt.input)
+			assert.Equal(bytesFromHex(tt.v), comp.Value, tt.input)
 			assert.Equal(tt.str, comp.String(), tt.input)
 
-			parsed, e := ndni.ParseNameComponent(tt.str)
-			if assert.NoError(e, tt.input) {
-				assert.True(comp.Equal(parsed))
+			parsed := ndn.ParseNameComponent(tt.str)
+			if assert.True(parsed.Valid(), tt.input) {
+				assert.Equal(0, comp.Compare(parsed))
 			}
 		}
 	}

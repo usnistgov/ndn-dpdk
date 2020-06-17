@@ -7,13 +7,13 @@ import "C"
 import (
 	"github.com/usnistgov/ndn-dpdk/container/fib/fibtree"
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
-	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 // List all FIB entry names.
-func (fib *Fib) ListNames() (names []*ndni.Name) {
+func (fib *Fib) ListNames() (names []ndn.Name) {
 	fib.postCommand(func(rs *urcu.ReadSide) error {
-		fib.tree.Traverse(func(name *ndni.Name, n *fibtree.Node) bool {
+		fib.tree.Traverse(func(name ndn.Name, n *fibtree.Node) bool {
 			if n.IsEntry {
 				names = append(names, name)
 			}
@@ -25,7 +25,7 @@ func (fib *Fib) ListNames() (names []*ndni.Name) {
 }
 
 // Perform an exact match lookup.
-func (fib *Fib) Find(name *ndni.Name) (entry *Entry) {
+func (fib *Fib) Find(name ndn.Name) (entry *Entry) {
 	fib.postCommand(func(rs *urcu.ReadSide) error {
 		_, partition := fib.ndt.Lookup(name)
 		entry = fib.FindInPartition(name, int(partition), rs)
@@ -36,19 +36,17 @@ func (fib *Fib) Find(name *ndni.Name) (entry *Entry) {
 
 // Perform an exact match lookup in specified partition.
 // This method runs in the given URCU read-side thread, not necessarily the command loop.
-func (fib *Fib) FindInPartition(name *ndni.Name, partition int, rs *urcu.ReadSide) (entry *Entry) {
+func (fib *Fib) FindInPartition(name ndn.Name, partition int, rs *urcu.ReadSide) (entry *Entry) {
 	rs.Lock()
 	defer rs.Unlock()
-	nameV := name.GetValue()
-	hash := name.ComputeHash()
-	return entryFromC(C.Fib_Find_(fib.parts[partition].c, C.uint16_t(len(nameV)),
-		(*C.uint8_t)(nameV.GetPtr()), C.uint64_t(hash)))
+	length, value, hash, _ := convertName(name)
+	return entryFromC(C.Fib_Find_(fib.parts[partition].c, length, value, hash))
 }
 
 // Determine what partitions would a name appear in.
 // This method is non-thread-safe.
-func (fib *Fib) listPartitionsForName(name *ndni.Name) (parts []*partition) {
-	if name.Len() < fib.ndt.GetPrefixLen() {
+func (fib *Fib) listPartitionsForName(name ndn.Name) (parts []*partition) {
+	if len(name) < fib.ndt.GetPrefixLen() {
 		return fib.parts
 	}
 	_, partition := fib.ndt.Lookup(name)
@@ -56,7 +54,7 @@ func (fib *Fib) listPartitionsForName(name *ndni.Name) (parts []*partition) {
 }
 
 // Read entry counters, aggregate across all partitions if necessary.
-func (fib *Fib) ReadEntryCounters(name *ndni.Name) (cnt EntryCounters) {
+func (fib *Fib) ReadEntryCounters(name ndn.Name) (cnt EntryCounters) {
 	fib.postCommand(func(rs *urcu.ReadSide) error {
 		for _, part := range fib.listPartitionsForName(name) {
 			if entry := fib.FindInPartition(name, part.index, rs); entry != nil {
@@ -69,13 +67,13 @@ func (fib *Fib) ReadEntryCounters(name *ndni.Name) (cnt EntryCounters) {
 }
 
 // Perform a longest prefix match lookup.
-func (fib *Fib) Lpm(name *ndni.Name) (entry *Entry) {
+func (fib *Fib) Lpm(name ndn.Name) (entry *Entry) {
 	fib.postCommand(func(rs *urcu.ReadSide) error {
 		rs.Lock()
 		defer rs.Unlock()
 		_, partition := fib.ndt.Lookup(name)
-		entry = entryFromC(C.Fib_Lpm_(fib.parts[partition].c, (*C.PName)(name.GetPNamePtr()),
-			(*C.uint8_t)(name.GetValue().GetPtr())))
+		_, value, _, pname := convertName(name)
+		entry = entryFromC(C.Fib_Lpm_(fib.parts[partition].c, pname, value))
 		return nil
 	})
 	return entry

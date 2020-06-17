@@ -13,7 +13,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/createface"
 	"github.com/usnistgov/ndn-dpdk/iface/mockface"
-	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/strategy/strategy_elf"
 )
 
@@ -83,7 +83,7 @@ func (fixture *Fixture) CreateFace() *mockface.MockFace {
 
 func (fixture *Fixture) SetFibEntry(name string, strategy string, nexthops ...iface.FaceId) {
 	var entry fib.Entry
-	e := entry.SetName(ndni.MustParseName(name))
+	e := entry.SetName(ndn.ParseName(name))
 	fixture.require.NoError(e)
 
 	e = entry.SetNexthops(nexthops)
@@ -96,7 +96,7 @@ func (fixture *Fixture) SetFibEntry(name string, strategy string, nexthops ...if
 }
 
 func (fixture *Fixture) ReadFibCounters(name string) fib.EntryCounters {
-	return fixture.Fib.ReadEntryCounters(ndni.MustParseName(name))
+	return fixture.Fib.ReadEntryCounters(ndn.ParseName(name))
 }
 
 func (fixture *Fixture) makeStrategy(shortname string) strategycode.StrategyCode {

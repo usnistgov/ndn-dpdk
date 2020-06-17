@@ -12,7 +12,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
-	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 type Config struct {
@@ -50,7 +50,7 @@ func New(cfg Config, ndt *ndt.Ndt, numaSockets []eal.NumaSocket) (fib *Fib, e er
 	}
 
 	fib.tree = fibtree.New(cfg.StartDepth, ndt.GetPrefixLen(), ndt.CountElements(),
-		func(name *ndni.Name) uint64 { return ndt.GetIndex(ndt.ComputeHash(name)) })
+		func(name ndn.Name) uint64 { return ndt.GetIndex(ndt.ComputeHash(name)) })
 
 	fib.commands = make(chan command)
 	go fib.commandLoop()

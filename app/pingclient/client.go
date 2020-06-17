@@ -90,7 +90,7 @@ func (client *Client) AddPattern(cfg Pattern) (index int, e error) {
 
 	client.clearCounter(index)
 	rxP := &client.Rx.c.pattern[index]
-	rxP.prefixLen = C.uint16_t(cfg.Prefix.Size())
+	rxP.prefixLen = C.uint16_t(cfg.Prefix.Length())
 	txP := &client.Tx.c.pattern[index]
 	if e = ndni.InterestTemplateFromPtr(unsafe.Pointer(&txP.tpl)).Init(tplArgs...); e != nil {
 		return -1, e

@@ -9,14 +9,11 @@ import (
 
 var (
 	makeAR       = testenv.MakeAR
+	bytesFromHex = testenv.BytesFromHex
 	makeInterest = ndntestenv.MakeInterest
 	makeData     = ndntestenv.MakeData
 )
 
 func packetFromHex(input string) *ndni.Packet {
 	return ndni.PacketFromPtr(mbuftestenv.MakePacket(input).GetPtr())
-}
-
-func tlvBytesFromHex(input string) ndni.TlvBytes {
-	return ndni.TlvBytes(mbuftestenv.BytesFromHex(input))
 }

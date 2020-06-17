@@ -1,10 +1,10 @@
 package fibtree
 
 import (
-	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
-type GetNdtIndexCallback func(name *ndni.Name) uint64
+type GetNdtIndexCallback func(name ndn.Name) uint64
 
 // FIB tree structure.
 type Tree struct {
@@ -44,7 +44,7 @@ func (t *Tree) CountNodes() int {
 
 // Traversal visitor.
 // Returns whether to visit descendants of current node.
-type TraverseCallback func(name *ndni.Name, n *Node) bool
+type TraverseCallback func(name ndn.Name, n *Node) bool
 
 // Traverse entire tree.
 func (t *Tree) Traverse(cb TraverseCallback) {
@@ -64,14 +64,15 @@ func (t *Tree) TraverseSubtree(ndtIndex uint64, cb TraverseCallback) {
 //   oldMd: old MaxDepth at name.GetPrefix(startDepth)
 //   newMd: new MaxDepth at name.GetPrefix(startDepth)
 //   virtIsEntry: whether node at name.GetPrefix(startDepth) is an entry
-func (t *Tree) Insert(name *ndni.Name) (ok bool, oldMd int, newMd int, virtIsEntry bool) {
-	nComps := name.Len()
+func (t *Tree) Insert(name ndn.Name) (ok bool, oldMd int, newMd int, virtIsEntry bool) {
+	nComps := len(name)
 	// create node at name and ancestors
 	nodes := make([]*Node, nComps+1)
 	nodes[0] = t.root
 	for i := 1; i <= nComps; i++ {
 		parent := nodes[i-1]
-		comp := string(name.GetComp(i - 1))
+		compTlv, _ := name[i-1].MarshalTlv()
+		comp := string(compTlv)
 		node := parent.children[comp]
 		if node != nil {
 			nodes[i] = node
@@ -86,7 +87,8 @@ func (t *Tree) Insert(name *ndni.Name) (ok bool, oldMd int, newMd int, virtIsEnt
 		// store subtree when creating node at NDT prefixLen
 		if i == t.ndtPrefixLen {
 			ndtIndex := t.getNdtIndex(name)
-			t.subtrees[ndtIndex][node] = string(name.GetPrefix(i).GetValue())
+			prefixV, _ := name[:i].MarshalBinary()
+			t.subtrees[ndtIndex][node] = string(prefixV)
 		}
 	}
 
@@ -118,14 +120,15 @@ func (t *Tree) Insert(name *ndni.Name) (ok bool, oldMd int, newMd int, virtIsEnt
 //   oldMd: old MaxDepth at name.GetPrefix(startDepth)
 //   newMd: new MaxDepth at name.GetPrefix(startDepth)
 //   virtIsEntry: whether node at name.GetPrefix(startDepth) is an entry
-func (t *Tree) Erase(name *ndni.Name) (ok bool, oldMd int, newMd int, virtIsEntry bool) {
-	nComps := name.Len()
+func (t *Tree) Erase(name ndn.Name) (ok bool, oldMd int, newMd int, virtIsEntry bool) {
+	nComps := len(name)
 	// find node at name and ancestors
 	nodes := make([]*Node, nComps+1)
 	nodes[0] = t.root
 	for i := 1; i <= nComps; i++ {
 		parent := nodes[i-1]
-		comp := string(name.GetComp(i - 1))
+		compTlv, _ := name[i-1].MarshalTlv()
+		comp := string(compTlv)
 		nodes[i] = parent.children[comp]
 		if nodes[i] == nil {
 			return false, -1, -1, false
@@ -162,7 +165,8 @@ func (t *Tree) Erase(name *ndni.Name) (ok bool, oldMd int, newMd int, virtIsEntr
 			delete(t.subtrees[ndtIndex], node)
 		}
 		parent := nodes[i-1]
-		delete(parent.children, string(name.GetComp(i-1)))
+		compTlv, _ := name[i-1].MarshalTlv()
+		delete(parent.children, string(compTlv))
 		t.nNodes--
 	}
 	return true, oldMd, newMd, virtIsEntry

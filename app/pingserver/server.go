@@ -68,9 +68,15 @@ func (server *Server) AddPattern(cfg Pattern) (index int, e error) {
 	patternC := &server.c.pattern[index]
 	*patternC = C.PingServerPattern{}
 
-	if e = cfg.Prefix.CopyToLName(unsafe.Pointer(&patternC.prefix), unsafe.Pointer(&patternC.prefixBuffer[0]), unsafe.Sizeof(patternC.prefixBuffer)); e != nil {
-		return -1, e
+	prefixV, _ := cfg.Prefix.MarshalBinary()
+	if len(prefixV) > len(patternC.prefixBuffer) {
+		return -1, fmt.Errorf("prefix too long")
 	}
+	for i, b := range prefixV {
+		patternC.prefixBuffer[i] = C.uint8_t(b)
+	}
+	patternC.prefix.value = &patternC.prefixBuffer[0]
+	patternC.prefix.length = C.uint16_t(len(prefixV))
 
 	for i, reply := range cfg.Replies {
 		if reply.Weight < 1 {
@@ -97,7 +103,7 @@ func (server *Server) AddPattern(cfg Pattern) (index int, e error) {
 			if e != nil {
 				return -1, fmt.Errorf("cannot allocate from MP_DATA1 for reply definition %d", i)
 			}
-			dataGen := ndni.NewDataGen(vec[0], reply.Suffix, reply.FreshnessPeriod.Duration(), make(ndni.TlvBytes, reply.PayloadLen))
+			dataGen := ndni.NewDataGen(vec[0], reply.Suffix, reply.FreshnessPeriod.Duration(), make([]byte, reply.PayloadLen))
 			replyC.dataGen = (*C.DataGen)(dataGen.GetPtr())
 		}
 	}

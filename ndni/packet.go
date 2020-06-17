@@ -103,19 +103,19 @@ func (pkt *Packet) GetLpL3() *LpL3 {
 // AsInterest converts to Interest type.
 // Packet must be parsed as Interest.
 func (pkt *Packet) AsInterest() *Interest {
-	return &Interest{pkt, C.Packet_GetInterestHdr(pkt.getPtr())}
+	return &Interest{pkt, (*pInterest)(unsafe.Pointer(C.Packet_GetInterestHdr(pkt.getPtr())))}
 }
 
 // AsData converts to Data type.
 // Packet must be parsed as Data.
 func (pkt *Packet) AsData() *Data {
-	return &Data{pkt, C.Packet_GetDataHdr(pkt.getPtr())}
+	return &Data{pkt, (*pData)(unsafe.Pointer(C.Packet_GetDataHdr(pkt.getPtr())))}
 }
 
 // AsNack converts to Nack type.
 // Packet must be parsed as Nack.
 func (pkt *Packet) AsNack() *Nack {
-	return &Nack{pkt, C.Packet_GetNackHdr(pkt.getPtr())}
+	return &Nack{pkt, (*pNack)(unsafe.Pointer(C.Packet_GetNackHdr(pkt.getPtr())))}
 }
 
 func (pkt *Packet) String() string {

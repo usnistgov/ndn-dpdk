@@ -10,6 +10,7 @@ import (
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 func EncodeData_GetHeadroom() int {
@@ -25,30 +26,32 @@ func EncodeData_GetTailroomMax() int {
 }
 
 // Encode a Data.
-func EncodeData(pkt *pktmbuf.Packet, namePrefix *Name, nameSuffix *Name, freshnessPeriod time.Duration, content TlvBytes) {
+func EncodeData(pkt *pktmbuf.Packet, prefix, suffix ndn.Name, freshnessPeriod time.Duration, content []byte) {
+	prefixV, _ := prefix.MarshalBinary()
+	suffixV, _ := suffix.MarshalBinary()
 	C.EncodeData_((*C.struct_rte_mbuf)(pkt.GetPtr()),
-		C.uint16_t(namePrefix.Size()), namePrefix.getValuePtr(),
-		C.uint16_t(nameSuffix.Size()), nameSuffix.getValuePtr(),
+		C.uint16_t(len(prefixV)), bytesToPtr(prefixV),
+		C.uint16_t(len(suffixV)), bytesToPtr(suffixV),
 		C.uint32_t(freshnessPeriod/time.Millisecond),
-		C.uint16_t(len(content)), (*C.uint8_t)(content.GetPtr()))
+		C.uint16_t(len(content)), bytesToPtr(content))
 }
 
 // Encode a Data from flexible arguments.
 // This alternate API is easier to use but less efficient.
-func MakeData(m *pktmbuf.Packet, name string, args ...interface{}) (*Data, error) {
-	n, e := ParseName(name)
-	if e != nil {
-		m.Close()
-		return nil, e
-	}
+func MakeData(m *pktmbuf.Packet, args ...interface{}) (data *Data, e error) {
+	var name ndn.Name
 	var freshnessPeriod time.Duration
-	var content TlvBytes
+	var content []byte
 
 	for _, arg := range args {
 		switch a := arg.(type) {
+		case string:
+			name = ndn.ParseName(a)
+		case ndn.Name:
+			name = a
 		case time.Duration:
 			freshnessPeriod = a
-		case TlvBytes:
+		case []byte:
 			content = a
 		default:
 			m.Close()
@@ -56,7 +59,7 @@ func MakeData(m *pktmbuf.Packet, name string, args ...interface{}) (*Data, error
 		}
 	}
 
-	EncodeData(m, n, nil, freshnessPeriod, content)
+	EncodeData(m, name, nil, freshnessPeriod, content)
 
 	pkt := PacketFromMbuf(m)
 	e = pkt.ParseL2()
@@ -88,11 +91,12 @@ type DataGen struct {
 	c *C.DataGen
 }
 
-func NewDataGen(m *pktmbuf.Packet, nameSuffix *Name, freshnessPeriod time.Duration, content TlvBytes) (gen DataGen) {
+func NewDataGen(m *pktmbuf.Packet, suffix ndn.Name, freshnessPeriod time.Duration, content []byte) (gen DataGen) {
+	suffixV, _ := suffix.MarshalBinary()
 	gen.c = C.MakeDataGen_((*C.struct_rte_mbuf)(m.GetPtr()),
-		C.uint16_t(nameSuffix.Size()), nameSuffix.getValuePtr(),
+		C.uint16_t(len(suffixV)), bytesToPtr(suffixV),
 		C.uint32_t(freshnessPeriod/time.Millisecond),
-		C.uint16_t(len(content)), (*C.uint8_t)(content.GetPtr()))
+		C.uint16_t(len(content)), bytesToPtr(content))
 	return gen
 }
 
@@ -109,8 +113,9 @@ func (gen DataGen) Close() error {
 	return nil
 }
 
-func (gen DataGen) Encode(seg0, seg1 *pktmbuf.Packet, namePrefix *Name) {
+func (gen DataGen) Encode(seg0, seg1 *pktmbuf.Packet, prefix ndn.Name) {
+	prefixV, _ := prefix.MarshalBinary()
 	C.DataGen_Encode_(gen.c,
 		(*C.struct_rte_mbuf)(seg0.GetPtr()), (*C.struct_rte_mbuf)(seg1.GetPtr()),
-		C.uint16_t(namePrefix.Size()), namePrefix.getValuePtr())
+		C.uint16_t(len(prefixV)), bytesToPtr(prefixV))
 }

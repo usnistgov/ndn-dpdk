@@ -1,8 +1,6 @@
 package fibtree
 
-import (
-	"github.com/usnistgov/ndn-dpdk/ndni"
-)
+import "github.com/usnistgov/ndn-dpdk/ndn"
 
 type Node struct {
 	IsEntry  bool
@@ -26,7 +24,8 @@ func (n *Node) updateMaxDepth() {
 
 // Visit this node and its descendants in preorder traversal.
 func (n *Node) traverse(nameV string, cb TraverseCallback) {
-	name, _ := ndni.NewName(ndni.TlvBytes(nameV))
+	var name ndn.Name
+	name.UnmarshalBinary([]byte(nameV))
 	visitChildren := cb(name, n)
 	if !visitChildren {
 		return

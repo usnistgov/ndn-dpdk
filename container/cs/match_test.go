@@ -149,7 +149,7 @@ func TestImplicitDigestMatch(t *testing.T) {
 	defer fixture.Close()
 
 	// /A/B/C/D {0x01} <- [/A/B]
-	data01 := makeData("/A/B/C/D", ndni.TlvBytes{0x01})
+	data01 := makeData("/A/B/C/D", []byte{0x01})
 	fullName01 := data01.GetFullName().String()
 	ok := fixture.Insert(makeInterest("/A/B", ndni.CanBePrefixFlag), data01)
 	assert.True(ok)
@@ -157,7 +157,7 @@ func TestImplicitDigestMatch(t *testing.T) {
 	assert.Equal(1, fixture.Cs.CountEntries(cs.CSL_MI))
 
 	// /A/B/C/D {0x01} <- [/A/B, /A/B/C/D/implicit-digest-01]
-	data01 = makeData("/A/B/C/D", ndni.TlvBytes{0x01})
+	data01 = makeData("/A/B/C/D", []byte{0x01})
 	assert.Equal(fullName01, data01.GetFullName().String())
 	ok = fixture.Insert(makeInterest(fullName01), data01)
 	assert.True(ok)
@@ -170,7 +170,7 @@ func TestImplicitDigestMatch(t *testing.T) {
 	assert.NotNil(fixture.Find(makeInterest(fullName01, ndni.CanBePrefixFlag)))
 
 	// /A/B/C/D {0x02} <- [/A/B, /A/B/C/D/implicit-digest-02]
-	data02 := makeData("/A/B/C/D", ndni.TlvBytes{0x02})
+	data02 := makeData("/A/B/C/D", []byte{0x02})
 	fullName02 := data02.GetFullName().String()
 	assert.NotEqual(fullName01, fullName02)
 	ok = fixture.Insert(makeInterest(fullName02), data02)

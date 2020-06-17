@@ -18,12 +18,12 @@ func TestEntryExpiry(t *testing.T) {
 	// lifetime 50ms
 	interest1 := makeInterest("/A/B", 50*time.Millisecond)
 	ndntestenv.SetPitToken(interest1, 0xB0B1B2B3B4B5B6B7)
-	ndntestenv.SetFaceId(interest1, 1001)
+	ndntestenv.SetPort(interest1, 1001)
 
 	// lifetime 300ms
-	interest2 := makeInterest("/A/B", 200*time.Millisecond)
+	interest2 := makeInterest("/A/B", 300*time.Millisecond)
 	ndntestenv.SetPitToken(interest2, 0xB8B9BABBBCBDBEBF)
-	ndntestenv.SetFaceId(interest2, 1002)
+	ndntestenv.SetPort(interest2, 1002)
 
 	entry := fixture.Insert(interest1)
 	require.NotNil(entry)
@@ -55,7 +55,7 @@ func TestEntryExtend(t *testing.T) {
 	for i := 0; i < 512; i++ {
 		interest := makeInterest("/A/B")
 		ndntestenv.SetPitToken(interest, uint64(0xB0B1B2B300000000)|uint64(i))
-		ndntestenv.SetFaceId(interest, uint16(1000+i))
+		ndntestenv.SetPort(interest, uint16(1000+i))
 
 		entry = fixture.Insert(interest)
 		require.NotNil(entry)
@@ -79,7 +79,7 @@ func TestEntryLongName(t *testing.T) {
 		ndni.FHDelegation{1, strings.Repeat("/FHFHFHFH", 70)},
 		ndni.ActiveFHDelegation(0))
 	ndntestenv.SetPitToken(interest, 0xB0B1B2B3B4B5B6B7)
-	ndntestenv.SetFaceId(interest, 1000)
+	ndntestenv.SetPort(interest, 1000)
 
 	entry := fixture.Insert(interest)
 	require.NotNil(entry)

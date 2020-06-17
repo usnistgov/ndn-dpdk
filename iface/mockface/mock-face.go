@@ -94,7 +94,7 @@ func (face *MockFace) ListRxGroups() []iface.IRxGroup {
 // MockFace takes ownership of the underlying mbuf.
 func (face *MockFace) Rx(l3pkt ndni.IL3Packet) {
 	var lph ndni.LpHeader
-	lph.LpL3 = *l3pkt.GetPacket().GetLpL3()
+	lph.L3 = *l3pkt.GetPacket().GetLpL3()
 
 	pkt := l3pkt.GetPacket().AsMbuf()
 	payloadL := pkt.Len()

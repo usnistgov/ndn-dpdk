@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"github.com/usnistgov/ndn-dpdk/ndni/ndntestenv"
 )
@@ -124,9 +123,9 @@ func TestInterestModify(t *testing.T) {
 			pkt := npkt.AsMbuf()
 			defer pkt.Close()
 
-			assert.Equal(mbuftestenv.BytesFromHex(tt.output), pkt.ReadAll(), tt.input)
+			assert.Equal(bytesFromHex(tt.output), pkt.ReadAll(), tt.input)
 			if i == 0 {
-				assert.Equal(pitToken0, npkt.GetLpL3().GetPitToken(), tt.input)
+				assert.Equal(pitToken0, npkt.GetLpL3().PitToken, tt.input)
 			}
 		}
 	}
@@ -140,7 +139,7 @@ func TestMakeInterest(t *testing.T) {
 	require.NoError(e)
 	defer m1.Close()
 	encoded1 := m1.ReadAll()
-	assert.Equal(mbuftestenv.BytesFromHex("050E name=0706080141080142 nonce=0A04A3A2A1A0"), encoded1)
+	assert.Equal(bytesFromHex("050E name=0706080141080142 nonce=0A04A3A2A1A0"), encoded1)
 
 	m2 := ndntestenv.Packet.Alloc()
 	_, e = ndni.MakeInterest(m2, "/A/B/C/D", ndni.CanBePrefixFlag, ndni.MustBeFreshFlag,
@@ -149,8 +148,8 @@ func TestMakeInterest(t *testing.T) {
 	require.NoError(e)
 	defer m2.Close()
 	encoded2 := m2.ReadAll()
-	assert.Equal(mbuftestenv.BytesFromHex("053D name=070C080141080142080143080144 "+
+	assert.Equal(bytesFromHex("0537 name=070C080141080142080143080144 "+
 		"canbeprefix=2100 mustbefresh=1200 "+
-		"fh=1E1A(1F0B pref=1E0400003CF1 name=0703080145)(1F0B pref=1E04000018B3 name=0703080146) "+
-		"nonce=0A04A3A2A1A0 lifetime=0C0400002328 hoplimit=22017D"), encoded2)
+		"fh=1E16(1F09 pref=1E023CF1 name=0703080145)(1F09 pref=1E0218B3 name=0703080146) "+
+		"nonce=0A04A3A2A1A0 lifetime=0C022328 hoplimit=22017D"), encoded2)
 }

@@ -3,8 +3,8 @@ package pingserver
 import (
 	"github.com/usnistgov/ndn-dpdk/container/pktqueue"
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
-	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 // Server config.
@@ -16,15 +16,15 @@ type Config struct {
 
 // Server pattern definition.
 type Pattern struct {
-	Prefix  *ndni.Name // name prefix
-	Replies []Reply    // reply settings
+	Prefix  ndn.Name // name prefix
+	Replies []Reply  // reply settings
 }
 
 // Server reply definition.
 type Reply struct {
 	Weight int // weight of random choice, minimum is 1
 
-	Suffix          *ndni.Name              // suffix to append to Interest name
+	Suffix          ndn.Name                // suffix to append to Interest name
 	FreshnessPeriod nnduration.Milliseconds // FreshnessPeriod value
 	PayloadLen      int                     // Content payload length
 

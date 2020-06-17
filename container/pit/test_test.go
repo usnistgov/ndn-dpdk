@@ -14,6 +14,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"github.com/usnistgov/ndn-dpdk/ndni/ndntestenv"
 )
@@ -88,5 +89,5 @@ func (fixture *Fixture) InsertFibEntry(name string, nexthop iface.FaceId) *fib.E
 		fixture.emptyStrategy, nexthop)); e != nil {
 		panic(e)
 	}
-	return fixture.fibFixture.Fib.Find(ndni.MustParseName(name))
+	return fixture.fibFixture.Fib.Find(ndn.ParseName(name))
 }

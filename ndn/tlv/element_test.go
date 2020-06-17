@@ -1,15 +1,12 @@
-package ndni_test
+package tlv_test
 
 import (
 	"testing"
 
-	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
-	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
-	"github.com/usnistgov/ndn-dpdk/ndn/an"
-	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
 
-func TestTlvElement(t *testing.T) {
+func TestElement(t *testing.T) {
 	assert, _ := makeAR(t)
 
 	const NOT_NNI uint64 = 0xB9C0CEA091E491F0
@@ -38,22 +35,27 @@ func TestTlvElement(t *testing.T) {
 		{input: "01 09 A0A1A2A3A4A5A6A7A8", t: 0x01, v: "A0A1A2A3A4A5A6A7A8", nni: NOT_NNI},
 	}
 	for _, tt := range tests {
-		pkt := mbuftestenv.MakePacket(tt.input)
-		defer pkt.Close()
-		ele, e := ndni.ParseTlvElement(pktmbuf.NewPacketIterator(pkt))
+		input := bytesFromHex(tt.input)
+		var element tlv.Element
+		rest, e := element.UnmarshalTlv(input)
 
 		if tt.bad {
 			assert.Error(e, tt.input)
 		} else if assert.NoError(e, tt.input) {
-			assert.Equal(pkt.Len(), ele.Len(), tt.input)
-			assert.Equal(an.TlvType(tt.t), ele.GetType(), tt.input)
+			assert.Equal(len(input), element.Size(), tt.input)
+			assert.Len(rest, 0, tt.input)
 
-			v := ndni.TlvBytes(mbuftestenv.BytesFromHex(tt.v))
-			assert.Equal(len(v), ele.GetLength(), tt.input)
-			assert.Equal(v, ele.GetValue(), tt.input)
+			assert.Equal(tt.t, element.Type, tt.input)
+			value := bytesFromHex(tt.v)
+			assert.Equal(len(value), element.Length(), tt.input)
+			bytesEqual(assert, value, element.Value, tt.input)
 
-			if nni, ok := ele.ReadNonNegativeInteger(); ok {
-				assert.Equal(tt.nni, nni, tt.input)
+			var nni tlv.NNI
+			if e := nni.UnmarshalBinary(value); e == nil {
+				assert.EqualValues(tt.nni, nni, tt.input)
+
+				nniV, _ := nni.MarshalBinary()
+				assert.Equal(value, nniV)
 			} else {
 				assert.True(tt.nni == NOT_NNI, tt.input)
 			}

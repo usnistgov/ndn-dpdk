@@ -9,6 +9,7 @@ import (
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
@@ -55,7 +56,7 @@ func (part *partition) Close() error {
 }
 
 // Allocate an unused entry.
-func (part *partition) Alloc(name *ndni.Name) (entry *C.FibEntry) {
+func (part *partition) Alloc(name ndn.Name) (entry *C.FibEntry) {
 	if !bool(C.Fib_AllocBulk(part.c, &entry, 1)) {
 		return nil
 	}
@@ -64,11 +65,9 @@ func (part *partition) Alloc(name *ndni.Name) (entry *C.FibEntry) {
 }
 
 // Retrieve an entry (either virtual or non-virtual).
-func (part *partition) Get(name *ndni.Name) *C.FibEntry {
-	nameV := name.GetValue()
-	hash := name.ComputeHash()
-	return C.Fib_Get_(part.c, C.uint16_t(len(nameV)), (*C.uint8_t)(nameV.GetPtr()),
-		C.uint64_t(hash))
+func (part *partition) Get(name ndn.Name) *C.FibEntry {
+	length, value, hash, _ := convertName(name)
+	return C.Fib_Get_(part.c, length, value, hash)
 }
 
 // Insert an entry.
@@ -79,4 +78,13 @@ func (part *partition) Insert(entryC *C.FibEntry, freeVirt, freeReal C.Fib_FreeO
 // Erase an entry.
 func (part *partition) Erase(entryC *C.FibEntry, freeVirt, freeReal C.Fib_FreeOld) {
 	C.Fib_Erase(part.c, entryC, freeVirt, freeReal)
+}
+
+func convertName(name ndn.Name) (length C.uint16_t, value *C.uint8_t, hash C.uint64_t, pname *C.PName) {
+	cname := ndni.CNameFromName(name)
+	length = C.uint16_t(cname.P.NOctets)
+	value = (*C.uint8_t)(unsafe.Pointer(cname.V))
+	hash = C.uint64_t(cname.ComputeHash())
+	pname = (*C.PName)(unsafe.Pointer(&cname.P))
+	return
 }

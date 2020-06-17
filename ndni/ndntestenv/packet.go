@@ -1,6 +1,7 @@
 package ndntestenv
 
 import (
+	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 	"github.com/usnistgov/ndn-dpdk/ndni"
@@ -24,7 +25,7 @@ func parseL2L3(pkt *ndni.Packet) {
 	}
 }
 
-// Make Interest on dpdktestenv DirectMp.
+// MakeInterest creates an Interest packet.
 // input: packet bytes as []byte or HEX, or name URI.
 // args: additional arguments to ndni.MakeInterest.
 // Panics if packet constructed from bytes is not Interest.
@@ -43,9 +44,8 @@ func MakeInterest(input interface{}, args ...interface{}) *ndni.Interest {
 				panic(e)
 			}
 			return interest
-		} else {
-			pkt = makePacket(mbuftestenv.BytesFromHex(inp))
 		}
+		pkt = makePacket(testenv.BytesFromHex(inp))
 	default:
 		panic("unrecognized input type")
 	}
@@ -54,7 +54,7 @@ func MakeInterest(input interface{}, args ...interface{}) *ndni.Interest {
 	return pkt.AsInterest()
 }
 
-// Make Data on dpdktestenv DirectMp.
+// MakeData creates a Data packet.
 // input: packet bytes as []byte or HEX, or name URI.
 // args: additional arguments to ndni.MakeData.
 // Panics if packet constructed from bytes is not Data.
@@ -67,14 +67,13 @@ func MakeData(input interface{}, args ...interface{}) *ndni.Data {
 		if inp[0] == '/' {
 			m := Packet.Alloc()
 			m.SetTimestamp(eal.TscNow())
-			data, e := ndni.MakeData(m, inp, args...)
+			data, e := ndni.MakeData(m, append([]interface{}{input}, args...)...)
 			if e != nil {
 				panic(e)
 			}
 			return data
-		} else {
-			pkt = makePacket(mbuftestenv.BytesFromHex(inp))
 		}
+		pkt = makePacket(testenv.BytesFromHex(inp))
 	default:
 		panic("unrecognized input type")
 	}
@@ -83,22 +82,27 @@ func MakeData(input interface{}, args ...interface{}) *ndni.Data {
 	return pkt.AsData()
 }
 
-func SetFaceId(pkt ndni.IL3Packet, port uint16) {
+// SetPort updates mbuf.port field.
+func SetPort(pkt ndni.IL3Packet, port uint16) {
 	pkt.GetPacket().AsMbuf().SetPort(port)
 }
 
+// GetPitToken returns the PIT token.
 func GetPitToken(pkt ndni.IL3Packet) uint64 {
-	return pkt.GetPacket().GetLpL3().GetPitToken()
+	return pkt.GetPacket().GetLpL3().PitToken
 }
 
+// SetPitToken updates the PIT token.
 func SetPitToken(pkt ndni.IL3Packet, token uint64) {
-	pkt.GetPacket().GetLpL3().SetPitToken(token)
+	pkt.GetPacket().GetLpL3().PitToken = token
 }
 
+// CopyPitToken copies PIT token from src to pkt.
 func CopyPitToken(pkt ndni.IL3Packet, src ndni.IL3Packet) {
 	SetPitToken(pkt, GetPitToken(src))
 }
 
+// ClosePacket releases the mbuf.
 func ClosePacket(pkt ndni.IL3Packet) {
 	pkt.GetPacket().AsMbuf().Close()
 }

@@ -120,7 +120,7 @@ func (fixture *Fixture) launchRx() {
 }
 
 func (fixture *Fixture) sendProc() int {
-	content := make(ndni.TlvBytes, fixture.PayloadLen)
+	content := make([]byte, fixture.PayloadLen)
 	for i := 0; i < fixture.TxLoops; i++ {
 		pkts := make([]*ndni.Packet, 3)
 		pkts[0] = ndntestenv.MakeInterest("/A").GetPacket()

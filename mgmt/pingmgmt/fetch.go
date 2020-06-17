@@ -8,6 +8,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/app/fetch"
 	"github.com/usnistgov/ndn-dpdk/app/ping"
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
@@ -83,7 +84,7 @@ func (mg FetchMgmt) Benchmark(args FetchBenchmarkArgs, reply *[]FetchBenchmarkRe
 }
 
 type FetchTemplate struct {
-	Prefix           *ndni.Name
+	Prefix           ndn.Name
 	InterestLifetime nnduration.Milliseconds
 	CanBePrefix      bool
 }
