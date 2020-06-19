@@ -112,7 +112,7 @@ FwFwd_RxNack(FwFwd* fwd, FwFwdCtx* ctx);
   } while (false)
 #endif
 
-static const size_t FwFwd_OffsetofQueue[L3PktType_MAX] = {
+static const size_t FwFwd_OffsetofQueue[L3PktTypeMAX] = {
   SIZE_MAX,
   offsetof(FwFwd, inInterestQueue),
   offsetof(FwFwd, inDataQueue),

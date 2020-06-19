@@ -9,7 +9,7 @@ all: gopkg npm cmds
 gopkg: godeps
 	go build -v ./...
 
-godeps: app/version/version.go ndni/error_string.go build/libndn-dpdk-c.a build/cgoflags.done build/cgostruct.done
+godeps: app/version/version.go ndni/enum_string.go build/libndn-dpdk-c.a build/cgoflags.done build/cgostruct.done
 	rake strategies
 
 .PHONY: app/version/version.go
@@ -19,14 +19,11 @@ app/version/version.go:
 csrc/ndn/an.h: ndn/an/*.go
 	go run ./mk/enumgen/ -type=TlvType,NackReason -guard=NDN_DPDK_NDN_AN_H -out=$@ ./$(<D)
 
-csrc/ndn/error.h: ndni/error.go
-	go run ./mk/enumgen/ -type=NdnError -guard=NDN_DPDK_NDN_ERROR_H -out=$@ ./$(<D)
-
-ndni/error_string.go: ndni/error.go
+csrc/ndn/enum.h ndni/enum_string.go: ndni/enum.go
 	mk/gogenerate.sh ./$(@D)
 
 .PHONY: build/libndn-dpdk-c.a
-build/libndn-dpdk-c.a: build/build.ninja csrc/ndn/an.h csrc/ndn/error.h
+build/libndn-dpdk-c.a: build/build.ninja csrc/ndn/an.h csrc/ndn/enum.h
 	cd build && ninja
 
 build/cgoflags.done: build/build.ninja

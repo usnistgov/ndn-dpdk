@@ -58,22 +58,9 @@ LpHeader_FromPacket(LpHeader* lph,
                     uint32_t* payloadOff,
                     uint32_t* tlvSize);
 
-static inline uint16_t
-PrependLpHeader_GetHeadroom()
-{
-  return 1 + 5 +             // LpPacket TL
-         1 + 1 + 8 +         // SeqNo
-         1 + 1 + 2 +         // FragIndex
-         1 + 1 + 2 +         // FragCount
-         1 + 1 + 8 +         // PitToken
-         3 + 1 + 3 + 1 + 1 + // Nack
-         3 + 1 + 1 +         // CongestionMark
-         1 + 5;              // Payload TL
-}
-
 /** \brief Encode LP header in headroom.
  *  \param m output mbuf, must be first segment, and must have
- *           \c PrependLpHeader_GetHeadroom() in headroom.
+ *           \c LpHeaderEstimatedHeadroom in headroom.
  *  \param payloadL TLV-LENGTH of LpPayload, or 0 to indicate no payload
  */
 void

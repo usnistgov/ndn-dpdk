@@ -19,7 +19,7 @@ FetchProc_Encode(FetchProc* fp, FetchThread* fth, Packet* npkt, uint64_t segNum)
   uint32_t nonce = NonceGen_Next(&fth->nonceGen);
   EncodeInterest(pkt, &fp->tpl, nameSuffix, nonce);
 
-  Packet_SetL3PktType(npkt, L3PktType_Interest); // for stats; no PInterest*
+  Packet_SetL3PktType(npkt, L3PktTypeInterest); // for stats; no PInterest*
   Packet_InitLpL3Hdr(npkt)->pitToken = fp->pitToken;
 }
 
@@ -50,7 +50,7 @@ FetchProc_TxBurst(FetchProc* fp, FetchThread* fth)
 static bool
 FetchProc_Decode(FetchProc* fp, Packet* npkt, FetchLogicRxData* lpkt)
 {
-  if (unlikely(Packet_GetL3PktType(npkt) != L3PktType_Data)) {
+  if (unlikely(Packet_GetL3PktType(npkt) != L3PktTypeData)) {
     return false;
   }
   LpL3* lpl3 = Packet_GetLpL3Hdr(npkt);

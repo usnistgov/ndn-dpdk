@@ -42,9 +42,9 @@ TxLoop_Transfer(Face* face)
     TscDuration latency = now - Packet_ToMbuf(npkt)->timestamp;
     L3PktType l3type = Packet_GetL3PktType(npkt);
     RunningStat_Push1(&tx->latency[l3type], latency);
-    if (l3type == L3PktType_Interest) {
+    if (l3type == L3PktTypeInterest) {
       hrl[nHrls++] = HrlogEntry_New(HRLOG_OI, latency);
-    } else if (l3type == L3PktType_Data) {
+    } else if (l3type == L3PktTypeData) {
       hrl[nHrls++] = HrlogEntry_New(
         Packet_ToMbuf(npkt)->port == MBUF_INVALID_PORT ? HRLOG_OC : HRLOG_OD,
         latency);

@@ -11,8 +11,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
-const NAME_MAX_LENGTH = C.NAME_MAX_LENGTH
-
 // ToName converts LName to ndn.Name.
 func (lname LName) ToName() (name ndn.Name) {
 	var value []byte

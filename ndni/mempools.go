@@ -33,17 +33,17 @@ func init() {
 
 	NameMempool = pktmbuf.RegisterTemplate("NAME", pktmbuf.PoolConfig{
 		Capacity: 65535,
-		Dataroom: NAME_MAX_LENGTH,
+		Dataroom: NameMaxLength,
 	})
 
 	HeaderMempool = pktmbuf.RegisterTemplate("HEADER", pktmbuf.PoolConfig{
 		Capacity: 65535,
 		PrivSize: int(C.sizeof_PacketPriv),
-		Dataroom: pktmbuf.DefaultHeadroom + PrependLpHeader_GetHeadroom(),
+		Dataroom: pktmbuf.DefaultHeadroom + LpHeaderEstimatedHeadroom,
 	})
 
 	GuiderMempool = pktmbuf.RegisterTemplate("GUIDER", pktmbuf.PoolConfig{
 		Capacity: 65535,
-		Dataroom: Interest_SizeofGuider,
+		Dataroom: pktmbuf.DefaultHeadroom,
 	})
 }

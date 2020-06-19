@@ -61,7 +61,7 @@ func TestLpHeaderDecode(t *testing.T) {
 		if tt.bad {
 			assert.Error(e, tt.input)
 		} else if assert.NoError(e, tt.input) {
-			if !assert.Equal(ndni.L2PktType_NdnlpV2, pkt.GetL2Type(), tt.input) {
+			if !assert.Equal(ndni.L2PktTypeNdnlpV2, pkt.GetL2Type(), tt.input) {
 				continue
 			}
 			lph := pkt.GetLpHdr()

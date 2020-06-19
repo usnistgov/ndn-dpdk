@@ -58,13 +58,13 @@ func (face FaceBase) ReadCounters() (cnt Counters) {
 	cnt.Reass = InOrderReassemblerFromPtr(unsafe.Pointer(&rxC.reassembler)).ReadCounters()
 	for i := 0; i < C.RXPROC_MAX_THREADS; i++ {
 		rxtC := &rxC.threads[i]
-		cnt.RxFrames += uint64(rxtC.nFrames[ndni.L3PktType_None])
+		cnt.RxFrames += uint64(rxtC.nFrames[ndni.L3PktTypeNone])
 		cnt.RxOctets += uint64(rxtC.nOctets)
 		cnt.L2DecodeErrs += uint64(rxtC.nL2DecodeErr)
 		cnt.L3DecodeErrs += uint64(rxtC.nL3DecodeErr)
-		cnt.RxInterests += uint64(rxtC.nFrames[ndni.L3PktType_Interest])
-		cnt.RxData += uint64(rxtC.nFrames[ndni.L3PktType_Data])
-		cnt.RxNacks += uint64(rxtC.nFrames[ndni.L3PktType_Nack])
+		cnt.RxInterests += uint64(rxtC.nFrames[ndni.L3PktTypeInterest])
+		cnt.RxData += uint64(rxtC.nFrames[ndni.L3PktTypeData])
+		cnt.RxNacks += uint64(rxtC.nFrames[ndni.L3PktTypeNack])
 	}
 
 	txC := &faceC.impl.tx
@@ -72,9 +72,9 @@ func (face FaceBase) ReadCounters() (cnt Counters) {
 	readLatencyStat := func(c *C.RunningStat) runningstat.Snapshot {
 		return runningstat.FromPtr(unsafe.Pointer(c)).Read().Scale(eal.GetNanosInTscUnit())
 	}
-	cnt.InterestLatency = readLatencyStat(&txC.latency[ndni.L3PktType_Interest])
-	cnt.DataLatency = readLatencyStat(&txC.latency[ndni.L3PktType_Data])
-	cnt.NackLatency = readLatencyStat(&txC.latency[ndni.L3PktType_Nack])
+	cnt.InterestLatency = readLatencyStat(&txC.latency[ndni.L3PktTypeInterest])
+	cnt.DataLatency = readLatencyStat(&txC.latency[ndni.L3PktTypeData])
+	cnt.NackLatency = readLatencyStat(&txC.latency[ndni.L3PktTypeNack])
 	cnt.TxInterests = cnt.InterestLatency.Count()
 	cnt.TxData = cnt.DataLatency.Count()
 	cnt.TxNacks = cnt.NackLatency.Count()

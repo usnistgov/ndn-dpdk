@@ -3,9 +3,9 @@ cgoflags.go
 cgostruct.go
 csrc/meson.build
 csrc/ndn/an.h
-csrc/ndn/error.h
+csrc/ndn/enum.h
 mk/meson.build
-ndni/error_string.go
+ndni/enum_string.go
 *ndn-dpdk-*.tgz
 node_modules
 _obj

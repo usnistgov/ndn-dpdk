@@ -189,14 +189,14 @@ Pit_FindByData(Pit* pit, Packet* npkt)
     PData* data = Packet_GetDataHdr(npkt);
     DataSatisfyResult satisfy = PData_CanSatisfy(data, interest);
     switch (satisfy) {
-      case DATA_SATISFY_YES:
+      case DataSatisfyYes:
         ++pitp->nDataHit;
         break;
-      case DATA_SATISFY_NO:
+      case DataSatisfyNo:
         flags = PIT_FIND_NONE;
         ++pitp->nDataMiss;
         break;
-      case DATA_SATISFY_NEED_DIGEST:
+      case DataSatisfyNeedDigest:
         flags |= PIT_FIND_NEED_DIGEST;
         // do not increment either counter: caller should compute Data digest
         // and reinvoke Pit_FindByData that leads to either Data hit or miss.

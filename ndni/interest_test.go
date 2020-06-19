@@ -50,7 +50,7 @@ func TestInterestDecode(t *testing.T) {
 		if tt.bad {
 			assert.Error(e, tt.input)
 		} else if assert.NoError(e, tt.input) {
-			if !assert.Equal(ndni.L3PktType_Interest, pkt.GetL3Type(), tt.input) {
+			if !assert.Equal(ndni.L3PktTypeInterest, pkt.GetL3Type(), tt.input) {
 				continue
 			}
 			interest := pkt.AsInterest()

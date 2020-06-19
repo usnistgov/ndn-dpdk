@@ -9,7 +9,7 @@
 #include "../dpdk/cryptodev.h"
 #include "../dpdk/mbuf-loc.h"
 
-#include "error.h"
+#include "enum.h"
 
 typedef struct Packet Packet;
 typedef struct PInterest PInterest;

@@ -13,7 +13,7 @@ type LpL3 C.LpL3
 // LpL2 contains NDNLPv2 layer 2 header fields.
 type LpL2 C.LpL2
 
-// LpL3 is LpL2 + LpL3.
+// LpHeader is LpL2 + LpL3.
 type LpHeader C.LpHeader
 
 // LName is a name in linear mbuf.

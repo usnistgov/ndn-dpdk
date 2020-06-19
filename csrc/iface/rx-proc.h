@@ -13,12 +13,12 @@ typedef struct RxProcThread
 {
   /** \brief input frames and decoded L3 packets
    *
-   *  \li nFrames[L3PktType_None] input frames
-   *  \li nFrames[L3PktType_Interests] decoded Interests
-   *  \li nFrames[L3PktType_Data] decoded Data
-   *  \li nFrames[L3PktType_Nacks] decoded Nacks
+   *  \li nFrames[L3PktTypeNone] input frames
+   *  \li nFrames[L3PktTypeInterests] decoded Interests
+   *  \li nFrames[L3PktTypeData] decoded Data
+   *  \li nFrames[L3PktTypeNacks] decoded Nacks
    */
-  uint64_t nFrames[L3PktType_MAX];
+  uint64_t nFrames[L3PktTypeMAX];
   uint64_t nOctets; ///< input bytes
 
   uint64_t nL2DecodeErr; ///< failed NDNLP decodings
@@ -38,7 +38,7 @@ typedef struct RxProc
 
 /** \brief Initialize RX procedure.
  *  \pre *rx is zeroized.
- *  \param nameMp mempool for name linearize; dataroom must be at least NAME_MAX_LENGTH.
+ *  \param nameMp mempool for name linearize; dataroom must be at least NameMaxLength.
  */
 int
 RxProc_Init(RxProc* rx, struct rte_mempool* nameMp);

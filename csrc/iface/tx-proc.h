@@ -42,7 +42,7 @@ typedef struct TxProc
    *  packet is queuing for transmission; this counts per L3 packet.
    *  This is taken before fragmentation, so that it includes packets dropped due to full queue.
    */
-  RunningStat latency[L3PktType_MAX];
+  RunningStat latency[L3PktTypeMAX];
 } __rte_cache_aligned TxProc;
 
 /** \brief Initialize TX procedure.
@@ -50,7 +50,7 @@ typedef struct TxProc
  *  \param headroom headroom before NDNLP header, as required by transport.
  *  \param indirectMp mempool for indirect mbufs.
  *  \param headerMp mempool for NDNLP headers; must have
- *                  headroom + PrependLpHeader_GetHeadroom() dataroom.
+ *                  headroom + LpHeaderEstimatedHeadroom dataroom.
  *  \retval 0 success
  *  \retval ENOSPC MTU is too small
  */

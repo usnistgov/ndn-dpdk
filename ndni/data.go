@@ -88,11 +88,3 @@ func DataDigestFinish(op *cryptodev.Op) (data *Data, e error) {
 	npktC := C.DataDigest_Finish((*C.struct_rte_crypto_op)(op.GetPtr()))
 	return PacketFromPtr(unsafe.Pointer(npktC)).AsData(), nil
 }
-
-type DataSatisfyResult int
-
-const (
-	DATA_SATISFY_YES         DataSatisfyResult = 0 // Data satisfies Interest
-	DATA_SATISFY_NO          DataSatisfyResult = 1 // Data does not satisfy Interest
-	DATA_SATISFY_NEED_DIGEST DataSatisfyResult = 2 // need Data digest to determine
-)

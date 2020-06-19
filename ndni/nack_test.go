@@ -31,7 +31,7 @@ func TestNackDecode(t *testing.T) {
 		if !assert.NoError(pkt.ParseL3(ndnitestenv.Name.Pool()), tt.input) {
 			continue
 		}
-		if !assert.Equal(ndni.L3PktType_Nack, pkt.GetL3Type(), tt.input) {
+		if !assert.Equal(ndni.L3PktTypeNack, pkt.GetL3Type(), tt.input) {
 			continue
 		}
 		nack := pkt.AsNack()

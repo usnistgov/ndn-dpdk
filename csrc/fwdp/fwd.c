@@ -5,9 +5,9 @@
 
 INIT_ZF_LOG(FwFwd);
 
-static_assert((int)SGEVT_INTEREST == (int)L3PktType_Interest, "");
-static_assert((int)SGEVT_DATA == (int)L3PktType_Data, "");
-static_assert((int)SGEVT_NACK == (int)L3PktType_Nack, "");
+static_assert((int)SGEVT_INTEREST == (int)L3PktTypeInterest, "");
+static_assert((int)SGEVT_DATA == (int)L3PktTypeData, "");
+static_assert((int)SGEVT_NACK == (int)L3PktTypeNack, "");
 static_assert(offsetof(SgCtx, global) == offsetof(FwFwdCtx, fwd), "");
 static_assert(offsetof(FwFwd, sgGlobal) == 0, "");
 static_assert(offsetof(SgCtx, now) == offsetof(FwFwdCtx, rxTime), "");
@@ -19,7 +19,7 @@ static_assert(offsetof(SgCtx, pitEntry) == offsetof(FwFwdCtx, pitEntry), "");
 static_assert(sizeof(SgCtx) == offsetof(FwFwdCtx, endofSgCtx), "");
 
 typedef void (*FwFwd_RxFunc)(FwFwd* fwd, FwFwdCtx* ctx);
-static const FwFwd_RxFunc FwFwd_RxFuncs[L3PktType_MAX] = {
+static const FwFwd_RxFunc FwFwd_RxFuncs[L3PktTypeMAX] = {
   NULL,
   FwFwd_RxInterest,
   FwFwd_RxData,
@@ -70,9 +70,9 @@ FwFwd_Run(FwFwd* fwd)
     rcu_quiescent_state();
     Pit_TriggerTimers(fwd->pit);
 
-    FwFwd_RxByType(fwd, L3PktType_Interest);
-    FwFwd_RxByType(fwd, L3PktType_Data);
-    FwFwd_RxByType(fwd, L3PktType_Nack);
+    FwFwd_RxByType(fwd, L3PktTypeInterest);
+    FwFwd_RxByType(fwd, L3PktTypeData);
+    FwFwd_RxByType(fwd, L3PktTypeNack);
   }
 
   ZF_LOGI("fwdId=%" PRIu8 " STOP", fwd->id);

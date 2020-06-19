@@ -34,7 +34,7 @@ func TestDataDecode(t *testing.T) {
 		if tt.bad {
 			assert.Error(e, tt.input)
 		} else if assert.NoError(e, tt.input) {
-			if !assert.Equal(ndni.L3PktType_Data, pkt.GetL3Type(), tt.input) {
+			if !assert.Equal(ndni.L3PktTypeData, pkt.GetL3Type(), tt.input) {
 				continue
 			}
 			data := pkt.AsData()
@@ -59,30 +59,30 @@ func TestDataSatisfy(t *testing.T) {
 		freshMatch  ndni.DataSatisfyResult
 	}{
 		{makeData("/A", time.Second),
-			ndni.DATA_SATISFY_NO, ndni.DATA_SATISFY_NO, ndni.DATA_SATISFY_NO},
+			ndni.DataSatisfyNo, ndni.DataSatisfyNo, ndni.DataSatisfyNo},
 		{makeData("/2=B", time.Second),
-			ndni.DATA_SATISFY_NO, ndni.DATA_SATISFY_NO, ndni.DATA_SATISFY_NO},
+			ndni.DataSatisfyNo, ndni.DataSatisfyNo, ndni.DataSatisfyNo},
 		{makeData("/B", time.Second),
-			ndni.DATA_SATISFY_YES, ndni.DATA_SATISFY_YES, ndni.DATA_SATISFY_YES},
+			ndni.DataSatisfyYes, ndni.DataSatisfyYes, ndni.DataSatisfyYes},
 		{makeData("/B", time.Duration(0)),
-			ndni.DATA_SATISFY_YES, ndni.DATA_SATISFY_YES, ndni.DATA_SATISFY_NO},
+			ndni.DataSatisfyYes, ndni.DataSatisfyYes, ndni.DataSatisfyNo},
 		{makeData("/B/0", time.Second),
-			ndni.DATA_SATISFY_NO, ndni.DATA_SATISFY_YES, ndni.DATA_SATISFY_NO},
+			ndni.DataSatisfyNo, ndni.DataSatisfyYes, ndni.DataSatisfyNo},
 		{makeData("/", time.Second),
-			ndni.DATA_SATISFY_NO, ndni.DATA_SATISFY_NO, ndni.DATA_SATISFY_NO},
+			ndni.DataSatisfyNo, ndni.DataSatisfyNo, ndni.DataSatisfyNo},
 		{makeData("/C", time.Second),
-			ndni.DATA_SATISFY_NO, ndni.DATA_SATISFY_NO, ndni.DATA_SATISFY_NO},
+			ndni.DataSatisfyNo, ndni.DataSatisfyNo, ndni.DataSatisfyNo},
 	}
 	for i, tt := range tests {
 		assert.Equal(tt.exactMatch, tt.data.CanSatisfy(*interestExact), "%d", i)
 		assert.Equal(tt.prefixMatch, tt.data.CanSatisfy(*interestPrefix), "%d", i)
 		assert.Equal(tt.freshMatch, tt.data.CanSatisfy(*interestFresh), "%d", i)
 
-		if tt.exactMatch == ndni.DATA_SATISFY_YES {
+		if tt.exactMatch == ndni.DataSatisfyYes {
 			interestImplicit := makeInterest(tt.data.ToNData().FullName().String())
-			assert.Equal(ndni.DATA_SATISFY_NEED_DIGEST, tt.data.CanSatisfy(*interestImplicit))
+			assert.Equal(ndni.DataSatisfyNeedDigest, tt.data.CanSatisfy(*interestImplicit))
 			tt.data.SaveDigest()
-			assert.Equal(ndni.DATA_SATISFY_YES, tt.data.CanSatisfy(*interestImplicit))
+			assert.Equal(ndni.DataSatisfyYes, tt.data.CanSatisfy(*interestImplicit))
 			ndnitestenv.ClosePacket(interestImplicit)
 		}
 

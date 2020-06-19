@@ -18,7 +18,7 @@ This package provides low-level TLV functions including:
 ## Name Representation
 
 A name is represented as a buffer containing a sequence of name components, i.e. TLV-VALUE of the Name element.
-TLV-LENGTH of the Name element cannot exceed `NAME_MAX_LENGTH`; this constant can be adjusted up to around 48KB, but it has implication in memory usage of table entries.
+TLV-LENGTH of the Name element cannot exceed `NameMaxLength`; this constant can be adjusted up to around 48KB, but it has implication in memory usage of table entries.
 
 Three C types can represent a name:
 

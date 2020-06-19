@@ -98,14 +98,14 @@ func (face *MockFace) Rx(l3pkt ndni.IL3Packet) {
 
 	pkt := l3pkt.GetPacket().AsMbuf()
 	payloadL := pkt.Len()
-	if pkt.GetHeadroom() <= ndni.PrependLpHeader_GetHeadroom() {
+	if pkt.GetHeadroom() <= ndni.LpHeaderEstimatedHeadroom {
 		hdrMbufs, e := headerMempool.Alloc(1)
 		if e != nil {
 			pkt.Close()
 			return
 		}
 		hdr := hdrMbufs[0]
-		hdr.SetHeadroom(ndni.PrependLpHeader_GetHeadroom())
+		hdr.SetHeadroom(ndni.LpHeaderEstimatedHeadroom)
 		e = hdr.Chain(pkt)
 		if e != nil {
 			hdr.Close()
@@ -114,12 +114,16 @@ func (face *MockFace) Rx(l3pkt ndni.IL3Packet) {
 		}
 		pkt = hdr
 	} else {
-		C.Packet_SetL2PktType((*C.Packet)(pkt.GetPtr()), C.L2PktType_None)
-		C.Packet_SetL3PktType((*C.Packet)(pkt.GetPtr()), C.L3PktType_None)
+		C.Packet_SetL2PktType((*C.Packet)(pkt.GetPtr()), C.L2PktTypeNone)
+		C.Packet_SetL3PktType((*C.Packet)(pkt.GetPtr()), C.L3PktTypeNone)
 	}
 
 	// restore LpHeader because RxProc_Input will re-parse
-	lph.Prepend(pkt, payloadL)
+	C.PrependLpHeader(
+		(*C.struct_rte_mbuf)(pkt.GetPtr()),
+		(*C.LpHeader)(unsafe.Pointer(&lph)),
+		C.uint32_t(payloadL),
+	)
 
 	pkt.SetPort(uint16(face.GetFaceId()))
 	pkt.SetTimestamp(eal.TscNow())
@@ -170,11 +174,11 @@ func (face *MockFace) handleTx(pkt *ndni.Packet) {
 	}
 
 	switch pkt.GetL3Type() {
-	case ndni.L3PktType_Interest:
+	case ndni.L3PktTypeInterest:
 		face.emitter.EmitSync(evt_TxInterest, pkt.AsInterest())
-	case ndni.L3PktType_Data:
+	case ndni.L3PktTypeData:
 		face.emitter.EmitSync(evt_TxData, pkt.AsData())
-	case ndni.L3PktType_Nack:
+	case ndni.L3PktTypeNack:
 		face.emitter.EmitSync(evt_TxNack, pkt.AsNack())
 	}
 }

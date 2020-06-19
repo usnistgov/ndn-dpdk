@@ -7,7 +7,6 @@ import "C"
 import (
 	"encoding/binary"
 	"fmt"
-	"strconv"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
@@ -15,42 +14,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
-
-type L2PktType int
-
-const (
-	L2PktType_None    L2PktType = C.L2PktType_None
-	L2PktType_NdnlpV2 L2PktType = C.L2PktType_NdnlpV2
-)
-
-func (t L2PktType) String() string {
-	switch t {
-	case L2PktType_NdnlpV2:
-		return "NDNLPv2"
-	}
-	return strconv.Itoa(int(t))
-}
-
-type L3PktType int
-
-const (
-	L3PktType_None     L3PktType = C.L3PktType_None
-	L3PktType_Interest L3PktType = C.L3PktType_Interest
-	L3PktType_Data     L3PktType = C.L3PktType_Data
-	L3PktType_Nack     L3PktType = C.L3PktType_Nack
-)
-
-func (t L3PktType) String() string {
-	switch t {
-	case L3PktType_Interest:
-		return "Interest"
-	case L3PktType_Data:
-		return "Data"
-	case L3PktType_Nack:
-		return "Nack"
-	}
-	return strconv.Itoa(int(t))
-}
 
 // Packet represents a NDN network layer packet with parsed LP and Interest/Data headers.
 type Packet C.Packet
@@ -129,7 +92,7 @@ func (pkt *Packet) ToNPacket() (npkt ndn.Packet) {
 	if e != nil {
 		panic(e)
 	}
-	if pkt.GetL2Type() == L2PktType_NdnlpV2 {
+	if pkt.GetL2Type() == L2PktTypeNdnlpV2 {
 		lpl3 := pkt.GetLpL3()
 		npkt.Lp.PitToken = make([]byte, 8)
 		binary.LittleEndian.PutUint64(npkt.Lp.PitToken, lpl3.PitToken)
@@ -148,11 +111,11 @@ func (pkt *Packet) ToNPacket() (npkt ndn.Packet) {
 
 func (pkt *Packet) String() string {
 	switch pkt.GetL3Type() {
-	case L3PktType_Interest:
+	case L3PktTypeInterest:
 		return fmt.Sprintf("I %s", pkt.AsInterest())
-	case L3PktType_Data:
+	case L3PktTypeData:
 		return fmt.Sprintf("D %s", pkt.AsData())
-	case L3PktType_Nack:
+	case L3PktTypeNack:
 		return fmt.Sprintf("N %s", pkt.AsNack())
 	}
 	return fmt.Sprintf("Packet(l3=%d)", pkt.GetL3Type())

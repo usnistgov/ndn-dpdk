@@ -8,6 +8,8 @@
 #include "../iface/rxloop.h"
 #include <rte_flow.h>
 
+#define NDN_ETHERTYPE 0x8624
+
 typedef struct EthFaceEtherHdr
 {
   struct rte_ether_hdr eth;

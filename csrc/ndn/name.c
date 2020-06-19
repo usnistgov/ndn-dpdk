@@ -71,7 +71,7 @@ IsValidNameComponentType(uint32_t type)
 NdnError
 PName_Parse(PName* n, uint32_t length, const uint8_t* value)
 {
-  if (unlikely(length > NAME_MAX_LENGTH)) {
+  if (unlikely(length > NameMaxLength)) {
     return NdnErrNameTooLong;
   }
 

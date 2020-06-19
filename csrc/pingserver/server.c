@@ -55,10 +55,10 @@ PingServer_RespondData(PingServer* server,
   rte_pktmbuf_free(Packet_ToMbuf(npkt));
 
   Packet* response = Packet_FromMbuf(seg0);
-  Packet_SetL2PktType(response, L2PktType_None);
+  Packet_SetL2PktType(response, L2PktTypeNone);
   lpl3 = Packet_InitLpL3Hdr(response);
   lpl3->pitToken = token;
-  Packet_SetL3PktType(response, L3PktType_Data); // for stats; no PData*
+  Packet_SetL3PktType(response, L3PktTypeData); // for stats; no PData*
   return response;
 }
 
@@ -144,7 +144,7 @@ PingServer_Run(PingServer* server)
     uint16_t nTx = 0;
     for (uint16_t i = 0; i < nRx; ++i) {
       Packet* npkt = rx[i];
-      assert(Packet_GetL3PktType(npkt) == L3PktType_Interest);
+      assert(Packet_GetL3PktType(npkt) == L3PktTypeInterest);
       tx[nTx] = PingServer_ProcessInterest(server, npkt);
       nTx += (tx[nTx] != NULL);
     }

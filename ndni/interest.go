@@ -32,12 +32,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
 
-const (
-	Interest_Headroom     = 6  // InterestTL
-	Interest_SizeofGuider = 15 // Nonce(4)+InterestLifetime(4)+HopLimit(1)
-	Interest_TailroomMax  = 4 + C.NAME_MAX_LENGTH + C.INTEREST_TEMPLATE_BUFLEN
-)
-
 func (pinterest *pInterest) getPtr() *C.PInterest {
 	return (*C.PInterest)(unsafe.Pointer(pinterest))
 }
@@ -134,8 +128,6 @@ func (interest *Interest) SelectActiveFh(index int) error {
 }
 
 // Modify updates Interest guiders.
-// headerMp element size should be at least Interest_Headroom plus Ethernet and NDNLP headers.
-// guiderMp element size should be at least Interest_SizeofGuider.
 func (interest *Interest) Modify(nonce uint32, lifetime time.Duration,
 	hopLimit uint8, headerMp, guiderMp, indirectMp *pktmbuf.Pool) *Interest {
 	outPktC := C.ModifyInterest(interest.m.getPtr(), C.uint32_t(nonce),
@@ -179,8 +171,8 @@ func (tpl *InterestTemplate) Init(args ...interface{}) error {
 
 // Encode encodes an Interest via template.
 // mbuf must be empty and is the only segment.
-// mbuf headroom should be at least Interest_Headroom plus Ethernet and NDNLP headers.
-// mbuf tailroom should fit the whole packet; a safe value is Interest_TailroomMax.
+// mbuf headroom should be at least InterestEstimatedHeadroom plus Ethernet and NDNLP headers.
+// mbuf tailroom should fit the whole packet; a safe value is InterestEstimatedTailroom.
 func (tpl *InterestTemplate) Encode(m *pktmbuf.Packet, suffix ndn.Name, nonce uint32) {
 	var suffixV []byte
 	if len(suffix) > 0 {

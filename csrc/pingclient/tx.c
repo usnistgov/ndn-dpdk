@@ -36,7 +36,7 @@ PingClientTx_MakeInterest(PingClientTx* ct, Packet* npkt, PingTime now)
                        .value = &pattern->seqNum.compT };
   EncodeInterest(pkt, &pattern->tpl, nameSuffix, NonceGen_Next(&ct->nonceGen));
 
-  Packet_SetL3PktType(npkt, L3PktType_Interest); // for stats; no PInterest*
+  Packet_SetL3PktType(npkt, L3PktTypeInterest); // for stats; no PInterest*
   Packet_InitLpL3Hdr(npkt)->pitToken =
     PingToken_New(patternId, ct->runNum, now);
   ZF_LOGD("<I pattern=%" PRIu8 " seq=%" PRIx64 "", patternId, seqNum);

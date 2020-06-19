@@ -23,18 +23,18 @@ func init() {
 	Interest = pktmbuf.RegisterTemplate("INTEREST", pktmbuf.PoolConfig{
 		Capacity: 65535,
 		PrivSize: ndnHeaderConfig.PrivSize,
-		Dataroom: ndnHeaderConfig.Dataroom + ndni.Interest_TailroomMax,
+		Dataroom: ndnHeaderConfig.Dataroom + ndni.InterestEstimatedTailroom,
 	})
 
 	Data = pktmbuf.RegisterTemplate("DATA", pktmbuf.PoolConfig{
 		Capacity: 65535,
 		PrivSize: ndnHeaderConfig.PrivSize,
-		Dataroom: ndnHeaderConfig.Dataroom + ndni.DataGen_GetTailroom0(ndni.NAME_MAX_LENGTH),
+		Dataroom: ndnHeaderConfig.Dataroom + ndni.DataEstimatedTailroom,
 	})
 
 	Payload = pktmbuf.RegisterTemplate("PAYLOAD", pktmbuf.PoolConfig{
 		Capacity: 1023,
 		PrivSize: ndnHeaderConfig.PrivSize,
-		Dataroom: ndnHeaderConfig.Dataroom + ndni.DataGen_GetTailroom1(ndni.NAME_MAX_LENGTH, 9000),
+		Dataroom: ndnHeaderConfig.Dataroom + ndni.DataEstimatedTailroom + 9000,
 	})
 }

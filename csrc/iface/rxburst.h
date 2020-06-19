@@ -105,7 +105,7 @@ static inline void
 FaceRxBurst_PutInterest(FaceRxBurst* burst, Packet* npkt)
 {
   assert(burst->nInterests < burst->capacity);
-  assert(Packet_GetL3PktType(npkt) == L3PktType_Interest);
+  assert(Packet_GetL3PktType(npkt) == L3PktTypeInterest);
   FaceRxBurst_ListInterests(burst)[burst->nInterests++] = npkt;
 }
 
@@ -116,7 +116,7 @@ static inline void
 FaceRxBurst_PutData(FaceRxBurst* burst, Packet* npkt)
 {
   assert(burst->nData < burst->capacity);
-  assert(Packet_GetL3PktType(npkt) == L3PktType_Data);
+  assert(Packet_GetL3PktType(npkt) == L3PktTypeData);
   FaceRxBurst_ListData(burst)[burst->nData++] = npkt;
 }
 
@@ -127,7 +127,7 @@ static inline void
 FaceRxBurst_PutNack(FaceRxBurst* burst, Packet* npkt)
 {
   assert(burst->nNacks < burst->capacity);
-  assert(Packet_GetL3PktType(npkt) == L3PktType_Nack);
+  assert(Packet_GetL3PktType(npkt) == L3PktTypeNack);
   FaceRxBurst_ListNacks(burst)[burst->nNacks++] = npkt;
 }
 

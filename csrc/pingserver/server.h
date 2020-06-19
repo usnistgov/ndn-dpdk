@@ -39,7 +39,7 @@ typedef struct PingServerPattern
   uint16_t nWeights;
   PingReplyId weight[PINGSERVER_MAX_SUM_WEIGHT];
   PingServerReply reply[PINGSERVER_MAX_REPLIES];
-  uint8_t prefixBuffer[NAME_MAX_LENGTH];
+  uint8_t prefixBuffer[NameMaxLength];
 } PingServerPattern;
 
 /** \brief ndnping server.

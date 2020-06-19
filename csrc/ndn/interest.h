@@ -49,7 +49,7 @@ typedef struct PInterest
  *  \param[out] interest the parsed Interest packet.
  *  \param pkt the packet.
  *  \param nameMp mempool for allocating Name linearize mbufs,
- *                requires at least \c NAME_MAX_LENGTH dataroom.
+ *                requires at least \c NameMaxLength dataroom.
  *  \retval NdnErrBadType packet is not Interest.
  *  \retval NdnErrAllocError unable to allocate mbuf.
  */
@@ -97,17 +97,15 @@ ModifyInterest(Packet* npkt,
                struct rte_mempool* guiderMp,
                struct rte_mempool* indirectMp);
 
-#define INTEREST_TEMPLATE_BUFLEN (2 * NAME_MAX_LENGTH + 256)
-
 /** \brief Template for Interest encoding.
  */
 typedef struct InterestTemplate
 {
-  uint16_t prefixL;                         ///< Name prefix length
-  uint16_t midLen;                          ///< midBuffer length
-  uint16_t nonceOff;                        ///< NonceV offset within midBuf
-  uint8_t prefixV[NAME_MAX_LENGTH];         ///< Name prefix
-  uint8_t midBuf[INTEREST_TEMPLATE_BUFLEN]; ///< "middle" field
+  uint16_t prefixL;                       ///< Name prefix length
+  uint16_t midLen;                        ///< midBuffer length
+  uint16_t nonceOff;                      ///< NonceV offset within midBuf
+  uint8_t prefixV[NameMaxLength];         ///< Name prefix
+  uint8_t midBuf[InterestTemplateBufLen]; ///< "middle" field
 } InterestTemplate;
 
 void

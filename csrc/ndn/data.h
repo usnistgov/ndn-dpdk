@@ -21,21 +21,12 @@ typedef struct PData
  *  \param[out] data the parsed Data packet.
  *  \param pkt the packet.
  *  \param nameMp mempool for allocating Name linearize mbufs,
- *                requires at least \c NAME_MAX_LENGTH dataroom.
+ *                requires at least \c NameMaxLength dataroom.
  *  \retval NdnErrBadType packet is not Data.
  *  \retval NdnErrAllocError unable to allocate mbuf.
  */
 NdnError
 PData_FromPacket(PData* data, struct rte_mbuf* pkt, struct rte_mempool* nameMp);
-
-/** \brief Result of PData_CanSatisfy.
- */
-typedef enum DataSatisfyResult
-{
-  DATA_SATISFY_YES = 0,         ///< Data satisfies Interest
-  DATA_SATISFY_NO = 1,          ///< Data does not satisfy Interest
-  DATA_SATISFY_NEED_DIGEST = 2, ///< need Data digest to determine
-} DataSatisfyResult;
 
 /** \brief Determine whether Data can satisfy Interest.
  */

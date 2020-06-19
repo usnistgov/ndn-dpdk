@@ -13,8 +13,6 @@ static const uint8_t FAKESIG[] = {
 };
 // clang-format on
 
-const uint16_t EncodeData_FakeSigLen_ = sizeof(FAKESIG);
-
 static void
 EncodeData_AppendNameNoSuffix(TlvEncoder* en,
                               uint16_t namePrefixL,
@@ -62,9 +60,7 @@ EncodeData_AppendFreshnessContentSignature(TlvEncoder* en,
     rte_memcpy(rte_pktmbuf_append(m, contentL), contentV, contentL);
   }
 
-  rte_memcpy(rte_pktmbuf_append(m, EncodeData_FakeSigLen_),
-             FAKESIG,
-             EncodeData_FakeSigLen_);
+  rte_memcpy(rte_pktmbuf_append(m, sizeof(FAKESIG)), FAKESIG, sizeof(FAKESIG));
 }
 
 static void
@@ -85,10 +81,6 @@ EncodeData_(struct rte_mbuf* m,
             uint16_t contentL,
             const uint8_t* contentV)
 {
-  assert(rte_pktmbuf_headroom(m) >= EncodeData_GetHeadroom());
-  assert(rte_pktmbuf_tailroom(m) >=
-         EncodeData_GetTailroom(namePrefixL + nameSuffixL, contentL));
-
   TlvEncoder* en = MakeTlvEncoder(m);
   EncodeData_AppendNameNoSuffix(en, namePrefixL, namePrefixV, nameSuffixL);
   if (likely(nameSuffixL > 0)) {
@@ -107,9 +99,6 @@ MakeDataGen_(struct rte_mbuf* m,
              uint16_t contentL,
              const uint8_t* contentV)
 {
-  assert(rte_pktmbuf_tailroom(m) >=
-         DataGen_GetTailroom1(nameSuffixL, contentL));
-
   TlvEncoder* en = MakeTlvEncoder(m);
   if (nameSuffixL > 0) {
     rte_memcpy(rte_pktmbuf_append(m, nameSuffixL), nameSuffixV, nameSuffixL);
@@ -134,8 +123,6 @@ DataGen_Encode_(DataGen* gen,
                 uint16_t namePrefixL,
                 const uint8_t* namePrefixV)
 {
-  assert(rte_pktmbuf_tailroom(seg0) >= DataGen_GetTailroom0(namePrefixL));
-
   struct rte_mbuf* tailTpl = (struct rte_mbuf*)gen;
   uint16_t nameSuffixL = tailTpl->vlan_tci;
   rte_pktmbuf_attach(seg1, tailTpl);

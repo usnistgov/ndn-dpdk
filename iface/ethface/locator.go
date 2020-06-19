@@ -10,10 +10,16 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 const locatorScheme = "ether"
+
+// NdnMcastAddr is the well-known Ethernet multicast address for NDN traffic.
+var NdnMcastAddr ethdev.EtherAddr
+
+func init() {
+	NdnMcastAddr, _ = ethdev.ParseEtherAddr("01:00:5E:00:17:AA")
+}
 
 type Locator struct {
 	iface.LocatorBase
@@ -27,7 +33,7 @@ func NewLocator(dev ethdev.EthDev) (loc Locator) {
 	loc.Scheme = locatorScheme
 	loc.Port = dev.GetName()
 	loc.Local = dev.GetMacAddr()
-	loc.Remote = ndni.NDN_ETHER_MCAST_ADDR
+	loc.Remote = NdnMcastAddr
 	return loc
 }
 

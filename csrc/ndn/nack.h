@@ -26,8 +26,8 @@ typedef struct PNack
 } PNack;
 
 /** \brief Turn an Interest into a Nack.
- *  \pre Packet_GetL3PktType(npkt) == L3PktType_Interest
- *  \post Packet_GetL3PktType(npkt) == L3PktType_Nack
+ *  \pre Packet_GetL3PktType(npkt) == L3PktTypeInterest
+ *  \post Packet_GetL3PktType(npkt) == L3PktTypeNack
  */
 void
 MakeNack(Packet* npkt, NackReason reason);

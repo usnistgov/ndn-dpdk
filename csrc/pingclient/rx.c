@@ -82,14 +82,14 @@ PingClientRx_Run(PingClientRx* cr)
                      .count;
     for (uint16_t i = 0; i < nRx; ++i) {
       Packet* npkt = npkts[i];
-      if (unlikely(Packet_GetL2PktType(npkt) != L2PktType_NdnlpV2)) {
+      if (unlikely(Packet_GetL2PktType(npkt) != L2PktTypeNdnlpV2)) {
         continue;
       }
       switch (Packet_GetL3PktType(npkt)) {
-        case L3PktType_Data:
+        case L3PktTypeData:
           PingClientRx_ProcessData(cr, npkt);
           break;
-        case L3PktType_Nack:
+        case L3PktTypeNack:
           PingClientRx_ProcessNack(cr, npkt);
           break;
         default:

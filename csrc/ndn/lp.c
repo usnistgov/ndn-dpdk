@@ -123,7 +123,7 @@ FOUND_PAYLOAD:;
 void
 PrependLpHeader(struct rte_mbuf* m, const LpHeader* lph, uint32_t payloadL)
 {
-  assert(rte_pktmbuf_headroom(m) >= PrependLpHeader_GetHeadroom());
+  assert(rte_pktmbuf_headroom(m) >= LpHeaderEstimatedHeadroom);
   TlvEncoder* en = MakeTlvEncoder_Unchecked(m);
 
   uint16_t size0 = m->data_len;

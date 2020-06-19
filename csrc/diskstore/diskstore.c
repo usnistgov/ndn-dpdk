@@ -133,7 +133,7 @@ DiskStore_GetData_End(struct spdk_bdev_io* io, bool success, void* npkt0)
     dataPkt->timestamp = rte_get_tsc_cycles();
     NdnError err = Packet_ParseL3(interest->diskData, NULL);
     if (err != NdnErrOK ||
-        Packet_GetL3PktType(interest->diskData) != L3PktType_Data) {
+        Packet_GetL3PktType(interest->diskData) != L3PktTypeData) {
       ZF_LOGW("GetData_End(%" PRIu64 ", %p): fail=not-Data", slotId, npkt);
       DiskStore_GetData_Fail(reply, npkt);
     } else {

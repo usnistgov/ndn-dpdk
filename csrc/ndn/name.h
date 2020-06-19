@@ -7,10 +7,6 @@
 
 extern uint64_t NameHash_Empty_;
 
-/** \brief Maximum supported name length (TLV-LENGTH of Name element).
- */
-#define NAME_MAX_LENGTH 2048
-
 /** \brief Name in linear buffer.
  */
 typedef struct LName
@@ -46,7 +42,7 @@ typedef enum NameCompareResult
 NameCompareResult
 LName_Compare(LName lhs, LName rhs);
 
-#define LNAME_MAX_STRING_SIZE (NAME_MAX_LENGTH * 2)
+#define LNAME_MAX_STRING_SIZE (NameMaxLength * 2)
 
 /** \brief Convert a name to a hexidecimal string for debug purpose.
  *  \param[out] buf text buffer
@@ -86,7 +82,7 @@ PName_Clear(PName* n)
  *  \param length TLV-LENGTH of Name element
  *  \param value TLV-VALUE of Name element
  *  \retval NdnErrOK success
- *  \retval NdnErrNameTooLong TLV-LENGTH exceeds \c NAME_MAX_LENGTH
+ *  \retval NdnErrNameTooLong TLV-LENGTH exceeds \c NameMaxLength
  *  \retval NdnErrBadNameComponentType component type not in 1-32767 range
  *  \retval NdnErrBadDigestComponentLength ImplicitSha256DigestComponent is not 32 octets
  *  \retval NdnErrNameHasComponentAfterDigest ImplicitSha256DigestComponent is not at last

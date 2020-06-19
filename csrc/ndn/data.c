@@ -61,7 +61,7 @@ DataSatisfyResult
 PData_CanSatisfy(PData* data, PInterest* interest)
 {
   if (unlikely(interest->mustBeFresh && data->freshnessPeriod == 0)) {
-    return DATA_SATISFY_NO;
+    return DataSatisfyNo;
   }
 
   const LName* interestLName = (const LName*)&interest->name;
@@ -71,24 +71,24 @@ PData_CanSatisfy(PData* data, PInterest* interest)
   if (unlikely(interest->name.p.hasDigestComp)) {
     if (cmp != NAMECMP_RPREFIX ||
         interest->name.p.nComps != data->name.p.nComps + 1) {
-      return DATA_SATISFY_NO;
+      return DataSatisfyNo;
     }
 
     if (!data->hasDigest) {
-      return DATA_SATISFY_NEED_DIGEST;
+      return DataSatisfyNeedDigest;
     }
 
     NameComp digestComp = Name_GetComp(&interest->name, data->name.p.nComps);
     assert(digestComp.size == 34);
     const uint8_t* digest = RTE_PTR_ADD(digestComp.tlv, 2);
-    return memcmp(digest, data->digest, 32) == 0 ? DATA_SATISFY_YES
-                                                 : DATA_SATISFY_NO;
+    return memcmp(digest, data->digest, 32) == 0 ? DataSatisfyYes
+                                                 : DataSatisfyNo;
   }
 
   return (cmp == NAMECMP_EQUAL ||
           (interest->canBePrefix && cmp == NAMECMP_LPREFIX))
-           ? DATA_SATISFY_YES
-           : DATA_SATISFY_NO;
+           ? DataSatisfyYes
+           : DataSatisfyNo;
 }
 
 void

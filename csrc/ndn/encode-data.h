@@ -5,32 +5,6 @@
 
 #include "name.h"
 
-static inline uint16_t
-EncodeData_GetHeadroom()
-{
-  return 1 + 5; // Data TL
-}
-
-extern const uint16_t EncodeData_FakeSigLen_;
-
-static inline uint16_t
-EncodeData_GetTailroom(uint16_t nameL, uint16_t contentL)
-{
-  return 1 + 3 + nameL +         // Name
-         1 + 1 + 1 + 1 + 4 +     // MetaInfo with FreshnessPeriod
-         1 + 3 + contentL +      // Content
-         EncodeData_FakeSigLen_; // SignatureInfo + SignatureValue
-}
-
-/** \brief Get required tailroom for EncodeData output mbuf,
- *         assuming max name length and empty payload.
- */
-static inline uint16_t
-EncodeData_GetTailroomMax()
-{
-  return EncodeData_GetTailroom(NAME_MAX_LENGTH, 0);
-}
-
 void
 EncodeData_(struct rte_mbuf* m,
             uint16_t namePrefixL,
@@ -77,28 +51,6 @@ EncodeData(struct rte_mbuf* m,
 typedef struct DataGen
 {
 } DataGen;
-
-static inline uint16_t
-DataGen_GetHeadroom0()
-{
-  return EncodeData_GetHeadroom();
-}
-
-static inline uint16_t
-DataGen_GetTailroom0(uint16_t namePrefixL)
-{
-  return 1 + 5 +              // Data TL
-         1 + 3 + namePrefixL; // Name
-}
-
-static inline uint16_t
-DataGen_GetTailroom1(uint16_t nameSuffixL, uint16_t contentL)
-{
-  return nameSuffixL +           // Name
-         1 + 1 + 1 + 1 + 4 +     // MetaInfo with FreshnessPeriod
-         1 + 3 + contentL +      // Content
-         EncodeData_FakeSigLen_; // SignatureInfo + SignatureValue
-}
 
 DataGen*
 MakeDataGen_(struct rte_mbuf* m,

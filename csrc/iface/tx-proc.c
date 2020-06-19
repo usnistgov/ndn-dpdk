@@ -28,14 +28,14 @@ TxProc_Init(TxProc* tx,
   assert(indirectMp != NULL);
   assert(headerMp != NULL);
   assert(rte_pktmbuf_data_room_size(headerMp) >=
-         headroom + PrependLpHeader_GetHeadroom());
+         headroom + LpHeaderEstimatedHeadroom);
   tx->indirectMp = indirectMp;
   tx->headerMp = headerMp;
 
   if (mtu == 0) {
     tx->outputFunc = TxProc_OutputNoFrag;
   } else {
-    int fragmentPayloadSize = (int)mtu - PrependLpHeader_GetHeadroom();
+    int fragmentPayloadSize = (int)mtu - LpHeaderEstimatedHeadroom;
     if (fragmentPayloadSize < MIN_PAYLOAD_SIZE_PER_FRAGMENT) {
       return ENOSPC;
     }
@@ -43,7 +43,7 @@ TxProc_Init(TxProc* tx,
     tx->outputFunc = TxProc_OutputFrag;
   }
 
-  tx->headerHeadroom = headroom + PrependLpHeader_GetHeadroom();
+  tx->headerHeadroom = headroom + LpHeaderEstimatedHeadroom;
   return 0;
 }
 
@@ -115,7 +115,7 @@ TxProc_OutputFrag(TxProc* tx,
     // Set real L3 type on first L2 frame and None on other L2 frames,
     // to match counting logic in TxProc_CountSent
     frame->inner_l3_type = l3type;
-    l3type = L3PktType_None;
+    l3type = L3PktTypeNone;
     frame->timestamp = pkt->timestamp;
   }
   rte_pktmbuf_free(pkt);

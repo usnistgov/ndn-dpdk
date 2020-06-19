@@ -9,7 +9,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/iface/ethface"
 	"github.com/usnistgov/ndn-dpdk/iface/ifacetestenv"
-	"github.com/usnistgov/ndn-dpdk/ndni"
 	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
 )
 
@@ -53,7 +52,7 @@ func TestEthFace(t *testing.T) {
 	assert.Equal("ether", locAm.Scheme)
 	assert.Equal(vnet.Ports[0].GetName(), locAm.Port)
 	assert.True(locAm.Local.Equal(macA))
-	assert.True(locAm.Remote.Equal(ndni.NDN_ETHER_MCAST_ADDR))
+	assert.True(locAm.Remote.Equal(ethface.NdnMcastAddr))
 
 	vnet.LaunchBridge(eal.ListSlaveLCores()[3])
 	time.Sleep(time.Second)

@@ -1,6 +1,6 @@
 #include "packet.h"
 
-static const char* L3PktType_Strings[L3PktType_MAX] = {
+static const char* L3PktTypeStrings[L3PktTypeMAX] = {
   "none",
   "interest",
   "data",
@@ -8,9 +8,9 @@ static const char* L3PktType_Strings[L3PktType_MAX] = {
 };
 
 const char*
-L3PktType_ToString(L3PktType t)
+L3PktTypeToString(L3PktType t)
 {
-  return L3PktType_Strings[t];
+  return L3PktTypeStrings[t];
 }
 
 NdnError
@@ -21,7 +21,7 @@ Packet_ParseL2(Packet* npkt)
   uint32_t payloadOff, tlvSize;
   NdnError e = LpHeader_FromPacket(lph, pkt, &payloadOff, &tlvSize);
   RETURN_IF_ERROR;
-  Packet_SetL2PktType(npkt, L2PktType_NdnlpV2);
+  Packet_SetL2PktType(npkt, L2PktTypeNdnlpV2);
 
   if (unlikely(tlvSize < pkt->pkt_len)) { // strip Ethernet trailer
     assert(pkt->nb_segs == 1);
@@ -44,9 +44,9 @@ Packet_ParseL3(Packet* npkt, struct rte_mempool* nameMp)
         PInterest_FromPacket(Packet_GetInterestHdr_(npkt), pkt, nameMp);
       if (likely(e == NdnErrOK)) {
         if (Packet_InitLpL3Hdr(npkt)->nackReason > 0) {
-          Packet_SetL3PktType(npkt, L3PktType_Nack);
+          Packet_SetL3PktType(npkt, L3PktTypeNack);
         } else {
-          Packet_SetL3PktType(npkt, L3PktType_Interest);
+          Packet_SetL3PktType(npkt, L3PktTypeInterest);
         }
       }
       return e;
@@ -54,7 +54,7 @@ Packet_ParseL3(Packet* npkt, struct rte_mempool* nameMp)
     case TtData: {
       NdnError e = PData_FromPacket(Packet_GetDataHdr_(npkt), pkt, nameMp);
       if (likely(e == NdnErrOK)) {
-        Packet_SetL3PktType(npkt, L3PktType_Data);
+        Packet_SetL3PktType(npkt, L3PktTypeData);
       }
       return e;
     }

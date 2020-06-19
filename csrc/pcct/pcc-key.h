@@ -134,8 +134,7 @@ PccKey_CountExtensions(const PccSearch* search)
 
 /** \brief Maximum return value of PccKey_CountExtensions.
  */
-#define PCC_KEY_MAX_EXTS                                                       \
-  PccKey_CountExtensions_(NAME_MAX_LENGTH, NAME_MAX_LENGTH)
+#define PCC_KEY_MAX_EXTS PccKey_CountExtensions_(NameMaxLength, NameMaxLength)
 
 static inline int
 PccKey_CopyNameOrFhV_(LName name,

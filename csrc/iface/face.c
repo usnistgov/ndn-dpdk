@@ -27,13 +27,13 @@ FaceImpl_RxBurst(FaceRxBurst* burst,
 
     L3PktType l3type = Packet_GetL3PktType(npkt);
     switch (l3type) {
-      case L3PktType_Interest:
+      case L3PktTypeInterest:
         FaceRxBurst_PutInterest(burst, npkt);
         break;
-      case L3PktType_Data:
+      case L3PktTypeData:
         FaceRxBurst_PutData(burst, npkt);
         break;
-      case L3PktType_Nack:
+      case L3PktTypeNack:
         FaceRxBurst_PutNack(burst, npkt);
         break;
       default:

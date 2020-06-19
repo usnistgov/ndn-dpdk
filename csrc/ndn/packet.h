@@ -8,6 +8,11 @@
 #include "lp.h"
 #include "nack.h"
 
+/** \brief Get \p t as lower case string.
+ */
+const char*
+L3PktTypeToString(L3PktType t);
+
 /** \brief An NDN L2 or L3 packet.
  *
  *  Packet* is struct rte_mbuf* that fulfills requirements of \c Packet_FromMbuf.
@@ -60,16 +65,6 @@ Packet_ToMbuf(const Packet* npkt)
   return (struct rte_mbuf*)npkt;
 }
 
-/** \brief Indicate layer 2 packet type.
- *
- *  L2PktType is stored in rte_mbuf.inner_l2_type field.
- */
-typedef enum L2PktType
-{
-  L2PktType_None,
-  L2PktType_NdnlpV2,
-} L2PktType;
-
 /** \brief Get layer 2 packet type.
  */
 static inline L2PktType
@@ -85,24 +80,6 @@ Packet_SetL2PktType(Packet* npkt, L2PktType t)
 {
   Packet_ToMbuf(npkt)->inner_l2_type = t;
 }
-
-/** \brief Indicate layer 3 packet type.
- *
- *  L3PktType is stored in rte_mbuf.inner_l3_type field.
- */
-typedef enum L3PktType
-{
-  L3PktType_None,
-  L3PktType_Interest,
-  L3PktType_Data,
-  L3PktType_Nack,
-  L3PktType_MAX
-} L3PktType;
-
-/** \brief Get \p t as lower case string.
- */
-const char*
-L3PktType_ToString(L3PktType t);
 
 /** \brief Get layer 3 packet type.
  */
@@ -138,8 +115,8 @@ Packet_GetLpHdr_(Packet* npkt)
 static inline LpHeader*
 Packet_GetLpHdr(Packet* npkt)
 {
-  assert(Packet_GetL2PktType(npkt) == L2PktType_NdnlpV2 &&
-         Packet_GetL3PktType(npkt) == L3PktType_None);
+  assert(Packet_GetL2PktType(npkt) == L2PktTypeNdnlpV2 &&
+         Packet_GetL3PktType(npkt) == L3PktTypeNone);
   return Packet_GetLpHdr_(npkt);
 }
 
@@ -154,7 +131,7 @@ Packet_GetLpL3Hdr_(Packet* npkt)
 static inline LpL3*
 Packet_GetLpL3Hdr(Packet* npkt)
 {
-  assert(Packet_GetL2PktType(npkt) == L2PktType_NdnlpV2);
+  assert(Packet_GetL2PktType(npkt) == L2PktTypeNdnlpV2);
   return Packet_GetLpL3Hdr_(npkt);
 }
 
@@ -164,8 +141,8 @@ static inline LpL3*
 Packet_InitLpL3Hdr(Packet* npkt)
 {
   LpL3* lpl3 = Packet_GetLpL3Hdr_(npkt);
-  if (Packet_GetL2PktType(npkt) != L2PktType_NdnlpV2) {
-    Packet_SetL2PktType(npkt, L2PktType_NdnlpV2);
+  if (Packet_GetL2PktType(npkt) != L2PktTypeNdnlpV2) {
+    Packet_SetL2PktType(npkt, L2PktTypeNdnlpV2);
     memset(lpl3, 0, sizeof(*lpl3));
   }
   return lpl3;
@@ -182,8 +159,8 @@ Packet_GetInterestHdr_(Packet* npkt)
 static inline PInterest*
 Packet_GetInterestHdr(Packet* npkt)
 {
-  assert(Packet_GetL3PktType(npkt) == L3PktType_Interest &&
-         (Packet_GetL2PktType(npkt) != L2PktType_NdnlpV2 ||
+  assert(Packet_GetL3PktType(npkt) == L3PktTypeInterest &&
+         (Packet_GetL2PktType(npkt) != L2PktTypeNdnlpV2 ||
           Packet_GetLpL3Hdr_(npkt)->nackReason == NackNone));
   return Packet_GetInterestHdr_(npkt);
 }
@@ -199,7 +176,7 @@ Packet_GetDataHdr_(Packet* npkt)
 static inline PData*
 Packet_GetDataHdr(Packet* npkt)
 {
-  assert(Packet_GetL3PktType(npkt) == L3PktType_Data);
+  assert(Packet_GetL3PktType(npkt) == L3PktTypeData);
   return Packet_GetDataHdr_(npkt);
 }
 
@@ -208,14 +185,14 @@ Packet_GetDataHdr(Packet* npkt)
 static inline PNack*
 Packet_GetNackHdr(Packet* npkt)
 {
-  assert(Packet_GetL3PktType(npkt) == L3PktType_Nack &&
+  assert(Packet_GetL3PktType(npkt) == L3PktTypeNack &&
          Packet_GetLpL3Hdr(npkt)->nackReason != NackNone);
   return &Packet_GetPriv_(npkt)->nack;
 }
 
 /** \brief Parse packet as LpPacket (including bare Interest/Data).
  *  \retval NdnErrBadType packet type is not LpPacket.
- *  \post Packet_GetL2Type(npkt) == L2PktType_NdnlpV2
+ *  \post Packet_GetL2Type(npkt) == L2PktTypeNdnlpV2
  *  \post LpHeader is stripped, leaving payload TLV-VALUE in the packet.
  */
 NdnError
@@ -223,11 +200,11 @@ Packet_ParseL2(Packet* npkt);
 
 /** \brief Parse packet as Interest or Data.
  *  \param nameMp mempool for allocating Name linearize mbufs,
- *                requires at least \c NAME_MAX_LENGTH dataroom;
+ *                requires at least \c NameMaxLength dataroom;
  *                if NULL, will panic when Name linearize becomes necessary.
  *  \retval NdnErrBadType packet type is neither Interest nor Data.
  *  \retval NdnErrAllocError unable to allocate mbuf.
- *  \post Packet_GetL3Type(npkt) is L3PktType_Interest or L3PktType_Data or L3PktType_Nack.
+ *  \post Packet_GetL3Type(npkt) is L3PktTypeInterest or L3PktTypeData or L3PktTypeNack.
  */
 NdnError
 Packet_ParseL3(Packet* npkt, struct rte_mempool* nameMp);
