@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/app/fwdp"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
@@ -70,7 +71,7 @@ func TestDataZeroFreshnessPeriod(t *testing.T) {
 	face2 := fixture.CreateFace()
 	fixture.SetFibEntry("/B", "multicast", face2.GetFaceId())
 
-	interest := makeInterest("/B/1", ndni.MustBeFreshFlag) // has MustBeFresh
+	interest := makeInterest("/B/1", ndn.MustBeFreshFlag) // has MustBeFresh
 	face1.Rx(interest)
 	time.Sleep(STEP_DELAY)
 	require.Len(face2.TxInterests, 1)
@@ -96,12 +97,12 @@ func TestNackWrongName(t *testing.T) {
 	face2 := fixture.CreateFace()
 	fixture.SetFibEntry("/B", "multicast", face2.GetFaceId())
 
-	interest := makeInterest("/B/1", uint32(0xdb22330b))
+	interest := makeInterest("/B/1", ndn.NonceFromUint(0xdb22330b))
 	face1.Rx(interest)
 	time.Sleep(STEP_DELAY)
 	require.Len(face2.TxInterests, 1)
 
-	nack := ndni.MakeNackFromInterest(makeInterest("/B/2", uint32(0xdb22330b)), an.NackNoRoute)
+	nack := ndni.MakeNackFromInterest(makeInterest("/B/2", ndn.NonceFromUint(0xdb22330b)), an.NackNoRoute)
 	copyPitToken(nack, face2.TxInterests[0])
 	face2.Rx(nack)
 	time.Sleep(STEP_DELAY)
@@ -122,12 +123,12 @@ func TestNackWrongNonce(t *testing.T) {
 	face2 := fixture.CreateFace()
 	fixture.SetFibEntry("/B", "multicast", face2.GetFaceId())
 
-	interest := makeInterest("/B/1", uint32(0x19c3e8b8))
+	interest := makeInterest("/B/1", ndn.NonceFromUint(0x19c3e8b8))
 	face1.Rx(interest)
 	time.Sleep(STEP_DELAY)
 	require.Len(face2.TxInterests, 1)
 
-	nack := ndni.MakeNackFromInterest(makeInterest("/B/1", uint32(0xf4d9aad1)), an.NackNoRoute)
+	nack := ndni.MakeNackFromInterest(makeInterest("/B/1", ndn.NonceFromUint(0xf4d9aad1)), an.NackNoRoute)
 	copyPitToken(nack, face2.TxInterests[0])
 	face2.Rx(nack)
 	time.Sleep(STEP_DELAY)

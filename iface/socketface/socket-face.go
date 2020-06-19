@@ -121,7 +121,6 @@ func (face *SocketFace) rxLoop() {
 	face.quitWg.Done()
 }
 
-// Report congestion when RxLoop is unable to send into rxQueue.
 func (face *SocketFace) rxPkt(pkt *pktmbuf.Packet) {
 	pkt.SetPort(uint16(face.GetFaceId()))
 	pkt.SetTimestamp(eal.TscNow())

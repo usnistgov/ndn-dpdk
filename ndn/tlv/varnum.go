@@ -15,30 +15,30 @@ func (n VarNum) Size() int {
 		return 1
 	case n <= math.MaxUint16:
 		return 3
-	case n <= math.MaxInt32:
+	case n <= math.MaxUint32:
 		return 5
 	default:
 		return 9
 	}
 }
 
-// MarshalTlv encodes this number.
-func (n VarNum) MarshalTlv() (wire []byte, e error) {
+// Encode appends this number to a buffer.
+func (n VarNum) Encode(buf []byte) []byte {
 	switch {
 	case n < 0xFD:
-		return []byte{byte(n)}, nil
+		return append(buf, byte(n))
 	case n <= math.MaxUint16:
-		return []byte{0xFD, byte(n >> 8), byte(n)}, nil
-	case n <= math.MaxInt32:
-		return []byte{0xFE, byte(n >> 24), byte(n >> 16), byte(n >> 8), byte(n)}, nil
+		return append(buf, 0xFD, byte(n>>8), byte(n))
+	case n <= math.MaxUint32:
+		return append(buf, 0xFE, byte(n>>24), byte(n>>16), byte(n>>8), byte(n))
 	default:
-		return []byte{0xFF, byte(n >> 56), byte(n >> 48), byte(n >> 40), byte(n >> 32),
-			byte(n >> 24), byte(n >> 16), byte(n >> 8), byte(n)}, nil
+		return append(buf, 0xFF, byte(n>>56), byte(n>>48), byte(n>>40), byte(n>>32),
+			byte(n>>24), byte(n>>16), byte(n>>8), byte(n))
 	}
 }
 
-// UnmarshalTlv decodes this number.
-func (n *VarNum) UnmarshalTlv(wire []byte) (rest []byte, e error) {
+// Decode extracts a VarNum from the buffer.
+func (n *VarNum) Decode(wire []byte) (rest []byte, e error) {
 	switch {
 	case len(wire) >= 1 && wire[0] < 0xFD:
 		*n = VarNum(wire[0])

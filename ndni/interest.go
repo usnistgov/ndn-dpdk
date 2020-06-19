@@ -22,10 +22,7 @@ PInterest_Unpack(const PInterest* p, PInterestUnpacked* u)
 */
 import "C"
 import (
-	"bytes"
 	"errors"
-	"fmt"
-	"math/rand"
 	"time"
 	"unsafe"
 
@@ -85,9 +82,9 @@ func (interest Interest) HasMustBeFresh() bool {
 	return bool(interest.p.unpack().mustBeFresh)
 }
 
-// GetNonce returns Nonce in native endianness.
-func (interest Interest) GetNonce() uint32 {
-	return uint32(interest.p.Nonce)
+// GetNonce returns Nonce.
+func (interest Interest) GetNonce() ndn.Nonce {
+	return ndn.NonceFromUint(interest.p.Nonce)
 }
 
 // GetLifetime returns InterestLifetime.
@@ -146,100 +143,35 @@ func (interest *Interest) Modify(nonce uint32, lifetime time.Duration,
 	return PacketFromPtr(unsafe.Pointer(outPktC)).AsInterest()
 }
 
-type tCanBePrefix bool
-type tMustBeFresh bool
-
-const (
-	CanBePrefixFlag = tCanBePrefix(true)
-	MustBeFreshFlag = tMustBeFresh(true)
-)
-
-type FHDelegation struct {
-	Preference int
-	Name       string
-}
-
-func (del FHDelegation) Encode() []byte {
-	wire, _ := tlv.EncodeElement(an.TtDelegation,
-		tlv.MakeElementNNI(an.TtPreference, del.Preference),
-		ndn.ParseName(del.Name),
-	)
-	return wire
-}
-
-type ActiveFHDelegation int
-
+// InterestTemplateFromPtr converts *C.InterestTemplate to InterestTemplate.
 func InterestTemplateFromPtr(ptr unsafe.Pointer) *InterestTemplate {
 	return (*InterestTemplate)(ptr)
 }
 
-// Initialize InterestTemplate from flexible arguments.
-// Increase mbuf headroom with InterestMbufExtraHeadroom.
-// Specify Name with string or ndn.Name.
-// Specify CanBePrefix with `CanBePrefixFlag`.
-// Specify MustBeFresh with `MustBeFreshFlag`.
-// Specify ForwardingHint with FHDelegation (repeatable).
-// Specify InterestLifetime with time.Duration.
-// Specify HopLimit with uint8.
-// ApplicationParameters and Signature are not supported.
-func (tpl *InterestTemplate) Init(args ...interface{}) (e error) {
-	cbp := false
-	mbf := false
-	var fh [][]byte
-	lifetime := uint32(C.DEFAULT_INTEREST_LIFETIME)
-	hopLimit := uint8(0xFF)
+// Init initializes InterestTemplate.
+// Arguments should be acceptable to ndn.MakeInterest.
+// Name is used as name prefix.
+func (tpl *InterestTemplate) Init(args ...interface{}) error {
+	interest := ndn.MakeInterest(args...)
+	_, wire, e := interest.MarshalTlv()
+	if e != nil {
+		return e
+	}
 
-	for i := 0; i < len(args); i++ {
-		switch a := args[i].(type) {
-		case string:
-			name := ndn.ParseName(a)
-			nameV, _ := name.MarshalBinary()
-			tpl.PrefixL = uint16(copy(tpl.PrefixV[:], nameV))
-		case ndn.Name:
-			nameV, _ := a.MarshalBinary()
-			tpl.PrefixL = uint16(copy(tpl.PrefixV[:], nameV))
-		case tCanBePrefix:
-			cbp = true
-		case tMustBeFresh:
-			mbf = true
-		case FHDelegation:
-			fh = append(fh, a.Encode())
-		case time.Duration:
-			lifetime = uint32(a / time.Millisecond)
-		case uint8:
-			hopLimit = a
-		default:
-			return fmt.Errorf("unrecognized argument type %T", a)
+	d := tlv.Decoder(wire)
+	for _, field := range d.Elements() {
+		switch an.TlvType(field.Type) {
+		case an.TtName:
+			tpl.PrefixL = uint16(copy(tpl.PrefixV[:], field.Value))
+			tpl.MidLen = uint16(copy(tpl.MidBuf[:], field.After))
+		case an.TtNonce:
+			tpl.NonceOff = tpl.MidLen - uint16(len(field.After)+len(field.Value))
 		}
 	}
-
-	var mid []tlv.Element
-	if cbp {
-		mid = append(mid, tlv.MakeElement(an.TtCanBePrefix, nil))
-	}
-	if mbf {
-		mid = append(mid, tlv.MakeElement(an.TtMustBeFresh, nil))
-	}
-	if len(fh) > 0 {
-		mid = append(mid, tlv.MakeElement(an.TtForwardingHint, bytes.Join(fh, nil)))
-	}
-	{
-		mid = append(mid, tlv.MakeElement(an.TtNonce, make([]byte, 4)))
-		wire, _ := tlv.EncodeValue(mid)
-		tpl.NonceOff = uint16(len(wire) - 4)
-	}
-	if lifetime != C.DEFAULT_INTEREST_LIFETIME {
-		mid = append(mid, tlv.MakeElementNNI(an.TtInterestLifetime, lifetime))
-	}
-	if hopLimit != 0xFF {
-		mid = append(mid, tlv.MakeElement(an.TtHopLimit, []byte{hopLimit}))
-	}
-	wire, _ := tlv.EncodeValue(mid)
-	tpl.MidLen = uint16(copy(tpl.MidBuf[:], wire))
 	return nil
 }
 
-// Encode an Interest from template.
+// Encode encodes an Interest via template.
 // mbuf must be empty and is the only segment.
 // mbuf headroom should be at least Interest_Headroom plus Ethernet and NDNLP headers.
 // mbuf tailroom should fit the whole packet; a safe value is Interest_TailroomMax.
@@ -251,51 +183,4 @@ func (tpl *InterestTemplate) Encode(m *pktmbuf.Packet, suffix ndn.Name, nonce ui
 
 	C.EncodeInterest_((*C.struct_rte_mbuf)(m.GetPtr()), (*C.InterestTemplate)(unsafe.Pointer(tpl)),
 		C.uint16_t(len(suffixV)), bytesToPtr(suffixV), C.uint32_t(nonce))
-}
-
-// Encode an Interest from flexible arguments.
-// In addition to argument types supported by `func (tpl *InterestTemplate) Init`:
-// Specify Nonce with uint32.
-// Choose active ForwardingHint delegation with ActiveFHDelegation.
-func MakeInterest(m *pktmbuf.Packet, args ...interface{}) (interest *Interest, e error) {
-	nonce := rand.Uint32()
-	activeFh := -1
-	var tplArgs []interface{}
-
-	for _, arg := range args {
-		switch a := arg.(type) {
-		case ActiveFHDelegation:
-			activeFh = int(a)
-		case uint32:
-			nonce = a
-		default:
-			tplArgs = append(tplArgs, arg)
-		}
-	}
-
-	var tpl InterestTemplate
-	if e = tpl.Init(tplArgs...); e != nil {
-		m.Close()
-		return nil, e
-	}
-
-	tpl.Encode(m, nil, nonce)
-	pkt := PacketFromMbuf(m)
-	if e = pkt.ParseL2(); e != nil {
-		m.Close()
-		return nil, e
-	}
-	if e = pkt.ParseL3(nil); e != nil || pkt.GetL3Type() != L3PktType_Interest {
-		m.Close()
-		return nil, e
-	}
-
-	interest = pkt.AsInterest()
-	if activeFh >= 0 {
-		if e = interest.SelectActiveFh(activeFh); e != nil {
-			m.Close()
-			return nil, e
-		}
-	}
-	return interest, nil
 }

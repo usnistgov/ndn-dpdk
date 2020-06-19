@@ -50,39 +50,28 @@ func (name Name) compareCommonPrefix(other Name) int {
 	return 0
 }
 
+// MarshalTlv encodes this name.
+func (name Name) MarshalTlv() (typ uint32, value []byte, e error) {
+	return tlv.EncodeTlv(an.TtName, ([]NameComponent)(name))
+}
+
 // MarshalBinary encodes TLV-VALUE of this name.
-func (name Name) MarshalBinary() (wire []byte, e error) {
-	return tlv.EncodeValue(([]NameComponent)(name))
+func (name Name) MarshalBinary() (value []byte, e error) {
+	return tlv.Encode(([]NameComponent)(name))
 }
 
 // UnmarshalBinary decodes TLV-VALUE from wire format.
-func (name *Name) UnmarshalBinary(wire []byte) (e error) {
-	d := tlv.Decoder(wire)
+func (name *Name) UnmarshalBinary(wire []byte) error {
 	*name = make(Name, 0)
-	for !d.EOF() {
+	d := tlv.Decoder(wire)
+	for _, element := range d.Elements() {
 		var comp NameComponent
-		if e := d.Unmarshal(&comp); e != nil {
+		if e := element.Unmarshal(&comp); e != nil {
 			return e
 		}
 		*name = append(*name, comp)
 	}
-	return nil
-}
-
-// MarshalTlv encodes this name.
-func (name Name) MarshalTlv() (wire []byte, e error) {
-	return tlv.EncodeElement(an.TtName, ([]NameComponent)(name))
-}
-
-// UnmarshalTlv decodes from wire format.
-func (name *Name) UnmarshalTlv(wire []byte) (rest []byte, e error) {
-	element, rest, e := tlv.DecodeFirstExpect(an.TtName, wire)
-	if e != nil {
-		return nil, e
-	}
-
-	e = name.UnmarshalBinary(element.Value)
-	return rest, e
+	return d.ErrUnlessEOF()
 }
 
 // MarshalText implements encoding.TextMarshaler interface.

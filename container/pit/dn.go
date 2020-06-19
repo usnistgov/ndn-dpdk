@@ -7,6 +7,7 @@ import "C"
 import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 // A PIT downstream record.
@@ -23,8 +24,8 @@ func (dn Dn) GetToken() uint64 {
 	return uint64(dn.c.token)
 }
 
-func (dn Dn) GetNonce() uint32 {
-	return uint32(dn.c.nonce)
+func (dn Dn) GetNonce() ndn.Nonce {
+	return ndn.NonceFromUint(uint32(dn.c.nonce))
 }
 
 func (dn Dn) GetExpiry() eal.TscTime {

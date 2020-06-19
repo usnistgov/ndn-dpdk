@@ -7,7 +7,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal/ealtestenv"
-	"github.com/usnistgov/ndn-dpdk/ndni/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
 	"github.com/usnistgov/ndn-dpdk/spdk/spdkenv"
 )
 
@@ -19,7 +19,7 @@ func TestMain(m *testing.M) {
 
 var (
 	makeAR       = testenv.MakeAR
-	makeInterest = ndntestenv.MakeInterest
-	makeData     = ndntestenv.MakeData
-	closePacket  = ndntestenv.ClosePacket
+	makeInterest = ndnitestenv.MakeInterest
+	makeData     = ndnitestenv.MakeData
+	closePacket  = ndnitestenv.ClosePacket
 )

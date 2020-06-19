@@ -10,7 +10,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"github.com/usnistgov/ndn-dpdk/ndni/ndntestenv"
 )
 
 func TestClient(t *testing.T) {
@@ -79,8 +78,8 @@ func TestClient(t *testing.T) {
 		default:
 			assert.Fail("unexpected Interest", "%s", interest)
 		}
-		data := ndntestenv.MakeData(interest.GetName().String())
-		ndntestenv.CopyPitToken(data, interest)
+		data := makeData(interest.GetName().String())
+		copyPitToken(data, interest)
 		rx(data)
 	})
 

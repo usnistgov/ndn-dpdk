@@ -9,7 +9,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"github.com/usnistgov/ndn-dpdk/ndni/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
 )
 
 // Test fixture for sending and receiving packets between a pair of connected faces.
@@ -123,9 +123,9 @@ func (fixture *Fixture) sendProc() int {
 	content := make([]byte, fixture.PayloadLen)
 	for i := 0; i < fixture.TxLoops; i++ {
 		pkts := make([]*ndni.Packet, 3)
-		pkts[0] = ndntestenv.MakeInterest("/A").GetPacket()
-		pkts[1] = ndntestenv.MakeData("/A", content).GetPacket()
-		pkts[2] = ndni.MakeNackFromInterest(ndntestenv.MakeInterest("/A"), an.NackNoRoute).GetPacket()
+		pkts[0] = ndnitestenv.MakeInterest("/A").GetPacket()
+		pkts[1] = ndnitestenv.MakeData("/A", content).GetPacket()
+		pkts[2] = ndni.MakeNackFromInterest(ndnitestenv.MakeInterest("/A"), an.NackNoRoute).GetPacket()
 		fixture.txFace.TxBurst(pkts)
 		time.Sleep(time.Millisecond)
 	}

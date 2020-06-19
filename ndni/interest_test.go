@@ -4,8 +4,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"github.com/usnistgov/ndn-dpdk/ndni/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
 )
 
 func TestInterestDecode(t *testing.T) {
@@ -44,7 +46,7 @@ func TestInterestDecode(t *testing.T) {
 	for _, tt := range tests {
 		pkt := packetFromHex(tt.input)
 		defer pkt.AsMbuf().Close()
-		e := pkt.ParseL3(ndntestenv.Name.Pool())
+		e := pkt.ParseL3(ndnitestenv.Name.Pool())
 		if tt.bad {
 			assert.Error(e, tt.input)
 		} else if assert.NoError(e, tt.input) {
@@ -69,9 +71,9 @@ func TestInterestDecode(t *testing.T) {
 				}
 			}
 			if tt.hasNonce {
-				assert.Equal(uint32(0xA3A2A1A0), interest.GetNonce(), tt.input)
+				assert.Equal(ndn.NonceFromUint(0xA3A2A1A0), interest.GetNonce(), tt.input)
 			} else {
-				assert.Zero(interest.GetNonce(), tt.input)
+				assert.True(interest.GetNonce().IsZero(), tt.input)
 			}
 			assert.EqualValues(tt.lifetime, interest.GetLifetime()/time.Millisecond, tt.input)
 			assert.Equal(tt.hopLimit, interest.GetHopLimit(), tt.input)
@@ -110,14 +112,14 @@ func TestInterestModify(t *testing.T) {
 		if e := pkt.ParseL2(); !assert.NoError(e, tt.input) {
 			continue
 		}
-		if e := pkt.ParseL3(ndntestenv.Name.Pool()); !assert.NoError(e, tt.input) {
+		if e := pkt.ParseL3(ndnitestenv.Name.Pool()); !assert.NoError(e, tt.input) {
 			continue
 		}
 		interest := pkt.AsInterest()
 		assert.Implements((*ndni.IL3Packet)(nil), interest)
 
 		modified := interest.Modify(0xABAAA9A8, 27938*time.Millisecond, 125,
-			ndntestenv.Header.Pool(), ndntestenv.Guider.Pool(), ndntestenv.Indirect.Pool())
+			ndnitestenv.Header.Pool(), ndnitestenv.Guider.Pool(), ndnitestenv.Indirect.Pool())
 		if assert.NotNil(modified, tt.input) {
 			npkt := modified.GetPacket()
 			pkt := npkt.AsMbuf()
@@ -131,25 +133,27 @@ func TestInterestModify(t *testing.T) {
 	}
 }
 
-func TestMakeInterest(t *testing.T) {
+func TestInterestTemplate(t *testing.T) {
 	assert, require := makeAR(t)
 
-	m1 := ndntestenv.Packet.Alloc()
-	_, e := ndni.MakeInterest(m1, "/A/B", uint32(0xA0A1A2A3))
+	var tpl1 ndni.InterestTemplate
+	e := tpl1.Init("/A")
 	require.NoError(e)
+	m1 := ndnitestenv.Packet.Alloc()
 	defer m1.Close()
-	encoded1 := m1.ReadAll()
-	assert.Equal(bytesFromHex("050E name=0706080141080142 nonce=0A04A3A2A1A0"), encoded1)
+	tpl1.Encode(m1, ndn.ParseName("/B"), 0xA0A1A2A3)
+	assert.Equal(bytesFromHex("050E name=0706080141080142 nonce=0A04A3A2A1A0"), m1.ReadAll())
 
-	m2 := ndntestenv.Packet.Alloc()
-	_, e = ndni.MakeInterest(m2, "/A/B/C/D", ndni.CanBePrefixFlag, ndni.MustBeFreshFlag,
-		ndni.FHDelegation{15601, "/E"}, ndni.FHDelegation{6323, "/F"},
-		uint32(0xA0A1A2A3), 9000*time.Millisecond, uint8(125))
+	var tpl2 ndni.InterestTemplate
+	e = tpl2.Init("/A/B/C/D", ndn.CanBePrefixFlag, ndn.MustBeFreshFlag,
+		ndn.MakeFHDelegation(15601, "/E"), ndn.MakeFHDelegation(6323, "/F"),
+		9000*time.Millisecond, ndn.HopLimit(125))
 	require.NoError(e)
+	m2 := ndnitestenv.Packet.Alloc()
 	defer m2.Close()
-	encoded2 := m2.ReadAll()
+	tpl2.Encode(m2, nil, 0xA0A1A2A3)
 	assert.Equal(bytesFromHex("0537 name=070C080141080142080143080144 "+
 		"canbeprefix=2100 mustbefresh=1200 "+
 		"fh=1E16(1F09 pref=1E023CF1 name=0703080145)(1F09 pref=1E0218B3 name=0703080146) "+
-		"nonce=0A04A3A2A1A0 lifetime=0C022328 hoplimit=22017D"), encoded2)
+		"nonce=0A04A3A2A1A0 lifetime=0C022328 hoplimit=22017D"), m2.ReadAll())
 }

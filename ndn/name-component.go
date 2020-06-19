@@ -38,20 +38,22 @@ func (comp NameComponent) Compare(other NameComponent) int {
 }
 
 // MarshalTlv encodes this component.
-func (comp NameComponent) MarshalTlv() (wire []byte, e error) {
+func (comp NameComponent) MarshalTlv() (typ uint32, value []byte, e error) {
 	if !comp.Valid() {
-		return nil, ErrComponentType
+		return 0, nil, ErrComponentType
 	}
 	return comp.Element.MarshalTlv()
 }
 
 // UnmarshalTlv decodes from wire format.
-func (comp *NameComponent) UnmarshalTlv(wire []byte) (rest []byte, e error) {
-	rest, e = comp.Element.UnmarshalTlv(wire)
-	if e == nil && !comp.Valid() {
-		return nil, ErrComponentType
+func (comp *NameComponent) UnmarshalTlv(typ uint32, value []byte) error {
+	if e := comp.Element.UnmarshalTlv(typ, value); e != nil {
+		return e
 	}
-	return rest, e
+	if !comp.Valid() {
+		return ErrComponentType
+	}
+	return nil
 }
 
 // String returns URI representation of this component.

@@ -6,6 +6,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/app/ping/pingtestenv"
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
+	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
 )
 
 func TestMain(m *testing.M) {
@@ -13,4 +14,11 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-var makeAR = testenv.MakeAR
+var (
+	makeAR       = testenv.MakeAR
+	makeInterest = ndnitestenv.MakeInterest
+	makeData     = ndnitestenv.MakeData
+	getPitToken  = ndnitestenv.GetPitToken
+	setPitToken  = ndnitestenv.SetPitToken
+	copyPitToken = ndnitestenv.CopyPitToken
+)

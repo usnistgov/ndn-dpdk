@@ -9,7 +9,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/app/ping"
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/ndn"
-	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 type FetchMgmt struct {
@@ -53,7 +52,7 @@ func (mg FetchMgmt) Benchmark(args FetchBenchmarkArgs, reply *[]FetchBenchmarkRe
 	for i, tpl := range args.Templates {
 		tplArgs := []interface{}{tpl.Prefix}
 		if tpl.CanBePrefix {
-			tplArgs = append(tplArgs, ndni.CanBePrefixFlag)
+			tplArgs = append(tplArgs, ndn.CanBePrefixFlag)
 		}
 		if d := tpl.InterestLifetime.Duration(); d > 0 {
 			tplArgs = append(tplArgs, d)

@@ -10,7 +10,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"github.com/usnistgov/ndn-dpdk/ndni/ndntestenv"
 )
 
 func TestServer(t *testing.T) {
@@ -93,9 +92,9 @@ func TestServer(t *testing.T) {
 
 	rx := pingtestenv.MakeRxFunc(server.GetRxQueue())
 	for i := 0; i < 100; i++ {
-		interestA := ndntestenv.MakeInterest(fmt.Sprintf("/A/%d", i))
-		interestB := ndntestenv.MakeInterest(fmt.Sprintf("/B/%d", i))
-		interestC := ndntestenv.MakeInterest(fmt.Sprintf("/C/%d", i))
+		interestA := makeInterest(fmt.Sprintf("/A/%d", i))
+		interestB := makeInterest(fmt.Sprintf("/B/%d", i))
+		interestC := makeInterest(fmt.Sprintf("/C/%d", i))
 		rx(interestA, interestB, interestC)
 		time.Sleep(50 * time.Microsecond)
 	}

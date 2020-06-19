@@ -10,12 +10,12 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface/ethface"
 	"github.com/usnistgov/ndn-dpdk/iface/ifacetestenv"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"github.com/usnistgov/ndn-dpdk/ndni/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
 )
 
 func TestEthFace(t *testing.T) {
 	assert, require := makeAR(t)
-	rxPool := ndntestenv.Packet.Pool()
+	rxPool := ndnitestenv.Packet.Pool()
 
 	var vnetCfg ethdev.VNetConfig
 	vnetCfg.RxPool = rxPool

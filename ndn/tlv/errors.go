@@ -2,19 +2,12 @@ package tlv
 
 import (
 	"errors"
-	"strconv"
 )
 
 // Simple error conditions.
 var (
 	ErrIncomplete = errors.New("incomplete input")
-	ErrTypeZero   = errors.New("TLV-TYPE cannot be zero")
 	ErrTail       = errors.New("junk after end of TLV")
+	ErrType       = errors.New("TLV-TYPE out of range")
+	ErrCritical   = errors.New("unrecognized critical TLV-TYPE")
 )
-
-// ErrTypeExpect indicates that the input TLV-TYPE differs from an expected TLV-TYPE.
-type ErrTypeExpect uint32
-
-func (e ErrTypeExpect) Error() string {
-	return "TLV-TYPE should be " + strconv.Itoa(int(e))
-}

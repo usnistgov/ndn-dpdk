@@ -5,9 +5,10 @@ import (
 	"testing"
 
 	"github.com/usnistgov/ndn-dpdk/container/pit"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"github.com/usnistgov/ndn-dpdk/ndni/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
 )
 
 func TestInsertErase(t *testing.T) {
@@ -28,24 +29,24 @@ func TestInsertErase(t *testing.T) {
 	assert.NotEqual(uintptr(entry1.GetPtr()), uintptr(entry2.GetPtr()))
 
 	interest3 := makeInterest("/A/2",
-		ndni.FHDelegation{1, "/F"}, ndni.FHDelegation{1, "/G"})
+		ndn.MakeFHDelegation(1, "/F"), ndn.MakeFHDelegation(1, "/G"))
 	entry3 := fixture.Insert(interest3)
-	ndntestenv.ClosePacket(interest3)
+	ndnitestenv.ClosePacket(interest3)
 	assert.NotNil(entry3)
 	assert.Equal(uintptr(entry2.GetPtr()), uintptr(entry3.GetPtr()))
 
 	entry4 := fixture.Insert(makeInterest("/A/2",
-		ndni.FHDelegation{1, "/F"}, ndni.FHDelegation{1, "/G"}, ndni.ActiveFHDelegation(0)))
+		ndn.MakeFHDelegation(1, "/F"), ndn.MakeFHDelegation(1, "/G"), setActiveFH(0)))
 	assert.NotNil(entry4)
 	assert.NotEqual(uintptr(entry2.GetPtr()), uintptr(entry4.GetPtr()))
 
 	entry5 := fixture.Insert(makeInterest("/A/2",
-		ndni.FHDelegation{1, "/F"}, ndni.FHDelegation{1, "/G"}, ndni.ActiveFHDelegation(1)))
+		ndn.MakeFHDelegation(1, "/F"), ndn.MakeFHDelegation(1, "/G"), setActiveFH(1)))
 	assert.NotNil(entry5)
 	assert.NotEqual(uintptr(entry2.GetPtr()), uintptr(entry5.GetPtr()))
 	assert.NotEqual(uintptr(entry4.GetPtr()), uintptr(entry5.GetPtr()))
 
-	interest6 := makeInterest("/A/2", ndni.MustBeFreshFlag)
+	interest6 := makeInterest("/A/2", ndn.MustBeFreshFlag)
 	entry6 := fixture.Insert(interest6)
 	assert.NotNil(entry6)
 	assert.NotEqual(uintptr(entry2.GetPtr()), uintptr(entry6.GetPtr()))
@@ -85,15 +86,15 @@ func TestToken(t *testing.T) {
 		entry, _ := pit.Insert(interest, fixture.EmptyFibEntry)
 		if i == 255 { // PCCT is full
 			assert.Nil(entry)
-			ndntestenv.ClosePacket(data)
-			ndntestenv.ClosePacket(interest)
+			ndnitestenv.ClosePacket(data)
+			ndnitestenv.ClosePacket(interest)
 			continue
 		}
 		require.NotNil(entry, "unexpected PCCT full at %d", i)
 
 		token := entry.GetToken()
 		assert.Equal(token&(1<<48-1), token) // token has 48 bits
-		ndntestenv.SetPitToken(data, token)
+		ndnitestenv.SetPitToken(data, token)
 
 		interestNames[i] = name
 		dataPkts[i] = data
@@ -106,7 +107,7 @@ func TestToken(t *testing.T) {
 	for i, entry := range entries {
 		name := interestNames[i]
 		data := dataPkts[i]
-		token := ndntestenv.GetPitToken(data)
+		token := ndnitestenv.GetPitToken(data)
 
 		found := pit.FindByData(data)
 		foundEntries := found.ListEntries()
@@ -129,7 +130,7 @@ func TestToken(t *testing.T) {
 		token2 := token ^ 0x79BC000000000000
 		nack := ndni.MakeNackFromInterest(makeInterest(name),
 			an.NackNoRoute)
-		ndntestenv.SetPitToken(nack, token2)
+		ndnitestenv.SetPitToken(nack, token2)
 		foundEntry := pit.FindByNack(nack)
 		if assert.NotNil(foundEntry) {
 			assert.Equal(uintptr(entry.GetPtr()), uintptr(foundEntry.GetPtr()))
@@ -137,7 +138,7 @@ func TestToken(t *testing.T) {
 
 		// name mismatch
 		data2 := makeData(fmt.Sprintf("/K/%d", i))
-		ndntestenv.SetPitToken(data2, token)
+		ndnitestenv.SetPitToken(data2, token)
 		foundEntries = pit.FindByData(data2).ListEntries()
 		assert.Len(foundEntries, 0)
 
@@ -145,9 +146,9 @@ func TestToken(t *testing.T) {
 		foundEntry = pit.FindByNack(nack)
 		assert.Nil(foundEntry)
 
-		ndntestenv.ClosePacket(data)
-		ndntestenv.ClosePacket(nack)
-		ndntestenv.ClosePacket(data2)
+		ndnitestenv.ClosePacket(data)
+		ndnitestenv.ClosePacket(nack)
+		ndnitestenv.ClosePacket(data2)
 	}
 
 	cnt := pit.ReadCounters()

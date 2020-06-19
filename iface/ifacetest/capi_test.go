@@ -8,7 +8,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/mockface"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"github.com/usnistgov/ndn-dpdk/ndni/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
 )
 
 func TestCApiNoFace(t *testing.T) {
@@ -18,7 +18,7 @@ func TestCApiNoFace(t *testing.T) {
 	assert.True(Face_IsDown(id))
 
 	pkts := make([]*ndni.Packet, 1)
-	pkts[0] = ndntestenv.MakeInterest("/A").GetPacket()
+	pkts[0] = ndnitestenv.MakeInterest("/A").GetPacket()
 	Face_TxBurst(id, pkts) // should not crash
 }
 
@@ -42,7 +42,7 @@ func TestCApi(t *testing.T) {
 	time.Sleep(90 * time.Millisecond)
 
 	pkts := make([]*ndni.Packet, 1)
-	pkts[0] = ndntestenv.MakeInterest("/A").GetPacket()
+	pkts[0] = ndnitestenv.MakeInterest("/A").GetPacket()
 	Face_TxBurst(id, pkts)
 
 	time.Sleep(100 * time.Millisecond)

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
 
 func TestNameDecode(t *testing.T) {
@@ -109,20 +110,22 @@ func TestNameParse(t *testing.T) {
 		output    string
 		canonical string
 	}{
-		{input: "ndn:/", output: "", canonical: "/"},
-		{input: "/", output: ""},
-		{input: "/G", output: "080147", canonical: "/8=G"},
-		{input: "/8=H/I", output: "080148 080149", canonical: "/8=H/8=I"},
-		{input: "/.../..../.....", output: "0800 08012E 08022E2E", canonical: "/8=.../8=..../8=....."},
-		{input: "/8=%00GH%ab%cD%EF", output: "0806004748ABCDEF", canonical: "/8=%00GH%AB%CD%EF"},
-		{input: "/2=A", output: "020141"},
-		{input: "/255=A", output: "FD00FF0141"},
-		{input: "/65535=A", output: "FDFFFF0141"},
+		{input: "ndn:/", output: "0700", canonical: "/"},
+		{input: "/", output: "0700"},
+		{input: "/G", output: "0703 080147", canonical: "/8=G"},
+		{input: "/8=H/I", output: "0706 080148 080149", canonical: "/8=H/8=I"},
+		{input: "/.../..../.....", output: "0709 0800 08012E 08022E2E", canonical: "/8=.../8=..../8=....."},
+		{input: "/8=%00GH%ab%cD%EF", output: "0708 0806004748ABCDEF", canonical: "/8=%00GH%AB%CD%EF"},
+		{input: "/2=A", output: "0703 020141"},
+		{input: "/255=A", output: "0705 FD00FF0141"},
+		{input: "/65535=A", output: "0705 FDFFFF0141"},
 	}
 	for _, tt := range tests {
 		name := ndn.ParseName(tt.input)
-		wire, _ := name.MarshalBinary()
+		wire, e := tlv.Encode(name)
+		assert.NoError(e, tt.input)
 		bytesEqual(assert, bytesFromHex(tt.output), wire, tt.input)
+
 		if tt.canonical == "" {
 			tt.canonical = tt.input
 		}

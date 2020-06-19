@@ -6,8 +6,10 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/cryptodev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"github.com/usnistgov/ndn-dpdk/ndni/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
 )
 
 func TestDataDecode(t *testing.T) {
@@ -28,7 +30,7 @@ func TestDataDecode(t *testing.T) {
 	for _, tt := range tests {
 		pkt := packetFromHex(tt.input)
 		defer pkt.AsMbuf().Close()
-		e := pkt.ParseL3(ndntestenv.Name.Pool())
+		e := pkt.ParseL3(ndnitestenv.Name.Pool())
 		if tt.bad {
 			assert.Error(e, tt.input)
 		} else if assert.NoError(e, tt.input) {
@@ -47,8 +49,8 @@ func TestDataSatisfy(t *testing.T) {
 	assert, _ := makeAR(t)
 
 	interestExact := makeInterest("/B")
-	interestPrefix := makeInterest("/B", ndni.CanBePrefixFlag)
-	interestFresh := makeInterest("/B", ndni.MustBeFreshFlag)
+	interestPrefix := makeInterest("/B", ndn.CanBePrefixFlag)
+	interestFresh := makeInterest("/B", ndn.MustBeFreshFlag)
 
 	tests := []struct {
 		data        *ndni.Data
@@ -81,15 +83,15 @@ func TestDataSatisfy(t *testing.T) {
 			assert.Equal(ndni.DATA_SATISFY_NEED_DIGEST, tt.data.CanSatisfy(*interestImplicit))
 			tt.data.ComputeDigest(true)
 			assert.Equal(ndni.DATA_SATISFY_YES, tt.data.CanSatisfy(*interestImplicit))
-			ndntestenv.ClosePacket(interestImplicit)
+			ndnitestenv.ClosePacket(interestImplicit)
 		}
 
-		ndntestenv.ClosePacket(tt.data)
+		ndnitestenv.ClosePacket(tt.data)
 	}
 
-	ndntestenv.ClosePacket(interestExact)
-	ndntestenv.ClosePacket(interestPrefix)
-	ndntestenv.ClosePacket(interestFresh)
+	ndnitestenv.ClosePacket(interestExact)
+	ndnitestenv.ClosePacket(interestPrefix)
+	ndnitestenv.ClosePacket(interestFresh)
 }
 
 func TestDataDigest(t *testing.T) {

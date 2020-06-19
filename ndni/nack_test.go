@@ -3,9 +3,11 @@ package ndni_test
 import (
 	"testing"
 
+	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
+	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"github.com/usnistgov/ndn-dpdk/ndni/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
 )
 
 func TestNackDecode(t *testing.T) {
@@ -26,7 +28,7 @@ func TestNackDecode(t *testing.T) {
 		if !assert.NoError(pkt.ParseL2(), tt.input) {
 			continue
 		}
-		if !assert.NoError(pkt.ParseL3(ndntestenv.Name.Pool()), tt.input) {
+		if !assert.NoError(pkt.ParseL3(ndnitestenv.Name.Pool()), tt.input) {
 			continue
 		}
 		if !assert.Equal(ndni.L3PktType_Nack, pkt.GetL3Type(), tt.input) {
@@ -37,6 +39,6 @@ func TestNackDecode(t *testing.T) {
 		assert.Equal(tt.reason, nack.GetReason(), tt.input)
 		interest := nack.GetInterest()
 		ndntestenv.NameEqual(assert, "/A", interest, tt.input)
-		assert.Equal(uint32(0xA3A2A1A0), interest.GetNonce(), tt.input)
+		assert.Equal(ndn.NonceFromUint(0xA3A2A1A0), interest.GetNonce(), tt.input)
 	}
 }

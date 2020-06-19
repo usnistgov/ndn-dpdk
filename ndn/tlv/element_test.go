@@ -23,12 +23,14 @@ func TestElement(t *testing.T) {
 		{input: "01 FD00", bad: true},                  // incomplete TLV-LENGTH
 		{input: "01 FF0000000100000000 A0", bad: true}, // TLV-LENGTH overflow
 		{input: "01 04 A0A1", bad: true},               // incomplete TLV-VALUE
+		{input: "00 00", bad: true},                    // zero TLV-TYPE
+		{input: "FF0000000100000000 00", bad: true},    // too large TLV-TYPE
 		{input: "01 00", t: 0x01, v: "", nni: NOT_NNI}, // zero TLV-LENGTH
-		{input: "01 01 01", t: 0x01, v: "01", nni: 0x01},
-		{input: "01 02 A0A1", t: 0x01, v: "A0A1", nni: 0xA0A1},
-		{input: "01 03 A0A1A2", t: 0x01, v: "A0A1A2", nni: NOT_NNI},
-		{input: "01 04 A0A1A2A3", t: 0x01, v: "A0A1A2A3", nni: 0xA0A1A2A3},
-		{input: "01 05 A0A1A2A3A4", t: 0x01, v: "A0A1A2A3A4", nni: NOT_NNI},
+		{input: "FC 01 01", t: 0xFC, v: "01", nni: 0x01},
+		{input: "FD00FD 02 A0A1", t: 0xFD, v: "A0A1", nni: 0xA0A1},
+		{input: "FD00FF 03 A0A1A2", t: 0xFF, v: "A0A1A2", nni: NOT_NNI},
+		{input: "FE00010000 04 A0A1A2A3", t: 0x10000, v: "A0A1A2A3", nni: 0xA0A1A2A3},
+		{input: "FEFFFFFFFF 05 A0A1A2A3A4", t: 0xFFFFFFFF, v: "A0A1A2A3A4", nni: NOT_NNI},
 		{input: "01 06 A0A1A2A3A4A5", t: 0x01, v: "A0A1A2A3A4A5", nni: NOT_NNI},
 		{input: "01 07 A0A1A2A3A4A5A6", t: 0x01, v: "A0A1A2A3A4A5A6", nni: NOT_NNI},
 		{input: "01 08 A0A1A2A3A4A5A6A7", t: 0x01, v: "A0A1A2A3A4A5A6A7", nni: 0xA0A1A2A3A4A5A6A7},
@@ -37,7 +39,7 @@ func TestElement(t *testing.T) {
 	for _, tt := range tests {
 		input := bytesFromHex(tt.input)
 		var element tlv.Element
-		rest, e := element.UnmarshalTlv(input)
+		rest, e := element.Decode(input)
 
 		if tt.bad {
 			assert.Error(e, tt.input)
@@ -53,7 +55,7 @@ func TestElement(t *testing.T) {
 			var nni tlv.NNI
 			if e := nni.UnmarshalBinary(value); e == nil {
 				assert.EqualValues(tt.nni, nni, tt.input)
-
+				assert.Equal(len(value), nni.Size())
 				nniV, _ := nni.MarshalBinary()
 				assert.Equal(value, nniV)
 			} else {

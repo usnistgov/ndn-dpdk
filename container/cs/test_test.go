@@ -14,8 +14,9 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal/ealtestenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
+	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"github.com/usnistgov/ndn-dpdk/ndni/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
 )
 
 func TestMain(m *testing.M) {
@@ -29,8 +30,10 @@ func TestMain(m *testing.M) {
 
 var (
 	makeAR       = testenv.MakeAR
-	makeInterest = ndntestenv.MakeInterest
-	makeData     = ndntestenv.MakeData
+	nameEqual    = ndntestenv.NameEqual
+	makeInterest = ndnitestenv.MakeInterest
+	makeData     = ndnitestenv.MakeData
+	setActiveFH  = ndnitestenv.SetActiveFH
 )
 
 type Fixture struct {
@@ -77,15 +80,15 @@ func (fixture *Fixture) CountMpInUse() int {
 func (fixture *Fixture) Insert(interest *ndni.Interest, data *ndni.Data) (isReplacing bool) {
 	pitEntry, csEntry := fixture.Pit.Insert(interest, fixture.emptyFibEntry)
 	if csEntry != nil {
-		ndntestenv.ClosePacket(interest)
-		ndntestenv.ClosePacket(data)
+		ndnitestenv.ClosePacket(interest)
+		ndnitestenv.ClosePacket(data)
 		return false
 	}
 	if pitEntry == nil {
 		panic("Pit.Insert failed")
 	}
 
-	ndntestenv.SetPitToken(data, pitEntry.GetToken())
+	ndnitestenv.SetPitToken(data, pitEntry.GetToken())
 	pitFound := fixture.Pit.FindByData(data)
 	if len(pitFound.ListEntries()) == 0 {
 		panic("Pit.FindByData returned empty result")
@@ -99,8 +102,8 @@ func (fixture *Fixture) InsertBulk(minId, maxId int, dataNameFmt, interestNameFm
 	for i := minId; i <= maxId; i++ {
 		dataName := fmt.Sprintf(dataNameFmt, i)
 		interestName := fmt.Sprintf(interestNameFmt, i)
-		interest := ndntestenv.MakeInterest(interestName, makeInterestArgs...)
-		data := ndntestenv.MakeData(dataName, time.Second)
+		interest := ndnitestenv.MakeInterest(interestName, makeInterestArgs...)
+		data := ndnitestenv.MakeData(dataName, time.Second)
 		ok := fixture.Insert(interest, data)
 		if ok {
 			nInserted++
@@ -117,7 +120,7 @@ func (fixture *Fixture) Find(interest *ndni.Interest) *cs.Entry {
 	if pitEntry != nil {
 		fixture.Pit.Erase(*pitEntry)
 	} else {
-		ndntestenv.ClosePacket(interest)
+		ndnitestenv.ClosePacket(interest)
 	}
 	return csEntry
 }
@@ -125,7 +128,7 @@ func (fixture *Fixture) Find(interest *ndni.Interest) *cs.Entry {
 func (fixture *Fixture) FindBulk(minId, maxId int, interestNameFmt string, makeInterestArgs ...interface{}) (nFound int) {
 	for i := minId; i <= maxId; i++ {
 		interestName := fmt.Sprintf(interestNameFmt, i)
-		interest := ndntestenv.MakeInterest(interestName, makeInterestArgs...)
+		interest := ndnitestenv.MakeInterest(interestName, makeInterestArgs...)
 		csEntry := fixture.Find(interest)
 		if csEntry != nil {
 			nFound++

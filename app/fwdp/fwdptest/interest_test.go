@@ -7,8 +7,8 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/app/fwdp"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
-	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 func TestInterestData(t *testing.T) {
@@ -54,13 +54,13 @@ func TestInterestDupNonce(t *testing.T) {
 	face3 := fixture.CreateFace()
 	fixture.SetFibEntry("/A", "multicast", face3.GetFaceId())
 
-	interest := makeInterest("/A/1", uint32(0x6f937a51))
+	interest := makeInterest("/A/1", ndn.NonceFromUint(0x6f937a51))
 	setPitToken(interest, 0x3bddf54cffbc6ad0)
 	face1.Rx(interest)
 	time.Sleep(STEP_DELAY)
 	assert.Len(face3.TxInterests, 1)
 
-	interest = makeInterest("/A/1", uint32(0x6f937a51))
+	interest = makeInterest("/A/1", ndn.NonceFromUint(0x6f937a51))
 	setPitToken(interest, 0x3bddf54cffbc6ad0)
 	face2.Rx(interest)
 	time.Sleep(STEP_DELAY)
@@ -147,13 +147,13 @@ func TestHopLimit(t *testing.T) {
 	// so MakeInterest would fail
 
 	// HopLimit becomes zero, cannot forward
-	interest1 := makeInterest("/A/1", uint8(1))
+	interest1 := makeInterest("/A/1", ndn.HopLimit(1))
 	face2.Rx(interest1)
 	time.Sleep(STEP_DELAY)
 	assert.Len(face1.TxInterests, 0)
 
 	// HopLimit is 1 after decrementing, forwarded with HopLimit=1
-	interest2 := makeInterest("/A/1", uint8(2))
+	interest2 := makeInterest("/A/1", ndn.HopLimit(2))
 	face3.Rx(interest2)
 	time.Sleep(STEP_DELAY)
 	require.Len(face1.TxInterests, 1)
@@ -168,7 +168,7 @@ func TestHopLimit(t *testing.T) {
 	// whether face3 receives Data or not is unspecified
 
 	// HopLimit reaches zero, can still retrieve from CS
-	interest1a := makeInterest("/A/1", uint8(1))
+	interest1a := makeInterest("/A/1", ndn.HopLimit(1))
 	face4.Rx(interest1a)
 	time.Sleep(STEP_DELAY)
 	assert.Len(face4.TxData, 1)
@@ -197,7 +197,7 @@ func TestCsHit(t *testing.T) {
 	assert.Equal(uint64(0x193d673cdb9f85ac), getPitToken(face1.TxData[0]))
 	assert.Equal(0*time.Millisecond, face1.TxData[0].GetFreshnessPeriod())
 
-	interestB1mbf := makeInterest("/B/1", ndni.MustBeFreshFlag)
+	interestB1mbf := makeInterest("/B/1", ndn.MustBeFreshFlag)
 	setPitToken(interestB1mbf, 0xf716737325e04a77)
 	face1.Rx(interestB1mbf)
 	time.Sleep(STEP_DELAY)
@@ -220,7 +220,7 @@ func TestCsHit(t *testing.T) {
 	assert.Equal(uint64(0xaec62dad2f669e6b), getPitToken(face1.TxData[2]))
 	assert.Equal(2500*time.Millisecond, face1.TxData[2].GetFreshnessPeriod())
 
-	interestB1mbf = makeInterest("/B/1", ndni.MustBeFreshFlag)
+	interestB1mbf = makeInterest("/B/1", ndn.MustBeFreshFlag)
 	setPitToken(interestB1mbf, 0xb5565a4e715c858d)
 	face1.Rx(interestB1mbf)
 	time.Sleep(STEP_DELAY)
@@ -250,7 +250,7 @@ func TestFwHint(t *testing.T) {
 	fixture.SetFibEntry("/B", "multicast", face2.GetFaceId())
 	fixture.SetFibEntry("/C", "multicast", face3.GetFaceId())
 
-	interest1 := makeInterest("/A/1", ndni.FHDelegation{1, "/B"}, ndni.FHDelegation{2, "/C"})
+	interest1 := makeInterest("/A/1", ndn.MakeFHDelegation(1, "/B"), ndn.MakeFHDelegation(2, "/C"))
 	setPitToken(interest1, 0x5c2fc6c972d830e7)
 	face4.Rx(interest1)
 	time.Sleep(STEP_DELAY)
@@ -258,7 +258,7 @@ func TestFwHint(t *testing.T) {
 	assert.Len(face2.TxInterests, 1)
 	assert.Len(face3.TxInterests, 0)
 
-	interest2 := makeInterest("/A/1", ndni.FHDelegation{1, "/C"}, ndni.FHDelegation{2, "/B"})
+	interest2 := makeInterest("/A/1", ndn.MakeFHDelegation(1, "/C"), ndn.MakeFHDelegation(2, "/B"))
 	setPitToken(interest2, 0x52e61e9eee7025b7)
 	face5.Rx(interest2)
 	time.Sleep(STEP_DELAY)
@@ -266,7 +266,7 @@ func TestFwHint(t *testing.T) {
 	require.Len(face2.TxInterests, 1)
 	assert.Len(face3.TxInterests, 1)
 
-	interest3 := makeInterest("/A/1", ndni.FHDelegation{1, "/Z"}, ndni.FHDelegation{2, "/B"})
+	interest3 := makeInterest("/A/1", ndn.MakeFHDelegation(1, "/Z"), ndn.MakeFHDelegation(2, "/B"))
 	setPitToken(interest3, 0xa4291e2123c8211e)
 	face5.Rx(interest3)
 	time.Sleep(STEP_DELAY)
@@ -295,7 +295,7 @@ func TestFwHint(t *testing.T) {
 	assert.Equal(uint64(0x52e61e9eee7025b7), getPitToken(face5.TxData[1]))
 	assert.Equal(2*time.Second, face5.TxData[1].GetFreshnessPeriod())
 
-	interest4 := makeInterest("/A/1", ndni.FHDelegation{1, "/C"}) // matches data2
+	interest4 := makeInterest("/A/1", ndn.MakeFHDelegation(1, "/C")) // matches data2
 	setPitToken(interest4, 0xbb19e173f937f221)
 	face4.Rx(interest4)
 	time.Sleep(STEP_DELAY)

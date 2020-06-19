@@ -15,8 +15,9 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"github.com/usnistgov/ndn-dpdk/ndni/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
 )
 
 func TestMain(m *testing.M) {
@@ -27,8 +28,10 @@ func TestMain(m *testing.M) {
 
 var (
 	makeAR       = testenv.MakeAR
-	makeInterest = ndntestenv.MakeInterest
-	makeData     = ndntestenv.MakeData
+	nameEqual    = ndntestenv.NameEqual
+	makeInterest = ndnitestenv.MakeInterest
+	makeData     = ndnitestenv.MakeData
+	setActiveFH  = ndnitestenv.SetActiveFH
 )
 
 type Fixture struct {
@@ -75,7 +78,7 @@ func (fixture *Fixture) CountMpInUse() int {
 func (fixture *Fixture) Insert(interest *ndni.Interest) *pit.Entry {
 	pitEntry, csEntry := fixture.Pit.Insert(interest, fixture.EmptyFibEntry)
 	if csEntry != nil {
-		ndntestenv.ClosePacket(interest)
+		ndnitestenv.ClosePacket(interest)
 		return nil
 	}
 	if pitEntry == nil {

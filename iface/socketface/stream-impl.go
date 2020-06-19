@@ -25,42 +25,27 @@ func (impl streamImpl) RxLoop(face *SocketFace) {
 		nAvail += nRead
 
 		// parse and post packets
-		offset := 0
-		for {
-			n := impl.postPacket(face, buf[offset:nAvail])
-			if n == 0 {
-				break
+		d := tlv.Decoder(buf[:nAvail])
+		elements := d.Elements()
+		if len(elements) == 0 {
+			continue
+		}
+
+		vec, e := face.rxMp.Alloc(len(elements))
+		if e == nil {
+			for i, de := range elements {
+				pkt := vec[i]
+				pkt.SetHeadroom(0)
+				pkt.Append(de.Wire)
+				face.rxPkt(pkt)
 			}
-			offset += n
+		} else {
+			face.logger.WithError(e).Error("RX alloc error")
 		}
 
 		// move remaining portion to the front
-		for i := offset; i < nAvail; i++ {
-			buf[i-offset] = buf[i]
-		}
-		nAvail -= offset
+		nAvail = copy(buf, d.Rest())
 	}
-}
-
-func (streamImpl) postPacket(face *SocketFace, buf []byte) (n int) {
-	var element tlv.Element
-	_, e := element.UnmarshalTlv(buf)
-	if e != nil {
-		return 0
-	}
-	sz := element.Size()
-
-	vec, e := face.rxMp.Alloc(1)
-	if e != nil {
-		face.logger.WithError(e).Error("RX alloc error")
-		return n
-	}
-
-	pkt := vec[0]
-	pkt.SetHeadroom(0)
-	pkt.Append(buf[:sz])
-	face.rxPkt(pkt)
-	return sz
 }
 
 func (streamImpl) Send(face *SocketFace, pkt *pktmbuf.Packet) error {

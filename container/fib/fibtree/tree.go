@@ -2,6 +2,7 @@ package fibtree
 
 import (
 	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
 
 type GetNdtIndexCallback func(name ndn.Name) uint64
@@ -71,7 +72,7 @@ func (t *Tree) Insert(name ndn.Name) (ok bool, oldMd int, newMd int, virtIsEntry
 	nodes[0] = t.root
 	for i := 1; i <= nComps; i++ {
 		parent := nodes[i-1]
-		compTlv, _ := name[i-1].MarshalTlv()
+		compTlv, _ := tlv.Encode(name[i-1])
 		comp := string(compTlv)
 		node := parent.children[comp]
 		if node != nil {
@@ -127,7 +128,7 @@ func (t *Tree) Erase(name ndn.Name) (ok bool, oldMd int, newMd int, virtIsEntry 
 	nodes[0] = t.root
 	for i := 1; i <= nComps; i++ {
 		parent := nodes[i-1]
-		compTlv, _ := name[i-1].MarshalTlv()
+		compTlv, _ := tlv.Encode(name[i-1])
 		comp := string(compTlv)
 		nodes[i] = parent.children[comp]
 		if nodes[i] == nil {
@@ -165,7 +166,7 @@ func (t *Tree) Erase(name ndn.Name) (ok bool, oldMd int, newMd int, virtIsEntry 
 			delete(t.subtrees[ndtIndex], node)
 		}
 		parent := nodes[i-1]
-		compTlv, _ := name[i-1].MarshalTlv()
+		compTlv, _ := tlv.Encode(name[i-1])
 		delete(parent.children, string(compTlv))
 		t.nNodes--
 	}

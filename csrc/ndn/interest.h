@@ -105,7 +105,7 @@ typedef struct InterestTemplate
 {
   uint16_t prefixL;                         ///< Name prefix length
   uint16_t midLen;                          ///< midBuffer length
-  uint16_t nonceOff;                        ///< NonceV offset within midBuffer
+  uint16_t nonceOff;                        ///< NonceV offset within midBuf
   uint8_t prefixV[NAME_MAX_LENGTH];         ///< Name prefix
   uint8_t midBuf[INTEREST_TEMPLATE_BUFLEN]; ///< "middle" field
 } InterestTemplate;

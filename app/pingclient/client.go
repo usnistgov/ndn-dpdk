@@ -16,6 +16,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/container/pktqueue"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
@@ -76,16 +77,16 @@ func (client *Client) AddPattern(cfg Pattern) (index int, e error) {
 
 	tplArgs := []interface{}{cfg.Prefix}
 	if cfg.CanBePrefix {
-		tplArgs = append(tplArgs, ndni.CanBePrefixFlag)
+		tplArgs = append(tplArgs, ndn.CanBePrefixFlag)
 	}
 	if cfg.MustBeFresh {
-		tplArgs = append(tplArgs, ndni.MustBeFreshFlag)
+		tplArgs = append(tplArgs, ndn.MustBeFreshFlag)
 	}
 	if lifetime := cfg.InterestLifetime.Duration(); lifetime != 0 {
 		tplArgs = append(tplArgs, lifetime)
 	}
 	if cfg.HopLimit != 0 {
-		tplArgs = append(tplArgs, uint8(cfg.HopLimit))
+		tplArgs = append(tplArgs, cfg.HopLimit)
 	}
 
 	client.clearCounter(index)

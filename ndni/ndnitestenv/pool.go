@@ -1,4 +1,4 @@
-package ndntestenv
+package ndnitestenv
 
 import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"

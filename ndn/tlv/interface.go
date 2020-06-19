@@ -1,11 +1,11 @@
 package tlv
 
-// Marshaler is the interface implemented by an object that can marshal itself into NDN-TLV.
+// Marshaler is the interface implemented by an object that can encode itself into an TLV element.
 type Marshaler interface {
-	MarshalTlv() (wire []byte, e error)
+	MarshalTlv() (typ uint32, value []byte, e error)
 }
 
-// Unmarshaler is the interface implemented by an object that can marshal an NDN-TLV representation of itself.
+// Unmarshaler is the interface implemented by an object that can decode an TLV element representation of itself.
 type Unmarshaler interface {
-	UnmarshalTlv(wire []byte) (rest []byte, e error)
+	UnmarshalTlv(typ uint32, value []byte) error
 }

@@ -5,7 +5,6 @@ package ndni
 */
 import "C"
 import (
-	"fmt"
 	"time"
 	"unsafe"
 
@@ -34,45 +33,6 @@ func EncodeData(pkt *pktmbuf.Packet, prefix, suffix ndn.Name, freshnessPeriod ti
 		C.uint16_t(len(suffixV)), bytesToPtr(suffixV),
 		C.uint32_t(freshnessPeriod/time.Millisecond),
 		C.uint16_t(len(content)), bytesToPtr(content))
-}
-
-// Encode a Data from flexible arguments.
-// This alternate API is easier to use but less efficient.
-func MakeData(m *pktmbuf.Packet, args ...interface{}) (data *Data, e error) {
-	var name ndn.Name
-	var freshnessPeriod time.Duration
-	var content []byte
-
-	for _, arg := range args {
-		switch a := arg.(type) {
-		case string:
-			name = ndn.ParseName(a)
-		case ndn.Name:
-			name = a
-		case time.Duration:
-			freshnessPeriod = a
-		case []byte:
-			content = a
-		default:
-			m.Close()
-			return nil, fmt.Errorf("unrecognized argument type %T", a)
-		}
-	}
-
-	EncodeData(m, name, nil, freshnessPeriod, content)
-
-	pkt := PacketFromMbuf(m)
-	e = pkt.ParseL2()
-	if e != nil {
-		m.Close()
-		return nil, e
-	}
-	e = pkt.ParseL3(nil)
-	if e != nil || pkt.GetL3Type() != L3PktType_Data {
-		m.Close()
-		return nil, e
-	}
-	return pkt.AsData(), nil
 }
 
 func DataGen_GetHeadroom0() int {
