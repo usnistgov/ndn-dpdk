@@ -19,7 +19,7 @@ func TestEntry(t *testing.T) {
 
 	name := ndn.ParseName("/A/B")
 	assert.NoError(entry.SetName(name))
-	assert.Zero(name.Compare(entry.GetName()))
+	assert.True(name.Equal(entry.GetName()))
 	assert.Equal(2, entry.CountComps())
 
 	nexthops := []iface.FaceId{2302, 1067, 1122}

@@ -152,7 +152,7 @@ func TestNameMarshal(t *testing.T) {
 
 	var jsonDecoded marshalTestStruct
 	if e := json.Unmarshal(jsonEncoding, &jsonDecoded); assert.NoError(e) {
-		assert.Zero(obj.Name.Compare(jsonDecoded.Name))
+		assert.True(obj.Name.Equal(jsonDecoded.Name))
 		assert.Equal(50, jsonDecoded.I)
 	}
 

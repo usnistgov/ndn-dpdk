@@ -330,7 +330,7 @@ func TestImplicitDigest(t *testing.T) {
 	fixture.SetFibEntry("/B", "multicast", face2.GetFaceId())
 
 	dataB1 := makeData("/B/1")
-	fullNameB1 := dataB1.GetFullName().String()
+	fullNameB1 := dataB1.ToNData().FullName().String()
 
 	interestB1 := makeInterest(fullNameB1)
 	setPitToken(interestB1, 0xce2e9bce22327e97)
@@ -362,9 +362,9 @@ func TestImplicitDigest(t *testing.T) {
 
 	// /B/2 is fragmented, which is not supported in some cryptodev
 	dataB2 := makeData("/B/2", bytes.Repeat([]byte{0xC0}, 300))
-	fullNameB2orig := dataB2.GetFullName().String()
+	fullNameB2orig := dataB2.ToNData().FullName().String()
 	mbuftestenv.PacketSplitTailSegment(dataB2.GetPacket().AsMbuf(), 5)
-	fullNameB2 := dataB2.GetFullName().String()
+	fullNameB2 := dataB2.ToNData().FullName().String()
 	assert.Equal(fullNameB2orig, fullNameB2)
 
 	interestB2 := makeInterest(fullNameB2)

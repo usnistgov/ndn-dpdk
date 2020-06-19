@@ -79,9 +79,9 @@ func TestDataSatisfy(t *testing.T) {
 		assert.Equal(tt.freshMatch, tt.data.CanSatisfy(*interestFresh), "%d", i)
 
 		if tt.exactMatch == ndni.DATA_SATISFY_YES {
-			interestImplicit := makeInterest(tt.data.GetFullName().String())
+			interestImplicit := makeInterest(tt.data.ToNData().FullName().String())
 			assert.Equal(ndni.DATA_SATISFY_NEED_DIGEST, tt.data.CanSatisfy(*interestImplicit))
-			tt.data.ComputeDigest(true)
+			tt.data.SaveDigest()
 			assert.Equal(ndni.DATA_SATISFY_YES, tt.data.CanSatisfy(*interestImplicit))
 			ndnitestenv.ClosePacket(interestImplicit)
 		}
@@ -126,11 +126,11 @@ func TestDataDigest(t *testing.T) {
 
 	assert.Equal(4, qp.DequeueBurst(ops))
 	for i, op := range ops {
-		data, e := ndni.DataDigest_Finish(op)
+		data, e := ndni.DataDigestFinish(op)
 		assert.NoError(e)
 		if assert.NotNil(data) {
 			ndntestenv.NameEqual(assert, names[i], data)
-			assert.Equal(data.ComputeDigest(false), data.GetDigest())
+			assert.Equal(data.ToNData().ComputeDigest(), data.GetDigest())
 		}
 	}
 }

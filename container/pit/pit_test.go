@@ -79,7 +79,7 @@ func TestToken(t *testing.T) {
 		data := makeData(fmt.Sprintf("/I/%d", i))
 		name := data.GetName().String()
 		if i < 32 {
-			name = data.GetFullName().String()
+			name = data.ToNData().FullName().String()
 		}
 		interest := makeInterest(name)
 
@@ -117,7 +117,7 @@ func TestToken(t *testing.T) {
 
 		// Interest carries implicit digest, so Data digest is needed
 		if i < 32 && assert.True(found.NeedDataDigest()) {
-			data.ComputeDigest(true)
+			data.SaveDigest()
 			found = pit.FindByData(data)
 			foundEntries = found.ListEntries()
 			if assert.Len(foundEntries, 1) {

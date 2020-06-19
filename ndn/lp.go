@@ -36,6 +36,7 @@ type Packet struct {
 	Lp       LpHeader
 	l3type   uint32
 	l3value  []byte
+	l3digest []byte
 	Interest *Interest
 	Data     *Data
 	Nack     *Nack
@@ -46,12 +47,15 @@ func (pkt *Packet) MarshalTlv() (typ uint32, value []byte, e error) {
 	switch {
 	case pkt.Interest != nil:
 		pkt.l3type, pkt.l3value, e = pkt.Interest.MarshalTlv()
+		pkt.l3digest = nil
 		pkt.Lp.NackReason = an.NackNone
 	case pkt.Data != nil:
 		pkt.l3type, pkt.l3value, e = pkt.Interest.MarshalTlv()
+		pkt.l3digest = nil
 		pkt.Lp.NackReason = an.NackNone
 	case pkt.Nack != nil:
 		pkt.l3type, pkt.l3value, e = pkt.Nack.Interest.MarshalTlv()
+		pkt.l3digest = nil
 		pkt.Lp.NackReason = pkt.Nack.Reason
 	}
 	if e != nil {
@@ -147,6 +151,8 @@ func (pkt *Packet) decodeL3(typ uint32, value []byte) error {
 	default:
 		return ErrL3Type
 	}
+
+	pkt.l3type, pkt.l3value, pkt.l3digest = typ, value, nil
 	return nil
 }
 

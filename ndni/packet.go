@@ -5,11 +5,15 @@ package ndni
 */
 import "C"
 import (
+	"encoding/binary"
 	"fmt"
 	"strconv"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
+	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn/an"
+	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
 
 type L2PktType int
@@ -116,6 +120,30 @@ func (pkt *Packet) AsData() *Data {
 // Packet must be parsed as Nack.
 func (pkt *Packet) AsNack() *Nack {
 	return &Nack{pkt, (*pNack)(unsafe.Pointer(C.Packet_GetNackHdr(pkt.getPtr())))}
+}
+
+// ToNPacket copies this packet into ndn.Packet.
+// Panics on error.
+func (pkt *Packet) ToNPacket() (npkt ndn.Packet) {
+	e := tlv.Decode(pkt.AsMbuf().ReadAll(), &npkt)
+	if e != nil {
+		panic(e)
+	}
+	if pkt.GetL2Type() == L2PktType_NdnlpV2 {
+		lpl3 := pkt.GetLpL3()
+		npkt.Lp.PitToken = make([]byte, 8)
+		binary.LittleEndian.PutUint64(npkt.Lp.PitToken, lpl3.PitToken)
+		npkt.Lp.NackReason = an.NackReason(lpl3.NackReason)
+		npkt.Lp.CongMark = int(lpl3.CongMark)
+		if npkt.Lp.NackReason != 0 {
+			npkt.Nack = new(ndn.Nack)
+			npkt.Nack.Packet = &npkt
+			npkt.Nack.Reason = npkt.Lp.NackReason
+			npkt.Nack.Interest = *npkt.Interest
+			npkt.Interest = nil
+		}
+	}
+	return npkt
 }
 
 func (pkt *Packet) String() string {

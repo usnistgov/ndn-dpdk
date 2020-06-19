@@ -11,7 +11,6 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/cryptodev"
 	"github.com/usnistgov/ndn-dpdk/ndn"
-	"github.com/usnistgov/ndn-dpdk/ndn/an"
 )
 
 func (pdata *pData) getPtr() *C.PData {
@@ -29,6 +28,12 @@ func (data Data) GetPacket() *Packet {
 	return data.m
 }
 
+// ToNData copies this packet into ndn.Data.
+// Panics on error.
+func (data Data) ToNData() ndn.Data {
+	return *data.m.ToNPacket().Data
+}
+
 func (data Data) String() string {
 	return data.GetName().String()
 }
@@ -41,14 +46,6 @@ func (data Data) GetPDataPtr() unsafe.Pointer {
 // GetName returns Data name.
 func (data Data) GetName() ndn.Name {
 	return data.p.Name.ToName()
-}
-
-// GetFullName computes Data full name in Go.
-func (data Data) GetFullName() ndn.Name {
-	digest := data.ComputeDigest(false)
-	name := data.GetName()
-	name = append(name, ndn.MakeNameComponent(an.TtImplicitSha256DigestComponent, digest))
-	return name
 }
 
 // GetFreshnessPeriod returns FreshnessPeriod.
@@ -69,14 +66,12 @@ func (data Data) GetDigest() []byte {
 	return C.GoBytes(unsafe.Pointer(&data.p.Digest[0]), sha256.Size)
 }
 
-// ComputeDigest computes implicit digest in Go.
-func (data *Data) ComputeDigest(wantSave bool) []byte {
-	d := sha256.Sum256(data.GetPacket().AsMbuf().ReadAll())
-	if wantSave {
-		data.p.HasDigest = true
-		C.memcpy(unsafe.Pointer(&data.p.Digest[0]), unsafe.Pointer(&d[0]), sha256.Size)
-	}
-	return d[:]
+// SaveDigest computes and stores implicit digest in *C.PData.
+func (data *Data) SaveDigest() {
+	fullName := data.ToNData().FullName()
+	digest := fullName[len(fullName)-1].Value
+	copy(data.p.Digest[:], digest)
+	data.p.HasDigest = true
 }
 
 // DigestPrepare prepares for computing implicit digest in C.
@@ -84,8 +79,8 @@ func (data *Data) DigestPrepare(op *cryptodev.Op) {
 	C.DataDigest_Prepare(data.m.getPtr(), (*C.struct_rte_crypto_op)(op.GetPtr()))
 }
 
-// DataDigest_Finish finishes computing implicit digest in C.
-func DataDigest_Finish(op *cryptodev.Op) (data *Data, e error) {
+// DataDigestFinish finishes computing implicit digest in C.
+func DataDigestFinish(op *cryptodev.Op) (data *Data, e error) {
 	if !op.IsSuccess() {
 		return nil, op.Error()
 	}

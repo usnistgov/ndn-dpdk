@@ -52,7 +52,7 @@ func TestInsertErase(t *testing.T) {
 	assert.Equal(2, strategyP.CountRefs())
 	entryA := fib.Find(nameA)
 	require.NotNil(entryA)
-	assert.Zero(entryA.GetName().Compare(nameA))
+	assert.True(entryA.GetName().Equal(nameA))
 	seqNum1 := entryA.GetSeqNum()
 
 	isNew, e = fib.Insert(fixture.MakeEntry("/A", strategyQ, 3092))
@@ -69,7 +69,7 @@ func TestInsertErase(t *testing.T) {
 
 	entryA = fib.Find(nameA)
 	require.NotNil(entryA)
-	assert.Zero(entryA.GetName().Compare(nameA))
+	assert.True(entryA.GetName().Equal(nameA))
 	seqNum2 := entryA.GetSeqNum()
 	assert.NotEqual(seqNum1, seqNum2)
 	fixture.CheckEntryNames(assert, []string{"/A"})

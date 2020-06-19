@@ -52,3 +52,43 @@ func TestDataDecode(t *testing.T) {
 	assert.Equal(260*time.Millisecond, data.Freshness)
 	assert.Equal([]byte{0xC0, 0xC1}, data.Content)
 }
+
+func TestDataSatisfy(t *testing.T) {
+	assert, _ := makeAR(t)
+
+	interestExact := ndn.MakeInterest("/B")
+	interestPrefix := ndn.MakeInterest("/B", ndn.CanBePrefixFlag)
+	interestFresh := ndn.MakeInterest("/B", ndn.MustBeFreshFlag)
+
+	tests := []struct {
+		data        ndn.Data
+		exactMatch  bool
+		prefixMatch bool
+		freshMatch  bool
+	}{
+		{ndn.MakeData("/A", time.Second),
+			false, false, false},
+		{ndn.MakeData("/2=B", time.Second),
+			false, false, false},
+		{ndn.MakeData("/B", time.Second),
+			true, true, true},
+		{ndn.MakeData("/B", time.Duration(0)),
+			true, true, false},
+		{ndn.MakeData("/B/0", time.Second),
+			false, true, false},
+		{ndn.MakeData("/", time.Second),
+			false, false, false},
+		{ndn.MakeData("/C", time.Second),
+			false, false, false},
+	}
+	for i, tt := range tests {
+		assert.Equal(tt.exactMatch, tt.data.CanSatisfy(interestExact), "%d", i)
+		assert.Equal(tt.prefixMatch, tt.data.CanSatisfy(interestPrefix), "%d", i)
+		assert.Equal(tt.freshMatch, tt.data.CanSatisfy(interestFresh), "%d", i)
+
+		if tt.exactMatch {
+			interestImplicit := ndn.MakeInterest(tt.data.FullName())
+			assert.True(tt.data.CanSatisfy(interestImplicit))
+		}
+	}
+}

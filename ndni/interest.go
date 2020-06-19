@@ -58,6 +58,12 @@ func (interest Interest) GetPacket() *Packet {
 	return interest.m
 }
 
+// ToNInterest copies this packet into ndn.Data.
+// Panics on error.
+func (interest Interest) ToNInterest() ndn.Interest {
+	return *interest.m.ToNPacket().Interest
+}
+
 func (interest Interest) String() string {
 	return interest.GetName().String()
 }

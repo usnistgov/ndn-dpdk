@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"unsafe"
 
+	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 )
 
@@ -30,25 +31,31 @@ func MakeNackFromInterest(interest *Interest, reason an.NackReason) *Nack {
 }
 
 // GetPacket converts Nack to Packet.
-func (nack *Nack) GetPacket() *Packet {
+func (nack Nack) GetPacket() *Packet {
 	return nack.m
 }
 
-func (nack *Nack) String() string {
+// ToNNack copies this packet into ndn.Nack.
+// Panics on error.
+func (nack Nack) ToNNack() ndn.Nack {
+	return *nack.m.ToNPacket().Nack
+}
+
+func (nack Nack) String() string {
 	return fmt.Sprintf("%s~%s", nack.GetInterest(), nack.GetReason())
 }
 
 // GetPNackPtr returns *C.PNack pointer.
-func (nack *Nack) GetPNackPtr() unsafe.Pointer {
+func (nack Nack) GetPNackPtr() unsafe.Pointer {
 	return unsafe.Pointer(nack.p)
 }
 
 // GetReason returns Nack reason.
-func (nack *Nack) GetReason() an.NackReason {
+func (nack Nack) GetReason() an.NackReason {
 	return an.NackReason(nack.p.Lpl3.NackReason)
 }
 
 // GetInterest returns the Interest enclosed in Nack.
-func (nack *Nack) GetInterest() *Interest {
+func (nack Nack) GetInterest() *Interest {
 	return &Interest{nack.m, &nack.p.Interest}
 }

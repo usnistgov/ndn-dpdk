@@ -41,6 +41,52 @@ func MakeData(args ...interface{}) (data Data) {
 	return data
 }
 
+// ComputeDigest computes implicit digest of this Data.
+//
+// If data was decoded from Packet (data.Packet is assigned), the digest is of the origin packet.
+// Computed digest is cached on data.Packet.
+// Modifying a decoded Data will cause this function to return incorrect digest.
+//
+// If data was constructed (data.Packet is unassigned), the digest is of the encoding of the current packet,
+// and is not cached.
+func (data Data) ComputeDigest() []byte {
+	if data.Packet == nil {
+		data.Packet = new(Packet)
+		data.Packet.Data = &data
+		data.Packet.l3type, data.Packet.l3value, _ = data.MarshalTlv()
+	}
+	if data.Packet.l3digest == nil {
+		wire, _ := tlv.Encode(tlv.MakeElement(data.Packet.l3type, data.Packet.l3value))
+		digest := sha256.Sum256(wire)
+		data.Packet.l3digest = digest[:]
+	}
+	return data.Packet.l3digest
+}
+
+// FullName returns full name of this Data.
+func (data Data) FullName() Name {
+	fullName := make(Name, len(data.Name)+1)
+	i := copy(fullName, data.Name)
+	fullName[i] = MakeNameComponent(an.TtImplicitSha256DigestComponent, data.ComputeDigest())
+	return fullName
+}
+
+// CanSatisfy determins whether this Data can satisfy the given Interest.
+func (data Data) CanSatisfy(interest Interest) bool {
+	switch {
+	case len(interest.Name) == 0: // invalid Interest
+		return false
+	case interest.MustBeFresh && data.Freshness <= 0:
+		return false
+	case an.TlvType(interest.Name[len(interest.Name)-1].Type) == an.TtImplicitSha256DigestComponent:
+		return interest.Name.Equal(data.FullName())
+	case interest.CanBePrefix:
+		return interest.Name.IsPrefixOf(data.Name)
+	default:
+		return interest.Name.Equal(data.Name)
+	}
+}
+
 // MarshalTlv encodes this Data.
 func (data Data) MarshalTlv() (typ uint32, value []byte, e error) {
 	var metaFields []interface{}

@@ -21,6 +21,11 @@ func (name Name) Length() int {
 	return sum
 }
 
+// Equal determins whether two names are the same.
+func (name Name) Equal(other Name) bool {
+	return name.Compare(other) == 0
+}
+
 // Compare returns negative when name<other, zero when name==other, positive when name>other.
 func (name Name) Compare(other Name) int {
 	if d := name.compareCommonPrefix(other); d != 0 {
