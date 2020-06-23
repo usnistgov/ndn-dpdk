@@ -137,7 +137,7 @@ func (impl *rxFlowImpl) Close() error {
 		}
 	}
 	impl.queueFlow = nil
-	impl.port.dev.Stop(ethdev.StopDetach)
+	impl.port.dev.Stop(ethdev.StopReset)
 	return nil
 }
 

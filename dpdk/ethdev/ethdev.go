@@ -105,10 +105,10 @@ func (port EthDev) IsDown() bool {
 // Start configures and starts this EthDev.
 func (port EthDev) Start(cfg Config) error {
 	info := port.GetDevInfo()
-	if len(cfg.RxQueues) > int(info.Max_rx_queues) {
+	if info.Max_rx_queues > 0 && len(cfg.RxQueues) > int(info.Max_rx_queues) {
 		return fmt.Errorf("cannot add more than %d RX queues", info.Max_rx_queues)
 	}
-	if len(cfg.TxQueues) > int(info.Max_tx_queues) {
+	if info.Max_tx_queues > 0 && len(cfg.TxQueues) > int(info.Max_tx_queues) {
 		return fmt.Errorf("cannot add more than %d TX queues", info.Max_tx_queues)
 	}
 
@@ -130,7 +130,7 @@ func (port EthDev) Start(cfg Config) error {
 	res := C.rte_eth_dev_configure(C.uint16_t(port.ID()), C.uint16_t(len(cfg.RxQueues)),
 		C.uint16_t(len(cfg.TxQueues)), conf)
 	if res < 0 {
-		return fmt.Errorf("rte_eth_dev_configure(%v) error %d", port, res)
+		return fmt.Errorf("rte_eth_dev_configure(%v) error %v", port, eal.Errno(-res))
 	}
 
 	for i, qcfg := range cfg.RxQueues {
@@ -138,7 +138,7 @@ func (port EthDev) Start(cfg Config) error {
 		res = C.rte_eth_rx_queue_setup(C.uint16_t(port.ID()), C.uint16_t(i), capacity,
 			C.uint(qcfg.Socket.ID()), (*C.struct_rte_eth_rxconf)(qcfg.Conf), (*C.struct_rte_mempool)(qcfg.RxPool.GetPtr()))
 		if res != 0 {
-			return fmt.Errorf("rte_eth_rx_queue_setup(%v,%d) error %d", port, i, res)
+			return fmt.Errorf("rte_eth_rx_queue_setup(%v,%d) error %v", port, i, eal.Errno(-res))
 		}
 	}
 
