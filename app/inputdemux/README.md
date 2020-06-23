@@ -2,15 +2,15 @@
 
 This package provides an input packet demultiplexer.
 
-**InputDemux** type can dispatch packets using one of these methods:
+The **InputDemux** type can dispatch packets according to one of these criteria:
 
 * Drop all packets.
-* Round-robin among several destinations.
-* Alway use first (and only) destination.
-* Choose destination by querying [NDT](../../container/ndt) with name.
-* Use high 8 bits of PIT token as destination.
+* Always use the first destination.
+* Cycle through several destinations in a round-robin fashion.
+* Choose the destination by querying the [NDT](../../container/ndt) with the packet name.
+* Use the 8 most-significant bits of the PIT token to determine the destination.
 
-It has counters that record how many packets have been queued to each destination, and how many are dropped due to full queues.
+InputDemux also provides counters that record how many packets were queued toward each destination and how many were dropped due to full queues.
 
-**InputDemux3** type aggregates InputDemux instances for all three network layer packet types.
+The **InputDemux3** type aggregates three InputDemux instances, one for each network-layer packet type.
 The `InputDemux3_FaceRx` function can be used with [iface.RxLoop](../../iface) to process bursts of ingress packets.

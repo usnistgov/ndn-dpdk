@@ -4,30 +4,18 @@ This package implements the forwarder's data plane.
 
 ## Input Thread (FwInput)
 
-A FwInput runs an **iface.RxLoop** as the main loop ("RX" role), which reads and decodes packets from one or more network interfaces.
-Bursts of received L3 packets are processed by [InputDemux3](../inputdemux), configured to use NDT for Interests, and use PIT token for Data and Nacks.
-
-## Crypto Helper (FwCrypto)
-
-FwCrypto provides Data implicit digest computation.
-When FwFwd processes an incoming Data packet and finds a PIT entry whose Interest carries the ImplicitSha256DigestComponent, it needs to know the Data's implicit digest in order to determine whether the Data satisfies the Interest.
-Instead of doing the computation in FwFwd, which would block other packet processing, the FwFwd passes the Data to FwCrypto.
-After digest computation, the Data packet goes back to FwFwd, which can then re-process the Data, and use the computed implicit digest to determine whether it satisfies the pending Interest.
-
-FwCrypto runs `FwCrypto_Run` as the main loop ("CRYPTO" role).
-It receives Data packets from FwFwd threads through a queue, and enqueues crypto operations toward a DPDK cryptodev.
-The cryptodev computes SHA256 digest of the packet and stores it in the mbuf header.
-FwCrypto then dequeues completed crypto operations from the cryptodev, and e-dispatches the Data to FwFwd using a [InputDemux](../inputdemux) that is configured to use PIT token.
+An FwInput thread runs an **iface.RxLoop** as its main loop ("RX" role), which reads and decodes packets from one or more network interfaces.
+Bursts of received L3 packets are processed by [InputDemux3](../inputdemux), configured to use the [NDT](../../container/ndt) for Interests and the PIT token for Data and Nacks.
 
 ## Forwarding Thread (FwFwd)
 
-A FwFwd runs `FwFwd_Run` function as the main loop ("FWD" role).
+An FwFwd thread runs the `FwFwd_Run` function as its main loop ("FWD" role).
 The main loop first performs some maintenance work:
 
-* Mark a URCU quiescent state, as required by FIB.
+* Mark a URCU quiescent state, as required by the FIB.
 * Trigger the PIT timeout scheduler.
 
-Then it reads packets from input queues, and handles each packet separately:
+Then it reads packets from the input queues and handles each packet separately:
 
 * `FwFwd_RxInterest` function handles an incoming Interest.
 * `FwFwd_RxData` function handles an incoming Data.
@@ -35,41 +23,53 @@ Then it reads packets from input queues, and handles each packet separately:
 
 ### Data Structure Usage
 
-All FwFwds have read-only access to a shared [FIB](../../container/fib/).
+All FwFwd threads have read-only access to a shared [FIB](../../container/fib).
 
-Each FwFwd has a private partition of [PIT-CS](../../container/pcct/).
-An outgoing Interest from a FwFwd must carry the identifier of this FwFwd as the first 8 bits of its PIT token, so that returned Data or Nack can come back to the same FwFwd and thus use the same PIT-CS partition.
+Each FwFwd has a private partition of [PIT and CS](../../container/pcct).
+An outgoing Interest from a FwFwd must carry the identifier of this FwFwd as the first 8 bits of its PIT token, so that returning Data or Nack can be dispatched to the same FwFwd and thus use the same PIT-CS partition.
 
 ### Congestion Control
 
-Each FwFwd has three [CoDel queues](../../container/pktqueue/), one for each L3 packet type.
+Each FwFwd has three [CoDel queues](../../container/pktqueue), one for each L3 packet type.
 They are backed by DPDK rings in multi-producer single-consumer mode.
-FwInputs enqueue packets to these queues; in case the DPDK ring is full, FwInput drops the packet.
-FwFwds dequeue packets from these queues; if CoDel algorithms indicates a packet could be dropped, FwFwd places a congestion mark on the packet but does not drop the packet.
-The ratio of dequeue burst size among the three queues determines relative weight among L3 packet types; for example, dequeuing up to 48 Interests, 64 Data, and 64 Nacks would give Data/Nack a priority over Interest.
+An FwInput thread enqueues packets to these queues; in case the DPDK ring is full, the packet is dropped.
+An FwFwd dequeues packets from these queues; if the CoDel algorithm indicates a packet should be dropped, FwFwd places a congestion mark on the packet but does not drop it.
+The ratio of dequeue burst size among the three queues determines the relative weight among L3 packet types; for example, dequeuing up to 48 Interests, 64 Data, and 64 Nacks would give Data/Nacks priority over Interests.
 
-Congestion mark handling is incomplete.
+Note that congestion mark handling is currently incomplete.
 Some limitations are:
 
-* FwFwd can place congestion mark only on ingress side (i.e. insufficient processing power), not on egress side (i.e. link congestion).
-* FwFwd does not add or remove congestion mark during Interest aggregation or Data caching.
-* FwFwd does not place congestion mark on reply Data/Nack when Interest congestion occurs, although the producer could do so.
+* FwFwd can place a congestion mark only on the ingress side (e.g., to signal that the forwarder cannot sustain the current rate of incoming packets), not on the egress side (e.g., to signal link congestion).
+* FwFwd does not add or remove the congestion mark during Interest aggregation or Data caching.
+* FwFwd does not place a congestion mark on reply Data/Nack when Interest congestion occurs, although the producer could do so.
 
 ### Per-Packet Logging
 
-`FwFwd` uses DEBUG log level for per-packet logging.
-Generally, a log line has several key-value pairs delimited by space.
-Keys should use kebab-case.
+FwFwd uses the `DEBUG` log level for per-packet logging.
+Generally, a log line has several key-value pairs delimited by whitespace.
+Keys use "kebab-case".
 Common keys include:
 
-* "interest-from", "data-from", and "nack-from": incoming FaceId in packet arrival.
-* "interest-to", "data-to", or "nack-to": outgoing FaceId in packet transmission.
+* "interest-from", "data-from", "nack-from": incoming FaceId in packet arrival.
+* "interest-to", "data-to", "nack-to": outgoing FaceId in packet transmission.
 * "npkt" (meaning "NDN packet"): memory address of a packet.
-* "dn-token": PIT token at downstream.
+* "dn-token": PIT token at the downstream node.
 * "up-token": PIT token assigned by this node, which is sent upstream.
-* "drop": reason of dropping a packet.
-* "pit-entry" and "cs-entry": memory address of a table entry.
+* "drop": reason for dropping a packet.
+* "pit-entry", "cs-entry": memory address of a table entry.
 * "pit-key": debug string of a PIT entry.
 * "sg-id": strategy identifier.
-* "sg-res": return value of strategy invocation.
+* "sg-res": return value of a strategy invocation.
 * "helper": handing off to a helper.
+
+## Crypto Helper (FwCrypto)
+
+FwCrypto provides implicit digest computation for Data packets.
+When an FwFwd processes an incoming Data packet and finds a PIT entry whose Interest carries an `ImplicitSha256DigestComponent`, it needs to know the Data's implicit digest in order to determine whether the Data satisfies the Interest.
+Instead of performing the digest computation synchronously, which would block the processing of other packets, the FwFwd passes the Data to FwCrypto.
+After the digest is computed, the Data packet goes back to FwFwd, which can then re-process it and use the computed digest to determine whether it satisfies the pending Interest.
+
+An FwCrypto thread runs the `FwCrypto_Run` function as its main loop ("CRYPTO" role).
+It receives Data packets from FwFwd threads through a queue, and enqueues crypto operations toward a DPDK cryptodev.
+The cryptodev computes the SHA-256 digest of the packet and stores it in the mbuf header.
+The FwCrypto then dequeues the completed crypto operations from the cryptodev and re-dispatches the Data to FwFwd using an [InputDemux](../inputdemux) that is configured to use the PIT token.
