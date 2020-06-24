@@ -1,13 +1,13 @@
 # ndnfw-dpdk
 
-This program is a NDN forwarder.
+This program is an NDN forwarder.
 
 ## Usage
 
-```
-sudo ndnfw-dpdk EAL-ARGS -- \
-  [-initcfg=INITCFG]
+```sh
+sudo ndnfw-dpdk EAL-ARGS -- [-initcfg=INITCFG]
 ```
 
 **-initcfg** accepts an initialization configuration object in YAML format.
-This program recognizes *mempool*, *ndt*, *fib*, and *fwdp* sections.
+This program recognizes the `Mempool`, `Ndt`, `Fib`, and `Fwdp` sections.
+See [here](../../docs/init-config.sample.yaml) for an example.

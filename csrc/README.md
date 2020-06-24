@@ -1,5 +1,5 @@
 # ndn-dpdk/csrc
 
-This directory contains C source code used by NDN-DPDK Go packages.
-They are compiled to a static library `build/libndn-dpdk-c.a`, and then linked with Go programs.
-Documentation is in the relevant Go packages.
+This directory contains the C source code used by NDN-DPDK Go packages.
+The C code is compiled into a static library, `libndn-dpdk-c.a`, which is then linked into the Go programs.
+Documentation is in the corresponding Go packages.

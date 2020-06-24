@@ -1,12 +1,12 @@
 # ndn-dpdk/dpdk
 
-This directory contains Go bindings for [Data Plane Development Kit (DPDK)](https://www.dpdk.org/).
+This directory contains Go bindings for the [Data Plane Development Kit (DPDK)](https://www.dpdk.org/).
 
 ## C extensions
 
-C extensions in [csrc/dpdk](../csrc/dpdk/):
+The following C extensions are provided in [csrc/dpdk](../csrc/dpdk):
 
-* `MbufLoc`: iterator in a multi-segment mbuf
+* `MbufLoc`: iterator in a multi-segment mbuf.
 
 ## Go bindings
 
