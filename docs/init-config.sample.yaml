@@ -2,7 +2,7 @@
 ---
 
 # MEMORY POOL
-# 'Capacity' affects hugepage memory usage; (2^q-1) is optimal.
+# 'Capacity' affects the hugepage memory usage. 2^q-1 is optimal.
 # Each NUMA socket has its own mempool with the given name.
 Mempool:
   DIRECT:  # RX incoming packets
@@ -16,11 +16,11 @@ Mempool:
     Capacity: 65535
   GUIDER:  # TX modified Interest guiders (forwarder only)
     Capacity: 65535
-  INT:  # TX Interests (trafficgen only)
+  INT:  # TX Interests (traffic generator only)
     Capacity: 65535
-  DATA:  # TX Data hader (trafficgen only)
+  DATA:  # TX Data header (traffic generator only)
     Capacity: 65535
-  PAYLOAD:  # TX Data payload (trafficgen only)
+  PAYLOAD:  # TX Data payload (traffic generator only)
     Capacity: 255
 
 # LCORE ALLOCATION
@@ -28,11 +28,11 @@ Mempool:
 # Roles for ndnfw-dpdk: RX, TX, CRYPTO, FWD.
 # Roles for ndnping-dpdk: RX, TX, SVR, CLIR, CLIT.
 # Within each role:
-# 'lcores' is a list of lcores reserved for a role.
-# 'pernuma' is a map of { NumaSocket => max number of lcores } for a role.
-# Leaving this section blank results in default allocation.
+#  - 'lcores' is a list of lcores reserved for that role.
+#  - 'pernuma' is a map of { NumaSocket => max number of lcores } for that role.
+# Leaving this section blank results in automatic allocation.
 LCoreAlloc:
-# ROLE1: # this role has lcore 1 and lcore 3
+# ROLE1: # this role can use lcore 1 and lcore 3
 #   lcores: [1, 3]
 # ROLE2: # this role can have up to 3 and 2 lcores on two NUMA sockets
 #   pernuma:
@@ -41,75 +41,75 @@ LCoreAlloc:
 
 # FACE CREATION
 Face:
-  # whether to enable Ethernet faces
+  # Whether to enable Ethernet faces.
   EnableEth: true
-  # whether to disable RxFlow dispatching
+  # Whether to disable RxFlow dispatching.
   EthDisableRxFlow: false
-  # Ethernet device MTU
+  # Ethernet device MTU.
   EthMtu: 1500
-  # Ethernet RX queue capacity
+  # RX queue capacity for Ethernet faces.
   EthRxqFrames: 4096
-  # Ethernet before-TX queue capacity
+  # Before-TX queue capacity for Ethernet faces.
   EthTxqPkts: 256
-  # Ethernet after-TX queue capacity
+  # After-TX queue capacity for Ethernet faces.
   EthTxqFrames: 4096
 
-  # whether to enable socket faces
+  # Whether to enable socket faces.
   EnableSock: true
-  # socket before-TX queue capacity
+  # Before-TX queue capacity for socket faces.
   SockTxqPkts: 256
-  # socket after-TX queue capacity
+  # After-TX queue capacity for socket faces.
   SockTxqFrames: 1024
 
-  # ChanRxGroup queue capacity (shared among all socket/mock faces)
+  # ChanRxGroup queue capacity, shared among all socket/mock faces.
   ChanRxgFrames: 4096
 
-# NDT
+# NAME DISPATCH TABLE
 Ndt:
-  # Names are dispatched using prefix with this number of components.
+  # Names are dispatched using a prefix with this number of components.
   PrefixLen: 2
-  # There are (2^IndexBits) elements.
+  # There are 2^IndexBits entries in the table.
   IndexBits: 16
-  # Collect per-element sample every (2^SampleFreq) lookups. Must not exceed 30.
+  # Counters of the number of Interests dispatched to each entry are updated
+  # only once every 2^SampleFreq lookups. Must not exceed 30.
   SampleFreq: 8
 
-# FIB
+# FORWARDING INFORMATION BASE
 Fib:
-  # Capacity in each partition. Affects hugepage memory usage.
-  # (2^q-1) is optimal.
+  # Capacity of each FIB partition. Affects hugepage memory usage. 2^q-1 is optimal.
   MaxEntries: 65535
-  # Number of hash table buckets in each partition. Must be power of 2.
+  # Number of hash table buckets in each FIB partition. Must be a power of 2.
   NBuckets: 256
-  # 'M' parameter in 2-stage LPM algorithm.
-  # Should be greater than length of most FIB entry names.
+  # 'M' parameter in the 2-stage LPM algorithm.
+  # Should be greater than the length of most FIB entry names.
   StartDepth: 8
 
 # FORWARDER DATA PLANE
 Fwdp:
-  # Settings of Interest queue between FwInput and FwFwd.
+  # Settings for the Interest queue between FwInput and FwFwd.
   FwdInterestQueue:
     Capacity: 131072
     DequeueBurstSize: 32
-  # Settings of Data queue between FwInput and FwFwd.
+  # Settings for the Data queue between FwInput and FwFwd.
   FwdDataQueue:
     Capacity: 131072
     DequeueBurstSize: 64
-  # Settings of Nack queue between FwInput and FwFwd.
+  # Settings for the Nack queue between FwInput and FwFwd.
   FwdNackQueue:
     Capacity: 131072
     DequeueBurstSize: 64
   # Collect RX-FwFwd latency sample every 2^LatencySampleFreq packets.
   # Must not exceed 30.
   LatencySampleFreq: 16
-  # PIT suppression config.
+  # PIT suppression settings.
   Suppress:
     Min: 10ms
     Max: 100ms
     Multiplier: 2.0
-  # Capacity of PCCT. (2^q-1) is optimal.
+  # Capacity of the PIT-CS Composite Table (PCCT). 2^q-1 is optimal.
   PcctCapacity: 131071
-  # Capacity of CS in-memory direct entries. Twice as many PCCT entries could
-  # be occupied due to ghost lists in ARC algorithm.
+  # Number of Content Store in-memory direct entries. Twice as many PCCT entries
+  # could be occupied due to the ghost lists maintained by the ARC algorithm.
   CsCapMd: 32768
-  # Capacity of CS in-memory indirect entries.
+  # Number of Content Store in-memory indirect entries.
   CsCapMi: 32768
