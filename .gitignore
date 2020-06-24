@@ -5,9 +5,10 @@ csrc/meson.build
 csrc/ndn/an.h
 csrc/ndn/enum.h
 mk/meson.build
-ndni/enum_string.go
 *ndn-dpdk-*.tgz
+ndni/enum_string.go
 node_modules
 _obj
 package-lock.json
-.rake*
+strategy/strategyelf/bindata.go
+.vscode

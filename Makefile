@@ -9,8 +9,7 @@ all: gopkg npm cmds
 gopkg: godeps
 	go build -v ./...
 
-godeps: app/version/version.go ndni/enum_string.go build/libndn-dpdk-c.a build/cgoflags.done build/cgostruct.done
-	rake strategies
+godeps: app/version/version.go ndni/enum_string.go strategy/strategyelf/bindata.go build/libndn-dpdk-c.a build/cgoflags.done build/cgostruct.done
 
 .PHONY: app/version/version.go
 app/version/version.go:
@@ -21,6 +20,9 @@ csrc/ndn/an.h: ndn/an/*.go
 
 csrc/ndn/enum.h ndni/enum_string.go: ndni/enum.go
 	mk/gogenerate.sh ./$(<D)
+
+strategy/strategyelf/bindata.go: strategy/*.c
+	mk/gogenerate.sh ./$(@D)
 
 .PHONY: build/libndn-dpdk-c.a
 build/libndn-dpdk-c.a: build/build.ninja csrc/ndn/an.h csrc/ndn/enum.h

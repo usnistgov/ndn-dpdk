@@ -9,7 +9,7 @@ This software is developed at the [Advanced Network Technologies Division](https
 ### Requirements
 
 * Ubuntu 18.04 or Debian 10 on *amd64* architecture
-* Required APT packages: `build-essential clang-8 curl git go-bindata libc6-dev-i386 libelf-dev libnuma-dev libssl-dev liburcu-dev pkg-config python3-distutils rake sudo`
+* Required APT packages: `build-essential clang-8 curl git go-bindata libc6-dev-i386 libelf-dev libnuma-dev libssl-dev liburcu-dev pkg-config python3-distutils sudo`
 * Optional APT packages: `clang-format-8 doxygen yamllint`
   (see "other build targets" for an explanation)
 * [pip](https://pip.pypa.io/en/stable/installing/) and `sudo pip install meson ninja`

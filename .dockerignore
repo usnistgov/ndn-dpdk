@@ -7,6 +7,6 @@ docs/doxygen
 docs/mgmtspec.json
 node_modules
 ndni/enum_string.go
-strategy/strategy_elf/bindata.go
+strategy/strategyelf/bindata.go
 **/cgoflags.go
 **/cgostruct.go

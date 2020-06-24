@@ -14,7 +14,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface/createface"
 	"github.com/usnistgov/ndn-dpdk/iface/mockface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
-	"github.com/usnistgov/ndn-dpdk/strategy/strategy_elf"
+	"github.com/usnistgov/ndn-dpdk/strategy/strategyelf"
 )
 
 const STEP_DELAY = 50 * time.Millisecond
@@ -104,7 +104,7 @@ func (fixture *Fixture) makeStrategy(shortname string) strategycode.StrategyCode
 		return sc
 	}
 
-	elf, e := strategy_elf.Load(shortname)
+	elf, e := strategyelf.Load(shortname)
 	fixture.require.NoError(e)
 
 	sc, e := strategycode.Load(shortname, elf)

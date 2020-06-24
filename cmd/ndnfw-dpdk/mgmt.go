@@ -13,7 +13,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/mgmt/ndtmgmt"
 	"github.com/usnistgov/ndn-dpdk/mgmt/strategymgmt"
 	"github.com/usnistgov/ndn-dpdk/mgmt/versionmgmt"
-	"github.com/usnistgov/ndn-dpdk/strategy/strategy_elf"
+	"github.com/usnistgov/ndn-dpdk/strategy/strategyelf"
 )
 
 func startMgmt() {
@@ -47,7 +47,7 @@ func startMgmt() {
 func loadStrategy(shortname string) strategycode.StrategyCode {
 	logEntry := log.WithField("strategy", shortname)
 
-	elf, e := strategy_elf.Load(shortname)
+	elf, e := strategyelf.Load(shortname)
 	if e != nil {
 		logEntry.WithError(e).Fatal("strategy ELF load error")
 	}
