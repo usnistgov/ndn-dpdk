@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/app/ping"
-	"github.com/usnistgov/ndn-dpdk/appinit"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/mgmt"
 	"github.com/usnistgov/ndn-dpdk/mgmt/facemgmt"
 	"github.com/usnistgov/ndn-dpdk/mgmt/pingmgmt"
 	"github.com/usnistgov/ndn-dpdk/mgmt/versionmgmt"
@@ -34,12 +34,12 @@ func main() {
 		go printPeriodicCounters(app, pc.counterInterval)
 	}
 
-	appinit.RegisterMgmt(versionmgmt.VersionMgmt{})
-	appinit.RegisterMgmt(facemgmt.FaceMgmt{})
-	appinit.RegisterMgmt(facemgmt.EthFaceMgmt{})
-	appinit.RegisterMgmt(pingmgmt.PingClientMgmt{app})
-	appinit.RegisterMgmt(pingmgmt.FetchMgmt{app})
-	appinit.StartMgmt()
+	mgmt.Register(versionmgmt.VersionMgmt{})
+	mgmt.Register(facemgmt.FaceMgmt{})
+	mgmt.Register(facemgmt.EthFaceMgmt{})
+	mgmt.Register(pingmgmt.PingClientMgmt{app})
+	mgmt.Register(pingmgmt.FetchMgmt{app})
+	mgmt.Start()
 
 	select {}
 }

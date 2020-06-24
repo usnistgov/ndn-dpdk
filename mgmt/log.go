@@ -1,10 +1,10 @@
-package appinit
+package mgmt
 
 import (
 	"github.com/usnistgov/ndn-dpdk/core/logger"
 )
 
 var (
-	log           = logger.New("appinit")
+	log           = logger.New("mgmt")
 	makeLogFields = logger.MakeFields
 )

@@ -42,7 +42,7 @@ func New(name string, capacity int, socket eal.NumaSocket,
 	producerMode ProducerMode, consumerMode ConsumerMode) (r *Ring, e error) {
 	nameC := C.CString(name)
 	defer C.free(unsafe.Pointer(nameC))
-	capacity = AlignCapacity(capacity)
+	capacity = AlignCapacity(capacity, 4, 64)
 	flags := C.uint(producerMode) | C.uint(consumerMode)
 
 	ringC := C.rte_ring_create(nameC, C.uint(capacity), C.int(socket.ID()), flags)
@@ -121,7 +121,7 @@ func AlignCapacity(capacity int, opts ...int) int {
 		panic("opts")
 	}
 
-	if capacity <= min {
+	if capacity < min {
 		capacity = dflt
 	}
 	return int(C.rte_align64pow2(C.uint64_t(capacity)))

@@ -3,9 +3,9 @@ package main
 import (
 	"time"
 
-	"github.com/usnistgov/ndn-dpdk/appinit"
 	"github.com/usnistgov/ndn-dpdk/container/ndt/ndtupdater"
 	"github.com/usnistgov/ndn-dpdk/container/strategycode"
+	"github.com/usnistgov/ndn-dpdk/mgmt"
 	"github.com/usnistgov/ndn-dpdk/mgmt/facemgmt"
 	"github.com/usnistgov/ndn-dpdk/mgmt/fibmgmt"
 	"github.com/usnistgov/ndn-dpdk/mgmt/fwdpmgmt"
@@ -17,13 +17,13 @@ import (
 )
 
 func startMgmt() {
-	appinit.RegisterMgmt(versionmgmt.VersionMgmt{})
-	appinit.RegisterMgmt(hrlog.HrlogMgmt{})
+	mgmt.Register(versionmgmt.VersionMgmt{})
+	mgmt.Register(hrlog.HrlogMgmt{})
 
-	appinit.RegisterMgmt(facemgmt.FaceMgmt{})
-	appinit.RegisterMgmt(facemgmt.EthFaceMgmt{})
+	mgmt.Register(facemgmt.FaceMgmt{})
+	mgmt.Register(facemgmt.EthFaceMgmt{})
 
-	appinit.RegisterMgmt(ndtmgmt.NdtMgmt{
+	mgmt.Register(ndtmgmt.NdtMgmt{
 		Ndt: theDp.GetNdt(),
 		Updater: &ndtupdater.NdtUpdater{
 			Ndt:      theDp.GetNdt(),
@@ -32,16 +32,16 @@ func startMgmt() {
 		},
 	})
 
-	appinit.RegisterMgmt(strategymgmt.StrategyMgmt{})
+	mgmt.Register(strategymgmt.StrategyMgmt{})
 
-	appinit.RegisterMgmt(fibmgmt.FibMgmt{
+	mgmt.Register(fibmgmt.FibMgmt{
 		Fib:               theDp.GetFib(),
 		DefaultStrategyId: loadStrategy("multicast").GetId(),
 	})
 
-	appinit.RegisterMgmt(fwdpmgmt.DpInfoMgmt{theDp})
+	mgmt.Register(fwdpmgmt.DpInfoMgmt{theDp})
 
-	appinit.StartMgmt()
+	mgmt.Start()
 }
 
 func loadStrategy(shortname string) strategycode.StrategyCode {

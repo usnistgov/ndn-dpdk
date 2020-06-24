@@ -1,7 +1,6 @@
 package mgmt
 
 import (
-	"fmt"
 	"net"
 	"net/rpc"
 	"net/url"
@@ -12,25 +11,34 @@ import (
 	"github.com/powerman/rpc-codec/jsonrpc2"
 )
 
-var Server = rpc.NewServer()
+var (
+	server   = rpc.NewServer()
+	listener net.Listener
+)
 
-func Register(mg interface{}) error {
+// Register registers a management module.
+// Errors are fatal.
+func Register(mg interface{}) {
 	typeName := reflect.TypeOf(mg).Name()
 	name := strings.TrimSuffix(typeName, "Mgmt")
-	return Server.RegisterName(name, mg)
+
+	logEntry := log.WithField("mg", name)
+	if e := server.RegisterName(name, mg); e != nil {
+		logEntry.WithError(e).Fatal("register failed")
+	}
+	logEntry.Debug("registered")
 }
 
-var listener net.Listener
-var isClosing bool
-
-func Start() error {
+// Start starts the management listener.
+// Errors are fatal.
+func Start() {
 	if listener != nil {
-		return fmt.Errorf("already started")
+		log.Fatal("listener already started")
 	}
 
 	mgmtEnv := os.Getenv("MGMT")
 	if mgmtEnv == "0" {
-		return nil
+		return
 	}
 
 	if mgmtEnv == "" {
@@ -39,7 +47,7 @@ func Start() error {
 
 	u, e := url.Parse(mgmtEnv)
 	if e != nil {
-		return fmt.Errorf("MGMT environ parse error %v", e)
+		log.WithError(e).Fatal("cannot parse MGMT environment variable")
 	}
 
 	var addr string
@@ -50,21 +58,19 @@ func Start() error {
 	case "tcp", "tcp4", "tcp6":
 		addr = u.Host
 	default:
-		return fmt.Errorf("unsupported MGMT scheme %s", u.Scheme)
+		log.Fatalf("unsupported MGMT scheme %s", u.Scheme)
 	}
 
 	listener, e = net.Listen(u.Scheme, addr)
 	if e != nil {
-		return fmt.Errorf("cannot listen on %s %s", u.Scheme, addr)
+		log.Fatalf("cannot listen on %s %s", u.Scheme, addr)
 	}
 
-	isClosing = false
 	go serve()
-	return nil
 }
 
 func serve() {
-	for !isClosing {
+	for {
 		conn, e := listener.Accept()
 		if e != nil {
 			if ne, ok := e.(net.Error); ok && ne.Temporary() {
@@ -73,12 +79,6 @@ func serve() {
 				break
 			}
 		}
-		go Server.ServeCodec(jsonrpc2.NewServerCodec(conn, Server))
+		go server.ServeCodec(jsonrpc2.NewServerCodec(conn, server))
 	}
-	listener = nil
-	isClosing = false
-}
-
-func Stop() {
-	isClosing = true
 }
