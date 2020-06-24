@@ -20,7 +20,9 @@ func main() {
 	log.WithField("nSlaves", len(eal.ListSlaveLCores())).Info("EAL ready")
 	hrlog.Init()
 
-	initCfg.InitConfig.Apply()
+	initCfg.Mempool.Apply()
+	eal.LCoreAlloc.Config = initCfg.LCoreAlloc
+	initCfg.Face.Apply()
 
 	startDp(initCfg.Ndt, initCfg.Fib, initCfg.Fwdp)
 	startMgmt()

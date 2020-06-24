@@ -13,9 +13,7 @@ import (
 func Init() {
 	ealtestenv.InitEal()
 
-	faceCfg := createface.GetDefaultConfig()
-	faceCfg.EnableEth = false
-	faceCfg.EnableSock = false
+	var faceCfg createface.Config
 	faceCfg.EnableMock = true
 	faceCfg.Apply()
 

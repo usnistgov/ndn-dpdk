@@ -102,11 +102,27 @@ func (r *Ring) Dequeue(objs interface{}) (nDequeued int) {
 }
 
 // AlignCapacity returns an acceptable capacity for Ring.
-// If input capacity non-positive, returns 64.
-// Otherwise, returns next power of 2.
-func AlignCapacity(capacity int) int {
-	if capacity <= 0 {
-		return 64
+// It takes up to three parameters:
+//   capacity: input capacity
+//   min: minimum capacity; default is 64.
+//   dflt: default capacity, if input is less than minimum; default is same as min.
+//
+// If input capacity is less than minimum, use dflt. Then, adjust to next power of 2.
+func AlignCapacity(capacity int, opts ...int) int {
+	var min, dflt int
+	switch len(opts) {
+	case 0:
+		min, dflt = 64, 64
+	case 1:
+		min, dflt = opts[0], opts[0]
+	case 2:
+		min, dflt = opts[0], opts[1]
+	default:
+		panic("opts")
+	}
+
+	if capacity <= min {
+		capacity = dflt
 	}
 	return int(C.rte_align64pow2(C.uint64_t(capacity)))
 }

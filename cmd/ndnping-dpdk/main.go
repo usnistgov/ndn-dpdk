@@ -19,7 +19,9 @@ func main() {
 		log.WithError(e).Fatal("command line error")
 	}
 
-	pc.initCfg.Apply()
+	pc.initCfg.Mempool.Apply()
+	eal.LCoreAlloc.Config = pc.initCfg.LCoreAlloc
+	pc.initCfg.Face.Apply()
 
 	app, e := ping.New(pc.tasks)
 	if e != nil {

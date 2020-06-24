@@ -12,9 +12,6 @@ import (
 
 // Create a face with given locator.
 func Create(loc iface.Locator) (face iface.IFace, e error) {
-	if theConfig.Disabled {
-		return nil, errors.New("createface package is disabled")
-	}
 	if e = loc.Validate(); e != nil {
 		return nil, e
 	}

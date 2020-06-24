@@ -4,19 +4,23 @@ import (
 	"flag"
 	"os"
 
-	"github.com/usnistgov/ndn-dpdk/appinit"
 	"github.com/usnistgov/ndn-dpdk/container/fib"
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
 	"github.com/usnistgov/ndn-dpdk/container/pit"
 	"github.com/usnistgov/ndn-dpdk/container/pktqueue"
+	"github.com/usnistgov/ndn-dpdk/core/yamlflag"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface/createface"
 )
 
 type initConfig struct {
-	appinit.InitConfig
-	Ndt  ndt.Config
-	Fib  fib.Config
-	Fwdp fwdpInitConfig
+	Mempool    pktmbuf.TemplateUpdates
+	LCoreAlloc eal.LCoreAllocConfig
+	Face       createface.Config
+	Ndt        ndt.Config
+	Fib        fib.Config
+	Fwdp       fwdpInitConfig
 }
 
 type fwdpInitConfig struct {
@@ -31,14 +35,14 @@ type fwdpInitConfig struct {
 }
 
 func parseCommand(args []string) (initCfg initConfig, e error) {
-	initCfg.Face = createface.GetDefaultConfig()
+	initCfg.Face.EnableEth = true
 	initCfg.Ndt.PrefixLen = 2
 	initCfg.Ndt.IndexBits = 16
 	initCfg.Ndt.SampleFreq = 8
 	initCfg.Fib.MaxEntries = 65535
 	initCfg.Fib.NBuckets = 256
 	initCfg.Fib.StartDepth = 8
-	initCfg.Fwdp.FwdInterestQueue.DequeueBurstSize = 48
+	initCfg.Fwdp.FwdInterestQueue.DequeueBurstSize = 32
 	initCfg.Fwdp.FwdDataQueue.DequeueBurstSize = 64
 	initCfg.Fwdp.FwdNackQueue.DequeueBurstSize = 64
 	initCfg.Fwdp.LatencySampleFreq = 16
@@ -47,7 +51,7 @@ func parseCommand(args []string) (initCfg initConfig, e error) {
 	initCfg.Fwdp.CsCapMi = 32768
 
 	flags := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-	appinit.DeclareInitConfigFlag(flags, &initCfg)
+	flags.Var(yamlflag.New(&initCfg), "initcfg", "initialization config object")
 
 	e = flags.Parse(args)
 	if e != nil {

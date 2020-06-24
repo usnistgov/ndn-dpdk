@@ -57,9 +57,6 @@ func chooseTxl(face iface.IFace) *iface.TxLoop {
 var createDestroyLock sync.Mutex
 
 func handleFaceNew(id iface.FaceId) {
-	if theConfig.Disabled {
-		return
-	}
 	// lock held by Create()
 
 	face := iface.Get(id)
@@ -67,9 +64,6 @@ func handleFaceNew(id iface.FaceId) {
 }
 
 func handleFaceClosing(id iface.FaceId) {
-	if theConfig.Disabled {
-		return
-	}
 	createDestroyLock.Lock()
 	defer createDestroyLock.Unlock()
 
@@ -80,9 +74,6 @@ func handleFaceClosing(id iface.FaceId) {
 }
 
 func handleFaceClosed(id iface.FaceId) {
-	if theConfig.Disabled {
-		return
-	}
 	createDestroyLock.Lock()
 	defer createDestroyLock.Unlock()
 
@@ -96,18 +87,12 @@ func handleFaceClosed(id iface.FaceId) {
 }
 
 func handleRxGroupAdd(rxg iface.IRxGroup) {
-	if theConfig.Disabled {
-		return
-	}
 	// lock held by Create()
 
 	chooseRxl(rxg).AddRxGroup(rxg)
 }
 
 func handleRxGroupRemove(rxg iface.IRxGroup) {
-	if theConfig.Disabled {
-		return
-	}
 	// lock held by Create() or handleFaceClosed()
 
 	rxg.GetRxLoop().RemoveRxGroup(rxg)
