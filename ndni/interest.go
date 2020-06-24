@@ -158,7 +158,7 @@ func (tpl *InterestTemplate) Init(args ...interface{}) error {
 
 	d := tlv.Decoder(wire)
 	for _, field := range d.Elements() {
-		switch an.TlvType(field.Type) {
+		switch field.Type {
 		case an.TtName:
 			tpl.PrefixL = uint16(copy(tpl.PrefixV[:], field.Value))
 			tpl.MidLen = uint16(copy(tpl.MidBuf[:], field.After))

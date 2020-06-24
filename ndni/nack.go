@@ -25,7 +25,7 @@ type Nack struct {
 
 // MakeNackFromInterest turns an Interest into a Nack.
 // This overwrites the Interest.
-func MakeNackFromInterest(interest *Interest, reason an.NackReason) *Nack {
+func MakeNackFromInterest(interest *Interest, reason uint8) *Nack {
 	C.MakeNack(interest.m.getPtr(), C.NackReason(reason))
 	return interest.m.AsNack()
 }
@@ -42,7 +42,7 @@ func (nack Nack) ToNNack() ndn.Nack {
 }
 
 func (nack Nack) String() string {
-	return fmt.Sprintf("%s~%s", nack.GetInterest(), nack.GetReason())
+	return fmt.Sprintf("%s~%s", nack.GetInterest(), an.NackReasonString(nack.GetReason()))
 }
 
 // GetPNackPtr returns *C.PNack pointer.
@@ -51,8 +51,8 @@ func (nack Nack) GetPNackPtr() unsafe.Pointer {
 }
 
 // GetReason returns Nack reason.
-func (nack Nack) GetReason() an.NackReason {
-	return an.NackReason(nack.p.Lpl3.NackReason)
+func (nack Nack) GetReason() uint8 {
+	return nack.p.Lpl3.NackReason
 }
 
 // GetInterest returns the Interest enclosed in Nack.

@@ -17,10 +17,10 @@ app/version/version.go:
 	app/version/make-version.sh
 
 csrc/ndn/an.h: ndn/an/*.go
-	go run ./mk/enumgen/ -type=TlvType,NackReason -guard=NDN_DPDK_NDN_AN_H -out=$@ ./$(<D)
+	mk/gogenerate.sh ./$(<D)
 
 csrc/ndn/enum.h ndni/enum_string.go: ndni/enum.go
-	mk/gogenerate.sh ./$(@D)
+	mk/gogenerate.sh ./$(<D)
 
 .PHONY: build/libndn-dpdk-c.a
 build/libndn-dpdk-c.a: build/build.ninja csrc/ndn/an.h csrc/ndn/enum.h

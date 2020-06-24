@@ -57,7 +57,7 @@ func Encode(values ...interface{}) (wire []byte, e error) {
 
 // EncodeTlv encodes a sequence of values into []byte.
 // It can be used to implement Marshaler.
-func EncodeTlv(typ interface{}, values ...interface{}) (typ1 uint32, value []byte, e error) {
+func EncodeTlv(typ uint32, values ...interface{}) (typ1 uint32, value []byte, e error) {
 	value, e = Encode(values...)
-	return uint32(toUint(typ)), value, e
+	return typ, value, e
 }

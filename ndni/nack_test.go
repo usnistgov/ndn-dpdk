@@ -15,7 +15,7 @@ func TestNackDecode(t *testing.T) {
 
 	tests := []struct {
 		input  string
-		reason an.NackReason
+		reason uint8
 	}{
 		{input: "6413 nack=FD032000(noreason) payload=500D 050B 0703080141 0A04A0A1A2A3",
 			reason: an.NackUnspecified},

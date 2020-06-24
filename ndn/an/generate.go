@@ -1,3 +1,3 @@
 package an
 
-//go:generate stringer -type=NackReason,TlvType -output=strings.go
+//go:generate go run ../../mk/enumgen/ -guard=NDN_DPDK_NDN_AN_H -out=../../csrc/ndn/an.h .

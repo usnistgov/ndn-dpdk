@@ -119,7 +119,7 @@ func (interest *Interest) UnmarshalBinary(wire []byte) error {
 			continue
 		}
 
-		switch an.TlvType(field.Type) {
+		switch field.Type {
 		case an.TtName:
 			if e := field.UnmarshalValue(&interest.Name); e != nil {
 				return e
@@ -145,7 +145,7 @@ func (interest *Interest) UnmarshalBinary(wire []byte) error {
 			if e := field.UnmarshalValue(&interest.HopLimit); e != nil {
 				return e
 			}
-		case an.TtApplicationParameters:
+		case an.TtAppParameters:
 			interest.Parameters = append(interest.Parameters, field.Element)
 		default:
 			if field.IsCriticalType() {
@@ -186,7 +186,7 @@ func (fh ForwardingHint) MarshalTlv() (typ uint32, value []byte, e error) {
 func (fh *ForwardingHint) UnmarshalBinary(wire []byte) error {
 	d := tlv.Decoder(wire)
 	for _, field := range d.Elements() {
-		switch an.TlvType(field.Type) {
+		switch field.Type {
 		case an.TtDelegation:
 			var del FHDelegation
 			if e := del.UnmarshalBinary(field.Value); e != nil {
@@ -236,7 +236,7 @@ func (del FHDelegation) MarshalTlv() (typ uint32, value []byte, e error) {
 func (del *FHDelegation) UnmarshalBinary(wire []byte) error {
 	d := tlv.Decoder(wire)
 	for _, field := range d.Elements() {
-		switch an.TlvType(field.Type) {
+		switch field.Type {
 		case an.TtPreference:
 			if e := field.UnmarshalNNI(&del.Preference); e != nil {
 				return e

@@ -16,7 +16,7 @@ type NameComponent struct {
 }
 
 // MakeNameComponent constructs a NameComponent from TLV-TYPE and TLV-VALUE.
-func MakeNameComponent(typ interface{}, value []byte) (comp NameComponent) {
+func MakeNameComponent(typ uint32, value []byte) (comp NameComponent) {
 	comp.Element = tlv.MakeElement(typ, value)
 	return comp
 }

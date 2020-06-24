@@ -8,7 +8,7 @@ import (
 // LpHeader contains information in NDNLPv2 header.
 type LpHeader struct {
 	PitToken   []byte
-	NackReason an.NackReason
+	NackReason uint8
 	CongMark   int
 }
 
@@ -74,19 +74,19 @@ func (pkt *Packet) MarshalTlv() (typ uint32, value []byte, e error) {
 // UnmarshalTlv decodes from wire format.
 func (pkt *Packet) UnmarshalTlv(typ uint32, value []byte) error {
 	*pkt = Packet{}
-	if an.TlvType(typ) != an.TtLpPacket {
+	if typ != an.TtLpPacket {
 		return pkt.decodeL3(typ, value)
 	}
 
 	d := tlv.Decoder(value)
 	for _, field := range d.Elements() {
-		switch an.TlvType(field.Type) {
+		switch field.Type {
 		case an.TtPitToken:
 			pkt.Lp.PitToken = field.Value
 		case an.TtNack:
 			d1 := tlv.Decoder(field.Value)
 			for _, field1 := range d1.Elements() {
-				switch an.TlvType(field1.Type) {
+				switch field1.Type {
 				case an.TtNackReason:
 					if e := field1.UnmarshalNNI(&pkt.Lp.NackReason); e != nil {
 						return e
@@ -123,7 +123,7 @@ func (pkt *Packet) UnmarshalTlv(typ uint32, value []byte) error {
 }
 
 func (pkt *Packet) decodeL3(typ uint32, value []byte) error {
-	switch an.TlvType(typ) {
+	switch typ {
 	case an.TtInterest:
 		var interest Interest
 		e := interest.UnmarshalBinary(value)

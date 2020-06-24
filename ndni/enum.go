@@ -1,10 +1,9 @@
 package ndni
 
-//go:generate bash enum.sh
+//go:generate stringer -type=NdnError,L2PktType,L3PktType,DataSatisfyResult -output=enum_string.go
+//go:generate go run ../mk/enumgen/ -guard=NDN_DPDK_NDN_ENUM_H -out=../csrc/ndn/enum.h .
 
 const (
-	_ = "enumgen"
-
 	// NameMaxLength is the maximum TLV-LENGTH for Name.
 	NameMaxLength = 2048
 
@@ -38,6 +37,8 @@ const (
 		1 + 1 + 1 + 1 + 4 + // MetaInfo with FreshnessPeriod
 		1 + 3 + 0 + // Content TL
 		39 // Signature
+
+	_ = "enumgen"
 )
 
 // NdnError indicates an error condition in ndni package.
@@ -66,6 +67,8 @@ const (
 	NdnErrBadInterestLifetime
 	NdnErrBadHopLimitLength
 	NdnErrHopLimitZero
+
+	_ = "enumgen:NdnError"
 )
 
 func (e NdnError) Error() string {
@@ -79,6 +82,8 @@ type L2PktType int
 const (
 	L2PktTypeNone L2PktType = iota
 	L2PktTypeNdnlpV2
+
+	_ = "enumgen:L2PktType"
 )
 
 // L3PktType indicates layer 3 packet type.
@@ -91,6 +96,8 @@ const (
 	L3PktTypeData
 	L3PktTypeNack
 	L3PktTypeMAX
+
+	_ = "enumgen:L3PktType"
 )
 
 // DataSatisfyResult indicates the result of data.CanSatisfy function.
@@ -101,4 +108,6 @@ const (
 	DataSatisfyYes        DataSatisfyResult = 0 // Data satisfies Interest
 	DataSatisfyNo         DataSatisfyResult = 1 // Data does not satisfy Interest
 	DataSatisfyNeedDigest DataSatisfyResult = 2 // need Data digest to determine
+
+	_ = "enumgen:DataSatisfyResult"
 )

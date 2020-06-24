@@ -7,10 +7,10 @@ import (
 // Nack represents a Nack packet.
 type Nack struct {
 	Packet   *Packet
-	Reason   an.NackReason
+	Reason   uint8
 	Interest Interest
 }
 
 func (nack Nack) String() string {
-	return nack.Interest.String() + "~" + nack.Reason.String()
+	return nack.Interest.String() + "~" + an.NackReasonString(nack.Reason)
 }

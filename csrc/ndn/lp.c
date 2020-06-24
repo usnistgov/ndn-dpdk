@@ -38,7 +38,7 @@ LpHeader_FromPacket(LpHeader* lph,
       case TtLpPayload:
         *payloadOff = lppEle.size - ele1.length;
         goto FOUND_PAYLOAD;
-      case TtLpSeqNo:
+      case TtLpSeqNum:
         if (unlikely(ele1.length != 8)) {
           return NdnErrBadLpSeqNum;
         }
@@ -208,7 +208,7 @@ PrependLpHeader(struct rte_mbuf* m, const LpHeader* lph, uint32_t payloadL)
     } __rte_packed FragF;
 
     FragF* f = (FragF*)TlvEncoder_Prepend(en, sizeof(FragF));
-    f->seqNumT = TtLpSeqNo;
+    f->seqNumT = TtLpSeqNum;
     f->seqNumL = 8;
     *(unaligned_uint64_t*)&f->seqNumV = rte_cpu_to_be_64(lph->l2.seqNum);
     f->fragIndexT = TtFragIndex;

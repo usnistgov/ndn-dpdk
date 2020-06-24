@@ -11,7 +11,6 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/ndn"
-	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
 
@@ -96,7 +95,7 @@ func (pkt *Packet) ToNPacket() (npkt ndn.Packet) {
 		lpl3 := pkt.GetLpL3()
 		npkt.Lp.PitToken = make([]byte, 8)
 		binary.LittleEndian.PutUint64(npkt.Lp.PitToken, lpl3.PitToken)
-		npkt.Lp.NackReason = an.NackReason(lpl3.NackReason)
+		npkt.Lp.NackReason = lpl3.NackReason
 		npkt.Lp.CongMark = int(lpl3.CongMark)
 		if npkt.Lp.NackReason != 0 {
 			npkt.Nack = new(ndn.Nack)

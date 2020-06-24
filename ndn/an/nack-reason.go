@@ -1,13 +1,31 @@
 package an
 
-// NackReason indicates a Nack reason.
-type NackReason uint8
+import "strconv"
 
-// Known Nack reasons.
+// NackReason assigned numbers.
 const (
-	NackNone        NackReason = 0
-	NackCongestion  NackReason = 50
-	NackDuplicate   NackReason = 100
-	NackNoRoute     NackReason = 150
-	NackUnspecified NackReason = 255
+	NackNone        = 0
+	NackCongestion  = 50
+	NackDuplicate   = 100
+	NackNoRoute     = 150
+	NackUnspecified = 255
+
+	_ = "enumgen:NackReason"
 )
+
+// NackReasonString converts NackReason to string.
+func NackReasonString(reason uint8) string {
+	switch reason {
+	case NackNone:
+		return "none"
+	case NackCongestion:
+		return "congestion"
+	case NackDuplicate:
+		return "duplicate"
+	case NackNoRoute:
+		return "no-route"
+	case NackUnspecified:
+		return "unspecified"
+	}
+	return strconv.Itoa(int(reason))
+}

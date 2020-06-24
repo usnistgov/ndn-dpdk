@@ -78,7 +78,7 @@ func (data Data) CanSatisfy(interest Interest) bool {
 		return false
 	case interest.MustBeFresh && data.Freshness <= 0:
 		return false
-	case an.TlvType(interest.Name[len(interest.Name)-1].Type) == an.TtImplicitSha256DigestComponent:
+	case interest.Name[len(interest.Name)-1].Type == an.TtImplicitSha256DigestComponent:
 		return interest.Name.Equal(data.FullName())
 	case interest.CanBePrefix:
 		return interest.Name.IsPrefixOf(data.Name)
@@ -118,7 +118,7 @@ func (data *Data) UnmarshalBinary(wire []byte) error {
 	*data = Data{}
 	d := tlv.Decoder(wire)
 	for _, field := range d.Elements() {
-		switch an.TlvType(field.Type) {
+		switch field.Type {
 		case an.TtName:
 			if e := field.UnmarshalValue(&data.Name); e != nil {
 				return e
@@ -126,7 +126,7 @@ func (data *Data) UnmarshalBinary(wire []byte) error {
 		case an.TtMetaInfo:
 			d1 := tlv.Decoder(field.Value)
 			for _, field1 := range d1.Elements() {
-				switch an.TlvType(field1.Type) {
+				switch field1.Type {
 				case an.TtContentType:
 					if e := field1.UnmarshalValue(&data.ContentType); e != nil {
 						return e
@@ -143,8 +143,8 @@ func (data *Data) UnmarshalBinary(wire []byte) error {
 			}
 		case an.TtContent:
 			data.Content = field.Value
-		case an.TtSignatureInfo:
-		case an.TtSignatureValue:
+		case an.TtDSigInfo:
+		case an.TtDSigValue:
 		default:
 			if field.IsCriticalType() {
 				return tlv.ErrCritical
@@ -177,10 +177,9 @@ func (ct *ContentType) UnmarshalBinary(wire []byte) error {
 var dataFakeSig []byte
 
 func init() {
-	sigType, _ := tlv.Encode(tlv.MakeElementNNI(an.TtSignatureType, 0))
+	sigType, _ := tlv.Encode(tlv.MakeElementNNI(an.TtSigType, an.SigHmacWithSha256))
 	dataFakeSig, _ = tlv.Encode(
-		tlv.MakeElement(an.TtSignatureInfo, sigType),
-		tlv.MakeElement(an.TtSignatureValue, make([]byte, sha256.Size)),
+		tlv.MakeElement(an.TtDSigInfo, sigType),
+		tlv.MakeElement(an.TtDSigValue, make([]byte, sha256.Size)),
 	)
-
 }

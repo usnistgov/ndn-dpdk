@@ -53,7 +53,7 @@ func (n *NNI) UnmarshalBinary(wire []byte) error {
 }
 
 // MakeElementNNI creates Element from TLV-TYPE and TLV-VALUE encoding as NNI.
-func MakeElementNNI(typ interface{}, value interface{}) Element {
+func MakeElementNNI(typ uint32, value interface{}) Element {
 	n := NNI(toUint(value))
 	b, _ := n.MarshalBinary()
 	return MakeElement(typ, b)

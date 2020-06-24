@@ -49,7 +49,7 @@ func TestNackMerge(t *testing.T) {
 	require.Len(face1.TxNacks, 1)
 
 	nack1 := face1.TxNacks[0]
-	assert.Equal(an.NackCongestion, nack1.GetReason())
+	assert.EqualValues(an.NackCongestion, nack1.GetReason())
 	assert.Equal(ndn.NonceFromUint(0x2ea29515), nack1.GetInterest().GetNonce())
 	assert.Equal(uint64(0xf3fb4ef802d3a9d3), getPitToken(nack1))
 

@@ -25,7 +25,7 @@ func TestLpHeaderDecode(t *testing.T) {
 		fragIndex  uint16
 		fragCount  uint16
 		pitToken   uint64
-		nackReason an.NackReason
+		nackReason uint8
 		congMark   uint8
 		payloadL   int
 	}{

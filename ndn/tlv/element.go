@@ -13,8 +13,8 @@ type Element struct {
 
 // MakeElement constructs Element from TLV-TYPE and TLV-VALUE.
 // typ can be any integer type.
-func MakeElement(typ interface{}, value []byte) (element Element) {
-	element.Type = uint32(toUint(typ))
+func MakeElement(typ uint32, value []byte) (element Element) {
+	element.Type = typ
 	element.Value = value
 	return element
 }

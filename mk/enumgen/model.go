@@ -21,20 +21,14 @@ type enumDecl struct {
 }
 
 type pkgConsts struct {
-	fset   *token.FileSet
-	Enums  map[string]*enumDecl
-	Consts []kv
-}
-
-func (pc *pkgConsts) Init(enumList []string) {
-	pc.Enums = make(map[string]*enumDecl)
-	for _, typename := range enumList {
-		pc.Enums[typename] = &enumDecl{typename, nil}
-	}
+	fset  *token.FileSet
+	Enums map[string]*enumDecl
 }
 
 func (pc *pkgConsts) RecognizeFiles(path string) {
 	pc.fset = token.NewFileSet()
+	pc.Enums = make(map[string]*enumDecl)
+
 	pkgs, e := parser.ParseDir(pc.fset, path, nil, 0)
 	if e != nil {
 		panic(e)
@@ -59,18 +53,34 @@ func (pc *pkgConsts) recognizeConstDecl(decl *ast.GenDecl) {
 	if len(decl.Specs) == 0 {
 		return
 	}
-	vspec := decl.Specs[0].(*ast.ValueSpec)
 
-	if typeIdent, ok := vspec.Type.(*ast.Ident); ok {
-		typename := typeIdent.String()
-		if enum, ok := pc.Enums[typename]; ok {
-			pc.collectEnum(enum, decl)
-			return
+	wantCollect := false
+	typename := ""
+
+	for _, spec := range decl.Specs {
+		vspec := spec.(*ast.ValueSpec)
+		if len(vspec.Names) != 1 || vspec.Names[0].Name != "_" || len(vspec.Values) != 1 {
+			continue
 		}
+		value := pc.nodeToString(vspec.Values[0])
+		switch {
+		case value == "\"enumgen\"":
+			wantCollect = true
+		case strings.HasPrefix(value, "\"enumgen:") && strings.HasSuffix(value, "\""):
+			wantCollect = true
+			typename = value[9 : len(value)-1]
+		}
+		break
 	}
 
-	if len(vspec.Values) == 1 && pc.nodeToString(vspec.Values[0]) == "\"enumgen\"" {
-		pc.collectConst(decl)
+	if wantCollect {
+		enum := pc.Enums[typename]
+		if enum == nil {
+			enum = new(enumDecl)
+			enum.Typename = typename
+			pc.Enums[typename] = enum
+		}
+		pc.collectEnum(enum, decl)
 	}
 }
 
@@ -81,7 +91,11 @@ func (pc *pkgConsts) collectEnum(enum *enumDecl, decl *ast.GenDecl) {
 			continue
 		}
 
-		name := vspec.Names[0].String()
+		name := vspec.Names[0].Name
+		if name == "_" {
+			continue
+		}
+
 		value := strconv.Itoa(i) // iota
 		if len(vspec.Values) == 1 {
 			value = pc.nodeToString(vspec.Values[0])
@@ -91,22 +105,6 @@ func (pc *pkgConsts) collectEnum(enum *enumDecl, decl *ast.GenDecl) {
 		}
 
 		enum.Definitions = append(enum.Definitions, kv{name, value})
-	}
-}
-
-func (pc *pkgConsts) collectConst(decl *ast.GenDecl) {
-	for i, spec := range decl.Specs {
-		if i == 0 {
-			continue
-		}
-		vspec := spec.(*ast.ValueSpec)
-		if len(vspec.Names) != 1 || len(vspec.Values) != 1 {
-			continue
-		}
-
-		name := vspec.Names[0].String()
-		value := pc.nodeToString(vspec.Values[0])
-		pc.Consts = append(pc.Consts, kv{name, value})
 	}
 }
 

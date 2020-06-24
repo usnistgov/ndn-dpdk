@@ -4,24 +4,17 @@ import (
 	"flag"
 	"log"
 	"os"
-	"strings"
 	"text/template"
 )
 
 func main() {
 	var ta templateArgs
-	typeFlag := flag.String("type", "", "list of types, delimited by comma")
 	flag.StringVar(&ta.Guard, "guard", "", "#include guard name")
 	outputFlag := flag.String("out", "", "output filename")
 	flag.Parse()
-	var typenames []string
-	if *typeFlag != "" {
-		typenames = strings.Split(*typeFlag, ",")
+	if flag.NArg() != 1 || *outputFlag == "" {
+		log.Fatal("Usage: enumgen -guard=INCLUDE_GUARD -out=output.h path/to/package")
 	}
-	if flag.NArg() != 1 || len(typenames) == 0 || *outputFlag == "" {
-		log.Fatal("Usage: enumgen -type=Type0,Type1 -guard=INCLUDE_GUARD -out=output.h path/to/package")
-	}
-	ta.Init(typenames)
 	ta.RecognizeFiles(flag.Arg(0))
 
 	outFile, e := os.Create(*outputFlag)
@@ -43,18 +36,19 @@ const outputTemplate = `
 #ifndef {{.Guard}}
 #define {{.Guard}}
 {{range .Enums}}
+{{- if .Typename}}
 typedef enum {{.Typename}} {
-  {{- range .Definitions}}
+{{- else}}
+enum {
+{{- end}}
+{{- range .Definitions}}
   {{.Key}} = {{.Value}},
   {{- end}}
+{{- if .Typename}}
 } {{.Typename}};
-{{end}}
-{{if .Consts}}
-enum {
-{{- range .Consts}}
-  {{.Key}} = {{.Value}},
-{{- end}}
+{{- else}}
 };
+{{- end}}
 {{end}}
 #endif // {{.Guard}}
 `
