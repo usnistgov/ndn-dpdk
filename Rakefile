@@ -6,7 +6,7 @@ task "strategies" => "strategy/strategy_elf/bindata.go"
 SgBpfPath = "build/strategy-bpf"
 directory SgBpfPath
 file "strategy/strategy_elf/bindata.go" do |t|
-  sh "go-bindata -nomemcopy -pkg strategy_elf -prefix #{SgBpfPath} -o /dev/stdout #{SgBpfPath} | gofmt -s > #{t.name}"
+  sh "go-bindata -nomemcopy -nometadata -pkg strategy_elf -prefix #{SgBpfPath} -o /dev/stdout #{SgBpfPath} | gofmt -s > #{t.name}"
 end
 SgDeps = [SgBpfPath, "build/libndn-dpdk-c.a"]
 SgSrc = Rake::FileList["strategy/*.c"]
