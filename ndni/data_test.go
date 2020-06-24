@@ -6,6 +6,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/cryptodev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 	"github.com/usnistgov/ndn-dpdk/ndni"
@@ -133,4 +134,29 @@ func TestDataDigest(t *testing.T) {
 			assert.Equal(data.ToNData().ComputeDigest(), data.GetDigest())
 		}
 	}
+}
+
+func TestDataGen(t *testing.T) {
+	assert, require := makeAR(t)
+
+	mbufs := ndnitestenv.Packet.Pool().MustAlloc(2)
+	mi := mbuftestenv.Indirect.Alloc()
+
+	prefix := ndn.ParseName("/A/B")
+	suffix := ndn.ParseName("/C")
+	freshnessPeriod := 11742 * time.Millisecond
+	content := []byte{0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7}
+
+	gen := ndni.NewDataGen(mbufs[1], suffix, freshnessPeriod, content)
+	defer gen.Close()
+	gen.Encode(mbufs[0], mi, prefix)
+
+	pkt := ndni.PacketFromMbuf(mbufs[0])
+	defer mbufs[0].Close()
+	e := pkt.ParseL3(ndnitestenv.Name.Pool())
+	require.NoError(e)
+	data := pkt.AsData()
+
+	ndntestenv.NameEqual(assert, "/A/B/C", data)
+	assert.Equal(freshnessPeriod, data.GetFreshnessPeriod())
 }

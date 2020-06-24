@@ -1,6 +1,19 @@
 #include "data.h"
 #include "interest.h"
 #include "packet.h"
+#include "tlv-encoder.h"
+
+// clang-format off
+static const uint8_t FAKESIG[] = {
+  TtDSigInfo, 0x03,
+    TtSigType, 0x01, SigHmacWithSha256,
+  TtDSigValue, 0x20,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+};
+// clang-format on
 
 NdnError
 PData_FromPacket(PData* data, struct rte_mbuf* pkt, struct rte_mempool* nameMp)
@@ -112,4 +125,77 @@ DataDigest_Finish(struct rte_crypto_op* op)
   PData* data = Packet_GetDataHdr(npkt);
   data->hasDigest = true;
   return npkt;
+}
+
+DataGen*
+DataGen_New(struct rte_mbuf* m,
+            uint16_t nameSuffixL,
+            const uint8_t* nameSuffixV,
+            uint32_t freshnessPeriod,
+            uint16_t contentL,
+            const uint8_t* contentV)
+{
+  TlvEncoder* en = MakeTlvEncoder(m);
+  if (nameSuffixL > 0) {
+    rte_memcpy(rte_pktmbuf_append(m, nameSuffixL), nameSuffixV, nameSuffixL);
+  }
+
+  if (freshnessPeriod != 0) {
+    typedef struct MetaInfoF
+    {
+      uint8_t metaInfoT;
+      uint8_t metaInfoL;
+      uint8_t freshnessPeriodT;
+      uint8_t freshnessPeriodL;
+      rte_be32_t freshnessPeriodV;
+    } __rte_packed MetaInfoF;
+
+    MetaInfoF* f = (MetaInfoF*)TlvEncoder_Append(en, sizeof(MetaInfoF));
+    f->metaInfoT = TtMetaInfo;
+    f->metaInfoL = 6;
+    f->freshnessPeriodT = TtFreshnessPeriod;
+    f->freshnessPeriodL = 4;
+    *(unaligned_uint32_t*)&f->freshnessPeriodV =
+      rte_cpu_to_be_32(freshnessPeriod);
+  }
+
+  if (contentL != 0) {
+    AppendVarNum(en, TtContent);
+    AppendVarNum(en, contentL);
+    rte_memcpy(rte_pktmbuf_append(m, contentL), contentV, contentL);
+  }
+
+  rte_memcpy(rte_pktmbuf_append(m, sizeof(FAKESIG)), FAKESIG, sizeof(FAKESIG));
+
+  m->vlan_tci = nameSuffixL;
+  return (DataGen*)m;
+}
+
+void
+DataGen_Close(DataGen* gen)
+{
+  rte_pktmbuf_free((struct rte_mbuf*)gen);
+}
+
+void
+DataGen_Encode_(DataGen* gen,
+                struct rte_mbuf* seg0,
+                struct rte_mbuf* seg1,
+                uint16_t namePrefixL,
+                const uint8_t* namePrefixV)
+{
+  struct rte_mbuf* tailTpl = (struct rte_mbuf*)gen;
+  uint16_t nameSuffixL = tailTpl->vlan_tci;
+  rte_pktmbuf_attach(seg1, tailTpl);
+
+  TlvEncoder* en = MakeTlvEncoder(seg0);
+  AppendVarNum(en, TtName);
+  AppendVarNum(en, namePrefixL + nameSuffixL);
+  if (likely(namePrefixL > 0)) {
+    rte_memcpy(rte_pktmbuf_append(seg0, namePrefixL), namePrefixV, namePrefixL);
+  }
+
+  rte_pktmbuf_chain(seg0, seg1);
+  PrependVarNum(en, seg0->pkt_len);
+  PrependVarNum(en, TtData);
 }

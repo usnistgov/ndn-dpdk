@@ -25,7 +25,7 @@ const (
 	// InterestEstimatedHeadroom is a safe headroom to encode Interest.
 	InterestEstimatedHeadroom = 1 + 5 // Interest TL
 
-	// InterestEstimatedTailroom is a safe headroom to encode Interest.
+	// InterestEstimatedTailroom is a safe tailroom to encode Interest.
 	InterestEstimatedTailroom = 4 + NameMaxLength + InterestTemplateBufLen
 
 	// DataEstimatedHeadroom is a safe headroom to encode Data.
@@ -41,7 +41,7 @@ const (
 	_ = "enumgen"
 )
 
-// NdnError indicates an error condition in ndni package.
+// NdnError indicates an error condition.
 type NdnError int
 
 // NdnError values.

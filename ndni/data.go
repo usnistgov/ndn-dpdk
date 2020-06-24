@@ -10,6 +10,7 @@ import (
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/cryptodev"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
@@ -87,4 +88,40 @@ func DataDigestFinish(op *cryptodev.Op) (data *Data, e error) {
 
 	npktC := C.DataDigest_Finish((*C.struct_rte_crypto_op)(op.GetPtr()))
 	return PacketFromPtr(unsafe.Pointer(npktC)).AsData(), nil
+}
+
+// DataGen is a Data encoder optimized for traffic generator.
+type DataGen C.DataGen
+
+// NewDataGen creates a DataGen.
+func NewDataGen(m *pktmbuf.Packet, suffix ndn.Name, freshnessPeriod time.Duration, content []byte) (gen *DataGen) {
+	suffixV, _ := suffix.MarshalBinary()
+	genC := C.DataGen_New((*C.struct_rte_mbuf)(m.GetPtr()),
+		C.uint16_t(len(suffixV)), bytesToPtr(suffixV),
+		C.uint32_t(freshnessPeriod/time.Millisecond),
+		C.uint16_t(len(content)), bytesToPtr(content))
+	return (*DataGen)(genC)
+}
+
+// GetPtr returns *C.DataGen pointer.
+func (gen *DataGen) GetPtr() unsafe.Pointer {
+	return unsafe.Pointer(gen)
+}
+
+func (gen *DataGen) getPtr() *C.DataGen {
+	return (*C.DataGen)(gen)
+}
+
+// Close discards this DataGen.
+func (gen *DataGen) Close() error {
+	C.DataGen_Close(gen.getPtr())
+	return nil
+}
+
+// Encode encodes a Data packet.
+func (gen *DataGen) Encode(seg0, seg1 *pktmbuf.Packet, prefix ndn.Name) {
+	prefixV, _ := prefix.MarshalBinary()
+	C.DataGen_Encode_(gen.getPtr(),
+		(*C.struct_rte_mbuf)(seg0.GetPtr()), (*C.struct_rte_mbuf)(seg1.GetPtr()),
+		C.uint16_t(len(prefixV)), bytesToPtr(prefixV))
 }

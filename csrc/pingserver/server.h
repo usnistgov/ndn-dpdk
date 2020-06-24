@@ -6,7 +6,6 @@
 #include "../core/pcg_basic.h"
 #include "../dpdk/thread.h"
 #include "../iface/face.h"
-#include "../ndn/encode-data.h"
 #include "../pktqueue/queue.h"
 
 #define PINGSERVER_MAX_PATTERNS 256

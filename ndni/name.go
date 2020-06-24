@@ -50,7 +50,7 @@ func CNameFromName(name ndn.Name) (cname *CName) {
 	return cname
 }
 
-// ToLName converts CNmae to LName.
+// ToLName converts CName to LName.
 func (cname CName) ToLName() (lname LName) {
 	lname.Value = cname.V
 	lname.Length = cname.P.NOctets
