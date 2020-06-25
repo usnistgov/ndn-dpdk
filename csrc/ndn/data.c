@@ -82,8 +82,7 @@ PData_CanSatisfy(PData* data, PInterest* interest)
   NameCompareResult cmp = LName_Compare(*interestLName, *dataLName);
 
   if (unlikely(interest->name.p.hasDigestComp)) {
-    if (cmp != NAMECMP_RPREFIX ||
-        interest->name.p.nComps != data->name.p.nComps + 1) {
+    if (cmp != NAMECMP_RPREFIX || interest->name.p.nComps != data->name.p.nComps + 1) {
       return DataSatisfyNo;
     }
 
@@ -94,12 +93,10 @@ PData_CanSatisfy(PData* data, PInterest* interest)
     NameComp digestComp = Name_GetComp(&interest->name, data->name.p.nComps);
     assert(digestComp.size == 34);
     const uint8_t* digest = RTE_PTR_ADD(digestComp.tlv, 2);
-    return memcmp(digest, data->digest, 32) == 0 ? DataSatisfyYes
-                                                 : DataSatisfyNo;
+    return memcmp(digest, data->digest, 32) == 0 ? DataSatisfyYes : DataSatisfyNo;
   }
 
-  return (cmp == NAMECMP_EQUAL ||
-          (interest->canBePrefix && cmp == NAMECMP_LPREFIX))
+  return (cmp == NAMECMP_EQUAL || (interest->canBePrefix && cmp == NAMECMP_LPREFIX))
            ? DataSatisfyYes
            : DataSatisfyNo;
 }
@@ -128,12 +125,8 @@ DataDigest_Finish(struct rte_crypto_op* op)
 }
 
 DataGen*
-DataGen_New(struct rte_mbuf* m,
-            uint16_t nameSuffixL,
-            const uint8_t* nameSuffixV,
-            uint32_t freshnessPeriod,
-            uint16_t contentL,
-            const uint8_t* contentV)
+DataGen_New(struct rte_mbuf* m, uint16_t nameSuffixL, const uint8_t* nameSuffixV,
+            uint32_t freshnessPeriod, uint16_t contentL, const uint8_t* contentV)
 {
   TlvEncoder* en = MakeTlvEncoder(m);
   if (nameSuffixL > 0) {
@@ -155,8 +148,7 @@ DataGen_New(struct rte_mbuf* m,
     f->metaInfoL = 6;
     f->freshnessPeriodT = TtFreshnessPeriod;
     f->freshnessPeriodL = 4;
-    *(unaligned_uint32_t*)&f->freshnessPeriodV =
-      rte_cpu_to_be_32(freshnessPeriod);
+    *(unaligned_uint32_t*)&f->freshnessPeriodV = rte_cpu_to_be_32(freshnessPeriod);
   }
 
   if (contentL != 0) {
@@ -178,10 +170,7 @@ DataGen_Close(DataGen* gen)
 }
 
 void
-DataGen_Encode_(DataGen* gen,
-                struct rte_mbuf* seg0,
-                struct rte_mbuf* seg1,
-                uint16_t namePrefixL,
+DataGen_Encode_(DataGen* gen, struct rte_mbuf* seg0, struct rte_mbuf* seg1, uint16_t namePrefixL,
                 const uint8_t* namePrefixV)
 {
   struct rte_mbuf* tailTpl = (struct rte_mbuf*)gen;

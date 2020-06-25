@@ -2,8 +2,8 @@
 set -e
 set -o pipefail
 
-git ls-files 'csrc/**/*.[hc]' | grep -v csrc/vendor \
-  | xargs clang-format-8 -i -style='{BasedOnStyle: Mozilla, ReflowComments: false}'
+git ls-files 'csrc/**/*.[hc]' | grep -v csrc/vendor | \
+  xargs clang-format-8 -i -style=file
 
 gofmt -l -w -s .
 

@@ -19,35 +19,26 @@ FetchLogic_TxInterestBurst(FetchLogic* fl, uint64_t* segNums, size_t limit)
       seg->inRetxQ = false;
       ++seg->nRetx;
       ++nRetx;
-    } else if (unlikely(fl->win.hiSegNum >
-                        fl->finalSegNum)) { // reached final segment
+    } else if (unlikely(fl->win.hiSegNum > fl->finalSegNum)) { // reached final segment
       break;
-    } else if (likely((seg = FetchWindow_Append(&fl->win)) !=
-                      NULL)) { // fetch new segment
+    } else if (likely((seg = FetchWindow_Append(&fl->win)) != NULL)) { // fetch new segment
       ++nNew;
     } else { // FetchWindow is full
       break;
     }
 
     seg->txTime = now;
-    bool ok __rte_unused =
-      MinTmr_After(&seg->rtoExpiry, fl->rtte.rto, fl->sched);
+    bool ok __rte_unused = MinTmr_After(&seg->rtoExpiry, fl->rtte.rto, fl->sched);
     assert(ok);
     segNums[count++] = seg->segNum;
     ++fl->nInFlight;
   }
 
   if (likely(count > 0)) {
-    ZF_LOGV("%p TX(%d,%d) win=[%" PRIu64 ",%" PRIu64 ") rto=%" PRId64
-            " cwnd=%" PRIu32 " nInFlight=%" PRIu32 "",
-            fl,
-            nNew,
-            nRetx,
-            fl->win.loSegNum,
-            fl->win.hiSegNum,
-            TscDuration_ToMillis(fl->rtte.rto),
-            cwnd,
-            fl->nInFlight);
+    ZF_LOGV("%p TX(%d,%d) win=[%" PRIu64 ",%" PRIu64 ") rto=%" PRId64 " cwnd=%" PRIu32
+            " nInFlight=%" PRIu32 "",
+            fl, nNew, nRetx, fl->win.loSegNum, fl->win.hiSegNum, TscDuration_ToMillis(fl->rtte.rto),
+            cwnd, fl->nInFlight);
   }
   fl->nTxRetx += nRetx;
 
@@ -55,10 +46,7 @@ FetchLogic_TxInterestBurst(FetchLogic* fl, uint64_t* segNums, size_t limit)
 }
 
 static inline bool
-FetchLogic_DecreaseCwnd(FetchLogic* fl,
-                        const char* caller,
-                        uint64_t segNum,
-                        TscTime now)
+FetchLogic_DecreaseCwnd(FetchLogic* fl, const char* caller, uint64_t segNum, TscTime now)
 {
   if (unlikely(fl->hiDataSegNum <= fl->cwndDecreaseInterestSegNum)) {
     return false;
@@ -66,25 +54,15 @@ FetchLogic_DecreaseCwnd(FetchLogic* fl,
   TcpCubic_Decrease(&fl->ca, now);
   fl->cwndDecreaseInterestSegNum = fl->win.hiSegNum;
 
-  ZF_LOGD("%p %s(%" PRIu64 ") win=[%" PRIu64 ",%" PRIu64 ") hi-data=%" PRIu64
-          " rto=%" PRId64 " cwnd=%" PRIu32 " nInFlight=%" PRIu32 "",
-          fl,
-          caller,
-          segNum,
-          fl->win.loSegNum,
-          fl->win.hiSegNum,
-          fl->hiDataSegNum,
-          TscDuration_ToMillis(fl->rtte.rto),
-          TcpCubic_GetCwnd(&fl->ca),
-          fl->nInFlight);
+  ZF_LOGD("%p %s(%" PRIu64 ") win=[%" PRIu64 ",%" PRIu64 ") hi-data=%" PRIu64 " rto=%" PRId64
+          " cwnd=%" PRIu32 " nInFlight=%" PRIu32 "",
+          fl, caller, segNum, fl->win.loSegNum, fl->win.hiSegNum, fl->hiDataSegNum,
+          TscDuration_ToMillis(fl->rtte.rto), TcpCubic_GetCwnd(&fl->ca), fl->nInFlight);
   return true;
 }
 
 static inline void
-FetchLogic_RxData(FetchLogic* fl,
-                  TscTime now,
-                  uint64_t segNum,
-                  bool hasCongMark)
+FetchLogic_RxData(FetchLogic* fl, TscTime now, uint64_t segNum, bool hasCongMark)
 {
   FetchSeg* seg = FetchWindow_Get(&fl->win, segNum);
   if (unlikely(seg == NULL)) {
@@ -118,9 +96,7 @@ FetchLogic_RxData(FetchLogic* fl,
 }
 
 void
-FetchLogic_RxDataBurst(FetchLogic* fl,
-                       const FetchLogicRxData* pkts,
-                       size_t count)
+FetchLogic_RxDataBurst(FetchLogic* fl, const FetchLogicRxData* pkts, size_t count)
 {
   TscTime now = rte_get_tsc_cycles();
   for (size_t i = 0; i < count; ++i) {
@@ -140,8 +116,7 @@ FetchLogic_RtoTimeout(MinTmr* tmr, void* cbarg)
     return;
   }
 
-  if (FetchLogic_DecreaseCwnd(
-        fl, "RtoTimeout", seg->segNum, rte_get_tsc_cycles())) {
+  if (FetchLogic_DecreaseCwnd(fl, "RtoTimeout", seg->segNum, rte_get_tsc_cycles())) {
     RttEst_Backoff(&fl->rtte);
   }
 
@@ -161,8 +136,7 @@ FetchLogic_Init_(FetchLogic* fl)
   fl->nInFlight = 0;
 
   // 2^16 slots of 1ms interval, accommodates RTO up to 65536ms
-  fl->sched =
-    MinSched_New(16, rte_get_tsc_hz() / 1000, FetchLogic_RtoTimeout, fl);
+  fl->sched = MinSched_New(16, rte_get_tsc_hz() / 1000, FetchLogic_RtoTimeout, fl);
   assert(MinSched_GetMaxDelay(fl->sched) >=
          (TscDuration)(RTTEST_MAXRTO_MS * rte_get_tsc_hz() / 1000));
 }

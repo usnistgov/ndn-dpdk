@@ -29,13 +29,12 @@ struct PitEntry
   MinTmr timeout; ///< timeout timer
   TscTime expiry; ///< when all DNs expire
 
-  uint64_t fibPrefixHash; ///< hash value of FIB prefix
-  uint32_t fibSeqNum;     ///< FIB entry sequence number
-  uint8_t nCanBePrefix;   ///< how many DNs want CanBePrefix?
-  uint8_t txHopLimit;     ///< HopLimit for outgoing Interests
-  uint16_t fibPrefixL
-    : PIT_ENTRY_FIBPREFIXL_NBITS_; ///< TLV-LENGTH of FIB prefix
-  bool mustBeFresh : 1;            ///< entry for MustBeFresh 0 or 1?
+  uint64_t fibPrefixHash;                            ///< hash value of FIB prefix
+  uint32_t fibSeqNum;                                ///< FIB entry sequence number
+  uint8_t nCanBePrefix;                              ///< how many DNs want CanBePrefix?
+  uint8_t txHopLimit;                                ///< HopLimit for outgoing Interests
+  uint16_t fibPrefixL : PIT_ENTRY_FIBPREFIXL_NBITS_; ///< TLV-LENGTH of FIB prefix
+  bool mustBeFresh : 1;                              ///< entry for MustBeFresh 0 or 1?
   bool hasSgTimer : 1; ///< whether timeout is set by strategy or expiry
 
   PitEntryExt* ext;
@@ -54,9 +53,7 @@ struct PitEntryExt
 };
 
 static inline void
-PitEntry_SetFibEntry_(PitEntry* entry,
-                      PInterest* interest,
-                      const FibEntry* fibEntry)
+PitEntry_SetFibEntry_(PitEntry* entry, PInterest* interest, const FibEntry* fibEntry)
 {
   entry->fibPrefixL = fibEntry->nameL;
   entry->fibSeqNum = fibEntry->seqNum;
@@ -64,8 +61,7 @@ PitEntry_SetFibEntry_(PitEntry* entry,
   if (unlikely(interest->activeFh >= 0)) {
     name = &interest->activeFhName;
   }
-  entry->fibPrefixHash =
-    PName_ComputePrefixHash(&name->p, name->v, fibEntry->nComps);
+  entry->fibPrefixHash = PName_ComputePrefixHash(&name->p, name->v, fibEntry->nComps);
   memset(entry->sgScratch, 0, PIT_ENTRY_SG_SCRATCH);
 }
 
@@ -118,9 +114,7 @@ PitEntry_ToDebugString(PitEntry* entry);
  *  \param npkt the Interest packet.
  */
 static inline void
-PitEntry_RefreshFibEntry(PitEntry* entry,
-                         Packet* npkt,
-                         const FibEntry* fibEntry)
+PitEntry_RefreshFibEntry(PitEntry* entry, Packet* npkt, const FibEntry* fibEntry)
 {
   if (likely(entry->fibSeqNum == fibEntry->seqNum)) {
     return;

@@ -19,9 +19,7 @@ typedef struct PktQueuePopResult
   bool drop;      ///< whether the first packet should be dropped/ECN-marked
 } PktQueuePopResult;
 
-typedef PktQueuePopResult (*PktQueue_PopOp)(PktQueue* q,
-                                            struct rte_mbuf* pkts[],
-                                            uint32_t count,
+typedef PktQueuePopResult (*PktQueue_PopOp)(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count,
                                             TscTime now);
 
 struct PktQueue
@@ -80,21 +78,12 @@ PktQueue_Pop(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime now)
 }
 
 PktQueuePopResult
-PktQueue_PopPlain(PktQueue* q,
-                  struct rte_mbuf* pkts[],
-                  uint32_t count,
-                  TscTime now);
+PktQueue_PopPlain(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime now);
 
 PktQueuePopResult
-PktQueue_PopDelay(PktQueue* q,
-                  struct rte_mbuf* pkts[],
-                  uint32_t count,
-                  TscTime now);
+PktQueue_PopDelay(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime now);
 
 PktQueuePopResult
-PktQueue_PopCoDel(PktQueue* q,
-                  struct rte_mbuf* pkts[],
-                  uint32_t count,
-                  TscTime now);
+PktQueue_PopCoDel(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime now);
 
 #endif // NDN_DPDK_PKTQUEUE_QUEUE_H

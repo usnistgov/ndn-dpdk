@@ -2,11 +2,8 @@
 #include "../core/logger.h"
 
 uint8_t
-EthFaceEtherHdr_Init(EthFaceEtherHdr* hdr,
-                     const struct rte_ether_addr* local,
-                     const struct rte_ether_addr* remote,
-                     uint16_t vlan0,
-                     uint16_t vlan1)
+EthFaceEtherHdr_Init(EthFaceEtherHdr* hdr, const struct rte_ether_addr* local,
+                     const struct rte_ether_addr* remote, uint16_t vlan0, uint16_t vlan1)
 {
   hdr->eth.ether_type = rte_cpu_to_be_16(NDN_ETHERTYPE);
   hdr->vlan0.eth_proto = rte_cpu_to_be_16(NDN_ETHERTYPE);
@@ -69,8 +66,7 @@ EthFace_SetupFlow(EthFacePriv* priv, struct rte_flow_error* error)
     rte_ether_addr_copy(&hdr->eth.s_addr, &ethSpec.dst);
     rte_ether_addr_copy(&hdr->eth.d_addr, &ethSpec.src);
   }
-  struct rte_flow_item_vlan vlanMask = { .tci = rte_cpu_to_be_16(0x0FFF),
-                                         .inner_type = 0xFFFF };
+  struct rte_flow_item_vlan vlanMask = { .tci = rte_cpu_to_be_16(0x0FFF), .inner_type = 0xFFFF };
   struct rte_flow_item_vlan vlanSpec0 = { .tci = hdr->vlan0.vlan_tci,
                                           .inner_type = hdr->vlan0.eth_proto };
   struct rte_flow_item_vlan vlanSpec1 = { .tci = hdr->vlan1.vlan_tci,
@@ -83,16 +79,14 @@ EthFace_SetupFlow(EthFacePriv* priv, struct rte_flow_error* error)
       .spec = &ethSpec,
     },
     {
-      .type = priv->txHdrLen > offsetof(EthFaceEtherHdr, vlan0)
-                ? RTE_FLOW_ITEM_TYPE_VLAN
-                : RTE_FLOW_ITEM_TYPE_END,
+      .type = priv->txHdrLen > offsetof(EthFaceEtherHdr, vlan0) ? RTE_FLOW_ITEM_TYPE_VLAN
+                                                                : RTE_FLOW_ITEM_TYPE_END,
       .mask = &vlanMask,
       .spec = &vlanSpec0,
     },
     {
-      .type = priv->txHdrLen > offsetof(EthFaceEtherHdr, vlan1)
-                ? RTE_FLOW_ITEM_TYPE_VLAN
-                : RTE_FLOW_ITEM_TYPE_END,
+      .type = priv->txHdrLen > offsetof(EthFaceEtherHdr, vlan1) ? RTE_FLOW_ITEM_TYPE_VLAN
+                                                                : RTE_FLOW_ITEM_TYPE_END,
       .mask = &vlanMask,
       .spec = &vlanSpec1,
     },

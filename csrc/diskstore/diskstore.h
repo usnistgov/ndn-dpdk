@@ -47,10 +47,7 @@ DiskStore_PutData(DiskStore* store, uint64_t slotId, Packet* npkt);
  *  This function may be invoked on any thread, including non-SPDK thread.
  */
 void
-DiskStore_GetData(DiskStore* store,
-                  uint64_t slotId,
-                  uint16_t dataLen,
-                  Packet* npkt,
+DiskStore_GetData(DiskStore* store, uint64_t slotId, uint16_t dataLen, Packet* npkt,
                   struct rte_ring* reply);
 
 #endif // NDN_DPDK_DISKSTORE_DISKSTORE_H

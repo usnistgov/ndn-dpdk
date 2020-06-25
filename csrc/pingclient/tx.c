@@ -32,13 +32,11 @@ PingClientTx_MakeInterest(PingClientTx* ct, Packet* npkt, PingTime now)
   }
 
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
-  LName nameSuffix = { .length = PINGCLIENT_SUFFIX_LEN,
-                       .value = &pattern->seqNum.compT };
+  LName nameSuffix = { .length = PINGCLIENT_SUFFIX_LEN, .value = &pattern->seqNum.compT };
   EncodeInterest(pkt, &pattern->tpl, nameSuffix, NonceGen_Next(&ct->nonceGen));
 
   Packet_SetL3PktType(npkt, L3PktTypeInterest); // for stats; no PInterest*
-  Packet_InitLpL3Hdr(npkt)->pitToken =
-    PingToken_New(patternId, ct->runNum, now);
+  Packet_InitLpL3Hdr(npkt)->pitToken = PingToken_New(patternId, ct->runNum, now);
   ZF_LOGD("<I pattern=%" PRIu8 " seq=%" PRIx64 "", patternId, seqNum);
 }
 
@@ -46,8 +44,8 @@ static void
 PingClientTx_Burst(PingClientTx* ct)
 {
   Packet* npkts[PINGCLIENT_TX_BURST_SIZE];
-  int res = rte_pktmbuf_alloc_bulk(
-    ct->interestMp, (struct rte_mbuf**)npkts, PINGCLIENT_TX_BURST_SIZE);
+  int res =
+    rte_pktmbuf_alloc_bulk(ct->interestMp, (struct rte_mbuf**)npkts, PINGCLIENT_TX_BURST_SIZE);
   if (unlikely(res != 0)) {
     ZF_LOGW("interestMp-full");
     return;

@@ -12,10 +12,8 @@ SpdkBdev_InitFiller()
 }
 
 static int
-SpdkBdev_MakeIovec(
-  struct rte_mbuf* pkt,
-  uint64_t minLen,
-  struct iovec iov[SPDK_BDEV_MAX_MBUF_SEGS + SPDK_BDEV_FILLER_MAX])
+SpdkBdev_MakeIovec(struct rte_mbuf* pkt, uint64_t minLen,
+                   struct iovec iov[SPDK_BDEV_MAX_MBUF_SEGS + SPDK_BDEV_FILLER_MAX])
 {
   if (pkt->nb_segs > SPDK_BDEV_MAX_MBUF_SEGS) {
     return -EMSGSIZE;
@@ -32,8 +30,7 @@ SpdkBdev_MakeIovec(
   }
 
   // XXX filler is unnecessary for AIO and NVMe
-  for (uint64_t len = pkt->pkt_len; unlikely(len < minLen);
-       len += SPDK_BDEV_FILLER_LEN) {
+  for (uint64_t len = pkt->pkt_len; unlikely(len < minLen); len += SPDK_BDEV_FILLER_LEN) {
     if (unlikely(i >= SPDK_BDEV_MAX_MBUF_SEGS + SPDK_BDEV_FILLER_MAX)) {
       return -EMSGSIZE;
     }
@@ -47,39 +44,27 @@ SpdkBdev_MakeIovec(
 }
 
 int
-SpdkBdev_ReadPacket(struct spdk_bdev_desc* desc,
-                    struct spdk_io_channel* ch,
-                    struct rte_mbuf* pkt,
-                    uint64_t blockOffset,
-                    uint64_t blockCount,
-                    uint32_t blockSize,
-                    spdk_bdev_io_completion_cb cb,
-                    void* ctx)
+SpdkBdev_ReadPacket(struct spdk_bdev_desc* desc, struct spdk_io_channel* ch, struct rte_mbuf* pkt,
+                    uint64_t blockOffset, uint64_t blockCount, uint32_t blockSize,
+                    spdk_bdev_io_completion_cb cb, void* ctx)
 {
   struct iovec iov[SPDK_BDEV_MAX_MBUF_SEGS + SPDK_BDEV_FILLER_MAX];
   int iovcnt = SpdkBdev_MakeIovec(pkt, blockCount * blockSize, iov);
   if (unlikely(iovcnt < 0)) {
     return iovcnt;
   }
-  return spdk_bdev_readv_blocks(
-    desc, ch, iov, iovcnt, blockOffset, blockCount, cb, ctx);
+  return spdk_bdev_readv_blocks(desc, ch, iov, iovcnt, blockOffset, blockCount, cb, ctx);
 }
 
 int
-SpdkBdev_WritePacket(struct spdk_bdev_desc* desc,
-                     struct spdk_io_channel* ch,
-                     struct rte_mbuf* pkt,
-                     uint64_t blockOffset,
-                     uint64_t blockCount,
-                     uint32_t blockSize,
-                     spdk_bdev_io_completion_cb cb,
-                     void* ctx)
+SpdkBdev_WritePacket(struct spdk_bdev_desc* desc, struct spdk_io_channel* ch, struct rte_mbuf* pkt,
+                     uint64_t blockOffset, uint64_t blockCount, uint32_t blockSize,
+                     spdk_bdev_io_completion_cb cb, void* ctx)
 {
   struct iovec iov[SPDK_BDEV_MAX_MBUF_SEGS + SPDK_BDEV_FILLER_MAX];
   int iovcnt = SpdkBdev_MakeIovec(pkt, blockCount * blockSize, iov);
   if (unlikely(iovcnt < 0)) {
     return iovcnt;
   }
-  return spdk_bdev_writev_blocks(
-    desc, ch, iov, iovcnt, blockOffset, blockCount, cb, ctx);
+  return spdk_bdev_writev_blocks(desc, ch, iov, iovcnt, blockOffset, blockCount, cb, ctx);
 }

@@ -9,11 +9,8 @@ InputDemux_Drop(InputDemux* demux, Packet* npkt, const char* reason)
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   ZF_LOGD("%s-from=%" PRI_FaceId " npkt=%p token=%016" PRIx64 " drop=%s",
-          L3PktTypeToString(Packet_GetL3PktType(npkt)),
-          pkt->port,
-          npkt,
-          Packet_GetLpL3Hdr(npkt)->pitToken,
-          reason);
+          L3PktTypeToString(Packet_GetL3PktType(npkt)), pkt->port, npkt,
+          Packet_GetLpL3Hdr(npkt)->pitToken, reason);
 
   ++demux->nDrops;
   rte_pktmbuf_free(pkt);
@@ -29,13 +26,9 @@ InputDemux_PassTo(InputDemux* demux, Packet* npkt, uint8_t index)
   }
 
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
-  ZF_LOGD("%s-from=%" PRI_FaceId " npkt=%p token=%016" PRIx64
-          " dest-index=%" PRIu8,
-          L3PktTypeToString(Packet_GetL3PktType(npkt)),
-          pkt->port,
-          npkt,
-          Packet_GetLpL3Hdr(npkt)->pitToken,
-          index);
+  ZF_LOGD("%s-from=%" PRI_FaceId " npkt=%p token=%016" PRIx64 " dest-index=%" PRIu8,
+          L3PktTypeToString(Packet_GetL3PktType(npkt)), pkt->port, npkt,
+          Packet_GetLpL3Hdr(npkt)->pitToken, index);
 
   uint32_t nRej = PktQueue_PushPlain(dest->queue, &pkt, 1);
   dest->nDropped += nRej;
@@ -55,18 +48,14 @@ InputDemux_DispatchToFirst(InputDemux* demux, Packet* npkt, const Name* name)
 }
 
 void
-InputDemux_DispatchRoundrobinDiv(InputDemux* demux,
-                                 Packet* npkt,
-                                 const Name* name)
+InputDemux_DispatchRoundrobinDiv(InputDemux* demux, Packet* npkt, const Name* name)
 {
   uint8_t index = (++demux->roundrobin.i) % demux->roundrobin.n;
   InputDemux_PassTo(demux, npkt, index);
 }
 
 void
-InputDemux_DispatchRoundrobinMask(InputDemux* demux,
-                                  Packet* npkt,
-                                  const Name* name)
+InputDemux_DispatchRoundrobinMask(InputDemux* demux, Packet* npkt, const Name* name)
 {
   uint8_t index = (++demux->roundrobin.i) & demux->roundrobin.n;
   InputDemux_PassTo(demux, npkt, index);

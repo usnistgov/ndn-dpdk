@@ -18,8 +18,7 @@ Pit_Init(Pit* pit)
   ZF_LOGI("%p Init() priv=%p", pit, pitp);
 
   // 2^12 slots of 33ms interval, accommodates InterestLifetime up to 136533ms
-  pitp->timeoutSched =
-    MinSched_New(12, rte_get_tsc_hz() / 30, PitEntry_Timeout_, pit);
+  pitp->timeoutSched = MinSched_New(12, rte_get_tsc_hz() / 30, PitEntry_Timeout_, pit);
   assert(MinSched_GetMaxDelay(pitp->timeoutSched) >=
          (TscDuration)(PIT_MAX_LIFETIME * rte_get_tsc_hz() / 1000));
 
@@ -54,13 +53,9 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
   }
 
   // check for CS match
-  if (pccEntry->hasCsEntry &&
-      likely(Cs_MatchInterest_(Cs_FromPcct(pcct), pccEntry, npkt))) {
+  if (pccEntry->hasCsEntry && likely(Cs_MatchInterest_(Cs_FromPcct(pcct), pccEntry, npkt))) {
     // CS entry satisfies Interest
-    ZF_LOGD("%p Insert(%s) pcc=%p has-CS",
-            pit,
-            PccSearch_ToDebugString(&search),
-            pccEntry);
+    ZF_LOGD("%p Insert(%s) pcc=%p has-CS", pit, PccSearch_ToDebugString(&search), pccEntry);
     ++pitp->nCsMatch;
     return PitResult_New_(pccEntry, PIT_INSERT_CS);
   }
@@ -101,21 +96,13 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
     ++pitp->nEntries;
     ++pitp->nInsert;
     PitEntry_Init(entry, npkt, fibEntry);
-    ZF_LOGD("%p Insert(%s) pcc=%p ins-PIT%d pit=%p",
-            pit,
-            PccSearch_ToDebugString(&search),
-            pccEntry,
-            (int)entry->mustBeFresh,
-            entry);
+    ZF_LOGD("%p Insert(%s) pcc=%p ins-PIT%d pit=%p", pit, PccSearch_ToDebugString(&search),
+            pccEntry, (int)entry->mustBeFresh, entry);
   } else {
     ++pitp->nFound;
     PitEntry_RefreshFibEntry(entry, npkt, fibEntry);
-    ZF_LOGD("%p Insert(%s) pcc=%p has-PIT%d pit=%p",
-            pit,
-            PccSearch_ToDebugString(&search),
-            pccEntry,
-            (int)entry->mustBeFresh,
-            entry);
+    ZF_LOGD("%p Insert(%s) pcc=%p has-PIT%d pit=%p", pit, PccSearch_ToDebugString(&search),
+            pccEntry, (int)entry->mustBeFresh, entry);
   }
 
   return PitResult_New_(pccEntry, resKind);

@@ -18,9 +18,7 @@ typedef struct InputDemuxDest
  */
 typedef struct InputDemux InputDemux;
 
-typedef void (*InputDemux_DispatchFunc)(InputDemux* demux,
-                                        Packet* npkt,
-                                        const Name* name);
+typedef void (*InputDemux_DispatchFunc)(InputDemux* demux, Packet* npkt, const Name* name);
 
 void
 InputDemux_DispatchDrop(InputDemux* demux, Packet* npkt, const Name* name);
@@ -29,14 +27,10 @@ void
 InputDemux_DispatchToFirst(InputDemux* demux, Packet* npkt, const Name* name);
 
 void
-InputDemux_DispatchRoundrobinDiv(InputDemux* demux,
-                                 Packet* npkt,
-                                 const Name* name);
+InputDemux_DispatchRoundrobinDiv(InputDemux* demux, Packet* npkt, const Name* name);
 
 void
-InputDemux_DispatchRoundrobinMask(InputDemux* demux,
-                                  Packet* npkt,
-                                  const Name* name);
+InputDemux_DispatchRoundrobinMask(InputDemux* demux, Packet* npkt, const Name* name);
 
 void
 InputDemux_DispatchByNdt(InputDemux* demux, Packet* npkt, const Name* name);

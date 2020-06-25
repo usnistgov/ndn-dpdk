@@ -3,11 +3,7 @@
 Face gFaces_[FACEID_MAX + 1];
 
 void
-FaceImpl_RxBurst(FaceRxBurst* burst,
-                 uint16_t nFrames,
-                 int rxThread,
-                 Face_RxCb cb,
-                 void* cbarg)
+FaceImpl_RxBurst(FaceRxBurst* burst, uint16_t nFrames, int rxThread, Face_RxCb cb, void* cbarg)
 {
   FaceRxBurst_Clear(burst);
 

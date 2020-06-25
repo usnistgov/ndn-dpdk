@@ -27,8 +27,7 @@ static double
 TcpCubic_ComputeWEst(TcpCubic* ca, double t, double rtt)
 {
   return ca->wMax * TCPCUBIC_BETACUBIC +
-         (3.0 * (1.0 - TCPCUBIC_BETACUBIC) / (1.0 + TCPCUBIC_BETACUBIC)) *
-           (t / rtt);
+         (3.0 * (1.0 - TCPCUBIC_BETACUBIC) / (1.0 + TCPCUBIC_BETACUBIC)) * (t / rtt);
 }
 
 void

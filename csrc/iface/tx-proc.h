@@ -8,9 +8,7 @@
 
 typedef struct TxProc TxProc;
 
-typedef uint16_t (*TxProc_OutputFunc_)(TxProc* tx,
-                                       Packet* npkt,
-                                       struct rte_mbuf** frames,
+typedef uint16_t (*TxProc_OutputFunc_)(TxProc* tx, Packet* npkt, struct rte_mbuf** frames,
                                        uint16_t maxFrames);
 
 /** \brief Outgoing packet processing procedure.
@@ -30,9 +28,8 @@ typedef struct TxProc
   uint64_t nL3OverLength; ///< dropped L3 packets due to over length
   uint64_t nAllocFails;   ///< dropped L3 packets due to allocation failure
 
-  uint64_t nFrames; ///< sent+dropped L2 frames
-  uint64_t
-    nOctets; ///< sent+dropped L2 octets (including NDNLP hdr but not Ethernet hdr)
+  uint64_t nFrames;        ///< sent+dropped L2 frames
+  uint64_t nOctets;        ///< sent+dropped L2 octets (including NDNLP hdr but not Ethernet hdr)
   uint64_t nDroppedFrames; ///< dropped L2 frames
   uint64_t nDroppedOctets; ///< dropped L2 octets
 
@@ -55,10 +52,7 @@ typedef struct TxProc
  *  \retval ENOSPC MTU is too small
  */
 int
-TxProc_Init(TxProc* tx,
-            uint16_t mtu,
-            uint16_t headroom,
-            struct rte_mempool* indirectMp,
+TxProc_Init(TxProc* tx, uint16_t mtu, uint16_t headroom, struct rte_mempool* indirectMp,
             struct rte_mempool* headerMp);
 
 /** \brief Process an outgoing L3 packet.
@@ -68,10 +62,7 @@ TxProc_Init(TxProc* tx,
  *  \return number of L2 frames to be transmitted
  */
 static inline uint16_t
-TxProc_Output(TxProc* tx,
-              Packet* npkt,
-              struct rte_mbuf** frames,
-              uint16_t maxFrames)
+TxProc_Output(TxProc* tx, Packet* npkt, struct rte_mbuf** frames, uint16_t maxFrames)
 {
   return (*tx->outputFunc)(tx, npkt, frames, maxFrames);
 }

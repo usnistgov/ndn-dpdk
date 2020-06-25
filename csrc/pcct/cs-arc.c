@@ -29,13 +29,13 @@ CsArc_GetList(CsArc* arc, CsArcListId cslId)
 #define CsArc_p(arc) ((arc)->T1.capacity)
 #define CsArc_p1(arc) ((arc)->T2.capacity)
 
-#define CsArc_Move(arc, entry, src, dst)                                       \
-  do {                                                                         \
-    assert((entry)->arcList == CSL_ARC_##src);                                 \
-    CsList_Remove(&(arc)->src, (entry));                                       \
-    (entry)->arcList = CSL_ARC_##dst;                                          \
-    CsList_Append(&(arc)->dst, (entry));                                       \
-    ZF_LOGV("^ move=%p from=" #src " to=" #dst, (entry));                      \
+#define CsArc_Move(arc, entry, src, dst)                                                           \
+  do {                                                                                             \
+    assert((entry)->arcList == CSL_ARC_##src);                                                     \
+    CsList_Remove(&(arc)->src, (entry));                                                           \
+    (entry)->arcList = CSL_ARC_##dst;                                                              \
+    CsList_Append(&(arc)->dst, (entry));                                                           \
+    ZF_LOGV("^ move=%p from=" #src " to=" #dst, (entry));                                          \
   } while (false)
 
 static inline void

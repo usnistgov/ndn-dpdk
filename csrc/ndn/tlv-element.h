@@ -95,14 +95,10 @@ TlvElement_GetLinearValue(const TlvElement* ele)
  *  \post parent/following TlvElements and MbufLoc may be invalidated.
  */
 static inline const uint8_t*
-TlvElement_LinearizeValue(TlvElement* ele,
-                          struct rte_mbuf* pkt,
-                          struct rte_mempool* mp,
-                          MbufLoc* d)
+TlvElement_LinearizeValue(TlvElement* ele, struct rte_mbuf* pkt, struct rte_mempool* mp, MbufLoc* d)
 {
   assert(ele->length > 0);
-  const uint8_t* linear =
-    MbufLoc_Linearize(&ele->value, &ele->last, ele->length, pkt, mp);
+  const uint8_t* linear = MbufLoc_Linearize(&ele->value, &ele->last, ele->length, pkt, mp);
   if (d != NULL) {
     // in case MbufLoc_Linearize fails, this is meaningless but harmless
     MbufLoc_Copy(d, &ele->last);

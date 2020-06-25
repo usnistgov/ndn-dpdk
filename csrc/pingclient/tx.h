@@ -29,9 +29,7 @@ typedef struct PingClientTxPattern
   InterestTemplate tpl;
 } PingClientTxPattern;
 
-static_assert(offsetof(PingClientTxPattern, seqNum.compV) % sizeof(uint64_t) ==
-                0,
-              "");
+static_assert(offsetof(PingClientTxPattern, seqNum.compV) % sizeof(uint64_t) == 0, "");
 
 /** \brief ndnping client.
  */

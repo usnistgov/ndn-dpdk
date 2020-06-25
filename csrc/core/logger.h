@@ -36,9 +36,12 @@
  *  These are case sensitive and must be written as upper case.
  *  The default is INFO.
  */
-#define INIT_ZF_LOG(module)                                                    \
-  static int gZfLogOutputLvl;                                                  \
-  RTE_INIT(InitLogOutputLvl) { gZfLogOutputLvl = ParseLogLevel(#module); }     \
+#define INIT_ZF_LOG(module)                                                                        \
+  static int gZfLogOutputLvl;                                                                      \
+  RTE_INIT(InitLogOutputLvl)                                                                       \
+  {                                                                                                \
+    gZfLogOutputLvl = ParseLogLevel(#module);                                                      \
+  }                                                                                                \
   struct AllowTrailingSemicolon_
 
 int

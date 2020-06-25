@@ -27,10 +27,7 @@ typedef struct PitDnUpIt_
 } PitDnUpIt_;
 
 static inline void
-PitDnUpIt_Init_(PitDnUpIt_* it,
-                PitEntry* entry,
-                int maxInEntry,
-                size_t offsetInEntry)
+PitDnUpIt_Init_(PitDnUpIt_* it, PitEntry* entry, int maxInEntry, size_t offsetInEntry)
 {
   it->index = 0;
   it->i = 0;
@@ -101,8 +98,7 @@ PitDnIt_Next(PitDnIt* it)
 static inline bool
 PitDnIt_Extend(PitDnIt* it, Pit* pit)
 {
-  bool ok = PitDnUpIt_Extend_(
-    it, pit, PIT_ENTRY_EXT_MAX_DNS, offsetof(PitEntryExt, dns));
+  bool ok = PitDnUpIt_Extend_(it, pit, PIT_ENTRY_EXT_MAX_DNS, offsetof(PitEntryExt, dns));
   it->dn = &it->dns[it->i];
   return ok;
 }
@@ -146,8 +142,7 @@ PitUpIt_Next(PitUpIt* it)
 static inline bool
 PitUpIt_Extend(PitDnIt* it, Pit* pit)
 {
-  bool ok = PitDnUpIt_Extend_(
-    it, pit, PIT_ENTRY_EXT_MAX_UPS, offsetof(PitEntryExt, ups));
+  bool ok = PitDnUpIt_Extend_(it, pit, PIT_ENTRY_EXT_MAX_UPS, offsetof(PitEntryExt, ups));
   it->up = &it->ups[it->i];
   return ok;
 }

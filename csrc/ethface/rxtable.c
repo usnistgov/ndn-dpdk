@@ -11,8 +11,7 @@ EthRxTable_Accept(EthRxTable* rxt, struct rte_mbuf* frame, uint64_t now)
     frame->port = atomic_load_explicit(&rxt->multicast, memory_order_relaxed);
   } else {
     uint8_t srcLastOctet = hdr->eth.s_addr.addr_bytes[5];
-    frame->port =
-      atomic_load_explicit(&rxt->unicast[srcLastOctet], memory_order_relaxed);
+    frame->port = atomic_load_explicit(&rxt->unicast[srcLastOctet], memory_order_relaxed);
   }
 
   if (likely(hdr->eth.ether_type == rte_cpu_to_be_16(NDN_ETHERTYPE))) {

@@ -10,12 +10,9 @@ InOrderReassembler_Receive(InOrderReassembler* r, Packet* npkt)
   struct rte_mbuf* frame = Packet_ToMbuf(npkt);
   LpL2* lpl2 = &Packet_GetLpHdr(npkt)->l2;
   assert(lpl2->fragCount > 1);
-#define PKTDBG(fmt, ...)                                                       \
-  ZF_LOGD("%016" PRIX64 ",%" PRIu16 ",%" PRIu16 " " fmt,                       \
-          lpl2->seqNum,                                                        \
-          lpl2->fragIndex,                                                     \
-          lpl2->fragCount,                                                     \
-          ##__VA_ARGS__)
+#define PKTDBG(fmt, ...)                                                                           \
+  ZF_LOGD("%016" PRIX64 ",%" PRIu16 ",%" PRIu16 " " fmt, lpl2->seqNum, lpl2->fragIndex,            \
+          lpl2->fragCount, ##__VA_ARGS__)
 
   if (lpl2->fragIndex == 0) {
     if (unlikely(r->tail != NULL)) {

@@ -35,8 +35,7 @@ PingTime_Now()
 static inline uint64_t
 PingToken_New(uint8_t patternId, uint8_t runNum, PingTime timestamp)
 {
-  return ((uint64_t)patternId << 56) | ((uint64_t)runNum << 48) |
-         (timestamp & 0xFFFFFFFFFFFF);
+  return ((uint64_t)patternId << 56) | ((uint64_t)runNum << 48) | (timestamp & 0xFFFFFFFFFFFF);
 }
 
 static inline uint8_t

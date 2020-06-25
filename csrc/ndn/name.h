@@ -156,9 +156,7 @@ PName_SizeofPrefix(const PName* n, const uint8_t* input, uint16_t i)
 }
 
 static inline uint64_t
-PName_ComputePrefixHashUncached(const PName* n,
-                                const uint8_t* input,
-                                uint16_t i)
+PName_ComputePrefixHashUncached(const PName* n, const uint8_t* input, uint16_t i)
 {
   if (unlikely(i == 0)) {
     return NameHash_Empty_;
@@ -204,9 +202,7 @@ typedef struct Name
   PName p;
 } Name;
 static_assert(sizeof(Name) <= 3 * RTE_CACHE_LINE_SIZE, "");
-static_assert(offsetof(Name, p) + offsetof(PName, nOctets) ==
-                offsetof(LName, length),
-              "");
+static_assert(offsetof(Name, p) + offsetof(PName, nOctets) == offsetof(LName, length), "");
 
 typedef struct NameComp
 {

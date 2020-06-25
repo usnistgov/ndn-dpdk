@@ -37,12 +37,8 @@ typedef union PacketPriv
   };
   PNack nack;
 } PacketPriv;
-static_assert(offsetof(PacketPriv, lp) + offsetof(LpHeader, l3) ==
-                offsetof(PacketPriv, lpl3),
-              "");
-static_assert(offsetof(PacketPriv, nack) + offsetof(PNack, lpl3) ==
-                offsetof(PacketPriv, lpl3),
-              "");
+static_assert(offsetof(PacketPriv, lp) + offsetof(LpHeader, l3) == offsetof(PacketPriv, lpl3), "");
+static_assert(offsetof(PacketPriv, nack) + offsetof(PNack, lpl3) == offsetof(PacketPriv, lpl3), "");
 static_assert(offsetof(PacketPriv, nack) + offsetof(PNack, interest) ==
                 offsetof(PacketPriv, interest),
               "");
@@ -100,8 +96,7 @@ Packet_SetL3PktType(Packet* npkt, L3PktType t)
 static inline PacketPriv*
 Packet_GetPriv_(Packet* npkt)
 {
-  return (PacketPriv*)rte_mbuf_to_priv_(
-    rte_mbuf_from_indirect(Packet_ToMbuf(npkt)));
+  return (PacketPriv*)rte_mbuf_to_priv_(rte_mbuf_from_indirect(Packet_ToMbuf(npkt)));
 }
 
 static inline LpHeader*
@@ -219,8 +214,6 @@ Packet_ParseL3(Packet* npkt, struct rte_mempool* nameMp);
  *  \retval NULL allocation failure.
  */
 Packet*
-ClonePacket(Packet* npkt,
-            struct rte_mempool* headerMp,
-            struct rte_mempool* indirectMp);
+ClonePacket(Packet* npkt, struct rte_mempool* headerMp, struct rte_mempool* indirectMp);
 
 #endif // NDN_DPDK_NDN_PACKET_H

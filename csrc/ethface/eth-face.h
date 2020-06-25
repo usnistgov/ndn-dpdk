@@ -18,11 +18,8 @@ typedef struct EthFaceEtherHdr
 } __rte_packed __rte_aligned(2) EthFaceEtherHdr;
 
 uint8_t
-EthFaceEtherHdr_Init(EthFaceEtherHdr* hdr,
-                     const struct rte_ether_addr* local,
-                     const struct rte_ether_addr* remote,
-                     uint16_t vlan0,
-                     uint16_t vlan1);
+EthFaceEtherHdr_Init(EthFaceEtherHdr* hdr, const struct rte_ether_addr* local,
+                     const struct rte_ether_addr* remote, uint16_t vlan0, uint16_t vlan1);
 
 /** \brief Ethernet face private data.
  *

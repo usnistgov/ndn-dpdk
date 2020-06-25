@@ -9,10 +9,7 @@
 struct rte_ring* theHrlogRing = NULL;
 
 int
-Hrlog_RunWriter(const char* filename,
-                int nSkip,
-                int nTotal,
-                ThreadStopFlag* stop)
+Hrlog_RunWriter(const char* filename, int nSkip, int nTotal, ThreadStopFlag* stop)
 {
   int fd = open(filename, O_RDWR | O_CREAT | O_TRUNC, (mode_t)0600);
   if (fd == -1) {

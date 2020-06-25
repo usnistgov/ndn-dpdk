@@ -11,7 +11,7 @@ typedef struct InOrderReassembler
 {
   struct rte_mbuf* head; ///< first fragment of current packet
   struct rte_mbuf* tail; ///< last fragment of current packet
-  uint64_t nextSeqNo; ///< next expected sequence number; valid iff .tail!=NULL
+  uint64_t nextSeqNo;    ///< next expected sequence number; valid iff .tail!=NULL
 
   uint64_t nAccepted;   ///< number of fragments received and accepted
   uint64_t nOutOfOrder; ///< number of out-of-order fragments dropped

@@ -54,9 +54,7 @@ typedef struct PInterest
  *  \retval NdnErrAllocError unable to allocate mbuf.
  */
 NdnError
-PInterest_FromPacket(PInterest* interest,
-                     struct rte_mbuf* pkt,
-                     struct rte_mempool* nameMp);
+PInterest_FromPacket(PInterest* interest, struct rte_mbuf* pkt, struct rte_mempool* nameMp);
 
 /** \brief Set active forwarding hint.
  *  \param index fwhint index, must be less than \c interest->nFhs, or -1 for none.
@@ -89,12 +87,8 @@ NonceGen_Next(NonceGen* g)
  *  \retval NULL allocation failure.
  */
 Packet*
-ModifyInterest(Packet* npkt,
-               uint32_t nonce,
-               uint32_t lifetime,
-               uint8_t hopLimit,
-               struct rte_mempool* headerMp,
-               struct rte_mempool* guiderMp,
+ModifyInterest(Packet* npkt, uint32_t nonce, uint32_t lifetime, uint8_t hopLimit,
+               struct rte_mempool* headerMp, struct rte_mempool* guiderMp,
                struct rte_mempool* indirectMp);
 
 /** \brief Template for Interest encoding.
@@ -109,19 +103,13 @@ typedef struct InterestTemplate
 } InterestTemplate;
 
 void
-EncodeInterest_(struct rte_mbuf* m,
-                const InterestTemplate* tpl,
-                uint16_t suffixL,
-                const uint8_t* suffixV,
-                uint32_t nonce);
+EncodeInterest_(struct rte_mbuf* m, const InterestTemplate* tpl, uint16_t suffixL,
+                const uint8_t* suffixV, uint32_t nonce);
 
 /** \brief Encode an Interest.
  */
 static inline void
-EncodeInterest(struct rte_mbuf* m,
-               const InterestTemplate* tpl,
-               LName suffix,
-               uint32_t nonce)
+EncodeInterest(struct rte_mbuf* m, const InterestTemplate* tpl, LName suffix, uint32_t nonce)
 {
   EncodeInterest_(m, tpl, suffix.length, suffix.value, nonce);
 }

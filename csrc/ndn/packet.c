@@ -40,8 +40,7 @@ Packet_ParseL3(Packet* npkt, struct rte_mempool* nameMp)
   MbufLoc_Init(&ml, pkt);
   switch (MbufLoc_PeekOctet(&ml)) {
     case TtInterest: {
-      NdnError e =
-        PInterest_FromPacket(Packet_GetInterestHdr_(npkt), pkt, nameMp);
+      NdnError e = PInterest_FromPacket(Packet_GetInterestHdr_(npkt), pkt, nameMp);
       if (likely(e == NdnErrOK)) {
         if (Packet_InitLpL3Hdr(npkt)->nackReason > 0) {
           Packet_SetL3PktType(npkt, L3PktTypeNack);
@@ -63,9 +62,7 @@ Packet_ParseL3(Packet* npkt, struct rte_mempool* nameMp)
 }
 
 Packet*
-ClonePacket(Packet* npkt,
-            struct rte_mempool* headerMp,
-            struct rte_mempool* indirectMp)
+ClonePacket(Packet* npkt, struct rte_mempool* headerMp, struct rte_mempool* indirectMp)
 {
   struct rte_mbuf* header = rte_pktmbuf_alloc(headerMp);
   if (unlikely(header == NULL)) {
@@ -83,7 +80,6 @@ ClonePacket(Packet* npkt,
   // copy PacketPriv
   Packet_SetL2PktType(outNpkt, Packet_GetL2PktType(npkt));
   Packet_SetL3PktType(outNpkt, Packet_GetL3PktType(npkt));
-  rte_memcpy(
-    Packet_GetPriv_(outNpkt), Packet_GetPriv_(npkt), sizeof(PacketPriv));
+  rte_memcpy(Packet_GetPriv_(outNpkt), Packet_GetPriv_(npkt), sizeof(PacketPriv));
   return outNpkt;
 }

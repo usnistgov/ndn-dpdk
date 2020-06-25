@@ -38,10 +38,7 @@ typedef struct MinSched
  *  \param cb callback function when a timer expires
  */
 MinSched*
-MinSched_New(int nSlotBits,
-             TscDuration interval,
-             MinTmrCallback cb,
-             void* cbarg);
+MinSched_New(int nSlotBits, TscDuration interval, MinTmrCallback cb, void* cbarg);
 
 /** \brief Destroy a minute scheduler.
  */

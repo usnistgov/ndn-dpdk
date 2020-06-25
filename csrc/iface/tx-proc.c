@@ -8,27 +8,17 @@ INIT_ZF_LOG(TxProc);
 static const int MIN_PAYLOAD_SIZE_PER_FRAGMENT = 512;
 
 uint16_t
-TxProc_OutputFrag(TxProc* tx,
-                  Packet* npkt,
-                  struct rte_mbuf** frames,
-                  uint16_t maxFrames);
+TxProc_OutputFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames, uint16_t maxFrames);
 uint16_t
-TxProc_OutputNoFrag(TxProc* tx,
-                    Packet* npkt,
-                    struct rte_mbuf** frames,
-                    uint16_t maxFrames);
+TxProc_OutputNoFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames, uint16_t maxFrames);
 
 int
-TxProc_Init(TxProc* tx,
-            uint16_t mtu,
-            uint16_t headroom,
-            struct rte_mempool* indirectMp,
+TxProc_Init(TxProc* tx, uint16_t mtu, uint16_t headroom, struct rte_mempool* indirectMp,
             struct rte_mempool* headerMp)
 {
   assert(indirectMp != NULL);
   assert(headerMp != NULL);
-  assert(rte_pktmbuf_data_room_size(headerMp) >=
-         headroom + LpHeaderEstimatedHeadroom);
+  assert(rte_pktmbuf_data_room_size(headerMp) >= headroom + LpHeaderEstimatedHeadroom);
   tx->indirectMp = indirectMp;
   tx->headerMp = headerMp;
 
@@ -48,21 +38,16 @@ TxProc_Init(TxProc* tx,
 }
 
 uint16_t
-TxProc_OutputFrag(TxProc* tx,
-                  Packet* npkt,
-                  struct rte_mbuf** frames,
-                  uint16_t maxFrames)
+TxProc_OutputFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames, uint16_t maxFrames)
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   assert(pkt->pkt_len > 0);
-  uint16_t nFragments = pkt->pkt_len / tx->fragmentPayloadSize +
-                        (uint16_t)(pkt->pkt_len % tx->fragmentPayloadSize > 0);
+  uint16_t nFragments =
+    pkt->pkt_len / tx->fragmentPayloadSize + (uint16_t)(pkt->pkt_len % tx->fragmentPayloadSize > 0);
   if (nFragments == 1) {
     return TxProc_OutputNoFrag(tx, npkt, frames, maxFrames);
   }
-  ZF_LOGV("pktLen=%" PRIu32 " nFragments=%" PRIu16 " seq=%" PRIu64,
-          pkt->pkt_len,
-          nFragments,
+  ZF_LOGV("pktLen=%" PRIu32 " nFragments=%" PRIu16 " seq=%" PRIu64, pkt->pkt_len, nFragments,
           tx->lastSeqNum + 1);
   if (unlikely(nFragments > maxFrames)) {
     ++tx->nL3OverLength;
@@ -87,8 +72,7 @@ TxProc_OutputFrag(TxProc* tx,
     if (fragSize > pos.rem) {
       fragSize = pos.rem;
     }
-    struct rte_mbuf* payload =
-      MbufLoc_MakeIndirect(&pos, fragSize, tx->indirectMp);
+    struct rte_mbuf* payload = MbufLoc_MakeIndirect(&pos, fragSize, tx->indirectMp);
     if (unlikely(payload == NULL)) {
       assert(rte_errno == ENOENT);
       ++tx->nAllocFails;
@@ -125,10 +109,7 @@ TxProc_OutputFrag(TxProc* tx,
 }
 
 uint16_t
-TxProc_OutputNoFrag(TxProc* tx,
-                    Packet* npkt,
-                    struct rte_mbuf** frames,
-                    uint16_t maxFrames)
+TxProc_OutputNoFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames, uint16_t maxFrames)
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   uint32_t payloadL = pkt->pkt_len;
@@ -136,8 +117,7 @@ TxProc_OutputNoFrag(TxProc* tx,
   assert(maxFrames >= 1);
 
   struct rte_mbuf* frame;
-  if (RTE_MBUF_CLONED(pkt) || pkt->refcnt > 1 ||
-      rte_pktmbuf_headroom(pkt) < tx->headerHeadroom) {
+  if (RTE_MBUF_CLONED(pkt) || pkt->refcnt > 1 || rte_pktmbuf_headroom(pkt) < tx->headerHeadroom) {
     frame = rte_pktmbuf_alloc(tx->headerMp);
     if (unlikely(frame == NULL)) {
       ++tx->nAllocFails;

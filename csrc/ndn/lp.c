@@ -9,10 +9,7 @@ CanIgnoreLpHeader(uint32_t tlvType)
 }
 
 NdnError
-LpHeader_FromPacket(LpHeader* lph,
-                    struct rte_mbuf* pkt,
-                    uint32_t* payloadOff,
-                    uint32_t* tlvSize)
+LpHeader_FromPacket(LpHeader* lph, struct rte_mbuf* pkt, uint32_t* payloadOff, uint32_t* tlvSize)
 {
   memset(lph, 0, sizeof(LpHeader));
   lph->l2.fragCount = 1;

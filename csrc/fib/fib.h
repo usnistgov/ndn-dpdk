@@ -45,10 +45,7 @@ Fib_GetPriv(const Fib* fib)
  *  \param numaSocket where to allocate memory.
  */
 Fib*
-Fib_New(const char* id,
-        uint32_t maxEntries,
-        uint32_t nBuckets,
-        unsigned numaSocket,
+Fib_New(const char* id, uint32_t maxEntries, uint32_t nBuckets, unsigned numaSocket,
         uint8_t startDepth);
 
 /** \brief Release all memory.
@@ -82,19 +79,13 @@ typedef enum Fib_FreeOld
  *  \pre Calling thread holds rcu_read_lock.
  */
 void
-Fib_Insert(Fib* fib,
-           FibEntry* entry,
-           Fib_FreeOld freeVirt,
-           Fib_FreeOld freeReal);
+Fib_Insert(Fib* fib, FibEntry* entry, Fib_FreeOld freeVirt, Fib_FreeOld freeReal);
 
 /** \brief Erase given FIB entry.
  *  \pre Calling thread holds rcu_read_lock.
  */
 void
-Fib_Erase(Fib* fib,
-          FibEntry* entry,
-          Fib_FreeOld freeVirt,
-          Fib_FreeOld freeReal);
+Fib_Erase(Fib* fib, FibEntry* entry, Fib_FreeOld freeVirt, Fib_FreeOld freeReal);
 
 /** \brief Retrieve FIB entry.
  *  \pre Calling thread holds rcu_read_lock, which must be retained until it stops

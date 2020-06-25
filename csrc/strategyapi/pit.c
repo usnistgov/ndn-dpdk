@@ -13,8 +13,7 @@ static_assert(offsetof(SgPitUp, nTx) == offsetof(PitUp, nTx), "");
 static_assert(offsetof(SgPitEntry, ext) == offsetof(PitEntry, ext), "");
 static_assert(offsetof(SgPitEntry, dns) == offsetof(PitEntry, dns), "");
 static_assert(offsetof(SgPitEntry, ups) == offsetof(PitEntry, ups), "");
-static_assert(offsetof(SgPitEntry, scratch) == offsetof(PitEntry, sgScratch),
-              "");
+static_assert(offsetof(SgPitEntry, scratch) == offsetof(PitEntry, sgScratch), "");
 static_assert(sizeof(SgPitEntry) == sizeof(PitEntry), "");
 
 static_assert(offsetof(SgPitEntryExt, next) == offsetof(PitEntryExt, next), "");

@@ -73,18 +73,18 @@ SgFibNexthopIt_Init2(SgFibNexthopIt* it, const SgCtx* ctx)
 
 /** \brief Access FIB entry scratch area as T* type.
  */
-#define SgCtx_FibScratchT(ctx, T)                                              \
-  __extension__({                                                              \
-    static_assert(sizeof(T) <= SG_FIB_ENTRY_SCRATCH, "");                      \
-    (T*)(ctx)->fibEntry->scratch;                                              \
+#define SgCtx_FibScratchT(ctx, T)                                                                  \
+  __extension__({                                                                                  \
+    static_assert(sizeof(T) <= SG_FIB_ENTRY_SCRATCH, "");                                          \
+    (T*)(ctx)->fibEntry->scratch;                                                                  \
   })
 
 /** \brief Access PIT entry scratch area as T* type.
  */
-#define SgCtx_PitScratchT(ctx, T)                                              \
-  __extension__({                                                              \
-    static_assert(sizeof(T) <= SG_PIT_ENTRY_SCRATCH, "");                      \
-    (T*)(ctx)->pitEntry->scratch;                                              \
+#define SgCtx_PitScratchT(ctx, T)                                                                  \
+  __extension__({                                                                                  \
+    static_assert(sizeof(T) <= SG_PIT_ENTRY_SCRATCH, "");                                          \
+    (T*)(ctx)->pitEntry->scratch;                                                                  \
   })
 
 /** \brief Set a timer to invoke strategy after a duration.

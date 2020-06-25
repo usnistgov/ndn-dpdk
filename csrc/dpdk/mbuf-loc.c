@@ -1,10 +1,7 @@
 #include "mbuf-loc.h"
 
 void
-MbufLoc_MakeIndirectCb_(void* arg,
-                        const struct rte_mbuf* m,
-                        uint16_t off,
-                        uint16_t len)
+MbufLoc_MakeIndirectCb_(void* arg, const struct rte_mbuf* m, uint16_t off, uint16_t len)
 {
   if (unlikely(len == 0)) {
     return;
@@ -61,10 +58,7 @@ MbufLoc_FindPrev_(const struct rte_mbuf* m, struct rte_mbuf* pkt)
 }
 
 void
-MbufLoc_Delete(MbufLoc* ml,
-               uint32_t n,
-               struct rte_mbuf* pkt,
-               struct rte_mbuf* prev)
+MbufLoc_Delete(MbufLoc* ml, uint32_t n, struct rte_mbuf* pkt, struct rte_mbuf* prev)
 {
   if (unlikely(n == 0)) {
     return;
@@ -84,8 +78,7 @@ MbufLoc_Delete(MbufLoc* ml,
       uint16_t nMoving = firstM->data_len - ml->off - n;
       if (likely(nMoving > 0)) {
         uint8_t* dst = rte_pktmbuf_mtod_offset(firstM, uint8_t*, ml->off);
-        const uint8_t* src =
-          rte_pktmbuf_mtod_offset(firstM, uint8_t*, ml->off + n);
+        const uint8_t* src = rte_pktmbuf_mtod_offset(firstM, uint8_t*, ml->off + n);
         memmove(dst, src, nMoving);
       }
     }
@@ -145,10 +138,7 @@ MbufLoc_Delete(MbufLoc* ml,
 }
 
 uint8_t*
-MbufLoc_Linearize_(MbufLoc* first,
-                   MbufLoc* last,
-                   uint32_t n,
-                   struct rte_mbuf* pkt,
+MbufLoc_Linearize_(MbufLoc* first, MbufLoc* last, uint32_t n, struct rte_mbuf* pkt,
                    struct rte_mempool* mp)
 {
   struct rte_mbuf* firstM = (struct rte_mbuf*)first->m;

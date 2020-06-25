@@ -15,9 +15,9 @@ typedef struct FetchSeg
   TscTime txTime;      ///< last Interest tx time
   MinTmr rtoExpiry;    ///< RTO expiration timer
   FetchRetxNode retxQ; ///< retx queue node
-  bool deleted_;  ///< (private for FetchWindow) whether seg has been deleted
-  bool inRetxQ;   ///< whether segment is scheduled for retx
-  uint16_t nRetx; ///< number of Interest retx, increment upon TX
+  bool deleted_;       ///< (private for FetchWindow) whether seg has been deleted
+  bool inRetxQ;        ///< whether segment is scheduled for retx
+  uint16_t nRetx;      ///< number of Interest retx, increment upon TX
 } __rte_cache_aligned FetchSeg;
 
 static inline void

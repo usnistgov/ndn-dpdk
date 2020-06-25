@@ -7,9 +7,7 @@ INIT_ZF_LOG(FwCrypto);
 #define FW_CRYPTO_BURST_SIZE 16
 
 static void
-FwCrypto_InputEnqueue(FwCrypto* fwc,
-                      const CryptoQueuePair* cqp,
-                      struct rte_crypto_op** ops,
+FwCrypto_InputEnqueue(FwCrypto* fwc, const CryptoQueuePair* cqp, struct rte_crypto_op** ops,
                       uint16_t count)
 {
   if (unlikely(count == 0)) {
@@ -29,15 +27,13 @@ static void
 FwCrypto_Input(FwCrypto* fwc)
 {
   Packet* npkts[FW_CRYPTO_BURST_SIZE];
-  uint16_t nDeq = rte_ring_dequeue_burst(
-    fwc->input, (void**)npkts, FW_CRYPTO_BURST_SIZE, NULL);
+  uint16_t nDeq = rte_ring_dequeue_burst(fwc->input, (void**)npkts, FW_CRYPTO_BURST_SIZE, NULL);
   if (nDeq == 0) {
     return;
   }
 
   struct rte_crypto_op* ops[FW_CRYPTO_BURST_SIZE];
-  uint16_t nAlloc = rte_crypto_op_bulk_alloc(
-    fwc->opPool, RTE_CRYPTO_OP_TYPE_SYMMETRIC, ops, nDeq);
+  uint16_t nAlloc = rte_crypto_op_bulk_alloc(fwc->opPool, RTE_CRYPTO_OP_TYPE_SYMMETRIC, ops, nDeq);
   if (unlikely(nAlloc == 0)) {
     ZF_LOGW("fwc=%p rte_crypto_op_bulk_alloc fail", fwc);
     FreeMbufs((struct rte_mbuf**)npkts, nDeq);
@@ -64,8 +60,7 @@ static void
 FwCrypto_Output(FwCrypto* fwc, const CryptoQueuePair* cqp)
 {
   struct rte_crypto_op* ops[FW_CRYPTO_BURST_SIZE];
-  uint16_t nDeq =
-    rte_cryptodev_dequeue_burst(cqp->dev, cqp->qp, ops, FW_CRYPTO_BURST_SIZE);
+  uint16_t nDeq = rte_cryptodev_dequeue_burst(cqp->dev, cqp->qp, ops, FW_CRYPTO_BURST_SIZE);
 
   Packet* npkts[FW_CRYPTO_BURST_SIZE];
   uint16_t nFinish = 0;
@@ -86,14 +81,9 @@ FwCrypto_Output(FwCrypto* fwc, const CryptoQueuePair* cqp)
 void
 FwCrypto_Run(FwCrypto* fwc)
 {
-  ZF_LOGI("fwc=%p input=%p pool=%p cryptodev-single=%" PRIu8 "-%" PRIu16
-          " cryptodev-multi=%" PRIu8 "-%" PRIu16,
-          fwc,
-          fwc->input,
-          fwc->opPool,
-          fwc->singleSeg.dev,
-          fwc->singleSeg.qp,
-          fwc->multiSeg.dev,
+  ZF_LOGI("fwc=%p input=%p pool=%p cryptodev-single=%" PRIu8 "-%" PRIu16 " cryptodev-multi=%" PRIu8
+          "-%" PRIu16,
+          fwc, fwc->input, fwc->opPool, fwc->singleSeg.dev, fwc->singleSeg.qp, fwc->multiSeg.dev,
           fwc->multiSeg.qp);
   while (ThreadStopFlag_ShouldContinue(&fwc->stop)) {
     FwCrypto_Output(fwc, &fwc->singleSeg);

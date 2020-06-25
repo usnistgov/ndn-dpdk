@@ -21,9 +21,7 @@ PitEntry_ToDebugString(PitEntry* entry)
     snprintf(nameStr, sizeof(nameStr), "(empty)");
   }
 
-  PccDebugString_Appendf("%s CBP=%" PRIu8 " MBF=%d DN=[",
-                         nameStr,
-                         entry->nCanBePrefix,
+  PccDebugString_Appendf("%s CBP=%" PRIu8 " MBF=%d DN=[", nameStr, entry->nCanBePrefix,
                          (int)entry->mustBeFresh);
   for (int index = 0; index < PIT_ENTRY_MAX_DNS; ++index) {
     PitDn* dn = &entry->dns[index];
@@ -63,8 +61,7 @@ PitEntry_SetExpiryTimer(PitEntry* entry, Pit* pit)
 {
   PitPriv* pitp = Pit_GetPriv(pit);
   entry->hasSgTimer = false;
-  bool ok __rte_unused =
-    MinTmr_At(&entry->timeout, entry->expiry, pitp->timeoutSched);
+  bool ok __rte_unused = MinTmr_At(&entry->timeout, entry->expiry, pitp->timeoutSched);
   assert(ok); // unless PIT_MAX_LIFETIME is higher than scheduler limit
 }
 
@@ -132,8 +129,7 @@ PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt)
     dn->face = face;
   } else { // find DN slot
     PitDnIt it;
-    for (PitDnIt_Init(&it, entry);
-         PitDnIt_Valid(&it) || PitDnIt_Extend(&it, pit);
+    for (PitDnIt_Init(&it, entry); PitDnIt_Valid(&it) || PitDnIt_Extend(&it, pit);
          PitDnIt_Next(&it)) {
       dn = it.dn;
       if (dn->face == face) {

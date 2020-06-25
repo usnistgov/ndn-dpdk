@@ -44,8 +44,7 @@ RttEst_Push(RttEst* rtte, TscTime now, TscDuration rtt)
     rtte->sRtt = rtt;
     rtte->rttVar = rtt / 2.0;
   } else {
-    rtte->rttVar =
-      (1.0 - RTTEST_BETA) * rtte->rttVar + RTTEST_BETA * fabs(rtte->sRtt - rtt);
+    rtte->rttVar = (1.0 - RTTEST_BETA) * rtte->rttVar + RTTEST_BETA * fabs(rtte->sRtt - rtt);
     rtte->sRtt = (1.0 - RTTEST_ALPHA) * rtte->sRtt + RTTEST_ALPHA * rtt;
   }
   TscDuration rto = rtte->sRtt + RTTEST_K * rtte->rttVar;

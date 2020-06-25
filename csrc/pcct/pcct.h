@@ -127,9 +127,9 @@ typedef struct PcctEraseBatch
  *  PcctEraseBatch_Finish(&peb);
  *  \endcode
  */
-#define PcctEraseBatch_New(thePcct)                                            \
-  {                                                                            \
-    .pcct = thePcct                                                            \
+#define PcctEraseBatch_New(thePcct)                                                                \
+  {                                                                                                \
+    .pcct = thePcct                                                                                \
   }
 
 void

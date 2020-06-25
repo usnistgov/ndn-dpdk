@@ -60,9 +60,7 @@ Packet_Adj(struct rte_mbuf* pkt, uint16_t len)
  *  \retval -EOVERFLOW total segment count exceeds limit
  */
 static inline int
-Packet_Chain(struct rte_mbuf* head,
-             struct rte_mbuf* lastSeg,
-             struct rte_mbuf* tail)
+Packet_Chain(struct rte_mbuf* head, struct rte_mbuf* lastSeg, struct rte_mbuf* tail)
 {
   assert(lastSeg == rte_pktmbuf_lastseg(head));
 

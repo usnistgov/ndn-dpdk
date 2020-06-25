@@ -89,8 +89,7 @@ PName_Parse(PName* n, uint32_t length, const uint8_t* value)
     }
 
     uint32_t compL;
-    int sizeofL =
-      DecodeVarNum(value + off + sizeofT, length - off - sizeofT, &compL);
+    int sizeofL = DecodeVarNum(value + off + sizeofT, length - off - sizeofT, &compL);
     if (unlikely(sizeofL <= 0)) {
       return -sizeofL;
     }
@@ -151,9 +150,7 @@ PName_HashToCache_(PName* n, const uint8_t* input)
   SipHash_Init(&h, &theNameHashKey);
 
   uint16_t off = 0;
-  for (uint16_t i = 0, last = RTE_MIN(n->nComps, PNAME_N_CACHED_COMPS);
-       i < last;
-       ++i) {
+  for (uint16_t i = 0, last = RTE_MIN(n->nComps, PNAME_N_CACHED_COMPS); i < last; ++i) {
     SipHash_Write(&h, input + off, n->comp[i] - off);
     n->hash[i] = SipHash_Sum(&h);
     off = n->comp[i];

@@ -106,9 +106,9 @@ FwFwd_RxNack(FwFwd* fwd, FwFwdCtx* ctx);
 #else
 /** \brief Set x to NULL to crash on memory access bugs.
  */
-#define FwFwd_NULLize(x)                                                       \
-  do {                                                                         \
-    (x) = NULL;                                                                \
+#define FwFwd_NULLize(x)                                                                           \
+  do {                                                                                             \
+    (x) = NULL;                                                                                    \
   } while (false)
 #endif
 

@@ -16,9 +16,6 @@ typedef struct HrlogWriter
  *  \param nTotal how many entries to collect.
  */
 int
-Hrlog_RunWriter(const char* filename,
-                int nSkip,
-                int nTotal,
-                ThreadStopFlag* stop);
+Hrlog_RunWriter(const char* filename, int nSkip, int nTotal, ThreadStopFlag* stop);
 
 #endif // NDN_DPDK_HRLOG_WRITER_H

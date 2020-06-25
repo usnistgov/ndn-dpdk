@@ -19,9 +19,7 @@ typedef struct FaceCounters FaceCounters;
  *  \return successfully queued frames
  *  \post FaceImpl owns queued frames, but does not own remaining frames
  */
-typedef uint16_t (*FaceImpl_TxBurst)(Face* face,
-                                     struct rte_mbuf** pkts,
-                                     uint16_t nPkts);
+typedef uint16_t (*FaceImpl_TxBurst)(Face* face, struct rte_mbuf** pkts, uint16_t nPkts);
 
 typedef struct FaceImpl
 {
@@ -95,8 +93,7 @@ Face_TxBurst(FaceId faceId, Packet** npkts, uint16_t count)
     return;
   }
 
-  uint16_t nQueued =
-    rte_ring_enqueue_burst(face->txQueue, (void**)npkts, count, NULL);
+  uint16_t nQueued = rte_ring_enqueue_burst(face->txQueue, (void**)npkts, count, NULL);
   uint16_t nRejects = count - nQueued;
   FreeMbufs((struct rte_mbuf**)&npkts[nQueued], nRejects);
   // TODO count nRejects
@@ -120,10 +117,6 @@ Face_Tx(FaceId faceId, Packet* npkt)
  *                  same face must use distinct numbers to avoid race condition.
  */
 void
-FaceImpl_RxBurst(FaceRxBurst* burst,
-                 uint16_t nFrames,
-                 int rxThread,
-                 Face_RxCb cb,
-                 void* cbarg);
+FaceImpl_RxBurst(FaceRxBurst* burst, uint16_t nFrames, int rxThread, Face_RxCb cb, void* cbarg);
 
 #endif // NDN_DPDK_IFACE_FACE_H

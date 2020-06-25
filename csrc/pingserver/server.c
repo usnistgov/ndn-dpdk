@@ -10,8 +10,7 @@ PingServer_FindPattern(PingServer* server, LName name)
   for (uint16_t i = 0; i < server->nPatterns; ++i) {
     PingServerPattern* pattern = &server->pattern[i];
     if (pattern->prefix.length <= name.length &&
-        memcmp(pattern->prefix.value, name.value, pattern->prefix.length) ==
-          0) {
+        memcmp(pattern->prefix.value, name.value, pattern->prefix.length) == 0) {
       return i;
     }
   }
@@ -26,9 +25,7 @@ PingServer_SelectReply(PingServer* server, PingServerPattern* pattern)
 }
 
 static Packet*
-PingServer_RespondData(PingServer* server,
-                       PingServerPattern* pattern,
-                       PingServerReply* reply,
+PingServer_RespondData(PingServer* server, PingServerPattern* pattern, PingServerReply* reply,
                        Packet* npkt)
 {
   LpL3* lpl3 = Packet_GetLpL3Hdr(npkt);
@@ -63,9 +60,7 @@ PingServer_RespondData(PingServer* server,
 }
 
 static Packet*
-PingServer_RespondNack(PingServer* server,
-                       PingServerPattern* pattern,
-                       PingServerReply* reply,
+PingServer_RespondNack(PingServer* server, PingServerPattern* pattern, PingServerReply* reply,
                        Packet* npkt)
 {
   MakeNack(npkt, reply->nackReason);
@@ -73,19 +68,15 @@ PingServer_RespondNack(PingServer* server,
 }
 
 static Packet*
-PingServer_RespondTimeout(PingServer* server,
-                          PingServerPattern* pattern,
-                          PingServerReply* reply,
+PingServer_RespondTimeout(PingServer* server, PingServerPattern* pattern, PingServerReply* reply,
                           Packet* npkt)
 {
   rte_pktmbuf_free(Packet_ToMbuf(npkt));
   return NULL;
 }
 
-typedef Packet* (*PingServer_Respond)(PingServer* server,
-                                      PingServerPattern* pattern,
-                                      PingServerReply* reply,
-                                      Packet* npkt);
+typedef Packet* (*PingServer_Respond)(PingServer* server, PingServerPattern* pattern,
+                                      PingServerReply* reply, Packet* npkt);
 
 static const PingServer_Respond PingServer_RespondJmp[3] = {
   [PINGSERVER_REPLY_DATA] = PingServer_RespondData,
@@ -116,10 +107,7 @@ PingServer_ProcessInterest(PingServer* server, Packet* npkt)
   uint8_t replyId = PingServer_SelectReply(server, pattern);
   PingServerReply* reply = &pattern->reply[replyId];
 
-  ZF_LOGD(">I dn-token=%016" PRIx64 " pattern=%d reply=%" PRIu8,
-          token,
-          patternId,
-          replyId);
+  ZF_LOGD(">I dn-token=%016" PRIx64 " pattern=%d reply=%" PRIu8, token, patternId, replyId);
   ++reply->nInterests;
   return PingServer_RespondJmp[reply->kind](server, pattern, reply, npkt);
 }
@@ -131,9 +119,7 @@ PingServer_Run(PingServer* server)
   Packet* tx[PKTQUEUE_BURST_SIZE_MAX];
 
   while (ThreadStopFlag_ShouldContinue(&server->stop)) {
-    uint32_t nRx = PktQueue_Pop(&server->rxQueue,
-                                (struct rte_mbuf**)rx,
-                                PKTQUEUE_BURST_SIZE_MAX,
+    uint32_t nRx = PktQueue_Pop(&server->rxQueue, (struct rte_mbuf**)rx, PKTQUEUE_BURST_SIZE_MAX,
                                 rte_get_tsc_cycles())
                      .count;
     if (unlikely(nRx == 0)) {
@@ -149,10 +135,7 @@ PingServer_Run(PingServer* server)
       nTx += (tx[nTx] != NULL);
     }
 
-    ZF_LOGD("face=%" PRI_FaceId "nRx=%" PRIu16 " nTx=%" PRIu16,
-            server->face,
-            nRx,
-            nTx);
+    ZF_LOGD("face=%" PRI_FaceId "nRx=%" PRIu16 " nTx=%" PRIu16, server->face, nRx, nTx);
     Face_TxBurst(server->face, tx, nTx);
   }
 }

@@ -5,9 +5,7 @@
 #include <rte_random.h>
 
 NdnError
-PInterest_FromPacket(PInterest* interest,
-                     struct rte_mbuf* pkt,
-                     struct rte_mempool* nameMp)
+PInterest_FromPacket(PInterest* interest, struct rte_mbuf* pkt, struct rte_mempool* nameMp)
 {
   MbufLoc d0;
   MbufLoc_Init(&d0, pkt);
@@ -40,13 +38,13 @@ PInterest_FromPacket(PInterest* interest,
   interest->activeFh = -1;
   interest->diskData = NULL;
 
-#define D1_NEXT                                                                \
-  do {                                                                         \
-    if (MbufLoc_IsEnd(&d1)) {                                                  \
-      return NdnErrOK;                                                         \
-    }                                                                          \
-    e = TlvElement_Decode(&ele1, &d1, TtInvalid);                              \
-    RETURN_IF_ERROR;                                                           \
+#define D1_NEXT                                                                                    \
+  do {                                                                                             \
+    if (MbufLoc_IsEnd(&d1)) {                                                                      \
+      return NdnErrOK;                                                                             \
+    }                                                                                              \
+    e = TlvElement_Decode(&ele1, &d1, TtInvalid);                                                  \
+    RETURN_IF_ERROR;                                                                               \
   } while (false)
 
   D1_NEXT;
@@ -143,9 +141,8 @@ PInterest_SelectActiveFh(PInterest* interest, int8_t index)
     return NdnErrOK;
   }
 
-  NdnError e = PName_Parse(&interest->activeFhName.p,
-                           interest->fhNameL[index],
-                           interest->fhNameV[index]);
+  NdnError e =
+    PName_Parse(&interest->activeFhName.p, interest->fhNameL[index], interest->fhNameV[index]);
   RETURN_IF_ERROR;
   interest->activeFhName.v = interest->fhNameV[index];
   interest->activeFh = index;
@@ -159,12 +156,8 @@ NonceGen_Init(NonceGen* g)
 }
 
 Packet*
-ModifyInterest(Packet* npkt,
-               uint32_t nonce,
-               uint32_t lifetime,
-               uint8_t hopLimit,
-               struct rte_mempool* headerMp,
-               struct rte_mempool* guiderMp,
+ModifyInterest(Packet* npkt, uint32_t nonce, uint32_t lifetime, uint8_t hopLimit,
+               struct rte_mempool* headerMp, struct rte_mempool* guiderMp,
                struct rte_mempool* indirectMp)
 {
   struct rte_mbuf* header = rte_pktmbuf_alloc(headerMp);
@@ -191,8 +184,7 @@ ModifyInterest(Packet* npkt,
   assert(e == NdnErrOK);
 
   // make indirect mbufs over Name thru ForwardingHint
-  struct rte_mbuf* m1 =
-    MbufLoc_MakeIndirect(&d0, inInterest->guiderOff, indirectMp);
+  struct rte_mbuf* m1 = MbufLoc_MakeIndirect(&d0, inInterest->guiderOff, indirectMp);
   if (unlikely(m1 == NULL)) {
     rte_pktmbuf_free(header);
     rte_pktmbuf_free(guider);
@@ -254,8 +246,7 @@ ModifyInterest(Packet* npkt,
   // copy LpL3 and PInterest
   Packet_SetL2PktType(outNpkt, Packet_GetL2PktType(npkt));
   Packet_SetL3PktType(outNpkt, L3PktTypeInterest);
-  rte_memcpy(
-    Packet_GetPriv_(outNpkt), Packet_GetPriv_(npkt), sizeof(PacketPriv));
+  rte_memcpy(Packet_GetPriv_(outNpkt), Packet_GetPriv_(npkt), sizeof(PacketPriv));
   PInterest* outInterest = Packet_GetInterestHdr(outNpkt);
   outInterest->nonce = nonce;
   outInterest->lifetime = lifetime;
@@ -264,11 +255,8 @@ ModifyInterest(Packet* npkt,
 }
 
 void
-EncodeInterest_(struct rte_mbuf* m,
-                const InterestTemplate* tpl,
-                uint16_t suffixL,
-                const uint8_t* suffixV,
-                uint32_t nonce)
+EncodeInterest_(struct rte_mbuf* m, const InterestTemplate* tpl, uint16_t suffixL,
+                const uint8_t* suffixV, uint32_t nonce)
 {
   TlvEncoder* en = MakeTlvEncoder(m);
   AppendVarNum(en, TtName);
@@ -281,8 +269,7 @@ EncodeInterest_(struct rte_mbuf* m,
   rte_memcpy(room, suffixV, suffixL);
   room = RTE_PTR_ADD(room, suffixL);
   rte_memcpy(room, tpl->midBuf, tpl->midLen);
-  *(unaligned_uint32_t*)RTE_PTR_ADD(room, tpl->nonceOff) =
-    rte_cpu_to_le_32(nonce);
+  *(unaligned_uint32_t*)RTE_PTR_ADD(room, tpl->nonceOff) = rte_cpu_to_le_32(nonce);
 
   PrependVarNum(en, m->pkt_len);
   PrependVarNum(en, TtInterest);

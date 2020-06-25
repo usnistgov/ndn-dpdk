@@ -35,11 +35,7 @@ typedef struct Ndt
  *  \return array of threads
  */
 NdtThread**
-Ndt_Init(Ndt* ndt,
-         uint16_t prefixLen,
-         uint8_t indexBits,
-         uint8_t sampleFreq,
-         uint8_t nThreads,
+Ndt_Init(Ndt* ndt, uint16_t prefixLen, uint8_t indexBits, uint8_t sampleFreq, uint8_t nThreads,
          const unsigned* sockets);
 
 /** \brief Access NdtThread struct.
@@ -69,10 +65,7 @@ Ndt_ReadElement(const Ndt* ndt, uint64_t index)
 /** \brief Query NDT without counting.
  */
 static inline uint8_t
-Ndt_Lookup(const Ndt* ndt,
-           const PName* name,
-           const uint8_t* nameV,
-           uint64_t* index)
+Ndt_Lookup(const Ndt* ndt, const PName* name, const uint8_t* nameV, uint64_t* index)
 {
   uint16_t prefixLen = RTE_MIN(name->nComps, ndt->prefixLen);
   uint64_t hash = PName_ComputePrefixHashUncached(name, nameV, prefixLen);
@@ -82,10 +75,7 @@ Ndt_Lookup(const Ndt* ndt,
 }
 
 static inline uint8_t
-Ndtt_Lookup_(const Ndt* ndt,
-             NdtThread* ndtt,
-             const PName* name,
-             const uint8_t* nameV)
+Ndtt_Lookup_(const Ndt* ndt, NdtThread* ndtt, const PName* name, const uint8_t* nameV)
 {
   uint64_t index;
   uint8_t value = Ndt_Lookup(ndt, name, nameV, &index);

@@ -24,9 +24,7 @@ SgTriggerTimer(Pit* pit, PitEntry* pitEntry, void* fwd0)
   }
 
   // invoke strategy
-  ZF_LOGD("sgtimer-at=%p fib-entry=%p sg-id=%d",
-          pitEntry,
-          ctx.fibEntry,
+  ZF_LOGD("sgtimer-at=%p fib-entry=%p sg-id=%d", pitEntry, ctx.fibEntry,
           ctx.fibEntry->strategy->id);
   uint64_t res = SgInvoke(ctx.fibEntry->strategy, &ctx);
   ZF_LOGD("^ sg-res=%" PRIu64 " sg-forwarded=%d", res, ctx.nForwarded);

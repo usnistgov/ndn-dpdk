@@ -39,9 +39,7 @@ const struct ebpf_insn*
 StrategyCode_GetEmptyProgram_(uint32_t* nInsn);
 
 static __rte_always_inline struct rte_bpf*
-rte_bpf_elf_load_(const struct rte_bpf_prm* prm,
-                  const char* fname,
-                  const char* sname)
+rte_bpf_elf_load_(const struct rte_bpf_prm* prm, const char* fname, const char* sname)
 {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"

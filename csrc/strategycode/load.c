@@ -14,14 +14,11 @@ struct rte_bpf
 };
 
 static int
-StrategyCode_LoadUbpf(struct rte_bpf* bpf,
-                      const struct rte_bpf_prm* prm,
-                      struct ubpf_vm* vm)
+StrategyCode_LoadUbpf(struct rte_bpf* bpf, const struct rte_bpf_prm* prm, struct ubpf_vm* vm)
 {
   for (uint32_t i = 0; i < prm->nb_xsym; ++i) {
     if (prm->xsym[i].type != RTE_BPF_XTYPE_FUNC) {
-      ZF_LOGE(
-        "prm->xsym[%" PRIu32 "].type=%d unsupported", i, prm->xsym[i].type);
+      ZF_LOGE("prm->xsym[%" PRIu32 "].type=%d unsupported", i, prm->xsym[i].type);
       return ENOTSUP;
     }
 
@@ -52,8 +49,7 @@ StrategyCode_LoadUbpf(struct rte_bpf* bpf,
 struct rte_bpf*
 rte_bpf_load(const struct rte_bpf_prm* prm)
 {
-  struct rte_bpf* bpf =
-    (struct rte_bpf*)rte_zmalloc("rte_bpf", sizeof(struct rte_bpf), 0);
+  struct rte_bpf* bpf = (struct rte_bpf*)rte_zmalloc("rte_bpf", sizeof(struct rte_bpf), 0);
   if (bpf == NULL) {
     rte_errno = ENOMEM;
     return NULL;

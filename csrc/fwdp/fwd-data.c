@@ -38,13 +38,10 @@ FwFwd_DataNeedDigest(FwFwd* fwd, FwFwdCtx* ctx)
 static void
 FwFwd_DataSatisfy(FwFwd* fwd, FwFwdCtx* ctx)
 {
-  ZF_LOGD("^ pit-entry=%p pit-key=%s",
-          ctx->pitEntry,
-          PitEntry_ToDebugString(ctx->pitEntry));
+  ZF_LOGD("^ pit-entry=%p pit-key=%s", ctx->pitEntry, PitEntry_ToDebugString(ctx->pitEntry));
 
   PitDnIt it;
-  for (PitDnIt_Init(&it, ctx->pitEntry); PitDnIt_Valid(&it);
-       PitDnIt_Next(&it)) {
+  for (PitDnIt_Init(&it, ctx->pitEntry); PitDnIt_Valid(&it); PitDnIt_Next(&it)) {
     PitDn* dn = it.dn;
     if (unlikely(dn->face == FACEID_INVALID)) {
       if (it.index == 0) {
@@ -62,10 +59,7 @@ FwFwd_DataSatisfy(FwFwd* fwd, FwFwdCtx* ctx)
     }
 
     Packet* outNpkt = ClonePacket(ctx->npkt, fwd->headerMp, fwd->indirectMp);
-    ZF_LOGD("^ data-to=%" PRI_FaceId " npkt=%p dn-token=%016" PRIx64,
-            dn->face,
-            outNpkt,
-            dn->token);
+    ZF_LOGD("^ data-to=%" PRI_FaceId " npkt=%p dn-token=%016" PRIx64, dn->face, outNpkt, dn->token);
     if (likely(outNpkt != NULL)) {
       struct rte_mbuf* outPkt = Packet_ToMbuf(outNpkt);
       outPkt->port = ctx->rxFace;
@@ -80,19 +74,15 @@ FwFwd_DataSatisfy(FwFwd* fwd, FwFwdCtx* ctx)
   if (likely(ctx->fibEntry != NULL)) {
     ++ctx->fibEntry->nRxData;
     uint64_t res = SgInvoke(ctx->fibEntry->strategy, ctx);
-    ZF_LOGD("^ fib-entry-depth=%" PRIu8 " sg-id=%d sg-res=%" PRIu64,
-            ctx->fibEntry->nComps,
-            ctx->fibEntry->strategy->id,
-            res);
+    ZF_LOGD("^ fib-entry-depth=%" PRIu8 " sg-id=%d sg-res=%" PRIu64, ctx->fibEntry->nComps,
+            ctx->fibEntry->strategy->id, res);
   }
 }
 
 void
 FwFwd_RxData(FwFwd* fwd, FwFwdCtx* ctx)
 {
-  ZF_LOGD("data-from=%" PRI_FaceId " npkt=%p up-token=%016" PRIx64,
-          ctx->rxFace,
-          ctx->npkt,
+  ZF_LOGD("data-from=%" PRI_FaceId " npkt=%p up-token=%016" PRIx64, ctx->rxFace, ctx->npkt,
           ctx->rxToken);
 
   PitFindResult pitFound = Pit_FindByData(fwd->pit, ctx->npkt);

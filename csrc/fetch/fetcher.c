@@ -27,15 +27,13 @@ static void
 FetchProc_TxBurst(FetchProc* fp, FetchThread* fth)
 {
   uint64_t segNums[FETCHER_TX_BURST_SIZE];
-  size_t count =
-    FetchLogic_TxInterestBurst(&fp->logic, segNums, FETCHER_TX_BURST_SIZE);
+  size_t count = FetchLogic_TxInterestBurst(&fp->logic, segNums, FETCHER_TX_BURST_SIZE);
   if (unlikely(count == 0)) {
     return;
   }
 
   Packet* npkts[FETCHER_TX_BURST_SIZE];
-  int res =
-    rte_pktmbuf_alloc_bulk(fth->interestMp, (struct rte_mbuf**)npkts, count);
+  int res = rte_pktmbuf_alloc_bulk(fth->interestMp, (struct rte_mbuf**)npkts, count);
   if (unlikely(res != 0)) {
     ZF_LOGW("%p interestMp-full", fp);
     return;
@@ -67,9 +65,7 @@ static void
 FetchProc_RxBurst(FetchProc* fp)
 {
   Packet* npkts[PKTQUEUE_BURST_SIZE_MAX];
-  uint32_t nRx = PktQueue_Pop(&fp->rxQueue,
-                              (struct rte_mbuf**)npkts,
-                              PKTQUEUE_BURST_SIZE_MAX,
+  uint32_t nRx = PktQueue_Pop(&fp->rxQueue, (struct rte_mbuf**)npkts, PKTQUEUE_BURST_SIZE_MAX,
                               rte_get_tsc_cycles())
                    .count;
 

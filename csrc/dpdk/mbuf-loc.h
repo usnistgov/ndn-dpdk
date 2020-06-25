@@ -59,10 +59,7 @@ MbufLoc_IsEnd(const MbufLoc* ml)
   return ml->m == NULL || ml->rem == 0;
 }
 
-typedef void (*MbufLoc_WalkCb_)(void* arg,
-                                const struct rte_mbuf* m,
-                                uint16_t off,
-                                uint16_t len);
+typedef void (*MbufLoc_WalkCb_)(void* arg, const struct rte_mbuf* m, uint16_t off, uint16_t len);
 
 /** \brief Advance the position by \p n octets and invoke \p cb on each mbuf.
  */
@@ -133,10 +130,7 @@ typedef struct MbufLoc_MakeIndirectCtx_
 } MbufLoc_MakeIndirectCtx_;
 
 void
-MbufLoc_MakeIndirectCb_(void* arg,
-                        const struct rte_mbuf* m,
-                        uint16_t off,
-                        uint16_t len);
+MbufLoc_MakeIndirectCb_(void* arg, const struct rte_mbuf* m, uint16_t off, uint16_t len);
 
 /** \brief Advance the position by n octets, and clone the range into indirect mbufs.
  *  \return head of indirect mbufs
@@ -169,10 +163,7 @@ MbufLoc_MakeIndirect(MbufLoc* ml, uint32_t n, struct rte_mempool* mp)
 }
 
 void
-MbufLoc_ReadCb_(void* arg,
-                const struct rte_mbuf* m,
-                uint16_t off,
-                uint16_t len);
+MbufLoc_ReadCb_(void* arg, const struct rte_mbuf* m, uint16_t off, uint16_t len);
 
 /** \brief Copy next n octets, and advance the position.
  *  \return number of octets copied.
@@ -245,16 +236,10 @@ MbufLoc_PeekOctet(const MbufLoc* ml)
  *  \warning Undefined behavior if there are less than \p n octets after \p ml.
  */
 void
-MbufLoc_Delete(MbufLoc* ml,
-               uint32_t n,
-               struct rte_mbuf* pkt,
-               struct rte_mbuf* prev);
+MbufLoc_Delete(MbufLoc* ml, uint32_t n, struct rte_mbuf* pkt, struct rte_mbuf* prev);
 
 uint8_t*
-MbufLoc_Linearize_(MbufLoc* first,
-                   MbufLoc* last,
-                   uint32_t n,
-                   struct rte_mbuf* pkt,
+MbufLoc_Linearize_(MbufLoc* first, MbufLoc* last, uint32_t n, struct rte_mbuf* pkt,
                    struct rte_mempool* mp);
 
 /** \brief Ensure [first, last) are in the same mbuf.
@@ -271,10 +256,7 @@ MbufLoc_Linearize_(MbufLoc* first,
  *  \warning Undefined behavior if advancing \p first cannot reach \p last
  */
 static inline uint8_t*
-MbufLoc_Linearize(MbufLoc* first,
-                  MbufLoc* last,
-                  uint32_t n,
-                  struct rte_mbuf* pkt,
+MbufLoc_Linearize(MbufLoc* first, MbufLoc* last, uint32_t n, struct rte_mbuf* pkt,
                   struct rte_mempool* mp)
 {
   assert(n > 0 && n <= first->rem);

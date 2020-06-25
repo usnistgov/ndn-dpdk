@@ -12,9 +12,7 @@ typedef struct RxGroup RxGroup;
  *  \param[out] pkts L2 frames; port and timestamp should be set.
  *  \return successfully received frames.
  */
-typedef uint16_t (*RxGroup_RxBurst)(RxGroup* rxg,
-                                    struct rte_mbuf** pkts,
-                                    uint16_t nPkts);
+typedef uint16_t (*RxGroup_RxBurst)(RxGroup* rxg, struct rte_mbuf** pkts, uint16_t nPkts);
 
 /** \brief Receive channel for a group of faces.
  */

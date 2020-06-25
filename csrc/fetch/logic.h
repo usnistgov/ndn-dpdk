@@ -64,8 +64,6 @@ typedef struct FetchLogicRxData
  *  \param count size of segNums array.
  */
 void
-FetchLogic_RxDataBurst(FetchLogic* fl,
-                       const FetchLogicRxData* pkts,
-                       size_t count);
+FetchLogic_RxDataBurst(FetchLogic* fl, const FetchLogicRxData* pkts, size_t count);
 
 #endif // NDN_DPDK_FETCH_LOGIC_H

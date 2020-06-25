@@ -11,19 +11,13 @@ PktQueue_PopFromRing(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count)
 }
 
 PktQueuePopResult
-PktQueue_PopPlain(PktQueue* q,
-                  struct rte_mbuf* pkts[],
-                  uint32_t count,
-                  TscTime now)
+PktQueue_PopPlain(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime now)
 {
   return PktQueue_PopFromRing(q, pkts, count);
 }
 
 PktQueuePopResult
-PktQueue_PopDelay(PktQueue* q,
-                  struct rte_mbuf* pkts[],
-                  uint32_t count,
-                  TscTime now)
+PktQueue_PopDelay(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime now)
 {
   PktQueuePopResult res = PktQueue_PopFromRing(q, pkts, count);
   ;
@@ -84,10 +78,7 @@ CoDel_ShouldDrop(PktQueue* q, TscTime timestamp, TscTime now)
 }
 
 PktQueuePopResult
-PktQueue_PopCoDel(PktQueue* q,
-                  struct rte_mbuf* pkts[],
-                  uint32_t count,
-                  TscTime now)
+PktQueue_PopCoDel(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime now)
 {
   PktQueuePopResult res = PktQueue_PopFromRing(q, pkts, count);
   if (unlikely(res.count == 0)) {

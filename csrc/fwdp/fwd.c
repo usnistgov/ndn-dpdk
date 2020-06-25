@@ -56,11 +56,7 @@ FwFwd_RxByType(FwFwd* fwd, L3PktType l3type)
 void
 FwFwd_Run(FwFwd* fwd)
 {
-  ZF_LOGI("fwdId=%" PRIu8 " fwd=%p fib=%p pit+cs=%p crypto=%p",
-          fwd->id,
-          fwd,
-          fwd->fib,
-          fwd->pcct,
+  ZF_LOGI("fwdId=%" PRIu8 " fwd=%p fib=%p pit+cs=%p crypto=%p", fwd->id, fwd, fwd->fib, fwd->pcct,
           fwd->crypto);
 
   fwd->sgGlobal.tscHz = rte_get_tsc_hz();

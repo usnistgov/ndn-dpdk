@@ -10,10 +10,10 @@ PccEntry_ToMempool(PccEntry* entry)
 PccSlotIndex
 PccEntry_AllocateSlot_(PccEntry* entry, PccSlot** slot)
 {
-#define AssignSlot(s)                                                          \
-  do {                                                                         \
-    (s).pccEntry = entry;                                                      \
-    *slot = &(s);                                                              \
+#define AssignSlot(s)                                                                              \
+  do {                                                                                             \
+    (s).pccEntry = entry;                                                                          \
+    *slot = &(s);                                                                                  \
   } while (false)
 
   if (entry->slot1.pccEntry == NULL) {

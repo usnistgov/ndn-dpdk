@@ -18,8 +18,7 @@ INIT_ZF_LOG(Pcct);
 #undef HASH_EXPAND_BUCKETS
 #define uthash_malloc(sz) rte_malloc("PCCT.uthash", (sz), 0)
 #define uthash_free(ptr, sz) rte_free((ptr))
-#define HASH_KEYCMP(a, b, n)                                                   \
-  (!PccKey_MatchSearchKey((const PccKey*)(a), (const PccSearch*)(b)))
+#define HASH_KEYCMP(a, b, n) (!PccKey_MatchSearchKey((const PccKey*)(a), (const PccSearch*)(b)))
 #define HASH_INITIAL_NUM_BUCKETS (pcctp->nKeyHtBuckets)
 #define HASH_INITIAL_NUM_BUCKETS_LOG2 (rte_log2_u32(HASH_INITIAL_NUM_BUCKETS))
 #define HASH_BKT_CAPACITY_THRESH UINT_MAX
@@ -30,9 +29,7 @@ INIT_ZF_LOG(Pcct);
 static void
 Pcct_KeyHt_Expand_(UT_hash_table* tbl)
 {
-  ZF_LOGE("KeyHt(%p) Expand-rejected num_items=%u num_buckets=%u",
-          tbl,
-          tbl->num_items,
+  ZF_LOGE("KeyHt(%p) Expand-rejected num_items=%u num_buckets=%u", tbl, tbl->num_items,
           tbl->num_buckets);
 }
 
@@ -55,25 +52,15 @@ Pcct*
 Pcct_New(const char* id, uint32_t maxEntries, unsigned numaSocket)
 {
   char tokenHtName[RTE_HASH_NAMESIZE];
-  int tokenHtNameLen =
-    snprintf(tokenHtName, sizeof(tokenHtName), "%s.token", id);
+  int tokenHtNameLen = snprintf(tokenHtName, sizeof(tokenHtName), "%s.token", id);
   if (tokenHtNameLen < 0 || tokenHtNameLen >= (int)sizeof(tokenHtName)) {
     rte_errno = ENAMETOOLONG;
     return NULL;
   }
 
-  Pcct* pcct =
-    (Pcct*)rte_mempool_create(id,
-                              maxEntries,
-                              RTE_MAX(sizeof(PccEntry), sizeof(PccEntryExt)),
-                              0,
-                              sizeof(PcctPriv),
-                              NULL,
-                              NULL,
-                              NULL,
-                              NULL,
-                              numaSocket,
-                              MEMPOOL_F_SP_PUT | MEMPOOL_F_SC_GET);
+  Pcct* pcct = (Pcct*)rte_mempool_create(
+    id, maxEntries, RTE_MAX(sizeof(PccEntry), sizeof(PccEntryExt)), 0, sizeof(PcctPriv), NULL, NULL,
+    NULL, NULL, numaSocket, MEMPOOL_F_SP_PUT | MEMPOOL_F_SC_GET);
   if (unlikely(pcct == NULL)) {
     return NULL;
   }
@@ -137,11 +124,7 @@ Pcct_Insert(Pcct* pcct, PccSearch* search, bool* isNew)
   HASH_ADD_BYHASHVALUE(hh, pcctp->keyHt, key, 0, hash, entry);
   *isNew = true;
 
-  ZF_LOGD("%p Insert(%016" PRIx64 ", %s) %p",
-          pcct,
-          hash,
-          PccSearch_ToDebugString(search),
-          entry);
+  ZF_LOGD("%p Insert(%016" PRIx64 ", %s) %p", pcct, hash, PccSearch_ToDebugString(search), entry);
   return entry;
 }
 
@@ -167,14 +150,12 @@ Pcct_AddToken_(Pcct* pcct, PccEntry* entry)
     }
 
     uint32_t hash = rte_hash_hash(pcctp->tokenHt, &token);
-    if (unlikely(rte_hash_lookup_with_hash(pcctp->tokenHt, &token, hash) >=
-                 0)) {
+    if (unlikely(rte_hash_lookup_with_hash(pcctp->tokenHt, &token, hash) >= 0)) {
       // token is in use
       continue;
     }
 
-    int res =
-      rte_hash_add_key_with_hash_data(pcctp->tokenHt, &token, hash, entry);
+    int res = rte_hash_add_key_with_hash_data(pcctp->tokenHt, &token, hash, entry);
     if (likely(res == 0)) {
       break;
     }

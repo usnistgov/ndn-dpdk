@@ -14,8 +14,7 @@ static uint64_t
 DiskStore_ComputeBlockCount(DiskStore* store, Packet* npkt)
 {
   uint64_t pktLen = Packet_ToMbuf(npkt)->pkt_len;
-  return pktLen / DISK_STORE_BLOCK_SIZE +
-         (int)(pktLen % DISK_STORE_BLOCK_SIZE > 0);
+  return pktLen / DISK_STORE_BLOCK_SIZE + (int)(pktLen % DISK_STORE_BLOCK_SIZE > 0);
 }
 
 /** \brief Parameters related to PutData, stored over PData.digest field.
@@ -25,9 +24,7 @@ typedef struct DiskStore_PutDataRequest
   DiskStore* store;
   uint64_t slotId;
 } DiskStore_PutDataRequest;
-static_assert(sizeof(DiskStore_PutDataRequest) <=
-                sizeof(((PData*)(NULL))->digest),
-              "");
+static_assert(sizeof(DiskStore_PutDataRequest) <= sizeof(((PData*)(NULL))->digest), "");
 
 static void
 DiskStore_PutData_End(struct spdk_bdev_io* io, bool success, void* npkt0)
@@ -56,17 +53,10 @@ DiskStore_PutData_Begin(void* npkt0)
 
   uint64_t blockOffset = DiskStore_ComputeBlockOffset(store, slotId);
   uint64_t blockCount = DiskStore_ComputeBlockCount(store, npkt);
-  int res = SpdkBdev_WritePacket(store->bdev,
-                                 store->ch,
-                                 Packet_ToMbuf(npkt),
-                                 blockOffset,
-                                 blockCount,
-                                 store->blockSize,
-                                 DiskStore_PutData_End,
-                                 npkt);
+  int res = SpdkBdev_WritePacket(store->bdev, store->ch, Packet_ToMbuf(npkt), blockOffset,
+                                 blockCount, store->blockSize, DiskStore_PutData_End, npkt);
   if (unlikely(res != 0)) {
-    ZF_LOGW(
-      "PutData_Begin(%" PRIu64 ", %p): fail=write(%d)", slotId, npkt, res);
+    ZF_LOGW("PutData_Begin(%" PRIu64 ", %p): fail=write(%d)", slotId, npkt, res);
     rte_pktmbuf_free(Packet_ToMbuf(npkt));
   }
 }
@@ -123,8 +113,7 @@ DiskStore_GetData_End(struct spdk_bdev_io* io, bool success, void* npkt0)
   PInterest* interest = Packet_GetInterestHdr(npkt);
   uint64_t slotId = interest->diskSlotId;
   struct rte_mbuf* dataPkt = Packet_ToMbuf(interest->diskData);
-  struct rte_ring* reply =
-    ((DiskStore_GetDataRequest*)rte_mbuf_to_priv_(dataPkt))->reply;
+  struct rte_ring* reply = ((DiskStore_GetDataRequest*)rte_mbuf_to_priv_(dataPkt))->reply;
 
   if (unlikely(!success)) {
     ZF_LOGW("GetData_End(%" PRIu64 ", %p): fail=io-err", slotId, npkt);
@@ -132,8 +121,7 @@ DiskStore_GetData_End(struct spdk_bdev_io* io, bool success, void* npkt0)
   } else {
     dataPkt->timestamp = rte_get_tsc_cycles();
     NdnError err = Packet_ParseL3(interest->diskData, NULL);
-    if (err != NdnErrOK ||
-        Packet_GetL3PktType(interest->diskData) != L3PktTypeData) {
+    if (err != NdnErrOK || Packet_GetL3PktType(interest->diskData) != L3PktTypeData) {
       ZF_LOGW("GetData_End(%" PRIu64 ", %p): fail=not-Data", slotId, npkt);
       DiskStore_GetData_Fail(reply, npkt);
     } else {
@@ -154,20 +142,13 @@ DiskStore_GetData_Begin(void* npkt0)
   PInterest* interest = Packet_GetInterestHdr(npkt);
   uint64_t slotId = interest->diskSlotId;
   struct rte_mbuf* dataPkt = Packet_ToMbuf(interest->diskData);
-  DiskStore_GetDataRequest* req =
-    (DiskStore_GetDataRequest*)rte_mbuf_to_priv_(dataPkt);
+  DiskStore_GetDataRequest* req = (DiskStore_GetDataRequest*)rte_mbuf_to_priv_(dataPkt);
   DiskStore* store = req->store;
 
   uint64_t blockOffset = DiskStore_ComputeBlockOffset(store, slotId);
 
-  int res = SpdkBdev_ReadPacket(store->bdev,
-                                store->ch,
-                                dataPkt,
-                                blockOffset,
-                                store->nBlocksPerSlot,
-                                store->blockSize,
-                                DiskStore_GetData_End,
-                                npkt);
+  int res = SpdkBdev_ReadPacket(store->bdev, store->ch, dataPkt, blockOffset, store->nBlocksPerSlot,
+                                store->blockSize, DiskStore_GetData_End, npkt);
   if (unlikely(res != 0)) {
     ZF_LOGW("GetData_Begin(%" PRIu64 ", %p): fail=read(%d)", slotId, npkt, res);
     DiskStore_GetData_Fail(req->reply, npkt);
@@ -175,10 +156,7 @@ DiskStore_GetData_Begin(void* npkt0)
 }
 
 void
-DiskStore_GetData(DiskStore* store,
-                  uint64_t slotId,
-                  uint16_t dataLen,
-                  Packet* npkt,
+DiskStore_GetData(DiskStore* store, uint64_t slotId, uint16_t dataLen, Packet* npkt,
                   struct rte_ring* reply)
 {
   assert(slotId > 0);
@@ -202,8 +180,7 @@ DiskStore_GetData(DiskStore* store,
   }
 
   assert(dataPkt->priv_size >= sizeof(DiskStore_GetDataRequest));
-  DiskStore_GetDataRequest* req =
-    (DiskStore_GetDataRequest*)rte_mbuf_to_priv_(dataPkt);
+  DiskStore_GetDataRequest* req = (DiskStore_GetDataRequest*)rte_mbuf_to_priv_(dataPkt);
   req->store = store;
   req->reply = reply;
 

@@ -28,8 +28,7 @@ TxLoop_Transfer(Face* face)
 {
   TxProc* tx = &face->impl->tx;
   Packet* npkts[TX_BURST_FRAMES];
-  uint16_t count =
-    rte_ring_dequeue_burst(face->txQueue, (void**)npkts, TX_BURST_FRAMES, NULL);
+  uint16_t count = rte_ring_dequeue_burst(face->txQueue, (void**)npkts, TX_BURST_FRAMES, NULL);
 
   struct rte_mbuf* frames[TX_BURST_FRAMES + TX_MAX_FRAGMENTS];
   uint16_t nFrames = 0;
@@ -46,8 +45,7 @@ TxLoop_Transfer(Face* face)
       hrl[nHrls++] = HrlogEntry_New(HRLOG_OI, latency);
     } else if (l3type == L3PktTypeData) {
       hrl[nHrls++] = HrlogEntry_New(
-        Packet_ToMbuf(npkt)->port == MBUF_INVALID_PORT ? HRLOG_OC : HRLOG_OD,
-        latency);
+        Packet_ToMbuf(npkt)->port == MBUF_INVALID_PORT ? HRLOG_OC : HRLOG_OD, latency);
     }
 
     struct rte_mbuf** outFrames = &frames[nFrames];

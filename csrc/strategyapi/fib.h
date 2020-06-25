@@ -66,9 +66,7 @@ SgFibNexthopIt_Advance_(SgFibNexthopIt* it)
 }
 
 inline void
-SgFibNexthopIt_Init(SgFibNexthopIt* it,
-                    const SgFibEntry* entry,
-                    SgFibNexthopFilter filter)
+SgFibNexthopIt_Init(SgFibNexthopIt* it, const SgFibEntry* entry, SgFibNexthopFilter filter)
 {
   it->entry = entry;
   it->filter = filter;

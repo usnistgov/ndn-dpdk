@@ -53,10 +53,7 @@ typedef struct LpHeader
  *  \retval NdnErrLpHasTrailer found trailer fields after LpFragment.
  */
 NdnError
-LpHeader_FromPacket(LpHeader* lph,
-                    struct rte_mbuf* pkt,
-                    uint32_t* payloadOff,
-                    uint32_t* tlvSize);
+LpHeader_FromPacket(LpHeader* lph, struct rte_mbuf* pkt, uint32_t* payloadOff, uint32_t* tlvSize);
 
 /** \brief Encode LP header in headroom.
  *  \param m output mbuf, must be first segment, and must have
