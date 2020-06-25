@@ -29,9 +29,9 @@ typedef struct Ndt
  *  \param prefixLen prefix length for computing hash.
  *  \param indexBits how many bits to truncate the hash into table entry index.
  *  \param sampleFreq sample once every 2^sampleFreq lookups.
- *  \param nThreads number of lookup threads
- *  \param numaSockets array of \p nThreads elements indicating NUMA socket of each
- *                     lookup thread; numaSockets[0] will be used for the table
+ *  \param nThreads number of lookup threads.
+ *  \param sockets array of \p nThreads elements indicating NUMA socket of each lookup thread;
+ *                 sockets[0] will be used for the table.
  *  \return array of threads
  */
 NdtThread**
@@ -40,7 +40,7 @@ Ndt_Init(Ndt* ndt,
          uint8_t indexBits,
          uint8_t sampleFreq,
          uint8_t nThreads,
-         const unsigned* numaSockets);
+         const unsigned* sockets);
 
 /** \brief Access NdtThread struct.
  */

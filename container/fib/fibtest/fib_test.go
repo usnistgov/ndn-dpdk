@@ -6,6 +6,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/container/strategycode"
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 )
 
 func TestInsertErase(t *testing.T) {
@@ -52,7 +53,7 @@ func TestInsertErase(t *testing.T) {
 	assert.Equal(2, strategyP.CountRefs())
 	entryA := fib.Find(nameA)
 	require.NotNil(entryA)
-	assert.True(entryA.GetName().Equal(nameA))
+	ndntestenv.NameEqual(assert, nameA, entryA)
 	seqNum1 := entryA.GetSeqNum()
 
 	isNew, e = fib.Insert(fixture.MakeEntry("/A", strategyQ, 3092))
@@ -69,7 +70,7 @@ func TestInsertErase(t *testing.T) {
 
 	entryA = fib.Find(nameA)
 	require.NotNil(entryA)
-	assert.True(entryA.GetName().Equal(nameA))
+	ndntestenv.NameEqual(assert, nameA, entryA)
 	seqNum2 := entryA.GetSeqNum()
 	assert.NotEqual(seqNum1, seqNum2)
 	fixture.CheckEntryNames(assert, []string{"/A"})

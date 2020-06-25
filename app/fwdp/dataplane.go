@@ -20,7 +20,7 @@ import (
 
 type Config struct {
 	Ndt      ndt.Config         // NDT config
-	Fib      fib.Config         // FIB config (Id ignored)
+	Fib      fib.Config         // FIB config
 	Pcct     pcct.Config        // PCCT config template (Id and NumaSocket ignored)
 	Suppress pit.SuppressConfig // PIT suppression config
 
@@ -58,8 +58,7 @@ func New(cfg Config) (dp *DataPlane, e error) {
 		dp.ndt.Randomize(len(dp.la.Fwds))
 	}
 
-	cfg.Fib.Id = "FIB"
-	if dp.fib, e = fib.New(cfg.Fib, dp.ndt, eal.ListNumaSocketsOfLCores(dp.la.Fwds)); e != nil {
+	if dp.fib, e = fib.New("FIB", cfg.Fib, dp.ndt, eal.ListNumaSocketsOfLCores(dp.la.Fwds)); e != nil {
 		dp.Close()
 		return nil, fmt.Errorf("fib.New: %v", e)
 	}

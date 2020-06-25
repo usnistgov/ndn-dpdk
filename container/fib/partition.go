@@ -37,7 +37,7 @@ func newPartition(fib *Fib, index int, numaSocket eal.NumaSocket) (part *partiti
 	part.fib = fib
 	part.index = index
 
-	idC := C.CString(fmt.Sprintf("%s_%d", fib.cfg.Id, index))
+	idC := C.CString(fmt.Sprintf("%s_%d", fib.id, index))
 	defer C.free(unsafe.Pointer(idC))
 	part.c = C.Fib_New(idC, C.uint32_t(fib.cfg.MaxEntries), C.uint32_t(fib.cfg.NBuckets),
 		C.uint(numaSocket.ID()), C.uint8_t(fib.cfg.StartDepth))
@@ -56,28 +56,26 @@ func (part *partition) Close() error {
 }
 
 // Allocate an unused entry.
-func (part *partition) Alloc(name ndn.Name) (entry *C.FibEntry) {
-	if !bool(C.Fib_AllocBulk(part.c, &entry, 1)) {
+func (part *partition) Alloc(name ndn.Name) (entry *Entry) {
+	if !bool(C.Fib_AllocBulk(part.c, (**C.FibEntry)(unsafe.Pointer(&entry)), 1)) {
 		return nil
 	}
-	entrySetName(entry, name)
+	entry.SetName(name)
 	return entry
 }
 
 // Retrieve an entry (either virtual or non-virtual).
-func (part *partition) Get(name ndn.Name) *C.FibEntry {
+func (part *partition) Get(name ndn.Name) *Entry {
 	length, value, hash, _ := convertName(name)
-	return C.Fib_Get_(part.c, length, value, hash)
+	return entryFromPtr(C.Fib_Get_(part.c, length, value, hash))
 }
 
-// Insert an entry.
-func (part *partition) Insert(entryC *C.FibEntry, freeVirt, freeReal C.Fib_FreeOld) {
-	C.Fib_Insert(part.c, entryC, freeVirt, freeReal)
+func (part *partition) Insert(entry *Entry, freeVirt, freeReal C.Fib_FreeOld) {
+	C.Fib_Insert(part.c, entry.getPtr(), freeVirt, freeReal)
 }
 
-// Erase an entry.
-func (part *partition) Erase(entryC *C.FibEntry, freeVirt, freeReal C.Fib_FreeOld) {
-	C.Fib_Erase(part.c, entryC, freeVirt, freeReal)
+func (part *partition) Erase(entry *Entry, freeVirt, freeReal C.Fib_FreeOld) {
+	C.Fib_Erase(part.c, entry.getPtr(), freeVirt, freeReal)
 }
 
 func convertName(name ndn.Name) (length C.uint16_t, value *C.uint8_t, hash C.uint64_t, pname *C.PName) {

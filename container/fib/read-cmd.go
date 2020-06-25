@@ -10,7 +10,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
-// List all FIB entry names.
+// ListNames returns a list of FIB entry names.
 func (fib *Fib) ListNames() (names []ndn.Name) {
 	fib.postCommand(func(rs *urcu.ReadSide) error {
 		fib.tree.Traverse(func(name ndn.Name, n *fibtree.Node) bool {
@@ -24,7 +24,7 @@ func (fib *Fib) ListNames() (names []ndn.Name) {
 	return names
 }
 
-// Perform an exact match lookup.
+// Find performs an exact match lookup.
 func (fib *Fib) Find(name ndn.Name) (entry *Entry) {
 	fib.postCommand(func(rs *urcu.ReadSide) error {
 		_, partition := fib.ndt.Lookup(name)
@@ -34,13 +34,13 @@ func (fib *Fib) Find(name ndn.Name) (entry *Entry) {
 	return entry
 }
 
-// Perform an exact match lookup in specified partition.
+// FindInPartition performs an exact match lookup in specified partition.
 // This method runs in the given URCU read-side thread, not necessarily the command loop.
 func (fib *Fib) FindInPartition(name ndn.Name, partition int, rs *urcu.ReadSide) (entry *Entry) {
 	rs.Lock()
 	defer rs.Unlock()
 	length, value, hash, _ := convertName(name)
-	return entryFromC(C.Fib_Find_(fib.parts[partition].c, length, value, hash))
+	return entryFromPtr(C.Fib_Find_(fib.parts[partition].c, length, value, hash))
 }
 
 // Determine what partitions would a name appear in.
@@ -53,7 +53,7 @@ func (fib *Fib) listPartitionsForName(name ndn.Name) (parts []*partition) {
 	return append(parts, fib.parts[partition])
 }
 
-// Read entry counters, aggregate across all partitions if necessary.
+// ReadEntryCounters returns entry counters, aggregated across partitions where the entry appears.
 func (fib *Fib) ReadEntryCounters(name ndn.Name) (cnt EntryCounters) {
 	fib.postCommand(func(rs *urcu.ReadSide) error {
 		for _, part := range fib.listPartitionsForName(name) {
@@ -66,14 +66,14 @@ func (fib *Fib) ReadEntryCounters(name ndn.Name) (cnt EntryCounters) {
 	return cnt
 }
 
-// Perform a longest prefix match lookup.
+// Lpm performs a longest prefix match lookup.
 func (fib *Fib) Lpm(name ndn.Name) (entry *Entry) {
 	fib.postCommand(func(rs *urcu.ReadSide) error {
 		rs.Lock()
 		defer rs.Unlock()
 		_, partition := fib.ndt.Lookup(name)
 		_, value, _, pname := convertName(name)
-		entry = entryFromC(C.Fib_Lpm_(fib.parts[partition].c, pname, value))
+		entry = entryFromPtr(C.Fib_Lpm_(fib.parts[partition].c, pname, value))
 		return nil
 	})
 	return entry

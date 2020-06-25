@@ -11,29 +11,29 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
-type ndtLookupTestEntry struct {
+type lookupTestEntry struct {
 	Name    ndn.Name
 	Results []uint8
 }
 
-type ndtLookupTestThread struct {
+type lookupTestThread struct {
 	eal.ThreadBase
 	stop    eal.StopChan
-	ndtt    ndt.NdtThread
-	Entries []ndtLookupTestEntry
+	ndtt    *ndt.Thread
+	Entries []lookupTestEntry
 }
 
-func newNdtLookupTestThread(ndt *ndt.Ndt, threadIndex int, names []ndn.Name) (th *ndtLookupTestThread) {
-	th = new(ndtLookupTestThread)
+func newNdtLookupTestThread(ndt *ndt.Ndt, threadIndex int, names []ndn.Name) (th *lookupTestThread) {
+	th = new(lookupTestThread)
 	th.stop = eal.NewStopChan()
 	th.ndtt = ndt.GetThread(threadIndex)
 	for _, name := range names {
-		th.Entries = append(th.Entries, ndtLookupTestEntry{name, nil})
+		th.Entries = append(th.Entries, lookupTestEntry{name, nil})
 	}
 	return th
 }
 
-func (th *ndtLookupTestThread) run() int {
+func (th *lookupTestThread) run() int {
 	for th.stop.Continue() {
 		i := rand.Intn(len(th.Entries))
 		entry := &th.Entries[i]
@@ -45,15 +45,15 @@ func (th *ndtLookupTestThread) run() int {
 	return 0
 }
 
-func (th *ndtLookupTestThread) Launch() error {
+func (th *lookupTestThread) Launch() error {
 	return th.LaunchImpl(th.run)
 }
 
-func (th *ndtLookupTestThread) Stop() error {
+func (th *lookupTestThread) Stop() error {
 	return th.StopImpl(th.stop)
 }
 
-func (th *ndtLookupTestThread) Close() error {
+func (th *lookupTestThread) Close() error {
 	return nil
 }
 
@@ -87,7 +87,7 @@ func TestNdt(t *testing.T) {
 	}
 	assert.Len(nameIndices, 7)
 
-	threads := []*ndtLookupTestThread{
+	threads := []*lookupTestThread{
 		newNdtLookupTestThread(ndt, 0, names[:6]),
 		newNdtLookupTestThread(ndt, 1, names[:6]),
 		newNdtLookupTestThread(ndt, 2, names[:6]),

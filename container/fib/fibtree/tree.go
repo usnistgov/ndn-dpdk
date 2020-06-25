@@ -5,9 +5,15 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
 
+// GetNdtIndexCallback is a callback function that returns NDT index for the specified name.
 type GetNdtIndexCallback func(name ndn.Name) uint64
 
-// FIB tree structure.
+// TraverseCallback is a visitor during tree traversal.
+// Returns whether to visit descendants of current node.
+type TraverseCallback func(name ndn.Name, n *Node) bool
+
+// Tree represents a name hierarchy of FIB.
+// It contains all the FIB entry names, but does not contain contents (nexthops, etc) of the FIB entry.
 type Tree struct {
 	startDepth   int
 	ndtPrefixLen int
@@ -19,6 +25,7 @@ type Tree struct {
 	subtrees []map[*Node]string // ndtIndex => list of <Node,string(nameV)> tuples, where name.Len()==ndtPrefixLen
 }
 
+// New creates a Tree.
 func New(startDepth, ndtPrefixLen, nNdtElements int, getNdtIndex GetNdtIndexCallback) (t *Tree) {
 	t = new(Tree)
 	t.startDepth = startDepth
@@ -35,31 +42,29 @@ func New(startDepth, ndtPrefixLen, nNdtElements int, getNdtIndex GetNdtIndexCall
 	return t
 }
 
+// CountEntries returns number of FIB entries.
 func (t *Tree) CountEntries() int {
 	return t.nEntries
 }
 
+// CountNodes returns number of tree nodes.
 func (t *Tree) CountNodes() int {
 	return t.nNodes
 }
 
-// Traversal visitor.
-// Returns whether to visit descendants of current node.
-type TraverseCallback func(name ndn.Name, n *Node) bool
-
-// Traverse entire tree.
+// Traverse traverses the tree starting from the root node.
 func (t *Tree) Traverse(cb TraverseCallback) {
 	t.root.traverse("", cb)
 }
 
-// Traverse subtrees of a specified ndtIndex.
+// TraverseSubtree visits subtrees of a specified ndtIndex.
 func (t *Tree) TraverseSubtree(ndtIndex uint64, cb TraverseCallback) {
 	for n, nameV := range t.subtrees[ndtIndex] {
 		n.traverse(nameV, cb)
 	}
 }
 
-// Insert entry at name.
+// Insert inserts an entry at the specified name.
 // Returns:
 //   ok: true if inserted, false if entry already exists
 //   oldMd: old MaxDepth at name.GetPrefix(startDepth)
@@ -115,7 +120,7 @@ func (t *Tree) Insert(name ndn.Name) (ok bool, oldMd int, newMd int, virtIsEntry
 	return true, oldMd, newMd, virtIsEntry
 }
 
-// Erase entry at name.
+// Erase erases an entry at the specified name.
 // Returns:
 //   ok: true if deleted, false if entry does not exist
 //   oldMd: old MaxDepth at name.GetPrefix(startDepth)

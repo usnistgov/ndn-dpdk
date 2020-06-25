@@ -1,11 +1,19 @@
 package fibtree
 
-import "github.com/usnistgov/ndn-dpdk/ndn"
+import (
+	"github.com/usnistgov/ndn-dpdk/ndn"
+)
 
+// Node represents a node in Tree.
 type Node struct {
-	IsEntry  bool
+	// IsEntry is set to true if there is a FIB entry at this node.
+	IsEntry bool
+
+	// MaxDepth indicates the height of a subtree rooted at this node.
 	MaxDepth int
-	children map[string]*Node // string(NameComponent) => child
+
+	// children maps from NameComponent TLV-VALUE to child node.
+	children map[string]*Node
 }
 
 func newNode() *Node {

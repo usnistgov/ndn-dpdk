@@ -1,14 +1,10 @@
 package fib
 
-/*
-#include "../../csrc/fib/entry.h"
-*/
-import "C"
 import (
 	"fmt"
 )
 
-// Counters on FIB entry.
+// EntryCounters contains (aggregated) FIB entry counters.
 type EntryCounters struct {
 	NRxInterests uint64
 	NRxData      uint64
@@ -16,12 +12,13 @@ type EntryCounters struct {
 	NTxInterests uint64
 }
 
-// Add an entry's counters into cnt.
+// Add adds an entry's counters into cnt.
 func (cnt *EntryCounters) Add(entry *Entry) {
-	cnt.NRxInterests += uint64(entry.c.nRxInterests)
-	cnt.NRxData += uint64(entry.c.nRxData)
-	cnt.NRxNacks += uint64(entry.c.nRxNacks)
-	cnt.NTxInterests += uint64(entry.c.nTxInterests)
+	c := (*CEntry)(entry)
+	cnt.NRxInterests += uint64(c.NRxInterests)
+	cnt.NRxData += uint64(c.NRxData)
+	cnt.NRxNacks += uint64(c.NRxNacks)
+	cnt.NTxInterests += uint64(c.NTxInterests)
 }
 
 func (cnt EntryCounters) String() string {

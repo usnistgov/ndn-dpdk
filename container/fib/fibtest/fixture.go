@@ -13,12 +13,14 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
+// Fixture is a test fixture that contains a FIB.
 type Fixture struct {
 	Ndt         *ndt.Ndt
 	Fib         *fib.Fib
 	NPartitions int
 }
 
+// NewFixture initializes a FIB test fixture.
 func NewFixture(ndtPrefixLen, fibStartDepth, nPartitions int) (fixture *Fixture) {
 	ndtCfg := ndt.Config{
 		PrefixLen:  ndtPrefixLen,
@@ -28,17 +30,13 @@ func NewFixture(ndtPrefixLen, fibStartDepth, nPartitions int) (fixture *Fixture)
 	ndt := ndt.New(ndtCfg, []eal.NumaSocket{{}})
 	ndt.Randomize(nPartitions)
 
-	fibCfg := fib.Config{
-		Id:         "TestFib",
+	cfg := fib.Config{
 		MaxEntries: 255,
 		NBuckets:   64,
 		StartDepth: fibStartDepth,
 	}
-	partitionNumaSockets := make([]eal.NumaSocket, nPartitions)
-	for i := range partitionNumaSockets {
-		partitionNumaSockets[i] = eal.NumaSocket{}
-	}
-	fib, e := fib.New(fibCfg, ndt, partitionNumaSockets)
+	partitionSockets := make([]eal.NumaSocket, nPartitions)
+	fib, e := fib.New("TestFib", cfg, ndt, partitionSockets)
 	if e != nil {
 		panic(e)
 	}
@@ -46,13 +44,14 @@ func NewFixture(ndtPrefixLen, fibStartDepth, nPartitions int) (fixture *Fixture)
 	return &Fixture{Ndt: ndt, Fib: fib, NPartitions: nPartitions}
 }
 
+// Close discards the fixture.
 func (fixture *Fixture) Close() error {
 	fixture.Fib.Close()
 	strategycode.DestroyAll()
 	return fixture.Ndt.Close()
 }
 
-// Count number of in-use entries in FIB's underlying mempool.
+// CountEntries returns number of in-use entries in FIB's underlying mempool.
 func (fixture *Fixture) CountEntries() (n int) {
 	urcu.Barrier()
 	for partition := 0; partition < fixture.NPartitions; partition++ {
@@ -61,7 +60,7 @@ func (fixture *Fixture) CountEntries() (n int) {
 	return n
 }
 
-// Allocate and initialize a FIB entry.
+// MakeEntry allocates and initializes a FIB entry.
 func (fixture *Fixture) MakeEntry(name string, sc strategycode.StrategyCode,
 	nexthops ...iface.FaceId) (entry *fib.Entry) {
 	entry = new(fib.Entry)
@@ -74,7 +73,7 @@ func (fixture *Fixture) MakeEntry(name string, sc strategycode.StrategyCode,
 	return entry
 }
 
-// Find what partitions contain the given name.
+// FindInPartitions lists the partitions that contain the given name.
 func (fixture *Fixture) FindInPartitions(name ndn.Name) (partitions []int) {
 	rs := urcu.NewReadSide()
 	defer rs.Close()
@@ -86,6 +85,7 @@ func (fixture *Fixture) FindInPartitions(name ndn.Name) (partitions []int) {
 	return partitions
 }
 
+// CheckEntryNames checks that the FIB contains the given names.
 func (fixture *Fixture) CheckEntryNames(a *assert.Assertions, expectedInput []string) bool {
 	expected := make([]string, len(expectedInput))
 	for i, uri := range expectedInput {

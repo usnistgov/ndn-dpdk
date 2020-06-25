@@ -7,12 +7,14 @@ import (
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
 )
 
+// NdtUpdater performs NDT updates with FIB relocation.
 type NdtUpdater struct {
 	Ndt      *ndt.Ndt
 	Fib      *fib.Fib
 	SleepFor time.Duration // wait duration for processing dispatched packets
 }
 
+// Update performs an update.
 func (nu *NdtUpdater) Update(index uint64, value uint8) (nRelocated int, e error) {
 	oldValue := nu.Ndt.ReadElement(index)
 	if oldValue == value {

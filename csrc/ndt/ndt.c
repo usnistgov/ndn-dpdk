@@ -8,7 +8,7 @@ Ndt_Init(Ndt* ndt,
          uint8_t indexBits,
          uint8_t sampleFreq,
          uint8_t nThreads,
-         const unsigned* numaSockets)
+         const unsigned* sockets)
 {
   uint64_t tableSize = 1 << indexBits;
   ndt->prefixLen = prefixLen;
@@ -17,16 +17,16 @@ Ndt_Init(Ndt* ndt,
   ndt->nThreads = nThreads;
 
   ndt->table = (_Atomic uint8_t*)rte_calloc_socket(
-    "NdtTable", tableSize, sizeof(ndt->table[0]), 0, numaSockets[0]);
+    "NdtTable", tableSize, sizeof(ndt->table[0]), 0, sockets[0]);
   ndt->threads = (NdtThread**)rte_malloc_socket(
-    "NdtThreads", nThreads * sizeof(ndt->threads[0]), 0, numaSockets[0]);
+    "NdtThreads", nThreads * sizeof(ndt->threads[0]), 0, sockets[0]);
   for (uint8_t i = 0; i < nThreads; ++i) {
     ndt->threads[i] = (NdtThread*)rte_zmalloc_socket(
       "NdtThread",
       offsetof(NdtThread, nHits) +
         tableSize * sizeof(ndt->threads[i]->nHits[0]),
       0,
-      numaSockets[i]);
+      sockets[i]);
   }
   return ndt->threads;
 }
