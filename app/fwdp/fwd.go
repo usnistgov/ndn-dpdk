@@ -63,9 +63,8 @@ func (fwd *Fwd) Init(fib *fib.Fib, pcctCfg pcct.Config, interestQueueCfg, dataQu
 
 	fwd.c.fib = (*C.Fib)(fib.GetPtr(fwd.id))
 
-	pcctCfg.Id = fwd.String() + "_pcct"
-	pcctCfg.NumaSocket = socket
-	fwd.pcct, e = pcct.New(pcctCfg)
+	pcctCfg.Socket = socket
+	fwd.pcct, e = pcct.New(fwd.String()+"_pcct", pcctCfg)
 	if e != nil {
 		return fmt.Errorf("pcct.New: %v", e)
 	}

@@ -45,11 +45,8 @@ type Fixture struct {
 func NewFixture(pcctMaxEntries int) (fixture *Fixture) {
 	fixture = new(Fixture)
 
-	pcctCfg := pcct.Config{
-		Id:         "TestPcct",
-		MaxEntries: pcctMaxEntries,
-	}
-	pcct, e := pcct.New(pcctCfg)
+	pcctCfg := pcct.Config{MaxEntries: pcctMaxEntries}
+	pcct, e := pcct.New("TestPcct", pcctCfg)
 	if e != nil {
 		panic(e)
 	}

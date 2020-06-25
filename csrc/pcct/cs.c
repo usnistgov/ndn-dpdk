@@ -92,15 +92,15 @@ static CsList*
 CsPriv_GetList(CsPriv* csp, CsListId cslId)
 {
   switch (cslId) {
-    case CSL_MD_T1:
-    case CSL_MD_B1:
-    case CSL_MD_T2:
-    case CSL_MD_B2:
-    case CSL_MD_DEL:
-      return CsArc_GetList(&csp->directArc, cslId - CSL_MD);
-    case CSL_MI:
+    case CslMdT1:
+    case CslMdB1:
+    case CslMdT2:
+    case CslMdB2:
+    case CslMdDel:
+      return CsArc_GetList(&csp->directArc, cslId - CslMd);
+    case CslMi:
       return &csp->indirectLru;
-    case CSL_MD:
+    case CslMd:
     default:
       assert(false);
       return NULL;
@@ -125,7 +125,7 @@ uint32_t
 Cs_GetCapacity(const Cs* cs, CsListId cslId)
 {
   CsPriv* csp = Cs_GetPriv(cs);
-  if (cslId == CSL_MD) {
+  if (cslId == CslMd) {
     return CsArc_GetCapacity(&csp->directArc);
   }
   return CsPriv_GetList(csp, cslId)->capacity;
@@ -135,7 +135,7 @@ uint32_t
 Cs_CountEntries(const Cs* cs, CsListId cslId)
 {
   CsPriv* csp = Cs_GetPriv(cs);
-  if (cslId == CSL_MD) {
+  if (cslId == CslMd) {
     return CsArc_CountEntries(&csp->directArc);
   }
   return CsPriv_GetList(csp, cslId)->count;

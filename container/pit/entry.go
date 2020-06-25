@@ -11,39 +11,51 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
-// A PIT entry.
-type Entry struct {
-	c   *C.PitEntry
-	pit *Pit
+// Entry represents a PIT entry.
+type Entry C.PitEntry
+
+// EntryFromPtr converts *C.PitEntry to Entry.
+func EntryFromPtr(ptr unsafe.Pointer) *Entry {
+	return (*Entry)(ptr)
 }
 
-func (pit *Pit) EntryFromPtr(ptr unsafe.Pointer) Entry {
-	return Entry{(*C.PitEntry)(ptr), pit}
+// GetPtr returns *C.PitEntry pointer.
+func (entry *Entry) GetPtr() unsafe.Pointer {
+	return unsafe.Pointer(entry)
 }
 
-func (entry Entry) GetPtr() unsafe.Pointer {
-	return unsafe.Pointer(entry.c)
+func (entry *Entry) getPtr() *C.PitEntry {
+	return (*C.PitEntry)(entry)
 }
 
-func (entry Entry) GetToken() uint64 {
-	return uint64(C.Pit_GetEntryToken(entry.pit.getPtr(), entry.c))
+func (entry *Entry) getPitPtr() *C.Pit {
+	pccEntryC := C.PccEntry_FromPitEntry(entry.getPtr())
+	mempoolC := C.rte_mempool_from_obj(unsafe.Pointer(pccEntryC))
+	return (*C.Pit)(unsafe.Pointer(mempoolC))
 }
 
-func (entry Entry) GetFibSeqNum() uint32 {
-	return uint32(entry.c.fibSeqNum)
+// GetToken returns the PIT token assigned to this entry.
+func (entry *Entry) GetToken() uint64 {
+	return uint64(C.PitEntry_GetToken(entry.getPtr()))
 }
 
-// List DN records.
-func (entry Entry) ListDns() (list []Dn) {
+// GetFibSeqNum returns the FIB insertion sequence number recorded in this entry.
+func (entry *Entry) GetFibSeqNum() uint32 {
+	return uint32(entry.getPtr().fibSeqNum)
+}
+
+// ListDns returns downstream records.
+func (entry *Entry) ListDns() (list []Dn) {
+	c := entry.getPtr()
 	list = make([]Dn, 0, C.PIT_ENTRY_MAX_DNS)
 	for i := 0; i < int(C.PIT_ENTRY_MAX_DNS); i++ {
-		dnC := &entry.c.dns[i]
+		dnC := &c.dns[i]
 		if dnC.face == C.FACEID_INVALID {
 			return list
 		}
 		list = append(list, Dn{dnC, entry})
 	}
-	for extC := entry.c.ext; extC != nil; extC = extC.next {
+	for extC := c.ext; extC != nil; extC = extC.next {
 		for i := 0; i < int(C.PIT_ENTRY_EXT_MAX_DNS); i++ {
 			dnC := &extC.dns[i]
 			if dnC.face == C.FACEID_INVALID {
@@ -55,24 +67,25 @@ func (entry Entry) ListDns() (list []Dn) {
 	return list
 }
 
-// Insert new DN record, or update existing DN record.
-func (entry Entry) InsertDn(interest *ndni.Interest) *Dn {
+// InsertDn inserts new downstream record, or update existing downstream record.
+func (entry *Entry) InsertDn(interest *ndni.Interest) *Dn {
 	npktC := (*C.Packet)(interest.GetPacket().GetPtr())
-	dnC := C.PitEntry_InsertDn(entry.c, entry.pit.getPtr(), npktC)
+	dnC := C.PitEntry_InsertDn(entry.getPtr(), entry.getPitPtr(), npktC)
 	return &Dn{dnC, entry}
 }
 
-// List UP records.
-func (entry Entry) ListUps() (list []Up) {
+// ListUps returns upstream records.
+func (entry *Entry) ListUps() (list []Up) {
+	c := entry.getPtr()
 	list = make([]Up, 0, C.PIT_ENTRY_MAX_UPS)
 	for i := 0; i < int(C.PIT_ENTRY_MAX_UPS); i++ {
-		upC := &entry.c.ups[i]
+		upC := &c.ups[i]
 		if upC.face == C.FACEID_INVALID {
 			return list
 		}
 		list = append(list, Up{upC, entry})
 	}
-	for extC := entry.c.ext; extC != nil; extC = extC.next {
+	for extC := c.ext; extC != nil; extC = extC.next {
 		for i := 0; i < int(C.PIT_ENTRY_EXT_MAX_UPS); i++ {
 			upC := &extC.ups[i]
 			if upC.face == C.FACEID_INVALID {

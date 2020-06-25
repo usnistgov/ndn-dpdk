@@ -70,7 +70,7 @@ FwFwd_RxNackDuplicate(FwFwd* fwd, FwFwdCtx* ctx)
     return true;
   }
 
-  uint64_t token = FwToken_New(fwd->id, Pit_GetEntryToken(fwd->pit, ctx->pitEntry));
+  uint64_t token = FwToken_New(fwd->id, PitEntry_GetToken(ctx->pitEntry));
   Packet_InitLpL3Hdr(outNpkt)->pitToken = token;
   Packet_ToMbuf(outNpkt)->timestamp = ctx->pkt->timestamp; // for latency stats
 

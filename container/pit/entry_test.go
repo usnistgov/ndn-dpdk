@@ -15,13 +15,13 @@ func TestEntryExpiry(t *testing.T) {
 	fixture := NewFixture(255)
 	defer fixture.Close()
 
-	// lifetime 50ms
-	interest1 := makeInterest("/A/B", 50*time.Millisecond)
+	// lifetime 100ms
+	interest1 := makeInterest("/A/B", 100*time.Millisecond)
 	ndnitestenv.SetPitToken(interest1, 0xB0B1B2B3B4B5B6B7)
 	ndnitestenv.SetPort(interest1, 1001)
 
-	// lifetime 300ms
-	interest2 := makeInterest("/A/B", 300*time.Millisecond)
+	// lifetime 400ms
+	interest2 := makeInterest("/A/B", 400*time.Millisecond)
 	ndnitestenv.SetPitToken(interest2, 0xB8B9BABBBCBDBEBF)
 	ndnitestenv.SetPort(interest2, 1002)
 
@@ -37,10 +37,10 @@ func TestEntryExpiry(t *testing.T) {
 	assert.NotNil(entry.InsertDn(interest2))
 	assert.Len(entry.ListDns(), 2)
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 	fixture.Pit.TriggerTimeoutSched()
 	assert.Equal(1, fixture.Pit.Len())
-	time.Sleep(250 * time.Millisecond)
+	time.Sleep(400 * time.Millisecond)
 	fixture.Pit.TriggerTimeoutSched()
 	assert.Zero(fixture.Pit.Len())
 }
@@ -65,7 +65,7 @@ func TestEntryExtend(t *testing.T) {
 	assert.Equal(1, fixture.Pit.Len())
 	assert.True(fixture.CountMpInUse() > 1)
 
-	fixture.Pit.Erase(*entry)
+	fixture.Pit.Erase(entry)
 	assert.Zero(fixture.Pit.Len())
 	assert.Zero(fixture.CountMpInUse())
 }
@@ -87,7 +87,7 @@ func TestEntryLongName(t *testing.T) {
 	assert.Equal(1, fixture.Pit.Len())
 	assert.True(fixture.CountMpInUse() > 1)
 
-	fixture.Pit.Erase(*entry)
+	fixture.Pit.Erase(entry)
 	assert.Zero(fixture.Pit.Len())
 	assert.Zero(fixture.CountMpInUse())
 }

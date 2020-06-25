@@ -13,22 +13,22 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/mempool"
 )
 
+// Config contains PCCT configuration.
 type Config struct {
-	Id         string
 	MaxEntries int
 	CsCapMd    int
 	CsCapMi    int
-	NumaSocket eal.NumaSocket
+	Socket     eal.NumaSocket
 }
 
-// The PIT-CS Composite Table (PCCT).
+// Pcct represents a PIT-CS Composite Table (PCCT).
 type Pcct C.Pcct
 
-// Create a PCCT, then initialize PIT and CS.
-func New(cfg Config) (pcct *Pcct, e error) {
-	idC := C.CString(cfg.Id)
+// New creates a PCCT, and then initializes PIT and CS.
+func New(id string, cfg Config) (pcct *Pcct, e error) {
+	idC := C.CString(id)
 	defer C.free(unsafe.Pointer(idC))
-	pcctC := C.Pcct_New(idC, C.uint32_t(cfg.MaxEntries), C.uint(cfg.NumaSocket.ID()))
+	pcctC := C.Pcct_New(idC, C.uint32_t(cfg.MaxEntries), C.uint(cfg.Socket.ID()))
 	if pcctC == nil {
 		return nil, eal.GetErrno()
 	}
@@ -40,11 +40,7 @@ func New(cfg Config) (pcct *Pcct, e error) {
 	return (*Pcct)(pcctC), nil
 }
 
-func PcctFromPtr(ptr unsafe.Pointer) *Pcct {
-	return (*Pcct)(ptr)
-}
-
-// Get native *C.Pcct pointer to use in other packages.
+// GetPtr returns *C.Pcct pointer.
 func (pcct *Pcct) GetPtr() unsafe.Pointer {
 	return unsafe.Pointer(pcct)
 }
@@ -53,14 +49,13 @@ func (pcct *Pcct) getPtr() *C.Pcct {
 	return (*C.Pcct)(pcct)
 }
 
-// Get underlying mempool of the PCCT.
+// GetMempool returns underlying mempool of the PCCT.
 func (pcct *Pcct) GetMempool() *mempool.Mempool {
 	return mempool.FromPtr(pcct.GetPtr())
 }
 
-// Destroy the PCCT.
-// Warning: currently this cannot release stored Interest/Data packets,
-// and would cause memory leak.
+// Close destroys the PCCT.
+// This does not release stored Interest/Data packets.
 func (pcct *Pcct) Close() error {
 	C.Pcct_Close(pcct.getPtr())
 	return nil

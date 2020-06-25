@@ -6,6 +6,7 @@ build
 csrc/meson.build
 csrc/ndn/an.h
 csrc/ndn/enum.h
+csrc/pcct/cs-enum.h
 docs/mgmtspec.json
 ndni/enum_string.go
 node_modules

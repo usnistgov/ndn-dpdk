@@ -110,6 +110,12 @@ PitEntry_Finalize(PitEntry* entry)
 const char*
 PitEntry_ToDebugString(PitEntry* entry);
 
+/** \brief Get a token that identifies the PIT entry.
+ */
+static inline uint64_t
+PitEntry_GetToken(PitEntry* entry);
+// Implementation is in pit.h to avoid circular dependency.
+
 /** \brief Reference FIB entry from PIT entry, clear scratch if FIB entry changed.
  *  \param npkt the Interest packet.
  */

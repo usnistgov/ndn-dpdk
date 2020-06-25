@@ -1,7 +1,10 @@
 # ndn-dpdk/container/mintmr
 
-This directory implements a **minute scheduler**.
-It allows scheduling events within the next few minutes, and triggering them at 100ms accuracy.
+[csrc/mintmr](../../csrc/mintmr) implements a **minute scheduler**.
+It allows scheduling events within the next few minutes, and triggering them at an accuracy on the order of milliseconds.
+
+MinTmr does not have Go bindings.
+This directory contains unit tests for MinTmr.
 
 ## Usage
 

@@ -81,25 +81,3 @@ CsList_EvictBulk(CsList* csl, uint32_t max, CsList_EvictCb cb, void* cbarg)
 
   return nErase;
 }
-
-const char*
-CsListId_GetName(CsListId cslId)
-{
-  switch (cslId) {
-    case CSL_MD:
-      return "MD";
-    case CSL_MD_T1:
-      return "MD.T1";
-    case CSL_MD_B1:
-      return "MD.B1";
-    case CSL_MD_T2:
-      return "MD.T2";
-    case CSL_MD_B2:
-      return "MD.B2";
-    case CSL_MD_DEL:
-      return "MD.DEL";
-    case CSL_MI:
-      return "MI";
-  }
-  return "(unknown)";
-}

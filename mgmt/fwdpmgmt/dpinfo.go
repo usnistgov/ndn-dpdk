@@ -44,9 +44,9 @@ func (mg DpInfoMgmt) Pit(arg IndexArg, reply *pit.Counters) error {
 	return nil
 }
 
-func readCslCnt(cs *cs.Cs, cslId cs.ListId) (cnt CsListCounters) {
-	cnt.Count = cs.CountEntries(cslId)
-	cnt.Capacity = cs.GetCapacity(cslId)
+func readCslCnt(cs *cs.Cs, list cs.ListID) (cnt CsListCounters) {
+	cnt.Count = cs.CountEntries(list)
+	cnt.Capacity = cs.GetCapacity(list)
 	return cnt
 }
 
@@ -57,8 +57,8 @@ func (mg DpInfoMgmt) Cs(arg IndexArg, reply *CsCounters) error {
 	}
 	pitCnt := thePit.ReadCounters()
 
-	reply.MD = readCslCnt(theCs, cs.CSL_MD)
-	reply.MI = readCslCnt(theCs, cs.CSL_MI)
+	reply.MD = readCslCnt(theCs, cs.CslMd)
+	reply.MI = readCslCnt(theCs, cs.CslMi)
 	reply.NHits = pitCnt.NCsMatch
 	reply.NMisses = pitCnt.NInsert + pitCnt.NFound
 

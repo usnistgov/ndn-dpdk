@@ -14,7 +14,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/mempool"
 )
 
-// Config contains configuration of CryptoDev.
+// Config contains CryptoDev configuration.
 type Config struct {
 	MaxSessions       int
 	NQueuePairs       int

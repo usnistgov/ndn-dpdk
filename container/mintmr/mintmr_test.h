@@ -3,7 +3,7 @@
 
 /// \file
 
-#include "../../../csrc/mintmr/mintmr.h"
+#include "../../csrc/mintmr/mintmr.h"
 
 typedef struct MinTmrTestRecord
 {

@@ -84,16 +84,6 @@ Pit_InvokeSgTimerCb_(Pit* pit, PitEntry* entry)
 PitInsertResult
 Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry);
 
-/** \brief Get a token of a PIT entry.
- */
-static inline uint64_t
-Pit_GetEntryToken(Pit* pit, PitEntry* entry)
-{
-  PccEntry* pccEntry = PccEntry_FromPitEntry(entry);
-  assert(pccEntry->hasToken);
-  return pccEntry->token;
-}
-
 /** \brief Erase a PIT entry.
  *  \post \p entry is no longer valid.
  */
@@ -116,5 +106,14 @@ Pit_FindByData(Pit* pit, Packet* npkt);
  */
 PitEntry*
 Pit_FindByNack(Pit* pit, Packet* npkt);
+
+static inline uint64_t
+PitEntry_GetToken(PitEntry* entry)
+{
+  // Declaration is in pit-entry.h.
+  PccEntry* pccEntry = PccEntry_FromPitEntry(entry);
+  assert(pccEntry->hasToken);
+  return pccEntry->token;
+}
 
 #endif // NDN_DPDK_PCCT_PIT_H

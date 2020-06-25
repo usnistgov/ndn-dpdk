@@ -195,7 +195,7 @@ SgForwardInterest(SgCtx* ctx0, FaceId nh)
     return SGFWDI_ALLOCERR;
   }
 
-  uint64_t token = FwToken_New(fwd->id, Pit_GetEntryToken(fwd->pit, ctx->pitEntry));
+  uint64_t token = FwToken_New(fwd->id, PitEntry_GetToken(ctx->pitEntry));
   Packet_InitLpL3Hdr(outNpkt)->pitToken = token;
   Packet_ToMbuf(outNpkt)->timestamp = ctx->rxTime; // for latency stats
 

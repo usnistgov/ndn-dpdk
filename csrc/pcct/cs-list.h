@@ -40,20 +40,4 @@ typedef void (*CsList_EvictCb)(void* arg, CsEntry* entry);
 uint32_t
 CsList_EvictBulk(CsList* csl, uint32_t max, CsList_EvictCb cb, void* cbarg);
 
-/** \brief Identify a list within CS.
- */
-typedef enum CsListId
-{
-  CSL_MD = 100, ///< in-memory direct entries
-  CSL_MD_T1,
-  CSL_MD_B1,
-  CSL_MD_T2,
-  CSL_MD_B2,
-  CSL_MD_DEL,
-  CSL_MI = 200, ///< in-memory indirect entries
-} CsListId;
-
-const char*
-CsListId_GetName(CsListId cslId);
-
 #endif // NDN_DPDK_PCCT_CS_LIST_H

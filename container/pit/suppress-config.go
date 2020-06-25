@@ -11,13 +11,14 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
-// PIT suppression configuration.
+// SuppressConfig contains PIT suppression configuration.
 type SuppressConfig struct {
 	Min        nnduration.Nanoseconds
 	Max        nnduration.Nanoseconds
 	Multiplier float64
 }
 
+// CopyToC copies this configuration to *C.PitSuppressConfig.
 func (sc SuppressConfig) CopyToC(ptr unsafe.Pointer) {
 	c := (*C.PitSuppressConfig)(ptr)
 	c.min = C.TscDuration(eal.ToTscDuration(sc.Min.DurationOr(10e6)))

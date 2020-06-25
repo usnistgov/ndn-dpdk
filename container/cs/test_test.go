@@ -43,7 +43,6 @@ type Fixture struct {
 }
 
 func NewFixture(cfg pcct.Config) (fixture *Fixture) {
-	cfg.Id = "TestPcct"
 	cfg.MaxEntries = 4095
 	if cfg.CsCapMd == 0 {
 		cfg.CsCapMd = 200
@@ -52,7 +51,7 @@ func NewFixture(cfg pcct.Config) (fixture *Fixture) {
 		cfg.CsCapMd = 200
 	}
 
-	pcct, e := pcct.New(cfg)
+	pcct, e := pcct.New("TestPcct", cfg)
 	if e != nil {
 		panic(e)
 	}
@@ -118,7 +117,7 @@ func (fixture *Fixture) InsertBulk(minId, maxId int, dataNameFmt, interestNameFm
 func (fixture *Fixture) Find(interest *ndni.Interest) *cs.Entry {
 	pitEntry, csEntry := fixture.Pit.Insert(interest, fixture.emptyFibEntry)
 	if pitEntry != nil {
-		fixture.Pit.Erase(*pitEntry)
+		fixture.Pit.Erase(pitEntry)
 	} else {
 		ndnitestenv.ClosePacket(interest)
 	}

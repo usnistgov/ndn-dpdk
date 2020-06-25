@@ -54,14 +54,14 @@ func TestInsertErase(t *testing.T) {
 	assert.Equal(5, fixture.Pit.Len())
 	assert.Equal(5, fixture.CountMpInUse()) // entry2 and entry6 share a PccEntry but it has PccEntryExt
 
-	fixture.Pit.Erase(*entry6) // entry6 is on PccEntryExt, removing it should release PccEntryExt
+	fixture.Pit.Erase(entry6) // entry6 is on PccEntryExt, removing it should release PccEntryExt
 	assert.Equal(4, fixture.Pit.Len())
 	assert.Equal(4, fixture.CountMpInUse())
 
-	fixture.Pit.Erase(*entry1)
-	fixture.Pit.Erase(*entry2)
-	fixture.Pit.Erase(*entry4)
-	fixture.Pit.Erase(*entry5)
+	fixture.Pit.Erase(entry1)
+	fixture.Pit.Erase(entry2)
+	fixture.Pit.Erase(entry4)
+	fixture.Pit.Erase(entry5)
 	assert.Zero(fixture.Pit.Len())
 	assert.Zero(fixture.CountMpInUse())
 }
@@ -70,7 +70,7 @@ func TestToken(t *testing.T) {
 	assert, require := makeAR(t)
 	interestNames := make([]string, 255)
 	dataPkts := make([]*ndni.Data, 255)
-	entries := make([]pit.Entry, 255)
+	entries := make([]*pit.Entry, 255)
 	fixture := NewFixture(255)
 	defer fixture.Close()
 	pit := fixture.Pit
@@ -98,7 +98,7 @@ func TestToken(t *testing.T) {
 
 		interestNames[i] = name
 		dataPkts[i] = data
-		entries[i] = *entry
+		entries[i] = entry
 	}
 
 	assert.Equal(255, pit.Len())

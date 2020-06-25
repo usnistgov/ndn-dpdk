@@ -11,45 +11,54 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
-// A CS entry.
-type Entry struct {
-	c  *C.CsEntry
-	cs *Cs
+// Entry represents a CS entry.
+type Entry C.CsEntry
+
+// EntryFromPtr converts *C.CsEntry to Entry.
+func EntryFromPtr(ptr unsafe.Pointer) *Entry {
+	return (*Entry)(ptr)
 }
 
-func (cs *Cs) EntryFromPtr(ptr unsafe.Pointer) Entry {
-	return Entry{(*C.CsEntry)(ptr), cs}
+func (entry *Entry) getPtr() *C.CsEntry {
+	return (*C.CsEntry)(entry)
 }
 
-func (entry Entry) IsDirect() bool {
-	return bool(C.CsEntry_IsDirect(entry.c))
+// IsDirect determines whether this is a direct entry.
+func (entry *Entry) IsDirect() bool {
+	return bool(C.CsEntry_IsDirect(entry.getPtr()))
 }
 
-func (entry Entry) GetDirect() Entry {
-	return Entry{C.CsEntry_GetDirect(entry.c), entry.cs}
+// GetDirect returns the direct entry from a possibly indirect entry.
+func (entry *Entry) GetDirect() *Entry {
+	return (*Entry)(C.CsEntry_GetDirect(entry.getPtr()))
 }
 
-func (entry Entry) ListIndirects() (indirects []Entry) {
+// ListIndirects returns a list of indirect entries associated with this direct entry.
+// Panics if this is not a direct entry.
+func (entry *Entry) ListIndirects() (indirects []*Entry) {
 	if !entry.IsDirect() {
 		panic("Entry.ListIndirects is unavailable on indirect entry")
 	}
 
-	indirects = make([]Entry, int(entry.c.nIndirects))
+	c := entry.getPtr()
+	indirects = make([]*Entry, int(c.nIndirects))
 	for i := range indirects {
-		indirects[i] = Entry{entry.c.indirect[i], entry.cs}
+		indirects[i] = (*Entry)(c.indirect[i])
 	}
 	return indirects
 }
 
-func (entry Entry) GetData() *ndni.Data {
-	return ndni.PacketFromPtr(unsafe.Pointer(C.CsEntry_GetData(entry.c))).AsData()
+// GetData returns the Data packet on this entry.
+func (entry *Entry) GetData() *ndni.Data {
+	return ndni.PacketFromPtr(unsafe.Pointer(C.CsEntry_GetData(entry.getPtr()))).AsData()
 }
 
-func (entry Entry) GetFreshUntil() eal.TscTime {
-	return eal.TscTime(C.CsEntry_GetDirect(entry.c).freshUntil)
+// GetFreshUntil returns a timestamp when this entry would become non-fresh.
+func (entry *Entry) GetFreshUntil() eal.TscTime {
+	return eal.TscTime(C.CsEntry_GetDirect(entry.getPtr()).freshUntil)
 }
 
-// Determine whether entry is fresh at a timestamp.
-func (entry Entry) IsFresh(now eal.TscTime) bool {
+// IsFresh determines whether entry is fresh at the given time.
+func (entry *Entry) IsFresh(now eal.TscTime) bool {
 	return entry.GetFreshUntil() > now
 }

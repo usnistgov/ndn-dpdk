@@ -2,7 +2,7 @@ package pit
 
 import "fmt"
 
-// PIT counters.
+// Counters contains PIT counters.
 type Counters struct {
 	NEntries  uint64 // current number of entries
 	NInsert   uint64 // how many inserts created a new PIT entry
@@ -23,7 +23,7 @@ func (cnt Counters) String() string {
 		cnt.NDataHit, cnt.NDataMiss, cnt.NNackHit, cnt.NNackMiss, cnt.NExpired)
 }
 
-// Read PIT counters.
+// ReadCounters reads counters from this PIT.
 func (pit *Pit) ReadCounters() (cnt Counters) {
 	pitp := pit.getPriv()
 	cnt.NEntries = uint64(pitp.nEntries)
