@@ -8,7 +8,7 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
-#include "siphash-20121104.h"
+#include "../vendor/siphash-20121104.h"
 #pragma GCC diagnostic pop
 
 /** \brief a key for SipHash

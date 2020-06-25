@@ -1,8 +1,8 @@
 #include "name.h"
 #include "tlv-varnum.h"
 
-#include "../core/pcg_basic.h"
 #include "../core/siphash.h"
+#include "../vendor/pcg_basic.h"
 
 static SipHashKey theNameHashKey;
 uint64_t NameHash_Empty_;

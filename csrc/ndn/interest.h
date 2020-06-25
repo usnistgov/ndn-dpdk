@@ -3,7 +3,7 @@
 
 /// \file
 
-#include "../core/pcg_basic.h"
+#include "../vendor/pcg_basic.h"
 #include "name.h"
 
 /** \brief maximum number of forwarding hints

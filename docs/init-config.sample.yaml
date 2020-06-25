@@ -76,7 +76,8 @@ Ndt:
 
 # FORWARDING INFORMATION BASE
 Fib:
-  # Capacity of each FIB partition. Affects hugepage memory usage. 2^q-1 is optimal.
+  # Capacity of each FIB partition. Affects hugepage memory usage.
+  # 2^q-1 is optimal.
   MaxEntries: 65535
   # Number of hash table buckets in each FIB partition. Must be a power of 2.
   NBuckets: 256

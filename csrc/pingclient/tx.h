@@ -5,10 +5,10 @@
 
 #include "common.h"
 
-#include "../core/pcg_basic.h"
 #include "../dpdk/thread.h"
 #include "../dpdk/tsc.h"
 #include "../iface/face.h"
+#include "../vendor/pcg_basic.h"
 
 /** \brief Per-pattern information in ndnping client.
  */

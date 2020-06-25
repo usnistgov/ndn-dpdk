@@ -3,10 +3,10 @@
 
 /// \file
 
-#include "../core/pcg_basic.h"
 #include "../dpdk/thread.h"
 #include "../iface/face.h"
 #include "../pktqueue/queue.h"
+#include "../vendor/pcg_basic.h"
 
 #define PINGSERVER_MAX_PATTERNS 256
 #define PINGSERVER_MAX_REPLIES 8

@@ -16,7 +16,7 @@
 #define ZF_LOG_VERSION_REQUIRED 4
 #define ZF_LOG_OUTPUT_LEVEL gZfLogOutputLvl
 #define ZF_LOG_SRCLOC ZF_LOG_SRCLOC_SHORT
-#include "zf_log.h"
+#include "../vendor/zf_log.h"
 
 /** \brief Initialize zf_log and set module log level.
  *
