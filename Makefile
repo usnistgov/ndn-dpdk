@@ -61,7 +61,7 @@ uninstall:
 	mk/uninstall.sh
 
 doxygen:
-	cd docs && doxygen Doxyfile 2>&1 | ./filter-Doxygen-warning.awk 1>&2
+	doxygen docs/Doxyfile 2>&1 | docs/filter-Doxygen-warning.awk 1>&2
 
 mgmtspec: docs/mgmtspec.json
 

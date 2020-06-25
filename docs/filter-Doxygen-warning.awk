@@ -1,4 +1,4 @@
-#!/usr/bin/gawk -f
+#!/usr/bin/awk -f
 /warning: The following parameters of .* are not documented:/ {
   skip = 1
   next

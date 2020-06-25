@@ -116,3 +116,4 @@ script:
   - make clean
   - RELEASE=1 make
   - sudo make install
+  - make docs

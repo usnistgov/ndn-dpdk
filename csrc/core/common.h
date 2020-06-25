@@ -1,3 +1,8 @@
+/** \mainpage
+ *
+ *  https://github.com/usnistgov/ndn-dpdk
+ */
+
 #ifndef NDN_DPDK_CORE_COMMON_H
 #define NDN_DPDK_CORE_COMMON_H
 

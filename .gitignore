@@ -4,6 +4,7 @@ cgostruct.go
 csrc/meson.build
 csrc/ndn/an.h
 csrc/ndn/enum.h
+docs/mgmtspec.json
 mk/meson.build
 *ndn-dpdk-*.tgz
 ndni/enum_string.go
