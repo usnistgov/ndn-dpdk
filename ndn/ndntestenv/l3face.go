@@ -67,27 +67,38 @@ func (c *L3FaceTester) CheckL3Face(t *testing.T, faceA, faceB ndn.L3Face) {
 				if !ok {
 					break
 				}
+				require.Len(packet.Lp.PitToken, 8)
+				token := binary.LittleEndian.Uint64(packet.Lp.PitToken)
 				require.NotNil(packet.Interest)
-				data := ndn.MakeData(packet.Interest.Name)
-				var reply ndn.Packet
-				reply.Data = &data
-				reply.Lp.PitToken = packet.Lp.PitToken
-				txB <- &reply
+				if token%5 == 0 {
+					nack := ndn.MakeNack(*packet.Interest)
+					txB <- nack.Packet
+				} else {
+					data := ndn.MakeData(*packet.Interest)
+					txB <- data.Packet
+				}
 			}
 		}
 	}()
 
 	nData := 0
-	hasData := make([]bool, c.Count)
+	nNacks := 0
+	hasPacket := make([]bool, c.Count)
 	go func() {
 		for packet := range faceA.GetRx() {
-			require.NotNil(packet.Data)
 			require.Len(packet.Lp.PitToken, 8)
 			token := binary.LittleEndian.Uint64(packet.Lp.PitToken)
+			if token%5 == 0 {
+				assert.NotNil(packet.Nack)
+				nNacks++
+			} else {
+				assert.NotNil(packet.Data)
+				nData++
+			}
+
 			require.LessOrEqual(token, uint64(c.Count), "%d", token)
-			assert.False(hasData[token], "%d", token)
-			hasData[token] = true
-			nData++
+			assert.False(hasPacket[token], "%d", token)
+			hasPacket[token] = true
 		}
 		wg.Done()
 	}()
@@ -111,5 +122,6 @@ func (c *L3FaceTester) CheckL3Face(t *testing.T, faceA, faceB ndn.L3Face) {
 	}()
 
 	wg.Wait()
-	assert.InEpsilon(c.Count, nData, c.LossTolerance)
+	assert.InEpsilon(c.Count, nData+nNacks, c.LossTolerance)
+	assert.InEpsilon(c.Count/5, nNacks, c.LossTolerance)
 }

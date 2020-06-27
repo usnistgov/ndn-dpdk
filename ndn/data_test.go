@@ -28,6 +28,23 @@ func TestDataEncode(t *testing.T) {
 		string(bytesFromHex("name=0703080142 meta=1407 contenttype=180103 freshness=190209C4 content=1502C0C1")))
 }
 
+func TestDataLpEncode(t *testing.T) {
+	assert, _ := makeAR(t)
+
+	var lph ndn.LpHeader
+	lph.PitToken = ndn.PitTokenFromUint(0xF0F1F2F3F4F5F6F7)
+	lph.CongMark = 1
+	interest := ndn.MakeInterest("/A", lph, ndn.NonceFromUint(0xC0C1C2C3), ndn.MustBeFreshFlag)
+	data := ndn.MakeData(interest, bytesFromHex("content=C0C1"))
+
+	wire, e := tlv.Encode(data.Packet)
+	assert.NoError(e)
+	assert.Contains(string(wire),
+		string(bytesFromHex("pittoken=6208F7F6F5F4F3F2F1F0 congmark=FD03400101")))
+	assert.Contains(string(wire),
+		string(bytesFromHex("name=0703080141 meta=1403 freshness=190101 content=1502C0C1")))
+}
+
 func TestDataDecode(t *testing.T) {
 	assert, _ := makeAR(t)
 

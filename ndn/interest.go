@@ -27,9 +27,18 @@ type Interest struct {
 }
 
 // MakeInterest creates an Interest from flexible arguments.
-// Arguments can contain string (as Name), Name, CanBePrefixFlag, MustBeFreshFlag,
-// FHDelegation, Nonce, time.Duration (as Lifetime), and HopLimit.
+// Arguments can contain:
+// - string or Name: set Name
+// - CanBePrefixFlag: set CanBePrefix
+// - MustBeFreshFlag: set MustBeFresh
+// - FHDelegation: append forwarding hint delegation
+// - Nonce: set Nonce
+// - time.Duration: set Lifetime
+// - HopLimit: set HopLimit
+// - LpHeader: copy PitToken and CongMark
 func MakeInterest(args ...interface{}) (interest Interest) {
+	packet := Packet{Interest: &interest}
+	interest.Packet = &packet
 	for _, arg := range args {
 		switch a := arg.(type) {
 		case string:
@@ -48,6 +57,8 @@ func MakeInterest(args ...interface{}) (interest Interest) {
 			interest.Lifetime = a
 		case HopLimit:
 			interest.HopLimit = a
+		case LpHeader:
+			packet.Lp.inheritFrom(a)
 		default:
 			panic("bad argument type " + reflect.TypeOf(arg).String())
 		}

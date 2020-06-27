@@ -19,9 +19,16 @@ type Data struct {
 }
 
 // MakeData creates a Data from flexible arguments.
-// Arguments can contain string (as Name), Name, ContentType, time.Duration (as Lifetime),
-// and []byte (as Content).
+// Arguments can contain:
+// - string or Name: set Name
+// - ContentType
+// - time.Duration: set Freshness
+// - []byte: set Content
+// - LpHeader: copy PitToken and CongMark
+// - Interest: copy Name, set FreshnessPeriod if Interest has MustBeFresh, inherit LpHeader
 func MakeData(args ...interface{}) (data Data) {
+	packet := Packet{Data: &data}
+	data.Packet = &packet
 	for _, arg := range args {
 		switch a := arg.(type) {
 		case string:
@@ -34,6 +41,16 @@ func MakeData(args ...interface{}) (data Data) {
 			data.Freshness = a
 		case []byte:
 			data.Content = a
+		case LpHeader:
+			packet.Lp.inheritFrom(a)
+		case Interest:
+			data.Name = a.Name
+			if a.MustBeFresh {
+				data.Freshness = 1 * time.Millisecond
+			}
+			if ipkt := a.Packet; ipkt != nil {
+				packet.Lp.inheritFrom(ipkt.Lp)
+			}
 		default:
 			panic("bad argument type " + reflect.TypeOf(arg).String())
 		}
@@ -53,6 +70,8 @@ func (data Data) ComputeDigest() []byte {
 	if data.Packet == nil {
 		data.Packet = new(Packet)
 		data.Packet.Data = &data
+	}
+	if data.Packet.l3type != an.TtData {
 		data.Packet.l3type, data.Packet.l3value, _ = data.MarshalTlv()
 	}
 	if data.Packet.l3digest == nil {

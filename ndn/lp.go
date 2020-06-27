@@ -1,6 +1,8 @@
 package ndn
 
 import (
+	"encoding/binary"
+
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
@@ -22,13 +24,37 @@ func (lph LpHeader) encode() (fields []interface{}) {
 		fields = append(fields, tlv.MakeElement(an.TtPitToken, lph.PitToken))
 	}
 	if lph.NackReason != an.NackNone {
-		nackV, _ := tlv.Encode(tlv.MakeElementNNI(an.TtNackReason, lph.NackReason))
+		var nackV []byte
+		if lph.NackReason != an.NackUnspecified {
+			nackV, _ = tlv.Encode(tlv.MakeElementNNI(an.TtNackReason, lph.NackReason))
+		}
 		fields = append(fields, tlv.MakeElement(an.TtNack, nackV))
 	}
 	if lph.CongMark != 0 {
 		fields = append(fields, tlv.MakeElementNNI(an.TtCongestionMark, lph.CongMark))
 	}
 	return fields
+}
+
+func (lph *LpHeader) inheritFrom(src LpHeader) {
+	lph.PitToken = src.PitToken
+	lph.CongMark = src.CongMark
+}
+
+// PitTokenFromUint creates a PIT token from uint64, interpreted as little endian.
+func PitTokenFromUint(n uint64) []byte {
+	token := make([]byte, 8)
+	binary.LittleEndian.PutUint64(token, n)
+	return token
+}
+
+// PitTokenToUint reads a 8-octet PIT token as uint64, interpreted as little endian.
+// Returns 0 if the input token is not 8 octets.
+func PitTokenToUint(token []byte) uint64 {
+	if len(token) != 8 {
+		return 0
+	}
+	return binary.LittleEndian.Uint64(token)
 }
 
 // Packet represents an NDN layer 3 packet with associated LpHeader.
@@ -84,6 +110,7 @@ func (pkt *Packet) UnmarshalTlv(typ uint32, value []byte) error {
 		case an.TtPitToken:
 			pkt.Lp.PitToken = field.Value
 		case an.TtNack:
+			pkt.Lp.NackReason = an.NackUnspecified
 			d1 := tlv.Decoder(field.Value)
 			for _, field1 := range d1.Elements() {
 				switch field1.Type {
