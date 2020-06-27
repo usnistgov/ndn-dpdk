@@ -5,8 +5,33 @@ import (
 	"net"
 )
 
-type udpImpl struct {
+type datagramImpl struct {
 	nopRedialer
+}
+
+func (datagramImpl) RxLoop(tr *Transport) error {
+	for {
+		buffer := make([]byte, tr.cfg.RxBufferLength)
+		datagramLength, e := tr.GetConn().Read(buffer)
+		if e != nil {
+			return e
+		}
+
+		wire := buffer[:datagramLength]
+		tr.rx <- wire
+	}
+}
+
+type pipeImpl struct {
+	datagramImpl
+}
+
+func (pipeImpl) Dial(network, local, remote string) (net.Conn, error) {
+	return nil, fmt.Errorf("cannot dial %s", network)
+}
+
+type udpImpl struct {
+	datagramImpl
 }
 
 func (udpImpl) Dial(network, local, remote string) (net.Conn, error) {
@@ -23,25 +48,10 @@ func (udpImpl) Dial(network, local, remote string) (net.Conn, error) {
 	return net.DialUDP(network, laddr, raddr)
 }
 
-func (udpImpl) RxLoop(tr *Transport) {
-	for {
-		buffer := make([]byte, tr.cfg.RxBufferLength)
-		datagramLength, e := tr.GetConn().Read(buffer)
-		if e != nil {
-			if tr.handleError(e) {
-				return
-			}
-			continue
-		}
-
-		wire := buffer[:datagramLength]
-		tr.rx <- wire
-	}
-}
-
 func init() {
-	var udp udpImpl
-	implByNetwork["udp"] = udp
-	implByNetwork["udp4"] = udp
-	implByNetwork["udp6"] = udp
+	implByNetwork["pipe"] = pipeImpl{}
+
+	implByNetwork["udp"] = udpImpl{}
+	implByNetwork["udp4"] = udpImpl{}
+	implByNetwork["udp6"] = udpImpl{}
 }

@@ -51,18 +51,30 @@ func (c *L3FaceTester) CheckL3Face(t *testing.T, faceA, faceB ndn.L3Face) {
 
 	var wg sync.WaitGroup
 	wg.Add(3)
+	doneA := make(chan bool)
 
 	go func() {
+		rxB := faceB.GetRx()
 		txB := faceB.GetTx()
-		for packet := range faceB.GetRx() {
-			require.NotNil(packet.Interest)
-			data := ndn.MakeData(packet.Interest.Name)
-			var reply ndn.Packet
-			reply.Data = &data
-			reply.Lp.PitToken = packet.Lp.PitToken
-			txB <- &reply
+		for {
+			select {
+			case <-doneA:
+				close(txB)
+				wg.Done()
+				return
+
+			case packet, ok := <-rxB:
+				if !ok {
+					break
+				}
+				require.NotNil(packet.Interest)
+				data := ndn.MakeData(packet.Interest.Name)
+				var reply ndn.Packet
+				reply.Data = &data
+				reply.Lp.PitToken = packet.Lp.PitToken
+				txB <- &reply
+			}
 		}
-		wg.Done()
 	}()
 
 	nData := 0
@@ -93,8 +105,8 @@ func (c *L3FaceTester) CheckL3Face(t *testing.T, faceA, faceB ndn.L3Face) {
 		}
 
 		time.Sleep(c.CloseDelay)
-		require.NoError(faceA.Close())
-		require.NoError(faceB.Close())
+		close(txA)
+		doneA <- true
 		wg.Done()
 	}()
 

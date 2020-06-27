@@ -1,43 +1,35 @@
 package ndn
 
 import (
-	"io"
-
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
 
 // Transport represents a communicate channel to send and receive TLV packets.
 type Transport interface {
-	// Closer allows closing the transport.
-	io.Closer
-
 	// GetRx returns a channel to receive incoming TLV elements.
-	// It always returns the same channel.
-	// This channel should be closed when the transport is closed.
+	// This function always returns the same channel.
+	// This channel is closed when the transport is closed.
 	GetRx() <-chan []byte
 
 	// GetTx returns a channel to send outgoing TLV elements.
-	// It always returns the same channel.
-	// This channel should remain open when the transport is closed.
+	// This function always returns the same channel.
+	// Closing this channel causes the transport to close.
 	GetTx() chan<- []byte
 }
 
 // L3Face represents a communicate channel to send and receive TLV packets.
 type L3Face interface {
-	// Closer allows closing the face.
-	io.Closer
-
 	// GetTransport returns the underlying transport.
 	GetTransport() Transport
 
 	// GetRx returns a channel to receive incoming packets.
-	// It always returns the same channel.
-	// This channel should be closed when the face is closed.
+	// This function always returns the same channel.
+	// This channel is closed when the face is closed.
 	GetRx() <-chan *Packet
 
 	// GetTx returns a channel to send outgoing packets.
-	// It always returns the same channel.
-	// This channel should remain open when the transport is closed.
+	// This function always returns the same channel.
+	// Closing this channel causes the face to close.
 	GetTx() chan<- *Packet
 }
 
@@ -56,10 +48,6 @@ type l3faceImpl struct {
 	tr Transport
 	rx chan *Packet
 	tx chan *Packet
-}
-
-func (face *l3faceImpl) Close() error {
-	return face.tr.Close()
 }
 
 func (face *l3faceImpl) GetTransport() Transport {
@@ -95,4 +83,5 @@ func (face *l3faceImpl) txLoop() {
 		}
 		transportTx <- wire
 	}
+	close(transportTx)
 }

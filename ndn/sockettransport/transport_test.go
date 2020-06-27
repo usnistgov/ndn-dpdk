@@ -1,7 +1,10 @@
 package sockettransport_test
 
 import (
+	"io/ioutil"
 	"net"
+	"os"
+	"path"
 	"sync"
 	"testing"
 
@@ -12,6 +15,19 @@ import (
 var trCfg = sockettransport.Config{
 	RxQueueSize: 64,
 	TxQueueSize: 64,
+}
+
+func TestPipe(t *testing.T) {
+	_, require := makeAR(t)
+
+	pipeA, pipeB := net.Pipe()
+	trA, e := sockettransport.New(pipeA, trCfg)
+	require.NoError(e)
+	trB, e := sockettransport.New(pipeB, trCfg)
+	require.NoError(e)
+
+	var c ndntestenv.L3FaceTester
+	c.CheckTransport(t, trA, trB)
 }
 
 func TestUdp(t *testing.T) {
@@ -36,15 +52,35 @@ func TestTcp(t *testing.T) {
 	require.NoError(e)
 	defer listener.Close()
 
-	var trA, trB *sockettransport.Transport
+	checkStream(t, listener)
+}
 
+func TestUnix(t *testing.T) {
+	_, require := makeAR(t)
+
+	tmpdir, e := ioutil.TempDir("", "sockettransport-test")
+	require.NoError(e)
+	defer os.RemoveAll(tmpdir)
+	addr := path.Join(tmpdir, "unix.sock")
+	listener, e := net.Listen("unix", addr)
+	require.NoError(e)
+	defer listener.Close()
+
+	checkStream(t, listener)
+}
+
+func checkStream(t *testing.T, listener net.Listener) {
+	_, require := makeAR(t)
+
+	var trA, trB *sockettransport.Transport
 	var wg sync.WaitGroup
 	wg.Add(2)
 
 	go func() {
 		var dialer sockettransport.Dialer
 		dialer.Config = trCfg
-		tr, e := dialer.Dial("tcp", "", "127.0.0.1:7002")
+		listenAddr := listener.Addr()
+		tr, e := dialer.Dial(listenAddr.Network(), "", listenAddr.String())
 		require.NoError(e)
 		trA = tr
 		wg.Done()
@@ -60,6 +96,7 @@ func TestTcp(t *testing.T) {
 	}()
 
 	wg.Wait()
+
 	var c ndntestenv.L3FaceTester
 	c.CheckTransport(t, trA, trB)
 }

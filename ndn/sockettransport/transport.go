@@ -1,17 +1,13 @@
 package sockettransport
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"net"
-	"runtime"
-	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/core/emission"
-	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
 
 // Config contains socket transport configuration.
@@ -62,16 +58,15 @@ func (cfg *Config) applyDefaults() {
 
 // Transport is an ndn.Transport that communicates over a socket.
 type Transport struct {
-	cfg       Config
-	impl      impl
-	conn      atomic.Value
-	rx        chan []byte
-	tx        chan []byte
-	emitter   *emission.Emitter
-	closing   int32 // atomic bool
-	redialing int32 // atomic bool
-	closeTx   chan bool
-	quitWg    sync.WaitGroup // wait until rxLoop and txLoop quits
+	cfg     Config
+	impl    impl
+	conn    atomic.Value
+	rx      chan []byte
+	tx      chan []byte
+	err     chan error
+	closing chan bool
+	closed  int32 // atomic bool
+	emitter *emission.Emitter
 
 	// IsDown indicates whether the transport is down (socket is disconnected).
 	IsDown bool
@@ -80,7 +75,7 @@ type Transport struct {
 	NRedials int
 }
 
-// New creates a Transport.
+// New creates a socket transpor.
 func New(conn net.Conn, cfg Config) (*Transport, error) {
 	network := conn.LocalAddr().Network()
 	impl, ok := implByNetwork[network]
@@ -96,20 +91,17 @@ func New(conn net.Conn, cfg Config) (*Transport, error) {
 
 	tr.rx = make(chan []byte, tr.cfg.RxQueueSize)
 	tr.tx = make(chan []byte, tr.cfg.TxQueueSize)
+	tr.err = make(chan error, 1) // 1-item buffer allows rxLoop to send its error after redialLoop exits
+	tr.closing = make(chan bool)
 	tr.emitter = emission.NewEmitter()
-	tr.closeTx = make(chan bool, 1)
-	tr.quitWg.Add(2)
 	go tr.rxLoop()
 	go tr.txLoop()
+	go tr.redialLoop()
 	return &tr, nil
 }
 
 // Close closes the tr.
 func (tr *Transport) Close() error {
-	atomic.StoreInt32(&tr.closing, 1)
-	tr.closeTx <- true
-	tr.GetConn().Close() // ignore error
-	tr.quitWg.Wait()
 	return nil
 }
 
@@ -135,70 +127,82 @@ func (tr *Transport) OnStateChange(cb func(isDown bool)) io.Closer {
 	return tr.emitter.On(eventStateChange, cb)
 }
 
+func (tr *Transport) isClosed() bool {
+	return atomic.LoadInt32(&tr.closed) != 0
+}
+
 func (tr *Transport) rxLoop() {
-	tr.impl.RxLoop(tr)
+	for !tr.isClosed() {
+		e := tr.impl.RxLoop(tr)
+		tr.err <- e
+	}
 	close(tr.rx)
-	tr.quitWg.Done()
 }
 
 func (tr *Transport) txLoop() {
 	for {
-		select {
-		case <-tr.closeTx:
-			tr.quitWg.Done()
-			return
-		case packet := <-tr.tx:
-			wire, e := tlv.Encode(packet)
-			if e != nil { // ignore encoding error
-				continue
-			}
+		wire, ok := <-tr.tx
+		if !ok {
+			break
+		}
 
-			_, e = tr.GetConn().Write(wire)
-			if e != nil && tr.handleError(e) { // handle socket error
-				break
-			}
+		_, e := tr.GetConn().Write(wire)
+		if e != nil {
+			tr.err <- e
+		}
+	}
+	tr.closing <- true
+	atomic.StoreInt32(&tr.closed, 1)
+	tr.GetConn().Close()
+}
+
+func (tr *Transport) redialLoop() {
+	for {
+		select {
+		case <-tr.closing:
+			tr.drainErrors()
+			return
+		case e := <-tr.err:
+			tr.handleError(e)
 		}
 	}
 }
 
-func (tr *Transport) handleError(e error) (stop bool) {
-	if atomic.LoadInt32(&tr.closing) != 0 {
-		return true
-	}
-
-	var netErr net.Error
-	if errors.As(e, &netErr) && netErr.Temporary() {
-		return false
-	}
-
-	if atomic.CompareAndSwapInt32(&tr.redialing, 0, 1) {
-		defer atomic.StoreInt32(&tr.redialing, 0)
-		tr.IsDown = true
-		tr.emitter.EmitSync(eventStateChange, true)
-
-		backoff := tr.cfg.RedialBackoffInitial
-		for atomic.LoadInt32(&tr.closing) == 0 {
-			time.Sleep(backoff)
-			backoff *= 2
-			if backoff > tr.cfg.RedialBackoffMaximum {
-				backoff = tr.cfg.RedialBackoffMaximum
-			}
-
-			conn, e := tr.impl.Redial(tr.GetConn())
-			tr.NRedials++
-			if e == nil {
-				tr.conn.Store(conn)
-				tr.IsDown = false
-				tr.emitter.EmitSync(eventStateChange, false)
-				break
-			}
-		}
-	} else { // another goroutine is redialing
-		for atomic.LoadInt32(&tr.redialing) != 0 {
-			runtime.Gosched()
+func (tr *Transport) drainErrors() {
+	for {
+		select {
+		case <-tr.err:
+		default:
+			return
 		}
 	}
-	return atomic.LoadInt32(&tr.closing) != 0
+}
+
+func (tr *Transport) handleError(e error) {
+	tr.setDown(true)
+
+	backoff := tr.cfg.RedialBackoffInitial
+	for !tr.isClosed() {
+		time.Sleep(backoff)
+		backoff *= 2
+		if backoff > tr.cfg.RedialBackoffMaximum {
+			backoff = tr.cfg.RedialBackoffMaximum
+		}
+
+		conn, e := tr.impl.Redial(tr.GetConn())
+		tr.NRedials++
+		if e == nil {
+			tr.conn.Store(conn)
+			tr.drainErrors()
+			tr.setDown(false)
+			return
+		}
+	}
+}
+
+func (tr *Transport) setDown(isDown bool) {
+	tr.IsDown = isDown
+	tr.emitter.EmitSync(eventStateChange, isDown)
 }
 
 const (

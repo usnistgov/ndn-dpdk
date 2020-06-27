@@ -92,10 +92,10 @@ func (face *SocketFace) GetLocator() iface.Locator {
 // Close destroys the face.
 func (face *SocketFace) Close() error {
 	face.BeforeClose()
-	e := face.inner.Close()
 	iface.TheChanRxGroup.RemoveFace(face)
 	face.CloseFaceBase()
-	return e
+	close(face.inner.GetTx())
+	return nil
 }
 
 // ListRxGroups returns TheChanRxGroup.

@@ -4,19 +4,15 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
 
-type streamImpl struct{}
+type streamRxLooper struct{}
 
-func (streamImpl) RxLoop(tr *Transport) {
+func (streamRxLooper) RxLoop(tr *Transport) error {
 	buffer := make([]byte, tr.cfg.RxBufferLength)
 	nAvail := 0
 	for {
 		nRead, e := tr.GetConn().Read(buffer[nAvail:])
 		if e != nil {
-			if tr.handleError(e) {
-				return
-			}
-			nAvail = 0 // discard partial packet after the socket has been redialed
-			continue
+			return e
 		}
 		nAvail += nRead
 
@@ -32,28 +28,28 @@ func (streamImpl) RxLoop(tr *Transport) {
 		}
 
 		// copy remaining portion to a new buffer
-		// don't reuse buffer because the packets passed to tr.rx is still referencing it
+		// can't reuse buffer because posted packets are still referencing it
 		buffer = make([]byte, tr.cfg.RxBufferLength)
 		nAvail = copy(buffer, d.Rest())
 	}
 }
 
 type tcpImpl struct {
-	streamImpl
 	noLocalAddrDialer
 	localAddrRedialer
+	streamRxLooper
 }
 
 type unixImpl struct {
-	streamImpl
 	noLocalAddrDialer
 	noLocalAddrRedialer
+	streamRxLooper
 }
 
 func init() {
-	var tcp tcpImpl
-	implByNetwork["tcp"] = tcp
-	implByNetwork["tcp4"] = tcp
-	implByNetwork["tcp6"] = tcp
+	implByNetwork["tcp"] = tcpImpl{}
+	implByNetwork["tcp4"] = tcpImpl{}
+	implByNetwork["tcp6"] = tcpImpl{}
+
 	implByNetwork["unix"] = unixImpl{}
 }
