@@ -11,16 +11,15 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
-// CheckL3Face tests a pair of connected L3Faces.
-type CheckL3Face struct {
+// L3FaceTester tests L3Face or Transport.
+type L3FaceTester struct {
 	Count            int
 	LossTolerance    float64
 	InterestInterval time.Duration
 	CloseDelay       time.Duration
 }
 
-// Execute executes the scenario.
-func (c *CheckL3Face) Execute(t *testing.T, faceA, faceB ndn.L3Face) {
+func (c *L3FaceTester) applyDefaults() {
 	if c.Count <= 0 {
 		c.Count = 1000
 	}
@@ -33,7 +32,21 @@ func (c *CheckL3Face) Execute(t *testing.T, faceA, faceB ndn.L3Face) {
 	if c.CloseDelay <= 0 {
 		c.CloseDelay = 100 * time.Millisecond
 	}
+}
 
+// CheckTransport tests a pair of connected Transport.
+func (c *L3FaceTester) CheckTransport(t *testing.T, trA, trB ndn.Transport) {
+	_, require := testenv.MakeAR(t)
+	faceA, e := ndn.NewL3Face(trA)
+	require.NoError(e)
+	faceB, e := ndn.NewL3Face(trB)
+	require.NoError(e)
+	c.CheckL3Face(t, faceA, faceB)
+}
+
+// CheckL3Face tests a pair of connected L3Face.
+func (c *L3FaceTester) CheckL3Face(t *testing.T, faceA, faceB ndn.L3Face) {
+	c.applyDefaults()
 	assert, require := testenv.MakeAR(t)
 
 	var wg sync.WaitGroup

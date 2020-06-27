@@ -11,9 +11,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"github.com/usnistgov/ndn-dpdk/ndn"
-	nsf "github.com/usnistgov/ndn-dpdk/ndn/socketface"
-	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
+	"github.com/usnistgov/ndn-dpdk/ndn/sockettransport"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
@@ -26,7 +24,7 @@ type Config struct {
 // SocketFace is a face using socket as transport.
 type SocketFace struct {
 	iface.FaceBase
-	inner     *nsf.SocketFace
+	inner     *sockettransport.Transport
 	rxMempool *pktmbuf.Pool
 }
 
@@ -36,7 +34,7 @@ func New(loc Locator, cfg Config) (face *SocketFace, e error) {
 		return nil, e
 	}
 
-	var dialer nsf.Dialer
+	var dialer sockettransport.Dialer
 	dialer.RxBufferLength = ndni.PacketMempool.GetConfig().Dataroom
 	dialer.TxQueueSize = cfg.TxqFrames
 	inner, e := dialer.Dial(loc.Scheme, loc.Local, loc.Remote)
@@ -47,8 +45,8 @@ func New(loc Locator, cfg Config) (face *SocketFace, e error) {
 	return Wrap(inner, cfg)
 }
 
-// Wrap wraps a nsf.SocketFace to a SocketFace.
-func Wrap(inner *nsf.SocketFace, cfg Config) (face *SocketFace, e error) {
+// Wrap wraps a sockettransport.Transport to a SocketFace.
+func Wrap(inner *sockettransport.Transport, cfg Config) (face *SocketFace, e error) {
 	face = new(SocketFace)
 	face.rxMempool = ndni.PacketMempool.MakePool(eal.NumaSocket{})
 	face.inner = inner
@@ -107,14 +105,9 @@ func (face *SocketFace) ListRxGroups() []iface.IRxGroup {
 
 func (face *SocketFace) rxLoop() {
 	for {
-		packet, ok := <-face.inner.GetRx()
+		wire, ok := <-face.inner.GetRx()
 		if !ok {
 			break
-		}
-
-		wire, e := tlv.Encode(packet)
-		if e != nil { // ignore encoding error
-			continue
 		}
 
 		vec, e := face.rxMempool.Alloc(1)
@@ -134,6 +127,7 @@ func (face *SocketFace) rxLoop() {
 //export go_SocketFace_TxBurst
 func go_SocketFace_TxBurst(faceC *C.Face, pkts **C.struct_rte_mbuf, nPkts C.uint16_t) C.uint16_t {
 	face := iface.Get(iface.FaceId(faceC.id)).(*SocketFace)
+	innerTx := face.inner.GetTx()
 	for i := 0; i < int(nPkts); i++ {
 		mbufPtr := (**C.struct_rte_mbuf)(unsafe.Pointer(uintptr(unsafe.Pointer(pkts)) +
 			uintptr(i)*unsafe.Sizeof(*pkts)))
@@ -141,13 +135,8 @@ func go_SocketFace_TxBurst(faceC *C.Face, pkts **C.struct_rte_mbuf, nPkts C.uint
 		wire := mbuf.ReadAll()
 		mbuf.Close()
 
-		var packet ndn.Packet
-		e := tlv.Decode(wire, &packet)
-		if e != nil {
-			continue
-		}
 		select {
-		case face.inner.GetTx() <- &packet:
+		case innerTx <- wire:
 		default: // packet loss
 		}
 	}

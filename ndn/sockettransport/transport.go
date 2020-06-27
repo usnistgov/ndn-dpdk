@@ -1,4 +1,4 @@
-package socketface
+package sockettransport
 
 import (
 	"errors"
@@ -11,11 +11,10 @@ import (
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/core/emission"
-	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
 
-// Config contains socket face configuration.
+// Config contains socket transport configuration.
 type Config struct {
 	// RxBufferLength is the packet buffer length allocated for incoming packets.
 	// The default is 16384.
@@ -61,109 +60,109 @@ func (cfg *Config) applyDefaults() {
 	}
 }
 
-// SocketFace is an ndn.L3Face that communicates over a socket.
-type SocketFace struct {
+// Transport is an ndn.Transport that communicates over a socket.
+type Transport struct {
 	cfg       Config
 	impl      impl
 	conn      atomic.Value
-	rx        chan *ndn.Packet
-	tx        chan *ndn.Packet
+	rx        chan []byte
+	tx        chan []byte
 	emitter   *emission.Emitter
 	closing   int32 // atomic bool
 	redialing int32 // atomic bool
 	closeTx   chan bool
 	quitWg    sync.WaitGroup // wait until rxLoop and txLoop quits
 
-	// IsDown indicates whether the face is down (socket is disconnected).
+	// IsDown indicates whether the transport is down (socket is disconnected).
 	IsDown bool
 
 	// NRedial indicates how many times the socket has been redialed.
 	NRedials int
 }
 
-// New creates a SocketFace.
-func New(conn net.Conn, cfg Config) (*SocketFace, error) {
+// New creates a Transport.
+func New(conn net.Conn, cfg Config) (*Transport, error) {
 	network := conn.LocalAddr().Network()
 	impl, ok := implByNetwork[network]
 	if !ok {
 		return nil, fmt.Errorf("unknown network %s", network)
 	}
 
-	var face SocketFace
-	face.cfg = cfg
-	face.cfg.applyDefaults()
-	face.impl = impl
-	face.conn.Store(conn)
+	var tr Transport
+	tr.cfg = cfg
+	tr.cfg.applyDefaults()
+	tr.impl = impl
+	tr.conn.Store(conn)
 
-	face.rx = make(chan *ndn.Packet, face.cfg.RxQueueSize)
-	face.tx = make(chan *ndn.Packet, face.cfg.TxQueueSize)
-	face.emitter = emission.NewEmitter()
-	face.closeTx = make(chan bool, 1)
-	face.quitWg.Add(2)
-	go face.rxLoop()
-	go face.txLoop()
-	return &face, nil
+	tr.rx = make(chan []byte, tr.cfg.RxQueueSize)
+	tr.tx = make(chan []byte, tr.cfg.TxQueueSize)
+	tr.emitter = emission.NewEmitter()
+	tr.closeTx = make(chan bool, 1)
+	tr.quitWg.Add(2)
+	go tr.rxLoop()
+	go tr.txLoop()
+	return &tr, nil
 }
 
-// Close closes the face.
-func (face *SocketFace) Close() error {
-	atomic.StoreInt32(&face.closing, 1)
-	face.closeTx <- true
-	face.GetConn().Close() // ignore error
-	face.quitWg.Wait()
+// Close closes the tr.
+func (tr *Transport) Close() error {
+	atomic.StoreInt32(&tr.closing, 1)
+	tr.closeTx <- true
+	tr.GetConn().Close() // ignore error
+	tr.quitWg.Wait()
 	return nil
 }
 
 // GetRx returns the RX channel.
-func (face *SocketFace) GetRx() <-chan *ndn.Packet {
-	return face.rx
+func (tr *Transport) GetRx() <-chan []byte {
+	return tr.rx
 }
 
 // GetTx returns the TX channel.
-func (face *SocketFace) GetTx() chan<- *ndn.Packet {
-	return face.tx
+func (tr *Transport) GetTx() chan<- []byte {
+	return tr.tx
 }
 
 // GetConn returns the underlying socket.
-// Caller may gather information from this socket, but should not send/receive/close it.
+// Caller may gather information from this socket, but should not close or send/receive on it.
 // The socket may be replaced during redialing.
-func (face *SocketFace) GetConn() net.Conn {
-	return face.conn.Load().(net.Conn)
+func (tr *Transport) GetConn() net.Conn {
+	return tr.conn.Load().(net.Conn)
 }
 
-// OnStateChange registers a callback to be invoked when the face goes up or down.
-func (face *SocketFace) OnStateChange(cb func(isDown bool)) io.Closer {
-	return face.emitter.On(eventStateChange, cb)
+// OnStateChange registers a callback to be invoked when the transport goes up or down.
+func (tr *Transport) OnStateChange(cb func(isDown bool)) io.Closer {
+	return tr.emitter.On(eventStateChange, cb)
 }
 
-func (face *SocketFace) rxLoop() {
-	face.impl.RxLoop(face)
-	close(face.rx)
-	face.quitWg.Done()
+func (tr *Transport) rxLoop() {
+	tr.impl.RxLoop(tr)
+	close(tr.rx)
+	tr.quitWg.Done()
 }
 
-func (face *SocketFace) txLoop() {
+func (tr *Transport) txLoop() {
 	for {
 		select {
-		case <-face.closeTx:
-			face.quitWg.Done()
+		case <-tr.closeTx:
+			tr.quitWg.Done()
 			return
-		case packet := <-face.tx:
+		case packet := <-tr.tx:
 			wire, e := tlv.Encode(packet)
 			if e != nil { // ignore encoding error
 				continue
 			}
 
-			_, e = face.GetConn().Write(wire)
-			if e != nil && face.handleError(e) { // handle socket error
+			_, e = tr.GetConn().Write(wire)
+			if e != nil && tr.handleError(e) { // handle socket error
 				break
 			}
 		}
 	}
 }
 
-func (face *SocketFace) handleError(e error) (stop bool) {
-	if atomic.LoadInt32(&face.closing) != 0 {
+func (tr *Transport) handleError(e error) (stop bool) {
+	if atomic.LoadInt32(&tr.closing) != 0 {
 		return true
 	}
 
@@ -172,34 +171,34 @@ func (face *SocketFace) handleError(e error) (stop bool) {
 		return false
 	}
 
-	if atomic.CompareAndSwapInt32(&face.redialing, 0, 1) {
-		defer atomic.StoreInt32(&face.redialing, 0)
-		face.IsDown = true
-		face.emitter.EmitSync(eventStateChange, true)
+	if atomic.CompareAndSwapInt32(&tr.redialing, 0, 1) {
+		defer atomic.StoreInt32(&tr.redialing, 0)
+		tr.IsDown = true
+		tr.emitter.EmitSync(eventStateChange, true)
 
-		backoff := face.cfg.RedialBackoffInitial
-		for atomic.LoadInt32(&face.closing) == 0 {
+		backoff := tr.cfg.RedialBackoffInitial
+		for atomic.LoadInt32(&tr.closing) == 0 {
 			time.Sleep(backoff)
 			backoff *= 2
-			if backoff > face.cfg.RedialBackoffMaximum {
-				backoff = face.cfg.RedialBackoffMaximum
+			if backoff > tr.cfg.RedialBackoffMaximum {
+				backoff = tr.cfg.RedialBackoffMaximum
 			}
 
-			conn, e := face.impl.Redial(face.GetConn())
-			face.NRedials++
+			conn, e := tr.impl.Redial(tr.GetConn())
+			tr.NRedials++
 			if e == nil {
-				face.conn.Store(conn)
-				face.IsDown = false
-				face.emitter.EmitSync(eventStateChange, false)
+				tr.conn.Store(conn)
+				tr.IsDown = false
+				tr.emitter.EmitSync(eventStateChange, false)
 				break
 			}
 		}
 	} else { // another goroutine is redialing
-		for atomic.LoadInt32(&face.redialing) != 0 {
+		for atomic.LoadInt32(&tr.redialing) != 0 {
 			runtime.Gosched()
 		}
 	}
-	return atomic.LoadInt32(&face.closing) != 0
+	return atomic.LoadInt32(&tr.closing) != 0
 }
 
 const (

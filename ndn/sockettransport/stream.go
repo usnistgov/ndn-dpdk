@@ -1,19 +1,18 @@
-package socketface
+package sockettransport
 
 import (
-	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
 
 type streamImpl struct{}
 
-func (streamImpl) RxLoop(face *SocketFace) {
-	buffer := make([]byte, face.cfg.RxBufferLength)
+func (streamImpl) RxLoop(tr *Transport) {
+	buffer := make([]byte, tr.cfg.RxBufferLength)
 	nAvail := 0
 	for {
-		nRead, e := face.GetConn().Read(buffer[nAvail:])
+		nRead, e := tr.GetConn().Read(buffer[nAvail:])
 		if e != nil {
-			if face.handleError(e) {
+			if tr.handleError(e) {
 				return
 			}
 			nAvail = 0 // discard partial packet after the socket has been redialed
@@ -29,16 +28,12 @@ func (streamImpl) RxLoop(face *SocketFace) {
 		}
 
 		for _, de := range elements {
-			var packet ndn.Packet
-			e := de.Unmarshal(&packet)
-			if e != nil { // ignore decoding error
-				continue
-			}
-			face.rx <- &packet
+			tr.rx <- de.Wire
 		}
 
-		// move remaining portion to the front
-		buffer = make([]byte, face.cfg.RxBufferLength)
+		// copy remaining portion to a new buffer
+		// don't reuse buffer because the packets passed to tr.rx is still referencing it
+		buffer = make([]byte, tr.cfg.RxBufferLength)
 		nAvail = copy(buffer, d.Rest())
 	}
 }

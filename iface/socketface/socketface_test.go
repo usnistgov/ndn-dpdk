@@ -12,7 +12,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/ifacetestenv"
 	"github.com/usnistgov/ndn-dpdk/iface/socketface"
-	nsf "github.com/usnistgov/ndn-dpdk/ndn/socketface"
+	"github.com/usnistgov/ndn-dpdk/ndn/sockettransport"
 )
 
 func TestUdp(t *testing.T) {
@@ -58,9 +58,9 @@ func checkStreamRedialing(t *testing.T, listener net.Listener, faceA *socketface
 	accepted, e := listener.Accept()
 	require.NoError(e)
 
-	nfaceB, e := nsf.New(accepted, nsf.Config{})
+	innerB, e := sockettransport.New(accepted, sockettransport.Config{})
 	require.NoError(e)
-	faceB, e := socketface.Wrap(nfaceB, socketfaceCfg)
+	faceB, e := socketface.Wrap(innerB, socketfaceCfg)
 	require.NoError(e)
 	fixture := ifacetestenv.New(t, faceA, faceB)
 	fixture.RunTest()

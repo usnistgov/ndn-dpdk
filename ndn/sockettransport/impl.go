@@ -1,4 +1,4 @@
-package socketface
+package sockettransport
 
 import (
 	"net"
@@ -11,9 +11,8 @@ type impl interface {
 	// Redial the socket.
 	Redial(oldConn net.Conn) (net.Conn, error)
 
-	// Receive packets on the socket and pass them to face.rx.
-	// Loop until a fatal error occurs or face.rxQuit receives a message.
-	RxLoop(face *SocketFace)
+	// Receive packets on the socket and pass them to tr.rx.
+	RxLoop(tr *Transport)
 }
 
 var implByNetwork = make(map[string]impl)

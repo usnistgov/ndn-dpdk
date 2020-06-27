@@ -1,12 +1,8 @@
-package socketface
+package sockettransport
 
-import "C"
 import (
 	"fmt"
 	"net"
-
-	"github.com/usnistgov/ndn-dpdk/ndn"
-	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
 
 type udpImpl struct {
@@ -27,24 +23,19 @@ func (udpImpl) Dial(network, local, remote string) (net.Conn, error) {
 	return net.DialUDP(network, laddr, raddr)
 }
 
-func (udpImpl) RxLoop(face *SocketFace) {
+func (udpImpl) RxLoop(tr *Transport) {
 	for {
-		buffer := make([]byte, face.cfg.RxBufferLength)
-		datagramLength, e := face.GetConn().Read(buffer)
+		buffer := make([]byte, tr.cfg.RxBufferLength)
+		datagramLength, e := tr.GetConn().Read(buffer)
 		if e != nil {
-			if face.handleError(e) {
+			if tr.handleError(e) {
 				return
 			}
 			continue
 		}
-		wire := buffer[:datagramLength]
 
-		var packet ndn.Packet
-		e = tlv.Decode(wire, &packet)
-		if e != nil { // ignore decoding error
-			continue
-		}
-		face.rx <- &packet
+		wire := buffer[:datagramLength]
+		tr.rx <- wire
 	}
 }
 
