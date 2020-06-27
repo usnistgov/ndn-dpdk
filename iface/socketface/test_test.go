@@ -1,7 +1,6 @@
 package socketface_test
 
 import (
-	"net"
 	"os"
 	"testing"
 
@@ -24,18 +23,3 @@ func TestMain(m *testing.M) {
 }
 
 var makeAR = testenv.MakeAR
-
-// Create net.Conn from file descriptor.
-func makeConnFromFd(fd int) net.Conn {
-	file := os.NewFile(uintptr(fd), "")
-	if file == nil {
-		panic(fd)
-	}
-	defer file.Close()
-
-	conn, e := net.FileConn(file)
-	if e != nil {
-		panic(e)
-	}
-	return conn
-}

@@ -9,52 +9,65 @@ import (
 	"testing"
 	"time"
 
-	"golang.org/x/sys/unix"
-
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/ifacetestenv"
 	"github.com/usnistgov/ndn-dpdk/iface/socketface"
+	nsf "github.com/usnistgov/ndn-dpdk/ndn/socketface"
 )
 
-func TestStream(t *testing.T) {
-	_, require := makeAR(t)
+func TestUdp(t *testing.T) {
+	assert, require := makeAR(t)
 
-	fd, e := unix.Socketpair(unix.AF_UNIX, unix.SOCK_STREAM, 0)
-	require.NoError(e)
-
-	faceA, e := socketface.New(makeConnFromFd(fd[0]), socketfaceCfg)
+	locA := iface.MustParseLocator(`{ "Scheme": "udp", "Local": "127.0.0.1:7001", "Remote": "127.0.0.1:7002" }`).(socketface.Locator)
+	ifacetestenv.CheckLocatorMarshal(t, locA)
+	faceA, e := socketface.New(locA, socketfaceCfg)
 	require.NoError(e)
 	defer faceA.Close()
-	faceB, e := socketface.New(makeConnFromFd(fd[1]), socketfaceCfg)
+
+	locB := iface.MustParseLocator(`{ "Scheme": "udp", "Local": "127.0.0.1:7002", "Remote": "127.0.0.1:7001" }`).(socketface.Locator)
+	faceB, e := socketface.New(locB, socketfaceCfg)
 	require.NoError(e)
 	defer faceB.Close()
+
+	assert.Equal(iface.FaceKind_Socket, faceA.GetFaceId().GetKind())
+	locA = faceA.GetLocator().(socketface.Locator)
+	assert.Equal("udp", locA.Scheme)
+	assert.Equal("127.0.0.1:7001", locA.Local)
+	assert.Equal("127.0.0.1:7002", locA.Remote)
 
 	fixture := ifacetestenv.New(t, faceA, faceB)
 	fixture.RunTest()
 	fixture.CheckCounters()
 }
 
-func checkStreamRedialing(t *testing.T, listener net.Listener, face *socketface.SocketFace) {
+func checkStreamRedialing(t *testing.T, listener net.Listener, faceA *socketface.SocketFace) {
 	assert, require := makeAR(t)
 
 	var hasDownEvt, hasUpEvt bool
 	defer iface.OnFaceDown(func(id iface.FaceId) {
-		if id == face.GetFaceId() {
+		if id == faceA.GetFaceId() {
 			hasDownEvt = true
 		}
 	}).Close()
 	defer iface.OnFaceUp(func(id iface.FaceId) {
-		if id == face.GetFaceId() {
+		if id == faceA.GetFaceId() {
 			hasUpEvt = true
 		}
 	}).Close()
 
 	accepted, e := listener.Accept()
 	require.NoError(e)
-	time.Sleep(100 * time.Millisecond)
-	accepted.Close() // close initial connection
 
-	accepted, e = listener.Accept() // face should redial
+	nfaceB, e := nsf.New(accepted, nsf.Config{})
+	require.NoError(e)
+	faceB, e := socketface.Wrap(nfaceB, socketfaceCfg)
+	require.NoError(e)
+	fixture := ifacetestenv.New(t, faceA, faceB)
+	fixture.RunTest()
+	fixture.CheckCounters()
+
+	accepted.Close()                // close initial connection
+	accepted, e = listener.Accept() // faceA should redial
 	require.NoError(e)
 	time.Sleep(100 * time.Millisecond)
 	accepted.Close()
@@ -62,7 +75,7 @@ func checkStreamRedialing(t *testing.T, listener net.Listener, face *socketface.
 	assert.True(hasDownEvt)
 	assert.True(hasUpEvt)
 
-	cnt := face.ReadExCounters().(socketface.ExCounters)
+	cnt := faceA.ReadExCounters().(socketface.ExCounters)
 	assert.InDelta(1.5, float64(cnt.NRedials), 0.6) // redial counter should be 1 or 2
 }
 
@@ -77,14 +90,13 @@ func TestTcp(t *testing.T) {
 	*addr = *listener.Addr().(*net.TCPAddr)
 
 	loc := iface.MustParseLocator(fmt.Sprintf(`{ "Scheme": "tcp", "Remote": "127.0.0.1:%d" }`, addr.Port)).(socketface.Locator)
-	face, e := socketface.Create(loc, socketfaceCfg)
+	face, e := socketface.New(loc, socketfaceCfg)
 	require.NoError(e)
 	defer face.Close()
 
 	assert.Equal(iface.FaceKind_Socket, face.GetFaceId().GetKind())
 	loc = face.GetLocator().(socketface.Locator)
 	assert.Equal("tcp", loc.Scheme)
-	assert.Equal(face.GetConn().LocalAddr().String(), loc.Local)
 	assert.Equal(fmt.Sprintf("127.0.0.1:%d", addr.Port), loc.Remote)
 	ifacetestenv.CheckLocatorMarshal(t, loc)
 
@@ -103,7 +115,7 @@ func TestUnix(t *testing.T) {
 	defer listener.Close()
 
 	loc := iface.MustParseLocator(fmt.Sprintf(`{ "Scheme": "unix", "Remote": "%s" }`, addr)).(socketface.Locator)
-	face, e := socketface.Create(loc, socketfaceCfg)
+	face, e := socketface.New(loc, socketfaceCfg)
 	require.NoError(e)
 	defer face.Close()
 

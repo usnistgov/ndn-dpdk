@@ -53,7 +53,7 @@ func createSock(loc socketface.Locator) (face iface.IFace, e error) {
 	var cfg socketface.Config
 	cfg.TxqPkts = theConfig.SockTxqPkts
 	cfg.TxqFrames = theConfig.SockTxqFrames
-	return socketface.Create(loc, cfg)
+	return socketface.New(loc, cfg)
 }
 
 var hasMockFaces = false

@@ -4,21 +4,22 @@ import (
 	"fmt"
 )
 
-// Extended counters.
+// ExCounters contains extended counters.
 type ExCounters struct {
-	NRedials   int
-	TxQueueCap int
-	TxQueueLen int
+	NRedials      int
+	RxQueueLength int
+	TxQueueLength int
 }
 
 func (cnt ExCounters) String() string {
-	return fmt.Sprintf("%dredials, tx %dqueued %dmax", cnt.NRedials, cnt.TxQueueLen, cnt.TxQueueCap)
+	return fmt.Sprintf("%dredials, rx %dqueued, tx %dqueued", cnt.NRedials, cnt.RxQueueLength, cnt.RxQueueLength)
 }
 
+// ReadExCounters reads extended counters.
 func (face *SocketFace) ReadExCounters() interface{} {
 	return ExCounters{
-		NRedials:   face.nRedials,
-		TxQueueCap: cap(face.txQueue),
-		TxQueueLen: len(face.txQueue),
+		NRedials:      face.inner.NRedials,
+		RxQueueLength: len(face.inner.GetRx()),
+		TxQueueLength: len(face.inner.GetTx()),
 	}
 }

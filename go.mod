@@ -10,5 +10,4 @@ require (
 	github.com/powerman/rpc-codec v1.2.2
 	github.com/sirupsen/logrus v1.6.0
 	github.com/stretchr/testify v1.5.1
-	golang.org/x/sys v0.0.0-20190422165155-953cdadca894
 )

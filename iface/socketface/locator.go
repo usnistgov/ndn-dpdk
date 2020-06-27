@@ -2,42 +2,57 @@ package socketface
 
 import (
 	"fmt"
+	"net"
 
 	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
+// Locator describes local and remote address of a socket.
 type Locator struct {
 	iface.LocatorBase
 	Local  string
 	Remote string
 }
 
+// Validate checks the addresses.
 func (loc Locator) Validate() error {
-	impl, ok := implByNetwork[loc.Scheme]
-	if !ok {
-		return fmt.Errorf("unknown scheme %s", loc.Scheme)
-	}
-
-	if loc.Local != "" {
-		if e := impl.ValidateAddr(loc.Scheme, loc.Local, true); e != nil {
-			return fmt.Errorf("Local: %v", e)
+	switch loc.Scheme {
+	case "unix":
+		if _, e := net.ResolveUnixAddr(loc.Scheme, loc.Remote); e != nil {
+			return fmt.Errorf("remote %w", e)
 		}
+		if loc.Local != "" && loc.Local != "@" {
+			if _, e := net.ResolveUnixAddr(loc.Scheme, loc.Local); e != nil {
+				return fmt.Errorf("remote %w", e)
+			}
+		}
+		return nil
+	case "udp":
+		if _, e := net.ResolveUDPAddr(loc.Scheme, loc.Remote); e != nil {
+			return fmt.Errorf("remote %w", e)
+		}
+		if loc.Local != "" {
+			if _, e := net.ResolveUDPAddr(loc.Scheme, loc.Local); e != nil {
+				return fmt.Errorf("local %w", e)
+			}
+		}
+		return nil
+	case "tcp":
+		if _, e := net.ResolveTCPAddr(loc.Scheme, loc.Remote); e != nil {
+			return fmt.Errorf("remote %w", e)
+		}
+		if loc.Local != "" {
+			if _, e := net.ResolveTCPAddr(loc.Scheme, loc.Local); e != nil {
+				return fmt.Errorf("local %w", e)
+			}
+		}
+		return nil
 	}
-	if e := impl.ValidateAddr(loc.Scheme, loc.Remote, false); e != nil {
-		return fmt.Errorf("Remote: %v", e)
-	}
-	return nil
+	return fmt.Errorf("unknown scheme %s", loc.Scheme)
 }
 
-func Create(loc Locator, cfg Config) (face *SocketFace, e error) {
-	if e = loc.Validate(); e != nil {
-		return nil, e
-	}
-
-	impl := implByNetwork[loc.Scheme]
-	conn, e := impl.Dial(loc.Scheme, loc.Local, loc.Remote)
-	if e != nil {
-		return nil, e
-	}
-	return New(conn, cfg)
+func init() {
+	iface.RegisterLocatorType(Locator{}, "udp")
+	iface.RegisterLocatorType(Locator{}, "tcp")
+	iface.RegisterLocatorType(Locator{}, "unix")
 }

@@ -50,7 +50,7 @@ func (pkt *Packet) MarshalTlv() (typ uint32, value []byte, e error) {
 		pkt.l3digest = nil
 		pkt.Lp.NackReason = an.NackNone
 	case pkt.Data != nil:
-		pkt.l3type, pkt.l3value, e = pkt.Interest.MarshalTlv()
+		pkt.l3type, pkt.l3value, e = pkt.Data.MarshalTlv()
 		pkt.l3digest = nil
 		pkt.Lp.NackReason = an.NackNone
 	case pkt.Nack != nil:

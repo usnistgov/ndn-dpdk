@@ -1,32 +1,31 @@
 package socketface
 
 import (
-	"errors"
 	"net"
 )
 
-// Provides a ValidateAddr function for unix and unixgram schemes.
-type unixAddrValidator struct{}
+type impl interface {
+	// Dial the socket.
+	Dial(network, local, remote string) (net.Conn, error)
 
-func (unixAddrValidator) ValidateAddr(network, address string, isLocal bool) (e error) {
-	if isLocal {
-		if address != "" && address != "@" {
-			return errors.New("must be empty or '@'")
-		}
-		return nil
-	}
-	_, e = net.ResolveUnixAddr(network, address)
-	return e
+	// Redial the socket.
+	Redial(oldConn net.Conn) (net.Conn, error)
+
+	// Receive packets on the socket and pass them to face.rx.
+	// Loop until a fatal error occurs or face.rxQuit receives a message.
+	RxLoop(face *SocketFace)
 }
 
-// Provides a Dial function that only uses remote addr.
+var implByNetwork = make(map[string]impl)
+
+// noLocalAddrDialer dials with only remote addr.
 type noLocalAddrDialer struct{}
 
 func (noLocalAddrDialer) Dial(network, local, remote string) (net.Conn, error) {
 	return net.Dial(network, remote)
 }
 
-// Provides a Redial function that reuses LocalAddr.
+// localAddrRedialer redials reusing local addr.
 type localAddrRedialer struct{}
 
 func (localAddrRedialer) Redial(oldConn net.Conn) (net.Conn, error) {
@@ -36,7 +35,7 @@ func (localAddrRedialer) Redial(oldConn net.Conn) (net.Conn, error) {
 	return dialer.Dial(remote.Network(), remote.String())
 }
 
-// Provides a Redial function that does not reuse LocalAddr.
+// noLocalAddrRedialer redials with only remote addr.
 type noLocalAddrRedialer struct{}
 
 func (noLocalAddrRedialer) Redial(oldConn net.Conn) (net.Conn, error) {
@@ -45,7 +44,7 @@ func (noLocalAddrRedialer) Redial(oldConn net.Conn) (net.Conn, error) {
 	return net.Dial(remote.Network(), remote.String())
 }
 
-// Provides a Redial function that does nothing.
+// nopRedialer redials doing thing.
 type nopRedialer struct{}
 
 func (nopRedialer) Redial(oldConn net.Conn) (net.Conn, error) {
