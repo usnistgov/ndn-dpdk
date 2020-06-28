@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/ndn"
-	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
 
@@ -52,7 +51,7 @@ func TestInterestDecode(t *testing.T) {
 	interest := pkt.Interest
 	assert.NotNil(interest)
 
-	ndntestenv.NameEqual(assert, "/A", interest)
+	nameEqual(assert, "/A", interest)
 	assert.False(interest.CanBePrefix)
 	assert.False(interest.MustBeFresh)
 
@@ -61,7 +60,7 @@ func TestInterestDecode(t *testing.T) {
 	interest = pkt.Interest
 	assert.NotNil(interest)
 
-	ndntestenv.NameEqual(assert, "/A", interest)
+	nameEqual(assert, "/A", interest)
 	assert.True(interest.CanBePrefix)
 	assert.True(interest.MustBeFresh)
 	assert.Len(interest.ForwardingHint, 1)

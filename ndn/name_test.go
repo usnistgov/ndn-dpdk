@@ -35,6 +35,50 @@ func TestNameDecode(t *testing.T) {
 	}
 }
 
+func TestNameSlice(t *testing.T) {
+	assert, _ := makeAR(t)
+
+	name := ndn.ParseName("/A/B/C/D/E")
+	nameEqual(assert, "/A", ndn.Name{name.Get(0)})
+	nameEqual(assert, "/A", ndn.Name{name.Get(-5)})
+	nameEqual(assert, "/C", ndn.Name{name.Get(2)})
+	nameEqual(assert, "/C", ndn.Name{name.Get(-3)})
+	nameEqual(assert, "/E", ndn.Name{name.Get(4)})
+	nameEqual(assert, "/E", ndn.Name{name.Get(-1)})
+	assert.False(name.Get(-6).Valid())
+	assert.False(name.Get(5).Valid())
+
+	nameEqual(assert, "/A", name.Slice(0, 1))
+	nameEqual(assert, "/A", name.Slice(0, -4))
+	nameEqual(assert, "/A", name.Slice(-5, 1))
+	nameEqual(assert, "/A", name.Slice(-5, -4))
+	nameEqual(assert, "/B", name.Slice(1, 2))
+	nameEqual(assert, "/B", name.Slice(1, -3))
+	nameEqual(assert, "/B", name.Slice(-4, 2))
+	nameEqual(assert, "/B", name.Slice(-4, -3))
+	nameEqual(assert, "/C/D", name.Slice(2, 4))
+	nameEqual(assert, "/C/D", name.Slice(2, -1))
+	nameEqual(assert, "/C/D", name.Slice(-3, 4))
+	nameEqual(assert, "/C/D", name.Slice(-3, -1))
+	nameEqual(assert, "/D/E", name.Slice(3, 5))
+	nameEqual(assert, "/D/E", name.Slice(3))
+	nameEqual(assert, "/D/E", name.Slice(-2, 5))
+	nameEqual(assert, "/D/E", name.Slice(-2))
+	assert.Len(name.Slice(2, 2), 0)
+	assert.Len(name.Slice(2, 0), 0)
+	assert.Len(name.Slice(-1, -2), 0)
+	assert.Len(name.Slice(-6, 1), 0)
+	assert.Len(name.Slice(1, 6), 0)
+
+	nameEqual(assert, "/A/B/C", name.GetPrefix(3))
+	nameEqual(assert, "/A/B/C", name.GetPrefix(-2))
+	nameEqual(assert, "/A/B/C/D/E", name.GetPrefix(5))
+	nameEqual(assert, "/", name.GetPrefix(0))
+	assert.Len(name.GetPrefix(6), 0)
+
+	assert.Panics(func() { name.Slice(0, 1, 2) })
+}
+
 func TestNameCompare(t *testing.T) {
 	assert, _ := makeAR(t)
 

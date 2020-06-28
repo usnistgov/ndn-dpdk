@@ -10,7 +10,7 @@ env:
     - UBPFCOMMIT=089f6279752adfb01386600d119913403ed326ee
     - DPDKVER=20.05
     - SPDKVER=20.04.1
-    - TEST_ACCEPTABLE_FAILURES="diskstore|fetch|fwdp|ndt|pingclient"
+    - TEST_ACCEPTABLE_FAILURES="diskstore|fetch|fwdp|ndt|pingclient|pingserver"
   matrix:
     - CC=gcc-7
     - CC=gcc-8

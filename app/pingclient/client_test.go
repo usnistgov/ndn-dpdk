@@ -8,16 +8,15 @@ import (
 	"github.com/usnistgov/ndn-dpdk/app/ping/pingtestenv"
 	"github.com/usnistgov/ndn-dpdk/app/pingclient"
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
+	"github.com/usnistgov/ndn-dpdk/iface/intface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
-	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 func TestClient(t *testing.T) {
 	assert, require := makeAR(t)
 
-	face := pingtestenv.MakeMockFace()
-	defer face.Close()
-	face.DisableTxRecorders()
+	intFace := intface.MustNew()
+	defer intFace.DFace.Close()
 
 	nameA := ndn.ParseName("/A")
 	nameB := ndn.ParseName("/B")
@@ -44,44 +43,52 @@ func TestClient(t *testing.T) {
 		Interval: nnduration.Nanoseconds(200000),
 	}
 
-	client, e := pingclient.New(face, cfg)
+	client, e := pingclient.New(intFace.DFace, cfg)
 	require.NoError(e)
 	defer client.Close()
 	client.SetLCores(pingtestenv.SlaveLCores[0], pingtestenv.SlaveLCores[1])
+	pingtestenv.Demux3.GetDataDemux().SetDest(0, client.GetRxQueue())
 
-	rx := pingtestenv.MakeRxFunc(client.GetRxQueue())
 	nInterestsA := 0
 	nInterestsB1 := 0
 	nInterestsB2 := 0
+	nInterestsB2Far := 0
 	var lastSeqB uint64
-	face.OnTxInterest(func(interest *ndni.Interest) {
-		interestName := interest.GetName()
-		switch {
-		case nameA.IsPrefixOf(interestName) && len(interestName) == 2:
-			nInterestsA++
-		case nameB.IsPrefixOf(interestName) && len(interestName) == 2:
-			lastComp := interestName[len(interestName)-1]
-			seqnum := binary.LittleEndian.Uint64(lastComp.Value)
-			diff := int64(seqnum - lastSeqB)
-			if nInterestsB1 == 0 || diff > -50 {
-				if nInterestsB1 > 0 && nInterestsB2 > 0 {
-					assert.InDelta(lastSeqB+1, seqnum, 10)
+	go func() {
+		tx := intFace.AFace.GetTx()
+		for packet := range intFace.AFace.GetRx() {
+			require.NotNil(packet.Interest)
+			interest := *packet.Interest
+			switch {
+			case nameA.IsPrefixOf(interest.Name) && len(interest.Name) == 2:
+				nInterestsA++
+			case nameB.IsPrefixOf(interest.Name) && len(interest.Name) == 2:
+				lastComp := interest.Name.Get(-1)
+				seqNum := binary.LittleEndian.Uint64(lastComp.Value)
+				diff := int64(seqNum - lastSeqB)
+				if nInterestsB1 == 0 || diff > -50 {
+					if nInterestsB1 > 0 && nInterestsB2 > 0 {
+						assert.InDelta(lastSeqB+1, seqNum, 10)
+					}
+					lastSeqB = seqNum
+					nInterestsB1++
+				} else {
+					if nInterestsB1 > 0 && nInterestsB2 > 0 {
+						// diff should be around -100
+						if diff < -110 || diff > -90 {
+							nInterestsB2Far++
+						}
+					}
+					nInterestsB2++
 				}
-				lastSeqB = seqnum
-				nInterestsB1++
-			} else {
-				if nInterestsB1 > 0 && nInterestsB2 > 0 {
-					assert.InDelta(lastSeqB-100, seqnum, 10)
-				}
-				nInterestsB2++
+			default:
+				assert.Fail("unexpected Interest", "%v", interest)
 			}
-		default:
-			assert.Fail("unexpected Interest", "%s", interest)
+
+			tx <- ndn.MakeData(interest).Packet
 		}
-		data := makeData(interest.GetName().String())
-		copyPitToken(data, interest)
-		rx(data)
-	})
+		close(tx)
+	}()
 
 	assert.InDelta(200*time.Microsecond, client.GetInterval(), float64(1*time.Microsecond))
 	client.Launch()
@@ -98,10 +105,11 @@ func TestClient(t *testing.T) {
 	assert.InDelta(nInterests*0.50, nInterestsA, 100)
 	assert.InDelta(nInterests*0.45, nInterestsB1, 100)
 	assert.InDelta(nInterests*0.05, nInterestsB2, 100)
+	assert.LessOrEqual(nInterestsB2Far, nInterestsB2/10)
 
 	cnt := client.ReadCounters()
-	assert.InDelta(nInterests, cnt.NInterests, 100)
-	assert.InDelta(nInterests, cnt.NData, 100)
+	assert.InDelta(nInterests, cnt.NInterests, 500)
+	assert.InDelta(nInterests, cnt.NData, 500)
 	require.Len(cnt.PerPattern, 3)
 	assert.InDelta(nInterestsA, cnt.PerPattern[0].NData, 100)
 	assert.InDelta(nInterestsB1, cnt.PerPattern[1].NData, 100)

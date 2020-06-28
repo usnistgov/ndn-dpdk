@@ -7,17 +7,16 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/app/ping/pingtestenv"
 	"github.com/usnistgov/ndn-dpdk/app/pingserver"
+	"github.com/usnistgov/ndn-dpdk/iface/intface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
-	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 func TestServer(t *testing.T) {
 	assert, require := makeAR(t)
 
-	face := pingtestenv.MakeMockFace()
-	defer face.Close()
-	face.DisableTxRecorders()
+	intFace := intface.MustNew()
+	defer intFace.DFace.Close()
 
 	nameA := ndn.ParseName("/A")
 	nameB := ndn.ParseName("/B")
@@ -59,46 +58,55 @@ func TestServer(t *testing.T) {
 		Nack: true,
 	}
 
-	nDataA0 := 0
-	nDataA1 := 0
-	nNacksB := 0
-	face.OnTxData(func(data *ndni.Data) {
-		dataName := data.GetName()
-		switch {
-		case nameA.IsPrefixOf(dataName) && len(dataName) == 2:
-			nDataA0++
-		case nameA.IsPrefixOf(dataName) && len(dataName) == 3:
-			nDataA1++
-		default:
-			assert.Fail("unexpected Data", "%s", data)
-		}
-	})
-	face.OnTxNack(func(nack *ndni.Nack) {
-		interestName := nack.GetInterest().GetName()
-		switch {
-		case nameB.IsPrefixOf(interestName) && len(interestName) == 2:
-			nNacksB++
-		default:
-			assert.Fail("unexpected Nack", "%s", nack)
-		}
-	})
-
-	server, e := pingserver.New(face, 0, cfg)
+	server, e := pingserver.New(intFace.DFace, 0, cfg)
 	require.NoError(e)
 	defer server.Close()
 	server.SetLCore(pingtestenv.SlaveLCores[0])
+	pingtestenv.Demux3.GetInterestDemux().SetDest(0, server.GetRxQueue())
+
+	nDataA0 := 0
+	nDataA1 := 0
+	nNacksB := 0
+	go func() {
+		for packet := range intFace.AFace.GetRx() {
+			switch {
+			case packet.Data != nil:
+				dataName := packet.Data.Name
+				switch {
+				case nameA.IsPrefixOf(dataName) && len(dataName) == 2:
+					nDataA0++
+				case nameA.IsPrefixOf(dataName) && len(dataName) == 3:
+					nDataA1++
+				default:
+					assert.Fail("unexpected Data", "%v", *packet.Data)
+				}
+			case packet.Nack != nil:
+				interestName := packet.Nack.Interest.Name
+				switch {
+				case nameB.IsPrefixOf(interestName) && len(interestName) == 2:
+					nNacksB++
+				default:
+					assert.Fail("unexpected Nack", "%v", *packet.Nack)
+				}
+			default:
+				assert.Fail("unexpected packet")
+			}
+		}
+	}()
 
 	server.Launch()
 
-	rx := pingtestenv.MakeRxFunc(server.GetRxQueue())
-	for i := 0; i < 100; i++ {
-		interestA := makeInterest(fmt.Sprintf("/A/%d", i))
-		interestB := makeInterest(fmt.Sprintf("/B/%d", i))
-		interestC := makeInterest(fmt.Sprintf("/C/%d", i))
-		rx(interestA, interestB, interestC)
-		time.Sleep(50 * time.Microsecond)
-	}
-	time.Sleep(20 * time.Millisecond)
+	func() {
+		tx := intFace.AFace.GetTx()
+		for i := 0; i < 100; i++ {
+			tx <- ndn.MakeInterest(fmt.Sprintf("/A/%d", i)).Packet
+			tx <- ndn.MakeInterest(fmt.Sprintf("/B/%d", i)).Packet
+			tx <- ndn.MakeInterest(fmt.Sprintf("/C/%d", i)).Packet
+			time.Sleep(50 * time.Microsecond)
+		}
+		time.Sleep(80 * time.Millisecond)
+		close(tx)
+	}()
 
 	e = server.Stop()
 	assert.NoError(e)

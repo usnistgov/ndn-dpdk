@@ -21,6 +21,54 @@ func (name Name) Length() int {
 	return sum
 }
 
+// Get returns i-th component.
+// If negative, count from the end.
+// If out-of-range, return invalid NameComponent.
+func (name Name) Get(i int) NameComponent {
+	if i < 0 {
+		i += len(name)
+	}
+	if i < 0 || i >= len(name) {
+		return NameComponent{}
+	}
+	return name[i]
+}
+
+// Slice returns a sub name between i-th (inclusive) and j-th (exclusive) components.
+// j is optional; the default is toward the end.
+// If negative, count from the end.
+// If out-of-range, return empty name.
+func (name Name) Slice(i int, j ...int) Name {
+	if i < 0 {
+		i += len(name)
+	}
+
+	switch len(j) {
+	case 0:
+		if i < 0 || i >= len(name) {
+			return Name{}
+		}
+		return name[i:]
+	case 1:
+		jj := j[0]
+		if jj < 0 {
+			jj += len(name)
+		}
+		if i < 0 || i >= jj || jj > len(name) {
+			return Name{}
+		}
+		return name[i:jj]
+	default:
+		panic("name.Slice takes 1 or 2 arguments")
+	}
+}
+
+// GetPrefix returns a prefix of i components.
+// If negative, count from the end.
+func (name Name) GetPrefix(i int) Name {
+	return name.Slice(0, i)
+}
+
 // Equal determins whether two names are the same.
 func (name Name) Equal(other Name) bool {
 	return name.Compare(other) == 0

@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/ndn"
-	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
 
@@ -53,7 +52,7 @@ func TestDataDecode(t *testing.T) {
 	data := pkt.Data
 	assert.NotNil(data)
 
-	ndntestenv.NameEqual(assert, "/A", data)
+	nameEqual(assert, "/A", data)
 	assert.Zero(data.ContentType)
 	assert.Zero(data.Freshness)
 	assert.Len(data.Content, 0)
@@ -64,7 +63,7 @@ func TestDataDecode(t *testing.T) {
 	data = pkt.Data
 	assert.NotNil(data)
 
-	ndntestenv.NameEqual(assert, "/B/0", data)
+	nameEqual(assert, "/B/0", data)
 	assert.EqualValues(3, data.ContentType)
 	assert.Equal(260*time.Millisecond, data.Freshness)
 	assert.Equal([]byte{0xC0, 0xC1}, data.Content)

@@ -5,7 +5,6 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
-	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
 
@@ -39,7 +38,7 @@ func TestNackDecode(t *testing.T) {
 	assert.NotNil(nackNoReason)
 
 	assert.EqualValues(an.NackUnspecified, nackNoReason.Reason)
-	ndntestenv.NameEqual(assert, "/A", nackNoReason)
+	nameEqual(assert, "/A", nackNoReason)
 	assert.Equal(ndn.Nonce{0xA0, 0xA1, 0xA2, 0xA3}, nackNoReason.Interest.Nonce)
 	assert.Equal("/8=A~unspecified", nackNoReason.String())
 
@@ -49,7 +48,7 @@ func TestNackDecode(t *testing.T) {
 	assert.NotNil(nackNoRoute)
 
 	assert.EqualValues(an.NackNoRoute, nackNoRoute.Reason)
-	ndntestenv.NameEqual(assert, "/A", nackNoRoute)
+	nameEqual(assert, "/A", nackNoRoute)
 	assert.Equal(ndn.Nonce{0xA0, 0xA1, 0xA2, 0xA3}, nackNoRoute.Interest.Nonce)
 	assert.Equal("/8=A~no-route", nackNoRoute.String())
 }
