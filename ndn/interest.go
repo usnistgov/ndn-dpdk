@@ -15,7 +15,7 @@ import (
 
 // Interest represents an Interest packet.
 type Interest struct {
-	Packet         *Packet
+	packet         *Packet
 	Name           Name
 	CanBePrefix    bool
 	MustBeFresh    bool
@@ -38,7 +38,7 @@ type Interest struct {
 // - LpHeader: copy PitToken and CongMark
 func MakeInterest(args ...interface{}) (interest Interest) {
 	packet := Packet{Interest: &interest}
-	interest.Packet = &packet
+	interest.packet = &packet
 	for _, arg := range args {
 		switch a := arg.(type) {
 		case string:
@@ -64,6 +64,15 @@ func MakeInterest(args ...interface{}) (interest Interest) {
 		}
 	}
 	return interest
+}
+
+// ToPacket wraps Interest as Packet.
+func (interest Interest) ToPacket() *Packet {
+	if interest.packet == nil {
+		packet := Packet{Interest: &interest}
+		interest.packet = &packet
+	}
+	return interest.packet
 }
 
 // UpdateParamsDigest appends or updates ParametersSha256DigestComponent.

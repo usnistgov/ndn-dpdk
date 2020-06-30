@@ -15,8 +15,8 @@ import (
 func TestServer(t *testing.T) {
 	assert, require := makeAR(t)
 
-	intFace := intface.MustNew()
-	defer intFace.DFace.Close()
+	face := intface.MustNew()
+	defer face.D.Close()
 
 	nameA := ndn.ParseName("/A")
 	nameB := ndn.ParseName("/B")
@@ -58,7 +58,7 @@ func TestServer(t *testing.T) {
 		Nack: true,
 	}
 
-	server, e := pingserver.New(intFace.DFace, 0, cfg)
+	server, e := pingserver.New(face.D, 0, cfg)
 	require.NoError(e)
 	defer server.Close()
 	server.SetLCore(pingtestenv.SlaveLCores[0])
@@ -68,7 +68,7 @@ func TestServer(t *testing.T) {
 	nDataA1 := 0
 	nNacksB := 0
 	go func() {
-		for packet := range intFace.AFace.GetRx() {
+		for packet := range face.Rx {
 			switch {
 			case packet.Data != nil:
 				dataName := packet.Data.Name
@@ -97,15 +97,14 @@ func TestServer(t *testing.T) {
 	server.Launch()
 
 	func() {
-		tx := intFace.AFace.GetTx()
 		for i := 0; i < 100; i++ {
-			tx <- ndn.MakeInterest(fmt.Sprintf("/A/%d", i)).Packet
-			tx <- ndn.MakeInterest(fmt.Sprintf("/B/%d", i)).Packet
-			tx <- ndn.MakeInterest(fmt.Sprintf("/C/%d", i)).Packet
+			face.Tx <- ndn.MakeInterest(fmt.Sprintf("/A/%d", i))
+			face.Tx <- ndn.MakeInterest(fmt.Sprintf("/B/%d", i))
+			face.Tx <- ndn.MakeInterest(fmt.Sprintf("/C/%d", i))
 			time.Sleep(50 * time.Microsecond)
 		}
 		time.Sleep(80 * time.Millisecond)
-		close(tx)
+		close(face.Tx)
 	}()
 
 	e = server.Stop()

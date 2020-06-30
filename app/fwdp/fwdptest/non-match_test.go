@@ -5,31 +5,26 @@ import (
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/app/fwdp"
+	"github.com/usnistgov/ndn-dpdk/iface/intface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
-	"github.com/usnistgov/ndn-dpdk/ndn/an"
-	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 func TestDataWrongName(t *testing.T) {
-	assert, require := makeAR(t)
+	assert, _ := makeAR(t)
 	fixture := NewFixture(t)
 	defer fixture.Close()
 
-	face1 := fixture.CreateFace()
-	face2 := fixture.CreateFace()
-	fixture.SetFibEntry("/B", "multicast", face2.GetFaceId())
+	face1, face2 := intface.MustNew(), intface.MustNew()
+	collect1, collect2 := intface.Collect(face1), intface.Collect(face2)
+	fixture.SetFibEntry("/B", "multicast", face2.ID)
 
-	interest := makeInterest("/B/1")
-	face1.Rx(interest)
+	face1.Tx <- ndn.MakeInterest("/B/1")
 	time.Sleep(STEP_DELAY)
-	require.Len(face2.TxInterests, 1)
+	assert.Equal(1, collect2.Count())
 
-	data := makeData("/B/2", time.Second) // name does not match
-	copyPitToken(data, face2.TxInterests[0])
-	face2.Rx(data)
+	face2.Tx <- ndn.MakeData(collect2.Get(-1).Interest, "/B/2") // name does not match
 	time.Sleep(STEP_DELAY)
-	assert.Len(face1.TxData, 0)
-	assert.Len(face1.TxNacks, 0)
+	assert.Equal(0, collect1.Count())
 
 	assert.Equal(uint64(1), fixture.SumCounter(func(dp *fwdp.DataPlane, i int) uint64 {
 		return dp.GetFwdPit(i).ReadCounters().NDataMiss
@@ -37,25 +32,21 @@ func TestDataWrongName(t *testing.T) {
 }
 
 func TestDataLongerName(t *testing.T) {
-	assert, require := makeAR(t)
+	assert, _ := makeAR(t)
 	fixture := NewFixture(t)
 	defer fixture.Close()
 
-	face1 := fixture.CreateFace()
-	face2 := fixture.CreateFace()
-	fixture.SetFibEntry("/B", "multicast", face2.GetFaceId())
+	face1, face2 := intface.MustNew(), intface.MustNew()
+	collect1, collect2 := intface.Collect(face1), intface.Collect(face2)
+	fixture.SetFibEntry("/B", "multicast", face2.ID)
 
-	interest := makeInterest("/B/1") // no CanBePrefix
-	face1.Rx(interest)
+	face1.Tx <- ndn.MakeInterest("/B/1") // no CanBePrefix
 	time.Sleep(STEP_DELAY)
-	require.Len(face2.TxInterests, 1)
+	assert.Equal(1, collect2.Count())
 
-	data := makeData("/B/1/Z", time.Second) // name has suffix
-	copyPitToken(data, face2.TxInterests[0])
-	face2.Rx(data)
+	face2.Tx <- ndn.MakeData(collect2.Get(-1).Interest, "/B/1/Z") // name has suffix
 	time.Sleep(STEP_DELAY)
-	assert.Len(face1.TxData, 0)
-	assert.Len(face1.TxNacks, 0)
+	assert.Equal(0, collect1.Count())
 
 	assert.Equal(uint64(1), fixture.SumCounter(func(dp *fwdp.DataPlane, i int) uint64 {
 		return dp.GetFwdPit(i).ReadCounters().NDataMiss
@@ -63,25 +54,21 @@ func TestDataLongerName(t *testing.T) {
 }
 
 func TestDataZeroFreshnessPeriod(t *testing.T) {
-	assert, require := makeAR(t)
+	assert, _ := makeAR(t)
 	fixture := NewFixture(t)
 	defer fixture.Close()
 
-	face1 := fixture.CreateFace()
-	face2 := fixture.CreateFace()
-	fixture.SetFibEntry("/B", "multicast", face2.GetFaceId())
+	face1, face2 := intface.MustNew(), intface.MustNew()
+	collect1, collect2 := intface.Collect(face1), intface.Collect(face2)
+	fixture.SetFibEntry("/B", "multicast", face2.ID)
 
-	interest := makeInterest("/B/1", ndn.MustBeFreshFlag) // has MustBeFresh
-	face1.Rx(interest)
+	face1.Tx <- ndn.MakeInterest("/B/1", ndn.MustBeFreshFlag) // has MustBeFresh
 	time.Sleep(STEP_DELAY)
-	require.Len(face2.TxInterests, 1)
+	assert.Equal(1, collect2.Count())
 
-	data := makeData("/B/1") // no FreshnessPeriod
-	copyPitToken(data, face2.TxInterests[0])
-	face2.Rx(data)
+	face2.Tx <- ndn.MakeData(collect2.Get(-1).Interest, 0*time.Millisecond) // no FreshnessPeriod
 	time.Sleep(STEP_DELAY)
-	assert.Len(face1.TxData, 0)
-	assert.Len(face1.TxNacks, 0)
+	assert.Equal(0, collect1.Count())
 
 	assert.Equal(uint64(1), fixture.SumCounter(func(dp *fwdp.DataPlane, i int) uint64 {
 		return dp.GetFwdPit(i).ReadCounters().NDataMiss
@@ -89,25 +76,21 @@ func TestDataZeroFreshnessPeriod(t *testing.T) {
 }
 
 func TestNackWrongName(t *testing.T) {
-	assert, require := makeAR(t)
+	assert, _ := makeAR(t)
 	fixture := NewFixture(t)
 	defer fixture.Close()
 
-	face1 := fixture.CreateFace()
-	face2 := fixture.CreateFace()
-	fixture.SetFibEntry("/B", "multicast", face2.GetFaceId())
+	face1, face2 := intface.MustNew(), intface.MustNew()
+	collect1, collect2 := intface.Collect(face1), intface.Collect(face2)
+	fixture.SetFibEntry("/B", "multicast", face2.ID)
 
-	interest := makeInterest("/B/1", ndn.NonceFromUint(0xdb22330b))
-	face1.Rx(interest)
+	face1.Tx <- ndn.MakeInterest("/B/1", ndn.NonceFromUint(0xdb22330b))
 	time.Sleep(STEP_DELAY)
-	require.Len(face2.TxInterests, 1)
+	assert.Equal(1, collect2.Count())
 
-	nack := ndni.MakeNackFromInterest(makeInterest("/B/2", ndn.NonceFromUint(0xdb22330b)), an.NackNoRoute)
-	copyPitToken(nack, face2.TxInterests[0])
-	face2.Rx(nack)
+	face2.Tx <- ndn.MakeNack(ndn.MakeInterest("/B/2", ndn.NonceFromUint(0xdb22330b)), collect2.Get(-1).Lp)
 	time.Sleep(STEP_DELAY)
-	assert.Len(face1.TxData, 0)
-	assert.Len(face1.TxNacks, 0)
+	assert.Equal(0, collect1.Count())
 
 	assert.Equal(uint64(1), fixture.SumCounter(func(dp *fwdp.DataPlane, i int) uint64 {
 		return dp.GetFwdPit(i).ReadCounters().NNackMiss
@@ -115,25 +98,21 @@ func TestNackWrongName(t *testing.T) {
 }
 
 func TestNackWrongNonce(t *testing.T) {
-	assert, require := makeAR(t)
+	assert, _ := makeAR(t)
 	fixture := NewFixture(t)
 	defer fixture.Close()
 
-	face1 := fixture.CreateFace()
-	face2 := fixture.CreateFace()
-	fixture.SetFibEntry("/B", "multicast", face2.GetFaceId())
+	face1, face2 := intface.MustNew(), intface.MustNew()
+	collect1, collect2 := intface.Collect(face1), intface.Collect(face2)
+	fixture.SetFibEntry("/B", "multicast", face2.ID)
 
-	interest := makeInterest("/B/1", ndn.NonceFromUint(0x19c3e8b8))
-	face1.Rx(interest)
+	face1.Tx <- ndn.MakeInterest("/B/1", ndn.NonceFromUint(0x19c3e8b8))
 	time.Sleep(STEP_DELAY)
-	require.Len(face2.TxInterests, 1)
+	assert.Equal(1, collect2.Count())
 
-	nack := ndni.MakeNackFromInterest(makeInterest("/B/1", ndn.NonceFromUint(0xf4d9aad1)), an.NackNoRoute)
-	copyPitToken(nack, face2.TxInterests[0])
-	face2.Rx(nack)
+	face2.Tx <- ndn.MakeNack(ndn.MakeInterest("/B/1", ndn.NonceFromUint(0xf4d9aad1)), collect2.Get(-1).Lp)
 	time.Sleep(STEP_DELAY)
-	assert.Len(face1.TxData, 0)
-	assert.Len(face1.TxNacks, 0)
+	assert.Equal(0, collect1.Count())
 
 	assert.Equal(uint64(1), fixture.SumCounter(func(dp *fwdp.DataPlane, i int) uint64 {
 		return dp.ReadFwdInfo(i).NNackMismatch

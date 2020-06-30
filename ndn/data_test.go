@@ -36,7 +36,7 @@ func TestDataLpEncode(t *testing.T) {
 	interest := ndn.MakeInterest("/A", lph, ndn.NonceFromUint(0xC0C1C2C3), ndn.MustBeFreshFlag)
 	data := ndn.MakeData(interest, bytesFromHex("content=C0C1"))
 
-	wire, e := tlv.Encode(data.Packet)
+	wire, e := tlv.Encode(data.ToPacket())
 	assert.NoError(e)
 	assert.Contains(string(wire),
 		string(bytesFromHex("pittoken=6208F7F6F5F4F3F2F1F0 congmark=FD03400101")))

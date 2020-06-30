@@ -72,10 +72,10 @@ func (c *L3FaceTester) CheckL3Face(t *testing.T, faceA, faceB ndn.L3Face) {
 				require.NotNil(packet.Interest)
 				if token%5 == 0 {
 					nack := ndn.MakeNack(*packet.Interest)
-					txB <- nack.Packet
+					txB <- nack
 				} else {
 					data := ndn.MakeData(*packet.Interest)
-					txB <- data.Packet
+					txB <- data
 				}
 			}
 		}

@@ -15,8 +15,8 @@ import (
 func TestClient(t *testing.T) {
 	assert, require := makeAR(t)
 
-	intFace := intface.MustNew()
-	defer intFace.DFace.Close()
+	face := intface.MustNew()
+	defer face.D.Close()
 
 	nameA := ndn.ParseName("/A")
 	nameB := ndn.ParseName("/B")
@@ -43,7 +43,7 @@ func TestClient(t *testing.T) {
 		Interval: nnduration.Nanoseconds(200000),
 	}
 
-	client, e := pingclient.New(intFace.DFace, cfg)
+	client, e := pingclient.New(face.D, cfg)
 	require.NoError(e)
 	defer client.Close()
 	client.SetLCores(pingtestenv.SlaveLCores[0], pingtestenv.SlaveLCores[1])
@@ -55,8 +55,7 @@ func TestClient(t *testing.T) {
 	nInterestsB2Far := 0
 	var lastSeqB uint64
 	go func() {
-		tx := intFace.AFace.GetTx()
-		for packet := range intFace.AFace.GetRx() {
+		for packet := range face.Rx {
 			require.NotNil(packet.Interest)
 			interest := *packet.Interest
 			switch {
@@ -85,9 +84,9 @@ func TestClient(t *testing.T) {
 				assert.Fail("unexpected Interest", "%v", interest)
 			}
 
-			tx <- ndn.MakeData(interest).Packet
+			face.Tx <- ndn.MakeData(interest)
 		}
-		close(tx)
+		close(face.Tx)
 	}()
 
 	assert.InDelta(200*time.Microsecond, client.GetInterval(), float64(1*time.Microsecond))

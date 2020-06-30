@@ -16,13 +16,13 @@ func TestNackLpEncode(t *testing.T) {
 	interest := ndn.MakeInterest("/A", lph, ndn.NonceFromUint(0xC0C1C2C3))
 
 	nackNoReason := ndn.MakeNack(interest)
-	wire, e := tlv.Encode(nackNoReason.Packet)
+	wire, e := tlv.Encode(nackNoReason.ToPacket())
 	assert.NoError(e)
 	assert.Equal(bytesFromHex("641D pittoken=6208F7F6F5F4F3F2F1F0 nack=FD032000 payload=500D "+
 		"interest=050B 0703080141 0A04C3C2C1C0"), wire)
 
-	nackDuplicate := ndn.MakeNack(interest, an.NackDuplicate)
-	wire, e = tlv.Encode(nackDuplicate.Packet)
+	nackDuplicate := ndn.MakeNack(&interest, an.NackDuplicate)
+	wire, e = tlv.Encode(nackDuplicate.ToPacket())
 	assert.NoError(e)
 	assert.Equal(bytesFromHex("6422 pittoken=6208F7F6F5F4F3F2F1F0 nack=FD032005FD03210164 payload=500D "+
 		"interest=050B 0703080141 0A04C3C2C1C0"), wire)

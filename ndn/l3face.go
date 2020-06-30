@@ -30,7 +30,7 @@ type L3Face interface {
 	// GetTx returns a channel to send outgoing packets.
 	// This function always returns the same channel.
 	// Closing this channel causes the face to close.
-	GetTx() chan<- *Packet
+	GetTx() chan<- L3Packet
 }
 
 // NewL3Face creates an L3Face.
@@ -38,7 +38,7 @@ func NewL3Face(tr Transport) (l3face L3Face, e error) {
 	var face l3faceImpl
 	face.tr = tr
 	face.rx = make(chan *Packet)
-	face.tx = make(chan *Packet)
+	face.tx = make(chan L3Packet)
 	go face.rxLoop()
 	go face.txLoop()
 	return &face, nil
@@ -47,7 +47,7 @@ func NewL3Face(tr Transport) (l3face L3Face, e error) {
 type l3faceImpl struct {
 	tr Transport
 	rx chan *Packet
-	tx chan *Packet
+	tx chan L3Packet
 }
 
 func (face *l3faceImpl) GetTransport() Transport {
@@ -58,7 +58,7 @@ func (face *l3faceImpl) GetRx() <-chan *Packet {
 	return face.rx
 }
 
-func (face *l3faceImpl) GetTx() chan<- *Packet {
+func (face *l3faceImpl) GetTx() chan<- L3Packet {
 	return face.tx
 }
 
@@ -76,8 +76,8 @@ func (face *l3faceImpl) rxLoop() {
 
 func (face *l3faceImpl) txLoop() {
 	transportTx := face.tr.GetTx()
-	for packet := range face.tx {
-		wire, e := tlv.Encode(packet)
+	for l3packet := range face.tx {
+		wire, e := tlv.Encode(l3packet.ToPacket())
 		if e != nil {
 			continue
 		}

@@ -12,7 +12,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/container/strategycode"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/createface"
-	"github.com/usnistgov/ndn-dpdk/iface/mockface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/strategy/strategyelf"
 )
@@ -71,12 +70,6 @@ func (fixture *Fixture) Close() error {
 	fixture.DataPlane.Close()
 	strategycode.DestroyAll()
 	return nil
-}
-
-func (fixture *Fixture) CreateFace() *mockface.MockFace {
-	face, e := createface.Create(mockface.NewLocator())
-	fixture.require.NoError(e)
-	return face.(*mockface.MockFace)
 }
 
 func (fixture *Fixture) SetFibEntry(name string, strategy string, nexthops ...iface.FaceId) {

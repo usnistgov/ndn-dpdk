@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/usnistgov/ndn-dpdk/iface/intface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
-	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 func TestFastroute(t *testing.T) {
@@ -14,88 +14,74 @@ func TestFastroute(t *testing.T) {
 	fixture := NewFixture(t)
 	defer fixture.Close()
 
-	face1 := fixture.CreateFace()
-	face2 := fixture.CreateFace()
-	face3 := fixture.CreateFace()
-	face4 := fixture.CreateFace()
-	fixture.SetFibEntry("/A/B", "fastroute", face1.GetFaceId(), face2.GetFaceId(), face3.GetFaceId())
+	face1, face2, face3, face4 := intface.MustNew(), intface.MustNew(), intface.MustNew(), intface.MustNew()
+	collect1, collect2, collect3, collect4 := intface.Collect(face1), intface.Collect(face2), intface.Collect(face3), intface.Collect(face4)
+	fixture.SetFibEntry("/A/B", "fastroute", face1.ID, face2.ID, face3.ID)
 
 	// multicast first Interest
-	interest1 := makeInterest("/A/B/1")
-	face4.Rx(interest1)
+	face4.Tx <- ndn.MakeInterest("/A/B/1")
 	time.Sleep(STEP_DELAY)
-	assert.Len(face1.TxInterests, 1)
-	assert.Len(face2.TxInterests, 1)
-	assert.Len(face3.TxInterests, 1)
+	assert.Equal(1, collect1.Count())
+	assert.Equal(1, collect2.Count())
+	assert.Equal(1, collect3.Count())
 
 	// face3 replies Data
-	data1 := makeData("/A/B/1")
-	copyPitToken(data1, face3.TxInterests[0])
-	face3.Rx(data1)
+	face3.Tx <- ndn.MakeData(collect3.Get(-1).Interest)
 	time.Sleep(STEP_DELAY)
 
 	// unicast to face3
-	interest2 := makeInterest("/A/B/2")
-	face4.Rx(interest2)
+	face4.Tx <- ndn.MakeInterest("/A/B/2")
 	time.Sleep(STEP_DELAY)
-	assert.Len(face1.TxInterests, 1)
-	assert.Len(face2.TxInterests, 1)
-	assert.Len(face3.TxInterests, 2)
+	assert.Equal(1, collect1.Count())
+	assert.Equal(1, collect2.Count())
+	assert.Equal(2, collect3.Count())
 
 	// unicast to face3
-	interest3 := makeInterest("/A/B/3")
-	face4.Rx(interest3)
+	face4.Tx <- ndn.MakeInterest("/A/B/3")
 	time.Sleep(STEP_DELAY)
-	assert.Len(face1.TxInterests, 1)
-	assert.Len(face2.TxInterests, 1)
-	assert.Len(face3.TxInterests, 3)
+	assert.Equal(1, collect1.Count())
+	assert.Equal(1, collect2.Count())
+	assert.Equal(3, collect3.Count())
 
 	// face3 fails
 	face3.SetDown(true)
 
 	// multicast next Interest because face3 failed
-	interest4 := makeInterest("/A/B/4")
-	face4.Rx(interest4)
+	face4.Tx <- ndn.MakeInterest("/A/B/4")
 	time.Sleep(STEP_DELAY)
-	assert.Len(face1.TxInterests, 2)
-	assert.Len(face2.TxInterests, 2)
-	assert.Len(face3.TxInterests, 3) // no Interest to face3 because it's DOWN
+	assert.Equal(2, collect1.Count())
+	assert.Equal(2, collect2.Count())
+	assert.Equal(3, collect3.Count()) // no Interest to face3 because it's DOWN
 
 	// face1 replies Data
-	data4 := makeData("/A/B/4")
-	copyPitToken(data4, face1.TxInterests[1])
-	face1.Rx(data4)
+	face1.Tx <- ndn.MakeData(collect1.Get(-1).Interest)
 	time.Sleep(STEP_DELAY)
 
 	// unicast to face1
-	interest5 := makeInterest("/A/B/5", ndn.NonceFromUint(0x422e9f49))
-	face4.Rx(interest5)
+	face4.Tx <- ndn.MakeInterest("/A/B/5", ndn.NonceFromUint(0x422e9f49))
 	time.Sleep(STEP_DELAY)
-	assert.Len(face1.TxInterests, 3)
-	assert.Len(face2.TxInterests, 2)
-	assert.Len(face3.TxInterests, 3)
+	assert.Equal(3, collect1.Count())
+	assert.Equal(2, collect2.Count())
+	assert.Equal(3, collect3.Count())
 
 	// face1 replies Nack~NoRoute, retry on other faces
-	nack5 := ndni.MakeNackFromInterest(makeInterest("/A/B/5", ndn.NonceFromUint(0x422e9f49)), an.NackNoRoute)
-	copyPitToken(nack5, face1.TxInterests[2])
-	face1.Rx(nack5)
+	face1.Tx <- ndn.MakeNack(collect1.Get(-1).Interest, an.NackNoRoute)
 	time.Sleep(STEP_DELAY)
-	assert.Len(face1.TxInterests, 3)
-	assert.Len(face2.TxInterests, 3)
-	assert.Len(face3.TxInterests, 3) // no Interest to face3 because it's DOWN
+	assert.Equal(3, collect1.Count())
+	assert.Equal(3, collect2.Count())
+	assert.Equal(3, collect3.Count()) // no Interest to face3 because it's DOWN
 
 	// face2 replies Nack~NoRoute as well, return Nack to downstream
-	nack5 = ndni.MakeNackFromInterest(makeInterest("/A/B/5", ndn.NonceFromUint(0x422e9f49)), an.NackNoRoute)
-	copyPitToken(nack5, face2.TxInterests[2])
-	face2.Rx(nack5)
+	collect4.Clear()
+	face2.Tx <- ndn.MakeNack(collect2.Get(-1).Interest, an.NackNoRoute)
 	time.Sleep(STEP_DELAY)
-	assert.Len(face4.TxNacks, 1)
+	assert.Equal(1, collect4.Count())
+	assert.NotNil(collect4.Get(-1).Nack)
 
 	// multicast next Interest because faces Nacked
-	interest6 := makeInterest("/A/B/6")
-	face4.Rx(interest6)
+	face4.Tx <- ndn.MakeInterest("/A/B/6")
 	time.Sleep(STEP_DELAY)
-	assert.Len(face1.TxInterests, 4)
-	assert.Len(face2.TxInterests, 4)
-	assert.Len(face3.TxInterests, 3) // no Interest to face3 because it's DOWN
+	assert.Equal(4, collect1.Count())
+	assert.Equal(4, collect2.Count())
+	assert.Equal(3, collect3.Count()) // no Interest to face3 because it's DOWN
 }

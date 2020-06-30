@@ -98,11 +98,7 @@ func (pkt *Packet) ToNPacket() (npkt ndn.Packet) {
 		npkt.Lp.NackReason = lpl3.NackReason
 		npkt.Lp.CongMark = int(lpl3.CongMark)
 		if npkt.Lp.NackReason != 0 {
-			npkt.Nack = new(ndn.Nack)
-			npkt.Nack.Packet = &npkt
-			npkt.Nack.Reason = npkt.Lp.NackReason
-			npkt.Nack.Interest = *npkt.Interest
-			npkt.Interest = nil
+			return *ndn.MakeNack(npkt.Interest, npkt.Lp.NackReason).ToPacket()
 		}
 	}
 	return npkt

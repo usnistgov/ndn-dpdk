@@ -14,14 +14,14 @@ func TestFetcher(t *testing.T) {
 	assert, require := makeAR(t)
 
 	intFace := intface.MustNew()
-	defer intFace.DFace.Close()
+	defer intFace.D.Close()
 
 	var cfg fetch.FetcherConfig
 	cfg.NThreads = 1
 	cfg.NProcs = 1
 	cfg.WindowCapacity = 1024
 
-	fetcher, e := fetch.New(intFace.DFace, cfg)
+	fetcher, e := fetch.New(intFace.D, cfg)
 	require.NoError(e)
 	defer fetcher.Close()
 	fetcher.GetThread(0).SetLCore(pingtestenv.SlaveLCores[0])
@@ -29,16 +29,15 @@ func TestFetcher(t *testing.T) {
 
 	nInterests := 0
 	go func() {
-		tx := intFace.AFace.GetTx()
-		for packet := range intFace.AFace.GetRx() {
+		for packet := range intFace.Rx {
 			require.NotNil(packet.Interest)
 			token := ndn.PitTokenToUint(packet.Lp.PitToken)
 			assert.NotZero(token)
 			assert.EqualValues(0, token>>56)
 			nInterests++
-			tx <- ndn.MakeData(*packet.Interest).Packet
+			intFace.Tx <- ndn.MakeData(packet.Interest)
 		}
-		close(tx)
+		close(intFace.Tx)
 	}()
 
 	fetcher.Reset()

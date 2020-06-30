@@ -3,6 +3,9 @@ package fwdptest
 import (
 	"testing"
 	"time"
+
+	"github.com/usnistgov/ndn-dpdk/iface/intface"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 func TestSequential(t *testing.T) {
@@ -10,46 +13,39 @@ func TestSequential(t *testing.T) {
 	fixture := NewFixture(t)
 	defer fixture.Close()
 
-	face1 := fixture.CreateFace()
-	face2 := fixture.CreateFace()
-	face3 := fixture.CreateFace()
-	face4 := fixture.CreateFace()
-	fixture.SetFibEntry("/A", "sequential", face1.GetFaceId(), face2.GetFaceId(), face3.GetFaceId())
+	face1, face2, face3, face4 := intface.MustNew(), intface.MustNew(), intface.MustNew(), intface.MustNew()
+	collect1, collect2, collect3 := intface.Collect(face1), intface.Collect(face2), intface.Collect(face3)
+	fixture.SetFibEntry("/A", "sequential", face1.ID, face2.ID, face3.ID)
 
-	interest1 := makeInterest("/A/1")
-	face4.Rx(interest1)
+	face4.Tx <- ndn.MakeInterest("/A/1")
 	time.Sleep(STEP_DELAY)
-	assert.Len(face1.TxInterests, 1)
-	assert.Len(face2.TxInterests, 0)
-	assert.Len(face3.TxInterests, 0)
+	assert.Equal(1, collect1.Count())
+	assert.Equal(0, collect2.Count())
+	assert.Equal(0, collect3.Count())
 
-	interest2 := makeInterest("/A/1")
-	face4.Rx(interest2)
+	face4.Tx <- ndn.MakeInterest("/A/1")
 	time.Sleep(STEP_DELAY)
-	assert.Len(face1.TxInterests, 1)
-	assert.Len(face2.TxInterests, 1)
-	assert.Len(face3.TxInterests, 0)
+	assert.Equal(1, collect1.Count())
+	assert.Equal(1, collect2.Count())
+	assert.Equal(0, collect3.Count())
 
-	interest3 := makeInterest("/A/1")
-	face4.Rx(interest3)
+	face4.Tx <- ndn.MakeInterest("/A/1")
 	time.Sleep(STEP_DELAY)
-	assert.Len(face1.TxInterests, 1)
-	assert.Len(face2.TxInterests, 1)
-	assert.Len(face3.TxInterests, 1)
+	assert.Equal(1, collect1.Count())
+	assert.Equal(1, collect2.Count())
+	assert.Equal(1, collect3.Count())
 
-	interest4 := makeInterest("/A/1")
-	face4.Rx(interest4)
+	face4.Tx <- ndn.MakeInterest("/A/1")
 	time.Sleep(STEP_DELAY)
-	assert.Len(face1.TxInterests, 2)
-	assert.Len(face2.TxInterests, 1)
-	assert.Len(face3.TxInterests, 1)
+	assert.Equal(2, collect1.Count())
+	assert.Equal(1, collect2.Count())
+	assert.Equal(1, collect3.Count())
 
 	face2.SetDown(true)
 
-	interest5 := makeInterest("/A/1")
-	face4.Rx(interest5)
+	face4.Tx <- ndn.MakeInterest("/A/1")
 	time.Sleep(STEP_DELAY)
-	assert.Len(face1.TxInterests, 2)
-	assert.Len(face2.TxInterests, 1)
-	assert.Len(face3.TxInterests, 2)
+	assert.Equal(2, collect1.Count())
+	assert.Equal(1, collect2.Count())
+	assert.Equal(2, collect3.Count())
 }

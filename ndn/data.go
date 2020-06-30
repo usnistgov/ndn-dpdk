@@ -11,7 +11,7 @@ import (
 
 // Data represents a Data packet.
 type Data struct {
-	Packet      *Packet
+	packet      *Packet
 	Name        Name
 	ContentType ContentType
 	Freshness   time.Duration
@@ -25,10 +25,19 @@ type Data struct {
 // - time.Duration: set Freshness
 // - []byte: set Content
 // - LpHeader: copy PitToken and CongMark
-// - Interest: copy Name, set FreshnessPeriod if Interest has MustBeFresh, inherit LpHeader
+// - Interest or *Interest: copy Name, set FreshnessPeriod if Interest has MustBeFresh, inherit LpHeader
 func MakeData(args ...interface{}) (data Data) {
 	packet := Packet{Data: &data}
-	data.Packet = &packet
+	data.packet = &packet
+	handleInterestArg := func(a *Interest) {
+		data.Name = a.Name
+		if a.MustBeFresh {
+			data.Freshness = 1 * time.Millisecond
+		}
+		if ipkt := a.packet; ipkt != nil {
+			packet.Lp.inheritFrom(ipkt.Lp)
+		}
+	}
 	for _, arg := range args {
 		switch a := arg.(type) {
 		case string:
@@ -44,13 +53,9 @@ func MakeData(args ...interface{}) (data Data) {
 		case LpHeader:
 			packet.Lp.inheritFrom(a)
 		case Interest:
-			data.Name = a.Name
-			if a.MustBeFresh {
-				data.Freshness = 1 * time.Millisecond
-			}
-			if ipkt := a.Packet; ipkt != nil {
-				packet.Lp.inheritFrom(ipkt.Lp)
-			}
+			handleInterestArg(&a)
+		case *Interest:
+			handleInterestArg(a)
 		default:
 			panic("bad argument type " + reflect.TypeOf(arg).String())
 		}
@@ -58,28 +63,37 @@ func MakeData(args ...interface{}) (data Data) {
 	return data
 }
 
+// ToPacket wraps Data as Packet.
+func (data Data) ToPacket() *Packet {
+	if data.packet == nil {
+		packet := Packet{Data: &data}
+		data.packet = &packet
+	}
+	return data.packet
+}
+
 // ComputeDigest computes implicit digest of this Data.
 //
-// If data was decoded from Packet (data.Packet is assigned), the digest is of the origin packet.
-// Computed digest is cached on data.Packet.
+// If data was decoded from Packet (data.packet is assigned), the digest is of the origin packet.
+// Computed digest is cached on data.packet.
 // Modifying a decoded Data will cause this function to return incorrect digest.
 //
-// If data was constructed (data.Packet is unassigned), the digest is of the encoding of the current packet,
+// If data was constructed (data.packet is unassigned), the digest is of the encoding of the current packet,
 // and is not cached.
 func (data Data) ComputeDigest() []byte {
-	if data.Packet == nil {
-		data.Packet = new(Packet)
-		data.Packet.Data = &data
+	if data.packet == nil {
+		data.packet = new(Packet)
+		data.packet.Data = &data
 	}
-	if data.Packet.l3type != an.TtData {
-		data.Packet.l3type, data.Packet.l3value, _ = data.MarshalTlv()
+	if data.packet.l3type != an.TtData {
+		data.packet.l3type, data.packet.l3value, _ = data.MarshalTlv()
 	}
-	if data.Packet.l3digest == nil {
-		wire, _ := tlv.Encode(tlv.MakeElement(data.Packet.l3type, data.Packet.l3value))
+	if data.packet.l3digest == nil {
+		wire, _ := tlv.Encode(tlv.MakeElement(data.packet.l3type, data.packet.l3value))
 		digest := sha256.Sum256(wire)
-		data.Packet.l3digest = digest[:]
+		data.packet.l3digest = digest[:]
 	}
-	return data.Packet.l3digest
+	return data.packet.l3digest
 }
 
 // FullName returns full name of this Data.

@@ -8,7 +8,7 @@ import (
 
 // Nack represents a Nack packet.
 type Nack struct {
-	Packet   *Packet
+	packet   *Packet
 	Reason   uint8
 	Interest Interest
 }
@@ -16,12 +16,19 @@ type Nack struct {
 // MakeNack creates a Nack from flexible arguments.
 // Arguments can contain:
 // - uint8 or int: set Reason
-// - Interest: set Interest, copy PitToken and CongMark
+// - Interest or *Interest: set Interest, copy PitToken and CongMark
 // - LpHeader: copy PitToken and CongMark
 func MakeNack(args ...interface{}) (nack Nack) {
 	packet := Packet{Nack: &nack}
-	nack.Packet = &packet
+	nack.packet = &packet
 	nack.Reason = an.NackUnspecified
+	handleInterestArg := func(a *Interest) {
+		nack.Interest = *a
+		nack.Interest.packet = nil
+		if ipkt := a.packet; ipkt != nil {
+			packet.Lp.inheritFrom(ipkt.Lp)
+		}
+	}
 	for _, arg := range args {
 		switch a := arg.(type) {
 		case uint8:
@@ -29,11 +36,9 @@ func MakeNack(args ...interface{}) (nack Nack) {
 		case int:
 			nack.Reason = uint8(a)
 		case Interest:
-			nack.Interest = a
-			nack.Interest.Packet = nil
-			if ipkt := a.Packet; ipkt != nil {
-				packet.Lp.inheritFrom(ipkt.Lp)
-			}
+			handleInterestArg(&a)
+		case *Interest:
+			handleInterestArg(a)
 		case LpHeader:
 			packet.Lp.inheritFrom(a)
 		default:
@@ -41,6 +46,15 @@ func MakeNack(args ...interface{}) (nack Nack) {
 		}
 	}
 	return nack
+}
+
+// ToPacket wraps Nack as Packet.
+func (nack Nack) ToPacket() *Packet {
+	if nack.packet == nil {
+		packet := Packet{Nack: &nack}
+		nack.packet = &packet
+	}
+	return nack.packet
 }
 
 // GetName returns the name of the enclosed Interest.

@@ -1,11 +1,13 @@
 package fwdptest
 
 import (
-	"github.com/usnistgov/ndn-dpdk/core/testenv"
-	"github.com/usnistgov/ndn-dpdk/dpdk/eal/ealtestenv"
-	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
 	"os"
 	"testing"
+
+	"github.com/usnistgov/ndn-dpdk/core/testenv"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal/ealtestenv"
+	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
 )
 
 func TestMain(m *testing.M) {
@@ -17,7 +19,8 @@ var (
 	makeAR       = testenv.MakeAR
 	makeInterest = ndnitestenv.MakeInterest
 	makeData     = ndnitestenv.MakeData
-	getPitToken  = ndnitestenv.GetPitToken
-	setPitToken  = ndnitestenv.SetPitToken
-	copyPitToken = ndnitestenv.CopyPitToken
 )
+
+func lphToken(token uint64) ndn.LpHeader {
+	return ndn.LpHeader{PitToken: ndn.PitTokenFromUint(token)}
+}

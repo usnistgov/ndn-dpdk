@@ -4,100 +4,85 @@ import (
 	"testing"
 	"time"
 
+	"github.com/usnistgov/ndn-dpdk/iface/intface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
-	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 func TestNackMerge(t *testing.T) {
-	assert, require := makeAR(t)
+	assert, _ := makeAR(t)
 	fixture := NewFixture(t)
 	defer fixture.Close()
 
-	face1 := fixture.CreateFace()
-	face2 := fixture.CreateFace()
-	face3 := fixture.CreateFace()
-	fixture.SetFibEntry("/A", "multicast", face2.GetFaceId(), face3.GetFaceId())
+	face1, face2, face3 := intface.MustNew(), intface.MustNew(), intface.MustNew()
+	collect1, collect2, collect3 := intface.Collect(face1), intface.Collect(face2), intface.Collect(face3)
+	fixture.SetFibEntry("/A", "multicast", face2.ID, face3.ID)
 
 	// Interest is forwarded to two upstream nodes
-	interest := makeInterest("/A/1", ndn.NonceFromUint(0x2ea29515))
-	setPitToken(interest, 0xf3fb4ef802d3a9d3)
-	face1.Rx(interest)
+	face1.Tx <- ndn.MakeInterest("/A/1", ndn.NonceFromUint(0x2ea29515), lphToken(0xf3fb4ef802d3a9d3))
 	time.Sleep(STEP_DELAY)
-	require.Len(face2.TxInterests, 1)
-	require.Len(face3.TxInterests, 1)
+	assert.Equal(1, collect2.Count())
+	assert.Equal(1, collect3.Count())
 
 	// Nack from first upstream, no action
-	nack2 := ndni.MakeNackFromInterest(makeInterest("/A/1", ndn.NonceFromUint(0x2ea29515)), an.NackNoRoute)
-	copyPitToken(nack2, face2.TxInterests[0])
-	face2.Rx(nack2)
+	face2.Tx <- ndn.MakeNack(collect2.Get(-1).Interest, an.NackNoRoute)
 	time.Sleep(STEP_DELAY)
-	assert.Len(face1.TxNacks, 0)
+	assert.Equal(0, collect1.Count())
 
 	// Nack again from first upstream, no action
-	nack2 = ndni.MakeNackFromInterest(makeInterest("/A/1", ndn.NonceFromUint(0x2ea29515)), an.NackNoRoute)
-	copyPitToken(nack2, face2.TxInterests[0])
-	face2.Rx(nack2)
+	face2.Tx <- ndn.MakeNack(collect2.Get(-1).Interest, an.NackNoRoute)
 	time.Sleep(STEP_DELAY)
-	assert.Len(face1.TxNacks, 0)
+	assert.Equal(0, collect1.Count())
 
 	// Nack from second upstream, Nack to downstream
-	nack3 := ndni.MakeNackFromInterest(makeInterest("/A/1", ndn.NonceFromUint(0x2ea29515)), an.NackCongestion)
-	copyPitToken(nack3, face3.TxInterests[0])
-	face3.Rx(nack3)
+	face3.Tx <- ndn.MakeNack(collect3.Get(-1).Interest, an.NackCongestion)
 	time.Sleep(STEP_DELAY)
-	require.Len(face1.TxNacks, 1)
+	assert.Equal(1, collect1.Count())
 
-	nack1 := face1.TxNacks[0]
-	assert.EqualValues(an.NackCongestion, nack1.GetReason())
-	assert.Equal(ndn.NonceFromUint(0x2ea29515), nack1.GetInterest().GetNonce())
-	assert.Equal(uint64(0xf3fb4ef802d3a9d3), getPitToken(nack1))
+	if packet := collect1.Get(-1); assert.NotNil(packet.Nack) {
+		assert.EqualValues(an.NackCongestion, packet.Nack.Reason)
+		assert.Equal(ndn.NonceFromUint(0x2ea29515), packet.Nack.Interest.Nonce)
+		assert.Equal(ndn.PitTokenFromUint(0xf3fb4ef802d3a9d3), packet.Lp.PitToken)
+	}
 
 	// Data from first upstream, should not reach downstream because PIT entry is gone
-	data2 := makeData("/A/1")
-	copyPitToken(data2, face2.TxInterests[0])
-	face2.Rx(data2)
+	face2.Tx <- ndn.MakeData(collect2.Get(-1).Interest)
 	time.Sleep(STEP_DELAY)
-	assert.Len(face1.TxData, 0)
+	assert.Equal(1, collect1.Count())
 }
 
 func TestNackDuplicate(t *testing.T) {
-	assert, require := makeAR(t)
+	assert, _ := makeAR(t)
 	fixture := NewFixture(t)
 	defer fixture.Close()
 
-	face1 := fixture.CreateFace()
-	face2 := fixture.CreateFace()
-	face3 := fixture.CreateFace()
-	fixture.SetFibEntry("/A", "multicast", face3.GetFaceId())
+	face1, face2, face3 := intface.MustNew(), intface.MustNew(), intface.MustNew()
+	collect1, collect2, collect3 := intface.Collect(face1), intface.Collect(face2), intface.Collect(face3)
+	fixture.SetFibEntry("/A", "multicast", face3.ID)
 
 	// two Interests come from two downstream nodes
-	interest1 := makeInterest("/A/1", ndn.NonceFromUint(0x2ea29515))
-	face1.Rx(interest1)
-	interest2 := makeInterest("/A/1", ndn.NonceFromUint(0xc33b0c68))
-	face2.Rx(interest2)
+	face1.Tx <- ndn.MakeInterest("/A/1", ndn.NonceFromUint(0x2ea29515))
+	face2.Tx <- ndn.MakeInterest("/A/1", ndn.NonceFromUint(0xc33b0c68))
 	time.Sleep(STEP_DELAY)
-	require.Len(face3.TxInterests, 1)
+	assert.Equal(1, collect3.Count())
 
 	// upstream node returns Nack against first Interest
 	// forwarder should resend Interest with another nonce
-	nonce1 := face3.TxInterests[0].GetNonce()
-	nack1 := ndni.MakeNackFromInterest(face3.TxInterests[0], an.NackDuplicate)
-	face3.Rx(nack1)
+	interest0 := collect3.Get(0).Interest
+	face3.Tx <- ndn.MakeNack(interest0, an.NackDuplicate)
 	time.Sleep(STEP_DELAY)
-	require.Len(face3.TxInterests, 2)
-	nonce2 := face3.TxInterests[1].GetNonce()
-	assert.NotEqual(nonce1, nonce2)
-	assert.Len(face1.TxNacks, 0)
-	assert.Len(face2.TxNacks, 0)
+	assert.Equal(2, collect3.Count())
+	interest1 := collect3.Get(1).Interest
+	assert.NotEqual(interest0.Nonce, interest1.Nonce)
+	assert.Equal(0, collect1.Count())
+	assert.Equal(0, collect2.Count())
 
 	// upstream node returns Nack against second Interest as well
 	// forwarder should return Nack to downstream
-	nack2 := ndni.MakeNackFromInterest(face3.TxInterests[1], an.NackDuplicate)
-	face3.Rx(nack2)
+	face3.Tx <- ndn.MakeNack(interest1, an.NackDuplicate)
 	time.Sleep(STEP_DELAY)
-	assert.Len(face1.TxNacks, 1)
-	assert.Len(face2.TxNacks, 1)
+	assert.Equal(1, collect1.Count())
+	assert.Equal(1, collect2.Count())
 
 	fibCnt := fixture.ReadFibCounters("/A")
 	assert.Equal(uint64(2), fibCnt.NRxInterests)
@@ -111,12 +96,12 @@ func TestReturnNacks(t *testing.T) {
 	fixture := NewFixture(t)
 	defer fixture.Close()
 
-	face1 := fixture.CreateFace()
-	face2 := fixture.CreateFace()
-	fixture.SetFibEntry("/A", "reject", face2.GetFaceId())
+	face1, face2 := intface.MustNew(), intface.MustNew()
+	collect1 := intface.Collect(face1)
+	fixture.SetFibEntry("/A", "reject", face2.ID)
 
-	interest1 := makeInterest("/A/1", ndn.NonceFromUint(0x2ea29515))
-	face1.Rx(interest1)
+	face1.Tx <- ndn.MakeInterest("/A/1", ndn.NonceFromUint(0x2ea29515))
 	time.Sleep(STEP_DELAY)
-	assert.Len(face1.TxNacks, 1)
+	assert.Equal(1, collect1.Count())
+	assert.NotNil(collect1.Get(-1).Nack)
 }

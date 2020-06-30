@@ -127,11 +127,6 @@ func SetPitToken(pkt ndni.IL3Packet, token uint64) {
 	pkt.GetPacket().GetLpL3().PitToken = token
 }
 
-// CopyPitToken copies PIT token from src to pkt.
-func CopyPitToken(pkt ndni.IL3Packet, src ndni.IL3Packet) {
-	SetPitToken(pkt, GetPitToken(src))
-}
-
 // ClosePacket releases the mbuf.
 func ClosePacket(pkt ndni.IL3Packet) {
 	pkt.GetPacket().AsMbuf().Close()
