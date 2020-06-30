@@ -6,7 +6,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"github.com/usnistgov/ndn-dpdk/iface/mockface"
+	"github.com/usnistgov/ndn-dpdk/iface/intface"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
 )
@@ -14,7 +14,7 @@ import (
 func TestCApiNoFace(t *testing.T) {
 	assert, _ := makeAR(t)
 
-	id := iface.AllocId(iface.FaceKind_Mock) // non-existent face
+	id := iface.AllocId(iface.FaceKind_Eth) // non-existent face
 	assert.True(Face_IsDown(id))
 
 	pkts := make([]*ndni.Packet, 1)
@@ -25,8 +25,9 @@ func TestCApiNoFace(t *testing.T) {
 func TestCApi(t *testing.T) {
 	assert, _ := makeAR(t)
 
-	face := mockface.New()
-	id := face.GetFaceId()
+	face := intface.MustNew()
+	collect := intface.Collect(face)
+	id := face.ID
 	assert.False(Face_IsDown(id))
 
 	face.SetDown(true)
@@ -38,7 +39,7 @@ func TestCApi(t *testing.T) {
 	txl.SetLCore(eal.ListSlaveLCores()[0])
 	txl.Launch()
 	time.Sleep(10 * time.Millisecond)
-	txl.AddFace(face)
+	txl.AddFace(face.D)
 	time.Sleep(90 * time.Millisecond)
 
 	pkts := make([]*ndni.Packet, 1)
@@ -46,9 +47,9 @@ func TestCApi(t *testing.T) {
 	Face_TxBurst(id, pkts)
 
 	time.Sleep(100 * time.Millisecond)
-	assert.Len(face.TxInterests, 1)
+	assert.Equal(1, collect.Count())
 
 	txl.Stop()
 	txl.Close()
-	face.Close()
+	face.D.Close()
 }

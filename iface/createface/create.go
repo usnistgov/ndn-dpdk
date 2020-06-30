@@ -6,7 +6,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/ethface"
-	"github.com/usnistgov/ndn-dpdk/iface/mockface"
 	"github.com/usnistgov/ndn-dpdk/iface/socketface"
 )
 
@@ -21,8 +20,6 @@ func Create(loc iface.Locator) (face iface.IFace, e error) {
 	switch loc.GetScheme() {
 	case "ether":
 		return createEth(loc.(ethface.Locator))
-	case "mock":
-		return createMock()
 	}
 	return createSock(loc.(socketface.Locator))
 }
@@ -54,15 +51,4 @@ func createSock(loc socketface.Locator) (face iface.IFace, e error) {
 	cfg.TxqPkts = theConfig.SockTxqPkts
 	cfg.TxqFrames = theConfig.SockTxqFrames
 	return socketface.New(loc, cfg)
-}
-
-var hasMockFaces = false
-
-func createMock() (face iface.IFace, e error) {
-	if !theConfig.EnableMock {
-		return nil, errors.New("mock face feature is disabled")
-	}
-
-	hasMockFaces = true
-	return mockface.New(), nil
 }

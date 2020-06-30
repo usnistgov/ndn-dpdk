@@ -15,7 +15,7 @@ func Init() {
 	SlaveLCores = slaves[2:]
 
 	var faceCfg createface.Config
-	faceCfg.EnableMock = true
+	faceCfg.EnableSock = true
 	faceCfg.Apply()
 
 	Demux3 = inputdemux.NewDemux3(slaves[0].GetNumaSocket())

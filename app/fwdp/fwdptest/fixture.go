@@ -32,7 +32,7 @@ func NewFixture(t *testing.T) (fixture *Fixture) {
 	fixture.require = require.New(t)
 
 	var faceCfg createface.Config
-	faceCfg.EnableMock = true
+	faceCfg.EnableSock = true
 	faceCfg.Apply()
 
 	var dpCfg fwdp.Config

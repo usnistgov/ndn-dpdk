@@ -61,7 +61,7 @@ Face:
   # After-TX queue capacity for socket faces.
   SockTxqFrames: 1024
 
-  # ChanRxGroup queue capacity, shared among all socket/mock faces.
+  # ChanRxGroup queue capacity, shared among all socket faces.
   ChanRxgFrames: 4096
 
 # NAME DISPATCH TABLE

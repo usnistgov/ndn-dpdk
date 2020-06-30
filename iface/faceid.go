@@ -13,14 +13,12 @@ type FaceKind int
 
 const (
 	FaceKind_None   FaceKind = -1
-	FaceKind_Mock   FaceKind = 0x0
 	FaceKind_Eth    FaceKind = 0x1
 	FaceKind_Socket FaceKind = 0xE
 )
 
 var faceKinds = map[FaceKind]string{
 	FaceKind_None:   "none",
-	FaceKind_Mock:   "mock",
 	FaceKind_Eth:    "eth",
 	FaceKind_Socket: "socket",
 }

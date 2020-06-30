@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"github.com/usnistgov/ndn-dpdk/iface/mockface"
+	"github.com/usnistgov/ndn-dpdk/iface/intface"
 )
 
 func TestEvents(t *testing.T) {
@@ -33,9 +33,9 @@ func TestEvents(t *testing.T) {
 		assert.Equal(id, faceClosedEvts[len(faceClosingEvts)-1])
 	}).Close()
 
-	face1 := mockface.New()
-	face2 := mockface.New()
-	id1, id2 := face1.GetFaceId(), face2.GetFaceId()
+	face1 := intface.MustNew()
+	face2 := intface.MustNew()
+	id1, id2 := face1.ID, face2.ID
 	if assert.Len(faceNewEvts, 2) {
 		assert.Equal(id1, faceNewEvts[0])
 		assert.Equal(id2, faceNewEvts[1])
@@ -52,8 +52,8 @@ func TestEvents(t *testing.T) {
 		assert.Equal(id1, faceUpEvts[0])
 	}
 
-	face2.Close()
-	face1.Close()
+	face2.D.Close()
+	face1.D.Close()
 	if assert.Len(faceClosedEvts, 2) {
 		assert.Equal(id2, faceClosedEvts[0])
 		assert.Equal(id1, faceClosedEvts[1])

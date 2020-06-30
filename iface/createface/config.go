@@ -29,8 +29,6 @@ type Config struct {
 	SockTxqPkts   int  // socket before-TX queue capacity
 	SockTxqFrames int  // socket after-TX queue capacity
 
-	EnableMock bool // whether to enable mock faces
-
 	ChanRxgFrames int // ChanRxGroup queue capacity
 }
 
@@ -54,7 +52,7 @@ func ListRxTxNumaSockets() (list []eal.NumaSocket) {
 			list = append(list, port.GetNumaSocket())
 		}
 	}
-	if theConfig.EnableSock || theConfig.EnableMock {
+	if theConfig.EnableSock {
 		list = append(list, eal.NumaSocket{})
 	}
 	return list
