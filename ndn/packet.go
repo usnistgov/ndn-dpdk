@@ -10,12 +10,13 @@ type L3Packet interface {
 	ToPacket() *Packet
 }
 
-// Packet represents an NDN layer 3 packet with associated LpHeader.
+// Packet represents an NDN layer 3 packet with associated LpL3.
 type Packet struct {
-	Lp       LpHeader
+	Lp       LpL3
 	l3type   uint32
 	l3value  []byte
 	l3digest []byte
+	Fragment *LpFragment
 	Interest *Interest
 	Data     *Data
 	Nack     *Nack
@@ -28,31 +29,19 @@ func (pkt *Packet) ToPacket() *Packet {
 
 // MarshalTlv encodes this packet.
 func (pkt *Packet) MarshalTlv() (typ uint32, value []byte, e error) {
-	switch {
-	case pkt.Interest != nil:
-		pkt.l3type, pkt.l3value, e = pkt.Interest.MarshalTlv()
-		pkt.l3digest = nil
-		pkt.Lp.NackReason = an.NackNone
-	case pkt.Data != nil:
-		pkt.l3type, pkt.l3value, e = pkt.Data.MarshalTlv()
-		pkt.l3digest = nil
-		pkt.Lp.NackReason = an.NackNone
-	case pkt.Nack != nil:
-		pkt.l3type, pkt.l3value, e = pkt.Nack.Interest.MarshalTlv()
-		pkt.l3digest = nil
-		pkt.Lp.NackReason = pkt.Nack.Reason
+	if pkt.Fragment != nil {
+		return pkt.Fragment.MarshalTlv()
 	}
+
+	header, payload, e := pkt.encodeL3()
 	if e != nil {
 		return 0, nil, e
 	}
-	if pkt.Lp.Empty() {
+
+	if len(header) == 0 {
 		return pkt.l3type, pkt.l3value, nil
 	}
-	lpPayload, e := tlv.Encode(tlv.MakeElement(pkt.l3type, pkt.l3value))
-	if e != nil {
-		return 0, nil, e
-	}
-	return tlv.EncodeTlv(an.TtLpPacket, pkt.Lp.encode(), tlv.MakeElement(an.TtLpPayload, lpPayload))
+	return tlv.EncodeTlv(an.TtLpPacket, header, tlv.MakeElement(an.TtLpPayload, payload))
 }
 
 // UnmarshalTlv decodes from wire format.
@@ -105,6 +94,31 @@ func (pkt *Packet) UnmarshalTlv(typ uint32, value []byte) error {
 		}
 	}
 	return d.ErrUnlessEOF()
+}
+
+func (pkt *Packet) encodeL3() (header, payload []byte, e error) {
+	e = ErrFragment
+	switch {
+	case pkt.Interest != nil:
+		pkt.l3type, pkt.l3value, e = pkt.Interest.MarshalTlv()
+		pkt.l3digest = nil
+		pkt.Lp.NackReason = an.NackNone
+	case pkt.Data != nil:
+		pkt.l3type, pkt.l3value, e = pkt.Data.MarshalTlv()
+		pkt.l3digest = nil
+		pkt.Lp.NackReason = an.NackNone
+	case pkt.Nack != nil:
+		pkt.l3type, pkt.l3value, e = pkt.Nack.Interest.MarshalTlv()
+		pkt.l3digest = nil
+		pkt.Lp.NackReason = pkt.Nack.Reason
+	}
+	if e != nil {
+		return nil, nil, e
+	}
+
+	header, _ = tlv.Encode(pkt.Lp.encode())
+	payload, _ = tlv.Encode(tlv.MakeElement(pkt.l3type, pkt.l3value))
+	return header, payload, nil
 }
 
 func (pkt *Packet) decodeL3(typ uint32, value []byte) error {

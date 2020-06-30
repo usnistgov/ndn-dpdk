@@ -2,7 +2,6 @@ package fwdptest
 
 import (
 	"testing"
-	"time"
 
 	"github.com/usnistgov/ndn-dpdk/iface/intface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
@@ -20,25 +19,25 @@ func TestFastroute(t *testing.T) {
 
 	// multicast first Interest
 	face4.Tx <- ndn.MakeInterest("/A/B/1")
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(1, collect1.Count())
 	assert.Equal(1, collect2.Count())
 	assert.Equal(1, collect3.Count())
 
 	// face3 replies Data
 	face3.Tx <- ndn.MakeData(collect3.Get(-1).Interest)
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 
 	// unicast to face3
 	face4.Tx <- ndn.MakeInterest("/A/B/2")
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(1, collect1.Count())
 	assert.Equal(1, collect2.Count())
 	assert.Equal(2, collect3.Count())
 
 	// unicast to face3
 	face4.Tx <- ndn.MakeInterest("/A/B/3")
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(1, collect1.Count())
 	assert.Equal(1, collect2.Count())
 	assert.Equal(3, collect3.Count())
@@ -48,25 +47,25 @@ func TestFastroute(t *testing.T) {
 
 	// multicast next Interest because face3 failed
 	face4.Tx <- ndn.MakeInterest("/A/B/4")
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(2, collect1.Count())
 	assert.Equal(2, collect2.Count())
 	assert.Equal(3, collect3.Count()) // no Interest to face3 because it's DOWN
 
 	// face1 replies Data
 	face1.Tx <- ndn.MakeData(collect1.Get(-1).Interest)
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 
 	// unicast to face1
 	face4.Tx <- ndn.MakeInterest("/A/B/5", ndn.NonceFromUint(0x422e9f49))
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(3, collect1.Count())
 	assert.Equal(2, collect2.Count())
 	assert.Equal(3, collect3.Count())
 
 	// face1 replies Nack~NoRoute, retry on other faces
 	face1.Tx <- ndn.MakeNack(collect1.Get(-1).Interest, an.NackNoRoute)
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(3, collect1.Count())
 	assert.Equal(3, collect2.Count())
 	assert.Equal(3, collect3.Count()) // no Interest to face3 because it's DOWN
@@ -74,13 +73,13 @@ func TestFastroute(t *testing.T) {
 	// face2 replies Nack~NoRoute as well, return Nack to downstream
 	collect4.Clear()
 	face2.Tx <- ndn.MakeNack(collect2.Get(-1).Interest, an.NackNoRoute)
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(1, collect4.Count())
 	assert.NotNil(collect4.Get(-1).Nack)
 
 	// multicast next Interest because faces Nacked
 	face4.Tx <- ndn.MakeInterest("/A/B/6")
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(4, collect1.Count())
 	assert.Equal(4, collect2.Count())
 	assert.Equal(3, collect3.Count()) // no Interest to face3 because it's DOWN

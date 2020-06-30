@@ -17,7 +17,7 @@ type Nack struct {
 // Arguments can contain:
 // - uint8 or int: set Reason
 // - Interest or *Interest: set Interest, copy PitToken and CongMark
-// - LpHeader: copy PitToken and CongMark
+// - LpL3: copy PitToken and CongMark
 func MakeNack(args ...interface{}) (nack Nack) {
 	packet := Packet{Nack: &nack}
 	nack.packet = &packet
@@ -39,7 +39,7 @@ func MakeNack(args ...interface{}) (nack Nack) {
 			handleInterestArg(&a)
 		case *Interest:
 			handleInterestArg(a)
-		case LpHeader:
+		case LpL3:
 			packet.Lp.inheritFrom(a)
 		default:
 			panic("bad argument type " + reflect.TypeOf(arg).String())

@@ -35,7 +35,7 @@ type Interest struct {
 // - Nonce: set Nonce
 // - time.Duration: set Lifetime
 // - HopLimit: set HopLimit
-// - LpHeader: copy PitToken and CongMark
+// - LpL3: copy PitToken and CongMark
 func MakeInterest(args ...interface{}) (interest Interest) {
 	packet := Packet{Interest: &interest}
 	interest.packet = &packet
@@ -57,7 +57,7 @@ func MakeInterest(args ...interface{}) (interest Interest) {
 			interest.Lifetime = a
 		case HopLimit:
 			interest.HopLimit = a
-		case LpHeader:
+		case LpL3:
 			packet.Lp.inheritFrom(a)
 		default:
 			panic("bad argument type " + reflect.TypeOf(arg).String())

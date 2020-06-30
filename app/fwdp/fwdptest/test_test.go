@@ -21,6 +21,6 @@ var (
 	makeData     = ndnitestenv.MakeData
 )
 
-func lphToken(token uint64) ndn.LpHeader {
-	return ndn.LpHeader{PitToken: ndn.PitTokenFromUint(token)}
+func lphToken(token uint64) ndn.LpL3 {
+	return ndn.LpL3{PitToken: ndn.PitTokenFromUint(token)}
 }

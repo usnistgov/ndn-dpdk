@@ -1,6 +1,7 @@
 package fwdptest
 
 import (
+	"bytes"
 	"testing"
 	"time"
 
@@ -21,12 +22,12 @@ func TestInterestData(t *testing.T) {
 	fixture.SetFibEntry("/C", "multicast", face3.ID)
 
 	face1.Tx <- ndn.MakeInterest("/B/1", lphToken(0x0290dd7089e9d790))
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(1, collect2.Count())
 	assert.Equal(0, collect3.Count())
 
 	face2.Tx <- ndn.MakeData(collect2.Get(-1).Interest)
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(1, collect1.Count())
 	if packet := collect1.Get(-1); assert.NotNil(packet.Data) {
 		assert.Equal(uint64(0x0290dd7089e9d790), ndn.PitTokenToUint(packet.Lp.PitToken))
@@ -49,11 +50,11 @@ func TestInterestDupNonce(t *testing.T) {
 	fixture.SetFibEntry("/A", "multicast", face3.ID)
 
 	face1.Tx <- ndn.MakeInterest("/A/1", ndn.NonceFromUint(0x6f937a51), lphToken(0x3bddf54cffbc6ad0))
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(1, collect3.Count())
 
 	face2.Tx <- ndn.MakeInterest("/A/1", ndn.NonceFromUint(0x6f937a51), lphToken(0x3bddf54cffbc6ad0))
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(1, collect3.Count())
 	assert.Equal(1, collect2.Count())
 	if packet := collect2.Get(-1); assert.NotNil(packet.Nack) {
@@ -67,7 +68,7 @@ func TestInterestDupNonce(t *testing.T) {
 	collect1.Clear()
 	collect2.Clear()
 	face3.Tx <- ndn.MakeData(collect3.Get(-1).Interest)
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(1, collect1.Count())
 	assert.NotNil(collect1.Get(-1).Data)
 	assert.Equal(0, collect2.Count())
@@ -112,7 +113,7 @@ func TestInterestNoRoute(t *testing.T) {
 	collect1 := intface.Collect(face1)
 
 	face1.Tx <- ndn.MakeInterest("/A/1", lphToken(0x431328d8b4075167))
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(1, collect1.Count())
 	if packet := collect1.Get(-1); assert.NotNil(packet.Nack) {
 		assert.Equal(uint64(0x431328d8b4075167), ndn.PitTokenToUint(packet.Lp.PitToken))
@@ -137,24 +138,24 @@ func TestHopLimit(t *testing.T) {
 
 	// HopLimit becomes zero, cannot forward
 	face2.Tx <- ndn.MakeInterest("/A/1", ndn.HopLimit(1))
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(0, collect1.Count())
 
 	// HopLimit is 1 after decrementing, forwarded with HopLimit=1
 	face3.Tx <- ndn.MakeInterest("/A/1", ndn.HopLimit(2))
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(1, collect1.Count())
 	assert.EqualValues(1, collect1.Get(-1).Interest.HopLimit)
 
 	// Data satisfies Interest
 	face1.Tx <- ndn.MakeData(collect1.Get(-1).Interest)
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(1, collect3.Count())
 	// whether face3 receives Data or not is unspecified
 
 	// HopLimit reaches zero, can still retrieve from CS
 	face4.Tx <- ndn.MakeInterest("/A/1", ndn.HopLimit(1))
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(1, collect4.Count())
 }
 
@@ -168,11 +169,11 @@ func TestCsHit(t *testing.T) {
 	fixture.SetFibEntry("/B", "multicast", face2.ID)
 
 	face1.Tx <- ndn.MakeInterest("/B/1", lphToken(0x193d673cdb9f85ac))
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(1, collect2.Count())
 
 	face2.Tx <- ndn.MakeData(collect2.Get(-1).Interest)
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(1, collect1.Count())
 	if packet := collect1.Get(-1); assert.NotNil(packet.Data) {
 		assert.Equal(uint64(0x193d673cdb9f85ac), ndn.PitTokenToUint(packet.Lp.PitToken))
@@ -180,11 +181,11 @@ func TestCsHit(t *testing.T) {
 	}
 
 	face1.Tx <- ndn.MakeInterest("/B/1", ndn.MustBeFreshFlag, lphToken(0xf716737325e04a77))
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(2, collect2.Count())
 
 	face2.Tx <- ndn.MakeData(collect2.Get(-1).Interest, 2500*time.Millisecond)
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(2, collect1.Count())
 	if packet := collect1.Get(-1); assert.NotNil(packet.Data) {
 		assert.Equal(uint64(0xf716737325e04a77), ndn.PitTokenToUint(packet.Lp.PitToken))
@@ -192,7 +193,7 @@ func TestCsHit(t *testing.T) {
 	}
 
 	face1.Tx <- ndn.MakeInterest("/B/1", lphToken(0xaec62dad2f669e6b))
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(2, collect2.Count())
 	assert.Equal(3, collect1.Count())
 	if packet := collect1.Get(-1); assert.NotNil(packet.Data) {
@@ -201,7 +202,7 @@ func TestCsHit(t *testing.T) {
 	}
 
 	face1.Tx <- ndn.MakeInterest("/B/1", ndn.MustBeFreshFlag, lphToken(0xb5565a4e715c858d))
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(2, collect2.Count())
 	assert.Equal(4, collect1.Count())
 	if packet := collect1.Get(-1); assert.NotNil(packet.Data) {
@@ -228,26 +229,26 @@ func TestFwHint(t *testing.T) {
 	fixture.SetFibEntry("/C", "multicast", face3.ID)
 
 	face4.Tx <- ndn.MakeInterest("/A/1", ndn.MakeFHDelegation(1, "/B"), ndn.MakeFHDelegation(2, "/C"), lphToken(0x5c2fc6c972d830e7))
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(0, collect1.Count())
 	assert.Equal(1, collect2.Count())
 	assert.Equal(0, collect3.Count())
 
 	face5.Tx <- ndn.MakeInterest("/A/1", ndn.MakeFHDelegation(1, "/C"), ndn.MakeFHDelegation(2, "/B"), lphToken(0x52e61e9eee7025b7))
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(0, collect1.Count())
 	assert.Equal(1, collect2.Count())
 	assert.Equal(1, collect3.Count())
 
 	face5.Tx <- ndn.MakeInterest("/A/1", ndn.MakeFHDelegation(1, "/Z"), ndn.MakeFHDelegation(2, "/B"), lphToken(0xa4291e2123c8211e))
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(0, collect1.Count())
 	assert.Equal(2, collect2.Count())
 	assert.Equal(1, collect3.Count())
 	assert.Equal(collect2.Get(0).Lp.PitToken, collect2.Get(1).Lp.PitToken)
 
 	face2.Tx <- ndn.MakeData(collect2.Get(0).Interest, 1*time.Second) // satisfies first and third Interests
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(1, collect4.Count())
 	if packet := collect4.Get(-1); assert.NotNil(packet.Data) {
 		assert.Equal(uint64(0x5c2fc6c972d830e7), ndn.PitTokenToUint(packet.Lp.PitToken))
@@ -260,7 +261,7 @@ func TestFwHint(t *testing.T) {
 	}
 
 	face3.Tx <- ndn.MakeData(collect3.Get(-1).Interest, 2*time.Second) // satisfies second Interest
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(2, collect5.Count())
 	if packet := collect5.Get(-1); assert.NotNil(packet.Data) {
 		assert.Equal(uint64(0x52e61e9eee7025b7), ndn.PitTokenToUint(packet.Lp.PitToken))
@@ -268,7 +269,7 @@ func TestFwHint(t *testing.T) {
 	}
 
 	face4.Tx <- ndn.MakeInterest("/A/1", ndn.MakeFHDelegation(1, "/C"), lphToken(0xbb19e173f937f221)) // matches second Data
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(2, collect4.Count())
 	if packet := collect4.Get(-1); assert.NotNil(packet.Data) {
 		assert.Equal(uint64(0xbb19e173f937f221), ndn.PitTokenToUint(packet.Lp.PitToken))
@@ -305,20 +306,20 @@ func TestImplicitDigest(t *testing.T) {
 	fullName := data.FullName()
 
 	face1.Tx <- ndn.MakeInterest(fullName, lphToken(0xce2e9bce22327e97))
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(1, collect2.Count())
 
 	packet := data.ToPacket()
 	packet.Lp.PitToken = collect2.Get(-1).Lp.PitToken
 	face2.Tx <- packet
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(1, collect1.Count())
 	if packet := collect1.Get(-1); assert.NotNil(packet.Data) {
 		assert.Equal(uint64(0xce2e9bce22327e97), ndn.PitTokenToUint(packet.Lp.PitToken))
 	}
 
 	face1.Tx <- ndn.MakeInterest(fullName, lphToken(0x5446c548dd1a5c89))
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(1, collect2.Count())
 
 	// CS hit
@@ -332,25 +333,36 @@ func TestImplicitDigest(t *testing.T) {
 	assert.Equal(uint64(1), fibCnt.NRxData)
 	assert.Equal(uint64(0), fibCnt.NRxNacks)
 	assert.Equal(uint64(1), fibCnt.NTxInterests)
+}
 
-	// TODO test fragmented packet
+func TestImplicitDigestFragmented(t *testing.T) {
+	assert, require := makeAR(t)
+	fixture := NewFixture(t)
+	defer fixture.Close()
 
-	// // /B/2 is fragmented, which is not supported in some cryptodev
-	// dataB2 := makeData("/B/2", bytes.Repeat([]byte{0xC0}, 300))
-	// fullNameB2orig := dataB2.ToNData().FullName().String()
-	// mbuftestenv.PacketSplitTailSegment(dataB2.GetPacket().AsMbuf(), 5)
-	// fullNameB2 := dataB2.ToNData().FullName().String()
-	// assert.Equal(fullNameB2orig, fullNameB2)
+	face1, face2 := intface.MustNew(), intface.MustNew()
+	collect1, collect2 := intface.Collect(face1), intface.Collect(face2)
+	fixture.SetFibEntry("/B", "multicast", face2.ID)
 
-	// interestB2 := makeInterest(fullNameB2)
-	// setPitToken(interestB2, 0x02a0f62d1828a80c)
-	// face1.Rx(interestB2)
-	// time.Sleep(STEP_DELAY)
-	// require.Len(face2.TxInterests, 2)
+	// /B/2 is fragmented, which is not supported in some cryptodev
+	data := ndn.MakeData("/B/2", bytes.Repeat([]byte{0xC0}, 300))
+	fullName := data.FullName()
 
-	// copyPitToken(dataB2, face2.TxInterests[1])
-	// face2.Rx(dataB2)
-	// time.Sleep(STEP_DELAY)
-	// require.Len(face1.TxData, 3)
-	// assert.Equal(uint64(0x02a0f62d1828a80c), getPitToken(face1.TxData[2]))
+	face1.Tx <- ndn.MakeInterest(fullName, lphToken(0x02a0f62d1828a80c))
+	fixture.StepDelay()
+	assert.Equal(1, collect2.Count())
+
+	packet := data.ToPacket()
+	packet.Lp.PitToken = collect2.Get(-1).Lp.PitToken
+	frags, e := ndn.NewLpFragmenter(200).Fragment(data.ToPacket())
+	require.NoError(e)
+	require.Greater(len(frags), 1)
+	for _, frag := range frags {
+		face2.Tx <- frag
+		fixture.StepDelay()
+	}
+	assert.Equal(1, collect1.Count())
+	if packet := collect1.Get(-1); assert.NotNil(packet.Data) {
+		assert.Equal(uint64(0x02a0f62d1828a80c), ndn.PitTokenToUint(packet.Lp.PitToken))
+	}
 }

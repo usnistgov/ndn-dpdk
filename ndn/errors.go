@@ -11,4 +11,5 @@ var (
 	ErrNonceLen      = errors.New("Nonce wrong length")
 	ErrLifetime      = errors.New("InterestLifetime out of range")
 	ErrHopLimit      = errors.New("HopLimit out of range")
+	ErrFragment      = errors.New("bad fragment")
 )

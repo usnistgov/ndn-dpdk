@@ -16,9 +16,9 @@ import (
 	"github.com/usnistgov/ndn-dpdk/strategy/strategyelf"
 )
 
-const STEP_DELAY = 50 * time.Millisecond
 const nFwds = 2
 
+// Fixture is a test fixture for forwarder data plane.
 type Fixture struct {
 	require *require.Assertions
 
@@ -27,6 +27,7 @@ type Fixture struct {
 	Fib       *fib.Fib
 }
 
+// NewFixture creates a Fixture.
 func NewFixture(t *testing.T) (fixture *Fixture) {
 	fixture = new(Fixture)
 	fixture.require = require.New(t)
@@ -66,12 +67,19 @@ func NewFixture(t *testing.T) (fixture *Fixture) {
 	return fixture
 }
 
+// Close destroys the fixture.
 func (fixture *Fixture) Close() error {
 	fixture.DataPlane.Close()
 	strategycode.DestroyAll()
 	return nil
 }
 
+// StepDelay delays a small amount of time for packet forwarding.
+func (fixture *Fixture) StepDelay() {
+	time.Sleep(50 * time.Millisecond)
+}
+
+// SetFibEntry inserts or replaces a FIB entry.
 func (fixture *Fixture) SetFibEntry(name string, strategy string, nexthops ...iface.FaceId) {
 	var entry fib.Entry
 	e := entry.SetName(ndn.ParseName(name))
@@ -86,6 +94,7 @@ func (fixture *Fixture) SetFibEntry(name string, strategy string, nexthops ...if
 	fixture.require.NoError(e)
 }
 
+// ReadFibCounters returns counters of specified FIB entry.
 func (fixture *Fixture) ReadFibCounters(name string) fib.EntryCounters {
 	return fixture.Fib.ReadEntryCounters(ndn.ParseName(name))
 }
@@ -104,7 +113,7 @@ func (fixture *Fixture) makeStrategy(shortname string) strategycode.StrategyCode
 	return sc
 }
 
-// Read a counter from all FwFwds and compute the sum.
+// SumCounter reads a counter from all FwFwds and compute the sum.
 func (fixture *Fixture) SumCounter(getCounter func(dp *fwdp.DataPlane, i int) uint64) (n uint64) {
 	for i := 0; i < nFwds; i++ {
 		n += getCounter(fixture.DataPlane, i)

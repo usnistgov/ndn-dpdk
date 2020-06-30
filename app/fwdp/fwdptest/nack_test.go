@@ -2,7 +2,6 @@ package fwdptest
 
 import (
 	"testing"
-	"time"
 
 	"github.com/usnistgov/ndn-dpdk/iface/intface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
@@ -20,23 +19,23 @@ func TestNackMerge(t *testing.T) {
 
 	// Interest is forwarded to two upstream nodes
 	face1.Tx <- ndn.MakeInterest("/A/1", ndn.NonceFromUint(0x2ea29515), lphToken(0xf3fb4ef802d3a9d3))
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(1, collect2.Count())
 	assert.Equal(1, collect3.Count())
 
 	// Nack from first upstream, no action
 	face2.Tx <- ndn.MakeNack(collect2.Get(-1).Interest, an.NackNoRoute)
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(0, collect1.Count())
 
 	// Nack again from first upstream, no action
 	face2.Tx <- ndn.MakeNack(collect2.Get(-1).Interest, an.NackNoRoute)
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(0, collect1.Count())
 
 	// Nack from second upstream, Nack to downstream
 	face3.Tx <- ndn.MakeNack(collect3.Get(-1).Interest, an.NackCongestion)
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(1, collect1.Count())
 
 	if packet := collect1.Get(-1); assert.NotNil(packet.Nack) {
@@ -47,7 +46,7 @@ func TestNackMerge(t *testing.T) {
 
 	// Data from first upstream, should not reach downstream because PIT entry is gone
 	face2.Tx <- ndn.MakeData(collect2.Get(-1).Interest)
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(1, collect1.Count())
 }
 
@@ -63,14 +62,14 @@ func TestNackDuplicate(t *testing.T) {
 	// two Interests come from two downstream nodes
 	face1.Tx <- ndn.MakeInterest("/A/1", ndn.NonceFromUint(0x2ea29515))
 	face2.Tx <- ndn.MakeInterest("/A/1", ndn.NonceFromUint(0xc33b0c68))
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(1, collect3.Count())
 
 	// upstream node returns Nack against first Interest
 	// forwarder should resend Interest with another nonce
 	interest0 := collect3.Get(0).Interest
 	face3.Tx <- ndn.MakeNack(interest0, an.NackDuplicate)
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(2, collect3.Count())
 	interest1 := collect3.Get(1).Interest
 	assert.NotEqual(interest0.Nonce, interest1.Nonce)
@@ -80,7 +79,7 @@ func TestNackDuplicate(t *testing.T) {
 	// upstream node returns Nack against second Interest as well
 	// forwarder should return Nack to downstream
 	face3.Tx <- ndn.MakeNack(interest1, an.NackDuplicate)
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(1, collect1.Count())
 	assert.Equal(1, collect2.Count())
 
@@ -101,7 +100,7 @@ func TestReturnNacks(t *testing.T) {
 	fixture.SetFibEntry("/A", "reject", face2.ID)
 
 	face1.Tx <- ndn.MakeInterest("/A/1", ndn.NonceFromUint(0x2ea29515))
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(1, collect1.Count())
 	assert.NotNil(collect1.Get(-1).Nack)
 }

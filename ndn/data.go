@@ -24,8 +24,8 @@ type Data struct {
 // - ContentType
 // - time.Duration: set Freshness
 // - []byte: set Content
-// - LpHeader: copy PitToken and CongMark
-// - Interest or *Interest: copy Name, set FreshnessPeriod if Interest has MustBeFresh, inherit LpHeader
+// - LpL3: copy PitToken and CongMark
+// - Interest or *Interest: copy Name, set FreshnessPeriod if Interest has MustBeFresh, inherit LpL3
 func MakeData(args ...interface{}) (data Data) {
 	packet := Packet{Data: &data}
 	data.packet = &packet
@@ -50,7 +50,7 @@ func MakeData(args ...interface{}) (data Data) {
 			data.Freshness = a
 		case []byte:
 			data.Content = a
-		case LpHeader:
+		case LpL3:
 			packet.Lp.inheritFrom(a)
 		case Interest:
 			handleInterestArg(&a)

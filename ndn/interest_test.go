@@ -33,7 +33,7 @@ func TestInterestEncode(t *testing.T) {
 func TestInterestLpEncode(t *testing.T) {
 	assert, _ := makeAR(t)
 
-	var lph ndn.LpHeader
+	var lph ndn.LpL3
 	lph.PitToken = ndn.PitTokenFromUint(0xF0F1F2F3F4F5F6F7)
 	interest := ndn.MakeInterest("/A", lph, ndn.NonceFromUint(0xC0C1C2C3))
 

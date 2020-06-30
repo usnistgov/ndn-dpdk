@@ -2,7 +2,6 @@ package fwdptest
 
 import (
 	"testing"
-	"time"
 
 	"github.com/usnistgov/ndn-dpdk/iface/intface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
@@ -18,25 +17,25 @@ func TestSequential(t *testing.T) {
 	fixture.SetFibEntry("/A", "sequential", face1.ID, face2.ID, face3.ID)
 
 	face4.Tx <- ndn.MakeInterest("/A/1")
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(1, collect1.Count())
 	assert.Equal(0, collect2.Count())
 	assert.Equal(0, collect3.Count())
 
 	face4.Tx <- ndn.MakeInterest("/A/1")
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(1, collect1.Count())
 	assert.Equal(1, collect2.Count())
 	assert.Equal(0, collect3.Count())
 
 	face4.Tx <- ndn.MakeInterest("/A/1")
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(1, collect1.Count())
 	assert.Equal(1, collect2.Count())
 	assert.Equal(1, collect3.Count())
 
 	face4.Tx <- ndn.MakeInterest("/A/1")
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(2, collect1.Count())
 	assert.Equal(1, collect2.Count())
 	assert.Equal(1, collect3.Count())
@@ -44,7 +43,7 @@ func TestSequential(t *testing.T) {
 	face2.SetDown(true)
 
 	face4.Tx <- ndn.MakeInterest("/A/1")
-	time.Sleep(STEP_DELAY)
+	fixture.StepDelay()
 	assert.Equal(2, collect1.Count())
 	assert.Equal(1, collect2.Count())
 	assert.Equal(2, collect3.Count())
