@@ -60,7 +60,7 @@ type StrategyInfo struct {
 
 func makeStrategyInfo(sc strategycode.StrategyCode) (si StrategyInfo) {
 	si.Id = sc.GetId()
-	si.Name = sc.GetName()
+	si.Name = sc.Name()
 	return si
 }
 

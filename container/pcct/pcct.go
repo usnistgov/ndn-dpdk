@@ -40,23 +40,23 @@ func New(id string, cfg Config) (pcct *Pcct, e error) {
 	return (*Pcct)(pcctC), nil
 }
 
-// GetPtr returns *C.Pcct pointer.
-func (pcct *Pcct) GetPtr() unsafe.Pointer {
+// Ptr returns *C.Pcct pointer.
+func (pcct *Pcct) Ptr() unsafe.Pointer {
 	return unsafe.Pointer(pcct)
 }
 
-func (pcct *Pcct) getPtr() *C.Pcct {
+func (pcct *Pcct) ptr() *C.Pcct {
 	return (*C.Pcct)(pcct)
 }
 
 // GetMempool returns underlying mempool of the PCCT.
 func (pcct *Pcct) GetMempool() *mempool.Mempool {
-	return mempool.FromPtr(pcct.GetPtr())
+	return mempool.FromPtr(pcct.Ptr())
 }
 
 // Close destroys the PCCT.
 // This does not release stored Interest/Data packets.
 func (pcct *Pcct) Close() error {
-	C.Pcct_Close(pcct.getPtr())
+	C.Pcct_Close(pcct.ptr())
 	return nil
 }

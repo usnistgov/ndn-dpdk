@@ -14,11 +14,11 @@ func TestThread(t *testing.T) {
 	th := newTestThread()
 	assert.Implements((*eal.IThread)(nil), th)
 	th.SetLCore(slaves[0])
-	assert.Equal(slaves[0], th.GetLCore())
+	assert.Equal(slaves[0], th.LCore())
 	assert.False(th.IsRunning())
 
 	require.NoError(th.Launch())
-	assert.Equal(slaves[0], th.GetLCore())
+	assert.Equal(slaves[0], th.LCore())
 	assert.True(th.IsRunning())
 	time.Sleep(5 * time.Millisecond)
 

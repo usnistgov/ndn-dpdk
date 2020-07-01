@@ -35,7 +35,7 @@ func New(loc Locator, cfg Config) (face *SocketFace, e error) {
 	}
 
 	var dialer sockettransport.Dialer
-	dialer.RxBufferLength = ndni.PacketMempool.GetConfig().Dataroom
+	dialer.RxBufferLength = ndni.PacketMempool.Config().Dataroom
 	dialer.TxQueueSize = cfg.TxqFrames
 	inner, e := dialer.Dial(loc.Scheme, loc.Local, loc.Remote)
 	if e != nil {
@@ -55,7 +55,7 @@ func Wrap(inner *sockettransport.Transport, cfg Config) (face *SocketFace, e err
 		return nil, e
 	}
 
-	faceC := face.getPtr()
+	faceC := face.ptr()
 	faceC.txBurstOp = (C.FaceImpl_TxBurst)(C.go_SocketFace_TxBurst)
 	if e := face.FinishInitFaceBase(cfg.TxqPkts, 0, 0); e != nil {
 		return nil, e
@@ -71,13 +71,13 @@ func Wrap(inner *sockettransport.Transport, cfg Config) (face *SocketFace, e err
 	return face, nil
 }
 
-func (face *SocketFace) getPtr() *C.Face {
-	return (*C.Face)(face.GetPtr())
+func (face *SocketFace) ptr() *C.Face {
+	return (*C.Face)(face.Ptr())
 }
 
 // Locator returns a locator that describes the socket endpoints.
 func (face *SocketFace) Locator() iface.Locator {
-	conn := face.inner.GetConn()
+	conn := face.inner.Conn()
 	laddr, raddr := conn.LocalAddr(), conn.RemoteAddr()
 
 	var loc Locator
@@ -94,7 +94,7 @@ func (face *SocketFace) Close() error {
 	face.BeforeClose()
 	iface.TheChanRxGroup.RemoveFace(face)
 	face.CloseFaceBase()
-	close(face.inner.GetTx())
+	close(face.inner.Tx())
 	return nil
 }
 
@@ -105,7 +105,7 @@ func (face *SocketFace) ListRxGroups() []iface.IRxGroup {
 
 func (face *SocketFace) rxLoop() {
 	for {
-		wire, ok := <-face.inner.GetRx()
+		wire, ok := <-face.inner.Rx()
 		if !ok {
 			break
 		}
@@ -127,7 +127,7 @@ func (face *SocketFace) rxLoop() {
 //export go_SocketFace_TxBurst
 func go_SocketFace_TxBurst(faceC *C.Face, pkts **C.struct_rte_mbuf, nPkts C.uint16_t) C.uint16_t {
 	face := iface.Get(iface.ID(faceC.id)).(*SocketFace)
-	innerTx := face.inner.GetTx()
+	innerTx := face.inner.Tx()
 	for i := 0; i < int(nPkts); i++ {
 		mbufPtr := (**C.struct_rte_mbuf)(unsafe.Pointer(uintptr(unsafe.Pointer(pkts)) +
 			uintptr(i)*unsafe.Sizeof(*pkts)))

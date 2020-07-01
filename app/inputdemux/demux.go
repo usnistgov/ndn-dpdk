@@ -24,22 +24,22 @@ func DemuxFromPtr(ptr unsafe.Pointer) *Demux {
 	return (*Demux)(ptr)
 }
 
-func (demux *Demux) GetPtr() unsafe.Pointer {
+func (demux *Demux) Ptr() unsafe.Pointer {
 	return unsafe.Pointer(demux)
 }
 
-func (demux *Demux) getPtr() *C.InputDemux {
+func (demux *Demux) ptr() *C.InputDemux {
 	return (*C.InputDemux)(demux)
 }
 
 func (demux *Demux) Close() error {
-	eal.Free(demux.GetPtr())
+	eal.Free(demux.Ptr())
 	return nil
 }
 
 // Configure to drop all packets.
 func (demux *Demux) InitDrop() {
-	C.InputDemux_SetDispatchFunc_(demux.getPtr(), C.InputDemux_DispatchDrop)
+	C.InputDemux_SetDispatchFunc_(demux.ptr(), C.InputDemux_DispatchDrop)
 }
 
 // Configure to pass all packets to the first and only destination.
@@ -49,24 +49,24 @@ func (demux *Demux) InitFirst() {
 
 // Configure to pass all packets to each destination in a round-robin fashion.
 func (demux *Demux) InitRoundrobin(nDest int) {
-	C.InputDemux_SetDispatchRoundrobin_(demux.getPtr(), C.uint32_t(nDest))
+	C.InputDemux_SetDispatchRoundrobin_(demux.ptr(), C.uint32_t(nDest))
 }
 
 // Configure to dispatch via NDT loopup.
 func (demux *Demux) InitNdt(ndt *ndt.Ndt, ndtThreadId int) {
-	demuxC := demux.getPtr()
+	demuxC := demux.ptr()
 	C.InputDemux_SetDispatchFunc_(demuxC, C.InputDemux_DispatchByNdt)
-	demuxC.ndt = (*C.Ndt)(unsafe.Pointer(ndt.GetPtr()))
+	demuxC.ndt = (*C.Ndt)(unsafe.Pointer(ndt.Ptr()))
 	demuxC.ndtt = C.Ndt_GetThread(demuxC.ndt, C.uint8_t(ndtThreadId))
 }
 
 // Configure to dispatch according to high 8 bits of PIT token.
 func (demux *Demux) InitToken() {
-	C.InputDemux_SetDispatchFunc_(demux.getPtr(), C.InputDemux_DispatchByToken)
+	C.InputDemux_SetDispatchFunc_(demux.ptr(), C.InputDemux_DispatchByToken)
 }
 
 func (demux *Demux) SetDest(index int, q *pktqueue.PktQueue) {
-	demux.getPtr().dest[index].queue = (*C.PktQueue)(q.GetPtr())
+	demux.ptr().dest[index].queue = (*C.PktQueue)(q.Ptr())
 }
 
 type DestCounters struct {
@@ -75,7 +75,7 @@ type DestCounters struct {
 }
 
 func (demux *Demux) ReadDestCounters(index int) (cnt DestCounters) {
-	demuxC := demux.getPtr()
+	demuxC := demux.ptr()
 	cnt.NQueued = uint64(demuxC.dest[index].nQueued)
 	cnt.NDropped = uint64(demuxC.dest[index].nDropped)
 	return cnt

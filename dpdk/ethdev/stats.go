@@ -9,8 +9,8 @@ import (
 	"unsafe"
 )
 
-// GetStats retrieves hardware statistics.
-func (port EthDev) GetStats() (es Stats) {
+// Stats retrieves hardware statistics.
+func (port EthDev) Stats() (es Stats) {
 	C.rte_eth_stats_get(C.uint16_t(port.ID()), (*C.struct_rte_eth_stats)(unsafe.Pointer(&es)))
 	return es
 }

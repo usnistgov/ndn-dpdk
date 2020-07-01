@@ -18,7 +18,7 @@ type PacketIterator struct {
 // NewPacketIterator creates a PacketIterator.
 func NewPacketIterator(pkt *Packet) PacketIterator {
 	var it PacketIterator
-	C.MbufLoc_Init(&it.ml, pkt.getPtr())
+	C.MbufLoc_Init(&it.ml, pkt.ptr())
 	return it
 }
 
@@ -40,8 +40,8 @@ func makePacketIteratorFromOffset(pkt *Packet, offset interface{}) (pi *PacketIt
 	return pi
 }
 
-// GetPtr returns *C.MbufLoc pointer.
-func (it *PacketIterator) GetPtr() unsafe.Pointer {
+// Ptr returns *C.MbufLoc pointer.
+func (it *PacketIterator) Ptr() unsafe.Pointer {
 	return unsafe.Pointer(&it.ml)
 }
 
@@ -57,7 +57,7 @@ func (it *PacketIterator) Advance(n int) int {
 
 // MakeIndirect clones next n octets into indirect mbufs.
 func (it *PacketIterator) MakeIndirect(n int, mp *Pool) (*Packet, error) {
-	res := C.MbufLoc_MakeIndirect(&it.ml, C.uint32_t(n), mp.getPtr())
+	res := C.MbufLoc_MakeIndirect(&it.ml, C.uint32_t(n), mp.ptr())
 	if res == nil {
 		return nil, eal.GetErrno()
 	}

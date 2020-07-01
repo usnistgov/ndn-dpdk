@@ -30,13 +30,13 @@ func NewAio(filename string, blockSize int) (device *Aio, e error) {
 // The underlying file is not deleted.
 func (device *Aio) Close() error {
 	var args bdevAioDeleteArgs
-	args.Name = device.GetName()
+	args.Name = device.Name()
 	var ok bool
 	return spdkenv.RPC("bdev_aio_delete", args, &ok)
 }
 
-// GetInfo implements Device interface.
-func (device *Aio) GetInfo() *Info {
+// DevInfo implements Device interface.
+func (device *Aio) DevInfo() *Info {
 	return device.Info
 }
 

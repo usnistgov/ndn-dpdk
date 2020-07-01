@@ -14,9 +14,9 @@ import (
 type StrategyCode interface {
 	fmt.Stringer
 	io.Closer
-	GetPtr() unsafe.Pointer
+	Ptr() unsafe.Pointer
 	GetId() int
-	GetName() string
+	Name() string
 	CountRefs() int
 }
 
@@ -25,7 +25,7 @@ type scImpl struct {
 }
 
 // Retrieve *C.StrategyCode pointer.
-func (sc *scImpl) GetPtr() unsafe.Pointer {
+func (sc *scImpl) Ptr() unsafe.Pointer {
 	return unsafe.Pointer(sc.c)
 }
 
@@ -35,7 +35,7 @@ func (sc *scImpl) GetId() int {
 }
 
 // Get short name.
-func (sc *scImpl) GetName() string {
+func (sc *scImpl) Name() string {
 	return C.GoString(sc.c.name)
 }
 

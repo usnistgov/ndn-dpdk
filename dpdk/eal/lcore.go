@@ -37,13 +37,13 @@ func (lc LCore) ID() int {
 	return lc.v - 1
 }
 
-// IsValid returns true if this is a valid lcore (not zero value).
-func (lc LCore) IsValid() bool {
+// Valid returns true if this is a valid lcore (not zero value).
+func (lc LCore) Valid() bool {
 	return lc.v != 0
 }
 
 func (lc LCore) String() string {
-	if !lc.IsValid() {
+	if !lc.Valid() {
 		return "invalid"
 	}
 	return strconv.Itoa(lc.ID())
@@ -51,7 +51,7 @@ func (lc LCore) String() string {
 
 // NumaSocket returns the NUMA socket where this lcore is located.
 func (lc LCore) NumaSocket() (socket NumaSocket) {
-	if !lc.IsValid() {
+	if !lc.Valid() {
 		return socket
 	}
 	return NumaSocketFromID(int(C.rte_lcore_to_socket_id(C.uint(lc.ID()))))
@@ -59,7 +59,7 @@ func (lc LCore) NumaSocket() (socket NumaSocket) {
 
 // IsBusy returns true if this lcore is running a function.
 func (lc LCore) IsBusy() bool {
-	panicInSlave("LCore.GetState()")
+	panicInSlave("LCore.IsBusy()")
 	return C.rte_eal_get_lcore_state(C.uint(lc.ID())) != C.WAIT
 }
 
@@ -67,7 +67,7 @@ func (lc LCore) IsBusy() bool {
 // Returns whether success.
 func (lc LCore) RemoteLaunch(f func() int) bool {
 	panicInSlave("LCore.RemoteLaunch()")
-	if !lc.IsValid() {
+	if !lc.Valid() {
 		panic("invalid lcore")
 	}
 	ctx := cptr.CtxPut(f)
@@ -91,7 +91,7 @@ func go_lcoreLaunch(ctx unsafe.Pointer) C.int {
 // Prevent a function from executing in slave lcore.
 func panicInSlave(funcName string) {
 	lc := GetCurrentLCore()
-	if master := GetMasterLCore(); lc.IsValid() && lc.ID() != master.ID() {
+	if master := GetMasterLCore(); lc.Valid() && lc.ID() != master.ID() {
 		panic(fmt.Sprintf("%s is unavailable in slave lcore; current=%s master=%s",
 			funcName, lc, master))
 	}

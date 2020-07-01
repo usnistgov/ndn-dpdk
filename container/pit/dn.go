@@ -26,8 +26,8 @@ func (dn Dn) GetToken() uint64 {
 	return uint64(dn.c.token)
 }
 
-// GetNonce returns the last received Nonce.
-func (dn Dn) GetNonce() ndn.Nonce {
+// Nonce returns the last received Nonce.
+func (dn Dn) Nonce() ndn.Nonce {
 	return ndn.NonceFromUint(uint32(dn.c.nonce))
 }
 

@@ -22,7 +22,7 @@ func Init() error {
 	if e != nil {
 		return e
 	}
-	C.theHrlogRing = (*C.struct_rte_ring)(r.GetPtr())
+	C.theHrlogRing = (*C.struct_rte_ring)(r.Ptr())
 	go collectLoop()
 	return nil
 }

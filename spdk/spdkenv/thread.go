@@ -44,8 +44,8 @@ func NewThread(name string) (th *Thread, e error) {
 	return th, nil
 }
 
-// GetPtr return *C.struct_spdk_thread pointer.
-func (th *Thread) GetPtr() unsafe.Pointer {
+// Ptr return *C.struct_spdk_thread pointer.
+func (th *Thread) Ptr() unsafe.Pointer {
 	return unsafe.Pointer(th.c.spdkTh)
 }
 

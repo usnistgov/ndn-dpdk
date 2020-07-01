@@ -31,8 +31,8 @@ type Locator struct {
 
 func NewLocator(dev ethdev.EthDev) (loc Locator) {
 	loc.Scheme = locatorScheme
-	loc.Port = dev.GetName()
-	loc.Local = dev.GetMacAddr()
+	loc.Port = dev.Name()
+	loc.Local = dev.MacAddr()
 	loc.Remote = NdnMcastAddr
 	return loc
 }
@@ -68,7 +68,7 @@ func Create(loc Locator, cfg PortConfig) (face *EthFace, e error) {
 	}
 
 	dev := ethdev.Find(loc.Port)
-	if !dev.IsValid() {
+	if !dev.Valid() {
 		return nil, errors.New("EthDev not found")
 	}
 

@@ -35,13 +35,13 @@ func TestDataDecode(t *testing.T) {
 		if tt.bad {
 			assert.Error(e, tt.input)
 		} else if assert.NoError(e, tt.input) {
-			if !assert.Equal(ndni.L3PktTypeData, pkt.GetL3Type(), tt.input) {
+			if !assert.Equal(ndni.L3PktTypeData, pkt.L3Type(), tt.input) {
 				continue
 			}
 			data := pkt.AsData()
 			assert.Implements((*ndni.IL3Packet)(nil), data)
 			ndntestenv.NameEqual(assert, tt.name, data, tt.input)
-			assert.EqualValues(tt.freshness, data.GetFreshnessPeriod()/time.Millisecond, tt.input)
+			assert.EqualValues(tt.freshness, data.FreshnessPeriod()/time.Millisecond, tt.input)
 		}
 	}
 }
@@ -82,7 +82,7 @@ func TestDataSatisfy(t *testing.T) {
 		if tt.exactMatch == ndni.DataSatisfyYes {
 			interestImplicit := makeInterest(tt.data.ToNData().FullName().String())
 			assert.Equal(ndni.DataSatisfyNeedDigest, tt.data.CanSatisfy(*interestImplicit))
-			tt.data.SaveDigest()
+			tt.data.ComputeImplicitDigest()
 			assert.Equal(ndni.DataSatisfyYes, tt.data.CanSatisfy(*interestImplicit))
 			ndnitestenv.ClosePacket(interestImplicit)
 		}
@@ -101,7 +101,7 @@ func TestDataDigest(t *testing.T) {
 	cd, e := cryptodev.MultiSegDrv.Create("", cryptodev.Config{}, eal.NumaSocket{})
 	require.NoError(e)
 	defer cd.Close()
-	qp := cd.GetQueuePair(0)
+	qp := cd.QueuePair(0)
 	mp, e := cryptodev.NewOpPool("MP-CryptoOp", cryptodev.OpPoolConfig{}, eal.NumaSocket{})
 	require.NoError(e)
 	defer mp.Close()
@@ -120,7 +120,7 @@ func TestDataDigest(t *testing.T) {
 	ops, e := mp.Alloc(cryptodev.OpSymmetric, 4)
 	require.NoError(e)
 	for i, data := range inputs {
-		assert.Nil(data.GetDigest())
+		assert.Nil(data.CachedImplicitDigest())
 		data.DigestPrepare(ops[i])
 	}
 	assert.Equal(4, qp.EnqueueBurst(ops))
@@ -131,7 +131,7 @@ func TestDataDigest(t *testing.T) {
 		assert.NoError(e)
 		if assert.NotNil(data) {
 			ndntestenv.NameEqual(assert, names[i], data)
-			assert.Equal(data.ToNData().ComputeDigest(), data.GetDigest())
+			assert.Equal(data.ToNData().ComputeDigest(), data.CachedImplicitDigest())
 		}
 	}
 }
@@ -158,5 +158,5 @@ func TestDataGen(t *testing.T) {
 	data := pkt.AsData()
 
 	ndntestenv.NameEqual(assert, "/A/B/C", data)
-	assert.Equal(freshnessPeriod, data.GetFreshnessPeriod())
+	assert.Equal(freshnessPeriod, data.FreshnessPeriod())
 }

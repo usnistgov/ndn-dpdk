@@ -37,7 +37,7 @@ func TestEthFace(t *testing.T) {
 		loc.Local = local
 		loc.Remote = remote
 		face, e := ethface.Create(loc, cfg)
-		require.NoError(e, "%s %s %s", dev.GetName(), local, remote)
+		require.NoError(e, "%s %s %s", dev.Name(), local, remote)
 		return face
 	}
 
@@ -50,7 +50,7 @@ func TestEthFace(t *testing.T) {
 
 	locAm := faceAm.Locator().(ethface.Locator)
 	assert.Equal("ether", locAm.Scheme)
-	assert.Equal(vnet.Ports[0].GetName(), locAm.Port)
+	assert.Equal(vnet.Ports[0].Name(), locAm.Port)
 	assert.True(locAm.Local.Equal(macA))
 	assert.True(locAm.Remote.Equal(ethface.NdnMcastAddr))
 
@@ -73,9 +73,9 @@ func TestEthFace(t *testing.T) {
 	fixtureAm.CheckCounters()
 
 	fmt.Println("vnet.NDrops", vnet.NDrops)
-	fmt.Println("portA", vnet.Ports[0].GetStats())
-	fmt.Println("portB", vnet.Ports[1].GetStats())
-	fmt.Println("portC", vnet.Ports[2].GetStats())
+	fmt.Println("portA", vnet.Ports[0].Stats())
+	fmt.Println("portB", vnet.Ports[1].Stats())
+	fmt.Println("portC", vnet.Ports[2].Stats())
 	fmt.Println("faceAB", faceAB.ReadCounters())
 	fmt.Println("faceAC", faceAC.ReadCounters())
 	fmt.Println("faceAm", faceAm.ReadCounters())

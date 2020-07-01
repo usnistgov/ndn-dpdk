@@ -71,11 +71,11 @@ func (part *partition) Get(name ndn.Name) *Entry {
 }
 
 func (part *partition) Insert(entry *Entry, freeVirt, freeReal C.Fib_FreeOld) {
-	C.Fib_Insert(part.c, entry.getPtr(), freeVirt, freeReal)
+	C.Fib_Insert(part.c, entry.ptr(), freeVirt, freeReal)
 }
 
 func (part *partition) Erase(entry *Entry, freeVirt, freeReal C.Fib_FreeOld) {
-	C.Fib_Erase(part.c, entry.getPtr(), freeVirt, freeReal)
+	C.Fib_Erase(part.c, entry.ptr(), freeVirt, freeReal)
 }
 
 func convertName(name ndn.Name) (length C.uint16_t, value *C.uint8_t, hash C.uint64_t, pname *C.PName) {

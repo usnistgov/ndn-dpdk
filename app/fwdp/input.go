@@ -36,7 +36,7 @@ func newInput(id int, lc eal.LCore, ndt *ndt.Ndt, fwds []*Fwd) *Input {
 
 	fwi.rxl = iface.NewRxLoop(socket)
 	fwi.rxl.SetLCore(lc)
-	fwi.rxl.SetCallback(inputdemux.Demux3_FaceRx, fwi.demux3.GetPtr())
+	fwi.rxl.SetCallback(inputdemux.Demux3_FaceRx, fwi.demux3.Ptr())
 	return &fwi
 }
 

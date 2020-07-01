@@ -46,7 +46,7 @@ func (mg DpInfoMgmt) Pit(arg IndexArg, reply *pit.Counters) error {
 
 func readCslCnt(cs *cs.Cs, list cs.ListID) (cnt CsListCounters) {
 	cnt.Count = cs.CountEntries(list)
-	cnt.Capacity = cs.GetCapacity(list)
+	cnt.Capacity = cs.Capacity(list)
 	return cnt
 }
 

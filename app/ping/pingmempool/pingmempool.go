@@ -18,7 +18,7 @@ var (
 )
 
 func init() {
-	ndnHeaderConfig := ndni.HeaderMempool.GetConfig()
+	ndnHeaderConfig := ndni.HeaderMempool.Config()
 
 	Interest = pktmbuf.RegisterTemplate("INTEREST", pktmbuf.PoolConfig{
 		Capacity: 65535,

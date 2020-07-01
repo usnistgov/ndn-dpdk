@@ -43,21 +43,21 @@ func newCrypto(id int, lc eal.LCore, cfg CryptoConfig, ndt *ndt.Ndt, fwds []*Fwd
 	if e != nil {
 		return nil, fmt.Errorf("ringbuffer.New: %v", e)
 	} else {
-		fwc.c.input = (*C.struct_rte_ring)(input.GetPtr())
+		fwc.c.input = (*C.struct_rte_ring)(input.Ptr())
 	}
 
 	opPool, e := cryptodev.NewOpPool(fwc.String()+"_pool", cryptodev.OpPoolConfig{Capacity: cfg.OpPoolCapacity}, socket)
 	if e != nil {
 		return nil, fmt.Errorf("cryptodev.NewOpPool: %v", e)
 	} else {
-		fwc.c.opPool = (*C.struct_rte_mempool)(opPool.GetPtr())
+		fwc.c.opPool = (*C.struct_rte_mempool)(opPool.Ptr())
 	}
 
 	fwc.devS, e = cryptodev.SingleSegDrv.Create(fmt.Sprintf("fwc%ds", fwc.id), cryptodev.Config{}, socket)
 	if e != nil {
 		return nil, fmt.Errorf("cryptodev.SingleSegDrv.Create: %v", e)
 	} else {
-		qp := fwc.devS.GetQueuePair(0)
+		qp := fwc.devS.QueuePair(0)
 		qp.CopyToC(unsafe.Pointer(&fwc.c.singleSeg))
 	}
 
@@ -65,7 +65,7 @@ func newCrypto(id int, lc eal.LCore, cfg CryptoConfig, ndt *ndt.Ndt, fwds []*Fwd
 	if e != nil {
 		return nil, fmt.Errorf("cryptodev.MultiSegDrv.Create: %v", e)
 	} else {
-		qp := fwc.devM.GetQueuePair(0)
+		qp := fwc.devM.QueuePair(0)
 		qp.CopyToC(unsafe.Pointer(&fwc.c.multiSeg))
 	}
 

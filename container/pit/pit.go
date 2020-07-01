@@ -20,15 +20,15 @@ type Pit struct {
 
 // FromPcct converts Pcct to Pit.
 func FromPcct(pcct *pcct.Pcct) *Pit {
-	return (*Pit)(pcct.GetPtr())
+	return (*Pit)(pcct.Ptr())
 }
 
-func (pit *Pit) getPtr() *C.Pit {
-	return (*C.Pit)(pit.Pcct.GetPtr())
+func (pit *Pit) ptr() *C.Pit {
+	return (*C.Pit)(pit.Pcct.Ptr())
 }
 
 func (pit *Pit) getPriv() *C.PitPriv {
-	return C.Pit_GetPriv(pit.getPtr())
+	return C.Pit_GetPriv(pit.ptr())
 }
 
 // Close is forbidden.
@@ -38,7 +38,7 @@ func (pit *Pit) Close() error {
 
 // Len returns number of PIT entries.
 func (pit *Pit) Len() int {
-	return int(C.Pit_CountEntries(pit.getPtr()))
+	return int(C.Pit_CountEntries(pit.ptr()))
 }
 
 // TriggerTimeoutSched triggers the internal timeout scheduler.
@@ -49,7 +49,7 @@ func (pit *Pit) TriggerTimeoutSched() {
 // Insert attempts to insert a PIT entry for the given Interest.
 // It returns either a new or existing PIT entry, or a CS entry that satisfies the Interest.
 func (pit *Pit) Insert(interest *ndni.Interest, fibEntry *fib.Entry) (pitEntry *Entry, csEntry *cs.Entry) {
-	res := C.Pit_Insert(pit.getPtr(), (*C.Packet)(interest.GetPacket().GetPtr()),
+	res := C.Pit_Insert(pit.ptr(), (*C.Packet)(interest.AsPacket().Ptr()),
 		(*C.FibEntry)(unsafe.Pointer(fibEntry)))
 	switch C.PitInsertResult_GetKind(res) {
 	case C.PIT_INSERT_PIT0, C.PIT_INSERT_PIT1:
@@ -62,18 +62,18 @@ func (pit *Pit) Insert(interest *ndni.Interest, fibEntry *fib.Entry) (pitEntry *
 
 // Erase erases a PIT entry.
 func (pit *Pit) Erase(entry *Entry) {
-	C.Pit_Erase(pit.getPtr(), entry.getPtr())
+	C.Pit_Erase(pit.ptr(), entry.ptr())
 }
 
 // FindByData searches for PIT entries matching a Data.
 func (pit *Pit) FindByData(data *ndni.Data) FindResult {
-	resC := C.Pit_FindByData(pit.getPtr(), (*C.Packet)(data.GetPacket().GetPtr()))
+	resC := C.Pit_FindByData(pit.ptr(), (*C.Packet)(data.AsPacket().Ptr()))
 	return FindResult(resC)
 }
 
 // FindByNack searches for PIT entries matching a Nack.
 func (pit *Pit) FindByNack(nack *ndni.Nack) *Entry {
-	entryC := C.Pit_FindByNack(pit.getPtr(), (*C.Packet)(nack.GetPacket().GetPtr()))
+	entryC := C.Pit_FindByNack(pit.ptr(), (*C.Packet)(nack.AsPacket().Ptr()))
 	if entryC == nil {
 		return nil
 	}

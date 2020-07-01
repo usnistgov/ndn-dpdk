@@ -19,8 +19,8 @@ import (
 
 // Receive channel for a group of faces.
 type IRxGroup interface {
-	GetPtr() unsafe.Pointer
-	getPtr() *C.RxGroup
+	Ptr() unsafe.Pointer
+	ptr() *C.RxGroup
 	GetRxLoop() *RxLoop
 	setRxLoop(rxl *RxLoop)
 
@@ -38,11 +38,11 @@ func (rxg *RxGroupBase) InitRxgBase(c unsafe.Pointer) {
 	rxg.c = c
 }
 
-func (rxg *RxGroupBase) GetPtr() unsafe.Pointer {
+func (rxg *RxGroupBase) Ptr() unsafe.Pointer {
 	return rxg.c
 }
 
-func (rxg *RxGroupBase) getPtr() *C.RxGroup {
+func (rxg *RxGroupBase) ptr() *C.RxGroup {
 	return (*C.RxGroup)(rxg.c)
 }
 
@@ -114,7 +114,7 @@ func (rxg *ChanRxGroup) Rx(pkt *pktmbuf.Packet) {
 func go_ChanRxGroup_RxBurst(rxg *C.RxGroup, pkts **C.struct_rte_mbuf, nPkts C.uint16_t) C.uint16_t {
 	select {
 	case pkt := <-TheChanRxGroup.queue:
-		*pkts = (*C.struct_rte_mbuf)(pkt.GetPtr())
+		*pkts = (*C.struct_rte_mbuf)(pkt.Ptr())
 		return 1
 	default:
 	}
@@ -201,7 +201,7 @@ func (rxl *RxLoop) AddRxGroup(rxg IRxGroup) error {
 	if rxg.GetRxLoop() != nil {
 		return errors.New("RxGroup is active in another RxLoop")
 	}
-	rxgC := rxg.getPtr()
+	rxgC := rxg.ptr()
 	if rxgC.rxBurstOp == nil {
 		return errors.New("RxGroup.rxBurstOp is missing")
 	}
@@ -223,7 +223,7 @@ func (rxl *RxLoop) RemoveRxGroup(rxg IRxGroup) error {
 	rs := urcu.NewReadSide()
 	defer rs.Close()
 
-	rxgC := rxg.getPtr()
+	rxgC := rxg.ptr()
 	C.cds_hlist_del_rcu(&rxgC.rxlNode)
 	urcu.Barrier()
 

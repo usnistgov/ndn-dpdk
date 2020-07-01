@@ -20,7 +20,7 @@ func Collect(f *IntFace) *Collector {
 }
 
 func (c *Collector) run(face ndn.L3Face) {
-	for packet := range face.GetRx() {
+	for packet := range face.Rx() {
 		c.lock.Lock()
 		c.received = append(c.received, packet)
 		c.lock.Unlock()

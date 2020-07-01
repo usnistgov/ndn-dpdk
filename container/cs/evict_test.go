@@ -16,7 +16,7 @@ func TestDirectLru(t *testing.T) {
 	cfg.CsCapMi = 100
 	fixture := NewFixture(cfg)
 	defer fixture.Close()
-	assert.Equal(400, fixture.Cs.GetCapacity(cs.CslMd))
+	assert.Equal(400, fixture.Cs.Capacity(cs.CslMd))
 
 	// insert 1-2000, should keep (most of) 1601-2000 direct entries
 	assert.Equal(2000, fixture.InsertBulk(1, 2000, "/N/%d", "/N/%d", ndn.MustBeFreshFlag))
@@ -106,7 +106,7 @@ func TestIndirectLru(t *testing.T) {
 	cfg.CsCapMi = 400
 	fixture := NewFixture(cfg)
 	defer fixture.Close()
-	assert.Equal(400, fixture.Cs.GetCapacity(cs.CslMi))
+	assert.Equal(400, fixture.Cs.Capacity(cs.CslMi))
 
 	// insert 1-2000, should keep (most of) 1601-2000 indirect entries
 	assert.Equal(2000, fixture.InsertBulk(1, 2000, "/N/%d/Z", "/N/%d", ndn.CanBePrefixFlag))

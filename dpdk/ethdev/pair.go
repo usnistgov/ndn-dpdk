@@ -96,8 +96,8 @@ func NewPair(cfg PairConfig) (pair *Pair) {
 	return pair
 }
 
-// GetEthDevConfig returns Config that can be used to start a port.
-func (pair *Pair) GetEthDevConfig() Config {
+// EthDevConfig returns Config that can be used to start a port.
+func (pair *Pair) EthDevConfig() Config {
 	return pair.dcfg
 }
 

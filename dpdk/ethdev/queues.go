@@ -16,7 +16,7 @@ type RxQueue struct {
 
 // ListRxQueues returns RX queues of a running port.
 func (port EthDev) ListRxQueues() (list []RxQueue) {
-	info := port.GetDevInfo()
+	info := port.DevInfo()
 	for queue := uint16(0); queue < info.Nb_rx_queues; queue++ {
 		list = append(list, RxQueue{port, queue})
 	}
@@ -30,7 +30,7 @@ func (q RxQueue) RxBurst(vec pktmbuf.Vector) int {
 		return 0
 	}
 	res := C.rte_eth_rx_burst(C.uint16_t(q.port.ID()), C.uint16_t(q.queue),
-		(**C.struct_rte_mbuf)(vec.GetPtr()), C.uint16_t(len(vec)))
+		(**C.struct_rte_mbuf)(vec.Ptr()), C.uint16_t(len(vec)))
 	return int(res)
 }
 
@@ -42,7 +42,7 @@ type TxQueue struct {
 
 // ListTxQueues returns TX queues of a running port.
 func (port EthDev) ListTxQueues() (list []TxQueue) {
-	info := port.GetDevInfo()
+	info := port.DevInfo()
 	for queue := uint16(0); queue < info.Nb_tx_queues; queue++ {
 		list = append(list, TxQueue{port, queue})
 	}
@@ -56,6 +56,6 @@ func (q TxQueue) TxBurst(vec pktmbuf.Vector) int {
 		return 0
 	}
 	res := C.rte_eth_tx_burst(C.uint16_t(q.port.ID()), C.uint16_t(q.queue),
-		(**C.struct_rte_mbuf)(vec.GetPtr()), C.uint16_t(len(vec)))
+		(**C.struct_rte_mbuf)(vec.Ptr()), C.uint16_t(len(vec)))
 	return int(res)
 }

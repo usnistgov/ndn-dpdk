@@ -104,7 +104,7 @@ func (data Data) FullName() Name {
 	return fullName
 }
 
-// CanSatisfy determins whether this Data can satisfy the given Interest.
+// CanSatisfy determines whether this Data can satisfy the given Interest.
 func (data Data) CanSatisfy(interest Interest) bool {
 	switch {
 	case len(interest.Name) == 0: // invalid Interest

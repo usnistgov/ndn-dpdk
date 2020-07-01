@@ -105,20 +105,20 @@ func (tr *Transport) Close() error {
 	return nil
 }
 
-// GetRx returns the RX channel.
-func (tr *Transport) GetRx() <-chan []byte {
+// Rx returns the RX channel.
+func (tr *Transport) Rx() <-chan []byte {
 	return tr.rx
 }
 
-// GetTx returns the TX channel.
-func (tr *Transport) GetTx() chan<- []byte {
+// Tx returns the TX channel.
+func (tr *Transport) Tx() chan<- []byte {
 	return tr.tx
 }
 
-// GetConn returns the underlying socket.
+// Conn returns the underlying socket.
 // Caller may gather information from this socket, but should not close or send/receive on it.
 // The socket may be replaced during redialing.
-func (tr *Transport) GetConn() net.Conn {
+func (tr *Transport) Conn() net.Conn {
 	return tr.conn.Load().(net.Conn)
 }
 
@@ -146,14 +146,14 @@ func (tr *Transport) txLoop() {
 			break
 		}
 
-		_, e := tr.GetConn().Write(wire)
+		_, e := tr.Conn().Write(wire)
 		if e != nil {
 			tr.err <- e
 		}
 	}
 	tr.closing <- true
 	atomic.StoreInt32(&tr.closed, 1)
-	tr.GetConn().Close()
+	tr.Conn().Close()
 }
 
 func (tr *Transport) redialLoop() {
@@ -189,7 +189,7 @@ func (tr *Transport) handleError(e error) {
 			backoff = tr.cfg.RedialBackoffMaximum
 		}
 
-		conn, e := tr.impl.Redial(tr.GetConn())
+		conn, e := tr.impl.Redial(tr.Conn())
 		tr.NRedials++
 		if e == nil {
 			tr.conn.Store(conn)

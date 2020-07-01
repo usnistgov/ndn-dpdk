@@ -69,7 +69,7 @@ func (name Name) GetPrefix(i int) Name {
 	return name.Slice(0, i)
 }
 
-// Equal determins whether two names are the same.
+// Equal determines whether two names are the same.
 func (name Name) Equal(other Name) bool {
 	return name.Compare(other) == 0
 }

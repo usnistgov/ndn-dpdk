@@ -17,8 +17,8 @@ func TestEthDev(t *testing.T) {
 
 	pair := ethdev.NewPair(ethdev.PairConfig{RxPool: mbuftestenv.Direct.Pool()})
 	defer pair.Close()
-	pair.PortA.Start(pair.GetEthDevConfig())
-	pair.PortB.Start(pair.GetEthDevConfig())
+	pair.PortA.Start(pair.EthDevConfig())
+	pair.PortB.Start(pair.EthDevConfig())
 	assert.False(pair.PortA.IsDown())
 	assert.False(pair.PortB.IsDown())
 
@@ -83,8 +83,8 @@ func TestEthDev(t *testing.T) {
 	rxQuit <- true
 	slaves[0].Wait()
 
-	log.Println("portA.stats=", pair.PortA.GetStats())
-	log.Println("portB.stats=", pair.PortB.GetStats())
+	log.Println("portA.stats=", pair.PortA.Stats())
+	log.Println("portB.stats=", pair.PortB.Stats())
 	log.Println("txRetryFreq=", txRetryFreq)
 	log.Println("rxBurstSizeFreq=", rxBurstSizeFreq)
 	assert.True(nReceived <= txLoops*txBurstSize)

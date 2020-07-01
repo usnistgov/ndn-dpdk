@@ -44,8 +44,8 @@ func TestInOrderReassembler(t *testing.T) {
 
 		reassPkt := reassembler.Receive(fragPkt)
 		if step.output == "" {
-			assert.True(reassPkt.GetPtr() == nil, step.input)
-		} else if assert.NotNil(reassPkt.GetPtr(), step.input) {
+			assert.True(reassPkt.Ptr() == nil, step.input)
+		} else if assert.NotNil(reassPkt.Ptr(), step.input) {
 			payload := reassPkt.AsMbuf().ReadAll()
 			assert.Equal(bytesFromHex(step.output), payload, step.input)
 		}

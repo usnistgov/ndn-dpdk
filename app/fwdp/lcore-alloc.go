@@ -48,7 +48,7 @@ func (la *DpLCores) Alloc() (e error) {
 // Allocate LCores on list of NumaSockets.
 func (la *DpLCores) allocNuma(role string, numaSockets []eal.NumaSocket) (list []eal.LCore, e error) {
 	for _, numaSocket := range numaSockets {
-		if lc := la.Allocator.Alloc(role, numaSocket); lc.IsValid() {
+		if lc := la.Allocator.Alloc(role, numaSocket); lc.Valid() {
 			list = append(list, lc)
 		} else {
 			return nil, fmt.Errorf("no lcore available for %s", role)
@@ -60,7 +60,7 @@ func (la *DpLCores) allocNuma(role string, numaSockets []eal.NumaSocket) (list [
 // Allocate all remaining LCores to a role.
 func (la *DpLCores) allocMax(role string) (list []eal.LCore) {
 	for {
-		if lc := la.Allocator.Alloc(role, eal.NumaSocket{}); lc.IsValid() {
+		if lc := la.Allocator.Alloc(role, eal.NumaSocket{}); lc.Valid() {
 			list = append(list, lc)
 		} else {
 			break

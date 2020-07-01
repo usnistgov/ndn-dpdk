@@ -31,12 +31,12 @@ func New(cfg Config, sockets []eal.NumaSocket) (ndt *Ndt) {
 	}
 
 	ndt = (*Ndt)(eal.Zmalloc("Ndt", C.sizeof_Ndt, sockets[0]))
-	C.Ndt_Init(ndt.getPtr(), C.uint16_t(cfg.PrefixLen), C.uint8_t(cfg.IndexBits), C.uint8_t(cfg.SampleFreq),
+	C.Ndt_Init(ndt.ptr(), C.uint16_t(cfg.PrefixLen), C.uint8_t(cfg.IndexBits), C.uint8_t(cfg.SampleFreq),
 		C.uint8_t(len(sockets)), &socketsC[0])
 	return ndt
 }
 
-func (ndt *Ndt) getPtr() *C.Ndt {
+func (ndt *Ndt) ptr() *C.Ndt {
 	return (*C.Ndt)(ndt)
 }
 
@@ -45,36 +45,36 @@ func (ndt *Ndt) Close() error {
 	for i := 0; i < ndt.CountThreads(); i++ {
 		eal.Free(ndt.getThreadC(i))
 	}
-	c := ndt.getPtr()
+	c := ndt.ptr()
 	eal.Free(c.threads)
 	eal.Free(c.table)
 	eal.Free(c)
 	return nil
 }
 
-// GetPtr returns *C.Ndt pointer.
-func (ndt *Ndt) GetPtr() unsafe.Pointer {
-	return unsafe.Pointer(ndt.getPtr())
+// Ptr returns *C.Ndt pointer.
+func (ndt *Ndt) Ptr() unsafe.Pointer {
+	return unsafe.Pointer(ndt.ptr())
 }
 
 // CountElements returns number of table elements.
 func (ndt *Ndt) CountElements() int {
-	return int(ndt.getPtr().indexMask + 1)
+	return int(ndt.ptr().indexMask + 1)
 }
 
 // GetPrefixLen returns number of name components used to compute hash.
 func (ndt *Ndt) GetPrefixLen() int {
-	return int(ndt.getPtr().prefixLen)
+	return int(ndt.ptr().prefixLen)
 }
 
 // CountThreads returns number of threads.
 func (ndt *Ndt) CountThreads() int {
-	return int(ndt.getPtr().nThreads)
+	return int(ndt.ptr().nThreads)
 }
 
 func (ndt *Ndt) getThreadC(i int) *C.NdtThread {
 	var threadPtrC *C.NdtThread
-	first := uintptr(unsafe.Pointer(ndt.getPtr().threads))
+	first := uintptr(unsafe.Pointer(ndt.ptr().threads))
 	offset := uintptr(i) * uintptr(unsafe.Sizeof(threadPtrC))
 	return *(**C.NdtThread)(unsafe.Pointer(first + offset))
 }
@@ -98,12 +98,12 @@ func (ndt *Ndt) ComputeHash(name ndn.Name) uint64 {
 
 // GetIndex returns table index used for a hash.
 func (ndt *Ndt) GetIndex(hash uint64) uint64 {
-	return hash & uint64(ndt.getPtr().indexMask)
+	return hash & uint64(ndt.ptr().indexMask)
 }
 
 // ReadElement reads a table element.
 func (ndt *Ndt) ReadElement(index uint64) uint8 {
-	return uint8(C.Ndt_ReadElement(ndt.getPtr(), C.uint64_t(index)))
+	return uint8(C.Ndt_ReadElement(ndt.ptr(), C.uint64_t(index)))
 }
 
 // ReadTable reads the entire table.
@@ -133,7 +133,7 @@ func (ndt *Ndt) ReadCounters() (cnt []int) {
 // When used with partitioned FIB, this function does not relocate FIB entries.
 // See ndtupdater package for alternative.
 func (ndt *Ndt) Update(index uint64, value uint8) {
-	C.Ndt_Update(ndt.getPtr(), C.uint64_t(index), C.uint8_t(value))
+	C.Ndt_Update(ndt.ptr(), C.uint64_t(index), C.uint8_t(value))
 }
 
 // Randomize updates all elements to random values < max.
@@ -149,7 +149,7 @@ func (ndt *Ndt) Lookup(name ndn.Name) (index uint64, value uint8) {
 	cname := ndni.CNameFromName(name)
 	pnameC := (*C.PName)(unsafe.Pointer(&cname.P))
 	var indexC C.uint64_t
-	value = uint8(C.Ndt_Lookup(ndt.getPtr(), pnameC, (*C.uint8_t)(unsafe.Pointer(cname.V)), &indexC))
+	value = uint8(C.Ndt_Lookup(ndt.ptr(), pnameC, (*C.uint8_t)(unsafe.Pointer(cname.V)), &indexC))
 	return uint64(indexC), value
 }
 
@@ -163,5 +163,5 @@ type Thread struct {
 func (ndtt *Thread) Lookup(name ndn.Name) uint8 {
 	cname := ndni.CNameFromName(name)
 	pnameC := (*C.PName)(unsafe.Pointer(&cname.P))
-	return uint8(C.Ndtt_Lookup_(ndtt.ndt.getPtr(), ndtt.c, pnameC, (*C.uint8_t)(unsafe.Pointer(cname.V))))
+	return uint8(C.Ndtt_Lookup_(ndtt.ndt.ptr(), ndtt.c, pnameC, (*C.uint8_t)(unsafe.Pointer(cname.V))))
 }

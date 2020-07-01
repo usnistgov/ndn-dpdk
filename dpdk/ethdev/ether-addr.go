@@ -31,12 +31,12 @@ func ParseEtherAddr(input string) (a EtherAddr, e error) {
 }
 
 // EtherAddr returns *C.struct_rte_ether_addr pointer.
-func (a *EtherAddr) GetPtr() unsafe.Pointer {
+func (a *EtherAddr) Ptr() unsafe.Pointer {
 	return unsafe.Pointer(a)
 }
 
-func (a *EtherAddr) getPtr() *C.struct_rte_ether_addr {
-	return (*C.struct_rte_ether_addr)(a.GetPtr())
+func (a *EtherAddr) ptr() *C.struct_rte_ether_addr {
+	return (*C.struct_rte_ether_addr)(a.Ptr())
 }
 
 // CopyToC copies to *C.struct_rte_ether_addr or other 6-octet buffer.
@@ -47,17 +47,17 @@ func (a EtherAddr) CopyToC(ptr unsafe.Pointer) {
 
 // IsZero returns true if this is the zero address.
 func (a EtherAddr) IsZero() bool {
-	return C.rte_is_zero_ether_addr(a.getPtr()) != 0
+	return C.rte_is_zero_ether_addr(a.ptr()) != 0
 }
 
 // IsUnicast returns true if this is a valid assigned unicast address.
 func (a EtherAddr) IsUnicast() bool {
-	return C.rte_is_valid_assigned_ether_addr(a.getPtr()) != 0
+	return C.rte_is_valid_assigned_ether_addr(a.ptr()) != 0
 }
 
 // IsGroup returns true if this is a group address.
 func (a EtherAddr) IsGroup() bool {
-	return C.rte_is_multicast_ether_addr(a.getPtr()) != 0
+	return C.rte_is_multicast_ether_addr(a.ptr()) != 0
 }
 
 // Equal determines whether two addresses are the same.

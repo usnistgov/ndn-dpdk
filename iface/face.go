@@ -19,7 +19,7 @@ import (
 // Face is the public API of a face.
 // Most functions are implemented by FaceBase type.
 type Face interface {
-	getPtr() *C.Face
+	ptr() *C.Face
 
 	// ID returns ID.
 	ID() ID
@@ -58,13 +58,13 @@ type FaceBase struct {
 	id ID
 }
 
-func (face *FaceBase) getPtr() *C.Face {
+func (face *FaceBase) ptr() *C.Face {
 	return C.Face_Get(C.FaceID(face.id))
 }
 
-// GetPtr returns *C.Face pointer.
-func (face *FaceBase) GetPtr() unsafe.Pointer {
-	return unsafe.Pointer(face.getPtr())
+// Ptr returns *C.Face pointer.
+func (face *FaceBase) Ptr() unsafe.Pointer {
+	return unsafe.Pointer(face.ptr())
 }
 
 // InitFaceBase should be invoked before lower-layer initialization.
@@ -73,14 +73,14 @@ func (face *FaceBase) InitFaceBase(id ID, sizeofPriv int, socket eal.NumaSocket)
 	face.id = id
 
 	if socket.IsAny() {
-		if lc := eal.GetCurrentLCore(); lc.IsValid() {
+		if lc := eal.GetCurrentLCore(); lc.Valid() {
 			socket = lc.NumaSocket()
 		} else {
 			socket = eal.NumaSocketFromID(0) // TODO what if socket 0 is unavailable?
 		}
 	}
 
-	faceC := face.getPtr()
+	faceC := face.ptr()
 	*faceC = C.Face{}
 	faceC.id = C.FaceID(face.id)
 	faceC.state = StateUp
@@ -97,7 +97,7 @@ func (face *FaceBase) InitFaceBase(id ID, sizeofPriv int, socket eal.NumaSocket)
 // mtu: transport MTU available for NDNLP packets.
 // headroom: headroom before NDNLP header, as required by transport.
 func (face *FaceBase) FinishInitFaceBase(txQueueCapacity, mtu, headroom int) error {
-	faceC := face.getPtr()
+	faceC := face.ptr()
 	socket := face.NumaSocket()
 	indirectMp := pktmbuf.Indirect.MakePool(socket)
 	headerMp := ndni.HeaderMempool.MakePool(socket)
@@ -109,7 +109,7 @@ func (face *FaceBase) FinishInitFaceBase(txQueueCapacity, mtu, headroom int) err
 		face.clear()
 		return e
 	}
-	faceC.txQueue = (*C.struct_rte_ring)(r.GetPtr())
+	faceC.txQueue = (*C.struct_rte_ring)(r.Ptr())
 
 	for l3type := 0; l3type < 4; l3type++ {
 		latencyStat := runningstat.FromPtr(unsafe.Pointer(&faceC.impl.tx.latency[l3type]))
@@ -118,12 +118,12 @@ func (face *FaceBase) FinishInitFaceBase(txQueueCapacity, mtu, headroom int) err
 	}
 
 	if res := C.TxProc_Init(&faceC.impl.tx, C.uint16_t(mtu), C.uint16_t(headroom),
-		(*C.struct_rte_mempool)(indirectMp.GetPtr()), (*C.struct_rte_mempool)(headerMp.GetPtr())); res != 0 {
+		(*C.struct_rte_mempool)(indirectMp.Ptr()), (*C.struct_rte_mempool)(headerMp.Ptr())); res != 0 {
 		face.clear()
 		return eal.Errno(res)
 	}
 
-	if res := C.RxProc_Init(&faceC.impl.rx, (*C.struct_rte_mempool)(nameMp.GetPtr())); res != 0 {
+	if res := C.RxProc_Init(&faceC.impl.rx, (*C.struct_rte_mempool)(nameMp.Ptr())); res != 0 {
 		face.clear()
 		return eal.Errno(res)
 	}
@@ -138,20 +138,20 @@ func (face *FaceBase) ID() ID {
 
 // NumaSocket returns the NUMA socket of this face's data structures.
 func (face *FaceBase) NumaSocket() eal.NumaSocket {
-	return eal.NumaSocketFromID(int(face.getPtr().numaSocket))
+	return eal.NumaSocketFromID(int(face.ptr().numaSocket))
 }
 
 // BeforeClose prepares to close face.
 func (face *FaceBase) BeforeClose() {
 	id := face.ID()
-	faceC := face.getPtr()
+	faceC := face.ptr()
 	faceC.state = StateDown
 	emitter.EmitSync(evtFaceClosing, id)
 }
 
 func (face *FaceBase) clear() {
 	id := face.ID()
-	faceC := face.getPtr()
+	faceC := face.ptr()
 	faceC.state = StateRemoved
 	if faceC.impl != nil {
 		eal.Free(faceC.impl)
@@ -172,7 +172,7 @@ func (face *FaceBase) CloseFaceBase() {
 
 // IsDown determines whether the face is DOWN or UP.
 func (face *FaceBase) IsDown() bool {
-	return face.getPtr().state != StateUp
+	return face.ptr().state != StateUp
 }
 
 // SetDown changes face state.
@@ -181,7 +181,7 @@ func (face *FaceBase) SetDown(isDown bool) {
 		return
 	}
 	id := face.ID()
-	faceC := face.getPtr()
+	faceC := face.ptr()
 	if isDown {
 		faceC.state = StateDown
 		emitter.EmitSync(evtFaceDown, id)

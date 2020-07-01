@@ -60,7 +60,7 @@ func (impl *rxFlowImpl) Init() error {
 		return e
 	}
 
-	devInfo := impl.port.dev.GetDevInfo()
+	devInfo := impl.port.dev.DevInfo()
 	nRxQueues := int(devInfo.Max_rx_queues)
 	if nRxQueues == 0 {
 		return errors.New("unable to retrieve max_rx_queues")

@@ -11,7 +11,7 @@ import (
 // IThread represents an application thread.
 type IThread interface {
 	SetLCore(lc LCore) // Assign an lcore.
-	GetLCore() LCore   // Return assigned lcore.
+	LCore() LCore      // Return assigned lcore.
 	IsRunning() bool
 
 	Launch() error // Launch the thread.
@@ -32,18 +32,18 @@ func (t *ThreadBase) SetLCore(lc LCore) {
 	t.lc = lc
 }
 
-// GetLCore returns assigned lcore.
-func (t *ThreadBase) GetLCore() LCore {
+// LCore returns assigned lcore.
+func (t *ThreadBase) LCore() LCore {
 	return t.lc
 }
 
 // IsRunning returns true if the thread is running.
 func (t *ThreadBase) IsRunning() bool {
-	return t.lc.IsValid() && t.lc.IsBusy()
+	return t.lc.Valid() && t.lc.IsBusy()
 }
 
 func (t *ThreadBase) mustHaveLCore() {
-	if !t.lc.IsValid() {
+	if !t.lc.Valid() {
 		panic("lcore unassigned")
 	}
 }

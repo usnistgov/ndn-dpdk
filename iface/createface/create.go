@@ -30,7 +30,7 @@ func createEth(loc ethface.Locator) (face iface.Face, e error) {
 	}
 
 	dev := ethdev.Find(loc.Port)
-	if !dev.IsValid() {
+	if !dev.Valid() {
 		return nil, errors.New("EthDev not found")
 	}
 

@@ -29,41 +29,41 @@ func Find(name string) *Info {
 	return (*Info)(d)
 }
 
-func (bdi *Info) getPtr() *C.struct_spdk_bdev {
+func (bdi *Info) ptr() *C.struct_spdk_bdev {
 	return (*C.struct_spdk_bdev)(bdi)
 }
 
-// GetName returns device name.
-func (bdi *Info) GetName() string {
-	return C.GoString(C.spdk_bdev_get_name(bdi.getPtr()))
+// Name returns device name.
+func (bdi *Info) Name() string {
+	return C.GoString(C.spdk_bdev_get_name(bdi.ptr()))
 }
 
-// GetProductName returns product name.
-func (bdi *Info) GetProductName() string {
-	return C.GoString(C.spdk_bdev_get_product_name(bdi.getPtr()))
+// ProduceName returns product name.
+func (bdi *Info) ProduceName() string {
+	return C.GoString(C.spdk_bdev_get_product_name(bdi.ptr()))
 }
 
-// GetBlockSize returns logical block size.
-func (bdi *Info) GetBlockSize() int {
-	return int(C.spdk_bdev_get_block_size(bdi.getPtr()))
+// BlockSize returns logical block size.
+func (bdi *Info) BlockSize() int {
+	return int(C.spdk_bdev_get_block_size(bdi.ptr()))
 }
 
 // CountBlocks returns size of block device in logical blocks.
 func (bdi *Info) CountBlocks() int {
-	return int(C.spdk_bdev_get_num_blocks(bdi.getPtr()))
+	return int(C.spdk_bdev_get_num_blocks(bdi.ptr()))
 }
 
-// IsNvme determins whether the block device is an NVMe device.
+// IsNvme determines whether the block device is an NVMe device.
 func (bdi *Info) IsNvme() bool {
-	return bool(C.spdk_bdev_io_type_supported(bdi.getPtr(), C.SPDK_BDEV_IO_TYPE_NVME_ADMIN))
+	return bool(C.spdk_bdev_io_type_supported(bdi.ptr(), C.SPDK_BDEV_IO_TYPE_NVME_ADMIN))
 }
 
 // Device interface allows retrieving bdev Info.
 type Device interface {
-	GetInfo() *Info
+	DevInfo() *Info
 }
 
-// GetInfo implements Device interface.
-func (bdi *Info) GetInfo() *Info {
+// DevInfo implements Device interface.
+func (bdi *Info) DevInfo() *Info {
 	return bdi
 }

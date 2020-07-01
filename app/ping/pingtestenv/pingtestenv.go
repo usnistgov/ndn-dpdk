@@ -25,7 +25,7 @@ func Init() {
 
 	rxl := iface.NewRxLoop(slaves[0].NumaSocket())
 	rxl.SetLCore(slaves[0])
-	rxl.SetCallback(inputdemux.Demux3_FaceRx, Demux3.GetPtr())
+	rxl.SetCallback(inputdemux.Demux3_FaceRx, Demux3.Ptr())
 	rxl.Launch()
 	createface.AddRxLoop(rxl)
 

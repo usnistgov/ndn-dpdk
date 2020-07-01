@@ -17,7 +17,7 @@ func WindowFromPtr(ptr unsafe.Pointer) (win *Window) {
 	return (*Window)(ptr)
 }
 
-func (win *Window) getPtr() *C.FetchWindow {
+func (win *Window) ptr() *C.FetchWindow {
 	return (*C.FetchWindow)(unsafe.Pointer(win))
 }
 
@@ -43,13 +43,13 @@ func (win *Window) Close() error {
 }
 
 func (win *Window) Get(segNum uint64) *SegState {
-	return segStateFromC(C.FetchWindow_Get(win.getPtr(), C.uint64_t(segNum)))
+	return segStateFromC(C.FetchWindow_Get(win.ptr(), C.uint64_t(segNum)))
 }
 
 func (win *Window) Append() *SegState {
-	return segStateFromC(C.FetchWindow_Append(win.getPtr()))
+	return segStateFromC(C.FetchWindow_Append(win.ptr()))
 }
 
 func (win *Window) Delete(segNum uint64) {
-	C.FetchWindow_Delete(win.getPtr(), C.uint64_t(segNum))
+	C.FetchWindow_Delete(win.ptr(), C.uint64_t(segNum))
 }

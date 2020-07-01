@@ -15,5 +15,5 @@ var (
 )
 
 func packetFromHex(input string) *ndni.Packet {
-	return ndni.PacketFromPtr(mbuftestenv.MakePacket(input).GetPtr())
+	return ndni.PacketFromPtr(mbuftestenv.MakePacket(input).Ptr())
 }

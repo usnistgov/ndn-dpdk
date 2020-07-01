@@ -57,48 +57,48 @@ func FromPtr(ptr unsafe.Pointer) *Ring {
 	return (*Ring)(ptr)
 }
 
-// GetPtr returns *C.struct_rte_ring pointer.
-func (r *Ring) GetPtr() unsafe.Pointer {
+// Ptr returns *C.struct_rte_ring pointer.
+func (r *Ring) Ptr() unsafe.Pointer {
 	return unsafe.Pointer(r)
 }
 
-func (r *Ring) getPtr() *C.struct_rte_ring {
+func (r *Ring) ptr() *C.struct_rte_ring {
 	return (*C.struct_rte_ring)(r)
 }
 
 // Close releases the ring.
 func (r *Ring) Close() error {
-	C.rte_ring_free(r.getPtr())
+	C.rte_ring_free(r.ptr())
 	return nil
 }
 
-// GetCapacity returns ring capacity.
-func (r *Ring) GetCapacity() int {
-	return int(C.rte_ring_get_capacity(r.getPtr()))
+// Capacity returns ring capacity.
+func (r *Ring) Capacity() int {
+	return int(C.rte_ring_get_capacity(r.ptr()))
 }
 
 // CountAvailable returns free space.
 func (r *Ring) CountAvailable() int {
-	return int(C.rte_ring_free_count(r.getPtr()))
+	return int(C.rte_ring_free_count(r.ptr()))
 }
 
 // CountInUse returns used space.
 func (r *Ring) CountInUse() int {
-	return int(C.rte_ring_count(r.getPtr()))
+	return int(C.rte_ring_count(r.ptr()))
 }
 
 // Enqueue enqueues several objects on a ring.
 // objs should be a slice of C void* pointers.
 func (r *Ring) Enqueue(objs interface{}) (nEnqueued int) {
 	ptr, count := cptr.ParseCptrArray(objs)
-	return int(C.rte_ring_enqueue_burst(r.getPtr(), (*unsafe.Pointer)(ptr), C.uint(count), nil))
+	return int(C.rte_ring_enqueue_burst(r.ptr(), (*unsafe.Pointer)(ptr), C.uint(count), nil))
 }
 
 // Dequeue dequeues several objects from a ring.
 // objs should be a slice of C void* pointers.
 func (r *Ring) Dequeue(objs interface{}) (nDequeued int) {
 	ptr, count := cptr.ParseCptrArray(objs)
-	return int(C.rte_ring_dequeue_burst(r.getPtr(), (*unsafe.Pointer)(ptr), C.uint(count), nil))
+	return int(C.rte_ring_dequeue_burst(r.ptr(), (*unsafe.Pointer)(ptr), C.uint(count), nil))
 }
 
 // AlignCapacity returns an acceptable capacity for Ring.

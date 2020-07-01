@@ -45,7 +45,7 @@ func NewPort(dev ethdev.EthDev, cfg PortConfig) (port *Port, e error) {
 		return nil, errors.New("Port already exists")
 	}
 	if cfg.Local.IsZero() {
-		cfg.Local = dev.GetMacAddr()
+		cfg.Local = dev.MacAddr()
 	}
 
 	port = new(Port)

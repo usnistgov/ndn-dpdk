@@ -6,31 +6,31 @@ import (
 
 // Transport represents a communicate channel to send and receive TLV packets.
 type Transport interface {
-	// GetRx returns a channel to receive incoming TLV elements.
+	// Rx returns a channel to receive incoming TLV elements.
 	// This function always returns the same channel.
 	// This channel is closed when the transport is closed.
-	GetRx() <-chan []byte
+	Rx() <-chan []byte
 
-	// GetTx returns a channel to send outgoing TLV elements.
+	// Tx returns a channel to send outgoing TLV elements.
 	// This function always returns the same channel.
 	// Closing this channel causes the transport to close.
-	GetTx() chan<- []byte
+	Tx() chan<- []byte
 }
 
 // L3Face represents a communicate channel to send and receive TLV packets.
 type L3Face interface {
-	// GetTransport returns the underlying transport.
-	GetTransport() Transport
+	// Transport returns the underlying transport.
+	Transport() Transport
 
-	// GetRx returns a channel to receive incoming packets.
+	// Rx returns a channel to receive incoming packets.
 	// This function always returns the same channel.
 	// This channel is closed when the face is closed.
-	GetRx() <-chan *Packet
+	Rx() <-chan *Packet
 
-	// GetTx returns a channel to send outgoing packets.
+	// Tx returns a channel to send outgoing packets.
 	// This function always returns the same channel.
 	// Closing this channel causes the face to close.
-	GetTx() chan<- L3Packet
+	Tx() chan<- L3Packet
 }
 
 // NewL3Face creates an L3Face.
@@ -50,20 +50,20 @@ type l3faceImpl struct {
 	tx chan L3Packet
 }
 
-func (face *l3faceImpl) GetTransport() Transport {
+func (face *l3faceImpl) Transport() Transport {
 	return face.tr
 }
 
-func (face *l3faceImpl) GetRx() <-chan *Packet {
+func (face *l3faceImpl) Rx() <-chan *Packet {
 	return face.rx
 }
 
-func (face *l3faceImpl) GetTx() chan<- L3Packet {
+func (face *l3faceImpl) Tx() chan<- L3Packet {
 	return face.tx
 }
 
 func (face *l3faceImpl) rxLoop() {
-	for wire := range face.tr.GetRx() {
+	for wire := range face.tr.Rx() {
 		var packet Packet
 		e := tlv.Decode(wire, &packet)
 		if e != nil {
@@ -75,7 +75,7 @@ func (face *l3faceImpl) rxLoop() {
 }
 
 func (face *l3faceImpl) txLoop() {
-	transportTx := face.tr.GetTx()
+	transportTx := face.tr.Tx()
 	for l3packet := range face.tx {
 		wire, e := tlv.Encode(l3packet.ToPacket())
 		if e != nil {

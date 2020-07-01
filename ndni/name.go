@@ -26,14 +26,14 @@ func (lname LName) ToName() (name ndn.Name) {
 	return name
 }
 
-func (pname *PName) getPtr() *C.PName {
+func (pname *PName) ptr() *C.PName {
 	return (*C.PName)(unsafe.Pointer(pname))
 }
 
 // NewCName constructs CName from TLV-VALUE.
 func NewCName(value []byte) (cname *CName, e error) {
 	cname = new(CName)
-	res := C.PName_Parse(cname.P.getPtr(), C.uint32_t(len(value)), bytesToPtr(value))
+	res := C.PName_Parse(cname.P.ptr(), C.uint32_t(len(value)), bytesToPtr(value))
 	if res != 0 {
 		return nil, NdnError(res)
 	}
@@ -69,12 +69,12 @@ func (cname *CName) Compare(other *CName) int {
 
 // ComputePrefixHash computes hash for prefix with i components.
 func (cname *CName) ComputePrefixHash(i int) uint64 {
-	return uint64(C.PName_ComputePrefixHash(cname.P.getPtr(), (*C.uint8_t)(unsafe.Pointer(cname.V)), C.uint16_t(i)))
+	return uint64(C.PName_ComputePrefixHash(cname.P.ptr(), (*C.uint8_t)(unsafe.Pointer(cname.V)), C.uint16_t(i)))
 }
 
 // ComputeHash computes hash for all components.
 func (cname *CName) ComputeHash() uint64 {
-	return uint64(C.PName_ComputeHash(cname.P.getPtr(), (*C.uint8_t)(unsafe.Pointer(cname.V))))
+	return uint64(C.PName_ComputeHash(cname.P.ptr(), (*C.uint8_t)(unsafe.Pointer(cname.V))))
 }
 
 func bytesToPtr(b []byte) *C.uint8_t {

@@ -38,10 +38,10 @@ type Bdev struct {
 
 // Open opens a block device.
 func Open(device Device, mode Mode) (bd *Bdev, e error) {
-	bdi := device.GetInfo()
+	bdi := device.DevInfo()
 	bd = new(Bdev)
 	spdkenv.MainThread.Call(func() {
-		if res := C.spdk_bdev_open_ext(C.spdk_bdev_get_name(bdi.getPtr()), C.bool(mode),
+		if res := C.spdk_bdev_open_ext(C.spdk_bdev_get_name(bdi.ptr()), C.bool(mode),
 			C.spdk_bdev_event_cb_t(C.go_bdevEvent), nil, &bd.c); res != 0 {
 			e = eal.Errno(res)
 			return
@@ -51,7 +51,7 @@ func Open(device Device, mode Mode) (bd *Bdev, e error) {
 	if e != nil {
 		return nil, e
 	}
-	bd.blockSize = int64(bdi.GetBlockSize())
+	bd.blockSize = int64(bdi.BlockSize())
 	bd.nBlocks = int64(bdi.CountBlocks())
 	return bd, nil
 }
@@ -69,13 +69,13 @@ func (bd *Bdev) Close() error {
 	return nil
 }
 
-// GetPtr returns *C.struct_bdev_bdev_desc pointer.
-func (bd *Bdev) GetPtr() unsafe.Pointer {
+// Ptr returns *C.struct_bdev_bdev_desc pointer.
+func (bd *Bdev) Ptr() unsafe.Pointer {
 	return unsafe.Pointer(bd.c)
 }
 
-// GetInfo returns Info about this device.
-func (bd *Bdev) GetInfo() (bdi *Info) {
+// DevInfo returns Info about this device.
+func (bd *Bdev) DevInfo() (bdi *Info) {
 	return (*Info)(C.spdk_bdev_desc_get_bdev(bd.c))
 }
 
@@ -142,7 +142,7 @@ func (bd *Bdev) ReadPacket(blockOffset, blockCount int64, pkt pktmbuf.Packet) er
 	done := make(chan error)
 	spdkenv.MainThread.Post(func() {
 		ctx := cptr.CtxPut(done)
-		res := C.SpdkBdev_ReadPacket(bd.c, bd.ch, (*C.struct_rte_mbuf)(pkt.GetPtr()),
+		res := C.SpdkBdev_ReadPacket(bd.c, bd.ch, (*C.struct_rte_mbuf)(pkt.Ptr()),
 			C.uint64_t(blockOffset), C.uint64_t(blockCount), C.uint32_t(bd.blockSize),
 			C.spdk_bdev_io_completion_cb(C.go_bdevIoComplete), ctx)
 		if res != 0 {
@@ -158,7 +158,7 @@ func (bd *Bdev) WritePacket(blockOffset, blockCount int64, pkt pktmbuf.Packet) e
 	done := make(chan error)
 	spdkenv.MainThread.Post(func() {
 		ctx := cptr.CtxPut(done)
-		res := C.SpdkBdev_WritePacket(bd.c, bd.ch, (*C.struct_rte_mbuf)(pkt.GetPtr()),
+		res := C.SpdkBdev_WritePacket(bd.c, bd.ch, (*C.struct_rte_mbuf)(pkt.Ptr()),
 			C.uint64_t(blockOffset), C.uint64_t(blockCount), C.uint32_t(bd.blockSize),
 			C.spdk_bdev_io_completion_cb(C.go_bdevIoComplete), ctx)
 		if res != 0 {

@@ -34,7 +34,7 @@ func Find(name string) StrategyCode {
 	tableLock.Lock()
 	defer tableLock.Unlock()
 	for _, sc := range table {
-		if sc.GetName() == name {
+		if sc.Name() == name {
 			return sc
 		}
 	}

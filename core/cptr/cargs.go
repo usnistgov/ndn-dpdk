@@ -33,8 +33,8 @@ func NewCArgs(args []string) *CArgs {
 	return a
 }
 
-// GetRemainingArgs returns remaining argv tokens after the first nConsumed tokens have been consumed by C code.
-func (a *CArgs) GetRemainingArgs(nConsumed int) []string {
+// RemainingArgs returns remaining argv tokens after the first nConsumed tokens have been consumed by C code.
+func (a *CArgs) RemainingArgs(nConsumed int) []string {
 	var b *C.char
 	ptrSize := unsafe.Sizeof(b)
 

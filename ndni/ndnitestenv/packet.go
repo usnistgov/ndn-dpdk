@@ -14,7 +14,7 @@ import (
 func makePacket(b []byte) *ndni.Packet {
 	m := mbuftestenv.MakePacket(b)
 	m.SetTimestamp(eal.TscNow())
-	return ndni.PacketFromPtr(m.GetPtr())
+	return ndni.PacketFromPtr(m.Ptr())
 }
 
 func parseL2L3(pkt *ndni.Packet) {
@@ -114,20 +114,20 @@ func MakeData(input interface{}, args ...interface{}) *ndni.Data {
 
 // SetPort updates mbuf.port field.
 func SetPort(pkt ndni.IL3Packet, port uint16) {
-	pkt.GetPacket().AsMbuf().SetPort(port)
+	pkt.AsPacket().AsMbuf().SetPort(port)
 }
 
-// GetPitToken returns the PIT token.
-func GetPitToken(pkt ndni.IL3Packet) uint64 {
-	return pkt.GetPacket().GetLpL3().PitToken
+// PitToken returns the PIT token.
+func PitToken(pkt ndni.IL3Packet) uint64 {
+	return pkt.AsPacket().LpL3().PitToken
 }
 
 // SetPitToken updates the PIT token.
 func SetPitToken(pkt ndni.IL3Packet, token uint64) {
-	pkt.GetPacket().GetLpL3().PitToken = token
+	pkt.AsPacket().LpL3().PitToken = token
 }
 
 // ClosePacket releases the mbuf.
 func ClosePacket(pkt ndni.IL3Packet) {
-	pkt.GetPacket().AsMbuf().Close()
+	pkt.AsPacket().AsMbuf().Close()
 }

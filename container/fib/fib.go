@@ -62,8 +62,8 @@ func (fib *Fib) Len() int {
 	return fib.tree.CountEntries()
 }
 
-// GetPtr returns *C.Fib pointer for specified partition.
-func (fib *Fib) GetPtr(partition int) (ptr unsafe.Pointer) {
+// Ptr returns *C.Fib pointer for specified partition.
+func (fib *Fib) Ptr(partition int) (ptr unsafe.Pointer) {
 	if partition >= 0 && partition < len(fib.parts) {
 		ptr = unsafe.Pointer(fib.parts[partition].c)
 	}

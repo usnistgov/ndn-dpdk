@@ -20,7 +20,7 @@ func TestDiskStore(t *testing.T) {
 	require.NoError(e)
 	defer device.Close()
 
-	mp, e := pktmbuf.NewPool("TestDiskStore", ndni.PacketMempool.GetConfig(), eal.NumaSocket{})
+	mp, e := pktmbuf.NewPool("TestDiskStore", ndni.PacketMempool.Config(), eal.NumaSocket{})
 	require.NoError(e)
 	defer mp.Close()
 
@@ -37,7 +37,7 @@ func TestDiskStore(t *testing.T) {
 
 	for _, n := range []uint64{1, 31, 32} {
 		data := makeData(fmt.Sprintf("/A/%d", n), time.Duration(n)*time.Millisecond)
-		dataLens[n] = data.GetPacket().AsMbuf().Len()
+		dataLens[n] = data.AsPacket().AsMbuf().Len()
 		store.PutData(n, data)
 	}
 	time.Sleep(100 * time.Millisecond) // give time for asynchronous PutData operation
@@ -49,7 +49,7 @@ func TestDiskStore(t *testing.T) {
 			continue
 		}
 		if assert.NotNil(data, n) {
-			assert.Equal(time.Duration(n)*time.Millisecond, data.GetFreshnessPeriod(), n)
+			assert.Equal(time.Duration(n)*time.Millisecond, data.FreshnessPeriod(), n)
 			closePacket(data)
 		}
 		closePacket(interest)

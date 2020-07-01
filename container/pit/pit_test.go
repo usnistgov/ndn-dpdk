@@ -26,30 +26,30 @@ func TestInsertErase(t *testing.T) {
 	interest2 := makeInterest("/A/2")
 	entry2 := fixture.Insert(interest2)
 	assert.NotNil(entry2)
-	assert.NotEqual(uintptr(entry1.GetPtr()), uintptr(entry2.GetPtr()))
+	assert.NotEqual(uintptr(entry1.Ptr()), uintptr(entry2.Ptr()))
 
 	interest3 := makeInterest("/A/2",
 		ndn.MakeFHDelegation(1, "/F"), ndn.MakeFHDelegation(1, "/G"))
 	entry3 := fixture.Insert(interest3)
 	ndnitestenv.ClosePacket(interest3)
 	assert.NotNil(entry3)
-	assert.Equal(uintptr(entry2.GetPtr()), uintptr(entry3.GetPtr()))
+	assert.Equal(uintptr(entry2.Ptr()), uintptr(entry3.Ptr()))
 
 	entry4 := fixture.Insert(makeInterest("/A/2",
 		ndn.MakeFHDelegation(1, "/F"), ndn.MakeFHDelegation(1, "/G"), setActiveFH(0)))
 	assert.NotNil(entry4)
-	assert.NotEqual(uintptr(entry2.GetPtr()), uintptr(entry4.GetPtr()))
+	assert.NotEqual(uintptr(entry2.Ptr()), uintptr(entry4.Ptr()))
 
 	entry5 := fixture.Insert(makeInterest("/A/2",
 		ndn.MakeFHDelegation(1, "/F"), ndn.MakeFHDelegation(1, "/G"), setActiveFH(1)))
 	assert.NotNil(entry5)
-	assert.NotEqual(uintptr(entry2.GetPtr()), uintptr(entry5.GetPtr()))
-	assert.NotEqual(uintptr(entry4.GetPtr()), uintptr(entry5.GetPtr()))
+	assert.NotEqual(uintptr(entry2.Ptr()), uintptr(entry5.Ptr()))
+	assert.NotEqual(uintptr(entry4.Ptr()), uintptr(entry5.Ptr()))
 
 	interest6 := makeInterest("/A/2", ndn.MustBeFreshFlag)
 	entry6 := fixture.Insert(interest6)
 	assert.NotNil(entry6)
-	assert.NotEqual(uintptr(entry2.GetPtr()), uintptr(entry6.GetPtr()))
+	assert.NotEqual(uintptr(entry2.Ptr()), uintptr(entry6.Ptr()))
 
 	assert.Equal(5, fixture.Pit.Len())
 	assert.Equal(5, fixture.CountMpInUse()) // entry2 and entry6 share a PccEntry but it has PccEntryExt
@@ -77,7 +77,7 @@ func TestToken(t *testing.T) {
 
 	for i := 0; i <= 255; i++ {
 		data := makeData(fmt.Sprintf("/I/%d", i))
-		name := data.GetName().String()
+		name := data.Name().String()
 		if i < 32 {
 			name = data.ToNData().FullName().String()
 		}
@@ -107,21 +107,21 @@ func TestToken(t *testing.T) {
 	for i, entry := range entries {
 		name := interestNames[i]
 		data := dataPkts[i]
-		token := ndnitestenv.GetPitToken(data)
+		token := ndnitestenv.PitToken(data)
 
 		found := pit.FindByData(data)
 		foundEntries := found.ListEntries()
 		if assert.Len(foundEntries, 1) {
-			assert.Equal(uintptr(entry.GetPtr()), uintptr(foundEntries[0].GetPtr()))
+			assert.Equal(uintptr(entry.Ptr()), uintptr(foundEntries[0].Ptr()))
 		}
 
 		// Interest carries implicit digest, so Data digest is needed
 		if i < 32 && assert.True(found.NeedDataDigest()) {
-			data.SaveDigest()
+			data.ComputeImplicitDigest()
 			found = pit.FindByData(data)
 			foundEntries = found.ListEntries()
 			if assert.Len(foundEntries, 1) {
-				assert.Equal(uintptr(entry.GetPtr()), uintptr(foundEntries[0].GetPtr()))
+				assert.Equal(uintptr(entry.Ptr()), uintptr(foundEntries[0].Ptr()))
 			}
 		}
 		assert.False(found.NeedDataDigest())
@@ -133,7 +133,7 @@ func TestToken(t *testing.T) {
 		ndnitestenv.SetPitToken(nack, token2)
 		foundEntry := pit.FindByNack(nack)
 		if assert.NotNil(foundEntry) {
-			assert.Equal(uintptr(entry.GetPtr()), uintptr(foundEntry.GetPtr()))
+			assert.Equal(uintptr(entry.Ptr()), uintptr(foundEntry.Ptr()))
 		}
 
 		// name mismatch

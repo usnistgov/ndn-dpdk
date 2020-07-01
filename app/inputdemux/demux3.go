@@ -21,29 +21,29 @@ func Demux3FromPtr(ptr unsafe.Pointer) *Demux3 {
 	return (*Demux3)(ptr)
 }
 
-func (demux3 *Demux3) GetPtr() unsafe.Pointer {
-	return unsafe.Pointer(demux3.getPtr())
+func (demux3 *Demux3) Ptr() unsafe.Pointer {
+	return unsafe.Pointer(demux3.ptr())
 }
 
-func (demux3 *Demux3) getPtr() *C.InputDemux3 {
+func (demux3 *Demux3) ptr() *C.InputDemux3 {
 	return (*C.InputDemux3)(demux3)
 }
 
 func (demux3 *Demux3) Close() error {
-	eal.Free(demux3.GetPtr())
+	eal.Free(demux3.Ptr())
 	return nil
 }
 
 func (demux3 *Demux3) GetInterestDemux() *Demux {
-	return (*Demux)(&demux3.getPtr().interest)
+	return (*Demux)(&demux3.ptr().interest)
 }
 
 func (demux3 *Demux3) GetDataDemux() *Demux {
-	return (*Demux)(&demux3.getPtr().data)
+	return (*Demux)(&demux3.ptr().data)
 }
 
 func (demux3 *Demux3) GetNackDemux() *Demux {
-	return (*Demux)(&demux3.getPtr().nack)
+	return (*Demux)(&demux3.ptr().nack)
 }
 
 var Demux3_FaceRx = unsafe.Pointer(C.InputDemux3_FaceRx)

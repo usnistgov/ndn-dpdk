@@ -26,13 +26,13 @@ func NewMalloc(blockSize int, nBlocks int) (device *Malloc, e error) {
 // Close destroys this block device.
 func (device *Malloc) Close() error {
 	var args bdevMallocDeleteArgs
-	args.Name = device.GetName()
+	args.Name = device.Name()
 	var ok bool
 	return spdkenv.RPC("bdev_malloc_delete", args, &ok)
 }
 
-// GetInfo implements Device interface.
-func (device *Malloc) GetInfo() *Info {
+// DevInfo implements Device interface.
+func (device *Malloc) DevInfo() *Info {
 	return device.Info
 }
 

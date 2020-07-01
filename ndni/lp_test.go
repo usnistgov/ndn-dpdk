@@ -61,10 +61,10 @@ func TestLpHeaderDecode(t *testing.T) {
 		if tt.bad {
 			assert.Error(e, tt.input)
 		} else if assert.NoError(e, tt.input) {
-			if !assert.Equal(ndni.L2PktTypeNdnlpV2, pkt.GetL2Type(), tt.input) {
+			if !assert.Equal(ndni.L2PktTypeNdnlpV2, pkt.L2Type(), tt.input) {
 				continue
 			}
-			lph := pkt.GetLpHdr()
+			lph := pkt.LpHdr()
 			assert.Equal(tt.seqNum, lph.L2.SeqNum, tt.input)
 			assert.Equal(tt.fragIndex, lph.L2.FragIndex, tt.input)
 			assert.Equal(tt.fragCount, lph.L2.FragCount, tt.input)

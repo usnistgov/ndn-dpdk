@@ -36,7 +36,7 @@ func TestInsertErase(t *testing.T) {
 	require.NotNil(csEntry)
 	csData := csEntry.GetData()
 	nameEqual(assert, "/A/B", csData)
-	assert.Equal(100*time.Millisecond, csData.GetFreshnessPeriod())
+	assert.Equal(100*time.Millisecond, csData.FreshnessPeriod())
 
 	ok = fixture.Insert(
 		makeInterest("/A/B", ndn.MakeFHDelegation(1, "/F"), setActiveFH(0)),
@@ -49,7 +49,7 @@ func TestInsertErase(t *testing.T) {
 	require.NotNil(csEntry3)
 	csData3 := csEntry3.GetData()
 	nameEqual(assert, "/A/B", csData3)
-	assert.Equal(200*time.Millisecond, csData3.GetFreshnessPeriod())
+	assert.Equal(200*time.Millisecond, csData3.FreshnessPeriod())
 
 	time.Sleep(10 * time.Millisecond)
 	assert.NotNil(fixture.Find(makeInterest("/A/B", ndn.MustBeFreshFlag)))

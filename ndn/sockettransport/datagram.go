@@ -12,7 +12,7 @@ type datagramImpl struct {
 func (datagramImpl) RxLoop(tr *Transport) error {
 	for {
 		buffer := make([]byte, tr.cfg.RxBufferLength)
-		datagramLength, e := tr.GetConn().Read(buffer)
+		datagramLength, e := tr.Conn().Read(buffer)
 		if e != nil {
 			return e
 		}

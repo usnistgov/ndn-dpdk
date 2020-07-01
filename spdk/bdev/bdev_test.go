@@ -19,8 +19,8 @@ const (
 func checkSize(t *testing.T, device bdev.Device) {
 	assert, _ := makeAR(t)
 
-	bdi := device.GetInfo()
-	assert.Equal(bdevBlockSize, bdi.GetBlockSize())
+	bdi := device.DevInfo()
+	assert.Equal(bdevBlockSize, bdi.BlockSize())
 	assert.Equal(bdevBlockCount, bdi.CountBlocks())
 }
 

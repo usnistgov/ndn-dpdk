@@ -40,7 +40,7 @@ func NewVNet(cfg VNetConfig) (vnet *VNet) {
 	vnet.stop = make(chan bool)
 	for i := 0; i < vnet.cfg.NNodes; i++ {
 		pair := NewPair(vnet.cfg.PairConfig)
-		pair.PortB.Start(pair.GetEthDevConfig())
+		pair.PortB.Start(pair.EthDevConfig())
 		vnet.pairs = append(vnet.pairs, pair)
 		vnet.Ports = append(vnet.Ports, pair.PortA)
 	}

@@ -49,34 +49,34 @@ func FromPtr(ptr unsafe.Pointer) *Mempool {
 	return (*Mempool)(ptr)
 }
 
-// GetPtr returns *C.struct_rte_mempool pointer.
-func (mp *Mempool) GetPtr() unsafe.Pointer {
+// Ptr returns *C.struct_rte_mempool pointer.
+func (mp *Mempool) Ptr() unsafe.Pointer {
 	return unsafe.Pointer(mp)
 }
 
-func (mp *Mempool) getPtr() *C.struct_rte_mempool {
+func (mp *Mempool) ptr() *C.struct_rte_mempool {
 	return (*C.struct_rte_mempool)(mp)
 }
 
 // Close releases the mempool.
 func (mp *Mempool) Close() error {
-	C.rte_mempool_free(mp.getPtr())
+	C.rte_mempool_free(mp.ptr())
 	return nil
 }
 
 // SizeofElement returns element size.
 func (mp *Mempool) SizeofElement() int {
-	return int(mp.getPtr().elt_size)
+	return int(mp.ptr().elt_size)
 }
 
 // CountAvailable returns number of available objects.
 func (mp *Mempool) CountAvailable() int {
-	return int(C.rte_mempool_avail_count(mp.getPtr()))
+	return int(C.rte_mempool_avail_count(mp.ptr()))
 }
 
 // CountInUse returns number of allocated objects.
 func (mp *Mempool) CountInUse() int {
-	return int(C.rte_mempool_in_use_count(mp.getPtr()))
+	return int(C.rte_mempool_in_use_count(mp.ptr()))
 }
 
 // Alloc allocates several objects.
@@ -86,7 +86,7 @@ func (mp *Mempool) Alloc(objs interface{}) error {
 	if count == 0 {
 		return nil
 	}
-	res := C.rte_mempool_get_bulk(mp.getPtr(), (*unsafe.Pointer)(ptr), C.uint(count))
+	res := C.rte_mempool_get_bulk(mp.ptr(), (*unsafe.Pointer)(ptr), C.uint(count))
 	if res != 0 {
 		return errors.New("mbuf allocation failed")
 	}
@@ -100,5 +100,5 @@ func (mp *Mempool) Free(objs interface{}) {
 	if count == 0 {
 		return
 	}
-	C.rte_mempool_put_bulk(mp.getPtr(), (*unsafe.Pointer)(ptr), C.uint(count))
+	C.rte_mempool_put_bulk(mp.ptr(), (*unsafe.Pointer)(ptr), C.uint(count))
 }

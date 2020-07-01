@@ -29,8 +29,8 @@ type DiskStore struct {
 
 // New creates a DiskStore.
 func New(device bdev.Device, th *spdkenv.Thread, mp *pktmbuf.Pool, nBlocksPerSlot int) (store *DiskStore, e error) {
-	bdi := device.GetInfo()
-	if bdi.GetBlockSize() != BlockSize {
+	bdi := device.DevInfo()
+	if bdi.BlockSize() != BlockSize {
 		return nil, fmt.Errorf("bdev block size must be %d", BlockSize)
 	}
 
@@ -40,13 +40,13 @@ func New(device bdev.Device, th *spdkenv.Thread, mp *pktmbuf.Pool, nBlocksPerSlo
 		return nil, e
 	}
 
-	numaSocket := th.GetLCore().NumaSocket()
+	numaSocket := th.LCore().NumaSocket()
 	store.c = (*C.DiskStore)(eal.Zmalloc("DiskStore", C.sizeof_DiskStore, numaSocket))
-	store.c.th = (*C.struct_spdk_thread)(th.GetPtr())
-	store.c.bdev = (*C.struct_spdk_bdev_desc)(store.bd.GetPtr())
-	store.c.mp = (*C.struct_rte_mempool)(mp.GetPtr())
+	store.c.th = (*C.struct_spdk_thread)(th.Ptr())
+	store.c.bdev = (*C.struct_spdk_bdev_desc)(store.bd.Ptr())
+	store.c.mp = (*C.struct_rte_mempool)(mp.Ptr())
 	store.c.nBlocksPerSlot = C.uint64_t(nBlocksPerSlot)
-	store.c.blockSize = C.uint32_t(bdi.GetBlockSize())
+	store.c.blockSize = C.uint32_t(bdi.BlockSize())
 	th.Call(func() { store.c.ch = C.spdk_bdev_get_io_channel(store.c.bdev) })
 	return store, nil
 }
@@ -60,12 +60,12 @@ func (store *DiskStore) Close() error {
 
 // GetSlotIdRange returns a range of possible slot numbers.
 func (store *DiskStore) GetSlotIdRange() (min, max uint64) {
-	return 1, uint64(store.bd.GetInfo().CountBlocks()/int(store.c.nBlocksPerSlot) - 1)
+	return 1, uint64(store.bd.DevInfo().CountBlocks()/int(store.c.nBlocksPerSlot) - 1)
 }
 
 // PutData asynchronously stores a Data packet.
 func (store *DiskStore) PutData(slotID uint64, data *ndni.Data) {
-	C.DiskStore_PutData(store.c, C.uint64_t(slotID), (*C.Packet)(data.GetPacket().GetPtr()))
+	C.DiskStore_PutData(store.c, C.uint64_t(slotID), (*C.Packet)(data.AsPacket().Ptr()))
 }
 
 // GetData retrieves a Data packet from specified slot and waits for completion.
@@ -77,8 +77,8 @@ func (store *DiskStore) GetData(slotID uint64, dataLen int, interest *ndni.Inter
 	}
 	defer reply.Close()
 
-	interestPtr := interest.GetPacket().GetPtr()
-	C.DiskStore_GetData(store.c, C.uint64_t(slotID), C.uint16_t(dataLen), (*C.Packet)(interestPtr), (*C.struct_rte_ring)(reply.GetPtr()))
+	interestPtr := interest.AsPacket().Ptr()
+	C.DiskStore_GetData(store.c, C.uint64_t(slotID), C.uint16_t(dataLen), (*C.Packet)(interestPtr), (*C.struct_rte_ring)(reply.Ptr()))
 
 	for {
 		pkts := make([]*ndni.Packet, 1)
@@ -88,12 +88,12 @@ func (store *DiskStore) GetData(slotID uint64, dataLen int, interest *ndni.Inter
 			continue
 		}
 		pkt := pkts[0]
-		if pkt.GetPtr() != interestPtr {
+		if pkt.Ptr() != interestPtr {
 			panic("unexpected packet in reply ring")
 		}
 
 		interest = pkt.AsInterest()
-		interestC := (*C.PInterest)(interest.GetPInterestPtr())
+		interestC := (*C.PInterest)(interest.PInterestPtr())
 		if uint64(interestC.diskSlotId) != slotID {
 			panic("unexpected PInterest.diskSlotId")
 		}

@@ -57,8 +57,8 @@ func (nack Nack) ToPacket() *Packet {
 	return nack.packet
 }
 
-// GetName returns the name of the enclosed Interest.
-func (nack Nack) GetName() Name {
+// Name returns the name of the enclosed Interest.
+func (nack Nack) Name() Name {
 	return nack.Interest.Name
 }
 

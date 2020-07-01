@@ -23,11 +23,11 @@ type IntFace struct {
 	A ndn.L3Face
 
 	// Rx is application side RX channel.
-	// It's equivalent to A.GetRx().
+	// It's equivalent to A.Rx().
 	Rx <-chan *ndn.Packet
 
 	// Tx is application side TX channel.
-	// It's equivalent to A.GetTx().
+	// It's equivalent to A.Tx().
 	Tx chan<- ndn.L3Packet
 }
 
@@ -53,8 +53,8 @@ func New() (*IntFace, error) {
 	}
 
 	f.ID = f.D.ID()
-	f.Rx = f.A.GetRx()
-	f.Tx = f.A.GetTx()
+	f.Rx = f.A.Rx()
+	f.Tx = f.A.Tx()
 	return &f, nil
 }
 

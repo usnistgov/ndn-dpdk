@@ -37,7 +37,7 @@ func New(face iface.Face, cfg Config) (client *Client, e error) {
 
 	ctC := (*C.PingClientTx)(eal.Zmalloc("PingClientTx", C.sizeof_PingClientTx, socket))
 	ctC.face = (C.FaceID)(face.ID())
-	ctC.interestMp = (*C.struct_rte_mempool)(pingmempool.Interest.MakePool(socket).GetPtr())
+	ctC.interestMp = (*C.struct_rte_mempool)(pingmempool.Interest.MakePool(socket).Ptr())
 	C.pcg32_srandom_r(&ctC.trafficRng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
 	C.NonceGen_Init(&ctC.nonceGen)
 

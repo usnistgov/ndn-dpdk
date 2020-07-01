@@ -64,7 +64,7 @@ func NewAt(ptr unsafe.Pointer, cfg Config, name string, socket eal.NumaSocket) (
 	if r, e := ringbuffer.New(name, capacity, socket, ringbuffer.ProducerMulti, ringbuffer.ConsumerSingle); e != nil {
 		return q, e
 	} else {
-		qC.ring = (*C.struct_rte_ring)(r.GetPtr())
+		qC.ring = (*C.struct_rte_ring)(r.Ptr())
 	}
 
 	if cfg.DequeueBurstSize > 0 && cfg.DequeueBurstSize < BURST_SIZE_MAX {
@@ -76,16 +76,16 @@ func NewAt(ptr unsafe.Pointer, cfg Config, name string, socket eal.NumaSocket) (
 	return FromPtr(ptr), nil
 }
 
-func (q *PktQueue) GetPtr() unsafe.Pointer {
+func (q *PktQueue) Ptr() unsafe.Pointer {
 	return unsafe.Pointer(q)
 }
 
-func (q *PktQueue) getPtr() *C.PktQueue {
+func (q *PktQueue) ptr() *C.PktQueue {
 	return (*C.PktQueue)(q)
 }
 
 func (q *PktQueue) GetRing() *ringbuffer.Ring {
-	return ringbuffer.FromPtr(unsafe.Pointer(q.getPtr().ring))
+	return ringbuffer.FromPtr(unsafe.Pointer(q.ptr().ring))
 }
 
 func (q *PktQueue) Close() error {
@@ -94,11 +94,11 @@ func (q *PktQueue) Close() error {
 
 func (q *PktQueue) Push(pkts interface{}, now eal.TscTime) (nRej int) {
 	ptr, count := cptr.ParseCptrArray(pkts)
-	return int(C.PktQueue_Push(q.getPtr(), (**C.struct_rte_mbuf)(ptr), C.uint(count), C.TscTime(now)))
+	return int(C.PktQueue_Push(q.ptr(), (**C.struct_rte_mbuf)(ptr), C.uint(count), C.TscTime(now)))
 }
 
 func (q *PktQueue) Pop(pkts interface{}, now eal.TscTime) (count int, drop bool) {
 	ptr, count := cptr.ParseCptrArray(pkts)
-	res := C.PktQueue_Pop(q.getPtr(), (**C.struct_rte_mbuf)(ptr), C.uint(count), C.TscTime(now))
+	res := C.PktQueue_Pop(q.ptr(), (**C.struct_rte_mbuf)(ptr), C.uint(count), C.TscTime(now))
 	return int(res.count), bool(res.drop)
 }

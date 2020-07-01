@@ -56,19 +56,19 @@ func PoolFromPtr(ptr unsafe.Pointer) *Pool {
 	return (*Pool)(ptr)
 }
 
-func (mp *Pool) getPtr() *C.struct_rte_mempool {
-	return (*C.struct_rte_mempool)(mp.GetPtr())
+func (mp *Pool) ptr() *C.struct_rte_mempool {
+	return (*C.struct_rte_mempool)(mp.Ptr())
 }
 
-// GetDataroom returns dataroom setting.
-func (mp *Pool) GetDataroom() int {
-	return int(C.rte_pktmbuf_data_room_size(mp.getPtr()))
+// Dataroom returns dataroom setting.
+func (mp *Pool) Dataroom() int {
+	return int(C.rte_pktmbuf_data_room_size(mp.ptr()))
 }
 
 // Alloc allocates a vector of mbufs.
 func (mp *Pool) Alloc(count int) (vec Vector, e error) {
 	vec = make(Vector, count)
-	res := C.rte_pktmbuf_alloc_bulk(mp.getPtr(), vec.getPtr(), C.uint(count))
+	res := C.rte_pktmbuf_alloc_bulk(mp.ptr(), vec.ptr(), C.uint(count))
 	if res != 0 {
 		return Vector{}, errors.New("rte_pktmbuf_alloc_bulk failed")
 	}

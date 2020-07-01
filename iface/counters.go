@@ -50,7 +50,7 @@ func (cnt Counters) String() string {
 
 // ReadCounters retrieves basic face counters.
 func (face FaceBase) ReadCounters() (cnt Counters) {
-	faceC := face.getPtr()
+	faceC := face.ptr()
 	if faceC.impl == nil {
 		return cnt
 	}

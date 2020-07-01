@@ -19,7 +19,7 @@ func (cnt ExCounters) String() string {
 func (face *SocketFace) ReadExCounters() interface{} {
 	return ExCounters{
 		NRedials:      face.inner.NRedials,
-		RxQueueLength: len(face.inner.GetRx()),
-		TxQueueLength: len(face.inner.GetTx()),
+		RxQueueLength: len(face.inner.Rx()),
+		TxQueueLength: len(face.inner.Tx()),
 	}
 }

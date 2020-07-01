@@ -27,61 +27,61 @@ func PacketFromPtr(ptr unsafe.Pointer) (pkt *Packet) {
 
 // PacketFromMbuf converts pktmbuf.Packet to Packet.
 func PacketFromMbuf(m *pktmbuf.Packet) (pkt *Packet) {
-	return PacketFromPtr(m.GetPtr())
+	return PacketFromPtr(m.Ptr())
 }
 
-// GetPtr returns *C.Packet or *C.struct_rte_mbuf pointer.
-func (pkt *Packet) GetPtr() unsafe.Pointer {
+// Ptr returns *C.Packet or *C.struct_rte_mbuf pointer.
+func (pkt *Packet) Ptr() unsafe.Pointer {
 	return unsafe.Pointer(pkt)
 }
 
-func (pkt *Packet) getPtr() *C.Packet {
+func (pkt *Packet) ptr() *C.Packet {
 	return (*C.Packet)(pkt)
 }
 
 // AsMbuf converts to pktmbuf.Packet.
 func (pkt *Packet) AsMbuf() *pktmbuf.Packet {
-	return pktmbuf.PacketFromPtr(pkt.GetPtr())
+	return pktmbuf.PacketFromPtr(pkt.Ptr())
 }
 
-// GetL2Type returns layer 2 packet type.
-func (pkt *Packet) GetL2Type() L2PktType {
-	return L2PktType(C.Packet_GetL2PktType(pkt.getPtr()))
+// L2Type returns layer 2 packet type.
+func (pkt *Packet) L2Type() L2PktType {
+	return L2PktType(C.Packet_GetL2PktType(pkt.ptr()))
 }
 
-// GetL3Type returns layer 3 packet type.
-func (pkt *Packet) GetL3Type() L3PktType {
-	return L3PktType(C.Packet_GetL3PktType(pkt.getPtr()))
+// L3Type returns layer 3 packet type.
+func (pkt *Packet) L3Type() L3PktType {
+	return L3PktType(C.Packet_GetL3PktType(pkt.ptr()))
 }
 
-// GetLpHdr returns NDNLP header.
+// LpHdr returns NDNLP header.
 // L2 must be parsed as NDNLP and L3 must be unparsed.
-func (pkt *Packet) GetLpHdr() *LpHeader {
-	return (*LpHeader)(unsafe.Pointer(C.Packet_GetLpHdr(pkt.getPtr())))
+func (pkt *Packet) LpHdr() *LpHeader {
+	return (*LpHeader)(unsafe.Pointer(C.Packet_GetLpHdr(pkt.ptr())))
 }
 
-// GetLpL3 returns NDNLP layer 3 header.
+// LpL3 returns NDNLP layer 3 header.
 // Packet must be parsed as NDNLP.
-func (pkt *Packet) GetLpL3() *LpL3 {
-	return (*LpL3)(unsafe.Pointer(C.Packet_GetLpL3Hdr(pkt.getPtr())))
+func (pkt *Packet) LpL3() *LpL3 {
+	return (*LpL3)(unsafe.Pointer(C.Packet_GetLpL3Hdr(pkt.ptr())))
 }
 
 // AsInterest converts to Interest type.
 // Packet must be parsed as Interest.
 func (pkt *Packet) AsInterest() *Interest {
-	return &Interest{pkt, (*pInterest)(unsafe.Pointer(C.Packet_GetInterestHdr(pkt.getPtr())))}
+	return &Interest{pkt, (*pInterest)(unsafe.Pointer(C.Packet_GetInterestHdr(pkt.ptr())))}
 }
 
 // AsData converts to Data type.
 // Packet must be parsed as Data.
 func (pkt *Packet) AsData() *Data {
-	return &Data{pkt, (*pData)(unsafe.Pointer(C.Packet_GetDataHdr(pkt.getPtr())))}
+	return &Data{pkt, (*pData)(unsafe.Pointer(C.Packet_GetDataHdr(pkt.ptr())))}
 }
 
 // AsNack converts to Nack type.
 // Packet must be parsed as Nack.
 func (pkt *Packet) AsNack() *Nack {
-	return &Nack{pkt, (*pNack)(unsafe.Pointer(C.Packet_GetNackHdr(pkt.getPtr())))}
+	return &Nack{pkt, (*pNack)(unsafe.Pointer(C.Packet_GetNackHdr(pkt.ptr())))}
 }
 
 // ToNPacket copies this packet into ndn.Packet.
@@ -91,8 +91,8 @@ func (pkt *Packet) ToNPacket() (npkt ndn.Packet) {
 	if e != nil {
 		panic(e)
 	}
-	if pkt.GetL2Type() == L2PktTypeNdnlpV2 {
-		lpl3 := pkt.GetLpL3()
+	if pkt.L2Type() == L2PktTypeNdnlpV2 {
+		lpl3 := pkt.LpL3()
 		npkt.Lp.PitToken = make([]byte, 8)
 		binary.LittleEndian.PutUint64(npkt.Lp.PitToken, lpl3.PitToken)
 		npkt.Lp.NackReason = lpl3.NackReason
@@ -105,7 +105,7 @@ func (pkt *Packet) ToNPacket() (npkt ndn.Packet) {
 }
 
 func (pkt *Packet) String() string {
-	switch pkt.GetL3Type() {
+	switch pkt.L3Type() {
 	case L3PktTypeInterest:
 		return fmt.Sprintf("I %s", pkt.AsInterest())
 	case L3PktTypeData:
@@ -113,12 +113,12 @@ func (pkt *Packet) String() string {
 	case L3PktTypeNack:
 		return fmt.Sprintf("N %s", pkt.AsNack())
 	}
-	return fmt.Sprintf("Packet(l3=%d)", pkt.GetL3Type())
+	return fmt.Sprintf("Packet(l3=%d)", pkt.L3Type())
 }
 
 // ParseL2 performs layer 2 parsing.
 func (pkt *Packet) ParseL2() error {
-	res := NdnError(C.Packet_ParseL2(pkt.getPtr()))
+	res := NdnError(C.Packet_ParseL2(pkt.ptr()))
 	if res != NdnErrOK {
 		return res
 	}
@@ -129,9 +129,9 @@ func (pkt *Packet) ParseL2() error {
 func (pkt *Packet) ParseL3(nameMp *pktmbuf.Pool) error {
 	var mpC *C.struct_rte_mempool
 	if nameMp != nil {
-		mpC = (*C.struct_rte_mempool)(nameMp.GetPtr())
+		mpC = (*C.struct_rte_mempool)(nameMp.Ptr())
 	}
-	res := NdnError(C.Packet_ParseL3(pkt.getPtr(), mpC))
+	res := NdnError(C.Packet_ParseL3(pkt.ptr(), mpC))
 	if res != NdnErrOK {
 		return res
 	}
@@ -140,10 +140,10 @@ func (pkt *Packet) ParseL3(nameMp *pktmbuf.Pool) error {
 
 // IL3Packet represents a layer 3 packet that allows conversion to Packet.
 type IL3Packet interface {
-	GetPacket() *Packet
+	AsPacket() *Packet
 }
 
-// GetPacket implements IL3Packet interface.
-func (pkt *Packet) GetPacket() *Packet {
+// AsPacket implements IL3Packet interface.
+func (pkt *Packet) AsPacket() *Packet {
 	return pkt
 }

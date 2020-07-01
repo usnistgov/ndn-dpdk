@@ -28,17 +28,17 @@ func FromPtr(ptr unsafe.Pointer) (s *RunningStat) {
 
 // Clear deletes collects data.
 func (s *RunningStat) Clear(enableMinMax bool) {
-	C.RunningStat_Clear(s.v.getPtr(), C.bool(enableMinMax))
+	C.RunningStat_Clear(s.v.ptr(), C.bool(enableMinMax))
 }
 
 // SetSampleRate changes sample rate be once every 2^q inputs.
 func (s *RunningStat) SetSampleRate(q int) {
-	C.RunningStat_SetSampleRate(s.v.getPtr(), C.int(q))
+	C.RunningStat_SetSampleRate(s.v.ptr(), C.int(q))
 }
 
 // Push adds an input.
 func (s *RunningStat) Push(x float64) {
-	C.RunningStat_Push(s.v.getPtr(), C.double(x))
+	C.RunningStat_Push(s.v.ptr(), C.double(x))
 }
 
 // Read returns current counters as Snapshot.
@@ -47,6 +47,6 @@ func (s *RunningStat) Read() (o Snapshot) {
 	return o
 }
 
-func (s *runningStat) getPtr() *C.RunningStat {
+func (s *runningStat) ptr() *C.RunningStat {
 	return (*C.RunningStat)(unsafe.Pointer(s))
 }

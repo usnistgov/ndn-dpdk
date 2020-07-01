@@ -54,8 +54,8 @@ func (c *L3FaceTester) CheckL3Face(t *testing.T, faceA, faceB ndn.L3Face) {
 	doneA := make(chan bool)
 
 	go func() {
-		rxB := faceB.GetRx()
-		txB := faceB.GetTx()
+		rxB := faceB.Rx()
+		txB := faceB.Tx()
 		for {
 			select {
 			case <-doneA:
@@ -85,7 +85,7 @@ func (c *L3FaceTester) CheckL3Face(t *testing.T, faceA, faceB ndn.L3Face) {
 	nNacks := 0
 	hasPacket := make([]bool, c.Count)
 	go func() {
-		for packet := range faceA.GetRx() {
+		for packet := range faceA.Rx() {
 			require.Len(packet.Lp.PitToken, 8)
 			token := binary.LittleEndian.Uint64(packet.Lp.PitToken)
 			if token%5 == 0 {
@@ -104,7 +104,7 @@ func (c *L3FaceTester) CheckL3Face(t *testing.T, faceA, faceB ndn.L3Face) {
 	}()
 
 	go func() {
-		txA := faceA.GetTx()
+		txA := faceA.Tx()
 		for i := 0; i < c.Count; i++ {
 			interest := ndn.MakeInterest(fmt.Sprintf("/A/%d", i))
 			var packet ndn.Packet

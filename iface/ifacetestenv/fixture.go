@@ -85,11 +85,11 @@ func (fixture *Fixture) launchRx() {
 
 	fixture.rxl.SetCallback(iface.WrapRxCb(func(burst iface.RxBurst) {
 		check := func(l3pkt ndni.IL3Packet) (increment int) {
-			pkt := l3pkt.GetPacket().AsMbuf()
-			faceID := iface.ID(pkt.GetPort())
+			pkt := l3pkt.AsPacket().AsMbuf()
+			faceID := iface.ID(pkt.Port())
 			if _, ok := fixture.rxDiscard[faceID]; !ok {
 				assert.Equal(fixture.rxFace.ID(), faceID)
-				assert.NotZero(pkt.GetTimestamp())
+				assert.NotZero(pkt.Timestamp())
 				increment = 1
 			}
 			pkt.Close()
@@ -123,9 +123,9 @@ func (fixture *Fixture) sendProc() int {
 	content := make([]byte, fixture.PayloadLen)
 	for i := 0; i < fixture.TxLoops; i++ {
 		pkts := make([]*ndni.Packet, 3)
-		pkts[0] = ndnitestenv.MakeInterest("/A").GetPacket()
-		pkts[1] = ndnitestenv.MakeData("/A", content).GetPacket()
-		pkts[2] = ndni.MakeNackFromInterest(ndnitestenv.MakeInterest("/A"), an.NackNoRoute).GetPacket()
+		pkts[0] = ndnitestenv.MakeInterest("/A").AsPacket()
+		pkts[1] = ndnitestenv.MakeData("/A", content).AsPacket()
+		pkts[2] = ndni.MakeNackFromInterest(ndnitestenv.MakeInterest("/A"), an.NackNoRoute).AsPacket()
 		fixture.txFace.TxBurst(pkts)
 		time.Sleep(time.Millisecond)
 	}

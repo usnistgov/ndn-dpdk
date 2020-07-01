@@ -11,8 +11,8 @@ func TestTable(t *testing.T) {
 
 	scP := strategycode.MakeEmpty("P")
 	idP := scP.GetId()
-	assert.Equal("P", scP.GetName())
-	ptrP := scP.GetPtr()
+	assert.Equal("P", scP.Name())
+	ptrP := scP.Ptr()
 	assert.NotNil(ptrP)
 
 	scQ := strategycode.MakeEmpty("Q")

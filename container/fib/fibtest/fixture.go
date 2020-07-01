@@ -55,7 +55,7 @@ func (fixture *Fixture) Close() error {
 func (fixture *Fixture) CountEntries() (n int) {
 	urcu.Barrier()
 	for partition := 0; partition < fixture.NPartitions; partition++ {
-		n += mempool.FromPtr(fixture.Fib.GetPtr(partition)).CountInUse()
+		n += mempool.FromPtr(fixture.Fib.Ptr(partition)).CountInUse()
 	}
 	return n
 }

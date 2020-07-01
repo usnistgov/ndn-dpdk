@@ -51,7 +51,7 @@ func New(cfg Config) (dp *DataPlane, e error) {
 
 	{
 		inputLCores := append([]eal.LCore{}, dp.la.Inputs...)
-		if dp.la.Crypto.IsValid() {
+		if dp.la.Crypto.Valid() {
 			inputLCores = append(inputLCores, dp.la.Crypto)
 		}
 		dp.ndt = ndt.New(cfg.Ndt, eal.ListNumaSocketsOfLCores(inputLCores))
@@ -79,7 +79,7 @@ func New(cfg Config) (dp *DataPlane, e error) {
 		dp.inputs = append(dp.inputs, fwi)
 	}
 
-	if dp.la.Crypto.IsValid() {
+	if dp.la.Crypto.Valid() {
 		fwc, e := newCrypto(len(dp.inputs), dp.la.Crypto, cfg.Crypto, dp.ndt, dp.fwds)
 		if e != nil {
 			dp.Close()

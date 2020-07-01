@@ -36,8 +36,8 @@ func New(face iface.Face, index int, cfg Config) (server *Server, e error) {
 		return nil, nil
 	}
 
-	serverC.dataMp = (*C.struct_rte_mempool)(pingmempool.Data.MakePool(socket).GetPtr())
-	serverC.indirectMp = (*C.struct_rte_mempool)(pktmbuf.Indirect.MakePool(socket).GetPtr())
+	serverC.dataMp = (*C.struct_rte_mempool)(pingmempool.Data.MakePool(socket).Ptr())
+	serverC.indirectMp = (*C.struct_rte_mempool)(pktmbuf.Indirect.MakePool(socket).Ptr())
 	serverC.face = (C.FaceID)(faceID)
 	serverC.wantNackNoRoute = C.bool(cfg.Nack)
 	C.pcg32_srandom_r(&serverC.replyRng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
@@ -104,7 +104,7 @@ func (server *Server) AddPattern(cfg Pattern) (index int, e error) {
 				return -1, fmt.Errorf("cannot allocate from MP_DATA1 for reply definition %d", i)
 			}
 			dataGen := ndni.NewDataGen(vec[0], reply.Suffix, reply.FreshnessPeriod.Duration(), make([]byte, reply.PayloadLen))
-			replyC.dataGen = (*C.DataGen)(dataGen.GetPtr())
+			replyC.dataGen = (*C.DataGen)(dataGen.Ptr())
 		}
 	}
 	patternC.nReplies = C.uint16_t(len(cfg.Replies))

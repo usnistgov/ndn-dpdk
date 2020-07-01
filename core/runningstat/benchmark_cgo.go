@@ -15,5 +15,5 @@ import "C"
 
 // Push n inputs.
 func benchmarkPush(s *RunningStat, n int) {
-	C.RunningStat_BenchmarkPush(s.v.getPtr(), C.int(n))
+	C.RunningStat_BenchmarkPush(s.v.ptr(), C.int(n))
 }

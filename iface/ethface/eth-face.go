@@ -54,11 +54,11 @@ func New(port *Port, loc Locator) (face *EthFace, e error) {
 	vlan := make([]uint16, 2)
 	copy(vlan, loc.Vlan)
 	priv.txHdrLen = C.EthFaceEtherHdr_Init(&priv.txHdr,
-		(*C.struct_rte_ether_addr)(port.cfg.Local.GetPtr()),
-		(*C.struct_rte_ether_addr)(face.loc.Remote.GetPtr()),
+		(*C.struct_rte_ether_addr)(port.cfg.Local.Ptr()),
+		(*C.struct_rte_ether_addr)(face.loc.Remote.Ptr()),
 		C.uint16_t(vlan[0]), C.uint16_t(vlan[1]))
 
-	faceC := face.getPtr()
+	faceC := face.ptr()
 	faceC.txBurstOp = (C.FaceImpl_TxBurst)(C.EthFace_TxBurst)
 
 	face.FinishInitFaceBase(port.cfg.TxqPkts, port.cfg.Mtu, int(C.sizeof_struct_rte_ether_hdr))
@@ -71,15 +71,15 @@ func New(port *Port, loc Locator) (face *EthFace, e error) {
 	return face, nil
 }
 
-func (face *EthFace) getPtr() *C.Face {
-	return (*C.Face)(face.GetPtr())
+func (face *EthFace) ptr() *C.Face {
+	return (*C.Face)(face.Ptr())
 }
 
 func (face *EthFace) getPriv() *C.EthFacePriv {
-	return (*C.EthFacePriv)(C.Face_GetPriv(face.getPtr()))
+	return (*C.EthFacePriv)(C.Face_GetPriv(face.ptr()))
 }
 
-func (face *EthFace) GetPort() *Port {
+func (face *EthFace) Port() *Port {
 	return face.port
 }
 

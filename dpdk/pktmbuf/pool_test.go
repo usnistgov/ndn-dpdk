@@ -16,7 +16,7 @@ func TestPool(t *testing.T) {
 
 	assert.Equal(63, mp.CountAvailable())
 	assert.Equal(0, mp.CountInUse())
-	assert.Equal(1000, mp.GetDataroom())
+	assert.Equal(1000, mp.Dataroom())
 
 	vec0, e := mp.Alloc(33)
 	assert.NoError(e)

@@ -95,7 +95,7 @@ func New(name string, cfg Config, socket eal.NumaSocket) (cd *CryptoDev, e error
 // Close releases a crypto device.
 func (cd *CryptoDev) Close() error {
 	defer cd.sessionPool.Close()
-	name := cd.GetName()
+	name := cd.Name()
 	C.rte_cryptodev_stop(cd.devID)
 	if res := C.rte_cryptodev_close(cd.devID); res < 0 {
 		return fmt.Errorf("rte_cryptodev_close(%s) error %d", name, res)
@@ -111,13 +111,13 @@ func (cd *CryptoDev) ID() int {
 	return int(cd.devID)
 }
 
-// GetName returns crypto device name.
-func (cd *CryptoDev) GetName() string {
+// Name returns crypto device name.
+func (cd *CryptoDev) Name() string {
 	return C.GoString(C.rte_cryptodev_name_get(cd.devID))
 }
 
-// GetQueuePair returns i-th queue pair.
-func (cd *CryptoDev) GetQueuePair(i int) *QueuePair {
+// QueuePair returns i-th queue pair.
+func (cd *CryptoDev) QueuePair(i int) *QueuePair {
 	if i < 0 || i >= len(cd.queuePairs) {
 		return nil
 	}

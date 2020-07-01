@@ -18,7 +18,7 @@ func TestCApiNoFace(t *testing.T) {
 	assert.True(Face_IsDown(id))
 
 	pkts := make([]*ndni.Packet, 1)
-	pkts[0] = ndnitestenv.MakeInterest("/A").GetPacket()
+	pkts[0] = ndnitestenv.MakeInterest("/A").AsPacket()
 	Face_TxBurst(id, pkts) // should not crash
 }
 
@@ -43,7 +43,7 @@ func TestCApi(t *testing.T) {
 	time.Sleep(90 * time.Millisecond)
 
 	pkts := make([]*ndni.Packet, 1)
-	pkts[0] = ndnitestenv.MakeInterest("/A").GetPacket()
+	pkts[0] = ndnitestenv.MakeInterest("/A").AsPacket()
 	Face_TxBurst(id, pkts)
 
 	time.Sleep(100 * time.Millisecond)

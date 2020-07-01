@@ -45,7 +45,7 @@ func (batch updateBatch) Apply() {
 func (batch updateBatch) Discard(part *partition) error {
 	for _, item := range batch {
 		if item.act == updateActInsert {
-			C.Fib_Free(item.part.c, item.entry.getPtr())
+			C.Fib_Free(item.part.c, item.entry.ptr())
 		}
 	}
 	return fmt.Errorf("allocation error in partition %d", part.index)
@@ -66,7 +66,7 @@ func (fib *Fib) Insert(entry *Entry) (isNew bool, e error) {
 	if entry.GetStrategy() == nil {
 		return false, errors.New("cannot insert FIB entry with no strategy")
 	}
-	name := entry.GetName()
+	name := entry.Name()
 	virtName := fib.getVirtName(name)
 	logEntry := log.WithFields(makeLogFields("name", name, "nexthops", entry.GetNexthops(), "strategy", entry.GetStrategy().GetId()))
 

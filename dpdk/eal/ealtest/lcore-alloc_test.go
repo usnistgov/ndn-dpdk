@@ -78,7 +78,7 @@ func TestLCoreAllocator(t *testing.T) {
 
 	// 1=allocated-A, 2=allocated-A, 3=idle, 4=reserved-B, 5=allocated-A, 6=allocated-A, 7=busy
 	// fail because exceeding PerNuma limit
-	assert.False(la.Alloc("A", numa1).IsValid())
+	assert.False(la.Alloc("A", numa1).Valid())
 
 	// 1=allocated-A, 2=allocated-A, 3=idle, 4=reserved-B, 5=allocated-A, 6=allocated-A, 7=busy
 	// pick from idle on NUMA 0
@@ -92,7 +92,7 @@ func TestLCoreAllocator(t *testing.T) {
 
 	// 1=allocated-A, 2=allocated-A, 3=allocated-B, 4=allocated-B, 5=allocated-A, 6=allocated-A, 7=busy
 	// fail because no lcore available
-	assert.False(la.Alloc("C", numa0).IsValid())
+	assert.False(la.Alloc("C", numa0).Valid())
 
 	la.Free(lc2)
 

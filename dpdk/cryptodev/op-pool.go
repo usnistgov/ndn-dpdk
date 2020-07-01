@@ -57,7 +57,7 @@ func OpPoolFromPtr(ptr unsafe.Pointer) *OpPool {
 func (mp *OpPool) Alloc(opType OpType, count int) (vec OpVector, e error) {
 	vec = make(OpVector, count)
 	ptr, _ := cptr.ParseCptrArray(vec)
-	res := C.rte_crypto_op_bulk_alloc((*C.struct_rte_mempool)(mp.GetPtr()), C.enum_rte_crypto_op_type(opType),
+	res := C.rte_crypto_op_bulk_alloc((*C.struct_rte_mempool)(mp.Ptr()), C.enum_rte_crypto_op_type(opType),
 		(**C.struct_rte_crypto_op)(ptr), C.uint16_t(count))
 	if res == 0 {
 		return nil, errors.New("rte_crypto_op_bulk_alloc failed")

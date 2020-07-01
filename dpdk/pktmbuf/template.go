@@ -16,8 +16,8 @@ type Template struct {
 	key string
 }
 
-// GetConfig returns current PoolConfig of the template.
-func (tpl Template) GetConfig() PoolConfig {
+// Config returns current PoolConfig of the template.
+func (tpl Template) Config() PoolConfig {
 	return *templateConfigs[tpl.key]
 }
 

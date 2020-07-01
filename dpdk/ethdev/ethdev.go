@@ -39,7 +39,7 @@ func List() (list []EthDev) {
 func Find(name string) EthDev {
 	for p := C.rte_eth_find_next(0); p < C.RTE_MAX_ETHPORTS; p = C.rte_eth_find_next(p + 1) {
 		port := FromID(int(p))
-		if port.GetName() == name {
+		if port.Name() == name {
 			return port
 		}
 	}
@@ -51,20 +51,20 @@ func (port EthDev) ID() int {
 	return port.v - 1
 }
 
-// IsValid returns true if this is a valid Ethernet port.
-func (port EthDev) IsValid() bool {
+// Valid returns true if this is a valid Ethernet port.
+func (port EthDev) Valid() bool {
 	return port.v != 0
 }
 
 func (port EthDev) String() string {
-	if !port.IsValid() {
+	if !port.Valid() {
 		return "invalid"
 	}
 	return strconv.Itoa(port.ID())
 }
 
-// GetName returns port name.
-func (port EthDev) GetName() string {
+// Name returns port name.
+func (port EthDev) Name() string {
 	var ifname [C.RTE_ETH_NAME_MAX_LEN]C.char
 	res := C.rte_eth_dev_get_name_by_port(C.uint16_t(port.ID()), &ifname[0])
 	if res != 0 {
@@ -78,20 +78,20 @@ func (port EthDev) NumaSocket() (socket eal.NumaSocket) {
 	return eal.NumaSocketFromID(int(C.rte_eth_dev_socket_id(C.uint16_t(port.ID()))))
 }
 
-// GetDevInfo retrieves information about the hardware device.
-func (port EthDev) GetDevInfo() (info DevInfo) {
+// DevInfo retrieves information about the hardware device.
+func (port EthDev) DevInfo() (info DevInfo) {
 	C.rte_eth_dev_info_get(C.uint16_t(port.ID()), (*C.struct_rte_eth_dev_info)(unsafe.Pointer(&info)))
 	return info
 }
 
-// GetMacAddr retrieves MAC address of this EthDev.
-func (port EthDev) GetMacAddr() (a EtherAddr) {
-	C.rte_eth_macaddr_get(C.uint16_t(port.ID()), a.getPtr())
+// MacAddr retrieves MAC address of this EthDev.
+func (port EthDev) MacAddr() (a EtherAddr) {
+	C.rte_eth_macaddr_get(C.uint16_t(port.ID()), a.ptr())
 	return a
 }
 
-// GetMtu retrieves MTU of this EthDev.
-func (port EthDev) GetMtu() int {
+// Mtu retrieves MTU of this EthDev.
+func (port EthDev) Mtu() int {
 	var mtu C.uint16_t
 	C.rte_eth_dev_get_mtu(C.uint16_t(port.ID()), &mtu)
 	return int(mtu)
@@ -104,7 +104,7 @@ func (port EthDev) IsDown() bool {
 
 // Start configures and starts this EthDev.
 func (port EthDev) Start(cfg Config) error {
-	info := port.GetDevInfo()
+	info := port.DevInfo()
 	if info.Max_rx_queues > 0 && len(cfg.RxQueues) > int(info.Max_rx_queues) {
 		return fmt.Errorf("cannot add more than %d RX queues", info.Max_rx_queues)
 	}
@@ -121,7 +121,7 @@ func (port EthDev) Start(cfg Config) error {
 	conf := (*C.struct_rte_eth_conf)(cfg.Conf)
 	if conf == nil {
 		conf = new(C.struct_rte_eth_conf)
-		conf.rxmode.max_rx_pkt_len = C.uint32_t(port.GetMtu())
+		conf.rxmode.max_rx_pkt_len = C.uint32_t(port.Mtu())
 		if info.Tx_offload_capa&C.DEV_TX_OFFLOAD_MULTI_SEGS != 0 {
 			conf.txmode.offloads = C.DEV_TX_OFFLOAD_MULTI_SEGS
 		}
@@ -136,7 +136,7 @@ func (port EthDev) Start(cfg Config) error {
 	for i, qcfg := range cfg.RxQueues {
 		capacity := C.uint16_t(ringbuffer.AlignCapacity(qcfg.Capacity))
 		res = C.rte_eth_rx_queue_setup(C.uint16_t(port.ID()), C.uint16_t(i), capacity,
-			C.uint(qcfg.Socket.ID()), (*C.struct_rte_eth_rxconf)(qcfg.Conf), (*C.struct_rte_mempool)(qcfg.RxPool.GetPtr()))
+			C.uint(qcfg.Socket.ID()), (*C.struct_rte_eth_rxconf)(qcfg.Conf), (*C.struct_rte_mempool)(qcfg.RxPool.Ptr()))
 		if res != 0 {
 			return fmt.Errorf("rte_eth_rx_queue_setup(%v,%d) error %v", port, i, eal.Errno(-res))
 		}

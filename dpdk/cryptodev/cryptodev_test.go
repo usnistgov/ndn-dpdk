@@ -16,11 +16,11 @@ func TestCryptoDev(t *testing.T) {
 	require.NoError(e)
 	defer cd.Close()
 
-	qp0 := cd.GetQueuePair(0)
+	qp0 := cd.QueuePair(0)
 	require.NotNil(qp0)
-	qp1 := cd.GetQueuePair(1)
+	qp1 := cd.QueuePair(1)
 	require.NotNil(qp1)
-	assert.Nil(cd.GetQueuePair(2))
+	assert.Nil(cd.QueuePair(2))
 
 	mp, e := cryptodev.NewOpPool("MP-CryptoOp", cryptodev.OpPoolConfig{Capacity: 255}, eal.NumaSocket{})
 	require.NoError(e)
@@ -41,11 +41,11 @@ func TestCryptoDev(t *testing.T) {
 	}
 
 	out0 := allocOutBuf()
-	ops0[0].PrepareSha256Digest(makePacket("A0A1A2A3"), 0, 4, out0.GetDataPtr())
+	ops0[0].PrepareSha256Digest(makePacket("A0A1A2A3"), 0, 4, out0.DataPtr())
 	out1 := allocOutBuf()
-	ops0[1].PrepareSha256Digest(makePacket("B0B1B2B3"), 0, 4, out1.GetDataPtr())
+	ops0[1].PrepareSha256Digest(makePacket("B0B1B2B3"), 0, 4, out1.DataPtr())
 	out2 := allocOutBuf()
-	ops1[0].PrepareSha256Digest(makePacket("C0C1C2C3"), 0, 4, out2.GetDataPtr())
+	ops1[0].PrepareSha256Digest(makePacket("C0C1C2C3"), 0, 4, out2.DataPtr())
 
 	assert.Equal(2, qp0.EnqueueBurst(ops0))
 	assert.Equal(1, qp1.EnqueueBurst(ops1))

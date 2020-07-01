@@ -32,23 +32,23 @@ func (t OpType) String() string {
 // Op holds a pointer to a crypto operation structure.
 type Op C.struct_rte_crypto_op
 
-// GetPtr returns *C.struct_rte_crypto_op pointer.
-func (op *Op) GetPtr() unsafe.Pointer {
+// Ptr returns *C.struct_rte_crypto_op pointer.
+func (op *Op) Ptr() unsafe.Pointer {
 	return unsafe.Pointer(op)
 }
 
-func (op *Op) getPtr() *C.struct_rte_crypto_op {
+func (op *Op) ptr() *C.struct_rte_crypto_op {
 	return (*C.struct_rte_crypto_op)(op)
 }
 
 // IsNew returns true if this operation has not been processed.
 func (op *Op) IsNew() bool {
-	return C.CryptoOp_GetStatus(op.getPtr()) == C.RTE_CRYPTO_OP_STATUS_NOT_PROCESSED
+	return C.CryptoOp_GetStatus(op.ptr()) == C.RTE_CRYPTO_OP_STATUS_NOT_PROCESSED
 }
 
 // IsSuccess returns true if this operation has completed successfully.
 func (op *Op) IsSuccess() bool {
-	return C.CryptoOp_GetStatus(op.getPtr()) == C.RTE_CRYPTO_OP_STATUS_SUCCESS
+	return C.CryptoOp_GetStatus(op.ptr()) == C.RTE_CRYPTO_OP_STATUS_SUCCESS
 }
 
 // Error returns an error if this operation has failed, otherwise returns nil.
@@ -57,7 +57,7 @@ func (op *Op) Error() error {
 	case op.IsNew(), op.IsSuccess():
 		return nil
 	}
-	return fmt.Errorf("CryptoOpStatus %d", C.CryptoOp_GetStatus(op.getPtr()))
+	return fmt.Errorf("CryptoOpStatus %d", C.CryptoOp_GetStatus(op.ptr()))
 }
 
 // PrepareSha256Digest prepares a SHA256 digest generation operation.
@@ -68,14 +68,14 @@ func (op *Op) PrepareSha256Digest(input *pktmbuf.Packet, offset, length int, out
 		return errors.New("offset+length exceeds packet boundary")
 	}
 
-	C.CryptoOp_PrepareSha256Digest(op.getPtr(), (*C.struct_rte_mbuf)(input.GetPtr()),
+	C.CryptoOp_PrepareSha256Digest(op.ptr(), (*C.struct_rte_mbuf)(input.Ptr()),
 		C.uint32_t(offset), C.uint32_t(length), (*C.uint8_t)(output))
 	return nil
 }
 
 // Close discards this instance.
 func (op *Op) Close() error {
-	C.rte_crypto_op_free(op.getPtr())
+	C.rte_crypto_op_free(op.ptr())
 	return nil
 }
 

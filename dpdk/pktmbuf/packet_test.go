@@ -25,11 +25,11 @@ func TestPacketRead(t *testing.T) {
 	assert.False(pkt.IsSegmented())
 
 	pkt.SetHeadroom(200)
-	assert.Equal(200, pkt.GetHeadroom())
-	tail0 := pkt.GetTailroom()
+	assert.Equal(200, pkt.Headroom())
+	tail0 := pkt.Tailroom()
 	pkt.Append(part1)
 	assert.Equal(200, pkt.Len())
-	assert.Equal(200, tail0-pkt.GetTailroom())
+	assert.Equal(200, tail0-pkt.Tailroom())
 
 	seg1 := vec[1]
 	e := pkt.Chain(seg1)

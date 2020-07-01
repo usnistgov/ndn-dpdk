@@ -16,6 +16,6 @@ func TestCArgs(t *testing.T) {
 	res := verifyCArgs(a)
 	assert.Equal(0, res)
 
-	rem := a.GetRemainingArgs(1)
+	rem := a.RemainingArgs(1)
 	assert.Equal([]string{"", "d", "bc"}, rem)
 }

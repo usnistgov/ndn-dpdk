@@ -18,11 +18,11 @@ type Cs struct {
 
 // FromPcct converts Pcct to Cs.
 func FromPcct(pcct *pcct.Pcct) *Cs {
-	return (*Cs)(pcct.GetPtr())
+	return (*Cs)(pcct.Ptr())
 }
 
-func (cs *Cs) getPtr() *C.Cs {
-	return (*C.Cs)(cs.Pcct.GetPtr())
+func (cs *Cs) ptr() *C.Cs {
+	return (*C.Cs)(cs.Pcct.Ptr())
 }
 
 // Close is forbidden.
@@ -30,14 +30,14 @@ func (cs *Cs) Close() error {
 	panic("Cs.Close() method is explicitly deleted; use Pcct.Close() to close underlying PCCT")
 }
 
-// GetCapacity returns capacity of the specified list, in number of entries.
-func (cs *Cs) GetCapacity(list ListID) int {
-	return int(C.Cs_GetCapacity(cs.getPtr(), C.CsListId(list)))
+// Capacity returns capacity of the specified list, in number of entries.
+func (cs *Cs) Capacity(list ListID) int {
+	return int(C.Cs_GetCapacity(cs.ptr(), C.CsListId(list)))
 }
 
 // CountEntries returns number of entries in the specified list.
 func (cs *Cs) CountEntries(list ListID) int {
-	return int(C.Cs_CountEntries(cs.getPtr(), C.CsListId(list)))
+	return int(C.Cs_CountEntries(cs.ptr(), C.CsListId(list)))
 }
 
 type iPitFindResult interface {
@@ -48,15 +48,15 @@ type iPitFindResult interface {
 func (cs *Cs) Insert(data *ndni.Data, pitFound iPitFindResult) {
 	var pitFoundC C.PitFindResult
 	pitFound.CopyToCPitFindResult(unsafe.Pointer(&pitFoundC))
-	C.Cs_Insert(cs.getPtr(), (*C.Packet)(data.GetPacket().GetPtr()), pitFoundC)
+	C.Cs_Insert(cs.ptr(), (*C.Packet)(data.AsPacket().Ptr()), pitFoundC)
 }
 
 // Erase erases a CS entry.
 func (cs *Cs) Erase(entry *Entry) {
-	C.Cs_Erase(cs.getPtr(), entry.getPtr())
+	C.Cs_Erase(cs.ptr(), entry.ptr())
 }
 
 // ReadDirectArcP returns direct entries ARC algorithm 'p' variable.
 func (cs *Cs) ReadDirectArcP() float64 {
-	return float64(C.Cs_GetPriv(cs.getPtr()).directArc.p)
+	return float64(C.Cs_GetPriv(cs.ptr()).directArc.p)
 }

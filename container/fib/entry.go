@@ -24,8 +24,8 @@ const (
 // Entry represents a FIB entry.
 type Entry CEntry
 
-// GetName returns the entry name.
-func (entry *Entry) GetName() (name ndn.Name) {
+// Name returns the entry name.
+func (entry *Entry) Name() (name ndn.Name) {
 	c := (*CEntry)(entry)
 	name.UnmarshalBinary(c.NameV[:c.NameL])
 	return name
@@ -79,7 +79,7 @@ func (entry *Entry) GetStrategy() strategycode.StrategyCode {
 // SetStrategy sets the forwarding strategy.
 func (entry *Entry) SetStrategy(sc strategycode.StrategyCode) {
 	c := (*CEntry)(entry)
-	c.Union_strategy_realEntry = (*byte)(sc.GetPtr())
+	c.Union_strategy_realEntry = (*byte)(sc.Ptr())
 }
 
 // GetSeqNum returns FIB insertion sequence number.
@@ -95,12 +95,12 @@ func entryFromPtr(c *C.FibEntry) *Entry {
 	return (*Entry)(unsafe.Pointer(c))
 }
 
-func (entry *Entry) getPtr() *C.FibEntry {
+func (entry *Entry) ptr() *C.FibEntry {
 	return (*C.FibEntry)(unsafe.Pointer(entry))
 }
 
 func (entry *Entry) copyFrom(src *Entry) {
-	C.FibEntry_Copy(entry.getPtr(), src.getPtr())
+	C.FibEntry_Copy(entry.ptr(), src.ptr())
 }
 
 func (entry *Entry) isVirt() bool {
@@ -108,7 +108,7 @@ func (entry *Entry) isVirt() bool {
 }
 
 func (entry *Entry) getReal() *Entry {
-	return entryFromPtr(C.FibEntry_GetReal(entry.getPtr()))
+	return entryFromPtr(C.FibEntry_GetReal(entry.ptr()))
 }
 
 func (entry *Entry) setMaxDepthReal(maxDepth int, real *Entry) {

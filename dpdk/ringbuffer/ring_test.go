@@ -17,7 +17,7 @@ func TestRing(t *testing.T) {
 
 	assert.Equal(0, r.CountInUse())
 	assert.Equal(3, r.CountAvailable())
-	assert.Equal(r.CountAvailable(), r.GetCapacity())
+	assert.Equal(r.CountAvailable(), r.Capacity())
 
 	output := make([]unsafe.Pointer, 3)
 	assert.Equal(0, r.Dequeue(output[:2]))
@@ -49,11 +49,11 @@ func TestCapacity(t *testing.T) {
 
 	r, e := ringbuffer.New("TestRing-1", -1, eal.NumaSocket{}, ringbuffer.ProducerMulti, ringbuffer.ConsumerMulti)
 	require.NoError(e)
-	assert.Equal(63, r.GetCapacity())
+	assert.Equal(63, r.Capacity())
 	defer r.Close()
 
 	r, e = ringbuffer.New("TestRing129", 129, eal.NumaSocket{}, ringbuffer.ProducerMulti, ringbuffer.ConsumerMulti)
 	require.NoError(e)
-	assert.Equal(255, r.GetCapacity())
+	assert.Equal(255, r.Capacity())
 	defer r.Close()
 }

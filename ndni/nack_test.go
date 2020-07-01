@@ -31,14 +31,14 @@ func TestNackDecode(t *testing.T) {
 		if !assert.NoError(pkt.ParseL3(ndnitestenv.Name.Pool()), tt.input) {
 			continue
 		}
-		if !assert.Equal(ndni.L3PktTypeNack, pkt.GetL3Type(), tt.input) {
+		if !assert.Equal(ndni.L3PktTypeNack, pkt.L3Type(), tt.input) {
 			continue
 		}
 		nack := pkt.AsNack()
 		assert.Implements((*ndni.IL3Packet)(nil), nack)
-		assert.Equal(tt.reason, nack.GetReason(), tt.input)
-		interest := nack.GetInterest()
+		assert.Equal(tt.reason, nack.Reason(), tt.input)
+		interest := nack.Interest()
 		ndntestenv.NameEqual(assert, "/A", interest, tt.input)
-		assert.Equal(ndn.NonceFromUint(0xA3A2A1A0), interest.GetNonce(), tt.input)
+		assert.Equal(ndn.NonceFromUint(0xA3A2A1A0), interest.Nonce(), tt.input)
 	}
 }

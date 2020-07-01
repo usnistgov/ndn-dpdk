@@ -65,7 +65,7 @@ func (txl *TxLoop) AddFace(face Face) {
 	defer rs.Close()
 
 	txl.faces[face.ID()] = face
-	faceC := face.getPtr()
+	faceC := face.ptr()
 	C.cds_hlist_add_head_rcu(&faceC.txlNode, &txl.c.head)
 }
 
@@ -78,7 +78,7 @@ func (txl *TxLoop) RemoveFace(face Face) {
 	}
 
 	delete(txl.faces, face.ID())
-	faceC := face.getPtr()
+	faceC := face.ptr()
 	C.cds_hlist_del_rcu(&faceC.txlNode)
 
 	urcu.Barrier()

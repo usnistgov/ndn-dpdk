@@ -32,12 +32,12 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
 
-func (pinterest *pInterest) getPtr() *C.PInterest {
+func (pinterest *pInterest) ptr() *C.PInterest {
 	return (*C.PInterest)(unsafe.Pointer(pinterest))
 }
 
 func (pinterest *pInterest) unpack() (u C.PInterestUnpacked) {
-	C.PInterest_Unpack(pinterest.getPtr(), &u)
+	C.PInterest_Unpack(pinterest.ptr(), &u)
 	return u
 }
 
@@ -47,8 +47,8 @@ type Interest struct {
 	p *pInterest
 }
 
-// GetPacket converts Interest to Packet.
-func (interest Interest) GetPacket() *Packet {
+// AsPacket converts Interest to Packet.
+func (interest Interest) AsPacket() *Packet {
 	return interest.m
 }
 
@@ -59,16 +59,16 @@ func (interest Interest) ToNInterest() ndn.Interest {
 }
 
 func (interest Interest) String() string {
-	return interest.GetName().String()
+	return interest.Name().String()
 }
 
-// GetPInterestPtr returns *C.PInterest pointer.
-func (interest Interest) GetPInterestPtr() unsafe.Pointer {
+// PInterestPtr returns *C.PInterest pointer.
+func (interest Interest) PInterestPtr() unsafe.Pointer {
 	return unsafe.Pointer(interest.p)
 }
 
-// GetName returns Interest name.
-func (interest Interest) GetName() ndn.Name {
+// Name returns Interest name.
+func (interest Interest) Name() ndn.Name {
 	return interest.p.Name.ToName()
 }
 
@@ -82,23 +82,23 @@ func (interest Interest) HasMustBeFresh() bool {
 	return bool(interest.p.unpack().mustBeFresh)
 }
 
-// GetNonce returns Nonce.
-func (interest Interest) GetNonce() ndn.Nonce {
+// Nonce returns Nonce.
+func (interest Interest) Nonce() ndn.Nonce {
 	return ndn.NonceFromUint(interest.p.Nonce)
 }
 
-// GetLifetime returns InterestLifetime.
-func (interest Interest) GetLifetime() time.Duration {
+// Lifetime returns InterestLifetime.
+func (interest Interest) Lifetime() time.Duration {
 	return time.Duration(interest.p.Lifetime) * time.Millisecond
 }
 
-// GetHopLimit returns HopLimit.
-func (interest Interest) GetHopLimit() uint8 {
+// HopLimit returns HopLimit.
+func (interest Interest) HopLimit() uint8 {
 	return uint8(interest.p.HopLimit)
 }
 
-// GetFhs returns a list of forwarding hints.
-func (interest Interest) GetFhs() (fhs []ndn.Name) {
+// FwHints returns a list of forwarding hints.
+func (interest Interest) FwHints() (fhs []ndn.Name) {
 	fhs = make([]ndn.Name, int(interest.p.unpack().nFhs))
 	for i := range fhs {
 		var lname LName
@@ -109,8 +109,8 @@ func (interest Interest) GetFhs() (fhs []ndn.Name) {
 	return fhs
 }
 
-// GetActiveFhIndex returns active forwarding hint index.
-func (interest Interest) GetActiveFhIndex() int {
+// ActiveFwHintIndex returns active forwarding hint index.
+func (interest Interest) ActiveFwHintIndex() int {
 	return int(interest.p.unpack().activeFh)
 }
 
@@ -120,7 +120,7 @@ func (interest *Interest) SelectActiveFh(index int) error {
 		return errors.New("fhindex out of range")
 	}
 
-	e := C.PInterest_SelectActiveFh(interest.p.getPtr(), C.int8_t(index))
+	e := C.PInterest_SelectActiveFh(interest.p.ptr(), C.int8_t(index))
 	if e != C.NdnErrOK {
 		return NdnError(e)
 	}
@@ -130,11 +130,11 @@ func (interest *Interest) SelectActiveFh(index int) error {
 // Modify updates Interest guiders.
 func (interest *Interest) Modify(nonce uint32, lifetime time.Duration,
 	hopLimit uint8, headerMp, guiderMp, indirectMp *pktmbuf.Pool) *Interest {
-	outPktC := C.ModifyInterest(interest.m.getPtr(), C.uint32_t(nonce),
+	outPktC := C.ModifyInterest(interest.m.ptr(), C.uint32_t(nonce),
 		C.uint32_t(lifetime/time.Millisecond), C.uint8_t(hopLimit),
-		(*C.struct_rte_mempool)(headerMp.GetPtr()),
-		(*C.struct_rte_mempool)(guiderMp.GetPtr()),
-		(*C.struct_rte_mempool)(indirectMp.GetPtr()))
+		(*C.struct_rte_mempool)(headerMp.Ptr()),
+		(*C.struct_rte_mempool)(guiderMp.Ptr()),
+		(*C.struct_rte_mempool)(indirectMp.Ptr()))
 	if outPktC == nil {
 		return nil
 	}
@@ -179,6 +179,6 @@ func (tpl *InterestTemplate) Encode(m *pktmbuf.Packet, suffix ndn.Name, nonce ui
 		suffixV, _ = suffix.MarshalBinary()
 	}
 
-	C.EncodeInterest_((*C.struct_rte_mbuf)(m.GetPtr()), (*C.InterestTemplate)(unsafe.Pointer(tpl)),
+	C.EncodeInterest_((*C.struct_rte_mbuf)(m.Ptr()), (*C.InterestTemplate)(unsafe.Pointer(tpl)),
 		C.uint16_t(len(suffixV)), bytesToPtr(suffixV), C.uint32_t(nonce))
 }

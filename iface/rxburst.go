@@ -27,7 +27,7 @@ func NewRxBurst(capacity int) (burst RxBurst) {
 	return burst
 }
 
-func (burst RxBurst) GetPtr() unsafe.Pointer {
+func (burst RxBurst) Ptr() unsafe.Pointer {
 	return unsafe.Pointer(burst.c)
 }
 
@@ -36,7 +36,7 @@ func (burst RxBurst) Close() error {
 	return nil
 }
 
-func (burst RxBurst) GetCapacity() int {
+func (burst RxBurst) Capacity() int {
 	return int(burst.c.capacity)
 }
 
@@ -69,5 +69,5 @@ func (burst RxBurst) ListNacks() (list []*ndni.Nack) {
 
 // Put received frame in scratch space.
 func (burst RxBurst) SetFrame(i int, frame *pktmbuf.Packet) {
-	C.c_FaceRxBurst_SetFrame(burst.c, C.int(i), (*C.struct_rte_mbuf)(frame.GetPtr()))
+	C.c_FaceRxBurst_SetFrame(burst.c, C.int(i), (*C.struct_rte_mbuf)(frame.Ptr()))
 }

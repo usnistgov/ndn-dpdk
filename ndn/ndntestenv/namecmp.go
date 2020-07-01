@@ -10,7 +10,7 @@ import (
 )
 
 type getNamer interface {
-	GetName() ndn.Name
+	Name() ndn.Name
 }
 
 func getName(obj interface{}) ndn.Name {
@@ -20,7 +20,7 @@ func getName(obj interface{}) ndn.Name {
 	case ndn.Name:
 		return v
 	case getNamer:
-		return v.GetName()
+		return v.Name()
 	default:
 		val := reflect.ValueOf(obj)
 		if val.Kind() == reflect.Ptr {
@@ -31,13 +31,13 @@ func getName(obj interface{}) ndn.Name {
 }
 
 // NameEqual asserts that actual name equals expected name.
-// Name arguments can be string, Name, object with GetName() method, or object with Name field.
+// Name arguments can be string, Name, object with Name() method, or object with Name field.
 func NameEqual(a *assert.Assertions, expected interface{}, actual interface{}, msgAndArgs ...interface{}) bool {
 	return a.Equal(getName(expected).String(), getName(actual).String(), msgAndArgs...)
 }
 
 // NameIsPrefix asserts that name starts with prefix.
-// Name arguments can be string, Name, object with GetName() method, or object with Name field.
+// Name arguments can be string, Name, object with Name() method, or object with Name field.
 func NameIsPrefix(a *assert.Assertions, prefix interface{}, name interface{}, msgAndArgs ...interface{}) bool {
 	prefixN := getName(prefix)
 	nameN := getName(name)

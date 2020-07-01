@@ -13,7 +13,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 )
 
-func (pnack *pNack) getPtr() *C.PNack {
+func (pnack *pNack) ptr() *C.PNack {
 	return (*C.PNack)(unsafe.Pointer(pnack))
 }
 
@@ -26,12 +26,12 @@ type Nack struct {
 // MakeNackFromInterest turns an Interest into a Nack.
 // This overwrites the Interest.
 func MakeNackFromInterest(interest *Interest, reason uint8) *Nack {
-	C.MakeNack(interest.m.getPtr(), C.NackReason(reason))
+	C.MakeNack(interest.m.ptr(), C.NackReason(reason))
 	return interest.m.AsNack()
 }
 
-// GetPacket converts Nack to Packet.
-func (nack Nack) GetPacket() *Packet {
+// AsPacket converts Nack to Packet.
+func (nack Nack) AsPacket() *Packet {
 	return nack.m
 }
 
@@ -42,20 +42,20 @@ func (nack Nack) ToNNack() ndn.Nack {
 }
 
 func (nack Nack) String() string {
-	return fmt.Sprintf("%s~%s", nack.GetInterest(), an.NackReasonString(nack.GetReason()))
+	return fmt.Sprintf("%s~%s", nack.Interest(), an.NackReasonString(nack.Reason()))
 }
 
-// GetPNackPtr returns *C.PNack pointer.
-func (nack Nack) GetPNackPtr() unsafe.Pointer {
+// PNackPtr returns *C.PNack pointer.
+func (nack Nack) PNackPtr() unsafe.Pointer {
 	return unsafe.Pointer(nack.p)
 }
 
-// GetReason returns Nack reason.
-func (nack Nack) GetReason() uint8 {
+// Reason returns Nack reason.
+func (nack Nack) Reason() uint8 {
 	return nack.p.Lpl3.NackReason
 }
 
-// GetInterest returns the Interest enclosed in Nack.
-func (nack Nack) GetInterest() *Interest {
+// Interest returns the Interest enclosed in Nack.
+func (nack Nack) Interest() *Interest {
 	return &Interest{nack.m, &nack.p.Interest}
 }

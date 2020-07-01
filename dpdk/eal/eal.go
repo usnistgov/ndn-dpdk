@@ -33,7 +33,7 @@ func InitEal(args []string) (remainingArgs []string) {
 		}
 
 		rand.Seed(int64(C.rte_rand()))
-		remainingArgs = a.GetRemainingArgs(int(res))
+		remainingArgs = a.RemainingArgs(int(res))
 	})
 	return remainingArgs
 }

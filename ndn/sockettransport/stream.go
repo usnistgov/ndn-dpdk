@@ -10,7 +10,7 @@ func (streamRxLooper) RxLoop(tr *Transport) error {
 	buffer := make([]byte, tr.cfg.RxBufferLength)
 	nAvail := 0
 	for {
-		nRead, e := tr.GetConn().Read(buffer[nAvail:])
+		nRead, e := tr.Conn().Read(buffer[nAvail:])
 		if e != nil {
 			return e
 		}

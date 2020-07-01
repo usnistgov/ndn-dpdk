@@ -203,7 +203,7 @@ func (la *LCoreAllocator) pick(role string, numaSocket NumaSocket) LCore {
 			candidateRem = len(remoteUnreserved)
 		}
 	}
-	if candidate.IsValid() {
+	if candidate.Valid() {
 		return candidate
 	}
 
@@ -214,7 +214,7 @@ func (la *LCoreAllocator) pick(role string, numaSocket NumaSocket) LCore {
 // Alloc allocates an lcore for a role.
 func (la *LCoreAllocator) Alloc(role string, numaSocket NumaSocket) (lc LCore) {
 	lc = la.pick(role, numaSocket)
-	if !lc.IsValid() {
+	if !lc.Valid() {
 		return lc
 	}
 

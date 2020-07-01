@@ -50,33 +50,33 @@ func TestInterestDecode(t *testing.T) {
 		if tt.bad {
 			assert.Error(e, tt.input)
 		} else if assert.NoError(e, tt.input) {
-			if !assert.Equal(ndni.L3PktTypeInterest, pkt.GetL3Type(), tt.input) {
+			if !assert.Equal(ndni.L3PktTypeInterest, pkt.L3Type(), tt.input) {
 				continue
 			}
 			interest := pkt.AsInterest()
 			ndntestenv.NameEqual(assert, tt.name, interest, tt.input)
 			assert.Equal(tt.canBePrefix, interest.HasCanBePrefix(), tt.input)
 			assert.Equal(tt.mustBeFresh, interest.HasMustBeFresh(), tt.input)
-			assert.Equal(-1, interest.GetActiveFhIndex(), tt.input)
-			if fhs := interest.GetFhs(); assert.Len(fhs, len(tt.fhs), tt.input) {
+			assert.Equal(-1, interest.ActiveFwHintIndex(), tt.input)
+			if fhs := interest.FwHints(); assert.Len(fhs, len(tt.fhs), tt.input) {
 				for i, fhName := range fhs {
 					ndntestenv.NameEqual(assert, tt.fhs[i], fhName, "%s %i", tt.input, i)
 				}
 				if len(tt.fhs) > 0 {
 					assert.Error(interest.SelectActiveFh(len(tt.fhs)), tt.input)
 					assert.NoError(interest.SelectActiveFh(0), tt.input)
-					assert.Equal(0, interest.GetActiveFhIndex(), tt.input)
+					assert.Equal(0, interest.ActiveFwHintIndex(), tt.input)
 					assert.NoError(interest.SelectActiveFh(-1), tt.input)
-					assert.Equal(-1, interest.GetActiveFhIndex(), tt.input)
+					assert.Equal(-1, interest.ActiveFwHintIndex(), tt.input)
 				}
 			}
 			if tt.hasNonce {
-				assert.Equal(ndn.NonceFromUint(0xA3A2A1A0), interest.GetNonce(), tt.input)
+				assert.Equal(ndn.NonceFromUint(0xA3A2A1A0), interest.Nonce(), tt.input)
 			} else {
-				assert.True(interest.GetNonce().IsZero(), tt.input)
+				assert.True(interest.Nonce().IsZero(), tt.input)
 			}
-			assert.EqualValues(tt.lifetime, interest.GetLifetime()/time.Millisecond, tt.input)
-			assert.Equal(tt.hopLimit, interest.GetHopLimit(), tt.input)
+			assert.EqualValues(tt.lifetime, interest.Lifetime()/time.Millisecond, tt.input)
+			assert.Equal(tt.hopLimit, interest.HopLimit(), tt.input)
 		}
 	}
 }
@@ -121,13 +121,13 @@ func TestInterestModify(t *testing.T) {
 		modified := interest.Modify(0xABAAA9A8, 27938*time.Millisecond, 125,
 			ndnitestenv.Header.Pool(), ndnitestenv.Guider.Pool(), ndnitestenv.Indirect.Pool())
 		if assert.NotNil(modified, tt.input) {
-			npkt := modified.GetPacket()
+			npkt := modified.AsPacket()
 			pkt := npkt.AsMbuf()
 			defer pkt.Close()
 
 			assert.Equal(bytesFromHex(tt.output), pkt.ReadAll(), tt.input)
 			if i == 0 {
-				assert.Equal(pitToken0, npkt.GetLpL3().PitToken, tt.input)
+				assert.Equal(pitToken0, npkt.LpL3().PitToken, tt.input)
 			}
 		}
 	}

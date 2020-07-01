@@ -15,12 +15,12 @@ func RttEstFromPtr(ptr unsafe.Pointer) (rtte *RttEst) {
 	return (*RttEst)(ptr)
 }
 
-func (rtte *RttEst) getPtr() *C.RttEst {
+func (rtte *RttEst) ptr() *C.RttEst {
 	return (*C.RttEst)(unsafe.Pointer(rtte))
 }
 
 func (rtte *RttEst) Init() {
-	C.RttEst_Init(rtte.getPtr())
+	C.RttEst_Init(rtte.ptr())
 }
 
 func (rtte *RttEst) GetLastRtt() time.Duration {
@@ -36,9 +36,9 @@ func (rtte *RttEst) GetRto() time.Duration {
 }
 
 func (rtte *RttEst) Push(now eal.TscTime, rtt time.Duration) {
-	C.RttEst_Push(rtte.getPtr(), C.TscTime(now), C.TscDuration(eal.ToTscDuration(rtt)))
+	C.RttEst_Push(rtte.ptr(), C.TscTime(now), C.TscDuration(eal.ToTscDuration(rtt)))
 }
 
 func (rtte *RttEst) Backoff() {
-	C.RttEst_Backoff(rtte.getPtr())
+	C.RttEst_Backoff(rtte.ptr())
 }

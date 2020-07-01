@@ -38,7 +38,7 @@ func (dp *DataPlane) ReadInputInfo(i int) (info *InputInfo) {
 
 	info = new(InputInfo)
 	if input.rxl != nil {
-		info.LCore = input.rxl.GetLCore()
+		info.LCore = input.rxl.LCore()
 		info.Faces = input.rxl.ListFaces()
 	}
 
@@ -82,7 +82,7 @@ func (dp *DataPlane) ReadFwdInfo(i int) (info *FwdInfo) {
 
 	info = new(FwdInfo)
 	fwd := dp.fwds[i]
-	info.LCore = fwd.GetLCore()
+	info.LCore = fwd.LCore()
 
 	latencyStat := runningstat.FromPtr(unsafe.Pointer(&fwd.c.latencyStat))
 	info.InputLatency = latencyStat.Read().Scale(eal.GetNanosInTscUnit())

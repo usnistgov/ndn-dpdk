@@ -61,18 +61,18 @@ func (fwd *Fwd) Init(fib *fib.Fib, pcctCfg pcct.Config, interestQueueCfg, dataQu
 		return nil
 	}
 
-	fwd.c.fib = (*C.Fib)(fib.GetPtr(fwd.id))
+	fwd.c.fib = (*C.Fib)(fib.Ptr(fwd.id))
 
 	pcctCfg.Socket = socket
 	fwd.pcct, e = pcct.New(fwd.String()+"_pcct", pcctCfg)
 	if e != nil {
 		return fmt.Errorf("pcct.New: %v", e)
 	}
-	*C.FwFwd_GetPcctPtr_(fwd.c) = (*C.Pcct)(fwd.pcct.GetPtr())
+	*C.FwFwd_GetPcctPtr_(fwd.c) = (*C.Pcct)(fwd.pcct.Ptr())
 
-	fwd.c.headerMp = (*C.struct_rte_mempool)(ndni.HeaderMempool.MakePool(socket).GetPtr())
-	fwd.c.guiderMp = (*C.struct_rte_mempool)(ndni.NameMempool.MakePool(socket).GetPtr())
-	fwd.c.indirectMp = (*C.struct_rte_mempool)(pktmbuf.Indirect.MakePool(socket).GetPtr())
+	fwd.c.headerMp = (*C.struct_rte_mempool)(ndni.HeaderMempool.MakePool(socket).Ptr())
+	fwd.c.guiderMp = (*C.struct_rte_mempool)(ndni.NameMempool.MakePool(socket).Ptr())
+	fwd.c.indirectMp = (*C.struct_rte_mempool)(pktmbuf.Indirect.MakePool(socket).Ptr())
 
 	latencyStat := runningstat.FromPtr(unsafe.Pointer(&fwd.c.latencyStat))
 	latencyStat.Clear(false)

@@ -98,6 +98,6 @@ func (app *App) launchInput(input *Input) {
 		task.ConfigureDemux(input.demux3)
 	}
 
-	input.rxl.SetCallback(inputdemux.Demux3_FaceRx, input.demux3.GetPtr())
+	input.rxl.SetCallback(inputdemux.Demux3_FaceRx, input.demux3.Ptr())
 	input.rxl.Launch()
 }

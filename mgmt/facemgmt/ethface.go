@@ -21,7 +21,7 @@ func (EthFaceMgmt) ListPorts(args struct{}, reply *[]PortInfo) error {
 
 func (EthFaceMgmt) ListPortFaces(args PortArg, reply *[]BasicInfo) error {
 	dev := ethdev.Find(args.Port)
-	if !dev.IsValid() {
+	if !dev.Valid() {
 		return errors.New("EthDev not found")
 	}
 
@@ -37,11 +37,11 @@ func (EthFaceMgmt) ListPortFaces(args PortArg, reply *[]BasicInfo) error {
 
 func (EthFaceMgmt) ReadPortStats(args PortStatsArg, reply *ethdev.Stats) error {
 	dev := ethdev.Find(args.Port)
-	if !dev.IsValid() {
+	if !dev.Valid() {
 		return errors.New("EthDev not found")
 	}
 
-	*reply = dev.GetStats()
+	*reply = dev.Stats()
 	if args.Reset {
 		dev.ResetStats()
 	}
@@ -60,7 +60,7 @@ type PortInfo struct {
 }
 
 func makePortInfo(dev ethdev.EthDev) (info PortInfo) {
-	info.Name = dev.GetName()
+	info.Name = dev.Name()
 	info.NumaSocket = dev.NumaSocket()
 	port := ethface.FindPort(dev)
 	if port != nil {

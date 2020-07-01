@@ -33,7 +33,7 @@ func TestEntryExpiry(t *testing.T) {
 
 	entry2 := fixture.Insert(interest2)
 	require.NotNil(entry2)
-	assert.Equal(uintptr(entry.GetPtr()), uintptr(entry2.GetPtr()))
+	assert.Equal(uintptr(entry.Ptr()), uintptr(entry2.Ptr()))
 	assert.NotNil(entry.InsertDn(interest2))
 	assert.Len(entry.ListDns(), 2)
 
