@@ -1,18 +1,20 @@
 {
   "compilerOptions": {
     "forceConsistentCasingInFileNames": true,
+    "importHelpers": true,
     "module": "commonjs",
     "noEmitOnError": true,
     "noImplicitAny": true,
     "noImplicitReturns": true,
     "noUnusedLocals": true,
-    "outDir": "build",
+    "outDir": "build/js",
     "removeComments": true,
+    "rootDir": "js",
     "strict": true,
     "target": "es2019"
   },
   "include": [
-    "**/*.ts",
+    "js/**/*.ts",
   ],
   "exclude": [
     "node_modules"

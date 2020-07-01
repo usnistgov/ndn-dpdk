@@ -69,7 +69,7 @@ doxygen:
 mgmtspec: docs/mgmtspec.json
 
 docs/mgmtspec.json:
-	./node_modules/.bin/ts-node mgmt/make-spec.ts >$@
+	./node_modules/.bin/ts-node js/cmd/make-spec.ts >$@
 
 .PHONY: docs
 docs: doxygen mgmtspec

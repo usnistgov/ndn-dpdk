@@ -50,8 +50,10 @@ This software is developed at the [Advanced Network Technologies Division](https
 
 ## Code Organization
 
+* [ndn](ndn): NDN library in pure Go.
 * [mk](mk): build helper scripts.
 * [csrc](csrc): C source code.
+* [js](js): TypeScript source code.
 * [core](core): common shared code.
 * [dpdk](dpdk): DPDK bindings and extensions.
 * [spdk](spdk): SPDK bindings and extensions.
@@ -61,5 +63,4 @@ This software is developed at the [Advanced Network Technologies Division](https
 * [strategy](strategy): forwarding strategy BPF programs.
 * [app](app): applications, including the forwarder dataplane.
 * [mgmt](mgmt): management interface.
-* [appinit](appinit): initialization procedures.
 * [cmd](cmd): executables.
