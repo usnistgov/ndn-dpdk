@@ -25,18 +25,18 @@ PitEntry_ToDebugString(PitEntry* entry)
                          (int)entry->mustBeFresh);
   for (int index = 0; index < PIT_ENTRY_MAX_DNS; ++index) {
     PitDn* dn = &entry->dns[index];
-    if (dn->face == FACEID_INVALID) {
+    if (dn->face == 0) {
       break;
     }
-    PccDebugString_Appendf("%" PRI_FaceId ",", dn->face);
+    PccDebugString_Appendf("%" PRI_FaceID ",", dn->face);
   }
   PccDebugString_Appendf("] UP=[");
   for (int index = 0; index < PIT_ENTRY_MAX_UPS; ++index) {
     PitUp* up = &entry->ups[index];
-    if (up->face == FACEID_INVALID) {
+    if (up->face == 0) {
       break;
     }
-    PccDebugString_Appendf("%" PRI_FaceId ",", up->face);
+    PccDebugString_Appendf("%" PRI_FaceID ",", up->face);
   }
   return PccDebugString_Appendf("]");
 }
@@ -95,13 +95,13 @@ PitEntry_Timeout_(MinTmr* tmr, void* pit0)
   }
 }
 
-FaceId
-PitEntry_FindDuplicateNonce(PitEntry* entry, uint32_t nonce, FaceId dnFace)
+FaceID
+PitEntry_FindDuplicateNonce(PitEntry* entry, uint32_t nonce, FaceID dnFace)
 {
   PitDnIt it;
   for (PitDnIt_Init(&it, entry); PitDnIt_Valid(&it); PitDnIt_Next(&it)) {
     PitDn* dn = it.dn;
-    if (dn->face == FACEID_INVALID) {
+    if (dn->face == 0) {
       break;
     }
     if (dn->face == dnFace) {
@@ -111,21 +111,21 @@ PitEntry_FindDuplicateNonce(PitEntry* entry, uint32_t nonce, FaceId dnFace)
       return dn->face;
     }
   }
-  return FACEID_INVALID;
+  return 0;
 }
 
 PitDn*
 PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt)
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
-  FaceId face = pkt->port;
+  FaceID face = pkt->port;
   LpL3* lpl3 = Packet_GetLpL3Hdr(npkt);
   PInterest* interest = Packet_GetInterestHdr(npkt);
 
   PitDn* dn = NULL;
   if (entry->npkt == npkt) { // new PIT entry
     dn = &entry->dns[0];
-    assert(dn->face == FACEID_INVALID);
+    assert(dn->face == 0);
     dn->face = face;
   } else { // find DN slot
     PitDnIt it;
@@ -135,7 +135,7 @@ PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt)
       if (dn->face == face) {
         break;
       }
-      if (dn->face == FACEID_INVALID) {
+      if (dn->face == 0) {
         dn->face = face;
         break;
       }
@@ -183,7 +183,7 @@ PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt)
 }
 
 PitUp*
-PitEntry_ReserveUp(PitEntry* entry, Pit* pit, FaceId face)
+PitEntry_ReserveUp(PitEntry* entry, Pit* pit, FaceID face)
 {
   PitUpIt it;
   for (PitUpIt_Init(&it, entry); PitUpIt_Valid(&it) || PitUpIt_Extend(&it, pit);
@@ -192,7 +192,7 @@ PitEntry_ReserveUp(PitEntry* entry, Pit* pit, FaceId face)
     if (up->face == face) {
       return up;
     }
-    if (up->face == FACEID_INVALID || up->lastTx == 0) {
+    if (up->face == 0 || up->lastTx == 0) {
       PitUp_Reset(up, face);
       return up;
     }

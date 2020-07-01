@@ -8,8 +8,7 @@
 typedef uint64_t TscTime;
 typedef int64_t TscDuration;
 
-typedef uint16_t FaceId;
-#define FACEID_INVALID 0
+typedef uint16_t FaceID;
 
 #if !__has_attribute(always_inline)
 #error always_inline attribute is required

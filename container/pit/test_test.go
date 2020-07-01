@@ -84,7 +84,7 @@ func (fixture *Fixture) Insert(interest *ndni.Interest) *pit.Entry {
 	return pitEntry
 }
 
-func (fixture *Fixture) InsertFibEntry(name string, nexthop iface.FaceId) *fib.Entry {
+func (fixture *Fixture) InsertFibEntry(name string, nexthop iface.ID) *fib.Entry {
 	if _, e := fixture.fibFixture.Fib.Insert(fixture.fibFixture.MakeEntry(name,
 		fixture.emptyStrategy, nexthop)); e != nil {
 		panic(e)

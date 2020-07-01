@@ -50,8 +50,8 @@ Generally, a log line has several key-value pairs delimited by whitespace.
 Keys use "kebab-case".
 Common keys include:
 
-* "interest-from", "data-from", "nack-from": incoming FaceId in packet arrival.
-* "interest-to", "data-to", "nack-to": outgoing FaceId in packet transmission.
+* "interest-from", "data-from", "nack-from": incoming FaceID in packet arrival.
+* "interest-to", "data-to", "nack-to": outgoing FaceID in packet transmission.
 * "npkt" (meaning "NDN packet"): memory address of a packet.
 * "dn-token": PIT token at the downstream node.
 * "up-token": PIT token assigned by this node, which is sent upstream.

@@ -41,11 +41,11 @@ func TestCryptoDev(t *testing.T) {
 	}
 
 	out0 := allocOutBuf()
-	ops0[0].PrepareSha256Digest(mbuftestenv.MakePacket("A0A1A2A3"), 0, 4, out0.GetDataPtr())
+	ops0[0].PrepareSha256Digest(makePacket("A0A1A2A3"), 0, 4, out0.GetDataPtr())
 	out1 := allocOutBuf()
-	ops0[1].PrepareSha256Digest(mbuftestenv.MakePacket("B0B1B2B3"), 0, 4, out1.GetDataPtr())
+	ops0[1].PrepareSha256Digest(makePacket("B0B1B2B3"), 0, 4, out1.GetDataPtr())
 	out2 := allocOutBuf()
-	ops1[0].PrepareSha256Digest(mbuftestenv.MakePacket("C0C1C2C3"), 0, 4, out2.GetDataPtr())
+	ops1[0].PrepareSha256Digest(makePacket("C0C1C2C3"), 0, 4, out2.GetDataPtr())
 
 	assert.Equal(2, qp0.EnqueueBurst(ops0))
 	assert.Equal(1, qp1.EnqueueBurst(ops1))
@@ -53,15 +53,15 @@ func TestCryptoDev(t *testing.T) {
 	ops := make(cryptodev.OpVector, 2)
 	assert.Equal(1, qp1.DequeueBurst(ops))
 	assert.True(ops[0].IsSuccess())
-	assert.Equal(mbuftestenv.BytesFromHex("72D2A70D03005439DE209BBE9FFC050FAFD891082E9F3150F05A61054D25990F"),
+	assert.Equal(bytesFromHex("72D2A70D03005439DE209BBE9FFC050FAFD891082E9F3150F05A61054D25990F"),
 		out2.ReadAll())
 
 	assert.Equal(2, qp0.DequeueBurst(ops))
 	assert.True(ops[0].IsSuccess())
-	assert.Equal(mbuftestenv.BytesFromHex("73B92B68882B199971462A2614C6691CBA581DA958740466030A64CE7DE66ED3"),
+	assert.Equal(bytesFromHex("73B92B68882B199971462A2614C6691CBA581DA958740466030A64CE7DE66ED3"),
 		out0.ReadAll())
 	assert.True(ops[1].IsSuccess())
-	assert.Equal(mbuftestenv.BytesFromHex("A6662B764A4468DF70CA2CAD1B17DA26C62E53439DA8E4E8A80D9B91E59D09BA"),
+	assert.Equal(bytesFromHex("A6662B764A4468DF70CA2CAD1B17DA26C62E53439DA8E4E8A80D9B91E59D09BA"),
 		out1.ReadAll())
 	assert.Equal(0, qp0.DequeueBurst(ops))
 

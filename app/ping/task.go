@@ -10,14 +10,14 @@ import (
 )
 
 type Task struct {
-	Face   iface.IFace
+	Face   iface.Face
 	Server []*pingserver.Server
 	Client *pingclient.Client
 	Fetch  *fetch.Fetcher
 }
 
-func newTask(face iface.IFace, cfg TaskConfig) (task Task, e error) {
-	socket := face.GetNumaSocket()
+func newTask(face iface.Face, cfg TaskConfig) (task Task, e error) {
+	socket := face.NumaSocket()
 	task.Face = face
 
 	if cfg.Server != nil {

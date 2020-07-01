@@ -24,8 +24,8 @@ type IRxGroup interface {
 	GetRxLoop() *RxLoop
 	setRxLoop(rxl *RxLoop)
 
-	GetNumaSocket() eal.NumaSocket
-	ListFaces() []FaceId
+	NumaSocket() eal.NumaSocket
+	ListFaces() []ID
 }
 
 // Base type to implement IRxGroup.
@@ -58,7 +58,7 @@ func (rxg *RxGroupBase) setRxLoop(rxl *RxLoop) {
 type ChanRxGroup struct {
 	RxGroupBase
 	nFaces int32    // accessed via atomic.AddInt32
-	faces  sync.Map // map[FaceId]IFace
+	faces  sync.Map // map[ID]Face
 	queue  chan *pktmbuf.Packet
 }
 
@@ -75,27 +75,27 @@ func (rxg *ChanRxGroup) SetQueueCapacity(queueCapacity int) {
 	rxg.queue = make(chan *pktmbuf.Packet, queueCapacity)
 }
 
-func (rxg *ChanRxGroup) GetNumaSocket() eal.NumaSocket {
+func (rxg *ChanRxGroup) NumaSocket() eal.NumaSocket {
 	return eal.NumaSocket{}
 }
 
-func (rxg *ChanRxGroup) ListFaces() (list []FaceId) {
-	rxg.faces.Range(func(faceId, face interface{}) bool {
-		list = append(list, faceId.(FaceId))
+func (rxg *ChanRxGroup) ListFaces() (list []ID) {
+	rxg.faces.Range(func(faceID, face interface{}) bool {
+		list = append(list, faceID.(ID))
 		return true
 	})
 	return list
 }
 
-func (rxg *ChanRxGroup) AddFace(face IFace) {
+func (rxg *ChanRxGroup) AddFace(face Face) {
 	if atomic.AddInt32(&rxg.nFaces, 1) == 1 {
 		EmitRxGroupAdd(rxg)
 	}
-	rxg.faces.Store(face.GetFaceId(), face)
+	rxg.faces.Store(face.ID(), face)
 }
 
-func (rxg *ChanRxGroup) RemoveFace(face IFace) {
-	rxg.faces.Delete(face.GetFaceId())
+func (rxg *ChanRxGroup) RemoveFace(face Face) {
+	rxg.faces.Delete(face.ID())
 	if atomic.AddInt32(&rxg.nFaces, -1) == 0 {
 		EmitRxGroupRemove(rxg)
 	}
@@ -143,7 +143,7 @@ func NewRxLoop(numaSocket eal.NumaSocket) (rxl *RxLoop) {
 	return rxl
 }
 
-func (rxl *RxLoop) GetNumaSocket() eal.NumaSocket {
+func (rxl *RxLoop) NumaSocket() eal.NumaSocket {
 	return rxl.numaSocket
 }
 
@@ -190,7 +190,7 @@ func (rxl *RxLoop) ListRxGroups() (list []IRxGroup) {
 	return list
 }
 
-func (rxl *RxLoop) ListFaces() (list []FaceId) {
+func (rxl *RxLoop) ListFaces() (list []ID) {
 	for _, rxg := range rxl.rxgs {
 		list = append(list, rxg.ListFaces()...)
 	}
@@ -210,7 +210,7 @@ func (rxl *RxLoop) AddRxGroup(rxg IRxGroup) error {
 	defer rs.Close()
 
 	if rxl.numaSocket.IsAny() {
-		rxl.numaSocket = rxg.GetNumaSocket()
+		rxl.numaSocket = rxg.NumaSocket()
 	}
 	rxl.rxgs[rxgC] = rxg
 

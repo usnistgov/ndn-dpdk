@@ -14,7 +14,7 @@ typedef struct PitEntry PitEntry;
 typedef struct PitUp
 {
   uint32_t nonce;   ///< nonce on last sent Interest
-  FaceId face;      ///< the upstream face
+  FaceID face;      ///< the upstream face
   bool canBePrefix; ///< sent Interest has CanBePrefix?
   uint8_t nack;     ///< Nack reason against last Interest
 
@@ -28,7 +28,7 @@ typedef struct PitUp
 static_assert(sizeof(PitUp) == 64, "");
 
 static inline void
-PitUp_Reset(PitUp* up, FaceId face)
+PitUp_Reset(PitUp* up, FaceID face)
 {
   memset(up, 0, sizeof(PitUp));
   up->face = face;
@@ -38,7 +38,7 @@ static inline void
 PitUp_Copy(PitUp* dst, PitUp* src)
 {
   rte_mov64((uint8_t*)dst, (const uint8_t*)src);
-  src->face = FACEID_INVALID;
+  src->face = 0;
 }
 
 /** \brief Determine if forwarding should be suppressed.

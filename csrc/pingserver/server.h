@@ -48,7 +48,7 @@ typedef struct PingServer
   PktQueue rxQueue;
   struct rte_mempool* dataMp; ///< mempool for Data seg0
   struct rte_mempool* indirectMp;
-  FaceId face;
+  FaceID face;
   uint16_t nPatterns;
   bool wantNackNoRoute; ///< whether to Nack Interests not matching any pattern
 

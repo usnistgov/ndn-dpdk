@@ -9,13 +9,13 @@ typedef struct SgPitDn
 {
   TscTime expiry;
   char _a[12];
-  FaceId face;
+  FaceID face;
 } __rte_aligned(32) SgPitDn;
 
 typedef struct SgPitUp
 {
   char _a[4];
-  FaceId face;
+  FaceID face;
   char _b[1];
   uint8_t nack;
 

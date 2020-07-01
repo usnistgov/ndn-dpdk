@@ -32,8 +32,8 @@ func New(cfg []TaskConfig) (app *App, e error) {
 	app = new(App)
 
 	createface.CustomGetRxl = func(rxg iface.IRxGroup) *iface.RxLoop {
-		lc := eal.LCoreAlloc.Alloc(LCoreRole_Input, rxg.GetNumaSocket())
-		socket := lc.GetNumaSocket()
+		lc := eal.LCoreAlloc.Alloc(LCoreRole_Input, rxg.NumaSocket())
+		socket := lc.NumaSocket()
 		rxl := iface.NewRxLoop(socket)
 		rxl.SetLCore(lc)
 
@@ -45,9 +45,9 @@ func New(cfg []TaskConfig) (app *App, e error) {
 		return rxl
 	}
 
-	createface.CustomGetTxl = func(face iface.IFace) *iface.TxLoop {
-		lc := eal.LCoreAlloc.Alloc(LCoreRole_Output, face.GetNumaSocket())
-		socket := lc.GetNumaSocket()
+	createface.CustomGetTxl = func(face iface.Face) *iface.TxLoop {
+		lc := eal.LCoreAlloc.Alloc(LCoreRole_Output, face.NumaSocket())
+		socket := lc.NumaSocket()
 		txl := iface.NewTxLoop(socket)
 		txl.SetLCore(lc)
 		txl.Launch()
@@ -86,13 +86,13 @@ func (app *App) launchInput(input *Input) {
 		panic("RxLoop should have exactly one face")
 	}
 
-	input.demux3 = inputdemux.NewDemux3(input.rxl.GetNumaSocket())
+	input.demux3 = inputdemux.NewDemux3(input.rxl.NumaSocket())
 	input.demux3.GetInterestDemux().InitDrop()
 	input.demux3.GetDataDemux().InitDrop()
 	input.demux3.GetNackDemux().InitDrop()
 
 	for _, task := range app.Tasks {
-		if task.Face.GetFaceId() != faces[0] {
+		if task.Face.ID() != faces[0] {
 			continue
 		}
 		task.ConfigureDemux(input.demux3)

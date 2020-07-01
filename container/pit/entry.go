@@ -50,7 +50,7 @@ func (entry *Entry) ListDns() (list []Dn) {
 	list = make([]Dn, 0, C.PIT_ENTRY_MAX_DNS)
 	for i := 0; i < int(C.PIT_ENTRY_MAX_DNS); i++ {
 		dnC := &c.dns[i]
-		if dnC.face == C.FACEID_INVALID {
+		if dnC.face == 0 {
 			return list
 		}
 		list = append(list, Dn{dnC, entry})
@@ -58,7 +58,7 @@ func (entry *Entry) ListDns() (list []Dn) {
 	for extC := c.ext; extC != nil; extC = extC.next {
 		for i := 0; i < int(C.PIT_ENTRY_EXT_MAX_DNS); i++ {
 			dnC := &extC.dns[i]
-			if dnC.face == C.FACEID_INVALID {
+			if dnC.face == 0 {
 				return list
 			}
 			list = append(list, Dn{dnC, entry})
@@ -80,7 +80,7 @@ func (entry *Entry) ListUps() (list []Up) {
 	list = make([]Up, 0, C.PIT_ENTRY_MAX_UPS)
 	for i := 0; i < int(C.PIT_ENTRY_MAX_UPS); i++ {
 		upC := &c.ups[i]
-		if upC.face == C.FACEID_INVALID {
+		if upC.face == 0 {
 			return list
 		}
 		list = append(list, Up{upC, entry})
@@ -88,7 +88,7 @@ func (entry *Entry) ListUps() (list []Up) {
 	for extC := c.ext; extC != nil; extC = extC.next {
 		for i := 0; i < int(C.PIT_ENTRY_EXT_MAX_UPS); i++ {
 			upC := &extC.ups[i]
-			if upC.face == C.FACEID_INVALID {
+			if upC.face == 0 {
 				return list
 			}
 			list = append(list, Up{upC, entry})

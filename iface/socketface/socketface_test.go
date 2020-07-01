@@ -29,8 +29,7 @@ func TestUdp(t *testing.T) {
 	require.NoError(e)
 	defer faceB.Close()
 
-	assert.Equal(iface.FaceKind_Socket, faceA.GetFaceId().GetKind())
-	locA = faceA.GetLocator().(socketface.Locator)
+	locA = faceA.Locator().(socketface.Locator)
 	assert.Equal("udp", locA.Scheme)
 	assert.Equal("127.0.0.1:7001", locA.Local)
 	assert.Equal("127.0.0.1:7002", locA.Remote)
@@ -44,13 +43,13 @@ func checkStreamRedialing(t *testing.T, listener net.Listener, faceA *socketface
 	assert, require := makeAR(t)
 
 	var hasDownEvt, hasUpEvt bool
-	defer iface.OnFaceDown(func(id iface.FaceId) {
-		if id == faceA.GetFaceId() {
+	defer iface.OnFaceDown(func(id iface.ID) {
+		if id == faceA.ID() {
 			hasDownEvt = true
 		}
 	}).Close()
-	defer iface.OnFaceUp(func(id iface.FaceId) {
-		if id == faceA.GetFaceId() {
+	defer iface.OnFaceUp(func(id iface.ID) {
+		if id == faceA.ID() {
 			hasUpEvt = true
 		}
 	}).Close()
@@ -94,8 +93,7 @@ func TestTcp(t *testing.T) {
 	require.NoError(e)
 	defer face.Close()
 
-	assert.Equal(iface.FaceKind_Socket, face.GetFaceId().GetKind())
-	loc = face.GetLocator().(socketface.Locator)
+	loc = face.Locator().(socketface.Locator)
 	assert.Equal("tcp", loc.Scheme)
 	assert.Equal(fmt.Sprintf("127.0.0.1:%d", addr.Port), loc.Remote)
 	ifacetestenv.CheckLocatorMarshal(t, loc)
@@ -119,8 +117,7 @@ func TestUnix(t *testing.T) {
 	require.NoError(e)
 	defer face.Close()
 
-	assert.Equal(iface.FaceKind_Socket, face.GetFaceId().GetKind())
-	loc = face.GetLocator().(socketface.Locator)
+	loc = face.Locator().(socketface.Locator)
 	assert.Equal("unix", loc.Scheme)
 	assert.Equal(addr, loc.Remote)
 	ifacetestenv.CheckLocatorMarshal(t, loc)

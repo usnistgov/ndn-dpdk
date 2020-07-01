@@ -5,29 +5,11 @@ package mbuftestenv
 */
 import "C"
 import (
-	"encoding/hex"
 	"fmt"
-	"strings"
 
+	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 )
-
-// BytesFromHex converts a hexadecimal string to a byte slice.
-// The octets must be written as upper case.
-// All characters other than [0-9A-F] are considered comments and stripped.
-func BytesFromHex(input string) []byte {
-	s := strings.Map(func(ch rune) rune {
-		if strings.ContainsRune("0123456789ABCDEF", ch) {
-			return ch
-		}
-		return -1
-	}, input)
-	decoded, e := hex.DecodeString(s)
-	if e != nil {
-		panic(fmt.Sprintf("hex.DecodeString error %v", e))
-	}
-	return decoded
-}
 
 // Headroom sets segment headroom for MakePacket.
 type Headroom int
@@ -47,10 +29,10 @@ func MakePacket(args ...interface{}) (pkt *pktmbuf.Packet) {
 		case []byte:
 			segments = append(segments, a)
 		case string:
-			segments = append(segments, BytesFromHex(a))
+			segments = append(segments, testenv.BytesFromHex(a))
 		case []string:
 			for _, hexString := range a {
-				segments = append(segments, BytesFromHex(hexString))
+				segments = append(segments, testenv.BytesFromHex(hexString))
 			}
 		case *pktmbuf.Pool:
 			mp = a

@@ -26,7 +26,7 @@ typedef struct FetchThread
   struct rte_mempool* interestMp;
   struct cds_hlist_head head;
   NonceGen nonceGen;
-  FaceId face;
+  FaceID face;
   ThreadStopFlag stop;
 } FetchThread;
 

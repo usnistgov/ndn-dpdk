@@ -30,18 +30,18 @@ func New(port *Port, loc Locator) (face *EthFace, e error) {
 		fallthrough
 	case loc.Remote.IsGroup():
 		if face = port.FindFace(nil); face != nil {
-			return nil, fmt.Errorf("port has another face %d with a group address", face.GetFaceId())
+			return nil, fmt.Errorf("port has another face %d with a group address", face.ID())
 		}
 	case loc.Remote.IsUnicast():
 		if face = port.FindFace(&loc.Remote); face != nil {
-			return nil, fmt.Errorf("port has another face %d with same unicast address", face.GetFaceId())
+			return nil, fmt.Errorf("port has another face %d with same unicast address", face.ID())
 		}
 	default:
 		return nil, fmt.Errorf("invalid MAC address")
 	}
 
 	face = new(EthFace)
-	if e := face.InitFaceBase(iface.AllocId(iface.FaceKind_Eth), int(C.sizeof_EthFacePriv), port.dev.GetNumaSocket()); e != nil {
+	if e := face.InitFaceBase(iface.AllocID(), int(C.sizeof_EthFacePriv), port.dev.NumaSocket()); e != nil {
 		return nil, e
 	}
 	face.port = port
@@ -49,7 +49,7 @@ func New(port *Port, loc Locator) (face *EthFace, e error) {
 
 	priv := face.getPriv()
 	priv.port = C.uint16_t(face.port.dev.ID())
-	priv.faceId = C.FaceId(face.GetFaceId())
+	priv.faceID = C.FaceID(face.ID())
 
 	vlan := make([]uint16, 2)
 	copy(vlan, loc.Vlan)
@@ -83,7 +83,7 @@ func (face *EthFace) GetPort() *Port {
 	return face.port
 }
 
-func (face *EthFace) GetLocator() iface.Locator {
+func (face *EthFace) Locator() iface.Locator {
 	return face.loc
 }
 

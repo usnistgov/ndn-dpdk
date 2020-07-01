@@ -31,7 +31,7 @@ type Crypto struct {
 }
 
 func newCrypto(id int, lc eal.LCore, cfg CryptoConfig, ndt *ndt.Ndt, fwds []*Fwd) (fwc *Crypto, e error) {
-	socket := lc.GetNumaSocket()
+	socket := lc.NumaSocket()
 	fwc = new(Crypto)
 	fwc.SetLCore(lc)
 	fwc.id = id

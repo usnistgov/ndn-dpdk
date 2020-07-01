@@ -13,7 +13,7 @@ FwFwd_TxNacks(FwFwd* fwd, PitEntry* pitEntry, TscTime now, NackReason reason, ui
   PitDnIt it;
   for (PitDnIt_Init(&it, pitEntry); PitDnIt_Valid(&it); PitDnIt_Next(&it)) {
     PitDn* dn = it.dn;
-    if (dn->face == FACEID_INVALID) {
+    if (dn->face == 0) {
       break;
     }
     if (dn->expiry < now) {
@@ -21,20 +21,20 @@ FwFwd_TxNacks(FwFwd* fwd, PitEntry* pitEntry, TscTime now, NackReason reason, ui
     }
 
     if (unlikely(Face_IsDown(dn->face))) {
-      ZF_LOGD("^ no-nack-to=%" PRI_FaceId " drop=face-down", dn->face);
+      ZF_LOGD("^ no-nack-to=%" PRI_FaceID " drop=face-down", dn->face);
       continue;
     }
 
     Packet* outNpkt = ModifyInterest(pitEntry->npkt, dn->nonce, 0, nackHopLimit, fwd->headerMp,
                                      fwd->guiderMp, fwd->indirectMp);
     if (unlikely(outNpkt == NULL)) {
-      ZF_LOGD("^ no-nack-to=%" PRI_FaceId " drop=alloc-error", dn->face);
+      ZF_LOGD("^ no-nack-to=%" PRI_FaceID " drop=alloc-error", dn->face);
       break;
     }
 
     MakeNack(outNpkt, reason);
     Packet_GetLpL3Hdr(outNpkt)->pitToken = dn->token;
-    ZF_LOGD("^ nack-to=%" PRI_FaceId " reason=%s npkt=%p nonce=%08" PRIx32 " dn-token=%016" PRIx64,
+    ZF_LOGD("^ nack-to=%" PRI_FaceID " reason=%s npkt=%p nonce=%08" PRIx32 " dn-token=%016" PRIx64,
             dn->face, NackReason_ToString(reason), outNpkt, dn->nonce, dn->token);
     Face_Tx(dn->face, outNpkt);
   }
@@ -66,7 +66,7 @@ FwFwd_RxNackDuplicate(FwFwd* fwd, FwFwdCtx* ctx)
   Packet* outNpkt = ModifyInterest(ctx->pitEntry->npkt, upNonce, upLifetime, upHopLimit,
                                    fwd->headerMp, fwd->guiderMp, fwd->indirectMp);
   if (unlikely(outNpkt == NULL)) {
-    ZF_LOGD("^ no-interest-to=%" PRI_FaceId " drop=alloc-error", ctx->pitUp->face);
+    ZF_LOGD("^ no-interest-to=%" PRI_FaceID " drop=alloc-error", ctx->pitUp->face);
     return true;
   }
 
@@ -74,7 +74,7 @@ FwFwd_RxNackDuplicate(FwFwd* fwd, FwFwdCtx* ctx)
   Packet_InitLpL3Hdr(outNpkt)->pitToken = token;
   Packet_ToMbuf(outNpkt)->timestamp = ctx->pkt->timestamp; // for latency stats
 
-  ZF_LOGD("^ interest-to=%" PRI_FaceId " npkt=%p nonce=%08" PRIx32 " lifetime=%" PRIu32
+  ZF_LOGD("^ interest-to=%" PRI_FaceID " npkt=%p nonce=%08" PRIx32 " lifetime=%" PRIu32
           " hopLimit=%" PRIu8 " up-token=%016" PRIx64,
           ctx->pitUp->face, outNpkt, upNonce, upLifetime, upHopLimit, token);
   Face_Tx(ctx->pitUp->face, outNpkt);
@@ -93,7 +93,7 @@ FwFwd_ProcessNack(FwFwd* fwd, FwFwdCtx* ctx)
   NackReason reason = nack->lpl3.nackReason;
   uint8_t nackHopLimit = nack->interest.hopLimit;
 
-  ZF_LOGD("nack-from=%" PRI_FaceId " npkt=%p up-token=%016" PRIx64 " reason=%" PRIu8, ctx->rxFace,
+  ZF_LOGD("nack-from=%" PRI_FaceID " npkt=%p up-token=%016" PRIx64 " reason=%" PRIu8, ctx->rxFace,
           ctx->npkt, ctx->rxToken, reason);
 
   // find PIT entry
@@ -109,7 +109,7 @@ FwFwd_ProcessNack(FwFwd* fwd, FwFwdCtx* ctx)
   NackReason leastSevere = reason;
   PitUpIt it;
   for (PitUpIt_Init(&it, ctx->pitEntry); PitUpIt_Valid(&it); PitUpIt_Next(&it)) {
-    if (it.up->face == FACEID_INVALID) {
+    if (it.up->face == 0) {
       continue;
     }
     if (it.up->face == ctx->rxFace) {

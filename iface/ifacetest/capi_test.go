@@ -14,7 +14,7 @@ import (
 func TestCApiNoFace(t *testing.T) {
 	assert, _ := makeAR(t)
 
-	id := iface.AllocId(iface.FaceKind_Eth) // non-existent face
+	id := iface.AllocID() // non-existent face
 	assert.True(Face_IsDown(id))
 
 	pkts := make([]*ndni.Packet, 1)

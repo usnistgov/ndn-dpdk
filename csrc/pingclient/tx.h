@@ -35,7 +35,7 @@ static_assert(offsetof(PingClientTxPattern, seqNum.compV) % sizeof(uint64_t) == 
  */
 typedef struct PingClientTx
 {
-  FaceId face;
+  FaceID face;
   ThreadStopFlag stop;
   uint8_t runNum;
   uint16_t nWeights;

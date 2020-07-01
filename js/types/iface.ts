@@ -5,7 +5,7 @@ import type { Counter, RunningStatSnapshot } from "./core";
  * @minimum 1
  * @maximum 65535
  */
-export type FaceId = number;
+export type FaceID = number;
 
 export type FaceLocator = EthFaceLocator | SocketFaceLocator;
 

@@ -73,6 +73,18 @@ func (pc *pkgConsts) recognizeConstDecl(decl *ast.GenDecl) {
 		break
 	}
 
+	rename := func(name string) string { return name }
+	if tokens := strings.SplitN(typename, "-", 2); len(tokens) == 2 {
+		typename = tokens[0]
+		prefix := tokens[1]
+		rename = func(name string) string {
+			if strings.HasPrefix(name, prefix) {
+				return typename + name[len(prefix):]
+			}
+			return name
+		}
+	}
+
 	if wantCollect {
 		enum := pc.Enums[typename]
 		if enum == nil {
@@ -80,11 +92,11 @@ func (pc *pkgConsts) recognizeConstDecl(decl *ast.GenDecl) {
 			enum.Typename = typename
 			pc.Enums[typename] = enum
 		}
-		pc.collectEnum(enum, decl)
+		pc.collectEnum(enum, decl, rename)
 	}
 }
 
-func (pc *pkgConsts) collectEnum(enum *enumDecl, decl *ast.GenDecl) {
+func (pc *pkgConsts) collectEnum(enum *enumDecl, decl *ast.GenDecl, rename func(string) string) {
 	for i, spec := range decl.Specs {
 		vspec := spec.(*ast.ValueSpec)
 		if len(vspec.Names) != 1 || len(vspec.Values) > 1 {
@@ -95,6 +107,7 @@ func (pc *pkgConsts) collectEnum(enum *enumDecl, decl *ast.GenDecl) {
 		if name == "_" {
 			continue
 		}
+		name = rename(name)
 
 		value := strconv.Itoa(i) // iota
 		if len(vspec.Values) == 1 {

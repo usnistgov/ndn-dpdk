@@ -31,7 +31,7 @@ typedef struct EthFacePriv
   EthFaceEtherHdr txHdr;
   uint16_t port;
   uint16_t rxQueue;
-  FaceId faceId;
+  FaceID faceID;
   uint8_t txHdrLen;
 } EthFacePriv;
 

@@ -62,7 +62,7 @@ func (fixture *Fixture) CountEntries() (n int) {
 
 // MakeEntry allocates and initializes a FIB entry.
 func (fixture *Fixture) MakeEntry(name string, sc strategycode.StrategyCode,
-	nexthops ...iface.FaceId) (entry *fib.Entry) {
+	nexthops ...iface.ID) (entry *fib.Entry) {
 	entry = new(fib.Entry)
 	n := ndn.ParseName(name)
 	entry.SetName(n)

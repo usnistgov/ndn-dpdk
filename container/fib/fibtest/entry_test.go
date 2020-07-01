@@ -23,7 +23,7 @@ func TestEntry(t *testing.T) {
 	ndntestenv.NameEqual(assert, name, &entry)
 	assert.EqualValues(2, c.NComps)
 
-	nexthops := []iface.FaceId{2302, 1067, 1122}
+	nexthops := []iface.ID{2302, 1067, 1122}
 	assert.NoError(entry.SetNexthops(nexthops))
 	assert.Equal(nexthops, entry.GetNexthops())
 
@@ -36,9 +36,9 @@ func TestEntry(t *testing.T) {
 	name2.UnmarshalBinary(name2V)
 	assert.Error(entry.SetName(name2))
 
-	nexthops2 := make([]iface.FaceId, 0)
+	nexthops2 := make([]iface.ID, 0)
 	for len(nexthops2) <= fib.MaxNexthops {
-		nexthops2 = append(nexthops2, iface.FaceId(5000+len(nexthops2)))
+		nexthops2 = append(nexthops2, iface.ID(5000+len(nexthops2)))
 	}
 	assert.Error(entry.SetNexthops(nexthops2))
 }

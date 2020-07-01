@@ -57,7 +57,7 @@ struct FibEntry
    */
   uint8_t maxDepth;
 
-  FaceId nexthops[FIB_ENTRY_MAX_NEXTHOPS];
+  FaceID nexthops[FIB_ENTRY_MAX_NEXTHOPS];
 
   uint32_t nRxInterests;
   uint32_t nRxData;

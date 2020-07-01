@@ -73,8 +73,8 @@ func (port EthDev) GetName() string {
 	return C.GoString(&ifname[0])
 }
 
-// GetNumaSocket returns the NUMA socket where this EthDev is located.
-func (port EthDev) GetNumaSocket() (socket eal.NumaSocket) {
+// NumaSocket returns the NUMA socket where this EthDev is located.
+func (port EthDev) NumaSocket() (socket eal.NumaSocket) {
 	return eal.NumaSocketFromID(int(C.rte_eth_dev_socket_id(C.uint16_t(port.ID()))))
 }
 

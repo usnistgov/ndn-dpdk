@@ -3,8 +3,7 @@
 This package implements Ethernet faces using DPDK ethdev as transport.
 
 **EthFace** type represents an Ethernet face.
-FaceId is randomly assigned from the range 0x1000-0x1FFF.
-Locator has the following fields:
+Its Locator has the following fields:
 
 * *Scheme* is set to "ether".
 * *Port* is the port name as presented by DPDK.
@@ -33,11 +32,11 @@ There is minimal checking on software side.
 Its procedure is:
 
 1. Poll ethdev RX queue 0 for incoming frames.
-2. Label each frame with incoming FaceId:
-    * If the destination MAC address is a group address, the FaceId is set to the face with multicast remote address.
-    * Otherwise, the last octet of source MAC address is used to query a 256-element array of unicast FaceIds.
+2. Label each frame with incoming ID:
+    * If the destination MAC address is a group address, the ID is set to the face with multicast remote address.
+    * Otherwise, the last octet of source MAC address is used to query a 256-element array of unicast FaceIDs.
       This requires every face with unicast remote address to have distinct last octet.
-    * In case a face selected as above does not exist, the frame's incoming FaceId is set to `FACEID_INVALID`.
+    * In case a face selected as above does not exist, the frame's incoming ID is set to zero.
       Later, `FaceImpl_RxBurst` would drop such a frame.
     * VLAN tags do not participate in packet dispatching.
 3. Remove the Ethernet and VLAN headers.

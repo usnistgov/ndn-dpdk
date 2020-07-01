@@ -14,7 +14,7 @@ var (
 	theTxls   []*iface.TxLoop
 
 	CustomGetRxl func(rxg iface.IRxGroup) *iface.RxLoop
-	CustomGetTxl func(rxg iface.IFace) *iface.TxLoop
+	CustomGetTxl func(rxg iface.Face) *iface.TxLoop
 )
 
 type Config struct {
@@ -49,7 +49,7 @@ func (cfg Config) Apply() {
 func ListRxTxNumaSockets() (list []eal.NumaSocket) {
 	if theConfig.EnableEth {
 		for _, port := range ethdev.List() {
-			list = append(list, port.GetNumaSocket())
+			list = append(list, port.NumaSocket())
 		}
 	}
 	if theConfig.EnableSock {

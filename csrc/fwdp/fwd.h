@@ -89,7 +89,7 @@ typedef struct FwFwdCtx
   uint64_t rxToken; // F,I,D,N
   uint32_t dnNonce; // I
   int nForwarded;   // T,I,N
-  FaceId rxFace;    // F,I,D
+  FaceID rxFace;    // F,I,D
 } FwFwdCtx;
 
 void

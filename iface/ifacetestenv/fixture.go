@@ -23,10 +23,10 @@ type Fixture struct {
 	TxLCore       eal.LCore // LCore for executing TxLoop
 	SendLCore     eal.LCore // LCore for executing sendProc
 
-	rxFace    iface.IFace
-	rxDiscard map[iface.FaceId]iface.IFace
+	rxFace    iface.Face
+	rxDiscard map[iface.ID]iface.Face
 	rxl       *iface.RxLoop
-	txFace    iface.IFace
+	txFace    iface.Face
 	txl       *iface.TxLoop
 
 	NRxInterests int
@@ -34,7 +34,7 @@ type Fixture struct {
 	NRxNacks     int
 }
 
-func New(t *testing.T, rxFace, txFace iface.IFace) (fixture *Fixture) {
+func New(t *testing.T, rxFace, txFace iface.Face) (fixture *Fixture) {
 	fixture = new(Fixture)
 	fixture.t = t
 
@@ -47,21 +47,21 @@ func New(t *testing.T, rxFace, txFace iface.IFace) (fixture *Fixture) {
 	fixture.SendLCore = slaves[2]
 
 	fixture.rxFace = rxFace
-	fixture.rxDiscard = make(map[iface.FaceId]iface.IFace)
+	fixture.rxDiscard = make(map[iface.ID]iface.Face)
 	fixture.txFace = txFace
 
-	CheckLocatorMarshal(t, rxFace.GetLocator())
-	CheckLocatorMarshal(t, txFace.GetLocator())
+	CheckLocatorMarshal(t, rxFace.Locator())
+	CheckLocatorMarshal(t, txFace.Locator())
 	return fixture
 }
 
-func (fixture *Fixture) AddRxDiscard(face iface.IFace) {
-	fixture.rxDiscard[face.GetFaceId()] = face
+func (fixture *Fixture) AddRxDiscard(face iface.Face) {
+	fixture.rxDiscard[face.ID()] = face
 }
 
 func (fixture *Fixture) RunTest() {
 	fixture.launchRx()
-	fixture.txl = iface.NewTxLoop(fixture.txFace.GetNumaSocket())
+	fixture.txl = iface.NewTxLoop(fixture.txFace.NumaSocket())
 	fixture.txl.SetLCore(fixture.TxLCore)
 	fixture.txl.Launch()
 	fixture.txl.AddFace(fixture.txFace)
@@ -80,15 +80,15 @@ func (fixture *Fixture) RunTest() {
 func (fixture *Fixture) launchRx() {
 	assert, require := testenv.MakeAR(fixture.t)
 
-	fixture.rxl = iface.NewRxLoop(fixture.rxFace.GetNumaSocket())
+	fixture.rxl = iface.NewRxLoop(fixture.rxFace.NumaSocket())
 	fixture.rxl.SetLCore(fixture.RxLCore)
 
 	fixture.rxl.SetCallback(iface.WrapRxCb(func(burst iface.RxBurst) {
 		check := func(l3pkt ndni.IL3Packet) (increment int) {
 			pkt := l3pkt.GetPacket().AsMbuf()
-			faceId := iface.FaceId(pkt.GetPort())
-			if _, ok := fixture.rxDiscard[faceId]; !ok {
-				assert.Equal(fixture.rxFace.GetFaceId(), faceId)
+			faceID := iface.ID(pkt.GetPort())
+			if _, ok := fixture.rxDiscard[faceID]; !ok {
+				assert.Equal(fixture.rxFace.ID(), faceID)
 				assert.NotZero(pkt.GetTimestamp())
 				increment = 1
 			}

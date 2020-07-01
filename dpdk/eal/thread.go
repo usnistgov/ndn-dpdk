@@ -48,10 +48,10 @@ func (t *ThreadBase) mustHaveLCore() {
 	}
 }
 
-// GetNumaSocket returns the NumaSocket where this thread would be running.
-func (t *ThreadBase) GetNumaSocket() NumaSocket {
+// NumaSocket returns the NumaSocket where this thread would be running.
+func (t *ThreadBase) NumaSocket() NumaSocket {
 	t.mustHaveLCore()
-	return t.lc.GetNumaSocket()
+	return t.lc.NumaSocket()
 }
 
 // LaunchImpl launches the specifies function.

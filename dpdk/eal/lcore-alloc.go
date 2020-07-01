@@ -13,7 +13,7 @@ import (
 type lCoreProvider interface {
 	ListSlaves() []LCore
 	IsBusy(lc LCore) bool
-	GetNumaSocket(lc LCore) NumaSocket
+	NumaSocket(lc LCore) NumaSocket
 }
 
 type ealLCoreProvider struct{}
@@ -26,8 +26,8 @@ func (ealLCoreProvider) IsBusy(lc LCore) bool {
 	return lc.IsBusy()
 }
 
-func (ealLCoreProvider) GetNumaSocket(lc LCore) NumaSocket {
-	return lc.GetNumaSocket()
+func (ealLCoreProvider) NumaSocket(lc LCore) NumaSocket {
+	return lc.NumaSocket()
 }
 
 // LCoreAllocRoleConfig contains lcore allocation config for a role.
@@ -81,7 +81,7 @@ func (la *LCoreAllocator) lcIsAvailable() lCorePredicate {
 
 func (la *LCoreAllocator) lcOnNuma(numaSocket NumaSocket) lCorePredicate {
 	return func(lc LCore) bool {
-		return numaSocket.IsAny() || la.Provider.GetNumaSocket(lc).ID() == numaSocket.ID()
+		return numaSocket.IsAny() || la.Provider.NumaSocket(lc).ID() == numaSocket.ID()
 	}
 }
 
@@ -119,7 +119,7 @@ L:
 func (la *LCoreAllocator) classifyByNuma(lcores []LCore) (m map[NumaSocket][]LCore) {
 	m = make(map[NumaSocket][]LCore)
 	for _, lc := range lcores {
-		numaSocket := la.Provider.GetNumaSocket(lc)
+		numaSocket := la.Provider.NumaSocket(lc)
 		m[numaSocket] = append(m[numaSocket], lc)
 	}
 	return m
@@ -220,7 +220,7 @@ func (la *LCoreAllocator) Alloc(role string, numaSocket NumaSocket) (lc LCore) {
 
 	la.allocated[lc.ID()] = role
 	log.WithFields(makeLogFields("role", role, "socket", numaSocket,
-		"lc", lc, "lc-socket", la.Provider.GetNumaSocket(lc))).Info("lcore allocated")
+		"lc", lc, "lc-socket", la.Provider.NumaSocket(lc))).Info("lcore allocated")
 	return lc
 }
 
@@ -229,7 +229,7 @@ func (la *LCoreAllocator) Free(lc LCore) {
 	if la.allocated[lc.ID()] == "" {
 		panic("lcore double free")
 	}
-	log.WithFields(makeLogFields("lc", lc, "role", la.allocated[lc.ID()], "socket", la.Provider.GetNumaSocket(lc))).Info("lcore freed")
+	log.WithFields(makeLogFields("lc", lc, "role", la.allocated[lc.ID()], "socket", la.Provider.NumaSocket(lc))).Info("lcore freed")
 	la.allocated[lc.ID()] = ""
 }
 

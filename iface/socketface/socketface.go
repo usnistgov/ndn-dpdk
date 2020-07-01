@@ -51,7 +51,7 @@ func Wrap(inner *sockettransport.Transport, cfg Config) (face *SocketFace, e err
 	face.rxMempool = ndni.PacketMempool.MakePool(eal.NumaSocket{})
 	face.inner = inner
 
-	if e := face.InitFaceBase(iface.AllocId(iface.FaceKind_Socket), 0, eal.NumaSocket{}); e != nil {
+	if e := face.InitFaceBase(iface.AllocID(), 0, eal.NumaSocket{}); e != nil {
 		return nil, e
 	}
 
@@ -75,8 +75,8 @@ func (face *SocketFace) getPtr() *C.Face {
 	return (*C.Face)(face.GetPtr())
 }
 
-// GetLocator returns a locator that describes the socket endpoints.
-func (face *SocketFace) GetLocator() iface.Locator {
+// Locator returns a locator that describes the socket endpoints.
+func (face *SocketFace) Locator() iface.Locator {
 	conn := face.inner.GetConn()
 	laddr, raddr := conn.LocalAddr(), conn.RemoteAddr()
 
@@ -116,7 +116,7 @@ func (face *SocketFace) rxLoop() {
 		}
 
 		mbuf := vec[0]
-		mbuf.SetPort(uint16(face.GetFaceId()))
+		mbuf.SetPort(uint16(face.ID()))
 		mbuf.SetTimestamp(eal.TscNow())
 		mbuf.SetHeadroom(0)
 		mbuf.Append(wire)
@@ -126,7 +126,7 @@ func (face *SocketFace) rxLoop() {
 
 //export go_SocketFace_TxBurst
 func go_SocketFace_TxBurst(faceC *C.Face, pkts **C.struct_rte_mbuf, nPkts C.uint16_t) C.uint16_t {
-	face := iface.Get(iface.FaceId(faceC.id)).(*SocketFace)
+	face := iface.Get(iface.ID(faceC.id)).(*SocketFace)
 	innerTx := face.inner.GetTx()
 	for i := 0; i < int(nPkts); i++ {
 		mbufPtr := (**C.struct_rte_mbuf)(unsafe.Pointer(uintptr(unsafe.Pointer(pkts)) +

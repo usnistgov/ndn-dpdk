@@ -14,6 +14,6 @@ var (
 	makeLogFields = logger.MakeFields
 )
 
-func newLogger(id iface.FaceId) logrus.FieldLogger {
+func newLogger(id iface.ID) logrus.FieldLogger {
 	return logger.NewWithPrefix("socketface", fmt.Sprintf("face %d", id))
 }

@@ -10,7 +10,7 @@ import (
 )
 
 // Create a face with given locator.
-func Create(loc iface.Locator) (face iface.IFace, e error) {
+func Create(loc iface.Locator) (face iface.Face, e error) {
 	if e = loc.Validate(); e != nil {
 		return nil, e
 	}
@@ -24,7 +24,7 @@ func Create(loc iface.Locator) (face iface.IFace, e error) {
 	return createSock(loc.(socketface.Locator))
 }
 
-func createEth(loc ethface.Locator) (face iface.IFace, e error) {
+func createEth(loc ethface.Locator) (face iface.Face, e error) {
 	if !theConfig.EnableEth {
 		return nil, errors.New("Ethernet face feature is disabled")
 	}
@@ -42,7 +42,7 @@ func createEth(loc ethface.Locator) (face iface.IFace, e error) {
 	return ethface.Create(loc, cfg)
 }
 
-func createSock(loc socketface.Locator) (face iface.IFace, e error) {
+func createSock(loc socketface.Locator) (face iface.Face, e error) {
 	if !theConfig.EnableSock {
 		return nil, errors.New("socket face feature is disabled")
 	}

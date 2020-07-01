@@ -17,7 +17,7 @@ type Input struct {
 }
 
 func newInput(id int, lc eal.LCore, ndt *ndt.Ndt, fwds []*Fwd) *Input {
-	socket := lc.GetNumaSocket()
+	socket := lc.NumaSocket()
 	var fwi Input
 	fwi.id = id
 

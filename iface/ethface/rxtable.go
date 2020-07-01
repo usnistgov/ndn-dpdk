@@ -36,21 +36,21 @@ func (impl *rxTableImpl) Init() error {
 	return nil
 }
 
-func (impl *rxTableImpl) setFace(slot *C.FaceId, faceId iface.FaceId) error {
-	oldFaceId := iface.FaceId(*slot)
-	if impl.port.faces[oldFaceId] != nil {
-		return fmt.Errorf("new face %d conflicts with old face %d", faceId, oldFaceId)
+func (impl *rxTableImpl) setFace(slot *C.FaceID, faceID iface.ID) error {
+	oldFaceID := iface.ID(*slot)
+	if impl.port.faces[oldFaceID] != nil {
+		return fmt.Errorf("new face %d conflicts with old face %d", faceID, oldFaceID)
 	}
-	*slot = C.FaceId(faceId)
+	*slot = C.FaceID(faceID)
 	return nil
 }
 
 func (impl *rxTableImpl) Start(face *EthFace) error {
 	if face.loc.Remote.IsGroup() {
-		return impl.setFace(&impl.rxt.c.multicast, face.GetFaceId())
+		return impl.setFace(&impl.rxt.c.multicast, face.ID())
 	}
 	lastOctet := face.loc.Remote.Bytes[5]
-	return impl.setFace(&impl.rxt.c.unicast[lastOctet], face.GetFaceId())
+	return impl.setFace(&impl.rxt.c.unicast[lastOctet], face.ID())
 }
 
 func (impl *rxTableImpl) Stop(face *EthFace) error {
@@ -74,7 +74,7 @@ type RxTable struct {
 
 func newRxTable(port *Port) (rxt *RxTable) {
 	rxt = new(RxTable)
-	rxt.c = (*C.EthRxTable)(eal.Zmalloc("EthRxTable", C.sizeof_EthRxTable, port.dev.GetNumaSocket()))
+	rxt.c = (*C.EthRxTable)(eal.Zmalloc("EthRxTable", C.sizeof_EthRxTable, port.dev.NumaSocket()))
 	rxt.InitRxgBase(unsafe.Pointer(rxt.c))
 
 	rxt.c.port = C.uint16_t(port.dev.ID())
@@ -92,17 +92,17 @@ func (rxt *RxTable) Close() error {
 	return nil
 }
 
-func (rxt *RxTable) GetNumaSocket() eal.NumaSocket {
-	return ethdev.FromID(int(rxt.c.port)).GetNumaSocket()
+func (rxt *RxTable) NumaSocket() eal.NumaSocket {
+	return ethdev.FromID(int(rxt.c.port)).NumaSocket()
 }
 
-func (rxt *RxTable) ListFaces() (list []iface.FaceId) {
+func (rxt *RxTable) ListFaces() (list []iface.ID) {
 	if rxt.c.multicast != 0 {
-		list = append(list, iface.FaceId(rxt.c.multicast))
+		list = append(list, iface.ID(rxt.c.multicast))
 	}
 	for j := 0; j < 256; j++ {
 		if rxt.c.unicast[j] != 0 {
-			list = append(list, iface.FaceId(rxt.c.unicast[j]))
+			list = append(list, iface.ID(rxt.c.unicast[j]))
 		}
 	}
 	return list

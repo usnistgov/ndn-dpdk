@@ -14,7 +14,7 @@ type Up struct {
 	entry *Entry
 }
 
-// GetFaceId returns the face ID.
-func (up Up) GetFaceId() iface.FaceId {
-	return iface.FaceId(up.c.face)
+// FaceID returns the face ID.
+func (up Up) FaceID() iface.ID {
+	return iface.ID(up.c.face)
 }

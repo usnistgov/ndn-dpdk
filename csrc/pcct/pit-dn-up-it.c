@@ -16,8 +16,8 @@ PitDnUpIt_Extend_(PitDnUpIt_* it, Pit* pit, int maxInExt, size_t offsetInExt)
   }
 
   // clear PitEntryExt
-  ext->dns[0].face = FACEID_INVALID;
-  ext->ups[0].face = FACEID_INVALID;
+  ext->dns[0].face = 0;
+  ext->ups[0].face = 0;
   ext->next = NULL;
 
   // chain after PitEntry or existing PitEntryExt

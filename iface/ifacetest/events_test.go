@@ -10,24 +10,24 @@ import (
 func TestEvents(t *testing.T) {
 	assert, _ := makeAR(t)
 
-	var faceNewEvts []iface.FaceId
-	var faceUpEvts []iface.FaceId
-	var faceDownEvts []iface.FaceId
-	var faceClosingEvts []iface.FaceId
-	var faceClosedEvts []iface.FaceId
-	defer iface.OnFaceNew(func(id iface.FaceId) {
+	var faceNewEvts []iface.ID
+	var faceUpEvts []iface.ID
+	var faceDownEvts []iface.ID
+	var faceClosingEvts []iface.ID
+	var faceClosedEvts []iface.ID
+	defer iface.OnFaceNew(func(id iface.ID) {
 		faceNewEvts = append(faceNewEvts, id)
 	}).Close()
-	defer iface.OnFaceUp(func(id iface.FaceId) {
+	defer iface.OnFaceUp(func(id iface.ID) {
 		faceUpEvts = append(faceUpEvts, id)
 	}).Close()
-	defer iface.OnFaceDown(func(id iface.FaceId) {
+	defer iface.OnFaceDown(func(id iface.ID) {
 		faceDownEvts = append(faceDownEvts, id)
 	}).Close()
-	defer iface.OnFaceClosing(func(id iface.FaceId) {
+	defer iface.OnFaceClosing(func(id iface.ID) {
 		faceClosingEvts = append(faceClosingEvts, id)
 	}).Close()
-	defer iface.OnFaceClosed(func(id iface.FaceId) {
+	defer iface.OnFaceClosed(func(id iface.ID) {
 		faceClosedEvts = append(faceClosedEvts, id)
 		assert.Len(faceClosingEvts, len(faceClosedEvts))
 		assert.Equal(id, faceClosedEvts[len(faceClosingEvts)-1])

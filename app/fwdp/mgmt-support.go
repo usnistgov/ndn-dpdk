@@ -25,8 +25,8 @@ func (dp *DataPlane) CountLCores() (nInputs int, nFwds int) {
 
 // Information and counters about an input process.
 type InputInfo struct {
-	LCore eal.LCore      // LCore executing this input process
-	Faces []iface.FaceId // faces served by this input process
+	LCore eal.LCore  // LCore executing this input process
+	Faces []iface.ID // faces served by this input process
 }
 
 // Read information about i-th input.

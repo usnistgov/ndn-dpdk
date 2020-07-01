@@ -18,18 +18,18 @@ func Init() {
 	faceCfg.EnableSock = true
 	faceCfg.Apply()
 
-	Demux3 = inputdemux.NewDemux3(slaves[0].GetNumaSocket())
+	Demux3 = inputdemux.NewDemux3(slaves[0].NumaSocket())
 	Demux3.GetInterestDemux().InitFirst()
 	Demux3.GetDataDemux().InitFirst()
 	Demux3.GetNackDemux().InitFirst()
 
-	rxl := iface.NewRxLoop(slaves[0].GetNumaSocket())
+	rxl := iface.NewRxLoop(slaves[0].NumaSocket())
 	rxl.SetLCore(slaves[0])
 	rxl.SetCallback(inputdemux.Demux3_FaceRx, Demux3.GetPtr())
 	rxl.Launch()
 	createface.AddRxLoop(rxl)
 
-	txl := iface.NewTxLoop(slaves[1].GetNumaSocket())
+	txl := iface.NewTxLoop(slaves[1].NumaSocket())
 	txl.SetLCore(slaves[1])
 	txl.Launch()
 	createface.AddTxLoop(txl)

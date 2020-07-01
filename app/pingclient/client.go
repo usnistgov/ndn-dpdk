@@ -26,17 +26,17 @@ type Client struct {
 	Tx ClientTxThread
 }
 
-func New(face iface.IFace, cfg Config) (client *Client, e error) {
-	socket := face.GetNumaSocket()
+func New(face iface.Face, cfg Config) (client *Client, e error) {
+	socket := face.NumaSocket()
 	crC := (*C.PingClientRx)(eal.Zmalloc("PingClientRx", C.sizeof_PingClientRx, socket))
 	cfg.RxQueue.DisableCoDel = true
-	if _, e := pktqueue.NewAt(unsafe.Pointer(&crC.rxQueue), cfg.RxQueue, fmt.Sprintf("PingClient%d_rxQ", face.GetFaceId()), socket); e != nil {
+	if _, e := pktqueue.NewAt(unsafe.Pointer(&crC.rxQueue), cfg.RxQueue, fmt.Sprintf("PingClient%d_rxQ", face.ID()), socket); e != nil {
 		eal.Free(crC)
 		return nil, nil
 	}
 
 	ctC := (*C.PingClientTx)(eal.Zmalloc("PingClientTx", C.sizeof_PingClientTx, socket))
-	ctC.face = (C.FaceId)(face.GetFaceId())
+	ctC.face = (C.FaceID)(face.ID())
 	ctC.interestMp = (*C.struct_rte_mempool)(pingmempool.Interest.MakePool(socket).GetPtr())
 	C.pcg32_srandom_r(&ctC.trafficRng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
 	C.NonceGen_Init(&ctC.nonceGen)
@@ -56,8 +56,8 @@ func New(face iface.IFace, cfg Config) (client *Client, e error) {
 	return client, nil
 }
 
-func (client *Client) GetFace() iface.IFace {
-	return iface.Get(iface.FaceId(client.Tx.c.face))
+func (client *Client) GetFace() iface.Face {
+	return iface.Get(iface.ID(client.Tx.c.face))
 }
 
 func (client *Client) AddPattern(cfg Pattern) (index int, e error) {

@@ -10,7 +10,7 @@ static FibEntry*
 FwFwd_InterestLookupFib(FwFwd* fwd, Packet* npkt, FibNexthopFilter* nhFlt)
 {
   PInterest* interest = Packet_GetInterestHdr(npkt);
-  FaceId dnFace = Packet_ToMbuf(npkt)->port;
+  FaceID dnFace = Packet_ToMbuf(npkt)->port;
 
   if (likely(interest->nFhs == 0)) {
     FibEntry* entry = Fib_Lpm(fwd->fib, &interest->name);
@@ -52,9 +52,9 @@ FwFwd_InterestForward(FwFwd* fwd, FwFwdCtx* ctx)
   ctx->dnNonce = Packet_GetInterestHdr(ctx->npkt)->nonce;
 
   // detect duplicate nonce
-  FaceId dupNonce = PitEntry_FindDuplicateNonce(ctx->pitEntry, ctx->dnNonce, ctx->rxFace);
-  if (unlikely(dupNonce != FACEID_INVALID)) {
-    ZF_LOGD("^ pit-entry=%p drop=duplicate-nonce(%" PRI_FaceId ") nack-to=%" PRI_FaceId,
+  FaceID dupNonce = PitEntry_FindDuplicateNonce(ctx->pitEntry, ctx->dnNonce, ctx->rxFace);
+  if (unlikely(dupNonce != 0)) {
+    ZF_LOGD("^ pit-entry=%p drop=duplicate-nonce(%" PRI_FaceID ") nack-to=%" PRI_FaceID,
             ctx->pitEntry, dupNonce, ctx->rxFace);
     MakeNack(ctx->npkt, NackDuplicate);
     Face_Tx(ctx->rxFace, ctx->npkt);
@@ -65,7 +65,7 @@ FwFwd_InterestForward(FwFwd* fwd, FwFwdCtx* ctx)
   // insert DN record
   PitDn* dn = PitEntry_InsertDn(ctx->pitEntry, fwd->pit, ctx->npkt);
   if (unlikely(dn == NULL)) {
-    ZF_LOGD("^ pit-entry=%p drop=PitDn-full nack-to=%" PRI_FaceId, ctx->pitEntry, ctx->rxFace);
+    ZF_LOGD("^ pit-entry=%p drop=PitDn-full nack-to=%" PRI_FaceID, ctx->pitEntry, ctx->rxFace);
     MakeNack(ctx->npkt, NackCongestion);
     Face_Tx(ctx->rxFace, ctx->npkt);
     return;
@@ -85,7 +85,7 @@ static void
 FwFwd_InterestHitCs(FwFwd* fwd, FwFwdCtx* ctx, CsEntry* csEntry)
 {
   Packet* outNpkt = ClonePacket(csEntry->data, fwd->headerMp, fwd->indirectMp);
-  ZF_LOGD("^ cs-entry=%p data-to=%" PRI_FaceId " npkt=%p dn-token=%016" PRIx64, csEntry,
+  ZF_LOGD("^ cs-entry=%p data-to=%" PRI_FaceID " npkt=%p dn-token=%016" PRIx64, csEntry,
           ctx->rxFace, outNpkt, ctx->rxToken);
   if (likely(outNpkt != NULL)) {
     struct rte_mbuf* outPkt = Packet_ToMbuf(outNpkt);
@@ -106,14 +106,14 @@ FwFwd_RxInterest(FwFwd* fwd, FwFwdCtx* ctx)
   PInterest* interest = Packet_GetInterestHdr(ctx->npkt);
   assert(interest->hopLimit > 0);
 
-  ZF_LOGD("interest-from=%" PRI_FaceId " npkt=%p dn-token=%016" PRIx64, ctx->rxFace, ctx->npkt,
+  ZF_LOGD("interest-from=%" PRI_FaceID " npkt=%p dn-token=%016" PRIx64, ctx->rxFace, ctx->npkt,
           ctx->rxToken);
 
   // query FIB, reply Nack if no FIB match
   rcu_read_lock();
   ctx->fibEntry = FwFwd_InterestLookupFib(fwd, ctx->npkt, &ctx->nhFlt);
   if (unlikely(ctx->fibEntry == NULL)) {
-    ZF_LOGD("^ drop=no-FIB-match nack-to=%" PRI_FaceId, ctx->rxFace);
+    ZF_LOGD("^ drop=no-FIB-match nack-to=%" PRI_FaceID, ctx->rxFace);
     MakeNack(ctx->npkt, NackNoRoute);
     Face_Tx(ctx->rxFace, ctx->npkt);
     ++fwd->nNoFibMatch;
@@ -139,7 +139,7 @@ FwFwd_RxInterest(FwFwd* fwd, FwFwdCtx* ctx)
       break;
     }
     case PIT_INSERT_FULL:
-      ZF_LOGD("^ drop=PIT-full nack-to=%" PRI_FaceId, ctx->rxFace);
+      ZF_LOGD("^ drop=PIT-full nack-to=%" PRI_FaceID, ctx->rxFace);
       MakeNack(ctx->npkt, NackCongestion);
       Face_Tx(ctx->rxFace, ctx->npkt);
       break;
@@ -153,45 +153,45 @@ FwFwd_RxInterest(FwFwd* fwd, FwFwdCtx* ctx)
 }
 
 SgForwardInterestResult
-SgForwardInterest(SgCtx* ctx0, FaceId nh)
+SgForwardInterest(SgCtx* ctx0, FaceID nh)
 {
   FwFwdCtx* ctx = (FwFwdCtx*)ctx0;
   FwFwd* fwd = ctx->fwd;
   TscTime now = rte_get_tsc_cycles();
 
   if (unlikely(Face_IsDown(nh))) {
-    ZF_LOGD("^ no-interest-to=%" PRI_FaceId " drop=face-down", nh);
+    ZF_LOGD("^ no-interest-to=%" PRI_FaceID " drop=face-down", nh);
     return SGFWDI_BADFACE;
   }
 
   PitUp* up = PitEntry_ReserveUp(ctx->pitEntry, fwd->pit, nh);
   if (unlikely(up == NULL)) {
-    ZF_LOGD("^ no-interest-to=%" PRI_FaceId " drop=PitUp-full", nh);
+    ZF_LOGD("^ no-interest-to=%" PRI_FaceID " drop=PitUp-full", nh);
     return SGFWDI_ALLOCERR;
   }
 
   if (PitUp_ShouldSuppress(up, now)) {
-    ZF_LOGD("^ no-interest-to=%" PRI_FaceId " drop=suppressed", nh);
+    ZF_LOGD("^ no-interest-to=%" PRI_FaceID " drop=suppressed", nh);
     return SGFWDI_SUPPRESSED;
   }
 
   uint32_t upNonce = ctx->dnNonce;
   bool hasNonce = PitUp_ChooseNonce(up, ctx->pitEntry, now, &upNonce);
   if (unlikely(!hasNonce)) {
-    ZF_LOGD("^ no-interest-to=%" PRI_FaceId " drop=nonces-rejected", nh);
+    ZF_LOGD("^ no-interest-to=%" PRI_FaceID " drop=nonces-rejected", nh);
     return SGFWDI_NONONCE;
   }
 
   uint32_t upLifetime = PitEntry_GetTxInterestLifetime(ctx->pitEntry, now);
   uint8_t upHopLimit = PitEntry_GetTxInterestHopLimit(ctx->pitEntry);
   if (unlikely(upHopLimit == 0)) {
-    ZF_LOGD("^ no-interest-to=%" PRI_FaceId " drop=hoplimit-zero", nh);
+    ZF_LOGD("^ no-interest-to=%" PRI_FaceID " drop=hoplimit-zero", nh);
     return SGFWDI_HOPZERO;
   }
   Packet* outNpkt = ModifyInterest(ctx->pitEntry->npkt, upNonce, upLifetime, upHopLimit,
                                    fwd->headerMp, fwd->guiderMp, fwd->indirectMp);
   if (unlikely(outNpkt == NULL)) {
-    ZF_LOGD("^ no-interest-to=%" PRI_FaceId " drop=alloc-error", nh);
+    ZF_LOGD("^ no-interest-to=%" PRI_FaceID " drop=alloc-error", nh);
     return SGFWDI_ALLOCERR;
   }
 
@@ -199,7 +199,7 @@ SgForwardInterest(SgCtx* ctx0, FaceId nh)
   Packet_InitLpL3Hdr(outNpkt)->pitToken = token;
   Packet_ToMbuf(outNpkt)->timestamp = ctx->rxTime; // for latency stats
 
-  ZF_LOGD("^ interest-to=%" PRI_FaceId " npkt=%p nonce=%08" PRIx32 " lifetime=%" PRIu32
+  ZF_LOGD("^ interest-to=%" PRI_FaceID " npkt=%p nonce=%08" PRIx32 " lifetime=%" PRIu32
           " hopLimit=%" PRIu8 " up-token=%016" PRIx64,
           nh, outNpkt, upNonce, upLifetime, upHopLimit, token);
   Face_Tx(nh, outNpkt);

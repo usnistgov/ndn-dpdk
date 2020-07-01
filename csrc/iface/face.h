@@ -34,7 +34,7 @@ typedef struct Face
 {
   FaceImpl* impl;
   FaceImpl_TxBurst txBurstOp;
-  FaceId id;
+  FaceID id;
   FaceState state;
   int numaSocket;
 
@@ -52,12 +52,12 @@ Face_GetPriv(Face* face)
 
 /** \brief Static array of all faces.
  */
-extern Face gFaces_[FACEID_MAX + 1];
+extern Face gFaces[];
 
 static inline Face*
-Face_Get_(FaceId faceId)
+Face_Get(FaceID id)
 {
-  return &gFaces_[faceId];
+  return &gFaces[id];
 }
 
 // ---- functions invoked by user of face system ----
@@ -65,10 +65,10 @@ Face_Get_(FaceId faceId)
 /** \brief Return whether the face is DOWN.
  */
 static inline bool
-Face_IsDown(FaceId faceId)
+Face_IsDown(FaceID faceID)
 {
-  Face* face = Face_Get_(faceId);
-  return face->state != FACESTA_UP;
+  Face* face = Face_Get(faceID);
+  return face->state != FaceStateUp;
 }
 
 /** \brief Callback upon packet arrival.
@@ -85,10 +85,10 @@ typedef void (*Face_RxCb)(FaceRxBurst* burst, void* cbarg);
  *  This function is thread-safe.
  */
 static inline void
-Face_TxBurst(FaceId faceId, Packet** npkts, uint16_t count)
+Face_TxBurst(FaceID faceID, Packet** npkts, uint16_t count)
 {
-  Face* face = Face_Get_(faceId);
-  if (unlikely(face->state != FACESTA_UP)) {
+  Face* face = Face_Get(faceID);
+  if (unlikely(face->state != FaceStateUp)) {
     FreeMbufs((struct rte_mbuf**)npkts, count);
     return;
   }
@@ -103,16 +103,16 @@ Face_TxBurst(FaceId faceId, Packet** npkts, uint16_t count)
  *  \param npkt an L3 packet; face takes ownership
  */
 static inline void
-Face_Tx(FaceId faceId, Packet* npkt)
+Face_Tx(FaceID faceID, Packet* npkt)
 {
-  Face_TxBurst(faceId, &npkt, 1);
+  Face_TxBurst(faceID, &npkt, 1);
 }
 
 // ---- functions invoked by face implementation ----
 
 /** \brief Process received frames and invoke upper layer callback.
  *  \param burst FaceRxBurst_GetScratch(burst) must contain received frames.
- *               frame->port indicates FaceId, and frame->timestamp should be set.
+ *               frame->port indicates FaceID, and frame->timestamp should be set.
  *  \param rxThread RX thread number within each face. Threads receiving frames on the
  *                  same face must use distinct numbers to avoid race condition.
  */

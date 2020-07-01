@@ -8,7 +8,7 @@
 typedef struct SgPacket
 {
   char _a[22];
-  FaceId rxFace;
+  FaceID rxFace;
   char _b[8];
   union
   {

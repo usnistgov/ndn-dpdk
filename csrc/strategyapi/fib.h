@@ -18,7 +18,7 @@ typedef struct SgFibEntry
   char a_[525];
   uint8_t nNexthops;
   char b_[2];
-  FaceId nexthops[SG_FIB_ENTRY_MAX_NEXTHOPS];
+  FaceID nexthops[SG_FIB_ENTRY_MAX_NEXTHOPS];
   char c_[32];
   char scratch[SG_FIB_ENTRY_SCRATCH];
   char d_[96];
@@ -34,7 +34,7 @@ typedef uint32_t SgFibNexthopFilter;
  *       SgFibNexthopIt_Valid(&it);
  *       SgFibNexthopIt_Next(&it)) {
  *    int index = it.i;
- *    FaceId nexthop = it.nh;
+ *    FaceID nexthop = it.nh;
  *  }
  *  \endcode
  */
@@ -43,7 +43,7 @@ typedef struct SgFibNexthopIt
   const SgFibEntry* entry;
   SgFibNexthopFilter filter;
   uint8_t i;
-  FaceId nh;
+  FaceID nh;
 } SgFibNexthopIt;
 
 inline bool
@@ -62,7 +62,7 @@ SgFibNexthopIt_Advance_(SgFibNexthopIt* it)
     it->nh = it->entry->nexthops[it->i];
     return;
   }
-  it->nh = FACEID_INVALID;
+  it->nh = 0;
 }
 
 inline void

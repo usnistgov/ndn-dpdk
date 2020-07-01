@@ -16,28 +16,65 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
-// Base type to implement IFace.
+// Face is the public API of a face.
+// Most functions are implemented by FaceBase type.
+type Face interface {
+	getPtr() *C.Face
+
+	// ID returns ID.
+	ID() ID
+
+	// Locator returns a Locator describing face endpoints.
+	// Lower layer implementation must provide this method.
+	Locator() Locator
+
+	// NumaSocket returns the NUMA socket of this face's data structures.
+	NumaSocket() eal.NumaSocket
+
+	// Close destroys the face.
+	// Lower layer implementation must provide this method.
+	// It should call FaceBase.BeforeClose and FaceBase.CloseFaceBase.
+	Close() error
+
+	// IsDown determines whether the face is DOWN or UP.
+	IsDown() bool
+
+	// ListRxGroups returns RxGroups that contain this face.
+	ListRxGroups() []IRxGroup
+
+	// TxBurst transmits a burst of L3 packets.
+	TxBurst(pkts []*ndni.Packet)
+
+	// ReadCounters returns basic face counters.
+	ReadCounters() Counters
+
+	// ReadExCounters returns extended counters.
+	// Lower layer implementation may override this method.
+	ReadExCounters() interface{}
+}
+
+// FaceBase is a partial implementation of Face interface.
 type FaceBase struct {
-	id FaceId
+	id ID
 }
 
 func (face *FaceBase) getPtr() *C.Face {
-	return &C.gFaces_[face.id]
+	return C.Face_Get(C.FaceID(face.id))
 }
 
-// Get native *C.Face pointer to use in other packages.
+// GetPtr returns *C.Face pointer.
 func (face *FaceBase) GetPtr() unsafe.Pointer {
 	return unsafe.Pointer(face.getPtr())
 }
 
-// Initialize FaceBase before lower-layer initialization.
-// Allocate FaceImpl on specified NumaSocket.
-func (face *FaceBase) InitFaceBase(id FaceId, sizeofPriv int, socket eal.NumaSocket) error {
+// InitFaceBase should be invoked before lower-layer initialization.
+// It allocates FaceImpl on specified NUMA socket.
+func (face *FaceBase) InitFaceBase(id ID, sizeofPriv int, socket eal.NumaSocket) error {
 	face.id = id
 
 	if socket.IsAny() {
 		if lc := eal.GetCurrentLCore(); lc.IsValid() {
-			socket = lc.GetNumaSocket()
+			socket = lc.NumaSocket()
 		} else {
 			socket = eal.NumaSocketFromID(0) // TODO what if socket 0 is unavailable?
 		}
@@ -45,8 +82,8 @@ func (face *FaceBase) InitFaceBase(id FaceId, sizeofPriv int, socket eal.NumaSoc
 
 	faceC := face.getPtr()
 	*faceC = C.Face{}
-	faceC.id = C.FaceId(face.id)
-	faceC.state = C.FACESTA_UP
+	faceC.id = C.FaceID(face.id)
+	faceC.state = StateUp
 	faceC.numaSocket = C.int(socket.ID())
 
 	sizeofImpl := int(C.sizeof_FaceImpl) + sizeofPriv
@@ -56,17 +93,17 @@ func (face *FaceBase) InitFaceBase(id FaceId, sizeofPriv int, socket eal.NumaSoc
 
 }
 
-// Initialize FaceBase after lower-layer initialization.
+// FinishInitFaceBase should be invoked after lower-layer initialization.
 // mtu: transport MTU available for NDNLP packets.
 // headroom: headroom before NDNLP header, as required by transport.
 func (face *FaceBase) FinishInitFaceBase(txQueueCapacity, mtu, headroom int) error {
 	faceC := face.getPtr()
-	socket := face.GetNumaSocket()
+	socket := face.NumaSocket()
 	indirectMp := pktmbuf.Indirect.MakePool(socket)
 	headerMp := ndni.HeaderMempool.MakePool(socket)
 	nameMp := ndni.NameMempool.MakePool(socket)
 
-	r, e := ringbuffer.New(fmt.Sprintf("FaceTx_%d", face.GetFaceId()),
+	r, e := ringbuffer.New(fmt.Sprintf("FaceTx_%d", face.ID()),
 		txQueueCapacity, socket, ringbuffer.ProducerMulti, ringbuffer.ConsumerSingle)
 	if e != nil {
 		face.clear()
@@ -94,71 +131,71 @@ func (face *FaceBase) FinishInitFaceBase(txQueueCapacity, mtu, headroom int) err
 	return nil
 }
 
-func (face *FaceBase) GetFaceId() FaceId {
+// ID returns ID.
+func (face *FaceBase) ID() ID {
 	return face.id
 }
 
-func (face *FaceBase) GetNumaSocket() eal.NumaSocket {
+// NumaSocket returns the NUMA socket of this face's data structures.
+func (face *FaceBase) NumaSocket() eal.NumaSocket {
 	return eal.NumaSocketFromID(int(face.getPtr().numaSocket))
 }
 
-func (face *FaceBase) IsClosed() bool {
-	return face == nil || face.getPtr().id == C.FACEID_INVALID
-}
-
-// Prepare to close face.
+// BeforeClose prepares to close face.
 func (face *FaceBase) BeforeClose() {
-	id := face.GetFaceId()
+	id := face.ID()
 	faceC := face.getPtr()
-	faceC.state = C.FACESTA_DOWN
-	emitter.EmitSync(evt_FaceClosing, id)
+	faceC.state = StateDown
+	emitter.EmitSync(evtFaceClosing, id)
 }
 
 func (face *FaceBase) clear() {
-	id := face.GetFaceId()
+	id := face.ID()
 	faceC := face.getPtr()
-	faceC.state = C.FACESTA_REMOVED
+	faceC.state = StateRemoved
 	if faceC.impl != nil {
 		eal.Free(faceC.impl)
 	}
 	if faceC.txQueue != nil {
 		ringbuffer.FromPtr(unsafe.Pointer(faceC.txQueue)).Close()
 	}
-	faceC.id = C.FACEID_INVALID
+	faceC.id = 0
 	gFaces[id] = nil
 }
 
-// Close FaceBase.
-// Deallocate FaceImpl.
+// CloseFaceBase finishes closing face and deallocates FaceImpl.
 func (face *FaceBase) CloseFaceBase() {
-	id := face.GetFaceId()
+	id := face.ID()
 	face.clear()
-	emitter.EmitSync(evt_FaceClosed, id)
+	emitter.EmitSync(evtFaceClosed, id)
 }
 
+// IsDown determines whether the face is DOWN or UP.
 func (face *FaceBase) IsDown() bool {
-	return face.getPtr().state != C.FACESTA_UP
+	return face.getPtr().state != StateUp
 }
 
+// SetDown changes face state.
 func (face *FaceBase) SetDown(isDown bool) {
 	if face.IsDown() == isDown {
 		return
 	}
-	id := face.GetFaceId()
+	id := face.ID()
 	faceC := face.getPtr()
 	if isDown {
-		faceC.state = C.FACESTA_DOWN
-		emitter.EmitSync(evt_FaceDown, id)
+		faceC.state = StateDown
+		emitter.EmitSync(evtFaceDown, id)
 	} else {
-		faceC.state = C.FACESTA_UP
-		emitter.EmitSync(evt_FaceUp, id)
+		faceC.state = StateUp
+		emitter.EmitSync(evtFaceUp, id)
 	}
 }
 
+// TxBurst transmits a burst of L3 packets.
 func (face *FaceBase) TxBurst(pkts []*ndni.Packet) {
 	ptr, count := cptr.ParseCptrArray(pkts)
 	if count == 0 {
 		return
 	}
-	C.Face_TxBurst(C.FaceId(face.id), (**C.Packet)(ptr), C.uint16_t(count))
+	C.Face_TxBurst(C.FaceID(face.id), (**C.Packet)(ptr), C.uint16_t(count))
 }

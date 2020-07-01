@@ -27,7 +27,7 @@ func (mockLCoreProvider) IsBusy(lc eal.LCore) bool {
 	return false
 }
 
-func (mockLCoreProvider) GetNumaSocket(lc eal.LCore) eal.NumaSocket {
+func (mockLCoreProvider) NumaSocket(lc eal.LCore) eal.NumaSocket {
 	if lc.ID() < 4 {
 		return eal.NumaSocketFromID(0)
 	}

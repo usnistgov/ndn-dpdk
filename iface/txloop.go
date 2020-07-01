@@ -19,7 +19,7 @@ type TxLoop struct {
 	eal.ThreadBase
 	c          *C.TxLoop
 	numaSocket eal.NumaSocket
-	faces      map[FaceId]IFace
+	faces      map[ID]Face
 }
 
 func NewTxLoop(numaSocket eal.NumaSocket) (txl *TxLoop) {
@@ -27,11 +27,11 @@ func NewTxLoop(numaSocket eal.NumaSocket) (txl *TxLoop) {
 	txl.c = (*C.TxLoop)(eal.Zmalloc("TxLoop", C.sizeof_TxLoop, numaSocket))
 	eal.InitStopFlag(unsafe.Pointer(&txl.c.stop))
 	txl.numaSocket = numaSocket
-	txl.faces = make(map[FaceId]IFace)
+	txl.faces = make(map[ID]Face)
 	return txl
 }
 
-func (txl *TxLoop) GetNumaSocket() eal.NumaSocket {
+func (txl *TxLoop) NumaSocket() eal.NumaSocket {
 	return txl.numaSocket
 }
 
@@ -53,31 +53,31 @@ func (txl *TxLoop) Close() error {
 	return nil
 }
 
-func (txl *TxLoop) ListFaces() (list []FaceId) {
-	for faceId := range txl.faces {
-		list = append(list, faceId)
+func (txl *TxLoop) ListFaces() (list []ID) {
+	for faceID := range txl.faces {
+		list = append(list, faceID)
 	}
 	return list
 }
 
-func (txl *TxLoop) AddFace(face IFace) {
+func (txl *TxLoop) AddFace(face Face) {
 	rs := urcu.NewReadSide()
 	defer rs.Close()
 
-	txl.faces[face.GetFaceId()] = face
+	txl.faces[face.ID()] = face
 	faceC := face.getPtr()
 	C.cds_hlist_add_head_rcu(&faceC.txlNode, &txl.c.head)
 }
 
-func (txl *TxLoop) RemoveFace(face IFace) {
+func (txl *TxLoop) RemoveFace(face Face) {
 	rs := urcu.NewReadSide()
 	defer rs.Close()
 
-	if _, ok := txl.faces[face.GetFaceId()]; !ok {
+	if _, ok := txl.faces[face.ID()]; !ok {
 		return
 	}
 
-	delete(txl.faces, face.GetFaceId())
+	delete(txl.faces, face.ID())
 	faceC := face.getPtr()
 	C.cds_hlist_del_rcu(&faceC.txlNode)
 

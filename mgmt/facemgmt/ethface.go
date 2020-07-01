@@ -61,7 +61,7 @@ type PortInfo struct {
 
 func makePortInfo(dev ethdev.EthDev) (info PortInfo) {
 	info.Name = dev.GetName()
-	info.NumaSocket = dev.GetNumaSocket()
+	info.NumaSocket = dev.NumaSocket()
 	port := ethface.FindPort(dev)
 	if port != nil {
 		info.Active = true

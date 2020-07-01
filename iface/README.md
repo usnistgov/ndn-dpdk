@@ -1,7 +1,7 @@
 # ndn-dpdk/iface
 
 This package implements the face system, which provides network interfaces (faces) that can send and receive NDN packets.
-Each face has a **FaceId**, a uint16 number that identifies the face.
+Each face has a **ID**, a uint16 number that identifies the face.
 
 There are three lower layer implementations:
 
@@ -13,14 +13,14 @@ Unit tests of this package are in [ifacetest](ifacetest/) subdirectory.
 
 ## Face System API
 
-In C, public APIs are defined in term of **FaceId**.
+In C, public APIs are defined in term of **ID**.
 There are functions to query face status, and to transmit a burst of packets.
 Notably, there isn't a function to receive packets; instead, RxLoop type is used for receiving packets.
 
-In Go, **IFace** type defines what methods a face must provide.
-Each lower layer implementation offers functions to create an instance that implements IFace interface.
-That instance should embed **FaceBase** struct that implements many methods required by IFace.
-`Get` function retrieves an existing IFace by FaceId; `IterFaces` enumerates all faces.
+In Go, **Face** type defines what methods a face must provide.
+Each lower layer implementation offers functions to create an instance that implements Face interface.
+That instance should embed **FaceBase** struct that implements many methods required by Face.
+`Get` function retrieves an existing Face by ID; `IterFaces` enumerates all faces.
 
 All faces are assumed to be point-to-point.
 **Locator** type identifies the endpoints of a face.

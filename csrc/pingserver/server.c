@@ -135,7 +135,7 @@ PingServer_Run(PingServer* server)
       nTx += (tx[nTx] != NULL);
     }
 
-    ZF_LOGD("face=%" PRI_FaceId "nRx=%" PRIu16 " nTx=%" PRIu16, server->face, nRx, nTx);
+    ZF_LOGD("face=%" PRI_FaceID "nRx=%" PRIu16 " nTx=%" PRIu16, server->face, nRx, nTx);
     Face_TxBurst(server->face, tx, nTx);
   }
 }

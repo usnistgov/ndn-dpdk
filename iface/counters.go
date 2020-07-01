@@ -13,7 +13,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
-// Basic face counters.
+// Counters contains basic face counters.
 type Counters struct {
 	RxFrames uint64 // RX total frames
 	RxOctets uint64 // RX total bytes
@@ -48,6 +48,7 @@ func (cnt Counters) String() string {
 		cnt.TxFrames, cnt.TxOctets, cnt.TxInterests, cnt.TxData, cnt.TxNacks, cnt.FragGood, cnt.FragBad, cnt.TxAllocErrs, cnt.TxDropped)
 }
 
+// ReadCounters retrieves basic face counters.
 func (face FaceBase) ReadCounters() (cnt Counters) {
 	faceC := face.getPtr()
 	if faceC.impl == nil {
@@ -89,6 +90,7 @@ func (face FaceBase) ReadCounters() (cnt Counters) {
 	return cnt
 }
 
+// ReadExCounters is empty in FaceBase, but may be implemented by face sub type.
 func (face FaceBase) ReadExCounters() interface{} {
 	return nil
 }

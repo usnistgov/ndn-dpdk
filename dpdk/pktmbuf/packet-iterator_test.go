@@ -47,11 +47,11 @@ func TestPktItAdvanceDistance(t *testing.T) {
 func TestPktItMakeIndirect(t *testing.T) {
 	assert, require := makeAR(t)
 
-	pkt := mbuftestenv.MakePacket("", "A0A1A2A3", "B0B1B2", "", "C0C1", "D0")
+	pkt := makePacket("", "A0A1A2A3", "B0B1B2", "", "C0C1", "D0")
 	defer pkt.Close()
 	const pktlen = 10
 	require.Equal(pktlen, pkt.Len())
-	payload := mbuftestenv.BytesFromHex("A0A1A2A3B0B1B2C0C1D0")
+	payload := bytesFromHex("A0A1A2A3B0B1B2C0C1D0")
 
 	for offset := 0; offset <= pktlen; offset++ {
 		for count := 1; count < pktlen-offset; count++ {

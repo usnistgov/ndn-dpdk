@@ -11,8 +11,8 @@ type FaceMgmt struct{}
 
 func (FaceMgmt) List(args struct{}, reply *[]BasicInfo) error {
 	result := make([]BasicInfo, 0)
-	for it := iface.IterFaces(); it.Valid(); it.Next() {
-		result = append(result, makeBasicInfo(it.Face))
+	for _, face := range iface.List() {
+		result = append(result, makeBasicInfo(face))
 	}
 	*reply = result
 	return nil
@@ -52,17 +52,17 @@ func (FaceMgmt) Destroy(args IdArg, reply *struct{}) error {
 }
 
 type IdArg struct {
-	Id iface.FaceId
+	Id iface.ID
 }
 
 type BasicInfo struct {
-	Id      iface.FaceId
+	Id      iface.ID
 	Locator iface.LocatorWrapper
 }
 
-func makeBasicInfo(face iface.IFace) (b BasicInfo) {
-	b.Id = face.GetFaceId()
-	b.Locator.Locator = face.GetLocator()
+func makeBasicInfo(face iface.Face) (b BasicInfo) {
+	b.Id = face.ID()
+	b.Locator.Locator = face.Locator()
 	return b
 }
 

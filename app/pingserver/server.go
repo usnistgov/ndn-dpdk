@@ -25,20 +25,20 @@ type Server struct {
 	seg1Mp *pktmbuf.Pool
 }
 
-func New(face iface.IFace, index int, cfg Config) (server *Server, e error) {
-	faceId := face.GetFaceId()
-	socket := face.GetNumaSocket()
+func New(face iface.Face, index int, cfg Config) (server *Server, e error) {
+	faceID := face.ID()
+	socket := face.NumaSocket()
 	serverC := (*C.PingServer)(eal.Zmalloc("PingServer", C.sizeof_PingServer, socket))
 
 	cfg.RxQueue.DisableCoDel = true
-	if _, e := pktqueue.NewAt(unsafe.Pointer(&serverC.rxQueue), cfg.RxQueue, fmt.Sprintf("PingServer%d-%d_rxQ", faceId, index), socket); e != nil {
+	if _, e := pktqueue.NewAt(unsafe.Pointer(&serverC.rxQueue), cfg.RxQueue, fmt.Sprintf("PingServer%d-%d_rxQ", faceID, index), socket); e != nil {
 		eal.Free(serverC)
 		return nil, nil
 	}
 
 	serverC.dataMp = (*C.struct_rte_mempool)(pingmempool.Data.MakePool(socket).GetPtr())
 	serverC.indirectMp = (*C.struct_rte_mempool)(pktmbuf.Indirect.MakePool(socket).GetPtr())
-	serverC.face = (C.FaceId)(faceId)
+	serverC.face = (C.FaceID)(faceID)
 	serverC.wantNackNoRoute = C.bool(cfg.Nack)
 	C.pcg32_srandom_r(&serverC.replyRng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
 

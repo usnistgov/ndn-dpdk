@@ -48,7 +48,7 @@ func TestEthFace(t *testing.T) {
 	faceBA := makeFace(vnet.Ports[1], macZero, macA)
 	faceCA := makeFace(vnet.Ports[2], macC, macA)
 
-	locAm := faceAm.GetLocator().(ethface.Locator)
+	locAm := faceAm.Locator().(ethface.Locator)
 	assert.Equal("ether", locAm.Scheme)
 	assert.Equal(vnet.Ports[0].GetName(), locAm.Port)
 	assert.True(locAm.Local.Equal(macA))

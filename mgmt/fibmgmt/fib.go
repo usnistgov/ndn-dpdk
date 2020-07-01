@@ -93,7 +93,7 @@ type NameArg struct {
 
 type InsertArg struct {
 	Name       ndn.Name
-	Nexthops   []iface.FaceId
+	Nexthops   []iface.ID
 	StrategyId int
 }
 
@@ -104,6 +104,6 @@ type InsertReply struct {
 type LookupReply struct {
 	HasEntry   bool
 	Name       ndn.Name
-	Nexthops   []iface.FaceId
+	Nexthops   []iface.ID
 	StrategyId int
 }

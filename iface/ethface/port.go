@@ -31,7 +31,7 @@ type Port struct {
 	cfg      PortConfig
 	logger   logrus.FieldLogger
 	dev      ethdev.EthDev
-	faces    map[iface.FaceId]*EthFace
+	faces    map[iface.ID]*EthFace
 	impl     iImpl
 	nextImpl int
 }
@@ -52,7 +52,7 @@ func NewPort(dev ethdev.EthDev, cfg PortConfig) (port *Port, e error) {
 	port.cfg = cfg
 	port.logger = newPortLogger(dev)
 	port.dev = dev
-	port.faces = make(map[iface.FaceId]*EthFace)
+	port.faces = make(map[iface.ID]*EthFace)
 
 	port.logger.Debug("opening")
 	portByEthDev[port.dev] = port
@@ -128,9 +128,9 @@ func (port *Port) fallbackImpl() error {
 		return port.fallbackImpl()
 	}
 
-	for faceId, face := range port.faces {
+	for faceID, face := range port.faces {
 		if e := port.impl.Start(face); e != nil {
-			logEntry.WithField("face", faceId).WithError(e).Info("face restart error, trying next impl")
+			logEntry.WithField("face", faceID).WithError(e).Info("face restart error, trying next impl")
 			return port.fallbackImpl()
 		}
 		face.SetDown(false)
@@ -153,14 +153,14 @@ func (port *Port) startFace(face *EthFace, forceFallback bool) error {
 		return port.startFace(face, true)
 	}
 
-	port.logger.WithFields(makeLogFields("impl", port.impl.String(), "face", face.GetFaceId())).Info("face started")
-	port.faces[face.GetFaceId()] = face
+	port.logger.WithFields(makeLogFields("impl", port.impl.String(), "face", face.ID())).Info("face started")
+	port.faces[face.ID()] = face
 	return nil
 }
 
 // Stop face in impl (called by EthFace.Close).
 func (port *Port) stopFace(face *EthFace) (e error) {
-	delete(port.faces, face.GetFaceId())
+	delete(port.faces, face.ID())
 	e = port.impl.Stop(face)
 	port.logger.WithError(e).Info("face stopped")
 	return nil

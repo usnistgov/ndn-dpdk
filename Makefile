@@ -21,6 +21,9 @@ csrc/ndn/an.h: ndn/an/*.go
 csrc/ndn/enum.h ndni/enum_string.go: ndni/enum.go
 	mk/gogenerate.sh ./$(<D)
 
+csrc/iface/enum.h: iface/enum.go
+	mk/gogenerate.sh ./$(<D)
+
 csrc/pcct/cs-enum.h: container/cs/enum.go
 	mk/gogenerate.sh ./$(<D)
 
@@ -28,7 +31,7 @@ strategy/strategyelf/bindata.go: strategy/*.c
 	mk/gogenerate.sh ./$(@D)
 
 .PHONY: build/libndn-dpdk-c.a
-build/libndn-dpdk-c.a: build/build.ninja csrc/ndn/an.h csrc/ndn/enum.h csrc/pcct/cs-enum.h
+build/libndn-dpdk-c.a: build/build.ninja csrc/ndn/an.h csrc/ndn/enum.h csrc/iface/enum.h csrc/pcct/cs-enum.h
 	cd build && ninja
 
 build/cgoflags.done: build/build.ninja

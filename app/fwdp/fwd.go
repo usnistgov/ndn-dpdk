@@ -45,7 +45,7 @@ func (fwd *Fwd) String() string {
 
 func (fwd *Fwd) Init(fib *fib.Fib, pcctCfg pcct.Config, interestQueueCfg, dataQueueCfg, nackQueueCfg pktqueue.Config,
 	latencySampleFreq int, suppressCfg pit.SuppressConfig) (e error) {
-	socket := fwd.GetNumaSocket()
+	socket := fwd.NumaSocket()
 
 	fwd.c = (*C.FwFwd)(eal.Zmalloc("FwFwd", C.sizeof_FwFwd, socket))
 	eal.InitStopFlag(unsafe.Pointer(&fwd.c.stop))

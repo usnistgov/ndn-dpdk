@@ -46,17 +46,17 @@ func (entry *Entry) SetName(name ndn.Name) error {
 }
 
 // GetNexthops returns a list of nexthops.
-func (entry *Entry) GetNexthops() (nexthops []iface.FaceId) {
+func (entry *Entry) GetNexthops() (nexthops []iface.ID) {
 	c := (*CEntry)(entry)
-	nexthops = make([]iface.FaceId, int(c.NNexthops))
+	nexthops = make([]iface.ID, int(c.NNexthops))
 	for i := range nexthops {
-		nexthops[i] = iface.FaceId(c.Nexthops[i])
+		nexthops[i] = iface.ID(c.Nexthops[i])
 	}
 	return nexthops
 }
 
 // SetNexthops sets a list of nexthops.
-func (entry *Entry) SetNexthops(nexthops []iface.FaceId) error {
+func (entry *Entry) SetNexthops(nexthops []iface.ID) error {
 	count := len(nexthops)
 	if count > MaxNexthops {
 		return fmt.Errorf("FIB entry cannot have more than %d nexthops", MaxNexthops)

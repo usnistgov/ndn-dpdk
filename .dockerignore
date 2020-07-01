@@ -3,6 +3,7 @@ app/version/version.go.new
 build
 **/cgoflags.go
 **/cgostruct.go
+csrc/iface/enum.h
 csrc/meson.build
 csrc/ndn/an.h
 csrc/ndn/enum.h

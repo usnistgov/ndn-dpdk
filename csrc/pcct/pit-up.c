@@ -22,7 +22,7 @@ PitUp_ChooseNonce(PitUp* up, PitEntry* entry, TscTime now, uint32_t* nonce)
   PitDnIt it;
   for (PitDnIt_Init(&it, entry); PitDnIt_Valid(&it); PitDnIt_Next(&it)) {
     PitDn* dn = it.dn;
-    if (dn->face == FACEID_INVALID) {
+    if (dn->face == 0) {
       break;
     }
     if (dn->expiry < now) {

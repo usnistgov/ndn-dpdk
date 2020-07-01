@@ -1,6 +1,6 @@
 #include "face.h"
 
-Face gFaces_[FACEID_MAX + 1];
+Face gFaces[UINT16_MAX + 1];
 
 void
 FaceImpl_RxBurst(FaceRxBurst* burst, uint16_t nFrames, int rxThread, Face_RxCb cb, void* cbarg)
@@ -10,7 +10,7 @@ FaceImpl_RxBurst(FaceRxBurst* burst, uint16_t nFrames, int rxThread, Face_RxCb c
   struct rte_mbuf** frames = FaceRxBurst_GetScratch(burst);
   for (uint16_t i = 0; i < nFrames; ++i) {
     struct rte_mbuf* frame = frames[i];
-    Face* face = Face_Get_(frame->port);
+    Face* face = Face_Get(frame->port);
     if (unlikely(face->impl == NULL)) {
       rte_pktmbuf_free(frame);
       continue;

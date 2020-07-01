@@ -8,7 +8,7 @@ static void
 InputDemux_Drop(InputDemux* demux, Packet* npkt, const char* reason)
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
-  ZF_LOGD("%s-from=%" PRI_FaceId " npkt=%p token=%016" PRIx64 " drop=%s",
+  ZF_LOGD("%s-from=%" PRI_FaceID " npkt=%p token=%016" PRIx64 " drop=%s",
           L3PktTypeToString(Packet_GetL3PktType(npkt)), pkt->port, npkt,
           Packet_GetLpL3Hdr(npkt)->pitToken, reason);
 
@@ -26,7 +26,7 @@ InputDemux_PassTo(InputDemux* demux, Packet* npkt, uint8_t index)
   }
 
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
-  ZF_LOGD("%s-from=%" PRI_FaceId " npkt=%p token=%016" PRIx64 " dest-index=%" PRIu8,
+  ZF_LOGD("%s-from=%" PRI_FaceID " npkt=%p token=%016" PRIx64 " dest-index=%" PRIu8,
           L3PktTypeToString(Packet_GetL3PktType(npkt)), pkt->port, npkt,
           Packet_GetLpL3Hdr(npkt)->pitToken, index);
 

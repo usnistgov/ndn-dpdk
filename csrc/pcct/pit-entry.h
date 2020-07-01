@@ -80,8 +80,8 @@ PitEntry_Init(PitEntry* entry, Packet* npkt, const FibEntry* fibEntry)
   entry->txHopLimit = 0;
   entry->mustBeFresh = interest->mustBeFresh;
 
-  entry->dns[0].face = FACEID_INVALID;
-  entry->ups[0].face = FACEID_INVALID;
+  entry->dns[0].face = 0;
+  entry->ups[0].face = 0;
   entry->ext = NULL;
 
   PitEntry_SetFibEntry_(entry, interest, fibEntry);
@@ -153,10 +153,10 @@ void
 PitEntry_Timeout_(MinTmr* tmr, void* pit0);
 
 /** \brief Find duplicate nonce among DN records other than \p rxFace.
- *  \return FaceId of PitDn with duplicate nonce, or \c FACEID_INVALID if none.
+ *  \return FaceID of PitDn with duplicate nonce, or zero if none.
  */
-FaceId
-PitEntry_FindDuplicateNonce(PitEntry* entry, uint32_t nonce, FaceId rxFace);
+FaceID
+PitEntry_FindDuplicateNonce(PitEntry* entry, uint32_t nonce, FaceID rxFace);
 
 /** \brief Insert new DN record, or update existing DN record.
  *  \param entry PIT entry, must be initialized.
@@ -174,7 +174,7 @@ PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt);
  *        it will be overwritten on the next \c PitEntry_ReserveUp invocation.
  */
 PitUp*
-PitEntry_ReserveUp(PitEntry* entry, Pit* pit, FaceId face);
+PitEntry_ReserveUp(PitEntry* entry, Pit* pit, FaceID face);
 
 /** \brief Calculate InterestLifetime for TX Interest.
  *  \return InterestLifetime in millis.

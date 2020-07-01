@@ -43,23 +43,23 @@ FwFwd_DataSatisfy(FwFwd* fwd, FwFwdCtx* ctx)
   PitDnIt it;
   for (PitDnIt_Init(&it, ctx->pitEntry); PitDnIt_Valid(&it); PitDnIt_Next(&it)) {
     PitDn* dn = it.dn;
-    if (unlikely(dn->face == FACEID_INVALID)) {
+    if (unlikely(dn->face == 0)) {
       if (it.index == 0) {
         ZF_LOGD("^ drop=PitDn-empty");
       }
       break;
     }
     if (unlikely(dn->expiry < ctx->rxTime)) {
-      ZF_LOGD("^ dn-expired=%" PRI_FaceId, dn->face);
+      ZF_LOGD("^ dn-expired=%" PRI_FaceID, dn->face);
       continue;
     }
     if (unlikely(Face_IsDown(dn->face))) {
-      ZF_LOGD("^ no-data-to=%" PRI_FaceId " drop=face-down", dn->face);
+      ZF_LOGD("^ no-data-to=%" PRI_FaceID " drop=face-down", dn->face);
       continue;
     }
 
     Packet* outNpkt = ClonePacket(ctx->npkt, fwd->headerMp, fwd->indirectMp);
-    ZF_LOGD("^ data-to=%" PRI_FaceId " npkt=%p dn-token=%016" PRIx64, dn->face, outNpkt, dn->token);
+    ZF_LOGD("^ data-to=%" PRI_FaceID " npkt=%p dn-token=%016" PRIx64, dn->face, outNpkt, dn->token);
     if (likely(outNpkt != NULL)) {
       struct rte_mbuf* outPkt = Packet_ToMbuf(outNpkt);
       outPkt->port = ctx->rxFace;
@@ -82,7 +82,7 @@ FwFwd_DataSatisfy(FwFwd* fwd, FwFwdCtx* ctx)
 void
 FwFwd_RxData(FwFwd* fwd, FwFwdCtx* ctx)
 {
-  ZF_LOGD("data-from=%" PRI_FaceId " npkt=%p up-token=%016" PRIx64, ctx->rxFace, ctx->npkt,
+  ZF_LOGD("data-from=%" PRI_FaceID " npkt=%p up-token=%016" PRIx64, ctx->rxFace, ctx->npkt,
           ctx->rxToken);
 
   PitFindResult pitFound = Pit_FindByData(fwd->pit, ctx->npkt);

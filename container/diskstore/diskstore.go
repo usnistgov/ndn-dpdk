@@ -40,7 +40,7 @@ func New(device bdev.Device, th *spdkenv.Thread, mp *pktmbuf.Pool, nBlocksPerSlo
 		return nil, e
 	}
 
-	numaSocket := th.GetLCore().GetNumaSocket()
+	numaSocket := th.GetLCore().NumaSocket()
 	store.c = (*C.DiskStore)(eal.Zmalloc("DiskStore", C.sizeof_DiskStore, numaSocket))
 	store.c.th = (*C.struct_spdk_thread)(th.GetPtr())
 	store.c.bdev = (*C.struct_spdk_bdev_desc)(store.bd.GetPtr())

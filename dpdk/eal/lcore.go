@@ -49,8 +49,8 @@ func (lc LCore) String() string {
 	return strconv.Itoa(lc.ID())
 }
 
-// GetNumaSocket returns the NUMA socket where this lcore is located.
-func (lc LCore) GetNumaSocket() (socket NumaSocket) {
+// NumaSocket returns the NUMA socket where this lcore is located.
+func (lc LCore) NumaSocket() (socket NumaSocket) {
 	if !lc.IsValid() {
 		return socket
 	}
@@ -102,7 +102,7 @@ func panicInSlave(funcName string) {
 func ListNumaSocketsOfLCores(lcores []LCore) (a []NumaSocket) {
 	a = make([]NumaSocket, len(lcores))
 	for i, lcore := range lcores {
-		a[i] = lcore.GetNumaSocket()
+		a[i] = lcore.NumaSocket()
 	}
 	return a
 }

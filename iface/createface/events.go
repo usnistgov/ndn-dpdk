@@ -22,7 +22,7 @@ func chooseRxl(rxg iface.IRxGroup) *iface.RxLoop {
 	bestScore := math.MaxInt32
 	for _, rxl := range theRxls {
 		score := 1000*len(rxl.ListRxGroups()) + len(rxl.ListFaces())
-		if !isNumaSocketMatch(rxl.GetNumaSocket(), rxg.GetNumaSocket()) {
+		if !isNumaSocketMatch(rxl.NumaSocket(), rxg.NumaSocket()) {
 			score += 1000000
 		}
 
@@ -34,7 +34,7 @@ func chooseRxl(rxg iface.IRxGroup) *iface.RxLoop {
 	return bestRxl
 }
 
-func chooseTxl(face iface.IFace) *iface.TxLoop {
+func chooseTxl(face iface.Face) *iface.TxLoop {
 	if CustomGetTxl != nil {
 		return CustomGetTxl(face)
 	}
@@ -42,7 +42,7 @@ func chooseTxl(face iface.IFace) *iface.TxLoop {
 	bestScore := math.MaxInt32
 	for _, txl := range theTxls {
 		score := len(txl.ListFaces())
-		if !isNumaSocketMatch(txl.GetNumaSocket(), face.GetNumaSocket()) {
+		if !isNumaSocketMatch(txl.NumaSocket(), face.NumaSocket()) {
 			score += 1000000
 		}
 
@@ -56,14 +56,14 @@ func chooseTxl(face iface.IFace) *iface.TxLoop {
 
 var createDestroyLock sync.Mutex
 
-func handleFaceNew(id iface.FaceId) {
+func handleFaceNew(id iface.ID) {
 	// lock held by Create()
 
 	face := iface.Get(id)
 	chooseTxl(face).AddFace(face)
 }
 
-func handleFaceClosing(id iface.FaceId) {
+func handleFaceClosing(id iface.ID) {
 	createDestroyLock.Lock()
 	defer createDestroyLock.Unlock()
 
@@ -73,15 +73,13 @@ func handleFaceClosing(id iface.FaceId) {
 	}
 }
 
-func handleFaceClosed(id iface.FaceId) {
+func handleFaceClosed(id iface.ID) {
 	createDestroyLock.Lock()
 	defer createDestroyLock.Unlock()
 
-	if id.GetKind() == iface.FaceKind_Eth {
-		for _, port := range ethface.ListPorts() {
-			if len(port.ListFaces()) == 0 {
-				port.Close()
-			}
+	for _, port := range ethface.ListPorts() {
+		if len(port.ListFaces()) == 0 {
+			port.Close()
 		}
 	}
 }

@@ -30,7 +30,7 @@ var impls = []iImpl{&rxFlowImpl{}, &rxTableImpl{}}
 
 // Start EthDev (called by impl).
 func startDev(port *Port, nRxQueues int, promisc bool) error {
-	socket := port.dev.GetNumaSocket()
+	socket := port.dev.NumaSocket()
 	var cfg ethdev.Config
 	cfg.AddRxQueues(nRxQueues, ethdev.RxQueueConfig{
 		Capacity: port.cfg.RxqFrames,

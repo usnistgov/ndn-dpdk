@@ -115,7 +115,7 @@ EthFace_FlowRxBurst(RxGroup* flowRxg, struct rte_mbuf** pkts, uint16_t nPkts)
   uint64_t now = rte_get_tsc_cycles();
   for (uint16_t i = 0; i < nRx; ++i) {
     struct rte_mbuf* frame = pkts[i];
-    frame->port = priv->faceId;
+    frame->port = priv->faceID;
     // TODO offload timestamping to hardware where available
     frame->timestamp = now;
     rte_pktmbuf_adj(frame, priv->txHdrLen);

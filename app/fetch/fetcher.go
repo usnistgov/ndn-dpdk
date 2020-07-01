@@ -32,7 +32,7 @@ type Fetcher struct {
 	nActiveProcs int
 }
 
-func New(face iface.IFace, cfg FetcherConfig) (fetcher *Fetcher, e error) {
+func New(face iface.Face, cfg FetcherConfig) (fetcher *Fetcher, e error) {
 	if cfg.NThreads == 0 {
 		cfg.NThreads = 1
 	}
@@ -41,8 +41,8 @@ func New(face iface.IFace, cfg FetcherConfig) (fetcher *Fetcher, e error) {
 	}
 	cfg.RxQueue.DisableCoDel = true
 
-	faceId := face.GetFaceId()
-	socket := face.GetNumaSocket()
+	faceID := face.ID()
+	socket := face.NumaSocket()
 	interestMp := (*C.struct_rte_mempool)(pingmempool.Interest.MakePool(socket).GetPtr())
 
 	fetcher = new(Fetcher)
@@ -50,7 +50,7 @@ func New(face iface.IFace, cfg FetcherConfig) (fetcher *Fetcher, e error) {
 	for i := range fetcher.fth {
 		fth := new(fetchThread)
 		fth.c = (*C.FetchThread)(eal.Zmalloc("FetchThread", C.sizeof_FetchThread, socket))
-		fth.c.face = (C.FaceId)(faceId)
+		fth.c.face = (C.FaceID)(faceID)
 		fth.c.interestMp = interestMp
 		C.NonceGen_Init(&fth.c.nonceGen)
 		eal.InitStopFlag(unsafe.Pointer(&fth.c.stop))
@@ -60,7 +60,7 @@ func New(face iface.IFace, cfg FetcherConfig) (fetcher *Fetcher, e error) {
 	fetcher.fp = make([]*C.FetchProc, cfg.NProcs)
 	for i := range fetcher.fp {
 		fp := (*C.FetchProc)(eal.Zmalloc("FetchProc", C.sizeof_FetchProc, socket))
-		if _, e := pktqueue.NewAt(unsafe.Pointer(&fp.rxQueue), cfg.RxQueue, fmt.Sprintf("Fetcher%d-%d_rxQ", faceId, i), socket); e != nil {
+		if _, e := pktqueue.NewAt(unsafe.Pointer(&fp.rxQueue), cfg.RxQueue, fmt.Sprintf("Fetcher%d-%d_rxQ", faceID, i), socket); e != nil {
 			return nil, e
 		}
 		fp.pitToken = (C.uint64_t(i) << 56) | 0x6665746368 // 'fetch'
@@ -71,8 +71,8 @@ func New(face iface.IFace, cfg FetcherConfig) (fetcher *Fetcher, e error) {
 	return fetcher, nil
 }
 
-func (fetcher *Fetcher) GetFace() iface.IFace {
-	return iface.Get(iface.FaceId(fetcher.fth[0].c.face))
+func (fetcher *Fetcher) GetFace() iface.Face {
+	return iface.Get(iface.ID(fetcher.fth[0].c.face))
 }
 
 func (fetcher *Fetcher) CountThreads() int {

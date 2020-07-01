@@ -9,14 +9,14 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/sockettransport"
 )
 
-// IntFace is an iface.IFace and a ndn.L3Face connected together.
+// IntFace is an iface.Face and a ndn.L3Face connected together.
 type IntFace struct {
 	// D is the face on DPDK side.
 	// Packets sent on D are received on A.
-	D iface.IFace
+	D iface.Face
 
-	// ID is the FaceID on DPDK side.
-	ID iface.FaceId
+	// ID is the ID on DPDK side.
+	ID iface.ID
 
 	// A is the face on application side.
 	// Packets sent on A are received by D.
@@ -52,7 +52,7 @@ func New() (*IntFace, error) {
 		return nil, e
 	}
 
-	f.ID = f.D.GetFaceId()
+	f.ID = f.D.ID()
 	f.Rx = f.A.GetRx()
 	f.Tx = f.A.GetTx()
 	return &f, nil

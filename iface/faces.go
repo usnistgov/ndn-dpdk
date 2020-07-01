@@ -1,61 +1,44 @@
 package iface
 
-var gFaces [int(FACEID_MAX) + 1]IFace
+var gFaces [MaxID + 1]Face
 
-// Get face by FaceId.
-func Get(faceId FaceId) IFace {
-	return gFaces[faceId]
+// Get retrieves face by ID.
+// Returns nil if id is invalid.
+func Get(id ID) Face {
+	if !id.Valid() {
+		return nil
+	}
+	return gFaces[id]
 }
 
-// Put face (non-thread-safe).
+// Put stores face.
+// This is non-thread-safe.
 // This should be called by face subtype constructor.
-func Put(face IFace) {
-	id := face.GetFaceId()
-	if id.GetKind() == FaceKind_None {
-		panic("invalid FaceId")
+func Put(face Face) {
+	id := face.ID()
+	if !id.Valid() {
+		panic("invalid ID")
 	}
 	if gFaces[id] != nil {
-		panic("duplicate FaceId")
+		panic("duplicate ID")
 	}
 	gFaces[id] = face
-	emitter.EmitSync(evt_FaceNew, id)
+	emitter.EmitSync(evtFaceNew, id)
 }
 
-// Iterator over faces.
-//
-// Usage:
-// for it := iface.IterFaces(); it.Valid(); it.Next() {
-//   // use it.Id and it.Face
-// }
-type FaceIterator struct {
-	Id   FaceId
-	Face IFace
-}
-
-func IterFaces() *FaceIterator {
-	var it FaceIterator
-	it.Id = FACEID_INVALID
-	it.Next()
-	return &it
-}
-
-func (it *FaceIterator) Valid() bool {
-	return it.Id <= FACEID_MAX
-}
-
-func (it *FaceIterator) Next() {
-	for it.Id++; it.Id <= FACEID_MAX; it.Id++ {
-		it.Face = gFaces[it.Id]
-		if it.Face != nil {
-			return
+// List returns a list of existing faces.
+func List() (list []Face) {
+	for _, face := range gFaces {
+		if face != nil {
+			list = append(list, face)
 		}
 	}
-	it.Face = nil
+	return list
 }
 
-// Close all faces.
+// CloseAll closes all faces.
 func CloseAll() {
-	for it := IterFaces(); it.Valid(); it.Next() {
-		it.Face.Close()
+	for _, face := range List() {
+		face.Close()
 	}
 }

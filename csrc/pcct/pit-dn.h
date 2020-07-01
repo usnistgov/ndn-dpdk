@@ -12,7 +12,7 @@ typedef struct PitDn
   TscTime expiry; ///< expiration time
   uint64_t token; ///< downstream's token
   uint32_t nonce; ///< downstream's nonce
-  FaceId face;
+  FaceID face;
   bool congMark;
   bool canBePrefix; ///< Interest has CanBePrefix?
 } __rte_aligned(32) PitDn;
@@ -22,7 +22,7 @@ static inline void
 PitDn_Copy(PitDn* dst, PitDn* src)
 {
   rte_mov32((uint8_t*)dst, (const uint8_t*)src);
-  src->face = FACEID_INVALID;
+  src->face = 0;
 }
 
 #endif // NDN_DPDK_PCCT_PIT_DN_H

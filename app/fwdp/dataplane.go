@@ -93,7 +93,7 @@ func New(cfg Config) (dp *DataPlane, e error) {
 
 func (dp *DataPlane) Launch() error {
 	for _, txLCore := range dp.la.Outputs {
-		txl := iface.NewTxLoop(txLCore.GetNumaSocket())
+		txl := iface.NewTxLoop(txLCore.NumaSocket())
 		txl.SetLCore(txLCore)
 		txl.Launch()
 		createface.AddTxLoop(txl)

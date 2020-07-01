@@ -80,7 +80,7 @@ func (fixture *Fixture) StepDelay() {
 }
 
 // SetFibEntry inserts or replaces a FIB entry.
-func (fixture *Fixture) SetFibEntry(name string, strategy string, nexthops ...iface.FaceId) {
+func (fixture *Fixture) SetFibEntry(name string, strategy string, nexthops ...iface.ID) {
 	var entry fib.Entry
 	e := entry.SetName(ndn.ParseName(name))
 	fixture.require.NoError(e)

@@ -101,7 +101,7 @@ SgSetTimer(SgCtx* ctx, TscDuration after);
 typedef enum SgForwardInterestResult
 {
   SGFWDI_OK,
-  SGFWDI_BADFACE,    ///< face is down or FaceId is invalid
+  SGFWDI_BADFACE,    ///< face is down or FaceID is invalid
   SGFWDI_ALLOCERR,   ///< allocation error
   SGFWDI_NONONCE,    ///< upstream has rejected all nonces
   SGFWDI_SUPPRESSED, ///< forwarding is suppressed
@@ -112,7 +112,7 @@ typedef enum SgForwardInterestResult
  *  \warning Not available in \c SGEVT_DATA.
  */
 SgForwardInterestResult
-SgForwardInterest(SgCtx* ctx, FaceId nh);
+SgForwardInterest(SgCtx* ctx, FaceID nh);
 
 /** \brief Return Nacks downstream and erase PIT entry.
  *  \warning Only available in \c SGEVT_INTEREST.

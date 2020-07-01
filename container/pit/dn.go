@@ -16,9 +16,9 @@ type Dn struct {
 	entry *Entry
 }
 
-// GetFaceId returns the face ID.
-func (dn Dn) GetFaceId() iface.FaceId {
-	return iface.FaceId(dn.c.face)
+// FaceID returns the face ID.
+func (dn Dn) FaceID() iface.ID {
+	return iface.ID(dn.c.face)
 }
 
 // GetToken returns the last received PIT token.

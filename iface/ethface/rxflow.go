@@ -99,7 +99,7 @@ func (impl *rxFlowImpl) Start(face *EthFace) error {
 		return e
 	}
 
-	impl.port.logger.WithFields(makeLogFields("rx-queue", index, "face", face.GetFaceId())).Debug("create RxFlow")
+	impl.port.logger.WithFields(makeLogFields("rx-queue", index, "face", face.ID())).Debug("create RxFlow")
 	impl.queueFlow[index] = rxf
 	iface.EmitRxGroupAdd(rxf)
 	return nil
@@ -166,10 +166,10 @@ func newRxFlow(face *EthFace, queue int) (rxf *RxFlow, e error) {
 	return rxf, nil
 }
 
-func (rxf *RxFlow) GetNumaSocket() eal.NumaSocket {
-	return rxf.face.GetNumaSocket()
+func (rxf *RxFlow) NumaSocket() eal.NumaSocket {
+	return rxf.face.NumaSocket()
 }
 
-func (rxf *RxFlow) ListFaces() []iface.FaceId {
-	return []iface.FaceId{rxf.face.GetFaceId()}
+func (rxf *RxFlow) ListFaces() []iface.ID {
+	return []iface.ID{rxf.face.ID()}
 }
