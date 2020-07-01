@@ -60,15 +60,15 @@ func (fib *Fib) getVirtName(name ndn.Name) ndn.Name {
 
 // Insert inserts a FIB entry, or replaces an existing entry with the same name.
 func (fib *Fib) Insert(entry *Entry) (isNew bool, e error) {
-	if len(entry.GetNexthops()) == 0 {
+	if len(entry.ListNexthops()) == 0 {
 		return false, errors.New("cannot insert FIB entry with no nexthop")
 	}
-	if entry.GetStrategy() == nil {
+	if entry.Strategy() == nil {
 		return false, errors.New("cannot insert FIB entry with no strategy")
 	}
 	name := entry.Name()
 	virtName := fib.getVirtName(name)
-	logEntry := log.WithFields(makeLogFields("name", name, "nexthops", entry.GetNexthops(), "strategy", entry.GetStrategy().GetId()))
+	logEntry := log.WithFields(makeLogFields("name", name, "nexthops", entry.ListNexthops(), "strategy", entry.Strategy().GetId()))
 
 	e = fib.postCommand(func(rs *urcu.ReadSide) error {
 		rs.Lock()

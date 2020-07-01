@@ -83,7 +83,7 @@ func TestNdt(t *testing.T) {
 	nameIndices := make(map[uint64]bool)
 	for i, nameStr := range nameStrs {
 		names[i] = ndn.ParseName(nameStr)
-		nameIndices[ndt.GetIndex(ndt.ComputeHash(names[i]))] = true
+		nameIndices[ndt.IndexOfName(names[i])] = true
 	}
 	assert.Len(nameIndices, 7)
 

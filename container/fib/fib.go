@@ -30,7 +30,7 @@ type Fib struct {
 
 // New creates a Fib.
 func New(id string, cfg Config, ndt *ndt.Ndt, sockets []eal.NumaSocket) (fib *Fib, e error) {
-	if cfg.StartDepth <= ndt.GetPrefixLen() {
+	if cfg.StartDepth <= ndt.PrefixLen() {
 		return nil, errors.New("FIB StartDepth must be greater than NDT PrefixLen")
 	}
 
@@ -48,8 +48,8 @@ func New(id string, cfg Config, ndt *ndt.Ndt, sockets []eal.NumaSocket) (fib *Fi
 		fib.parts[i] = part
 	}
 
-	fib.tree = fibtree.New(cfg.StartDepth, ndt.GetPrefixLen(), ndt.CountElements(),
-		func(name ndn.Name) uint64 { return ndt.GetIndex(ndt.ComputeHash(name)) })
+	fib.tree = fibtree.New(cfg.StartDepth, ndt.PrefixLen(), ndt.CountElements(),
+		func(name ndn.Name) uint64 { return ndt.IndexOfName(name) })
 
 	fib.commands = make(chan command)
 	go fib.commandLoop()

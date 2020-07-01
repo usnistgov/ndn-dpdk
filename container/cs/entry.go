@@ -28,11 +28,6 @@ func (entry *Entry) IsDirect() bool {
 	return bool(C.CsEntry_IsDirect(entry.ptr()))
 }
 
-// GetDirect returns the direct entry from a possibly indirect entry.
-func (entry *Entry) GetDirect() *Entry {
-	return (*Entry)(C.CsEntry_GetDirect(entry.ptr()))
-}
-
 // ListIndirects returns a list of indirect entries associated with this direct entry.
 // Panics if this is not a direct entry.
 func (entry *Entry) ListIndirects() (indirects []*Entry) {
@@ -48,17 +43,17 @@ func (entry *Entry) ListIndirects() (indirects []*Entry) {
 	return indirects
 }
 
-// GetData returns the Data packet on this entry.
-func (entry *Entry) GetData() *ndni.Data {
+// Data returns the Data packet on this entry.
+func (entry *Entry) Data() *ndni.Data {
 	return ndni.PacketFromPtr(unsafe.Pointer(C.CsEntry_GetData(entry.ptr()))).AsData()
 }
 
-// GetFreshUntil returns a timestamp when this entry would become non-fresh.
-func (entry *Entry) GetFreshUntil() eal.TscTime {
+// FreshUntil returns a timestamp when this entry would become non-fresh.
+func (entry *Entry) FreshUntil() eal.TscTime {
 	return eal.TscTime(C.CsEntry_GetDirect(entry.ptr()).freshUntil)
 }
 
 // IsFresh determines whether entry is fresh at the given time.
 func (entry *Entry) IsFresh(now eal.TscTime) bool {
-	return entry.GetFreshUntil() > now
+	return entry.FreshUntil() > now
 }

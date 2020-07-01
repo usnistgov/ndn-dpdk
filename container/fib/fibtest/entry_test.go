@@ -16,7 +16,7 @@ func TestEntry(t *testing.T) {
 	c := (*fib.CEntry)(&entry)
 	ndntestenv.NameEqual(assert, "/", &entry)
 	assert.EqualValues(0, c.NComps)
-	assert.Len(entry.GetNexthops(), 0)
+	assert.Len(entry.ListNexthops(), 0)
 
 	name := ndn.ParseName("/A/B")
 	assert.NoError(entry.SetName(name))
@@ -25,7 +25,7 @@ func TestEntry(t *testing.T) {
 
 	nexthops := []iface.ID{2302, 1067, 1122}
 	assert.NoError(entry.SetNexthops(nexthops))
-	assert.Equal(nexthops, entry.GetNexthops())
+	assert.Equal(nexthops, entry.ListNexthops())
 
 	name2V, _ := name.MarshalBinary()
 	for len(name2V) <= fib.MaxNameLength {

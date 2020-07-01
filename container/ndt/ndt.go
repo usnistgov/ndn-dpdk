@@ -62,8 +62,8 @@ func (ndt *Ndt) CountElements() int {
 	return int(ndt.ptr().indexMask + 1)
 }
 
-// GetPrefixLen returns number of name components used to compute hash.
-func (ndt *Ndt) GetPrefixLen() int {
+// PrefixLen returns number of name components used to compute hash.
+func (ndt *Ndt) PrefixLen() int {
 	return int(ndt.ptr().prefixLen)
 }
 
@@ -90,15 +90,20 @@ func (ndt *Ndt) GetThread(i int) *Thread {
 // ComputeHash computes the hash used for a name.
 func (ndt *Ndt) ComputeHash(name ndn.Name) uint64 {
 	nameLen := len(name)
-	if prefixLen := ndt.GetPrefixLen(); nameLen > prefixLen {
+	if prefixLen := ndt.PrefixLen(); nameLen > prefixLen {
 		nameLen = prefixLen
 	}
 	return ndni.CNameFromName(name).ComputePrefixHash(nameLen)
 }
 
-// GetIndex returns table index used for a hash.
-func (ndt *Ndt) GetIndex(hash uint64) uint64 {
+// IndexOfHash returns table index used for a hash.
+func (ndt *Ndt) IndexOfHash(hash uint64) uint64 {
 	return hash & uint64(ndt.ptr().indexMask)
+}
+
+// IndexOfName returns table index used for a name.
+func (ndt *Ndt) IndexOfName(name ndn.Name) uint64 {
+	return ndt.IndexOfHash(ndt.ComputeHash(name))
 }
 
 // ReadElement reads a table element.

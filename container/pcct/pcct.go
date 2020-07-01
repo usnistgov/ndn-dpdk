@@ -49,8 +49,8 @@ func (pcct *Pcct) ptr() *C.Pcct {
 	return (*C.Pcct)(pcct)
 }
 
-// GetMempool returns underlying mempool of the PCCT.
-func (pcct *Pcct) GetMempool() *mempool.Mempool {
+// AsMempool returns underlying mempool of the PCCT.
+func (pcct *Pcct) AsMempool() *mempool.Mempool {
 	return mempool.FromPtr(pcct.Ptr())
 }
 

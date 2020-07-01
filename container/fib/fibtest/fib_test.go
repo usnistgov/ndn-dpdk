@@ -54,7 +54,7 @@ func TestInsertErase(t *testing.T) {
 	entryA := fib.Find(nameA)
 	require.NotNil(entryA)
 	ndntestenv.NameEqual(assert, nameA, entryA)
-	seqNum1 := entryA.GetSeqNum()
+	seqNum1 := entryA.FibSeqNum()
 
 	isNew, e = fib.Insert(fixture.MakeEntry("/A", strategyQ, 3092))
 	assert.NoError(e)
@@ -71,7 +71,7 @@ func TestInsertErase(t *testing.T) {
 	entryA = fib.Find(nameA)
 	require.NotNil(entryA)
 	ndntestenv.NameEqual(assert, nameA, entryA)
-	seqNum2 := entryA.GetSeqNum()
+	seqNum2 := entryA.FibSeqNum()
 	assert.NotEqual(seqNum1, seqNum2)
 	fixture.CheckEntryNames(assert, []string{"/A"})
 
@@ -99,7 +99,7 @@ func TestLpm(t *testing.T) {
 		if entry == nil {
 			return 0
 		}
-		return int(entry.GetNexthops()[0])
+		return int(entry.ListNexthops()[0])
 	}
 	lpms := func() []int {
 		return []int{

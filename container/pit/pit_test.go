@@ -92,7 +92,7 @@ func TestToken(t *testing.T) {
 		}
 		require.NotNil(entry, "unexpected PCCT full at %d", i)
 
-		token := entry.GetToken()
+		token := entry.PitToken()
 		assert.Equal(token&(1<<48-1), token) // token has 48 bits
 		ndnitestenv.SetPitToken(data, token)
 

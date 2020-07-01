@@ -102,16 +102,16 @@ func TestEntryFibRef(t *testing.T) {
 	entry1, _ := fixture.Pit.Insert(interest1, fibEntry1)
 	require.NotNil(entry1)
 	assert.NotNil(entry1.InsertDn(interest1))
-	assert.Equal(fibEntry1.GetSeqNum(), entry1.GetFibSeqNum())
+	assert.Equal(fibEntry1.FibSeqNum(), entry1.FibFibSeqNum())
 
 	interest2 := makeInterest("/A/B")
 	entry2, _ := fixture.Pit.Insert(interest2, fibEntry1)
 	require.Equal(entry1, entry2)
-	assert.Equal(fibEntry1.GetSeqNum(), entry2.GetFibSeqNum())
+	assert.Equal(fibEntry1.FibSeqNum(), entry2.FibFibSeqNum())
 
 	fibEntry3 := fixture.InsertFibEntry("/A", 1003)
-	assert.NotEqual(fibEntry1.GetSeqNum(), fibEntry3.GetSeqNum())
+	assert.NotEqual(fibEntry1.FibSeqNum(), fibEntry3.FibSeqNum())
 	entry3, _ := fixture.Pit.Insert(interest2, fibEntry3)
 	require.Equal(entry2, entry3)
-	assert.Equal(fibEntry3.GetSeqNum(), entry3.GetFibSeqNum())
+	assert.Equal(fibEntry3.FibSeqNum(), entry3.FibFibSeqNum())
 }

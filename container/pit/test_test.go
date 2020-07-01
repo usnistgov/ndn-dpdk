@@ -66,7 +66,7 @@ func (fixture *Fixture) Close() error {
 
 // Return number of in-use entries in PCCT's underlying mempool.
 func (fixture *Fixture) CountMpInUse() int {
-	return fixture.Pit.GetMempool().CountInUse()
+	return fixture.Pit.AsMempool().CountInUse()
 }
 
 // Insert a PIT entry.

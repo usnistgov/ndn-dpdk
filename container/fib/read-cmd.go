@@ -46,7 +46,7 @@ func (fib *Fib) FindInPartition(name ndn.Name, partition int, rs *urcu.ReadSide)
 // Determine what partitions would a name appear in.
 // This method is non-thread-safe.
 func (fib *Fib) listPartitionsForName(name ndn.Name) (parts []*partition) {
-	if len(name) < fib.ndt.GetPrefixLen() {
+	if len(name) < fib.ndt.PrefixLen() {
 		return fib.parts
 	}
 	_, partition := fib.ndt.Lookup(name)

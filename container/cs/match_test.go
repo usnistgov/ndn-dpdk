@@ -34,7 +34,7 @@ func TestInsertErase(t *testing.T) {
 
 	csEntry = fixture.Find(makeInterest("/A/B"))
 	require.NotNil(csEntry)
-	csData := csEntry.GetData()
+	csData := csEntry.Data()
 	nameEqual(assert, "/A/B", csData)
 	assert.Equal(100*time.Millisecond, csData.FreshnessPeriod())
 
@@ -47,7 +47,7 @@ func TestInsertErase(t *testing.T) {
 	csEntry3 := fixture.Find(makeInterest("/A/B",
 		ndn.MakeFHDelegation(1, "/G"), ndn.MakeFHDelegation(2, "/F"), setActiveFH(1)))
 	require.NotNil(csEntry3)
-	csData3 := csEntry3.GetData()
+	csData3 := csEntry3.Data()
 	nameEqual(assert, "/A/B", csData3)
 	assert.Equal(200*time.Millisecond, csData3.FreshnessPeriod())
 

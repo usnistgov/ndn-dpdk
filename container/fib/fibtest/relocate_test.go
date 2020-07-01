@@ -23,9 +23,9 @@ func TestRelocate(t *testing.T) {
 	nameCDW := ndn.ParseName("/C/D/W")
 	nameEFXYZ := ndn.ParseName("/E/F/X/Y/Z")
 
-	indexAB := ndt.GetIndex(ndt.ComputeHash(nameAB))
-	indexCDW := ndt.GetIndex(ndt.ComputeHash(nameCDW))
-	indexEFXYZ := ndt.GetIndex(ndt.ComputeHash(nameEFXYZ))
+	indexAB := ndt.IndexOfName(nameAB)
+	indexCDW := ndt.IndexOfName(nameCDW)
+	indexEFXYZ := ndt.IndexOfName(nameEFXYZ)
 	require.NotEqual(indexAB, indexCDW)
 	require.NotEqual(indexCDW, indexEFXYZ)
 	require.NotEqual(indexEFXYZ, indexAB)

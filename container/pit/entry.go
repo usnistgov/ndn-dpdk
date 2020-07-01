@@ -34,13 +34,13 @@ func (entry *Entry) getPitPtr() *C.Pit {
 	return (*C.Pit)(unsafe.Pointer(mempoolC))
 }
 
-// GetToken returns the PIT token assigned to this entry.
-func (entry *Entry) GetToken() uint64 {
+// PitToken returns the PIT token assigned to this entry.
+func (entry *Entry) PitToken() uint64 {
 	return uint64(C.PitEntry_GetToken(entry.ptr()))
 }
 
-// GetFibSeqNum returns the FIB insertion sequence number recorded in this entry.
-func (entry *Entry) GetFibSeqNum() uint32 {
+// FibSeqNum returns the FIB insertion sequence number recorded in this entry.
+func (entry *Entry) FibFibSeqNum() uint32 {
 	return uint32(entry.ptr().fibSeqNum)
 }
 

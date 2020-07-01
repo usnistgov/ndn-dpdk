@@ -28,9 +28,9 @@ func TestDiskStore(t *testing.T) {
 	require.NoError(e)
 	defer store.Close()
 
-	minSlotId, maxSlotId := store.GetSlotIdRange()
-	assert.Equal(uint64(1), minSlotId)
-	assert.Equal(uint64(31), maxSlotId)
+	minSlotID, maxSlotID := store.SlotRange()
+	assert.Equal(uint64(1), minSlotID)
+	assert.Equal(uint64(31), maxSlotID)
 
 	dataLens := make([]int, 33)
 	dataLens[2] = 1024

@@ -45,8 +45,8 @@ func (entry *Entry) SetName(name ndn.Name) error {
 	return nil
 }
 
-// GetNexthops returns a list of nexthops.
-func (entry *Entry) GetNexthops() (nexthops []iface.ID) {
+// Nexthops returns a list of nexthops.
+func (entry *Entry) ListNexthops() (nexthops []iface.ID) {
 	c := (*CEntry)(entry)
 	nexthops = make([]iface.ID, int(c.NNexthops))
 	for i := range nexthops {
@@ -70,8 +70,8 @@ func (entry *Entry) SetNexthops(nexthops []iface.ID) error {
 	return nil
 }
 
-// GetStrategy returns the forwarding strategy.
-func (entry *Entry) GetStrategy() strategycode.StrategyCode {
+// Strategy returns the forwarding strategy.
+func (entry *Entry) Strategy() strategycode.StrategyCode {
 	c := (*CEntry)(entry)
 	return strategycode.FromPtr(unsafe.Pointer(c.Union_strategy_realEntry))
 }
@@ -82,11 +82,11 @@ func (entry *Entry) SetStrategy(sc strategycode.StrategyCode) {
 	c.Union_strategy_realEntry = (*byte)(sc.Ptr())
 }
 
-// GetSeqNum returns FIB insertion sequence number.
+// SeqNum returns FIB insertion sequence number.
 // This number is automatically assigned when a FIB entry is inserted/overwritten.
 // Its change signifies that the FIB entry has been updated.
 // This function is only available on a retrieved FIB entry.
-func (entry *Entry) GetSeqNum() uint32 {
+func (entry *Entry) FibSeqNum() uint32 {
 	c := (*CEntry)(entry)
 	return c.SeqNum
 }

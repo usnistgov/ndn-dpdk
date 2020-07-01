@@ -58,8 +58,8 @@ func (store *DiskStore) Close() error {
 	return store.bd.Close()
 }
 
-// GetSlotIdRange returns a range of possible slot numbers.
-func (store *DiskStore) GetSlotIdRange() (min, max uint64) {
+// SlotRange returns a range of possible slot numbers.
+func (store *DiskStore) SlotRange() (min, max uint64) {
 	return 1, uint64(store.bd.DevInfo().CountBlocks()/int(store.c.nBlocksPerSlot) - 1)
 }
 

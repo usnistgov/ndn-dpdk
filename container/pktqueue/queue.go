@@ -84,12 +84,9 @@ func (q *PktQueue) ptr() *C.PktQueue {
 	return (*C.PktQueue)(q)
 }
 
-func (q *PktQueue) GetRing() *ringbuffer.Ring {
-	return ringbuffer.FromPtr(unsafe.Pointer(q.ptr().ring))
-}
-
 func (q *PktQueue) Close() error {
-	return q.GetRing().Close()
+	ring := ringbuffer.FromPtr(unsafe.Pointer(q.ptr().ring))
+	return ring.Close()
 }
 
 func (q *PktQueue) Push(pkts interface{}, now eal.TscTime) (nRej int) {

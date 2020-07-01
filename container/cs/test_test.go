@@ -69,7 +69,7 @@ func (fixture *Fixture) Close() error {
 
 // Return number of in-use entries in PCCT's underlying mempool.
 func (fixture *Fixture) CountMpInUse() int {
-	return fixture.Cs.GetMempool().CountInUse()
+	return fixture.Cs.AsMempool().CountInUse()
 }
 
 // Insert a CS entry, by replacing a PIT entry.
@@ -87,7 +87,7 @@ func (fixture *Fixture) Insert(interest *ndni.Interest, data *ndni.Data) (isRepl
 		panic("Pit.Insert failed")
 	}
 
-	ndnitestenv.SetPitToken(data, pitEntry.GetToken())
+	ndnitestenv.SetPitToken(data, pitEntry.PitToken())
 	pitFound := fixture.Pit.FindByData(data)
 	if len(pitFound.ListEntries()) == 0 {
 		panic("Pit.FindByData returned empty result")
