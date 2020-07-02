@@ -43,13 +43,13 @@ func GetCurrentLCore() LCore {
 	return LCoreFromID(int(C.rte_lcore_id()))
 }
 
-// GetMasterLCore returns the master lcore.
-func GetMasterLCore() LCore {
+// GetInitialLCore returns the initial lcore.
+func GetInitialLCore() LCore {
 	return LCoreFromID(int(C.rte_get_master_lcore()))
 }
 
-// ListSlaveLCores returns a list of slave lcores.
-func ListSlaveLCores() (list []LCore) {
+// ListWorkerLCores returns a list of worker lcores.
+func ListWorkerLCores() (list []LCore) {
 	for i := C.rte_get_next_lcore(C.RTE_MAX_LCORE, 1, 1); i < C.RTE_MAX_LCORE; i = C.rte_get_next_lcore(i, 1, 0) {
 		list = append(list, LCoreFromID(int(i)))
 	}

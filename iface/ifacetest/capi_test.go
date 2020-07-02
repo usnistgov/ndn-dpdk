@@ -36,7 +36,7 @@ func TestCApi(t *testing.T) {
 	assert.False(Face_IsDown(id))
 
 	txl := iface.NewTxLoop(eal.NumaSocket{})
-	txl.SetLCore(eal.ListSlaveLCores()[0])
+	txl.SetLCore(eal.ListWorkerLCores()[0])
 	txl.Launch()
 	time.Sleep(10 * time.Millisecond)
 	txl.AddFace(face.D)

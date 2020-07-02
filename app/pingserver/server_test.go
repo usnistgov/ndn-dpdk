@@ -61,7 +61,7 @@ func TestServer(t *testing.T) {
 	server, e := pingserver.New(face.D, 0, cfg)
 	require.NoError(e)
 	defer server.Close()
-	server.SetLCore(pingtestenv.SlaveLCores[0])
+	server.SetLCore(pingtestenv.WorkerLCores[0])
 	pingtestenv.Demux3.GetInterestDemux().SetDest(0, server.GetRxQueue())
 
 	nDataA0 := 0

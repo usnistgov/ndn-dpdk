@@ -41,10 +41,10 @@ func New(t *testing.T, rxFace, txFace iface.Face) (fixture *Fixture) {
 	fixture.TxLoops = 10000
 	fixture.LossTolerance = 0.1
 
-	slaves := eal.ListSlaveLCores()
-	fixture.RxLCore = slaves[0]
-	fixture.TxLCore = slaves[1]
-	fixture.SendLCore = slaves[2]
+	workers := eal.ListWorkerLCores()
+	fixture.RxLCore = workers[0]
+	fixture.TxLCore = workers[1]
+	fixture.SendLCore = workers[2]
 
 	fixture.rxFace = rxFace
 	fixture.rxDiscard = make(map[iface.ID]iface.Face)

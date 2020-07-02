@@ -18,7 +18,7 @@ func main() {
 	if e != nil {
 		log.WithError(e).Fatal("command line error")
 	}
-	log.WithField("nSlaves", len(eal.ListSlaveLCores())).Info("EAL ready")
+	log.WithField("nWorkers", len(eal.ListWorkerLCores())).Info("EAL ready")
 	hrlog.Init()
 
 	initCfg.Mempool.Apply()

@@ -46,7 +46,7 @@ func TestClient(t *testing.T) {
 	client, e := pingclient.New(face.D, cfg)
 	require.NoError(e)
 	defer client.Close()
-	client.SetLCores(pingtestenv.SlaveLCores[0], pingtestenv.SlaveLCores[1])
+	client.SetLCores(pingtestenv.WorkerLCores[0], pingtestenv.WorkerLCores[1])
 	pingtestenv.Demux3.GetDataDemux().SetDest(0, client.GetRxQueue())
 
 	nInterestsA := 0

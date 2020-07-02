@@ -54,7 +54,7 @@ func TestEthFace(t *testing.T) {
 	assert.True(locAm.Local.Equal(macA))
 	assert.True(locAm.Remote.Equal(ethface.NdnMcastAddr))
 
-	vnet.LaunchBridge(eal.ListSlaveLCores()[3])
+	vnet.LaunchBridge(eal.ListWorkerLCores()[3])
 	time.Sleep(time.Second)
 
 	fixtureBA := ifacetestenv.New(t, faceAB, faceBA)

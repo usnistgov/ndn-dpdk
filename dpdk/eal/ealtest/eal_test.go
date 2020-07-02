@@ -11,23 +11,23 @@ func TestEal(t *testing.T) {
 
 	assert.Equal([]string{"testprog", "c7f36046-faa5-46dc-9855-e93d00217b8f"}, initEalRemainingArgs)
 
-	master := eal.GetMasterLCore()
-	assert.True(master.Valid())
+	initial := eal.GetInitialLCore()
+	assert.True(initial.Valid())
 
-	slaves := eal.ListSlaveLCores()
-	require.Len(slaves, 5)
-	slavesSet := make(map[eal.LCore]bool)
-	for _, slave := range slaves {
-		slavesSet[slave] = true
-		assert.True(slave.Valid())
-		assert.False(slave.IsBusy())
+	workers := eal.ListWorkerLCores()
+	require.Len(workers, 5)
+	workersSet := make(map[eal.LCore]bool)
+	for _, worker := range workers {
+		workersSet[worker] = true
+		assert.True(worker.Valid())
+		assert.False(worker.IsBusy())
 	}
-	require.Len(slavesSet, 5)
+	require.Len(workersSet, 5)
 
-	isSlaveExecuted := false
-	slaves[0].RemoteLaunch(func() int {
-		assert.Equal(slaves[0], eal.GetCurrentLCore())
-		isSlaveExecuted = true
+	isWorkerExecuted := false
+	workers[0].RemoteLaunch(func() int {
+		assert.Equal(workers[0], eal.GetCurrentLCore())
+		isWorkerExecuted = true
 
 		done := make(chan bool)
 		go func() {
@@ -38,7 +38,7 @@ func TestEal(t *testing.T) {
 
 		return 66
 	})
-	assert.Equal(66, slaves[0].Wait())
-	assert.True(isSlaveExecuted)
-	assert.Equal(0, slaves[0].Wait())
+	assert.Equal(66, workers[0].Wait())
+	assert.True(isWorkerExecuted)
+	assert.Equal(0, workers[0].Wait())
 }

@@ -13,7 +13,7 @@ import (
 
 func TestEthDev(t *testing.T) {
 	assert, _ := makeAR(t)
-	slaves := eal.ListSlaveLCores()
+	workers := eal.ListWorkerLCores()
 
 	pair := ethdev.NewPair(ethdev.PairConfig{RxPool: mbuftestenv.Direct.Pool()})
 	defer pair.Close()
@@ -35,7 +35,7 @@ func TestEthDev(t *testing.T) {
 	nReceived := 0
 	rxBurstSizeFreq := make(map[int]int)
 	rxQuit := make(chan bool)
-	slaves[0].RemoteLaunch(func() int {
+	workers[0].RemoteLaunch(func() int {
 		for {
 			vec := make(pktmbuf.Vector, rxBurstSize)
 			burstSize := rxq.RxBurst(vec)
@@ -57,7 +57,7 @@ func TestEthDev(t *testing.T) {
 	})
 
 	txRetryFreq := make(map[int]int)
-	slaves[1].RemoteLaunch(func() int {
+	workers[1].RemoteLaunch(func() int {
 		for i := 0; i < txLoops; i++ {
 			vec := mbuftestenv.Direct.Pool().MustAlloc(txBurstSize)
 			for j := 0; j < txBurstSize; j++ {
@@ -78,10 +78,10 @@ func TestEthDev(t *testing.T) {
 		}
 		return 0
 	})
-	slaves[1].Wait()
+	workers[1].Wait()
 	time.Sleep(rxFinishWait)
 	rxQuit <- true
-	slaves[0].Wait()
+	workers[0].Wait()
 
 	log.Println("portA.stats=", pair.PortA.Stats())
 	log.Println("portB.stats=", pair.PortB.Stats())
