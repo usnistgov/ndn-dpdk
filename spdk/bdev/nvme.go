@@ -53,7 +53,7 @@ type Nvme struct {
 }
 
 func (nvme *Nvme) getName() string {
-	return fmt.Sprintf("nvme%02x%02x%01x", nvme.pciAddr.Bus, nvme.pciAddr.Devid, nvme.pciAddr.Function)
+	return fmt.Sprintf("nvme%s%s%s%s", nvme.pciAddr.Domain, nvme.pciAddr.Bus, nvme.pciAddr.Slot, nvme.pciAddr.Function)
 }
 
 // AttachNvme attaches block devices on an NVMe drives.
