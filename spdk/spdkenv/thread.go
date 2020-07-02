@@ -15,19 +15,20 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 )
 
 var threadLibInitOnce sync.Once
 
 // Thread represents an SPDK thread.
 type Thread struct {
-	eal.ThreadBase
+	ealthread.Thread
 	c *C.SpdkThread
 }
 
 // NewThread creates an SPDK thread.
 // The caller needs to assigned it a DPDK lcore and launch it.
-func NewThread(name string) (th *Thread, e error) {
+func NewThread(name string) (*Thread, error) {
 	threadLibInitOnce.Do(func() { C.spdk_thread_lib_init(nil, 0) })
 
 	nameC := C.CString(name)
@@ -37,11 +38,20 @@ func NewThread(name string) (th *Thread, e error) {
 		return nil, errors.New("spdk_thread_create error")
 	}
 
-	th = new(Thread)
-	th.c = (*C.SpdkThread)(eal.Zmalloc("SpdkThread", C.sizeof_SpdkThread, eal.NumaSocket{}))
+	th := &Thread{
+		c: (*C.SpdkThread)(eal.Zmalloc("SpdkThread", C.sizeof_SpdkThread, eal.NumaSocket{})),
+	}
 	th.c.spdkTh = spdkThread
-	eal.InitStopFlag(unsafe.Pointer(&th.c.stop))
+	th.Thread = ealthread.New(
+		func() int { return int(C.SpdkThread_Run(th.c)) },
+		ealthread.InitStopFlag(unsafe.Pointer(&th.c.stop)),
+	)
 	return th, nil
+}
+
+// ThreadRole returns "SPDK" used in lcore allocator.
+func (th *Thread) ThreadRole() string {
+	return "SPDK"
 }
 
 // Ptr return *C.struct_spdk_thread pointer.
@@ -49,24 +59,9 @@ func (th *Thread) Ptr() unsafe.Pointer {
 	return unsafe.Pointer(th.c.spdkTh)
 }
 
-// Launch launches the thread.
-func (th *Thread) Launch() error {
-	return th.LaunchImpl(func() int {
-		C.SpdkThread_Run(th.c)
-		return 0
-	})
-}
-
-// Stop stops the thread.
-func (th *Thread) Stop() error {
-	return th.StopImpl(eal.NewStopFlag(unsafe.Pointer(&th.c.stop)))
-}
-
-// Close deallocates the thread.
+// Close stops the thread and deallocates data structures.
 func (th *Thread) Close() error {
-	if th.IsRunning() {
-		return errors.New("cannot close a running thread")
-	}
+	th.Stop()
 	eal.Free(th.c)
 	return nil
 }

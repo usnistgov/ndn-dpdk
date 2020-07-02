@@ -10,6 +10,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/core/dlopen"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 )
 
 var (
@@ -21,7 +22,7 @@ var (
 
 // Init initializes the SPDK environment and creates a main thread.
 // Errors are fatal.
-func Init(mainThreadLcore eal.LCore) {
+func Init() {
 	spdkInitOnce.Do(func() {
 		e := dlopen.LoadDynLibs("/usr/local/lib/libspdk.so")
 		if e != nil {
@@ -40,8 +41,7 @@ func Init(mainThreadLcore eal.LCore) {
 			log.Fatalf("SPDK thread error %s", e)
 			return
 		}
-		MainThread.SetLCore(mainThreadLcore)
-		if e = MainThread.Launch(); e != nil {
+		if e = ealthread.Launch(MainThread); e != nil {
 			log.Fatalf("SPDK launch error %s", e)
 			return
 		}

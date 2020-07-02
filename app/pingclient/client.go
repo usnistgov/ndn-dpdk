@@ -15,6 +15,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/app/ping/pingmempool"
 	"github.com/usnistgov/ndn-dpdk/container/pktqueue"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndni"
@@ -22,30 +23,39 @@ import (
 
 // Client instance and RX thread.
 type Client struct {
-	Rx ClientRxThread
-	Tx ClientTxThread
+	Rx ealthread.Thread
+	Tx ealthread.Thread
+
+	rxC *C.PingClientRx
+	txC *C.PingClientTx
 }
 
-func New(face iface.Face, cfg Config) (client *Client, e error) {
+func New(face iface.Face, cfg Config) (*Client, error) {
 	socket := face.NumaSocket()
-	crC := (*C.PingClientRx)(eal.Zmalloc("PingClientRx", C.sizeof_PingClientRx, socket))
+	rxC := (*C.PingClientRx)(eal.Zmalloc("PingClientRx", C.sizeof_PingClientRx, socket))
 	cfg.RxQueue.DisableCoDel = true
-	if _, e := pktqueue.NewAt(unsafe.Pointer(&crC.rxQueue), cfg.RxQueue, fmt.Sprintf("PingClient%d_rxQ", face.ID()), socket); e != nil {
-		eal.Free(crC)
+	if _, e := pktqueue.NewAt(unsafe.Pointer(&rxC.rxQueue), cfg.RxQueue, fmt.Sprintf("PingClient%d_rxQ", face.ID()), socket); e != nil {
+		eal.Free(rxC)
 		return nil, nil
 	}
 
-	ctC := (*C.PingClientTx)(eal.Zmalloc("PingClientTx", C.sizeof_PingClientTx, socket))
-	ctC.face = (C.FaceID)(face.ID())
-	ctC.interestMp = (*C.struct_rte_mempool)(pingmempool.Interest.MakePool(socket).Ptr())
-	C.pcg32_srandom_r(&ctC.trafficRng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
-	C.NonceGen_Init(&ctC.nonceGen)
+	txC := (*C.PingClientTx)(eal.Zmalloc("PingClientTx", C.sizeof_PingClientTx, socket))
+	txC.face = (C.FaceID)(face.ID())
+	txC.interestMp = (*C.struct_rte_mempool)(pingmempool.Interest.MakePool(socket).Ptr())
+	C.pcg32_srandom_r(&txC.trafficRng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
+	C.NonceGen_Init(&txC.nonceGen)
 
-	client = new(Client)
-	client.Rx.c = crC
-	eal.InitStopFlag(unsafe.Pointer(&crC.stop))
-	client.Tx.c = ctC
-	eal.InitStopFlag(unsafe.Pointer(&ctC.stop))
+	var client Client
+	client.rxC = rxC
+	client.txC = txC
+	client.Rx = ealthread.New(
+		func() int { C.PingClientRx_Run(rxC); return 0 },
+		ealthread.InitStopFlag(unsafe.Pointer(&rxC.stop)),
+	)
+	client.Tx = ealthread.New(
+		func() int { C.PingClientTx_Run(txC); return 0 },
+		ealthread.InitStopFlag(unsafe.Pointer(&txC.stop)),
+	)
 
 	for i, pattern := range cfg.Patterns {
 		if _, e := client.AddPattern(pattern); e != nil {
@@ -53,24 +63,24 @@ func New(face iface.Face, cfg Config) (client *Client, e error) {
 		}
 	}
 	client.SetInterval(cfg.Interval.Duration())
-	return client, nil
+	return &client, nil
 }
 
 func (client *Client) GetFace() iface.Face {
-	return iface.Get(iface.ID(client.Tx.c.face))
+	return iface.Get(iface.ID(client.txC.face))
 }
 
 func (client *Client) AddPattern(cfg Pattern) (index int, e error) {
-	if client.Rx.c.nPatterns >= C.PINGCLIENT_MAX_PATTERNS {
+	if client.rxC.nPatterns >= C.PINGCLIENT_MAX_PATTERNS {
 		return -1, fmt.Errorf("cannot add more than %d patterns", C.PINGCLIENT_MAX_PATTERNS)
 	}
 	if cfg.Weight < 1 {
 		cfg.Weight = 1
 	}
-	if client.Tx.c.nWeights+C.uint16_t(cfg.Weight) >= C.PINGCLIENT_MAX_SUM_WEIGHT {
+	if client.txC.nWeights+C.uint16_t(cfg.Weight) >= C.PINGCLIENT_MAX_SUM_WEIGHT {
 		return -1, fmt.Errorf("sum of weight cannot exceed %d", C.PINGCLIENT_MAX_SUM_WEIGHT)
 	}
-	index = int(client.Rx.c.nPatterns)
+	index = int(client.rxC.nPatterns)
 	if cfg.SeqNumOffset != 0 && index == 0 {
 		return -1, errors.New("first pattern cannot have SeqNumOffset")
 	}
@@ -90,9 +100,9 @@ func (client *Client) AddPattern(cfg Pattern) (index int, e error) {
 	}
 
 	client.clearCounter(index)
-	rxP := &client.Rx.c.pattern[index]
+	rxP := &client.rxC.pattern[index]
 	rxP.prefixLen = C.uint16_t(cfg.Prefix.Length())
-	txP := &client.Tx.c.pattern[index]
+	txP := &client.txC.pattern[index]
 	if e = ndni.InterestTemplateFromPtr(unsafe.Pointer(&txP.tpl)).Init(tplArgs...); e != nil {
 		return -1, e
 	}
@@ -101,28 +111,28 @@ func (client *Client) AddPattern(cfg Pattern) (index int, e error) {
 	txP.seqNum.compV = C.uint64_t(rand.Uint64())
 	txP.seqNumOffset = C.uint32_t(cfg.SeqNumOffset)
 
-	client.Rx.c.nPatterns++
+	client.rxC.nPatterns++
 	for i := 0; i < cfg.Weight; i++ {
-		client.Tx.c.weight[client.Tx.c.nWeights] = C.PingPatternId(index)
-		client.Tx.c.nWeights++
+		client.txC.weight[client.txC.nWeights] = C.PingPatternId(index)
+		client.txC.nWeights++
 	}
 	return index, nil
 }
 
 // Get average Interest interval.
 func (client *Client) GetInterval() time.Duration {
-	return eal.FromTscDuration(int64(client.Tx.c.burstInterval)) / C.PINGCLIENT_TX_BURST_SIZE
+	return eal.FromTscDuration(int64(client.txC.burstInterval)) / C.PINGCLIENT_TX_BURST_SIZE
 }
 
 // Set average Interest interval.
 // TX thread transmits Interests in bursts, so the specified interval will be converted to
 // a burst interval with equivalent traffic amount.
 func (client *Client) SetInterval(interval time.Duration) {
-	client.Tx.c.burstInterval = C.TscDuration(eal.ToTscDuration(interval * C.PINGCLIENT_TX_BURST_SIZE))
+	client.txC.burstInterval = C.TscDuration(eal.ToTscDuration(interval * C.PINGCLIENT_TX_BURST_SIZE))
 }
 
 func (client *Client) GetRxQueue() *pktqueue.PktQueue {
-	return pktqueue.FromPtr(unsafe.Pointer(&client.Rx.c.rxQueue))
+	return pktqueue.FromPtr(unsafe.Pointer(&client.rxC.rxQueue))
 }
 
 func (client *Client) SetLCores(rxLCore, txLCore eal.LCore) {
@@ -132,8 +142,8 @@ func (client *Client) SetLCores(rxLCore, txLCore eal.LCore) {
 
 // Launch RX and TX threads.
 func (client *Client) Launch() error {
-	client.Rx.c.runNum++
-	client.Tx.c.runNum = client.Rx.c.runNum
+	client.rxC.runNum++
+	client.txC.runNum = client.rxC.runNum
 	eRx := client.Rx.Launch()
 	eTx := client.Tx.Launch()
 	if eRx != nil || eTx != nil {
@@ -157,55 +167,7 @@ func (client *Client) Stop(delay time.Duration) error {
 // Both RX and TX threads must be stopped before calling this.
 func (client *Client) Close() error {
 	client.GetRxQueue().Close()
-	eal.Free(client.Rx.c)
-	eal.Free(client.Tx.c)
-	return nil
-}
-
-// Client RX thread.
-type ClientRxThread struct {
-	eal.ThreadBase
-	c *C.PingClientRx
-}
-
-// Launch the RX thread.
-func (rx *ClientRxThread) Launch() error {
-	return rx.LaunchImpl(func() int {
-		C.PingClientRx_Run(rx.c)
-		return 0
-	})
-}
-
-// Stop the RX thread.
-func (rx *ClientRxThread) Stop() error {
-	return rx.StopImpl(eal.NewStopFlag(unsafe.Pointer(&rx.c.stop)))
-}
-
-// No-op.
-func (rx *ClientRxThread) Close() error {
-	return nil
-}
-
-// Client TX thread.
-type ClientTxThread struct {
-	eal.ThreadBase
-	c *C.PingClientTx
-}
-
-// Launch the TX thread.
-func (tx *ClientTxThread) Launch() error {
-	return tx.LaunchImpl(func() int {
-		C.PingClientTx_Run(tx.c)
-		return 0
-	})
-}
-
-// Stop the TX thread.
-func (tx *ClientTxThread) Stop() error {
-	return tx.StopImpl(eal.NewStopFlag(unsafe.Pointer(&tx.c.stop)))
-}
-
-// No-op.
-func (tx *ClientTxThread) Close() error {
+	eal.Free(client.rxC)
+	eal.Free(client.txC)
 	return nil
 }

@@ -20,9 +20,9 @@ Go bindings are object-oriented when possible.
 
 ## Other Go types
 
-**eal.IThread** abstracts a thread that can be executed on an LCore and controls its lifetime.
+**ealthread.Thread** abstracts a thread that can be executed on an LCore and controls its lifetime.
 
-**eal.LCoreAllocator** provides an LCore allocator.
+**ealthread.Allocator** provides an LCore allocator.
 It allows a program to reserve a number of LCores for each "role", and then obtain a NUMA-local LCore reserved for a certain role when needed.
 
 **pktmbuf.Template** is a template of mempool configuration.

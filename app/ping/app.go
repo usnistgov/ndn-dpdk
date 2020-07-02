@@ -4,15 +4,15 @@ import (
 	"fmt"
 
 	"github.com/usnistgov/ndn-dpdk/app/inputdemux"
-	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/createface"
 )
 
 // LCoreAlloc roles.
 const (
-	LCoreRole_Input    = iface.LCoreRole_RxLoop
-	LCoreRole_Output   = iface.LCoreRole_TxLoop
+	LCoreRole_Input    = "RX"
+	LCoreRole_Output   = "TX"
 	LCoreRole_Server   = "SVR"
 	LCoreRole_ClientRx = "CLIR"
 	LCoreRole_ClientTx = "CLIT"
@@ -32,10 +32,8 @@ func New(cfg []TaskConfig) (app *App, e error) {
 	app = new(App)
 
 	createface.CustomGetRxl = func(rxg iface.IRxGroup) *iface.RxLoop {
-		lc := eal.LCoreAlloc.Alloc(LCoreRole_Input, rxg.NumaSocket())
-		socket := lc.NumaSocket()
-		rxl := iface.NewRxLoop(socket)
-		rxl.SetLCore(lc)
+		rxl := iface.NewRxLoop(rxg.NumaSocket())
+		ealthread.AllocThread(rxl)
 
 		var input Input
 		input.rxl = rxl
@@ -46,11 +44,8 @@ func New(cfg []TaskConfig) (app *App, e error) {
 	}
 
 	createface.CustomGetTxl = func(face iface.Face) *iface.TxLoop {
-		lc := eal.LCoreAlloc.Alloc(LCoreRole_Output, face.NumaSocket())
-		socket := lc.NumaSocket()
-		txl := iface.NewTxLoop(socket)
-		txl.SetLCore(lc)
-		txl.Launch()
+		txl := iface.NewTxLoop(face.NumaSocket())
+		ealthread.Launch(txl)
 
 		createface.AddTxLoop(txl)
 		return txl

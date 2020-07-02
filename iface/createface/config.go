@@ -69,19 +69,14 @@ func AddTxLoop(txl *iface.TxLoop) {
 }
 
 // Close all faces and stop RxLoops and TxLoops.
-func CloseAll() (threads []eal.IThread) {
+func CloseAll() {
 	iface.CloseAll()
 	for _, rxl := range theRxls {
-		rxl.Stop()
 		rxl.Close()
-		threads = append(threads, rxl)
 	}
 	theRxls = nil
 	for _, txl := range theTxls {
-		txl.Stop()
 		txl.Close()
-		threads = append(threads, txl)
 	}
 	theTxls = nil
-	return threads
 }

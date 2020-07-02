@@ -74,9 +74,9 @@ func (cnt Counters) String() string {
 // Read counters.
 func (client *Client) ReadCounters() (cnt Counters) {
 	rttScale := eal.GetNanosInTscUnit() * math.Exp2(C.PING_TIMING_PRECISION)
-	for i := 0; i < int(client.Rx.c.nPatterns); i++ {
-		crP := client.Rx.c.pattern[i]
-		ctP := client.Tx.c.pattern[i]
+	for i := 0; i < int(client.rxC.nPatterns); i++ {
+		crP := client.rxC.pattern[i]
+		ctP := client.txC.pattern[i]
 		rtt := runningstat.FromPtr(unsafe.Pointer(&crP.rtt)).Read().Scale(rttScale)
 
 		var pcnt PatternCounters
@@ -92,23 +92,23 @@ func (client *Client) ReadCounters() (cnt Counters) {
 		cnt.Rtt.Snapshot = cnt.Rtt.Snapshot.Add(rtt)
 	}
 
-	cnt.NAllocError = uint64(client.Tx.c.nAllocError)
+	cnt.NAllocError = uint64(client.txC.nAllocError)
 	return cnt
 }
 
 // Clear counters. Both RX and TX threads should be stopped before calling this,
 // otherwise race conditions may occur.
 func (client *Client) ClearCounters() {
-	nPatterns := int(client.Rx.c.nPatterns)
+	nPatterns := int(client.rxC.nPatterns)
 	for i := 0; i < nPatterns; i++ {
 		client.clearCounter(i)
 	}
 }
 
 func (client *Client) clearCounter(index int) {
-	client.Rx.c.pattern[index].nData = 0
-	client.Rx.c.pattern[index].nNacks = 0
-	rtt := runningstat.FromPtr(unsafe.Pointer(&client.Rx.c.pattern[index].rtt))
+	client.rxC.pattern[index].nData = 0
+	client.rxC.pattern[index].nNacks = 0
+	rtt := runningstat.FromPtr(unsafe.Pointer(&client.rxC.pattern[index].rtt))
 	rtt.Clear(true)
-	client.Tx.c.pattern[index].nInterests = 0
+	client.txC.pattern[index].nInterests = 0
 }

@@ -13,7 +13,7 @@ Go bindings are object-oriented when possible.
 ## SPDK Threads
 
 Many SPDK library functions must run on an SPDK thread.
-The `spdkenv` package creates and launches a `MainThread` on a DPDK lcore.
+The `spdkenv` package creates and launches a `MainThread` on a DPDK lcore ("SPDK" role).
 Most operations invoked via the Go API are executed on this thread.
 
 ## Internal RPC Client

@@ -14,6 +14,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/container/pit"
 	"github.com/usnistgov/ndn-dpdk/container/pktqueue"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/createface"
 )
@@ -44,7 +45,7 @@ type DataPlane struct {
 func New(cfg Config) (dp *DataPlane, e error) {
 	dp = new(DataPlane)
 
-	dp.la.Allocator = &eal.LCoreAlloc
+	dp.la.Allocator = &ealthread.DefaultAllocator
 	if e = dp.la.Alloc(); e != nil {
 		return nil, e
 	}
@@ -65,8 +66,7 @@ func New(cfg Config) (dp *DataPlane, e error) {
 
 	for i, lc := range dp.la.Fwds {
 		fwd := newFwd(i)
-		fwd.SetLCore(lc)
-		if e := fwd.Init(dp.fib, cfg.Pcct, cfg.FwdInterestQueue, cfg.FwdDataQueue, cfg.FwdNackQueue,
+		if e := fwd.Init(lc, dp.fib, cfg.Pcct, cfg.FwdInterestQueue, cfg.FwdDataQueue, cfg.FwdNackQueue,
 			cfg.LatencySampleFreq, cfg.Suppress); e != nil {
 			dp.Close()
 			return nil, fmt.Errorf("Fwd.Init(%d): %v", i, e)

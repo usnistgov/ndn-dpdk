@@ -18,13 +18,14 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/runningstat"
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 // Forwarding thread.
 type Fwd struct {
-	eal.ThreadBase
+	ealthread.Thread
 	id            int
 	c             *C.FwFwd
 	pcct          *pcct.Pcct
@@ -34,22 +35,26 @@ type Fwd struct {
 }
 
 func newFwd(id int) *Fwd {
-	var fwd Fwd
-	fwd.id = id
-	return &fwd
+	return &Fwd{
+		id: id,
+	}
 }
 
 func (fwd *Fwd) String() string {
 	return fmt.Sprintf("fwd%d", fwd.id)
 }
 
-func (fwd *Fwd) Init(fib *fib.Fib, pcctCfg pcct.Config, interestQueueCfg, dataQueueCfg, nackQueueCfg pktqueue.Config,
+func (fwd *Fwd) Init(lc eal.LCore, fib *fib.Fib, pcctCfg pcct.Config, interestQueueCfg, dataQueueCfg, nackQueueCfg pktqueue.Config,
 	latencySampleFreq int, suppressCfg pit.SuppressConfig) (e error) {
-	socket := fwd.NumaSocket()
+	socket := lc.NumaSocket()
 
 	fwd.c = (*C.FwFwd)(eal.Zmalloc("FwFwd", C.sizeof_FwFwd, socket))
-	eal.InitStopFlag(unsafe.Pointer(&fwd.c.stop))
 	fwd.c.id = C.uint8_t(fwd.id)
+	fwd.Thread = ealthread.New(
+		fwd.main,
+		ealthread.InitStopFlag(unsafe.Pointer(&fwd.c.stop)),
+	)
+	fwd.SetLCore(lc)
 
 	if fwd.interestQueue, e = pktqueue.NewAt(unsafe.Pointer(&fwd.c.inInterestQueue), interestQueueCfg, fmt.Sprintf("%s_qI", fwd), socket); e != nil {
 		return nil
@@ -83,20 +88,15 @@ func (fwd *Fwd) Init(fib *fib.Fib, pcctCfg pcct.Config, interestQueueCfg, dataQu
 	return nil
 }
 
-func (fwd *Fwd) Launch() error {
-	return fwd.LaunchImpl(func() int {
-		rs := urcu.NewReadSide()
-		defer rs.Close()
-		C.FwFwd_Run(fwd.c)
-		return 0
-	})
-}
-
-func (fwd *Fwd) Stop() error {
-	return fwd.StopImpl(eal.NewStopFlag(unsafe.Pointer(&fwd.c.stop)))
+func (fwd *Fwd) main() int {
+	rs := urcu.NewReadSide()
+	defer rs.Close()
+	C.FwFwd_Run(fwd.c)
+	return 0
 }
 
 func (fwd *Fwd) Close() error {
+	fwd.Stop()
 	fwd.interestQueue.Close()
 	fwd.dataQueue.Close()
 	fwd.nackQueue.Close()

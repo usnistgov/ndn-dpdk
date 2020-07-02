@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
-	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal/ealtestenv"
 	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
 	"github.com/usnistgov/ndn-dpdk/spdk/spdkenv"
@@ -13,7 +12,7 @@ import (
 
 func TestMain(m *testing.M) {
 	ealtestenv.InitEal()
-	spdkenv.Init(eal.ListSlaveLCores()[0])
+	spdkenv.Init()
 	os.Exit(m.Run())
 }
 

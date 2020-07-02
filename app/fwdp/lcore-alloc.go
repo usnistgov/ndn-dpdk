@@ -4,21 +4,21 @@ import (
 	"fmt"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
-	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface/createface"
 )
 
 // LCoreAlloc roles.
 const (
-	LCoreRole_Input  = iface.LCoreRole_RxLoop
-	LCoreRole_Output = iface.LCoreRole_TxLoop
+	LCoreRole_Input  = "RX"
+	LCoreRole_Output = "TX"
 	LCoreRole_Crypto = "CRYPTO"
 	LCoreRole_Fwd    = "FWD"
 )
 
 // LCore allocator for dataplane.
 type DpLCores struct {
-	Allocator *eal.LCoreAllocator
+	Allocator *ealthread.Allocator
 
 	Inputs  []eal.LCore
 	Outputs []eal.LCore

@@ -7,6 +7,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/container/fib"
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/mgmt/hrlog"
 )
 
@@ -21,7 +22,7 @@ func main() {
 	hrlog.Init()
 
 	initCfg.Mempool.Apply()
-	eal.LCoreAlloc.Config = initCfg.LCoreAlloc
+	ealthread.DefaultAllocator.Config = initCfg.LCoreAlloc
 	initCfg.Face.Apply()
 
 	startDp(initCfg.Ndt, initCfg.Fib, initCfg.Fwdp)

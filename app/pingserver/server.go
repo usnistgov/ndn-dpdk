@@ -12,6 +12,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/app/ping/pingmempool"
 	"github.com/usnistgov/ndn-dpdk/container/pktqueue"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
@@ -20,12 +21,12 @@ import (
 
 // Server instance and thread.
 type Server struct {
-	eal.ThreadBase
+	ealthread.Thread
 	c      *C.PingServer
 	seg1Mp *pktmbuf.Pool
 }
 
-func New(face iface.Face, index int, cfg Config) (server *Server, e error) {
+func New(face iface.Face, index int, cfg Config) (*Server, error) {
 	faceID := face.ID()
 	socket := face.NumaSocket()
 	serverC := (*C.PingServer)(eal.Zmalloc("PingServer", C.sizeof_PingServer, socket))
@@ -42,10 +43,14 @@ func New(face iface.Face, index int, cfg Config) (server *Server, e error) {
 	serverC.wantNackNoRoute = C.bool(cfg.Nack)
 	C.pcg32_srandom_r(&serverC.replyRng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
 
-	server = new(Server)
-	server.seg1Mp = pingmempool.Payload.MakePool(socket)
-	server.c = serverC
-	eal.InitStopFlag(unsafe.Pointer(&serverC.stop))
+	server := &Server{
+		seg1Mp: pingmempool.Payload.MakePool(socket),
+		c:      serverC,
+	}
+	server.Thread = ealthread.New(
+		func() int { C.PingServer_Run(server.c); return 0 },
+		ealthread.InitStopFlag(unsafe.Pointer(&serverC.stop)),
+	)
 
 	for i, pattern := range cfg.Patterns {
 		if _, e := server.AddPattern(pattern); e != nil {
@@ -117,22 +122,10 @@ func (server *Server) GetRxQueue() *pktqueue.PktQueue {
 	return pktqueue.FromPtr(unsafe.Pointer(&server.c.rxQueue))
 }
 
-// Launch the thread.
-func (server *Server) Launch() error {
-	return server.LaunchImpl(func() int {
-		C.PingServer_Run(server.c)
-		return 0
-	})
-}
-
-// Stop the thread.
-func (server *Server) Stop() error {
-	return server.StopImpl(eal.NewStopFlag(unsafe.Pointer(&server.c.stop)))
-}
-
 // Close the server.
 // The thread must be stopped before calling this.
 func (server *Server) Close() error {
+	server.Stop()
 	server.GetRxQueue().Close()
 	eal.Free(server.c)
 	return nil

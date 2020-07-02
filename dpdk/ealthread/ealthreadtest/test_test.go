@@ -1,4 +1,4 @@
-package bdev_test
+package ealthreadtest
 
 import (
 	"os"
@@ -6,12 +6,10 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal/ealtestenv"
-	"github.com/usnistgov/ndn-dpdk/spdk/spdkenv"
 )
 
 func TestMain(m *testing.M) {
 	ealtestenv.InitEal()
-	spdkenv.Init()
 	os.Exit(m.Run())
 }
 

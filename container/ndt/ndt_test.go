@@ -8,6 +8,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
@@ -17,23 +18,29 @@ type lookupTestEntry struct {
 }
 
 type lookupTestThread struct {
-	eal.ThreadBase
-	stop    eal.StopChan
+	ealthread.Thread
+	stop    ealthread.StopChan
 	ndtt    *ndt.Thread
 	Entries []lookupTestEntry
 }
 
-func newNdtLookupTestThread(ndt *ndt.Ndt, threadIndex int, names []ndn.Name) (th *lookupTestThread) {
-	th = new(lookupTestThread)
-	th.stop = eal.NewStopChan()
-	th.ndtt = ndt.GetThread(threadIndex)
+func newNdtLookupTestThread(ndt *ndt.Ndt, threadIndex int, names []ndn.Name) *lookupTestThread {
+	th := &lookupTestThread{
+		stop: ealthread.NewStopChan(),
+		ndtt: ndt.GetThread(threadIndex),
+	}
 	for _, name := range names {
 		th.Entries = append(th.Entries, lookupTestEntry{name, nil})
 	}
+	th.Thread = ealthread.New(th.main, th.stop)
 	return th
 }
 
-func (th *lookupTestThread) run() int {
+func (th *lookupTestThread) ThreadRole() string {
+	return "TEST"
+}
+
+func (th *lookupTestThread) main() int {
 	for th.stop.Continue() {
 		i := rand.Intn(len(th.Entries))
 		entry := &th.Entries[i]
@@ -45,28 +52,15 @@ func (th *lookupTestThread) run() int {
 	return 0
 }
 
-func (th *lookupTestThread) Launch() error {
-	return th.LaunchImpl(th.run)
-}
-
-func (th *lookupTestThread) Stop() error {
-	return th.StopImpl(th.stop)
-}
-
-func (th *lookupTestThread) Close() error {
-	return nil
-}
-
 func TestNdt(t *testing.T) {
 	assert, require := makeAR(t)
 
-	slaves := eal.ListSlaveLCores()[:4]
 	cfg := ndt.Config{
 		PrefixLen:  2,
 		IndexBits:  8,
 		SampleFreq: 2,
 	}
-	ndt := ndt.New(cfg, eal.ListNumaSocketsOfLCores(slaves))
+	ndt := ndt.New(cfg, make([]eal.NumaSocket, 4))
 	defer ndt.Close()
 
 	nameStrs := []string{
@@ -96,9 +90,8 @@ func TestNdt(t *testing.T) {
 
 	ndt.Randomize(250)
 	cnt0 := ndt.ReadCounters()
-	for j, th := range threads {
-		th.SetLCore(slaves[j])
-		th.Launch()
+	for _, th := range threads {
+		require.NoError(ealthread.Launch(th))
 	}
 
 	time.Sleep(10 * time.Millisecond)

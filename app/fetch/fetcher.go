@@ -13,6 +13,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/container/pktqueue"
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndni"
@@ -32,7 +33,7 @@ type Fetcher struct {
 	nActiveProcs int
 }
 
-func New(face iface.Face, cfg FetcherConfig) (fetcher *Fetcher, e error) {
+func New(face iface.Face, cfg FetcherConfig) (*Fetcher, error) {
 	if cfg.NThreads == 0 {
 		cfg.NThreads = 1
 	}
@@ -45,19 +46,24 @@ func New(face iface.Face, cfg FetcherConfig) (fetcher *Fetcher, e error) {
 	socket := face.NumaSocket()
 	interestMp := (*C.struct_rte_mempool)(pingmempool.Interest.MakePool(socket).Ptr())
 
-	fetcher = new(Fetcher)
-	fetcher.fth = make([]*fetchThread, cfg.NThreads)
+	fetcher := &Fetcher{
+		fth: make([]*fetchThread, cfg.NThreads),
+		fp:  make([]*C.FetchProc, cfg.NProcs),
+	}
 	for i := range fetcher.fth {
-		fth := new(fetchThread)
-		fth.c = (*C.FetchThread)(eal.Zmalloc("FetchThread", C.sizeof_FetchThread, socket))
+		fth := &fetchThread{
+			c: (*C.FetchThread)(eal.Zmalloc("FetchThread", C.sizeof_FetchThread, socket)),
+		}
 		fth.c.face = (C.FaceID)(faceID)
 		fth.c.interestMp = interestMp
 		C.NonceGen_Init(&fth.c.nonceGen)
-		eal.InitStopFlag(unsafe.Pointer(&fth.c.stop))
+		fth.Thread = ealthread.New(
+			func() int { return int(C.FetchThread_Run(fth.c)) },
+			ealthread.InitStopFlag(unsafe.Pointer(&fth.c.stop)),
+		)
 		fetcher.fth[i] = fth
 	}
 
-	fetcher.fp = make([]*C.FetchProc, cfg.NProcs)
 	for i := range fetcher.fp {
 		fp := (*C.FetchProc)(eal.Zmalloc("FetchProc", C.sizeof_FetchProc, socket))
 		if _, e := pktqueue.NewAt(unsafe.Pointer(&fp.rxQueue), cfg.RxQueue, fmt.Sprintf("Fetcher%d-%d_rxQ", faceID, i), socket); e != nil {
@@ -79,7 +85,7 @@ func (fetcher *Fetcher) CountThreads() int {
 	return len(fetcher.fth)
 }
 
-func (fetcher *Fetcher) GetThread(i int) eal.IThread {
+func (fetcher *Fetcher) GetThread(i int) ealthread.Thread {
 	return fetcher.fth[i]
 }
 
@@ -151,27 +157,12 @@ func (fetcher *Fetcher) Close() error {
 		eal.Free(fp)
 	}
 	for _, fth := range fetcher.fth {
-		fth.Close()
+		eal.Free(fth.c)
 	}
 	return nil
 }
 
 type fetchThread struct {
-	eal.ThreadBase
+	ealthread.Thread
 	c *C.FetchThread
-}
-
-func (fth *fetchThread) Launch() error {
-	return fth.LaunchImpl(func() int {
-		return int(C.FetchThread_Run(fth.c))
-	})
-}
-
-func (fth *fetchThread) Stop() error {
-	return fth.StopImpl(eal.NewStopFlag(unsafe.Pointer(&fth.c.stop)))
-}
-
-func (fth *fetchThread) Close() error {
-	eal.Free(fth.c)
-	return nil
 }

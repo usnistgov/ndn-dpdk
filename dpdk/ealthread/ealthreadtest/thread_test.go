@@ -1,30 +1,28 @@
-package ealtest
+package ealthreadtest
 
 import (
 	"testing"
 	"time"
 
-	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 )
 
 func TestThread(t *testing.T) {
 	assert, require := makeAR(t)
-	slaves := eal.ListSlaveLCores()
+	defer ealthread.DefaultAllocator.Clear()
 
 	th := newTestThread()
-	assert.Implements((*eal.IThread)(nil), th)
-	th.SetLCore(slaves[0])
-	assert.Equal(slaves[0], th.LCore())
+	defer th.Close()
+	assert.False(th.LCore().Valid())
+	require.NoError(ealthread.AllocThread(th))
+	assert.True(th.LCore().Valid())
 	assert.False(th.IsRunning())
 
 	require.NoError(th.Launch())
-	assert.Equal(slaves[0], th.LCore())
 	assert.True(th.IsRunning())
 	time.Sleep(5 * time.Millisecond)
 
 	require.NoError(th.Stop())
 	assert.False(th.IsRunning())
 	assert.True(th.GetN() > 0)
-
-	require.NoError(th.Close())
 }

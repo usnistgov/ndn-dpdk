@@ -9,46 +9,51 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 )
 
-// LCoreAlloc role for TxLoop.
-const LCoreRole_TxLoop = "TX"
-
-// TX loop.
+// TxLoop is a thread to process outgoing packets.
 type TxLoop struct {
-	eal.ThreadBase
-	c          *C.TxLoop
-	numaSocket eal.NumaSocket
-	faces      map[ID]Face
+	ealthread.Thread
+	c      *C.TxLoop
+	socket eal.NumaSocket
+	faces  map[ID]Face
 }
 
-func NewTxLoop(numaSocket eal.NumaSocket) (txl *TxLoop) {
-	txl = new(TxLoop)
-	txl.c = (*C.TxLoop)(eal.Zmalloc("TxLoop", C.sizeof_TxLoop, numaSocket))
-	eal.InitStopFlag(unsafe.Pointer(&txl.c.stop))
-	txl.numaSocket = numaSocket
-	txl.faces = make(map[ID]Face)
+// NewTxLoop creates a TxLoop.
+func NewTxLoop(socket eal.NumaSocket) *TxLoop {
+	txl := &TxLoop{
+		c:      (*C.TxLoop)(eal.Zmalloc("TxLoop", C.sizeof_TxLoop, socket)),
+		socket: socket,
+		faces:  make(map[ID]Face),
+	}
+	txl.Thread = ealthread.New(
+		txl.main,
+		ealthread.InitStopFlag(unsafe.Pointer(&txl.c.stop)),
+	)
 	return txl
 }
 
+// ThreadRole returns "TX" used in lcore allocator.
+func (txl *TxLoop) ThreadRole() string {
+	return "TX"
+}
+
+// NumaSocket returns NUMA socket of the data structures.
 func (txl *TxLoop) NumaSocket() eal.NumaSocket {
-	return txl.numaSocket
+	return txl.socket
 }
 
-func (txl *TxLoop) Launch() error {
-	return txl.LaunchImpl(func() int {
-		rs := urcu.NewReadSide()
-		defer rs.Close()
-		C.TxLoop_Run(txl.c)
-		return 0
-	})
+func (txl *TxLoop) main() int {
+	rs := urcu.NewReadSide()
+	defer rs.Close()
+	C.TxLoop_Run(txl.c)
+	return 0
 }
 
-func (txl *TxLoop) Stop() error {
-	return txl.StopImpl(eal.NewStopFlag(unsafe.Pointer(&txl.c.stop)))
-}
-
+// Close stops the thread and deallocates data structures.
 func (txl *TxLoop) Close() error {
+	txl.Stop()
 	eal.Free(txl.c)
 	return nil
 }

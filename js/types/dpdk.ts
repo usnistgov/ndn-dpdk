@@ -10,7 +10,8 @@ export type LCoreAllocConfig<K extends string = string> = Record<K, LCoreAllocCo
 export namespace LCoreAllocConfig {
   export interface Role {
     LCores?: LCore[];
-    PerNuma?: { [k: number]: number };
+    OnNuma?: Record<number, number>;
+    EachNuma?: number;
   }
 }
 

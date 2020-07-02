@@ -17,8 +17,11 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 )
 
+// MaxLCoreID is the maximum LCore ID.
+const MaxLCoreID = C.RTE_MAX_LCORE
+
 // LCore represents a logical core.
-// Zero value is invalid lcore.
+// Zero LCore is invalid.
 type LCore struct {
 	v int // lcore ID + 1
 }
@@ -64,15 +67,17 @@ func (lc LCore) IsBusy() bool {
 }
 
 // RemoteLaunch asynchronously launches a function on this lcore.
-// Returns whether success.
-func (lc LCore) RemoteLaunch(f func() int) bool {
+func (lc LCore) RemoteLaunch(f func() int) error {
 	panicInSlave("LCore.RemoteLaunch()")
 	if !lc.Valid() {
 		panic("invalid lcore")
 	}
 	ctx := cptr.CtxPut(f)
 	res := C.rte_eal_remote_launch((*C.lcore_function_t)(C.go_lcoreLaunch), ctx, C.uint(lc.ID()))
-	return res == 0
+	if res != 0 {
+		return Errno(-res)
+	}
+	return nil
 }
 
 // Wait blocks until this lcore finishes running, and returns lcore function's return value.

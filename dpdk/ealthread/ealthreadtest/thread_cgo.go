@@ -1,4 +1,4 @@
-package ealtest
+package ealthreadtest
 
 /*
 #include "../../../csrc/dpdk/thread.h"
@@ -8,12 +8,13 @@ typedef struct TestThread {
 	ThreadStopFlag stop;
 } TestThread;
 
-void
+int
 TestThread_Run(TestThread* thread) {
 	thread->n = 0;
 	while (ThreadStopFlag_ShouldContinue(&thread->stop)) {
 		++thread->n;
 	}
+	return 0;
 }
 */
 import "C"
@@ -21,33 +22,30 @@ import (
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 )
 
 type testThread struct {
-	eal.ThreadBase
+	ealthread.Thread
 	c *C.TestThread
 }
 
-func newTestThread() (th *testThread) {
-	th = new(testThread)
+func newTestThread() *testThread {
+	var th testThread
 	th.c = (*C.TestThread)(eal.Zmalloc("TestThread", C.sizeof_TestThread, eal.NumaSocket{}))
-	eal.InitStopFlag(unsafe.Pointer(&th.c.stop))
-	return th
+	th.Thread = ealthread.New(
+		func() int { return int(C.TestThread_Run(th.c)) },
+		ealthread.InitStopFlag(unsafe.Pointer(&th.c.stop)),
+	)
+	return &th
+}
+
+func (th *testThread) ThreadRole() string {
+	return "TEST"
 }
 
 func (th *testThread) GetN() int {
 	return int(th.c.n)
-}
-
-func (th *testThread) Launch() error {
-	return th.LaunchImpl(func() int {
-		C.TestThread_Run(th.c)
-		return 0
-	})
-}
-
-func (th *testThread) Stop() error {
-	return th.StopImpl(eal.NewStopFlag(unsafe.Pointer(&th.c.stop)))
 }
 
 func (th *testThread) Close() error {

@@ -1,4 +1,4 @@
-package eal
+package ealthread
 
 /*
 #include "../../csrc/dpdk/thread.h"
@@ -8,8 +8,8 @@ import (
 	"unsafe"
 )
 
-// IStop abstracts how to tell a thread top stop.
-type IStop interface {
+// Stopper abstracts how to tell a thread top stop.
+type Stopper interface {
 	// BeforeWait is invoked before lcore.Wait().
 	BeforeWait()
 
@@ -20,10 +20,10 @@ type IStop interface {
 // StopWait stops a thread by waiting for it indefinitely.
 type StopWait struct{}
 
-// BeforeWait implements IStop interface.
+// BeforeWait implements Stopper interface.
 func (stop StopWait) BeforeWait() {}
 
-// AfterWait implements IStop interface.
+// AfterWait implements Stopper interface.
 func (stop StopWait) AfterWait() {}
 
 // StopFlag stops a thread by setting a boolean flag.

@@ -14,6 +14,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 )
 
@@ -123,57 +124,59 @@ func go_ChanRxGroup_RxBurst(rxg *C.RxGroup, pkts **C.struct_rte_mbuf, nPkts C.ui
 
 var TheChanRxGroup = newChanRxGroup()
 
-// LCoreAlloc role for RxLoop.
-const LCoreRole_RxLoop = "RX"
-
-// RX loop.
+// RxLoop is a thread to process incoming packets.
 type RxLoop struct {
-	eal.ThreadBase
-	c          *C.RxLoop
-	numaSocket eal.NumaSocket
-	rxgs       map[*C.RxGroup]IRxGroup
+	ealthread.Thread
+	c      *C.RxLoop
+	socket eal.NumaSocket
+	rxgs   map[*C.RxGroup]IRxGroup
 }
 
-func NewRxLoop(numaSocket eal.NumaSocket) (rxl *RxLoop) {
-	rxl = new(RxLoop)
-	rxl.c = (*C.RxLoop)(eal.Zmalloc("RxLoop", C.sizeof_RxLoop, numaSocket))
-	eal.InitStopFlag(unsafe.Pointer(&rxl.c.stop))
-	rxl.numaSocket = numaSocket
-	rxl.rxgs = make(map[*C.RxGroup]IRxGroup)
+// NewRxLoop creates an RxLoop.
+func NewRxLoop(socket eal.NumaSocket) *RxLoop {
+	rxl := &RxLoop{
+		c:      (*C.RxLoop)(eal.Zmalloc("RxLoop", C.sizeof_RxLoop, socket)),
+		socket: socket,
+		rxgs:   make(map[*C.RxGroup]IRxGroup),
+	}
+	rxl.Thread = ealthread.New(
+		rxl.main,
+		ealthread.InitStopFlag(unsafe.Pointer(&rxl.c.stop)),
+	)
 	return rxl
 }
 
-func (rxl *RxLoop) NumaSocket() eal.NumaSocket {
-	return rxl.numaSocket
+// ThreadRole returns "RX" used in lcore allocator.
+func (rxl *RxLoop) ThreadRole() string {
+	return "RX"
 }
 
+// NumaSocket returns NUMA socket of the data structures.
+func (rxl *RxLoop) NumaSocket() eal.NumaSocket {
+	return rxl.socket
+}
+
+// SetCallback assigns a C function and its argument to process received bursts.
 func (rxl *RxLoop) SetCallback(cb unsafe.Pointer, cbarg unsafe.Pointer) {
 	rxl.c.cb = C.Face_RxCb(cb)
 	rxl.c.cbarg = cbarg
 }
 
-func (rxl *RxLoop) Launch() error {
-	return rxl.LaunchImpl(func() int {
-		rs := urcu.NewReadSide()
-		defer rs.Close()
+func (rxl *RxLoop) main() int {
+	rs := urcu.NewReadSide()
+	defer rs.Close()
 
-		burst := NewRxBurst(64)
-		defer burst.Close()
-		rxl.c.burst = burst.c
+	burst := NewRxBurst(64)
+	defer burst.Close()
+	rxl.c.burst = burst.c
 
-		C.RxLoop_Run(rxl.c)
-		return 0
-	})
+	C.RxLoop_Run(rxl.c)
+	return 0
 }
 
-func (rxl *RxLoop) Stop() error {
-	return rxl.StopImpl(eal.NewStopFlag(unsafe.Pointer(&rxl.c.stop)))
-}
-
+// Close stops the thread and deallocates data structures.
 func (rxl *RxLoop) Close() error {
-	if rxl.IsRunning() {
-		return errors.New("cannot close a running thread")
-	}
+	rxl.Stop()
 
 	for _, rxg := range rxl.rxgs {
 		rxg.setRxLoop(nil)
@@ -209,8 +212,8 @@ func (rxl *RxLoop) AddRxGroup(rxg IRxGroup) error {
 	rs := urcu.NewReadSide()
 	defer rs.Close()
 
-	if rxl.numaSocket.IsAny() {
-		rxl.numaSocket = rxg.NumaSocket()
+	if rxl.socket.IsAny() {
+		rxl.socket = rxg.NumaSocket()
 	}
 	rxl.rxgs[rxgC] = rxg
 

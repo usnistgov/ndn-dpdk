@@ -1,14 +1,15 @@
-package ealtest
+package ealthreadtest
 
 import (
 	"testing"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 )
 
 type mockLCoreProvider struct{}
 
-func (mockLCoreProvider) ListSlaves() []eal.LCore {
+func (mockLCoreProvider) Workers() []eal.LCore {
 	return []eal.LCore{
 		eal.LCoreFromID(1),
 		eal.LCoreFromID(2),
@@ -27,34 +28,33 @@ func (mockLCoreProvider) IsBusy(lc eal.LCore) bool {
 	return false
 }
 
-func (mockLCoreProvider) NumaSocket(lc eal.LCore) eal.NumaSocket {
+func (mockLCoreProvider) NumaSocketOf(lc eal.LCore) eal.NumaSocket {
 	if lc.ID() < 4 {
 		return eal.NumaSocketFromID(0)
 	}
 	return eal.NumaSocketFromID(1)
 }
 
-func TestLCoreAllocator(t *testing.T) {
+func TestAllocator(t *testing.T) {
 	assert, _ := makeAR(t)
 
-	var la eal.LCoreAllocator
+	var la ealthread.Allocator
 	la.Provider = mockLCoreProvider{}
-	la.Config = make(eal.LCoreAllocConfig)
-	la.Config["A"] = eal.LCoreAllocRoleConfig{
-		LCores:  []int{1, 6, 8},
-		PerNuma: map[int]int{-1: 2},
+	la.Config = make(ealthread.AllocConfig)
+	la.Config["A"] = ealthread.AllocRoleConfig{
+		LCores:   []int{1, 6, 8},
+		EachNuma: 2,
 	}
-	la.Config["B"] = eal.LCoreAllocRoleConfig{
-		LCores:  []int{4},
-		PerNuma: map[int]int{0: 1},
+	la.Config["B"] = ealthread.AllocRoleConfig{
+		LCores: []int{4},
+		OnNuma: map[int]int{0: 1},
 	}
-	la.Config["C"] = eal.LCoreAllocRoleConfig{
-		LCores:  []int{1},
-		PerNuma: map[int]int{0: 3, 1: 4},
+	la.Config["C"] = ealthread.AllocRoleConfig{
+		LCores: []int{1},
+		OnNuma: map[int]int{0: 3, 1: 4},
 	}
 
-	numa0 := eal.NumaSocketFromID(0)
-	numa1 := eal.NumaSocketFromID(1)
+	numa0, numa1 := eal.NumaSocketFromID(0), eal.NumaSocketFromID(1)
 
 	// 1=reserved-AC, 2=idle, 3=idle, 4=reserved-B, 5=idle, 6=reserved-A, 7=busy
 	// pick from reserved-A on NUMA 0
@@ -77,7 +77,7 @@ func TestLCoreAllocator(t *testing.T) {
 	assert.Equal(2, lc2.ID())
 
 	// 1=allocated-A, 2=allocated-A, 3=idle, 4=reserved-B, 5=allocated-A, 6=allocated-A, 7=busy
-	// fail because exceeding PerNuma limit
+	// fail because exceeding OnNuma limit
 	assert.False(la.Alloc("A", numa1).Valid())
 
 	// 1=allocated-A, 2=allocated-A, 3=idle, 4=reserved-B, 5=allocated-A, 6=allocated-A, 7=busy

@@ -7,6 +7,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/app/ping"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/mgmt"
 	"github.com/usnistgov/ndn-dpdk/mgmt/facemgmt"
 	"github.com/usnistgov/ndn-dpdk/mgmt/pingmgmt"
@@ -20,7 +21,7 @@ func main() {
 	}
 
 	pc.initCfg.Mempool.Apply()
-	eal.LCoreAlloc.Config = pc.initCfg.LCoreAlloc
+	ealthread.DefaultAllocator.Config = pc.initCfg.LCoreAlloc
 	pc.initCfg.Face.Apply()
 
 	app, e := ping.New(pc.tasks)

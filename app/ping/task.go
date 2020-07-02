@@ -5,7 +5,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/app/inputdemux"
 	"github.com/usnistgov/ndn-dpdk/app/pingclient"
 	"github.com/usnistgov/ndn-dpdk/app/pingserver"
-	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
@@ -29,7 +29,7 @@ func newTask(face iface.Face, cfg TaskConfig) (task Task, e error) {
 			if server, e := pingserver.New(task.Face, i, cfg.Server.Config); e != nil {
 				return Task{}, e
 			} else {
-				server.SetLCore(eal.LCoreAlloc.Alloc(LCoreRole_Server, socket))
+				server.SetLCore(ealthread.DefaultAllocator.Alloc(LCoreRole_Server, socket))
 				task.Server = append(task.Server, server)
 			}
 		}
@@ -39,13 +39,13 @@ func newTask(face iface.Face, cfg TaskConfig) (task Task, e error) {
 		if task.Client, e = pingclient.New(task.Face, *cfg.Client); e != nil {
 			return Task{}, e
 		}
-		task.Client.SetLCores(eal.LCoreAlloc.Alloc(LCoreRole_ClientRx, socket), eal.LCoreAlloc.Alloc(LCoreRole_ClientTx, socket))
+		task.Client.SetLCores(ealthread.DefaultAllocator.Alloc(LCoreRole_ClientRx, socket), ealthread.DefaultAllocator.Alloc(LCoreRole_ClientTx, socket))
 	} else if cfg.Fetch != nil {
 		if task.Fetch, e = fetch.New(task.Face, *cfg.Fetch); e != nil {
 			return Task{}, e
 		}
 		for i, last := 0, task.Fetch.CountThreads(); i < last; i++ {
-			task.Fetch.GetThread(i).SetLCore(eal.LCoreAlloc.Alloc(LCoreRole_ClientRx, socket))
+			task.Fetch.GetThread(i).SetLCore(ealthread.DefaultAllocator.Alloc(LCoreRole_ClientRx, socket))
 		}
 	}
 

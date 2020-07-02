@@ -9,14 +9,14 @@ import (
 	"github.com/usnistgov/ndn-dpdk/container/pit"
 	"github.com/usnistgov/ndn-dpdk/container/pktqueue"
 	"github.com/usnistgov/ndn-dpdk/core/yamlflag"
-	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface/createface"
 )
 
 type initConfig struct {
 	Mempool    pktmbuf.TemplateUpdates
-	LCoreAlloc eal.LCoreAllocConfig
+	LCoreAlloc ealthread.AllocConfig
 	Face       createface.Config
 	Ndt        ndt.Config
 	Fib        fib.Config

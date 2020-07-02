@@ -12,6 +12,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
 	"github.com/usnistgov/ndn-dpdk/dpdk/cryptodev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/mempool"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
 )
@@ -22,7 +23,7 @@ type CryptoConfig struct {
 }
 
 type Crypto struct {
-	eal.ThreadBase
+	ealthread.Thread
 	id     int
 	c      *C.FwCrypto
 	demuxD *inputdemux.Demux
@@ -30,44 +31,42 @@ type Crypto struct {
 	devM   *cryptodev.CryptoDev
 }
 
-func newCrypto(id int, lc eal.LCore, cfg CryptoConfig, ndt *ndt.Ndt, fwds []*Fwd) (fwc *Crypto, e error) {
+func newCrypto(id int, lc eal.LCore, cfg CryptoConfig, ndt *ndt.Ndt, fwds []*Fwd) (*Crypto, error) {
 	socket := lc.NumaSocket()
-	fwc = new(Crypto)
+	fwc := &Crypto{
+		id: id,
+		c:  (*C.FwCrypto)(eal.ZmallocAligned("FwCrypto", C.sizeof_FwCrypto, 1, socket)),
+	}
+	fwc.Thread = ealthread.New(
+		func() int { C.FwCrypto_Run(fwc.c); return 0 },
+		ealthread.InitStopFlag(unsafe.Pointer(&fwc.c.stop)),
+	)
 	fwc.SetLCore(lc)
-	fwc.id = id
-	fwc.c = (*C.FwCrypto)(eal.ZmallocAligned("FwCrypto", C.sizeof_FwCrypto, 1, socket))
-	eal.InitStopFlag(unsafe.Pointer(&fwc.c.stop))
 
 	input, e := ringbuffer.New(fwc.String()+"_input", cfg.InputCapacity, socket,
 		ringbuffer.ProducerMulti, ringbuffer.ConsumerSingle)
 	if e != nil {
 		return nil, fmt.Errorf("ringbuffer.New: %v", e)
-	} else {
-		fwc.c.input = (*C.struct_rte_ring)(input.Ptr())
 	}
+	fwc.c.input = (*C.struct_rte_ring)(input.Ptr())
 
 	opPool, e := cryptodev.NewOpPool(fwc.String()+"_pool", cryptodev.OpPoolConfig{Capacity: cfg.OpPoolCapacity}, socket)
 	if e != nil {
 		return nil, fmt.Errorf("cryptodev.NewOpPool: %v", e)
-	} else {
-		fwc.c.opPool = (*C.struct_rte_mempool)(opPool.Ptr())
 	}
+	fwc.c.opPool = (*C.struct_rte_mempool)(opPool.Ptr())
 
 	fwc.devS, e = cryptodev.SingleSegDrv.Create(fmt.Sprintf("fwc%ds", fwc.id), cryptodev.Config{}, socket)
 	if e != nil {
 		return nil, fmt.Errorf("cryptodev.SingleSegDrv.Create: %v", e)
-	} else {
-		qp := fwc.devS.QueuePair(0)
-		qp.CopyToC(unsafe.Pointer(&fwc.c.singleSeg))
 	}
+	fwc.devS.QueuePair(0).CopyToC(unsafe.Pointer(&fwc.c.singleSeg))
 
 	fwc.devM, e = cryptodev.MultiSegDrv.Create(fmt.Sprintf("fwc%dm", fwc.id), cryptodev.Config{}, socket)
 	if e != nil {
 		return nil, fmt.Errorf("cryptodev.MultiSegDrv.Create: %v", e)
-	} else {
-		qp := fwc.devM.QueuePair(0)
-		qp.CopyToC(unsafe.Pointer(&fwc.c.multiSeg))
 	}
+	fwc.devM.QueuePair(0).CopyToC(unsafe.Pointer(&fwc.c.multiSeg))
 
 	fwc.demuxD = inputdemux.DemuxFromPtr(unsafe.Pointer(&fwc.c.output))
 	fwc.demuxD.InitNdt(ndt, id)
@@ -83,18 +82,9 @@ func (fwc *Crypto) String() string {
 	return fmt.Sprintf("crypto%d", fwc.id)
 }
 
-func (fwc *Crypto) Launch() error {
-	return fwc.LaunchImpl(func() int {
-		C.FwCrypto_Run(fwc.c)
-		return 0
-	})
-}
-
-func (fwc *Crypto) Stop() error {
-	return fwc.StopImpl(eal.NewStopFlag(unsafe.Pointer(&fwc.c.stop)))
-}
-
 func (fwc *Crypto) Close() error {
+	fwc.Stop()
+
 	fwc.devM.Close()
 	fwc.devS.Close()
 	mempool.FromPtr(unsafe.Pointer(fwc.c.opPool)).Close()

@@ -28,16 +28,19 @@ Mempool:
 # Roles for ndnfw-dpdk: RX, TX, CRYPTO, FWD.
 # Roles for ndnping-dpdk: RX, TX, SVR, CLIR, CLIT.
 # Within each role:
-#  - 'lcores' is a list of lcores reserved for that role.
-#  - 'pernuma' is a map of { NumaSocket => max number of lcores } for that role.
+#  - 'LCores' is a list of lcores reserved for that role.
+#  - 'OnNuma' is a map of { NUMA socket => max number of lcores } for that role.
+#  - 'EachNuma' is max number of lcores per NUMA socket for that role.
 # Leaving this section blank results in automatic allocation.
 LCoreAlloc:
 # ROLE1: # this role can use lcore 1 and lcore 3
-#   lcores: [1, 3]
+#   LCores: [1, 3]
 # ROLE2: # this role can have up to 3 and 2 lcores on two NUMA sockets
-#   pernuma:
+#   PerNuma:
 #     0: 3
 #     1: 2
+# ROLE3: # this role can have up to 3 lcores on each NUMA socket
+#   EachNuma: 3
 
 # FACE CREATION
 Face:

@@ -11,6 +11,7 @@ import (
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
 )
 
@@ -42,7 +43,7 @@ func (HrlogMgmt) Start(args StartArgs, reply *struct{}) error {
 	if job.Count == 0 {
 		job.Count = 1 << 28 // 268 million samples, 2GB file
 	}
-	eal.InitStopFlag(unsafe.Pointer(&job.stop))
+	ealthread.InitStopFlag(unsafe.Pointer(&job.stop))
 	job.finish = make(chan error, 1)
 
 	collectJobs[args.Filename] = job
@@ -60,7 +61,7 @@ func (HrlogMgmt) Stop(args FilenameArg, reply *struct{}) error {
 		return errors.New("job not found")
 	}
 
-	stop := eal.InitStopFlag(unsafe.Pointer(&job.stop))
+	stop := ealthread.NewStopFlag(unsafe.Pointer(&job.stop))
 	stop.BeforeWait()
 	e := <-job.finish
 	stop.AfterWait()
