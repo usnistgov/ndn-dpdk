@@ -14,19 +14,15 @@ type threadAllocatable interface {
 	ThreadRole() string
 }
 
-type threadNumaSocketPreferrer interface {
-	threadAllocatable
-	NumaSocket() eal.NumaSocket
-}
-
-// AllocThread allocates lcore to a Thread.
+// AllocThread allocates lcore to a thread.
+// If th implements eal.WithNumaSocket, the lcore comes from the preferred NUMA socket.
 func (la *Allocator) AllocThread(th threadAllocatable) error {
 	if th.LCore().Valid() {
 		return nil
 	}
 
 	var socket eal.NumaSocket
-	if thn, ok := th.(threadNumaSocketPreferrer); ok {
+	if thn, ok := th.(eal.WithNumaSocket); ok {
 		socket = thn.NumaSocket()
 	}
 

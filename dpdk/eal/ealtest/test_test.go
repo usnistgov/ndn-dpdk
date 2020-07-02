@@ -12,7 +12,7 @@ import (
 var initEalRemainingArgs []string
 
 func TestMain(m *testing.M) {
-	initEalRemainingArgs = ealtestenv.InitEal("--", "c7f36046-faa5-46dc-9855-e93d00217b8f")
+	initEalRemainingArgs = ealtestenv.Init("--", "c7f36046-faa5-46dc-9855-e93d00217b8f")
 	os.Exit(m.Run())
 }
 

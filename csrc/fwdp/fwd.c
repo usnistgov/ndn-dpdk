@@ -53,9 +53,10 @@ FwFwd_RxByType(FwFwd* fwd, L3PktType l3type)
   }
 }
 
-void
+int
 FwFwd_Run(FwFwd* fwd)
 {
+  rcu_register_thread();
   ZF_LOGI("fwdId=%" PRIu8 " fwd=%p fib=%p pit+cs=%p crypto=%p", fwd->id, fwd, fwd->fib, fwd->pcct,
           fwd->crypto);
 
@@ -72,4 +73,6 @@ FwFwd_Run(FwFwd* fwd)
   }
 
   ZF_LOGI("fwdId=%" PRIu8 " STOP", fwd->id);
+  rcu_unregister_thread();
+  return 0;
 }

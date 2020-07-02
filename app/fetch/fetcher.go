@@ -11,6 +11,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/app/ping/pingmempool"
 	"github.com/usnistgov/ndn-dpdk/container/pktqueue"
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
@@ -58,7 +59,7 @@ func New(face iface.Face, cfg FetcherConfig) (*Fetcher, error) {
 		fth.c.interestMp = interestMp
 		C.NonceGen_Init(&fth.c.nonceGen)
 		fth.Thread = ealthread.New(
-			func() int { return int(C.FetchThread_Run(fth.c)) },
+			cptr.CFunction(unsafe.Pointer(C.FetchThread_Run), unsafe.Pointer(fth.c)),
 			ealthread.InitStopFlag(unsafe.Pointer(&fth.c.stop)),
 		)
 		fetcher.fth[i] = fth

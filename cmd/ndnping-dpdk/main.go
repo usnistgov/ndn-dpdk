@@ -15,7 +15,7 @@ import (
 )
 
 func main() {
-	pc, e := parseCommand(eal.InitEal(os.Args)[1:])
+	pc, e := parseCommand(eal.Init(os.Args)[1:])
 	if e != nil {
 		log.WithError(e).Fatal("command line error")
 	}

@@ -3,6 +3,7 @@ package ethdev
 import (
 	"math/rand"
 
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 )
@@ -47,7 +48,7 @@ func NewVNet(cfg VNetConfig) (vnet *VNet) {
 	return vnet
 }
 
-func (vnet *VNet) bridge() int {
+func (vnet *VNet) bridge() {
 	const burstSize = 25
 	for {
 		for srcIndex, src := range vnet.pairs {
@@ -86,7 +87,7 @@ func (vnet *VNet) bridge() int {
 
 		select {
 		case <-vnet.stop:
-			return 0
+			return
 		default:
 		}
 	}
@@ -95,7 +96,7 @@ func (vnet *VNet) bridge() int {
 // LaunchBridge starts a bridge thread that copies packets between attached nodes.
 func (vnet *VNet) LaunchBridge(lcore eal.LCore) {
 	vnet.bridgeLcore = lcore
-	lcore.RemoteLaunch(vnet.bridge)
+	lcore.RemoteLaunch(cptr.VoidFunction(vnet.bridge))
 }
 
 // Close stops the bridge and closes all ports.

@@ -3,6 +3,7 @@ package ealthread
 import (
 	"fmt"
 
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
@@ -25,7 +26,7 @@ type Thread interface {
 }
 
 // New creates a Thread.
-func New(main func() int, stop Stopper) Thread {
+func New(main cptr.Function, stop Stopper) Thread {
 	return &threadImpl{
 		main: main,
 		stop: stop,
@@ -34,7 +35,7 @@ func New(main func() int, stop Stopper) Thread {
 
 type threadImpl struct {
 	lc   eal.LCore
-	main func() int
+	main cptr.Function
 	stop Stopper
 }
 

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/intface"
 	"github.com/usnistgov/ndn-dpdk/ndni"
@@ -36,8 +37,7 @@ func TestCApi(t *testing.T) {
 	assert.False(Face_IsDown(id))
 
 	txl := iface.NewTxLoop(eal.NumaSocket{})
-	txl.SetLCore(eal.ListWorkerLCores()[0])
-	txl.Launch()
+	ealthread.Launch(txl)
 	time.Sleep(10 * time.Millisecond)
 	txl.AddFace(face.D)
 	time.Sleep(90 * time.Millisecond)

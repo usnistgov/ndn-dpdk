@@ -36,7 +36,7 @@ func init() {
 // Pool returns the mempool.
 func (p *TestPool) Pool() *pktmbuf.Pool {
 	p.poolInit.Do(func() {
-		ealtestenv.InitEal()
+		ealtestenv.Init()
 		p.pool = p.Template.MakePool(eal.NumaSocket{})
 	})
 	return p.pool

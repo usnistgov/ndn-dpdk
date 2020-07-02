@@ -55,11 +55,11 @@ func New(cfg Config) (dp *DataPlane, e error) {
 		if dp.la.Crypto.Valid() {
 			inputLCores = append(inputLCores, dp.la.Crypto)
 		}
-		dp.ndt = ndt.New(cfg.Ndt, eal.ListNumaSocketsOfLCores(inputLCores))
+		dp.ndt = ndt.New(cfg.Ndt, eal.NumaSocketsOf(inputLCores))
 		dp.ndt.Randomize(len(dp.la.Fwds))
 	}
 
-	if dp.fib, e = fib.New("FIB", cfg.Fib, dp.ndt, eal.ListNumaSocketsOfLCores(dp.la.Fwds)); e != nil {
+	if dp.fib, e = fib.New("FIB", cfg.Fib, dp.ndt, eal.NumaSocketsOf(dp.la.Fwds)); e != nil {
 		dp.Close()
 		return nil, fmt.Errorf("fib.New: %v", e)
 	}

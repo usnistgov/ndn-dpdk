@@ -12,14 +12,7 @@ typedef struct SpdkThread
   ThreadStopFlag stop;
 } SpdkThread;
 
-static int
-SpdkThread_Run(SpdkThread* th)
-{
-  while (ThreadStopFlag_ShouldContinue(&th->stop)) {
-    spdk_thread_poll(th->spdkTh, 64, 0);
-  }
-  spdk_thread_exit(th->spdkTh);
-  return 0;
-}
+int
+SpdkThread_Run(SpdkThread* th);
 
 #endif // NDN_DPDK_SPDK_THREAD_H

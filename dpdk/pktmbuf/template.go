@@ -94,7 +94,7 @@ func (tpl Template) MakePool(socket eal.NumaSocket) *Pool {
 	cfg := templateConfigs[tpl.key]
 
 	useSocket := socket
-	if len(eal.ListNumaSockets()) <= 1 {
+	if len(eal.Sockets) <= 1 {
 		useSocket = eal.NumaSocket{}
 	}
 	name := fmt.Sprintf("%s#%s", tpl.key, useSocket)

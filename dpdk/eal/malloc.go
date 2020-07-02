@@ -5,7 +5,6 @@ package eal
 */
 import "C"
 import (
-	"fmt"
 	"reflect"
 	"unsafe"
 )
@@ -33,7 +32,7 @@ func ZmallocAligned(dbgtype string, size interface{}, align int, socket NumaSock
 
 	ptr := C.rte_zmalloc_socket(typeC, sizeC, C.uint(align*C.RTE_CACHE_LINE_SIZE), C.int(socket.ID()))
 	if ptr == nil {
-		panic(fmt.Sprintf("ZmallocAligned(%d) failed", size))
+		log.Panicf("ZmallocAligned(%d) failed", size)
 	}
 	return ptr
 }

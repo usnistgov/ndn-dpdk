@@ -22,7 +22,7 @@ import (
 
 func TestMain(m *testing.M) {
 	mbuftestenv.Direct.Template.Update(pktmbuf.PoolConfig{Dataroom: 8000}) // needed for TestEntryLongName
-	ealtestenv.InitEal()
+	ealtestenv.Init()
 	os.Exit(m.Run())
 }
 

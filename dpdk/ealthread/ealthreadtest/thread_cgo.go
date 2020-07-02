@@ -21,6 +21,7 @@ import "C"
 import (
 	"unsafe"
 
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 )
@@ -34,7 +35,7 @@ func newTestThread() *testThread {
 	var th testThread
 	th.c = (*C.TestThread)(eal.Zmalloc("TestThread", C.sizeof_TestThread, eal.NumaSocket{}))
 	th.Thread = ealthread.New(
-		func() int { return int(C.TestThread_Run(th.c)) },
+		cptr.CFunction(unsafe.Pointer(C.TestThread_Run), unsafe.Pointer(th.c)),
 		ealthread.InitStopFlag(unsafe.Pointer(&th.c.stop)),
 	)
 	return &th

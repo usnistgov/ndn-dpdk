@@ -12,6 +12,7 @@ import (
 	"sync/atomic"
 	"unsafe"
 
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
@@ -140,7 +141,7 @@ func NewRxLoop(socket eal.NumaSocket) *RxLoop {
 		rxgs:   make(map[*C.RxGroup]IRxGroup),
 	}
 	rxl.Thread = ealthread.New(
-		rxl.main,
+		cptr.VoidFunction(rxl.main),
 		ealthread.InitStopFlag(unsafe.Pointer(&rxl.c.stop)),
 	)
 	return rxl
@@ -162,7 +163,7 @@ func (rxl *RxLoop) SetCallback(cb unsafe.Pointer, cbarg unsafe.Pointer) {
 	rxl.c.cbarg = cbarg
 }
 
-func (rxl *RxLoop) main() int {
+func (rxl *RxLoop) main() {
 	rs := urcu.NewReadSide()
 	defer rs.Close()
 
@@ -171,7 +172,6 @@ func (rxl *RxLoop) main() int {
 	rxl.c.burst = burst.c
 
 	C.RxLoop_Run(rxl.c)
-	return 0
 }
 
 // Close stops the thread and deallocates data structures.

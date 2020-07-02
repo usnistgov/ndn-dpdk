@@ -58,7 +58,7 @@ PingClientTx_Burst(PingClientTx* ct)
   Face_TxBurst(ct->face, npkts, PINGCLIENT_TX_BURST_SIZE);
 }
 
-void
+int
 PingClientTx_Run(PingClientTx* ct)
 {
   TscTime nextTxBurst = rte_get_tsc_cycles();
@@ -70,4 +70,5 @@ PingClientTx_Run(PingClientTx* ct)
     PingClientTx_Burst(ct);
     nextTxBurst += ct->burstInterval;
   }
+  return 0;
 }

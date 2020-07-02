@@ -20,7 +20,7 @@ type lCoreProvider interface {
 type ealLCoreProvider struct{}
 
 func (ealLCoreProvider) Workers() []eal.LCore {
-	return eal.ListWorkerLCores()
+	return eal.Workers
 }
 
 func (ealLCoreProvider) IsBusy(lc eal.LCore) bool {

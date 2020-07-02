@@ -56,7 +56,7 @@ FwFwd_GetPcctPtr_(FwFwd* fwd)
   return &fwd->pcct;
 }
 
-void
+int
 FwFwd_Run(FwFwd* fwd);
 
 /** \brief Per-packet context in forwarding.

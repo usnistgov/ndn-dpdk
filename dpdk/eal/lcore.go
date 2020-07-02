@@ -5,14 +5,10 @@ package eal
 
 #include <rte_launch.h>
 #include <rte_lcore.h>
-
-extern int go_lcoreLaunch(void*);
 */
 import "C"
 import (
-	"fmt"
 	"strconv"
-	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 )
@@ -33,6 +29,11 @@ func LCoreFromID(id int) (lc LCore) {
 	}
 	lc.v = id + 1
 	return lc
+}
+
+// CurrentLCore returns the current lcore.
+func CurrentLCore() LCore {
+	return LCoreFromID(int(C.rte_lcore_id()))
 }
 
 // ID returns lcore ID.
@@ -67,13 +68,13 @@ func (lc LCore) IsBusy() bool {
 }
 
 // RemoteLaunch asynchronously launches a function on this lcore.
-func (lc LCore) RemoteLaunch(f func() int) error {
+func (lc LCore) RemoteLaunch(fn cptr.Function) error {
 	panicInWorker("LCore.RemoteLaunch()")
 	if !lc.Valid() {
 		panic("invalid lcore")
 	}
-	ctx := cptr.CtxPut(f)
-	res := C.rte_eal_remote_launch((*C.lcore_function_t)(C.go_lcoreLaunch), ctx, C.uint(lc.ID()))
+	f, arg := fn.MakeCFunction()
+	res := C.rte_eal_remote_launch((*C.lcore_function_t)(f), arg, C.uint(lc.ID()))
 	if res != 0 {
 		return Errno(-res)
 	}
@@ -87,27 +88,11 @@ func (lc LCore) Wait() int {
 	return int(C.rte_eal_wait_lcore(C.uint(lc.ID())))
 }
 
-//export go_lcoreLaunch
-func go_lcoreLaunch(ctx unsafe.Pointer) C.int {
-	f := cptr.CtxPop(ctx).(func() int)
-	return C.int(f())
-}
-
 // Prevent a function from executing in worker lcore.
 func panicInWorker(funcName string) {
-	lc := GetCurrentLCore()
-	if initial := GetInitialLCore(); lc.Valid() && lc.ID() != initial.ID() {
-		panic(fmt.Sprintf("%s is unavailable in worker lcore; current=%s initial=%s",
-			funcName, lc, initial))
+	lc := CurrentLCore()
+	if lc.Valid() && lc.ID() != Initial.ID() {
+		log.Panicf("%s is unavailable in worker lcore; current=%v initial=%v", funcName, lc, Initial)
 	}
 	// 'invalid' lcore is permitted, because Go runtime could use another thread
-}
-
-// ListNumaSocketsOfLCores maps lcores into NUMA sockets.
-func ListNumaSocketsOfLCores(lcores []LCore) (a []NumaSocket) {
-	a = make([]NumaSocket, len(lcores))
-	for i, lcore := range lcores {
-		a[i] = lcore.NumaSocket()
-	}
-	return a
 }

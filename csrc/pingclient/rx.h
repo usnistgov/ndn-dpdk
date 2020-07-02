@@ -30,7 +30,7 @@ typedef struct PingClientRx
   PingClientRxPattern pattern[PINGCLIENT_MAX_PATTERNS];
 } PingClientRx;
 
-void
+int
 PingClientRx_Run(PingClientRx* cr);
 
 #endif // NDN_DPDK_PINGCLIENT_RX_H

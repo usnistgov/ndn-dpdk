@@ -10,7 +10,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	ealtestenv.InitEal()
+	ealtestenv.Init()
 	os.Exit(m.Run())
 }
 

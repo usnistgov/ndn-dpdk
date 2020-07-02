@@ -11,6 +11,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/app/ping/pingmempool"
 	"github.com/usnistgov/ndn-dpdk/container/pktqueue"
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
@@ -48,7 +49,7 @@ func New(face iface.Face, index int, cfg Config) (*Server, error) {
 		c:      serverC,
 	}
 	server.Thread = ealthread.New(
-		func() int { C.PingServer_Run(server.c); return 0 },
+		cptr.CFunction(unsafe.Pointer(C.PingServer_Run), unsafe.Pointer(server.c)),
 		ealthread.InitStopFlag(unsafe.Pointer(&serverC.stop)),
 	)
 

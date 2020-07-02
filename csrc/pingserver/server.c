@@ -112,7 +112,7 @@ PingServer_ProcessInterest(PingServer* server, Packet* npkt)
   return PingServer_RespondJmp[reply->kind](server, pattern, reply, npkt);
 }
 
-void
+int
 PingServer_Run(PingServer* server)
 {
   Packet* rx[PKTQUEUE_BURST_SIZE_MAX];
@@ -138,4 +138,5 @@ PingServer_Run(PingServer* server)
     ZF_LOGD("face=%" PRI_FaceID "nRx=%" PRIu16 " nTx=%" PRIu16, server->face, nRx, nTx);
     Face_TxBurst(server->face, tx, nTx);
   }
+  return 0;
 }

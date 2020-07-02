@@ -15,8 +15,8 @@ import (
 	"github.com/usnistgov/ndn-dpdk/container/pit"
 	"github.com/usnistgov/ndn-dpdk/container/pktqueue"
 	"github.com/usnistgov/ndn-dpdk/container/strategycode"
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/runningstat"
-	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
@@ -51,7 +51,7 @@ func (fwd *Fwd) Init(lc eal.LCore, fib *fib.Fib, pcctCfg pcct.Config, interestQu
 	fwd.c = (*C.FwFwd)(eal.Zmalloc("FwFwd", C.sizeof_FwFwd, socket))
 	fwd.c.id = C.uint8_t(fwd.id)
 	fwd.Thread = ealthread.New(
-		fwd.main,
+		cptr.CFunction(unsafe.Pointer(C.FwFwd_Run), unsafe.Pointer(fwd.c)),
 		ealthread.InitStopFlag(unsafe.Pointer(&fwd.c.stop)),
 	)
 	fwd.SetLCore(lc)
@@ -86,13 +86,6 @@ func (fwd *Fwd) Init(lc eal.LCore, fib *fib.Fib, pcctCfg pcct.Config, interestQu
 	suppressCfg.CopyToC(unsafe.Pointer(&fwd.c.suppressCfg))
 
 	return nil
-}
-
-func (fwd *Fwd) main() int {
-	rs := urcu.NewReadSide()
-	defer rs.Close()
-	C.FwFwd_Run(fwd.c)
-	return 0
 }
 
 func (fwd *Fwd) Close() error {

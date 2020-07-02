@@ -60,7 +60,7 @@ typedef struct PingServer
   PingServerPattern pattern[PINGSERVER_MAX_PATTERNS];
 } PingServer;
 
-void
+int
 PingServer_Run(PingServer* server);
 
 #endif // NDN_DPDK_PINGSERVER_SERVER_H

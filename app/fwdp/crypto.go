@@ -10,6 +10,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/app/inputdemux"
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/cryptodev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
@@ -38,7 +39,7 @@ func newCrypto(id int, lc eal.LCore, cfg CryptoConfig, ndt *ndt.Ndt, fwds []*Fwd
 		c:  (*C.FwCrypto)(eal.ZmallocAligned("FwCrypto", C.sizeof_FwCrypto, 1, socket)),
 	}
 	fwc.Thread = ealthread.New(
-		func() int { C.FwCrypto_Run(fwc.c); return 0 },
+		cptr.CFunction(unsafe.Pointer(C.FwCrypto_Run), unsafe.Pointer(fwc.c)),
 		ealthread.InitStopFlag(unsafe.Pointer(&fwc.c.stop)),
 	)
 	fwc.SetLCore(lc)

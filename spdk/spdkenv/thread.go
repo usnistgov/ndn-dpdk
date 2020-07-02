@@ -43,7 +43,7 @@ func NewThread(name string) (*Thread, error) {
 	}
 	th.c.spdkTh = spdkThread
 	th.Thread = ealthread.New(
-		func() int { return int(C.SpdkThread_Run(th.c)) },
+		cptr.CFunction(unsafe.Pointer(C.SpdkThread_Run), unsafe.Pointer(th.c)),
 		ealthread.InitStopFlag(unsafe.Pointer(&th.c.stop)),
 	)
 	return th, nil

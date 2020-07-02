@@ -11,8 +11,8 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
-// InitEal initializes EAL for testing purpose.
-func InitEal(extraArgs ...string) (remainingArgs []string) {
+// Init initializes EAL for testing purpose.
+func Init(extraArgs ...string) (remainingArgs []string) {
 	wantLcores := 6
 	cpus, nCpus := listCpus(wantLcores)
 
@@ -28,7 +28,7 @@ func InitEal(extraArgs ...string) (remainingArgs []string) {
 	}
 
 	args = append(args, extraArgs...)
-	return eal.InitEal(args)
+	return eal.Init(args)
 }
 
 func listCpus(max int) (cpus string, n int) {

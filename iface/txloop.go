@@ -7,6 +7,7 @@ import "C"
 import (
 	"unsafe"
 
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
@@ -28,7 +29,7 @@ func NewTxLoop(socket eal.NumaSocket) *TxLoop {
 		faces:  make(map[ID]Face),
 	}
 	txl.Thread = ealthread.New(
-		txl.main,
+		cptr.CFunction(unsafe.Pointer(C.TxLoop_Run), unsafe.Pointer(txl.c)),
 		ealthread.InitStopFlag(unsafe.Pointer(&txl.c.stop)),
 	)
 	return txl
@@ -42,13 +43,6 @@ func (txl *TxLoop) ThreadRole() string {
 // NumaSocket returns NUMA socket of the data structures.
 func (txl *TxLoop) NumaSocket() eal.NumaSocket {
 	return txl.socket
-}
-
-func (txl *TxLoop) main() int {
-	rs := urcu.NewReadSide()
-	defer rs.Close()
-	C.TxLoop_Run(txl.c)
-	return 0
 }
 
 // Close stops the thread and deallocates data structures.

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/ndn"
@@ -32,7 +33,7 @@ func newNdtLookupTestThread(ndt *ndt.Ndt, threadIndex int, names []ndn.Name) *lo
 	for _, name := range names {
 		th.Entries = append(th.Entries, lookupTestEntry{name, nil})
 	}
-	th.Thread = ealthread.New(th.main, th.stop)
+	th.Thread = ealthread.New(cptr.VoidFunction(th.main), th.stop)
 	return th
 }
 
@@ -40,7 +41,7 @@ func (th *lookupTestThread) ThreadRole() string {
 	return "TEST"
 }
 
-func (th *lookupTestThread) main() int {
+func (th *lookupTestThread) main() {
 	for th.stop.Continue() {
 		i := rand.Intn(len(th.Entries))
 		entry := &th.Entries[i]
@@ -49,7 +50,6 @@ func (th *lookupTestThread) main() int {
 			entry.Results = append(entry.Results, result)
 		}
 	}
-	return 0
 }
 
 func TestNdt(t *testing.T) {

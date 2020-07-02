@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/iface"
@@ -41,10 +42,9 @@ func New(t *testing.T, rxFace, txFace iface.Face) (fixture *Fixture) {
 	fixture.TxLoops = 10000
 	fixture.LossTolerance = 0.1
 
-	workers := eal.ListWorkerLCores()
-	fixture.RxLCore = workers[0]
-	fixture.TxLCore = workers[1]
-	fixture.SendLCore = workers[2]
+	fixture.RxLCore = eal.Workers[0]
+	fixture.TxLCore = eal.Workers[1]
+	fixture.SendLCore = eal.Workers[2]
 
 	fixture.rxFace = rxFace
 	fixture.rxDiscard = make(map[iface.ID]iface.Face)
@@ -67,7 +67,7 @@ func (fixture *Fixture) RunTest() {
 	fixture.txl.AddFace(fixture.txFace)
 	time.Sleep(200 * time.Millisecond)
 
-	fixture.SendLCore.RemoteLaunch(fixture.sendProc)
+	fixture.SendLCore.RemoteLaunch(cptr.VoidFunction(fixture.sendProc))
 	fixture.SendLCore.Wait()
 	time.Sleep(800 * time.Millisecond)
 
@@ -119,7 +119,7 @@ func (fixture *Fixture) launchRx() {
 	}
 }
 
-func (fixture *Fixture) sendProc() int {
+func (fixture *Fixture) sendProc() {
 	content := make([]byte, fixture.PayloadLen)
 	for i := 0; i < fixture.TxLoops; i++ {
 		pkts := make([]*ndni.Packet, 3)
@@ -129,7 +129,6 @@ func (fixture *Fixture) sendProc() int {
 		fixture.txFace.TxBurst(pkts)
 		time.Sleep(time.Millisecond)
 	}
-	return 0
 }
 
 func (fixture *Fixture) CheckCounters() {

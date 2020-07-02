@@ -62,7 +62,7 @@ PingClientRx_ProcessNack(PingClientRx* cr, Packet* npkt)
   ++pattern->nNacks;
 }
 
-void
+int
 PingClientRx_Run(PingClientRx* cr)
 {
   Packet* npkts[PKTQUEUE_BURST_SIZE_MAX];
@@ -90,4 +90,5 @@ PingClientRx_Run(PingClientRx* cr)
     }
     FreeMbufs((struct rte_mbuf**)npkts, nRx);
   }
+  return 0;
 }

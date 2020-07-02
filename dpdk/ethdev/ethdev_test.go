@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
@@ -13,7 +14,6 @@ import (
 
 func TestEthDev(t *testing.T) {
 	assert, _ := makeAR(t)
-	workers := eal.ListWorkerLCores()
 
 	pair := ethdev.NewPair(ethdev.PairConfig{RxPool: mbuftestenv.Direct.Pool()})
 	defer pair.Close()
@@ -35,7 +35,7 @@ func TestEthDev(t *testing.T) {
 	nReceived := 0
 	rxBurstSizeFreq := make(map[int]int)
 	rxQuit := make(chan bool)
-	workers[0].RemoteLaunch(func() int {
+	eal.Workers[0].RemoteLaunch(cptr.VoidFunction(func() {
 		for {
 			vec := make(pktmbuf.Vector, rxBurstSize)
 			burstSize := rxq.RxBurst(vec)
@@ -50,14 +50,14 @@ func TestEthDev(t *testing.T) {
 
 			select {
 			case <-rxQuit:
-				return 0
+				return
 			default:
 			}
 		}
-	})
+	}))
 
 	txRetryFreq := make(map[int]int)
-	workers[1].RemoteLaunch(func() int {
+	eal.Workers[1].RemoteLaunch(cptr.VoidFunction(func() {
 		for i := 0; i < txLoops; i++ {
 			vec := mbuftestenv.Direct.Pool().MustAlloc(txBurstSize)
 			for j := 0; j < txBurstSize; j++ {
@@ -76,12 +76,11 @@ func TestEthDev(t *testing.T) {
 			}
 			assert.Equal(txBurstSize, nSent, "TxBurst incomplete at loop %d", i)
 		}
-		return 0
-	})
-	workers[1].Wait()
+	}))
+	eal.Workers[1].Wait()
 	time.Sleep(rxFinishWait)
 	rxQuit <- true
-	workers[0].Wait()
+	eal.Workers[0].Wait()
 
 	log.Println("portA.stats=", pair.PortA.Stats())
 	log.Println("portB.stats=", pair.PortB.Stats())

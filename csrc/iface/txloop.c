@@ -65,9 +65,10 @@ TxLoop_Transfer(Face* face)
   }
 }
 
-void
+int
 TxLoop_Run(TxLoop* txl)
 {
+  rcu_register_thread();
   while (ThreadStopFlag_ShouldContinue(&txl->stop)) {
     rcu_quiescent_state();
     rcu_read_lock();
@@ -80,4 +81,6 @@ TxLoop_Run(TxLoop* txl)
     }
     rcu_read_unlock();
   }
+  rcu_unregister_thread();
+  return 0;
 }

@@ -20,7 +20,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	ealtestenv.InitEal()
+	ealtestenv.Init()
 
 	// fixture.Close() cannot release packet buffers, need a large mempool
 	mbuftestenv.Direct.Template.Update(pktmbuf.PoolConfig{Capacity: 65535})

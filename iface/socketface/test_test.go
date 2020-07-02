@@ -12,7 +12,7 @@ import (
 var socketfaceCfg socketface.Config
 
 func TestMain(m *testing.M) {
-	ealtestenv.InitEal()
+	ealtestenv.Init()
 
 	socketfaceCfg = socketface.Config{
 		TxqPkts:   64,

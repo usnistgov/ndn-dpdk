@@ -14,7 +14,7 @@ typedef struct TxLoop
   ThreadStopFlag stop;
 } TxLoop;
 
-void
+int
 TxLoop_Run(TxLoop* txl);
 
 #endif // NDN_DPDK_IFACE_TXLOOP_H

@@ -73,10 +73,10 @@ func (face *FaceBase) InitFaceBase(id ID, sizeofPriv int, socket eal.NumaSocket)
 	face.id = id
 
 	if socket.IsAny() {
-		if lc := eal.GetCurrentLCore(); lc.Valid() {
+		if lc := eal.CurrentLCore(); lc.Valid() {
 			socket = lc.NumaSocket()
 		} else {
-			socket = eal.NumaSocketFromID(0) // TODO what if socket 0 is unavailable?
+			socket = eal.Sockets[0]
 		}
 	}
 
