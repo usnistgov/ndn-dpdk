@@ -132,7 +132,7 @@ func (client *Client) SetInterval(interval time.Duration) {
 	client.txC.burstInterval = C.TscDuration(eal.ToTscDuration(interval * C.PINGCLIENT_TX_BURST_SIZE))
 }
 
-func (client *Client) GetRxQueue() *pktqueue.PktQueue {
+func (client *Client) RxQueue() *pktqueue.PktQueue {
 	return pktqueue.FromPtr(unsafe.Pointer(&client.rxC.rxQueue))
 }
 
@@ -167,7 +167,7 @@ func (client *Client) Stop(delay time.Duration) error {
 // Close the client.
 // Both RX and TX threads must be stopped before calling this.
 func (client *Client) Close() error {
-	client.GetRxQueue().Close()
+	client.RxQueue().Close()
 	eal.Free(client.rxC)
 	eal.Free(client.txC)
 	return nil

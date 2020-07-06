@@ -119,7 +119,7 @@ func (server *Server) AddPattern(cfg Pattern) (index int, e error) {
 	return index, nil
 }
 
-func (server *Server) GetRxQueue() *pktqueue.PktQueue {
+func (server *Server) RxQueue() *pktqueue.PktQueue {
 	return pktqueue.FromPtr(unsafe.Pointer(&server.c.rxQueue))
 }
 
@@ -127,7 +127,7 @@ func (server *Server) GetRxQueue() *pktqueue.PktQueue {
 // The thread must be stopped before calling this.
 func (server *Server) Close() error {
 	server.Stop()
-	server.GetRxQueue().Close()
+	server.RxQueue().Close()
 	eal.Free(server.c)
 	return nil
 }

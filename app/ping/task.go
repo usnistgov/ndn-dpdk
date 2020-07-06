@@ -45,7 +45,7 @@ func newTask(face iface.Face, cfg TaskConfig) (task Task, e error) {
 			return Task{}, e
 		}
 		for i, last := 0, task.Fetch.CountThreads(); i < last; i++ {
-			task.Fetch.GetThread(i).SetLCore(ealthread.DefaultAllocator.Alloc(LCoreRole_ClientRx, socket))
+			task.Fetch.Thread(i).SetLCore(ealthread.DefaultAllocator.Alloc(LCoreRole_ClientRx, socket))
 		}
 	}
 
@@ -60,21 +60,21 @@ func (task *Task) ConfigureDemux(demux3 *inputdemux.Demux3) {
 	if nServers := len(task.Server); nServers > 0 {
 		demuxI.InitRoundrobin(nServers)
 		for i, server := range task.Server {
-			demuxI.SetDest(i, server.GetRxQueue())
+			demuxI.SetDest(i, server.RxQueue())
 		}
 	}
 
 	if task.Client != nil {
 		demuxD.InitFirst()
 		demuxN.InitFirst()
-		q := task.Client.GetRxQueue()
+		q := task.Client.RxQueue()
 		demuxD.SetDest(0, q)
 		demuxN.SetDest(0, q)
 	} else if task.Fetch != nil {
 		demuxD.InitToken()
 		demuxN.InitToken()
 		for i, last := 0, task.Fetch.CountProcs(); i < last; i++ {
-			q := task.Fetch.GetRxQueue(i)
+			q := task.Fetch.RxQueue(i)
 			demuxD.SetDest(i, q)
 			demuxN.SetDest(i, q)
 		}

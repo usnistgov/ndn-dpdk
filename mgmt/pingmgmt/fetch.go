@@ -42,7 +42,7 @@ func (mg FetchMgmt) Benchmark(args FetchBenchmarkArgs, reply *[]FetchBenchmarkRe
 	if e != nil {
 		return e
 	}
-	if fetcher.GetThread(0).IsRunning() {
+	if fetcher.Thread(0).IsRunning() {
 		return errors.New("Fetcher is running")
 	}
 
@@ -60,7 +60,7 @@ func (mg FetchMgmt) Benchmark(args FetchBenchmarkArgs, reply *[]FetchBenchmarkRe
 		if j, e := fetcher.AddTemplate(tplArgs...); e != nil {
 			return fmt.Errorf("AddTemplate[%d]: %s", i, e)
 		} else {
-			logics = append(logics, fetcher.GetLogic(j))
+			logics = append(logics, fetcher.Logic(j))
 		}
 	}
 

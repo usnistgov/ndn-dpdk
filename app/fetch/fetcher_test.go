@@ -1,6 +1,8 @@
 package fetch_test
 
 import (
+	"fmt"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -24,8 +26,8 @@ func TestFetcher(t *testing.T) {
 	fetcher, e := fetch.New(intFace.D, cfg)
 	require.NoError(e)
 	defer fetcher.Close()
-	fetcher.GetThread(0).SetLCore(pingtestenv.WorkerLCores[0])
-	pingtestenv.Demux3.GetDataDemux().SetDest(0, fetcher.GetRxQueue(0))
+	fetcher.Thread(0).SetLCore(pingtestenv.WorkerLCores[0])
+	pingtestenv.Demux3.GetDataDemux().SetDest(0, fetcher.RxQueue(0))
 
 	nInterests := 0
 	go func() {
@@ -35,7 +37,9 @@ func TestFetcher(t *testing.T) {
 			assert.NotZero(token)
 			assert.EqualValues(0, token>>56)
 			nInterests++
-			intFace.Tx <- ndn.MakeData(packet.Interest)
+			if rand.Float32() > 0.01 {
+				intFace.Tx <- ndn.MakeData(packet.Interest)
+			}
 		}
 		close(intFace.Tx)
 	}()
@@ -45,10 +49,23 @@ func TestFetcher(t *testing.T) {
 	require.NoError(e)
 	assert.Equal(i, 0)
 
-	fetcher.GetLogic(i).SetFinalSegNum(4999)
+	logic := fetcher.Logic(i)
+	logic.SetFinalSegNum(4999)
 	fetcher.Launch()
+	t0 := time.Now()
 
-	time.Sleep(1500 * time.Millisecond)
+	{
+		ticker := time.NewTicker(time.Millisecond)
+		for range ticker.C {
+			if logic.Finished() {
+				break
+			}
+		}
+		ticker.Stop()
+	}
 	fetcher.Stop()
-	assert.GreaterOrEqual(nInterests, 4000)
+
+	fmt.Println(nInterests, "Interests in", time.Since(t0))
+	assert.GreaterOrEqual(nInterests, 5000)
+	assert.Less(nInterests, 6000)
 }

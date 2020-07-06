@@ -57,7 +57,7 @@ func printPeriodicCounters(app *ping.App, counterInterval time.Duration) {
 				stdlog.Printf("  client: %v", client.ReadCounters())
 			} else if fetcher := task.Fetch; fetcher != nil {
 				for i, last := 0, fetcher.CountProcs(); i < last; i++ {
-					cnt := fetcher.GetLogic(i).ReadCounters()
+					cnt := fetcher.Logic(i).ReadCounters()
 					stdlog.Printf("  fetch[%d]: %v", i, cnt)
 				}
 			}

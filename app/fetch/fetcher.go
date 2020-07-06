@@ -20,6 +20,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
+// FetcherConfig contains Fetcher configuration.
 type FetcherConfig struct {
 	NThreads       int
 	NProcs         int
@@ -28,12 +29,15 @@ type FetcherConfig struct {
 }
 
 // Fetcher controls fetch threads and fetch procedures on a face.
+// A fetch procedure retrieves Data under a single name prefix, and has independent congestion control.
+// A fetch thread runs on an lcore, and can serve multiple fetch procedures.
 type Fetcher struct {
 	fth          []*fetchThread
 	fp           []*C.FetchProc
 	nActiveProcs int
 }
 
+// New creates a Fetcher.
 func New(face iface.Face, cfg FetcherConfig) (*Fetcher, error) {
 	if cfg.NThreads == 0 {
 		cfg.NThreads = 1
@@ -72,47 +76,55 @@ func New(face iface.Face, cfg FetcherConfig) (*Fetcher, error) {
 		}
 		fp.pitToken = (C.uint64_t(i) << 56) | 0x6665746368 // 'fetch'
 		fetcher.fp[i] = fp
-		fetcher.GetLogic(i).Init(cfg.WindowCapacity, socket)
+		fetcher.Logic(i).Init(cfg.WindowCapacity, socket)
 	}
 
 	return fetcher, nil
 }
 
-func (fetcher *Fetcher) GetFace() iface.Face {
+// Face returns the face.
+func (fetcher *Fetcher) Face() iface.Face {
 	return iface.Get(iface.ID(fetcher.fth[0].c.face))
 }
 
+// CountThreads returns number of threads.
 func (fetcher *Fetcher) CountThreads() int {
 	return len(fetcher.fth)
 }
 
-func (fetcher *Fetcher) GetThread(i int) ealthread.Thread {
+// Thread returns i-th thread.
+func (fetcher *Fetcher) Thread(i int) ealthread.Thread {
 	return fetcher.fth[i]
 }
 
+// CountProcs returns number of fetch procedures.
 func (fetcher *Fetcher) CountProcs() int {
 	return len(fetcher.fp)
 }
 
-func (fetcher *Fetcher) GetRxQueue(i int) *pktqueue.PktQueue {
+// RxQueue returns the RX queue of i-th fetch procedure.
+func (fetcher *Fetcher) RxQueue(i int) *pktqueue.PktQueue {
 	return pktqueue.FromPtr(unsafe.Pointer(&fetcher.fp[i].rxQueue))
 }
 
-func (fetcher *Fetcher) GetLogic(i int) *Logic {
+// Logic returns the Logic of i-th fetch procedure.
+func (fetcher *Fetcher) Logic(i int) *Logic {
 	return LogicFromPtr(unsafe.Pointer(&fetcher.fp[i].logic))
 }
 
+// Reset resets all Logics.
 func (fetcher *Fetcher) Reset() {
 	for _, fth := range fetcher.fth {
 		fth.c.head.next = nil
 	}
 	for i := range fetcher.fp {
-		fetcher.GetLogic(i).Reset()
+		fetcher.Logic(i).Reset()
 	}
 	fetcher.nActiveProcs = 0
 }
 
-// Set name prefix and other InterestTemplate arguments.
+// AddTemplate sets name prefix and other InterestTemplate arguments.
+// Return index of fetch procedure.
 func (fetcher *Fetcher) AddTemplate(tplArgs ...interface{}) (i int, e error) {
 	i = fetcher.nActiveProcs
 	if i >= len(fetcher.fp) {
@@ -139,22 +151,25 @@ func (fetcher *Fetcher) AddTemplate(tplArgs ...interface{}) (i int, e error) {
 	return i, nil
 }
 
+// Launch launches all fetch threads.
 func (fetcher *Fetcher) Launch() {
 	for _, fth := range fetcher.fth {
 		fth.Launch()
 	}
 }
 
+// Stop stops all fetch threads.
 func (fetcher *Fetcher) Stop() {
 	for _, fth := range fetcher.fth {
 		fth.Stop()
 	}
 }
 
+// Close deallocates data structures.
 func (fetcher *Fetcher) Close() error {
 	for i, fp := range fetcher.fp {
-		fetcher.GetRxQueue(i).Close()
-		fetcher.GetLogic(i).Close()
+		fetcher.RxQueue(i).Close()
+		fetcher.Logic(i).Close()
 		eal.Free(fp)
 	}
 	for _, fth := range fetcher.fth {

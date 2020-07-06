@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// Counters contains counters of Logic.
 type Counters struct {
 	Time      time.Time
 	LastRtt   time.Duration
@@ -16,15 +17,17 @@ type Counters struct {
 	NRxData   uint64 // number of Data satisfying pending Interests
 }
 
+// ReadCounters retrieves counters.
 func (fl *Logic) ReadCounters() (cnt Counters) {
 	cnt.Time = time.Now()
-	cnt.LastRtt = fl.Rtte.GetLastRtt()
-	cnt.SRtt = fl.Rtte.GetSRtt()
-	cnt.Rto = fl.Rtte.GetRto()
-	cnt.Cwnd = fl.Ca.GetCwnd()
-	cnt.NInFlight = fl.NInFlight
-	cnt.NTxRetx = fl.NTxRetx
-	cnt.NRxData = fl.NRxData
+	rtte := fl.RttEst()
+	cnt.LastRtt = rtte.LastRtt()
+	cnt.SRtt = rtte.SRtt()
+	cnt.Rto = rtte.Rto()
+	cnt.Cwnd = fl.Cubic().Cwnd()
+	cnt.NInFlight = uint32(fl.ptr().nInFlight)
+	cnt.NTxRetx = uint64(fl.ptr().nTxRetx)
+	cnt.NRxData = uint64(fl.ptr().nRxData)
 	return cnt
 }
 
@@ -34,7 +37,7 @@ func (cnt Counters) String() string {
 		cnt.Cwnd, cnt.NInFlight, cnt.NTxRetx, cnt.NRxData)
 }
 
-// Compute goodput i.e. number of Data per second.
+// ComputeGoodput returns average number of Data per second.
 func (cnt Counters) ComputeGoodput(prev Counters) float64 {
 	t := cnt.Time.Sub(prev.Time).Seconds()
 	return float64(cnt.NRxData-prev.NRxData) / t
