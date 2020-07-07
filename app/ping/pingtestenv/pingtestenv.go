@@ -1,7 +1,6 @@
 package pingtestenv
 
 import (
-	"github.com/usnistgov/ndn-dpdk/app/inputdemux"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal/ealtestenv"
 	"github.com/usnistgov/ndn-dpdk/iface"
@@ -17,14 +16,12 @@ func Init() {
 	faceCfg.EnableSock = true
 	faceCfg.Apply()
 
-	Demux3 = inputdemux.NewDemux3(eal.Workers[0].NumaSocket())
-	Demux3.GetInterestDemux().InitFirst()
-	Demux3.GetDataDemux().InitFirst()
-	Demux3.GetNackDemux().InitFirst()
-
 	rxl := iface.NewRxLoop(eal.Workers[0].NumaSocket())
 	rxl.SetLCore(eal.Workers[0])
-	rxl.SetCallback(inputdemux.Demux3_FaceRx, Demux3.Ptr())
+	DemuxI, DemuxD, DemuxN = rxl.InterestDemux(), rxl.DataDemux(), rxl.NackDemux()
+	DemuxI.InitFirst()
+	DemuxD.InitFirst()
+	DemuxN.InitFirst()
 	rxl.Launch()
 	createface.AddRxLoop(rxl)
 
@@ -37,5 +34,9 @@ func Init() {
 // WorkerLCores is a list of unused lcores.
 var WorkerLCores []eal.LCore
 
-// Demux3 is the demuxer in RxLoop.
-var Demux3 *inputdemux.Demux3
+// Demuxes in RxLoop.
+var (
+	DemuxI *iface.InputDemux
+	DemuxD *iface.InputDemux
+	DemuxN *iface.InputDemux
+)

@@ -7,9 +7,9 @@
 #include "../dpdk/thread.h"
 #include "../fib/fib.h"
 #include "../iface/face.h"
+#include "../iface/pktqueue.h"
 #include "../pcct/cs.h"
 #include "../pcct/pit.h"
-#include "../pktqueue/queue.h"
 #include "../strategyapi/api.h"
 
 /** \brief Forwarding thread.
@@ -17,9 +17,9 @@
 typedef struct FwFwd
 {
   SgGlobal sgGlobal;
-  PktQueue inInterestQueue;
-  PktQueue inDataQueue;
-  PktQueue inNackQueue;
+  PktQueue queueI;
+  PktQueue queueD;
+  PktQueue queueN;
 
   Fib* fib;
   union
@@ -114,9 +114,9 @@ FwFwd_RxNack(FwFwd* fwd, FwFwdCtx* ctx);
 
 static const size_t FwFwd_OffsetofQueue[L3PktTypeMAX] = {
   SIZE_MAX,
-  offsetof(FwFwd, inInterestQueue),
-  offsetof(FwFwd, inDataQueue),
-  offsetof(FwFwd, inNackQueue),
+  offsetof(FwFwd, queueI),
+  offsetof(FwFwd, queueD),
+  offsetof(FwFwd, queueN),
 };
 
 #endif // NDN_DPDK_FWDP_FWD_H

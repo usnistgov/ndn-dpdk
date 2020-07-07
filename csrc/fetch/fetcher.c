@@ -64,12 +64,11 @@ FetchProc_Decode(FetchProc* fp, Packet* npkt, FetchLogicRxData* lpkt)
 static void
 FetchProc_RxBurst(FetchProc* fp)
 {
-  Packet* npkts[PKTQUEUE_BURST_SIZE_MAX];
-  uint32_t nRx = PktQueue_Pop(&fp->rxQueue, (struct rte_mbuf**)npkts, PKTQUEUE_BURST_SIZE_MAX,
-                              rte_get_tsc_cycles())
-                   .count;
+  Packet* npkts[MaxBurstSize];
+  uint32_t nRx =
+    PktQueue_Pop(&fp->rxQueue, (struct rte_mbuf**)npkts, MaxBurstSize, rte_get_tsc_cycles()).count;
 
-  FetchLogicRxData lpkts[PKTQUEUE_BURST_SIZE_MAX];
+  FetchLogicRxData lpkts[MaxBurstSize];
   size_t count = 0;
   for (uint16_t i = 0; i < nRx; ++i) {
     bool ok = FetchProc_Decode(fp, npkts[i], &lpkts[count]);

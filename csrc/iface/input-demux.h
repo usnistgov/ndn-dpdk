@@ -1,11 +1,11 @@
-#ifndef NDN_DPDK_INPUTDEMUX_DEMUX_H
-#define NDN_DPDK_INPUTDEMUX_DEMUX_H
+#ifndef NDN_DPDK_IFACE_INPUT_DEMUX_H
+#define NDN_DPDK_IFACE_INPUT_DEMUX_H
 
 /// \file
 
-#include "../iface/face.h"
 #include "../ndt/ndt.h"
-#include "../pktqueue/queue.h"
+#include "faceid.h"
+#include "pktqueue.h"
 
 typedef struct InputDemuxDest
 {
@@ -80,16 +80,4 @@ InputDemux_Dispatch(InputDemux* demux, Packet* npkt, const Name* name)
   (*demux->dispatch)(demux, npkt, name);
 }
 
-/** \brief Input packet demuxer for all three network layer packet types.
- */
-typedef struct InputDemux3
-{
-  InputDemux interest;
-  InputDemux data;
-  InputDemux nack;
-} InputDemux3;
-
-void
-InputDemux3_FaceRx(FaceRxBurst* burst, void* demux0);
-
-#endif // NDN_DPDK_INPUTDEMUX_DEMUX_H
+#endif // NDN_DPDK_IFACE_INPUT_DEMUX_H

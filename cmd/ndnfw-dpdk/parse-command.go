@@ -7,10 +7,10 @@ import (
 	"github.com/usnistgov/ndn-dpdk/container/fib"
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
 	"github.com/usnistgov/ndn-dpdk/container/pit"
-	"github.com/usnistgov/ndn-dpdk/container/pktqueue"
 	"github.com/usnistgov/ndn-dpdk/core/yamlflag"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
+	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/createface"
 )
 
@@ -24,9 +24,9 @@ type initConfig struct {
 }
 
 type fwdpInitConfig struct {
-	FwdInterestQueue  pktqueue.Config
-	FwdDataQueue      pktqueue.Config
-	FwdNackQueue      pktqueue.Config
+	FwdInterestQueue  iface.PktQueueConfig
+	FwdDataQueue      iface.PktQueueConfig
+	FwdNackQueue      iface.PktQueueConfig
 	LatencySampleFreq int
 	Suppress          pit.SuppressConfig
 	PcctCapacity      int

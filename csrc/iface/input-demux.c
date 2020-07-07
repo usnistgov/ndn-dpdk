@@ -1,4 +1,4 @@
-#include "demux.h"
+#include "input-demux.h"
 
 #include "../core/logger.h"
 
@@ -79,25 +79,4 @@ InputDemux_DispatchByToken(InputDemux* demux, Packet* npkt, const Name* name)
 
   uint8_t index = token >> 56;
   InputDemux_PassTo(demux, npkt, index);
-}
-
-void
-InputDemux3_FaceRx(FaceRxBurst* burst, void* demux0)
-{
-  InputDemux3* demux3 = (InputDemux3*)demux0;
-  for (uint16_t i = 0; i < burst->nInterests; ++i) {
-    Packet* npkt = FaceRxBurst_GetInterest(burst, i);
-    PInterest* interest = Packet_GetInterestHdr(npkt);
-    InputDemux_Dispatch(&demux3->interest, npkt, &interest->name);
-  }
-  for (uint16_t i = 0; i < burst->nData; ++i) {
-    Packet* npkt = FaceRxBurst_GetData(burst, i);
-    PData* data = Packet_GetDataHdr(npkt);
-    InputDemux_Dispatch(&demux3->data, npkt, &data->name);
-  }
-  for (uint16_t i = 0; i < burst->nNacks; ++i) {
-    Packet* npkt = FaceRxBurst_GetNack(burst, i);
-    PNack* nack = Packet_GetNackHdr(npkt);
-    InputDemux_Dispatch(&demux3->nack, npkt, &nack->interest.name);
-  }
 }

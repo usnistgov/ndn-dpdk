@@ -1,14 +1,14 @@
 package pingserver
 
 import (
-	"github.com/usnistgov/ndn-dpdk/container/pktqueue"
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
+	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 // Server config.
 type Config struct {
-	RxQueue  pktqueue.Config
+	RxQueue  iface.PktQueueConfig
 	Patterns []Pattern // traffic patterns
 	Nack     bool      // whether to respond Nacks to unmatched Interests
 }

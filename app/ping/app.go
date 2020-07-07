@@ -3,7 +3,6 @@ package ping
 import (
 	"fmt"
 
-	"github.com/usnistgov/ndn-dpdk/app/inputdemux"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/createface"
@@ -24,8 +23,7 @@ type App struct {
 }
 
 type Input struct {
-	rxl    *iface.RxLoop
-	demux3 *inputdemux.Demux3
+	rxl *iface.RxLoop
 }
 
 func New(cfg []TaskConfig) (app *App, e error) {
@@ -81,18 +79,19 @@ func (app *App) launchInput(input *Input) {
 		panic("RxLoop should have exactly one face")
 	}
 
-	input.demux3 = inputdemux.NewDemux3(input.rxl.NumaSocket())
-	input.demux3.GetInterestDemux().InitDrop()
-	input.demux3.GetDataDemux().InitDrop()
-	input.demux3.GetNackDemux().InitDrop()
+	demuxI := input.rxl.InterestDemux()
+	demuxD := input.rxl.DataDemux()
+	demuxN := input.rxl.NackDemux()
+	demuxI.InitDrop()
+	demuxD.InitDrop()
+	demuxN.InitDrop()
 
 	for _, task := range app.Tasks {
 		if task.Face.ID() != faces[0] {
 			continue
 		}
-		task.ConfigureDemux(input.demux3)
+		task.configureDemux(demuxI, demuxD, demuxN)
 	}
 
-	input.rxl.SetCallback(inputdemux.Demux3_FaceRx, input.demux3.Ptr())
 	input.rxl.Launch()
 }

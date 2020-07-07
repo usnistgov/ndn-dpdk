@@ -7,7 +7,6 @@ import "C"
 import (
 	"unsafe"
 
-	"github.com/usnistgov/ndn-dpdk/app/inputdemux"
 	"github.com/usnistgov/ndn-dpdk/container/cs"
 	"github.com/usnistgov/ndn-dpdk/container/fib"
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
@@ -69,7 +68,7 @@ type FwdInputCounter struct {
 	NCongMarks uint64 // inserted congestion marks
 }
 
-func (cnt *FwdInputCounter) add(m inputdemux.DestCounters) {
+func (cnt *FwdInputCounter) add(m iface.InputDemuxDestCounters) {
 	cnt.NDropped += m.NDropped
 	cnt.NQueued += m.NQueued
 }
@@ -96,13 +95,13 @@ func (dp *DataPlane) ReadFwdInfo(i int) (info *FwdInfo) {
 	info.IndirectMpUsage = mempool.FromPtr(unsafe.Pointer(fwd.c.indirectMp)).CountInUse()
 
 	for _, input := range dp.inputs {
-		info.InputInterest.add(input.demux3.GetInterestDemux().ReadDestCounters(i))
-		info.InputData.add(input.demux3.GetDataDemux().ReadDestCounters(i))
-		info.InputNack.add(input.demux3.GetNackDemux().ReadDestCounters(i))
+		info.InputInterest.add(input.rxl.InterestDemux().ReadDestCounters(i))
+		info.InputData.add(input.rxl.DataDemux().ReadDestCounters(i))
+		info.InputNack.add(input.rxl.NackDemux().ReadDestCounters(i))
 	}
-	info.InputInterest.NCongMarks = uint64(fwd.c.inInterestQueue.nDrops)
-	info.InputData.NCongMarks = uint64(fwd.c.inDataQueue.nDrops)
-	info.InputNack.NCongMarks = uint64(fwd.c.inNackQueue.nDrops)
+	info.InputInterest.NCongMarks = uint64(fwd.c.queueI.nDrops)
+	info.InputData.NCongMarks = uint64(fwd.c.queueD.nDrops)
+	info.InputNack.NCongMarks = uint64(fwd.c.queueN.nDrops)
 
 	return info
 }

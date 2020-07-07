@@ -141,7 +141,7 @@ func NewRxLoop(socket eal.NumaSocket) *RxLoop {
 		rxgs:   make(map[*C.RxGroup]IRxGroup),
 	}
 	rxl.Thread = ealthread.New(
-		cptr.VoidFunction(rxl.main),
+		cptr.CFunction(unsafe.Pointer(C.RxLoop_Run), unsafe.Pointer(rxl.c)),
 		ealthread.InitStopFlag(unsafe.Pointer(&rxl.c.stop)),
 	)
 	return rxl
@@ -157,21 +157,19 @@ func (rxl *RxLoop) NumaSocket() eal.NumaSocket {
 	return rxl.socket
 }
 
-// SetCallback assigns a C function and its argument to process received bursts.
-func (rxl *RxLoop) SetCallback(f, arg unsafe.Pointer) {
-	rxl.c.cb = C.Face_RxCb(f)
-	rxl.c.cbarg = arg
+// InterestDemux returns Interest demultiplexer.
+func (rxl *RxLoop) InterestDemux() *InputDemux {
+	return InputDemuxFromPtr(unsafe.Pointer(&rxl.c.demuxI))
 }
 
-func (rxl *RxLoop) main() {
-	rs := urcu.NewReadSide()
-	defer rs.Close()
+// DataDemux returns Data demultiplexer.
+func (rxl *RxLoop) DataDemux() *InputDemux {
+	return InputDemuxFromPtr(unsafe.Pointer(&rxl.c.demuxD))
+}
 
-	burst := NewRxBurst(64)
-	defer burst.Close()
-	rxl.c.burst = burst.ptr()
-
-	C.RxLoop_Run(rxl.c)
+// NackDemux returns Nack demultiplexer.
+func (rxl *RxLoop) NackDemux() *InputDemux {
+	return InputDemuxFromPtr(unsafe.Pointer(&rxl.c.demuxN))
 }
 
 // Close stops the thread and deallocates data structures.

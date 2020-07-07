@@ -10,7 +10,6 @@ import (
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/app/ping/pingmempool"
-	"github.com/usnistgov/ndn-dpdk/container/pktqueue"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
@@ -33,7 +32,7 @@ func New(face iface.Face, index int, cfg Config) (*Server, error) {
 	serverC := (*C.PingServer)(eal.Zmalloc("PingServer", C.sizeof_PingServer, socket))
 
 	cfg.RxQueue.DisableCoDel = true
-	if _, e := pktqueue.NewAt(unsafe.Pointer(&serverC.rxQueue), cfg.RxQueue, socket); e != nil {
+	if e := iface.PktQueueFromPtr(unsafe.Pointer(&serverC.rxQueue)).Init(cfg.RxQueue, socket); e != nil {
 		eal.Free(serverC)
 		return nil, nil
 	}
@@ -119,8 +118,8 @@ func (server *Server) AddPattern(cfg Pattern) (index int, e error) {
 	return index, nil
 }
 
-func (server *Server) RxQueue() *pktqueue.PktQueue {
-	return pktqueue.FromPtr(unsafe.Pointer(&server.c.rxQueue))
+func (server *Server) RxQueue() *iface.PktQueue {
+	return iface.PktQueueFromPtr(unsafe.Pointer(&server.c.rxQueue))
 }
 
 // Close the server.

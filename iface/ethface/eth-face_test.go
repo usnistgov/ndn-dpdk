@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/iface/ethface"
 	"github.com/usnistgov/ndn-dpdk/iface/ifacetestenv"
@@ -54,7 +55,7 @@ func TestEthFace(t *testing.T) {
 	assert.True(locAm.Local.Equal(macA))
 	assert.True(locAm.Remote.Equal(ethface.NdnMcastAddr))
 
-	vnet.LaunchBridge(eal.Workers[3])
+	vnet.LaunchBridge(ealthread.DefaultAllocator.Alloc("BRIDGE", eal.NumaSocket{}))
 	time.Sleep(time.Second)
 
 	fixtureBA := ifacetestenv.New(t, faceAB, faceBA)

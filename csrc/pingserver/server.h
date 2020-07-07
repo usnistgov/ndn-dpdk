@@ -5,7 +5,7 @@
 
 #include "../dpdk/thread.h"
 #include "../iface/face.h"
-#include "../pktqueue/queue.h"
+#include "../iface/pktqueue.h"
 #include "../vendor/pcg_basic.h"
 
 #define PINGSERVER_MAX_PATTERNS 256

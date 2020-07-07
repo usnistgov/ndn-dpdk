@@ -7,7 +7,7 @@
 
 #include "../core/running-stat.h"
 #include "../dpdk/thread.h"
-#include "../pktqueue/queue.h"
+#include "../iface/pktqueue.h"
 
 /** \brief Per-pattern information in ndnping client.
  */

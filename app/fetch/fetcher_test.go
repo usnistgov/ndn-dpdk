@@ -27,7 +27,7 @@ func TestFetcher(t *testing.T) {
 	require.NoError(e)
 	defer fetcher.Close()
 	fetcher.Thread(0).SetLCore(pingtestenv.WorkerLCores[0])
-	pingtestenv.Demux3.GetDataDemux().SetDest(0, fetcher.RxQueue(0))
+	pingtestenv.DemuxD.SetDest(0, fetcher.RxQueue(0))
 
 	nInterests := 0
 	go func() {

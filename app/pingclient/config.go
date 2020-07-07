@@ -1,14 +1,14 @@
 package pingclient
 
 import (
-	"github.com/usnistgov/ndn-dpdk/container/pktqueue"
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
+	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 // Client config.
 type Config struct {
-	RxQueue  pktqueue.Config
+	RxQueue  iface.PktQueueConfig
 	Patterns []Pattern              // traffic patterns
 	Interval nnduration.Nanoseconds // sending interval
 }

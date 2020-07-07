@@ -1,13 +1,11 @@
-#ifndef NDN_DPDK_PKTQUEUE_QUEUE_H
-#define NDN_DPDK_PKTQUEUE_QUEUE_H
+#ifndef NDN_DPDK_IFACE_PKTQUEUE_H
+#define NDN_DPDK_IFACE_PKTQUEUE_H
 
 /// \file
 
 #include "../dpdk/mbuf.h"
-#include "../dpdk/tsc.h"
+#include "common.h"
 #include <rte_ring.h>
-
-#define PKTQUEUE_BURST_SIZE_MAX 64
 
 /** \brief A packet queue with simplified CoDel algorithm.
  */
@@ -86,4 +84,4 @@ PktQueue_PopDelay(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime 
 PktQueuePopResult
 PktQueue_PopCoDel(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime now);
 
-#endif // NDN_DPDK_PKTQUEUE_QUEUE_H
+#endif // NDN_DPDK_IFACE_PKTQUEUE_H

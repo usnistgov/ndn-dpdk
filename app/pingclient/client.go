@@ -13,7 +13,6 @@ import (
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/app/ping/pingmempool"
-	"github.com/usnistgov/ndn-dpdk/container/pktqueue"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
@@ -35,7 +34,7 @@ func New(face iface.Face, cfg Config) (*Client, error) {
 	socket := face.NumaSocket()
 	rxC := (*C.PingClientRx)(eal.Zmalloc("PingClientRx", C.sizeof_PingClientRx, socket))
 	cfg.RxQueue.DisableCoDel = true
-	if _, e := pktqueue.NewAt(unsafe.Pointer(&rxC.rxQueue), cfg.RxQueue, socket); e != nil {
+	if e := iface.PktQueueFromPtr(unsafe.Pointer(&rxC.rxQueue)).Init(cfg.RxQueue, socket); e != nil {
 		eal.Free(rxC)
 		return nil, nil
 	}
@@ -132,8 +131,8 @@ func (client *Client) SetInterval(interval time.Duration) {
 	client.txC.burstInterval = C.TscDuration(eal.ToTscDuration(interval * C.PINGCLIENT_TX_BURST_SIZE))
 }
 
-func (client *Client) RxQueue() *pktqueue.PktQueue {
-	return pktqueue.FromPtr(unsafe.Pointer(&client.rxC.rxQueue))
+func (client *Client) RxQueue() *iface.PktQueue {
+	return iface.PktQueueFromPtr(unsafe.Pointer(&client.rxC.rxQueue))
 }
 
 func (client *Client) SetLCores(rxLCore, txLCore eal.LCore) {

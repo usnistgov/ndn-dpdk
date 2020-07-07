@@ -5,7 +5,6 @@
 
 #include "faceid.h"
 #include "rx-proc.h"
-#include "rxburst.h"
 #include "tx-proc.h"
 
 #include "../core/urcu.h"
@@ -60,8 +59,6 @@ Face_Get(FaceID id)
   return &gFaces[id];
 }
 
-// ---- functions invoked by user of face system ----
-
 /** \brief Return whether the face is DOWN.
  */
 static inline bool
@@ -70,13 +67,6 @@ Face_IsDown(FaceID faceID)
   Face* face = Face_Get(faceID);
   return face->state != FaceStateUp;
 }
-
-/** \brief Callback upon packet arrival.
- *
- *  Face base type does not directly provide RX function. Each face
- *  implementation shall have an RxLoop function that accepts this callback.
- */
-typedef void (*Face_RxCb)(FaceRxBurst* burst, void* cbarg);
 
 /** \brief Send a burst of packets.
  *  \param npkts array of L3 packets; face takes ownership
@@ -107,16 +97,5 @@ Face_Tx(FaceID faceID, Packet* npkt)
 {
   Face_TxBurst(faceID, &npkt, 1);
 }
-
-// ---- functions invoked by face implementation ----
-
-/** \brief Process received frames and invoke upper layer callback.
- *  \param burst FaceRxBurst_GetScratch(burst) must contain received frames.
- *               frame->port indicates FaceID, and frame->timestamp should be set.
- *  \param rxThread RX thread number within each face. Threads receiving frames on the
- *                  same face must use distinct numbers to avoid race condition.
- */
-void
-FaceImpl_RxBurst(FaceRxBurst* burst, uint16_t nFrames, int rxThread, Face_RxCb cb, void* cbarg);
 
 #endif // NDN_DPDK_IFACE_FACE_H

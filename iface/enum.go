@@ -6,6 +6,12 @@ import (
 	"strconv"
 )
 
+const (
+	MaxBurstSize = 64
+
+	_ = "enumgen"
+)
+
 // State indicates face state.
 type State uint8
 

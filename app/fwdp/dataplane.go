@@ -12,7 +12,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
 	"github.com/usnistgov/ndn-dpdk/container/pcct"
 	"github.com/usnistgov/ndn-dpdk/container/pit"
-	"github.com/usnistgov/ndn-dpdk/container/pktqueue"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
@@ -26,9 +25,9 @@ type Config struct {
 	Suppress pit.SuppressConfig // PIT suppression config
 
 	Crypto            CryptoConfig
-	FwdInterestQueue  pktqueue.Config
-	FwdDataQueue      pktqueue.Config
-	FwdNackQueue      pktqueue.Config
+	FwdInterestQueue  iface.PktQueueConfig
+	FwdDataQueue      iface.PktQueueConfig
+	FwdNackQueue      iface.PktQueueConfig
 	LatencySampleFreq int // latency sample frequency, between 0 and 30
 }
 

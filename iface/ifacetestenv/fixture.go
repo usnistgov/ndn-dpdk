@@ -1,35 +1,38 @@
 package ifacetestenv
 
 import (
-	"io"
 	"testing"
 	"time"
+	"unsafe"
 
-	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
 )
 
+var makeAR = testenv.MakeAR
+
 // Fixture runs a test that sends and receives packets between a pair of connected faces.
 type Fixture struct {
 	t *testing.T
 
-	PayloadLen    int       // Data payload length
-	TxLoops       int       // number of TX loops
-	LossTolerance float64   // permitted packet loss
-	RxLCore       eal.LCore // LCore for executing RxLoop
-	TxLCore       eal.LCore // LCore for executing TxLoop
-	SendLCore     eal.LCore // LCore for executing sendProc
+	PayloadLen    int     // Data payload length
+	TxLoops       int     // number of TX loops
+	LossTolerance float64 // permitted packet loss
 
 	rxFace    iface.Face
 	rxDiscard map[iface.ID]iface.Face
-	rxl       *iface.RxLoop
 	txFace    iface.Face
-	txl       iface.TxLoop
+
+	rxQueueI *iface.PktQueue
+	rxQueueD *iface.PktQueue
+	rxQueueN *iface.PktQueue
+	rxStop   chan bool
 
 	NRxInterests int
 	NRxData      int
@@ -44,12 +47,10 @@ func New(t *testing.T, rxFace, txFace iface.Face) (fixture *Fixture) {
 	fixture.TxLoops = 10000
 	fixture.LossTolerance = 0.1
 
-	fixture.RxLCore = eal.Workers[0]
-	fixture.TxLCore = eal.Workers[1]
-	fixture.SendLCore = eal.Workers[2]
-
 	fixture.rxFace = rxFace
 	fixture.rxDiscard = make(map[iface.ID]iface.Face)
+	fixture.rxStop = make(chan bool)
+
 	fixture.txFace = txFace
 
 	CheckLocatorMarshal(t, rxFace.Locator())
@@ -64,67 +65,94 @@ func (fixture *Fixture) AddRxDiscard(face iface.Face) {
 
 // RunTest executes the test.
 func (fixture *Fixture) RunTest() {
-	cancelRxBurstCallback := fixture.launchRx()
-	defer cancelRxBurstCallback.Close()
-	fixture.txl = iface.NewTxLoop(fixture.txFace.NumaSocket())
-	fixture.txl.SetLCore(fixture.TxLCore)
-	fixture.txl.Launch()
-	fixture.txl.AddFace(fixture.txFace)
-	time.Sleep(200 * time.Millisecond)
+	rxl := fixture.initRxl()
+	txl := fixture.initTxl()
 
-	fixture.SendLCore.RemoteLaunch(cptr.VoidFunction(fixture.sendProc))
-	fixture.SendLCore.Wait()
+	go fixture.recvProc()
+	fixture.sendProc()
 	time.Sleep(800 * time.Millisecond)
+	fixture.rxStop <- true
 
-	fixture.txl.Stop()
-	fixture.rxl.Stop()
-	fixture.txl.Close()
-	fixture.rxl.Close()
+	txl.Close()
+	rxl.Close()
+	eal.Free(fixture.rxQueueI)
+	eal.Free(fixture.rxQueueD)
+	eal.Free(fixture.rxQueueN)
+	ealthread.DefaultAllocator.Clear()
 }
 
-func (fixture *Fixture) launchRx() (cancelRxBurstCallback io.Closer) {
-	assert, require := testenv.MakeAR(fixture.t)
+func (fixture *Fixture) initRxl() *iface.RxLoop {
+	_, require := makeAR(fixture.t)
 
-	fixture.rxl = iface.NewRxLoop(fixture.rxFace.NumaSocket())
-	fixture.rxl.SetLCore(fixture.RxLCore)
+	rxl := iface.NewRxLoop(fixture.rxFace.NumaSocket())
+	fixture.rxQueueI = fixture.preparePktQueue(rxl.InterestDemux())
+	fixture.rxQueueD = fixture.preparePktQueue(rxl.DataDemux())
+	fixture.rxQueueN = fixture.preparePktQueue(rxl.NackDemux())
 
-	f, arg, cancelRxBurstCallback := iface.WrapRxBurstCallback(func(burst *iface.RxBurst) {
-		check := func(l3pkt ndni.IL3Packet) (increment int) {
-			pkt := l3pkt.AsPacket().AsMbuf()
-			faceID := iface.ID(pkt.Port())
-			if _, ok := fixture.rxDiscard[faceID]; !ok {
-				assert.Equal(fixture.rxFace.ID(), faceID)
-				assert.NotZero(pkt.Timestamp())
-				increment = 1
-			}
-			pkt.Close()
-			return increment
-		}
-
-		for _, interest := range burst.ListInterests() {
-			fixture.NRxInterests += check(interest)
-		}
-		for _, data := range burst.ListData() {
-			fixture.NRxData += check(data)
-		}
-		for _, nack := range burst.ListNacks() {
-			fixture.NRxNacks += check(nack)
-		}
-	})
-	fixture.rxl.SetCallback(f, arg)
-
-	require.NoError(fixture.rxl.Launch())
+	require.NoError(ealthread.Launch(rxl))
 	time.Sleep(50 * time.Millisecond)
 	for _, rxg := range fixture.rxFace.ListRxGroups() {
-		require.NoError(fixture.rxl.AddRxGroup(rxg))
+		require.NoError(rxl.AddRxGroup(rxg))
 	}
 	for _, face := range fixture.rxDiscard {
 		for _, rxg := range face.ListRxGroups() {
-			fixture.rxl.AddRxGroup(rxg)
+			rxl.AddRxGroup(rxg)
 		}
 	}
+	return rxl
+}
 
-	return cancelRxBurstCallback
+func (fixture *Fixture) preparePktQueue(demux *iface.InputDemux) *iface.PktQueue {
+	q := (*iface.PktQueue)(eal.Zmalloc("PktQueue", unsafe.Sizeof(iface.PktQueue{}), eal.NumaSocket{}))
+	q.Init(iface.PktQueueConfig{}, eal.NumaSocket{})
+	demux.InitFirst()
+	demux.SetDest(0, q)
+	return q
+}
+
+func (fixture *Fixture) initTxl() iface.TxLoop {
+	_, require := makeAR(fixture.t)
+	txl := iface.NewTxLoop(fixture.txFace.NumaSocket())
+	require.NoError(ealthread.Launch(txl))
+	txl.AddFace(fixture.txFace)
+	time.Sleep(200 * time.Millisecond)
+	return txl
+}
+
+func (fixture *Fixture) recvProc() {
+	pkts := make([]*pktmbuf.Packet, iface.MaxBurstSize)
+	for {
+		select {
+		case <-fixture.rxStop:
+			return
+		default:
+		}
+		now := eal.TscNow()
+		count, _ := fixture.rxQueueI.Pop(pkts, now)
+		for _, pkt := range pkts[:count] {
+			fixture.NRxInterests += fixture.recvCheck(pkt)
+		}
+		count, _ = fixture.rxQueueD.Pop(pkts, now)
+		for _, pkt := range pkts[:count] {
+			fixture.NRxData += fixture.recvCheck(pkt)
+		}
+		count, _ = fixture.rxQueueN.Pop(pkts, now)
+		for _, pkt := range pkts[:count] {
+			fixture.NRxNacks += fixture.recvCheck(pkt)
+		}
+	}
+}
+
+func (fixture *Fixture) recvCheck(pkt *pktmbuf.Packet) (increment int) {
+	assert, _ := makeAR(fixture.t)
+	faceID := iface.ID(pkt.Port())
+	if fixture.rxDiscard[faceID] == nil {
+		assert.Equal(fixture.rxFace.ID(), faceID)
+		assert.NotZero(pkt.Timestamp())
+		increment = 1
+	}
+	pkt.Close()
+	return increment
 }
 
 func (fixture *Fixture) sendProc() {
@@ -141,7 +169,7 @@ func (fixture *Fixture) sendProc() {
 
 // CheckCounters checks the counters are within acceptable range.
 func (fixture *Fixture) CheckCounters() {
-	assert, _ := testenv.MakeAR(fixture.t)
+	assert, _ := makeAR(fixture.t)
 
 	txCnt := fixture.txFace.ReadCounters()
 	assert.Equal(3*fixture.TxLoops, int(txCnt.TxFrames))

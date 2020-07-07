@@ -1,7 +1,7 @@
 #include "rx.h"
 
 #include "../core/logger.h"
-#include "../ndn/packet.h"
+#include "../iface/face.h"
 #include "token.h"
 
 INIT_ZF_LOG(PingClient);
@@ -65,12 +65,12 @@ PingClientRx_ProcessNack(PingClientRx* cr, Packet* npkt)
 int
 PingClientRx_Run(PingClientRx* cr)
 {
-  Packet* npkts[PKTQUEUE_BURST_SIZE_MAX];
+  Packet* npkts[MaxBurstSize];
 
   while (ThreadStopFlag_ShouldContinue(&cr->stop)) {
-    uint32_t nRx = PktQueue_Pop(&cr->rxQueue, (struct rte_mbuf**)npkts, PKTQUEUE_BURST_SIZE_MAX,
-                                rte_get_tsc_cycles())
-                     .count;
+    uint32_t nRx =
+      PktQueue_Pop(&cr->rxQueue, (struct rte_mbuf**)npkts, MaxBurstSize, rte_get_tsc_cycles())
+        .count;
     for (uint16_t i = 0; i < nRx; ++i) {
       Packet* npkt = npkts[i];
       if (unlikely(Packet_GetL2PktType(npkt) != L2PktTypeNdnlpV2)) {

@@ -13,25 +13,25 @@ import (
 	"github.com/usnistgov/ndn-dpdk/container/fib"
 	"github.com/usnistgov/ndn-dpdk/container/pcct"
 	"github.com/usnistgov/ndn-dpdk/container/pit"
-	"github.com/usnistgov/ndn-dpdk/container/pktqueue"
 	"github.com/usnistgov/ndn-dpdk/container/strategycode"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/runningstat"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
+	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 // Forwarding thread.
 type Fwd struct {
 	ealthread.Thread
-	id            int
-	c             *C.FwFwd
-	pcct          *pcct.Pcct
-	interestQueue *pktqueue.PktQueue
-	dataQueue     *pktqueue.PktQueue
-	nackQueue     *pktqueue.PktQueue
+	id     int
+	c      *C.FwFwd
+	pcct   *pcct.Pcct
+	queueI *iface.PktQueue
+	queueD *iface.PktQueue
+	queueN *iface.PktQueue
 }
 
 func newFwd(id int) *Fwd {
@@ -44,7 +44,7 @@ func (fwd *Fwd) String() string {
 	return fmt.Sprintf("fwd%d", fwd.id)
 }
 
-func (fwd *Fwd) Init(lc eal.LCore, fib *fib.Fib, pcctCfg pcct.Config, interestQueueCfg, dataQueueCfg, nackQueueCfg pktqueue.Config,
+func (fwd *Fwd) Init(lc eal.LCore, fib *fib.Fib, pcctCfg pcct.Config, qcfgI, qcfgD, qcfgN iface.PktQueueConfig,
 	latencySampleFreq int, suppressCfg pit.SuppressConfig) (e error) {
 	socket := lc.NumaSocket()
 
@@ -56,14 +56,17 @@ func (fwd *Fwd) Init(lc eal.LCore, fib *fib.Fib, pcctCfg pcct.Config, interestQu
 	)
 	fwd.SetLCore(lc)
 
-	if fwd.interestQueue, e = pktqueue.NewAt(unsafe.Pointer(&fwd.c.inInterestQueue), interestQueueCfg, socket); e != nil {
-		return nil
+	fwd.queueI = iface.PktQueueFromPtr(unsafe.Pointer(&fwd.c.queueI))
+	if e := fwd.queueI.Init(qcfgI, socket); e != nil {
+		return e
 	}
-	if fwd.dataQueue, e = pktqueue.NewAt(unsafe.Pointer(&fwd.c.inDataQueue), dataQueueCfg, socket); e != nil {
-		return nil
+	fwd.queueD = iface.PktQueueFromPtr(unsafe.Pointer(&fwd.c.queueD))
+	if e := fwd.queueD.Init(qcfgD, socket); e != nil {
+		return e
 	}
-	if fwd.nackQueue, e = pktqueue.NewAt(unsafe.Pointer(&fwd.c.inNackQueue), nackQueueCfg, socket); e != nil {
-		return nil
+	fwd.queueN = iface.PktQueueFromPtr(unsafe.Pointer(&fwd.c.queueN))
+	if e := fwd.queueN.Init(qcfgN, socket); e != nil {
+		return e
 	}
 
 	fwd.c.fib = (*C.Fib)(fib.Ptr(fwd.id))
@@ -90,9 +93,9 @@ func (fwd *Fwd) Init(lc eal.LCore, fib *fib.Fib, pcctCfg pcct.Config, interestQu
 
 func (fwd *Fwd) Close() error {
 	fwd.Stop()
-	fwd.interestQueue.Close()
-	fwd.dataQueue.Close()
-	fwd.nackQueue.Close()
+	fwd.queueI.Close()
+	fwd.queueD.Close()
+	fwd.queueN.Close()
 	fwd.pcct.Close()
 	eal.Free(fwd.c)
 	return nil

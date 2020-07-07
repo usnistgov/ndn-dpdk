@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"unsafe"
 
-	"github.com/usnistgov/ndn-dpdk/app/inputdemux"
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/cryptodev"
@@ -16,6 +15,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/mempool"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
+	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
 type CryptoConfig struct {
@@ -27,7 +27,7 @@ type Crypto struct {
 	ealthread.Thread
 	id     int
 	c      *C.FwCrypto
-	demuxD *inputdemux.Demux
+	demuxD *iface.InputDemux
 	devS   *cryptodev.CryptoDev
 	devM   *cryptodev.CryptoDev
 }
@@ -69,10 +69,10 @@ func newCrypto(id int, lc eal.LCore, cfg CryptoConfig, ndt *ndt.Ndt, fwds []*Fwd
 	}
 	fwc.devM.QueuePair(0).CopyToC(unsafe.Pointer(&fwc.c.multiSeg))
 
-	fwc.demuxD = inputdemux.DemuxFromPtr(unsafe.Pointer(&fwc.c.output))
+	fwc.demuxD = iface.InputDemuxFromPtr(unsafe.Pointer(&fwc.c.output))
 	fwc.demuxD.InitNdt(ndt, id)
 	for i, fwd := range fwds {
-		fwc.demuxD.SetDest(i, fwd.dataQueue)
+		fwc.demuxD.SetDest(i, fwd.queueD)
 		fwd.c.crypto = fwc.c.input
 	}
 

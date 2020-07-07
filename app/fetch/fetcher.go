@@ -9,7 +9,6 @@ import (
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/app/ping/pingmempool"
-	"github.com/usnistgov/ndn-dpdk/container/pktqueue"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
@@ -23,7 +22,7 @@ import (
 type FetcherConfig struct {
 	NThreads       int
 	NProcs         int
-	RxQueue        pktqueue.Config
+	RxQueue        iface.PktQueueConfig
 	WindowCapacity int
 }
 
@@ -70,7 +69,7 @@ func New(face iface.Face, cfg FetcherConfig) (*Fetcher, error) {
 
 	for i := range fetcher.fp {
 		fp := (*C.FetchProc)(eal.Zmalloc("FetchProc", C.sizeof_FetchProc, socket))
-		if _, e := pktqueue.NewAt(unsafe.Pointer(&fp.rxQueue), cfg.RxQueue, socket); e != nil {
+		if e := iface.PktQueueFromPtr(unsafe.Pointer(&fp.rxQueue)).Init(cfg.RxQueue, socket); e != nil {
 			return nil, e
 		}
 		fp.pitToken = (C.uint64_t(i) << 56) | 0x6665746368 // 'fetch'
@@ -102,8 +101,8 @@ func (fetcher *Fetcher) CountProcs() int {
 }
 
 // RxQueue returns the RX queue of i-th fetch procedure.
-func (fetcher *Fetcher) RxQueue(i int) *pktqueue.PktQueue {
-	return pktqueue.FromPtr(unsafe.Pointer(&fetcher.fp[i].rxQueue))
+func (fetcher *Fetcher) RxQueue(i int) *iface.PktQueue {
+	return iface.PktQueueFromPtr(unsafe.Pointer(&fetcher.fp[i].rxQueue))
 }
 
 // Logic returns the Logic of i-th fetch procedure.

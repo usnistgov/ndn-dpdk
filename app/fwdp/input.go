@@ -3,7 +3,6 @@ package fwdp
 import (
 	"fmt"
 
-	"github.com/usnistgov/ndn-dpdk/app/inputdemux"
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/iface"
@@ -11,9 +10,8 @@ import (
 
 // Input thread.
 type Input struct {
-	id     int
-	demux3 *inputdemux.Demux3
-	rxl    *iface.RxLoop
+	id  int
+	rxl *iface.RxLoop
 }
 
 func newInput(id int, lc eal.LCore, ndt *ndt.Ndt, fwds []*Fwd) *Input {
@@ -21,27 +19,26 @@ func newInput(id int, lc eal.LCore, ndt *ndt.Ndt, fwds []*Fwd) *Input {
 	var fwi Input
 	fwi.id = id
 
-	fwi.demux3 = inputdemux.NewDemux3(socket)
-	demuxI := fwi.demux3.GetInterestDemux()
+	rxl := iface.NewRxLoop(socket)
+	rxl.SetLCore(lc)
+
+	demuxI := rxl.InterestDemux()
 	demuxI.InitNdt(ndt, id)
-	demuxD := fwi.demux3.GetDataDemux()
+	demuxD := rxl.DataDemux()
 	demuxD.InitToken()
-	demuxN := fwi.demux3.GetNackDemux()
+	demuxN := rxl.NackDemux()
 	demuxN.InitToken()
 	for i, fwd := range fwds {
-		demuxI.SetDest(i, fwd.interestQueue)
-		demuxD.SetDest(i, fwd.dataQueue)
-		demuxN.SetDest(i, fwd.nackQueue)
+		demuxI.SetDest(i, fwd.queueI)
+		demuxD.SetDest(i, fwd.queueD)
+		demuxN.SetDest(i, fwd.queueN)
 	}
 
-	fwi.rxl = iface.NewRxLoop(socket)
-	fwi.rxl.SetLCore(lc)
-	fwi.rxl.SetCallback(inputdemux.Demux3_FaceRx, fwi.demux3.Ptr())
+	fwi.rxl = rxl
 	return &fwi
 }
 
 func (fwi *Input) Close() error {
-	fwi.demux3.Close()
 	return fwi.rxl.Close()
 }
 

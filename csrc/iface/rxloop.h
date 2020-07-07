@@ -5,6 +5,7 @@
 
 #include "../dpdk/thread.h"
 #include "face.h"
+#include "input-demux.h"
 
 typedef struct RxGroup RxGroup;
 
@@ -20,7 +21,7 @@ typedef struct RxGroup
 {
   struct cds_hlist_node rxlNode;
   RxGroup_RxBurst rxBurstOp;
-  int rxThread; ///< RX thread number for FaceImpl_RxBurst
+  int rxThread; ///< RX thread number for RxProc_Input
 } RxGroup;
 
 extern RxGroup theChanRxGroup_;
@@ -29,15 +30,15 @@ extern RxGroup theChanRxGroup_;
  */
 typedef struct RxLoop
 {
-  FaceRxBurst* burst;
-  Face_RxCb cb;
-  void* cbarg;
+  InputDemux demuxI;
+  InputDemux demuxD;
+  InputDemux demuxN;
 
   struct cds_hlist_head head;
   ThreadStopFlag stop;
 } RxLoop;
 
-void
+int
 RxLoop_Run(RxLoop* rxl);
 
 #endif // NDN_DPDK_IFACE_RXLOOP_H

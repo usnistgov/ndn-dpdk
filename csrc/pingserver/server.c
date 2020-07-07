@@ -115,13 +115,13 @@ PingServer_ProcessInterest(PingServer* server, Packet* npkt)
 int
 PingServer_Run(PingServer* server)
 {
-  Packet* rx[PKTQUEUE_BURST_SIZE_MAX];
-  Packet* tx[PKTQUEUE_BURST_SIZE_MAX];
+  Packet* rx[MaxBurstSize];
+  Packet* tx[MaxBurstSize];
 
   while (ThreadStopFlag_ShouldContinue(&server->stop)) {
-    uint32_t nRx = PktQueue_Pop(&server->rxQueue, (struct rte_mbuf**)rx, PKTQUEUE_BURST_SIZE_MAX,
-                                rte_get_tsc_cycles())
-                     .count;
+    uint32_t nRx =
+      PktQueue_Pop(&server->rxQueue, (struct rte_mbuf**)rx, MaxBurstSize, rte_get_tsc_cycles())
+        .count;
     if (unlikely(nRx == 0)) {
       rte_pause();
       continue;

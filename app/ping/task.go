@@ -2,7 +2,6 @@ package ping
 
 import (
 	"github.com/usnistgov/ndn-dpdk/app/fetch"
-	"github.com/usnistgov/ndn-dpdk/app/inputdemux"
 	"github.com/usnistgov/ndn-dpdk/app/pingclient"
 	"github.com/usnistgov/ndn-dpdk/app/pingserver"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
@@ -52,11 +51,7 @@ func newTask(face iface.Face, cfg TaskConfig) (task Task, e error) {
 	return task, nil
 }
 
-func (task *Task) ConfigureDemux(demux3 *inputdemux.Demux3) {
-	demuxI := demux3.GetInterestDemux()
-	demuxD := demux3.GetDataDemux()
-	demuxN := demux3.GetNackDemux()
-
+func (task *Task) configureDemux(demuxI, demuxD, demuxN *iface.InputDemux) {
 	if nServers := len(task.Server); nServers > 0 {
 		demuxI.InitRoundrobin(nServers)
 		for i, server := range task.Server {

@@ -1,4 +1,4 @@
-#include "queue.h"
+#include "pktqueue.h"
 
 static inline PktQueuePopResult
 PktQueue_PopFromRing(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count)

@@ -5,7 +5,7 @@
 
 #include "../dpdk/thread.h"
 #include "../iface/face.h"
-#include "../pktqueue/queue.h"
+#include "../iface/pktqueue.h"
 #include "logic.h"
 
 /** \brief Fetch procedure that fetches from one prefix.

@@ -4,7 +4,6 @@
 /// \file
 
 #include "common.h"
-#include "enum.h"
 
 /** \brief Numeric face identifier.
  *
