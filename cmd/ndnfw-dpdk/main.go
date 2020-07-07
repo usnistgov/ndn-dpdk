@@ -6,7 +6,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/app/fwdp"
 	"github.com/usnistgov/ndn-dpdk/container/fib"
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
-	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealinit"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/mgmt/hrlog"
 )
@@ -14,7 +14,7 @@ import (
 var theDp *fwdp.DataPlane
 
 func main() {
-	initCfg, e := parseCommand(eal.Init(os.Args)[1:])
+	initCfg, e := parseCommand(ealinit.Init(os.Args)[1:])
 	if e != nil {
 		log.WithError(e).Fatal("command line error")
 	}

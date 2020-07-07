@@ -14,7 +14,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
-	"github.com/usnistgov/ndn-dpdk/spdk/spdkenv"
+	"github.com/usnistgov/ndn-dpdk/dpdk/spdkenv"
 )
 
 type listNvmesResult struct {
@@ -26,7 +26,7 @@ func ListNvmes() (nvmes []eal.PciAddress, e error) {
 	var result listNvmesResult
 	ctx := cptr.CtxPut(&result)
 	defer cptr.CtxClear(ctx)
-	res := spdkenv.MainThread.Call(func() int {
+	res := eal.CallMain(func() int {
 		res := C.spdk_nvme_probe(nil, ctx, C.spdk_nvme_probe_cb(unsafe.Pointer(C.go_nvmeProbed)), nil, nil)
 		return int(res)
 	}).(int)

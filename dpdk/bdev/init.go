@@ -1,7 +1,7 @@
 package bdev
 
 /*
-#include "../../csrc/spdk/bdev.h"
+#include "../../csrc/dpdk/bdev.h"
 #include <spdk/accel_engine.h>
 
 extern void go_bdevInitialized(void* ctx, int rc);
@@ -13,7 +13,6 @@ import (
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
-	"github.com/usnistgov/ndn-dpdk/spdk/spdkenv"
 )
 
 var initBdevLibOnce sync.Once
@@ -21,7 +20,7 @@ var initBdevLibOnce sync.Once
 // Initialize SPDK block device library.
 func initBdevLib() {
 	initBdevLibOnce.Do(func() {
-		spdkenv.MainThread.Call(func() { C.spdk_bdev_initialize(C.spdk_bdev_init_cb(C.go_bdevInitialized), nil) })
+		eal.CallMain(func() { C.spdk_bdev_initialize(C.spdk_bdev_init_cb(C.go_bdevInitialized), nil) })
 	})
 }
 
@@ -37,6 +36,6 @@ var initAccelEngineOnce sync.Once
 
 func initAccelEngine() {
 	initAccelEngineOnce.Do(func() {
-		spdkenv.MainThread.Call(func() { C.spdk_accel_engine_initialize() })
+		eal.CallMain(func() { C.spdk_accel_engine_initialize() })
 	})
 }

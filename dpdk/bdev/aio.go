@@ -3,7 +3,7 @@ package bdev
 import (
 	"fmt"
 
-	"github.com/usnistgov/ndn-dpdk/spdk/spdkenv"
+	"github.com/usnistgov/ndn-dpdk/dpdk/spdkenv"
 )
 
 // Aio represents a file-backed block device.

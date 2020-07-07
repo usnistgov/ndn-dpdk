@@ -1,15 +1,11 @@
 package spdkenv
 
 /*
-extern void go_SpdkThread_RecvMsg(void* ctx);
-extern void go_SpdkThread_InvokePoller(void* ctx);
-
-#include "../../csrc/spdk/thread.h"
+#include "../../csrc/dpdk/spdk-thread.h"
 */
 import "C"
 import (
 	"errors"
-	"reflect"
 	"sync"
 	"unsafe"
 
@@ -66,29 +62,12 @@ func (th *Thread) Close() error {
 	return nil
 }
 
+func (th *Thread) main() {
+	C.SpdkThread_Run(th.c)
+}
+
 // Post asynchronously posts a function to be executed on the SPDK thread.
-func (th *Thread) Post(f func()) {
-	C.spdk_thread_send_msg(th.c.spdkTh, C.spdk_msg_fn(C.go_SpdkThread_RecvMsg), cptr.CtxPut(f))
-}
-
-// Call executes a function on the SPDK thread and waits for its completion.
-// f must be a function with zero parameters and zero or one return values.
-// Returns f's return value, or nil if f does not have a return value.
-func (th *Thread) Call(f interface{}) interface{} {
-	done := make(chan interface{})
-	th.Post(func() {
-		res := reflect.ValueOf(f).Call(nil)
-		if len(res) > 0 {
-			done <- res[0].Interface()
-		} else {
-			done <- nil
-		}
-	})
-	return <-done
-}
-
-//export go_SpdkThread_RecvMsg
-func go_SpdkThread_RecvMsg(ctx unsafe.Pointer) {
-	f := cptr.CtxPop(ctx).(func())
-	f()
+func (th *Thread) Post(fn cptr.Function) {
+	f, arg := fn.MakeCFunction()
+	C.spdk_thread_send_msg(th.c.spdkTh, C.spdk_msg_fn(f), arg)
 }

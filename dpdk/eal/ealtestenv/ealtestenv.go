@@ -7,8 +7,7 @@ import (
 	"strings"
 
 	"github.com/jaypipes/ghw"
-
-	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealinit"
 )
 
 // Init initializes EAL for testing purpose.
@@ -28,7 +27,7 @@ func Init(extraArgs ...string) (remainingArgs []string) {
 	}
 
 	args = append(args, extraArgs...)
-	return eal.Init(args)
+	return ealinit.Init(args)
 }
 
 func listCpus(max int) (cpus string, n int) {

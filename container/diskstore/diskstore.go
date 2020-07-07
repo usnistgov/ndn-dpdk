@@ -9,12 +9,13 @@ import (
 	"runtime"
 	"unsafe"
 
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
+	"github.com/usnistgov/ndn-dpdk/dpdk/bdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
+	"github.com/usnistgov/ndn-dpdk/dpdk/spdkenv"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"github.com/usnistgov/ndn-dpdk/spdk/bdev"
-	"github.com/usnistgov/ndn-dpdk/spdk/spdkenv"
 )
 
 // BlockSize is the supported bdev block size.
@@ -40,20 +41,20 @@ func New(device bdev.Device, th *spdkenv.Thread, mp *pktmbuf.Pool, nBlocksPerSlo
 		return nil, e
 	}
 
-	numaSocket := th.LCore().NumaSocket()
-	store.c = (*C.DiskStore)(eal.Zmalloc("DiskStore", C.sizeof_DiskStore, numaSocket))
+	socket := th.LCore().NumaSocket()
+	store.c = (*C.DiskStore)(eal.Zmalloc("DiskStore", C.sizeof_DiskStore, socket))
 	store.c.th = (*C.struct_spdk_thread)(th.Ptr())
 	store.c.bdev = (*C.struct_spdk_bdev_desc)(store.bd.Ptr())
 	store.c.mp = (*C.struct_rte_mempool)(mp.Ptr())
 	store.c.nBlocksPerSlot = C.uint64_t(nBlocksPerSlot)
 	store.c.blockSize = C.uint32_t(bdi.BlockSize())
-	th.Call(func() { store.c.ch = C.spdk_bdev_get_io_channel(store.c.bdev) })
+	cptr.Call(th.Post, func() { store.c.ch = C.spdk_bdev_get_io_channel(store.c.bdev) })
 	return store, nil
 }
 
 // Close closes this DiskStore.
 func (store *DiskStore) Close() error {
-	store.th.Call(func() { C.spdk_put_io_channel(store.c.ch) })
+	cptr.Call(store.th.Post, func() { C.spdk_put_io_channel(store.c.ch) })
 	eal.Free(store.c)
 	return store.bd.Close()
 }

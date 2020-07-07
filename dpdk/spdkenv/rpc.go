@@ -35,7 +35,7 @@ func initRPC() error {
 		return fmt.Errorf("spdk_rpc_listen error on %s", listenAddr)
 	}
 
-	rpcPoller = NewPoller(MainThread, func() { C.spdk_rpc_accept() }, 10*time.Millisecond)
+	rpcPoller = NewPoller(mainThread, func() { C.spdk_rpc_accept() }, 10*time.Millisecond)
 
 	rpcClient, e = jsonrpc2.Dial("tcp", listenAddr)
 	if e != nil {

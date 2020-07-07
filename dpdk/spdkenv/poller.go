@@ -1,10 +1,9 @@
 package spdkenv
 
 /*
-extern void go_SpdkThread_RecvMsg(void* ctx);
 extern void go_SpdkThread_InvokePoller(void* ctx);
 
-#include "../../csrc/spdk/thread.h"
+#include "../../csrc/dpdk/spdk-thread.h"
 */
 import "C"
 import (
@@ -39,7 +38,7 @@ func NewPollerC(th *Thread, f, arg unsafe.Pointer, d time.Duration) (poller *Pol
 }
 
 func (poller *Poller) start(f C.spdk_poller_fn, arg unsafe.Pointer, d time.Duration) {
-	poller.th.Call(func() {
+	cptr.Call(poller.th.Post, func() {
 		poller.c = C.spdk_poller_register(f, arg, C.uint64_t(d/time.Microsecond))
 	})
 }
@@ -52,7 +51,7 @@ func go_SpdkThread_InvokePoller(ctx unsafe.Pointer) {
 
 // Stop cancels periodical execution.
 func (poller *Poller) Stop() {
-	poller.th.Call(func() { C.spdk_poller_unregister(&poller.c) })
+	cptr.Call(poller.th.Post, func() { C.spdk_poller_unregister(&poller.c) })
 	if poller.ctx != nil {
 		cptr.CtxClear(poller.ctx)
 		poller.ctx = nil

@@ -6,11 +6,12 @@ import (
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/container/diskstore"
+	"github.com/usnistgov/ndn-dpdk/dpdk/bdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
+	"github.com/usnistgov/ndn-dpdk/dpdk/spdkenv"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"github.com/usnistgov/ndn-dpdk/spdk/bdev"
-	"github.com/usnistgov/ndn-dpdk/spdk/spdkenv"
 )
 
 func TestDiskStore(t *testing.T) {
@@ -20,11 +21,17 @@ func TestDiskStore(t *testing.T) {
 	require.NoError(e)
 	defer device.Close()
 
+	th, e := spdkenv.NewThread("TestDiskStore")
+	require.NoError(e)
+	defer th.Close()
+	e = ealthread.Launch(th)
+	require.NoError(e)
+
 	mp, e := pktmbuf.NewPool("TestDiskStore", ndni.PacketMempool.Config(), eal.NumaSocket{})
 	require.NoError(e)
 	defer mp.Close()
 
-	store, e := diskstore.New(device, spdkenv.MainThread, mp, 8)
+	store, e := diskstore.New(device, th, mp, 8)
 	require.NoError(e)
 	defer store.Close()
 

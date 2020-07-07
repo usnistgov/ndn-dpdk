@@ -3,9 +3,9 @@
 
 /// \file
 
+#include "../dpdk/bdev.h"
+#include "../dpdk/spdk-thread.h"
 #include "../ndn/packet.h"
-#include "../spdk/bdev.h"
-#include "../spdk/thread.h"
 
 /** \brief Expected block size of the underlying block device.
  */

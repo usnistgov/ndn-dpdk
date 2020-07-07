@@ -55,8 +55,7 @@ This software is developed at the [Advanced Network Technologies Division](https
 * [csrc](csrc): C source code.
 * [js](js): TypeScript source code.
 * [core](core): common shared code.
-* [dpdk](dpdk): DPDK bindings and extensions.
-* [spdk](spdk): SPDK bindings and extensions.
+* [dpdk](dpdk): bindings and extensions of DPDK and SPDK.
 * [ndni](ndni): NDN packet representation for internal use.
 * [iface](iface): network interfaces.
 * [container](container): data structures.

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/app/ping"
-	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealinit"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/mgmt"
 	"github.com/usnistgov/ndn-dpdk/mgmt/facemgmt"
@@ -15,7 +15,7 @@ import (
 )
 
 func main() {
-	pc, e := parseCommand(eal.Init(os.Args)[1:])
+	pc, e := parseCommand(ealinit.Init(os.Args)[1:])
 	if e != nil {
 		log.WithError(e).Fatal("command line error")
 	}

@@ -21,5 +21,9 @@ func TestFunction(t *testing.T) {
 	})))
 	assert.Equal(3961, n)
 
+	assert.Equal("OK", cptr.Call(
+		func(fn cptr.Function) { go invokeFunction(fn) },
+		func() string { return "OK" }))
+
 	assert.Equal(2424, invokeFunction(makeCFunction(2423)))
 }

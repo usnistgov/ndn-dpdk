@@ -1,7 +1,7 @@
 package bdev
 
 /*
-#include "../../csrc/spdk/bdev.h"
+#include "../../csrc/dpdk/bdev.h"
 */
 import "C"
 import (

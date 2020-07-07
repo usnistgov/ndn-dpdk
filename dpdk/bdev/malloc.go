@@ -1,7 +1,7 @@
 package bdev
 
 import (
-	"github.com/usnistgov/ndn-dpdk/spdk/spdkenv"
+	"github.com/usnistgov/ndn-dpdk/dpdk/spdkenv"
 )
 
 // Malloc represents a memory-backed block device.

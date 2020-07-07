@@ -63,18 +63,20 @@ func (lc LCore) NumaSocket() (socket NumaSocket) {
 
 // IsBusy returns true if this lcore is running a function.
 func (lc LCore) IsBusy() bool {
-	panicInWorker("LCore.IsBusy()")
-	return C.rte_eal_get_lcore_state(C.uint(lc.ID())) != C.WAIT
+	return CallMain(func() bool {
+		return C.rte_eal_get_lcore_state(C.uint(lc.ID())) != C.WAIT
+	}).(bool)
 }
 
 // RemoteLaunch asynchronously launches a function on this lcore.
 func (lc LCore) RemoteLaunch(fn cptr.Function) error {
-	panicInWorker("LCore.RemoteLaunch()")
 	if !lc.Valid() {
 		panic("invalid lcore")
 	}
-	f, arg := fn.MakeCFunction()
-	res := C.rte_eal_remote_launch((*C.lcore_function_t)(f), arg, C.uint(lc.ID()))
+	res := CallMain(func() C.int {
+		f, arg := fn.MakeCFunction()
+		return C.rte_eal_remote_launch((*C.lcore_function_t)(f), arg, C.uint(lc.ID()))
+	}).(C.int)
 	if res != 0 {
 		return Errno(-res)
 	}
@@ -84,15 +86,7 @@ func (lc LCore) RemoteLaunch(fn cptr.Function) error {
 // Wait blocks until this lcore finishes running, and returns lcore function's return value.
 // If this lcore is not running, returns 0 immediately.
 func (lc LCore) Wait() int {
-	panicInWorker("LCore.Wait()")
-	return int(C.rte_eal_wait_lcore(C.uint(lc.ID())))
-}
-
-// Prevent a function from executing in worker lcore.
-func panicInWorker(funcName string) {
-	lc := CurrentLCore()
-	if lc.Valid() && lc.ID() != Initial.ID() {
-		log.Panicf("%s is unavailable in worker lcore; current=%v initial=%v", funcName, lc, Initial)
-	}
-	// 'invalid' lcore is permitted, because Go runtime could use another thread
+	return CallMain(func() int {
+		return int(C.rte_eal_wait_lcore(C.uint(lc.ID())))
+	}).(int)
 }

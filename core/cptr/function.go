@@ -1,6 +1,7 @@
 package cptr
 
 import (
+	"reflect"
 	"unsafe"
 )
 
@@ -35,6 +36,23 @@ func VoidFunction(f func()) Function {
 		f()
 		return 0
 	})
+}
+
+// Call wraps a Go function as Function and immediately uses it.
+// post is a function that asynchronously invokes fn.
+// f must be a function with zero parameters and zero or one return values.
+// Returns f's return value, or nil if f does not have a return value.
+func Call(post func(fn Function), f interface{}) interface{} {
+	done := make(chan interface{})
+	post(VoidFunction(func() {
+		res := reflect.ValueOf(f).Call(nil)
+		if len(res) > 0 {
+			done <- res[0].Interface()
+		} else {
+			done <- nil
+		}
+	}))
+	return <-done
 }
 
 type functionC struct {

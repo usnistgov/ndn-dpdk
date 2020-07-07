@@ -7,8 +7,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/usnistgov/ndn-dpdk/dpdk/bdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
-	"github.com/usnistgov/ndn-dpdk/spdk/bdev"
 )
 
 const (

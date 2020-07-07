@@ -1,9 +1,9 @@
-#ifndef NDN_DPDK_SPDK_BDEV_H
-#define NDN_DPDK_SPDK_BDEV_H
+#ifndef NDN_DPDK_DPDK_BDEV_H
+#define NDN_DPDK_DPDK_BDEV_H
 
 /// \file
 
-#include "../dpdk/mbuf.h"
+#include "mbuf.h"
 #include <spdk/bdev.h>
 
 /** \brief Maximum number of segments in packet acceptable to
