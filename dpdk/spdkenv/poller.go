@@ -1,9 +1,9 @@
 package spdkenv
 
 /*
-extern void go_SpdkThread_InvokePoller(void* ctx);
-
 #include "../../csrc/dpdk/spdk-thread.h"
+
+extern int go_SpdkThread_InvokePoller(void* ctx);
 */
 import "C"
 import (
@@ -44,9 +44,10 @@ func (poller *Poller) start(f C.spdk_poller_fn, arg unsafe.Pointer, d time.Durat
 }
 
 //export go_SpdkThread_InvokePoller
-func go_SpdkThread_InvokePoller(ctx unsafe.Pointer) {
+func go_SpdkThread_InvokePoller(ctx unsafe.Pointer) C.int {
 	f := cptr.CtxGet(ctx).(func())
 	f()
+	return -1
 }
 
 // Stop cancels periodical execution.

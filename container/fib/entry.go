@@ -45,7 +45,7 @@ func (entry *Entry) SetName(name ndn.Name) error {
 	return nil
 }
 
-// Nexthops returns a list of nexthops.
+// ListNexthops returns a list of nexthops.
 func (entry *Entry) ListNexthops() (nexthops []iface.ID) {
 	c := (*CEntry)(entry)
 	nexthops = make([]iface.ID, int(c.NNexthops))
@@ -82,7 +82,7 @@ func (entry *Entry) SetStrategy(sc strategycode.StrategyCode) {
 	c.Union_strategy_realEntry = (*byte)(sc.Ptr())
 }
 
-// SeqNum returns FIB insertion sequence number.
+// FibSeqNum returns FIB insertion sequence number.
 // This number is automatically assigned when a FIB entry is inserted/overwritten.
 // Its change signifies that the FIB entry has been updated.
 // This function is only available on a retrieved FIB entry.

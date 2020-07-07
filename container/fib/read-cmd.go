@@ -7,29 +7,28 @@ import "C"
 import (
 	"github.com/usnistgov/ndn-dpdk/container/fib/fibtree"
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 // ListNames returns a list of FIB entry names.
 func (fib *Fib) ListNames() (names []ndn.Name) {
-	fib.postCommand(func(rs *urcu.ReadSide) error {
+	eal.CallMain(func() {
 		fib.tree.Traverse(func(name ndn.Name, n *fibtree.Node) bool {
 			if n.IsEntry {
 				names = append(names, name)
 			}
 			return true
 		})
-		return nil
 	})
 	return names
 }
 
 // Find performs an exact match lookup.
 func (fib *Fib) Find(name ndn.Name) (entry *Entry) {
-	fib.postCommand(func(rs *urcu.ReadSide) error {
+	eal.CallMain(func() {
 		_, partition := fib.ndt.Lookup(name)
-		entry = fib.FindInPartition(name, int(partition), rs)
-		return nil
+		entry = fib.FindInPartition(name, int(partition), eal.MainReadSide)
 	})
 	return entry
 }
@@ -55,26 +54,24 @@ func (fib *Fib) listPartitionsForName(name ndn.Name) (parts []*partition) {
 
 // ReadEntryCounters returns entry counters, aggregated across partitions where the entry appears.
 func (fib *Fib) ReadEntryCounters(name ndn.Name) (cnt EntryCounters) {
-	fib.postCommand(func(rs *urcu.ReadSide) error {
+	eal.CallMain(func() {
 		for _, part := range fib.listPartitionsForName(name) {
-			if entry := fib.FindInPartition(name, part.index, rs); entry != nil {
+			if entry := fib.FindInPartition(name, part.index, eal.MainReadSide); entry != nil {
 				cnt.Add(entry)
 			}
 		}
-		return nil
 	})
 	return cnt
 }
 
 // Lpm performs a longest prefix match lookup.
 func (fib *Fib) Lpm(name ndn.Name) (entry *Entry) {
-	fib.postCommand(func(rs *urcu.ReadSide) error {
-		rs.Lock()
-		defer rs.Unlock()
+	eal.CallMain(func() {
+		eal.MainReadSide.Lock()
+		defer eal.MainReadSide.Unlock()
 		_, partition := fib.ndt.Lookup(name)
 		_, value, _, pname := convertName(name)
 		entry = entryFromPtr(C.Fib_Lpm_(fib.parts[partition].c, pname, value))
-		return nil
 	})
 	return entry
 }

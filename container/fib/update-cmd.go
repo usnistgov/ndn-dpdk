@@ -9,7 +9,7 @@ import (
 	"fmt"
 
 	"github.com/usnistgov/ndn-dpdk/container/fib/fibtree"
-	"github.com/usnistgov/ndn-dpdk/core/urcu"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
@@ -70,9 +70,9 @@ func (fib *Fib) Insert(entry *Entry) (isNew bool, e error) {
 	virtName := fib.getVirtName(name)
 	logEntry := log.WithFields(makeLogFields("name", name, "nexthops", entry.ListNexthops(), "strategy", entry.Strategy().GetId()))
 
-	e = fib.postCommand(func(rs *urcu.ReadSide) error {
-		rs.Lock()
-		defer rs.Unlock()
+	e, _ = eal.CallMain(func() error {
+		eal.MainReadSide.Lock()
+		defer eal.MainReadSide.Unlock()
 
 		// update tree
 		isNewInTree, oldMd, newMd, virtIsEntry := fib.tree.Insert(name)
@@ -149,7 +149,7 @@ func (fib *Fib) Insert(entry *Entry) (isNew bool, e error) {
 		batch.Apply()
 		success = true
 		return nil
-	})
+	}).(error)
 
 	if e != nil {
 		logEntry.WithError(e).Error("Insert")
@@ -164,9 +164,9 @@ func (fib *Fib) Erase(name ndn.Name) (e error) {
 	virtName := fib.getVirtName(name)
 	logEntry := log.WithField("name", name)
 
-	e = fib.postCommand(func(rs *urcu.ReadSide) error {
-		rs.Lock()
-		defer rs.Unlock()
+	e, _ = eal.CallMain(func() error {
+		eal.MainReadSide.Lock()
+		defer eal.MainReadSide.Unlock()
 
 		// update tree
 		isErasedInTree, oldMd, newMd, virtIsEntry := fib.tree.Erase(name)
@@ -261,7 +261,7 @@ func (fib *Fib) Erase(name ndn.Name) (e error) {
 		batch.Apply()
 		success = true
 		return nil
-	})
+	}).(error)
 
 	if e != nil {
 		logEntry.WithError(e).Error("Erase")
@@ -296,9 +296,9 @@ func (fib *Fib) Relocate(ndtIndex uint64, oldPartition, newPartition uint8,
 		return nil
 	}
 
-	e = fib.postCommand(func(rs *urcu.ReadSide) error {
-		rs.Lock()
-		defer rs.Unlock()
+	e, _ = eal.CallMain(func() error {
+		eal.MainReadSide.Lock()
+		defer eal.MainReadSide.Unlock()
 		oldPart := fib.parts[oldPartition]
 		newPart := fib.parts[newPartition]
 
@@ -370,7 +370,7 @@ func (fib *Fib) Relocate(ndtIndex uint64, oldPartition, newPartition uint8,
 		// erase old entries
 		oldBatch.Apply()
 		return nil
-	})
+	}).(error)
 
 	if e != nil {
 		logEntry.WithError(e).Error("Relocate")

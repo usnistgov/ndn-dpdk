@@ -10,6 +10,7 @@ import (
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
+	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 )
@@ -19,23 +20,23 @@ var threadLibInitOnce sync.Once
 // Thread represents an SPDK thread.
 type Thread struct {
 	ealthread.Thread
-	c *C.SpdkThread
+	c           *C.SpdkThread
+	RcuReadSide *urcu.ReadSide
 }
 
 // NewThread creates an SPDK thread.
 // The caller needs to assigned it a DPDK lcore and launch it.
-func NewThread(name string) (*Thread, error) {
+func NewThread() (*Thread, error) {
 	threadLibInitOnce.Do(func() { C.spdk_thread_lib_init(nil, 0) })
 
-	nameC := C.CString(name)
-	defer C.free(unsafe.Pointer(nameC))
-	spdkThread := C.spdk_thread_create(nameC, nil)
+	spdkThread := C.spdk_thread_create(nil, nil)
 	if spdkThread == nil {
 		return nil, errors.New("spdk_thread_create error")
 	}
 
 	th := &Thread{
-		c: (*C.SpdkThread)(eal.Zmalloc("SpdkThread", C.sizeof_SpdkThread, eal.NumaSocket{})),
+		c:           (*C.SpdkThread)(eal.Zmalloc("SpdkThread", C.sizeof_SpdkThread, eal.NumaSocket{})),
+		RcuReadSide: &urcu.ReadSide{IsOnline: true},
 	}
 	th.c.spdkTh = spdkThread
 	th.Thread = ealthread.New(

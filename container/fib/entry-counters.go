@@ -12,7 +12,7 @@ type EntryCounters struct {
 	NTxInterests uint64
 }
 
-// Add adds an entry's counters into cnt.
+// Add accumulates an entry's counters into cnt.
 func (cnt *EntryCounters) Add(entry *Entry) {
 	c := (*CEntry)(entry)
 	cnt.NRxInterests += uint64(c.NRxInterests)
@@ -22,6 +22,5 @@ func (cnt *EntryCounters) Add(entry *Entry) {
 }
 
 func (cnt EntryCounters) String() string {
-	return fmt.Sprintf("%dI %dD %dN %dO", cnt.NRxInterests, cnt.NRxData, cnt.NRxNacks,
-		cnt.NTxInterests)
+	return fmt.Sprintf("%dI %dD %dN %dO", cnt.NRxInterests, cnt.NRxData, cnt.NRxNacks, cnt.NTxInterests)
 }

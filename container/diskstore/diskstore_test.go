@@ -21,7 +21,7 @@ func TestDiskStore(t *testing.T) {
 	require.NoError(e)
 	defer device.Close()
 
-	th, e := spdkenv.NewThread("TestDiskStore")
+	th, e := spdkenv.NewThread()
 	require.NoError(e)
 	defer th.Close()
 	e = ealthread.Launch(th)

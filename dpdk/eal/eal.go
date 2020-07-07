@@ -2,15 +2,22 @@ package eal
 
 import (
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
+	"github.com/usnistgov/ndn-dpdk/core/urcu"
 )
 
-// LCore and NUMA sockets, available after ealinit.Init().
+// EAL variables, available after ealinit.Init().
 var (
+	// Initial is the initial lcore.
 	Initial LCore
+	// Workers are worker lcores.
 	Workers []LCore
+	// Sockets are NUMA sockets of worker lcores.
 	Sockets []NumaSocket
 
+	// MainThread is a PollThread running on the initial lcores.
 	MainThread PollThread
+	// MainReadSide is an RCU read-side object of the MainThread.
+	MainReadSide *urcu.ReadSide
 )
 
 // PollThread represents a thread that can accept and execute posted functions.

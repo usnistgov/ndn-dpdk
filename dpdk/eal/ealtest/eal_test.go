@@ -13,6 +13,9 @@ func TestEal(t *testing.T) {
 	assert.Equal([]string{"testprog", "c7f36046-faa5-46dc-9855-e93d00217b8f"}, initEalRemainingArgs)
 
 	assert.True(eal.Initial.Valid())
+	assert.NotNil(eal.MainThread)
+	assert.NotNil(eal.MainReadSide)
+	assert.NotEmpty(eal.Sockets)
 
 	require.Len(eal.Workers, 5)
 	workersSet := make(map[eal.LCore]bool)

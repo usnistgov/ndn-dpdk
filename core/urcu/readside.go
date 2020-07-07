@@ -16,6 +16,7 @@ type ReadSide struct {
 }
 
 // NewReadSide registers current thread an an RCU read-side thread.
+// If the thread is registered in C code, do not call this function, use a zero ReadSide instead.
 func NewReadSide() *ReadSide {
 	runtime.LockOSThread()
 	C.rcu_register_thread()
@@ -23,6 +24,7 @@ func NewReadSide() *ReadSide {
 }
 
 // Close unregisters current thread as an RCU read-side thread.
+// If the thread is unregistered in C code, do not call this function.
 func (*ReadSide) Close() error {
 	C.rcu_unregister_thread()
 	runtime.UnlockOSThread()

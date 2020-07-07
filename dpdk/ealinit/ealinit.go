@@ -23,14 +23,16 @@ var initOnce sync.Once
 // Init initializes DPDK and SPDK.
 func Init(args []string) (remainingArgs []string) {
 	initOnce.Do(func() {
-		assignMainThread := make(chan eal.PollThread)
+		assignMainThread := make(chan *spdkenv.Thread)
 		go func() {
 			runtime.LockOSThread()
 			remainingArgs = initEal(args)
 			spdkenv.InitEnv()
 			spdkenv.InitMainThread(assignMainThread) // never returns
 		}()
-		eal.MainThread = <-assignMainThread
+		th := <-assignMainThread
+		eal.MainThread = th
+		eal.MainReadSide = th.RcuReadSide
 		eal.CallMain(func() {
 			log.Info("MainThread is running")
 		})

@@ -32,13 +32,13 @@ func InitEnv() {
 // InitMainThread creates a main thread, and launches on the current goroutine.
 // This should be invoked on the Initial lcore.
 // This function never returns.
-func InitMainThread(assignThread chan<- eal.PollThread) {
+func InitMainThread(assignThread chan<- *Thread) {
 	if lc := eal.CurrentLCore(); lc != eal.Initial {
 		log.Panicf("lc=%v is not initail=%v", lc, eal.Initial)
 	}
 
 	var e error
-	mainThread, e = NewThread("SPDK-main")
+	mainThread, e = NewThread()
 	if e != nil {
 		log.Fatalf("SPDK thread error %s", e)
 		return
