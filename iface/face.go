@@ -5,7 +5,6 @@ package iface
 */
 import "C"
 import (
-	"fmt"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
@@ -103,8 +102,7 @@ func (face *FaceBase) FinishInitFaceBase(txQueueCapacity, mtu, headroom int) err
 	headerMp := ndni.HeaderMempool.MakePool(socket)
 	nameMp := ndni.NameMempool.MakePool(socket)
 
-	r, e := ringbuffer.New(fmt.Sprintf("FaceTx_%d", face.ID()),
-		txQueueCapacity, socket, ringbuffer.ProducerMulti, ringbuffer.ConsumerSingle)
+	r, e := ringbuffer.New(txQueueCapacity, socket, ringbuffer.ProducerMulti, ringbuffer.ConsumerSingle)
 	if e != nil {
 		face.clear()
 		return e

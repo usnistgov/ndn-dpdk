@@ -19,7 +19,7 @@ const ringCapacity = 65536
 
 // Initialize high resolution logger.
 func Init() error {
-	r, e := ringbuffer.New("theHrlogRing", ringCapacity, eal.NumaSocket{}, ringbuffer.ProducerMulti, ringbuffer.ConsumerSingle)
+	r, e := ringbuffer.New(ringCapacity, eal.NumaSocket{}, ringbuffer.ProducerMulti, ringbuffer.ConsumerSingle)
 	if e != nil {
 		return e
 	}

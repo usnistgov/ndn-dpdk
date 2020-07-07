@@ -2,6 +2,7 @@ package ethdev
 
 import (
 	"fmt"
+
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
@@ -41,8 +42,6 @@ func (cfg PairConfig) toEthDevConfig() (dcfg Config) {
 	return dcfg
 }
 
-var lastPairIndex = 0
-
 // Pair represents a pair of EthDevs connected via ring-based PMD.
 type Pair struct {
 	dcfg Config
@@ -64,16 +63,12 @@ func NewPair(cfg PairConfig) (pair *Pair) {
 	}
 	pair.dcfg = cfg.toEthDevConfig()
 
-	lastPairIndex++
-	id := lastPairIndex
-
 	createRings := func(direction string) (rings []*ringbuffer.Ring) {
 		for i := 0; i < cfg.NQueues; i++ {
-			name := fmt.Sprintf("ethdevPair_%d%s%d", id, direction, i)
-			ring, e := ringbuffer.New(name, cfg.RingCapacity, cfg.Socket,
+			ring, e := ringbuffer.New(cfg.RingCapacity, cfg.Socket,
 				ringbuffer.ProducerSingle, ringbuffer.ConsumerSingle)
 			if e != nil {
-				panic(fmt.Sprintf("ringbuffer.New(%s) error %v", name, e))
+				panic(fmt.Sprintf("ringbuffer.New error %v", e))
 			}
 			rings = append(rings, ring)
 		}
@@ -83,10 +78,9 @@ func NewPair(cfg PairConfig) (pair *Pair) {
 	pair.ringsBA = createRings("BA")
 
 	createPort := func(label string, rxRings, txRings []*ringbuffer.Ring) EthDev {
-		name := fmt.Sprintf("ethdevPair_%d%s", id, label)
-		port, e := NewFromRings(name, rxRings, txRings, cfg.Socket)
+		port, e := NewFromRings(rxRings, txRings, cfg.Socket)
 		if e != nil {
-			panic(fmt.Sprintf("NewFromRings(%s) error %v", name, e))
+			panic(fmt.Sprintf("NewFromRings error %v", e))
 		}
 		return port
 	}

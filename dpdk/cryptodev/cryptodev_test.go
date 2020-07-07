@@ -12,7 +12,7 @@ import (
 func TestCryptoDev(t *testing.T) {
 	assert, require := makeAR(t)
 
-	cd, e := cryptodev.SingleSegDrv.Create("", cryptodev.Config{NQueuePairs: 2}, eal.NumaSocket{})
+	cd, e := cryptodev.SingleSegDrv.Create(cryptodev.Config{NQueuePairs: 2}, eal.NumaSocket{})
 	require.NoError(e)
 	defer cd.Close()
 
@@ -22,7 +22,7 @@ func TestCryptoDev(t *testing.T) {
 	require.NotNil(qp1)
 	assert.Nil(cd.QueuePair(2))
 
-	mp, e := cryptodev.NewOpPool("MP-CryptoOp", cryptodev.OpPoolConfig{Capacity: 255}, eal.NumaSocket{})
+	mp, e := cryptodev.NewOpPool(cryptodev.OpPoolConfig{Capacity: 255}, eal.NumaSocket{})
 	require.NoError(e)
 	defer mp.Close()
 

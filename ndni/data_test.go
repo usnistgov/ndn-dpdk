@@ -98,11 +98,11 @@ func TestDataSatisfy(t *testing.T) {
 func TestDataDigest(t *testing.T) {
 	assert, require := makeAR(t)
 
-	cd, e := cryptodev.MultiSegDrv.Create("", cryptodev.Config{}, eal.NumaSocket{})
+	cd, e := cryptodev.MultiSegDrv.Create(cryptodev.Config{}, eal.NumaSocket{})
 	require.NoError(e)
 	defer cd.Close()
 	qp := cd.QueuePair(0)
-	mp, e := cryptodev.NewOpPool("MP-CryptoOp", cryptodev.OpPoolConfig{}, eal.NumaSocket{})
+	mp, e := cryptodev.NewOpPool(cryptodev.OpPoolConfig{}, eal.NumaSocket{})
 	require.NoError(e)
 	defer mp.Close()
 

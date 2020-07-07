@@ -38,9 +38,9 @@ type Pool struct {
 }
 
 // NewPool creates a Pool.
-func NewPool(name string, cfg PoolConfig, socket eal.NumaSocket) (mp *Pool, e error) {
+func NewPool(cfg PoolConfig, socket eal.NumaSocket) (mp *Pool, e error) {
 	cfg.applyDefaults()
-	nameC := C.CString(name)
+	nameC := C.CString(eal.AllocObjectID("pktmbuf.Pool"))
 	defer C.free(unsafe.Pointer(nameC))
 
 	mpC := C.rte_pktmbuf_pool_create(nameC, C.uint(cfg.Capacity), C.uint(mempool.ComputeCacheSize(cfg.Capacity)),

@@ -11,7 +11,7 @@ import (
 func TestMempool(t *testing.T) {
 	assert, require := makeAR(t)
 
-	mp, e := mempool.New("MP", 63, 256, eal.NumaSocket{})
+	mp, e := mempool.New(63, 256, eal.NumaSocket{})
 	require.NoError(e)
 	require.NotNil(mp)
 	defer mp.Close()

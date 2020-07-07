@@ -27,7 +27,7 @@ func TestDiskStore(t *testing.T) {
 	e = ealthread.Launch(th)
 	require.NoError(e)
 
-	mp, e := pktmbuf.NewPool("TestDiskStore", ndni.PacketMempool.Config(), eal.NumaSocket{})
+	mp, e := pktmbuf.NewPool(ndni.PacketMempool.Config(), eal.NumaSocket{})
 	require.NoError(e)
 	defer mp.Close()
 

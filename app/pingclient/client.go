@@ -35,7 +35,7 @@ func New(face iface.Face, cfg Config) (*Client, error) {
 	socket := face.NumaSocket()
 	rxC := (*C.PingClientRx)(eal.Zmalloc("PingClientRx", C.sizeof_PingClientRx, socket))
 	cfg.RxQueue.DisableCoDel = true
-	if _, e := pktqueue.NewAt(unsafe.Pointer(&rxC.rxQueue), cfg.RxQueue, fmt.Sprintf("PingClient%d_rxQ", face.ID()), socket); e != nil {
+	if _, e := pktqueue.NewAt(unsafe.Pointer(&rxC.rxQueue), cfg.RxQueue, socket); e != nil {
 		eal.Free(rxC)
 		return nil, nil
 	}

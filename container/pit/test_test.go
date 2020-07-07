@@ -46,7 +46,7 @@ func NewFixture(pcctMaxEntries int) (fixture *Fixture) {
 	fixture = new(Fixture)
 
 	pcctCfg := pcct.Config{MaxEntries: pcctMaxEntries}
-	pcct, e := pcct.New("TestPcct", pcctCfg)
+	pcct, e := pcct.New(pcctCfg)
 	if e != nil {
 		panic(e)
 	}

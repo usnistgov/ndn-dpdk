@@ -33,7 +33,7 @@ func New(face iface.Face, index int, cfg Config) (*Server, error) {
 	serverC := (*C.PingServer)(eal.Zmalloc("PingServer", C.sizeof_PingServer, socket))
 
 	cfg.RxQueue.DisableCoDel = true
-	if _, e := pktqueue.NewAt(unsafe.Pointer(&serverC.rxQueue), cfg.RxQueue, fmt.Sprintf("PingServer%d-%d_rxQ", faceID, index), socket); e != nil {
+	if _, e := pktqueue.NewAt(unsafe.Pointer(&serverC.rxQueue), cfg.RxQueue, socket); e != nil {
 		eal.Free(serverC)
 		return nil, nil
 	}

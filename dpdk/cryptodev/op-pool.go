@@ -35,9 +35,9 @@ type OpPool struct {
 }
 
 // NewOpPool creates an OpPool.
-func NewOpPool(name string, cfg OpPoolConfig, socket eal.NumaSocket) (mp *OpPool, e error) {
+func NewOpPool(cfg OpPoolConfig, socket eal.NumaSocket) (mp *OpPool, e error) {
 	cfg.applyDefaults()
-	nameC := C.CString(name)
+	nameC := C.CString(eal.AllocObjectID("cryptodev.OpPool"))
 	defer C.free(unsafe.Pointer(nameC))
 
 	mpC := C.rte_crypto_op_pool_create(nameC, C.RTE_CRYPTO_OP_TYPE_UNDEFINED, C.uint(cfg.Capacity),

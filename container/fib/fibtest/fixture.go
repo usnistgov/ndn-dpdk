@@ -36,7 +36,7 @@ func NewFixture(ndtPrefixLen, fibStartDepth, nPartitions int) (fixture *Fixture)
 		StartDepth: fibStartDepth,
 	}
 	partitionSockets := make([]eal.NumaSocket, nPartitions)
-	fib, e := fib.New("TestFib", cfg, ndt, partitionSockets)
+	fib, e := fib.New(cfg, ndt, partitionSockets)
 	if e != nil {
 		panic(e)
 	}

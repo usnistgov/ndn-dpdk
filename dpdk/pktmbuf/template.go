@@ -97,20 +97,20 @@ func (tpl Template) MakePool(socket eal.NumaSocket) *Pool {
 	if len(eal.Sockets) <= 1 {
 		useSocket = eal.NumaSocket{}
 	}
-	name := fmt.Sprintf("%s#%s", tpl.key, useSocket)
-	logEntry = logEntry.WithFields(makeLogFields("name", name, "socket", socket, "use-socket", useSocket, "cfg", *cfg))
+	key := fmt.Sprintf("%s#%s", tpl.key, useSocket)
+	logEntry = logEntry.WithFields(makeLogFields("key", key, "socket", socket, "use-socket", useSocket, "cfg", *cfg))
 
-	if mp, ok := templatePools[name]; ok {
-		logEntry.Debug("mempool found")
+	if mp, ok := templatePools[key]; ok {
+		logEntry.WithField("mp", mp).Debug("mempool found")
 		return mp
 	}
 
-	mp, e := NewPool(name, *cfg, useSocket)
+	mp, e := NewPool(*cfg, useSocket)
 	if e != nil {
 		logEntry.WithError(e).Fatal("mempool creation failed")
 	}
-	templatePools[name] = mp
-	logEntry.Debug("mempool created")
+	templatePools[key] = mp
+	logEntry.WithField("mp", mp).Debug("mempool created")
 	return mp
 }
 

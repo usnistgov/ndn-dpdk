@@ -56,20 +56,20 @@ func (fwd *Fwd) Init(lc eal.LCore, fib *fib.Fib, pcctCfg pcct.Config, interestQu
 	)
 	fwd.SetLCore(lc)
 
-	if fwd.interestQueue, e = pktqueue.NewAt(unsafe.Pointer(&fwd.c.inInterestQueue), interestQueueCfg, fmt.Sprintf("%s_qI", fwd), socket); e != nil {
+	if fwd.interestQueue, e = pktqueue.NewAt(unsafe.Pointer(&fwd.c.inInterestQueue), interestQueueCfg, socket); e != nil {
 		return nil
 	}
-	if fwd.dataQueue, e = pktqueue.NewAt(unsafe.Pointer(&fwd.c.inDataQueue), dataQueueCfg, fmt.Sprintf("%s_qD", fwd), socket); e != nil {
+	if fwd.dataQueue, e = pktqueue.NewAt(unsafe.Pointer(&fwd.c.inDataQueue), dataQueueCfg, socket); e != nil {
 		return nil
 	}
-	if fwd.nackQueue, e = pktqueue.NewAt(unsafe.Pointer(&fwd.c.inNackQueue), nackQueueCfg, fmt.Sprintf("%s_qN", fwd), socket); e != nil {
+	if fwd.nackQueue, e = pktqueue.NewAt(unsafe.Pointer(&fwd.c.inNackQueue), nackQueueCfg, socket); e != nil {
 		return nil
 	}
 
 	fwd.c.fib = (*C.Fib)(fib.Ptr(fwd.id))
 
 	pcctCfg.Socket = socket
-	fwd.pcct, e = pcct.New(fwd.String()+"_pcct", pcctCfg)
+	fwd.pcct, e = pcct.New(pcctCfg)
 	if e != nil {
 		return fmt.Errorf("pcct.New: %v", e)
 	}

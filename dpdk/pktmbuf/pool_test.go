@@ -10,7 +10,7 @@ import (
 func TestPool(t *testing.T) {
 	assert, require := makeAR(t)
 
-	mp, e := pktmbuf.NewPool("MP", pktmbuf.PoolConfig{Capacity: 63, Dataroom: 1000}, eal.NumaSocket{})
+	mp, e := pktmbuf.NewPool(pktmbuf.PoolConfig{Capacity: 63, Dataroom: 1000}, eal.NumaSocket{})
 	require.NoError(e)
 	defer mp.Close()
 

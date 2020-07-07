@@ -87,7 +87,7 @@ func TestPacketDeleteRange(t *testing.T) {
 }
 
 func TestPacketLinearizeRange(t *testing.T) {
-	mp, _ := pktmbuf.NewPool("TEST_TINY4", pktmbuf.PoolConfig{Capacity: 63, Dataroom: 4}, eal.NumaSocket{})
+	mp, _ := pktmbuf.NewPool(pktmbuf.PoolConfig{Capacity: 63, Dataroom: 4}, eal.NumaSocket{})
 	tests := []struct {
 		id       string
 		pkt      string // packet segments, separated by '/'

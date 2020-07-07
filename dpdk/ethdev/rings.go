@@ -14,8 +14,8 @@ import (
 )
 
 // NewFromRings creates an EthDev using net/ring driver.
-func NewFromRings(name string, rxRings []*ringbuffer.Ring, txRings []*ringbuffer.Ring, socket eal.NumaSocket) (dev EthDev, e error) {
-	nameC := C.CString(name)
+func NewFromRings(rxRings []*ringbuffer.Ring, txRings []*ringbuffer.Ring, socket eal.NumaSocket) (dev EthDev, e error) {
+	nameC := C.CString(eal.AllocObjectID("ethdev.Rings"))
 	defer C.free(unsafe.Pointer(nameC))
 	rxRingPtr, rxRingCount := cptr.ParseCptrArray(rxRings)
 	txRingPtr, txRingCount := cptr.ParseCptrArray(txRings)

@@ -34,7 +34,7 @@ func FromPtr(ptr unsafe.Pointer) (q *PktQueue) {
 }
 
 // Create PktQueue at given (*C.PktQueue) pointer.
-func NewAt(ptr unsafe.Pointer, cfg Config, name string, socket eal.NumaSocket) (q *PktQueue, e error) {
+func NewAt(ptr unsafe.Pointer, cfg Config, socket eal.NumaSocket) (q *PktQueue, e error) {
 	qC := (*C.PktQueue)(ptr)
 
 	capacity := 131072
@@ -61,7 +61,7 @@ func NewAt(ptr unsafe.Pointer, cfg Config, name string, socket eal.NumaSocket) (
 		capacity = cfg.Capacity
 	}
 
-	if r, e := ringbuffer.New(name, capacity, socket, ringbuffer.ProducerMulti, ringbuffer.ConsumerSingle); e != nil {
+	if r, e := ringbuffer.New(capacity, socket, ringbuffer.ProducerMulti, ringbuffer.ConsumerSingle); e != nil {
 		return q, e
 	} else {
 		qC.ring = (*C.struct_rte_ring)(r.Ptr())

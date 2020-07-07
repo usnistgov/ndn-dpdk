@@ -5,7 +5,6 @@ package fib
 */
 import "C"
 import (
-	"fmt"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
@@ -37,7 +36,7 @@ func newPartition(fib *Fib, index int, numaSocket eal.NumaSocket) (part *partiti
 	part.fib = fib
 	part.index = index
 
-	idC := C.CString(fmt.Sprintf("%s_%d", fib.id, index))
+	idC := C.CString(eal.AllocObjectID("fib.partition"))
 	defer C.free(unsafe.Pointer(idC))
 	part.c = C.Fib_New(idC, C.uint32_t(fib.cfg.MaxEntries), C.uint32_t(fib.cfg.NBuckets),
 		C.uint(numaSocket.ID()), C.uint8_t(fib.cfg.StartDepth))

@@ -25,8 +25,8 @@ type Config struct {
 type Pcct C.Pcct
 
 // New creates a PCCT, and then initializes PIT and CS.
-func New(id string, cfg Config) (pcct *Pcct, e error) {
-	idC := C.CString(id)
+func New(cfg Config) (pcct *Pcct, e error) {
+	idC := C.CString(eal.AllocObjectID("pcct.Pcct"))
 	defer C.free(unsafe.Pointer(idC))
 	pcctC := C.Pcct_New(idC, C.uint32_t(cfg.MaxEntries), C.uint(cfg.Socket.ID()))
 	if pcctC == nil {
@@ -52,6 +52,10 @@ func (pcct *Pcct) ptr() *C.Pcct {
 // AsMempool returns underlying mempool of the PCCT.
 func (pcct *Pcct) AsMempool() *mempool.Mempool {
 	return mempool.FromPtr(pcct.Ptr())
+}
+
+func (pcct *Pcct) String() string {
+	return pcct.AsMempool().String()
 }
 
 // Close destroys the PCCT.

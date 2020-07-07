@@ -51,7 +51,7 @@ func NewFixture(cfg pcct.Config) (fixture *Fixture) {
 		cfg.CsCapMd = 200
 	}
 
-	pcct, e := pcct.New("TestPcct", cfg)
+	pcct, e := pcct.New(cfg)
 	if e != nil {
 		panic(e)
 	}

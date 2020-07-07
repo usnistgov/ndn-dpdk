@@ -11,10 +11,11 @@ import (
 func TestRing(t *testing.T) {
 	assert, require := makeAR(t)
 
-	r, e := ringbuffer.New("TestRing", 4, eal.NumaSocket{}, ringbuffer.ProducerMulti, ringbuffer.ConsumerMulti)
+	r, e := ringbuffer.New(4, eal.NumaSocket{}, ringbuffer.ProducerMulti, ringbuffer.ConsumerMulti)
 	require.NoError(e)
 	defer r.Close()
 
+	assert.NotEmpty(r.String())
 	assert.Equal(0, r.CountInUse())
 	assert.Equal(3, r.CountAvailable())
 	assert.Equal(r.CountAvailable(), r.Capacity())
@@ -47,12 +48,12 @@ func TestRing(t *testing.T) {
 func TestCapacity(t *testing.T) {
 	assert, require := makeAR(t)
 
-	r, e := ringbuffer.New("TestRing-1", -1, eal.NumaSocket{}, ringbuffer.ProducerMulti, ringbuffer.ConsumerMulti)
+	r, e := ringbuffer.New(-1, eal.NumaSocket{}, ringbuffer.ProducerMulti, ringbuffer.ConsumerMulti)
 	require.NoError(e)
 	assert.Equal(63, r.Capacity())
 	defer r.Close()
 
-	r, e = ringbuffer.New("TestRing129", 129, eal.NumaSocket{}, ringbuffer.ProducerMulti, ringbuffer.ConsumerMulti)
+	r, e = ringbuffer.New(129, eal.NumaSocket{}, ringbuffer.ProducerMulti, ringbuffer.ConsumerMulti)
 	require.NoError(e)
 	assert.Equal(255, r.Capacity())
 	defer r.Close()

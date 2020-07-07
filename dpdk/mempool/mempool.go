@@ -32,8 +32,8 @@ func ComputeCacheSize(capacity int) int {
 type Mempool C.struct_rte_mempool
 
 // New creates a Mempool.
-func New(name string, capacity int, elementSize int, socket eal.NumaSocket) (mp *Mempool, e error) {
-	nameC := C.CString(name)
+func New(capacity int, elementSize int, socket eal.NumaSocket) (mp *Mempool, e error) {
+	nameC := C.CString(eal.AllocObjectID("mempool.Mempool"))
 	defer C.free(unsafe.Pointer(nameC))
 
 	mempoolC := C.rte_mempool_create(nameC, C.uint(capacity), C.uint(elementSize),
@@ -62,6 +62,10 @@ func (mp *Mempool) ptr() *C.struct_rte_mempool {
 func (mp *Mempool) Close() error {
 	C.rte_mempool_free(mp.ptr())
 	return nil
+}
+
+func (mp *Mempool) String() string {
+	return C.GoString(&mp.ptr().name[0])
 }
 
 // SizeofElement returns element size.

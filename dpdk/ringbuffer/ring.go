@@ -38,9 +38,9 @@ const (
 type Ring C.struct_rte_ring
 
 // New creates a Ring.
-func New(name string, capacity int, socket eal.NumaSocket,
+func New(capacity int, socket eal.NumaSocket,
 	producerMode ProducerMode, consumerMode ConsumerMode) (r *Ring, e error) {
-	nameC := C.CString(name)
+	nameC := C.CString(eal.AllocObjectID("ringbuffer.Ring"))
 	defer C.free(unsafe.Pointer(nameC))
 	capacity = AlignCapacity(capacity, 4, 64)
 	flags := C.uint(producerMode) | C.uint(consumerMode)
@@ -70,6 +70,10 @@ func (r *Ring) ptr() *C.struct_rte_ring {
 func (r *Ring) Close() error {
 	C.rte_ring_free(r.ptr())
 	return nil
+}
+
+func (r *Ring) String() string {
+	return C.GoString(&r.ptr().name[0])
 }
 
 // Capacity returns ring capacity.

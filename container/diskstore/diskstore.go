@@ -72,7 +72,7 @@ func (store *DiskStore) PutData(slotID uint64, data *ndni.Data) {
 // GetData retrieves a Data packet from specified slot and waits for completion.
 func (store *DiskStore) GetData(slotID uint64, dataLen int, interest *ndni.Interest) (data *ndni.Data, e error) {
 	var reply *ringbuffer.Ring
-	if reply, e = ringbuffer.New(fmt.Sprintf("DiskStoreGetData%x", slotID), 64, eal.NumaSocket{},
+	if reply, e = ringbuffer.New(64, eal.NumaSocket{},
 		ringbuffer.ProducerMulti, ringbuffer.ConsumerMulti); e != nil {
 		return nil, e
 	}

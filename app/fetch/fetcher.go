@@ -6,7 +6,6 @@ package fetch
 import "C"
 import (
 	"errors"
-	"fmt"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/app/ping/pingmempool"
@@ -71,7 +70,7 @@ func New(face iface.Face, cfg FetcherConfig) (*Fetcher, error) {
 
 	for i := range fetcher.fp {
 		fp := (*C.FetchProc)(eal.Zmalloc("FetchProc", C.sizeof_FetchProc, socket))
-		if _, e := pktqueue.NewAt(unsafe.Pointer(&fp.rxQueue), cfg.RxQueue, fmt.Sprintf("Fetcher%d-%d_rxQ", faceID, i), socket); e != nil {
+		if _, e := pktqueue.NewAt(unsafe.Pointer(&fp.rxQueue), cfg.RxQueue, socket); e != nil {
 			return nil, e
 		}
 		fp.pitToken = (C.uint64_t(i) << 56) | 0x6665746368 // 'fetch'

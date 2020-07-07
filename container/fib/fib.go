@@ -20,7 +20,6 @@ type Config struct {
 
 // Fib represents a Forwarding Information Base (FIB).
 type Fib struct {
-	id       string
 	cfg      Config
 	ndt      *ndt.Ndt
 	parts    []*partition
@@ -29,7 +28,7 @@ type Fib struct {
 }
 
 // New creates a Fib.
-func New(id string, cfg Config, ndt *ndt.Ndt, sockets []eal.NumaSocket) (fib *Fib, e error) {
+func New(cfg Config, ndt *ndt.Ndt, sockets []eal.NumaSocket) (fib *Fib, e error) {
 	if cfg.StartDepth <= ndt.PrefixLen() {
 		return nil, errors.New("FIB StartDepth must be greater than NDT PrefixLen")
 	}

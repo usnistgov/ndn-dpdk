@@ -30,7 +30,7 @@ func ParseEtherAddr(input string) (a EtherAddr, e error) {
 	return MakeEtherAddr(hw)
 }
 
-// EtherAddr returns *C.struct_rte_ether_addr pointer.
+// Ptr returns *C.struct_rte_ether_addr pointer.
 func (a *EtherAddr) Ptr() unsafe.Pointer {
 	return unsafe.Pointer(a)
 }
