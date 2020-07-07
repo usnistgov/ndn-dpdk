@@ -43,7 +43,7 @@ func New(cfg []TaskConfig) (app *App, e error) {
 		return rxl
 	}
 
-	createface.CustomGetTxl = func(face iface.Face) *iface.TxLoop {
+	createface.CustomGetTxl = func(face iface.Face) iface.TxLoop {
 		txl := iface.NewTxLoop(face.NumaSocket())
 		ealthread.Launch(txl)
 

@@ -20,4 +20,9 @@ func TestCtx(t *testing.T) {
 	assert.Equal(&obj2, cptr.CtxGet(ctx2))
 	cptr.CtxClear(ctx2)
 	assert.Panics(func() { cptr.CtxGet(ctx2) })
+
+	obj3 := 3333
+	ctx3 := cptr.CtxPut(&obj3)
+	cptr.CtxCloser(ctx3).Close()
+	assert.Panics(func() { cptr.CtxPop(ctx3) })
 }

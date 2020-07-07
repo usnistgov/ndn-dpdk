@@ -158,9 +158,9 @@ func (rxl *RxLoop) NumaSocket() eal.NumaSocket {
 }
 
 // SetCallback assigns a C function and its argument to process received bursts.
-func (rxl *RxLoop) SetCallback(cb unsafe.Pointer, cbarg unsafe.Pointer) {
-	rxl.c.cb = C.Face_RxCb(cb)
-	rxl.c.cbarg = cbarg
+func (rxl *RxLoop) SetCallback(f, arg unsafe.Pointer) {
+	rxl.c.cb = C.Face_RxCb(f)
+	rxl.c.cbarg = arg
 }
 
 func (rxl *RxLoop) main() {
@@ -169,7 +169,7 @@ func (rxl *RxLoop) main() {
 
 	burst := NewRxBurst(64)
 	defer burst.Close()
-	rxl.c.burst = burst.c
+	rxl.c.burst = burst.ptr()
 
 	C.RxLoop_Run(rxl.c)
 }

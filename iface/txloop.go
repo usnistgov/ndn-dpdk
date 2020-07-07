@@ -5,6 +5,7 @@ package iface
 */
 import "C"
 import (
+	"io"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
@@ -13,17 +14,20 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 )
 
-// TxLoop is a thread to process outgoing packets.
-type TxLoop struct {
-	ealthread.Thread
-	c      *C.TxLoop
-	socket eal.NumaSocket
-	faces  map[ID]Face
+// TxLoop is a thread to process outgoing packets on a set of faces.
+type TxLoop interface {
+	ealthread.ThreadWithRole
+	eal.WithNumaSocket
+	io.Closer
+
+	CountFaces() int
+	AddFace(face Face)
+	RemoveFace(face Face)
 }
 
 // NewTxLoop creates a TxLoop.
-func NewTxLoop(socket eal.NumaSocket) *TxLoop {
-	txl := &TxLoop{
+func NewTxLoop(socket eal.NumaSocket) TxLoop {
+	txl := &txLoop{
 		c:      (*C.TxLoop)(eal.Zmalloc("TxLoop", C.sizeof_TxLoop, socket)),
 		socket: socket,
 		faces:  make(map[ID]Face),
@@ -35,50 +39,54 @@ func NewTxLoop(socket eal.NumaSocket) *TxLoop {
 	return txl
 }
 
-// ThreadRole returns "TX" used in lcore allocator.
-func (txl *TxLoop) ThreadRole() string {
+type txLoop struct {
+	ealthread.Thread
+	c      *C.TxLoop
+	socket eal.NumaSocket
+	faces  map[ID]Face
+}
+
+func (txl *txLoop) ThreadRole() string {
 	return "TX"
 }
 
-// NumaSocket returns NUMA socket of the data structures.
-func (txl *TxLoop) NumaSocket() eal.NumaSocket {
+func (txl *txLoop) NumaSocket() eal.NumaSocket {
 	return txl.socket
 }
 
-// Close stops the thread and deallocates data structures.
-func (txl *TxLoop) Close() error {
+func (txl *txLoop) Close() error {
 	txl.Stop()
 	eal.Free(txl.c)
 	return nil
 }
 
-func (txl *TxLoop) ListFaces() (list []ID) {
-	for faceID := range txl.faces {
-		list = append(list, faceID)
-	}
-	return list
+func (txl *txLoop) CountFaces() int {
+	return eal.CallMain(func() int {
+		return len(txl.faces)
+	}).(int)
 }
 
-func (txl *TxLoop) AddFace(face Face) {
-	rs := urcu.NewReadSide()
-	defer rs.Close()
+func (txl *txLoop) AddFace(face Face) {
+	eal.CallMain(func() {
+		if txl.faces[face.ID()] != nil {
+			return
+		}
+		txl.faces[face.ID()] = face
 
-	txl.faces[face.ID()] = face
-	faceC := face.ptr()
-	C.cds_hlist_add_head_rcu(&faceC.txlNode, &txl.c.head)
+		faceC := face.ptr()
+		C.cds_hlist_add_head_rcu(&faceC.txlNode, &txl.c.head)
+	})
 }
 
-func (txl *TxLoop) RemoveFace(face Face) {
-	rs := urcu.NewReadSide()
-	defer rs.Close()
+func (txl *txLoop) RemoveFace(face Face) {
+	eal.CallMain(func() {
+		if txl.faces[face.ID()] == nil {
+			return
+		}
+		delete(txl.faces, face.ID())
 
-	if _, ok := txl.faces[face.ID()]; !ok {
-		return
-	}
-
-	delete(txl.faces, face.ID())
-	faceC := face.ptr()
-	C.cds_hlist_del_rcu(&faceC.txlNode)
-
+		faceC := face.ptr()
+		C.cds_hlist_del_rcu(&faceC.txlNode)
+	})
 	urcu.Barrier()
 }

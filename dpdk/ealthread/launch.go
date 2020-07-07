@@ -9,14 +9,15 @@ import (
 // ErrNoLCore indicates no lcore is available for a role.
 var ErrNoLCore = errors.New("no lcore available")
 
-type threadAllocatable interface {
+// ThreadWithRole is a thread that identifies itself with a role.
+type ThreadWithRole interface {
 	Thread
 	ThreadRole() string
 }
 
 // AllocThread allocates lcore to a thread.
 // If th implements eal.WithNumaSocket, the lcore comes from the preferred NUMA socket.
-func (la *Allocator) AllocThread(th threadAllocatable) error {
+func (la *Allocator) AllocThread(th ThreadWithRole) error {
 	if th.LCore().Valid() {
 		return nil
 	}
@@ -35,12 +36,12 @@ func (la *Allocator) AllocThread(th threadAllocatable) error {
 }
 
 // AllocThread allocates lcore to a thread from DefaultAllocator.
-func AllocThread(th threadAllocatable) error {
+func AllocThread(th ThreadWithRole) error {
 	return DefaultAllocator.AllocThread(th)
 }
 
 // Launch allocates lcore to a thread from DefaultAllocator, and launches the thread.
-func Launch(th threadAllocatable) error {
+func Launch(th ThreadWithRole) error {
 	if e := AllocThread(th); e != nil {
 		return e
 	}

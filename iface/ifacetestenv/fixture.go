@@ -1,6 +1,7 @@
 package ifacetestenv
 
 import (
+	"io"
 	"testing"
 	"time"
 
@@ -13,7 +14,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
 )
 
-// Test fixture for sending and receiving packets between a pair of connected faces.
+// Fixture runs a test that sends and receives packets between a pair of connected faces.
 type Fixture struct {
 	t *testing.T
 
@@ -28,13 +29,14 @@ type Fixture struct {
 	rxDiscard map[iface.ID]iface.Face
 	rxl       *iface.RxLoop
 	txFace    iface.Face
-	txl       *iface.TxLoop
+	txl       iface.TxLoop
 
 	NRxInterests int
 	NRxData      int
 	NRxNacks     int
 }
 
+// New creates a Fixture.
 func New(t *testing.T, rxFace, txFace iface.Face) (fixture *Fixture) {
 	fixture = new(Fixture)
 	fixture.t = t
@@ -55,12 +57,15 @@ func New(t *testing.T, rxFace, txFace iface.Face) (fixture *Fixture) {
 	return fixture
 }
 
+// AddRxDiscard indicates that packets received at the specified face should be dropped.
 func (fixture *Fixture) AddRxDiscard(face iface.Face) {
 	fixture.rxDiscard[face.ID()] = face
 }
 
+// RunTest executes the test.
 func (fixture *Fixture) RunTest() {
-	fixture.launchRx()
+	cancelRxBurstCallback := fixture.launchRx()
+	defer cancelRxBurstCallback.Close()
 	fixture.txl = iface.NewTxLoop(fixture.txFace.NumaSocket())
 	fixture.txl.SetLCore(fixture.TxLCore)
 	fixture.txl.Launch()
@@ -77,13 +82,13 @@ func (fixture *Fixture) RunTest() {
 	fixture.rxl.Close()
 }
 
-func (fixture *Fixture) launchRx() {
+func (fixture *Fixture) launchRx() (cancelRxBurstCallback io.Closer) {
 	assert, require := testenv.MakeAR(fixture.t)
 
 	fixture.rxl = iface.NewRxLoop(fixture.rxFace.NumaSocket())
 	fixture.rxl.SetLCore(fixture.RxLCore)
 
-	fixture.rxl.SetCallback(iface.WrapRxCb(func(burst iface.RxBurst) {
+	f, arg, cancelRxBurstCallback := iface.WrapRxBurstCallback(func(burst *iface.RxBurst) {
 		check := func(l3pkt ndni.IL3Packet) (increment int) {
 			pkt := l3pkt.AsPacket().AsMbuf()
 			faceID := iface.ID(pkt.Port())
@@ -105,7 +110,8 @@ func (fixture *Fixture) launchRx() {
 		for _, nack := range burst.ListNacks() {
 			fixture.NRxNacks += check(nack)
 		}
-	}))
+	})
+	fixture.rxl.SetCallback(f, arg)
 
 	require.NoError(fixture.rxl.Launch())
 	time.Sleep(50 * time.Millisecond)
@@ -117,6 +123,8 @@ func (fixture *Fixture) launchRx() {
 			fixture.rxl.AddRxGroup(rxg)
 		}
 	}
+
+	return cancelRxBurstCallback
 }
 
 func (fixture *Fixture) sendProc() {
@@ -131,6 +139,7 @@ func (fixture *Fixture) sendProc() {
 	}
 }
 
+// CheckCounters checks the counters are within acceptable range.
 func (fixture *Fixture) CheckCounters() {
 	assert, _ := testenv.MakeAR(fixture.t)
 

@@ -1,6 +1,7 @@
 package cptr
 
 import (
+	"io"
 	"math/rand"
 	"sync"
 	"unsafe"
@@ -17,7 +18,8 @@ func CtxPut(obj interface{}) unsafe.Pointer {
 			break
 		}
 	}
-	return unsafe.Pointer(uintptr(id))
+	n := uintptr(id)
+	return unsafe.Pointer(n)
 }
 
 // CtxGet returns the object associated with void* pointer.
@@ -42,4 +44,18 @@ func CtxPop(ctx unsafe.Pointer) interface{} {
 	obj := CtxGet(ctx)
 	CtxClear(ctx)
 	return obj
+}
+
+// CtxCloser returns an io.Closer that invokes CtxClear.
+func CtxCloser(ctx unsafe.Pointer) io.Closer {
+	return ctxCloser{ctx}
+}
+
+type ctxCloser struct {
+	ctx unsafe.Pointer
+}
+
+func (c ctxCloser) Close() error {
+	CtxClear(c.ctx)
+	return nil
 }

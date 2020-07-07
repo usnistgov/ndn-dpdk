@@ -11,10 +11,10 @@ import (
 var (
 	theConfig Config
 	theRxls   []*iface.RxLoop
-	theTxls   []*iface.TxLoop
+	theTxls   []iface.TxLoop
 
 	CustomGetRxl func(rxg iface.IRxGroup) *iface.RxLoop
-	CustomGetTxl func(rxg iface.Face) *iface.TxLoop
+	CustomGetTxl func(rxg iface.Face) iface.TxLoop
 )
 
 type Config struct {
@@ -64,7 +64,7 @@ func AddRxLoop(rxl *iface.RxLoop) {
 }
 
 // Provide a TxLoop for face creation.
-func AddTxLoop(txl *iface.TxLoop) {
+func AddTxLoop(txl iface.TxLoop) {
 	theTxls = append(theTxls, txl)
 }
 

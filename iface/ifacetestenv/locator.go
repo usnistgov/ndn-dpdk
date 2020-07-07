@@ -8,6 +8,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
+// CheckLocatorMarshal checks JSON marshaling of the Locator.
 func CheckLocatorMarshal(t *testing.T, loc iface.Locator) {
 	assert, _ := testenv.MakeAR(t)
 	locw := iface.LocatorWrapper{loc}

@@ -34,5 +34,8 @@ func PostMain(fn cptr.Function) {
 // f must be a function with zero parameters and zero or one return values.
 // Returns f's return value, or nil if f does not have a return value.
 func CallMain(f interface{}) interface{} {
+	if CurrentLCore() == Initial {
+		return cptr.Call(func(fn cptr.Function) { cptr.Invoke(fn) }, f)
+	}
 	return cptr.Call(PostMain, f)
 }

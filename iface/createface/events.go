@@ -34,14 +34,14 @@ func chooseRxl(rxg iface.IRxGroup) *iface.RxLoop {
 	return bestRxl
 }
 
-func chooseTxl(face iface.Face) *iface.TxLoop {
+func chooseTxl(face iface.Face) iface.TxLoop {
 	if CustomGetTxl != nil {
 		return CustomGetTxl(face)
 	}
-	var bestTxl *iface.TxLoop
+	var bestTxl iface.TxLoop
 	bestScore := math.MaxInt32
 	for _, txl := range theTxls {
-		score := len(txl.ListFaces())
+		score := txl.CountFaces()
 		if !isNumaSocketMatch(txl.NumaSocket(), face.NumaSocket()) {
 			score += 1000000
 		}

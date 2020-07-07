@@ -10,20 +10,20 @@ func TestFunction(t *testing.T) {
 	assert, _ := makeAR(t)
 
 	n := 0
-	assert.Equal(0, invokeFunction(cptr.VoidFunction(func() {
+	assert.Equal(0, cptr.Invoke(cptr.VoidFunction(func() {
 		n = 8572
 	})))
 	assert.Equal(8572, n)
 
-	assert.Equal(66, invokeFunction(cptr.IntFunction(func() int {
+	assert.Equal(66, cptr.Invoke(cptr.IntFunction(func() int {
 		n = 3961
 		return 66
 	})))
 	assert.Equal(3961, n)
 
 	assert.Equal("OK", cptr.Call(
-		func(fn cptr.Function) { go invokeFunction(fn) },
+		func(fn cptr.Function) { go cptr.Invoke(fn) },
 		func() string { return "OK" }))
 
-	assert.Equal(2424, invokeFunction(makeCFunction(2423)))
+	assert.Equal(2424, cptr.Invoke(makeCFunction(2423)))
 }

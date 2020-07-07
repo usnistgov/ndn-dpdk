@@ -3,71 +3,92 @@ package iface
 /*
 #include "../csrc/iface/rxburst.h"
 
-void
-c_FaceRxBurst_SetFrame(FaceRxBurst* burst, int i, struct rte_mbuf* frame)
-{
-	FaceRxBurst_GetScratch(burst)[i] = frame;
-}
+void go_Face_RxBurstCallback(FaceRxBurst* burst, void* arg);
 */
 import "C"
 import (
+	"io"
 	"unsafe"
 
-	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
-// A burst of received packets.
-type RxBurst struct {
-	c *C.FaceRxBurst
+// RxBurst stores a burst of received packets.
+type RxBurst C.FaceRxBurst
+
+// NewRxBurst allocates an RxBurst.
+// The capacity is for each L3 packet type.
+func NewRxBurst(capacity int) (burst *RxBurst) {
+	c := C.FaceRxBurst_New(C.uint16_t(capacity))
+	return (*RxBurst)(c)
 }
 
-func NewRxBurst(capacity int) (burst RxBurst) {
-	burst.c = C.FaceRxBurst_New(C.uint16_t(capacity))
-	return burst
+// Ptr returns *C.FaceRxBurst pointer.
+func (burst *RxBurst) Ptr() unsafe.Pointer {
+	return unsafe.Pointer(burst)
 }
 
-func (burst RxBurst) Ptr() unsafe.Pointer {
-	return unsafe.Pointer(burst.c)
+func (burst *RxBurst) ptr() *C.FaceRxBurst {
+	return (*C.FaceRxBurst)(burst)
 }
 
-func (burst RxBurst) Close() error {
-	C.FaceRxBurst_Close(burst.c)
+// Close deallocates this RxBurst.
+func (burst *RxBurst) Close() error {
+	C.FaceRxBurst_Close(burst.ptr())
 	return nil
 }
 
-func (burst RxBurst) Capacity() int {
-	return int(burst.c.capacity)
+// Capacity returns the capacity for each L3 packet type.
+func (burst *RxBurst) Capacity() int {
+	return int(burst.ptr().capacity)
 }
 
-func (burst RxBurst) ListInterests() (list []*ndni.Interest) {
-	list = make([]*ndni.Interest, int(burst.c.nInterests))
+// ListInterests returns Interest packets in the burst.
+func (burst *RxBurst) ListInterests() (list []*ndni.Interest) {
+	c := burst.ptr()
+	list = make([]*ndni.Interest, int(c.nInterests))
 	for i := range list {
-		npkt := ndni.PacketFromPtr(unsafe.Pointer(C.FaceRxBurst_GetInterest(burst.c, C.uint16_t(i))))
+		npkt := ndni.PacketFromPtr(unsafe.Pointer(C.FaceRxBurst_GetInterest(c, C.uint16_t(i))))
 		list[i] = npkt.AsInterest()
 	}
 	return list
 }
 
-func (burst RxBurst) ListData() (list []*ndni.Data) {
-	list = make([]*ndni.Data, int(burst.c.nData))
+// ListData returns Data packets in the burst.
+func (burst *RxBurst) ListData() (list []*ndni.Data) {
+	c := burst.ptr()
+	list = make([]*ndni.Data, int(c.nData))
 	for i := range list {
-		npkt := ndni.PacketFromPtr(unsafe.Pointer(C.FaceRxBurst_GetData(burst.c, C.uint16_t(i))))
+		npkt := ndni.PacketFromPtr(unsafe.Pointer(C.FaceRxBurst_GetData(c, C.uint16_t(i))))
 		list[i] = npkt.AsData()
 	}
 	return list
 }
 
-func (burst RxBurst) ListNacks() (list []*ndni.Nack) {
-	list = make([]*ndni.Nack, int(burst.c.nNacks))
+// ListNacks returns Nack packets in the burst.
+func (burst *RxBurst) ListNacks() (list []*ndni.Nack) {
+	c := burst.ptr()
+	list = make([]*ndni.Nack, int(c.nNacks))
 	for i := range list {
-		npkt := ndni.PacketFromPtr(unsafe.Pointer(C.FaceRxBurst_GetNack(burst.c, C.uint16_t(i))))
+		npkt := ndni.PacketFromPtr(unsafe.Pointer(C.FaceRxBurst_GetNack(c, C.uint16_t(i))))
 		list[i] = npkt.AsNack()
 	}
 	return list
 }
 
-// Put received frame in scratch space.
-func (burst RxBurst) SetFrame(i int, frame *pktmbuf.Packet) {
-	C.c_FaceRxBurst_SetFrame(burst.c, C.int(i), (*C.struct_rte_mbuf)(frame.Ptr()))
+// RxBurstCallback is a callback function that accepts RxBurst.
+type RxBurstCallback func(burst *RxBurst)
+
+// WrapRxBurstCallback converts a Go func into *C.Face_RxCb and void* argument.
+// cancel.Close() deletes the context, after which the callback panics.
+func WrapRxBurstCallback(fn RxBurstCallback) (f, arg unsafe.Pointer, cancel io.Closer) {
+	ctx := cptr.CtxPut(fn)
+	return unsafe.Pointer(C.go_Face_RxBurstCallback), ctx, cptr.CtxCloser(ctx)
+}
+
+//export go_Face_RxBurstCallback
+func go_Face_RxBurstCallback(burst *C.FaceRxBurst, ctx unsafe.Pointer) {
+	fn := cptr.CtxGet(ctx).(RxBurstCallback)
+	fn((*RxBurst)(burst))
 }

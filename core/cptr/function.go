@@ -9,6 +9,13 @@ import (
 #include "../../csrc/core/common.h"
 
 extern int go_runFunction(void*);
+
+typedef int (*CallbackFunction)(void* arg);
+
+static int c_invokeFunction(CallbackFunction f, void* arg)
+{
+	return (*f)(arg);
+}
 */
 import "C"
 
@@ -53,6 +60,12 @@ func Call(post func(fn Function), f interface{}) interface{} {
 		}
 	}))
 	return <-done
+}
+
+// Invoke invokes the function.
+func Invoke(fn Function) int {
+	f, arg := fn.MakeCFunction()
+	return int(C.c_invokeFunction(C.CallbackFunction(f), arg))
 }
 
 type functionC struct {
