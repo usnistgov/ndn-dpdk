@@ -6,17 +6,17 @@
     "mole-rpc": "koorchik/node-mole-rpc#ffa46f755d5dfba80a74bac5dba9d050b440eb4e",
     "mole-rpc-transport-tcp": "^0.0.20200417",
     "tslib": "^2.0.0",
-    "yargs": "^15.3.1"
+    "yargs": "^15.4.0"
   },
   "devDependencies": {
     "@types/json-stable-stringify": "^1.0.32",
-    "eslint-plugin-simple-import-sort": "^5.0.2",
+    "eslint-plugin-simple-import-sort": "^5.0.3",
     "json-stable-stringify": "^1.0.1",
     "markdownlint-cli": "^0.23.2",
-    "ts-node": "^8.9.0",
-    "typescript": "^3.9.2",
+    "ts-node": "^8.10.2",
+    "typescript": "^3.9.6",
     "typescript-json-schema": "^0.42.0",
-    "xo": "^0.32.0"
+    "xo": "^0.32.1"
   },
   "files": [
     "build/js",
