@@ -1,77 +1,13 @@
 package createface
 
 import (
-	"math"
 	"sync"
 
-	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/ethface"
 )
 
-func isNumaSocketMatch(a, b eal.NumaSocket) bool {
-	return a.IsAny() || b.IsAny() || a.ID() == b.ID()
-}
-
-func chooseRxl(rxg iface.RxGroup) iface.RxLoop {
-	if CustomGetRxl != nil {
-		return CustomGetRxl(rxg)
-	}
-
-	var bestRxl iface.RxLoop
-	bestScore := math.MaxInt32
-	for _, rxl := range theRxls {
-		score := 1000 * rxl.CountRxGroups()
-		if !isNumaSocketMatch(rxl.NumaSocket(), rxg.NumaSocket()) {
-			score += 1000000
-		}
-
-		if score <= bestScore {
-			bestRxl = rxl
-			bestScore = score
-		}
-	}
-	return bestRxl
-}
-
-func chooseTxl(face iface.Face) iface.TxLoop {
-	if CustomGetTxl != nil {
-		return CustomGetTxl(face)
-	}
-	var bestTxl iface.TxLoop
-	bestScore := math.MaxInt32
-	for _, txl := range theTxls {
-		score := txl.CountFaces()
-		if !isNumaSocketMatch(txl.NumaSocket(), face.NumaSocket()) {
-			score += 1000000
-		}
-
-		if score <= bestScore {
-			bestTxl = txl
-			bestScore = score
-		}
-	}
-	return bestTxl
-}
-
 var createDestroyLock sync.Mutex
-
-func handleFaceNew(id iface.ID) {
-	// lock held by Create()
-
-	face := iface.Get(id)
-	chooseTxl(face).AddFace(face)
-}
-
-func handleFaceClosing(id iface.ID) {
-	createDestroyLock.Lock()
-	defer createDestroyLock.Unlock()
-
-	face := iface.Get(id)
-	for _, txl := range theTxls {
-		txl.RemoveFace(face)
-	}
-}
 
 func handleFaceClosed(id iface.ID) {
 	createDestroyLock.Lock()
@@ -84,28 +20,4 @@ func handleFaceClosed(id iface.ID) {
 	}
 }
 
-func handleRxGroupAdd(rxg iface.RxGroup) {
-	// lock held by Create()
-
-	rxl := chooseRxl(rxg)
-	rxl.AddRxGroup(rxg)
-	mapRxgRxl[rxg] = rxl
-}
-
-func handleRxGroupRemove(rxg iface.RxGroup) {
-	// lock held by Create() or handleFaceClosed()
-
-	rxl := mapRxgRxl[rxg]
-	delete(mapRxgRxl, rxg)
-	rxl.RemoveRxGroup(rxg)
-}
-
-var (
-	theFaceNewEvt       = iface.OnFaceNew(handleFaceNew)
-	theFaceClosingEvt   = iface.OnFaceClosing(handleFaceClosing)
-	theFaceClosedEvt    = iface.OnFaceClosed(handleFaceClosed)
-	theRxGroupAddEvt    = iface.OnRxGroupAdd(handleRxGroupAdd)
-	theRxGroupRemoveEvt = iface.OnRxGroupRemove(handleRxGroupRemove)
-
-	mapRxgRxl = make(map[iface.RxGroup]iface.RxLoop)
-)
+var theFaceClosedEvt = iface.OnFaceClosed(handleFaceClosed)

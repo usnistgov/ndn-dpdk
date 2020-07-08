@@ -4,11 +4,11 @@ import (
 	"math/rand"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
-	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 )
 
-// VNetConfig contains configuration for VNet.
+// VNetConfig contains VNet configuration.
 type VNetConfig struct {
 	PairConfig
 	NNodes int
@@ -23,22 +23,29 @@ func (cfg *VNetConfig) applyDefaults() {
 
 // VNet represents a virtual Ethernet subnet.
 type VNet struct {
+	ealthread.Thread // bridge thread
+
 	cfg VNetConfig
 
 	Ports []EthDev
 	pairs []*Pair
 
-	NDrops      int
-	bridgeLcore eal.LCore
-	stop        chan bool
+	NDrops int
+	stop   ealthread.StopChan
 }
 
 // NewVNet creates a virtual Ethernet subnet.
-func NewVNet(cfg VNetConfig) (vnet *VNet) {
-	vnet = new(VNet)
+func NewVNet(cfg VNetConfig) *VNet {
 	cfg.applyDefaults()
-	vnet.cfg = cfg
-	vnet.stop = make(chan bool)
+	vnet := &VNet{
+		cfg:  cfg,
+		stop: ealthread.NewStopChan(),
+	}
+	vnet.Thread = ealthread.New(
+		cptr.Func0.Void(vnet.bridge),
+		vnet.stop,
+	)
+
 	for i := 0; i < vnet.cfg.NNodes; i++ {
 		pair := NewPair(vnet.cfg.PairConfig)
 		pair.PortB.Start(pair.EthDevConfig())
@@ -50,7 +57,7 @@ func NewVNet(cfg VNetConfig) (vnet *VNet) {
 
 func (vnet *VNet) bridge() {
 	const burstSize = 25
-	for {
+	for vnet.stop.Continue() {
 		for srcIndex, src := range vnet.pairs {
 			for _, srcQ := range src.PortB.ListRxQueues() {
 				rxPkts := make(pktmbuf.Vector, burstSize)
@@ -84,27 +91,17 @@ func (vnet *VNet) bridge() {
 				rxPkts.Close()
 			}
 		}
-
-		select {
-		case <-vnet.stop:
-			return
-		default:
-		}
 	}
 }
 
-// LaunchBridge starts a bridge thread that copies packets between attached nodes.
-func (vnet *VNet) LaunchBridge(lcore eal.LCore) {
-	vnet.bridgeLcore = lcore
-	lcore.RemoteLaunch(cptr.Func0.Void(vnet.bridge))
+// ThreadRole returns "VNETBRIDGE" used in lcore allocator.
+func (*VNet) ThreadRole() string {
+	return "VNETBRIDGE"
 }
 
 // Close stops the bridge and closes all ports.
 func (vnet *VNet) Close() error {
-	if vnet.bridgeLcore.IsBusy() {
-		vnet.stop <- true
-		vnet.bridgeLcore.Wait()
-	}
+	vnet.Stop()
 	for _, pair := range vnet.pairs {
 		pair.Close()
 	}

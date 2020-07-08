@@ -6,6 +6,8 @@ package iface
 import "C"
 import (
 	"io"
+	"math"
+	"sync/atomic"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
@@ -45,12 +47,12 @@ func NewRxLoop(socket eal.NumaSocket) RxLoop {
 	rxl := &rxLoop{
 		c:      (*C.RxLoop)(eal.Zmalloc("RxLoop", C.sizeof_RxLoop, socket)),
 		socket: socket,
-		rxgs:   make(map[*C.RxGroup]RxGroup),
 	}
 	rxl.Thread = ealthread.New(
 		cptr.Func0.C(unsafe.Pointer(C.RxLoop_Run), unsafe.Pointer(rxl.c)),
 		ealthread.InitStopFlag(unsafe.Pointer(&rxl.c.stop)),
 	)
+	eal.CallMain(func() { rxLoopThreads[rxl] = true })
 	return rxl
 }
 
@@ -58,7 +60,7 @@ type rxLoop struct {
 	ealthread.Thread
 	c      *C.RxLoop
 	socket eal.NumaSocket
-	rxgs   map[*C.RxGroup]RxGroup
+	nRxgs  int32 // atomic
 }
 
 func (rxl *rxLoop) ThreadRole() string {
@@ -71,6 +73,7 @@ func (rxl *rxLoop) NumaSocket() eal.NumaSocket {
 
 func (rxl *rxLoop) Close() error {
 	rxl.Stop()
+	eal.CallMain(func() { delete(rxLoopThreads, rxl) })
 	eal.Free(rxl.c)
 	return nil
 }
@@ -88,9 +91,7 @@ func (rxl *rxLoop) NackDemux() *InputDemux {
 }
 
 func (rxl *rxLoop) CountRxGroups() int {
-	return eal.CallMain(func() int {
-		return len(rxl.rxgs)
-	}).(int)
+	return int(atomic.LoadInt32(&rxl.nRxgs))
 }
 
 func (rxl *rxLoop) AddRxGroup(rxg RxGroup) {
@@ -100,10 +101,11 @@ func (rxl *rxLoop) AddRxGroup(rxg RxGroup) {
 	}
 
 	eal.CallMain(func() {
-		if rxl.rxgs[rxgC] != nil {
-			return
+		if mapRxgRxl[rxg] != nil {
+			log.Panic("RxGroup is in another RxLoop")
 		}
-		rxl.rxgs[rxgC] = rxg
+		mapRxgRxl[rxg] = rxl
+		atomic.AddInt32(&rxl.nRxgs, 1)
 
 		C.cds_hlist_add_head_rcu(&rxgC.rxlNode, &rxl.c.head)
 	})
@@ -111,13 +113,69 @@ func (rxl *rxLoop) AddRxGroup(rxg RxGroup) {
 
 func (rxl *rxLoop) RemoveRxGroup(rxg RxGroup) {
 	eal.CallMain(func() {
-		rxgC := (*C.RxGroup)(rxg.Ptr())
-		if rxl.rxgs[rxgC] == nil {
-			return
+		if mapRxgRxl[rxg] != rxl {
+			log.Panic("RxGroup is not in this RxLoop")
 		}
-		delete(rxl.rxgs, rxgC)
+		delete(mapRxgRxl, rxg)
+		atomic.AddInt32(&rxl.nRxgs, -1)
 
+		rxgC := (*C.RxGroup)(rxg.Ptr())
 		C.cds_hlist_del_rcu(&rxgC.rxlNode)
 	})
 	urcu.Barrier()
+}
+
+var (
+	// ChooseRxLoop customizes RxLoop selection in ActivateRxGroup.
+	// This will be invoked on the main thread.
+	// Return nil to use default algorithm.
+	ChooseRxLoop = func(rxg RxGroup) RxLoop { return nil }
+
+	rxLoopThreads = make(map[RxLoop]bool)
+	mapRxgRxl     = make(map[RxGroup]RxLoop)
+)
+
+// ListRxLoops returns a list of RxLoops.
+func ListRxLoops() (list []RxLoop) {
+	eal.CallMain(func() {
+		for rxl := range rxLoopThreads {
+			list = append(list, rxl)
+		}
+	})
+	return list
+}
+
+// ActivateRxGroup selects an available RxLoop and adds the RxGroup to it.
+// Panics if no RxLoop is available.
+func ActivateRxGroup(rxg RxGroup) {
+	rxl := eal.CallMain(func() RxLoop {
+		if rxl := ChooseRxLoop(rxg); rxl != nil {
+			return rxl
+		}
+
+		if len(rxLoopThreads) == 0 {
+			log.Panic("no RxLoop available")
+		}
+
+		rxgSocket := rxg.NumaSocket()
+		var bestRxl RxLoop
+		bestScore := math.MaxInt32
+		for rxl := range rxLoopThreads {
+			score := rxl.CountRxGroups()
+			if !rxgSocket.Match(rxl.NumaSocket()) {
+				score += 1000000
+			}
+			if score <= bestScore {
+				bestRxl, bestScore = rxl, score
+			}
+		}
+		return bestRxl
+	}).(RxLoop)
+	rxl.AddRxGroup(rxg)
+}
+
+// DeactivateRxGroup removes the RxGroup from the owning RxLoop.
+func DeactivateRxGroup(rxg RxGroup) {
+	rxl := eal.CallMain(func() RxLoop { return mapRxgRxl[rxg] }).(RxLoop)
+	rxl.RemoveRxGroup(rxg)
 }

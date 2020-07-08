@@ -53,10 +53,11 @@ func (th *threadImpl) IsRunning() bool {
 
 func (th *threadImpl) Launch() error {
 	if !th.lc.Valid() {
+		log.WithField("th", th).Panic("lcore unassigned")
 		panic("lcore unassigned")
 	}
 	if th.IsRunning() {
-		panic("lcore is busy")
+		log.WithField("lc", th.lc).Panic("lcore is busy")
 	}
 	return th.lc.RemoteLaunch(th.main)
 }

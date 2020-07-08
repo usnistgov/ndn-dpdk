@@ -94,17 +94,6 @@ func (face *EthFace) Close() error {
 	return nil
 }
 
-func (face *EthFace) ListRxGroups() []iface.RxGroup {
-	switch impl := face.port.impl.(type) {
-	case *rxFlowImpl:
-		_, rxf := impl.findQueue(func(rxf *rxFlow) bool { return rxf != nil && rxf.face == face })
-		return []iface.RxGroup{rxf}
-	case *rxTableImpl:
-		return []iface.RxGroup{impl.rxt}
-	}
-	panic(face.port.impl)
-}
-
 type ExCounters struct {
 	RxQueue int
 }

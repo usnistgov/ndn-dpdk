@@ -15,7 +15,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"github.com/usnistgov/ndn-dpdk/iface/createface"
 )
 
 type Config struct {
@@ -95,7 +94,6 @@ func (dp *DataPlane) Launch() error {
 		txl := iface.NewTxLoop(txLCore.NumaSocket())
 		txl.SetLCore(txLCore)
 		txl.Launch()
-		createface.AddTxLoop(txl)
 	}
 	if dp.crypto != nil {
 		dp.crypto.Launch()
@@ -105,19 +103,16 @@ func (dp *DataPlane) Launch() error {
 	}
 	for _, fwi := range dp.inputs {
 		fwi.rxl.Launch()
-		createface.AddRxLoop(fwi.rxl)
 	}
 	return nil
 }
 
 func (dp *DataPlane) Close() error {
-	createface.CloseAll()
+	iface.CloseAll()
 	if dp.crypto != nil {
-		dp.crypto.Stop()
 		dp.crypto.Close()
 	}
 	for _, fwd := range dp.fwds {
-		fwd.Stop()
 		fwd.Close()
 	}
 	for _, fwi := range dp.inputs {

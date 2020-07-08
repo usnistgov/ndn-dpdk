@@ -38,12 +38,6 @@ type Face interface {
 	// IsDown determines whether the face is DOWN or UP.
 	IsDown() bool
 
-	// ListRxGroups returns RxGroups that contain this face.
-	ListRxGroups() []RxGroup
-
-	// TxBurst transmits a burst of L3 packets.
-	TxBurst(pkts []*ndni.Packet)
-
 	// ReadCounters returns basic face counters.
 	ReadCounters() Counters
 
@@ -145,6 +139,7 @@ func (face *FaceBase) BeforeClose() {
 	faceC := face.ptr()
 	faceC.state = StateDown
 	emitter.EmitSync(evtFaceClosing, id)
+	DeactivateTxFace(Get(id))
 }
 
 func (face *FaceBase) clear() {
@@ -190,10 +185,7 @@ func (face *FaceBase) SetDown(isDown bool) {
 }
 
 // TxBurst transmits a burst of L3 packets.
-func (face *FaceBase) TxBurst(pkts []*ndni.Packet) {
+func TxBurst(id ID, pkts []*ndni.Packet) {
 	ptr, count := cptr.ParseCptrArray(pkts)
-	if count == 0 {
-		return
-	}
-	C.Face_TxBurst(C.FaceID(face.id), (**C.Packet)(ptr), C.uint16_t(count))
+	C.Face_TxBurst(C.FaceID(id), (**C.Packet)(ptr), C.uint16_t(count))
 }

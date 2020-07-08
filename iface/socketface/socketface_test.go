@@ -17,6 +17,8 @@ import (
 
 func TestUdp(t *testing.T) {
 	assert, require := makeAR(t)
+	fixture := ifacetestenv.New(t)
+	defer fixture.Close()
 
 	locA := iface.MustParseLocator(`{ "Scheme": "udp", "Local": "127.0.0.1:7001", "Remote": "127.0.0.1:7002" }`).(socketface.Locator)
 	ifacetestenv.CheckLocatorMarshal(t, locA)
@@ -34,13 +36,17 @@ func TestUdp(t *testing.T) {
 	assert.Equal("127.0.0.1:7001", locA.Local)
 	assert.Equal("127.0.0.1:7002", locA.Remote)
 
-	fixture := ifacetestenv.New(t, faceA, faceB)
-	fixture.RunTest()
+	fixture.RunTest(faceA, faceB)
 	fixture.CheckCounters()
 }
 
-func checkStreamRedialing(t *testing.T, listener net.Listener, faceA *socketface.SocketFace) {
+func checkStreamRedialing(t *testing.T, listener net.Listener, makeFaceA func() *socketface.SocketFace) {
 	assert, require := makeAR(t)
+	fixture := ifacetestenv.New(t)
+	defer fixture.Close()
+
+	faceA := makeFaceA()
+	defer faceA.Close()
 
 	var hasDownEvt, hasUpEvt bool
 	defer iface.OnFaceDown(func(id iface.ID) {
@@ -61,8 +67,8 @@ func checkStreamRedialing(t *testing.T, listener net.Listener, faceA *socketface
 	require.NoError(e)
 	faceB, e := socketface.Wrap(innerB, socketfaceCfg)
 	require.NoError(e)
-	fixture := ifacetestenv.New(t, faceA, faceB)
-	fixture.RunTest()
+
+	fixture.RunTest(faceA, faceB)
 	fixture.CheckCounters()
 
 	accepted.Close()                // close initial connection
@@ -88,17 +94,18 @@ func TestTcp(t *testing.T) {
 	defer listener.Close()
 	*addr = *listener.Addr().(*net.TCPAddr)
 
-	loc := iface.MustParseLocator(fmt.Sprintf(`{ "Scheme": "tcp", "Remote": "127.0.0.1:%d" }`, addr.Port)).(socketface.Locator)
-	face, e := socketface.New(loc, socketfaceCfg)
-	require.NoError(e)
-	defer face.Close()
+	checkStreamRedialing(t, listener, func() *socketface.SocketFace {
+		loc := iface.MustParseLocator(fmt.Sprintf(`{ "Scheme": "tcp", "Remote": "127.0.0.1:%d" }`, addr.Port)).(socketface.Locator)
+		face, e := socketface.New(loc, socketfaceCfg)
+		require.NoError(e)
 
-	loc = face.Locator().(socketface.Locator)
-	assert.Equal("tcp", loc.Scheme)
-	assert.Equal(fmt.Sprintf("127.0.0.1:%d", addr.Port), loc.Remote)
-	ifacetestenv.CheckLocatorMarshal(t, loc)
+		loc = face.Locator().(socketface.Locator)
+		assert.Equal("tcp", loc.Scheme)
+		assert.Equal(fmt.Sprintf("127.0.0.1:%d", addr.Port), loc.Remote)
+		ifacetestenv.CheckLocatorMarshal(t, loc)
 
-	checkStreamRedialing(t, listener, face)
+		return face
+	})
 }
 
 func TestUnix(t *testing.T) {
@@ -112,15 +119,16 @@ func TestUnix(t *testing.T) {
 	require.NoError(e)
 	defer listener.Close()
 
-	loc := iface.MustParseLocator(fmt.Sprintf(`{ "Scheme": "unix", "Remote": "%s" }`, addr)).(socketface.Locator)
-	face, e := socketface.New(loc, socketfaceCfg)
-	require.NoError(e)
-	defer face.Close()
+	checkStreamRedialing(t, listener, func() *socketface.SocketFace {
+		loc := iface.MustParseLocator(fmt.Sprintf(`{ "Scheme": "unix", "Remote": "%s" }`, addr)).(socketface.Locator)
+		face, e := socketface.New(loc, socketfaceCfg)
+		require.NoError(e)
 
-	loc = face.Locator().(socketface.Locator)
-	assert.Equal("unix", loc.Scheme)
-	assert.Equal(addr, loc.Remote)
-	ifacetestenv.CheckLocatorMarshal(t, loc)
+		loc = face.Locator().(socketface.Locator)
+		assert.Equal("unix", loc.Scheme)
+		assert.Equal(addr, loc.Remote)
+		ifacetestenv.CheckLocatorMarshal(t, loc)
 
-	checkStreamRedialing(t, listener, face)
+		return face
+	})
 }

@@ -30,23 +30,19 @@ type Input struct {
 func New(cfg []TaskConfig) (app *App, e error) {
 	app = new(App)
 
-	createface.CustomGetRxl = func(rxg iface.RxGroup) iface.RxLoop {
+	iface.ChooseRxLoop = func(rxg iface.RxGroup) iface.RxLoop {
 		rxl := iface.NewRxLoop(rxg.NumaSocket())
 		ealthread.AllocThread(rxl)
 
 		var input Input
 		input.rxl = rxl
 		app.inputs = append(app.inputs, &input)
-
-		createface.AddRxLoop(rxl)
 		return rxl
 	}
 
-	createface.CustomGetTxl = func(face iface.Face) iface.TxLoop {
+	iface.ChooseTxLoop = func(face iface.Face) iface.TxLoop {
 		txl := iface.NewTxLoop(face.NumaSocket())
 		ealthread.Launch(txl)
-
-		createface.AddTxLoop(txl)
 		return txl
 	}
 

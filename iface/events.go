@@ -63,9 +63,11 @@ func OnRxGroupRemove(cb func(RxGroup)) io.Closer {
 // EmitRxGroupAdd emits the RxGroupAdd event.
 func EmitRxGroupAdd(rxg RxGroup) {
 	emitter.EmitSync(evtRxGroupAdd, rxg)
+	ActivateRxGroup(rxg)
 }
 
 // EmitRxGroupRemove emits the RxGroupRemove event.
 func EmitRxGroupRemove(rxg RxGroup) {
 	emitter.EmitSync(evtRxGroupRemove, rxg)
+	DeactivateRxGroup(rxg)
 }

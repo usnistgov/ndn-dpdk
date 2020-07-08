@@ -23,12 +23,10 @@ func Init() {
 	DemuxD.InitFirst()
 	DemuxN.InitFirst()
 	rxl.Launch()
-	createface.AddRxLoop(rxl)
 
 	txl := iface.NewTxLoop(eal.Workers[1].NumaSocket())
 	txl.SetLCore(eal.Workers[1])
 	txl.Launch()
-	createface.AddTxLoop(txl)
 }
 
 // WorkerLCores is a list of unused lcores.

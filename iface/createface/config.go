@@ -4,19 +4,11 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
-	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/ethface"
 	"github.com/usnistgov/ndn-dpdk/iface/socketface"
 )
 
-var (
-	theConfig Config
-	theRxls   []iface.RxLoop
-	theTxls   []iface.TxLoop
-
-	CustomGetRxl func(rxg iface.RxGroup) iface.RxLoop
-	CustomGetTxl func(rxg iface.Face) iface.TxLoop
-)
+var theConfig Config
 
 type Config struct {
 	EnableEth        bool // whether to enable Ethernet faces
@@ -56,27 +48,4 @@ func ListRxTxNumaSockets() (list []eal.NumaSocket) {
 		list = append(list, eal.NumaSocket{})
 	}
 	return list
-}
-
-// Provide an RxLoop for face creation.
-func AddRxLoop(rxl iface.RxLoop) {
-	theRxls = append(theRxls, rxl)
-}
-
-// Provide a TxLoop for face creation.
-func AddTxLoop(txl iface.TxLoop) {
-	theTxls = append(theTxls, txl)
-}
-
-// Close all faces and stop RxLoops and TxLoops.
-func CloseAll() {
-	iface.CloseAll()
-	for _, rxl := range theRxls {
-		rxl.Close()
-	}
-	theRxls = nil
-	for _, txl := range theTxls {
-		txl.Close()
-	}
-	theTxls = nil
 }

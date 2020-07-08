@@ -24,6 +24,7 @@ func Put(face Face) {
 	}
 	gFaces[id] = face
 	emitter.EmitSync(evtFaceNew, id)
+	ActivateTxFace(face)
 }
 
 // List returns a list of existing faces.
@@ -36,9 +37,15 @@ func List() (list []Face) {
 	return list
 }
 
-// CloseAll closes all faces.
+// CloseAll closes all faces, RxLoops, and TxLoops.
 func CloseAll() {
 	for _, face := range List() {
 		face.Close()
+	}
+	for _, rxl := range ListRxLoops() {
+		rxl.Close()
+	}
+	for _, txl := range ListTxLoops() {
+		txl.Close()
 	}
 }

@@ -39,11 +39,11 @@ func (demux *InputDemux) InitRoundrobin(nDest int) {
 }
 
 // InitNdt configures to dispatch via NDT loopup.
-func (demux *InputDemux) InitNdt(ndt *ndt.Ndt, ndtThreadId int) {
+func (demux *InputDemux) InitNdt(ndt *ndt.Ndt, ndtThread int) {
 	demuxC := demux.ptr()
 	C.InputDemux_SetDispatchFunc_(demuxC, C.InputDemux_DispatchByNdt)
 	demuxC.ndt = (*C.Ndt)(unsafe.Pointer(ndt.Ptr()))
-	demuxC.ndtt = C.Ndt_GetThread(demuxC.ndt, C.uint8_t(ndtThreadId))
+	demuxC.ndtt = C.Ndt_GetThread(demuxC.ndt, C.uint8_t(ndtThread))
 }
 
 // InitToken configures to dispatch according to high 8 bits of PIT token.

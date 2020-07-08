@@ -7,6 +7,7 @@ import (
 )
 
 const (
+	// MaxBurstSize is the maximum and default burst size.
 	MaxBurstSize = 64
 
 	_ = "enumgen"

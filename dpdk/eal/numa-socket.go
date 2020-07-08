@@ -34,6 +34,11 @@ func (socket NumaSocket) IsAny() bool {
 	return socket.v == 0
 }
 
+// Match returns true if either NumaSocket is SOCKET_ID_ANY, or both are the same NumaSocket.
+func (socket NumaSocket) Match(other NumaSocket) bool {
+	return socket.IsAny() || other.IsAny() || socket.v == other.v
+}
+
 func (socket NumaSocket) String() string {
 	if socket.IsAny() {
 		return "any"

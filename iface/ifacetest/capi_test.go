@@ -4,8 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
-	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/intface"
 	"github.com/usnistgov/ndn-dpdk/ndni"
@@ -20,7 +18,7 @@ func TestCApiNoFace(t *testing.T) {
 
 	pkts := make([]*ndni.Packet, 1)
 	pkts[0] = ndnitestenv.MakeInterest("/A").AsPacket()
-	Face_TxBurst(id, pkts) // should not crash
+	iface.TxBurst(id, pkts) // should not crash
 }
 
 func TestCApi(t *testing.T) {
@@ -36,20 +34,12 @@ func TestCApi(t *testing.T) {
 	face.SetDown(false)
 	assert.False(Face_IsDown(id))
 
-	txl := iface.NewTxLoop(eal.NumaSocket{})
-	ealthread.Launch(txl)
-	time.Sleep(10 * time.Millisecond)
-	txl.AddFace(face.D)
-	time.Sleep(90 * time.Millisecond)
-
 	pkts := make([]*ndni.Packet, 1)
 	pkts[0] = ndnitestenv.MakeInterest("/A").AsPacket()
-	Face_TxBurst(id, pkts)
+	iface.TxBurst(id, pkts)
 
 	time.Sleep(100 * time.Millisecond)
 	assert.Equal(1, collect.Count())
 
-	txl.Stop()
-	txl.Close()
 	face.D.Close()
 }

@@ -104,11 +104,6 @@ func (face *SocketFace) Close() error {
 	return nil
 }
 
-// ListRxGroups returns TheChanRxGroup.
-func (face *SocketFace) ListRxGroups() []iface.RxGroup {
-	return []iface.RxGroup{rxg}
-}
-
 func (face *SocketFace) rxLoop() {
 	for {
 		wire, ok := <-face.transport.Rx()
