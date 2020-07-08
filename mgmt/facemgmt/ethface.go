@@ -27,7 +27,7 @@ func (EthFaceMgmt) ListPortFaces(args PortArg, reply *[]BasicInfo) error {
 
 	result := make([]BasicInfo, 0)
 	if port := ethface.FindPort(dev); port != nil {
-		for _, face := range port.ListFaces() {
+		for _, face := range port.Faces() {
 			result = append(result, makeBasicInfo(face))
 		}
 	}
@@ -65,7 +65,7 @@ func makePortInfo(dev ethdev.EthDev) (info PortInfo) {
 	port := ethface.FindPort(dev)
 	if port != nil {
 		info.Active = true
-		info.ImplName = port.GetImplName()
+		info.ImplName = port.ImplName()
 	}
 	return info
 }

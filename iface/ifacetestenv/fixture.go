@@ -81,7 +81,7 @@ func (fixture *Fixture) RunTest() {
 	ealthread.DefaultAllocator.Clear()
 }
 
-func (fixture *Fixture) initRxl() *iface.RxLoop {
+func (fixture *Fixture) initRxl() iface.RxLoop {
 	_, require := makeAR(fixture.t)
 
 	rxl := iface.NewRxLoop(fixture.rxFace.NumaSocket())
@@ -92,7 +92,7 @@ func (fixture *Fixture) initRxl() *iface.RxLoop {
 	require.NoError(ealthread.Launch(rxl))
 	time.Sleep(50 * time.Millisecond)
 	for _, rxg := range fixture.rxFace.ListRxGroups() {
-		require.NoError(rxl.AddRxGroup(rxg))
+		rxl.AddRxGroup(rxg)
 	}
 	for _, face := range fixture.rxDiscard {
 		for _, rxg := range face.ListRxGroups() {

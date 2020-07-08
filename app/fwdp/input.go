@@ -11,7 +11,7 @@ import (
 // Input thread.
 type Input struct {
 	id  int
-	rxl *iface.RxLoop
+	rxl iface.RxLoop
 }
 
 func newInput(id int, lc eal.LCore, ndt *ndt.Ndt, fwds []*Fwd) *Input {

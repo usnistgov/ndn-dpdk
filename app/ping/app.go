@@ -23,13 +23,14 @@ type App struct {
 }
 
 type Input struct {
-	rxl *iface.RxLoop
+	rxl  iface.RxLoop
+	face iface.Face
 }
 
 func New(cfg []TaskConfig) (app *App, e error) {
 	app = new(App)
 
-	createface.CustomGetRxl = func(rxg iface.IRxGroup) *iface.RxLoop {
+	createface.CustomGetRxl = func(rxg iface.RxGroup) iface.RxLoop {
 		rxl := iface.NewRxLoop(rxg.NumaSocket())
 		ealthread.AllocThread(rxl)
 
@@ -52,8 +53,13 @@ func New(cfg []TaskConfig) (app *App, e error) {
 	for i, taskCfg := range cfg {
 		face, e := createface.Create(taskCfg.Face.Locator)
 		if e != nil {
-			return nil, fmt.Errorf("[%d] face creation error: %v", i, e)
+			return nil, fmt.Errorf("[%d] face creation error: %w", i, e)
 		}
+		if nInputs := len(app.inputs); nInputs == 0 || app.inputs[nInputs-1].face != nil {
+			return nil, fmt.Errorf("[%d] unexpected RxLoop creation")
+		}
+		app.inputs[len(app.inputs)-1].face = face
+
 		task, e := newTask(face, taskCfg)
 		if e != nil {
 			return nil, fmt.Errorf("[%d] init error: %v", i, e)
@@ -74,11 +80,6 @@ func (app *App) Launch() {
 }
 
 func (app *App) launchInput(input *Input) {
-	faces := input.rxl.ListFaces()
-	if len(faces) != 1 {
-		panic("RxLoop should have exactly one face")
-	}
-
 	demuxI := input.rxl.InterestDemux()
 	demuxD := input.rxl.DataDemux()
 	demuxN := input.rxl.NackDemux()
@@ -87,7 +88,7 @@ func (app *App) launchInput(input *Input) {
 	demuxN.InitDrop()
 
 	for _, task := range app.Tasks {
-		if task.Face.ID() != faces[0] {
+		if task.Face.ID() != input.face.ID() {
 			continue
 		}
 		task.configureDemux(demuxI, demuxD, demuxN)

@@ -9,6 +9,7 @@ csrc/ndn/an.h
 csrc/ndn/enum.h
 csrc/pcct/cs-enum.h
 docs/mgmtspec.json
+mk/meson.build
 ndni/enum_string.go
 node_modules
 package-lock.json

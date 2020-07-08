@@ -43,7 +43,7 @@ func ParseLocator(input string) (loc Locator, e error) {
 func MustParseLocator(input string) (loc Locator) {
 	loc, e := ParseLocator(input)
 	if e != nil {
-		panic(e)
+		log.Panic("bad Locator", input, e)
 	}
 	return loc
 }
@@ -54,7 +54,7 @@ var locatorTypes = make(map[string]reflect.Type)
 func RegisterLocatorType(locator Locator, schemes ...string) {
 	typ := reflect.TypeOf(locator)
 	if typ.Kind() != reflect.Struct {
-		panic("locator must be a struct")
+		log.Panicf("locator must be a struct %T", locator)
 	}
 	for _, scheme := range schemes {
 		locatorTypes[scheme] = typ

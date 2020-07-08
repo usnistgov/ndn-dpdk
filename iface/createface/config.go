@@ -6,14 +6,15 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/ethface"
+	"github.com/usnistgov/ndn-dpdk/iface/socketface"
 )
 
 var (
 	theConfig Config
-	theRxls   []*iface.RxLoop
+	theRxls   []iface.RxLoop
 	theTxls   []iface.TxLoop
 
-	CustomGetRxl func(rxg iface.IRxGroup) *iface.RxLoop
+	CustomGetRxl func(rxg iface.RxGroup) iface.RxLoop
 	CustomGetTxl func(rxg iface.Face) iface.TxLoop
 )
 
@@ -26,23 +27,22 @@ type Config struct {
 	EthTxqFrames     int  // Ethernet after-TX queue capacity
 
 	EnableSock    bool // whether to enable socket faces
+	SockRxqFrames int  // socket RX queue capacity (shared)
 	SockTxqPkts   int  // socket before-TX queue capacity
 	SockTxqFrames int  // socket after-TX queue capacity
-
-	ChanRxgFrames int // ChanRxGroup queue capacity
 }
 
 func (cfg Config) Apply() {
 	cfg.EthRxqFrames = ringbuffer.AlignCapacity(cfg.EthRxqFrames, 64, 4096)
 	cfg.EthTxqPkts = ringbuffer.AlignCapacity(cfg.EthTxqPkts, 64, 256)
 	cfg.EthTxqFrames = ringbuffer.AlignCapacity(cfg.EthTxqFrames, 64, 4096)
+	cfg.SockRxqFrames = ringbuffer.AlignCapacity(cfg.SockRxqFrames, 64, 4096)
 	cfg.SockTxqPkts = ringbuffer.AlignCapacity(cfg.SockTxqPkts, 64, 256)
 	cfg.SockTxqFrames = ringbuffer.AlignCapacity(cfg.SockTxqFrames, 64, 4096)
-	cfg.ChanRxgFrames = ringbuffer.AlignCapacity(cfg.ChanRxgFrames, 64, 4096)
 
 	theConfig = cfg
 	ethface.DisableRxFlow = cfg.EthDisableRxFlow
-	iface.TheChanRxGroup.SetQueueCapacity(cfg.ChanRxgFrames)
+	socketface.ChangeRxQueueCapacity(cfg.SockRxqFrames)
 }
 
 // List NumaSockets for RxLoops and TxLoops to satisfy enabled devices.
@@ -59,7 +59,7 @@ func ListRxTxNumaSockets() (list []eal.NumaSocket) {
 }
 
 // Provide an RxLoop for face creation.
-func AddRxLoop(rxl *iface.RxLoop) {
+func AddRxLoop(rxl iface.RxLoop) {
 	theRxls = append(theRxls, rxl)
 }
 

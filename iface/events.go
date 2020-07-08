@@ -50,22 +50,22 @@ func OnFaceClosed(cb func(ID)) io.Closer {
 
 // OnRxGroupAdd registers a callback when an RxGroup is added.
 // Return a Closer that cancels the callback registration.
-func OnRxGroupAdd(cb func(IRxGroup)) io.Closer {
+func OnRxGroupAdd(cb func(RxGroup)) io.Closer {
 	return emitter.On(evtRxGroupAdd, cb)
 }
 
 // OnRxGroupRemove registers a callback when an RxGroup is removed.
 // Return a Closer that cancels the callback registration.
-func OnRxGroupRemove(cb func(IRxGroup)) io.Closer {
+func OnRxGroupRemove(cb func(RxGroup)) io.Closer {
 	return emitter.On(evtRxGroupRemove, cb)
 }
 
 // EmitRxGroupAdd emits the RxGroupAdd event.
-func EmitRxGroupAdd(rxg IRxGroup) {
+func EmitRxGroupAdd(rxg RxGroup) {
 	emitter.EmitSync(evtRxGroupAdd, rxg)
 }
 
 // EmitRxGroupRemove emits the RxGroupRemove event.
-func EmitRxGroupRemove(rxg IRxGroup) {
+func EmitRxGroupRemove(rxg RxGroup) {
 	emitter.EmitSync(evtRxGroupRemove, rxg)
 }

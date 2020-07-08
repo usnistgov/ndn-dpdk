@@ -17,10 +17,10 @@ func Get(id ID) Face {
 func Put(face Face) {
 	id := face.ID()
 	if !id.Valid() {
-		panic("invalid ID")
+		log.Panic("invalid ID", face)
 	}
 	if gFaces[id] != nil {
-		panic("duplicate ID")
+		log.Panic("duplicate ID", face)
 	}
 	gFaces[id] = face
 	emitter.EmitSync(evtFaceNew, id)

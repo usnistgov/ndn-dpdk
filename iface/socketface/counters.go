@@ -18,8 +18,8 @@ func (cnt ExCounters) String() string {
 // ReadExCounters reads extended counters.
 func (face *SocketFace) ReadExCounters() interface{} {
 	return ExCounters{
-		NRedials:      face.inner.NRedials,
-		RxQueueLength: len(face.inner.Rx()),
-		TxQueueLength: len(face.inner.Tx()),
+		NRedials:      face.transport.NRedials,
+		RxQueueLength: len(face.transport.Rx()),
+		TxQueueLength: len(face.transport.Tx()),
 	}
 }

@@ -2,143 +2,50 @@ package iface
 
 /*
 #include "../csrc/iface/rxloop.h"
-
-uint16_t go_ChanRxGroup_RxBurst(RxGroup* rxg, struct rte_mbuf** pkts, uint16_t nPkts);
 */
 import "C"
 import (
-	"errors"
-	"sync"
-	"sync/atomic"
+	"io"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
-	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 )
 
-// Receive channel for a group of faces.
-type IRxGroup interface {
+// RxGroup is a receive channel for a group of faces.
+type RxGroup interface {
+	eal.WithNumaSocket
+
+	// IsRxGroup identifies an implementation as RxGroup.
+	IsRxGroup()
+
+	// Ptr returns *C.RxGroup pointer.
 	Ptr() unsafe.Pointer
-	ptr() *C.RxGroup
-	GetRxLoop() *RxLoop
-	setRxLoop(rxl *RxLoop)
-
-	NumaSocket() eal.NumaSocket
-	ListFaces() []ID
 }
 
-// Base type to implement IRxGroup.
-type RxGroupBase struct {
-	c   unsafe.Pointer
-	rxl *RxLoop
-}
+// RxLoop is a thread to process incoming packets on a set of RxGroups.
+type RxLoop interface {
+	ealthread.ThreadWithRole
+	eal.WithNumaSocket
+	io.Closer
 
-func (rxg *RxGroupBase) InitRxgBase(c unsafe.Pointer) {
-	rxg.c = c
-}
+	InterestDemux() *InputDemux
+	DataDemux() *InputDemux
+	NackDemux() *InputDemux
 
-func (rxg *RxGroupBase) Ptr() unsafe.Pointer {
-	return rxg.c
-}
-
-func (rxg *RxGroupBase) ptr() *C.RxGroup {
-	return (*C.RxGroup)(rxg.c)
-}
-
-func (rxg *RxGroupBase) GetRxLoop() *RxLoop {
-	return rxg.rxl
-}
-
-func (rxg *RxGroupBase) setRxLoop(rxl *RxLoop) {
-	rxg.rxl = rxl
-}
-
-// An RxGroup using a Go channel as receive queue.
-type ChanRxGroup struct {
-	RxGroupBase
-	nFaces int32    // accessed via atomic.AddInt32
-	faces  sync.Map // map[ID]Face
-	queue  chan *pktmbuf.Packet
-}
-
-func newChanRxGroup() (rxg *ChanRxGroup) {
-	rxg = new(ChanRxGroup)
-	C.theChanRxGroup_.rxBurstOp = C.RxGroup_RxBurst(C.go_ChanRxGroup_RxBurst)
-	rxg.InitRxgBase(unsafe.Pointer(&C.theChanRxGroup_))
-	rxg.SetQueueCapacity(1024)
-	return rxg
-}
-
-// Change queue capacity (not thread safe).
-func (rxg *ChanRxGroup) SetQueueCapacity(queueCapacity int) {
-	rxg.queue = make(chan *pktmbuf.Packet, queueCapacity)
-}
-
-func (rxg *ChanRxGroup) NumaSocket() eal.NumaSocket {
-	return eal.NumaSocket{}
-}
-
-func (rxg *ChanRxGroup) ListFaces() (list []ID) {
-	rxg.faces.Range(func(faceID, face interface{}) bool {
-		list = append(list, faceID.(ID))
-		return true
-	})
-	return list
-}
-
-func (rxg *ChanRxGroup) AddFace(face Face) {
-	if atomic.AddInt32(&rxg.nFaces, 1) == 1 {
-		EmitRxGroupAdd(rxg)
-	}
-	rxg.faces.Store(face.ID(), face)
-}
-
-func (rxg *ChanRxGroup) RemoveFace(face Face) {
-	rxg.faces.Delete(face.ID())
-	if atomic.AddInt32(&rxg.nFaces, -1) == 0 {
-		EmitRxGroupRemove(rxg)
-	}
-}
-
-func (rxg *ChanRxGroup) Rx(pkt *pktmbuf.Packet) {
-	select {
-	case rxg.queue <- pkt:
-	default:
-		// TODO count drops
-		pkt.Close()
-	}
-}
-
-//export go_ChanRxGroup_RxBurst
-func go_ChanRxGroup_RxBurst(rxg *C.RxGroup, pkts **C.struct_rte_mbuf, nPkts C.uint16_t) C.uint16_t {
-	select {
-	case pkt := <-TheChanRxGroup.queue:
-		*pkts = (*C.struct_rte_mbuf)(pkt.Ptr())
-		return 1
-	default:
-	}
-	return 0
-}
-
-var TheChanRxGroup = newChanRxGroup()
-
-// RxLoop is a thread to process incoming packets.
-type RxLoop struct {
-	ealthread.Thread
-	c      *C.RxLoop
-	socket eal.NumaSocket
-	rxgs   map[*C.RxGroup]IRxGroup
+	CountRxGroups() int
+	AddRxGroup(rxg RxGroup)
+	RemoveRxGroup(rxg RxGroup)
 }
 
 // NewRxLoop creates an RxLoop.
-func NewRxLoop(socket eal.NumaSocket) *RxLoop {
-	rxl := &RxLoop{
+func NewRxLoop(socket eal.NumaSocket) RxLoop {
+	rxl := &rxLoop{
 		c:      (*C.RxLoop)(eal.Zmalloc("RxLoop", C.sizeof_RxLoop, socket)),
 		socket: socket,
-		rxgs:   make(map[*C.RxGroup]IRxGroup),
+		rxgs:   make(map[*C.RxGroup]RxGroup),
 	}
 	rxl.Thread = ealthread.New(
 		cptr.Func0.C(unsafe.Pointer(C.RxLoop_Run), unsafe.Pointer(rxl.c)),
@@ -147,88 +54,70 @@ func NewRxLoop(socket eal.NumaSocket) *RxLoop {
 	return rxl
 }
 
-// ThreadRole returns "RX" used in lcore allocator.
-func (rxl *RxLoop) ThreadRole() string {
+type rxLoop struct {
+	ealthread.Thread
+	c      *C.RxLoop
+	socket eal.NumaSocket
+	rxgs   map[*C.RxGroup]RxGroup
+}
+
+func (rxl *rxLoop) ThreadRole() string {
 	return "RX"
 }
 
-// NumaSocket returns NUMA socket of the data structures.
-func (rxl *RxLoop) NumaSocket() eal.NumaSocket {
+func (rxl *rxLoop) NumaSocket() eal.NumaSocket {
 	return rxl.socket
 }
 
-// InterestDemux returns Interest demultiplexer.
-func (rxl *RxLoop) InterestDemux() *InputDemux {
-	return InputDemuxFromPtr(unsafe.Pointer(&rxl.c.demuxI))
-}
-
-// DataDemux returns Data demultiplexer.
-func (rxl *RxLoop) DataDemux() *InputDemux {
-	return InputDemuxFromPtr(unsafe.Pointer(&rxl.c.demuxD))
-}
-
-// NackDemux returns Nack demultiplexer.
-func (rxl *RxLoop) NackDemux() *InputDemux {
-	return InputDemuxFromPtr(unsafe.Pointer(&rxl.c.demuxN))
-}
-
-// Close stops the thread and deallocates data structures.
-func (rxl *RxLoop) Close() error {
+func (rxl *rxLoop) Close() error {
 	rxl.Stop()
-
-	for _, rxg := range rxl.rxgs {
-		rxg.setRxLoop(nil)
-	}
-
 	eal.Free(rxl.c)
 	return nil
 }
 
-func (rxl *RxLoop) ListRxGroups() (list []IRxGroup) {
-	for _, rxg := range rxl.rxgs {
-		list = append(list, rxg)
-	}
-	return list
+func (rxl *rxLoop) InterestDemux() *InputDemux {
+	return InputDemuxFromPtr(unsafe.Pointer(&rxl.c.demuxI))
 }
 
-func (rxl *RxLoop) ListFaces() (list []ID) {
-	for _, rxg := range rxl.rxgs {
-		list = append(list, rxg.ListFaces()...)
-	}
-	return list
+func (rxl *rxLoop) DataDemux() *InputDemux {
+	return InputDemuxFromPtr(unsafe.Pointer(&rxl.c.demuxD))
 }
 
-func (rxl *RxLoop) AddRxGroup(rxg IRxGroup) error {
-	if rxg.GetRxLoop() != nil {
-		return errors.New("RxGroup is active in another RxLoop")
-	}
-	rxgC := rxg.ptr()
+func (rxl *rxLoop) NackDemux() *InputDemux {
+	return InputDemuxFromPtr(unsafe.Pointer(&rxl.c.demuxN))
+}
+
+func (rxl *rxLoop) CountRxGroups() int {
+	return eal.CallMain(func() int {
+		return len(rxl.rxgs)
+	}).(int)
+}
+
+func (rxl *rxLoop) AddRxGroup(rxg RxGroup) {
+	rxgC := (*C.RxGroup)(rxg.Ptr())
 	if rxgC.rxBurstOp == nil {
-		return errors.New("RxGroup.rxBurstOp is missing")
+		log.Panic("RxGroup missing rxBurstOp")
 	}
 
-	rs := urcu.NewReadSide()
-	defer rs.Close()
+	eal.CallMain(func() {
+		if rxl.rxgs[rxgC] != nil {
+			return
+		}
+		rxl.rxgs[rxgC] = rxg
 
-	if rxl.socket.IsAny() {
-		rxl.socket = rxg.NumaSocket()
-	}
-	rxl.rxgs[rxgC] = rxg
-
-	rxg.setRxLoop(rxl)
-	C.cds_hlist_add_head_rcu(&rxgC.rxlNode, &rxl.c.head)
-	return nil
+		C.cds_hlist_add_head_rcu(&rxgC.rxlNode, &rxl.c.head)
+	})
 }
 
-func (rxl *RxLoop) RemoveRxGroup(rxg IRxGroup) error {
-	rs := urcu.NewReadSide()
-	defer rs.Close()
+func (rxl *rxLoop) RemoveRxGroup(rxg RxGroup) {
+	eal.CallMain(func() {
+		rxgC := (*C.RxGroup)(rxg.Ptr())
+		if rxl.rxgs[rxgC] == nil {
+			return
+		}
+		delete(rxl.rxgs, rxgC)
 
-	rxgC := rxg.ptr()
-	C.cds_hlist_del_rcu(&rxgC.rxlNode)
+		C.cds_hlist_del_rcu(&rxgC.rxlNode)
+	})
 	urcu.Barrier()
-
-	rxg.setRxLoop(nil)
-	delete(rxl.rxgs, rxgC)
-	return nil
 }

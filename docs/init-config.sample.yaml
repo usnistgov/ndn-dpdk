@@ -59,13 +59,12 @@ Face:
 
   # Whether to enable socket faces.
   EnableSock: true
+  # RX queue capacity shared among all socket faces.
+  SockRxqFrames: 4096
   # Before-TX queue capacity for socket faces.
   SockTxqPkts: 256
   # After-TX queue capacity for socket faces.
   SockTxqFrames: 1024
-
-  # ChanRxGroup queue capacity, shared among all socket faces.
-  ChanRxgFrames: 4096
 
 # NAME DISPATCH TABLE
 Ndt:

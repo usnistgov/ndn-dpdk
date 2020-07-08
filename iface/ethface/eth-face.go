@@ -15,7 +15,7 @@ type EthFace struct {
 	iface.FaceBase
 	port *Port
 	loc  Locator
-	rxf  *RxFlow
+	rxf  *rxFlow
 }
 
 func New(port *Port, loc Locator) (face *EthFace, e error) {
@@ -94,13 +94,13 @@ func (face *EthFace) Close() error {
 	return nil
 }
 
-func (face *EthFace) ListRxGroups() []iface.IRxGroup {
+func (face *EthFace) ListRxGroups() []iface.RxGroup {
 	switch impl := face.port.impl.(type) {
 	case *rxFlowImpl:
-		_, rxf := impl.findQueue(func(rxf *RxFlow) bool { return rxf != nil && rxf.face == face })
-		return []iface.IRxGroup{rxf}
+		_, rxf := impl.findQueue(func(rxf *rxFlow) bool { return rxf != nil && rxf.face == face })
+		return []iface.RxGroup{rxf}
 	case *rxTableImpl:
-		return []iface.IRxGroup{impl.rxt}
+		return []iface.RxGroup{impl.rxt}
 	}
 	panic(face.port.impl)
 }

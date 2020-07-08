@@ -9,12 +9,9 @@ import (
 )
 
 // RX/TX setup implementation.
-type iImpl interface {
+type impl interface {
 	fmt.Stringer
 	io.Closer
-
-	// Construct new instance.
-	New(port *Port) iImpl
 
 	// Initialize.
 	Init() error
@@ -26,7 +23,9 @@ type iImpl interface {
 	Stop(face *EthFace) error
 }
 
-var impls = []iImpl{&rxFlowImpl{}, &rxTableImpl{}}
+type implCtor func(*Port) impl
+
+var impls = []implCtor{newRxFlowImpl, newRxTableImpl}
 
 // Start EthDev (called by impl).
 func startDev(port *Port, nRxQueues int, promisc bool) error {

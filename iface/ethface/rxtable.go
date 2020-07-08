@@ -15,17 +15,17 @@ import (
 
 type rxTableImpl struct {
 	port *Port
-	rxt  *RxTable
+	rxt  *rxTable
+}
+
+func newRxTableImpl(port *Port) impl {
+	return &rxTableImpl{
+		port: port,
+	}
 }
 
 func (*rxTableImpl) String() string {
 	return "RxTable"
-}
-
-func (*rxTableImpl) New(port *Port) iImpl {
-	impl := new(rxTableImpl)
-	impl.port = port
-	return impl
 }
 
 func (impl *rxTableImpl) Init() error {
@@ -46,11 +46,12 @@ func (impl *rxTableImpl) setFace(slot *C.FaceID, faceID iface.ID) error {
 }
 
 func (impl *rxTableImpl) Start(face *EthFace) error {
+	rxtC := impl.rxt.ptr()
 	if face.loc.Remote.IsGroup() {
-		return impl.setFace(&impl.rxt.c.multicast, face.ID())
+		return impl.setFace(&rxtC.multicast, face.ID())
 	}
 	lastOctet := face.loc.Remote.Bytes[5]
-	return impl.setFace(&impl.rxt.c.unicast[lastOctet], face.ID())
+	return impl.setFace(&rxtC.unicast[lastOctet], face.ID())
 }
 
 func (impl *rxTableImpl) Stop(face *EthFace) error {
@@ -66,44 +67,36 @@ func (impl *rxTableImpl) Close() error {
 	return nil
 }
 
-// Table-based software RX dispatching.
-type RxTable struct {
-	iface.RxGroupBase
-	c *C.EthRxTable
-}
+type rxTable C.EthRxTable
 
-func newRxTable(port *Port) (rxt *RxTable) {
-	rxt = new(RxTable)
-	rxt.c = (*C.EthRxTable)(eal.Zmalloc("EthRxTable", C.sizeof_EthRxTable, port.dev.NumaSocket()))
-	rxt.InitRxgBase(unsafe.Pointer(rxt.c))
+func newRxTable(port *Port) (rxt *rxTable) {
+	c := (*C.EthRxTable)(eal.Zmalloc("EthRxTable", C.sizeof_EthRxTable, port.dev.NumaSocket()))
+	c.port = C.uint16_t(port.dev.ID())
+	c.queue = 0
+	c.base.rxBurstOp = C.RxGroup_RxBurst(C.EthRxTable_RxBurst)
+	c.base.rxThread = 0
 
-	rxt.c.port = C.uint16_t(port.dev.ID())
-	rxt.c.queue = 0
-	rxt.c.base.rxBurstOp = C.RxGroup_RxBurst(C.EthRxTable_RxBurst)
-	rxt.c.base.rxThread = 0
-
+	rxt = (*rxTable)(c)
 	iface.EmitRxGroupAdd(rxt)
 	return rxt
 }
 
-func (rxt *RxTable) Close() error {
+func (rxt *rxTable) ptr() *C.EthRxTable {
+	return (*C.EthRxTable)(rxt)
+}
+
+func (*rxTable) IsRxGroup() {}
+
+func (rxt *rxTable) NumaSocket() eal.NumaSocket {
+	return ethdev.FromID(int(rxt.ptr().port)).NumaSocket()
+}
+
+func (rxt *rxTable) Ptr() unsafe.Pointer {
+	return unsafe.Pointer(&rxt.ptr().base)
+}
+
+func (rxt *rxTable) Close() error {
 	iface.EmitRxGroupRemove(rxt)
-	eal.Free(rxt.c)
+	eal.Free(rxt.ptr())
 	return nil
-}
-
-func (rxt *RxTable) NumaSocket() eal.NumaSocket {
-	return ethdev.FromID(int(rxt.c.port)).NumaSocket()
-}
-
-func (rxt *RxTable) ListFaces() (list []iface.ID) {
-	if rxt.c.multicast != 0 {
-		list = append(list, iface.ID(rxt.c.multicast))
-	}
-	for j := 0; j < 256; j++ {
-		if rxt.c.unicast[j] != 0 {
-			list = append(list, iface.ID(rxt.c.unicast[j]))
-		}
-	}
-	return list
 }

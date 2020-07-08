@@ -39,7 +39,7 @@ type Face interface {
 	IsDown() bool
 
 	// ListRxGroups returns RxGroups that contain this face.
-	ListRxGroups() []IRxGroup
+	ListRxGroups() []RxGroup
 
 	// TxBurst transmits a burst of L3 packets.
 	TxBurst(pkts []*ndni.Packet)

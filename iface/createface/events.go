@@ -13,15 +13,15 @@ func isNumaSocketMatch(a, b eal.NumaSocket) bool {
 	return a.IsAny() || b.IsAny() || a.ID() == b.ID()
 }
 
-func chooseRxl(rxg iface.IRxGroup) *iface.RxLoop {
+func chooseRxl(rxg iface.RxGroup) iface.RxLoop {
 	if CustomGetRxl != nil {
 		return CustomGetRxl(rxg)
 	}
 
-	var bestRxl *iface.RxLoop
+	var bestRxl iface.RxLoop
 	bestScore := math.MaxInt32
 	for _, rxl := range theRxls {
-		score := 1000*len(rxl.ListRxGroups()) + len(rxl.ListFaces())
+		score := 1000 * rxl.CountRxGroups()
 		if !isNumaSocketMatch(rxl.NumaSocket(), rxg.NumaSocket()) {
 			score += 1000000
 		}
@@ -78,22 +78,26 @@ func handleFaceClosed(id iface.ID) {
 	defer createDestroyLock.Unlock()
 
 	for _, port := range ethface.ListPorts() {
-		if len(port.ListFaces()) == 0 {
+		if port.CountFaces() == 0 {
 			port.Close()
 		}
 	}
 }
 
-func handleRxGroupAdd(rxg iface.IRxGroup) {
+func handleRxGroupAdd(rxg iface.RxGroup) {
 	// lock held by Create()
 
-	chooseRxl(rxg).AddRxGroup(rxg)
+	rxl := chooseRxl(rxg)
+	rxl.AddRxGroup(rxg)
+	mapRxgRxl[rxg] = rxl
 }
 
-func handleRxGroupRemove(rxg iface.IRxGroup) {
+func handleRxGroupRemove(rxg iface.RxGroup) {
 	// lock held by Create() or handleFaceClosed()
 
-	rxg.GetRxLoop().RemoveRxGroup(rxg)
+	rxl := mapRxgRxl[rxg]
+	delete(mapRxgRxl, rxg)
+	rxl.RemoveRxGroup(rxg)
 }
 
 var (
@@ -102,4 +106,6 @@ var (
 	theFaceClosedEvt    = iface.OnFaceClosed(handleFaceClosed)
 	theRxGroupAddEvt    = iface.OnRxGroupAdd(handleRxGroupAdd)
 	theRxGroupRemoveEvt = iface.OnRxGroupRemove(handleRxGroupRemove)
+
+	mapRxgRxl = make(map[iface.RxGroup]iface.RxLoop)
 )

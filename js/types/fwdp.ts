@@ -1,10 +1,8 @@
 import type { Counter, RunningStatSnapshot } from "./core";
 import type { LCore } from "./dpdk";
-import type { FaceID } from "./iface";
 
 export interface FwdpInputInfo {
   LCore: LCore;
-  Faces: FaceID[];
 }
 
 export interface FwdpFwdInfo {

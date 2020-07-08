@@ -15,10 +15,12 @@ import (
 
 var portByEthDev = make(map[ethdev.EthDev]*Port)
 
+// FindPort returns a Port associated with given EthDev.
 func FindPort(ethdev ethdev.EthDev) *Port {
 	return portByEthDev[ethdev]
 }
 
+// ListPorts returns a list of active Ports.
 func ListPorts() (list []*Port) {
 	for _, port := range portByEthDev {
 		list = append(list, port)
@@ -26,17 +28,17 @@ func ListPorts() (list []*Port) {
 	return list
 }
 
-// Collection of EthFaces on a DPDK EthDev.
+// Port organizes EthFaces on an EthDev.
 type Port struct {
 	cfg      PortConfig
 	logger   logrus.FieldLogger
 	dev      ethdev.EthDev
 	faces    map[iface.ID]*EthFace
-	impl     iImpl
+	impl     impl
 	nextImpl int
 }
 
-// Open a port.
+// NewPort opens a Port.
 func NewPort(dev ethdev.EthDev, cfg PortConfig) (port *Port, e error) {
 	if e = cfg.check(); e != nil {
 		return nil, e
@@ -59,10 +61,7 @@ func NewPort(dev ethdev.EthDev, cfg PortConfig) (port *Port, e error) {
 	return port, nil
 }
 
-func (port *Port) GetEthDev() ethdev.EthDev {
-	return port.dev
-}
-
+// Close closes the port.
 func (port *Port) Close() (e error) {
 	if port.impl != nil {
 		e = port.impl.Close()
@@ -81,6 +80,7 @@ func (port *Port) findFace(filter func(face *EthFace) bool) *EthFace {
 	return nil
 }
 
+// FindFace returns a face that matches the query, or nil if it does not exist.
 // FindFace(nil) returns a face with multicast address.
 // FindFace(unicastAddr) returns a face with matching address.
 func (port *Port) FindFace(query *ethdev.EtherAddr) *EthFace {
@@ -94,8 +94,21 @@ func (port *Port) FindFace(query *ethdev.EtherAddr) *EthFace {
 	})
 }
 
-// Retrieve impl name.
-func (port *Port) GetImplName() string {
+// CountFaces returns the number of active faces.
+func (port *Port) CountFaces() int {
+	return len(port.faces)
+}
+
+// Faces returns a list of active faces.
+func (port *Port) Faces() (list []*EthFace) {
+	for _, face := range port.faces {
+		list = append(list, face)
+	}
+	return list
+}
+
+// ImplName returns internal implementation name.
+func (port *Port) ImplName() string {
 	return port.impl.String()
 }
 
@@ -118,10 +131,9 @@ func (port *Port) fallbackImpl() error {
 		logEntry.Warn("no feasible impl")
 		return errors.New("no feasible impl")
 	}
-	newImpl := impls[port.nextImpl]
+	port.impl = impls[port.nextImpl](port)
 	port.nextImpl++
-	logEntry = logEntry.WithField("impl", newImpl.String())
-	port.impl = newImpl.New(port)
+	logEntry = logEntry.WithField("impl", port.impl.String())
 
 	if e := port.impl.Init(); e != nil {
 		logEntry.WithError(e).Info("impl init error, trying next impl")
@@ -164,11 +176,4 @@ func (port *Port) stopFace(face *EthFace) (e error) {
 	e = port.impl.Stop(face)
 	port.logger.WithError(e).Info("face stopped")
 	return nil
-}
-
-func (port *Port) ListFaces() (list []*EthFace) {
-	for _, face := range port.faces {
-		list = append(list, face)
-	}
-	return list
 }

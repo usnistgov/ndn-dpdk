@@ -8,6 +8,7 @@ package eal
 */
 import "C"
 import (
+	"encoding/json"
 	"strconv"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
@@ -51,6 +52,14 @@ func (lc LCore) String() string {
 		return "invalid"
 	}
 	return strconv.Itoa(lc.ID())
+}
+
+// MarshalJSON implements json.Marshaler interface.
+func (lc LCore) MarshalJSON() ([]byte, error) {
+	if !lc.Valid() {
+		return json.Marshal(nil)
+	}
+	return json.Marshal(lc.ID())
 }
 
 // NumaSocket returns the NUMA socket where this lcore is located.
