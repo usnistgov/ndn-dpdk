@@ -48,7 +48,7 @@ func New(face iface.Face, index int, cfg Config) (*Server, error) {
 		c:      serverC,
 	}
 	server.Thread = ealthread.New(
-		cptr.CFunction(unsafe.Pointer(C.PingServer_Run), unsafe.Pointer(server.c)),
+		cptr.Func0.C(unsafe.Pointer(C.PingServer_Run), unsafe.Pointer(server.c)),
 		ealthread.InitStopFlag(unsafe.Pointer(&serverC.stop)),
 	)
 

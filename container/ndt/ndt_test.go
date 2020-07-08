@@ -33,7 +33,7 @@ func newNdtLookupTestThread(ndt *ndt.Ndt, threadIndex int, names []ndn.Name) *lo
 	for _, name := range names {
 		th.Entries = append(th.Entries, lookupTestEntry{name, nil})
 	}
-	th.Thread = ealthread.New(cptr.VoidFunction(th.main), th.stop)
+	th.Thread = ealthread.New(cptr.Func0.Void(th.main), th.stop)
 	return th
 }
 

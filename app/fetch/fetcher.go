@@ -61,7 +61,7 @@ func New(face iface.Face, cfg FetcherConfig) (*Fetcher, error) {
 		fth.c.interestMp = interestMp
 		C.NonceGen_Init(&fth.c.nonceGen)
 		fth.Thread = ealthread.New(
-			cptr.CFunction(unsafe.Pointer(C.FetchThread_Run), unsafe.Pointer(fth.c)),
+			cptr.Func0.C(unsafe.Pointer(C.FetchThread_Run), unsafe.Pointer(fth.c)),
 			ealthread.InitStopFlag(unsafe.Pointer(&fth.c.stop)),
 		)
 		fetcher.fth[i] = fth

@@ -74,7 +74,7 @@ func (lc LCore) RemoteLaunch(fn cptr.Function) error {
 		panic("invalid lcore")
 	}
 	res := CallMain(func() C.int {
-		f, arg := fn.MakeCFunction()
+		f, arg := cptr.Func0.CallbackOnce(fn)
 		return C.rte_eal_remote_launch((*C.lcore_function_t)(f), arg, C.uint(lc.ID()))
 	}).(C.int)
 	if res != 0 {

@@ -35,7 +35,7 @@ func newTestThread() *testThread {
 	var th testThread
 	th.c = (*C.TestThread)(eal.Zmalloc("TestThread", C.sizeof_TestThread, eal.NumaSocket{}))
 	th.Thread = ealthread.New(
-		cptr.CFunction(unsafe.Pointer(C.TestThread_Run), unsafe.Pointer(th.c)),
+		cptr.Func0.C(unsafe.Pointer(C.TestThread_Run), unsafe.Pointer(th.c)),
 		ealthread.InitStopFlag(unsafe.Pointer(&th.c.stop)),
 	)
 	return &th

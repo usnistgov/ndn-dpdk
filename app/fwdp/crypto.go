@@ -39,7 +39,7 @@ func newCrypto(id int, lc eal.LCore, cfg CryptoConfig, ndt *ndt.Ndt, fwds []*Fwd
 		c:  (*C.FwCrypto)(eal.ZmallocAligned("FwCrypto", C.sizeof_FwCrypto, 1, socket)),
 	}
 	fwc.Thread = ealthread.New(
-		cptr.CFunction(unsafe.Pointer(C.FwCrypto_Run), unsafe.Pointer(fwc.c)),
+		cptr.Func0.C(unsafe.Pointer(C.FwCrypto_Run), unsafe.Pointer(fwc.c)),
 		ealthread.InitStopFlag(unsafe.Pointer(&fwc.c.stop)),
 	)
 	fwc.SetLCore(lc)

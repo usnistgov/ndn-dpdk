@@ -40,7 +40,7 @@ func NewThread() (*Thread, error) {
 	}
 	th.c.spdkTh = spdkThread
 	th.Thread = ealthread.New(
-		cptr.CFunction(unsafe.Pointer(C.SpdkThread_Run), unsafe.Pointer(th.c)),
+		cptr.Func0.C(C.SpdkThread_Run, unsafe.Pointer(th.c)),
 		ealthread.InitStopFlag(unsafe.Pointer(&th.c.stop)),
 	)
 	return th, nil
@@ -69,6 +69,6 @@ func (th *Thread) main() {
 
 // Post asynchronously posts a function to be executed on the SPDK thread.
 func (th *Thread) Post(fn cptr.Function) {
-	f, arg := fn.MakeCFunction()
+	f, arg := cptr.Func0.CallbackOnce(fn)
 	C.spdk_thread_send_msg(th.c.spdkTh, C.spdk_msg_fn(f), arg)
 }

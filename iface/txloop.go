@@ -33,7 +33,7 @@ func NewTxLoop(socket eal.NumaSocket) TxLoop {
 		faces:  make(map[ID]Face),
 	}
 	txl.Thread = ealthread.New(
-		cptr.CFunction(unsafe.Pointer(C.TxLoop_Run), unsafe.Pointer(txl.c)),
+		cptr.Func0.C(unsafe.Pointer(C.TxLoop_Run), unsafe.Pointer(txl.c)),
 		ealthread.InitStopFlag(unsafe.Pointer(&txl.c.stop)),
 	)
 	return txl

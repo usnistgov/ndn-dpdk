@@ -27,7 +27,7 @@ func TestEal(t *testing.T) {
 	require.Len(workersSet, 5)
 
 	isWorkerExecuted := false
-	eal.Workers[0].RemoteLaunch(cptr.IntFunction(func() int {
+	eal.Workers[0].RemoteLaunch(cptr.Func0.Int(func() int {
 		assert.Equal(eal.Workers[0], eal.CurrentLCore())
 		isWorkerExecuted = true
 

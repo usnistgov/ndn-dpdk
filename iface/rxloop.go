@@ -141,7 +141,7 @@ func NewRxLoop(socket eal.NumaSocket) *RxLoop {
 		rxgs:   make(map[*C.RxGroup]IRxGroup),
 	}
 	rxl.Thread = ealthread.New(
-		cptr.CFunction(unsafe.Pointer(C.RxLoop_Run), unsafe.Pointer(rxl.c)),
+		cptr.Func0.C(unsafe.Pointer(C.RxLoop_Run), unsafe.Pointer(rxl.c)),
 		ealthread.InitStopFlag(unsafe.Pointer(&rxl.c.stop)),
 	)
 	return rxl

@@ -49,11 +49,11 @@ func New(face iface.Face, cfg Config) (*Client, error) {
 	client.rxC = rxC
 	client.txC = txC
 	client.Rx = ealthread.New(
-		cptr.CFunction(unsafe.Pointer(C.PingClientRx_Run), unsafe.Pointer(rxC)),
+		cptr.Func0.C(unsafe.Pointer(C.PingClientRx_Run), unsafe.Pointer(rxC)),
 		ealthread.InitStopFlag(unsafe.Pointer(&rxC.stop)),
 	)
 	client.Tx = ealthread.New(
-		cptr.CFunction(unsafe.Pointer(C.PingClientTx_Run), unsafe.Pointer(txC)),
+		cptr.Func0.C(unsafe.Pointer(C.PingClientTx_Run), unsafe.Pointer(txC)),
 		ealthread.InitStopFlag(unsafe.Pointer(&txC.stop)),
 	)
 

@@ -96,7 +96,7 @@ func (vnet *VNet) bridge() {
 // LaunchBridge starts a bridge thread that copies packets between attached nodes.
 func (vnet *VNet) LaunchBridge(lcore eal.LCore) {
 	vnet.bridgeLcore = lcore
-	lcore.RemoteLaunch(cptr.VoidFunction(vnet.bridge))
+	lcore.RemoteLaunch(cptr.Func0.Void(vnet.bridge))
 }
 
 // Close stops the bridge and closes all ports.

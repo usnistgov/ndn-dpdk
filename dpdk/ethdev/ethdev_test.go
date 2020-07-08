@@ -35,7 +35,7 @@ func TestEthDev(t *testing.T) {
 	nReceived := 0
 	rxBurstSizeFreq := make(map[int]int)
 	rxQuit := make(chan bool)
-	eal.Workers[0].RemoteLaunch(cptr.VoidFunction(func() {
+	eal.Workers[0].RemoteLaunch(cptr.Func0.Void(func() {
 		for {
 			vec := make(pktmbuf.Vector, rxBurstSize)
 			burstSize := rxq.RxBurst(vec)
@@ -57,7 +57,7 @@ func TestEthDev(t *testing.T) {
 	}))
 
 	txRetryFreq := make(map[int]int)
-	eal.Workers[1].RemoteLaunch(cptr.VoidFunction(func() {
+	eal.Workers[1].RemoteLaunch(cptr.Func0.Void(func() {
 		for i := 0; i < txLoops; i++ {
 			vec := mbuftestenv.Direct.Pool().MustAlloc(txBurstSize)
 			for j := 0; j < txBurstSize; j++ {
