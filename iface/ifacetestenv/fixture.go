@@ -32,18 +32,17 @@ type Fixture struct {
 	rxQueueN *iface.PktQueue
 	txl      iface.TxLoop
 
-	rxFace    iface.Face
-	rxDiscard map[iface.ID]iface.Face
-	recvStop  chan bool
-	txFace    iface.Face
+	rxFace   iface.Face
+	recvStop chan bool
+	txFace   iface.Face
 
 	NRxInterests int
 	NRxData      int
 	NRxNacks     int
 }
 
-// New creates a Fixture.
-func New(t *testing.T) (fixture *Fixture) {
+// NewFixture creates a Fixture.
+func NewFixture(t *testing.T) (fixture *Fixture) {
 	_, require := makeAR(t)
 	fixture = new(Fixture)
 	fixture.t = t
@@ -61,7 +60,6 @@ func New(t *testing.T) (fixture *Fixture) {
 	require.NoError(ealthread.Launch(fixture.rxl))
 	require.NoError(ealthread.Launch(fixture.txl))
 
-	fixture.rxDiscard = make(map[iface.ID]iface.Face)
 	fixture.recvStop = make(chan bool)
 
 	return fixture
@@ -84,11 +82,6 @@ func (fixture *Fixture) Close() error {
 	eal.Free(fixture.rxQueueN)
 	ealthread.DefaultAllocator.Clear()
 	return nil
-}
-
-// AddRxDiscard indicates that packets received at the specified face should be dropped.
-func (fixture *Fixture) AddRxDiscard(face iface.Face) {
-	fixture.rxDiscard[face.ID()] = face
 }
 
 // RunTest executes the test.
@@ -131,11 +124,9 @@ func (fixture *Fixture) recvProc() {
 func (fixture *Fixture) recvCheck(pkt *pktmbuf.Packet) (increment int) {
 	assert, _ := makeAR(fixture.t)
 	faceID := iface.ID(pkt.Port())
-	if fixture.rxDiscard[faceID] == nil {
-		assert.Equal(fixture.rxFace.ID(), faceID)
-		assert.NotZero(pkt.Timestamp())
-		increment = 1
-	}
+	assert.Equal(fixture.rxFace.ID(), faceID)
+	assert.NotZero(pkt.Timestamp())
+	increment = 1
 	pkt.Close()
 	return increment
 }

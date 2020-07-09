@@ -6,9 +6,11 @@ import (
 	"net"
 	"os"
 	"path"
+	"strconv"
 	"testing"
 	"time"
 
+	"github.com/gabstv/freeport"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/ifacetestenv"
 	"github.com/usnistgov/ndn-dpdk/iface/socketface"
@@ -17,24 +19,32 @@ import (
 
 func TestUdp(t *testing.T) {
 	assert, require := makeAR(t)
-	fixture := ifacetestenv.New(t)
+	fixture := ifacetestenv.NewFixture(t)
 	defer fixture.Close()
 
-	locA := iface.MustParseLocator(`{ "Scheme": "udp", "Local": "127.0.0.1:7001", "Remote": "127.0.0.1:7002" }`).(socketface.Locator)
+	portA, portB := 0, 0
+	for portA == portB {
+		portA, _ = freeport.UDP()
+		portB, _ = freeport.UDP()
+	}
+	addrA := "127.0.0.1:" + strconv.Itoa(portA)
+	addrB := "127.0.0.1:" + strconv.Itoa(portB)
+
+	locA := iface.MustParseLocator(`{ "Scheme": "udp", "Local": "` + addrA + `", "Remote": "` + addrB + `" }`).(socketface.Locator)
 	ifacetestenv.CheckLocatorMarshal(t, locA)
 	faceA, e := socketface.New(locA, socketfaceCfg)
 	require.NoError(e)
 	defer faceA.Close()
 
-	locB := iface.MustParseLocator(`{ "Scheme": "udp", "Local": "127.0.0.1:7002", "Remote": "127.0.0.1:7001" }`).(socketface.Locator)
+	locB := iface.MustParseLocator(`{ "Scheme": "udp", "Local": "` + addrB + `", "Remote": "` + addrA + `" }`).(socketface.Locator)
 	faceB, e := socketface.New(locB, socketfaceCfg)
 	require.NoError(e)
 	defer faceB.Close()
 
 	locA = faceA.Locator().(socketface.Locator)
 	assert.Equal("udp", locA.Scheme)
-	assert.Equal("127.0.0.1:7001", locA.Local)
-	assert.Equal("127.0.0.1:7002", locA.Remote)
+	assert.Equal(addrA, locA.Local)
+	assert.Equal(addrB, locA.Remote)
 
 	fixture.RunTest(faceA, faceB)
 	fixture.CheckCounters()
@@ -42,7 +52,7 @@ func TestUdp(t *testing.T) {
 
 func checkStreamRedialing(t *testing.T, listener net.Listener, makeFaceA func() iface.Face) {
 	assert, require := makeAR(t)
-	fixture := ifacetestenv.New(t)
+	fixture := ifacetestenv.NewFixture(t)
 	defer fixture.Close()
 
 	faceA := makeFaceA()

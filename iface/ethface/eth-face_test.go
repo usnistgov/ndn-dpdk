@@ -15,24 +15,23 @@ import (
 type ethTestTopology struct {
 	*ifacetestenv.Fixture
 	vnet                                           *ethdev.VNet
+	macZero, macA, macB, macC                      ethdev.EtherAddr
 	faceAB, faceAC, faceAm, faceBm, faceBA, faceCA iface.Face
 }
 
 func makeTopo(t *testing.T) (topo ethTestTopology) {
 	_, require := makeAR(t)
-	topo.Fixture = ifacetestenv.New(t)
-	rxPool := ndnitestenv.Packet.Pool()
+	topo.Fixture = ifacetestenv.NewFixture(t)
 
 	var vnetCfg ethdev.VNetConfig
-	vnetCfg.RxPool = rxPool
+	vnetCfg.RxPool = ndnitestenv.Packet.Pool()
 	vnetCfg.NNodes = 3
 	vnet := ethdev.NewVNet(vnetCfg)
 	topo.vnet = vnet
 
-	var macZero ethdev.EtherAddr
-	macA, _ := ethdev.ParseEtherAddr("02:00:00:00:00:01")
-	macB, _ := ethdev.ParseEtherAddr("02:00:00:00:00:02")
-	macC, _ := ethdev.ParseEtherAddr("02:00:00:00:00:03")
+	topo.macA, _ = ethdev.ParseEtherAddr("02:00:00:00:00:01")
+	topo.macB, _ = ethdev.ParseEtherAddr("02:00:00:00:00:02")
+	topo.macC, _ = ethdev.ParseEtherAddr("02:00:00:00:00:03")
 
 	makeFace := func(dev ethdev.EthDev, local, remote ethdev.EtherAddr) iface.Face {
 		loc := ethface.NewLocator(dev)
@@ -43,12 +42,12 @@ func makeTopo(t *testing.T) (topo ethTestTopology) {
 		return face
 	}
 
-	topo.faceAB = makeFace(vnet.Ports[0], macA, macB)
-	topo.faceAC = makeFace(vnet.Ports[0], macA, macC)
-	topo.faceAm = makeFace(vnet.Ports[0], macZero, macZero)
-	topo.faceBm = makeFace(vnet.Ports[1], macB, macZero)
-	topo.faceBA = makeFace(vnet.Ports[1], macZero, macA)
-	topo.faceCA = makeFace(vnet.Ports[2], macC, macA)
+	topo.faceAB = makeFace(vnet.Ports[0], topo.macA, topo.macB)
+	topo.faceAC = makeFace(vnet.Ports[0], topo.macA, topo.macC)
+	topo.faceAm = makeFace(vnet.Ports[0], topo.macZero, topo.macZero)
+	topo.faceBm = makeFace(vnet.Ports[1], topo.macB, topo.macZero)
+	topo.faceBA = makeFace(vnet.Ports[1], topo.macZero, topo.macA)
+	topo.faceCA = makeFace(vnet.Ports[2], topo.macC, topo.macA)
 
 	ealthread.Launch(vnet)
 	time.Sleep(time.Second)
@@ -64,7 +63,6 @@ func TestEthFaceBA(t *testing.T) {
 	topo := makeTopo(t)
 	defer topo.Close()
 
-	topo.AddRxDiscard(topo.faceCA)
 	topo.RunTest(topo.faceBA, topo.faceAB)
 	topo.CheckCounters()
 }
@@ -73,7 +71,6 @@ func TestEthFaceCA(t *testing.T) {
 	topo := makeTopo(t)
 	defer topo.Close()
 
-	topo.AddRxDiscard(topo.faceBm)
 	topo.RunTest(topo.faceCA, topo.faceAC)
 	topo.CheckCounters()
 }
@@ -83,14 +80,12 @@ func TestEthFaceAm(t *testing.T) {
 	topo := makeTopo(t)
 	defer topo.Close()
 
-	macA, _ := ethdev.ParseEtherAddr("02:00:00:00:00:01")
 	locAm := topo.faceAm.Locator().(ethface.Locator)
 	assert.Equal("ether", locAm.Scheme)
 	assert.Equal(topo.vnet.Ports[0].Name(), locAm.Port)
-	assert.True(locAm.Local.Equal(macA))
+	assert.True(locAm.Local.Equal(topo.macA))
 	assert.True(locAm.Remote.Equal(ethface.NdnMcastAddr))
 
-	topo.AddRxDiscard(topo.faceCA)
 	topo.RunTest(topo.faceAm, topo.faceBm)
 	topo.CheckCounters()
 }

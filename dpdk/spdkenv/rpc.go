@@ -16,7 +16,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/phayes/freeport"
+	"github.com/gabstv/freeport"
 	"github.com/powerman/rpc-codec/jsonrpc2"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 )
@@ -28,7 +28,7 @@ var (
 
 // Enable SPDK RPC server and internal RPC client.
 func initRPC() error {
-	port, e := freeport.GetFreePort()
+	port, e := freeport.TCP()
 	if e != nil {
 		return fmt.Errorf("TCP listen port unavailable: %w", e)
 	}

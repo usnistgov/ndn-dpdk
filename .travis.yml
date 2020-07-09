@@ -10,7 +10,7 @@ env:
     - UBPFCOMMIT=089f6279752adfb01386600d119913403ed326ee
     - DPDKVER=20.05
     - SPDKVER=20.04.1
-    - TEST_ACCEPTABLE_FAILURES="diskstore|fetch|fwdp|ndt|pingclient|pingserver"
+    - TEST_ACCEPTABLE_FAILURES="diskstore|ethface|fetch|fwdp|ndt|pingclient|pingserver"
   matrix:
     - CC=gcc-7
     - CC=gcc-8
@@ -105,9 +105,9 @@ before_script:
     echo 2048 | sudo tee /sys/devices/system/node/node0/hugepages/hugepages-2048kB/nr_hugepages >/dev/null
     sudo mkdir -p /mnt/huge2M
     sudo mount -t hugetlbfs nodev /mnt/huge2M -o pagesize=2M
+  - cd $TRAVIS_BUILD_DIR
 
 script:
-  - cd $TRAVIS_BUILD_DIR
   - npm install
   - make lint && [[ $(git status --porcelain | tee /dev/stderr | wc -l) -eq 0 ]]
   - make
