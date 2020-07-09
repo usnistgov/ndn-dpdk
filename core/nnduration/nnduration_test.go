@@ -1,7 +1,6 @@
 package nnduration_test
 
 import (
-	"encoding/json"
 	"testing"
 	"time"
 
@@ -15,22 +14,16 @@ func TestMilliseconds(t *testing.T) {
 
 	ms := nnduration.Milliseconds(5274)
 	assert.Equal(5274*time.Millisecond, ms.DurationOr(2816))
-
-	j, e := json.Marshal(ms)
-	assert.NoError(e)
-	assert.Equal(([]byte)("5274"), j)
+	assert.Equal(`5274`, toJSON(ms))
 
 	var decoded nnduration.Milliseconds
-	e = json.Unmarshal(j, &decoded)
-	assert.NoError(e)
+	fromJSON(`5274`, &decoded)
 	assert.Equal(ms, decoded)
 
-	e = json.Unmarshal(([]byte)("\"5274\""), &decoded)
-	assert.NoError(e)
+	fromJSON(`"5274"`, &decoded)
 	assert.Equal(ms, decoded)
 
-	e = json.Unmarshal(([]byte)(`"6s"`), &decoded)
-	assert.NoError(e)
+	fromJSON(`"6s"`, &decoded)
 	assert.Equal(nnduration.Milliseconds(6000), decoded)
 	assert.Equal(6*time.Second, decoded.Duration())
 }
@@ -42,18 +35,13 @@ func TestNanoseconds(t *testing.T) {
 
 	ns := nnduration.Nanoseconds(7011)
 	assert.Equal(7011*time.Nanosecond, ns.DurationOr(1652))
-
-	j, e := json.Marshal(ns)
-	assert.NoError(e)
-	assert.Equal(([]byte)("7011"), j)
+	assert.Equal(`7011`, toJSON(ns))
 
 	var decoded nnduration.Nanoseconds
-	e = json.Unmarshal(j, &decoded)
-	assert.NoError(e)
+	fromJSON(`7011`, &decoded)
 	assert.Equal(ns, decoded)
 
-	e = json.Unmarshal(([]byte)(`"3us"`), &decoded)
-	assert.NoError(e)
+	fromJSON(`"3us"`, &decoded)
 	assert.Equal(nnduration.Nanoseconds(3000), decoded)
 	assert.Equal(3*time.Microsecond, decoded.Duration())
 }

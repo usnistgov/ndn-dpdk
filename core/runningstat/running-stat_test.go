@@ -51,7 +51,6 @@ func TestRunningStat(t *testing.T) {
 	assert.InDelta(1285.5, o.Mean(), 0.1)
 	assert.InDelta(420.96, o.Stdev(), 0.1)
 
-	// bs := o.Sub(ar)
 	bsJson, e := json.Marshal(o.Sub(ar))
 	assert.NoError(e)
 	var bs runningstat.Snapshot

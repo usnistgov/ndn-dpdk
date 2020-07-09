@@ -56,7 +56,8 @@ func (lc LCore) String() string {
 	return strconv.Itoa(lc.ID())
 }
 
-// MarshalJSON implements json.Marshaler interface.
+// MarshalJSON encodes lcore as number.
+// Invalid lcore is encoded as null.
 func (lc LCore) MarshalJSON() ([]byte, error) {
 	if !lc.Valid() {
 		return json.Marshal(nil)

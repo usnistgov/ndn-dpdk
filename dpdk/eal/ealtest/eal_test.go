@@ -44,3 +44,19 @@ func TestEal(t *testing.T) {
 	assert.True(isWorkerExecuted)
 	assert.Equal(0, eal.Workers[0].Wait())
 }
+
+func TestEalJson(t *testing.T) {
+	assert, _ := makeAR(t)
+
+	var lc eal.LCore
+	assert.Equal("null", toJSON(lc))
+
+	lc = eal.LCoreFromID(5)
+	assert.Equal("5", toJSON(lc))
+
+	var socket eal.NumaSocket
+	assert.Equal("null", toJSON(socket))
+
+	socket = eal.NumaSocketFromID(1)
+	assert.Equal("1", toJSON(socket))
+}

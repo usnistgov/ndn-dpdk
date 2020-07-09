@@ -1,7 +1,6 @@
 package ealtest
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
@@ -22,12 +21,9 @@ func TestPciAddress(t *testing.T) {
 	assert.Error(e)
 
 	a.Bus, a.Slot, a.Function = "5e", "01", "0"
-	j, e := json.Marshal(a)
-	assert.NoError(e)
-	assert.Equal(([]byte)("\"0000:5e:01.0\""), j)
+	assert.Equal(`"0000:5e:01.0"`, toJSON(a))
 
 	var decoded eal.PciAddress
-	e = json.Unmarshal(j, &decoded)
-	assert.NoError(e)
+	fromJSON(`"0000:5e:01.0"`, &decoded)
 	assert.Equal(a, decoded)
 }

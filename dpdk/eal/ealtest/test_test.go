@@ -16,4 +16,8 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-var makeAR = testenv.MakeAR
+var (
+	makeAR   = testenv.MakeAR
+	fromJSON = testenv.FromJSON
+	toJSON   = testenv.ToJSON
+)

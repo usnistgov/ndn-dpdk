@@ -5,6 +5,7 @@ package eal
 */
 import "C"
 import (
+	"encoding/json"
 	"reflect"
 	"strconv"
 )
@@ -44,6 +45,15 @@ func (socket NumaSocket) String() string {
 		return "any"
 	}
 	return strconv.Itoa(socket.ID())
+}
+
+// MarshalJSON encodes NUMA socket as number.
+// Any is encoded as null.
+func (socket NumaSocket) MarshalJSON() ([]byte, error) {
+	if socket.IsAny() {
+		return json.Marshal(nil)
+	}
+	return json.Marshal(socket.ID())
 }
 
 // WithNumaSocket interface is implemented by types that have an associated or preferred NUMA socket.
