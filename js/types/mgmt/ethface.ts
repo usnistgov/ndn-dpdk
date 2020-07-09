@@ -20,6 +20,7 @@ export interface EthPortStatsArg extends EthPortArg {
 export interface EthPortInfo {
   Name: string;
   NumaSocket: number;
+  MacAddr: string;
   Active: boolean;
   ImplName?: string;
 }

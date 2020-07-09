@@ -2,7 +2,7 @@
 
 This package implements a face using socket as transport.
 
-**SocketFace** type represents a socket face.
+**socketFace** type represents a socket face.
 Its Locator has the following fields:
 
 * *Scheme* is one of "udp", "unixgram", "tcp", "unix".
@@ -22,9 +22,9 @@ On a stream-oriented socket, the implementation reads the incoming stream into a
 ## Send Path
 
 The transmission function provided in `Face.txBurstOp` is `go_SocketFace_TxBurst`.
-It places outgoing L2 frames on the `SocketFace.txQueue` channel.
+It places outgoing L2 frames on the `socketFace.txQueue` channel.
 
-A goroutine running `SocketFace.txLoop` function then retrieves frames from the `SocketFace.txQueue` channel, and passes them to `impl.Send`.
+A goroutine running `socketFace.txLoop` function then retrieves frames from the `socketFace.txQueue` channel, and passes them to `impl.Send`.
 In most cases, DPDK mbuf's internal buffer is casted as a `[]byte`, and does not need copying; however, sending a segmented mbuf to a datagram-oriented socket requires copying.
 
 The send path is thread-safe.

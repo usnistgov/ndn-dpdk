@@ -16,22 +16,15 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
-// Config contains SocketFace configuration.
+// Config contains socket face configuration.
 type Config struct {
 	TxqPkts   int // before-TX queue capacity
 	TxqFrames int // after-TX queue capacity
 }
 
-// SocketFace is a face using socket as transport.
-type SocketFace struct {
-	iface.FaceBase
-	transport *sockettransport.Transport
-	rxMempool *pktmbuf.Pool
-}
-
-// New creates a SocketFace.
-func New(loc Locator, cfg Config) (face *SocketFace, e error) {
-	if e = loc.Validate(); e != nil {
+// New creates a socket face.
+func New(loc Locator, cfg Config) (iface.Face, error) {
+	if e := loc.Validate(); e != nil {
 		return nil, e
 	}
 
@@ -46,65 +39,67 @@ func New(loc Locator, cfg Config) (face *SocketFace, e error) {
 	return Wrap(transport, cfg)
 }
 
-// Wrap wraps a sockettransport.Transport to a SocketFace.
-func Wrap(transport *sockettransport.Transport, cfg Config) (face *SocketFace, e error) {
-	face = new(SocketFace)
-	face.rxMempool = ndni.PacketMempool.MakePool(eal.NumaSocket{})
-	face.transport = transport
-
-	if e := face.InitFaceBase(iface.AllocID(), 0, eal.NumaSocket{}); e != nil {
-		return nil, e
+// Wrap wraps a sockettransport.Transport to a socket face.
+func Wrap(transport *sockettransport.Transport, cfg Config) (iface.Face, error) {
+	face := &socketFace{
+		transport: transport,
+		rxMempool: ndni.PacketMempool.MakePool(eal.NumaSocket{}),
 	}
+	return iface.New(iface.NewOptions{
+		TxQueueCapacity: cfg.TxqPkts,
+		Init: func(f iface.Face) error {
+			face.Face = f
+			c := face.ptr()
+			c.txBurstOp = (C.FaceImpl_TxBurst)(C.go_SocketFace_TxBurst)
+			return nil
+		},
+		Start: func(f iface.Face) (iface.Face, error) {
+			face.transport.OnStateChange(f.SetDown)
+			go face.rxLoop()
+			if atomic.AddInt32(&nFaces, 1) == 1 {
+				iface.EmitRxGroupAdd(rxg)
+			}
+			return face, nil
+		},
+		Locator: func(iface.Face) iface.Locator {
+			conn := face.transport.Conn()
+			laddr, raddr := conn.LocalAddr(), conn.RemoteAddr()
 
-	faceC := face.ptr()
-	faceC.txBurstOp = (C.FaceImpl_TxBurst)(C.go_SocketFace_TxBurst)
-	if e := face.FinishInitFaceBase(cfg.TxqPkts, 0, 0); e != nil {
-		return nil, e
-	}
-
-	// face.transport.OnStateChange(func(isDown bool) {
-	// 	face.SetDown(isDown)
-	// })
-	face.transport.OnStateChange(face.SetDown)
-	go face.rxLoop()
-
-	if atomic.AddInt32(&nFaces, 1) == 1 {
-		iface.EmitRxGroupAdd(rxg)
-	}
-	iface.Put(face)
-	return face, nil
+			var loc Locator
+			loc.Scheme = raddr.Network()
+			loc.Remote = raddr.String()
+			if laddr != nil {
+				loc.Local = laddr.String()
+			}
+			return loc
+		},
+		Stop: func(iface.Face) error {
+			if atomic.AddInt32(&nFaces, -1) == 0 {
+				iface.EmitRxGroupRemove(rxg)
+			}
+			return nil
+		},
+		Close: func(iface.Face) error {
+			// close the channel after Get(id) would return nil.
+			// Otherwise, go_SocketFace_TxBurst could panic for sending into closed channel.
+			close(face.transport.Tx())
+			return nil
+		},
+	})
 }
 
-func (face *SocketFace) ptr() *C.Face {
+// socketFace is a face using socket as transport.
+type socketFace struct {
+	iface.Face
+	transport *sockettransport.Transport
+	rxMempool *pktmbuf.Pool
+}
+
+func (face *socketFace) ptr() *C.Face {
 	return (*C.Face)(face.Ptr())
 }
 
-// Locator returns a locator that describes the socket endpoints.
-func (face *SocketFace) Locator() iface.Locator {
-	conn := face.transport.Conn()
-	laddr, raddr := conn.LocalAddr(), conn.RemoteAddr()
-
-	var loc Locator
-	loc.Scheme = raddr.Network()
-	loc.Remote = raddr.String()
-	if laddr != nil {
-		loc.Local = laddr.String()
-	}
-	return loc
-}
-
-// Close destroys the face.
-func (face *SocketFace) Close() error {
-	face.BeforeClose()
-	if atomic.AddInt32(&nFaces, -1) == 0 {
-		iface.EmitRxGroupRemove(rxg)
-	}
-	face.CloseFaceBase()
-	close(face.transport.Tx())
-	return nil
-}
-
-func (face *SocketFace) rxLoop() {
+func (face *socketFace) rxLoop() {
 	for {
 		wire, ok := <-face.transport.Rx()
 		if !ok {
@@ -132,7 +127,7 @@ func (face *SocketFace) rxLoop() {
 
 //export go_SocketFace_TxBurst
 func go_SocketFace_TxBurst(faceC *C.Face, pkts **C.struct_rte_mbuf, nPkts C.uint16_t) C.uint16_t {
-	face := iface.Get(iface.ID(faceC.id)).(*SocketFace)
+	face := iface.Get(iface.ID(faceC.id)).(*socketFace)
 	innerTx := face.transport.Tx()
 	for i := 0; i < int(nPkts); i++ {
 		mbufPtr := (**C.struct_rte_mbuf)(unsafe.Pointer(uintptr(unsafe.Pointer(pkts)) +

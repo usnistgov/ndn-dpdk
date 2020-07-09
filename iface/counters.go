@@ -49,13 +49,13 @@ func (cnt Counters) String() string {
 }
 
 // ReadCounters retrieves basic face counters.
-func (face FaceBase) ReadCounters() (cnt Counters) {
-	faceC := face.ptr()
-	if faceC.impl == nil {
+func (f *face) ReadCounters() (cnt Counters) {
+	c := f.ptr()
+	if c.impl == nil {
 		return cnt
 	}
 
-	rxC := &faceC.impl.rx
+	rxC := &c.impl.rx
 	cnt.Reass = InOrderReassemblerFromPtr(unsafe.Pointer(&rxC.reassembler)).ReadCounters()
 	for i := 0; i < C.RXPROC_MAX_THREADS; i++ {
 		rxtC := &rxC.threads[i]
@@ -68,7 +68,7 @@ func (face FaceBase) ReadCounters() (cnt Counters) {
 		cnt.RxNacks += uint64(rxtC.nFrames[ndni.L3PktTypeNack])
 	}
 
-	txC := &faceC.impl.tx
+	txC := &c.impl.tx
 
 	readLatencyStat := func(c *C.RunningStat) runningstat.Snapshot {
 		return runningstat.FromPtr(unsafe.Pointer(c)).Read().Scale(eal.GetNanosInTscUnit())
@@ -88,9 +88,4 @@ func (face FaceBase) ReadCounters() (cnt Counters) {
 	cnt.TxOctets = uint64(txC.nOctets - txC.nDroppedOctets)
 
 	return cnt
-}
-
-// ReadExCounters is empty in FaceBase, but may be implemented by face sub type.
-func (face FaceBase) ReadExCounters() interface{} {
-	return nil
 }

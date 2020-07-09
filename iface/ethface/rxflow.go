@@ -9,7 +9,6 @@ import (
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
-	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
@@ -88,7 +87,7 @@ func (impl *rxFlowImpl) findQueue(filter func(rxf *rxFlow) bool) (i int, rxf *rx
 	return -1, nil
 }
 
-func (impl *rxFlowImpl) Start(face *EthFace) error {
+func (impl *rxFlowImpl) Start(face *ethFace) error {
 	index, _ := impl.findQueue(func(rxf *rxFlow) bool { return rxf == nil })
 	if index < 0 {
 		// TODO reclaim deferred-destroy queues
@@ -106,7 +105,7 @@ func (impl *rxFlowImpl) Start(face *EthFace) error {
 	return nil
 }
 
-func (impl *rxFlowImpl) Stop(face *EthFace) error {
+func (impl *rxFlowImpl) Stop(face *ethFace) error {
 	index, rxf := impl.findQueue(func(rxf *rxFlow) bool { return rxf != nil && rxf.face == face })
 	if index < 0 {
 		return nil
@@ -138,17 +137,16 @@ func (impl *rxFlowImpl) Close() error {
 		}
 	}
 	impl.queueFlow = nil
-	impl.port.dev.Stop(ethdev.StopReset)
 	return nil
 }
 
 type rxFlow struct {
-	face *EthFace
+	face *ethFace
 	flow *C.struct_rte_flow
 }
 
-func newRxFlow(face *EthFace, queue int) (*rxFlow, error) {
-	priv := face.getPriv()
+func newRxFlow(face *ethFace, queue int) (*rxFlow, error) {
+	priv := face.priv
 	priv.rxQueue = C.uint16_t(queue)
 	var flowErr C.struct_rte_flow_error
 	flow := C.EthFace_SetupFlow(priv, &flowErr)
@@ -172,5 +170,5 @@ func (rxf *rxFlow) NumaSocket() eal.NumaSocket {
 }
 
 func (rxf *rxFlow) Ptr() unsafe.Pointer {
-	return unsafe.Pointer(&rxf.face.getPriv().flowRxg)
+	return unsafe.Pointer(&rxf.face.priv.flowRxg)
 }

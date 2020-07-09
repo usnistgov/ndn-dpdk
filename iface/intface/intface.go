@@ -69,5 +69,5 @@ func MustNew() *IntFace {
 
 // SetDown changes up/down state on the DPDK side.
 func (f *IntFace) SetDown(isDown bool) {
-	f.D.(*socketface.SocketFace).SetDown(isDown)
+	f.D.SetDown(isDown)
 }

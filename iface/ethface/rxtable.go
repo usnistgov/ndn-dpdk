@@ -45,7 +45,7 @@ func (impl *rxTableImpl) setFace(slot *C.FaceID, faceID iface.ID) error {
 	return nil
 }
 
-func (impl *rxTableImpl) Start(face *EthFace) error {
+func (impl *rxTableImpl) Start(face *ethFace) error {
 	rxtC := impl.rxt.ptr()
 	if face.loc.Remote.IsGroup() {
 		return impl.setFace(&rxtC.multicast, face.ID())
@@ -54,7 +54,7 @@ func (impl *rxTableImpl) Start(face *EthFace) error {
 	return impl.setFace(&rxtC.unicast[lastOctet], face.ID())
 }
 
-func (impl *rxTableImpl) Stop(face *EthFace) error {
+func (impl *rxTableImpl) Stop(face *ethFace) error {
 	return nil
 }
 
@@ -63,7 +63,6 @@ func (impl *rxTableImpl) Close() error {
 		impl.rxt.Close()
 		impl.rxt = nil
 	}
-	impl.port.dev.Stop(ethdev.StopReset)
 	return nil
 }
 

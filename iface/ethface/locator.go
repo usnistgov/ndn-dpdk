@@ -21,6 +21,7 @@ func init() {
 	NdnMcastAddr, _ = ethdev.ParseEtherAddr("01:00:5E:00:17:AA")
 }
 
+// Locator describes port, addresses, and VLAN of an Ethernet face.
 type Locator struct {
 	iface.LocatorBase
 	Port   string
@@ -29,6 +30,7 @@ type Locator struct {
 	Vlan   []uint16 `json:",omitempty"`
 }
 
+// NewLocator creates a Locator.
 func NewLocator(dev ethdev.EthDev) (loc Locator) {
 	loc.Scheme = locatorScheme
 	loc.Port = dev.Name()
@@ -37,6 +39,7 @@ func NewLocator(dev ethdev.EthDev) (loc Locator) {
 	return loc
 }
 
+// Validate checks Locator fields.
 func (loc Locator) Validate() error {
 	if loc.Port == "" {
 		return errors.New("Port must be non-empty")
@@ -59,10 +62,10 @@ func init() {
 	iface.RegisterLocatorType(Locator{}, locatorScheme)
 }
 
-// Create a face from locator.
+// Create creates a face from locator.
 // cfg is only used for initial port creation, and would be ignored if port exists.
 // If cfg.Local is omitted, it is copied from loc.Local.
-func Create(loc Locator, cfg PortConfig) (face *EthFace, e error) {
+func Create(loc Locator, cfg PortConfig) (face iface.Face, e error) {
 	if e = loc.Validate(); e != nil {
 		return nil, e
 	}

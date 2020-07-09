@@ -8,9 +8,9 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
 )
 
@@ -92,14 +92,12 @@ func (q *PktQueue) Close() error {
 }
 
 // Push enqueues a slice of packets.
-func (q *PktQueue) Push(pkts interface{}, now eal.TscTime) (nRej int) {
-	ptr, count := cptr.ParseCptrArray(pkts)
-	return int(C.PktQueue_Push(q.ptr(), (**C.struct_rte_mbuf)(ptr), C.uint(count), C.TscTime(now)))
+func (q *PktQueue) Push(vec pktmbuf.Vector, now eal.TscTime) (nRej int) {
+	return int(C.PktQueue_Push(q.ptr(), (**C.struct_rte_mbuf)(vec.Ptr()), C.uint(len(vec)), C.TscTime(now)))
 }
 
 // Pop dequeues a slice of packets.
-func (q *PktQueue) Pop(pkts interface{}, now eal.TscTime) (count int, drop bool) {
-	ptr, count := cptr.ParseCptrArray(pkts)
-	res := C.PktQueue_Pop(q.ptr(), (**C.struct_rte_mbuf)(ptr), C.uint(count), C.TscTime(now))
+func (q *PktQueue) Pop(vec pktmbuf.Vector, now eal.TscTime) (count int, drop bool) {
+	res := C.PktQueue_Pop(q.ptr(), (**C.struct_rte_mbuf)(vec.Ptr()), C.uint(len(vec)), C.TscTime(now))
 	return int(res.count), bool(res.drop)
 }

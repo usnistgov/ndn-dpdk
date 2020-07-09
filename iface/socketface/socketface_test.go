@@ -40,7 +40,7 @@ func TestUdp(t *testing.T) {
 	fixture.CheckCounters()
 }
 
-func checkStreamRedialing(t *testing.T, listener net.Listener, makeFaceA func() *socketface.SocketFace) {
+func checkStreamRedialing(t *testing.T, listener net.Listener, makeFaceA func() iface.Face) {
 	assert, require := makeAR(t)
 	fixture := ifacetestenv.New(t)
 	defer fixture.Close()
@@ -94,7 +94,7 @@ func TestTcp(t *testing.T) {
 	defer listener.Close()
 	*addr = *listener.Addr().(*net.TCPAddr)
 
-	checkStreamRedialing(t, listener, func() *socketface.SocketFace {
+	checkStreamRedialing(t, listener, func() iface.Face {
 		loc := iface.MustParseLocator(fmt.Sprintf(`{ "Scheme": "tcp", "Remote": "127.0.0.1:%d" }`, addr.Port)).(socketface.Locator)
 		face, e := socketface.New(loc, socketfaceCfg)
 		require.NoError(e)
@@ -119,7 +119,7 @@ func TestUnix(t *testing.T) {
 	require.NoError(e)
 	defer listener.Close()
 
-	checkStreamRedialing(t, listener, func() *socketface.SocketFace {
+	checkStreamRedialing(t, listener, func() iface.Face {
 		loc := iface.MustParseLocator(fmt.Sprintf(`{ "Scheme": "unix", "Remote": "%s" }`, addr)).(socketface.Locator)
 		face, e := socketface.New(loc, socketfaceCfg)
 		require.NoError(e)

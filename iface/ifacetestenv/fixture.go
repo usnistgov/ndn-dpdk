@@ -48,7 +48,7 @@ func New(t *testing.T) (fixture *Fixture) {
 	fixture.t = t
 
 	fixture.PayloadLen = 100
-	fixture.TxIterations = 10000
+	fixture.TxIterations = 5000
 	fixture.LossTolerance = 0.1
 
 	fixture.rxl = iface.NewRxLoop(eal.NumaSocket{})
@@ -76,10 +76,10 @@ func (fixture *Fixture) preparePktQueue(demux *iface.InputDemux) *iface.PktQueue
 // Close releases resources.
 // This automatically closes all faces and clears LCore allocation.
 func (fixture *Fixture) Close() error {
+	iface.CloseAll()
 	eal.Free(fixture.rxQueueI)
 	eal.Free(fixture.rxQueueD)
 	eal.Free(fixture.rxQueueN)
-	iface.CloseAll()
 	ealthread.DefaultAllocator.Clear()
 	return nil
 }
@@ -103,7 +103,7 @@ func (fixture *Fixture) RunTest(txFace, rxFace iface.Face) {
 }
 
 func (fixture *Fixture) recvProc() {
-	pkts := make([]*pktmbuf.Packet, iface.MaxBurstSize)
+	vec := make(pktmbuf.Vector, iface.MaxBurstSize)
 	for {
 		select {
 		case <-fixture.recvStop:
@@ -111,16 +111,16 @@ func (fixture *Fixture) recvProc() {
 		default:
 		}
 		now := eal.TscNow()
-		count, _ := fixture.rxQueueI.Pop(pkts, now)
-		for _, pkt := range pkts[:count] {
+		count, _ := fixture.rxQueueI.Pop(vec, now)
+		for _, pkt := range vec[:count] {
 			fixture.NRxInterests += fixture.recvCheck(pkt)
 		}
-		count, _ = fixture.rxQueueD.Pop(pkts, now)
-		for _, pkt := range pkts[:count] {
+		count, _ = fixture.rxQueueD.Pop(vec, now)
+		for _, pkt := range vec[:count] {
 			fixture.NRxData += fixture.recvCheck(pkt)
 		}
-		count, _ = fixture.rxQueueN.Pop(pkts, now)
-		for _, pkt := range pkts[:count] {
+		count, _ = fixture.rxQueueN.Pop(vec, now)
+		for _, pkt := range vec[:count] {
 			fixture.NRxNacks += fixture.recvCheck(pkt)
 		}
 	}

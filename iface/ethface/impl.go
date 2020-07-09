@@ -17,10 +17,10 @@ type impl interface {
 	Init() error
 
 	// Start a face.
-	Start(face *EthFace) error
+	Start(face *ethFace) error
 
 	// Stop a face.
-	Stop(face *EthFace) error
+	Stop(face *ethFace) error
 }
 
 type implCtor func(*Port) impl

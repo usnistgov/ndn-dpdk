@@ -2,7 +2,7 @@
 
 This package implements Ethernet faces using DPDK ethdev as transport.
 
-**EthFace** type represents an Ethernet face.
+**ethFace** type represents an Ethernet face.
 Its Locator has the following fields:
 
 * *Scheme* is set to "ether".

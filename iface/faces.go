@@ -11,22 +11,6 @@ func Get(id ID) Face {
 	return gFaces[id]
 }
 
-// Put stores face.
-// This is non-thread-safe.
-// This should be called by face subtype constructor.
-func Put(face Face) {
-	id := face.ID()
-	if !id.Valid() {
-		log.Panic("invalid ID", face)
-	}
-	if gFaces[id] != nil {
-		log.Panic("duplicate ID", face)
-	}
-	gFaces[id] = face
-	emitter.EmitSync(evtFaceNew, id)
-	ActivateTxFace(face)
-}
-
 // List returns a list of existing faces.
 func List() (list []Face) {
 	for _, face := range gFaces {

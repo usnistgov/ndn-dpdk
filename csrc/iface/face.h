@@ -35,7 +35,6 @@ typedef struct Face
   FaceImpl_TxBurst txBurstOp;
   FaceID id;
   FaceState state;
-  int numaSocket;
 
   struct rte_ring* txQueue;
   struct cds_hlist_node txlNode;

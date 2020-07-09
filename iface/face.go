@@ -5,6 +5,7 @@ package iface
 */
 import "C"
 import (
+	"io"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
@@ -15,173 +16,233 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
-// Face is the public API of a face.
-// Most functions are implemented by FaceBase type.
+// Face represents a network layer face.
 type Face interface {
-	ptr() *C.Face
+	eal.WithNumaSocket
+	io.Closer
 
-	// ID returns ID.
+	// Ptr returns *C.Face pointer.
+	Ptr() unsafe.Pointer
+
+	// ID returns face ID.
 	ID() ID
 
 	// Locator returns a Locator describing face endpoints.
-	// Lower layer implementation must provide this method.
 	Locator() Locator
-
-	// NumaSocket returns the NUMA socket of this face's data structures.
-	NumaSocket() eal.NumaSocket
-
-	// Close destroys the face.
-	// Lower layer implementation must provide this method.
-	// It should call FaceBase.BeforeClose and FaceBase.CloseFaceBase.
-	Close() error
-
-	// IsDown determines whether the face is DOWN or UP.
-	IsDown() bool
 
 	// ReadCounters returns basic face counters.
 	ReadCounters() Counters
 
 	// ReadExCounters returns extended counters.
-	// Lower layer implementation may override this method.
 	ReadExCounters() interface{}
+
+	// SetDown changes face UP/DOWN state.
+	SetDown(isDown bool)
 }
 
-// FaceBase is a partial implementation of Face interface.
-type FaceBase struct {
-	id ID
+// NewOptions contains parameters to New().
+type NewOptions struct {
+	// Socket indicates where to allocate memory.
+	Socket eal.NumaSocket
+
+	// SizeOfPriv is the size of C.FaceImpl struct.
+	SizeofPriv uintptr
+
+	// TxQueueCapacity is the capacity of the before-TX queue.
+	TxQueueCapacity int
+
+	// TxMtu is the maximum size of NDNLP packets.
+	TxMtu int
+
+	// TxHeadroom is the mbuf headroom to leave before NDNLP header.
+	TxHeadroom int
+
+	// Init callback is invoked after allocating C.FaceImpl.
+	// It is expected to assign C.Face.txBurstOp.
+	Init func(f Face) error
+
+	// Start callback is invoked after data structure initialization.
+	// It should activate RxGroups associated with the face.
+	// It may return a 'subclass' Face interface implementation to make available via Get(id).
+	Start func(f Face) (Face, error)
+
+	// Locator callback returns a Locator describing the face.
+	Locator func(f Face) Locator
+
+	// Stop callback is invoked to stop the face.
+	// It should deactivate RxGroups associated with the face.
+	Stop func(f Face) error
+
+	// Close callback is invoked after the face has been removed.
+	// This is optional.
+	Close func(f Face) error
+
+	// ReadExCounters callback returns extended counters.
+	// This is optional.
+	ReadExCounters func(f Face) interface{}
 }
 
-func (face *FaceBase) ptr() *C.Face {
-	return C.Face_Get(C.FaceID(face.id))
+// New creates a Face.
+func New(p NewOptions) (face Face, e error) {
+	eal.CallMain(func() {
+		face, e = newFace(p)
+	})
+	return
 }
 
-// Ptr returns *C.Face pointer.
-func (face *FaceBase) Ptr() unsafe.Pointer {
-	return unsafe.Pointer(face.ptr())
-}
-
-// InitFaceBase should be invoked before lower-layer initialization.
-// It allocates FaceImpl on specified NUMA socket.
-func (face *FaceBase) InitFaceBase(id ID, sizeofPriv int, socket eal.NumaSocket) error {
-	face.id = id
-
-	if socket.IsAny() {
+func newFace(p NewOptions) (Face, error) {
+	if p.Socket.IsAny() {
 		if lc := eal.CurrentLCore(); lc.Valid() {
-			socket = lc.NumaSocket()
+			p.Socket = lc.NumaSocket()
 		} else {
-			socket = eal.Sockets[0]
+			p.Socket = eal.Sockets[0]
 		}
 	}
-
-	faceC := face.ptr()
-	*faceC = C.Face{}
-	faceC.id = C.FaceID(face.id)
-	faceC.state = StateUp
-	faceC.numaSocket = C.int(socket.ID())
-
-	sizeofImpl := int(C.sizeof_FaceImpl) + sizeofPriv
-	faceC.impl = (*C.FaceImpl)(eal.ZmallocAligned("FaceImpl", sizeofImpl, 1, socket))
-
-	return nil
-
-}
-
-// FinishInitFaceBase should be invoked after lower-layer initialization.
-// mtu: transport MTU available for NDNLP packets.
-// headroom: headroom before NDNLP header, as required by transport.
-func (face *FaceBase) FinishInitFaceBase(txQueueCapacity, mtu, headroom int) error {
-	faceC := face.ptr()
-	socket := face.NumaSocket()
-	indirectMp := pktmbuf.Indirect.MakePool(socket)
-	headerMp := ndni.HeaderMempool.MakePool(socket)
-	nameMp := ndni.NameMempool.MakePool(socket)
-
-	r, e := ringbuffer.New(txQueueCapacity, socket, ringbuffer.ProducerMulti, ringbuffer.ConsumerSingle)
-	if e != nil {
-		face.clear()
-		return e
+	f := &face{
+		id:                     AllocID(),
+		socket:                 p.Socket,
+		locatorCallback:        p.Locator,
+		stopCallback:           p.Stop,
+		closeCallback:          p.Close,
+		readExCountersCallback: p.ReadExCounters,
 	}
-	faceC.txQueue = (*C.struct_rte_ring)(r.Ptr())
+
+	c := f.ptr()
+	c.id = C.FaceID(f.id)
+	c.state = StateUp
+	sizeofImpl := C.sizeof_FaceImpl + p.SizeofPriv
+	c.impl = (*C.FaceImpl)(eal.ZmallocAligned("FaceImpl", sizeofImpl, 1, p.Socket))
+
+	if e := p.Init(f); e != nil {
+		return f.clear(), e
+	}
+
+	txQueue, e := ringbuffer.New(p.TxQueueCapacity, p.Socket, ringbuffer.ProducerMulti, ringbuffer.ConsumerSingle)
+	if e != nil {
+		return f.clear(), e
+	}
+	c.txQueue = (*C.struct_rte_ring)(txQueue.Ptr())
 
 	for l3type := 0; l3type < 4; l3type++ {
-		latencyStat := runningstat.FromPtr(unsafe.Pointer(&faceC.impl.tx.latency[l3type]))
+		latencyStat := runningstat.FromPtr(unsafe.Pointer(&c.impl.tx.latency[l3type]))
 		latencyStat.Clear(false)
 		latencyStat.SetSampleRate(12)
 	}
 
-	if res := C.TxProc_Init(&faceC.impl.tx, C.uint16_t(mtu), C.uint16_t(headroom),
+	indirectMp := pktmbuf.Indirect.MakePool(p.Socket)
+	headerMp := ndni.HeaderMempool.MakePool(p.Socket)
+	nameMp := ndni.NameMempool.MakePool(p.Socket)
+
+	if res := C.TxProc_Init(&c.impl.tx, C.uint16_t(p.TxMtu), C.uint16_t(p.TxHeadroom),
 		(*C.struct_rte_mempool)(indirectMp.Ptr()), (*C.struct_rte_mempool)(headerMp.Ptr())); res != 0 {
-		face.clear()
-		return eal.Errno(res)
+		return f.clear(), eal.Errno(res)
 	}
 
-	if res := C.RxProc_Init(&faceC.impl.rx, (*C.struct_rte_mempool)(nameMp.Ptr())); res != 0 {
-		face.clear()
-		return eal.Errno(res)
+	if res := C.RxProc_Init(&c.impl.rx, (*C.struct_rte_mempool)(nameMp.Ptr())); res != 0 {
+		return f.clear(), eal.Errno(res)
 	}
 
+	f2, e := p.Start(f)
+	if e != nil {
+		return f.clear(), e
+	}
+
+	gFaces[f.id] = f2
+	emitter.EmitSync(evtFaceNew, f.id)
+	ActivateTxFace(f2)
+	return f2, nil
+}
+
+type face struct {
+	id                     ID
+	socket                 eal.NumaSocket
+	locatorCallback        func(f Face) Locator
+	stopCallback           func(f Face) error
+	closeCallback          func(f Face) error
+	readExCountersCallback func(f Face) interface{}
+}
+
+func (f *face) ptr() *C.Face {
+	return C.Face_Get(C.FaceID(f.id))
+}
+
+func (f *face) Ptr() unsafe.Pointer {
+	return unsafe.Pointer(f.ptr())
+}
+
+func (f *face) ID() ID {
+	return f.id
+}
+
+func (f *face) NumaSocket() eal.NumaSocket {
+	return f.socket
+}
+
+func (f *face) Locator() Locator {
+	return f.locatorCallback(f)
+}
+
+func (f *face) Close() (e error) {
+	eal.CallMain(func() { e = f.close() })
+	return e
+}
+
+func (f *face) close() error {
+	f.ptr().state = StateDown
+	emitter.EmitSync(evtFaceClosing, f.id)
+	DeactivateTxFace(f)
+
+	if e := f.stopCallback(f); e != nil {
+		return e
+	}
+
+	f.clear()
+	emitter.EmitSync(evtFaceClosed, f.id)
+
+	if f.closeCallback != nil {
+		return f.closeCallback(f)
+	}
 	return nil
 }
 
-// ID returns ID.
-func (face *FaceBase) ID() ID {
-	return face.id
-}
-
-// NumaSocket returns the NUMA socket of this face's data structures.
-func (face *FaceBase) NumaSocket() eal.NumaSocket {
-	return eal.NumaSocketFromID(int(face.ptr().numaSocket))
-}
-
-// BeforeClose prepares to close face.
-func (face *FaceBase) BeforeClose() {
-	id := face.ID()
-	faceC := face.ptr()
-	faceC.state = StateDown
-	emitter.EmitSync(evtFaceClosing, id)
-	DeactivateTxFace(Get(id))
-}
-
-func (face *FaceBase) clear() {
-	id := face.ID()
-	faceC := face.ptr()
-	faceC.state = StateRemoved
-	if faceC.impl != nil {
-		eal.Free(faceC.impl)
+func (f *face) clear() Face {
+	id, c := f.id, f.ptr()
+	c.state = StateRemoved
+	if c.impl != nil {
+		eal.Free(c.impl)
 	}
-	if faceC.txQueue != nil {
-		ringbuffer.FromPtr(unsafe.Pointer(faceC.txQueue)).Close()
+	if c.txQueue != nil {
+		ringbuffer.FromPtr(unsafe.Pointer(c.txQueue)).Close()
 	}
-	faceC.id = 0
+	c.id = 0
 	gFaces[id] = nil
+	return nil
 }
 
-// CloseFaceBase finishes closing face and deallocates FaceImpl.
-func (face *FaceBase) CloseFaceBase() {
-	id := face.ID()
-	face.clear()
-	emitter.EmitSync(evtFaceClosed, id)
+func (f *face) ReadExCounters() interface{} {
+	if f.readExCountersCallback != nil {
+		return f.readExCountersCallback(f)
+	}
+	return nil
 }
 
-// IsDown determines whether the face is DOWN or UP.
-func (face *FaceBase) IsDown() bool {
-	return face.ptr().state != StateUp
-}
-
-// SetDown changes face state.
-func (face *FaceBase) SetDown(isDown bool) {
-	if face.IsDown() == isDown {
+func (f *face) SetDown(isDown bool) {
+	id, c := f.id, f.ptr()
+	if IsDown(id) == isDown {
 		return
 	}
-	id := face.ID()
-	faceC := face.ptr()
 	if isDown {
-		faceC.state = StateDown
+		c.state = StateDown
 		emitter.EmitSync(evtFaceDown, id)
 	} else {
-		faceC.state = StateUp
+		c.state = StateUp
 		emitter.EmitSync(evtFaceUp, id)
 	}
+}
+
+// IsDown returns true if the face does not exist or is down.
+func IsDown(id ID) bool {
+	return bool(C.Face_IsDown(C.FaceID(id)))
 }
 
 // TxBurst transmits a burst of L3 packets.

@@ -2,12 +2,15 @@ package createface
 
 import (
 	"errors"
+	"sync"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/ethface"
 	"github.com/usnistgov/ndn-dpdk/iface/socketface"
 )
+
+var createDestroyLock sync.Mutex
 
 // Create a face with given locator.
 func Create(loc iface.Locator) (face iface.Face, e error) {

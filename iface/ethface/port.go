@@ -1,9 +1,5 @@
 package ethface
 
-/*
-#include "../../csrc/ethface/eth-face.h"
-*/
-import "C"
 import (
 	"errors"
 
@@ -28,12 +24,28 @@ func ListPorts() (list []*Port) {
 	return list
 }
 
+// PortConfig contains Port creation arguments.
+type PortConfig struct {
+	RxqFrames int              // RX queue capacity
+	TxqPkts   int              // before-TX queue capacity
+	TxqFrames int              // after-TX queue capacity
+	Mtu       int              // set MTU, 0 to keep default
+	Local     ethdev.EtherAddr // local address, zero for hardware default
+}
+
+func (cfg PortConfig) check() error {
+	if !cfg.Local.IsZero() && !cfg.Local.IsUnicast() {
+		return errors.New("Local is not unicast")
+	}
+	return nil
+}
+
 // Port organizes EthFaces on an EthDev.
 type Port struct {
 	cfg      PortConfig
 	logger   logrus.FieldLogger
 	dev      ethdev.EthDev
-	faces    map[iface.ID]*EthFace
+	faces    map[iface.ID]*ethFace
 	impl     impl
 	nextImpl int
 }
@@ -54,7 +66,7 @@ func NewPort(dev ethdev.EthDev, cfg PortConfig) (port *Port, e error) {
 	port.cfg = cfg
 	port.logger = newPortLogger(dev)
 	port.dev = dev
-	port.faces = make(map[iface.ID]*EthFace)
+	port.faces = make(map[iface.ID]*ethFace)
 
 	port.logger.Debug("opening")
 	portByEthDev[port.dev] = port
@@ -63,18 +75,28 @@ func NewPort(dev ethdev.EthDev, cfg PortConfig) (port *Port, e error) {
 
 // Close closes the port.
 func (port *Port) Close() (e error) {
-	if port.impl != nil {
-		e = port.impl.Close()
+	if !port.dev.Valid() { // already closed
+		return nil
 	}
-	delete(portByEthDev, port.dev)
-	port.logger.Debug("closing")
+
+	if port.impl != nil {
+		port.impl.Close()
+		port.impl = nil
+	}
+
+	if port.dev.Valid() {
+		delete(portByEthDev, port.dev)
+		port.logger.Debug("closing")
+		port.dev.Stop(ethdev.StopReset)
+		port.dev = ethdev.EthDev{}
+	}
 	return nil
 }
 
-func (port *Port) findFace(filter func(face *EthFace) bool) *EthFace {
+func (port *Port) filterFace(filter func(face *ethFace) bool) iface.Face {
 	for _, face := range port.faces {
 		if filter(face) {
-			return face
+			return face.Face
 		}
 	}
 	return nil
@@ -83,13 +105,13 @@ func (port *Port) findFace(filter func(face *EthFace) bool) *EthFace {
 // FindFace returns a face that matches the query, or nil if it does not exist.
 // FindFace(nil) returns a face with multicast address.
 // FindFace(unicastAddr) returns a face with matching address.
-func (port *Port) FindFace(query *ethdev.EtherAddr) *EthFace {
+func (port *Port) FindFace(query *ethdev.EtherAddr) iface.Face {
 	if query == nil {
-		return port.findFace(func(face *EthFace) bool {
+		return port.filterFace(func(face *ethFace) bool {
 			return face.loc.Remote.IsGroup()
 		})
 	}
-	return port.findFace(func(face *EthFace) bool {
+	return port.filterFace(func(face *ethFace) bool {
 		return face.loc.Remote.Equal(*query)
 	})
 }
@@ -100,9 +122,9 @@ func (port *Port) CountFaces() int {
 }
 
 // Faces returns a list of active faces.
-func (port *Port) Faces() (list []*EthFace) {
+func (port *Port) Faces() (list []iface.Face) {
 	for _, face := range port.faces {
-		list = append(list, face)
+		list = append(list, face.Face)
 	}
 	return list
 }
@@ -153,7 +175,7 @@ func (port *Port) fallbackImpl() error {
 }
 
 // Start face in impl (called by New).
-func (port *Port) startFace(face *EthFace, forceFallback bool) error {
+func (port *Port) startFace(face *ethFace, forceFallback bool) error {
 	if port.impl == nil || forceFallback {
 		if e := port.fallbackImpl(); e != nil {
 			return e
@@ -170,8 +192,8 @@ func (port *Port) startFace(face *EthFace, forceFallback bool) error {
 	return nil
 }
 
-// Stop face in impl (called by EthFace.Close).
-func (port *Port) stopFace(face *EthFace) (e error) {
+// Stop face in impl (called by ethFace.Close).
+func (port *Port) stopFace(face *ethFace) (e error) {
 	delete(port.faces, face.ID())
 	e = port.impl.Stop(face)
 	port.logger.WithError(e).Info("face stopped")

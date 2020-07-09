@@ -1,4 +1,4 @@
-package ifacetest
+package iface_test
 
 import (
 	"testing"

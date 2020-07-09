@@ -16,7 +16,7 @@ func (cnt ExCounters) String() string {
 }
 
 // ReadExCounters reads extended counters.
-func (face *SocketFace) ReadExCounters() interface{} {
+func (face *socketFace) ReadExCounters() interface{} {
 	return ExCounters{
 		NRedials:      face.transport.NRedials,
 		RxQueueLength: len(face.transport.Rx()),

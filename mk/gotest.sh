@@ -16,7 +16,7 @@ getTestPkg() {
 if [[ $# -eq 0 ]]; then
   # run all tests, optional filter in $MK_GOTEST_FILTER
 
-  find -name '*_test.go' -printf '%h\n' | uniq | sed -E "${MK_GOTEST_FILTER:-}" \
+  find -name '*_test.go' -printf '%h\n' | sort -u | sed -E "${MK_GOTEST_FILTER:-}" \
     | xargs -I{} sudo -E $(which go) test {} -count=1
 
 elif [[ $# -eq 1 ]]; then

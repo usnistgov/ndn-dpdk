@@ -53,15 +53,17 @@ type PortArg struct {
 }
 
 type PortInfo struct {
-	Name       string         // port name
-	NumaSocket eal.NumaSocket // NUMA socket
-	Active     bool           // whether port is active
-	ImplName   string         // internal implementation name
+	Name       string           // port name
+	NumaSocket eal.NumaSocket   // NUMA socket
+	MacAddr    ethdev.EtherAddr // MAC address
+	Active     bool             // whether port is active
+	ImplName   string           // internal implementation name
 }
 
 func makePortInfo(dev ethdev.EthDev) (info PortInfo) {
 	info.Name = dev.Name()
 	info.NumaSocket = dev.NumaSocket()
+	info.MacAddr = dev.MacAddr()
 	port := ethface.FindPort(dev)
 	if port != nil {
 		info.Active = true

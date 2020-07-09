@@ -25,7 +25,7 @@ func (FaceMgmt) Get(args IdArg, reply *FaceInfo) error {
 	}
 
 	reply.BasicInfo = makeBasicInfo(face)
-	reply.IsDown = face.IsDown()
+	reply.IsDown = iface.IsDown(face.ID())
 	reply.Counters = face.ReadCounters()
 	reply.ExCounters = face.ReadExCounters()
 

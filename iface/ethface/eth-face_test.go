@@ -6,6 +6,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
+	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/ethface"
 	"github.com/usnistgov/ndn-dpdk/iface/ifacetestenv"
 	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
@@ -14,7 +15,7 @@ import (
 type ethTestTopology struct {
 	*ifacetestenv.Fixture
 	vnet                                           *ethdev.VNet
-	faceAB, faceAC, faceAm, faceBm, faceBA, faceCA *ethface.EthFace
+	faceAB, faceAC, faceAm, faceBm, faceBA, faceCA iface.Face
 }
 
 func makeTopo(t *testing.T) (topo ethTestTopology) {
@@ -33,7 +34,7 @@ func makeTopo(t *testing.T) (topo ethTestTopology) {
 	macB, _ := ethdev.ParseEtherAddr("02:00:00:00:00:02")
 	macC, _ := ethdev.ParseEtherAddr("02:00:00:00:00:03")
 
-	makeFace := func(dev ethdev.EthDev, local, remote ethdev.EtherAddr) *ethface.EthFace {
+	makeFace := func(dev ethdev.EthDev, local, remote ethdev.EtherAddr) iface.Face {
 		loc := ethface.NewLocator(dev)
 		loc.Local = local
 		loc.Remote = remote
