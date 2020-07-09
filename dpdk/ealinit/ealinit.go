@@ -34,7 +34,7 @@ func Init(args []string) (remainingArgs []string) {
 		eal.MainThread = th
 		eal.MainReadSide = th.RcuReadSide
 		eal.CallMain(func() {
-			log.Info("MainThread is running")
+			log.Debug("MainThread is running")
 		})
 		spdkenv.InitFinal()
 	})
@@ -42,12 +42,13 @@ func Init(args []string) (remainingArgs []string) {
 }
 
 func initEal(args []string) (remainingArgs []string) {
+	logEntry := log.WithField("args", args)
 	a := cptr.NewCArgs(args)
 	defer a.Close()
 
 	res := C.rte_eal_init(C.int(a.Argc), (**C.char)(a.Argv))
 	if res < 0 {
-		log.Fatalf("EAL init error %v", eal.GetErrno())
+		logEntry.Fatalf("EAL init error %v", eal.GetErrno())
 		return
 	}
 
@@ -64,6 +65,6 @@ func initEal(args []string) (remainingArgs []string) {
 			hasSocket[socket] = true
 		}
 	}
-	log.WithFields(makeLogFields("initial", eal.Initial, "workers", eal.Workers, "sockets", eal.Sockets)).Info("EAL ready")
+	logEntry.WithFields(makeLogFields("initial", eal.Initial, "workers", eal.Workers, "sockets", eal.Sockets)).Info("EAL ready")
 	return remainingArgs
 }

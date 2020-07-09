@@ -2,9 +2,8 @@ package eal
 
 /*
 #include "../../csrc/core/common.h"
-#include <rte_errno.h>
 
-int getErrno() { return rte_errno; }
+int c_rte_errno() { return rte_errno; }
 */
 import "C"
 import (
@@ -16,7 +15,7 @@ type Errno syscall.Errno
 
 // GetErrno returns the current DPDK error.
 func GetErrno() Errno {
-	return Errno(C.getErrno())
+	return Errno(C.c_rte_errno())
 }
 
 func (e Errno) Error() string {

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
-	"github.com/usnistgov/ndn-dpdk/dpdk/eal/ealtestenv"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealtestenv"
 	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
 )
 

@@ -10,6 +10,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/container/fib"
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
 	"github.com/usnistgov/ndn-dpdk/container/strategycode"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealtestenv"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/createface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
@@ -20,7 +21,8 @@ const nFwds = 2
 
 // Fixture is a test fixture for forwarder data plane.
 type Fixture struct {
-	require *require.Assertions
+	require  *require.Assertions
+	StepUnit time.Duration
 
 	DataPlane *fwdp.DataPlane
 	Ndt       *ndt.Ndt
@@ -31,6 +33,10 @@ type Fixture struct {
 func NewFixture(t *testing.T) (fixture *Fixture) {
 	fixture = new(Fixture)
 	fixture.require = require.New(t)
+	fixture.StepUnit = 50 * time.Millisecond
+	if ealtestenv.UsingThreads {
+		fixture.StepUnit = 200 * time.Millisecond
+	}
 
 	var faceCfg createface.Config
 	faceCfg.EnableSock = true
@@ -76,7 +82,7 @@ func (fixture *Fixture) Close() error {
 
 // StepDelay delays a small amount of time for packet forwarding.
 func (fixture *Fixture) StepDelay() {
-	time.Sleep(50 * time.Millisecond)
+	time.Sleep(fixture.StepUnit)
 }
 
 // SetFibEntry inserts or replaces a FIB entry.

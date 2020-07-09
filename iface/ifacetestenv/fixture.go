@@ -21,9 +21,10 @@ var makeAR = testenv.MakeAR
 type Fixture struct {
 	t *testing.T
 
-	PayloadLen    int     // Data payload length
-	TxIterations  int     // number of TX iterations
-	LossTolerance float64 // permitted packet loss
+	PayloadLen      int     // Data payload length
+	TxIterations    int     // number of TX iterations
+	TxLossTolerance float64 // permitted TX packet loss (counter discrepancy)
+	RxLossTolerance float64 // permitted RX packet loss
 
 	rxl      iface.RxLoop
 	rxQueueI *iface.PktQueue
@@ -49,7 +50,8 @@ func New(t *testing.T) (fixture *Fixture) {
 
 	fixture.PayloadLen = 100
 	fixture.TxIterations = 5000
-	fixture.LossTolerance = 0.1
+	fixture.TxLossTolerance = 0.05
+	fixture.RxLossTolerance = 0.10
 
 	fixture.rxl = iface.NewRxLoop(eal.NumaSocket{})
 	fixture.rxQueueI = fixture.preparePktQueue(fixture.rxl.InterestDemux())
@@ -155,10 +157,10 @@ func (fixture *Fixture) CheckCounters() {
 	assert, _ := makeAR(fixture.t)
 
 	txCnt := fixture.txFace.ReadCounters()
-	assert.Equal(3*fixture.TxIterations, int(txCnt.TxFrames))
-	assert.Equal(fixture.TxIterations, int(txCnt.TxInterests))
-	assert.Equal(fixture.TxIterations, int(txCnt.TxData))
-	assert.Equal(fixture.TxIterations, int(txCnt.TxNacks))
+	assert.InEpsilon(3*fixture.TxIterations, int(txCnt.TxFrames), fixture.TxLossTolerance)
+	assert.InEpsilon(fixture.TxIterations, int(txCnt.TxInterests), fixture.TxLossTolerance)
+	assert.InEpsilon(fixture.TxIterations, int(txCnt.TxData), fixture.TxLossTolerance)
+	assert.InEpsilon(fixture.TxIterations, int(txCnt.TxNacks), fixture.TxLossTolerance)
 
 	rxCnt := fixture.rxFace.ReadCounters()
 	assert.Equal(fixture.NRxInterests, int(rxCnt.RxInterests))
@@ -167,7 +169,7 @@ func (fixture *Fixture) CheckCounters() {
 	assert.Equal(fixture.NRxInterests+fixture.NRxData+fixture.NRxNacks,
 		int(rxCnt.RxFrames))
 
-	assert.InEpsilon(fixture.TxIterations, fixture.NRxInterests, fixture.LossTolerance)
-	assert.InEpsilon(fixture.TxIterations, fixture.NRxData, fixture.LossTolerance)
-	assert.InEpsilon(fixture.TxIterations, fixture.NRxNacks, fixture.LossTolerance)
+	assert.InEpsilon(fixture.TxIterations, fixture.NRxInterests, fixture.RxLossTolerance)
+	assert.InEpsilon(fixture.TxIterations, fixture.NRxData, fixture.RxLossTolerance)
+	assert.InEpsilon(fixture.TxIterations, fixture.NRxNacks, fixture.RxLossTolerance)
 }

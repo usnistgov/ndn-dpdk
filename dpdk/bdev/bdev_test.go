@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/bdev"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealtestenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 )
 
@@ -87,7 +88,7 @@ func TestNvme(t *testing.T) {
 	nvmes, e := bdev.ListNvmes()
 	require.NoError(e)
 	if len(nvmes) == 0 {
-		fmt.Println("skipping TestNvme: no NVMe drive available; rerun test suite with DPDKTESTENV_PCI=1 environ?")
+		fmt.Printf("skipping TestNvme: no NVMe drive available; rerun test suite with %s=1 environ?\n", ealtestenv.EnvPci)
 		return
 	}
 
