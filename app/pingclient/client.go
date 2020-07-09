@@ -141,15 +141,11 @@ func (client *Client) SetLCores(rxLCore, txLCore eal.LCore) {
 }
 
 // Launch RX and TX threads.
-func (client *Client) Launch() error {
+func (client *Client) Launch() {
 	client.rxC.runNum++
 	client.txC.runNum = client.rxC.runNum
-	eRx := client.Rx.Launch()
-	eTx := client.Tx.Launch()
-	if eRx != nil || eTx != nil {
-		return fmt.Errorf("RX %v; TX %v", eRx, eTx)
-	}
-	return nil
+	client.Rx.Launch()
+	client.Tx.Launch()
 }
 
 // Stop RX and TX threads.

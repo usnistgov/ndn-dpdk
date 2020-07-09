@@ -17,6 +17,8 @@ import (
 // MaxLCoreID is the maximum LCore ID.
 const MaxLCoreID = C.RTE_MAX_LCORE
 
+var lcoreIsBusy [MaxLCoreID + 1]bool
+
 // LCore represents a logical core.
 // Zero LCore is invalid.
 type LCore struct {
@@ -72,30 +74,34 @@ func (lc LCore) NumaSocket() (socket NumaSocket) {
 
 // IsBusy returns true if this lcore is running a function.
 func (lc LCore) IsBusy() bool {
-	return CallMain(func() bool {
-		return C.rte_eal_get_lcore_state(C.uint(lc.ID())) != C.WAIT
-	}).(bool)
+	if !lc.Valid() {
+		return true
+	}
+	return lcoreIsBusy[lc.ID()]
 }
 
 // RemoteLaunch asynchronously launches a function on this lcore.
-func (lc LCore) RemoteLaunch(fn cptr.Function) error {
+// Errors are fatal.
+func (lc LCore) RemoteLaunch(fn cptr.Function) {
 	if !lc.Valid() {
-		panic("invalid lcore")
+		log.Panic("invalid lcore")
 	}
-	res := CallMain(func() C.int {
+	lcoreIsBusy[lc.ID()] = true
+	PostMain(cptr.Func0.Void(func() {
 		f, arg := cptr.Func0.CallbackOnce(fn)
-		return C.rte_eal_remote_launch((*C.lcore_function_t)(f), arg, C.uint(lc.ID()))
-	}).(C.int)
-	if res != 0 {
-		return Errno(-res)
-	}
-	return nil
+		res := C.rte_eal_remote_launch((*C.lcore_function_t)(f), arg, C.uint(lc.ID()))
+		if res != 0 {
+			log.WithError(Errno(res)).Fatal("RemoteLaunch error")
+		}
+	}))
 }
 
 // Wait blocks until this lcore finishes running, and returns lcore function's return value.
 // If this lcore is not running, returns 0 immediately.
-func (lc LCore) Wait() int {
-	return CallMain(func() int {
-		return int(C.rte_eal_wait_lcore(C.uint(lc.ID())))
-	}).(int)
+func (lc LCore) Wait() (exitCode int) {
+	CallMain(func() {
+		exitCode = int(C.rte_eal_wait_lcore(C.uint(lc.ID())))
+	})
+	lcoreIsBusy[lc.ID()] = false
+	return exitCode
 }

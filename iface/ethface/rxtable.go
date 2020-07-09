@@ -63,6 +63,7 @@ func (impl *rxTableImpl) Close() error {
 		impl.rxt.Close()
 		impl.rxt = nil
 	}
+	impl.port.dev.Stop(ethdev.StopReset)
 	return nil
 }
 

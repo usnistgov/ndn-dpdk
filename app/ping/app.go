@@ -52,7 +52,7 @@ func New(cfg []TaskConfig) (app *App, e error) {
 			return nil, fmt.Errorf("[%d] face creation error: %w", i, e)
 		}
 		if nInputs := len(app.inputs); nInputs == 0 || app.inputs[nInputs-1].face != nil {
-			return nil, fmt.Errorf("[%d] unexpected RxLoop creation")
+			return nil, fmt.Errorf("[%d] unexpected RxLoop creation", i)
 		}
 		app.inputs[len(app.inputs)-1].face = face
 

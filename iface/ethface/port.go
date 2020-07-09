@@ -87,7 +87,6 @@ func (port *Port) Close() (e error) {
 	if port.dev.Valid() {
 		delete(portByEthDev, port.dev)
 		port.logger.Debug("closing")
-		port.dev.Stop(ethdev.StopReset)
 		port.dev = ethdev.EthDev{}
 	}
 	return nil

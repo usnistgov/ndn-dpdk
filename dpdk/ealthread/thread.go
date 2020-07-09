@@ -19,7 +19,7 @@ type Thread interface {
 	IsRunning() bool
 
 	// Launch launches the thread.
-	Launch() error
+	Launch()
 
 	// Stop stops the thread.
 	Stop() error
@@ -51,7 +51,7 @@ func (th *threadImpl) IsRunning() bool {
 	return th.lc.Valid() && th.lc.IsBusy()
 }
 
-func (th *threadImpl) Launch() error {
+func (th *threadImpl) Launch() {
 	if !th.lc.Valid() {
 		log.WithField("th", th).Panic("lcore unassigned")
 		panic("lcore unassigned")
@@ -59,7 +59,7 @@ func (th *threadImpl) Launch() error {
 	if th.IsRunning() {
 		log.WithField("lc", th.lc).Panic("lcore is busy")
 	}
-	return th.lc.RemoteLaunch(th.main)
+	th.lc.RemoteLaunch(th.main)
 }
 
 func (th *threadImpl) Stop() error {

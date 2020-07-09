@@ -45,5 +45,6 @@ func Launch(th ThreadWithRole) error {
 	if e := AllocThread(th); e != nil {
 		return e
 	}
-	return th.Launch()
+	th.Launch()
+	return nil
 }

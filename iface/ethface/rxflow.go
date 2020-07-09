@@ -9,6 +9,7 @@ import (
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
@@ -137,6 +138,7 @@ func (impl *rxFlowImpl) Close() error {
 		}
 	}
 	impl.queueFlow = nil
+	impl.port.dev.Stop(ethdev.StopReset)
 	return nil
 }
 

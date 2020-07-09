@@ -16,7 +16,7 @@ Mempool:
     Capacity: 65535
   GUIDER:  # TX modified Interest guiders (forwarder only)
     Capacity: 65535
-  INT:  # TX Interests (traffic generator only)
+  INTEREST:  # TX Interests (traffic generator only)
     Capacity: 65535
   DATA:  # TX Data header (traffic generator only)
     Capacity: 65535
