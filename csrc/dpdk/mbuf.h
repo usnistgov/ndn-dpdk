@@ -1,12 +1,13 @@
 #ifndef NDN_DPDK_DPDK_MBUF_H
 #define NDN_DPDK_DPDK_MBUF_H
 
-/// \file
+/** @file */
 
 #include "../core/common.h"
 #include <rte_mbuf.h>
 
-/** \brief Free an array of mbufs[0..count-1].
+/**
+ * @brief Free an array of mbufs[0..count-1].
  */
 static __rte_always_inline uint32_t
 FreeMbufs(struct rte_mbuf* mbufs[], int count)
@@ -19,9 +20,10 @@ FreeMbufs(struct rte_mbuf* mbufs[], int count)
   return totalLen;
 }
 
-/** \brief Remove \p len bytes at the beginning of a packet.
+/**
+ * @brief Remove @p len bytes at the beginning of a packet.
  *
- *  This function does not require first segment to have enough length.
+ * This function does not require first segment to have enough length.
  */
 static inline bool
 Packet_Adj(struct rte_mbuf* pkt, uint16_t len)
@@ -54,10 +56,11 @@ Packet_Adj(struct rte_mbuf* pkt, uint16_t len)
   return true;
 }
 
-/** \brief Chain \p tail onto \p head.
- *  \param lastSeg must be rte_pktmbuf_lastseg(head)
- *  \retval 0 success
- *  \retval -EOVERFLOW total segment count exceeds limit
+/**
+ * @brief Chain @p tail onto @p head.
+ * @param lastSeg must be rte_pktmbuf_lastseg(head)
+ * @retval 0 success
+ * @retval -EOVERFLOW total segment count exceeds limit
  */
 static inline int
 Packet_Chain(struct rte_mbuf* head, struct rte_mbuf* lastSeg, struct rte_mbuf* tail)

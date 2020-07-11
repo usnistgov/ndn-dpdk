@@ -1,5 +1,6 @@
-/** \file
- *  The multicast strategy forwards incoming Interest to all FIB nexthops.
+/** 
+ * @file
+ * The multicast strategy forwards incoming Interest to all FIB nexthops.
  */
 #include "api.h"
 

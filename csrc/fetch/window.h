@@ -1,12 +1,11 @@
 #ifndef NDN_DPDK_FETCH_WINDOW_H
 #define NDN_DPDK_FETCH_WINDOW_H
 
-/// \file
+/** @file */
 
 #include "seg.h"
 
-/** \brief Window of segment states.
- */
+/** @brief Window of segment states. */
 typedef struct FetchWindow
 {
   FetchSeg* array;
@@ -16,16 +15,16 @@ typedef struct FetchWindow
   uint64_t hiSegNum;     ///< exclusive upper bound of segment numbers
 } FetchWindow;
 
-/** \brief Determine whether a segment number is in the window.
- */
+/** @brief Determine whether a segment number is in the window. */
 static inline bool
 FetchWindow_Contains_(FetchWindow* win, uint64_t segNum)
 {
   return win->loSegNum <= segNum && segNum < win->hiSegNum;
 }
 
-/** \brief Access FetchSeg* of a segment number.
- *  \pre FetchWindow_Contains_(win, segNum)
+/**
+ * @brief Access FetchSeg* of a segment number.
+ * @pre FetchWindow_Contains_(win, segNum)
  */
 static inline FetchSeg*
 FetchWindow_Access_(FetchWindow* win, uint64_t segNum)
@@ -34,8 +33,9 @@ FetchWindow_Access_(FetchWindow* win, uint64_t segNum)
   return &win->array[pos];
 }
 
-/** \brief Retrieve a segment's state.
- *  \retval NULL segment is not in the window or has been deleted.
+/**
+ * @brief Retrieve a segment's state.
+ * @retval NULL segment is not in the window or has been deleted.
  */
 static inline FetchSeg*
 FetchWindow_Get(FetchWindow* win, uint64_t segNum)
@@ -50,8 +50,9 @@ FetchWindow_Get(FetchWindow* win, uint64_t segNum)
   return seg;
 }
 
-/** \brief Create state for the next segment.
- *  \retval NULL window has reached its capacity limit.
+/**
+ * @brief Create state for the next segment.
+ * @retval NULL window has reached its capacity limit.
  */
 static inline FetchSeg*
 FetchWindow_Append(FetchWindow* win)
@@ -67,8 +68,7 @@ FetchWindow_Append(FetchWindow* win)
   return seg;
 }
 
-/** \brief Move loPos and loSegNum after some segment states have been deleted.
- */
+/** @brief Move loPos and loSegNum after some segment states have been deleted. */
 static __rte_noinline void
 FetchWindow_Advance_(FetchWindow* win)
 {
@@ -82,8 +82,7 @@ FetchWindow_Advance_(FetchWindow* win)
   }
 }
 
-/** \brief Discard a segment's state.
- */
+/** @brief Discard a segment's state. */
 static inline void
 FetchWindow_Delete(FetchWindow* win, uint64_t segNum)
 {

@@ -1,7 +1,7 @@
 #ifndef NDN_DPDK_IFACE_INPUT_DEMUX_H
 #define NDN_DPDK_IFACE_INPUT_DEMUX_H
 
-/// \file
+/** @file */
 
 #include "../ndt/ndt.h"
 #include "faceid.h"
@@ -14,8 +14,7 @@ typedef struct InputDemuxDest
   uint64_t nDropped;
 } InputDemuxDest;
 
-/** \brief Input packet demuxer for a single packet type.
- */
+/** @brief Input packet demultiplexer for a single packet type. */
 typedef struct InputDemux InputDemux;
 
 typedef void (*InputDemux_DispatchFunc)(InputDemux* demux, Packet* npkt, const Name* name);

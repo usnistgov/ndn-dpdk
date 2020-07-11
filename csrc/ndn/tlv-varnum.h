@@ -1,12 +1,11 @@
 #ifndef NDN_DPDK_NDN_TLV_VARNUM_H
 #define NDN_DPDK_NDN_TLV_VARNUM_H
 
-/// \file
+/** @file */
 
 #include "common.h"
 
-/** \brief Compute size of a TLV-TYPE or TLV-LENGTH number.
- */
+/** @brief Compute size of a TLV-TYPE or TLV-LENGTH number. */
 static __rte_always_inline int
 SizeofVarNum(uint32_t n)
 {
@@ -19,9 +18,10 @@ SizeofVarNum(uint32_t n)
   return 5;
 }
 
-/** \brief Parse a TLV-TYPE or TLV-LENGTH number.
- *  \param[out] n the number.
- *  \return number of consumed bytes, or negative NdnError.
+/**
+ * @brief Parse a TLV-TYPE or TLV-LENGTH number.
+ * @param[out] n the number.
+ * @return number of consumed bytes, or negative NdnError.
  */
 static __rte_always_inline int
 DecodeVarNum(const uint8_t* input, uint32_t rem, uint32_t* n)
@@ -52,8 +52,9 @@ DecodeVarNum(const uint8_t* input, uint32_t rem, uint32_t* n)
   }
 }
 
-/** \brief Decode a TLV-TYPE or TLV-LENGTH number.
- *  \param[out] n the number.
+/**
+ * @brief Decode a TLV-TYPE or TLV-LENGTH number.
+ * @param[out] n the number.
  */
 static inline NdnError
 MbufLoc_ReadVarNum(MbufLoc* ml, uint32_t* n)
@@ -109,10 +110,11 @@ MbufLoc_ReadVarNum(MbufLoc* ml, uint32_t* n)
   return NdnErrOK;
 }
 
-/** \brief Encode a TLV-TYPE or TLV-LENGTH number.
- *  \param[out] room output buffer, must have \c SizeofVarNum(n) octets
- *  \param n the number
- *  \return room + SizeofVarNum(n)
+/**
+ * @brief Encode a TLV-TYPE or TLV-LENGTH number.
+ * @param[out] room output buffer, must have @c SizeofVarNum(n) octets
+ * @param n the number
+ * @return room + SizeofVarNum(n)
  */
 static __rte_always_inline uint8_t*
 EncodeVarNum(uint8_t* room, uint32_t n)

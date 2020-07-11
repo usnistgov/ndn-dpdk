@@ -1,7 +1,7 @@
 #ifndef NDN_DPDK_FIB_ENTRY_STRUCT_H
 #define NDN_DPDK_FIB_ENTRY_STRUCT_H
 
-/// \file
+/** @file */
 
 #include "../core/urcu.h"
 #include "../iface/faceid.h"
@@ -14,8 +14,7 @@
 
 typedef struct FibEntry FibEntry;
 
-/** \brief A FIB entry.
- */
+/** @brief A FIB entry. */
 struct FibEntry
 {
   struct cds_lfht_node lfhtnode;
@@ -29,13 +28,15 @@ struct FibEntry
 #else
   union
   {
-    /** \brief Forwarding strategy.
-     *  \pre maxDepth == 0
+    /**
+     * @brief Forwarding strategy.
+     * @pre maxDepth == 0
      */
     StrategyCode* strategy;
 
-    /** \brief Real FIB entry.
-     *  \pre maxDepth > 0
+    /**
+     * @brief Real FIB entry.
+     * @pre maxDepth > 0
      */
     FibEntry* realEntry;
   };
@@ -46,14 +47,15 @@ struct FibEntry
   uint8_t nComps;    ///< number of name components
   uint8_t nNexthops; ///< number of nexthops
 
-  /** \brief maximum potential LPM match relative to this entry
+  /**
+   * @brief Maximum potential LPM match relative to this entry.
    *
-   *  This field is known as '(MD - M)' in 2-stage LPM algorithm.
-   *  This number must be no less than the depth of all FIB entries whose name starts
-   *  with the name of this FIB entry, minus the depth of this entry.
-   *  'depth' means number of name components.
+   * This field is known as '(MD - M)' in 2-stage LPM algorithm.
+   * This number must be no less than the depth of all FIB entries whose name starts
+   * with the name of this FIB entry, minus the depth of this entry.
+   * 'depth' means number of name components.
    *
-   *  \pre nComps == startDepth
+   * @pre nComps == startDepth
    */
   uint8_t maxDepth;
 

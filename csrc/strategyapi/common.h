@@ -1,7 +1,7 @@
 #ifndef NDN_DPDK_STRATEGYAPI_COMMON_H
 #define NDN_DPDK_STRATEGYAPI_COMMON_H
 
-/// \file
+/** @file */
 
 #include "../core/common1.h"
 

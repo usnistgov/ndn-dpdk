@@ -1,13 +1,14 @@
 #ifndef NDN_DPDK_PINGCLIENT_TOKEN_H
 #define NDN_DPDK_PINGCLIENT_TOKEN_H
 
-/// \file
+/** @file */
 
 #include "../dpdk/tsc.h"
 
-/** \brief Precision of timing measurements.
+/**
+ * @brief Precision of timing measurements.
  *
- *  Duration unit is (TSC >> PING_TIMING_PRECISION).
+ * Duration unit is (TSC >> PING_TIMING_PRECISION).
  */
 #define PING_TIMING_PRECISION 16
 
@@ -25,12 +26,13 @@ PingTime_Now()
   return PingTime_FromTsc(rte_get_tsc_cycles());
 }
 
-/** \brief Construct a "PIT token" from ndnping client.
+/**
+ * @brief Construct a "PIT token" from ndnping client.
  *
- *  The token has 64 bits:
- *  \li 8 bits of patternId.
- *  \li 8 bits of run number, to distinguish packets from different runs.
- *  \li 48 bits of timestamp (see PING_TIMING_PRECISION).
+ * The token has 64 bits:
+ * @li 8 bits of patternId.
+ * @li 8 bits of run number, to distinguish packets from different runs.
+ * @li 48 bits of timestamp (see PING_TIMING_PRECISION).
  */
 static inline uint64_t
 PingToken_New(uint8_t patternId, uint8_t runNum, PingTime timestamp)

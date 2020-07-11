@@ -1,15 +1,14 @@
 #ifndef NDN_DPDK_FETCH_FETCHER_H
 #define NDN_DPDK_FETCH_FETCHER_H
 
-/// \file
+/** @file */
 
 #include "../dpdk/thread.h"
 #include "../iface/face.h"
 #include "../iface/pktqueue.h"
 #include "logic.h"
 
-/** \brief Fetch procedure that fetches from one prefix.
- */
+/** @brief Fetch procedure that fetches from one prefix. */
 typedef struct FetchProc
 {
   struct cds_hlist_node fthNode;
@@ -19,8 +18,7 @@ typedef struct FetchProc
   InterestTemplate tpl;
 } FetchProc;
 
-/** \brief Fetch thread that runs several fetch procedures.
- */
+/** @brief Fetch thread that runs several fetch procedures. */
 typedef struct FetchThread
 {
   struct rte_mempool* interestMp;

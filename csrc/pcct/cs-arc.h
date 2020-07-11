@@ -1,7 +1,7 @@
 #ifndef NDN_DPDK_PCCT_CS_ARC_H
 #define NDN_DPDK_PCCT_CS_ARC_H
 
-/// \file
+/** @file */
 
 #include "cs-list.h"
 

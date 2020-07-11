@@ -1,7 +1,7 @@
 #ifndef NDN_DPDK_PINGCLIENT_TX_H
 #define NDN_DPDK_PINGCLIENT_TX_H
 
-/// \file
+/** @file */
 
 #include "common.h"
 
@@ -10,8 +10,7 @@
 #include "../iface/face.h"
 #include "../vendor/pcg_basic.h"
 
-/** \brief Per-pattern information in ndnping client.
- */
+/** @brief Per-pattern information in ndnping client. */
 typedef struct PingClientTxPattern
 {
   uint64_t nInterests;
@@ -31,8 +30,7 @@ typedef struct PingClientTxPattern
 
 static_assert(offsetof(PingClientTxPattern, seqNum.compV) % sizeof(uint64_t) == 0, "");
 
-/** \brief ndnping client.
- */
+/** @brief ndnping client TX thread. */
 typedef struct PingClientTx
 {
   FaceID face;

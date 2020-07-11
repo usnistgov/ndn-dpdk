@@ -1,7 +1,7 @@
 #ifndef NDN_DPDK_DPDK_CRYPTODEV_H
 #define NDN_DPDK_DPDK_CRYPTODEV_H
 
-/// \file
+/** @file */
 
 #include "../core/common.h"
 #include <rte_cryptodev.h>

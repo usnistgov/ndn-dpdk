@@ -1,12 +1,11 @@
 #ifndef NDN_DPDK_PCCT_PIT_SUPPRESS_CONFIG_H
 #define NDN_DPDK_PCCT_PIT_SUPPRESS_CONFIG_H
 
-/// \file
+/** @file */
 
 #include "common.h"
 
-/** \brief Interest suppression configuration.
- */
+/** @brief Interest suppression configuration. */
 typedef struct PitSuppressConfig
 {
   TscDuration min;   ///< initial/minimum suppression duration
@@ -14,8 +13,9 @@ typedef struct PitSuppressConfig
   double multiplier; ///< multiplier on each transmission
 } PitSuppressConfig;
 
-/** \brief Compute next suppression duration.
- *  \param d current suppression duration, or 0 for initial.
+/**
+ * @brief Compute next suppression duration.
+ * @param d current suppression duration, or 0 for initial.
  */
 static inline TscDuration
 PitSuppressConfig_Compute(const PitSuppressConfig* cfg, TscDuration d)

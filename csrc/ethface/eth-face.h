@@ -1,7 +1,7 @@
 #ifndef NDN_DPDK_ETHFACE_ETH_FACE_H
 #define NDN_DPDK_ETHFACE_ETH_FACE_H
 
-/// \file
+/** @file */
 
 #include "../dpdk/ethdev.h"
 #include "../iface/face.h"
@@ -21,9 +21,10 @@ uint8_t
 EthFaceEtherHdr_Init(EthFaceEtherHdr* hdr, const struct rte_ether_addr* local,
                      const struct rte_ether_addr* remote, uint16_t vlan0, uint16_t vlan1);
 
-/** \brief Ethernet face private data.
+/**
+ * @brief Ethernet face private data.
  *
- *  This struct doubles as RxGroup when not using EthRxTable.
+ * This struct doubles as RxGroup when not using EthRxTable.
  */
 typedef struct EthFacePriv
 {
@@ -38,8 +39,7 @@ typedef struct EthFacePriv
 uint16_t
 EthFace_TxBurst(Face* face, struct rte_mbuf** pkts, uint16_t nPkts);
 
-/** \brief Setup rte_flow on EthDev for hardware dispatching.
- */
+/** @brief Setup rte_flow on EthDev for hardware dispatching. */
 struct rte_flow*
 EthFace_SetupFlow(EthFacePriv* priv, struct rte_flow_error* error);
 

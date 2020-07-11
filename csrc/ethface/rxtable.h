@@ -1,12 +1,11 @@
 #ifndef NDN_DPDK_ETHFACE_RXTABLE_H
 #define NDN_DPDK_ETHFACE_RXTABLE_H
 
-/// \file
+/** @file */
 
 #include "../iface/rxloop.h"
 
-/** \brief Table-based software RX dispatching.
- */
+/** @brief Table-based software RX dispatching. */
 typedef struct EthRxTable
 {
   RxGroup base;

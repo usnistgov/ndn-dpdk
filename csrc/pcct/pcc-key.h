@@ -1,12 +1,11 @@
 #ifndef NDN_DPDK_PCCT_PCC_KEY_H
 #define NDN_DPDK_PCCT_PCC_KEY_H
 
-/// \file
+/** @file */
 
 #include "common.h"
 
-/** \brief Hash key for searching among \c PccEntry.
- */
+/** @brief Hash key for searching among @c PccEntry . */
 typedef struct PccSearch
 {
   LName name;
@@ -15,8 +14,7 @@ typedef struct PccSearch
   uint64_t fhHash;
 } PccSearch;
 
-/** \brief Initialize PccSearch from name and Interest fwhint.
- */
+/** @brief Initialize PccSearch from name and Interest fwhint. */
 static inline void
 PccSearch_FromNames(PccSearch* search, const Name* name, const PInterest* interest)
 {
@@ -33,17 +31,17 @@ PccSearch_FromNames(PccSearch* search, const Name* name, const PInterest* intere
   }
 }
 
-/** \brief Compute hash value for use in PCCT.
- */
+/** @brief Compute hash value for use in PCCT. */
 static inline uint64_t
 PccSearch_ComputeHash(const PccSearch* search)
 {
   return search->nameHash ^ search->fhHash;
 }
 
-/** \brief Convert \p search to a string for debug purpose.
- *  \return A string from thread-local buffer.
- *  \warning Subsequent *ToDebugString calls on the same thread overwrite the buffer.
+/**
+ * @brief Convert @p search to a string for debug purpose.
+ * @return A string from thread-local buffer.
+ * @warning Subsequent *ToDebugString calls on the same thread overwrite the buffer.
  */
 const char*
 PccSearch_ToDebugString(const PccSearch* search);
@@ -54,8 +52,7 @@ PccSearch_ToDebugString(const PccSearch* search);
 
 typedef struct PccKeyExt PccKeyExt;
 
-/** \brief Hash key stored in \c PccEntry.
- */
+/** @brief Hash key stored in @c PccEntry . */
 typedef struct PccKey
 {
   PccKeyExt* nameExt;
@@ -89,8 +86,7 @@ PccKey_MatchNameOrFhV_(LName name, const uint8_t* value, uint16_t cap, const Pcc
   return true;
 }
 
-/** \brief Determine if \p key->name equals \p name.
- */
+/** @brief Determine if @c key->name equals @p name . */
 static inline bool
 PccKey_MatchName(const PccKey* key, LName name)
 {
@@ -98,8 +94,7 @@ PccKey_MatchName(const PccKey* key, LName name)
          PccKey_MatchNameOrFhV_(name, key->nameV, PCC_KEY_NAME_CAP, key->nameExt);
 }
 
-/** \brief Determine if \p key matches \p search.
- */
+/** @brief Determine if @p key matches @p search . */
 static inline bool
 PccKey_MatchSearchKey(const PccKey* key, const PccSearch* search)
 {
@@ -114,16 +109,14 @@ PccKey_MatchSearchKey(const PccKey* key, const PccSearch* search)
   (PccKey_CountExtensionsOn_(nameL - PCC_KEY_NAME_CAP) +                                           \
    PccKey_CountExtensionsOn_(fhL - PCC_KEY_FH_CAP))
 
-/** \brief Determine how many PccKeyExts are needed to copy \p search into PccKey.
- */
+/** @brief Determine how many PccKeyExts are needed to copy @p search into PccKey. */
 static inline int
 PccKey_CountExtensions(const PccSearch* search)
 {
   return PccKey_CountExtensions_(search->name.length, search->fh.length);
 }
 
-/** \brief Maximum return value of PccKey_CountExtensions.
- */
+/** @brief Maximum return value of PccKey_CountExtensions. */
 #define PCC_KEY_MAX_EXTS PccKey_CountExtensions_(NameMaxLength, NameMaxLength)
 
 static inline int
@@ -142,8 +135,7 @@ PccKey_CopyNameOrFhV_(LName name, uint8_t* value, uint16_t cap, PccKeyExt** next
   return nExts;
 }
 
-/** \brief Copy \c search into \p key.
- */
+/** @brief Copy @c search into @p key . */
 static inline void
 PccKey_CopyFromSearch(PccKey* key, const PccSearch* search, PccKeyExt* exts[], int nExts)
 {
@@ -155,8 +147,7 @@ PccKey_CopyFromSearch(PccKey* key, const PccSearch* search, PccKeyExt* exts[], i
   PccKey_CopyNameOrFhV_(search->fh, key->fhV, PCC_KEY_FH_CAP, &key->fhExt, &exts[nNameExts]);
 }
 
-/** \brief Move PccKeyExts into \p exts to prepare for removal.
- */
+/** @brief Move PccKeyExts into @p exts to prepare for removal. */
 static inline int
 PccKey_StripExts(PccKey* key, PccKeyExt* exts[PCC_KEY_MAX_EXTS])
 {

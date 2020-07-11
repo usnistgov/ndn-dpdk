@@ -1,13 +1,12 @@
 #ifndef NDN_DPDK_DPDK_ETHDEV_H
 #define NDN_DPDK_DPDK_ETHDEV_H
 
-/// \file
+/** @file */
 
 #include "../core/common.h"
 #include <rte_ethdev.h>
 
-/** \brief Retrieve whether an Ethernet device is DOWN.
- */
+/** @brief Retrieve whether an Ethernet device is DOWN. */
 static inline bool
 EthDev_IsDown(uint16_t port)
 {

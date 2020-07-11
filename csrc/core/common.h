@@ -1,12 +1,13 @@
-/** \mainpage
+/**
+ * @mainpage
  *
- *  https://github.com/usnistgov/ndn-dpdk
+ * https://github.com/usnistgov/ndn-dpdk
  */
 
 #ifndef NDN_DPDK_CORE_COMMON_H
 #define NDN_DPDK_CORE_COMMON_H
 
-/// \file
+/** @file */
 
 // These are available to all C code except strategy BPF programs.
 

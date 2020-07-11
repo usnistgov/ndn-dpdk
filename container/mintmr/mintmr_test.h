@@ -1,8 +1,6 @@
 #ifndef NDN_DPDK_CONTAINER_MINTMR_MINTMRTEST_MINTMRTEST_H
 #define NDN_DPDK_CONTAINER_MINTMR_MINTMRTEST_MINTMRTEST_H
 
-/// \file
-
 #include "../../csrc/mintmr/mintmr.h"
 
 typedef struct MinTmrTestRecord

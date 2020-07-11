@@ -1,7 +1,7 @@
 #ifndef NDN_DPDK_FETCH_RTTEST_H
 #define NDN_DPDK_FETCH_RTTEST_H
 
-/// \file
+/** @file */
 
 #include "../dpdk/tsc.h"
 
@@ -14,8 +14,9 @@
 extern TscDuration RTTEST_MINRTO;
 extern TscDuration RTTEST_MAXRTO;
 
-/** \brief RTT estimator.
- *  \sa https://tools.ietf.org/html/rfc6298
+/**
+ * @brief RTT estimator.
+ * @sa https://tools.ietf.org/html/rfc6298
  */
 typedef struct RttEst
 {
@@ -29,8 +30,9 @@ typedef struct RttEst
 void
 RttEst_Init(RttEst* rtte);
 
-/** \brief Add RTT sample.
- *  \pre packet has not been retransmitted.
+/**
+ * @brief Add RTT sample.
+ * @pre packet has not been retransmitted.
  */
 inline void
 RttEst_Push(RttEst* rtte, TscTime now, TscDuration rtt)
@@ -53,8 +55,7 @@ RttEst_Push(RttEst* rtte, TscTime now, TscDuration rtt)
   rtte->next_ = now + rtte->sRtt;
 }
 
-/** \brief Back off the RTO timer.
- */
+/** @brief Back off the RTO timer. */
 inline void
 RttEst_Backoff(RttEst* rtte)
 {

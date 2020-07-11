@@ -1,14 +1,13 @@
 #ifndef NDN_DPDK_MINTMR_MINTMR_H
 #define NDN_DPDK_MINTMR_MINTMR_H
 
-/// \file
+/** @file */
 
 #include "../dpdk/tsc.h"
 
 typedef struct MinTmr MinTmr;
 
-/** \brief Timer on minute scheduler.
- */
+/** @brief Timer on minute scheduler. */
 struct MinTmr
 {
   MinTmr* prev;
@@ -17,8 +16,7 @@ struct MinTmr
 
 typedef void (*MinTmrCallback)(MinTmr* tmr, void* cbarg);
 
-/** \brief Minute scheduler.
- */
+/** @brief Minute scheduler. */
 typedef struct MinSched
 {
   TscDuration interval;
@@ -32,24 +30,23 @@ typedef struct MinSched
   MinTmr slot[0];
 } MinSched;
 
-/** \brief Create a minute scheduler.
- *  \param nSlotBits set the number of time slots to (1 << nSlotBits)
- *  \param interval duration between executing slots
- *  \param cb callback function when a timer expires
+/**
+ * @brief Create a minute scheduler.
+ * @param nSlotBits set the number of time slots to (1 << nSlotBits)
+ * @param interval duration between executing slots
+ * @param cb callback function when a timer expires
  */
 MinSched*
 MinSched_New(int nSlotBits, TscDuration interval, MinTmrCallback cb, void* cbarg);
 
-/** \brief Destroy a minute scheduler.
- */
+/** @brief Destroy a minute scheduler. */
 void
 MinSched_Close(MinSched* sched);
 
 void
 MinSched_Trigger_(MinSched* sched, TscTime now);
 
-/** \brief Trigger callback function on expired timers.
- */
+/** @brief Trigger callback function on expired timers. */
 static __rte_always_inline void
 MinSched_Trigger(MinSched* sched)
 {
@@ -60,16 +57,14 @@ MinSched_Trigger(MinSched* sched)
   MinSched_Trigger_(sched, now);
 }
 
-/** \brief Initialize a timer.
- */
+/** @brief Initialize a timer. */
 static __rte_always_inline void
 MinTmr_Init(MinTmr* tmr)
 {
   tmr->next = tmr->prev = NULL;
 }
 
-/** \brief Calculate the maximum delay allowed in \c MinTmr_After.
- */
+/** @brief Calculate the maximum delay allowed in @c MinTmr_After. */
 static inline TscDuration
 MinSched_GetMaxDelay(MinSched* sched)
 {
@@ -79,8 +74,7 @@ MinSched_GetMaxDelay(MinSched* sched)
 void
 MinTmr_Cancel_(MinTmr* tmr);
 
-/** \brief Cancel a timer.
- */
+/** @brief Cancel a timer. */
 static __rte_always_inline void
 MinTmr_Cancel(MinTmr* tmr)
 {
@@ -90,16 +84,16 @@ MinTmr_Cancel(MinTmr* tmr)
   MinTmr_Cancel_(tmr);
 }
 
-/** \brief Schedule a timer to expire \p after since current time.
- *  \param tmr the timer; any previous setting will be cancelled.
- *  \param after expiration delay; negative value is changed to zero
- *  \retval false \p after >= MinSched_GetMaxDelay(sched)
+/**
+ * @brief Schedule a timer to expire @p after since current time.
+ * @param tmr the timer; any previous setting will be cancelled.
+ * @param after expiration delay; negative value is changed to zero
+ * @retval false @p after >= MinSched_GetMaxDelay(sched)
  */
 bool
 MinTmr_After(MinTmr* tmr, TscDuration after, MinSched* sched);
 
-/** \brief Schedule a timer to expire at \p at.
- */
+/** @brief Schedule a timer to expire at @p at. */
 static inline bool
 MinTmr_At(MinTmr* tmr, TscTime at, MinSched* sched)
 {

@@ -1,7 +1,7 @@
 #ifndef NDN_DPDK_PINGSERVER_SERVER_H
 #define NDN_DPDK_PINGSERVER_SERVER_H
 
-/// \file
+/** @file */
 
 #include "../dpdk/thread.h"
 #include "../iface/face.h"
@@ -29,8 +29,7 @@ typedef struct PingServerReply
   uint8_t nackReason;
 } PingServerReply;
 
-/** \brief Per-prefix information in ndnping server.
- */
+/** @brief Per-prefix information in ndnping server. */
 typedef struct PingServerPattern
 {
   LName prefix;
@@ -41,8 +40,7 @@ typedef struct PingServerPattern
   uint8_t prefixBuffer[NameMaxLength];
 } PingServerPattern;
 
-/** \brief ndnping server.
- */
+/** @brief ndnping server. */
 typedef struct PingServer
 {
   PktQueue rxQueue;

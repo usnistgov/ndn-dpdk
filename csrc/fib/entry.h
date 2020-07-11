@@ -1,7 +1,7 @@
 #ifndef NDN_DPDK_FIB_ENTRY_H
 #define NDN_DPDK_FIB_ENTRY_H
 
-/// \file
+/** @file */
 
 #include "entry-struct.h"
 
@@ -21,17 +21,19 @@ FibEntry_GetReal(FibEntry* entry)
   return entry->realEntry;
 }
 
-/** \brief A filter over FIB nexthops.
+/**
+ * @brief A filter over FIB nexthops.
  *
- *  The zero value permits all nexthops in the FIB entry.
+ * The zero value permits all nexthops in the FIB entry.
  */
 typedef uint32_t FibNexthopFilter;
 
 static_assert(CHAR_BIT * sizeof(FibNexthopFilter) >= FIB_ENTRY_MAX_NEXTHOPS, "");
 
-/** \brief Reject the given nexthop.
- *  \param[inout] filter original and updated filter.
- *  \return how many nexthops pass the filter after the update.
+/**
+ * @brief Reject the given nexthop.
+ * @param[inout] filter original and updated filter.
+ * @return how many nexthops pass the filter after the update.
  */
 static inline int
 FibNexthopFilter_Reject(FibNexthopFilter* filter, const FibEntry* entry, FaceID nh)

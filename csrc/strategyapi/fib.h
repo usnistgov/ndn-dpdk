@@ -1,7 +1,7 @@
 #ifndef NDN_DPDK_STRATEGYAPI_FIB_H
 #define NDN_DPDK_STRATEGYAPI_FIB_H
 
-/// \file
+/** @file */
 
 #include "common.h"
 
@@ -26,17 +26,18 @@ typedef struct SgFibEntry
 
 typedef uint32_t SgFibNexthopFilter;
 
-/** \brief Iterator of FIB nexthops passing a filter.
+/**
+ * @brief Iterator of FIB nexthops passing a filter.
  *
- *  \code
- *  SgFibNexthopIt it;
- *  for (SgFibNexthopIt_Init(&it, entry, filter); // or SgFibNexthopIt_Init2(&it, ctx)
- *       SgFibNexthopIt_Valid(&it);
- *       SgFibNexthopIt_Next(&it)) {
- *    int index = it.i;
- *    FaceID nexthop = it.nh;
- *  }
- *  \endcode
+ * @code
+ * SgFibNexthopIt it;
+ * for (SgFibNexthopIt_Init(&it, entry, filter); // or SgFibNexthopIt_Init2(&it, ctx)
+ *      SgFibNexthopIt_Valid(&it);
+ *      SgFibNexthopIt_Next(&it)) {
+ *   int index = it.i;
+ *   FaceID nexthop = it.nh;
+ * }
+ * @endcode
  */
 typedef struct SgFibNexthopIt
 {

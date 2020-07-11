@@ -1,20 +1,18 @@
 #ifndef NDN_DPDK_NDT_NDT_H
 #define NDN_DPDK_NDT_NDT_H
 
-/// \file
+/** @file */
 
 #include "../ndn/name.h"
 
-/** \brief Per-thread counters for NDT.
- */
+/** @brief Per-thread counters for NDT. */
 typedef struct NdtThread
 {
   uint64_t nLookups;
   uint16_t nHits[0];
 } NdtThread;
 
-/** \brief The Name Dispatch Table (NDT).
- */
+/** @brief The Name Dispatch Table (NDT). */
 typedef struct Ndt
 {
   _Atomic uint8_t* table;
@@ -25,21 +23,21 @@ typedef struct Ndt
   uint8_t nThreads;
 } Ndt;
 
-/** \brief Initialize NDT.
- *  \param prefixLen prefix length for computing hash.
- *  \param indexBits how many bits to truncate the hash into table entry index.
- *  \param sampleFreq sample once every 2^sampleFreq lookups.
- *  \param nThreads number of lookup threads.
- *  \param sockets array of \p nThreads elements indicating NUMA socket of each lookup thread;
- *                 sockets[0] will be used for the table.
- *  \return array of threads
+/**
+ * @brief Initialize NDT.
+ * @param prefixLen prefix length for computing hash.
+ * @param indexBits how many bits to truncate the hash into table entry index.
+ * @param sampleFreq sample once every 2^sampleFreq lookups.
+ * @param nThreads number of lookup threads.
+ * @param sockets array of @p nThreads elements indicating NUMA socket of each lookup thread;
+ *                sockets[0] will be used for the table.
+ * @return array of threads
  */
 NdtThread**
 Ndt_Init(Ndt* ndt, uint16_t prefixLen, uint8_t indexBits, uint8_t sampleFreq, uint8_t nThreads,
          const unsigned* sockets);
 
-/** \brief Access NdtThread struct.
- */
+/** @brief Access NdtThread struct. */
 static inline NdtThread*
 Ndt_GetThread(const Ndt* ndt, uint8_t id)
 {
@@ -47,23 +45,22 @@ Ndt_GetThread(const Ndt* ndt, uint8_t id)
   return ndt->threads[id];
 }
 
-/** \brief Update NDT.
- *  \param index table index.
- *  \param value new PIT partition number in the table entry.
+/**
+ * @brief Update NDT.
+ * @param index table index.
+ * @param value new PIT partition number in the table entry.
  */
 void
 Ndt_Update(Ndt* ndt, uint64_t index, uint8_t value);
 
-/** \brief Read NDT element.
- */
+/** @brief Read NDT element. */
 static inline uint8_t
 Ndt_ReadElement(const Ndt* ndt, uint64_t index)
 {
   return atomic_load_explicit(&ndt->table[index], memory_order_relaxed);
 }
 
-/** \brief Query NDT without counting.
- */
+/** @brief Query NDT without counting. */
 static inline uint8_t
 Ndt_Lookup(const Ndt* ndt, const PName* name, const uint8_t* nameV, uint64_t* index)
 {
@@ -85,8 +82,7 @@ Ndtt_Lookup_(const Ndt* ndt, NdtThread* ndtt, const PName* name, const uint8_t* 
   return value;
 }
 
-/** \brief Query NDT with counting.
- */
+/** @brief Query NDT with counting. */
 static inline uint8_t
 Ndtt_Lookup(const Ndt* ndt, NdtThread* ndtt, const Name* name)
 {

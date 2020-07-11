@@ -1,7 +1,7 @@
 #ifndef NDN_DPDK_STRATEGYAPI_PIT_H
 #define NDN_DPDK_STRATEGYAPI_PIT_H
 
-/// \file
+/** @file */
 
 #include "common.h"
 

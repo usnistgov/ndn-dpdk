@@ -1,7 +1,8 @@
-/** \file
- *  The fast route strategy multicasts the first Interest, observes which
- *  nexthop replies first, and keeps using it. It then periodically probes
- *  an unselected nexthop, and switches to it if it is faster.
+/** 
+ * @file
+ * The fast route strategy multicasts the first Interest, observes which
+ * nexthop replies first, and keeps using it. It then periodically probes
+ * an unselected nexthop, and switches to it if it is faster.
  */
 #include "api.h"
 

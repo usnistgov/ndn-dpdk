@@ -1,12 +1,13 @@
 #ifndef NDN_DPDK_NDN_NNI_H
 #define NDN_DPDK_NDN_NNI_H
 
-/// \file
+/** @file */
 
 #include "common.h"
 
-/** \brief Parse a NonNegativeInteger.
- *  \param[out] n the number.
+/**
+ * @brief Parse a NonNegativeInteger.
+ * @param[out] n the number.
  */
 static __rte_always_inline NdnError
 DecodeNni(uint8_t length, const uint8_t* value, uint64_t* n)
@@ -30,10 +31,11 @@ DecodeNni(uint8_t length, const uint8_t* value, uint64_t* n)
   return NdnErrOK;
 }
 
-/** \brief Encode a NonNegativeInteger in minimum size.
- *  \param[out] room output buffer, must have 8 octets
- *  \param n the number
- *  \return actual length
+/**
+ * @brief Encode a NonNegativeInteger in minimum size.
+ * @param[out] room output buffer, must have 8 octets
+ * @param n the number
+ * @return actual length
  */
 static __rte_always_inline int
 EncodeNni(uint8_t* room, uint64_t n)

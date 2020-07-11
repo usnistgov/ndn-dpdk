@@ -21,8 +21,7 @@ CsEraseBatch_Append_(PcctEraseBatch* peb, CsEntry* entry, const char* isDirectDb
   }
 }
 
-/** \brief Erase an indirect CS entry.
- */
+/** @brief Erase an indirect CS entry. */
 static void
 CsEraseBatch_AddIndirect(PcctEraseBatch* peb, CsEntry* entry)
 {
@@ -32,8 +31,7 @@ CsEraseBatch_AddIndirect(PcctEraseBatch* peb, CsEntry* entry)
   CsEraseBatch_Append_(peb, entry, "indirect");
 }
 
-/** \brief Erase a direct CS entry; delist and erase indirect entries.
- */
+/** @brief Erase a direct CS entry; delist and erase indirect entries. */
 static void
 CsEraseBatch_AddDirect(PcctEraseBatch* peb, CsEntry* entry)
 {
@@ -49,8 +47,7 @@ CsEraseBatch_AddDirect(PcctEraseBatch* peb, CsEntry* entry)
   CsEraseBatch_Append_(peb, entry, "direct");
 }
 
-/** \brief Erase a CS entry including dependents.
- */
+/** @brief Erase a CS entry including dependents. */
 static void
 Cs_Erase_(Cs* cs, CsEntry* entry)
 {
@@ -141,8 +138,7 @@ Cs_CountEntries(const Cs* cs, CsListId cslId)
   return CsPriv_GetList(csp, cslId)->count;
 }
 
-/** \brief Add or refresh a direct entry for \p npkt in \p pccEntry.
- */
+/** @brief Add or refresh a direct entry for @p npkt in @p pccEntry . */
 static CsEntry*
 Cs_PutDirect(Cs* cs, Packet* npkt, PccEntry* pccEntry)
 {
@@ -186,8 +182,7 @@ Cs_PutDirect(Cs* cs, Packet* npkt, PccEntry* pccEntry)
   return entry;
 }
 
-/** \brief Insert a direct entry for \p npkt that was retrieved by \p interest.
- */
+/** @brief Insert a direct entry for @p npkt that was retrieved by @p interest . */
 static CsEntry*
 Cs_InsertDirect(Cs* cs, Packet* npkt, PInterest* interest)
 {
@@ -210,8 +205,7 @@ Cs_InsertDirect(Cs* cs, Packet* npkt, PInterest* interest)
   return Cs_PutDirect(cs, npkt, pccEntry);
 }
 
-/** \brief Add or refresh an indirect entry in \p pccEntry and associate with \p direct.
- */
+/** @brief Add or refresh an indirect entry in @p pccEntry and associate with @p direct . */
 static bool
 Cs_PutIndirect(Cs* cs, CsEntry* direct, PccEntry* pccEntry)
 {

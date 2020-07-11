@@ -1,13 +1,12 @@
 #ifndef NDN_DPDK_IFACE_TXLOOP_H
 #define NDN_DPDK_IFACE_TXLOOP_H
 
-/// \file
+/** @file */
 
 #include "../dpdk/thread.h"
 #include "face.h"
 
-/** \brief TX loop.
- */
+/** @brief TX loop thread. */
 typedef struct TxLoop
 {
   struct cds_hlist_head head;

@@ -1,7 +1,7 @@
 #ifndef NDN_DPDK_PCCT_CS_ENTRY_H
 #define NDN_DPDK_PCCT_CS_ENTRY_H
 
-/// \file
+/** @file */
 
 #include "cs-struct.h"
 
@@ -9,9 +9,10 @@
 
 typedef struct CsEntry CsEntry;
 
-/** \brief A CS entry.
+/**
+ * @brief A CS entry.
  *
- *  This struct is enclosed in \c PccEntry.
+ * This struct is enclosed in @c PccEntry.
  */
 struct CsEntry
 {
@@ -20,37 +21,42 @@ struct CsEntry
 
   union
   {
-    /** \brief The Data packet.
-     *  \pre Valid if entry is direct.
+    /**
+     * @brief The Data packet.
+     * @pre Valid if entry is direct.
      */
     Packet* data;
 
-    /** \brief The direct entry.
-     *  \pre Valid if entry is indirect.
+    /**
+     * @brief The direct entry.
+     * @pre Valid if entry is indirect.
      */
     CsEntry* direct;
   };
 
-  /** \brief When Data becomes non-fresh.
-   *  \pre Valid if entry is direct.
+  /**
+   * @brief When Data becomes non-fresh.
+   * @pre Valid if entry is direct.
    */
   TscTime freshUntil;
 
-  /** \brief Count of indirect entries depending on this direct entry,
-   *         or -1 to indicate this entry is indirect.
+  /**
+   * @brief Count of indirect entries depending on this direct entry,
+   *        or -1 to indicate this entry is indirect.
    *
-   *  A 'direct' CS entry sits in a \c PccEntry of the enclosed Data packet's
-   *  exact name. When a Data packet is retrieved with an Interest of a prefix
-   *  name, an additional 'indirect' CS entry is also placed in a \c PccEntry
-   *  of the prefix name, so that future Interests carrying either the exact
-   *  name or the same prefix name could find the CS entry.
+   * A 'direct' CS entry sits in a @c PccEntry of the enclosed Data packet's
+   * exact name. When a Data packet is retrieved with an Interest of a prefix
+   * name, an additional 'indirect' CS entry is also placed in a @c PccEntry
+   * of the prefix name, so that future Interests carrying either the exact
+   * name or the same prefix name could find the CS entry.
    */
   int8_t nIndirects;
 
   CsArcListId arcList : 8;
 
-  /** \brief Associated indirect entries.
-   *  \pre Valid if entry is indirect.
+  /**
+   * @brief Associated indirect entries.
+   * @pre Valid if entry is indirect.
    */
   CsEntry* indirect[CS_ENTRY_MAX_INDIRECTS];
 };
@@ -74,16 +80,14 @@ CsEntry_GetData(CsEntry* entry)
   return CsEntry_GetDirect(entry)->data;
 }
 
-/** \brief Determine if \p entry is fresh.
- */
+/** @brief Determine if @p entry is fresh. */
 static inline bool
 CsEntry_IsFresh(CsEntry* entry, TscTime now)
 {
   return CsEntry_GetDirect(entry)->freshUntil > now;
 }
 
-/** \brief Release enclosed Data packet on a direct entry.
- */
+/** @brief Release enclosed Data packet on a direct entry. */
 static inline void
 CsEntry_ClearData(CsEntry* entry)
 {
@@ -94,8 +98,7 @@ CsEntry_ClearData(CsEntry* entry)
   }
 }
 
-/** \brief Associate an indirect entry.
- */
+/** @brief Associate an indirect entry. */
 static inline bool
 CsEntry_Assoc(CsEntry* indirect, CsEntry* direct)
 {
@@ -112,8 +115,7 @@ CsEntry_Assoc(CsEntry* indirect, CsEntry* direct)
   return true;
 }
 
-/** \brief Disassociate an indirect entry.
- */
+/** @brief Disassociate an indirect entry. */
 static inline void
 CsEntry_Disassoc(CsEntry* indirect)
 {
@@ -135,8 +137,7 @@ CsEntry_Disassoc(CsEntry* indirect)
   indirect->nIndirects = 0;
 }
 
-/** \brief Clear an entry and prepare it for refresh.
- */
+/** @brief Clear an entry and prepare it for refresh. */
 static inline void
 CsEntry_Clear(CsEntry* entry)
 {
@@ -147,8 +148,9 @@ CsEntry_Clear(CsEntry* entry)
   }
 }
 
-/** \brief Finalize an entry.
- *  \pre If entry is direct, no indirect entry depends on it.
+/**
+ * @brief Finalize an entry.
+ * @pre If entry is direct, no indirect entry depends on it.
  */
 static inline void
 CsEntry_Finalize(CsEntry* entry)

@@ -1,7 +1,7 @@
 #ifndef NDN_DPDK_FWDP_TOKEN_H
 #define NDN_DPDK_FWDP_TOKEN_H
 
-/// \file
+/** @file */
 
 #include "../core/common.h"
 

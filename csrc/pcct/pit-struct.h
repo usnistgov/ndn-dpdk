@@ -1,13 +1,14 @@
 #ifndef NDN_DPDK_PCCT_PIT_STRUCT_H
 #define NDN_DPDK_PCCT_PIT_STRUCT_H
 
-/// \file
+/** @file */
 
 #include "common.h"
 
-/** \brief The Pending Interest Table (PIT).
+/**
+ * @brief The Pending Interest Table (PIT).
  *
- *  Pit* is Pcct*.
+ * Pit* is Pcct*.
  */
 typedef struct Pit
 {
@@ -15,12 +16,10 @@ typedef struct Pit
 
 typedef struct PitEntry PitEntry;
 
-/** \brief Callback to handle strategy timer triggers.
- */
+/** @brief Callback to handle strategy timer triggers. */
 typedef void (*Pit_SgTimerCb)(Pit* pit, PitEntry* entry, void* arg);
 
-/** \brief PCCT private data for PIT.
- */
+/** @brief PCCT private data for PIT. */
 typedef struct PitPriv
 {
   uint64_t nEntries; ///< current number of entries

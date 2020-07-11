@@ -1,15 +1,14 @@
 #ifndef NDN_DPDK_STRATEGYCODE_STRATEGY_CODE_H
 #define NDN_DPDK_STRATEGYCODE_STRATEGY_CODE_H
 
-/// \file
+/** @file */
 
 #include "../core/common.h"
 #include <rte_bpf.h>
 
 typedef uint64_t (*StrategyCodeFunc)(void*, size_t);
 
-/** \brief BPF program of a forwarding strategy.
- */
+/** @brief BPF program of a forwarding strategy. */
 typedef struct StrategyCode
 {
   char* name;           ///< descriptive name
@@ -19,9 +18,10 @@ typedef struct StrategyCode
   atomic_int nRefs;     ///< how many FibEntry* references this
 } StrategyCode;
 
-/** \brief Execute strategy BPF program.
- *  \param arg argument to BPF program.
- *  \param sizeofArg sizeof(*arg)
+/**
+ * @brief Execute strategy BPF program.
+ * @param arg argument to BPF program.
+ * @param sizeofArg sizeof(*arg)
  */
 static inline uint64_t
 StrategyCode_Execute(StrategyCode* sc, void* arg, size_t sizeofArg)

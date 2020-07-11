@@ -1,7 +1,7 @@
 #ifndef NDN_DPDK_DPDK_SPDK_THREAD_H
 #define NDN_DPDK_DPDK_SPDK_THREAD_H
 
-/// \file
+/** @file */
 
 #include "thread.h"
 #include <spdk/thread.h>

@@ -1,7 +1,7 @@
 #ifndef NDN_DPDK_PINGCLIENT_RX_H
 #define NDN_DPDK_PINGCLIENT_RX_H
 
-/// \file
+/** @file */
 
 #include "common.h"
 
@@ -9,8 +9,7 @@
 #include "../dpdk/thread.h"
 #include "../iface/pktqueue.h"
 
-/** \brief Per-pattern information in ndnping client.
- */
+/** @brief Per-pattern information in ndnping client. */
 typedef struct PingClientRxPattern
 {
   uint64_t nData;
@@ -19,8 +18,7 @@ typedef struct PingClientRxPattern
   uint16_t prefixLen;
 } PingClientRxPattern;
 
-/** \brief ndnping client.
- */
+/** @brief ndnping client RX thread. */
 typedef struct PingClientRx
 {
   PktQueue rxQueue;

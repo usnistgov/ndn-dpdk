@@ -1,12 +1,13 @@
 #ifndef NDN_DPDK_FETCH_TCPCUBIC_H
 #define NDN_DPDK_FETCH_TCPCUBIC_H
 
-/// \file
+/** @file */
 
 #include "../dpdk/tsc.h"
 
-/** \brief TCP CUBIC algorithm.
- *  \sa https://tools.ietf.org/html/rfc8312
+/**
+ * @brief TCP CUBIC algorithm.
+ * @sa https://tools.ietf.org/html/rfc8312
  */
 typedef struct TcpCubic
 {
@@ -26,14 +27,14 @@ TcpCubic_GetCwnd(TcpCubic* ca)
   return RTE_MAX((uint32_t)ca->cwnd, 1);
 }
 
-/** \brief Window increase.
- */
+/** @brief Window increase. */
 void
 TcpCubic_Increase(TcpCubic* ca, TscTime now, double sRtt);
 
-/** \brief Window decrease.
+/**
+ * @brief Window decrease.
  *
- *  Caller must ensure this is invoked no more than once per RTT.
+ * Caller must ensure this is invoked no more than once per RTT.
  */
 void
 TcpCubic_Decrease(TcpCubic* ca, TscTime now);

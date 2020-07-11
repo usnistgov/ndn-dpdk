@@ -4,5 +4,5 @@ AllowShortFunctionsOnASingleLine: Empty
 BinPackArguments: true
 BinPackParameters: true
 ColumnLimit: 100
-ReflowComments: false
+ReflowComments: true
 SortIncludes: true

@@ -1,7 +1,7 @@
 #ifndef NDN_DPDK_PCCT_COMMON_H
 #define NDN_DPDK_PCCT_COMMON_H
 
-/// \file
+/** @file */
 
 #include "../iface/faceid.h"
 #include "../mintmr/mintmr.h"

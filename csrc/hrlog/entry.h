@@ -1,12 +1,11 @@
 #ifndef NDN_DPDK_HRLOG_ENTRY_H
 #define NDN_DPDK_HRLOG_ENTRY_H
 
-/// \file
+/** @file */
 
 #include "../core/common.h"
 
-/** \brief Action identifier in high resolution log.
- */
+/** @brief Action identifier in high resolution log. */
 typedef enum HrlogAction
 {
   HRLOG_OI = 1, // Interest TX since RX
@@ -14,8 +13,7 @@ typedef enum HrlogAction
   HRLOG_OC = 4, // cached Data TX since Interest RX
 } HrlogAction;
 
-/** \brief A high resolution log entry.
- */
+/** @brief A high resolution log entry. */
 typedef uint64_t HrlogEntry;
 
 static inline HrlogEntry
@@ -25,8 +23,7 @@ HrlogEntry_New(HrlogAction act, uint64_t value)
   return (value << 16) | ((uint64_t)lcore << 8) | ((uint8_t)act);
 }
 
-/** \brief A high resolution log file header.
- */
+/** @brief A high resolution log file header. */
 typedef struct HrlogHeader
 {
   uint32_t magic;

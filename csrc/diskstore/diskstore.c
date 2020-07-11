@@ -17,8 +17,7 @@ DiskStore_ComputeBlockCount(DiskStore* store, Packet* npkt)
   return pktLen / DISK_STORE_BLOCK_SIZE + (int)(pktLen % DISK_STORE_BLOCK_SIZE > 0);
 }
 
-/** \brief Parameters related to PutData, stored over PData.digest field.
- */
+/** @brief Parameters related to PutData, stored over PData.digest field. */
 typedef struct DiskStore_PutDataRequest
 {
   DiskStore* store;
@@ -80,8 +79,7 @@ DiskStore_PutData(DiskStore* store, uint64_t slotId, Packet* npkt)
   spdk_thread_send_msg(store->th, DiskStore_PutData_Begin, npkt);
 }
 
-/** \brief Parameters related to GetData, stored in mbuf private area.
- */
+/** @brief Parameters related to GetData, stored in mbuf private area. */
 typedef struct DiskStore_GetDataRequest
 {
   DiskStore* store;

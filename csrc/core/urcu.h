@@ -1,7 +1,7 @@
 #ifndef NDN_DPDK_CORE_URCU_H
 #define NDN_DPDK_CORE_URCU_H
 
-/// \file
+/** @file */
 
 #define URCU_INLINE_SMALL_FUNCTIONS
 #include <urcu-qsbr.h>

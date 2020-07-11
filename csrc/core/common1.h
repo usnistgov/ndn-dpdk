@@ -1,7 +1,7 @@
 #ifndef NDN_DPDK_CORE_COMMON1_H
 #define NDN_DPDK_CORE_COMMON1_H
 
-/// \file
+/** @file */
 
 // These are available to all C code including strategy BPF programs.
 

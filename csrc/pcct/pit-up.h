@@ -1,7 +1,7 @@
 #ifndef NDN_DPDK_PCCT_PIT_UP_H
 #define NDN_DPDK_PCCT_PIT_UP_H
 
-/// \file
+/** @file */
 
 #include "pit-suppress-config.h"
 
@@ -9,8 +9,7 @@ typedef struct PitEntry PitEntry;
 
 #define PIT_UP_MAX_REJ_NONCES 6
 
-/** \brief A PIT upstream record.
- */
+/** @brief A PIT upstream record. */
 typedef struct PitUp
 {
   uint32_t nonce;   ///< nonce on last sent Interest
@@ -41,7 +40,8 @@ PitUp_Copy(PitUp* dst, PitUp* src)
   src->face = 0;
 }
 
-/** \brief Determine if forwarding should be suppressed.
+/**
+ * @brief Determine if forwarding should be suppressed.
  */
 static inline bool
 PitUp_ShouldSuppress(PitUp* up, TscTime now)
@@ -49,7 +49,8 @@ PitUp_ShouldSuppress(PitUp* up, TscTime now)
   return up->lastTx + up->suppress > now;
 }
 
-/** \brief Record that \p nonce is rejected by upstream.
+/**
+ * @brief Record that @p nonce is rejected by upstream.
  */
 static inline void
 PitUp_AddRejectedNonce(PitUp* up, uint32_t nonce)
@@ -60,18 +61,20 @@ PitUp_AddRejectedNonce(PitUp* up, uint32_t nonce)
   up->rejectedNonces[0] = nonce;
 }
 
-/** \brief Choose a nonce for TX Interest.
- *  \param[inout] nonce initial suggested nonce suggestion, usually from RX
- *                      Interest or Nack; final nonce selection.
- *  \retval true a valid nonce is found.
- *  \retval false all DN nonces have been rejected.
+/**
+ * @brief Choose a nonce for TX Interest.
+ * @param[inout] nonce initial suggested nonce suggestion, usually from RX
+ *                     Interest or Nack; final nonce selection.
+ * @retval true a valid nonce is found.
+ * @retval false all DN nonces have been rejected.
  */
 bool
 PitUp_ChooseNonce(PitUp* up, PitEntry* entry, TscTime now, uint32_t* nonce);
 
-/** \brief Record Interest transmission.
- *  \param now time used for calculating InterestLifetime.
- *  \param nonce nonce of TX Interest.
+/**
+ * @brief Record Interest transmission.
+ * @param now time used for calculating InterestLifetime.
+ * @param nonce nonce of TX Interest.
  */
 void
 PitUp_RecordTx(PitUp* up, PitEntry* entry, TscTime now, uint32_t nonce,

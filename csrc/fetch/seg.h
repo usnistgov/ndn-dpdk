@@ -1,14 +1,13 @@
 #ifndef NDN_DPDK_FETCH_SEG_H
 #define NDN_DPDK_FETCH_SEG_H
 
-/// \file
+/** @file */
 
 #include "../mintmr/mintmr.h"
 
 typedef TAILQ_ENTRY(FetchSeg) FetchRetxNode;
 
-/** \brief Per-segment state.
- */
+/** @brief Per-segment state. */
 typedef struct FetchSeg
 {
   uint64_t segNum;     ///< segment number

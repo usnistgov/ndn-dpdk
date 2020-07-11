@@ -1,5 +1,6 @@
-/** \file
- *  The reject strategy responds a Nack against every Interest.
+/** 
+ * @file
+ * The reject strategy responds a Nack against every Interest.
  */
 #include "api.h"
 

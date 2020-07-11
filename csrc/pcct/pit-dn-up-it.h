@@ -1,7 +1,7 @@
 #ifndef NDN_DPDK_PCCT_PIT_DN_UP_IT_H
 #define NDN_DPDK_PCCT_PIT_DN_UP_IT_H
 
-/// \file
+/** @file */
 
 #include "pit-entry.h"
 
@@ -59,15 +59,16 @@ PitDnUpIt_Next_(PitDnUpIt_* it, int maxInExt, size_t offsetInExt)
 bool
 PitDnUpIt_Extend_(PitDnUpIt_* it, Pit* pit, int maxInExt, size_t offsetInExt);
 
-/** \brief Iterator of DN slots in PIT entry.
+/**
+ * @brief Iterator of DN slots in PIT entry.
  *
- *  \code
- *  PitDnIt it;
- *  for (PitDnIt_Init(&it, entry); PitDnIt_Valid(&it); PitDnIt_Next(&it)) {
- *    int index = it.index;
- *    PitDn* dn = it.dn;
- *  }
- *  \endcode
+ * @code
+ * PitDnIt it;
+ * for (PitDnIt_Init(&it, entry); PitDnIt_Valid(&it); PitDnIt_Next(&it)) {
+ *   int index = it.index;
+ *   PitDn* dn = it.dn;
+ * }
+ * @endcode
  */
 typedef PitDnUpIt_ PitDnIt;
 
@@ -91,9 +92,10 @@ PitDnIt_Next(PitDnIt* it)
   it->dn = &it->dns[it->i];
 }
 
-/** \brief Add an extension for more DN slots.
- *  \retval true extension added, iterator points to next slot.
- *  \retval false unable to allocate extension
+/**
+ * @brief Add an extension for more DN slots.
+ * @retval true extension added, iterator points to next slot.
+ * @retval false unable to allocate extension
  */
 static inline bool
 PitDnIt_Extend(PitDnIt* it, Pit* pit)
@@ -103,15 +105,16 @@ PitDnIt_Extend(PitDnIt* it, Pit* pit)
   return ok;
 }
 
-/** \brief Iterator of UP slots in PIT entry.
+/**
+ * @brief Iterator of UP slots in PIT entry.
  *
- *  \code
- *  PitUpIt it;
- *  for (PitUpIt_Init(&it, entry); PitUpIt_Valid(&it); PitUpIt_Next(&it)) {
- *    int index = it.index;
- *    PitUp* up = it.up;
- *  }
- *  \endcode
+ * @code
+ * PitUpIt it;
+ * for (PitUpIt_Init(&it, entry); PitUpIt_Valid(&it); PitUpIt_Next(&it)) {
+ *   int index = it.index;
+ *   PitUp* up = it.up;
+ * }
+ * @endcode
  */
 typedef PitDnUpIt_ PitUpIt;
 
@@ -135,9 +138,10 @@ PitUpIt_Next(PitUpIt* it)
   it->up = &it->ups[it->i];
 }
 
-/** \brief Add an extension for more UP slots.
- *  \retval true extension added, iterator points to next slot.
- *  \retval false unable to allocate extension
+/**
+ * @brief Add an extension for more UP slots.
+ * @retval true extension added, iterator points to next slot.
+ * @retval false unable to allocate extension
  */
 static inline bool
 PitUpIt_Extend(PitDnIt* it, Pit* pit)

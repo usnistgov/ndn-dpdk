@@ -1,24 +1,25 @@
 #ifndef NDN_DPDK_NDN_TLV_ENCODER_H
 #define NDN_DPDK_NDN_TLV_ENCODER_H
 
-/** \file
+/**
+ * @file
  *
- *  \par Common return values of encoding functions:
- *  \retval NdnErrOK successful; encoder is advanced past end of encoded item.
- *  \retval NdnErrIncomplete reaching output boundary before encoding finishes.
+ * @par Common return values of encoding functions:
+ * @retval NdnErrOK successful; encoder is advanced past end of encoded item.
+ * @retval NdnErrIncomplete reaching output boundary before encoding finishes.
  */
 
 #include "tlv-varnum.h"
 
-/** \brief TLV encoder.
- */
+/** @brief TLV encoder. */
 typedef struct TlvEncoder
 {
 } TlvEncoder;
 
-/** \brief Cast mbuf as TlvEncoder.
+/**
+ * @brief Cast mbuf as TlvEncoder.
  *
- *  The mbuf must be the only segment and must be empty.
+ * The mbuf must be the only segment and must be empty.
  */
 static inline TlvEncoder*
 MakeTlvEncoder(struct rte_mbuf* m)
@@ -58,8 +59,7 @@ TlvEncoder_Prepend(TlvEncoder* en, uint16_t len)
   return (uint8_t*)rte_pktmbuf_prepend(m, len);
 }
 
-/** \brief Append a TLV-TYPE or TLV-LENGTH number.
- */
+/** @brief Append a TLV-TYPE or TLV-LENGTH number. */
 static inline NdnError
 AppendVarNum(TlvEncoder* en, uint32_t n)
 {
@@ -72,8 +72,7 @@ AppendVarNum(TlvEncoder* en, uint32_t n)
   return NdnErrOK;
 }
 
-/** \brief Prepend a TLV-TYPE or TLV-LENGTH number.
- */
+/** @brief Prepend a TLV-TYPE or TLV-LENGTH number. */
 static inline NdnError
 PrependVarNum(TlvEncoder* en, uint32_t n)
 {

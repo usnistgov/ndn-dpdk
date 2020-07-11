@@ -1,13 +1,12 @@
 #ifndef NDN_DPDK_FWDP_CRYPTO_H
 #define NDN_DPDK_FWDP_CRYPTO_H
 
-/// \file
+/** @file */
 
 #include "../dpdk/thread.h"
 #include "../iface/input-demux.h"
 
-/** \brief Forwarder data plane, crypto helper.
- */
+/** @brief Forwarder data plane, crypto helper. */
 typedef struct FwCrypto
 {
   struct rte_ring* input;

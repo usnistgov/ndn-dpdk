@@ -1,14 +1,13 @@
 #ifndef NDN_DPDK_NDN_NAME_H
 #define NDN_DPDK_NDN_NAME_H
 
-/// \file
+/** @file */
 
 #include "tlv-element.h"
 
 extern uint64_t NameHash_Empty_;
 
-/** \brief Name in linear buffer.
- */
+/** @brief Name in linear buffer. */
 typedef struct LName
 {
   const uint8_t* value;
@@ -18,47 +17,46 @@ typedef struct LName
 uint64_t
 LName_ComputeHash_(uint16_t length, const uint8_t* value);
 
-/** \brief Compute hash for a name.
- */
+/** @brief Compute hash for a name. */
 static inline uint64_t
 LName_ComputeHash(LName n)
 {
   return LName_ComputeHash_(n.length, n.value);
 }
 
-/** \brief Indicate the result of name comparison.
- */
+/** @brief Indicate the result of name comparison. */
 typedef enum NameCompareResult
 {
-  NAMECMP_LT = -2,      ///< \c lhs is less than, but not a prefix of \c rhs
-  NAMECMP_LPREFIX = -1, ///< \c lhs is a prefix of \c rhs
-  NAMECMP_EQUAL = 0,    ///< \c lhs and \c rhs are equal
-  NAMECMP_RPREFIX = 1,  ///< \c rhs is a prefix of \c lhs
-  NAMECMP_GT = 2        ///< \c rhs is less than, but not a prefix of \c lhs
+  NAMECMP_LT = -2,      ///< @c lhs is less than, but not a prefix of @c rhs
+  NAMECMP_LPREFIX = -1, ///< @c lhs is a prefix of @c rhs
+  NAMECMP_EQUAL = 0,    ///< @c lhs and @c rhs are equal
+  NAMECMP_RPREFIX = 1,  ///< @c rhs is a prefix of @c lhs
+  NAMECMP_GT = 2        ///< @c rhs is less than, but not a prefix of @c lhs
 } NameCompareResult;
 
-/** \brief Compare two names for <, ==, >, and prefix relations.
- */
+/** @brief Compare two names for <, ==, >, and prefix relations. */
 NameCompareResult
 LName_Compare(LName lhs, LName rhs);
 
 #define LNAME_MAX_STRING_SIZE (NameMaxLength * 2)
 
-/** \brief Convert a name to a hexidecimal string for debug purpose.
- *  \param[out] buf text buffer
- *  \param bufsz size of \p buf; (LNAME_MAX_STRING_SIZE+1) avoids truncation
- *  \return number of characters written excluding terminating null character
+/**
+ * @brief Convert a name to a hexidecimal string for debug purpose.
+ * @param[out] buf text buffer
+ * @param bufsz size of @p buf; (LNAME_MAX_STRING_SIZE+1) avoids truncation
+ * @return number of characters written excluding terminating null character
  */
 int
 LName_ToString(LName n, char* buf, size_t bufsz);
 
-/** \brief Number of name components whose information are cached in Name struct
- *         for efficient processing.
+/**
+ * @brief Number of cached name components.
+ *
+ * If a name has more than this many components, it will be re-parsed during component access.
  */
 #define PNAME_N_CACHED_COMPS 17
 
-/** \brief Parsed Name element.
- */
+/** @brief Parsed Name element. */
 typedef struct PName
 {
   uint16_t nOctets;   ///< TLV-LENGTH of Name element
@@ -70,30 +68,31 @@ typedef struct PName
   uint64_t hash[PNAME_N_CACHED_COMPS]; ///< (pvt) hash of i+1-component prefix
 } PName;
 
-/** \brief Initialize a PName to indicate an empty name.
- */
+/** @brief Initialize a PName to indicate an empty name. */
 static inline void
 PName_Clear(PName* n)
 {
   memset(n, 0, sizeof(PName));
 }
 
-/** \brief Parse a name from memory buffer.
- *  \param length TLV-LENGTH of Name element
- *  \param value TLV-VALUE of Name element
- *  \retval NdnErrOK success
- *  \retval NdnErrNameTooLong TLV-LENGTH exceeds \c NameMaxLength
- *  \retval NdnErrBadNameComponentType component type not in 1-32767 range
- *  \retval NdnErrBadDigestComponentLength ImplicitSha256DigestComponent is not 32 octets
- *  \retval NdnErrNameHasComponentAfterDigest ImplicitSha256DigestComponent is not at last
+/**
+ * @brief Parse a name from memory buffer.
+ * @param length TLV-LENGTH of Name element
+ * @param value TLV-VALUE of Name element
+ * @retval NdnErrOK success
+ * @retval NdnErrNameTooLong TLV-LENGTH exceeds @c NameMaxLength
+ * @retval NdnErrBadNameComponentType component type not in 1-32767 range
+ * @retval NdnErrBadDigestComponentLength ImplicitSha256DigestComponent is not 32 octets
+ * @retval NdnErrNameHasComponentAfterDigest ImplicitSha256DigestComponent is not at last
  */
 NdnError
 PName_Parse(PName* n, uint32_t length, const uint8_t* value);
 
-/** \brief Parse a name from TlvElement.
- *  \param ele TLV Name element, TLV-TYPE must be TtName
- *  \retval NdnErrFragmented TLV-VALUE is not in consecutive memory
- *  \return return value of \c PName_Parse
+/**
+ * @brief Parse a name from TlvElement.
+ * @param ele TLV Name element, TLV-TYPE must be TtName
+ * @retval NdnErrFragmented TLV-VALUE is not in consecutive memory
+ * @return return value of @c PName_Parse
  */
 NdnError
 PName_FromElement(PName* n, const TlvElement* ele);
@@ -101,9 +100,10 @@ PName_FromElement(PName* n, const TlvElement* ele);
 uint16_t
 PName_SeekCompEnd_(const PName* n, const uint8_t* input, uint16_t i);
 
-/** \brief Get past-end offset of i-th component.
- *  \param input a buffer containing TLV-VALUE of Name element
- *  \param i component index, must be less than n->nComps
+/**
+ * @brief Get past-end offset of i-th component.
+ * @param input a buffer containing TLV-VALUE of Name element
+ * @param i component index, must be less than n->nComps
  */
 static inline uint16_t
 PName_GetCompEnd(const PName* n, const uint8_t* input, uint16_t i)
@@ -118,9 +118,10 @@ PName_GetCompEnd(const PName* n, const uint8_t* input, uint16_t i)
   return PName_SeekCompEnd_(n, input, i);
 }
 
-/** \brief Get begin offset of i-th component.
- *  \param input a buffer containing TLV-VALUE of Name element
- *  \param i component index, must be less than n->nComps
+/**
+ * @brief Get begin offset of i-th component.
+ * @param input a buffer containing TLV-VALUE of Name element
+ * @param i component index, must be less than n->nComps
  */
 static inline uint16_t
 PName_GetCompBegin(const PName* n, const uint8_t* input, uint16_t i)
@@ -132,9 +133,10 @@ PName_GetCompBegin(const PName* n, const uint8_t* input, uint16_t i)
   return PName_GetCompEnd(n, input, i - 1);
 }
 
-/** \brief Get size of i-th component.
- *  \param input a buffer containing TLV-VALUE of Name element
- *  \param i component index, must be less than n->nComps
+/**
+ * @brief Get size of i-th component.
+ * @param input a buffer containing TLV-VALUE of Name element
+ * @param i component index, must be less than n->nComps
  */
 static inline uint16_t
 PName_SizeofComp(const PName* n, const uint8_t* input, uint16_t i)
@@ -142,9 +144,10 @@ PName_SizeofComp(const PName* n, const uint8_t* input, uint16_t i)
   return PName_GetCompEnd(n, input, i) - PName_GetCompBegin(n, input, i);
 }
 
-/** \brief Get size of a prefix with i components.
- *  \param input a buffer containing TLV-VALUE of Name element
- *  \param i prefix length, must be no greater than n->nComps
+/**
+ * @brief Get size of a prefix with i components.
+ * @param input a buffer containing TLV-VALUE of Name element
+ * @param i prefix length, must be no greater than n->nComps
  */
 static inline uint16_t
 PName_SizeofPrefix(const PName* n, const uint8_t* input, uint16_t i)
@@ -167,9 +170,10 @@ PName_ComputePrefixHashUncached(const PName* n, const uint8_t* input, uint16_t i
 void
 PName_HashToCache_(PName* n, const uint8_t* input);
 
-/** \brief Compute hash for a prefix with i components.
- *  \param input a buffer containing TLV-VALUE of Name element
- *  \param i prefix length, must be no greater than n->nComps
+/**
+ * @brief Compute hash for a prefix with i components.
+ * @param input a buffer containing TLV-VALUE of Name element
+ * @param i prefix length, must be no greater than n->nComps
  */
 static inline uint64_t
 PName_ComputePrefixHash(const PName* n, const uint8_t* input, uint16_t i)
@@ -185,8 +189,9 @@ PName_ComputePrefixHash(const PName* n, const uint8_t* input, uint16_t i)
   return n->hash[i - 1];
 }
 
-/** \brief Compute hash for whole name.
- *  \param input a buffer containing TLV-VALUE of Name element
+/**
+ * @brief Compute hash for whole name.
+ * @param input a buffer containing TLV-VALUE of Name element
  */
 static inline uint64_t
 PName_ComputeHash(const PName* n, const uint8_t* input)
@@ -194,8 +199,7 @@ PName_ComputeHash(const PName* n, const uint8_t* input)
   return PName_ComputePrefixHash(n, input, n->nComps);
 }
 
-/** \brief Parsed name with TLV-VALUE pointer.
- */
+/** @brief Parsed name with TLV-VALUE pointer. */
 typedef struct Name
 {
   const uint8_t* v;
@@ -210,8 +214,9 @@ typedef struct NameComp
   uint16_t size;
 } NameComp;
 
-/** \brief Get i-th component.
- *  \param i component index, must be less than n->p.nComps
+/**
+ * @brief Get i-th component.
+ * @param i component index, must be less than n->p.nComps
  */
 static inline NameComp
 Name_GetComp(const Name* n, uint16_t i)

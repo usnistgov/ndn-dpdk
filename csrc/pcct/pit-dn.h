@@ -1,11 +1,12 @@
 #ifndef NDN_DPDK_PCCT_PIT_DN_H
 #define NDN_DPDK_PCCT_PIT_DN_H
 
-/// \file
+/** @file */
 
 #include "common.h"
 
-/** \brief A PIT downstream record.
+/**
+ * @brief A PIT downstream record.
  */
 typedef struct PitDn
 {

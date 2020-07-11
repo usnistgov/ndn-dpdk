@@ -1,7 +1,7 @@
 #ifndef NDN_DPDK_HRLOG_POST_H
 #define NDN_DPDK_HRLOG_POST_H
 
-/// \file
+/** @file */
 
 #include "entry.h"
 

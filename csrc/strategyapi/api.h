@@ -1,7 +1,7 @@
 #ifndef NDN_DPDK_STRATEGYAPI_API_H
 #define NDN_DPDK_STRATEGYAPI_API_H
 
-/// \file
+/** @file */
 
 #include "fib.h"
 #include "packet.h"
@@ -12,8 +12,7 @@ typedef struct SgGlobal
   uint64_t tscHz;
 } SgGlobal;
 
-/** \brief Indicate why the strategy program is invoked.
- */
+/** @brief Indicate why the strategy program is invoked. */
 typedef enum SgEvent
 {
   SGEVT_NONE,
@@ -23,47 +22,40 @@ typedef enum SgEvent
   SGEVT_TIMER,    ///< timer expires
 } SgEvent;
 
-/** \brief Context of strategy invocation.
- */
+/** @brief Context of strategy invocation. */
 typedef struct SgCtx
 {
-  /** \brief Global static parameters.
-   */
+  /** @brief Global static parameters. */
   const SgGlobal* global;
 
-  /** \brief Packet arrival time or current time.
-   */
+  /** @brief Packet arrival time or current time. */
   TscTime now;
 
-  /** \brief Why strategy is triggered.
-   */
+  /** @brief Why strategy is triggered. */
   SgEvent eventKind;
 
-  /** \brief A bitmask filter on which FIB nexthops should be used.
-   */
+  /** @brief A bitmask filter on which FIB nexthops should be used. */
   SgFibNexthopFilter nhFlt;
 
-  /** \brief Incoming packet.
-   *
-   *  Available during SGEVT_DATA and SGEVT_NACK only.
+  /**
+   * @brief Incoming packet.
+   * @pre eventKind is SGEVT_DATA or SGEVT_NACK.
    */
   const SgPacket* pkt;
 
-  /** \brief FIB entry.
-   */
+  /** @brief FIB entry. */
   const SgFibEntry* fibEntry;
 
-  /** \brief PIT entry.
-   */
+  /** @brief PIT entry. */
   SgPitEntry* pitEntry;
 } SgCtx;
 
-/** \brief Convert milliseconds to TscDuration.
- */
+/** @brief Convert milliseconds to TscDuration. */
 #define SgTscFromMillis(ctx, millis) ((millis) * (ctx)->global->tscHz / 1000)
 
-/** \brief Iterate over FIB nexthops passing ctx->nhFlt.
- *  \sa SgFibNexthopIt
+/**
+ * @brief Iterate over FIB nexthops passing ctx->nhFlt.
+ * @sa SgFibNexthopIt
  */
 inline void
 SgFibNexthopIt_Init2(SgFibNexthopIt* it, const SgCtx* ctx)
@@ -71,29 +63,28 @@ SgFibNexthopIt_Init2(SgFibNexthopIt* it, const SgCtx* ctx)
   SgFibNexthopIt_Init(it, ctx->fibEntry, ctx->nhFlt);
 }
 
-/** \brief Access FIB entry scratch area as T* type.
- */
+/** @brief Access FIB entry scratch area as T* type. */
 #define SgCtx_FibScratchT(ctx, T)                                                                  \
   __extension__({                                                                                  \
     static_assert(sizeof(T) <= SG_FIB_ENTRY_SCRATCH, "");                                          \
     (T*)(ctx)->fibEntry->scratch;                                                                  \
   })
 
-/** \brief Access PIT entry scratch area as T* type.
- */
+/** @brief Access PIT entry scratch area as T* type. */
 #define SgCtx_PitScratchT(ctx, T)                                                                  \
   __extension__({                                                                                  \
     static_assert(sizeof(T) <= SG_PIT_ENTRY_SCRATCH, "");                                          \
     (T*)(ctx)->pitEntry->scratch;                                                                  \
   })
 
-/** \brief Set a timer to invoke strategy after a duration.
- *  \param after duration in TSC unit, cannot exceed PIT entry expiration time.
- *  \warning Not available in \c SGEVT_DATA.
+/**
+ * @brief Set a timer to invoke strategy after a duration.
+ * @param after duration in TSC unit, cannot exceed PIT entry expiration time.
+ * @warning Not available in @c SGEVT_DATA.
  *
- *  Strategy program will be invoked again with \c SGEVT_TIMER after \p after.
- *  However, the timer would be cancelled if strategy program is invoked for any other event,
- *  a different timer is set, or the strategy choice has been changed.
+ * Strategy program will be invoked again with @c SGEVT_TIMER after @p after.
+ * However, the timer would be cancelled if strategy program is invoked for any other event,
+ * a different timer is set, or the strategy choice has been changed.
  */
 bool
 SgSetTimer(SgCtx* ctx, TscDuration after);
@@ -108,22 +99,25 @@ typedef enum SgForwardInterestResult
   SGFWDI_HOPZERO,    ///< HopLimit has become zero
 } SgForwardInterestResult;
 
-/** \brief Forward an Interest to a nexthop.
- *  \warning Not available in \c SGEVT_DATA.
+/**
+ * @brief Forward an Interest to a nexthop.
+ * @pre Not available in @c SGEVT_DATA.
  */
 SgForwardInterestResult
 SgForwardInterest(SgCtx* ctx, FaceID nh);
 
-/** \brief Return Nacks downstream and erase PIT entry.
- *  \warning Only available in \c SGEVT_INTEREST.
+/**
+ * @brief Return Nacks downstream and erase PIT entry.
+ * @pre Only available in @c SGEVT_INTEREST.
  */
 void
 SgReturnNacks(SgCtx* ctx, SgNackReason reason);
 
-/** \brief The strategy program.
- *  \return status code, ignored by forwarding but appears in logs.
+/**
+ * @brief The strategy program.
+ * @return status code, ignored by forwarding but appears in logs.
  *
- *  Every strategy must implement this function.
+ * Every strategy must implement this function.
  */
 uint64_t
 SgMain(SgCtx* ctx);

@@ -1,7 +1,7 @@
 #ifndef NDN_DPDK_CORE_SIPHASH_H
 #define NDN_DPDK_CORE_SIPHASH_H
 
-/// \file
+/** @file */
 
 #include "common.h"
 #include <rte_memcpy.h>
@@ -11,8 +11,7 @@
 #include "../vendor/siphash-20121104.h"
 #pragma GCC diagnostic pop
 
-/** \brief a key for SipHash
- */
+/** @brief A key for SipHash. */
 typedef struct sipkey SipHashKey;
 
 #define SIPHASHKEY_SIZE 16
@@ -23,28 +22,26 @@ SipHashKey_FromBuffer(SipHashKey* key, const uint8_t buf[SIPHASHKEY_SIZE])
   sip_tokey(key, buf);
 }
 
-/** \brief context for SipHash
- */
+/** @brief Context for SipHash. */
 typedef struct siphash SipHash;
 
-/** \brief initialize SipHash-2-4
- */
+/** @brief Initialize SipHash-2-4 context. */
 static inline void
 SipHash_Init(SipHash* h, const SipHashKey* key)
 {
   sip24_init(h, key);
 }
 
-/** \brief write input into SipHash
- */
+/** @brief Write input into SipHash. */
 static inline void
 SipHash_Write(SipHash* h, const uint8_t* input, size_t count)
 {
   sip24_update(h, input, count);
 }
 
-/** \brief finalize SipHash
- *  \return hash value
+/**
+ * @brief Finalize SipHash.
+ * @return hash value
  */
 static inline uint64_t
 SipHash_Final(SipHash* h)
@@ -52,8 +49,9 @@ SipHash_Final(SipHash* h)
   return sip24_final(h);
 }
 
-/** \brief compute hash value without changing underlying state
- *  \return hash value
+/**
+ * @brief compute hash value without changing underlying state
+ * @return hash value
  */
 static inline uint64_t
 SipHash_Sum(const SipHash* h)

@@ -1,7 +1,7 @@
 #ifndef NDN_DPDK_FWDP_FWD_H
 #define NDN_DPDK_FWDP_FWD_H
 
-/// \file
+/** @file */
 
 #include "../core/running-stat.h"
 #include "../dpdk/thread.h"
@@ -12,8 +12,7 @@
 #include "../pcct/pit.h"
 #include "../strategyapi/api.h"
 
-/** \brief Forwarding thread.
- */
+/** @brief Forwarding thread. */
 typedef struct FwFwd
 {
   SgGlobal sgGlobal;
@@ -45,8 +44,7 @@ typedef struct FwFwd
 
   struct rte_ring* crypto; ///< queue to crypto helper
 
-  /** \brief Statistics of latency from packet arrival to start processing.
-   */
+  /** @brief Statistics of latency from packet arrival to start processing. */
   RunningStat latencyStat;
 } FwFwd;
 
@@ -59,14 +57,15 @@ FwFwd_GetPcctPtr_(FwFwd* fwd)
 int
 FwFwd_Run(FwFwd* fwd);
 
-/** \brief Per-packet context in forwarding.
+/**
+ * @brief Per-packet context in forwarding.
  *
- *  Field availablility:
- *  T: set by SgTriggerTimer and available during SGEVT_TIMER
- *  F: set by FwFwd_Run
- *  I: available during SGEVT_INTEREST
- *  D: available during SGEVT_DATA
- *  N: available during SGEVT_NACK
+ * Field availablility:
+ * T: set by SgTriggerTimer and available during SGEVT_TIMER
+ * F: set by FwFwd_Run
+ * I: available during SGEVT_INTEREST
+ * D: available during SGEVT_DATA
+ * N: available during SGEVT_NACK
  */
 typedef struct FwFwdCtx
 {
@@ -104,8 +103,7 @@ FwFwd_RxNack(FwFwd* fwd, FwFwdCtx* ctx);
 #ifdef NDEBUG
 #define FwFwd_NULLize(x) (void)(x)
 #else
-/** \brief Set x to NULL to crash on memory access bugs.
- */
+/** @brief Set x to NULL to crash on memory access bugs. */
 #define FwFwd_NULLize(x)                                                                           \
   do {                                                                                             \
     (x) = NULL;                                                                                    \

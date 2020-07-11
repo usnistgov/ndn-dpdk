@@ -1,12 +1,11 @@
 #ifndef NDN_DPDK_PCCT_PIT_RESULT_H
 #define NDN_DPDK_PCCT_PIT_RESULT_H
 
-/// \file
+/** @file */
 
 #include "pcc-entry.h"
 
-/** \brief Private base of PitInsertResult and PitFindResult.
- */
+/** @brief Private base of PitInsertResult and PitFindResult. */
 typedef struct PitResult
 {
   PccEntry* entry;
@@ -20,12 +19,10 @@ PitResult_New_(PccEntry* entry, int kind)
   return pr;
 }
 
-/** \brief Result of PIT insert.
- */
+/** @brief Result of PIT insert. */
 typedef PitResult PitInsertResult;
 
-/** \brief Result kind of PIT insert.
- */
+/** @brief Result kind of PIT insert. */
 typedef enum PitInsertResultKind
 {
   PIT_INSERT_FULL = 0, ///< PIT is full, cannot insert
@@ -61,12 +58,10 @@ PitInsertResult_GetCsEntry(PitInsertResult res)
   return PccEntry_GetCsEntry(res.entry);
 }
 
-/** \brief Result of PIT find.
- */
+/** @brief Result of PIT find. */
 typedef PitResult PitFindResult;
 
-/** \brief Result flag of PIT find, bitwise OR.
- */
+/** @brief Result flag of PIT find, bitwise OR. */
 typedef enum PitFindResultFlag
 {
   PIT_FIND_NONE = 0, ///< no PIT match
@@ -106,8 +101,7 @@ PitFindResult_GetPitEntry1(PitFindResult res)
   return PccEntry_GetPitEntry1(res.entry);
 }
 
-/** \brief Get a representative Interest from either PIT entry.
- */
+/** @brief Get a representative Interest from either PIT entry. */
 static inline PInterest*
 PitFindResult_GetInterest_(PitFindResult res)
 {

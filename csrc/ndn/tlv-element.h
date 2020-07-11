@@ -1,13 +1,12 @@
 #ifndef NDN_DPDK_NDN_TLV_ELEMENT_H
 #define NDN_DPDK_NDN_TLV_ELEMENT_H
 
-/// \file
+/** @file */
 
 #include "an.h"
 #include "tlv-varnum.h"
 
-/** \brief TLV element
- */
+/** @brief TLV element. */
 typedef struct TlvElement
 {
   uint32_t type;   ///< TLV-TYPE number
@@ -18,9 +17,10 @@ typedef struct TlvElement
   MbufLoc last;    ///< past end position
 } TlvElement;
 
-/** \brief Decode a TLV header including TLV-TYPE and TLV-LENGTH but excluding TLV-VALUE.
- *  \param[out] ele the element; will assign all fields except \c last.
- *  \retval NdnErrBadType expectedType is non-zero and TLV-TYPE does not equal \p expectedType.
+/**
+ * @brief Decode a TLV header including TLV-TYPE and TLV-LENGTH but excluding TLV-VALUE.
+ * @param[out] ele the element; will assign all fields except @c last.
+ * @retval NdnErrBadType expectedType is non-zero and TLV-TYPE does not equal @p expectedType.
  */
 static inline NdnError
 TlvElement_DecodeTL(TlvElement* ele, MbufLoc* d, uint32_t expectedType)
@@ -48,11 +48,12 @@ TlvElement_DecodeTL(TlvElement* ele, MbufLoc* d, uint32_t expectedType)
   return NdnErrOK;
 }
 
-/** \brief Decode a TLV element.
- *  \param[out] ele the element.
- *  \note ele.first.rem, ele.value.rem, and ele.last.rem are unchanged, so that
- *        MbufLoc_FastDiff may be used on them.
- *  \retval NdnErrBadType expectedType is non-zero and TLV-TYPE does not equal \p expectedType.
+/**
+ * @brief Decode a TLV element.
+ * @param[out] ele the element.
+ * @note ele.first.rem, ele.value.rem, and ele.last.rem are unchanged, so that
+ *       MbufLoc_FastDiff may be used on them.
+ * @retval NdnErrBadType expectedType is non-zero and TLV-TYPE does not equal @p expectedType.
  */
 static inline NdnError
 TlvElement_Decode(TlvElement* ele, MbufLoc* d, uint32_t expectedType)
@@ -69,16 +70,16 @@ TlvElement_Decode(TlvElement* ele, MbufLoc* d, uint32_t expectedType)
   return NdnErrOK;
 }
 
-/** \brief Determine if the element's TLV-VALUE is in consecutive memory.
- */
+/** @brief Determine if the element's TLV-VALUE is in consecutive memory. */
 static inline bool
 TlvElement_IsValueLinear(const TlvElement* ele)
 {
   return ele->value.off + ele->length <= ele->value.m->data_len;
 }
 
-/** \brief Get pointer to element's TLV-VALUE.
- *  \pre TlvElement_IsValueLinear(ele)
+/**
+ * @brief Get pointer to element's TLV-VALUE.
+ * @pre TlvElement_IsValueLinear(ele)
  */
 static inline const uint8_t*
 TlvElement_GetLinearValue(const TlvElement* ele)
@@ -87,12 +88,13 @@ TlvElement_GetLinearValue(const TlvElement* ele)
   return rte_pktmbuf_mtod_offset(ele->value.m, const uint8_t*, ele->value.off);
 }
 
-/** \brief Ensure TLV-VALUE is in consecutive memory.
- *  \param[inout] ele this TlvElement; TLV-LENGTH must be positive; will be updated.
- *  \param[inout] pkt enclosing packet.
- *  \param mp mempool for copying TLV-VALUE if necessary, requires TLV-LENGTH in dataroom.
- *  \param[out] d a MbufLoc pointing to past-end position; NULL if not needed.
- *  \post parent/following TlvElements and MbufLoc may be invalidated.
+/**
+ * @brief Ensure TLV-VALUE is in consecutive memory.
+ * @param[inout] ele this TlvElement; TLV-LENGTH must be positive; will be updated.
+ * @param[inout] pkt enclosing packet.
+ * @param mp mempool for copying TLV-VALUE if necessary, requires TLV-LENGTH in dataroom.
+ * @param[out] d a MbufLoc pointing to past-end position; NULL if not needed.
+ * @post parent/following TlvElements and MbufLoc may be invalidated.
  */
 static inline const uint8_t*
 TlvElement_LinearizeValue(TlvElement* ele, struct rte_mbuf* pkt, struct rte_mempool* mp, MbufLoc* d)
@@ -106,8 +108,9 @@ TlvElement_LinearizeValue(TlvElement* ele, struct rte_mbuf* pkt, struct rte_memp
   return linear;
 }
 
-/** \brief Create a decoder to decode the element's TLV-VALUE.
- *  \param[out] d an iterator bounded inside TLV-VALUE.
+/**
+ * @brief Create a decoder to decode the element's TLV-VALUE.
+ * @param[out] d an iterator bounded inside TLV-VALUE.
  */
 static inline void
 TlvElement_MakeValueDecoder(const TlvElement* ele, MbufLoc* d)
@@ -116,9 +119,10 @@ TlvElement_MakeValueDecoder(const TlvElement* ele, MbufLoc* d)
   d->rem = ele->length;
 }
 
-/** \brief Interpret TLV-VALUE as NonNegativeInteger.
- *  \param[out] n the number.
- *  \return whether decoding succeeded
+/**
+ * @brief Interpret TLV-VALUE as NonNegativeInteger.
+ * @param[out] n the number.
+ * @return whether decoding succeeded
  */
 static inline NdnError
 TlvElement_ReadNonNegativeInteger(const TlvElement* ele, uint64_t* n)

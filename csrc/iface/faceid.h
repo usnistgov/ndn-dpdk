@@ -1,13 +1,14 @@
 #ifndef NDN_DPDK_IFACE_FACEID_H
 #define NDN_DPDK_IFACE_FACEID_H
 
-/// \file
+/** @file */
 
 #include "common.h"
 
-/** \brief Numeric face identifier.
+/**
+ * @brief Numeric face identifier.
  *
- *  This may appear in rte_mbuf.port field.
+ * This may appear in rte_mbuf.port field.
  */
 typedef uint16_t FaceID;
 

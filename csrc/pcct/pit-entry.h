@@ -1,7 +1,7 @@
 #ifndef NDN_DPDK_PCCT_PIT_ENTRY_H
 #define NDN_DPDK_PCCT_PIT_ENTRY_H
 
-/// \file
+/** @file */
 
 #include "../fib/fib.h"
 #include "pit-dn.h"
@@ -19,9 +19,10 @@ static_assert((1 << PIT_ENTRY_FIBPREFIXL_NBITS_) > FIB_ENTRY_MAX_NAME_LEN, "");
 
 typedef struct PitEntryExt PitEntryExt;
 
-/** \brief A PIT entry.
+/**
+ * @brief A PIT entry.
  *
- *  This struct is enclosed in \c PccEntry.
+ * This struct is enclosed in @c PccEntry .
  */
 struct PitEntry
 {
@@ -65,8 +66,9 @@ PitEntry_SetFibEntry_(PitEntry* entry, PInterest* interest, const FibEntry* fibE
   memset(entry->sgScratch, 0, PIT_ENTRY_SG_SCRATCH);
 }
 
-/** \brief Initialize a PIT entry.
- *  \param npkt the Interest packet.
+/**
+ * @brief Initialize a PIT entry.
+ * @param npkt the Interest packet.
  */
 static inline void
 PitEntry_Init(PitEntry* entry, Packet* npkt, const FibEntry* fibEntry)
@@ -87,8 +89,7 @@ PitEntry_Init(PitEntry* entry, Packet* npkt, const FibEntry* fibEntry)
   PitEntry_SetFibEntry_(entry, interest, fibEntry);
 }
 
-/** \brief Finalize a PIT entry.
- */
+/** @brief Finalize a PIT entry. */
 static inline void
 PitEntry_Finalize(PitEntry* entry)
 {
@@ -103,21 +104,22 @@ PitEntry_Finalize(PitEntry* entry)
   }
 }
 
-/** \brief Represent PIT entry as a string for debug purpose.
- *  \return A string from thread-local buffer.
- *  \warning Subsequent *ToDebugString calls on the same thread overwrite the buffer.
+/**
+ * @brief Represent PIT entry as a string for debug purpose.
+ * @return A string from thread-local buffer.
+ * @warning Subsequent *ToDebugString calls on the same thread overwrite the buffer.
  */
 const char*
 PitEntry_ToDebugString(PitEntry* entry);
 
-/** \brief Get a token that identifies the PIT entry.
- */
+/** @brief Get a token that identifies the PIT entry. */
 static inline uint64_t
 PitEntry_GetToken(PitEntry* entry);
 // Implementation is in pit.h to avoid circular dependency.
 
-/** \brief Reference FIB entry from PIT entry, clear scratch if FIB entry changed.
- *  \param npkt the Interest packet.
+/**
+ * @brief Reference FIB entry from PIT entry, clear scratch if FIB entry changed.
+ * @param npkt the Interest packet.
  */
 static inline void
 PitEntry_RefreshFibEntry(PitEntry* entry, Packet* npkt, const FibEntry* fibEntry)
@@ -130,21 +132,22 @@ PitEntry_RefreshFibEntry(PitEntry* entry, Packet* npkt, const FibEntry* fibEntry
   PitEntry_SetFibEntry_(entry, interest, fibEntry);
 }
 
-/** \brief Retrieve FIB entry via PIT entry's FIB reference.
- *  \pre Calling thread holds rcu_read_lock, which must be retained until it stops
- *       using the returned entry.
+/**
+ * @brief Retrieve FIB entry via PIT entry's FIB reference.
+ * @pre Calling thread holds rcu_read_lock, which must be retained until it stops
+ *      using the returned entry.
  */
 FibEntry*
 PitEntry_FindFibEntry(PitEntry* entry, Fib* fib);
 
-/** \brief Set timer to erase PIT entry when its last PitDn expires.
- */
+/** @brief Set timer to erase PIT entry when its last PitDn expires. */
 void
 PitEntry_SetExpiryTimer(PitEntry* entry, Pit* pit);
 
-/** \brief Set timer to invoke strategy after \p after.
- *  \retval Timer set successfully.
- *  \retval Unable to set timer; reverted to expiry timer.
+/**
+ * @brief Set timer to invoke strategy after @p after.
+ * @retval Timer set successfully.
+ * @retval Unable to set timer; reverted to expiry timer.
  */
 bool
 PitEntry_SetSgTimer(PitEntry* entry, Pit* pit, TscDuration after);
@@ -152,32 +155,36 @@ PitEntry_SetSgTimer(PitEntry* entry, Pit* pit, TscDuration after);
 void
 PitEntry_Timeout_(MinTmr* tmr, void* pit0);
 
-/** \brief Find duplicate nonce among DN records other than \p rxFace.
- *  \return FaceID of PitDn with duplicate nonce, or zero if none.
+/**
+ * @brief Find duplicate nonce among DN records other than @p rxFace.
+ * @return FaceID of PitDn with duplicate nonce, or zero if none.
  */
 FaceID
 PitEntry_FindDuplicateNonce(PitEntry* entry, uint32_t nonce, FaceID rxFace);
 
-/** \brief Insert new DN record, or update existing DN record.
- *  \param entry PIT entry, must be initialized.
- *  \param npkt received Interest; will take ownership unless returning NULL.
- *  \return DN record, or NULL if no slot is available.
+/**
+ * @brief Insert new DN record, or update existing DN record.
+ * @param entry PIT entry, must be initialized.
+ * @param npkt received Interest; will take ownership unless returning NULL.
+ * @return DN record, or NULL if no slot is available.
  */
 PitDn*
 PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt);
 
-/** \brief Find existing UP record, or reserve slot for new UP record.
- *  \param entry PIT entry, must be initialized.
- *  \param face upstream face.
- *  \return UP record, or NULL if no slot is available.
- *  \note If returned UP record is unused (no \c PitUp_RecordTx invocation),
- *        it will be overwritten on the next \c PitEntry_ReserveUp invocation.
+/**
+ * @brief Find existing UP record, or reserve slot for new UP record.
+ * @param entry PIT entry, must be initialized.
+ * @param face upstream face.
+ * @return UP record, or NULL if no slot is available.
+ * @note If returned UP record is unused (no @c PitUp_RecordTx invocation),
+ *       it will be overwritten on the next @c PitEntry_ReserveUp invocation.
  */
 PitUp*
 PitEntry_ReserveUp(PitEntry* entry, Pit* pit, FaceID face);
 
-/** \brief Calculate InterestLifetime for TX Interest.
- *  \return InterestLifetime in millis.
+/**
+ * @brief Calculate InterestLifetime for TX Interest.
+ * @return InterestLifetime in millis.
  */
 static inline uint32_t
 PitEntry_GetTxInterestLifetime(PitEntry* entry, TscTime now)
@@ -185,8 +192,7 @@ PitEntry_GetTxInterestLifetime(PitEntry* entry, TscTime now)
   return TscDuration_ToMillis(entry->expiry - now);
 }
 
-/** \brief Calculate HopLimit for TX Interest.
- */
+/** @brief Calculate HopLimit for TX Interest. */
 static inline uint8_t
 PitEntry_GetTxInterestHopLimit(PitEntry* entry)
 {

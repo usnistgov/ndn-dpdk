@@ -1,7 +1,7 @@
 #ifndef NDN_DPDK_FETCH_LOGIC_H
 #define NDN_DPDK_FETCH_LOGIC_H
 
-/// \file
+/** @file */
 
 #include "rttest.h"
 #include "tcpcubic.h"
@@ -9,8 +9,7 @@
 
 typedef TAILQ_HEAD(FetchRetxQueue, FetchSeg) FetchRetxQueue;
 
-/** \brief Fetcher congestion control and scheduling logic.
- */
+/** @brief Fetcher congestion control and scheduling logic. */
 typedef struct FetchLogic
 {
   FetchWindow win;
@@ -29,8 +28,9 @@ typedef struct FetchLogic
 void
 FetchLogic_Init_(FetchLogic* fl);
 
-/** \brief Set final segment number.
- *  \param segNum segment number of the last segment, inclusive.
+/**
+ * @brief Set final segment number.
+ * @param segNum segment number of the last segment, inclusive.
  */
 static inline void
 FetchLogic_SetFinalSegNum(FetchLogic* fl, uint64_t segNum)
@@ -38,17 +38,17 @@ FetchLogic_SetFinalSegNum(FetchLogic* fl, uint64_t segNum)
   fl->finalSegNum = segNum;
 }
 
-/** \brief Determine if all segments have been fetched.
- */
+/** @brief Determine if all segments have been fetched. */
 static inline bool
 FetchLogic_Finished(FetchLogic* fl)
 {
   return fl->win.loSegNum > fl->finalSegNum;
 }
 
-/** \brief Request to transmit a burst of Interests.
- *  \param[out] segNums segment numbers to retrieve.
- *  \param limit size of segNums array.
+/**
+ * @brief Request to transmit a burst of Interests.
+ * @param[out] segNums segment numbers to retrieve.
+ * @param limit size of segNums array.
  */
 size_t
 FetchLogic_TxInterestBurst(FetchLogic* fl, uint64_t* segNums, size_t limit);
@@ -59,9 +59,10 @@ typedef struct FetchLogicRxData
   uint8_t congMark;
 } FetchLogicRxData;
 
-/** \brief Notify Data arrival.
- *  \param pkts fields extracted from arrived Data.
- *  \param count size of segNums array.
+/**
+ * @brief Notify Data arrival.
+ * @param pkts fields extracted from arrived Data.
+ * @param count size of segNums array.
  */
 void
 FetchLogic_RxDataBurst(FetchLogic* fl, const FetchLogicRxData* pkts, size_t count);

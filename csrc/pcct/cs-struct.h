@@ -1,16 +1,14 @@
 #ifndef NDN_DPDK_PCCT_CS_STRUCT_H
 #define NDN_DPDK_PCCT_CS_STRUCT_H
 
-/// \file
+/** @file */
 
 #include "common.h"
 
-/** \brief prev-next pointers common in CsEntry and CsList.
- */
+/** @brief The prev-next pointers common in CsEntry and CsList. */
 typedef struct CsNode CsNode;
 
-/** \brief A doubly linked list within CS.
- */
+/** @brief A doubly linked list within CS. */
 typedef struct CsList
 {
   CsNode* prev; // back pointer, self if list is empty
@@ -19,8 +17,7 @@ typedef struct CsList
   uint32_t capacity; // unused by CsList
 } CsList;
 
-/** \brief Lists for Adaptive Replacement Cache (ARC).
- */
+/** @brief Lists for Adaptive Replacement Cache (ARC). */
 typedef struct CsArc
 {
   double c;   // capacity as float
@@ -47,16 +44,16 @@ typedef enum CsArcListId
   CSL_ARC_DEL,
 } CsArcListId;
 
-/** \brief The Content Store (CS).
+/**
+ * @brief The Content Store (CS).
  *
- *  Cs* is Pcct*.
+ * Cs* is Pcct*.
  */
 typedef struct Cs
 {
 } Cs;
 
-/** \brief PCCT private data for CS.
- */
+/** @brief PCCT private data for CS. */
 typedef struct CsPriv
 {
   CsArc directArc;    ///< ARC lists of direct entries
