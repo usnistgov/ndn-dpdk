@@ -48,7 +48,7 @@ typedef struct PingClientTx
   PingClientTxPattern pattern[PINGCLIENT_MAX_PATTERNS];
 } PingClientTx;
 
-int
+__attribute__((nonnull)) int
 PingClientTx_Run(PingClientTx* ct);
 
 #endif // NDN_DPDK_PINGCLIENT_TX_H

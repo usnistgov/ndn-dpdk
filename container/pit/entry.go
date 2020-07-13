@@ -68,9 +68,8 @@ func (entry *Entry) ListDns() (list []Dn) {
 }
 
 // InsertDn inserts new downstream record, or update existing downstream record.
-func (entry *Entry) InsertDn(interest *ndni.Interest) *Dn {
-	npktC := (*C.Packet)(interest.AsPacket().Ptr())
-	dnC := C.PitEntry_InsertDn(entry.ptr(), entry.getPitPtr(), npktC)
+func (entry *Entry) InsertDn(interest *ndni.Packet) *Dn {
+	dnC := C.PitEntry_InsertDn(entry.ptr(), entry.getPitPtr(), (*C.Packet)(interest.Ptr()))
 	return &Dn{dnC, entry}
 }
 

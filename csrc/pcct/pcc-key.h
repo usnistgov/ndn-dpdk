@@ -15,16 +15,14 @@ typedef struct PccSearch
 } PccSearch;
 
 /** @brief Initialize PccSearch from name and Interest fwhint. */
-static inline void
-PccSearch_FromNames(PccSearch* search, const Name* name, const PInterest* interest)
+__attribute__((nonnull)) static inline void
+PccSearch_FromNames(PccSearch* search, const PName* name, const PInterest* interest)
 {
-  const LName* lname = (const LName*)name;
-  search->name = *lname;
-  search->nameHash = PName_ComputeHash(&name->p, name->v);
-  if (interest->activeFh >= 0) {
-    const LName* fhLName = (const LName*)&interest->activeFhName;
-    search->fh = *fhLName;
-    search->fhHash = PName_ComputeHash(&interest->activeFhName.p, interest->activeFhName.v);
+  search->name = PName_ToLName(name);
+  search->nameHash = PName_ComputeHash(name);
+  if (interest->activeFwHint >= 0) {
+    search->fh = PName_ToLName(&interest->fwHint);
+    search->fhHash = PName_ComputeHash(&interest->fwHint);
   } else {
     search->fh.length = 0;
     search->fhHash = 0;
@@ -32,7 +30,7 @@ PccSearch_FromNames(PccSearch* search, const Name* name, const PInterest* intere
 }
 
 /** @brief Compute hash value for use in PCCT. */
-static inline uint64_t
+__attribute__((nonnull)) static __rte_always_inline uint64_t
 PccSearch_ComputeHash(const PccSearch* search)
 {
   return search->nameHash ^ search->fhHash;
@@ -43,7 +41,7 @@ PccSearch_ComputeHash(const PccSearch* search)
  * @return A string from thread-local buffer.
  * @warning Subsequent *ToDebugString calls on the same thread overwrite the buffer.
  */
-const char*
+__attribute__((nonnull, returns_nonnull)) const char*
 PccSearch_ToDebugString(const PccSearch* search);
 
 #define PCC_KEY_NAME_CAP 240
@@ -87,7 +85,7 @@ PccKey_MatchNameOrFhV_(LName name, const uint8_t* value, uint16_t cap, const Pcc
 }
 
 /** @brief Determine if @c key->name equals @p name . */
-static inline bool
+__attribute__((nonnull)) static inline bool
 PccKey_MatchName(const PccKey* key, LName name)
 {
   return name.length == key->nameL &&
@@ -95,7 +93,7 @@ PccKey_MatchName(const PccKey* key, LName name)
 }
 
 /** @brief Determine if @p key matches @p search . */
-static inline bool
+__attribute__((nonnull)) static inline bool
 PccKey_MatchSearchKey(const PccKey* key, const PccSearch* search)
 {
   return search->fh.length == key->fhL && PccKey_MatchName(key, search->name) &&
@@ -110,7 +108,7 @@ PccKey_MatchSearchKey(const PccKey* key, const PccSearch* search)
    PccKey_CountExtensionsOn_(fhL - PCC_KEY_FH_CAP))
 
 /** @brief Determine how many PccKeyExts are needed to copy @p search into PccKey. */
-static inline int
+__attribute__((nonnull)) static inline int
 PccKey_CountExtensions(const PccSearch* search)
 {
   return PccKey_CountExtensions_(search->name.length, search->fh.length);
@@ -136,7 +134,7 @@ PccKey_CopyNameOrFhV_(LName name, uint8_t* value, uint16_t cap, PccKeyExt** next
 }
 
 /** @brief Copy @c search into @p key . */
-static inline void
+__attribute__((nonnull)) static inline void
 PccKey_CopyFromSearch(PccKey* key, const PccSearch* search, PccKeyExt* exts[], int nExts)
 {
   assert(nExts == PccKey_CountExtensions(search));
@@ -148,7 +146,7 @@ PccKey_CopyFromSearch(PccKey* key, const PccSearch* search, PccKeyExt* exts[], i
 }
 
 /** @brief Move PccKeyExts into @p exts to prepare for removal. */
-static inline int
+__attribute__((nonnull)) static inline int
 PccKey_StripExts(PccKey* key, PccKeyExt* exts[PCC_KEY_MAX_EXTS])
 {
   int nExts = 0;

@@ -58,7 +58,7 @@ typedef struct PingServer
   PingServerPattern pattern[PINGSERVER_MAX_PATTERNS];
 } PingServer;
 
-int
+__attribute__((nonnull)) int
 PingServer_Run(PingServer* server);
 
 #endif // NDN_DPDK_PINGSERVER_SERVER_H

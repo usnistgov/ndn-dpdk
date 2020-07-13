@@ -9,13 +9,7 @@ import (
 func TestDecode(t *testing.T) {
 	assert, _ := makeAR(t)
 
-	wire := []byte{
-		0xF1, 0x00,
-		0xF2, 0x01, 0x20,
-		0x1F, 0x02, 0x30, 0x31,
-		0x01,
-	}
-	d := tlv.Decoder(wire)
+	d := tlv.Decoder(bytesFromHex("F100 F20120 1F023031 01"))
 
 	elements := d.Elements()
 	assert.Len(elements, 3)

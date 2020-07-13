@@ -15,24 +15,6 @@ type TestPool struct {
 	pool     *pktmbuf.Pool
 }
 
-var (
-	// Direct provides mempool for direct mbufs.
-	Direct TestPool
-
-	// Indirect provides mempool for indirect mbufs.
-	Indirect TestPool
-)
-
-func init() {
-	Direct.Template = pktmbuf.Direct.Update(pktmbuf.PoolConfig{
-		Capacity: 4095,
-	})
-
-	Indirect.Template = pktmbuf.Indirect.Update(pktmbuf.PoolConfig{
-		Capacity: 4095,
-	})
-}
-
 // Pool returns the mempool.
 func (p *TestPool) Pool() *pktmbuf.Pool {
 	p.poolInit.Do(func() {
@@ -46,4 +28,19 @@ func (p *TestPool) Pool() *pktmbuf.Pool {
 func (p *TestPool) Alloc() *pktmbuf.Packet {
 	vec := p.Pool().MustAlloc(1)
 	return vec[0]
+}
+
+// TestPool instances.
+var (
+	Direct   TestPool
+	Indirect TestPool
+)
+
+func init() {
+	Direct.Template = pktmbuf.Direct.Update(pktmbuf.PoolConfig{
+		Capacity: 4095,
+	})
+	Indirect.Template = pktmbuf.Indirect.Update(pktmbuf.PoolConfig{
+		Capacity: 4095,
+	})
 }

@@ -44,8 +44,8 @@ func (entry *Entry) ListIndirects() (indirects []*Entry) {
 }
 
 // Data returns the Data packet on this entry.
-func (entry *Entry) Data() *ndni.Data {
-	return ndni.PacketFromPtr(unsafe.Pointer(C.CsEntry_GetData(entry.ptr()))).AsData()
+func (entry *Entry) Data() *ndni.Packet {
+	return ndni.PacketFromPtr(unsafe.Pointer(C.CsEntry_GetData(entry.ptr())))
 }
 
 // FreshUntil returns a timestamp when this entry would become non-fresh.

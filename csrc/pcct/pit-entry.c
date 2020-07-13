@@ -12,42 +12,43 @@ static_assert(sizeof(PitEntryExt) <= sizeof(PccEntry), "");
 const char*
 PitEntry_ToDebugString(PitEntry* entry)
 {
-  PccDebugString_Clear();
+  return "";
+  // PccDebugString_Clear();
 
-  PInterest* interest = Packet_GetInterestHdr(entry->npkt);
-  char nameStr[LNAME_MAX_STRING_SIZE + 1];
-  const LName* interestLName = (const LName*)&interest->name;
-  if (LName_ToString(*interestLName, nameStr, sizeof(nameStr)) == 0) {
-    snprintf(nameStr, sizeof(nameStr), "(empty)");
-  }
+  // PInterest* interest = Packet_GetInterestHdr(entry->npkt);
+  // char nameStr[LNAME_MAX_STRING_SIZE + 1];
+  // const LName* interestLName = (const LName*)&interest->name;
+  // if (LName_ToString(*interestLName, nameStr, sizeof(nameStr)) == 0) {
+  //   snprintf(nameStr, sizeof(nameStr), "(empty)");
+  // }
 
-  PccDebugString_Appendf("%s CBP=%" PRIu8 " MBF=%d DN=[", nameStr, entry->nCanBePrefix,
-                         (int)entry->mustBeFresh);
-  for (int index = 0; index < PIT_ENTRY_MAX_DNS; ++index) {
-    PitDn* dn = &entry->dns[index];
-    if (dn->face == 0) {
-      break;
-    }
-    PccDebugString_Appendf("%" PRI_FaceID ",", dn->face);
-  }
-  PccDebugString_Appendf("] UP=[");
-  for (int index = 0; index < PIT_ENTRY_MAX_UPS; ++index) {
-    PitUp* up = &entry->ups[index];
-    if (up->face == 0) {
-      break;
-    }
-    PccDebugString_Appendf("%" PRI_FaceID ",", up->face);
-  }
-  return PccDebugString_Appendf("]");
+  // PccDebugString_Appendf("%s CBP=%" PRIu8 " MBF=%d DN=[", nameStr, entry->nCanBePrefix,
+  //                        (int)entry->mustBeFresh);
+  // for (int index = 0; index < PIT_ENTRY_MAX_DNS; ++index) {
+  //   PitDn* dn = &entry->dns[index];
+  //   if (dn->face == 0) {
+  //     break;
+  //   }
+  //   PccDebugString_Appendf("%" PRI_FaceID ",", dn->face);
+  // }
+  // PccDebugString_Appendf("] UP=[");
+  // for (int index = 0; index < PIT_ENTRY_MAX_UPS; ++index) {
+  //   PitUp* up = &entry->ups[index];
+  //   if (up->face == 0) {
+  //     break;
+  //   }
+  //   PccDebugString_Appendf("%" PRI_FaceID ",", up->face);
+  // }
+  // return PccDebugString_Appendf("]");
 }
 
 FibEntry*
 PitEntry_FindFibEntry(PitEntry* entry, Fib* fib)
 {
   PInterest* interest = Packet_GetInterestHdr(entry->npkt);
-  LName name = { .length = entry->fibPrefixL, .value = interest->name.v };
-  if (unlikely(interest->activeFh >= 0)) {
-    name.value = interest->activeFhName.v;
+  LName name = { .length = entry->fibPrefixL, .value = interest->name.value };
+  if (unlikely(interest->activeFwHint >= 0)) {
+    name.value = interest->fwHint.value;
   }
   FibEntry* fibEntry = Fib_Find(fib, name, entry->fibPrefixHash);
   if (unlikely(fibEntry == NULL || fibEntry->seqNum != entry->fibSeqNum)) {

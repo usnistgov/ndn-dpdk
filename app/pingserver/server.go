@@ -9,7 +9,6 @@ import (
 	"math/rand"
 	"unsafe"
 
-	"github.com/usnistgov/ndn-dpdk/app/ping/pingmempool"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
@@ -22,8 +21,8 @@ import (
 // Server instance and thread.
 type Server struct {
 	ealthread.Thread
-	c      *C.PingServer
-	seg1Mp *pktmbuf.Pool
+	c         *C.PingServer
+	payloadMp *pktmbuf.Pool
 }
 
 func New(face iface.Face, index int, cfg Config) (*Server, error) {
@@ -37,15 +36,15 @@ func New(face iface.Face, index int, cfg Config) (*Server, error) {
 		return nil, nil
 	}
 
-	serverC.dataMp = (*C.struct_rte_mempool)(pingmempool.Data.MakePool(socket).Ptr())
+	serverC.dataMp = (*C.struct_rte_mempool)(ndni.DataMempool.MakePool(socket).Ptr())
 	serverC.indirectMp = (*C.struct_rte_mempool)(pktmbuf.Indirect.MakePool(socket).Ptr())
 	serverC.face = (C.FaceID)(faceID)
 	serverC.wantNackNoRoute = C.bool(cfg.Nack)
 	C.pcg32_srandom_r(&serverC.replyRng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
 
 	server := &Server{
-		seg1Mp: pingmempool.Payload.MakePool(socket),
-		c:      serverC,
+		payloadMp: ndni.PayloadMempool.MakePool(socket),
+		c:         serverC,
 	}
 	server.Thread = ealthread.New(
 		cptr.Func0.C(unsafe.Pointer(C.PingServer_Run), unsafe.Pointer(server.c)),
@@ -104,7 +103,7 @@ func (server *Server) AddPattern(cfg Pattern) (index int, e error) {
 			replyC.nackReason = C.uint8_t(reply.Nack)
 		default:
 			replyC.kind = C.PINGSERVER_REPLY_DATA
-			vec, e := server.seg1Mp.Alloc(1)
+			vec, e := server.payloadMp.Alloc(1)
 			if e != nil {
 				return -1, fmt.Errorf("cannot allocate from MP_DATA1 for reply definition %d", i)
 			}

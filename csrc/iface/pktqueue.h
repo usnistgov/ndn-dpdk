@@ -44,7 +44,7 @@ struct PktQueue
  * @param pkts packets with timestamp already set.
  * @return number of rejected packets; they have been freed.
  */
-static inline uint32_t
+__attribute__((nonnull)) static inline uint32_t
 PktQueue_PushPlain(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count)
 {
   uint32_t nEnq = rte_ring_enqueue_burst(q->ring, (void**)pkts, count, NULL);
@@ -59,7 +59,7 @@ PktQueue_PushPlain(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count)
  * @brief Set timestamp on a burst of packets and enqueue them.
  * @return number of rejected packets; they have been freed.
  */
-static inline uint32_t
+__attribute__((nonnull)) static inline uint32_t
 PktQueue_Push(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime now)
 {
   for (uint32_t i = 0; i < count; ++i) {
@@ -69,19 +69,19 @@ PktQueue_Push(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime now)
 }
 
 /** @brief Dequeue a burst of packets. */
-static inline PktQueuePopResult
+__attribute__((nonnull)) static inline PktQueuePopResult
 PktQueue_Pop(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime now)
 {
   return (*q->pop)(q, pkts, count, now);
 }
 
-PktQueuePopResult
+__attribute__((nonnull)) PktQueuePopResult
 PktQueue_PopPlain(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime now);
 
-PktQueuePopResult
+__attribute__((nonnull)) PktQueuePopResult
 PktQueue_PopDelay(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime now);
 
-PktQueuePopResult
+__attribute__((nonnull)) PktQueuePopResult
 PktQueue_PopCoDel(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime now);
 
 #endif // NDN_DPDK_IFACE_PKTQUEUE_H

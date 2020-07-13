@@ -62,33 +62,33 @@ struct CsEntry
 };
 static_assert(CS_ENTRY_MAX_INDIRECTS < INT8_MAX, "");
 
-static inline bool
+__attribute__((nonnull)) static __rte_always_inline bool
 CsEntry_IsDirect(CsEntry* entry)
 {
   return entry->nIndirects >= 0;
 }
 
-static inline CsEntry*
+__attribute__((nonnull)) static __rte_always_inline CsEntry*
 CsEntry_GetDirect(CsEntry* entry)
 {
   return likely(CsEntry_IsDirect(entry)) ? entry : entry->direct;
 }
 
-static inline Packet*
+__attribute__((nonnull)) static __rte_always_inline Packet*
 CsEntry_GetData(CsEntry* entry)
 {
   return CsEntry_GetDirect(entry)->data;
 }
 
 /** @brief Determine if @p entry is fresh. */
-static inline bool
+__attribute__((nonnull)) static __rte_always_inline bool
 CsEntry_IsFresh(CsEntry* entry, TscTime now)
 {
   return CsEntry_GetDirect(entry)->freshUntil > now;
 }
 
 /** @brief Release enclosed Data packet on a direct entry. */
-static inline void
+__attribute__((nonnull)) static inline void
 CsEntry_ClearData(CsEntry* entry)
 {
   assert(CsEntry_IsDirect(entry));
@@ -99,7 +99,7 @@ CsEntry_ClearData(CsEntry* entry)
 }
 
 /** @brief Associate an indirect entry. */
-static inline bool
+__attribute__((nonnull)) static inline bool
 CsEntry_Assoc(CsEntry* indirect, CsEntry* direct)
 {
   assert(indirect->nIndirects == 0);
@@ -116,7 +116,7 @@ CsEntry_Assoc(CsEntry* indirect, CsEntry* direct)
 }
 
 /** @brief Disassociate an indirect entry. */
-static inline void
+__attribute__((nonnull)) static inline void
 CsEntry_Disassoc(CsEntry* indirect)
 {
   assert(!CsEntry_IsDirect(indirect));
@@ -138,7 +138,7 @@ CsEntry_Disassoc(CsEntry* indirect)
 }
 
 /** @brief Clear an entry and prepare it for refresh. */
-static inline void
+__attribute__((nonnull)) static inline void
 CsEntry_Clear(CsEntry* entry)
 {
   if (likely(CsEntry_IsDirect(entry))) {
@@ -152,7 +152,7 @@ CsEntry_Clear(CsEntry* entry)
  * @brief Finalize an entry.
  * @pre If entry is direct, no indirect entry depends on it.
  */
-static inline void
+__attribute__((nonnull)) static inline void
 CsEntry_Finalize(CsEntry* entry)
 {
   assert(entry->nIndirects <= 0);

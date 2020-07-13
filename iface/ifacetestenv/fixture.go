@@ -135,9 +135,9 @@ func (fixture *Fixture) sendProc() {
 	content := make([]byte, fixture.PayloadLen)
 	for i := 0; i < fixture.TxIterations; i++ {
 		pkts := make([]*ndni.Packet, 3)
-		pkts[0] = ndnitestenv.MakeInterest("/A").AsPacket()
-		pkts[1] = ndnitestenv.MakeData("/A", content).AsPacket()
-		pkts[2] = ndni.MakeNackFromInterest(ndnitestenv.MakeInterest("/A"), an.NackNoRoute).AsPacket()
+		pkts[0] = ndnitestenv.MakeInterest("/A")
+		pkts[1] = ndnitestenv.MakeData("/A", content)
+		pkts[2] = ndnitestenv.MakeNack(ndnitestenv.MakeInterest("/A"), an.NackNoRoute)
 		iface.TxBurst(fixture.txFace.ID(), pkts)
 		time.Sleep(time.Millisecond)
 	}

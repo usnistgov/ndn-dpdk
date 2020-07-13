@@ -79,7 +79,6 @@ func (fwd *Fwd) Init(lc eal.LCore, fib *fib.Fib, pcctCfg pcct.Config, qcfgI, qcf
 	*C.FwFwd_GetPcctPtr_(fwd.c) = (*C.Pcct)(fwd.pcct.Ptr())
 
 	fwd.c.headerMp = (*C.struct_rte_mempool)(ndni.HeaderMempool.MakePool(socket).Ptr())
-	fwd.c.guiderMp = (*C.struct_rte_mempool)(ndni.NameMempool.MakePool(socket).Ptr())
 	fwd.c.indirectMp = (*C.struct_rte_mempool)(pktmbuf.Indirect.MakePool(socket).Ptr())
 
 	latencyStat := runningstat.FromPtr(unsafe.Pointer(&fwd.c.latencyStat))

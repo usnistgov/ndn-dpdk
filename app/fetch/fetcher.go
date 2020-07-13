@@ -8,7 +8,6 @@ import (
 	"errors"
 	"unsafe"
 
-	"github.com/usnistgov/ndn-dpdk/app/ping/pingmempool"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
@@ -47,7 +46,7 @@ func New(face iface.Face, cfg FetcherConfig) (*Fetcher, error) {
 
 	faceID := face.ID()
 	socket := face.NumaSocket()
-	interestMp := (*C.struct_rte_mempool)(pingmempool.Interest.MakePool(socket).Ptr())
+	interestMp := (*C.struct_rte_mempool)(ndni.InterestMempool.MakePool(socket).Ptr())
 
 	fetcher := &Fetcher{
 		fth: make([]*fetchThread, cfg.NThreads),
@@ -131,14 +130,12 @@ func (fetcher *Fetcher) AddTemplate(tplArgs ...interface{}) (i int, e error) {
 
 	fp := fetcher.fp[i]
 	tpl := ndni.InterestTemplateFromPtr(unsafe.Pointer(&fp.tpl))
-	if e := tpl.Init(tplArgs...); e != nil {
-		return -1, e
-	}
+	tpl.Init(tplArgs...)
 
-	if uintptr(tpl.PrefixL+1) >= unsafe.Sizeof(tpl.PrefixV) {
+	if uintptr(fp.tpl.prefixL+1) >= unsafe.Sizeof(fp.tpl.prefixV) {
 		return -1, errors.New("name too long")
 	}
-	tpl.PrefixV[tpl.PrefixL] = uint8(an.TtSegmentNameComponent)
+	fp.tpl.prefixV[fp.tpl.prefixL] = an.TtSegmentNameComponent
 	// put SegmentNameComponent TLV-TYPE in the buffer so that it's checked in same memcmp
 
 	rs := urcu.NewReadSide()

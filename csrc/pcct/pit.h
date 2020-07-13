@@ -10,21 +10,21 @@
 #define PIT_MAX_LIFETIME 120000
 
 /** @brief Cast Pcct* as Pit*. */
-static inline Pit*
+static __rte_always_inline Pit*
 Pit_FromPcct(const Pcct* pcct)
 {
   return (Pit*)pcct;
 }
 
 /** @brief Cast Pit* as Pcct*. */
-static inline Pcct*
+static __rte_always_inline Pcct*
 Pit_ToPcct(const Pit* pit)
 {
   return (Pcct*)pit;
 }
 
 /** @brief Access PitPriv* struct. */
-static inline PitPriv*
+__attribute__((nonnull, returns_nonnull)) static __rte_always_inline PitPriv*
 Pit_GetPriv(const Pit* pit)
 {
   return &Pcct_GetPriv(Pit_ToPcct(pit))->pitPriv;
@@ -35,14 +35,14 @@ void
 Pit_Init(Pit* pit);
 
 /** @brief Get number of PIT entries. */
-static inline uint32_t
+__attribute__((nonnull)) static inline uint32_t
 Pit_CountEntries(const Pit* pit)
 {
   return Pit_GetPriv(pit)->nEntries;
 }
 
 /** @brief Trigger expired timers. */
-static inline void
+__attribute__((nonnull)) static inline void
 Pit_TriggerTimers(Pit* pit)
 {
   PitPriv* pitp = Pit_GetPriv(pit);
@@ -50,10 +50,10 @@ Pit_TriggerTimers(Pit* pit)
 }
 
 /** @brief Set callback when strategy timer expires. */
-void
+__attribute__((nonnull(1))) void
 Pit_SetSgTimerCb(Pit* pit, Pit_SgTimerCb cb, void* arg);
 
-static inline void
+__attribute__((nonnull)) static inline void
 Pit_InvokeSgTimerCb_(Pit* pit, PitEntry* entry)
 {
   PitPriv* pitp = Pit_GetPriv(pit);
@@ -74,35 +74,35 @@ Pit_InvokeSgTimerCb_(Pit* pit, PitEntry* entry)
  * When a new PIT entry is inserted, the PIT entry owns @p npkt but does not
  * free it, so the caller may continue using it until @c PitEntry_InsertDn.
  */
-PitInsertResult
+__attribute__((nonnull)) PitInsertResult
 Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry);
 
 /**
  * @brief Erase a PIT entry.
  * @post @p entry is no longer valid.
  */
-void
+__attribute__((nonnull)) void
 Pit_Erase(Pit* pit, PitEntry* entry);
 
 /** @brief Erase both PIT entries on a PccEntry but retain the PccEntry. */
-void
+__attribute__((nonnull)) void
 Pit_RawErase01_(Pit* pit, PccEntry* pccEntry);
 
 /**
  * @brief Find PIT entries matching a Data.
  * @param npkt Data packet, its token will be used.
  */
-PitFindResult
+__attribute__((nonnull)) PitFindResult
 Pit_FindByData(Pit* pit, Packet* npkt);
 
 /**
  * @brief Find PIT entry matching a Nack.
  * @param npkt Nack packet, its token will be used.
  */
-PitEntry*
+__attribute__((nonnull)) PitEntry*
 Pit_FindByNack(Pit* pit, Packet* npkt);
 
-static inline uint64_t
+__attribute__((nonnull)) static inline uint64_t
 PitEntry_GetToken(PitEntry* entry)
 {
   // Declaration is in pit-entry.h.

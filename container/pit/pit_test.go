@@ -8,7 +8,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
 )
 
 func TestInsertErase(t *testing.T) {
@@ -31,17 +30,17 @@ func TestInsertErase(t *testing.T) {
 	interest3 := makeInterest("/A/2",
 		ndn.MakeFHDelegation(1, "/F"), ndn.MakeFHDelegation(1, "/G"))
 	entry3 := fixture.Insert(interest3)
-	ndnitestenv.ClosePacket(interest3)
+	interest3.Close()
 	assert.NotNil(entry3)
 	assert.Equal(uintptr(entry2.Ptr()), uintptr(entry3.Ptr()))
 
 	entry4 := fixture.Insert(makeInterest("/A/2",
-		ndn.MakeFHDelegation(1, "/F"), ndn.MakeFHDelegation(1, "/G"), setActiveFH(0)))
+		ndn.MakeFHDelegation(1, "/F"), ndn.MakeFHDelegation(1, "/G"), setActiveFwHint(0)))
 	assert.NotNil(entry4)
 	assert.NotEqual(uintptr(entry2.Ptr()), uintptr(entry4.Ptr()))
 
 	entry5 := fixture.Insert(makeInterest("/A/2",
-		ndn.MakeFHDelegation(1, "/F"), ndn.MakeFHDelegation(1, "/G"), setActiveFH(1)))
+		ndn.MakeFHDelegation(1, "/F"), ndn.MakeFHDelegation(1, "/G"), setActiveFwHint(1)))
 	assert.NotNil(entry5)
 	assert.NotEqual(uintptr(entry2.Ptr()), uintptr(entry5.Ptr()))
 	assert.NotEqual(uintptr(entry4.Ptr()), uintptr(entry5.Ptr()))
@@ -69,7 +68,7 @@ func TestInsertErase(t *testing.T) {
 func TestToken(t *testing.T) {
 	assert, require := makeAR(t)
 	interestNames := make([]string, 255)
-	dataPkts := make([]*ndni.Data, 255)
+	dataPkts := make([]*ndni.Packet, 255)
 	entries := make([]*pit.Entry, 255)
 	fixture := NewFixture(255)
 	defer fixture.Close()
@@ -77,24 +76,25 @@ func TestToken(t *testing.T) {
 
 	for i := 0; i <= 255; i++ {
 		data := makeData(fmt.Sprintf("/I/%d", i))
-		name := data.Name().String()
+		nData := data.ToNPacket().Data
+		name := nData.Name.String()
 		if i < 32 {
-			name = data.ToNData().FullName().String()
+			name = nData.FullName().String()
 		}
 		interest := makeInterest(name)
 
 		entry, _ := pit.Insert(interest, fixture.EmptyFibEntry)
 		if i == 255 { // PCCT is full
 			assert.Nil(entry)
-			ndnitestenv.ClosePacket(data)
-			ndnitestenv.ClosePacket(interest)
+			data.Close()
+			interest.Close()
 			continue
 		}
 		require.NotNil(entry, "unexpected PCCT full at %d", i)
 
 		token := entry.PitToken()
 		assert.Equal(token&(1<<48-1), token) // token has 48 bits
-		ndnitestenv.SetPitToken(data, token)
+		data.SetPitToken(token)
 
 		interestNames[i] = name
 		dataPkts[i] = data
@@ -107,7 +107,7 @@ func TestToken(t *testing.T) {
 	for i, entry := range entries {
 		name := interestNames[i]
 		data := dataPkts[i]
-		token := ndnitestenv.PitToken(data)
+		token := data.PitToken()
 
 		found := pit.FindByData(data)
 		foundEntries := found.ListEntries()
@@ -117,7 +117,7 @@ func TestToken(t *testing.T) {
 
 		// Interest carries implicit digest, so Data digest is needed
 		if i < 32 && assert.True(found.NeedDataDigest()) {
-			data.ComputeImplicitDigest()
+			data.ComputeDataImplicitDigest()
 			found = pit.FindByData(data)
 			foundEntries = found.ListEntries()
 			if assert.Len(foundEntries, 1) {
@@ -128,9 +128,7 @@ func TestToken(t *testing.T) {
 
 		// high 16 bits of the token should be ignored
 		token2 := token ^ 0x79BC000000000000
-		nack := ndni.MakeNackFromInterest(makeInterest(name),
-			an.NackNoRoute)
-		ndnitestenv.SetPitToken(nack, token2)
+		nack := makeNack(makeInterest(name, setPitToken(token2)), an.NackNoRoute)
 		foundEntry := pit.FindByNack(nack)
 		if assert.NotNil(foundEntry) {
 			assert.Equal(uintptr(entry.Ptr()), uintptr(foundEntry.Ptr()))
@@ -138,7 +136,7 @@ func TestToken(t *testing.T) {
 
 		// name mismatch
 		data2 := makeData(fmt.Sprintf("/K/%d", i))
-		ndnitestenv.SetPitToken(data2, token)
+		data2.SetPitToken(token)
 		foundEntries = pit.FindByData(data2).ListEntries()
 		assert.Len(foundEntries, 0)
 
@@ -146,9 +144,9 @@ func TestToken(t *testing.T) {
 		foundEntry = pit.FindByNack(nack)
 		assert.Nil(foundEntry)
 
-		ndnitestenv.ClosePacket(data)
-		ndnitestenv.ClosePacket(nack)
-		ndnitestenv.ClosePacket(data2)
+		data.Close()
+		nack.Close()
+		data2.Close()
 	}
 
 	cnt := pit.ReadCounters()

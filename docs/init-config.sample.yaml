@@ -10,11 +10,7 @@ Mempool:
     Dataroom: 2176
   INDIRECT:  # indirect mbufs
     Capacity: 1048575
-  NAME:  # name linearize
-    Capacity: 65535
   HEADER:  # TX packet headers
-    Capacity: 65535
-  GUIDER:  # TX modified Interest guiders (forwarder only)
     Capacity: 65535
   INTEREST:  # TX Interests (traffic generator only)
     Capacity: 65535

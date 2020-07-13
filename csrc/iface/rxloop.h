@@ -37,7 +37,7 @@ typedef struct RxLoop
   ThreadStopFlag stop;
 } RxLoop;
 
-int
+__attribute__((nonnull)) int
 RxLoop_Run(RxLoop* rxl);
 
 #endif // NDN_DPDK_IFACE_RXLOOP_H

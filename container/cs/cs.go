@@ -40,15 +40,15 @@ func (cs *Cs) CountEntries(list ListID) int {
 	return int(C.Cs_CountEntries(cs.ptr(), C.CsListId(list)))
 }
 
-type iPitFindResult interface {
+type pitFindResult interface {
 	CopyToCPitFindResult(ptr unsafe.Pointer)
 }
 
 // Insert inserts a CS entry by replacing a PIT entry with same key.
-func (cs *Cs) Insert(data *ndni.Data, pitFound iPitFindResult) {
+func (cs *Cs) Insert(data *ndni.Packet, pitFound pitFindResult) {
 	var pitFoundC C.PitFindResult
 	pitFound.CopyToCPitFindResult(unsafe.Pointer(&pitFoundC))
-	C.Cs_Insert(cs.ptr(), (*C.Packet)(data.AsPacket().Ptr()), pitFoundC)
+	C.Cs_Insert(cs.ptr(), (*C.Packet)(data.Ptr()), pitFoundC)
 }
 
 // Erase erases a CS entry.

@@ -1,85 +1,68 @@
 package ndni
 
 /*
-#include "../csrc/ndn/name.h"
+#include "../csrc/ndni/name.h"
 */
 import "C"
 import (
-	"reflect"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
-// ToName converts LName to ndn.Name.
-func (lname LName) ToName() (name ndn.Name) {
-	var value []byte
-	sh := (*reflect.SliceHeader)(unsafe.Pointer(&value))
-	sh.Data = uintptr(unsafe.Pointer(lname.Value))
-	sh.Len = int(lname.Length)
-	sh.Cap = sh.Len
-
-	e := name.UnmarshalBinary(value)
-	if e != nil {
-		panic(e)
+// PNameToName converts PName to ndn.Name.
+func PNameToName(pname unsafe.Pointer) (name ndn.Name) {
+	p := (*C.PName)(pname)
+	if p.length == 0 {
+		return ndn.Name{}
+	}
+	value := C.GoBytes(unsafe.Pointer(p.value), C.int(p.length))
+	if e := name.UnmarshalBinary(value); e != nil {
+		log.WithError(e).Panic("name.UnmarshalBinary error")
 	}
 	return name
 }
 
-func (pname *PName) ptr() *C.PName {
-	return (*C.PName)(unsafe.Pointer(pname))
-}
+// PName represents a parsed Name.
+type PName C.PName
 
-// NewCName constructs CName from TLV-VALUE.
-func NewCName(value []byte) (cname *CName, e error) {
-	cname = new(CName)
-	res := C.PName_Parse(cname.P.ptr(), C.uint32_t(len(value)), bytesToPtr(value))
-	if res != 0 {
-		return nil, NdnError(res)
+// NewPName creates PName from ndn.Name.
+func NewPName(name ndn.Name) *PName {
+	var lname C.LName
+	if len(name) == 0 {
+		lname = C.LName_Empty()
+	} else {
+		value, _ := name.MarshalBinary()
+		valueC := C.CBytes(value)
+		lname = C.LName_Init(C.uint16_t(len(value)), (*C.uint8_t)(valueC))
 	}
-	if len(value) > 0 {
-		cname.V = &value[0]
+	pname := (*C.PName)(C.malloc(C.sizeof_PName))
+	ok := bool(C.PName_Parse(pname, lname))
+	if !ok {
+		log.WithField("name", name).Panic("PName_Parse error")
 	}
-	return cname, nil
+	return (*PName)(pname)
 }
 
-// CNameFromName converts ndn.Name to CName.
-func CNameFromName(name ndn.Name) (cname *CName) {
-	value, _ := name.MarshalBinary()
-	cname, _ = NewCName(value)
-	return cname
+// Ptr return *C.PName or *C.LName pointer.
+func (p *PName) Ptr() unsafe.Pointer {
+	return unsafe.Pointer(p)
 }
 
-// ToLName converts CName to LName.
-func (cname CName) ToLName() (lname LName) {
-	lname.Value = cname.V
-	lname.Length = cname.P.NOctets
-	return lname
+func (p *PName) lname() C.LName {
+	return *(*C.LName)(p.Ptr())
 }
 
-// ToName converts CName to ndn.Name.
-func (cname CName) ToName() (name ndn.Name) {
-	return cname.ToLName().ToName()
-}
-
-// Compare compares two CName objects.
-func (cname *CName) Compare(other *CName) int {
-	return int(C.LName_Compare(*(*C.LName)(unsafe.Pointer(cname)), *(*C.LName)(unsafe.Pointer(other))))
-}
-
-// ComputePrefixHash computes hash for prefix with i components.
-func (cname *CName) ComputePrefixHash(i int) uint64 {
-	return uint64(C.PName_ComputePrefixHash(cname.P.ptr(), (*C.uint8_t)(unsafe.Pointer(cname.V)), C.uint16_t(i)))
-}
-
-// ComputeHash computes hash for all components.
-func (cname *CName) ComputeHash() uint64 {
-	return uint64(C.PName_ComputeHash(cname.P.ptr(), (*C.uint8_t)(unsafe.Pointer(cname.V))))
-}
-
-func bytesToPtr(b []byte) *C.uint8_t {
-	if len(b) == 0 {
-		return nil
+// Free releases memory.
+func (p *PName) Free() {
+	pname := (*C.PName)(p)
+	if pname.value != nil {
+		C.free(unsafe.Pointer(pname.value))
 	}
-	return (*C.uint8_t)(unsafe.Pointer(&b[0]))
+	C.free(unsafe.Pointer(pname))
+}
+
+// ComputeHash returns LName hash.
+func (p *PName) ComputeHash() uint64 {
+	return uint64(C.LName_ComputeHash(p.lname()))
 }

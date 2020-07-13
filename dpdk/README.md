@@ -2,12 +2,6 @@
 
 This directory contains Go bindings for the [Data Plane Development Kit (DPDK)](https://www.dpdk.org/) and the [Storage Performance Development Kit (SPDK)](https://spdk.io/).
 
-## C extensions
-
-[DPDK](../csrc/dpdk):
-
-* `MbufLoc`: iterator in a multi-segment mbuf.
-
 ## Go bindings
 
 DPDK:

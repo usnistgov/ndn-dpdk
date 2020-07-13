@@ -38,15 +38,14 @@ func TestInOrderReassembler(t *testing.T) {
 			"F0F1F2F3"}, // accepted, delivering
 	}
 	for _, step := range steps {
-		fragPkt := ndni.PacketFromMbuf(makePacket(step.input))
-		e := fragPkt.ParseL2()
-		require.NoError(e, step.input)
+		fragment := makePacket(step.input)
+		require.Equal(ndni.PktFragment, fragment.Type())
 
-		reassPkt := reassembler.Receive(fragPkt)
+		reassembled := reassembler.Receive(fragment)
 		if step.output == "" {
-			assert.True(reassPkt.Ptr() == nil, step.input)
-		} else if assert.NotNil(reassPkt.Ptr(), step.input) {
-			payload := reassPkt.AsMbuf().ReadAll()
+			assert.Nil(reassembled, step.input)
+		} else if assert.NotNil(reassembled, step.input) {
+			payload := reassembled.Mbuf().Bytes()
 			assert.Equal(bytesFromHex(step.output), payload, step.input)
 		}
 	}

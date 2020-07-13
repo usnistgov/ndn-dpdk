@@ -5,7 +5,7 @@
 
 #include "../core/common.h"
 
-static inline uint64_t
+static __rte_always_inline uint64_t
 FwToken_New(uint8_t fwdId, uint64_t pccToken)
 {
   return ((uint64_t)fwdId << 56) | (pccToken & 0xFFFFFFFFFFFF);

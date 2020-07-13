@@ -5,15 +5,15 @@
 
 INIT_ZF_LOG(PingClient);
 
-static PingPatternId
+__attribute__((nonnull)) static PingPatternId
 PingClientTx_SelectPattern(PingClientTx* ct)
 {
   uint32_t rnd = pcg32_random_r(&ct->trafficRng);
   return ct->weight[rnd % ct->nWeights];
 }
 
-static void
-PingClientTx_MakeInterest(PingClientTx* ct, Packet* npkt, PingTime now)
+__attribute__((nonnull)) static void
+PingClientTx_MakeInterest(PingClientTx* ct, struct rte_mbuf* pkt, PingTime now)
 {
   PingPatternId patternId = PingClientTx_SelectPattern(ct);
   PingClientTxPattern* pattern = &ct->pattern[patternId];
@@ -30,22 +30,19 @@ PingClientTx_MakeInterest(PingClientTx* ct, Packet* npkt, PingTime now)
   } else {
     seqNum = ++pattern->seqNum.compV;
   }
-
-  struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   LName nameSuffix = { .length = PINGCLIENT_SUFFIX_LEN, .value = &pattern->seqNum.compT };
-  EncodeInterest(pkt, &pattern->tpl, nameSuffix, NonceGen_Next(&ct->nonceGen));
 
-  Packet_SetL3PktType(npkt, L3PktTypeInterest); // for stats; no PInterest*
-  Packet_InitLpL3Hdr(npkt)->pitToken = PingToken_New(patternId, ct->runNum, now);
+  uint32_t nonce = NonceGen_Next(&ct->nonceGen);
+  Packet* npkt = InterestTemplate_Encode(&pattern->tpl, pkt, nameSuffix, nonce);
+  Packet_GetLpL3Hdr(npkt)->pitToken = PingToken_New(patternId, ct->runNum, now);
   ZF_LOGD("<I pattern=%" PRIu8 " seq=%" PRIx64 "", patternId, seqNum);
 }
 
-static void
+__attribute__((nonnull)) static void
 PingClientTx_Burst(PingClientTx* ct)
 {
-  Packet* npkts[PINGCLIENT_TX_BURST_SIZE];
-  int res =
-    rte_pktmbuf_alloc_bulk(ct->interestMp, (struct rte_mbuf**)npkts, PINGCLIENT_TX_BURST_SIZE);
+  struct rte_mbuf* pkts[PINGCLIENT_TX_BURST_SIZE];
+  int res = rte_pktmbuf_alloc_bulk(ct->interestMp, pkts, PINGCLIENT_TX_BURST_SIZE);
   if (unlikely(res != 0)) {
     ZF_LOGW("interestMp-full");
     return;
@@ -53,9 +50,9 @@ PingClientTx_Burst(PingClientTx* ct)
 
   PingTime now = PingTime_Now();
   for (uint16_t i = 0; i < PINGCLIENT_TX_BURST_SIZE; ++i) {
-    PingClientTx_MakeInterest(ct, npkts[i], now);
+    PingClientTx_MakeInterest(ct, pkts[i], now);
   }
-  Face_TxBurst(ct->face, npkts, PINGCLIENT_TX_BURST_SIZE);
+  Face_TxBurst(ct->face, (Packet**)pkts, PINGCLIENT_TX_BURST_SIZE);
 }
 
 int

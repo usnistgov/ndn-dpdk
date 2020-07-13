@@ -77,7 +77,7 @@ func (vnet *VNet) bridge() {
 						continue
 					}
 					for i, pkt := range rxPkts[:nRx] {
-						txPkts[i].Append(pkt.ReadAll())
+						txPkts[i].Append(pkt.Bytes())
 					}
 
 					dstQs := dst.PortB.ListTxQueues()

@@ -4,7 +4,7 @@
 
 INIT_ZF_LOG(PingServer);
 
-static int
+__attribute__((nonnull)) static int
 PingServer_FindPattern(PingServer* server, LName name)
 {
   for (uint16_t i = 0; i < server->nPatterns; ++i) {
@@ -17,14 +17,14 @@ PingServer_FindPattern(PingServer* server, LName name)
   return -1;
 }
 
-static PingReplyId
+__attribute__((nonnull)) static PingReplyId
 PingServer_SelectReply(PingServer* server, PingServerPattern* pattern)
 {
   uint32_t rnd = pcg32_random_r(&server->replyRng);
   return pattern->weight[rnd % pattern->nWeights];
 }
 
-static Packet*
+__attribute__((nonnull)) static Packet*
 PingServer_RespondData(PingServer* server, PingServerPattern* pattern, PingServerReply* reply,
                        Packet* npkt)
 {
@@ -32,42 +32,39 @@ PingServer_RespondData(PingServer* server, PingServerPattern* pattern, PingServe
   uint64_t token = lpl3->pitToken;
   const LName* name = (const LName*)&Packet_GetInterestHdr(npkt)->name;
 
-  struct rte_mbuf* seg0 = rte_pktmbuf_alloc(server->dataMp);
-  if (unlikely(seg0 == NULL)) {
+  struct rte_mbuf* segs[2];
+
+  segs[0] = rte_pktmbuf_alloc(server->dataMp);
+  if (unlikely(segs[0] == NULL)) {
     ZF_LOGW("dataMp-full");
     ++server->nAllocError;
     rte_pktmbuf_free(Packet_ToMbuf(npkt));
     return NULL;
   }
-  struct rte_mbuf* seg1 = rte_pktmbuf_alloc(server->indirectMp);
-  if (unlikely(seg1 == NULL)) {
+
+  segs[1] = rte_pktmbuf_alloc(server->indirectMp);
+  if (unlikely(segs[1] == NULL)) {
     ZF_LOGW("indirectMp-full");
     ++server->nAllocError;
-    rte_pktmbuf_free(Packet_ToMbuf(npkt));
-    rte_pktmbuf_free(seg0);
+    segs[1] = Packet_ToMbuf(npkt);
+    rte_pktmbuf_free_bulk_(segs, 2);
     return NULL;
   }
 
-  DataGen_Encode(reply->dataGen, seg0, seg1, *name);
+  Packet* output = DataGen_Encode(reply->dataGen, segs[0], segs[1], *name);
   rte_pktmbuf_free(Packet_ToMbuf(npkt));
-
-  Packet* response = Packet_FromMbuf(seg0);
-  Packet_SetL2PktType(response, L2PktTypeNone);
-  lpl3 = Packet_InitLpL3Hdr(response);
-  lpl3->pitToken = token;
-  Packet_SetL3PktType(response, L3PktTypeData); // for stats; no PData*
-  return response;
+  Packet_GetLpL3Hdr(output)->pitToken = token;
+  return output;
 }
 
-static Packet*
+__attribute__((nonnull)) static Packet*
 PingServer_RespondNack(PingServer* server, PingServerPattern* pattern, PingServerReply* reply,
                        Packet* npkt)
 {
-  MakeNack(npkt, reply->nackReason);
-  return npkt;
+  return Nack_FromInterest(npkt, reply->nackReason);
 }
 
-static Packet*
+__attribute__((nonnull)) static Packet*
 PingServer_RespondTimeout(PingServer* server, PingServerPattern* pattern, PingServerReply* reply,
                           Packet* npkt)
 {
@@ -84,7 +81,7 @@ static const PingServer_Respond PingServer_RespondJmp[3] = {
   [PINGSERVER_REPLY_TIMEOUT] = PingServer_RespondTimeout,
 };
 
-static Packet*
+__attribute__((nonnull)) static Packet*
 PingServer_ProcessInterest(PingServer* server, Packet* npkt)
 {
   uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
@@ -95,8 +92,7 @@ PingServer_ProcessInterest(PingServer* server, Packet* npkt)
     ZF_LOGD(">I dn-token=%016" PRIx64 " no-pattern", token);
     ++server->nNoMatch;
     if (server->wantNackNoRoute) {
-      MakeNack(npkt, NackNoRoute);
-      return npkt;
+      return Nack_FromInterest(npkt, NackNoRoute);
     } else {
       rte_pktmbuf_free(Packet_ToMbuf(npkt));
       return NULL;
@@ -115,27 +111,26 @@ PingServer_ProcessInterest(PingServer* server, Packet* npkt)
 int
 PingServer_Run(PingServer* server)
 {
-  Packet* rx[MaxBurstSize];
+  struct rte_mbuf* rx[MaxBurstSize];
   Packet* tx[MaxBurstSize];
 
   while (ThreadStopFlag_ShouldContinue(&server->stop)) {
-    uint32_t nRx =
-      PktQueue_Pop(&server->rxQueue, (struct rte_mbuf**)rx, MaxBurstSize, rte_get_tsc_cycles())
-        .count;
-    if (unlikely(nRx == 0)) {
+    TscTime now = rte_get_tsc_cycles();
+    PktQueuePopResult pop = PktQueue_Pop(&server->rxQueue, rx, MaxBurstSize, now);
+    if (unlikely(pop.count == 0)) {
       rte_pause();
       continue;
     }
 
     uint16_t nTx = 0;
-    for (uint16_t i = 0; i < nRx; ++i) {
-      Packet* npkt = rx[i];
-      assert(Packet_GetL3PktType(npkt) == L3PktTypeInterest);
+    for (uint16_t i = 0; i < pop.count; ++i) {
+      Packet* npkt = Packet_FromMbuf(rx[i]);
+      assert(Packet_GetType(npkt) == PktInterest);
       tx[nTx] = PingServer_ProcessInterest(server, npkt);
-      nTx += (tx[nTx] != NULL);
+      nTx += (int)(tx[nTx] != NULL);
     }
 
-    ZF_LOGD("face=%" PRI_FaceID "nRx=%" PRIu16 " nTx=%" PRIu16, server->face, nRx, nTx);
+    ZF_LOGD("face=%" PRI_FaceID "nRx=%" PRIu16 " nTx=%" PRIu16, server->face, pop.count, nTx);
     Face_TxBurst(server->face, tx, nTx);
   }
   return 0;

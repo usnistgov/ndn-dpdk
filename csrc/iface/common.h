@@ -4,7 +4,7 @@
 /** @file */
 
 #include "../dpdk/tsc.h"
-#include "../ndn/packet.h"
+#include "../ndni/packet.h"
 #include "enum.h"
 
 #endif // NDN_DPDK_IFACE_COMMON_H

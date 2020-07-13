@@ -3,63 +3,37 @@ package tlv_test
 import (
 	"testing"
 
+	"github.com/usnistgov/ndn-dpdk/ndn/ndntestvector"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
 
 func TestElement(t *testing.T) {
 	assert, _ := makeAR(t)
 
-	const NOT_NNI uint64 = 0xB9C0CEA091E491F0
-	tests := []struct {
-		input string
-		bad   bool
-		t     uint32
-		v     string
-		nni   uint64
-	}{
-		{input: "", bad: true},                         // empty
-		{input: "01", bad: true},                       // missing TLV-LENGTH
-		{input: "01 01", bad: true},                    // incomplete TLV-VALUE
-		{input: "01 FD00", bad: true},                  // incomplete TLV-LENGTH
-		{input: "01 FF0000000100000000 A0", bad: true}, // TLV-LENGTH overflow
-		{input: "01 04 A0A1", bad: true},               // incomplete TLV-VALUE
-		{input: "00 00", bad: true},                    // zero TLV-TYPE
-		{input: "FF0000000100000000 00", bad: true},    // too large TLV-TYPE
-		{input: "01 00", t: 0x01, v: "", nni: NOT_NNI}, // zero TLV-LENGTH
-		{input: "FC 01 01", t: 0xFC, v: "01", nni: 0x01},
-		{input: "FD00FD 02 A0A1", t: 0xFD, v: "A0A1", nni: 0xA0A1},
-		{input: "FD00FF 03 A0A1A2", t: 0xFF, v: "A0A1A2", nni: NOT_NNI},
-		{input: "FE00010000 04 A0A1A2A3", t: 0x10000, v: "A0A1A2A3", nni: 0xA0A1A2A3},
-		{input: "FEFFFFFFFF 05 A0A1A2A3A4", t: 0xFFFFFFFF, v: "A0A1A2A3A4", nni: NOT_NNI},
-		{input: "01 06 A0A1A2A3A4A5", t: 0x01, v: "A0A1A2A3A4A5", nni: NOT_NNI},
-		{input: "01 07 A0A1A2A3A4A5A6", t: 0x01, v: "A0A1A2A3A4A5A6", nni: NOT_NNI},
-		{input: "01 08 A0A1A2A3A4A5A6A7", t: 0x01, v: "A0A1A2A3A4A5A6A7", nni: 0xA0A1A2A3A4A5A6A7},
-		{input: "01 09 A0A1A2A3A4A5A6A7A8", t: 0x01, v: "A0A1A2A3A4A5A6A7A8", nni: NOT_NNI},
-	}
-	for _, tt := range tests {
-		input := bytesFromHex(tt.input)
+	for _, tt := range ndntestvector.TlvElementTests {
+		input := bytesFromHex(tt.Input)
 		var element tlv.Element
 		rest, e := element.Decode(input)
 
-		if tt.bad {
-			assert.Error(e, tt.input)
-		} else if assert.NoError(e, tt.input) {
-			assert.Equal(len(input), element.Size(), tt.input)
-			assert.Len(rest, 0, tt.input)
+		if tt.Bad {
+			assert.Error(e, tt.Input)
+		} else if assert.NoError(e, tt.Input) {
+			assert.Equal(len(input), element.Size(), tt.Input)
+			assert.Len(rest, 0, tt.Input)
 
-			assert.Equal(tt.t, element.Type, tt.input)
-			value := bytesFromHex(tt.v)
-			assert.Equal(len(value), element.Length(), tt.input)
-			bytesEqual(assert, value, element.Value, tt.input)
+			assert.Equal(tt.Type, element.Type, tt.Input)
+			value := bytesFromHex(tt.Value)
+			assert.Equal(len(value), element.Length(), tt.Input)
+			bytesEqual(assert, value, element.Value, tt.Input)
 
 			var nni tlv.NNI
 			if e := nni.UnmarshalBinary(value); e == nil {
-				assert.EqualValues(tt.nni, nni, tt.input)
+				assert.EqualValues(tt.Nni, nni, tt.Input)
 				assert.Equal(len(value), nni.Size())
 				nniV, _ := nni.MarshalBinary()
 				assert.Equal(value, nniV)
 			} else {
-				assert.True(tt.nni == NOT_NNI, tt.input)
+				assert.True(tt.Nni == ndntestvector.NotNni, tt.Input)
 			}
 		}
 	}

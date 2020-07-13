@@ -2,7 +2,7 @@
 
 RxGroup theChanRxGroup_;
 
-static void
+__attribute__((nonnull)) static void
 RxLoop_Transfer(RxLoop* rxl, RxGroup* rxg)
 {
   struct rte_mbuf* frames[MaxBurstSize];
@@ -20,19 +20,18 @@ RxLoop_Transfer(RxLoop* rxl, RxGroup* rxg)
       continue;
     }
 
-    L3PktType l3type = Packet_GetL3PktType(npkt);
-    switch (l3type) {
-      case L3PktTypeInterest: {
+    switch (Packet_GetType(npkt)) {
+      case PktInterest: {
         PInterest* interest = Packet_GetInterestHdr(npkt);
         InputDemux_Dispatch(&rxl->demuxI, npkt, &interest->name);
         break;
       }
-      case L3PktTypeData: {
+      case PktData: {
         PData* data = Packet_GetDataHdr(npkt);
         InputDemux_Dispatch(&rxl->demuxD, npkt, &data->name);
         break;
       }
-      case L3PktTypeNack: {
+      case PktNack: {
         PNack* nack = Packet_GetNackHdr(npkt);
         InputDemux_Dispatch(&rxl->demuxN, npkt, &nack->interest.name);
         break;
@@ -54,8 +53,7 @@ RxLoop_Run(RxLoop* rxl)
 
     RxGroup* rxg;
     struct cds_hlist_node* pos;
-    cds_hlist_for_each_entry_rcu(rxg, pos, &rxl->head, rxlNode)
-    {
+    cds_hlist_for_each_entry_rcu (rxg, pos, &rxl->head, rxlNode) {
       RxLoop_Transfer(rxl, rxg);
     }
     rcu_read_unlock();

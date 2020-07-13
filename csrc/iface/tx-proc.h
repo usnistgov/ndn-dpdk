@@ -28,7 +28,7 @@ typedef struct TxProc
   uint64_t nAllocFails;   ///< dropped L3 packets due to allocation failure
 
   uint64_t nFrames;        ///< sent+dropped L2 frames
-  uint64_t nOctets;        ///< sent+dropped L2 octets (including NDNLP hdr but not Ethernet hdr)
+  uint64_t nOctets;        ///< sent+dropped L2 octets (including LpHeader)
   uint64_t nDroppedFrames; ///< dropped L2 frames
   uint64_t nDroppedOctets; ///< dropped L2 octets
 
@@ -39,7 +39,7 @@ typedef struct TxProc
    * packet is queuing for transmission; this counts per L3 packet.
    * This is taken before fragmentation, so that it includes packets dropped due to full queue.
    */
-  RunningStat latency[L3PktTypeMAX];
+  RunningStat latency[PktMax];
 } __rte_cache_aligned TxProc;
 
 /**
@@ -52,7 +52,7 @@ typedef struct TxProc
  * @retval 0 success
  * @retval ENOSPC MTU is too small
  */
-int
+__attribute__((nonnull)) int
 TxProc_Init(TxProc* tx, uint16_t mtu, uint16_t headroom, struct rte_mempool* indirectMp,
             struct rte_mempool* headerMp);
 
@@ -63,7 +63,7 @@ TxProc_Init(TxProc* tx, uint16_t mtu, uint16_t headroom, struct rte_mempool* ind
  * @param maxFrames size of frames array
  * @return number of L2 frames to be transmitted
  */
-static inline uint16_t
+__attribute__((nonnull)) static inline uint16_t
 TxProc_Output(TxProc* tx, Packet* npkt, struct rte_mbuf** frames, uint16_t maxFrames)
 {
   return (*tx->outputFunc)(tx, npkt, frames, maxFrames);

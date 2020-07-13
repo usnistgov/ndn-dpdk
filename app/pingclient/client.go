@@ -12,7 +12,6 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/usnistgov/ndn-dpdk/app/ping/pingmempool"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
@@ -41,7 +40,7 @@ func New(face iface.Face, cfg Config) (*Client, error) {
 
 	txC := (*C.PingClientTx)(eal.Zmalloc("PingClientTx", C.sizeof_PingClientTx, socket))
 	txC.face = (C.FaceID)(face.ID())
-	txC.interestMp = (*C.struct_rte_mempool)(pingmempool.Interest.MakePool(socket).Ptr())
+	txC.interestMp = (*C.struct_rte_mempool)(ndni.InterestMempool.MakePool(socket).Ptr())
 	C.pcg32_srandom_r(&txC.trafficRng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
 	C.NonceGen_Init(&txC.nonceGen)
 
@@ -103,9 +102,8 @@ func (client *Client) AddPattern(cfg Pattern) (index int, e error) {
 	rxP := &client.rxC.pattern[index]
 	rxP.prefixLen = C.uint16_t(cfg.Prefix.Length())
 	txP := &client.txC.pattern[index]
-	if e = ndni.InterestTemplateFromPtr(unsafe.Pointer(&txP.tpl)).Init(tplArgs...); e != nil {
-		return -1, e
-	}
+	ndni.InterestTemplateFromPtr(unsafe.Pointer(&txP.tpl)).Init(tplArgs...)
+
 	txP.seqNum.compT = C.TtGenericNameComponent
 	txP.seqNum.compL = C.uint8_t(C.sizeof_uint64_t)
 	txP.seqNum.compV = C.uint64_t(rand.Uint64())

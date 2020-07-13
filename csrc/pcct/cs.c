@@ -156,7 +156,7 @@ Cs_PutDirect(Cs* cs, Packet* npkt, PccEntry* pccEntry)
       for (int8_t i = 0; i < entry->nIndirects; ++i) {
         CsEntry* indirect = entry->indirect[i];
         PccEntry* indirectPcc = PccEntry_FromCsEntry(indirect);
-        if (unlikely(indirectPcc->key.nameL > data->name.p.nOctets)) {
+        if (unlikely(indirectPcc->key.nameL > data->name.length)) {
           ZF_LOGD("  ^ erase-implicit-digest-indirect");
           Cs_Erase_(cs, indirect);
           break;
@@ -178,7 +178,7 @@ Cs_PutDirect(Cs* cs, Packet* npkt, PccEntry* pccEntry)
     CsArc_Add(&csp->directArc, entry);
   }
   entry->data = npkt;
-  entry->freshUntil = pkt->timestamp + TscDuration_FromMillis(data->freshnessPeriod);
+  entry->freshUntil = pkt->timestamp + TscDuration_FromMillis(data->freshness);
   return entry;
 }
 
@@ -263,7 +263,7 @@ Cs_Insert(Cs* cs, Packet* npkt, PitFindResult pitFound)
   CsEntry* direct = NULL;
 
   // if Interest name differs from Data name, insert a direct entry elsewhere
-  if (unlikely(interest->name.p.nComps != data->name.p.nComps)) {
+  if (unlikely(interest->name.nComps != data->name.nComps)) {
     direct = Cs_InsertDirect(cs, npkt, interest);
     if (unlikely(direct == NULL)) { // direct entry insertion failed
       Pit_RawErase01_(pit, pccEntry);
@@ -302,8 +302,7 @@ Cs_MatchInterest_(Cs* cs, PccEntry* pccEntry, Packet* interestNpkt)
   PccEntry* pccDirect = PccEntry_FromCsEntry(direct);
 
   PInterest* interest = Packet_GetInterestHdr(interestNpkt);
-  bool violateCanBePrefix =
-    !interest->canBePrefix && interest->name.p.nOctets < pccDirect->key.nameL;
+  bool violateCanBePrefix = !interest->canBePrefix && interest->name.length < pccDirect->key.nameL;
   bool violateMustBeFresh =
     interest->mustBeFresh && !CsEntry_IsFresh(direct, Packet_ToMbuf(interestNpkt)->timestamp);
   ZF_LOGD("%p MatchInterest(%p,cs=%p~%s) cbp=%s mbf=%s has-data=%s", cs, pccEntry, entry,

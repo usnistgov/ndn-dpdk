@@ -54,15 +54,15 @@ func TestCryptoDev(t *testing.T) {
 	assert.Equal(1, qp1.DequeueBurst(ops))
 	assert.True(ops[0].IsSuccess())
 	assert.Equal(bytesFromHex("72D2A70D03005439DE209BBE9FFC050FAFD891082E9F3150F05A61054D25990F"),
-		out2.ReadAll())
+		out2.Bytes())
 
 	assert.Equal(2, qp0.DequeueBurst(ops))
 	assert.True(ops[0].IsSuccess())
 	assert.Equal(bytesFromHex("73B92B68882B199971462A2614C6691CBA581DA958740466030A64CE7DE66ED3"),
-		out0.ReadAll())
+		out0.Bytes())
 	assert.True(ops[1].IsSuccess())
 	assert.Equal(bytesFromHex("A6662B764A4468DF70CA2CAD1B17DA26C62E53439DA8E4E8A80D9B91E59D09BA"),
-		out1.ReadAll())
+		out1.Bytes())
 	assert.Equal(0, qp0.DequeueBurst(ops))
 
 	assert.Equal(3, mp.CountInUse())

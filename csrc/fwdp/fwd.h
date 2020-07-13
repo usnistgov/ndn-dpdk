@@ -38,8 +38,7 @@ typedef struct FwFwd
   uint64_t nSgNoFwd;      ///< Interests not forwarded by strategy
   uint64_t nNackMismatch; ///< Nack dropped due to outdated nonce
 
-  struct rte_mempool* headerMp;   ///< mempool for Interest/Data header
-  struct rte_mempool* guiderMp;   ///< mempool for Interest guiders
+  struct rte_mempool* headerMp;   ///< mempool for Interest/Data header/guider
   struct rte_mempool* indirectMp; ///< mempool for indirect mbufs
 
   struct rte_ring* crypto; ///< queue to crypto helper
@@ -91,13 +90,13 @@ typedef struct FwFwdCtx
   FaceID rxFace;    // F,I,D
 } FwFwdCtx;
 
-void
+__attribute__((nonnull)) void
 FwFwd_RxInterest(FwFwd* fwd, FwFwdCtx* ctx);
 
-void
+__attribute__((nonnull)) void
 FwFwd_RxData(FwFwd* fwd, FwFwdCtx* ctx);
 
-void
+__attribute__((nonnull)) void
 FwFwd_RxNack(FwFwd* fwd, FwFwdCtx* ctx);
 
 #ifdef NDEBUG
@@ -109,12 +108,5 @@ FwFwd_RxNack(FwFwd* fwd, FwFwdCtx* ctx);
     (x) = NULL;                                                                                    \
   } while (false)
 #endif
-
-static const size_t FwFwd_OffsetofQueue[L3PktTypeMAX] = {
-  SIZE_MAX,
-  offsetof(FwFwd, queueI),
-  offsetof(FwFwd, queueD),
-  offsetof(FwFwd, queueN),
-};
 
 #endif // NDN_DPDK_FWDP_FWD_H

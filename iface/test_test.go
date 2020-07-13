@@ -8,8 +8,8 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealtestenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
-	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
 )
 
 func TestMain(m *testing.M) {
@@ -26,7 +26,7 @@ func TestMain(m *testing.M) {
 var (
 	makeAR       = testenv.MakeAR
 	bytesFromHex = testenv.BytesFromHex
-	makePacket   = mbuftestenv.MakePacket
+	makePacket   = ndnitestenv.MakePacket
 
 	rxl iface.RxLoop
 	txl iface.TxLoop

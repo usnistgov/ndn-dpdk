@@ -48,8 +48,8 @@ func (pit *Pit) TriggerTimeoutSched() {
 
 // Insert attempts to insert a PIT entry for the given Interest.
 // It returns either a new or existing PIT entry, or a CS entry that satisfies the Interest.
-func (pit *Pit) Insert(interest *ndni.Interest, fibEntry *fib.Entry) (pitEntry *Entry, csEntry *cs.Entry) {
-	res := C.Pit_Insert(pit.ptr(), (*C.Packet)(interest.AsPacket().Ptr()),
+func (pit *Pit) Insert(interest *ndni.Packet, fibEntry *fib.Entry) (pitEntry *Entry, csEntry *cs.Entry) {
+	res := C.Pit_Insert(pit.ptr(), (*C.Packet)(interest.Ptr()),
 		(*C.FibEntry)(unsafe.Pointer(fibEntry)))
 	switch C.PitInsertResult_GetKind(res) {
 	case C.PIT_INSERT_PIT0, C.PIT_INSERT_PIT1:
@@ -66,14 +66,14 @@ func (pit *Pit) Erase(entry *Entry) {
 }
 
 // FindByData searches for PIT entries matching a Data.
-func (pit *Pit) FindByData(data *ndni.Data) FindResult {
-	resC := C.Pit_FindByData(pit.ptr(), (*C.Packet)(data.AsPacket().Ptr()))
+func (pit *Pit) FindByData(data *ndni.Packet) FindResult {
+	resC := C.Pit_FindByData(pit.ptr(), (*C.Packet)(data.Ptr()))
 	return FindResult(resC)
 }
 
 // FindByNack searches for PIT entries matching a Nack.
-func (pit *Pit) FindByNack(nack *ndni.Nack) *Entry {
-	entryC := C.Pit_FindByNack(pit.ptr(), (*C.Packet)(nack.AsPacket().Ptr()))
+func (pit *Pit) FindByNack(nack *ndni.Packet) *Entry {
+	entryC := C.Pit_FindByNack(pit.ptr(), (*C.Packet)(nack.Ptr()))
 	if entryC == nil {
 		return nil
 	}

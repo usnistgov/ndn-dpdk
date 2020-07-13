@@ -9,6 +9,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 // ListNames returns a list of FIB entry names.
@@ -34,12 +35,14 @@ func (fib *Fib) Find(name ndn.Name) (entry *Entry) {
 }
 
 // FindInPartition performs an exact match lookup in specified partition.
-// This method runs in the given URCU read-side thread, not necessarily the command loop.
+// This method runs in the given URCU read-side thread, not necessarily the main loop.
 func (fib *Fib) FindInPartition(name ndn.Name, partition int, rs *urcu.ReadSide) (entry *Entry) {
 	rs.Lock()
 	defer rs.Unlock()
-	length, value, hash, _ := convertName(name)
-	return entryFromPtr(C.Fib_Find_(fib.parts[partition].c, length, value, hash))
+	pname := ndni.NewPName(name)
+	defer pname.Free()
+	lname := *(*C.LName)(pname.Ptr())
+	return entryFromPtr(C.Fib_Find(fib.parts[partition].c, lname, C.uint64_t(pname.ComputeHash())))
 }
 
 // Determine what partitions would a name appear in.
@@ -66,12 +69,13 @@ func (fib *Fib) ReadEntryCounters(name ndn.Name) (cnt EntryCounters) {
 
 // Lpm performs a longest prefix match lookup.
 func (fib *Fib) Lpm(name ndn.Name) (entry *Entry) {
+	pname := ndni.NewPName(name)
+	defer pname.Free()
 	eal.CallMain(func() {
 		eal.MainReadSide.Lock()
 		defer eal.MainReadSide.Unlock()
 		_, partition := fib.ndt.Lookup(name)
-		_, value, _, pname := convertName(name)
-		entry = entryFromPtr(C.Fib_Lpm_(fib.parts[partition].c, pname, value))
+		entry = entryFromPtr(C.Fib_Lpm(fib.parts[partition].c, (*C.PName)(pname.Ptr())))
 	})
 	return entry
 }

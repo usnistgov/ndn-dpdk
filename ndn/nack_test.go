@@ -18,21 +18,21 @@ func TestNackLpEncode(t *testing.T) {
 	nackNoReason := ndn.MakeNack(interest)
 	wire, e := tlv.Encode(nackNoReason.ToPacket())
 	assert.NoError(e)
-	assert.Equal(bytesFromHex("641D pittoken=6208F7F6F5F4F3F2F1F0 nack=FD032000 payload=500D "+
-		"interest=050B 0703080141 0A04C3C2C1C0"), wire)
+	assert.Equal(bytesFromHex("641D pittoken=6208F0F1F2F3F4F5F6F7 nack=FD032000 payload=500D "+
+		"interest=050B 0703080141 0A04C0C1C2C3"), wire)
 
 	nackDuplicate := ndn.MakeNack(&interest, an.NackDuplicate)
 	wire, e = tlv.Encode(nackDuplicate.ToPacket())
 	assert.NoError(e)
-	assert.Equal(bytesFromHex("6422 pittoken=6208F7F6F5F4F3F2F1F0 nack=FD032005FD03210164 payload=500D "+
-		"interest=050B 0703080141 0A04C3C2C1C0"), wire)
+	assert.Equal(bytesFromHex("6422 pittoken=6208F0F1F2F3F4F5F6F7 nack=FD032005FD03210164 payload=500D "+
+		"interest=050B 0703080141 0A04C0C1C2C3"), wire)
 }
 
 func TestNackDecode(t *testing.T) {
 	assert, _ := makeAR(t)
 
 	var pkt ndn.Packet
-	assert.NoError(tlv.Decode(bytesFromHex("641D pittoken=6208F7F6F5F4F3F2F1F0 nack=FD032000 payload=500D "+
+	assert.NoError(tlv.Decode(bytesFromHex("641D pittoken=6208F0F1F2F3F4F5F6F7 nack=FD032000 payload=500D "+
 		"interest=050B 0703080141 0A04A0A1A2A3"), &pkt))
 	nackNoReason := pkt.Nack
 	assert.NotNil(nackNoReason)
@@ -42,7 +42,7 @@ func TestNackDecode(t *testing.T) {
 	assert.Equal(ndn.Nonce{0xA0, 0xA1, 0xA2, 0xA3}, nackNoReason.Interest.Nonce)
 	assert.Equal("/8=A~unspecified", nackNoReason.String())
 
-	assert.NoError(tlv.Decode(bytesFromHex("6422 pittoken=6208F7F6F5F4F3F2F1F0 nack=FD032005FD03210196 payload=500D "+
+	assert.NoError(tlv.Decode(bytesFromHex("6422 pittoken=6208F0F1F2F3F4F5F6F7 nack=FD032005FD03210196 payload=500D "+
 		"interest=050B 0703080141 0A04A0A1A2A3"), &pkt))
 	nackNoRoute := pkt.Nack
 	assert.NotNil(nackNoRoute)

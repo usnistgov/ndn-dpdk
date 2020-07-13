@@ -1,133 +1,142 @@
 package ndnitestenv
 
+/*
+#include "../../csrc/ndni/packet.h"
+*/
+import "C"
 import (
 	"reflect"
+	"strings"
+	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
+	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
-func makePacket(b []byte) *ndni.Packet {
+// MakePacket creates a packet.
+// input: packet bytes as []byte or HEX.
+// modifiers: optional PacketModifiers.
+func MakePacket(input interface{}, modifiers ...PacketModifier) *ndni.Packet {
+	var b []byte
+	switch inp := input.(type) {
+	case []byte:
+		b = inp
+	case string:
+		b = testenv.BytesFromHex(inp)
+	default:
+		panic("bad argument type " + reflect.TypeOf(input).String())
+	}
+
 	m := mbuftestenv.MakePacket(b)
 	m.SetTimestamp(eal.TscNow())
-	return ndni.PacketFromPtr(m.Ptr())
-}
 
-func parseL2L3(pkt *ndni.Packet) {
-	e := pkt.ParseL2()
-	if e != nil {
-		panic(e)
+	pkt := ndni.PacketFromPtr(m.Ptr())
+	ok := C.Packet_Parse((*C.Packet)(pkt.Ptr()))
+	if !bool(ok) {
+		panic("C.Packet_Parse error")
 	}
 
-	e = pkt.ParseL3(Name.Pool())
-	if e != nil {
-		panic(e)
+	for _, m := range modifiers {
+		m.modify(pkt)
 	}
-}
-
-// ActiveFHDelegation selects an active forwarding hint delegation.
-type ActiveFHDelegation int
-
-// SetActiveFH creates ActiveFHDelegation.
-func SetActiveFH(index int) ActiveFHDelegation {
-	return ActiveFHDelegation(index)
+	return pkt
 }
 
 // MakeInterest creates an Interest packet.
 // input: packet bytes as []byte or HEX, or name URI.
-// args: arguments to ndn.MakeInterest (valid if input is name URI), or ActiveFHDelegation.
-// Panics if packet constructed from bytes is not Interest.
-func MakeInterest(input interface{}, args ...interface{}) (interest *ndni.Interest) {
-	activeFh := -1
-	var nArgs []interface{}
-	for _, arg := range args {
-		switch a := arg.(type) {
-		case ActiveFHDelegation:
-			activeFh = int(a)
-		default:
-			nArgs = append(nArgs, arg)
-		}
-	}
-
-	var pkt *ndni.Packet
-	switch inp := input.(type) {
-	case []byte:
-		pkt = makePacket(inp)
-	case string:
-		if inp[0] == '/' {
-			nArgs = append(nArgs, inp)
-			nInterest := ndn.MakeInterest(nArgs...)
-			wire, e := tlv.Encode(nInterest)
-			if e != nil {
-				panic(e)
-			}
-			pkt = makePacket(wire)
-		} else {
-			pkt = makePacket(testenv.BytesFromHex(inp))
-		}
-	default:
-		panic("bad argument type " + reflect.TypeOf(input).String())
-	}
-
-	parseL2L3(pkt)
-	interest = pkt.AsInterest()
-	if activeFh >= 0 {
-		if e := interest.SelectActiveFh(activeFh); e != nil {
+// args: arguments to ndn.MakeInterest (valid if input is name URI), or PacketModifiers.
+func MakeInterest(input interface{}, args ...interface{}) (pkt *ndni.Packet) {
+	modifiers, nArgs := filterPacketModifers(args)
+	if s, ok := input.(string); ok && strings.HasPrefix(s, "/") {
+		nInterest := ndn.MakeInterest(append(nArgs, s)...)
+		wire, e := tlv.Encode(nInterest)
+		if e != nil {
 			panic(e)
 		}
+		return MakePacket(wire, modifiers...)
 	}
-	return interest
+	return MakePacket(input, modifiers...)
 }
 
 // MakeData creates a Data packet.
 // input: packet bytes as []byte or HEX, or name URI.
-// args: arguments to ndn.MakeData (valid if input is name URI).
+// args: arguments to ndn.MakeData (valid if input is name URI), or PacketModifiers.
 // Panics if packet constructed from bytes is not Data.
-func MakeData(input interface{}, args ...interface{}) *ndni.Data {
-	var pkt *ndni.Packet
-	switch inp := input.(type) {
-	case []byte:
-		pkt = makePacket(inp)
-	case string:
-		if inp[0] == '/' {
-			nArgs := append([]interface{}{inp}, args...)
-			nData := ndn.MakeData(nArgs...)
-			wire, e := tlv.Encode(nData)
-			if e != nil {
-				panic(e)
-			}
-			pkt = makePacket(wire)
-		} else {
-			pkt = makePacket(testenv.BytesFromHex(inp))
+func MakeData(input interface{}, args ...interface{}) (pkt *ndni.Packet) {
+	modifiers, nArgs := filterPacketModifers(args)
+	if s, ok := input.(string); ok && strings.HasPrefix(s, "/") {
+		nData := ndn.MakeData(append(nArgs, s)...)
+		wire, e := tlv.Encode(nData)
+		if e != nil {
+			panic(e)
 		}
-	default:
-		panic("bad argument type " + reflect.TypeOf(input).String())
+		return MakePacket(wire, modifiers...)
 	}
-
-	parseL2L3(pkt)
-	return pkt.AsData()
+	return MakePacket(input, modifiers...)
 }
 
-// SetPort updates mbuf.port field.
-func SetPort(pkt ndni.IL3Packet, port uint16) {
-	pkt.AsPacket().AsMbuf().SetPort(port)
+// MakeNack turns an Interest to a Nack.
+func MakeNack(interest *ndni.Packet, reason int) *ndni.Packet {
+	nack := C.Nack_FromInterest((*C.Packet)(interest.Ptr()), C.NackReason(reason))
+	return ndni.PacketFromPtr(unsafe.Pointer(nack))
 }
 
-// PitToken returns the PIT token.
-func PitToken(pkt ndni.IL3Packet) uint64 {
-	return pkt.AsPacket().LpL3().PitToken
+// PacketModifier is a function that modifies a created packet.
+type PacketModifier interface {
+	modify(pkt *ndni.Packet)
 }
 
-// SetPitToken updates the PIT token.
-func SetPitToken(pkt ndni.IL3Packet, token uint64) {
-	pkt.AsPacket().LpL3().PitToken = token
+func filterPacketModifers(args []interface{}) (modifiers []PacketModifier, others []interface{}) {
+	for _, arg := range args {
+		switch a := arg.(type) {
+		case PacketModifier:
+			modifiers = append(modifiers, a)
+		default:
+			others = append(others, arg)
+		}
+	}
+	return
 }
 
-// ClosePacket releases the mbuf.
-func ClosePacket(pkt ndni.IL3Packet) {
-	pkt.AsPacket().AsMbuf().Close()
+// SetActiveFwHint selects an active forwarding hint delegation.
+// This applies to Interest only.
+func SetActiveFwHint(index int) PacketModifier {
+	return modifyActiveFwHint(index)
+}
+
+type modifyActiveFwHint int
+
+func (m modifyActiveFwHint) modify(pkt *ndni.Packet) {
+	pinterest := C.Packet_GetInterestHdr((*C.Packet)(pkt.Ptr()))
+	ok := C.PInterest_SelectFwHint(pinterest, C.int(m))
+	if !bool(ok) {
+		panic("C.PInterest_SelectFwHint error")
+	}
+}
+
+// SetPitToken updates PIT token of packet.
+func SetPitToken(token uint64) PacketModifier {
+	return modifyPitToken(token)
+}
+
+type modifyPitToken uint64
+
+func (m modifyPitToken) modify(pkt *ndni.Packet) {
+	pkt.SetPitToken(uint64(m))
+}
+
+// SetFace updates ingress faceID of packet.
+func SetFace(faceID iface.ID) PacketModifier {
+	return modifyPort(faceID)
+}
+
+type modifyPort uint16
+
+func (m modifyPort) modify(pkt *ndni.Packet) {
+	pkt.Mbuf().SetPort(uint16(m))
 }

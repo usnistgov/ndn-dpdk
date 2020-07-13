@@ -26,7 +26,7 @@ typedef struct PitDnUpIt_
   PitEntryExt** nextPtr; ///< (pvt) next extension
 } PitDnUpIt_;
 
-static inline void
+__attribute__((nonnull)) static inline void
 PitDnUpIt_Init_(PitDnUpIt_* it, PitEntry* entry, int maxInEntry, size_t offsetInEntry)
 {
   it->index = 0;
@@ -36,7 +36,7 @@ PitDnUpIt_Init_(PitDnUpIt_* it, PitEntry* entry, int maxInEntry, size_t offsetIn
   it->nextPtr = &entry->ext;
 }
 
-static inline void
+__attribute__((nonnull)) static inline void
 PitDnUpIt_Next_(PitDnUpIt_* it, int maxInExt, size_t offsetInExt)
 {
   assert(it->i < it->max);
@@ -56,7 +56,7 @@ PitDnUpIt_Next_(PitDnUpIt_* it, int maxInExt, size_t offsetInExt)
   it->nextPtr = &ext->next;
 }
 
-bool
+__attribute__((nonnull)) bool
 PitDnUpIt_Extend_(PitDnUpIt_* it, Pit* pit, int maxInExt, size_t offsetInExt);
 
 /**
@@ -72,20 +72,20 @@ PitDnUpIt_Extend_(PitDnUpIt_* it, Pit* pit, int maxInExt, size_t offsetInExt);
  */
 typedef PitDnUpIt_ PitDnIt;
 
-static inline void
+__attribute__((nonnull)) static inline void
 PitDnIt_Init(PitDnIt* it, PitEntry* entry)
 {
   PitDnUpIt_Init_(it, entry, PIT_ENTRY_MAX_DNS, offsetof(PitEntry, dns));
   it->dn = &it->dns[it->i];
 }
 
-static inline bool
+__attribute__((nonnull)) static inline bool
 PitDnIt_Valid(PitDnIt* it)
 {
   return it->i < it->max;
 }
 
-static inline void
+__attribute__((nonnull)) static inline void
 PitDnIt_Next(PitDnIt* it)
 {
   PitDnUpIt_Next_(it, PIT_ENTRY_EXT_MAX_DNS, offsetof(PitEntryExt, dns));
@@ -97,7 +97,7 @@ PitDnIt_Next(PitDnIt* it)
  * @retval true extension added, iterator points to next slot.
  * @retval false unable to allocate extension
  */
-static inline bool
+__attribute__((nonnull)) static inline bool
 PitDnIt_Extend(PitDnIt* it, Pit* pit)
 {
   bool ok = PitDnUpIt_Extend_(it, pit, PIT_ENTRY_EXT_MAX_DNS, offsetof(PitEntryExt, dns));
@@ -118,20 +118,20 @@ PitDnIt_Extend(PitDnIt* it, Pit* pit)
  */
 typedef PitDnUpIt_ PitUpIt;
 
-static inline void
+__attribute__((nonnull)) static inline void
 PitUpIt_Init(PitUpIt* it, PitEntry* entry)
 {
   PitDnUpIt_Init_(it, entry, PIT_ENTRY_MAX_UPS, offsetof(PitEntry, ups));
   it->up = &it->ups[it->i];
 }
 
-static inline bool
+__attribute__((nonnull)) static inline bool
 PitUpIt_Valid(PitUpIt* it)
 {
   return it->i < it->max;
 }
 
-static inline void
+__attribute__((nonnull)) static inline void
 PitUpIt_Next(PitUpIt* it)
 {
   PitDnUpIt_Next_(it, PIT_ENTRY_EXT_MAX_UPS, offsetof(PitEntryExt, ups));
@@ -143,7 +143,7 @@ PitUpIt_Next(PitUpIt* it)
  * @retval true extension added, iterator points to next slot.
  * @retval false unable to allocate extension
  */
-static inline bool
+__attribute__((nonnull)) static inline bool
 PitUpIt_Extend(PitDnIt* it, Pit* pit)
 {
   bool ok = PitDnUpIt_Extend_(it, pit, PIT_ENTRY_EXT_MAX_UPS, offsetof(PitEntryExt, ups));

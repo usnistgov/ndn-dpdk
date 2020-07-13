@@ -5,7 +5,7 @@
 
 #include "entry-struct.h"
 
-static inline void
+__attribute__((nonnull)) static inline void
 FibEntry_Copy(FibEntry* dst, const FibEntry* src)
 {
   rte_memcpy(dst->copyBegin_, src->copyBegin_,
@@ -35,7 +35,7 @@ static_assert(CHAR_BIT * sizeof(FibNexthopFilter) >= FIB_ENTRY_MAX_NEXTHOPS, "")
  * @param[inout] filter original and updated filter.
  * @return how many nexthops pass the filter after the update.
  */
-static inline int
+__attribute__((nonnull)) static inline int
 FibNexthopFilter_Reject(FibNexthopFilter* filter, const FibEntry* entry, FaceID nh)
 {
   int count = 0;

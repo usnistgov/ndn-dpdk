@@ -1,29 +1,26 @@
 #include "fetcher.h"
 
 #include "../core/logger.h"
-#include "../ndn/nni.h"
+#include "../ndni/nni.h"
 
 INIT_ZF_LOG(FetchProc);
 
 #define FETCHER_TX_BURST_SIZE 64
 
-static void
-FetchProc_Encode(FetchProc* fp, FetchThread* fth, Packet* npkt, uint64_t segNum)
+__attribute__((nonnull)) static void
+FetchProc_Encode(FetchProc* fp, FetchThread* fth, struct rte_mbuf* pkt, uint64_t segNum)
 {
   uint8_t suffix[10];
   suffix[0] = TtSegmentNameComponent;
-  suffix[1] = EncodeNni(&suffix[2], segNum);
+  suffix[1] = Nni_Encode(RTE_PTR_ADD(suffix, 2), segNum);
   LName nameSuffix = { .length = suffix[1] + 2, .value = suffix };
 
-  struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   uint32_t nonce = NonceGen_Next(&fth->nonceGen);
-  EncodeInterest(pkt, &fp->tpl, nameSuffix, nonce);
-
-  Packet_SetL3PktType(npkt, L3PktTypeInterest); // for stats; no PInterest*
-  Packet_InitLpL3Hdr(npkt)->pitToken = fp->pitToken;
+  Packet* npkt = InterestTemplate_Encode(&fp->tpl, pkt, nameSuffix, nonce);
+  Packet_GetLpL3Hdr(npkt)->pitToken = fp->pitToken;
 }
 
-static void
+__attribute__((nonnull)) static void
 FetchProc_TxBurst(FetchProc* fp, FetchThread* fth)
 {
   uint64_t segNums[FETCHER_TX_BURST_SIZE];
@@ -32,36 +29,36 @@ FetchProc_TxBurst(FetchProc* fp, FetchThread* fth)
     return;
   }
 
-  Packet* npkts[FETCHER_TX_BURST_SIZE];
-  int res = rte_pktmbuf_alloc_bulk(fth->interestMp, (struct rte_mbuf**)npkts, count);
+  struct rte_mbuf* pkts[FETCHER_TX_BURST_SIZE];
+  int res = rte_pktmbuf_alloc_bulk(fth->interestMp, pkts, count);
   if (unlikely(res != 0)) {
     ZF_LOGW("%p interestMp-full", fp);
     return;
   }
 
   for (size_t i = 0; i < count; ++i) {
-    FetchProc_Encode(fp, fth, npkts[i], segNums[i]);
+    FetchProc_Encode(fp, fth, pkts[i], segNums[i]);
   }
-  Face_TxBurst(fth->face, npkts, count);
+  Face_TxBurst(fth->face, (Packet**)pkts, count);
 }
 
-static bool
+__attribute__((nonnull)) static bool
 FetchProc_Decode(FetchProc* fp, Packet* npkt, FetchLogicRxData* lpkt)
 {
-  if (unlikely(Packet_GetL3PktType(npkt) != L3PktTypeData)) {
+  if (unlikely(Packet_GetType(npkt) != PktData)) {
     return false;
   }
   LpL3* lpl3 = Packet_GetLpL3Hdr(npkt);
   lpkt->congMark = lpl3->congMark;
 
   const PData* data = Packet_GetDataHdr(npkt);
-  const uint8_t* seqNumComp = RTE_PTR_ADD(data->name.v, fp->tpl.prefixL);
-  return data->name.p.nOctets > fp->tpl.prefixL + 1 &&
-         memcmp(data->name.v, fp->tpl.prefixV, fp->tpl.prefixL + 1) == 0 &&
-         DecodeNni(seqNumComp[1], &seqNumComp[2], &lpkt->segNum) == NdnErrOK;
+  const uint8_t* seqNumComp = RTE_PTR_ADD(data->name.value, fp->tpl.prefixL);
+  return data->name.length > fp->tpl.prefixL + 1 &&
+         memcmp(data->name.value, fp->tpl.prefixV, fp->tpl.prefixL + 1) == 0 &&
+         Nni_Decode(seqNumComp[1], RTE_PTR_ADD(seqNumComp, 2), &lpkt->segNum);
 }
 
-static void
+__attribute__((nonnull)) static void
 FetchProc_RxBurst(FetchProc* fp)
 {
   Packet* npkts[MaxBurstSize];
@@ -80,14 +77,6 @@ FetchProc_RxBurst(FetchProc* fp)
   FreeMbufs((struct rte_mbuf**)npkts, nRx);
 }
 
-void
-FetchProc_Once(FetchProc* fp, FetchThread* fth)
-{
-  MinSched_Trigger(fp->logic.sched);
-  FetchProc_TxBurst(fp, fth);
-  FetchProc_RxBurst(fp);
-}
-
 int
 FetchThread_Run(FetchThread* fth)
 {
@@ -97,9 +86,10 @@ FetchThread_Run(FetchThread* fth)
 
     FetchProc* fp;
     struct cds_hlist_node* pos;
-    cds_hlist_for_each_entry_rcu(fp, pos, &fth->head, fthNode)
-    {
-      FetchProc_Once(fp, fth);
+    cds_hlist_for_each_entry_rcu (fp, pos, &fth->head, fthNode) {
+      MinSched_Trigger(fp->logic.sched);
+      FetchProc_TxBurst(fp, fth);
+      FetchProc_RxBurst(fp);
     }
     rcu_read_unlock();
   }

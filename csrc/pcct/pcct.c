@@ -26,14 +26,14 @@ INIT_ZF_LOG(Pcct);
 
 #define PCCT_TOKEN_MASK (((uint64_t)1 << 48) - 1)
 
-static void
+__attribute__((nonnull)) static void
 Pcct_KeyHt_Expand_(UT_hash_table* tbl)
 {
   ZF_LOGE("KeyHt(%p) Expand-rejected num_items=%u num_buckets=%u", tbl, tbl->num_items,
           tbl->num_buckets);
 }
 
-static uint32_t
+__attribute__((nonnull)) static uint32_t
 Pcct_TokenHt_Hash_(const void* key, uint32_t keyLen, uint32_t initVal)
 {
   assert(keyLen == sizeof(uint32_t) * 2);
@@ -41,7 +41,7 @@ Pcct_TokenHt_Hash_(const void* key, uint32_t keyLen, uint32_t initVal)
   return rte_jhash_2words(words[0], words[1], initVal);
 }
 
-static int
+__attribute__((nonnull)) static int
 Pcct_TokenHt_Cmp_(const void* key1, const void* key2, size_t kenLen)
 {
   assert(kenLen == sizeof(uint64_t));

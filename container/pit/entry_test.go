@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/container/pit"
+	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
-	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
 )
 
 func TestEntryExpiry(t *testing.T) {
@@ -16,14 +16,10 @@ func TestEntryExpiry(t *testing.T) {
 	defer fixture.Close()
 
 	// lifetime 100ms
-	interest1 := makeInterest("/A/B", 100*time.Millisecond)
-	ndnitestenv.SetPitToken(interest1, 0xB0B1B2B3B4B5B6B7)
-	ndnitestenv.SetPort(interest1, 1001)
+	interest1 := makeInterest("/A/B", 100*time.Millisecond, setPitToken(0xB0B1B2B3B4B5B6B7), setFace(1001))
 
 	// lifetime 400ms
-	interest2 := makeInterest("/A/B", 400*time.Millisecond)
-	ndnitestenv.SetPitToken(interest2, 0xB8B9BABBBCBDBEBF)
-	ndnitestenv.SetPort(interest2, 1002)
+	interest2 := makeInterest("/A/B", 400*time.Millisecond, setPitToken(0xB8B9BABBBCBDBEBF), setFace(1002))
 
 	entry := fixture.Insert(interest1)
 	require.NotNil(entry)
@@ -53,9 +49,7 @@ func TestEntryExtend(t *testing.T) {
 	var entry *pit.Entry
 
 	for i := 0; i < 512; i++ {
-		interest := makeInterest("/A/B")
-		ndnitestenv.SetPitToken(interest, uint64(0xB0B1B2B300000000)|uint64(i))
-		ndnitestenv.SetPort(interest, uint16(1000+i))
+		interest := makeInterest("/A/B", setPitToken(0xB0B1B2B300000000|uint64(i)), setFace(iface.ID(1000+i)))
 
 		entry = fixture.Insert(interest)
 		require.NotNil(entry)
@@ -77,9 +71,7 @@ func TestEntryLongName(t *testing.T) {
 
 	interest := makeInterest(strings.Repeat("/LLLLLLLL", 180),
 		ndn.MakeFHDelegation(1, strings.Repeat("/FHFHFHFH", 70)),
-		setActiveFH(0))
-	ndnitestenv.SetPitToken(interest, 0xB0B1B2B3B4B5B6B7)
-	ndnitestenv.SetPort(interest, 1000)
+		setActiveFwHint(0), setPitToken(0xB0B1B2B3B4B5B6B7), setFace(1000))
 
 	entry := fixture.Insert(interest)
 	require.NotNil(entry)

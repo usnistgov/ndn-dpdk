@@ -9,16 +9,13 @@ all: gopkg npm cmds
 gopkg: godeps
 	go build -v ./...
 
-godeps: app/version/version.go ndni/enum_string.go strategy/strategyelf/bindata.go build/libndn-dpdk-c.a build/cgoflags.done build/cgostruct.done
+godeps: app/version/version.go ndni/ndnitest/cgo_test.go strategy/strategyelf/bindata.go build/libndn-dpdk-c.a build/cgoflags.done build/cgostruct.done
 
 .PHONY: app/version/version.go
 app/version/version.go:
 	app/version/make-version.sh
 
-csrc/ndn/an.h: ndn/an/*.go
-	mk/gogenerate.sh ./$(<D)
-
-csrc/ndn/enum.h ndni/enum_string.go: ndni/enum.go
+csrc/ndni/enum.h csrc/ndni/an.h: ndni/enum.go ndn/an/*.go
 	mk/gogenerate.sh ./$(<D)
 
 csrc/iface/enum.h: iface/enum.go
@@ -27,11 +24,14 @@ csrc/iface/enum.h: iface/enum.go
 csrc/pcct/cs-enum.h: container/cs/enum.go
 	mk/gogenerate.sh ./$(<D)
 
+ndni/ndnitest/cgo_test.go: ndni/ndnitest/*_ctest.go
+	mk/gogenerate.sh ./$(<D)
+
 strategy/strategyelf/bindata.go: strategy/*.c
 	mk/gogenerate.sh ./$(@D)
 
 .PHONY: build/libndn-dpdk-c.a
-build/libndn-dpdk-c.a: build/build.ninja csrc/ndn/an.h csrc/ndn/enum.h csrc/iface/enum.h csrc/pcct/cs-enum.h
+build/libndn-dpdk-c.a: build/build.ninja csrc/ndni/an.h csrc/ndni/enum.h csrc/iface/enum.h csrc/pcct/cs-enum.h
 	cd build && ninja
 
 build/cgoflags.done: build/build.ninja

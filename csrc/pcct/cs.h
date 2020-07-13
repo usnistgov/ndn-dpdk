@@ -9,36 +9,36 @@
 #include "pit-result.h"
 
 /** @brief Cast Pcct* as Cs*. */
-static inline Cs*
+static __rte_always_inline Cs*
 Cs_FromPcct(const Pcct* pcct)
 {
   return (Cs*)pcct;
 }
 
 /** @brief Cast Cs* as Pcct*. */
-static inline Pcct*
+static __rte_always_inline Pcct*
 Cs_ToPcct(const Cs* cs)
 {
   return (Pcct*)cs;
 }
 
 /** @brief Access CsPriv* struct. */
-static inline CsPriv*
+__attribute__((nonnull)) static __rte_always_inline CsPriv*
 Cs_GetPriv(const Cs* cs)
 {
   return &Pcct_GetPriv(Cs_ToPcct(cs))->csPriv;
 }
 
 /** @brief Constructor. */
-void
+__attribute__((nonnull)) void
 Cs_Init(Cs* cs, uint32_t capMd, uint32_t capMi);
 
 /** @brief Get capacity in number of entries. */
-uint32_t
+__attribute__((nonnull)) uint32_t
 Cs_GetCapacity(const Cs* cs, CsListId cslId);
 
 /** @brief Get number of entries. */
-uint32_t
+__attribute__((nonnull)) uint32_t
 Cs_CountEntries(const Cs* cs, CsListId cslId);
 
 /**
@@ -48,7 +48,7 @@ Cs_CountEntries(const Cs* cs, CsListId cslId);
  *                 satisfied by this Data; its kind must not be PIT_FIND_NONE.
  * @post PIT entries contained in @p pitFound are removed.
  */
-void
+__attribute__((nonnull)) void
 Cs_Insert(Cs* cs, Packet* npkt, PitFindResult pitFound);
 
 /**
@@ -56,14 +56,14 @@ Cs_Insert(Cs* cs, Packet* npkt, PitFindResult pitFound);
  * @param pccEntry the PCC entry containing CS entry
  * @post the CS entry is erased if it would conflict with a PIT entry for the Interest.
  */
-bool
+__attribute__((nonnull)) bool
 Cs_MatchInterest_(Cs* cs, PccEntry* pccEntry, Packet* interestNpkt);
 
 /**
  * @brief Erase a CS entry.
  * @post @p entry is no longer valid.
  */
-void
+__attribute__((nonnull)) void
 Cs_Erase(Cs* cs, CsEntry* entry);
 
 #endif // NDN_DPDK_PCCT_CS_H

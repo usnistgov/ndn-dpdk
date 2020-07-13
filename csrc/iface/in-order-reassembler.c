@@ -38,7 +38,8 @@ InOrderReassembler_Receive(InOrderReassembler* r, Packet* npkt)
 
   ++r->nAccepted;
   struct rte_mbuf* newTail = rte_pktmbuf_lastseg(frame);
-  Packet_Chain(r->head, r->tail, frame);
+  bool ok __rte_unused = Mbuf_Chain(r->head, r->tail, frame);
+  assert(ok);
   r->tail = newTail;
   r->nextSeqNo = lpl2->seqNum + 1;
 

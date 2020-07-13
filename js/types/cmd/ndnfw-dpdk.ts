@@ -17,7 +17,7 @@ export interface FwdpInitConfig {
 }
 
 export interface NdnfwInitConfig {
-  Mempool?: PktmbufPoolTemplateUpdates<"DIRECT"|"INDIRECT"|"NAME"|"HEADER"|"GUIDER">;
+  Mempool?: PktmbufPoolTemplateUpdates<"DIRECT"|"INDIRECT"|"HEADER">;
   LCoreAlloc?: LCoreAllocConfig<"RX"|"TX"|"CRYPTO"|"FWD">;
   Face?: CreateFaceConfig;
   Ndt?: NdtConfig;

@@ -131,14 +131,9 @@ func newFace(p NewOptions) (Face, error) {
 
 	indirectMp := pktmbuf.Indirect.MakePool(p.Socket)
 	headerMp := ndni.HeaderMempool.MakePool(p.Socket)
-	nameMp := ndni.NameMempool.MakePool(p.Socket)
 
 	if res := C.TxProc_Init(&c.impl.tx, C.uint16_t(p.TxMtu), C.uint16_t(p.TxHeadroom),
 		(*C.struct_rte_mempool)(indirectMp.Ptr()), (*C.struct_rte_mempool)(headerMp.Ptr())); res != 0 {
-		return f.clear(), eal.Errno(res)
-	}
-
-	if res := C.RxProc_Init(&c.impl.rx, (*C.struct_rte_mempool)(nameMp.Ptr())); res != 0 {
 		return f.clear(), eal.Errno(res)
 	}
 

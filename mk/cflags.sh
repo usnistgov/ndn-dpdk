@@ -5,9 +5,5 @@ CGO_LIBS='-L/usr/local/lib -lurcu-qsbr -lurcu-cds -lubpf -lspdk -lspdk_env_dpdk 
 
 if [[ -n $RELEASE ]]; then
   export CFLAGS='-DNDEBUG -DZF_LOG_DEF_LEVEL=ZF_LOG_INFO'
-  CGO_CFLAGS=$CGO_CFLAGS' '$EXTRA_CFLAGS
-fi
-
-if [[ $CC =~ clang ]]; then
-  CGO_CFLAGS=$CGO_CFLAGS' -Wno-address-of-packed-member'
+  CGO_CFLAGS=$CGO_CFLAGS' '$CFLAGS
 fi

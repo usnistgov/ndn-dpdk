@@ -15,7 +15,7 @@ typedef struct Fib
 } Fib;
 
 /** @brief Cast Fib* as rte_mempool*. */
-static inline struct rte_mempool*
+static __rte_always_inline struct rte_mempool*
 Fib_ToMempool(const Fib* fib)
 {
   return (struct rte_mempool*)fib;
@@ -30,7 +30,7 @@ typedef struct FibPriv
 } FibPriv;
 
 /** @brief Access FibPriv* struct. */
-static inline FibPriv*
+__attribute__((nonnull, returns_nonnull)) static __rte_always_inline FibPriv*
 Fib_GetPriv(const Fib* fib)
 {
   return (FibPriv*)rte_mempool_get_priv(Fib_ToMempool(fib));
@@ -56,11 +56,11 @@ void
 Fib_Close(Fib* fib);
 
 /** @brief Allocate FIB entries from mempool. */
-bool
+__attribute__((nonnull)) bool
 Fib_AllocBulk(Fib* fib, FibEntry* entries[], unsigned count);
 
 /** @brief Deallocate an unused FIB entry. */
-void
+__attribute__((nonnull)) void
 Fib_Free(Fib* fib, FibEntry* entry);
 
 typedef enum Fib_FreeOld
@@ -76,14 +76,14 @@ typedef enum Fib_FreeOld
  * @param entry an entry allocated from @c Fib_Alloc.
  * @pre Calling thread holds rcu_read_lock.
  */
-void
+__attribute__((nonnull)) void
 Fib_Insert(Fib* fib, FibEntry* entry, Fib_FreeOld freeVirt, Fib_FreeOld freeReal);
 
 /**
  * @brief Erase given FIB entry.
  * @pre Calling thread holds rcu_read_lock.
  */
-void
+__attribute__((nonnull)) void
 Fib_Erase(Fib* fib, FibEntry* entry, Fib_FreeOld freeVirt, Fib_FreeOld freeReal);
 
 /**
@@ -92,15 +92,8 @@ Fib_Erase(Fib* fib, FibEntry* entry, Fib_FreeOld freeVirt, Fib_FreeOld freeReal)
  *      using the returned entry.
  * @return Virtual or real entry, or NULL if it does not exist.
  */
-FibEntry*
+__attribute__((nonnull)) FibEntry*
 Fib_Get(Fib* fib, LName name, uint64_t hash);
-
-static inline FibEntry*
-Fib_Get_(Fib* fib, uint16_t nameL, const uint8_t* nameV, uint64_t hash)
-{
-  LName name = { .length = nameL, .value = nameV };
-  return Fib_Get(fib, name, hash);
-}
 
 /**
  * @brief Perform exact match.
@@ -108,21 +101,11 @@ Fib_Get_(Fib* fib, uint16_t nameL, const uint8_t* nameV, uint64_t hash)
  *      using the returned entry.
  * @return Real entry, or NULL if it does not exist.
  */
-static inline FibEntry*
+__attribute__((nonnull)) static __rte_always_inline FibEntry*
 Fib_Find(Fib* fib, LName name, uint64_t hash)
 {
   return FibEntry_GetReal(Fib_Get(fib, name, hash));
 }
-
-static inline FibEntry*
-Fib_Find_(Fib* fib, uint16_t nameL, const uint8_t* nameV, uint64_t hash)
-{
-  LName name = { .length = nameL, .value = nameV };
-  return Fib_Find(fib, name, hash);
-}
-
-FibEntry*
-Fib_Lpm_(Fib* fib, const PName* name, const uint8_t* nameV);
 
 /**
  * @brief Perform longest prefix match.
@@ -130,10 +113,7 @@ Fib_Lpm_(Fib* fib, const PName* name, const uint8_t* nameV);
  *      using the returned entry.
  * @return Real entry, or NULL if it does not exist.
  */
-static inline FibEntry*
-Fib_Lpm(Fib* fib, const Name* name)
-{
-  return Fib_Lpm_(fib, &name->p, name->v);
-}
+__attribute__((nonnull)) FibEntry*
+Fib_Lpm(Fib* fib, const PName* name);
 
 #endif // NDN_DPDK_FIB_FIB_H

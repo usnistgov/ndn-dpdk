@@ -1,11 +1,34 @@
 package ndni
 
-//go:generate stringer -type=NdnError,L2PktType,L3PktType,DataSatisfyResult -output=enum_string.go
-//go:generate go run ../mk/enumgen/ -guard=NDN_DPDK_NDN_ENUM_H -out=../csrc/ndn/enum.h .
+import (
+	"crypto/sha256"
+	"time"
+
+	"github.com/usnistgov/ndn-dpdk/ndn"
+)
+
+//go:generate go run ../mk/enumgen/ -guard=NDN_DPDK_NDNI_ENUM_H -out=../csrc/ndni/enum.h .
+//go:generate go run ../mk/enumgen/ -guard=NDN_DPDK_NDNI_AN_H -out=../csrc/ndni/an.h ../ndn/an
 
 const (
 	// NameMaxLength is the maximum TLV-LENGTH for Name.
 	NameMaxLength = 2048
+
+	// ImplicitDigestLength is the TLV-LENGTH of ImplicitDigestNameComponent.
+	ImplicitDigestLength = 32
+
+	// ImplicitDigestSize is size of of ImplicitDigestNameComponent TLV.
+	ImplicitDigestSize = 34
+
+	// PNameCachedComponents is the number of cached component boundaries and hashes in PName struct.
+	PNameCachedComponents = 17
+
+	// PInterestMaxFwHints is the maximum number of decoded forwarding hints on Interest.
+	// Additional forwarding hints are ignored.
+	PInterestMaxFwHints = 4
+
+	// DefaultInterestLifetime is the default value of InterestLifetime.
+	DefaultInterestLifetime = 4000
 
 	// LpHeaderEstimatedHeadroom is a safe headroom to prepend NDNLPv2 header.
 	LpHeaderEstimatedHeadroom = 0 +
@@ -22,85 +45,53 @@ const (
 	// It can accommodate two forwarding hints.
 	InterestTemplateBufLen = 2*NameMaxLength + 256
 
-	// InterestEstimatedHeadroom is a safe headroom to encode Interest.
-	InterestEstimatedHeadroom = 1 + 5 // Interest TL
-
-	// InterestEstimatedTailroom is a safe tailroom to encode Interest.
-	InterestEstimatedTailroom = 4 + NameMaxLength + InterestTemplateBufLen
-
-	// DataEstimatedHeadroom is a safe headroom to encode Data.
-	DataEstimatedHeadroom = 1 + 5 // Data TL
-
-	// DataEstimatedTailroom is a safe tailroom to encode Data, excluding payload.
-	DataEstimatedTailroom = 0 +
+	// InterestTemplateDataroom is a safe buffer size to encode Interest.
+	InterestTemplateDataroom = 0 +
+		1 + 5 + // Interest TL
 		1 + 3 + NameMaxLength + // Name
+		InterestTemplateBufLen // other fields
+
+	// DataGenBufLen is the buffer length for DataGen.
+	DataGenBufLen = 0 +
+		1 + 3 + NameMaxLength + // Name suffix
 		1 + 1 + 1 + 1 + 4 + // MetaInfo with FreshnessPeriod
 		1 + 3 + 0 + // Content TL
 		39 // Signature
 
+	// DataGenDataroom is a safe buffer size to encode Data.
+	DataGenDataroom = 0 +
+		1 + 5 + // Data TL
+		1 + 3 + NameMaxLength // Name prefix
+
 	_ = "enumgen"
 )
 
-// NdnError indicates an error condition.
-type NdnError int
-
-// NdnError values.
-const (
-	NdnErrOK NdnError = iota
-	NdnErrIncomplete
-	NdnErrAllocError
-	NdnErrLengthOverflow
-	NdnErrBadType
-	NdnErrBadNni
-	NdnErrFragmented
-	NdnErrUnknownCriticalLpHeader
-	NdnErrFragIndexExceedFragCount
-	NdnErrLpHasTrailer
-	NdnErrBadLpSeqNum
-	NdnErrBadPitToken
-	NdnErrNameIsEmpty
-	NdnErrNameTooLong
-	NdnErrBadNameComponentType
-	NdnErrNameHasComponentAfterDigest
-	NdnErrBadDigestComponentLength
-	NdnErrBadNonceLength
-	NdnErrBadInterestLifetime
-	NdnErrBadHopLimitLength
-	NdnErrHopLimitZero
-
-	_ = "enumgen:NdnError"
-)
-
-func (e NdnError) Error() string {
-	return e.String()
+func _() {
+	var x [1]int
+	x[ndn.DefaultInterestLifetime-(DefaultInterestLifetime*time.Millisecond)] = 0
+	x[sha256.Size-ImplicitDigestLength] = 0
 }
 
-// L2PktType indicates layer 2 packet type.
-type L2PktType int
+// PktType indicates packet type in mbuf.
+type PktType int
 
-// L2PktType values.
+// PktType values.
 const (
-	L2PktTypeNone L2PktType = iota
-	L2PktTypeNdnlpV2
+	PktFragment PktType = iota
+	PktInterest         // Interest
+	PktData             // Data
+	PktNack             // Nack
+	_
+	PktSInterest // Interest unparsed
+	PktSData     // Data unparsed
+	PktSNack     // Nack unparsed
 
-	_ = "enumgen:L2PktType"
+	PktMax = PktNack + 1 // maximum excluding slim types
+
+	_ = "enumgen:PktType"
 )
 
-// L3PktType indicates layer 3 packet type.
-type L3PktType int
-
-// L3PktType values.
-const (
-	L3PktTypeNone L3PktType = iota
-	L3PktTypeInterest
-	L3PktTypeData
-	L3PktTypeNack
-	L3PktTypeMAX
-
-	_ = "enumgen:L3PktType"
-)
-
-// DataSatisfyResult indicates the result of data.CanSatisfy function.
+// DataSatisfyResult indicates the result of Data.CanSatisfy function.
 type DataSatisfyResult int
 
 // DataSatisfyResult values.

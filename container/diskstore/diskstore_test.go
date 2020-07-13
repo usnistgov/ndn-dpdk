@@ -44,7 +44,7 @@ func TestDiskStore(t *testing.T) {
 
 	for _, n := range []uint64{1, 31, 32} {
 		data := makeData(fmt.Sprintf("/A/%d", n), time.Duration(n)*time.Millisecond)
-		dataLens[n] = data.AsPacket().AsMbuf().Len()
+		dataLens[n] = data.Mbuf().Len()
 		store.PutData(n, data)
 	}
 	time.Sleep(100 * time.Millisecond) // give time for asynchronous PutData operation
@@ -56,10 +56,10 @@ func TestDiskStore(t *testing.T) {
 			continue
 		}
 		if assert.NotNil(data, n) {
-			assert.Equal(time.Duration(n)*time.Millisecond, data.FreshnessPeriod(), n)
-			closePacket(data)
+			assert.Equal(time.Duration(n)*time.Millisecond, data.ToNPacket().Data.Freshness, n)
+			data.Close()
 		}
-		closePacket(interest)
+		interest.Close()
 	}
 
 	for _, n := range []uint64{2, 32} {
@@ -69,7 +69,7 @@ func TestDiskStore(t *testing.T) {
 			continue
 		}
 		assert.Nil(data, n)
-		closePacket(interest)
+		interest.Close()
 	}
 
 	assert.Zero(mp.CountInUse())

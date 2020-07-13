@@ -24,16 +24,28 @@ type Config struct {
 type Ndt C.Ndt
 
 // New creates an Ndt.
-func New(cfg Config, sockets []eal.NumaSocket) (ndt *Ndt) {
-	socketsC := make([]C.uint, len(sockets))
-	for i, socket := range sockets {
-		socketsC[i] = C.uint(socket.ID())
-	}
+// sockets indicates the NUMA sockets of lookup threads.
+// The table is allocated on sockets[0].
+func New(cfg Config, sockets []eal.NumaSocket) *Ndt {
+	tableSize := uintptr(1) << cfg.IndexBits
+	threadSize := uintptr(C.sizeof_NdtThread) + tableSize*uintptr(C.sizeof_uint16_t)
 
-	ndt = (*Ndt)(eal.Zmalloc("Ndt", C.sizeof_Ndt, sockets[0]))
-	C.Ndt_Init(ndt.ptr(), C.uint16_t(cfg.PrefixLen), C.uint8_t(cfg.IndexBits), C.uint8_t(cfg.SampleFreq),
-		C.uint8_t(len(sockets)), &socketsC[0])
-	return ndt
+	c := (*C.Ndt)(eal.Zmalloc("Ndt", C.sizeof_Ndt, sockets[0]))
+	c.indexMask = C.uint64_t(tableSize - 1)
+	c.sampleMask = C.uint64_t(1)<<cfg.SampleFreq - 1
+	c.prefixLen = C.uint16_t(cfg.PrefixLen)
+	c.nThreads = C.uint8_t(len(sockets))
+
+	c.table = (*C.uint8_t)(eal.Zmalloc("NdtTable", tableSize, sockets[0]))
+	for i, socket := range sockets {
+		c.threads[i] = (*C.NdtThread)(eal.Zmalloc("NdtThread", threadSize, socket))
+	}
+	return (*Ndt)(c)
+}
+
+// Ptr returns *C.Ndt pointer.
+func (ndt *Ndt) Ptr() unsafe.Pointer {
+	return unsafe.Pointer(ndt.ptr())
 }
 
 func (ndt *Ndt) ptr() *C.Ndt {
@@ -42,19 +54,13 @@ func (ndt *Ndt) ptr() *C.Ndt {
 
 // Close destroys the NDT.
 func (ndt *Ndt) Close() error {
-	for i := 0; i < ndt.CountThreads(); i++ {
-		eal.Free(ndt.getThreadC(i))
-	}
 	c := ndt.ptr()
-	eal.Free(c.threads)
+	for i, end := 0, int(c.nThreads); i < end; i++ {
+		eal.Free(c.threads[i])
+	}
 	eal.Free(c.table)
 	eal.Free(c)
 	return nil
-}
-
-// Ptr returns *C.Ndt pointer.
-func (ndt *Ndt) Ptr() unsafe.Pointer {
-	return unsafe.Pointer(ndt.ptr())
 }
 
 // CountElements returns number of table elements.
@@ -67,33 +73,24 @@ func (ndt *Ndt) PrefixLen() int {
 	return int(ndt.ptr().prefixLen)
 }
 
-// CountThreads returns number of threads.
-func (ndt *Ndt) CountThreads() int {
-	return int(ndt.ptr().nThreads)
-}
-
-func (ndt *Ndt) getThreadC(i int) *C.NdtThread {
-	var threadPtrC *C.NdtThread
-	first := uintptr(unsafe.Pointer(ndt.ptr().threads))
-	offset := uintptr(i) * uintptr(unsafe.Sizeof(threadPtrC))
-	return *(**C.NdtThread)(unsafe.Pointer(first + offset))
-}
-
-// GetThread returns a handle of i-th thread.
-func (ndt *Ndt) GetThread(i int) *Thread {
-	if i < 0 || i >= ndt.CountThreads() {
-		return nil
+// Threads returns lookup threads.
+func (ndt *Ndt) Threads() (list []*Thread) {
+	c := ndt.ptr()
+	list = make([]*Thread, int(c.nThreads))
+	for i := range list {
+		list[i] = &Thread{ndt: ndt, c: c.threads[i]}
 	}
-	return &Thread{ndt: ndt, c: ndt.getThreadC(i)}
+	return list
 }
 
 // ComputeHash computes the hash used for a name.
 func (ndt *Ndt) ComputeHash(name ndn.Name) uint64 {
-	nameLen := len(name)
-	if prefixLen := ndt.PrefixLen(); nameLen > prefixLen {
-		nameLen = prefixLen
+	if prefixLen := ndt.PrefixLen(); len(name) > prefixLen {
+		name = name[:prefixLen]
 	}
-	return ndni.CNameFromName(name).ComputePrefixHash(nameLen)
+	pname := ndni.NewPName(name)
+	defer pname.Free()
+	return pname.ComputeHash()
 }
 
 // IndexOfHash returns table index used for a hash.
@@ -106,16 +103,16 @@ func (ndt *Ndt) IndexOfName(name ndn.Name) uint64 {
 	return ndt.IndexOfHash(ndt.ComputeHash(name))
 }
 
-// ReadElement reads a table element.
-func (ndt *Ndt) ReadElement(index uint64) uint8 {
-	return uint8(C.Ndt_ReadElement(ndt.ptr(), C.uint64_t(index)))
+// Read reads a table element.
+func (ndt *Ndt) Read(index uint64) uint8 {
+	return uint8(C.Ndt_Read(ndt.ptr(), C.uint64_t(index)))
 }
 
 // ReadTable reads the entire table.
 func (ndt *Ndt) ReadTable() (table []uint8) {
 	table = make([]uint8, ndt.CountElements())
 	for i := range table {
-		table[i] = ndt.ReadElement(uint64(i))
+		table[i] = ndt.Read(uint64(i))
 	}
 	return table
 }
@@ -123,12 +120,9 @@ func (ndt *Ndt) ReadTable() (table []uint8) {
 // ReadCounters reads all hit counters.
 func (ndt *Ndt) ReadCounters() (cnt []int) {
 	cnt = make([]int, ndt.CountElements())
-	for i := 0; i < ndt.CountThreads(); i++ {
-		threadC := ndt.getThreadC(i)
-		first := uintptr(unsafe.Pointer(threadC)) + C.sizeof_NdtThread
-		for j := range cnt {
-			offset := uintptr(j) * C.sizeof_uint16_t
-			cnt[j] += int(*(*C.uint16_t)(unsafe.Pointer(first + offset)))
+	for _, ndtt := range ndt.Threads() {
+		for index := range cnt {
+			cnt[index] += int(ndtt.readCounter(uint64(index)))
 		}
 	}
 	return cnt
@@ -144,17 +138,17 @@ func (ndt *Ndt) Update(index uint64, value uint8) {
 // Randomize updates all elements to random values < max.
 // This should be used during initialization only.
 func (ndt *Ndt) Randomize(max int) {
-	for i, nElements := uint64(0), uint64(ndt.CountElements()); i < nElements; i++ {
+	for i, end := uint64(0), uint64(ndt.CountElements()); i < end; i++ {
 		ndt.Update(i, uint8(rand.Intn(max)))
 	}
 }
 
 // Lookup queries a name without incrementing hit counters.
 func (ndt *Ndt) Lookup(name ndn.Name) (index uint64, value uint8) {
-	cname := ndni.CNameFromName(name)
-	pnameC := (*C.PName)(unsafe.Pointer(&cname.P))
+	nameP := ndni.NewPName(name)
+	defer nameP.Free()
 	var indexC C.uint64_t
-	value = uint8(C.Ndt_Lookup(ndt.ptr(), pnameC, (*C.uint8_t)(unsafe.Pointer(cname.V)), &indexC))
+	value = uint8(C.Ndt_Lookup(ndt.ptr(), (*C.PName)(nameP.Ptr()), &indexC))
 	return uint64(indexC), value
 }
 
@@ -166,7 +160,12 @@ type Thread struct {
 
 // Lookup queries a name and increments hit counters.
 func (ndtt *Thread) Lookup(name ndn.Name) uint8 {
-	cname := ndni.CNameFromName(name)
-	pnameC := (*C.PName)(unsafe.Pointer(&cname.P))
-	return uint8(C.Ndtt_Lookup_(ndtt.ndt.ptr(), ndtt.c, pnameC, (*C.uint8_t)(unsafe.Pointer(cname.V))))
+	nameP := ndni.NewPName(name)
+	defer nameP.Free()
+	return uint8(C.Ndtt_Lookup(ndtt.ndt.ptr(), ndtt.c, (*C.PName)(nameP.Ptr())))
+}
+
+func (ndtt *Thread) readCounter(index uint64) uint16 {
+	offset := C.sizeof_NdtThread + uintptr(index)*C.sizeof_uint16_t
+	return *(*uint16)(unsafe.Pointer(uintptr(unsafe.Pointer(ndtt.c)) + offset))
 }

@@ -53,16 +53,16 @@ struct PitEntryExt
   PitEntryExt* next;
 };
 
-static inline void
+__attribute__((nonnull)) static inline void
 PitEntry_SetFibEntry_(PitEntry* entry, PInterest* interest, const FibEntry* fibEntry)
 {
   entry->fibPrefixL = fibEntry->nameL;
   entry->fibSeqNum = fibEntry->seqNum;
-  Name* name = &interest->name;
-  if (unlikely(interest->activeFh >= 0)) {
-    name = &interest->activeFhName;
+  PName* name = &interest->name;
+  if (unlikely(interest->activeFwHint >= 0)) {
+    name = &interest->fwHint;
   }
-  entry->fibPrefixHash = PName_ComputePrefixHash(&name->p, name->v, fibEntry->nComps);
+  entry->fibPrefixHash = PName_ComputePrefixHash(name, fibEntry->nComps);
   memset(entry->sgScratch, 0, PIT_ENTRY_SG_SCRATCH);
 }
 
@@ -70,7 +70,7 @@ PitEntry_SetFibEntry_(PitEntry* entry, PInterest* interest, const FibEntry* fibE
  * @brief Initialize a PIT entry.
  * @param npkt the Interest packet.
  */
-static inline void
+__attribute__((nonnull)) static inline void
 PitEntry_Init(PitEntry* entry, Packet* npkt, const FibEntry* fibEntry)
 {
   PInterest* interest = Packet_GetInterestHdr(npkt);
@@ -90,7 +90,7 @@ PitEntry_Init(PitEntry* entry, Packet* npkt, const FibEntry* fibEntry)
 }
 
 /** @brief Finalize a PIT entry. */
-static inline void
+__attribute__((nonnull)) static inline void
 PitEntry_Finalize(PitEntry* entry)
 {
   if (likely(entry->npkt != NULL)) {
@@ -109,11 +109,11 @@ PitEntry_Finalize(PitEntry* entry)
  * @return A string from thread-local buffer.
  * @warning Subsequent *ToDebugString calls on the same thread overwrite the buffer.
  */
-const char*
+__attribute__((nonnull, returns_nonnull)) const char*
 PitEntry_ToDebugString(PitEntry* entry);
 
 /** @brief Get a token that identifies the PIT entry. */
-static inline uint64_t
+__attribute__((nonnull)) static inline uint64_t
 PitEntry_GetToken(PitEntry* entry);
 // Implementation is in pit.h to avoid circular dependency.
 
@@ -121,7 +121,7 @@ PitEntry_GetToken(PitEntry* entry);
  * @brief Reference FIB entry from PIT entry, clear scratch if FIB entry changed.
  * @param npkt the Interest packet.
  */
-static inline void
+__attribute__((nonnull)) static inline void
 PitEntry_RefreshFibEntry(PitEntry* entry, Packet* npkt, const FibEntry* fibEntry)
 {
   if (likely(entry->fibSeqNum == fibEntry->seqNum)) {
@@ -137,11 +137,11 @@ PitEntry_RefreshFibEntry(PitEntry* entry, Packet* npkt, const FibEntry* fibEntry
  * @pre Calling thread holds rcu_read_lock, which must be retained until it stops
  *      using the returned entry.
  */
-FibEntry*
+__attribute__((nonnull)) FibEntry*
 PitEntry_FindFibEntry(PitEntry* entry, Fib* fib);
 
 /** @brief Set timer to erase PIT entry when its last PitDn expires. */
-void
+__attribute__((nonnull)) void
 PitEntry_SetExpiryTimer(PitEntry* entry, Pit* pit);
 
 /**
@@ -149,17 +149,17 @@ PitEntry_SetExpiryTimer(PitEntry* entry, Pit* pit);
  * @retval Timer set successfully.
  * @retval Unable to set timer; reverted to expiry timer.
  */
-bool
+__attribute__((nonnull)) bool
 PitEntry_SetSgTimer(PitEntry* entry, Pit* pit, TscDuration after);
 
-void
+__attribute__((nonnull)) void
 PitEntry_Timeout_(MinTmr* tmr, void* pit0);
 
 /**
  * @brief Find duplicate nonce among DN records other than @p rxFace.
  * @return FaceID of PitDn with duplicate nonce, or zero if none.
  */
-FaceID
+__attribute__((nonnull)) FaceID
 PitEntry_FindDuplicateNonce(PitEntry* entry, uint32_t nonce, FaceID rxFace);
 
 /**
@@ -168,7 +168,7 @@ PitEntry_FindDuplicateNonce(PitEntry* entry, uint32_t nonce, FaceID rxFace);
  * @param npkt received Interest; will take ownership unless returning NULL.
  * @return DN record, or NULL if no slot is available.
  */
-PitDn*
+__attribute__((nonnull)) PitDn*
 PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt);
 
 /**
@@ -179,21 +179,21 @@ PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt);
  * @note If returned UP record is unused (no @c PitUp_RecordTx invocation),
  *       it will be overwritten on the next @c PitEntry_ReserveUp invocation.
  */
-PitUp*
+__attribute__((nonnull)) PitUp*
 PitEntry_ReserveUp(PitEntry* entry, Pit* pit, FaceID face);
 
 /**
  * @brief Calculate InterestLifetime for TX Interest.
  * @return InterestLifetime in millis.
  */
-static inline uint32_t
+__attribute__((nonnull)) static inline uint32_t
 PitEntry_GetTxInterestLifetime(PitEntry* entry, TscTime now)
 {
   return TscDuration_ToMillis(entry->expiry - now);
 }
 
 /** @brief Calculate HopLimit for TX Interest. */
-static inline uint8_t
+__attribute__((nonnull)) static inline uint8_t
 PitEntry_GetTxInterestHopLimit(PitEntry* entry)
 {
   return entry->txHopLimit;

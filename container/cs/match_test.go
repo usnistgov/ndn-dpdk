@@ -34,22 +34,22 @@ func TestInsertErase(t *testing.T) {
 
 	csEntry = fixture.Find(makeInterest("/A/B"))
 	require.NotNil(csEntry)
-	csData := csEntry.Data()
+	csData := csEntry.Data().ToNPacket().Data
 	nameEqual(assert, "/A/B", csData)
-	assert.Equal(100*time.Millisecond, csData.FreshnessPeriod())
+	assert.Equal(100*time.Millisecond, csData.Freshness)
 
 	ok = fixture.Insert(
-		makeInterest("/A/B", ndn.MakeFHDelegation(1, "/F"), setActiveFH(0)),
+		makeInterest("/A/B", ndn.MakeFHDelegation(1, "/F"), setActiveFwHint(0)),
 		makeData("/A/B", 200*time.Millisecond))
 	assert.True(ok)
 	assert.Equal(2, fixture.Cs.CountEntries(cs.CslMd))
 
 	csEntry3 := fixture.Find(makeInterest("/A/B",
-		ndn.MakeFHDelegation(1, "/G"), ndn.MakeFHDelegation(2, "/F"), setActiveFH(1)))
+		ndn.MakeFHDelegation(1, "/G"), ndn.MakeFHDelegation(2, "/F"), setActiveFwHint(1)))
 	require.NotNil(csEntry3)
-	csData3 := csEntry3.Data()
+	csData3 := csEntry3.Data().ToNPacket().Data
 	nameEqual(assert, "/A/B", csData3)
-	assert.Equal(200*time.Millisecond, csData3.FreshnessPeriod())
+	assert.Equal(200*time.Millisecond, csData3.Freshness)
 
 	time.Sleep(10 * time.Millisecond)
 	assert.NotNil(fixture.Find(makeInterest("/A/B", ndn.MustBeFreshFlag)))
@@ -116,7 +116,7 @@ func TestPrefixMatch(t *testing.T) {
 	// /A/B/C/D <- [/A/B] with fh=/F
 	ok = fixture.Insert(
 		makeInterest("/A/B", ndn.CanBePrefixFlag,
-			ndn.MakeFHDelegation(1, "/F"), setActiveFH(0)),
+			ndn.MakeFHDelegation(1, "/F"), setActiveFwHint(0)),
 		makeData("/A/B/C/D"))
 	assert.True(ok)
 	assert.Equal(1, fixture.Cs.CountEntries(cs.CslMd))
@@ -125,7 +125,7 @@ func TestPrefixMatch(t *testing.T) {
 	// /A/B/C/D <- [/A/B, /A/B/C] with fh=/F
 	ok = fixture.Insert(
 		makeInterest("/A/B/C", ndn.CanBePrefixFlag,
-			ndn.MakeFHDelegation(1, "/F"), setActiveFH(0)),
+			ndn.MakeFHDelegation(1, "/F"), setActiveFwHint(0)),
 		makeData("/A/B/C/D"))
 	assert.True(ok)
 	assert.Equal(1, fixture.Cs.CountEntries(cs.CslMd))
@@ -136,7 +136,7 @@ func TestPrefixMatch(t *testing.T) {
 
 	indirect2 = fixture.Find(
 		makeInterest("/A/B", ndn.CanBePrefixFlag,
-			ndn.MakeFHDelegation(1, "/F"), setActiveFH(0)))
+			ndn.MakeFHDelegation(1, "/F"), setActiveFwHint(0)))
 	require.NotNil(indirect2)
 	assert.False(indirect2.IsDirect())
 }
@@ -149,7 +149,7 @@ func TestImplicitDigestMatch(t *testing.T) {
 
 	// /A/B/C/D {0x01} <- [/A/B]
 	data01 := makeData("/A/B/C/D", []byte{0x01})
-	fullName01 := data01.ToNData().FullName().String()
+	fullName01 := data01.ToNPacket().Data.FullName().String()
 	ok := fixture.Insert(makeInterest("/A/B", ndn.CanBePrefixFlag), data01)
 	assert.True(ok)
 	assert.Equal(1, fixture.Cs.CountEntries(cs.CslMd))
@@ -157,7 +157,7 @@ func TestImplicitDigestMatch(t *testing.T) {
 
 	// /A/B/C/D {0x01} <- [/A/B, /A/B/C/D/implicit-digest-01]
 	data01 = makeData("/A/B/C/D", []byte{0x01})
-	assert.Equal(fullName01, data01.ToNData().FullName().String())
+	nameEqual(assert, fullName01, data01.ToNPacket().Data.FullName())
 	ok = fixture.Insert(makeInterest(fullName01), data01)
 	assert.True(ok)
 	assert.Equal(1, fixture.Cs.CountEntries(cs.CslMd))
@@ -170,7 +170,7 @@ func TestImplicitDigestMatch(t *testing.T) {
 
 	// /A/B/C/D {0x02} <- [/A/B, /A/B/C/D/implicit-digest-02]
 	data02 := makeData("/A/B/C/D", []byte{0x02})
-	fullName02 := data02.ToNData().FullName().String()
+	fullName02 := data02.ToNPacket().Data.FullName().String()
 	assert.NotEqual(fullName01, fullName02)
 	ok = fixture.Insert(makeInterest(fullName02), data02)
 	assert.True(ok)

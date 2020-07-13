@@ -18,5 +18,4 @@ var (
 	makeAR       = testenv.MakeAR
 	makeInterest = ndnitestenv.MakeInterest
 	makeData     = ndnitestenv.MakeData
-	closePacket  = ndnitestenv.ClosePacket
 )

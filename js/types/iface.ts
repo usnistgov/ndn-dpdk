@@ -33,10 +33,9 @@ export interface FaceCounters {
   RxFrames: Counter;
   RxOctets: Counter;
 
-  L2DecodeErrs: Counter;
+  DecodeErrs: Counter;
   Reass: InOrderReassemblerCounters;
 
-  L3DecodeErrs: Counter;
   RxInterests: Counter;
   RxData: Counter;
   RxNacks: Counter;

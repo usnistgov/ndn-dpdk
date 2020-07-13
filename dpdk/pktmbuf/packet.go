@@ -2,7 +2,6 @@ package pktmbuf
 
 /*
 #include "../../csrc/dpdk/mbuf.h"
-#include "../../csrc/dpdk/mbuf-loc.h"
 */
 import "C"
 import (
@@ -74,11 +73,12 @@ func (pkt *Packet) DataPtr() unsafe.Pointer {
 	return unsafe.Pointer(uintptr(pktC.buf_addr) + uintptr(pktC.data_off))
 }
 
-// ReadAll copies all octets into new []byte.
-func (pkt *Packet) ReadAll() []byte {
+// Bytes returns a []byte that contains a copy of the data in this packet.
+func (pkt *Packet) Bytes() []byte {
 	b := make([]byte, pkt.Len())
-	pi := NewPacketIterator(pkt)
-	pi.Read(b)
+	if len(b) > 0 {
+		C.Mbuf_CopyTo(pkt.ptr(), unsafe.Pointer(&b[0]))
+	}
 	return b
 }
 
@@ -140,30 +140,8 @@ func (pkt *Packet) Append(input []byte) error {
 // tail will be freed when pkt is freed.
 func (pkt *Packet) Chain(tail *Packet) error {
 	pktC := pkt.ptr()
-	res := C.Packet_Chain(pktC, C.rte_pktmbuf_lastseg(pktC), tail.ptr())
-	if res != 0 {
+	if ok := C.Mbuf_Chain(pktC, C.rte_pktmbuf_lastseg(pktC), tail.ptr()); !bool(ok) {
 		return errors.New("too many segments")
-	}
-	return nil
-}
-
-// DeleteRange deletes len octets starting from offset.
-// offset can be int, PacketIterator, or *PacketIterator.
-func (pkt *Packet) DeleteRange(offset interface{}, len int) {
-	pi := makePacketIteratorFromOffset(pkt, offset)
-	C.MbufLoc_Delete(&pi.ml, C.uint32_t(len), pkt.ptr(), nil)
-}
-
-// LinearizeRange ensures two offsets are in the same mbuf.
-// first and last can be int, PacketIterator, or *PacketIterator.
-// Returns a C pointer to the octets in consecutive memory.
-func (pkt *Packet) LinearizeRange(first interface{}, last interface{}, mp *Pool) error {
-	firstPi := makePacketIteratorFromOffset(pkt, first)
-	lastPi := makePacketIteratorFromOffset(pkt, last)
-	n := firstPi.ml.rem - lastPi.ml.rem
-	res := C.MbufLoc_Linearize(&firstPi.ml, &lastPi.ml, C.uint32_t(n), pkt.ptr(), mp.ptr())
-	if res == nil {
-		return eal.GetErrno()
 	}
 	return nil
 }

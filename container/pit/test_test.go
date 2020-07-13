@@ -27,11 +27,14 @@ func TestMain(m *testing.M) {
 }
 
 var (
-	makeAR       = testenv.MakeAR
-	nameEqual    = ndntestenv.NameEqual
-	makeInterest = ndnitestenv.MakeInterest
-	makeData     = ndnitestenv.MakeData
-	setActiveFH  = ndnitestenv.SetActiveFH
+	makeAR          = testenv.MakeAR
+	nameEqual       = ndntestenv.NameEqual
+	makeInterest    = ndnitestenv.MakeInterest
+	makeData        = ndnitestenv.MakeData
+	makeNack        = ndnitestenv.MakeNack
+	setActiveFwHint = ndnitestenv.SetActiveFwHint
+	setPitToken     = ndnitestenv.SetPitToken
+	setFace         = ndnitestenv.SetFace
 )
 
 type Fixture struct {
@@ -72,10 +75,10 @@ func (fixture *Fixture) CountMpInUse() int {
 // Insert a PIT entry.
 // Returns the PIT entry.
 // If CS entry is found, returns nil and frees interest.
-func (fixture *Fixture) Insert(interest *ndni.Interest) *pit.Entry {
+func (fixture *Fixture) Insert(interest *ndni.Packet) *pit.Entry {
 	pitEntry, csEntry := fixture.Pit.Insert(interest, fixture.EmptyFibEntry)
 	if csEntry != nil {
-		ndnitestenv.ClosePacket(interest)
+		interest.Close()
 		return nil
 	}
 	if pitEntry == nil {

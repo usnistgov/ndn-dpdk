@@ -17,25 +17,25 @@ typedef struct InputDemuxDest
 /** @brief Input packet demultiplexer for a single packet type. */
 typedef struct InputDemux InputDemux;
 
-typedef void (*InputDemux_DispatchFunc)(InputDemux* demux, Packet* npkt, const Name* name);
+typedef void (*InputDemux_DispatchFunc)(InputDemux* demux, Packet* npkt, const PName* name);
 
 void
-InputDemux_DispatchDrop(InputDemux* demux, Packet* npkt, const Name* name);
+InputDemux_DispatchDrop(InputDemux* demux, Packet* npkt, const PName* name);
 
 void
-InputDemux_DispatchToFirst(InputDemux* demux, Packet* npkt, const Name* name);
+InputDemux_DispatchToFirst(InputDemux* demux, Packet* npkt, const PName* name);
 
 void
-InputDemux_DispatchRoundrobinDiv(InputDemux* demux, Packet* npkt, const Name* name);
+InputDemux_DispatchRoundrobinDiv(InputDemux* demux, Packet* npkt, const PName* name);
 
 void
-InputDemux_DispatchRoundrobinMask(InputDemux* demux, Packet* npkt, const Name* name);
+InputDemux_DispatchRoundrobinMask(InputDemux* demux, Packet* npkt, const PName* name);
 
 void
-InputDemux_DispatchByNdt(InputDemux* demux, Packet* npkt, const Name* name);
+InputDemux_DispatchByNdt(InputDemux* demux, Packet* npkt, const PName* name);
 
 void
-InputDemux_DispatchByToken(InputDemux* demux, Packet* npkt, const Name* name);
+InputDemux_DispatchByToken(InputDemux* demux, Packet* npkt, const PName* name);
 
 #define INPUTDEMUX_DEST_MAX 128
 
@@ -74,7 +74,7 @@ InputDemux_SetDispatchRoundrobin_(InputDemux* demux, uint32_t nDest)
 }
 
 static inline void
-InputDemux_Dispatch(InputDemux* demux, Packet* npkt, const Name* name)
+InputDemux_Dispatch(InputDemux* demux, Packet* npkt, const PName* name)
 {
   (*demux->dispatch)(demux, npkt, name);
 }

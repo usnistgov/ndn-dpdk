@@ -1,4 +1,4 @@
-#include "../ndn/packet.h"
+#include "../ndni/packet.h"
 #include "packet.h"
 
 static_assert(offsetof(SgPacket, rxFace) == offsetof(struct rte_mbuf, port), "");

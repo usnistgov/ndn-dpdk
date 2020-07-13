@@ -42,7 +42,7 @@ func testBdev(t *testing.T, device bdev.Device, mode bdev.Mode) {
 		defer pkt2.Close()
 		e = bd.ReadPacket(100, 12, *pkt2)
 		assert.NoError(e)
-		assert.Equal(pkt1.ReadAll(), pkt2.ReadAll())
+		assert.Equal(pkt1.Bytes(), pkt2.Bytes())
 	}
 
 	e = bd.Close()

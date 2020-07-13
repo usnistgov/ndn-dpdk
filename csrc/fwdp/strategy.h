@@ -10,7 +10,7 @@
 const struct rte_bpf_xsym*
 SgGetXsyms(int* nXsyms);
 
-void
+__attribute__((nonnull)) void
 SgTriggerTimer(Pit* pit, PitEntry* pitEntry, void* fwd0);
 
 /** @brief Invoke the strategy. */

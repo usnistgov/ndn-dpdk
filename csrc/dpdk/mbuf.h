@@ -21,67 +21,36 @@ FreeMbufs(struct rte_mbuf* mbufs[], int count)
 }
 
 /**
- * @brief Remove @p len bytes at the beginning of a packet.
- *
- * This function does not require first segment to have enough length.
+ * @brief Copy contents of mbuf to a buffer.
+ * @param[out] dst destination buffer, must have sufficient size.
  */
-static inline bool
-Packet_Adj(struct rte_mbuf* pkt, uint16_t len)
+__attribute__((nonnull)) static inline void
+Mbuf_CopyTo(struct rte_mbuf* m, void* dst)
 {
-  if (unlikely(pkt->pkt_len < len)) {
-    return false;
+  for (struct rte_mbuf* s = m; s != NULL; s = s->next) {
+    rte_memcpy(dst, rte_pktmbuf_mtod(s, void*), s->data_len);
+    dst = RTE_PTR_ADD(dst, s->data_len);
   }
-
-  if (likely(pkt->data_len >= len)) {
-    rte_pktmbuf_adj(pkt, len);
-    return true;
-  }
-
-  pkt->pkt_len -= len;
-
-  struct rte_mbuf* segment = pkt;
-  while (segment != NULL && segment->data_len < len) {
-    len -= segment->data_len;
-    segment->data_off += segment->data_len;
-    segment->data_len = 0;
-    struct rte_mbuf* next = segment->next;
-    if (segment != pkt) {
-      rte_pktmbuf_free(segment);
-    }
-    segment = next;
-  }
-
-  segment->data_off += len;
-  segment->data_len -= len;
-  return true;
 }
 
 /**
  * @brief Chain @p tail onto @p head.
  * @param lastSeg must be rte_pktmbuf_lastseg(head)
- * @retval 0 success
- * @retval -EOVERFLOW total segment count exceeds limit
+ * @return whether success.
  */
-static inline int
-Packet_Chain(struct rte_mbuf* head, struct rte_mbuf* lastSeg, struct rte_mbuf* tail)
+__attribute__((nonnull, warn_unused_result)) static inline bool
+Mbuf_Chain(struct rte_mbuf* head, struct rte_mbuf* lastSeg, struct rte_mbuf* tail)
 {
   assert(lastSeg == rte_pktmbuf_lastseg(head));
 
   if (unlikely(head->nb_segs + tail->nb_segs > RTE_MBUF_MAX_NB_SEGS)) {
-    return -EOVERFLOW;
+    return false;
   }
 
   lastSeg->next = tail;
   head->nb_segs += tail->nb_segs;
   head->pkt_len += tail->pkt_len;
-  return 0;
-}
-
-static __rte_always_inline void*
-rte_pktmbuf_mtod_offset_(struct rte_mbuf* m, uint16_t offset)
-{
-  // turn macro into function to be called in Go
-  return rte_pktmbuf_mtod_offset(m, void*, offset);
+  return true;
 }
 
 static __rte_always_inline void*

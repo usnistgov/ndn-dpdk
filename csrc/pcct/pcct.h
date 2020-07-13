@@ -17,7 +17,7 @@ typedef struct Pcct
 } Pcct;
 
 /** @brief Cast Pcct* as rte_mempool*. */
-static inline struct rte_mempool*
+static __rte_always_inline struct rte_mempool*
 Pcct_ToMempool(const Pcct* pcct)
 {
   return (struct rte_mempool*)pcct;
@@ -37,7 +37,7 @@ typedef struct PcctPriv
 } PcctPriv;
 
 /** @brief Access PcctPriv* struct. */
-static inline PcctPriv*
+__attribute__((nonnull, returns_nonnull)) static inline PcctPriv*
 Pcct_GetPriv(const Pcct* pcct)
 {
   return (PcctPriv*)rte_mempool_get_priv(Pcct_ToMempool(pcct));
@@ -62,17 +62,17 @@ Pcct_Close(Pcct* pcct);
  * @brief Insert or find an entry.
  * @param[out] isNew whether the entry is new
  */
-PccEntry*
+__attribute__((nonnull)) PccEntry*
 Pcct_Insert(Pcct* pcct, PccSearch* search, bool* isNew);
 
 /**
  * @brief Erase an entry.
  * @sa PcctEraseBatch
  */
-void
+__attribute__((nonnull)) void
 Pcct_Erase(Pcct* pcct, PccEntry* entry);
 
-uint64_t
+__attribute__((nonnull)) uint64_t
 Pcct_AddToken_(Pcct* pcct, PccEntry* entry);
 
 /**
@@ -80,7 +80,7 @@ Pcct_AddToken_(Pcct* pcct, PccEntry* entry);
  * @retval 0 No token available.
  * @return New or existing token.
  */
-static inline uint64_t
+__attribute__((nonnull)) static __rte_always_inline uint64_t
 Pcct_AddToken(Pcct* pcct, PccEntry* entry)
 {
   if (entry->hasToken) {
@@ -89,11 +89,11 @@ Pcct_AddToken(Pcct* pcct, PccEntry* entry)
   return Pcct_AddToken_(pcct, entry);
 }
 
-void
+__attribute__((nonnull)) void
 Pcct_RemoveToken_(Pcct* pcct, PccEntry* entry);
 
 /** @brief Clear the token on an entry. */
-static inline void
+__attribute__((nonnull)) static __rte_always_inline void
 Pcct_RemoveToken(Pcct* pcct, PccEntry* entry)
 {
   if (!entry->hasToken) {
@@ -106,7 +106,7 @@ Pcct_RemoveToken(Pcct* pcct, PccEntry* entry)
  * @brief Find an entry by token.
  * @param token the token, only lower 48 bits are significant.
  */
-PccEntry*
+__attribute__((nonnull)) PccEntry*
 Pcct_FindByToken(const Pcct* pcct, uint64_t token);
 
 // Burst size of PCCT erasing.
@@ -133,11 +133,11 @@ typedef struct PcctEraseBatch
     .pcct = thePcct                                                                                \
   }
 
-void
+__attribute__((nonnull)) void
 PcctEraseBatch_EraseBurst_(PcctEraseBatch* peb);
 
 /** @brief Add an entry for erasing. */
-static inline void
+__attribute__((nonnull)) static inline void
 PcctEraseBatch_Append(PcctEraseBatch* peb, PccEntry* entry)
 {
   peb->objs[peb->nEntries] = entry;
@@ -147,7 +147,7 @@ PcctEraseBatch_Append(PcctEraseBatch* peb, PccEntry* entry)
 }
 
 /** @brief Erase entries. */
-static inline void
+__attribute__((nonnull)) static inline void
 PcctEraseBatch_Finish(PcctEraseBatch* peb)
 {
   if (likely(peb->nEntries > 0)) {

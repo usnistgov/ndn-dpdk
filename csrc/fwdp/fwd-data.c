@@ -6,7 +6,7 @@
 
 INIT_ZF_LOG(FwFwd);
 
-static void
+__attribute__((nonnull)) static void
 FwFwd_DataUnsolicited(FwFwd* fwd, FwFwdCtx* ctx)
 {
   ZF_LOGD("^ drop=unsolicited");
@@ -14,7 +14,7 @@ FwFwd_DataUnsolicited(FwFwd* fwd, FwFwdCtx* ctx)
   ctx->pkt = NULL;
 }
 
-static void
+__attribute__((nonnull)) static void
 FwFwd_DataNeedDigest(FwFwd* fwd, FwFwdCtx* ctx)
 {
   if (unlikely(fwd->crypto == NULL)) {
@@ -35,7 +35,7 @@ FwFwd_DataNeedDigest(FwFwd* fwd, FwFwdCtx* ctx)
   }
 }
 
-static void
+__attribute__((nonnull)) static void
 FwFwd_DataSatisfy(FwFwd* fwd, FwFwdCtx* ctx)
 {
   ZF_LOGD("^ pit-entry=%p pit-key=%s", ctx->pitEntry, PitEntry_ToDebugString(ctx->pitEntry));
@@ -58,13 +58,13 @@ FwFwd_DataSatisfy(FwFwd* fwd, FwFwdCtx* ctx)
       continue;
     }
 
-    Packet* outNpkt = ClonePacket(ctx->npkt, fwd->headerMp, fwd->indirectMp);
+    Packet* outNpkt = Packet_Clone(ctx->npkt, fwd->headerMp, fwd->indirectMp);
     ZF_LOGD("^ data-to=%" PRI_FaceID " npkt=%p dn-token=%016" PRIx64, dn->face, outNpkt, dn->token);
     if (likely(outNpkt != NULL)) {
       struct rte_mbuf* outPkt = Packet_ToMbuf(outNpkt);
       outPkt->port = ctx->rxFace;
       outPkt->timestamp = ctx->rxTime;
-      LpL3* lpl3 = Packet_InitLpL3Hdr(outNpkt);
+      LpL3* lpl3 = Packet_GetLpL3Hdr(outNpkt);
       lpl3->pitToken = dn->token;
       lpl3->congMark = dn->congMark;
       Face_Tx(dn->face, outNpkt);

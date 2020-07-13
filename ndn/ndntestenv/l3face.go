@@ -1,7 +1,6 @@
 package ndntestenv
 
 import (
-	"encoding/binary"
 	"fmt"
 	"sync"
 	"testing"
@@ -68,7 +67,7 @@ func (c *L3FaceTester) CheckL3Face(t *testing.T, faceA, faceB ndn.L3Face) {
 					break
 				}
 				require.Len(packet.Lp.PitToken, 8)
-				token := binary.LittleEndian.Uint64(packet.Lp.PitToken)
+				token := ndn.PitTokenToUint(packet.Lp.PitToken)
 				require.NotNil(packet.Interest)
 				if token%5 == 0 {
 					nack := ndn.MakeNack(*packet.Interest)
@@ -87,7 +86,7 @@ func (c *L3FaceTester) CheckL3Face(t *testing.T, faceA, faceB ndn.L3Face) {
 	go func() {
 		for packet := range faceA.Rx() {
 			require.Len(packet.Lp.PitToken, 8)
-			token := binary.LittleEndian.Uint64(packet.Lp.PitToken)
+			token := ndn.PitTokenToUint(packet.Lp.PitToken)
 			if token%5 == 0 {
 				assert.NotNil(packet.Nack)
 				nNacks++
@@ -109,8 +108,7 @@ func (c *L3FaceTester) CheckL3Face(t *testing.T, faceA, faceB ndn.L3Face) {
 			interest := ndn.MakeInterest(fmt.Sprintf("/A/%d", i))
 			var packet ndn.Packet
 			packet.Interest = &interest
-			packet.Lp.PitToken = make([]byte, 8)
-			binary.LittleEndian.PutUint64(packet.Lp.PitToken, uint64(i))
+			packet.Lp.PitToken = ndn.PitTokenFromUint(uint64(i))
 			txA <- &packet
 			time.Sleep(c.InterestInterval)
 		}

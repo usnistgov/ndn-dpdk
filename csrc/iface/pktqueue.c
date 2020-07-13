@@ -1,6 +1,6 @@
 #include "pktqueue.h"
 
-static inline PktQueuePopResult
+__attribute__((nonnull)) static inline PktQueuePopResult
 PktQueue_PopFromRing(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count)
 {
   count = RTE_MIN(count, q->dequeueBurstSize);
@@ -37,7 +37,7 @@ PktQueue_PopDelay(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime 
 #define REC_INV_SQRT_BITS (8 * sizeof(uint16_t))
 #define REC_INV_SQRT_SHIFT (32 - REC_INV_SQRT_BITS)
 
-static inline void
+__attribute__((nonnull)) static inline void
 CoDel_NewtonStep(PktQueue* q)
 {
   uint32_t invsqrt = ((uint32_t)q->recInvSqrt) << REC_INV_SQRT_BITS;
@@ -60,7 +60,7 @@ CoDel_ControlLaw(TscTime t, TscDuration interval, uint32_t recInvSqrt)
   return t + CoDel_ReciprocalScale(interval, recInvSqrt << REC_INV_SQRT_SHIFT);
 }
 
-static inline bool
+__attribute__((nonnull)) static inline bool
 CoDel_ShouldDrop(PktQueue* q, TscTime timestamp, TscTime now)
 {
   q->sojourn = now - timestamp;

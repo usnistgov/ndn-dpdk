@@ -283,9 +283,9 @@ func NewNonce() (nonce Nonce) {
 	return nonce
 }
 
-// NonceFromUint converts uint32 to Nonce, interpreted as little endian.
+// NonceFromUint converts uint32 to Nonce, interpreted as big endian.
 func NonceFromUint(n uint32) (nonce Nonce) {
-	binary.LittleEndian.PutUint32(nonce[:], n)
+	binary.BigEndian.PutUint32(nonce[:], n)
 	return nonce
 }
 
@@ -294,9 +294,9 @@ func (nonce Nonce) IsZero() bool {
 	return (nonce[0] | nonce[1] | nonce[2] | nonce[3]) == 0
 }
 
-// ToUint converts Nonce to uint32, interpreted as little endian.
+// ToUint converts Nonce to uint32, interpreted as big endian.
 func (nonce Nonce) ToUint() uint32 {
-	return binary.LittleEndian.Uint32(nonce[:])
+	return binary.BigEndian.Uint32(nonce[:])
 }
 
 // MarshalTlv encodes this Nonce.

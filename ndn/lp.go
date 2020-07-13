@@ -46,20 +46,20 @@ func (lph *LpL3) inheritFrom(src LpL3) {
 	lph.CongMark = src.CongMark
 }
 
-// PitTokenFromUint creates a PIT token from uint64, interpreted as little endian.
+// PitTokenFromUint creates a PIT token from uint64, interpreted as big endian.
 func PitTokenFromUint(n uint64) []byte {
 	token := make([]byte, 8)
-	binary.LittleEndian.PutUint64(token, n)
+	binary.BigEndian.PutUint64(token, n)
 	return token
 }
 
-// PitTokenToUint reads a 8-octet PIT token as uint64, interpreted as little endian.
+// PitTokenToUint reads a 8-octet PIT token as uint64, interpreted as big endian.
 // Returns 0 if the input token is not 8 octets.
 func PitTokenToUint(token []byte) uint64 {
 	if len(token) != 8 {
 		return 0
 	}
-	return binary.LittleEndian.Uint64(token)
+	return binary.BigEndian.Uint64(token)
 }
 
 // LpFragment represents an NDNLPv2 fragmented frame.

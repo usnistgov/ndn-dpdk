@@ -1,7 +1,7 @@
 package ndni
 
 /*
-#include "../csrc/ndn/packet.h"
+#include "../csrc/ndni/packet.h"
 */
 import "C"
 import (
@@ -10,19 +10,23 @@ import (
 
 // Predefined mempool templates.
 var (
-	// PacketMempool is a mempool template for packets (mainly receiving).
+	// PacketMempool is a mempool template for receiving packets.
 	// It is an alias of pktmbuf.Direct.
 	PacketMempool pktmbuf.Template
 
-	// NameMempool is a mempool template for name linearize.
-	NameMempool pktmbuf.Template
-
 	// HeaderMempool is a mempool template for packet headers.
 	// This includes T-L portion of an L3 packet, NDNLP header, and Ethernet header.
+	// It is also used for Interest guiders.
 	HeaderMempool pktmbuf.Template
 
-	// GuiderMempool is a mempool template for modifying Interest guiders.
-	GuiderMempool pktmbuf.Template
+	// InterestMempool is a mempool template for encoding Interests.
+	InterestMempool pktmbuf.Template
+
+	// DataMempool is a mempool template for encoding Data headers.
+	DataMempool pktmbuf.Template
+
+	// PayloadMempool is a mempool template for encoding Data payload.
+	PayloadMempool pktmbuf.Template
 )
 
 func init() {
@@ -31,19 +35,28 @@ func init() {
 		PrivSize: int(C.sizeof_PacketPriv),
 	})
 
-	NameMempool = pktmbuf.RegisterTemplate("NAME", pktmbuf.PoolConfig{
-		Capacity: 65535,
-		Dataroom: NameMaxLength,
-	})
-
+	headerDataroom := pktmbuf.DefaultHeadroom + LpHeaderEstimatedHeadroom
 	HeaderMempool = pktmbuf.RegisterTemplate("HEADER", pktmbuf.PoolConfig{
 		Capacity: 65535,
 		PrivSize: int(C.sizeof_PacketPriv),
-		Dataroom: pktmbuf.DefaultHeadroom + LpHeaderEstimatedHeadroom,
+		Dataroom: headerDataroom,
 	})
 
-	GuiderMempool = pktmbuf.RegisterTemplate("GUIDER", pktmbuf.PoolConfig{
+	InterestMempool = pktmbuf.RegisterTemplate("INTEREST", pktmbuf.PoolConfig{
 		Capacity: 65535,
-		Dataroom: pktmbuf.DefaultHeadroom,
+		PrivSize: int(C.sizeof_PacketPriv),
+		Dataroom: headerDataroom + InterestTemplateDataroom,
+	})
+
+	DataMempool = pktmbuf.RegisterTemplate("DATA", pktmbuf.PoolConfig{
+		Capacity: 65535,
+		PrivSize: int(C.sizeof_PacketPriv),
+		Dataroom: headerDataroom + DataGenDataroom,
+	})
+
+	PayloadMempool = pktmbuf.RegisterTemplate("PAYLOAD", pktmbuf.PoolConfig{
+		Capacity: 1023,
+		PrivSize: int(C.sizeof_PacketPriv),
+		Dataroom: headerDataroom + DataGenBufLen + 9000,
 	})
 }

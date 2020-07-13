@@ -25,10 +25,10 @@ type lookupTestThread struct {
 	Entries []lookupTestEntry
 }
 
-func newNdtLookupTestThread(ndt *ndt.Ndt, threadIndex int, names []ndn.Name) *lookupTestThread {
+func newNdtLookupTestThread(ndtt *ndt.Thread, names []ndn.Name) *lookupTestThread {
 	th := &lookupTestThread{
 		stop: ealthread.NewStopChan(),
-		ndtt: ndt.GetThread(threadIndex),
+		ndtt: ndtt,
 	}
 	for _, name := range names {
 		th.Entries = append(th.Entries, lookupTestEntry{name, nil})
@@ -81,11 +81,12 @@ func TestNdt(t *testing.T) {
 	}
 	assert.Len(nameIndices, 7)
 
+	ndtts := ndt.Threads()
 	threads := []*lookupTestThread{
-		newNdtLookupTestThread(ndt, 0, names[:6]),
-		newNdtLookupTestThread(ndt, 1, names[:6]),
-		newNdtLookupTestThread(ndt, 2, names[:6]),
-		newNdtLookupTestThread(ndt, 3, names[6:]),
+		newNdtLookupTestThread(ndtts[0], names[:6]),
+		newNdtLookupTestThread(ndtts[1], names[:6]),
+		newNdtLookupTestThread(ndtts[2], names[:6]),
+		newNdtLookupTestThread(ndtts[3], names[6:]),
 	}
 
 	ndt.Randomize(250)

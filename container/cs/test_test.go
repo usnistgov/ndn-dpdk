@@ -29,11 +29,13 @@ func TestMain(m *testing.M) {
 }
 
 var (
-	makeAR       = testenv.MakeAR
-	nameEqual    = ndntestenv.NameEqual
-	makeInterest = ndnitestenv.MakeInterest
-	makeData     = ndnitestenv.MakeData
-	setActiveFH  = ndnitestenv.SetActiveFH
+	makeAR          = testenv.MakeAR
+	nameEqual       = ndntestenv.NameEqual
+	makeInterest    = ndnitestenv.MakeInterest
+	makeData        = ndnitestenv.MakeData
+	setActiveFwHint = ndnitestenv.SetActiveFwHint
+	setPitToken     = ndnitestenv.SetPitToken
+	setFace         = ndnitestenv.SetFace
 )
 
 type Fixture struct {
@@ -76,18 +78,18 @@ func (fixture *Fixture) CountMpInUse() int {
 // Returns false if CS entry is found during PIT entry insertion.
 // Returns true if CS entry is replacing PIT entry.
 // This function takes ownership of interest and data.
-func (fixture *Fixture) Insert(interest *ndni.Interest, data *ndni.Data) (isReplacing bool) {
+func (fixture *Fixture) Insert(interest *ndni.Packet, data *ndni.Packet) (isReplacing bool) {
 	pitEntry, csEntry := fixture.Pit.Insert(interest, fixture.emptyFibEntry)
 	if csEntry != nil {
-		ndnitestenv.ClosePacket(interest)
-		ndnitestenv.ClosePacket(data)
+		interest.Close()
+		data.Close()
 		return false
 	}
 	if pitEntry == nil {
 		panic("Pit.Insert failed")
 	}
 
-	ndnitestenv.SetPitToken(data, pitEntry.PitToken())
+	data.SetPitToken(pitEntry.PitToken())
 	pitFound := fixture.Pit.FindByData(data)
 	if len(pitFound.ListEntries()) == 0 {
 		panic("Pit.FindByData returned empty result")
@@ -114,12 +116,12 @@ func (fixture *Fixture) InsertBulk(minId, maxId int, dataNameFmt, interestNameFm
 // Find a CS entry.
 // If a PIT entry is created in Pit.Insert invocation, it is erased immediately.
 // This function takes ownership of interest.
-func (fixture *Fixture) Find(interest *ndni.Interest) *cs.Entry {
+func (fixture *Fixture) Find(interest *ndni.Packet) *cs.Entry {
 	pitEntry, csEntry := fixture.Pit.Insert(interest, fixture.emptyFibEntry)
 	if pitEntry != nil {
 		fixture.Pit.Erase(pitEntry)
 	} else {
-		ndnitestenv.ClosePacket(interest)
+		interest.Close()
 	}
 	return csEntry
 }

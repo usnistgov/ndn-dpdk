@@ -7,7 +7,7 @@
 
 INIT_ZF_LOG(FwFwd);
 
-static void
+__attribute__((nonnull)) static void
 FwFwd_TxNacks(FwFwd* fwd, PitEntry* pitEntry, TscTime now, NackReason reason, uint8_t nackHopLimit)
 {
   PitDnIt it;
@@ -25,18 +25,18 @@ FwFwd_TxNacks(FwFwd* fwd, PitEntry* pitEntry, TscTime now, NackReason reason, ui
       continue;
     }
 
-    Packet* outNpkt = ModifyInterest(pitEntry->npkt, dn->nonce, 0, nackHopLimit, fwd->headerMp,
-                                     fwd->guiderMp, fwd->indirectMp);
-    if (unlikely(outNpkt == NULL)) {
+    Packet* output = Interest_ModifyGuiders(pitEntry->npkt, dn->nonce, 0, nackHopLimit,
+                                            fwd->headerMp, fwd->indirectMp);
+    if (unlikely(output == NULL)) {
       ZF_LOGD("^ no-nack-to=%" PRI_FaceID " drop=alloc-error", dn->face);
       break;
     }
 
-    MakeNack(outNpkt, reason);
-    Packet_GetLpL3Hdr(outNpkt)->pitToken = dn->token;
+    output = Nack_FromInterest(output, reason);
+    Packet_GetLpL3Hdr(output)->pitToken = dn->token;
     ZF_LOGD("^ nack-to=%" PRI_FaceID " reason=%s npkt=%p nonce=%08" PRIx32 " dn-token=%016" PRIx64,
-            dn->face, NackReason_ToString(reason), outNpkt, dn->nonce, dn->token);
-    Face_Tx(dn->face, outNpkt);
+            dn->face, NackReason_ToString(reason), output, dn->nonce, dn->token);
+    Face_Tx(dn->face, output);
   }
 }
 
@@ -49,7 +49,7 @@ SgReturnNacks(SgCtx* ctx0, SgNackReason reason)
   FwFwd_TxNacks(ctx->fwd, ctx->pitEntry, rte_get_tsc_cycles(), (NackReason)reason, 1);
 }
 
-static bool
+__attribute__((nonnull)) static bool
 FwFwd_RxNackDuplicate(FwFwd* fwd, FwFwdCtx* ctx)
 {
   TscTime now = rte_get_tsc_cycles();
@@ -63,15 +63,15 @@ FwFwd_RxNackDuplicate(FwFwd* fwd, FwFwdCtx* ctx)
 
   uint32_t upLifetime = PitEntry_GetTxInterestLifetime(ctx->pitEntry, now);
   uint8_t upHopLimit = PitEntry_GetTxInterestHopLimit(ctx->pitEntry);
-  Packet* outNpkt = ModifyInterest(ctx->pitEntry->npkt, upNonce, upLifetime, upHopLimit,
-                                   fwd->headerMp, fwd->guiderMp, fwd->indirectMp);
+  Packet* outNpkt = Interest_ModifyGuiders(ctx->pitEntry->npkt, upNonce, upLifetime, upHopLimit,
+                                           fwd->headerMp, fwd->indirectMp);
   if (unlikely(outNpkt == NULL)) {
     ZF_LOGD("^ no-interest-to=%" PRI_FaceID " drop=alloc-error", ctx->pitUp->face);
     return true;
   }
 
   uint64_t token = FwToken_New(fwd->id, PitEntry_GetToken(ctx->pitEntry));
-  Packet_InitLpL3Hdr(outNpkt)->pitToken = token;
+  Packet_GetLpL3Hdr(outNpkt)->pitToken = token;
   Packet_ToMbuf(outNpkt)->timestamp = ctx->pkt->timestamp; // for latency stats
 
   ZF_LOGD("^ interest-to=%" PRI_FaceID " npkt=%p nonce=%08" PRIx32 " lifetime=%" PRIu32
@@ -86,7 +86,7 @@ FwFwd_RxNackDuplicate(FwFwd* fwd, FwFwdCtx* ctx)
   return true;
 }
 
-static void
+__attribute__((nonnull)) static void
 FwFwd_ProcessNack(FwFwd* fwd, FwFwdCtx* ctx)
 {
   PNack* nack = Packet_GetNackHdr(ctx->npkt);

@@ -12,4 +12,4 @@ This implementation chooses the correct PIT partition with the following algorit
 3. Lookup the table using the truncated hash. The table entry indicates the chosen PIT partition.
 
 The NDT maintains counters of how many times each table entry has been selected.
-With these counters, a maintainance thread can periodically reconfigure the NDT to balance the load among the available forwarding threads.
+With these counters, a maintenance thread can periodically reconfigure the NDT to balance the load among the available forwarding threads.

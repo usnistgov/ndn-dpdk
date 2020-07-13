@@ -5,9 +5,9 @@
 
 INIT_ZF_LOG(FwFwd);
 
-static_assert((int)SGEVT_INTEREST == (int)L3PktTypeInterest, "");
-static_assert((int)SGEVT_DATA == (int)L3PktTypeData, "");
-static_assert((int)SGEVT_NACK == (int)L3PktTypeNack, "");
+static_assert((int)SGEVT_INTEREST == (int)PktInterest, "");
+static_assert((int)SGEVT_DATA == (int)PktData, "");
+static_assert((int)SGEVT_NACK == (int)PktNack, "");
 static_assert(offsetof(SgCtx, global) == offsetof(FwFwdCtx, fwd), "");
 static_assert(offsetof(FwFwd, sgGlobal) == 0, "");
 static_assert(offsetof(SgCtx, now) == offsetof(FwFwdCtx, rxTime), "");
@@ -18,8 +18,15 @@ static_assert(offsetof(SgCtx, fibEntry) == offsetof(FwFwdCtx, fibEntry), "");
 static_assert(offsetof(SgCtx, pitEntry) == offsetof(FwFwdCtx, pitEntry), "");
 static_assert(sizeof(SgCtx) == offsetof(FwFwdCtx, endofSgCtx), "");
 
+static const size_t FwFwd_OffsetofQueue[PktMax] = {
+  SIZE_MAX,
+  offsetof(FwFwd, queueI),
+  offsetof(FwFwd, queueD),
+  offsetof(FwFwd, queueN),
+};
+
 typedef void (*FwFwd_RxFunc)(FwFwd* fwd, FwFwdCtx* ctx);
-static const FwFwd_RxFunc FwFwd_RxFuncs[L3PktTypeMAX] = {
+static const FwFwd_RxFunc FwFwd_RxFuncs[PktMax] = {
   NULL,
   FwFwd_RxInterest,
   FwFwd_RxData,
@@ -27,10 +34,11 @@ static const FwFwd_RxFunc FwFwd_RxFuncs[L3PktTypeMAX] = {
 };
 
 static __rte_always_inline void
-FwFwd_RxByType(FwFwd* fwd, L3PktType l3type)
+FwFwd_RxByType(FwFwd* fwd, PktType pktType)
 {
+  assert(pktType < PktMax);
   TscTime now = rte_get_tsc_cycles();
-  PktQueue* q = RTE_PTR_ADD(fwd, FwFwd_OffsetofQueue[l3type]);
+  PktQueue* q = RTE_PTR_ADD(fwd, FwFwd_OffsetofQueue[pktType]);
   struct rte_mbuf* pkts[MaxBurstSize];
   PktQueuePopResult pop = PktQueue_Pop(q, pkts, RTE_DIM(pkts), now);
   if (unlikely(pop.drop)) {
@@ -44,12 +52,12 @@ FwFwd_RxByType(FwFwd* fwd, L3PktType l3type)
     ctx.rxFace = ctx.pkt->port;
     ctx.rxTime = ctx.pkt->timestamp;
     ctx.rxToken = Packet_GetLpL3Hdr(ctx.npkt)->pitToken;
-    ctx.eventKind = (SgEvent)l3type;
+    ctx.eventKind = (SgEvent)pktType;
 
     TscDuration timeSinceRx = now - ctx.rxTime;
     RunningStat_Push1(&fwd->latencyStat, timeSinceRx);
 
-    (*FwFwd_RxFuncs[l3type])(fwd, &ctx);
+    (*FwFwd_RxFuncs[pktType])(fwd, &ctx);
   }
 }
 
@@ -67,9 +75,9 @@ FwFwd_Run(FwFwd* fwd)
     rcu_quiescent_state();
     Pit_TriggerTimers(fwd->pit);
 
-    FwFwd_RxByType(fwd, L3PktTypeInterest);
-    FwFwd_RxByType(fwd, L3PktTypeData);
-    FwFwd_RxByType(fwd, L3PktTypeNack);
+    FwFwd_RxByType(fwd, PktInterest);
+    FwFwd_RxByType(fwd, PktData);
+    FwFwd_RxByType(fwd, PktNack);
   }
 
   ZF_LOGI("fwdId=%" PRIu8 " STOP", fwd->id);

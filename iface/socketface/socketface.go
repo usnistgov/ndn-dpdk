@@ -133,7 +133,7 @@ func go_SocketFace_TxBurst(faceC *C.Face, pkts **C.struct_rte_mbuf, nPkts C.uint
 		mbufPtr := (**C.struct_rte_mbuf)(unsafe.Pointer(uintptr(unsafe.Pointer(pkts)) +
 			uintptr(i)*unsafe.Sizeof(*pkts)))
 		mbuf := pktmbuf.PacketFromPtr(unsafe.Pointer(*mbufPtr))
-		wire := mbuf.ReadAll()
+		wire := mbuf.Bytes()
 		mbuf.Close()
 
 		select {

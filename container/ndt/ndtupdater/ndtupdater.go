@@ -16,7 +16,7 @@ type NdtUpdater struct {
 
 // Update performs an update.
 func (nu *NdtUpdater) Update(index uint64, value uint8) (nRelocated int, e error) {
-	oldValue := nu.Ndt.ReadElement(index)
+	oldValue := nu.Ndt.Read(index)
 	if oldValue == value {
 		return 0, nil
 	}

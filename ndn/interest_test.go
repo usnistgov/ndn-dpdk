@@ -26,7 +26,7 @@ func TestInterestEncode(t *testing.T) {
 	wire, e = tlv.Encode(interest)
 	assert.NoError(e)
 	assert.Equal(bytesFromHex("0523 name=0703080142 cbp=2100 mbf=1200 "+
-		"fh=1E0B1F091E0121070408024648 nonce=0A047985AC85 lifetime=0C022006 hoplimit=220105"), wire)
+		"fh=1E0B1F091E0121070408024648 nonce=0A0485AC8579 lifetime=0C022006 hoplimit=220105"), wire)
 	assert.Equal("/8=B[P][F]", interest.String())
 }
 
@@ -39,8 +39,8 @@ func TestInterestLpEncode(t *testing.T) {
 
 	wire, e := tlv.Encode(interest.ToPacket())
 	assert.NoError(e)
-	assert.Equal(bytesFromHex("6419 pittoken=6208F7F6F5F4F3F2F1F0 payload=500D "+
-		"interest=050B 0703080141 0A04C3C2C1C0"), wire)
+	assert.Equal(bytesFromHex("6419 pittoken=6208F0F1F2F3F4F5F6F7 payload=500D "+
+		"interest=050B 0703080141 0A04C0C1C2C3"), wire)
 }
 
 func TestInterestDecode(t *testing.T) {

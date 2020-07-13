@@ -10,20 +10,24 @@ import (
 var (
 	Packet   = &mbuftestenv.Direct
 	Indirect = &mbuftestenv.Indirect
-	Name     mbuftestenv.TestPool
+
 	Header   mbuftestenv.TestPool
-	Guider   mbuftestenv.TestPool
+	Interest mbuftestenv.TestPool
+	Data     mbuftestenv.TestPool
+	Payload  mbuftestenv.TestPool
 )
 
 func init() {
-	Name.Template = ndni.NameMempool.Update(pktmbuf.PoolConfig{
-		Capacity: 4095,
-	})
 	Header.Template = ndni.HeaderMempool.Update(pktmbuf.PoolConfig{
 		Capacity: 4095,
 	})
-	Guider.Template = ndni.GuiderMempool.Update(pktmbuf.PoolConfig{
+	Interest.Template = ndni.InterestMempool.Update(pktmbuf.PoolConfig{
 		Capacity: 4095,
 	})
-
+	Data.Template = ndni.DataMempool.Update(pktmbuf.PoolConfig{
+		Capacity: 4095,
+	})
+	Payload.Template = ndni.PayloadMempool.Update(pktmbuf.PoolConfig{
+		Capacity: 4095,
+	})
 }

@@ -10,6 +10,7 @@ project('NDN-DPDK', 'c',
 add_global_arguments(
   '-Wno-unused-function',
   '-Wno-unused-parameter',
+  '-Wno-missing-braces',
   language: 'c'
 )
 if meson.get_compiler('c').get_id() == 'clang'

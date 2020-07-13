@@ -6,15 +6,15 @@
 
 INIT_ZF_LOG(PingClient);
 
-static bool
+__attribute__((nonnull)) static bool
 PingClientRx_GetSeqNumFromName(PingClientRx* cr, const PingClientRxPattern* pattern,
-                               const Name* name, uint64_t* seqNum)
+                               const PName* name, uint64_t* seqNum)
 {
-  if (unlikely(name->p.nOctets < pattern->prefixLen + PINGCLIENT_SUFFIX_LEN)) {
+  if (unlikely(name->length < pattern->prefixLen + PINGCLIENT_SUFFIX_LEN)) {
     return false;
   }
 
-  const uint8_t* comp = RTE_PTR_ADD(name->v, pattern->prefixLen);
+  const uint8_t* comp = RTE_PTR_ADD(name->value, pattern->prefixLen);
   if (unlikely(comp[0] != TtGenericNameComponent || comp[1] != sizeof(uint64_t))) {
     return false;
   }
@@ -23,7 +23,7 @@ PingClientRx_GetSeqNumFromName(PingClientRx* cr, const PingClientRxPattern* patt
   return true;
 }
 
-static void
+__attribute__((nonnull)) static void
 PingClientRx_ProcessData(PingClientRx* cr, Packet* npkt)
 {
   uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
@@ -44,7 +44,7 @@ PingClientRx_ProcessData(PingClientRx* cr, Packet* npkt)
   RunningStat_Push(&pattern->rtt, recvTime - sendTime);
 }
 
-static void
+__attribute__((nonnull)) static void
 PingClientRx_ProcessNack(PingClientRx* cr, Packet* npkt)
 {
   uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
@@ -65,22 +65,17 @@ PingClientRx_ProcessNack(PingClientRx* cr, Packet* npkt)
 int
 PingClientRx_Run(PingClientRx* cr)
 {
-  Packet* npkts[MaxBurstSize];
-
+  struct rte_mbuf* pkts[MaxBurstSize];
   while (ThreadStopFlag_ShouldContinue(&cr->stop)) {
-    uint32_t nRx =
-      PktQueue_Pop(&cr->rxQueue, (struct rte_mbuf**)npkts, MaxBurstSize, rte_get_tsc_cycles())
-        .count;
-    for (uint16_t i = 0; i < nRx; ++i) {
-      Packet* npkt = npkts[i];
-      if (unlikely(Packet_GetL2PktType(npkt) != L2PktTypeNdnlpV2)) {
-        continue;
-      }
-      switch (Packet_GetL3PktType(npkt)) {
-        case L3PktTypeData:
+    TscTime now = rte_get_tsc_cycles();
+    PktQueuePopResult pop = PktQueue_Pop(&cr->rxQueue, pkts, RTE_DIM(pkts), now);
+    for (uint16_t i = 0; i < pop.count; ++i) {
+      Packet* npkt = Packet_FromMbuf(pkts[i]);
+      switch (Packet_GetType(npkt)) {
+        case PktData:
           PingClientRx_ProcessData(cr, npkt);
           break;
-        case L3PktTypeNack:
+        case PktNack:
           PingClientRx_ProcessNack(cr, npkt);
           break;
         default:
@@ -88,7 +83,7 @@ PingClientRx_Run(PingClientRx* cr)
           break;
       }
     }
-    FreeMbufs((struct rte_mbuf**)npkts, nRx);
+    rte_pktmbuf_free_bulk_(pkts, pop.count);
   }
   return 0;
 }

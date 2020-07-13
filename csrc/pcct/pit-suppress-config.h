@@ -17,7 +17,7 @@ typedef struct PitSuppressConfig
  * @brief Compute next suppression duration.
  * @param d current suppression duration, or 0 for initial.
  */
-static inline TscDuration
+__attribute__((nonnull)) static inline TscDuration
 PitSuppressConfig_Compute(const PitSuppressConfig* cfg, TscDuration d)
 {
   d *= cfg->multiplier;

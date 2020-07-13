@@ -43,7 +43,7 @@ elif [[ $# -eq 3 ]]; then
   TESTPKG=$(getTestPkg $PKG)
   TEST=$3
 
-  if [[ $DBGTOOL == 'gdb' ]]; then DBG='gdb --args'
+  if [[ $DBGTOOL == 'gdb' ]]; then DBG='gdb --silent --args'
   elif [[ $DBGTOOL == 'valgrind' ]]; then DBG='valgrind'
   else
     echo 'Unknown debug tool:' $1 >/dev/stderr

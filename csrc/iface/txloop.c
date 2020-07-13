@@ -4,7 +4,7 @@
 static const int TX_BURST_FRAMES = 64;  // number of frames in a burst
 static const int TX_MAX_FRAGMENTS = 16; // max allowed number of fragments
 
-static void
+__attribute__((nonnull)) static void
 TxLoop_TxFrames(Face* face, struct rte_mbuf** frames, uint16_t count)
 {
   assert(count > 0);
@@ -23,7 +23,7 @@ TxLoop_TxFrames(Face* face, struct rte_mbuf** frames, uint16_t count)
   }
 }
 
-static void
+__attribute__((nonnull)) static void
 TxLoop_Transfer(Face* face)
 {
   TxProc* tx = &face->impl->tx;
@@ -39,13 +39,18 @@ TxLoop_Transfer(Face* face)
   for (uint16_t i = 0; i < count; ++i) {
     Packet* npkt = npkts[i];
     TscDuration latency = now - Packet_ToMbuf(npkt)->timestamp;
-    L3PktType l3type = Packet_GetL3PktType(npkt);
-    RunningStat_Push1(&tx->latency[l3type], latency);
-    if (l3type == L3PktTypeInterest) {
-      hrl[nHrls++] = HrlogEntry_New(HRLOG_OI, latency);
-    } else if (l3type == L3PktTypeData) {
-      hrl[nHrls++] = HrlogEntry_New(
-        Packet_ToMbuf(npkt)->port == MBUF_INVALID_PORT ? HRLOG_OC : HRLOG_OD, latency);
+    PktType framePktType = Pkt_ToFull(Packet_GetType(npkt));
+    RunningStat_Push1(&tx->latency[framePktType], latency);
+    switch (framePktType) {
+      case PktInterest:
+        hrl[nHrls++] = HrlogEntry_New(HRLOG_OI, latency);
+        break;
+      case PktData:
+        hrl[nHrls++] = HrlogEntry_New(
+          Packet_ToMbuf(npkt)->port == MBUF_INVALID_PORT ? HRLOG_OC : HRLOG_OD, latency);
+        break;
+      default:
+        break;
     }
 
     struct rte_mbuf** outFrames = &frames[nFrames];
@@ -75,8 +80,7 @@ TxLoop_Run(TxLoop* txl)
 
     Face* face;
     struct cds_hlist_node* pos;
-    cds_hlist_for_each_entry_rcu(face, pos, &txl->head, txlNode)
-    {
+    cds_hlist_for_each_entry_rcu (face, pos, &txl->head, txlNode) {
       TxLoop_Transfer(face);
     }
     rcu_read_unlock();

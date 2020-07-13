@@ -65,12 +65,12 @@ func (store *DiskStore) SlotRange() (min, max uint64) {
 }
 
 // PutData asynchronously stores a Data packet.
-func (store *DiskStore) PutData(slotID uint64, data *ndni.Data) {
-	C.DiskStore_PutData(store.c, C.uint64_t(slotID), (*C.Packet)(data.AsPacket().Ptr()))
+func (store *DiskStore) PutData(slotID uint64, data *ndni.Packet) {
+	C.DiskStore_PutData(store.c, C.uint64_t(slotID), (*C.Packet)(data.Ptr()))
 }
 
 // GetData retrieves a Data packet from specified slot and waits for completion.
-func (store *DiskStore) GetData(slotID uint64, dataLen int, interest *ndni.Interest) (data *ndni.Data, e error) {
+func (store *DiskStore) GetData(slotID uint64, dataLen int, interest *ndni.Packet) (data *ndni.Packet, e error) {
 	var reply *ringbuffer.Ring
 	if reply, e = ringbuffer.New(64, eal.NumaSocket{},
 		ringbuffer.ProducerMulti, ringbuffer.ConsumerMulti); e != nil {
@@ -78,29 +78,25 @@ func (store *DiskStore) GetData(slotID uint64, dataLen int, interest *ndni.Inter
 	}
 	defer reply.Close()
 
-	interestPtr := interest.AsPacket().Ptr()
-	C.DiskStore_GetData(store.c, C.uint64_t(slotID), C.uint16_t(dataLen), (*C.Packet)(interestPtr), (*C.struct_rte_ring)(reply.Ptr()))
+	interestC := (*C.Packet)(interest.Ptr())
+	pinterest := C.Packet_GetInterestHdr(interestC)
+	C.DiskStore_GetData(store.c, C.uint64_t(slotID), C.uint16_t(dataLen), interestC, (*C.struct_rte_ring)(reply.Ptr()))
 
+	pkts := make([]*ndni.Packet, 1)
 	for {
-		pkts := make([]*ndni.Packet, 1)
-		n := reply.Dequeue(pkts)
-		if n != 1 {
-			runtime.Gosched()
-			continue
+		if reply.Dequeue(pkts) == 1 {
+			break
 		}
-		pkt := pkts[0]
-		if pkt.Ptr() != interestPtr {
-			panic("unexpected packet in reply ring")
-		}
-
-		interest = pkt.AsInterest()
-		interestC := (*C.PInterest)(interest.PInterestPtr())
-		if uint64(interestC.diskSlotId) != slotID {
-			panic("unexpected PInterest.diskSlotId")
-		}
-		if interestC.diskData != nil {
-			data = ndni.PacketFromPtr(unsafe.Pointer(interestC.diskData)).AsData()
-		}
-		return data, nil
+		runtime.Gosched()
 	}
+	pkt := pkts[0]
+	if pkt != interest {
+		panic("unexpected packet in reply ring")
+	}
+
+	if uint64(pinterest.diskSlot) != slotID {
+		panic("unexpected PInterest.diskSlotId")
+	}
+	data = ndni.PacketFromPtr(unsafe.Pointer(pinterest.diskData))
+	return data, nil
 }

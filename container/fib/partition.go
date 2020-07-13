@@ -65,8 +65,10 @@ func (part *partition) Alloc(name ndn.Name) (entry *Entry) {
 
 // Retrieve an entry (either virtual or non-virtual).
 func (part *partition) Get(name ndn.Name) *Entry {
-	length, value, hash, _ := convertName(name)
-	return entryFromPtr(C.Fib_Get_(part.c, length, value, hash))
+	pname := ndni.NewPName(name)
+	defer pname.Free()
+	lname := *(*C.LName)(pname.Ptr())
+	return entryFromPtr(C.Fib_Get(part.c, lname, C.uint64_t(pname.ComputeHash())))
 }
 
 func (part *partition) Insert(entry *Entry, freeVirt, freeReal C.Fib_FreeOld) {
@@ -75,13 +77,4 @@ func (part *partition) Insert(entry *Entry, freeVirt, freeReal C.Fib_FreeOld) {
 
 func (part *partition) Erase(entry *Entry, freeVirt, freeReal C.Fib_FreeOld) {
 	C.Fib_Erase(part.c, entry.ptr(), freeVirt, freeReal)
-}
-
-func convertName(name ndn.Name) (length C.uint16_t, value *C.uint8_t, hash C.uint64_t, pname *C.PName) {
-	cname := ndni.CNameFromName(name)
-	length = C.uint16_t(cname.P.NOctets)
-	value = (*C.uint8_t)(unsafe.Pointer(cname.V))
-	hash = C.uint64_t(cname.ComputeHash())
-	pname = (*C.PName)(unsafe.Pointer(&cname.P))
-	return
 }

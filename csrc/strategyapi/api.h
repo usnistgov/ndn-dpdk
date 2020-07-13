@@ -86,7 +86,7 @@ SgFibNexthopIt_Init2(SgFibNexthopIt* it, const SgCtx* ctx)
  * However, the timer would be cancelled if strategy program is invoked for any other event,
  * a different timer is set, or the strategy choice has been changed.
  */
-bool
+__attribute__((nonnull)) bool
 SgSetTimer(SgCtx* ctx, TscDuration after);
 
 typedef enum SgForwardInterestResult
@@ -103,14 +103,14 @@ typedef enum SgForwardInterestResult
  * @brief Forward an Interest to a nexthop.
  * @pre Not available in @c SGEVT_DATA.
  */
-SgForwardInterestResult
+__attribute__((nonnull)) SgForwardInterestResult
 SgForwardInterest(SgCtx* ctx, FaceID nh);
 
 /**
  * @brief Return Nacks downstream and erase PIT entry.
  * @pre Only available in @c SGEVT_INTEREST.
  */
-void
+__attribute__((nonnull)) void
 SgReturnNacks(SgCtx* ctx, SgNackReason reason);
 
 /**
@@ -119,7 +119,7 @@ SgReturnNacks(SgCtx* ctx, SgNackReason reason);
  *
  * Every strategy must implement this function.
  */
-uint64_t
+__attribute__((nonnull)) uint64_t
 SgMain(SgCtx* ctx);
 
 #endif // NDN_DPDK_STRATEGYAPI_API_H

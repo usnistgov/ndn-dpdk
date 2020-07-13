@@ -26,33 +26,22 @@ typedef struct PitUp
 } __rte_aligned(64) PitUp;
 static_assert(sizeof(PitUp) == 64, "");
 
-static inline void
+__attribute__((nonnull)) static inline void
 PitUp_Reset(PitUp* up, FaceID face)
 {
-  memset(up, 0, sizeof(PitUp));
+  *up = (const PitUp){ 0 };
   up->face = face;
 }
 
-static inline void
-PitUp_Copy(PitUp* dst, PitUp* src)
-{
-  rte_mov64((uint8_t*)dst, (const uint8_t*)src);
-  src->face = 0;
-}
-
-/**
- * @brief Determine if forwarding should be suppressed.
- */
-static inline bool
+/** @brief Determine if forwarding should be suppressed. */
+__attribute__((nonnull)) static inline bool
 PitUp_ShouldSuppress(PitUp* up, TscTime now)
 {
   return up->lastTx + up->suppress > now;
 }
 
-/**
- * @brief Record that @p nonce is rejected by upstream.
- */
-static inline void
+/** @brief Record that @p nonce is rejected by upstream. */
+__attribute__((nonnull)) static inline void
 PitUp_AddRejectedNonce(PitUp* up, uint32_t nonce)
 {
   for (int i = PIT_UP_MAX_REJ_NONCES - 1; i > 0; --i) {
@@ -68,7 +57,7 @@ PitUp_AddRejectedNonce(PitUp* up, uint32_t nonce)
  * @retval true a valid nonce is found.
  * @retval false all DN nonces have been rejected.
  */
-bool
+__attribute__((nonnull)) bool
 PitUp_ChooseNonce(PitUp* up, PitEntry* entry, TscTime now, uint32_t* nonce);
 
 /**
@@ -76,7 +65,7 @@ PitUp_ChooseNonce(PitUp* up, PitEntry* entry, TscTime now, uint32_t* nonce);
  * @param now time used for calculating InterestLifetime.
  * @param nonce nonce of TX Interest.
  */
-void
+__attribute__((nonnull)) void
 PitUp_RecordTx(PitUp* up, PitEntry* entry, TscTime now, uint32_t nonce,
                PitSuppressConfig* suppressCfg);
 

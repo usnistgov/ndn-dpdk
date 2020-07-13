@@ -39,7 +39,7 @@ func TestDataLpEncode(t *testing.T) {
 	wire, e := tlv.Encode(data.ToPacket())
 	assert.NoError(e)
 	assert.Contains(string(wire),
-		string(bytesFromHex("pittoken=6208F7F6F5F4F3F2F1F0 congmark=FD03400101")))
+		string(bytesFromHex("pittoken=6208F0F1F2F3F4F5F6F7 congmark=FD03400101")))
 	assert.Contains(string(wire),
 		string(bytesFromHex("name=0703080141 meta=1403 freshness=190101 content=1502C0C1")))
 }

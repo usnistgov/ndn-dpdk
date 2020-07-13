@@ -9,8 +9,8 @@ InputDemux_Drop(InputDemux* demux, Packet* npkt, const char* reason)
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   ZF_LOGD("%s-from=%" PRI_FaceID " npkt=%p token=%016" PRIx64 " drop=%s",
-          L3PktTypeToString(Packet_GetL3PktType(npkt)), pkt->port, npkt,
-          Packet_GetLpL3Hdr(npkt)->pitToken, reason);
+          Pkt_ToString(Packet_GetType(npkt)), pkt->port, npkt, Packet_GetLpL3Hdr(npkt)->pitToken,
+          reason);
 
   ++demux->nDrops;
   rte_pktmbuf_free(pkt);
@@ -27,8 +27,8 @@ InputDemux_PassTo(InputDemux* demux, Packet* npkt, uint8_t index)
 
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   ZF_LOGD("%s-from=%" PRI_FaceID " npkt=%p token=%016" PRIx64 " dest-index=%" PRIu8,
-          L3PktTypeToString(Packet_GetL3PktType(npkt)), pkt->port, npkt,
-          Packet_GetLpL3Hdr(npkt)->pitToken, index);
+          Pkt_ToString(Packet_GetType(npkt)), pkt->port, npkt, Packet_GetLpL3Hdr(npkt)->pitToken,
+          index);
 
   uint32_t nRej = PktQueue_PushPlain(dest->queue, &pkt, 1);
   dest->nDropped += nRej;
@@ -36,40 +36,40 @@ InputDemux_PassTo(InputDemux* demux, Packet* npkt, uint8_t index)
 }
 
 void
-InputDemux_DispatchDrop(InputDemux* demux, Packet* npkt, const Name* name)
+InputDemux_DispatchDrop(InputDemux* demux, Packet* npkt, const PName* name)
 {
   InputDemux_Drop(demux, npkt, "op-drop");
 }
 
 void
-InputDemux_DispatchToFirst(InputDemux* demux, Packet* npkt, const Name* name)
+InputDemux_DispatchToFirst(InputDemux* demux, Packet* npkt, const PName* name)
 {
   InputDemux_PassTo(demux, npkt, 0);
 }
 
 void
-InputDemux_DispatchRoundrobinDiv(InputDemux* demux, Packet* npkt, const Name* name)
+InputDemux_DispatchRoundrobinDiv(InputDemux* demux, Packet* npkt, const PName* name)
 {
   uint8_t index = (++demux->roundrobin.i) % demux->roundrobin.n;
   InputDemux_PassTo(demux, npkt, index);
 }
 
 void
-InputDemux_DispatchRoundrobinMask(InputDemux* demux, Packet* npkt, const Name* name)
+InputDemux_DispatchRoundrobinMask(InputDemux* demux, Packet* npkt, const PName* name)
 {
   uint8_t index = (++demux->roundrobin.i) & demux->roundrobin.n;
   InputDemux_PassTo(demux, npkt, index);
 }
 
 void
-InputDemux_DispatchByNdt(InputDemux* demux, Packet* npkt, const Name* name)
+InputDemux_DispatchByNdt(InputDemux* demux, Packet* npkt, const PName* name)
 {
   uint8_t index = Ndtt_Lookup(demux->ndt, demux->ndtt, name);
   InputDemux_PassTo(demux, npkt, index);
 }
 
 void
-InputDemux_DispatchByToken(InputDemux* demux, Packet* npkt, const Name* name)
+InputDemux_DispatchByToken(InputDemux* demux, Packet* npkt, const PName* name)
 {
   uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
   if (unlikely(token == 0)) {

@@ -19,18 +19,18 @@ func TestTxBurst(t *testing.T) {
 
 	face.SetDown(true)
 	pkts := make([]*ndni.Packet, 1)
-	pkts[0] = ndnitestenv.MakeInterest("/A").AsPacket()
+	pkts[0] = ndnitestenv.MakeInterest("/A")
 	iface.TxBurst(id, pkts)
 
 	face.SetDown(false)
 	pkts = make([]*ndni.Packet, 1)
-	pkts[0] = ndnitestenv.MakeData("/A").AsPacket()
+	pkts[0] = ndnitestenv.MakeData("/A")
 	iface.TxBurst(id, pkts)
 	time.Sleep(100 * time.Millisecond)
 
 	face.D.Close()
 	pkts = make([]*ndni.Packet, 1)
-	pkts[0] = ndnitestenv.MakeInterest("/A").AsPacket()
+	pkts[0] = ndnitestenv.MakeInterest("/A")
 	iface.TxBurst(id, pkts)
 
 	assert.Equal(1, collect.Count())
