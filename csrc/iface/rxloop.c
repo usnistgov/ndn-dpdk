@@ -37,7 +37,7 @@ RxLoop_Transfer(RxLoop* rxl, RxGroup* rxg)
         break;
       }
       default:
-        assert(false);
+        NDNDPDK_ASSERT(false);
         break;
     }
   }

@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_FWDP_STRATEGY_H
-#define NDN_DPDK_FWDP_STRATEGY_H
+#ifndef NDNDPDK_FWDP_STRATEGY_H
+#define NDNDPDK_FWDP_STRATEGY_H
 
 /** @file */
 
@@ -20,4 +20,4 @@ SgInvoke(StrategyCode* strategy, FwFwdCtx* ctx)
   return StrategyCode_Execute(strategy, ctx, sizeof(SgCtx));
 }
 
-#endif // NDN_DPDK_FWDP_STRATEGY_H
+#endif // NDNDPDK_FWDP_STRATEGY_H

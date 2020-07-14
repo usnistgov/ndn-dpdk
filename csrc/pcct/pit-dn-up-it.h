@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_PCCT_PIT_DN_UP_IT_H
-#define NDN_DPDK_PCCT_PIT_DN_UP_IT_H
+#ifndef NDNDPDK_PCCT_PIT_DN_UP_IT_H
+#define NDNDPDK_PCCT_PIT_DN_UP_IT_H
 
 /** @file */
 
@@ -39,7 +39,7 @@ PitDnUpIt_Init_(PitDnUpIt_* it, PitEntry* entry, int maxInEntry, size_t offsetIn
 __attribute__((nonnull)) static inline void
 PitDnUpIt_Next_(PitDnUpIt_* it, int maxInExt, size_t offsetInExt)
 {
-  assert(it->i < it->max);
+  NDNDPDK_ASSERT(it->i < it->max);
   ++it->index;
   ++it->i;
   if (likely(it->i < it->max)) {
@@ -151,4 +151,4 @@ PitUpIt_Extend(PitDnIt* it, Pit* pit)
   return ok;
 }
 
-#endif // NDN_DPDK_PCCT_PIT_DN_UP_IT_H
+#endif // NDNDPDK_PCCT_PIT_DN_UP_IT_H

@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_NDNI_PACKET_H
-#define NDN_DPDK_NDNI_PACKET_H
+#ifndef NDNDPDK_NDNI_PACKET_H
+#define NDNDPDK_NDNI_PACKET_H
 
 /** @file */
 
@@ -51,7 +51,7 @@ static_assert(offsetof(PacketPriv, nack) + offsetof(PNack, interest) ==
 __attribute__((nonnull, returns_nonnull)) static __rte_always_inline Packet*
 Packet_FromMbuf(struct rte_mbuf* pkt)
 {
-  assert(pkt->priv_size >= sizeof(PacketPriv));
+  NDNDPDK_ASSERT(pkt->priv_size >= sizeof(PacketPriv));
   return (Packet*)pkt;
 }
 
@@ -89,7 +89,7 @@ Packet_GetPriv_(Packet* npkt)
 __attribute__((nonnull, returns_nonnull)) static __rte_always_inline LpHeader*
 Packet_GetLpHdr(Packet* npkt)
 {
-  assert(Packet_GetType(npkt) == PktFragment);
+  NDNDPDK_ASSERT(Packet_GetType(npkt) == PktFragment);
   return &Packet_GetPriv_(npkt)->lp;
 }
 
@@ -107,7 +107,7 @@ Packet_GetLpL3Hdr(Packet* npkt)
 __attribute__((nonnull, returns_nonnull)) static __rte_always_inline PInterest*
 Packet_GetInterestHdr(Packet* npkt)
 {
-  assert(Packet_GetType(npkt) == PktInterest);
+  NDNDPDK_ASSERT(Packet_GetType(npkt) == PktInterest);
   return &Packet_GetPriv_(npkt)->interest;
 }
 
@@ -118,7 +118,7 @@ Packet_GetInterestHdr(Packet* npkt)
 __attribute__((nonnull, returns_nonnull)) static __rte_always_inline PData*
 Packet_GetDataHdr(Packet* npkt)
 {
-  assert(Packet_GetType(npkt) == PktData);
+  NDNDPDK_ASSERT(Packet_GetType(npkt) == PktData);
   return &Packet_GetPriv_(npkt)->data;
 }
 
@@ -129,7 +129,7 @@ Packet_GetDataHdr(Packet* npkt)
 __attribute__((nonnull, returns_nonnull)) static __rte_always_inline PNack*
 Packet_GetNackHdr(Packet* npkt)
 {
-  assert(Packet_GetType(npkt) == PktNack);
+  NDNDPDK_ASSERT(Packet_GetType(npkt) == PktNack);
   return &Packet_GetPriv_(npkt)->nack;
 }
 
@@ -163,4 +163,4 @@ Packet_ParseL3(Packet* npkt);
 __attribute__((nonnull)) Packet*
 Packet_Clone(Packet* npkt, struct rte_mempool* headerMp, struct rte_mempool* indirectMp);
 
-#endif // NDN_DPDK_NDNI_PACKET_H
+#endif // NDNDPDK_NDNI_PACKET_H

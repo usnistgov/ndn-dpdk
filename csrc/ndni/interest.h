@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_NDNI_INTEREST_H
-#define NDN_DPDK_NDNI_INTEREST_H
+#ifndef NDNDPDK_NDNI_INTEREST_H
+#define NDNDPDK_NDNI_INTEREST_H
 
 /** @file */
 
@@ -100,4 +100,4 @@ __attribute__((nonnull, returns_nonnull)) Packet*
 InterestTemplate_Encode(const InterestTemplate* tpl, struct rte_mbuf* m, LName suffix,
                         uint32_t nonce);
 
-#endif // NDN_DPDK_NDNI_INTEREST_H
+#endif // NDNDPDK_NDNI_INTEREST_H

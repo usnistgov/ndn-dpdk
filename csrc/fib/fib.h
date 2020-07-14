@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_FIB_FIB_H
-#define NDN_DPDK_FIB_FIB_H
+#ifndef NDNDPDK_FIB_FIB_H
+#define NDNDPDK_FIB_FIB_H
 
 /** @file */
 
@@ -116,4 +116,4 @@ Fib_Find(Fib* fib, LName name, uint64_t hash)
 __attribute__((nonnull)) FibEntry*
 Fib_Lpm(Fib* fib, const PName* name);
 
-#endif // NDN_DPDK_FIB_FIB_H
+#endif // NDNDPDK_FIB_FIB_H

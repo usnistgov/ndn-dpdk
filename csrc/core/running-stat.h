@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_CORE_RUNNING_STAT_H
-#define NDN_DPDK_CORE_RUNNING_STAT_H
+#ifndef NDNDPDK_CORE_RUNNING_STAT_H
+#define NDNDPDK_CORE_RUNNING_STAT_H
 
 /** @file */
 
@@ -28,7 +28,7 @@ static_assert(sizeof(RunningStat) <= RTE_CACHE_LINE_SIZE, "");
 static inline void
 RunningStat_SetSampleRate(RunningStat* s, int q)
 {
-  assert(q >= 0 && q <= 30);
+  NDNDPDK_ASSERT(q >= 0 && q <= 30);
   s->mask = (1 << q) - 1;
 }
 
@@ -90,4 +90,4 @@ RunningStat_Push1(RunningStat* s, double x)
   RunningStat_UpdateM_(s, x);
 }
 
-#endif // NDN_DPDK_CORE_RUNNING_STAT_H
+#endif // NDNDPDK_CORE_RUNNING_STAT_H

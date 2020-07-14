@@ -4,7 +4,7 @@
 void
 MinTmrTest_TriggerRecord(MinTmr* tmr, void* arg)
 {
-  assert((uintptr_t)arg == 0xEFAB9817);
+  NDNDPDK_ASSERT((uintptr_t)arg == 0xEFAB9817);
   MinTmrTestRecord* rec = container_of(tmr, MinTmrTestRecord, tmr);
   go_TriggerRecord(rec->n);
   free(rec);

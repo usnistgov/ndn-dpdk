@@ -8,7 +8,7 @@ MinSched*
 MinSched_New(int nSlotBits, TscDuration interval, MinTmrCallback cb, void* cbarg)
 {
   uint32_t nSlots = 1 << nSlotBits;
-  assert(nSlots != 0);
+  NDNDPDK_ASSERT(nSlots != 0);
 
   MinSched* sched = rte_zmalloc("MinSched", sizeof(MinSched) + nSlots * sizeof(MinTmr), 0);
   sched->interval = interval;

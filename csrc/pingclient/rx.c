@@ -79,7 +79,7 @@ PingClientRx_Run(PingClientRx* cr)
           PingClientRx_ProcessNack(cr, npkt);
           break;
         default:
-          assert(false);
+          NDNDPDK_ASSERT(false);
           break;
       }
     }

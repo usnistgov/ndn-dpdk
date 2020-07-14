@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_NDNI_TLV_ENCODER_H
-#define NDN_DPDK_NDNI_TLV_ENCODER_H
+#ifndef NDNDPDK_NDNI_TLV_ENCODER_H
+#define NDNDPDK_NDNI_TLV_ENCODER_H
 
 /** @file */
 
@@ -25,7 +25,7 @@ TlvEncoder_SizeofVarNum(uint32_t n)
 __attribute__((nonnull)) static __rte_always_inline void
 TlvEncoder_WriteVarNum(uint8_t* room, uint32_t n)
 {
-  assert(room != NULL);
+  NDNDPDK_ASSERT(room != NULL);
   if (likely(n < 0xFD)) {
     room[0] = n;
   } else if (likely(n <= UINT16_MAX)) {
@@ -64,4 +64,4 @@ TlvEncoder_PrependTL(struct rte_mbuf* m, uint32_t type, uint32_t length)
   TlvEncoder_WriteVarNum((uint8_t*)RTE_PTR_ADD(room, sizeT), length);
 }
 
-#endif // NDN_DPDK_NDNI_TLV_ENCODER_H
+#endif // NDNDPDK_NDNI_TLV_ENCODER_H

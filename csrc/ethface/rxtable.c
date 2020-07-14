@@ -4,7 +4,7 @@
 static bool
 EthRxTable_Accept(EthRxTable* rxt, struct rte_mbuf* frame, uint64_t now)
 {
-  assert(frame->data_len >= sizeof(EthFaceEtherHdr));
+  NDNDPDK_ASSERT(frame->data_len >= sizeof(EthFaceEtherHdr));
   const EthFaceEtherHdr* hdr = rte_pktmbuf_mtod(frame, const EthFaceEtherHdr*);
 
   if (rte_is_multicast_ether_addr(&hdr->eth.d_addr)) {

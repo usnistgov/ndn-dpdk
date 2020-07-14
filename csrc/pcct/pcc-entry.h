@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_PCCT_PCC_ENTRY_H
-#define NDN_DPDK_PCCT_PCC_ENTRY_H
+#ifndef NDNDPDK_PCCT_PCC_ENTRY_H
+#define NDNDPDK_PCCT_PCC_ENTRY_H
 
 /** @file */
 
@@ -87,13 +87,13 @@ PccEntry_GetSlot_(PccEntry* entry, PccSlotIndex slot)
     case PCC_SLOT1:
       return &entry->slot1;
     case PCC_SLOT2:
-      assert(entry->ext != NULL);
+      NDNDPDK_ASSERT(entry->ext != NULL);
       return &entry->ext->slot2;
     case PCC_SLOT3:
-      assert(entry->ext != NULL);
+      NDNDPDK_ASSERT(entry->ext != NULL);
       return &entry->ext->slot3;
     default:
-      assert(false);
+      NDNDPDK_ASSERT(false);
       return NULL;
   }
 }
@@ -206,8 +206,8 @@ __attribute__((nonnull, returns_nonnull)) static inline PccEntry*
 PccEntry_FromCsEntry(CsEntry* csEntry)
 {
   PccEntry* entry = container_of(csEntry, PccSlot, csEntry)->pccEntry;
-  assert(entry->hasCsEntry);
+  NDNDPDK_ASSERT(entry->hasCsEntry);
   return entry;
 }
 
-#endif // NDN_DPDK_PCCT_PCC_ENTRY_H
+#endif // NDNDPDK_PCCT_PCC_ENTRY_H

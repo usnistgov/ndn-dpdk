@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_HRLOG_POST_H
-#define NDN_DPDK_HRLOG_POST_H
+#ifndef NDNDPDK_HRLOG_POST_H
+#define NDNDPDK_HRLOG_POST_H
 
 /** @file */
 
@@ -19,4 +19,4 @@ Hrlog_PostBulk(HrlogEntry* entries, uint16_t count)
   }
 }
 
-#endif // NDN_DPDK_HRLOG_POST_H
+#endif // NDNDPDK_HRLOG_POST_H

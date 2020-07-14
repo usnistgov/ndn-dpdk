@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_NDT_NDT_H
-#define NDN_DPDK_NDT_NDT_H
+#ifndef NDNDPDK_NDT_NDT_H
+#define NDNDPDK_NDT_NDT_H
 
 /** @file */
 
@@ -31,7 +31,7 @@ typedef struct Ndt
 __attribute__((nonnull)) static inline void
 Ndt_Update(Ndt* ndt, uint64_t index, uint8_t value)
 {
-  assert(index == (index & ndt->indexMask));
+  NDNDPDK_ASSERT(index == (index & ndt->indexMask));
   atomic_store_explicit(&ndt->table[index], value, memory_order_relaxed);
 }
 
@@ -39,7 +39,7 @@ Ndt_Update(Ndt* ndt, uint64_t index, uint8_t value)
 __attribute__((nonnull)) static __rte_always_inline uint8_t
 Ndt_Read(const Ndt* ndt, uint64_t index)
 {
-  assert(index == (index & ndt->indexMask));
+  NDNDPDK_ASSERT(index == (index & ndt->indexMask));
   return atomic_load_explicit(&ndt->table[index], memory_order_relaxed);
 }
 
@@ -67,4 +67,4 @@ Ndtt_Lookup(const Ndt* ndt, NdtThread* ndtt, const PName* name)
   return value;
 }
 
-#endif // NDN_DPDK_NDT_NDT_H
+#endif // NDNDPDK_NDT_NDT_H

@@ -24,7 +24,7 @@ struct rte_mbuf*
 TlvDecoder_Clone(TlvDecoder* d, uint32_t count, struct rte_mempool* indirectMp,
                  struct rte_mbuf** lastseg)
 {
-  assert(count <= d->length);
+  NDNDPDK_ASSERT(count <= d->length);
   TlvDecoder d0 = *d;
 
   unsigned nSegs = 0;
@@ -73,7 +73,7 @@ TlvDecoder_Clone(TlvDecoder* d, uint32_t count, struct rte_mempool* indirectMp,
     d->offset = 0;
   }
   d->length -= count;
-  assert(i == nSegs);
+  NDNDPDK_ASSERT(i == nSegs);
 
   struct rte_mbuf* head = segs[0];
   for (i = 1; i < nSegs; ++i) {
@@ -133,7 +133,7 @@ TlvDecoder_Linearize_CopyToNew_(TlvDecoder* d, uint16_t count)
 {
   struct rte_mbuf* c = d->m;
   uint16_t co = d->offset;
-  assert(co != 0); // d->offset==0 belongs to MoveToFirst
+  NDNDPDK_ASSERT(co != 0); // d->offset==0 belongs to MoveToFirst
 
   struct rte_mbuf* r = rte_pktmbuf_alloc(d->m->pool);
   if (unlikely(r == NULL)) {
@@ -141,7 +141,7 @@ TlvDecoder_Linearize_CopyToNew_(TlvDecoder* d, uint16_t count)
   }
   r->data_off = 0;
   uint8_t* output = (uint8_t*)rte_pktmbuf_append(r, count);
-  assert(output != NULL); // dataroom is checked by caller
+  NDNDPDK_ASSERT(output != NULL); // dataroom is checked by caller
   TlvDecoder_Read_NonContiguous_(d, output, count);
 
   r->next = c->next;
@@ -155,7 +155,7 @@ TlvDecoder_Linearize_CopyToNew_(TlvDecoder* d, uint16_t count)
 const uint8_t*
 TlvDecoder_Linearize_NonContiguous_(TlvDecoder* d, uint16_t count)
 {
-  assert(RTE_MBUF_DIRECT(d->m) && rte_mbuf_refcnt_read(d->m) == 1);
+  NDNDPDK_ASSERT(RTE_MBUF_DIRECT(d->m) && rte_mbuf_refcnt_read(d->m) == 1);
 
   if (likely(d->offset + count <= d->m->buf_len)) { // result fits in d->m
     return TlvDecoder_Linearize_MoveToFirst_(d, count);

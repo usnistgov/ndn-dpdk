@@ -8,7 +8,7 @@ void
 SpdkBdev_InitFiller()
 {
   SpdkBdev_Filler = rte_malloc("SpdkBdevFiller", SPDK_BDEV_FILLER_LEN, 0);
-  assert(SpdkBdev_Filler != NULL);
+  NDNDPDK_ASSERT(SpdkBdev_Filler != NULL);
 }
 
 static int
@@ -34,7 +34,7 @@ SpdkBdev_MakeIovec(struct rte_mbuf* pkt, uint64_t minLen,
     if (unlikely(i >= SPDK_BDEV_MAX_MBUF_SEGS + SPDK_BDEV_FILLER_MAX)) {
       return -EMSGSIZE;
     }
-    assert(SpdkBdev_Filler != 0);
+    NDNDPDK_ASSERT(SpdkBdev_Filler != 0);
     iov[i].iov_base = (void*)SpdkBdev_Filler;
     iov[i].iov_len = SPDK_BDEV_FILLER_LEN;
     ++i;

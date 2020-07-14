@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_NDNI_NNI_H
-#define NDN_DPDK_NDNI_NNI_H
+#ifndef NDNDPDK_NDNI_NNI_H
+#define NDNDPDK_NDNI_NNI_H
 
 /** @file */
 
@@ -61,4 +61,4 @@ Nni_Encode(uint8_t* room, uint64_t n)
   return 1;
 }
 
-#endif // NDN_DPDK_NDNI_NNI_H
+#endif // NDNDPDK_NDNI_NNI_H

@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_PCCT_PIT_ENTRY_H
-#define NDN_DPDK_PCCT_PIT_ENTRY_H
+#ifndef NDNDPDK_PCCT_PIT_ENTRY_H
+#define NDNDPDK_PCCT_PIT_ENTRY_H
 
 /** @file */
 
@@ -199,4 +199,4 @@ PitEntry_GetTxInterestHopLimit(PitEntry* entry)
   return entry->txHopLimit;
 }
 
-#endif // NDN_DPDK_PCCT_PIT_ENTRY_H
+#endif // NDNDPDK_PCCT_PIT_ENTRY_H

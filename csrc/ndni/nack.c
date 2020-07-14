@@ -21,8 +21,8 @@ NackReason_ToString(NackReason reason)
 Packet*
 Nack_FromInterest(Packet* npkt, NackReason reason)
 {
-  struct rte_mbuf* pkt __rte_unused = Packet_ToMbuf(npkt);
-  assert(RTE_MBUF_DIRECT(pkt) && rte_mbuf_refcnt_read(pkt) == 1);
+  struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
+  NDNDPDK_ASSERT(RTE_MBUF_DIRECT(pkt) && rte_mbuf_refcnt_read(pkt) == 1);
   switch (Packet_GetType(npkt)) {
     case PktInterest:
       Packet_SetType(npkt, PktNack);
@@ -31,7 +31,7 @@ Nack_FromInterest(Packet* npkt, NackReason reason)
       Packet_SetType(npkt, PktSNack);
       break;
     default:
-      assert(false);
+      NDNDPDK_ASSERT(false);
       break;
   }
   Packet_GetLpL3Hdr(npkt)->nackReason = reason;

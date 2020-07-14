@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_NDNI_NAME_H
-#define NDN_DPDK_NDNI_NAME_H
+#ifndef NDNDPDK_NDNI_NAME_H
+#define NDNDPDK_NDNI_NAME_H
 
 /** @file */
 
@@ -18,7 +18,7 @@ typedef struct LName
 static __rte_always_inline LName
 LName_Init(uint16_t length, const uint8_t* value)
 {
-  assert(length <= NameMaxLength);
+  NDNDPDK_ASSERT(length <= NameMaxLength);
   LName lname = {
     .value = value,
     .length = length,
@@ -113,7 +113,7 @@ PName_PrepareHashes_(PName* p);
 __attribute__((nonnull)) static inline uint64_t
 PName_ComputePrefixHash(const PName* p, uint16_t i)
 {
-  assert(i <= p->nComps);
+  NDNDPDK_ASSERT(i <= p->nComps);
   if (unlikely(i == 0)) {
     return LName_EmptyHash_;
   }
@@ -134,4 +134,4 @@ PName_ComputeHash(const PName* p)
   return PName_ComputePrefixHash(p, p->nComps);
 }
 
-#endif // NDN_DPDK_NDNI_NAME_H
+#endif // NDNDPDK_NDNI_NAME_H

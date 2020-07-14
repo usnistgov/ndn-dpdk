@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_PCCT_PIT_STRUCT_H
-#define NDN_DPDK_PCCT_PIT_STRUCT_H
+#ifndef NDNDPDK_PCCT_PIT_STRUCT_H
+#define NDNDPDK_PCCT_PIT_STRUCT_H
 
 /** @file */
 
@@ -39,4 +39,4 @@ typedef struct PitPriv
   void* sgTimerCbArg;
 } PitPriv;
 
-#endif // NDN_DPDK_PCCT_PIT_STRUCT_H
+#endif // NDNDPDK_PCCT_PIT_STRUCT_H

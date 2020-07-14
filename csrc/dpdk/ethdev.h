@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_DPDK_ETHDEV_H
-#define NDN_DPDK_DPDK_ETHDEV_H
+#ifndef NDNDPDK_DPDK_ETHDEV_H
+#define NDNDPDK_DPDK_ETHDEV_H
 
 /** @file */
 
@@ -15,4 +15,4 @@ EthDev_IsDown(uint16_t port)
   return link.link_status == ETH_LINK_DOWN;
 }
 
-#endif // NDN_DPDK_DPDK_ETHDEV_H
+#endif // NDNDPDK_DPDK_ETHDEV_H

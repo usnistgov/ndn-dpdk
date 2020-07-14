@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_STRATEGYAPI_PIT_H
-#define NDN_DPDK_STRATEGYAPI_PIT_H
+#ifndef NDNDPDK_STRATEGYAPI_PIT_H
+#define NDNDPDK_STRATEGYAPI_PIT_H
 
 /** @file */
 
@@ -48,4 +48,4 @@ struct SgPitEntryExt
   SgPitEntryExt* next;
 };
 
-#endif // NDN_DPDK_STRATEGYAPI_PIT_H
+#endif // NDNDPDK_STRATEGYAPI_PIT_H

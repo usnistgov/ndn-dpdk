@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_FETCH_WINDOW_H
-#define NDN_DPDK_FETCH_WINDOW_H
+#ifndef NDNDPDK_FETCH_WINDOW_H
+#define NDNDPDK_FETCH_WINDOW_H
 
 /** @file */
 
@@ -96,4 +96,4 @@ FetchWindow_Delete(FetchWindow* win, uint64_t segNum)
   }
 }
 
-#endif // NDN_DPDK_FETCH_WINDOW_H
+#endif // NDNDPDK_FETCH_WINDOW_H

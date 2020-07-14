@@ -28,8 +28,8 @@ FetchLogic_TxInterestBurst(FetchLogic* fl, uint64_t* segNums, size_t limit)
     }
 
     seg->txTime = now;
-    bool ok __rte_unused = MinTmr_After(&seg->rtoExpiry, fl->rtte.rto, fl->sched);
-    assert(ok);
+    bool ok = MinTmr_After(&seg->rtoExpiry, fl->rtte.rto, fl->sched);
+    NDNDPDK_ASSERT(ok);
     segNums[count++] = seg->segNum;
     ++fl->nInFlight;
   }
@@ -137,6 +137,6 @@ FetchLogic_Init_(FetchLogic* fl)
 
   // 2^16 slots of 1ms interval, accommodates RTO up to 65536ms
   fl->sched = MinSched_New(16, rte_get_tsc_hz() / 1000, FetchLogic_RtoTimeout, fl);
-  assert(MinSched_GetMaxDelay(fl->sched) >=
-         (TscDuration)(RTTEST_MAXRTO_MS * rte_get_tsc_hz() / 1000));
+  NDNDPDK_ASSERT(MinSched_GetMaxDelay(fl->sched) >=
+                 (TscDuration)(RTTEST_MAXRTO_MS * rte_get_tsc_hz() / 1000));
 }

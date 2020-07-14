@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_DPDK_BDEV_H
-#define NDN_DPDK_DPDK_BDEV_H
+#ifndef NDNDPDK_DPDK_BDEV_H
+#define NDNDPDK_DPDK_BDEV_H
 
 /** @file */
 
@@ -28,4 +28,4 @@ SpdkBdev_WritePacket(struct spdk_bdev_desc* desc, struct spdk_io_channel* ch, st
                      uint64_t blockOffset, uint64_t blockCount, uint32_t blockSize,
                      spdk_bdev_io_completion_cb cb, void* ctx);
 
-#endif // NDN_DPDK_SPDK_BDEV_H
+#endif // NDNDPDK_SPDK_BDEV_H

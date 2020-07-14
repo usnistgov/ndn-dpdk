@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_CORE_LOGGER_H
-#define NDN_DPDK_CORE_LOGGER_H
+#ifndef NDNDPDK_CORE_LOGGER_H
+#define NDNDPDK_CORE_LOGGER_H
 
 /** @file */
 
@@ -49,4 +49,4 @@
 int
 ParseLogLevel(const char* module);
 
-#endif // NDN_DPDK_CORE_LOGGER_H
+#endif // NDNDPDK_CORE_LOGGER_H

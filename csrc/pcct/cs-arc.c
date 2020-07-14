@@ -19,7 +19,7 @@ CsArc_GetList(CsArc* arc, CsArcListId cslId)
     case CSL_ARC_DEL:
       return &arc->DEL;
     default:
-      assert(false);
+      NDNDPDK_ASSERT(false);
       return NULL;
   }
 }
@@ -31,7 +31,7 @@ CsArc_GetList(CsArc* arc, CsArcListId cslId)
 
 #define CsArc_Move(arc, entry, src, dst)                                                           \
   do {                                                                                             \
-    assert((entry)->arcList == CSL_ARC_##src);                                                     \
+    NDNDPDK_ASSERT((entry)->arcList == CSL_ARC_##src);                                             \
     CsList_Remove(&(arc)->src, (entry));                                                           \
     (entry)->arcList = CSL_ARC_##dst;                                                              \
     CsList_Append(&(arc)->dst, (entry));                                                           \
@@ -113,14 +113,14 @@ CsArc_AddNew(CsArc* arc, CsEntry* entry)
       CsArc_Move(arc, deleting, B1, DEL);
       CsArc_Replace(arc, false);
     } else {
-      assert(arc->B1.count == 0);
+      NDNDPDK_ASSERT(arc->B1.count == 0);
       ZF_LOGV("^ evict-from=T1");
       CsEntry* deleting = CsList_GetFront(&arc->T1);
       CsEntry_ClearData(deleting);
       CsArc_Move(arc, deleting, T1, DEL);
     }
   } else {
-    assert(nL1 < CsArc_c(arc));
+    NDNDPDK_ASSERT(nL1 < CsArc_c(arc));
     uint32_t nL1L2 = nL1 + arc->T2.count + arc->B2.count;
     if (nL1L2 >= CsArc_c(arc)) {
       if (nL1L2 == CsArc_2c(arc)) {
@@ -161,7 +161,7 @@ CsArc_Add(CsArc* arc, CsEntry* entry)
       CsArc_AddNew(arc, entry);
       return;
   }
-  assert(false);
+  NDNDPDK_ASSERT(false);
 }
 
 void

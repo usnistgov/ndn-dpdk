@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_DISKSTORE_DISKSTORE_H
-#define NDN_DPDK_DISKSTORE_DISKSTORE_H
+#ifndef NDNDPDK_DISKSTORE_DISKSTORE_H
+#define NDNDPDK_DISKSTORE_DISKSTORE_H
 
 /** @file */
 
@@ -63,4 +63,4 @@ DiskStore_ComputeBlockCount_(DiskStore* store, Packet* npkt)
   return pktLen / DISK_STORE_BLOCK_SIZE + (int)(pktLen % DISK_STORE_BLOCK_SIZE > 0);
 }
 
-#endif // NDN_DPDK_DISKSTORE_DISKSTORE_H
+#endif // NDNDPDK_DISKSTORE_DISKSTORE_H

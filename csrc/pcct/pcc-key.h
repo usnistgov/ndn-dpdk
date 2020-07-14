@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_PCCT_PCC_KEY_H
-#define NDN_DPDK_PCCT_PCC_KEY_H
+#ifndef NDNDPDK_PCCT_PCC_KEY_H
+#define NDNDPDK_PCCT_PCC_KEY_H
 
 /** @file */
 
@@ -74,7 +74,7 @@ PccKey_MatchNameOrFhV_(LName name, const uint8_t* value, uint16_t cap, const Pcc
     return false;
   }
   for (uint16_t offset = cap; unlikely(offset < name.length); offset += PCC_KEY_EXT_CAP) {
-    assert(ext != NULL);
+    NDNDPDK_ASSERT(ext != NULL);
     if (memcmp(ext->value, RTE_PTR_ADD(name.value, offset),
                RTE_MIN(name.length - offset, PCC_KEY_EXT_CAP)) != 0) {
       return false;
@@ -137,7 +137,7 @@ PccKey_CopyNameOrFhV_(LName name, uint8_t* value, uint16_t cap, PccKeyExt** next
 __attribute__((nonnull)) static inline void
 PccKey_CopyFromSearch(PccKey* key, const PccSearch* search, PccKeyExt* exts[], int nExts)
 {
-  assert(nExts == PccKey_CountExtensions(search));
+  NDNDPDK_ASSERT(nExts == PccKey_CountExtensions(search));
   key->nameL = search->name.length;
   key->fhL = search->fh.length;
   int nNameExts =
@@ -156,8 +156,8 @@ PccKey_StripExts(PccKey* key, PccKeyExt* exts[PCC_KEY_MAX_EXTS])
   for (PccKeyExt* ext = key->fhExt; unlikely(ext != NULL); ext = ext->next) {
     exts[nExts++] = ext;
   }
-  assert(nExts == PccKey_CountExtensions_(key->nameL, key->fhL));
+  NDNDPDK_ASSERT(nExts == PccKey_CountExtensions_(key->nameL, key->fhL));
   return nExts;
 }
 
-#endif // NDN_DPDK_PCCT_PCC_KEY_H
+#endif // NDNDPDK_PCCT_PCC_KEY_H

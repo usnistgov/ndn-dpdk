@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_FWDP_CRYPTO_H
-#define NDN_DPDK_FWDP_CRYPTO_H
+#ifndef NDNDPDK_FWDP_CRYPTO_H
+#define NDNDPDK_FWDP_CRYPTO_H
 
 /** @file */
 
@@ -23,4 +23,4 @@ typedef struct FwCrypto
 void
 FwCrypto_Run(FwCrypto* fwc);
 
-#endif // NDN_DPDK_FWDP_CRYPTO_H
+#endif // NDNDPDK_FWDP_CRYPTO_H

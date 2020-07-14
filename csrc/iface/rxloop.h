@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_IFACE_RXLOOP_H
-#define NDN_DPDK_IFACE_RXLOOP_H
+#ifndef NDNDPDK_IFACE_RXLOOP_H
+#define NDNDPDK_IFACE_RXLOOP_H
 
 /** @file */
 
@@ -40,4 +40,4 @@ typedef struct RxLoop
 __attribute__((nonnull)) int
 RxLoop_Run(RxLoop* rxl);
 
-#endif // NDN_DPDK_IFACE_RXLOOP_H
+#endif // NDNDPDK_IFACE_RXLOOP_H

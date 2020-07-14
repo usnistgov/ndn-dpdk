@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_IFACE_FACE_H
-#define NDN_DPDK_IFACE_FACE_H
+#ifndef NDNDPDK_IFACE_FACE_H
+#define NDNDPDK_IFACE_FACE_H
 
 /** @file */
 
@@ -97,4 +97,4 @@ Face_Tx(FaceID faceID, Packet* npkt)
   Face_TxBurst(faceID, &npkt, 1);
 }
 
-#endif // NDN_DPDK_IFACE_FACE_H
+#endif // NDNDPDK_IFACE_FACE_H

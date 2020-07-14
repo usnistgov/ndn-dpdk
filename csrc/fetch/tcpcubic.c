@@ -37,8 +37,8 @@ TcpCubic_Increase(TcpCubic* ca, TscTime now, double sRtt)
     ca->cwnd += 1.0;
     return;
   }
-  assert(isfinite(ca->wMax));
-  assert(isfinite(ca->k));
+  NDNDPDK_ASSERT(isfinite(ca->wMax));
+  NDNDPDK_ASSERT(isfinite(ca->k));
 
   double t = (now - ca->t0) * TCPCUBIC_TSCHZ_INV;
   double rtt = sRtt * TCPCUBIC_TSCHZ_INV;

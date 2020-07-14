@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_NDNI_DATA_H
-#define NDN_DPDK_NDNI_DATA_H
+#ifndef NDNDPDK_NDNI_DATA_H
+#define NDNDPDK_NDNI_DATA_H
 
 /** @file */
 
@@ -64,4 +64,4 @@ typedef struct DataGen
 __attribute__((nonnull, returns_nonnull)) Packet*
 DataGen_Encode(DataGen* gen, struct rte_mbuf* seg0, struct rte_mbuf* seg1, LName prefix);
 
-#endif // NDN_DPDK_NDNI_DATA_H
+#endif // NDNDPDK_NDNI_DATA_H

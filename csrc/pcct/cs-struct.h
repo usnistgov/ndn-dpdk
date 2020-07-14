@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_PCCT_CS_STRUCT_H
-#define NDN_DPDK_PCCT_CS_STRUCT_H
+#ifndef NDNDPDK_PCCT_CS_STRUCT_H
+#define NDNDPDK_PCCT_CS_STRUCT_H
 
 /** @file */
 
@@ -60,4 +60,4 @@ typedef struct CsPriv
   CsList indirectLru; ///< LRU list of indirect entries
 } CsPriv;
 
-#endif // NDN_DPDK_PCCT_CS_STRUCT_H
+#endif // NDNDPDK_PCCT_CS_STRUCT_H

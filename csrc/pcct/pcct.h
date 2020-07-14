@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_PCCT_PCCT_H
-#define NDN_DPDK_PCCT_PCCT_H
+#ifndef NDNDPDK_PCCT_PCCT_H
+#define NDNDPDK_PCCT_PCCT_H
 
 /** @file */
 
@@ -156,4 +156,4 @@ PcctEraseBatch_Finish(PcctEraseBatch* peb)
   peb->pcct = NULL;
 }
 
-#endif // NDN_DPDK_PCCT_PCCT_H
+#endif // NDNDPDK_PCCT_PCCT_H

@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_ETHFACE_ETH_FACE_H
-#define NDN_DPDK_ETHFACE_ETH_FACE_H
+#ifndef NDNDPDK_ETHFACE_ETH_FACE_H
+#define NDNDPDK_ETHFACE_ETH_FACE_H
 
 /** @file */
 
@@ -46,4 +46,4 @@ EthFace_SetupFlow(EthFacePriv* priv, struct rte_flow_error* error);
 uint16_t
 EthFace_FlowRxBurst(RxGroup* flowRxg, struct rte_mbuf** pkts, uint16_t nPkts);
 
-#endif // NDN_DPDK_ETHFACE_ETH_FACE_H
+#endif // NDNDPDK_ETHFACE_ETH_FACE_H

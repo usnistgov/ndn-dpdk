@@ -7,8 +7,8 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
-//go:generate go run ../mk/enumgen/ -guard=NDN_DPDK_NDNI_ENUM_H -out=../csrc/ndni/enum.h .
-//go:generate go run ../mk/enumgen/ -guard=NDN_DPDK_NDNI_AN_H -out=../csrc/ndni/an.h ../ndn/an
+//go:generate go run ../mk/enumgen/ -guard=NDNDPDK_NDNI_ENUM_H -out=../csrc/ndni/enum.h .
+//go:generate go run ../mk/enumgen/ -guard=NDNDPDK_NDNI_AN_H -out=../csrc/ndni/an.h ../ndn/an
 
 const (
 	// NameMaxLength is the maximum TLV-LENGTH for Name.

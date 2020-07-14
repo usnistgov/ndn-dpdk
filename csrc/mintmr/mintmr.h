@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_MINTMR_MINTMR_H
-#define NDN_DPDK_MINTMR_MINTMR_H
+#ifndef NDNDPDK_MINTMR_MINTMR_H
+#define NDNDPDK_MINTMR_MINTMR_H
 
 /** @file */
 
@@ -101,4 +101,4 @@ MinTmr_At(MinTmr* tmr, TscTime at, MinSched* sched)
   return MinTmr_After(tmr, at - now, sched);
 }
 
-#endif // NDN_DPDK_MINTMR_MINTMR_H
+#endif // NDNDPDK_MINTMR_MINTMR_H

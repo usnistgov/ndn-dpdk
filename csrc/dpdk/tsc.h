@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_DPDK_TSC_H
-#define NDN_DPDK_DPDK_TSC_H
+#ifndef NDNDPDK_DPDK_TSC_H
+#define NDNDPDK_DPDK_TSC_H
 
 /** @file */
 
@@ -26,4 +26,4 @@ TscDuration_ToMillis(TscDuration d)
   return d * 1000 / rte_get_tsc_hz();
 }
 
-#endif // NDN_DPDK_DPDK_TSC_H
+#endif // NDNDPDK_DPDK_TSC_H

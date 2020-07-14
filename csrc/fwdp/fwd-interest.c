@@ -101,7 +101,7 @@ void
 FwFwd_RxInterest(FwFwd* fwd, FwFwdCtx* ctx)
 {
   PInterest* interest = Packet_GetInterestHdr(ctx->npkt);
-  assert(interest->hopLimit > 0);
+  NDNDPDK_ASSERT(interest->hopLimit > 0);
 
   ZF_LOGD("interest-from=%" PRI_FaceID " npkt=%p dn-token=%016" PRIx64, ctx->rxFace, ctx->npkt,
           ctx->rxToken);
@@ -139,7 +139,7 @@ FwFwd_RxInterest(FwFwd* fwd, FwFwdCtx* ctx)
       Face_Tx(ctx->rxFace, Nack_FromInterest(ctx->npkt, NackCongestion));
       break;
     default:
-      assert(false); // no other cases
+      NDNDPDK_ASSERT(false); // no other cases
       break;
   }
 

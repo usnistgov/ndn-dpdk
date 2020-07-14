@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_PCCT_CS_H
-#define NDN_DPDK_PCCT_CS_H
+#ifndef NDNDPDK_PCCT_CS_H
+#define NDNDPDK_PCCT_CS_H
 
 /** @file */
 
@@ -66,4 +66,4 @@ Cs_MatchInterest_(Cs* cs, PccEntry* pccEntry, Packet* interestNpkt);
 __attribute__((nonnull)) void
 Cs_Erase(Cs* cs, CsEntry* entry);
 
-#endif // NDN_DPDK_PCCT_CS_H
+#endif // NDNDPDK_PCCT_CS_H

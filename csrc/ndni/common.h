@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_NDNI_COMMON_H
-#define NDN_DPDK_NDNI_COMMON_H
+#ifndef NDNDPDK_NDNI_COMMON_H
+#define NDNDPDK_NDNI_COMMON_H
 
 /** @file */
 
@@ -17,4 +17,4 @@ typedef struct PInterest PInterest;
 typedef struct PData PData;
 typedef struct PNack PNack;
 
-#endif // NDN_DPDK_NDNI_COMMON_H
+#endif // NDNDPDK_NDNI_COMMON_H

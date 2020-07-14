@@ -50,7 +50,7 @@ DiskStore_PutData_Begin(void* npkt0)
 void
 DiskStore_PutData(DiskStore* store, uint64_t slotID, Packet* npkt)
 {
-  assert(slotID > 0);
+  NDNDPDK_ASSERT(slotID > 0);
   uint64_t blockCount = DiskStore_ComputeBlockCount_(store, npkt);
   if (unlikely(blockCount > store->nBlocksPerSlot)) {
     ZF_LOGW("PutData(%" PRIu64 ", %p): fail=packet-too-long", slotID, npkt);

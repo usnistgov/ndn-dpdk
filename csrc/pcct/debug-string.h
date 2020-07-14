@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_PCCT_DEBUG_STRING_H
-#define NDN_DPDK_PCCT_DEBUG_STRING_H
+#ifndef NDNDPDK_PCCT_DEBUG_STRING_H
+#define NDNDPDK_PCCT_DEBUG_STRING_H
 
 /** @file */
 
@@ -19,4 +19,4 @@ PccDebugString_Clear();
 const char*
 PccDebugString_Appendf(const char* fmt, ...);
 
-#endif // NDN_DPDK_PCCT_DEBUG_STRING_H
+#endif // NDNDPDK_PCCT_DEBUG_STRING_H

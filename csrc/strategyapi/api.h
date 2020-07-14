@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_STRATEGYAPI_API_H
-#define NDN_DPDK_STRATEGYAPI_API_H
+#ifndef NDNDPDK_STRATEGYAPI_API_H
+#define NDNDPDK_STRATEGYAPI_API_H
 
 /** @file */
 
@@ -122,4 +122,4 @@ SgReturnNacks(SgCtx* ctx, SgNackReason reason);
 __attribute__((nonnull)) uint64_t
 SgMain(SgCtx* ctx);
 
-#endif // NDN_DPDK_STRATEGYAPI_API_H
+#endif // NDNDPDK_STRATEGYAPI_API_H

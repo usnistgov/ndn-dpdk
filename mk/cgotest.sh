@@ -24,4 +24,4 @@ while [[ -n $1 ]]; do
   shift
 done
 
-touch $BUILDDIR/cgostruct.done
+touch $BUILDDIR/cgotest.done

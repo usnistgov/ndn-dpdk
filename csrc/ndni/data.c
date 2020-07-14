@@ -32,13 +32,13 @@ PData_ParseMetaInfo_(PData* data, TlvDecoder* d)
 bool
 PData_Parse(PData* data, struct rte_mbuf* pkt)
 {
-  assert(RTE_MBUF_DIRECT(pkt) && rte_mbuf_refcnt_read(pkt) == 1);
+  NDNDPDK_ASSERT(RTE_MBUF_DIRECT(pkt) && rte_mbuf_refcnt_read(pkt) == 1);
   *data = (const PData){ 0 };
 
   TlvDecoder d;
   TlvDecoder_New(&d, pkt);
-  uint32_t length0, type0 __rte_unused = TlvDecoder_ReadTL(&d, &length0);
-  assert(type0 == TtData);
+  uint32_t length0, type0 = TlvDecoder_ReadTL(&d, &length0);
+  NDNDPDK_ASSERT(type0 == TtData);
 
   TlvDecoder_EachTL (&d, type, length) {
     switch (type) {
@@ -143,9 +143,9 @@ DataGen_Encode(DataGen* gen, struct rte_mbuf* seg0, struct rte_mbuf* seg1, LName
   struct rte_mbuf* tpl1 = (struct rte_mbuf*)gen;
   uint16_t nameSuffixL = tpl1->vlan_tci;
 
-  assert(RTE_MBUF_DIRECT(seg0) && rte_pktmbuf_is_contiguous(seg0) &&
-         rte_mbuf_refcnt_read(seg0) == 1 && seg0->data_len == 0 &&
-         seg0->buf_len >= DataGenDataroom);
+  NDNDPDK_ASSERT(RTE_MBUF_DIRECT(seg0) && rte_pktmbuf_is_contiguous(seg0) &&
+                 rte_mbuf_refcnt_read(seg0) == 1 && seg0->data_len == 0 &&
+                 seg0->buf_len >= DataGenDataroom);
   seg0->data_off = seg0->buf_len;
   if (likely(prefix.length > 0)) {
     rte_memcpy(rte_pktmbuf_prepend(seg0, prefix.length), prefix.value, prefix.length);
@@ -153,8 +153,8 @@ DataGen_Encode(DataGen* gen, struct rte_mbuf* seg0, struct rte_mbuf* seg1, LName
   TlvEncoder_PrependTL(seg0, TtName, prefix.length + nameSuffixL);
 
   rte_pktmbuf_attach(seg1, tpl1);
-  bool ok __rte_unused = Mbuf_Chain(seg0, seg0, seg1);
-  assert(ok);
+  bool ok = Mbuf_Chain(seg0, seg0, seg1);
+  NDNDPDK_ASSERT(ok);
   TlvEncoder_PrependTL(seg0, TtData, seg0->pkt_len);
 
   Packet* output = Packet_FromMbuf(seg0);

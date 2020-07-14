@@ -9,7 +9,7 @@ InOrderReassembler_Receive(InOrderReassembler* r, Packet* npkt)
 {
   struct rte_mbuf* frame = Packet_ToMbuf(npkt);
   LpL2* lpl2 = &Packet_GetLpHdr(npkt)->l2;
-  assert(lpl2->fragCount > 1);
+  NDNDPDK_ASSERT(lpl2->fragCount > 1);
 #define PKTDBG(fmt, ...)                                                                           \
   ZF_LOGD("%016" PRIX64 ",%" PRIu16 ",%" PRIu16 " " fmt, lpl2->seqNum, lpl2->fragIndex,            \
           lpl2->fragCount, ##__VA_ARGS__)
@@ -38,8 +38,8 @@ InOrderReassembler_Receive(InOrderReassembler* r, Packet* npkt)
 
   ++r->nAccepted;
   struct rte_mbuf* newTail = rte_pktmbuf_lastseg(frame);
-  bool ok __rte_unused = Mbuf_Chain(r->head, r->tail, frame);
-  assert(ok);
+  bool ok = Mbuf_Chain(r->head, r->tail, frame);
+  NDNDPDK_ASSERT(ok);
   r->tail = newTail;
   r->nextSeqNo = lpl2->seqNum + 1;
 

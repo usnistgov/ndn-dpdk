@@ -34,8 +34,8 @@ CsList_RemoveNode(CsList* csl, CsNode* node)
 {
   CsNode* prev = node->prev;
   CsNode* next = node->next;
-  assert(prev->next == node);
-  assert(next->prev == node);
+  NDNDPDK_ASSERT(prev->next == node);
+  NDNDPDK_ASSERT(next->prev == node);
   prev->next = next;
   next->prev = prev;
 }
@@ -50,7 +50,7 @@ CsList_Append(CsList* csl, CsEntry* entry)
 void
 CsList_Remove(CsList* csl, CsEntry* entry)
 {
-  assert(csl->count > 0);
+  NDNDPDK_ASSERT(csl->count > 0);
   CsList_RemoveNode(csl, (CsNode*)entry);
   --csl->count;
 }
@@ -69,7 +69,7 @@ CsList_EvictBulk(CsList* csl, uint32_t max, CsList_EvictCb cb, void* cbarg)
   CsNode* node = csl->next;
 
   for (uint32_t i = 0; i < nErase; ++i) {
-    assert(node != (CsNode*)csl);
+    NDNDPDK_ASSERT(node != (CsNode*)csl);
     CsEntry* entry = (CsEntry*)node;
     node = node->next;
     cb(cbarg, entry);

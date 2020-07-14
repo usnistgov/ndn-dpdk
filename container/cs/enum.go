@@ -1,6 +1,6 @@
 package cs
 
-//go:generate go run ../../mk/enumgen/ -guard=NDN_DPDK_PCCT_CS_ENUM_H -out=../../csrc/pcct/cs-enum.h .
+//go:generate go run ../../mk/enumgen/ -guard=NDNDPDK_PCCT_CS_ENUM_H -out=../../csrc/pcct/cs-enum.h .
 
 // ListID identifies a list in the CS.
 type ListID int

@@ -4,8 +4,8 @@
 bool
 PitDnUpIt_Extend_(PitDnUpIt_* it, Pit* pit, int maxInExt, size_t offsetInExt)
 {
-  assert(it->i == it->max);
-  assert(*it->nextPtr == NULL);
+  NDNDPDK_ASSERT(it->i == it->max);
+  NDNDPDK_ASSERT(*it->nextPtr == NULL);
 
   // allocate PitEntryExt
   struct rte_mempool* mp = Pcct_ToMempool(Pit_ToPcct(pit));

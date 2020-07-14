@@ -9,8 +9,8 @@ __attribute__((nonnull)) static uint16_t
 TxProc_OutputNoFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames, uint16_t maxFrames)
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
-  assert(pkt->pkt_len > 0);
-  assert(maxFrames >= 1);
+  NDNDPDK_ASSERT(pkt->pkt_len > 0);
+  NDNDPDK_ASSERT(maxFrames >= 1);
 
   struct rte_mbuf* frame;
   if (unlikely(RTE_MBUF_CLONED(pkt) || rte_mbuf_refcnt_read(pkt) > 1 ||
@@ -47,7 +47,7 @@ __attribute__((nonnull)) static uint16_t
 TxProc_OutputFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames, uint16_t maxFrames)
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
-  assert(pkt->pkt_len > 0);
+  NDNDPDK_ASSERT(pkt->pkt_len > 0);
   uint16_t fragCount =
     pkt->pkt_len / tx->fragmentPayloadSize + (uint16_t)(pkt->pkt_len % tx->fragmentPayloadSize > 0);
   if (fragCount == 1) {
@@ -78,7 +78,7 @@ TxProc_OutputFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames, uint16_t m
     uint32_t fragSize = RTE_MIN(tx->fragmentPayloadSize, d.length);
     struct rte_mbuf* payload = TlvDecoder_Clone(&d, fragSize, tx->indirectMp, NULL);
     if (unlikely(payload == NULL)) {
-      assert(rte_errno == ENOENT);
+      NDNDPDK_ASSERT(rte_errno == ENOENT);
       ++tx->nAllocFails;
       rte_pktmbuf_free_bulk_(frames, fragCount);
       rte_pktmbuf_free(pkt);
@@ -114,15 +114,15 @@ void
 TxProc_Init(TxProc* tx, uint16_t mtu, uint16_t headroom, struct rte_mempool* indirectMp,
             struct rte_mempool* headerMp)
 {
-  assert(mtu == 0 || (mtu >= MinMtu && mtu <= MaxMtu));
-  assert(rte_pktmbuf_data_room_size(headerMp) >= headroom + LpHeaderEstimatedHeadroom);
+  NDNDPDK_ASSERT(mtu == 0 || (mtu >= MinMtu && mtu <= MaxMtu));
+  NDNDPDK_ASSERT(rte_pktmbuf_data_room_size(headerMp) >= headroom + LpHeaderEstimatedHeadroom);
   tx->indirectMp = indirectMp;
   tx->headerMp = headerMp;
 
   if (mtu == 0) {
     tx->outputFunc = TxProc_OutputNoFrag;
   } else {
-    assert(mtu > LpHeaderEstimatedHeadroom);
+    NDNDPDK_ASSERT(mtu > LpHeaderEstimatedHeadroom);
     tx->fragmentPayloadSize = mtu - LpHeaderEstimatedHeadroom;
     tx->outputFunc = TxProc_OutputFrag;
   }

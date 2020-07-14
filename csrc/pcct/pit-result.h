@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_PCCT_PIT_RESULT_H
-#define NDN_DPDK_PCCT_PIT_RESULT_H
+#ifndef NDNDPDK_PCCT_PIT_RESULT_H
+#define NDNDPDK_PCCT_PIT_RESULT_H
 
 /** @file */
 
@@ -46,7 +46,7 @@ PitInsertResult_GetPitEntry(PitInsertResult res)
     case PIT_INSERT_PIT1:
       return PccEntry_GetPitEntry1(res.entry);
     default:
-      assert(false);
+      NDNDPDK_ASSERT(false);
       return NULL;
   }
 }
@@ -54,7 +54,7 @@ PitInsertResult_GetPitEntry(PitInsertResult res)
 static inline CsEntry*
 PitInsertResult_GetCsEntry(PitInsertResult res)
 {
-  assert(res.kind == PIT_INSERT_CS);
+  NDNDPDK_ASSERT(res.kind == PIT_INSERT_CS);
   return PccEntry_GetCsEntry(res.entry);
 }
 
@@ -115,4 +115,4 @@ PitFindResult_GetInterest_(PitFindResult res)
   return Packet_GetInterestHdr(pitEntry->npkt);
 }
 
-#endif // NDN_DPDK_PCCT_PIT_RESULT_H
+#endif // NDNDPDK_PCCT_PIT_RESULT_H

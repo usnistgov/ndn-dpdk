@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_PINGSERVER_SERVER_H
-#define NDN_DPDK_PINGSERVER_SERVER_H
+#ifndef NDNDPDK_PINGSERVER_SERVER_H
+#define NDNDPDK_PINGSERVER_SERVER_H
 
 /** @file */
 
@@ -61,4 +61,4 @@ typedef struct PingServer
 __attribute__((nonnull)) int
 PingServer_Run(PingServer* server);
 
-#endif // NDN_DPDK_PINGSERVER_SERVER_H
+#endif // NDNDPDK_PINGSERVER_SERVER_H

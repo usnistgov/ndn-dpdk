@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_IFACE_TX_PROC_H
-#define NDN_DPDK_IFACE_TX_PROC_H
+#ifndef NDNDPDK_IFACE_TX_PROC_H
+#define NDNDPDK_IFACE_TX_PROC_H
 
 /** @file */
 
@@ -67,4 +67,4 @@ TxProc_Output(TxProc* tx, Packet* npkt, struct rte_mbuf** frames, uint16_t maxFr
   return (*tx->outputFunc)(tx, npkt, frames, maxFrames);
 }
 
-#endif // NDN_DPDK_IFACE_TX_PROC_H
+#endif // NDNDPDK_IFACE_TX_PROC_H

@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_IFACE_INPUT_DEMUX_H
-#define NDN_DPDK_IFACE_INPUT_DEMUX_H
+#ifndef NDNDPDK_IFACE_INPUT_DEMUX_H
+#define NDNDPDK_IFACE_INPUT_DEMUX_H
 
 /** @file */
 
@@ -79,4 +79,4 @@ InputDemux_Dispatch(InputDemux* demux, Packet* npkt, const PName* name)
   (*demux->dispatch)(demux, npkt, name);
 }
 
-#endif // NDN_DPDK_IFACE_INPUT_DEMUX_H
+#endif // NDNDPDK_IFACE_INPUT_DEMUX_H

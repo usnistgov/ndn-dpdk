@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_FWDP_FWD_H
-#define NDN_DPDK_FWDP_FWD_H
+#ifndef NDNDPDK_FWDP_FWD_H
+#define NDNDPDK_FWDP_FWD_H
 
 /** @file */
 
@@ -109,4 +109,4 @@ FwFwd_RxNack(FwFwd* fwd, FwFwdCtx* ctx);
   } while (false)
 #endif
 
-#endif // NDN_DPDK_FWDP_FWD_H
+#endif // NDNDPDK_FWDP_FWD_H

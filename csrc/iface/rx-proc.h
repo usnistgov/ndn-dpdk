@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_IFACE_RX_PROC_H
-#define NDN_DPDK_IFACE_RX_PROC_H
+#ifndef NDNDPDK_IFACE_RX_PROC_H
+#define NDNDPDK_IFACE_RX_PROC_H
 
 /** @file */
 
@@ -35,4 +35,4 @@ typedef struct RxProc
 __attribute__((nonnull)) Packet*
 RxProc_Input(RxProc* rx, int thread, struct rte_mbuf* pkt);
 
-#endif // NDN_DPDK_IFACE_RX_PROC_H
+#endif // NDNDPDK_IFACE_RX_PROC_H

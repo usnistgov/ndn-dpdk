@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_NDNI_TLV_DECODER_H
-#define NDN_DPDK_NDNI_TLV_DECODER_H
+#ifndef NDNDPDK_NDNI_TLV_DECODER_H
+#define NDNDPDK_NDNI_TLV_DECODER_H
 
 /** @file */
 
@@ -38,7 +38,7 @@ TlvDecoder_New(TlvDecoder* d, struct rte_mbuf* p)
 __attribute__((nonnull)) static inline void
 TlvDecoder_Skip(TlvDecoder* d, uint32_t count)
 {
-  assert(count <= d->length);
+  NDNDPDK_ASSERT(count <= d->length);
   for (uint32_t remain = count; remain > 0;) {
     uint32_t here = d->m->data_len - d->offset;
     if (likely(remain < here)) {
@@ -56,7 +56,7 @@ __attribute__((nonnull, returns_nonnull)) static inline const uint8_t*
 TlvDecoder_Read_Contiguous_(TlvDecoder* d, uint16_t count)
 {
   uint16_t here = d->m->data_len - d->offset;
-  assert(count <= here);
+  NDNDPDK_ASSERT(count <= here);
   const uint8_t* output = rte_pktmbuf_mtod_offset(d->m, const uint8_t*, d->offset);
 
   d->length -= count;
@@ -83,7 +83,7 @@ TlvDecoder_Read_NonContiguous_(TlvDecoder* d, uint8_t* output, uint16_t count);
 __attribute__((nonnull, returns_nonnull)) static inline const uint8_t*
 TlvDecoder_Read(TlvDecoder* d, uint8_t* scratch, uint16_t count)
 {
-  assert(count <= d->length);
+  NDNDPDK_ASSERT(count <= d->length);
   if (unlikely(count == 0)) {
     return scratch;
   }
@@ -120,7 +120,7 @@ TlvDecoder_Linearize_NonContiguous_(TlvDecoder* d, uint16_t count);
 __attribute__((nonnull)) static inline const uint8_t*
 TlvDecoder_Linearize(TlvDecoder* d, uint16_t count)
 {
-  assert(count <= d->length);
+  NDNDPDK_ASSERT(count <= d->length);
   if (unlikely(count == 0)) {
     return NULL;
   }
@@ -257,4 +257,4 @@ TlvDecoder_ReadNni(TlvDecoder* d, uint32_t length, uint64_t max, uint64_t* n)
     ok;                                                                                            \
   })
 
-#endif // NDN_DPDK_NDNI_TLV_DECODER_H
+#endif // NDNDPDK_NDNI_TLV_DECODER_H

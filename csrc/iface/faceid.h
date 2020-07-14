@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_IFACE_FACEID_H
-#define NDN_DPDK_IFACE_FACEID_H
+#ifndef NDNDPDK_IFACE_FACEID_H
+#define NDNDPDK_IFACE_FACEID_H
 
 /** @file */
 
@@ -14,4 +14,4 @@ typedef uint16_t FaceID;
 
 #define PRI_FaceID PRIu16
 
-#endif // NDN_DPDK_IFACE_FACEID_H
+#endif // NDNDPDK_IFACE_FACEID_H

@@ -36,7 +36,7 @@ static const FwFwd_RxFunc FwFwd_RxFuncs[PktMax] = {
 static __rte_always_inline void
 FwFwd_RxByType(FwFwd* fwd, PktType pktType)
 {
-  assert(pktType < PktMax);
+  NDNDPDK_ASSERT(pktType < PktMax);
   TscTime now = rte_get_tsc_cycles();
   PktQueue* q = RTE_PTR_ADD(fwd, FwFwd_OffsetofQueue[pktType]);
   struct rte_mbuf* pkts[MaxBurstSize];

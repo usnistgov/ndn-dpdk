@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_IFACE_IN_ORDER_REASSEMBLER_H
-#define NDN_DPDK_IFACE_IN_ORDER_REASSEMBLER_H
+#ifndef NDNDPDK_IFACE_IN_ORDER_REASSEMBLER_H
+#define NDNDPDK_IFACE_IN_ORDER_REASSEMBLER_H
 
 /** @file */
 
@@ -27,4 +27,4 @@ typedef struct InOrderReassembler
 Packet*
 InOrderReassembler_Receive(InOrderReassembler* r, Packet* npkt);
 
-#endif // NDN_DPDK_IFACE_IN_ORDER_REASSEMBLER_H
+#endif // NDNDPDK_IFACE_IN_ORDER_REASSEMBLER_H

@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_STRATEGYCODE_STRATEGY_CODE_H
-#define NDN_DPDK_STRATEGYCODE_STRATEGY_CODE_H
+#ifndef NDNDPDK_STRATEGYCODE_STRATEGY_CODE_H
+#define NDNDPDK_STRATEGYCODE_STRATEGY_CODE_H
 
 /** @file */
 
@@ -74,4 +74,4 @@ rte_bpf_get_jit_(const struct rte_bpf* bpf, struct rte_bpf_jit* jit)
 #pragma GCC diagnostic pop
 }
 
-#endif // NDN_DPDK_STRATEGYCODE_STRATEGY_CODE_H
+#endif // NDNDPDK_STRATEGYCODE_STRATEGY_CODE_H

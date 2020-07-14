@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_DPDK_MBUF_H
-#define NDN_DPDK_DPDK_MBUF_H
+#ifndef NDNDPDK_DPDK_MBUF_H
+#define NDNDPDK_DPDK_MBUF_H
 
 /** @file */
 
@@ -27,7 +27,7 @@ Mbuf_CopyTo(struct rte_mbuf* m, void* dst)
 __attribute__((nonnull, warn_unused_result)) static inline bool
 Mbuf_Chain(struct rte_mbuf* head, struct rte_mbuf* lastSeg, struct rte_mbuf* tail)
 {
-  assert(lastSeg == rte_pktmbuf_lastseg(head));
+  NDNDPDK_ASSERT(lastSeg == rte_pktmbuf_lastseg(head));
 
   if (unlikely(head->nb_segs + tail->nb_segs > RTE_MBUF_MAX_NB_SEGS)) {
     return false;
@@ -57,4 +57,4 @@ rte_pktmbuf_free_bulk_(struct rte_mbuf** mbufs, unsigned int count)
 #pragma GCC diagnostic pop
 }
 
-#endif // NDN_DPDK_DPDK_MBUF_H
+#endif // NDNDPDK_DPDK_MBUF_H

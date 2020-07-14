@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_FETCH_SEG_H
-#define NDN_DPDK_FETCH_SEG_H
+#ifndef NDNDPDK_FETCH_SEG_H
+#define NDNDPDK_FETCH_SEG_H
 
 /** @file */
 
@@ -29,4 +29,4 @@ FetchSeg_Init(FetchSeg* seg, uint64_t segNum)
   seg->nRetx = 0;
 }
 
-#endif // NDN_DPDK_FETCH_SEG_H
+#endif // NDNDPDK_FETCH_SEG_H

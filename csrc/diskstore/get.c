@@ -81,7 +81,7 @@ void
 DiskStore_GetData(DiskStore* store, uint64_t slotID, uint16_t dataLen, Packet* npkt,
                   struct rte_ring* reply)
 {
-  assert(slotID > 0);
+  NDNDPDK_ASSERT(slotID > 0);
   PInterest* interest = Packet_GetInterestHdr(npkt);
   interest->diskSlot = slotID;
   interest->diskData = NULL;

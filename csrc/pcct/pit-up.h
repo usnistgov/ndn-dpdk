@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_PCCT_PIT_UP_H
-#define NDN_DPDK_PCCT_PIT_UP_H
+#ifndef NDNDPDK_PCCT_PIT_UP_H
+#define NDNDPDK_PCCT_PIT_UP_H
 
 /** @file */
 
@@ -69,4 +69,4 @@ __attribute__((nonnull)) void
 PitUp_RecordTx(PitUp* up, PitEntry* entry, TscTime now, uint32_t nonce,
                PitSuppressConfig* suppressCfg);
 
-#endif // NDN_DPDK_PCCT_PIT_UP_H
+#endif // NDNDPDK_PCCT_PIT_UP_H

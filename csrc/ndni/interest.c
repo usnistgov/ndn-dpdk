@@ -73,7 +73,7 @@ PInterest_ParseFwHint_(PInterest* interest, TlvDecoder* d)
 bool
 PInterest_Parse(PInterest* interest, struct rte_mbuf* pkt)
 {
-  assert(RTE_MBUF_DIRECT(pkt) && rte_mbuf_refcnt_read(pkt) == 1);
+  NDNDPDK_ASSERT(RTE_MBUF_DIRECT(pkt) && rte_mbuf_refcnt_read(pkt) == 1);
   *interest = (const PInterest){ 0 };
   interest->lifetime = DefaultInterestLifetime;
   interest->hopLimit = UINT8_MAX;
@@ -81,8 +81,8 @@ PInterest_Parse(PInterest* interest, struct rte_mbuf* pkt)
 
   TlvDecoder d;
   TlvDecoder_New(&d, pkt);
-  uint32_t length0, type0 __rte_unused = TlvDecoder_ReadTL(&d, &length0);
-  assert(type0 == TtInterest);
+  uint32_t length0, type0 = TlvDecoder_ReadTL(&d, &length0);
+  NDNDPDK_ASSERT(type0 == TtInterest);
 
   uint32_t posStart = d.length, posNonce = 0, posEndGuider = 0;
   TlvDecoder_EachTL (&d, type, length) {
@@ -168,7 +168,7 @@ FOUND_PARAMETERS:;
 bool
 PInterest_SelectFwHint(PInterest* interest, int i)
 {
-  assert(i >= 0 && i < (int)interest->nFwHints);
+  NDNDPDK_ASSERT(i >= 0 && i < (int)interest->nFwHints);
   bool ok = PName_Parse(&interest->fwHint, LName_Init(interest->fwHintL[i], interest->fwHintV[i]));
   interest->activeFwHint = likely(ok) ? i : -1;
   return -1;
@@ -221,7 +221,8 @@ Interest_ModifyGuiders(Packet* npkt, uint32_t nonce, uint32_t lifetime, uint8_t 
   PInterest* interest = Packet_GetInterestHdr(npkt);
   TlvDecoder d;
   TlvDecoder_New(&d, Packet_ToMbuf(npkt));
-  uint32_t length0, type0 __rte_unused = TlvDecoder_ReadTL(&d, &length0);
+  uint32_t length0, type0 = TlvDecoder_ReadTL(&d, &length0);
+  NDNDPDK_ASSERT(type0 == TtInterest);
 
   struct rte_mbuf* last1 = NULL;
   segs[1] = TlvDecoder_Clone(&d, interest->nonceOffset, indirectMp, &last1);
@@ -264,8 +265,9 @@ Packet*
 InterestTemplate_Encode(const InterestTemplate* tpl, struct rte_mbuf* m, LName suffix,
                         uint32_t nonce)
 {
-  assert(RTE_MBUF_DIRECT(m) && rte_pktmbuf_is_contiguous(m) && rte_mbuf_refcnt_read(m) == 1 &&
-         m->data_len == 0 && m->buf_len >= InterestTemplateDataroom);
+  NDNDPDK_ASSERT(RTE_MBUF_DIRECT(m) && rte_pktmbuf_is_contiguous(m) &&
+                 rte_mbuf_refcnt_read(m) == 1 && m->data_len == 0 &&
+                 m->buf_len >= InterestTemplateDataroom);
   m->data_off = m->buf_len;
 
   rte_memcpy(rte_pktmbuf_prepend(m, tpl->midLen), tpl->midBuf, tpl->midLen);

@@ -40,7 +40,7 @@ EthFace_TxBurst(Face* face, struct rte_mbuf** pkts, uint16_t nPkts)
 
   for (uint16_t i = 0; i < nPkts; ++i) {
     char* room = rte_pktmbuf_prepend(pkts[i], priv->txHdrLen);
-    assert(room != NULL); // enough headroom is required
+    NDNDPDK_ASSERT(room != NULL); // enough headroom is required
     rte_memcpy(room, &priv->txHdr, priv->txHdrLen);
   }
   return rte_eth_tx_burst(priv->port, TX_QUEUE_0, pkts, nPkts);

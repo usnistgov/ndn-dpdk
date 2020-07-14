@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_FETCH_FETCHER_H
-#define NDN_DPDK_FETCH_FETCHER_H
+#ifndef NDNDPDK_FETCH_FETCHER_H
+#define NDNDPDK_FETCH_FETCHER_H
 
 /** @file */
 
@@ -31,4 +31,4 @@ typedef struct FetchThread
 int
 FetchThread_Run(FetchThread* fth);
 
-#endif // NDN_DPDK_FETCH_FETCHER_H
+#endif // NDNDPDK_FETCH_FETCHER_H

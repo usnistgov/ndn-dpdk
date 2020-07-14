@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_CORE_SIPHASH_H
-#define NDN_DPDK_CORE_SIPHASH_H
+#ifndef NDNDPDK_CORE_SIPHASH_H
+#define NDNDPDK_CORE_SIPHASH_H
 
 /** @file */
 
@@ -73,4 +73,4 @@ SipHash_Sum(const SipHash* h)
 #undef sip_endof
 #undef siphash24
 
-#endif // NDN_DPDK_CORE_SIPHASH_H
+#endif // NDNDPDK_CORE_SIPHASH_H

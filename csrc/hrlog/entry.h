@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_HRLOG_ENTRY_H
-#define NDN_DPDK_HRLOG_ENTRY_H
+#ifndef NDNDPDK_HRLOG_ENTRY_H
+#define NDNDPDK_HRLOG_ENTRY_H
 
 /** @file */
 
@@ -35,4 +35,4 @@ static_assert(sizeof(HrlogHeader) == 16, "");
 #define HRLOG_HEADER_MAGIC 0x35f0498a
 #define HRLOG_HEADER_VERSION 2
 
-#endif // NDN_DPDK_HRLOG_ENTRY_H
+#endif // NDNDPDK_HRLOG_ENTRY_H

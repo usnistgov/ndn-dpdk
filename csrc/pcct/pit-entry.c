@@ -62,8 +62,8 @@ PitEntry_SetExpiryTimer(PitEntry* entry, Pit* pit)
 {
   PitPriv* pitp = Pit_GetPriv(pit);
   entry->hasSgTimer = false;
-  bool ok __rte_unused = MinTmr_At(&entry->timeout, entry->expiry, pitp->timeoutSched);
-  assert(ok); // unless PIT_MAX_LIFETIME is higher than scheduler limit
+  bool ok = MinTmr_At(&entry->timeout, entry->expiry, pitp->timeoutSched);
+  NDNDPDK_ASSERT(ok); // unless PIT_MAX_LIFETIME is higher than scheduler limit
 }
 
 bool
@@ -126,7 +126,7 @@ PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt)
   PitDn* dn = NULL;
   if (entry->npkt == npkt) { // new PIT entry
     dn = &entry->dns[0];
-    assert(dn->face == 0);
+    NDNDPDK_ASSERT(dn->face == 0);
     dn->face = face;
   } else { // find DN slot
     PitDnIt it;
@@ -141,7 +141,7 @@ PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt)
         break;
       }
       if (dn->expiry < pkt->timestamp) {
-        assert(entry->nCanBePrefix >= (uint8_t)dn->canBePrefix);
+        NDNDPDK_ASSERT(entry->nCanBePrefix >= (uint8_t)dn->canBePrefix);
         entry->nCanBePrefix -= (uint8_t)dn->canBePrefix;
         dn->face = face;
         break;
@@ -162,7 +162,7 @@ PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt)
 
   // record CanBePrefix and prefer CBP=1 for representative Interest
   if (entry->nCanBePrefix != (uint8_t)interest->canBePrefix) {
-    assert(entry->npkt != npkt);
+    NDNDPDK_ASSERT(entry->npkt != npkt);
     rte_pktmbuf_free(Packet_ToMbuf(entry->npkt));
     entry->npkt = npkt;
   } else if (entry->npkt != npkt) {
@@ -171,7 +171,7 @@ PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt)
   entry->nCanBePrefix += (uint8_t)interest->canBePrefix;
 
   // update txHopLimit
-  assert(interest->hopLimit > 0); // decoder rejects HopLimit=0
+  NDNDPDK_ASSERT(interest->hopLimit > 0); // decoder rejects HopLimit=0
   entry->txHopLimit = RTE_MAX(entry->txHopLimit, interest->hopLimit - 1);
 
   // set expiry timer

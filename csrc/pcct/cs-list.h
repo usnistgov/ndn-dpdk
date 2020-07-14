@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_PCCT_CS_LIST_H
-#define NDN_DPDK_PCCT_CS_LIST_H
+#ifndef NDNDPDK_PCCT_CS_LIST_H
+#define NDNDPDK_PCCT_CS_LIST_H
 
 /** @file */
 
@@ -20,7 +20,7 @@ CsList_Remove(CsList* csl, CsEntry* entry);
 __attribute__((nonnull)) static inline CsEntry*
 CsList_GetFront(CsList* csl)
 {
-  assert(csl->count > 0);
+  NDNDPDK_ASSERT(csl->count > 0);
   return (CsEntry*)csl->next;
 }
 
@@ -37,4 +37,4 @@ typedef void (*CsList_EvictCb)(void* arg, CsEntry* entry);
 __attribute__((nonnull(1))) uint32_t
 CsList_EvictBulk(CsList* csl, uint32_t max, CsList_EvictCb cb, void* cbarg);
 
-#endif // NDN_DPDK_PCCT_CS_LIST_H
+#endif // NDNDPDK_PCCT_CS_LIST_H

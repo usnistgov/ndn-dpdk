@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_FIB_ENTRY_H
-#define NDN_DPDK_FIB_ENTRY_H
+#ifndef NDNDPDK_FIB_ENTRY_H
+#define NDNDPDK_FIB_ENTRY_H
 
 /** @file */
 
@@ -50,4 +50,4 @@ FibNexthopFilter_Reject(FibNexthopFilter* filter, const FibEntry* entry, FaceID 
   return count;
 }
 
-#endif // NDN_DPDK_FIB_ENTRY_H
+#endif // NDNDPDK_FIB_ENTRY_H

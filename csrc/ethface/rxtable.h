@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_ETHFACE_RXTABLE_H
-#define NDN_DPDK_ETHFACE_RXTABLE_H
+#ifndef NDNDPDK_ETHFACE_RXTABLE_H
+#define NDNDPDK_ETHFACE_RXTABLE_H
 
 /** @file */
 
@@ -18,4 +18,4 @@ typedef struct EthRxTable
 uint16_t
 EthRxTable_RxBurst(RxGroup* rxg, struct rte_mbuf** pkts, uint16_t nPkts);
 
-#endif // NDN_DPDK_ETHFACE_RXTABLE_H
+#endif // NDNDPDK_ETHFACE_RXTABLE_H

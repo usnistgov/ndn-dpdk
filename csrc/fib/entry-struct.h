@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_FIB_ENTRY_STRUCT_H
-#define NDN_DPDK_FIB_ENTRY_STRUCT_H
+#ifndef NDNDPDK_FIB_ENTRY_STRUCT_H
+#define NDNDPDK_FIB_ENTRY_STRUCT_H
 
 /** @file */
 
@@ -83,4 +83,4 @@ static_assert(offsetof(FibEntry, cachelineA_) % RTE_CACHE_LINE_SIZE == 0, "");
 static_assert(offsetof(FibEntry, cachelineB_) % RTE_CACHE_LINE_SIZE == 0, "");
 static_assert(offsetof(FibEntry, cachelineC_) % RTE_CACHE_LINE_SIZE == 0, "");
 
-#endif // NDN_DPDK_FIB_ENTRY_STRUCT_H
+#endif // NDNDPDK_FIB_ENTRY_STRUCT_H

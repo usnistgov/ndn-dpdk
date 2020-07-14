@@ -125,7 +125,7 @@ PingServer_Run(PingServer* server)
     uint16_t nTx = 0;
     for (uint16_t i = 0; i < pop.count; ++i) {
       Packet* npkt = Packet_FromMbuf(rx[i]);
-      assert(Packet_GetType(npkt) == PktInterest);
+      NDNDPDK_ASSERT(Packet_GetType(npkt) == PktInterest);
       tx[nTx] = PingServer_ProcessInterest(server, npkt);
       nTx += (int)(tx[nTx] != NULL);
     }

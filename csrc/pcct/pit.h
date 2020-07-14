@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_PCCT_PIT_H
-#define NDN_DPDK_PCCT_PIT_H
+#ifndef NDNDPDK_PCCT_PIT_H
+#define NDNDPDK_PCCT_PIT_H
 
 /** @file */
 
@@ -107,8 +107,8 @@ PitEntry_GetToken(PitEntry* entry)
 {
   // Declaration is in pit-entry.h.
   PccEntry* pccEntry = PccEntry_FromPitEntry(entry);
-  assert(pccEntry->hasToken);
+  NDNDPDK_ASSERT(pccEntry->hasToken);
   return pccEntry->token;
 }
 
-#endif // NDN_DPDK_PCCT_PIT_H
+#endif // NDNDPDK_PCCT_PIT_H

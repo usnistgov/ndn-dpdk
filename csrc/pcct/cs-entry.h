@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_PCCT_CS_ENTRY_H
-#define NDN_DPDK_PCCT_CS_ENTRY_H
+#ifndef NDNDPDK_PCCT_CS_ENTRY_H
+#define NDNDPDK_PCCT_CS_ENTRY_H
 
 /** @file */
 
@@ -91,7 +91,7 @@ CsEntry_IsFresh(CsEntry* entry, TscTime now)
 __attribute__((nonnull)) static inline void
 CsEntry_ClearData(CsEntry* entry)
 {
-  assert(CsEntry_IsDirect(entry));
+  NDNDPDK_ASSERT(CsEntry_IsDirect(entry));
   if (likely(entry->data != NULL)) {
     rte_pktmbuf_free(Packet_ToMbuf(entry->data));
     entry->data = NULL;
@@ -102,8 +102,8 @@ CsEntry_ClearData(CsEntry* entry)
 __attribute__((nonnull)) static inline bool
 CsEntry_Assoc(CsEntry* indirect, CsEntry* direct)
 {
-  assert(indirect->nIndirects == 0);
-  assert(CsEntry_IsDirect(direct));
+  NDNDPDK_ASSERT(indirect->nIndirects == 0);
+  NDNDPDK_ASSERT(CsEntry_IsDirect(direct));
 
   if (unlikely(direct->nIndirects >= CS_ENTRY_MAX_INDIRECTS)) {
     return false;
@@ -119,17 +119,17 @@ CsEntry_Assoc(CsEntry* indirect, CsEntry* direct)
 __attribute__((nonnull)) static inline void
 CsEntry_Disassoc(CsEntry* indirect)
 {
-  assert(!CsEntry_IsDirect(indirect));
+  NDNDPDK_ASSERT(!CsEntry_IsDirect(indirect));
 
   CsEntry* direct = indirect->direct;
-  assert(direct->nIndirects > 0);
+  NDNDPDK_ASSERT(direct->nIndirects > 0);
   int8_t i = 0;
   for (; i < direct->nIndirects; ++i) {
     if (direct->indirect[i] == indirect) {
       break;
     }
   }
-  assert(i < direct->nIndirects);
+  NDNDPDK_ASSERT(i < direct->nIndirects);
   direct->indirect[i] = direct->indirect[direct->nIndirects - 1];
   --direct->nIndirects;
 
@@ -155,8 +155,8 @@ CsEntry_Clear(CsEntry* entry)
 __attribute__((nonnull)) static inline void
 CsEntry_Finalize(CsEntry* entry)
 {
-  assert(entry->nIndirects <= 0);
+  NDNDPDK_ASSERT(entry->nIndirects <= 0);
   CsEntry_Clear(entry);
 }
 
-#endif // NDN_DPDK_PCCT_CS_ENTRY_H
+#endif // NDNDPDK_PCCT_CS_ENTRY_H

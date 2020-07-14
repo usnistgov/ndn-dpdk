@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_FETCH_TCPCUBIC_H
-#define NDN_DPDK_FETCH_TCPCUBIC_H
+#ifndef NDNDPDK_FETCH_TCPCUBIC_H
+#define NDNDPDK_FETCH_TCPCUBIC_H
 
 /** @file */
 
@@ -39,4 +39,4 @@ TcpCubic_Increase(TcpCubic* ca, TscTime now, double sRtt);
 void
 TcpCubic_Decrease(TcpCubic* ca, TscTime now);
 
-#endif // NDN_DPDK_FETCH_TCPCUBIC_H
+#endif // NDNDPDK_FETCH_TCPCUBIC_H

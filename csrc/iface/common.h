@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_IFACE_COMMON_H
-#define NDN_DPDK_IFACE_COMMON_H
+#ifndef NDNDPDK_IFACE_COMMON_H
+#define NDNDPDK_IFACE_COMMON_H
 
 /** @file */
 
@@ -7,4 +7,4 @@
 #include "../ndni/packet.h"
 #include "enum.h"
 
-#endif // NDN_DPDK_IFACE_COMMON_H
+#endif // NDNDPDK_IFACE_COMMON_H

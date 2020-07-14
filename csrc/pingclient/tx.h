@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_PINGCLIENT_TX_H
-#define NDN_DPDK_PINGCLIENT_TX_H
+#ifndef NDNDPDK_PINGCLIENT_TX_H
+#define NDNDPDK_PINGCLIENT_TX_H
 
 /** @file */
 
@@ -51,4 +51,4 @@ typedef struct PingClientTx
 __attribute__((nonnull)) int
 PingClientTx_Run(PingClientTx* ct);
 
-#endif // NDN_DPDK_PINGCLIENT_TX_H
+#endif // NDNDPDK_PINGCLIENT_TX_H

@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_DPDK_THREAD_H
-#define NDN_DPDK_DPDK_THREAD_H
+#ifndef NDNDPDK_DPDK_THREAD_H
+#define NDNDPDK_DPDK_THREAD_H
 
 /** @file */
 
@@ -31,4 +31,4 @@ ThreadStopFlag_FinishStop(ThreadStopFlag* flag)
   atomic_store_explicit(flag, true, memory_order_release);
 }
 
-#endif // NDN_DPDK_DPDK_THREAD_H
+#endif // NDNDPDK_DPDK_THREAD_H

@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_IFACE_TXLOOP_H
-#define NDN_DPDK_IFACE_TXLOOP_H
+#ifndef NDNDPDK_IFACE_TXLOOP_H
+#define NDNDPDK_IFACE_TXLOOP_H
 
 /** @file */
 
@@ -16,4 +16,4 @@ typedef struct TxLoop
 __attribute__((nonnull)) int
 TxLoop_Run(TxLoop* txl);
 
-#endif // NDN_DPDK_IFACE_TXLOOP_H
+#endif // NDNDPDK_IFACE_TXLOOP_H

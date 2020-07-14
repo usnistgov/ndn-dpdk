@@ -50,7 +50,7 @@ FwCrypto_Input(FwCrypto* fwc)
       DataDigest_Prepare(npkt, ops[--posM]);
     }
   }
-  assert(posS == posM);
+  NDNDPDK_ASSERT(posS == posM);
 
   FwCrypto_InputEnqueue(fwc, &fwc->singleSeg, ops, posS);
   FwCrypto_InputEnqueue(fwc, &fwc->multiSeg, &ops[posM], nDeq - posM);

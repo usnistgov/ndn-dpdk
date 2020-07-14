@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_STRATEGYAPI_PACKET_H
-#define NDN_DPDK_STRATEGYAPI_PACKET_H
+#ifndef NDNDPDK_STRATEGYAPI_PACKET_H
+#define NDNDPDK_STRATEGYAPI_PACKET_H
 
 /** @file */
 
@@ -37,4 +37,4 @@ typedef enum SgNackReason
   SgNackUnspecified = 255,
 } SgNackReason;
 
-#endif // NDN_DPDK_STRATEGYAPI_PACKET_H
+#endif // NDNDPDK_STRATEGYAPI_PACKET_H

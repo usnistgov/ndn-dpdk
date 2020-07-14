@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_CONTAINER_MINTMR_MINTMR_TEST_H
-#define NDN_DPDK_CONTAINER_MINTMR_MINTMR_TEST_H
+#ifndef NDNDPDK_CONTAINER_MINTMR_MINTMR_TEST_H
+#define NDNDPDK_CONTAINER_MINTMR_MINTMR_TEST_H
 
 #include "../../../csrc/mintmr/mintmr.h"
 
@@ -15,4 +15,4 @@ MinTmrTest_MakeSched(int nSlotBits, TscDuration interval);
 MinTmrTestRecord*
 MinTmrTest_NewRecord(int n);
 
-#endif // NDN_DPDK_CONTAINER_MINTMR_MINTMR_TEST_H
+#endif // NDNDPDK_CONTAINER_MINTMR_MINTMR_TEST_H

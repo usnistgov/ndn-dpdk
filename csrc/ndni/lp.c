@@ -32,7 +32,8 @@ LpHeader_ParseNack_(LpHeader* lph, TlvDecoder* d)
 bool
 LpHeader_Parse(LpHeader* lph, struct rte_mbuf* pkt)
 {
-  assert(RTE_MBUF_DIRECT(pkt) && rte_pktmbuf_is_contiguous(pkt) && rte_mbuf_refcnt_read(pkt) == 1);
+  NDNDPDK_ASSERT(RTE_MBUF_DIRECT(pkt) && rte_pktmbuf_is_contiguous(pkt) &&
+                 rte_mbuf_refcnt_read(pkt) == 1);
   *lph = (const LpHeader){ 0 };
   lph->l2.fragCount = 1;
 
@@ -113,7 +114,7 @@ FOUND_PAYLOAD:;
 void
 LpHeader_Prepend(struct rte_mbuf* pkt, const LpL3* l3, const LpL2* l2)
 {
-  assert(rte_pktmbuf_headroom(pkt) >= LpHeaderEstimatedHeadroom);
+  NDNDPDK_ASSERT(rte_pktmbuf_headroom(pkt) >= LpHeaderEstimatedHeadroom);
   TlvEncoder_PrependTL(pkt, TtLpPayload, pkt->pkt_len);
 
   if (likely(l2->fragIndex == 0)) {
@@ -126,7 +127,7 @@ LpHeader_Prepend(struct rte_mbuf* pkt, const LpL3* l3, const LpL2* l2)
       } __rte_packed CongMarkF;
 
       CongMarkF* f = (CongMarkF*)rte_pktmbuf_prepend(pkt, sizeof(CongMarkF));
-      assert(TlvEncoder_SizeofVarNum(TtCongestionMark) == sizeof(f->congMarkT));
+      NDNDPDK_ASSERT(TlvEncoder_SizeofVarNum(TtCongestionMark) == sizeof(f->congMarkT));
       TlvEncoder_WriteVarNum(f->congMarkT, TtCongestionMark);
       f->congMarkL = 1;
       f->congMarkV = l3->congMark;

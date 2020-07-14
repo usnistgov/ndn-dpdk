@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_HRLOG_WRITER_H
-#define NDN_DPDK_HRLOG_WRITER_H
+#ifndef NDNDPDK_HRLOG_WRITER_H
+#define NDNDPDK_HRLOG_WRITER_H
 
 /** @file */
 
@@ -19,4 +19,4 @@ typedef struct HrlogWriter
 int
 Hrlog_RunWriter(const char* filename, int nSkip, int nTotal, ThreadStopFlag* stop);
 
-#endif // NDN_DPDK_HRLOG_WRITER_H
+#endif // NDNDPDK_HRLOG_WRITER_H

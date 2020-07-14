@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_PCCT_PIT_SUPPRESS_CONFIG_H
-#define NDN_DPDK_PCCT_PIT_SUPPRESS_CONFIG_H
+#ifndef NDNDPDK_PCCT_PIT_SUPPRESS_CONFIG_H
+#define NDNDPDK_PCCT_PIT_SUPPRESS_CONFIG_H
 
 /** @file */
 
@@ -24,4 +24,4 @@ PitSuppressConfig_Compute(const PitSuppressConfig* cfg, TscDuration d)
   return RTE_MIN(cfg->max, RTE_MAX(cfg->min, d));
 }
 
-#endif // NDN_DPDK_PCCT_PIT_SUPPRESS_CONFIG_H
+#endif // NDNDPDK_PCCT_PIT_SUPPRESS_CONFIG_H

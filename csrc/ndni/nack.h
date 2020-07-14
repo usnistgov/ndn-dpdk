@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_NDNI_NACK_H
-#define NDN_DPDK_NDNI_NACK_H
+#ifndef NDNDPDK_NDNI_NACK_H
+#define NDNDPDK_NDNI_NACK_H
 
 /** @file */
 
@@ -34,4 +34,4 @@ typedef struct PNack
 __attribute__((nonnull, returns_nonnull)) Packet*
 Nack_FromInterest(Packet* npkt, NackReason reason);
 
-#endif // NDN_DPDK_NDNI_NACK_H
+#endif // NDNDPDK_NDNI_NACK_H

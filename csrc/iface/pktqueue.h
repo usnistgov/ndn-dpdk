@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_IFACE_PKTQUEUE_H
-#define NDN_DPDK_IFACE_PKTQUEUE_H
+#ifndef NDNDPDK_IFACE_PKTQUEUE_H
+#define NDNDPDK_IFACE_PKTQUEUE_H
 
 /** @file */
 
@@ -84,4 +84,4 @@ PktQueue_PopDelay(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime 
 __attribute__((nonnull)) PktQueuePopResult
 PktQueue_PopCoDel(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime now);
 
-#endif // NDN_DPDK_IFACE_PKTQUEUE_H
+#endif // NDNDPDK_IFACE_PKTQUEUE_H

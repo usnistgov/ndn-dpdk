@@ -19,8 +19,8 @@ Pit_Init(Pit* pit)
 
   // 2^12 slots of 33ms interval, accommodates InterestLifetime up to 136533ms
   pitp->timeoutSched = MinSched_New(12, rte_get_tsc_hz() / 30, PitEntry_Timeout_, pit);
-  assert(MinSched_GetMaxDelay(pitp->timeoutSched) >=
-         (TscDuration)(PIT_MAX_LIFETIME * rte_get_tsc_hz() / 1000));
+  NDNDPDK_ASSERT(MinSched_GetMaxDelay(pitp->timeoutSched) >=
+                 (TscDuration)(PIT_MAX_LIFETIME * rte_get_tsc_hz() / 1000));
 
   pitp->sgTimerCb = Pit_SgTimerCb_Empty;
 }
@@ -86,7 +86,7 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
   }
 
   if (unlikely(entry == NULL)) {
-    assert(!isNewPcc); // new PccEntry must have occupied slot1
+    NDNDPDK_ASSERT(!isNewPcc); // new PccEntry must have occupied slot1
     ++pitp->nAllocErr;
     return PitResult_New_(NULL, PIT_INSERT_FULL);
   }
@@ -113,11 +113,11 @@ Pit_Erase(Pit* pit, PitEntry* entry)
 {
   PccEntry* pccEntry = PccEntry_FromPitEntry(entry);
   if (!entry->mustBeFresh) {
-    assert(pccEntry->hasPitEntry0);
+    NDNDPDK_ASSERT(pccEntry->hasPitEntry0);
     PccEntry_RemovePitEntry0(pccEntry);
     ZF_LOGD("%p Erase(%p) del-PIT0 pcc=%p", pit, entry, pccEntry);
   } else {
-    assert(pccEntry->hasPitEntry1);
+    NDNDPDK_ASSERT(pccEntry->hasPitEntry1);
     PccEntry_RemovePitEntry1(pccEntry);
     ZF_LOGD("%p Erase(%p) del-PIT1 pcc=%p", pit, entry, pccEntry);
   }

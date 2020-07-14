@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_FETCH_RTTEST_H
-#define NDN_DPDK_FETCH_RTTEST_H
+#ifndef NDNDPDK_FETCH_RTTEST_H
+#define NDNDPDK_FETCH_RTTEST_H
 
 /** @file */
 
@@ -62,4 +62,4 @@ RttEst_Backoff(RttEst* rtte)
   rtte->rto = RTE_MAX(RTTEST_MINRTO, RTE_MIN(rtte->rto * 2, RTTEST_MAXRTO));
 }
 
-#endif // NDN_DPDK_FETCH_RTTEST_H
+#endif // NDNDPDK_FETCH_RTTEST_H

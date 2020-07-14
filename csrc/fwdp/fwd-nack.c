@@ -44,7 +44,7 @@ void
 SgReturnNacks(SgCtx* ctx0, SgNackReason reason)
 {
   FwFwdCtx* ctx = (FwFwdCtx*)ctx0;
-  assert(ctx->eventKind == SGEVT_INTEREST);
+  NDNDPDK_ASSERT(ctx->eventKind == SGEVT_INTEREST);
 
   FwFwd_TxNacks(ctx->fwd, ctx->pitEntry, rte_get_tsc_cycles(), (NackReason)reason, 1);
 }

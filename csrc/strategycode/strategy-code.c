@@ -3,8 +3,8 @@
 void
 StrategyCode_Ref(StrategyCode* sc)
 {
-  assert(sc->bpf != NULL);
-  assert(sc->jit != NULL);
+  NDNDPDK_ASSERT(sc->bpf != NULL);
+  NDNDPDK_ASSERT(sc->jit != NULL);
   atomic_fetch_add_explicit(&sc->nRefs, 1, memory_order_acq_rel);
 }
 
@@ -12,7 +12,7 @@ void
 StrategyCode_Unref(StrategyCode* sc)
 {
   int oldNRefs = atomic_fetch_sub_explicit(&sc->nRefs, 1, memory_order_acq_rel);
-  assert(oldNRefs > 0);
+  NDNDPDK_ASSERT(oldNRefs > 0);
   if (oldNRefs > 1) {
     return;
   }

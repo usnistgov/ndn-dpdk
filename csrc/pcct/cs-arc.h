@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_PCCT_CS_ARC_H
-#define NDN_DPDK_PCCT_CS_ARC_H
+#ifndef NDNDPDK_PCCT_CS_ARC_H
+#define NDNDPDK_PCCT_CS_ARC_H
 
 /** @file */
 
@@ -29,4 +29,4 @@ CsArc_Add(CsArc* arc, CsEntry* entry);
 __attribute__((nonnull)) void
 CsArc_Remove(CsArc* arc, CsEntry* entry);
 
-#endif // NDN_DPDK_PCCT_CS_ARC_H
+#endif // NDNDPDK_PCCT_CS_ARC_H

@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_DPDK_SPDK_THREAD_H
-#define NDN_DPDK_DPDK_SPDK_THREAD_H
+#ifndef NDNDPDK_DPDK_SPDK_THREAD_H
+#define NDNDPDK_DPDK_SPDK_THREAD_H
 
 /** @file */
 
@@ -15,4 +15,4 @@ typedef struct SpdkThread
 int
 SpdkThread_Run(SpdkThread* th);
 
-#endif // NDN_DPDK_DPDK_SPDK_THREAD_H
+#endif // NDNDPDK_DPDK_SPDK_THREAD_H

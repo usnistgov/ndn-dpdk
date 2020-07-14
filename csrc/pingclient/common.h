@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_PINGCLIENT_COMMON_H
-#define NDN_DPDK_PINGCLIENT_COMMON_H
+#ifndef NDNDPDK_PINGCLIENT_COMMON_H
+#define NDNDPDK_PINGCLIENT_COMMON_H
 
 /** @file */
 
@@ -14,4 +14,4 @@
 typedef uint8_t PingPatternId;
 static_assert(UINT8_MAX <= (PINGCLIENT_MAX_PATTERNS - 1), "");
 
-#endif // NDN_DPDK_PINGCLIENT_COMMON_H
+#endif // NDNDPDK_PINGCLIENT_COMMON_H

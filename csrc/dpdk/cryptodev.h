@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_DPDK_CRYPTODEV_H
-#define NDN_DPDK_DPDK_CRYPTODEV_H
+#ifndef NDNDPDK_DPDK_CRYPTODEV_H
+#define NDNDPDK_DPDK_CRYPTODEV_H
 
 /** @file */
 
@@ -42,4 +42,4 @@ typedef struct CryptoQueuePair
   uint16_t qp;
 } CryptoQueuePair;
 
-#endif // NDN_DPDK_DPDK_CRYPTODEV_H
+#endif // NDNDPDK_DPDK_CRYPTODEV_H

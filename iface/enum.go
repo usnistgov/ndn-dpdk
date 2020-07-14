@@ -1,6 +1,6 @@
 package iface
 
-//go:generate go run ../mk/enumgen/ -guard=NDN_DPDK_IFACE_ENUM_H -out=../csrc/iface/enum.h .
+//go:generate go run ../mk/enumgen/ -guard=NDNDPDK_IFACE_ENUM_H -out=../csrc/iface/enum.h .
 
 import (
 	"strconv"

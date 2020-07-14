@@ -36,7 +36,7 @@ Pcct_KeyHt_Expand_(UT_hash_table* tbl)
 __attribute__((nonnull)) static uint32_t
 Pcct_TokenHt_Hash_(const void* key, uint32_t keyLen, uint32_t initVal)
 {
-  assert(keyLen == sizeof(uint32_t) * 2);
+  NDNDPDK_ASSERT(keyLen == sizeof(uint32_t) * 2);
   const uint32_t* words = (const uint32_t*)key;
   return rte_jhash_2words(words[0], words[1], initVal);
 }
@@ -44,7 +44,7 @@ Pcct_TokenHt_Hash_(const void* key, uint32_t keyLen, uint32_t initVal)
 __attribute__((nonnull)) static int
 Pcct_TokenHt_Cmp_(const void* key1, const void* key2, size_t kenLen)
 {
-  assert(kenLen == sizeof(uint64_t));
+  NDNDPDK_ASSERT(kenLen == sizeof(uint64_t));
   return *(const uint64_t*)key1 != *(const uint64_t*)key2;
 }
 
@@ -139,7 +139,7 @@ Pcct_Erase(Pcct* pcct, PccEntry* entry)
 uint64_t
 Pcct_AddToken_(Pcct* pcct, PccEntry* entry)
 {
-  assert(!entry->hasToken);
+  NDNDPDK_ASSERT(!entry->hasToken);
   PcctPriv* pcctp = Pcct_GetPriv(pcct);
 
   uint64_t token = pcctp->lastToken;
@@ -160,7 +160,7 @@ Pcct_AddToken_(Pcct* pcct, PccEntry* entry)
       break;
     }
     // token insertion failed
-    assert(res == -ENOSPC);
+    NDNDPDK_ASSERT(res == -ENOSPC);
   }
   pcctp->lastToken = token;
 
@@ -173,8 +173,8 @@ Pcct_AddToken_(Pcct* pcct, PccEntry* entry)
 void
 Pcct_RemoveToken_(Pcct* pcct, PccEntry* entry)
 {
-  assert(entry->hasToken);
-  assert(Pcct_FindByToken(pcct, entry->token) == entry);
+  NDNDPDK_ASSERT(entry->hasToken);
+  NDNDPDK_ASSERT(Pcct_FindByToken(pcct, entry->token) == entry);
 
   PcctPriv* pcctp = Pcct_GetPriv(pcct);
 
@@ -182,8 +182,8 @@ Pcct_RemoveToken_(Pcct* pcct, PccEntry* entry)
   ZF_LOGD("%p RemoveToken(%p, %012" PRIx64 ")", pcct, entry, token);
 
   entry->hasToken = false;
-  int res __rte_unused = rte_hash_del_key(pcctp->tokenHt, &token);
-  assert(res >= 0);
+  int res = rte_hash_del_key(pcctp->tokenHt, &token);
+  NDNDPDK_ASSERT(res >= 0);
 }
 
 PccEntry*
@@ -194,21 +194,21 @@ Pcct_FindByToken(const Pcct* pcct, uint64_t token)
   token &= PCCT_TOKEN_MASK;
 
   void* entry = NULL;
-  int res __rte_unused = rte_hash_lookup_data(pcctp->tokenHt, &token, &entry);
-  assert((res >= 0 && entry != NULL) || (res == -ENOENT && entry == NULL));
+  int res = rte_hash_lookup_data(pcctp->tokenHt, &token, &entry);
+  NDNDPDK_ASSERT((res >= 0 && entry != NULL) || (res == -ENOENT && entry == NULL));
   return (PccEntry*)entry;
 }
 
 void
 PcctEraseBatch_EraseBurst_(PcctEraseBatch* peb)
 {
-  assert(peb->pcct != NULL);
+  NDNDPDK_ASSERT(peb->pcct != NULL);
   PcctPriv* pcctp = Pcct_GetPriv(peb->pcct);
   int nObjs = peb->nEntries;
   for (int i = 0; i < peb->nEntries; ++i) {
     PccEntry* entry = (PccEntry*)peb->objs[i];
     ZF_LOGD("%p Erase(%p)", peb->pcct, entry);
-    assert(!entry->hasEntries);
+    NDNDPDK_ASSERT(!entry->hasEntries);
     Pcct_RemoveToken(peb->pcct, entry);
     HASH_DELETE(hh, pcctp->keyHt, entry);
 
@@ -216,7 +216,7 @@ PcctEraseBatch_EraseBurst_(PcctEraseBatch* peb)
     if (entry->ext != NULL) {
       peb->objs[nObjs++] = entry->ext;
     }
-    assert((size_t)nObjs < RTE_DIM(peb->objs));
+    NDNDPDK_ASSERT((size_t)nObjs < RTE_DIM(peb->objs));
   }
   rte_mempool_put_bulk(Pcct_ToMempool(peb->pcct), peb->objs, nObjs);
   peb->nEntries = 0;

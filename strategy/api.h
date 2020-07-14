@@ -1,8 +1,8 @@
-#ifndef NDN_DPDK_STRATEGY_API_H
-#define NDN_DPDK_STRATEGY_API_H
+#ifndef NDNDPDK_STRATEGY_API_H
+#define NDNDPDK_STRATEGY_API_H
 
 /** @file */
 
 #include "../csrc/strategyapi/api.h"
 
-#endif // NDN_DPDK_STRATEGY_API_H
+#endif // NDNDPDK_STRATEGY_API_H

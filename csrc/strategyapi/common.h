@@ -1,9 +1,9 @@
-#ifndef NDN_DPDK_STRATEGYAPI_COMMON_H
-#define NDN_DPDK_STRATEGYAPI_COMMON_H
+#ifndef NDNDPDK_STRATEGYAPI_COMMON_H
+#define NDNDPDK_STRATEGYAPI_COMMON_H
 
 /** @file */
 
-#include "../core/common1.h"
+#include "../core/common.h"
 
 typedef uint64_t TscTime;
 typedef int64_t TscDuration;
@@ -16,4 +16,4 @@ typedef uint16_t FaceID;
 
 #define SUBROUTINE __attribute__((always_inline)) static inline
 
-#endif // NDN_DPDK_STRATEGYAPI_COMMON_H
+#endif // NDNDPDK_STRATEGYAPI_COMMON_H

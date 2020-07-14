@@ -49,8 +49,8 @@ Fib_Close(Fib* fib)
   }
   rcu_read_unlock();
 
-  int res __rte_unused = cds_lfht_destroy(fibp->lfht, NULL);
-  assert(res == 0);
+  int res = cds_lfht_destroy(fibp->lfht, NULL);
+  NDNDPDK_ASSERT(res == 0);
   rte_mempool_free(Fib_ToMempool(fib));
 }
 
@@ -86,8 +86,8 @@ __attribute__((nonnull)) static void
 Fib_RcuFreeVirt_(struct rcu_head* rcuhead)
 {
   FibEntry* oldVirt = container_of(rcuhead, FibEntry, rcuhead);
-  assert(oldVirt->maxDepth > 0);
-  assert(oldVirt->nNexthops == 0);
+  NDNDPDK_ASSERT(oldVirt->maxDepth > 0);
+  NDNDPDK_ASSERT(oldVirt->nNexthops == 0);
   Fib_Free_(oldVirt);
 }
 
@@ -95,8 +95,8 @@ __attribute__((nonnull)) static void
 Fib_RcuFreeReal_(struct rcu_head* rcuhead)
 {
   FibEntry* oldReal = container_of(rcuhead, FibEntry, rcuhead);
-  assert(oldReal->maxDepth == 0);
-  assert(oldReal->nNexthops > 0);
+  NDNDPDK_ASSERT(oldReal->maxDepth == 0);
+  NDNDPDK_ASSERT(oldReal->nNexthops > 0);
   Fib_Free_(oldReal);
 }
 
@@ -107,24 +107,24 @@ Fib_FreeOld_(FibEntry* entry, Fib_FreeOld freeVirt, Fib_FreeOld freeReal)
   if (entry != NULL && entry->maxDepth > 0) {
     FibEntry* oldVirt = entry;
     oldReal = oldVirt->realEntry;
-    assert(freeVirt != Fib_FreeOld_MustNotExist);
+    NDNDPDK_ASSERT(freeVirt != Fib_FreeOld_MustNotExist);
     if (freeVirt == Fib_FreeOld_Yes || freeVirt == Fib_FreeOld_YesIfExists) {
       call_rcu(&oldVirt->rcuhead, Fib_RcuFreeVirt_);
     }
   } else {
     oldReal = entry;
-    assert(freeVirt == Fib_FreeOld_MustNotExist || freeVirt == Fib_FreeOld_YesIfExists);
+    NDNDPDK_ASSERT(freeVirt == Fib_FreeOld_MustNotExist || freeVirt == Fib_FreeOld_YesIfExists);
   }
 
   if (oldReal != NULL) {
-    assert(freeReal != Fib_FreeOld_MustNotExist);
+    NDNDPDK_ASSERT(freeReal != Fib_FreeOld_MustNotExist);
     // reused entry is not freed but its strategy was ref'ed in Fib_Insert
     StrategyCode_Unref(oldReal->strategy);
     if (freeReal == Fib_FreeOld_Yes || freeReal == Fib_FreeOld_YesIfExists) {
       call_rcu(&oldReal->rcuhead, Fib_RcuFreeReal_);
     }
   } else {
-    assert(freeReal == Fib_FreeOld_MustNotExist || freeReal == Fib_FreeOld_YesIfExists);
+    NDNDPDK_ASSERT(freeReal == Fib_FreeOld_MustNotExist || freeReal == Fib_FreeOld_YesIfExists);
   }
 }
 
@@ -135,13 +135,13 @@ Fib_Insert(Fib* fib, FibEntry* entry, Fib_FreeOld freeVirt, Fib_FreeOld freeReal
 
   FibEntry* newReal = entry;
   if (entry->maxDepth > 0) {
-    assert(entry->nNexthops == 0);
+    NDNDPDK_ASSERT(entry->nNexthops == 0);
     newReal = entry->realEntry;
     entry->seqNum = ++fibp->insertSeqNum;
   }
   if (newReal != NULL) {
-    assert(newReal->maxDepth == 0);
-    assert(newReal->nNexthops > 0);
+    NDNDPDK_ASSERT(newReal->maxDepth == 0);
+    NDNDPDK_ASSERT(newReal->nNexthops > 0);
     StrategyCode_Ref(newReal->strategy);
     newReal->seqNum = ++fibp->insertSeqNum;
   }
@@ -159,7 +159,7 @@ Fib_Erase(Fib* fib, FibEntry* entry, Fib_FreeOld freeVirt, Fib_FreeOld freeReal)
 {
   FibPriv* fibp = Fib_GetPriv(fib);
   bool ok = cds_lfht_del(fibp->lfht, &entry->lfhtnode) == 0;
-  assert(ok);
+  NDNDPDK_ASSERT(ok);
   RTE_SET_USED(ok);
   Fib_FreeOld_(entry, freeVirt, freeReal);
 }

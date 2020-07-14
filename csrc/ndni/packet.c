@@ -39,7 +39,7 @@ Packet_Parse(Packet* npkt)
 
   if (lph->l2.fragCount > 1) {
     // PktFragment is zero, no need to invoke setter
-    assert(Packet_GetType(npkt) == PktFragment);
+    NDNDPDK_ASSERT(Packet_GetType(npkt) == PktFragment);
     return true;
   }
 
@@ -53,7 +53,7 @@ Packet_ParseL3(Packet* npkt)
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   if (unlikely(pkt->data_len == 0)) {
     // TlvDecoder ensures there's no empty segment, so an empty first segment means an empty packet
-    assert(pkt->pkt_len == 0);
+    NDNDPDK_ASSERT(pkt->pkt_len == 0);
     return false;
   }
 

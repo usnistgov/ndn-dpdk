@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_STRATEGYAPI_FIB_H
-#define NDN_DPDK_STRATEGYAPI_FIB_H
+#ifndef NDNDPDK_STRATEGYAPI_FIB_H
+#define NDNDPDK_STRATEGYAPI_FIB_H
 
 /** @file */
 
@@ -82,4 +82,4 @@ SgFibNexthopIt_Next(SgFibNexthopIt* it)
   SgFibNexthopIt_Advance_(it);
 }
 
-#endif // NDN_DPDK_STRATEGYAPI_FIB_H
+#endif // NDNDPDK_STRATEGYAPI_FIB_H

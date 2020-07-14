@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_FWDP_TOKEN_H
-#define NDN_DPDK_FWDP_TOKEN_H
+#ifndef NDNDPDK_FWDP_TOKEN_H
+#define NDNDPDK_FWDP_TOKEN_H
 
 /** @file */
 
@@ -11,4 +11,4 @@ FwToken_New(uint8_t fwdId, uint64_t pccToken)
   return ((uint64_t)fwdId << 56) | (pccToken & 0xFFFFFFFFFFFF);
 }
 
-#endif // NDN_DPDK_FWDP_TOKEN_H
+#endif // NDNDPDK_FWDP_TOKEN_H

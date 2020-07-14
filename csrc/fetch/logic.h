@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_FETCH_LOGIC_H
-#define NDN_DPDK_FETCH_LOGIC_H
+#ifndef NDNDPDK_FETCH_LOGIC_H
+#define NDNDPDK_FETCH_LOGIC_H
 
 /** @file */
 
@@ -67,4 +67,4 @@ typedef struct FetchLogicRxData
 void
 FetchLogic_RxDataBurst(FetchLogic* fl, const FetchLogicRxData* pkts, size_t count);
 
-#endif // NDN_DPDK_FETCH_LOGIC_H
+#endif // NDNDPDK_FETCH_LOGIC_H

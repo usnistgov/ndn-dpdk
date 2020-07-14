@@ -25,7 +25,7 @@ CsEraseBatch_Append_(PcctEraseBatch* peb, CsEntry* entry, const char* isDirectDb
 static void
 CsEraseBatch_AddIndirect(PcctEraseBatch* peb, CsEntry* entry)
 {
-  assert(!CsEntry_IsDirect(entry));
+  NDNDPDK_ASSERT(!CsEntry_IsDirect(entry));
   ZF_LOGV("^ indirect=%p direct=%p(%" PRId8 ")", entry, entry->direct, entry->direct->nIndirects);
   CsEntry_Finalize(entry);
   CsEraseBatch_Append_(peb, entry, "indirect");
@@ -35,7 +35,7 @@ CsEraseBatch_AddIndirect(PcctEraseBatch* peb, CsEntry* entry)
 static void
 CsEraseBatch_AddDirect(PcctEraseBatch* peb, CsEntry* entry)
 {
-  assert(CsEntry_IsDirect(entry));
+  NDNDPDK_ASSERT(CsEntry_IsDirect(entry));
   CsPriv* csp = Cs_GetPriv(Cs_FromPcct(peb->pcct));
   for (int i = 0; i < entry->nIndirects; ++i) {
     CsEntry* indirect = entry->indirect[i];
@@ -99,7 +99,7 @@ CsPriv_GetList(CsPriv* csp, CsListId cslId)
       return &csp->indirectLru;
     case CslMd:
     default:
-      assert(false);
+      NDNDPDK_ASSERT(false);
       return NULL;
   }
 }
@@ -209,7 +209,7 @@ Cs_InsertDirect(Cs* cs, Packet* npkt, PInterest* interest)
 static bool
 Cs_PutIndirect(Cs* cs, CsEntry* direct, PccEntry* pccEntry)
 {
-  assert(!pccEntry->hasPitEntry0);
+  NDNDPDK_ASSERT(!pccEntry->hasPitEntry0);
   CsPriv* csp = Cs_GetPriv(cs);
 
   CsEntry* entry = NULL;
@@ -283,7 +283,7 @@ Cs_Insert(Cs* cs, Packet* npkt, PitFindResult pitFound)
   if (likely(direct == NULL)) {
     // put direct CS entry at pccEntry
     direct = Cs_PutDirect(cs, npkt, pccEntry);
-    assert(direct != NULL);
+    NDNDPDK_ASSERT(direct != NULL);
   } else {
     // put indirect CS entry at pccEntry
     Cs_PutIndirect(cs, direct, pccEntry);

@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_NDNI_LP_H
-#define NDN_DPDK_NDNI_LP_H
+#ifndef NDNDPDK_NDNI_LP_H
+#define NDNDPDK_NDNI_LP_H
 
 /** @file */
 
@@ -56,4 +56,4 @@ LpHeader_Parse(LpHeader* lph, struct rte_mbuf* pkt);
 __attribute__((nonnull)) void
 LpHeader_Prepend(struct rte_mbuf* pkt, const LpL3* l3, const LpL2* l2);
 
-#endif // NDN_DPDK_NDN_LP_H
+#endif // NDNDPDK_NDN_LP_H

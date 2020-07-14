@@ -1,5 +1,5 @@
-#ifndef NDN_DPDK_PCCT_PIT_DN_H
-#define NDN_DPDK_PCCT_PIT_DN_H
+#ifndef NDNDPDK_PCCT_PIT_DN_H
+#define NDNDPDK_PCCT_PIT_DN_H
 
 /** @file */
 
@@ -26,4 +26,4 @@ PitDn_Copy(PitDn* dst, PitDn* src)
   src->face = 0;
 }
 
-#endif // NDN_DPDK_PCCT_PIT_DN_H
+#endif // NDNDPDK_PCCT_PIT_DN_H

@@ -7,7 +7,7 @@ static const int TX_MAX_FRAGMENTS = 16; // max allowed number of fragments
 __attribute__((nonnull)) static void
 TxLoop_TxFrames(Face* face, struct rte_mbuf** frames, uint16_t count)
 {
-  assert(count > 0);
+  NDNDPDK_ASSERT(count > 0);
   TxProc* tx = &face->impl->tx;
 
   tx->nFrames += count;
