@@ -38,22 +38,21 @@ func (mockLCoreProvider) NumaSocketOf(lc eal.LCore) eal.NumaSocket {
 func TestAllocator(t *testing.T) {
 	assert, _ := makeAR(t)
 
-	var la ealthread.Allocator
-	la.Provider = mockLCoreProvider{}
-	la.Config = make(ealthread.AllocConfig)
-	la.Config["A"] = ealthread.AllocRoleConfig{
-		LCores:   []int{1, 6, 8},
-		EachNuma: 2,
+	la := ealthread.NewAllocator(mockLCoreProvider{})
+	la.Config = ealthread.AllocConfig{
+		"A": {
+			LCores:   []int{1, 6, 8},
+			EachNuma: 2,
+		},
+		"B": {
+			LCores: []int{4},
+			OnNuma: map[int]int{0: 1},
+		},
+		"C": {
+			LCores: []int{1},
+			OnNuma: map[int]int{0: 3, 1: 4},
+		},
 	}
-	la.Config["B"] = ealthread.AllocRoleConfig{
-		LCores: []int{4},
-		OnNuma: map[int]int{0: 1},
-	}
-	la.Config["C"] = ealthread.AllocRoleConfig{
-		LCores: []int{1},
-		OnNuma: map[int]int{0: 3, 1: 4},
-	}
-
 	numa0, numa1 := eal.NumaSocketFromID(0), eal.NumaSocketFromID(1)
 
 	// 1=reserved-AC, 2=idle, 3=idle, 4=reserved-B, 5=idle, 6=reserved-A, 7=busy

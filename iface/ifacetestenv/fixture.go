@@ -98,6 +98,7 @@ func (fixture *Fixture) RunTest(txFace, rxFace iface.Face) {
 	fixture.sendProc()
 	time.Sleep(800 * time.Millisecond)
 	recvStop.RequestStop()
+	time.Sleep(100 * time.Millisecond)
 }
 
 func (fixture *Fixture) recvProc(recvStop ealthread.StopChan) {
@@ -149,13 +150,13 @@ func (fixture *Fixture) CheckCounters() {
 	assert.InEpsilon(fixture.TxIterations, int(txCnt.TxInterests), fixture.TxLossTolerance)
 	assert.InEpsilon(fixture.TxIterations, int(txCnt.TxData), fixture.TxLossTolerance)
 	assert.InEpsilon(fixture.TxIterations, int(txCnt.TxNacks), fixture.TxLossTolerance)
-	assert.Equal(txCnt.TxInterests+uint64(fixture.DataFrames)*txCnt.TxData+txCnt.TxNacks, txCnt.TxFrames)
+	assert.InEpsilon(txCnt.TxInterests+uint64(fixture.DataFrames)*txCnt.TxData+txCnt.TxNacks, txCnt.TxFrames, 0.01)
 
 	rxCnt := fixture.rxFace.ReadCounters()
 	assert.EqualValues(fixture.NRxInterests, rxCnt.RxInterests)
 	assert.EqualValues(fixture.NRxData, rxCnt.RxData)
 	assert.EqualValues(fixture.NRxNacks, rxCnt.RxNacks)
-	assert.Equal(rxCnt.RxInterests+uint64(fixture.DataFrames)*rxCnt.RxData+rxCnt.RxNacks, rxCnt.RxFrames)
+	assert.InEpsilon(rxCnt.RxInterests+uint64(fixture.DataFrames)*rxCnt.RxData+rxCnt.RxNacks, rxCnt.RxFrames, 0.01)
 
 	assert.InEpsilon(fixture.TxIterations, fixture.NRxInterests, fixture.RxLossTolerance)
 	assert.InEpsilon(fixture.TxIterations, fixture.NRxData, fixture.RxLossTolerance)

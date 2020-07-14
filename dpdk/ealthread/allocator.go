@@ -31,9 +31,17 @@ func (c AllocRoleConfig) limitOn(socket eal.NumaSocket) int {
 
 // Allocator allocates lcores to roles.
 type Allocator struct {
-	Provider  lCoreProvider
 	Config    AllocConfig
+	provider  lCoreProvider
 	allocated [eal.MaxLCoreID + 1]string
+}
+
+// NewAllocator creates an Allocator.
+func NewAllocator(provider lCoreProvider) *Allocator {
+	return &Allocator{
+		Config:   make(AllocConfig),
+		provider: provider,
+	}
 }
 
 type lCorePredicate func(lc eal.LCore) bool
@@ -46,19 +54,19 @@ func (la *Allocator) invert(pred lCorePredicate) lCorePredicate {
 
 func (la *Allocator) lcIsIdle() lCorePredicate {
 	return func(lc eal.LCore) bool {
-		return !la.Provider.IsBusy(lc)
+		return !la.provider.IsBusy(lc)
 	}
 }
 
 func (la *Allocator) lcIsAvailable() lCorePredicate {
 	return func(lc eal.LCore) bool {
-		return la.allocated[lc.ID()] == "" && !la.Provider.IsBusy(lc)
+		return la.allocated[lc.ID()] == "" && !la.provider.IsBusy(lc)
 	}
 }
 
 func (la *Allocator) lcOnNuma(socket eal.NumaSocket) lCorePredicate {
 	return func(lc eal.LCore) bool {
-		return socket.IsAny() || la.Provider.NumaSocketOf(lc).ID() == socket.ID()
+		return socket.IsAny() || la.provider.NumaSocketOf(lc).ID() == socket.ID()
 	}
 }
 
@@ -96,7 +104,7 @@ L:
 func (la *Allocator) classifyByNuma(lcores []eal.LCore) (m map[eal.NumaSocket][]eal.LCore) {
 	m = make(map[eal.NumaSocket][]eal.LCore)
 	for _, lc := range lcores {
-		socket := la.Provider.NumaSocketOf(lc)
+		socket := la.provider.NumaSocketOf(lc)
 		m[socket] = append(m[socket], lc)
 	}
 	return m
@@ -114,7 +122,7 @@ func (la *Allocator) pick(role string, socket eal.NumaSocket) eal.LCore {
 	}
 
 	// 2. Allocate on other NUMA sockets.
-	numaLCores := la.classifyByNuma(la.Provider.Workers())
+	numaLCores := la.classifyByNuma(la.provider.Workers())
 	for remoteSocket := range numaLCores {
 		numaLCores[remoteSocket] = la.pickCfgOnNuma(role, remoteSocket)
 	}
@@ -122,7 +130,7 @@ func (la *Allocator) pick(role string, socket eal.NumaSocket) eal.LCore {
 }
 
 func (la *Allocator) pickNoConfig(role string, socket eal.NumaSocket) eal.LCore {
-	workers := la.Provider.Workers()
+	workers := la.provider.Workers()
 	avails := la.filter(workers, la.lcIsAvailable())
 
 	// 1. Allocate from preferred NUMA socket.
@@ -138,7 +146,7 @@ func (la *Allocator) pickNoConfig(role string, socket eal.NumaSocket) eal.LCore 
 }
 
 func (la *Allocator) pickCfgOnNuma(role string, socket eal.NumaSocket) []eal.LCore {
-	workers := la.Provider.Workers()
+	workers := la.provider.Workers()
 	avails := la.filter(workers, la.lcIsAvailable(), la.lcOnNuma(socket))
 	rc := la.Config[role]
 
@@ -189,7 +197,7 @@ func (la *Allocator) Alloc(role string, socket eal.NumaSocket) (lc eal.LCore) {
 
 	la.allocated[lc.ID()] = role
 	log.WithFields(makeLogFields("role", role, "socket", socket,
-		"lc", lc, "lc-socket", la.Provider.NumaSocketOf(lc))).Info("lcore allocated")
+		"lc", lc, "lc-socket", la.provider.NumaSocketOf(lc))).Info("lcore allocated")
 	return lc
 }
 
@@ -198,7 +206,7 @@ func (la *Allocator) Free(lc eal.LCore) {
 	if la.allocated[lc.ID()] == "" {
 		panic("lcore double free")
 	}
-	log.WithFields(makeLogFields("lc", lc, "role", la.allocated[lc.ID()], "socket", la.Provider.NumaSocketOf(lc))).Info("lcore freed")
+	log.WithFields(makeLogFields("lc", lc, "role", la.allocated[lc.ID()], "socket", la.provider.NumaSocketOf(lc))).Info("lcore freed")
 	la.allocated[lc.ID()] = ""
 }
 
@@ -212,11 +220,4 @@ func (la *Allocator) Clear() {
 }
 
 // DefaultAllocator is the default instance of Allocator.
-var DefaultAllocator Allocator
-
-func init() {
-	DefaultAllocator = Allocator{
-		Provider: ealLCoreProvider{},
-		Config:   make(AllocConfig),
-	}
-}
+var DefaultAllocator = NewAllocator(ealLCoreProvider{})

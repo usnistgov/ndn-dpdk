@@ -43,7 +43,7 @@ type DataPlane struct {
 func New(cfg Config) (dp *DataPlane, e error) {
 	dp = new(DataPlane)
 
-	dp.la.Allocator = &ealthread.DefaultAllocator
+	dp.la.Allocator = ealthread.DefaultAllocator
 	if e = dp.la.Alloc(); e != nil {
 		return nil, e
 	}

@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/jaypipes/ghw"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealinit"
@@ -27,6 +28,8 @@ var UsingThreads = false
 
 // Init initializes EAL for testing purpose.
 func Init(extraArgs ...string) (remainingArgs []string) {
+	rand.Seed(time.Now().UnixNano())
+
 	args := []string{"testprog", "-n1"}
 	args = append(args, pickCpus()...)
 

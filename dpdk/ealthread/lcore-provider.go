@@ -5,7 +5,7 @@ import (
 )
 
 // lCoreProvider provides information about LCores.
-// Mock of this interface allows unit testing of LCoreAllocator.
+// Mock of this interface enables unit testing of Allocator.
 type lCoreProvider interface {
 	// Workers returns a list of worker lcores.
 	Workers() []eal.LCore
