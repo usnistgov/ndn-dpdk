@@ -74,7 +74,7 @@ FetchProc_RxBurst(FetchProc* fp)
     }
   }
   FetchLogic_RxDataBurst(&fp->logic, lpkts, count);
-  FreeMbufs((struct rte_mbuf**)npkts, nRx);
+  rte_pktmbuf_free_bulk_((struct rte_mbuf**)npkts, nRx);
 }
 
 int

@@ -19,7 +19,12 @@ TxLoop_TxFrames(Face* face, struct rte_mbuf** frames, uint16_t count)
   uint16_t nRejects = count - nQueued;
   if (unlikely(nRejects > 0)) {
     tx->nDroppedFrames += nRejects;
-    tx->nDroppedOctets += FreeMbufs(&frames[nQueued], nRejects);
+    uint32_t nDroppedOctets = 0;
+    for (uint16_t i = nQueued; i < count; ++i) {
+      nDroppedOctets += frames[i]->pkt_len;
+    }
+    tx->nDroppedOctets += nDroppedOctets;
+    rte_pktmbuf_free_bulk_(&frames[nQueued], nRejects);
   }
 }
 
