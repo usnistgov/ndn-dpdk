@@ -3,15 +3,6 @@
 #include "tlv-decoder.h"
 #include "tlv-encoder.h"
 
-// clang-format off
-static const uint8_t FakeSignature[] = {
-  TtDSigInfo, 0x03, TtSigType, 0x01, SigHmacWithSha256,
-  TtDSigValue, 0x20,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-};
-// clang-format on
-
 static __rte_always_inline bool
 PData_ParseMetaInfo_(PData* data, TlvDecoder* d)
 {
@@ -144,45 +135,6 @@ DataDigest_Finish(struct rte_crypto_op* op)
   PData* data = Packet_GetDataHdr(npkt);
   data->hasDigest = true;
   return npkt;
-}
-
-DataGen*
-DataGen_New(struct rte_mbuf* m, LName suffix, uint32_t freshness, uint16_t contentL,
-            const uint8_t* contentV)
-{
-  assert(RTE_MBUF_DIRECT(m) && rte_pktmbuf_is_contiguous(m) && rte_mbuf_refcnt_read(m) == 1 &&
-         m->data_len == 0 && m->buf_len >= DataGenBufLen + contentL);
-  m->data_off = m->buf_len;
-
-  rte_memcpy(rte_pktmbuf_prepend(m, sizeof(FakeSignature)), FakeSignature, sizeof(FakeSignature));
-
-  if (contentL != 0) {
-    rte_memcpy(rte_pktmbuf_prepend(m, contentL), contentV, contentL);
-    TlvEncoder_PrependTL(m, TtContent, contentL);
-  }
-
-  if (freshness != 0) {
-    uint32_t afterMeta = m->pkt_len;
-    uint8_t freshnessV[8];
-    uint32_t freshnessL = Nni_Encode(freshnessV, freshness);
-    rte_memcpy(rte_pktmbuf_prepend(m, freshnessL), freshnessV, freshnessL);
-    TlvEncoder_PrependTL(m, TtFreshnessPeriod, freshnessL);
-    uint32_t metaL = m->pkt_len - afterMeta;
-    TlvEncoder_PrependTL(m, TtMetaInfo, metaL);
-  }
-
-  if (suffix.length > 0) {
-    rte_memcpy(rte_pktmbuf_prepend(m, suffix.length), suffix.value, suffix.length);
-  }
-  m->vlan_tci = suffix.length;
-
-  return (DataGen*)m;
-}
-
-void
-DataGen_Close(DataGen* gen)
-{
-  rte_pktmbuf_free((struct rte_mbuf*)gen);
 }
 
 Packet*

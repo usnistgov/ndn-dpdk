@@ -5,28 +5,49 @@ package ndni
 */
 import "C"
 import (
-	"time"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn/an"
+	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
 
 // DataGen is a Data encoder optimized for traffic generator.
 type DataGen C.DataGen
 
 // NewDataGen creates a DataGen.
-func NewDataGen(m *pktmbuf.Packet, suffix ndn.Name, freshness time.Duration, content []byte) *DataGen {
-	suffixP := NewPName(suffix)
-	defer suffixP.Free()
-	var contentV *C.uint8_t
-	if len(content) > 0 {
-		contentV = (*C.uint8_t)(unsafe.Pointer(&content[0]))
+// m is a pktmbuf with at least DataGenBufLen + len(content) buffer size.
+// It can be allocated from PayloadMempool.
+// Arguments should be acceptable to ndn.MakeData.
+// Name is used as name suffix.
+// Panics on error.
+func NewDataGen(m *pktmbuf.Packet, args ...interface{}) *DataGen {
+	data := ndn.MakeData(args...)
+	_, wire, e := data.MarshalTlv()
+	if e != nil {
+		log.WithError(e).Panic("data.MarshalTlv error")
 	}
 
-	c := C.DataGen_New((*C.struct_rte_mbuf)(m.Ptr()), suffixP.lname(),
-		C.uint32_t(freshness/time.Millisecond), C.uint16_t(len(content)), contentV)
-	return (*DataGen)(c)
+	var nameL, tplSize int
+	d := tlv.Decoder(wire)
+DecodeLoop:
+	for _, field := range d.Elements() {
+		switch field.Type {
+		case an.TtName:
+			nameL = field.Length()
+			tplSize = nameL + len(field.After)
+			break DecodeLoop
+		}
+	}
+
+	m.SetHeadroom(0)
+	if e := m.Append(wire[len(wire)-tplSize:]); e != nil {
+		log.WithError(e).Panic("mbuf.Append error")
+	}
+
+	(*C.struct_rte_mbuf)(m.Ptr()).vlan_tci = C.uint16_t(nameL)
+	return (*DataGen)(m.Ptr())
 }
 
 // Ptr returns *C.DataGen pointer.
@@ -40,8 +61,7 @@ func (gen *DataGen) ptr() *C.DataGen {
 
 // Close discards this DataGen.
 func (gen *DataGen) Close() error {
-	C.DataGen_Close(gen.ptr())
-	return nil
+	return pktmbuf.PacketFromPtr(unsafe.Pointer(gen)).Close()
 }
 
 // Encode encodes a Data packet.

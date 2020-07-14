@@ -42,24 +42,17 @@ DataDigest_Prepare(Packet* npkt, struct rte_crypto_op* op);
 __attribute__((nonnull)) Packet*
 DataDigest_Finish(struct rte_crypto_op* op);
 
-/** @brief Data encoder optimized for traffic generator. */
+/**
+ * @brief Data encoder optimized for traffic generator.
+ *
+ * DataGen* is struct rte_mbuf*.
+ * Its packet buffer contains name suffix TLV-VALUE and fields after Name.
+ * vlan_tci field indicates name suffix TLV-LENGTH.
+ * Name TL and Data TL are not included.
+ */
 typedef struct DataGen
 {
 } DataGen;
-
-/**
- * @brief Prepare DataGen template.
- * @param m a uniquely owned, unsegmented, direct, empty mbuf.
- *          It must have @c DataGenBufLen + @p contentL buffer size.
- * @return DataGen template, converted from @p m .
- */
-__attribute__((nonnull, returns_nonnull)) DataGen*
-DataGen_New(struct rte_mbuf* m, LName suffix, uint32_t freshness, uint16_t contentL,
-            const uint8_t* contentV);
-
-/** @brief Discard DataGen template. */
-__attribute__((nonnull)) void
-DataGen_Close(DataGen* gen);
 
 /**
  * @brief Encode Data with DataGen template.
