@@ -6,6 +6,7 @@ package pktmbuf
 import "C"
 import (
 	"errors"
+	"fmt"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
@@ -115,7 +116,7 @@ func (pkt *Packet) Prepend(input []byte) error {
 
 	room := C.rte_pktmbuf_prepend(pkt.ptr(), C.uint16_t(count))
 	if room == nil {
-		return errors.New("insufficient headroom")
+		return fmt.Errorf("insufficient headroom %d", pkt.Headroom())
 	}
 	C.rte_memcpy(unsafe.Pointer(room), unsafe.Pointer(&input[0]), C.size_t(count))
 	return nil
@@ -130,7 +131,7 @@ func (pkt *Packet) Append(input []byte) error {
 
 	room := C.rte_pktmbuf_append(pkt.ptr(), C.uint16_t(count))
 	if room == nil {
-		return errors.New("insufficient tailroom")
+		return fmt.Errorf("insufficient tailroom %d", pkt.Tailroom())
 	}
 	C.rte_memcpy(unsafe.Pointer(room), unsafe.Pointer(&input[0]), C.size_t(count))
 	return nil

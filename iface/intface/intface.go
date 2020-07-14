@@ -1,8 +1,6 @@
 package intface
 
 import (
-	"net"
-
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/socketface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
@@ -32,15 +30,10 @@ type IntFace struct {
 }
 
 // New creates an IntFace.
-func New() (*IntFace, error) {
+func New(cfg socketface.Config) (*IntFace, error) {
 	var f IntFace
 
-	connA, connD := net.Pipe()
-	trA, e := sockettransport.New(connA, sockettransport.Config{})
-	if e != nil {
-		return nil, e
-	}
-	trD, e := sockettransport.New(connD, sockettransport.Config{})
+	trA, trD, e := sockettransport.Pipe(sockettransport.Config{})
 	if e != nil {
 		return nil, e
 	}
@@ -48,7 +41,7 @@ func New() (*IntFace, error) {
 	if f.A, e = ndn.NewL3Face(trA); e != nil {
 		return nil, e
 	}
-	if f.D, e = socketface.Wrap(trD, socketface.Config{}); e != nil {
+	if f.D, e = socketface.Wrap(trD, cfg); e != nil {
 		return nil, e
 	}
 
@@ -58,13 +51,17 @@ func New() (*IntFace, error) {
 	return &f, nil
 }
 
-// MustNew creates an IntFace, and panics on error.
-func MustNew() *IntFace {
-	f, e := New()
+// Must panics on error.
+func Must(f *IntFace, e error) *IntFace {
 	if e != nil {
 		panic(e)
 	}
 	return f
+}
+
+// MustNew creates an IntFace with default settings, and panics on error.
+func MustNew() *IntFace {
+	return Must(New(socketface.Config{}))
 }
 
 // SetDown changes up/down state on the DPDK side.

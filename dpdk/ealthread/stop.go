@@ -81,3 +81,9 @@ func (stop StopChan) BeforeWait() {
 // AfterWait completes a stop request.
 func (stop StopChan) AfterWait() {
 }
+
+// RequestStop requests a stop.
+// This may be used independent from Thread.
+func (stop StopChan) RequestStop() {
+	stop <- true
+}

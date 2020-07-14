@@ -1,7 +1,7 @@
 #include "packet.h"
 
 const char*
-Pkt_ToString(PktType t)
+PktType_ToString(PktType t)
 {
   switch (t) {
     case PktFragment:
@@ -89,7 +89,7 @@ Packet_Clone(Packet* npkt, struct rte_mempool* headerMp, struct rte_mempool* ind
   }
 
   Packet* output = Packet_FromMbuf(header);
-  Packet_SetType(output, Pkt_ToSlim(Packet_GetType(npkt)));
+  Packet_SetType(output, PktType_ToSlim(Packet_GetType(npkt)));
   *Packet_GetPriv_(output) = (const PacketPriv){ 0 };
   return output;
 }

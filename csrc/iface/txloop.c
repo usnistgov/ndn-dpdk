@@ -44,7 +44,7 @@ TxLoop_Transfer(Face* face)
   for (uint16_t i = 0; i < count; ++i) {
     Packet* npkt = npkts[i];
     TscDuration latency = now - Packet_ToMbuf(npkt)->timestamp;
-    PktType framePktType = Pkt_ToFull(Packet_GetType(npkt));
+    PktType framePktType = PktType_ToFull(Packet_GetType(npkt));
     RunningStat_Push1(&tx->latency[framePktType], latency);
     switch (framePktType) {
       case PktInterest:

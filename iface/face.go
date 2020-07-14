@@ -51,7 +51,8 @@ type NewOptions struct {
 	// TxQueueCapacity is the capacity of the before-TX queue.
 	TxQueueCapacity int
 
-	// TxMtu is the maximum size of NDNLP packets.
+	// TxMtu is the maximum size of outgoing NDNLP packets.
+	// Zero means unlimited. Otherwise, it is clamped between MinMtu and MaxMtu.
 	TxMtu int
 
 	// TxHeadroom is the mbuf headroom to leave before NDNLP header.
@@ -132,10 +133,15 @@ func newFace(p NewOptions) (Face, error) {
 	indirectMp := pktmbuf.Indirect.MakePool(p.Socket)
 	headerMp := ndni.HeaderMempool.MakePool(p.Socket)
 
-	if res := C.TxProc_Init(&c.impl.tx, C.uint16_t(p.TxMtu), C.uint16_t(p.TxHeadroom),
-		(*C.struct_rte_mempool)(indirectMp.Ptr()), (*C.struct_rte_mempool)(headerMp.Ptr())); res != 0 {
-		return f.clear(), eal.Errno(res)
+	switch {
+	case p.TxMtu == 0:
+	case p.TxMtu < MinMtu:
+		p.TxMtu = MinMtu
+	case p.TxMtu > MaxMtu:
+		p.TxMtu = MaxMtu
 	}
+	C.TxProc_Init(&c.impl.tx, C.uint16_t(p.TxMtu), C.uint16_t(p.TxHeadroom),
+		(*C.struct_rte_mempool)(indirectMp.Ptr()), (*C.struct_rte_mempool)(headerMp.Ptr()))
 
 	f2, e := p.Start(f)
 	if e != nil {

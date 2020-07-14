@@ -5,9 +5,6 @@
 
 INIT_ZF_LOG(TxProc);
 
-// minimum payload size per fragment
-static const int MIN_PAYLOAD_SIZE_PER_FRAGMENT = 512;
-
 __attribute__((nonnull)) static uint16_t
 TxProc_OutputNoFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames, uint16_t maxFrames)
 {
@@ -28,12 +25,12 @@ TxProc_OutputNoFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames, uint16_t
 
     if (unlikely(!Mbuf_Chain(frame, frame, pkt))) {
       ++tx->nL3OverLength;
-      rte_pktmbuf_free(frame);
-      rte_pktmbuf_free(pkt);
+      struct rte_mbuf* frees[] = { frame, pkt };
+      rte_pktmbuf_free_bulk_(frees, RTE_DIM(frees));
       return 0;
     }
 
-    frame->inner_l3_type = Packet_GetType(npkt);
+    Packet_SetType(Packet_FromMbuf(frame), PktType_ToSlim(Packet_GetType(npkt)));
     ZF_LOGV("pktLen=%" PRIu32 " one-fragment(alloc)", pkt->pkt_len);
   } else {
     frame = pkt;
@@ -75,7 +72,7 @@ TxProc_OutputFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames, uint16_t m
   LpL2 l2 = { .fragCount = fragCount };
   LpL3* l3 = Packet_GetLpL3Hdr(npkt);
 
-  PktType framePktType = Pkt_ToSlim(Packet_GetType(npkt));
+  PktType framePktType = PktType_ToSlim(Packet_GetType(npkt));
 
   for (l2.fragIndex = 0; l2.fragIndex < fragCount; ++l2.fragIndex) {
     uint32_t fragSize = RTE_MIN(tx->fragmentPayloadSize, d.length);
@@ -92,14 +89,14 @@ TxProc_OutputFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames, uint16_t m
 
     struct rte_mbuf* frame = frames[l2.fragIndex];
     frame->data_off = tx->headerHeadroom;
-    LpHeader_Prepend(frame, l3, &l2);
     if (unlikely(!Mbuf_Chain(frame, frame, payload))) {
       ++tx->nL3OverLength;
-      rte_pktmbuf_free(payload);
       rte_pktmbuf_free_bulk_(frames, fragCount);
-      rte_pktmbuf_free(pkt);
+      struct rte_mbuf* frees[] = { payload, pkt };
+      rte_pktmbuf_free_bulk_(frees, RTE_DIM(frees));
       return 0;
     }
+    LpHeader_Prepend(frame, l3, &l2);
 
     // Set real L3 type on first L2 frame and None on other L2 frames,
     // to match counting logic in TxProc_CountSent
@@ -113,10 +110,11 @@ TxProc_OutputFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames, uint16_t m
   return fragCount;
 }
 
-int
+void
 TxProc_Init(TxProc* tx, uint16_t mtu, uint16_t headroom, struct rte_mempool* indirectMp,
             struct rte_mempool* headerMp)
 {
+  assert(mtu == 0 || (mtu >= MinMtu && mtu <= MaxMtu));
   assert(rte_pktmbuf_data_room_size(headerMp) >= headroom + LpHeaderEstimatedHeadroom);
   tx->indirectMp = indirectMp;
   tx->headerMp = headerMp;
@@ -124,14 +122,10 @@ TxProc_Init(TxProc* tx, uint16_t mtu, uint16_t headroom, struct rte_mempool* ind
   if (mtu == 0) {
     tx->outputFunc = TxProc_OutputNoFrag;
   } else {
-    int fragmentPayloadSize = (int)mtu - LpHeaderEstimatedHeadroom;
-    if (fragmentPayloadSize < MIN_PAYLOAD_SIZE_PER_FRAGMENT) {
-      return ENOSPC;
-    }
-    tx->fragmentPayloadSize = (uint16_t)fragmentPayloadSize;
+    assert(mtu > LpHeaderEstimatedHeadroom);
+    tx->fragmentPayloadSize = mtu - LpHeaderEstimatedHeadroom;
     tx->outputFunc = TxProc_OutputFrag;
   }
 
   tx->headerHeadroom = headroom + LpHeaderEstimatedHeadroom;
-  return 0;
 }

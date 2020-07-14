@@ -20,10 +20,7 @@ var trCfg = sockettransport.Config{
 func TestPipe(t *testing.T) {
 	_, require := makeAR(t)
 
-	pipeA, pipeB := net.Pipe()
-	trA, e := sockettransport.New(pipeA, trCfg)
-	require.NoError(e)
-	trB, e := sockettransport.New(pipeB, trCfg)
+	trA, trB, e := sockettransport.Pipe(trCfg)
 	require.NoError(e)
 
 	var c ndntestenv.L3FaceTester

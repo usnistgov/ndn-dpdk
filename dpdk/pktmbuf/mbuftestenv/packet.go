@@ -1,9 +1,5 @@
 package mbuftestenv
 
-/*
-#include "../../../csrc/dpdk/mbuf.h"
-*/
-import "C"
 import (
 	"fmt"
 
@@ -57,7 +53,9 @@ func MakePacket(args ...interface{}) (pkt *pktmbuf.Packet) {
 		if headroom != nil {
 			seg.SetHeadroom(int(*headroom))
 		}
-		seg.Append(b)
+		if e := seg.Append(b); e != nil {
+			panic(fmt.Errorf("seg.Append(%d): %w", len(b), e))
+		}
 		if i > 0 {
 			pkt.Chain(seg)
 		}

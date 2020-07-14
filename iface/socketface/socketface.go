@@ -18,8 +18,15 @@ import (
 
 // Config contains socket face configuration.
 type Config struct {
-	TxqPkts   int // before-TX queue capacity
-	TxqFrames int // after-TX queue capacity
+	// TxMtu is the maximum size of outgoing NDNLP packets.
+	// Zero means unlimited. Otherwise, it is clamped between iface.MinMtu and iface.MaxMtu.
+	TxMtu int
+
+	// TxqPkt is the before-TX queue capacity.
+	TxqPkts int
+
+	// TxqFrames is the after-TX queue capacity.
+	TxqFrames int
 }
 
 // New creates a socket face.
@@ -47,6 +54,7 @@ func Wrap(transport *sockettransport.Transport, cfg Config) (iface.Face, error) 
 	}
 	return iface.New(iface.NewOptions{
 		TxQueueCapacity: cfg.TxqPkts,
+		TxMtu:           cfg.TxMtu,
 		Init: func(f iface.Face) error {
 			face.Face = f
 			c := face.ptr()

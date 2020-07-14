@@ -4,6 +4,9 @@ import (
 	"testing"
 
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/iface/ifacetestenv"
+	"github.com/usnistgov/ndn-dpdk/iface/socketface"
+	"github.com/usnistgov/ndn-dpdk/ndn/sockettransport"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
@@ -55,4 +58,25 @@ func TestInOrderReassembler(t *testing.T) {
 	assert.Equal(uint64(2), counters.OutOfOrder)
 	assert.Equal(uint64(3), counters.Delivered)
 	assert.Equal(uint64(1), counters.Incomplete)
+}
+
+func TestFragmentation(t *testing.T) {
+	_, require := makeAR(t)
+	fixture := ifacetestenv.NewFixture(t)
+	defer fixture.Close()
+	fixture.SkipLocatorCheck = true
+	fixture.PayloadLen = 6000
+	fixture.DataFrames = 2
+
+	trA, trB, e := sockettransport.Pipe(sockettransport.Config{})
+	require.NoError(e)
+
+	faceA, e := socketface.Wrap(trA, socketface.Config{TxMtu: 5000})
+	require.NoError(e)
+
+	faceB, e := socketface.Wrap(trB, socketface.Config{})
+	require.NoError(e)
+
+	fixture.RunTest(faceA, faceB)
+	fixture.CheckCounters()
 }

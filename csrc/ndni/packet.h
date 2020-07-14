@@ -7,18 +7,18 @@
 #include "nack.h"
 
 const char*
-Pkt_ToString(PktType t);
+PktType_ToString(PktType t);
 
 /** @brief Convert to parsed packet type. */
 static __rte_always_inline PktType
-Pkt_ToFull(PktType t)
+PktType_ToFull(PktType t)
 {
   return (t & 0x03);
 }
 
 /** @brief Convert to unparsed packet type. */
 static __rte_always_inline PktType
-Pkt_ToSlim(PktType t)
+PktType_ToSlim(PktType t)
 {
   return (t & 0x03) | 0x04;
 }

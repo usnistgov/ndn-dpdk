@@ -10,6 +10,12 @@ const (
 	// MaxBurstSize is the maximum and default burst size.
 	MaxBurstSize = 64
 
+	// MinMtu is the minimum value of Maximum Transmission Unit (MTU).
+	MinMtu = 1280
+
+	// MaxMtu is the maximum value of Maximum Transmission Unit (MTU).
+	MaxMtu = 65000
+
 	_ = "enumgen"
 )
 

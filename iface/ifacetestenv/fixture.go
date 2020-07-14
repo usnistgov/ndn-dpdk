@@ -21,10 +21,12 @@ var makeAR = testenv.MakeAR
 type Fixture struct {
 	t *testing.T
 
-	PayloadLen      int     // Data payload length
-	TxIterations    int     // number of TX iterations
-	TxLossTolerance float64 // permitted TX packet loss (counter discrepancy)
-	RxLossTolerance float64 // permitted RX packet loss
+	SkipLocatorCheck bool    // don't CheckLocatorMarshal
+	PayloadLen       int     // Data payload length
+	DataFrames       int     // expected number of LpPackets per Data packet
+	TxIterations     int     // number of TX iterations
+	TxLossTolerance  float64 // permitted TX packet loss (counter discrepancy)
+	RxLossTolerance  float64 // permitted RX packet loss
 
 	rxl      iface.RxLoop
 	rxQueueI *iface.PktQueue
@@ -32,9 +34,8 @@ type Fixture struct {
 	rxQueueN *iface.PktQueue
 	txl      iface.TxLoop
 
-	rxFace   iface.Face
-	recvStop chan bool
-	txFace   iface.Face
+	rxFace iface.Face
+	txFace iface.Face
 
 	NRxInterests int
 	NRxData      int
@@ -48,6 +49,7 @@ func NewFixture(t *testing.T) (fixture *Fixture) {
 	fixture.t = t
 
 	fixture.PayloadLen = 100
+	fixture.DataFrames = 1
 	fixture.TxIterations = 5000
 	fixture.TxLossTolerance = 0.05
 	fixture.RxLossTolerance = 0.10
@@ -59,8 +61,6 @@ func NewFixture(t *testing.T) (fixture *Fixture) {
 	fixture.txl = iface.NewTxLoop(eal.NumaSocket{})
 	require.NoError(ealthread.Launch(fixture.rxl))
 	require.NoError(ealthread.Launch(fixture.txl))
-
-	fixture.recvStop = make(chan bool)
 
 	return fixture
 }
@@ -88,23 +88,21 @@ func (fixture *Fixture) Close() error {
 func (fixture *Fixture) RunTest(txFace, rxFace iface.Face) {
 	fixture.rxFace = rxFace
 	fixture.txFace = txFace
-	CheckLocatorMarshal(fixture.t, rxFace.Locator())
-	CheckLocatorMarshal(fixture.t, txFace.Locator())
+	if !fixture.SkipLocatorCheck {
+		CheckLocatorMarshal(fixture.t, rxFace.Locator())
+		CheckLocatorMarshal(fixture.t, txFace.Locator())
+	}
 
-	go fixture.recvProc()
+	recvStop := ealthread.NewStopChan()
+	go fixture.recvProc(recvStop)
 	fixture.sendProc()
 	time.Sleep(800 * time.Millisecond)
-	fixture.recvStop <- true
+	recvStop.RequestStop()
 }
 
-func (fixture *Fixture) recvProc() {
+func (fixture *Fixture) recvProc(recvStop ealthread.StopChan) {
 	vec := make(pktmbuf.Vector, iface.MaxBurstSize)
-	for {
-		select {
-		case <-fixture.recvStop:
-			return
-		default:
-		}
+	for recvStop.Continue() {
 		now := eal.TscNow()
 		count, _ := fixture.rxQueueI.Pop(vec, now)
 		for _, pkt := range vec[:count] {
@@ -148,17 +146,16 @@ func (fixture *Fixture) CheckCounters() {
 	assert, _ := makeAR(fixture.t)
 
 	txCnt := fixture.txFace.ReadCounters()
-	assert.InEpsilon(3*fixture.TxIterations, int(txCnt.TxFrames), fixture.TxLossTolerance)
 	assert.InEpsilon(fixture.TxIterations, int(txCnt.TxInterests), fixture.TxLossTolerance)
 	assert.InEpsilon(fixture.TxIterations, int(txCnt.TxData), fixture.TxLossTolerance)
 	assert.InEpsilon(fixture.TxIterations, int(txCnt.TxNacks), fixture.TxLossTolerance)
+	assert.Equal(txCnt.TxInterests+uint64(fixture.DataFrames)*txCnt.TxData+txCnt.TxNacks, txCnt.TxFrames)
 
 	rxCnt := fixture.rxFace.ReadCounters()
-	assert.Equal(fixture.NRxInterests, int(rxCnt.RxInterests))
-	assert.Equal(fixture.NRxData, int(rxCnt.RxData))
-	assert.Equal(fixture.NRxNacks, int(rxCnt.RxNacks))
-	assert.Equal(fixture.NRxInterests+fixture.NRxData+fixture.NRxNacks,
-		int(rxCnt.RxFrames))
+	assert.EqualValues(fixture.NRxInterests, rxCnt.RxInterests)
+	assert.EqualValues(fixture.NRxData, rxCnt.RxData)
+	assert.EqualValues(fixture.NRxNacks, rxCnt.RxNacks)
+	assert.Equal(rxCnt.RxInterests+uint64(fixture.DataFrames)*rxCnt.RxData+rxCnt.RxNacks, rxCnt.RxFrames)
 
 	assert.InEpsilon(fixture.TxIterations, fixture.NRxInterests, fixture.RxLossTolerance)
 	assert.InEpsilon(fixture.TxIterations, fixture.NRxData, fixture.RxLossTolerance)

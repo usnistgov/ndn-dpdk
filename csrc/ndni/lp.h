@@ -50,7 +50,7 @@ LpHeader_Parse(LpHeader* lph, struct rte_mbuf* pkt);
 /**
  * @brief Prepend NDNLPv2 header to mbuf.
  * @param pkt target mbuf, must have enough headroom.
- * @pre @p pkt contains (fragment) network layer packet.
+ * @pre @p pkt contains (fragment of) network layer packet.
  * @post @p pkt contains LpPacket.
  */
 __attribute__((nonnull)) void

@@ -21,8 +21,8 @@ RxProc_Input(RxProc* rx, int thread, struct rte_mbuf* frame)
   }
 
   PktType pktType = Packet_GetType(npkt);
-  ++rxt->nFrames[pktType];
   if (likely(pktType != PktFragment)) {
+    ++rxt->nFrames[pktType];
     return npkt;
   }
 
@@ -36,6 +36,7 @@ RxProc_Input(RxProc* rx, int thread, struct rte_mbuf* frame)
   npkt = InOrderReassembler_Receive(&rx->reassembler, npkt);
   frame = NULL; // disallow further usage of 'frame'
   if (npkt == NULL) {
+    ++rxt->nFrames[PktFragment];
     return NULL;
   }
 

@@ -49,10 +49,8 @@ typedef struct TxProc
  * @param indirectMp mempool for indirect mbufs.
  * @param headerMp mempool for NDNLP headers; must have
  *                 headroom + LpHeaderEstimatedHeadroom dataroom.
- * @retval 0 success
- * @retval ENOSPC MTU is too small
  */
-__attribute__((nonnull)) int
+__attribute__((nonnull)) void
 TxProc_Init(TxProc* tx, uint16_t mtu, uint16_t headroom, struct rte_mempool* indirectMp,
             struct rte_mempool* headerMp);
 

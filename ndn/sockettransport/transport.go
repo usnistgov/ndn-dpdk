@@ -75,7 +75,7 @@ type Transport struct {
 	NRedials int
 }
 
-// New creates a socket transpor.
+// New creates a socket transport.
 func New(conn net.Conn, cfg Config) (*Transport, error) {
 	network := conn.LocalAddr().Network()
 	impl, ok := implByNetwork[network]

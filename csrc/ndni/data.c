@@ -154,6 +154,7 @@ DataGen_Encode(DataGen* gen, struct rte_mbuf* seg0, struct rte_mbuf* seg1, LName
 
   rte_pktmbuf_attach(seg1, tpl1);
   bool ok __rte_unused = Mbuf_Chain(seg0, seg0, seg1);
+  assert(ok);
   TlvEncoder_PrependTL(seg0, TtData, seg0->pkt_len);
 
   Packet* output = Packet_FromMbuf(seg0);
