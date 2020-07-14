@@ -12,7 +12,3 @@ func TestMain(m *testing.M) {
 
 	os.Exit(m.Run())
 }
-
-func TestMinTmr(t *testing.T) {
-	testMinTmr(t)
-}

@@ -14,7 +14,7 @@ import (
 
 var triggered map[int]bool
 
-func testMinTmr(t *testing.T) {
+func ctestMinTmr(t *testing.T) {
 	assert, _ := testenv.MakeAR(t)
 	triggered = make(map[int]bool)
 

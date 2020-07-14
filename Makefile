@@ -9,7 +9,7 @@ all: gopkg npm cmds
 gopkg: godeps
 	go build -v ./...
 
-godeps: app/version/version.go ndni/ndnitest/cgo_test.go strategy/strategyelf/bindata.go build/libndn-dpdk-c.a build/cgoflags.done build/cgostruct.done
+godeps: app/version/version.go strategy/strategyelf/bindata.go build/libndn-dpdk-c.a build/cgoflags.done build/cgostruct.done build/cgotest.done
 
 .PHONY: app/version/version.go
 app/version/version.go:
@@ -32,13 +32,16 @@ strategy/strategyelf/bindata.go: strategy/*.c
 
 .PHONY: build/libndn-dpdk-c.a
 build/libndn-dpdk-c.a: build/build.ninja csrc/ndni/an.h csrc/ndni/enum.h csrc/iface/enum.h csrc/pcct/cs-enum.h
-	cd build && ninja
+	ninja -C build
 
 build/cgoflags.done: build/build.ninja
-	cd build && ninja cgoflags
+	ninja -C build cgoflags
 
 build/cgostruct.done: build/build.ninja
-	cd build && ninja cgostruct
+	ninja -C build cgostruct
+
+build/cgotest.done: build/build.ninja
+	ninja -C build cgotest
 
 build/build.ninja: meson.build csrc/meson.build mk/meson.build
 	bash -c 'source mk/cflags.sh; meson build'

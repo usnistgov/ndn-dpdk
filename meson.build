@@ -43,3 +43,10 @@ alias_target('cgostruct', custom_target('cgostruct',
   output: 'cgostruct.done',
   input: []
 ))
+
+alias_target('cgotest', custom_target('cgotest',
+  build_always_stale: true,
+  command: [find_program('mk/cgotest.sh'), cgotest_dirs],
+  output: 'cgotest.done',
+  input: []
+))
