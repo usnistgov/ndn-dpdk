@@ -4,14 +4,16 @@ import (
 	"testing"
 	"unsafe"
 
-	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/mempool"
 )
 
 func TestMempool(t *testing.T) {
 	assert, require := makeAR(t)
 
-	mp, e := mempool.New(63, 256, eal.NumaSocket{})
+	mp, e := mempool.New(mempool.Config{
+		Capacity:    63,
+		ElementSize: 256,
+	})
 	require.NoError(e)
 	require.NotNil(mp)
 	defer mp.Close()

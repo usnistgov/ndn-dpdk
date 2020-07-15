@@ -28,20 +28,45 @@ func ComputeCacheSize(capacity int) int {
 	return max
 }
 
+// Config contains Mempool configuration.
+type Config struct {
+	Capacity    int
+	ElementSize int
+	PrivSize    int
+	Socket      eal.NumaSocket
+
+	NoCache        bool
+	SingleProducer bool
+	SingleConsumer bool
+}
+
 // Mempool represents a DPDK memory pool for generic objects.
 type Mempool C.struct_rte_mempool
 
 // New creates a Mempool.
-func New(capacity int, elementSize int, socket eal.NumaSocket) (mp *Mempool, e error) {
+func New(cfg Config) (mp *Mempool, e error) {
 	nameC := C.CString(eal.AllocObjectID("mempool.Mempool"))
 	defer C.free(unsafe.Pointer(nameC))
 
-	mempoolC := C.rte_mempool_create(nameC, C.uint(capacity), C.uint(elementSize),
-		C.uint(ComputeCacheSize(capacity)), 0, nil, nil, nil, nil, C.int(socket.ID()), 0)
-	if mempoolC == nil {
+	var flags C.unsigned
+	if cfg.SingleProducer {
+		flags |= C.MEMPOOL_F_SP_PUT
+	}
+	if cfg.SingleConsumer {
+		flags |= C.MEMPOOL_F_SC_GET
+	}
+
+	var cacheSize int
+	if !cfg.NoCache {
+		cacheSize = ComputeCacheSize(cfg.Capacity)
+	}
+
+	c := C.rte_mempool_create(nameC, C.uint(cfg.Capacity), C.uint(cfg.ElementSize), C.uint(cacheSize),
+		C.unsigned(cfg.PrivSize), nil, nil, nil, nil, C.int(cfg.Socket.ID()), flags)
+	if c == nil {
 		return nil, eal.GetErrno()
 	}
-	return (*Mempool)(mempoolC), nil
+	return (*Mempool)(c), nil
 }
 
 // FromPtr converts *C.struct_rte_mempool pointer to Mempool.

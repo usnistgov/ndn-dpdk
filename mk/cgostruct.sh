@@ -34,5 +34,3 @@ while [[ -n $1 ]]; do
   mk_cgostruct $1
   shift
 done
-
-touch $BUILDDIR/cgostruct.done

@@ -1,17 +1,26 @@
 package fibtest
 
+/*
+#include "../../../csrc/fib/fib.h"
+*/
+import "C"
 import (
+	"unsafe"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/usnistgov/ndn-dpdk/container/fib"
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
 	"github.com/usnistgov/ndn-dpdk/container/strategycode"
+	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/mempool"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 )
+
+var makeAR = testenv.MakeAR
 
 // Fixture is a test fixture that contains a FIB.
 type Fixture struct {
@@ -55,7 +64,8 @@ func (fixture *Fixture) Close() error {
 func (fixture *Fixture) CountEntries() (n int) {
 	urcu.Barrier()
 	for partition := 0; partition < fixture.NPartitions; partition++ {
-		n += mempool.FromPtr(fixture.Fib.Ptr(partition)).CountInUse()
+		partC := (*C.Fib)(fixture.Fib.Ptr(partition))
+		n += mempool.FromPtr(unsafe.Pointer(partC.mp)).CountInUse()
 	}
 	return n
 }

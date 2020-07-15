@@ -99,7 +99,7 @@ func TestLpm(t *testing.T) {
 		if entry == nil {
 			return 0
 		}
-		return int(entry.ListNexthops()[0])
+		return int(entry.Nexthops()[0])
 	}
 	lpms := func() []int {
 		return []int{

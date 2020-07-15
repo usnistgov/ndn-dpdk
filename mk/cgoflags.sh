@@ -37,5 +37,3 @@ while [[ -n $1 ]]; do
   mk_cgoflags $1
   shift
 done
-
-touch $BUILDDIR/cgoflags.done

@@ -5,55 +5,14 @@
 
 #include "entry.h"
 
-/**
- * @brief A partition of the Forwarding Information Base (FIB).
- *
- * Fib* is struct rte_mempool* with @c FibPriv is attached to its private data area.
- */
+/** @brief A partition of the Forwarding Information Base (FIB). */
 typedef struct Fib
 {
-} Fib;
-
-/** @brief Cast Fib* as rte_mempool*. */
-static __rte_always_inline struct rte_mempool*
-Fib_ToMempool(const Fib* fib)
-{
-  return (struct rte_mempool*)fib;
-}
-
-/** @brief Mempool private data for FIB. */
-typedef struct FibPriv
-{
-  struct cds_lfht* lfht; ///< URCU hashtable
-  int startDepth;        ///< starting depth ('M' of 2-stage LPM algorithm)
+  struct rte_mempool* mp; ///< entry mempool
+  struct cds_lfht* lfht;  ///< URCU hashtable
+  int startDepth;         ///< starting depth ('M' of 2-stage LPM algorithm)
   uint32_t insertSeqNum;
-} FibPriv;
-
-/** @brief Access FibPriv* struct. */
-__attribute__((nonnull, returns_nonnull)) static __rte_always_inline FibPriv*
-Fib_GetPriv(const Fib* fib)
-{
-  return (FibPriv*)rte_mempool_get_priv(Fib_ToMempool(fib));
-}
-
-/**
- * @brief Create a FIB.
- * @param id identifier for debugging, must be unique.
- * @param maxEntries maximum number of entries, should be (2^q-1).
- * @param nBuckets number of hashtable buckets, must be (2^q).
- * @param numaSocket where to allocate memory.
- */
-Fib*
-Fib_New(const char* id, uint32_t maxEntries, uint32_t nBuckets, unsigned numaSocket,
-        uint8_t startDepth);
-
-/**
- * @brief Release all memory.
- * @pre Calling thread is registered as RCU read-side thread, but does not hold rcu_read_lock.
- * @warning This function is non-thread-safe.
- */
-void
-Fib_Close(Fib* fib);
+} Fib;
 
 /** @brief Allocate FIB entries from mempool. */
 __attribute__((nonnull)) bool
@@ -62,6 +21,13 @@ Fib_AllocBulk(Fib* fib, FibEntry* entries[], unsigned count);
 /** @brief Deallocate an unused FIB entry. */
 __attribute__((nonnull)) void
 Fib_Free(Fib* fib, FibEntry* entry);
+
+/**
+ * @brief Delete all entries.
+ * @pre Calling thread is registered as RCU read-side thread, but does not hold rcu_read_lock.
+ */
+__attribute__((nonnull)) void
+Fib_Clear(Fib* fib);
 
 typedef enum Fib_FreeOld
 {

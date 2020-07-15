@@ -14,11 +14,11 @@ type EntryCounters struct {
 
 // Add accumulates an entry's counters into cnt.
 func (cnt *EntryCounters) Add(entry *Entry) {
-	c := (*CEntry)(entry)
-	cnt.NRxInterests += uint64(c.NRxInterests)
-	cnt.NRxData += uint64(c.NRxData)
-	cnt.NRxNacks += uint64(c.NRxNacks)
-	cnt.NTxInterests += uint64(c.NTxInterests)
+	c := entry.ptr()
+	cnt.NRxInterests += uint64(c.nRxInterests)
+	cnt.NRxData += uint64(c.nRxData)
+	cnt.NRxNacks += uint64(c.nRxNacks)
+	cnt.NTxInterests += uint64(c.nTxInterests)
 }
 
 func (cnt EntryCounters) String() string {

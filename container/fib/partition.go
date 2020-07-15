@@ -5,9 +5,12 @@ package fib
 */
 import "C"
 import (
+	"errors"
+	"math/rand"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/mempool"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
@@ -26,32 +29,50 @@ func listPartitionNumbers(parts []*partition) (list []int) {
 type partition struct {
 	fib      *Fib
 	index    int
+	mp       *mempool.Mempool
 	c        *C.Fib
 	nEntries int
 }
 
 // Allocate C structs in FIB partition.
-func newPartition(fib *Fib, index int, numaSocket eal.NumaSocket) (part *partition, e error) {
-	part = new(partition)
-	part.fib = fib
-	part.index = index
-
-	idC := C.CString(eal.AllocObjectID("fib.partition"))
-	defer C.free(unsafe.Pointer(idC))
-	part.c = C.Fib_New(idC, C.uint32_t(fib.cfg.MaxEntries), C.uint32_t(fib.cfg.NBuckets),
-		C.uint(numaSocket.ID()), C.uint8_t(fib.cfg.StartDepth))
-	if part.c == nil {
-		return nil, eal.GetErrno()
+func newPartition(fib *Fib, index int, socket eal.NumaSocket) (part *partition, e error) {
+	part = &partition{
+		fib:   fib,
+		index: index,
 	}
 
+	part.mp, e = mempool.New(mempool.Config{
+		Capacity:       fib.cfg.MaxEntries,
+		ElementSize:    int(C.sizeof_FibEntry),
+		PrivSize:       int(C.sizeof_Fib),
+		Socket:         socket,
+		NoCache:        true,
+		SingleProducer: true,
+		SingleConsumer: true,
+	})
+	if e != nil {
+		return nil, e
+	}
+	mpC := (*C.struct_rte_mempool)(part.mp.Ptr())
+	part.c = (*C.Fib)(C.rte_mempool_get_priv(mpC))
+	part.c.mp = mpC
+
+	part.c.lfht = C.cds_lfht_new(C.ulong(fib.cfg.NBuckets), C.ulong(fib.cfg.NBuckets), C.ulong(fib.cfg.NBuckets), 0, nil)
+	if part.c.lfht == nil {
+		part.mp.Close()
+		return nil, errors.New("cds_lfht_new error")
+	}
+
+	part.c.startDepth = C.int(fib.cfg.StartDepth)
+	part.c.insertSeqNum = C.uint32_t(rand.Uint32())
 	return part, nil
 }
 
 // Release C structs in FIB partition.
 func (part *partition) Close() error {
-	C.Fib_Close(part.c)
-	part.c = nil
-	return nil
+	C.Fib_Clear(part.c)
+	C.cds_lfht_destroy(part.c.lfht, nil)
+	return part.mp.Close()
 }
 
 // Allocate an unused entry.

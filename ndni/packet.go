@@ -6,9 +6,9 @@ package ndni
 import "C"
 import (
 	"encoding/binary"
-	"reflect"
 	"unsafe"
 
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
@@ -62,20 +62,13 @@ func (pkt *Packet) SetPitToken(token uint64) {
 // ComputeDataImplicitDigest computes and stores implicit digest in *C.PData.
 // Panics on non-Data.
 func (pkt *Packet) ComputeDataImplicitDigest() []byte {
-	fullName := pkt.ToNPacket().Data.FullName()
-	digest := fullName[len(fullName)-1].Value
+	digest := pkt.ToNPacket().Data.ComputeDigest()
 
 	pdata := C.Packet_GetDataHdr(pkt.ptr())
-	var pdataDigest []byte
-	*(*reflect.SliceHeader)(unsafe.Pointer(&pdataDigest)) = reflect.SliceHeader{
-		Data: uintptr(unsafe.Pointer(&pdata.digest[0])),
-		Len:  int(unsafe.Sizeof(pdata.digest)),
-		Cap:  int(unsafe.Sizeof(pdata.digest)),
-	}
-	copy(pdataDigest[:], digest)
-
+	copy(cptr.AsByteSlice(&pdata.digest), digest)
 	pdata.hasDigest = true
-	return pdataDigest
+
+	return digest
 }
 
 // ToNPacket copies this packet into ndn.Packet.

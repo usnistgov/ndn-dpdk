@@ -1,7 +1,12 @@
 package fibtest
 
+/*
+#include "../../../csrc/fib/entry.h"
+*/
+import "C"
 import (
 	"testing"
+	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/container/fib"
 	"github.com/usnistgov/ndn-dpdk/iface"
@@ -9,23 +14,23 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 )
 
-func TestEntry(t *testing.T) {
+func ctestEntry(t *testing.T) {
 	assert, _ := makeAR(t)
 
 	var entry fib.Entry
-	c := (*fib.CEntry)(&entry)
+	c := (*C.FibEntry)(unsafe.Pointer(&entry))
 	ndntestenv.NameEqual(assert, "/", &entry)
-	assert.EqualValues(0, c.NComps)
-	assert.Len(entry.ListNexthops(), 0)
+	assert.EqualValues(0, c.nComps)
+	assert.Len(entry.Nexthops(), 0)
 
 	name := ndn.ParseName("/A/B")
 	assert.NoError(entry.SetName(name))
 	ndntestenv.NameEqual(assert, name, &entry)
-	assert.EqualValues(2, c.NComps)
+	assert.EqualValues(2, c.nComps)
 
 	nexthops := []iface.ID{2302, 1067, 1122}
 	assert.NoError(entry.SetNexthops(nexthops))
-	assert.Equal(nexthops, entry.ListNexthops())
+	assert.Equal(nexthops, entry.Nexthops())
 
 	name2V, _ := name.MarshalBinary()
 	for len(name2V) <= fib.MaxNameLength {

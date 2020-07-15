@@ -9,25 +9,34 @@ import (
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/container/strategycode"
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 const (
 	// MaxNameLength is the maximum TLV-LENGTH of a FIB entry name.
-	MaxNameLength = C.FIB_ENTRY_MAX_NAME_LEN
+	MaxNameLength = C.FibMaxNameLength
 
 	// MaxNexthops is the maximum number of nexthops in a FIB entry.
-	MaxNexthops = C.FIB_ENTRY_MAX_NEXTHOPS
+	MaxNexthops = C.FibMaxNexthops
 )
 
 // Entry represents a FIB entry.
-type Entry CEntry
+type Entry C.FibEntry
+
+func entryFromPtr(c *C.FibEntry) *Entry {
+	return (*Entry)(c)
+}
+
+func (entry *Entry) ptr() *C.FibEntry {
+	return (*C.FibEntry)(entry)
+}
 
 // Name returns the entry name.
 func (entry *Entry) Name() (name ndn.Name) {
-	c := (*CEntry)(entry)
-	name.UnmarshalBinary(c.NameV[:c.NameL])
+	c := entry.ptr()
+	name.UnmarshalBinary(cptr.AsByteSlice(c.nameV[:c.nameL]))
 	return name
 }
 
@@ -39,18 +48,18 @@ func (entry *Entry) SetName(name ndn.Name) error {
 		return fmt.Errorf("FIB entry name cannot exceed %d octets", MaxNameLength)
 	}
 
-	c := (*CEntry)(entry)
-	c.NameL = uint16(copy(c.NameV[:], nameV))
-	c.NComps = uint8(len(name))
+	c := entry.ptr()
+	c.nameL = C.uint16_t(copy(cptr.AsByteSlice(&c.nameV), nameV))
+	c.nComps = C.uint8_t(len(name))
 	return nil
 }
 
-// ListNexthops returns a list of nexthops.
-func (entry *Entry) ListNexthops() (nexthops []iface.ID) {
-	c := (*CEntry)(entry)
-	nexthops = make([]iface.ID, int(c.NNexthops))
+// Nexthops returns a list of nexthops.
+func (entry *Entry) Nexthops() (nexthops []iface.ID) {
+	c := entry.ptr()
+	nexthops = make([]iface.ID, int(c.nNexthops))
 	for i := range nexthops {
-		nexthops[i] = iface.ID(c.Nexthops[i])
+		nexthops[i] = iface.ID(c.nexthops[i])
 	}
 	return nexthops
 }
@@ -62,24 +71,24 @@ func (entry *Entry) SetNexthops(nexthops []iface.ID) error {
 		return fmt.Errorf("FIB entry cannot have more than %d nexthops", MaxNexthops)
 	}
 
-	c := (*CEntry)(entry)
-	c.NNexthops = uint8(count)
+	c := entry.ptr()
+	c.nNexthops = C.uint8_t(count)
 	for i, nh := range nexthops {
-		c.Nexthops[i] = uint16(nh)
+		c.nexthops[i] = C.FaceID(nh)
 	}
 	return nil
 }
 
 // Strategy returns the forwarding strategy.
 func (entry *Entry) Strategy() strategycode.StrategyCode {
-	c := (*CEntry)(entry)
-	return strategycode.FromPtr(unsafe.Pointer(c.Union_strategy_realEntry))
+	ptrStrategy := C.FibEntry_PtrStrategy(entry.ptr())
+	return strategycode.FromPtr(unsafe.Pointer(*ptrStrategy))
 }
 
 // SetStrategy sets the forwarding strategy.
 func (entry *Entry) SetStrategy(sc strategycode.StrategyCode) {
-	c := (*CEntry)(entry)
-	c.Union_strategy_realEntry = (*byte)(sc.Ptr())
+	ptrStrategy := C.FibEntry_PtrStrategy(entry.ptr())
+	*ptrStrategy = (*C.StrategyCode)(sc.Ptr())
 }
 
 // FibSeqNum returns FIB insertion sequence number.
@@ -87,16 +96,7 @@ func (entry *Entry) SetStrategy(sc strategycode.StrategyCode) {
 // Its change signifies that the FIB entry has been updated.
 // This function is only available on a retrieved FIB entry.
 func (entry *Entry) FibSeqNum() uint32 {
-	c := (*CEntry)(entry)
-	return c.SeqNum
-}
-
-func entryFromPtr(c *C.FibEntry) *Entry {
-	return (*Entry)(unsafe.Pointer(c))
-}
-
-func (entry *Entry) ptr() *C.FibEntry {
-	return (*C.FibEntry)(unsafe.Pointer(entry))
+	return uint32(entry.ptr().seqNum)
 }
 
 func (entry *Entry) copyFrom(src *Entry) {
@@ -104,7 +104,7 @@ func (entry *Entry) copyFrom(src *Entry) {
 }
 
 func (entry *Entry) isVirt() bool {
-	return entry != nil && (*CEntry)(entry).MaxDepth > 0
+	return entry != nil && entry.ptr().maxDepth > 0
 }
 
 func (entry *Entry) getReal() *Entry {
@@ -112,7 +112,8 @@ func (entry *Entry) getReal() *Entry {
 }
 
 func (entry *Entry) setMaxDepthReal(maxDepth int, real *Entry) {
-	c := (*CEntry)(entry)
-	c.MaxDepth = uint8(maxDepth)
-	c.Union_strategy_realEntry = (*byte)(unsafe.Pointer(real))
+	c := entry.ptr()
+	c.maxDepth = C.uint8_t(maxDepth)
+	ptrReal := C.FibEntry_PtrRealEntry(c)
+	*ptrReal = real.ptr()
 }

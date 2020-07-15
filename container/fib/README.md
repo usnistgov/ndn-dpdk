@@ -36,7 +36,7 @@ In case both a real entry and a virtual entry exist at the same name, the virtua
 
 The `Fib_Lpm` function implements the 2-stage LPM procedure.
 It is the only function intended to be called from other packages, and always returns a real entry.
-The caller is responsible for obtaining and releasing the RCU read lock.
+The caller is responsible for acquiring and releasing the RCU read lock.
 
 `FibEntry` carries a sequence number that is incremented upon every insertion.
 This allows a PIT entry to save a reference to a FIB entry (`PitEntry_RefreshFibEntry` function) and detect whether the reference is still valid during future retrievals (`PitEntry_FindFibEntry` function).

@@ -60,7 +60,7 @@ func (fib *Fib) getVirtName(name ndn.Name) ndn.Name {
 
 // Insert inserts a FIB entry, or replaces an existing entry with the same name.
 func (fib *Fib) Insert(entry *Entry) (isNew bool, e error) {
-	if len(entry.ListNexthops()) == 0 {
+	if len(entry.Nexthops()) == 0 {
 		return false, errors.New("cannot insert FIB entry with no nexthop")
 	}
 	if entry.Strategy() == nil {
@@ -68,7 +68,7 @@ func (fib *Fib) Insert(entry *Entry) (isNew bool, e error) {
 	}
 	name := entry.Name()
 	virtName := fib.getVirtName(name)
-	logEntry := log.WithFields(makeLogFields("name", name, "nexthops", entry.ListNexthops(), "strategy", entry.Strategy().GetId()))
+	logEntry := log.WithFields(makeLogFields("name", name, "nexthops", entry.Nexthops(), "strategy", entry.Strategy().GetId()))
 
 	e, _ = eal.CallMain(func() error {
 		eal.MainReadSide.Lock()

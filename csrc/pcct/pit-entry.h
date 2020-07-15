@@ -15,7 +15,7 @@
 #define PIT_ENTRY_SG_SCRATCH 64
 
 #define PIT_ENTRY_FIBPREFIXL_NBITS_ 9
-static_assert((1 << PIT_ENTRY_FIBPREFIXL_NBITS_) > FIB_ENTRY_MAX_NAME_LEN, "");
+static_assert((1 << PIT_ENTRY_FIBPREFIXL_NBITS_) > FibMaxNameLength, "");
 
 typedef struct PitEntryExt PitEntryExt;
 

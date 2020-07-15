@@ -5,9 +5,9 @@ package ndni
 */
 import "C"
 import (
-	"reflect"
 	"unsafe"
 
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
@@ -41,24 +41,12 @@ func (tpl *InterestTemplate) Init(args ...interface{}) {
 	c := tpl.ptr()
 	*c = C.InterestTemplate{}
 
-	var prefixV, midBuf []byte
-	*(*reflect.SliceHeader)(unsafe.Pointer(&prefixV)) = reflect.SliceHeader{
-		Data: uintptr(unsafe.Pointer(&c.prefixV[0])),
-		Len:  int(unsafe.Sizeof(c.prefixV)),
-		Cap:  int(unsafe.Sizeof(c.prefixV)),
-	}
-	*(*reflect.SliceHeader)(unsafe.Pointer(&midBuf)) = reflect.SliceHeader{
-		Data: uintptr(unsafe.Pointer(&c.midBuf[0])),
-		Len:  int(unsafe.Sizeof(c.midBuf)),
-		Cap:  int(unsafe.Sizeof(c.midBuf)),
-	}
-
 	d := tlv.Decoder(wire)
 	for _, field := range d.Elements() {
 		switch field.Type {
 		case an.TtName:
-			c.prefixL = C.uint16_t(copy(prefixV, field.Value))
-			c.midLen = C.uint16_t(copy(midBuf, field.After))
+			c.prefixL = C.uint16_t(copy(cptr.AsByteSlice(&c.prefixV), field.Value))
+			c.midLen = C.uint16_t(copy(cptr.AsByteSlice(&c.midBuf), field.After))
 		case an.TtNonce:
 			c.nonceVOffset = c.midLen - C.uint16_t(len(field.After)+len(field.Value))
 		}

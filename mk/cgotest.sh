@@ -23,5 +23,3 @@ while [[ -n $1 ]]; do
   mk_cgotest $1
   shift
 done
-
-touch $BUILDDIR/cgotest.done
