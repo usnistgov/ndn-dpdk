@@ -1,7 +1,10 @@
 package cptr
 
+/*
+#include <stdlib.h>
+*/
+import "C"
 import (
-	"math/rand"
 	"sync"
 	"unsafe"
 )
@@ -9,23 +12,16 @@ import (
 var ctxMap sync.Map
 
 // CtxPut allocates void* pointer for an arbitrary Go object.
-func CtxPut(obj interface{}) unsafe.Pointer {
-	var id uint32
-	for {
-		id = rand.Uint32()
-		if _, loaded := ctxMap.LoadOrStore(id, obj); !loaded {
-			break
-		}
-	}
-	// OR with some 'ctx^\0\0\0\0' so that cgocheck does not think this is a Go pointer.
-	return unsafe.Pointer(uintptr(id) | 0x6374785E00000000)
+func CtxPut(obj interface{}) (ctx unsafe.Pointer) {
+	ctx = C.malloc(1)
+	ctxMap.Store(uintptr(ctx), obj)
+	return ctx
 }
 
 // CtxGet returns the object associated with void* pointer.
 // Panics if the object is not found.
 func CtxGet(ctx unsafe.Pointer) interface{} {
-	id := uint32(uintptr(ctx))
-	obj, ok := ctxMap.Load(id)
+	obj, ok := ctxMap.Load(uintptr(ctx))
 	if !ok {
 		panic("context is missing")
 	}
@@ -34,8 +30,8 @@ func CtxGet(ctx unsafe.Pointer) interface{} {
 
 // CtxClear deallocates void* pointer.
 func CtxClear(ctx unsafe.Pointer) {
-	id := uint32(uintptr(ctx))
-	ctxMap.Delete(id)
+	ctxMap.Delete(uintptr(ctx))
+	C.free(ctx)
 }
 
 // CtxPop is equivalent to CtxGet followed by CtxClear.

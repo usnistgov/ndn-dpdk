@@ -1,9 +1,9 @@
-package cptrtest
+#ifndef NDNDPDK_CPTRTEST_CARGS_H
+#define NDNDPDK_CPTRTEST_CARGS_H
 
-/*
 #include <string.h>
 
-int verifyCArgs(int argc, char** const argv) {
+static inline int verifyCArgs(int argc, char** const argv) {
 	if (argc != 4)
 		return 2;
 	if (0 != strcmp(argv[0], "a") ||
@@ -19,12 +19,5 @@ int verifyCArgs(int argc, char** const argv) {
 	argv[3] = arg2;
 	return 0;
 }
-*/
-import "C"
-import (
-	"github.com/usnistgov/ndn-dpdk/core/cptr"
-)
 
-func verifyCArgs(a *cptr.CArgs) int {
-	return int(C.verifyCArgs(C.int(a.Argc), (**C.char)(a.Argv)))
-}
+#endif // NDNDPDK_CPTRTEST_CARGS_H
