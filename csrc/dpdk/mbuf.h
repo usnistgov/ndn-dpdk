@@ -39,6 +39,26 @@ Mbuf_Chain(struct rte_mbuf* head, struct rte_mbuf* lastSeg, struct rte_mbuf* tai
   return true;
 }
 
+/**
+ * @brief Chain a vector of mbufs together.
+ * @param vec a non-empty vector of mbufs, each must be unsegmented.
+ */
+__attribute__((nonnull)) static inline void
+Mbuf_ChainVector(struct rte_mbuf* vec[], uint16_t count)
+{
+  NDNDPDK_ASSERT(count > 0);
+  static_assert(UINT16_MAX <= RTE_MBUF_MAX_NB_SEGS, ""); // count <= RTE_MBUF_MAX_NB_SEGS
+  struct rte_mbuf* head = vec[0];
+  NDNDPDK_ASSERT(rte_pktmbuf_is_contiguous(head));
+
+  for (uint16_t i = 1; i < count; ++i) {
+    NDNDPDK_ASSERT(rte_pktmbuf_is_contiguous(vec[i]));
+    head->pkt_len += vec[i]->data_len;
+    vec[i - 1]->next = vec[i];
+  }
+  head->nb_segs = count;
+}
+
 static __rte_always_inline void*
 rte_mbuf_to_priv_(struct rte_mbuf* m)
 {

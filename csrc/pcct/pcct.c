@@ -4,8 +4,7 @@
 #include "pit.h"
 
 #include "../core/logger.h"
-
-#include <rte_jhash.h>
+#include "../dpdk/hash.h"
 
 INIT_ZF_LOG(Pcct);
 
@@ -33,21 +32,6 @@ Pcct_KeyHt_Expand_(UT_hash_table* tbl)
           tbl->num_buckets);
 }
 
-__attribute__((nonnull)) static uint32_t
-Pcct_TokenHt_Hash_(const void* key, uint32_t keyLen, uint32_t initVal)
-{
-  NDNDPDK_ASSERT(keyLen == sizeof(uint32_t) * 2);
-  const uint32_t* words = (const uint32_t*)key;
-  return rte_jhash_2words(words[0], words[1], initVal);
-}
-
-__attribute__((nonnull)) static int
-Pcct_TokenHt_Cmp_(const void* key1, const void* key2, size_t kenLen)
-{
-  NDNDPDK_ASSERT(kenLen == sizeof(uint64_t));
-  return *(const uint64_t*)key1 != *(const uint64_t*)key2;
-}
-
 Pcct*
 Pcct_New(const char* id, uint32_t maxEntries, unsigned numaSocket)
 {
@@ -66,19 +50,24 @@ Pcct_New(const char* id, uint32_t maxEntries, unsigned numaSocket)
   }
 
   PcctPriv* pcctp = Pcct_GetPriv(pcct);
-  memset(pcctp, 0, sizeof(*pcctp));
-  pcctp->lastToken = PCCT_TOKEN_MASK - 16;
-  pcctp->nKeyHtBuckets = rte_align32prevpow2(maxEntries);
+  *pcctp = (PcctPriv){
+    .lastToken = PCCT_TOKEN_MASK - 16,
+    .nKeyHtBuckets = rte_align32prevpow2(maxEntries),
+  };
 
   struct rte_hash_parameters tokenHtParams = {
     .name = tokenHtName,
     .entries = maxEntries * 2,   // keep occupancy under 50%
     .key_len = sizeof(uint64_t), // 64-bit compares faster than 48-bit
-    .hash_func = Pcct_TokenHt_Hash_,
+    .hash_func = Hash_Hash64,
     .socket_id = numaSocket,
   };
   pcctp->tokenHt = rte_hash_create(&tokenHtParams);
-  rte_hash_set_cmp_func(pcctp->tokenHt, Pcct_TokenHt_Cmp_);
+  if (unlikely(pcctp->tokenHt == NULL)) {
+    Pcct_Close(pcct);
+    return NULL;
+  }
+  rte_hash_set_cmp_func(pcctp->tokenHt, Hash_Equal64);
 
   ZF_LOGI("%p New('%s')", pcct, id);
   return pcct;
@@ -90,7 +79,9 @@ Pcct_Close(Pcct* pcct)
   ZF_LOGI("%p Close()", pcct);
 
   PcctPriv* pcctp = Pcct_GetPriv(pcct);
-  rte_hash_free(pcctp->tokenHt);
+  if (pcctp->tokenHt != NULL) {
+    rte_hash_free(pcctp->tokenHt);
+  }
   HASH_CLEAR(hh, pcctp->keyHt);
   rte_mempool_free(Pcct_ToMempool(pcct));
 }
@@ -149,7 +140,7 @@ Pcct_AddToken_(Pcct* pcct, PccEntry* entry)
       token = 1;
     }
 
-    uint32_t hash = rte_hash_hash(pcctp->tokenHt, &token);
+    hash_sig_t hash = rte_hash_hash(pcctp->tokenHt, &token);
     if (unlikely(rte_hash_lookup_with_hash(pcctp->tokenHt, &token, hash) >= 0)) {
       // token is in use
       continue;

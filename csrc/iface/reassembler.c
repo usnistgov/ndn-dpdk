@@ -1,14 +1,5 @@
 #include "reassembler.h"
-#include <rte_hash.h>
-#include <rte_jhash.h>
-
-__attribute__((nonnull)) static uint32_t
-Reassembler_Hash_(const void* key, uint32_t keyLen, uint32_t initVal)
-{
-  NDNDPDK_ASSERT(keyLen == sizeof(uint32_t) * 2);
-  const uint32_t* words = (const uint32_t*)key;
-  return rte_jhash_2words(words[0], words[1], initVal);
-}
+#include "../dpdk/hash.h"
 
 bool
 Reassembler_New(Reassembler* reass, const char* id, uint32_t capacity, unsigned numaSocket)
@@ -19,13 +10,14 @@ Reassembler_New(Reassembler* reass, const char* id, uint32_t capacity, unsigned 
     .name = id,
     .entries = capacity * 2, // keep occupancy under 50%
     .key_len = sizeof(uint64_t),
-    .hash_func = Reassembler_Hash_,
+    .hash_func = Hash_Hash64,
     .socket_id = numaSocket,
   };
   reass->table = rte_hash_create(&htParams);
   if (unlikely(reass->table == NULL)) {
     return false;
   }
+  rte_hash_set_cmp_func(reass->table, Hash_Equal64);
 
   TAILQ_INIT(&reass->list);
   reass->capacity = capacity;
@@ -96,13 +88,7 @@ Reassembler_Reassemble_(Reassembler* reass, LpL2* pm, hash_sig_t hash)
 {
   static_assert(LpMaxFragments <= RTE_MBUF_MAX_NB_SEGS, "");
   Reassembler_Delete_(reass, pm, hash);
-
-  struct rte_mbuf** pkts = (struct rte_mbuf**)pm->reassFrags;
-  for (uint8_t i = 1; i < pm->fragCount; ++i) {
-    bool ok = Mbuf_Chain(pkts[0], pkts[i - 1], pkts[i]);
-    NDNDPDK_ASSERT(ok);
-    // because rte_pktmbuf_is_contiguous(fragment) && LpMaxFragments <= RTE_MBUF_MAX_NB_SEGS
-  }
+  Mbuf_ChainVector((struct rte_mbuf**)pm->reassFrags, pm->fragCount);
 
   ++reass->nDeliverPackets;
   reass->nDeliverFragments += pm->fragCount;

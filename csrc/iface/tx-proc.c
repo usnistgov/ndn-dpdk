@@ -20,7 +20,7 @@ TxProc_OutputNoFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames)
       rte_pktmbuf_free(pkt);
       return 0;
     }
-    frame->data_off = tx->headerHeadroom;
+    frame->data_off = frame->buf_len;
 
     if (unlikely(!Mbuf_Chain(frame, frame, pkt))) {
       ++tx->nL3OverLength;
@@ -85,7 +85,8 @@ TxProc_OutputFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames)
     }
 
     struct rte_mbuf* frame = frames[l2.fragIndex];
-    frame->data_off = tx->headerHeadroom;
+    frame->data_off = frame->buf_len;
+
     if (unlikely(!Mbuf_Chain(frame, frame, payload))) {
       ++tx->nL3OverLength;
       rte_pktmbuf_free_bulk_(frames, fragCount);

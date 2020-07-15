@@ -72,12 +72,12 @@ func ctestTlvDecoderClone(t *testing.T) {
 			if !assert.NotNil(clone, "%d-%d", offset, count) {
 				continue
 			}
+			for seg := clone; seg != nil; seg = seg.next {
+				assert.NotZero(seg.data_len, "%d-%d", offset, count)
+			}
 			clonePkt := pktmbuf.PacketFromPtr(unsafe.Pointer(clone))
 			assert.Equal(count, clonePkt.Len(), "%d-%d", offset, count)
 			assert.Equal(payload[offset:offset+count], clonePkt.Bytes(), "%d-%d", offset, count)
-			for segIndex, segLen := range mbuftestenv.ListSegmentLengths(clonePkt) {
-				assert.NotZero(segLen, "%d-%d:%d", offset, count, segIndex)
-			}
 			clonePkt.Close()
 		}
 	}

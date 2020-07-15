@@ -27,7 +27,7 @@ TlvDecoder_Clone(TlvDecoder* d, uint32_t count, struct rte_mempool* indirectMp,
   NDNDPDK_ASSERT(count <= d->length);
   TlvDecoder d0 = *d;
 
-  unsigned nSegs = 0;
+  uint16_t nSegs = 0;
   for (uint32_t remain = count; remain > 0;) {
     uint32_t here = d0.m->data_len - d0.offset;
     if (likely(remain < here)) {
@@ -48,7 +48,7 @@ TlvDecoder_Clone(TlvDecoder* d, uint32_t count, struct rte_mempool* indirectMp,
     return NULL;
   }
 
-  unsigned i = 0;
+  uint16_t i = 0;
   for (uint32_t remain = count; remain > 0;) {
     struct rte_mbuf* mi = segs[i];
 
@@ -75,16 +75,11 @@ TlvDecoder_Clone(TlvDecoder* d, uint32_t count, struct rte_mempool* indirectMp,
   d->length -= count;
   NDNDPDK_ASSERT(i == nSegs);
 
-  struct rte_mbuf* head = segs[0];
-  for (i = 1; i < nSegs; ++i) {
-    struct rte_mbuf* mi = segs[i];
-    segs[i - 1]->next = mi;
-    head->pkt_len += mi->data_len;
-  }
+  Mbuf_ChainVector(segs, nSegs);
   if (lastseg != NULL) {
     *lastseg = segs[nSegs - 1];
   }
-  return head;
+  return segs[0];
 }
 
 static void
