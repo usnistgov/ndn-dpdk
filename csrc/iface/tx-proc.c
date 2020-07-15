@@ -6,11 +6,10 @@
 INIT_ZF_LOG(TxProc);
 
 __attribute__((nonnull)) static uint16_t
-TxProc_OutputNoFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames, uint16_t maxFrames)
+TxProc_OutputNoFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames)
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   NDNDPDK_ASSERT(pkt->pkt_len > 0);
-  NDNDPDK_ASSERT(maxFrames >= 1);
 
   struct rte_mbuf* frame;
   if (unlikely(RTE_MBUF_CLONED(pkt) || rte_mbuf_refcnt_read(pkt) > 1 ||
@@ -44,18 +43,18 @@ TxProc_OutputNoFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames, uint16_t
 }
 
 __attribute__((nonnull)) static uint16_t
-TxProc_OutputFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames, uint16_t maxFrames)
+TxProc_OutputFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames)
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   NDNDPDK_ASSERT(pkt->pkt_len > 0);
-  uint16_t fragCount =
-    pkt->pkt_len / tx->fragmentPayloadSize + (uint16_t)(pkt->pkt_len % tx->fragmentPayloadSize > 0);
+  uint32_t fragCount =
+    pkt->pkt_len / tx->fragmentPayloadSize + (uint32_t)(pkt->pkt_len % tx->fragmentPayloadSize > 0);
   if (fragCount == 1) {
-    return TxProc_OutputNoFrag(tx, npkt, frames, maxFrames);
+    return TxProc_OutputNoFrag(tx, npkt, frames);
   }
-  ZF_LOGV("pktLen=%" PRIu32 " fragCount=%" PRIu16 " seq=%" PRIu64, pkt->pkt_len, fragCount,
-          tx->lastSeqNum + 1);
-  if (unlikely(fragCount > maxFrames)) {
+  ZF_LOGV("pktLen=%" PRIu32 " fragCount=%" PRIu32 " seq=%" PRIu64, pkt->pkt_len, fragCount,
+          tx->nextSeqNum);
+  if (unlikely(fragCount > LpMaxFragments)) {
     ++tx->nL3OverLength;
     return 0;
   }
@@ -69,7 +68,7 @@ TxProc_OutputFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames, uint16_t m
 
   TlvDecoder d;
   TlvDecoder_New(&d, pkt);
-  LpL2 l2 = { .fragCount = fragCount };
+  LpL2 l2 = { .seqNumBase = tx->nextSeqNum, .fragCount = fragCount };
   LpL3* l3 = Packet_GetLpL3Hdr(npkt);
 
   PktType framePktType = PktType_ToSlim(Packet_GetType(npkt));
@@ -84,8 +83,6 @@ TxProc_OutputFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames, uint16_t m
       rte_pktmbuf_free(pkt);
       return 0;
     }
-
-    l2.seqNum = ++tx->lastSeqNum;
 
     struct rte_mbuf* frame = frames[l2.fragIndex];
     frame->data_off = tx->headerHeadroom;
@@ -107,6 +104,7 @@ TxProc_OutputFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames, uint16_t m
   rte_pktmbuf_free(pkt);
 
   ++tx->nL3Fragmented;
+  tx->nextSeqNum += fragCount;
   return fragCount;
 }
 

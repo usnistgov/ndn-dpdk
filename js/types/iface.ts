@@ -34,7 +34,8 @@ export interface FaceCounters {
   RxOctets: Counter;
 
   DecodeErrs: Counter;
-  Reass: InOrderReassemblerCounters;
+  ReassPackets: Counter;
+  ReassDrops: Counter;
 
   RxInterests: Counter;
   RxData: Counter;
@@ -56,13 +57,6 @@ export interface FaceCounters {
   TxOctets: Counter;
 }
 
-export interface InOrderReassemblerCounters {
-  Accepted: Counter;
-  OutOfOrder: Counter;
-  Delivered: Counter;
-  Incomplete: Counter;
-}
-
 export interface CreateFaceConfig {
   EnableEth?: boolean;
   EthDisableRxFlow?: boolean;
@@ -72,8 +66,7 @@ export interface CreateFaceConfig {
   EthTxqFrames?: number;
 
   EnableSock?: boolean;
+  SockRxqFrames?: number;
   SockTxqPkts?: number;
   SockTxqFrames?: number;
-
-  ChanRxgFrames?: number;
 }

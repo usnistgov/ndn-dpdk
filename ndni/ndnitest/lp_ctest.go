@@ -23,7 +23,7 @@ func ctestLpParse(t *testing.T) {
 		if tt.Bad {
 			assert.False(ok, tt.Input)
 		} else if assert.True(ok, tt.Input) {
-			assert.EqualValues(tt.SeqNum, lph.l2.seqNum, tt.Input)
+			assert.EqualValues(tt.SeqNum, C.LpL2_GetSeqNum(&lph.l2), tt.Input)
 			assert.EqualValues(tt.FragIndex, lph.l2.fragIndex, tt.Input)
 			assert.EqualValues(tt.FragCount, lph.l2.fragCount, tt.Input)
 			assert.EqualValues(tt.PitToken, lph.l3.pitToken, tt.Input)

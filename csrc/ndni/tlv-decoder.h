@@ -217,6 +217,7 @@ TlvDecoder_MakeValueDecoder(TlvDecoder* restrict d, uint32_t length, TlvDecoder*
 
 /**
  * @brief Read non-negative integer.
+ * @param max inclusive maximum acceptable value.
  * @return whether success.
  * @post Decoder is advanced after the number.
  */
@@ -228,33 +229,45 @@ TlvDecoder_ReadNni(TlvDecoder* d, uint32_t length, uint64_t max, uint64_t* n)
   return likely(Nni_Decode(length, value, n) && *n <= max);
 }
 
-/**
- * @brief Read non-negative integer to a pointer of any unsigned type.
- * @param ptr uint8_t*, uint16_t*, uint32_t*, or uint64_t*
- * @return whether success.
- * @post Decoder is advanced after the number.
- */
-#define TlvDecoder_ReadNniTo(d, length, ptr)                                                       \
+#define TlvDecoder_ReadNniTo4_(d, length, max, ptr)                                                \
   __extension__({                                                                                  \
-    uint64_t max = 0;                                                                              \
+    uint64_t tmax = 0;                                                                             \
     switch (sizeof(*(ptr))) {                                                                      \
       case sizeof(uint8_t):                                                                        \
-        max = UINT8_MAX;                                                                           \
+        tmax = UINT8_MAX;                                                                          \
         break;                                                                                     \
       case sizeof(uint16_t):                                                                       \
-        max = UINT16_MAX;                                                                          \
+        tmax = UINT16_MAX;                                                                         \
         break;                                                                                     \
       case sizeof(uint32_t):                                                                       \
-        max = UINT32_MAX;                                                                          \
+        tmax = UINT32_MAX;                                                                         \
         break;                                                                                     \
       case sizeof(uint64_t):                                                                       \
-        max = UINT64_MAX;                                                                          \
+        tmax = UINT64_MAX;                                                                         \
         break;                                                                                     \
     }                                                                                              \
     uint64_t value;                                                                                \
-    bool ok = TlvDecoder_ReadNni((d), (length), max, &value);                                      \
+    bool ok = TlvDecoder_ReadNni((d), (length), RTE_MIN((max), tmax), &value);                     \
     *(ptr) = value;                                                                                \
     ok;                                                                                            \
   })
+#define TlvDecoder_ReadNniTo3_(d, length, ptr)                                                     \
+  TlvDecoder_ReadNniTo4_((d), (length), UINT64_MAX, (ptr))
+#define TlvDecoder_ReadNniToArg5_(a1, a2, a3, a4, a5, ...) a5
+#define TlvDecoder_ReadNniToChoose_(...)                                                           \
+  TlvDecoder_ReadNniToArg5_(__VA_ARGS__, TlvDecoder_ReadNniTo4_, TlvDecoder_ReadNniTo3_, )
+
+/**
+ * @brief Read non-negative integer to a pointer of any unsigned type.
+ * @code
+ * bool ok = TlvDecoder_ReadNniTo(&decoder, length, max, &var);
+ * bool ok = TlvDecoder_ReadNniTo(&decoder, length, &var);
+ * // Target variable can be uint8_t, uint16_t, uint32_t, or uint64_t.
+ * // max defaults to, and is reduced to the maximum value assignable to the target variable.
+ * @endcode
+ * @return whether success.
+ * @post Decoder is advanced after the number.
+ */
+#define TlvDecoder_ReadNniTo(...) (TlvDecoder_ReadNniToChoose_(__VA_ARGS__)(__VA_ARGS__))
 
 #endif // NDNDPDK_NDNI_TLV_DECODER_H

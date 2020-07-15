@@ -11,6 +11,20 @@ import (
 //go:generate go run ../mk/enumgen/ -guard=NDNDPDK_NDNI_AN_H -out=../csrc/ndni/an.h ../ndn/an
 
 const (
+	// LpHeaderEstimatedHeadroom is a safe headroom to prepend NDNLPv2 header.
+	LpHeaderEstimatedHeadroom = 0 +
+		1 + 5 + // LpPacket TL
+		1 + 1 + 8 + // SeqNo
+		1 + 1 + 2 + // FragIndex
+		1 + 1 + 2 + // FragCount
+		1 + 1 + 8 + // PitToken
+		3 + 1 + 3 + 1 + 1 + // Nack
+		3 + 1 + 1 + // CongestionMark
+		1 + 5 // Payload TL
+
+	// LpMaxFragments is the maximum number of NDNLPv2 fragments.
+	LpMaxFragments = 31
+
 	// NameMaxLength is the maximum TLV-LENGTH for Name.
 	NameMaxLength = 2048
 
@@ -29,17 +43,6 @@ const (
 
 	// DefaultInterestLifetime is the default value of InterestLifetime.
 	DefaultInterestLifetime = 4000
-
-	// LpHeaderEstimatedHeadroom is a safe headroom to prepend NDNLPv2 header.
-	LpHeaderEstimatedHeadroom = 0 +
-		1 + 5 + // LpPacket TL
-		1 + 1 + 8 + // SeqNo
-		1 + 1 + 2 + // FragIndex
-		1 + 1 + 2 + // FragCount
-		1 + 1 + 8 + // PitToken
-		3 + 1 + 3 + 1 + 1 + // Nack
-		3 + 1 + 1 + // CongestionMark
-		1 + 5 // Payload TL
 
 	// InterestTemplateBufLen is the buffer length for InterestTemplate.
 	// It can accommodate two forwarding hints.

@@ -26,11 +26,12 @@ func ListPorts() (list []*Port) {
 
 // PortConfig contains Port creation arguments.
 type PortConfig struct {
-	RxqFrames int              // RX queue capacity
-	TxqPkts   int              // before-TX queue capacity
-	TxqFrames int              // after-TX queue capacity
-	Mtu       int              // set MTU, 0 to keep default
-	Local     ethdev.EtherAddr // local address, zero for hardware default
+	RxqFrames  int              // RX queue capacity
+	TxqPkts    int              // before-TX queue capacity
+	TxqFrames  int              // after-TX queue capacity
+	Mtu        int              // set MTU, 0 to retrieve from EthDev (implies SkipSetMtu)
+	SkipSetMtu bool             // if true, don't set MTU on EthDev; MTU is only used for fragmentation
+	Local      ethdev.EtherAddr // local address, zero for hardware default
 }
 
 func (cfg PortConfig) check() error {
@@ -60,6 +61,10 @@ func NewPort(dev ethdev.EthDev, cfg PortConfig) (port *Port, e error) {
 	}
 	if cfg.Local.IsZero() {
 		cfg.Local = dev.MacAddr()
+	}
+	if cfg.Mtu == 0 {
+		cfg.Mtu = dev.Mtu()
+		cfg.SkipSetMtu = true
 	}
 
 	port = new(Port)

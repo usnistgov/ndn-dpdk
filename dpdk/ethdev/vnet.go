@@ -2,6 +2,7 @@ package ethdev
 
 import (
 	"math/rand"
+	"time"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
@@ -12,12 +13,19 @@ import (
 type VNetConfig struct {
 	PairConfig
 	NNodes int
+
+	BurstSize       int
+	LossProbability float64
+	Shuffle         bool
 }
 
 func (cfg *VNetConfig) applyDefaults() {
 	cfg.PairConfig.applyDefaults()
 	if cfg.NNodes < 1 {
 		cfg.NNodes = 1
+	}
+	if cfg.BurstSize < 1 {
+		cfg.BurstSize = 25
 	}
 }
 
@@ -56,14 +64,21 @@ func NewVNet(cfg VNetConfig) *VNet {
 }
 
 func (vnet *VNet) bridge() {
-	const burstSize = 25
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for vnet.stop.Continue() {
 		for srcIndex, src := range vnet.pairs {
 			for _, srcQ := range src.PortB.ListRxQueues() {
-				rxPkts := make(pktmbuf.Vector, burstSize)
+				rxPkts := make(pktmbuf.Vector, vnet.cfg.BurstSize)
 				nRx := srcQ.RxBurst(rxPkts)
 				if nRx == 0 {
 					continue
+				}
+
+				if vnet.cfg.Shuffle {
+					rng.Shuffle(nRx, func(i, j int) { rxPkts[i], rxPkts[j] = rxPkts[j], rxPkts[i] })
+				}
+				if rng.Float64() < vnet.cfg.LossProbability*float64(nRx) {
+					nRx--
 				}
 
 				for dstIndex, dst := range vnet.pairs {

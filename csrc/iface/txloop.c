@@ -1,9 +1,6 @@
 #include "txloop.h"
 #include "../hrlog/post.h"
 
-static const int TX_BURST_FRAMES = 64;  // number of frames in a burst
-static const int TX_MAX_FRAGMENTS = 16; // max allowed number of fragments
-
 __attribute__((nonnull)) static void
 TxLoop_TxFrames(Face* face, struct rte_mbuf** frames, uint16_t count)
 {
@@ -32,12 +29,12 @@ __attribute__((nonnull)) static void
 TxLoop_Transfer(Face* face)
 {
   TxProc* tx = &face->impl->tx;
-  Packet* npkts[TX_BURST_FRAMES];
-  uint16_t count = rte_ring_dequeue_burst(face->txQueue, (void**)npkts, TX_BURST_FRAMES, NULL);
+  Packet* npkts[MaxBurstSize];
+  uint16_t count = rte_ring_dequeue_burst(face->txQueue, (void**)npkts, MaxBurstSize, NULL);
 
-  struct rte_mbuf* frames[TX_BURST_FRAMES + TX_MAX_FRAGMENTS];
+  struct rte_mbuf* frames[MaxBurstSize + LpMaxFragments];
   uint16_t nFrames = 0;
-  HrlogEntry hrl[TX_BURST_FRAMES];
+  HrlogEntry hrl[MaxBurstSize];
   uint16_t nHrls = 0;
 
   TscTime now = rte_get_tsc_cycles();
@@ -58,10 +55,8 @@ TxLoop_Transfer(Face* face)
         break;
     }
 
-    struct rte_mbuf** outFrames = &frames[nFrames];
-    nFrames += TxProc_Output(tx, npkt, outFrames, TX_MAX_FRAGMENTS);
-
-    if (unlikely(nFrames >= TX_BURST_FRAMES)) {
+    nFrames += TxProc_Output(tx, npkt, &frames[nFrames]);
+    if (unlikely(nFrames >= MaxBurstSize)) {
       TxLoop_TxFrames(face, frames, nFrames);
       nFrames = 0;
     }

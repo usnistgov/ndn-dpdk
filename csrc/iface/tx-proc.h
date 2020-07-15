@@ -8,8 +8,7 @@
 
 typedef struct TxProc TxProc;
 
-typedef uint16_t (*TxProc_OutputFunc_)(TxProc* tx, Packet* npkt, struct rte_mbuf** frames,
-                                       uint16_t maxFrames);
+typedef uint16_t (*TxProc_OutputFunc_)(TxProc* tx, Packet* npkt, struct rte_mbuf** frames);
 
 /** @brief Outgoing packet processing procedure. */
 typedef struct TxProc
@@ -18,10 +17,10 @@ typedef struct TxProc
   struct rte_mempool* headerMp;
   TxProc_OutputFunc_ outputFunc;
 
+  uint32_t fragmentPayloadSize; ///< max payload size per fragment
   uint16_t headerHeadroom;      ///< headroom for header mbuf
-  uint16_t fragmentPayloadSize; ///< max payload size per fragment
 
-  uint64_t lastSeqNum; ///< last used NDNLP sequence number
+  uint64_t nextSeqNum; ///< next fragmentation sequence number
 
   uint64_t nL3Fragmented; ///< L3 packets that required fragmentation
   uint64_t nL3OverLength; ///< dropped L3 packets due to over length
@@ -56,15 +55,14 @@ TxProc_Init(TxProc* tx, uint16_t mtu, uint16_t headroom, struct rte_mempool* ind
 
 /**
  * @brief Process an outgoing L3 packet.
- * @param npkt outgoing L3 packet; TxProc takes ownership
- * @param[out] frames L2 frames to be transmitted; TxProc releases ownership
- * @param maxFrames size of frames array
- * @return number of L2 frames to be transmitted
+ * @param npkt outgoing L3 packet; TxProc takes ownership.
+ * @param[out] frames L2 frames to be transmitted; TxProc releases ownership.
+ * @return number of L2 frames to be transmitted.
  */
 __attribute__((nonnull)) static inline uint16_t
-TxProc_Output(TxProc* tx, Packet* npkt, struct rte_mbuf** frames, uint16_t maxFrames)
+TxProc_Output(TxProc* tx, Packet* npkt, struct rte_mbuf* frames[LpMaxFragments])
 {
-  return (*tx->outputFunc)(tx, npkt, frames, maxFrames);
+  return (*tx->outputFunc)(tx, npkt, frames);
 }
 
 #endif // NDNDPDK_IFACE_TX_PROC_H

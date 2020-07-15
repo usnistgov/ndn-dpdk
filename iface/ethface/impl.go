@@ -40,7 +40,9 @@ func startDev(port *Port, nRxQueues int, promisc bool) error {
 		Capacity: port.cfg.TxqFrames,
 		Socket:   socket,
 	})
-	cfg.Mtu = port.cfg.Mtu
+	if !port.cfg.SkipSetMtu {
+		cfg.Mtu = port.cfg.Mtu
+	}
 	cfg.Promisc = promisc
 	return port.dev.Start(cfg)
 }

@@ -16,6 +16,15 @@ const (
 	// MaxMtu is the maximum value of Maximum Transmission Unit (MTU).
 	MaxMtu = 65000
 
+	// MinReassemblerCapacity is the minimum partial message store capacity in the reassembler.
+	MinReassemblerCapacity = 4
+
+	// MaxReassemblerCapacity is the maximum partial message store capacity in the reassembler.
+	MaxReassemblerCapacity = 8192
+
+	// DefaultReassemblerCapacity is the default partial message store capacity in the reassembler.
+	DefaultReassemblerCapacity = 64
+
 	_ = "enumgen"
 )
 

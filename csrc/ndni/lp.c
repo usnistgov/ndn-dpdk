@@ -52,6 +52,7 @@ LpHeader_Parse(LpHeader* lph, struct rte_mbuf* pkt)
       return false;
   }
 
+  uint64_t seqNum = 0;
   TlvDecoder_EachTL (&d, type, length) {
     switch (type) {
       case TtLpPayload: {
@@ -60,19 +61,19 @@ LpHeader_Parse(LpHeader* lph, struct rte_mbuf* pkt)
         goto FOUND_PAYLOAD;
       }
       case TtLpSeqNum: {
-        if (unlikely(length != 8 || !TlvDecoder_ReadNniTo(&d, length, &lph->l2.seqNum))) {
+        if (unlikely(length != 8 || !TlvDecoder_ReadNniTo(&d, length, &seqNum))) {
           return false;
         }
         break;
       }
       case TtFragIndex: {
-        if (unlikely(!TlvDecoder_ReadNniTo(&d, length, &lph->l2.fragIndex))) {
+        if (unlikely(!TlvDecoder_ReadNniTo(&d, length, LpMaxFragments - 1, &lph->l2.fragIndex))) {
           return false;
         }
         break;
       }
       case TtFragCount: {
-        if (unlikely(!TlvDecoder_ReadNniTo(&d, length, &lph->l2.fragCount))) {
+        if (unlikely(!TlvDecoder_ReadNniTo(&d, length, LpMaxFragments, &lph->l2.fragCount))) {
           return false;
         }
         break;
@@ -108,6 +109,7 @@ LpHeader_Parse(LpHeader* lph, struct rte_mbuf* pkt)
 
   pkt->pkt_len = pkt->data_len = 0; // no payload
 FOUND_PAYLOAD:;
+  lph->l2.seqNumBase = seqNum - lph->l2.fragIndex;
   return lph->l2.fragIndex < lph->l2.fragCount;
 }
 
@@ -171,33 +173,34 @@ LpHeader_Prepend(struct rte_mbuf* pkt, const LpL3* l3, const LpL2* l2)
   }
 
   if (unlikely(l2->fragCount > 1)) {
+    assert(l2->fragIndex < l2->fragCount);
+    assert(l2->fragCount <= LpMaxFragments);
+
     typedef struct FragF
     {
       uint8_t seqNumT;
       uint8_t seqNumL;
       unaligned_uint64_t seqNumV;
 
-      // FragIndex and FragCount are NonNegativeInteger fields, but NDN protocol does not
-      // require NonNegativeInteger to use minimal length encoding.
       uint8_t fragIndexT;
       uint8_t fragIndexL;
-      unaligned_uint16_t fragIndexV;
+      uint8_t fragIndexV;
 
       uint8_t fragCountT;
       uint8_t fragCountL;
-      unaligned_uint16_t fragCountV;
+      uint8_t fragCountV;
     } __rte_packed FragF;
 
     FragF* f = (FragF*)rte_pktmbuf_prepend(pkt, sizeof(FragF));
     f->seqNumT = TtLpSeqNum;
     f->seqNumL = 8;
-    f->seqNumV = rte_cpu_to_be_64(l2->seqNum);
+    f->seqNumV = rte_cpu_to_be_64(LpL2_GetSeqNum(l2));
     f->fragIndexT = TtFragIndex;
-    f->fragIndexL = 2;
-    f->fragIndexV = rte_cpu_to_be_16(l2->fragIndex);
+    f->fragIndexL = 1;
+    f->fragIndexV = l2->fragIndex;
     f->fragCountT = TtFragCount;
-    f->fragCountL = 2;
-    f->fragCountV = rte_cpu_to_be_16(l2->fragCount);
+    f->fragCountL = 1;
+    f->fragCountV = l2->fragCount;
   }
 
   TlvEncoder_PrependTL(pkt, TtLpPacket, pkt->pkt_len);

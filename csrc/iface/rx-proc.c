@@ -10,7 +10,7 @@ RxProc_Input(RxProc* rx, int thread, struct rte_mbuf* frame)
   FaceID faceID = frame->port;
   NDNDPDK_ASSERT(faceID != MBUF_INVALID_PORT);
   RxProcThread* rxt = &rx->threads[thread];
-  rxt->nOctets += frame->pkt_len;
+  rxt->nFrames[0] += frame->pkt_len;
 
   Packet* npkt = Packet_FromMbuf(frame);
   if (unlikely(!Packet_Parse(npkt))) {
@@ -27,16 +27,15 @@ RxProc_Input(RxProc* rx, int thread, struct rte_mbuf* frame)
   }
 
   if (unlikely(thread != 0)) {
-    // currently reassembler is available on thread 0 only
+    // reassembler is available on thread 0 only
     ZF_LOGW("%" PRI_FaceID "-%d lp-reassembler-unavail", faceID, thread);
     rte_pktmbuf_free(frame);
     return NULL;
   }
 
-  npkt = InOrderReassembler_Receive(&rx->reassembler, npkt);
+  npkt = Reassembler_Accept(&rx->reass, npkt);
   frame = NULL; // disallow further usage of 'frame'
   if (npkt == NULL) {
-    ++rxt->nFrames[PktFragment];
     return NULL;
   }
 

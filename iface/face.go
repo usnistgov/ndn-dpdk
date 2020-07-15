@@ -5,6 +5,7 @@ package iface
 */
 import "C"
 import (
+	"errors"
 	"io"
 	"unsafe"
 
@@ -48,6 +49,9 @@ type NewOptions struct {
 	// SizeOfPriv is the size of C.FaceImpl struct.
 	SizeofPriv uintptr
 
+	// ReassemblerCapacity is the partial message store capacity in the reassembler.
+	ReassemblerCapacity int
+
 	// TxQueueCapacity is the capacity of the before-TX queue.
 	TxQueueCapacity int
 
@@ -85,13 +89,6 @@ type NewOptions struct {
 
 // New creates a Face.
 func New(p NewOptions) (face Face, e error) {
-	eal.CallMain(func() {
-		face, e = newFace(p)
-	})
-	return
-}
-
-func newFace(p NewOptions) (Face, error) {
 	if p.Socket.IsAny() {
 		if lc := eal.CurrentLCore(); lc.Valid() {
 			p.Socket = lc.NumaSocket()
@@ -99,6 +96,31 @@ func newFace(p NewOptions) (Face, error) {
 			p.Socket = eal.Sockets[0]
 		}
 	}
+
+	switch {
+	case p.ReassemblerCapacity == 0:
+		p.ReassemblerCapacity = DefaultReassemblerCapacity
+	case p.ReassemblerCapacity < MinReassemblerCapacity:
+		p.ReassemblerCapacity = MinReassemblerCapacity
+	case p.ReassemblerCapacity > MaxReassemblerCapacity:
+		p.ReassemblerCapacity = MaxReassemblerCapacity
+	}
+
+	switch {
+	case p.TxMtu == 0:
+	case p.TxMtu < MinMtu:
+		p.TxMtu = MinMtu
+	case p.TxMtu > MaxMtu:
+		p.TxMtu = MaxMtu
+	}
+
+	eal.CallMain(func() {
+		face, e = newFace(p)
+	})
+	return
+}
+
+func newFace(p NewOptions) (Face, error) {
 	f := &face{
 		id:                     AllocID(),
 		socket:                 p.Socket,
@@ -133,13 +155,12 @@ func newFace(p NewOptions) (Face, error) {
 	indirectMp := pktmbuf.Indirect.MakePool(p.Socket)
 	headerMp := ndni.HeaderMempool.MakePool(p.Socket)
 
-	switch {
-	case p.TxMtu == 0:
-	case p.TxMtu < MinMtu:
-		p.TxMtu = MinMtu
-	case p.TxMtu > MaxMtu:
-		p.TxMtu = MaxMtu
+	reassID := C.CString(eal.AllocObjectID("iface.Reassembler"))
+	defer C.free(unsafe.Pointer(reassID))
+	if ok := bool(C.Reassembler_New(&c.impl.rx.reass, reassID, C.uint32_t(p.ReassemblerCapacity), C.unsigned(p.Socket.ID()))); !ok {
+		return f.clear(), errors.New("Reassembler_New error")
 	}
+
 	C.TxProc_Init(&c.impl.tx, C.uint16_t(p.TxMtu), C.uint16_t(p.TxHeadroom),
 		(*C.struct_rte_mempool)(indirectMp.Ptr()), (*C.struct_rte_mempool)(headerMp.Ptr()))
 
@@ -210,6 +231,7 @@ func (f *face) clear() Face {
 	id, c := f.id, f.ptr()
 	c.state = StateRemoved
 	if c.impl != nil {
+		C.Reassembler_Close(&c.impl.rx.reass)
 		eal.Free(c.impl)
 	}
 	if c.txQueue != nil {

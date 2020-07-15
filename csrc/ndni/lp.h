@@ -5,13 +5,32 @@
 
 #include "common.h"
 
-/** @brief NDNLPv2 layer 2 fields. */
+/** @brief NDNLPv2 layer 2 fields and reassembler state. */
 typedef struct LpL2
 {
-  uint64_t seqNum;
-  uint16_t fragIndex;
-  uint16_t fragCount;
+  uint64_t seqNumBase; ///< seqNum-fragIndex
+  uint8_t fragIndex;
+  uint8_t fragCount;
+
+  /**
+   * @brief A bitmap of fragment arrival status.
+   *
+   * The bit (1 << i) indicates whether the i-th fragment has arrived.
+   * 0 means it has arrived, 1 means it is still missing.
+   * Bits of non-existent fragments are initialized to 0.
+   * Thus, when this variable becomes zero, all the fragments have arrived.
+   */
+  uint32_t reassBitmap;
+  TAILQ_ENTRY(LpL2) reassNode;
+  Packet* reassFrags[LpMaxFragments];
 } LpL2;
+static_assert(LpMaxFragments <= UINT8_MAX, "");
+
+static __rte_always_inline uint64_t
+LpL2_GetSeqNum(const LpL2* l2)
+{
+  return l2->seqNumBase + l2->fragIndex;
+}
 
 /** @brief NDNLPv2 layer 3 fields. */
 typedef struct LpL3

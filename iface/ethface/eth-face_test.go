@@ -89,3 +89,34 @@ func TestEthFaceAm(t *testing.T) {
 	topo.RunTest(topo.faceAm, topo.faceBm)
 	topo.CheckCounters()
 }
+
+func TestFragmentation(t *testing.T) {
+	assert, require := makeAR(t)
+	fixture := ifacetestenv.NewFixture(t)
+	defer fixture.Close()
+	fixture.PayloadLen = 6000
+	fixture.DataFrames = 2
+
+	var vnetCfg ethdev.VNetConfig
+	vnetCfg.RxPool = ndnitestenv.Packet.Pool()
+	vnetCfg.NNodes = 2
+	vnetCfg.LossProbability = 0.01
+	vnetCfg.Shuffle = true
+	vnet := ethdev.NewVNet(vnetCfg)
+	ealthread.Launch(vnet)
+	time.Sleep(time.Second)
+
+	portCfg := ethPortCfg
+	portCfg.Mtu = 5000
+	portCfg.SkipSetMtu = true
+	faceA, e := ethface.Create(ethface.NewLocator(vnet.Ports[0]), portCfg)
+	require.NoError(e)
+	faceB, e := ethface.Create(ethface.NewLocator(vnet.Ports[1]), portCfg)
+	require.NoError(e)
+
+	fixture.RunTest(faceA, faceB)
+	fixture.CheckCounters()
+
+	cntB := faceB.ReadCounters()
+	assert.Greater(cntB.ReassDrops, uint64(0))
+}

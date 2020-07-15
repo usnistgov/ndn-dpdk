@@ -18,8 +18,9 @@ type Counters struct {
 	RxFrames uint64 // RX total frames
 	RxOctets uint64 // RX total bytes
 
-	DecodeErrs uint64 // decode errors
-	Reass      InOrderReassemblerCounters
+	DecodeErrs   uint64 // decode errors
+	ReassPackets uint64 // RX packets that were reassembled
+	ReassDrops   uint64 // RX frames that were dropped by reassembler
 
 	RxInterests uint64 // RX Interest packets
 	RxData      uint64 // RX Data packets
@@ -33,7 +34,7 @@ type Counters struct {
 	TxData      uint64 // TX Data packets
 	TxNacks     uint64 // TX Nack packets
 
-	FragGood    uint64 // fragmentated L3 packets
+	FragGood    uint64 // fragmented L3 packets
 	FragBad     uint64 // fragmentation failures
 	TxAllocErrs uint64 // allocation errors during TX
 	TxDropped   uint64 // L2 frames dropped due to full queue
@@ -42,8 +43,8 @@ type Counters struct {
 }
 
 func (cnt Counters) String() string {
-	return fmt.Sprintf("RX %dfrm %db %dI %dD %dN reass=(%v) %derr TX %dfrm %db %dI %dD %dN frag=(%dgood %dbad) alloc=%derr %ddropped",
-		cnt.RxFrames, cnt.RxOctets, cnt.RxInterests, cnt.RxData, cnt.RxNacks, cnt.Reass, cnt.DecodeErrs,
+	return fmt.Sprintf("RX %dfrm %db %dI %dD %dN %derr reass=(%dpkt %ddrop) TX %dfrm %db %dI %dD %dN frag=(%dgood %dbad) alloc=%derr %ddropped",
+		cnt.RxFrames, cnt.RxOctets, cnt.RxInterests, cnt.RxData, cnt.RxNacks, cnt.DecodeErrs, cnt.ReassPackets, cnt.ReassDrops,
 		cnt.TxFrames, cnt.TxOctets, cnt.TxInterests, cnt.TxData, cnt.TxNacks, cnt.FragGood, cnt.FragBad, cnt.TxAllocErrs, cnt.TxDropped)
 }
 
@@ -55,20 +56,19 @@ func (f *face) ReadCounters() (cnt Counters) {
 	}
 
 	rxC := &c.impl.rx
-	cnt.Reass = InOrderReassemblerFromPtr(unsafe.Pointer(&rxC.reassembler)).ReadCounters()
 	for i := 0; i < C.RXPROC_MAX_THREADS; i++ {
 		rxtC := &rxC.threads[i]
-		cnt.RxFrames += uint64(rxtC.nFrames[ndni.PktFragment])
-		cnt.RxOctets += uint64(rxtC.nOctets)
+		cnt.RxOctets += uint64(rxtC.nFrames[0])
 		cnt.DecodeErrs += uint64(rxtC.nDecodeErr)
 		cnt.RxInterests += uint64(rxtC.nFrames[ndni.PktInterest])
 		cnt.RxData += uint64(rxtC.nFrames[ndni.PktData])
 		cnt.RxNacks += uint64(rxtC.nFrames[ndni.PktNack])
 	}
-	cnt.RxFrames += cnt.RxInterests + cnt.RxData + cnt.RxNacks
+	cnt.ReassPackets = uint64(rxC.reass.nDeliverPackets)
+	cnt.ReassDrops = uint64(rxC.reass.nDropFragments)
+	cnt.RxFrames = cnt.RxInterests + cnt.RxData + cnt.RxNacks + uint64(rxC.reass.nDeliverFragments) - cnt.ReassPackets + cnt.ReassDrops
 
 	txC := &c.impl.tx
-
 	readLatencyStat := func(c *C.RunningStat) runningstat.Snapshot {
 		return runningstat.FromPtr(unsafe.Pointer(c)).Read().Scale(eal.GetNanosInTscUnit())
 	}
