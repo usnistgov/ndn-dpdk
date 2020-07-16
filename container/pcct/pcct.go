@@ -41,7 +41,7 @@ func New(cfg Config) (pcct *Pcct, e error) {
 		SingleConsumer: true,
 	})
 	if e != nil {
-		return nil, e
+		return nil, fmt.Errorf("mempool.New error %w", e)
 	}
 
 	mpC := (*C.struct_rte_mempool)(mp.Ptr())

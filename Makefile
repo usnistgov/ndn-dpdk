@@ -34,7 +34,7 @@ strategy/strategyelf/bindata.go: strategy/*.c
 build/libndn-dpdk-c.a: build/build.ninja csrc/ndni/an.h csrc/ndni/enum.h csrc/iface/enum.h csrc/pcct/cs-enum.h
 	ninja -C build
 
-build/build.ninja: meson.build csrc/meson.build mk/meson.build
+build/build.ninja: csrc/meson.build mk/meson.build
 	bash -c 'source mk/cflags.sh; meson build'
 
 build/cgodeps.done: build/build.ninja

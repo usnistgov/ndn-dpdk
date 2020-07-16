@@ -1,13 +1,13 @@
 FROM ubuntu:18.04
-RUN ( echo 'APT::Install-Recommends "no";'; echo 'APT::Install-Suggests "no";' ) >/etc/apt/apt.conf.d/80recommends && \
+RUN ( echo 'APT::Install-Recommends "no";'; echo 'APT::Install-Suggests "no";' ) >/etc/apt/apt.conf.d/80custom && \
     apt-get update && \
-    apt-get install -y -qq build-essential clang-8 curl git go-bindata libc6-dev-i386 libelf-dev libnuma-dev libssl-dev liburcu-dev pkg-config python3-distutils sudo && \
-    curl -sL https://github.com/powerman/rpc-codec/releases/download/v1.1.3/jsonrpc2client-linux-x86_64 | install /dev/stdin /usr/local/bin/jsonrpc2client && \
+    apt-get install -y -qq build-essential ca-certificates clang-8 curl git go-bindata libc6-dev-i386 libelf-dev libnuma-dev libssl-dev liburcu-dev pkg-config python3-distutils sudo && \
     curl -sL https://deb.nodesource.com/setup_14.x | bash - && \
-    apt-get install -y -qq nodejs clang-format-8 doxygen yamllint && \
-    curl -sL https://bootstrap.pypa.io/get-pip.py | python3 && \
-    pip install meson ninja && \
-    curl -sL https://dl.google.com/go/go1.14.4.linux-amd64.tar.gz | tar -C /usr/local -xz && \
+    apt-get install -y -qq clang-format-8 doxygen nodejs yamllint && \
+    curl -vL https://bootstrap.pypa.io/get-pip.py | python3 && \
+    pip install -U meson ninja && \
+    curl -sL https://dl.google.com/go/go1.14.5.linux-amd64.tar.gz | tar -C /usr/local -xz && \
+    curl -sL https://github.com/powerman/rpc-codec/releases/download/v1.1.3/jsonrpc2client-linux-x86_64 | install /dev/stdin /usr/local/bin/jsonrpc2client && \
     curl -sL https://github.com/spdk/spdk/archive/v20.04.1.tar.gz | tar -C /root -xz && \
     cd /root/spdk-* && \
     ./scripts/pkgdep.sh && \

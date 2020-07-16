@@ -74,7 +74,7 @@ func (fwd *Fwd) Init(lc eal.LCore, fib *fib.Fib, pcctCfg pcct.Config, qcfgI, qcf
 	pcctCfg.Socket = socket
 	fwd.pcct, e = pcct.New(pcctCfg)
 	if e != nil {
-		return fmt.Errorf("pcct.New: %v", e)
+		return fmt.Errorf("pcct.New: %w", e)
 	}
 	pcctC := (*C.Pcct)(fwd.pcct.Ptr())
 	fwd.c.pit = &pcctC.pit

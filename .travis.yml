@@ -54,7 +54,7 @@ before_install:
     : install pip dependencies
     cd $HOME
     curl https://bootstrap.pypa.io/get-pip.py | sudo python3
-    sudo pip install meson ninja
+    sudo pip install -U meson ninja
 
 install:
   - |

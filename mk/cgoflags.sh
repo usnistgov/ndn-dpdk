@@ -1,8 +1,11 @@
 #!/bin/bash
 set -e
 set -o pipefail
-BUILDDIR=$(pwd)
-cd "$( dirname "${BASH_SOURCE[0]}" )"/..
+if [[ -z $MESON_SOURCE_ROOT ]] || [[ -z $MESON_BUILD_ROOT ]] || [[ $# -lt 1 ]]; then
+  echo 'USAGE: ninja -C build cgoflags' >/dev/stderr
+  exit 1
+fi
+cd $MESON_SOURCE_ROOT
 
 MK_CGOFLAGS=1
 source mk/cflags.sh
@@ -10,7 +13,7 @@ source mk/cflags.sh
 mk_cgoflags() {
   local PKG=$(realpath --relative-to=. $1)
   local PKGNAME=$(basename $PKG)
-  local LIBPATH=$(realpath --relative-to=$PKG $BUILDDIR/)
+  local LIBPATH=$(realpath --relative-to=$PKG $MESON_BUILD_ROOT/)
 
   GOFILES=$(find $PKG -maxdepth 1 -name '*.go' -not -name '*_test.go' -not -name 'cgoflags.go')
   if [[ -n $GOFILES ]]; then
@@ -27,11 +30,6 @@ mk_cgoflags() {
     echo 'import "C"'
   ) | gofmt -s > $PKG/cgoflags.go
 }
-
-if [[ $# -lt 1 ]]; then
-  echo 'USAGE: mk/cgoflags.sh ...package-path' >/dev/stderr
-  exit 1
-fi
 
 while [[ -n $1 ]]; do
   mk_cgoflags $1
