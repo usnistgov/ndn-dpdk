@@ -19,17 +19,16 @@ typedef struct Reassembler
 } Reassembler;
 
 /**
- * @brief Create a reassembler.
+ * @brief Initialize a reassembler.
  * @param reass zero Reassembler struct, usually embedded in a larger struct.
  * @param id memzone identifier, must be unique.
  * @param capacity maximum number of partial messages.
  *                 Oldest partial message is discarded when this limit is reached.
  * @param numaSocket where to allocate memory.
- *
- * Caller must invoke @p Pit_Init and @p Cs_Init to initialize each table.
+ * @return whether success. Error code is in @c rte_errno .
  */
 __attribute__((nonnull)) bool
-Reassembler_New(Reassembler* reass, const char* id, uint32_t capacity, unsigned numaSocket);
+Reassembler_Init(Reassembler* reass, const char* id, uint32_t capacity, unsigned numaSocket);
 
 /** @brief Release all memory except @p reass struct. */
 __attribute__((nonnull)) void

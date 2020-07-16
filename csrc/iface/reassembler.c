@@ -1,23 +1,20 @@
 #include "reassembler.h"
-#include "../dpdk/hash.h"
+#include "../dpdk/hashtable.h"
 
 bool
-Reassembler_New(Reassembler* reass, const char* id, uint32_t capacity, unsigned numaSocket)
+Reassembler_Init(Reassembler* reass, const char* id, uint32_t capacity, unsigned numaSocket)
 {
   assert(capacity >= MinReassemblerCapacity && capacity <= MaxReassemblerCapacity);
 
-  struct rte_hash_parameters htParams = {
+  reass->table = HashTable_New((struct rte_hash_parameters){
     .name = id,
     .entries = capacity * 2, // keep occupancy under 50%
     .key_len = sizeof(uint64_t),
-    .hash_func = Hash_Hash64,
     .socket_id = numaSocket,
-  };
-  reass->table = rte_hash_create(&htParams);
+  });
   if (unlikely(reass->table == NULL)) {
     return false;
   }
-  rte_hash_set_cmp_func(reass->table, Hash_Equal64);
 
   TAILQ_INIT(&reass->list);
   reass->capacity = capacity;

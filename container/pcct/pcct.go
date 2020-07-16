@@ -7,7 +7,7 @@ package pcct
 */
 import "C"
 import (
-	"errors"
+	"fmt"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
@@ -50,10 +50,10 @@ func New(cfg Config) (pcct *Pcct, e error) {
 		mp: mpC,
 	}
 
-	idC := C.CString(eal.AllocObjectID("pcct.tokenHt"))
-	defer C.free(unsafe.Pointer(idC))
-	if !bool(C.Pcct_Init(pcctC, idC, C.uint32_t(2*cfg.MaxEntries), C.uint(cfg.Socket.ID()))) {
-		return nil, errors.New("Pcct_Init error")
+	tokenHtID := C.CString(eal.AllocObjectID("pcct.tokenHt"))
+	defer C.free(unsafe.Pointer(tokenHtID))
+	if ok := bool(C.Pcct_Init(pcctC, tokenHtID, C.uint32_t(cfg.MaxEntries), C.uint(cfg.Socket.ID()))); !ok {
+		return nil, fmt.Errorf("Pcct_Init error %w", eal.GetErrno())
 	}
 
 	C.Pit_Init(&pcctC.pit)

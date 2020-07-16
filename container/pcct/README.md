@@ -26,7 +26,7 @@ Copying the names, rather than referencing them from the packet (usually an Inte
 
 Searching the name hash table uses the `PccSearch` type instead of the `PccKey` type.
 `PccSearch` contains pointers to linearized names.
-Searching with a different type is made possible by customizing uthash's `HASH_KEYCMP` hook to use the `PccKey_MatchSearchKey` function instead of the built-in definition.
+Searching with a different type is made possible by customizing uthash's `HASH_KEYCMP` hook to use the `PccKey_MatchSearch` function instead of the built-in definition.
 
 Calling code must supply the hash values.
 The hash value for an index key without a forwarding hint is `LName_ComputeHash(name)`.

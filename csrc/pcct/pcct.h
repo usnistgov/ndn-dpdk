@@ -37,6 +37,7 @@ Pcct_FromCs(const Cs* cs)
  * @brief Initialize keyHt and tokenHt.
  * @param id memzone identifier, must be unique.
  * @param maxEntries PCCT capacity; hashtable capacity will be calculated accordingly.
+ * @return whether success. Error code is in @c rte_errno .
  */
 bool
 Pcct_Init(Pcct* pcct, const char* id, uint32_t maxEntries, unsigned numaSocket);
@@ -104,7 +105,7 @@ typedef struct PcctEraseBatch
 {
   Pcct* pcct;
   int nEntries;
-  void* objs[PCCT_ERASE_BURST * (2 + PCC_KEY_MAX_EXTS)];
+  void* objs[PCCT_ERASE_BURST * (2 + PccKeyMaxExts)];
 } PcctEraseBatch;
 
 /**

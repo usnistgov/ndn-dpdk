@@ -47,8 +47,7 @@ TxProc_OutputFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames)
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   NDNDPDK_ASSERT(pkt->pkt_len > 0);
-  uint32_t fragCount =
-    pkt->pkt_len / tx->fragmentPayloadSize + (uint32_t)(pkt->pkt_len % tx->fragmentPayloadSize > 0);
+  uint32_t fragCount = DIV_CEIL(pkt->pkt_len, tx->fragmentPayloadSize);
   if (fragCount == 1) {
     return TxProc_OutputNoFrag(tx, npkt, frames);
   }

@@ -5,7 +5,7 @@ package iface
 */
 import "C"
 import (
-	"errors"
+	"fmt"
 	"io"
 	"unsafe"
 
@@ -157,8 +157,8 @@ func newFace(p NewOptions) (Face, error) {
 
 	reassID := C.CString(eal.AllocObjectID("iface.Reassembler"))
 	defer C.free(unsafe.Pointer(reassID))
-	if ok := bool(C.Reassembler_New(&c.impl.rx.reass, reassID, C.uint32_t(p.ReassemblerCapacity), C.unsigned(p.Socket.ID()))); !ok {
-		return f.clear(), errors.New("Reassembler_New error")
+	if ok := bool(C.Reassembler_Init(&c.impl.rx.reass, reassID, C.uint32_t(p.ReassemblerCapacity), C.unsigned(p.Socket.ID()))); !ok {
+		return f.clear(), fmt.Errorf("Reassembler_Init error %w", eal.GetErrno())
 	}
 
 	C.TxProc_Init(&c.impl.tx, C.uint16_t(p.TxMtu), C.uint16_t(p.TxHeadroom),

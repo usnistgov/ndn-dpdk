@@ -44,4 +44,7 @@
 
 #endif // __BPF__
 
+/** @brief Compute ceil( @p a / @p b ) . */
+#define DIV_CEIL(a, b) (((a) + (b)-1) / (b))
+
 #endif // NDNDPDK_CORE_COMMON_H

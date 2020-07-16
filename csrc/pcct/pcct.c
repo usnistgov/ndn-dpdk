@@ -4,13 +4,13 @@
 #include "pit.h"
 
 #include "../core/logger.h"
-#include "../dpdk/hash.h"
+#include "../dpdk/hashtable.h"
 
 INIT_ZF_LOG(Pcct);
 
 #define uthash_malloc(sz) rte_malloc("PCCT.uthash", (sz), 0)
 #define uthash_free(ptr, sz) rte_free((ptr))
-#define HASH_KEYCMP(a, b, n) (!PccKey_MatchSearchKey((const PccKey*)(a), (const PccSearch*)(b)))
+#define HASH_KEYCMP(a, b, n) (!PccKey_MatchSearch((const PccKey*)(a), (const PccSearch*)(b)))
 #define uthash_fatal(msg) rte_panic("uthash_fatal %s", msg)
 
 #include "../vendor/uthash.h"
@@ -24,14 +24,14 @@ INIT_ZF_LOG(Pcct);
 #define HASH_BKT_CAPACITY_THRESH UINT_MAX
 #define HASH_EXPAND_BUCKETS(hh, tbl, oomed) Pcct_KeyHt_Expand_(tbl)
 
-#define PCCT_TOKEN_MASK (((uint64_t)1 << 48) - 1)
-
-__attribute__((nonnull)) static void
+static __rte_noinline void
 Pcct_KeyHt_Expand_(UT_hash_table* tbl)
 {
   ZF_LOGE("KeyHt(%p) Expand-rejected num_items=%u num_buckets=%u", tbl, tbl->num_items,
           tbl->num_buckets);
 }
+
+#define PCCT_TOKEN_MASK (((uint64_t)1 << 48) - 1)
 
 bool
 Pcct_Init(Pcct* pcct, const char* id, uint32_t maxEntries, unsigned numaSocket)
@@ -39,18 +39,15 @@ Pcct_Init(Pcct* pcct, const char* id, uint32_t maxEntries, unsigned numaSocket)
   pcct->nKeyHtBuckets = rte_align32prevpow2(maxEntries);
   pcct->lastToken = PCCT_TOKEN_MASK - 16;
 
-  struct rte_hash_parameters tokenHtParams = {
+  pcct->tokenHt = HashTable_New((struct rte_hash_parameters){
     .name = id,
     .entries = 2 * maxEntries,   // keep occupancy under 50%
     .key_len = sizeof(uint64_t), // 64-bit compares faster than 48-bit
-    .hash_func = Hash_Hash64,
     .socket_id = numaSocket,
-  };
-  pcct->tokenHt = rte_hash_create(&tokenHtParams);
+  });
   if (unlikely(pcct->tokenHt == NULL)) {
     return false;
   }
-  rte_hash_set_cmp_func(pcct->tokenHt, Hash_Equal64);
 
   ZF_LOGI("%p Init()", pcct);
   return true;
@@ -59,7 +56,7 @@ Pcct_Init(Pcct* pcct, const char* id, uint32_t maxEntries, unsigned numaSocket)
 void
 Pcct_Clear(Pcct* pcct)
 {
-  ZF_LOGI("%p Close()", pcct);
+  ZF_LOGI("%p Clear()", pcct);
   if (pcct->tokenHt != NULL) {
     rte_hash_free(pcct->tokenHt);
   }
@@ -78,7 +75,7 @@ Pcct_Insert(Pcct* pcct, PccSearch* search, bool* isNew)
     return entry;
   }
 
-  void* objs[1 + PCC_KEY_MAX_EXTS];
+  void* objs[1 + PccKeyMaxExts];
   int nExts = PccKey_CountExtensions(search);
   int res = rte_mempool_get_bulk(pcct->mp, objs, 1 + nExts);
   if (unlikely(res != 0)) {

@@ -32,8 +32,9 @@ It can be used to create per-NUMA mempools for packet buffers.
 
 ## Main Thread
 
-Many SPDK library functions must run on an SPDK thread.
-The `spdkenv` package creates and launches a `MainThread` on a DPDK lcore ("SPDK" role).
+Certain DPDK library functions must run on the initial lcore; certain SPDK library functions must run on an SPDK thread.
+To satisfy both requirements, the `ealinit` package creates and launches a main thread on the initial lcore.
+This thread is initialized as an SPDK thread, and is also registered as a [URCU](../core/urcu) read-side thread.
 Most operations invoked via the Go API are executed on this thread.
 
 ## SPDK Internal RPC Client

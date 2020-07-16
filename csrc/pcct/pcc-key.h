@@ -5,9 +5,17 @@
 
 #include "common.h"
 
+#define PccKey_CountExtensions_(nameL, fhL)                                                        \
+  (DIV_CEIL(nameL - PccKeyNameCapacity, PccKeyExtCapacity) +                                       \
+   DIV_CEIL(fhL - PccKeyFhCapacity, PccKeyExtCapacity))
+
 enum
 {
   PccSearchDebugStringLength = 2 * NameHexBufferLength + 32,
+  PccKeyNameCapacity = 240,
+  PccKeyFhCapacity = 160,
+  PccKeyExtCapacity = 1000,
+  PccKeyMaxExts = PccKey_CountExtensions_(NameMaxLength, NameMaxLength),
 };
 
 /** @brief Hash key for searching among @c PccEntry . */
@@ -48,10 +56,6 @@ PccSearch_ComputeHash(const PccSearch* search)
 __attribute__((nonnull, returns_nonnull)) const char*
 PccSearch_ToDebugString(const PccSearch* search, char buffer[PccSearchDebugStringLength]);
 
-#define PCC_KEY_NAME_CAP 240
-#define PCC_KEY_FH_CAP 160
-#define PCC_KEY_EXT_CAP 1000
-
 typedef struct PccKeyExt PccKeyExt;
 
 /** @brief Hash key stored in @c PccEntry . */
@@ -61,31 +65,27 @@ typedef struct PccKey
   PccKeyExt* fhExt;
   uint16_t nameL;
   uint16_t fhL;
-  uint8_t nameV[PCC_KEY_NAME_CAP];
-  uint8_t fhV[PCC_KEY_FH_CAP];
+  uint8_t nameV[PccKeyNameCapacity];
+  uint8_t fhV[PccKeyFhCapacity];
 } PccKey;
 
 struct PccKeyExt
 {
   PccKeyExt* next;
-  uint8_t value[PCC_KEY_EXT_CAP];
+  uint8_t value[PccKeyExtCapacity];
 };
 
-static inline bool
-PccKey_MatchNameOrFhV_(LName name, const uint8_t* value, uint16_t cap, const PccKeyExt* ext)
+__attribute__((nonnull)) bool
+PccKey_MatchFieldWithExt_(LName name, const uint8_t* firstV, uint16_t firstCapacity,
+                          const PccKeyExt* ext);
+
+__attribute__((nonnull(2))) static __rte_always_inline bool
+PccKey_MatchField_(LName name, const uint8_t* firstV, uint16_t firstCapacity, const PccKeyExt* ext)
 {
-  if (memcmp(value, name.value, RTE_MIN(name.length, cap)) != 0) {
-    return false;
+  if (unlikely(name.length > firstCapacity)) {
+    return PccKey_MatchFieldWithExt_(name, firstV, firstCapacity, ext);
   }
-  for (uint16_t offset = cap; unlikely(offset < name.length); offset += PCC_KEY_EXT_CAP) {
-    NDNDPDK_ASSERT(ext != NULL);
-    if (memcmp(ext->value, RTE_PTR_ADD(name.value, offset),
-               RTE_MIN(name.length - offset, PCC_KEY_EXT_CAP)) != 0) {
-      return false;
-    }
-    ext = ext->next;
-  }
-  return true;
+  return memcmp(firstV, name.value, name.length) == 0;
 }
 
 /** @brief Determine if @c key->name equals @p name . */
@@ -93,23 +93,16 @@ __attribute__((nonnull)) static inline bool
 PccKey_MatchName(const PccKey* key, LName name)
 {
   return name.length == key->nameL &&
-         PccKey_MatchNameOrFhV_(name, key->nameV, PCC_KEY_NAME_CAP, key->nameExt);
+         PccKey_MatchField_(name, key->nameV, PccKeyNameCapacity, key->nameExt);
 }
 
 /** @brief Determine if @p key matches @p search . */
 __attribute__((nonnull)) static inline bool
-PccKey_MatchSearchKey(const PccKey* key, const PccSearch* search)
+PccKey_MatchSearch(const PccKey* key, const PccSearch* search)
 {
   return search->fh.length == key->fhL && PccKey_MatchName(key, search->name) &&
-         PccKey_MatchNameOrFhV_(search->fh, key->fhV, PCC_KEY_FH_CAP, key->fhExt);
+         PccKey_MatchField_(search->fh, key->fhV, PccKeyFhCapacity, key->fhExt);
 }
-
-#define PccKey_CountExtensionsOn_(excess)                                                          \
-  ((excess) / PCC_KEY_EXT_CAP + (bool)((excess) % PCC_KEY_EXT_CAP > 0))
-
-#define PccKey_CountExtensions_(nameL, fhL)                                                        \
-  (PccKey_CountExtensionsOn_(nameL - PCC_KEY_NAME_CAP) +                                           \
-   PccKey_CountExtensionsOn_(fhL - PCC_KEY_FH_CAP))
 
 /** @brief Determine how many PccKeyExts are needed to copy @p search into PccKey. */
 __attribute__((nonnull)) static inline int
@@ -118,23 +111,20 @@ PccKey_CountExtensions(const PccSearch* search)
   return PccKey_CountExtensions_(search->name.length, search->fh.length);
 }
 
-/** @brief Maximum return value of PccKey_CountExtensions. */
-#define PCC_KEY_MAX_EXTS PccKey_CountExtensions_(NameMaxLength, NameMaxLength)
+__attribute__((nonnull)) int
+PccKey_WriteFieldWithExt_(LName name, uint8_t* firstV, uint16_t firstCapacity, PccKeyExt** next,
+                          PccKeyExt* exts[]);
 
-static inline int
-PccKey_CopyNameOrFhV_(LName name, uint8_t* value, uint16_t cap, PccKeyExt** next, PccKeyExt* exts[])
+__attribute__((nonnull)) static __rte_always_inline int
+PccKey_WriteField_(LName name, uint8_t* firstV, uint16_t firstCapacity, PccKeyExt** next,
+                   PccKeyExt* exts[])
 {
-  rte_memcpy(value, name.value, RTE_MIN(name.length, cap));
-  int nExts = 0;
-  for (uint16_t offset = cap; unlikely(offset < name.length); offset += PCC_KEY_EXT_CAP) {
-    PccKeyExt* ext = exts[nExts++];
-    *next = ext;
-    rte_memcpy(ext->value, RTE_PTR_ADD(name.value, offset),
-               RTE_MIN(name.length - offset, PCC_KEY_EXT_CAP));
-    next = &ext->next;
+  if (unlikely(name.length > firstCapacity)) {
+    return PccKey_WriteFieldWithExt_(name, firstV, firstCapacity, next, exts);
   }
+  rte_memcpy(firstV, name.value, name.length);
   *next = NULL;
-  return nExts;
+  return 0;
 }
 
 /** @brief Copy @c search into @p key . */
@@ -145,13 +135,13 @@ PccKey_CopyFromSearch(PccKey* key, const PccSearch* search, PccKeyExt* exts[], i
   key->nameL = search->name.length;
   key->fhL = search->fh.length;
   int nNameExts =
-    PccKey_CopyNameOrFhV_(search->name, key->nameV, PCC_KEY_NAME_CAP, &key->nameExt, exts);
-  PccKey_CopyNameOrFhV_(search->fh, key->fhV, PCC_KEY_FH_CAP, &key->fhExt, &exts[nNameExts]);
+    PccKey_WriteField_(search->name, key->nameV, PccKeyNameCapacity, &key->nameExt, exts);
+  PccKey_WriteField_(search->fh, key->fhV, PccKeyFhCapacity, &key->fhExt, &exts[nNameExts]);
 }
 
 /** @brief Move PccKeyExts into @p exts to prepare for removal. */
 __attribute__((nonnull)) static inline int
-PccKey_StripExts(PccKey* key, PccKeyExt* exts[PCC_KEY_MAX_EXTS])
+PccKey_StripExts(PccKey* key, PccKeyExt* exts[PccKeyMaxExts])
 {
   int nExts = 0;
   for (PccKeyExt* ext = key->nameExt; unlikely(ext != NULL); ext = ext->next) {

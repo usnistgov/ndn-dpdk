@@ -5,7 +5,10 @@
 
 #include "cs-struct.h"
 
-#define CS_ENTRY_MAX_INDIRECTS 4
+enum
+{
+  CsMaxIndirects = 4,
+};
 
 typedef struct CsEntry CsEntry;
 
@@ -58,9 +61,9 @@ struct CsEntry
    * @brief Associated indirect entries.
    * @pre Valid if entry is indirect.
    */
-  CsEntry* indirect[CS_ENTRY_MAX_INDIRECTS];
+  CsEntry* indirect[CsMaxIndirects];
 };
-static_assert(CS_ENTRY_MAX_INDIRECTS < INT8_MAX, "");
+static_assert(CsMaxIndirects < INT8_MAX, "");
 
 __attribute__((nonnull)) static __rte_always_inline bool
 CsEntry_IsDirect(CsEntry* entry)
@@ -105,7 +108,7 @@ CsEntry_Assoc(CsEntry* indirect, CsEntry* direct)
   NDNDPDK_ASSERT(indirect->nIndirects == 0);
   NDNDPDK_ASSERT(CsEntry_IsDirect(direct));
 
-  if (unlikely(direct->nIndirects >= CS_ENTRY_MAX_INDIRECTS)) {
+  if (unlikely(direct->nIndirects >= CsMaxIndirects)) {
     return false;
   }
 
