@@ -7,56 +7,43 @@
 #include "pcc-entry.h"
 #include "pit-struct.h"
 
-/**
- * @brief The PIT-CS Composite Table (PCCT).
- *
- * Pcct* is struct rte_mempool* with @p PcctPriv attached to its private data area.
- */
+/** @brief The PIT-CS Composite Table (PCCT). */
 typedef struct Pcct
 {
-} Pcct;
+  struct rte_mempool* mp;   ///< entry mempool
+  PccEntry* keyHt;          ///< key hashtable
+  struct rte_hash* tokenHt; ///< token hashtable
+  uint64_t lastToken;       ///< last assigned token;
 
-/** @brief Cast Pcct* as rte_mempool*. */
-static __rte_always_inline struct rte_mempool*
-Pcct_ToMempool(const Pcct* pcct)
-{
-  return (struct rte_mempool*)pcct;
-}
-
-/** @brief rte_mempool private data for Pcc. */
-typedef struct PcctPriv
-{
-  PccEntry* keyHt;
-  struct rte_hash* tokenHt;
-  uint64_t lastToken;
-
-  PitPriv pitPriv;
-  CsPriv csPriv;
+  Pit pit;
+  Cs cs;
 
   uint32_t nKeyHtBuckets;
-} PcctPriv;
+} Pcct;
 
-/** @brief Access PcctPriv* struct. */
-__attribute__((nonnull, returns_nonnull)) static inline PcctPriv*
-Pcct_GetPriv(const Pcct* pcct)
+static __rte_always_inline Pcct*
+Pcct_FromPit(const Pit* pit)
 {
-  return (PcctPriv*)rte_mempool_get_priv(Pcct_ToMempool(pcct));
+  return container_of(pit, Pcct, pit);
+}
+
+static __rte_always_inline Pcct*
+Pcct_FromCs(const Cs* cs)
+{
+  return container_of(cs, Pcct, cs);
 }
 
 /**
- * @brief Create a PIT-CS index.
- * @param id identifier for debugging, up to 24 chars, must be unique.
- * @param maxEntries maximum number of entries, should be (2^q-1).
- * @param numaSocket where to allocate memory.
- *
- * Caller must invoke @p Pit_Init and @p Cs_Init to initialize each table.
+ * @brief Initialize keyHt and tokenHt.
+ * @param id memzone identifier, must be unique.
+ * @param maxEntries PCCT capacity; hashtable capacity will be calculated accordingly.
  */
-Pcct*
-Pcct_New(const char* id, uint32_t maxEntries, unsigned numaSocket);
+bool
+Pcct_Init(Pcct* pcct, const char* id, uint32_t maxEntries, unsigned numaSocket);
 
-/** @brief Release all memory. */
+/** @brief Clear keyHt and tokenHt. */
 void
-Pcct_Close(Pcct* pcct);
+Pcct_Clear(Pcct* pcct);
 
 /**
  * @brief Insert or find an entry.

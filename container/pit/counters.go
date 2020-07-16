@@ -25,16 +25,15 @@ func (cnt Counters) String() string {
 
 // ReadCounters reads counters from this PIT.
 func (pit *Pit) ReadCounters() (cnt Counters) {
-	pitp := pit.getPriv()
-	cnt.NEntries = uint64(pitp.nEntries)
-	cnt.NInsert = uint64(pitp.nInsert)
-	cnt.NFound = uint64(pitp.nFound)
-	cnt.NCsMatch = uint64(pitp.nCsMatch)
-	cnt.NAllocErr = uint64(pitp.nAllocErr)
-	cnt.NDataHit = uint64(pitp.nDataHit)
-	cnt.NDataMiss = uint64(pitp.nDataMiss)
-	cnt.NNackHit = uint64(pitp.nNackHit)
-	cnt.NNackMiss = uint64(pitp.nNackMiss)
-	cnt.NExpired = uint64(pitp.timeoutSched.nTriggered)
+	cnt.NEntries = uint64(pit.nEntries)
+	cnt.NInsert = uint64(pit.nInsert)
+	cnt.NFound = uint64(pit.nFound)
+	cnt.NCsMatch = uint64(pit.nCsMatch)
+	cnt.NAllocErr = uint64(pit.nAllocErr)
+	cnt.NDataHit = uint64(pit.nDataHit)
+	cnt.NDataMiss = uint64(pit.nDataMiss)
+	cnt.NNackHit = uint64(pit.nNackHit)
+	cnt.NNackMiss = uint64(pit.nNackMiss)
+	cnt.NExpired = uint64(pit.timeoutSched.nTriggered)
 	return cnt
 }

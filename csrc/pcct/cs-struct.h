@@ -47,17 +47,12 @@ typedef enum CsArcListId
 /**
  * @brief The Content Store (CS).
  *
- * Cs* is Pcct*.
+ * This is embedded in @c Pcct struct.
  */
 typedef struct Cs
 {
+  CsArc direct;    ///< ARC lists of direct entries
+  CsList indirect; ///< LRU list of indirect entries
 } Cs;
-
-/** @brief PCCT private data for CS. */
-typedef struct CsPriv
-{
-  CsArc directArc;    ///< ARC lists of direct entries
-  CsList indirectLru; ///< LRU list of indirect entries
-} CsPriv;
 
 #endif // NDNDPDK_PCCT_CS_STRUCT_H

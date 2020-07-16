@@ -55,7 +55,9 @@ func newPartition(fib *Fib, index int, socket eal.NumaSocket) (part *partition, 
 	}
 	mpC := (*C.struct_rte_mempool)(part.mp.Ptr())
 	part.c = (*C.Fib)(C.rte_mempool_get_priv(mpC))
-	part.c.mp = mpC
+	*part.c = C.Fib{
+		mp: mpC,
+	}
 
 	part.c.lfht = C.cds_lfht_new(C.ulong(fib.cfg.NBuckets), C.ulong(fib.cfg.NBuckets), C.ulong(fib.cfg.NBuckets), 0, nil)
 	if part.c.lfht == nil {

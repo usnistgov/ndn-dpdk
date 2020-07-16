@@ -28,10 +28,11 @@ func (entry *Entry) ptr() *C.PitEntry {
 	return (*C.PitEntry)(entry)
 }
 
-func (entry *Entry) getPitPtr() *C.Pit {
+func (entry *Entry) pitPtr() *C.Pit {
 	pccEntryC := C.PccEntry_FromPitEntry(entry.ptr())
 	mempoolC := C.rte_mempool_from_obj(unsafe.Pointer(pccEntryC))
-	return (*C.Pit)(unsafe.Pointer(mempoolC))
+	pcctC := (*C.Pcct)(C.rte_mempool_get_priv(mempoolC))
+	return &pcctC.pit
 }
 
 // PitToken returns the PIT token assigned to this entry.
@@ -69,7 +70,7 @@ func (entry *Entry) DnRecords() (list []DnRecord) {
 
 // InsertDnRecord inserts new downstream record, or update existing downstream record.
 func (entry *Entry) InsertDnRecord(interest *ndni.Packet) *DnRecord {
-	dnC := C.PitEntry_InsertDn(entry.ptr(), entry.getPitPtr(), (*C.Packet)(interest.Ptr()))
+	dnC := C.PitEntry_InsertDn(entry.ptr(), entry.pitPtr(), (*C.Packet)(interest.Ptr()))
 	return &DnRecord{dnC, entry}
 }
 

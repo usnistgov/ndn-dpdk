@@ -65,8 +65,8 @@ int
 FwFwd_Run(FwFwd* fwd)
 {
   rcu_register_thread();
-  ZF_LOGI("fwdId=%" PRIu8 " fwd=%p fib=%p pit+cs=%p crypto=%p", fwd->id, fwd, fwd->fib, fwd->pcct,
-          fwd->crypto);
+  ZF_LOGI("Run(%" PRIu8 ") fwd=%p fib=%p pit=%p cs=%p crypto=%p", fwd->id, fwd, fwd->fib, fwd->pit,
+          fwd->cs, fwd->crypto);
 
   fwd->sgGlobal.tscHz = rte_get_tsc_hz();
   Pit_SetSgTimerCb(fwd->pit, SgTriggerTimer, fwd);
@@ -80,7 +80,7 @@ FwFwd_Run(FwFwd* fwd)
     FwFwd_RxByType(fwd, PktNack);
   }
 
-  ZF_LOGI("fwdId=%" PRIu8 " STOP", fwd->id);
+  ZF_LOGI("Stop(%" PRIu8 ")", fwd->id);
   rcu_unregister_thread();
   return 0;
 }

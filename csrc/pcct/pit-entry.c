@@ -82,21 +82,19 @@ PitEntry_FindFibEntry(PitEntry* entry, Fib* fib)
 void
 PitEntry_SetExpiryTimer(PitEntry* entry, Pit* pit)
 {
-  PitPriv* pitp = Pit_GetPriv(pit);
   entry->hasSgTimer = false;
-  bool ok = MinTmr_At(&entry->timeout, entry->expiry, pitp->timeoutSched);
+  bool ok = MinTmr_At(&entry->timeout, entry->expiry, pit->timeoutSched);
   NDNDPDK_ASSERT(ok); // unless PIT_MAX_LIFETIME is higher than scheduler limit
 }
 
 bool
 PitEntry_SetSgTimer(PitEntry* entry, Pit* pit, TscDuration after)
 {
-  PitPriv* pitp = Pit_GetPriv(pit);
   if (rte_get_tsc_cycles() + after > entry->expiry) {
     return false;
   }
   entry->hasSgTimer = true;
-  bool ok = MinTmr_After(&entry->timeout, after, pitp->timeoutSched);
+  bool ok = MinTmr_After(&entry->timeout, after, pit->timeoutSched);
   if (unlikely(!ok)) {
     PitEntry_SetExpiryTimer(entry, pit);
   }

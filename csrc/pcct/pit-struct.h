@@ -5,22 +5,19 @@
 
 #include "common.h"
 
-/**
- * @brief The Pending Interest Table (PIT).
- *
- * Pit* is Pcct*.
- */
-typedef struct Pit
-{
-} Pit;
+typedef struct Pit Pit;
 
 typedef struct PitEntry PitEntry;
 
 /** @brief Callback to handle strategy timer triggers. */
 typedef void (*Pit_SgTimerCb)(Pit* pit, PitEntry* entry, void* arg);
 
-/** @brief PCCT private data for PIT. */
-typedef struct PitPriv
+/**
+ * @brief The Pending Interest Table (PIT).
+ *
+ * This is embedded in @c Pcct struct.
+ */
+struct Pit
 {
   uint64_t nEntries; ///< current number of entries
 
@@ -37,6 +34,6 @@ typedef struct PitPriv
   MinSched* timeoutSched;
   Pit_SgTimerCb sgTimerCb;
   void* sgTimerCbArg;
-} PitPriv;
+};
 
 #endif // NDNDPDK_PCCT_PIT_STRUCT_H

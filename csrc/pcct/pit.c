@@ -14,30 +14,27 @@ Pit_SgTimerCb_Empty(Pit* pit, PitEntry* entry, void* arg)
 void
 Pit_Init(Pit* pit)
 {
-  PitPriv* pitp = Pit_GetPriv(pit);
-  ZF_LOGI("%p Init() priv=%p", pit, pitp);
+  ZF_LOGI("%p Init() pcct=%p", pit, Pcct_FromPit(pit));
 
   // 2^12 slots of 33ms interval, accommodates InterestLifetime up to 136533ms
-  pitp->timeoutSched = MinSched_New(12, rte_get_tsc_hz() / 30, PitEntry_Timeout_, pit);
-  NDNDPDK_ASSERT(MinSched_GetMaxDelay(pitp->timeoutSched) >=
+  pit->timeoutSched = MinSched_New(12, rte_get_tsc_hz() / 30, PitEntry_Timeout_, pit);
+  NDNDPDK_ASSERT(MinSched_GetMaxDelay(pit->timeoutSched) >=
                  (TscDuration)(PIT_MAX_LIFETIME * rte_get_tsc_hz() / 1000));
 
-  pitp->sgTimerCb = Pit_SgTimerCb_Empty;
+  pit->sgTimerCb = Pit_SgTimerCb_Empty;
 }
 
 void
 Pit_SetSgTimerCb(Pit* pit, Pit_SgTimerCb cb, void* arg)
 {
-  PitPriv* pitp = Pit_GetPriv(pit);
-  pitp->sgTimerCb = cb;
-  pitp->sgTimerCbArg = arg;
+  pit->sgTimerCb = cb;
+  pit->sgTimerCbArg = arg;
 }
 
 PitInsertResult
 Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
 {
-  Pcct* pcct = Pit_ToPcct(pit);
-  PitPriv* pitp = Pit_GetPriv(pit);
+  Pcct* pcct = Pcct_FromPit(pit);
   PInterest* interest = Packet_GetInterestHdr(npkt);
 
   // construct PccSearch
@@ -48,17 +45,17 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
   bool isNewPcc = false;
   PccEntry* pccEntry = Pcct_Insert(pcct, &search, &isNewPcc);
   if (unlikely(pccEntry == NULL)) {
-    ++pitp->nAllocErr;
+    ++pit->nAllocErr;
     return PitResult_New_(NULL, PIT_INSERT_FULL);
   }
 
   // check for CS match
-  if (pccEntry->hasCsEntry && likely(Cs_MatchInterest_(Cs_FromPcct(pcct), pccEntry, npkt))) {
+  if (pccEntry->hasCsEntry && likely(Cs_MatchInterest_(&pcct->cs, pccEntry, npkt))) {
     // CS entry satisfies Interest
     char debugStringBuffer[PccSearchDebugStringLength];
     ZF_LOGD("%p Insert(%s) pcc=%p has-CS", pit, PccSearch_ToDebugString(&search, debugStringBuffer),
             pccEntry);
-    ++pitp->nCsMatch;
+    ++pit->nCsMatch;
     return PitResult_New_(pccEntry, PIT_INSERT_CS);
   }
 
@@ -68,7 +65,7 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
     if (isNewPcc) {
       Pcct_Erase(pcct, pccEntry);
     }
-    ++pitp->nAllocErr;
+    ++pit->nAllocErr;
     return PitResult_New_(NULL, PIT_INSERT_FULL);
   }
 
@@ -89,21 +86,21 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
 
   if (unlikely(entry == NULL)) {
     NDNDPDK_ASSERT(!isNewPcc); // new PccEntry must have occupied slot1
-    ++pitp->nAllocErr;
+    ++pit->nAllocErr;
     return PitResult_New_(NULL, PIT_INSERT_FULL);
   }
 
   // initialize new PIT entry, or refresh FIB entry reference on old PIT entry
   if (isNew) {
-    ++pitp->nEntries;
-    ++pitp->nInsert;
+    ++pit->nEntries;
+    ++pit->nInsert;
     PitEntry_Init(entry, npkt, fibEntry);
     char debugStringBuffer[PccSearchDebugStringLength];
     ZF_LOGD("%p Insert(%s) pcc=%p ins-PIT%d pit=%p", pit,
             PccSearch_ToDebugString(&search, debugStringBuffer), pccEntry, (int)entry->mustBeFresh,
             entry);
   } else {
-    ++pitp->nFound;
+    ++pit->nFound;
     PitEntry_RefreshFibEntry(entry, npkt, fibEntry);
     char debugStringBuffer[PccSearchDebugStringLength];
     ZF_LOGD("%p Insert(%s) pcc=%p has-PIT%d pit=%p", pit,
@@ -129,41 +126,38 @@ Pit_Erase(Pit* pit, PitEntry* entry)
   }
   PitEntry_Finalize(entry);
 
-  PitPriv* pitp = Pit_GetPriv(pit);
-  --pitp->nEntries;
+  --pit->nEntries;
   if (!pccEntry->hasEntries) {
-    Pcct_Erase(Pit_ToPcct(pit), pccEntry);
+    Pcct_Erase(Pcct_FromPit(pit), pccEntry);
   } else if (!pccEntry->hasPitEntries) {
-    Pcct_RemoveToken(Pit_ToPcct(pit), pccEntry);
+    Pcct_RemoveToken(Pcct_FromPit(pit), pccEntry);
   }
 }
 
 void
 Pit_RawErase01_(Pit* pit, PccEntry* pccEntry)
 {
-  PitPriv* pitp = Pit_GetPriv(pit);
   if (pccEntry->hasPitEntry0) {
-    --pitp->nEntries;
+    --pit->nEntries;
     PitEntry_Finalize(PccEntry_GetPitEntry0(pccEntry));
     PccEntry_RemovePitEntry0(pccEntry);
   }
   if (pccEntry->hasPitEntry1) {
-    --pitp->nEntries;
+    --pit->nEntries;
     PitEntry_Finalize(PccEntry_GetPitEntry1(pccEntry));
     PccEntry_RemovePitEntry1(pccEntry);
   }
-  Pcct_RemoveToken(Pit_ToPcct(pit), pccEntry);
+  Pcct_RemoveToken(Pcct_FromPit(pit), pccEntry);
 }
 
 PitFindResult
 Pit_FindByData(Pit* pit, Packet* npkt)
 {
-  PitPriv* pitp = Pit_GetPriv(pit);
   uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
 
-  PccEntry* pccEntry = Pcct_FindByToken(Pit_ToPcct(pit), token);
+  PccEntry* pccEntry = Pcct_FindByToken(Pcct_FromPit(pit), token);
   if (unlikely(pccEntry == NULL)) {
-    ++pitp->nDataMiss;
+    ++pit->nDataMiss;
     return PitResult_New_(NULL, PIT_FIND_NONE);
   }
 
@@ -183,11 +177,11 @@ Pit_FindByData(Pit* pit, Packet* npkt)
     DataSatisfyResult satisfy = PData_CanSatisfy(data, interest);
     switch (satisfy) {
       case DataSatisfyYes:
-        ++pitp->nDataHit;
+        ++pit->nDataHit;
         break;
       case DataSatisfyNo:
         flags = PIT_FIND_NONE;
-        ++pitp->nDataMiss;
+        ++pit->nDataMiss;
         break;
       case DataSatisfyNeedDigest:
         flags |= PIT_FIND_NEED_DIGEST;
@@ -202,15 +196,14 @@ Pit_FindByData(Pit* pit, Packet* npkt)
 PitEntry*
 Pit_FindByNack(Pit* pit, Packet* npkt)
 {
-  PitPriv* pitp = Pit_GetPriv(pit);
   uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
   PNack* nack = Packet_GetNackHdr(npkt);
   PInterest* interest = &nack->interest;
 
   // find PCC entry by token
-  PccEntry* pccEntry = Pcct_FindByToken(Pit_ToPcct(pit), token);
+  PccEntry* pccEntry = Pcct_FindByToken(Pcct_FromPit(pit), token);
   if (unlikely(pccEntry == NULL)) {
-    ++pitp->nNackMiss;
+    ++pit->nNackMiss;
     return NULL;
   }
 
@@ -218,13 +211,13 @@ Pit_FindByNack(Pit* pit, Packet* npkt)
   PitEntry* entry = NULL;
   if (interest->mustBeFresh) {
     if (unlikely(!pccEntry->hasPitEntry1)) {
-      ++pitp->nNackMiss;
+      ++pit->nNackMiss;
       return NULL;
     }
     entry = PccEntry_GetPitEntry1(pccEntry);
   } else {
     if (unlikely(!pccEntry->hasPitEntry0)) {
-      ++pitp->nNackMiss;
+      ++pit->nNackMiss;
       return NULL;
     }
     entry = PccEntry_GetPitEntry0(pccEntry);
@@ -233,10 +226,10 @@ Pit_FindByNack(Pit* pit, Packet* npkt)
   // verify Interest name matches PCC key
   const LName* interestName = (const LName*)(&interest->name);
   if (unlikely(!PccKey_MatchName(&pccEntry->key, *interestName))) {
-    ++pitp->nNackMiss;
+    ++pit->nNackMiss;
     return NULL;
   }
 
-  ++pitp->nNackHit;
+  ++pit->nNackHit;
   return entry;
 }

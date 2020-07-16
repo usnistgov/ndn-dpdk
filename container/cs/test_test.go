@@ -39,6 +39,7 @@ var (
 )
 
 type Fixture struct {
+	Pcct          *pcct.Pcct
 	Cs            *cs.Cs
 	Pit           *pit.Pit
 	emptyFibEntry *fib.Entry
@@ -59,6 +60,7 @@ func NewFixture(cfg pcct.Config) (fixture *Fixture) {
 	}
 
 	return &Fixture{
+		Pcct:          pcct,
 		Cs:            cs.FromPcct(pcct),
 		Pit:           pit.FromPcct(pcct),
 		emptyFibEntry: new(fib.Entry),
@@ -66,12 +68,12 @@ func NewFixture(cfg pcct.Config) (fixture *Fixture) {
 }
 
 func (fixture *Fixture) Close() error {
-	return fixture.Cs.Pcct.Close()
+	return fixture.Pcct.Close()
 }
 
 // Return number of in-use entries in PCCT's underlying mempool.
 func (fixture *Fixture) CountMpInUse() int {
-	return fixture.Cs.AsMempool().CountInUse()
+	return fixture.Pcct.AsMempool().CountInUse()
 }
 
 // Insert a CS entry, by replacing a PIT entry.

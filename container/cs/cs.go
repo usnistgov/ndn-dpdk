@@ -12,22 +12,16 @@ import (
 )
 
 // Cs represents a Content Store (CS).
-type Cs struct {
-	pcct.Pcct
-}
+type Cs C.Cs
 
 // FromPcct converts Pcct to Cs.
 func FromPcct(pcct *pcct.Pcct) *Cs {
-	return (*Cs)(pcct.Ptr())
+	pcctC := (*C.Pcct)(pcct.Ptr())
+	return (*Cs)(&pcctC.cs)
 }
 
 func (cs *Cs) ptr() *C.Cs {
-	return (*C.Cs)(cs.Pcct.Ptr())
-}
-
-// Close is forbidden.
-func (cs *Cs) Close() error {
-	panic("Cs.Close() method is explicitly deleted; use Pcct.Close() to close underlying PCCT")
+	return (*C.Cs)(cs)
 }
 
 // Capacity returns capacity of the specified list, in number of entries.
@@ -56,7 +50,7 @@ func (cs *Cs) Erase(entry *Entry) {
 	C.Cs_Erase(cs.ptr(), entry.ptr())
 }
 
-// ReadDirectArcP returns direct entries ARC algorithm 'p' variable.
+// ReadDirectArcP returns direct entries ARC algorithm 'p' variable (for unit testing).
 func (cs *Cs) ReadDirectArcP() float64 {
-	return float64(C.Cs_GetPriv(cs.ptr()).directArc.p)
+	return float64(cs.ptr().direct.p)
 }

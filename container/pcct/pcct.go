@@ -7,6 +7,7 @@ package pcct
 */
 import "C"
 import (
+	"errors"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
@@ -26,17 +27,37 @@ type Pcct C.Pcct
 
 // New creates a PCCT, and then initializes PIT and CS.
 func New(cfg Config) (pcct *Pcct, e error) {
-	idC := C.CString(eal.AllocObjectID("pcct.Pcct"))
-	defer C.free(unsafe.Pointer(idC))
-	pcctC := C.Pcct_New(idC, C.uint32_t(cfg.MaxEntries), C.uint(cfg.Socket.ID()))
-	if pcctC == nil {
-		return nil, eal.GetErrno()
+	eltSize := C.sizeof_PccEntry
+	if C.sizeof_PccEntryExt > eltSize {
+		eltSize = C.sizeof_PccEntryExt
+	}
+	mp, e := mempool.New(mempool.Config{
+		Capacity:       cfg.MaxEntries,
+		ElementSize:    int(eltSize),
+		PrivSize:       int(C.sizeof_Pcct),
+		Socket:         cfg.Socket,
+		NoCache:        true,
+		SingleProducer: true,
+		SingleConsumer: true,
+	})
+	if e != nil {
+		return nil, e
 	}
 
-	pitC := C.Pit_FromPcct(pcctC)
-	C.Pit_Init(pitC)
-	csC := C.Cs_FromPcct(pcctC)
-	C.Cs_Init(csC, C.uint32_t(cfg.CsCapMd), C.uint32_t(cfg.CsCapMi))
+	mpC := (*C.struct_rte_mempool)(mp.Ptr())
+	pcctC := (*C.Pcct)(C.rte_mempool_get_priv(mpC))
+	*pcctC = C.Pcct{
+		mp: mpC,
+	}
+
+	idC := C.CString(eal.AllocObjectID("pcct.tokenHt"))
+	defer C.free(unsafe.Pointer(idC))
+	if !bool(C.Pcct_Init(pcctC, idC, C.uint32_t(2*cfg.MaxEntries), C.uint(cfg.Socket.ID()))) {
+		return nil, errors.New("Pcct_Init error")
+	}
+
+	C.Pit_Init(&pcctC.pit)
+	C.Cs_Init(&pcctC.cs, C.uint32_t(cfg.CsCapMd), C.uint32_t(cfg.CsCapMi))
 	return (*Pcct)(pcctC), nil
 }
 
@@ -51,7 +72,7 @@ func (pcct *Pcct) ptr() *C.Pcct {
 
 // AsMempool returns underlying mempool of the PCCT.
 func (pcct *Pcct) AsMempool() *mempool.Mempool {
-	return mempool.FromPtr(pcct.Ptr())
+	return mempool.FromPtr(unsafe.Pointer(pcct.ptr().mp))
 }
 
 func (pcct *Pcct) String() string {
@@ -61,6 +82,6 @@ func (pcct *Pcct) String() string {
 // Close destroys the PCCT.
 // This does not release stored Interest/Data packets.
 func (pcct *Pcct) Close() error {
-	C.Pcct_Close(pcct.ptr())
-	return nil
+	C.Pcct_Clear(pcct.ptr())
+	return pcct.AsMempool().Close()
 }

@@ -9,44 +9,15 @@
 /** @brief Maximum PIT entry lifetime (millis). */
 #define PIT_MAX_LIFETIME 120000
 
-/** @brief Cast Pcct* as Pit*. */
-static __rte_always_inline Pit*
-Pit_FromPcct(const Pcct* pcct)
-{
-  return (Pit*)pcct;
-}
-
-/** @brief Cast Pit* as Pcct*. */
-static __rte_always_inline Pcct*
-Pit_ToPcct(const Pit* pit)
-{
-  return (Pcct*)pit;
-}
-
-/** @brief Access PitPriv* struct. */
-__attribute__((nonnull, returns_nonnull)) static __rte_always_inline PitPriv*
-Pit_GetPriv(const Pit* pit)
-{
-  return &Pcct_GetPriv(Pit_ToPcct(pit))->pitPriv;
-}
-
 /** @brief Constructor. */
 void
 Pit_Init(Pit* pit);
-
-/** @brief Get number of PIT entries. */
-__attribute__((nonnull)) static inline uint32_t
-Pit_CountEntries(const Pit* pit)
-{
-  return Pit_GetPriv(pit)->nEntries;
-}
 
 /** @brief Trigger expired timers. */
 __attribute__((nonnull)) static inline void
 Pit_TriggerTimers(Pit* pit)
 {
-  PitPriv* pitp = Pit_GetPriv(pit);
-  MinSched_Trigger(pitp->timeoutSched);
+  MinSched_Trigger(pit->timeoutSched);
 }
 
 /** @brief Set callback when strategy timer expires. */
@@ -56,8 +27,7 @@ Pit_SetSgTimerCb(Pit* pit, Pit_SgTimerCb cb, void* arg);
 __attribute__((nonnull)) static inline void
 Pit_InvokeSgTimerCb_(Pit* pit, PitEntry* entry)
 {
-  PitPriv* pitp = Pit_GetPriv(pit);
-  (*pitp->sgTimerCb)(pit, entry, pitp->sgTimerCbArg);
+  (*pit->sgTimerCb)(pit, entry, pit->sgTimerCbArg);
 }
 
 /**

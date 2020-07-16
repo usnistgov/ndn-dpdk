@@ -21,12 +21,8 @@ typedef struct FwFwd
   PktQueue queueN;
 
   Fib* fib;
-  union
-  {
-    Pcct* pcct;
-    Pit* pit;
-    Cs* cs;
-  };
+  Pit* pit;
+  Cs* cs;
 
   PitSuppressConfig suppressCfg;
 
@@ -46,12 +42,6 @@ typedef struct FwFwd
   /** @brief Statistics of latency from packet arrival to start processing. */
   RunningStat latencyStat;
 } FwFwd;
-
-static inline Pcct**
-FwFwd_GetPcctPtr_(FwFwd* fwd)
-{
-  return &fwd->pcct;
-}
 
 int
 FwFwd_Run(FwFwd* fwd);

@@ -8,9 +8,8 @@ PitDnUpIt_Extend_(PitDnUpIt_* it, Pit* pit, int maxInExt, size_t offsetInExt)
   NDNDPDK_ASSERT(*it->nextPtr == NULL);
 
   // allocate PitEntryExt
-  struct rte_mempool* mp = Pcct_ToMempool(Pit_ToPcct(pit));
   PitEntryExt* ext;
-  int res = rte_mempool_get(mp, (void**)&ext);
+  int res = rte_mempool_get(Pcct_FromPit(pit)->mp, (void**)&ext);
   if (unlikely(res != 0)) {
     return false;
   }

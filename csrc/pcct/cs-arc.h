@@ -11,8 +11,8 @@ CsArc_Init(CsArc* arc, uint32_t capacity);
 __attribute__((nonnull)) CsList*
 CsArc_GetList(CsArc* arc, CsArcListId cslId);
 
-static __rte_always_inline uint32_t
-CsArc_GetCapacity(CsArc* arc)
+__attribute__((nonnull)) static __rte_always_inline uint32_t
+CsArc_GetCapacity(const CsArc* arc)
 {
   return arc->B1.capacity;
 }

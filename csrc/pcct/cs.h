@@ -8,38 +8,17 @@
 #include "pcct.h"
 #include "pit-result.h"
 
-/** @brief Cast Pcct* as Cs*. */
-static __rte_always_inline Cs*
-Cs_FromPcct(const Pcct* pcct)
-{
-  return (Cs*)pcct;
-}
-
-/** @brief Cast Cs* as Pcct*. */
-static __rte_always_inline Pcct*
-Cs_ToPcct(const Cs* cs)
-{
-  return (Pcct*)cs;
-}
-
-/** @brief Access CsPriv* struct. */
-__attribute__((nonnull)) static __rte_always_inline CsPriv*
-Cs_GetPriv(const Cs* cs)
-{
-  return &Pcct_GetPriv(Cs_ToPcct(cs))->csPriv;
-}
-
 /** @brief Constructor. */
 __attribute__((nonnull)) void
 Cs_Init(Cs* cs, uint32_t capMd, uint32_t capMi);
 
 /** @brief Get capacity in number of entries. */
 __attribute__((nonnull)) uint32_t
-Cs_GetCapacity(const Cs* cs, CsListID cslId);
+Cs_GetCapacity(Cs* cs, CsListID cslId);
 
 /** @brief Get number of entries. */
 __attribute__((nonnull)) uint32_t
-Cs_CountEntries(const Cs* cs, CsListID cslId);
+Cs_CountEntries(Cs* cs, CsListID cslId);
 
 /**
  * @brief Insert a CS entry.

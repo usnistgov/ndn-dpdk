@@ -1,6 +1,7 @@
 // Downloaded from https://github.com/troydhanson/uthash
 // commit 1124f0a70b0714886402c3c0df03d037e3c4d57a
 // 'unsigned hashv' changed to 'uint64_t hashv'.
+// Remember to update uthash-handle.h when updating this file.
 
 /*
 Copyright (c) 2003-2018, Troy D. Hanson     http://troydhanson.github.com/uthash/
@@ -1140,15 +1141,6 @@ typedef struct UT_hash_table {
 
 } UT_hash_table;
 
-typedef struct UT_hash_handle {
-   struct UT_hash_table *tbl;
-   void *prev;                       /* prev element in app order      */
-   void *next;                       /* next element in app order      */
-   struct UT_hash_handle *hh_prev;   /* previous hh in bucket order    */
-   struct UT_hash_handle *hh_next;   /* next hh in bucket order        */
-   void *key;                        /* ptr to enclosing struct's key  */
-   unsigned keylen;                  /* enclosing struct's key len     */
-   uint64_t hashv;                   /* result of hash-fcn(key)        */
-} UT_hash_handle;
+#include "uthash-handle.h"
 
 #endif /* UTHASH_H */

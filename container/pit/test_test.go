@@ -38,7 +38,8 @@ var (
 )
 
 type Fixture struct {
-	Pit *pit.Pit
+	Pcct *pcct.Pcct
+	Pit  *pit.Pit
 
 	fibFixture    *fibtest.Fixture
 	emptyStrategy strategycode.StrategyCode
@@ -46,30 +47,28 @@ type Fixture struct {
 }
 
 func NewFixture(pcctMaxEntries int) (fixture *Fixture) {
-	fixture = new(Fixture)
-
-	pcctCfg := pcct.Config{MaxEntries: pcctMaxEntries}
-	pcct, e := pcct.New(pcctCfg)
+	pcct, e := pcct.New(pcct.Config{MaxEntries: pcctMaxEntries})
 	if e != nil {
 		panic(e)
 	}
 
-	fixture.Pit = pit.FromPcct(pcct)
-
-	fixture.fibFixture = fibtest.NewFixture(2, 4, 1)
-	fixture.emptyStrategy = strategycode.MakeEmpty("empty")
-	fixture.EmptyFibEntry = new(fib.Entry)
-	return fixture
+	return &Fixture{
+		Pcct:          pcct,
+		Pit:           pit.FromPcct(pcct),
+		fibFixture:    fibtest.NewFixture(2, 4, 1),
+		emptyStrategy: strategycode.MakeEmpty("empty"),
+		EmptyFibEntry: new(fib.Entry),
+	}
 }
 
 func (fixture *Fixture) Close() error {
 	fixture.fibFixture.Close()
-	return fixture.Pit.Pcct.Close()
+	return fixture.Pcct.Close()
 }
 
 // Return number of in-use entries in PCCT's underlying mempool.
 func (fixture *Fixture) CountMpInUse() int {
-	return fixture.Pit.AsMempool().CountInUse()
+	return fixture.Pcct.AsMempool().CountInUse()
 }
 
 // Insert a PIT entry.

@@ -76,7 +76,9 @@ func (fwd *Fwd) Init(lc eal.LCore, fib *fib.Fib, pcctCfg pcct.Config, qcfgI, qcf
 	if e != nil {
 		return fmt.Errorf("pcct.New: %v", e)
 	}
-	*C.FwFwd_GetPcctPtr_(fwd.c) = (*C.Pcct)(fwd.pcct.Ptr())
+	pcctC := (*C.Pcct)(fwd.pcct.Ptr())
+	fwd.c.pit = &pcctC.pit
+	fwd.c.cs = &pcctC.cs
 
 	fwd.c.headerMp = (*C.struct_rte_mempool)(ndni.HeaderMempool.MakePool(socket).Ptr())
 	fwd.c.indirectMp = (*C.struct_rte_mempool)(pktmbuf.Indirect.MakePool(socket).Ptr())

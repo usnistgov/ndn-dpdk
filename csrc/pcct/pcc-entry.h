@@ -3,7 +3,7 @@
 
 /** @file */
 
-#include "../vendor/uthash.h"
+#include "../vendor/uthash-handle.h"
 #include "cs-entry.h"
 #include "pcc-key.h"
 #include "pit-entry.h"

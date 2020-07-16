@@ -14,36 +14,26 @@ import (
 )
 
 // Pit represents a Pending Interest Table (PIT).
-type Pit struct {
-	pcct.Pcct
-}
+type Pit C.Pit
 
 // FromPcct converts Pcct to Pit.
 func FromPcct(pcct *pcct.Pcct) *Pit {
-	return (*Pit)(pcct.Ptr())
+	pcctC := (*C.Pcct)(pcct.Ptr())
+	return (*Pit)(&pcctC.pit)
 }
 
 func (pit *Pit) ptr() *C.Pit {
-	return (*C.Pit)(pit.Pcct.Ptr())
-}
-
-func (pit *Pit) getPriv() *C.PitPriv {
-	return C.Pit_GetPriv(pit.ptr())
-}
-
-// Close is forbidden.
-func (pit *Pit) Close() error {
-	panic("Pit.Close() method is explicitly deleted; use Pcct.Close() to close underlying PCCT")
+	return (*C.Pit)(pit)
 }
 
 // Len returns number of PIT entries.
 func (pit *Pit) Len() int {
-	return int(C.Pit_CountEntries(pit.ptr()))
+	return int(pit.ptr().nEntries)
 }
 
 // TriggerTimeoutSched triggers the internal timeout scheduler.
 func (pit *Pit) TriggerTimeoutSched() {
-	C.MinSched_Trigger(pit.getPriv().timeoutSched)
+	C.MinSched_Trigger(pit.ptr().timeoutSched)
 }
 
 // Insert attempts to insert a PIT entry for the given Interest.
