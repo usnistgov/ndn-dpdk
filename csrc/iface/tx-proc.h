@@ -47,7 +47,7 @@ typedef struct TxProc
  * @param headroom headroom before NDNLP header, as required by transport.
  * @param indirectMp mempool for indirect mbufs.
  * @param headerMp mempool for NDNLP headers; must have
- *                 headroom + LpHeaderEstimatedHeadroom dataroom.
+ *                 headroom + LpHeaderHeadroom dataroom.
  */
 __attribute__((nonnull)) void
 TxProc_Init(TxProc* tx, uint16_t mtu, uint16_t headroom, struct rte_mempool* indirectMp,

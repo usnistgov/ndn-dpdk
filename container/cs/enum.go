@@ -1,19 +1,19 @@
 package cs
 
-//go:generate go run ../../mk/enumgen/ -guard=NDNDPDK_PCCT_CS_ENUM_H -out=../../csrc/pcct/cs-enum.h .
+//go:generate go run ../../mk/enumgen/ -guard=NDNDPDK_CS_ENUM_H -out=../../csrc/pcct/cs-enum.h .
 
 // ListID identifies a list in the CS.
 type ListID int
 
 // ListID values.
 const (
-	CslMd ListID = iota
-	CslMdT1
-	CslMdB1
-	CslMdT2
-	CslMdB2
-	CslMdDel
-	CslMi
+	ListMd ListID = iota
+	ListMdT1
+	ListMdB1
+	ListMdT2
+	ListMdB2
+	ListMdDel
+	ListMi
 
-	_ = "enumgen:CsListId"
+	_ = "enumgen:CsListID:Csl:List"
 )

@@ -8,13 +8,13 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
-// Up represents a PIT upstream record.
-type Up struct {
+// UpRecord represents a PIT upstream record.
+type UpRecord struct {
 	c     *C.PitUp
 	entry *Entry
 }
 
 // FaceID returns the face ID.
-func (up Up) FaceID() iface.ID {
+func (up UpRecord) FaceID() iface.ID {
 	return iface.ID(up.c.face)
 }

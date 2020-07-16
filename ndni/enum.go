@@ -11,8 +11,8 @@ import (
 //go:generate go run ../mk/enumgen/ -guard=NDNDPDK_NDNI_AN_H -out=../csrc/ndni/an.h ../ndn/an
 
 const (
-	// LpHeaderEstimatedHeadroom is a safe headroom to prepend NDNLPv2 header.
-	LpHeaderEstimatedHeadroom = 0 +
+	// LpHeaderHeadroom is the required headroom to prepend NDNLPv2 header.
+	LpHeaderHeadroom = 0 +
 		1 + 5 + // LpPacket TL
 		1 + 1 + 8 + // SeqNo
 		1 + 1 + 2 + // FragIndex
@@ -48,7 +48,7 @@ const (
 	// It can accommodate two forwarding hints.
 	InterestTemplateBufLen = 2*NameMaxLength + 256
 
-	// InterestTemplateDataroom is a safe buffer size to encode Interest.
+	// InterestTemplateDataroom is the required dataroom to encode Interest with InterestTemplate.
 	InterestTemplateDataroom = 0 +
 		1 + 5 + // Interest TL
 		1 + 3 + NameMaxLength + // Name
@@ -61,7 +61,7 @@ const (
 		1 + 3 + 0 + // Content TL
 		39 // Signature
 
-	// DataGenDataroom is a safe buffer size to encode Data.
+	// DataGenDataroom is the required dataroom to encode Data with DataGen.
 	DataGenDataroom = 0 +
 		1 + 5 + // Data TL
 		1 + 3 + NameMaxLength // Name prefix

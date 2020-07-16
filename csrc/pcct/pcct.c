@@ -115,7 +115,9 @@ Pcct_Insert(Pcct* pcct, PccSearch* search, bool* isNew)
   HASH_ADD_BYHASHVALUE(hh, pcctp->keyHt, key, 0, hash, entry);
   *isNew = true;
 
-  ZF_LOGD("%p Insert(%016" PRIx64 ", %s) %p", pcct, hash, PccSearch_ToDebugString(search), entry);
+  char debugStringBuffer[PccSearchDebugStringLength];
+  ZF_LOGD("%p Insert(%016" PRIx64 ", %s) %p", pcct, hash,
+          PccSearch_ToDebugString(search, debugStringBuffer), entry);
   return entry;
 }
 

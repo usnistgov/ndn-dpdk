@@ -2,7 +2,7 @@
 #include "strategy.h"
 
 #include "../core/logger.h"
-#include "../pcct/pit-dn-up-it.h"
+#include "../pcct/pit-iterator.h"
 
 INIT_ZF_LOG(FwFwd);
 
@@ -38,7 +38,9 @@ FwFwd_DataNeedDigest(FwFwd* fwd, FwFwdCtx* ctx)
 __attribute__((nonnull)) static void
 FwFwd_DataSatisfy(FwFwd* fwd, FwFwdCtx* ctx)
 {
-  ZF_LOGD("^ pit-entry=%p pit-key=%s", ctx->pitEntry, PitEntry_ToDebugString(ctx->pitEntry));
+  char debugStringBuffer[PitDebugStringLength];
+  ZF_LOGD("^ pit-entry=%p pit-key=%s", ctx->pitEntry,
+          PitEntry_ToDebugString(ctx->pitEntry, debugStringBuffer));
 
   PitDnIt it;
   for (PitDnIt_Init(&it, ctx->pitEntry); PitDnIt_Valid(&it); PitDnIt_Next(&it)) {

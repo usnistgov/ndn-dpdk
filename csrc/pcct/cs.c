@@ -86,7 +86,7 @@ Cs_Evict(Cs* cs)
 }
 
 static CsList*
-CsPriv_GetList(CsPriv* csp, CsListId cslId)
+CsPriv_GetList(CsPriv* csp, CsListID cslId)
 {
   switch (cslId) {
     case CslMdT1:
@@ -119,7 +119,7 @@ Cs_Init(Cs* cs, uint32_t capMd, uint32_t capMi)
 }
 
 uint32_t
-Cs_GetCapacity(const Cs* cs, CsListId cslId)
+Cs_GetCapacity(const Cs* cs, CsListID cslId)
 {
   CsPriv* csp = Cs_GetPriv(cs);
   if (cslId == CslMd) {
@@ -129,7 +129,7 @@ Cs_GetCapacity(const Cs* cs, CsListId cslId)
 }
 
 uint32_t
-Cs_CountEntries(const Cs* cs, CsListId cslId)
+Cs_CountEntries(const Cs* cs, CsListID cslId)
 {
   CsPriv* csp = Cs_GetPriv(cs);
   if (cslId == CslMd) {

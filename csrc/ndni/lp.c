@@ -116,7 +116,7 @@ FOUND_PAYLOAD:;
 void
 LpHeader_Prepend(struct rte_mbuf* pkt, const LpL3* l3, const LpL2* l2)
 {
-  NDNDPDK_ASSERT(rte_pktmbuf_headroom(pkt) >= LpHeaderEstimatedHeadroom);
+  NDNDPDK_ASSERT(rte_pktmbuf_headroom(pkt) >= LpHeaderHeadroom);
   TlvEncoder_PrependTL(pkt, TtLpPayload, pkt->pkt_len);
 
   if (likely(l2->fragIndex == 0)) {

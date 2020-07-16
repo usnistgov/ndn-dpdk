@@ -54,46 +54,43 @@ func (pc *pkgConsts) recognizeConstDecl(decl *ast.GenDecl) {
 		return
 	}
 
-	wantCollect := false
-	typename := ""
-
+	var collect []string
 	for _, spec := range decl.Specs {
 		vspec := spec.(*ast.ValueSpec)
 		if len(vspec.Names) != 1 || vspec.Names[0].Name != "_" || len(vspec.Values) != 1 {
 			continue
 		}
-		value := pc.nodeToString(vspec.Values[0])
-		switch {
-		case value == "\"enumgen\"":
-			wantCollect = true
-		case strings.HasPrefix(value, "\"enumgen:") && strings.HasSuffix(value, "\""):
-			wantCollect = true
-			typename = value[9 : len(value)-1]
+		tokens := strings.Split(strings.Trim(pc.nodeToString(vspec.Values[0]), "\""), ":")
+		if tokens[0] != "enumgen" {
+			continue
 		}
+		collect = tokens
 		break
 	}
-
-	rename := func(name string) string { return name }
-	if tokens := strings.SplitN(typename, "-", 2); len(tokens) == 2 {
-		typename = tokens[0]
-		prefix := tokens[1]
-		rename = func(name string) string {
-			if strings.HasPrefix(name, prefix) {
-				return typename + name[len(prefix):]
-			}
-			return name
-		}
+	if len(collect) == 0 {
+		return
 	}
 
-	if wantCollect {
-		enum := pc.Enums[typename]
-		if enum == nil {
-			enum = new(enumDecl)
-			enum.Typename = typename
-			pc.Enums[typename] = enum
-		}
-		pc.collectEnum(enum, decl, rename)
+	typename, prependPrefix, trimPrefix := "", "", ""
+	switch len(collect) {
+	case 4:
+		trimPrefix = collect[3]
+		fallthrough
+	case 3:
+		prependPrefix = collect[2]
+		fallthrough
+	case 2:
+		typename = collect[1]
 	}
+
+	enum := pc.Enums[typename]
+	if enum == nil {
+		enum = new(enumDecl)
+		enum.Typename = typename
+		pc.Enums[typename] = enum
+	}
+	rename := func(name string) string { return prependPrefix + strings.TrimPrefix(name, trimPrefix) }
+	pc.collectEnum(enum, decl, rename)
 }
 
 func (pc *pkgConsts) collectEnum(enum *enumDecl, decl *ast.GenDecl, rename func(string) string) {

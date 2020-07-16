@@ -57,8 +57,8 @@ func (mg DpInfoMgmt) Cs(arg IndexArg, reply *CsCounters) error {
 	}
 	pitCnt := thePit.ReadCounters()
 
-	reply.MD = readCslCnt(theCs, cs.CslMd)
-	reply.MI = readCslCnt(theCs, cs.CslMi)
+	reply.MD = readCslCnt(theCs, cs.ListMd)
+	reply.MI = readCslCnt(theCs, cs.ListMi)
 	reply.NHits = pitCnt.NCsMatch
 	reply.NMisses = pitCnt.NInsert + pitCnt.NFound
 

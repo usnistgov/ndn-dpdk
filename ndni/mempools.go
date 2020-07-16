@@ -35,7 +35,7 @@ func init() {
 		PrivSize: int(C.sizeof_PacketPriv),
 	})
 
-	headerDataroom := pktmbuf.DefaultHeadroom + LpHeaderEstimatedHeadroom
+	headerDataroom := pktmbuf.DefaultHeadroom + LpHeaderHeadroom
 	HeaderMempool = pktmbuf.RegisterTemplate("HEADER", pktmbuf.PoolConfig{
 		Capacity: 65535,
 		PrivSize: int(C.sizeof_PacketPriv),

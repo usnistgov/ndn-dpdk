@@ -23,15 +23,15 @@ func TestEntryExpiry(t *testing.T) {
 
 	entry := fixture.Insert(interest1)
 	require.NotNil(entry)
-	assert.Len(entry.ListDns(), 0)
-	assert.NotNil(entry.InsertDn(interest1))
-	assert.Len(entry.ListDns(), 1)
+	assert.Len(entry.DnRecords(), 0)
+	assert.NotNil(entry.InsertDnRecord(interest1))
+	assert.Len(entry.DnRecords(), 1)
 
 	entry2 := fixture.Insert(interest2)
 	require.NotNil(entry2)
 	assert.Equal(uintptr(entry.Ptr()), uintptr(entry2.Ptr()))
-	assert.NotNil(entry.InsertDn(interest2))
-	assert.Len(entry.ListDns(), 2)
+	assert.NotNil(entry.InsertDnRecord(interest2))
+	assert.Len(entry.DnRecords(), 2)
 
 	time.Sleep(200 * time.Millisecond)
 	fixture.Pit.TriggerTimeoutSched()
@@ -53,7 +53,7 @@ func TestEntryExtend(t *testing.T) {
 
 		entry = fixture.Insert(interest)
 		require.NotNil(entry)
-		assert.NotNil(entry.InsertDn(interest))
+		assert.NotNil(entry.InsertDnRecord(interest))
 	}
 
 	assert.Equal(1, fixture.Pit.Len())
@@ -93,17 +93,17 @@ func TestEntryFibRef(t *testing.T) {
 	interest1 := makeInterest("/A/B")
 	entry1, _ := fixture.Pit.Insert(interest1, fibEntry1)
 	require.NotNil(entry1)
-	assert.NotNil(entry1.InsertDn(interest1))
-	assert.Equal(fibEntry1.FibSeqNum(), entry1.FibFibSeqNum())
+	assert.NotNil(entry1.InsertDnRecord(interest1))
+	assert.Equal(fibEntry1.FibSeqNum(), entry1.FibSeqNum())
 
 	interest2 := makeInterest("/A/B")
 	entry2, _ := fixture.Pit.Insert(interest2, fibEntry1)
 	require.Equal(entry1, entry2)
-	assert.Equal(fibEntry1.FibSeqNum(), entry2.FibFibSeqNum())
+	assert.Equal(fibEntry1.FibSeqNum(), entry2.FibSeqNum())
 
 	fibEntry3 := fixture.InsertFibEntry("/A", 1003)
 	assert.NotEqual(fibEntry1.FibSeqNum(), fibEntry3.FibSeqNum())
 	entry3, _ := fixture.Pit.Insert(interest2, fibEntry3)
 	require.Equal(entry2, entry3)
-	assert.Equal(fibEntry3.FibSeqNum(), entry3.FibFibSeqNum())
+	assert.Equal(fibEntry3.FibSeqNum(), entry3.FibSeqNum())
 }

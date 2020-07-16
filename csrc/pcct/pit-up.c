@@ -1,5 +1,5 @@
 #include "pit-up.h"
-#include "pit-dn-up-it.h"
+#include "pit-iterator.h"
 
 static bool
 PitUp_HasRejectedNonce(PitUp* up, uint32_t nonce)

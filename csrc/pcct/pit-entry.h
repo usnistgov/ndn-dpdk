@@ -8,14 +8,18 @@
 #include "pit-struct.h"
 #include "pit-up.h"
 
-#define PIT_ENTRY_MAX_DNS 6
-#define PIT_ENTRY_MAX_UPS 2
-#define PIT_ENTRY_EXT_MAX_DNS 16
-#define PIT_ENTRY_EXT_MAX_UPS 8
-#define PIT_ENTRY_SG_SCRATCH 64
-
-#define PIT_ENTRY_FIBPREFIXL_NBITS_ 9
-static_assert((1 << PIT_ENTRY_FIBPREFIXL_NBITS_) > FibMaxNameLength, "");
+enum
+{
+  PitMaxDns = 6,
+  PitMaxUps = 2,
+  PitMaxExtDns = 16,
+  PitMaxExtUps = 8,
+  PitScratchSize = 64,
+  PitDebugStringLength =
+    NameHexBufferLength + 6 * (PitMaxDns + PitMaxExtDns + PitMaxUps + PitMaxExtUps) + 32,
+  PitFibPrefixLenBits_ = 9,
+};
+static_assert((1 << PitFibPrefixLenBits_) > FibMaxNameLength, "");
 
 typedef struct PitEntryExt PitEntryExt;
 
@@ -30,26 +34,26 @@ struct PitEntry
   MinTmr timeout; ///< timeout timer
   TscTime expiry; ///< when all DNs expire
 
-  uint64_t fibPrefixHash;                            ///< hash value of FIB prefix
-  uint32_t fibSeqNum;                                ///< FIB entry sequence number
-  uint8_t nCanBePrefix;                              ///< how many DNs want CanBePrefix?
-  uint8_t txHopLimit;                                ///< HopLimit for outgoing Interests
-  uint16_t fibPrefixL : PIT_ENTRY_FIBPREFIXL_NBITS_; ///< TLV-LENGTH of FIB prefix
-  bool mustBeFresh : 1;                              ///< entry for MustBeFresh 0 or 1?
-  bool hasSgTimer : 1; ///< whether timeout is set by strategy or expiry
+  uint64_t fibPrefixHash;                     ///< hash value of FIB prefix
+  uint32_t fibSeqNum;                         ///< FIB entry sequence number
+  uint8_t nCanBePrefix;                       ///< how many DNs want CanBePrefix?
+  uint8_t txHopLimit;                         ///< HopLimit for outgoing Interests
+  uint16_t fibPrefixL : PitFibPrefixLenBits_; ///< TLV-LENGTH of FIB prefix
+  bool mustBeFresh : 1;                       ///< entry for MustBeFresh 0 or 1?
+  bool hasSgTimer : 1;                        ///< whether timeout is set by strategy or expiry
 
   PitEntryExt* ext;
-  PitDn dns[PIT_ENTRY_MAX_DNS];
-  PitUp ups[PIT_ENTRY_MAX_UPS];
+  PitDn dns[PitMaxDns];
+  PitUp ups[PitMaxUps];
 
-  char sgScratch[PIT_ENTRY_SG_SCRATCH];
+  char sgScratch[PitScratchSize];
 };
 static_assert(offsetof(PitEntry, dns) <= RTE_CACHE_LINE_SIZE, "");
 
 struct PitEntryExt
 {
-  PitDn dns[PIT_ENTRY_EXT_MAX_DNS];
-  PitUp ups[PIT_ENTRY_EXT_MAX_UPS];
+  PitDn dns[PitMaxExtDns];
+  PitUp ups[PitMaxExtUps];
   PitEntryExt* next;
 };
 
@@ -63,7 +67,7 @@ PitEntry_SetFibEntry_(PitEntry* entry, PInterest* interest, const FibEntry* fibE
     name = &interest->fwHint;
   }
   entry->fibPrefixHash = PName_ComputePrefixHash(name, fibEntry->nComps);
-  memset(entry->sgScratch, 0, PIT_ENTRY_SG_SCRATCH);
+  memset(entry->sgScratch, 0, PitScratchSize);
 }
 
 /**
@@ -105,12 +109,11 @@ PitEntry_Finalize(PitEntry* entry)
 }
 
 /**
- * @brief Represent PIT entry as a string for debug purpose.
- * @return A string from thread-local buffer.
- * @warning Subsequent *ToDebugString calls on the same thread overwrite the buffer.
+ * @brief Convert @p entry to a string for debug purpose.
+ * @return @p buffer .
  */
 __attribute__((nonnull, returns_nonnull)) const char*
-PitEntry_ToDebugString(PitEntry* entry);
+PitEntry_ToDebugString(PitEntry* entry, char buffer[PitDebugStringLength]);
 
 /** @brief Get a token that identifies the PIT entry. */
 __attribute__((nonnull)) static inline uint64_t

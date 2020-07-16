@@ -32,12 +32,12 @@ func (cs *Cs) Close() error {
 
 // Capacity returns capacity of the specified list, in number of entries.
 func (cs *Cs) Capacity(list ListID) int {
-	return int(C.Cs_GetCapacity(cs.ptr(), C.CsListId(list)))
+	return int(C.Cs_GetCapacity(cs.ptr(), C.CsListID(list)))
 }
 
 // CountEntries returns number of entries in the specified list.
 func (cs *Cs) CountEntries(list ListID) int {
-	return int(C.Cs_CountEntries(cs.ptr(), C.CsListId(list)))
+	return int(C.Cs_CountEntries(cs.ptr(), C.CsListID(list)))
 }
 
 type pitFindResult interface {

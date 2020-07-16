@@ -3,7 +3,7 @@
 #include "token.h"
 
 #include "../core/logger.h"
-#include "../pcct/pit-dn-up-it.h"
+#include "../pcct/pit-iterator.h"
 
 INIT_ZF_LOG(FwFwd);
 

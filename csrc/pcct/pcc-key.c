@@ -1,23 +1,26 @@
 #include "pcc-key.h"
-#include "debug-string.h"
 #include "pcc-entry.h"
 
 static_assert(sizeof(PccKeyExt) <= sizeof(PccEntry), "");
 
 const char*
-PccSearch_ToDebugString(const PccSearch* search)
+PccSearch_ToDebugString(const PccSearch* search, char buffer[PccSearchDebugStringLength])
 {
-  return "";
-  // PccDebugString_Clear();
+  int pos = 0;
+#define append(...)                                                                                \
+  do {                                                                                             \
+    pos += snprintf(RTE_PTR_ADD(buffer, pos), PccSearchDebugStringLength - pos, __VA_ARGS__);      \
+  } while (false)
 
-  // char nameStr[LNAME_MAX_STRING_SIZE + 1];
-  // if (LName_ToString(search->name, nameStr, sizeof(nameStr)) == 0) {
-  //   snprintf(nameStr, sizeof(nameStr), "(empty)");
-  // }
-  // PccDebugString_Appendf("name=%s", nameStr);
+  pos += LName_PrintHex(search->name, RTE_PTR_ADD(buffer, pos));
 
-  // if (LName_ToString(search->fh, nameStr, sizeof(nameStr)) == 0) {
-  //   snprintf(nameStr, sizeof(nameStr), "(empty)");
-  // }
-  // return PccDebugString_Appendf(" fh=%s", nameStr);
+  append(" ");
+  if (unlikely(search->fh.length == 0)) {
+    append("(no-fh)");
+  } else {
+    pos += LName_PrintHex(search->fh, RTE_PTR_ADD(buffer, pos));
+  }
+
+#undef append
+  return buffer;
 }

@@ -75,7 +75,7 @@ typedef PitDnUpIt_ PitDnIt;
 __attribute__((nonnull)) static inline void
 PitDnIt_Init(PitDnIt* it, PitEntry* entry)
 {
-  PitDnUpIt_Init_(it, entry, PIT_ENTRY_MAX_DNS, offsetof(PitEntry, dns));
+  PitDnUpIt_Init_(it, entry, PitMaxDns, offsetof(PitEntry, dns));
   it->dn = &it->dns[it->i];
 }
 
@@ -88,7 +88,7 @@ PitDnIt_Valid(PitDnIt* it)
 __attribute__((nonnull)) static inline void
 PitDnIt_Next(PitDnIt* it)
 {
-  PitDnUpIt_Next_(it, PIT_ENTRY_EXT_MAX_DNS, offsetof(PitEntryExt, dns));
+  PitDnUpIt_Next_(it, PitMaxExtDns, offsetof(PitEntryExt, dns));
   it->dn = &it->dns[it->i];
 }
 
@@ -100,7 +100,7 @@ PitDnIt_Next(PitDnIt* it)
 __attribute__((nonnull)) static inline bool
 PitDnIt_Extend(PitDnIt* it, Pit* pit)
 {
-  bool ok = PitDnUpIt_Extend_(it, pit, PIT_ENTRY_EXT_MAX_DNS, offsetof(PitEntryExt, dns));
+  bool ok = PitDnUpIt_Extend_(it, pit, PitMaxExtDns, offsetof(PitEntryExt, dns));
   it->dn = &it->dns[it->i];
   return ok;
 }
@@ -121,7 +121,7 @@ typedef PitDnUpIt_ PitUpIt;
 __attribute__((nonnull)) static inline void
 PitUpIt_Init(PitUpIt* it, PitEntry* entry)
 {
-  PitDnUpIt_Init_(it, entry, PIT_ENTRY_MAX_UPS, offsetof(PitEntry, ups));
+  PitDnUpIt_Init_(it, entry, PitMaxUps, offsetof(PitEntry, ups));
   it->up = &it->ups[it->i];
 }
 
@@ -134,7 +134,7 @@ PitUpIt_Valid(PitUpIt* it)
 __attribute__((nonnull)) static inline void
 PitUpIt_Next(PitUpIt* it)
 {
-  PitDnUpIt_Next_(it, PIT_ENTRY_EXT_MAX_UPS, offsetof(PitEntryExt, ups));
+  PitDnUpIt_Next_(it, PitMaxExtUps, offsetof(PitEntryExt, ups));
   it->up = &it->ups[it->i];
 }
 
@@ -146,7 +146,7 @@ PitUpIt_Next(PitUpIt* it)
 __attribute__((nonnull)) static inline bool
 PitUpIt_Extend(PitDnIt* it, Pit* pit)
 {
-  bool ok = PitDnUpIt_Extend_(it, pit, PIT_ENTRY_EXT_MAX_UPS, offsetof(PitEntryExt, ups));
+  bool ok = PitDnUpIt_Extend_(it, pit, PitMaxExtUps, offsetof(PitEntryExt, ups));
   it->up = &it->ups[it->i];
   return ok;
 }

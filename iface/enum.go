@@ -38,7 +38,7 @@ const (
 	StateDown
 	StateRemoved
 
-	_ = "enumgen:FaceState-State"
+	_ = "enumgen:FaceState:Face"
 )
 
 func (st State) String() string {

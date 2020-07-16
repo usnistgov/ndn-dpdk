@@ -68,7 +68,9 @@ FwFwd_InterestForward(FwFwd* fwd, FwFwdCtx* ctx)
     return;
   }
   FwFwd_NULLize(ctx->npkt); // npkt is owned and possibly freed by pitEntry
-  ZF_LOGD("^ pit-entry=%p(%s)", ctx->pitEntry, PitEntry_ToDebugString(ctx->pitEntry));
+  char debugStringBuffer[PitDebugStringLength];
+  ZF_LOGD("^ pit-entry=%p(%s)", ctx->pitEntry,
+          PitEntry_ToDebugString(ctx->pitEntry, debugStringBuffer));
 
   uint64_t res = SgInvoke(ctx->fibEntry->strategy, ctx);
   FwFwd_NULLize(ctx->pitEntry); // strategy may have deleted PIT entry via SgReturnNacks

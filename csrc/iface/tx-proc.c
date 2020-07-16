@@ -114,17 +114,17 @@ TxProc_Init(TxProc* tx, uint16_t mtu, uint16_t headroom, struct rte_mempool* ind
             struct rte_mempool* headerMp)
 {
   NDNDPDK_ASSERT(mtu == 0 || (mtu >= MinMtu && mtu <= MaxMtu));
-  NDNDPDK_ASSERT(rte_pktmbuf_data_room_size(headerMp) >= headroom + LpHeaderEstimatedHeadroom);
+  NDNDPDK_ASSERT(rte_pktmbuf_data_room_size(headerMp) >= headroom + LpHeaderHeadroom);
   tx->indirectMp = indirectMp;
   tx->headerMp = headerMp;
 
   if (mtu == 0) {
     tx->outputFunc = TxProc_OutputNoFrag;
   } else {
-    NDNDPDK_ASSERT(mtu > LpHeaderEstimatedHeadroom);
-    tx->fragmentPayloadSize = mtu - LpHeaderEstimatedHeadroom;
+    NDNDPDK_ASSERT(mtu > LpHeaderHeadroom);
+    tx->fragmentPayloadSize = mtu - LpHeaderHeadroom;
     tx->outputFunc = TxProc_OutputFrag;
   }
 
-  tx->headerHeadroom = headroom + LpHeaderEstimatedHeadroom;
+  tx->headerHeadroom = headroom + LpHeaderHeadroom;
 }

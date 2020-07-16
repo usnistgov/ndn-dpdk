@@ -5,6 +5,11 @@
 
 #include "common.h"
 
+enum
+{
+  PccSearchDebugStringLength = 2 * NameHexBufferLength + 32,
+};
+
 /** @brief Hash key for searching among @c PccEntry . */
 typedef struct PccSearch
 {
@@ -38,11 +43,10 @@ PccSearch_ComputeHash(const PccSearch* search)
 
 /**
  * @brief Convert @p search to a string for debug purpose.
- * @return A string from thread-local buffer.
- * @warning Subsequent *ToDebugString calls on the same thread overwrite the buffer.
+ * @return @p buffer .
  */
 __attribute__((nonnull, returns_nonnull)) const char*
-PccSearch_ToDebugString(const PccSearch* search);
+PccSearch_ToDebugString(const PccSearch* search, char buffer[PccSearchDebugStringLength]);
 
 #define PCC_KEY_NAME_CAP 240
 #define PCC_KEY_FH_CAP 160

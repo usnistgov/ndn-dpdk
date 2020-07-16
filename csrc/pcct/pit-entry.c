@@ -1,6 +1,5 @@
 #include "pit-entry.h"
-#include "debug-string.h"
-#include "pit-dn-up-it.h"
+#include "pit-iterator.h"
 #include "pit.h"
 
 #include "../core/logger.h"
@@ -10,36 +9,59 @@ INIT_ZF_LOG(PitEntry);
 static_assert(sizeof(PitEntryExt) <= sizeof(PccEntry), "");
 
 const char*
-PitEntry_ToDebugString(PitEntry* entry)
+PitEntry_ToDebugString(PitEntry* entry, char buffer[PitDebugStringLength])
 {
-  return "";
-  // PccDebugString_Clear();
+  int pos = 0;
+#define append(...)                                                                                \
+  do {                                                                                             \
+    pos += snprintf(RTE_PTR_ADD(buffer, pos), PitDebugStringLength - pos, __VA_ARGS__);            \
+  } while (false)
 
-  // PInterest* interest = Packet_GetInterestHdr(entry->npkt);
-  // char nameStr[LNAME_MAX_STRING_SIZE + 1];
-  // const LName* interestLName = (const LName*)&interest->name;
-  // if (LName_ToString(*interestLName, nameStr, sizeof(nameStr)) == 0) {
-  //   snprintf(nameStr, sizeof(nameStr), "(empty)");
-  // }
+  PInterest* interest = Packet_GetInterestHdr(entry->npkt);
+  pos += LName_PrintHex(PName_ToLName(&interest->name), RTE_PTR_ADD(buffer, pos));
 
-  // PccDebugString_Appendf("%s CBP=%" PRIu8 " MBF=%d DN=[", nameStr, entry->nCanBePrefix,
-  //                        (int)entry->mustBeFresh);
-  // for (int index = 0; index < PIT_ENTRY_MAX_DNS; ++index) {
-  //   PitDn* dn = &entry->dns[index];
-  //   if (dn->face == 0) {
-  //     break;
-  //   }
-  //   PccDebugString_Appendf("%" PRI_FaceID ",", dn->face);
-  // }
-  // PccDebugString_Appendf("] UP=[");
-  // for (int index = 0; index < PIT_ENTRY_MAX_UPS; ++index) {
-  //   PitUp* up = &entry->ups[index];
-  //   if (up->face == 0) {
-  //     break;
-  //   }
-  //   PccDebugString_Appendf("%" PRI_FaceID ",", up->face);
-  // }
-  // return PccDebugString_Appendf("]");
+  if (entry->nCanBePrefix > 0) {
+    append("[P%" PRIu8 "]", entry->nCanBePrefix);
+  }
+  if (entry->mustBeFresh) {
+    append("[F]");
+  }
+
+  append(" DN=[");
+  {
+    PitDnIt it;
+    for (PitDnIt_Init(&it, entry); PitDnIt_Valid(&it); PitDnIt_Next(&it)) {
+      if (it.dn->face == 0) {
+        break;
+      }
+      if (it.index >= PitMaxDns + PitMaxExtDns) {
+        append("... ");
+        break;
+      }
+      append("%" PRI_FaceID " ", it.dn->face);
+    }
+    --pos;
+  }
+
+  append("] UP=[");
+  {
+    PitUpIt it;
+    for (PitUpIt_Init(&it, entry); PitUpIt_Valid(&it); PitUpIt_Next(&it)) {
+      if (it.up->face == 0) {
+        break;
+      }
+      if (it.index >= PitMaxUps + PitMaxExtUps) {
+        append("... ");
+        break;
+      }
+      append("%" PRI_FaceID " ", it.up->face);
+    }
+    --pos;
+  }
+  append("]");
+
+#undef append
+  return buffer;
 }
 
 FibEntry*

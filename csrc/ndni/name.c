@@ -30,6 +30,19 @@ RTE_INIT(LName_HashInit_)
   LName_EmptyHash_ = LName_ComputeHash(LName_Empty());
 }
 
+int
+LName_PrintHex(LName name, char buffer[NameHexBufferLength])
+{
+  static char hex[] = "0123456789ABCDEF";
+  for (uint16_t i = 0; i < name.length; ++i) {
+    uint8_t b = name.value[i];
+    buffer[2 * i] = hex[b >> 4];
+    buffer[2 * i + 1] = hex[b & 0x0F];
+  }
+  buffer[2 * name.length] = '\0';
+  return 2 * name.length;
+}
+
 static __rte_always_inline bool
 PName_ParseVarNum_(const PName* p, uint16_t* pos, uint16_t* n, bool allowZero)
 {

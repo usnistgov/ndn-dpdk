@@ -40,57 +40,57 @@ func (entry *Entry) PitToken() uint64 {
 }
 
 // FibSeqNum returns the FIB insertion sequence number recorded in this entry.
-func (entry *Entry) FibFibSeqNum() uint32 {
+func (entry *Entry) FibSeqNum() uint32 {
 	return uint32(entry.ptr().fibSeqNum)
 }
 
-// ListDns returns downstream records.
-func (entry *Entry) ListDns() (list []Dn) {
+// DnRecords returns downstream records.
+func (entry *Entry) DnRecords() (list []DnRecord) {
 	c := entry.ptr()
-	list = make([]Dn, 0, C.PIT_ENTRY_MAX_DNS)
-	for i := 0; i < int(C.PIT_ENTRY_MAX_DNS); i++ {
+	list = make([]DnRecord, 0, C.PitMaxDns)
+	for i := 0; i < int(C.PitMaxDns); i++ {
 		dnC := &c.dns[i]
 		if dnC.face == 0 {
 			return list
 		}
-		list = append(list, Dn{dnC, entry})
+		list = append(list, DnRecord{dnC, entry})
 	}
 	for extC := c.ext; extC != nil; extC = extC.next {
-		for i := 0; i < int(C.PIT_ENTRY_EXT_MAX_DNS); i++ {
+		for i := 0; i < int(C.PitMaxExtDns); i++ {
 			dnC := &extC.dns[i]
 			if dnC.face == 0 {
 				return list
 			}
-			list = append(list, Dn{dnC, entry})
+			list = append(list, DnRecord{dnC, entry})
 		}
 	}
 	return list
 }
 
-// InsertDn inserts new downstream record, or update existing downstream record.
-func (entry *Entry) InsertDn(interest *ndni.Packet) *Dn {
+// InsertDnRecord inserts new downstream record, or update existing downstream record.
+func (entry *Entry) InsertDnRecord(interest *ndni.Packet) *DnRecord {
 	dnC := C.PitEntry_InsertDn(entry.ptr(), entry.getPitPtr(), (*C.Packet)(interest.Ptr()))
-	return &Dn{dnC, entry}
+	return &DnRecord{dnC, entry}
 }
 
-// ListUps returns upstream records.
-func (entry *Entry) ListUps() (list []Up) {
+// UpRecords returns upstream records.
+func (entry *Entry) UpRecords() (list []UpRecord) {
 	c := entry.ptr()
-	list = make([]Up, 0, C.PIT_ENTRY_MAX_UPS)
-	for i := 0; i < int(C.PIT_ENTRY_MAX_UPS); i++ {
+	list = make([]UpRecord, 0, C.PitMaxUps)
+	for i := 0; i < int(C.PitMaxUps); i++ {
 		upC := &c.ups[i]
 		if upC.face == 0 {
 			return list
 		}
-		list = append(list, Up{upC, entry})
+		list = append(list, UpRecord{upC, entry})
 	}
 	for extC := c.ext; extC != nil; extC = extC.next {
-		for i := 0; i < int(C.PIT_ENTRY_EXT_MAX_UPS); i++ {
+		for i := 0; i < int(C.PitMaxExtUps); i++ {
 			upC := &extC.ups[i]
 			if upC.face == 0 {
 				return list
 			}
-			list = append(list, Up{upC, entry})
+			list = append(list, UpRecord{upC, entry})
 		}
 	}
 	return list
