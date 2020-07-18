@@ -42,6 +42,6 @@ mgmtClient.request("Face", "Create", loc)
     process.exit(0);
   })
   .catch((err) => {
-    process.stderr.write(`${JSON.stringify(err)}\n`);
+    process.stderr.write(`${err}\n`);
     process.exit(1);
   });
