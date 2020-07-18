@@ -3,6 +3,7 @@ package ndn
 import (
 	"encoding/binary"
 	"math/rand"
+	"strconv"
 
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
@@ -69,6 +70,10 @@ type LpFragment struct {
 	FragCount int
 	header    []byte
 	payload   []byte
+}
+
+func (frag LpFragment) String() string {
+	return strconv.FormatUint(frag.SeqNum, 16) + ":" + strconv.Itoa(frag.FragIndex) + ":" + strconv.Itoa(frag.FragCount)
 }
 
 // MarshalTlv encodes this fragment.

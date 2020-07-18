@@ -1,6 +1,8 @@
 package ndn
 
 import (
+	"encoding/hex"
+
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
@@ -20,6 +22,24 @@ type Packet struct {
 	Interest *Interest
 	Data     *Data
 	Nack     *Nack
+}
+
+func (pkt *Packet) String() string {
+	suffix := ""
+	if len(pkt.Lp.PitToken) != 0 {
+		suffix = " token=" + hex.EncodeToString(pkt.Lp.PitToken)
+	}
+	switch {
+	case pkt.Fragment != nil:
+		return "Frag " + pkt.Fragment.String() + suffix
+	case pkt.Interest != nil:
+		return "I " + pkt.Interest.String() + suffix
+	case pkt.Data != nil:
+		return "D " + pkt.Data.String() + suffix
+	case pkt.Nack != nil:
+		return "N " + pkt.Nack.String() + suffix
+	}
+	return "(bad-NDN-packet)"
 }
 
 // ToPacket returns self.
