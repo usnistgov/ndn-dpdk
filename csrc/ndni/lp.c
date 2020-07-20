@@ -38,7 +38,7 @@ LpHeader_Parse(LpHeader* lph, struct rte_mbuf* pkt)
   lph->l2.fragCount = 1;
 
   TlvDecoder d;
-  TlvDecoder_New(&d, pkt);
+  TlvDecoder_Init(&d, pkt);
   uint32_t length0, type0 = TlvDecoder_ReadTL(&d, &length0);
   pkt->pkt_len = pkt->data_len = d.offset + length0; // strip Ethernet trailer, if any
   d.length = length0;

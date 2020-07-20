@@ -1,6 +1,7 @@
 package packettransport_test
 
 import (
+	"io"
 	"net"
 	"testing"
 
@@ -25,6 +26,9 @@ func newPipePacketDataHandle(rx, tx net.Conn) packettransport.PacketDataHandle {
 
 func (h *pipePacketDataHandle) ReadPacketData() (pkt []byte, ci gopacket.CaptureInfo, e error) {
 	n, e := h.rx.Read(h.buffer)
+	if e == io.ErrClosedPipe {
+		return nil, ci, io.EOF
+	}
 	ci.CaptureLength = n
 	ci.Length = n
 	pkt = make([]byte, n)

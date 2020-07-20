@@ -63,7 +63,7 @@ rte_bpf_load(const struct rte_bpf_prm* prm)
     return NULL;
   }
 
-  ZF_LOGI("rte_bpf_load-monkeypatch() prm=%p bpf=%p vm=%p", prm, bpf, vm);
+  ZF_LOGD("rte_bpf_load-monkeypatch() prm=%p bpf=%p vm=%p", prm, bpf, vm);
 
   rte_errno = StrategyCode_LoadUbpf(bpf, prm, vm);
   if (rte_errno != 0) {
@@ -80,7 +80,7 @@ void
 rte_bpf_destroy(struct rte_bpf* bpf)
 {
   struct ubpf_vm* vm = (struct ubpf_vm*)(bpf->prm.xsym);
-  ZF_LOGI("rte_bpf_destroy-monkeypatch() bpf=%p vm=%p", bpf, vm);
+  ZF_LOGD("rte_bpf_destroy-monkeypatch() bpf=%p vm=%p", bpf, vm);
 
   ubpf_destroy(vm);
   rte_free(bpf);

@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/core/emission"
 )
 
@@ -51,9 +52,7 @@ func (cfg *Config) applyDefaults() {
 	if cfg.RedialBackoffMaximum <= 0 {
 		cfg.RedialBackoffMaximum = 60 * time.Second
 	}
-	if cfg.RedialBackoffMaximum < cfg.RedialBackoffInitial {
-		cfg.RedialBackoffMaximum = cfg.RedialBackoffInitial
-	}
+	cfg.RedialBackoffMaximum = time.Duration(math.MaxInt64(int64(cfg.RedialBackoffMaximum), int64(cfg.RedialBackoffInitial)))
 }
 
 // Transport is an ndn.Transport that communicates over a socket.
@@ -184,10 +183,7 @@ func (tr *Transport) handleError(e error) {
 	backoff := tr.cfg.RedialBackoffInitial
 	for !tr.isClosed() {
 		time.Sleep(backoff)
-		backoff *= 2
-		if backoff > tr.cfg.RedialBackoffMaximum {
-			backoff = tr.cfg.RedialBackoffMaximum
-		}
+		backoff = time.Duration(math.MinInt64(int64(backoff*2), int64(tr.cfg.RedialBackoffMaximum)))
 
 		conn, e := tr.impl.Redial(tr.Conn())
 		tr.NRedials++

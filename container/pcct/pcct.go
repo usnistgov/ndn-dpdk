@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"unsafe"
 
+	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/mempool"
 )
@@ -27,13 +28,9 @@ type Pcct C.Pcct
 
 // New creates a PCCT, and then initializes PIT and CS.
 func New(cfg Config) (pcct *Pcct, e error) {
-	eltSize := C.sizeof_PccEntry
-	if C.sizeof_PccEntryExt > eltSize {
-		eltSize = C.sizeof_PccEntryExt
-	}
 	mp, e := mempool.New(mempool.Config{
 		Capacity:       cfg.MaxEntries,
-		ElementSize:    int(eltSize),
+		ElementSize:    math.MaxInt(int(C.sizeof_PccEntry), int(C.sizeof_PccEntryExt)),
 		PrivSize:       int(C.sizeof_Pcct),
 		Socket:         cfg.Socket,
 		NoCache:        true,

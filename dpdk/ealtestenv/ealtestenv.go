@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -62,8 +63,8 @@ func listCpus() (primary, secondary []int) {
 
 func pickCpus() (lcoresArg []string) {
 	primary, secondary := listCpus()
-	shuffleInts(primary)
-	shuffleInts(secondary)
+	rand.Shuffle(len(primary), reflect.Swapper(primary))
+	rand.Shuffle(len(secondary), reflect.Swapper(secondary))
 	allCpus := append(append([]int{}, primary...), secondary...)
 
 	useCpus := allCpus
@@ -76,10 +77,6 @@ func pickCpus() (lcoresArg []string) {
 		return []string{"--lcores", fmt.Sprintf("(0-%d)@(%s)", WantLCores-1, sprintInts(useCpus))}
 	}
 	return []string{"-l" + sprintInts(useCpus[:WantLCores])}
-}
-
-func shuffleInts(a []int) {
-	rand.Shuffle(len(a), func(i, j int) { a[i], a[j] = a[j], a[i] })
 }
 
 func sprintInts(a []int) string {

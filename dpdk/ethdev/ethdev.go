@@ -165,7 +165,7 @@ func (port EthDev) Start(cfg Config) error {
 }
 
 // Stop stops this EthDev.
-// If detach is true, this EthDev cannot be restarted.
+// If mode is StopDetach, this EthDev cannot be restarted.
 // Otherwise, it may be re-configured and started again.
 func (port EthDev) Stop(mode StopMode) {
 	C.rte_eth_dev_stop(C.uint16_t(port.ID()))

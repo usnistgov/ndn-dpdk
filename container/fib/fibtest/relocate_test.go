@@ -1,6 +1,8 @@
 package fibtest
 
 import (
+	"math/rand"
+	"strconv"
 	"testing"
 	"time"
 
@@ -10,7 +12,7 @@ import (
 )
 
 func TestRelocate(t *testing.T) {
-	assert, require := makeAR(t)
+	assert, _ := makeAR(t)
 	fixture := NewFixture(2, 4, 4)
 	defer fixture.Close()
 	ndt := fixture.Ndt
@@ -19,16 +21,17 @@ func TestRelocate(t *testing.T) {
 
 	name0 := ndn.ParseName("/")
 	nameA := ndn.ParseName("/A")
-	nameAB := ndn.ParseName("/A/B")
-	nameCDW := ndn.ParseName("/C/D/W")
-	nameEFXYZ := ndn.ParseName("/E/F/X/Y/Z")
-
-	indexAB := ndt.IndexOfName(nameAB)
-	indexCDW := ndt.IndexOfName(nameCDW)
-	indexEFXYZ := ndt.IndexOfName(nameEFXYZ)
-	require.NotEqual(indexAB, indexCDW)
-	require.NotEqual(indexCDW, indexEFXYZ)
-	require.NotEqual(indexEFXYZ, indexAB)
+	var nameAB, nameCDW, nameEFXYZ ndn.Name
+	var indexAB, indexCDW, indexEFXYZ uint64
+	for indexAB == indexCDW || indexCDW == indexEFXYZ || indexEFXYZ == indexAB {
+		suffix := "_" + strconv.FormatUint(rand.Uint64(), 16)
+		nameAB = ndn.ParseName("/A/B" + suffix)
+		nameCDW = ndn.ParseName("/C/D" + suffix + "/W")
+		nameEFXYZ = ndn.ParseName("/E/F" + suffix + "/X/Y/Z")
+		indexAB = ndt.IndexOfName(nameAB)
+		indexCDW = ndt.IndexOfName(nameCDW)
+		indexEFXYZ = ndt.IndexOfName(nameEFXYZ)
+	}
 	ndt.Update(indexAB, 1)
 	ndt.Update(indexCDW, 2)
 	ndt.Update(indexEFXYZ, 3)

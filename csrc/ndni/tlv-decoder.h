@@ -23,7 +23,7 @@ typedef struct TlvDecoder
 
 /** @brief Create a TlvDecoder. */
 __attribute__((nonnull)) static inline void
-TlvDecoder_New(TlvDecoder* d, struct rte_mbuf* p)
+TlvDecoder_Init(TlvDecoder* d, struct rte_mbuf* p)
 {
   d->p = p;
   d->m = p;

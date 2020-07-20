@@ -8,6 +8,7 @@ import (
 	"errors"
 	"unsafe"
 
+	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/iface"
@@ -15,6 +16,8 @@ import (
 
 // DisableRxFlow indicates whether to disable rte_flow hardware dispatching.
 var DisableRxFlow = false
+
+const rxFlowMaxRxQueues = 4 // this may be set up to C.RTE_MAX_QUEUES_PER_PORT
 
 // Read rte_flow_error into Go error.
 func readFlowErr(flowErr C.struct_rte_flow_error) error {
@@ -62,13 +65,9 @@ func (impl *rxFlowImpl) Init() error {
 	}
 
 	devInfo := impl.port.dev.DevInfo()
-	nRxQueues := int(devInfo.Max_rx_queues)
+	nRxQueues := math.MinInt(int(devInfo.Max_rx_queues), rxFlowMaxRxQueues)
 	if nRxQueues == 0 {
 		return errors.New("unable to retrieve max_rx_queues")
-	}
-	const maxRxQueues = 4 // C.RTE_MAX_QUEUES_PER_PORT
-	if nRxQueues > maxRxQueues {
-		nRxQueues = maxRxQueues
 	}
 
 	if e := startDev(impl.port, nRxQueues, false); e != nil {

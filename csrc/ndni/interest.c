@@ -80,7 +80,7 @@ PInterest_Parse(PInterest* interest, struct rte_mbuf* pkt)
   interest->activeFwHint = -1;
 
   TlvDecoder d;
-  TlvDecoder_New(&d, pkt);
+  TlvDecoder_Init(&d, pkt);
   uint32_t length0, type0 = TlvDecoder_ReadTL(&d, &length0);
   NDNDPDK_ASSERT(type0 == TtInterest);
 
@@ -220,7 +220,7 @@ Interest_ModifyGuiders(Packet* npkt, uint32_t nonce, uint32_t lifetime, uint8_t 
 
   PInterest* interest = Packet_GetInterestHdr(npkt);
   TlvDecoder d;
-  TlvDecoder_New(&d, Packet_ToMbuf(npkt));
+  TlvDecoder_Init(&d, Packet_ToMbuf(npkt));
   uint32_t length0, type0 = TlvDecoder_ReadTL(&d, &length0);
   NDNDPDK_ASSERT(type0 == TtInterest);
 

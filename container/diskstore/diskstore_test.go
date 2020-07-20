@@ -15,6 +15,7 @@ import (
 )
 
 func TestDiskStore(t *testing.T) {
+	defer ealthread.DefaultAllocator.Clear()
 	assert, require := makeAR(t)
 
 	device, e := bdev.NewMalloc(diskstore.BlockSize, 256)
@@ -24,8 +25,7 @@ func TestDiskStore(t *testing.T) {
 	th, e := spdkenv.NewThread()
 	require.NoError(e)
 	defer th.Close()
-	e = ealthread.Launch(th)
-	require.NoError(e)
+	require.NoError(ealthread.Launch(th))
 
 	mp, e := pktmbuf.NewPool(ndni.PacketMempool.Config(), eal.NumaSocket{})
 	require.NoError(e)

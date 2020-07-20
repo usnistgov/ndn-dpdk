@@ -66,7 +66,7 @@ TxProc_OutputFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames)
   }
 
   TlvDecoder d;
-  TlvDecoder_New(&d, pkt);
+  TlvDecoder_Init(&d, pkt);
   LpL2 l2 = { .seqNumBase = tx->nextSeqNum, .fragCount = fragCount };
   LpL3* l3 = Packet_GetLpL3Hdr(npkt);
 

@@ -57,7 +57,7 @@ func TestEntryExtend(t *testing.T) {
 	}
 
 	assert.Equal(1, fixture.Pit.Len())
-	assert.True(fixture.CountMpInUse() > 1)
+	assert.Greater(fixture.CountMpInUse(), 1)
 
 	fixture.Pit.Erase(entry)
 	assert.Zero(fixture.Pit.Len())
@@ -77,7 +77,7 @@ func TestEntryLongName(t *testing.T) {
 	require.NotNil(entry)
 
 	assert.Equal(1, fixture.Pit.Len())
-	assert.True(fixture.CountMpInUse() > 1)
+	assert.Greater(fixture.CountMpInUse(), 1)
 
 	fixture.Pit.Erase(entry)
 	assert.Zero(fixture.Pit.Len())

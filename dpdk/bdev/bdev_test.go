@@ -98,7 +98,7 @@ func TestNvme(t *testing.T) {
 	nvme, e := bdev.AttachNvme(pciAddr)
 	require.NoError(e)
 
-	require.True(len(nvme.Namespaces) > 0)
+	require.Greater(len(nvme.Namespaces), 0)
 	bdi := nvme.Namespaces[0]
 	assert.True(bdi.IsNvme())
 

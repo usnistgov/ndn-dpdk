@@ -16,13 +16,14 @@ import (
 
 func ctestMinTmr(t *testing.T) {
 	assert, _ := testenv.MakeAR(t)
-	C.memset(unsafe.Pointer(&C.records[0]), 0, C.sizeof_records)
+	C.c_ClearRecords()
 	schedArg = C.malloc(1)
 	defer C.free(schedArg)
 
-	// 32 slots * 100ms = 3200ms
-	sched := C.MinSched_New(C.int(5), C.TscDuration(eal.ToTscDuration(100*time.Millisecond)),
+	// 2^5 slots * 100ms = 3200ms
+	sched := C.MinSched_New(5, C.TscDuration(eal.ToTscDuration(100*time.Millisecond)),
 		C.MinTmrCallback(C.go_TriggerRecord), schedArg)
+	defer C.MinSched_Close(sched)
 
 	setTimer := func(i int, after time.Duration) bool {
 		return bool(C.MinTmr_After(&C.records[i].tmr, C.TscDuration(eal.ToTscDuration(after)), sched))

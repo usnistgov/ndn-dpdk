@@ -1,6 +1,7 @@
 package fibtree
 
 import (
+	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
@@ -23,10 +24,7 @@ func newNode() *Node {
 func (n *Node) updateMaxDepth() {
 	n.MaxDepth = 0
 	for _, child := range n.children {
-		depth := 1 + child.MaxDepth
-		if depth > n.MaxDepth {
-			n.MaxDepth = depth
-		}
+		n.MaxDepth = math.MaxInt(n.MaxDepth, 1+child.MaxDepth)
 	}
 }
 

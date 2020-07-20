@@ -2,7 +2,9 @@ package ndt_test
 
 import (
 	"math/rand"
+	"reflect"
 	"sort"
+	"strconv"
 	"testing"
 	"time"
 
@@ -16,6 +18,12 @@ import (
 type lookupTestEntry struct {
 	Name    ndn.Name
 	Results []uint8
+}
+
+func (entry *lookupTestEntry) AddResult(result uint8) {
+	if n := len(entry.Results); n == 0 || entry.Results[n-1] != result {
+		entry.Results = append(entry.Results, result)
+	}
 }
 
 type lookupTestThread struct {
@@ -42,17 +50,23 @@ func (th *lookupTestThread) ThreadRole() string {
 }
 
 func (th *lookupTestThread) main() {
+	entries := make([]*lookupTestEntry, len(th.Entries))
+	for i := range th.Entries {
+		entries[i] = &th.Entries[i]
+	}
+	swapper := reflect.Swapper(entries)
+
 	for th.stop.Continue() {
-		i := rand.Intn(len(th.Entries))
-		entry := &th.Entries[i]
-		result := th.ndtt.Lookup(entry.Name)
-		if len(entry.Results) == 0 || entry.Results[len(entry.Results)-1] != result {
-			entry.Results = append(entry.Results, result)
+		rand.Shuffle(len(entries), swapper)
+		for _, entry := range entries {
+			result := th.ndtt.Lookup(entry.Name)
+			entry.AddResult(result)
 		}
 	}
 }
 
 func TestNdt(t *testing.T) {
+	defer ealthread.DefaultAllocator.Clear()
 	assert, require := makeAR(t)
 
 	cfg := ndt.Config{
@@ -63,23 +77,27 @@ func TestNdt(t *testing.T) {
 	ndt := ndt.New(cfg, make([]eal.NumaSocket, 4))
 	defer ndt.Close()
 
-	nameStrs := []string{
-		"/",
-		"/...",
-		"/A/2=C",
-		"/A/A/C",
-		"/A/A/D",
-		"/B",
-		"/B/2=C",
-		"/B/C",
+	var names []ndn.Name
+	var nameIndices map[uint64]bool
+	for len(nameIndices) != 7 {
+		suffix := "_" + strconv.FormatUint(rand.Uint64(), 16)
+		nameUris := []string{
+			"/",
+			"/...",
+			"/A/2=C" + suffix,
+			"/A/A" + suffix + "/C",
+			"/A/A" + suffix + "/D",
+			"/B",
+			"/B/2=C" + suffix,
+			"/B/C" + suffix,
+		}
+		names = make([]ndn.Name, len(nameUris))
+		nameIndices = make(map[uint64]bool)
+		for i, nameStr := range nameUris {
+			names[i] = ndn.ParseName(nameStr)
+			nameIndices[ndt.IndexOfName(names[i])] = true
+		}
 	}
-	names := make([]ndn.Name, len(nameStrs))
-	nameIndices := make(map[uint64]bool)
-	for i, nameStr := range nameStrs {
-		names[i] = ndn.ParseName(nameStr)
-		nameIndices[ndt.IndexOfName(names[i])] = true
-	}
-	assert.Len(nameIndices, 7)
 
 	ndtts := ndt.Threads()
 	threads := []*lookupTestThread{
@@ -95,10 +113,10 @@ func TestNdt(t *testing.T) {
 		require.NoError(ealthread.Launch(th))
 	}
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	cnt1 := ndt.ReadCounters()
 	ndt.Randomize(250)
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 
 	for _, th := range threads {
 		th.Stop()
@@ -114,11 +132,12 @@ func TestNdt(t *testing.T) {
 	// each name has one or two results
 	for j, th := range threads {
 		for i, entry := range th.Entries {
-			assert.True(len(entry.Results) == 1 || len(entry.Results) == 2, "threads[%d].Entries[%d].Results len=%d", j, i, len(entry.Results))
+			nResults := len(entry.Results)
+			assert.True(nResults == 1 || nResults == 2, "threads[%d].Entries[%d].Results=%v", j, i, entry.Results)
 		}
 	}
 
-	// th0, th1, th2 should have consistent results
+	// th0, th1, th2 should see consistent results
 	for i := range names[:6] {
 		for j := 1; j <= 2; j++ {
 			assert.Equal(threads[0].Entries[i].Results, threads[j].Entries[i].Results)

@@ -36,7 +36,7 @@ PData_Parse(PData* data, struct rte_mbuf* pkt)
   *data = (const PData){ 0 };
 
   TlvDecoder d;
-  TlvDecoder_New(&d, pkt);
+  TlvDecoder_Init(&d, pkt);
   uint32_t length0, type0 = TlvDecoder_ReadTL(&d, &length0);
   NDNDPDK_ASSERT(type0 == TtData);
 

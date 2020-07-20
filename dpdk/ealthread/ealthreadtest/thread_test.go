@@ -24,5 +24,5 @@ func TestThread(t *testing.T) {
 
 	require.NoError(th.Stop())
 	assert.False(th.IsRunning())
-	assert.True(th.GetN() > 0)
+	assert.Greater(th.GetN(), 0)
 }
