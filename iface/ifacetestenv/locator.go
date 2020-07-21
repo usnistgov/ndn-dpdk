@@ -11,7 +11,8 @@ import (
 // CheckLocatorMarshal checks JSON marshaling of the Locator.
 func CheckLocatorMarshal(t *testing.T, loc iface.Locator) {
 	assert, _ := testenv.MakeAR(t)
-	locw := iface.LocatorWrapper{loc}
+	var locw iface.LocatorWrapper
+	locw.Locator = loc
 
 	jsonEncoded, e := json.Marshal(locw)
 	if assert.NoError(e) {

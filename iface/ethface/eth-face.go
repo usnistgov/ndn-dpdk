@@ -8,26 +8,24 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
+	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
 // New creates an Ethernet face on the given port.
 func New(port *Port, loc Locator) (iface.Face, error) {
-	if !loc.Local.IsZero() && !loc.Local.Equal(port.cfg.Local) {
+	if !macaddr.Equal(loc.Local, port.cfg.Local) {
 		return nil, errors.New("port has a different local address")
 	}
-	loc.Local = port.cfg.Local
 
 	switch {
-	case loc.Remote.IsZero():
-		loc.Remote = NdnMcastAddr
-		fallthrough
-	case loc.Remote.IsGroup():
+	case macaddr.IsMulticast(loc.Remote):
 		if face := port.FindFace(nil); face != nil {
 			return nil, fmt.Errorf("port has another face %d with a group address", face.ID())
 		}
-	case loc.Remote.IsUnicast():
-		if face := port.FindFace(&loc.Remote); face != nil {
+	case macaddr.IsUnicast(loc.Remote):
+		if face := port.FindFace(loc.Remote); face != nil {
 			return nil, fmt.Errorf("port has another face %d with same unicast address", face.ID())
 		}
 	default:
@@ -53,12 +51,10 @@ func New(port *Port, loc Locator) (iface.Face, error) {
 			priv.port = C.uint16_t(port.dev.ID())
 			priv.faceID = C.FaceID(f.ID())
 
-			vlan := make([]uint16, 2)
-			copy(vlan, loc.Vlan)
-			priv.txHdrLen = C.EthFaceEtherHdr_Init(&priv.txHdr,
-				(*C.struct_rte_ether_addr)(port.cfg.Local.Ptr()),
-				(*C.struct_rte_ether_addr)(face.loc.Remote.Ptr()),
-				C.uint16_t(vlan[0]), C.uint16_t(vlan[1]))
+			var local, remote C.struct_rte_ether_addr
+			copy(cptr.AsByteSlice(&local.addr_bytes), []byte(port.cfg.Local))
+			copy(cptr.AsByteSlice(&remote.addr_bytes), []byte(face.loc.Remote))
+			priv.txHdrLen = C.EthFaceEtherHdr_Init(&priv.txHdr, &local, &remote, C.uint16_t(face.loc.VLAN))
 
 			face.priv = priv
 			return nil

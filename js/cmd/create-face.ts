@@ -2,45 +2,73 @@
 
 import * as yargs from "yargs";
 
-import type { EthFaceLocator } from "../mod";
 import { RpcClient } from "../mod";
+import type { FaceLocator, SocketFaceLocator } from "../types/mod";
 
 const args = yargs
   .option("scheme", {
-    choices: ["ether"],
-    default: "ether",
     type: "string",
+    choices: ["ether", "unix", "udp", "tcp"],
+    default: "ether",
   })
   .option("port", {
-    demandOption: true,
     type: "string",
+    desc: "local port name (either port or local must be specified for 'ether' scheme)",
   })
   .option("local", {
     type: "string",
+    desc: "local MAC address or socket endpoint",
   })
   .option("remote", {
     type: "string",
+    default: "01:00:5e:00:17:aa",
+    desc: "remote MAC address or socket endpoint",
   })
   .option("vlan", {
     type: "number",
-  }).parse();
+  })
+  .check(({ scheme, port, local }) => {
+    if (scheme === "ether" && !port && !local) {
+      throw new Error("either port or local must be specified for 'ether' scheme");
+    }
+    return true;
+  })
+  .parse();
 
-const loc: EthFaceLocator = {
-  Scheme: "ether",
-  Port: args.port,
-  Local: args.local,
-  Remote: args.remote,
-};
-if (args.vlan) {
-  loc.Vlan = [args.vlan];
+async function main() {
+  const mgmtClient = RpcClient.create();
+
+  let loc: FaceLocator;
+  if (args.scheme === "ether") {
+    const list = await mgmtClient.request("EthFace", "ListPorts", {});
+    const port = args.port ?
+      list.find(({ Name }) => Name === args.port) :
+      list.find(({ MacAddr }) => MacAddr === args.local);
+    if (!port) {
+      throw new Error(`Ethernet port not found; available ports: ${list.map((p) => p.Name).join(", ")}`);
+    }
+
+    loc = {
+      scheme: "ether",
+      port: port.Name,
+      local: args.local ?? port.MacAddr,
+      remote: args.remote,
+      vlan: args.vlan,
+    };
+  } else {
+    loc = {
+      scheme: args.scheme as SocketFaceLocator["scheme"],
+      local: args.local,
+      remote: args.remote,
+    };
+  }
+
+  const created = await mgmtClient.request("Face", "Create", loc);
+  process.stdout.write(`${created.Id}\n`);
+  mgmtClient.close();
 }
 
-const mgmtClient = RpcClient.create();
-mgmtClient.request("Face", "Create", loc)
-  .then((result) => {
-    process.stdout.write(`${result.Id}\n`);
-    process.exit(0);
-  })
+main()
   .catch((err) => {
     process.stderr.write(`${err}\n`);
     process.exit(1);

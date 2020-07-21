@@ -40,6 +40,22 @@ func TestMacAddr(t *testing.T) {
 	assert.False(macaddr.IsMulticast(mac64))
 }
 
+func TestMakeRandom(t *testing.T) {
+	assert, _ := makeAR(t)
+
+	for i := 0; i < 100; i++ {
+		a := macaddr.MakeRandom(false)
+		assert.True(macaddr.IsUnicast(a))
+		assert.False(macaddr.IsMulticast(a))
+	}
+
+	for i := 0; i < 100; i++ {
+		a := macaddr.MakeRandom(true)
+		assert.True(macaddr.IsMulticast(a))
+		assert.False(macaddr.IsUnicast(a))
+	}
+}
+
 func TestFlag(t *testing.T) {
 	assert, _ := makeAR(t)
 

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"unsafe"
 
+	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/iface"
@@ -47,10 +48,10 @@ func (impl *rxTableImpl) setFace(slot *C.FaceID, faceID iface.ID) error {
 
 func (impl *rxTableImpl) Start(face *ethFace) error {
 	rxtC := impl.rxt.ptr()
-	if face.loc.Remote.IsGroup() {
+	if macaddr.IsMulticast(face.loc.Remote) {
 		return impl.setFace(&rxtC.multicast, face.ID())
 	}
-	lastOctet := face.loc.Remote.Bytes[5]
+	lastOctet := face.loc.Remote[5]
 	return impl.setFace(&rxtC.unicast[lastOctet], face.ID())
 }
 

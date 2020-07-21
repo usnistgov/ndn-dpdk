@@ -6,31 +6,17 @@ import (
 	"reflect"
 )
 
-// Identifies the endpoints of a face.
-//
-// Lower layer implementation must embed LocatorBase struct and provide Validate method.
-// To customize serialization, implement json.Marshaler and json.Unmarshaler interfaces.
+// Locator identifies the endpoints of a face.
 type Locator interface {
-	isLocator()
-	GetScheme() string
+	// Scheme returns a string that identifies the type of this Locator.
+	// Possible values must be registered through RegisterLocatorType().
+	Scheme() string
 
-	// Check whether Locator fields are correct according to the chosen Scheme.
+	// Validate checks whether Locator fields are correct according to the chosen scheme.
 	Validate() error
 }
 
-// Base type to implement Locator interface.
-type LocatorBase struct {
-	Scheme string
-}
-
-func (LocatorBase) isLocator() {
-}
-
-func (loc LocatorBase) GetScheme() string {
-	return loc.Scheme
-}
-
-// Parse Locator from JSON string.
+// ParseLocator parses Locator from JSON string.
 func ParseLocator(input string) (loc Locator, e error) {
 	var locw LocatorWrapper
 	if e = json.Unmarshal([]byte(input), &locw); e != nil {
@@ -40,6 +26,7 @@ func ParseLocator(input string) (loc Locator, e error) {
 	return loc, nil
 }
 
+// MustParseLocator parses Locator from JSON string, and panics on error.
 func MustParseLocator(input string) (loc Locator) {
 	loc, e := ParseLocator(input)
 	if e != nil {
@@ -50,7 +37,7 @@ func MustParseLocator(input string) (loc Locator) {
 
 var locatorTypes = make(map[string]reflect.Type)
 
-// Register a Locator implementation.
+// RegisterLocatorType registers Locator schemes.
 func RegisterLocatorType(locator Locator, schemes ...string) {
 	typ := reflect.TypeOf(locator)
 	if typ.Kind() != reflect.Struct {
@@ -61,33 +48,20 @@ func RegisterLocatorType(locator Locator, schemes ...string) {
 	}
 }
 
-// Wraps Locator to facilitate JSON serialization.
+// LocatorWrapper wraps Locator to facilitate JSON serialization.
 type LocatorWrapper struct {
 	Locator
 }
 
-func (locw LocatorWrapper) MarshalJSON() ([]byte, error) {
-	if locw.Locator == nil {
-		return nil, nil
-	}
-
-	scheme := locw.Locator.GetScheme()
-	if typ, ok := locatorTypes[scheme]; !ok {
-		return nil, fmt.Errorf("unknown scheme %s", scheme)
-	} else if typ != reflect.TypeOf(locw.Locator) {
-		return nil, fmt.Errorf("unexpected type %T", locw.Locator)
-	}
-
-	if e := locw.Locator.Validate(); e != nil {
-		return nil, e
-	}
-
+// MarshalJSON implements json.Marshaler.
+func (locw LocatorWrapper) MarshalJSON() (data []byte, e error) {
 	return json.Marshal(locw.Locator)
 }
 
+// UnmarshalJSON implements json.Unmarshaler.
 func (locw *LocatorWrapper) UnmarshalJSON(data []byte) error {
 	schemeObj := struct {
-		Scheme string
+		Scheme string `json:"scheme"`
 	}{}
 	if e := json.Unmarshal(data, &schemeObj); e != nil {
 		return e
@@ -99,8 +73,7 @@ func (locw *LocatorWrapper) UnmarshalJSON(data []byte) error {
 	}
 
 	ptr := reflect.New(typ)
-	ptrI := ptr.Interface()
-	if e := json.Unmarshal(data, ptrI); e != nil {
+	if e := json.Unmarshal(data, ptr.Interface()); e != nil {
 		return e
 	}
 

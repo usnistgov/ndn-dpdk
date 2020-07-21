@@ -38,7 +38,7 @@ func New(loc Locator, cfg Config) (iface.Face, error) {
 	var dialer sockettransport.Dialer
 	dialer.RxBufferLength = ndni.PacketMempool.Config().Dataroom
 	dialer.TxQueueSize = cfg.TxqFrames
-	transport, e := dialer.Dial(loc.Scheme, loc.Local, loc.Remote)
+	transport, e := dialer.Dial(loc.Network, loc.Local, loc.Remote)
 	if e != nil {
 		return nil, e
 	}
@@ -74,7 +74,7 @@ func Wrap(transport *sockettransport.Transport, cfg Config) (iface.Face, error) 
 			laddr, raddr := conn.LocalAddr(), conn.RemoteAddr()
 
 			var loc Locator
-			loc.Scheme = raddr.Network()
+			loc.Network = raddr.Network()
 			loc.Remote = raddr.String()
 			if laddr != nil {
 				loc.Local = laddr.String()

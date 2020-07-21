@@ -5,14 +5,14 @@ This package implements Ethernet faces using DPDK ethdev as transport.
 **ethFace** type represents an Ethernet face.
 Its Locator has the following fields:
 
-* *Scheme* is set to "ether".
-* *Port* is the port name as presented by DPDK.
+* *scheme* is set to "ether".
+* *port* is the port name as presented by DPDK.
   For a PCI device, it has the form bus:device.function, e.g. "06:00.0".
-* *Local* and *Remote* are MAC-48 addresses written in the six groups of two lower-case hexadecimal digits separated by colons.
-* *Local* must be a unicast address.
-* *Remote* may be unicast or multicast.
+* *local* and *remote* are MAC-48 addresses written in the six groups of two lower-case hexadecimal digits separated by colons.
+* *local* must be a unicast address.
+* *remote* may be unicast or multicast.
   Every face is assumed to be point-to-point, even when using a multicast remote address.
-* *Vlan* is an array of zero, one, or two VLAN IDs in the range 0x001-0xFFF.
+* *vlan* (optional) is an VLAN ID in the range 0x001-0xFFF.
 
 **Port** type organizes EthFaces on the same DPDK ethdev.
 Each port can have zero or one face with multicast remote address, and zero or more faces with unicast remote addresses.
@@ -25,7 +25,7 @@ Currently, all faces on the same port must use the same receive path implementat
 
 **EthRxFlow** type implements a hardware-accelerated receive path.
 It uses one RX queue per face, and creates an rte\_flow to steering incoming frames to that queue.
-An incoming frame is accepted only if it has the correct MAC addresses and VLAN tags.
+An incoming frame is accepted only if it has the correct MAC addresses and VLAN tag.
 There is minimal checking on software side.
 
 **EthRxTable** type implements a software receive path.

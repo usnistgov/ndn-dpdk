@@ -2,9 +2,11 @@ package ethface
 
 import (
 	"errors"
+	"net"
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/iface"
 )
@@ -31,13 +33,21 @@ type PortConfig struct {
 	TxqFrames  int              // after-TX queue capacity
 	Mtu        int              // set MTU, 0 to retrieve from EthDev (implies SkipSetMtu)
 	SkipSetMtu bool             // if true, don't set MTU on EthDev; MTU is only used for fragmentation
-	Local      ethdev.EtherAddr // local address, zero for hardware default
+	Local      net.HardwareAddr // local address, nil to use hardware default
 }
 
-func (cfg PortConfig) check() error {
-	if !cfg.Local.IsZero() && !cfg.Local.IsUnicast() {
+func (cfg PortConfig) applyDefaults(dev ethdev.EthDev) error {
+	if cfg.Local == nil {
+		cfg.Local = dev.MacAddr()
+	} else if !macaddr.IsUnicast(cfg.Local) {
 		return errors.New("Local is not unicast")
 	}
+
+	if cfg.Mtu == 0 {
+		cfg.Mtu = dev.Mtu()
+		cfg.SkipSetMtu = true
+	}
+
 	return nil
 }
 
@@ -53,18 +63,11 @@ type Port struct {
 
 // NewPort opens a Port.
 func NewPort(dev ethdev.EthDev, cfg PortConfig) (port *Port, e error) {
-	if e = cfg.check(); e != nil {
+	if e = cfg.applyDefaults(dev); e != nil {
 		return nil, e
 	}
 	if FindPort(dev) != nil {
 		return nil, errors.New("Port already exists")
-	}
-	if cfg.Local.IsZero() {
-		cfg.Local = dev.MacAddr()
-	}
-	if cfg.Mtu == 0 {
-		cfg.Mtu = dev.Mtu()
-		cfg.SkipSetMtu = true
 	}
 
 	port = new(Port)
@@ -109,14 +112,14 @@ func (port *Port) filterFace(filter func(face *ethFace) bool) iface.Face {
 // FindFace returns a face that matches the query, or nil if it does not exist.
 // FindFace(nil) returns a face with multicast address.
 // FindFace(unicastAddr) returns a face with matching address.
-func (port *Port) FindFace(query *ethdev.EtherAddr) iface.Face {
+func (port *Port) FindFace(query net.HardwareAddr) iface.Face {
 	if query == nil {
 		return port.filterFace(func(face *ethFace) bool {
-			return face.loc.Remote.IsGroup()
+			return macaddr.IsMulticast(face.loc.Remote)
 		})
 	}
 	return port.filterFace(func(face *ethFace) bool {
-		return face.loc.Remote.Equal(*query)
+		return macaddr.Equal(face.loc.Remote, query)
 	})
 }
 

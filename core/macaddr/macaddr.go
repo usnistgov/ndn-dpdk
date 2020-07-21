@@ -2,6 +2,7 @@ package macaddr
 
 import (
 	"bytes"
+	"math/rand"
 	"net"
 )
 
@@ -23,4 +24,17 @@ func IsUnicast(a net.HardwareAddr) bool {
 // IsMulticast determines whether the HardwareAddr is a multicast MAC-48 address.
 func IsMulticast(a net.HardwareAddr) bool {
 	return IsValid(a) && (a[0]&0x01) != 0
+}
+
+// MakeRandom generates a random MAC-48 address.
+func MakeRandom(multicast bool) (a net.HardwareAddr) {
+	a = make(net.HardwareAddr, 6)
+	rand.Read([]byte(a))
+	a[0] |= 0x02
+	if multicast {
+		a[0] |= 0x01
+	} else {
+		a[0] &^= 0x01
+	}
+	return a
 }

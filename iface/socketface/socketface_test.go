@@ -30,19 +30,19 @@ func TestUdp(t *testing.T) {
 	addrA := "127.0.0.1:" + strconv.Itoa(portA)
 	addrB := "127.0.0.1:" + strconv.Itoa(portB)
 
-	locA := iface.MustParseLocator(`{ "Scheme": "udp", "Local": "` + addrA + `", "Remote": "` + addrB + `" }`).(socketface.Locator)
+	locA := iface.MustParseLocator(`{ "scheme": "udp", "local": "` + addrA + `", "remote": "` + addrB + `" }`).(socketface.Locator)
 	ifacetestenv.CheckLocatorMarshal(t, locA)
 	faceA, e := socketface.New(locA, socketfaceCfg)
 	require.NoError(e)
 	defer faceA.Close()
 
-	locB := iface.MustParseLocator(`{ "Scheme": "udp", "Local": "` + addrB + `", "Remote": "` + addrA + `" }`).(socketface.Locator)
+	locB := iface.MustParseLocator(`{ "scheme": "udp", "local": "` + addrB + `", "remote": "` + addrA + `" }`).(socketface.Locator)
 	faceB, e := socketface.New(locB, socketfaceCfg)
 	require.NoError(e)
 	defer faceB.Close()
 
 	locA = faceA.Locator().(socketface.Locator)
-	assert.Equal("udp", locA.Scheme)
+	assert.Equal("udp", locA.Scheme())
 	assert.Equal(addrA, locA.Local)
 	assert.Equal(addrB, locA.Remote)
 
@@ -105,12 +105,12 @@ func TestTcp(t *testing.T) {
 	*addr = *listener.Addr().(*net.TCPAddr)
 
 	checkStreamRedialing(t, listener, func() iface.Face {
-		loc := iface.MustParseLocator(fmt.Sprintf(`{ "Scheme": "tcp", "Remote": "127.0.0.1:%d" }`, addr.Port)).(socketface.Locator)
+		loc := iface.MustParseLocator(fmt.Sprintf(`{ "scheme": "tcp", "remote": "127.0.0.1:%d" }`, addr.Port)).(socketface.Locator)
 		face, e := socketface.New(loc, socketfaceCfg)
 		require.NoError(e)
 
 		loc = face.Locator().(socketface.Locator)
-		assert.Equal("tcp", loc.Scheme)
+		assert.Equal("tcp", loc.Scheme())
 		assert.Equal(fmt.Sprintf("127.0.0.1:%d", addr.Port), loc.Remote)
 		ifacetestenv.CheckLocatorMarshal(t, loc)
 
@@ -130,12 +130,12 @@ func TestUnix(t *testing.T) {
 	defer listener.Close()
 
 	checkStreamRedialing(t, listener, func() iface.Face {
-		loc := iface.MustParseLocator(fmt.Sprintf(`{ "Scheme": "unix", "Remote": "%s" }`, addr)).(socketface.Locator)
+		loc := iface.MustParseLocator(fmt.Sprintf(`{ "scheme": "unix", "remote": "%s" }`, addr)).(socketface.Locator)
 		face, e := socketface.New(loc, socketfaceCfg)
 		require.NoError(e)
 
 		loc = face.Locator().(socketface.Locator)
-		assert.Equal("unix", loc.Scheme)
+		assert.Equal("unix", loc.Scheme())
 		assert.Equal(addr, loc.Remote)
 		ifacetestenv.CheckLocatorMarshal(t, loc)
 

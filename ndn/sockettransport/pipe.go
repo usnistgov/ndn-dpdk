@@ -15,7 +15,6 @@ func Pipe(cfg Config) (trA, trB *Transport, e error) {
 
 	trB, e = New(connB, cfg)
 	if e != nil {
-		trA.Close()
 		return nil, nil, e
 	}
 

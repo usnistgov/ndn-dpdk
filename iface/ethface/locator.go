@@ -5,57 +5,81 @@ package ethface
 */
 import "C"
 import (
+	"encoding/json"
 	"errors"
-	"fmt"
 
+	"github.com/VojtechVitek/mergemaps"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
 )
 
 const locatorScheme = "ether"
 
-// NdnMcastAddr is the well-known Ethernet multicast address for NDN traffic.
-var NdnMcastAddr ethdev.EtherAddr
-
-func init() {
-	NdnMcastAddr, _ = ethdev.ParseEtherAddr("01:00:5E:00:17:AA")
+// LocatorFields contains additional Locator fields.
+type LocatorFields struct {
+	Port string `json:"port"`
 }
 
 // Locator describes port, addresses, and VLAN of an Ethernet face.
 type Locator struct {
-	iface.LocatorBase
-	Port   string
-	Local  ethdev.EtherAddr
-	Remote ethdev.EtherAddr
-	Vlan   []uint16 `json:",omitempty"`
+	packettransport.Locator
+	LocatorFields
 }
 
 // NewLocator creates a Locator.
 func NewLocator(dev ethdev.EthDev) (loc Locator) {
-	loc.Scheme = locatorScheme
 	loc.Port = dev.Name()
 	loc.Local = dev.MacAddr()
-	loc.Remote = NdnMcastAddr
+	loc.Remote = packettransport.MulticastAddressNDN
 	return loc
+}
+
+// Scheme returns "ether".
+func (Locator) Scheme() string {
+	return locatorScheme
 }
 
 // Validate checks Locator fields.
 func (loc Locator) Validate() error {
 	if loc.Port == "" {
-		return errors.New("Port must be non-empty")
+		return errors.New("invalid Port")
 	}
-	if !loc.Local.IsZero() && !loc.Local.IsUnicast() {
-		return errors.New("Local is not unicast")
+	return loc.Locator.Validate()
+}
+
+// MarshalJSON implements json.Marshaler.
+func (loc Locator) MarshalJSON() (data []byte, e error) {
+	dst := map[string]string{
+		"scheme": locatorScheme,
 	}
-	if len(loc.Vlan) > 2 {
-		return errors.New("too many Vlan tags")
+	var src map[string]string
+
+	if data, e = json.Marshal(loc.Locator); e != nil {
+		return nil, e
 	}
-	for i, vid := range loc.Vlan {
-		if vid == 0 || vid >= C.RTE_ETHER_MAX_VLAN_ID {
-			return fmt.Errorf("Vlan[%d] is invalid", i)
-		}
+	if e = json.Unmarshal(data, &src); e != nil {
+		return nil, e
 	}
-	return nil
+	mergemaps.MergeInto(dst, src, 0)
+
+	if data, e = json.Marshal(loc.LocatorFields); e != nil {
+		return nil, e
+	}
+	if e = json.Unmarshal(data, &src); e != nil {
+		return nil, e
+	}
+	mergemaps.MergeInto(dst, src, 0)
+
+	return json.Marshal(dst)
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (loc *Locator) UnmarshalJSON(data []byte) error {
+	if e := json.Unmarshal(data, &loc.Locator); e != nil {
+		return e
+	}
+	return json.Unmarshal(data, &loc.LocatorFields)
 }
 
 func init() {
@@ -77,7 +101,7 @@ func Create(loc Locator, cfg PortConfig) (face iface.Face, e error) {
 
 	port := FindPort(dev)
 	if port == nil {
-		if cfg.Local.IsZero() {
+		if cfg.Local == nil {
 			cfg.Local = loc.Local
 		}
 		if port, e = NewPort(dev, cfg); e != nil {

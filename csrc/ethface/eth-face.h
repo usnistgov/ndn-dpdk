@@ -13,13 +13,12 @@
 typedef struct EthFaceEtherHdr
 {
   struct rte_ether_hdr eth;
-  struct rte_vlan_hdr vlan0;
-  struct rte_vlan_hdr vlan1;
+  struct rte_vlan_hdr vlan;
 } __rte_packed __rte_aligned(2) EthFaceEtherHdr;
 
 uint8_t
 EthFaceEtherHdr_Init(EthFaceEtherHdr* hdr, const struct rte_ether_addr* local,
-                     const struct rte_ether_addr* remote, uint16_t vlan0, uint16_t vlan1);
+                     const struct rte_ether_addr* remote, uint16_t vlan);
 
 /**
  * @brief Ethernet face private data.

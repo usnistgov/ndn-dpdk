@@ -12,6 +12,3 @@ type DevInfo C.struct_rte_eth_dev_info
 
 // Statistics for an Ethernet port.
 type Stats C.struct_rte_eth_stats
-
-// Ethernet address.
-type EtherAddr C.struct_rte_ether_addr

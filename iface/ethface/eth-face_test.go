@@ -1,6 +1,7 @@
 package ethface_test
 
 import (
+	"net"
 	"testing"
 	"time"
 
@@ -9,13 +10,14 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/ethface"
 	"github.com/usnistgov/ndn-dpdk/iface/ifacetestenv"
+	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
 	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
 )
 
 type ethTestTopology struct {
 	*ifacetestenv.Fixture
 	vnet                                           *ethdev.VNet
-	macZero, macA, macB, macC                      ethdev.EtherAddr
+	macA, macB, macC                               net.HardwareAddr
 	faceAB, faceAC, faceAm, faceBm, faceBA, faceCA iface.Face
 }
 
@@ -29,11 +31,11 @@ func makeTopo(t *testing.T) (topo ethTestTopology) {
 	vnet := ethdev.NewVNet(vnetCfg)
 	topo.vnet = vnet
 
-	topo.macA, _ = ethdev.ParseEtherAddr("02:00:00:00:00:01")
-	topo.macB, _ = ethdev.ParseEtherAddr("02:00:00:00:00:02")
-	topo.macC, _ = ethdev.ParseEtherAddr("02:00:00:00:00:03")
+	topo.macA, _ = net.ParseMAC("02:00:00:00:00:01")
+	topo.macB, _ = net.ParseMAC("02:00:00:00:00:02")
+	topo.macC, _ = net.ParseMAC("02:00:00:00:00:03")
 
-	makeFace := func(dev ethdev.EthDev, local, remote ethdev.EtherAddr) iface.Face {
+	makeFace := func(dev ethdev.EthDev, local, remote net.HardwareAddr) iface.Face {
 		loc := ethface.NewLocator(dev)
 		loc.Local = local
 		loc.Remote = remote
@@ -44,9 +46,9 @@ func makeTopo(t *testing.T) (topo ethTestTopology) {
 
 	topo.faceAB = makeFace(vnet.Ports[0], topo.macA, topo.macB)
 	topo.faceAC = makeFace(vnet.Ports[0], topo.macA, topo.macC)
-	topo.faceAm = makeFace(vnet.Ports[0], topo.macZero, topo.macZero)
-	topo.faceBm = makeFace(vnet.Ports[1], topo.macB, topo.macZero)
-	topo.faceBA = makeFace(vnet.Ports[1], topo.macZero, topo.macA)
+	topo.faceAm = makeFace(vnet.Ports[0], topo.macA, packettransport.MulticastAddressNDN)
+	topo.faceBm = makeFace(vnet.Ports[1], topo.macB, packettransport.MulticastAddressNDN)
+	topo.faceBA = makeFace(vnet.Ports[1], topo.macB, topo.macA)
 	topo.faceCA = makeFace(vnet.Ports[2], topo.macC, topo.macA)
 
 	ealthread.Launch(vnet)
@@ -81,10 +83,10 @@ func TestEthFaceAm(t *testing.T) {
 	defer topo.Close()
 
 	locAm := topo.faceAm.Locator().(ethface.Locator)
-	assert.Equal("ether", locAm.Scheme)
+	assert.Equal("ether", locAm.Scheme())
 	assert.Equal(topo.vnet.Ports[0].Name(), locAm.Port)
-	assert.True(locAm.Local.Equal(topo.macA))
-	assert.True(locAm.Remote.Equal(ethface.NdnMcastAddr))
+	assert.Equal(topo.macA, locAm.Local)
+	assert.Equal(packettransport.MulticastAddressNDN, locAm.Remote)
 
 	topo.RunTest(topo.faceAm, topo.faceBm)
 	topo.CheckCounters()

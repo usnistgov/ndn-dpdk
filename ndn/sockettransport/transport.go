@@ -57,6 +57,11 @@ func (cfg *Config) applyDefaults() {
 }
 
 // Transport is an ndn.Transport that communicates over a socket.
+//
+// A transport has automatic error handling: if a socket error occurs, the transport automatically
+// redials the socket. In case the socket cannot be redialed, the transport remains in "down" status.
+//
+// A transport closes itself after its TX channel has been closed.
 type Transport struct {
 	cfg     Config
 	impl    impl
@@ -98,11 +103,6 @@ func New(conn net.Conn, cfg Config) (*Transport, error) {
 	go tr.txLoop()
 	go tr.redialLoop()
 	return &tr, nil
-}
-
-// Close closes the tr.
-func (tr *Transport) Close() error {
-	return nil
 }
 
 // Rx returns the RX channel.

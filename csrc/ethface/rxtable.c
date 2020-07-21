@@ -15,10 +15,8 @@ EthRxTable_Accept(EthRxTable* rxt, struct rte_mbuf* frame, uint64_t now)
   }
 
   if (likely(hdr->eth.ether_type == rte_cpu_to_be_16(NDN_ETHERTYPE))) {
-    rte_pktmbuf_adj(frame, offsetof(EthFaceEtherHdr, vlan0));
-  } else if (likely(hdr->vlan0.eth_proto == rte_cpu_to_be_16(NDN_ETHERTYPE))) {
-    rte_pktmbuf_adj(frame, offsetof(EthFaceEtherHdr, vlan1));
-  } else if (likely(hdr->vlan1.eth_proto == rte_cpu_to_be_16(NDN_ETHERTYPE))) {
+    rte_pktmbuf_adj(frame, offsetof(EthFaceEtherHdr, vlan));
+  } else if (likely(hdr->vlan.eth_proto == rte_cpu_to_be_16(NDN_ETHERTYPE))) {
     rte_pktmbuf_adj(frame, sizeof(EthFaceEtherHdr));
   } else {
     rte_pktmbuf_free(frame);

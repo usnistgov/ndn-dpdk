@@ -10,23 +10,21 @@ export type FaceID = number;
 export type FaceLocator = EthFaceLocator | SocketFaceLocator;
 
 export interface EthFaceLocator {
-  Scheme: "ether";
-  Port: string;
-  Local?: string;
-  Remote?: string;
+  scheme: "ether";
+  port: string;
+  local: string;
+  remote: string;
 
   /**
-   * @items.type integer
-   * @items.minimum 1
-   * @items.maximum 4095
+   * @TJS-type integer
    */
-  Vlan?: number[];
+  vlan?: number;
 }
 
 export interface SocketFaceLocator {
-  Scheme: "udp"|"unixgram"|"tcp"|"unix";
-  Local?: string;
-  Remote: string;
+  scheme: "udp"|"tcp"|"unix";
+  local?: string;
+  remote: string;
 }
 
 export interface FaceCounters {

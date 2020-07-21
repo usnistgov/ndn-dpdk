@@ -3,6 +3,7 @@ package facemgmt
 import (
 	"errors"
 
+	"github.com/rackn/gohai/plugins/net"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/iface/ethface"
@@ -55,7 +56,7 @@ type PortArg struct {
 type PortInfo struct {
 	Name       string           // port name
 	NumaSocket eal.NumaSocket   // NUMA socket
-	MacAddr    ethdev.EtherAddr // MAC address
+	MacAddr    net.HardwareAddr // MAC address
 	Active     bool             // whether port is active
 	ImplName   string           // internal implementation name
 }
@@ -63,7 +64,7 @@ type PortInfo struct {
 func makePortInfo(dev ethdev.EthDev) (info PortInfo) {
 	info.Name = dev.Name()
 	info.NumaSocket = dev.NumaSocket()
-	info.MacAddr = dev.MacAddr()
+	info.MacAddr = net.HardwareAddr(dev.MacAddr())
 	port := ethface.FindPort(dev)
 	if port != nil {
 		info.Active = true

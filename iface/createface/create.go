@@ -20,7 +20,7 @@ func Create(loc iface.Locator) (face iface.Face, e error) {
 	createDestroyLock.Lock()
 	defer createDestroyLock.Unlock()
 
-	switch loc.GetScheme() {
+	switch loc.Scheme() {
 	case "ether":
 		return createEth(loc.(ethface.Locator))
 	}

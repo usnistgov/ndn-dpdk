@@ -6,9 +6,11 @@ package ethdev
 import "C"
 import (
 	"fmt"
+	"net"
 	"strconv"
 	"unsafe"
 
+	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
@@ -85,8 +87,14 @@ func (port EthDev) DevInfo() (info DevInfo) {
 }
 
 // MacAddr retrieves MAC address of this EthDev.
-func (port EthDev) MacAddr() (a EtherAddr) {
-	C.rte_eth_macaddr_get(C.uint16_t(port.ID()), a.ptr())
+// If the underlying EthDev returns an invalid MAC address, a random MAC address is returned instead.
+func (port EthDev) MacAddr() (a net.HardwareAddr) {
+	var c C.struct_rte_ether_addr
+	C.rte_eth_macaddr_get(C.uint16_t(port.ID()), &c)
+	a = net.HardwareAddr(C.GoBytes(unsafe.Pointer(&c.addr_bytes[0]), C.RTE_ETHER_ADDR_LEN))
+	if !macaddr.IsUnicast(a) {
+		a = macaddr.MakeRandom(false)
+	}
 	return a
 }
 
