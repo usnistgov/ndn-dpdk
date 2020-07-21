@@ -11,11 +11,14 @@ import (
 
 // Data represents a Data packet.
 type Data struct {
-	packet      *Packet
-	Name        Name
-	ContentType ContentType
-	Freshness   time.Duration
-	Content     []byte
+	packet           *Packet
+	l3SigValueOffset int
+	Name             Name
+	ContentType      ContentType
+	Freshness        time.Duration
+	Content          []byte
+	SigInfo          *SigInfo
+	SigValue         []byte
 }
 
 // MakeData creates a Data from flexible arguments.
@@ -66,10 +69,13 @@ func MakeData(args ...interface{}) (data Data) {
 // ToPacket wraps Data as Packet.
 func (data Data) ToPacket() *Packet {
 	if data.packet == nil {
-		packet := Packet{Data: &data}
-		data.packet = &packet
+		data.packet = &Packet{Data: &data}
 	}
 	return data.packet
+}
+
+func (data Data) String() string {
+	return data.Name.String()
 }
 
 // ComputeDigest computes implicit digest of this Data.
@@ -120,30 +126,66 @@ func (data Data) CanSatisfy(interest Interest) bool {
 	}
 }
 
+// SignWith implements Signable interface.
+// Caller should use signer.Sign(data).
+func (data *Data) SignWith(signer func(name Name, si *SigInfo) (LLSign, error)) error {
+	if data.SigInfo == nil {
+		data.SigInfo = newNullSigInfo()
+	}
+	llSign, e := signer(data.Name, data.SigInfo)
+	if e != nil {
+		return e
+	}
+
+	signedPortion, e := data.encodeSignedPortion()
+	if e != nil {
+		return e
+	}
+
+	sig, e := llSign(signedPortion)
+	if e != nil {
+		return e
+	}
+	data.SigValue = sig
+	return nil
+}
+
+// VerifyWith implements Verifiable interface.
+// Caller should use verifier.Verify(data).
+//
+// If data was decoded from Packet (data.packet is assigned), verification is on the origin packet.
+// Modifying a decoded Data will cause this function to return incorrect result.
+//
+// If data was constructed (data.packet is unassigned), verification is on the encoding of the current packet.
+func (data Data) VerifyWith(verifier func(name Name, si SigInfo) (LLVerify, error)) error {
+	si := data.SigInfo
+	if si == nil {
+		si = newNullSigInfo()
+	}
+	llVerify, e := verifier(data.Name, *si)
+	if e != nil {
+		return e
+	}
+
+	var signedPortion []byte
+	if data.packet != nil && data.l3SigValueOffset > 0 {
+		signedPortion = data.packet.l3value[:data.l3SigValueOffset]
+	} else {
+		signedPortion, e = data.encodeSignedPortion()
+		if e != nil {
+			return e
+		}
+	}
+	return llVerify(signedPortion, data.SigValue)
+}
+
 // MarshalTlv encodes this Data.
 func (data Data) MarshalTlv() (typ uint32, value []byte, e error) {
-	var metaFields []interface{}
-	if data.ContentType > 0 {
-		metaFields = append(metaFields, data.ContentType)
+	signedPortion, e := data.encodeSignedPortion()
+	if e != nil {
+		return 0, nil, e
 	}
-	if data.Freshness > 0 {
-		metaFields = append(metaFields, tlv.MakeElementNNI(an.TtFreshnessPeriod, data.Freshness/time.Millisecond))
-	}
-
-	fields := []interface{}{data.Name}
-	if len(metaFields) > 0 {
-		metaV, e := tlv.Encode(metaFields...)
-		if e != nil {
-			return 0, nil, e
-		}
-		fields = append(fields, tlv.MakeElement(an.TtMetaInfo, metaV))
-	}
-	if len(data.Content) > 0 {
-		fields = append(fields, tlv.MakeElement(an.TtContent, data.Content))
-	}
-	fields = append(fields, dataFakeSig)
-
-	return tlv.EncodeTlv(an.TtData, fields)
+	return tlv.EncodeTlv(an.TtData, signedPortion, tlv.MakeElement(an.TtDSigValue, data.SigValue))
 }
 
 // UnmarshalBinary decodes from TLV-VALUE.
@@ -177,7 +219,14 @@ func (data *Data) UnmarshalBinary(wire []byte) error {
 		case an.TtContent:
 			data.Content = field.Value
 		case an.TtDSigInfo:
+			var si SigInfo
+			if e := field.UnmarshalValue(&si); e != nil {
+				return e
+			}
+			data.SigInfo = &si
 		case an.TtDSigValue:
+			data.SigValue = field.Value
+			data.l3SigValueOffset = len(wire) - len(field.WireAfter())
 		default:
 			if field.IsCriticalType() {
 				return tlv.ErrCritical
@@ -187,8 +236,29 @@ func (data *Data) UnmarshalBinary(wire []byte) error {
 	return d.ErrUnlessEOF()
 }
 
-func (data Data) String() string {
-	return data.Name.String()
+func (data Data) encodeSignedPortion() (wire []byte, e error) {
+	fields := []interface{}{data.Name}
+
+	var metaFields []interface{}
+	if data.ContentType > 0 {
+		metaFields = append(metaFields, data.ContentType)
+	}
+	if data.Freshness > 0 {
+		metaFields = append(metaFields, tlv.MakeElementNNI(an.TtFreshnessPeriod, data.Freshness/time.Millisecond))
+	}
+	if len(metaFields) > 0 {
+		metaV, e := tlv.Encode(metaFields...)
+		if e != nil {
+			return nil, e
+		}
+		fields = append(fields, tlv.MakeElement(an.TtMetaInfo, metaV))
+	}
+
+	if len(data.Content) > 0 {
+		fields = append(fields, tlv.MakeElement(an.TtContent, data.Content))
+	}
+	fields = append(fields, data.SigInfo.EncodeAs(an.TtDSigInfo))
+	return tlv.Encode(fields...)
 }
 
 // ContentType represents a ContentType field.
@@ -205,14 +275,4 @@ func (ct *ContentType) UnmarshalBinary(wire []byte) error {
 	e := n.UnmarshalBinary(wire)
 	*ct = ContentType(n)
 	return e
-}
-
-var dataFakeSig []byte
-
-func init() {
-	sigType, _ := tlv.Encode(tlv.MakeElementNNI(an.TtSigType, an.SigHmacWithSha256))
-	dataFakeSig, _ = tlv.Encode(
-		tlv.MakeElement(an.TtDSigInfo, sigType),
-		tlv.MakeElement(an.TtDSigValue, make([]byte, sha256.Size)),
-	)
 }

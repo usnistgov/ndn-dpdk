@@ -1,5 +1,7 @@
 package an
 
+import "strconv"
+
 // SigType assigned numbers.
 const (
 	SigSha256          = 0x00
@@ -10,3 +12,20 @@ const (
 
 	_ = "enumgen:SigType"
 )
+
+// SigTypeString converts SigType to string.
+func SigTypeString(sigType uint32) string {
+	switch sigType {
+	case SigSha256:
+		return "SHA256"
+	case SigSha256WithRsa:
+		return "RSA"
+	case SigSha256WithEcdsa:
+		return "ECDSA"
+	case SigHmacWithSha256:
+		return "HMAC"
+	case SigNull:
+		return "null"
+	}
+	return strconv.Itoa(int(sigType))
+}

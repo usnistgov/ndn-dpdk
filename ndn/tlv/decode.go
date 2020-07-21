@@ -63,6 +63,15 @@ func (de DecoderElement) IsCriticalType() bool {
 	return de.Type <= 31 || (de.Type&0x01) != 0
 }
 
+// WireAfter returns Wire+After.
+func (de DecoderElement) WireAfter() []byte {
+	size := len(de.Wire) + len(de.After)
+	if cap(de.Wire) < size {
+		panic(de.Wire)
+	}
+	return de.Wire[:size]
+}
+
 // Unmarshal unmarshals TLV into a value.
 func (de DecoderElement) Unmarshal(u Unmarshaler) error {
 	return u.UnmarshalTlv(de.Type, de.Value)

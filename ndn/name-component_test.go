@@ -48,7 +48,7 @@ func TestNameComponent(t *testing.T) {
 
 			parsed := ndn.ParseNameComponent(tt.str)
 			if assert.True(parsed.Valid(), tt.input) {
-				assert.Equal(0, comp.Compare(parsed))
+				assert.True(comp.Equal(parsed))
 			}
 		}
 	}

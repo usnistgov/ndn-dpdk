@@ -26,6 +26,11 @@ func (comp NameComponent) Valid() bool {
 	return isValidNameComponentType(comp.Type)
 }
 
+// Equal determines whether two components are the same.
+func (comp NameComponent) Equal(other NameComponent) bool {
+	return comp.Compare(other) == 0
+}
+
 // Compare returns negative when comp<other, zero when comp==other, positive when comp>other.
 func (comp NameComponent) Compare(other NameComponent) int {
 	if d := int(comp.Type) - int(other.Type); d != 0 {

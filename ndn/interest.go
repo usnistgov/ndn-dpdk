@@ -1,6 +1,7 @@
 package ndn
 
 import (
+	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/binary"
 	"math"
@@ -23,7 +24,9 @@ type Interest struct {
 	Nonce          Nonce
 	Lifetime       time.Duration
 	HopLimit       HopLimit
-	Parameters     []tlv.Element
+	AppParameters  []byte
+	SigInfo        *SigInfo
+	SigValue       []byte
 }
 
 // MakeInterest creates an Interest from flexible arguments.
@@ -35,6 +38,7 @@ type Interest struct {
 // - Nonce: set Nonce
 // - time.Duration: set Lifetime
 // - HopLimit: set HopLimit
+// - []byte: set AppParameters
 // - LpL3: copy PitToken and CongMark
 func MakeInterest(args ...interface{}) (interest Interest) {
 	packet := Packet{Interest: &interest}
@@ -57,6 +61,8 @@ func MakeInterest(args ...interface{}) (interest Interest) {
 			interest.Lifetime = a
 		case HopLimit:
 			interest.HopLimit = a
+		case []byte:
+			interest.AppParameters = a
 		case LpL3:
 			packet.Lp.inheritFrom(a)
 		default:
@@ -69,30 +75,87 @@ func MakeInterest(args ...interface{}) (interest Interest) {
 // ToPacket wraps Interest as Packet.
 func (interest Interest) ToPacket() *Packet {
 	if interest.packet == nil {
-		packet := Packet{Interest: &interest}
-		interest.packet = &packet
+		interest.packet = &Packet{Interest: &interest}
 	}
 	return interest.packet
 }
 
+func (interest Interest) String() string {
+	var b strings.Builder
+	b.WriteString(interest.Name.String())
+	if interest.CanBePrefix {
+		b.WriteString("[P]")
+	}
+	if interest.MustBeFresh {
+		b.WriteString("[F]")
+	}
+	return b.String()
+}
+
 // UpdateParamsDigest appends or updates ParametersSha256DigestComponent.
-// It will not remove an erroneously present ParametersSha256DigestComponent.
+// It will not remove erroneously present or duplicate ParametersSha256DigestComponent.
 func (interest *Interest) UpdateParamsDigest() {
-	if len(interest.Parameters) == 0 {
+	paramsPortion, _ := tlv.Encode(interest.encodeParamsPortion())
+	if len(paramsPortion) == 0 {
 		return
 	}
-
-	parameters, _ := tlv.Encode(interest.Parameters)
-	digest := sha256.Sum256(parameters)
+	digest := sha256.Sum256(paramsPortion)
 
 	for _, comp := range interest.Name {
-		if comp.Type == uint32(an.TtParametersSha256DigestComponent) {
+		if comp.Type == an.TtParametersSha256DigestComponent {
 			comp.Value = digest[:]
 			return
 		}
 	}
 
 	interest.Name = append(interest.Name, MakeNameComponent(an.TtParametersSha256DigestComponent, digest[:]))
+}
+
+// SignWith implements Signable interface.
+// Caller should use signer.Sign(interest).
+func (interest *Interest) SignWith(signer func(name Name, si *SigInfo) (LLSign, error)) error {
+	if interest.SigInfo == nil {
+		interest.SigInfo = newNullSigInfo()
+	}
+	llSign, e := signer(interest.Name, interest.SigInfo)
+	if e != nil {
+		return e
+	}
+
+	signedPortion, e := interest.encodeSignedPortion()
+	if e != nil {
+		return e
+	}
+
+	sig, e := llSign(signedPortion)
+	if e != nil {
+		return e
+	}
+	interest.SigValue = sig
+
+	interest.UpdateParamsDigest()
+	return nil
+}
+
+// VerifyWith implements Verifiable interface.
+// Caller should use verifier.Verify(interest).
+//
+// This function cannot verify an Interest that contains unrecognized TLV elements.
+func (interest Interest) VerifyWith(verifier func(name Name, si SigInfo) (LLVerify, error)) error {
+	si := interest.SigInfo
+	if si == nil {
+		si = newNullSigInfo()
+	}
+	llVerify, e := verifier(interest.Name, *si)
+	if e != nil {
+		return e
+	}
+
+	signedPortion, e := interest.encodeSignedPortion()
+	if e != nil {
+		return e
+	}
+	return llVerify(signedPortion, interest.SigValue)
 }
 
 // MarshalTlv encodes this Interest.
@@ -123,9 +186,7 @@ func (interest Interest) MarshalTlv() (typ uint32, value []byte, e error) {
 	if interest.HopLimit != 0 {
 		fields = append(fields, interest.HopLimit)
 	}
-	if len(interest.Parameters) > 0 {
-		fields = append(fields, interest.Parameters)
-	}
+	fields = append(fields, interest.encodeParamsPortion())
 	return tlv.EncodeTlv(an.TtInterest, fields)
 }
 
@@ -133,12 +194,8 @@ func (interest Interest) MarshalTlv() (typ uint32, value []byte, e error) {
 func (interest *Interest) UnmarshalBinary(wire []byte) error {
 	*interest = Interest{}
 	d := tlv.Decoder(wire)
+	var paramsPortion []byte
 	for _, field := range d.Elements() {
-		if len(interest.Parameters) > 0 {
-			interest.Parameters = append(interest.Parameters, field.Element)
-			continue
-		}
-
 		switch field.Type {
 		case an.TtName:
 			if e := field.UnmarshalValue(&interest.Name); e != nil {
@@ -166,26 +223,66 @@ func (interest *Interest) UnmarshalBinary(wire []byte) error {
 				return e
 			}
 		case an.TtAppParameters:
-			interest.Parameters = append(interest.Parameters, field.Element)
+			interest.AppParameters = field.Value
+			paramsPortion = field.WireAfter()
+		case an.TtISigInfo:
+			var si SigInfo
+			if e := field.UnmarshalValue(&si); e != nil {
+				return e
+			}
+			interest.SigInfo = &si
+		case an.TtISigValue:
+			interest.SigValue = field.Value
 		default:
 			if field.IsCriticalType() {
 				return tlv.ErrCritical
 			}
 		}
 	}
+
+	if len(paramsPortion) > 0 {
+		digest := sha256.Sum256(paramsPortion)
+		foundParamsDigest := 0
+		for i, comp := range interest.Name {
+			if comp.Type != an.TtParametersSha256DigestComponent {
+				continue
+			}
+			foundParamsDigest++
+			if interest.SigInfo != nil && i != len(interest.Name)-1 {
+				return ErrParamsDigest
+			}
+			if !hmac.Equal(digest[:], comp.Value) {
+				return ErrParamsDigest
+			}
+		}
+		if foundParamsDigest != 1 {
+			return ErrParamsDigest
+		}
+	}
+
 	return d.ErrUnlessEOF()
 }
 
-func (interest Interest) String() string {
-	var b strings.Builder
-	b.WriteString(interest.Name.String())
-	if interest.CanBePrefix {
-		b.WriteString("[P]")
+func (interest Interest) encodeParamsPortion() (fields []interface{}) {
+	if len(interest.AppParameters) == 0 && interest.SigInfo == nil {
+		return
 	}
-	if interest.MustBeFresh {
-		b.WriteString("[F]")
+	fields = []interface{}{tlv.MakeElement(an.TtAppParameters, interest.AppParameters)}
+	if interest.SigInfo != nil {
+		fields = append(fields, interest.SigInfo.EncodeAs(an.TtISigInfo), tlv.MakeElement(an.TtISigValue, interest.SigValue))
 	}
-	return b.String()
+	return
+}
+
+func (interest Interest) encodeSignedPortion() (wire []byte, e error) {
+	var fields []interface{}
+	if interest.Name.Get(-1).Type == an.TtParametersSha256DigestComponent {
+		fields = append(fields, []NameComponent(interest.Name.GetPrefix(-1)))
+	} else {
+		fields = append(fields, []NameComponent(interest.Name))
+	}
+	fields = append(fields, tlv.MakeElement(an.TtAppParameters, interest.AppParameters), interest.SigInfo.EncodeAs(an.TtISigInfo))
+	return tlv.Encode(fields...)
 }
 
 // ForwardingHint represents a forwarding hint.
