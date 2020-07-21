@@ -37,7 +37,8 @@ It is in pre-release stage and will continue to be updated.
 * Execute `make gopkg` to build all Go packages.
 * Execute `make test` to run all unit tests, or `mk/gotest.sh <PKG>` to run the tests for a given package.
 * Execute `make doxygen` to build C documentation (requires the `doxygen` package).
-* Execute `make godoc` to start a godoc server on port 6060.
+* To view Go documentation, execute `godoc &` and access the website on port 6060.
+  You may need to install [godoc](https://pkg.go.dev/golang.org/x/tools/cmd/godoc?tab=doc) command: `sudo GO111MODULE=off GOBIN=$(go env GOROOT)/bin $(which go) get -u golang.org/x/tools/cmd/godoc`
 * Execute `make lint` to fix code style issues before committing (requires the `clang-format-8` and `yamllint` packages).
 * To select release mode that disables assertions and verbose logging in C code, prepend `RELEASE=1` to the `make` command.
   You must run `make clean` when switching between debug and release modes.

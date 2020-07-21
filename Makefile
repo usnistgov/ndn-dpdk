@@ -75,9 +75,6 @@ docs/mgmtspec.json:
 .PHONY: docs
 docs: doxygen mgmtspec
 
-godoc:
-	godoc -http ':6060' 2>/dev/null &
-
 lint:
 	mk/format-code.sh
 
