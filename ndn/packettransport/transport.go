@@ -1,3 +1,5 @@
+// Package packettransport implements a transport based on gopacket library.
+// It may be used to create Ethernet faces based on AF_PACKET or tcpdump.
 package packettransport
 
 import (

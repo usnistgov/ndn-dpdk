@@ -1,3 +1,9 @@
+// Package ndn implements Named Data Networking (NDN) packet semantics.
+//
+// This package contains the following important types:
+//  Packet representation: Interest, Data, Nack, Packet
+//  Low-level transport: Transport, L3Face
+//  Security abstraction: Signer, Verifier
 package ndn
 
 import (

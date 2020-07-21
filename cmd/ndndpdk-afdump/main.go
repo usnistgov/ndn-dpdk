@@ -7,17 +7,17 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/ndn"
-	"github.com/usnistgov/ndn-dpdk/ndn/afpackettransport"
+	"github.com/usnistgov/ndn-dpdk/ndn/packettransport/afpacket"
 )
 
 var (
-	ifname  = flag.String("i", "", "network interface name")
+	ifname  = flag.String("i", "", "network interface name (required)")
 	rxq     = flag.Int("rxq", 0, "RX queue size")
 	txq     = flag.Int("txq", 0, "TX queue size")
 	local   macaddr.Flag
 	remote  macaddr.Flag
 	verbose = flag.Bool("v", false, "print received packet names")
-	respond = flag.Bool("respond", false, "respond every Interest with Data")
+	respond = flag.Bool("respond", false, "respond to every Interest with Data")
 )
 
 func init() {
@@ -27,13 +27,18 @@ func init() {
 
 func main() {
 	flag.Parse()
-	var cfg afpackettransport.Config
+	if *ifname == "" {
+		flag.Usage()
+		os.Exit(2)
+	}
+
+	var cfg afpacket.Config
 	cfg.Local = local.HardwareAddr
 	cfg.Remote = remote.HardwareAddr
 	cfg.RxQueueSize = *rxq
 	cfg.TxQueueSize = *txq
 
-	tr, e := afpackettransport.New(*ifname, cfg)
+	tr, e := afpacket.New(*ifname, cfg)
 	if e != nil {
 		fmt.Fprintln(os.Stderr, e)
 		os.Exit(1)

@@ -1,3 +1,4 @@
+// Package rsakey implements SigSha256WithRsa signature type.
 package rsakey
 
 import (

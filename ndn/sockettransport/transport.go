@@ -1,3 +1,4 @@
+// Package sockettransport implements a transport based on stream or datagram sockets.
 package sockettransport
 
 import (

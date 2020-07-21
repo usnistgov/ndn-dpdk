@@ -1,4 +1,6 @@
-package afpackettransport
+// Package afpacket implements a transport that communicates over AF_PACKET sockets.
+// This only works on Linux.
+package afpacket
 
 import (
 	"encoding/binary"
@@ -6,7 +8,7 @@ import (
 	"net"
 	"reflect"
 
-	"github.com/google/gopacket/afpacket"
+	af "github.com/google/gopacket/afpacket"
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
 	"golang.org/x/sys/unix"
@@ -38,9 +40,9 @@ func New(ifname string, cfg Config) (Transport, error) {
 		cfg.Remote = packettransport.MulticastAddressNDN
 	}
 
-	h, e := afpacket.NewTPacket()
+	h, e := af.NewTPacket()
 	if e != nil {
-		return nil, fmt.Errorf("afpacket.NewTPacket() %w", e)
+		return nil, fmt.Errorf("af.NewTPacket() %w", e)
 	}
 
 	tr := &transport{
@@ -60,11 +62,11 @@ func New(ifname string, cfg Config) (Transport, error) {
 
 type transport struct {
 	packettransport.Transport
-	h    *afpacket.TPacket
+	h    *af.TPacket
 	intf net.Interface
 }
 
-func (tr *transport) prepare(h *afpacket.TPacket, loc packettransport.Locator) error {
+func (tr *transport) prepare(h *af.TPacket, loc packettransport.Locator) error {
 	fd := int(reflect.ValueOf(h).Elem().FieldByName("fd").Int())
 	ifindex := tr.intf.Index
 	ethtype := make([]byte, 2)

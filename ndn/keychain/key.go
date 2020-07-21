@@ -1,3 +1,4 @@
+// Package keychain implements signing and verification on NDN packets.
 package keychain
 
 import (

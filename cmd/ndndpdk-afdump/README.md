@@ -1,7 +1,7 @@
 # ndndpdk-afdump
 
 This program receives packets on a network interface, optionally prints packet names, and optionally responds to every Interest with Data.
-It demonstrates how to use [ndn-dpdk/ndn/afpackettransport](../../ndn/afpackettransport) package.
+It demonstrates how to use [ndn-dpdk/ndn/packettransport/afpacket](../../ndn/packettransport/afpacket) package.
 
 ## Usage
 
