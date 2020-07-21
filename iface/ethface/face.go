@@ -15,9 +15,12 @@ import (
 
 // New creates an Ethernet face on the given port.
 func New(port *Port, loc Locator) (iface.Face, error) {
-	if !macaddr.Equal(loc.Local, port.cfg.Local) {
+	if !macaddr.Equal(loc.Local, port.local) {
 		return nil, errors.New("port has a different local address")
 	}
+	loc.Port = port.dev.Name()
+	loc.PortConfig = nil
+	loc.RxQueueIDs = nil
 
 	switch {
 	case macaddr.IsMulticast(loc.Remote):
@@ -36,23 +39,24 @@ func New(port *Port, loc Locator) (iface.Face, error) {
 		port: port,
 		loc:  loc,
 	}
-	return iface.New(iface.NewOptions{
-		Socket:          port.dev.NumaSocket(),
-		SizeofPriv:      uintptr(C.sizeof_EthFacePriv),
-		TxQueueCapacity: port.cfg.TxqPkts,
-		TxMtu:           port.cfg.Mtu,
-		TxHeadroom:      int(C.sizeof_struct_rte_ether_hdr),
+	return iface.New(iface.NewParams{
+		Config:     port.cfg.Config,
+		Socket:     port.dev.NumaSocket(),
+		SizeofPriv: uintptr(C.sizeof_EthFacePriv),
+		TxHeadroom: int(C.sizeof_EthFaceEtherHdr),
 		Init: func(f iface.Face) error {
 			face.Face = f
 			c := face.ptr()
 			c.txBurstOp = (C.FaceImpl_TxBurst)(C.EthFace_TxBurst)
 
 			priv := (*C.EthFacePriv)(C.Face_GetPriv(c))
-			priv.port = C.uint16_t(port.dev.ID())
-			priv.faceID = C.FaceID(f.ID())
+			*priv = C.EthFacePriv{
+				port:   C.uint16_t(port.dev.ID()),
+				faceID: C.FaceID(f.ID()),
+			}
 
 			var local, remote C.struct_rte_ether_addr
-			copy(cptr.AsByteSlice(&local.addr_bytes), []byte(port.cfg.Local))
+			copy(cptr.AsByteSlice(&local.addr_bytes), []byte(face.loc.Local))
 			copy(cptr.AsByteSlice(&remote.addr_bytes), []byte(face.loc.Remote))
 			priv.txHdrLen = C.EthFaceEtherHdr_Init(&priv.txHdr, &local, &remote, C.uint16_t(face.loc.VLAN))
 
@@ -74,11 +78,6 @@ func New(port *Port, loc Locator) (iface.Face, error) {
 			}
 			return nil
 		},
-		ReadExCounters: func(iface.Face) interface{} {
-			var cnt ExCounters
-			cnt.RxQueue = int(face.priv.rxQueue)
-			return cnt
-		},
 	})
 }
 
@@ -92,10 +91,4 @@ type ethFace struct {
 
 func (face *ethFace) ptr() *C.Face {
 	return (*C.Face)(face.Ptr())
-}
-
-// ExCounters contains extended counters for Ethernet faces.
-// This only contains the RX queue number of the port, while the actual counters are on the port.
-type ExCounters struct {
-	RxQueue int
 }

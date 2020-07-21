@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"sync"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
@@ -93,7 +94,8 @@ func (port EthDev) MacAddr() (a net.HardwareAddr) {
 	C.rte_eth_macaddr_get(C.uint16_t(port.ID()), &c)
 	a = net.HardwareAddr(C.GoBytes(unsafe.Pointer(&c.addr_bytes[0]), C.RTE_ETHER_ADDR_LEN))
 	if !macaddr.IsUnicast(a) {
-		a = macaddr.MakeRandom(false)
+		randomized, _ := randomizedMacAddrs.LoadOrStore(port.ID(), macaddr.MakeRandom(false))
+		a = randomized.(net.HardwareAddr)
 	}
 	return a
 }
@@ -184,6 +186,8 @@ func (port EthDev) Stop(mode StopMode) {
 		C.rte_eth_dev_reset(C.uint16_t(port.ID()))
 	}
 }
+
+var randomizedMacAddrs sync.Map
 
 // Config contains EthDev configuration.
 type Config struct {

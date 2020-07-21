@@ -36,7 +36,7 @@ typedef struct Face
   FaceID id;
   FaceState state;
 
-  struct rte_ring* txQueue;
+  struct rte_ring* outputQueue;
   struct cds_hlist_node txlNode;
 } __rte_cache_aligned Face;
 
@@ -66,13 +66,13 @@ Face_IsDown(FaceID faceID)
 }
 
 /**
- * @brief Send a burst of packets.
- * @param npkts array of L3 packets; face takes ownership
- * @param count size of @p npkts array
+ * @brief Enqueue a burst of packets on the output queue to be transmitted by the output thread.
+ * @param npkts array of L3 packets; face takes ownership.
+ * @param count size of @p npkts array.
  *
  * This function is thread-safe.
  */
-static inline void
+__attribute__((nonnull)) static inline void
 Face_TxBurst(FaceID faceID, Packet** npkts, uint16_t count)
 {
   Face* face = Face_Get(faceID);
@@ -81,17 +81,17 @@ Face_TxBurst(FaceID faceID, Packet** npkts, uint16_t count)
     return;
   }
 
-  uint16_t nQueued = rte_ring_enqueue_burst(face->txQueue, (void**)npkts, count, NULL);
+  uint16_t nQueued = rte_ring_enqueue_burst(face->outputQueue, (void**)npkts, count, NULL);
   uint16_t nRejects = count - nQueued;
   rte_pktmbuf_free_bulk_((struct rte_mbuf**)&npkts[nQueued], nRejects);
   // TODO count nRejects
 }
 
 /**
- * @brief Send a packet.
- * @param npkt an L3 packet; face takes ownership
+ * @brief Enqueue a packet on the output queue to be transmitted by the output thread.
+ * @param npkt an L3 packet; face takes ownership.
  */
-static inline void
+__attribute__((nonnull)) static inline void
 Face_Tx(FaceID faceID, Packet* npkt)
 {
   Face_TxBurst(faceID, &npkt, 1);

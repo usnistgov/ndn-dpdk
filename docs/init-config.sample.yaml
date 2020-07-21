@@ -42,25 +42,8 @@ LCoreAlloc:
 Face:
   # Whether to enable Ethernet faces.
   EnableEth: true
-  # Whether to disable RxFlow dispatching.
-  EthDisableRxFlow: false
-  # Ethernet device MTU.
-  EthMtu: 1500
-  # RX queue capacity for Ethernet faces.
-  EthRxqFrames: 4096
-  # Before-TX queue capacity for Ethernet faces.
-  EthTxqPkts: 256
-  # After-TX queue capacity for Ethernet faces.
-  EthTxqFrames: 4096
-
   # Whether to enable socket faces.
   EnableSock: true
-  # RX queue capacity shared among all socket faces.
-  SockRxqFrames: 4096
-  # Before-TX queue capacity for socket faces.
-  SockTxqPkts: 256
-  # After-TX queue capacity for socket faces.
-  SockTxqFrames: 1024
 
 # NAME DISPATCH TABLE
 Ndt:

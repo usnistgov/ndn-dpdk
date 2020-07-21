@@ -14,6 +14,9 @@ type Locator interface {
 
 	// Validate checks whether Locator fields are correct according to the chosen scheme.
 	Validate() error
+
+	// CreateFace creates a face from this Locator.
+	CreateFace() (Face, error)
 }
 
 // ParseLocator parses Locator from JSON string.
@@ -38,10 +41,10 @@ func MustParseLocator(input string) (loc Locator) {
 var locatorTypes = make(map[string]reflect.Type)
 
 // RegisterLocatorType registers Locator schemes.
-func RegisterLocatorType(locator Locator, schemes ...string) {
-	typ := reflect.TypeOf(locator)
+func RegisterLocatorType(loc Locator, schemes ...string) {
+	typ := reflect.TypeOf(loc)
 	if typ.Kind() != reflect.Struct {
-		log.Panicf("locator must be a struct %T", locator)
+		log.Panicf("Locator must be a struct %T", loc)
 	}
 	for _, scheme := range schemes {
 		locatorTypes[scheme] = typ

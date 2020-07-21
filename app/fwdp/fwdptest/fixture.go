@@ -12,7 +12,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/container/strategycode"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealtestenv"
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"github.com/usnistgov/ndn-dpdk/iface/createface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/strategy/strategyelf"
 )
@@ -37,10 +36,6 @@ func NewFixture(t *testing.T) (fixture *Fixture) {
 	if ealtestenv.UsingThreads {
 		fixture.StepUnit = 200 * time.Millisecond
 	}
-
-	var faceCfg createface.Config
-	faceCfg.EnableSock = true
-	faceCfg.Apply()
 
 	var dpCfg fwdp.Config
 

@@ -13,12 +13,6 @@ var socketfaceCfg socketface.Config
 
 func TestMain(m *testing.M) {
 	ealtestenv.Init()
-
-	socketfaceCfg = socketface.Config{
-		TxqPkts:   64,
-		TxqFrames: 64,
-	}
-
 	os.Exit(m.Run())
 }
 

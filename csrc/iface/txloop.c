@@ -30,7 +30,7 @@ TxLoop_Transfer(Face* face)
 {
   TxProc* tx = &face->impl->tx;
   Packet* npkts[MaxBurstSize];
-  uint16_t count = rte_ring_dequeue_burst(face->txQueue, (void**)npkts, MaxBurstSize, NULL);
+  uint16_t count = rte_ring_dequeue_burst(face->outputQueue, (void**)npkts, MaxBurstSize, NULL);
 
   struct rte_mbuf* frames[MaxBurstSize + LpMaxFragments];
   uint16_t nFrames = 0;

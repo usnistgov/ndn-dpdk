@@ -27,9 +27,9 @@ const args = yargs
   .option("vlan", {
     type: "number",
   })
-  .check(({ scheme, port, local }) => {
-    if (scheme === "ether" && !port && !local) {
-      throw new Error("either port or local must be specified for 'ether' scheme");
+  .check(({ scheme, local }) => {
+    if (scheme === "ether" && !local) {
+      throw new Error("--local is required for 'ether' scheme");
     }
     return true;
   })
@@ -40,18 +40,10 @@ async function main() {
 
   let loc: FaceLocator;
   if (args.scheme === "ether") {
-    const list = await mgmtClient.request("EthFace", "ListPorts", {});
-    const port = args.port ?
-      list.find(({ Name }) => Name === args.port) :
-      list.find(({ MacAddr }) => MacAddr === args.local);
-    if (!port) {
-      throw new Error(`Ethernet port not found; available ports: ${list.map((p) => p.Name).join(", ")}`);
-    }
-
     loc = {
       scheme: "ether",
-      port: port.Name,
-      local: args.local ?? port.MacAddr,
+      port: args.port,
+      local: args.local!,
       remote: args.remote,
       vlan: args.vlan,
     };

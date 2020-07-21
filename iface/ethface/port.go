@@ -11,6 +11,41 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
+// Limits and defaults.
+const (
+	MinRxQueueSize     = 256
+	DefaultRxQueueSize = 4096
+
+	MinTxQueueSize     = 256
+	DefaultTxQueueSize = 4096
+)
+
+// PortConfig contains Port creation arguments.
+type PortConfig struct {
+	iface.Config
+
+	// DisableRxFlow disables RxFlow implementation.
+	DisableRxFlow bool `json:"disableRxFlow,omitempty"`
+
+	// RxQueueSize is the hardware RX queue capacity.
+	//
+	// The minimum is MinRxQueueSize.
+	// If this value is less than the minimum, it defaults to DefaultRxQueueSize.
+	// Otherwise, it is adjusted up to the next power of 2.
+	RxQueueSize int `json:"rxQueueSize,omitempty"`
+
+	// TxQueueSize is the hardware TX queue capacity.
+	//
+	// The minimum is MinTxQueueSize.
+	// If this value is less than the minimum, it defaults to DefaultTxQueueSize.
+	// Otherwise, it is adjusted up to the next power of 2.
+	TxQueueSize int `json:"txQueueSize,omitempty"`
+
+	// NoSetMTU disables setting MTU on the EthDev.
+	// Set to true only if the EthDev lacks support for setting MTU.
+	NoSetMTU bool `json:"noSetMTU,omitempty"`
+}
+
 var portByEthDev = make(map[ethdev.EthDev]*Port)
 
 // FindPort returns a Port associated with given EthDev.
@@ -26,34 +61,10 @@ func ListPorts() (list []*Port) {
 	return list
 }
 
-// PortConfig contains Port creation arguments.
-type PortConfig struct {
-	RxqFrames  int              // RX queue capacity
-	TxqPkts    int              // before-TX queue capacity
-	TxqFrames  int              // after-TX queue capacity
-	Mtu        int              // set MTU, 0 to retrieve from EthDev (implies SkipSetMtu)
-	SkipSetMtu bool             // if true, don't set MTU on EthDev; MTU is only used for fragmentation
-	Local      net.HardwareAddr // local address, nil to use hardware default
-}
-
-func (cfg PortConfig) applyDefaults(dev ethdev.EthDev) error {
-	if cfg.Local == nil {
-		cfg.Local = dev.MacAddr()
-	} else if !macaddr.IsUnicast(cfg.Local) {
-		return errors.New("Local is not unicast")
-	}
-
-	if cfg.Mtu == 0 {
-		cfg.Mtu = dev.Mtu()
-		cfg.SkipSetMtu = true
-	}
-
-	return nil
-}
-
 // Port organizes EthFaces on an EthDev.
 type Port struct {
 	cfg      PortConfig
+	local    net.HardwareAddr
 	logger   logrus.FieldLogger
 	dev      ethdev.EthDev
 	faces    map[iface.ID]*ethFace
@@ -62,20 +73,30 @@ type Port struct {
 }
 
 // NewPort opens a Port.
-func NewPort(dev ethdev.EthDev, cfg PortConfig) (port *Port, e error) {
-	if e = cfg.applyDefaults(dev); e != nil {
-		return nil, e
+func NewPort(dev ethdev.EthDev, local net.HardwareAddr, cfg PortConfig) (port *Port, e error) {
+	if cfg.MTU == 0 {
+		cfg.MTU = dev.Mtu()
+		cfg.NoSetMTU = true
 	}
+	cfg.Config.ApplyDefaults()
+
+	if local == nil {
+		local = dev.MacAddr()
+	} else if !macaddr.IsUnicast(local) {
+		return nil, errors.New("local address is not unicast")
+	}
+
 	if FindPort(dev) != nil {
 		return nil, errors.New("Port already exists")
 	}
 
-	port = new(Port)
-	port.cfg = cfg
-	port.logger = newPortLogger(dev)
-	port.dev = dev
-	port.faces = make(map[iface.ID]*ethFace)
-
+	port = &Port{
+		cfg:    cfg,
+		local:  local,
+		logger: newPortLogger(dev),
+		dev:    dev,
+		faces:  make(map[iface.ID]*ethFace),
+	}
 	port.logger.Debug("opening")
 	portByEthDev[port.dev] = port
 	return port, nil

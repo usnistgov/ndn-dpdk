@@ -11,13 +11,14 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"github.com/usnistgov/ndn-dpdk/iface/createface"
+
+	_ "github.com/usnistgov/ndn-dpdk/iface/ethface"
+	_ "github.com/usnistgov/ndn-dpdk/iface/socketface"
 )
 
 type initConfig struct {
 	Mempool    pktmbuf.TemplateUpdates
 	LCoreAlloc ealthread.AllocConfig
-	Face       createface.Config
 	Ndt        ndt.Config
 	Fib        fib.Config
 	Fwdp       fwdpInitConfig
@@ -35,7 +36,6 @@ type fwdpInitConfig struct {
 }
 
 func parseCommand(args []string) (initCfg initConfig, e error) {
-	initCfg.Face.EnableEth = true
 	initCfg.Ndt.PrefixLen = 2
 	initCfg.Ndt.IndexBits = 16
 	initCfg.Ndt.SampleFreq = 8

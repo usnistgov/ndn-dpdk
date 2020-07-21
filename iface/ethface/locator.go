@@ -1,14 +1,11 @@
 package ethface
 
-/*
-#include <rte_ether.h>
-*/
-import "C"
 import (
 	"encoding/json"
 	"errors"
 
 	"github.com/VojtechVitek/mergemaps"
+	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
@@ -18,7 +15,28 @@ const locatorScheme = "ether"
 
 // LocatorFields contains additional Locator fields.
 type LocatorFields struct {
-	Port string `json:"port"`
+	// Port is the port name.
+	//
+	// During face creation, this field is optional.
+	// If this is empty, the face creation procedure:
+	// (1) Search for an active Port whose local address matches loc.Local.
+	// (2) If no such Port was found, search for an inactive EthDev whose physical MAC address matches loc.Local.
+	// (3) Face creation fails if no such EthDev was found.
+	//
+	// If this is non-empty, the face creation procedure:
+	// (1) Search for an EthDev whose name matches this value.
+	//     Face creation fails if no such EthDev was found.
+	// (2) If that EthDev is inactive, a Port is activated with the local address specified in loc.Local.
+	//     Otherwise, loc.Local must match the local address of the active Port, or face creation fails.
+	Port string `json:"port,omitempty"`
+
+	// PortConfig specifies additional configuration for Port activation.
+	// This is only used when creating the first face on an EthDev.
+	PortConfig *PortConfig `json:"portConfig,omitempty"`
+
+	// RxQueueIDs is a list of hardware RX queue numbers used by this face, if known.
+	// This is meaningful on an existing face, and ignored during face creation.
+	RxQueueIDs []int `json:"rxQueueIDs,omitempty"`
 }
 
 // Locator describes port, addresses, and VLAN of an Ethernet face.
@@ -29,7 +47,6 @@ type Locator struct {
 
 // NewLocator creates a Locator.
 func NewLocator(dev ethdev.EthDev) (loc Locator) {
-	loc.Port = dev.Name()
 	loc.Local = dev.MacAddr()
 	loc.Remote = packettransport.MulticastAddressNDN
 	return loc
@@ -40,20 +57,57 @@ func (Locator) Scheme() string {
 	return locatorScheme
 }
 
-// Validate checks Locator fields.
-func (loc Locator) Validate() error {
-	if loc.Port == "" {
-		return errors.New("invalid Port")
+// CreateFace creates a face from this Locator.
+func (loc Locator) CreateFace() (face iface.Face, e error) {
+	if e = loc.Validate(); e != nil {
+		return nil, e
 	}
-	return loc.Locator.Validate()
+	dev, port := loc.findPort()
+	if !dev.Valid() {
+		return nil, errors.New("EthDev not found")
+	}
+
+	if port == nil {
+		var cfg PortConfig
+		if loc.PortConfig != nil {
+			cfg = *loc.PortConfig
+		}
+		if port, e = NewPort(dev, loc.Local, cfg); e != nil {
+			return nil, e
+		}
+	}
+
+	return New(port, loc)
+}
+
+func (loc Locator) findPort() (ethdev.EthDev, *Port) {
+	if loc.Port == "" {
+		for _, port := range ListPorts() {
+			if macaddr.Equal(port.local, loc.Local) {
+				return port.dev, port
+			}
+		}
+		for _, dev := range ethdev.List() {
+			if macaddr.Equal(dev.MacAddr(), loc.Local) {
+				return dev, FindPort(dev)
+			}
+		}
+	} else {
+		for _, dev := range ethdev.List() {
+			if dev.Name() == loc.Port {
+				return dev, FindPort(dev)
+			}
+		}
+	}
+	return ethdev.EthDev{}, nil
 }
 
 // MarshalJSON implements json.Marshaler.
 func (loc Locator) MarshalJSON() (data []byte, e error) {
-	dst := map[string]string{
+	dst := map[string]interface{}{
 		"scheme": locatorScheme,
 	}
-	var src map[string]string
+	var src map[string]interface{}
 
 	if data, e = json.Marshal(loc.Locator); e != nil {
 		return nil, e
@@ -84,30 +138,4 @@ func (loc *Locator) UnmarshalJSON(data []byte) error {
 
 func init() {
 	iface.RegisterLocatorType(Locator{}, locatorScheme)
-}
-
-// Create creates a face from locator.
-// cfg is only used for initial port creation, and would be ignored if port exists.
-// If cfg.Local is omitted, it is copied from loc.Local.
-func Create(loc Locator, cfg PortConfig) (face iface.Face, e error) {
-	if e = loc.Validate(); e != nil {
-		return nil, e
-	}
-
-	dev := ethdev.Find(loc.Port)
-	if !dev.Valid() {
-		return nil, errors.New("EthDev not found")
-	}
-
-	port := FindPort(dev)
-	if port == nil {
-		if cfg.Local == nil {
-			cfg.Local = loc.Local
-		}
-		if port, e = NewPort(dev, cfg); e != nil {
-			return nil, e
-		}
-	}
-
-	return New(port, loc)
 }

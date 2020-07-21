@@ -9,13 +9,14 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/yamlflag"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
-	"github.com/usnistgov/ndn-dpdk/iface/createface"
+
+	_ "github.com/usnistgov/ndn-dpdk/iface/ethface"
+	_ "github.com/usnistgov/ndn-dpdk/iface/socketface"
 )
 
 type initConfig struct {
 	Mempool    pktmbuf.TemplateUpdates
 	LCoreAlloc ealthread.AllocConfig
-	Face       createface.Config
 }
 
 type parsedCommand struct {
@@ -25,8 +26,6 @@ type parsedCommand struct {
 }
 
 func parseCommand(args []string) (pc parsedCommand, e error) {
-	pc.initCfg.Face.EnableEth = true
-
 	flags := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	flags.Var(yamlflag.New(&pc.initCfg), "initcfg", "initialization config object")
 	flags.Var(yamlflag.New(&pc.tasks), "tasks", "ping task description")

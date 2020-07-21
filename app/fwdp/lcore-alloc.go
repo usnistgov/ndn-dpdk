@@ -5,7 +5,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
-	"github.com/usnistgov/ndn-dpdk/iface/createface"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 )
 
 // LCoreAlloc roles.
@@ -28,7 +28,7 @@ type DpLCores struct {
 
 // Allocate LCores for all necessary roles.
 func (la *DpLCores) Alloc() (e error) {
-	rxlTxlNuma := createface.ListRxTxNumaSockets()
+	rxlTxlNuma := la.listRxTxNumaSockets()
 	if la.Inputs, e = la.allocNuma(LCoreRole_Input, rxlTxlNuma); e != nil {
 		return e
 	}
@@ -43,6 +43,14 @@ func (la *DpLCores) Alloc() (e error) {
 	}
 
 	return nil
+}
+
+func (DpLCores) listRxTxNumaSockets() (list []eal.NumaSocket) {
+	for _, port := range ethdev.List() { // one RX+TX for each EthDev
+		list = append(list, port.NumaSocket())
+	}
+	list = append(list, eal.NumaSocket{}) // one RX+TX for all socket faces
+	return list
 }
 
 // Allocate LCores on list of NumaSockets.

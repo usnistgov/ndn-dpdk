@@ -39,7 +39,7 @@ func startMgmt() {
 		DefaultStrategyId: loadStrategy("multicast").GetId(),
 	})
 
-	mgmt.Register(fwdpmgmt.DpInfoMgmt{theDp})
+	mgmt.Register(fwdpmgmt.DpInfoMgmt{Dp: theDp})
 
 	mgmt.Start()
 }

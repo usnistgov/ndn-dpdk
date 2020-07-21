@@ -4,17 +4,12 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealtestenv"
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"github.com/usnistgov/ndn-dpdk/iface/createface"
 )
 
 // Init initializes testing environment for ping applications.
 func Init() {
 	ealtestenv.Init()
 	WorkerLCores = eal.Workers[2:]
-
-	var faceCfg createface.Config
-	faceCfg.EnableSock = true
-	faceCfg.Apply()
 
 	rxl := iface.NewRxLoop(eal.Workers[0].NumaSocket())
 	rxl.SetLCore(eal.Workers[0])

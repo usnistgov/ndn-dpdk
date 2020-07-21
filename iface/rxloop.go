@@ -26,7 +26,7 @@ type RxGroup interface {
 	Ptr() unsafe.Pointer
 }
 
-// RxLoop is a thread to process incoming packets on a set of RxGroups.
+// RxLoop is the input thread that processes incoming packets on a set of RxGroups.
 // Functions are non-thread-safe.
 type RxLoop interface {
 	ealthread.ThreadWithRole

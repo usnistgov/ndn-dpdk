@@ -10,12 +10,6 @@ const (
 	// MaxBurstSize is the maximum and default burst size.
 	MaxBurstSize = 64
 
-	// MinMtu is the minimum value of Maximum Transmission Unit (MTU).
-	MinMtu = 1280
-
-	// MaxMtu is the maximum value of Maximum Transmission Unit (MTU).
-	MaxMtu = 65000
-
 	// MinReassemblerCapacity is the minimum partial message store capacity in the reassembler.
 	MinReassemblerCapacity = 4
 
@@ -24,6 +18,18 @@ const (
 
 	// DefaultReassemblerCapacity is the default partial message store capacity in the reassembler.
 	DefaultReassemblerCapacity = 64
+
+	// MinOutputQueueSize is the minimum packet queue capacity before the output thread.
+	MinOutputQueueSize = 256
+
+	// DefaultOutputQueueSize is the default packet queue capacity before the output thread.
+	DefaultOutputQueueSize = 1024
+
+	// MinMtu is the minimum value of Maximum Transmission Unit (MTU).
+	MinMtu = 1280
+
+	// MaxMtu is the maximum value of Maximum Transmission Unit (MTU).
+	MaxMtu = 65000
 
 	_ = "enumgen"
 )

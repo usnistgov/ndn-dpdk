@@ -7,8 +7,10 @@ import "C"
 import (
 	"fmt"
 	"io"
+	"math/rand"
 	"unsafe"
 
+	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/runningstat"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
@@ -41,34 +43,64 @@ type Face interface {
 	SetDown(isDown bool)
 }
 
-// NewOptions contains parameters to New().
-type NewOptions struct {
+// Config contains face configuration.
+type Config struct {
+	// ReassemblerCapacity is the partial message store capacity in the reassembler.
+	//
+	// If this value is zero, it defaults to DefaultReassemblerCapacity.
+	// Otherwise, it is clamped between MinReassemblerCapacity and MaxReassemblerCapacity.
+	ReassemblerCapacity int `json:"reassemblerCapacity,omitempty"`
+
+	// OutputQueueSize is the packet queue capacity before the output thread.
+	//
+	// The minimum is MinOutputQueueSize.
+	// If this value is less than the minimum, it defaults to DefaultOutputQueueSize.
+	// Otherwise, it is adjusted up to the next power of 2.
+	OutputQueueSize int `json:"outputQueueSize,omitempty"`
+
+	// MTU is the maximum size of outgoing NDNLP packets.
+	//
+	// If this value is zero, it disables fragmentation.
+	// Otherwise, it is clamped between (1) MinMtu (2) the lesser of MaxMtu and the MTU reported by the transport.
+	MTU int `json:"mtu,omitempty"`
+}
+
+// ApplyDefaults applies defaults.
+func (c *Config) ApplyDefaults() {
+	if c.ReassemblerCapacity == 0 {
+		c.ReassemblerCapacity = DefaultReassemblerCapacity
+	}
+	c.ReassemblerCapacity = math.MinInt(math.MaxInt(MinReassemblerCapacity, c.ReassemblerCapacity), MaxReassemblerCapacity)
+
+	c.OutputQueueSize = ringbuffer.AlignCapacity(c.OutputQueueSize, MinOutputQueueSize, DefaultOutputQueueSize)
+
+	if c.MTU != 0 {
+		c.MTU = math.MinInt(math.MaxInt(MinMtu, c.MTU), MaxMtu)
+	}
+}
+
+// NewParams contains parameters to New().
+type NewParams struct {
+	Config
+
 	// Socket indicates where to allocate memory.
 	Socket eal.NumaSocket
 
-	// SizeOfPriv is the size of C.FaceImpl struct.
+	// SizeOfPriv is the size of C.FaceImpl.priv struct.
 	SizeofPriv uintptr
-
-	// ReassemblerCapacity is the partial message store capacity in the reassembler.
-	ReassemblerCapacity int
-
-	// TxQueueCapacity is the capacity of the before-TX queue.
-	TxQueueCapacity int
-
-	// TxMtu is the maximum size of outgoing NDNLP packets.
-	// Zero means unlimited. Otherwise, it is clamped between MinMtu and MaxMtu.
-	TxMtu int
 
 	// TxHeadroom is the mbuf headroom to leave before NDNLP header.
 	TxHeadroom int
 
 	// Init callback is invoked after allocating C.FaceImpl.
 	// It is expected to assign C.Face.txBurstOp.
+	// This is always invoked on the main thread.
 	Init func(f Face) error
 
 	// Start callback is invoked after data structure initialization.
 	// It should activate RxGroups associated with the face.
 	// It may return a 'subclass' Face interface implementation to make available via Get(id).
+	// This is always invoked on the main thread.
 	Start func(f Face) (Face, error)
 
 	// Locator callback returns a Locator describing the face.
@@ -76,10 +108,12 @@ type NewOptions struct {
 
 	// Stop callback is invoked to stop the face.
 	// It should deactivate RxGroups associated with the face.
+	// This is always invoked on the main thread.
 	Stop func(f Face) error
 
 	// Close callback is invoked after the face has been removed.
 	// This is optional.
+	// This is always invoked on the main thread.
 	Close func(f Face) error
 
 	// ReadExCounters callback returns extended counters.
@@ -88,30 +122,10 @@ type NewOptions struct {
 }
 
 // New creates a Face.
-func New(p NewOptions) (face Face, e error) {
+func New(p NewParams) (face Face, e error) {
+	p.Config.ApplyDefaults()
 	if p.Socket.IsAny() {
-		if lc := eal.CurrentLCore(); lc.Valid() {
-			p.Socket = lc.NumaSocket()
-		} else {
-			p.Socket = eal.Sockets[0]
-		}
-	}
-
-	switch {
-	case p.ReassemblerCapacity == 0:
-		p.ReassemblerCapacity = DefaultReassemblerCapacity
-	case p.ReassemblerCapacity < MinReassemblerCapacity:
-		p.ReassemblerCapacity = MinReassemblerCapacity
-	case p.ReassemblerCapacity > MaxReassemblerCapacity:
-		p.ReassemblerCapacity = MaxReassemblerCapacity
-	}
-
-	switch {
-	case p.TxMtu == 0:
-	case p.TxMtu < MinMtu:
-		p.TxMtu = MinMtu
-	case p.TxMtu > MaxMtu:
-		p.TxMtu = MaxMtu
+		p.Socket = eal.Sockets[rand.Intn(len(eal.Sockets))]
 	}
 
 	eal.CallMain(func() {
@@ -120,7 +134,7 @@ func New(p NewOptions) (face Face, e error) {
 	return
 }
 
-func newFace(p NewOptions) (Face, error) {
+func newFace(p NewParams) (Face, error) {
 	f := &face{
 		id:                     AllocID(),
 		socket:                 p.Socket,
@@ -140,11 +154,11 @@ func newFace(p NewOptions) (Face, error) {
 		return f.clear(), e
 	}
 
-	txQueue, e := ringbuffer.New(p.TxQueueCapacity, p.Socket, ringbuffer.ProducerMulti, ringbuffer.ConsumerSingle)
+	outputQueue, e := ringbuffer.New(p.OutputQueueSize, p.Socket, ringbuffer.ProducerMulti, ringbuffer.ConsumerSingle)
 	if e != nil {
 		return f.clear(), e
 	}
-	c.txQueue = (*C.struct_rte_ring)(txQueue.Ptr())
+	c.outputQueue = (*C.struct_rte_ring)(outputQueue.Ptr())
 
 	for l3type := 0; l3type < 4; l3type++ {
 		latencyStat := runningstat.FromPtr(unsafe.Pointer(&c.impl.tx.latency[l3type]))
@@ -161,7 +175,7 @@ func newFace(p NewOptions) (Face, error) {
 		return f.clear(), fmt.Errorf("Reassembler_Init error %w", eal.GetErrno())
 	}
 
-	C.TxProc_Init(&c.impl.tx, C.uint16_t(p.TxMtu), C.uint16_t(p.TxHeadroom),
+	C.TxProc_Init(&c.impl.tx, C.uint16_t(p.MTU), C.uint16_t(p.TxHeadroom),
 		(*C.struct_rte_mempool)(indirectMp.Ptr()), (*C.struct_rte_mempool)(headerMp.Ptr()))
 
 	f2, e := p.Start(f)
@@ -234,8 +248,8 @@ func (f *face) clear() Face {
 		C.Reassembler_Close(&c.impl.rx.reass)
 		eal.Free(c.impl)
 	}
-	if c.txQueue != nil {
-		ringbuffer.FromPtr(unsafe.Pointer(c.txQueue)).Close()
+	if c.outputQueue != nil {
+		ringbuffer.FromPtr(unsafe.Pointer(c.outputQueue)).Close()
 	}
 	c.id = 0
 	gFaces[id] = nil

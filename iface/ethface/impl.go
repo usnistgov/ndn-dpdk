@@ -32,16 +32,16 @@ func startDev(port *Port, nRxQueues int, promisc bool) error {
 	socket := port.dev.NumaSocket()
 	var cfg ethdev.Config
 	cfg.AddRxQueues(nRxQueues, ethdev.RxQueueConfig{
-		Capacity: port.cfg.RxqFrames,
+		Capacity: port.cfg.RxQueueSize,
 		Socket:   socket,
 		RxPool:   ndni.PacketMempool.MakePool(socket),
 	})
 	cfg.AddTxQueues(1, ethdev.TxQueueConfig{
-		Capacity: port.cfg.TxqFrames,
+		Capacity: port.cfg.TxQueueSize,
 		Socket:   socket,
 	})
-	if !port.cfg.SkipSetMtu {
-		cfg.Mtu = port.cfg.Mtu
+	if !port.cfg.NoSetMTU {
+		cfg.Mtu = port.cfg.MTU
 	}
 	cfg.Promisc = promisc
 	return port.dev.Start(cfg)

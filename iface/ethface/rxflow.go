@@ -14,9 +14,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
-// DisableRxFlow indicates whether to disable rte_flow hardware dispatching.
-var DisableRxFlow = false
-
 const rxFlowMaxRxQueues = 4 // this may be set up to C.RTE_MAX_QUEUES_PER_PORT
 
 // Read rte_flow_error into Go error.
@@ -56,7 +53,7 @@ func (impl *rxFlowImpl) setIsolate(enable bool) error {
 }
 
 func (impl *rxFlowImpl) Init() error {
-	if DisableRxFlow {
+	if impl.port.cfg.DisableRxFlow {
 		return errors.New("disabled")
 	}
 
@@ -102,6 +99,7 @@ func (impl *rxFlowImpl) Start(face *ethFace) error {
 	impl.port.logger.WithFields(makeLogFields("rx-queue", index, "face", face.ID())).Debug("create RxFlow")
 	impl.queueFlow[index] = rxf
 	iface.EmitRxGroupAdd(rxf)
+	face.loc.RxQueueIDs = []int{index}
 	return nil
 }
 
@@ -111,6 +109,7 @@ func (impl *rxFlowImpl) Stop(face *ethFace) error {
 		return nil
 	}
 	iface.EmitRxGroupRemove(rxf)
+	face.loc.RxQueueIDs = nil
 
 	if e := impl.destroyFlow(rxf); e != nil {
 		impl.port.logger.WithField("rx-queue", index).WithError(e).Debug("destroy RxFlow deferred")

@@ -8,27 +8,23 @@ uint16_t go_SocketRxGroup_RxBurst(RxGroup* rxg, struct rte_mbuf** pkts, uint16_t
 import "C"
 import (
 	"reflect"
-	"sync/atomic"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 )
 
-var (
-	nFaces  int32 // atomic
-	rxQueue = make(chan *pktmbuf.Packet, 4096)
-	rxgC    *C.RxGroup
+// Limits of RxGroupQueueSize.
+const (
+	MinRxGroupQueueSize     = 256
+	DefaultRxGroupQueueSize = 4096
 )
 
-// ChangeRxQueueCapacity changes RX queue capacity, shared among all socket faces.
-// This function is non-thread-safe and can only be used when there's no active socket face.
-func ChangeRxQueueCapacity(capacity int) {
-	if atomic.LoadInt32(&nFaces) > 0 {
-		log.Panic("cannot ChangeRxQueueCapacity with active faces")
-	}
-	rxQueue = make(chan *pktmbuf.Packet, capacity)
-}
+var (
+	nFaces  int32
+	rxQueue chan *pktmbuf.Packet
+	rxgC    *C.RxGroup
+)
 
 type rxGroup struct{}
 

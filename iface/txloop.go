@@ -15,7 +15,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 )
 
-// TxLoop is a thread to process outgoing packets on a set of faces.
+// TxLoop is the output thread that processes outgoing packets on a set of faces.
 // Functions are non-thread-safe.
 type TxLoop interface {
 	ealthread.ThreadWithRole

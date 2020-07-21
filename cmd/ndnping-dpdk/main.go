@@ -22,7 +22,6 @@ func main() {
 
 	pc.initCfg.Mempool.Apply()
 	ealthread.DefaultAllocator.Config = pc.initCfg.LCoreAlloc
-	pc.initCfg.Face.Apply()
 
 	app, e := ping.New(pc.tasks)
 	if e != nil {
@@ -38,8 +37,8 @@ func main() {
 	mgmt.Register(versionmgmt.VersionMgmt{})
 	mgmt.Register(facemgmt.FaceMgmt{})
 	mgmt.Register(facemgmt.EthFaceMgmt{})
-	mgmt.Register(pingmgmt.PingClientMgmt{app})
-	mgmt.Register(pingmgmt.FetchMgmt{app})
+	mgmt.Register(pingmgmt.PingClientMgmt{App: app})
+	mgmt.Register(pingmgmt.FetchMgmt{App: app})
 	mgmt.Start()
 
 	select {}

@@ -6,9 +6,10 @@ uint16_t go_SocketFace_TxBurst(Face* faceC, struct rte_mbuf** pkts, uint16_t nPk
 */
 import "C"
 import (
-	"sync/atomic"
 	"unsafe"
 
+	"github.com/pkg/math"
+	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
@@ -18,26 +19,41 @@ import (
 
 // Config contains socket face configuration.
 type Config struct {
-	// TxMtu is the maximum size of outgoing NDNLP packets.
-	// Zero means unlimited. Otherwise, it is clamped between iface.MinMtu and iface.MaxMtu.
-	TxMtu int
+	iface.Config
 
-	// TxqPkt is the before-TX queue capacity.
-	TxqPkts int
+	// RxGroupQueueSize is the Go channel buffer size of the RX group channel.
+	// Minimum is MinRxGroupQueueSize. Default is DefaultRxGroupQueueSize.
+	// This can be changed only if no socket face is present, otherwise this is ignored.
+	//
+	// The RX group channel is a queue shared among all socket faces, which collects packets received
+	// from socket transports, and converts them into DPDK mbufs.
+	RxGroupQueueSize int `json:"rxGroupQueueSize,omitempty"`
 
-	// TxqFrames is the after-TX queue capacity.
-	TxqFrames int
+	// sockettransport.Config fields.
+	// See ndn-dpdk/ndn/sockettransport package for their semantics and defaults.
+	RxQueueSize          int                     `json:"rxQueueSize,omitempty"`
+	TxQueueSize          int                     `json:"txQueueSize,omitempty"`
+	RedialBackoffInitial nnduration.Milliseconds `json:"redialBackoffInitial,omitempty"`
+	RedialBackoffMaximum nnduration.Milliseconds `json:"redialBackoffMaximum,omitempty"`
 }
 
 // New creates a socket face.
-func New(loc Locator, cfg Config) (iface.Face, error) {
+func New(loc Locator) (iface.Face, error) {
 	if e := loc.Validate(); e != nil {
 		return nil, e
 	}
 
+	var cfg Config
+	if loc.Config != nil {
+		cfg = *loc.Config
+	}
+
 	var dialer sockettransport.Dialer
 	dialer.RxBufferLength = ndni.PacketMempool.Config().Dataroom
-	dialer.TxQueueSize = cfg.TxqFrames
+	dialer.RxQueueSize = cfg.RxQueueSize
+	dialer.TxQueueSize = cfg.TxQueueSize
+	dialer.RedialBackoffInitial = cfg.RedialBackoffInitial.Duration()
+	dialer.RedialBackoffMaximum = cfg.RedialBackoffMaximum.Duration()
 	transport, e := dialer.Dial(loc.Network, loc.Local, loc.Remote)
 	if e != nil {
 		return nil, e
@@ -48,13 +64,18 @@ func New(loc Locator, cfg Config) (iface.Face, error) {
 
 // Wrap wraps a sockettransport.Transport to a socket face.
 func Wrap(transport *sockettransport.Transport, cfg Config) (iface.Face, error) {
+	if cfg.RxGroupQueueSize == 0 {
+		cfg.RxGroupQueueSize = DefaultRxGroupQueueSize
+	} else {
+		cfg.RxGroupQueueSize = math.MaxInt(cfg.RxGroupQueueSize, MinRxGroupQueueSize)
+	}
+
 	face := &socketFace{
 		transport: transport,
 		rxMempool: ndni.PacketMempool.MakePool(eal.NumaSocket{}),
 	}
-	return iface.New(iface.NewOptions{
-		TxQueueCapacity: cfg.TxqPkts,
-		TxMtu:           cfg.TxMtu,
+	return iface.New(iface.NewParams{
+		Config: cfg.Config,
 		Init: func(f iface.Face) error {
 			face.Face = f
 			c := face.ptr()
@@ -63,10 +84,12 @@ func Wrap(transport *sockettransport.Transport, cfg Config) (iface.Face, error) 
 		},
 		Start: func(f iface.Face) (iface.Face, error) {
 			face.transport.OnStateChange(f.SetDown)
-			go face.rxLoop()
-			if atomic.AddInt32(&nFaces, 1) == 1 {
+			if nFaces == 0 {
+				rxQueue = make(chan *pktmbuf.Packet, cfg.RxGroupQueueSize)
 				iface.EmitRxGroupAdd(rxg)
 			}
+			go face.rxLoop()
+			nFaces++
 			return face, nil
 		},
 		Locator: func(iface.Face) iface.Locator {
@@ -82,7 +105,8 @@ func Wrap(transport *sockettransport.Transport, cfg Config) (iface.Face, error) 
 			return loc
 		},
 		Stop: func(iface.Face) error {
-			if atomic.AddInt32(&nFaces, -1) == 0 {
+			nFaces--
+			if nFaces == 0 {
 				iface.EmitRxGroupRemove(rxg)
 			}
 			return nil

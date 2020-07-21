@@ -19,6 +19,9 @@ type Locator struct {
 	Network string `json:"scheme"`
 	Local   string `json:"local"`
 	Remote  string `json:"remote"`
+
+	// Config specifies additional configuration for transport creation.
+	Config *Config `json:"config,omitempty"`
 }
 
 // Scheme returns the protocol.
@@ -63,8 +66,11 @@ func (loc Locator) Validate() error {
 	return fmt.Errorf("unknown scheme %s", loc.Network)
 }
 
+// CreateFace creates a face from this Locator.
+func (loc Locator) CreateFace() (iface.Face, error) {
+	return New(loc)
+}
+
 func init() {
-	iface.RegisterLocatorType(Locator{}, NetworkUnix)
-	iface.RegisterLocatorType(Locator{}, NetworkUDP)
-	iface.RegisterLocatorType(Locator{}, NetworkTCP)
+	iface.RegisterLocatorType(Locator{}, NetworkUnix, NetworkUDP, NetworkTCP)
 }

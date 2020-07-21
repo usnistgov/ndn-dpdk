@@ -22,7 +22,6 @@ func main() {
 
 	initCfg.Mempool.Apply()
 	ealthread.DefaultAllocator.Config = initCfg.LCoreAlloc
-	initCfg.Face.Apply()
 
 	startDp(initCfg.Ndt, initCfg.Fib, initCfg.Fwdp)
 	startMgmt()

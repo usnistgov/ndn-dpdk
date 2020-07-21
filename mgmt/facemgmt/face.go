@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"github.com/usnistgov/ndn-dpdk/iface/createface"
 )
 
 type FaceMgmt struct{}
@@ -33,7 +32,7 @@ func (FaceMgmt) Get(args IdArg, reply *FaceInfo) error {
 }
 
 func (FaceMgmt) Create(args iface.LocatorWrapper, reply *BasicInfo) (e error) {
-	face, e := createface.Create(args.Locator)
+	face, e := args.Locator.CreateFace()
 	if e != nil {
 		return e
 	}

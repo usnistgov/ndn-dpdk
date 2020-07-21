@@ -31,22 +31,25 @@ func makeTopo(t *testing.T) (topo ethTestTopology) {
 	vnet := ethdev.NewVNet(vnetCfg)
 	topo.vnet = vnet
 
-	topo.macA, _ = net.ParseMAC("02:00:00:00:00:01")
+	topo.macA = vnet.Ports[0].MacAddr()
 	topo.macB, _ = net.ParseMAC("02:00:00:00:00:02")
 	topo.macC, _ = net.ParseMAC("02:00:00:00:00:03")
 
 	makeFace := func(dev ethdev.EthDev, local, remote net.HardwareAddr) iface.Face {
 		loc := ethface.NewLocator(dev)
-		loc.Local = local
+		if local != nil {
+			loc.Port = dev.Name()
+			loc.Local = local
+		}
 		loc.Remote = remote
-		face, e := ethface.Create(loc, ethPortCfg)
+		face, e := loc.CreateFace()
 		require.NoError(e, "%s %s %s", dev.Name(), local, remote)
 		return face
 	}
 
-	topo.faceAB = makeFace(vnet.Ports[0], topo.macA, topo.macB)
-	topo.faceAC = makeFace(vnet.Ports[0], topo.macA, topo.macC)
-	topo.faceAm = makeFace(vnet.Ports[0], topo.macA, packettransport.MulticastAddressNDN)
+	topo.faceAB = makeFace(vnet.Ports[0], nil, topo.macB)
+	topo.faceAC = makeFace(vnet.Ports[0], nil, topo.macC)
+	topo.faceAm = makeFace(vnet.Ports[0], nil, packettransport.MulticastAddressNDN)
 	topo.faceBm = makeFace(vnet.Ports[1], topo.macB, packettransport.MulticastAddressNDN)
 	topo.faceBA = makeFace(vnet.Ports[1], topo.macB, topo.macA)
 	topo.faceCA = makeFace(vnet.Ports[2], topo.macC, topo.macA)
@@ -108,12 +111,16 @@ func TestFragmentation(t *testing.T) {
 	ealthread.Launch(vnet)
 	time.Sleep(time.Second)
 
-	portCfg := ethPortCfg
-	portCfg.Mtu = 5000
-	portCfg.SkipSetMtu = true
-	faceA, e := ethface.Create(ethface.NewLocator(vnet.Ports[0]), portCfg)
+	locA := ethface.NewLocator(vnet.Ports[0])
+	locA.PortConfig = new(ethface.PortConfig)
+	locA.PortConfig.MTU = 5000
+	locA.PortConfig.NoSetMTU = true
+	faceA, e := locA.CreateFace()
 	require.NoError(e)
-	faceB, e := ethface.Create(ethface.NewLocator(vnet.Ports[1]), portCfg)
+
+	locB := ethface.NewLocator(vnet.Ports[1])
+	locB.PortConfig = locA.PortConfig
+	faceB, e := locB.CreateFace()
 	require.NoError(e)
 
 	fixture.RunTest(faceA, faceB)
