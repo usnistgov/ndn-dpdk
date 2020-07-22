@@ -56,14 +56,14 @@ export interface EthPortConfig extends FaceConfig {
   /**
    * @TJS-type integer
    * @minimum 256
-   * @default 4096
+   * @default 8192
    */
   rxQueueSize?: number;
 
   /**
    * @TJS-type integer
    * @minimum 256
-   * @default 4096
+   * @default 8192
    */
   txQueueSize?: number;
 

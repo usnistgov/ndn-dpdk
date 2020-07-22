@@ -140,7 +140,7 @@ func (drvs DriverPref) Create(cfg Config, socket eal.NumaSocket) (cd *CryptoDev,
 	cfg.applyDefaults()
 	args := fmt.Sprintf("max_nb_queue_pairs=%d", cfg.NQueuePairs)
 	if !socket.IsAny() {
-		args += fmt.Sprintf(",socket_id=%d", socket)
+		args += fmt.Sprintf(",socket_id=%d", socket.ID())
 	}
 
 	var name string

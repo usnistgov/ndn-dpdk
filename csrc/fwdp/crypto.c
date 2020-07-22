@@ -17,8 +17,7 @@ FwCrypto_InputEnqueue(FwCrypto* fwc, const CryptoQueuePair* cqp, struct rte_cryp
   uint16_t nEnq = rte_cryptodev_enqueue_burst(cqp->dev, cqp->qp, ops, count);
   for (uint16_t i = nEnq; i < count; ++i) {
     Packet* npkt = DataDigest_Finish(ops[i]);
-    RTE_ASSERT(npkt == NULL);
-    RTE_SET_USED(npkt);
+    NDNDPDK_ASSERT(npkt == NULL);
     ++fwc->nDrops;
   }
 }

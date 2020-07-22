@@ -14,10 +14,10 @@ import (
 // Limits and defaults.
 const (
 	MinRxQueueSize     = 256
-	DefaultRxQueueSize = 4096
+	DefaultRxQueueSize = 8192
 
 	MinTxQueueSize     = 256
-	DefaultTxQueueSize = 4096
+	DefaultTxQueueSize = 8192
 )
 
 // PortConfig contains Port creation arguments.

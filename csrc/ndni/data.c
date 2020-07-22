@@ -134,6 +134,7 @@ DataDigest_Finish(struct rte_crypto_op* op)
   Packet* npkt = Packet_FromMbuf(op->sym->m_src);
   PData* data = Packet_GetDataHdr(npkt);
   data->hasDigest = true;
+  rte_crypto_op_free(op);
   return npkt;
 }
 
