@@ -6,13 +6,13 @@ This package implements Ethernet faces using DPDK ethdev as transport.
 Its Locator has the following fields:
 
 * *scheme* is set to "ether".
-* *port* is the port name as presented by DPDK.
-  For a PCI device, it has the form bus:device.function, e.g. "06:00.0".
 * *local* and *remote* are MAC-48 addresses written in the six groups of two lower-case hexadecimal digits separated by colons.
 * *local* must be a unicast address.
 * *remote* may be unicast or multicast.
   Every face is assumed to be point-to-point, even when using a multicast remote address.
 * *vlan* (optional) is an VLAN ID in the range 0x001-0xFFF.
+* *port* (optional) is the port name as presented by DPDK.
+  If omitted, *local* is used to search for a suitable port; if specified, this takes priority over *local*.
 
 **Port** type organizes EthFaces on the same DPDK ethdev.
 Each port can have zero or one face with multicast remote address, and zero or more faces with unicast remote addresses.

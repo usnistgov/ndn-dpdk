@@ -9,22 +9,23 @@ import (
 
 	"github.com/FDio/vpp/extras/gomemif/memif"
 	"github.com/google/gopacket"
-	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
+	"github.com/pkg/math"
 )
 
-func newHandle(loc Locator) (packettransport.PacketDataHandle, error) {
+func newHandle(loc Locator, isMaster bool) (hdl *handle, e error) {
 	sock, e := memif.NewSocket(os.Args[0], loc.SocketName)
 	if e != nil {
 		return nil, fmt.Errorf("memif.NewSocket %w", e)
 	}
 
-	hdl := &handle{
+	hdl = &handle{
 		sock:       sock,
 		memifError: make(chan error),
 		dataroom:   loc.Dataroom,
 	}
 
 	a := &memif.Arguments{
+		IsMaster:         isMaster,
 		ConnectedFunc:    hdl.memifConnected,
 		DisconnectedFunc: hdl.memifDisconnected,
 	}
@@ -36,7 +37,9 @@ func newHandle(loc Locator) (packettransport.PacketDataHandle, error) {
 	}
 
 	hdl.sock.StartPolling(hdl.memifError)
-	hdl.intf.RequestConnection()
+	if !hdl.intf.IsMaster() {
+		hdl.intf.RequestConnection()
+	}
 	return hdl, nil
 }
 
@@ -73,7 +76,6 @@ func (hdl *handle) ReadPacketData() (data []byte, ci gopacket.CaptureInfo, e err
 	for {
 		ci, e = hdl.recvPacket(data)
 		if e != nil || ci.CaptureLength > 0 {
-			ci.Length = ci.CaptureLength
 			data = data[:ci.CaptureLength]
 			return
 		}
@@ -88,7 +90,8 @@ func (hdl *handle) recvPacket(buf []byte) (ci gopacket.CaptureInfo, e error) {
 	if hdl.closed != nil {
 		e = hdl.closed
 	} else if hdl.rxq != nil {
-		ci.CaptureLength, e = hdl.rxq.ReadPacket(buf)
+		ci.Length, e = hdl.rxq.ReadPacket(buf)
+		ci.CaptureLength = math.MinInt(ci.Length, hdl.dataroom)
 	}
 	return
 }
@@ -110,7 +113,6 @@ func (hdl *handle) Close() error {
 		hdl.closed = io.EOF
 	}()
 
-	hdl.sock.StopPolling()
 	hdl.sock.Delete()
 	return nil
 }

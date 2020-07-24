@@ -16,28 +16,29 @@ type Transport interface {
 }
 
 // New creates a Transport.
+// The memif operates in slave mode.
 func New(loc Locator) (Transport, error) {
 	if e := loc.Validate(); e != nil {
 		return nil, fmt.Errorf("loc.Validate %w", e)
 	}
 	loc.applyDefaults()
 
-	hdl, e := newHandle(loc)
+	hdl, e := newHandle(loc, false)
 	if e != nil {
 		return nil, e
 	}
 
-	pcfg := packettransport.Config{
+	packetCfg := packettransport.Config{
 		Locator: packettransport.Locator{
 			Local:  AddressApp,
 			Remote: AddressDPDK,
 		},
 		TransportQueueConfig: loc.TransportQueueConfig,
 	}
-	ptr, e := packettransport.New(hdl, pcfg)
+	packetTr, e := packettransport.New(hdl, packetCfg)
 
 	return &transport{
-		Transport: ptr,
+		Transport: packetTr,
 		loc:       loc,
 	}, nil
 }

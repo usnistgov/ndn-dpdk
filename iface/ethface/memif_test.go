@@ -30,7 +30,7 @@ func TestMemif(t *testing.T) {
 	locA.Remote = memiftransport.AddressApp
 	locA.Memif = &memiftransport.Locator{
 		SocketName: socketName,
-		ID:         0,
+		ID:         7655,
 	}
 	faceA, e := locA.CreateFace()
 	require.NoError(e)
@@ -41,7 +41,7 @@ func TestMemif(t *testing.T) {
 	locB.Remote = memiftransport.AddressApp
 	locB.Memif = &memiftransport.Locator{
 		SocketName: socketName,
-		ID:         1,
+		ID:         1891,
 	}
 	faceB, e := locB.CreateFace()
 	require.NoError(e)
@@ -52,7 +52,7 @@ func TestMemif(t *testing.T) {
 	helper.Stdout = os.Stdout
 	helper.Stderr = os.Stderr
 	require.NoError(helper.Start())
-	time.Sleep(5 * time.Second)
+	time.Sleep(1 * time.Second)
 
 	fixture.RunTest(faceA, faceB)
 	fixture.CheckCounters()
@@ -63,36 +63,19 @@ func TestMemif(t *testing.T) {
 
 const memifbridgeArg = "memifbridge"
 
-func memifbridgeHelper(socketName string) {
+func memifbridgeHelper() {
+	socketName := os.Args[2]
 	var locA, locB memiftransport.Locator
 	locA.SocketName = socketName
-	locA.ID = 0
-	locB = locA
-	locB.ID = 1
+	locA.ID = 7655
+	locB.SocketName = socketName
+	locB.ID = 1891
 
-	trA, e := memiftransport.New(locA)
+	bridge, e := memiftransport.NewBridge(locA, locB, false)
 	if e != nil {
-		os.Exit(3)
+		panic(e)
 	}
-
-	trB, e := memiftransport.New(locB)
-	if e != nil {
-		os.Exit(3)
-	}
-
-	go func() {
-		for pkt := range trA.Rx() {
-			trB.Tx() <- pkt
-		}
-		close(trB.Tx())
-	}()
-
-	go func() {
-		for pkt := range trB.Rx() {
-			trA.Tx() <- pkt
-		}
-		close(trA.Tx())
-	}()
 
 	io.ReadAtLeast(os.Stdin, make([]byte, 1), 1)
+	bridge.Close()
 }

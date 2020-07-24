@@ -22,6 +22,8 @@ const (
 // LocatorFields contains additional Locator fields.
 type LocatorFields struct {
 	// Memif specifies shared memory packet interface (memif) settings.
+	// The memif operates in master mode.
+	//
 	// If this is specified:
 	// - loc.Scheme() becomes "memif".
 	// - loc.Local is overridden as memiftransport.AddressDPDK.

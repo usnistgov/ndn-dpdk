@@ -92,7 +92,6 @@ func (loc *Locator) toArguments(a *memif.Arguments) error {
 	loc.applyDefaults()
 
 	a.Id = uint32(loc.ID)
-	a.IsMaster = false
 	a.Name = os.Args[0]
 	a.Secret = [24]byte{}
 	a.MemoryConfig = memif.MemoryConfig{
