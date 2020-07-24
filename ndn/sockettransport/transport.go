@@ -10,22 +10,17 @@ import (
 
 	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/core/emission"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 // Config contains socket transport configuration.
 type Config struct {
+	ndn.TransportQueueConfig
+
 	// RxBufferLength is the packet buffer length allocated for incoming packets.
 	// The default is 16384.
 	// Packet larger than this length cannot be received.
 	RxBufferLength int
-
-	// RxChanBuffer is the Go channel buffer size of RX channel.
-	// The default is 64.
-	RxQueueSize int
-
-	// TxChanBuffer is the Go channel buffer size of TX channel.
-	// The default is 64.
-	TxQueueSize int
 
 	// RedialBackoffInitial is the initial backoff period during redialing.
 	// The default is 100ms.
@@ -38,14 +33,10 @@ type Config struct {
 }
 
 func (cfg *Config) applyDefaults() {
+	cfg.ApplyTransportQueueConfigDefaults()
+
 	if cfg.RxBufferLength <= 0 {
 		cfg.RxBufferLength = 16384
-	}
-	if cfg.RxQueueSize <= 0 {
-		cfg.RxQueueSize = 64
-	}
-	if cfg.TxQueueSize <= 0 {
-		cfg.TxQueueSize = 64
 	}
 	if cfg.RedialBackoffInitial <= 0 {
 		cfg.RedialBackoffInitial = 100 * time.Millisecond

@@ -9,22 +9,43 @@ import (
 	"unsafe"
 )
 
-// CreateVdev creates a virtual device.
-func CreateVdev(name, args string) error {
+// VDev represents a DPDK virtual device.
+type VDev struct {
+	name   string
+	socket NumaSocket
+}
+
+// NewVDev creates a virtual device.
+func NewVDev(name, args string, socket NumaSocket) (vdev *VDev, e error) {
 	nameC := C.CString(name)
 	defer C.free(unsafe.Pointer(nameC))
 	argsC := C.CString(args)
 	defer C.free(unsafe.Pointer(argsC))
 
 	if res := C.rte_vdev_init(nameC, argsC); res != 0 {
-		return Errno(-res)
+		return nil, Errno(-res)
 	}
-	return nil
+
+	vdev = &VDev{
+		name:   name,
+		socket: socket,
+	}
+	return vdev, nil
 }
 
-// DestroyVdev destroys a virtual device.
-func DestroyVdev(name string) error {
-	nameC := C.CString(name)
+// Name returns the device name.
+func (vdev *VDev) Name() string {
+	return vdev.name
+}
+
+// NumaSocket returns the NUMA socket of this device, if known.
+func (vdev *VDev) NumaSocket() NumaSocket {
+	return vdev.socket
+}
+
+// Close destroys the virtual device.
+func (vdev *VDev) Close() error {
+	nameC := C.CString(vdev.name)
 	defer C.free(unsafe.Pointer(nameC))
 
 	if res := C.rte_vdev_uninit(nameC); res != 0 {

@@ -12,15 +12,10 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/sockettransport"
 )
 
-var trCfg = sockettransport.Config{
-	RxQueueSize: 64,
-	TxQueueSize: 64,
-}
-
 func TestPipe(t *testing.T) {
 	_, require := makeAR(t)
 
-	trA, trB, e := sockettransport.Pipe(trCfg)
+	trA, trB, e := sockettransport.Pipe(sockettransport.Config{})
 	require.NoError(e)
 
 	var c ndntestenv.L3FaceTester
@@ -31,7 +26,6 @@ func TestUdp(t *testing.T) {
 	_, require := makeAR(t)
 
 	var dialer sockettransport.Dialer
-	dialer.Config = trCfg
 
 	trA, e := dialer.Dial("udp", "127.0.0.1:7001", "127.0.0.1:7002")
 	require.NoError(e)
@@ -75,7 +69,6 @@ func checkStream(t *testing.T, listener net.Listener) {
 
 	go func() {
 		var dialer sockettransport.Dialer
-		dialer.Config = trCfg
 		listenAddr := listener.Addr()
 		tr, e := dialer.Dial(listenAddr.Network(), "", listenAddr.String())
 		require.NoError(e)
@@ -86,7 +79,7 @@ func checkStream(t *testing.T, listener net.Listener) {
 	go func() {
 		socket, e := listener.Accept()
 		require.NoError(e)
-		tr, e := sockettransport.New(socket, trCfg)
+		tr, e := sockettransport.New(socket, sockettransport.Config{})
 		require.NoError(e)
 		trB = tr
 		wg.Done()

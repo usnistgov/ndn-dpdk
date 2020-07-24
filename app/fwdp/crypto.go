@@ -61,13 +61,13 @@ func newCrypto(id int, lc eal.LCore, cfg CryptoConfig, ndt *ndt.Ndt, fwds []*Fwd
 	if e != nil {
 		return nil, fmt.Errorf("cryptodev.SingleSegDrv.Create: %w", e)
 	}
-	fwc.devS.QueuePair(0).CopyToC(unsafe.Pointer(&fwc.c.singleSeg))
+	fwc.devS.QueuePairs()[0].CopyToC(unsafe.Pointer(&fwc.c.singleSeg))
 
 	fwc.devM, e = cryptodev.MultiSegDrv.Create(cryptodev.Config{}, socket)
 	if e != nil {
 		return nil, fmt.Errorf("cryptodev.MultiSegDrv.Create: %w", e)
 	}
-	fwc.devM.QueuePair(0).CopyToC(unsafe.Pointer(&fwc.c.multiSeg))
+	fwc.devM.QueuePairs()[0].CopyToC(unsafe.Pointer(&fwc.c.multiSeg))
 
 	fwc.demuxD = iface.InputDemuxFromPtr(unsafe.Pointer(&fwc.c.output))
 	fwc.demuxD.InitNdt(ndt, id)

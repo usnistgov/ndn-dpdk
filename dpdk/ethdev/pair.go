@@ -1,8 +1,15 @@
 package ethdev
 
+/*
+#include "../../csrc/dpdk/ethdev.h"
+#include <rte_eth_ring.h>
+*/
+import "C"
 import (
 	"fmt"
+	"unsafe"
 
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
@@ -78,9 +85,9 @@ func NewPair(cfg PairConfig) (pair *Pair) {
 	pair.ringsBA = createRings("BA")
 
 	createPort := func(label string, rxRings, txRings []*ringbuffer.Ring) EthDev {
-		port, e := NewFromRings(rxRings, txRings, cfg.Socket)
+		port, e := newRingDev(rxRings, txRings, cfg.Socket)
 		if e != nil {
-			panic(fmt.Sprintf("NewFromRings error %v", e))
+			panic(fmt.Sprintf("newRingDev error %v", e))
 		}
 		return port
 	}
@@ -106,4 +113,19 @@ func (pair *Pair) Close() error {
 		r.Close()
 	}
 	return nil
+}
+
+func newRingDev(rxRings, txRings []*ringbuffer.Ring, socket eal.NumaSocket) (dev EthDev, e error) {
+	nameC := C.CString(eal.AllocObjectID("ethdev.Rings"))
+	defer C.free(unsafe.Pointer(nameC))
+	rxRingPtr, rxRingCount := cptr.ParseCptrArray(rxRings)
+	txRingPtr, txRingCount := cptr.ParseCptrArray(txRings)
+	res := C.rte_eth_from_rings(nameC,
+		(**C.struct_rte_ring)(rxRingPtr), C.uint(rxRingCount),
+		(**C.struct_rte_ring)(txRingPtr), C.uint(txRingCount),
+		C.uint(socket.ID()))
+	if res < 0 {
+		return EthDev{}, eal.GetErrno()
+	}
+	return FromID(int(res)), nil
 }

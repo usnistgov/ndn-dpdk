@@ -14,8 +14,8 @@ type RxQueue struct {
 	queue uint16
 }
 
-// ListRxQueues returns RX queues of a running port.
-func (port EthDev) ListRxQueues() (list []RxQueue) {
+// RxQueues returns RX queues of a running port.
+func (port EthDev) RxQueues() (list []RxQueue) {
 	info := port.DevInfo()
 	for queue := uint16(0); queue < info.Nb_rx_queues; queue++ {
 		list = append(list, RxQueue{port, queue})
@@ -40,8 +40,8 @@ type TxQueue struct {
 	queue uint16
 }
 
-// ListTxQueues returns TX queues of a running port.
-func (port EthDev) ListTxQueues() (list []TxQueue) {
+// TxQueues returns TX queues of a running port.
+func (port EthDev) TxQueues() (list []TxQueue) {
 	info := port.DevInfo()
 	for queue := uint16(0); queue < info.Nb_tx_queues; queue++ {
 		list = append(list, TxQueue{port, queue})

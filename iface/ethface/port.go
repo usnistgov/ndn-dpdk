@@ -7,6 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/iface"
 )
@@ -67,6 +68,7 @@ type Port struct {
 	local    net.HardwareAddr
 	logger   logrus.FieldLogger
 	dev      ethdev.EthDev
+	vdev     *eal.VDev
 	faces    map[iface.ID]*ethFace
 	impl     impl
 	nextImpl int
@@ -118,6 +120,12 @@ func (port *Port) Close() (e error) {
 		port.logger.Debug("closing")
 		port.dev = ethdev.EthDev{}
 	}
+
+	if port.vdev != nil {
+		port.vdev.Close()
+		port.vdev = nil
+	}
+
 	return nil
 }
 

@@ -67,7 +67,7 @@ func (vnet *VNet) bridge() {
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for vnet.stop.Continue() {
 		for srcIndex, src := range vnet.pairs {
-			for _, srcQ := range src.PortB.ListRxQueues() {
+			for _, srcQ := range src.PortB.RxQueues() {
 				rxPkts := make(pktmbuf.Vector, vnet.cfg.BurstSize)
 				nRx := srcQ.RxBurst(rxPkts)
 				if nRx == 0 {
@@ -95,7 +95,7 @@ func (vnet *VNet) bridge() {
 						txPkts[i].Append(pkt.Bytes())
 					}
 
-					dstQs := dst.PortB.ListTxQueues()
+					dstQs := dst.PortB.TxQueues()
 					dstQ := dstQs[rand.Intn(len(dstQs))]
 					nTx := dstQ.TxBurst(txPkts)
 					txDrops := txPkts[nTx:]

@@ -34,7 +34,7 @@ export interface FaceConfig {
 }
 
 export interface EthFaceLocator {
-  scheme: "ether";
+  scheme: "ether"|"memif";
   local: string;
   remote: string;
 
@@ -45,9 +45,37 @@ export interface EthFaceLocator {
    */
   vlan?: number;
 
+  memif?: MemifLocator;
   port?: string;
   portConfig?: EthPortConfig;
   rxQueueIDs?: number[];
+}
+
+export interface MemifLocator {
+  socketName: string;
+
+  /**
+   * @TJS-type integer
+   * @minimum 0
+   * @maximum 4294967295
+   */
+  id: number;
+
+  /**
+   * @TJS-type integer
+   * @minimum 512
+   * @maximum 65535
+   * @default 2048
+   */
+  dataroom?: number;
+
+  /**
+   * @TJS-type integer
+   * @minimum 2
+   * @maximum 16384
+   * @default 1024
+   */
+  ringCapacity?: number;
 }
 
 export interface EthPortConfig extends FaceConfig {

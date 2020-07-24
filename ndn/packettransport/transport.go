@@ -24,26 +24,15 @@ type PacketDataHandle interface {
 // Config contains Transport configuration.
 type Config struct {
 	Locator
-
-	// RxChanBuffer is the Go channel buffer size of RX channel.
-	// The default is 64.
-	RxQueueSize int
-
-	// TxChanBuffer is the Go channel buffer size of TX channel.
-	// The default is 64.
-	TxQueueSize int
+	ndn.TransportQueueConfig
 }
 
 func (cfg *Config) applyDefaults() {
 	if len(cfg.Remote) == 0 {
 		cfg.Remote = MulticastAddressNDN
 	}
-	if cfg.RxQueueSize <= 0 {
-		cfg.RxQueueSize = 64
-	}
-	if cfg.TxQueueSize <= 0 {
-		cfg.TxQueueSize = 64
-	}
+
+	cfg.ApplyTransportQueueConfigDefaults()
 }
 
 // Transport is an ndn.Transport that communicates over a PacketDataHandle.

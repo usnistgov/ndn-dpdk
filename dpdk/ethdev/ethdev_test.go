@@ -22,8 +22,8 @@ func TestEthDev(t *testing.T) {
 	assert.False(pair.PortA.IsDown())
 	assert.False(pair.PortB.IsDown())
 
-	rxq := pair.PortA.ListRxQueues()[0]
-	txq := pair.PortB.ListTxQueues()[0]
+	rxq := pair.PortA.RxQueues()[0]
+	txq := pair.PortB.TxQueues()[0]
 
 	const rxBurstSize = 6
 	const txLoops = 100000

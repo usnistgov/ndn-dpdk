@@ -3,18 +3,35 @@ package ethface
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/VojtechVitek/mergemaps"
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/ndn/memiftransport"
 	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
 )
 
-const locatorScheme = "ether"
+const (
+	locatorSchemeEther = "ether"
+	locatorSchemeMemif = "memif"
+)
 
 // LocatorFields contains additional Locator fields.
 type LocatorFields struct {
+	// Memif specifies shared memory packet interface (memif) settings.
+	// If this is specified:
+	// - loc.Scheme() becomes "memif".
+	// - loc.Local is overridden as memiftransport.AddressDPDK.
+	// - loc.Remote is overridden as memiftransport.AddressApp.
+	// - loc.VLAN is overridden as 0.
+	// - loc.Port is ignored.
+	// - loc.PortConfig.MTU is overridden as loc.Memif.Dataroom.
+	// - loc.PortConfig.NoSetMTU is overridden to true.
+	Memif *memiftransport.Locator `json:"memif,omitempty"`
+
 	// Port is the port name.
 	//
 	// During face creation, this field is optional.
@@ -52,9 +69,12 @@ func NewLocator(dev ethdev.EthDev) (loc Locator) {
 	return loc
 }
 
-// Scheme returns "ether".
-func (Locator) Scheme() string {
-	return locatorScheme
+// Scheme returns either "ether" or "memif".
+func (loc Locator) Scheme() string {
+	if loc.Memif != nil {
+		return locatorSchemeMemif
+	}
+	return locatorSchemeEther
 }
 
 // CreateFace creates a face from this Locator.
@@ -62,6 +82,13 @@ func (loc Locator) CreateFace() (face iface.Face, e error) {
 	if e = loc.Validate(); e != nil {
 		return nil, e
 	}
+	if loc.Memif != nil {
+		return loc.createMemif()
+	}
+	return loc.createEther()
+}
+
+func (loc Locator) createEther() (face iface.Face, e error) {
 	dev, port := loc.findPort()
 	if !dev.Valid() {
 		return nil, errors.New("EthDev not found")
@@ -102,10 +129,43 @@ func (loc Locator) findPort() (ethdev.EthDev, *Port) {
 	return ethdev.EthDev{}, nil
 }
 
+func (loc Locator) createMemif() (face iface.Face, e error) {
+	name := "net_memif" + eal.AllocObjectID("ethface.Memif")
+	args, e := loc.Memif.ToVDevArgs()
+	if e != nil {
+		return nil, fmt.Errorf("Memif.ToVDevArgs %w", e)
+	}
+	vdev, e := eal.NewVDev(name, args, eal.NumaSocket{})
+	if e != nil {
+		return nil, fmt.Errorf("eal.NewVDev(%s,%s) %w", name, args, e)
+	}
+	loc.overrideMemif(vdev)
+
+	port, e := NewPort(ethdev.Find(vdev.Name()), loc.Local, *loc.PortConfig)
+	if e != nil {
+		vdev.Close()
+		return nil, fmt.Errorf("NewPort %w", e)
+	}
+	port.vdev = vdev
+	return New(port, loc)
+}
+
+func (loc *Locator) overrideMemif(vdev *eal.VDev) {
+	loc.Local = memiftransport.AddressDPDK
+	loc.Remote = memiftransport.AddressApp
+	loc.VLAN = 0
+	loc.Port = vdev.Name()
+	if loc.PortConfig == nil {
+		loc.PortConfig = &PortConfig{}
+	}
+	loc.PortConfig.MTU = loc.Memif.Dataroom
+	loc.PortConfig.NoSetMTU = true
+}
+
 // MarshalJSON implements json.Marshaler.
 func (loc Locator) MarshalJSON() (data []byte, e error) {
 	dst := map[string]interface{}{
-		"scheme": locatorScheme,
+		"scheme": loc.Scheme(),
 	}
 	var src map[string]interface{}
 
@@ -137,5 +197,5 @@ func (loc *Locator) UnmarshalJSON(data []byte) error {
 }
 
 func init() {
-	iface.RegisterLocatorType(Locator{}, locatorScheme)
+	iface.RegisterLocatorType(Locator{}, locatorSchemeEther, locatorSchemeMemif)
 }
