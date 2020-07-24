@@ -77,7 +77,7 @@ func memifbridgeHelper(socketName string) {
 
 	trB, e := memiftransport.New(locB)
 	if e != nil {
-		os.Exit(4)
+		os.Exit(3)
 	}
 
 	go func() {

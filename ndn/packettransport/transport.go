@@ -47,6 +47,10 @@ type Transport interface {
 }
 
 // New creates a Transport.
+//
+// The transport receives and transmits Ethernet frames via the provided PacketDataHandle.
+// If hdl additionally implements io.Closer interface or has `Close()` func that returns nothing,
+// it will be invoked when the transport is being closed.
 func New(hdl PacketDataHandle, cfg Config) (Transport, error) {
 	cfg.applyDefaults()
 	if e := cfg.Locator.Validate(); e != nil {
