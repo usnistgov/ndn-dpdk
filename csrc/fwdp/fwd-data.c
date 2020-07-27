@@ -17,13 +17,6 @@ FwFwd_DataUnsolicited(FwFwd* fwd, FwFwdCtx* ctx)
 __attribute__((nonnull)) static void
 FwFwd_DataNeedDigest(FwFwd* fwd, FwFwdCtx* ctx)
 {
-  if (unlikely(fwd->crypto == NULL)) {
-    ZF_LOGD("^ error=crypto-unavailable");
-    rte_pktmbuf_free(ctx->pkt);
-    FwFwd_NULLize(ctx->pkt);
-    return;
-  }
-
   int res = rte_ring_enqueue(fwd->crypto, ctx->npkt);
   if (unlikely(res != 0)) {
     ZF_LOGD("^ error=crypto-enqueue-error-%d", res);

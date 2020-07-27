@@ -56,6 +56,11 @@ func (socket NumaSocket) MarshalJSON() ([]byte, error) {
 	return json.Marshal(socket.ID())
 }
 
+// NumaSocket implements WithNumaSocket.
+func (socket NumaSocket) NumaSocket() NumaSocket {
+	return socket
+}
+
 // WithNumaSocket interface is implemented by types that have an associated or preferred NUMA socket.
 type WithNumaSocket interface {
 	NumaSocket() NumaSocket

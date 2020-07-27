@@ -20,19 +20,18 @@ type Config struct {
 	MaxEntries int
 	CsCapMd    int
 	CsCapMi    int
-	Socket     eal.NumaSocket
 }
 
 // Pcct represents a PIT-CS Composite Table (PCCT).
 type Pcct C.Pcct
 
 // New creates a PCCT, and then initializes PIT and CS.
-func New(cfg Config) (pcct *Pcct, e error) {
+func New(cfg Config, socket eal.NumaSocket) (pcct *Pcct, e error) {
 	mp, e := mempool.New(mempool.Config{
 		Capacity:       cfg.MaxEntries,
 		ElementSize:    math.MaxInt(int(C.sizeof_PccEntry), int(C.sizeof_PccEntryExt)),
 		PrivSize:       int(C.sizeof_Pcct),
-		Socket:         cfg.Socket,
+		Socket:         socket,
 		NoCache:        true,
 		SingleProducer: true,
 		SingleConsumer: true,
@@ -49,7 +48,7 @@ func New(cfg Config) (pcct *Pcct, e error) {
 
 	tokenHtID := C.CString(eal.AllocObjectID("pcct.tokenHt"))
 	defer C.free(unsafe.Pointer(tokenHtID))
-	if ok := bool(C.Pcct_Init(pcctC, tokenHtID, C.uint32_t(cfg.MaxEntries), C.uint(cfg.Socket.ID()))); !ok {
+	if ok := bool(C.Pcct_Init(pcctC, tokenHtID, C.uint32_t(cfg.MaxEntries), C.uint(socket.ID()))); !ok {
 		return nil, fmt.Errorf("Pcct_Init error %w", eal.GetErrno())
 	}
 

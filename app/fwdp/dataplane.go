@@ -1,10 +1,5 @@
 package fwdp
 
-/*
-#include "../../csrc/fwdp/fwd.h"
-#include "../../csrc/fwdp/strategy.h"
-*/
-import "C"
 import (
 	"fmt"
 
@@ -14,13 +9,22 @@ import (
 	"github.com/usnistgov/ndn-dpdk/container/pit"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
+const (
+	roleInput  = "RX"
+	roleOutput = "TX"
+	roleCrypto = "CRYPTO"
+	roleFwd    = "FWD"
+)
+
+// Config contains data plane configuration.
 type Config struct {
 	Ndt      ndt.Config         // NDT config
 	Fib      fib.Config         // FIB config
-	Pcct     pcct.Config        // PCCT config template (Id and NumaSocket ignored)
+	Pcct     pcct.Config        // PCCT config template (Socket ignored)
 	Suppress pit.SuppressConfig // PIT suppression config
 
 	Crypto            CryptoConfig
@@ -30,9 +34,8 @@ type Config struct {
 	LatencySampleFreq int // latency sample frequency, between 0 and 30
 }
 
-// Forwarder data plane.
+// DataPlane represents the forwarder data plane.
 type DataPlane struct {
-	la     DpLCores
 	ndt    *ndt.Ndt
 	fib    *fib.Fib
 	inputs []*Input
@@ -40,73 +43,68 @@ type DataPlane struct {
 	fwds   []*Fwd
 }
 
+// New creates and launches forwarder data plane.
 func New(cfg Config) (dp *DataPlane, e error) {
 	dp = new(DataPlane)
 
-	dp.la.Allocator = ealthread.DefaultAllocator
-	if e = dp.la.Alloc(); e != nil {
-		return nil, e
+	faceSockets := append(eal.NumaSocketsOf(ethdev.List()), eal.NumaSocket{})
+	lcRxTx := ealthread.DefaultAllocator.AllocGroup([]string{roleInput, roleOutput}, faceSockets)
+	lcCrypto := ealthread.DefaultAllocator.Alloc(roleCrypto, eal.NumaSocket{})
+	lcFwds := ealthread.DefaultAllocator.AllocMax(roleFwd)
+	if len(lcRxTx) == 0 || len(lcFwds) == 0 {
+		return nil, ealthread.ErrNoLCore
 	}
 
 	{
-		inputLCores := append([]eal.LCore{}, dp.la.Inputs...)
-		if dp.la.Crypto.Valid() {
-			inputLCores = append(inputLCores, dp.la.Crypto)
-		}
-		dp.ndt = ndt.New(cfg.Ndt, eal.NumaSocketsOf(inputLCores))
-		dp.ndt.Randomize(len(dp.la.Fwds))
+		lcInputs := append([]eal.LCore{lcCrypto}, lcRxTx[0]...)
+		dp.ndt = ndt.New(cfg.Ndt, eal.NumaSocketsOf(lcInputs))
+		dp.ndt.Randomize(len(lcFwds))
 	}
 
-	if dp.fib, e = fib.New(cfg.Fib, dp.ndt, eal.NumaSocketsOf(dp.la.Fwds)); e != nil {
+	if dp.fib, e = fib.New(cfg.Fib, dp.ndt, eal.NumaSocketsOf(lcFwds)); e != nil {
 		dp.Close()
-		return nil, fmt.Errorf("fib.New: %v", e)
+		return nil, fmt.Errorf("fib.New: %w", e)
 	}
 
-	for i, lc := range dp.la.Fwds {
+	for _, lc := range lcRxTx[1] {
+		txl := iface.NewTxLoop(lc.NumaSocket())
+		txl.SetLCore(lc)
+		txl.Launch()
+	}
+
+	for i, lc := range lcFwds {
 		fwd := newFwd(i)
-		if e := fwd.Init(lc, dp.fib, cfg.Pcct, cfg.FwdInterestQueue, cfg.FwdDataQueue, cfg.FwdNackQueue,
+		if e = fwd.Init(lc, dp.fib, cfg.Pcct, cfg.FwdInterestQueue, cfg.FwdDataQueue, cfg.FwdNackQueue,
 			cfg.LatencySampleFreq, cfg.Suppress); e != nil {
 			dp.Close()
-			return nil, fmt.Errorf("Fwd.Init(%d): %v", i, e)
+			return nil, fmt.Errorf("Fwd.Init(%d): %w", i, e)
 		}
 		dp.fwds = append(dp.fwds, fwd)
 	}
 
-	for i, lc := range dp.la.Inputs {
-		fwi := newInput(i, lc, dp.ndt, dp.fwds)
-		dp.inputs = append(dp.inputs, fwi)
-	}
-
-	if dp.la.Crypto.Valid() {
-		fwc, e := newCrypto(len(dp.inputs), dp.la.Crypto, cfg.Crypto, dp.ndt, dp.fwds)
+	{
+		dp.crypto, e = newCrypto(len(dp.inputs), lcCrypto, cfg.Crypto, dp.ndt, dp.fwds)
 		if e != nil {
 			dp.Close()
-			return nil, fmt.Errorf("Crypto.Init(): %v", e)
+			return nil, fmt.Errorf("Crypto.Init(): %w", e)
 		}
-		dp.crypto = fwc
+		dp.crypto.Launch()
+	}
+
+	for _, fwd := range dp.fwds {
+		fwd.Launch()
+	}
+
+	for i, lc := range lcRxTx[0] {
+		fwi := newInput(i, lc, dp.ndt, dp.fwds)
+		dp.inputs = append(dp.inputs, fwi)
+		fwi.rxl.Launch()
 	}
 
 	return dp, nil
 }
 
-func (dp *DataPlane) Launch() error {
-	for _, txLCore := range dp.la.Outputs {
-		txl := iface.NewTxLoop(txLCore.NumaSocket())
-		txl.SetLCore(txLCore)
-		txl.Launch()
-	}
-	if dp.crypto != nil {
-		dp.crypto.Launch()
-	}
-	for _, fwd := range dp.fwds {
-		fwd.Launch()
-	}
-	for _, fwi := range dp.inputs {
-		fwi.rxl.Launch()
-	}
-	return nil
-}
-
+// Close stops the data plane and releases resources.
 func (dp *DataPlane) Close() error {
 	iface.CloseAll()
 	if dp.crypto != nil {
@@ -124,6 +122,6 @@ func (dp *DataPlane) Close() error {
 	if dp.ndt != nil {
 		dp.ndt.Close()
 	}
-	dp.la.Close()
+	ealthread.DefaultAllocator.Clear()
 	return nil
 }

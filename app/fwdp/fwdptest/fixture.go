@@ -56,14 +56,11 @@ func NewFixture(t *testing.T) (fixture *Fixture) {
 
 	dpCfg.LatencySampleFreq = 0
 
-	theDp, e := fwdp.New(dpCfg)
+	dp, e := fwdp.New(dpCfg)
 	fixture.require.NoError(e)
-	fixture.DataPlane = theDp
-	fixture.Ndt = theDp.GetNdt()
-	fixture.Fib = theDp.GetFib()
-
-	e = theDp.Launch()
-	fixture.require.NoError(e)
+	fixture.DataPlane = dp
+	fixture.Ndt = dp.GetNdt()
+	fixture.Fib = dp.GetFib()
 
 	return fixture
 }

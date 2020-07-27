@@ -11,7 +11,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/mgmt/hrlog"
 )
 
-var theDp *fwdp.DataPlane
+var dp *fwdp.DataPlane
 
 func main() {
 	initCfg, e := parseCommand(ealinit.Init(os.Args)[1:])
@@ -48,18 +48,12 @@ func startDp(ndtCfg ndt.Config, fibCfg fib.Config, dpInit fwdpInitConfig) {
 	dpCfg.Pcct.CsCapMd = dpInit.CsCapMd
 	dpCfg.Pcct.CsCapMi = dpInit.CsCapMi
 
-	// create dataplane
-	{
-		var e error
-		theDp, e = fwdp.New(dpCfg)
-		if e != nil {
-			log.WithError(e).Fatal("dataplane init error")
-		}
+	// create and launch dataplane
+	var e error
+	dp, e = fwdp.New(dpCfg)
+	if e != nil {
+		log.WithError(e).Fatal("dataplane init error")
 	}
 
-	// launch dataplane
-	if e := theDp.Launch(); e != nil {
-		log.WithError(e).Fatal("dataplane launch error")
-	}
 	log.Info("dataplane started")
 }

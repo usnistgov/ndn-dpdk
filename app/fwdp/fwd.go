@@ -71,8 +71,7 @@ func (fwd *Fwd) Init(lc eal.LCore, fib *fib.Fib, pcctCfg pcct.Config, qcfgI, qcf
 
 	fwd.c.fib = (*C.Fib)(fib.Ptr(fwd.id))
 
-	pcctCfg.Socket = socket
-	fwd.pcct, e = pcct.New(pcctCfg)
+	fwd.pcct, e = pcct.New(pcctCfg, socket)
 	if e != nil {
 		return fmt.Errorf("pcct.New: %w", e)
 	}

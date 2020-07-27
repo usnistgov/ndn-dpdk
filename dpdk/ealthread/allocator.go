@@ -201,7 +201,48 @@ func (la *Allocator) Alloc(role string, socket eal.NumaSocket) (lc eal.LCore) {
 	return lc
 }
 
-// Free deallocated an lcore.
+// AllocGroup allocates several LCores for each NUMA-bound entities.
+//  roles: LCore roles for each entity.
+//  entities: a slice of eal.WithNumaSocket objects.
+// Returns a list organized by roles, or nil on failure.
+func (la *Allocator) AllocGroup(roles []string, entities interface{}) (list [][]eal.LCore) {
+	list = make([][]eal.LCore, len(roles))
+	sockets := eal.NumaSocketsOf(entities)
+	for _, socket := range sockets {
+		for i, role := range roles {
+			lc := la.pick(role, socket)
+			if !lc.Valid() {
+				goto FAIL
+			}
+			la.allocated[lc.ID()] = role
+			list[i] = append(list[i], lc)
+		}
+	}
+	log.WithFields(makeLogFields("roles", roles, "sockets", sockets, "list", list)).Info("lcores allocated")
+	return list
+
+FAIL:
+	for _, roleList := range list {
+		for _, lc := range roleList {
+			la.allocated[lc.ID()] = ""
+		}
+	}
+	return nil
+}
+
+// AllocMax allocates all remaining LCores to a role.
+func (la *Allocator) AllocMax(role string) (list []eal.LCore) {
+	for {
+		if lc := la.Alloc(role, eal.NumaSocket{}); lc.Valid() {
+			list = append(list, lc)
+		} else {
+			break
+		}
+	}
+	return list
+}
+
+// Free deallocates an lcore.
 func (la *Allocator) Free(lc eal.LCore) {
 	if la.allocated[lc.ID()] == "" {
 		panic("lcore double free")

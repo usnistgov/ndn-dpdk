@@ -11,6 +11,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/container/pcct"
 	"github.com/usnistgov/ndn-dpdk/container/pit"
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealtestenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
@@ -54,7 +55,7 @@ func NewFixture(cfg pcct.Config) (fixture *Fixture) {
 		cfg.CsCapMd = 200
 	}
 
-	pcct, e := pcct.New(cfg)
+	pcct, e := pcct.New(cfg, eal.NumaSocket{})
 	if e != nil {
 		panic(e)
 	}

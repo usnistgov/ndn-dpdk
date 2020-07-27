@@ -24,10 +24,10 @@ func startMgmt() {
 	mgmt.Register(facemgmt.EthFaceMgmt{})
 
 	mgmt.Register(ndtmgmt.NdtMgmt{
-		Ndt: theDp.GetNdt(),
+		Ndt: dp.GetNdt(),
 		Updater: &ndtupdater.NdtUpdater{
-			Ndt:      theDp.GetNdt(),
-			Fib:      theDp.GetFib(),
+			Ndt:      dp.GetNdt(),
+			Fib:      dp.GetFib(),
 			SleepFor: 200 * time.Millisecond,
 		},
 	})
@@ -35,11 +35,11 @@ func startMgmt() {
 	mgmt.Register(strategymgmt.StrategyMgmt{})
 
 	mgmt.Register(fibmgmt.FibMgmt{
-		Fib:               theDp.GetFib(),
+		Fib:               dp.GetFib(),
 		DefaultStrategyId: loadStrategy("multicast").GetId(),
 	})
 
-	mgmt.Register(fwdpmgmt.DpInfoMgmt{Dp: theDp})
+	mgmt.Register(fwdpmgmt.DpInfoMgmt{Dp: dp})
 
 	mgmt.Start()
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/container/pit"
 	"github.com/usnistgov/ndn-dpdk/container/strategycode"
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealtestenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
@@ -47,7 +48,7 @@ type Fixture struct {
 }
 
 func NewFixture(pcctMaxEntries int) (fixture *Fixture) {
-	pcct, e := pcct.New(pcct.Config{MaxEntries: pcctMaxEntries})
+	pcct, e := pcct.New(pcct.Config{MaxEntries: pcctMaxEntries}, eal.NumaSocket{})
 	if e != nil {
 		panic(e)
 	}
