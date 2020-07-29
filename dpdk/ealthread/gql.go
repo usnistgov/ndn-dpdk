@@ -9,11 +9,12 @@ import (
 )
 
 func init() {
-	ocWorker := graphql.ObjectConfig{
+	ntWorker := gqlserver.NewNodeType(eal.LCore{})
+	tWorker := graphql.NewObject(ntWorker.Annotate(graphql.ObjectConfig{
 		Name: "Worker",
 		Fields: graphql.Fields{
 			"nid": &graphql.Field{
-				Type:        graphql.NewNonNull(graphql.Int),
+				Type:        gqlserver.NonNullInt,
 				Description: "Numeric LCore ID.",
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					lc := p.Source.(eal.LCore)
@@ -21,11 +22,11 @@ func init() {
 				},
 			},
 			"isBusy": &graphql.Field{
-				Type:        graphql.NewNonNull(graphql.Boolean),
+				Type:        gqlserver.NonNullBoolean,
 				Description: "Whether the LCore is running",
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					lc := p.Source.(eal.LCore)
-					return DefaultAllocator.provider.IsBusy(lc), nil
+					return lc.IsBusy(), nil
 				},
 			},
 			"role": &graphql.Field{
@@ -38,15 +39,8 @@ func init() {
 			},
 			"numaSocket": eal.GqlWithNumaSocket,
 		},
-	}
-
-	ntWorker := gqlserver.NodeType("worker")
-	ntWorker.Annotate(&ocWorker, func(source interface{}) string {
-		lc := source.(eal.LCore)
-		return strconv.Itoa(lc.ID())
-	})
-	tWorker := graphql.NewObject(ocWorker)
-	ntWorker.Register(tWorker, eal.LCore{}, func(id string) (interface{}, error) {
+	}))
+	ntWorker.Retrieve = func(id string) (interface{}, error) {
 		nid, e := strconv.Atoi(id)
 		if e != nil {
 			return nil, e
@@ -57,7 +51,8 @@ func init() {
 			}
 		}
 		return nil, nil
-	})
+	}
+	ntWorker.Register(tWorker)
 
 	gqlserver.AddQuery(&graphql.Field{
 		Name:        "workers",

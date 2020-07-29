@@ -9,11 +9,12 @@ import (
 )
 
 func init() {
-	ocFace := graphql.ObjectConfig{
+	ntFace := gqlserver.NewNodeType((*Face)(nil))
+	tFace := graphql.NewObject(ntFace.Annotate(graphql.ObjectConfig{
 		Name: "Face",
 		Fields: graphql.Fields{
 			"nid": &graphql.Field{
-				Type:        graphql.NewNonNull(graphql.Int),
+				Type:        gqlserver.NonNullInt,
 				Description: "Numeric face identifier.",
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					face := p.Source.(Face)
@@ -38,21 +39,19 @@ func init() {
 				},
 			},
 		},
-	}
-
-	ntFace := gqlserver.NodeType("face")
-	ntFace.Annotate(&ocFace, func(source interface{}) string {
-		face := source.(Face)
-		return strconv.Itoa(int(face.ID()))
-	})
-	tFace := graphql.NewObject(ocFace)
-	ntFace.Register(tFace, (*Face)(nil), func(id string) (interface{}, error) {
+	}))
+	ntFace.Retrieve = func(id string) (interface{}, error) {
 		nid, e := strconv.Atoi(id)
 		if e != nil {
 			return nil, e
 		}
 		return Get(ID(nid)), nil
-	})
+	}
+	ntFace.Delete = func(source interface{}) error {
+		face := source.(Face)
+		return face.Close()
+	}
+	ntFace.Register(tFace)
 
 	gqlserver.AddQuery(&graphql.Field{
 		Name:        "faces",
@@ -60,6 +59,24 @@ func init() {
 		Type:        graphql.NewList(tFace),
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 			return List(), nil
+		},
+	})
+
+	gqlserver.AddMutation(&graphql.Field{
+		Name:        "createFace",
+		Description: "Create a face.",
+		Args: graphql.FieldConfigArgument{
+			"locator": &graphql.ArgumentConfig{
+				Type: gqlserver.JSON,
+			},
+		},
+		Type: tFace,
+		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+			var locw LocatorWrapper
+			if e := gqlserver.DecodeJSON(p.Args["locator"], &locw); e != nil {
+				return nil, e
+			}
+			return locw.Locator.CreateFace()
 		},
 	})
 }

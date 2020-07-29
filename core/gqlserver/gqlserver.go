@@ -17,6 +17,11 @@ func AddQuery(f *graphql.Field) {
 	Schema.Query.AddFieldConfig(f.Name, f)
 }
 
+// AddMutation adds a top-level mutation field.
+func AddMutation(f *graphql.Field) {
+	Schema.Mutation.AddFieldConfig(f.Name, f)
+}
+
 func init() {
 	Schema = graphql.SchemaConfig{
 		Query: graphql.NewObject(graphql.ObjectConfig{
@@ -30,7 +35,13 @@ func init() {
 				},
 			},
 		}),
+		Mutation: graphql.NewObject(graphql.ObjectConfig{
+			Name:   "Mutation",
+			Fields: graphql.Fields{},
+		}),
 	}
+
+	initNode()
 }
 
 // Start starts the server.
@@ -40,20 +51,25 @@ func Start() {
 		log.WithField("schema", Schema).WithError(e).Panic("graphql.NewSchema")
 	}
 
-	addr := os.Getenv("GQLSERVER")
+	go startHTTP(&sch)
+}
+
+func startHTTP(sch *graphql.Schema) {
+	addr := os.Getenv("GQLSERVER_HTTP")
 	switch addr {
 	case "0":
-		log.Warn("GraphQL server disabled")
+		log.Warn("GraphQL HTTP server disabled")
 		return
 	case "":
 		addr = "127.0.0.1:3030"
 	}
 
 	h := handler.New(&handler.Config{
-		Schema:           &sch,
+		Schema:           sch,
 		Pretty:           true,
 		PlaygroundConfig: handler.NewDefaultPlaygroundConfig(),
 	})
+	log.WithField("addr", addr).Info("GraphQL HTTP server starting")
 
 	var mux http.ServeMux
 	mux.HandleFunc("/robots.txt", func(w http.ResponseWriter, req *http.Request) {
@@ -61,7 +77,5 @@ func Start() {
 		w.Write([]byte("User-Agent: *\nDisallow: /\n"))
 	})
 	mux.Handle("/", h)
-	go http.ListenAndServe(addr, &mux)
-
-	log.WithField("addr", addr).Info("GraphQL server started")
+	http.ListenAndServe(addr, &mux)
 }

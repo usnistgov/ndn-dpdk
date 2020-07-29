@@ -1,13 +1,35 @@
 package gqlserver
 
 import (
+	"encoding/json"
+	"fmt"
 	"reflect"
 
 	"github.com/bhoriuchi/graphql-go-tools/scalars"
+	"github.com/graphql-go/graphql"
 )
 
-// JSON is a scalar type of raw JSON value.
-var JSON = scalars.ScalarJSON
+// Scalar types.
+var (
+	JSON           = scalars.ScalarJSON
+	NonNullID      = graphql.NewNonNull(graphql.ID)
+	NonNullBoolean = graphql.NewNonNull(graphql.Boolean)
+	NonNullInt     = graphql.NewNonNull(graphql.Int)
+	NonNullString  = graphql.NewNonNull(graphql.String)
+)
+
+// DecodeJSON decodes JSON argument into pointer.
+func DecodeJSON(arg interface{}, ptr interface{}) error {
+	j, e := json.Marshal(arg)
+	if e != nil {
+		return fmt.Errorf("json.Marshal %w", e)
+	}
+	e = json.Unmarshal(j, ptr)
+	if e != nil {
+		return fmt.Errorf("json.Unmarshal %w", e)
+	}
+	return e
+}
 
 // Optional turns invalid value to nil.
 //  Optional(value) considers the value invalid if it is zero.
