@@ -6,6 +6,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/app/fwdp"
 	"github.com/usnistgov/ndn-dpdk/container/fib"
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
+	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealinit"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/mgmt/hrlog"
@@ -14,6 +15,8 @@ import (
 var dp *fwdp.DataPlane
 
 func main() {
+	gqlserver.Start()
+
 	initCfg, e := parseCommand(ealinit.Init(os.Args)[1:])
 	if e != nil {
 		log.WithError(e).Fatal("command line error")

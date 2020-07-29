@@ -11,7 +11,10 @@ Go shared code:
 
 * cptr: handle C `void*` pointers.
 * dlopen: load dynamic libraries.
+* emission: event emitter.
+* gqlserver: GraphQL server.
 * logger: Go logging library.
+* macaddr: MAC address parsing and classification.
 * nnduration: JSON-compatible non-negative duration types.
 * runningstat: compute min, max, mean, and variance.
 * testenv: unit testing environment.

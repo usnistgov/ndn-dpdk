@@ -8,6 +8,9 @@ import (
 	"encoding/json"
 	"reflect"
 	"strconv"
+
+	"github.com/graphql-go/graphql"
+	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
 )
 
 // NumaSocket represents a NUMA socket.
@@ -79,4 +82,15 @@ func NumaSocketsOf(list interface{}) (result []NumaSocket) {
 		result[i] = v.Index(i).Interface().(WithNumaSocket).NumaSocket()
 	}
 	return result
+}
+
+// GqlWithNumaSocket is a GraphQL field for source object that implements WithNumaSocket.
+var GqlWithNumaSocket = &graphql.Field{
+	Type:        graphql.Int,
+	Name:        "numaSocket",
+	Description: "NUMA socket.",
+	Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+		socket := p.Source.(WithNumaSocket).NumaSocket()
+		return gqlserver.Optional(socket.ID(), !socket.IsAny()), nil
+	},
 }
