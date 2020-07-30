@@ -5,7 +5,7 @@ import (
 )
 
 // Pipe creates a pair of transports connected via net.Pipe().
-func Pipe(cfg Config) (trA, trB *Transport, e error) {
+func Pipe(cfg Config) (trA, trB Transport, e error) {
 	connA, connB := net.Pipe()
 
 	trA, e = New(connA, cfg)

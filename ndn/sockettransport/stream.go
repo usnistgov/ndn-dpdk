@@ -6,7 +6,7 @@ import (
 
 type streamRxLooper struct{}
 
-func (streamRxLooper) RxLoop(tr *Transport) error {
+func (streamRxLooper) RxLoop(tr *transport) error {
 	buffer := make([]byte, tr.cfg.RxBufferLength)
 	nAvail := 0
 	for {

@@ -9,7 +9,7 @@ type datagramImpl struct {
 	nopRedialer
 }
 
-func (datagramImpl) RxLoop(tr *Transport) error {
+func (datagramImpl) RxLoop(tr *transport) error {
 	for {
 		buffer := make([]byte, tr.cfg.RxBufferLength)
 		datagramLength, e := tr.Conn().Read(buffer)

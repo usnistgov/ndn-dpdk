@@ -4,6 +4,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/socketface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"github.com/usnistgov/ndn-dpdk/ndn/sockettransport"
 )
 
@@ -18,7 +19,7 @@ type IntFace struct {
 
 	// A is the face on application side.
 	// Packets sent on A are received by D.
-	A ndn.L3Face
+	A l3.Face
 
 	// Rx is application side RX channel.
 	// It's equivalent to A.Rx().
@@ -38,7 +39,7 @@ func New(cfg socketface.Config) (*IntFace, error) {
 		return nil, e
 	}
 
-	if f.A, e = ndn.NewL3Face(trA); e != nil {
+	if f.A, e = l3.NewFace(trA); e != nil {
 		return nil, e
 	}
 	if f.D, e = socketface.Wrap(trD, cfg); e != nil {

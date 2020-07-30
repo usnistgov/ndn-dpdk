@@ -4,13 +4,13 @@ package memiftransport
 import (
 	"fmt"
 
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
 )
 
-// Transport is an ndn.Transport that communicates via libmemif.
+// Transport is an l3.Transport that communicates via libmemif.
 type Transport interface {
-	ndn.Transport
+	l3.Transport
 
 	Locator() Locator
 }

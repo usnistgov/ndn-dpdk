@@ -1,6 +1,7 @@
 package socketface_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -90,8 +91,10 @@ func checkStreamRedialing(t *testing.T, listener net.Listener, makeFaceA func() 
 	assert.True(hasDownEvt)
 	assert.True(hasUpEvt)
 
-	cnt := faceA.ReadExCounters().(socketface.ExCounters)
-	assert.InDelta(1.5, float64(cnt.NRedials), 0.6) // redial counter should be 1 or 2
+	cntJSON, _ := json.Marshal(faceA.ReadExCounters())
+	var cntMap map[string]interface{}
+	json.Unmarshal(cntJSON, &cntMap)
+	assert.InDelta(1.5, cntMap["nRedials"], 0.6) // redial counter should be 1 or 2
 }
 
 func TestTcp(t *testing.T) {

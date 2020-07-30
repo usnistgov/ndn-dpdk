@@ -63,7 +63,7 @@ func New(loc Locator) (iface.Face, error) {
 }
 
 // Wrap wraps a sockettransport.Transport to a socket face.
-func Wrap(transport *sockettransport.Transport, cfg Config) (iface.Face, error) {
+func Wrap(transport sockettransport.Transport, cfg Config) (iface.Face, error) {
 	if cfg.RxGroupQueueSize == 0 {
 		cfg.RxGroupQueueSize = DefaultRxGroupQueueSize
 	} else {
@@ -117,13 +117,16 @@ func Wrap(transport *sockettransport.Transport, cfg Config) (iface.Face, error) 
 			close(face.transport.Tx())
 			return nil
 		},
+		ReadExCounters: func(iface.Face) interface{} {
+			return face.transport.Counters()
+		},
 	})
 }
 
 // socketFace is a face using socket as transport.
 type socketFace struct {
 	iface.Face
-	transport *sockettransport.Transport
+	transport sockettransport.Transport
 	rxMempool *pktmbuf.Pool
 }
 

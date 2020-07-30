@@ -12,7 +12,7 @@ type impl interface {
 	Redial(oldConn net.Conn) (net.Conn, error)
 
 	// Receive packets on the socket and pass them to tr.rx, until an error occurs.
-	RxLoop(tr *Transport) error
+	RxLoop(tr *transport) error
 }
 
 var implByNetwork = make(map[string]impl)

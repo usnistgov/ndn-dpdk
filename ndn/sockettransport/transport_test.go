@@ -63,7 +63,7 @@ func TestUnix(t *testing.T) {
 func checkStream(t *testing.T, listener net.Listener) {
 	_, require := makeAR(t)
 
-	var trA, trB *sockettransport.Transport
+	var trA, trB sockettransport.Transport
 	var wg sync.WaitGroup
 	wg.Add(2)
 

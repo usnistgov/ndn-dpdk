@@ -8,6 +8,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 )
 
 // L3FaceTester tests L3Face or Transport.
@@ -34,17 +35,17 @@ func (c *L3FaceTester) applyDefaults() {
 }
 
 // CheckTransport tests a pair of connected Transport.
-func (c *L3FaceTester) CheckTransport(t *testing.T, trA, trB ndn.Transport) {
+func (c *L3FaceTester) CheckTransport(t *testing.T, trA, trB l3.Transport) {
 	_, require := testenv.MakeAR(t)
-	faceA, e := ndn.NewL3Face(trA)
+	faceA, e := l3.NewFace(trA)
 	require.NoError(e)
-	faceB, e := ndn.NewL3Face(trB)
+	faceB, e := l3.NewFace(trB)
 	require.NoError(e)
 	c.CheckL3Face(t, faceA, faceB)
 }
 
 // CheckL3Face tests a pair of connected L3Face.
-func (c *L3FaceTester) CheckL3Face(t *testing.T, faceA, faceB ndn.L3Face) {
+func (c *L3FaceTester) CheckL3Face(t *testing.T, faceA, faceB l3.Face) {
 	c.applyDefaults()
 	assert, require := testenv.MakeAR(t)
 

@@ -7,6 +7,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"github.com/usnistgov/ndn-dpdk/ndn/packettransport/afpacket"
 )
 
@@ -44,7 +45,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	face, e := ndn.NewL3Face(tr)
+	face, e := l3.NewFace(tr)
 	if e != nil {
 		fmt.Fprintln(os.Stderr, e)
 		os.Exit(1)

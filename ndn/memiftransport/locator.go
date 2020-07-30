@@ -10,7 +10,7 @@ import (
 
 	"github.com/FDio/vpp/extras/gomemif/memif"
 	mathpkg "github.com/pkg/math"
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 )
 
 // Defaults and limits.
@@ -31,7 +31,7 @@ const (
 
 // Locator identifies memif interface.
 type Locator struct {
-	ndn.TransportQueueConfig
+	l3.TransportQueueConfig
 
 	// SocketName is the control socket filename.
 	// It must be an absolute path, no longer than MaxSocketNameSize.

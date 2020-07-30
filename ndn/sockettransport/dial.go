@@ -5,7 +5,7 @@ import (
 )
 
 // Dial opens a socket transport using a default Dialer.
-func Dial(network, local, remote string) (*Transport, error) {
+func Dial(network, local, remote string) (Transport, error) {
 	return Dialer{}.Dial(network, local, remote)
 }
 
@@ -15,7 +15,7 @@ type Dialer struct {
 }
 
 // Dial opens a socket transport, according to the configuration in the Dialer.
-func (dialer Dialer) Dial(network, local, remote string) (*Transport, error) {
+func (dialer Dialer) Dial(network, local, remote string) (Transport, error) {
 	dialer.Config.applyDefaults()
 
 	impl, ok := implByNetwork[network]

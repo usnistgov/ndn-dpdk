@@ -11,7 +11,7 @@ import (
 	"github.com/google/gopacket/layers"
 	"github.com/usnistgov/ndn-dpdk/core/emission"
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
 
@@ -24,7 +24,7 @@ type PacketDataHandle interface {
 // Config contains Transport configuration.
 type Config struct {
 	Locator
-	ndn.TransportQueueConfig
+	l3.TransportQueueConfig
 }
 
 func (cfg *Config) applyDefaults() {
@@ -35,9 +35,9 @@ func (cfg *Config) applyDefaults() {
 	cfg.ApplyTransportQueueConfigDefaults()
 }
 
-// Transport is an ndn.Transport that communicates over a PacketDataHandle.
+// Transport is an l3.Transport that communicates over a PacketDataHandle.
 type Transport interface {
-	ndn.Transport
+	l3.Transport
 
 	// Handle returns the underlying PacketDataHandle.
 	Handle() PacketDataHandle

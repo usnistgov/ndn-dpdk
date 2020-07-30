@@ -10,12 +10,12 @@ import (
 
 	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/core/emission"
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 )
 
 // Config contains socket transport configuration.
 type Config struct {
-	ndn.TransportQueueConfig
+	l3.TransportQueueConfig
 
 	// RxBufferLength is the packet buffer length allocated for incoming packets.
 	// The default is 16384.
@@ -47,82 +47,118 @@ func (cfg *Config) applyDefaults() {
 	cfg.RedialBackoffMaximum = time.Duration(math.MaxInt64(int64(cfg.RedialBackoffMaximum), int64(cfg.RedialBackoffInitial)))
 }
 
-// Transport is an ndn.Transport that communicates over a socket.
+// Counters contains socket transport counters.
+type Counters struct {
+	// NRedials indicates how many times the socket has been redialed.
+	NRedials int `json:"nRedials"`
+
+	// RxQueueLength is the current number of packets in the RX queue.
+	RxQueueLength int
+
+	// RxQueueLength is the current number of packets in the TX queue.
+	TxQueueLength int
+}
+
+func (cnt Counters) String() string {
+	return fmt.Sprintf("%dredials, rx %dqueued, tx %dqueued", cnt.NRedials, cnt.RxQueueLength, cnt.TxQueueLength)
+}
+
+// Transport is an l3.Transport that communicates over a socket.
 //
 // A transport has automatic error handling: if a socket error occurs, the transport automatically
 // redials the socket. In case the socket cannot be redialed, the transport remains in "down" status.
 //
 // A transport closes itself after its TX channel has been closed.
-type Transport struct {
+type Transport interface {
+	l3.Transport
+
+	// Conn returns the underlying socket.
+	// Caller may gather information from this socket, but should not close or send/receive on it.
+	// The socket may be replaced during redialing.
+	Conn() net.Conn
+
+	// IsDown returns whether the transport is down (socket is disconnected).
+	IsDown() bool
+
+	// OnStateChange registers a callback to be invoked when the transport goes up or down.
+	OnStateChange(cb func(isDown bool)) io.Closer
+
+	// Counters returns current counters.
+	Counters() Counters
+}
+
+type transport struct {
 	cfg     Config
 	impl    impl
-	conn    atomic.Value
+	conn    atomic.Value // net.Conn
 	rx      chan []byte
 	tx      chan []byte
 	err     chan error
+	cnt     Counters
+	isDown  bool
 	closing chan bool
 	closed  int32 // atomic bool
 	emitter *emission.Emitter
-
-	// IsDown indicates whether the transport is down (socket is disconnected).
-	IsDown bool
-
-	// NRedial indicates how many times the socket has been redialed.
-	NRedials int
 }
 
 // New creates a socket transport.
-func New(conn net.Conn, cfg Config) (*Transport, error) {
+func New(conn net.Conn, cfg Config) (Transport, error) {
 	network := conn.LocalAddr().Network()
 	impl, ok := implByNetwork[network]
 	if !ok {
 		return nil, fmt.Errorf("unknown network %s", network)
 	}
+	cfg.applyDefaults()
 
-	var tr Transport
-	tr.cfg = cfg
-	tr.cfg.applyDefaults()
-	tr.impl = impl
+	tr := &transport{
+		cfg:     cfg,
+		impl:    impl,
+		rx:      make(chan []byte, cfg.RxQueueSize),
+		tx:      make(chan []byte, cfg.TxQueueSize),
+		err:     make(chan error, 1), // 1-item buffer allows rxLoop to send its error after redialLoop exits
+		closing: make(chan bool),
+		emitter: emission.NewEmitter(),
+	}
+
 	tr.conn.Store(conn)
-
-	tr.rx = make(chan []byte, tr.cfg.RxQueueSize)
-	tr.tx = make(chan []byte, tr.cfg.TxQueueSize)
-	tr.err = make(chan error, 1) // 1-item buffer allows rxLoop to send its error after redialLoop exits
-	tr.closing = make(chan bool)
-	tr.emitter = emission.NewEmitter()
 	go tr.rxLoop()
 	go tr.txLoop()
 	go tr.redialLoop()
-	return &tr, nil
+	return tr, nil
 }
 
-// Rx returns the RX channel.
-func (tr *Transport) Rx() <-chan []byte {
+func (tr *transport) Rx() <-chan []byte {
 	return tr.rx
 }
 
-// Tx returns the TX channel.
-func (tr *Transport) Tx() chan<- []byte {
+func (tr *transport) Tx() chan<- []byte {
 	return tr.tx
 }
 
-// Conn returns the underlying socket.
-// Caller may gather information from this socket, but should not close or send/receive on it.
-// The socket may be replaced during redialing.
-func (tr *Transport) Conn() net.Conn {
+func (tr *transport) Conn() net.Conn {
 	return tr.conn.Load().(net.Conn)
 }
 
-// OnStateChange registers a callback to be invoked when the transport goes up or down.
-func (tr *Transport) OnStateChange(cb func(isDown bool)) io.Closer {
+func (tr *transport) IsDown() bool {
+	return tr.isDown
+}
+
+func (tr *transport) OnStateChange(cb func(isDown bool)) io.Closer {
 	return tr.emitter.On(eventStateChange, cb)
 }
 
-func (tr *Transport) isClosed() bool {
+func (tr *transport) Counters() (cnt Counters) {
+	cnt = tr.cnt
+	cnt.RxQueueLength = len(tr.rx)
+	cnt.TxQueueLength = len(tr.tx)
+	return cnt
+}
+
+func (tr *transport) isClosed() bool {
 	return atomic.LoadInt32(&tr.closed) != 0
 }
 
-func (tr *Transport) rxLoop() {
+func (tr *transport) rxLoop() {
 	for !tr.isClosed() {
 		e := tr.impl.RxLoop(tr)
 		tr.err <- e
@@ -130,7 +166,7 @@ func (tr *Transport) rxLoop() {
 	close(tr.rx)
 }
 
-func (tr *Transport) txLoop() {
+func (tr *transport) txLoop() {
 	for {
 		wire, ok := <-tr.tx
 		if !ok {
@@ -147,7 +183,7 @@ func (tr *Transport) txLoop() {
 	tr.Conn().Close()
 }
 
-func (tr *Transport) redialLoop() {
+func (tr *transport) redialLoop() {
 	for {
 		select {
 		case <-tr.closing:
@@ -159,7 +195,7 @@ func (tr *Transport) redialLoop() {
 	}
 }
 
-func (tr *Transport) drainErrors() {
+func (tr *transport) drainErrors() {
 	for {
 		select {
 		case <-tr.err:
@@ -169,7 +205,7 @@ func (tr *Transport) drainErrors() {
 	}
 }
 
-func (tr *Transport) handleError(e error) {
+func (tr *transport) handleError(e error) {
 	tr.setDown(true)
 
 	backoff := tr.cfg.RedialBackoffInitial
@@ -178,7 +214,7 @@ func (tr *Transport) handleError(e error) {
 		backoff = time.Duration(math.MinInt64(int64(backoff*2), int64(tr.cfg.RedialBackoffMaximum)))
 
 		conn, e := tr.impl.Redial(tr.Conn())
-		tr.NRedials++
+		tr.cnt.NRedials++
 		if e == nil {
 			tr.conn.Store(conn)
 			tr.drainErrors()
@@ -188,8 +224,8 @@ func (tr *Transport) handleError(e error) {
 	}
 }
 
-func (tr *Transport) setDown(isDown bool) {
-	tr.IsDown = isDown
+func (tr *transport) setDown(isDown bool) {
+	tr.isDown = isDown
 	tr.emitter.EmitSync(eventStateChange, isDown)
 }
 

@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 )
 
 // Collector accumulates packets received by ndn.Face.
@@ -19,7 +20,7 @@ func Collect(f *IntFace) *Collector {
 	return &collector
 }
 
-func (c *Collector) run(face ndn.L3Face) {
+func (c *Collector) run(face l3.Face) {
 	for packet := range face.Rx() {
 		c.lock.Lock()
 		c.received = append(c.received, packet)

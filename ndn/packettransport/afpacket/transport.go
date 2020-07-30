@@ -19,7 +19,7 @@ type Config struct {
 	packettransport.Config
 }
 
-// Transport is an ndn.Transport that communicates over AF_PACKET sockets.
+// Transport is an l3.Transport that communicates over AF_PACKET sockets.
 type Transport interface {
 	packettransport.Transport
 
