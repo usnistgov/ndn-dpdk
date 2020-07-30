@@ -43,4 +43,4 @@ KeyChain
 
 At the moment, this library lacks an application layer *Face* or *Endpoint* abstraction.
 The best place to get started is [package l3](l3) `l3.Face` type, which provides a network layer face abstraction.
-An example is in [command ndndpdk-packetdump](../cmd/ndndpdk-packetdump).
+An example is in [command ndndpdk-packetdemo](../cmd/ndndpdk-packetdemo).

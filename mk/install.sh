@@ -5,6 +5,7 @@ DESTDIR=${DESTDIR:-/usr/local}
 
 DESTSBIN=$DESTDIR/sbin
 install -d -m0755 $DESTSBIN
+install -m0744 build/bin/ndndpdk-packetdemo $DESTSBIN/
 install -m0744 build/bin/ndnfw-dpdk $DESTSBIN/
 install -m0744 build/bin/ndnping-dpdk $DESTSBIN/
 
