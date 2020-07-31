@@ -1,4 +1,4 @@
-package emission_test
+package events_test
 
 import (
 	"github.com/usnistgov/ndn-dpdk/core/testenv"

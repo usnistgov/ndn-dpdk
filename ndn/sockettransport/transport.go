@@ -3,13 +3,11 @@ package sockettransport
 
 import (
 	"fmt"
-	"io"
 	"net"
 	"sync/atomic"
 	"time"
 
 	"github.com/pkg/math"
-	"github.com/usnistgov/ndn-dpdk/core/emission"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 )
 
@@ -77,28 +75,20 @@ type Transport interface {
 	// The socket may be replaced during redialing.
 	Conn() net.Conn
 
-	// IsDown returns whether the transport is down (socket is disconnected).
-	IsDown() bool
-
-	// OnStateChange registers a callback to be invoked when the transport goes up or down.
-	OnStateChange(cb func(isDown bool)) io.Closer
-
 	// Counters returns current counters.
 	Counters() Counters
 }
 
 type transport struct {
+	*l3.TransportBase
+	p       *l3.TransportBasePriv
 	cfg     Config
 	impl    impl
 	conn    atomic.Value // net.Conn
-	rx      chan []byte
-	tx      chan []byte
 	err     chan error
 	cnt     Counters
-	isDown  bool
 	closing chan bool
 	closed  int32 // atomic bool
-	emitter *emission.Emitter
 }
 
 // New creates a socket transport.
@@ -113,12 +103,10 @@ func New(conn net.Conn, cfg Config) (Transport, error) {
 	tr := &transport{
 		cfg:     cfg,
 		impl:    impl,
-		rx:      make(chan []byte, cfg.RxQueueSize),
-		tx:      make(chan []byte, cfg.TxQueueSize),
 		err:     make(chan error, 1), // 1-item buffer allows rxLoop to send its error after redialLoop exits
 		closing: make(chan bool),
-		emitter: emission.NewEmitter(),
 	}
+	tr.TransportBase, tr.p = l3.NewTransportBase(cfg.TransportQueueConfig)
 
 	tr.conn.Store(conn)
 	go tr.rxLoop()
@@ -127,30 +115,14 @@ func New(conn net.Conn, cfg Config) (Transport, error) {
 	return tr, nil
 }
 
-func (tr *transport) Rx() <-chan []byte {
-	return tr.rx
-}
-
-func (tr *transport) Tx() chan<- []byte {
-	return tr.tx
-}
-
 func (tr *transport) Conn() net.Conn {
 	return tr.conn.Load().(net.Conn)
 }
 
-func (tr *transport) IsDown() bool {
-	return tr.isDown
-}
-
-func (tr *transport) OnStateChange(cb func(isDown bool)) io.Closer {
-	return tr.emitter.On(eventStateChange, cb)
-}
-
 func (tr *transport) Counters() (cnt Counters) {
 	cnt = tr.cnt
-	cnt.RxQueueLength = len(tr.rx)
-	cnt.TxQueueLength = len(tr.tx)
+	cnt.RxQueueLength = len(tr.p.Rx)
+	cnt.TxQueueLength = len(tr.p.Tx)
 	return cnt
 }
 
@@ -163,12 +135,13 @@ func (tr *transport) rxLoop() {
 		e := tr.impl.RxLoop(tr)
 		tr.err <- e
 	}
-	close(tr.rx)
+	close(tr.p.Rx)
+	tr.p.SetState(l3.TransportClosed)
 }
 
 func (tr *transport) txLoop() {
 	for {
-		wire, ok := <-tr.tx
+		wire, ok := <-tr.p.Tx
 		if !ok {
 			break
 		}
@@ -225,10 +198,9 @@ func (tr *transport) handleError(e error) {
 }
 
 func (tr *transport) setDown(isDown bool) {
-	tr.isDown = isDown
-	tr.emitter.EmitSync(eventStateChange, isDown)
+	st := l3.TransportUp
+	if isDown {
+		st = l3.TransportDown
+	}
+	tr.p.SetState(st)
 }
-
-const (
-	eventStateChange = "StateChange"
-)

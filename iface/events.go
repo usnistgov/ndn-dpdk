@@ -3,19 +3,19 @@ package iface
 import (
 	"io"
 
-	"github.com/usnistgov/ndn-dpdk/core/emission"
+	"github.com/usnistgov/ndn-dpdk/core/events"
 )
 
-var emitter = emission.NewEmitter()
+var emitter = events.NewEmitter()
 
 const (
-	evtFaceNew = iota
-	evtFaceUp
-	evtFaceDown
-	evtFaceClosing
-	evtFaceClosed
-	evtRxGroupAdd
-	evtRxGroupRemove
+	evtFaceNew       = "FaceNew"
+	evtFaceUp        = "FaceUp"
+	evtFaceDown      = "FaceDown"
+	evtFaceClosing   = "FaceClosing"
+	evtFaceClosed    = "FaceClosed"
+	evtRxGroupAdd    = "RxGroupAdd"
+	evtRxGroupRemove = "RxGroupRemove"
 )
 
 // OnFaceNew registers a callback when a new face is created.

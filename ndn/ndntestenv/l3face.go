@@ -50,7 +50,18 @@ func (c *L3FaceTester) CheckL3Face(t *testing.T, faceA, faceB l3.Face) {
 	assert, require := testenv.MakeAR(t)
 
 	var wg sync.WaitGroup
-	wg.Add(3)
+	wg.Add(5)
+	faceA.OnStateChange(func(st l3.TransportState) {
+		if st == l3.TransportClosed {
+			wg.Done()
+		}
+	})
+	faceB.OnStateChange(func(st l3.TransportState) {
+		if st == l3.TransportClosed {
+			wg.Done()
+		}
+	})
+
 	doneA := make(chan bool)
 
 	go func() {

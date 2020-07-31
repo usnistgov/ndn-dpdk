@@ -24,7 +24,7 @@ func (streamRxLooper) RxLoop(tr *transport) error {
 		}
 
 		for _, de := range elements {
-			tr.rx <- de.Wire
+			tr.p.Rx <- de.Wire
 		}
 
 		// copy remaining portion to a new buffer

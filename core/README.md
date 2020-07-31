@@ -11,7 +11,7 @@ Go shared code:
 
 * cptr: handle C `void*` pointers.
 * dlopen: load dynamic libraries.
-* emission: event emitter.
+* events: simple event emitter.
 * gqlserver: GraphQL server.
 * logger: Go logging library.
 * macaddr: MAC address parsing and classification.

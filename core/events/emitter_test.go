@@ -1,9 +1,9 @@
-package emission_test
+package events_test
 
 import (
 	"testing"
 
-	"github.com/usnistgov/ndn-dpdk/core/emission"
+	"github.com/usnistgov/ndn-dpdk/core/events"
 )
 
 func TestOnCancel(t *testing.T) {
@@ -13,7 +13,7 @@ func TestOnCancel(t *testing.T) {
 	fA := func() { nA++ }
 	fB := func() { nB++ }
 
-	emitter := emission.NewEmitter()
+	emitter := events.NewEmitter()
 	cA := emitter.On(1, fA)
 	cB := emitter.On(1, fB)
 

@@ -10,6 +10,7 @@ import (
 
 	af "github.com/google/gopacket/afpacket"
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
+	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
 	"golang.org/x/sys/unix"
 )
@@ -56,7 +57,11 @@ func New(ifname string, cfg Config) (Transport, error) {
 	if e != nil {
 		return nil, e
 	}
-	tr.Transport.OnClose(h.Close)
+	tr.Transport.OnStateChange(func(st l3.TransportState) {
+		if st == l3.TransportClosed {
+			h.Close()
+		}
+	})
 	return tr, nil
 }
 

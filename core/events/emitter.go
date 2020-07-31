@@ -1,21 +1,23 @@
-package emission
+// Package events provides a simple event emitter.
+package events
 
 import (
 	"io"
 
-	chuckpreslar_emission "github.com/chuckpreslar/emission"
+	"github.com/chuckpreslar/emission"
 )
 
 // Emitter is a simple event emitter.
+// This is a thin wrapper of emission.Emitter that modifies emitter.On method to return an io.Closer that cancels the callback registration.
 type Emitter struct {
-	*chuckpreslar_emission.Emitter
+	*emission.Emitter
 }
 
 // NewEmitter creates a simple event emitter.
-func NewEmitter() (emitter *Emitter) {
-	emitter = new(Emitter)
-	emitter.Emitter = chuckpreslar_emission.NewEmitter()
-	return emitter
+func NewEmitter() *Emitter {
+	return &Emitter{
+		Emitter: emission.NewEmitter(),
+	}
 }
 
 // On registers a callback when an event occurs.
@@ -26,7 +28,7 @@ func (emitter *Emitter) On(event, listener interface{}) io.Closer {
 }
 
 type canceler struct {
-	emitter  *chuckpreslar_emission.Emitter
+	emitter  *emission.Emitter
 	event    interface{}
 	listener interface{}
 }

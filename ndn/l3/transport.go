@@ -1,5 +1,9 @@
 package l3
 
+import (
+	"io"
+)
+
 // Transport represents a communicate channel to send and receive TLV packets.
 type Transport interface {
 	// Rx returns a channel to receive incoming TLV elements.
@@ -11,6 +15,13 @@ type Transport interface {
 	// This function always returns the same channel.
 	// Closing this channel causes the transport to close.
 	Tx() chan<- []byte
+
+	// State returns current state.
+	State() TransportState
+
+	// OnStateChange registers a callback to be invoked when State() changes.
+	// Returns an io.Closer to cancel the callback registration.
+	OnStateChange(cb func(st TransportState)) io.Closer
 }
 
 // TransportQueueConfig defaults.
@@ -39,3 +50,18 @@ func (cfg *TransportQueueConfig) ApplyTransportQueueConfigDefaults() {
 		cfg.TxQueueSize = DefaultTransportTxQueueSize
 	}
 }
+
+// TransportState indicates up/down state of a transport.
+type TransportState int
+
+const (
+	// TransportUp indicates the transport is operational.
+	TransportUp TransportState = iota
+
+	// TransportDown indicates the transport is nonoperational.
+	TransportDown
+
+	// TransportClosed indicates the transport has been closed.
+	// It cannot be restarted.
+	TransportClosed
+)

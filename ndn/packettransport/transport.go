@@ -9,7 +9,6 @@ import (
 
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
-	"github.com/usnistgov/ndn-dpdk/core/emission"
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
@@ -41,9 +40,6 @@ type Transport interface {
 
 	// Handle returns the underlying PacketDataHandle.
 	Handle() PacketDataHandle
-
-	// OnClose registers a callback to be invoked when the transport is closed.
-	OnClose(cb func()) io.Closer
 }
 
 // New creates a Transport.
@@ -58,39 +54,25 @@ func New(hdl PacketDataHandle, cfg Config) (Transport, error) {
 	}
 
 	tr := &transport{
-		hdl:     hdl,
-		loc:     cfg.Locator,
-		emitter: emission.NewEmitter(),
-		rx:      make(chan []byte, cfg.RxQueueSize),
-		tx:      make(chan []byte, cfg.TxQueueSize),
+		hdl: hdl,
+		loc: cfg.Locator,
 	}
+	tr.TransportBase, tr.p = l3.NewTransportBase(cfg.TransportQueueConfig)
+
 	go tr.rxLoop()
 	go tr.txLoop()
 	return tr, nil
 }
 
 type transport struct {
-	hdl     PacketDataHandle
-	loc     Locator
-	emitter *emission.Emitter
-	rx      chan []byte
-	tx      chan []byte
-}
-
-func (tr *transport) Rx() <-chan []byte {
-	return tr.rx
-}
-
-func (tr *transport) Tx() chan<- []byte {
-	return tr.tx
+	*l3.TransportBase
+	p   *l3.TransportBasePriv
+	hdl PacketDataHandle
+	loc Locator
 }
 
 func (tr *transport) Handle() PacketDataHandle {
 	return tr.hdl
-}
-
-func (tr *transport) OnClose(cb func()) io.Closer {
-	return tr.emitter.On(eventClose, cb)
 }
 
 func (tr *transport) rxLoop() {
@@ -127,7 +109,7 @@ DROP:
 	for {
 		packetData, _, e := tr.hdl.ReadPacketData()
 		if errors.Is(e, io.EOF) {
-			close(tr.rx)
+			close(tr.p.Rx)
 			return
 		}
 		if e = parser.DecodeLayers(packetData, &decoded); e != nil {
@@ -150,7 +132,7 @@ DROP:
 				continue DROP
 			}
 			select {
-			case tr.rx <- element.Wire:
+			case tr.p.Rx <- element.Wire:
 			default:
 			}
 		}
@@ -173,7 +155,7 @@ func (tr *transport) txLoop() {
 
 	buf := gopacket.NewSerializeBuffer()
 	opts := gopacket.SerializeOptions{}
-	for payload := range tr.tx {
+	for payload := range tr.p.Tx {
 		packetLayers := append([]gopacket.SerializableLayer{}, headers...)
 		packetLayers = append(packetLayers, gopacket.Payload(payload))
 		if e := gopacket.SerializeLayers(buf, opts, packetLayers...); e != nil {
@@ -188,15 +170,12 @@ func (tr *transport) txLoop() {
 	case closer:
 		hdl.Close()
 	}
+	tr.p.SetState(l3.TransportClosed)
 }
 
 type closer interface {
 	Close()
 }
-
-const (
-	eventClose = "Close"
-)
 
 func init() {
 	layers.EthernetTypeMetadata[EthernetTypeNDN] = layers.EnumMetadata{

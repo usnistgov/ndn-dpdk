@@ -13,6 +13,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"github.com/usnistgov/ndn-dpdk/ndn/sockettransport"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
@@ -83,7 +84,13 @@ func Wrap(transport sockettransport.Transport, cfg Config) (iface.Face, error) {
 			return nil
 		},
 		Start: func(f iface.Face) (iface.Face, error) {
-			face.transport.OnStateChange(f.SetDown)
+			face.transport.OnStateChange(func(st l3.TransportState) {
+				if st == l3.TransportUp {
+					f.SetDown(false)
+				} else {
+					f.SetDown(true)
+				}
+			})
 			if nFaces == 0 {
 				rxQueue = make(chan *pktmbuf.Packet, cfg.RxGroupQueueSize)
 				iface.EmitRxGroupAdd(rxg)

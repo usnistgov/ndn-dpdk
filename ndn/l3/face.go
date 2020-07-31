@@ -10,6 +10,8 @@
 package l3
 
 import (
+	"io"
+
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
@@ -28,52 +30,64 @@ type Face interface {
 	// This function always returns the same channel.
 	// Closing this channel causes the face to close.
 	Tx() chan<- ndn.L3Packet
+
+	State() TransportState
+	OnStateChange(cb func(st TransportState)) io.Closer
 }
 
 // NewFace creates a Face.
-func NewFace(tr Transport) (l3face Face, e error) {
-	var face l3faceImpl
-	face.tr = tr
-	face.rx = make(chan *ndn.Packet)
-	face.tx = make(chan ndn.L3Packet)
-	go face.rxLoop()
-	go face.txLoop()
-	return &face, nil
+func NewFace(tr Transport) (Face, error) {
+	f := &face{
+		tr: tr,
+		rx: make(chan *ndn.Packet),
+		tx: make(chan ndn.L3Packet),
+	}
+	go f.rxLoop()
+	go f.txLoop()
+	return f, nil
 }
 
-type l3faceImpl struct {
+type face struct {
 	tr Transport
 	rx chan *ndn.Packet
 	tx chan ndn.L3Packet
 }
 
-func (face *l3faceImpl) Transport() Transport {
-	return face.tr
+func (f *face) Transport() Transport {
+	return f.tr
 }
 
-func (face *l3faceImpl) Rx() <-chan *ndn.Packet {
-	return face.rx
+func (f *face) Rx() <-chan *ndn.Packet {
+	return f.rx
 }
 
-func (face *l3faceImpl) Tx() chan<- ndn.L3Packet {
-	return face.tx
+func (f *face) Tx() chan<- ndn.L3Packet {
+	return f.tx
 }
 
-func (face *l3faceImpl) rxLoop() {
-	for wire := range face.tr.Rx() {
+func (f *face) State() TransportState {
+	return f.tr.State()
+}
+
+func (f *face) OnStateChange(cb func(st TransportState)) io.Closer {
+	return f.tr.OnStateChange(cb)
+}
+
+func (f *face) rxLoop() {
+	for wire := range f.tr.Rx() {
 		var packet ndn.Packet
 		e := tlv.Decode(wire, &packet)
 		if e != nil {
 			continue
 		}
-		face.rx <- &packet
+		f.rx <- &packet
 	}
-	close(face.rx)
+	close(f.rx)
 }
 
-func (face *l3faceImpl) txLoop() {
-	transportTx := face.tr.Tx()
-	for l3packet := range face.tx {
+func (f *face) txLoop() {
+	transportTx := f.tr.Tx()
+	for l3packet := range f.tx {
 		wire, e := tlv.Encode(l3packet.ToPacket())
 		if e != nil {
 			continue

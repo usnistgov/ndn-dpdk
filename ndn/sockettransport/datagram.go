@@ -18,7 +18,7 @@ func (datagramImpl) RxLoop(tr *transport) error {
 		}
 
 		wire := buffer[:datagramLength]
-		tr.rx <- wire
+		tr.p.Rx <- wire
 	}
 }
 
