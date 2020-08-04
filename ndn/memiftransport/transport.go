@@ -21,7 +21,7 @@ func New(loc Locator) (Transport, error) {
 	if e := loc.Validate(); e != nil {
 		return nil, fmt.Errorf("loc.Validate %w", e)
 	}
-	loc.applyDefaults()
+	loc.ApplyDefaults()
 
 	hdl, e := newHandle(loc, false)
 	if e != nil {

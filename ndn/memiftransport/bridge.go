@@ -21,11 +21,11 @@ func NewBridge(locA, locB Locator, isMaster bool) (bridge *Bridge, e error) {
 	if e = locA.Validate(); e != nil {
 		return nil, fmt.Errorf("LocatorA %w", e)
 	}
-	locA.applyDefaults()
+	locA.ApplyDefaults()
 	if e = locB.Validate(); e != nil {
 		return nil, fmt.Errorf("LocatorB %w", e)
 	}
-	locB.applyDefaults()
+	locB.ApplyDefaults()
 	if isMaster && locA.SocketName == locB.SocketName {
 		return nil, errors.New("Locators must use different SocketName")
 	}

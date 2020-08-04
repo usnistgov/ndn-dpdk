@@ -23,12 +23,12 @@ type Data struct {
 
 // MakeData creates a Data from flexible arguments.
 // Arguments can contain:
-// - string or Name: set Name
-// - ContentType
-// - time.Duration: set Freshness
-// - []byte: set Content
-// - LpL3: copy PitToken and CongMark
-// - Interest or *Interest: copy Name, set FreshnessPeriod if Interest has MustBeFresh, inherit LpL3
+//  - string or Name: set Name
+//  - ContentType
+//  - time.Duration: set Freshness
+//  - []byte: set Content
+//  - LpL3: copy PitToken and CongMark
+//  - Interest or *Interest: copy Name, set FreshnessPeriod if Interest has MustBeFresh, inherit LpL3
 func MakeData(args ...interface{}) (data Data) {
 	packet := Packet{Data: &data}
 	data.packet = &packet

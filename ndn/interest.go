@@ -31,15 +31,15 @@ type Interest struct {
 
 // MakeInterest creates an Interest from flexible arguments.
 // Arguments can contain:
-// - string or Name: set Name
-// - CanBePrefixFlag: set CanBePrefix
-// - MustBeFreshFlag: set MustBeFresh
-// - FHDelegation: append forwarding hint delegation
-// - Nonce: set Nonce
-// - time.Duration: set Lifetime
-// - HopLimit: set HopLimit
-// - []byte: set AppParameters
-// - LpL3: copy PitToken and CongMark
+//  - string or Name: set Name
+//  - CanBePrefixFlag: set CanBePrefix
+//  - MustBeFreshFlag: set MustBeFresh
+//  - FHDelegation: append forwarding hint delegation
+//  - Nonce: set Nonce
+//  - time.Duration: set Lifetime
+//  - HopLimit: set HopLimit
+//  - []byte: set AppParameters
+//  - LpL3: copy PitToken and CongMark
 func MakeInterest(args ...interface{}) (interest Interest) {
 	packet := Packet{Interest: &interest}
 	interest.packet = &packet

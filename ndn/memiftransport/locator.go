@@ -1,6 +1,7 @@
 package memiftransport
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -29,12 +30,20 @@ const (
 	DefaultRingCapacity = 1 << 10
 )
 
+var (
+	// AddressDPDK is the MAC address on DPDK side.
+	AddressDPDK = net.HardwareAddr{0xF2, 0x6C, 0xE6, 0x8D, 0x9E, 0x34}
+
+	// AddressApp is the MAC address on application side.
+	AddressApp = net.HardwareAddr{0xF2, 0x71, 0x7E, 0x76, 0x5D, 0x1C}
+)
+
 // Locator identifies memif interface.
 type Locator struct {
 	l3.TransportQueueConfig
 
 	// SocketName is the control socket filename.
-	// It must be an absolute path, no longer than MaxSocketNameSize.
+	// It must be an absolute path, not longer than MaxSocketNameSize.
 	SocketName string `json:"socketName"`
 
 	// ID is the interface identifier.
@@ -63,7 +72,8 @@ func (loc Locator) Validate() error {
 	return nil
 }
 
-func (loc *Locator) applyDefaults() {
+// ApplyDefaults sets empty values to defaults.
+func (loc *Locator) ApplyDefaults() {
 	loc.ApplyTransportQueueConfigDefaults()
 
 	loc.SocketName = path.Clean(loc.SocketName)
@@ -89,7 +99,7 @@ func (loc *Locator) toArguments(a *memif.Arguments) error {
 	if e := loc.Validate(); e != nil {
 		return e
 	}
-	loc.applyDefaults()
+	loc.ApplyDefaults()
 
 	a.Id = uint32(loc.ID)
 	a.Name = os.Args[0]
@@ -107,15 +117,31 @@ func (loc *Locator) ToVDevArgs() (string, error) {
 	if e := loc.Validate(); e != nil {
 		return "", e
 	}
-	loc.applyDefaults()
+	loc.ApplyDefaults()
 	return fmt.Sprintf("id=%d,role=master,bsize=%d,rsize=%d,socket=%s,mac=%v",
 		loc.ID, loc.Dataroom, loc.rsize(), loc.SocketName, AddressDPDK), nil
 }
 
-var (
-	// AddressDPDK is the MAC address on DPDK side.
-	AddressDPDK = net.HardwareAddr{0xF2, 0x6C, 0xE6, 0x8D, 0x9E, 0x34}
+// ToCreateFaceLocator builds a JSON object suitable for NDN-DPDK face creation API.
+func (loc *Locator) ToCreateFaceLocator() (json.RawMessage, error) {
+	if e := loc.Validate(); e != nil {
+		return nil, e
+	}
+	loc.ApplyDefaults()
 
-	// AddressApp is the MAC address on application side.
-	AddressApp = net.HardwareAddr{0xF2, 0x71, 0x7E, 0x76, 0x5D, 0x1C}
-)
+	obj := createFaceLocatorJSON{
+		Scheme: "memif",
+		Local:  AddressDPDK.String(),
+		Remote: AddressApp.String(),
+		Memif:  loc,
+	}
+	j, e := json.Marshal(obj)
+	return json.RawMessage(j), e
+}
+
+type createFaceLocatorJSON struct {
+	Scheme string   `json:"scheme"`
+	Local  string   `json:"local"`
+	Remote string   `json:"remote"`
+	Memif  *Locator `json:"memif"`
+}

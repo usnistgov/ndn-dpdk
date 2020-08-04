@@ -1,3 +1,5 @@
+// Package gqlserver provides a GraphQL server.
+// It is a singleton and is initialized via init() functions.
 package gqlserver
 
 import (

@@ -15,9 +15,9 @@ type Nack struct {
 
 // MakeNack creates a Nack from flexible arguments.
 // Arguments can contain:
-// - uint8 or int: set Reason
-// - Interest or *Interest: set Interest, copy PitToken and CongMark
-// - LpL3: copy PitToken and CongMark
+//  - uint8 or int: set Reason
+//  - Interest or *Interest: set Interest, copy PitToken and CongMark
+//  - LpL3: copy PitToken and CongMark
 func MakeNack(args ...interface{}) (nack Nack) {
 	packet := Packet{Nack: &nack}
 	nack.packet = &packet
