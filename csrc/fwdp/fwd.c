@@ -15,6 +15,7 @@ static_assert(offsetof(SgCtx, eventKind) == offsetof(FwFwdCtx, eventKind), "");
 static_assert(offsetof(SgCtx, nhFlt) == offsetof(FwFwdCtx, nhFlt), "");
 static_assert(offsetof(SgCtx, pkt) == offsetof(FwFwdCtx, pkt), "");
 static_assert(offsetof(SgCtx, fibEntry) == offsetof(FwFwdCtx, fibEntry), "");
+static_assert(offsetof(SgCtx, fibEntryDyn) == offsetof(FwFwdCtx, fibEntryDyn), "");
 static_assert(offsetof(SgCtx, pitEntry) == offsetof(FwFwdCtx, pitEntry), "");
 static_assert(sizeof(SgCtx) == offsetof(FwFwdCtx, endofSgCtx), "");
 

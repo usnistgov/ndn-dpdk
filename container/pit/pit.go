@@ -8,7 +8,7 @@ import (
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/container/cs"
-	"github.com/usnistgov/ndn-dpdk/container/fib"
+	"github.com/usnistgov/ndn-dpdk/container/fib/fibreplica"
 	"github.com/usnistgov/ndn-dpdk/container/pcct"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
@@ -38,9 +38,8 @@ func (pit *Pit) TriggerTimeoutSched() {
 
 // Insert attempts to insert a PIT entry for the given Interest.
 // It returns either a new or existing PIT entry, or a CS entry that satisfies the Interest.
-func (pit *Pit) Insert(interest *ndni.Packet, fibEntry *fib.Entry) (pitEntry *Entry, csEntry *cs.Entry) {
-	res := C.Pit_Insert(pit.ptr(), (*C.Packet)(interest.Ptr()),
-		(*C.FibEntry)(unsafe.Pointer(fibEntry)))
+func (pit *Pit) Insert(interest *ndni.Packet, fibEntry *fibreplica.Entry) (pitEntry *Entry, csEntry *cs.Entry) {
+	res := C.Pit_Insert(pit.ptr(), (*C.Packet)(interest.Ptr()), (*C.FibEntry)(fibEntry.Ptr()))
 	switch C.PitInsertResult_GetKind(res) {
 	case C.PIT_INSERT_PIT0, C.PIT_INSERT_PIT1:
 		pitEntry = (*Entry)(C.PitInsertResult_GetPitEntry(res))

@@ -117,7 +117,7 @@ func (mp *Mempool) Alloc(objs interface{}) error {
 	}
 	res := C.rte_mempool_get_bulk(mp.ptr(), (*unsafe.Pointer)(ptr), C.uint(count))
 	if res != 0 {
-		return errors.New("mbuf allocation failed")
+		return errors.New("mempool object allocation failed")
 	}
 	return nil
 }

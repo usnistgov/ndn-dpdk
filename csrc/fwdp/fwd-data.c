@@ -67,7 +67,7 @@ FwFwd_DataSatisfy(FwFwd* fwd, FwFwdCtx* ctx)
   }
 
   if (likely(ctx->fibEntry != NULL)) {
-    ++ctx->fibEntry->nRxData;
+    ++ctx->fibEntryDyn->nRxData;
     uint64_t res = SgInvoke(ctx->fibEntry->strategy, ctx);
     ZF_LOGD("^ fib-entry-depth=%" PRIu8 " sg-id=%d sg-res=%" PRIu64, ctx->fibEntry->nComps,
             ctx->fibEntry->strategy->id, res);
@@ -95,13 +95,13 @@ FwFwd_RxData(FwFwd* fwd, FwFwdCtx* ctx)
 
   if (PitFindResult_Is(pitFound, PIT_FIND_PIT0)) {
     ctx->pitEntry = PitFindResult_GetPitEntry0(pitFound);
-    ctx->fibEntry = PitEntry_FindFibEntry(ctx->pitEntry, fwd->fib);
+    FwFwdCtx_SetFibEntry(ctx, PitEntry_FindFibEntry(ctx->pitEntry, fwd->fib));
     FwFwd_DataSatisfy(fwd, ctx);
   }
   if (PitFindResult_Is(pitFound, PIT_FIND_PIT1)) {
     ctx->pitEntry = PitFindResult_GetPitEntry1(pitFound);
     if (likely(ctx->fibEntry == NULL)) {
-      ctx->fibEntry = PitEntry_FindFibEntry(ctx->pitEntry, fwd->fib);
+      FwFwdCtx_SetFibEntry(ctx, PitEntry_FindFibEntry(ctx->pitEntry, fwd->fib));
     }
     // XXX if both PIT entries have the same downstream, Data is sent twice
     FwFwd_DataSatisfy(fwd, ctx);

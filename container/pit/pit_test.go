@@ -83,7 +83,7 @@ func TestToken(t *testing.T) {
 		}
 		interest := makeInterest(name)
 
-		entry, _ := pit.Insert(interest, fixture.EmptyFibEntry)
+		entry, _ := pit.Insert(interest, fixture.FibEntry)
 		if i == 255 { // PCCT is full
 			assert.Nil(entry)
 			data.Close()

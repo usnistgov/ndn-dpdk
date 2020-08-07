@@ -1,179 +1,216 @@
+// Package fibtree organizes logical FIB entries in a name hierarchy.
 package fibtree
 
 import (
+	"github.com/usnistgov/ndn-dpdk/container/fib/fibdef"
 	"github.com/usnistgov/ndn-dpdk/ndn"
-	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
 
-// GetNdtIndexCallback is a callback function that returns NDT index for the specified name.
-type GetNdtIndexCallback func(name ndn.Name) uint64
-
-// TraverseCallback is a visitor during tree traversal.
-// Returns whether to visit descendants of current node.
-type TraverseCallback func(name ndn.Name, n *Node) bool
-
-// Tree represents a name hierarchy of FIB.
-// It contains all the FIB entry names, but does not contain contents (nexthops, etc) of the FIB entry.
-type Tree struct {
-	startDepth   int
-	ndtPrefixLen int
-	getNdtIndex  GetNdtIndexCallback
-
-	nEntries int
-	nNodes   int
-	root     *Node
-	subtrees []map[*Node]string // ndtIndex => list of <Node,string(nameV)> tuples, where name.Len()==ndtPrefixLen
+type update struct {
+	real   *fibdef.RealUpdate
+	virt   *fibdef.VirtUpdate
+	revert func()
 }
 
-// New creates a Tree.
-func New(startDepth, ndtPrefixLen, nNdtElements int, getNdtIndex GetNdtIndexCallback) (t *Tree) {
-	t = new(Tree)
-	t.startDepth = startDepth
-	t.ndtPrefixLen = ndtPrefixLen
-	t.getNdtIndex = getNdtIndex
+func (u update) Real() *fibdef.RealUpdate {
+	return u.real
+}
 
-	t.root = newNode()
-	t.nNodes = 1
+func (u update) Virt() *fibdef.VirtUpdate {
+	return u.virt
+}
 
-	t.subtrees = make([]map[*Node]string, nNdtElements)
-	for i := range t.subtrees {
-		t.subtrees[i] = make(map[*Node]string)
+func (u update) Commit() {
+}
+
+func (u update) Revert() {
+	if u.revert != nil {
+		u.revert()
 	}
-	return t
 }
 
-// CountEntries returns number of FIB entries.
-func (t *Tree) CountEntries() int {
-	return t.nEntries
+// Tree represents a tree of name hierarchy.
+type Tree struct {
+	root       *node
+	startDepth int
+
+	nNodes   int
+	nEntries int
 }
 
-// CountNodes returns number of tree nodes.
+// CountNodes returns number of nodes.
 func (t *Tree) CountNodes() int {
 	return t.nNodes
 }
 
-// Traverse traverses the tree starting from the root node.
-func (t *Tree) Traverse(cb TraverseCallback) {
-	t.root.traverse("", cb)
+// CountEntries returns number of entries.
+func (t *Tree) CountEntries() int {
+	return t.nEntries
 }
 
-// TraverseSubtree visits subtrees of a specified ndtIndex.
-func (t *Tree) TraverseSubtree(ndtIndex uint64, cb TraverseCallback) {
-	for n, nameV := range t.subtrees[ndtIndex] {
-		n.traverse(nameV, cb)
+func (t *Tree) seek(name ndn.Name, canInsert bool) (n *node, isNew bool) {
+	n = t.root
+	for _, comp := range name {
+		compS := componentToString(comp)
+		child := n.children[compS]
+		if child == nil {
+			if !canInsert {
+				return nil, false
+			}
+			child = newNode()
+			n.addChild(compS, child)
+			t.nNodes++
+			isNew = true
+		}
+		n = child
+	}
+	return
+}
+
+// List lists entries.
+func (t *Tree) List() (list []fibdef.Entry) {
+	t.root.appendListTo("", &list)
+	return
+}
+
+// Find retrieves an entry by exact match.
+func (t *Tree) Find(name ndn.Name) *fibdef.Entry {
+	n, _ := t.seek(name, false)
+	if n == nil || !n.isEntry() {
+		return nil
+	}
+	return &fibdef.Entry{
+		Name:      name,
+		EntryBody: n.EntryBody,
 	}
 }
 
-// Insert inserts an entry at the specified name.
-// Returns:
-//   ok: true if inserted, false if entry already exists
-//   oldMd: old MaxDepth at name.GetPrefix(startDepth)
-//   newMd: new MaxDepth at name.GetPrefix(startDepth)
-//   virtIsEntry: whether node at name.GetPrefix(startDepth) is an entry
-func (t *Tree) Insert(name ndn.Name) (ok bool, oldMd int, newMd int, virtIsEntry bool) {
-	nComps := len(name)
-	// create node at name and ancestors
-	nodes := make([]*Node, nComps+1)
-	nodes[0] = t.root
-	for i := 1; i <= nComps; i++ {
-		parent := nodes[i-1]
-		compTlv, _ := tlv.Encode(name[i-1])
-		comp := string(compTlv)
-		node := parent.children[comp]
-		if node != nil {
-			nodes[i] = node
-			continue
-		}
-
-		node = newNode()
-		t.nNodes++
-		parent.children[comp] = node
-		nodes[i] = node
-
-		// store subtree when creating node at NDT prefixLen
-		if i == t.ndtPrefixLen {
-			ndtIndex := t.getNdtIndex(name)
-			prefixV, _ := name[:i].MarshalBinary()
-			t.subtrees[ndtIndex][node] = string(prefixV)
-		}
+// Insert inserts or replaces an entry.
+func (t *Tree) Insert(entry fibdef.Entry) fibdef.Update {
+	if e := entry.Validate(); e != nil {
+		panic(e)
 	}
 
-	// add entry at name if it does not exist
-	if nodes[nComps].IsEntry {
-		return false, -1, -1, false
-	}
-	nodes[nComps].IsEntry = true
-	t.nEntries++
+	u := update{}
 
-	// update maxDepth on nodes
-	for i := nComps; i >= 0; i-- {
-		node := nodes[i]
-		if i == t.startDepth {
-			oldMd = node.MaxDepth
+	n, isNewNode := t.seek(entry.Name, true)
+	if n.EntryBody.Equals(entry.EntryBody) {
+		// if n.EntryBody is the same, it cannot be a new node
+		return u
+	}
+
+	u.real = &fibdef.RealUpdate{
+		Name:      entry.Name,
+		Action:    fibdef.ActReplace,
+		EntryBody: entry.EntryBody,
+	}
+	if n.isEntry() {
+		oldEntry := fibdef.Entry{
+			Name:      entry.Name,
+			EntryBody: n.EntryBody,
 		}
-		node.updateMaxDepth()
-		if i == t.startDepth {
-			newMd = node.MaxDepth
-			virtIsEntry = node.IsEntry
+		u.revert = func() { t.Insert(oldEntry) }
+	} else {
+		u.revert = func() { t.Erase(entry.Name) }
+
+		u.real.Action = fibdef.ActInsert
+		t.nEntries++
+	}
+	n.EntryBody = entry.EntryBody
+
+	if len(entry.Name) == t.startDepth && n.height > 0 {
+		u.real.WithVirt = &fibdef.VirtUpdate{
+			Name:    entry.Name,
+			Action:  fibdef.ActReplace,
+			HasReal: true,
+			Height:  n.height,
+		}
+
+		// if n.height is non-zero, it must have children and is not a new node
+		return u
+	}
+
+	if isNewNode {
+		// update height on ancestors; height of the new node remains zero
+		for depth, p := len(entry.Name), n.parent; p != nil; p = p.parent {
+			depth--
+			oldHeight := p.height
+			p.updateHeight()
+			if depth == t.startDepth && oldHeight != p.height {
+				u.virt = &fibdef.VirtUpdate{
+					Name:    p.name(),
+					Action:  fibdef.ActReplace,
+					HasReal: p.isEntry(),
+					Height:  p.height,
+				}
+				if oldHeight == 0 {
+					u.virt.Action = fibdef.ActInsert
+				}
+			}
 		}
 	}
-	return true, oldMd, newMd, virtIsEntry
+	return u
 }
 
-// Erase erases an entry at the specified name.
-// Returns:
-//   ok: true if deleted, false if entry does not exist
-//   oldMd: old MaxDepth at name.GetPrefix(startDepth)
-//   newMd: new MaxDepth at name.GetPrefix(startDepth)
-//   virtIsEntry: whether node at name.GetPrefix(startDepth) is an entry
-func (t *Tree) Erase(name ndn.Name) (ok bool, oldMd int, newMd int, virtIsEntry bool) {
-	nComps := len(name)
-	// find node at name and ancestors
-	nodes := make([]*Node, nComps+1)
-	nodes[0] = t.root
-	for i := 1; i <= nComps; i++ {
-		parent := nodes[i-1]
-		compTlv, _ := tlv.Encode(name[i-1])
-		comp := string(compTlv)
-		nodes[i] = parent.children[comp]
-		if nodes[i] == nil {
-			return false, -1, -1, false
-		}
-	}
+// Erase deletes an entry.
+func (t *Tree) Erase(name ndn.Name) fibdef.Update {
+	var u update
 
-	// erase entry at name if it exists
-	if !nodes[nComps].IsEntry {
-		return false, -1, -1, false
+	n, _ := t.seek(name, false)
+	if n == nil || !n.isEntry() {
+		return u
 	}
-	nodes[nComps].IsEntry = false
+	oldEntry := fibdef.Entry{
+		Name:      name,
+		EntryBody: n.EntryBody,
+	}
+	u.revert = func() { t.Insert(oldEntry) }
 	t.nEntries--
+	n.EntryBody = fibdef.EntryBody{}
 
-	// update maxDepth on nodes
-	for i := nComps; i >= 0; i-- {
-		node := nodes[i]
-		if i == t.startDepth {
-			oldMd = node.MaxDepth
-		}
-		node.updateMaxDepth()
-		if i == t.startDepth {
-			newMd = node.MaxDepth
-			virtIsEntry = node.IsEntry
-		}
-
-		// keep node if it's root, has entry, or has children
-		if i == 0 || node.IsEntry || len(node.children) > 0 {
-			continue
-		}
-
-		// delete unused node
-		if i == t.ndtPrefixLen {
-			ndtIndex := t.getNdtIndex(name)
-			delete(t.subtrees[ndtIndex], node)
-		}
-		parent := nodes[i-1]
-		compTlv, _ := tlv.Encode(name[i-1])
-		delete(parent.children, string(compTlv))
-		t.nNodes--
+	u.real = &fibdef.RealUpdate{
+		Name:   name,
+		Action: fibdef.ActErase,
 	}
-	return true, oldMd, newMd, virtIsEntry
+	if len(name) == t.startDepth && n.height > 0 {
+		u.real.WithVirt = &fibdef.VirtUpdate{
+			Name:    name,
+			Action:  fibdef.ActReplace,
+			HasReal: false,
+			Height:  n.height,
+		}
+
+		// if n.height is non-zero, it must have children and is not deletable
+		return u
+	}
+
+	for depth, c, p := len(name), n, n.parent; p != nil && !c.isEntry() && len(c.children) == 0; c, p = p, p.parent {
+		depth--
+		p.removeChild(c)
+		t.nNodes--
+
+		oldHeight := p.height
+		p.updateHeight()
+		if depth == t.startDepth && oldHeight != p.height {
+			u.virt = &fibdef.VirtUpdate{
+				Name:    p.name(),
+				Action:  fibdef.ActReplace,
+				HasReal: p.isEntry(),
+				Height:  p.height,
+			}
+			if p.height == 0 {
+				u.virt.Action = fibdef.ActErase
+			}
+		}
+	}
+	return u
+}
+
+// New creates a Tree.
+func New(startDepth int) *Tree {
+	return &Tree{
+		root:       newNode(),
+		startDepth: startDepth,
+		nNodes:     1,
+	}
 }

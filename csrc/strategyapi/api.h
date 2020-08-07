@@ -46,6 +46,9 @@ typedef struct SgCtx
   /** @brief FIB entry. */
   const SgFibEntry* fibEntry;
 
+  /** @brief FIB entry dynamic area. */
+  SgFibEntryDyn* fibEntryDyn;
+
   /** @brief PIT entry. */
   SgPitEntry* pitEntry;
 } SgCtx;
@@ -66,8 +69,8 @@ SgFibNexthopIt_Init2(SgFibNexthopIt* it, const SgCtx* ctx)
 /** @brief Access FIB entry scratch area as T* type. */
 #define SgCtx_FibScratchT(ctx, T)                                                                  \
   __extension__({                                                                                  \
-    static_assert(sizeof(T) <= SG_FIB_ENTRY_SCRATCH, "");                                          \
-    (T*)(ctx)->fibEntry->scratch;                                                                  \
+    static_assert(sizeof(T) <= FibScratchSize, "");                                                \
+    (T*)(ctx)->fibEntryDyn->scratch;                                                               \
   })
 
 /** @brief Access PIT entry scratch area as T* type. */

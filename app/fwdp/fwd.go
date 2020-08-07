@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"unsafe"
 
-	"github.com/usnistgov/ndn-dpdk/container/fib"
 	"github.com/usnistgov/ndn-dpdk/container/pcct"
 	"github.com/usnistgov/ndn-dpdk/container/pit"
 	"github.com/usnistgov/ndn-dpdk/container/strategycode"
@@ -23,7 +22,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
-// Forwarding thread.
+// Fwd represents a forwarding thread.
 type Fwd struct {
 	ealthread.Thread
 	id     int
@@ -44,7 +43,9 @@ func (fwd *Fwd) String() string {
 	return fmt.Sprintf("fwd%d", fwd.id)
 }
 
-func (fwd *Fwd) Init(lc eal.LCore, fib *fib.Fib, pcctCfg pcct.Config, qcfgI, qcfgD, qcfgN iface.PktQueueConfig,
+// Init initializes the forwarding thread.
+// Excluding FIB.
+func (fwd *Fwd) Init(lc eal.LCore, pcctCfg pcct.Config, qcfgI, qcfgD, qcfgN iface.PktQueueConfig,
 	latencySampleFreq int, suppressCfg pit.SuppressConfig) (e error) {
 	socket := lc.NumaSocket()
 
@@ -69,8 +70,6 @@ func (fwd *Fwd) Init(lc eal.LCore, fib *fib.Fib, pcctCfg pcct.Config, qcfgI, qcf
 		return e
 	}
 
-	fwd.c.fib = (*C.Fib)(fib.Ptr(fwd.id))
-
 	fwd.pcct, e = pcct.New(pcctCfg, socket)
 	if e != nil {
 		return fmt.Errorf("pcct.New: %w", e)
@@ -91,6 +90,7 @@ func (fwd *Fwd) Init(lc eal.LCore, fib *fib.Fib, pcctCfg pcct.Config, qcfgI, qcf
 	return nil
 }
 
+// Close stops and releases the forwarding thread.
 func (fwd *Fwd) Close() error {
 	fwd.Stop()
 	fwd.queueI.Close()
@@ -99,6 +99,17 @@ func (fwd *Fwd) Close() error {
 	fwd.pcct.Close()
 	eal.Free(fwd.c)
 	return nil
+}
+
+// NumaSocket implements fib.LookupThread.
+func (fwd *Fwd) NumaSocket() eal.NumaSocket {
+	return fwd.Thread.LCore().NumaSocket()
+}
+
+// SetFib implements fib.LookupThread.
+func (fwd *Fwd) SetFib(replica unsafe.Pointer, index int) {
+	fwd.c.fib = (*C.Fib)(replica)
+	fwd.c.fibDynIndex = C.uint8_t(index)
 }
 
 func init() {

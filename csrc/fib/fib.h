@@ -5,7 +5,7 @@
 
 #include "entry.h"
 
-/** @brief A partition of the Forwarding Information Base (FIB). */
+/** @brief A replica of the Forwarding Information Base (FIB). */
 typedef struct Fib
 {
   struct rte_mempool* mp; ///< entry mempool
@@ -14,14 +14,6 @@ typedef struct Fib
   uint32_t insertSeqNum;
 } Fib;
 
-/** @brief Allocate FIB entries from mempool. */
-__attribute__((nonnull)) bool
-Fib_AllocBulk(Fib* fib, FibEntry* entries[], unsigned count);
-
-/** @brief Deallocate an unused FIB entry. */
-__attribute__((nonnull)) void
-Fib_Free(Fib* fib, FibEntry* entry);
-
 /**
  * @brief Delete all entries.
  * @pre Calling thread is registered as RCU read-side thread, but does not hold rcu_read_lock.
@@ -29,28 +21,31 @@ Fib_Free(Fib* fib, FibEntry* entry);
 __attribute__((nonnull)) void
 Fib_Clear(Fib* fib);
 
-typedef enum Fib_FreeOld
-{
-  Fib_FreeOld_MustNotExist = -1,
-  Fib_FreeOld_No = 0,
-  Fib_FreeOld_Yes = 1,
-  Fib_FreeOld_YesIfExists = 2,
-} Fib_FreeOld;
+/** @brief Allocate and zero entries. */
+__attribute__((nonnull)) bool
+Fib_AllocBulk(Fib* fib, FibEntry* entries[], unsigned count);
 
 /**
- * @brief Insert a FIB entry, or replace an existing entry with same name.
- * @param entry an entry allocated from @c Fib_Alloc.
+ * @brief Insert or replace a FIB entry.
+ * @param entry an entry allocated from FIB mempool.
  * @pre Calling thread holds rcu_read_lock.
  */
 __attribute__((nonnull)) void
-Fib_Insert(Fib* fib, FibEntry* entry, Fib_FreeOld freeVirt, Fib_FreeOld freeReal);
+Fib_Write(Fib* fib, FibEntry* entry);
 
 /**
  * @brief Erase given FIB entry.
  * @pre Calling thread holds rcu_read_lock.
  */
 __attribute__((nonnull)) void
-Fib_Erase(Fib* fib, FibEntry* entry, Fib_FreeOld freeVirt, Fib_FreeOld freeReal);
+Fib_Erase(Fib* fib, FibEntry* entry);
+
+/**
+ * @brief Free given entry after RCU.
+ * @pre Calling thread holds rcu_read_lock.
+ */
+__attribute__((nonnull)) void
+Fib_DeferredFree(Fib* fib, FibEntry* entry);
 
 /**
  * @brief Retrieve FIB entry.

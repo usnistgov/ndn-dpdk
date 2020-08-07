@@ -15,6 +15,9 @@ godeps: app/version/version.go strategy/strategyelf/bindata.go build/libndn-dpdk
 app/version/version.go:
 	app/version/make-version.sh
 
+csrc/fib/enum.h: container/fib/fibdef/enum.go
+	mk/gogenerate.sh ./$(<D)
+
 csrc/ndni/enum.h csrc/ndni/an.h: ndni/enum.go ndn/an/*.go
 	mk/gogenerate.sh ./$(<D)
 
@@ -31,7 +34,7 @@ strategy/strategyelf/bindata.go: strategy/*.c
 	mk/gogenerate.sh ./$(@D)
 
 .PHONY: build/libndn-dpdk-c.a
-build/libndn-dpdk-c.a: build/build.ninja csrc/ndni/an.h csrc/ndni/enum.h csrc/iface/enum.h csrc/pcct/cs-enum.h
+build/libndn-dpdk-c.a: build/build.ninja csrc/fib/enum.h csrc/ndni/an.h csrc/ndni/enum.h csrc/iface/enum.h csrc/pcct/cs-enum.h
 	ninja -C build
 
 build/build.ninja: csrc/meson.build mk/meson.build

@@ -110,7 +110,7 @@ FwFwd_RxInterest(FwFwd* fwd, FwFwdCtx* ctx)
 
   // query FIB, reply Nack if no FIB match
   rcu_read_lock();
-  ctx->fibEntry = FwFwd_InterestLookupFib(fwd, ctx->npkt, &ctx->nhFlt);
+  FwFwdCtx_SetFibEntry(ctx, FwFwd_InterestLookupFib(fwd, ctx->npkt, &ctx->nhFlt));
   if (unlikely(ctx->fibEntry == NULL)) {
     ZF_LOGD("^ drop=no-FIB-match nack-to=%" PRI_FaceID, ctx->rxFace);
     Face_Tx(ctx->rxFace, Nack_FromInterest(ctx->npkt, NackNoRoute));
@@ -120,7 +120,7 @@ FwFwd_RxInterest(FwFwd* fwd, FwFwdCtx* ctx)
   }
   ZF_LOGD("^ fh-index=%d fib-entry-depth=%" PRIu8 " sg-id=%d", interest->activeFwHint,
           ctx->fibEntry->nComps, ctx->fibEntry->strategy->id);
-  ++ctx->fibEntry->nRxInterests;
+  ++ctx->fibEntryDyn->nRxInterests;
 
   // lookup PIT-CS
   PitInsertResult pitIns = Pit_Insert(fwd->pit, ctx->npkt, ctx->fibEntry);
@@ -200,7 +200,7 @@ SgForwardInterest(SgCtx* ctx0, FaceID nh)
           " hopLimit=%" PRIu8 " up-token=%016" PRIx64,
           nh, outNpkt, upNonce, upLifetime, upHopLimit, token);
   Face_Tx(nh, outNpkt);
-  ++ctx->fibEntry->nTxInterests;
+  ++ctx->fibEntryDyn->nTxInterests;
 
   PitUp_RecordTx(up, ctx->pitEntry, now, upNonce, &fwd->suppressCfg);
   ++ctx->nForwarded;

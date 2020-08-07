@@ -8,6 +8,9 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/container/cs"
 	"github.com/usnistgov/ndn-dpdk/container/fib"
+	"github.com/usnistgov/ndn-dpdk/container/fib/fibdef"
+	"github.com/usnistgov/ndn-dpdk/container/fib/fibreplica"
+	"github.com/usnistgov/ndn-dpdk/container/fib/fibtestenv"
 	"github.com/usnistgov/ndn-dpdk/container/pcct"
 	"github.com/usnistgov/ndn-dpdk/container/pit"
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
@@ -15,6 +18,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealtestenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
@@ -37,16 +41,19 @@ var (
 	setActiveFwHint = ndnitestenv.SetActiveFwHint
 	setPitToken     = ndnitestenv.SetPitToken
 	setFace         = ndnitestenv.SetFace
+	makeFibEntry    = fibtestenv.MakeEntry
 )
 
 type Fixture struct {
-	Pcct          *pcct.Pcct
-	Cs            *cs.Cs
-	Pit           *pit.Pit
-	emptyFibEntry *fib.Entry
+	Pcct       *pcct.Pcct
+	Cs         *cs.Cs
+	Pit        *pit.Pit
+	Fib        *fib.Fib
+	FibReplica *fibreplica.Table
+	FibEntry   *fibreplica.Entry
 }
 
-func NewFixture(cfg pcct.Config) (fixture *Fixture) {
+func NewFixture(cfg pcct.Config) *Fixture {
 	cfg.MaxEntries = 4095
 	if cfg.CsCapMd == 0 {
 		cfg.CsCapMd = 200
@@ -55,20 +62,31 @@ func NewFixture(cfg pcct.Config) (fixture *Fixture) {
 		cfg.CsCapMd = 200
 	}
 
-	pcct, e := pcct.New(cfg, eal.NumaSocket{})
+	fixture := new(Fixture)
+	var e error
+	fixture.Pcct, e = pcct.New(cfg, eal.NumaSocket{})
 	if e != nil {
 		panic(e)
 	}
+	fixture.Cs = cs.FromPcct(fixture.Pcct)
+	fixture.Pit = pit.FromPcct(fixture.Pcct)
 
-	return &Fixture{
-		Pcct:          pcct,
-		Cs:            cs.FromPcct(pcct),
-		Pit:           pit.FromPcct(pcct),
-		emptyFibEntry: new(fib.Entry),
+	fixture.Fib, e = fib.New(fibdef.Config{Capacity: 1023}, []fib.LookupThread{&fibtestenv.LookupThread{}})
+	if e != nil {
+		panic(e)
 	}
+	placeholderName := ndn.ParseName("/75f3c2eb-6147-4030-afbc-585b3ce876a9")
+	if e = fixture.Fib.Insert(makeFibEntry(placeholderName, nil, 9999)); e != nil {
+		panic(e)
+	}
+	fixture.FibReplica = fixture.Fib.Replica(eal.NumaSocket{})
+	fixture.FibEntry = fixture.FibReplica.Lpm(placeholderName)
+
+	return fixture
 }
 
 func (fixture *Fixture) Close() error {
+	fixture.Fib.Close()
 	return fixture.Pcct.Close()
 }
 
@@ -82,7 +100,7 @@ func (fixture *Fixture) CountMpInUse() int {
 // Returns true if CS entry is replacing PIT entry.
 // This function takes ownership of interest and data.
 func (fixture *Fixture) Insert(interest *ndni.Packet, data *ndni.Packet) (isReplacing bool) {
-	pitEntry, csEntry := fixture.Pit.Insert(interest, fixture.emptyFibEntry)
+	pitEntry, csEntry := fixture.Pit.Insert(interest, fixture.FibEntry)
 	if csEntry != nil {
 		interest.Close()
 		data.Close()
@@ -120,7 +138,7 @@ func (fixture *Fixture) InsertBulk(minId, maxId int, dataNameFmt, interestNameFm
 // If a PIT entry is created in Pit.Insert invocation, it is erased immediately.
 // This function takes ownership of interest.
 func (fixture *Fixture) Find(interest *ndni.Packet) *cs.Entry {
-	pitEntry, csEntry := fixture.Pit.Insert(interest, fixture.emptyFibEntry)
+	pitEntry, csEntry := fixture.Pit.Insert(interest, fixture.FibEntry)
 	if pitEntry != nil {
 		fixture.Pit.Erase(pitEntry)
 	} else {

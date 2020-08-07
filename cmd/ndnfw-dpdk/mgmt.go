@@ -1,9 +1,6 @@
 package main
 
 import (
-	"time"
-
-	"github.com/usnistgov/ndn-dpdk/container/ndt/ndtupdater"
 	"github.com/usnistgov/ndn-dpdk/container/strategycode"
 	"github.com/usnistgov/ndn-dpdk/mgmt"
 	"github.com/usnistgov/ndn-dpdk/mgmt/facemgmt"
@@ -25,11 +22,6 @@ func startMgmt() {
 
 	mgmt.Register(ndtmgmt.NdtMgmt{
 		Ndt: dp.GetNdt(),
-		Updater: &ndtupdater.NdtUpdater{
-			Ndt:      dp.GetNdt(),
-			Fib:      dp.GetFib(),
-			SleepFor: 200 * time.Millisecond,
-		},
 	})
 
 	mgmt.Register(strategymgmt.StrategyMgmt{})

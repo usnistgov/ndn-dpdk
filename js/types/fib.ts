@@ -1,9 +1,9 @@
 import type { Counter } from "./core";
 
 export interface FibConfig {
-  MaxEntries: number;
-  NBuckets: number;
-  StartDepth: number;
+  capacity?: number;
+  nBuckets?: number;
+  startDepth?: number;
 }
 
 export interface FibEntryCounters {

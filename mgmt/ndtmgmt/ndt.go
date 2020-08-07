@@ -2,13 +2,11 @@ package ndtmgmt
 
 import (
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
-	"github.com/usnistgov/ndn-dpdk/container/ndt/ndtupdater"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 type NdtMgmt struct {
-	Ndt     *ndt.Ndt
-	Updater *ndtupdater.NdtUpdater
+	Ndt *ndt.Ndt
 }
 
 func (mg NdtMgmt) ReadTable(args struct{}, reply *[]uint8) error {
@@ -26,7 +24,7 @@ func (mg NdtMgmt) Update(args UpdateArgs, reply *UpdateReply) error {
 		args.Hash = mg.Ndt.ComputeHash(args.Name)
 	}
 	reply.Index = mg.Ndt.IndexOfHash(args.Hash)
-	mg.Updater.Update(reply.Index, args.Value)
+	mg.Ndt.Update(reply.Index, args.Value)
 	return nil
 }
 

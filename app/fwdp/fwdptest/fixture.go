@@ -8,6 +8,8 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/app/fwdp"
 	"github.com/usnistgov/ndn-dpdk/container/fib"
+	"github.com/usnistgov/ndn-dpdk/container/fib/fibdef"
+	"github.com/usnistgov/ndn-dpdk/container/fib/fibtestenv"
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
 	"github.com/usnistgov/ndn-dpdk/container/strategycode"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealtestenv"
@@ -46,7 +48,7 @@ func NewFixture(t *testing.T) (fixture *Fixture) {
 	dpCfg.Ndt.IndexBits = 16
 	dpCfg.Ndt.SampleFreq = 8
 
-	dpCfg.Fib.MaxEntries = 65535
+	dpCfg.Fib.Capacity = 65535
 	dpCfg.Fib.NBuckets = 256
 	dpCfg.Fib.StartDepth = 8
 
@@ -79,22 +81,17 @@ func (fixture *Fixture) StepDelay() {
 
 // SetFibEntry inserts or replaces a FIB entry.
 func (fixture *Fixture) SetFibEntry(name string, strategy string, nexthops ...iface.ID) {
-	var entry fib.Entry
-	e := entry.SetName(ndn.ParseName(name))
-	fixture.require.NoError(e)
-
-	e = entry.SetNexthops(nexthops)
-	fixture.require.NoError(e)
-
-	entry.SetStrategy(fixture.makeStrategy(strategy))
-
-	_, e = fixture.Fib.Insert(&entry)
+	e := fixture.Fib.Insert(fibtestenv.MakeEntry(name, fixture.makeStrategy(strategy), nexthops...))
 	fixture.require.NoError(e)
 }
 
 // ReadFibCounters returns counters of specified FIB entry.
-func (fixture *Fixture) ReadFibCounters(name string) fib.EntryCounters {
-	return fixture.Fib.ReadEntryCounters(ndn.ParseName(name))
+func (fixture *Fixture) ReadFibCounters(name string) (cnt fibdef.EntryCounters) {
+	entry := fixture.Fib.Find(ndn.ParseName(name))
+	if entry == nil {
+		return
+	}
+	return entry.Counters()
 }
 
 func (fixture *Fixture) makeStrategy(shortname string) strategycode.StrategyCode {

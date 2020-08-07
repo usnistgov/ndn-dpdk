@@ -78,8 +78,8 @@ FwFwd_RxNackDuplicate(FwFwd* fwd, FwFwdCtx* ctx)
           " hopLimit=%" PRIu8 " up-token=%016" PRIx64,
           ctx->pitUp->face, outNpkt, upNonce, upLifetime, upHopLimit, token);
   Face_Tx(ctx->pitUp->face, outNpkt);
-  if (ctx->fibEntry != NULL) {
-    ++ctx->fibEntry->nTxInterests;
+  if (ctx->fibEntryDyn != NULL) {
+    ++ctx->fibEntryDyn->nTxInterests;
   }
 
   PitUp_RecordTx(ctx->pitUp, ctx->pitEntry, now, upNonce, &fwd->suppressCfg);
@@ -138,9 +138,9 @@ FwFwd_ProcessNack(FwFwd* fwd, FwFwdCtx* ctx)
 
   // find FIB entry; FIB entry is optional for Nack processing
   rcu_read_lock();
-  ctx->fibEntry = PitEntry_FindFibEntry(ctx->pitEntry, fwd->fib);
+  FwFwdCtx_SetFibEntry(ctx, PitEntry_FindFibEntry(ctx->pitEntry, fwd->fib));
   if (likely(ctx->fibEntry != NULL)) {
-    ++ctx->fibEntry->nRxNacks;
+    ++ctx->fibEntryDyn->nRxNacks;
   }
 
   // Duplicate: record rejected nonce, resend with an alternate nonce if possible

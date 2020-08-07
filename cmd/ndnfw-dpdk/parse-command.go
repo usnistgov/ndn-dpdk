@@ -4,7 +4,7 @@ import (
 	"flag"
 	"os"
 
-	"github.com/usnistgov/ndn-dpdk/container/fib"
+	"github.com/usnistgov/ndn-dpdk/container/fib/fibdef"
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
 	"github.com/usnistgov/ndn-dpdk/container/pit"
 	"github.com/usnistgov/ndn-dpdk/core/yamlflag"
@@ -20,7 +20,7 @@ type initConfig struct {
 	Mempool    pktmbuf.TemplateUpdates
 	LCoreAlloc ealthread.AllocConfig
 	Ndt        ndt.Config
-	Fib        fib.Config
+	Fib        fibdef.Config
 	Fwdp       fwdpInitConfig
 }
 
@@ -39,9 +39,6 @@ func parseCommand(args []string) (initCfg initConfig, e error) {
 	initCfg.Ndt.PrefixLen = 2
 	initCfg.Ndt.IndexBits = 16
 	initCfg.Ndt.SampleFreq = 8
-	initCfg.Fib.MaxEntries = 65535
-	initCfg.Fib.NBuckets = 256
-	initCfg.Fib.StartDepth = 8
 	initCfg.Fwdp.FwdInterestQueue.DequeueBurstSize = 32
 	initCfg.Fwdp.FwdDataQueue.DequeueBurstSize = 64
 	initCfg.Fwdp.FwdNackQueue.DequeueBurstSize = 64

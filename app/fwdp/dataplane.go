@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/usnistgov/ndn-dpdk/container/fib"
+	"github.com/usnistgov/ndn-dpdk/container/fib/fibdef"
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
 	"github.com/usnistgov/ndn-dpdk/container/pcct"
 	"github.com/usnistgov/ndn-dpdk/container/pit"
@@ -23,8 +24,8 @@ const (
 // Config contains data plane configuration.
 type Config struct {
 	Ndt      ndt.Config         // NDT config
-	Fib      fib.Config         // FIB config
-	Pcct     pcct.Config        // PCCT config template (Socket ignored)
+	Fib      fibdef.Config      // FIB config
+	Pcct     pcct.Config        // PCCT config template
 	Suppress pit.SuppressConfig // PIT suppression config
 
 	Crypto            CryptoConfig
@@ -61,25 +62,27 @@ func New(cfg Config) (dp *DataPlane, e error) {
 		dp.ndt.Randomize(len(lcFwds))
 	}
 
-	if dp.fib, e = fib.New(cfg.Fib, dp.ndt, eal.NumaSocketsOf(lcFwds)); e != nil {
-		dp.Close()
-		return nil, fmt.Errorf("fib.New: %w", e)
-	}
-
 	for _, lc := range lcRxTx[1] {
 		txl := iface.NewTxLoop(lc.NumaSocket())
 		txl.SetLCore(lc)
 		txl.Launch()
 	}
 
+	var fibFwds []fib.LookupThread
 	for i, lc := range lcFwds {
 		fwd := newFwd(i)
-		if e = fwd.Init(lc, dp.fib, cfg.Pcct, cfg.FwdInterestQueue, cfg.FwdDataQueue, cfg.FwdNackQueue,
+		if e = fwd.Init(lc, cfg.Pcct, cfg.FwdInterestQueue, cfg.FwdDataQueue, cfg.FwdNackQueue,
 			cfg.LatencySampleFreq, cfg.Suppress); e != nil {
 			dp.Close()
 			return nil, fmt.Errorf("Fwd.Init(%d): %w", i, e)
 		}
 		dp.fwds = append(dp.fwds, fwd)
+		fibFwds = append(fibFwds, fwd)
+	}
+
+	if dp.fib, e = fib.New(cfg.Fib, fibFwds); e != nil {
+		dp.Close()
+		return nil, fmt.Errorf("fib.New: %w", e)
 	}
 
 	{

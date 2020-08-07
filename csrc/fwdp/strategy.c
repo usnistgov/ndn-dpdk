@@ -16,7 +16,7 @@ SgTriggerTimer(Pit* pit, PitEntry* pitEntry, void* fwd0)
 
   // find FIB entry
   rcu_read_lock();
-  ctx.fibEntry = PitEntry_FindFibEntry(pitEntry, ctx.fwd->fib);
+  FwFwdCtx_SetFibEntry(&ctx, PitEntry_FindFibEntry(pitEntry, ctx.fwd->fib));
   if (unlikely(ctx.fibEntry == NULL)) {
     ZF_LOGD("sgtimer-at=%p drop=no-FIB-match", pitEntry);
     rcu_read_unlock();

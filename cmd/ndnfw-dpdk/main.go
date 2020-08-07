@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/usnistgov/ndn-dpdk/app/fwdp"
-	"github.com/usnistgov/ndn-dpdk/container/fib"
+	"github.com/usnistgov/ndn-dpdk/container/fib/fibdef"
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
 	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealinit"
@@ -32,7 +32,7 @@ func main() {
 	select {}
 }
 
-func startDp(ndtCfg ndt.Config, fibCfg fib.Config, dpInit fwdpInitConfig) {
+func startDp(ndtCfg ndt.Config, fibCfg fibdef.Config, dpInit fwdpInitConfig) {
 	var dpCfg fwdp.Config
 	dpCfg.Ndt = ndtCfg
 	dpCfg.Fib = fibCfg

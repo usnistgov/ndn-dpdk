@@ -54,10 +54,7 @@ Subcommands:
   fib erase <NAME>
     Erase FIB entry.
   fib find <NAME>
-  fib lpm <NAME>
-    Perform exact-match/longest-prefix-match lookup on FIB.
-  fib counters <NAME>
-    Show FIB entry counters.
+    Perform exact-match lookup on FIB.
   dpinfo [global]
     Show dataplane global information.
   dpinfo input <I>
@@ -149,10 +146,8 @@ elif [[ $1 == 'fib' ]]; then
     else
       jsonrpc Fib.Insert '{"Name":"'$3'","Nexthops":['$4'],"StrategyId":'$5'}'
     fi
-  elif [[ $2 == 'erase' ]] || [[ $2 == 'find' ]] || [[ $2 == 'lpm' ]]; then
+  elif [[ $2 == 'erase' ]] || [[ $2 == 'find' ]]; then
     jsonrpc Fib."${2^}" '{"Name":"'$3'"}'
-  elif [[ $2 == 'counters' ]]; then
-    jsonrpc Fib.ReadEntryCounters '{"Name":"'$3'"}'
   fi
 elif [[ $1 == 'dpinfo' ]]; then
   if [[ -z $2 ]] || [[ $2 == 'global' ]]; then

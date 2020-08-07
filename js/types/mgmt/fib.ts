@@ -1,16 +1,13 @@
 import type { Counter, Index, Name } from "../core";
-import type { FibEntryCounters } from "../fib";
 import type { FaceID } from "../iface";
 import type { NameArg } from "./common";
 
 export interface FibMgmt {
   Info: {args: {}; reply: FibInfo};
   List: {args: {}; reply: Name[]};
-  Insert: {args: FibInsertArg; reply: FibInsertReply};
+  Insert: {args: FibInsertArg; reply: {}};
   Erase: {args: NameArg; reply: {}};
   Find: {args: NameArg; reply: FibLookupReply};
-  Lpm: {args: NameArg; reply: FibLookupReply};
-  ReadEntryCounters: {args: NameArg; reply: FibEntryCounters};
 }
 
 export interface FibInfo {
@@ -20,10 +17,6 @@ export interface FibInfo {
 export interface FibInsertArg extends NameArg {
   Nexthops: FaceID[];
   StrategyId?: Index;
-}
-
-export interface FibInsertReply {
-  IsNew: boolean;
 }
 
 export type FibLookupReply = FibLookupReply.No | FibLookupReply.Yes;

@@ -6,6 +6,7 @@
 #include "../core/running-stat.h"
 #include "../dpdk/thread.h"
 #include "../fib/fib.h"
+#include "../fib/nexthop-filter.h"
 #include "../iface/face.h"
 #include "../iface/pktqueue.h"
 #include "../pcct/cs.h"
@@ -26,7 +27,8 @@ typedef struct FwFwd
 
   PitSuppressConfig suppressCfg;
 
-  uint8_t id; ///< fwd process id
+  uint8_t id;          ///< fwd process id
+  uint8_t fibDynIndex; ///< FibEntry.dyn index
   ThreadStopFlag stop;
 
   uint64_t nNoFibMatch;   ///< Interests dropped due to no FIB match
@@ -49,7 +51,7 @@ FwFwd_Run(FwFwd* fwd);
 /**
  * @brief Per-packet context in forwarding.
  *
- * Field availablility:
+ * Field availability:
  * T: set by SgTriggerTimer and available during SGEVT_TIMER
  * F: set by FwFwd_Run
  * I: available during SGEVT_INTEREST
@@ -66,9 +68,10 @@ typedef struct FwFwdCtx
   {
     Packet* npkt;
     struct rte_mbuf* pkt;
-  };                  // F,D,N
-  FibEntry* fibEntry; // T,I,D,N
-  PitEntry* pitEntry; // T,I,D,N
+  };                        // F,D,N
+  FibEntry* fibEntry;       // T,I,D,N
+  FibEntryDyn* fibEntryDyn; // T,I,D,N
+  PitEntry* pitEntry;       // T,I,D,N
 
   // end of SgCtx fields
   char endofSgCtx[0];
@@ -79,6 +82,17 @@ typedef struct FwFwdCtx
   int nForwarded;   // T,I,N
   FaceID rxFace;    // F,I,D
 } FwFwdCtx;
+
+static __rte_always_inline void
+FwFwdCtx_SetFibEntry(FwFwdCtx* ctx, FibEntry* fibEntry)
+{
+  ctx->fibEntry = fibEntry;
+  if (likely(fibEntry != NULL)) {
+    ctx->fibEntryDyn = FibEntry_PtrDyn(fibEntry, ctx->fwd->fibDynIndex);
+  } else {
+    ctx->fibEntryDyn = NULL;
+  }
+}
 
 __attribute__((nonnull)) void
 FwFwd_RxInterest(FwFwd* fwd, FwFwdCtx* ctx);

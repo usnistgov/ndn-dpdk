@@ -3,14 +3,13 @@
 
 /** @file */
 
+#include "../fib/enum.h"
 #include "common.h"
-
-#define SG_FIB_ENTRY_MAX_NEXTHOPS 8
-#define SG_FIB_ENTRY_SCRATCH 96
 
 typedef struct SgFibEntryDyn
 {
-  char a_[16];
+  char a_[32];
+  char scratch[FibScratchSize];
 } SgFibEntryDyn;
 
 typedef struct SgFibEntry
@@ -18,10 +17,7 @@ typedef struct SgFibEntry
   char a_[525];
   uint8_t nNexthops;
   char b_[2];
-  FaceID nexthops[SG_FIB_ENTRY_MAX_NEXTHOPS];
-  char c_[32];
-  char scratch[SG_FIB_ENTRY_SCRATCH];
-  char d_[96];
+  FaceID nexthops[FibMaxNexthops];
 } SgFibEntry;
 
 typedef uint32_t SgFibNexthopFilter;
