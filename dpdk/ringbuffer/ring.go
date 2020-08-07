@@ -8,6 +8,7 @@ import "C"
 import (
 	"unsafe"
 
+	"github.com/jfoster/bintools"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
@@ -128,5 +129,5 @@ func AlignCapacity(capacity int, opts ...int) int {
 	if capacity < min {
 		capacity = dflt
 	}
-	return int(C.rte_align64pow2(C.uint64_t(capacity)))
+	return int(bintools.NextPowerOfTwo(int64(capacity)))
 }

@@ -12,6 +12,7 @@ require (
 	github.com/google/gopacket v1.1.18
 	github.com/graphql-go/graphql v0.7.9
 	github.com/jaypipes/ghw v0.6.1
+	github.com/jfoster/bintools v0.1.1
 	github.com/pkg/math v0.0.0-20141027224758-f2ed9e40e245
 	github.com/powerman/rpc-codec v1.2.2
 	github.com/rackn/gohai v0.5.0

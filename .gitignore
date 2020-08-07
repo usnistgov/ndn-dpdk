@@ -2,11 +2,9 @@ build*
 cgoflags.go
 cgostruct.go
 cgo_test.go
-csrc/iface/enum.h
+csrc/*/*enum.h
 csrc/meson.build
 csrc/ndni/an.h
-csrc/ndni/enum.h
-csrc/pcct/cs-enum.h
 docs/mgmtspec.json
 mk/meson.build
 *ndn-dpdk-*.tgz

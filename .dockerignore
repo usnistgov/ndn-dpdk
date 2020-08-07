@@ -1,14 +1,12 @@
 app/version/version.go
 app/version/version.go.new
 build
-**/cgo_test.go
 **/cgoflags.go
 **/cgostruct.go
-csrc/iface/enum.h
+**/cgo_test.go
+csrc/*/*enum.h
 csrc/meson.build
 csrc/ndni/an.h
-csrc/ndni/enum.h
-csrc/pcct/cs-enum.h
 docs/mgmtspec.json
 mk/meson.build
 ndni/enum_string.go

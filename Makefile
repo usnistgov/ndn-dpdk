@@ -30,7 +30,7 @@ csrc/pcct/cs-enum.h: container/cs/enum.go
 ndni/ndnitest/cgo_test.go: ndni/ndnitest/*_ctest.go
 	mk/gogenerate.sh ./$(<D)
 
-strategy/strategyelf/bindata.go: strategy/*.c
+strategy/strategyelf/bindata.go: strategy/*.c csrc/fib/enum.h
 	mk/gogenerate.sh ./$(@D)
 
 .PHONY: build/libndn-dpdk-c.a
@@ -85,6 +85,6 @@ test: godeps
 	mk/gotest.sh
 
 clean:
-	awk '!(/node_modules/ || /\*\*/)' .dockerignore | xargs rm -rf
-	awk 'BEGIN{FS="/"} $$1=="**"{print $$2}' .dockerignore | xargs -I{} -n1 find -name {} -delete
+	awk '!(/node_modules/ || /\*/)' .dockerignore | xargs rm -rf
+	awk '/\*/' .dockerignore | xargs -I{} -n1 find -wholename ./{} -delete
 	go clean ./...
