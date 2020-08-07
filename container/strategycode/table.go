@@ -1,24 +1,19 @@
 package strategycode
 
-/*
-#include "../../csrc/strategycode/strategy-code.h"
-*/
-import "C"
 import (
 	"fmt"
 	"sync"
-	"unsafe"
 )
 
-// Table of StrategyCode instances.
+// Table of Strategy instances.
 var (
-	lastId    int
-	table     = make(map[int]*scImpl)
+	lastID    int
+	table     = make(map[int]*Strategy)
 	tableLock sync.Mutex
 )
 
-// Retrieve by numeric ID.
-func Get(id int) StrategyCode {
+// Get retrieves strategy by numeric ID.
+func Get(id int) *Strategy {
 	tableLock.Lock()
 	defer tableLock.Unlock()
 	if sc := table[id]; sc != nil {
@@ -29,8 +24,8 @@ func Get(id int) StrategyCode {
 	return nil
 }
 
-// Retrieve by name.
-func Find(name string) StrategyCode {
+// Find retrieves strategy by name.
+func Find(name string) *Strategy {
 	tableLock.Lock()
 	defer tableLock.Unlock()
 	for _, sc := range table {
@@ -41,29 +36,18 @@ func Find(name string) StrategyCode {
 	return nil
 }
 
-// Retrieve by pointer.
-func FromPtr(ptr unsafe.Pointer) StrategyCode {
+// List returns a list of loaded strategies.
+func List() []*Strategy {
 	tableLock.Lock()
 	defer tableLock.Unlock()
-	for _, sc := range table {
-		if sc.c == (*C.StrategyCode)(ptr) {
-			return sc
-		}
-	}
-	return nil
-}
-
-func List() []StrategyCode {
-	tableLock.Lock()
-	defer tableLock.Unlock()
-	list := make([]StrategyCode, 0, len(table))
+	list := make([]*Strategy, 0, len(table))
 	for _, sc := range table {
 		list = append(list, sc)
 	}
 	return list
 }
 
-// Immediately unload all strategies.
+// DestroyAll immediately unloads all strategies.
 // Panics if some strategies are still used in FIB entry.
 func DestroyAll() {
 	for _, sc := range List() {

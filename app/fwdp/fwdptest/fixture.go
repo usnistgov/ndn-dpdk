@@ -94,7 +94,7 @@ func (fixture *Fixture) ReadFibCounters(name string) (cnt fibdef.EntryCounters) 
 	return entry.Counters()
 }
 
-func (fixture *Fixture) makeStrategy(shortname string) strategycode.StrategyCode {
+func (fixture *Fixture) makeStrategy(shortname string) *strategycode.Strategy {
 	if sc := strategycode.Find(shortname); sc != nil {
 		return sc
 	}

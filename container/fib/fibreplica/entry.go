@@ -44,7 +44,7 @@ func (entry *Entry) Read() (de fibdef.Entry) {
 	}
 
 	ptrStrategy := C.FibEntry_PtrStrategy(c)
-	de.Strategy = strategycode.FromPtr(unsafe.Pointer(*ptrStrategy)).GetId()
+	de.Strategy = strategycode.FromPtr(unsafe.Pointer(*ptrStrategy)).ID()
 	return
 }
 

@@ -58,8 +58,8 @@ type StrategyInfo struct {
 	Name string
 }
 
-func makeStrategyInfo(sc strategycode.StrategyCode) (si StrategyInfo) {
-	si.Id = sc.GetId()
+func makeStrategyInfo(sc *strategycode.Strategy) (si StrategyInfo) {
+	si.Id = sc.ID()
 	si.Name = sc.Name()
 	return si
 }

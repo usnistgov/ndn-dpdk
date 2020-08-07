@@ -39,7 +39,7 @@ func (mg FibMgmt) Insert(args InsertArg, reply *struct{}) error {
 		strategyId = mg.DefaultStrategyId
 	}
 	if sc := strategycode.Get(strategyId); sc != nil {
-		entry.Strategy = sc.GetId()
+		entry.Strategy = sc.ID()
 	} else {
 		return errors.New("strategy not found")
 	}

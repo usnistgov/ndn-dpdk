@@ -28,7 +28,7 @@ func startMgmt() {
 
 	mgmt.Register(fibmgmt.FibMgmt{
 		Fib:               dp.GetFib(),
-		DefaultStrategyId: loadStrategy("multicast").GetId(),
+		DefaultStrategyId: loadStrategy("multicast").ID(),
 	})
 
 	mgmt.Register(fwdpmgmt.DpInfoMgmt{Dp: dp})
@@ -36,7 +36,7 @@ func startMgmt() {
 	mgmt.Start()
 }
 
-func loadStrategy(shortname string) strategycode.StrategyCode {
+func loadStrategy(shortname string) *strategycode.Strategy {
 	logEntry := log.WithField("strategy", shortname)
 
 	elf, e := strategyelf.Load(shortname)

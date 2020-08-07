@@ -18,7 +18,7 @@ var (
 	NXsyms int
 )
 
-func makeStrategyCode(name string, bpf *C.struct_rte_bpf) (sc *scImpl, e error) {
+func makeStrategyCode(name string, bpf *C.struct_rte_bpf) (sc *Strategy, e error) {
 	if bpf == nil {
 		return nil, eal.GetErrno()
 	}
@@ -32,23 +32,23 @@ func makeStrategyCode(name string, bpf *C.struct_rte_bpf) (sc *scImpl, e error) 
 
 	tableLock.Lock()
 	defer tableLock.Unlock()
-	lastId++
+	lastID++
 
-	sc = new(scImpl)
-	sc.c = (*C.StrategyCode)(eal.Zmalloc("StrategyCode", C.sizeof_StrategyCode, eal.NumaSocket{}))
-	sc.c.id = C.int(lastId)
-	sc.c.name = C.CString(name)
-	sc.c.nRefs = 1
-	sc.c.bpf = bpf
-	sc.c.jit = jit._func
-	table[lastId] = sc
+	sc = (*Strategy)(eal.Zmalloc("Strategy", C.sizeof_StrategyCode, eal.NumaSocket{}))
+	c := sc.ptr()
+	c.id = C.int(lastID)
+	c.name = C.CString(name)
+	c.nRefs = 1
+	c.bpf = bpf
+	c.jit = jit._func
+	table[lastID] = sc
 	return sc, nil
 }
 
 var dotTextSection = C.CString(".text")
 
-// Load a strategy BPF program from ELF object.
-func Load(name string, elf []byte) (sc StrategyCode, e error) {
+// Load loads a strategy BPF program from ELF object.
+func Load(name string, elf []byte) (sc *Strategy, e error) {
 	file, e := ioutil.TempFile("", "strategy*.so")
 	if e != nil {
 		return nil, e
@@ -71,8 +71,9 @@ func Load(name string, elf []byte) (sc StrategyCode, e error) {
 	return makeStrategyCode(name, bpf)
 }
 
-// Load an empty BPF program (mainly for unit testing).
-func MakeEmpty(name string) StrategyCode {
+// MakeEmpty creates an empty BPF program.
+// This is useful for unit testing.
+func MakeEmpty(name string) *Strategy {
 	var prm C.struct_rte_bpf_prm
 	prm.ins = C.StrategyCode_GetEmptyProgram_(&prm.nb_ins)
 	prm.prog_arg._type = C.RTE_BPF_ARG_RAW

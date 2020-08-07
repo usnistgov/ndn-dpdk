@@ -8,10 +8,10 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
-var dummyStrategy strategycode.StrategyCode
+var dummyStrategy *strategycode.Strategy
 
 // DummyStrategy returns an empty strategy.
-func DummyStrategy() strategycode.StrategyCode {
+func DummyStrategy() *strategycode.Strategy {
 	if dummyStrategy == nil {
 		dummyStrategy = strategycode.MakeEmpty("fibtestenv.dummyStrategy")
 	}
@@ -20,7 +20,7 @@ func DummyStrategy() strategycode.StrategyCode {
 
 // MakeEntry builds a fibdef.Entry.
 //  name: ndn.Name or string
-//  sc: int or strategycode.StrategyCode or nil
+//  sc: int or *strategycode.Strategy or nil
 func MakeEntry(name, sc interface{}, nexthops ...iface.ID) (entry fibdef.Entry) {
 	switch n := name.(type) {
 	case ndn.Name:
@@ -34,10 +34,10 @@ func MakeEntry(name, sc interface{}, nexthops ...iface.ID) (entry fibdef.Entry) 
 	switch s := sc.(type) {
 	case int:
 		entry.Strategy = s
-	case strategycode.StrategyCode:
-		entry.Strategy = s.GetId()
+	case *strategycode.Strategy:
+		entry.Strategy = s.ID()
 	case nil:
-		entry.Strategy = DummyStrategy().GetId()
+		entry.Strategy = DummyStrategy().ID()
 	default:
 		panic(sc)
 	}
