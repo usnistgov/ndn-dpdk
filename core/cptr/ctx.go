@@ -1,7 +1,7 @@
 package cptr
 
 /*
-#include <stdlib.h>
+#include "../../csrc/core/common.h"
 */
 import "C"
 import (

@@ -1,3 +1,4 @@
+// Package cptr handles C void* pointers.
 package cptr
 
 import (

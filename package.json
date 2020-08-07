@@ -5,7 +5,7 @@
     "@types/yargs": "^15.0.5",
     "@yoursunny/mole-rpc": "^0.0.20200718",
     "mole-rpc-transport-tcp": "^0.0.20200417",
-    "tslib": "^2.0.0",
+    "tslib": "^2.0.1",
     "yargs": "^15.4.1"
   },
   "devDependencies": {

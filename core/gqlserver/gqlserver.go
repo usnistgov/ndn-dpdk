@@ -12,7 +12,16 @@ import (
 )
 
 // Schema is the singleton of graphql.SchemaConfig.
-var Schema graphql.SchemaConfig
+var Schema = graphql.SchemaConfig{
+	Query: graphql.NewObject(graphql.ObjectConfig{
+		Name:   "Query",
+		Fields: graphql.Fields{},
+	}),
+	Mutation: graphql.NewObject(graphql.ObjectConfig{
+		Name:   "Mutation",
+		Fields: graphql.Fields{},
+	}),
+}
 
 // AddQuery adds a top-level query field.
 func AddQuery(f *graphql.Field) {
@@ -25,25 +34,13 @@ func AddMutation(f *graphql.Field) {
 }
 
 func init() {
-	Schema = graphql.SchemaConfig{
-		Query: graphql.NewObject(graphql.ObjectConfig{
-			Name: "Query",
-			Fields: graphql.Fields{
-				"version": &graphql.Field{
-					Type: graphql.String,
-					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-						return version.COMMIT, nil
-					},
-				},
-			},
-		}),
-		Mutation: graphql.NewObject(graphql.ObjectConfig{
-			Name:   "Mutation",
-			Fields: graphql.Fields{},
-		}),
-	}
-
-	initNode()
+	AddQuery(&graphql.Field{
+		Name: "version",
+		Type: graphql.String,
+		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+			return version.COMMIT, nil
+		},
+	})
 }
 
 // Start starts the server.

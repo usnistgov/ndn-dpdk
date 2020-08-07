@@ -1,3 +1,4 @@
+// Package urcu is a thin wrapper of Userspace RCU library.
 package urcu
 
 /*

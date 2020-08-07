@@ -1,3 +1,4 @@
+// Package testenv provides general test utilities.
 package testenv
 
 import (

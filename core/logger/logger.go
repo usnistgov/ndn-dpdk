@@ -1,3 +1,4 @@
+// Package logger is a thin wrapper of logrus library.
 package logger
 
 import (

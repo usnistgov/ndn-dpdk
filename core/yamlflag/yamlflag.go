@@ -1,3 +1,4 @@
+// Package yamlflag provides a command line flag that accepts a YAML document.
 package yamlflag
 
 import (

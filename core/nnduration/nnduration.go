@@ -1,3 +1,4 @@
+// Package nnduration provides JSON-friendly non-negative duration types.
 package nnduration
 
 import (

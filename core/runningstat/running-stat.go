@@ -1,3 +1,4 @@
+// Package runningstat implements Knuth and Welford's method for computing the standard deviation.
 package runningstat
 
 /*

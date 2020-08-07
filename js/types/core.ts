@@ -40,51 +40,51 @@ export interface RunningStatSnapshot {
    * @TJS-type integer
    * @minimum 0
    */
-  Count: number;
+  count: number;
 
   /**
    * Number of samples.
    * @TJS-type integer
    * @minimum 0
    */
-  Len: number;
+  len: number;
 
   /**
    * Minimum value.
    */
-  Min?: number;
+  min?: number;
 
   /**
    * Maximum value.
    */
-  Max?: number;
+  max?: number;
 
   /**
    * Mean.
    */
-  Mean?: number;
+  mean?: number;
 
   /**
    * Variance of samples.
    * @minimum 0
    */
-  Variance?: number;
+  variance?: number;
 
   /**
    * Standard deviation of samples.
    * @minimum 0
    */
-  Stdev?: number;
+  stdev?: number;
 
   /**
    * Internal variable M1.
    */
-  M1: number;
+  m1: number;
 
   /**
    * Internal variable M2.
    */
-  M2: number;
+  m2: number;
 }
 
 /**

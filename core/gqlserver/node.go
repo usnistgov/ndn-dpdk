@@ -1,6 +1,8 @@
 package gqlserver
 
 import (
+	"bytes"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"reflect"
@@ -23,14 +25,78 @@ type NodeType struct {
 
 	object *graphql.Object
 
-	// GetID extracts ID (without prefix) from the source object.
+	// GetID extracts unprefixed ID from the source object.
 	GetID func(source interface{}) string
 
-	// Retrieve fetches an object from ID (without prefix).
+	// Retrieve fetches an object from unprefixed ID.
 	Retrieve func(id string) (interface{}, error)
 
 	// Delete destroys an object.
 	Delete func(source interface{}) error
+}
+
+// Annotate updates ObjectConfig with Node interface and "id" field.
+//
+// The 'id' can be resolved from:
+//  - nt.GetID function.
+//  - ObjectConfig 'nid' field of NonNullInt or NonNullString type.
+// If neither is present, this function panics.
+func (nt *NodeType) Annotate(oc graphql.ObjectConfig) graphql.ObjectConfig {
+	if oc.Interfaces == nil {
+		oc.Interfaces = []*graphql.Interface{}
+	}
+	oc.Interfaces = append(oc.Interfaces.([]*graphql.Interface), nodeInterface)
+
+	if oc.Fields == nil {
+		oc.Fields = graphql.Fields{}
+	}
+	fields := oc.Fields.(graphql.Fields)
+
+	var resolve graphql.FieldResolveFn
+	if nt.GetID != nil {
+		resolve = func(p graphql.ResolveParams) (interface{}, error) {
+			return nt.makeID(nt.GetID(p.Source))
+		}
+	} else if nidField := fields["nid"]; nidField != nil {
+		switch nidField.Type {
+		case NonNullID, NonNullInt, NonNullString:
+			resolve = func(p graphql.ResolveParams) (interface{}, error) {
+				nid, e := nidField.Resolve(p)
+				if e != nil {
+					return nil, e
+				}
+				return nt.makeID(nid)
+			}
+		}
+	}
+	if resolve == nil {
+		panic("cannot resolve 'id' field")
+	}
+
+	fields["id"] = &graphql.Field{
+		Type:        graphql.NewNonNull(graphql.ID),
+		Description: "Globally unique ID.",
+		Resolve:     resolve,
+	}
+
+	return oc
+}
+
+func (nt *NodeType) makeID(suffix interface{}) (interface{}, error) {
+	var buffer bytes.Buffer
+	fmt.Fprintf(&buffer, "%s:%v", nt.prefix, suffix)
+	return base64.RawURLEncoding.EncodeToString(buffer.Bytes()), nil
+}
+
+// Register enables accessing Node of this type by ID.
+func (nt *NodeType) Register(object *graphql.Object) {
+	nt.object = object
+	Schema.Types = append(Schema.Types, object)
+
+	if nodeTypes[nt.prefix] != nil {
+		panic("duplicate prefix " + nt.prefix)
+	}
+	nodeTypes[nt.prefix] = nt
 }
 
 // NewNodeType creates a NodeType.
@@ -57,66 +123,6 @@ func NewNodeTypeNamed(name string, value interface{}) (nt *NodeType) {
 	return nt
 }
 
-// Annotate updates ObjectConfig with Node interface and "id" field.
-//
-// The 'id' can be resolved from:
-//  - nt.GetID function.
-//  - ObjectConfig 'nid' field of NonNullInt or NonNullString type.
-// If neither is present, this function panics.
-func (nt *NodeType) Annotate(oc graphql.ObjectConfig) graphql.ObjectConfig {
-	if oc.Interfaces == nil {
-		oc.Interfaces = []*graphql.Interface{}
-	}
-	oc.Interfaces = append(oc.Interfaces.([]*graphql.Interface), nodeInterface)
-
-	if oc.Fields == nil {
-		oc.Fields = graphql.Fields{}
-	}
-	fields := oc.Fields.(graphql.Fields)
-	nidField := fields["nid"]
-
-	var resolve graphql.FieldResolveFn
-	switch {
-	case nt.GetID != nil:
-		resolve = func(p graphql.ResolveParams) (interface{}, error) {
-			return fmt.Sprintf("%s:%s", nt.prefix, nt.GetID(p.Source)), nil
-		}
-	case nidField != nil:
-		switch nidField.Type {
-		case NonNullID, NonNullInt, NonNullString:
-			resolve = func(p graphql.ResolveParams) (interface{}, error) {
-				nid, e := nidField.Resolve(p)
-				if e != nil {
-					return nil, e
-				}
-				return fmt.Sprintf("%s:%v", nt.prefix, nid), nil
-			}
-		}
-	}
-	if resolve == nil {
-		panic("cannot resolve 'id' field")
-	}
-
-	fields["id"] = &graphql.Field{
-		Type:        graphql.NewNonNull(graphql.ID),
-		Description: "Globally unique ID.",
-		Resolve:     resolve,
-	}
-
-	return oc
-}
-
-// Register enables accessing Node of this type by ID.
-func (nt *NodeType) Register(object *graphql.Object) {
-	nt.object = object
-	Schema.Types = append(Schema.Types, object)
-
-	if nodeTypes[nt.prefix] != nil {
-		panic("duplicate prefix " + nt.prefix)
-	}
-	nodeTypes[nt.prefix] = nt
-}
-
 var nodeInterface = graphql.NewInterface(graphql.InterfaceConfig{
 	Name: "Node",
 	Fields: graphql.Fields{
@@ -135,7 +141,7 @@ var nodeInterface = graphql.NewInterface(graphql.InterfaceConfig{
 	},
 })
 
-func initNode() {
+func init() {
 	AddQuery(&graphql.Field{
 		Name:        "node",
 		Description: "Retrieve object by global ID.",
@@ -146,8 +152,15 @@ func initNode() {
 			},
 		},
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-			id := p.Args["id"].(string)
-			tokens := strings.SplitN(id, ":", 2)
+			id, e := base64.RawURLEncoding.DecodeString(p.Args["id"].(string))
+			if e != nil {
+				return nil, nil
+			}
+			tokens := strings.SplitN(string(id), ":", 2)
+			if len(tokens) != 2 {
+				return nil, nil
+			}
+
 			nt := nodeTypes[tokens[0]]
 			if nt == nil || nt.Retrieve == nil {
 				return nil, errNoRetrieve

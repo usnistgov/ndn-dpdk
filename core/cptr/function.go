@@ -1,10 +1,5 @@
 package cptr
 
-import (
-	"reflect"
-	"unsafe"
-)
-
 /*
 #include "../../csrc/core/common.h"
 
@@ -25,6 +20,10 @@ static int c_invokeFunction1(Function1 f, void* param1, void* arg)
 }
 */
 import "C"
+import (
+	"reflect"
+	"unsafe"
+)
 
 // FunctionType identifies the type of a C function.
 // The zero FunctionType identifies `int f(void* arg)`.

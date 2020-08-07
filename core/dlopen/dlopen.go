@@ -1,3 +1,5 @@
+// Package dlopen allows preloading shared libraries from a GROUP.
+// This is used for loading `libspdk.so`.
 package dlopen
 
 /*
