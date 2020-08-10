@@ -14,8 +14,8 @@ import (
 var (
 	nodeTypes = make(map[string]*NodeType)
 
-	errNoRetrieve = errors.New("cannot retrieve Node of this type")
-	errNoDelete   = errors.New("cannot delete Node of this type")
+	errNoRetrieve = errors.New("cannot retrieve Node")
+	errNoDelete   = errors.New("cannot delete Node")
 )
 
 // NodeType defines a Node subtype.
@@ -31,7 +31,7 @@ type NodeType struct {
 	// Retrieve fetches an object from unprefixed ID.
 	Retrieve func(id string) (interface{}, error)
 
-	// Delete destroys an object.
+	// Delete deletes the source object.
 	Delete func(source interface{}) error
 }
 
@@ -113,7 +113,7 @@ func NewNodeTypeNamed(name string, value interface{}) (nt *NodeType) {
 		}
 	}
 	if name == "" {
-		name = strings.ToLower(typ.Name())
+		name = typ.String()
 	}
 
 	nt = &NodeType{
@@ -141,6 +141,28 @@ var nodeInterface = graphql.NewInterface(graphql.InterfaceConfig{
 	},
 })
 
+func retrieveNode(p graphql.ResolveParams) (*NodeType, interface{}, error) {
+	id, e := base64.RawURLEncoding.DecodeString(p.Args["id"].(string))
+	if e != nil {
+		return nil, nil, nil
+	}
+	tokens := strings.SplitN(string(id), ":", 2)
+	if len(tokens) != 2 {
+		return nil, nil, nil
+	}
+
+	nt := nodeTypes[tokens[0]]
+	if nt == nil || nt.Retrieve == nil {
+		return nt, nil, errNoRetrieve
+	}
+
+	obj, e := nt.Retrieve(tokens[1])
+	if val := reflect.ValueOf(obj); obj == nil || (val.Kind() == reflect.Ptr && val.IsNil()) {
+		obj = nil
+	}
+	return nt, obj, e
+}
+
 func init() {
 	AddQuery(&graphql.Field{
 		Name:        "node",
@@ -152,20 +174,8 @@ func init() {
 			},
 		},
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-			id, e := base64.RawURLEncoding.DecodeString(p.Args["id"].(string))
-			if e != nil {
-				return nil, nil
-			}
-			tokens := strings.SplitN(string(id), ":", 2)
-			if len(tokens) != 2 {
-				return nil, nil
-			}
-
-			nt := nodeTypes[tokens[0]]
-			if nt == nil || nt.Retrieve == nil {
-				return nil, errNoRetrieve
-			}
-			return nt.Retrieve(tokens[1])
+			_, obj, e := retrieveNode(p)
+			return obj, e
 		},
 	})
 
@@ -179,19 +189,9 @@ func init() {
 			},
 		},
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-			id := p.Args["id"].(string)
-			tokens := strings.SplitN(id, ":", 2)
-			nt := nodeTypes[tokens[0]]
-			if nt == nil || nt.Retrieve == nil {
-				return nil, errNoRetrieve
-			}
-
-			obj, e := nt.Retrieve(tokens[1])
-			if e != nil {
-				return nil, e
-			}
-			if obj == nil {
-				return false, nil
+			nt, obj, e := retrieveNode(p)
+			if e != nil || obj == nil {
+				return false, e
 			}
 
 			if nt.Delete == nil {

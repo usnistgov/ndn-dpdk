@@ -8,9 +8,27 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
+// GraghQL types.
+var (
+	GqlFaceNodeType *gqlserver.NodeType
+	GqlFaceType     *graphql.Object
+)
+
 func init() {
-	ntFace := gqlserver.NewNodeType((*Face)(nil))
-	tFace := graphql.NewObject(ntFace.Annotate(graphql.ObjectConfig{
+	GqlFaceNodeType = gqlserver.NewNodeType((*Face)(nil))
+	GqlFaceNodeType.Retrieve = func(id string) (interface{}, error) {
+		nid, e := strconv.Atoi(id)
+		if e != nil {
+			return nil, e
+		}
+		return Get(ID(nid)), nil
+	}
+	GqlFaceNodeType.Delete = func(source interface{}) error {
+		face := source.(Face)
+		return face.Close()
+	}
+
+	GqlFaceType = graphql.NewObject(GqlFaceNodeType.Annotate(graphql.ObjectConfig{
 		Name: "Face",
 		Fields: graphql.Fields{
 			"nid": &graphql.Field{
@@ -40,23 +58,12 @@ func init() {
 			},
 		},
 	}))
-	ntFace.Retrieve = func(id string) (interface{}, error) {
-		nid, e := strconv.Atoi(id)
-		if e != nil {
-			return nil, e
-		}
-		return Get(ID(nid)), nil
-	}
-	ntFace.Delete = func(source interface{}) error {
-		face := source.(Face)
-		return face.Close()
-	}
-	ntFace.Register(tFace)
+	GqlFaceNodeType.Register(GqlFaceType)
 
 	gqlserver.AddQuery(&graphql.Field{
 		Name:        "faces",
 		Description: "List of faces.",
-		Type:        graphql.NewList(tFace),
+		Type:        graphql.NewList(graphql.NewNonNull(GqlFaceType)),
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 			return List(), nil
 		},
@@ -70,7 +77,7 @@ func init() {
 				Type: gqlserver.JSON,
 			},
 		},
-		Type: tFace,
+		Type: GqlFaceType,
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 			var locw LocatorWrapper
 			if e := gqlserver.DecodeJSON(p.Args["locator"], &locw); e != nil {

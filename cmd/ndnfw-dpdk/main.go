@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/usnistgov/ndn-dpdk/app/fwdp"
+	"github.com/usnistgov/ndn-dpdk/container/fib"
 	"github.com/usnistgov/ndn-dpdk/container/fib/fibdef"
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
 	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
@@ -28,6 +29,7 @@ func main() {
 
 	startDp(initCfg.Ndt, initCfg.Fib, initCfg.Fwdp)
 	startMgmt()
+	fib.GqlFib = dp.GetFib()
 
 	select {}
 }

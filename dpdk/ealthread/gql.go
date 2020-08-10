@@ -8,39 +8,15 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
+// GraghQL types.
+var (
+	GqlWorkerNodeType *gqlserver.NodeType
+	GqlWorkerType     *graphql.Object
+)
+
 func init() {
-	ntWorker := gqlserver.NewNodeType(eal.LCore{})
-	tWorker := graphql.NewObject(ntWorker.Annotate(graphql.ObjectConfig{
-		Name: "Worker",
-		Fields: graphql.Fields{
-			"nid": &graphql.Field{
-				Type:        gqlserver.NonNullInt,
-				Description: "Numeric LCore ID.",
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					lc := p.Source.(eal.LCore)
-					return lc.ID(), nil
-				},
-			},
-			"isBusy": &graphql.Field{
-				Type:        gqlserver.NonNullBoolean,
-				Description: "Whether the LCore is running",
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					lc := p.Source.(eal.LCore)
-					return lc.IsBusy(), nil
-				},
-			},
-			"role": &graphql.Field{
-				Type:        graphql.String,
-				Description: "Assigned role.",
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					lc := p.Source.(eal.LCore)
-					return gqlserver.Optional(DefaultAllocator.allocated[lc.ID()]), nil
-				},
-			},
-			"numaSocket": eal.GqlWithNumaSocket,
-		},
-	}))
-	ntWorker.Retrieve = func(id string) (interface{}, error) {
+	GqlWorkerNodeType = gqlserver.NewNodeType(eal.LCore{})
+	GqlWorkerNodeType.Retrieve = func(id string) (interface{}, error) {
 		nid, e := strconv.Atoi(id)
 		if e != nil {
 			return nil, e
@@ -52,12 +28,43 @@ func init() {
 		}
 		return nil, nil
 	}
-	ntWorker.Register(tWorker)
+
+	GqlWorkerType = graphql.NewObject(GqlWorkerNodeType.Annotate(graphql.ObjectConfig{
+		Name: "Worker",
+		Fields: graphql.Fields{
+			"nid": &graphql.Field{
+				Description: "Numeric LCore ID.",
+				Type:        gqlserver.NonNullInt,
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					lc := p.Source.(eal.LCore)
+					return lc.ID(), nil
+				},
+			},
+			"isBusy": &graphql.Field{
+				Description: "Whether the LCore is running",
+				Type:        gqlserver.NonNullBoolean,
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					lc := p.Source.(eal.LCore)
+					return lc.IsBusy(), nil
+				},
+			},
+			"role": &graphql.Field{
+				Description: "Assigned role.",
+				Type:        graphql.String,
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					lc := p.Source.(eal.LCore)
+					return gqlserver.Optional(DefaultAllocator.allocated[lc.ID()]), nil
+				},
+			},
+			"numaSocket": eal.GqlWithNumaSocket,
+		},
+	}))
+	GqlWorkerNodeType.Register(GqlWorkerType)
 
 	gqlserver.AddQuery(&graphql.Field{
 		Name:        "workers",
 		Description: "Worker LCore allocations.",
-		Type:        graphql.NewList(tWorker),
+		Type:        graphql.NewList(graphql.NewNonNull(GqlWorkerType)),
 		Args: graphql.FieldConfigArgument{
 			"role": &graphql.ArgumentConfig{
 				Type:        graphql.String,
