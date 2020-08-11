@@ -56,7 +56,7 @@ npm: tsc
 	mv $$(npm pack -s .) build/ndn-dpdk.tgz
 
 .PHONY: cmds
-cmds: build/bin/ndndpdk-hrlog2histogram build/bin/ndndpdk-packetdemo build/bin/ndnfw-dpdk build/bin/ndnping-dpdk
+cmds: build/bin/ndndpdk-ctrl build/bin/ndndpdk-hrlog2histogram build/bin/ndndpdk-packetdemo build/bin/ndnfw-dpdk build/bin/ndnping-dpdk
 
 build/bin/%: cmd/%/* godeps
 	GOBIN=$$(realpath build/bin) go install ./cmd/$*

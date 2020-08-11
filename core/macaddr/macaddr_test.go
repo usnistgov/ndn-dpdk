@@ -1,6 +1,7 @@
 package macaddr_test
 
 import (
+	"encoding/json"
 	"flag"
 	"net"
 	"testing"
@@ -65,4 +66,15 @@ func TestFlag(t *testing.T) {
 
 	assert.Error(f.Parse([]string{"-m", "x"}))
 	assert.NoError(f.Parse([]string{"-m", "02:00:00:00:00:A0"}))
+}
+
+func TestJSON(t *testing.T) {
+	assert, _ := makeAR(t)
+
+	var m macaddr.Flag
+	assert.NoError(json.Unmarshal([]byte("\"02:00:00:00:00:A0\""), &m))
+
+	j, e := json.Marshal(m)
+	assert.NoError(e)
+	assert.Equal("\"02:00:00:00:00:a0\"", string(j))
 }

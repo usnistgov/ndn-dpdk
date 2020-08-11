@@ -13,10 +13,14 @@ require (
 	github.com/graphql-go/graphql v0.7.9
 	github.com/jaypipes/ghw v0.6.1
 	github.com/jfoster/bintools v0.1.1
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pkg/math v0.0.0-20141027224758-f2ed9e40e245
 	github.com/powerman/rpc-codec v1.2.2
 	github.com/rackn/gohai v0.5.0
 	github.com/sirupsen/logrus v1.6.0
 	github.com/stretchr/testify v1.6.1
+	github.com/urfave/cli/v2 v2.2.0
+	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b // indirect
 	golang.org/x/sys v0.0.0-20200728102440-3e129f6d46b1
+	gopkg.in/yaml.v2 v2.2.4 // indirect
 )
