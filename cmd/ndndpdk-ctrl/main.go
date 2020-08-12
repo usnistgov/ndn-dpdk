@@ -8,7 +8,7 @@ import (
 	"reflect"
 
 	"github.com/urfave/cli/v2"
-	"github.com/usnistgov/ndn-dpdk/app/version"
+	"github.com/usnistgov/ndn-dpdk/mk/version"
 	"github.com/usnistgov/ndn-dpdk/ndn/mgmt/gqlmgmt"
 )
 
@@ -35,7 +35,7 @@ func clientDoPrint(query string, vars interface{}, key string) error {
 }
 
 var app = &cli.App{
-	Version: version.COMMIT,
+	Version: version.Get().String(),
 	Usage:   "Control NDN-DPDK daemon",
 	Flags: []cli.Flag{
 		&cli.StringFlag{

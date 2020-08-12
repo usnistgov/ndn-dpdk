@@ -8,7 +8,7 @@ import (
 
 	"github.com/bhoriuchi/graphql-go-tools/handler"
 	"github.com/graphql-go/graphql"
-	"github.com/usnistgov/ndn-dpdk/app/version"
+	"github.com/usnistgov/ndn-dpdk/mk/version"
 )
 
 // Schema is the singleton of graphql.SchemaConfig.
@@ -36,9 +36,9 @@ func AddMutation(f *graphql.Field) {
 func init() {
 	AddQuery(&graphql.Field{
 		Name: "version",
-		Type: graphql.String,
+		Type: graphql.NewNonNull(version.GqlVersionType),
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-			return version.COMMIT, nil
+			return version.Get(), nil
 		},
 	})
 }

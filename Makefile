@@ -9,11 +9,7 @@ all: gopkg npm cmds
 gopkg: godeps
 	go build -v ./...
 
-godeps: app/version/version.go strategy/strategyelf/bindata.go build/libndn-dpdk-c.a build/cgodeps.done
-
-.PHONY: app/version/version.go
-app/version/version.go:
-	app/version/make-version.sh
+godeps: strategy/strategyelf/bindata.go build/libndn-dpdk-c.a build/cgodeps.done
 
 csrc/fib/enum.h: container/fib/fibdef/enum.go
 	mk/gogenerate.sh ./$(<D)
@@ -59,7 +55,7 @@ npm: tsc
 cmds: build/bin/ndndpdk-ctrl build/bin/ndndpdk-hrlog2histogram build/bin/ndndpdk-packetdemo build/bin/ndnfw-dpdk build/bin/ndnping-dpdk
 
 build/bin/%: cmd/%/* godeps
-	GOBIN=$$(realpath build/bin) go install ./cmd/$*
+	GOBIN=$$(realpath build/bin) go install "-ldflags=$$(mk/version/ldflags.sh)" ./cmd/$*
 
 install:
 	mk/install.sh

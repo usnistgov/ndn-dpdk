@@ -1,6 +1,6 @@
 # ndn-dpdk/mgmt/versionmgmt
 
-This package exposes [application version number](../../app/version/) on the management interface.
+This package exposes NDN-DPDK version number on the management interface.
 
 ## Version
 

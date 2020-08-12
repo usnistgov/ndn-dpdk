@@ -3,7 +3,6 @@ package gqlclient_test
 import (
 	"testing"
 
-	"github.com/usnistgov/ndn-dpdk/app/version"
 	"github.com/usnistgov/ndn-dpdk/core/gqlclient"
 )
 
@@ -13,12 +12,16 @@ func TestClient(t *testing.T) {
 	c, e := gqlclient.New(serverURI)
 	require.NoError(e)
 
-	var reply string
+	var reply struct {
+		Version string `json:"version"`
+	}
 	e = c.Do(`
 		query {
-			version
+			version {
+				version
+			}
 		}
 	`, nil, "version", &reply)
 	assert.NoError(e)
-	assert.Equal(version.COMMIT, reply)
+	assert.NotZero(reply.Version)
 }
