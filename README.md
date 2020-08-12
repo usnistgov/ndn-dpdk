@@ -19,7 +19,7 @@ It is in pre-release stage and will continue to be updated.
 * DPDK 20.05, configured with `meson -Dtests=false --libdir=lib build`
 * SPDK 20.04.1, configured with `./configure --enable-debug --disable-tests --with-shared --with-dpdk=/usr/local --without-vhost --without-isal --without-fuse`
 * [ubpf](https://github.com/iovisor/ubpf/tree/089f6279752adfb01386600d119913403ed326ee/vm) library, installed to `/usr/local`
-* Go 1.14.5 or newer
+* Go 1.15 or newer
 * Node.js 14.x
 * [jsonrpc2client](https://github.com/powerman/rpc-codec/releases) 1.1.3 or newer, installed to `/usr/local/bin/jsonrpc2client`
 * Note: you can look at the [`Dockerfile`](Dockerfile) to see how to install the dependencies.

@@ -1,6 +1,6 @@
 module github.com/usnistgov/ndn-dpdk
 
-go 1.14
+go 1.15
 
 require (
 	github.com/FDio/vpp v1.0.1-0.20200715183738-b1500e9fffa8
@@ -20,7 +20,7 @@ require (
 	github.com/sirupsen/logrus v1.6.0
 	github.com/stretchr/testify v1.6.1
 	github.com/urfave/cli/v2 v2.2.0
-	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b // indirect
-	golang.org/x/sys v0.0.0-20200728102440-3e129f6d46b1
-	gopkg.in/yaml.v2 v2.2.4 // indirect
+	golang.org/x/net v0.0.0-20200707034311-ab3426394381 // indirect
+	golang.org/x/sys v0.0.0-20200812155832-6a926be9bd1d
+	gopkg.in/yaml.v2 v2.3.0 // indirect
 )
