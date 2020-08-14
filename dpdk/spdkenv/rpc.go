@@ -13,10 +13,11 @@ int c_spdk_rpc_accept(void* arg)
 import "C"
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
 	"time"
 	"unsafe"
 
-	"github.com/gabstv/freeport"
 	"github.com/powerman/rpc-codec/jsonrpc2"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 )
@@ -28,22 +29,23 @@ var (
 
 // Enable SPDK RPC server and internal RPC client.
 func initRPC() error {
-	port, e := freeport.TCP()
+	dir, e := ioutil.TempDir("", "spdk-*")
 	if e != nil {
-		return fmt.Errorf("TCP listen port unavailable: %w", e)
+		return fmt.Errorf("Unix socket path unavailable: %w", e)
 	}
+	defer os.RemoveAll(dir)
 
-	listenAddr := fmt.Sprintf("127.0.0.1:%d", port)
-	listenAddrC := C.CString(listenAddr)
-	defer C.free(unsafe.Pointer(listenAddrC))
+	sockName := dir + "/spdk.sock"
+	sockNameC := C.CString(sockName)
+	defer C.free(unsafe.Pointer(sockNameC))
 
-	res := C.spdk_rpc_listen(listenAddrC)
+	res := C.spdk_rpc_listen(sockNameC)
 	if res != 0 {
-		return fmt.Errorf("spdk_rpc_listen error on %s", listenAddr)
+		return fmt.Errorf("spdk_rpc_listen error on %s", sockName)
 	}
 	rpcPoller = NewPoller(mainThread, cptr.Func0.C(C.c_spdk_rpc_accept, nil), 10*time.Millisecond)
 
-	rpcClient, e = jsonrpc2.Dial("tcp", listenAddr)
+	rpcClient, e = jsonrpc2.Dial("unix", sockName)
 	if e != nil {
 		return fmt.Errorf("jsonrpc2.Dial error: %w", e)
 	}

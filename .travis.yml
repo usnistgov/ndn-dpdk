@@ -8,8 +8,8 @@ language: generic
 env:
   global:
     - UBPFCOMMIT=089f6279752adfb01386600d119913403ed326ee
-    - DPDKVER=20.05
-    - SPDKVER=20.04.1
+    - DPDKVER=20.08
+    - SPDKVER=20.07
     - TEST_ACCEPTABLE_FAILURES="diskstore|ethface|fetch|fwdp|pingclient|pingserver"
   matrix:
     - CC=gcc-7
@@ -53,7 +53,8 @@ before_install:
   - |
     : install pip dependencies
     cd $HOME
-    curl https://bootstrap.pypa.io/get-pip.py | sudo python3
+    sudo update-alternatives --install /usr/bin/python python /usr/bin/python3 1
+    curl https://bootstrap.pypa.io/get-pip.py | sudo python
     sudo pip install -U meson ninja
 
 install:
