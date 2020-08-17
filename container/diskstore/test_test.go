@@ -18,4 +18,5 @@ var (
 	makeAR       = testenv.MakeAR
 	makeInterest = ndnitestenv.MakeInterest
 	makeData     = ndnitestenv.MakeData
+	packetPool   = ndnitestenv.Packet.Pool()
 )

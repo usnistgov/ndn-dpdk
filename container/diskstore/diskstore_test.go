@@ -7,11 +7,8 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/container/diskstore"
 	"github.com/usnistgov/ndn-dpdk/dpdk/bdev"
-	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
-	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/spdkenv"
-	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 func TestDiskStore(t *testing.T) {
@@ -27,11 +24,9 @@ func TestDiskStore(t *testing.T) {
 	defer th.Close()
 	require.NoError(ealthread.Launch(th))
 
-	mp, e := pktmbuf.NewPool(ndni.PacketMempool.Config(), eal.NumaSocket{})
-	require.NoError(e)
-	defer mp.Close()
+	assert.Zero(packetPool.CountInUse())
 
-	store, e := diskstore.New(device, th, mp, 8)
+	store, e := diskstore.New(device, th, 8)
 	require.NoError(e)
 	defer store.Close()
 
@@ -39,9 +34,9 @@ func TestDiskStore(t *testing.T) {
 	assert.Equal(uint64(1), minSlotID)
 	assert.Equal(uint64(31), maxSlotID)
 
-	dataLens := make([]int, 33)
-	dataLens[2] = 1024
-
+	dataLens := map[uint64]int{
+		2: 1024,
+	}
 	for _, n := range []uint64{1, 31, 32} {
 		data := makeData(fmt.Sprintf("/A/%d", n), time.Duration(n)*time.Millisecond)
 		dataLens[n] = data.Mbuf().Len()
@@ -51,7 +46,8 @@ func TestDiskStore(t *testing.T) {
 
 	for _, n := range []uint64{1, 31} {
 		interest := makeInterest(fmt.Sprintf("/A/%d", n))
-		data, e := store.GetData(n, dataLens[n], interest)
+		dataBuf := packetPool.MustAlloc(1)
+		data, e := store.GetData(n, dataLens[n], interest, dataBuf[0])
 		if !assert.NoError(e, n) {
 			continue
 		}
@@ -64,7 +60,8 @@ func TestDiskStore(t *testing.T) {
 
 	for _, n := range []uint64{2, 32} {
 		interest := makeInterest(fmt.Sprintf("/A/%d", n))
-		data, e := store.GetData(n, dataLens[n], interest)
+		dataBuf := packetPool.MustAlloc(1)
+		data, e := store.GetData(n, dataLens[n], interest, dataBuf[0])
 		if !assert.NoError(e, n) {
 			continue
 		}
@@ -72,5 +69,5 @@ func TestDiskStore(t *testing.T) {
 		interest.Close()
 	}
 
-	assert.Zero(mp.CountInUse())
+	assert.Zero(packetPool.CountInUse())
 }

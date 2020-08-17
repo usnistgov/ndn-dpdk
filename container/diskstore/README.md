@@ -17,7 +17,7 @@ Write failures are silently ignored.
 
 When a future Interest matches a CS entry that has no associated packet but a slot number, the forwarding core will pass the Interest and the slot number to `DiskStore_GetData`.
 The DiskStore will read the Data from the provided slot into a new mbuf, and return it back to forwarding via a ring buffer.
-Specifically, the Interest packet is enqueued, and its `PInterest` struct has a non-zero `diskSlotId`, and the Data packet is assigned to the `diskData` field; in case of a read/parse failure, the `diskData` field is set to `NULL`.
+Specifically, the Interest packet is enqueued, its `PInterest` struct has a non-zero `diskSlot`, and the Data packet is assigned to the `diskData` field; in case of a read/parse failure, the `diskData` field is set to `NULL`.
 The forwarding core should then re-process the Interest, and use the Data only if the Interest matches the same CS entry again.
 
 Multiple CS instances can share the same DiskStore if they use disjoint ranges of slots.

@@ -18,7 +18,6 @@ typedef struct DiskStore
   struct spdk_thread* th;
   struct spdk_bdev_desc* bdev;
   struct spdk_io_channel* ch;
-  struct rte_mempool* mp;
   uint64_t nBlocksPerSlot;
   uint32_t blockSize;
 } DiskStore;
@@ -38,6 +37,7 @@ DiskStore_PutData(DiskStore* store, uint64_t slotID, Packet* npkt);
  * @param slotID disk slot number.
  * @param dataLen Data packet length.
  * @param npkt an Interest packet. DiskStore takes ownership.
+ * @param dataBuf mbuf for Data packet. DiskStore takes ownership.
  * @param reply where to return results.
  *
  * This function asynchronously reads from a specified slot of the underlying disk, and parses
@@ -48,7 +48,7 @@ DiskStore_PutData(DiskStore* store, uint64_t slotID, Packet* npkt);
  */
 __attribute__((nonnull)) void
 DiskStore_GetData(DiskStore* store, uint64_t slotID, uint16_t dataLen, Packet* npkt,
-                  struct rte_ring* reply);
+                  struct rte_mbuf* dataBuf, struct rte_ring* reply);
 
 __attribute__((nonnull)) static __rte_always_inline uint64_t
 DiskStore_ComputeBlockOffset_(DiskStore* store, uint64_t slotID)

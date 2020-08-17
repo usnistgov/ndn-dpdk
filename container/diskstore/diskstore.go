@@ -29,7 +29,7 @@ type DiskStore struct {
 }
 
 // New creates a DiskStore.
-func New(device bdev.Device, th *spdkenv.Thread, mp *pktmbuf.Pool, nBlocksPerSlot int) (store *DiskStore, e error) {
+func New(device bdev.Device, th *spdkenv.Thread, nBlocksPerSlot int) (store *DiskStore, e error) {
 	bdi := device.DevInfo()
 	if bdi.BlockSize() != BlockSize {
 		return nil, fmt.Errorf("bdev block size must be %d", BlockSize)
@@ -45,7 +45,6 @@ func New(device bdev.Device, th *spdkenv.Thread, mp *pktmbuf.Pool, nBlocksPerSlo
 	store.c = (*C.DiskStore)(eal.Zmalloc("DiskStore", C.sizeof_DiskStore, socket))
 	store.c.th = (*C.struct_spdk_thread)(th.Ptr())
 	store.c.bdev = (*C.struct_spdk_bdev_desc)(store.bd.Ptr())
-	store.c.mp = (*C.struct_rte_mempool)(mp.Ptr())
 	store.c.nBlocksPerSlot = C.uint64_t(nBlocksPerSlot)
 	store.c.blockSize = C.uint32_t(bdi.BlockSize())
 	cptr.Call(th.Post, func() { store.c.ch = C.spdk_bdev_get_io_channel(store.c.bdev) })
@@ -70,7 +69,7 @@ func (store *DiskStore) PutData(slotID uint64, data *ndni.Packet) {
 }
 
 // GetData retrieves a Data packet from specified slot and waits for completion.
-func (store *DiskStore) GetData(slotID uint64, dataLen int, interest *ndni.Packet) (data *ndni.Packet, e error) {
+func (store *DiskStore) GetData(slotID uint64, dataLen int, interest *ndni.Packet, dataBuf *pktmbuf.Packet) (data *ndni.Packet, e error) {
 	var reply *ringbuffer.Ring
 	if reply, e = ringbuffer.New(64, eal.NumaSocket{},
 		ringbuffer.ProducerMulti, ringbuffer.ConsumerMulti); e != nil {
@@ -80,7 +79,8 @@ func (store *DiskStore) GetData(slotID uint64, dataLen int, interest *ndni.Packe
 
 	interestC := (*C.Packet)(interest.Ptr())
 	pinterest := C.Packet_GetInterestHdr(interestC)
-	C.DiskStore_GetData(store.c, C.uint64_t(slotID), C.uint16_t(dataLen), interestC, (*C.struct_rte_ring)(reply.Ptr()))
+	C.DiskStore_GetData(store.c, C.uint64_t(slotID), C.uint16_t(dataLen), interestC,
+		(*C.struct_rte_mbuf)(dataBuf.Ptr()), (*C.struct_rte_ring)(reply.Ptr()))
 
 	pkts := make([]*ndni.Packet, 1)
 	for {
@@ -95,7 +95,7 @@ func (store *DiskStore) GetData(slotID uint64, dataLen int, interest *ndni.Packe
 	}
 
 	if uint64(pinterest.diskSlot) != slotID {
-		panic("unexpected PInterest.diskSlotId")
+		panic("unexpected PInterest.diskSlot")
 	}
 	data = ndni.PacketFromPtr(unsafe.Pointer(pinterest.diskData))
 	return data, nil

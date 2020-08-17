@@ -79,29 +79,20 @@ DiskStore_GetData_Begin(void* npkt0)
 
 void
 DiskStore_GetData(DiskStore* store, uint64_t slotID, uint16_t dataLen, Packet* npkt,
-                  struct rte_ring* reply)
+                  struct rte_mbuf* dataBuf, struct rte_ring* reply)
 {
   NDNDPDK_ASSERT(slotID > 0);
   PInterest* interest = Packet_GetInterestHdr(npkt);
   interest->diskSlot = slotID;
-  interest->diskData = NULL;
+  interest->diskData = Packet_FromMbuf(dataBuf);
 
-  // TODO allocate from a mempool in caller's NUMA socket
-  struct rte_mbuf* dataPkt = rte_pktmbuf_alloc(store->mp);
-  if (unlikely(dataPkt == NULL)) {
-    ZF_LOGW("GetData(%" PRIu64 ", %p): fail=alloc-err", slotID, npkt);
-    DiskStore_GetData_Fail(reply, npkt);
-    return;
-  }
-  interest->diskData = Packet_FromMbuf(dataPkt);
-
-  if (unlikely(rte_pktmbuf_append(dataPkt, dataLen) == NULL)) {
+  if (unlikely(rte_pktmbuf_append(dataBuf, dataLen) == NULL)) {
     ZF_LOGW("GetData(%" PRIu64 ", %p): fail=resize-err", slotID, npkt);
     DiskStore_GetData_Fail(reply, npkt);
     return;
   }
 
-  DiskStore_GetDataRequest* req = (DiskStore_GetDataRequest*)rte_mbuf_to_priv_(dataPkt);
+  DiskStore_GetDataRequest* req = (DiskStore_GetDataRequest*)rte_mbuf_to_priv_(dataBuf);
   req->store = store;
   req->reply = reply;
 
