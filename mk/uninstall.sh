@@ -3,6 +3,9 @@ set -e
 set -o pipefail
 DESTDIR=${DESTDIR:-/usr/local}
 
+DESTBPF=$DESTDIR/lib/bpf
+rm -rf $DESTBPF/ndndpdk-strategy-*.o
+
 DESTSBIN=$DESTDIR/sbin
 rm -f $DESTSBIN/ndnfw-dpdk $DESTSBIN/ndnping-dpdk $DESTSBIN/ndndpdk-*
 

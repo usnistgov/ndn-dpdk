@@ -1,6 +1,8 @@
 package fwdptest
 
 import (
+	"path"
+	"runtime"
 	"testing"
 	"time"
 
@@ -15,7 +17,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealtestenv"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
-	"github.com/usnistgov/ndn-dpdk/strategy/strategyelf"
 )
 
 const nFwds = 2
@@ -99,10 +100,10 @@ func (fixture *Fixture) makeStrategy(shortname string) *strategycode.Strategy {
 		return sc
 	}
 
-	elf, e := strategyelf.Load(shortname)
-	fixture.require.NoError(e)
+	_, thisFile, _, _ := runtime.Caller(1)
+	elfFile := path.Join(path.Dir(thisFile), "../../../build/lib/bpf", "ndndpdk-strategy-"+shortname+".o")
 
-	sc, e := strategycode.Load(shortname, elf)
+	sc, e := strategycode.LoadFile(shortname, elfFile)
 	fixture.require.NoError(e)
 
 	return sc

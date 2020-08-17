@@ -9,7 +9,7 @@ all: gopkg npm cmds
 gopkg: godeps
 	go build -v ./...
 
-godeps: strategy/strategyelf/bindata.go build/libndn-dpdk-c.a build/cgodeps.done
+godeps: build/libndn-dpdk-c.a build/cgodeps.done build/strategy.done
 
 csrc/fib/enum.h: container/fib/fibdef/enum.go
 	mk/gogenerate.sh ./$(<D)
@@ -26,8 +26,8 @@ csrc/pcct/cs-enum.h: container/cs/enum.go
 ndni/ndnitest/cgo_test.go: ndni/ndnitest/*_ctest.go
 	mk/gogenerate.sh ./$(<D)
 
-strategy/strategyelf/bindata.go: strategy/*.c csrc/fib/enum.h
-	mk/gogenerate.sh ./$(@D)
+build/strategy.done: strategy/*.c csrc/strategyapi/* csrc/fib/enum.h
+	strategy/compile.sh
 
 .PHONY: build/libndn-dpdk-c.a
 build/libndn-dpdk-c.a: build/build.ninja csrc/fib/enum.h csrc/ndni/an.h csrc/ndni/enum.h csrc/iface/enum.h csrc/pcct/cs-enum.h

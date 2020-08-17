@@ -11,13 +11,13 @@ It is in pre-release stage and will continue to be updated.
 ### Requirements
 
 * Ubuntu 18.04 or Debian 10 on *amd64* architecture
-* Required APT packages: `build-essential clang-8 curl git go-bindata libc6-dev-i386 libelf-dev libnuma-dev libssl-dev liburcu-dev pkg-config python3-distutils sudo`
+* Required APT packages: `build-essential clang-8 curl git libc6-dev-i386 libelf-dev libnuma-dev libssl-dev liburcu-dev pkg-config python3-distutils sudo`
 * Optional APT packages: `clang-format-8 doxygen yamllint`
   (see "other build targets" for an explanation)
 * [pip](https://pip.pypa.io/en/stable/installing/) and `sudo pip install -U meson ninja`
 * [Intel Multi-Buffer Crypto for IPsec Library](https://github.com/intel/intel-ipsec-mb) v0.53
-* DPDK 20.05, configured with `meson -Dtests=false --libdir=lib build`
-* SPDK 20.04.1, configured with `./configure --enable-debug --disable-tests --with-shared --with-dpdk=/usr/local --without-vhost --without-isal --without-fuse`
+* DPDK 20.08, configured with `meson -Dtests=false --libdir=lib build`
+* SPDK 20.07, configured with `./configure --enable-debug --disable-tests --with-shared --with-dpdk=/usr/local --without-vhost --without-isal --without-fuse`
 * [ubpf](https://github.com/iovisor/ubpf/tree/089f6279752adfb01386600d119913403ed326ee/vm) library, installed to `/usr/local`
 * Go 1.15 or newer
 * Node.js 14.x

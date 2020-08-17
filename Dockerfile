@@ -1,7 +1,7 @@
 FROM ubuntu:18.04
 RUN ( echo 'APT::Install-Recommends "no";'; echo 'APT::Install-Suggests "no";' ) >/etc/apt/apt.conf.d/80custom && \
     apt-get update && \
-    apt-get install -y -qq build-essential ca-certificates clang-8 curl git go-bindata libc6-dev-i386 libelf-dev libnuma-dev libssl-dev liburcu-dev pkg-config python3-distutils sudo && \
+    apt-get install -y -qq build-essential ca-certificates clang-8 curl git libc6-dev-i386 libelf-dev libnuma-dev libssl-dev liburcu-dev pkg-config python3-distutils sudo && \
     curl -sL https://deb.nodesource.com/setup_14.x | bash - && \
     apt-get install -y -qq clang-format-8 doxygen nodejs yamllint && \
     sudo update-alternatives --install /usr/bin/python python /usr/bin/python3 1 && \

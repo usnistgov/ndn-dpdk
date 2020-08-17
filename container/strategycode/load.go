@@ -53,13 +53,18 @@ func Load(name string, elf []byte) (sc *Strategy, e error) {
 	if e != nil {
 		return nil, e
 	}
+	filename := file.Name()
+	defer os.Remove(filename)
 	if _, e := file.Write(elf); e != nil {
 		return nil, e
 	}
-	filename := file.Name()
 	file.Close()
-	defer os.Remove(filename)
 
+	return LoadFile(name, filename)
+}
+
+// LoadFile loads a strategy BPF program from ELF file.
+func LoadFile(name, filename string) (sc *Strategy, e error) {
 	var prm C.struct_rte_bpf_prm
 	prm.xsym = (*C.struct_rte_bpf_xsym)(Xsyms)
 	prm.nb_xsym = (C.uint32_t)(NXsyms)

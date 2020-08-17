@@ -1,6 +1,9 @@
 package main
 
 import (
+	"os"
+	"path"
+
 	"github.com/usnistgov/ndn-dpdk/container/strategycode"
 	"github.com/usnistgov/ndn-dpdk/mgmt"
 	"github.com/usnistgov/ndn-dpdk/mgmt/facemgmt"
@@ -10,7 +13,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/mgmt/ndtmgmt"
 	"github.com/usnistgov/ndn-dpdk/mgmt/strategymgmt"
 	"github.com/usnistgov/ndn-dpdk/mgmt/versionmgmt"
-	"github.com/usnistgov/ndn-dpdk/strategy/strategyelf"
 )
 
 func startMgmt() {
@@ -39,13 +41,15 @@ func startMgmt() {
 func loadStrategy(shortname string) *strategycode.Strategy {
 	logEntry := log.WithField("strategy", shortname)
 
-	elf, e := strategyelf.Load(shortname)
+	exeFile, e := os.Executable()
 	if e != nil {
-		logEntry.WithError(e).Fatal("strategy ELF load error")
+		logEntry.WithError(e).Fatal("os.Executable() error")
 	}
-	sc, e := strategycode.Load(shortname, elf)
+	elfFile := path.Join(path.Dir(exeFile), "../lib/bpf", "ndndpdk-strategy-"+shortname+".o")
+
+	sc, e := strategycode.LoadFile(shortname, elfFile)
 	if e != nil {
-		logEntry.WithError(e).Fatal("strategy code load error")
+		logEntry.WithField("filename", elfFile).WithError(e).Fatal("strategycode.LoadFile() error")
 	}
 
 	logEntry.Debug("strategy loaded")

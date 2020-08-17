@@ -3,6 +3,10 @@ set -e
 set -o pipefail
 DESTDIR=${DESTDIR:-/usr/local}
 
+DESTBPF=$DESTDIR/lib/bpf
+install -d -m0755 $DESTBPF
+install -m0644 build/lib/bpf/*.o $DESTBPF/
+
 DESTSBIN=$DESTDIR/sbin
 install -d -m0755 $DESTSBIN
 install -m0744 build/bin/ndnfw-dpdk $DESTSBIN/

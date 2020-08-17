@@ -29,7 +29,6 @@ addons:
       - doxygen
       - gcc-8
       - gcc-multilib
-      - go-bindata
       - libelf-dev
       - libnuma-dev
       - libssl-dev
