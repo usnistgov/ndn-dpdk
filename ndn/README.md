@@ -1,8 +1,10 @@
-# ndn-dpdk/ndn
+# NDNgo: Named Data Networking in Go
 
-This package implements NDN packet semantics and allows connecting to a running NDN-DPDK forwarder.
-This package does not depend on C and is go-gettable.
-It is available for external use, but has no API stability guarantees: breaking changes may happen at any time.
+**NDNgo** is a minimal [Named Data Networking](https://named-data.net/) library compatible with the NDN-DPDK forwarder.
+This library does not depend on Cgo, and can be used in external projects via Go Modules.
+However, NDNgo has no API stability guarantees: breaking changes may happen at any time.
+
+![NDNgo logo](../docs/NDNgo-logo.svg)
 
 ## Features
 

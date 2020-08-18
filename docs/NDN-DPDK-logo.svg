@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="100" height="100">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff7f00" />
+      <stop offset="100%" style="stop-color:#d95332" />
+    </linearGradient>
+  </defs>
+  <path d="
+    M 2,32
+    L 2,57
+    A 48,30,180,0,0,98,57
+    L 98,32
+    C
+  " fill="#702c68"/>
+  <ellipse cx="50" cy="32" rx="48" ry="30" fill="url(#grad1)"/>
+  <text x="50" y="42" text-anchor="middle" fill="#ffffff" style="font:28px sans-serif">NDN</text>
+  <text x="50" y="78" text-anchor="middle" fill="#ffffff" style="font:18px sans-serif">DPDK</text>
+  <line x1="2" y1="98" x2="98" y2="98" stroke="#666666" stroke-width="3"/>
+  <line x1="50" y1="87" x2="50" y2="98" stroke="#666666" stroke-width="3"/>
+</svg>
