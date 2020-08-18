@@ -5,13 +5,15 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/bhoriuchi/graphql-go-tools/scalars"
+	go2gql_scalars "github.com/EGT-Ukraine/go2gql/api/scalars"
+	tools_scalars "github.com/bhoriuchi/graphql-go-tools/scalars"
 	"github.com/graphql-go/graphql"
 )
 
 // Scalar types.
 var (
-	JSON           = scalars.ScalarJSON
+	JSON           = tools_scalars.ScalarJSON
+	Bytes          = go2gql_scalars.GraphQLBytesScalar
 	NonNullID      = graphql.NewNonNull(graphql.ID)
 	NonNullBoolean = graphql.NewNonNull(graphql.Boolean)
 	NonNullInt     = graphql.NewNonNull(graphql.Int)

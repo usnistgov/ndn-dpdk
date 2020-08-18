@@ -8,9 +8,10 @@ import (
 
 func init() {
 	defineCommand(&cli.Command{
-		Name:    "list-face",
-		Aliases: []string{"list-faces"},
-		Usage:   "List faces",
+		Category: "face",
+		Name:     "list-face",
+		Aliases:  []string{"list-faces"},
+		Usage:    "List faces.",
 		Action: func(c *cli.Context) error {
 			return clientDoPrint(`
 				{
@@ -20,6 +21,46 @@ func init() {
 					}
 				}
 			`, nil, "faces")
+		},
+	})
+}
+
+func init() {
+	var id string
+	var withCounters bool
+
+	defineCommand(&cli.Command{
+		Category: "face",
+		Name:     "get-face",
+		Usage:    "Retrieve face information.",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:        "id",
+				Usage:       "Face ID.",
+				Destination: &id,
+				Required:    true,
+			},
+			&cli.BoolFlag{
+				Name:        "cnt",
+				Usage:       "Show counters.",
+				Destination: &withCounters,
+			},
+		},
+		Action: func(c *cli.Context) error {
+			return clientDoPrint(`
+				query getFace($id: ID!, $withCounters: Boolean!) {
+					face: node(id: $id) {
+						id
+						... on Face {
+							locator
+							counters  @include(if: $withCounters)
+						}
+					}
+				}
+			`, map[string]interface{}{
+				"id":           id,
+				"withCounters": withCounters,
+			}, "face")
 		},
 	})
 }
@@ -38,8 +79,9 @@ func init() {
 	loc.Remote.HardwareAddr = packettransport.MulticastAddressNDN
 
 	defineCommand(&cli.Command{
-		Name:  "create-ether-face",
-		Usage: "Create an Ethernet face",
+		Category: "face",
+		Name:     "create-ether-face",
+		Usage:    "Create an Ethernet face.",
 		Flags: []cli.Flag{
 			&cli.GenericFlag{
 				Name:     "local",
@@ -78,40 +120,5 @@ func init() {
 }
 
 func init() {
-	var id string
-	var withCounters bool
-
-	defineCommand(&cli.Command{
-		Name:  "get-face",
-		Usage: "Retrieve face information",
-		Flags: []cli.Flag{
-			&cli.StringFlag{
-				Name:        "id",
-				Usage:       "Face ID.",
-				Destination: &id,
-				Required:    true,
-			},
-			&cli.BoolFlag{
-				Name:        "cnt",
-				Usage:       "Show counters.",
-				Destination: &withCounters,
-			},
-		},
-		Action: func(c *cli.Context) error {
-			return clientDoPrint(`
-				query getFace($id: ID!, $withCounters: Boolean!) {
-					face: node(id: $id) {
-						id
-						... on Face {
-							locator
-							counters  @include(if: $withCounters)
-						}
-					}
-				}
-			`, map[string]interface{}{
-				"id":           id,
-				"withCounters": withCounters,
-			}, "face")
-		},
-	})
+	defineDeleteCommand("face", "destroy-face", "Destroy a face.")
 }

@@ -58,4 +58,25 @@ func init() {
 			return List(), nil
 		},
 	})
+
+	gqlserver.AddMutation(&graphql.Field{
+		Name:        "loadStrategy",
+		Description: "Upload a strategy ELF program.",
+		Args: graphql.FieldConfigArgument{
+			"name": &graphql.ArgumentConfig{
+				Description: "Short name.",
+				Type:        gqlserver.NonNullString,
+			},
+			"elf": &graphql.ArgumentConfig{
+				Description: "ELF program in base64 format.",
+				Type:        graphql.NewNonNull(gqlserver.Bytes),
+			},
+		},
+		Type: graphql.NewNonNull(GqlStrategyType),
+		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+			name := p.Args["name"].(string)
+			elf := p.Args["elf"].([]byte)
+			return Load(name, elf)
+		},
+	})
 }

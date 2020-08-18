@@ -3,6 +3,7 @@ module github.com/usnistgov/ndn-dpdk
 go 1.15
 
 require (
+	github.com/EGT-Ukraine/go2gql v0.0.0-20190528134259-79533208556f
 	github.com/FDio/vpp v1.0.1-0.20200715183738-b1500e9fffa8
 	github.com/VojtechVitek/mergemaps v0.0.0-20141203190546-051fb3759de5
 	github.com/bhoriuchi/graphql-go-tools v0.0.0-20200610145626-91ece7a13f25
@@ -20,7 +21,7 @@ require (
 	github.com/sirupsen/logrus v1.6.0
 	github.com/stretchr/testify v1.6.1
 	github.com/urfave/cli/v2 v2.2.0
-	golang.org/x/net v0.0.0-20200707034311-ab3426394381 // indirect
-	golang.org/x/sys v0.0.0-20200812155832-6a926be9bd1d
+	golang.org/x/net v0.0.0-20200813134508-3edf25e44fcc // indirect
+	golang.org/x/sys v0.0.0-20200817155316-9781c653f443
 	gopkg.in/yaml.v2 v2.3.0 // indirect
 )

@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"reflect"
+	"sort"
 
 	"github.com/urfave/cli/v2"
 	"github.com/usnistgov/ndn-dpdk/mk/version"
@@ -36,7 +37,7 @@ func clientDoPrint(query string, vars interface{}, key string) error {
 
 var app = &cli.App{
 	Version: version.Get().String(),
-	Usage:   "Control NDN-DPDK daemon",
+	Usage:   "Control NDN-DPDK daemon.",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:        "gqlserver",
@@ -56,17 +57,17 @@ func defineCommand(command *cli.Command) {
 	app.Commands = append(app.Commands, command)
 }
 
-func init() {
+func defineDeleteCommand(category, commandName, usage string) {
 	var id string
 
 	defineCommand(&cli.Command{
-		Name:    "delete",
-		Aliases: []string{"destroy-face"},
-		Usage:   "Delete object.",
+		Category: category,
+		Name:     commandName,
+		Usage:    usage,
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:        "id",
-				Usage:       "Object ID.",
+				Usage:       "Object `ID`.",
 				Destination: &id,
 				Required:    true,
 			},
@@ -84,6 +85,7 @@ func init() {
 }
 
 func main() {
+	sort.Sort(cli.CommandsByName(app.Commands))
 	e := app.Run(os.Args)
 	if e != nil {
 		log.Fatal(e)

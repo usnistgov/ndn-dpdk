@@ -4,6 +4,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/usnistgov/ndn-dpdk/container/fib"
 	"github.com/usnistgov/ndn-dpdk/container/strategycode"
 	"github.com/usnistgov/ndn-dpdk/mgmt"
 	"github.com/usnistgov/ndn-dpdk/mgmt/facemgmt"
@@ -28,9 +29,10 @@ func startMgmt() {
 
 	mgmt.Register(strategymgmt.StrategyMgmt{})
 
+	fib.GqlDefaultStrategy = loadStrategy("multicast")
 	mgmt.Register(fibmgmt.FibMgmt{
 		Fib:               dp.GetFib(),
-		DefaultStrategyId: loadStrategy("multicast").ID(),
+		DefaultStrategyId: fib.GqlDefaultStrategy.ID(),
 	})
 
 	mgmt.Register(fwdpmgmt.DpInfoMgmt{Dp: dp})

@@ -16,6 +16,7 @@ var (
 
 	errNoRetrieve = errors.New("cannot retrieve Node")
 	errNoDelete   = errors.New("cannot delete Node")
+	errWrongType  = errors.New("ID refers to wrong NodeType")
 )
 
 // NodeType defines a Node subtype.
@@ -141,12 +142,13 @@ var nodeInterface = graphql.NewInterface(graphql.InterfaceConfig{
 	},
 })
 
-func retrieveNode(p graphql.ResolveParams) (*NodeType, interface{}, error) {
-	id, e := base64.RawURLEncoding.DecodeString(p.Args["id"].(string))
+// RetrieveNode locates Node by full ID.
+func RetrieveNode(id interface{}) (*NodeType, interface{}, error) {
+	idDecoded, e := base64.RawURLEncoding.DecodeString(id.(string))
 	if e != nil {
 		return nil, nil, nil
 	}
-	tokens := strings.SplitN(string(id), ":", 2)
+	tokens := strings.SplitN(string(idDecoded), ":", 2)
 	if len(tokens) != 2 {
 		return nil, nil, nil
 	}
@@ -163,6 +165,18 @@ func retrieveNode(p graphql.ResolveParams) (*NodeType, interface{}, error) {
 	return nt, obj, e
 }
 
+// RetrieveNodeOfType locates Node by full ID, and ensures it has correct type.
+func RetrieveNodeOfType(expectedNodeType *NodeType, id interface{}) (interface{}, error) {
+	nt, node, e := RetrieveNode(id)
+	if e != nil || node == nil {
+		return nil, e
+	}
+	if nt != expectedNodeType {
+		return nil, errWrongType
+	}
+	return node, nil
+}
+
 func init() {
 	AddQuery(&graphql.Field{
 		Name:        "node",
@@ -174,7 +188,7 @@ func init() {
 			},
 		},
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-			_, obj, e := retrieveNode(p)
+			_, obj, e := RetrieveNode(p.Args["id"])
 			return obj, e
 		},
 	})
@@ -189,7 +203,7 @@ func init() {
 			},
 		},
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-			nt, obj, e := retrieveNode(p)
+			nt, obj, e := RetrieveNode(p.Args["id"])
 			if e != nil || obj == nil {
 				return false, e
 			}

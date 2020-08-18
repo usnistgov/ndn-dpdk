@@ -2,6 +2,7 @@ package fib
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/graphql-go/graphql"
 	"github.com/usnistgov/ndn-dpdk/container/fib/fibdef"
@@ -14,6 +15,9 @@ import (
 
 // GqlFib is the FIB instance accessible via GraphQL.
 var GqlFib *Fib
+
+// GqlDefaultStrategy is the default strategy when inserted a FIB entry via GraphQL.
+var GqlDefaultStrategy *strategycode.Strategy
 
 var errNoGqlFib = errors.New("FIB unavailable")
 
@@ -47,6 +51,9 @@ func init() {
 		return *entry, nil
 	}
 	GqlEntryNodeType.Delete = func(source interface{}) error {
+		if GqlFib == nil {
+			return errNoGqlFib
+		}
 		entry := source.(Entry)
 		return GqlFib.Erase(entry.Name)
 	}
@@ -64,7 +71,7 @@ func init() {
 			},
 			"nexthops": &graphql.Field{
 				Description: "FIB nexthops. null indicates a deleted face.",
-				Type:        graphql.NewList(iface.GqlFaceType),
+				Type:        graphql.NewNonNull(graphql.NewList(iface.GqlFaceType)),
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					entry := p.Source.(Entry)
 					var list []iface.Face
@@ -165,6 +172,56 @@ func init() {
 				}
 			}
 			return list, nil
+		},
+	})
+
+	gqlserver.AddMutation(&graphql.Field{
+		Name:        "insertFibEntry",
+		Description: "Insert or replace a FIB entry.",
+		Args: graphql.FieldConfigArgument{
+			"name": &graphql.ArgumentConfig{
+				Description: "Entry name.",
+				Type:        graphql.NewNonNull(ndni.GqlNameType),
+			},
+			"nexthops": &graphql.ArgumentConfig{
+				Description: "FIB nexthops.",
+				Type:        graphql.NewNonNull(graphql.NewList(gqlserver.NonNullID)),
+			},
+			"strategy": &graphql.ArgumentConfig{
+				Description: "Forwarding strategy.",
+				Type:        graphql.ID,
+			},
+		},
+		Type: graphql.NewNonNull(GqlEntryType),
+		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+			if GqlFib == nil {
+				return nil, errNoGqlFib
+			}
+
+			var entry fibdef.Entry
+			entry.Name = p.Args["name"].(ndn.Name)
+			for i, nh := range p.Args["nexthops"].([]interface{}) {
+				face, e := gqlserver.RetrieveNodeOfType(iface.GqlFaceNodeType, nh)
+				if face == nil || e != nil {
+					return nil, fmt.Errorf("nexthops[%d] not found: %w", i, e)
+				}
+				entry.Nexthops = append(entry.Nexthops, face.(iface.Face).ID())
+			}
+
+			if strategy, ok := p.Args["strategy"].(string); ok {
+				strategyCode, e := gqlserver.RetrieveNodeOfType(strategycode.GqlStrategyNodeType, strategy)
+				if strategyCode == nil || e != nil {
+					return nil, fmt.Errorf("strategy not found: %w", e)
+				}
+				entry.Strategy = strategyCode.(*strategycode.Strategy).ID()
+			} else if GqlDefaultStrategy != nil {
+				entry.Strategy = GqlDefaultStrategy.ID()
+			}
+
+			if e := GqlFib.Insert(entry); e != nil {
+				return nil, e
+			}
+			return *GqlFib.Find(entry.Name), nil
 		},
 	})
 }
