@@ -10,7 +10,7 @@
     L 2,57
     A 48,30,180,0,0,98,57
     L 98,32
-    C
+    Z
   " fill="#702c68"/>
   <ellipse cx="50" cy="32" rx="48" ry="30" fill="url(#grad1)"/>
   <text x="50" y="42" text-anchor="middle" fill="#ffffff" style="font:28px sans-serif">NDN</text>

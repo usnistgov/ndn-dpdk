@@ -38,13 +38,6 @@ LCoreAlloc:
 # ROLE3: # this role can have up to 3 lcores on each NUMA socket
 #   EachNuma: 3
 
-# FACE CREATION
-Face:
-  # Whether to enable Ethernet faces.
-  EnableEth: true
-  # Whether to enable socket faces.
-  EnableSock: true
-
 # NAME DISPATCH TABLE
 Ndt:
   # Names are dispatched using a prefix with this number of components.
