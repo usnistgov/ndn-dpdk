@@ -13,6 +13,7 @@ import (
 // Scalar types.
 var (
 	JSON           = tools_scalars.ScalarJSON
+	NonNullJSON    = graphql.NewNonNull(JSON)
 	Bytes          = go2gql_scalars.GraphQLBytesScalar
 	NonNullID      = graphql.NewNonNull(graphql.ID)
 	NonNullBoolean = graphql.NewNonNull(graphql.Boolean)

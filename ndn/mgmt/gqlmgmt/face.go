@@ -32,7 +32,7 @@ func (c *Client) OpenMemif(loc memiftransport.Locator) (mgmt.Face, error) {
 	}
 	var faceJ faceJSON
 	e = c.Do(`
-		mutation createFace($locator: JSON) {
+		mutation createFace($locator: JSON!) {
 			createFace(locator: $locator) {
 				id
 			}

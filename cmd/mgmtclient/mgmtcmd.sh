@@ -15,12 +15,6 @@ Subcommands:
     Start collecting high resolution logs.
   hrlog stop <FILENAME>
     Stop collecting high resolution logs.
-  face [list]
-    List faces.
-  face show <ID>
-    Show face counters.
-  face destroy <ID>
-    Destroy a face.
   eth ports
     List Ethernet ports.
   eth faces <PORT>
@@ -37,24 +31,6 @@ Subcommands:
     Update an NDT element by hash.
   ndt updaten <NAME> <VALUE>
     Update an NDT element by name.
-  strategy [list]
-    List forwarding strategies.
-  strategy show <ID>
-    Get forwarding strategy information.
-  strategy load <NAME> <ELF-FILE>
-    Load forwarding strategy.
-  strategy unload <ID>
-    Unload forwarding strategy.
-  fib info
-    Show FIB counters.
-  fib list
-    List FIB entry names.
-  fib insert <NAME> <NEXTHOP,NEXTHOP> [<STRATEGY-ID>]
-    Insert/replace FIB entry.
-  fib erase <NAME>
-    Erase FIB entry.
-  fib find <NAME>
-    Perform exact-match lookup on FIB.
   dpinfo [global]
     Show dataplane global information.
   dpinfo input <I>
@@ -97,14 +73,6 @@ elif [[ $1 == 'hrlog' ]]; then
   elif [[ $2 == 'stop' ]]; then
     jsonrpc Hrlog.Stop '{"Filename":"'$3'"}'
   fi
-elif [[ $1 == 'face' ]]; then
-  if [[ -z $2 ]] || [[ $2 == 'list' ]]; then
-    jsonrpc Face.List
-  elif [[ $2 == 'show' ]]; then
-    jsonrpc Face.Get '{"Id":'$3'}'
-  elif [[ $2 == 'destroy' ]]; then
-    jsonrpc Face.Destroy '{"Id":'$3'}'
-  fi
 elif [[ $1 == 'eth' ]]; then
   if [[ $2 == 'ports' ]]; then
     jsonrpc EthFace.ListPorts
@@ -124,30 +92,6 @@ elif [[ $1 == 'ndt' ]]; then
     jsonrpc Ndt.Update '{"Hash":'$3',"Value":'$4'}'
   elif [[ $2 == 'updaten' ]]; then
     jsonrpc Ndt.Update '{"Name":"'$3'","Value":'$4'}'
-  fi
-elif [[ $1 == 'strategy' ]]; then
-  if [[ -z $2 ]] || [[ $2 == 'list' ]]; then
-    jsonrpc Strategy.List ''
-  elif [[ $2 == 'show' ]]; then
-    jsonrpc Strategy.Get '{"Id":'$3'}'
-  elif [[ $2 == 'load' ]]; then
-    jsonrpc Strategy.Load '{"Name":"'$3'","Elf":"'$(base64 -w0 $4)'"}'
-  elif [[ $2 == 'unload' ]]; then
-    jsonrpc Strategy.Unload '{"Id":'$3'}'
-  fi
-elif [[ $1 == 'fib' ]]; then
-  if [[ $2 == 'info' ]]; then
-    jsonrpc Fib.Info ''
-  elif [[ -z $2 ]] || [[ $2 == 'list' ]]; then
-    jsonrpc Fib.List ''
-  elif [[ $2 == 'insert' ]]; then
-    if [[ -z $5 ]]; then
-      jsonrpc Fib.Insert '{"Name":"'$3'","Nexthops":['$4']}'
-    else
-      jsonrpc Fib.Insert '{"Name":"'$3'","Nexthops":['$4'],"StrategyId":'$5'}'
-    fi
-  elif [[ $2 == 'erase' ]] || [[ $2 == 'find' ]]; then
-    jsonrpc Fib."${2^}" '{"Name":"'$3'"}'
   fi
 elif [[ $1 == 'dpinfo' ]]; then
   if [[ -z $2 ]] || [[ $2 == 'global' ]]; then

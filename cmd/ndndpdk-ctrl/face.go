@@ -68,6 +68,7 @@ func init() {
 func init() {
 	var loc struct {
 		Scheme     string       `json:"scheme"`
+		Port       string       `json:"port,omitempty"`
 		Local      macaddr.Flag `json:"local"`
 		Remote     macaddr.Flag `json:"remote"`
 		VLAN       int          `json:"vlan,omitempty"`
@@ -83,15 +84,20 @@ func init() {
 		Name:     "create-ether-face",
 		Usage:    "Create an Ethernet face.",
 		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:        "port",
+				Usage:       "DPDK port name.",
+				Destination: &loc.Port,
+			},
 			&cli.GenericFlag{
 				Name:     "local",
-				Usage:    "local MAC address",
+				Usage:    "Local MAC address.",
 				Value:    &loc.Local,
 				Required: true,
 			},
 			&cli.GenericFlag{
 				Name:  "remote",
-				Usage: "remote MAC address",
+				Usage: "Remote MAC address.",
 				Value: &loc.Remote,
 			},
 			&cli.IntFlag{
@@ -107,7 +113,7 @@ func init() {
 		},
 		Action: func(c *cli.Context) error {
 			return clientDoPrint(`
-				mutation createFace($locator: JSON) {
+				mutation createFace($locator: JSON!) {
 					createFace(locator: $locator) {
 						id
 					}

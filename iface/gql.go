@@ -40,7 +40,7 @@ func init() {
 				},
 			},
 			"locator": &graphql.Field{
-				Type:        gqlserver.JSON,
+				Type:        gqlserver.NonNullJSON,
 				Description: "Endpoint addresses.",
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					face := p.Source.(Face)
@@ -74,7 +74,7 @@ func init() {
 		Description: "Create a face.",
 		Args: graphql.FieldConfigArgument{
 			"locator": &graphql.ArgumentConfig{
-				Type: gqlserver.JSON,
+				Type: gqlserver.NonNullJSON,
 			},
 		},
 		Type: GqlFaceType,

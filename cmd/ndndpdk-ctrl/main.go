@@ -1,3 +1,4 @@
+// Command ndndpdk-ctrl controls the NDN-DPDK daemon via GraphQL.
 package main
 
 import (
@@ -42,7 +43,7 @@ var app = &cli.App{
 		&cli.StringFlag{
 			Name:        "gqlserver",
 			Value:       "http://127.0.0.1:3030/",
-			Usage:       "GraphQL API of NDN-DPDK daemon",
+			Usage:       "GraphQL `endpoint` of NDN-DPDK daemon.",
 			EnvVars:     []string{"GQLSERVER"},
 			Destination: &gqlserver,
 		},
@@ -90,4 +91,23 @@ func main() {
 	if e != nil {
 		log.Fatal(e)
 	}
+}
+
+func init() {
+	defineCommand(&cli.Command{
+		Name:  "show-version",
+		Usage: "Show daemon version.",
+		Action: func(c *cli.Context) error {
+			return clientDoPrint(`
+				query version {
+					version {
+						version
+						commit
+						date
+						dirty
+					}
+				}
+			`, nil, "version")
+		},
+	})
 }

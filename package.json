@@ -2,11 +2,9 @@
   "name": "@usnistgov/ndn-dpdk",
   "version": "0.0.0",
   "dependencies": {
-    "@types/yargs": "^15.0.5",
     "@yoursunny/mole-rpc": "^0.0.20200718",
     "mole-rpc-transport-tcp": "^0.0.20200417",
-    "tslib": "^2.0.1",
-    "yargs": "^15.4.1"
+    "tslib": "^2.0.1"
   },
   "devDependencies": {
     "@types/json-stable-stringify": "^1.0.32",
@@ -16,7 +14,7 @@
     "ts-node": "^8.10.2",
     "typescript": "^3.9.7",
     "typescript-json-schema": "^0.42.0",
-    "xo": "^0.32.1"
+    "xo": "^0.33.0"
   },
   "files": [
     "build/js",
@@ -24,8 +22,5 @@
   ],
   "main": "build/js/mod.js",
   "types": "js/mod.ts",
-  "bin": {
-    "ndndpdk-create-face": "build/js/cmd/create-face.js"
-  },
   "private": true
 }

@@ -58,9 +58,12 @@ func init() {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			var optionalStrategy interface{}
+			vars := map[string]interface{}{
+				"name":     name,
+				"nexthops": nexthops.Value(),
+			}
 			if strategy != "" {
-				optionalStrategy = strategy
+				vars["strategy"] = strategy
 			}
 
 			return clientDoPrint(`
@@ -69,11 +72,7 @@ func init() {
 						id
 					}
 				}
-			`, map[string]interface{}{
-				"name":     name,
-				"nexthops": nexthops.Value(),
-				"strategy": optionalStrategy,
-			}, "insertFibEntry")
+			`, vars, "insertFibEntry")
 		},
 	})
 }
