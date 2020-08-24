@@ -5,7 +5,7 @@ RUN ( echo 'APT::Install-Recommends "no";'; echo 'APT::Install-Suggests "no";' )
     curl -sL https://deb.nodesource.com/setup_14.x | bash - && \
     apt-get install -y -qq clang-format-8 doxygen nodejs yamllint && \
     sudo update-alternatives --install /usr/bin/python python /usr/bin/python3 1 && \
-    curl -vL https://bootstrap.pypa.io/get-pip.py | python && \
+    curl -sL https://bootstrap.pypa.io/get-pip.py | python && \
     pip install -U meson ninja && \
     curl -sL https://dl.google.com/go/go1.15.linux-amd64.tar.gz | tar -C /usr/local -xz && \
     curl -sL https://github.com/powerman/rpc-codec/releases/download/v1.1.3/jsonrpc2client-linux-x86_64 | install /dev/stdin /usr/local/bin/jsonrpc2client && \

@@ -19,11 +19,14 @@ jobs:
     env:
       CC: ${{ matrix.compiler }}
     steps:
+      - id: make-cache-key
+        run: |
+          echo "::set-output name=cpuflags::$(lscpu -J | jq -r '.lscpu[] | select(.field=="Flags:") | .data | gsub("[^a-z0-9]"; "")')"
       - uses: actions/cache@v2
         with:
           path: |
             ~/setup-dpdk.cache.*
-          key: ${{ matrix.compiler }}
+          key: ${{ matrix.compiler }}-${{ steps.make-cache-key.outputs.cpuflags }}
       - uses: actions/setup-go@v2
         with:
           go-version: "^1.15"
@@ -72,3 +75,11 @@ jobs:
         run: make lint && [[ $(git status --porcelain | tee /dev/stderr | wc -l) -eq 0 ]]
       - name: build documentation
         run: make docs
+  docker:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: docker/build-push-action@v1
+        with:
+          repository: ndn-dpdk
+          push: false
