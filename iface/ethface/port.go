@@ -14,11 +14,8 @@ import (
 
 // Limits and defaults.
 const (
-	MinRxQueueSize     = 256
-	DefaultRxQueueSize = 8192
-
-	MinTxQueueSize     = 256
-	DefaultTxQueueSize = 8192
+	DefaultRxQueueSize = 4096
+	DefaultTxQueueSize = 4096
 )
 
 // PortConfig contains Port creation arguments.
@@ -30,16 +27,14 @@ type PortConfig struct {
 
 	// RxQueueSize is the hardware RX queue capacity.
 	//
-	// The minimum is MinRxQueueSize.
-	// If this value is less than the minimum, it defaults to DefaultRxQueueSize.
-	// Otherwise, it is adjusted up to the next power of 2.
+	// If this value is zero, it defaults to DefaultRxQueueSize.
+	// It is also adjusted to satisfy driver requirements.
 	RxQueueSize int `json:"rxQueueSize,omitempty"`
 
 	// TxQueueSize is the hardware TX queue capacity.
 	//
-	// The minimum is MinTxQueueSize.
-	// If this value is less than the minimum, it defaults to DefaultTxQueueSize.
-	// Otherwise, it is adjusted up to the next power of 2.
+	// If this value is zero, it defaults to DefaultTxQueueSize.
+	// It is also adjusted to satisfy driver requirements.
 	TxQueueSize int `json:"txQueueSize,omitempty"`
 
 	// NoSetMTU disables setting MTU on the EthDev.
@@ -79,6 +74,12 @@ func NewPort(dev ethdev.EthDev, local net.HardwareAddr, cfg PortConfig) (port *P
 	if cfg.MTU == 0 {
 		cfg.MTU = dev.Mtu()
 		cfg.NoSetMTU = true
+	}
+	if cfg.RxQueueSize == 0 {
+		cfg.RxQueueSize = DefaultRxQueueSize
+	}
+	if cfg.TxQueueSize == 0 {
+		cfg.TxQueueSize = DefaultTxQueueSize
 	}
 	cfg.Config.ApplyDefaults()
 

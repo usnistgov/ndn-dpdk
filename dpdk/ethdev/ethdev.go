@@ -11,10 +11,10 @@ import (
 	"sync"
 	"unsafe"
 
+	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
-	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
 )
 
 // EthDev represents an Ethernet adapter.
@@ -144,8 +144,8 @@ func (port EthDev) Start(cfg Config) error {
 	}
 
 	for i, qcfg := range cfg.RxQueues {
-		capacity := C.uint16_t(ringbuffer.AlignCapacity(qcfg.Capacity))
-		res = C.rte_eth_rx_queue_setup(C.uint16_t(port.ID()), C.uint16_t(i), capacity,
+		capacity := info.Rx_desc_lim.adjustQueueCapacity(qcfg.Capacity)
+		res = C.rte_eth_rx_queue_setup(C.uint16_t(port.ID()), C.uint16_t(i), C.uint16_t(capacity),
 			C.uint(qcfg.Socket.ID()), (*C.struct_rte_eth_rxconf)(qcfg.Conf), (*C.struct_rte_mempool)(qcfg.RxPool.Ptr()))
 		if res != 0 {
 			return fmt.Errorf("rte_eth_rx_queue_setup(%v,%d) error %v", port, i, eal.Errno(-res))
@@ -153,8 +153,8 @@ func (port EthDev) Start(cfg Config) error {
 	}
 
 	for i, qcfg := range cfg.TxQueues {
-		capacity := C.uint16_t(ringbuffer.AlignCapacity(qcfg.Capacity))
-		res = C.rte_eth_tx_queue_setup(C.uint16_t(port.ID()), C.uint16_t(i), capacity,
+		capacity := info.Tx_desc_lim.adjustQueueCapacity(qcfg.Capacity)
+		res = C.rte_eth_tx_queue_setup(C.uint16_t(port.ID()), C.uint16_t(i), C.uint16_t(capacity),
 			C.uint(qcfg.Socket.ID()), (*C.struct_rte_eth_txconf)(qcfg.Conf))
 		if res != 0 {
 			return fmt.Errorf("rte_eth_tx_queue_setup(%v,%d) error %d", port, i, res)
@@ -236,6 +236,11 @@ type TxQueueConfig struct {
 	Capacity int            // ring capacity
 	Socket   eal.NumaSocket // where to allocate the ring
 	Conf     unsafe.Pointer // pointer to rte_eth_txconf
+}
+
+func (lim DescLim) adjustQueueCapacity(capacity int) int {
+	capacity -= capacity % int(lim.Align)
+	return math.MinInt(math.MaxInt(int(lim.Min), capacity), int(lim.Max))
 }
 
 // StopMode selects the behavior of stopping an EthDev.
