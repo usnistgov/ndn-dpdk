@@ -201,13 +201,10 @@ func (la *Allocator) Alloc(role string, socket eal.NumaSocket) (lc eal.LCore) {
 	return lc
 }
 
-// AllocGroup allocates several LCores for each NUMA-bound entities.
-//  roles: LCore roles for each entity.
-//  entities: a slice of eal.WithNumaSocket objects.
+// AllocGroup allocates several LCores for each NUMA socket.
 // Returns a list organized by roles, or nil on failure.
-func (la *Allocator) AllocGroup(roles []string, entities interface{}) (list [][]eal.LCore) {
+func (la *Allocator) AllocGroup(roles []string, sockets []eal.NumaSocket) (list [][]eal.LCore) {
 	list = make([][]eal.LCore, len(roles))
-	sockets := eal.NumaSocketsOf(entities)
 	for _, socket := range sockets {
 		for i, role := range roles {
 			lc := la.pick(role, socket)

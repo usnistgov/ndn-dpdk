@@ -36,9 +36,6 @@ type fwdpInitConfig struct {
 }
 
 func parseCommand(args []string) (initCfg initConfig, e error) {
-	initCfg.Ndt.PrefixLen = 2
-	initCfg.Ndt.IndexBits = 16
-	initCfg.Ndt.SampleFreq = 8
 	initCfg.Fwdp.FwdInterestQueue.DequeueBurstSize = 32
 	initCfg.Fwdp.FwdDataQueue.DequeueBurstSize = 64
 	initCfg.Fwdp.FwdNackQueue.DequeueBurstSize = 64

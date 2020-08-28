@@ -13,13 +13,15 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
-// GqlFib is the FIB instance accessible via GraphQL.
-var GqlFib *Fib
+var (
+	// GqlFib is the FIB instance accessible via GraphQL.
+	GqlFib *Fib
 
-// GqlDefaultStrategy is the default strategy when inserted a FIB entry via GraphQL.
-var GqlDefaultStrategy *strategycode.Strategy
+	errNoGqlFib = errors.New("FIB unavailable")
 
-var errNoGqlFib = errors.New("FIB unavailable")
+	// GqlDefaultStrategy is the default strategy when inserted a FIB entry via GraphQL.
+	GqlDefaultStrategy *strategycode.Strategy
+)
 
 // GraghQL types.
 var (

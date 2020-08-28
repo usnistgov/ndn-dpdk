@@ -23,14 +23,6 @@ Subcommands:
     Read Ethernet port stats.
   eth reset-stats <PORT>
     Read and reset Ethernet port stats.
-  ndt show
-    Show NDT content.
-  ndt counters
-    Show NDT counters.
-  ndt update <HASH> <VALUE>
-    Update an NDT element by hash.
-  ndt updaten <NAME> <VALUE>
-    Update an NDT element by name.
   dpinfo [global]
     Show dataplane global information.
   dpinfo input <I>
@@ -82,16 +74,6 @@ elif [[ $1 == 'eth' ]]; then
     jsonrpc EthFace.ReadPortStats '{"Port":"'$3'","Reset":false}'
   elif [[ $2 == 'reset-stats' ]]; then
     jsonrpc EthFace.ReadPortStats '{"Port":"'$3'","Reset":true}'
-  fi
-elif [[ $1 == 'ndt' ]]; then
-  if [[ $2 == 'show' ]]; then
-    jsonrpc Ndt.ReadTable ''
-  elif [[ $2 == 'counters' ]]; then
-    jsonrpc Ndt.ReadCounters ''
-  elif [[ $2 == 'update' ]]; then
-    jsonrpc Ndt.Update '{"Hash":'$3',"Value":'$4'}'
-  elif [[ $2 == 'updaten' ]]; then
-    jsonrpc Ndt.Update '{"Name":"'$3'","Value":'$4'}'
   fi
 elif [[ $1 == 'dpinfo' ]]; then
   if [[ -z $2 ]] || [[ $2 == 'global' ]]; then

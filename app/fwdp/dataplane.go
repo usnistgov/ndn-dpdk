@@ -52,17 +52,20 @@ func New(cfg Config) (dp *DataPlane, e error) {
 	lcRxTx := ealthread.DefaultAllocator.AllocGroup([]string{roleInput, roleOutput}, faceSockets)
 	lcCrypto := ealthread.DefaultAllocator.Alloc(roleCrypto, eal.NumaSocket{})
 	lcFwds := ealthread.DefaultAllocator.AllocMax(roleFwd)
-	if len(lcRxTx) == 0 || len(lcFwds) == 0 {
+	if lcRxTx == nil || len(lcFwds) == 0 {
 		return nil, ealthread.ErrNoLCore
 	}
+	lcRx, lcTx := lcRxTx[0], lcRxTx[1]
 
 	{
-		lcInputs := append([]eal.LCore{lcCrypto}, lcRxTx[0]...)
+		var lcInputs []eal.LCore
+		lcInputs = append(lcInputs, lcRx...)
+		lcInputs = append(lcInputs, lcCrypto)
 		dp.ndt = ndt.New(cfg.Ndt, eal.NumaSocketsOf(lcInputs))
 		dp.ndt.Randomize(len(lcFwds))
 	}
 
-	for _, lc := range lcRxTx[1] {
+	for _, lc := range lcTx {
 		txl := iface.NewTxLoop(lc.NumaSocket())
 		txl.SetLCore(lc)
 		txl.Launch()

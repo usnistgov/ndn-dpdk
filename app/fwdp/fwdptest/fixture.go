@@ -45,10 +45,6 @@ func NewFixture(t *testing.T) (fixture *Fixture) {
 	dpCfg.Crypto.InputCapacity = 64
 	dpCfg.Crypto.OpPoolCapacity = 1023
 
-	dpCfg.Ndt.PrefixLen = 2
-	dpCfg.Ndt.IndexBits = 16
-	dpCfg.Ndt.SampleFreq = 8
-
 	dpCfg.Fib.Capacity = 65535
 	dpCfg.Fib.NBuckets = 256
 	dpCfg.Fib.StartDepth = 8

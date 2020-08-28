@@ -40,13 +40,12 @@ LCoreAlloc:
 
 # NAME DISPATCH TABLE
 Ndt:
-  # Names are dispatched using a prefix with this number of components.
-  PrefixLen: 2
-  # There are 2^IndexBits entries in the table.
-  IndexBits: 16
-  # Counters of the number of Interests dispatched to each entry are updated
-  # only once every 2^SampleFreq lookups. Must not exceed 30.
-  SampleFreq: 8
+  # Number of name components considered in NDT lookup.
+  prefixLen: 2
+  # Number of NDT entries.
+  capacity: 65536
+  # How often per-entry counters are incremented within a lookup thread.
+  sampleInterval: 1024
 
 # FORWARDING INFORMATION BASE
 Fib:

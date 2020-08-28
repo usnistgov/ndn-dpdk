@@ -3,7 +3,6 @@ package ndt_test
 import (
 	"math/rand"
 	"reflect"
-	"sort"
 	"strconv"
 	"testing"
 	"time"
@@ -70,12 +69,12 @@ func TestNdt(t *testing.T) {
 	assert, require := makeAR(t)
 
 	cfg := ndt.Config{
-		PrefixLen:  2,
-		IndexBits:  8,
-		SampleFreq: 2,
+		PrefixLen:      2,
+		Capacity:       256,
+		SampleInterval: 4,
 	}
-	ndt := ndt.New(cfg, make([]eal.NumaSocket, 4))
-	defer ndt.Close()
+	table := ndt.New(cfg, make([]eal.NumaSocket, 4))
+	defer table.Close()
 
 	var names []ndn.Name
 	var nameIndices map[uint64]bool
@@ -83,23 +82,23 @@ func TestNdt(t *testing.T) {
 		suffix := "_" + strconv.FormatUint(rand.Uint64(), 16)
 		nameUris := []string{
 			"/",
-			"/...",
-			"/A/2=C" + suffix,
-			"/A/A" + suffix + "/C",
-			"/A/A" + suffix + "/D",
-			"/B",
-			"/B/2=C" + suffix,
-			"/B/C" + suffix,
+			"/" + suffix,
+			"/A" + suffix + "/2=C",
+			"/A" + suffix + "/A/C",
+			"/A" + suffix + "/A/D",
+			"/B" + suffix,
+			"/B" + suffix + "/2=C",
+			"/B" + suffix + "/C",
 		}
 		names = make([]ndn.Name, len(nameUris))
 		nameIndices = make(map[uint64]bool)
 		for i, nameStr := range nameUris {
 			names[i] = ndn.ParseName(nameStr)
-			nameIndices[ndt.IndexOfName(names[i])] = true
+			nameIndices[table.IndexOfName(names[i])] = true
 		}
 	}
 
-	ndtts := ndt.Threads()
+	ndtts := table.Threads()
 	threads := []*lookupTestThread{
 		newNdtLookupTestThread(ndtts[0], names[:6]),
 		newNdtLookupTestThread(ndtts[1], names[:6]),
@@ -107,27 +106,29 @@ func TestNdt(t *testing.T) {
 		newNdtLookupTestThread(ndtts[3], names[6:]),
 	}
 
-	ndt.Randomize(250)
-	cnt0 := ndt.ReadCounters()
+	table.Randomize(250)
+	list0 := table.List()
 	for _, th := range threads {
 		require.NoError(ealthread.Launch(th))
 	}
 
 	time.Sleep(100 * time.Millisecond)
-	cnt1 := ndt.ReadCounters()
-	ndt.Randomize(250)
+	list1 := table.List()
+	table.Randomize(250)
 	time.Sleep(100 * time.Millisecond)
 
 	for _, th := range threads {
 		th.Stop()
 	}
 	time.Sleep(10 * time.Millisecond)
-	cnt2 := ndt.ReadCounters()
+	list2 := table.List()
 
 	// all counters are zero initially
-	require.Len(cnt0, 256)
-	sort.Ints(cnt0)
-	assert.Zero(cnt0[255])
+	require.Len(list0, 256)
+	for i, entry := range list0 {
+		assert.Equal(i, entry.Index, "%d", i)
+		assert.Zero(entry.Hits, "%d", i)
+	}
 
 	// each name has one or two results
 	for j, th := range threads {
@@ -147,16 +148,16 @@ func TestNdt(t *testing.T) {
 	// /A/A/C and /A/A/D should have same results
 	assert.Equal(threads[0].Entries[3].Results, threads[0].Entries[4].Results)
 
-	verifyCnt := func(cnt []int) {
-		require.Len(cnt, 256)
-		for i, n := range cnt {
+	verifyCnt := func(list []ndt.Entry) {
+		require.Len(list, 256)
+		for i, entry := range list {
 			if nameIndices[uint64(i)] {
-				assert.NotZero(n)
+				assert.NotZero(entry.Hits, "%d", i)
 			} else {
-				assert.Zero(n)
+				assert.Zero(entry.Hits, "%d", i)
 			}
 		}
 	}
-	verifyCnt(cnt1)
-	verifyCnt(cnt2)
+	verifyCnt(list1)
+	verifyCnt(list2)
 }

@@ -1,5 +1,5 @@
 export interface NdtConfig {
-  PrefixLen: number;
-  IndexBits: number;
-  SampleFreq: number;
+  prefixLen?: number;
+  capacity?: number;
+  sampleInterval?: number;
 }

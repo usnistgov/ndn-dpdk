@@ -8,7 +8,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
-// Input thread.
+// Input represents an input thread.
 type Input struct {
 	id  int
 	rxl iface.RxLoop
@@ -23,7 +23,7 @@ func newInput(id int, lc eal.LCore, ndt *ndt.Ndt, fwds []*Fwd) *Input {
 	rxl.SetLCore(lc)
 
 	demuxI := rxl.InterestDemux()
-	demuxI.InitNdt(ndt, id)
+	demuxI.InitNdt(ndt.Threads()[id])
 	demuxD := rxl.DataDemux()
 	demuxD.InitToken()
 	demuxN := rxl.NackDemux()
@@ -38,6 +38,7 @@ func newInput(id int, lc eal.LCore, ndt *ndt.Ndt, fwds []*Fwd) *Input {
 	return &fwi
 }
 
+// Close stops the thread.
 func (fwi *Input) Close() error {
 	return fwi.rxl.Close()
 }

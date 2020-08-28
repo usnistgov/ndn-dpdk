@@ -18,11 +18,13 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
+// CryptoConfig contains crypto helper thread configuration.
 type CryptoConfig struct {
 	InputCapacity  int
 	OpPoolCapacity int
 }
 
+// Crypto represents a crypto helper thread.
 type Crypto struct {
 	ealthread.Thread
 	id     int
@@ -70,7 +72,7 @@ func newCrypto(id int, lc eal.LCore, cfg CryptoConfig, ndt *ndt.Ndt, fwds []*Fwd
 	fwc.devM.QueuePairs()[0].CopyToC(unsafe.Pointer(&fwc.c.multiSeg))
 
 	fwc.demuxD = iface.InputDemuxFromPtr(unsafe.Pointer(&fwc.c.output))
-	fwc.demuxD.InitNdt(ndt, id)
+	fwc.demuxD.InitNdt(ndt.Threads()[id])
 	for i, fwd := range fwds {
 		fwc.demuxD.SetDest(i, fwd.queueD)
 		fwd.c.crypto = fwc.c.input
@@ -79,10 +81,7 @@ func newCrypto(id int, lc eal.LCore, cfg CryptoConfig, ndt *ndt.Ndt, fwds []*Fwd
 	return fwc, nil
 }
 
-func (fwc *Crypto) String() string {
-	return fmt.Sprintf("crypto%d", fwc.id)
-}
-
+// Close stops the thread.
 func (fwc *Crypto) Close() error {
 	fwc.Stop()
 
@@ -92,4 +91,8 @@ func (fwc *Crypto) Close() error {
 	ringbuffer.FromPtr(unsafe.Pointer(fwc.c.input)).Close()
 	eal.Free(unsafe.Pointer(fwc.c))
 	return nil
+}
+
+func (fwc *Crypto) String() string {
+	return fmt.Sprintf("crypto%d", fwc.id)
 }
