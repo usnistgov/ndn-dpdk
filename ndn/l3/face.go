@@ -3,7 +3,7 @@
 // The Transport interface defines a lower layer communication channel.
 // It knows NDN-TLV structure, but not NDN packet types.
 // It should be implemented for different communication technologies.
-// NDN-DPDK codebase offers Transport implementations for Unix, UDP, TCP, and AF_PACKET sockets.
+// NDNgo library offers Transport implementations for Unix, UDP, TCP, and AF_PACKET sockets.
 //
 // The Face type is the service exposed to the network layer.
 // It allows sending and receiving packets on a Transport.
@@ -16,7 +16,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
 
-// Face represents a communicate channel to send and receive TLV packets.
+// Face represents a communicate channel to send and receive NDN network layer packets.
 type Face interface {
 	// Transport returns the underlying transport.
 	Transport() Transport
@@ -36,11 +36,12 @@ type Face interface {
 }
 
 // NewFace creates a Face.
+// tr.Rx() and tr.Tx() should not be used after this operation.
 func NewFace(tr Transport) (Face, error) {
 	f := &face{
-		tr: tr,
-		rx: make(chan *ndn.Packet),
-		tx: make(chan ndn.L3Packet),
+		faceTr: faceTr{tr},
+		rx:     make(chan *ndn.Packet),
+		tx:     make(chan ndn.L3Packet),
 	}
 	go f.rxLoop()
 	go f.txLoop()
@@ -48,13 +49,17 @@ func NewFace(tr Transport) (Face, error) {
 }
 
 type face struct {
-	tr Transport
+	faceTr
 	rx chan *ndn.Packet
 	tx chan ndn.L3Packet
 }
 
+type faceTr struct {
+	Transport
+}
+
 func (f *face) Transport() Transport {
-	return f.tr
+	return f.faceTr.Transport
 }
 
 func (f *face) Rx() <-chan *ndn.Packet {
@@ -65,16 +70,8 @@ func (f *face) Tx() chan<- ndn.L3Packet {
 	return f.tx
 }
 
-func (f *face) State() TransportState {
-	return f.tr.State()
-}
-
-func (f *face) OnStateChange(cb func(st TransportState)) io.Closer {
-	return f.tr.OnStateChange(cb)
-}
-
 func (f *face) rxLoop() {
-	for wire := range f.tr.Rx() {
+	for wire := range f.faceTr.Rx() {
 		var packet ndn.Packet
 		e := tlv.Decode(wire, &packet)
 		if e != nil {
@@ -86,7 +83,7 @@ func (f *face) rxLoop() {
 }
 
 func (f *face) txLoop() {
-	transportTx := f.tr.Tx()
+	transportTx := f.faceTr.Tx()
 	for l3packet := range f.tx {
 		wire, e := tlv.Encode(l3packet.ToPacket())
 		if e != nil {

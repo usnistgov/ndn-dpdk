@@ -1,4 +1,5 @@
 // Package ndn implements Named Data Networking (NDN) packet semantics.
+// This is the top-level package of NDNgo, a minimal NDN library in pure Go.
 //
 // This package contains the following important types:
 //  Packet representation:

@@ -92,6 +92,14 @@ func (interest Interest) String() string {
 	return b.String()
 }
 
+// ApplyDefaultLifetime updates Lifetime to the default if it is not set.
+func (interest *Interest) ApplyDefaultLifetime() time.Duration {
+	if interest.Lifetime == 0 {
+		interest.Lifetime = DefaultInterestLifetime
+	}
+	return interest.Lifetime
+}
+
 // UpdateParamsDigest appends or updates ParametersSha256DigestComponent.
 // It will not remove erroneously present or duplicate ParametersSha256DigestComponent.
 func (interest *Interest) UpdateParamsDigest() {
