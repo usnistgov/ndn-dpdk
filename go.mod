@@ -19,9 +19,10 @@ require (
 	github.com/powerman/rpc-codec v1.2.2
 	github.com/rackn/gohai v0.5.0
 	github.com/sirupsen/logrus v1.6.0
+	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/stretchr/testify v1.6.1
 	github.com/urfave/cli/v2 v2.2.0
-	golang.org/x/net v0.0.0-20200813134508-3edf25e44fcc // indirect
-	golang.org/x/sys v0.0.0-20200819171115-d785dc25833f
+	golang.org/x/net v0.0.0-20200904194848-62affa334b73 // indirect
+	golang.org/x/sys v0.0.0-20200905004654-be1d3432aa8f
 	gopkg.in/yaml.v2 v2.3.0 // indirect
 )
