@@ -17,11 +17,13 @@ This program is a demonstration of low-level APIs in [ndn-dpdk/ndn](../../ndn) a
 sudo ndndpdk-packetdemo -i eth1 -dump
 
 # consumer: send Interests via local forwarder
-#   'sudo' is not needed when using memif
-ndndpdk-packetdemo -transmit 1ms -prefix /packetdemo -dump
+sudo ndndpdk-packetdemo -transmit 1ms -prefix /packetdemo -dump
 
 # producer: respond to every Interest with Data
 sudo ndndpdk-packetdemo -i eth1 -respond -payloadlen 1000
+
+# producer: add route on local forwarder and respond to Interests
+sudo ndndpdk-packetdemo -respond -register /packetdemo
 ```
 
 Execute `ndndpdk-packetdemo -h` to see additional flags.

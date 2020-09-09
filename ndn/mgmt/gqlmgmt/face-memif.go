@@ -49,6 +49,7 @@ func (c *Client) OpenMemif(loc memiftransport.Locator) (mgmt.Face, error) {
 	f := &face{
 		faceJSON: faceJ,
 		client:   c,
+		routes:   make(map[string]string),
 	}
 	return f, f.openMemif(loc)
 }

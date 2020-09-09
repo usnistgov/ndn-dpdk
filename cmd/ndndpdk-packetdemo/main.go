@@ -29,6 +29,7 @@ var (
 	payloadlen = flag.Int("payloadlen", 0, "Data payload length for -respond")
 	transmit   = flag.Duration("transmit", 0, "transmit Interests at given interval")
 	prefix     = flag.String("prefix", fmt.Sprintf("/ndndpdk/%d", time.Now().Unix()), "Interest name prefix for -transmit")
+	register   = flag.String("register", "", "add route for name prefix")
 )
 
 func init() {
@@ -47,6 +48,13 @@ func createFaceLocal() (face l3.Face, cleanup func()) {
 	if e != nil {
 		fmt.Fprintln(os.Stderr, e)
 		os.Exit(1)
+	}
+
+	if *register != "" {
+		e := f.AddRoute(ndn.ParseName(*register))
+		if e != nil {
+			log.Fatalln("AddRoute error", e)
+		}
 	}
 
 	log.Println("Opening memif face on local forwarder", f.ID())

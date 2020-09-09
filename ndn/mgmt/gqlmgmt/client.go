@@ -11,6 +11,16 @@ type Client struct {
 	*gqlclient.Client
 }
 
+func (c *Client) delete(id string) error {
+	return c.Do(`
+		mutation delete($id: ID!) {
+			delete(id: $id)
+		}
+	`, map[string]interface{}{
+		"id": id,
+	}, "", nil)
+}
+
 var _ mgmt.Client = (*Client)(nil)
 
 // New creates a Client.
