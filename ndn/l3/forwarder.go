@@ -1,49 +1,24 @@
 package l3
 
 import (
-	"errors"
-	"io"
 	"math/rand"
 	"sync"
 
+	"github.com/jwangsadinata/go-multimap"
+	"github.com/jwangsadinata/go-multimap/setmultimap"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 )
-
-const (
-	tokenBits       = 64
-	tokenSuffixBits = 48
-	tokenPrefixBits = tokenBits - tokenSuffixBits
-	tokenSuffixMask = 1<<tokenSuffixBits - 1
-	tokenPrefixMask = (1<<tokenBits - 1) - tokenSuffixMask
-
-	// MaxFwFaces is the maximum number of active FwFaces in a Forwarder.
-	MaxFwFaces = 1 << tokenPrefixBits / 4
-)
-
-// Error conditions.
-var (
-	ErrMaxFwFaces = errors.New("too many FwFaces")
-)
-
-var defaultFw Forwarder
-
-// FwFace represents a face added to the forwarder.
-type FwFace interface {
-	io.Closer
-	Transport() Transport
-	State() TransportState
-	OnStateChange(cb func(st TransportState)) io.Closer
-
-	AddRoute(prefix ndn.Name)
-	RemoveRoute(prefix ndn.Name)
-}
 
 // Forwarder is a logical forwarding plane.
 // Its main purpose is to demultiplex incoming packets among faces, where a 'face' is defined as a duplex stream of packets.
 //
 // This is a simplified forwarder with several limitations.
-// There is no loop prevention, so it is not recommended to connect multiple uplinks with "/" route simultaneously.
-// Nack handling is incomplete: if any nexthop replies a Nack, it is delivered to the consumer without waiting for other nexthops.
+//  - There is no loop prevention: no Nonce list and no decrementing HopLimit.
+//    If multiple uplinks have "/" route, Interests will be forwarded among them and might cause persistent loops.
+//    Thus, it is not recommended to connect to multiple uplinks.
+//  - There is no pending Interest table. Instead, downstream 'face' ID is inserted as part of the PIT token.
+//    Since the NDN-DPDK forwarder expects 8-octet PIT tokens, this takes away some space.
+//    Thus, consumers are allowed to use a PIT token up to 4 octets; Interests with longer PIT tokens may be dropped.
 type Forwarder interface {
 	// AddTransport constructs a Face and invokes AddFace.
 	AddTransport(tr Transport) (FwFace, error)
@@ -51,23 +26,42 @@ type Forwarder interface {
 	// AddFace adds a Face to the forwarder.
 	// face.Rx() and face.Tx() should not be used after this operation.
 	AddFace(face Face) (FwFace, error)
+
+	// AddReadvertiseDestination adds a destination for prefix announcement.
+	//
+	// Limitations of current implementation:
+	//  - Existing announcements are not advertised on dest.
+	//    Thus, it is recommended to add all readvertise destinations before announcing a prefix.
+	//  - There is no error handling.
+	AddReadvertiseDestination(dest ReadvertiseDestination)
+
+	// RemoveReadvertiseDestination removes a destination for prefix announcement.
+	//
+	// Limitations of current implementation:
+	//  - Announcements are not withdrawn before removing dest.
+	//  - There is no error handling.
+	RemoveReadvertiseDestination(dest ReadvertiseDestination)
 }
 
 // NewForwarder creates a Forwarder.
 func NewForwarder() Forwarder {
 	fw := &forwarder{
-		faces: make(map[uint64]*fwFace),
-		cmd:   make(chan func()),
-		pkt:   make(chan *ndn.Packet),
+		faces:         make(map[uint16]*fwFace),
+		announcements: setmultimap.New(),
+		readvertise:   make(map[ReadvertiseDestination]bool),
+		cmd:           make(chan func()),
+		pkt:           make(chan *ndn.Packet),
 	}
 	go fw.loop()
 	return fw
 }
 
 type forwarder struct {
-	faces map[uint64]*fwFace
-	cmd   chan func()
-	pkt   chan *ndn.Packet
+	faces         map[uint16]*fwFace
+	announcements multimap.MultiMap // multimap[string(prefixV)]*fwFace
+	readvertise   map[ReadvertiseDestination]bool
+	cmd           chan func()
+	pkt           chan *ndn.Packet
 }
 
 func (fw *forwarder) AddTransport(tr Transport) (FwFace, error) {
@@ -80,10 +74,10 @@ func (fw *forwarder) AddTransport(tr Transport) (FwFace, error) {
 
 func (fw *forwarder) AddFace(face Face) (ff FwFace, e error) {
 	f := &fwFace{
-		Face:        face,
-		fw:          fw,
-		tokenSuffix: rand.Uint64(),
-		routes:      make(map[string]ndn.Name),
+		Face:          face,
+		fw:            fw,
+		routes:        make(map[string]ndn.Name),
+		announcements: make(map[string]ndn.Name),
 	}
 
 	fw.execute(func() {
@@ -93,14 +87,32 @@ func (fw *forwarder) AddFace(face Face) (ff FwFace, e error) {
 			return
 		}
 
-		for f.tokenPrefix == 0 || fw.faces[f.tokenPrefix] != nil {
-			f.tokenPrefix = rand.Uint64() << tokenSuffixBits
+		for f.id == 0 || fw.faces[f.id] != nil {
+			f.id = uint16(rand.Uint32())
 		}
-		fw.faces[f.tokenPrefix] = f
+		fw.faces[f.id] = f
 	})
 
 	go f.rxLoop()
 	return f, e
+}
+
+func (fw *forwarder) AddReadvertiseDestination(dest ReadvertiseDestination) {
+	fw.execute(func() {
+		if fw.readvertise[dest] {
+			return
+		}
+		fw.readvertise[dest] = true
+	})
+}
+
+func (fw *forwarder) RemoveReadvertiseDestination(dest ReadvertiseDestination) {
+	fw.execute(func() {
+		if !fw.readvertise[dest] {
+			return
+		}
+		delete(fw.readvertise, dest)
+	})
 }
 
 func (fw *forwarder) execute(fn func()) {
@@ -144,68 +156,22 @@ func (fw *forwarder) forwardInterest(pkt *ndn.Packet) {
 	}
 
 	for _, f := range nexthops {
-		f.Tx() <- pkt
+		select {
+		case f.Tx() <- pkt:
+		default:
+		}
 	}
 }
 
 func (fw *forwarder) forwardDataNack(pkt *ndn.Packet) {
-	token := ndn.PitTokenToUint(pkt.Lp.PitToken)
-	tokenPrefix := token & tokenPrefixMask
-	if f := fw.faces[tokenPrefix]; f != nil {
-		f.Tx() <- pkt
-	}
-}
-
-type fwFace struct {
-	Face
-	fw          *forwarder
-	tokenPrefix uint64
-	tokenSuffix uint64
-	routes      map[string]ndn.Name
-}
-
-func (f *fwFace) rxLoop() {
-	for pkt := range f.Rx() {
-		switch {
-		case pkt.Interest != nil:
-			f.tokenSuffix++
-			pkt.Lp.PitToken = ndn.PitTokenFromUint(f.tokenPrefix | (f.tokenSuffix & tokenSuffixMask))
-			f.fw.pkt <- pkt
-		case pkt.Data != nil, pkt.Nack != nil:
-			f.fw.pkt <- pkt
+	id, token := tokenStripID(pkt.Lp.PitToken)
+	if f := fw.faces[id]; f != nil {
+		pkt.Lp.PitToken = token
+		select {
+		case f.Tx() <- pkt:
+		default:
 		}
 	}
-}
-
-func (f *fwFace) AddRoute(prefix ndn.Name) {
-	prefixV, _ := prefix.MarshalBinary()
-	f.fw.execute(func() {
-		f.routes[string(prefixV)] = prefix
-	})
-}
-
-func (f *fwFace) RemoveRoute(prefix ndn.Name) {
-	prefixV, _ := prefix.MarshalBinary()
-	f.fw.execute(func() {
-		delete(f.routes, string(prefixV))
-	})
-}
-
-func (f *fwFace) lpmRoute(name ndn.Name) int {
-	for _, prefix := range f.routes {
-		if prefix.IsPrefixOf(name) {
-			return len(prefix)
-		}
-	}
-	return -1
-}
-
-func (f *fwFace) Close() error {
-	f.fw.execute(func() {
-		delete(f.fw.faces, f.tokenPrefix)
-		close(f.Tx())
-	})
-	return nil
 }
 
 var (

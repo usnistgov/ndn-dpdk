@@ -51,9 +51,9 @@ func createFaceLocal() (face l3.Face, cleanup func()) {
 	}
 
 	if *register != "" {
-		e := f.AddRoute(ndn.ParseName(*register))
+		e := f.Advertise(ndn.ParseName(*register))
 		if e != nil {
-			log.Fatalln("AddRoute error", e)
+			log.Fatalln("Advertise error", e)
 		}
 	}
 

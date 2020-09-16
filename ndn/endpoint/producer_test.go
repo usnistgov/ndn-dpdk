@@ -135,3 +135,76 @@ func TestProducerConcurrent(t *testing.T) {
 	assert.InDelta(pCompleted, cData, 50)
 	assert.InDelta(pCanceled, cExpire, 50)
 }
+
+var producerHandlerNever endpoint.ProducerHandler = func(ctx context.Context, interest ndn.Interest) (ndn.Data, error) {
+	panic("this ProducerHandler should not be invoked")
+}
+
+type readvertiseDestinationMock struct {
+	advertised []ndn.Name
+	withdrawn  []ndn.Name
+}
+
+func (dest *readvertiseDestinationMock) Advertise(prefix ndn.Name) error {
+	dest.advertised = append(dest.advertised, prefix)
+	return nil
+}
+
+func (dest *readvertiseDestinationMock) Withdraw(prefix ndn.Name) error {
+	dest.withdrawn = append(dest.withdrawn, prefix)
+	return nil
+}
+
+func TestProducerAdvertise(t *testing.T) {
+	defer l3.DeleteDefaultForwarder()
+	assert, require := makeAR(t)
+
+	var dest readvertiseDestinationMock
+	l3.GetDefaultForwarder().AddReadvertiseDestination(&dest)
+
+	p1, e := endpoint.Produce(context.Background(), endpoint.ProducerOptions{
+		Prefix:  ndn.ParseName("/A"),
+		Handler: producerHandlerNever,
+	})
+	require.NoError(e)
+	if assert.Len(dest.advertised, 1) {
+		nameEqual(assert, dest.advertised[0], "/A")
+	}
+
+	p2, e := endpoint.Produce(context.Background(), endpoint.ProducerOptions{
+		Prefix:  ndn.ParseName("/A"),
+		Handler: producerHandlerNever,
+	})
+	require.NoError(e)
+	assert.Len(dest.advertised, 1)
+
+	p1.Close()
+	time.Sleep(50 * time.Millisecond)
+	assert.Len(dest.withdrawn, 0)
+
+	p2.Close()
+	time.Sleep(50 * time.Millisecond) // producer.Close is asynchronous
+	if assert.Len(dest.withdrawn, 1) {
+		nameEqual(assert, dest.withdrawn[0], "/A")
+	}
+}
+
+func TestProducerNoAdvertise(t *testing.T) {
+	defer l3.DeleteDefaultForwarder()
+	assert, require := makeAR(t)
+
+	var dest readvertiseDestinationMock
+	l3.GetDefaultForwarder().AddReadvertiseDestination(&dest)
+
+	p, e := endpoint.Produce(context.Background(), endpoint.ProducerOptions{
+		Prefix:      ndn.ParseName("/A"),
+		NoAdvertise: true,
+		Handler:     producerHandlerNever,
+	})
+	require.NoError(e)
+	assert.Len(dest.advertised, 0)
+
+	p.Close()
+	time.Sleep(50 * time.Millisecond) // producer.Close is asynchronous
+	assert.Len(dest.withdrawn, 0)
+}

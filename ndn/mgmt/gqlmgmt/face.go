@@ -41,7 +41,7 @@ func (f *face) Close() error {
 	return e
 }
 
-func (f *face) AddRoute(name ndn.Name) error {
+func (f *face) Advertise(name ndn.Name) error {
 	if f.client == nil {
 		return ErrFaceClosed
 	}
@@ -70,7 +70,7 @@ func (f *face) AddRoute(name ndn.Name) error {
 	return e
 }
 
-func (f *face) RemoveRoute(name ndn.Name) error {
+func (f *face) Withdraw(name ndn.Name) error {
 	if f.client == nil {
 		return ErrFaceClosed
 	}

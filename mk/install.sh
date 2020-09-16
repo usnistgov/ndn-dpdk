@@ -9,13 +9,14 @@ install -m0644 build/lib/bpf/*.o $DESTBPF/
 
 DESTSBIN=$DESTDIR/sbin
 install -d -m0755 $DESTSBIN
+install -m0744 build/bin/ndndpdk-godemo $DESTSBIN/
+install -m0744 build/bin/ndndpdk-packetdemo $DESTSBIN/
 install -m0744 build/bin/ndnfw-dpdk $DESTSBIN/
 install -m0744 build/bin/ndnping-dpdk $DESTSBIN/
 
 DESTBIN=$DESTDIR/bin
 install -d -m0755 $DESTBIN
 install -m0755 build/bin/ndndpdk-ctrl $DESTBIN/
-install -m0755 build/bin/ndndpdk-packetdemo $DESTBIN/
 install -m0755 build/bin/ndndpdk-hrlog2histogram $DESTBIN/
 install -m0755 cmd/mgmtclient/mgmtcmd.sh $DESTBIN/ndndpdk-mgmtcmd
 

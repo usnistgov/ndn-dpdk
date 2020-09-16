@@ -37,6 +37,10 @@ type ProducerOptions struct {
 	// Prefix is the name prefix of the producer.
 	Prefix ndn.Name
 
+	// NoAdvertise disables prefix announcement.
+	// Default is announcing the prefix.
+	NoAdvertise bool
+
 	// Handler is a function to handle Interests under the prefix.
 	// This may be invoked concurrently.
 	Handler ProducerHandler
@@ -68,6 +72,9 @@ func Produce(ctx context.Context, opts ProducerOptions) (Producer, error) {
 		return nil, e
 	}
 	face.fwFace.AddRoute(opts.Prefix)
+	if !opts.NoAdvertise {
+		face.fwFace.AddAnnouncement(opts.Prefix)
+	}
 
 	ctx1, cancel := context.WithCancel(ctx)
 	p := &producer{

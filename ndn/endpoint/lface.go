@@ -41,8 +41,8 @@ func (face *lFace) OnStateChange(cb func(st l3.TransportState)) io.Closer {
 
 func newLFace(fw l3.Forwarder) (face *lFace, e error) {
 	face = &lFace{
-		ep2fw: make(chan *ndn.Packet),
-		fw2ep: make(chan ndn.L3Packet),
+		ep2fw: make(chan *ndn.Packet, 16),
+		fw2ep: make(chan ndn.L3Packet, 16),
 	}
 	face.fwFace, e = fw.AddFace(face)
 	return face, e

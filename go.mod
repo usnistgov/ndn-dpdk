@@ -14,6 +14,7 @@ require (
 	github.com/graphql-go/graphql v0.7.9
 	github.com/jaypipes/ghw v0.6.1
 	github.com/jfoster/bintools v0.1.1
+	github.com/jwangsadinata/go-multimap v0.0.0-20190620162914-c29f3d7f33b6
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pkg/math v0.0.0-20141027224758-f2ed9e40e245
 	github.com/powerman/rpc-codec v1.2.2
@@ -23,6 +24,6 @@ require (
 	github.com/stretchr/testify v1.6.1
 	github.com/urfave/cli/v2 v2.2.0
 	golang.org/x/net v0.0.0-20200904194848-62affa334b73 // indirect
-	golang.org/x/sys v0.0.0-20200905004654-be1d3432aa8f
+	golang.org/x/sys v0.0.0-20200916084744-dbad9cb7cb7a
 	gopkg.in/yaml.v2 v2.3.0 // indirect
 )

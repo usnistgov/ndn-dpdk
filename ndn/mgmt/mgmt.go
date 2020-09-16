@@ -27,11 +27,13 @@ type Face interface {
 	// Close requests the face to be closed.
 	Close() error
 
-	// AddRoute adds a route.
-	// Adding the same route more than once is not an error but has no effect.
-	AddRoute(prefix ndn.Name) error
+	// Advertise advertises a prefix announcement.
+	// The connected forwarder should start delivering Interests matching this prefix to this face.
+	// Advertising the same name more than once is not an error but has no effect.
+	Advertise(name ndn.Name) error
 
-	// RemoveRoute removes a route.
-	// Removing a non-existent route is not an error but has no effect.
-	RemoveRoute(prefix ndn.Name) error
+	// Withdraw removes a route.
+	// The connected forwarder should stop delivering Interests matching this prefix to this face.
+	// Withdrawing an unadvertised name is not an error but has no effect.
+	Withdraw(name ndn.Name) error
 }
