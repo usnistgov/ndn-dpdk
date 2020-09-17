@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"sync/atomic"
 	"time"
 
 	"github.com/urfave/cli/v2"
@@ -93,17 +94,20 @@ func init() {
 
 			ticker := time.NewTicker(interval)
 			seqNum := rand.Uint64()
+			var nData, nErrors int64
 			for {
 				select {
 				case timestamp := <-ticker.C:
 					go func(t0 time.Time, s uint64) {
-						interest := ndn.MakeInterest(fmt.Sprintf("%s/%d", name, seqNum), ndn.MustBeFreshFlag, lifetime)
-						data, e := endpoint.Consume(ctx, interest, endpoint.ConsumerOptions{})
+						interest := ndn.MakeInterest(fmt.Sprintf("%s/%016X", name, seqNum), ndn.MustBeFreshFlag, lifetime)
+						_, e := endpoint.Consume(ctx, interest, endpoint.ConsumerOptions{})
 						rtt := time.Now().Sub(t0)
 						if e == nil {
-							log.Printf("D %6dus %v", rtt.Microseconds(), data)
+							atomic.AddInt64(&nData, 1)
+							log.Printf("%6.2f%% D %016X %6dus", 100*float64(nData)/float64(nData+nErrors), seqNum, rtt.Microseconds())
 						} else {
-							log.Printf("E          %v %v", interest, e)
+							atomic.AddInt64(&nErrors, 1)
+							log.Printf("%6.2f%% E %016X %v", 100*float64(nData)/float64(nData+nErrors), seqNum, e)
 						}
 					}(timestamp, seqNum)
 					seqNum++

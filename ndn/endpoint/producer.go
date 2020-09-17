@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"sync"
 
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
@@ -103,25 +104,34 @@ func (p *producer) Close() error {
 }
 
 func (p *producer) loop(ctx context.Context) {
-	defer p.close()
-	defer p.face.fwFace.Close()
+	var wg sync.WaitGroup
+	wg.Add(1)
+	defer func() {
+		wg.Wait()
+		p.face.Close()
+		p.close()
+	}()
 
 L:
 	for {
 		select {
 		case <-ctx.Done():
+			wg.Done()
 			return
 		case l3pkt := <-p.face.fw2ep:
 			pkt := l3pkt.ToPacket()
 			if pkt.Interest == nil {
 				continue L
 			}
-			go p.handleInterest(ctx, pkt)
+			wg.Add(1)
+			go p.handleInterest(ctx, &wg, pkt)
 		}
 	}
 }
 
-func (p *producer) handleInterest(ctx context.Context, pkt *ndn.Packet) {
+func (p *producer) handleInterest(ctx context.Context, wg *sync.WaitGroup, pkt *ndn.Packet) {
+	defer wg.Done()
+
 	interest := pkt.Interest
 	if !p.Prefix.IsPrefixOf(interest.Name) {
 		return

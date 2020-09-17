@@ -156,10 +156,7 @@ func (fw *forwarder) forwardInterest(pkt *ndn.Packet) {
 	}
 
 	for _, f := range nexthops {
-		select {
-		case f.Tx() <- pkt:
-		default:
-		}
+		f.Tx() <- pkt
 	}
 }
 
@@ -167,10 +164,7 @@ func (fw *forwarder) forwardDataNack(pkt *ndn.Packet) {
 	id, token := tokenStripID(pkt.Lp.PitToken)
 	if f := fw.faces[id]; f != nil {
 		pkt.Lp.PitToken = token
-		select {
-		case f.Tx() <- pkt:
-		default:
-		}
+		f.Tx() <- pkt
 	}
 }
 

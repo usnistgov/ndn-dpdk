@@ -48,7 +48,7 @@ func Consume(ctx context.Context, interest ndn.Interest, opts ConsumerOptions) (
 	if e != nil {
 		return nil, e
 	}
-	defer face.fwFace.Close()
+	defer face.Close()
 
 	retxIntervals := opts.Retx.IntervalIterable(interest.ApplyDefaultLifetime())
 L:

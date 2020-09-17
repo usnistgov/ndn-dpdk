@@ -13,6 +13,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 )
 
+// lFace is a logical face between endpoint (consumer or producer) and internal forwarder.
 type lFace struct {
 	ep2fw  chan *ndn.Packet
 	fw2ep  chan ndn.L3Packet
@@ -37,6 +38,17 @@ func (face *lFace) State() l3.TransportState {
 
 func (face *lFace) OnStateChange(cb func(st l3.TransportState)) io.Closer {
 	panic("not supported")
+}
+
+func (face *lFace) Close() error {
+	close(face.ep2fw)
+	go func() {
+		n := 0
+		for range face.fw2ep {
+			n++
+		}
+	}()
+	return face.fwFace.Close()
 }
 
 func newLFace(fw l3.Forwarder) (face *lFace, e error) {
