@@ -33,7 +33,7 @@ KeyChain
 * Encryption: no
 * Signing algorithms
   * SHA256: yes
-  * ECDSA: no
+  * ECDSA: yes (in [package eckey](keychain/eckey))
   * RSA: yes (in [package rsakey](keychain/rsakey))
   * HMAC-SHA256: no
   * [Null](https://redmine.named-data.net/projects/ndn-tlv/wiki/NullSignature): yes
@@ -41,8 +41,17 @@ KeyChain
 * Key persistence: no
 * Trust schema: no
 
+Application layer services
+
+* Endpoint: yes
+* Segmented object producer and consumer: no
+
 ## Getting Started
 
-At the moment, this library lacks an application layer *Face* or *Endpoint* abstraction.
-The best place to get started is [package l3](l3) `l3.Face` type, which provides a network layer face abstraction.
-An example is in [command ndndpdk-packetdemo](../cmd/ndndpdk-packetdemo).
+The best places to get started are:
+
+* `Consume` function in [package endpoint](endpoint): express an Interest and wait for response, with automatic retransmissions and Data verification.
+* `Produce` function in [package endpoint](endpoint): start a producer, with automatic Data signing.
+* `l3.Face` type in [package l3](l3): network layer face abstraction, for low-level programming.
+
+Examples are in [command ndndpdk-godemo](../cmd/ndndpdk-godemo).

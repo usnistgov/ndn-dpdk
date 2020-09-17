@@ -2,7 +2,19 @@
 
 This command demonstrates [NDNgo library](../../ndn) features.
 
-Execute `ndndpdk-packetdemo -h` to see available subcommands.
+Execute `ndndpdk-godemo -h` to see available subcommands.
+
+## L3 Face API
+
+[dump.go](dump.go) implements a traffic dump tool using [l3.Face API](../../ndn/l3).
+This example does not need a running local NDN-DPDK forwarder.
+
+```bash
+sudo ndndpdk-godemo dump --netif eth1
+
+# --respond flag enables this tool to reply every Interest with a Data packet
+sudo ndndpdk-godemo dump --netif eth1 --respond
+```
 
 ## Endpoint API
 

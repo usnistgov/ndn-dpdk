@@ -66,7 +66,7 @@ func init() {
 	var interval, lifetime time.Duration
 	defineCommand(&cli.Command{
 		Name:  "pingclient",
-		Usage: "Reachability test client: sends Interest under a prefix.",
+		Usage: "Reachability test client: periodically send Interest under a prefix.",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:        "name",
@@ -93,10 +93,14 @@ func init() {
 			defer cancel()
 
 			ticker := time.NewTicker(interval)
+			defer ticker.Stop()
+
 			seqNum := rand.Uint64()
 			var nData, nErrors int64
 			for {
 				select {
+				case <-interrupt:
+					return nil
 				case timestamp := <-ticker.C:
 					go func(t0 time.Time, s uint64) {
 						interest := ndn.MakeInterest(fmt.Sprintf("%s/%016X", name, seqNum), ndn.MustBeFreshFlag, lifetime)
@@ -111,13 +115,8 @@ func init() {
 						}
 					}(timestamp, seqNum)
 					seqNum++
-				case <-interrupt:
-					goto STOP
 				}
 			}
-		STOP:
-			ticker.Stop()
-			return nil
 		},
 	})
 }

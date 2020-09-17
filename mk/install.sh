@@ -10,7 +10,6 @@ install -m0644 build/lib/bpf/*.o $DESTBPF/
 DESTSBIN=$DESTDIR/sbin
 install -d -m0755 $DESTSBIN
 install -m0744 build/bin/ndndpdk-godemo $DESTSBIN/
-install -m0744 build/bin/ndndpdk-packetdemo $DESTSBIN/
 install -m0744 build/bin/ndnfw-dpdk $DESTSBIN/
 install -m0744 build/bin/ndnping-dpdk $DESTSBIN/
 
