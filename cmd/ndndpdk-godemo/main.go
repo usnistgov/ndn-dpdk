@@ -13,26 +13,34 @@ import (
 	"github.com/urfave/cli/v2"
 	"github.com/usnistgov/ndn-dpdk/mk/version"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
+	"github.com/usnistgov/ndn-dpdk/ndn/memiftransport"
 	"github.com/usnistgov/ndn-dpdk/ndn/mgmt"
 	"github.com/usnistgov/ndn-dpdk/ndn/mgmt/gqlmgmt"
 )
 
 var (
 	interrupt = make(chan os.Signal, 1)
-	client    mgmt.Client
+	client    *gqlmgmt.Client
 	face      mgmt.Face
 	fwFace    l3.FwFace
+
+	gqlserverFlag string
+	mtuFlag       int
 )
 
 func openUplink(c *cli.Context) (e error) {
-	if face, e = client.OpenFace(); e != nil {
+	var loc memiftransport.Locator
+	loc.Dataroom = mtuFlag
+	if face, e = client.OpenMemif(loc); e != nil {
 		return e
 	}
+
 	fw := l3.GetDefaultForwarder()
 	if fwFace, e = fw.AddFace(face.Face()); e != nil {
 		return e
 	}
 	fw.AddReadvertiseDestination(face)
+
 	log.Print("uplink opened")
 	return nil
 }
@@ -42,15 +50,21 @@ var app = &cli.App{
 	Usage:   "NDNgo library demo.",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:    "gqlserver",
-			Value:   "http://127.0.0.1:3030/",
-			Usage:   "GraphQL `endpoint` of NDN-DPDK daemon.",
-			EnvVars: []string{"GQLSERVER"},
+			Name:        "gqlserver",
+			EnvVars:     []string{"GQLSERVER"},
+			Usage:       "GraphQL `endpoint` of NDN-DPDK daemon.",
+			Value:       "http://127.0.0.1:3030/",
+			Destination: &gqlserverFlag,
+		},
+		&cli.IntFlag{
+			Name:        "mtu",
+			Usage:       "Application face `MTU`.",
+			Destination: &mtuFlag,
 		},
 	},
 	Before: func(c *cli.Context) (e error) {
 		signal.Notify(interrupt, syscall.SIGINT)
-		client, e = gqlmgmt.New(c.String("gqlserver"))
+		client, e = gqlmgmt.New(gqlserverFlag)
 		return e
 	},
 	After: func(c *cli.Context) (e error) {

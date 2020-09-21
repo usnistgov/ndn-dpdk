@@ -22,7 +22,9 @@ sudo ndndpdk-godemo dump --netif eth1 --respond
 This example requires a running local NDN-DPDK forwarder.
 
 ```bash
-sudo ndndpdk-godemo pingserver --name /pingdemo --payload 100
+sudo ndndpdk-godemo pingserver --name /pingdemo
+sudo ndndpdk-godemo pingclient --name /pingdemo
 
-sudo ndndpdk-godemo pingclient --name /pingdemo --interval 100ms --lifetime 1000ms
+sudo ndndpdk-godemo --mtu 9000 pingserver --name /pingdemo --payload 8000
+sudo ndndpdk-godemo --mtu 9000 pingclient --name /pingdemo --interval 100ms --lifetime 1000ms
 ```

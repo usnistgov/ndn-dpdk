@@ -9,7 +9,9 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 // Limits and defaults.
@@ -74,6 +76,9 @@ func NewPort(dev ethdev.EthDev, local net.HardwareAddr, cfg PortConfig) (port *P
 	if cfg.MTU == 0 {
 		cfg.MTU = dev.Mtu()
 		cfg.NoSetMTU = true
+	}
+	if ndni.PacketMempool.Config().Dataroom < pktmbuf.DefaultHeadroom+cfg.MTU {
+		return nil, errors.New("PacketMempool dataroom is too small for requested MTU")
 	}
 	if cfg.RxQueueSize == 0 {
 		cfg.RxQueueSize = DefaultRxQueueSize
