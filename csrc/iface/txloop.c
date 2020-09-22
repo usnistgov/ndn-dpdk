@@ -7,7 +7,7 @@ TxLoop_TxFrames(Face* face, struct rte_mbuf** frames, uint16_t count)
   NDNDPDK_ASSERT(count > 0);
   TxProc* tx = &face->impl->tx;
 
-  tx->nFrames += count;
+  tx->nFrames[PktFragment] += count;
   for (uint16_t i = 0; i < count; ++i) {
     tx->nOctets += frames[i]->pkt_len;
   }
@@ -42,7 +42,6 @@ TxLoop_Transfer(Face* face)
     Packet* npkt = npkts[i];
     TscDuration latency = now - Packet_ToMbuf(npkt)->timestamp;
     PktType framePktType = PktType_ToFull(Packet_GetType(npkt));
-    RunningStat_Push1(&tx->latency[framePktType], latency);
     switch (framePktType) {
       case PktInterest:
         hrl[nHrls++] = HrlogEntry_New(HRLOG_OI, latency);
@@ -51,9 +50,12 @@ TxLoop_Transfer(Face* face)
         hrl[nHrls++] = HrlogEntry_New(
           Packet_ToMbuf(npkt)->port == MBUF_INVALID_PORT ? HRLOG_OC : HRLOG_OD, latency);
         break;
-      default:
+      case PktNack:
         break;
+      default:
+        NDNDPDK_ASSERT(false);
     }
+    ++tx->nFrames[framePktType];
 
     nFrames += TxProc_Output(tx, npkt, &frames[nFrames]);
     if (unlikely(nFrames >= MaxBurstSize)) {

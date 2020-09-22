@@ -11,7 +11,7 @@ func init() {
 		Category: "face",
 		Name:     "list-face",
 		Aliases:  []string{"list-faces"},
-		Usage:    "List faces.",
+		Usage:    "List faces",
 		Action: func(c *cli.Context) error {
 			return clientDoPrint(`
 				{
@@ -32,17 +32,17 @@ func init() {
 	defineCommand(&cli.Command{
 		Category: "face",
 		Name:     "get-face",
-		Usage:    "Retrieve face information.",
+		Usage:    "Retrieve face information",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:        "id",
-				Usage:       "Face ID.",
+				Usage:       "face `ID`",
 				Destination: &id,
 				Required:    true,
 			},
 			&cli.BoolFlag{
 				Name:        "cnt",
-				Usage:       "Show counters.",
+				Usage:       "show counters",
 				Destination: &withCounters,
 			},
 		},
@@ -53,7 +53,14 @@ func init() {
 						id
 						... on Face {
 							locator
-							counters  @include(if: $withCounters)
+							counters @include(if: $withCounters) {
+								rxInterests
+								rxData
+								rxNacks
+								txInterests
+								txData
+								txNacks
+							}
 						}
 					}
 				}
@@ -82,32 +89,32 @@ func init() {
 	defineCommand(&cli.Command{
 		Category: "face",
 		Name:     "create-ether-face",
-		Usage:    "Create an Ethernet face.",
+		Usage:    "Create an Ethernet face",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:        "port",
-				Usage:       "DPDK port name.",
+				Usage:       "DPDK `port` name",
 				Destination: &loc.Port,
 			},
 			&cli.GenericFlag{
 				Name:     "local",
-				Usage:    "Local MAC address.",
+				Usage:    "local MAC `address`",
 				Value:    &loc.Local,
 				Required: true,
 			},
 			&cli.GenericFlag{
 				Name:  "remote",
-				Usage: "Remote MAC address.",
+				Usage: "remote MAC `address`",
 				Value: &loc.Remote,
 			},
 			&cli.IntFlag{
 				Name:        "vlan",
-				Usage:       "VLAN identifier",
+				Usage:       "`VLAN` identifier",
 				Destination: &loc.VLAN,
 			},
 			&cli.IntFlag{
 				Name:        "mtu",
-				Usage:       "Network interface MTU",
+				Usage:       "network interface `MTU`",
 				Destination: &loc.PortConfig.MTU,
 			},
 		},
@@ -126,5 +133,5 @@ func init() {
 }
 
 func init() {
-	defineDeleteCommand("face", "destroy-face", "Destroy a face.")
+	defineDeleteCommand("face", "destroy-face", "Destroy a face")
 }

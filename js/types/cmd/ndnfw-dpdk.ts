@@ -1,6 +1,5 @@
 import type { LCoreAllocConfig, PktmbufPoolTemplateUpdates } from "../dpdk";
 import type { FibConfig } from "../fib";
-import type { CreateFaceConfig } from "../iface";
 import type { NdtConfig } from "../ndt";
 import type { SuppressConfig } from "../pit";
 import type { PktQueueConfig } from "../pktqueue";
@@ -19,7 +18,6 @@ export interface FwdpInitConfig {
 export interface NdnfwInitConfig {
   Mempool?: PktmbufPoolTemplateUpdates<"DIRECT"|"INDIRECT"|"HEADER">;
   LCoreAlloc?: LCoreAllocConfig<"RX"|"TX"|"CRYPTO"|"FWD">;
-  Face?: CreateFaceConfig;
   Ndt?: NdtConfig;
   Fib?: FibConfig;
   Fwdp?: FwdpInitConfig;

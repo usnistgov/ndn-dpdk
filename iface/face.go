@@ -12,7 +12,6 @@ import (
 
 	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
-	"github.com/usnistgov/ndn-dpdk/core/runningstat"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
@@ -159,12 +158,6 @@ func newFace(p NewParams) (Face, error) {
 		return f.clear(), e
 	}
 	c.outputQueue = (*C.struct_rte_ring)(outputQueue.Ptr())
-
-	for l3type := 0; l3type < 4; l3type++ {
-		latencyStat := runningstat.FromPtr(unsafe.Pointer(&c.impl.tx.latency[l3type]))
-		latencyStat.Clear(false)
-		latencyStat.SetSampleRate(12)
-	}
 
 	indirectMp := pktmbuf.Indirect.MakePool(p.Socket)
 	headerMp := ndni.HeaderMempool.MakePool(p.Socket)

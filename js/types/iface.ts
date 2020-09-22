@@ -1,4 +1,4 @@
-import type { Counter, NNMilliseconds, RunningStatSnapshot } from "./core";
+import type { Counter, NNMilliseconds } from "./core";
 
 /**
  * @TJS-type integer
@@ -119,34 +119,25 @@ export interface SocketFaceConfig extends FaceConfig {
 }
 
 export interface FaceCounters {
-  RxFrames: Counter;
-  RxOctets: Counter;
+  rxFrames: Counter;
+  rxOctets: Counter;
 
-  DecodeErrs: Counter;
-  ReassPackets: Counter;
-  ReassDrops: Counter;
+  decodeErrs: Counter;
+  reassPackets: Counter;
+  reassDrops: Counter;
 
-  RxInterests: Counter;
-  RxData: Counter;
-  RxNacks: Counter;
+  rxInterests: Counter;
+  rxData: Counter;
+  rxNacks: Counter;
 
-  InterestLatency: RunningStatSnapshot;
-  DataLatency: RunningStatSnapshot;
-  NackLatency: RunningStatSnapshot;
+  txInterests: Counter;
+  txData: Counter;
+  txNacks: Counter;
 
-  TxInterests: Counter;
-  TxData: Counter;
-  TxNacks: Counter;
-
-  FragGood: Counter;
-  FragBad: Counter;
-  TxAllocErrs: Counter;
-  TxDropped: Counter;
-  TxFrames: Counter;
-  TxOctets: Counter;
-}
-
-export interface CreateFaceConfig {
-  EnableEth?: boolean;
-  EnableSock?: boolean;
+  fragGood: Counter;
+  fragBad: Counter;
+  txAllocErrs: Counter;
+  txDropped: Counter;
+  txFrames: Counter;
+  txOctets: Counter;
 }

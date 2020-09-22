@@ -8,7 +8,7 @@ func init() {
 	defineCommand(&cli.Command{
 		Category: "fib",
 		Name:     "list-fib",
-		Usage:    "List FIB entries.",
+		Usage:    "List FIB entries",
 		Action: func(c *cli.Context) error {
 			return clientDoPrint(`
 				{
@@ -36,24 +36,24 @@ func init() {
 	defineCommand(&cli.Command{
 		Category: "fib",
 		Name:     "insert-fib",
-		Usage:    "Insert or replace a FIB entry.",
+		Usage:    "Insert or replace a FIB entry",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:        "name",
-				Usage:       "Name prefix.",
+				Usage:       "name `prefix`",
 				Destination: &name,
 				Required:    true,
 			},
 			&cli.StringSliceFlag{
 				Name:        "nexthop",
 				Aliases:     []string{"nh"},
-				Usage:       "FIB nexthop face `ID` (repeatable).",
+				Usage:       "FIB nexthop face `ID` (repeatable)",
 				Destination: &nexthops,
 				Required:    true,
 			},
 			&cli.StringFlag{
 				Name:        "strategy",
-				Usage:       "Forwarding strategy `ID`.",
+				Usage:       "forwarding strategy `ID`",
 				Destination: &strategy,
 			},
 		},
@@ -78,5 +78,5 @@ func init() {
 }
 
 func init() {
-	defineDeleteCommand("fib", "erase-fib", "Erase a FIB entry.")
+	defineDeleteCommand("fib", "erase-fib", "Erase a FIB entry")
 }

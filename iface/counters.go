@@ -6,40 +6,33 @@ package iface
 import "C"
 import (
 	"fmt"
-	"unsafe"
 
-	"github.com/usnistgov/ndn-dpdk/core/runningstat"
-	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 // Counters contains basic face counters.
 type Counters struct {
-	RxFrames uint64 // RX total frames
-	RxOctets uint64 // RX total bytes
+	RxFrames uint64 `json:"rxFrames"` // RX total frames
+	RxOctets uint64 `json:"rxOctets"` // RX total bytes
 
-	DecodeErrs   uint64 // decode errors
-	ReassPackets uint64 // RX packets that were reassembled
-	ReassDrops   uint64 // RX frames that were dropped by reassembler
+	DecodeErrs   uint64 `json:"decodeErrs"`   // decode errors
+	ReassPackets uint64 `json:"reassPackets"` // RX packets that were reassembled
+	ReassDrops   uint64 `json:"reassDrops"`   // RX frames that were dropped by reassembler
 
-	RxInterests uint64 // RX Interest packets
-	RxData      uint64 // RX Data packets
-	RxNacks     uint64 // RX Nack packets
+	RxInterests uint64 `json:"rxInterests"` // RX Interest packets
+	RxData      uint64 `json:"rxData"`      // RX Data packets
+	RxNacks     uint64 `json:"rxNacks"`     // RX Nack packets
 
-	InterestLatency runningstat.Snapshot
-	DataLatency     runningstat.Snapshot
-	NackLatency     runningstat.Snapshot
+	TxInterests uint64 `json:"txInterests"` // TX Interest packets
+	TxData      uint64 `json:"txData"`      // TX Data packets
+	TxNacks     uint64 `json:"txNacks"`     // TX Nack packets
 
-	TxInterests uint64 // TX Interest packets
-	TxData      uint64 // TX Data packets
-	TxNacks     uint64 // TX Nack packets
-
-	FragGood    uint64 // fragmented L3 packets
-	FragBad     uint64 // fragmentation failures
-	TxAllocErrs uint64 // allocation errors during TX
-	TxDropped   uint64 // L2 frames dropped due to full queue
-	TxFrames    uint64 // sent total frames
-	TxOctets    uint64 // sent total bytes
+	FragGood    uint64 `json:"fragGood"`    // fragmented L3 packets
+	FragBad     uint64 `json:"fragBad"`     // fragmentation failures
+	TxAllocErrs uint64 `json:"txAllocErrs"` // allocation errors during TX
+	TxDropped   uint64 `json:"txDropped"`   // L2 frames dropped due to full queue
+	TxFrames    uint64 `json:"txFrames"`    // sent total frames
+	TxOctets    uint64 `json:"txOctets"`    // sent total bytes
 }
 
 func (cnt Counters) String() string {
@@ -69,21 +62,15 @@ func (f *face) ReadCounters() (cnt Counters) {
 	cnt.RxFrames = cnt.RxInterests + cnt.RxData + cnt.RxNacks + uint64(rxC.reass.nDeliverFragments) - cnt.ReassPackets + cnt.ReassDrops
 
 	txC := &c.impl.tx
-	readLatencyStat := func(c *C.RunningStat) runningstat.Snapshot {
-		return runningstat.FromPtr(unsafe.Pointer(c)).Read().Scale(eal.GetNanosInTscUnit())
-	}
-	cnt.InterestLatency = readLatencyStat(&txC.latency[ndni.PktInterest])
-	cnt.DataLatency = readLatencyStat(&txC.latency[ndni.PktData])
-	cnt.NackLatency = readLatencyStat(&txC.latency[ndni.PktNack])
-	cnt.TxInterests = cnt.InterestLatency.Count()
-	cnt.TxData = cnt.DataLatency.Count()
-	cnt.TxNacks = cnt.NackLatency.Count()
+	cnt.TxInterests = uint64(txC.nFrames[ndni.PktInterest])
+	cnt.TxData = uint64(txC.nFrames[ndni.PktData])
+	cnt.TxNacks = uint64(txC.nFrames[ndni.PktNack])
 
 	cnt.FragGood = uint64(txC.nL3Fragmented)
 	cnt.FragBad = uint64(txC.nL3OverLength + txC.nAllocFails)
 	cnt.TxAllocErrs = uint64(txC.nAllocFails)
 	cnt.TxDropped = uint64(txC.nDroppedFrames)
-	cnt.TxFrames = uint64(txC.nFrames - txC.nDroppedFrames)
+	cnt.TxFrames = uint64(txC.nFrames[ndni.PktFragment] - txC.nDroppedFrames)
 	cnt.TxOctets = uint64(txC.nOctets - txC.nDroppedOctets)
 
 	return cnt

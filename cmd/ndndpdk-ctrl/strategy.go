@@ -15,11 +15,11 @@ func init() {
 		Category: "strategy",
 		Name:     "list-strategy",
 		Aliases:  []string{"list-strategies"},
-		Usage:    "List strategies.",
+		Usage:    "List strategies",
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
 				Name:        "fib",
-				Usage:       "Show FIB entries.",
+				Usage:       "show FIB entries",
 				Destination: &withFib,
 			},
 		},
@@ -50,16 +50,16 @@ func init() {
 	defineCommand(&cli.Command{
 		Category: "strategy",
 		Name:     "load-strategy",
-		Usage:    "Load a strategy ELF program.",
+		Usage:    "Load a strategy ELF program",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:        "name",
-				Usage:       "Short name.",
+				Usage:       "short `name`",
 				Destination: &name,
 			},
 			&cli.StringFlag{
 				Name:        "elffile",
-				Usage:       "ELF program file.",
+				Usage:       "ELF program `file`",
 				Destination: &elffile,
 				Required:    true,
 			},
@@ -91,5 +91,5 @@ func init() {
 }
 
 func init() {
-	defineDeleteCommand("strategy", "unload-strategy", "Unload a strategy ELF program.")
+	defineDeleteCommand("strategy", "unload-strategy", "Unload a strategy ELF program")
 }

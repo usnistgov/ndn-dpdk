@@ -42,9 +42,9 @@ var app = &cli.App{
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:        "gqlserver",
-			Value:       "http://127.0.0.1:3030/",
-			Usage:       "GraphQL `endpoint` of NDN-DPDK daemon.",
 			EnvVars:     []string{"GQLSERVER"},
+			Value:       "http://127.0.0.1:3030/",
+			Usage:       "GraphQL `endpoint` of NDN-DPDK daemon",
 			Destination: &gqlserver,
 		},
 	},
@@ -68,7 +68,7 @@ func defineDeleteCommand(category, commandName, usage string) {
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:        "id",
-				Usage:       "Object `ID`.",
+				Usage:       "object `ID`",
 				Destination: &id,
 				Required:    true,
 			},
@@ -96,7 +96,7 @@ func main() {
 func init() {
 	defineCommand(&cli.Command{
 		Name:  "show-version",
-		Usage: "Show daemon version.",
+		Usage: "Show daemon version",
 		Action: func(c *cli.Context) error {
 			return clientDoPrint(`
 				query version {

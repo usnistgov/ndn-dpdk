@@ -10,11 +10,17 @@ import (
 
 // GraghQL types.
 var (
+	GqlCountersType *graphql.Object
 	GqlFaceNodeType *gqlserver.NodeType
 	GqlFaceType     *graphql.Object
 )
 
 func init() {
+	GqlCountersType = graphql.NewObject(graphql.ObjectConfig{
+		Name:   "FaceCounters",
+		Fields: graphql.BindFields(Counters{}),
+	})
+
 	GqlFaceNodeType = gqlserver.NewNodeType((*Face)(nil))
 	GqlFaceNodeType.Retrieve = func(id string) (interface{}, error) {
 		nid, e := strconv.Atoi(id)
@@ -49,7 +55,7 @@ func init() {
 			},
 			"numaSocket": eal.GqlWithNumaSocket,
 			"counters": &graphql.Field{
-				Type:        gqlserver.JSON,
+				Type:        GqlCountersType,
 				Description: "Face counters.",
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					face := p.Source.(Face)

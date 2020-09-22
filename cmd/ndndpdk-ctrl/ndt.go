@@ -10,11 +10,11 @@ func init() {
 	defineCommand(&cli.Command{
 		Category: "ndt",
 		Name:     "list-ndt",
-		Usage:    "List NDT entries.",
+		Usage:    "List NDT entries",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:        "name",
-				Usage:       "Filter by `NAME`.",
+				Usage:       "filter by `name`",
 				Destination: &name,
 			},
 		},
@@ -44,17 +44,17 @@ func init() {
 	defineCommand(&cli.Command{
 		Category: "ndt",
 		Name:     "update-ndt",
-		Usage:    "Update an NDT entry.",
+		Usage:    "Update an NDT entry",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:        "name",
-				Usage:       "`NAME` to derive entry index.",
+				Usage:       "`name` to derive entry index",
 				Destination: &name,
 				Required:    true,
 			},
 			&cli.IntFlag{
 				Name:        "value",
-				Usage:       "Entry `VALUE`.",
+				Usage:       "entry `value`",
 				Destination: &value,
 				Required:    true,
 			},

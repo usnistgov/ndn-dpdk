@@ -3,7 +3,6 @@
 
 /** @file */
 
-#include "../core/running-stat.h"
 #include "common.h"
 
 typedef struct TxProc TxProc;
@@ -26,19 +25,10 @@ typedef struct TxProc
   uint64_t nL3OverLength; ///< dropped L3 packets due to over length
   uint64_t nAllocFails;   ///< dropped L3 packets due to allocation failure
 
-  uint64_t nFrames;        ///< sent+dropped L2 frames
-  uint64_t nOctets;        ///< sent+dropped L2 octets (including LpHeader)
-  uint64_t nDroppedFrames; ///< dropped L2 frames
-  uint64_t nDroppedOctets; ///< dropped L2 octets
-
-  /**
-   * @brief Statistics of L3 latency, per L3 packet type.
-   *
-   * Latency counting starts from packet arrival or generation, and ends when
-   * packet is queuing for transmission; this counts per L3 packet.
-   * This is taken before fragmentation, so that it includes packets dropped due to full queue.
-   */
-  RunningStat latency[PktMax];
+  uint64_t nFrames[PktMax]; ///< sent+dropped L2 frames and L3 packets
+  uint64_t nOctets;         ///< sent+dropped L2 octets (including LpHeader)
+  uint64_t nDroppedFrames;  ///< dropped L2 frames
+  uint64_t nDroppedOctets;  ///< dropped L2 octets
 } __rte_cache_aligned TxProc;
 
 /**
