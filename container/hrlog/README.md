@@ -1,10 +1,10 @@
-# ndn-dpdk/mgmt/hrlog
+# ndn-dpdk/container/hrlog
 
 This package implements a high resolution logger, suitable for per-packet tracing.
 
 ## Activation
 
-User should invoke `Hrlog.Collect` to collect log entries to a file.
+User should invoke `Start` function or GraphQL `collectHrlog` mutation to start collecting log entries to a file, and invoke `Stop` function or GraphQL `delete` mutation to stop.
 Only one collection can run at any moment.
 Log entries posted when collection is not running are lost.
 
@@ -32,6 +32,5 @@ Each entry has three fields:
 
 To integrate this package in NDN-DPDK codebase:
 
-1. Include `post.h` where log entries are generated, and invoke functions in that headers.
-2. Link with C library of this package where log entries are generated.
-3. Invoke Go `Init()` after EAL initialization, and install `HrlogMgmt` to management RPC server.
+1. Include `entry.h` header where log entries are generated, and invoke functions in that header.
+2. Invoke Go `Init` function after EAL initialization.

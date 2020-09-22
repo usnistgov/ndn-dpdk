@@ -4,6 +4,8 @@
 /** @file */
 
 #include "../core/common.h"
+#include <rte_lcore.h>
+#include <rte_ring.h>
 
 /** @brief Action identifier in high resolution log. */
 typedef enum HrlogAction
@@ -34,5 +36,16 @@ static_assert(sizeof(HrlogHeader) == 16, "");
 
 #define HRLOG_HEADER_MAGIC 0x35f0498a
 #define HRLOG_HEADER_VERSION 2
+
+extern struct rte_ring* theHrlogRing;
+static_assert(sizeof(HrlogEntry) == sizeof(void*), "");
+
+static inline void
+Hrlog_PostBulk(HrlogEntry* entries, uint16_t count)
+{
+  if (theHrlogRing != NULL) {
+    rte_ring_enqueue_bulk(theHrlogRing, (void**)entries, count, NULL);
+  }
+}
 
 #endif // NDNDPDK_HRLOG_ENTRY_H

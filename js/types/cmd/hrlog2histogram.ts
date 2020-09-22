@@ -1,4 +1,8 @@
-import type { HrlogAction } from "../mgmt/hrlog";
+export enum HrlogAction {
+  OI = 1,
+  OD = 2,
+  OC = 4,
+}
 
 export interface Histogram {
   Act: HrlogAction;

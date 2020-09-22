@@ -17,7 +17,7 @@ var (
 	errNoIndex  = errors.New("Index is unspecified")
 )
 
-// GraghQL types.
+// GraphQL types.
 var (
 	GqlConfigType *graphql.Object
 	GqlEntryType  *graphql.Object

@@ -1,5 +1,5 @@
 #include "txloop.h"
-#include "../hrlog/post.h"
+#include "../hrlog/entry.h"
 
 __attribute__((nonnull)) static void
 TxLoop_TxFrames(Face* face, struct rte_mbuf** frames, uint16_t count)

@@ -7,6 +7,5 @@ export * from "./fetch";
 export * from "./fib";
 export * from "./dpinfo";
 export * from "./ethface";
-export * from "./hrlog";
 export * from "./pingclient";
 export * from "./version";

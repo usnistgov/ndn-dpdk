@@ -6,7 +6,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
-// GraghQL types.
+// GraphQL types.
 var (
 	GqlNameType *graphql.Scalar
 )

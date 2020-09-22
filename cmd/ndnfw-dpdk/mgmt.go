@@ -11,13 +11,11 @@ import (
 	"github.com/usnistgov/ndn-dpdk/mgmt/facemgmt"
 	"github.com/usnistgov/ndn-dpdk/mgmt/fibmgmt"
 	"github.com/usnistgov/ndn-dpdk/mgmt/fwdpmgmt"
-	"github.com/usnistgov/ndn-dpdk/mgmt/hrlog"
 	"github.com/usnistgov/ndn-dpdk/mgmt/versionmgmt"
 )
 
 func startMgmt() {
 	mgmt.Register(versionmgmt.VersionMgmt{})
-	mgmt.Register(hrlog.HrlogMgmt{})
 
 	mgmt.Register(facemgmt.FaceMgmt{})
 	mgmt.Register(facemgmt.EthFaceMgmt{})

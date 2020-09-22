@@ -7,7 +7,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
 )
 
-// GraghQL types.
+// GraphQL types.
 var (
 	GqlStrategyNodeType *gqlserver.NodeType
 	GqlStrategyType     *graphql.Object

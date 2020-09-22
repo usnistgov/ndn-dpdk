@@ -23,7 +23,7 @@ var (
 	GqlDefaultStrategy *strategycode.Strategy
 )
 
-// GraghQL types.
+// GraphQL types.
 var (
 	GqlEntryCountersType graphql.Type
 	GqlEntryNodeType     *gqlserver.NodeType

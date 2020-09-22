@@ -4,7 +4,7 @@
 /** @file */
 
 #include "../dpdk/thread.h"
-#include "post.h"
+#include "entry.h"
 
 typedef struct HrlogWriter
 {

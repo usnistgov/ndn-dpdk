@@ -8,7 +8,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
-// GraghQL types.
+// GraphQL types.
 var (
 	GqlCountersType *graphql.Object
 	GqlFaceNodeType *gqlserver.NodeType

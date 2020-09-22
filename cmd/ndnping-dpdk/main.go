@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/app/ping"
+	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealinit"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/mgmt"
@@ -15,6 +16,8 @@ import (
 )
 
 func main() {
+	gqlserver.Start()
+
 	pc, e := parseCommand(ealinit.Init(os.Args)[1:])
 	if e != nil {
 		log.WithError(e).Fatal("command line error")
