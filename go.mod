@@ -24,6 +24,6 @@ require (
 	github.com/stretchr/testify v1.6.1
 	github.com/urfave/cli/v2 v2.2.0
 	golang.org/x/net v0.0.0-20200904194848-62affa334b73 // indirect
-	golang.org/x/sys v0.0.0-20200916084744-dbad9cb7cb7a
+	golang.org/x/sys v0.0.0-20200922070232-aee5d888a860
 	gopkg.in/yaml.v2 v2.3.0 // indirect
 )

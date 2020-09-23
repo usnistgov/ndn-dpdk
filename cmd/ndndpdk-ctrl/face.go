@@ -135,3 +135,89 @@ func init() {
 func init() {
 	defineDeleteCommand("face", "destroy-face", "Destroy a face")
 }
+
+func init() {
+	var withDevInfo, withStats, withFaces bool
+	defineCommand(&cli.Command{
+		Category: "face",
+		Name:     "list-ethdev",
+		Aliases:  []string{"list-ethdevs"},
+		Usage:    "List Ethernet devices",
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:        "devinfo",
+				Usage:       "show DPDK device information",
+				Destination: &withDevInfo,
+			},
+			&cli.BoolFlag{
+				Name:        "stats",
+				Usage:       "show hardware statistics",
+				Destination: &withStats,
+			},
+			&cli.BoolFlag{
+				Name:        "faces",
+				Usage:       "show face list",
+				Destination: &withFaces,
+			},
+		},
+		Action: func(c *cli.Context) error {
+			return clientDoPrint(`
+				query getEthDev(
+					$withDevInfo: Boolean!
+					$withStats: Boolean!
+					$withFaces: Boolean!
+				) {
+					ethDevs {
+						id
+						name
+						numaSocket
+						macAddr
+						mtu
+						isDown
+						devInfo @include(if: $withDevInfo)
+						stats @include(if: $withStats)
+						implName
+						faces @include(if: $withFaces) {
+							id
+							locator
+						}
+					}
+				}
+			`, map[string]interface{}{
+				"withDevInfo": withDevInfo,
+				"withStats":   withStats,
+				"withFaces":   withFaces,
+			}, "ethDevs")
+		},
+	})
+}
+
+func init() {
+	var id string
+
+	defineCommand(&cli.Command{
+		Category: "face",
+		Name:     "reset-eth-stats",
+		Usage:    "Reset hardware statistics of an Ethernet device",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:        "id",
+				Usage:       "device `ID`",
+				Destination: &id,
+				Required:    true,
+			},
+		},
+		Action: func(c *cli.Context) error {
+			return clientDoPrint(`
+				mutation resetEthStats($id: ID!) {
+					resetEthStats(id: $id) {
+						id
+						name
+					}
+				}
+			`, map[string]interface{}{
+				"id": id,
+			}, "resetEthStats")
+		},
+	})
+}

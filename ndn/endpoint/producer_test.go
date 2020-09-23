@@ -130,10 +130,10 @@ func TestProducerConcurrent(t *testing.T) {
 
 	cWait.Wait()
 	assert.Equal(250, cData+cExpire)
-	assert.InDelta(250, pCompleted+pCanceled, 50)
-	assert.InDelta(150, pCompleted, 50)
-	assert.InDelta(pCompleted, cData, 50)
-	assert.InDelta(pCanceled, cExpire, 50)
+	assert.InDelta(250, pCompleted+pCanceled, 70)
+	assert.InDelta(150, pCompleted, 70)
+	assert.InDelta(pCompleted, cData, 70)
+	assert.InDelta(pCanceled, cExpire, 70)
 }
 
 var producerHandlerNever endpoint.ProducerHandler = func(ctx context.Context, interest ndn.Interest) (ndn.Data, error) {

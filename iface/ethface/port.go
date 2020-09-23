@@ -74,7 +74,7 @@ type Port struct {
 // NewPort opens a Port.
 func NewPort(dev ethdev.EthDev, local net.HardwareAddr, cfg PortConfig) (port *Port, e error) {
 	if cfg.MTU == 0 {
-		cfg.MTU = dev.Mtu()
+		cfg.MTU = dev.MTU()
 		cfg.NoSetMTU = true
 	}
 	if ndni.PacketMempool.Config().Dataroom < pktmbuf.DefaultHeadroom+cfg.MTU {

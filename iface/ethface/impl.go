@@ -41,7 +41,7 @@ func startDev(port *Port, nRxQueues int, promisc bool) error {
 		Socket:   socket,
 	})
 	if !port.cfg.NoSetMTU {
-		cfg.Mtu = port.cfg.MTU
+		cfg.MTU = port.cfg.MTU
 	}
 	cfg.Promisc = promisc
 	return port.dev.Start(cfg)

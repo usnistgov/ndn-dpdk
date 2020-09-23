@@ -100,8 +100,8 @@ func (port EthDev) MacAddr() (a net.HardwareAddr) {
 	return a
 }
 
-// Mtu retrieves MTU of this EthDev.
-func (port EthDev) Mtu() int {
+// MTU retrieves MTU of this EthDev.
+func (port EthDev) MTU() int {
 	var mtu C.uint16_t
 	C.rte_eth_dev_get_mtu(C.uint16_t(port.ID()), &mtu)
 	return int(mtu)
@@ -122,16 +122,16 @@ func (port EthDev) Start(cfg Config) error {
 		return fmt.Errorf("cannot add more than %d TX queues", info.Max_tx_queues)
 	}
 
-	if cfg.Mtu > 0 {
-		if res := C.rte_eth_dev_set_mtu(C.uint16_t(port.ID()), C.uint16_t(cfg.Mtu)); res != 0 {
-			return fmt.Errorf("rte_eth_dev_set_mtu(%v,%d) error %d", port, cfg.Mtu, res)
+	if cfg.MTU > 0 {
+		if res := C.rte_eth_dev_set_mtu(C.uint16_t(port.ID()), C.uint16_t(cfg.MTU)); res != 0 {
+			return fmt.Errorf("rte_eth_dev_set_mtu(%v,%d) error %d", port, cfg.MTU, res)
 		}
 	}
 
 	conf := (*C.struct_rte_eth_conf)(cfg.Conf)
 	if conf == nil {
 		conf = new(C.struct_rte_eth_conf)
-		conf.rxmode.max_rx_pkt_len = C.uint32_t(port.Mtu())
+		conf.rxmode.max_rx_pkt_len = C.uint32_t(port.MTU())
 		if info.Tx_offload_capa&C.DEV_TX_OFFLOAD_MULTI_SEGS != 0 {
 			conf.txmode.offloads = C.DEV_TX_OFFLOAD_MULTI_SEGS
 		}
@@ -204,7 +204,7 @@ var randomizedMacAddrs sync.Map
 type Config struct {
 	RxQueues []RxQueueConfig
 	TxQueues []TxQueueConfig
-	Mtu      int            // if non-zero, change MTU
+	MTU      int            // if non-zero, change MTU
 	Promisc  bool           // promiscuous mode
 	Conf     unsafe.Pointer // pointer to rte_eth_conf, nil means default
 }

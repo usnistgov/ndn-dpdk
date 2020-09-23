@@ -39,7 +39,6 @@ func main() {
 
 	mgmt.Register(versionmgmt.VersionMgmt{})
 	mgmt.Register(facemgmt.FaceMgmt{})
-	mgmt.Register(facemgmt.EthFaceMgmt{})
 	mgmt.Register(pingmgmt.PingClientMgmt{App: app})
 	mgmt.Register(pingmgmt.FetchMgmt{App: app})
 	mgmt.Start()

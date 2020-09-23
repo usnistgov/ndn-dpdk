@@ -18,7 +18,6 @@ func startMgmt() {
 	mgmt.Register(versionmgmt.VersionMgmt{})
 
 	mgmt.Register(facemgmt.FaceMgmt{})
-	mgmt.Register(facemgmt.EthFaceMgmt{})
 
 	ndt.GqlNdt = dp.GetNdt()
 
