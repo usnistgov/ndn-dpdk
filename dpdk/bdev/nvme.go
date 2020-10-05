@@ -14,15 +14,16 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealconfig"
 	"github.com/usnistgov/ndn-dpdk/dpdk/spdkenv"
 )
 
 type listNvmesResult struct {
-	nvmes []eal.PciAddress
+	nvmes []ealconfig.PciAddress
 }
 
 // ListNvmes returns a list of NVMe drives.
-func ListNvmes() (nvmes []eal.PciAddress, e error) {
+func ListNvmes() (nvmes []ealconfig.PciAddress, e error) {
 	var result listNvmesResult
 	ctx := cptr.CtxPut(&result)
 	defer cptr.CtxClear(ctx)
@@ -38,7 +39,7 @@ func ListNvmes() (nvmes []eal.PciAddress, e error) {
 
 //export go_nvmeProbed
 func go_nvmeProbed(ctx unsafe.Pointer, trid *C.struct_spdk_nvme_transport_id, opts *C.struct_spdk_nvme_ctrlr_opts) C.bool {
-	pciAddr := eal.MustParsePciAddress(C.GoString(&trid.traddr[0]))
+	pciAddr := ealconfig.MustParsePciAddress(C.GoString(&trid.traddr[0]))
 	result := cptr.CtxGet(ctx).(*listNvmesResult)
 	result.nvmes = append(result.nvmes, pciAddr)
 	return C.bool(false)
@@ -49,7 +50,7 @@ type Nvme struct {
 	// Namespaces is a list of NVMe namespaces as block devices.
 	Namespaces []*Info
 
-	pciAddr eal.PciAddress
+	pciAddr ealconfig.PciAddress
 }
 
 func (nvme *Nvme) getName() string {
@@ -57,7 +58,7 @@ func (nvme *Nvme) getName() string {
 }
 
 // AttachNvme attaches block devices on an NVMe drives.
-func AttachNvme(pciAddr eal.PciAddress) (nvme *Nvme, e error) {
+func AttachNvme(pciAddr ealconfig.PciAddress) (nvme *Nvme, e error) {
 	initBdevLib()
 	nvme = new(Nvme)
 	nvme.pciAddr = pciAddr

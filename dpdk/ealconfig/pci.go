@@ -1,4 +1,4 @@
-package eal
+package ealconfig
 
 import (
 	"errors"
@@ -60,7 +60,7 @@ func ParsePciAddress(input string) (a PciAddress, e error) {
 func MustParsePciAddress(input string) (a PciAddress) {
 	var e error
 	if a, e = ParsePciAddress(input); e != nil {
-		log.Panic(e)
+		log.WithError(e).Panic("MustParsePciAddress")
 	}
 	return a
 }
