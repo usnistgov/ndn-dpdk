@@ -5,26 +5,25 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealtestenv"
 )
 
 func TestEal(t *testing.T) {
 	assert, require := makeAR(t)
-
-	assert.Equal([]string{"testprog", "c7f36046-faa5-46dc-9855-e93d00217b8f"}, initEalRemainingArgs)
 
 	assert.True(eal.Initial.Valid())
 	assert.NotNil(eal.MainThread)
 	assert.NotNil(eal.MainReadSide)
 	assert.NotEmpty(eal.Sockets)
 
-	require.Len(eal.Workers, 5)
+	require.Len(eal.Workers, ealtestenv.WantLCores-1)
 	workersSet := make(map[eal.LCore]bool)
 	for _, worker := range eal.Workers {
 		workersSet[worker] = true
 		assert.True(worker.Valid())
 		assert.False(worker.IsBusy())
 	}
-	require.Len(workersSet, 5)
+	require.Len(workersSet, ealtestenv.WantLCores-1)
 
 	isWorkerExecuted := false
 	eal.Workers[0].RemoteLaunch(cptr.Func0.Int(func() int {

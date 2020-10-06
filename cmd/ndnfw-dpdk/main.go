@@ -1,13 +1,15 @@
 package main
 
 import (
-	"os"
+	"math/rand"
+	"time"
 
 	"github.com/usnistgov/ndn-dpdk/app/fwdp"
 	"github.com/usnistgov/ndn-dpdk/container/fib/fibdef"
 	"github.com/usnistgov/ndn-dpdk/container/hrlog"
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
 	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealconfig"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealinit"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 )
@@ -15,18 +17,25 @@ import (
 var dp *fwdp.DataPlane
 
 func main() {
-	gqlserver.Start()
+	rand.Seed(time.Now().UnixNano())
+	cfg := parseCommand()
 
-	initCfg, e := parseCommand(ealinit.Init(os.Args)[1:])
+	var req ealconfig.Request
+	// main + CRYPTO + 2*FWD + (RX+TX)*(socket faces + Ethernet ports)
+	req.MinLCores = 4 + 2*(1+len(cfg.Eal.PciDevices)+len(cfg.Eal.VirtualDevices))
+	ealArgs, e := cfg.Eal.Args(req, nil)
 	if e != nil {
-		log.WithError(e).Fatal("command line error")
+		log.WithError(e).Fatal("EAL args error")
 	}
+	ealinit.Init(ealArgs)
+
+	gqlserver.Start()
 	hrlog.Init()
 
-	initCfg.Mempool.Apply()
-	ealthread.DefaultAllocator.Config = initCfg.LCoreAlloc
+	cfg.Mempool.Apply()
+	ealthread.DefaultAllocator.Config = cfg.LCoreAlloc
 
-	startDp(initCfg.Ndt, initCfg.Fib, initCfg.Fwdp)
+	startDp(cfg.Ndt, cfg.Fib, cfg.Fwdp)
 	startMgmt()
 
 	select {}

@@ -2,10 +2,9 @@
 ---
 
 - Face:
-    Scheme: ether
-    Port: net_af_packetA
-    Local: "02:00:00:00:00:01"
-    Remote: "01:00:5e:00:17:aa"
+    scheme: ether
+    local: "02:00:00:00:00:01"
+    remote: "01:00:5e:00:17:aa"
   Client:
     Patterns:
       - Prefix: /A/1
@@ -14,10 +13,9 @@
         MustBeFresh: true
     Interval: 1ms
 - Face:
-    Scheme: ether
-    Port: net_af_packetB
-    Local: "02:00:00:00:00:02"
-    Remote: "01:00:5e:00:17:aa"
+    scheme: ether
+    local: "02:00:00:00:00:02"
+    remote: "01:00:5e:00:17:aa"
   Server:
     RxQueue:
       Delay: 0ms
@@ -32,10 +30,9 @@
             PayloadLen: 1000
     Nack: false
 - Face:
-    Scheme: ether
-    Port: net_af_packetC
-    Local: "02:00:00:00:00:03"
-    Remote: "01:00:5e:00:17:aa"
+    scheme: ether
+    local: "02:00:00:00:00:03"
+    remote: "01:00:5e:00:17:aa"
   Fetch:
     NThreads: 1
     NProcs: 1

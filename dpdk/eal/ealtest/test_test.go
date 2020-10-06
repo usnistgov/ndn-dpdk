@@ -8,11 +8,8 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealtestenv"
 )
 
-// Command line arguments checked in TestEal test case.
-var initEalRemainingArgs []string
-
 func TestMain(m *testing.M) {
-	initEalRemainingArgs = ealtestenv.Init("--", "c7f36046-faa5-46dc-9855-e93d00217b8f")
+	ealtestenv.Init()
 	os.Exit(m.Run())
 }
 

@@ -33,21 +33,6 @@ func NewCArgs(args []string) *CArgs {
 	return a
 }
 
-// RemainingArgs returns remaining argv tokens after the first nConsumed tokens have been consumed by C code.
-func (a *CArgs) RemainingArgs(nConsumed int) []string {
-	var b *C.char
-	ptrSize := unsafe.Sizeof(b)
-
-	rem := []string{}
-	argv := uintptr(a.Argv)
-	for i := nConsumed; i < a.Argc; i++ {
-		argvEle := (**C.char)(unsafe.Pointer(uintptr(argv) + uintptr(i)*ptrSize))
-		rem = append(rem, C.GoString(*argvEle))
-	}
-
-	return rem
-}
-
 // Close releases C memory in CArgs.
 func (a *CArgs) Close() error {
 	for _, strMem := range a.strMems {

@@ -6,11 +6,11 @@ It can serve as a traffic generator to benchmark a forwarder or a network.
 ## Usage
 
 ```sh
-sudo ndnping-dpdk EAL-ARGS -- [-initcfg=INITCFG] [-tasks=TASKS] [-cnt DURATION]
+sudo ndnping-dpdk [-initcfg=INITCFG] [-tasks=TASKS] [-cnt=DURATION]
 ```
 
 **-initcfg** accepts an initialization configuration object in YAML format.
-This program recognizes the `Mempool` section only.
+This program recognizes the `eal`, `Mempool`, and `LCoreAlloc` sections.
 See [here](../../docs/init-config.sample.yaml) for an example.
 
 **-tasks** accepts a task description object in YAML format.
@@ -24,7 +24,7 @@ The argument value must be a duration string acceptable to Go's [time.ParseDurat
 Emulate classical ndnping client:
 
 ```
-sudo ndnping-dpdk EAL-ARGS -- -tasks="
+sudo ndnping-dpdk -tasks="
 ---
 - face:
     scheme: ether
@@ -43,7 +43,7 @@ sudo ndnping-dpdk EAL-ARGS -- -tasks="
 Emulate classical ndnping server:
 
 ```
-sudo ndnping-dpdk EAL-ARGS -- -tasks="
+sudo ndnping-dpdk -tasks="
 ---
 - face:
     scheme: ether

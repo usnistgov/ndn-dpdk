@@ -14,7 +14,7 @@ var (
 	// Sockets are NUMA sockets of worker lcores.
 	Sockets []NumaSocket
 
-	// MainThread is a PollThread running on the initial lcores.
+	// MainThread is a PollThread running on the initial lcore.
 	MainThread PollThread
 	// MainReadSide is an RCU read-side object of the MainThread.
 	MainReadSide *urcu.ReadSide

@@ -1,6 +1,14 @@
 # NDN-DPDK initialization configuration
 ---
 
+# DPDK EAL
+# See ndn-dpdk/dpdk/ealconfig package for information.
+eal:
+  cores: []
+  memChannels: 0
+  pciDevices: []
+  virtualDevices: []
+
 # MEMORY POOL
 # 'Capacity' affects the hugepage memory usage. 2^q-1 is optimal.
 # Each NUMA socket has its own mempool with the given name.

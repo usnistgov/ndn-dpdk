@@ -5,6 +5,9 @@ import (
 	"fmt"
 )
 
+// ErrNoLCore indicates there is no LCore available.
+var ErrNoLCore = errors.New("no LCore available")
+
 // LCoreConfig contains CPU and logical core related configuration.
 type LCoreConfig struct {
 	// Cores is the list of processors (hardware cores) available to DPDK.
@@ -52,7 +55,7 @@ func (cfg LCoreConfig) args(req Request, hwInfo HwInfoSource) (args []string, e 
 	}
 
 	if nCores := len(coreList); nCores == 0 {
-		return nil, errors.New("LCoreConfig no lcore available")
+		return nil, ErrNoLCore
 	} else if nCores >= req.MinLCores {
 		return []string{"-l", coreList.String()}, nil
 	}

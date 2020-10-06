@@ -1,4 +1,4 @@
-import type { LCoreAllocConfig, PktmbufPoolTemplateUpdates } from "../dpdk";
+import type { EalConfig, LCoreAllocConfig, PktmbufPoolTemplateUpdates } from "../dpdk";
 import type { FibConfig } from "../fib";
 import type { NdtConfig } from "../ndt";
 import type { SuppressConfig } from "../pit";
@@ -16,6 +16,7 @@ export interface FwdpInitConfig {
 }
 
 export interface NdnfwInitConfig {
+  eal?: EalConfig;
   Mempool?: PktmbufPoolTemplateUpdates<"DIRECT"|"INDIRECT"|"HEADER">;
   LCoreAlloc?: LCoreAllocConfig<"RX"|"TX"|"CRYPTO"|"FWD">;
   Ndt?: NdtConfig;

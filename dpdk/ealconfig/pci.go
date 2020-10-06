@@ -8,6 +8,9 @@ import (
 	"github.com/jaypipes/ghw"
 )
 
+// ErrPciAddress indicates the input PCI address is invalid.
+var ErrPciAddress = errors.New("bad PCI address")
+
 // PciAddress represents a PCI address.
 type PciAddress struct {
 	ghw.PCIAddress
@@ -64,6 +67,3 @@ func MustParsePciAddress(input string) (a PciAddress) {
 	}
 	return a
 }
-
-// ErrPciAddress indicates the input PCI address is invalid.
-var ErrPciAddress = errors.New("bad PCI address")

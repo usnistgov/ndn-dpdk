@@ -9,7 +9,7 @@ package ealinit
 */
 import "C"
 import (
-	"math/rand"
+	"os"
 	"runtime"
 	"sync"
 
@@ -21,12 +21,14 @@ import (
 var initOnce sync.Once
 
 // Init initializes DPDK and SPDK.
-func Init(args []string) (remainingArgs []string) {
+// args should not include program name.
+// Panics on error.
+func Init(args []string) {
 	initOnce.Do(func() {
 		assignMainThread := make(chan *spdkenv.Thread)
 		go func() {
 			runtime.LockOSThread()
-			remainingArgs = initEal(args)
+			initEal(args)
 			spdkenv.InitEnv()
 			spdkenv.InitMainThread(assignMainThread) // never returns
 		}()
@@ -41,9 +43,14 @@ func Init(args []string) (remainingArgs []string) {
 	return
 }
 
-func initEal(args []string) (remainingArgs []string) {
+func initEal(args []string) {
 	logEntry := log.WithField("args", args)
-	a := cptr.NewCArgs(args)
+	exe, e := os.Executable()
+	if e != nil {
+		exe = os.Args[0]
+	}
+	argv := append([]string{exe}, args...)
+	a := cptr.NewCArgs(argv)
 	defer a.Close()
 
 	res := C.rte_eal_init(C.int(a.Argc), (**C.char)(a.Argv))
@@ -51,9 +58,6 @@ func initEal(args []string) (remainingArgs []string) {
 		logEntry.Fatalf("EAL init error %v", eal.GetErrno())
 		return
 	}
-
-	rand.Seed(int64(C.rte_rand()))
-	remainingArgs = a.RemainingArgs(int(res))
 
 	eal.Initial = eal.LCoreFromID(int(C.rte_get_master_lcore()))
 	hasSocket := make(map[eal.NumaSocket]bool)
@@ -66,5 +70,4 @@ func initEal(args []string) (remainingArgs []string) {
 		}
 	}
 	logEntry.WithFields(makeLogFields("initial", eal.Initial, "workers", eal.Workers, "sockets", eal.Sockets)).Info("EAL ready")
-	return remainingArgs
 }

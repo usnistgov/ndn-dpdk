@@ -47,7 +47,7 @@ func parseExtraFlags(args []string) (a, b string) {
 func TestReplaceFlags(t *testing.T) {
 	assert, require := makeAR(t)
 
-	var cfg ealconfig.Config
+	cfg := makeBaseConfig()
 	cfg.LCoreFlags = "--flag-a value-a"
 	cfg.Flags = "--flag-b value-b"
 
@@ -61,7 +61,7 @@ func TestReplaceFlags(t *testing.T) {
 func TestExtraFlags(t *testing.T) {
 	assert, require := makeAR(t)
 
-	var cfg ealconfig.Config
+	cfg := makeBaseConfig()
 	cfg.LCoreFlags = "--flag-a value-a"
 	cfg.ExtraFlags = "--flag-b value-b"
 
@@ -189,10 +189,11 @@ func TestMemoryAll(t *testing.T) {
 	assert.Equal("0,1024,2048,4096,0,0,1,0", socketLimit)
 }
 
-func parseDeviceFlags(args []string) (w, vdev []string) {
+func parseDeviceFlags(args []string) (w, vdev []string, noPci bool) {
 	fset := makeBaseFlagSet()
 	sliceflag.StringVar(fset, &w, "w", nil, "")
 	sliceflag.StringVar(fset, &vdev, "vdev", nil, "")
+	fset.BoolVar(&noPci, "no-pci", false, "")
 	fset.Parse(args)
 	return
 }
@@ -205,12 +206,13 @@ func TestDeviceEmpty(t *testing.T) {
 
 	args, e := cfg.Args(ealconfig.Request{}, testHwInfo{})
 	require.NoError(e)
-	w, vdev := parseDeviceFlags(args)
+	w, vdev, noPci := parseDeviceFlags(args)
 	assert.Len(w, 0)
 	assert.Len(vdev, 0)
+	assert.True(noPci)
 }
 
-func TestDeviceAll(t *testing.T) {
+func TestDeviceSome(t *testing.T) {
 	assert, require := makeAR(t)
 
 	cfg := makeBaseConfig()
@@ -225,7 +227,26 @@ func TestDeviceAll(t *testing.T) {
 
 	args, e := cfg.Args(ealconfig.Request{}, testHwInfo{})
 	require.NoError(e)
-	w, vdev := parseDeviceFlags(args)
+	w, vdev, noPci := parseDeviceFlags(args)
 	assert.Equal([]string{"0000:02:00.0", "0000:0a:00.0"}, w)
 	assert.Equal([]string{"net_af_packet1,iface=eth1"}, vdev)
+	assert.False(noPci)
+}
+
+func TestDeviceAll(t *testing.T) {
+	assert, require := makeAR(t)
+
+	cfg := makeBaseConfig()
+	cfg.DeviceFlags = ""
+	cfg.AllPciDevices = true
+	cfg.VirtualDevices = []string{
+		"net_af_packet1,iface=eth1",
+	}
+
+	args, e := cfg.Args(ealconfig.Request{}, testHwInfo{})
+	require.NoError(e)
+	w, vdev, noPci := parseDeviceFlags(args)
+	assert.Len(w, 0)
+	assert.Equal([]string{"net_af_packet1,iface=eth1"}, vdev)
+	assert.False(noPci)
 }

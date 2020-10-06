@@ -12,11 +12,6 @@ static inline int verifyCArgs(int argc, char** const argv) {
 			0 != strcmp(argv[3], "d")) {
 		return 3;
 	}
-	argv[0][0] = '.';
-	argv[0] = NULL;
-	char* arg2 = argv[2];
-	argv[2] = argv[3];
-	argv[3] = arg2;
 	return 0;
 }
 

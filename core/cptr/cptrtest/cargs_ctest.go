@@ -18,7 +18,4 @@ func ctestCArgs(t *testing.T) {
 	defer a.Close()
 
 	assert.Zero(C.verifyCArgs(C.int(a.Argc), (**C.char)(a.Argv)))
-
-	rem := a.RemainingArgs(1)
-	assert.Equal([]string{"", "d", "bc"}, rem)
 }

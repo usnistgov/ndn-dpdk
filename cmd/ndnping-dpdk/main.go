@@ -2,11 +2,12 @@ package main
 
 import (
 	stdlog "log"
-	"os"
+	"math/rand"
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/app/ping"
 	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealconfig"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealinit"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/mgmt"
@@ -16,25 +17,32 @@ import (
 )
 
 func main() {
+	rand.Seed(time.Now().UnixNano())
+	cfg, tasks, counterInterval := parseCommand()
+
+	var req ealconfig.Request
+	// main + (RX + TX + SVR + CLIR + CLIT) * tasks
+	req.MinLCores = 1 + 5*len(tasks)
+	ealArgs, e := cfg.Eal.Args(req, nil)
+	if e != nil {
+		log.WithError(e).Fatal("EAL args error")
+	}
+	ealinit.Init(ealArgs)
+
 	gqlserver.Start()
 
-	pc, e := parseCommand(ealinit.Init(os.Args)[1:])
-	if e != nil {
-		log.WithError(e).Fatal("command line error")
-	}
+	cfg.Mempool.Apply()
+	ealthread.DefaultAllocator.Config = cfg.LCoreAlloc
 
-	pc.initCfg.Mempool.Apply()
-	ealthread.DefaultAllocator.Config = pc.initCfg.LCoreAlloc
-
-	app, e := ping.New(pc.tasks)
+	app, e := ping.New(tasks)
 	if e != nil {
-		log.WithError(e).Fatal("ping.NewApp error")
+		log.WithError(e).Fatal("ping.New error")
 	}
 
 	app.Launch()
 
-	if pc.counterInterval > 0 {
-		go printPeriodicCounters(app, pc.counterInterval)
+	if counterInterval > 0 {
+		go printPeriodicCounters(app, counterInterval)
 	}
 
 	mgmt.Register(versionmgmt.VersionMgmt{})
