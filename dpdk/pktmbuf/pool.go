@@ -15,9 +15,9 @@ import (
 
 // PoolConfig contains configuration for NewPool.
 type PoolConfig struct {
-	Capacity int
-	PrivSize int
-	Dataroom int
+	Capacity int `json:"capacity"`
+	PrivSize int `json:"privSize"`
+	Dataroom int `json:"dataroom"`
 }
 
 func (cfg *PoolConfig) applyDefaults() {

@@ -7,7 +7,7 @@ RUN ( echo 'APT::Install-Recommends "no";'; echo 'APT::Install-Suggests "no";' )
     sudo update-alternatives --install /usr/bin/python python /usr/bin/python3 1 && \
     curl -sL https://bootstrap.pypa.io/get-pip.py | python && \
     pip install -U meson ninja && \
-    curl -sL https://dl.google.com/go/go1.15.2.linux-amd64.tar.gz | tar -C /usr/local -xz && \
+    curl -sL https://dl.google.com/go/go1.15.3.linux-amd64.tar.gz | tar -C /usr/local -xz && \
     curl -sL https://github.com/powerman/rpc-codec/releases/download/v1.1.3/jsonrpc2client-linux-x86_64 | install /dev/stdin /usr/local/bin/jsonrpc2client && \
     curl -sL https://github.com/spdk/spdk/archive/v20.07.tar.gz | tar -C /root -xz && \
     cd /root/spdk-* && \

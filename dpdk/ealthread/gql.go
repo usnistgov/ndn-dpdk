@@ -41,7 +41,7 @@ func init() {
 				},
 			},
 			"isBusy": &graphql.Field{
-				Description: "Whether the LCore is running",
+				Description: "Whether the LCore is running.",
 				Type:        gqlserver.NonNullBoolean,
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					lc := p.Source.(eal.LCore)

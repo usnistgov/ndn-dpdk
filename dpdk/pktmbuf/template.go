@@ -5,113 +5,144 @@ package pktmbuf
 */
 import "C"
 import (
-	"fmt"
 	"strings"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
-// Template represents a template to create mempools.
-type Template struct {
-	key string
-}
+var templates = make(map[string]*template)
 
-// Config returns current PoolConfig of the template.
-func (tpl Template) Config() PoolConfig {
-	return *templateConfigs[tpl.key]
-}
-
-var (
-	templateConfigs = make(map[string]*PoolConfig)
-	templatePools   = make(map[string]*Pool)
-)
-
-const templateKeyChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-
-func validateTemplateKey(key string) bool {
-	for _, ch := range key {
-		if !strings.ContainsRune(templateKeyChars, ch) {
+func validateTemplateID(id string) bool {
+	for _, ch := range id {
+		if !strings.ContainsRune("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", ch) {
 			return false
 		}
 	}
 	return true
 }
 
-// RegisterTemplate adds a mempool template.
-func RegisterTemplate(key string, cfg PoolConfig) Template {
-	if _, ok := templateConfigs[key]; ok {
-		log.Panicf("RegisterTemplate(%s) duplicate", key)
-	}
-	if !validateTemplateKey(key) {
-		log.Panicf("RegisterTemplate(%s) key can only contain upper-case letters and digits", key)
-	}
-	templateConfigs[key] = &cfg
-	return Template{key}
+// PoolInfo augments *Pool with NUMA socket information.
+type PoolInfo struct {
+	*Pool
+	socket eal.NumaSocket
 }
 
-// FindTemplate locates template by key.
-func FindTemplate(key string) *Template {
-	if _, ok := templateConfigs[key]; ok {
-		return &Template{key}
-	}
-	return nil
+// NumaSocket returns NUMA socket on which the Pool was created.
+func (pool PoolInfo) NumaSocket() eal.NumaSocket {
+	return pool.socket
 }
 
-// Update changes mempool configuration.
-// PrivSize can only be increased.
-// Dataroom can be updated only if original dataroom is non-zero.
-func (tpl Template) Update(update PoolConfig) Template {
-	cfg := templateConfigs[tpl.key]
+// Template represents a template to create mempools.
+type Template interface {
+	// ID returns template identifier.
+	ID() string
 
+	// Config returns current configuration.
+	Config() PoolConfig
+
+	// Update changes mempool configuration.
+	// PrivSize can only be increased.
+	// Dataroom can be updated only if original dataroom is non-zero.
+	// Returns self.
+	Update(update PoolConfig) Template
+
+	// Pools returns a list of created Pools.
+	Pools() []PoolInfo
+
+	// MakePool creates or retrieves a Pool, preferably on the given NUMA socket.
+	// Errors are fatal.
+	MakePool(socket eal.NumaSocket) *Pool
+}
+
+type template struct {
+	id    string
+	cfg   PoolConfig
+	pools map[eal.NumaSocket]*Pool
+}
+
+func (tpl *template) ID() string {
+	return tpl.id
+}
+
+func (tpl *template) Config() PoolConfig {
+	return tpl.cfg
+}
+
+func (tpl *template) Update(update PoolConfig) Template {
 	if update.Capacity > 0 {
-		cfg.Capacity = update.Capacity
+		tpl.cfg.Capacity = update.Capacity
 	}
 
-	if update.PrivSize > cfg.PrivSize {
-		cfg.PrivSize = update.PrivSize
+	if update.PrivSize > tpl.cfg.PrivSize {
+		tpl.cfg.PrivSize = update.PrivSize
 	} else if update.PrivSize > 0 {
 		log.WithFields(makeLogFields(
-			"key", tpl.key, "oldPrivSize", cfg.PrivSize,
+			"key", tpl.id, "oldPrivSize", tpl.cfg.PrivSize,
 			"newPrivSize", update.PrivSize)).Info("ignoring attempt to decrease PrivSize")
 	}
 
-	if cfg.Dataroom > 0 && update.Dataroom > 0 {
-		if update.Dataroom < cfg.Dataroom {
+	if tpl.cfg.Dataroom > 0 && update.Dataroom > 0 {
+		if update.Dataroom < tpl.cfg.Dataroom {
 			log.WithFields(makeLogFields(
-				"key", tpl.key, "oldDataroom", cfg.Dataroom,
+				"key", tpl.id, "oldDataroom", tpl.cfg.Dataroom,
 				"newDataroom", update.Dataroom)).Info("decreasing Dataroom")
 		}
-		cfg.Dataroom = update.Dataroom
+		tpl.cfg.Dataroom = update.Dataroom
 	}
 
 	return tpl
 }
 
-// MakePool creates or retrieves a Pool, preferably on given NUMA socket.
-// Failure causes panic or fatal error.
-func (tpl Template) MakePool(socket eal.NumaSocket) *Pool {
-	logEntry := log.WithField("template", tpl.key)
-	cfg := templateConfigs[tpl.key]
+func (tpl *template) Pools() (list []PoolInfo) {
+	for socket, pool := range tpl.pools {
+		list = append(list, PoolInfo{Pool: pool, socket: socket})
+	}
+	return list
+}
+
+func (tpl *template) MakePool(socket eal.NumaSocket) *Pool {
+	logEntry := log.WithField("template", tpl.id)
 
 	useSocket := socket
 	if len(eal.Sockets) <= 1 {
 		useSocket = eal.NumaSocket{}
 	}
-	key := fmt.Sprintf("%s#%s", tpl.key, useSocket)
-	logEntry = logEntry.WithFields(makeLogFields("key", key, "socket", socket, "use-socket", useSocket, "cfg", *cfg))
+	logEntry = logEntry.WithFields(makeLogFields("socket", socket, "use-socket", useSocket, "cfg", tpl.cfg))
 
-	if mp, ok := templatePools[key]; ok {
-		logEntry.WithField("mp", mp).Debug("mempool found")
-		return mp
+	if pool, ok := tpl.pools[useSocket]; ok {
+		logEntry.WithField("pool", pool).Debug("mempool found")
+		return pool
 	}
 
-	mp, e := NewPool(*cfg, useSocket)
+	pool, e := NewPool(tpl.cfg, useSocket)
 	if e != nil {
 		logEntry.WithError(e).Fatal("mempool creation failed")
 	}
-	templatePools[key] = mp
-	logEntry.WithField("mp", mp).Debug("mempool created")
-	return mp
+	tpl.pools[useSocket] = pool
+	logEntry.WithField("pool", pool).Debug("mempool created")
+	return pool
+}
+
+// RegisterTemplate adds a mempool template.
+func RegisterTemplate(id string, cfg PoolConfig) Template {
+	if _, ok := templates[id]; ok {
+		log.Panicf("RegisterTemplate(%s) duplicate", id)
+	}
+	if !validateTemplateID(id) {
+		log.Panicf("RegisterTemplate(%s) id can only contain upper-case letters and digits", id)
+	}
+	tpl := &template{
+		id:    id,
+		cfg:   cfg,
+		pools: make(map[eal.NumaSocket]*Pool),
+	}
+	templates[id] = tpl
+	return tpl
+}
+
+// FindTemplate locates template by ID.
+func FindTemplate(id string) Template {
+	return templates[id]
 }
 
 // Predefined mempool templates.
