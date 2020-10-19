@@ -58,8 +58,8 @@ func NewFixture(t *testing.T) (fixture *Fixture) {
 	dp, e := fwdp.New(dpCfg)
 	fixture.require.NoError(e)
 	fixture.DataPlane = dp
-	fixture.Ndt = dp.GetNdt()
-	fixture.Fib = dp.GetFib()
+	fixture.Ndt = dp.Ndt()
+	fixture.Fib = dp.Fib()
 
 	return fixture
 }
@@ -106,9 +106,9 @@ func (fixture *Fixture) makeStrategy(shortname string) *strategycode.Strategy {
 }
 
 // SumCounter reads a counter from all FwFwds and compute the sum.
-func (fixture *Fixture) SumCounter(getCounter func(dp *fwdp.DataPlane, i int) uint64) (n uint64) {
-	for i := 0; i < nFwds; i++ {
-		n += getCounter(fixture.DataPlane, i)
+func (fixture *Fixture) SumCounter(getCounter func(fwd *fwdp.Fwd) uint64) (n uint64) {
+	for _, fwd := range fixture.DataPlane.Fwds() {
+		n += getCounter(fwd)
 	}
 	return n
 }

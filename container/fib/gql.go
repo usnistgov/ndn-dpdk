@@ -73,7 +73,7 @@ func init() {
 			},
 			"nexthops": &graphql.Field{
 				Description: "FIB nexthops. null indicates a deleted face.",
-				Type:        graphql.NewNonNull(graphql.NewList(iface.GqlFaceType)),
+				Type:        gqlserver.NewNonNullList(iface.GqlFaceType, true),
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					entry := p.Source.(Entry)
 					var list []iface.Face
@@ -106,7 +106,7 @@ func init() {
 	gqlserver.AddQuery(&graphql.Field{
 		Name:        "fib",
 		Description: "List of FIB entries.",
-		Type:        graphql.NewList(graphql.NewNonNull(GqlEntryType)),
+		Type:        gqlserver.NewNonNullList(GqlEntryType),
 		Args: graphql.FieldConfigArgument{
 			"name": &graphql.ArgumentConfig{
 				Type:        ndni.GqlNameType,
@@ -187,7 +187,7 @@ func init() {
 			},
 			"nexthops": &graphql.ArgumentConfig{
 				Description: "FIB nexthops.",
-				Type:        graphql.NewNonNull(graphql.NewList(gqlserver.NonNullID)),
+				Type:        gqlserver.NewNonNullList(gqlserver.NonNullID),
 			},
 			"strategy": &graphql.ArgumentConfig{
 				Description: "Forwarding strategy.",

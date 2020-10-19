@@ -42,9 +42,9 @@ export namespace LCoreAllocConfig {
 }
 
 export interface PktmbufPoolConfig {
-  Capacity: number;
-  PrivSize: number;
-  Dataroom: number;
+  capacity: number;
+  privSize: number;
+  dataroom: number;
 }
 
 export type PktmbufPoolTemplateUpdates<K extends string = string> = Record<K, PktmbufPoolConfig>;

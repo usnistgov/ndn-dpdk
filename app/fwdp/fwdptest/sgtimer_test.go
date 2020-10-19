@@ -24,12 +24,12 @@ func TestSgTimer(t *testing.T) {
 	face1.A.Tx() <- ndn.MakeInterest("/A/1", 100*time.Millisecond)
 	time.Sleep(50 * time.Millisecond)
 	assert.Equal(0, collect2.Count())
-	assert.Equal(uint64(1), fixture.SumCounter(func(dp *fwdp.DataPlane, i int) uint64 {
-		return dp.GetFwdPit(i).ReadCounters().NEntries
+	assert.Equal(uint64(1), fixture.SumCounter(func(fwd *fwdp.Fwd) uint64 {
+		return fwd.Pit().ReadCounters().NEntries
 	}))
 	time.Sleep(100 * time.Millisecond)
-	assert.Equal(uint64(0), fixture.SumCounter(func(dp *fwdp.DataPlane, i int) uint64 {
-		return dp.GetFwdPit(i).ReadCounters().NEntries
+	assert.Equal(uint64(0), fixture.SumCounter(func(fwd *fwdp.Fwd) uint64 {
+		return fwd.Pit().ReadCounters().NEntries
 	}))
 	time.Sleep(100 * time.Millisecond)
 	assert.Equal(0, collect2.Count())
@@ -38,8 +38,8 @@ func TestSgTimer(t *testing.T) {
 	face1.A.Tx() <- ndn.MakeInterest("/A/2", 400*time.Millisecond)
 	time.Sleep(100 * time.Millisecond)
 	assert.Equal(0, collect2.Count())
-	assert.Equal(uint64(1), fixture.SumCounter(func(dp *fwdp.DataPlane, i int) uint64 {
-		return dp.GetFwdPit(i).ReadCounters().NEntries
+	assert.Equal(uint64(1), fixture.SumCounter(func(fwd *fwdp.Fwd) uint64 {
+		return fwd.Pit().ReadCounters().NEntries
 	}))
 	time.Sleep(150 * time.Millisecond)
 	assert.Equal(1, collect2.Count())

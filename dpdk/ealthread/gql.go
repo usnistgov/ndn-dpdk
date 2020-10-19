@@ -64,7 +64,7 @@ func init() {
 	gqlserver.AddQuery(&graphql.Field{
 		Name:        "workers",
 		Description: "Worker LCore allocations.",
-		Type:        graphql.NewList(graphql.NewNonNull(GqlWorkerType)),
+		Type:        gqlserver.NewNonNullList(GqlWorkerType),
 		Args: graphql.FieldConfigArgument{
 			"role": &graphql.ArgumentConfig{
 				Type:        graphql.String,

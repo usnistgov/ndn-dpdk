@@ -14,18 +14,18 @@ eal:
 # Each NUMA socket has its own mempool with the given name.
 Mempool:
   DIRECT:  # RX incoming packets
-    Capacity: 524287
-    Dataroom: 2176
+    capacity: 524287
+    dataroom: 2176
   INDIRECT:  # indirect mbufs
-    Capacity: 1048575
+    capacity: 1048575
   HEADER:  # TX packet headers
-    Capacity: 65535
+    capacity: 65535
   INTEREST:  # TX Interests (traffic generator only)
-    Capacity: 65535
+    capacity: 65535
   DATA:  # TX Data header (traffic generator only)
-    Capacity: 65535
+    capacity: 65535
   PAYLOAD:  # TX Data payload (traffic generator only)
-    Capacity: 255
+    capacity: 255
 
 # LCORE ALLOCATION
 # This is a mapping from LCore role to its reservations.

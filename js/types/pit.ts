@@ -1,4 +1,4 @@
-import type { Counter, NNNanoseconds } from "./core";
+import type { NNNanoseconds } from "./core";
 
 export interface SuppressConfig {
   /**
@@ -18,17 +18,4 @@ export interface SuppressConfig {
    * @default 2.0
    */
   Multiplier?: number;
-}
-
-export interface PitCounters {
-  NEntries: Counter;
-  NInsert: Counter;
-  NFound: Counter;
-  NCsMatch: Counter;
-  NAllocErr: Counter;
-  NDataHit: Counter;
-  NDataMiss: Counter;
-  NNackHit: Counter;
-  NNackMiss: Counter;
-  NExpired: Counter;
 }

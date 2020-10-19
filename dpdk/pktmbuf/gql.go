@@ -63,7 +63,7 @@ func init() {
 			},
 			"pools": &graphql.Field{
 				Description: "List of created mempools.",
-				Type:        graphql.NewNonNull(graphql.NewList(graphql.NewNonNull(GqlPoolType))),
+				Type:        gqlserver.NewNonNullList(GqlPoolType),
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					tpl := p.Source.(Template)
 					return tpl.Pools(), nil
@@ -75,7 +75,7 @@ func init() {
 	gqlserver.AddQuery(&graphql.Field{
 		Name:        "pktmbufPoolTemplates",
 		Description: "Packet buffer pool templates.",
-		Type:        graphql.NewNonNull(graphql.NewList(graphql.NewNonNull(GqlTemplateType))),
+		Type:        gqlserver.NewNonNullList(GqlTemplateType),
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 			var list []Template
 			for _, tpl := range templates {

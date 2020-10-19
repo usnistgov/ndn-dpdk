@@ -69,7 +69,7 @@ func init() {
 	gqlserver.AddQuery(&graphql.Field{
 		Name:        "faces",
 		Description: "List of faces.",
-		Type:        graphql.NewList(graphql.NewNonNull(GqlFaceType)),
+		Type:        gqlserver.NewNonNullList(GqlFaceType),
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 			return List(), nil
 		},

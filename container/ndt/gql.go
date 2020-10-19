@@ -63,7 +63,7 @@ func init() {
 	gqlserver.AddQuery(&graphql.Field{
 		Name:        "ndt",
 		Description: "List of NDT entries.",
-		Type:        graphql.NewList(graphql.NewNonNull(GqlEntryType)),
+		Type:        gqlserver.NewNonNullList(GqlEntryType),
 		Args: graphql.FieldConfigArgument{
 			"name": &graphql.ArgumentConfig{
 				Type:        ndni.GqlNameType,

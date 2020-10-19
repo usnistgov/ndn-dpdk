@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"unsafe"
 
+	"github.com/usnistgov/ndn-dpdk/container/cs"
 	"github.com/usnistgov/ndn-dpdk/container/pcct"
 	"github.com/usnistgov/ndn-dpdk/container/pit"
 	"github.com/usnistgov/ndn-dpdk/container/strategycode"
@@ -110,6 +111,35 @@ func (fwd *Fwd) NumaSocket() eal.NumaSocket {
 func (fwd *Fwd) SetFib(replica unsafe.Pointer, index int) {
 	fwd.c.fib = (*C.Fib)(replica)
 	fwd.c.fibDynIndex = C.uint8_t(index)
+}
+
+// Pit returns the PIT.
+func (fwd *Fwd) Pit() *pit.Pit {
+	return pit.FromPcct(fwd.pcct)
+}
+
+// Cs returns the CS.
+func (fwd *Fwd) Cs() *cs.Cs {
+	return cs.FromPcct(fwd.pcct)
+}
+
+// FwdCounters contains forwarding thread counters.
+type FwdCounters struct {
+	id            int    // FwFwd index
+	NNoFibMatch   uint64 `json:"nNoFibMatch"`   // Interests dropped due to no FIB match
+	NDupNonce     uint64 `json:"nDupNonce"`     // Interests dropped due to duplicate nonce
+	NSgNoFwd      uint64 `json:"nSgNoFwd"`      // Interests not forwarded by strategy
+	NNackMismatch uint64 `json:"nNackMismatch"` // Nacks dropped due to outdated nonce
+}
+
+// ReadCounters retrieves forwarding thread counters.
+func (fwd *Fwd) ReadCounters() (cnt FwdCounters) {
+	cnt.id = fwd.id
+	cnt.NNoFibMatch = uint64(fwd.c.nNoFibMatch)
+	cnt.NDupNonce = uint64(fwd.c.nDupNonce)
+	cnt.NSgNoFwd = uint64(fwd.c.nSgNoFwd)
+	cnt.NNackMismatch = uint64(fwd.c.nNackMismatch)
+	return cnt
 }
 
 func init() {

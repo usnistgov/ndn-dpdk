@@ -21,6 +21,18 @@ var (
 	NonNullString  = graphql.NewNonNull(graphql.String)
 )
 
+// NewNonNullList constructs a non-null list type.
+// NewNonNullList(T) returns [T!]!.
+// NewNonNullList(T, true) returns [T]!.
+func NewNonNullList(ofType graphql.Type, optionalNullable ...bool) graphql.Type {
+	if len(optionalNullable) < 1 || !optionalNullable[0] {
+		if _, ok := ofType.(*graphql.NonNull); !ok {
+			ofType = graphql.NewNonNull(ofType)
+		}
+	}
+	return graphql.NewNonNull(graphql.NewList(ofType))
+}
+
 // DecodeJSON decodes JSON argument into pointer.
 func DecodeJSON(arg interface{}, ptr interface{}) error {
 	j, e := json.Marshal(arg)

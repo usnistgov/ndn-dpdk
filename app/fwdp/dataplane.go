@@ -110,6 +110,21 @@ func New(cfg Config) (dp *DataPlane, e error) {
 	return dp, nil
 }
 
+// Ndt returns the NDT.
+func (dp *DataPlane) Ndt() *ndt.Ndt {
+	return dp.ndt
+}
+
+// Fib returns the FIB.
+func (dp *DataPlane) Fib() *fib.Fib {
+	return dp.fib
+}
+
+// Fwds returns a list of forwarding threads.
+func (dp *DataPlane) Fwds() []*Fwd {
+	return dp.fwds
+}
+
 // Close stops the data plane and releases resources.
 func (dp *DataPlane) Close() error {
 	iface.CloseAll()

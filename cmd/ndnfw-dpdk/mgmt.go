@@ -4,31 +4,31 @@ import (
 	"os"
 	"path"
 
+	"github.com/usnistgov/ndn-dpdk/app/fwdp"
 	"github.com/usnistgov/ndn-dpdk/container/fib"
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
 	"github.com/usnistgov/ndn-dpdk/container/strategycode"
 	"github.com/usnistgov/ndn-dpdk/mgmt"
 	"github.com/usnistgov/ndn-dpdk/mgmt/facemgmt"
 	"github.com/usnistgov/ndn-dpdk/mgmt/fibmgmt"
-	"github.com/usnistgov/ndn-dpdk/mgmt/fwdpmgmt"
 	"github.com/usnistgov/ndn-dpdk/mgmt/versionmgmt"
 )
 
 func startMgmt() {
+	fwdp.GqlDataPlane = dp
+
 	mgmt.Register(versionmgmt.VersionMgmt{})
 
 	mgmt.Register(facemgmt.FaceMgmt{})
 
-	ndt.GqlNdt = dp.GetNdt()
+	ndt.GqlNdt = dp.Ndt()
 
-	fib.GqlFib = dp.GetFib()
+	fib.GqlFib = dp.Fib()
 	fib.GqlDefaultStrategy = loadStrategy("multicast")
 	mgmt.Register(fibmgmt.FibMgmt{
 		Fib:               fib.GqlFib,
 		DefaultStrategyId: fib.GqlDefaultStrategy.ID(),
 	})
-
-	mgmt.Register(fwdpmgmt.DpInfoMgmt{Dp: dp})
 
 	mgmt.Start()
 }

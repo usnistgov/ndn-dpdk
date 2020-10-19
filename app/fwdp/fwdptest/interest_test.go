@@ -61,8 +61,8 @@ func TestInterestDupNonce(t *testing.T) {
 		assert.EqualValues(an.NackDuplicate, packet.Nack.Reason)
 		assert.Equal(uint64(0x3bddf54cffbc6ad0), ndn.PitTokenToUint(packet.Lp.PitToken))
 	}
-	assert.Equal(uint64(1), fixture.SumCounter(func(dp *fwdp.DataPlane, i int) uint64 {
-		return dp.ReadFwdInfo(i).NDupNonce
+	assert.Equal(uint64(1), fixture.SumCounter(func(fwd *fwdp.Fwd) uint64 {
+		return fwd.ReadCounters().NDupNonce
 	}))
 
 	collect1.Clear()
@@ -119,8 +119,8 @@ func TestInterestNoRoute(t *testing.T) {
 		assert.Equal(uint64(0x431328d8b4075167), ndn.PitTokenToUint(packet.Lp.PitToken))
 		assert.EqualValues(an.NackNoRoute, packet.Nack.Reason)
 	}
-	assert.Equal(uint64(1), fixture.SumCounter(func(dp *fwdp.DataPlane, i int) uint64 {
-		return dp.ReadFwdInfo(i).NNoFibMatch
+	assert.Equal(uint64(1), fixture.SumCounter(func(fwd *fwdp.Fwd) uint64 {
+		return fwd.ReadCounters().NNoFibMatch
 	}))
 }
 

@@ -26,8 +26,8 @@ func TestDataWrongName(t *testing.T) {
 	fixture.StepDelay()
 	assert.Equal(0, collect1.Count())
 
-	assert.Equal(uint64(1), fixture.SumCounter(func(dp *fwdp.DataPlane, i int) uint64 {
-		return dp.GetFwdPit(i).ReadCounters().NDataMiss
+	assert.Equal(uint64(1), fixture.SumCounter(func(fwd *fwdp.Fwd) uint64 {
+		return fwd.Pit().ReadCounters().NDataMiss
 	}))
 }
 
@@ -48,8 +48,8 @@ func TestDataLongerName(t *testing.T) {
 	fixture.StepDelay()
 	assert.Equal(0, collect1.Count())
 
-	assert.Equal(uint64(1), fixture.SumCounter(func(dp *fwdp.DataPlane, i int) uint64 {
-		return dp.GetFwdPit(i).ReadCounters().NDataMiss
+	assert.Equal(uint64(1), fixture.SumCounter(func(fwd *fwdp.Fwd) uint64 {
+		return fwd.Pit().ReadCounters().NDataMiss
 	}))
 }
 
@@ -70,8 +70,8 @@ func TestDataZeroFreshnessPeriod(t *testing.T) {
 	fixture.StepDelay()
 	assert.Equal(0, collect1.Count())
 
-	assert.Equal(uint64(1), fixture.SumCounter(func(dp *fwdp.DataPlane, i int) uint64 {
-		return dp.GetFwdPit(i).ReadCounters().NDataMiss
+	assert.Equal(uint64(1), fixture.SumCounter(func(fwd *fwdp.Fwd) uint64 {
+		return fwd.Pit().ReadCounters().NDataMiss
 	}))
 }
 
@@ -92,8 +92,8 @@ func TestNackWrongName(t *testing.T) {
 	fixture.StepDelay()
 	assert.Equal(0, collect1.Count())
 
-	assert.Equal(uint64(1), fixture.SumCounter(func(dp *fwdp.DataPlane, i int) uint64 {
-		return dp.GetFwdPit(i).ReadCounters().NNackMiss
+	assert.Equal(uint64(1), fixture.SumCounter(func(fwd *fwdp.Fwd) uint64 {
+		return fwd.Pit().ReadCounters().NNackMiss
 	}))
 }
 
@@ -114,7 +114,7 @@ func TestNackWrongNonce(t *testing.T) {
 	fixture.StepDelay()
 	assert.Equal(0, collect1.Count())
 
-	assert.Equal(uint64(1), fixture.SumCounter(func(dp *fwdp.DataPlane, i int) uint64 {
-		return dp.ReadFwdInfo(i).NNackMismatch
+	assert.Equal(uint64(1), fixture.SumCounter(func(fwd *fwdp.Fwd) uint64 {
+		return fwd.ReadCounters().NNackMismatch
 	}))
 }
