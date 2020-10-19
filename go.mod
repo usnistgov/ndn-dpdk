@@ -24,7 +24,7 @@ require (
 	github.com/soh335/sliceflag v0.0.0-20160923061056-d2d28a5acab8
 	github.com/stretchr/testify v1.6.1
 	github.com/urfave/cli/v2 v2.2.0
-	golang.org/x/net v0.0.0-20201002202402-0a1ea396d57c // indirect
-	golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f
+	golang.org/x/net v0.0.0-20201016165138-7b1cca2348c0 // indirect
+	golang.org/x/sys v0.0.0-20201018230417-eeed37f84f13
 	gopkg.in/yaml.v2 v2.3.0 // indirect
 )
