@@ -8,7 +8,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/container/fib/fibdef"
 	"github.com/usnistgov/ndn-dpdk/container/hrlog"
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
-	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealconfig"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealinit"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
@@ -28,8 +27,6 @@ func main() {
 		log.WithError(e).Fatal("EAL args error")
 	}
 	ealinit.Init(ealArgs)
-
-	gqlserver.Start()
 	hrlog.Init()
 
 	cfg.Mempool.Apply()

@@ -1,11 +1,11 @@
-import type { FaceCounters, FaceLocator } from "../iface";
+import type { EthFaceLocator, FaceLocator } from "../iface";
 import type { IdArg } from "./common";
 
 export interface FaceMgmt {
   List: {args: {}; reply: FaceBasicInfo[]};
   Get: {args: IdArg; reply: FaceInfo};
-  Create: {args: FaceLocator; reply: FaceBasicInfo};
-  Destroy: {args: FaceLocator; reply: {}};
+  Create: {args: EthFaceLocator; reply: FaceBasicInfo};
+  Destroy: {args: IdArg; reply: {}};
 }
 
 export interface FaceBasicInfo extends IdArg {
@@ -14,6 +14,4 @@ export interface FaceBasicInfo extends IdArg {
 
 export interface FaceInfo extends FaceBasicInfo {
   IsDown: boolean;
-  Counters: FaceCounters;
-  ExCounters: any;
 }
