@@ -19,4 +19,3 @@ Go shared code:
 * runningstat: compute min, max, mean, and variance.
 * testenv: unit testing environment.
 * urcu: userspace RCU.
-* yamlflag: command line flag that accepts a YAML document.

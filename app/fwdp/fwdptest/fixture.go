@@ -49,11 +49,12 @@ func NewFixture(t *testing.T) (fixture *Fixture) {
 	dpCfg.Fib.NBuckets = 256
 	dpCfg.Fib.StartDepth = 8
 
-	dpCfg.Pcct.MaxEntries = 65535
-	dpCfg.Pcct.CsCapMd = 16384
-	dpCfg.Pcct.CsCapMi = 16384
+	dpCfg.Pcct.PcctCapacity = 65535
+	dpCfg.Pcct.CsDirectCapacity = 16384
+	dpCfg.Pcct.CsIndirectCapacity = 16384
 
-	dpCfg.LatencySampleFreq = 0
+	dpCfg.LatencySampleFreq = new(int)
+	*dpCfg.LatencySampleFreq = 0
 
 	dp, e := fwdp.New(dpCfg)
 	fixture.require.NoError(e)

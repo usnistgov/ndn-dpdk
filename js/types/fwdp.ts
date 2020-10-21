@@ -1,31 +1,22 @@
-import type { Counter, RunningStatSnapshot } from "./core";
-import type { LCore } from "./dpdk";
+import type { FibConfig } from "./fib";
+import type { NdtConfig } from "./ndt";
+import type { PcctConfig } from "./pcct";
+import type { SuppressConfig } from "./pit";
+import type { PktQueueConfig } from "./pktqueue";
 
-export interface FwdpInputInfo {
-  LCore: LCore;
+export interface FwdpConfig {
+  ndt?: NdtConfig;
+  fib?: FibConfig;
+  pcct?: PcctConfig;
+  suppress?: SuppressConfig;
+  crypto?: FwdpCryptoConfig;
+  fwdInterestQueue?: PktQueueConfig;
+  fwdDataQueue?: PktQueueConfig;
+  fwdNackQueue?: PktQueueConfig;
+  latencySampleFreq?: number;
 }
 
-export interface FwdpFwdInfo {
-  LCore: LCore;
-
-  InputInterest: FwdpFwdInfo.InputCounter;
-  InputData: FwdpFwdInfo.InputCounter;
-  InputNack: FwdpFwdInfo.InputCounter;
-  InputLatency: RunningStatSnapshot;
-
-  NNoFibMatch: Counter;
-  NDupNonce: Counter;
-  NSgNoFwd: Counter;
-  NNackMismatch: Counter;
-
-  HeaderMpUsage: Counter;
-  IndirectMpUsage: Counter;
-}
-
-export namespace FwdpFwdInfo {
-  export interface InputCounter {
-    NDropped: Counter;
-    NQueued: Counter;
-    NCongMarks: Counter;
-  }
+export interface FwdpCryptoConfig {
+  inputCapacity?: number;
+  opPoolCapacity?: number;
 }

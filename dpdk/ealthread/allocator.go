@@ -12,11 +12,11 @@ type AllocConfig map[string]AllocRoleConfig
 // AllocRoleConfig contains lcore allocation config for a role.
 type AllocRoleConfig struct {
 	// List of lcores reserved for this role.
-	LCores []int
+	LCores []int `json:"lcores,omitempty"`
 	// Number of lcores on a specified NUMA socket.
-	OnNuma map[int]int
+	OnNuma map[int]int `json:"onNuma,omitempty"`
 	// Number of lcores on each NUMA socket.
-	EachNuma int
+	EachNuma int `json:"eachNuma,omitempty"`
 }
 
 func (c AllocRoleConfig) limitOn(socket eal.NumaSocket) int {

@@ -34,4 +34,4 @@ It only supports TCP connections.
 
 `make-spec.ts` program creates a [jrgen](https://www.npmjs.com/package/jrgen) specification file for the management API.
 It may be consumed by programs that wish to interact with NDN-DPDK management.
-The relevant build target is `make mgmtspec`, which writes the spec to `docs/mgmtspec.json`.
+The relevant build target is `make schema`, which writes the spec to `build/mgmtspec.json`.

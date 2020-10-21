@@ -20,8 +20,15 @@ import (
 
 // CryptoConfig contains crypto helper thread configuration.
 type CryptoConfig struct {
-	InputCapacity  int
-	OpPoolCapacity int
+	InputCapacity  int `json:"inputCapacity,omitempty"`
+	OpPoolCapacity int `json:"opPoolCapacity,omitempty"`
+}
+
+func (cfg *CryptoConfig) applyDefaults() {
+	cfg.InputCapacity = ringbuffer.AlignCapacity(cfg.InputCapacity, 63)
+	if cfg.OpPoolCapacity <= 0 {
+		cfg.OpPoolCapacity = 1023
+	}
 }
 
 // Crypto represents a crypto helper thread.
@@ -35,6 +42,7 @@ type Crypto struct {
 }
 
 func newCrypto(id int, lc eal.LCore, cfg CryptoConfig, ndt *ndt.Ndt, fwds []*Fwd) (*Crypto, error) {
+	cfg.applyDefaults()
 	socket := lc.NumaSocket()
 	fwc := &Crypto{
 		id: id,

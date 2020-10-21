@@ -12,8 +12,8 @@ import (
 func TestDirectLru(t *testing.T) {
 	assert, _ := makeAR(t)
 	var cfg pcct.Config
-	cfg.CsCapMd = 400
-	cfg.CsCapMi = 100
+	cfg.CsDirectCapacity = 400
+	cfg.CsIndirectCapacity = 100
 	fixture := NewFixture(cfg)
 	defer fixture.Close()
 	assert.Equal(400, fixture.Cs.Capacity(cs.ListMd))
@@ -37,8 +37,8 @@ func TestDirectLru(t *testing.T) {
 func TestDirectArc(t *testing.T) {
 	assert, _ := makeAR(t)
 	var cfg pcct.Config
-	cfg.CsCapMd = 100
-	cfg.CsCapMi = 100
+	cfg.CsDirectCapacity = 100
+	cfg.CsIndirectCapacity = 100
 	fixture := NewFixture(cfg)
 	defer fixture.Close()
 
@@ -102,8 +102,8 @@ func TestDirectArc(t *testing.T) {
 func TestIndirectLru(t *testing.T) {
 	assert, _ := makeAR(t)
 	var cfg pcct.Config
-	cfg.CsCapMd = 600
-	cfg.CsCapMi = 400
+	cfg.CsDirectCapacity = 600
+	cfg.CsIndirectCapacity = 400
 	fixture := NewFixture(cfg)
 	defer fixture.Close()
 	assert.Equal(400, fixture.Cs.Capacity(cs.ListMi))

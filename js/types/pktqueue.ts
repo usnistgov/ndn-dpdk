@@ -8,7 +8,7 @@ export namespace PktQueueConfig {
      * @TJS-type integer
      * @minimum 64
      */
-    Capacity?: number;
+    capacity?: number;
 
     /**
      * @TJS-type integer
@@ -16,28 +16,28 @@ export namespace PktQueueConfig {
      * @minimum 1
      * @maximum 64
      */
-    DequeueBurstSize?: number;
+    dequeueBurstSize?: number;
   }
 
   export interface Plain extends Common {
-    DisableCoDel: true;
+    disableCoDel: true;
   }
 
   export interface Delay extends Common {
-    Delay: NNNanoseconds;
+    delay: NNNanoseconds;
   }
 
   export interface CoDel extends Common {
-    DisableCoDel?: false;
+    disableCoDel?: false;
 
     /**
      * @default 5000000
      */
-    Target?: NNNanoseconds;
+    target?: NNNanoseconds;
 
     /**
      * @default 100000000
      */
-    Interval?: NNNanoseconds;
+    interval?: NNNanoseconds;
   }
 }

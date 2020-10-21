@@ -1,60 +1,55 @@
 package main
 
 import (
+	"errors"
 	stdlog "log"
-	"math/rand"
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/app/ping"
-	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
+	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealconfig"
-	"github.com/usnistgov/ndn-dpdk/dpdk/ealinit"
-	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/mgmt"
-	"github.com/usnistgov/ndn-dpdk/mgmt/facemgmt"
 	"github.com/usnistgov/ndn-dpdk/mgmt/pingmgmt"
-	"github.com/usnistgov/ndn-dpdk/mgmt/versionmgmt"
 )
 
-func main() {
-	rand.Seed(time.Now().UnixNano())
-	cfg, tasks, counterInterval := parseCommand()
+var (
+	errGenNoTasks = errors.New("tasks missing")
+)
+
+type genArgs struct {
+	CommonArgs
+	Tasks           []ping.TaskConfig       `json:"tasks"`
+	CounterInterval nnduration.Milliseconds `json:"counterInterval,omitempty"`
+}
+
+func (a genArgs) Activate() error {
+	if len(a.Tasks) == 0 {
+		return errGenNoTasks
+	}
 
 	var req ealconfig.Request
-	// main + (RX + TX + SVR + CLIR + CLIT) * tasks
-	req.MinLCores = 1 + 5*len(tasks)
-	ealArgs, e := cfg.Eal.Args(req, nil)
-	if e != nil {
-		log.WithError(e).Fatal("EAL args error")
+	req.MinLCores = 1 // main
+	for _, task := range a.Tasks {
+		req.MinLCores += task.EstimateLCores()
 	}
-	ealinit.Init(ealArgs)
-
-	gqlserver.Start()
-
-	cfg.Mempool.Apply()
-	ealthread.DefaultAllocator.Config = cfg.LCoreAlloc
-
-	app, e := ping.New(tasks)
-	if e != nil {
-		log.WithError(e).Fatal("ping.New error")
+	if e := a.CommonArgs.apply(req); e != nil {
+		return e
 	}
 
+	app, e := ping.New(a.Tasks)
+	if e != nil {
+		return e
+	}
 	app.Launch()
-
-	if counterInterval > 0 {
-		go printPeriodicCounters(app, counterInterval)
-	}
-
-	mgmt.Register(versionmgmt.VersionMgmt{})
-	mgmt.Register(facemgmt.FaceMgmt{})
 	mgmt.Register(pingmgmt.PingClientMgmt{App: app})
 	mgmt.Register(pingmgmt.FetchMgmt{App: app})
 	mgmt.Start()
 
-	select {}
+	go printPingCounters(app, a.CounterInterval.DurationOr(1000))
+	return nil
 }
 
-func printPeriodicCounters(app *ping.App, counterInterval time.Duration) {
+func printPingCounters(app *ping.App, counterInterval time.Duration) {
 	for range time.Tick(counterInterval) {
 		for _, task := range app.Tasks {
 			face := task.Face

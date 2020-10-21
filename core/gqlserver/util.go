@@ -1,6 +1,7 @@
 package gqlserver
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -39,11 +40,14 @@ func DecodeJSON(arg interface{}, ptr interface{}) error {
 	if e != nil {
 		return fmt.Errorf("json.Marshal %w", e)
 	}
-	e = json.Unmarshal(j, ptr)
+
+	decoder := json.NewDecoder(bytes.NewReader(j))
+	decoder.DisallowUnknownFields()
+	e = decoder.Decode(ptr)
 	if e != nil {
-		return fmt.Errorf("json.Unmarshal %w", e)
+		return fmt.Errorf("json.Decoder.Decode %w", e)
 	}
-	return e
+	return nil
 }
 
 // Optional turns invalid value to nil.

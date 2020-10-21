@@ -16,13 +16,19 @@ import (
 
 // PktQueueConfig contains PktQueue configuration.
 type PktQueueConfig struct {
-	Capacity         int // Ring capacity, must be power of 2, default 131072 with delay/CoDel or 4096 without
-	DequeueBurstSize int // dequeue burst size limit, default iface.MaxBurstSize
+	// Ring capacity, must be power of 2, default 131072 with delay/CoDel or 4096 without
+	Capacity int `json:"capacity,omitempty"`
+	// dequeue burst size limit, default MaxBurstSize
+	DequeueBurstSize int `json:"dequeueBurstSize,omitempty"`
 
-	Delay        nnduration.Nanoseconds // if non-zero, enforce minimum delay, implies DisableCoDel
-	DisableCoDel bool                   // if true, disable CoDel algorithm
-	Target       nnduration.Nanoseconds // CoDel TARGET parameter, default 5ms
-	Interval     nnduration.Nanoseconds // CoDel INTERVAL parameter, default 100ms
+	// if non-zero, enforce minimum delay, implies DisableCoDel
+	Delay nnduration.Nanoseconds `json:"delay,omitempty"`
+	// if true, disable CoDel algorithm
+	DisableCoDel bool `json:"disableCoDel,omitempty"`
+	// CoDel TARGET parameter, default 5ms
+	Target nnduration.Nanoseconds `json:"target,omitempty"`
+	// CoDel INTERVAL parameter, default 100ms
+	Interval nnduration.Nanoseconds `json:"interval,omitempty"`
 }
 
 // PktQueue is a packet queue with simplified CoDel algorithm.

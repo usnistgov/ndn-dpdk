@@ -1,3 +1,4 @@
+// Package pcct implements the PIT-CS Composite Table (PCCT).
 package pcct
 
 /*
@@ -17,18 +18,31 @@ import (
 
 // Config contains PCCT configuration.
 type Config struct {
-	MaxEntries int
-	CsCapMd    int
-	CsCapMi    int
+	PcctCapacity       int `json:"pcctCapacity,omitempty"`
+	CsDirectCapacity   int `json:"csDirectCapacity,omitempty"`
+	CsIndirectCapacity int `json:"csIndirectCapacity,omitempty"`
+}
+
+func (cfg *Config) applyDefaults() {
+	if cfg.PcctCapacity <= 0 {
+		cfg.PcctCapacity = 131071
+	}
+	if cfg.CsDirectCapacity <= 0 {
+		cfg.CsDirectCapacity = cfg.PcctCapacity / 4
+	}
+	if cfg.CsIndirectCapacity <= 0 {
+		cfg.CsIndirectCapacity = cfg.PcctCapacity / 4
+	}
 }
 
 // Pcct represents a PIT-CS Composite Table (PCCT).
 type Pcct C.Pcct
 
-// New creates a PCCT, and then initializes PIT and CS.
+// New creates a PCCT and initializes PIT and CS.
 func New(cfg Config, socket eal.NumaSocket) (pcct *Pcct, e error) {
+	cfg.applyDefaults()
 	mp, e := mempool.New(mempool.Config{
-		Capacity:       cfg.MaxEntries,
+		Capacity:       cfg.PcctCapacity,
 		ElementSize:    math.MaxInt(int(C.sizeof_PccEntry), int(C.sizeof_PccEntryExt)),
 		PrivSize:       int(C.sizeof_Pcct),
 		Socket:         socket,
@@ -48,12 +62,12 @@ func New(cfg Config, socket eal.NumaSocket) (pcct *Pcct, e error) {
 
 	tokenHtID := C.CString(eal.AllocObjectID("pcct.tokenHt"))
 	defer C.free(unsafe.Pointer(tokenHtID))
-	if ok := bool(C.Pcct_Init(pcctC, tokenHtID, C.uint32_t(cfg.MaxEntries), C.uint(socket.ID()))); !ok {
+	if ok := bool(C.Pcct_Init(pcctC, tokenHtID, C.uint32_t(cfg.PcctCapacity), C.uint(socket.ID()))); !ok {
 		return nil, fmt.Errorf("Pcct_Init error %w", eal.GetErrno())
 	}
 
 	C.Pit_Init(&pcctC.pit)
-	C.Cs_Init(&pcctC.cs, C.uint32_t(cfg.CsCapMd), C.uint32_t(cfg.CsCapMi))
+	C.Cs_Init(&pcctC.cs, C.uint32_t(cfg.CsDirectCapacity), C.uint32_t(cfg.CsIndirectCapacity))
 	return (*Pcct)(pcctC), nil
 }
 

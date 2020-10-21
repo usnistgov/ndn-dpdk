@@ -181,12 +181,12 @@ func init() {
 	AddQuery(&graphql.Field{
 		Name:        "node",
 		Description: "Retrieve object by global ID.",
-		Type:        nodeInterface,
 		Args: graphql.FieldConfigArgument{
 			"id": &graphql.ArgumentConfig{
 				Type: NonNullID,
 			},
 		},
+		Type: nodeInterface,
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 			_, obj, e := RetrieveNode(p.Args["id"])
 			return obj, e
@@ -196,12 +196,12 @@ func init() {
 	AddMutation(&graphql.Field{
 		Name:        "delete",
 		Description: "Delete object by global ID. The result indicates whether the object previously exists.",
-		Type:        graphql.Boolean,
 		Args: graphql.FieldConfigArgument{
 			"id": &graphql.ArgumentConfig{
 				Type: NonNullID,
 			},
 		},
+		Type: NonNullBoolean,
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 			nt, obj, e := RetrieveNode(p.Args["id"])
 			if e != nil || obj == nil {

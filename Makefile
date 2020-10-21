@@ -4,11 +4,14 @@ ifeq ($(origin CC),default)
 endif
 export CC
 
+.PHONY: all
 all: gopkg npm cmds
 
+.PHONY: gopkg
 gopkg: godeps
 	go build -v ./...
 
+.PHONY: godeps
 godeps: build/libndn-dpdk-c.a build/cgodeps.done build/strategy.done
 
 csrc/fib/enum.h: container/fib/fibdef/enum.go
@@ -52,34 +55,51 @@ npm: tsc
 	mv $$(npm pack -s .) build/ndn-dpdk.tgz
 
 .PHONY: cmds
-cmds: build/bin/ndndpdk-ctrl build/bin/ndndpdk-godemo build/bin/ndndpdk-hrlog2histogram build/bin/ndnfw-dpdk build/bin/ndnping-dpdk
+cmds: build/bin/ndndpdk-ctrl build/bin/ndndpdk-godemo build/bin/ndndpdk-hrlog2histogram build/bin/ndndpdk-svc
 
 build/bin/%: cmd/%/* godeps
 	GOBIN=$$(realpath build/bin) go install "-ldflags=$$(mk/version/ldflags.sh)" ./cmd/$*
 
+.PHONY: install
 install:
 	mk/install.sh
 
+.PHONY: uninstall
 uninstall:
 	mk/uninstall.sh
 
+.PHONY: doxygen
 doxygen:
 	doxygen docs/Doxyfile 2>&1 | docs/filter-Doxygen-warning.awk 1>&2
 
-mgmtspec: docs/mgmtspec.json
+.PHONY: schema
+schema: build/share/ndn-dpdk/schema/jsonrpc2.jrgen.json build/share/ndn-dpdk/schema/locator.schema.json build/share/ndn-dpdk/schema/fw.schema.json build/share/ndn-dpdk/schema/gen.schema.json
 
-docs/mgmtspec.json:
+build/share/ndn-dpdk/schema/jsonrpc2.jrgen.json:
+	mkdir -p $(@D)
 	./node_modules/.bin/ts-node js/cmd/make-spec.ts >$@
 
-.PHONY: docs
-docs: doxygen mgmtspec
+build/share/ndn-dpdk/schema/locator.schema.json:
+	mkdir -p $(@D)
+	./node_modules/.bin/ts-node js/cmd/make-schema.ts types/iface.ts FaceLocator >$@
 
+build/share/ndn-dpdk/schema/fw.schema.json:
+	mkdir -p $(@D)
+	./node_modules/.bin/ts-node js/cmd/make-schema.ts types/cmd/svc.ts ActivateFwArgs >$@
+
+build/share/ndn-dpdk/schema/gen.schema.json:
+	mkdir -p $(@D)
+	./node_modules/.bin/ts-node js/cmd/make-schema.ts types/cmd/svc.ts ActivateGenArgs >$@
+
+.PHONY: lint
 lint:
 	mk/format-code.sh
 
+.PHONY: test
 test: godeps
 	mk/gotest.sh
 
+.PHONY: clean
 clean:
 	awk '!(/node_modules/ || /\*/)' .dockerignore | xargs rm -rf
 	awk '/\*/' .dockerignore | xargs -I{} -n1 find -wholename ./{} -delete

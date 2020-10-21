@@ -48,10 +48,10 @@ type Fixture struct {
 	FibEntry   *fibreplica.Entry
 }
 
-func NewFixture(pcctMaxEntries int) *Fixture {
+func NewFixture(pcctCapacity int) *Fixture {
 	fixture := new(Fixture)
 	var e error
-	fixture.Pcct, e = pcct.New(pcct.Config{MaxEntries: pcctMaxEntries}, eal.NumaSocket{})
+	fixture.Pcct, e = pcct.New(pcct.Config{PcctCapacity: pcctCapacity}, eal.NumaSocket{})
 	if e != nil {
 		panic(e)
 	}

@@ -35,9 +35,9 @@ export type LCoreAllocConfig<K extends string = string> = Record<K, LCoreAllocCo
 
 export namespace LCoreAllocConfig {
   export interface Role {
-    LCores?: LCore[];
-    OnNuma?: Record<number, number>;
-    EachNuma?: number;
+    lcores?: LCore[];
+    onNuma?: Record<number, number>;
+    eachNuma?: number;
   }
 }
 

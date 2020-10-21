@@ -9,7 +9,6 @@ require (
 	github.com/bhoriuchi/graphql-go-tools v0.0.0-20200610145626-91ece7a13f25
 	github.com/chuckpreslar/emission v0.0.0-20170206194824-a7ddd980baf9
 	github.com/gabstv/freeport v0.0.0-20171005142102-7952fe2e67ce
-	github.com/ghodss/yaml v1.0.0
 	github.com/google/gopacket v1.1.18
 	github.com/graphql-go/graphql v0.7.9
 	github.com/jaypipes/ghw v0.6.1

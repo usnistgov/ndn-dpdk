@@ -3,6 +3,7 @@ package fwdp
 import (
 	"fmt"
 
+	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/container/fib"
 	"github.com/usnistgov/ndn-dpdk/container/fib/fibdef"
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
@@ -23,16 +24,35 @@ const (
 
 // Config contains data plane configuration.
 type Config struct {
-	Ndt      ndt.Config         // NDT config
-	Fib      fibdef.Config      // FIB config
-	Pcct     pcct.Config        // PCCT config template
-	Suppress pit.SuppressConfig // PIT suppression config
+	Ndt      ndt.Config         `json:"ndt,omitempty"`
+	Fib      fibdef.Config      `json:"fib,omitempty"`
+	Pcct     pcct.Config        `json:"pcct,omitempty"`
+	Suppress pit.SuppressConfig `json:"suppress,omitempty"`
 
-	Crypto            CryptoConfig
-	FwdInterestQueue  iface.PktQueueConfig
-	FwdDataQueue      iface.PktQueueConfig
-	FwdNackQueue      iface.PktQueueConfig
-	LatencySampleFreq int // latency sample frequency, between 0 and 30
+	Crypto            CryptoConfig         `json:"crypto,omitempty"`
+	FwdInterestQueue  iface.PktQueueConfig `json:"fwdInterestQueue,omitempty"`
+	FwdDataQueue      iface.PktQueueConfig `json:"fwdDataQueue,omitempty"`
+	FwdNackQueue      iface.PktQueueConfig `json:"fwdNackQueue,omitempty"`
+	LatencySampleFreq *int                 `json:"latencySampleFreq,omitempty"` // latency sample frequency, between 0 and 30
+}
+
+func (cfg *Config) applyDefaults() {
+	if cfg.FwdDataQueue.DequeueBurstSize <= 0 {
+		cfg.FwdDataQueue.DequeueBurstSize = iface.MaxBurstSize
+	}
+	if cfg.FwdNackQueue.DequeueBurstSize <= 0 {
+		cfg.FwdNackQueue.DequeueBurstSize = cfg.FwdDataQueue.DequeueBurstSize
+	}
+	if cfg.FwdInterestQueue.DequeueBurstSize <= 0 {
+		cfg.FwdInterestQueue.DequeueBurstSize = math.MaxInt(cfg.FwdDataQueue.DequeueBurstSize/2, 1)
+	}
+}
+
+func (cfg Config) latencySampleFreq() int {
+	if cfg.LatencySampleFreq == nil {
+		return 16
+	}
+	return math.MinInt(math.MaxInt(0, *cfg.LatencySampleFreq), 30)
 }
 
 // DataPlane represents the forwarder data plane.
@@ -46,6 +66,7 @@ type DataPlane struct {
 
 // New creates and launches forwarder data plane.
 func New(cfg Config) (dp *DataPlane, e error) {
+	cfg.applyDefaults()
 	dp = new(DataPlane)
 
 	faceSockets := append(eal.NumaSocketsOf(ethdev.List()), eal.NumaSocket{})
@@ -75,7 +96,7 @@ func New(cfg Config) (dp *DataPlane, e error) {
 	for i, lc := range lcFwds {
 		fwd := newFwd(i)
 		if e = fwd.Init(lc, cfg.Pcct, cfg.FwdInterestQueue, cfg.FwdDataQueue, cfg.FwdNackQueue,
-			cfg.LatencySampleFreq, cfg.Suppress); e != nil {
+			cfg.latencySampleFreq(), cfg.Suppress); e != nil {
 			dp.Close()
 			return nil, fmt.Errorf("Fwd.Init(%d): %w", i, e)
 		}

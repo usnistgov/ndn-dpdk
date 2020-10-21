@@ -13,9 +13,9 @@ import (
 
 // SuppressConfig contains PIT suppression configuration.
 type SuppressConfig struct {
-	Min        nnduration.Nanoseconds
-	Max        nnduration.Nanoseconds
-	Multiplier float64
+	Min        nnduration.Nanoseconds `json:"min,omitempty"`
+	Max        nnduration.Nanoseconds `json:"max,omitempty"`
+	Multiplier float64                `json:"multiplier,omitempty"`
 }
 
 // CopyToC copies this configuration to *C.PitSuppressConfig.

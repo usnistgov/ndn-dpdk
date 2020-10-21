@@ -38,6 +38,7 @@ It is in pre-release stage and will continue to be updated.
 * Execute `make godeps` to build C objects and generate certain Go source files.
 * Execute `make gopkg` to build all Go packages.
 * Execute `make test` to run all unit tests, or `mk/gotest.sh <PKG>` to run the tests for a given package.
+* Execute `make schema` to build JSON schema.
 * Execute `make doxygen` to build C documentation (requires the `doxygen` package).
 * To view Go documentation, execute `godoc &` and access the website on port 6060.
   You may need to install [godoc](https://pkg.go.dev/golang.org/x/tools/cmd/godoc?tab=doc) command: `sudo GO111MODULE=off GOBIN=$(go env GOROOT)/bin $(which go) get -u golang.org/x/tools/cmd/godoc`

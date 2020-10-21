@@ -5,7 +5,6 @@ build
 csrc/*/*enum.h
 csrc/meson.build
 csrc/ndni/an.h
-docs/mgmtspec.json
 mk/meson.build
 node_modules
 package-lock.json

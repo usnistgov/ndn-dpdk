@@ -54,12 +54,12 @@ type Fixture struct {
 }
 
 func NewFixture(cfg pcct.Config) *Fixture {
-	cfg.MaxEntries = 4095
-	if cfg.CsCapMd == 0 {
-		cfg.CsCapMd = 200
+	cfg.PcctCapacity = 4095
+	if cfg.CsDirectCapacity == 0 {
+		cfg.CsDirectCapacity = 200
 	}
-	if cfg.CsCapMi == 0 {
-		cfg.CsCapMd = 200
+	if cfg.CsIndirectCapacity == 0 {
+		cfg.CsIndirectCapacity = 200
 	}
 
 	fixture := new(Fixture)

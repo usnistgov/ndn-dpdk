@@ -1,9 +1,13 @@
+import { NNMilliseconds } from "../core";
 import type { FaceLocator } from "../iface";
 import type { PingClientConfig } from "./client";
 import type { FetchConfig } from "./fetch";
 import type { PingServerConfig } from "./server";
 
-export type PingConfig = PingTask[];
+export interface PingConfig {
+  tasks: PingTask[];
+  counterInterval?: NNMilliseconds;
+}
 
 export interface PingTask {
   Face: FaceLocator;

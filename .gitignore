@@ -5,7 +5,6 @@ cgo_test.go
 /csrc/*/*enum.h
 /csrc/meson.build
 /csrc/ndni/an.h
-/docs/mgmtspec.json
 /mk/meson.build
 *ndn-dpdk-*.tgz
 node_modules
