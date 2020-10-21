@@ -39,55 +39,45 @@ export interface JrgenSpecSchema {
   /**
    * Global definitions for use in the api.
    */
-  definitions?: {
-    [k: string]: any;
-  };
+  definitions?: Record<string, any>;
   /**
    * Definitions of the available procedures in the api. A key equals to the name of a procedure.
    */
-  methods: {
+  methods: Record<string, {
     /**
-     * Definition of an api procedure.
-     *
-     * This interface was referenced by `undefined`'s JSON-Schema definition
-     * via the `patternProperty` "^.*$".
-     */
-    [k: string]: {
-      /**
        * Short summary of what the procedure does.
        */
-      summary: string;
-      /**
+    summary: string;
+    /**
        * Longer description of what the procedure does.
        */
-      description?: string | string[];
-      /**
+    description?: string | string[];
+    /**
        * Tags for grouping similar procedures.
        */
-      tags?: string[];
-      params?: any;
-      result?: any;
-      /**
+    tags?: string[];
+    params?: any;
+    result?: any;
+    /**
        * Definition of possible error responses.
        */
-      errors?: Array<{
-        /**
+    errors?: Array<{
+      /**
          * Description of what went wrong.
          */
-        description?: string;
-        /**
+      description?: string;
+      /**
          * Unique error code.
          */
-        code: number;
-        /**
+      code: number;
+      /**
          * Unique error message,
          */
-        message: string;
-        data?: any;
-        [k: string]: any;
-      }>;
+      message: string;
+      data?: any;
       [k: string]: any;
-    };
-  };
+    }>;
+    [k: string]: any;
+  }>;
   [k: string]: any;
 }

@@ -67,5 +67,4 @@ It is in pre-release stage and will continue to be updated.
 * [container](container): data structures.
 * [strategy](strategy): forwarding strategy BPF programs.
 * [app](app): applications, including the forwarder dataplane.
-* [mgmt](mgmt): management interface.
 * [cmd](cmd): executables.

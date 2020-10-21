@@ -22,7 +22,7 @@ const spec: JrgenSpecSchema = {
   methods: {},
 };
 
-const mgmtModules: { [k: string]: string } = {};
+const mgmtModules: Record<string, string> = {};
 for (const [propName, propSchema] of Object.entries(schema.properties!)) {
   const typeName = (propSchema as TJS.Definition).$ref!.replace("#/definitions/", "");
   mgmtModules[typeName] = propName;
