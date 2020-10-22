@@ -1,4 +1,4 @@
-// Command ndndpdk-ctrl controls the NDN-DPDK daemon via GraphQL.
+// Command ndndpdk-ctrl controls the NDN-DPDK service.
 package main
 
 import (
@@ -10,12 +10,12 @@ import (
 	"sort"
 
 	"github.com/urfave/cli/v2"
+	"github.com/usnistgov/ndn-dpdk/core/gqlclient"
 	"github.com/usnistgov/ndn-dpdk/mk/version"
-	"github.com/usnistgov/ndn-dpdk/ndn/mgmt/gqlmgmt"
 )
 
 var gqlserver string
-var client *gqlmgmt.Client
+var client *gqlclient.Client
 
 func clientDoPrint(query string, vars interface{}, key string) error {
 	var value interface{}
@@ -49,7 +49,7 @@ var app = &cli.App{
 		},
 	},
 	Before: func(c *cli.Context) (e error) {
-		client, e = gqlmgmt.New(gqlserver)
+		client, e = gqlclient.New(gqlserver)
 		return e
 	},
 }

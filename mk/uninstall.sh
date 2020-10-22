@@ -7,10 +7,8 @@ DESTBPF=$DESTDIR/lib/bpf
 rm -rf $DESTBPF/ndndpdk-strategy-*.o
 
 DESTSBIN=$DESTDIR/sbin
-rm -f $DESTSBIN/ndnfw-dpdk $DESTSBIN/ndnping-dpdk $DESTSBIN/ndndpdk-*
-
 DESTBIN=$DESTDIR/bin
-rm -f $DESTBIN/ndndpdk-*
+rm -f $DESTSBIN/ndndpdk-* $DESTBIN/ndndpdk-*
 
-DESTNODE=$DESTDIR/lib/node_modules/@usnistgov/ndn-dpdk
-rm -rf $DESTNODE
+DESTSHARE=$DESTDIR/share/ndn-dpdk
+rm -rf $DESTSHARE

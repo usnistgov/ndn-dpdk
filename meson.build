@@ -30,3 +30,6 @@ run_target('cgostruct',
 run_target('cgotest',
   command: [find_program('mk/cgotest.sh'), cgotest_dirs]
 )
+run_target('schema',
+  command: [find_program('mk/schema/build.sh'), cgotest_dirs]
+)

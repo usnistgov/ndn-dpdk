@@ -1,8 +1,8 @@
-import { FaceMgmt } from "./face";
-import { FetchMgmt } from "./fetch";
-import { FibMgmt } from "./fib";
-import { PingClientMgmt } from "./pingclient";
-import { VersionMgmt } from "./version";
+import type { FaceMgmt } from "./face";
+import type { FetchMgmt } from "./fetch";
+import type { FibMgmt } from "./fib";
+import type { PingClientMgmt } from "./pingclient";
+import type { VersionMgmt } from "./version";
 
 export interface Mgmt {
   Face: FaceMgmt;

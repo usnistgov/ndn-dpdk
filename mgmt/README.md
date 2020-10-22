@@ -1,6 +1,6 @@
 # ndn-dpdk/mgmt
 
-This package implements management RPC server and client.
+This package implements JSON-RPC management server.
 
 ## RPC Server (Go)
 
@@ -27,6 +27,5 @@ Sending invalid RPC requests may trigger undefined behavior in NDN-DPDK, such as
 
 ## Management API Specification
 
-`make-spec.ts` program creates a [jrgen](https://www.npmjs.com/package/jrgen) specification file for the management API.
+A [jrgen](https://www.npmjs.com/package/jrgen) specification file is generated in `build/share/ndn-dpdk/jsonrpc2.jrgen.json`.
 It may be consumed by programs that wish to interact with NDN-DPDK management.
-The relevant build target is `make schema`, which writes the spec to `build/share/ndn-dpdk/schema/jsonrpc2.jrgen.json`.

@@ -1,6 +1,6 @@
 // Generated with these commands:
 // wget https://github.com/mzernetsch/jrgen/raw/v2.0.2/jrgen-spec.schema.json
-// npx -p json-schema-to-typescript json2ts -i jrgen-spec.schema.json -o mgmt/jrgen-spec-schema.ts
+// npx -p json-schema-to-typescript json2ts -i jrgen-spec.schema.json -o jrgen-spec-schema.ts
 // rm jrgen-spec.schema.json
 
 /**

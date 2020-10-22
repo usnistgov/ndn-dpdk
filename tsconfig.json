@@ -2,7 +2,7 @@
   "compilerOptions": {
     "forceConsistentCasingInFileNames": true,
     "importHelpers": true,
-    "module": "commonjs",
+    "module": "ES2020",
     "noEmitOnError": true,
     "noImplicitAny": true,
     "noImplicitReturns": true,
@@ -11,10 +11,10 @@
     "removeComments": true,
     "rootDir": "js",
     "strict": true,
-    "target": "es2019"
+    "target": "ES2019"
   },
   "include": [
-    "js/**/*.ts",
+    "js/**/*.ts"
   ],
   "exclude": [
     "node_modules"

@@ -13,9 +13,9 @@ type EalMemoryConfig = {
 };
 
 type EalDeviceConfig = {
-  pciDevices: string[];
+  pciDevices?: string[];
   allPciDevices?: boolean;
-  virtualDevices: string[];
+  virtualDevices?: string[];
 } | {
   deviceFlags?: string;
 };
@@ -31,7 +31,7 @@ export type EalConfig =
  */
 export type LCore = number;
 
-export type LCoreAllocConfig<K extends string = string> = Record<K, LCoreAllocConfig.Role>;
+export type LCoreAllocConfig<K extends string = string> = Partial<Record<K, LCoreAllocConfig.Role>>;
 
 export namespace LCoreAllocConfig {
   export interface Role {
@@ -42,9 +42,9 @@ export namespace LCoreAllocConfig {
 }
 
 export interface PktmbufPoolConfig {
-  capacity: number;
-  privSize: number;
-  dataroom: number;
+  capacity?: number;
+  privSize?: number;
+  dataroom?: number;
 }
 
-export type PktmbufPoolTemplateUpdates<K extends string = string> = Record<K, PktmbufPoolConfig>;
+export type PktmbufPoolTemplateUpdates<K extends string = string> = Partial<Record<K, PktmbufPoolConfig>>;

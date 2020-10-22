@@ -74,7 +74,7 @@ jobs:
       - name: check code style
         run: make lint && [[ $(git status --porcelain | tee /dev/stderr | wc -l) -eq 0 ]]
       - name: build documentation
-        run: make doxygen schema
+        run: make doxygen
   docker:
     runs-on: ubuntu-18.04
     steps:

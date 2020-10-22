@@ -5,7 +5,7 @@ endif
 export CC
 
 .PHONY: all
-all: gopkg npm cmds
+all: gopkg cmds npm
 
 .PHONY: gopkg
 gopkg: godeps
@@ -26,9 +26,6 @@ csrc/iface/enum.h: iface/enum.go
 csrc/pcct/cs-enum.h: container/cs/enum.go
 	mk/gogenerate.sh ./$(<D)
 
-ndni/ndnitest/cgo_test.go: ndni/ndnitest/*_ctest.go
-	mk/gogenerate.sh ./$(<D)
-
 build/strategy.done: strategy/*.c csrc/strategyapi/* csrc/fib/enum.h
 	strategy/compile.sh
 
@@ -40,25 +37,24 @@ build/build.ninja: csrc/meson.build mk/meson.build
 	bash -c 'source mk/cflags.sh; meson build'
 
 build/cgodeps.done: build/build.ninja
-	ninja -C build cgoflags cgostruct cgotest
+	ninja -C build cgoflags cgostruct cgotest schema
 	touch $@
 
 csrc/meson.build mk/meson.build:
 	mk/update-list.sh
-
-.PHONY: tsc
-tsc:
-	node_modules/.bin/tsc
-
-.PHONY: npm
-npm: tsc
-	mv $$(npm pack -s .) build/ndn-dpdk.tgz
 
 .PHONY: cmds
 cmds: build/bin/ndndpdk-ctrl build/bin/ndndpdk-godemo build/bin/ndndpdk-hrlog2histogram build/bin/ndndpdk-svc
 
 build/bin/%: cmd/%/* godeps
 	GOBIN=$$(realpath build/bin) go install "-ldflags=$$(mk/version/ldflags.sh)" ./cmd/$*
+
+.PHONY: npm
+npm: build/share/ndn-dpdk/ndn-dpdk.npm.tgz
+
+build/share/ndn-dpdk/ndn-dpdk.npm.tgz:
+	node_modules/.bin/tsc
+	mv $$(npm pack -s .) $@
 
 .PHONY: install
 install:
@@ -71,25 +67,6 @@ uninstall:
 .PHONY: doxygen
 doxygen:
 	doxygen docs/Doxyfile 2>&1 | docs/filter-Doxygen-warning.awk 1>&2
-
-.PHONY: schema
-schema: build/share/ndn-dpdk/schema/jsonrpc2.jrgen.json build/share/ndn-dpdk/schema/locator.schema.json build/share/ndn-dpdk/schema/fw.schema.json build/share/ndn-dpdk/schema/gen.schema.json
-
-build/share/ndn-dpdk/schema/jsonrpc2.jrgen.json:
-	mkdir -p $(@D)
-	./node_modules/.bin/ts-node js/cmd/make-spec.ts >$@
-
-build/share/ndn-dpdk/schema/locator.schema.json:
-	mkdir -p $(@D)
-	./node_modules/.bin/ts-node js/cmd/make-schema.ts types/iface.ts FaceLocator >$@
-
-build/share/ndn-dpdk/schema/fw.schema.json:
-	mkdir -p $(@D)
-	./node_modules/.bin/ts-node js/cmd/make-schema.ts types/cmd/svc.ts ActivateFwArgs >$@
-
-build/share/ndn-dpdk/schema/gen.schema.json:
-	mkdir -p $(@D)
-	./node_modules/.bin/ts-node js/cmd/make-schema.ts types/cmd/svc.ts ActivateGenArgs >$@
 
 .PHONY: lint
 lint:

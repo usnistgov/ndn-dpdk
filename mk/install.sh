@@ -18,4 +18,6 @@ install -m0755 build/bin/ndndpdk-ctrl $DESTBIN/
 install -m0755 build/bin/ndndpdk-hrlog2histogram $DESTBIN/
 install -m0755 cmd/mgmtclient/mgmtcmd.sh $DESTBIN/ndndpdk-mgmtcmd
 
-npm install -C /usr/local -g ./build/ndn-dpdk.tgz
+DESTSHARE=$DESTDIR/share/ndn-dpdk
+install -d -m0755 $DESTSHARE
+install -m0644 build/share/ndn-dpdk/* $DESTSHARE/
