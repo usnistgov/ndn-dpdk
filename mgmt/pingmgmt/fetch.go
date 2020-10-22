@@ -6,13 +6,13 @@ import (
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/app/fetch"
-	"github.com/usnistgov/ndn-dpdk/app/ping"
+	"github.com/usnistgov/ndn-dpdk/app/tg"
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 type FetchMgmt struct {
-	App *ping.App
+	App *tg.App
 }
 
 func (mg FetchMgmt) getFetcher(index int) (fetcher *fetch.Fetcher, e error) {

@@ -1,3 +1,4 @@
+// Package fwdp implements the forwarder's data plane.
 package fwdp
 
 import (

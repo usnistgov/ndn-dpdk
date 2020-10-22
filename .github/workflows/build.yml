@@ -65,7 +65,7 @@ jobs:
           MK_GOTEST_FILTER="/${TEST_ACCEPTABLE_FAILURES}/ d" make test
           MK_GOTEST_FILTER="/${TEST_ACCEPTABLE_FAILURES}/! d" make test || true
         env:
-          TEST_ACCEPTABLE_FAILURES: "diskstore|ethface|fetch|fwdp|memiftransport|pingclient|pingserver"
+          TEST_ACCEPTABLE_FAILURES: "diskstore|ethface|fetch|fwdp|memiftransport|tgconsumer|tgproducer"
       - name: build NDN-DPDK in release mode
         run: |
           make clean

@@ -1,5 +1,5 @@
 import type { Name, NNMilliseconds } from "../core";
-import type { FetchCounters } from "../ping/mod";
+import type { FetchCounters } from "../tg/mod";
 import type { IndexArg } from "./common";
 
 export interface FetchMgmt {

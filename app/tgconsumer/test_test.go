@@ -1,4 +1,4 @@
-package fetch_test
+package tgconsumer_test
 
 import (
 	"os"

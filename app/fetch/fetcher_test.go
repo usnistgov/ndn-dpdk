@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/app/fetch"
-	"github.com/usnistgov/ndn-dpdk/app/ping/pingtestenv"
+	"github.com/usnistgov/ndn-dpdk/app/tgtestenv"
 	"github.com/usnistgov/ndn-dpdk/iface/intface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 )
@@ -26,8 +26,8 @@ func TestFetcher(t *testing.T) {
 	fetcher, e := fetch.New(intFace.D, cfg)
 	require.NoError(e)
 	defer fetcher.Close()
-	fetcher.Thread(0).SetLCore(pingtestenv.WorkerLCores[0])
-	pingtestenv.DemuxD.SetDest(0, fetcher.RxQueue(0))
+	fetcher.Thread(0).SetLCore(tgtestenv.WorkerLCores[0])
+	tgtestenv.DemuxD.SetDest(0, fetcher.RxQueue(0))
 
 	nInterests := 0
 	go func() {

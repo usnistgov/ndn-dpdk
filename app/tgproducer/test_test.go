@@ -1,4 +1,4 @@
-package fetch_test
+package tgproducer_test
 
 import (
 	"os"

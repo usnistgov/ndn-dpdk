@@ -5,7 +5,7 @@ import (
 	stdlog "log"
 	"time"
 
-	"github.com/usnistgov/ndn-dpdk/app/ping"
+	"github.com/usnistgov/ndn-dpdk/app/tg"
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealconfig"
 	"github.com/usnistgov/ndn-dpdk/mgmt"
@@ -18,7 +18,7 @@ var (
 
 type genArgs struct {
 	CommonArgs
-	Tasks           []ping.TaskConfig       `json:"tasks"`
+	Tasks           []tg.TaskConfig         `json:"tasks"`
 	CounterInterval nnduration.Milliseconds `json:"counterInterval,omitempty"`
 }
 
@@ -36,7 +36,7 @@ func (a genArgs) Activate() error {
 		return e
 	}
 
-	app, e := ping.New(a.Tasks)
+	app, e := tg.New(a.Tasks)
 	if e != nil {
 		return e
 	}
@@ -49,16 +49,16 @@ func (a genArgs) Activate() error {
 	return nil
 }
 
-func printPingCounters(app *ping.App, counterInterval time.Duration) {
+func printPingCounters(app *tg.App, counterInterval time.Duration) {
 	for range time.Tick(counterInterval) {
 		for _, task := range app.Tasks {
 			face := task.Face
 			stdlog.Printf("face(%d): %v %v", face.ID(), face.ReadCounters(), face.ReadExCounters())
-			for i, server := range task.Server {
-				stdlog.Printf("  server[%d]: %v", i, server.ReadCounters())
+			for i, producer := range task.Producer {
+				stdlog.Printf("  producer[%d]: %v", i, producer.ReadCounters())
 			}
-			if client := task.Client; client != nil {
-				stdlog.Printf("  client: %v", client.ReadCounters())
+			if consumer := task.Consumer; consumer != nil {
+				stdlog.Printf("  consumer: %v", consumer.ReadCounters())
 			} else if fetcher := task.Fetch; fetcher != nil {
 				for i, last := 0, fetcher.CountProcs(); i < last; i++ {
 					cnt := fetcher.Logic(i).ReadCounters()

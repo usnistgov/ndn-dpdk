@@ -3,20 +3,20 @@ package pingmgmt
 import (
 	"errors"
 
-	"github.com/usnistgov/ndn-dpdk/app/ping"
-	"github.com/usnistgov/ndn-dpdk/app/pingclient"
+	"github.com/usnistgov/ndn-dpdk/app/tg"
+	"github.com/usnistgov/ndn-dpdk/app/tgconsumer"
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 )
 
 type PingClientMgmt struct {
-	App *ping.App
+	App *tg.App
 }
 
-func (mg PingClientMgmt) getClient(index int) (client *pingclient.Client, e error) {
+func (mg PingClientMgmt) getClient(index int) (client *tgconsumer.Consumer, e error) {
 	if index >= len(mg.App.Tasks) {
 		return nil, errors.New("Index out of range")
 	}
-	client = mg.App.Tasks[index].Client
+	client = mg.App.Tasks[index].Consumer
 	if client == nil {
 		return nil, errors.New("Task has no Client")
 	}
@@ -26,7 +26,7 @@ func (mg PingClientMgmt) getClient(index int) (client *pingclient.Client, e erro
 func (mg PingClientMgmt) List(args struct{}, reply *[]int) error {
 	var list []int
 	for index, task := range mg.App.Tasks {
-		if task.Client != nil {
+		if task.Consumer != nil {
 			list = append(list, index)
 		}
 	}
@@ -63,7 +63,7 @@ func (mg PingClientMgmt) Stop(args ClientStopArgs, reply *struct{}) error {
 	return nil
 }
 
-func (mg PingClientMgmt) ReadCounters(args IndexArg, reply *pingclient.Counters) error {
+func (mg PingClientMgmt) ReadCounters(args IndexArg, reply *tgconsumer.Counters) error {
 	client, e := mg.getClient(args.Index)
 	if e != nil {
 		return e

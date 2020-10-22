@@ -1,3 +1,4 @@
+// Package fetch simulates bulk file transfer traffic patterns.
 package fetch
 
 /*

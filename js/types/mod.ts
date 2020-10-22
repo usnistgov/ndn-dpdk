@@ -7,6 +7,6 @@ export * from "./iface";
 export * from "./mgmt/mod";
 export * from "./ndt";
 export * from "./pcct";
-export * from "./ping/mod";
 export * from "./pit";
 export * from "./pktqueue";
+export * from "./tg/mod";
