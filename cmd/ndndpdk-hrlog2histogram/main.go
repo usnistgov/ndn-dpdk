@@ -1,3 +1,4 @@
+// Command ndndpdk-hrlog2histogram extracts latency histograms from high resolution per-packet logs.
 package main
 
 import (

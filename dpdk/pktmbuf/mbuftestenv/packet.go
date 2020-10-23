@@ -1,3 +1,4 @@
+// Package mbuftestenv contains helper functions to construct mbufs in test code.
 package mbuftestenv
 
 import (

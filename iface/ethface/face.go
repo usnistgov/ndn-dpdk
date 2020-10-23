@@ -1,3 +1,4 @@
+// Package ethface implements Ethernet faces using DPDK Ethernet devices.
 package ethface
 
 /*

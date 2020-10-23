@@ -1,3 +1,4 @@
+// Package ndntestvector contains test vectors of NDN packets.
 package ndntestvector
 
 // NotNni in TlvElementTests indicates the TLV-VALUE is not a non-negative integer.

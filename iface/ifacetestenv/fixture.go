@@ -1,3 +1,7 @@
+// Package ifacetestenv provides a test fixture for a face type.
+//
+// The calling test case must initialize the EAL, and create two faces that are connected together.
+// The fixture sends L3 packets on one face, and expects to receive them on the other face.
 package ifacetestenv
 
 import (

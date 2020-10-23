@@ -1,3 +1,4 @@
+// Package ealtestenv initializes EAL for unit testing.
 package ealtestenv
 
 import (
@@ -44,7 +45,7 @@ func (hwInfo *hwInfoLimitCores) Cores() []ealconfig.CoreInfo {
 	return hwInfo.cores
 }
 
-// Init initializes EAL for testing purpose.
+// Init initializes EAL for unit testing.
 func Init() {
 	rand.Seed(time.Now().UnixNano())
 

@@ -1,3 +1,4 @@
+// Package eal contains bindings of DPDK Environment Abstraction Layer.
 package eal
 
 import (

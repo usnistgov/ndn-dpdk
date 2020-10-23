@@ -1,3 +1,4 @@
+// Package ndnitestenv contains helper functions to construct NDN packets in test code.
 package ndnitestenv
 
 /*

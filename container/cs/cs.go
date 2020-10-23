@@ -1,3 +1,4 @@
+// Package cs implements the Content Store.
 package cs
 
 /*

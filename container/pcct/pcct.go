@@ -1,4 +1,4 @@
-// Package pcct implements the PIT-CS Composite Table (PCCT).
+// Package pcct implements the PIT-CS Composite Table.
 package pcct
 
 /*

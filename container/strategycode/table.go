@@ -1,3 +1,4 @@
+// Package strategycode manages forwarding strategy BPF programs.
 package strategycode
 
 import (

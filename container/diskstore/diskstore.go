@@ -1,3 +1,4 @@
+// Package diskstore provides a disk-based Data packet store.
 package diskstore
 
 /*

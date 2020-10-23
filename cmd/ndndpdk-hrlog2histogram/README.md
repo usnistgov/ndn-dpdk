@@ -1,6 +1,6 @@
 # ndndpdk-hrlog2histogram
 
-This program reads [high resolution per-packet latency logs](../../mgmt/hrlog) and extracts microsecond-granularity histograms.
+This program reads [high resolution per-packet latency logs](../../container/hrlog) and extracts microsecond-granularity histograms.
 
 ## Usage
 

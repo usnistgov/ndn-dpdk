@@ -1,3 +1,4 @@
+// Package ndntestenv contains helper functions to validate NDN packets in test code.
 package ndntestenv
 
 import (

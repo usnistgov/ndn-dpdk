@@ -1,3 +1,4 @@
+// Package ndt implements the Name Dispatch Table.
 package ndt
 
 import (

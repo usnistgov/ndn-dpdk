@@ -1,3 +1,4 @@
+// Package socketface implements UDP/TCP socket faces using Go net.Conn type.
 package socketface
 
 /*

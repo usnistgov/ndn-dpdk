@@ -1,3 +1,4 @@
+// Package cscnt provides Content Store counters.
 package cscnt
 
 import (

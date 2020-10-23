@@ -1,3 +1,4 @@
+// Package pktmbuf contains bindings of DPDK mbuf library.
 package pktmbuf
 
 /*

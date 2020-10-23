@@ -1,3 +1,4 @@
+// Package ealthread provides a thread abstraction bound to an DPDK LCore.
 package ealthread
 
 import (

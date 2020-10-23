@@ -1,3 +1,4 @@
+// Command enumgen generates C headers from Go enum declarations.
 package main
 
 import (

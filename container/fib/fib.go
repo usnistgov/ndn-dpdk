@@ -1,4 +1,4 @@
-// Package fib implements the Forwarding Information Base (FIB).
+// Package fib implements the Forwarding Information Base.
 package fib
 
 import (

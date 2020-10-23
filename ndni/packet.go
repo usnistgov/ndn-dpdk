@@ -1,3 +1,4 @@
+// Package ndni implements NDN layer 2 and layer 3 packet representations for internal use.
 package ndni
 
 /*

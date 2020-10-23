@@ -1,3 +1,4 @@
+// Package tgtestenv provides facility to test the traffic generator.
 package tgtestenv
 
 import (

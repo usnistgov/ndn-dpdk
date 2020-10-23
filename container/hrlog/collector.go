@@ -1,3 +1,4 @@
+// Package hrlog collects high resolution per-packet logs.
 package hrlog
 
 /*

@@ -1,3 +1,4 @@
+// Package ringbuffer contains bindings of DPDK ring library.
 package ringbuffer
 
 /*

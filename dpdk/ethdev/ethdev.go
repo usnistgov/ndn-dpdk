@@ -1,3 +1,4 @@
+// Package ethdev contains bindings of DPDK Ethernet device.
 package ethdev
 
 /*

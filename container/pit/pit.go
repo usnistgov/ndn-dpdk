@@ -1,3 +1,4 @@
+// Package pit implements the Pending Interest Table.
 package pit
 
 /*

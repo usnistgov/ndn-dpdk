@@ -1,3 +1,5 @@
+// Package intface implements an internal face for internal applications.
+// It bridges a iface.Face (socket face) on DPDK side and an ndn.L3Face on application side.
 package intface
 
 import (

@@ -1,3 +1,4 @@
+// Package spdkenv contains bindings of SPDK environment and threads.
 package spdkenv
 
 /*

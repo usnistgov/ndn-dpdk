@@ -1,3 +1,4 @@
+// Package ealinit initializes DPDK EAL and SPDK main thread.
 package ealinit
 
 /*

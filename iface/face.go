@@ -1,3 +1,4 @@
+// Package iface implements basics of the face system.
 package iface
 
 /*
