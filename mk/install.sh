@@ -16,6 +16,7 @@ DESTBIN=$DESTDIR/bin
 install -d -m0755 $DESTBIN
 install -m0755 build/bin/ndndpdk-ctrl $DESTBIN/
 install -m0755 build/bin/ndndpdk-hrlog2histogram $DESTBIN/
+install -m0755 build/bin/ndndpdk-jrproxy $DESTBIN/
 install -m0755 cmd/mgmtclient/mgmtcmd.sh $DESTBIN/ndndpdk-mgmtcmd
 
 DESTSHARE=$DESTDIR/share/ndn-dpdk

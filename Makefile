@@ -44,7 +44,7 @@ csrc/meson.build mk/meson.build:
 	mk/update-list.sh
 
 .PHONY: cmds
-cmds: build/bin/ndndpdk-ctrl build/bin/ndndpdk-godemo build/bin/ndndpdk-hrlog2histogram build/bin/ndndpdk-svc
+cmds: build/bin/ndndpdk-ctrl build/bin/ndndpdk-godemo build/bin/ndndpdk-hrlog2histogram build/bin/ndndpdk-jrproxy build/bin/ndndpdk-svc
 
 build/bin/%: cmd/%/* godeps
 	GOBIN=$$(realpath build/bin) go install "-ldflags=$$(mk/version/ldflags.sh)" ./cmd/$*

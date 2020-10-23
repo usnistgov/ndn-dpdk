@@ -4,7 +4,7 @@ package gqlserver
 
 import (
 	"net/http"
-	"os"
+	"net/url"
 
 	"github.com/bhoriuchi/graphql-go-tools/handler"
 	"github.com/graphql-go/graphql"
@@ -44,31 +44,45 @@ func init() {
 }
 
 // Start starts the server.
-func Start() {
+func Start(uri string) {
 	sch, e := graphql.NewSchema(Schema)
 	if e != nil {
 		log.WithField("schema", Schema).WithError(e).Panic("graphql.NewSchema")
 	}
 
-	go startHTTP(&sch)
+	go startHTTP(&sch, parseListenAddress(uri))
 }
 
-func startHTTP(sch *graphql.Schema) {
-	addr := os.Getenv("GQLSERVER_HTTP")
-	switch addr {
-	case "0":
-		log.Warn("GraphQL HTTP server disabled")
+func parseListenAddress(uri string) (listen string) {
+	listen = "127.0.0.1:3030"
+	if uri == "" {
 		return
-	case "":
-		addr = "127.0.0.1:3030"
 	}
 
+	u, e := url.Parse(uri)
+	if e != nil {
+		log.WithError(e).Warn("gqlserver URI invalid, using the default")
+		return
+	}
+
+	if u.Scheme != "http" {
+		log.Warn("gqlserver URI is not HTTP, using the default")
+		return
+	}
+
+	if u.User != nil || u.Path != "/" || len(u.Query()) > 0 {
+		log.Warn("gqlserver URI contains User/Path/Query, ignored")
+	}
+	return u.Host
+}
+
+func startHTTP(sch *graphql.Schema, listen string) {
 	h := handler.New(&handler.Config{
 		Schema:           sch,
 		Pretty:           true,
 		PlaygroundConfig: handler.NewDefaultPlaygroundConfig(),
 	})
-	log.WithField("addr", addr).Info("GraphQL HTTP server starting")
+	log.WithField("listen", listen).Info("GraphQL HTTP server starting")
 
 	var mux http.ServeMux
 	mux.HandleFunc("/robots.txt", func(w http.ResponseWriter, req *http.Request) {
@@ -76,5 +90,5 @@ func startHTTP(sch *graphql.Schema) {
 		w.Write([]byte("User-Agent: *\nDisallow: /\n"))
 	})
 	mux.Handle("/", h)
-	http.ListenAndServe(addr, &mux)
+	http.ListenAndServe(listen, &mux)
 }

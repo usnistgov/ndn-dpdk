@@ -1,6 +1,6 @@
 # ndndpdk-ctrl
 
-Command ndndpdk-ctrl controls the running NDN-DPDK daemon via GraphQL.
+Command ndndpdk-ctrl controls the running NDN-DPDK service via GraphQL.
 Execute `ndndpdk-ctrl help` to show the available subcommands.
 
 Most subcommands print to stdout in [ndjson](https://github.com/ndjson/ndjson-spec) format.

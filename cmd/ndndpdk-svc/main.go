@@ -10,7 +10,9 @@ import (
 	"time"
 
 	"github.com/graphql-go/graphql"
+	"github.com/urfave/cli/v2"
 	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
+	"github.com/usnistgov/ndn-dpdk/mk/version"
 )
 
 var (
@@ -90,6 +92,22 @@ func main() {
 		},
 	})
 
-	gqlserver.Start()
-	select {}
+	var gqlserverURI string
+	app := &cli.App{
+		Version: version.Get().String(),
+		Usage:   "Provide NDN-DPDK service.",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:        "gqlserver",
+				Value:       "http://127.0.0.1:3030/",
+				Usage:       "GraphQL `endpoint` of NDN-DPDK service",
+				Destination: &gqlserverURI,
+			},
+		},
+		Action: func(c *cli.Context) (e error) {
+			gqlserver.Start(gqlserverURI)
+			select {}
+		},
+	}
+	app.Run(os.Args)
 }

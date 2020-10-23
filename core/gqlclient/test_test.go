@@ -22,11 +22,10 @@ func TestMain(m *testing.M) {
 	if e != nil {
 		panic(e)
 	}
-	os.Setenv("GQLSERVER_HTTP", fmt.Sprintf("127.0.0.1:%d", port))
-	gqlserver.Start()
-	time.Sleep(100 * time.Millisecond)
 
-	serverURI = fmt.Sprintf("http://127.0.0.1:%d/", port)
+	serverURI = fmt.Sprintf("http://127.0.0.1:%d", port)
+	gqlserver.Start(serverURI)
+	time.Sleep(100 * time.Millisecond)
 
 	os.Exit(m.Run())
 }

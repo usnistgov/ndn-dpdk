@@ -51,8 +51,7 @@ var app = &cli.App{
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:        "gqlserver",
-			EnvVars:     []string{"GQLSERVER"},
-			Usage:       "GraphQL `endpoint` of NDN-DPDK daemon.",
+			Usage:       "GraphQL `endpoint` of NDN-DPDK service.",
 			Value:       "http://127.0.0.1:3030/",
 			Destination: &gqlserverFlag,
 		},

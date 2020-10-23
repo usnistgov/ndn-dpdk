@@ -96,6 +96,7 @@ func (Face) Create(args EthFaceLocator, reply *FaceBasicInfo) error {
 	faceLock.Lock()
 	defer faceLock.Unlock()
 	faceNidGid[reply.Nid] = reply.Gid
+	reply.Gid = ""
 	return nil
 }
 

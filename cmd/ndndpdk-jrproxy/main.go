@@ -24,14 +24,12 @@ func main() {
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:        "gqlserver",
-				EnvVars:     []string{"GQLSERVER"},
 				Value:       "http://127.0.0.1:3030/",
-				Usage:       "GraphQL `endpoint` of NDN-DPDK daemon",
+				Usage:       "GraphQL `endpoint` of NDN-DPDK service",
 				Destination: &gqlserver,
 			},
 			&cli.StringFlag{
 				Name:        "listen",
-				EnvVars:     []string{"MGMT"},
 				Usage:       "TCP listen `endpoint`",
 				Value:       "127.0.0.1:6345",
 				Destination: &tcpListen,
