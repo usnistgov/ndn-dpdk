@@ -18,12 +18,14 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
+var fetcherByFace = make(map[iface.ID]*Fetcher)
+
 // FetcherConfig contains Fetcher configuration.
 type FetcherConfig struct {
-	NThreads       int
-	NProcs         int
-	RxQueue        iface.PktQueueConfig
-	WindowCapacity int
+	NThreads       int                  `json:"nThreads,omitempty"`
+	NProcs         int                  `json:"nProcs,omitempty"`
+	RxQueue        iface.PktQueueConfig `json:"rxQueue,omitempty"`
+	WindowCapacity int                  `json:"windowCapacity,omitempty"`
 }
 
 // Fetcher controls fetch threads and fetch procedures on a face.
@@ -77,6 +79,7 @@ func New(face iface.Face, cfg FetcherConfig) (*Fetcher, error) {
 		fetcher.Logic(i).Init(cfg.WindowCapacity, socket)
 	}
 
+	fetcherByFace[faceID] = fetcher
 	return fetcher, nil
 }
 
@@ -111,7 +114,9 @@ func (fetcher *Fetcher) Logic(i int) *Logic {
 }
 
 // Reset resets all Logics.
+// If the fetcher is running, it is automatically stopped.
 func (fetcher *Fetcher) Reset() {
+	fetcher.Stop()
 	for _, fth := range fetcher.fth {
 		fth.c.head.next = nil
 	}
@@ -126,7 +131,7 @@ func (fetcher *Fetcher) Reset() {
 func (fetcher *Fetcher) AddTemplate(tplArgs ...interface{}) (i int, e error) {
 	i = fetcher.nActiveProcs
 	if i >= len(fetcher.fp) {
-		return -1, errors.New("too many prefixes")
+		return -1, errors.New("too many templates")
 	}
 
 	fp := fetcher.fp[i]
@@ -163,6 +168,7 @@ func (fetcher *Fetcher) Stop() {
 
 // Close deallocates data structures.
 func (fetcher *Fetcher) Close() error {
+	faceID := fetcher.Face().ID()
 	for i, fp := range fetcher.fp {
 		fetcher.RxQueue(i).Close()
 		fetcher.Logic(i).Close()
@@ -171,6 +177,7 @@ func (fetcher *Fetcher) Close() error {
 	for _, fth := range fetcher.fth {
 		eal.Free(fth.c)
 	}
+	delete(fetcherByFace, faceID)
 	return nil
 }
 

@@ -3,36 +3,36 @@ import type { PktQueueConfig } from "../pktqueue";
 
 export interface FetchConfig {
   /**
-     * @TJS-type integer
-     * @minimum 1
-     * @default 1
-     */
-  NThreads?: number;
+   * @TJS-type integer
+   * @minimum 1
+   * @default 1
+   */
+  nThreads?: number;
 
   /**
-     * @TJS-type integer
-     * @minimum 1
-     * @default 1
-     */
-  NProcs?: number;
+   * @TJS-type integer
+   * @minimum 1
+   * @default 1
+   */
+  nProcs?: number;
 
-  RxQueue?: PktQueueConfig;
+  rxQueue?: PktQueueConfig;
 
   /**
-     * @TJS-type integer
-     * @minimum 1
-     * @default 65536
-     */
-  WindowCapacity?: number;
+   * @TJS-type integer
+   * @minimum 1
+   * @default 65536
+   */
+  windowCapacity?: number;
 }
 
 export interface FetchCounters {
-  Time: unknown;
-  LastRtt: NNNanoseconds;
-  SRtt: NNNanoseconds;
-  Rto: NNNanoseconds;
-  Cwnd: Counter;
-  NInFlight: Counter;
-  NTxRetx: Counter;
-  NRxData: Counter;
+  time: unknown;
+  lastRtt: NNNanoseconds;
+  sRtt: NNNanoseconds;
+  rto: NNNanoseconds;
+  cwnd: Counter;
+  nInFlight: Counter;
+  nTxRetx: Counter;
+  nRxData: Counter;
 }

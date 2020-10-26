@@ -1,8 +1,8 @@
 /**
- * @TJS-type integer
- * @minimum 0
+ * Non-negative counter.
+ * It may be encoded as integer (uint32 or shorter) or string (uint64).
  */
-export type Counter = number;
+export type Counter = number|string;
 
 /**
  * @TJS-type integer

@@ -1,19 +1,12 @@
 package main
 
 import (
-	"errors"
 	stdlog "log"
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/app/tg"
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealconfig"
-	"github.com/usnistgov/ndn-dpdk/mgmt"
-	"github.com/usnistgov/ndn-dpdk/mgmt/pingmgmt"
-)
-
-var (
-	errGenNoTasks = errors.New("tasks missing")
 )
 
 type genArgs struct {
@@ -23,10 +16,6 @@ type genArgs struct {
 }
 
 func (a genArgs) Activate() error {
-	if len(a.Tasks) == 0 {
-		return errGenNoTasks
-	}
-
 	var req ealconfig.Request
 	req.MinLCores = 1 // main
 	for _, task := range a.Tasks {
@@ -41,9 +30,6 @@ func (a genArgs) Activate() error {
 		return e
 	}
 	app.Launch()
-	mgmt.Register(pingmgmt.PingClientMgmt{App: app})
-	mgmt.Register(pingmgmt.FetchMgmt{App: app})
-	mgmt.Start()
 
 	go printPingCounters(app, a.CounterInterval.DurationOr(1000))
 	return nil

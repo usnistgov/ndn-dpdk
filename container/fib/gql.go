@@ -203,19 +203,19 @@ func init() {
 			var entry fibdef.Entry
 			entry.Name = p.Args["name"].(ndn.Name)
 			for i, nh := range p.Args["nexthops"].([]interface{}) {
-				face, e := gqlserver.RetrieveNodeOfType(iface.GqlFaceNodeType, nh)
-				if face == nil || e != nil {
+				var face iface.Face
+				if e := gqlserver.RetrieveNodeOfType(iface.GqlFaceNodeType, nh, &face); e != nil {
 					return nil, fmt.Errorf("nexthops[%d] not found: %w", i, e)
 				}
-				entry.Nexthops = append(entry.Nexthops, face.(iface.Face).ID())
+				entry.Nexthops = append(entry.Nexthops, face.ID())
 			}
 
 			if strategy, ok := p.Args["strategy"].(string); ok {
-				strategyCode, e := gqlserver.RetrieveNodeOfType(strategycode.GqlStrategyNodeType, strategy)
-				if strategyCode == nil || e != nil {
+				var sc *strategycode.Strategy
+				if e := gqlserver.RetrieveNodeOfType(strategycode.GqlStrategyNodeType, strategy, &sc); e != nil {
 					return nil, fmt.Errorf("strategy not found: %w", e)
 				}
-				entry.Strategy = strategyCode.(*strategycode.Strategy).ID()
+				entry.Strategy = sc.ID()
 			} else if GqlDefaultStrategy != nil {
 				entry.Strategy = GqlDefaultStrategy.ID()
 			}

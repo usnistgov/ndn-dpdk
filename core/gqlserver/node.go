@@ -165,16 +165,17 @@ func RetrieveNode(id interface{}) (*NodeType, interface{}, error) {
 	return nt, obj, e
 }
 
-// RetrieveNodeOfType locates Node by full ID, and ensures it has correct type.
-func RetrieveNodeOfType(expectedNodeType *NodeType, id interface{}) (interface{}, error) {
+// RetrieveNodeOfType locates Node by full ID, ensures it has correct type, and assigns it to *ptr.
+func RetrieveNodeOfType(expectedNodeType *NodeType, id, ptr interface{}) error {
 	nt, node, e := RetrieveNode(id)
 	if e != nil || node == nil {
-		return nil, e
+		return e
 	}
 	if nt != expectedNodeType {
-		return nil, errWrongType
+		return errWrongType
 	}
-	return node, nil
+	reflect.ValueOf(ptr).Elem().Set(reflect.ValueOf(node))
+	return nil
 }
 
 func init() {

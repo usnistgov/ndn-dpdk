@@ -7,14 +7,14 @@ import (
 
 // Counters contains counters of Logic.
 type Counters struct {
-	Time      time.Time
-	LastRtt   time.Duration
-	SRtt      time.Duration
-	Rto       time.Duration
-	Cwnd      int
-	NInFlight uint32 // number of in-flight Interests
-	NTxRetx   uint64 // number of retransmitted Interests
-	NRxData   uint64 // number of Data satisfying pending Interests
+	Time      time.Time     `json:"time"`
+	LastRtt   time.Duration `json:"lastRtt"`
+	SRtt      time.Duration `json:"sRtt"`
+	Rto       time.Duration `json:"rto"`
+	Cwnd      int           `json:"cwnd"`
+	NInFlight uint32        `json:"nInFlight"` // number of in-flight Interests
+	NTxRetx   uint64        `json:"nTxRetx"`   // number of retransmitted Interests
+	NRxData   uint64        `json:"nRxData"`   // number of Data satisfying pending Interests
 }
 
 // ReadCounters retrieves counters.

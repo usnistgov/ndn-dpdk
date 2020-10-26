@@ -107,11 +107,11 @@ func init() {
 		},
 		Type: GqlEthDevType,
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-			port, e := gqlserver.RetrieveNodeOfType(GqlEthDevNodeType, p.Args["id"])
-			if e != nil {
+			var port EthDev
+			if e := gqlserver.RetrieveNodeOfType(GqlEthDevNodeType, p.Args["id"], &port); e != nil {
 				return nil, e
 			}
-			port.(EthDev).ResetStats()
+			port.ResetStats()
 			return port, nil
 		},
 	})
