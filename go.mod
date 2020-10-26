@@ -8,6 +8,7 @@ require (
 	github.com/VojtechVitek/mergemaps v0.0.0-20141203190546-051fb3759de5
 	github.com/bhoriuchi/graphql-go-tools v0.0.0-20200610145626-91ece7a13f25
 	github.com/chuckpreslar/emission v0.0.0-20170206194824-a7ddd980baf9
+	github.com/coreos/go-systemd/v22 v22.1.0
 	github.com/gabstv/freeport v0.0.0-20171005142102-7952fe2e67ce
 	github.com/google/gopacket v1.1.19
 	github.com/graphql-go/graphql v0.7.9
@@ -24,7 +25,7 @@ require (
 	github.com/stretchr/testify v1.6.1
 	github.com/urfave/cli/v2 v2.2.0
 	github.com/xeipuuv/gojsonschema v1.2.0
-	golang.org/x/net v0.0.0-20201021035429-f5854403a974 // indirect
-	golang.org/x/sys v0.0.0-20201020230747-6e5568b54d1a
+	golang.org/x/net v0.0.0-20201026091529-146b70c837a4 // indirect
+	golang.org/x/sys v0.0.0-20201026173827-119d4633e4d1
 	gopkg.in/yaml.v2 v2.3.0 // indirect
 )

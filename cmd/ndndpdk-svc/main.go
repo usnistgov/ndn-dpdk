@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/coreos/go-systemd/v22/daemon"
 	"github.com/graphql-go/graphql"
 	"github.com/urfave/cli/v2"
 	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
@@ -84,6 +85,7 @@ func main() {
 		Type:        gqlserver.NonNullBoolean,
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 			log.Info("shutdown requested")
+			daemon.SdNotify(false, daemon.SdNotifyStopping)
 			go func() {
 				time.Sleep(time.Second)
 				os.Exit(0)
@@ -106,7 +108,24 @@ func main() {
 		},
 		Action: func(c *cli.Context) (e error) {
 			gqlserver.Start(gqlserverURI)
-			select {}
+			daemon.SdNotify(false, daemon.SdNotifyReady)
+
+			watchdog := func() <-chan time.Time {
+				d, e := daemon.SdWatchdogEnabled(false)
+				if d == 0 || e != nil {
+					log.WithError(e).Debug("systemd watchdog not configured")
+					return nil
+				}
+				d /= 2
+				log.WithField("duration", d).Debug("systemd watchdog enabled")
+				return time.Tick(d)
+			}()
+			for {
+				select {
+				case <-watchdog:
+					daemon.SdNotify(false, daemon.SdNotifyWatchdog)
+				}
+			}
 		},
 	}
 	app.Run(os.Args)

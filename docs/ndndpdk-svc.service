@@ -1,0 +1,13 @@
+[Unit]
+Description=NDN-DPDK service
+Documentation=https://github.com/usnistgov/ndn-dpdk
+
+[Service]
+Type=notify
+ExecStart=/usr/local/sbin/ndndpdk-svc
+ExecStop=/usr/local/bin/ndndpdk-ctrl shutdown
+RestartSec=10s
+TimeoutSec=10s
+WatchdogSec=10s
+Restart=always
+NotifyAccess=all

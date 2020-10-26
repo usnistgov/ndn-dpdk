@@ -1,14 +1,18 @@
 #!/bin/bash
 set -e
 set -o pipefail
-DESTDIR=${DESTDIR:-/usr/local}
+cd "$( dirname "${BASH_SOURCE[0]}" )"/..
+source mk/install-dirs.sh
 
-DESTBPF=$DESTDIR/lib/bpf
-rm -rf $DESTBPF/ndndpdk-strategy-*.o
+rm -f $DESTBPF/ndndpdk-strategy-*.o
 
-DESTSBIN=$DESTDIR/sbin
-DESTBIN=$DESTDIR/bin
-rm -f $DESTSBIN/ndndpdk-* $DESTBIN/ndndpdk-*
+rm -f $DESTSBIN/ndndpdk-*
 
-DESTSHARE=$DESTDIR/share/ndn-dpdk
+rm -f $DESTBIN/ndndpdk-*
+
 rm -rf $DESTSHARE
+
+rm -f $DESTSYSTEMD/ndndpdk-*.service
+if which systemctl >/dev/null; then
+  systemctl daemon-reload
+fi
