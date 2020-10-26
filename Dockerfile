@@ -4,15 +4,15 @@ RUN ( echo 'APT::Install-Recommends "no";'; echo 'APT::Install-Suggests "no";' )
     apt-get install -y -qq build-essential ca-certificates clang-8 curl git libc6-dev-i386 libelf-dev libnuma-dev libssl-dev liburcu-dev pkg-config python3-distutils sudo && \
     curl -sL https://deb.nodesource.com/setup_14.x | bash - && \
     apt-get install -y -qq clang-format-8 doxygen nodejs yamllint && \
-    sudo update-alternatives --install /usr/bin/python python /usr/bin/python3 1 && \
-    curl -sL https://bootstrap.pypa.io/get-pip.py | python && \
+    curl -sL https://bootstrap.pypa.io/get-pip.py | python3 && \
     pip install -U meson ninja && \
     curl -sL https://dl.google.com/go/go1.15.3.linux-amd64.tar.gz | tar -C /usr/local -xz && \
-    curl -sL https://github.com/powerman/rpc-codec/releases/download/v1.1.3/jsonrpc2client-linux-x86_64 | install /dev/stdin /usr/local/bin/jsonrpc2client && \
     curl -sL https://github.com/spdk/spdk/archive/v20.07.tar.gz | tar -C /root -xz && \
     cd /root/spdk-* && \
     ./scripts/pkgdep.sh && \
-    apt-get clean
+    apt-get clean && \
+    sh -c 'update-alternatives --remove-all python || true' && \
+    update-alternatives --install /usr/bin/python python /usr/bin/python3 1
 RUN curl -sL https://github.com/iovisor/ubpf/archive/089f6279752adfb01386600d119913403ed326ee.tar.gz | tar -C /root -xz && \
     cd /root/ubpf-*/vm && \
     make && \

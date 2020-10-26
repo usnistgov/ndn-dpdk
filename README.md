@@ -23,7 +23,6 @@ It is in pre-release stage and will continue to be updated.
 * [ubpf](https://github.com/iovisor/ubpf/tree/089f6279752adfb01386600d119913403ed326ee/vm) library, installed to `/usr/local`
 * Go 1.15 or newer
 * Node.js 14.x
-* [jsonrpc2client](https://github.com/powerman/rpc-codec/releases) 1.1.3 or newer, installed to `/usr/local/bin/jsonrpc2client`
 * Note: you can look at the [`Dockerfile`](Dockerfile) to see how to install the dependencies.
 
 ### Build steps
@@ -50,8 +49,12 @@ It is in pre-release stage and will continue to be updated.
 ### Docker packaging
 
 1. Build the image: `docker build -t ndn-dpdk .`
-2. Launch a container in privileged mode: `docker run --rm -it --privileged --network host ndn-dpdk`
-3. Setup the environment inside the container: `mkdir /mnt/huge1G && mount -t hugetlbfs nodev /mnt/huge1G -o pagesize=1G && export PATH=$PATH:/usr/local/go/bin`
+2. Configure hugepages on the host machine: `echo 8 | sudo tee /sys/devices/system/node/node*/hugepages/hugepages-1048576kB/nr_hugepages && sudo mkdir -p /mnt/huge1G && sudo mount -t hugetlbfs nodev /mnt/huge1G -o pagesize=1G`
+3. Launch a container in privileged mode: `docker run --rm -it --privileged --network host --mount type=bind,source=/mnt/huge1G,target=/mnt/huge1G ndn-dpdk`
+4. Run NDN-DPDK service inside the container: `ndndpdk-svc`
+5. Or run unit tests: `export PATH=$PATH:/usr/local/go/bin; cd /root/ndn-dpdk; make test`
+
+Note that DPDK is compiled with `-march=native` flag, so that the Docker image only works on machines with the same CPU model.
 
 ## Code Organization
 
