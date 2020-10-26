@@ -15,7 +15,7 @@ func New(pkg string) logrus.FieldLogger {
 }
 
 // NewWithPrefix creates a logger with specified prefix.
-func NewWithPrefix(pkg string, prefix string) logrus.FieldLogger {
+func NewWithPrefix(pkg, prefix string) logrus.FieldLogger {
 	logger := logrus.New()
 	logger.SetLevel(parseLevel(pkg))
 
@@ -30,9 +30,9 @@ func NewWithPrefix(pkg string, prefix string) logrus.FieldLogger {
 
 // GetLevel returns configured log level of a package as a letter.
 func GetLevel(pkg string) rune {
-	lvl, ok := os.LookupEnv("LOG_" + pkg)
+	lvl, ok := os.LookupEnv("NDNDPDK_LOG_" + pkg)
 	if !ok {
-		lvl, ok = os.LookupEnv("LOG")
+		lvl, ok = os.LookupEnv("NDNDPDK_LOG")
 	}
 	if !ok || len(lvl) == 0 {
 		lvl = "I"

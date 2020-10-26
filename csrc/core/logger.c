@@ -1,13 +1,18 @@
 #include "logger.h"
 
+#define LOGGER_ENV "NDNDPDK_LOG"
+
 int
-ParseLogLevel(const char* module)
+Logger_GetLevel(const char* module)
 {
+  NDNDPDK_ASSERT(strlen(module) <= 16);
   char envKey[32];
-  snprintf(envKey, sizeof(envKey), "LOG_%s", module);
+  int envKeyLen = snprintf(envKey, sizeof(envKey), "%s_%s", LOGGER_ENV, module);
+  NDNDPDK_ASSERT(envKeyLen > 0 && envKeyLen < (int)sizeof(envKey));
+
   const char* lvl = getenv(envKey);
   if (lvl == NULL) {
-    lvl = getenv("LOG");
+    lvl = getenv(LOGGER_ENV);
   }
   if (lvl == NULL) {
     lvl = "";

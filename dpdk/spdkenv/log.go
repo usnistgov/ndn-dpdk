@@ -14,23 +14,23 @@ var (
 	makeLogFields = logger.MakeFields
 )
 
-// Set C log level from LOG_SPDK environment variable.
+// Set C log level from NDNDPDK_LOG_SPDK environment variable.
 func initLogging() {
-	lvl := logger.GetLevel("SPDK")
-	lvlC := C.enum_spdk_log_level(C.SPDK_LOG_INFO)
-	switch lvl {
-	case 'V':
-		lvlC = C.SPDK_LOG_DEBUG
-	case 'D':
-		lvlC = C.SPDK_LOG_INFO
-	case 'I':
-		lvlC = C.SPDK_LOG_NOTICE
-	case 'W':
-		lvlC = C.SPDK_LOG_WARN
-	case 'E', 'F':
-		lvlC = C.SPDK_LOG_ERROR
-	case 'N':
-		lvlC = C.SPDK_LOG_DISABLED
-	}
-	C.spdk_log_set_print_level(lvlC)
+	C.spdk_log_set_print_level(func() C.enum_spdk_log_level {
+		switch logger.GetLevel("SPDK") {
+		case 'V':
+			return C.SPDK_LOG_DEBUG
+		case 'D':
+			return C.SPDK_LOG_INFO
+		case 'I':
+			return C.SPDK_LOG_NOTICE
+		case 'W':
+			return C.SPDK_LOG_WARN
+		case 'E', 'F':
+			return C.SPDK_LOG_ERROR
+		case 'N':
+			return C.SPDK_LOG_DISABLED
+		}
+		return C.SPDK_LOG_INFO
+	}())
 }
