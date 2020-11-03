@@ -1,9 +1,6 @@
 package gqlserver
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
 	"reflect"
 
 	go2gql_scalars "github.com/EGT-Ukraine/go2gql/api/scalars"
@@ -32,22 +29,6 @@ func NewNonNullList(ofType graphql.Type, optionalNullable ...bool) graphql.Type 
 		}
 	}
 	return graphql.NewNonNull(graphql.NewList(ofType))
-}
-
-// DecodeJSON decodes JSON argument into pointer.
-func DecodeJSON(arg interface{}, ptr interface{}) error {
-	j, e := json.Marshal(arg)
-	if e != nil {
-		return fmt.Errorf("json.Marshal %w", e)
-	}
-
-	decoder := json.NewDecoder(bytes.NewReader(j))
-	decoder.DisallowUnknownFields()
-	e = decoder.Decode(ptr)
-	if e != nil {
-		return fmt.Errorf("json.Decoder.Decode %w", e)
-	}
-	return nil
 }
 
 // Optional turns invalid value to nil.

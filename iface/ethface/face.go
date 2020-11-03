@@ -7,33 +7,59 @@ package ethface
 import "C"
 import (
 	"errors"
-	"fmt"
+	"net"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
-// New creates an Ethernet face on the given port.
-func New(port *Port, loc Locator) (iface.Face, error) {
-	if !macaddr.Equal(loc.Local, port.local) {
-		return nil, errors.New("port has a different local address")
-	}
-	loc.Port = port.dev.Name()
-	loc.PortConfig = nil
-	loc.RxQueueIDs = nil
+// Error conditions.
+var (
+	ErrLocalMismatch          = errors.New("port has a different local address")
+	ErrRemoteDuplicateGroup   = errors.New("port has another face with a group address")
+	ErrRemoteDuplicateUnicast = errors.New("port has another face with same unicast address")
+	ErrRemoteInvalid          = errors.New("invalid MAC address")
+)
 
+type ethLocator interface {
+	iface.Locator
+
+	local() net.HardwareAddr
+	remote() net.HardwareAddr
+	vlan() int
+}
+
+type ethFace struct {
+	iface.Face
+	port *Port
+	loc  ethLocator
+	priv *C.EthFacePriv
+	rxf  *rxFlow
+}
+
+func (face *ethFace) ptr() *C.Face {
+	return (*C.Face)(face.Ptr())
+}
+
+// New creates an Ethernet face on the given port.
+func New(port *Port, loc ethLocator) (iface.Face, error) {
+	if !macaddr.Equal(loc.local(), port.local) {
+		return nil, ErrLocalMismatch
+	}
+
+	remote := loc.remote()
 	switch {
-	case macaddr.IsMulticast(loc.Remote):
+	case macaddr.IsMulticast(remote):
 		if face := port.FindFace(nil); face != nil {
-			return nil, fmt.Errorf("port has another face %d with a group address", face.ID())
+			return nil, ErrRemoteDuplicateGroup
 		}
-	case macaddr.IsUnicast(loc.Remote):
-		if face := port.FindFace(loc.Remote); face != nil {
-			return nil, fmt.Errorf("port has another face %d with same unicast address", face.ID())
+	case macaddr.IsUnicast(remote):
+		if face := port.FindFace(remote); face != nil {
+			return nil, ErrRemoteDuplicateUnicast
 		}
 	default:
-		return nil, fmt.Errorf("invalid MAC address")
+		return nil, ErrRemoteInvalid
 	}
 
 	face := &ethFace{
@@ -57,9 +83,9 @@ func New(port *Port, loc Locator) (iface.Face, error) {
 			}
 
 			var local, remote C.struct_rte_ether_addr
-			copy(cptr.AsByteSlice(&local.addr_bytes), []byte(face.loc.Local))
-			copy(cptr.AsByteSlice(&remote.addr_bytes), []byte(face.loc.Remote))
-			priv.txHdrLen = C.EthFaceEtherHdr_Init(&priv.txHdr, &local, &remote, C.uint16_t(face.loc.VLAN))
+			copy(cptr.AsByteSlice(&local.addr_bytes), []byte(face.loc.local()))
+			copy(cptr.AsByteSlice(&remote.addr_bytes), []byte(face.loc.remote()))
+			priv.txHdrLen = C.EthFaceEtherHdr_Init(&priv.txHdr, &local, &remote, C.uint16_t(face.loc.vlan()))
 
 			face.priv = priv
 			return nil
@@ -80,16 +106,4 @@ func New(port *Port, loc Locator) (iface.Face, error) {
 			return nil
 		},
 	})
-}
-
-type ethFace struct {
-	iface.Face
-	port *Port
-	loc  Locator
-	priv *C.EthFacePriv
-	rxf  *rxFlow
-}
-
-func (face *ethFace) ptr() *C.Face {
-	return (*C.Face)(face.Ptr())
 }

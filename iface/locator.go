@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+
+	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
 )
 
 // Locator identifies the endpoints of a face.
@@ -17,25 +19,6 @@ type Locator interface {
 
 	// CreateFace creates a face from this Locator.
 	CreateFace() (Face, error)
-}
-
-// ParseLocator parses Locator from JSON string.
-func ParseLocator(input string) (loc Locator, e error) {
-	var locw LocatorWrapper
-	if e = json.Unmarshal([]byte(input), &locw); e != nil {
-		return loc, e
-	}
-	loc = locw.Locator
-	return loc, nil
-}
-
-// MustParseLocator parses Locator from JSON string, and panics on error.
-func MustParseLocator(input string) (loc Locator) {
-	loc, e := ParseLocator(input)
-	if e != nil {
-		log.Panic("bad Locator", input, e)
-	}
-	return loc
 }
 
 var locatorTypes = make(map[string]reflect.Type)
@@ -58,7 +41,15 @@ type LocatorWrapper struct {
 
 // MarshalJSON implements json.Marshaler.
 func (locw LocatorWrapper) MarshalJSON() (data []byte, e error) {
-	return json.Marshal(locw.Locator)
+	var m map[string]interface{}
+	e = jsonhelper.Roundtrip(locw.Locator, &m)
+	if e != nil {
+		return nil, e
+	}
+	if _, ok := m["scheme"]; !ok {
+		m["scheme"] = locw.Scheme()
+	}
+	return json.Marshal(m)
 }
 
 // UnmarshalJSON implements json.Unmarshaler.

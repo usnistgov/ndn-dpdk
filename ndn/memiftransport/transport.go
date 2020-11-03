@@ -4,6 +4,7 @@ package memiftransport
 import (
 	"fmt"
 
+	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
 )
@@ -30,8 +31,8 @@ func New(loc Locator) (Transport, error) {
 
 	packetCfg := packettransport.Config{
 		Locator: packettransport.Locator{
-			Local:  AddressApp,
-			Remote: AddressDPDK,
+			Local:  macaddr.Flag{HardwareAddr: AddressApp},
+			Remote: macaddr.Flag{HardwareAddr: AddressDPDK},
 		},
 		TransportQueueConfig: loc.TransportQueueConfig,
 	}

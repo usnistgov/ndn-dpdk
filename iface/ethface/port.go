@@ -150,11 +150,11 @@ func (port *Port) filterFace(filter func(face *ethFace) bool) iface.Face {
 func (port *Port) FindFace(query net.HardwareAddr) iface.Face {
 	if query == nil {
 		return port.filterFace(func(face *ethFace) bool {
-			return macaddr.IsMulticast(face.loc.Remote)
+			return macaddr.IsMulticast(face.loc.remote())
 		})
 	}
 	return port.filterFace(func(face *ethFace) bool {
-		return macaddr.Equal(face.loc.Remote, query)
+		return macaddr.Equal(face.loc.remote(), query)
 	})
 }
 

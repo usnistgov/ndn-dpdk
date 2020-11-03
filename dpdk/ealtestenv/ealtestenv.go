@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/pkg/math"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealconfig"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealinit"
 )
@@ -68,4 +69,6 @@ func Init() {
 		panic(e)
 	}
 	ealinit.Init(args)
+
+	UsingThreads = len(hwInfo.Cores()) < 1+len(eal.Workers)
 }

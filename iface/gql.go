@@ -5,6 +5,7 @@ import (
 
 	"github.com/graphql-go/graphql"
 	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
+	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
@@ -50,7 +51,10 @@ func init() {
 				Description: "Endpoint addresses.",
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					face := p.Source.(Face)
-					return face.Locator(), nil
+					locw := LocatorWrapper{
+						Locator: face.Locator(),
+					}
+					return locw, nil
 				},
 			},
 			"numaSocket": eal.GqlWithNumaSocket,
@@ -86,7 +90,7 @@ func init() {
 		Type: GqlFaceType,
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 			var locw LocatorWrapper
-			if e := gqlserver.DecodeJSON(p.Args["locator"], &locw); e != nil {
+			if e := jsonhelper.Roundtrip(p.Args["locator"], &locw, jsonhelper.DisallowUnknownFields); e != nil {
 				return nil, e
 			}
 			return locw.Locator.CreateFace()

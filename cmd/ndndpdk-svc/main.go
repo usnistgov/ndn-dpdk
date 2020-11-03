@@ -13,6 +13,7 @@ import (
 	"github.com/graphql-go/graphql"
 	"github.com/urfave/cli/v2"
 	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
+	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
 	"github.com/usnistgov/ndn-dpdk/mk/version"
 )
 
@@ -58,7 +59,7 @@ func main() {
 					return
 				}
 
-				if e = gqlserver.DecodeJSON(a, &arg); e != nil {
+				if e = jsonhelper.Roundtrip(a, &arg, jsonhelper.DisallowUnknownFields); e != nil {
 					return
 				}
 

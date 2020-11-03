@@ -74,7 +74,7 @@ func (Face) Get(args FaceIdArg, reply *FaceInfo) error {
 	return nil
 }
 
-func (Face) Create(args EthFaceLocator, reply *FaceBasicInfo) error {
+func (Face) Create(args EtherLocator, reply *FaceBasicInfo) error {
 	if faceCreateMTU > 0 {
 		args.PortConfig.MTU = faceCreateMTU
 	}
@@ -141,7 +141,7 @@ type FaceInfo struct {
 	} `json:",omitempty"`
 }
 
-type EthFaceLocator struct {
+type EtherLocator struct {
 	Scheme     string `json:"scheme"`
 	Local      string `json:"local,omitempty"`
 	Remote     string `json:"remote,omitempty"`

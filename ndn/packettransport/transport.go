@@ -27,8 +27,8 @@ type Config struct {
 }
 
 func (cfg *Config) applyDefaults() {
-	if len(cfg.Remote) == 0 {
-		cfg.Remote = MulticastAddressNDN
+	if cfg.Remote.Empty() {
+		cfg.Remote.HardwareAddr = MulticastAddressNDN
 	}
 
 	cfg.ApplyTransportQueueConfigDefaults()
@@ -76,11 +76,11 @@ func (tr *transport) Handle() PacketDataHandle {
 }
 
 func (tr *transport) rxLoop() {
-	matchSrc := func(a net.HardwareAddr) bool { return macaddr.Equal(tr.loc.Remote, a) }
-	matchDst := func(a net.HardwareAddr) bool { return macaddr.Equal(tr.loc.Local, a) }
-	if macaddr.IsMulticast(tr.loc.Remote) {
+	matchSrc := func(a net.HardwareAddr) bool { return macaddr.Equal(tr.loc.Remote.HardwareAddr, a) }
+	matchDst := func(a net.HardwareAddr) bool { return macaddr.Equal(tr.loc.Local.HardwareAddr, a) }
+	if macaddr.IsMulticast(tr.loc.Remote.HardwareAddr) {
 		matchSrc = func(net.HardwareAddr) bool { return true }
-		matchDst = func(a net.HardwareAddr) bool { return macaddr.Equal(tr.loc.Remote, a) }
+		matchDst = func(a net.HardwareAddr) bool { return macaddr.Equal(tr.loc.Remote.HardwareAddr, a) }
 	}
 
 	var eth layers.Ethernet
@@ -141,8 +141,8 @@ DROP:
 
 func (tr *transport) txLoop() {
 	var eth layers.Ethernet
-	eth.SrcMAC = tr.loc.Local
-	eth.DstMAC = tr.loc.Remote
+	eth.SrcMAC = tr.loc.Local.HardwareAddr
+	eth.DstMAC = tr.loc.Remote.HardwareAddr
 	eth.EthernetType = EthernetTypeNDN
 	headers := []gopacket.SerializableLayer{&eth}
 	if tr.loc.VLAN > 0 {

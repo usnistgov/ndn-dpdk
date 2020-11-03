@@ -25,24 +25,16 @@ func TestMemif(t *testing.T) {
 	fixture := ifacetestenv.NewFixture(t)
 	defer fixture.Close()
 
-	var locA ethface.Locator
-	locA.Local = memiftransport.AddressDPDK
-	locA.Remote = memiftransport.AddressApp
-	locA.Memif = &memiftransport.Locator{
-		SocketName: socketName,
-		ID:         7655,
-	}
+	var locA ethface.MemifLocator
+	locA.SocketName = socketName
+	locA.ID = 7655
 	faceA, e := locA.CreateFace()
 	require.NoError(e)
 	assert.Equal("memif", faceA.Locator().Scheme())
 
-	var locB ethface.Locator
-	locB.Local = memiftransport.AddressDPDK
-	locB.Remote = memiftransport.AddressApp
-	locB.Memif = &memiftransport.Locator{
-		SocketName: socketName,
-		ID:         1891,
-	}
+	var locB ethface.MemifLocator
+	locB.SocketName = socketName
+	locB.ID = 1891
 	faceB, e := locB.CreateFace()
 	require.NoError(e)
 

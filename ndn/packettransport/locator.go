@@ -1,9 +1,7 @@
 package packettransport
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
 	"net"
 
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
@@ -29,62 +27,28 @@ var (
 type Locator struct {
 	// Local is the local MAC address.
 	// This must be a 48-bit unicast address.
-	Local net.HardwareAddr
+	Local macaddr.Flag `json:"local"`
 
 	// Remote is the remote MAC address.
 	// This must be a 48-bit unicast or multicast address.
-	Remote net.HardwareAddr
+	Remote macaddr.Flag `json:"remote"`
 
 	// VLAN is the VLAN number.
 	// This must be between MinVLAN and MaxVLAN.
 	// Zero indicates there's no VLAN header.
-	VLAN int
+	VLAN int `json:"vlan,omitempty"`
 }
 
 // Validate checks Locator fields.
 func (loc Locator) Validate() error {
-	if !macaddr.IsUnicast(loc.Local) {
+	if !macaddr.IsUnicast(loc.Local.HardwareAddr) {
 		return errors.New("invalid Local")
 	}
-	if !macaddr.IsUnicast(loc.Remote) && !macaddr.IsMulticast(loc.Remote) {
+	if !macaddr.IsUnicast(loc.Remote.HardwareAddr) && !macaddr.IsMulticast(loc.Remote.HardwareAddr) {
 		return errors.New("invalid Remote")
 	}
 	if loc.VLAN != 0 && (loc.VLAN < MinVLAN || loc.VLAN > MaxVLAN) {
 		return errors.New("invalid VLAN")
 	}
 	return nil
-}
-
-// MarshalJSON implements json.Marshaler interface.
-func (loc Locator) MarshalJSON() ([]byte, error) {
-	if e := loc.Validate(); e != nil {
-		return nil, e
-	}
-	return json.Marshal(locatorJSON{
-		Local:  loc.Local.String(),
-		Remote: loc.Remote.String(),
-		VLAN:   loc.VLAN,
-	})
-}
-
-// UnmarshalJSON implements json.Unmarshaler interface.
-func (loc *Locator) UnmarshalJSON(data []byte) (e error) {
-	var j locatorJSON
-	if e = json.Unmarshal(data, &j); e != nil {
-		return e
-	}
-	if loc.Local, e = net.ParseMAC(j.Local); e != nil {
-		return fmt.Errorf("Local %w", e)
-	}
-	if loc.Remote, e = net.ParseMAC(j.Remote); e != nil {
-		return fmt.Errorf("Remote %w", e)
-	}
-	loc.VLAN = j.VLAN
-	return loc.Validate()
-}
-
-type locatorJSON struct {
-	Local  string `json:"local"`
-	Remote string `json:"remote"`
-	VLAN   int    `json:"vlan,omitempty"`
 }

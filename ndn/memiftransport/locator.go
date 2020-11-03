@@ -12,6 +12,7 @@ import (
 	"github.com/FDio/vpp/extras/gomemif/memif"
 	"github.com/jfoster/bintools"
 	mathpkg "github.com/pkg/math"
+	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 )
 
@@ -131,19 +132,12 @@ func (loc *Locator) ToCreateFaceLocator() (json.RawMessage, error) {
 	}
 	loc.ApplyDefaults()
 
-	obj := createFaceLocatorJSON{
-		Scheme: "memif",
-		Local:  AddressDPDK.String(),
-		Remote: AddressApp.String(),
-		Memif:  loc,
+	var m map[string]interface{}
+	if e := jsonhelper.Roundtrip(loc, &m); e != nil {
+		return nil, e
 	}
-	j, e := json.Marshal(obj)
-	return json.RawMessage(j), e
-}
+	m["scheme"] = "memif"
 
-type createFaceLocatorJSON struct {
-	Scheme string   `json:"scheme"`
-	Local  string   `json:"local"`
-	Remote string   `json:"remote"`
-	Memif  *Locator `json:"memif"`
+	j, e := json.Marshal(m)
+	return json.RawMessage(j), e
 }

@@ -48,10 +48,11 @@ func (impl *rxTableImpl) setFace(slot *C.FaceID, faceID iface.ID) error {
 
 func (impl *rxTableImpl) Start(face *ethFace) error {
 	rxtC := impl.rxt.ptr()
-	if macaddr.IsMulticast(face.loc.Remote) {
+	remote := face.loc.remote()
+	if macaddr.IsMulticast(remote) {
 		return impl.setFace(&rxtC.multicast, face.ID())
 	}
-	lastOctet := face.loc.Remote[5]
+	lastOctet := remote[5]
 	return impl.setFace(&rxtC.unicast[lastOctet], face.ID())
 }
 

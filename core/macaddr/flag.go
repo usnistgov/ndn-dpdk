@@ -9,6 +9,11 @@ type Flag struct {
 	net.HardwareAddr
 }
 
+// Empty returns true if the HardwareAddr is unset.
+func (f Flag) Empty() bool {
+	return len(f.HardwareAddr) == 0
+}
+
 // Get implements flag.Getter.
 func (f *Flag) Get() interface{} {
 	return f.HardwareAddr

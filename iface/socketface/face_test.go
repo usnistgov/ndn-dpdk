@@ -18,6 +18,14 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/sockettransport"
 )
 
+func mustParseLocator(input string) socketface.Locator {
+	var locw iface.LocatorWrapper
+	if e := json.Unmarshal([]byte(input), &locw); e != nil {
+		panic(e)
+	}
+	return locw.Locator.(socketface.Locator)
+}
+
 func TestUdp(t *testing.T) {
 	assert, require := makeAR(t)
 	fixture := ifacetestenv.NewFixture(t)
@@ -31,13 +39,13 @@ func TestUdp(t *testing.T) {
 	addrA := "127.0.0.1:" + strconv.Itoa(portA)
 	addrB := "127.0.0.1:" + strconv.Itoa(portB)
 
-	locA := iface.MustParseLocator(`{ "scheme": "udp", "local": "` + addrA + `", "remote": "` + addrB + `" }`).(socketface.Locator)
+	locA := mustParseLocator(`{ "scheme": "udp", "local": "` + addrA + `", "remote": "` + addrB + `" }`)
 	ifacetestenv.CheckLocatorMarshal(t, locA)
 	faceA, e := socketface.New(locA)
 	require.NoError(e)
 	defer faceA.Close()
 
-	locB := iface.MustParseLocator(`{ "scheme": "udp", "local": "` + addrB + `", "remote": "` + addrA + `" }`).(socketface.Locator)
+	locB := mustParseLocator(`{ "scheme": "udp", "local": "` + addrB + `", "remote": "` + addrA + `" }`)
 	faceB, e := socketface.New(locB)
 	require.NoError(e)
 	defer faceB.Close()
@@ -108,7 +116,7 @@ func TestTcp(t *testing.T) {
 	*addr = *listener.Addr().(*net.TCPAddr)
 
 	checkStreamRedialing(t, listener, func() iface.Face {
-		loc := iface.MustParseLocator(fmt.Sprintf(`{ "scheme": "tcp", "remote": "127.0.0.1:%d" }`, addr.Port)).(socketface.Locator)
+		loc := mustParseLocator(fmt.Sprintf(`{ "scheme": "tcp", "remote": "127.0.0.1:%d" }`, addr.Port))
 		face, e := socketface.New(loc)
 		require.NoError(e)
 
@@ -133,7 +141,7 @@ func TestUnix(t *testing.T) {
 	defer listener.Close()
 
 	checkStreamRedialing(t, listener, func() iface.Face {
-		loc := iface.MustParseLocator(fmt.Sprintf(`{ "scheme": "unix", "remote": "%s" }`, addr)).(socketface.Locator)
+		loc := mustParseLocator(fmt.Sprintf(`{ "scheme": "unix", "remote": "%s" }`, addr))
 		face, e := socketface.New(loc)
 		require.NoError(e)
 

@@ -34,11 +34,11 @@ func New(ifname string, cfg Config) (Transport, error) {
 	if e != nil {
 		return nil, fmt.Errorf("net.InterfaceByName(%s) %w", ifname, e)
 	}
-	if len(cfg.Local) == 0 {
-		cfg.Local = intf.HardwareAddr
+	if cfg.Local.Empty() {
+		cfg.Local.HardwareAddr = intf.HardwareAddr
 	}
-	if len(cfg.Remote) == 0 {
-		cfg.Remote = packettransport.MulticastAddressNDN
+	if cfg.Remote.Empty() {
+		cfg.Remote.HardwareAddr = packettransport.MulticastAddressNDN
 	}
 
 	h, e := af.NewTPacket()
@@ -84,16 +84,16 @@ func (tr *transport) prepare(h *af.TPacket, loc packettransport.Locator) error {
 		return fmt.Errorf("bind(fd=%d, ifindex=%d) %w", fd, ifindex, e)
 	}
 
-	if macaddr.IsMulticast(loc.Remote) {
+	if macaddr.IsMulticast(loc.Remote.HardwareAddr) {
 		mreq := unix.PacketMreq{
 			Ifindex: int32(ifindex),
 			Type:    unix.PACKET_MR_MULTICAST,
 		}
-		mreq.Alen = uint16(copy(mreq.Address[:], []byte(loc.Remote)))
+		mreq.Alen = uint16(copy(mreq.Address[:], []byte(loc.Remote.HardwareAddr)))
 		if e := unix.SetsockoptPacketMreq(fd, unix.SOL_PACKET, unix.PACKET_ADD_MEMBERSHIP, &mreq); e != nil {
 			return fmt.Errorf("setsockopt(fd=%d, ifindex=%d, PACKET_ADD_MEMBERSHIP=%s) %w", fd, ifindex, loc.Remote, e)
 		}
-	} else if !macaddr.Equal(loc.Local, tr.intf.HardwareAddr) {
+	} else if !macaddr.Equal(loc.Local.HardwareAddr, tr.intf.HardwareAddr) {
 		mreq := unix.PacketMreq{
 			Ifindex: int32(ifindex),
 			Type:    unix.PACKET_MR_PROMISC,

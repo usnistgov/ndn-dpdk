@@ -12,20 +12,8 @@ import (
 
 	"github.com/bhoriuchi/graphql-go-tools/handler"
 	"github.com/graphql-go/graphql"
+	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
 )
-
-func jsonRoundtrip(input, ptr interface{}) error {
-	j, e := json.Marshal(input)
-	if e != nil {
-		return e
-	}
-
-	e = json.Unmarshal(j, ptr)
-	if e != nil {
-		return e
-	}
-	return nil
-}
 
 // Client is a GraphQL client.
 type Client struct {
@@ -60,7 +48,7 @@ func (c *Client) DoOperation(query, op string, vars interface{}, key string, res
 		Query:         query,
 		OperationName: op,
 	}
-	if e := jsonRoundtrip(vars, &params.Variables); e != nil {
+	if e := jsonhelper.Roundtrip(vars, &params.Variables); e != nil {
 		return fmt.Errorf("json(vars): %w", e)
 	}
 
@@ -106,7 +94,7 @@ func (c *Client) DoOperation(query, op string, vars interface{}, key string, res
 				return fmt.Errorf("data[%s] missing", key)
 			}
 		}
-		if e := jsonRoundtrip(data, res); e != nil {
+		if e := jsonhelper.Roundtrip(data, res); e != nil {
 			return fmt.Errorf("json(data): %w", e)
 		}
 	}

@@ -14,6 +14,12 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
 )
 
+func makeEtherLocator(dev ethdev.EthDev) (loc ethface.EtherLocator) {
+	loc.Local.HardwareAddr = dev.MacAddr()
+	loc.Remote.HardwareAddr = packettransport.MulticastAddressNDN
+	return
+}
+
 type ethTestTopology struct {
 	*ifacetestenv.Fixture
 	vnet                                           *ethdev.VNet
@@ -36,12 +42,12 @@ func makeTopo(t *testing.T) (topo ethTestTopology) {
 	topo.macC, _ = net.ParseMAC("02:00:00:00:00:03")
 
 	makeFace := func(dev ethdev.EthDev, local, remote net.HardwareAddr) iface.Face {
-		loc := ethface.NewLocator(dev)
+		loc := makeEtherLocator(dev)
 		if local != nil {
 			loc.Port = dev.Name()
-			loc.Local = local
+			loc.Local.HardwareAddr = local
 		}
-		loc.Remote = remote
+		loc.Remote.HardwareAddr = remote
 		face, e := loc.CreateFace()
 		require.NoError(e, "%s %s %s", dev.Name(), local, remote)
 		return face
@@ -85,11 +91,11 @@ func TestEthFaceAm(t *testing.T) {
 	topo := makeTopo(t)
 	defer topo.Close()
 
-	locAm := topo.faceAm.Locator().(ethface.Locator)
+	locAm := topo.faceAm.Locator().(ethface.EtherLocator)
 	assert.Equal("ether", locAm.Scheme())
 	assert.Equal(topo.vnet.Ports[0].Name(), locAm.Port)
-	assert.Equal(topo.macA, locAm.Local)
-	assert.Equal(packettransport.MulticastAddressNDN, locAm.Remote)
+	assert.Equal(topo.macA, locAm.Local.HardwareAddr)
+	assert.Equal(packettransport.MulticastAddressNDN, locAm.Remote.HardwareAddr)
 
 	topo.RunTest(topo.faceAm, topo.faceBm)
 	topo.CheckCounters()
@@ -111,14 +117,14 @@ func TestFragmentation(t *testing.T) {
 	ealthread.Launch(vnet)
 	time.Sleep(time.Second)
 
-	locA := ethface.NewLocator(vnet.Ports[0])
+	locA := makeEtherLocator(vnet.Ports[0])
 	locA.PortConfig = new(ethface.PortConfig)
 	locA.PortConfig.MTU = 5000
 	locA.PortConfig.NoSetMTU = true
 	faceA, e := locA.CreateFace()
 	require.NoError(e)
 
-	locB := ethface.NewLocator(vnet.Ports[1])
+	locB := makeEtherLocator(vnet.Ports[1])
 	locB.PortConfig = locA.PortConfig
 	faceB, e := locB.CreateFace()
 	require.NoError(e)

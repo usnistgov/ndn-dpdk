@@ -4,7 +4,6 @@ import (
 	"log"
 
 	"github.com/urfave/cli/v2"
-	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"github.com/usnistgov/ndn-dpdk/ndn/packettransport/afpacket"
@@ -13,7 +12,6 @@ import (
 func init() {
 	var cfg afpacket.Config
 	var netif string
-	var local, remote macaddr.Flag
 	var respond bool
 	defineCommand(&cli.Command{
 		Name:  "dump",
@@ -28,12 +26,12 @@ func init() {
 			&cli.GenericFlag{
 				Name:  "local",
 				Usage: "Local MAC address.",
-				Value: &local,
+				Value: &cfg.Local,
 			},
 			&cli.GenericFlag{
 				Name:  "remote",
 				Usage: "Remote MAC address.",
-				Value: &remote,
+				Value: &cfg.Remote,
 			},
 			&cli.BoolFlag{
 				Name:        "respond",
@@ -52,11 +50,6 @@ func init() {
 				Value:       l3.DefaultTransportTxQueueSize,
 				Destination: &cfg.TxQueueSize,
 			},
-		},
-		Before: func(c *cli.Context) error {
-			cfg.Local = local.HardwareAddr
-			cfg.Remote = remote.HardwareAddr
-			return nil
 		},
 		Action: func(c *cli.Context) error {
 			tr, e := afpacket.New(netif, cfg)

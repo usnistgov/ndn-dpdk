@@ -7,7 +7,7 @@ import type { Counter, NNMilliseconds } from "./core";
  */
 export type FaceID = number;
 
-export type FaceLocator = EthFaceLocator | SocketFaceLocator;
+export type FaceLocator = EtherLocator | MemifLocator | SocketFaceLocator;
 
 export interface FaceConfig {
   /**
@@ -33,8 +33,8 @@ export interface FaceConfig {
   mtu?: number;
 }
 
-export interface EthFaceLocator {
-  scheme: "ether"|"memif";
+export interface EtherLocator {
+  scheme: "ether";
   local: string;
   remote: string;
 
@@ -45,13 +45,13 @@ export interface EthFaceLocator {
    */
   vlan?: number;
 
-  memif?: MemifLocator;
   port?: string;
   portConfig?: EthPortConfig;
-  rxQueueIDs?: number[];
 }
 
 export interface MemifLocator {
+  scheme: "memif";
+
   socketName: string;
 
   /**

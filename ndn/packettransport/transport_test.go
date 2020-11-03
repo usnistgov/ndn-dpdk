@@ -50,10 +50,9 @@ func TestPipe(t *testing.T) {
 	_, require := makeAR(t)
 
 	var cfgA, cfgB packettransport.Config
-	cfgA.Local, _ = net.ParseMAC("02:00:00:00:00:01")
-	cfgB.Remote = cfgA.Local
-	cfgB.Local, _ = net.ParseMAC("02:00:00:00:00:02")
-	cfgA.Remote = cfgB.Local
+	cfgA.Local.UnmarshalText([]byte("02:00:00:00:00:01"))
+	cfgA.Remote.UnmarshalText([]byte("02:00:00:00:00:02"))
+	cfgB.Local, cfgB.Remote = cfgA.Remote, cfgA.Local
 
 	rxA, txB := net.Pipe()
 	rxB, txA := net.Pipe()
