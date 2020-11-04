@@ -1,9 +1,11 @@
 package ethface
 
 import (
+	"encoding/binary"
 	"errors"
 	"net"
 
+	"github.com/koneu/natend"
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/iface"
@@ -49,8 +51,13 @@ func (loc EtherLocator) remote() net.HardwareAddr {
 	return loc.Remote.HardwareAddr
 }
 
-func (loc EtherLocator) vlan() int {
-	return loc.VLAN
+func (loc EtherLocator) cLoc() (c cLocator) {
+	copy(c.Local.Bytes[:], []uint8(loc.Local.HardwareAddr))
+	copy(c.Remote.Bytes[:], []uint8(loc.Remote.HardwareAddr))
+	var vlan [2]byte
+	binary.BigEndian.PutUint16(vlan[:], uint16(loc.VLAN))
+	c.Vlan = natend.NativeEndian.Uint16(vlan[:])
+	return
 }
 
 // CreateFace creates an Ethernet face.

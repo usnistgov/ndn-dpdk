@@ -30,8 +30,10 @@ func (loc MemifLocator) remote() net.HardwareAddr {
 	return memiftransport.AddressApp
 }
 
-func (loc MemifLocator) vlan() int {
-	return 0
+func (loc MemifLocator) cLoc() (c cLocator) {
+	copy(c.Local.Bytes[:], []uint8(memiftransport.AddressDPDK))
+	copy(c.Remote.Bytes[:], []uint8(memiftransport.AddressApp))
+	return
 }
 
 // CreateFace creates a memif face.

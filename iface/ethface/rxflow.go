@@ -1,7 +1,7 @@
 package ethface
 
 /*
-#include "../../csrc/ethface/eth-face.h"
+#include "../../csrc/ethface/face.h"
 */
 import "C"
 import (
@@ -135,6 +135,7 @@ func (impl *rxFlowImpl) Close() error {
 	}
 	impl.queueFlow = nil
 	impl.port.dev.Stop(ethdev.StopReset)
+	impl.setIsolate(false)
 	return nil
 }
 
@@ -146,8 +147,10 @@ type rxFlow struct {
 func newRxFlow(face *ethFace, queue int) (*rxFlow, error) {
 	priv := face.priv
 	priv.rxQueue = C.uint16_t(queue)
+
+	cLoc := face.loc.cLoc()
 	var flowErr C.struct_rte_flow_error
-	flow := C.EthFace_SetupFlow(priv, &flowErr)
+	flow := C.EthFace_SetupFlow(priv, cLoc.ptr(), &flowErr)
 	if flow == nil {
 		return nil, readFlowErr(flowErr)
 	}

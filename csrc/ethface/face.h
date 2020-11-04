@@ -1,24 +1,12 @@
-#ifndef NDNDPDK_ETHFACE_ETH_FACE_H
-#define NDNDPDK_ETHFACE_ETH_FACE_H
+#ifndef NDNDPDK_ETHFACE_FACE_H
+#define NDNDPDK_ETHFACE_FACE_H
 
 /** @file */
 
 #include "../dpdk/ethdev.h"
 #include "../iface/face.h"
 #include "../iface/rxloop.h"
-#include <rte_flow.h>
-
-#define NDN_ETHERTYPE 0x8624
-
-typedef struct EthFaceEtherHdr
-{
-  struct rte_ether_hdr eth;
-  struct rte_vlan_hdr vlan;
-} __rte_packed __rte_aligned(2) EthFaceEtherHdr;
-
-uint8_t
-EthFaceEtherHdr_Init(EthFaceEtherHdr* hdr, const struct rte_ether_addr* local,
-                     const struct rte_ether_addr* remote, uint16_t vlan);
+#include "locator.h"
 
 /**
  * @brief Ethernet face private data.
@@ -28,11 +16,15 @@ EthFaceEtherHdr_Init(EthFaceEtherHdr* hdr, const struct rte_ether_addr* local,
 typedef struct EthFacePriv
 {
   RxGroup flowRxg;
-  EthFaceEtherHdr txHdr;
   uint16_t port;
   uint16_t rxQueue;
   FaceID faceID;
-  uint8_t txHdrLen;
+  uint16_t hdrLen;
+  uint8_t txHdr[ETHHDR_BUFLEN];
+
+  struct cds_hlist_node rxtNode;
+  EthRxMatch rxMatch;
+  uint8_t rxMatchBuffer[ETHHDR_BUFLEN];
 } EthFacePriv;
 
 uint16_t
@@ -40,9 +32,9 @@ EthFace_TxBurst(Face* face, struct rte_mbuf** pkts, uint16_t nPkts);
 
 /** @brief Setup rte_flow on EthDev for hardware dispatching. */
 struct rte_flow*
-EthFace_SetupFlow(EthFacePriv* priv, struct rte_flow_error* error);
+EthFace_SetupFlow(EthFacePriv* priv, const EthLocator* loc, struct rte_flow_error* error);
 
 uint16_t
 EthFace_FlowRxBurst(RxGroup* flowRxg, struct rte_mbuf** pkts, uint16_t nPkts);
 
-#endif // NDNDPDK_ETHFACE_ETH_FACE_H
+#endif // NDNDPDK_ETHFACE_FACE_H

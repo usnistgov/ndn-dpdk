@@ -9,10 +9,9 @@
 typedef struct EthRxTable
 {
   RxGroup base;
+  struct cds_hlist_head head;
   uint16_t port;
   uint16_t queue;
-  _Atomic FaceID multicast;    ///< multicast face
-  _Atomic FaceID unicast[256]; ///< unicast faces, by last octet of sender address
 } EthRxTable;
 
 uint16_t

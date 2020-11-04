@@ -5,10 +5,9 @@ package ethface
 */
 import "C"
 import (
-	"fmt"
 	"unsafe"
 
-	"github.com/usnistgov/ndn-dpdk/core/macaddr"
+	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/iface"
@@ -37,26 +36,15 @@ func (impl *rxTableImpl) Init() error {
 	return nil
 }
 
-func (impl *rxTableImpl) setFace(slot *C.FaceID, faceID iface.ID) error {
-	oldFaceID := iface.ID(*slot)
-	if impl.port.faces[oldFaceID] != nil {
-		return fmt.Errorf("new face %d conflicts with old face %d", faceID, oldFaceID)
-	}
-	*slot = C.FaceID(faceID)
+func (impl *rxTableImpl) Start(face *ethFace) error {
+	rxtC := impl.rxt.ptr()
+	C.cds_hlist_add_head_rcu(&face.priv.rxtNode, &rxtC.head)
 	return nil
 }
 
-func (impl *rxTableImpl) Start(face *ethFace) error {
-	rxtC := impl.rxt.ptr()
-	remote := face.loc.remote()
-	if macaddr.IsMulticast(remote) {
-		return impl.setFace(&rxtC.multicast, face.ID())
-	}
-	lastOctet := remote[5]
-	return impl.setFace(&rxtC.unicast[lastOctet], face.ID())
-}
-
 func (impl *rxTableImpl) Stop(face *ethFace) error {
+	C.cds_hlist_del_rcu(&face.priv.rxtNode)
+	urcu.Barrier()
 	return nil
 }
 

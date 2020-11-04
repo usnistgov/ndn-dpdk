@@ -16,6 +16,7 @@ require (
 	github.com/jfoster/bintools v0.1.1
 	github.com/jwangsadinata/go-multimap v0.0.0-20190620162914-c29f3d7f33b6
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
+	github.com/koneu/natend v0.0.0-20150829182554-ec0926ea948d
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pkg/math v0.0.0-20141027224758-f2ed9e40e245
 	github.com/powerman/rpc-codec v1.2.2

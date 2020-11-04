@@ -1,30 +1,25 @@
 #include "rxtable.h"
-#include "eth-face.h"
+#include "face.h"
 
 static bool
-EthRxTable_Accept(EthRxTable* rxt, struct rte_mbuf* frame, uint64_t now)
+EthRxTable_Accept(EthRxTable* rxt, struct rte_mbuf* m, uint64_t now)
 {
-  NDNDPDK_ASSERT(frame->data_len >= sizeof(EthFaceEtherHdr));
-  const EthFaceEtherHdr* hdr = rte_pktmbuf_mtod(frame, const EthFaceEtherHdr*);
+  // RCU read-side lock is obtained by RxLoop_Run that calls this function
 
-  if (rte_is_multicast_ether_addr(&hdr->eth.d_addr)) {
-    frame->port = atomic_load_explicit(&rxt->multicast, memory_order_relaxed);
-  } else {
-    uint8_t srcLastOctet = hdr->eth.s_addr.addr_bytes[5];
-    frame->port = atomic_load_explicit(&rxt->unicast[srcLastOctet], memory_order_relaxed);
+  m->timestamp = now;
+
+  EthFacePriv* priv;
+  struct cds_hlist_node* pos;
+  cds_hlist_for_each_entry_rcu (priv, pos, &rxt->head, rxtNode) {
+    if (priv->rxMatch(priv->rxMatchBuffer, m)) {
+      rte_pktmbuf_adj(m, priv->hdrLen);
+      m->port = priv->faceID;
+      return true;
+    }
   }
 
-  if (likely(hdr->eth.ether_type == rte_cpu_to_be_16(NDN_ETHERTYPE))) {
-    rte_pktmbuf_adj(frame, offsetof(EthFaceEtherHdr, vlan));
-  } else if (likely(hdr->vlan.eth_proto == rte_cpu_to_be_16(NDN_ETHERTYPE))) {
-    rte_pktmbuf_adj(frame, sizeof(EthFaceEtherHdr));
-  } else {
-    rte_pktmbuf_free(frame);
-    return false;
-  }
-
-  frame->timestamp = now;
-  return true;
+  rte_pktmbuf_free(m);
+  return false;
 }
 
 uint16_t

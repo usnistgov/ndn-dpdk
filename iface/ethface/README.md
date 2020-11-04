@@ -3,7 +3,7 @@
 This package implements Ethernet faces using DPDK ethdev as transport.
 
 **ethFace** type represents an Ethernet face.
-Its Locator has the following fields:
+Locator of an Ethernet face has the following fields:
 
 * *scheme* is set to "ether".
 * *local* and *remote* are MAC-48 addresses written in the six groups of two lower-case hexadecimal digits separated by colons.
@@ -14,40 +14,29 @@ Its Locator has the following fields:
 * *port* (optional) is the port name as presented by DPDK.
   If omitted, *local* is used to search for a suitable port; if specified, this takes priority over *local*.
 
-**Port** type organizes EthFaces on the same DPDK ethdev.
+**Port** type organizes faces on the same DPDK ethdev.
 Each port can have zero or one face with multicast remote address, and zero or more faces with unicast remote addresses.
-EthFaces on the same port can be created and destroyed individually.
+Faces on the same port can be created and destroyed individually.
 
 ## Receive Path
 
 There are two receive path implementations.
-Currently, all faces on the same port must use the same receive path implementation.
+All faces on the same port must use the same receive path implementation.
 
-**EthRxFlow** type implements a hardware-accelerated receive path.
-It uses one RX queue per face, and creates an rte\_flow to steering incoming frames to that queue.
+**rxFlow** type implements a hardware-accelerated receive path.
+It uses one RX queue per face, and creates an rte\_flow to steer incoming frames to that queue.
 An incoming frame is accepted only if it has the correct MAC addresses and VLAN tag.
 There is minimal checking on software side.
 
-**EthRxTable** type implements a software receive path.
-Its procedure is:
-
-1. Poll ethdev RX queue 0 for incoming frames.
-2. Label each frame with incoming ID:
-    * If the destination MAC address is a group address, the ID is set to the face with multicast remote address.
-    * Otherwise, the last octet of source MAC address is used to query a 256-element array of unicast FaceIDs.
-      This requires every face with unicast remote address to have distinct last octet.
-    * In case a face selected as above does not exist, the frame's incoming ID is set to zero.
-      Later, `FaceImpl_RxBurst` would drop such a frame.
-    * VLAN tags do not participate in packet dispatching.
-3. Remove the Ethernet and VLAN headers.
-   Drop the frame if it does not have the NDN EtherType (this includes NDN packets over UDP/TCP tunnels).
+**rxTable** type implements a software receive path.
+It continuously polls ethdev RX queue 0 for incoming frames.
+Header of an incoming frame is matched against each face, and labeled with the matching face ID.
+If no match is found, drop the frame.
 
 Port/face setup procedure is dominated by the choice of receive path implementation.
-Initially, the port attempts to operate with EthRxFlows.
+Initially, the port attempts to operate with rxFlows.
 This can fail if the ethdev does not support rte\_flow, does not support the specific rte\_flow features used in `EthFace_SetupFlow`, or has fewer RX queues than the number of requested faces.
-If EthRxFlows fail to setup for these or any other reason, the port falls back to EthRxTable.
-It can fail if multiple faces with unicast remote addresses have the same last octet.
-In case both receive path implementations fail to setup, the port would remain in an inoperational state.
+If rxFlows fail to setup for these or any other reason, the port falls back to rxTable.
 
 ## Send Path
 
@@ -57,3 +46,21 @@ It requires every outgoing packet to have sufficient headroom for the Ethernet h
 
 The send path is thread-safe only if the underlying DPDK PMD is thread safe, which generally is not the case.
 Normally, **iface.TxLoop** invokes `EthFace_TxBurst` from the same thread.
+
+## Memif Face
+
+Shared memory packet interface (memif) is supported through this package.
+
+Locator of a memif face has the following fields:
+
+* *scheme* is set to "memif".
+* *socketName* is the control socket filename.
+  It must be an absolute path not exceeding 108 characters.
+* *id* is the interface identifier in the range 0x00000000-0xFFFFFFFF.
+
+In the data plane:
+
+* Application must operate its memif interface in "slave" mode.
+* Each packet must be an Ethernet frame carrying an NDNLPv2 frame.
+* Application must use Ethernet address `F2:6C:E6:8D:9E:34`.
+* NDN-DPDK uses Ethernet address `F2:71:7E:76:5D:1C`.

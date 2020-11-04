@@ -2,14 +2,14 @@
 package ethface
 
 /*
-#include "../../csrc/ethface/eth-face.h"
+#include "../../csrc/ethface/face.h"
 */
 import "C"
 import (
 	"errors"
 	"net"
+	"unsafe"
 
-	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/iface"
 )
@@ -27,7 +27,11 @@ type ethLocator interface {
 
 	local() net.HardwareAddr
 	remote() net.HardwareAddr
-	vlan() int
+	cLoc() cLocator
+}
+
+func (loc *cLocator) ptr() *C.EthLocator {
+	return (*C.EthLocator)(unsafe.Pointer(loc))
 }
 
 type ethFace struct {
@@ -70,7 +74,7 @@ func New(port *Port, loc ethLocator) (iface.Face, error) {
 		Config:     port.cfg.Config,
 		Socket:     port.dev.NumaSocket(),
 		SizeofPriv: uintptr(C.sizeof_EthFacePriv),
-		TxHeadroom: int(C.sizeof_EthFaceEtherHdr),
+		TxHeadroom: int(C.ETHHDR_BUFLEN),
 		Init: func(f iface.Face) error {
 			face.Face = f
 			c := face.ptr()
@@ -81,11 +85,9 @@ func New(port *Port, loc ethLocator) (iface.Face, error) {
 				port:   C.uint16_t(port.dev.ID()),
 				faceID: C.FaceID(f.ID()),
 			}
-
-			var local, remote C.struct_rte_ether_addr
-			copy(cptr.AsByteSlice(&local.addr_bytes), []byte(face.loc.local()))
-			copy(cptr.AsByteSlice(&remote.addr_bytes), []byte(face.loc.remote()))
-			priv.txHdrLen = C.EthFaceEtherHdr_Init(&priv.txHdr, &local, &remote, C.uint16_t(face.loc.vlan()))
+			cLoc := face.loc.cLoc()
+			priv.hdrLen = C.EthLocator_MakeTxHdr(cLoc.ptr(), &priv.txHdr[0])
+			priv.rxMatch = C.EthLocator_MakeRxMatch(cLoc.ptr(), &priv.rxMatchBuffer[0])
 
 			face.priv = priv
 			return nil
