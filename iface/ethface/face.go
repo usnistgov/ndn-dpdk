@@ -6,27 +6,28 @@ package ethface
 */
 import "C"
 import (
-	"errors"
-	"net"
+	"fmt"
 	"unsafe"
 
-	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
-// Error conditions.
-var (
-	ErrLocalMismatch          = errors.New("port has a different local address")
-	ErrRemoteDuplicateGroup   = errors.New("port has another face with a group address")
-	ErrRemoteDuplicateUnicast = errors.New("port has another face with same unicast address")
-	ErrRemoteInvalid          = errors.New("invalid MAC address")
-)
+// LocatorConflictError indicates that the locator of a new face conflicts with an existing face.
+type LocatorConflictError struct {
+	a, b ethLocator
+}
+
+func (e LocatorConflictError) Error() string {
+	return fmt.Sprintf("locator %s conflicts with %s", iface.LocatorString(e.a), iface.LocatorString(e.b))
+}
 
 type ethLocator interface {
 	iface.Locator
 
-	local() net.HardwareAddr
-	remote() net.HardwareAddr
+	// conflictsWith determines whether this and other locator can coexist on the same port.
+	conflictsWith(other ethLocator) bool
+
+	// cLoc converts to C.EthLocator.
 	cLoc() cLocator
 }
 
@@ -46,24 +47,12 @@ func (face *ethFace) ptr() *C.Face {
 	return (*C.Face)(face.Ptr())
 }
 
-// New creates an Ethernet face on the given port.
+// New creates a face on the given port.
 func New(port *Port, loc ethLocator) (iface.Face, error) {
-	if !macaddr.Equal(loc.local(), port.local) {
-		return nil, ErrLocalMismatch
-	}
-
-	remote := loc.remote()
-	switch {
-	case macaddr.IsMulticast(remote):
-		if face := port.FindFace(nil); face != nil {
-			return nil, ErrRemoteDuplicateGroup
+	for _, f := range port.faces {
+		if f.loc.conflictsWith(loc) {
+			return nil, LocatorConflictError{a: loc, b: f.loc}
 		}
-	case macaddr.IsUnicast(remote):
-		if face := port.FindFace(remote); face != nil {
-			return nil, ErrRemoteDuplicateUnicast
-		}
-	default:
-		return nil, ErrRemoteInvalid
 	}
 
 	face := &ethFace{
@@ -102,7 +91,7 @@ func New(port *Port, loc ethLocator) (iface.Face, error) {
 			return face.port.stopFace(face)
 		},
 		Close: func(iface.Face) error {
-			if face.port.CountFaces() == 0 {
+			if len(face.port.faces) == 0 {
 				face.port.Close()
 			}
 			return nil

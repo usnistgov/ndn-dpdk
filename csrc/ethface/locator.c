@@ -104,8 +104,8 @@ EthLocator_MakeFlowPattern(const EthLocator* loc, EthFlowPattern* flow)
 }
 
 uint16_t
-EthLocator_MakeTxHdr(const EthLocator* loc, uint8_t* buffer)
+EthLocator_MakeTxHdr(const EthLocator* loc, uint8_t* hdr)
 {
-  memset(buffer, 0, ETHHDR_BUFLEN);
-  return AppendEtherVlanHdr(buffer, &loc->local, &loc->remote, loc->vlan, NDN_ETHERTYPE);
+  memset(hdr, 0, ETHHDR_BUFLEN);
+  return AppendEtherVlanHdr(hdr, &loc->local, &loc->remote, loc->vlan, NDN_ETHERTYPE);
 }

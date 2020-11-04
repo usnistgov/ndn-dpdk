@@ -2,7 +2,6 @@ package ethface
 
 import (
 	"fmt"
-	"net"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
@@ -22,12 +21,8 @@ func (loc MemifLocator) Scheme() string {
 	return schemeMemif
 }
 
-func (loc MemifLocator) local() net.HardwareAddr {
-	return memiftransport.AddressDPDK
-}
-
-func (loc MemifLocator) remote() net.HardwareAddr {
-	return memiftransport.AddressApp
+func (loc MemifLocator) conflictsWith(other ethLocator) bool {
+	return true
 }
 
 func (loc MemifLocator) cLoc() (c cLocator) {
@@ -48,11 +43,12 @@ func (loc MemifLocator) CreateFace() (iface.Face, error) {
 	if e != nil {
 		return nil, fmt.Errorf("eal.NewVDev(%s,%s) %w", name, args, e)
 	}
+	dev := ethdev.Find(vdev.Name())
 
 	var pc PortConfig
 	pc.MTU = loc.Dataroom
 	pc.NoSetMTU = true
-	port, e := NewPort(ethdev.Find(vdev.Name()), loc.local(), pc)
+	port, e := NewPort(dev, pc)
 	if e != nil {
 		vdev.Close()
 		return nil, fmt.Errorf("NewPort %w", e)

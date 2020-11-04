@@ -79,3 +79,10 @@ func (locw *LocatorWrapper) UnmarshalJSON(data []byte) error {
 	locw.Locator = loc
 	return nil
 }
+
+// LocatorString converts a locator to JSON string
+func LocatorString(loc Locator) string {
+	locw := LocatorWrapper{Locator: loc}
+	j, _ := json.Marshal(locw)
+	return string(j)
+}

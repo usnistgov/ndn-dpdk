@@ -2,11 +2,9 @@ package ethface
 
 import (
 	"errors"
-	"net"
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
@@ -62,7 +60,6 @@ func ListPorts() (list []*Port) {
 // Port organizes EthFaces on an EthDev.
 type Port struct {
 	cfg      PortConfig
-	local    net.HardwareAddr
 	logger   logrus.FieldLogger
 	dev      ethdev.EthDev
 	vdev     *eal.VDev
@@ -72,7 +69,7 @@ type Port struct {
 }
 
 // NewPort opens a Port.
-func NewPort(dev ethdev.EthDev, local net.HardwareAddr, cfg PortConfig) (port *Port, e error) {
+func NewPort(dev ethdev.EthDev, cfg PortConfig) (port *Port, e error) {
 	if cfg.MTU == 0 {
 		cfg.MTU = dev.MTU()
 		cfg.NoSetMTU = true
@@ -88,19 +85,12 @@ func NewPort(dev ethdev.EthDev, local net.HardwareAddr, cfg PortConfig) (port *P
 	}
 	cfg.Config.ApplyDefaults()
 
-	if local == nil {
-		local = dev.MacAddr()
-	} else if !macaddr.IsUnicast(local) {
-		return nil, errors.New("local address is not unicast")
-	}
-
 	if FindPort(dev) != nil {
 		return nil, errors.New("Port already exists")
 	}
 
 	port = &Port{
 		cfg:    cfg,
-		local:  local,
 		logger: newPortLogger(dev),
 		dev:    dev,
 		faces:  make(map[iface.ID]*ethFace),
@@ -133,34 +123,6 @@ func (port *Port) Close() (e error) {
 	}
 
 	return nil
-}
-
-func (port *Port) filterFace(filter func(face *ethFace) bool) iface.Face {
-	for _, face := range port.faces {
-		if filter(face) {
-			return face.Face
-		}
-	}
-	return nil
-}
-
-// FindFace returns a face that matches the query, or nil if it does not exist.
-// FindFace(nil) returns a face with multicast address.
-// FindFace(unicastAddr) returns a face with matching address.
-func (port *Port) FindFace(query net.HardwareAddr) iface.Face {
-	if query == nil {
-		return port.filterFace(func(face *ethFace) bool {
-			return macaddr.IsMulticast(face.loc.remote())
-		})
-	}
-	return port.filterFace(func(face *ethFace) bool {
-		return macaddr.Equal(face.loc.remote(), query)
-	})
-}
-
-// CountFaces returns the number of active faces.
-func (port *Port) CountFaces() int {
-	return len(port.faces)
 }
 
 // Faces returns a list of active faces.

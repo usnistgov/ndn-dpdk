@@ -53,10 +53,10 @@ EthLocator_MakeFlowPattern(const EthLocator* loc, EthFlowPattern* flow);
 
 /**
  * @brief Create TX header.
- * @param[out] buffer a buffer of ETHHDR_BUFLEN capacity; this is the header to be prepended.
+ * @param[out] hdr the header to be prepended, a buffer of ETHHDR_BUFLEN capacity.
  * @return header length (for both RX and TX).
  */
 uint16_t
-EthLocator_MakeTxHdr(const EthLocator* loc, uint8_t* buffer);
+EthLocator_MakeTxHdr(const EthLocator* loc, uint8_t* hdr);
 
 #endif // NDNDPDK_ETHFACE_ETH_FACE_H

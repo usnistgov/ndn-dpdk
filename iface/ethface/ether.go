@@ -3,7 +3,6 @@ package ethface
 import (
 	"encoding/binary"
 	"errors"
-	"net"
 
 	"github.com/koneu/natend"
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
@@ -12,25 +11,29 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
 )
 
+// Error conditions.
+var (
+	ErrNoPort = errors.New("EthDev not found")
+)
+
 const schemeEther = "ether"
 
 // EtherLocator describes an Ethernet face.
 type EtherLocator struct {
 	packettransport.Locator
 
-	// Port is the port name.
+	// Port is the EthDev name.
 	//
-	// During face creation, this field is optional.
-	// If this is empty, the face creation procedure:
-	// (1) Search for an active Port whose local address matches loc.Local.
-	// (2) If no such Port was found, search for an inactive EthDev whose physical MAC address matches loc.Local.
-	// (3) Face creation fails if no such EthDev was found.
+	// During face creation:
+	//  * If this is empty:
+	//    * Face is created on an EthDev whose physical MAC address matches loc.Local.
+	//    * Local MAC address of the face is set to loc.Local, i.e. same as the physical MAC address.
+	//  * If this is non-empty:
+	//    * Face is created on an EthDev whose name matches loc.Port.
+	//    * Local MAC address of the face is set to loc.Local, which could differ from the physical MAC address.
+	//  * In either case, if no matching EthDev is found, face creation fails.
 	//
-	// If this is non-empty, the face creation procedure:
-	// (1) Search for an EthDev whose name matches this value.
-	//     Face creation fails if no such EthDev was found.
-	// (2) If that EthDev is inactive, a Port is activated with the local address specified in loc.Local.
-	//     Otherwise, loc.Local must match the local address of the active Port, or face creation fails.
+	// When retrieving face information, this reflects the EthDev name.
 	Port string `json:"port,omitempty"`
 
 	// PortConfig specifies additional configuration for Port activation.
@@ -43,12 +46,11 @@ func (loc EtherLocator) Scheme() string {
 	return schemeEther
 }
 
-func (loc EtherLocator) local() net.HardwareAddr {
-	return loc.Local.HardwareAddr
-}
-
-func (loc EtherLocator) remote() net.HardwareAddr {
-	return loc.Remote.HardwareAddr
+func (loc EtherLocator) conflictsWith(other ethLocator) bool {
+	r, ok := other.(EtherLocator)
+	return !ok ||
+		(macaddr.IsMulticast(loc.Remote.HardwareAddr) && macaddr.IsMulticast(r.Remote.HardwareAddr)) ||
+		macaddr.Equal(loc.Remote.HardwareAddr, r.Remote.HardwareAddr)
 }
 
 func (loc EtherLocator) cLoc() (c cLocator) {
@@ -62,17 +64,18 @@ func (loc EtherLocator) cLoc() (c cLocator) {
 
 // CreateFace creates an Ethernet face.
 func (loc EtherLocator) CreateFace() (face iface.Face, e error) {
-	dev, port := loc.findPort()
+	dev := loc.findEthDev()
 	if !dev.Valid() {
-		return nil, errors.New("EthDev not found")
+		return nil, ErrNoPort
 	}
+	port := FindPort(dev)
 
 	if port == nil {
 		var cfg PortConfig
 		if loc.PortConfig != nil {
 			cfg = *loc.PortConfig
 		}
-		if port, e = NewPort(dev, loc.local(), cfg); e != nil {
+		if port, e = NewPort(dev, cfg); e != nil {
 			return nil, e
 		}
 	}
@@ -82,26 +85,17 @@ func (loc EtherLocator) CreateFace() (face iface.Face, e error) {
 	return New(port, loc)
 }
 
-func (loc EtherLocator) findPort() (ethdev.EthDev, *Port) {
-	if loc.Port == "" {
-		for _, port := range ListPorts() {
-			if macaddr.Equal(port.local, loc.local()) {
-				return port.dev, port
+func (loc EtherLocator) findEthDev() ethdev.EthDev {
+	for _, dev := range ethdev.List() {
+		if loc.Port == "" {
+			if macaddr.Equal(dev.MacAddr(), loc.Local.HardwareAddr) {
+				return dev
 			}
-		}
-		for _, dev := range ethdev.List() {
-			if macaddr.Equal(dev.MacAddr(), loc.local()) {
-				return dev, FindPort(dev)
-			}
-		}
-	} else {
-		for _, dev := range ethdev.List() {
-			if dev.Name() == loc.Port {
-				return dev, FindPort(dev)
-			}
+		} else if dev.Name() == loc.Port {
+			return dev
 		}
 	}
-	return ethdev.EthDev{}, nil
+	return ethdev.EthDev{}
 }
 
 func init() {
