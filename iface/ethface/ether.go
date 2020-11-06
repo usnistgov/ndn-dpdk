@@ -1,10 +1,8 @@
 package ethface
 
 import (
-	"encoding/binary"
 	"errors"
 
-	"github.com/koneu/natend"
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/iface"
@@ -20,6 +18,7 @@ const schemeEther = "ether"
 
 // EtherLocator describes an Ethernet face.
 type EtherLocator struct {
+	// packettransport.Locator contains MAC addresses.
 	packettransport.Locator
 
 	// Port is the EthDev name.
@@ -42,33 +41,32 @@ type EtherLocator struct {
 }
 
 // Scheme returns "ether".
-func (loc EtherLocator) Scheme() string {
+func (EtherLocator) Scheme() string {
 	return schemeEther
-}
-
-func (loc EtherLocator) conflictsWith(other ethLocator) bool {
-	r, ok := other.(EtherLocator)
-	return !ok ||
-		(macaddr.IsMulticast(loc.Remote.HardwareAddr) && macaddr.IsMulticast(r.Remote.HardwareAddr)) ||
-		macaddr.Equal(loc.Remote.HardwareAddr, r.Remote.HardwareAddr)
 }
 
 func (loc EtherLocator) cLoc() (c cLocator) {
 	copy(c.Local.Bytes[:], []uint8(loc.Local.HardwareAddr))
 	copy(c.Remote.Bytes[:], []uint8(loc.Remote.HardwareAddr))
-	var vlan [2]byte
-	binary.BigEndian.PutUint16(vlan[:], uint16(loc.VLAN))
-	c.Vlan = natend.NativeEndian.Uint16(vlan[:])
+	c.Vlan = uint16(loc.VLAN)
 	return
 }
 
 // CreateFace creates an Ethernet face.
 func (loc EtherLocator) CreateFace() (face iface.Face, e error) {
+	port, e := loc.makePort()
+	if e != nil {
+		return nil, e
+	}
+	return New(port, loc)
+}
+
+func (loc *EtherLocator) makePort() (port *Port, e error) {
 	dev := loc.findEthDev()
 	if !dev.Valid() {
 		return nil, ErrNoPort
 	}
-	port := FindPort(dev)
+	port = FindPort(dev)
 
 	if port == nil {
 		var cfg PortConfig
@@ -80,9 +78,9 @@ func (loc EtherLocator) CreateFace() (face iface.Face, e error) {
 		}
 	}
 
-	loc.Port = port.dev.Name()
+	loc.Port = dev.Name()
 	loc.PortConfig = nil
-	return New(port, loc)
+	return port, nil
 }
 
 func (loc EtherLocator) findEthDev() ethdev.EthDev {

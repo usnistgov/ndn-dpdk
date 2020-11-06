@@ -88,6 +88,13 @@ func (port EthDev) DevInfo() (info DevInfo) {
 	return info
 }
 
+// HasChecksumOffloads determines whether TX IPv4 and UDP checksum offloads are supported.
+func (port EthDev) HasChecksumOffloads() bool {
+	info := port.DevInfo()
+	return (info.Tx_offload_capa&C.DEV_TX_OFFLOAD_IPV4_CKSUM) != 0 &&
+		(info.Tx_offload_capa&C.DEV_TX_OFFLOAD_UDP_CKSUM) != 0
+}
+
 // MacAddr retrieves MAC address of this EthDev.
 // If the underlying EthDev returns an invalid MAC address, a random MAC address is returned instead.
 func (port EthDev) MacAddr() (a net.HardwareAddr) {
@@ -125,7 +132,7 @@ func (port EthDev) Start(cfg Config) error {
 
 	if cfg.MTU > 0 {
 		if res := C.rte_eth_dev_set_mtu(C.uint16_t(port.ID()), C.uint16_t(cfg.MTU)); res != 0 {
-			return fmt.Errorf("rte_eth_dev_set_mtu(%v,%d) error %d", port, cfg.MTU, res)
+			return fmt.Errorf("rte_eth_dev_set_mtu(%v,%d) error %w", port, cfg.MTU, eal.Errno(-res))
 		}
 	}
 
@@ -133,15 +140,14 @@ func (port EthDev) Start(cfg Config) error {
 	if conf == nil {
 		conf = new(C.struct_rte_eth_conf)
 		conf.rxmode.max_rx_pkt_len = C.uint32_t(port.MTU())
-		if info.Tx_offload_capa&C.DEV_TX_OFFLOAD_MULTI_SEGS != 0 {
-			conf.txmode.offloads = C.DEV_TX_OFFLOAD_MULTI_SEGS
-		}
+		txOffloads := info.Tx_offload_capa & (C.DEV_TX_OFFLOAD_MULTI_SEGS | C.DEV_TX_OFFLOAD_IPV4_CKSUM | C.DEV_TX_OFFLOAD_UDP_CKSUM)
+		conf.txmode.offloads = C.uint64_t(txOffloads)
 	}
 
 	res := C.rte_eth_dev_configure(C.uint16_t(port.ID()), C.uint16_t(len(cfg.RxQueues)),
 		C.uint16_t(len(cfg.TxQueues)), conf)
 	if res < 0 {
-		return fmt.Errorf("rte_eth_dev_configure(%v) error %v", port, eal.Errno(-res))
+		return fmt.Errorf("rte_eth_dev_configure(%v) error %w", port, eal.Errno(-res))
 	}
 
 	for i, qcfg := range cfg.RxQueues {
@@ -149,7 +155,7 @@ func (port EthDev) Start(cfg Config) error {
 		res = C.rte_eth_rx_queue_setup(C.uint16_t(port.ID()), C.uint16_t(i), C.uint16_t(capacity),
 			C.uint(qcfg.Socket.ID()), (*C.struct_rte_eth_rxconf)(qcfg.Conf), (*C.struct_rte_mempool)(qcfg.RxPool.Ptr()))
 		if res != 0 {
-			return fmt.Errorf("rte_eth_rx_queue_setup(%v,%d) error %v", port, i, eal.Errno(-res))
+			return fmt.Errorf("rte_eth_rx_queue_setup(%v,%d) error %w", port, i, eal.Errno(-res))
 		}
 	}
 
@@ -158,7 +164,7 @@ func (port EthDev) Start(cfg Config) error {
 		res = C.rte_eth_tx_queue_setup(C.uint16_t(port.ID()), C.uint16_t(i), C.uint16_t(capacity),
 			C.uint(qcfg.Socket.ID()), (*C.struct_rte_eth_txconf)(qcfg.Conf))
 		if res != 0 {
-			return fmt.Errorf("rte_eth_tx_queue_setup(%v,%d) error %d", port, i, res)
+			return fmt.Errorf("rte_eth_tx_queue_setup(%v,%d) error %w", port, i, eal.Errno(-res))
 		}
 	}
 
@@ -170,7 +176,7 @@ func (port EthDev) Start(cfg Config) error {
 
 	res = C.rte_eth_dev_start(C.uint16_t(port.ID()))
 	if res != 0 {
-		return fmt.Errorf("rte_eth_dev_start(%v) error %d", port, res)
+		return fmt.Errorf("rte_eth_dev_start(%v) error %w", port, eal.Errno(-res))
 	}
 	return nil
 }

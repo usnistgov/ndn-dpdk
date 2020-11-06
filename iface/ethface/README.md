@@ -13,9 +13,11 @@ Locator of an Ethernet face has the following fields:
 * *vlan* (optional) is an VLAN ID in the range 0x001-0xFFF.
 * *port* (optional) is the port name as presented by DPDK.
   If omitted, *local* is used to search for a suitable port; if specified, this takes priority over *local*.
+* *portConfig* (optional) contains configuration for **Port** creation, considered on the first face on a port.
+  See **PortConfig** type for details.
 
 **Port** type organizes faces on the same DPDK ethdev.
-Each port can have zero or one face with multicast remote address, and zero or more faces with unicast remote addresses.
+Each port can have zero or one Ethernet face with multicast remote address, and zero or more Ethernet faces with unicast remote addresses.
 Faces on the same port can be created and destroyed individually.
 
 ## Receive Path
@@ -46,6 +48,62 @@ It requires every outgoing packet to have sufficient headroom for the Ethernet h
 
 The send path is thread-safe only if the underlying DPDK PMD is thread safe, which generally is not the case.
 Normally, **iface.TxLoop** invokes `EthFace_TxBurst` from the same thread.
+
+## UDP and TXLAN Tunnel Face
+
+UDP and VXLAN tunnels are supported through this package.
+
+Locator of a UDP tunnel face has the following fields:
+
+* *scheme* is set to "udpe".
+  The suffix "e" means "ethface"; it is added to differentiate from the "udp" scheme implemented in socketface package.
+* All fields in "ether" locator are inherited.
+* Both *local* and *remote* MAC addresses must be unicast.
+* *localIP* and *remoteIP* are local and remote IP addresses.
+  They may be either IPv4 or IPv6, and must be unicast
+* *localUDP* and *remoteUDP* are local and remote UDP port numbers.
+
+Locator of a VXLAN tunnel face has the following fields:
+
+* *scheme* is set to "vxlan".
+* All fields in "udpe" locator are inherited.
+* *localUDP* and *remoteUDP* are destination port numbers; source port numbers are random.
+* *vxlan* is the VXLAN Network Identifier.
+* *innerLocal* and *innerRemote* are MAC addresses for inner Ethernet header.
+
+UDP and VXLAN tunnels can coexist with Ethernet faces on the same port.
+Multiple UDP and VXLAN tunnels can coexist if any of the following is true:
+
+* One of *local*, *remote*, *vlan*, *localIP*, and *remoteIP* is different.
+* Both are UDP tunnels, and one of *localUDP* and *remoteUDP* is different.
+* Both *localUDP* and *remoteUDP* are different.
+* Both are VXLAN tunnels, and one of *vxlan*, *innerLocal*, and *innerRemote* is different.
+
+Known limitations:
+
+* NDN-DPDK does not respond to Address Resolution Protocol (ARP) queries.
+
+  * To allow incoming packets to reach NDN-DPDK, configure MAC-IP binding on the IP router.
+
+    ```bash
+    sudo ip neigh replace 192.0.2.1 lladdr 5e:c8:55:7a:c9:1f nud noarp dev eth1
+    sudo ip neigh replace 2001:0db8::3cfe lladdr 5e:c8:55:7a:c9:1f nud noarp dev eth1
+    ```
+
+  * For mlx5 driver and IPv4 only: add the IP address to the kernel using `ip addr` command, but do not create the VXLAN interface.
+    Even if DPDK is controlling of the Ethernet adapter, the kernel can still receive broadcast frames such as ARP queries and respond to them.
+
+* NDN-DPDK does not lookup IP routing tables or send ARP queries.
+  To allow outgoing packets to reach the peer, the *remote* field of the locator should be the MAC address of the IP router.
+
+* IPv4 and UDP checksum are computed through hardware offloads if available.
+  In case the Ethernet adapter does not support checksum offloads,
+
+  * IPv4 checksum can be computed in software.
+  * UDP checksum cannot be computed and is set to zero, which is illegal in IPv6.
+
+* IPv4 options and IPv6 extension headers are not allowed.
+* IPv4 fragments are not accepted.
 
 ## Memif Face
 

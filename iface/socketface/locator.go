@@ -14,10 +14,10 @@ const (
 	NetworkTCP  = "tcp"
 )
 
-// Locator describes local and remote address of a socket.
+// Locator describes network and addresses of a socket.
 type Locator struct {
 	Network string `json:"scheme"`
-	Local   string `json:"local"`
+	Local   string `json:"local,omitempty"`
 	Remote  string `json:"remote"`
 
 	// Config specifies additional configuration for transport creation.
@@ -28,6 +28,9 @@ type Locator struct {
 func (loc Locator) Scheme() string {
 	return loc.Network
 }
+
+// WithSchemeField implements iface.locatorWithSchemeField.
+func (Locator) WithSchemeField() {}
 
 // Validate checks the addresses.
 func (loc Locator) Validate() error {

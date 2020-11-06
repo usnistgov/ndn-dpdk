@@ -6,6 +6,7 @@ package ethface
 import "C"
 import (
 	"errors"
+	"fmt"
 	"unsafe"
 
 	"github.com/pkg/math"
@@ -17,11 +18,11 @@ import (
 const rxFlowMaxRxQueues = 4 // this may be set up to C.RTE_MAX_QUEUES_PER_PORT
 
 // Read rte_flow_error into Go error.
-func readFlowErr(flowErr C.struct_rte_flow_error) error {
-	if flowErr._type == C.RTE_FLOW_ERROR_TYPE_NONE {
+func readFlowErr(e C.struct_rte_flow_error) error {
+	if e._type == C.RTE_FLOW_ERROR_TYPE_NONE {
 		return nil
 	}
-	return errors.New(C.GoString(flowErr.message))
+	return fmt.Errorf("%d %s %d", e._type, C.GoString(e.message), uintptr(e.cause))
 }
 
 type rxFlowImpl struct {

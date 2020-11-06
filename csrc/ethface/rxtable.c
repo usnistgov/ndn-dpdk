@@ -1,18 +1,17 @@
 #include "rxtable.h"
 #include "face.h"
 
-static bool
+__attribute__((nonnull)) static bool
 EthRxTable_Accept(EthRxTable* rxt, struct rte_mbuf* m, uint64_t now)
 {
-  // RCU read-side lock is obtained by RxLoop_Run that calls this function
+  // RCU lock is inherited from RxLoop_Run
 
   m->timestamp = now;
 
   EthFacePriv* priv;
   struct cds_hlist_node* pos;
   cds_hlist_for_each_entry_rcu (priv, pos, &rxt->head, rxtNode) {
-    if (priv->rxMatch(priv->rxMatchBuffer, m)) {
-      rte_pktmbuf_adj(m, priv->hdrLen);
+    if (EthRxMatch_Match(&priv->rxMatch, m)) {
       m->port = priv->faceID;
       return true;
     }

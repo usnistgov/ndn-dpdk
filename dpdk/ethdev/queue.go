@@ -24,7 +24,7 @@ func (port EthDev) RxQueues() (list []RxQueue) {
 }
 
 // RxBurst receives a burst of input packets.
-// Returns the number of packets received and written into pkts.
+// Returns the number of packets received and written into vec.
 func (q RxQueue) RxBurst(vec pktmbuf.Vector) int {
 	if len(vec) == 0 {
 		return 0

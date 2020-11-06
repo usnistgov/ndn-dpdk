@@ -105,7 +105,7 @@ func init() {
 				Type: gqlserver.NonNullID,
 			},
 		},
-		Type: GqlEthDevType,
+		Type: graphql.NewNonNull(GqlEthDevType),
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 			var port EthDev
 			if e := gqlserver.RetrieveNodeOfType(GqlEthDevNodeType, p.Args["id"], &port); e != nil {

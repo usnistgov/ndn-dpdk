@@ -25,6 +25,9 @@ type PortConfig struct {
 	// DisableRxFlow disables RxFlow implementation.
 	DisableRxFlow bool `json:"disableRxFlow,omitempty"`
 
+	// DisableTxOffloads disables usage of TX offloads.
+	DisableTxOffloads bool `json:"disableTxOffloads,omitempty"`
+
 	// RxQueueSize is the hardware RX queue capacity.
 	//
 	// If this value is zero, it defaults to DefaultRxQueueSize.

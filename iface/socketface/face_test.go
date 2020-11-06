@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gabstv/freeport"
+	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/ifacetestenv"
 	"github.com/usnistgov/ndn-dpdk/iface/socketface"
@@ -99,9 +100,8 @@ func checkStreamRedialing(t *testing.T, listener net.Listener, makeFaceA func() 
 	assert.True(hasDownEvt)
 	assert.True(hasUpEvt)
 
-	cntJSON, _ := json.Marshal(faceA.ReadExCounters())
 	var cntMap map[string]interface{}
-	json.Unmarshal(cntJSON, &cntMap)
+	require.NoError(jsonhelper.Roundtrip(faceA.ReadExCounters(), &cntMap))
 	assert.InDelta(1.5, cntMap["nRedials"], 0.6) // redial counter should be 1 or 2
 }
 

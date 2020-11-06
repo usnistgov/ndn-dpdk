@@ -17,12 +17,8 @@ type MemifLocator struct {
 }
 
 // Scheme returns "memif".
-func (loc MemifLocator) Scheme() string {
+func (MemifLocator) Scheme() string {
 	return schemeMemif
-}
-
-func (loc MemifLocator) conflictsWith(other ethLocator) bool {
-	return true
 }
 
 func (loc MemifLocator) cLoc() (c cLocator) {

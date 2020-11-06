@@ -93,7 +93,9 @@ PData_CanSatisfy_HasDigestComp_(PData* data, PInterest* interest)
   }
 
   return memcmp(RTE_PTR_ADD(nameI.value, nameI.length - ImplicitDigestLength), data->digest,
-                ImplicitDigestLength);
+                ImplicitDigestLength) == 0
+           ? DataSatisfyYes
+           : DataSatisfyNo;
 }
 
 DataSatisfyResult

@@ -12,9 +12,7 @@ EthFace_TxBurst(Face* face, struct rte_mbuf** pkts, uint16_t nPkts)
   EthFacePriv* priv = Face_GetPrivT(face, EthFacePriv);
 
   for (uint16_t i = 0; i < nPkts; ++i) {
-    char* room = rte_pktmbuf_prepend(pkts[i], priv->hdrLen);
-    NDNDPDK_ASSERT(room != NULL); // enough headroom is required
-    rte_memcpy(room, priv->txHdr, priv->hdrLen);
+    EthTxHdr_Prepend(&priv->txHdr, pkts[i]);
   }
   return rte_eth_tx_burst(priv->port, TX_QUEUE_0, pkts, nPkts);
 }
@@ -29,7 +27,7 @@ EthFace_SetupFlow(EthFacePriv* priv, const EthLocator* loc, struct rte_flow_erro
   };
 
   EthFlowPattern pattern;
-  EthLocator_MakeFlowPattern(loc, &pattern);
+  EthFlowPattern_Prepare(&pattern, loc);
 
   struct rte_flow_action_queue queue = { .index = priv->rxQueue };
   struct rte_flow_action actions[] = {
@@ -37,7 +35,11 @@ EthFace_SetupFlow(EthFacePriv* priv, const EthLocator* loc, struct rte_flow_erro
     { .type = RTE_FLOW_ACTION_TYPE_END },
   };
 
-  return rte_flow_create(priv->port, &attr, pattern.pattern, actions, error);
+  struct rte_flow* flow = rte_flow_create(priv->port, &attr, pattern.pattern, actions, error);
+  if (flow == NULL) {
+    error->cause = (void*)RTE_PTR_DIFF(error->cause, &pattern);
+  }
+  return flow;
 }
 
 uint16_t
@@ -50,7 +52,9 @@ EthFace_FlowRxBurst(RxGroup* flowRxg, struct rte_mbuf** pkts, uint16_t nPkts)
     struct rte_mbuf* frame = pkts[i];
     frame->port = priv->faceID;
     frame->timestamp = now;
-    rte_pktmbuf_adj(frame, priv->hdrLen);
+    rte_pktmbuf_adj(frame, priv->txHdr.len);
+    // use txHdr.len instead of rxMatch.len to touch fewer cachelines
+    // they are equal, with assertion in ethface.New~iface.NewParams.Init function
   }
   return nRx;
 }

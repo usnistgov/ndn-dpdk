@@ -20,14 +20,14 @@ func makeEtherLocator(dev ethdev.EthDev) (loc ethface.EtherLocator) {
 	return
 }
 
-type ethTestTopology struct {
+type topo3 struct {
 	*ifacetestenv.Fixture
 	vnet                                           *ethdev.VNet
 	macA, macB, macC                               net.HardwareAddr
 	faceAB, faceAC, faceAm, faceBm, faceBA, faceCA iface.Face
 }
 
-func makeTopo(t *testing.T) (topo ethTestTopology) {
+func makeTopo3(t *testing.T) (topo topo3) {
 	_, require := makeAR(t)
 	topo.Fixture = ifacetestenv.NewFixture(t)
 
@@ -65,30 +65,30 @@ func makeTopo(t *testing.T) (topo ethTestTopology) {
 	return topo
 }
 
-func (topo *ethTestTopology) Close() error {
+func (topo *topo3) Close() error {
 	topo.Fixture.Close()
 	return topo.vnet.Close()
 }
 
-func TestEthFaceBA(t *testing.T) {
-	topo := makeTopo(t)
+func TestTopoBA(t *testing.T) {
+	topo := makeTopo3(t)
 	defer topo.Close()
 
 	topo.RunTest(topo.faceBA, topo.faceAB)
 	topo.CheckCounters()
 }
 
-func TestEthFaceCA(t *testing.T) {
-	topo := makeTopo(t)
+func TestTopoCA(t *testing.T) {
+	topo := makeTopo3(t)
 	defer topo.Close()
 
 	topo.RunTest(topo.faceCA, topo.faceAC)
 	topo.CheckCounters()
 }
 
-func TestEthFaceAm(t *testing.T) {
+func TestTopoAm(t *testing.T) {
 	assert, _ := makeAR(t)
-	topo := makeTopo(t)
+	topo := makeTopo3(t)
 	defer topo.Close()
 
 	locAm := topo.faceAm.Locator().(ethface.EtherLocator)

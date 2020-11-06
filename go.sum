@@ -47,8 +47,6 @@ github.com/jwangsadinata/go-multimap v0.0.0-20190620162914-c29f3d7f33b6 h1:OzCtZ
 github.com/jwangsadinata/go-multimap v0.0.0-20190620162914-c29f3d7f33b6/go.mod h1:CEusGbCRDFcHX9EgEhPsgJX33kpp9CfSFRBAoSGOems=
 github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 h1:Z9n2FFNUXsshfwJMBgNA0RU6/i7WVaAegv3PtuIHPMs=
 github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51/go.mod h1:CzGEWj7cYgsdH8dAjBGEr58BoE7ScuLd+fwFZ44+/x8=
-github.com/koneu/natend v0.0.0-20150829182554-ec0926ea948d h1:MFX8DxRnKMY/2M3H61iSsVbo/n3h0MWGmWNN1UViOU0=
-github.com/koneu/natend v0.0.0-20150829182554-ec0926ea948d/go.mod h1:QHb4k4cr1fQikUahfcRVPcEXiUgFsdIstGqlurL0XL4=
 github.com/kr/pretty v0.1.0 h1:L/CwN0zerZDmRFUapSPitk6f+Q3+0za1rQkzVuMiMFI=
 github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORNo=
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=

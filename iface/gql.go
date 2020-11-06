@@ -87,7 +87,7 @@ func init() {
 				Type: gqlserver.NonNullJSON,
 			},
 		},
-		Type: GqlFaceType,
+		Type: graphql.NewNonNull(GqlFaceType),
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 			var locw LocatorWrapper
 			if e := jsonhelper.Roundtrip(p.Args["locator"], &locw, jsonhelper.DisallowUnknownFields); e != nil {

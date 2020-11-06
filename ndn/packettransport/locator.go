@@ -23,6 +23,13 @@ var (
 	MulticastAddressNDN = net.HardwareAddr{0x01, 0x00, 0x5E, 0x00, 0x17, 0xAA}
 )
 
+// Error conditions.
+var (
+	ErrMacAddr        = errors.New("invalid MAC address")
+	ErrUnicastMacAddr = errors.New("invalid unicast MAC address")
+	ErrVLAN           = errors.New("invalid VLAN")
+)
+
 // Locator identifies local and remote endpoints.
 type Locator struct {
 	// Local is the local MAC address.
@@ -42,13 +49,13 @@ type Locator struct {
 // Validate checks Locator fields.
 func (loc Locator) Validate() error {
 	if !macaddr.IsUnicast(loc.Local.HardwareAddr) {
-		return errors.New("invalid Local")
+		return ErrUnicastMacAddr
 	}
 	if !macaddr.IsUnicast(loc.Remote.HardwareAddr) && !macaddr.IsMulticast(loc.Remote.HardwareAddr) {
-		return errors.New("invalid Remote")
+		return ErrMacAddr
 	}
 	if loc.VLAN != 0 && (loc.VLAN < MinVLAN || loc.VLAN > MaxVLAN) {
-		return errors.New("invalid VLAN")
+		return ErrVLAN
 	}
 	return nil
 }

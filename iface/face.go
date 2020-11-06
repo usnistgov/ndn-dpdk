@@ -92,6 +92,11 @@ type NewParams struct {
 	// TxHeadroom is the mbuf headroom to leave before NDNLP header.
 	TxHeadroom int
 
+	// TxHeaderOverhead is the number of bytes for tunnel headers.
+	// TxHeadroom should include these bytes.
+	// MTU - TxHeaderOverhead is used to configure fragmentation.
+	TxHeaderOverhead int
+
 	// Init callback is invoked after allocating C.FaceImpl.
 	// It is expected to assign C.Face.txBurstOp.
 	// This is always invoked on the main thread.
@@ -143,6 +148,8 @@ func newFace(p NewParams) (Face, error) {
 		closeCallback:          p.Close,
 		readExCountersCallback: p.ReadExCounters,
 	}
+	logEntry := log.WithFields(makeLogFields("id", f.id,
+		"socket", p.Socket, "mtu", p.MTU, "txHeadroom", p.TxHeadroom, "txHeaderOverhead", p.TxHeaderOverhead))
 
 	c := f.ptr()
 	c.id = C.FaceID(f.id)
@@ -151,11 +158,14 @@ func newFace(p NewParams) (Face, error) {
 	c.impl = (*C.FaceImpl)(eal.ZmallocAligned("FaceImpl", sizeofImpl, 1, p.Socket))
 
 	if e := p.Init(f); e != nil {
+		logEntry.WithError(e).Warn("init error")
 		return f.clear(), e
 	}
+	logEntry = logEntry.WithField("locator", LocatorString(f.Locator()))
 
 	outputQueue, e := ringbuffer.New(p.OutputQueueSize, p.Socket, ringbuffer.ProducerMulti, ringbuffer.ConsumerSingle)
 	if e != nil {
+		logEntry.WithError(e).Warn("outputQueue error")
 		return f.clear(), e
 	}
 	c.outputQueue = (*C.struct_rte_ring)(outputQueue.Ptr())
@@ -166,20 +176,24 @@ func newFace(p NewParams) (Face, error) {
 	reassID := C.CString(eal.AllocObjectID("iface.Reassembler"))
 	defer C.free(unsafe.Pointer(reassID))
 	if ok := bool(C.Reassembler_Init(&c.impl.rx.reass, reassID, C.uint32_t(p.ReassemblerCapacity), C.unsigned(p.Socket.ID()))); !ok {
-		return f.clear(), fmt.Errorf("Reassembler_Init error %w", eal.GetErrno())
+		e := eal.GetErrno()
+		logEntry.WithError(e).Warn("Reassembler_Init error")
+		return f.clear(), fmt.Errorf("Reassembler_Init error %w", e)
 	}
 
-	C.TxProc_Init(&c.impl.tx, C.uint16_t(p.MTU), C.uint16_t(p.TxHeadroom),
+	C.TxProc_Init(&c.impl.tx, C.uint16_t(p.MTU-p.TxHeaderOverhead), C.uint16_t(p.TxHeadroom),
 		(*C.struct_rte_mempool)(indirectMp.Ptr()), (*C.struct_rte_mempool)(headerMp.Ptr()))
 
 	f2, e := p.Start(f)
 	if e != nil {
+		logEntry.WithError(e).Warn("start error")
 		return f.clear(), e
 	}
 
 	gFaces[f.id] = f2
 	emitter.EmitSync(evtFaceNew, f.id)
 	ActivateTxFace(f2)
+	logEntry.Info("face created")
 	return f2, nil
 }
 

@@ -21,6 +21,11 @@ type Locator interface {
 	CreateFace() (Face, error)
 }
 
+type locatorWithSchemeField interface {
+	Locator
+	WithSchemeField()
+}
+
 var locatorTypes = make(map[string]reflect.Type)
 
 // RegisterLocatorType registers Locator schemes.
@@ -41,33 +46,35 @@ type LocatorWrapper struct {
 
 // MarshalJSON implements json.Marshaler.
 func (locw LocatorWrapper) MarshalJSON() (data []byte, e error) {
-	var m map[string]interface{}
-	e = jsonhelper.Roundtrip(locw.Locator, &m)
+	var kv map[string]interface{}
+	e = jsonhelper.Roundtrip(locw.Locator, &kv)
 	if e != nil {
 		return nil, e
 	}
-	if _, ok := m["scheme"]; !ok {
-		m["scheme"] = locw.Scheme()
+	if _, ok := kv["scheme"]; !ok {
+		kv["scheme"] = locw.Scheme()
 	}
-	return json.Marshal(m)
+	return json.Marshal(kv)
 }
 
 // UnmarshalJSON implements json.Unmarshaler.
 func (locw *LocatorWrapper) UnmarshalJSON(data []byte) error {
-	schemeObj := struct {
-		Scheme string `json:"scheme"`
-	}{}
-	if e := json.Unmarshal(data, &schemeObj); e != nil {
+	var kv map[string]interface{}
+	if e := json.Unmarshal(data, &kv); e != nil {
 		return e
 	}
+	scheme, _ := kv["scheme"].(string)
 
-	typ, ok := locatorTypes[schemeObj.Scheme]
+	typ, ok := locatorTypes[scheme]
 	if !ok {
-		return fmt.Errorf("unknown scheme %s", schemeObj.Scheme)
+		return fmt.Errorf("unknown scheme %s", scheme)
 	}
 
 	ptr := reflect.New(typ)
-	if e := json.Unmarshal(data, ptr.Interface()); e != nil {
+	if _, keepSchemeField := ptr.Elem().Interface().(locatorWithSchemeField); !keepSchemeField {
+		delete(kv, "scheme")
+	}
+	if e := jsonhelper.Roundtrip(kv, ptr.Interface(), jsonhelper.DisallowUnknownFields); e != nil {
 		return e
 	}
 
