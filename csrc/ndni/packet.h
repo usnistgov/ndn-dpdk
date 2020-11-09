@@ -79,7 +79,7 @@ Packet_SetType(Packet* npkt, PktType t)
 __attribute__((nonnull, returns_nonnull)) static __rte_always_inline PacketPriv*
 Packet_GetPriv_(Packet* npkt)
 {
-  return (PacketPriv*)rte_mbuf_to_priv_(rte_mbuf_from_indirect(Packet_ToMbuf(npkt)));
+  return (PacketPriv*)rte_mbuf_to_priv(rte_mbuf_from_indirect(Packet_ToMbuf(npkt)));
 }
 
 /**

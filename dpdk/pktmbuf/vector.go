@@ -27,6 +27,6 @@ func (vec Vector) Close() error {
 	if len(vec) == 0 {
 		return nil
 	}
-	C.rte_pktmbuf_free_bulk_(vec.ptr(), C.uint(len(vec)))
+	C.rte_pktmbuf_free_bulk(vec.ptr(), C.uint(len(vec)))
 	return nil
 }

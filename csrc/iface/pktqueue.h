@@ -50,7 +50,7 @@ PktQueue_PushPlain(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count)
   uint32_t nEnq = rte_ring_enqueue_burst(q->ring, (void**)pkts, count, NULL);
   uint32_t nRej = count - nEnq;
   if (unlikely(nRej > 0)) {
-    rte_pktmbuf_free_bulk_(&pkts[nEnq], nRej);
+    rte_pktmbuf_free_bulk(&pkts[nEnq], nRej);
   }
   return nRej;
 }

@@ -25,17 +25,6 @@ CryptoOp_PrepareSha256Digest(struct rte_crypto_op* op, struct rte_mbuf* src, uin
   op->sym->auth.digest.data = output;
 }
 
-static __rte_always_inline struct rte_mempool*
-rte_cryptodev_sym_session_pool_create_(const char* name, uint32_t nb_elts, uint32_t elt_size,
-                                       uint32_t cache_size, uint16_t priv_size, int socket_id)
-{
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-  return rte_cryptodev_sym_session_pool_create(name, nb_elts, elt_size, cache_size, priv_size,
-                                               socket_id);
-#pragma GCC diagnostic pop
-}
-
 typedef struct CryptoQueuePair
 {
   uint8_t dev;

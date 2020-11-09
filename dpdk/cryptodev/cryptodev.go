@@ -68,7 +68,7 @@ func New(dev device, cfg Config) (cd *CryptoDev, e error) {
 
 	mpNameC := C.CString(eal.AllocObjectID("cryptodev.SymSessionPool"))
 	defer C.free(unsafe.Pointer(mpNameC))
-	mpC := C.rte_cryptodev_sym_session_pool_create_(mpNameC, C.uint32_t(cfg.MaxSessions*2),
+	mpC := C.rte_cryptodev_sym_session_pool_create(mpNameC, C.uint32_t(cfg.MaxSessions*2),
 		C.uint32_t(C.rte_cryptodev_sym_get_private_session_size(cd.devID)), 0, 0, socketC)
 	if mpC == nil {
 		return nil, errors.New("rte_cryptodev_sym_session_pool_create error")

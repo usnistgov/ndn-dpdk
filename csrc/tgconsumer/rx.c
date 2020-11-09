@@ -83,7 +83,7 @@ TgConsumerRx_Run(TgConsumerRx* cr)
           break;
       }
     }
-    rte_pktmbuf_free_bulk_(pkts, pop.count);
+    rte_pktmbuf_free_bulk(pkts, pop.count);
   }
   return 0;
 }

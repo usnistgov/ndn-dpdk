@@ -8,6 +8,8 @@ type EalLCoreConfig = {
 type EalMemoryConfig = {
   memChannels?: number;
   memPerNuma?: Record<number, number>;
+  filePrefix?: string;
+  disableHugeUnlink?: boolean;
 } | {
   memFlags?: string;
 };

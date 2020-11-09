@@ -77,13 +77,13 @@ Face_TxBurst(FaceID faceID, Packet** npkts, uint16_t count)
 {
   Face* face = Face_Get(faceID);
   if (unlikely(face->state != FaceStateUp)) {
-    rte_pktmbuf_free_bulk_((struct rte_mbuf**)npkts, count);
+    rte_pktmbuf_free_bulk((struct rte_mbuf**)npkts, count);
     return;
   }
 
   uint16_t nQueued = rte_ring_enqueue_burst(face->outputQueue, (void**)npkts, count, NULL);
   uint16_t nRejects = count - nQueued;
-  rte_pktmbuf_free_bulk_((struct rte_mbuf**)&npkts[nQueued], nRejects);
+  rte_pktmbuf_free_bulk((struct rte_mbuf**)&npkts[nQueued], nRejects);
   // TODO count nRejects
 }
 

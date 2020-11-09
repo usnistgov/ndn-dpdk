@@ -35,7 +35,7 @@ FwCrypto_Input(FwCrypto* fwc)
   uint16_t nAlloc = rte_crypto_op_bulk_alloc(fwc->opPool, RTE_CRYPTO_OP_TYPE_SYMMETRIC, ops, nDeq);
   if (unlikely(nAlloc == 0)) {
     ZF_LOGW("fwc=%p rte_crypto_op_bulk_alloc fail", fwc);
-    rte_pktmbuf_free_bulk_((struct rte_mbuf**)npkts, nDeq);
+    rte_pktmbuf_free_bulk((struct rte_mbuf**)npkts, nDeq);
     return;
   }
 

@@ -59,6 +59,7 @@ func Init() {
 	}
 
 	var cfg ealconfig.Config
+	cfg.FilePrefix = "ealtestenv"
 	cfg.AllPciDevices = os.Getenv(EnvPci) == "1"
 
 	var req ealconfig.Request

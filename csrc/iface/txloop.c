@@ -21,7 +21,7 @@ TxLoop_TxFrames(Face* face, struct rte_mbuf** frames, uint16_t count)
       nDroppedOctets += frames[i]->pkt_len;
     }
     tx->nDroppedOctets += nDroppedOctets;
-    rte_pktmbuf_free_bulk_(&frames[nQueued], nRejects);
+    rte_pktmbuf_free_bulk(&frames[nQueued], nRejects);
   }
 }
 

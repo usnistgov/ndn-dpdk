@@ -3,7 +3,6 @@ package ealinit
 
 /*
 #include "../../csrc/core/common.h"
-
 #include <rte_eal.h>
 #include <rte_lcore.h>
 #include <rte_random.h>
@@ -14,6 +13,7 @@ import (
 	"runtime"
 	"sync"
 
+	"github.com/kballard/go-shellquote"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/spdkenv"
@@ -45,7 +45,7 @@ func Init(args []string) {
 }
 
 func initEal(args []string) {
-	logEntry := log.WithField("args", args)
+	logEntry := log.WithField("args", shellquote.Join(args...))
 	exe, e := os.Executable()
 	if e != nil {
 		exe = os.Args[0]
@@ -54,6 +54,7 @@ func initEal(args []string) {
 	a := cptr.NewCArgs(argv)
 	defer a.Close()
 
+	C.rte_mp_disable()
 	res := C.rte_eal_init(C.int(a.Argc), (**C.char)(a.Argv))
 	if res < 0 {
 		logEntry.Fatalf("EAL init error %v", eal.GetErrno())

@@ -38,40 +38,4 @@ StrategyCode_Unref(StrategyCode* sc);
 const struct ebpf_insn*
 StrategyCode_GetEmptyProgram_(uint32_t* nInsn);
 
-static __rte_always_inline struct rte_bpf*
-rte_bpf_elf_load_(const struct rte_bpf_prm* prm, const char* fname, const char* sname)
-{
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-  return rte_bpf_elf_load(prm, fname, sname);
-#pragma GCC diagnostic pop
-}
-
-static __rte_always_inline struct rte_bpf*
-rte_bpf_load_(const struct rte_bpf_prm* prm)
-{
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-  return rte_bpf_load(prm);
-#pragma GCC diagnostic pop
-}
-
-static __rte_always_inline void
-rte_bpf_destroy_(struct rte_bpf* bpf)
-{
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-  return rte_bpf_destroy(bpf);
-#pragma GCC diagnostic pop
-}
-
-static __rte_always_inline int
-rte_bpf_get_jit_(const struct rte_bpf* bpf, struct rte_bpf_jit* jit)
-{
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-  return rte_bpf_get_jit(bpf, jit);
-#pragma GCC diagnostic pop
-}
-
 #endif // NDNDPDK_STRATEGYCODE_STRATEGY_CODE_H

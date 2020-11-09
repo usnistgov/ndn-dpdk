@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define ALLOW_EXPERIMENTAL_API
 #include <rte_config.h>
 
 #include <rte_branch_prediction.h>

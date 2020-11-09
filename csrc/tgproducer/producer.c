@@ -47,7 +47,7 @@ TgProducer_RespondData(TgProducer* producer, TgProducerPattern* pattern, TgProdu
     ZF_LOGW("indirectMp-full");
     ++producer->nAllocError;
     segs[1] = Packet_ToMbuf(npkt);
-    rte_pktmbuf_free_bulk_(segs, 2);
+    rte_pktmbuf_free_bulk(segs, 2);
     return NULL;
   }
 

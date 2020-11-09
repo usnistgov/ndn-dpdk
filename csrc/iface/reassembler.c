@@ -34,7 +34,7 @@ Reassembler_Close(Reassembler* reass)
   while (!TAILQ_EMPTY(&reass->list)) {
     LpL2* pm = TAILQ_FIRST(&reass->list);
     TAILQ_REMOVE(&reass->list, pm, reassNode);
-    rte_pktmbuf_free_bulk_((struct rte_mbuf**)pm->reassFrags, pm->fragCount);
+    rte_pktmbuf_free_bulk((struct rte_mbuf**)pm->reassFrags, pm->fragCount);
     // unsafe to use TAILQ_FOREACH because pm is being freed
   }
 }
@@ -55,7 +55,7 @@ Reassembler_Drop_(Reassembler* reass, LpL2* pm, hash_sig_t hash)
   Reassembler_Delete_(reass, pm, hash);
 
   reass->nDropFragments += pm->fragCount - __builtin_popcount(pm->reassBitmap);
-  rte_pktmbuf_free_bulk_((struct rte_mbuf**)pm->reassFrags, pm->fragCount);
+  rte_pktmbuf_free_bulk((struct rte_mbuf**)pm->reassFrags, pm->fragCount);
 }
 
 __attribute__((nonnull)) static void

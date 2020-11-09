@@ -25,7 +25,7 @@ TxProc_OutputNoFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames)
     if (unlikely(!Mbuf_Chain(frame, frame, pkt))) {
       ++tx->nL3OverLength;
       struct rte_mbuf* frees[] = { frame, pkt };
-      rte_pktmbuf_free_bulk_(frees, RTE_DIM(frees));
+      rte_pktmbuf_free_bulk(frees, RTE_DIM(frees));
       return 0;
     }
 
@@ -78,7 +78,7 @@ TxProc_OutputFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames)
     if (unlikely(payload == NULL)) {
       NDNDPDK_ASSERT(rte_errno == ENOENT);
       ++tx->nAllocFails;
-      rte_pktmbuf_free_bulk_(frames, fragCount);
+      rte_pktmbuf_free_bulk(frames, fragCount);
       rte_pktmbuf_free(pkt);
       return 0;
     }
@@ -88,9 +88,9 @@ TxProc_OutputFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames)
 
     if (unlikely(!Mbuf_Chain(frame, frame, payload))) {
       ++tx->nL3OverLength;
-      rte_pktmbuf_free_bulk_(frames, fragCount);
+      rte_pktmbuf_free_bulk(frames, fragCount);
       struct rte_mbuf* frees[] = { payload, pkt };
-      rte_pktmbuf_free_bulk_(frees, RTE_DIM(frees));
+      rte_pktmbuf_free_bulk(frees, RTE_DIM(frees));
       return 0;
     }
     LpHeader_Prepend(frame, l3, &l2);

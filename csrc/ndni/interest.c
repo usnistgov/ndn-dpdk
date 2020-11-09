@@ -227,7 +227,7 @@ Interest_ModifyGuiders(Packet* npkt, uint32_t nonce, uint32_t lifetime, uint8_t 
   struct rte_mbuf* last1 = NULL;
   segs[1] = TlvDecoder_Clone(&d, interest->nonceOffset, indirectMp, &last1);
   if (unlikely(segs[1] == NULL)) {
-    rte_pktmbuf_free_bulk_(segs, RTE_DIM(segs));
+    rte_pktmbuf_free_bulk(segs, RTE_DIM(segs));
     return NULL;
   }
   TlvDecoder_Skip(&d, interest->guiderSize);
@@ -238,13 +238,13 @@ Interest_ModifyGuiders(Packet* npkt, uint32_t nonce, uint32_t lifetime, uint8_t 
   if (unlikely(d.length > 0)) {
     struct rte_mbuf* seg3 = TlvDecoder_Clone(&d, d.length, indirectMp, NULL);
     if (unlikely(seg3 == NULL) || unlikely(!Mbuf_Chain(segs[2], segs[2], seg3))) {
-      rte_pktmbuf_free_bulk_(segs, RTE_DIM(segs));
+      rte_pktmbuf_free_bulk(segs, RTE_DIM(segs));
       return NULL;
     }
   }
 
   if (unlikely(!Mbuf_Chain(segs[1], last1, segs[2]))) {
-    rte_pktmbuf_free_bulk_(segs, RTE_DIM(segs));
+    rte_pktmbuf_free_bulk(segs, RTE_DIM(segs));
     return NULL;
   }
 
@@ -252,7 +252,7 @@ Interest_ModifyGuiders(Packet* npkt, uint32_t nonce, uint32_t lifetime, uint8_t 
   TlvEncoder_PrependTL(segs[0], TtInterest, segs[1]->pkt_len);
 
   if (unlikely(!Mbuf_Chain(segs[0], segs[0], segs[1]))) {
-    rte_pktmbuf_free_bulk_(segs, 2);
+    rte_pktmbuf_free_bulk(segs, 2);
     return NULL;
   }
   Packet* output = Packet_FromMbuf(segs[0]);

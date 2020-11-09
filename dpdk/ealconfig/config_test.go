@@ -147,10 +147,12 @@ func TestLCorePerNuma(t *testing.T) {
 	assert.Equal("", lcores)
 }
 
-func parseMemFlags(args []string) (n, socketLimit string) {
+func parseMemFlags(args []string) (n, socketLimit, filePrefix string, hugeUnlink bool) {
 	fset := makeBaseFlagSet()
 	fset.StringVar(&n, "n", "", "")
 	fset.StringVar(&socketLimit, "socket-limit", "", "")
+	fset.StringVar(&filePrefix, "file-prefix", "", "")
+	fset.BoolVar(&hugeUnlink, "huge-unlink", false, "")
 	fset.Parse(args)
 	return
 }
@@ -163,9 +165,11 @@ func TestMemoryEmpty(t *testing.T) {
 
 	args, e := cfg.Args(ealconfig.Request{}, testHwInfo{})
 	require.NoError(e)
-	n, socketLimit := parseMemFlags(args)
+	n, socketLimit, filePrefix, hugeUnlink := parseMemFlags(args)
 	assert.Equal("", n)
 	assert.Equal("", socketLimit)
+	assert.Equal("", filePrefix)
+	assert.True(hugeUnlink)
 }
 
 func TestMemoryAll(t *testing.T) {
@@ -181,12 +185,16 @@ func TestMemoryAll(t *testing.T) {
 		6: 0,    // 1
 		8: 8192, // non-existent
 	}
+	cfg.FilePrefix = "ealconfigtest"
+	cfg.DisableHugeUnlink = true
 
 	args, e := cfg.Args(ealconfig.Request{}, testHwInfo{})
 	require.NoError(e)
-	n, socketLimit := parseMemFlags(args)
+	n, socketLimit, filePrefix, hugeUnlink := parseMemFlags(args)
 	assert.Equal("2", n)
 	assert.Equal("0,1024,2048,4096,0,0,1,0", socketLimit)
+	assert.Equal("ealconfigtest", filePrefix)
+	assert.False(hugeUnlink)
 }
 
 func parseDeviceFlags(args []string) (w, vdev []string, noPci bool) {

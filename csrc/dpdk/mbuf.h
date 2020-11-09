@@ -59,22 +59,4 @@ Mbuf_ChainVector(struct rte_mbuf* vec[], uint16_t count)
   head->nb_segs = count;
 }
 
-static __rte_always_inline void*
-rte_mbuf_to_priv_(struct rte_mbuf* m)
-{
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-  return rte_mbuf_to_priv(m);
-#pragma GCC diagnostic pop
-}
-
-static __rte_always_inline void
-rte_pktmbuf_free_bulk_(struct rte_mbuf** mbufs, unsigned int count)
-{
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-  rte_pktmbuf_free_bulk(mbufs, count);
-#pragma GCC diagnostic pop
-}
-
 #endif // NDNDPDK_DPDK_MBUF_H

@@ -17,7 +17,7 @@ StrategyCode_Unref(StrategyCode* sc)
     return;
   }
 
-  rte_bpf_destroy_(sc->bpf);
+  rte_bpf_destroy(sc->bpf);
   free(sc->name);
   rte_free(sc);
 }
