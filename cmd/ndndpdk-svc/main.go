@@ -48,9 +48,6 @@ func main() {
 			if len(p.Args) != 1 {
 				return nil, errActivateArgConflict
 			}
-			if !atomic.CompareAndSwapInt32(&isActivated, 0, 1) {
-				return nil, errActivated
-			}
 			result = true
 
 			tryActivate := func(key string, arg activator) {
@@ -58,15 +55,17 @@ func main() {
 				if !ok {
 					return
 				}
+				if e = jsonhelper.Roundtrip(a, arg, jsonhelper.DisallowUnknownFields); e != nil {
+					return
+				}
 
-				if e = jsonhelper.Roundtrip(a, &arg, jsonhelper.DisallowUnknownFields); e != nil {
+				if !atomic.CompareAndSwapInt32(&isActivated, 0, 1) {
+					e = errActivated
 					return
 				}
 
 				log.Infof("activating %s", key)
-				e = arg.Activate()
-
-				if e != nil {
+				if e = arg.Activate(); e != nil {
 					go func() {
 						time.Sleep(time.Second)
 						log.WithError(e).Fatalf("activate %s error", key)
