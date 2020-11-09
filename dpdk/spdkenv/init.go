@@ -16,7 +16,11 @@ var mainThread *Thread
 // InitEnv initializes the SPDK environment.
 // Errors are fatal.
 func InitEnv() {
-	e := dlopen.LoadDynLibs("/usr/local/lib/libspdk.so")
+	// As of SPDK 20.10, libspdk_event.so depends on rte_power_set_freq symbol exported by
+	// librte_power.so but does not link with that library.
+	dlopen.Load("/usr/local/lib/librte_power.so")
+
+	e := dlopen.LoadGroup("/usr/local/lib/libspdk.so")
 	if e != nil {
 		log.Fatalf("SPDK dlopen error %s", e)
 		return

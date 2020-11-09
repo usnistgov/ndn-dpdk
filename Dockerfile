@@ -6,8 +6,8 @@ RUN ( echo 'APT::Install-Recommends "no";'; echo 'APT::Install-Suggests "no";' )
     apt-get install -y -qq clang-format-8 doxygen nodejs yamllint && \
     curl -sL https://bootstrap.pypa.io/get-pip.py | python3 && \
     pip install -U meson ninja && \
-    curl -sL https://dl.google.com/go/go1.15.3.linux-amd64.tar.gz | tar -C /usr/local -xz && \
-    curl -sL https://github.com/spdk/spdk/archive/v20.07.tar.gz | tar -C /root -xz && \
+    curl -sL https://dl.google.com/go/go1.15.4.linux-amd64.tar.gz | tar -C /usr/local -xz && \
+    curl -sL https://github.com/spdk/spdk/archive/v20.10.tar.gz | tar -C /root -xz && \
     cd /root/spdk-* && \
     ./scripts/pkgdep.sh && \
     apt-get clean && \

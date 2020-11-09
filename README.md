@@ -19,7 +19,7 @@ It is in pre-release stage and will continue to be updated.
 * [pip](https://pip.pypa.io/en/stable/installing/) and `sudo pip install -U meson ninja`
 * [Intel Multi-Buffer Crypto for IPsec Library](https://github.com/intel/intel-ipsec-mb) v0.54
 * DPDK 20.08, configured with `meson -Dtests=false --libdir=lib build`
-* SPDK 20.07, configured with `./configure --enable-debug --disable-tests --with-shared --with-dpdk=/usr/local --without-vhost --without-isal --without-fuse`
+* SPDK 20.10, configured with `./configure --enable-debug --disable-tests --with-shared --with-dpdk=/usr/local --without-vhost --without-isal --without-fuse`
 * [ubpf](https://github.com/iovisor/ubpf/tree/089f6279752adfb01386600d119913403ed326ee/vm) library, installed to `/usr/local`
 * Go 1.15 or newer
 * Node.js 14.x

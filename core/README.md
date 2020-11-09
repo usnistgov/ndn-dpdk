@@ -1,6 +1,6 @@
 # ndn-dpdk/core
 
-C-only shared code in [csrc/core](../csrc/core/):
+C shared code in [csrc/core](../csrc/core/):
 
 * PCG random number generator.
 * SipHash hash function.

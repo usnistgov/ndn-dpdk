@@ -1,5 +1,4 @@
-// Package dlopen allows preloading shared libraries from a GROUP.
-// This is used for loading `libspdk.so`.
+// Package dlopen allows preloading dynamic libraries.
 package dlopen
 
 /*
@@ -10,58 +9,73 @@ package dlopen
 */
 import "C"
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"strings"
 	"unsafe"
 )
 
-// LoadDynLibs dlopens shared libraries listed in a GROUP.
-func LoadDynLibs(paths ...string) (e error) {
-	var path string
-	var content []byte
-	for _, path = range paths {
-		if content, e = ioutil.ReadFile(path); e == nil {
-			break
-		}
+// Load loads a binary dynamic library.
+func Load(filename string) (hdl unsafe.Pointer, e error) {
+	filenameC := C.CString(filename)
+	defer C.free(unsafe.Pointer(filenameC))
+
+	C.dlerror()
+	hdl = C.dlopen(filenameC, C.RTLD_LAZY|C.RTLD_GLOBAL)
+	if err := C.dlerror(); err != nil {
+		e = errors.New(C.GoString(err))
 	}
+	return
+}
+
+// LoadGroup loads a .so file that contains a GROUP.
+func LoadGroup(groupFilename string) error {
+	content, e := ioutil.ReadFile(groupFilename)
 	if e != nil {
 		return e
 	}
 
 	tokens := strings.Split(string(content), " ")
 	if len(tokens) < 4 || tokens[0] != "GROUP" || tokens[1] != "(" {
-		return fmt.Errorf("unexpected text in %s", path)
+		return errors.New("dlopen.LoadGroup parse error")
 	}
 
-	var libs []string
-	for _, soname := range tokens {
-		if strings.HasSuffix(soname, ".so") {
-			libs = append(libs, soname)
+	libs := make(groupError)
+	for _, filename := range tokens {
+		if strings.HasSuffix(filename, ".so") {
+			libs[filename] = nil
 		}
 	}
 
-	// Libraries in GROUP may have dependency between each other, but each
-	// successful dlopen() should resolve some of the dependencies, so that
-	// maximum attempts is the number of libraries in GROUP.
-	for attempts := len(libs); attempts > 0; attempts-- {
-		var failedLibs []string
-		for _, soname := range libs {
-			sonameC := C.CString(soname)
-			hdl := C.dlopen(sonameC, C.RTLD_LAZY|C.RTLD_GLOBAL)
-			C.free(unsafe.Pointer(sonameC))
-			if hdl == nil {
-				failedLibs = append(failedLibs, soname)
+	for {
+		failed := make(groupError)
+		for filename := range libs {
+			if _, e := Load(filename); e != nil {
+				failed[filename] = e
 			}
 		}
-		libs = failedLibs
-		if len(libs) == 0 {
-			break
-		}
-	}
 
-	if len(libs) > 0 {
-		return fmt.Errorf("dlopen failed for %s", strings.Join(libs, " "))
+		switch len(failed) {
+		case 0:
+			return nil
+		case len(libs):
+			// libs in GROUP may have inter-dependencies, but each round should resolve some dependencies
+			return failed
+		}
+
+		libs = failed
 	}
-	return nil
+}
+
+type groupError map[string]error
+
+func (e groupError) Error() string {
+	var b strings.Builder
+	delim := "dlopen.LoadGroup:"
+	for filename, err := range e {
+		fmt.Fprintf(&b, "%s %s (%v)", delim, filename, err)
+		delim = ","
+	}
+	return b.String()
 }

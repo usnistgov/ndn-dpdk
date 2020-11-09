@@ -294,7 +294,7 @@ func TestFwHint(t *testing.T) {
 }
 
 func TestImplicitDigest(t *testing.T) {
-	assert, _ := makeAR(t)
+	assert, require := makeAR(t)
 	fixture := NewFixture(t)
 	defer fixture.Close()
 
@@ -313,7 +313,7 @@ func TestImplicitDigest(t *testing.T) {
 	packet.Lp.PitToken = collect2.Get(-1).Lp.PitToken
 	face2.Tx <- packet
 	fixture.StepDelay()
-	assert.Equal(1, collect1.Count())
+	require.Equal(1, collect1.Count())
 	if packet := collect1.Get(-1); assert.NotNil(packet.Data) {
 		assert.Equal(uint64(0xce2e9bce22327e97), ndn.PitTokenToUint(packet.Lp.PitToken))
 	}
@@ -323,7 +323,7 @@ func TestImplicitDigest(t *testing.T) {
 	assert.Equal(1, collect2.Count())
 
 	// CS hit
-	assert.Equal(2, collect1.Count())
+	require.Equal(2, collect1.Count())
 	if packet := collect1.Get(-1); assert.NotNil(packet.Data) {
 		assert.Equal(uint64(0x5446c548dd1a5c89), ndn.PitTokenToUint(packet.Lp.PitToken))
 	}

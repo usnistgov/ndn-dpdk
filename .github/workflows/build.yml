@@ -40,7 +40,7 @@ jobs:
       - uses: yoursunny/setup-dpdk@master
         with:
           dpdk-version: "20.08"
-          spdk-version: "20.07"
+          spdk-version: "20.10"
       - name: install uBPF
         run: |
           mkdir -p $GITHUB_WORKSPACE/ubpf
