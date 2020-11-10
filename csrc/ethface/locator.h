@@ -100,6 +100,7 @@ struct EthTxHdr
   EthTxHdrFunc f;
   uint8_t len;
   uint8_t l2len;
+  bool vxlanSrcPort;
   uint8_t buf[ETHHDR_MAXLEN];
 };
 

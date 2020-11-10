@@ -2,12 +2,14 @@
 
 #define NDN_ETHERTYPE 0x8624
 #define ETHER_VLAN_HLEN (RTE_ETHER_HDR_LEN + sizeof(struct rte_vlan_hdr))
-#define VXLAN_ETHER_HLEN (sizeof(struct rte_vxlan_hdr) + RTE_ETHER_HDR_LEN)
 #define ETHER_ETHERTYPE_OFFSET (offsetof(struct rte_ether_hdr, ether_type))
+#define VXLAN_ETHER_HLEN (sizeof(struct rte_vxlan_hdr) + RTE_ETHER_HDR_LEN)
 #define IP_HOPLIMIT_VALUE 64
-
+#define VXLAN_SRCPORT_BASE 0xC000
+#define VXLAN_SRCPORT_MASK 0x3FFF
 static const uint8_t V4_IN_V6_PREFIX[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                                            0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF };
+RTE_DEFINE_PER_LCORE(uint16_t, txVxlanSrcPort);
 
 typedef struct ClassifyResult
 {
@@ -301,6 +303,12 @@ TxPrepend(const EthTxHdr* hdr, struct rte_mbuf* m)
   rte_memcpy(room, hdr->buf, hdr->len);
 }
 
+static __rte_always_inline uint16_t
+TxMakeVxlanSrcPort()
+{
+  return ((++RTE_PER_LCORE(txVxlanSrcPort)) & VXLAN_SRCPORT_MASK) | VXLAN_SRCPORT_BASE;
+}
+
 __attribute__((nonnull)) static __rte_always_inline struct rte_ipv4_hdr*
 TxUdp4(const EthTxHdr* hdr, struct rte_mbuf* m)
 {
@@ -310,6 +318,9 @@ TxUdp4(const EthTxHdr* hdr, struct rte_mbuf* m)
   uint16_t ipLen = m->pkt_len - hdr->l2len;
   ip->total_length = rte_cpu_to_be_16(ipLen);
   udp->dgram_len = rte_cpu_to_be_16(ipLen - sizeof(*ip));
+  if (hdr->vxlanSrcPort) {
+    udp->src_port = rte_cpu_to_be_16(TxMakeVxlanSrcPort());
+  }
   return ip;
 }
 
@@ -337,6 +348,9 @@ TxUdp6(const EthTxHdr* hdr, struct rte_mbuf* m)
   struct rte_udp_hdr* udp = RTE_PTR_ADD(ip, sizeof(*ip));
   ip->payload_len = rte_cpu_to_be_16(m->pkt_len - hdr->l2len - sizeof(*ip));
   udp->dgram_len = ip->payload_len;
+  if (hdr->vxlanSrcPort) {
+    udp->src_port = rte_cpu_to_be_16(TxMakeVxlanSrcPort());
+  }
   return ip;
 }
 
@@ -380,6 +394,7 @@ EthTxHdr_Prepare(EthTxHdr* hdr, const EthLocator* loc, bool hasChecksumOffloads)
   if (!classify.vxlan) {
     return;
   }
+  hdr->vxlanSrcPort = true;
   hdr->len += PutVxlanHdr(BUF_TAIL, loc->vxlan);
   hdr->len += PutEtherVlanHdr(BUF_TAIL, &loc->innerLocal, &loc->innerRemote, 0, NDN_ETHERTYPE);
 
