@@ -6,8 +6,6 @@ package ethface
 */
 import "C"
 import (
-	"fmt"
-
 	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
@@ -56,10 +54,6 @@ func New(port *Port, loc ethLocator) (iface.Face, error) {
 
 			C.EthRxMatch_Prepare(&priv.rxMatch, face.cloc.ptr())
 			C.EthTxHdr_Prepare(&priv.txHdr, face.cloc.ptr(), C.bool(port.dev.HasChecksumOffloads() && !port.cfg.DisableTxOffloads))
-			if priv.rxMatch.len != priv.txHdr.len {
-				// assertion needed by EthFace_FlowRxBurst function
-				panic(fmt.Sprintf("assert(priv.rxMatch.len==priv.txHdr.len) failed: %d %d", priv.rxMatch.len, priv.txHdr.len))
-			}
 
 			face.priv = priv
 			return nil

@@ -86,19 +86,19 @@ func (impl *rxFlowImpl) findQueue(filter func(rxf *rxFlow) bool) (i int, rxf *rx
 }
 
 func (impl *rxFlowImpl) Start(face *ethFace) error {
-	index, _ := impl.findQueue(func(rxf *rxFlow) bool { return rxf == nil })
-	if index < 0 {
+	queue, _ := impl.findQueue(func(rxf *rxFlow) bool { return rxf == nil })
+	if queue < 0 {
 		// TODO reclaim deferred-destroy queues
 		return errors.New("no available queue")
 	}
 
-	rxf, e := newRxFlow(face, index)
+	rxf, e := newRxFlow(face, 0, queue)
 	if e != nil {
 		return e
 	}
 
-	impl.port.logger.WithFields(makeLogFields("rx-queue", index, "face", face.ID())).Debug("create RxFlow")
-	impl.queueFlow[index] = rxf
+	impl.port.logger.WithFields(makeLogFields("rx-queue", queue, "face", face.ID())).Debug("create RxFlow")
+	impl.queueFlow[queue] = rxf
 	iface.EmitRxGroupAdd(rxf)
 	return nil
 }
@@ -141,27 +141,26 @@ func (impl *rxFlowImpl) Close() error {
 }
 
 type rxFlow struct {
-	face *ethFace
-	flow *C.struct_rte_flow
+	face  *ethFace
+	index int
+	flow  *C.struct_rte_flow
 }
 
-func newRxFlow(face *ethFace, queue int) (*rxFlow, error) {
+func newRxFlow(face *ethFace, index, queue int) (*rxFlow, error) {
 	priv := face.priv
-	priv.rxQueue = C.uint16_t(queue)
 
 	cLoc := face.loc.cLoc()
 	var flowErr C.struct_rte_flow_error
-	flow := C.EthFace_SetupFlow(priv, cLoc.ptr(), &flowErr)
+	flow := C.EthFace_SetupFlow(priv, C.int(index), C.uint16_t(queue), cLoc.ptr(), &flowErr)
 	if flow == nil {
 		return nil, readFlowErr(flowErr)
 	}
 
 	rxf := &rxFlow{
-		face: face,
-		flow: flow,
+		face:  face,
+		index: index,
+		flow:  flow,
 	}
-	priv.flowRxg.rxBurstOp = C.RxGroup_RxBurst(C.EthFace_FlowRxBurst)
-	priv.flowRxg.rxThread = 0
 	return rxf, nil
 }
 
@@ -172,5 +171,5 @@ func (rxf *rxFlow) NumaSocket() eal.NumaSocket {
 }
 
 func (rxf *rxFlow) Ptr() unsafe.Pointer {
-	return unsafe.Pointer(&rxf.face.priv.flowRxg)
+	return unsafe.Pointer(&rxf.face.priv.rxf[rxf.index].base)
 }

@@ -91,10 +91,10 @@ Known limitations:
     ```
 
   * For mlx5 driver and IPv4 only: add the IP address to the kernel using `ip addr` command, but do not create the VXLAN interface.
-    Even if DPDK is controlling of the Ethernet adapter, the kernel can still receive broadcast frames such as ARP queries and respond to them.
+    Even if DPDK is controlling the Ethernet adapter, the kernel can still receive broadcast frames such as ARP queries and respond to them.
 
 * NDN-DPDK does not lookup IP routing tables or send ARP queries.
-  To allow outgoing packets to reach the peer, the *remote* field of the locator should be the MAC address of the IP router.
+  To allow outgoing packets to reach the IP router, the *remote* field of the locator should be the MAC address of the IP router.
 
 * IPv4 and UDP checksum are computed through hardware offloads if available.
   In case the Ethernet adapter does not support checksum offloads,
@@ -103,6 +103,8 @@ Known limitations:
   * UDP checksum cannot be computed and is set to zero, which is illegal in IPv6.
 
 * IPv4 options and IPv6 extension headers are not allowed.
+  Incoming packets with these are dropped.
+
 * IPv4 fragments are not accepted.
 
 ## Memif Face
