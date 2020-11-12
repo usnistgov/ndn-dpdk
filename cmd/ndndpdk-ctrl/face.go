@@ -75,22 +75,24 @@ func init() {
 }
 
 func init() {
+	var innerLocal, innerRemote macaddr.Flag
 	var loc struct {
 		Scheme     string `json:"scheme"`
 		Port       string `json:"port,omitempty"`
 		PortConfig struct {
 			MTU int `json:"mtu,omitempty"`
 		} `json:"portConfig"`
-		Local       macaddr.Flag `json:"local"`
-		Remote      macaddr.Flag `json:"remote"`
-		VLAN        int          `json:"vlan,omitempty"`
-		LocalIP     net.IP       `json:"localIP,omitempty"`
-		RemoteIP    net.IP       `json:"remoteIP,omitempty"`
-		LocalUDP    int          `json:"localUDP,omitempty"`
-		RemoteUDP   int          `json:"remoteUDP,omitempty"`
-		VXLAN       int          `json:"vxlan,omitempty"`
-		InnerLocal  macaddr.Flag `json:"innerLocal,omitempty"`
-		InnerRemote macaddr.Flag `json:"innerRemote,omitempty"`
+		MaxRxQueues int           `json:"maxRxQueues,omitempty"`
+		Local       macaddr.Flag  `json:"local"`
+		Remote      macaddr.Flag  `json:"remote"`
+		VLAN        int           `json:"vlan,omitempty"`
+		LocalIP     net.IP        `json:"localIP,omitempty"`
+		RemoteIP    net.IP        `json:"remoteIP,omitempty"`
+		LocalUDP    int           `json:"localUDP,omitempty"`
+		RemoteUDP   int           `json:"remoteUDP,omitempty"`
+		VXLAN       int           `json:"vxlan,omitempty"`
+		InnerLocal  *macaddr.Flag `json:"innerLocal,omitempty"`
+		InnerRemote *macaddr.Flag `json:"innerRemote,omitempty"`
 	}
 	loc.Remote.HardwareAddr = packettransport.MulticastAddressNDN
 	var localUDP, remoteUDP string
@@ -105,6 +107,11 @@ func init() {
 			Name:        "mtu",
 			Usage:       "network interface `MTU`",
 			Destination: &loc.PortConfig.MTU,
+		},
+		&cli.IntFlag{
+			Name:        "max-rxq",
+			Usage:       "maximum number of RX queues",
+			Destination: &loc.MaxRxQueues,
 		},
 		&cli.GenericFlag{
 			Name:     "local",
@@ -143,13 +150,13 @@ func init() {
 		&cli.GenericFlag{
 			Name:     "inner-local",
 			Usage:    "VXLAN inner local MAC `address`",
-			Value:    &loc.InnerLocal,
+			Value:    &innerLocal,
 			Required: true,
 		},
 		&cli.GenericFlag{
 			Name:     "inner-remote",
 			Usage:    "VXLAN inner remote MAC `address`",
-			Value:    &loc.InnerRemote,
+			Value:    &innerRemote,
 			Required: true,
 		},
 	}
@@ -215,8 +222,12 @@ func init() {
 		Name:     "create-vxlan-face",
 		Usage:    "Create a VXLAN face",
 		Flags:    flagsUpTo("inner-remote"),
-		Before:   resolveUDP,
-		Action:   makeAction("vxlan"),
+		Before: func(c *cli.Context) error {
+			loc.InnerLocal = &innerLocal
+			loc.InnerRemote = &innerRemote
+			return resolveUDP(c)
+		},
+		Action: makeAction("vxlan"),
 	})
 }
 

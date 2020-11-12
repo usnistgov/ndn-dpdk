@@ -27,6 +27,10 @@ func (loc MemifLocator) cLoc() (c cLocator) {
 	return
 }
 
+func (loc MemifLocator) maxRxQueues() int {
+	return 1
+}
+
 // CreateFace creates a memif face.
 func (loc MemifLocator) CreateFace() (iface.Face, error) {
 	name := "net_memif" + eal.AllocObjectID("ethface.Memif")

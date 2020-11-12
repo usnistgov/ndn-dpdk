@@ -55,6 +55,17 @@ export interface EthPortConfig extends FaceConfig {
 }
 
 interface EtherLocatorBase {
+  port?: string;
+  portConfig?: EthPortConfig;
+
+  /**
+   * @TJS-type integer
+   * @minimum 1
+   * @maximum 8
+   * @default 1
+   */
+  maxRxQueues?: number;
+
   local: string;
   remote: string;
 
@@ -64,9 +75,6 @@ interface EtherLocatorBase {
    * @maximum 4095
    */
   vlan?: number;
-
-  port?: string;
-  portConfig?: EthPortConfig;
 }
 
 export interface EtherLocator extends EtherLocatorBase {
@@ -101,7 +109,7 @@ export interface VxlanLocator extends UdpLocatorBase {
 
   /**
    * @TJS-type integer
-   * @minimum 1
+   * @minimum 0
    * @maximum 16777215
    */
   vxlan: number;

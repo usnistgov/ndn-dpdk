@@ -39,6 +39,9 @@ type ethLocator interface {
 
 	// cLoc converts to C.EthLocator.
 	cLoc() cLocator
+
+	// maxRxQueues returns maximum number of RX queues when using RxFlow.
+	maxRxQueues() int
 }
 
 // LocatorCanCoexist determines whether two locators can coexist on the same port.

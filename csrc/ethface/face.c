@@ -19,12 +19,10 @@ EthRxFlow_RxBurst(RxGroup* rxg, struct rte_mbuf** pkts, uint16_t nPkts)
 }
 
 struct rte_flow*
-EthFace_SetupFlow(EthFacePriv* priv, int index, uint16_t queue, const EthLocator* loc,
+EthFace_SetupFlow(EthFacePriv* priv, uint16_t queues[], int nQueues, const EthLocator* loc,
                   struct rte_flow_error* error)
 {
-  assert(index >= 0 && index < (int)RTE_DIM(priv->rxf));
-  EthRxFlow* rxf = &priv->rxf[index];
-  *rxf = (const EthRxFlow){ 0 };
+  assert(nQueues > 0 && nQueues < (int)RTE_DIM(priv->rxf));
 
   struct rte_flow_attr attr = {
     .group = 0,
@@ -35,24 +33,40 @@ EthFace_SetupFlow(EthFacePriv* priv, int index, uint16_t queue, const EthLocator
   EthFlowPattern pattern;
   EthFlowPattern_Prepare(&pattern, loc);
 
-  struct rte_flow_action_queue queueAction = { .index = queue };
+  struct rte_flow_action_queue queue = { .index = queues[0] };
+  struct rte_flow_action_rss rss = {
+    .level = 1,
+    .types = ETH_RSS_NONFRAG_IPV4_UDP,
+    .queue = queues,
+    .queue_num = nQueues,
+  };
   struct rte_flow_action actions[] = {
-    { .type = RTE_FLOW_ACTION_TYPE_QUEUE, .conf = &queueAction },
+    {
+      .type = nQueues > 1 ? RTE_FLOW_ACTION_TYPE_RSS : RTE_FLOW_ACTION_TYPE_QUEUE,
+      .conf = nQueues > 1 ? (const void*)&rss : (const void*)&queue,
+    },
     { .type = RTE_FLOW_ACTION_TYPE_END },
   };
 
   struct rte_flow* flow = rte_flow_create(priv->port, &attr, pattern.pattern, actions, error);
   if (flow == NULL) {
-    error->cause = (void*)RTE_PTR_DIFF(error->cause, &pattern);
+    error->cause = (const void*)RTE_PTR_DIFF(error->cause, &pattern);
     return NULL;
   }
 
-  rxf->base.rxBurstOp = EthRxFlow_RxBurst;
-  rxf->base.rxThread = index;
-  rxf->faceID = priv->faceID;
-  rxf->port = priv->port;
-  rxf->queue = queue;
-  rxf->hdrLen = priv->rxMatch.len;
+  for (int i = 0; i < (int)RTE_DIM(priv->rxf); ++i) {
+    EthRxFlow* rxf = &priv->rxf[i];
+    *rxf = (const EthRxFlow){ 0 };
+    if (i >= nQueues) {
+      continue;
+    }
+    rxf->base.rxBurstOp = EthRxFlow_RxBurst;
+    rxf->base.rxThread = i;
+    rxf->faceID = priv->faceID;
+    rxf->port = priv->port;
+    rxf->queue = queues[i];
+    rxf->hdrLen = priv->rxMatch.len;
+  }
   return flow;
 }
 

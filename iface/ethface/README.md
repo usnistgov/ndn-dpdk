@@ -60,7 +60,7 @@ Locator of a UDP tunnel face has the following fields:
 * All fields in "ether" locator are inherited.
 * Both *local* and *remote* MAC addresses must be unicast.
 * *localIP* and *remoteIP* are local and remote IP addresses.
-  They may be either IPv4 or IPv6, and must be unicast
+  They may be either IPv4 or IPv6, and must be unicast.
 * *localUDP* and *remoteUDP* are local and remote UDP port numbers.
 
 Locator of a VXLAN tunnel face has the following fields:
@@ -70,6 +70,8 @@ Locator of a VXLAN tunnel face has the following fields:
 * *localUDP* and *remoteUDP* are destination port numbers; source port numbers are random.
 * *vxlan* is the VXLAN Network Identifier.
 * *innerLocal* and *innerRemote* are MAC addresses for inner Ethernet header.
+* *maxRxQueues* (optional) is the maximum number of RX queues.
+  When using rxFlow in the NDN-DPDK forwarder, having multiple RX queues for the same face can alleviate FwInput bottleneck.
 
 UDP and VXLAN tunnels can coexist with Ethernet faces on the same port.
 Multiple UDP and VXLAN tunnels can coexist if any of the following is true:
@@ -106,6 +108,8 @@ Known limitations:
   Incoming packets with these are dropped.
 
 * IPv4 fragments are not accepted.
+
+* If multiple RX queues are being used, NDNLPv2 reassembly does not work.
 
 ## Memif Face
 

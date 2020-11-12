@@ -15,7 +15,8 @@ type ethFace struct {
 	loc  ethLocator
 	cloc cLocator
 	priv *C.EthFacePriv
-	rxf  *rxFlow
+	flow *C.struct_rte_flow
+	rxf  []*rxFlow
 }
 
 func (face *ethFace) ptr() *C.Face {
