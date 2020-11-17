@@ -27,8 +27,8 @@ func (loc MemifLocator) cLoc() (c cLocator) {
 	return
 }
 
-func (loc MemifLocator) maxRxQueues() int {
-	return 1
+func (loc MemifLocator) faceConfig() FaceConfig {
+	return FaceConfig{}
 }
 
 // CreateFace creates a memif face.
@@ -47,7 +47,7 @@ func (loc MemifLocator) CreateFace() (iface.Face, error) {
 
 	var pc PortConfig
 	pc.MTU = loc.Dataroom
-	pc.NoSetMTU = true
+	pc.DisableSetMTU = true
 	port, e := NewPort(dev, pc)
 	if e != nil {
 		vdev.Close()

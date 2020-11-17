@@ -25,9 +25,6 @@ type PortConfig struct {
 	// DisableRxFlow disables RxFlow implementation.
 	DisableRxFlow bool `json:"disableRxFlow,omitempty"`
 
-	// DisableTxOffloads disables usage of TX offloads.
-	DisableTxOffloads bool `json:"disableTxOffloads,omitempty"`
-
 	// RxQueueSize is the hardware RX queue capacity.
 	//
 	// If this value is zero, it defaults to DefaultRxQueueSize.
@@ -40,9 +37,9 @@ type PortConfig struct {
 	// It is also adjusted to satisfy driver requirements.
 	TxQueueSize int `json:"txQueueSize,omitempty"`
 
-	// NoSetMTU disables setting MTU on the EthDev.
+	// DisableSetMTU disables setting MTU on the EthDev.
 	// Set to true only if the EthDev lacks support for setting MTU.
-	NoSetMTU bool `json:"noSetMTU,omitempty"`
+	DisableSetMTU bool `json:"disableSetMTU,omitempty"`
 }
 
 var portByEthDev = make(map[ethdev.EthDev]*Port)
@@ -75,7 +72,7 @@ type Port struct {
 func NewPort(dev ethdev.EthDev, cfg PortConfig) (port *Port, e error) {
 	if cfg.MTU == 0 {
 		cfg.MTU = dev.MTU()
-		cfg.NoSetMTU = true
+		cfg.DisableSetMTU = true
 	}
 	if ndni.PacketMempool.Config().Dataroom < pktmbuf.DefaultHeadroom+cfg.MTU {
 		return nil, errors.New("PacketMempool dataroom is too small for requested MTU")

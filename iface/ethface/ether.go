@@ -3,7 +3,6 @@ package ethface
 import (
 	"errors"
 
-	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/iface"
@@ -17,34 +16,9 @@ var (
 
 const schemeEther = "ether"
 
-// EtherLocatorInput contains input-only fields of EtherLocator.
-type EtherLocatorInput struct {
-	// PortConfig specifies additional configuration for Port activation.
-	// This is only used when creating the first face on an EthDev.
-	PortConfig *PortConfig `json:"portConfig,omitempty"`
-
-	// MaxRxQueues is the maximum number of RX queues for this face.
-	// It is meaningful only if the face is using RxFlow dispatching.
-	// It is effective in improving performance on VXLAN face only.
-	//
-	// Default is 1.
-	// If this is greater than 1, NDNLPv2 reassembly will not work on this face.
-	MaxRxQueues int `json:"maxRxQueues,omitempty"`
-
-	// privInput is hidden from JSON output.
-	privInput *EtherLocatorInput
-}
-
-func (loc EtherLocatorInput) maxRxQueues() int {
-	if loc.privInput != nil {
-		return loc.privInput.maxRxQueues()
-	}
-	return math.MaxInt(loc.MaxRxQueues, 1)
-}
-
 // EtherLocator describes an Ethernet face.
 type EtherLocator struct {
-	EtherLocatorInput
+	FaceConfig
 
 	// packettransport.Locator contains MAC addresses.
 	packettransport.Locator
@@ -103,9 +77,7 @@ func (loc *EtherLocator) makePort() (port *Port, e error) {
 	}
 
 	loc.Port = dev.Name()
-	input := loc.EtherLocatorInput
-	input.privInput = nil
-	loc.EtherLocatorInput = EtherLocatorInput{privInput: &input}
+	loc.FaceConfig = loc.FaceConfig.hideFaceConfigFromJSON()
 	return port, nil
 }
 

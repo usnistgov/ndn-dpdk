@@ -88,7 +88,7 @@ func (impl *rxFlowImpl) Init() error {
 }
 
 func (impl *rxFlowImpl) Start(face *ethFace) error {
-	maxQueues := face.loc.maxRxQueues()
+	maxQueues := math.MaxInt(1, face.loc.faceConfig().MaxRxQueues)
 	var queues []int
 	for rxq, state := range impl.queues {
 		if len(queues) < maxQueues && state == rxqStateIdle {

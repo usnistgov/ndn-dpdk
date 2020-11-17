@@ -25,6 +25,7 @@ typedef struct EthFacePriv
   EthTxHdr txHdr;
   FaceID faceID;
   uint16_t port;
+  bool txLinearize;
 
   struct cds_hlist_node rxtNode;
   EthRxMatch rxMatch;

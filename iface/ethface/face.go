@@ -6,7 +6,9 @@ package ethface
 */
 import "C"
 import (
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 type ethFace struct {
@@ -53,8 +55,22 @@ func New(port *Port, loc ethLocator) (iface.Face, error) {
 				faceID: C.FaceID(f.ID()),
 			}
 
+			cfg, devInfo := loc.faceConfig(), port.dev.DevInfo()
+
 			C.EthRxMatch_Prepare(&priv.rxMatch, face.cloc.ptr())
-			C.EthTxHdr_Prepare(&priv.txHdr, face.cloc.ptr(), C.bool(port.dev.HasChecksumOffloads() && !port.cfg.DisableTxOffloads))
+			useTxMultiSegOffload := !cfg.DisableTxMultiSegOffload && devInfo.HasTxMultiSegOffload()
+			useTxChecksumOffload := !cfg.DisableTxChecksumOffload && devInfo.HasTxChecksumOffload()
+			C.EthTxHdr_Prepare(&priv.txHdr, face.cloc.ptr(), C.bool(useTxChecksumOffload))
+			if !useTxMultiSegOffload {
+				needDataroom := pktmbuf.DefaultHeadroom + port.dev.MTU()
+				haveDataroom := ndni.HeaderMempool.Config().Dataroom
+				if haveDataroom >= needDataroom {
+					priv.txLinearize = true
+				} else {
+					face.port.logger.WithFields(makeLogFields("need", needDataroom, "have", haveDataroom)).Warn(
+						"TxMultiSegOffload unavailable, but cannot use txLinearize due to insufficient HEADER mempool dataroom")
+				}
+			}
 
 			face.priv = priv
 			return nil

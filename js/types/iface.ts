@@ -35,7 +35,6 @@ export interface FaceConfig {
 
 export interface EthPortConfig extends FaceConfig {
   disableRxFlow?: boolean;
-  disableTxOffloads?: boolean;
 
   /**
    * @TJS-type integer
@@ -51,7 +50,7 @@ export interface EthPortConfig extends FaceConfig {
    */
   txQueueSize?: number;
 
-  noSetMTU?: boolean;
+  disableSetMTU?: boolean;
 }
 
 interface EtherLocatorBase {
@@ -65,6 +64,9 @@ interface EtherLocatorBase {
    * @default 1
    */
   maxRxQueues?: number;
+
+  disableTxMultiSegOffload?: boolean;
+  disableTxChecksumOffload?: boolean;
 
   local: string;
   remote: string;

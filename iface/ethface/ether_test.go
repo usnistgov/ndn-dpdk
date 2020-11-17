@@ -120,7 +120,7 @@ func TestFragmentation(t *testing.T) {
 	locA := makeEtherLocator(vnet.Ports[0])
 	locA.PortConfig = new(ethface.PortConfig)
 	locA.PortConfig.MTU = 5000
-	locA.PortConfig.NoSetMTU = true
+	locA.PortConfig.DisableSetMTU = true
 	faceA, e := locA.CreateFace()
 	require.NoError(e)
 

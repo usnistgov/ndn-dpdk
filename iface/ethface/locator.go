@@ -34,14 +34,49 @@ func (loc cLocator) sizeofHeader() int {
 	return int(hdr.len - hdr.l2len)
 }
 
+// FaceConfig contains additional face configuration.
+// They appear as input-only fields of EtherLocator.
+type FaceConfig struct {
+	// PortConfig specifies additional configuration for Port activation.
+	// This is only used when creating the first face on an EthDev.
+	PortConfig *PortConfig `json:"portConfig,omitempty"`
+
+	// MaxRxQueues is the maximum number of RX queues for this face.
+	// It is meaningful only if the face is using RxFlow dispatching.
+	// It is effective in improving performance on VXLAN face only.
+	//
+	// Default is 1.
+	// If this is greater than 1, NDNLPv2 reassembly will not work on this face.
+	MaxRxQueues int `json:"maxRxQueues,omitempty"`
+
+	// DisableTxMultiSegOffload forces every packet to be copied into a linear buffer in software.
+	DisableTxMultiSegOffload bool `json:"disableTxMultiSegOffload,omitempty"`
+
+	// DisableTxChecksumOffload disables the usage of IPv4 and UDP checksum offloads.
+	DisableTxChecksumOffload bool `json:"disableTxChecksumOffload,omitempty"`
+
+	// privFaceConfig is hidden from JSON output.
+	privFaceConfig *FaceConfig
+}
+
+func (cfg FaceConfig) faceConfig() FaceConfig {
+	if cfg.privFaceConfig != nil {
+		return *cfg.privFaceConfig
+	}
+	return cfg
+}
+
+func (cfg FaceConfig) hideFaceConfigFromJSON() FaceConfig {
+	return FaceConfig{privFaceConfig: &cfg}
+}
+
 type ethLocator interface {
 	iface.Locator
 
 	// cLoc converts to C.EthLocator.
 	cLoc() cLocator
 
-	// maxRxQueues returns maximum number of RX queues when using RxFlow.
-	maxRxQueues() int
+	faceConfig() FaceConfig
 }
 
 // LocatorCanCoexist determines whether two locators can coexist on the same port.
