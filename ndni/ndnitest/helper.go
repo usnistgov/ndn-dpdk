@@ -22,14 +22,14 @@ var (
 	nameEqual    = ndntestenv.NameEqual
 
 	directDataroom int
-	headerMp       *C.struct_rte_mempool
-	indirectMp     *C.struct_rte_mempool
+	mempools       C.PacketMempools
 )
 
 func initMempools() {
 	directDataroom = ndni.PacketMempool.Config().Dataroom
-	headerMp = (*C.struct_rte_mempool)(ndnitestenv.Header.Pool().Ptr())
-	indirectMp = (*C.struct_rte_mempool)(mbuftestenv.Indirect.Pool().Ptr())
+	mempools.packet = (*C.struct_rte_mempool)(mbuftestenv.Direct.Pool().Ptr())
+	mempools.indirect = (*C.struct_rte_mempool)(mbuftestenv.Indirect.Pool().Ptr())
+	mempools.header = (*C.struct_rte_mempool)(ndnitestenv.Header.Pool().Ptr())
 }
 
 type packet struct {

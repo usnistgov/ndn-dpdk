@@ -161,6 +161,6 @@ Packet_ParseL3(Packet* npkt);
  * @return an empty mbuf without PacketPriv, followed by indirect mbufs.
  */
 __attribute__((nonnull)) Packet*
-Packet_Clone(Packet* npkt, struct rte_mempool* headerMp, struct rte_mempool* indirectMp);
+Packet_Clone(Packet* npkt, PacketMempools* mp);
 
 #endif // NDNDPDK_NDNI_PACKET_H

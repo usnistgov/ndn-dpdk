@@ -46,7 +46,7 @@ It enqueues a burst of L3 packets in `Face.txQueue` (the "before-Tx queue").
 
 **TxLoop** type implements the send path.
 It dequeues a burst of L3 packets from `Face.txQueue`, calls **TxProc** to encode them into L2 frames.
-It then passes a burst of L2 frames to the lower layer implementation via `Face.txBurstOp` function.
+It then passes a burst of L2 frames to the lower layer implementation via `TxProc.l2Burst` function.
 TxProc is non-thread-safe, so that only one thread should be running TxProc for a face.
 
 ## Packet Queue

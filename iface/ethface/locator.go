@@ -37,6 +37,8 @@ func (loc cLocator) sizeofHeader() int {
 // FaceConfig contains additional face configuration.
 // They appear as input-only fields of EtherLocator.
 type FaceConfig struct {
+	iface.Config
+
 	// PortConfig specifies additional configuration for Port activation.
 	// This is only used when creating the first face on an EthDev.
 	PortConfig *PortConfig `json:"portConfig,omitempty"`

@@ -14,7 +14,6 @@ import (
 	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
-	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
@@ -59,10 +58,13 @@ type Config struct {
 	OutputQueueSize int `json:"outputQueueSize,omitempty"`
 
 	// MTU is the maximum size of outgoing NDNLP packets.
+	// This excludes lower layer headers, such as Ethernet/VXLAN headers.
 	//
-	// If this value is zero, it disables fragmentation.
-	// Otherwise, it is clamped between (1) MinMtu (2) the lesser of MaxMtu and the MTU reported by the transport.
+	// Default is the lesser of MaxMTU and what's allowed by network interface and lower layer protocols.
+	// If this is less than MinMTU or greater than the maximum, the face will fail to initialize.
 	MTU int `json:"mtu,omitempty"`
+
+	maxMTU int
 }
 
 // ApplyDefaults applies defaults.
@@ -73,10 +75,25 @@ func (c *Config) ApplyDefaults() {
 	c.ReassemblerCapacity = math.MinInt(math.MaxInt(MinReassemblerCapacity, c.ReassemblerCapacity), MaxReassemblerCapacity)
 
 	c.OutputQueueSize = ringbuffer.AlignCapacity(c.OutputQueueSize, MinOutputQueueSize, DefaultOutputQueueSize)
+}
 
-	if c.MTU != 0 {
-		c.MTU = math.MinInt(math.MaxInt(MinMtu, c.MTU), MaxMtu)
+// WithMaxMTU returns a copy of Config with consideration of device MTU.
+func (c Config) WithMaxMTU(max int) Config {
+	c.maxMTU = math.MinInt(max, MaxMTU)
+	return c
+}
+
+func (c *Config) checkMTU() error {
+	if c.maxMTU == 0 {
+		c.maxMTU = MaxMTU
 	}
+	if c.MTU == 0 {
+		c.MTU = c.maxMTU
+	}
+	if c.MTU < MinMTU || c.MTU > c.maxMTU {
+		return fmt.Errorf("MTU must be between %d and %d", MinMTU, c.maxMTU)
+	}
+	return nil
 }
 
 // NewParams contains parameters to New().
@@ -89,18 +106,9 @@ type NewParams struct {
 	// SizeOfPriv is the size of C.FaceImpl.priv struct.
 	SizeofPriv uintptr
 
-	// TxHeadroom is the mbuf headroom to leave before NDNLP header.
-	TxHeadroom int
-
-	// TxHeaderOverhead is the number of bytes for tunnel headers.
-	// TxHeadroom should include these bytes.
-	// MTU - TxHeaderOverhead is used to configure fragmentation.
-	TxHeaderOverhead int
-
 	// Init callback is invoked after allocating C.FaceImpl.
-	// It is expected to assign C.Face.txBurstOp.
 	// This is always invoked on the main thread.
-	Init func(f Face) error
+	Init func(f Face) (l2TxBurstFunc unsafe.Pointer, e error)
 
 	// Start callback is invoked after data structure initialization.
 	// It should activate RxGroups associated with the face.
@@ -129,6 +137,9 @@ type NewParams struct {
 // New creates a Face.
 func New(p NewParams) (face Face, e error) {
 	p.Config.ApplyDefaults()
+	if e = p.Config.checkMTU(); e != nil {
+		return nil, e
+	}
 	if p.Socket.IsAny() {
 		p.Socket = eal.Sockets[rand.Intn(len(eal.Sockets))]
 	}
@@ -148,8 +159,7 @@ func newFace(p NewParams) (Face, error) {
 		closeCallback:          p.Close,
 		readExCountersCallback: p.ReadExCounters,
 	}
-	logEntry := log.WithFields(makeLogFields("id", f.id,
-		"socket", p.Socket, "mtu", p.MTU, "txHeadroom", p.TxHeadroom, "txHeaderOverhead", p.TxHeaderOverhead))
+	logEntry := log.WithFields(makeLogFields("id", f.id, "socket", p.Socket, "mtu", p.MTU))
 
 	c := f.ptr()
 	c.id = C.FaceID(f.id)
@@ -157,10 +167,12 @@ func newFace(p NewParams) (Face, error) {
 	sizeofImpl := C.sizeof_FaceImpl + p.SizeofPriv
 	c.impl = (*C.FaceImpl)(eal.ZmallocAligned("FaceImpl", sizeofImpl, 1, p.Socket))
 
-	if e := p.Init(f); e != nil {
+	l2TxBurst, e := p.Init(f)
+	if e != nil {
 		logEntry.WithError(e).Warn("init error")
 		return f.clear(), e
 	}
+	c.impl.tx.l2Burst = (C.Face_L2TxBurst)(l2TxBurst)
 	logEntry = logEntry.WithField("locator", LocatorString(f.Locator()))
 
 	outputQueue, e := ringbuffer.New(p.OutputQueueSize, p.Socket, ringbuffer.ProducerMulti, ringbuffer.ConsumerSingle)
@@ -170,7 +182,7 @@ func newFace(p NewParams) (Face, error) {
 	}
 	c.outputQueue = (*C.struct_rte_ring)(outputQueue.Ptr())
 
-	indirectMp := pktmbuf.Indirect.MakePool(p.Socket)
+	indirectMp := ndni.IndirectMempool.MakePool(p.Socket)
 	headerMp := ndni.HeaderMempool.MakePool(p.Socket)
 
 	reassID := C.CString(eal.AllocObjectID("iface.Reassembler"))
@@ -181,8 +193,7 @@ func newFace(p NewParams) (Face, error) {
 		return f.clear(), fmt.Errorf("Reassembler_Init error %w", e)
 	}
 
-	C.TxProc_Init(&c.impl.tx, C.uint16_t(p.MTU-p.TxHeaderOverhead), C.uint16_t(p.TxHeadroom),
-		(*C.struct_rte_mempool)(indirectMp.Ptr()), (*C.struct_rte_mempool)(headerMp.Ptr()))
+	C.TxProc_Init(&c.impl.tx, C.uint16_t(p.MTU), (*C.struct_rte_mempool)(indirectMp.Ptr()), (*C.struct_rte_mempool)(headerMp.Ptr()))
 
 	f2, e := p.Start(f)
 	if e != nil {

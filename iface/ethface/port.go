@@ -20,8 +20,6 @@ const (
 
 // PortConfig contains Port creation arguments.
 type PortConfig struct {
-	iface.Config
-
 	// DisableRxFlow disables RxFlow implementation.
 	DisableRxFlow bool `json:"disableRxFlow,omitempty"`
 
@@ -37,7 +35,12 @@ type PortConfig struct {
 	// It is also adjusted to satisfy driver requirements.
 	TxQueueSize int `json:"txQueueSize,omitempty"`
 
-	// DisableSetMTU disables setting MTU on the EthDev.
+	// MTU configures Maximum Transmission Unit (MTU) on the EthDev.
+	// This includes Ethernet headers, but excludes VLAN/IP/UDP/VXLAN headers.
+	// If this value is zero, the EthDev MTU remains unchanged.
+	MTU int `json:"mtu,omitempty"`
+
+	// DisableSetMTU skips setting MTU on the device.
 	// Set to true only if the EthDev lacks support for setting MTU.
 	DisableSetMTU bool `json:"disableSetMTU,omitempty"`
 }
@@ -83,7 +86,6 @@ func NewPort(dev ethdev.EthDev, cfg PortConfig) (port *Port, e error) {
 	if cfg.TxQueueSize == 0 {
 		cfg.TxQueueSize = DefaultTxQueueSize
 	}
-	cfg.Config.ApplyDefaults()
 
 	if FindPort(dev) != nil {
 		return nil, errors.New("Port already exists")

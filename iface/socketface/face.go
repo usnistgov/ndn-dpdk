@@ -78,11 +78,9 @@ func Wrap(transport sockettransport.Transport, cfg Config) (iface.Face, error) {
 	}
 	return iface.New(iface.NewParams{
 		Config: cfg.Config,
-		Init: func(f iface.Face) error {
+		Init: func(f iface.Face) (l2TxBurstFunc unsafe.Pointer, e error) {
 			face.Face = f
-			c := face.ptr()
-			c.txBurstOp = (C.FaceImpl_TxBurst)(C.go_SocketFace_TxBurst)
-			return nil
+			return C.go_SocketFace_TxBurst, nil
 		},
 		Start: func(f iface.Face) (iface.Face, error) {
 			face.transport.OnStateChange(func(st l3.TransportState) {
@@ -172,9 +170,8 @@ func (face *socketFace) rxLoop() {
 func go_SocketFace_TxBurst(faceC *C.Face, pkts **C.struct_rte_mbuf, nPkts C.uint16_t) C.uint16_t {
 	face := iface.Get(iface.ID(faceC.id)).(*socketFace)
 	innerTx := face.transport.Tx()
-	for i := 0; i < int(nPkts); i++ {
-		mbufPtr := (**C.struct_rte_mbuf)(unsafe.Pointer(uintptr(unsafe.Pointer(pkts)) +
-			uintptr(i)*unsafe.Sizeof(*pkts)))
+	for i := uintptr(0); i < uintptr(nPkts); i++ {
+		mbufPtr := (**C.struct_rte_mbuf)(unsafe.Pointer(uintptr(unsafe.Pointer(pkts)) + i*unsafe.Sizeof(*pkts)))
 		mbuf := pktmbuf.PacketFromPtr(unsafe.Pointer(*mbufPtr))
 		wire := mbuf.Bytes()
 		mbuf.Close()

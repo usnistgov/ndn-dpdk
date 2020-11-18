@@ -82,6 +82,7 @@ func init() {
 		PortConfig struct {
 			MTU int `json:"mtu,omitempty"`
 		} `json:"portConfig"`
+		MTU         int           `json:"mtu,omitempty"`
 		MaxRxQueues int           `json:"maxRxQueues,omitempty"`
 		Local       macaddr.Flag  `json:"local"`
 		Remote      macaddr.Flag  `json:"remote"`
@@ -101,16 +102,25 @@ func init() {
 		&cli.StringFlag{
 			Name:        "port",
 			Usage:       "DPDK `port` name",
+			DefaultText: "search by local MAC address",
 			Destination: &loc.Port,
 		},
 		&cli.IntFlag{
+			Name:        "port-mtu",
+			Usage:       "port `MTU` (excluding Ethernet headers)",
+			DefaultText: "hardware default",
+			Destination: &loc.PortConfig.MTU,
+		},
+		&cli.IntFlag{
 			Name:        "mtu",
-			Usage:       "network interface `MTU`",
+			Usage:       "face `MTU` (excluding all headers)",
+			DefaultText: "maximum",
 			Destination: &loc.PortConfig.MTU,
 		},
 		&cli.IntFlag{
 			Name:        "max-rxq",
 			Usage:       "maximum number of RX queues",
+			DefaultText: "1",
 			Destination: &loc.MaxRxQueues,
 		},
 		&cli.GenericFlag{
@@ -127,6 +137,7 @@ func init() {
 		&cli.IntFlag{
 			Name:        "vlan",
 			Usage:       "`VLAN` identifier",
+			DefaultText: "no VLAN",
 			Destination: &loc.VLAN,
 		},
 		&cli.StringFlag{
@@ -161,8 +172,8 @@ func init() {
 		},
 	}
 	flagsUpTo := func(lastFlagName string) []cli.Flag {
-		for i, flg := range flags {
-			if flg.Names()[0] == lastFlagName {
+		for i, fl := range flags {
+			if fl.Names()[0] == lastFlagName {
 				return flags[:i+1]
 			}
 		}

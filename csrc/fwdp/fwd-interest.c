@@ -83,7 +83,7 @@ FwFwd_InterestForward(FwFwd* fwd, FwFwdCtx* ctx)
 __attribute__((nonnull)) static void
 FwFwd_InterestHitCs(FwFwd* fwd, FwFwdCtx* ctx, CsEntry* csEntry)
 {
-  Packet* outNpkt = Packet_Clone(csEntry->data, fwd->headerMp, fwd->indirectMp);
+  Packet* outNpkt = Packet_Clone(csEntry->data, &fwd->mp);
   ZF_LOGD("^ cs-entry=%p data-to=%" PRI_FaceID " npkt=%p dn-token=%016" PRIx64, csEntry,
           ctx->rxFace, outNpkt, ctx->rxToken);
   if (likely(outNpkt != NULL)) {
@@ -185,8 +185,8 @@ SgForwardInterest(SgCtx* ctx0, FaceID nh)
     ZF_LOGD("^ no-interest-to=%" PRI_FaceID " drop=hoplimit-zero", nh);
     return SGFWDI_HOPZERO;
   }
-  Packet* outNpkt = Interest_ModifyGuiders(ctx->pitEntry->npkt, upNonce, upLifetime, upHopLimit,
-                                           fwd->headerMp, fwd->indirectMp);
+  Packet* outNpkt =
+    Interest_ModifyGuiders(ctx->pitEntry->npkt, upNonce, upLifetime, upHopLimit, &fwd->mp);
   if (unlikely(outNpkt == NULL)) {
     ZF_LOGD("^ no-interest-to=%" PRI_FaceID " drop=alloc-error", nh);
     return SGFWDI_ALLOCERR;

@@ -25,11 +25,11 @@ const (
 	// DefaultOutputQueueSize is the default packet queue capacity before the output thread.
 	DefaultOutputQueueSize = 1024
 
-	// MinMtu is the minimum value of Maximum Transmission Unit (MTU).
-	MinMtu = 1280
+	// MinMTU is the minimum value of Maximum Transmission Unit (MTU).
+	MinMTU = 960
 
-	// MaxMtu is the maximum value of Maximum Transmission Unit (MTU).
-	MaxMtu = 65000
+	// MaxMTU is the maximum value of Maximum Transmission Unit (MTU).
+	MaxMTU = 65000
 
 	_ = "enumgen"
 )

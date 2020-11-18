@@ -78,7 +78,7 @@ PInterest_SelectFwHint(PInterest* interest, int i);
  */
 __attribute__((nonnull)) Packet*
 Interest_ModifyGuiders(Packet* npkt, uint32_t nonce, uint32_t lifetime, uint8_t hopLimit,
-                       struct rte_mempool* headerMp, struct rte_mempool* indirectMp);
+                       PacketMempools* mp);
 
 /** @brief Template for Interest encoding. */
 typedef struct InterestTemplate

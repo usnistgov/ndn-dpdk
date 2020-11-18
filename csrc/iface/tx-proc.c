@@ -13,14 +13,14 @@ TxProc_OutputNoFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames)
 
   struct rte_mbuf* frame;
   if (unlikely(RTE_MBUF_CLONED(pkt) || rte_mbuf_refcnt_read(pkt) > 1 ||
-               rte_pktmbuf_headroom(pkt) < tx->headerHeadroom)) {
+               rte_pktmbuf_headroom(pkt) < RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom)) {
     frame = rte_pktmbuf_alloc(tx->headerMp);
     if (unlikely(frame == NULL)) {
       ++tx->nAllocFails;
       rte_pktmbuf_free(pkt);
       return 0;
     }
-    frame->data_off = frame->buf_len;
+    frame->data_off = RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom;
 
     if (unlikely(!Mbuf_Chain(frame, frame, pkt))) {
       ++tx->nL3OverLength;
@@ -42,15 +42,16 @@ TxProc_OutputNoFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames)
   return 1;
 }
 
-__attribute__((nonnull)) static uint16_t
-TxProc_OutputFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames)
+uint16_t
+TxProc_Output(TxProc* tx, Packet* npkt, struct rte_mbuf* frames[LpMaxFragments])
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   NDNDPDK_ASSERT(pkt->pkt_len > 0);
-  uint32_t fragCount = DIV_CEIL(pkt->pkt_len, tx->fragmentPayloadSize);
-  if (fragCount == 1) {
+  if (likely(pkt->pkt_len <= tx->fragmentPayloadSize)) {
     return TxProc_OutputNoFrag(tx, npkt, frames);
   }
+
+  uint32_t fragCount = DIV_CEIL(pkt->pkt_len, tx->fragmentPayloadSize);
   ZF_LOGV("pktLen=%" PRIu32 " fragCount=%" PRIu32 " seq=%" PRIu64, pkt->pkt_len, fragCount,
           tx->nextSeqNum);
   if (unlikely(fragCount > LpMaxFragments)) {
@@ -84,7 +85,7 @@ TxProc_OutputFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames)
     }
 
     struct rte_mbuf* frame = frames[l2.fragIndex];
-    frame->data_off = frame->buf_len;
+    frame->data_off = RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom;
 
     if (unlikely(!Mbuf_Chain(frame, frame, payload))) {
       ++tx->nL3OverLength;
@@ -109,21 +110,13 @@ TxProc_OutputFrag(TxProc* tx, Packet* npkt, struct rte_mbuf** frames)
 }
 
 void
-TxProc_Init(TxProc* tx, uint16_t mtu, uint16_t headroom, struct rte_mempool* indirectMp,
-            struct rte_mempool* headerMp)
+TxProc_Init(TxProc* tx, uint16_t mtu, struct rte_mempool* indirectMp, struct rte_mempool* headerMp)
 {
-  NDNDPDK_ASSERT(mtu == 0 || (mtu >= MinMtu && mtu <= MaxMtu));
-  NDNDPDK_ASSERT(rte_pktmbuf_data_room_size(headerMp) >= headroom + LpHeaderHeadroom);
+  NDNDPDK_ASSERT(mtu >= MinMTU && mtu <= MaxMTU);
+  static_assert((int)MinMTU > (int)LpHeaderHeadroom, "");
+  NDNDPDK_ASSERT(rte_pktmbuf_data_room_size(headerMp) >= RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom);
   tx->indirectMp = indirectMp;
   tx->headerMp = headerMp;
 
-  if (mtu == 0) {
-    tx->outputFunc = TxProc_OutputNoFrag;
-  } else {
-    NDNDPDK_ASSERT(mtu > LpHeaderHeadroom);
-    tx->fragmentPayloadSize = mtu - LpHeaderHeadroom;
-    tx->outputFunc = TxProc_OutputFrag;
-  }
-
-  tx->headerHeadroom = headroom + LpHeaderHeadroom;
+  tx->fragmentPayloadSize = mtu - LpHeaderHeadroom;
 }

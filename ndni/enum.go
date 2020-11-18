@@ -14,7 +14,7 @@ const (
 	// LpHeaderHeadroom is the required headroom to prepend NDNLPv2 header.
 	LpHeaderHeadroom = 0 +
 		1 + 5 + // LpPacket TL
-		1 + 1 + 8 + // SeqNo
+		1 + 1 + 8 + // SeqNum
 		1 + 1 + 2 + // FragIndex
 		1 + 1 + 2 + // FragCount
 		1 + 1 + 8 + // PitToken

@@ -36,8 +36,7 @@ typedef struct FwFwd
   uint64_t nSgNoFwd;      ///< Interests not forwarded by strategy
   uint64_t nNackMismatch; ///< Nack dropped due to outdated nonce
 
-  struct rte_mempool* headerMp;   ///< mempool for Interest/Data header/guider
-  struct rte_mempool* indirectMp; ///< mempool for indirect mbufs
+  PacketMempools mp; ///< mempools for packet modification
 
   struct rte_ring* crypto; ///< queue to crypto helper
 

@@ -25,8 +25,7 @@ FwFwd_TxNacks(FwFwd* fwd, PitEntry* pitEntry, TscTime now, NackReason reason, ui
       continue;
     }
 
-    Packet* output = Interest_ModifyGuiders(pitEntry->npkt, dn->nonce, 0, nackHopLimit,
-                                            fwd->headerMp, fwd->indirectMp);
+    Packet* output = Interest_ModifyGuiders(pitEntry->npkt, dn->nonce, 0, nackHopLimit, &fwd->mp);
     if (unlikely(output == NULL)) {
       ZF_LOGD("^ no-nack-to=%" PRI_FaceID " drop=alloc-error", dn->face);
       break;
@@ -63,8 +62,8 @@ FwFwd_RxNackDuplicate(FwFwd* fwd, FwFwdCtx* ctx)
 
   uint32_t upLifetime = PitEntry_GetTxInterestLifetime(ctx->pitEntry, now);
   uint8_t upHopLimit = PitEntry_GetTxInterestHopLimit(ctx->pitEntry);
-  Packet* outNpkt = Interest_ModifyGuiders(ctx->pitEntry->npkt, upNonce, upLifetime, upHopLimit,
-                                           fwd->headerMp, fwd->indirectMp);
+  Packet* outNpkt =
+    Interest_ModifyGuiders(ctx->pitEntry->npkt, upNonce, upLifetime, upHopLimit, &fwd->mp);
   if (unlikely(outNpkt == NULL)) {
     ZF_LOGD("^ no-interest-to=%" PRI_FaceID " drop=alloc-error", ctx->pitUp->face);
     return true;

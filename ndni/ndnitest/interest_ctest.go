@@ -114,7 +114,7 @@ func ctestInterestModifyNoAppParameters(t *testing.T) {
 	require.True(bool(C.Packet_Parse(p.npkt)))
 	require.EqualValues(ndni.PktInterest, C.Packet_GetType(p.npkt))
 
-	modify := toPacket(unsafe.Pointer(C.Interest_ModifyGuiders(p.npkt, 0xAFAEADAC, 8160, 15, headerMp, indirectMp)))
+	modify := toPacket(unsafe.Pointer(C.Interest_ModifyGuiders(p.npkt, 0xAFAEADAC, 8160, 15, &mempools)))
 	defer modify.Close()
 	assert.EqualValues(ndni.PktSInterest, C.Packet_GetType(modify.npkt))
 	assert.EqualValues(3, modify.mbuf.nb_segs)
@@ -145,7 +145,7 @@ func ctestInterestModifyWithAppParameters(t *testing.T) {
 	require.True(bool(C.Packet_Parse(p.npkt)))
 	require.EqualValues(ndni.PktInterest, C.Packet_GetType(p.npkt))
 
-	modify := toPacket(unsafe.Pointer(C.Interest_ModifyGuiders(p.npkt, 0xAFAEADAC, 8160, 15, headerMp, indirectMp)))
+	modify := toPacket(unsafe.Pointer(C.Interest_ModifyGuiders(p.npkt, 0xAFAEADAC, 8160, 15, &mempools)))
 	defer modify.Close()
 	assert.EqualValues(ndni.PktSInterest, C.Packet_GetType(modify.npkt))
 	assert.EqualValues(4, modify.mbuf.nb_segs)

@@ -70,14 +70,14 @@ Packet_ParseL3(Packet* npkt)
 }
 
 Packet*
-Packet_Clone(Packet* npkt, struct rte_mempool* headerMp, struct rte_mempool* indirectMp)
+Packet_Clone(Packet* npkt, PacketMempools* mp)
 {
-  struct rte_mbuf* header = rte_pktmbuf_alloc(headerMp);
+  struct rte_mbuf* header = rte_pktmbuf_alloc(mp->header);
   if (unlikely(header == NULL)) {
     return NULL;
   }
 
-  struct rte_mbuf* payload = rte_pktmbuf_clone(Packet_ToMbuf(npkt), indirectMp);
+  struct rte_mbuf* payload = rte_pktmbuf_clone(Packet_ToMbuf(npkt), mp->indirect);
   if (unlikely(payload == NULL)) {
     rte_pktmbuf_free(header);
     return NULL;

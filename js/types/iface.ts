@@ -27,13 +27,13 @@ export interface FaceConfig {
 
   /**
    * @TJS-type integer
-   * @minimum 1280
+   * @minimum 960
    * @maximum 65000
    */
   mtu?: number;
 }
 
-export interface EthPortConfig extends FaceConfig {
+export interface EthPortConfig {
   disableRxFlow?: boolean;
 
   /**
@@ -50,10 +50,17 @@ export interface EthPortConfig extends FaceConfig {
    */
   txQueueSize?: number;
 
+  /**
+   * @TJS-type integer
+   * @minimum 960
+   * @maximum 65000
+   */
+  mtu?: number;
+
   disableSetMTU?: boolean;
 }
 
-interface EtherLocatorBase {
+interface EtherLocatorBase extends FaceConfig {
   port?: string;
   portConfig?: EthPortConfig;
 

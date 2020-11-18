@@ -206,14 +206,14 @@ Interest_WriteGuiders_(struct rte_mbuf* m, uint32_t nonce, uint32_t lifetime, ui
 
 Packet*
 Interest_ModifyGuiders(Packet* npkt, uint32_t nonce, uint32_t lifetime, uint8_t hopLimit,
-                       struct rte_mempool* headerMp, struct rte_mempool* indirectMp)
+                       PacketMempools* mp)
 {
   // segs[0] = Interest TL, with headroom for lower layer headers
   // segs[1] = clone of Interest V before Nonce, such as Name and ForwardingHint
   // segs[2] = new guiders
   // seg3    = (optional) clone of Interest V after guiders, such as AppParameters
   struct rte_mbuf* segs[3];
-  if (unlikely(rte_pktmbuf_alloc_bulk(headerMp, segs, 2) != 0)) {
+  if (unlikely(rte_pktmbuf_alloc_bulk(mp->header, segs, 2) != 0)) {
     return NULL;
   }
   segs[2] = segs[1];
@@ -225,7 +225,7 @@ Interest_ModifyGuiders(Packet* npkt, uint32_t nonce, uint32_t lifetime, uint8_t 
   NDNDPDK_ASSERT(type0 == TtInterest);
 
   struct rte_mbuf* last1 = NULL;
-  segs[1] = TlvDecoder_Clone(&d, interest->nonceOffset, indirectMp, &last1);
+  segs[1] = TlvDecoder_Clone(&d, interest->nonceOffset, mp->indirect, &last1);
   if (unlikely(segs[1] == NULL)) {
     rte_pktmbuf_free_bulk(segs, RTE_DIM(segs));
     return NULL;
@@ -236,7 +236,7 @@ Interest_ModifyGuiders(Packet* npkt, uint32_t nonce, uint32_t lifetime, uint8_t 
   Interest_WriteGuiders_(segs[2], nonce, lifetime, hopLimit);
 
   if (unlikely(d.length > 0)) {
-    struct rte_mbuf* seg3 = TlvDecoder_Clone(&d, d.length, indirectMp, NULL);
+    struct rte_mbuf* seg3 = TlvDecoder_Clone(&d, d.length, mp->indirect, NULL);
     if (unlikely(seg3 == NULL) || unlikely(!Mbuf_Chain(segs[2], segs[2], seg3))) {
       rte_pktmbuf_free_bulk(segs, RTE_DIM(segs));
       return NULL;
@@ -248,7 +248,7 @@ Interest_ModifyGuiders(Packet* npkt, uint32_t nonce, uint32_t lifetime, uint8_t 
     return NULL;
   }
 
-  segs[0]->data_off = segs[0]->buf_len;
+  segs[0]->data_off = RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom;
   TlvEncoder_PrependTL(segs[0], TtInterest, segs[1]->pkt_len);
 
   if (unlikely(!Mbuf_Chain(segs[0], segs[0], segs[1]))) {

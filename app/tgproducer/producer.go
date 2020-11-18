@@ -39,7 +39,7 @@ func New(face iface.Face, index int, cfg Config) (*Producer, error) {
 	}
 
 	producerC.dataMp = (*C.struct_rte_mempool)(ndni.DataMempool.MakePool(socket).Ptr())
-	producerC.indirectMp = (*C.struct_rte_mempool)(pktmbuf.Indirect.MakePool(socket).Ptr())
+	producerC.indirectMp = (*C.struct_rte_mempool)(ndni.IndirectMempool.MakePool(socket).Ptr())
 	producerC.face = (C.FaceID)(faceID)
 	producerC.wantNackNoRoute = C.bool(cfg.Nack)
 	C.pcg32_srandom_r(&producerC.replyRng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))

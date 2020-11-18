@@ -10,17 +10,6 @@
 #include "../core/urcu.h"
 #include <urcu/rcuhlist.h>
 
-typedef struct Face Face;
-typedef struct FaceCounters FaceCounters;
-
-/**
- * @brief Transmit a burst of L2 frames.
- * @param pkts L2 frames
- * @return successfully queued frames
- * @post FaceImpl owns queued frames, but does not own remaining frames
- */
-typedef uint16_t (*FaceImpl_TxBurst)(Face* face, struct rte_mbuf** pkts, uint16_t nPkts);
-
 typedef struct FaceImpl
 {
   RxProc rx;
@@ -32,7 +21,6 @@ typedef struct FaceImpl
 typedef struct Face
 {
   FaceImpl* impl;
-  FaceImpl_TxBurst txBurstOp;
   FaceID id;
   FaceState state;
 
@@ -45,8 +33,6 @@ Face_GetPriv(Face* face)
 {
   return face->impl->priv;
 }
-
-#define Face_GetPrivT(face, T) ((T*)Face_GetPriv((face)))
 
 /** @brief Static array of all faces. */
 extern Face gFaces[];

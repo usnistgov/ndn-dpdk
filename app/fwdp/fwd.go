@@ -18,7 +18,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/runningstat"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
-	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
@@ -59,28 +58,26 @@ func (fwd *Fwd) Init(lc eal.LCore, pcctCfg pcct.Config, qcfgI, qcfgD, qcfgN ifac
 	fwd.SetLCore(lc)
 
 	fwd.queueI = iface.PktQueueFromPtr(unsafe.Pointer(&fwd.c.queueI))
-	if e := fwd.queueI.Init(qcfgI, socket); e != nil {
+	if e = fwd.queueI.Init(qcfgI, socket); e != nil {
 		return e
 	}
 	fwd.queueD = iface.PktQueueFromPtr(unsafe.Pointer(&fwd.c.queueD))
-	if e := fwd.queueD.Init(qcfgD, socket); e != nil {
+	if e = fwd.queueD.Init(qcfgD, socket); e != nil {
 		return e
 	}
 	fwd.queueN = iface.PktQueueFromPtr(unsafe.Pointer(&fwd.c.queueN))
-	if e := fwd.queueN.Init(qcfgN, socket); e != nil {
+	if e = fwd.queueN.Init(qcfgN, socket); e != nil {
 		return e
 	}
 
-	fwd.pcct, e = pcct.New(pcctCfg, socket)
-	if e != nil {
+	if fwd.pcct, e = pcct.New(pcctCfg, socket); e != nil {
 		return fmt.Errorf("pcct.New: %w", e)
 	}
 	pcctC := (*C.Pcct)(fwd.pcct.Ptr())
 	fwd.c.pit = &pcctC.pit
 	fwd.c.cs = &pcctC.cs
 
-	fwd.c.headerMp = (*C.struct_rte_mempool)(ndni.HeaderMempool.MakePool(socket).Ptr())
-	fwd.c.indirectMp = (*C.struct_rte_mempool)(pktmbuf.Indirect.MakePool(socket).Ptr())
+	ndni.MakePacketMempools(unsafe.Pointer(&fwd.c.mp), socket)
 
 	latencyStat := runningstat.FromPtr(unsafe.Pointer(&fwd.c.latencyStat))
 	latencyStat.Clear(false)

@@ -6,6 +6,8 @@ package ethface
 */
 import "C"
 import (
+	"unsafe"
+
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndni"
@@ -33,23 +35,19 @@ func New(port *Port, loc ethLocator) (iface.Face, error) {
 		cloc: loc.cLoc(),
 	}
 	return iface.New(iface.NewParams{
-		Config:           port.cfg.Config,
-		Socket:           port.dev.NumaSocket(),
-		SizeofPriv:       uintptr(C.sizeof_EthFacePriv),
-		TxHeadroom:       int(C.ETHHDR_MAXLEN),
-		TxHeaderOverhead: face.cloc.sizeofHeader(),
-		Init: func(f iface.Face) error {
+		Config:     loc.faceConfig().Config.WithMaxMTU(port.cfg.MTU + C.RTE_ETHER_HDR_LEN - face.cloc.sizeofHeader()),
+		Socket:     port.dev.NumaSocket(),
+		SizeofPriv: uintptr(C.sizeof_EthFacePriv),
+		Init: func(f iface.Face) (l2TxBurstFunc unsafe.Pointer, e error) {
 			for _, other := range port.faces {
 				if !face.cloc.canCoexist(other.cloc) {
-					return LocatorConflictError{a: loc, b: other.loc}
+					return nil, LocatorConflictError{a: loc, b: other.loc}
 				}
 			}
 
 			face.Face = f
-			c := face.ptr()
-			c.txBurstOp = (C.FaceImpl_TxBurst)(C.EthFace_TxBurst)
 
-			priv := (*C.EthFacePriv)(C.Face_GetPriv(c))
+			priv := (*C.EthFacePriv)(C.Face_GetPriv(face.ptr()))
 			*priv = C.EthFacePriv{
 				port:   C.uint16_t(port.dev.ID()),
 				faceID: C.FaceID(f.ID()),
@@ -73,7 +71,7 @@ func New(port *Port, loc ethLocator) (iface.Face, error) {
 			}
 
 			face.priv = priv
-			return nil
+			return C.EthFace_TxBurst, nil
 		},
 		Start: func(iface.Face) (iface.Face, error) {
 			return face, port.startFace(face, false)
