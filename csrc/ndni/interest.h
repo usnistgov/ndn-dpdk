@@ -70,6 +70,28 @@ PInterest_Parse(PInterest* interest, struct rte_mbuf* pkt);
 __attribute__((nonnull)) bool
 PInterest_SelectFwHint(PInterest* interest, int i);
 
+/** @brief Interest guider fields. */
+typedef struct InterestGuiders
+{
+  uint32_t nonce;
+  uint32_t lifetime;
+  uint8_t hopLimit;
+} InterestGuiders;
+
+/**
+ * @brief printf format string for InterestGuiders.
+ * @code
+ * printf("mbuf=%p " PRI_InterestGuiders " suffix", mbuf, InterestGuiders_Fmt(guiders))
+ * @endcode
+ */
+#define PRI_InterestGuiders "nonce=%08" PRIx32 " lifetime=%" PRIu32 " hopLimit=%" PRIu8
+
+/**
+ * @brief printf arguments for InterestGuiders.
+ * @param g InterestGuiders instance.
+ */
+#define InterestGuiders_Fmt(g) (g).nonce, (g).lifetime, (g).hopLimit
+
 /**
  * @brief Modify Interest guiders.
  * @param[in] npkt original Interest packet.
@@ -77,8 +99,8 @@ PInterest_SelectFwHint(PInterest* interest, int i);
  * @retval NULL allocation failure.
  */
 __attribute__((nonnull)) Packet*
-Interest_ModifyGuiders(Packet* npkt, uint32_t nonce, uint32_t lifetime, uint8_t hopLimit,
-                       PacketMempools* mp);
+Interest_ModifyGuiders(Packet* npkt, InterestGuiders guiders, PacketMempools* mp,
+                       PacketTxAlign align);
 
 /** @brief Template for Interest encoding. */
 typedef struct InterestTemplate

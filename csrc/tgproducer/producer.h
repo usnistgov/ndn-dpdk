@@ -24,7 +24,7 @@ typedef enum TgProducerReplyKind
 typedef struct TgProducerReply
 {
   uint64_t nInterests;
-  DataGen* dataGen;
+  DataGen dataGen;
   uint8_t kind;
   uint8_t nackReason;
 } TgProducerReply;
@@ -44,8 +44,7 @@ typedef struct TgProducerPattern
 typedef struct TgProducer
 {
   PktQueue rxQueue;
-  struct rte_mempool* dataMp; ///< mempool for Data seg0
-  struct rte_mempool* indirectMp;
+  PacketMempools mp; ///< mempools for Data encoding
   FaceID face;
   uint16_t nPatterns;
   bool wantNackNoRoute; ///< whether to Nack Interests not matching any pattern

@@ -34,7 +34,7 @@ type Counters struct {
 	PerPattern  []PatternCounters `json:"perPattern"`
 	NInterests  uint64            `json:"nInterests"`
 	NNoMatch    uint64            `json:"nNoMatch"`
-	NAllocError uint64            `json:"nAllocError`
+	NAllocError uint64            `json:"nAllocError"`
 }
 
 func (cnt Counters) String() string {

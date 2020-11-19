@@ -14,7 +14,7 @@ __attribute__((nonnull)) static inline void
 Mbuf_CopyTo(struct rte_mbuf* m, void* dst)
 {
   for (struct rte_mbuf* s = m; s != NULL; s = s->next) {
-    rte_memcpy(dst, rte_pktmbuf_mtod(s, void*), s->data_len);
+    rte_memcpy(dst, rte_pktmbuf_mtod(s, const void*), s->data_len);
     dst = RTE_PTR_ADD(dst, s->data_len);
   }
 }

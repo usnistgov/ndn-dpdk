@@ -15,6 +15,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
@@ -27,30 +28,29 @@ type Producer struct {
 }
 
 // New creates a Producer.
-func New(face iface.Face, index int, cfg Config) (*Producer, error) {
+func New(face iface.Face, index int, cfg Config) (producer *Producer, e error) {
 	faceID := face.ID()
 	socket := face.NumaSocket()
-	producerC := (*C.TgProducer)(eal.Zmalloc("TgProducer", C.sizeof_TgProducer, socket))
+	producer = &Producer{
+		c:         (*C.TgProducer)(eal.Zmalloc("TgProducer", C.sizeof_TgProducer, socket)),
+		payloadMp: ndni.PayloadMempool.MakePool(socket),
+	}
 
 	cfg.RxQueue.DisableCoDel = true
-	if e := iface.PktQueueFromPtr(unsafe.Pointer(&producerC.rxQueue)).Init(cfg.RxQueue, socket); e != nil {
-		eal.Free(producerC)
+	if e := iface.PktQueueFromPtr(unsafe.Pointer(&producer.c.rxQueue)).Init(cfg.RxQueue, socket); e != nil {
+		eal.Free(producer.c)
 		return nil, nil
 	}
 
-	producerC.dataMp = (*C.struct_rte_mempool)(ndni.DataMempool.MakePool(socket).Ptr())
-	producerC.indirectMp = (*C.struct_rte_mempool)(ndni.IndirectMempool.MakePool(socket).Ptr())
-	producerC.face = (C.FaceID)(faceID)
-	producerC.wantNackNoRoute = C.bool(cfg.Nack)
-	C.pcg32_srandom_r(&producerC.replyRng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
+	producer.c.face = (C.FaceID)(faceID)
+	producer.c.wantNackNoRoute = C.bool(cfg.Nack)
+	C.pcg32_srandom_r(&producer.c.replyRng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
 
-	producer := &Producer{
-		payloadMp: ndni.PayloadMempool.MakePool(socket),
-		c:         producerC,
-	}
+	(*ndni.Mempools)(unsafe.Pointer(&producer.c.mp)).Assign(socket, ndni.DataMempool)
+
 	producer.Thread = ealthread.New(
 		cptr.Func0.C(unsafe.Pointer(C.TgProducer_Run), unsafe.Pointer(producer.c)),
-		ealthread.InitStopFlag(unsafe.Pointer(&producerC.stop)),
+		ealthread.InitStopFlag(unsafe.Pointer(&producer.c.stop)),
 	)
 
 	for i, pattern := range cfg.Patterns {
@@ -107,10 +107,12 @@ func (producer *Producer) addPattern(cfg Pattern) (index int, e error) {
 			replyC.kind = C.TGPRODUCER_REPLY_DATA
 			vec, e := producer.payloadMp.Alloc(1)
 			if e != nil {
-				return -1, fmt.Errorf("cannot allocate from MP_DATA1 for reply definition %d", i)
+				return -1, fmt.Errorf("cannot allocate from payloadMp for reply definition %d", i)
 			}
-			dataGen := ndni.NewDataGen(vec[0], reply.Suffix, reply.FreshnessPeriod.Duration(), make([]byte, reply.PayloadLen))
-			replyC.dataGen = (*C.DataGen)(dataGen.Ptr())
+			data := ndn.MakeData(reply.Suffix, reply.FreshnessPeriod.Duration(), make([]byte, reply.PayloadLen))
+			align := C.Face_PacketTxAlign(producer.c.face)
+			dataGen := ndni.DataGenFromPtr(unsafe.Pointer(&replyC.dataGen))
+			dataGen.Init(vec[0], data, bool(align.linearize))
 		}
 	}
 	patternC.nReplies = C.uint16_t(len(cfg.Replies))

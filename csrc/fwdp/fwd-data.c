@@ -53,7 +53,7 @@ FwFwd_DataSatisfy(FwFwd* fwd, FwFwdCtx* ctx)
       continue;
     }
 
-    Packet* outNpkt = Packet_Clone(ctx->npkt, &fwd->mp);
+    Packet* outNpkt = Packet_Clone(ctx->npkt, &fwd->mp, Face_PacketTxAlign(dn->face));
     ZF_LOGD("^ data-to=%" PRI_FaceID " npkt=%p dn-token=%016" PRIx64, dn->face, outNpkt, dn->token);
     if (likely(outNpkt != NULL)) {
       struct rte_mbuf* outPkt = Packet_ToMbuf(outNpkt);

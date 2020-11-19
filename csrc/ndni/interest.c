@@ -189,24 +189,68 @@ typedef struct GuiderFields
   uint8_t hopLimitV;
 } __rte_packed GuiderFields;
 
-void
-Interest_WriteGuiders_(struct rte_mbuf* m, uint32_t nonce, uint32_t lifetime, uint8_t hopLimit)
+__attribute__((nonnull)) static void
+Interest_WriteGuiders(struct rte_mbuf* m, InterestGuiders g)
 {
   GuiderFields* f = (GuiderFields*)rte_pktmbuf_append(m, sizeof(GuiderFields));
+  NDNDPDK_ASSERT(f != NULL);
   f->nonceT = TtNonce;
   f->nonceL = 4;
-  f->nonceV = rte_cpu_to_be_32(nonce);
+  f->nonceV = rte_cpu_to_be_32(g.nonce);
   f->lifetimeT = TtInterestLifetime;
   f->lifetimeL = 4;
-  f->lifetimeV = rte_cpu_to_be_32(lifetime);
+  f->lifetimeV = rte_cpu_to_be_32(g.lifetime);
   f->hopLimitT = TtHopLimit;
   f->hopLimitL = 1;
-  f->hopLimitV = hopLimit;
+  f->hopLimitV = g.hopLimit;
 }
 
-Packet*
-Interest_ModifyGuiders(Packet* npkt, uint32_t nonce, uint32_t lifetime, uint8_t hopLimit,
-                       PacketMempools* mp)
+__attribute__((nonnull, returns_nonnull)) static Packet*
+Interest_ModifyGuiders_Finish(struct rte_mbuf* m)
+{
+  Packet* output = Packet_FromMbuf(m);
+  Packet_SetType(output, PktSInterest);
+  *Packet_GetLpL3Hdr(output) = (const LpL3){ 0 };
+  return output;
+}
+
+__attribute__((nonnull)) static Packet*
+Interest_ModifyGuiders_Linear(Packet* npkt, InterestGuiders guiders, PacketMempools* mp)
+{
+  struct rte_mbuf* m = rte_pktmbuf_alloc(mp->packet);
+  if (unlikely(m == NULL)) {
+    return NULL;
+  }
+  m->data_off = RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom + 1 + 3; // Interest TL
+  NDNDPDK_ASSERT(m->data_off <= m->buf_len);
+
+  struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
+  PInterest* interest = Packet_GetInterestHdr(npkt);
+  if (unlikely(rte_pktmbuf_tailroom(m) <=
+               pkt->pkt_len - interest->guiderSize + sizeof(GuiderFields))) {
+    rte_pktmbuf_free(m);
+    return NULL;
+  }
+
+  TlvDecoder d;
+  TlvDecoder_Init(&d, pkt);
+  uint32_t length0, type0 = TlvDecoder_ReadTL(&d, &length0);
+  NDNDPDK_ASSERT(type0 == TtInterest);
+
+  TlvDecoder_Copy(&d, (uint8_t*)rte_pktmbuf_append(m, interest->nonceOffset),
+                  interest->nonceOffset);
+  TlvDecoder_Skip(&d, interest->guiderSize);
+  Interest_WriteGuiders(m, guiders);
+  if (unlikely(d.length > 0)) {
+    TlvDecoder_Copy(&d, (uint8_t*)rte_pktmbuf_append(m, d.length), d.length);
+  }
+
+  TlvEncoder_PrependTL(m, TtInterest, m->pkt_len);
+  return Interest_ModifyGuiders_Finish(m);
+}
+
+__attribute__((nonnull)) static Packet*
+Interest_ModifyGuiders_Chained(Packet* npkt, InterestGuiders guiders, PacketMempools* mp)
 {
   // segs[0] = Interest TL, with headroom for lower layer headers
   // segs[1] = clone of Interest V before Nonce, such as Name and ForwardingHint
@@ -233,7 +277,7 @@ Interest_ModifyGuiders(Packet* npkt, uint32_t nonce, uint32_t lifetime, uint8_t 
   TlvDecoder_Skip(&d, interest->guiderSize);
 
   segs[2]->data_off = 0;
-  Interest_WriteGuiders_(segs[2], nonce, lifetime, hopLimit);
+  Interest_WriteGuiders(segs[2], guiders);
 
   if (unlikely(d.length > 0)) {
     struct rte_mbuf* seg3 = TlvDecoder_Clone(&d, d.length, mp->indirect, NULL);
@@ -255,10 +299,17 @@ Interest_ModifyGuiders(Packet* npkt, uint32_t nonce, uint32_t lifetime, uint8_t 
     rte_pktmbuf_free_bulk(segs, 2);
     return NULL;
   }
-  Packet* output = Packet_FromMbuf(segs[0]);
-  Packet_SetType(output, PktSInterest);
-  *Packet_GetLpL3Hdr(output) = (const LpL3){ 0 };
-  return output;
+  return Interest_ModifyGuiders_Finish(segs[0]);
+}
+
+Packet*
+Interest_ModifyGuiders(Packet* npkt, InterestGuiders guiders, PacketMempools* mp,
+                       PacketTxAlign align)
+{
+  if (align.linearize) {
+    return Interest_ModifyGuiders_Linear(npkt, guiders, mp);
+  }
+  return Interest_ModifyGuiders_Chained(npkt, guiders, mp);
 }
 
 Packet*

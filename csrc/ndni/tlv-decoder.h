@@ -52,6 +52,24 @@ TlvDecoder_Skip(TlvDecoder* d, uint32_t count)
   d->length -= count;
 }
 
+__attribute__((nonnull)) void
+TlvDecoder_Copy_(TlvDecoder* d, uint8_t* output, uint16_t count);
+
+/**
+ * @brief Copy next @p count octets to @p output .
+ * @pre Decoder has no less than @p count remaining octets.
+ * @post Decoder is advanced by @c count octets.
+ */
+__attribute__((nonnull)) static inline void
+TlvDecoder_Copy(TlvDecoder* d, uint8_t* output, uint16_t count)
+{
+  NDNDPDK_ASSERT(count <= d->length);
+  if (unlikely(count == 0)) {
+    return;
+  }
+  TlvDecoder_Copy_(d, output, count);
+}
+
 __attribute__((nonnull, returns_nonnull)) static inline const uint8_t*
 TlvDecoder_Read_Contiguous_(TlvDecoder* d, uint16_t count)
 {
@@ -70,9 +88,6 @@ TlvDecoder_Read_Contiguous_(TlvDecoder* d, uint16_t count)
   return output;
 }
 
-__attribute__((nonnull)) void
-TlvDecoder_Read_NonContiguous_(TlvDecoder* d, uint8_t* output, uint16_t count);
-
 /**
  * @brief Read next @p count octets in contiguous memory.
  * @param scratch a buffer for copying from non-contiguous memory; must have at least @c count room.
@@ -90,7 +105,7 @@ TlvDecoder_Read(TlvDecoder* d, uint8_t* scratch, uint16_t count)
   if (likely(count <= d->m->data_len - d->offset)) {
     return TlvDecoder_Read_Contiguous_(d, count);
   }
-  TlvDecoder_Read_NonContiguous_(d, scratch, count);
+  TlvDecoder_Copy_(d, scratch, count);
   return scratch;
 }
 

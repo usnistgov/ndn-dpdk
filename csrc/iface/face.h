@@ -21,11 +21,11 @@ typedef struct FaceImpl
 typedef struct Face
 {
   FaceImpl* impl;
-  FaceID id;
-  FaceState state;
-
   struct rte_ring* outputQueue;
   struct cds_hlist_node txlNode;
+  PacketTxAlign txAlign;
+  FaceState state;
+  FaceID id;
 } __rte_cache_aligned Face;
 
 static inline void*
@@ -49,6 +49,13 @@ Face_IsDown(FaceID faceID)
 {
   Face* face = Face_Get(faceID);
   return face->state != FaceStateUp;
+}
+
+static inline PacketTxAlign
+Face_PacketTxAlign(FaceID faceID)
+{
+  Face* face = Face_Get(faceID);
+  return face->txAlign;
 }
 
 /**

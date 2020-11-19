@@ -7,10 +7,11 @@ import (
 	"testing"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealtestenv"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 func TestMain(m *testing.M) {
 	ealtestenv.Init()
-	initMempools()
+	directDataroom = ndni.PacketMempool.Config().Dataroom
 	os.Exit(m.Run())
 }

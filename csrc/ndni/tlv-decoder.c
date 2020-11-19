@@ -1,7 +1,7 @@
 #include "tlv-decoder.h"
 
 void
-TlvDecoder_Read_NonContiguous_(TlvDecoder* d, uint8_t* output, uint16_t count)
+TlvDecoder_Copy_(TlvDecoder* d, uint8_t* output, uint16_t count)
 {
   for (uint16_t remain = count; remain > 0;) {
     uint16_t here = d->m->data_len - d->offset;
@@ -117,7 +117,7 @@ TlvDecoder_Linearize_MoveToFirst_(TlvDecoder* d, uint16_t count)
   d->m = c->next;
   d->offset = 0;
   d->length -= here;
-  TlvDecoder_Read_NonContiguous_(d, room, remain);
+  TlvDecoder_Copy_(d, room, remain);
 
   TlvDecoder_Linearize_Delete_(d, c);
   return rte_pktmbuf_mtod_offset(c, const uint8_t*, co);
@@ -137,7 +137,7 @@ TlvDecoder_Linearize_CopyToNew_(TlvDecoder* d, uint16_t count)
   r->data_off = 0;
   uint8_t* output = (uint8_t*)rte_pktmbuf_append(r, count);
   NDNDPDK_ASSERT(output != NULL); // dataroom is checked by caller
-  TlvDecoder_Read_NonContiguous_(d, output, count);
+  TlvDecoder_Copy_(d, output, count);
 
   r->next = c->next;
   c->next = r;

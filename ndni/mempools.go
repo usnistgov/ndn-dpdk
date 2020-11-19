@@ -5,8 +5,6 @@ package ndni
 */
 import "C"
 import (
-	"unsafe"
-
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 )
@@ -70,10 +68,22 @@ func init() {
 	})
 }
 
-// MakePacketMempools creates mempools and assigns them to *C.PacketMempools.
-func MakePacketMempools(ptr unsafe.Pointer, socket eal.NumaSocket) {
-	c := (*C.PacketMempools)(ptr)
-	c.packet = (*C.struct_rte_mempool)(PacketMempool.MakePool(socket).Ptr())
-	c.indirect = (*C.struct_rte_mempool)(IndirectMempool.MakePool(socket).Ptr())
-	c.header = (*C.struct_rte_mempool)(HeaderMempool.MakePool(socket).Ptr())
+// Mempools is a set of mempools for packet modification.
+type Mempools C.PacketMempools
+
+// Assign creates mempools from templates.
+//
+// To use alternate templates:
+//  Assign([HeaderMempool[, PacketMempool]])
+func (mp *Mempools) Assign(socket eal.NumaSocket, tpl ...pktmbuf.Template) {
+	if len(tpl) < 1 {
+		tpl = append(tpl, HeaderMempool)
+	}
+	if len(tpl) < 2 {
+		tpl = append(tpl, PacketMempool)
+	}
+
+	mp.packet = (*C.struct_rte_mempool)(tpl[1].MakePool(socket).Ptr())
+	mp.indirect = (*C.struct_rte_mempool)(IndirectMempool.MakePool(socket).Ptr())
+	mp.header = (*C.struct_rte_mempool)(tpl[0].MakePool(socket).Ptr())
 }

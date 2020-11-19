@@ -28,32 +28,12 @@ __attribute__((nonnull)) static Packet*
 TgProducer_RespondData(TgProducer* producer, TgProducerPattern* pattern, TgProducerReply* reply,
                        Packet* npkt)
 {
-  LpL3* lpl3 = Packet_GetLpL3Hdr(npkt);
-  uint64_t token = lpl3->pitToken;
   const LName* name = (const LName*)&Packet_GetInterestHdr(npkt)->name;
-
-  struct rte_mbuf* segs[2];
-
-  segs[0] = rte_pktmbuf_alloc(producer->dataMp);
-  if (unlikely(segs[0] == NULL)) {
-    ZF_LOGW("dataMp-full");
-    ++producer->nAllocError;
-    rte_pktmbuf_free(Packet_ToMbuf(npkt));
-    return NULL;
+  Packet* output = DataGen_Encode(&reply->dataGen, *name, &producer->mp);
+  if (likely(output != NULL)) {
+    Packet_GetLpL3Hdr(output)->pitToken = Packet_GetLpL3Hdr(npkt)->pitToken;
   }
-
-  segs[1] = rte_pktmbuf_alloc(producer->indirectMp);
-  if (unlikely(segs[1] == NULL)) {
-    ZF_LOGW("indirectMp-full");
-    ++producer->nAllocError;
-    segs[1] = Packet_ToMbuf(npkt);
-    rte_pktmbuf_free_bulk(segs, 2);
-    return NULL;
-  }
-
-  Packet* output = DataGen_Encode(reply->dataGen, segs[0], segs[1], *name);
   rte_pktmbuf_free(Packet_ToMbuf(npkt));
-  Packet_GetLpL3Hdr(output)->pitToken = token;
   return output;
 }
 

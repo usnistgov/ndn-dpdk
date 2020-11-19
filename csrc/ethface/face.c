@@ -79,16 +79,8 @@ EthFace_TxBurst(Face* face, struct rte_mbuf** pkts, uint16_t nPkts)
   EthFacePriv* priv = Face_GetPriv(face);
   for (uint16_t i = 0; i < nPkts; ++i) {
     struct rte_mbuf* m = pkts[i];
+    NDNDPDK_ASSERT(!face->txAlign.linearize || rte_pktmbuf_is_contiguous(m));
     EthTxHdr_Prepend(&priv->txHdr, m);
-    if (unlikely(priv->txLinearize)) {
-      if (rte_pktmbuf_tailroom(m) < m->pkt_len - m->data_len) {
-        const void* buf = rte_pktmbuf_mtod(m, const void*);
-        m->data_off = RTE_PKTMBUF_HEADROOM;
-        memmove(rte_pktmbuf_mtod(m, void*), buf, m->data_len);
-      }
-      int res = rte_pktmbuf_linearize(m);
-      NDNDPDK_ASSERT(res == 0);
-    }
   }
   return rte_eth_tx_burst(priv->port, TX_QUEUE_0, pkts, nPkts);
 }

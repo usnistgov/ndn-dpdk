@@ -77,7 +77,7 @@ func (fwd *Fwd) Init(lc eal.LCore, pcctCfg pcct.Config, qcfgI, qcfgD, qcfgN ifac
 	fwd.c.pit = &pcctC.pit
 	fwd.c.cs = &pcctC.cs
 
-	ndni.MakePacketMempools(unsafe.Pointer(&fwd.c.mp), socket)
+	(*ndni.Mempools)(unsafe.Pointer(&fwd.c.mp)).Assign(socket)
 
 	latencyStat := runningstat.FromPtr(unsafe.Pointer(&fwd.c.latencyStat))
 	latencyStat.Clear(false)

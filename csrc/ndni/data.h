@@ -42,6 +42,10 @@ DataDigest_Prepare(Packet* npkt, struct rte_crypto_op* op);
 __attribute__((nonnull)) Packet*
 DataDigest_Finish(struct rte_crypto_op* op);
 
+typedef struct DataGen DataGen;
+
+typedef Packet* (*DataGen_EncodeFunc)(DataGen* gen, LName prefix, PacketMempools* mp);
+
 /**
  * @brief Data encoder optimized for traffic generator.
  *
@@ -52,16 +56,24 @@ DataDigest_Finish(struct rte_crypto_op* op);
  */
 typedef struct DataGen
 {
+  struct rte_mbuf* tpl;
+  uint16_t suffixL;
+  DataGen_EncodeFunc encode;
 } DataGen;
+
+__attribute__((nonnull)) void
+DataGen_Init(DataGen* gen, PacketTxAlign align);
 
 /**
  * @brief Encode Data with DataGen template.
- * @param seg0 a uniquely owned, unsegmented, direct, empty mbuf.
- *             It must have @c DataGenDataroom buffer size.
- * @param seg1 segment 1 indirect mbuf. This is chained onto @p seg0 .
- * @return encoded packet, converted from @c seg0 .
+ * @param mp @c mp->header should have RTE_PKTMBUF_DATAROOM + LpHeaderHeadroom + DataGenDataroom.
+ * @return encoded packet.
+ * @retval NULL allocation failure.
  */
-__attribute__((nonnull, returns_nonnull)) Packet*
-DataGen_Encode(DataGen* gen, struct rte_mbuf* seg0, struct rte_mbuf* seg1, LName prefix);
+__attribute__((nonnull)) static inline Packet*
+DataGen_Encode(DataGen* gen, LName prefix, PacketMempools* mp)
+{
+  return (gen->encode)(gen, prefix, mp);
+}
 
 #endif // NDNDPDK_NDNI_DATA_H

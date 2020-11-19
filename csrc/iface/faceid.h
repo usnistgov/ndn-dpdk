@@ -12,6 +12,7 @@
  */
 typedef uint16_t FaceID;
 
+/** @brief printf format string for FaceID. */
 #define PRI_FaceID PRIu16
 
 #endif // NDNDPDK_IFACE_FACEID_H

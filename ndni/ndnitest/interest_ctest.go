@@ -106,18 +106,26 @@ func ctestInterestParse(t *testing.T) {
 	assert.Equal(bytesFromHex("0803484632"), C.GoBytes(unsafe.Pointer(interest.fwHint.value), C.int(interest.fwHint.length)))
 }
 
-func ctestInterestModifyNoAppParameters(t *testing.T) {
+func caseInterestModify(t *testing.T, linearize bool, nSegs int, input string, check func(interest *C.PInterest, u C.PInterestUnpacked)) {
 	assert, require := makeAR(t)
 
-	p := makePacket("050B 0703080141 0A04A0A1A2A3")
+	p := makePacket(input)
 	defer p.Close()
 	require.True(bool(C.Packet_Parse(p.npkt)))
 	require.EqualValues(ndni.PktInterest, C.Packet_GetType(p.npkt))
 
-	modify := toPacket(unsafe.Pointer(C.Interest_ModifyGuiders(p.npkt, 0xAFAEADAC, 8160, 15, &mempools)))
+	guiders := C.InterestGuiders{
+		nonce:    0xAFAEADAC,
+		lifetime: 8160,
+		hopLimit: 15,
+	}
+	align := C.PacketTxAlign{
+		linearize: C.bool(linearize),
+	}
+	modify := toPacket(unsafe.Pointer(C.Interest_ModifyGuiders(p.npkt, guiders, makeMempoolsC(), align)))
 	defer modify.Close()
 	assert.EqualValues(ndni.PktSInterest, C.Packet_GetType(modify.npkt))
-	assert.EqualValues(3, modify.mbuf.nb_segs)
+	assert.EqualValues(nSegs, modify.mbuf.nb_segs)
 
 	copy := makePacket(modify.Bytes())
 	require.True(bool(C.Packet_ParseL3(copy.npkt)))
@@ -125,11 +133,7 @@ func ctestInterestModifyNoAppParameters(t *testing.T) {
 	interest := C.Packet_GetInterestHdr(copy.npkt)
 	var u C.PInterestUnpacked
 	C.PInterest_Unpack(interest, &u)
-	assert.EqualValues(1, interest.name.nComps)
-	assert.Equal(bytesFromHex("080141"), C.GoBytes(unsafe.Pointer(interest.name.value), C.int(interest.name.length)))
-	assert.False(bool(interest.name.hasDigestComp))
-	assert.EqualValues(false, u.canBePrefix)
-	assert.EqualValues(false, u.mustBeFresh)
+	check(interest, u)
 	assert.EqualValues(0, u.nFwHints)
 	assert.EqualValues(-1, u.activeFwHint)
 	assert.EqualValues(0xAFAEADAC, interest.nonce)
@@ -137,33 +141,28 @@ func ctestInterestModifyNoAppParameters(t *testing.T) {
 	assert.EqualValues(15, interest.hopLimit)
 }
 
-func ctestInterestModifyWithAppParameters(t *testing.T) {
-	assert, require := makeAR(t)
+func ctestInterestModify(t *testing.T) {
+	assert, _ := makeAR(t)
 
-	p := makePacket("051A 0703080141 2100 1200 0A04A0A1A2A3 2400 2C031B0101 2E02E0E1")
-	defer p.Close()
-	require.True(bool(C.Packet_Parse(p.npkt)))
-	require.EqualValues(ndni.PktInterest, C.Packet_GetType(p.npkt))
+	const inputShort = "050B 0703080141 0A04A0A1A2A3"
+	checkShort := func(interest *C.PInterest, u C.PInterestUnpacked) {
+		assert.EqualValues(1, interest.name.nComps)
+		assert.Equal(bytesFromHex("080141"), C.GoBytes(unsafe.Pointer(interest.name.value), C.int(interest.name.length)))
+		assert.False(bool(interest.name.hasDigestComp))
+		assert.EqualValues(false, u.canBePrefix)
+		assert.EqualValues(false, u.mustBeFresh)
+	}
+	caseInterestModify(t, false, 3, inputShort, checkShort)
+	caseInterestModify(t, true, 1, inputShort, checkShort)
 
-	modify := toPacket(unsafe.Pointer(C.Interest_ModifyGuiders(p.npkt, 0xAFAEADAC, 8160, 15, &mempools)))
-	defer modify.Close()
-	assert.EqualValues(ndni.PktSInterest, C.Packet_GetType(modify.npkt))
-	assert.EqualValues(4, modify.mbuf.nb_segs)
-
-	copy := makePacket(modify.Bytes())
-	require.True(bool(C.Packet_ParseL3(copy.npkt)))
-	require.EqualValues(ndni.PktInterest, C.Packet_GetType(copy.npkt))
-	interest := C.Packet_GetInterestHdr(copy.npkt)
-	var u C.PInterestUnpacked
-	C.PInterest_Unpack(interest, &u)
-	assert.EqualValues(1, interest.name.nComps)
-	assert.Equal(bytesFromHex("080141"), C.GoBytes(unsafe.Pointer(interest.name.value), C.int(interest.name.length)))
-	assert.False(bool(interest.name.hasDigestComp))
-	assert.EqualValues(true, u.canBePrefix)
-	assert.EqualValues(true, u.mustBeFresh)
-	assert.EqualValues(0, u.nFwHints)
-	assert.EqualValues(-1, u.activeFwHint)
-	assert.EqualValues(0xAFAEADAC, interest.nonce)
-	assert.EqualValues(8160, interest.lifetime)
-	assert.EqualValues(15, interest.hopLimit)
+	const inputLong = "051A 0703080142 2100 1200 0A04A0A1A2A3 2400 2C031B0101 2E02E0E1"
+	checkLong := func(interest *C.PInterest, u C.PInterestUnpacked) {
+		assert.EqualValues(1, interest.name.nComps)
+		assert.Equal(bytesFromHex("080142"), C.GoBytes(unsafe.Pointer(interest.name.value), C.int(interest.name.length)))
+		assert.False(bool(interest.name.hasDigestComp))
+		assert.EqualValues(true, u.canBePrefix)
+		assert.EqualValues(true, u.mustBeFresh)
+	}
+	caseInterestModify(t, false, 4, inputLong, checkLong)
+	caseInterestModify(t, true, 1, inputLong, checkLong)
 }

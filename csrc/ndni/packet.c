@@ -69,8 +69,38 @@ Packet_ParseL3(Packet* npkt)
   return false;
 }
 
-Packet*
-Packet_Clone(Packet* npkt, PacketMempools* mp)
+__attribute__((nonnull, returns_nonnull)) static Packet*
+Packet_Clone_Finish(Packet* npkt, struct rte_mbuf* pkt)
+{
+  Packet* output = Packet_FromMbuf(pkt);
+  Packet_SetType(output, PktType_ToSlim(Packet_GetType(npkt)));
+  *Packet_GetPriv_(output) = (const PacketPriv){ 0 };
+  return output;
+}
+
+__attribute__((nonnull)) static Packet*
+Packet_Clone_Linear(Packet* npkt, PacketMempools* mp)
+{
+  struct rte_mbuf* m = rte_pktmbuf_alloc(mp->packet);
+  if (unlikely(m == NULL)) {
+    return NULL;
+  }
+  m->data_off = RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom;
+  NDNDPDK_ASSERT(m->data_off <= m->buf_len);
+
+  struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
+  uint8_t* room = (uint8_t*)rte_pktmbuf_append(m, pkt->pkt_len);
+  if (unlikely(room == NULL)) {
+    rte_pktmbuf_free(m);
+    return NULL;
+  }
+
+  Mbuf_CopyTo(pkt, room);
+  return Packet_Clone_Finish(npkt, m);
+}
+
+__attribute__((nonnull)) static Packet*
+Packet_Clone_Chained(Packet* npkt, PacketMempools* mp)
 {
   struct rte_mbuf* header = rte_pktmbuf_alloc(mp->header);
   if (unlikely(header == NULL)) {
@@ -88,8 +118,14 @@ Packet_Clone(Packet* npkt, PacketMempools* mp)
     return NULL;
   }
 
-  Packet* output = Packet_FromMbuf(header);
-  Packet_SetType(output, PktType_ToSlim(Packet_GetType(npkt)));
-  *Packet_GetPriv_(output) = (const PacketPriv){ 0 };
-  return output;
+  return Packet_Clone_Finish(npkt, header);
+}
+
+Packet*
+Packet_Clone(Packet* npkt, PacketMempools* mp, PacketTxAlign align)
+{
+  if (align.linearize) {
+    return Packet_Clone_Linear(npkt, mp);
+  }
+  return Packet_Clone_Chained(npkt, mp);
 }

@@ -83,7 +83,7 @@ FwFwd_InterestForward(FwFwd* fwd, FwFwdCtx* ctx)
 __attribute__((nonnull)) static void
 FwFwd_InterestHitCs(FwFwd* fwd, FwFwdCtx* ctx, CsEntry* csEntry)
 {
-  Packet* outNpkt = Packet_Clone(csEntry->data, &fwd->mp);
+  Packet* outNpkt = Packet_Clone(csEntry->data, &fwd->mp, Face_PacketTxAlign(ctx->rxFace));
   ZF_LOGD("^ cs-entry=%p data-to=%" PRI_FaceID " npkt=%p dn-token=%016" PRIx64, csEntry,
           ctx->rxFace, outNpkt, ctx->rxToken);
   if (likely(outNpkt != NULL)) {
@@ -172,21 +172,23 @@ SgForwardInterest(SgCtx* ctx0, FaceID nh)
     return SGFWDI_SUPPRESSED;
   }
 
-  uint32_t upNonce = ctx->dnNonce;
-  bool hasNonce = PitUp_ChooseNonce(up, ctx->pitEntry, now, &upNonce);
+  InterestGuiders guiders = {
+    .nonce = ctx->dnNonce,
+    .lifetime = PitEntry_GetTxInterestLifetime(ctx->pitEntry, now),
+    .hopLimit = PitEntry_GetTxInterestHopLimit(ctx->pitEntry),
+  };
+  bool hasNonce = PitUp_ChooseNonce(up, ctx->pitEntry, now, &guiders.nonce);
   if (unlikely(!hasNonce)) {
     ZF_LOGD("^ no-interest-to=%" PRI_FaceID " drop=nonces-rejected", nh);
     return SGFWDI_NONONCE;
   }
-
-  uint32_t upLifetime = PitEntry_GetTxInterestLifetime(ctx->pitEntry, now);
-  uint8_t upHopLimit = PitEntry_GetTxInterestHopLimit(ctx->pitEntry);
-  if (unlikely(upHopLimit == 0)) {
+  if (unlikely(guiders.hopLimit == 0)) {
     ZF_LOGD("^ no-interest-to=%" PRI_FaceID " drop=hoplimit-zero", nh);
     return SGFWDI_HOPZERO;
   }
+
   Packet* outNpkt =
-    Interest_ModifyGuiders(ctx->pitEntry->npkt, upNonce, upLifetime, upHopLimit, &fwd->mp);
+    Interest_ModifyGuiders(ctx->pitEntry->npkt, guiders, &fwd->mp, Face_PacketTxAlign(nh));
   if (unlikely(outNpkt == NULL)) {
     ZF_LOGD("^ no-interest-to=%" PRI_FaceID " drop=alloc-error", nh);
     return SGFWDI_ALLOCERR;
@@ -196,13 +198,12 @@ SgForwardInterest(SgCtx* ctx0, FaceID nh)
   Packet_GetLpL3Hdr(outNpkt)->pitToken = token;
   Packet_ToMbuf(outNpkt)->timestamp = ctx->rxTime; // for latency stats
 
-  ZF_LOGD("^ interest-to=%" PRI_FaceID " npkt=%p nonce=%08" PRIx32 " lifetime=%" PRIu32
-          " hopLimit=%" PRIu8 " up-token=%016" PRIx64,
-          nh, outNpkt, upNonce, upLifetime, upHopLimit, token);
+  ZF_LOGD("^ interest-to=%" PRI_FaceID " npkt=%p " PRI_InterestGuiders " up-token=%016" PRIx64, nh,
+          outNpkt, InterestGuiders_Fmt(guiders), token);
   Face_Tx(nh, outNpkt);
   ++ctx->fibEntryDyn->nTxInterests;
 
-  PitUp_RecordTx(up, ctx->pitEntry, now, upNonce, &fwd->suppressCfg);
+  PitUp_RecordTx(up, ctx->pitEntry, now, guiders.nonce, &fwd->suppressCfg);
   ++ctx->nForwarded;
   return SGFWDI_OK;
 }

@@ -25,7 +25,12 @@ FwFwd_TxNacks(FwFwd* fwd, PitEntry* pitEntry, TscTime now, NackReason reason, ui
       continue;
     }
 
-    Packet* output = Interest_ModifyGuiders(pitEntry->npkt, dn->nonce, 0, nackHopLimit, &fwd->mp);
+    InterestGuiders guiders = {
+      .nonce = dn->nonce,
+      .hopLimit = nackHopLimit,
+    };
+    Packet* output =
+      Interest_ModifyGuiders(pitEntry->npkt, guiders, &fwd->mp, Face_PacketTxAlign(dn->face));
     if (unlikely(output == NULL)) {
       ZF_LOGD("^ no-nack-to=%" PRI_FaceID " drop=alloc-error", dn->face);
       break;
@@ -52,20 +57,23 @@ __attribute__((nonnull)) static bool
 FwFwd_RxNackDuplicate(FwFwd* fwd, FwFwdCtx* ctx)
 {
   TscTime now = rte_get_tsc_cycles();
+  PitUp* up = ctx->pitUp;
+  PitUp_AddRejectedNonce(up, up->nonce);
 
-  uint32_t upNonce = ctx->pitUp->nonce;
-  PitUp_AddRejectedNonce(ctx->pitUp, upNonce);
-  bool hasAltNonce = PitUp_ChooseNonce(ctx->pitUp, ctx->pitEntry, now, &upNonce);
+  InterestGuiders guiders = {
+    .nonce = up->nonce,
+    .lifetime = PitEntry_GetTxInterestLifetime(ctx->pitEntry, now),
+    .hopLimit = PitEntry_GetTxInterestHopLimit(ctx->pitEntry),
+  };
+  bool hasAltNonce = PitUp_ChooseNonce(up, ctx->pitEntry, now, &guiders.nonce);
   if (!hasAltNonce) {
     return false;
   }
 
-  uint32_t upLifetime = PitEntry_GetTxInterestLifetime(ctx->pitEntry, now);
-  uint8_t upHopLimit = PitEntry_GetTxInterestHopLimit(ctx->pitEntry);
   Packet* outNpkt =
-    Interest_ModifyGuiders(ctx->pitEntry->npkt, upNonce, upLifetime, upHopLimit, &fwd->mp);
+    Interest_ModifyGuiders(ctx->pitEntry->npkt, guiders, &fwd->mp, Face_PacketTxAlign(up->face));
   if (unlikely(outNpkt == NULL)) {
-    ZF_LOGD("^ no-interest-to=%" PRI_FaceID " drop=alloc-error", ctx->pitUp->face);
+    ZF_LOGD("^ no-interest-to=%" PRI_FaceID " drop=alloc-error", up->face);
     return true;
   }
 
@@ -73,15 +81,14 @@ FwFwd_RxNackDuplicate(FwFwd* fwd, FwFwdCtx* ctx)
   Packet_GetLpL3Hdr(outNpkt)->pitToken = token;
   Packet_ToMbuf(outNpkt)->timestamp = ctx->pkt->timestamp; // for latency stats
 
-  ZF_LOGD("^ interest-to=%" PRI_FaceID " npkt=%p nonce=%08" PRIx32 " lifetime=%" PRIu32
-          " hopLimit=%" PRIu8 " up-token=%016" PRIx64,
-          ctx->pitUp->face, outNpkt, upNonce, upLifetime, upHopLimit, token);
-  Face_Tx(ctx->pitUp->face, outNpkt);
+  ZF_LOGD("^ interest-to=%" PRI_FaceID " npkt=%p " PRI_InterestGuiders " up-token=%016" PRIx64,
+          up->face, outNpkt, InterestGuiders_Fmt(guiders), token);
+  Face_Tx(up->face, outNpkt);
   if (ctx->fibEntryDyn != NULL) {
     ++ctx->fibEntryDyn->nTxInterests;
   }
 
-  PitUp_RecordTx(ctx->pitUp, ctx->pitEntry, now, upNonce, &fwd->suppressCfg);
+  PitUp_RecordTx(up, ctx->pitEntry, now, guiders.nonce, &fwd->suppressCfg);
   return true;
 }
 

@@ -140,28 +140,71 @@ DataDigest_Finish(struct rte_crypto_op* op)
   return npkt;
 }
 
-Packet*
-DataGen_Encode(DataGen* gen, struct rte_mbuf* seg0, struct rte_mbuf* seg1, LName prefix)
+__attribute__((nonnull, returns_nonnull)) static Packet*
+DataGen_Encode_Finish(struct rte_mbuf* m)
 {
-  struct rte_mbuf* tpl1 = (struct rte_mbuf*)gen;
-  uint16_t nameSuffixL = tpl1->vlan_tci;
+  TlvEncoder_PrependTL(m, TtData, m->pkt_len);
 
-  NDNDPDK_ASSERT(RTE_MBUF_DIRECT(seg0) && rte_pktmbuf_is_contiguous(seg0) &&
-                 rte_mbuf_refcnt_read(seg0) == 1 && seg0->data_len == 0 &&
-                 seg0->buf_len >= DataGenDataroom);
-  seg0->data_off = seg0->buf_len;
-  if (likely(prefix.length > 0)) {
-    rte_memcpy(rte_pktmbuf_prepend(seg0, prefix.length), prefix.value, prefix.length);
-  }
-  TlvEncoder_PrependTL(seg0, TtName, prefix.length + nameSuffixL);
-
-  rte_pktmbuf_attach(seg1, tpl1);
-  bool ok = Mbuf_Chain(seg0, seg0, seg1);
-  NDNDPDK_ASSERT(ok);
-  TlvEncoder_PrependTL(seg0, TtData, seg0->pkt_len);
-
-  Packet* output = Packet_FromMbuf(seg0);
+  Packet* output = Packet_FromMbuf(m);
   Packet_SetType(output, PktSData);
   *Packet_GetLpL3Hdr(output) = (const LpL3){ 0 };
   return output;
+}
+
+__attribute__((nonnull)) static Packet*
+DataGen_Encode_Linear(DataGen* gen, LName prefix, PacketMempools* mp)
+{
+  struct rte_mbuf* m = rte_pktmbuf_alloc(mp->packet);
+  if (unlikely(m == NULL)) {
+    return NULL;
+  }
+  m->data_off = RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom + //
+                1 + 3 + 1 + 3;                            // Data TL + Name TL
+  NDNDPDK_ASSERT(m->data_off <= m->buf_len);
+
+  if (likely(prefix.length > 0)) {
+    rte_memcpy(rte_pktmbuf_append(m, prefix.length), prefix.value, prefix.length);
+  }
+  TlvEncoder_PrependTL(m, TtName, prefix.length + gen->suffixL);
+
+  rte_memcpy(rte_pktmbuf_append(m, gen->tpl->data_len), rte_pktmbuf_mtod(gen->tpl, const uint8_t*),
+             gen->tpl->data_len);
+  return DataGen_Encode_Finish(m);
+}
+
+__attribute__((nonnull)) static Packet*
+DataGen_Encode_Chained(DataGen* gen, LName prefix, PacketMempools* mp)
+{
+  struct rte_mbuf* seg0 = rte_pktmbuf_alloc(mp->header);
+  if (unlikely(seg0 == NULL)) {
+    return NULL;
+  }
+  struct rte_mbuf* seg1 = rte_pktmbuf_alloc(mp->indirect);
+  if (unlikely(seg1 == NULL)) {
+    rte_pktmbuf_free(seg0);
+    return NULL;
+  }
+  seg0->data_off = RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom + //
+                   1 + 3 + 1 + 3;                            // Data TL + Name TL
+  NDNDPDK_ASSERT(seg0->data_off <= seg0->buf_len);
+
+  if (likely(prefix.length > 0)) {
+    rte_memcpy(rte_pktmbuf_append(seg0, prefix.length), prefix.value, prefix.length);
+  }
+  TlvEncoder_PrependTL(seg0, TtName, prefix.length + gen->suffixL);
+
+  rte_pktmbuf_attach(seg1, gen->tpl);
+  bool ok = Mbuf_Chain(seg0, seg0, seg1);
+  NDNDPDK_ASSERT(ok);
+  return DataGen_Encode_Finish(seg0);
+}
+
+void
+DataGen_Init(DataGen* gen, PacketTxAlign align)
+{
+  if (align.linearize) {
+    gen->encode = DataGen_Encode_Linear;
+  } else {
+    gen->encode = DataGen_Encode_Chained;
+  }
 }

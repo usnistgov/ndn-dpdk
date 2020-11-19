@@ -25,4 +25,10 @@ typedef struct PacketMempools
   struct rte_mempool* header;
 } PacketMempools;
 
+/** @brief mbuf alignment requirements for packet modification. */
+typedef struct PacketTxAlign
+{
+  bool linearize; ///< whether mbuf must be linearized
+} PacketTxAlign;
+
 #endif // NDNDPDK_NDNI_COMMON_H

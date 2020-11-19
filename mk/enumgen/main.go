@@ -46,7 +46,7 @@ enum {
   {{.Key}} = {{.Value}},
   {{- end}}
 {{- if .Typename}}
-} {{.Typename}};
+} __attribute__((packed)) {{.Typename}};
 {{- else}}
 };
 {{- end}}

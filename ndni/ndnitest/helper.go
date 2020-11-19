@@ -8,11 +8,11 @@ import (
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
 )
 
 var (
@@ -22,14 +22,12 @@ var (
 	nameEqual    = ndntestenv.NameEqual
 
 	directDataroom int
-	mempools       C.PacketMempools
 )
 
-func initMempools() {
-	directDataroom = ndni.PacketMempool.Config().Dataroom
-	mempools.packet = (*C.struct_rte_mempool)(mbuftestenv.Direct.Pool().Ptr())
-	mempools.indirect = (*C.struct_rte_mempool)(mbuftestenv.Indirect.Pool().Ptr())
-	mempools.header = (*C.struct_rte_mempool)(ndnitestenv.Header.Pool().Ptr())
+func makeMempoolsC() *C.PacketMempools {
+	var mp ndni.Mempools
+	mp.Assign(eal.NumaSocket{})
+	return (*C.PacketMempools)(unsafe.Pointer(&mp))
 }
 
 type packet struct {
