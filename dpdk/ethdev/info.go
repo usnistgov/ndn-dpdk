@@ -6,6 +6,7 @@ package ethdev
 import "C"
 import (
 	"fmt"
+	"unsafe"
 
 	"github.com/pkg/math"
 )
@@ -15,9 +16,14 @@ const (
 	txOffloadChecksum  = C.DEV_TX_OFFLOAD_IPV4_CKSUM | C.DEV_TX_OFFLOAD_UDP_CKSUM
 )
 
+func (info DevInfo) driverName() string {
+	return C.GoString((*C.char)(unsafe.Pointer(info.Driver_name)))
+}
+
 // HasTxMultiSegOffload determines whether device can transmit multi-segment packets.
 func (info DevInfo) HasTxMultiSegOffload() bool {
-	return (info.Tx_offload_capa & txOffloadMultiSegs) == txOffloadMultiSegs
+	return (info.Tx_offload_capa&txOffloadMultiSegs) == txOffloadMultiSegs ||
+		info.driverName() == "net_ring"
 }
 
 // HasTxChecksumOffload determines whether device can compute IPv4 and UDP checksum offload upon transmission.

@@ -76,7 +76,7 @@ Locator of a VXLAN tunnel face has the following fields:
 UDP and VXLAN tunnels can coexist with Ethernet faces on the same port.
 Multiple UDP and VXLAN tunnels can coexist if any of the following is true:
 
-* One of *local*, *remote*, *vlan*, *localIP*, and *remoteIP* is different.
+* One of *vlan*, *localIP*, and *remoteIP* is different.
 * Both are UDP tunnels, and one of *localUDP* and *remoteUDP* is different.
 * Both *localUDP* and *remoteUDP* are different.
 * Both are VXLAN tunnels, and one of *vxlan*, *innerLocal*, and *innerRemote* is different.

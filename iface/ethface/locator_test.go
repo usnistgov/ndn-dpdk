@@ -47,12 +47,15 @@ func TestLocatorCoexist(t *testing.T) {
 	// "udpe" scheme
 	const ipA = `,"localIP":"192.168.37.1","remoteIP":"192.168.37.2"`
 	const ipB = `,"localIP":"192.168.37.1","remoteIP":"192.168.37.12"`
-	conflict( // same IP addresses and ports
+	conflict( // same IP addresses and ports, same MAC addresses
 		`{"scheme":"udpe","localUDP":6363,"remoteUDP":6363`+ipA+etherA,
 		`{"scheme":"udpe","localUDP":6363,"remoteUDP":6363`+ipA+etherA)
-	coexist( // same IP addresses and ports but different MAC addresses
+	conflict( // same IP addresses and ports, different MAC addresses
 		`{"scheme":"udpe","localUDP":6363,"remoteUDP":6363`+ipA+etherA,
 		`{"scheme":"udpe","localUDP":6363,"remoteUDP":6363`+ipA+etherB)
+	coexist( // same IP addresses and ports, different VLAN
+		`{"scheme":"udpe","localUDP":6363,"remoteUDP":6363`+ipA+etherA,
+		`{"scheme":"udpe","localUDP":6363,"remoteUDP":6363,"vlan":2`+ipA+etherA)
 	coexist( // different localIP
 		`{"scheme":"udpe","localIP":"192.168.37.1","remoteIP":"192.168.37.2","localUDP":6363,"remoteUDP":6363`+etherA,
 		`{"scheme":"udpe","localIP":"192.168.37.11","remoteIP":"192.168.37.2","localUDP":6363,"remoteUDP":6363`+etherA)
@@ -73,12 +76,15 @@ func TestLocatorCoexist(t *testing.T) {
 	// "vxlan" scheme
 	const innerA = `,"innerLocal":"02:01:00:00:00:00","innerRemote":"02:01:00:00:01:00"`
 	const innerB = `,"innerLocal":"02:01:00:00:00:00","innerRemote":"02:01:00:00:01:01"`
-	conflict( // same IP addresses and ports
+	conflict( // same IP addresses and ports, same outer MAC addresse
 		`{"scheme":"vxlan","localUDP":4789,"remoteUDP":4789,"vxlan":1`+innerA+ipA+etherA,
 		`{"scheme":"vxlan","localUDP":4789,"remoteUDP":4789,"vxlan":1`+innerA+ipA+etherA)
-	coexist( // same IP addresses and ports, but different outer MAC addresses
+	conflict( // same IP addresses and ports, different outer MAC addresses
 		`{"scheme":"vxlan","localUDP":4789,"remoteUDP":4789,"vxlan":1`+innerA+ipA+etherA,
 		`{"scheme":"vxlan","localUDP":4789,"remoteUDP":4789,"vxlan":1`+innerA+ipA+etherB)
+	coexist( // same IP addresses and ports, different outer VLAN
+		`{"scheme":"vxlan","localUDP":4789,"remoteUDP":4789,"vxlan":1`+innerA+ipA+etherA,
+		`{"scheme":"vxlan","localUDP":4789,"remoteUDP":4789,"vxlan":1,"vlan":2`+innerA+ipA+etherA)
 	coexist( // different IP addresses
 		`{"scheme":"vxlan","localUDP":4789,"remoteUDP":4789,"vxlan":1`+innerA+ipA+etherA,
 		`{"scheme":"vxlan","localUDP":4789,"remoteUDP":4789,"vxlan":1`+innerA+ipB+etherA)

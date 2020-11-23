@@ -72,7 +72,7 @@ EthRxMatch_Match(const EthRxMatch* match, struct rte_mbuf* m)
 
 typedef struct EthFlowPattern
 {
-  struct rte_flow_item pattern[6];
+  struct rte_flow_item pattern[7];
   struct rte_flow_item_eth ethSpec;
   struct rte_flow_item_eth ethMask;
   struct rte_flow_item_vlan vlanSpec;
@@ -85,6 +85,8 @@ typedef struct EthFlowPattern
   struct rte_flow_item_udp udpMask;
   struct rte_flow_item_vxlan vxlanSpec;
   struct rte_flow_item_vxlan vxlanMask;
+  struct rte_flow_item_eth innerEthSpec;
+  struct rte_flow_item_eth innerEthMask;
 } EthFlowPattern;
 
 /** @brief Prepare rte_flow pattern from locator. */

@@ -33,12 +33,19 @@ func readFlowErr(e C.struct_rte_flow_error) error {
 	if e._type == C.RTE_FLOW_ERROR_TYPE_NONE {
 		return nil
 	}
-	return fmt.Errorf("%d %s %d", e._type, C.GoString(e.message), uintptr(e.cause))
+
+	causeFmt, cause := "%p", interface{}(e.cause)
+	if causeOffset := uintptr(e.cause); causeOffset < uintptr(C.sizeof_EthFlowPattern) {
+		causeFmt, cause = "%d", causeOffset
+	}
+
+	return fmt.Errorf("%d %s "+causeFmt, e._type, C.GoString(e.message), cause)
 }
 
 type rxFlowImpl struct {
-	port   *Port
-	queues []rxqState
+	port     *Port
+	isolated bool
+	queues   []rxqState
 }
 
 func newRxFlowImpl(port *Port) impl {
@@ -57,10 +64,12 @@ func (impl *rxFlowImpl) setIsolate(enable bool) error {
 	if enable {
 		set = 1
 	}
+
 	var flowErr C.struct_rte_flow_error
 	if res := C.rte_flow_isolate(C.uint16_t(impl.port.dev.ID()), set, &flowErr); res != 0 {
 		return readFlowErr(flowErr)
 	}
+	impl.isolated = enable
 	return nil
 }
 
@@ -70,7 +79,7 @@ func (impl *rxFlowImpl) Init() error {
 	}
 
 	if e := impl.setIsolate(true); e != nil {
-		return e
+		impl.port.logger.WithError(e).Warn("flow isolated mode unavailable")
 	}
 
 	devInfo := impl.port.dev.DevInfo()
@@ -79,7 +88,7 @@ func (impl *rxFlowImpl) Init() error {
 		return errors.New("unable to retrieve max_rx_queues")
 	}
 
-	if e := startDev(impl.port, nRxQueues, false); e != nil {
+	if e := startDev(impl.port, nRxQueues, !impl.isolated); e != nil {
 		return e
 	}
 
@@ -100,7 +109,7 @@ func (impl *rxFlowImpl) Start(face *ethFace) error {
 		return errors.New("no available queue")
 	}
 
-	rxfs, e := newRxFlow(face, queues)
+	rxfs, e := newRxFlow(face, queues, impl.isolated)
 	if e != nil {
 		return e
 	}
@@ -165,7 +174,7 @@ type rxFlow struct {
 	queue int
 }
 
-func newRxFlow(face *ethFace, queues []int) ([]*rxFlow, error) {
+func newRxFlow(face *ethFace, queues []int, isolated bool) ([]*rxFlow, error) {
 	priv := face.priv
 
 	cQueues := make([]C.uint16_t, len(queues))
@@ -175,7 +184,7 @@ func newRxFlow(face *ethFace, queues []int) ([]*rxFlow, error) {
 
 	cLoc := face.loc.cLoc()
 	var flowErr C.struct_rte_flow_error
-	flow := C.EthFace_SetupFlow(priv, &cQueues[0], C.int(len(queues)), cLoc.ptr(), &flowErr)
+	flow := C.EthFace_SetupFlow(priv, &cQueues[0], C.int(len(queues)), cLoc.ptr(), C.bool(isolated), &flowErr)
 	if flow == nil {
 		return nil, readFlowErr(flowErr)
 	}

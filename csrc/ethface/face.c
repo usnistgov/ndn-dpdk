@@ -4,31 +4,53 @@
 INIT_ZF_LOG(EthFace);
 
 __attribute__((nonnull)) static uint16_t
-EthRxFlow_RxBurst(RxGroup* rxg, struct rte_mbuf** pkts, uint16_t nPkts)
+EthRxFlow_RxBurst_Unchecked(RxGroup* rxg, struct rte_mbuf** pkts, uint16_t nPkts)
 {
   EthRxFlow* rxf = (EthRxFlow*)rxg;
   uint16_t nRx = rte_eth_rx_burst(rxf->port, rxf->queue, pkts, nPkts);
   uint64_t now = rte_get_tsc_cycles();
   for (uint16_t i = 0; i < nRx; ++i) {
-    struct rte_mbuf* frame = pkts[i];
-    frame->port = rxf->faceID;
-    frame->timestamp = now;
-    rte_pktmbuf_adj(frame, rxf->hdrLen);
+    struct rte_mbuf* m = pkts[i];
+    m->timestamp = now;
+    m->port = rxf->faceID;
+    rte_pktmbuf_adj(m, rxf->hdrLen);
+  }
+  return nRx;
+}
+
+__attribute__((nonnull)) static uint16_t
+EthRxFlow_RxBurst_Checked(RxGroup* rxg, struct rte_mbuf** pkts, uint16_t nPkts)
+{
+  EthRxFlow* rxf = (EthRxFlow*)rxg;
+  uint16_t nInput = rte_eth_rx_burst(rxf->port, rxf->queue, pkts, nPkts);
+  uint64_t now = rte_get_tsc_cycles();
+
+  uint16_t nRx = 0, nRej = 0;
+  struct rte_mbuf* rejects[MaxBurstSize];
+  for (uint16_t i = 0; i < nInput; ++i) {
+    struct rte_mbuf* m = pkts[i];
+    if (likely(EthRxMatch_Match(rxf->rxMatch, m))) {
+      m->timestamp = now;
+      m->port = rxf->faceID;
+      pkts[nRx++] = m;
+    } else {
+      rejects[nRej++] = m;
+    }
+  }
+
+  if (unlikely(nRej > 0)) {
+    rte_pktmbuf_free_bulk(rejects, nRej);
   }
   return nRx;
 }
 
 struct rte_flow*
 EthFace_SetupFlow(EthFacePriv* priv, uint16_t queues[], int nQueues, const EthLocator* loc,
-                  struct rte_flow_error* error)
+                  bool isolated, struct rte_flow_error* error)
 {
   assert(nQueues > 0 && nQueues < (int)RTE_DIM(priv->rxf));
 
-  struct rte_flow_attr attr = {
-    .group = 0,
-    .priority = 1,
-    .ingress = true,
-  };
+  struct rte_flow_attr attr = { .ingress = true };
 
   EthFlowPattern pattern;
   EthFlowPattern_Prepare(&pattern, loc);
@@ -50,7 +72,10 @@ EthFace_SetupFlow(EthFacePriv* priv, uint16_t queues[], int nQueues, const EthLo
 
   struct rte_flow* flow = rte_flow_create(priv->port, &attr, pattern.pattern, actions, error);
   if (flow == NULL) {
-    error->cause = (const void*)RTE_PTR_DIFF(error->cause, &pattern);
+    ptrdiff_t offset = RTE_PTR_DIFF(error->cause, &pattern);
+    if (offset >= 0 && (size_t)offset < sizeof(pattern)) {
+      error->cause = (const void*)RTE_PTR_DIFF(error->cause, &pattern);
+    }
     return NULL;
   }
 
@@ -60,12 +85,13 @@ EthFace_SetupFlow(EthFacePriv* priv, uint16_t queues[], int nQueues, const EthLo
     if (i >= nQueues) {
       continue;
     }
-    rxf->base.rxBurstOp = EthRxFlow_RxBurst;
+    rxf->base.rxBurstOp = isolated ? EthRxFlow_RxBurst_Unchecked : EthRxFlow_RxBurst_Checked;
     rxf->base.rxThread = i;
     rxf->faceID = priv->faceID;
     rxf->port = priv->port;
     rxf->queue = queues[i];
     rxf->hdrLen = priv->rxMatch.len;
+    rxf->rxMatch = &priv->rxMatch;
   }
   return flow;
 }

@@ -46,12 +46,16 @@ EthLocator_CanCoexist(const EthLocator* a, const EthLocator* b)
     // only one Ethernet multicast face allowed
     return false;
   }
-  if (memcmp(&a->local, &b->local, sizeof(a->local)) != 0 ||
-      memcmp(&a->remote, &b->remote, sizeof(a->remote)) != 0 || a->vlan != b->vlan) {
-    // different unicast MAC addresses or VLAN can coexist
+  if (a->vlan != b->vlan) {
+    // different VLAN can coexist
     return true;
   }
   if (!ac.udp) {
+    if (memcmp(&a->local, &b->local, sizeof(a->local)) != 0 ||
+        memcmp(&a->remote, &b->remote, sizeof(a->remote)) != 0) {
+      // Ethernet faces with different unicast MAC addresses can coexist
+      return true;
+    }
     // Ethernet faces with same MAC addresses and VLAN conflict
     return false;
   }
@@ -237,7 +241,6 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, const EthLocator* loc)
   } while (false)
 
   MASK(flow->ethMask.dst);
-  MASK(flow->ethMask.type);
   if (classify.multicast) {
     rte_ether_addr_copy(&loc->remote, &flow->ethSpec.dst);
   } else {
@@ -245,11 +248,12 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, const EthLocator* loc)
     rte_ether_addr_copy(&loc->local, &flow->ethSpec.dst);
     rte_ether_addr_copy(&loc->remote, &flow->ethSpec.src);
   }
+  MASK(flow->ethMask.type);
   flow->ethSpec.type = rte_cpu_to_be_16(classify.etherType);
   APPEND(ETH, eth);
 
   if (loc->vlan != 0) {
-    MASK(flow->vlanMask);
+    MASK(flow->vlanMask.tci);
     flow->vlanSpec.tci = rte_cpu_to_be_16(loc->vlan);
     flow->vlanSpec.inner_type = flow->ethSpec.type;
     flow->ethSpec.type = rte_cpu_to_be_16(RTE_ETHER_TYPE_VLAN);
@@ -257,19 +261,18 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, const EthLocator* loc)
   }
 
   if (!classify.udp) {
+    MASK(flow->vlanMask.inner_type);
     return;
   }
+  flow->pattern[0].spec = NULL; // ETH
+  flow->pattern[0].mask = NULL;
 
   if (classify.v4) {
-    // not checking ihl and fragment_offset fields due to lack of driver support,
-    // so this may admit IP fragments, but they'll fail to match UDP header or decode as NDN
-    MASK(flow->ip4Mask.hdr.next_proto_id);
     MASK(flow->ip4Mask.hdr.src_addr);
     MASK(flow->ip4Mask.hdr.dst_addr);
     PutIpv4Hdr((uint8_t*)(&flow->ip4Spec.hdr), loc->remoteIP, loc->localIP);
     APPEND(IPV4, ip4);
   } else {
-    MASK(flow->ip6Mask.hdr.proto);
     MASK(flow->ip6Mask.hdr.src_addr);
     MASK(flow->ip6Mask.hdr.dst_addr);
     PutIpv6Hdr((uint8_t*)(&flow->ip6Spec.hdr), loc->remoteIP, loc->localIP);
@@ -290,6 +293,14 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, const EthLocator* loc)
   flow->vxlanSpec.vni[1] = (uint8_t)(loc->vxlan >> 8);
   flow->vxlanSpec.vni[2] = (uint8_t)(loc->vxlan >> 0);
   APPEND(VXLAN, vxlan);
+
+  MASK(flow->innerEthMask.dst);
+  MASK(flow->innerEthMask.src);
+  MASK(flow->innerEthMask.type);
+  rte_ether_addr_copy(&loc->innerLocal, &flow->innerEthSpec.dst);
+  rte_ether_addr_copy(&loc->innerRemote, &flow->innerEthSpec.src);
+  flow->innerEthSpec.type = rte_cpu_to_be_16(NDN_ETHERTYPE);
+  APPEND(ETH, innerEth);
 
 #undef MASK
 #undef APPEND
