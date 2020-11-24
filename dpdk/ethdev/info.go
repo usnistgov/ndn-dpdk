@@ -22,8 +22,15 @@ func (info DevInfo) driverName() string {
 
 // HasTxMultiSegOffload determines whether device can transmit multi-segment packets.
 func (info DevInfo) HasTxMultiSegOffload() bool {
-	return (info.Tx_offload_capa&txOffloadMultiSegs) == txOffloadMultiSegs ||
-		info.driverName() == "net_ring"
+	if (info.Tx_offload_capa & txOffloadMultiSegs) == txOffloadMultiSegs {
+		return true
+	}
+
+	switch info.driverName() { // some drivers support multi-segment TX but do not advertise it
+	case "net_ring", "net_memif":
+		return true
+	}
+	return false
 }
 
 // HasTxChecksumOffload determines whether device can compute IPv4 and UDP checksum offload upon transmission.

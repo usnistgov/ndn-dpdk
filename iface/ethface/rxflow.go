@@ -97,29 +97,57 @@ func (impl *rxFlowImpl) Init() error {
 }
 
 func (impl *rxFlowImpl) Start(face *ethFace) error {
-	maxQueues := math.MaxInt(1, face.loc.faceConfig().MaxRxQueues)
-	var queues []int
-	for rxq, state := range impl.queues {
-		if len(queues) < maxQueues && state == rxqStateIdle {
-			queues = append(queues, rxq)
-		}
-	}
+	queues := impl.allocQueues(math.MaxInt(1, face.loc.faceConfig().MaxRxQueues))
 	if len(queues) == 0 {
 		// TODO reclaim deferred-destroy queues
 		return errors.New("no available queue")
 	}
 
-	rxfs, e := newRxFlow(face, queues, impl.isolated)
-	if e != nil {
+	if e := impl.setupFlow(face, queues); e != nil {
 		return e
 	}
 
 	impl.port.logger.WithFields(makeLogFields("rx-queues", queues, "face", face.ID())).Debug("create RxFlow")
-	for _, rxf := range rxfs {
-		impl.queues[rxf.queue] = rxqStateInUse
-		iface.EmitRxGroupAdd(rxf)
+	impl.startFlow(face, queues)
+	return nil
+}
+
+func (impl *rxFlowImpl) allocQueues(max int) (queues []int) {
+	for rxq, state := range impl.queues {
+		if len(queues) < max && state == rxqStateIdle {
+			queues = append(queues, rxq)
+		}
+	}
+	return
+}
+
+func (impl *rxFlowImpl) setupFlow(face *ethFace, queues []int) error {
+	var cQueues []C.uint16_t
+	for _, q := range queues {
+		cQueues = append(cQueues, C.uint16_t(q))
+	}
+
+	cLoc := face.loc.cLoc()
+	var flowErr C.struct_rte_flow_error
+	face.flow = C.EthFace_SetupFlow(face.priv, &cQueues[0], C.int(len(queues)), cLoc.ptr(), C.bool(impl.isolated), &flowErr)
+	if face.flow == nil {
+		return readFlowErr(flowErr)
 	}
 	return nil
+}
+
+func (impl *rxFlowImpl) startFlow(face *ethFace, queues []int) {
+	face.rxf = make([]*rxFlow, len(queues))
+	for i, queue := range queues {
+		impl.queues[queue] = rxqStateInUse
+		rxf := &rxFlow{
+			face:  face,
+			index: i,
+			queue: queue,
+		}
+		face.rxf[i] = rxf
+		iface.ActivateRxGroup(rxf)
+	}
 }
 
 func (impl *rxFlowImpl) Stop(face *ethFace) error {
@@ -128,7 +156,7 @@ func (impl *rxFlowImpl) Stop(face *ethFace) error {
 	}
 
 	for _, rxf := range face.rxf {
-		iface.EmitRxGroupRemove(rxf)
+		iface.DeactivateRxGroup(rxf)
 	}
 
 	nextState := rxqStateIdle
@@ -163,8 +191,11 @@ func (impl *rxFlowImpl) Close() error {
 		}
 	}
 	impl.queues = nil
+
 	impl.port.dev.Stop(ethdev.StopReset)
-	impl.setIsolate(false)
+	if impl.isolated {
+		impl.setIsolate(false)
+	}
 	return nil
 }
 
@@ -172,32 +203,6 @@ type rxFlow struct {
 	face  *ethFace
 	index int
 	queue int
-}
-
-func newRxFlow(face *ethFace, queues []int, isolated bool) ([]*rxFlow, error) {
-	priv := face.priv
-
-	cQueues := make([]C.uint16_t, len(queues))
-	for i, queue := range queues {
-		cQueues[i] = C.uint16_t(queue)
-	}
-
-	cLoc := face.loc.cLoc()
-	var flowErr C.struct_rte_flow_error
-	flow := C.EthFace_SetupFlow(priv, &cQueues[0], C.int(len(queues)), cLoc.ptr(), C.bool(isolated), &flowErr)
-	if flow == nil {
-		return nil, readFlowErr(flowErr)
-	}
-
-	face.rxf = make([]*rxFlow, len(queues))
-	for i, queue := range queues {
-		face.rxf[i] = &rxFlow{
-			face:  face,
-			index: i,
-			queue: queue,
-		}
-	}
-	return face.rxf, nil
 }
 
 func (*rxFlow) IsRxGroup() {}

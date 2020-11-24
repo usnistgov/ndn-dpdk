@@ -92,7 +92,7 @@ func Wrap(transport sockettransport.Transport, cfg Config) (iface.Face, error) {
 			})
 			if nFaces == 0 {
 				rxQueue = make(chan *pktmbuf.Packet, cfg.RxGroupQueueSize)
-				iface.EmitRxGroupAdd(rxg)
+				iface.ActivateRxGroup(rxg)
 			}
 			go face.rxLoop()
 			nFaces++
@@ -113,7 +113,7 @@ func Wrap(transport sockettransport.Transport, cfg Config) (iface.Face, error) {
 		Stop: func(iface.Face) error {
 			nFaces--
 			if nFaces == 0 {
-				iface.EmitRxGroupRemove(rxg)
+				iface.DeactivateRxGroup(rxg)
 			}
 			return nil
 		},

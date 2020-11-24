@@ -67,7 +67,7 @@ func newRxTable(port *Port) (rxt *rxTable) {
 	c.base.rxThread = 0
 
 	rxt = (*rxTable)(c)
-	iface.EmitRxGroupAdd(rxt)
+	iface.ActivateRxGroup(rxt)
 	return rxt
 }
 
@@ -86,7 +86,7 @@ func (rxt *rxTable) Ptr() unsafe.Pointer {
 }
 
 func (rxt *rxTable) Close() error {
-	iface.EmitRxGroupRemove(rxt)
+	iface.DeactivateRxGroup(rxt)
 	eal.Free(rxt.ptr())
 	return nil
 }

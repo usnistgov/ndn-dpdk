@@ -9,13 +9,11 @@ import (
 var emitter = events.NewEmitter()
 
 const (
-	evtFaceNew       = "FaceNew"
-	evtFaceUp        = "FaceUp"
-	evtFaceDown      = "FaceDown"
-	evtFaceClosing   = "FaceClosing"
-	evtFaceClosed    = "FaceClosed"
-	evtRxGroupAdd    = "RxGroupAdd"
-	evtRxGroupRemove = "RxGroupRemove"
+	evtFaceNew     = "FaceNew"
+	evtFaceUp      = "FaceUp"
+	evtFaceDown    = "FaceDown"
+	evtFaceClosing = "FaceClosing"
+	evtFaceClosed  = "FaceClosed"
 )
 
 // OnFaceNew registers a callback when a new face is created.
@@ -46,28 +44,4 @@ func OnFaceClosing(cb func(ID)) io.Closer {
 // Return a Closer that cancels the callback registration.
 func OnFaceClosed(cb func(ID)) io.Closer {
 	return emitter.On(evtFaceClosed, cb)
-}
-
-// OnRxGroupAdd registers a callback when an RxGroup is added.
-// Return a Closer that cancels the callback registration.
-func OnRxGroupAdd(cb func(RxGroup)) io.Closer {
-	return emitter.On(evtRxGroupAdd, cb)
-}
-
-// OnRxGroupRemove registers a callback when an RxGroup is removed.
-// Return a Closer that cancels the callback registration.
-func OnRxGroupRemove(cb func(RxGroup)) io.Closer {
-	return emitter.On(evtRxGroupRemove, cb)
-}
-
-// EmitRxGroupAdd emits the RxGroupAdd event.
-func EmitRxGroupAdd(rxg RxGroup) {
-	emitter.EmitSync(evtRxGroupAdd, rxg)
-	ActivateRxGroup(rxg)
-}
-
-// EmitRxGroupRemove emits the RxGroupRemove event.
-func EmitRxGroupRemove(rxg RxGroup) {
-	emitter.EmitSync(evtRxGroupRemove, rxg)
-	DeactivateRxGroup(rxg)
 }

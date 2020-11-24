@@ -45,9 +45,11 @@ func (loc MemifLocator) CreateFace() (iface.Face, error) {
 	}
 	dev := ethdev.Find(vdev.Name())
 
-	var pc PortConfig
-	pc.MTU = loc.Dataroom
-	pc.DisableSetMTU = true
+	pc := PortConfig{
+		DisableRxFlow: true, // net_memif driver lacks dev_stop, so that fallback to RxTable fails
+		MTU:           loc.Dataroom,
+		DisableSetMTU: true,
+	}
 	port, e := NewPort(dev, pc)
 	if e != nil {
 		vdev.Close()
