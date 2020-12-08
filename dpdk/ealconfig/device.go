@@ -57,7 +57,7 @@ func (cfg DeviceConfig) args(req Request, hwInfo HwInfoSource) (args []string, e
 		args = append(args, "--no-pci")
 	default:
 		for _, dev := range cfg.PciDevices {
-			args = append(args, "-w", dev.String())
+			args = append(args, "-a", dev.String())
 		}
 	}
 

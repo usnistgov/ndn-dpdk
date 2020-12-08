@@ -39,16 +39,16 @@ jobs:
           sudo make install
         env:
           UBPFCOMMIT: 089f6279752adfb01386600d119913403ed326ee
-      - uses: actions/checkout@v2
       - uses: actions/cache@v2
         with:
           path: |
-            ~/setup-dpdk.cache.txz
-          key: ${{ matrix.compiler }}_${{ hashFiles('.github/workflows/*.yml') }}
+            ~/setup-dpdk
+          key: ${{ matrix.compiler }}_DPDK2011_SPDK2010
       - uses: yoursunny/setup-dpdk@master
         with:
           dpdk-version: '20.11'
           spdk-version: '20.10'
+      - uses: actions/checkout@v2
       - name: build NDN-DPDK in debug mode
         run: |
           npm install

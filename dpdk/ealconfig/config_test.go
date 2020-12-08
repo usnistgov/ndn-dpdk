@@ -72,10 +72,13 @@ func TestExtraFlags(t *testing.T) {
 	assert.Equal("value-b", b)
 }
 
-func parseLCoreFlags(args []string) (l, lcores string) {
+func parseLCoreFlags(args []string) (p struct {
+	l      string
+	lcores string
+}) {
 	fset := makeBaseFlagSet()
-	fset.StringVar(&l, "l", "", "")
-	fset.StringVar(&lcores, "lcores", "", "")
+	fset.StringVar(&p.l, "l", "", "")
+	fset.StringVar(&p.lcores, "lcores", "", "")
 	fset.Parse(args)
 	return
 }
@@ -89,9 +92,9 @@ func TestLCoreCores(t *testing.T) {
 
 	args, e := cfg.Args(ealconfig.Request{}, testHwInfo{})
 	require.NoError(e)
-	l, lcores := parseLCoreFlags(args)
-	commaSetEquals(assert, "0,1,4,7", l)
-	assert.Equal("", lcores)
+	p := parseLCoreFlags(args)
+	commaSetEquals(assert, "0,1,4,7", p.l)
+	assert.Equal("", p.lcores)
 }
 
 func TestLCoreFewerCores(t *testing.T) {
@@ -107,9 +110,9 @@ func TestLCoreFewerCores(t *testing.T) {
 
 	args, e := cfg.Args(req, testHwInfo{})
 	require.NoError(e)
-	l, lcores := parseLCoreFlags(args)
-	assert.Equal("", l)
-	assert.Equal("(0-5)@(0,1,4,7)", lcores)
+	p := parseLCoreFlags(args)
+	assert.Equal("", p.l)
+	assert.Equal("(0-5)@(0,1,4,7)", p.lcores)
 }
 
 func TestLCoreNoCores(t *testing.T) {
@@ -142,17 +145,20 @@ func TestLCorePerNuma(t *testing.T) {
 
 	args, e := cfg.Args(ealconfig.Request{}, testHwInfo{})
 	require.NoError(e)
-	l, lcores := parseLCoreFlags(args)
-	commaSetEquals(assert, "8,16,0,24,9,17,10,18,2,26,11,19,3,27,13", l)
-	assert.Equal("", lcores)
+	p := parseLCoreFlags(args)
+	commaSetEquals(assert, "8,16,0,24,9,17,10,18,2,26,11,19,3,27,13", p.l)
+	assert.Equal("", p.lcores)
 }
 
-func parseMemFlags(args []string) (n, socketLimit, filePrefix string, hugeUnlink bool) {
+func parseMemFlags(args []string) (p struct {
+	n, socketLimit, filePrefix string
+	hugeUnlink                 bool
+}) {
 	fset := makeBaseFlagSet()
-	fset.StringVar(&n, "n", "", "")
-	fset.StringVar(&socketLimit, "socket-limit", "", "")
-	fset.StringVar(&filePrefix, "file-prefix", "", "")
-	fset.BoolVar(&hugeUnlink, "huge-unlink", false, "")
+	fset.StringVar(&p.n, "n", "", "")
+	fset.StringVar(&p.socketLimit, "socket-limit", "", "")
+	fset.StringVar(&p.filePrefix, "file-prefix", "", "")
+	fset.BoolVar(&p.hugeUnlink, "huge-unlink", false, "")
 	fset.Parse(args)
 	return
 }
@@ -165,11 +171,11 @@ func TestMemoryEmpty(t *testing.T) {
 
 	args, e := cfg.Args(ealconfig.Request{}, testHwInfo{})
 	require.NoError(e)
-	n, socketLimit, filePrefix, hugeUnlink := parseMemFlags(args)
-	assert.Equal("", n)
-	assert.Equal("", socketLimit)
-	assert.Equal("", filePrefix)
-	assert.True(hugeUnlink)
+	p := parseMemFlags(args)
+	assert.Equal("", p.n)
+	assert.Equal("", p.socketLimit)
+	assert.Equal("", p.filePrefix)
+	assert.True(p.hugeUnlink)
 }
 
 func TestMemoryAll(t *testing.T) {
@@ -190,19 +196,22 @@ func TestMemoryAll(t *testing.T) {
 
 	args, e := cfg.Args(ealconfig.Request{}, testHwInfo{})
 	require.NoError(e)
-	n, socketLimit, filePrefix, hugeUnlink := parseMemFlags(args)
-	assert.Equal("2", n)
-	assert.Equal("0,1024,2048,4096,0,0,1,0", socketLimit)
-	assert.Equal("ealconfigtest", filePrefix)
-	assert.False(hugeUnlink)
+	p := parseMemFlags(args)
+	assert.Equal("2", p.n)
+	assert.Equal("0,1024,2048,4096,0,0,1,0", p.socketLimit)
+	assert.Equal("ealconfigtest", p.filePrefix)
+	assert.False(p.hugeUnlink)
 }
 
-func parseDeviceFlags(args []string) (d, w, vdev []string, noPci bool) {
+func parseDeviceFlags(args []string) (p struct {
+	d, a, vdev []string
+	noPci      bool
+}) {
 	fset := makeBaseFlagSet()
-	sliceflag.StringVar(fset, &d, "d", nil, "")
-	sliceflag.StringVar(fset, &w, "w", nil, "")
-	sliceflag.StringVar(fset, &vdev, "vdev", nil, "")
-	fset.BoolVar(&noPci, "no-pci", false, "")
+	sliceflag.StringVar(fset, &p.d, "d", nil, "")
+	sliceflag.StringVar(fset, &p.a, "a", nil, "")
+	sliceflag.StringVar(fset, &p.vdev, "vdev", nil, "")
+	fset.BoolVar(&p.noPci, "no-pci", false, "")
 	fset.Parse(args)
 	return
 }
@@ -215,11 +224,11 @@ func TestDeviceEmpty(t *testing.T) {
 
 	args, e := cfg.Args(ealconfig.Request{}, testHwInfo{})
 	require.NoError(e)
-	d, w, vdev, noPci := parseDeviceFlags(args)
-	assert.Equal([]string{"/tmp/pmd-path"}, d)
-	assert.Len(w, 0)
-	assert.Len(vdev, 0)
-	assert.True(noPci)
+	p := parseDeviceFlags(args)
+	assert.Equal([]string{"/tmp/pmd-path"}, p.d)
+	assert.Len(p.a, 0)
+	assert.Len(p.vdev, 0)
+	assert.True(p.noPci)
 }
 
 func TestDeviceSome(t *testing.T) {
@@ -237,11 +246,11 @@ func TestDeviceSome(t *testing.T) {
 
 	args, e := cfg.Args(ealconfig.Request{}, testHwInfo{})
 	require.NoError(e)
-	d, w, vdev, noPci := parseDeviceFlags(args)
-	assert.Equal([]string{"/tmp/pmd-path"}, d)
-	assert.Equal([]string{"0000:02:00.0", "0000:0a:00.0"}, w)
-	assert.Equal([]string{"net_af_packet1,iface=eth1"}, vdev)
-	assert.False(noPci)
+	p := parseDeviceFlags(args)
+	assert.Equal([]string{"/tmp/pmd-path"}, p.d)
+	assert.Equal([]string{"0000:02:00.0", "0000:0a:00.0"}, p.a)
+	assert.Equal([]string{"net_af_packet1,iface=eth1"}, p.vdev)
+	assert.False(p.noPci)
 }
 
 func TestDeviceAll(t *testing.T) {
@@ -260,9 +269,9 @@ func TestDeviceAll(t *testing.T) {
 
 	args, e := cfg.Args(ealconfig.Request{}, testHwInfo{})
 	require.NoError(e)
-	d, w, vdev, noPci := parseDeviceFlags(args)
-	assert.Equal([]string{"/usr/lib/pmd-A.so", "/usr/lib/pmd-B.so"}, d)
-	assert.Len(w, 0)
-	assert.Equal([]string{"net_af_packet1,iface=eth1"}, vdev)
-	assert.False(noPci)
+	p := parseDeviceFlags(args)
+	assert.Equal([]string{"/usr/lib/pmd-A.so", "/usr/lib/pmd-B.so"}, p.d)
+	assert.Len(p.a, 0)
+	assert.Equal([]string{"net_af_packet1,iface=eth1"}, p.vdev)
+	assert.False(p.noPci)
 }
