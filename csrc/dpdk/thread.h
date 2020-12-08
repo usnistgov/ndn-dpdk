@@ -16,6 +16,10 @@ ThreadStopFlag_Init(ThreadStopFlag* flag)
 static inline bool
 ThreadStopFlag_ShouldContinue(ThreadStopFlag* flag)
 {
+#ifdef NDNDPDK_THREADSLEEP
+  struct timespec req = { .tv_sec = 0, .tv_nsec = 1 };
+  nanosleep(&req, NULL);
+#endif // NDNDPDK_THREADSLEEP
   return atomic_load_explicit(flag, memory_order_acquire);
 }
 

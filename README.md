@@ -34,17 +34,26 @@ It is in pre-release stage and will continue to be updated.
 
 ### Other build targets
 
-* Execute `make godeps` to build C objects and generate certain Go source files.
-* Execute `make gopkg` to build all Go packages.
-* Execute `make test` to run all unit tests, or `mk/gotest.sh <PKG>` to run the tests for a given package.
-* Execute `make doxygen` to build C documentation (requires the `doxygen` package).
+* `make godeps` builds C objects and generates certain Go source files.
+* `make gopkg` builds all Go packages.
+* `make test` runs all unit tests.
+  You can also execute `mk/gotest.sh <PKG>` to run the tests for a given package.
+* `make doxygen` builds C documentation (requires the `doxygen` dependency).
 * To view Go documentation, execute `godoc &` and access the website on port 6060.
   You may need to install [godoc](https://pkg.go.dev/golang.org/x/tools/cmd/godoc?tab=doc) command: `sudo GO111MODULE=off GOBIN=$(go env GOROOT)/bin $(which go) get -u golang.org/x/tools/cmd/godoc`
-* Execute `make lint` to fix code style issues before committing (requires the `clang-format-8` and `yamllint` packages).
-* To select release mode that disables assertions and verbose logging in C code, prepend `RELEASE=1` to the `make` command.
-  You must run `make clean` when switching between debug and release modes.
+* `make lint` fixes code style issues before committing (requires the `clang-format-8` and `yamllint` dependencies).
+
+### Compile-time settings
+
+You can change compile-time settings by setting these environment variables:
+
+* `NDNDPDK_MK_RELEASE=1` selects release mode that disables assertions and verbose logging in C code.
+* `NDNDPDK_MK_THREADSLEEP=1` inserts `nanosleep(1ns)` to each thread.
+  This reduces performance significantly, but is occasionally useful when running on a machine with fewer CPU cores.
 * C code other than strategy is compiled with `gcc` by default; you can override this by setting the `CC` environment variable.
 * Strategy code is compiled with `clang-8` by default; you can override this by setting the `BPFCC` environment variable.
+
+You must run `make clean` when switching compile-time settings.
 
 ### Docker packaging
 

@@ -28,7 +28,7 @@ jobs:
       - name: install APT dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install doxygen gcc-8 gcc-multilib libelf-dev liburcu-dev linux-libc-dev
+          sudo apt-get install doxygen gcc-multilib libelf-dev liburcu-dev linux-libc-dev
       - name: install uBPF
         run: |
           mkdir -p $HOME/ubpf
@@ -53,17 +53,22 @@ jobs:
         run: |
           npm install
           make
+        env:
+          NDNDPDK_MK_THREADSLEEP: 1
       - name: run unit tests
         run: |
           MK_GOTEST_FILTER="/${TEST_ACCEPTABLE_FAILURES}/ d" make test
           MK_GOTEST_FILTER="/${TEST_ACCEPTABLE_FAILURES}/! d" make test || true
         env:
           TEST_ACCEPTABLE_FAILURES: diskstore|ethface|fetch|fwdp|memiftransport|tgconsumer|tgproducer
+          NDNDPDK_MK_THREADSLEEP: 1
       - name: build NDN-DPDK in release mode
         run: |
           make clean
-          RELEASE=1 make
+          make
           sudo make install
+        env:
+          NDNDPDK_MK_RELEASE: 1
       - name: check code style
         run: make lint && [[ $(git status --porcelain | tee >(cat 1>&2) | wc -l) -eq 0 ]]
       - name: build documentation

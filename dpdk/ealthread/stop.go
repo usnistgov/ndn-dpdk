@@ -2,9 +2,16 @@ package ealthread
 
 /*
 #include "../../csrc/dpdk/thread.h"
+
+#ifdef NDNDPDK_THREADSLEEP
+#define ENABLE_THREADSLEEP 1
+#else
+#define ENABLE_THREADSLEEP 0
+#endif
 */
 import "C"
 import (
+	"time"
 	"unsafe"
 )
 
@@ -16,15 +23,6 @@ type Stopper interface {
 	// AfterWait is invoked after lcore.Wait().
 	AfterWait()
 }
-
-// StopWait stops a thread by waiting for it indefinitely.
-type StopWait struct{}
-
-// BeforeWait implements Stopper interface.
-func (stop StopWait) BeforeWait() {}
-
-// AfterWait implements Stopper interface.
-func (stop StopWait) AfterWait() {}
 
 // StopFlag stops a thread by setting a boolean flag.
 type StopFlag struct {
@@ -65,6 +63,10 @@ func NewStopChan() (stop StopChan) {
 // Continue returns true if the thread should continue.
 // This should be invoked within the running thread.
 func (stop StopChan) Continue() bool {
+	if C.ENABLE_THREADSLEEP > 0 {
+		time.Sleep(time.Nanosecond)
+	}
+
 	select {
 	case <-stop:
 		return false
