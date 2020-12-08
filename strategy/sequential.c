@@ -1,4 +1,4 @@
-/** 
+/**
  * @file
  * The sequential strategy uses each FIB nexthop sequentially for each
  * retransmitted Interest on the same PIT entry. It skips any unusable

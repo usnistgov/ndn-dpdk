@@ -79,7 +79,7 @@ FwFwd_RxNackDuplicate(FwFwd* fwd, FwFwdCtx* ctx)
 
   uint64_t token = FwToken_New(fwd->id, PitEntry_GetToken(ctx->pitEntry));
   Packet_GetLpL3Hdr(outNpkt)->pitToken = token;
-  Packet_ToMbuf(outNpkt)->timestamp = ctx->pkt->timestamp; // for latency stats
+  Mbuf_SetTimestamp(Packet_ToMbuf(outNpkt), Mbuf_GetTimestamp(ctx->pkt)); // for latency stats
 
   ZF_LOGD("^ interest-to=%" PRI_FaceID " npkt=%p " PRI_InterestGuiders " up-token=%016" PRIx64,
           up->face, outNpkt, InterestGuiders_Fmt(guiders), token);

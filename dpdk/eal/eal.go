@@ -8,8 +8,8 @@ import (
 
 // EAL variables, available after ealinit.Init().
 var (
-	// Initial is the initial lcore.
-	Initial LCore
+	// MainLCore is the main lcore.
+	MainLCore LCore
 	// Workers are worker lcores.
 	Workers []LCore
 	// Sockets are NUMA sockets of worker lcores.
@@ -35,7 +35,7 @@ func PostMain(fn cptr.Function) {
 // f must be a function with zero parameters and zero or one return values.
 // Returns f's return value, or nil if f does not have a return value.
 func CallMain(f interface{}) interface{} {
-	if CurrentLCore() == Initial {
+	if CurrentLCore() == MainLCore {
 		return cptr.Call(func(fn cptr.Function) { cptr.Func0.Invoke(fn) }, f)
 	}
 	return cptr.Call(PostMain, f)

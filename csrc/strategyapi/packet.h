@@ -20,11 +20,9 @@ typedef struct SgPacket
       uint8_t l3type : 4;
     };
   };
-  char _d[20];
-  TscTime timestamp;
-  char _e[64];
+  char _d[92];
   char _mbuf_end[0];
-  char _f[8];
+  char _e[8];
   uint8_t nackReason;
   uint8_t congMark;
 } SgPacket;

@@ -12,7 +12,16 @@ import (
 	"github.com/pkg/math"
 )
 
-func newHandle(loc Locator, isMaster bool) (hdl *handle, e error) {
+// Role indicates memif role.
+type Role int
+
+// Role constants.
+const (
+	RoleServer Role = iota
+	RoleClient
+)
+
+func newHandle(loc Locator, role Role) (hdl *handle, e error) {
 	sock, e := memif.NewSocket(os.Args[0], loc.SocketName)
 	if e != nil {
 		return nil, fmt.Errorf("memif.NewSocket %w", e)
@@ -25,7 +34,7 @@ func newHandle(loc Locator, isMaster bool) (hdl *handle, e error) {
 	}
 
 	a := &memif.Arguments{
-		IsMaster:         isMaster,
+		IsMaster:         role == RoleServer,
 		ConnectedFunc:    hdl.memifConnected,
 		DisconnectedFunc: hdl.memifDisconnected,
 	}

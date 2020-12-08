@@ -152,14 +152,22 @@ func (port EthDev) Start(cfg Config) error {
 // Stop stops this EthDev.
 // If mode is StopDetach, this EthDev cannot be restarted.
 // Otherwise, it may be re-configured and started again.
-func (port EthDev) Stop(mode StopMode) {
-	C.rte_eth_dev_stop(port.cID())
+func (port EthDev) Stop(mode StopMode) error {
+	res := C.rte_eth_dev_stop(port.cID())
+	if res != 0 {
+		return eal.Errno(-res)
+	}
+
 	switch mode {
 	case StopDetach:
-		C.rte_eth_dev_close(port.cID())
+		res = C.rte_eth_dev_close(port.cID())
 	case StopReset:
-		C.rte_eth_dev_reset(port.cID())
+		res = C.rte_eth_dev_reset(port.cID())
 	}
+	if res != 0 {
+		return eal.Errno(-res)
+	}
+	return nil
 }
 
 // Stats retrieves hardware statistics.

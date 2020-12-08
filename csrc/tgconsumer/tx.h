@@ -6,7 +6,6 @@
 #include "common.h"
 
 #include "../dpdk/thread.h"
-#include "../dpdk/tsc.h"
 #include "../iface/face.h"
 #include "../vendor/pcg_basic.h"
 

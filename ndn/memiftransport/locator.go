@@ -121,7 +121,7 @@ func (loc *Locator) ToVDevArgs() (string, error) {
 		return "", e
 	}
 	loc.ApplyDefaults()
-	return fmt.Sprintf("id=%d,role=master,bsize=%d,rsize=%d,socket=%s,mac=%v",
+	return fmt.Sprintf("id=%d,role=server,bsize=%d,rsize=%d,socket=%s,socket-abstract=no,mac=%v",
 		loc.ID, loc.Dataroom, loc.rsize(), loc.SocketName, AddressDPDK), nil
 }
 

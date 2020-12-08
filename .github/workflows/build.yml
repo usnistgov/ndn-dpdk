@@ -1,8 +1,8 @@
 ---
-# yamllint disable rule:line-length
+# yamllint disable rule:line-length rule:truthy
 
 name: build
-"on":
+on:
   push:
   pull_request:
 
@@ -19,39 +19,36 @@ jobs:
     env:
       CC: ${{ matrix.compiler }}
     steps:
-      - id: make-cache-key
-        run: |
-          echo "::set-output name=cpuflags::$(lscpu -J | jq -r '.lscpu[] | select(.field=="Flags:") | .data | gsub("[^a-z0-9]"; "")')"
-      - uses: actions/cache@v2
-        with:
-          path: |
-            ~/setup-dpdk.cache.*
-          key: ${{ matrix.compiler }}-${{ steps.make-cache-key.outputs.cpuflags }}
       - uses: actions/setup-go@v2
         with:
-          go-version: "^1.15"
-      - uses: actions/setup-node@v1
+          go-version: ^1
+      - uses: actions/setup-node@v2-beta
         with:
-          node-version: "14"
+          node-version: 14
       - name: install APT dependencies
         run: |
           sudo apt-get update
           sudo apt-get install doxygen gcc-8 gcc-multilib libelf-dev liburcu-dev linux-libc-dev
-      - uses: yoursunny/setup-dpdk@master
-        with:
-          dpdk-version: "20.08"
-          spdk-version: "20.10"
       - name: install uBPF
         run: |
-          mkdir -p $GITHUB_WORKSPACE/ubpf
-          cd $GITHUB_WORKSPACE/ubpf
+          mkdir -p $HOME/ubpf
+          cd $HOME/ubpf
           curl -sL https://github.com/iovisor/ubpf/archive/$UBPFCOMMIT.tar.gz | tar -xz --strip-components=1
           cd vm
           make
           sudo make install
         env:
-          UBPFCOMMIT: "089f6279752adfb01386600d119913403ed326ee"
+          UBPFCOMMIT: 089f6279752adfb01386600d119913403ed326ee
       - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/setup-dpdk.cache.txz
+          key: ${{ matrix.compiler }}_${{ hashFiles('.github/workflows/*.yml') }}
+      - uses: yoursunny/setup-dpdk@master
+        with:
+          dpdk-version: '20.11'
+          spdk-version: '20.10'
       - name: build NDN-DPDK in debug mode
         run: |
           npm install
@@ -61,21 +58,20 @@ jobs:
           MK_GOTEST_FILTER="/${TEST_ACCEPTABLE_FAILURES}/ d" make test
           MK_GOTEST_FILTER="/${TEST_ACCEPTABLE_FAILURES}/! d" make test || true
         env:
-          TEST_ACCEPTABLE_FAILURES: "diskstore|ethface|fetch|fwdp|memiftransport|tgconsumer|tgproducer"
+          TEST_ACCEPTABLE_FAILURES: diskstore|ethface|fetch|fwdp|memiftransport|tgconsumer|tgproducer
       - name: build NDN-DPDK in release mode
         run: |
           make clean
           RELEASE=1 make
           sudo make install
       - name: check code style
-        run: make lint && [[ $(git status --porcelain | tee /dev/stderr | wc -l) -eq 0 ]]
+        run: make lint && [[ $(git status --porcelain | tee >(cat 1>&2) | wc -l) -eq 0 ]]
       - name: build documentation
         run: make doxygen
   docker:
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
-      - uses: docker/build-push-action@v1
+      - uses: docker/build-push-action@v2
         with:
-          repository: ndn-dpdk
-          push: false
+          context: .

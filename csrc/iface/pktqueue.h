@@ -63,7 +63,7 @@ __attribute__((nonnull)) static inline uint32_t
 PktQueue_Push(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime now)
 {
   for (uint32_t i = 0; i < count; ++i) {
-    pkts[i]->timestamp = now;
+    Mbuf_SetTimestamp(pkts[i], now);
   }
   return PktQueue_PushPlain(q, pkts, count);
 }

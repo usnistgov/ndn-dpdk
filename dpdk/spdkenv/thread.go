@@ -27,7 +27,11 @@ type Thread struct {
 // NewThread creates an SPDK thread.
 // The caller needs to assigned it a DPDK lcore and launch it.
 func NewThread() (*Thread, error) {
-	threadLibInitOnce.Do(func() { C.spdk_thread_lib_init(nil, 0) })
+	threadLibInitOnce.Do(func() {
+		if res := C.spdk_thread_lib_init(nil, 0); res != 0 {
+			log.WithError(eal.Errno(-res)).Fatal("spdk_thread_lib_init error")
+		}
+	})
 
 	spdkThread := C.spdk_thread_create(nil, nil)
 	if spdkThread == nil {

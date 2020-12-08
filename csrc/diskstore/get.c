@@ -43,7 +43,7 @@ DiskStore_GetData_End(struct spdk_bdev_io* io, bool success, void* npkt0)
     ZF_LOGW("GetData_End(%" PRIu64 ", %p): fail=io-err", slotID, npkt);
     DiskStore_GetData_Fail(reply, npkt);
   } else {
-    dataPkt->timestamp = rte_get_tsc_cycles();
+    Mbuf_SetTimestamp(dataPkt, rte_get_tsc_cycles());
     if (unlikely(!Packet_Parse(interest->diskData)) ||
         unlikely(Packet_GetType(interest->diskData) != PktData)) {
       ZF_LOGW("GetData_End(%" PRIu64 ", %p): fail=not-Data", slotID, npkt);

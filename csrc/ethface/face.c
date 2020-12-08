@@ -11,7 +11,7 @@ EthRxFlow_RxBurst_Unchecked(RxGroup* rxg, struct rte_mbuf** pkts, uint16_t nPkts
   uint64_t now = rte_get_tsc_cycles();
   for (uint16_t i = 0; i < nRx; ++i) {
     struct rte_mbuf* m = pkts[i];
-    m->timestamp = now;
+    Mbuf_SetTimestamp(m, now);
     m->port = rxf->faceID;
     rte_pktmbuf_adj(m, rxf->hdrLen);
   }
@@ -30,7 +30,7 @@ EthRxFlow_RxBurst_Checked(RxGroup* rxg, struct rte_mbuf** pkts, uint16_t nPkts)
   for (uint16_t i = 0; i < nInput; ++i) {
     struct rte_mbuf* m = pkts[i];
     if (likely(EthRxMatch_Match(rxf->rxMatch, m))) {
-      m->timestamp = now;
+      Mbuf_SetTimestamp(m, now);
       m->port = rxf->faceID;
       pkts[nRx++] = m;
     } else {

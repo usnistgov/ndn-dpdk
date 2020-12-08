@@ -100,7 +100,7 @@ TxProc_Output(TxProc* tx, Packet* npkt, struct rte_mbuf* frames[LpMaxFragments])
     // to match counting logic in TxProc_CountSent
     Packet_SetType(Packet_FromMbuf(frame), framePktType);
     framePktType = PktFragment;
-    frame->timestamp = pkt->timestamp;
+    Mbuf_SetTimestamp(frame, Mbuf_GetTimestamp(pkt));
   }
   rte_pktmbuf_free(pkt);
 

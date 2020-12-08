@@ -6,12 +6,12 @@ RUN ( echo 'APT::Install-Recommends "no";'; echo 'APT::Install-Suggests "no";' )
     apt-get install -y -qq clang-format-8 doxygen nodejs yamllint && \
     curl -sL https://bootstrap.pypa.io/get-pip.py | python3 && \
     pip install -U meson ninja && \
-    curl -sL https://dl.google.com/go/go1.15.4.linux-amd64.tar.gz | tar -C /usr/local -xz && \
+    curl -sL https://dl.google.com/go/$(curl -sL https://golang.org/VERSION?m=text).linux-amd64.tar.gz | tar -C /usr/local -xz && \
     curl -sL https://github.com/spdk/spdk/archive/v20.10.tar.gz | tar -C /root -xz && \
     cd /root/spdk-* && \
     ./scripts/pkgdep.sh && \
     apt-get clean && \
-    sh -c 'update-alternatives --remove-all python || true' && \
+    ( update-alternatives --remove-all python || true ) && \
     update-alternatives --install /usr/bin/python python /usr/bin/python3 1
 RUN curl -sL https://github.com/iovisor/ubpf/archive/089f6279752adfb01386600d119913403ed326ee.tar.gz | tar -C /root -xz && \
     cd /root/ubpf-*/vm && \
@@ -22,18 +22,17 @@ RUN curl -sL http://archive.ubuntu.com/ubuntu/pool/universe/n/nasm/nasm_2.14.02.
     ./configure && \
     make -j$(nproc) && \
     make install && \
-    curl -sL https://github.com/intel/intel-ipsec-mb/archive/v0.54.tar.gz | tar -C /root -xz && \
+    curl -sL https://github.com/intel/intel-ipsec-mb/archive/v0.55.tar.gz | tar -C /root -xz && \
     cd /root/intel-ipsec-mb-* && \
     make -j$(nproc) && \
     make install
-RUN curl -sL https://static.dpdk.org/rel/dpdk-20.08.tar.xz | tar -C /root -xJ && \
+RUN curl -sL https://static.dpdk.org/rel/dpdk-20.11.tar.xz | tar -C /root -xJ && \
     cd /root/dpdk-* && \
-    meson -Dtests=false --libdir=lib build && \
+    meson -Ddebug=true -Doptimization=3 -Dtests=false --libdir=lib build && \
     cd build && \
     ninja -j$(nproc) && \
     ninja install && \
-    find /usr/local/lib -name 'librte_*.a' -delete && \
-    ldconfig
+    find /usr/local/lib -name 'librte_*.a' -delete
 RUN cd /root/spdk-* && \
     ./configure --enable-debug --disable-tests --with-shared --with-dpdk=/usr/local --without-vhost --without-isal --without-fuse && \
     make -j$(nproc) && \

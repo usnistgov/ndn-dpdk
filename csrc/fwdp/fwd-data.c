@@ -58,7 +58,7 @@ FwFwd_DataSatisfy(FwFwd* fwd, FwFwdCtx* ctx)
     if (likely(outNpkt != NULL)) {
       struct rte_mbuf* outPkt = Packet_ToMbuf(outNpkt);
       outPkt->port = ctx->rxFace;
-      outPkt->timestamp = ctx->rxTime;
+      Mbuf_SetTimestamp(outPkt, ctx->rxTime);
       LpL3* lpl3 = Packet_GetLpL3Hdr(outNpkt);
       lpl3->pitToken = dn->token;
       lpl3->congMark = dn->congMark;

@@ -173,7 +173,7 @@ Cs_PutDirect(Cs* cs, Packet* npkt, PccEntry* pccEntry)
     CsArc_Add(&cs->direct, entry);
   }
   entry->data = npkt;
-  entry->freshUntil = pkt->timestamp + TscDuration_FromMillis(data->freshness);
+  entry->freshUntil = Mbuf_GetTimestamp(pkt) + TscDuration_FromMillis(data->freshness);
   return entry;
 }
 
@@ -297,7 +297,8 @@ Cs_MatchInterest_(Cs* cs, PccEntry* pccEntry, Packet* interestNpkt)
   PInterest* interest = Packet_GetInterestHdr(interestNpkt);
   bool violateCanBePrefix = !interest->canBePrefix && interest->name.length < pccDirect->key.nameL;
   bool violateMustBeFresh =
-    interest->mustBeFresh && !CsEntry_IsFresh(direct, Packet_ToMbuf(interestNpkt)->timestamp);
+    interest->mustBeFresh &&
+    !CsEntry_IsFresh(direct, Mbuf_GetTimestamp(Packet_ToMbuf(interestNpkt)));
   ZF_LOGD("%p MatchInterest(%p,cs=%p~%s) cbp=%s mbf=%s has-data=%s", cs, pccEntry, entry,
           CsEntry_IsDirect(entry) ? "direct" : "indirect", violateCanBePrefix ? "N" : "Y",
           violateMustBeFresh ? "N" : "Y", hasData ? "Y" : "N");

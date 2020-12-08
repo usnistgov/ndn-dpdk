@@ -197,8 +197,9 @@ func TestMemoryAll(t *testing.T) {
 	assert.False(hugeUnlink)
 }
 
-func parseDeviceFlags(args []string) (w, vdev []string, noPci bool) {
+func parseDeviceFlags(args []string) (d, w, vdev []string, noPci bool) {
 	fset := makeBaseFlagSet()
+	sliceflag.StringVar(fset, &d, "d", nil, "")
 	sliceflag.StringVar(fset, &w, "w", nil, "")
 	sliceflag.StringVar(fset, &vdev, "vdev", nil, "")
 	fset.BoolVar(&noPci, "no-pci", false, "")
@@ -214,7 +215,8 @@ func TestDeviceEmpty(t *testing.T) {
 
 	args, e := cfg.Args(ealconfig.Request{}, testHwInfo{})
 	require.NoError(e)
-	w, vdev, noPci := parseDeviceFlags(args)
+	d, w, vdev, noPci := parseDeviceFlags(args)
+	assert.Equal([]string{"/tmp/pmd-path"}, d)
 	assert.Len(w, 0)
 	assert.Len(vdev, 0)
 	assert.True(noPci)
@@ -235,7 +237,8 @@ func TestDeviceSome(t *testing.T) {
 
 	args, e := cfg.Args(ealconfig.Request{}, testHwInfo{})
 	require.NoError(e)
-	w, vdev, noPci := parseDeviceFlags(args)
+	d, w, vdev, noPci := parseDeviceFlags(args)
+	assert.Equal([]string{"/tmp/pmd-path"}, d)
 	assert.Equal([]string{"0000:02:00.0", "0000:0a:00.0"}, w)
 	assert.Equal([]string{"net_af_packet1,iface=eth1"}, vdev)
 	assert.False(noPci)
@@ -246,6 +249,10 @@ func TestDeviceAll(t *testing.T) {
 
 	cfg := makeBaseConfig()
 	cfg.DeviceFlags = ""
+	cfg.Drivers = []string{
+		"/usr/lib/pmd-A.so",
+		"/usr/lib/pmd-B.so",
+	}
 	cfg.AllPciDevices = true
 	cfg.VirtualDevices = []string{
 		"net_af_packet1,iface=eth1",
@@ -253,7 +260,8 @@ func TestDeviceAll(t *testing.T) {
 
 	args, e := cfg.Args(ealconfig.Request{}, testHwInfo{})
 	require.NoError(e)
-	w, vdev, noPci := parseDeviceFlags(args)
+	d, w, vdev, noPci := parseDeviceFlags(args)
+	assert.Equal([]string{"/usr/lib/pmd-A.so", "/usr/lib/pmd-B.so"}, d)
 	assert.Len(w, 0)
 	assert.Equal([]string{"net_af_packet1,iface=eth1"}, vdev)
 	assert.False(noPci)

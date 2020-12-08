@@ -11,7 +11,7 @@ import (
 func TestEal(t *testing.T) {
 	assert, require := makeAR(t)
 
-	assert.True(eal.Initial.Valid())
+	assert.True(eal.MainLCore.Valid())
 	assert.NotNil(eal.MainThread)
 	assert.NotNil(eal.MainReadSide)
 	assert.NotEmpty(eal.Sockets)

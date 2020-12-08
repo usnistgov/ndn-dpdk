@@ -15,6 +15,7 @@ type EalMemoryConfig = {
 };
 
 type EalDeviceConfig = {
+  drivers?: string[];
   pciDevices?: string[];
   allPciDevices?: boolean;
   virtualDevices?: string[];

@@ -51,7 +51,7 @@ FwFwd_RxByType(FwFwd* fwd, PktType pktType)
       .pkt = pkts[i],
     };
     ctx.rxFace = ctx.pkt->port;
-    ctx.rxTime = ctx.pkt->timestamp;
+    ctx.rxTime = Mbuf_GetTimestamp(ctx.pkt);
     ctx.rxToken = Packet_GetLpL3Hdr(ctx.npkt)->pitToken;
     ctx.eventKind = (SgEvent)pktType;
 

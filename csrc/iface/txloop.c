@@ -40,7 +40,7 @@ TxLoop_Transfer(Face* face)
   TscTime now = rte_get_tsc_cycles();
   for (uint16_t i = 0; i < count; ++i) {
     Packet* npkt = npkts[i];
-    TscDuration latency = now - Packet_ToMbuf(npkt)->timestamp;
+    TscDuration latency = now - Mbuf_GetTimestamp(Packet_ToMbuf(npkt));
     PktType framePktType = PktType_ToFull(Packet_GetType(npkt));
     switch (framePktType) {
       case PktInterest:

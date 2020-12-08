@@ -160,7 +160,7 @@ PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt)
         dn->face = face;
         break;
       }
-      if (dn->expiry < pkt->timestamp) {
+      if (dn->expiry < Mbuf_GetTimestamp(pkt)) {
         NDNDPDK_ASSERT(entry->nCanBePrefix >= (uint8_t)dn->canBePrefix);
         entry->nCanBePrefix -= (uint8_t)dn->canBePrefix;
         dn->face = face;
@@ -178,7 +178,7 @@ PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt)
   dn->canBePrefix = interest->canBePrefix;
   dn->nonce = interest->nonce;
   uint32_t lifetime = RTE_MIN(interest->lifetime, PIT_MAX_LIFETIME);
-  dn->expiry = pkt->timestamp + TscDuration_FromMillis(lifetime);
+  dn->expiry = Mbuf_GetTimestamp(pkt) + TscDuration_FromMillis(lifetime);
 
   // record CanBePrefix and prefer CBP=1 for representative Interest
   if (entry->nCanBePrefix != (uint8_t)interest->canBePrefix) {

@@ -25,7 +25,7 @@ PktQueue_PopDelay(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime 
     return res;
   }
 
-  TscTime delayUntil = pkts[res.count - 1]->timestamp + q->target;
+  TscTime delayUntil = Mbuf_GetTimestamp(pkts[res.count - 1]) + q->target;
   if (unlikely(now < delayUntil)) {
     while (rte_get_tsc_cycles() < delayUntil) {
       rte_pause();
@@ -85,7 +85,7 @@ PktQueue_PopCoDel(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime 
     q->firstAboveTime = 0;
     return res;
   }
-  res.drop = CoDel_ShouldDrop(q, pkts[0]->timestamp, now);
+  res.drop = CoDel_ShouldDrop(q, Mbuf_GetTimestamp(pkts[0]), now);
   q->nDrops += (int)res.drop;
 
   if (q->dropping) {

@@ -5,7 +5,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealconfig"
 )
+
+func init() {
+	ealconfig.PmdPath = "/tmp/pmd-path"
+}
 
 var (
 	makeAR   = testenv.MakeAR

@@ -2,7 +2,7 @@
 package ealinit
 
 /*
-#include "../../csrc/core/common.h"
+#include "../../csrc/dpdk/mbuf.h"
 #include <rte_eal.h>
 #include <rte_lcore.h>
 #include <rte_random.h>
@@ -16,8 +16,13 @@ import (
 	"github.com/kballard/go-shellquote"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealconfig"
 	"github.com/usnistgov/ndn-dpdk/dpdk/spdkenv"
 )
+
+func init() {
+	ealconfig.PmdPath = C.RTE_EAL_PMD_PATH
+}
 
 var initOnce sync.Once
 
@@ -30,6 +35,7 @@ func Init(args []string) {
 		go func() {
 			runtime.LockOSThread()
 			initEal(args)
+			initMbufDynfields()
 			spdkenv.InitEnv()
 			spdkenv.InitMainThread(assignMainThread) // never returns
 		}()
@@ -57,11 +63,11 @@ func initEal(args []string) {
 	C.rte_mp_disable()
 	res := C.rte_eal_init(C.int(a.Argc), (**C.char)(a.Argv))
 	if res < 0 {
-		logEntry.Fatalf("EAL init error %v", eal.GetErrno())
+		logEntry.WithError(eal.GetErrno()).Fatal("EAL init error")
 		return
 	}
 
-	eal.Initial = eal.LCoreFromID(int(C.rte_get_master_lcore()))
+	eal.MainLCore = eal.LCoreFromID(int(C.rte_get_main_lcore()))
 	hasSocket := make(map[eal.NumaSocket]bool)
 	for i := C.rte_get_next_lcore(C.RTE_MAX_LCORE, 1, 1); i < C.RTE_MAX_LCORE; i = C.rte_get_next_lcore(i, 1, 0) {
 		lc := eal.LCoreFromID(int(i))
@@ -71,5 +77,12 @@ func initEal(args []string) {
 			hasSocket[socket] = true
 		}
 	}
-	logEntry.WithFields(makeLogFields("initial", eal.Initial, "workers", eal.Workers, "sockets", eal.Sockets)).Info("EAL ready")
+	logEntry.WithFields(makeLogFields("main", eal.MainLCore, "workers", eal.Workers, "sockets", eal.Sockets)).Info("EAL ready")
+}
+
+func initMbufDynfields() {
+	ok := bool(C.Mbuf_RegisterDynFields())
+	if !ok {
+		log.WithError(eal.GetErrno()).Fatal("mbuf dynfields init error")
+	}
 }

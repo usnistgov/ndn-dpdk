@@ -28,7 +28,7 @@ EthRxTable_RxBurst(RxGroup* rxg, struct rte_mbuf** pkts, uint16_t nPkts)
   for (uint16_t i = 0; i < nInput; ++i) {
     struct rte_mbuf* m = pkts[i];
     if (likely(EthRxTable_Accept(rxt, m))) {
-      m->timestamp = now;
+      Mbuf_SetTimestamp(m, now);
       pkts[nRx++] = m;
     } else {
       rejects[nRej++] = m;

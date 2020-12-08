@@ -56,7 +56,7 @@ func memifbridgeHelper() {
 	locB.SocketName = path.Join(dir, "memifB.sock")
 	locB.ID = 2643
 
-	bridge, e := memiftransport.NewBridge(locA, locB, true)
+	bridge, e := memiftransport.NewBridge(locA, locB, memiftransport.RoleServer)
 	if e != nil {
 		panic(e)
 	}

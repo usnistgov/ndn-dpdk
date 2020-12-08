@@ -89,7 +89,7 @@ FwFwd_InterestHitCs(FwFwd* fwd, FwFwdCtx* ctx, CsEntry* csEntry)
   if (likely(outNpkt != NULL)) {
     struct rte_mbuf* outPkt = Packet_ToMbuf(outNpkt);
     outPkt->port = MBUF_INVALID_PORT;
-    outPkt->timestamp = ctx->rxTime;
+    Mbuf_SetTimestamp(outPkt, ctx->rxTime);
     LpL3* lpl3 = Packet_GetLpL3Hdr(outNpkt);
     lpl3->pitToken = ctx->rxToken;
     lpl3->congMark = Packet_GetLpL3Hdr(ctx->npkt)->congMark;
@@ -196,7 +196,7 @@ SgForwardInterest(SgCtx* ctx0, FaceID nh)
 
   uint64_t token = FwToken_New(fwd->id, PitEntry_GetToken(ctx->pitEntry));
   Packet_GetLpL3Hdr(outNpkt)->pitToken = token;
-  Packet_ToMbuf(outNpkt)->timestamp = ctx->rxTime; // for latency stats
+  Mbuf_SetTimestamp(Packet_ToMbuf(outNpkt), ctx->rxTime); // for latency stats
 
   ZF_LOGD("^ interest-to=%" PRI_FaceID " npkt=%p " PRI_InterestGuiders " up-token=%016" PRIx64, nh,
           outNpkt, InterestGuiders_Fmt(guiders), token);

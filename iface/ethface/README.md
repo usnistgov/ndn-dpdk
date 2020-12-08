@@ -124,7 +124,7 @@ Locator of a memif face has the following fields:
 
 In the data plane:
 
-* Application must operate its memif interface in "slave" mode.
+* Application must operate its memif interface in "client" mode.
 * Each packet must be an Ethernet frame carrying an NDNLPv2 frame.
 * Application must use Ethernet address `F2:6C:E6:8D:9E:34`.
 * NDN-DPDK uses Ethernet address `F2:71:7E:76:5D:1C`.

@@ -39,7 +39,7 @@ TgConsumerRx_ProcessData(TgConsumerRx* cr, Packet* npkt)
 
   ZF_LOGD(">D seq=%" PRIx64 " pattern=%d", seqNum, patternId);
   ++pattern->nData;
-  TgTime recvTime = TgTime_FromTsc(Packet_ToMbuf(npkt)->timestamp);
+  TgTime recvTime = TgTime_FromTsc(Mbuf_GetTimestamp(Packet_ToMbuf(npkt)));
   TgTime sendTime = TgToken_GetTimestamp(token);
   RunningStat_Push(&pattern->rtt, recvTime - sendTime);
 }

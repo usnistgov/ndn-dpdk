@@ -17,14 +17,14 @@ type Transport interface {
 }
 
 // New creates a Transport.
-// The memif operates in slave mode.
+// The memif operates in client mode.
 func New(loc Locator) (Transport, error) {
 	if e := loc.Validate(); e != nil {
 		return nil, fmt.Errorf("loc.Validate %w", e)
 	}
 	loc.ApplyDefaults()
 
-	hdl, e := newHandle(loc, false)
+	hdl, e := newHandle(loc, RoleClient)
 	if e != nil {
 		return nil, e
 	}

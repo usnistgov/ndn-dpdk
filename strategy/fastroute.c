@@ -1,4 +1,4 @@
-/** 
+/**
  * @file
  * The fast route strategy multicasts the first Interest, observes which
  * nexthop replies first, and keeps using it. It then periodically probes

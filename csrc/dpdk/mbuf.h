@@ -3,8 +3,29 @@
 
 /** @file */
 
-#include "../core/common.h"
+#include "tsc.h"
 #include <rte_mbuf.h>
+#include <rte_mbuf_dyn.h>
+
+extern int Mbuf_Timestamp_DynFieldOffset_;
+
+/** @brief Register mbuf dynfields. */
+bool
+Mbuf_RegisterDynFields();
+
+/** @brief Retrieve mbuf timestamp. */
+__attribute__((nonnull)) static inline TscTime
+Mbuf_GetTimestamp(struct rte_mbuf* m)
+{
+  return *RTE_MBUF_DYNFIELD(m, Mbuf_Timestamp_DynFieldOffset_, TscTime*);
+}
+
+/** @brief Assign mbuf timestamp. */
+__attribute__((nonnull)) static inline void
+Mbuf_SetTimestamp(struct rte_mbuf* m, TscTime timestamp)
+{
+  *RTE_MBUF_DYNFIELD(m, Mbuf_Timestamp_DynFieldOffset_, TscTime*) = timestamp;
+}
 
 /**
  * @brief Copy contents of mbuf to a buffer.

@@ -1,4 +1,4 @@
-/** 
+/**
  * @file
  * The reject strategy responds a Nack against every Interest.
  */

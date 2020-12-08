@@ -63,7 +63,7 @@ func memifbridgeHelper() {
 	locB.SocketName = socketName
 	locB.ID = 1891
 
-	bridge, e := memiftransport.NewBridge(locA, locB, false)
+	bridge, e := memiftransport.NewBridge(locA, locB, memiftransport.RoleClient)
 	if e != nil {
 		panic(e)
 	}

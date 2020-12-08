@@ -3,7 +3,6 @@
 
 /** @file */
 
-#include "../dpdk/tsc.h"
 #include "../ndni/packet.h"
 #include "enum.h"
 

@@ -6,7 +6,7 @@ import (
 )
 
 // Bridge bridges two memif interfaces.
-// The memifs can operate in either master or slave mode.
+// The memifs can operate in either server or client mode.
 //
 // This is mainly useful for unit testing.
 // It is impossible to run both memif peers in the same process, so the test program should execute this bridge in a separate process.
@@ -17,7 +17,7 @@ type Bridge struct {
 }
 
 // NewBridge creates a Bridge.
-func NewBridge(locA, locB Locator, isMaster bool) (bridge *Bridge, e error) {
+func NewBridge(locA, locB Locator, role Role) (bridge *Bridge, e error) {
 	if e = locA.Validate(); e != nil {
 		return nil, fmt.Errorf("LocatorA %w", e)
 	}
@@ -26,18 +26,18 @@ func NewBridge(locA, locB Locator, isMaster bool) (bridge *Bridge, e error) {
 		return nil, fmt.Errorf("LocatorB %w", e)
 	}
 	locB.ApplyDefaults()
-	if isMaster && locA.SocketName == locB.SocketName {
+	if role == RoleServer && locA.SocketName == locB.SocketName {
 		return nil, errors.New("Locators must use different SocketName")
 	}
 
 	bridge = &Bridge{
 		closing: make(chan bool, 2),
 	}
-	bridge.hdlA, e = newHandle(locA, isMaster)
+	bridge.hdlA, e = newHandle(locA, role)
 	if e != nil {
 		return nil, fmt.Errorf("newHandleA %w", e)
 	}
-	bridge.hdlB, e = newHandle(locB, isMaster)
+	bridge.hdlB, e = newHandle(locB, role)
 	if e != nil {
 		bridge.hdlA.Close()
 		return nil, fmt.Errorf("newHandleB %w", e)

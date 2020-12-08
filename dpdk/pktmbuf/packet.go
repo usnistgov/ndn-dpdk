@@ -56,12 +56,12 @@ func (pkt *Packet) SetPort(port uint16) {
 
 // Timestamp returns receive timestamp.
 func (pkt *Packet) Timestamp() eal.TscTime {
-	return eal.TscTime(pkt.ptr().timestamp)
+	return eal.TscTime(C.Mbuf_GetTimestamp(pkt.ptr()))
 }
 
 // SetTimestamp sets receive timestamp.
 func (pkt *Packet) SetTimestamp(t eal.TscTime) {
-	pkt.ptr().timestamp = C.uint64_t(t)
+	C.Mbuf_SetTimestamp(pkt.ptr(), C.TscTime(t))
 }
 
 // IsSegmented returns true if the packet has more than one segment.
