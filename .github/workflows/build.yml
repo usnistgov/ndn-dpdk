@@ -62,19 +62,32 @@ jobs:
         env:
           TEST_ACCEPTABLE_FAILURES: diskstore|ethface|fetch|fwdp|memiftransport|tgconsumer|tgproducer
           NDNDPDK_MK_THREADSLEEP: 1
-      - name: build NDN-DPDK in release mode
-        run: |
-          make clean
-          make
-          sudo make install
-        env:
-          NDNDPDK_MK_RELEASE: 1
       - name: check code style
         run: make lint && [[ $(git status --porcelain | tee >(cat 1>&2) | wc -l) -eq 0 ]]
       - name: build documentation
         run: make doxygen
+  ubuntu20:
+    runs-on: ubuntu-20.04
+    container: ubuntu:20.04
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: install basics
+        run: |
+          apt-get -y -qq update
+          apt-get -y -qq install curl git sudo
+      - uses: actions/checkout@v2
+      - name: install dependencies
+        run: ./docs/ndndpdk-depends.sh --skiprootcheck -y
+      - name: build NDN-DPDK in release mode
+        run: |
+          source ~/.bashrc
+          npm install
+          NDNDPDK_MK_RELEASE=1 make
+          sudo make install
   docker:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - uses: docker/build-push-action@v2

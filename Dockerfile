@@ -1,44 +1,10 @@
-FROM ubuntu:18.04
-RUN ( echo 'APT::Install-Recommends "no";'; echo 'APT::Install-Suggests "no";' ) >/etc/apt/apt.conf.d/80custom && \
-    apt-get update && \
-    apt-get install -y -qq build-essential ca-certificates clang-8 curl git libc6-dev-i386 libelf-dev libnuma-dev libssl-dev liburcu-dev pkg-config python3-distutils sudo && \
-    curl -sL https://deb.nodesource.com/setup_14.x | bash - && \
-    apt-get install -y -qq clang-format-8 doxygen nodejs yamllint && \
-    curl -sL https://bootstrap.pypa.io/get-pip.py | python3 && \
-    pip install -U meson ninja && \
-    curl -sL https://dl.google.com/go/$(curl -sL https://golang.org/VERSION?m=text).linux-amd64.tar.gz | tar -C /usr/local -xz && \
-    curl -sL https://github.com/spdk/spdk/archive/v20.10.tar.gz | tar -C /root -xz && \
-    cd /root/spdk-* && \
-    ./scripts/pkgdep.sh && \
-    apt-get clean && \
-    ( update-alternatives --remove-all python || true ) && \
-    update-alternatives --install /usr/bin/python python /usr/bin/python3 1
-RUN curl -sL https://github.com/iovisor/ubpf/archive/089f6279752adfb01386600d119913403ed326ee.tar.gz | tar -C /root -xz && \
-    cd /root/ubpf-*/vm && \
-    make && \
-    make install
-RUN curl -sL http://archive.ubuntu.com/ubuntu/pool/universe/n/nasm/nasm_2.14.02.orig.tar.xz | tar -C /root -xJ && \
-    cd /root/nasm-* && \
-    ./configure && \
-    make -j$(nproc) && \
-    make install && \
-    curl -sL https://github.com/intel/intel-ipsec-mb/archive/v0.55.tar.gz | tar -C /root -xz && \
-    cd /root/intel-ipsec-mb-* && \
-    make -j$(nproc) && \
-    make install
-RUN curl -sL https://static.dpdk.org/rel/dpdk-20.11.tar.xz | tar -C /root -xJ && \
-    cd /root/dpdk-* && \
-    meson -Ddebug=true -Doptimization=3 -Dtests=false --libdir=lib build && \
-    cd build && \
-    ninja -j$(nproc) && \
-    ninja install && \
-    find /usr/local/lib -name 'librte_*.a' -delete
-RUN cd /root/spdk-* && \
-    ./configure --enable-debug --disable-tests --with-shared --with-dpdk=/usr/local --without-vhost --without-isal --without-fuse && \
-    make -j$(nproc) && \
-    make install && \
-    find /usr/local/lib -name 'libspdk_*.a' -delete && \
-    ldconfig
+FROM debian:buster
+ADD ./docs/ndndpdk-depends.sh /root/ndndpdk-depends.sh
+RUN apt-get -y -qq update && \
+    apt-get -y -qq install curl sudo && \
+    /root/ndndpdk-depends.sh --skiprootcheck --dir=/root/ndndpdk-depends -y && \
+    apt-get -y -qq clean && \
+    rm -rf /root/ndndpdk-depends
 ADD . /root/ndn-dpdk/
 RUN export PATH=$PATH:/usr/local/go/bin && \
     cd /root/ndn-dpdk && \

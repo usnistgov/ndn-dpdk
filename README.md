@@ -13,17 +13,21 @@ It is in pre-release stage and will continue to be updated.
 ### Requirements
 
 * Ubuntu 18.04 or Debian 10 on *amd64* architecture
-* Required APT packages: `build-essential clang-8 curl git libc6-dev-i386 libelf-dev libnuma-dev libssl-dev liburcu-dev pkg-config python3-distutils sudo`
+* Required APT packages: `build-essential clang-8 git libc6-dev-i386 libelf-dev libnuma-dev libssl-dev liburcu-dev pkg-config python3-distutils`
 * Optional APT packages: `clang-format-8 doxygen yamllint`
   (see "other build targets" for an explanation)
 * [pip](https://pip.pypa.io/en/stable/installing/) and `sudo pip install -U meson ninja`
 * [Intel Multi-Buffer Crypto for IPsec Library](https://github.com/intel/intel-ipsec-mb) v0.55 (optional)
 * DPDK 20.11, configured with `meson -Ddebug=true -Doptimization=3 -Dtests=false --libdir=lib build`
-* SPDK 20.10, configured with `./configure --enable-debug --disable-tests --with-shared --with-dpdk=/usr/local --without-vhost --without-isal --without-fuse`
+* [SPDK](https://spdk.io/) 20.10, configured with `./configure --enable-debug --disable-tests --with-shared --with-dpdk=/usr/local --without-vhost --without-isal --without-fuse`
 * [ubpf](https://github.com/iovisor/ubpf/tree/089f6279752adfb01386600d119913403ed326ee/vm) library, installed to `/usr/local`
 * Go 1.x
 * Node.js 14.x
-* Note: you can look at the [`Dockerfile`](Dockerfile) to see how to install the dependencies.
+
+You can install the dependencies with [ndndpdk-depends.sh](docs/ndndpdk-depends.sh).
+
+NDN-DPDK requires hugepages to run.
+See [huge-setup.sh](docs/huge-setup.sh) for an example on how to setup hugepages.
 
 ### Build steps
 
