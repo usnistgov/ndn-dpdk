@@ -156,9 +156,10 @@ __attribute__((nonnull, warn_unused_result)) bool
 Packet_ParseL3(Packet* npkt);
 
 /**
- * @brief Clone packet as indirect mbufs.
+ * @brief Clone packet to new mbufs.
  * @retval NULL allocation failure.
- * @return an empty mbuf without PacketPriv, followed by indirect mbufs.
+ * @return new mbufs that fulfill @p align requirements.
+ * @post @p npkt is unaffected.
  */
 __attribute__((nonnull)) Packet*
 Packet_Clone(Packet* npkt, PacketMempools* mp, PacketTxAlign align);

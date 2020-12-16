@@ -128,7 +128,7 @@ func TestToken(t *testing.T) {
 
 		// high 16 bits of the token should be ignored
 		token2 := token ^ 0x79BC000000000000
-		nack := makeNack(makeInterest(name, setPitToken(token2)), an.NackNoRoute)
+		nack := makeNack(ndn.MakeInterest(name), an.NackNoRoute, setPitToken(token2))
 		foundEntry := pit.FindByNack(nack)
 		if assert.NotNil(foundEntry) {
 			assert.Equal(uintptr(entry.Ptr()), uintptr(foundEntry.Ptr()))

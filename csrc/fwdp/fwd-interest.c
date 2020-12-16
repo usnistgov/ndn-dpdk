@@ -46,6 +46,17 @@ FwFwd_InterestLookupFib(FwFwd* fwd, Packet* npkt, FibNexthopFilter* nhFlt)
 }
 
 __attribute__((nonnull)) static void
+FwFwd_InterestRejectNack(FwFwd* fwd, FwFwdCtx* ctx, NackReason reason)
+{
+  ctx->npkt = Nack_FromInterest(ctx->npkt, reason, &fwd->mp, Face_PacketTxAlign(ctx->rxFace));
+  if (unlikely(ctx->npkt == NULL)) {
+    return;
+  }
+  Face_Tx(ctx->rxFace, ctx->npkt);
+  NULLize(ctx->npkt);
+}
+
+__attribute__((nonnull)) static void
 FwFwd_InterestForward(FwFwd* fwd, FwFwdCtx* ctx)
 {
   ctx->dnNonce = Packet_GetInterestHdr(ctx->npkt)->nonce;
@@ -55,7 +66,7 @@ FwFwd_InterestForward(FwFwd* fwd, FwFwdCtx* ctx)
   if (unlikely(dupNonce != 0)) {
     ZF_LOGD("^ pit-entry=%p drop=duplicate-nonce(%" PRI_FaceID ") nack-to=%" PRI_FaceID,
             ctx->pitEntry, dupNonce, ctx->rxFace);
-    Face_Tx(ctx->rxFace, Nack_FromInterest(ctx->npkt, NackDuplicate));
+    FwFwd_InterestRejectNack(fwd, ctx, NackDuplicate);
     ++fwd->nDupNonce;
     return;
   }
@@ -64,16 +75,16 @@ FwFwd_InterestForward(FwFwd* fwd, FwFwdCtx* ctx)
   PitDn* dn = PitEntry_InsertDn(ctx->pitEntry, fwd->pit, ctx->npkt);
   if (unlikely(dn == NULL)) {
     ZF_LOGD("^ pit-entry=%p drop=PitDn-full nack-to=%" PRI_FaceID, ctx->pitEntry, ctx->rxFace);
-    Face_Tx(ctx->rxFace, Nack_FromInterest(ctx->npkt, NackCongestion));
+    FwFwd_InterestRejectNack(fwd, ctx, NackCongestion);
     return;
   }
-  FwFwd_NULLize(ctx->npkt); // npkt is owned and possibly freed by pitEntry
+  NULLize(ctx->npkt); // npkt is owned and possibly freed by pitEntry
   char debugStringBuffer[PitDebugStringLength];
   ZF_LOGD("^ pit-entry=%p(%s)", ctx->pitEntry,
           PitEntry_ToDebugString(ctx->pitEntry, debugStringBuffer));
 
   uint64_t res = SgInvoke(ctx->fibEntry->strategy, ctx);
-  FwFwd_NULLize(ctx->pitEntry); // strategy may have deleted PIT entry via SgReturnNacks
+  NULLize(ctx->pitEntry); // strategy may have deleted PIT entry via SgReturnNacks
   ZF_LOGD("^ sg-res=%" PRIu64 " sg-forwarded=%d", res, ctx->nForwarded);
   if (unlikely(ctx->nForwarded == 0)) {
     ++fwd->nSgNoFwd;
@@ -96,7 +107,7 @@ FwFwd_InterestHitCs(FwFwd* fwd, FwFwdCtx* ctx, CsEntry* csEntry)
     Face_Tx(ctx->rxFace, outNpkt);
   }
   rte_pktmbuf_free(ctx->pkt);
-  FwFwd_NULLize(ctx->pkt);
+  NULLize(ctx->pkt);
 }
 
 void
@@ -113,7 +124,7 @@ FwFwd_RxInterest(FwFwd* fwd, FwFwdCtx* ctx)
   FwFwdCtx_SetFibEntry(ctx, FwFwd_InterestLookupFib(fwd, ctx->npkt, &ctx->nhFlt));
   if (unlikely(ctx->fibEntry == NULL)) {
     ZF_LOGD("^ drop=no-FIB-match nack-to=%" PRI_FaceID, ctx->rxFace);
-    Face_Tx(ctx->rxFace, Nack_FromInterest(ctx->npkt, NackNoRoute));
+    FwFwd_InterestRejectNack(fwd, ctx, NackNoRoute);
     ++fwd->nNoFibMatch;
     rcu_read_unlock();
     return;
@@ -138,14 +149,14 @@ FwFwd_RxInterest(FwFwd* fwd, FwFwdCtx* ctx)
     }
     case PIT_INSERT_FULL:
       ZF_LOGD("^ drop=PIT-full nack-to=%" PRI_FaceID, ctx->rxFace);
-      Face_Tx(ctx->rxFace, Nack_FromInterest(ctx->npkt, NackCongestion));
+      FwFwd_InterestRejectNack(fwd, ctx, NackCongestion);
       break;
     default:
       NDNDPDK_ASSERT(false); // no other cases
       break;
   }
 
-  FwFwd_NULLize(ctx->fibEntry); // fibEntry is inaccessible upon RCU unlock
+  NULLize(ctx->fibEntry); // fibEntry is inaccessible upon RCU unlock
   rcu_read_unlock();
 }
 

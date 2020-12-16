@@ -190,24 +190,25 @@ typedef struct GuiderFields
 } __rte_packed GuiderFields;
 
 __attribute__((nonnull)) static void
-Interest_WriteGuiders(struct rte_mbuf* m, InterestGuiders g)
+ModifyGuiders_Append(struct rte_mbuf* m, InterestGuiders g)
 {
   GuiderFields* f = (GuiderFields*)rte_pktmbuf_append(m, sizeof(GuiderFields));
   NDNDPDK_ASSERT(f != NULL);
   f->nonceT = TtNonce;
-  f->nonceL = 4;
+  f->nonceL = sizeof(f->nonceV);
   f->nonceV = rte_cpu_to_be_32(g.nonce);
   f->lifetimeT = TtInterestLifetime;
-  f->lifetimeL = 4;
+  f->lifetimeL = sizeof(f->lifetimeV);
   f->lifetimeV = rte_cpu_to_be_32(g.lifetime);
   f->hopLimitT = TtHopLimit;
-  f->hopLimitL = 1;
+  f->hopLimitL = sizeof(f->hopLimitV);
   f->hopLimitV = g.hopLimit;
 }
 
 __attribute__((nonnull, returns_nonnull)) static Packet*
-Interest_ModifyGuiders_Finish(struct rte_mbuf* m)
+ModifyGuiders_Finish(struct rte_mbuf* m)
 {
+  TlvEncoder_PrependTL(m, TtInterest, m->pkt_len);
   Packet* output = Packet_FromMbuf(m);
   Packet_SetType(output, PktSInterest);
   *Packet_GetLpL3Hdr(output) = (const LpL3){ 0 };
@@ -215,42 +216,42 @@ Interest_ModifyGuiders_Finish(struct rte_mbuf* m)
 }
 
 __attribute__((nonnull)) static Packet*
-Interest_ModifyGuiders_Linear(Packet* npkt, InterestGuiders guiders, PacketMempools* mp)
+ModifyGuiders_Linear(Packet* npkt, InterestGuiders guiders, PacketMempools* mp,
+                     uint16_t fragmentPayloadSize)
 {
-  struct rte_mbuf* m = rte_pktmbuf_alloc(mp->packet);
-  if (unlikely(m == NULL)) {
-    return NULL;
-  }
-  m->data_off = RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom + 1 + 3; // Interest TL
-  NDNDPDK_ASSERT(m->data_off <= m->buf_len);
-
-  struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   PInterest* interest = Packet_GetInterestHdr(npkt);
-  if (unlikely(rte_pktmbuf_tailroom(m) <=
-               pkt->pkt_len - interest->guiderSize + sizeof(GuiderFields))) {
-    rte_pktmbuf_free(m);
-    return NULL;
-  }
-
+  struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   TlvDecoder d;
   TlvDecoder_Init(&d, pkt);
   uint32_t length0, type0 = TlvDecoder_ReadTL(&d, &length0);
   NDNDPDK_ASSERT(type0 == TtInterest);
 
-  TlvDecoder_Copy(&d, (uint8_t*)rte_pktmbuf_append(m, interest->nonceOffset),
-                  interest->nonceOffset);
-  TlvDecoder_Skip(&d, interest->guiderSize);
-  Interest_WriteGuiders(m, guiders);
-  if (unlikely(d.length > 0)) {
-    TlvDecoder_Copy(&d, (uint8_t*)rte_pktmbuf_append(m, d.length), d.length);
+  fragmentPayloadSize -= sizeof(GuiderFields); // keep room for guiders in any fragment
+  uint32_t fragCount = DIV_CEIL(d.length - interest->guiderSize, fragmentPayloadSize);
+  NDNDPDK_ASSERT(fragCount < LpMaxFragments);
+  struct rte_mbuf* frames[LpMaxFragments];
+  if (unlikely(rte_pktmbuf_alloc_bulk(mp->packet, frames, fragCount) != 0)) {
+    return NULL;
   }
 
-  TlvEncoder_PrependTL(m, TtInterest, m->pkt_len);
-  return Interest_ModifyGuiders_Finish(m);
+  uint32_t fragIndex = 0;
+  frames[fragIndex]->data_off = RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom + //
+                                L3TypeLengthHeadroom;                     // Interest TL
+  TlvDecoder_Fragment(&d, interest->nonceOffset, frames, &fragIndex, fragCount, fragmentPayloadSize,
+                      RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom);
+
+  TlvDecoder_Skip(&d, interest->guiderSize);
+  ModifyGuiders_Append(frames[fragIndex], guiders);
+
+  TlvDecoder_Fragment(&d, d.length, frames, &fragIndex, fragCount, fragmentPayloadSize,
+                      RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom);
+
+  Mbuf_ChainVector(frames, fragCount);
+  return ModifyGuiders_Finish(frames[0]);
 }
 
 __attribute__((nonnull)) static Packet*
-Interest_ModifyGuiders_Chained(Packet* npkt, InterestGuiders guiders, PacketMempools* mp)
+ModifyGuiders_Chained(Packet* npkt, InterestGuiders guiders, PacketMempools* mp)
 {
   // segs[0] = Interest TL, with headroom for lower layer headers
   // segs[1] = clone of Interest V before Nonce, such as Name and ForwardingHint
@@ -277,7 +278,7 @@ Interest_ModifyGuiders_Chained(Packet* npkt, InterestGuiders guiders, PacketMemp
   TlvDecoder_Skip(&d, interest->guiderSize);
 
   segs[2]->data_off = 0;
-  Interest_WriteGuiders(segs[2], guiders);
+  ModifyGuiders_Append(segs[2], guiders);
 
   if (unlikely(d.length > 0)) {
     struct rte_mbuf* seg3 = TlvDecoder_Clone(&d, d.length, mp->indirect, NULL);
@@ -292,14 +293,12 @@ Interest_ModifyGuiders_Chained(Packet* npkt, InterestGuiders guiders, PacketMemp
     return NULL;
   }
 
-  segs[0]->data_off = RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom;
-  TlvEncoder_PrependTL(segs[0], TtInterest, segs[1]->pkt_len);
-
+  segs[0]->data_off = RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom + L3TypeLengthHeadroom;
   if (unlikely(!Mbuf_Chain(segs[0], segs[0], segs[1]))) {
     rte_pktmbuf_free_bulk(segs, 2);
     return NULL;
   }
-  return Interest_ModifyGuiders_Finish(segs[0]);
+  return ModifyGuiders_Finish(segs[0]);
 }
 
 Packet*
@@ -307,9 +306,9 @@ Interest_ModifyGuiders(Packet* npkt, InterestGuiders guiders, PacketMempools* mp
                        PacketTxAlign align)
 {
   if (align.linearize) {
-    return Interest_ModifyGuiders_Linear(npkt, guiders, mp);
+    return ModifyGuiders_Linear(npkt, guiders, mp, align.fragmentPayloadSize);
   }
-  return Interest_ModifyGuiders_Chained(npkt, guiders, mp);
+  return ModifyGuiders_Chained(npkt, guiders, mp);
 }
 
 Packet*

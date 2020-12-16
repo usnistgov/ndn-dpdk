@@ -108,7 +108,7 @@ type NewParams struct {
 
 	// Init callback is invoked after allocating C.FaceImpl.
 	// This is always invoked on the main thread.
-	Init func(f Face) (l2TxBurstFunc unsafe.Pointer, e error)
+	Init func(f Face) (InitResult, error)
 
 	// Start callback is invoked after data structure initialization.
 	// It should activate RxGroups associated with the face.
@@ -132,6 +132,16 @@ type NewParams struct {
 	// ReadExCounters callback returns extended counters.
 	// This is optional.
 	ReadExCounters func(f Face) interface{}
+}
+
+// InitResult contains results of NewParams.Init callback.
+type InitResult struct {
+	// TxLinearize indicates whether TX mbufs must be direct mbufs in contiguous memory.
+	// See C.PacketTxAlign.linearize field.
+	TxLinearize bool
+
+	// L2TxBurst is a C function of C.Face_L2TxBurst type.
+	L2TxBurst unsafe.Pointer
 }
 
 // New creates a Face.
@@ -167,13 +177,19 @@ func newFace(p NewParams) (Face, error) {
 	sizeofImpl := C.sizeof_FaceImpl + p.SizeofPriv
 	c.impl = (*C.FaceImpl)(eal.ZmallocAligned("FaceImpl", sizeofImpl, 1, p.Socket))
 
-	l2TxBurst, e := p.Init(f)
+	initResult, e := p.Init(f)
 	if e != nil {
 		logEntry.WithError(e).Warn("init error")
 		return f.clear(), e
 	}
-	c.impl.tx.l2Burst = (C.Face_L2TxBurst)(l2TxBurst)
 	logEntry = logEntry.WithField("locator", LocatorString(f.Locator()))
+
+	c.txAlign = C.PacketTxAlign{
+		linearize:           C.bool(initResult.TxLinearize),
+		fragmentPayloadSize: C.uint16_t(p.MTU - ndni.LpHeaderHeadroom),
+	}
+	c.impl.tx.l2Burst = (C.Face_L2TxBurst)(initResult.L2TxBurst)
+	(*ndni.Mempools)(unsafe.Pointer(&c.impl.tx.mp)).Assign(p.Socket)
 
 	outputQueue, e := ringbuffer.New(p.OutputQueueSize, p.Socket, ringbuffer.ProducerMulti, ringbuffer.ConsumerSingle)
 	if e != nil {
@@ -182,18 +198,15 @@ func newFace(p NewParams) (Face, error) {
 	}
 	c.outputQueue = (*C.struct_rte_ring)(outputQueue.Ptr())
 
-	indirectMp := ndni.IndirectMempool.MakePool(p.Socket)
-	headerMp := ndni.HeaderMempool.MakePool(p.Socket)
-
 	reassID := C.CString(eal.AllocObjectID("iface.Reassembler"))
 	defer C.free(unsafe.Pointer(reassID))
 	if ok := bool(C.Reassembler_Init(&c.impl.rx.reass, reassID, C.uint32_t(p.ReassemblerCapacity), C.unsigned(p.Socket.ID()))); !ok {
 		e := eal.GetErrno()
 		logEntry.WithError(e).Warn("Reassembler_Init error")
-		return f.clear(), fmt.Errorf("Reassembler_Init error %w", e)
+		return f.clear(), e
 	}
 
-	C.TxProc_Init(&c.impl.tx, C.uint16_t(p.MTU), (*C.struct_rte_mempool)(indirectMp.Ptr()), (*C.struct_rte_mempool)(headerMp.Ptr()))
+	C.TxProc_Init(&c.impl.tx, c.txAlign)
 
 	f2, e := p.Start(f)
 	if e != nil {

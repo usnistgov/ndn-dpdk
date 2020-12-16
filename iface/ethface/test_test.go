@@ -20,6 +20,7 @@ func TestMain(m *testing.M) {
 
 	mbuftestenv.Direct.Template.Update(pktmbuf.PoolConfig{
 		Dataroom: 9000, // needed by fragmentation test case
+		Capacity: 16383,
 	})
 
 	os.Exit(m.Run())

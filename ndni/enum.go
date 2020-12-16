@@ -25,6 +25,9 @@ const (
 	// LpMaxFragments is the maximum number of NDNLPv2 fragments.
 	LpMaxFragments = 31
 
+	// L3TypeLengthHeadroom is the required headroom to prepend Interest/Data TLV-TYPE TLV-LENGTH fields.
+	L3TypeLengthHeadroom = 1 + 3
+
 	// NameMaxLength is the maximum TLV-LENGTH for Name.
 	NameMaxLength = 2048
 

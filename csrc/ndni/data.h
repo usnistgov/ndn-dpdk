@@ -51,7 +51,6 @@ typedef Packet* (*DataGen_EncodeFunc)(DataGen* gen, LName prefix, PacketMempools
  *
  * DataGen* is struct rte_mbuf*.
  * Its packet buffer contains name suffix TLV-VALUE and fields after Name.
- * vlan_tci field indicates name suffix TLV-LENGTH.
  * Name TL and Data TL are not included.
  */
 typedef struct DataGen

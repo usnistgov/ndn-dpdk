@@ -41,7 +41,8 @@ __attribute__((nonnull)) static Packet*
 TgProducer_RespondNack(TgProducer* producer, TgProducerPattern* pattern, TgProducerReply* reply,
                        Packet* npkt)
 {
-  return Nack_FromInterest(npkt, reply->nackReason);
+  return Nack_FromInterest(npkt, reply->nackReason, &producer->mp,
+                           Face_PacketTxAlign(producer->face));
 }
 
 __attribute__((nonnull)) static Packet*
@@ -72,7 +73,8 @@ TgProducer_ProcessInterest(TgProducer* producer, Packet* npkt)
     ZF_LOGD(">I dn-token=%016" PRIx64 " no-pattern", token);
     ++producer->nNoMatch;
     if (producer->wantNackNoRoute) {
-      return Nack_FromInterest(npkt, NackNoRoute);
+      return Nack_FromInterest(npkt, NackNoRoute, &producer->mp,
+                               Face_PacketTxAlign(producer->face));
     } else {
       rte_pktmbuf_free(Packet_ToMbuf(npkt));
       return NULL;

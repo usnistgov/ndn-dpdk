@@ -8,16 +8,19 @@ import "C"
 import (
 	"reflect"
 	"strings"
-	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
+
+// MakePacketHeadroom is the mbuf headroom used in MakePacket().
+var MakePacketHeadroom = mbuftestenv.Headroom(pktmbuf.DefaultHeadroom)
 
 // MakePacket creates a packet.
 // input: packet bytes as []byte or HEX.
@@ -33,7 +36,7 @@ func MakePacket(input interface{}, modifiers ...PacketModifier) *ndni.Packet {
 		panic("bad argument type " + reflect.TypeOf(input).String())
 	}
 
-	m := mbuftestenv.MakePacket(b)
+	m := mbuftestenv.MakePacket(b, MakePacketHeadroom)
 	m.SetTimestamp(eal.TscNow())
 
 	pkt := ndni.PacketFromPtr(m.Ptr())
@@ -52,10 +55,10 @@ func MakePacket(input interface{}, modifiers ...PacketModifier) *ndni.Packet {
 // input: packet bytes as []byte or HEX, or name URI.
 // args: arguments to ndn.MakeInterest (valid if input is name URI), or PacketModifiers.
 func MakeInterest(input interface{}, args ...interface{}) (pkt *ndni.Packet) {
-	modifiers, nArgs := filterPacketModifers(args)
+	modifiers, mArgs := filterPacketModifers(args)
 	if s, ok := input.(string); ok && strings.HasPrefix(s, "/") {
-		nInterest := ndn.MakeInterest(append(nArgs, s)...)
-		wire, e := tlv.Encode(nInterest)
+		interest := ndn.MakeInterest(append(mArgs, s)...)
+		wire, e := tlv.Encode(interest)
 		if e != nil {
 			panic(e)
 		}
@@ -69,10 +72,10 @@ func MakeInterest(input interface{}, args ...interface{}) (pkt *ndni.Packet) {
 // args: arguments to ndn.MakeData (valid if input is name URI), or PacketModifiers.
 // Panics if packet constructed from bytes is not Data.
 func MakeData(input interface{}, args ...interface{}) (pkt *ndni.Packet) {
-	modifiers, nArgs := filterPacketModifers(args)
+	modifiers, mArgs := filterPacketModifers(args)
 	if s, ok := input.(string); ok && strings.HasPrefix(s, "/") {
-		nData := ndn.MakeData(append(nArgs, s)...)
-		wire, e := tlv.Encode(nData)
+		data := ndn.MakeData(append(mArgs, s)...)
+		wire, e := tlv.Encode(data)
 		if e != nil {
 			panic(e)
 		}
@@ -82,9 +85,16 @@ func MakeData(input interface{}, args ...interface{}) (pkt *ndni.Packet) {
 }
 
 // MakeNack turns an Interest to a Nack.
-func MakeNack(interest *ndni.Packet, reason int) *ndni.Packet {
-	nack := C.Nack_FromInterest((*C.Packet)(interest.Ptr()), C.NackReason(reason))
-	return ndni.PacketFromPtr(unsafe.Pointer(nack))
+// args: arguments to ndn.MakeNack, or PacketModifiers.
+// Note that the Interest must be passed as ndn.Interest instance, not bytes or name.
+func MakeNack(args ...interface{}) (pkt *ndni.Packet) {
+	modifiers, mArgs := filterPacketModifers(args)
+	nack := ndn.MakeNack(mArgs...)
+	wire, e := tlv.Encode(nack.ToPacket())
+	if e != nil {
+		panic(e)
+	}
+	return MakePacket(wire, modifiers...)
 }
 
 // PacketModifier is a function that modifies a created packet.

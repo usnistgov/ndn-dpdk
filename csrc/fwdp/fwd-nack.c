@@ -29,14 +29,16 @@ FwFwd_TxNacks(FwFwd* fwd, PitEntry* pitEntry, TscTime now, NackReason reason, ui
       .nonce = dn->nonce,
       .hopLimit = nackHopLimit,
     };
-    Packet* output =
-      Interest_ModifyGuiders(pitEntry->npkt, guiders, &fwd->mp, Face_PacketTxAlign(dn->face));
+    PacketTxAlign align = Face_PacketTxAlign(dn->face);
+    Packet* output = Interest_ModifyGuiders(pitEntry->npkt, guiders, &fwd->mp, align);
     if (unlikely(output == NULL)) {
       ZF_LOGD("^ no-nack-to=%" PRI_FaceID " drop=alloc-error", dn->face);
       break;
     }
+    output = Nack_FromInterest(output, reason, &fwd->mp, align);
+    NDNDPDK_ASSERT(output !=
+                   NULL); // cannot fail because Interest_ModifyGuiders result is already aligned
 
-    output = Nack_FromInterest(output, reason);
     Packet_GetLpL3Hdr(output)->pitToken = dn->token;
     ZF_LOGD("^ nack-to=%" PRI_FaceID " reason=%s npkt=%p nonce=%08" PRIx32 " dn-token=%016" PRIx64,
             dn->face, NackReason_ToString(reason), output, dn->nonce, dn->token);
@@ -151,7 +153,7 @@ FwFwd_ProcessNack(FwFwd* fwd, FwFwdCtx* ctx)
 
   // Duplicate: record rejected nonce, resend with an alternate nonce if possible
   if (reason == NackDuplicate && FwFwd_RxNackDuplicate(fwd, ctx)) {
-    FwFwd_NULLize(ctx->fibEntry); // fibEntry is inaccessible upon RCU unlock
+    NULLize(ctx->fibEntry); // fibEntry is inaccessible upon RCU unlock
     rcu_read_unlock();
     return;
   }
@@ -163,7 +165,7 @@ FwFwd_ProcessNack(FwFwd* fwd, FwFwdCtx* ctx)
     ZF_LOGD("^ fib-entry-depth=%" PRIu8 " sg-id=%d sg-res=%" PRIu64, ctx->fibEntry->nComps,
             ctx->fibEntry->strategy->id, res);
   }
-  FwFwd_NULLize(ctx->fibEntry); // fibEntry is inaccessible upon RCU unlock
+  NULLize(ctx->fibEntry); // fibEntry is inaccessible upon RCU unlock
   rcu_read_unlock();
 
   // if there are more pending upstream or strategy retries, wait for them
@@ -175,7 +177,7 @@ FwFwd_ProcessNack(FwFwd* fwd, FwFwdCtx* ctx)
   // return Nacks to downstream and erase PIT entry
   FwFwd_TxNacks(fwd, ctx->pitEntry, ctx->rxTime, leastSevere, nackHopLimit);
   Pit_Erase(fwd->pit, ctx->pitEntry);
-  FwFwd_NULLize(ctx->pitEntry);
+  NULLize(ctx->pitEntry);
 }
 
 void
@@ -183,5 +185,5 @@ FwFwd_RxNack(FwFwd* fwd, FwFwdCtx* ctx)
 {
   FwFwd_ProcessNack(fwd, ctx);
   rte_pktmbuf_free(ctx->pkt);
-  FwFwd_NULLize(ctx->pkt);
+  NULLize(ctx->pkt);
 }

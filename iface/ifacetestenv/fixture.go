@@ -13,7 +13,9 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
@@ -48,6 +50,8 @@ type Fixture struct {
 
 // NewFixture creates a Fixture.
 func NewFixture(t *testing.T) (fixture *Fixture) {
+	ndnitestenv.MakePacketHeadroom = mbuftestenv.Headroom(pktmbuf.DefaultHeadroom + ndni.LpHeaderHeadroom)
+
 	_, require := makeAR(t)
 	fixture = new(Fixture)
 	fixture.t = t
@@ -140,7 +144,7 @@ func (fixture *Fixture) sendProc() {
 		pkts := make([]*ndni.Packet, 3)
 		pkts[0] = ndnitestenv.MakeInterest("/A")
 		pkts[1] = ndnitestenv.MakeData("/A", content)
-		pkts[2] = ndnitestenv.MakeNack(ndnitestenv.MakeInterest("/A"), an.NackNoRoute)
+		pkts[2] = ndnitestenv.MakeNack(ndn.MakeInterest("/A"), an.NackNoRoute)
 		iface.TxBurst(fixture.txFace.ID(), pkts)
 		time.Sleep(time.Millisecond)
 	}

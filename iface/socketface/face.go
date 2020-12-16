@@ -78,9 +78,9 @@ func Wrap(transport sockettransport.Transport, cfg Config) (iface.Face, error) {
 	}
 	return iface.New(iface.NewParams{
 		Config: cfg.Config,
-		Init: func(f iface.Face) (l2TxBurstFunc unsafe.Pointer, e error) {
+		Init: func(f iface.Face) (iface.InitResult, error) {
 			face.Face = f
-			return C.go_SocketFace_TxBurst, nil
+			return iface.InitResult{L2TxBurst: C.go_SocketFace_TxBurst}, nil
 		},
 		Start: func(f iface.Face) (iface.Face, error) {
 			face.transport.OnStateChange(func(st l3.TransportState) {

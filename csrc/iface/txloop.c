@@ -57,7 +57,7 @@ TxLoop_Transfer(Face* face)
     }
     ++tx->nFrames[framePktType];
 
-    nFrames += TxProc_Output(tx, npkt, &frames[nFrames]);
+    nFrames += TxProc_Output(tx, npkt, &frames[nFrames], face->txAlign);
     if (unlikely(nFrames >= MaxBurstSize)) {
       TxLoop_TxFrames(face, frames, nFrames);
       nFrames = 0;

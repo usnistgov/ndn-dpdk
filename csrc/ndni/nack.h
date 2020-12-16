@@ -25,13 +25,14 @@ typedef struct PNack
 
 /**
  * @brief Turn an Interest into a Nack.
- * @param npkt a packet of type PktInterest or PktSInterest.
+ * @param npkt a packet of type @c PktInterest or @c PktSInterest .
  *             Its first segment must be a uniquely owned direct mbuf.
- * @return @p npkt .
- * @pre PktType is PktInterest or PktSInterest
- * @post PktType is PktNack or PktSNack
+ * @retval NULL allocation failure.
+ * @return Nack packet. It may be different from @p npkt .
+ * @pre PktType is @c PktInterest or @c PktSInterest .
+ * @post PktType is @c PktSNack .
  */
-__attribute__((nonnull, returns_nonnull)) Packet*
-Nack_FromInterest(Packet* npkt, NackReason reason);
+__attribute__((nonnull)) Packet*
+Nack_FromInterest(Packet* npkt, NackReason reason, PacketMempools* mp, PacketTxAlign align);
 
 #endif // NDNDPDK_NDNI_NACK_H

@@ -46,7 +46,7 @@ func init() {
 	HeaderMempool = pktmbuf.RegisterTemplate("HEADER", pktmbuf.PoolConfig{
 		Capacity: 65535,
 		PrivSize: int(C.sizeof_PacketPriv),
-		Dataroom: headerDataroom,
+		Dataroom: headerDataroom + L3TypeLengthHeadroom, // Interest TL for Interest_ModifyGuiders
 	})
 
 	InterestMempool = pktmbuf.RegisterTemplate("INTEREST", pktmbuf.PoolConfig{

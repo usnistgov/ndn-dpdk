@@ -8,11 +8,10 @@ import (
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
-	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
-	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
 )
 
 var (
@@ -25,9 +24,7 @@ var (
 )
 
 func makeMempoolsC() *C.PacketMempools {
-	var mp ndni.Mempools
-	mp.Assign(eal.NumaSocket{})
-	return (*C.PacketMempools)(unsafe.Pointer(&mp))
+	return (*C.PacketMempools)(unsafe.Pointer(ndnitestenv.MakeMempools()))
 }
 
 type packet struct {

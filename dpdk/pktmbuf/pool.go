@@ -5,7 +5,7 @@ package pktmbuf
 */
 import "C"
 import (
-	"errors"
+	"fmt"
 	"math"
 	"unsafe"
 
@@ -70,7 +70,7 @@ func (mp *Pool) Alloc(count int) (vec Vector, e error) {
 	vec = make(Vector, count)
 	res := C.rte_pktmbuf_alloc_bulk(mp.ptr(), vec.ptr(), C.uint(count))
 	if res != 0 {
-		return Vector{}, errors.New("rte_pktmbuf_alloc_bulk failed")
+		return Vector{}, fmt.Errorf("Pool(%p).Alloc(%d) failed, avail=%d", mp, count, mp.CountAvailable())
 	}
 	return vec, nil
 }

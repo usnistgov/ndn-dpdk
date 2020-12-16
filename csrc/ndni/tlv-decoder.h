@@ -121,6 +121,22 @@ __attribute__((nonnull(1, 3))) struct rte_mbuf*
 TlvDecoder_Clone(TlvDecoder* d, uint32_t count, struct rte_mempool* indirectMp,
                  struct rte_mbuf** lastseg);
 
+/**
+ * @brief Copy next @p count octets to fragments.
+ * @param frames vector of fragments. They should not be chained.
+ * @param fragIndex pointer to first FragIndex.
+ * @param fragCount correctly calculated FragCount.
+ * @param fragSize maximum fragment payload size.
+ * @param headroom headroom for subsequent fragments.
+ * @pre Each segment has at least @c headroom+fragSize dataroom.
+ * @pre First fragment has initialized headroom, and may contain payload.
+ * @pre Subsequent fragments are empty.
+ * @post First fragment is appended up to headroom+fragSize offset.
+ */
+__attribute__((nonnull)) void
+TlvDecoder_Fragment(TlvDecoder* d, uint32_t count, struct rte_mbuf* frames[], uint32_t* fragIndex,
+                    uint32_t fragCount, uint16_t fragSize, uint16_t headroom);
+
 __attribute__((nonnull)) const uint8_t*
 TlvDecoder_Linearize_NonContiguous_(TlvDecoder* d, uint16_t count);
 

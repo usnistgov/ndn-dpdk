@@ -7,6 +7,9 @@ import (
 )
 
 // Nack represents a Nack packet.
+//
+// Nack struct does not support encoding or decoding. Instead, you can encode nack.ToPacket(),
+// or decode as Packet then access the Nack.
 type Nack struct {
 	packet   *Packet
 	Reason   uint8

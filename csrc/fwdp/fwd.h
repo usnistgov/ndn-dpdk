@@ -102,14 +102,4 @@ FwFwd_RxData(FwFwd* fwd, FwFwdCtx* ctx);
 __attribute__((nonnull)) void
 FwFwd_RxNack(FwFwd* fwd, FwFwdCtx* ctx);
 
-#ifdef NDEBUG
-#define FwFwd_NULLize(x) (void)(x)
-#else
-/** @brief Set x to NULL to crash on memory access bugs. */
-#define FwFwd_NULLize(x)                                                                           \
-  do {                                                                                             \
-    (x) = NULL;                                                                                    \
-  } while (false)
-#endif
-
 #endif // NDNDPDK_FWDP_FWD_H

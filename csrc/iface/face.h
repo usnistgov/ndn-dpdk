@@ -74,6 +74,10 @@ Face_TxBurst(FaceID faceID, Packet** npkts, uint16_t count)
     return;
   }
 
+  for (uint16_t i = 0; i < count; ++i) {
+    TxProc_CheckDirectFragmentMbuf_(Packet_ToMbuf(npkts[i])); // XXX
+  }
+
   uint16_t nQueued = rte_ring_enqueue_burst(face->outputQueue, (void**)npkts, count, NULL);
   uint16_t nRejects = count - nQueued;
   rte_pktmbuf_free_bulk((struct rte_mbuf**)&npkts[nQueued], nRejects);

@@ -1,4 +1,5 @@
 #include "packet.h"
+#include "tlv-decoder.h"
 
 const char*
 PktType_ToString(PktType t)
@@ -70,7 +71,7 @@ Packet_ParseL3(Packet* npkt)
 }
 
 __attribute__((nonnull, returns_nonnull)) static Packet*
-Packet_Clone_Finish(Packet* npkt, struct rte_mbuf* pkt)
+Clone_Finish(Packet* npkt, struct rte_mbuf* pkt)
 {
   Packet* output = Packet_FromMbuf(pkt);
   Packet_SetType(output, PktType_ToSlim(Packet_GetType(npkt)));
@@ -79,33 +80,35 @@ Packet_Clone_Finish(Packet* npkt, struct rte_mbuf* pkt)
 }
 
 __attribute__((nonnull)) static Packet*
-Packet_Clone_Linear(Packet* npkt, PacketMempools* mp)
+Clone_Linear(Packet* npkt, PacketMempools* mp, PacketTxAlign align)
 {
-  struct rte_mbuf* m = rte_pktmbuf_alloc(mp->packet);
-  if (unlikely(m == NULL)) {
-    return NULL;
-  }
-  m->data_off = RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom;
-  NDNDPDK_ASSERT(m->data_off <= m->buf_len);
-
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
-  uint8_t* room = (uint8_t*)rte_pktmbuf_append(m, pkt->pkt_len);
-  if (unlikely(room == NULL)) {
-    rte_pktmbuf_free(m);
+  uint32_t fragCount = DIV_CEIL(pkt->pkt_len, align.fragmentPayloadSize);
+  NDNDPDK_ASSERT(fragCount < LpMaxFragments);
+  struct rte_mbuf* frames[LpMaxFragments];
+  if (unlikely(rte_pktmbuf_alloc_bulk(mp->packet, frames, fragCount) != 0)) {
     return NULL;
   }
 
-  Mbuf_CopyTo(pkt, room);
-  return Packet_Clone_Finish(npkt, m);
+  TlvDecoder d;
+  TlvDecoder_Init(&d, pkt);
+  uint32_t fragIndex = 0;
+  frames[fragIndex]->data_off = RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom;
+  TlvDecoder_Fragment(&d, d.length, frames, &fragIndex, fragCount, align.fragmentPayloadSize,
+                      RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom);
+
+  Mbuf_ChainVector(frames, fragCount);
+  return Clone_Finish(npkt, frames[0]);
 }
 
 __attribute__((nonnull)) static Packet*
-Packet_Clone_Chained(Packet* npkt, PacketMempools* mp)
+Clone_Chained(Packet* npkt, PacketMempools* mp)
 {
   struct rte_mbuf* header = rte_pktmbuf_alloc(mp->header);
   if (unlikely(header == NULL)) {
     return NULL;
   }
+  header->data_off = RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom;
 
   struct rte_mbuf* payload = rte_pktmbuf_clone(Packet_ToMbuf(npkt), mp->indirect);
   if (unlikely(payload == NULL)) {
@@ -118,14 +121,14 @@ Packet_Clone_Chained(Packet* npkt, PacketMempools* mp)
     return NULL;
   }
 
-  return Packet_Clone_Finish(npkt, header);
+  return Clone_Finish(npkt, header);
 }
 
 Packet*
 Packet_Clone(Packet* npkt, PacketMempools* mp, PacketTxAlign align)
 {
   if (align.linearize) {
-    return Packet_Clone_Linear(npkt, mp);
+    return Clone_Linear(npkt, mp, align);
   }
-  return Packet_Clone_Chained(npkt, mp);
+  return Clone_Chained(npkt, mp);
 }

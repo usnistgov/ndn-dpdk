@@ -21,10 +21,10 @@ FwFwd_DataNeedDigest(FwFwd* fwd, FwFwdCtx* ctx)
   if (unlikely(res != 0)) {
     ZF_LOGD("^ error=crypto-enqueue-error-%d", res);
     rte_pktmbuf_free(ctx->pkt);
-    FwFwd_NULLize(ctx->pkt);
+    NULLize(ctx->pkt);
   } else {
     ZF_LOGD("^ helper=crypto");
-    FwFwd_NULLize(ctx->npkt); // npkt is now owned by FwCrypto
+    NULLize(ctx->npkt); // npkt is now owned by FwCrypto
   }
 }
 
@@ -107,10 +107,10 @@ FwFwd_RxData(FwFwd* fwd, FwFwdCtx* ctx)
     FwFwd_DataSatisfy(fwd, ctx);
   }
 
-  FwFwd_NULLize(ctx->fibEntry); // fibEntry is inaccessible upon RCU unlock
+  NULLize(ctx->fibEntry); // fibEntry is inaccessible upon RCU unlock
   rcu_read_unlock();
 
   Cs_Insert(fwd->cs, ctx->npkt, pitFound);
-  FwFwd_NULLize(ctx->npkt);     // npkt is owned by CS
-  FwFwd_NULLize(ctx->pitEntry); // pitEntry is replaced by csEntry
+  NULLize(ctx->npkt);     // npkt is owned by CS
+  NULLize(ctx->pitEntry); // pitEntry is replaced by csEntry
 }

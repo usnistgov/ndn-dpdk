@@ -29,34 +29,36 @@ PitEntry_ToDebugString(PitEntry* entry, char buffer[PitDebugStringLength])
 
   append(" DN=[");
   {
+    const char* delim = "";
     PitDnIt it;
     for (PitDnIt_Init(&it, entry); PitDnIt_Valid(&it); PitDnIt_Next(&it)) {
       if (it.dn->face == 0) {
         break;
       }
       if (it.index >= PitMaxDns + PitMaxExtDns) {
-        append("... ");
+        append("%s...", delim);
         break;
       }
-      append("%" PRI_FaceID " ", it.dn->face);
+      append("%s%" PRI_FaceID, delim, it.dn->face);
+      delim = " ";
     }
-    --pos;
   }
 
   append("] UP=[");
   {
+    const char* delim = "";
     PitUpIt it;
     for (PitUpIt_Init(&it, entry); PitUpIt_Valid(&it); PitUpIt_Next(&it)) {
       if (it.up->face == 0) {
         break;
       }
       if (it.index >= PitMaxUps + PitMaxExtUps) {
-        append("... ");
+        append("%s...", delim);
         break;
       }
-      append("%" PRI_FaceID " ", it.up->face);
+      append("%s%" PRI_FaceID, delim, it.up->face);
+      delim = " ";
     }
-    --pos;
   }
   append("]");
 

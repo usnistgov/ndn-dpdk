@@ -140,6 +140,19 @@ DataDigest_Finish(struct rte_crypto_op* op)
   return npkt;
 }
 
+__attribute__((nonnull)) static void
+DataGen_Encode_PutName(DataGen* gen, LName prefix, struct rte_mbuf* m)
+{
+  m->data_off = RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom +    //
+                L3TypeLengthHeadroom + L3TypeLengthHeadroom; // Data TL + Name TL
+  NDNDPDK_ASSERT(m->data_off <= m->buf_len);
+
+  if (likely(prefix.length > 0)) {
+    rte_memcpy(rte_pktmbuf_append(m, prefix.length), prefix.value, prefix.length);
+  }
+  TlvEncoder_PrependTL(m, TtName, prefix.length + gen->suffixL);
+}
+
 __attribute__((nonnull, returns_nonnull)) static Packet*
 DataGen_Encode_Finish(struct rte_mbuf* m)
 {
@@ -154,19 +167,13 @@ DataGen_Encode_Finish(struct rte_mbuf* m)
 __attribute__((nonnull)) static Packet*
 DataGen_Encode_Linear(DataGen* gen, LName prefix, PacketMempools* mp)
 {
+  // TODO handle PacketTxAlign.fragmentPayloadSize
   struct rte_mbuf* m = rte_pktmbuf_alloc(mp->packet);
   if (unlikely(m == NULL)) {
     return NULL;
   }
-  m->data_off = RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom + //
-                1 + 3 + 1 + 3;                            // Data TL + Name TL
-  NDNDPDK_ASSERT(m->data_off <= m->buf_len);
 
-  if (likely(prefix.length > 0)) {
-    rte_memcpy(rte_pktmbuf_append(m, prefix.length), prefix.value, prefix.length);
-  }
-  TlvEncoder_PrependTL(m, TtName, prefix.length + gen->suffixL);
-
+  DataGen_Encode_PutName(gen, prefix, m);
   rte_memcpy(rte_pktmbuf_append(m, gen->tpl->data_len), rte_pktmbuf_mtod(gen->tpl, const uint8_t*),
              gen->tpl->data_len);
   return DataGen_Encode_Finish(m);
@@ -184,15 +191,8 @@ DataGen_Encode_Chained(DataGen* gen, LName prefix, PacketMempools* mp)
     rte_pktmbuf_free(seg0);
     return NULL;
   }
-  seg0->data_off = RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom + //
-                   1 + 3 + 1 + 3;                            // Data TL + Name TL
-  NDNDPDK_ASSERT(seg0->data_off <= seg0->buf_len);
 
-  if (likely(prefix.length > 0)) {
-    rte_memcpy(rte_pktmbuf_append(seg0, prefix.length), prefix.value, prefix.length);
-  }
-  TlvEncoder_PrependTL(seg0, TtName, prefix.length + gen->suffixL);
-
+  DataGen_Encode_PutName(gen, prefix, seg0);
   rte_pktmbuf_attach(seg1, gen->tpl);
   bool ok = Mbuf_Chain(seg0, seg0, seg1);
   NDNDPDK_ASSERT(ok);

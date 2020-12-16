@@ -29,7 +29,7 @@ SgTriggerTimer(Pit* pit, PitEntry* pitEntry, void* fwd0)
   uint64_t res = SgInvoke(ctx.fibEntry->strategy, &ctx);
   ZF_LOGD("^ sg-res=%" PRIu64 " sg-forwarded=%d", res, ctx.nForwarded);
 
-  FwFwd_NULLize(ctx.fibEntry); // fibEntry is inaccessible upon RCU unlock
+  NULLize(ctx.fibEntry); // fibEntry is inaccessible upon RCU unlock
   rcu_read_unlock();
 }
 

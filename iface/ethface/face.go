@@ -6,8 +6,6 @@ package ethface
 */
 import "C"
 import (
-	"unsafe"
-
 	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
@@ -36,10 +34,10 @@ func New(port *Port, loc ethLocator) (iface.Face, error) {
 		Config:     loc.faceConfig().Config.WithMaxMTU(port.cfg.MTU + C.RTE_ETHER_HDR_LEN - face.cloc.sizeofHeader()),
 		Socket:     port.dev.NumaSocket(),
 		SizeofPriv: uintptr(C.sizeof_EthFacePriv),
-		Init: func(f iface.Face) (l2TxBurstFunc unsafe.Pointer, e error) {
+		Init: func(f iface.Face) (iface.InitResult, error) {
 			for _, other := range port.faces {
 				if !face.cloc.canCoexist(other.cloc) {
-					return nil, LocatorConflictError{a: loc, b: other.loc}
+					return iface.InitResult{}, LocatorConflictError{a: loc, b: other.loc}
 				}
 			}
 
@@ -58,12 +56,12 @@ func New(port *Port, loc ethLocator) (iface.Face, error) {
 			useTxMultiSegOffload := !cfg.DisableTxMultiSegOffload && devInfo.HasTxMultiSegOffload()
 			useTxChecksumOffload := !cfg.DisableTxChecksumOffload && devInfo.HasTxChecksumOffload()
 			C.EthTxHdr_Prepare(&priv.txHdr, face.cloc.ptr(), C.bool(useTxChecksumOffload))
-			if !useTxMultiSegOffload {
-				faceC.txAlign.linearize = true
-			}
 
 			face.priv = priv
-			return C.EthFace_TxBurst, nil
+			return iface.InitResult{
+				L2TxBurst:   C.EthFace_TxBurst,
+				TxLinearize: !useTxMultiSegOffload,
+			}, nil
 		},
 		Start: func(iface.Face) (iface.Face, error) {
 			return face, port.startFace(face, false)

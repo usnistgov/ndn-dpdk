@@ -35,8 +35,10 @@ func (parts *encoderParts) Append(value interface{}) error {
 	}
 
 	slice := reflect.ValueOf(value)
-	count := slice.Len()
-	for i := 0; i < count; i++ {
+	if slice.Kind() != reflect.Slice {
+		panic("cannot encode " + slice.Type().String())
+	}
+	for i, count := 0, slice.Len(); i < count; i++ {
 		if e := parts.Append(slice.Index(i).Interface()); e != nil {
 			return e
 		}

@@ -24,6 +24,7 @@ PInterest_Unpack(const PInterest* p, PInterestUnpacked* u)
 import "C"
 import (
 	"math"
+	"strings"
 	"testing"
 	"unsafe"
 
@@ -106,7 +107,7 @@ func ctestInterestParse(t *testing.T) {
 	assert.Equal(bytesFromHex("0803484632"), C.GoBytes(unsafe.Pointer(interest.fwHint.value), C.int(interest.fwHint.length)))
 }
 
-func caseInterestModify(t *testing.T, linearize bool, nSegs int, input string, check func(interest *C.PInterest, u C.PInterestUnpacked)) {
+func caseInterestModify(t *testing.T, fragmentPayloadSize C.uint16_t, nSegs int, input string, check func(interest *C.PInterest, u C.PInterestUnpacked)) {
 	assert, require := makeAR(t)
 
 	p := makePacket(input)
@@ -120,12 +121,18 @@ func caseInterestModify(t *testing.T, linearize bool, nSegs int, input string, c
 		hopLimit: 15,
 	}
 	align := C.PacketTxAlign{
-		linearize: C.bool(linearize),
+		linearize:           C.bool(fragmentPayloadSize > 0),
+		fragmentPayloadSize: fragmentPayloadSize,
 	}
 	modify := toPacket(unsafe.Pointer(C.Interest_ModifyGuiders(p.npkt, guiders, makeMempoolsC(), align)))
 	defer modify.Close()
 	assert.EqualValues(ndni.PktSInterest, C.Packet_GetType(modify.npkt))
 	assert.EqualValues(nSegs, modify.mbuf.nb_segs)
+	if fragmentPayloadSize > 0 {
+		for frag := modify.mbuf; frag != nil; frag = frag.next {
+			assert.LessOrEqual(int(frag.data_len), int(fragmentPayloadSize))
+		}
+	}
 
 	copy := makePacket(modify.Bytes())
 	require.True(bool(C.Packet_ParseL3(copy.npkt)))
@@ -152,17 +159,19 @@ func ctestInterestModify(t *testing.T) {
 		assert.EqualValues(false, u.canBePrefix)
 		assert.EqualValues(false, u.mustBeFresh)
 	}
-	caseInterestModify(t, false, 3, inputShort, checkShort)
-	caseInterestModify(t, true, 1, inputShort, checkShort)
+	caseInterestModify(t, 0, 3, inputShort, checkShort)
+	caseInterestModify(t, 9000, 1, inputShort, checkShort)
 
-	const inputLong = "051A 0703080142 2100 1200 0A04A0A1A2A3 2400 2C031B0101 2E02E0E1"
+	nameLong := "800142 08FD0300" + strings.Repeat("43", 0x0300)
+	inputLong := "05FD0320 07FD0307" + nameLong + " 2100 1200 0A04A0A1A2A3 2400 2C031B0101 2E02E0E1"
 	checkLong := func(interest *C.PInterest, u C.PInterestUnpacked) {
-		assert.EqualValues(1, interest.name.nComps)
-		assert.Equal(bytesFromHex("080142"), C.GoBytes(unsafe.Pointer(interest.name.value), C.int(interest.name.length)))
+		assert.EqualValues(2, interest.name.nComps)
+		assert.Equal(bytesFromHex(nameLong), C.GoBytes(unsafe.Pointer(interest.name.value), C.int(interest.name.length)))
 		assert.False(bool(interest.name.hasDigestComp))
 		assert.EqualValues(true, u.canBePrefix)
 		assert.EqualValues(true, u.mustBeFresh)
 	}
-	caseInterestModify(t, false, 4, inputLong, checkLong)
-	caseInterestModify(t, true, 1, inputLong, checkLong)
+	caseInterestModify(t, 0, 4, inputLong, checkLong)
+	caseInterestModify(t, 9000, 1, inputLong, checkLong)
+	caseInterestModify(t, 500, 2, inputLong, checkLong)
 }
