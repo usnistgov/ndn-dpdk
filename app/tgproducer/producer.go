@@ -110,9 +110,8 @@ func (producer *Producer) addPattern(cfg Pattern) (index int, e error) {
 				return -1, fmt.Errorf("cannot allocate from payloadMp for reply definition %d", i)
 			}
 			data := ndn.MakeData(reply.Suffix, reply.FreshnessPeriod.Duration(), make([]byte, reply.PayloadLen))
-			align := C.Face_PacketTxAlign(producer.c.face)
 			dataGen := ndni.DataGenFromPtr(unsafe.Pointer(&replyC.dataGen))
-			dataGen.Init(vec[0], data, bool(align.linearize))
+			dataGen.Init(vec[0], data)
 		}
 	}
 	patternC.nReplies = C.uint16_t(len(cfg.Replies))

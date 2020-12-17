@@ -58,6 +58,6 @@ typedef struct TgProducer
 } TgProducer;
 
 __attribute__((nonnull)) int
-TgProducer_Run(TgProducer* server);
+TgProducer_Run(TgProducer* p);
 
 #endif // NDNDPDK_TGPRODUCER_PRODUCER_H

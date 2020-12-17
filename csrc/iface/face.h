@@ -24,9 +24,10 @@ typedef struct Face
   struct rte_ring* outputQueue;
   struct cds_hlist_node txlNode;
   PacketTxAlign txAlign;
-  FaceState state;
   FaceID id;
+  FaceState state;
 } __rte_cache_aligned Face;
+static_assert(sizeof(Face) <= RTE_CACHE_LINE_SIZE, "");
 
 static inline void*
 Face_GetPriv(Face* face)
@@ -37,6 +38,7 @@ Face_GetPriv(Face* face)
 /** @brief Static array of all faces. */
 extern Face gFaces[];
 
+/** @brief Retrieve face by ID. */
 static inline Face*
 Face_Get(FaceID id)
 {
@@ -51,6 +53,7 @@ Face_IsDown(FaceID faceID)
   return face->state != FaceStateUp;
 }
 
+/** @brief Retrieve face TX alignment requirement. */
 static inline PacketTxAlign
 Face_PacketTxAlign(FaceID faceID)
 {
@@ -69,16 +72,10 @@ __attribute__((nonnull)) static inline void
 Face_TxBurst(FaceID faceID, Packet** npkts, uint16_t count)
 {
   Face* face = Face_Get(faceID);
-  if (unlikely(face->state != FaceStateUp)) {
-    rte_pktmbuf_free_bulk((struct rte_mbuf**)npkts, count);
-    return;
+  uint16_t nQueued = 0;
+  if (likely(face->state == FaceStateUp)) {
+    nQueued = rte_ring_enqueue_burst(face->outputQueue, (void**)npkts, count, NULL);
   }
-
-  for (uint16_t i = 0; i < count; ++i) {
-    TxProc_CheckDirectFragmentMbuf_(Packet_ToMbuf(npkts[i])); // XXX
-  }
-
-  uint16_t nQueued = rte_ring_enqueue_burst(face->outputQueue, (void**)npkts, count, NULL);
   uint16_t nRejects = count - nQueued;
   rte_pktmbuf_free_bulk((struct rte_mbuf**)&npkts[nQueued], nRejects);
   // TODO count nRejects

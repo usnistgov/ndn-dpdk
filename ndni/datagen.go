@@ -33,9 +33,8 @@ func (gen *DataGen) ptr() *C.DataGen {
 // Init initializes a DataGen.
 // m is a pktmbuf with at least DataGenBufLen + len(content) buffer size; it can be allocated from PayloadMempool.
 // data is a Data packet serving as template, whose Name is used as name suffix.
-// linearize indicates whether encoded packets must be in contiguous buffer.
 // Panics on error.
-func (gen *DataGen) Init(m *pktmbuf.Packet, data ndn.Data, linearize bool) {
+func (gen *DataGen) Init(m *pktmbuf.Packet, data ndn.Data) {
 	_, wire, e := data.MarshalTlv()
 	if e != nil {
 		log.WithError(e).Panic("data.MarshalTlv error")
@@ -63,10 +62,6 @@ DecodeLoop:
 		tpl:     (*C.struct_rte_mbuf)(m.Ptr()),
 		suffixL: C.uint16_t(nameL),
 	}
-	align := C.PacketTxAlign{
-		linearize: C.bool(linearize),
-	}
-	C.DataGen_Init(c, align)
 }
 
 // Close discards this DataGen.
@@ -75,10 +70,15 @@ func (gen *DataGen) Close() error {
 }
 
 // Encode encodes a Data packet.
-func (gen *DataGen) Encode(prefix ndn.Name, mp *Mempools) *Packet {
+func (gen *DataGen) Encode(prefix ndn.Name, mp *Mempools, fragmentPayloadSize int) *Packet {
 	prefixP := NewPName(prefix)
 	defer prefixP.Free()
 
-	pktC := C.DataGen_Encode(gen.ptr(), prefixP.lname(), (*C.PacketMempools)(unsafe.Pointer(mp)))
+	pktC := C.DataGen_Encode(gen.ptr(), prefixP.lname(),
+		(*C.PacketMempools)(unsafe.Pointer(mp)),
+		C.PacketTxAlign{
+			linearize:           fragmentPayloadSize > 0,
+			fragmentPayloadSize: C.uint16_t(fragmentPayloadSize),
+		})
 	return PacketFromPtr(unsafe.Pointer(pktC))
 }

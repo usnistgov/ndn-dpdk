@@ -140,21 +140,8 @@ DataDigest_Finish(struct rte_crypto_op* op)
   return npkt;
 }
 
-__attribute__((nonnull)) static void
-DataGen_Encode_PutName(DataGen* gen, LName prefix, struct rte_mbuf* m)
-{
-  m->data_off = RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom +    //
-                L3TypeLengthHeadroom + L3TypeLengthHeadroom; // Data TL + Name TL
-  NDNDPDK_ASSERT(m->data_off <= m->buf_len);
-
-  if (likely(prefix.length > 0)) {
-    rte_memcpy(rte_pktmbuf_append(m, prefix.length), prefix.value, prefix.length);
-  }
-  TlvEncoder_PrependTL(m, TtName, prefix.length + gen->suffixL);
-}
-
-__attribute__((nonnull, returns_nonnull)) static Packet*
-DataGen_Encode_Finish(struct rte_mbuf* m)
+__attribute__((nonnull, returns_nonnull)) static inline Packet*
+Encode_Finish(struct rte_mbuf* m)
 {
   TlvEncoder_PrependTL(m, TtData, m->pkt_len);
 
@@ -165,46 +152,67 @@ DataGen_Encode_Finish(struct rte_mbuf* m)
 }
 
 __attribute__((nonnull)) static Packet*
-DataGen_Encode_Linear(DataGen* gen, LName prefix, PacketMempools* mp)
+Encode_Linear(DataGen* gen, LName prefix, PacketMempools* mp, uint16_t fragmentPayloadSize)
 {
-  // TODO handle PacketTxAlign.fragmentPayloadSize
-  struct rte_mbuf* m = rte_pktmbuf_alloc(mp->packet);
-  if (unlikely(m == NULL)) {
+  uint32_t pktLen = L3TypeLengthHeadroom + L3TypeLengthHeadroom + // Data TL + Name TL
+                    prefix.length + gen->tpl->pkt_len;
+  uint32_t fragCount = DIV_CEIL(pktLen, fragmentPayloadSize);
+  NDNDPDK_ASSERT(fragCount < LpMaxFragments);
+  struct rte_mbuf* frames[LpMaxFragments];
+  if (unlikely(rte_pktmbuf_alloc_bulk(mp->packet, frames, fragCount) != 0)) {
     return NULL;
   }
 
-  DataGen_Encode_PutName(gen, prefix, m);
-  rte_memcpy(rte_pktmbuf_append(m, gen->tpl->data_len), rte_pktmbuf_mtod(gen->tpl, const uint8_t*),
-             gen->tpl->data_len);
-  return DataGen_Encode_Finish(m);
+  uint32_t fragIndex = 0;
+  uint16_t extraHeadroom = L3TypeLengthHeadroom + L3TypeLengthHeadroom; // Data TL + Name TL
+  for (uint16_t offset = 0; offset < prefix.length;) {
+    frames[fragIndex]->data_off = RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom + extraHeadroom;
+    uint16_t fragSize = RTE_MIN(prefix.length - offset, fragmentPayloadSize - extraHeadroom);
+    rte_memcpy(rte_pktmbuf_append(frames[fragIndex], fragSize), RTE_PTR_ADD(prefix.value, offset),
+               fragSize);
+    extraHeadroom = 0;
+    offset += fragSize;
+  }
+  TlvEncoder_PrependTL(frames[0], TtName, prefix.length + gen->suffixL);
+
+  TlvDecoder d;
+  TlvDecoder_Init(&d, gen->tpl);
+  TlvDecoder_Fragment(&d, d.length, frames, &fragIndex, fragCount, fragmentPayloadSize,
+                      RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom);
+
+  Mbuf_ChainVector(frames, fragCount);
+  return Encode_Finish(frames[0]);
 }
 
 __attribute__((nonnull)) static Packet*
-DataGen_Encode_Chained(DataGen* gen, LName prefix, PacketMempools* mp)
+Encode_Chained(DataGen* gen, LName prefix, PacketMempools* mp)
 {
-  struct rte_mbuf* seg0 = rte_pktmbuf_alloc(mp->header);
-  if (unlikely(seg0 == NULL)) {
-    return NULL;
-  }
   struct rte_mbuf* seg1 = rte_pktmbuf_alloc(mp->indirect);
   if (unlikely(seg1 == NULL)) {
-    rte_pktmbuf_free(seg0);
     return NULL;
   }
-
-  DataGen_Encode_PutName(gen, prefix, seg0);
   rte_pktmbuf_attach(seg1, gen->tpl);
+
+  struct rte_mbuf* seg0 = rte_pktmbuf_alloc(mp->header);
+  if (unlikely(seg0 == NULL)) {
+    rte_pktmbuf_free(seg1);
+    return NULL;
+  }
+  seg0->data_off = RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom +    //
+                   L3TypeLengthHeadroom + L3TypeLengthHeadroom; // Data TL + Name TL
+  rte_memcpy(rte_pktmbuf_append(seg0, prefix.length), prefix.value, prefix.length);
+  TlvEncoder_PrependTL(seg0, TtName, prefix.length + gen->suffixL);
+
   bool ok = Mbuf_Chain(seg0, seg0, seg1);
   NDNDPDK_ASSERT(ok);
-  return DataGen_Encode_Finish(seg0);
+  return Encode_Finish(seg0);
 }
 
-void
-DataGen_Init(DataGen* gen, PacketTxAlign align)
+__attribute__((nonnull)) Packet*
+DataGen_Encode(DataGen* gen, LName prefix, PacketMempools* mp, PacketTxAlign align)
 {
   if (align.linearize) {
-    gen->encode = DataGen_Encode_Linear;
-  } else {
-    gen->encode = DataGen_Encode_Chained;
+    return Encode_Linear(gen, prefix, mp, align.fragmentPayloadSize);
   }
+  return Encode_Chained(gen, prefix, mp);
 }

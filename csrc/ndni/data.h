@@ -46,33 +46,34 @@ typedef struct DataGen DataGen;
 
 typedef Packet* (*DataGen_EncodeFunc)(DataGen* gen, LName prefix, PacketMempools* mp);
 
-/**
- * @brief Data encoder optimized for traffic generator.
- *
- * DataGen* is struct rte_mbuf*.
- * Its packet buffer contains name suffix TLV-VALUE and fields after Name.
- * Name TL and Data TL are not included.
- */
+/** @brief Data encoder optimized for traffic generator. */
 typedef struct DataGen
 {
+  /**
+   * @brief Template mbuf.
+   *
+   * This should contain name suffix TLV-VALUE and fields after Name.
+   * Name TL and Data TL are not included.
+   */
   struct rte_mbuf* tpl;
-  uint16_t suffixL;
-  DataGen_EncodeFunc encode;
-} DataGen;
 
-__attribute__((nonnull)) void
-DataGen_Init(DataGen* gen, PacketTxAlign align);
+  /** @brief Size of name suffix TLV-VALUE at the beginning of @c tpl . */
+  uint16_t suffixL;
+} DataGen;
 
 /**
  * @brief Encode Data with DataGen template.
- * @param mp @c mp->header should have RTE_PKTMBUF_DATAROOM + LpHeaderHeadroom + DataGenDataroom.
  * @return encoded packet.
  * @retval NULL allocation failure.
+ *
+ * If @c align.linearize is false, encoded packet has a header mbuf that contains @p prefix and
+ * and an indirect mbuf that clones the template. @c mp->header dataroom must be at least
+ * @c RTE_PKTMBUF_DATAROOM+LpHeaderHeadroom+DataGenDataroom .
+ *
+ * If @c align.linearize is true, encoded packet has one or more copied mbufs. @c mp->packet
+ * dataroom must be at least @c RTE_PKTMBUF_DATAROOM+LpHeaderHeadroom+align.fragmentPayloadSize .
  */
-__attribute__((nonnull)) static inline Packet*
-DataGen_Encode(DataGen* gen, LName prefix, PacketMempools* mp)
-{
-  return (gen->encode)(gen, prefix, mp);
-}
+__attribute__((nonnull)) Packet*
+DataGen_Encode(DataGen* gen, LName prefix, PacketMempools* mp, PacketTxAlign align);
 
 #endif // NDNDPDK_NDNI_DATA_H

@@ -64,9 +64,12 @@ func (pkt *Packet) SetTimestamp(t eal.TscTime) {
 	C.Mbuf_SetTimestamp(pkt.ptr(), C.TscTime(t))
 }
 
-// IsSegmented returns true if the packet has more than one segment.
-func (pkt *Packet) IsSegmented() bool {
-	return pkt.ptr().nb_segs > 1
+// SegmentLengths returns lengths of segments in this packet.
+func (pkt *Packet) SegmentLengths() (list []int) {
+	for m := pkt.ptr(); m != nil; m = m.next {
+		list = append(list, int(m.data_len))
+	}
+	return list
 }
 
 // DataPtr returns void* pointer to data in first segment.

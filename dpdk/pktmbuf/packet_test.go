@@ -19,7 +19,7 @@ func TestPacketRead(t *testing.T) {
 	pkt := vec[0]
 	require.NotNil(pkt)
 	assert.Equal(0, pkt.Len())
-	assert.False(pkt.IsSegmented())
+	assert.Equal([]int{0}, pkt.SegmentLengths())
 
 	pkt.SetHeadroom(200)
 	assert.Equal(200, pkt.Headroom())
@@ -32,12 +32,14 @@ func TestPacketRead(t *testing.T) {
 	e := pkt.Chain(seg1)
 	require.NoError(e)
 	vec[1] = nil // avoid double-free during vec.Close()
-	assert.True(pkt.IsSegmented())
+	assert.Equal([]int{200, 0}, pkt.SegmentLengths())
 
 	pkt.Append(part2)
 	assert.Equal(500, pkt.Len())
+	assert.Equal([]int{200, 300}, pkt.SegmentLengths())
 	pkt.Prepend(part0)
 	assert.Equal(600, pkt.Len())
+	assert.Equal([]int{300, 300}, pkt.SegmentLengths())
 
 	assert.Equal(bytes.Join([][]byte{part0, part1, part2}, nil), pkt.Bytes())
 }
