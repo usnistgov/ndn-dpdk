@@ -1,6 +1,5 @@
 #!/bin/bash
-set -e
-set -o pipefail
+set -eo pipefail
 
 SPDK_PATH=/home/username/code/spdk-20.10
 HUGE2M_NPAGES=512

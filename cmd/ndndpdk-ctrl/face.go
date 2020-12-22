@@ -80,7 +80,8 @@ func init() {
 		Scheme     string `json:"scheme"`
 		Port       string `json:"port,omitempty"`
 		PortConfig struct {
-			MTU int `json:"mtu,omitempty"`
+			DisableRxFlow bool `json:"disableRxFlow,omitempty"`
+			MTU           int  `json:"mtu,omitempty"`
 		} `json:"portConfig"`
 		MTU         int           `json:"mtu,omitempty"`
 		MaxRxQueues int           `json:"maxRxQueues,omitempty"`
@@ -105,6 +106,11 @@ func init() {
 			DefaultText: "search by local MAC address",
 			Destination: &loc.Port,
 		},
+		&cli.BoolFlag{
+			Name:        "port-no-rxflow",
+			Usage:       "disable port RxFlow implementation",
+			Destination: &loc.PortConfig.DisableRxFlow,
+		},
 		&cli.IntFlag{
 			Name:        "port-mtu",
 			Usage:       "port `MTU` (excluding Ethernet headers)",
@@ -115,7 +121,7 @@ func init() {
 			Name:        "mtu",
 			Usage:       "face `MTU` (excluding all headers)",
 			DefaultText: "maximum",
-			Destination: &loc.PortConfig.MTU,
+			Destination: &loc.MTU,
 		},
 		&cli.IntFlag{
 			Name:        "max-rxq",

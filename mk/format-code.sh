@@ -1,6 +1,5 @@
 #!/bin/bash
-set -e
-set -o pipefail
+set -eo pipefail
 
 git ls-files 'csrc/**/*.[hc]' | grep -v csrc/vendor | \
   xargs clang-format-8 -i -style=file

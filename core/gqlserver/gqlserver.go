@@ -5,6 +5,7 @@ package gqlserver
 import (
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/bhoriuchi/graphql-go-tools/handler"
 	"github.com/graphql-go/graphql"
@@ -70,7 +71,7 @@ func parseListenAddress(uri string) (listen string) {
 		return
 	}
 
-	if u.User != nil || u.Path != "/" || len(u.Query()) > 0 {
+	if u.User != nil || strings.TrimPrefix(u.Path, "/") != "" || u.RawQuery != "" {
 		log.Warn("gqlserver URI contains User/Path/Query, ignored")
 	}
 	return u.Host

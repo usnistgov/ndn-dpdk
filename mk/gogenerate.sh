@@ -1,6 +1,5 @@
 #!/bin/bash
-set -e
-set -o pipefail
+set -eo pipefail
 
 PKG=$1
 if [[ -z $PKG ]]; then

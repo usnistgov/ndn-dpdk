@@ -1,6 +1,5 @@
 #!/bin/bash
-set -e
-set -o pipefail
+set -eo pipefail
 source mk/cflags.sh
 TESTCOUNT=${TESTCOUNT:-1}
 

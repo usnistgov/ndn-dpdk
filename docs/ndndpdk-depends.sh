@@ -1,6 +1,5 @@
 #!/bin/bash
-set -e
-set -o pipefail
+set -eo pipefail
 
 if ! which sudo >/dev/null || ! which curl >/dev/null >/dev/null; then
   echo 'sudo and curl are required to start this script'
@@ -26,7 +25,11 @@ if ! apt-cache show ${KERNEL_HEADERS_PKG} &>/dev/null; then
   DFLT_KMODSVER=0
   KERNEL_HEADERS_PKG=
 fi
-
+if [[ $(uname -r) == 5.10.* ]]; then
+  # kmods build is broken on kernel 5.10, https://bugs.debian.org/975571
+  # TODO delete this when Debian and Ubuntu fix this bug
+  DFLT_KMODSVER=0
+fi
 if [[ $(uname -r | awk -F. '{ print ($1*1000+$2>=4018) }') -eq 0 ]]; then
   DFLT_LIBBPFVER=0
 fi
@@ -232,7 +235,9 @@ if [[ $LIBBPFVER != '0' ]]; then
     https://mirrors.kernel.org/ubuntu/pool/universe/libb/libbpf/libbpf-dev_${LIBBPFVER}_amd64.deb
   sudo dpkg -i libbpf0_${LIBBPFVER}_amd64.deb libbpf-dev_${LIBBPFVER}_amd64.deb
   sudo mkdir -p /usr/local/include/linux
-  sudo ln -s /usr/src/linux-headers-$(uname -r)/include/uapi/linux/if_xdp.h /usr/local/include/linux/if_xdp.h
+  if ! [[ -f /usr/local/include/linux/if_xdp.h ]]; then
+    sudo ln -s /usr/src/linux-headers-$(uname -r)/include/uapi/linux/if_xdp.h /usr/local/include/linux/if_xdp.h
+  fi
 fi
 
 if [[ $DPDKVER != '0' ]]; then
