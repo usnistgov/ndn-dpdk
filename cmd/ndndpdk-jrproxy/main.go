@@ -34,11 +34,6 @@ func main() {
 				Value:       "127.0.0.1:6345",
 				Destination: &tcpListen,
 			},
-			&cli.IntFlag{
-				Name:        "face-create-mtu",
-				Usage:       "Override `MTU` in Face.Create command.",
-				Destination: &faceCreateMTU,
-			},
 		},
 		Action: func(c *cli.Context) (e error) {
 			client, e = gqlclient.New(gqlserver)

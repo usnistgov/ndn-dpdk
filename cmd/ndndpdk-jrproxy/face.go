@@ -13,8 +13,6 @@ var (
 
 var errNoFace = errors.New("face not found")
 
-var faceCreateMTU int
-
 type Face struct{}
 
 func (Face) List(args struct{}, reply *[]*FaceBasicInfo) error {
@@ -74,10 +72,7 @@ func (Face) Get(args FaceIdArg, reply *FaceInfo) error {
 	return nil
 }
 
-func (Face) Create(args EtherLocator, reply *FaceBasicInfo) error {
-	if faceCreateMTU > 0 {
-		args.PortConfig.MTU = faceCreateMTU
-	}
+func (Face) Create(args interface{}, reply *FaceBasicInfo) error {
 	e := client.Do(`
 		mutation createFace($locator: JSON!) {
 			createFace(locator: $locator) {
@@ -139,15 +134,4 @@ type FaceInfo struct {
 	EthDev *struct {
 		IsDown bool
 	} `json:",omitempty"`
-}
-
-type EtherLocator struct {
-	Scheme     string `json:"scheme"`
-	Local      string `json:"local,omitempty"`
-	Remote     string `json:"remote,omitempty"`
-	Vlan       int    `json:"vlan,omitempty"`
-	Port       string `json:"port,omitempty"`
-	PortConfig struct {
-		MTU int `json:"mtu,omitempty"`
-	} `json:"portConfig"`
 }
