@@ -36,7 +36,7 @@ type PortConfig struct {
 	TxQueueSize int `json:"txQueueSize,omitempty"`
 
 	// MTU configures Maximum Transmission Unit (MTU) on the EthDev.
-	// This includes Ethernet headers, but excludes VLAN/IP/UDP/VXLAN headers.
+	// This excludes Ethernet headers, but includes VLAN/IP/UDP/VXLAN headers.
 	// If this value is zero, the EthDev MTU remains unchanged.
 	MTU int `json:"mtu,omitempty"`
 

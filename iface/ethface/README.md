@@ -49,7 +49,7 @@ It requires every outgoing packet to have sufficient headroom for the Ethernet h
 The send path is thread-safe only if the underlying DPDK PMD is thread safe, which generally is not the case.
 Normally, **iface.TxLoop** invokes `EthFace_TxBurst` from the same thread.
 
-## UDP and TXLAN Tunnel Face
+## UDP and VXLAN Tunnel Face
 
 UDP and VXLAN tunnels are supported through this package.
 
@@ -126,5 +126,5 @@ In the data plane:
 
 * Application must operate its memif interface in "client" mode.
 * Each packet must be an Ethernet frame carrying an NDNLPv2 frame.
-* Application must use Ethernet address `F2:6C:E6:8D:9E:34`.
-* NDN-DPDK uses Ethernet address `F2:71:7E:76:5D:1C`.
+* Application must use Ethernet address `F2:71:7E:76:5D:1C`.
+* NDN-DPDK uses Ethernet address `F2:6C:E6:8D:9E:34`.
