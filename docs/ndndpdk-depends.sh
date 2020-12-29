@@ -1,7 +1,7 @@
 #!/bin/bash
 set -eo pipefail
 
-if ! which sudo >/dev/null || ! which curl >/dev/null >/dev/null; then
+if ! which sudo >/dev/null || ! which curl >/dev/null; then
   echo 'sudo and curl are required to start this script'
   exit 1
 fi
@@ -10,10 +10,11 @@ DFLT_CODEROOT=$HOME/code
 DFLT_NODEVER=14.x
 DFLT_GOVER=latest
 DFLT_UBPFVER=HEAD
-DFLT_LIBBPFVER=0.2-1
+DFLT_LIBBPFVER=HEAD
 DFLT_DPDKVER=20.11
 DFLT_KMODSVER=HEAD
 DFLT_SPDKVER=20.10
+DFLT_NJOBS=$(nproc)
 DFLT_TARGETARCH=native
 
 KERNEL_HEADERS_PKG=linux-headers-$(uname -r)
@@ -42,9 +43,10 @@ LIBBPFVER=$DFLT_LIBBPFVER
 DPDKVER=$DFLT_DPDKVER
 KMODSVER=$DFLT_KMODSVER
 SPDKVER=$DFLT_SPDKVER
+NJOBS=$DFLT_NJOBS
 TARGETARCH=$DFLT_TARGETARCH
 
-ARGS=$(getopt -o 'hy' --long 'dir:,node:,go:,libbpf:,dpdk:,kmods:,spdk:,ubpf:,arch:,skiprootcheck' -- "$@")
+ARGS=$(getopt -o 'hy' --long 'dir:,node:,go:,libbpf:,dpdk:,kmods:,spdk:,ubpf:,jobs:,arch:,skiprootcheck' -- "$@")
 eval "set -- $ARGS"
 while true; do
   case $1 in
@@ -58,6 +60,7 @@ while true; do
     (--dpdk) DPDKVER=$2; shift 2;;
     (--kmods) KMODSVER=$2; shift 2;;
     (--spdk) SPDKVER=$2; shift 2;;
+    (--jobs) NJOBS=$2; shift 2;;
     (--arch) TARGETARCH=$2; shift 2;;
     (--skiprootcheck) SKIPROOTCHECK=1; shift;;
     (--) shift; break;;
@@ -79,13 +82,15 @@ ndndpdk-depends.sh ...ARGS
   --ubpf=${DFLT_UBPFVER}
       Set uBPF branch or commit SHA. '0' to skip.
   --libbpf=${DFLT_LIBBPFVER}
-      Set libbpf version. '0' to skip.
+      Set libbpf branch or commit SHA. '0' to skip.
   --dpdk=${DFLT_DPDKVER}
       Set DPDK version. '0' to skip.
   --kmods=${DFLT_KMODSVER}
       Set DPDK kernel modules branch or commit SHA. '0' to skip.
   --spdk=${DFLT_SPDKVER}
       Set SPDK version. '0' to skip.
+  --jobs=${DFLT_NJOBS}
+      Set number of parallel jobs.
   --arch=${DFLT_TARGETARCH}
       Set target architecture.
 EOT
@@ -97,7 +102,13 @@ if [[ $(id -u) -eq 0 ]] && [[ $SKIPROOTCHECK -ne 1 ]]; then
   exit 1
 fi
 
+DISPLAYARCH=$TARGETARCH
+if [[ $TARGETARCH == native ]] && which gcc >/dev/null; then
+  DISPLAYARCH=$DISPLAYARCH' ('$(gcc -march=native -Q --help=target | awk '$1=="-march=" { print $2 }')')'
+fi
+
 echo "Will download to ${CODEROOT}"
+echo "Will compile with ${NJOBS} parallel jobs"
 
 if [[ $NODEVER == '0' ]]; then
   if ! which node >/dev/null; then
@@ -133,6 +144,9 @@ else
 fi
 
 if [[ $LIBBPFVER != '0' ]]; then
+  if [[ ${#LIBBPFVER} -ne 40 ]] && which jq >/dev/null; then
+    LIBBPFVER=$(curl -sfL https://api.github.com/repos/libbpf/libbpf/commits/${LIBBPFVER} | jq -r '.sha')
+  fi
   echo "Will install libbpf ${LIBBPFVER}"
 fi
 
@@ -142,7 +156,7 @@ if [[ $DPDKVER == '0' ]]; then
     exit 1
   fi
 else
-  echo "Will install DPDK ${DPDKVER} for ${TARGETARCH} architecture"
+  echo "Will install DPDK ${DPDKVER} for ${DISPLAYARCH} architecture"
 fi
 
 if [[ $KMODSVER != '0' ]]; then
@@ -155,10 +169,10 @@ if [[ $SPDKVER == '0' ]]; then
     exit 1
   fi
 else
-  echo "Will install SPDK ${SPDKVER} for ${TARGETARCH} architecture"
+  echo "Will install SPDK ${SPDKVER} for ${DISPLAYARCH} architecture"
 fi
 
-echo 'Will install other apt and pip packages'
+echo 'Will install C compiler and build tools'
 echo 'Will delete conflicting versions if present'
 if [[ $CONFIRM -ne 1 ]]; then
   read -p 'Press ENTER to continue or CTRL+C to abort '
@@ -174,7 +188,7 @@ echo 'Dpkg::Options {
 APT::Install-Recommends "no";
 APT::Install-Suggests "no";' | sudo tee /etc/apt/apt.conf.d/80custom >/dev/null
 if [[ $(awk '$1=="deb" && $3=="buster"' /etc/apt/sources.list | wc -l) -gt 0 ]]; then
-  echo 'deb http://deb.debian.org/debian/ buster-backports main' | sudo tee /etc/apt/sources.list.d/buster-backports.list
+  echo 'deb http://deb.debian.org/debian/ buster-backports main' | sudo tee /etc/apt/sources.list.d/buster-backports.list >/dev/null
   sudo apt-get -y -qq update
 fi
 sudo DEBIAN_FRONTEND=noninteractive apt-get -y -qq dist-upgrade
@@ -218,26 +232,25 @@ if [[ $UBPFVER != '0' ]]; then
     UBPFVER=$(curl -sfL https://api.github.com/repos/iovisor/ubpf/commits/${UBPFVER} | jq -r '.sha')
   fi
   cd $CODEROOT
+  rm -rf ubpf-${UBPFVER}
   curl -sfL https://github.com/iovisor/ubpf/archive/${UBPFVER}.tar.gz | tar -xz
   cd ubpf-${UBPFVER}/vm
-  make
+  make -j${NJOBS}
   sudo make install
 fi
 
 if [[ $LIBBPFVER != '0' ]]; then
+  if [[ ${#LIBBPFVER} -ne 40 ]]; then
+    LIBBPFVER=$(curl -sfL https://api.github.com/repos/libbpf/libbpf/commits/${LIBBPFVER} | jq -r '.sha')
+  fi
   cd $CODEROOT
   rm -rf libbpf-${LIBBPFVER}
-  mkdir libbpf-${LIBBPFVER}
-  cd libbpf-${LIBBPFVER}
-  curl -sfL -o libbpf0_${LIBBPFVER}_amd64.deb \
-    https://mirrors.kernel.org/ubuntu/pool/universe/libb/libbpf/libbpf0_${LIBBPFVER}_amd64.deb
-  curl -sfL -o libbpf-dev_${LIBBPFVER}_amd64.deb \
-    https://mirrors.kernel.org/ubuntu/pool/universe/libb/libbpf/libbpf-dev_${LIBBPFVER}_amd64.deb
-  sudo dpkg -i libbpf0_${LIBBPFVER}_amd64.deb libbpf-dev_${LIBBPFVER}_amd64.deb
-  sudo mkdir -p /usr/local/include/linux
-  if ! [[ -f /usr/local/include/linux/if_xdp.h ]]; then
-    sudo ln -s /usr/src/linux-headers-$(uname -r)/include/uapi/linux/if_xdp.h /usr/local/include/linux/if_xdp.h
-  fi
+  curl -sfL https://github.com/libbpf/libbpf/archive/${LIBBPFVER}.tar.gz | tar -xz
+  cd libbpf-${LIBBPFVER}/src
+  make -j${NJOBS}
+  sudo make install PREFIX=/usr/local
+  sudo install -d -m0755 /usr/local/include/linux
+  sudo install -m0644 ../include/uapi/linux/* /usr/local/include/linux
 fi
 
 if [[ $DPDKVER != '0' ]]; then
@@ -247,7 +260,7 @@ if [[ $DPDKVER != '0' ]]; then
   cd dpdk-${DPDKVER}
   meson -Ddebug=true -Doptimization=3 -Dmachine=${TARGETARCH} -Dtests=false --libdir=lib build
   cd build
-  ninja
+  ninja -j${NJOBS}
   sudo find /usr/local/lib -name 'librte_*' -delete
   sudo ninja install
   sudo find /usr/local/lib -name 'librte_*.a' -delete
@@ -276,7 +289,7 @@ if [[ $SPDKVER != '0' ]]; then
   sudo ./scripts/pkgdep.sh
   ./configure --target-arch=${TARGETARCH} --enable-debug --disable-tests --with-shared \
     --with-dpdk=/usr/local --without-vhost --without-isal --without-fuse
-  make -j$(nproc)
+  make -j${NJOBS}
   sudo find /usr/local/lib -name 'libspdk_*' -delete
   sudo make install
   sudo find /usr/local/lib -name 'libspdk_*.a' -delete
