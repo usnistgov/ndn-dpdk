@@ -9,13 +9,12 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
-	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 )
 
 func TestEthDev(t *testing.T) {
 	assert, _ := makeAR(t)
 
-	pair := ethdev.NewPair(ethdev.PairConfig{RxPool: mbuftestenv.Direct.Pool()})
+	pair := ethdev.NewPair(ethdev.PairConfig{RxPool: directMp})
 	defer pair.Close()
 	pair.PortA.Start(pair.EthDevConfig())
 	pair.PortB.Start(pair.EthDevConfig())
@@ -59,7 +58,7 @@ func TestEthDev(t *testing.T) {
 	txRetryFreq := make(map[int]int)
 	eal.Workers[1].RemoteLaunch(cptr.Func0.Void(func() {
 		for i := 0; i < txLoops; i++ {
-			vec := mbuftestenv.Direct.Pool().MustAlloc(txBurstSize)
+			vec := directMp.MustAlloc(txBurstSize)
 			for j := 0; j < txBurstSize; j++ {
 				vec[j].Append([]byte{byte(j)})
 			}

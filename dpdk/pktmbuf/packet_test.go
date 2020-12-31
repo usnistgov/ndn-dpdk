@@ -3,13 +3,11 @@ package pktmbuf_test
 import (
 	"bytes"
 	"testing"
-
-	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 )
 
 func TestPacketRead(t *testing.T) {
 	assert, require := makeAR(t)
-	vec := mbuftestenv.Direct.Pool().MustAlloc(2)
+	vec := directMp.MustAlloc(2)
 	defer vec.Close()
 
 	part0 := bytes.Repeat([]byte{0xA0}, 100)

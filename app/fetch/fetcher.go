@@ -49,7 +49,7 @@ func New(face iface.Face, cfg FetcherConfig) (*Fetcher, error) {
 
 	faceID := face.ID()
 	socket := face.NumaSocket()
-	interestMp := (*C.struct_rte_mempool)(ndni.InterestMempool.MakePool(socket).Ptr())
+	interestMp := (*C.struct_rte_mempool)(ndni.InterestMempool.Get(socket).Ptr())
 
 	fetcher := &Fetcher{
 		fth: make([]*fetchThread, cfg.NThreads),

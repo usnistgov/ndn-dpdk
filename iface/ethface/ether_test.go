@@ -5,13 +5,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/ethface"
 	"github.com/usnistgov/ndn-dpdk/iface/ifacetestenv"
 	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
-	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 func makeEtherLocator(dev ethdev.EthDev) (loc ethface.EtherLocator) {
@@ -32,7 +33,7 @@ func makeTopo3(t *testing.T) (topo topo3) {
 	topo.Fixture = ifacetestenv.NewFixture(t)
 
 	var vnetCfg ethdev.VNetConfig
-	vnetCfg.RxPool = ndnitestenv.Packet.Pool()
+	vnetCfg.RxPool = ndni.PacketMempool.Get(eal.NumaSocket{})
 	vnetCfg.NNodes = 3
 	vnet := ethdev.NewVNet(vnetCfg)
 	topo.vnet = vnet
@@ -109,7 +110,7 @@ func TestFragmentation(t *testing.T) {
 	fixture.DataFrames = 2
 
 	var vnetCfg ethdev.VNetConfig
-	vnetCfg.RxPool = ndnitestenv.Packet.Pool()
+	vnetCfg.RxPool = ndni.PacketMempool.Get(eal.NumaSocket{})
 	vnetCfg.NNodes = 2
 	vnetCfg.LossProbability = 0.01
 	vnetCfg.Shuffle = true

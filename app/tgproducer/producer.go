@@ -33,7 +33,7 @@ func New(face iface.Face, index int, cfg Config) (producer *Producer, e error) {
 	socket := face.NumaSocket()
 	producer = &Producer{
 		c:         (*C.TgProducer)(eal.Zmalloc("TgProducer", C.sizeof_TgProducer, socket)),
-		payloadMp: ndni.PayloadMempool.MakePool(socket),
+		payloadMp: ndni.PayloadMempool.Get(socket),
 	}
 
 	cfg.RxQueue.DisableCoDel = true

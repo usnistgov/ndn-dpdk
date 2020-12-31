@@ -49,9 +49,9 @@ type Template interface {
 	// Pools returns a list of created Pools.
 	Pools() []PoolInfo
 
-	// MakePool creates or retrieves a Pool, preferably on the given NUMA socket.
+	// Get retrieves or creates a Pool on the given NUMA socket.
 	// Errors are fatal.
-	MakePool(socket eal.NumaSocket) *Pool
+	Get(socket eal.NumaSocket) *Pool
 }
 
 type template struct {
@@ -100,7 +100,7 @@ func (tpl *template) Pools() (list []PoolInfo) {
 	return list
 }
 
-func (tpl *template) MakePool(socket eal.NumaSocket) *Pool {
+func (tpl *template) Get(socket eal.NumaSocket) *Pool {
 	logEntry := log.WithField("template", tpl.id)
 
 	useSocket := socket
@@ -125,11 +125,13 @@ func (tpl *template) MakePool(socket eal.NumaSocket) *Pool {
 
 // RegisterTemplate adds a mempool template.
 func RegisterTemplate(id string, cfg PoolConfig) Template {
+	logEntry := log.WithField("template", id)
+
 	if _, ok := templates[id]; ok {
-		log.Panicf("RegisterTemplate(%s) duplicate", id)
+		logEntry.Panic("duplicate template ID")
 	}
 	if !validateTemplateID(id) {
-		log.Panicf("RegisterTemplate(%s) id can only contain upper-case letters and digits", id)
+		logEntry.Panicf("template ID can only contain upper-case letters and digits")
 	}
 	tpl := &template{
 		id:    id,

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 )
 
@@ -41,7 +42,7 @@ func MakePacket(args ...interface{}) (pkt *pktmbuf.Packet) {
 	}
 
 	if mp == nil {
-		mp = Direct.Pool()
+		mp = pktmbuf.Direct.Get(eal.NumaSocket{})
 	}
 	if len(segments) == 0 {
 		return mp.MustAlloc(1)[0]

@@ -8,9 +8,7 @@ import (
 )
 
 var (
-	makeAR       = testenv.MakeAR
-	bytesFromHex = testenv.BytesFromHex
-	bytesEqual   = testenv.BytesEqual
+	makeAR = testenv.MakeAR
 )
 
 func TestMain(m *testing.M) {

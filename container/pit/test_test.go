@@ -14,30 +14,26 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealtestenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
-	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
-	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
 )
 
 func TestMain(m *testing.M) {
-	mbuftestenv.Direct.Template.Update(pktmbuf.PoolConfig{Dataroom: 8000}) // needed for TestEntryLongName
 	ealtestenv.Init()
+	pktmbuf.Direct.Update(pktmbuf.PoolConfig{Dataroom: 8000}) // needed for TestEntryLongName
 	os.Exit(m.Run())
 }
 
 var (
 	makeAR          = testenv.MakeAR
-	nameEqual       = ndntestenv.NameEqual
 	makeInterest    = ndnitestenv.MakeInterest
 	makeData        = ndnitestenv.MakeData
 	makeNack        = ndnitestenv.MakeNack
 	setActiveFwHint = ndnitestenv.SetActiveFwHint
 	setPitToken     = ndnitestenv.SetPitToken
 	setFace         = ndnitestenv.SetFace
-	makeFibEntry    = fibtestenv.MakeEntry
 )
 
 type Fixture struct {
@@ -62,7 +58,7 @@ func NewFixture(pcctCapacity int) *Fixture {
 		panic(e)
 	}
 	placeholderName := ndn.ParseName("/75f3c2eb-6147-4030-afbc-585b3ce876a9")
-	if e = fixture.Fib.Insert(makeFibEntry(placeholderName, nil, 9999)); e != nil {
+	if e = fixture.Fib.Insert(fibtestenv.MakeEntry(placeholderName, nil, 9999)); e != nil {
 		panic(e)
 	}
 	fixture.FibReplica = fixture.Fib.Replica(eal.NumaSocket{})

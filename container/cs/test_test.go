@@ -17,7 +17,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealtestenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
-	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 	"github.com/usnistgov/ndn-dpdk/ndni"
@@ -28,7 +27,7 @@ func TestMain(m *testing.M) {
 	ealtestenv.Init()
 
 	// fixture.Close() cannot release packet buffers, need a large mempool
-	mbuftestenv.Direct.Template.Update(pktmbuf.PoolConfig{Capacity: 65535})
+	pktmbuf.Direct.Update(pktmbuf.PoolConfig{Capacity: 65535})
 
 	os.Exit(m.Run())
 }
@@ -39,8 +38,6 @@ var (
 	makeInterest    = ndnitestenv.MakeInterest
 	makeData        = ndnitestenv.MakeData
 	setActiveFwHint = ndnitestenv.SetActiveFwHint
-	setPitToken     = ndnitestenv.SetPitToken
-	setFace         = ndnitestenv.SetFace
 	makeFibEntry    = fibtestenv.MakeEntry
 )
 

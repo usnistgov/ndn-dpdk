@@ -28,9 +28,7 @@ func TestMain(m *testing.M) {
 }
 
 var (
-	makeAR       = testenv.MakeAR
-	bytesFromHex = testenv.BytesFromHex
-	makePacket   = ndnitestenv.MakePacket
+	makeAR = testenv.MakeAR
 
 	rxl iface.RxLoop
 	txl iface.TxLoop

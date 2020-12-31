@@ -4,18 +4,19 @@ import (
 	"testing"
 	"time"
 
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
 )
 
 func TestInterestTemplate(t *testing.T) {
 	assert, require := makeAR(t)
+	interestMp := ndni.InterestMempool.Get(eal.NumaSocket{})
 
 	var tpl ndni.InterestTemplate
 	tpl.Init("/prefix", ndn.CanBePrefixFlag, ndn.MakeFHDelegation(10, "/FH"), 1895*time.Millisecond)
 
-	interestPkt := tpl.Encode(ndnitestenv.Interest.Alloc(), ndn.ParseName("/suffix"), 0xABF0E278)
+	interestPkt := tpl.Encode(interestMp.MustAlloc(1)[0], ndn.ParseName("/suffix"), 0xABF0E278)
 	require.NotNil(interestPkt)
 	interest := interestPkt.ToNPacket().Interest
 	require.NotNil(interest)

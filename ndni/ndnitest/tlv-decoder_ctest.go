@@ -10,6 +10,7 @@ import (
 	"testing"
 	"unsafe"
 
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 	"github.com/usnistgov/ndn-dpdk/ndn/ndntestvector"
@@ -55,6 +56,7 @@ func ctestTlvDecoderReadSkip(t *testing.T) {
 
 func ctestTlvDecoderClone(t *testing.T) {
 	assert, require := makeAR(t)
+	indirectMp := pktmbuf.Indirect.Get(eal.NumaSocket{})
 
 	p := makePacket("", "A0A1A2A3", "B0B1B2", "", "C0C1", "D0")
 	defer p.Close()
@@ -68,7 +70,7 @@ func ctestTlvDecoderClone(t *testing.T) {
 			C.TlvDecoder_Init(&d, p.mbuf)
 			C.TlvDecoder_Skip(&d, C.uint32_t(offset))
 
-			clone := C.TlvDecoder_Clone(&d, C.uint32_t(count), (*C.struct_rte_mempool)(mbuftestenv.Indirect.Pool().Ptr()), nil)
+			clone := C.TlvDecoder_Clone(&d, C.uint32_t(count), (*C.struct_rte_mempool)(indirectMp.Ptr()), nil)
 			if !assert.NotNil(clone, "%d-%d", offset, count) {
 				continue
 			}

@@ -6,8 +6,6 @@ import (
 )
 
 var (
-	makeAR       = testenv.MakeAR
-	bytesFromHex = testenv.BytesFromHex
-	bytesEqual   = testenv.BytesEqual
-	nameEqual    = ndntestenv.NameEqual
+	makeAR    = testenv.MakeAR
+	nameEqual = ndntestenv.NameEqual
 )

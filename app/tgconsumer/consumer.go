@@ -42,7 +42,7 @@ func New(face iface.Face, cfg Config) (*Consumer, error) {
 
 	txC := (*C.TgConsumerTx)(eal.Zmalloc("TgConsumerTx", C.sizeof_TgConsumerTx, socket))
 	txC.face = (C.FaceID)(face.ID())
-	txC.interestMp = (*C.struct_rte_mempool)(ndni.InterestMempool.MakePool(socket).Ptr())
+	txC.interestMp = (*C.struct_rte_mempool)(ndni.InterestMempool.Get(socket).Ptr())
 	C.pcg32_srandom_r(&txC.trafficRng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
 	C.NonceGen_Init(&txC.nonceGen)
 

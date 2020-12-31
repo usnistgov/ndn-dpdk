@@ -7,7 +7,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealtestenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
-	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 )
 
 func TestMain(m *testing.M) {
@@ -18,7 +17,7 @@ func TestMain(m *testing.M) {
 
 	ealtestenv.Init()
 
-	mbuftestenv.Direct.Template.Update(pktmbuf.PoolConfig{
+	pktmbuf.Direct.Update(pktmbuf.PoolConfig{
 		Dataroom: 9000, // needed by fragmentation test case
 		Capacity: 16383,
 	})

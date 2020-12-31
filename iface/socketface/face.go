@@ -74,7 +74,7 @@ func Wrap(transport sockettransport.Transport, cfg Config) (iface.Face, error) {
 
 	face := &socketFace{
 		transport: transport,
-		rxMempool: ndni.PacketMempool.MakePool(eal.NumaSocket{}),
+		rxMempool: ndni.PacketMempool.Get(eal.NumaSocket{}),
 	}
 	return iface.New(iface.NewParams{
 		Config: cfg.Config,

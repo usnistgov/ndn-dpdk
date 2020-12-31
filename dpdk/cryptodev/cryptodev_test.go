@@ -6,7 +6,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/cryptodev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
-	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 )
 
 func TestCryptoDev(t *testing.T) {
@@ -32,7 +31,7 @@ func TestCryptoDev(t *testing.T) {
 	assert.True(ops1[0].IsNew())
 
 	allocOutBuf := func() (out *pktmbuf.Packet) {
-		out = mbuftestenv.Direct.Alloc()
+		out = directMp.MustAlloc(1)[0]
 		out.Append(make([]byte, 32))
 		return out
 	}

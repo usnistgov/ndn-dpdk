@@ -83,7 +83,7 @@ func (mp *Mempools) Assign(socket eal.NumaSocket, tpl ...pktmbuf.Template) {
 		tpl = append(tpl, PacketMempool)
 	}
 
-	mp.packet = (*C.struct_rte_mempool)(tpl[1].MakePool(socket).Ptr())
-	mp.indirect = (*C.struct_rte_mempool)(IndirectMempool.MakePool(socket).Ptr())
-	mp.header = (*C.struct_rte_mempool)(tpl[0].MakePool(socket).Ptr())
+	mp.packet = (*C.struct_rte_mempool)(tpl[1].Get(socket).Ptr())
+	mp.indirect = (*C.struct_rte_mempool)(IndirectMempool.Get(socket).Ptr())
+	mp.header = (*C.struct_rte_mempool)(tpl[0].Get(socket).Ptr())
 }

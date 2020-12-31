@@ -10,13 +10,13 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
 )
 
 func testDataGen(t *testing.T, fragmentPayloadSize int, checkMbuf func(m *pktmbuf.Packet)) {
 	assert, require := makeAR(t)
+	payloadMp := ndni.PayloadMempool.Get(eal.NumaSocket{})
 
-	tplMbuf := ndnitestenv.Payload.Alloc()
+	tplMbuf := payloadMp.MustAlloc(1)[0]
 	content := bytes.Repeat([]byte{0xC0, 0xC1, 0xC2, 0xC3}, 300)
 	dataInput := ndn.MakeData(ndn.ParseName("/suffix"), ndn.ContentType(an.ContentLink), 3016*time.Millisecond, content)
 

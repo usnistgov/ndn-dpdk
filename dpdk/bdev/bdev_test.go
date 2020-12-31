@@ -9,7 +9,6 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/bdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealtestenv"
-	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 )
 
 const (
@@ -33,12 +32,12 @@ func testBdev(t *testing.T, device bdev.Device, mode bdev.Mode) {
 	require.NotNil(bd)
 
 	if mode == bdev.ReadWrite {
-		pkt1 := mbuftestenv.MakePacket(bytes.Repeat([]byte{0xB0}, 500), bytes.Repeat([]byte{0xB1}, 400), bytes.Repeat([]byte{0xB2}, 134))
+		pkt1 := makePacket(bytes.Repeat([]byte{0xB0}, 500), bytes.Repeat([]byte{0xB1}, 400), bytes.Repeat([]byte{0xB2}, 134))
 		defer pkt1.Close()
 		e = bd.WritePacket(100, 16, *pkt1)
 		assert.NoError(e)
 
-		pkt2 := mbuftestenv.MakePacket(bytes.Repeat([]byte{0xC0}, 124), bytes.Repeat([]byte{0xC1}, 400), bytes.Repeat([]byte{0xC2}, 510))
+		pkt2 := makePacket(bytes.Repeat([]byte{0xC0}, 124), bytes.Repeat([]byte{0xC1}, 400), bytes.Repeat([]byte{0xC2}, 510))
 		defer pkt2.Close()
 		e = bd.ReadPacket(100, 12, *pkt2)
 		assert.NoError(e)

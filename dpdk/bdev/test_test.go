@@ -6,6 +6,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealtestenv"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 )
 
 func TestMain(m *testing.M) {
@@ -13,4 +14,7 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-var makeAR = testenv.MakeAR
+var (
+	makeAR     = testenv.MakeAR
+	makePacket = mbuftestenv.MakePacket
+)
