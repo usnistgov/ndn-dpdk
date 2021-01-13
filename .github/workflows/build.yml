@@ -43,7 +43,7 @@ jobs:
         with:
           path: |
             ~/setup-dpdk
-          key: ${{ matrix.compiler }}_DPDK2011_SPDK2010
+          key: ${{ matrix.compiler }}_DPDK2011_SPDK2010_20210113
       - uses: yoursunny/setup-dpdk@master
         with:
           dpdk-version: '20.11'
@@ -55,15 +55,18 @@ jobs:
           make
         env:
           NDNDPDK_MK_THREADSLEEP: 1
+      - name: check code style
+        run: |
+          go get -t ./...
+          make lint
+          [[ $(git status --porcelain | tee >(cat 1>&2) | wc -l) -eq 0 ]]
       - name: run unit tests
         run: |
           MK_GOTEST_FILTER="/${TEST_ACCEPTABLE_FAILURES}/ d" make test
           MK_GOTEST_FILTER="/${TEST_ACCEPTABLE_FAILURES}/! d" make test || true
         env:
-          TEST_ACCEPTABLE_FAILURES: diskstore|ethface|fetch|fwdp|memiftransport|tgconsumer|tgproducer
+          TEST_ACCEPTABLE_FAILURES: bdev|cs|diskstore|ethface|fetch|fwdp|memiftransport|tgconsumer|tgproducer
           NDNDPDK_MK_THREADSLEEP: 1
-      - name: check code style
-        run: make lint && [[ $(git status --porcelain | tee >(cat 1>&2) | wc -l) -eq 0 ]]
       - name: build documentation
         run: make doxygen
   ubuntu20:
