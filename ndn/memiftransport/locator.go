@@ -10,7 +10,7 @@ import (
 	"path"
 
 	"github.com/FDio/vpp/extras/gomemif/memif"
-	"github.com/jfoster/bintools"
+	binutils "github.com/jfoster/binary-utilities"
 	mathpkg "github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
@@ -91,7 +91,7 @@ func (loc *Locator) ApplyDefaults() {
 	} else {
 		loc.RingCapacity = mathpkg.MinInt(mathpkg.MaxInt(MinRingCapacity, loc.RingCapacity), MaxRingCapacity)
 	}
-	loc.RingCapacity = int(bintools.NextPowerOfTwo(int64(loc.RingCapacity)))
+	loc.RingCapacity = int(binutils.NextPowerOfTwo(int64(loc.RingCapacity)))
 }
 
 func (loc Locator) rsize() uint8 {

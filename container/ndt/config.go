@@ -1,7 +1,7 @@
 package ndt
 
 import (
-	"github.com/jfoster/bintools"
+	binutils "github.com/jfoster/binary-utilities"
 	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
@@ -54,14 +54,14 @@ func (c *Config) applyDefaults() {
 	} else {
 		c.Capacity = math.MinInt(math.MaxInt(MinCapacity, c.Capacity), MaxCapacity)
 	}
-	c.Capacity = int(bintools.NextPowerOfTwo(int64(c.Capacity)))
+	c.Capacity = int(binutils.NextPowerOfTwo(int64(c.Capacity)))
 
 	if c.SampleInterval == 0 {
 		c.SampleInterval = DefaultSampleInterval
 	} else {
 		c.SampleInterval = math.MinInt(math.MaxInt(MinSampleInterval, c.PrefixLen), MaxSampleInterval)
 	}
-	c.SampleInterval = int(bintools.NextPowerOfTwo(int64(c.SampleInterval)))
+	c.SampleInterval = int(binutils.NextPowerOfTwo(int64(c.SampleInterval)))
 }
 
 func (c Config) indexMask() uint64 {
