@@ -3,6 +3,8 @@ package sockettransport
 import (
 	"fmt"
 	"net"
+
+	"github.com/gogf/greuse"
 )
 
 type datagramImpl struct {
@@ -35,17 +37,7 @@ type udpImpl struct {
 }
 
 func (udpImpl) Dial(network, local, remote string) (net.Conn, error) {
-	raddr, e := net.ResolveUDPAddr(network, remote)
-	if e != nil {
-		return nil, fmt.Errorf("resolve remote %w", e)
-	}
-	laddr := &net.UDPAddr{Port: raddr.Port}
-	if local != "" {
-		if laddr, e = net.ResolveUDPAddr(network, local); e != nil {
-			return nil, fmt.Errorf("resolve local %w", e)
-		}
-	}
-	return net.DialUDP(network, laddr, raddr)
+	return greuse.Dial(network, local, remote)
 }
 
 func init() {

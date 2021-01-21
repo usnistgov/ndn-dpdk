@@ -23,7 +23,7 @@ func TestPipe(t *testing.T) {
 }
 
 func TestUdp(t *testing.T) {
-	_, require := makeAR(t)
+	assert, require := makeAR(t)
 
 	var dialer sockettransport.Dialer
 
@@ -31,6 +31,12 @@ func TestUdp(t *testing.T) {
 	require.NoError(e)
 	trB, e := dialer.Dial("udp", "127.0.0.1:7002", "127.0.0.1:7001")
 	require.NoError(e)
+
+	// REUSEADDR
+	trC, e := dialer.Dial("udp", "127.0.0.1:7001", "127.0.0.1:7003")
+	if assert.NoError(e) {
+		close(trC.Tx())
+	}
 
 	var c ndntestenv.L3FaceTester
 	c.CheckTransport(t, trA, trB)

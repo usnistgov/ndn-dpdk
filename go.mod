@@ -11,6 +11,7 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/gabstv/freeport v0.0.0-20171005142102-7952fe2e67ce
 	github.com/go-ole/go-ole v1.2.5 // indirect
+	github.com/gogf/greuse v1.1.0
 	github.com/google/gopacket v1.1.19
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
 	github.com/graphql-go/graphql v0.7.9
@@ -32,8 +33,8 @@ require (
 	github.com/urfave/cli/v2 v2.3.0
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/xeipuuv/gojsonschema v1.2.0
-	golang.org/x/net v0.0.0-20201224014010-6772e930b67b // indirect
-	golang.org/x/sys v0.0.0-20210113181707-4bcb84eeeb78
+	golang.org/x/net v0.0.0-20210119194325-5f4716e94777 // indirect
+	golang.org/x/sys v0.0.0-20210119212857-b64e53b001e4
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
