@@ -22,7 +22,7 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: ^1
-      - uses: actions/setup-node@v2-beta
+      - uses: actions/setup-node@v2
         with:
           node-version: 14
       - name: install APT dependencies
@@ -38,13 +38,13 @@ jobs:
           make
           sudo make install
         env:
-          UBPFCOMMIT: 089f6279752adfb01386600d119913403ed326ee
+          UBPFCOMMIT: 5b5763639a8096c30257e51214636f544129380c
       - uses: actions/cache@v2
         with:
           path: |
             ~/setup-dpdk
-          key: ${{ matrix.compiler }}_DPDK2011_SPDK2010_20210113
-      - uses: yoursunny/setup-dpdk@master
+          key: ${{ matrix.compiler }}_DPDK2011_SPDK2010_20210121
+      - uses: yoursunny/setup-dpdk@main
         with:
           dpdk-version: '20.11'
           spdk-version: '20.10'
@@ -65,8 +65,9 @@ jobs:
           MK_GOTEST_FILTER="/${TEST_ACCEPTABLE_FAILURES}/ d" make test
           MK_GOTEST_FILTER="/${TEST_ACCEPTABLE_FAILURES}/! d" make test || true
         env:
-          TEST_ACCEPTABLE_FAILURES: bdev|cs|diskstore|ethface|fetch|fwdp|memiftransport|tgconsumer|tgproducer
+          TEST_ACCEPTABLE_FAILURES: diskstore|ethface|fetch|fwdp|memiftransport|tgconsumer|tgproducer
           NDNDPDK_MK_THREADSLEEP: 1
+        if: ${{ matrix.compiler != 'gcc-8' }}
       - name: build documentation
         run: make doxygen
   ubuntu20:
