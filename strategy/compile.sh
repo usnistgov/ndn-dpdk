@@ -1,6 +1,6 @@
 #!/bin/bash
 set -eo pipefail
-cd "$( dirname "${BASH_SOURCE[0]}" )"/..
+cd "$(dirname "${BASH_SOURCE[0]}")"/..
 BPFCC=${BPFCC:-clang-8}
 BPFFLAGS='-O2 -target bpf -Wno-int-to-void-pointer-cast -I/usr/include/x86_64-linux-gnu'
 BPFDIR=build/lib/bpf

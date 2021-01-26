@@ -1,6 +1,6 @@
 #!/bin/bash
 set -eo pipefail
-cd "$( dirname "${BASH_SOURCE[0]}" )"/..
+cd "$(dirname "${BASH_SOURCE[0]}")"/..
 source mk/install-dirs.sh
 
 install -d -m0755 $DESTBPF

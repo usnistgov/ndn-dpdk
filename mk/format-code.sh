@@ -2,7 +2,7 @@
 set -eo pipefail
 
 # C
-git ls-files -- 'csrc/**/*.[hc]' -x ':!:csrc/vendor' | xargs clang-format-8 -i -style=file
+git ls-files -- 'csrc/**/*.[hc]' 'strategy/*.[hc]' -x ':!:csrc/vendor' | xargs clang-format-8 -i -style=file
 
 # Go
 go mod tidy

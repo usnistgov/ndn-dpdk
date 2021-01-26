@@ -83,7 +83,7 @@ SgFibNexthopIt_Init2(SgFibNexthopIt* it, const SgCtx* ctx)
 /**
  * @brief Set a timer to invoke strategy after a duration.
  * @param after duration in TSC unit, cannot exceed PIT entry expiration time.
- * @warning Not available in @c SGEVT_DATA.
+ * @pre Not available in @c SGEVT_DATA.
  *
  * Strategy program will be invoked again with @c SGEVT_TIMER after @p after.
  * However, the timer would be cancelled if strategy program is invoked for any other event,
@@ -94,7 +94,7 @@ SgSetTimer(SgCtx* ctx, TscDuration after);
 
 typedef enum SgForwardInterestResult
 {
-  SGFWDI_OK,
+  SGFWDI_OK,         ///< success
   SGFWDI_BADFACE,    ///< face is down or FaceID is invalid
   SGFWDI_ALLOCERR,   ///< allocation error
   SGFWDI_NONONCE,    ///< upstream has rejected all nonces

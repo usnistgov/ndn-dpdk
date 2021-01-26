@@ -1,7 +1,9 @@
 package fwdptest
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/usnistgov/ndn-dpdk/iface/intface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
@@ -83,4 +85,96 @@ func TestFastroute(t *testing.T) {
 	assert.Equal(4, collect1.Count())
 	assert.Equal(4, collect2.Count())
 	assert.Equal(3, collect3.Count()) // no Interest to face3 because it's DOWN
+}
+
+type fastrouteProbeQueueItem struct {
+	At   time.Time
+	Data ndn.Data
+}
+
+func TestFastrouteProbe(t *testing.T) {
+	assert, _ := makeAR(t)
+	fixture := NewFixture(t)
+	defer fixture.Close()
+
+	face1, face2, face3, face4 := intface.MustNew(), intface.MustNew(), intface.MustNew(), intface.MustNew()
+	fixture.SetFibEntry("/F", "fastroute", face1.ID, face2.ID, face3.ID)
+
+	exit := make(chan bool)
+	runConsumer := func() { // 250 Interests per second
+		tick := time.NewTicker(4 * time.Millisecond)
+		defer tick.Stop()
+		for {
+			select {
+			case <-exit:
+				return
+			case t := <-tick.C:
+				face4.Tx <- ndn.MakeInterest(fmt.Sprintf("/F/F/%d", t.UnixNano()))
+			case <-face4.Rx:
+			}
+		}
+	}
+	runProducer := func(face *intface.IntFace) (cnt *int, delay *time.Duration) {
+		cnt = new(int)
+		delay = new(time.Duration)
+		queue := make(chan fastrouteProbeQueueItem, 65536)
+		go func() {
+			for {
+				select {
+				case <-exit:
+					return
+				case item := <-queue:
+					now := time.Now()
+					diff := item.At.Sub(now)
+					if diff > 0 {
+						time.Sleep(diff)
+					}
+					face.Tx <- item.Data
+				}
+			}
+		}()
+		go func() {
+			for {
+				select {
+				case <-exit:
+					return
+				case pkt := <-face.Rx:
+					if pkt.Interest != nil {
+						*cnt++
+						queue <- fastrouteProbeQueueItem{
+							At:   time.Now().Add(*delay),
+							Data: ndn.MakeData(pkt.Interest),
+						}
+					}
+				}
+			}
+		}()
+		return
+	}
+	cnt1, delay1 := runProducer(face1)
+	cnt2, delay2 := runProducer(face2)
+	cnt3, delay3 := runProducer(face3)
+
+	go runConsumer()
+
+	// face2 is fastest
+	*delay1, *delay2, *delay3 = 20*time.Millisecond, 1*time.Millisecond, 20*time.Millisecond
+	time.Sleep(1 * time.Second)
+	*cnt1, *cnt2, *cnt3 = 0, 0, 0
+	time.Sleep(3 * time.Second)
+	assert.Greater(*cnt2/4, *cnt1)
+	assert.Greater(*cnt2/4, *cnt3)
+
+	// face1 is fastest
+	*delay1, *delay2, *delay3 = 1*time.Millisecond, 20*time.Millisecond, 20*time.Millisecond
+	// consumer sends 250 I/s, probe occurs every 1024 Interests, so there must be a probe within 5 seconds
+	time.Sleep(5 * time.Second)
+	*cnt1, *cnt2, *cnt3 = 0, 0, 0
+	time.Sleep(3 * time.Second)
+	assert.Greater(*cnt1/4, *cnt2)
+	assert.Greater(*cnt1/4, *cnt3)
+
+	for i := 0; i < 7; i++ {
+		exit <- true
+	}
 }

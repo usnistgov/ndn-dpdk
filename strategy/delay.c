@@ -9,8 +9,7 @@ SUBROUTINE uint64_t
 Timer(SgCtx* ctx)
 {
   SgFibNexthopIt it;
-  for (SgFibNexthopIt_Init2(&it, ctx); SgFibNexthopIt_Valid(&it);
-       SgFibNexthopIt_Next(&it)) {
+  for (SgFibNexthopIt_Init2(&it, ctx); SgFibNexthopIt_Valid(&it); SgFibNexthopIt_Next(&it)) {
     SgForwardInterestResult res = SgForwardInterest(ctx, it.nh);
     if (res == SGFWDI_OK) {
       return 0;
