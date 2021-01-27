@@ -20,9 +20,6 @@ import (
 //    Since the NDN-DPDK forwarder expects 8-octet PIT tokens, this takes away some space.
 //    Thus, consumers are allowed to use a PIT token up to 4 octets; Interests with longer PIT tokens may be dropped.
 type Forwarder interface {
-	// AddTransport constructs a Face and invokes AddFace.
-	AddTransport(tr Transport) (FwFace, error)
-
 	// AddFace adds a Face to the forwarder.
 	// face.Rx() and face.Tx() should not be used after this operation.
 	AddFace(face Face) (FwFace, error)
@@ -62,14 +59,6 @@ type forwarder struct {
 	readvertise   map[ReadvertiseDestination]bool
 	cmd           chan func()
 	pkt           chan *ndn.Packet
-}
-
-func (fw *forwarder) AddTransport(tr Transport) (FwFace, error) {
-	face, e := NewFace(tr)
-	if e != nil {
-		return nil, e
-	}
-	return fw.AddFace(face)
 }
 
 func (fw *forwarder) AddFace(face Face) (ff FwFace, e error) {
@@ -141,7 +130,7 @@ func (fw *forwarder) loop() {
 }
 
 func (fw *forwarder) forwardInterest(pkt *ndn.Packet) {
-	lpmLen := -1
+	lpmLen := 0
 	var nexthops []*fwFace
 	for _, f := range fw.faces {
 		matchLen := f.lpmRoute(pkt.Interest.Name)
@@ -186,13 +175,4 @@ func GetDefaultForwarder() Forwarder {
 func DeleteDefaultForwarder() {
 	defaultForwarder = nil
 	defaultForwarderOnce = sync.Once{}
-}
-
-// AddUplink adds a transport to the default Forwarder and sets the route "/" on the face.
-func AddUplink(tr Transport) (f FwFace, e error) {
-	f, e = GetDefaultForwarder().AddTransport(tr)
-	if e != nil {
-		f.AddRoute(ndn.Name{})
-	}
-	return f, e
 }

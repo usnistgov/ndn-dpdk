@@ -12,6 +12,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 	"github.com/usnistgov/ndn-dpdk/mk/version"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"github.com/usnistgov/ndn-dpdk/ndn/memiftransport"
 	"github.com/usnistgov/ndn-dpdk/ndn/mgmt"
@@ -39,6 +40,7 @@ func openUplink(c *cli.Context) (e error) {
 	if fwFace, e = fw.AddFace(face.Face()); e != nil {
 		return e
 	}
+	fwFace.AddRoute(ndn.Name{})
 	fw.AddReadvertiseDestination(face)
 
 	log.Print("uplink opened")

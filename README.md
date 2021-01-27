@@ -44,7 +44,7 @@ See [huge-setup.sh](docs/huge-setup.sh) for an example on how to setup hugepages
   You can also execute `mk/gotest.sh <PKG>` to run the tests for a given package.
 * `make doxygen` builds C documentation (requires the `doxygen` dependency).
 * To view Go documentation, execute `godoc &` and access the website on port 6060.
-  You may need to install [godoc](https://pkg.go.dev/golang.org/x/tools/cmd/godoc?tab=doc) command: `sudo GO111MODULE=off GOBIN=$(go env GOROOT)/bin $(which go) get -u golang.org/x/tools/cmd/godoc`
+  You may need to install [godoc](https://pkg.go.dev/golang.org/x/tools/cmd/godoc) command: `sudo GO111MODULE=off GOBIN=$(go env GOROOT)/bin $(which go) get -u golang.org/x/tools/cmd/godoc`
 * `make lint` fixes code style issues before committing (requires the `clang-format-8` and `yamllint` dependencies).
 
 ### Compile-time settings

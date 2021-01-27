@@ -26,7 +26,7 @@ Transports
 
 * Unix stream, UDP unicast, TCP (in [package sockettransport](sockettransport))
 * Ethernet via [GoPacket library](https://github.com/google/gopacket) (in [package packettransport](packettransport))
-* Shared memory with local NDN-DPDK forwarder via [memif](https://pkg.go.dev/github.com/FDio/vpp/extras/gomemif/memif?tab=doc) (in [package memiftransport](memiftransport))
+* Shared memory with local NDN-DPDK forwarder via [memif](https://pkg.go.dev/github.com/FDio/vpp/extras/gomemif/memif) (in [package memiftransport](memiftransport))
 
 KeyChain
 
