@@ -12,7 +12,7 @@ It is in pre-release stage and will continue to be updated.
 
 ### Requirements
 
-* Ubuntu 18.04 or Debian 10 on *amd64* architecture
+* Ubuntu 18.04, Ubuntu 20.04, or Debian 10; amd64 architecture
 * Required APT packages: `build-essential clang-8 git libc6-dev-i386 libelf-dev libnuma-dev libssl-dev liburcu-dev pkg-config python3-distutils`
 * Optional APT packages: `clang-format-8 doxygen yamllint`
   (see "other build targets" for an explanation)

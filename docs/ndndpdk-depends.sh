@@ -2,7 +2,8 @@
 set -eo pipefail
 
 if ! which sudo >/dev/null || ! which curl >/dev/null; then
-  echo 'sudo and curl are required to start this script'
+  echo 'sudo and curl are required to start this script; to install:'
+  echo '  apt-get install sudo curl'
   exit 1
 fi
 
@@ -17,21 +18,25 @@ DFLT_SPDKVER=20.10
 DFLT_NJOBS=$(nproc)
 DFLT_TARGETARCH=native
 
-KERNEL_HEADERS_PKG=linux-headers-$(uname -r)
-if ! apt-cache show ${KERNEL_HEADERS_PKG} &>/dev/null; then
-  sudo apt-get -y -qq update
+IS_DEBIAN=0
+if [[ $(awk '$1=="deb" && $3=="buster"' /etc/apt/sources.list | wc -l) -gt 0 ]]; then
+  IS_DEBIAN=1
 fi
-if ! apt-cache show ${KERNEL_HEADERS_PKG} &>/dev/null; then
+
+KERNELVER=$(uname -r)
+HAS_KERNEL_HEADERS=0
+if [[ -d /usr/src/linux-headers-${KERNELVER} ]]; then
+  HAS_KERNEL_HEADERS=1
+else
   DFLT_LIBBPFVER=0
   DFLT_KMODSVER=0
-  KERNEL_HEADERS_PKG=
 fi
-if [[ $(uname -r) == 5.10.* ]]; then
+if [[ $KERNELVER == 5.10.* ]]; then
   # kmods build is broken on kernel 5.10, https://bugs.debian.org/975571
   # TODO delete this when Debian and Ubuntu fix this bug
   DFLT_KMODSVER=0
 fi
-if [[ $(uname -r | awk -F. '{ print ($1*1000+$2>=4018) }') -eq 0 ]]; then
+if [[ $(echo $KERNELVER | awk -F. '{ print ($1*1000+$2>=4018) }') -eq 0 ]]; then
   DFLT_LIBBPFVER=0
 fi
 
@@ -108,7 +113,16 @@ if [[ $TARGETARCH == native ]] && which gcc >/dev/null; then
 fi
 
 echo "Will download to ${CODEROOT}"
-echo "Will compile with ${NJOBS} parallel jobs"
+echo 'Will install C compiler and build tools'
+
+if [[ $HAS_KERNEL_HEADERS == '0' ]]; then
+  echo "Will skip certain features due to missing kernel headers; to install:"
+  if [[ $IS_DEBIAN == '1' ]]; then
+    echo "  sudo apt-get install linux-headers-amd64 linux-headers-${KERNELVER}-amd64"
+  else
+    echo "  sudo apt-get install linux-generic linux-headers-${KERNELVER}"
+  fi
+fi
 
 if [[ $NODEVER == '0' ]]; then
   if ! which node >/dev/null; then
@@ -172,7 +186,7 @@ else
   echo "Will install SPDK ${SPDKVER} for ${DISPLAYARCH} architecture"
 fi
 
-echo 'Will install C compiler and build tools'
+echo "Will compile with ${NJOBS} parallel jobs"
 echo 'Will delete conflicting versions if present'
 if [[ $CONFIRM -ne 1 ]]; then
   read -p 'Press ENTER to continue or CTRL+C to abort '
@@ -187,7 +201,7 @@ echo 'Dpkg::Options {
 }
 APT::Install-Recommends "no";
 APT::Install-Suggests "no";' | sudo tee /etc/apt/apt.conf.d/80custom >/dev/null
-if [[ $(awk '$1=="deb" && $3=="buster"' /etc/apt/sources.list | wc -l) -gt 0 ]]; then
+if [[ ${IS_DEBIAN} == '1' ]]; then
   echo 'deb http://deb.debian.org/debian/ buster-backports main' | sudo tee /etc/apt/sources.list.d/buster-backports.list >/dev/null
   sudo apt-get -y -qq update
 fi
@@ -207,8 +221,7 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get -y -qq install \
   liburcu-dev \
   pkg-config \
   python3-distutils \
-  yamllint \
-  $KERNEL_HEADERS_PKG
+  yamllint
 
 if [[ $NODEVER != '0' ]]; then
   curl -sfL https://deb.nodesource.com/setup_${NODEVER} | sudo bash -
@@ -247,10 +260,12 @@ if [[ $LIBBPFVER != '0' ]]; then
   rm -rf libbpf-${LIBBPFVER}
   curl -sfL https://github.com/libbpf/libbpf/archive/${LIBBPFVER}.tar.gz | tar -xz
   cd libbpf-${LIBBPFVER}/src
-  make -j${NJOBS}
-  sudo make install PREFIX=/usr/local
+  sh -c "umask 0000 && make -j${NJOBS}"
+  sudo find /usr/local/lib -name 'libbpf.*' -delete
+  sudo sh -c "umask 0000 && make install PREFIX=/usr/local LIBDIR=/usr/local/lib"
   sudo install -d -m0755 /usr/local/include/linux
   sudo install -m0644 ../include/uapi/linux/* /usr/local/include/linux
+  sudo ldconfig
 fi
 
 if [[ $DPDKVER != '0' ]]; then
@@ -275,7 +290,7 @@ if [[ $KMODSVER != '0' ]]; then
   git -c advice.detachedHead=false checkout $KMODSVER
   cd linux/igb_uio
   make
-  UIODIR=/lib/modules/$(uname -r)/kernel/drivers/uio
+  UIODIR=/lib/modules/${KERNELVER}/kernel/drivers/uio
   sudo install -d -m0755 $UIODIR
   sudo install -m0644 igb_uio.ko $UIODIR
   sudo depmod
