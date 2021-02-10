@@ -78,11 +78,15 @@ func (impl *rxFlowImpl) Init() error {
 		return errors.New("disabled")
 	}
 
+	devInfo := impl.port.dev.DevInfo()
+	if !devInfo.CanAttemptRxFlow() {
+		return errors.New("unsupported driver")
+	}
+
 	if e := impl.setIsolate(true); e != nil {
 		impl.port.logger.WithError(e).Warn("flow isolated mode unavailable")
 	}
 
-	devInfo := impl.port.dev.DevInfo()
 	nRxQueues := math.MinInt(int(devInfo.Max_rx_queues), rxfMaxPortQueues)
 	if nRxQueues == 0 {
 		return errors.New("unable to retrieve max_rx_queues")

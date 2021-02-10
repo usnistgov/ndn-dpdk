@@ -20,6 +20,16 @@ func (info DevInfo) driverName() string {
 	return C.GoString((*C.char)(unsafe.Pointer(info.Driver_name)))
 }
 
+// CanAttemptRxFlow determines whether rte_flow activation can be attempted.
+// If this is false, failed activation of rte_flow would cause permanent device failure.
+func (info DevInfo) CanAttemptRxFlow() bool {
+	switch info.driverName() {
+	case "net_af_xdp", "net_memif":
+		return false
+	}
+	return true
+}
+
 // HasTxMultiSegOffload determines whether device can transmit multi-segment packets.
 func (info DevInfo) HasTxMultiSegOffload() bool {
 	if (info.Tx_offload_capa & txOffloadMultiSegs) == txOffloadMultiSegs {
@@ -27,7 +37,7 @@ func (info DevInfo) HasTxMultiSegOffload() bool {
 	}
 
 	switch info.driverName() { // some drivers support multi-segment TX but do not advertise it
-	case "net_ring", "net_memif":
+	case "net_memif", "net_ring":
 		return true
 	}
 	return false
