@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/base64"
-	"io/ioutil"
+	"os"
 	"path"
 
 	"github.com/urfave/cli/v2"
@@ -65,7 +65,7 @@ func init() {
 			},
 		},
 		Before: func(c *cli.Context) (e error) {
-			elf, e = ioutil.ReadFile(elffile)
+			elf, e = os.ReadFile(elffile)
 			if e != nil {
 				return e
 			}

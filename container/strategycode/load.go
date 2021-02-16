@@ -5,7 +5,6 @@ package strategycode
 */
 import "C"
 import (
-	"io/ioutil"
 	"os"
 	"unsafe"
 
@@ -49,7 +48,7 @@ var dotTextSection = C.CString(".text")
 
 // Load loads a strategy BPF program from ELF object.
 func Load(name string, elf []byte) (sc *Strategy, e error) {
-	file, e := ioutil.TempFile("", "strategy*.so")
+	file, e := os.CreateTemp("", "strategy*.so")
 	if e != nil {
 		return nil, e
 	}

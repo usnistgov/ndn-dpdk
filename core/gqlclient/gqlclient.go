@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"sync"
@@ -70,9 +70,9 @@ func (c *Client) DoOperation(query, op string, vars interface{}, key string, res
 	if response.StatusCode != 200 {
 		return fmt.Errorf("response.Status: %s", response.Status)
 	}
-	body, e := ioutil.ReadAll(response.Body)
+	body, e := io.ReadAll(response.Body)
 	if e != nil {
-		return fmt.Errorf("ioutil.ReadAll(response.Body): %w", e)
+		return fmt.Errorf("io.ReadAll(response.Body): %w", e)
 	}
 
 	var result graphql.Result

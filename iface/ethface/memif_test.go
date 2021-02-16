@@ -2,7 +2,6 @@ package ethface_test
 
 import (
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -17,7 +16,7 @@ import (
 func TestMemif(t *testing.T) {
 	assert, require := makeAR(t)
 
-	dir, e := ioutil.TempDir("", "ethface-test")
+	dir, e := os.MkdirTemp("", "ethface-test")
 	require.NoError(e)
 	defer os.RemoveAll(dir)
 	socketName := path.Join(dir, "memif.sock")

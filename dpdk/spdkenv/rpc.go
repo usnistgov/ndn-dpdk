@@ -13,7 +13,6 @@ int c_spdk_rpc_accept(void* arg)
 import "C"
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"time"
 	"unsafe"
@@ -29,7 +28,7 @@ var (
 
 // Enable SPDK RPC server and internal RPC client.
 func initRPC() error {
-	dir, e := ioutil.TempDir("", "spdk-*")
+	dir, e := os.MkdirTemp("", "spdk-*")
 	if e != nil {
 		return fmt.Errorf("Unix socket path unavailable: %w", e)
 	}

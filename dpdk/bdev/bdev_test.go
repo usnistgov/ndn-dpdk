@@ -3,7 +3,6 @@ package bdev_test
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -64,7 +63,7 @@ func TestMalloc(t *testing.T) {
 func TestAio(t *testing.T) {
 	assert, require := makeAR(t)
 
-	file, e := ioutil.TempFile("", "")
+	file, e := os.CreateTemp("", "")
 	require.NoError(e)
 	require.NoError(file.Truncate(bdevBlockSize * bdevBlockCount))
 	filename := file.Name()

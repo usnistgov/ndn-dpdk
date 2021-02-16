@@ -11,7 +11,7 @@ import "C"
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 	"unsafe"
 )
@@ -31,7 +31,7 @@ func Load(filename string) (hdl unsafe.Pointer, e error) {
 
 // LoadGroup loads a .so file that contains a GROUP.
 func LoadGroup(groupFilename string) error {
-	content, e := ioutil.ReadFile(groupFilename)
+	content, e := os.ReadFile(groupFilename)
 	if e != nil {
 		return e
 	}

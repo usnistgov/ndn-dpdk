@@ -3,7 +3,6 @@ package socketface_test
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"path"
@@ -132,10 +131,10 @@ func TestTcp(t *testing.T) {
 func TestUnix(t *testing.T) {
 	assert, require := makeAR(t)
 
-	tmpdir, e := ioutil.TempDir("", "socketface-test")
+	dir, e := os.MkdirTemp("", "socketface-test")
 	require.NoError(e)
-	defer os.RemoveAll(tmpdir)
-	addr := path.Join(tmpdir, "unix.sock")
+	defer os.RemoveAll(dir)
+	addr := path.Join(dir, "unix.sock")
 	listener, e := net.Listen("unix", addr)
 	require.NoError(e)
 	defer listener.Close()

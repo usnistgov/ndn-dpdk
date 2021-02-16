@@ -2,7 +2,6 @@ package memiftransport_test
 
 import (
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -16,7 +15,7 @@ import (
 func TestTransport(t *testing.T) {
 	assert, require := makeAR(t)
 
-	dir, e := ioutil.TempDir("", "memiftransport-test")
+	dir, e := os.MkdirTemp("", "memiftransport-test")
 	require.NoError(e)
 	defer os.RemoveAll(dir)
 

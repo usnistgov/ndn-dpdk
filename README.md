@@ -21,7 +21,7 @@ It is in pre-release stage and will continue to be updated.
 * DPDK 20.11, configured with `meson -Ddebug=true -Doptimization=3 -Dtests=false --libdir=lib build`
 * [SPDK](https://spdk.io/) 20.10, configured with `./configure --enable-debug --disable-tests --with-shared --with-dpdk=/usr/local --without-vhost --without-isal --without-fuse`
 * [ubpf](https://github.com/iovisor/ubpf/tree/089f6279752adfb01386600d119913403ed326ee/vm) library, installed to `/usr/local`
-* Go 1.x
+* Go 1.16
 * Node.js 14.x
 
 You can install the dependencies with [ndndpdk-depends.sh](docs/ndndpdk-depends.sh).
