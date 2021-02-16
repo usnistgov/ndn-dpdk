@@ -5,7 +5,6 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
@@ -62,13 +61,13 @@ func ListPorts() (list []*Port) {
 
 // Port organizes EthFaces on an EthDev.
 type Port struct {
-	cfg      PortConfig
-	logger   logrus.FieldLogger
-	dev      ethdev.EthDev
-	vdev     *eal.VDev
-	faces    map[iface.ID]*ethFace
-	impl     impl
-	nextImpl int
+	cfg       PortConfig
+	logger    logrus.FieldLogger
+	dev       ethdev.EthDev
+	closeVdev func()
+	faces     map[iface.ID]*ethFace
+	impl      impl
+	nextImpl  int
 }
 
 // NewPort opens a Port.
@@ -119,9 +118,9 @@ func (port *Port) Close() (e error) {
 		port.dev = ethdev.EthDev{}
 	}
 
-	if port.vdev != nil {
-		port.vdev.Close()
-		port.vdev = nil
+	if port.closeVdev != nil {
+		port.closeVdev()
+		port.closeVdev = nil
 	}
 
 	return nil

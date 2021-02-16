@@ -1,6 +1,7 @@
 package ethface
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
@@ -10,6 +11,8 @@ import (
 )
 
 const schemeMemif = "memif"
+
+var memifVdevMap = make(map[string]*eal.VDev)
 
 // MemifLocator describes a memif face.
 type MemifLocator struct {
@@ -34,15 +37,19 @@ func (loc MemifLocator) faceConfig() FaceConfig {
 // CreateFace creates a memif face.
 func (loc MemifLocator) CreateFace() (iface.Face, error) {
 	name := "net_memif" + eal.AllocObjectID("ethface.Memif")
-	args, e := loc.ToVDevArgs()
+	key, args, e := loc.ToVDevArgs()
 	if e != nil {
 		return nil, fmt.Errorf("memif.Locator.ToVDevArgs %w", e)
+	}
+	if _, ok := memifVdevMap[key]; ok {
+		return nil, errors.New("memif.Locator duplicate SocketName+ID with existing device")
 	}
 
 	vdev, e := eal.NewVDev(name, args, eal.NumaSocket{})
 	if e != nil {
 		return nil, fmt.Errorf("eal.NewVDev(%s,%s) %w", name, args, e)
 	}
+	memifVdevMap[key] = vdev
 	dev := ethdev.Find(vdev.Name())
 
 	pc := PortConfig{
@@ -54,7 +61,12 @@ func (loc MemifLocator) CreateFace() (iface.Face, error) {
 		vdev.Close()
 		return nil, fmt.Errorf("NewPort %w", e)
 	}
-	port.vdev = vdev
+	port.closeVdev = func() {
+		vdev := memifVdevMap[key]
+		if vdev != nil && vdev.Close() == nil {
+			delete(memifVdevMap, key)
+		}
+	}
 
 	return New(port, loc)
 }

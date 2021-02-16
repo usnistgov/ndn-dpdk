@@ -116,13 +116,17 @@ func (loc *Locator) toArguments(a *memif.Arguments) error {
 }
 
 // ToVDevArgs builds arguments for DPDK virtual device.
-func (loc *Locator) ToVDevArgs() (string, error) {
-	if e := loc.Validate(); e != nil {
-		return "", e
+//  key: a unique key for each memif vdev; creating vdev with duplicate key would fail.
+//  args: arguments passed to eal.NewVDev() function.
+func (loc *Locator) ToVDevArgs() (key, args string, e error) {
+	if e = loc.Validate(); e != nil {
+		return
 	}
 	loc.ApplyDefaults()
-	return fmt.Sprintf("id=%d,role=server,bsize=%d,rsize=%d,socket=%s,socket-abstract=no,mac=%v",
-		loc.ID, loc.Dataroom, loc.rsize(), loc.SocketName, AddressDPDK), nil
+	key = fmt.Sprintf("%s|%d", loc.SocketName, loc.ID)
+	args = fmt.Sprintf("id=%d,role=server,bsize=%d,rsize=%d,socket=%s,socket-abstract=no,mac=%v",
+		loc.ID, loc.Dataroom, loc.rsize(), loc.SocketName, AddressDPDK)
+	return
 }
 
 // ToCreateFaceLocator builds a JSON object suitable for NDN-DPDK face creation API.
