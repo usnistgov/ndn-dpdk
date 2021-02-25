@@ -78,6 +78,6 @@ test: godeps
 
 .PHONY: clean
 clean:
-	awk '!(/node_modules/ || /\*/)' .dockerignore | xargs rm -rf
+	awk '!(/node_modules/ || /package-lock/ || /\*/)' .dockerignore | xargs rm -rf
 	awk '/\*/' .dockerignore | xargs -I{} -n1 find -wholename ./{} -delete
 	go clean -cache ./...

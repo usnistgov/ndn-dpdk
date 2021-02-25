@@ -1,9 +1,18 @@
 #!/bin/bash
 set -eo pipefail
 
-if ! which sudo >/dev/null || ! which curl >/dev/null; then
-  echo 'sudo and curl are required to start this script; to install:'
-  echo '  apt-get install sudo curl'
+SUDO=sudo
+if [[ $(id -u) -eq 0 ]]; then
+  SUDO=
+elif ! which sudo >/dev/null; then
+  echo 'sudo is required to start this script; to install:'
+  echo '  apt install sudo'
+  exit 1
+fi
+
+if ! which curl >/dev/null; then
+  echo 'curl is required to start this script; to install:'
+  echo '  apt install curl'
   exit 1
 fi
 
@@ -112,15 +121,32 @@ if [[ $TARGETARCH == native ]] && which gcc >/dev/null; then
   DISPLAYARCH=$DISPLAYARCH' ('$(gcc -march=native -Q --help=target | awk '$1=="-march=" { print $2 }')')'
 fi
 
+APT_PKGS=(
+  build-essential
+  clang-8
+  clang-format-8
+  doxygen
+  git
+  jq
+  libc6-dev-i386
+  libelf-dev
+  libnuma-dev
+  libssl-dev
+  liburcu-dev
+  pkg-config
+  python3-distutils
+  yamllint
+)
+
 echo "Will download to ${CODEROOT}"
 echo 'Will install C compiler and build tools'
 
 if [[ $HAS_KERNEL_HEADERS == '0' ]]; then
   echo "Will skip certain features due to missing kernel headers; to install:"
   if [[ $IS_DEBIAN == '1' ]]; then
-    echo "  sudo apt-get install linux-headers-amd64 linux-headers-${KERNELVER}-amd64"
+    echo "  sudo apt install linux-headers-amd64 linux-headers-${KERNELVER}-amd64"
   else
-    echo "  sudo apt-get install linux-generic linux-headers-${KERNELVER}"
+    echo "  sudo apt install linux-generic linux-headers-${KERNELVER}"
   fi
 fi
 
@@ -175,6 +201,7 @@ fi
 
 if [[ $KMODSVER != '0' ]]; then
   echo "Will install DPDK kernel modules ${KMODSVER}"
+  APT_PKGS+=(kmod)
 fi
 
 if [[ $SPDKVER == '0' ]]; then
@@ -192,48 +219,35 @@ if [[ $CONFIRM -ne 1 ]]; then
   read -p 'Press ENTER to continue or CTRL+C to abort '
 fi
 
-sudo mkdir -p $CODEROOT
-sudo chown -R $(id -u):$(id -g) $CODEROOT
+${SUDO} mkdir -p $CODEROOT
+${SUDO} chown -R $(id -u):$(id -g) $CODEROOT
 
 echo 'Dpkg::Options {
    "--force-confdef";
    "--force-confold";
 }
 APT::Install-Recommends "no";
-APT::Install-Suggests "no";' | sudo tee /etc/apt/apt.conf.d/80custom >/dev/null
+APT::Install-Suggests "no";' | ${SUDO} tee /etc/apt/apt.conf.d/80custom >/dev/null
 if [[ ${IS_DEBIAN} == '1' ]]; then
-  echo 'deb http://deb.debian.org/debian/ buster-backports main' | sudo tee /etc/apt/sources.list.d/buster-backports.list >/dev/null
-  sudo apt-get -y -qq update
+  echo 'deb http://deb.debian.org/debian/ buster-backports main' | ${SUDO} tee /etc/apt/sources.list.d/buster-backports.list >/dev/null
+  ${SUDO} apt-get -y -qq update
 fi
-sudo DEBIAN_FRONTEND=noninteractive apt-get -y -qq dist-upgrade
-sudo DEBIAN_FRONTEND=noninteractive apt-get -y -qq install \
-  build-essential \
-  clang-8 \
-  clang-format-8 \
-  doxygen \
-  git \
-  jq \
-  kmod \
-  libc6-dev-i386 \
-  libelf-dev \
-  libnuma-dev \
-  libssl-dev \
-  liburcu-dev \
-  pkg-config \
-  python3-distutils \
-  yamllint
+${SUDO} sh -c 'DEBIAN_FRONTEND=noninteractive apt-get -y -qq dist-upgrade'
 
 if [[ $NODEVER != '0' ]]; then
-  curl -sfL https://deb.nodesource.com/setup_${NODEVER} | sudo bash -
-  sudo DEBIAN_FRONTEND=noninteractive apt-get -y -qq install nodejs
+  curl -sfL https://deb.nodesource.com/setup_${NODEVER} | ${SUDO} bash -
+  APT_PKGS+=(nodejs)
 fi
 
-curl -sfL https://bootstrap.pypa.io/get-pip.py | sudo python3
-sudo pip install -U meson ninja
+APT_PKG_LIST="${APT_PKGS[@]}"
+${SUDO} sh -c "DEBIAN_FRONTEND=noninteractive apt-get -y -qq install ${APT_PKG_LIST}"
+
+curl -sfL https://bootstrap.pypa.io/get-pip.py | ${SUDO} python3
+${SUDO} pip install -U meson ninja
 
 if [[ $GOVER != '0' ]]; then
-  sudo rm -rf /usr/local/go
-  curl -sfL https://dl.google.com/go/${GOVER}.linux-amd64.tar.gz | sudo tar -C /usr/local -xz
+  ${SUDO} rm -rf /usr/local/go
+  curl -sfL https://dl.google.com/go/${GOVER}.linux-amd64.tar.gz | ${SUDO} tar -C /usr/local -xz
   export PATH=$HOME/go/bin:/usr/local/go/bin:$PATH
   if ! grep /usr/local/go/bin ~/.bashrc >/dev/null; then
     echo 'export PATH=$HOME/go/bin:/usr/local/go/bin:$PATH' >>~/.bashrc
@@ -249,7 +263,7 @@ if [[ $UBPFVER != '0' ]]; then
   curl -sfL https://github.com/iovisor/ubpf/archive/${UBPFVER}.tar.gz | tar -xz
   cd ubpf-${UBPFVER}/vm
   make -j${NJOBS}
-  sudo make install
+  ${SUDO} make install
 fi
 
 if [[ $LIBBPFVER != '0' ]]; then
@@ -261,11 +275,11 @@ if [[ $LIBBPFVER != '0' ]]; then
   curl -sfL https://github.com/libbpf/libbpf/archive/${LIBBPFVER}.tar.gz | tar -xz
   cd libbpf-${LIBBPFVER}/src
   sh -c "umask 0000 && make -j${NJOBS}"
-  sudo find /usr/local/lib -name 'libbpf.*' -delete
-  sudo sh -c "umask 0000 && make install PREFIX=/usr/local LIBDIR=/usr/local/lib"
-  sudo install -d -m0755 /usr/local/include/linux
-  sudo install -m0644 ../include/uapi/linux/* /usr/local/include/linux
-  sudo ldconfig
+  ${SUDO} find /usr/local/lib -name 'libbpf.*' -delete
+  ${SUDO} sh -c "umask 0000 && make install PREFIX=/usr/local LIBDIR=/usr/local/lib"
+  ${SUDO} install -d -m0755 /usr/local/include/linux
+  ${SUDO} install -m0644 ../include/uapi/linux/* /usr/local/include/linux
+  ${SUDO} ldconfig
 fi
 
 if [[ $DPDKVER != '0' ]]; then
@@ -276,10 +290,10 @@ if [[ $DPDKVER != '0' ]]; then
   meson -Ddebug=true -Doptimization=3 -Dmachine=${TARGETARCH} -Dtests=false --libdir=lib build
   cd build
   ninja -j${NJOBS}
-  sudo find /usr/local/lib -name 'librte_*' -delete
-  sudo ninja install
-  sudo find /usr/local/lib -name 'librte_*.a' -delete
-  sudo ldconfig
+  ${SUDO} find /usr/local/lib -name 'librte_*' -delete
+  ${SUDO} ninja install
+  ${SUDO} find /usr/local/lib -name 'librte_*.a' -delete
+  ${SUDO} ldconfig
 fi
 
 if [[ $KMODSVER != '0' ]]; then
@@ -291,9 +305,9 @@ if [[ $KMODSVER != '0' ]]; then
   cd linux/igb_uio
   make
   UIODIR=/lib/modules/${KERNELVER}/kernel/drivers/uio
-  sudo install -d -m0755 $UIODIR
-  sudo install -m0644 igb_uio.ko $UIODIR
-  sudo depmod
+  ${SUDO} install -d -m0755 $UIODIR
+  ${SUDO} install -m0644 igb_uio.ko $UIODIR
+  ${SUDO} depmod
 fi
 
 if [[ $SPDKVER != '0' ]]; then
@@ -301,15 +315,15 @@ if [[ $SPDKVER != '0' ]]; then
   rm -rf spdk-${SPDKVER}
   curl -sfL https://github.com/spdk/spdk/archive/v${SPDKVER}.tar.gz | tar -xz
   cd spdk-${SPDKVER}
-  sudo ./scripts/pkgdep.sh
+  ${SUDO} ./scripts/pkgdep.sh
   ./configure --target-arch=${TARGETARCH} --enable-debug --disable-tests --with-shared \
     --with-dpdk=/usr/local --without-vhost --without-isal --without-fuse
   make -j${NJOBS}
-  sudo find /usr/local/lib -name 'libspdk_*' -delete
-  sudo make install
-  sudo find /usr/local/lib -name 'libspdk_*.a' -delete
-  sudo ldconfig
+  ${SUDO} find /usr/local/lib -name 'libspdk_*' -delete
+  ${SUDO} make install
+  ${SUDO} find /usr/local/lib -name 'libspdk_*.a' -delete
+  ${SUDO} ldconfig
 fi
 
-sudo update-alternatives --remove-all python || true
-sudo update-alternatives --install /usr/bin/python python /usr/bin/python3 1
+${SUDO} update-alternatives --remove-all python || true
+${SUDO} update-alternatives --install /usr/bin/python python /usr/bin/python3 1
