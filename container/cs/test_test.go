@@ -16,7 +16,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealtestenv"
-	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 	"github.com/usnistgov/ndn-dpdk/ndni"
@@ -25,9 +24,6 @@ import (
 
 func TestMain(m *testing.M) {
 	ealtestenv.Init()
-
-	// fixture.Close() cannot release packet buffers, need a large mempool
-	pktmbuf.Direct.Update(pktmbuf.PoolConfig{Capacity: 65535})
 
 	os.Exit(m.Run())
 }
@@ -84,7 +80,8 @@ func NewFixture(cfg pcct.Config) *Fixture {
 
 func (fixture *Fixture) Close() error {
 	fixture.Fib.Close()
-	return fixture.Pcct.Close()
+	fixture.Pcct.Close()
+	return nil
 }
 
 // Return number of in-use entries in PCCT's underlying mempool.

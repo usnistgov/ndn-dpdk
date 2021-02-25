@@ -57,10 +57,23 @@ void
 Pcct_Clear(Pcct* pcct)
 {
   ZF_LOGI("%p Clear()", pcct);
+
+  PccEntry* entry = NULL;
+  PccEntry* tmp = NULL;
+  HASH_ITER (hh, pcct->keyHt, entry, tmp) {
+    if (!entry->hasCsEntry) {
+      continue;
+    }
+    CsEntry* csEntry = PccEntry_GetCsEntry(entry);
+    if (CsEntry_IsDirect(csEntry)) {
+      CsEntry_ClearData(csEntry);
+    }
+  }
+
+  HASH_CLEAR(hh, pcct->keyHt);
   if (pcct->tokenHt != NULL) {
     rte_hash_free(pcct->tokenHt);
   }
-  HASH_CLEAR(hh, pcct->keyHt);
 }
 
 PccEntry*

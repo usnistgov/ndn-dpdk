@@ -42,7 +42,10 @@ Pcct_FromCs(const Cs* cs)
 bool
 Pcct_Init(Pcct* pcct, const char* id, uint32_t maxEntries, unsigned numaSocket);
 
-/** @brief Clear keyHt and tokenHt. */
+/**
+ * @brief Clear keyHt and tokenHt, and free cached Data.
+ * @post Pcct mempool can be deallocated.
+ */
 void
 Pcct_Clear(Pcct* pcct);
 

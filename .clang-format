@@ -4,6 +4,6 @@ AllowShortFunctionsOnASingleLine: Empty
 BinPackArguments: true
 BinPackParameters: true
 ColumnLimit: 100
-ForEachMacros: ["TlvDecoder_EachTL", "cds_hlist_for_each_entry_rcu", "cds_lfht_for_each"]
+ForEachMacros: ["TlvDecoder_EachTL", "cds_hlist_for_each_entry_rcu", "cds_lfht_for_each", "HASH_ITER"]
 ReflowComments: true
 SortIncludes: true

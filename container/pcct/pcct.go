@@ -90,7 +90,6 @@ func (pcct *Pcct) String() string {
 }
 
 // Close destroys the PCCT.
-// This does not release stored Interest/Data packets.
 func (pcct *Pcct) Close() error {
 	C.Pcct_Clear(pcct.ptr())
 	return pcct.AsMempool().Close()
