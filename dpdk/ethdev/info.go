@@ -22,9 +22,10 @@ func (info DevInfo) driverName() string {
 
 // CanAttemptRxFlow determines whether rte_flow activation can be attempted.
 // If this is false, failed activation of rte_flow would cause permanent device failure.
+// A common reason is that eth_dev_stop closes the device in a way that it's not restartable.
 func (info DevInfo) CanAttemptRxFlow() bool {
 	switch info.driverName() {
-	case "net_af_xdp", "net_memif":
+	case "net_af_packet", "net_af_xdp", "net_memif":
 		return false
 	}
 	return true
