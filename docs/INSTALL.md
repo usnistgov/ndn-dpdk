@@ -4,7 +4,7 @@ NDN-DPDK supports Ubuntu 18.04, Ubuntu 20.04, and Debian 10 operating systems.
 It only works on x64\_64 (amd64) architecture.
 
 This page describes how to install and start NDN-DPDK on a supported operating system.
-It also includes an option to build a Docker container, which could work on other operating systems.
+You can also [build a Docker container](Docker.md), which would work on other operating systems.
 
 ## Dependencies
 
@@ -20,6 +20,11 @@ It also includes an option to build a Docker container, which could work on othe
 * [ubpf](https://github.com/iovisor/ubpf) library, installed to `/usr/local`
 
 You can execute the [ndndpdk-depends.sh](ndndpdk-depends.sh) script to install these dependencies, or refer to this script for the specific configuration options.
+
+By default, DPDK and SPDK are compiled with `-march=native` flag to maximize performance.
+Binaries built this way are non-portable and can only work on machines with the same CPU model.
+You can pass `--arch=CPU-TYPE` argument to the script to change the target CPU architecture.
+*CPU-TYPE* should be set to the oldest CPU architecture you want to support, see [gcc - x86 options](https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html) for available options.
 
 ## Build Steps
 
@@ -74,13 +79,3 @@ You can change compile-time settings by setting these environment variables:
 * Strategy code is compiled with `clang-8` by default; you can override this by setting the `BPFCC` environment variable.
 
 You must run `make clean` when switching compile-time settings.
-
-## Docker Packaging
-
-1. Build the image: `docker build -t ndn-dpdk .`
-2. Configure hugepages on the host machine: `echo 8 | sudo tee /sys/devices/system/node/node*/hugepages/hugepages-1048576kB/nr_hugepages && sudo mkdir -p /mnt/huge1G && sudo mount -t hugetlbfs nodev /mnt/huge1G -o pagesize=1G`
-3. Launch a container in privileged mode: `docker run --rm -it --privileged --network host --mount type=bind,source=/mnt/huge1G,target=/mnt/huge1G ndn-dpdk`
-4. Run NDN-DPDK service inside the container: `ndndpdk-svc`
-5. Or run unit tests: `export PATH=$PATH:/usr/local/go/bin; cd /root/ndn-dpdk; make test`
-
-Since DPDK is compiled with `-march=native` flag, the Docker image will only work on machines with the same CPU model.

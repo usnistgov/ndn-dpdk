@@ -1,11 +1,13 @@
 #!/bin/bash
 set -eo pipefail
 
-SPDK_PATH=/home/username/code/spdk-20.10
-HUGE2M_NPAGES=512
-HUGE1G_NPAGES=0
+SPDK_PATH=$HOME/code/spdk-20.10
+HUGE2M_NPAGES=0
+HUGE1G_NPAGES=8
 
-NRHUGE=0 eval $SPDK_PATH'/scripts/setup.sh'
+if [[ -x "${SPDK_PATH}/scripts/setup.sh" ]]; then
+  NRHUGE=0 eval "${SPDK_PATH}/scripts/setup.sh"
+fi
 [[ -f /mnt/huge ]] && umount /mnt/huge
 
 if [[ $HUGE2M_NPAGES -gt 0 ]]; then
