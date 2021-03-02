@@ -23,6 +23,10 @@ type EalDeviceConfig = {
   deviceFlags?: string;
 };
 
+/**
+ * Environment Abstraction Layer (EAL) configuration.
+ * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/dpdk/ealconfig#Config>
+ */
 export type EalConfig =
   (EalLCoreConfig & EalMemoryConfig & EalDeviceConfig & { extraFlags?: string }) |
   { flags?: string };
@@ -34,9 +38,17 @@ export type EalConfig =
  */
 export type LCore = number;
 
+/**
+ * LCore allocation configuration.
+ * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/dpdk/ealthread#AllocConfig>
+ */
 export type LCoreAllocConfig<K extends string = string> = Partial<Record<K, LCoreAllocConfig.Role>>;
 
 export namespace LCoreAllocConfig {
+  /**
+   * LCore allocation configuration for a role.
+   * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/dpdk/ealthread#AllocRoleConfig>
+   */
   export interface Role {
     lcores?: LCore[];
     onNuma?: Record<number, number>;
@@ -44,10 +56,18 @@ export namespace LCoreAllocConfig {
   }
 }
 
+/**
+ * Packet mempool (template) configuration.
+ * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf#PoolConfig>
+ */
 export interface PktmbufPoolConfig {
   capacity?: number;
   privSize?: number;
   dataroom?: number;
 }
 
+/**
+ * Packet mempool template updates.
+ * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf#TemplateUpdates>
+ */
 export type PktmbufPoolTemplateUpdates<K extends string = string> = Partial<Record<K, PktmbufPoolConfig>>;

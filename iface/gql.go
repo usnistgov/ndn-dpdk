@@ -84,7 +84,8 @@ func init() {
 		Description: "Create a face.",
 		Args: graphql.FieldConfigArgument{
 			"locator": &graphql.ArgumentConfig{
-				Type: gqlserver.NonNullJSON,
+				Description: "JSON object that satisfies the schema given in 'locator.schema.json'.",
+				Type:        gqlserver.NonNullJSON,
 			},
 		},
 		Type: graphql.NewNonNull(GqlFaceType),

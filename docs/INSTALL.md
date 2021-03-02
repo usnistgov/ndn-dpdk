@@ -40,8 +40,6 @@ Installed files include:
 * systemd service `ndndpdk-svc.service`
 * configuration schemas and TypeScript definition in `/usr/local/share/ndn-dpdk`
 
-Since DPDK is compiled with `-march=native` flag, the binaries will only work on machines with the same CPU model.
-
 ## Usage
 
 NDN-DPDK requires hugepages to run.
@@ -52,8 +50,9 @@ Depending on your hardware, you may need to change PCI driver bindings using the
 See [DPDK Network Interface Controller Drivers](https://doc.dpdk.org/guides/nics/) for more information.
 
 You can then execute `sudo systemctl start ndndpdk-svc` to start the NDN-DPDK service, use `ndndpdk-ctrl` command to activate it as a forwarder or a traffic generator, and then control the service.
+See [forwarder activation and usage](forwarder.md) for sample commands to perform common operations on the forwarder.
 
-NDN-DPDK service provides a GraphQL endpoint.
+NDN-DPDK service provides a GraphQL endpoint at `http://127.0.0.1:3030/` (changeable via `--gqlserver` argument).
 As an alternative of using `ndndpdk-ctrl`, you can execute queries and mutations on the GraphQL endpoint.
 The GraphQL service schema may be discovered via introspection.
 

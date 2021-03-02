@@ -1,5 +1,9 @@
 import type { NNNanoseconds } from "./core";
 
+/**
+ * PIT suppression configuration.
+ * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/container/pit#SuppressConfig>
+ */
 export interface SuppressConfig {
   /**
    * @minimum 0

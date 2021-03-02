@@ -3,11 +3,11 @@ import type { FaceID } from "../iface";
 import type { NameArg } from "./common";
 
 export interface FibMgmt {
-  Info: {args: {}; reply: FibInfo};
-  List: {args: {}; reply: Name[]};
-  Insert: {args: FibInsertArg; reply: {}};
-  Erase: {args: NameArg; reply: {}};
-  Find: {args: NameArg; reply: FibLookupReply};
+  Info: { args: {}; reply: FibInfo };
+  List: { args: {}; reply: Name[] };
+  Insert: { args: FibInsertArg; reply: {} };
+  Erase: { args: NameArg; reply: {} };
+  Find: { args: NameArg; reply: FibLookupReply };
 }
 
 export interface FibInfo {

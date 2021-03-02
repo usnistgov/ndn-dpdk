@@ -11,6 +11,8 @@ It is in pre-release stage and will continue to be updated.
 ## Documentation
 
 * [NDN-DPDK installation guide](docs/INSTALL.md)
+* [NDN-DPDK Docker packaging](docs/Docker.md)
+* [NDN-DPDK forwarder activation and usage](docs/forwarder.md)
 * [hardware known to work with NDN-DPDK](docs/hardware.md)
 * [NDN-DPDK publications and presentations](docs/publication.md)
 * [godoc](https://pkg.go.dev/github.com/usnistgov/ndn-dpdk)

@@ -31,16 +31,19 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 
 	gqlserver.AddMutation(&graphql.Field{
-		Name:        "activate",
-		Description: "Activate NDN-DPDK service.",
+		Name: "activate",
+		Description: "Activate NDN-DPDK service. " +
+			"Exactly one argument must be provided.",
 		Args: graphql.FieldConfigArgument{
 			"forwarder": &graphql.ArgumentConfig{
-				Description: "Activate as a forwarder.",
-				Type:        gqlserver.JSON,
+				Description: "Activate as a forwarder. " +
+					"This must be a JSON object that satisfies the schema given in 'forwarder.schema.json'.",
+				Type: gqlserver.JSON,
 			},
 			"trafficgen": &graphql.ArgumentConfig{
-				Description: "Activate as a traffic generator.",
-				Type:        gqlserver.JSON,
+				Description: "Activate as a traffic generator. " +
+					"This must be a JSON object that satisfies the schema given in 'trafficgen.schema.json'.",
+				Type: gqlserver.JSON,
 			},
 		},
 		Type: gqlserver.NonNullBoolean,

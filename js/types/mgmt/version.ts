@@ -1,5 +1,5 @@
 export interface VersionMgmt {
-  Version: {args: {}; reply: VersionReply};
+  Version: { args: {}; reply: VersionReply };
 }
 
 export interface VersionReply {
