@@ -18,11 +18,17 @@ By default, the image is non-portable due to the use of `-march=native` compiler
 The [installation guide](INSTALL.md) "dependencies" section explains that you can pass `--arch=CPU-TYPE` argument to the ndndpdk-depends.sh script to change the target CPU architecture.
 You can use `DEPENDS_ARGS` build argument to pass arguments to the script.
 
-Example command to enable mlx5 driver and build for Skylake CPU:
+By default, NDN-DPDK is built in debug mode.
+The [installation guide](INSTALL.md) "compile-time settings" section explains that you can set `NDNDPDK_MK_RELEASE=1` environment variable to select release mode.
+You can use `MAKE_ENV` build argument to pass environment variables to the Makefile.
+
+Example command to enable mlx5 driver, target Skylake CPU, and select release mode:
 
 ```bash
 docker build \
-  --build-arg APT_PKGS="libibverbs-dev" --build-arg DEPENDS_ARGS="--arch=skylake" \
+  --build-arg APT_PKGS="libibverbs-dev" \
+  --build-arg DEPENDS_ARGS="--arch=skylake" \
+  --build-arg MAKE_ENV="NDNDPDK_MK_RELEASE=1" \
   -t ndn-dpdk .
 ```
 
@@ -41,23 +47,40 @@ docker run -it --rm --name ndn-dpdk \
   ndn-dpdk
 ```
 
+The "runtime privileges" section below explains the purpose of these `docker run` flags.
+
+Within the container, you can:
+
+```bash
+# start the NDN-DPDK service
+ndndpdk-svc
+
+# or, run unit tests
+cd /root/ndn-dpdk
+make test
+```
+
+### Runtime Privileges
+
+In the example `docker run` command above:
+
 * `--privileged` enables privileged mode, which allows DPDK to interact with hugepages and PCI devices.
 * `--network host` selects host networking, which allows DPDK to configure network stack.
 * `--mount` mounts hugepages into the container.
   Depending on whether you are using 2MB or 1GB hugepages in the huge-setup.sh script, you may need to change the paths.
 
-You can start the NDN-DPDK service within the container:
+It's possible to run the container with a reduced set of runtime privileges:
 
 ```bash
-ndndpdk-svc
+docker run -it --rm --name ndn-dpdk \
+  --cap-add IPC_LOCK --cap-add NET_ADMIN --cap-add SYS_NICE \
+  --device /dev/vfio \
+  --mount type=bind,source=/mnt/huge1G,target=/mnt/huge1G \
+  ndn-dpdk
 ```
 
-You can run unit tests:
-
-```bash
-cd /root/ndn-dpdk
-make test
-```
+Currently, this reduced set only allows the unit tests to run.
+NDN-DPDK forwarder and traffic generator still require full privileges.
 
 ## Start NDN-DPDK Service as a Container
 
