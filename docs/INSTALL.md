@@ -30,7 +30,7 @@ You can pass `--arch=CPU-TYPE` argument to the script to change the target CPU a
 
 1. Clone the NDN-DPDK repository.
 2. Execute `npm install` to download NPM dependencies.
-3. Execute `make` to compile the project.
+3. Execute `NDNDPDK_MK_RELEASE=1 make` to compile the project.
 4. Execute `sudo make install` to install the programs, and `sudo make uninstall` to uninstall them.
 
 Installed files include:
@@ -43,8 +43,8 @@ Installed files include:
 ## Usage
 
 NDN-DPDK requires hugepages to run.
-See [huge-setup.sh](huge-setup.sh) for an example on how to setup hugepages.
-You can make a copy of this script, modify the parameters as needed, and then execute the script with `sudo`.
+You may setup hugepages using the `dpdk-hugepages.py` script.
+See [DPDK system requirements](https://doc.dpdk.org/guides/linux_gsg/sys_reqs.html#use-of-hugepages-in-the-linux-environment) for more information.
 
 Depending on your hardware, you may need to change PCI driver bindings using the `dpdk-devbind.py` script.
 See [DPDK Network Interface Controller Drivers](https://doc.dpdk.org/guides/nics/) for more information.

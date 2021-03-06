@@ -1,4 +1,4 @@
-FROM debian:buster
+FROM ubuntu:focal
 ARG APT_PKGS=
 ARG DEPENDS_ARGS=
 ARG MAKE_ENV=

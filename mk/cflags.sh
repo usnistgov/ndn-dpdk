@@ -2,10 +2,10 @@ export CC=${CC:-gcc}
 export CGO_CFLAGS_ALLOW='.*'
 
 CFLAGS='-Wno-unused-function -Wno-unused-parameter -Wno-missing-braces'
-if [[ -n $NDNDPDK_MK_RELEASE ]]; then
+if [[ $NDNDPDK_MK_RELEASE -eq 1 ]]; then
   CFLAGS=$CFLAGS' -DNDEBUG -DZF_LOG_DEF_LEVEL=ZF_LOG_INFO'
 fi
-if [[ -n $NDNDPDK_MK_THREADSLEEP ]]; then
+if [[ $NDNDPDK_MK_THREADSLEEP -eq 1 ]]; then
   CFLAGS=$CFLAGS' -DNDNDPDK_THREADSLEEP'
 fi
 

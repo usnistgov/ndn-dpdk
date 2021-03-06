@@ -43,7 +43,7 @@ Example command to start a container for interactive use:
 ```bash
 docker run -it --rm --name ndn-dpdk \
   --privileged --network host \
-  --mount type=bind,source=/mnt/huge1G,target=/mnt/huge1G \
+  --mount type=bind,source=/dev/hugepages,target=/dev/hugepages \
   ndn-dpdk
 ```
 
@@ -66,21 +66,21 @@ In the example `docker run` command above:
 
 * `--privileged` enables privileged mode, which allows DPDK to interact with hugepages and PCI devices.
 * `--network host` selects host networking, which allows DPDK to configure network stack.
-* `--mount` mounts hugepages into the container.
-  Depending on whether you are using 2MB or 1GB hugepages in the huge-setup.sh script, you may need to change the paths.
+* `--mount type=bind,source=/dev/hugepages,target=/dev/hugepages` mounts hugepages into the container.
 
 It's possible to run the container with a reduced set of runtime privileges:
 
 ```bash
 docker run -it --rm --name ndn-dpdk \
-  --cap-add IPC_LOCK --cap-add NET_ADMIN --cap-add SYS_NICE \
-  --device /dev/vfio \
-  --mount type=bind,source=/mnt/huge1G,target=/mnt/huge1G \
+  --publish 127.0.0.1:3030:3030/tcp \
+  --cap-add IPC_LOCK --cap-add NET_ADMIN --cap-add NET_RAW --cap-add SYS_ADMIN --cap-add SYS_NICE \
+  --device /dev/infiniband --device /dev/vfio \
+  --mount type=bind,source=/dev/hugepages,target=/dev/hugepages \
   ndn-dpdk
-```
 
-Currently, this reduced set only allows the unit tests to run.
-NDN-DPDK forwarder and traffic generator still require full privileges.
+# inside the container
+ndndpdk-svc --gqlserver http://:3030
+```
 
 ## Start NDN-DPDK Service as a Container
 
@@ -89,7 +89,7 @@ Example command to start a NDN-DPDK service container:
 ```bash
 docker run -d --rm --name ndn-dpdk \
   --privileged --network host \
-  --mount type=bind,source=/mnt/huge1G,target=/mnt/huge1G \
+  --mount type=bind,source=/dev/hugepages,target=/dev/hugepages \
   ndn-dpdk ndndpdk-svc
 ```
 
@@ -97,4 +97,7 @@ You can then use the `ndndpdk-ctrl` command line tool as follows:
 
 ```bash
 docker run -i --rm --network host ndn-dpdk ndndpdk-ctrl ARGUMENTS
+
+# or create an alias
+alias ndndpdk-ctrl='docker run -i --rm --network host ndn-dpdk ndndpdk-ctrl'
 ```
