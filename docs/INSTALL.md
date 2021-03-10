@@ -20,6 +20,7 @@ You can also [build a Docker container](Docker.md), which would work on other op
 * [ubpf](https://github.com/iovisor/ubpf) library, installed to `/usr/local`
 
 You can execute the [ndndpdk-depends.sh](ndndpdk-depends.sh) script to install these dependencies, or refer to this script for the specific configuration options.
+Certain hardware drivers may require installing extra dependencies before building DPDK or running the script; see [hardware known to work](hardware.md) for more information.
 
 By default, DPDK and SPDK are compiled with `-march=native` flag to maximize performance.
 Binaries built this way are non-portable and can only work on machines with the same CPU model.

@@ -1,10 +1,10 @@
-# NDN-DPDK Docker Packaging
+# NDN-DPDK Docker Container
 
-This page describes how to build an NDN-DPDK Docker container with the provided [Dockerfile](../Dockerfile).
+This page describes how to run NDN-DPDK service in a Docker container.
 
 ## Build the Image
 
-The simplest command to build a Docker image is:
+The simplest command to build a Docker image with the provided [Dockerfile](../Dockerfile) is:
 
 ```bash
 docker build -t ndn-dpdk .
@@ -32,15 +32,29 @@ docker build \
   -t ndn-dpdk .
 ```
 
-## Start the NDN-DPDK Service Container
+## Prepare the Host Machine
 
 NDN-DPDK requires hugepages to run, and you may need to change PCI driver bindings to support certain hardware.
 These must be configured on the host machine.
 The [installation guide](INSTALL.md) "usage" section describes how to perform these tasks.
 
+You can [download](https://core.dpdk.org/download/) DPDK setup scripts, or extract from the image:
+
+```bash
+CTID=$(docker container create ndn-dpdk)
+for S in dpdk-devbind.py dpdk-hugepages.py; do
+  docker cp $CTID:/usr/local/bin/$S - | sudo tar -x -C /usr/local/bin
+done
+docker rm $CTID
+```
+
+## Start the NDN-DPDK Service Container
+
 Example command to start the NDN-DPDK service container:
 
 ```bash
+sudo mkdir -p /run/ndndpdk-memif
+
 docker run -d --name ndndpdk-svc \
   --cap-add IPC_LOCK --cap-add NET_ADMIN --cap-add NET_RAW --cap-add SYS_ADMIN --cap-add SYS_NICE \
   --device /dev/infiniband --device /dev/vfio \
@@ -54,7 +68,7 @@ docker run -d --name ndndpdk-svc \
 `--cap-add` adds capabilities required by DPDK.
 
 `--device` allows access to PCI devices such as Ethernet adapters.
-The required device list is hardware dependent.
+The required device list is hardware dependent; see [hardware known to work](hardware.md) for some examples.
 
 `--mount target=/dev/hugepages` mounts hugepages into the container.
 
@@ -81,6 +95,7 @@ docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ndnd
 ```
 
 You can access NDN-DPDK GraphQL endpoint on port 3030 of the container IP address.
+It is not recommended to publish this port to the host machine, because the GraphQL service does not have authentication.
 
 To use the `ndndpdk-ctrl` command line tool, create an alias:
 
@@ -96,20 +111,20 @@ If the NDN-DPDK service container has been [activated as a forwarder](forwarder.
 
 ```bash
 docker run --rm \
-  --add-host "ndndpdk-svc:$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ndndpdk-svc)" \
   --mount type=bind,source=/run/ndndpdk-memif,target=/run/ndndpdk-memif \
+  --add-host "ndndpdk-svc:$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ndndpdk-svc)" \
   ndn-dpdk \
   ndndpdk-godemo --gqlserver http://ndndpdk-svc:3030 pingserver --name /example/P
 
 docker run --rm \
-  --add-host "ndndpdk-svc:$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ndndpdk-svc)" \
   --mount type=bind,source=/run/ndndpdk-memif,target=/run/ndndpdk-memif \
+  --add-host "ndndpdk-svc:$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ndndpdk-svc)" \
   ndn-dpdk \
   ndndpdk-godemo --gqlserver http://ndndpdk-svc:3030 pingclient --name /example/P
 ```
 
 In the example commands:
 
-* `--add-host` references the service container IP address.
 * `--mount target=/run/ndndpdk-memif` shares a directory for memif control sockets.
+* `--add-host` references the service container IP address.
 * `--gqlserver` makes the demo application connect to the GraphQL endpoint in the service container instead of localhost.
