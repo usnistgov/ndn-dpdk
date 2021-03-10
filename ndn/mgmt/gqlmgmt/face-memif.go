@@ -4,6 +4,7 @@ package gqlmgmt
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
@@ -16,15 +17,26 @@ func (c *Client) OpenFace() (mgmt.Face, error) {
 	return c.OpenMemif(memiftransport.Locator{})
 }
 
-var lastMemifID = 0
+const autoSocketPath = "/run/ndndpdk-memif"
+
+var (
+	autoSocketName = ""
+	autoMemifID    = 0
+)
 
 // OpenMemif creates a face connected to the current application using memif transport.
 // If loc.SocketName is empty, loc.SocketName and loc.ID will be assigned automatically.
 func (c *Client) OpenMemif(loc memiftransport.Locator) (mgmt.Face, error) {
 	if loc.SocketName == "" {
-		loc.SocketName = fmt.Sprintf("/tmp/ndndpdk-memif-%d.sock", os.Getpid())
-		lastMemifID++
-		loc.ID = lastMemifID
+		if autoSocketName == "" {
+			autoSocketName = fmt.Sprintf("%s/%d-%d.sock", autoSocketPath, os.Getpid(), rand.Int())
+			if e := os.MkdirAll(autoSocketPath, os.ModePerm); e != nil {
+				return nil, fmt.Errorf("os.MkdirAll: %w", e)
+			}
+		}
+		loc.SocketName = autoSocketName
+		autoMemifID++
+		loc.ID = autoMemifID
 	}
 	loc.ApplyDefaults()
 

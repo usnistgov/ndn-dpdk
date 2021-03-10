@@ -80,7 +80,7 @@ func (impl *rxFlowImpl) Init() error {
 
 	devInfo := impl.port.dev.DevInfo()
 	if !devInfo.CanAttemptRxFlow() {
-		return errors.New("unsupported driver")
+		return fmt.Errorf("%s cannot use RxFlow", devInfo.DriverName())
 	}
 
 	if e := impl.setIsolate(true); e != nil {

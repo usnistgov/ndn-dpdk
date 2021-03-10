@@ -16,7 +16,8 @@ const (
 	txOffloadChecksum  = C.DEV_TX_OFFLOAD_IPV4_CKSUM | C.DEV_TX_OFFLOAD_UDP_CKSUM
 )
 
-func (info DevInfo) driverName() string {
+// DriverName returns DPDK net driver name.
+func (info DevInfo) DriverName() string {
 	return C.GoString((*C.char)(unsafe.Pointer(info.Driver_name)))
 }
 
@@ -24,7 +25,7 @@ func (info DevInfo) driverName() string {
 // If this is false, failed activation of rte_flow would cause permanent device failure.
 // A common reason is that eth_dev_stop closes the device in a way that it's not restartable.
 func (info DevInfo) CanAttemptRxFlow() bool {
-	switch info.driverName() {
+	switch info.DriverName() {
 	case "net_af_packet", "net_af_xdp", "net_memif":
 		return false
 	}
@@ -37,7 +38,7 @@ func (info DevInfo) HasTxMultiSegOffload() bool {
 		return true
 	}
 
-	switch info.driverName() { // some drivers support multi-segment TX but do not advertise it
+	switch info.DriverName() { // some drivers support multi-segment TX but do not advertise it
 	case "net_memif", "net_ring":
 		return true
 	}
