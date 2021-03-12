@@ -28,7 +28,7 @@ const (
 // ConsumerMode indicates ring consumer synchronization mode.
 type ConsumerMode int
 
-// Ring consumer synchronzation modes.
+// Ring consumer synchronization modes.
 const (
 	ConsumerMulti  ConsumerMode = 0
 	ConsumerSingle ConsumerMode = C.RING_F_SC_DEQ

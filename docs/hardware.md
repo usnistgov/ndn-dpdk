@@ -11,12 +11,12 @@ Note that this is not a complete list.
 
 NDN-DPDK only works on x86\_64 (amd64) architecture.
 See [DPDK getting started guide for Linux](https://doc.dpdk.org/guides/linux_gsg/) for system requirements of DPDK.
-In particular, SSE 3.2 instructions are required.
+In particular, SSE 4.2 instruction set is required.
 
 The developers have tested NDN-DPDK on servers with one, two, and four NUMA sockets.
 
 Default configuration of NDN-DPDK requires at least 6 CPU cores (total) and 8 GB memory (per NUMA socket).
-With a custom configuration, NDN-DPDK could work on 2 CPU cores and 2 GB memory, albeit at reduced performance.
+With a custom configuration, NDN-DPDK could work on 2 CPU cores and 2 GB memory, albeit at reduced performance; see [installation guide](INSTALL.md) `NDNDPDK_MK_THREADSLEEP` build option and [forwarder activation](forwarder.md) "memory usage insights" for some hints on how to do so.
 
 ## Ethernet Adapters
 

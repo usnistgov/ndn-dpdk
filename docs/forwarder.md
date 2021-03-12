@@ -23,7 +23,7 @@ You must restart the process to activate again as a different role or with diffe
 ### Authoring Activate Parameters in TypeScript
 
 NDN-DPDK provides TypeScript definitions to help with authoring the activation parameters.
-There are description of commonly used options, or links to the godoc of the corresponding Go types.
+Commonly used options have description or links to the corresponding Go documentation.
 You may install the NPM package from `/usr/local/share/ndn-dpdk/ndn-dpdk.npm.tgz`, and then construct an object of `ActivateFwArgs` type.
 
 [docs/activate](activate) is a sample TypeScript project that generates the activation parameters.
@@ -34,10 +34,9 @@ To use the sample:
 3. Open the directory in Visual Studio Code or another editor that recognizes TypeScript definitions.
    If the NDN-DPDK installation is on a remote machine, you may use the Remote-SSH plugin.
 4. Open `fw-args.ts` in the editor, and make changes.
-   The editor can provide hints hints on available options.
-5. Run `npm run -s typecheck` to verify your arguments conforms to the TypeScript definitions.
+   The editor can provide hints on available options.
+5. Run `npm run -s typecheck` to verify your arguments conform to the TypeScript definitions.
 6. Run `npm run -s fw-args | jq .` to see the JSON document.
-   [jq](https://stedolan.github.io/jq/) pretty-prints the JSON document, which is optional.
 7. Run `npm run -s fw-args | ndndpdk-ctrl activate-forwarder` to send a forwarder activation command.
 
 ### Commonly Used Activation Parameters
@@ -85,6 +84,38 @@ Indirect CS entries enable prefix match lookups in the CS.
 Each indirect CS entry is a pointer to a direct CS entry, but does not contain a Data packet by itself and thus does not occupy a packet buffer.
 In most cases, it's recommended to set this to the same as `.pcct.csDirectCapacity`.
 If the majority of traffic in your network is exact match only, you may set a smaller value.
+
+### Memory Usage Insights
+
+When the forwarder is running, with faces created and traffic flowing, you can gain insights in memory usage via GraphQL queries.
+
+Some example queries:
+
+```bash
+gql() {
+  curl -s -X POST -H 'Content-Type: application/json' \
+    -d "$(echo "$1" | jq -sR '{query:.}')" http://127.0.0.1:3030/
+}
+
+# packet buffers usage
+gql '{ pktmbufPoolTemplates{ tid pools{ numaSocket used }}}' |\
+  jq -c '.data.pktmbufPoolTemplates[] | select(.pools|length>0)'
+# This query shows how many objects are currently used in each packet buffer pool.
+# You can adjust the packet buffer capacity settings to fit traffic volume.
+
+# memzone report
+gql '{ memoryDiag{ memzones }}' | jq -r '.data.memoryDiag.memzones'
+# This query shows how DPDK is using hugepages, including size of each memory zone and
+# their placement in physical segments (i.e. hugepages).
+# You can count how many distinct physical segments are being used, which is useful for
+# deciding how many hugepages should be allocated in the system.
+```
+
+If you need to run the forwarder on a machine with limited amount of memory, you can try:
+
+1. Set small numbers for packet buffer pool capacity (start with 8192) and table sizes (start with 512).
+2. Activate the forwarder and read the usage reports.
+3. Change configuration and repeat.
 
 ## Sample Scenario: ndnping
 
@@ -149,7 +180,7 @@ B $ sudo ndndpdk-godemo pingserver --name /example/P
 A $ sudo ndndpdk-godemo pingclient --name /example/P
 ```
 
-The consumer prints, among other fields, the percentage of satisfied Interests, and the round-trip time of the last Interest-Data exchange.
+The consumer prints, among other fields, the percentage of satisfied Interests and the last round-trip time.
 
 ### List Faces and View Face Counters
 
