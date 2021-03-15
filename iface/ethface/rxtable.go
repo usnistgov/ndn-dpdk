@@ -11,6 +11,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 type rxTableImpl struct {
@@ -60,11 +61,16 @@ func (impl *rxTableImpl) Close() error {
 type rxTable C.EthRxTable
 
 func newRxTable(port *Port) (rxt *rxTable) {
-	c := (*C.EthRxTable)(eal.Zmalloc("EthRxTable", C.sizeof_EthRxTable, port.dev.NumaSocket()))
+	socket := port.dev.NumaSocket()
+	c := (*C.EthRxTable)(eal.Zmalloc("EthRxTable", C.sizeof_EthRxTable, socket))
 	c.port = C.uint16_t(port.dev.ID())
 	c.queue = 0
 	c.base.rxBurstOp = C.RxGroup_RxBurst(C.EthRxTable_RxBurst)
 	c.base.rxThread = 0
+	if port.rxBouncePool != nil {
+		rxPool := ndni.PacketMempool.Get(socket)
+		c.copyTo = (*C.struct_rte_mempool)(rxPool.Ptr())
+	}
 
 	rxt = (*rxTable)(c)
 	iface.ActivateRxGroup(rxt)

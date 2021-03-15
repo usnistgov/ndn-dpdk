@@ -6,7 +6,7 @@ INIT_ZF_LOG(EthFace);
 __attribute__((nonnull)) static uint16_t
 EthRxFlow_RxBurst_Unchecked(RxGroup* rxg, struct rte_mbuf** pkts, uint16_t nPkts)
 {
-  EthRxFlow* rxf = (EthRxFlow*)rxg;
+  EthRxFlow* rxf = container_of(rxg, EthRxFlow, base);
   uint16_t nRx = rte_eth_rx_burst(rxf->port, rxf->queue, pkts, nPkts);
   uint64_t now = rte_get_tsc_cycles();
   for (uint16_t i = 0; i < nRx; ++i) {
@@ -21,7 +21,7 @@ EthRxFlow_RxBurst_Unchecked(RxGroup* rxg, struct rte_mbuf** pkts, uint16_t nPkts
 __attribute__((nonnull)) static uint16_t
 EthRxFlow_RxBurst_Checked(RxGroup* rxg, struct rte_mbuf** pkts, uint16_t nPkts)
 {
-  EthRxFlow* rxf = (EthRxFlow*)rxg;
+  EthRxFlow* rxf = container_of(rxg, EthRxFlow, base);
   uint16_t nInput = rte_eth_rx_burst(rxf->port, rxf->queue, pkts, nPkts);
   uint64_t now = rte_get_tsc_cycles();
 

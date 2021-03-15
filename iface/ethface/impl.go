@@ -30,7 +30,10 @@ var impls = []implCtor{newRxFlowImpl, newRxTableImpl}
 // Start EthDev (called by impl).
 func startDev(port *Port, nRxQueues int, promisc bool) error {
 	socket := port.dev.NumaSocket()
-	rxPool := ndni.PacketMempool.Get(socket)
+	rxPool := port.rxBouncePool
+	if rxPool == nil {
+		rxPool = ndni.PacketMempool.Get(socket)
+	}
 
 	var cfg ethdev.Config
 	cfg.AddRxQueues(nRxQueues, ethdev.RxQueueConfig{

@@ -3,6 +3,7 @@ package ethface
 import (
 	"errors"
 
+	"github.com/pkg/math"
 	"github.com/sirupsen/logrus"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
@@ -15,6 +16,8 @@ import (
 const (
 	DefaultRxQueueSize = 4096
 	DefaultTxQueueSize = 4096
+
+	xdpMinDataroom = 2048 // XDP_UMEM_MIN_CHUNK_SIZE in kernel
 )
 
 // PortConfig contains Port creation arguments.
@@ -61,13 +64,14 @@ func ListPorts() (list []*Port) {
 
 // Port organizes EthFaces on an EthDev.
 type Port struct {
-	cfg       PortConfig
-	logger    logrus.FieldLogger
-	dev       ethdev.EthDev
-	closeVdev func()
-	faces     map[iface.ID]*ethFace
-	impl      impl
-	nextImpl  int
+	cfg          PortConfig
+	logger       logrus.FieldLogger
+	dev          ethdev.EthDev
+	closeVdev    func()
+	rxBouncePool *pktmbuf.Pool
+	faces        map[iface.ID]*ethFace
+	impl         impl
+	nextImpl     int
 }
 
 // NewPort opens a Port.
@@ -96,6 +100,15 @@ func NewPort(dev ethdev.EthDev, cfg PortConfig) (port *Port, e error) {
 		dev:    dev,
 		faces:  make(map[iface.ID]*ethFace),
 	}
+	if dev.DevInfo().DriverName() == "net_af_xdp" {
+		if port.rxBouncePool, e = pktmbuf.NewPool(pktmbuf.PoolConfig{
+			Capacity: cfg.RxQueueSize + iface.MaxBurstSize,
+			Dataroom: math.MaxInt(pktmbuf.DefaultHeadroom+cfg.MTU, xdpMinDataroom),
+		}, dev.NumaSocket()); e != nil {
+			return nil, e
+		}
+	}
+
 	port.logger.Debug("opening")
 	portByEthDev[port.dev] = port
 	return port, nil
@@ -121,6 +134,11 @@ func (port *Port) Close() (e error) {
 	if port.closeVdev != nil {
 		port.closeVdev()
 		port.closeVdev = nil
+	}
+
+	if port.rxBouncePool != nil {
+		port.rxBouncePool.Close()
+		port.rxBouncePool = nil
 	}
 
 	return nil

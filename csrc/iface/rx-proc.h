@@ -14,9 +14,7 @@ typedef struct RxProcThread
   uint64_t nDecodeErr;      ///< decode errors
 } __rte_cache_aligned RxProcThread;
 
-/**
- * @brief Incoming frame processing procedure.
- */
+/** @brief Incoming frame processing procedure. */
 typedef struct RxProc
 {
   Reassembler reass;
