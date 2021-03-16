@@ -13,7 +13,7 @@ Go shared code:
 * dlopen: load dynamic libraries.
 * events: simple event emitter.
 * gqlserver: GraphQL server.
-* logger: Go logging library.
+* logging: Go logging library.
 * macaddr: MAC address parsing and classification.
 * nnduration: JSON-compatible non-negative duration types.
 * runningstat: compute min, max, mean, and variance.

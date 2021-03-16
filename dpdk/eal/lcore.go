@@ -12,6 +12,7 @@ import (
 	"strconv"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
+	"go.uber.org/zap"
 )
 
 // MaxLCoreID is the maximum LCore ID.
@@ -65,6 +66,14 @@ func (lc LCore) MarshalJSON() ([]byte, error) {
 	return json.Marshal(lc.ID())
 }
 
+// ZapField returns a zap.Field for logging.
+func (lc LCore) ZapField(key string) zap.Field {
+	if !lc.Valid() {
+		return zap.String(key, "invalid")
+	}
+	return zap.Int(key, lc.ID())
+}
+
 // NumaSocket returns the NUMA socket where this lcore is located.
 func (lc LCore) NumaSocket() (socket NumaSocket) {
 	if !lc.Valid() {
@@ -85,14 +94,16 @@ func (lc LCore) IsBusy() bool {
 // Errors are fatal.
 func (lc LCore) RemoteLaunch(fn cptr.Function) {
 	if !lc.Valid() {
-		log.Panic("invalid lcore")
+		logger.Panic("invalid lcore")
 	}
 	lcoreIsBusy[lc.ID()] = true
 	PostMain(cptr.Func0.Void(func() {
 		f, arg := cptr.Func0.CallbackOnce(fn)
 		res := C.rte_eal_remote_launch((*C.lcore_function_t)(f), arg, C.uint(lc.ID()))
 		if res != 0 {
-			log.WithError(Errno(res)).Fatal("RemoteLaunch error")
+			logger.Fatal("RemoteLaunch error",
+				zap.Error(Errno(res)),
+			)
 		}
 	}))
 }

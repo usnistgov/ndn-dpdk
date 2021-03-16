@@ -13,6 +13,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"go.uber.org/zap"
 )
 
 type rxqState int
@@ -84,7 +85,9 @@ func (impl *rxFlowImpl) Init() error {
 	}
 
 	if e := impl.setIsolate(true); e != nil {
-		impl.port.logger.WithError(e).Warn("flow isolated mode unavailable")
+		impl.port.logger.Warn("flow isolated mode unavailable",
+			zap.Error(e),
+		)
 	}
 
 	nRxQueues := math.MinInt(int(devInfo.Max_rx_queues), rxfMaxPortQueues)
@@ -111,7 +114,10 @@ func (impl *rxFlowImpl) Start(face *ethFace) error {
 		return e
 	}
 
-	impl.port.logger.WithFields(makeLogFields("rx-queues", queues, "face", face.ID())).Debug("create RxFlow")
+	impl.port.logger.Debug("create RxFlow",
+		zap.Ints("queues", queues),
+		face.ID().ZapField("face"),
+	)
 	impl.startFlow(face, queues)
 	return nil
 }
@@ -165,10 +171,15 @@ func (impl *rxFlowImpl) Stop(face *ethFace) error {
 
 	nextState := rxqStateIdle
 	if e := impl.destroyFlow(face.flow); e != nil {
-		impl.port.logger.WithField("face", face.ID()).WithError(e).Debug("destroy RxFlow deferred")
+		impl.port.logger.Debug("destroy RxFlow deferred",
+			face.ID().ZapField("face"),
+			zap.Error(e),
+		)
 		nextState = rxqStateDeferred
 	} else {
-		impl.port.logger.WithField("face", face.ID()).Debug("destroy RxFlow success")
+		impl.port.logger.Debug("destroy RxFlow success",
+			face.ID().ZapField("face"),
+		)
 	}
 
 	for _, rxf := range face.rxf {

@@ -105,7 +105,7 @@ func init() {
 					go func(t0 time.Time, s uint64) {
 						interest := ndn.MakeInterest(fmt.Sprintf("%s/%016X", name, seqNum), ndn.MustBeFreshFlag, lifetime)
 						_, e := endpoint.Consume(ctx, interest, endpoint.ConsumerOptions{})
-						rtt := time.Now().Sub(t0)
+						rtt := time.Since(t0)
 						if e == nil {
 							atomic.AddInt64(&nData, 1)
 							log.Printf("%6.2f%% D %016X %6dus", 100*float64(nData)/float64(nData+nErrors), seqNum, rtt.Microseconds())

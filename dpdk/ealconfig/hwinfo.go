@@ -3,6 +3,7 @@ package ealconfig
 import (
 	"github.com/jaypipes/ghw"
 	"github.com/pkg/math"
+	"go.uber.org/zap"
 )
 
 // CoreInfo describes a CPU core.
@@ -28,7 +29,9 @@ type defaultHwInfoSource struct{}
 func (defaultHwInfoSource) Cores() (list []CoreInfo) {
 	topo, e := ghw.Topology()
 	if e != nil {
-		log.WithError(e).Panic("ghw.Topology")
+		logger.Panic("ghw.Topology",
+			zap.Error(e),
+		)
 	}
 
 	for _, node := range topo.Nodes {

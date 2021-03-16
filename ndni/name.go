@@ -8,6 +8,7 @@ import (
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/ndn"
+	"go.uber.org/zap"
 )
 
 // PNameToName converts PName to ndn.Name.
@@ -18,7 +19,9 @@ func PNameToName(pname unsafe.Pointer) (name ndn.Name) {
 	}
 	value := C.GoBytes(unsafe.Pointer(p.value), C.int(p.length))
 	if e := name.UnmarshalBinary(value); e != nil {
-		log.WithError(e).Panic("name.UnmarshalBinary error")
+		logger.Panic("name.UnmarshalBinary error",
+			zap.Error(e),
+		)
 	}
 	return name
 }
@@ -39,7 +42,9 @@ func NewPName(name ndn.Name) *PName {
 	pname := (*C.PName)(C.malloc(C.sizeof_PName))
 	ok := bool(C.PName_Parse(pname, lname))
 	if !ok {
-		log.WithField("name", name).Panic("PName_Parse error")
+		logger.Panic("PName_Parse error",
+			zap.Stringer("name", name),
+		)
 	}
 	return (*PName)(pname)
 }

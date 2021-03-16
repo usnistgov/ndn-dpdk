@@ -14,8 +14,12 @@ import (
 	"github.com/urfave/cli/v2"
 	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
 	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
+	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/mk/version"
+	"go.uber.org/zap"
 )
+
+var logger = logging.New("main")
 
 var (
 	isActivated            int32
@@ -67,11 +71,16 @@ func main() {
 					return
 				}
 
-				log.Infof("activating %s", key)
+				logger.Info("activating",
+					zap.String("role", key),
+				)
 				if e = arg.Activate(); e != nil {
 					go func() {
 						time.Sleep(time.Second)
-						log.WithError(e).Fatalf("activate %s error", key)
+						logger.Fatal("activate error",
+							zap.String("role", key),
+							zap.Error(e),
+						)
 					}()
 				}
 			}
@@ -87,7 +96,7 @@ func main() {
 		Description: "Shutdown NDN-DPDK service.",
 		Type:        gqlserver.NonNullBoolean,
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-			log.Info("shutdown requested")
+			logger.Info("shutdown requested")
 			daemon.SdNotify(false, daemon.SdNotifyStopping)
 			go func() {
 				time.Sleep(time.Second)
@@ -116,19 +125,21 @@ func main() {
 			watchdog := func() <-chan time.Time {
 				d, e := daemon.SdWatchdogEnabled(false)
 				if d == 0 || e != nil {
-					log.WithError(e).Debug("systemd watchdog not configured")
+					logger.Debug("systemd watchdog not configured",
+						zap.Error(e),
+					)
 					return nil
 				}
 				d /= 2
-				log.WithField("duration", d).Debug("systemd watchdog enabled")
+				logger.Debug("systemd watchdog enabled",
+					zap.Duration("duration", d),
+				)
 				return time.Tick(d)
 			}()
-			for {
-				select {
-				case <-watchdog:
-					daemon.SdNotify(false, daemon.SdNotifyWatchdog)
-				}
+			for range watchdog {
+				daemon.SdNotify(false, daemon.SdNotifyWatchdog)
 			}
+			select {}
 		},
 	}
 	app.Run(os.Args)

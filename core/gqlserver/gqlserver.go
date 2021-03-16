@@ -9,8 +9,12 @@ import (
 
 	"github.com/bhoriuchi/graphql-go-tools/handler"
 	"github.com/graphql-go/graphql"
+	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/mk/version"
+	"go.uber.org/zap"
 )
+
+var logger = logging.New("gqlserver")
 
 // Schema is the singleton of graphql.SchemaConfig.
 var Schema = graphql.SchemaConfig{
@@ -48,7 +52,10 @@ func init() {
 func Start(uri string) {
 	sch, e := graphql.NewSchema(Schema)
 	if e != nil {
-		log.WithField("schema", Schema).WithError(e).Panic("graphql.NewSchema")
+		logger.Panic("graphql.NewSchema",
+			zap.Error(e),
+			zap.Any("schema", Schema),
+		)
 	}
 
 	go startHTTP(&sch, parseListenAddress(uri))
@@ -62,17 +69,19 @@ func parseListenAddress(uri string) (listen string) {
 
 	u, e := url.Parse(uri)
 	if e != nil {
-		log.WithError(e).Warn("gqlserver URI invalid, using the default")
+		logger.Warn("gqlserver URI invalid, using the default",
+			zap.Error(e),
+		)
 		return
 	}
 
 	if u.Scheme != "http" {
-		log.Warn("gqlserver URI is not HTTP, using the default")
+		logger.Warn("gqlserver URI is not HTTP, using the default")
 		return
 	}
 
 	if u.User != nil || strings.TrimPrefix(u.Path, "/") != "" || u.RawQuery != "" {
-		log.Warn("gqlserver URI contains User/Path/Query, ignored")
+		logger.Warn("gqlserver URI contains User/Path/Query, ignored")
 	}
 	return u.Host
 }
@@ -83,7 +92,9 @@ func startHTTP(sch *graphql.Schema, listen string) {
 		Pretty:           true,
 		PlaygroundConfig: handler.NewDefaultPlaygroundConfig(),
 	})
-	log.WithField("listen", listen).Info("GraphQL HTTP server starting")
+	logger.Info("GraphQL HTTP server starting",
+		zap.String("listen", listen),
+	)
 
 	var mux http.ServeMux
 	mux.HandleFunc("/robots.txt", func(w http.ResponseWriter, req *http.Request) {

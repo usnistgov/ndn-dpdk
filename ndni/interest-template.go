@@ -12,6 +12,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
+	"go.uber.org/zap"
 )
 
 // InterestTemplate is a template for Interest encoding.
@@ -35,7 +36,9 @@ func (tpl *InterestTemplate) Init(args ...interface{}) {
 	interest := ndn.MakeInterest(args...)
 	_, wire, e := interest.MarshalTlv()
 	if e != nil {
-		log.WithError(e).Panic("interest.MarshalTlv error")
+		logger.Panic("interest.MarshalTlv error",
+			zap.Error(e),
+		)
 	}
 
 	c := tpl.ptr()

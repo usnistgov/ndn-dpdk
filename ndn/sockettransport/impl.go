@@ -43,7 +43,7 @@ func (noLocalAddrRedialer) Redial(oldConn net.Conn) (net.Conn, error) {
 	return net.Dial(remote.Network(), remote.String())
 }
 
-// nopRedialer redials doing thing.
+// nopRedialer redials doing nothing.
 type nopRedialer struct{}
 
 func (nopRedialer) Redial(oldConn net.Conn) (net.Conn, error) {

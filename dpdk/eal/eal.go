@@ -3,8 +3,11 @@ package eal
 
 import (
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
+	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 )
+
+var logger = logging.New("eal")
 
 // EAL variables, available after ealinit.Init().
 var (

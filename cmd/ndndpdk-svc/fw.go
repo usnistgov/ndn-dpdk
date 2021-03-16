@@ -10,6 +10,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
 	"github.com/usnistgov/ndn-dpdk/container/strategycode"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealconfig"
+	"go.uber.org/zap"
 )
 
 type fwArgs struct {
@@ -39,17 +40,22 @@ func (a fwArgs) Activate() error {
 }
 
 func loadStrategy(shortname string) *strategycode.Strategy {
-	logEntry := log.WithField("strategy", shortname)
+	logEntry := logger.With(zap.String("strategy", shortname))
 
 	exeFile, e := os.Executable()
 	if e != nil {
-		logEntry.WithError(e).Fatal("os.Executable() error")
+		logEntry.Fatal("os.Executable() error",
+			zap.Error(e),
+		)
 	}
 	elfFile := path.Join(path.Dir(exeFile), "../lib/bpf", "ndndpdk-strategy-"+shortname+".o")
 
 	sc, e := strategycode.LoadFile(shortname, elfFile)
 	if e != nil {
-		logEntry.WithField("filename", elfFile).WithError(e).Fatal("strategycode.LoadFile() error")
+		logEntry.Fatal("strategycode.LoadFile() error",
+			zap.String("filename", elfFile),
+			zap.Error(e),
+		)
 	}
 
 	logEntry.Debug("strategy loaded")

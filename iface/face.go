@@ -13,10 +13,14 @@ import (
 
 	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
+	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
 	"github.com/usnistgov/ndn-dpdk/ndni"
+	"go.uber.org/zap"
 )
+
+var logger = logging.New("iface")
 
 // Face represents a network layer face.
 type Face interface {
@@ -169,7 +173,11 @@ func newFace(p NewParams) (Face, error) {
 		closeCallback:          p.Close,
 		readExCountersCallback: p.ReadExCounters,
 	}
-	logEntry := log.WithFields(makeLogFields("id", f.id, "socket", p.Socket, "mtu", p.MTU))
+	logEntry := logger.With(
+		f.id.ZapField("id"),
+		p.Socket.ZapField("socket"),
+		zap.Int("mtu", p.MTU),
+	)
 
 	c := f.ptr()
 	c.id = C.FaceID(f.id)
@@ -179,10 +187,12 @@ func newFace(p NewParams) (Face, error) {
 
 	initResult, e := p.Init(f)
 	if e != nil {
-		logEntry.WithError(e).Warn("init error")
+		logEntry.Warn("init error",
+			zap.Error(e),
+		)
 		return f.clear(), e
 	}
-	logEntry = logEntry.WithField("locator", LocatorString(f.Locator()))
+	logEntry = logEntry.With(zap.Any("locator", f.Locator()))
 
 	c.txAlign = C.PacketTxAlign{
 		linearize:           C.bool(initResult.TxLinearize),
@@ -193,7 +203,9 @@ func newFace(p NewParams) (Face, error) {
 
 	outputQueue, e := ringbuffer.New(p.OutputQueueSize, p.Socket, ringbuffer.ProducerMulti, ringbuffer.ConsumerSingle)
 	if e != nil {
-		logEntry.WithError(e).Warn("outputQueue error")
+		logEntry.Warn("outputQueue error",
+			zap.Error(e),
+		)
 		return f.clear(), e
 	}
 	c.outputQueue = (*C.struct_rte_ring)(outputQueue.Ptr())
@@ -202,7 +214,9 @@ func newFace(p NewParams) (Face, error) {
 	defer C.free(unsafe.Pointer(reassID))
 	if ok := bool(C.Reassembler_Init(&c.impl.rx.reass, reassID, C.uint32_t(p.ReassemblerCapacity), C.unsigned(p.Socket.ID()))); !ok {
 		e := eal.GetErrno()
-		logEntry.WithError(e).Warn("Reassembler_Init error")
+		logEntry.Warn("Reassembler_Init error",
+			zap.Error(e),
+		)
 		return f.clear(), e
 	}
 
@@ -210,7 +224,9 @@ func newFace(p NewParams) (Face, error) {
 
 	f2, e := p.Start(f)
 	if e != nil {
-		logEntry.WithError(e).Warn("start error")
+		logEntry.Warn("start error",
+			zap.Error(e),
+		)
 		return f.clear(), e
 	}
 

@@ -7,6 +7,8 @@ import "C"
 import (
 	"reflect"
 	"unsafe"
+
+	"go.uber.org/zap"
 )
 
 // Zmalloc allocates zero'ed memory on specified NumaSocket.
@@ -32,7 +34,10 @@ func ZmallocAligned(dbgtype string, size interface{}, align int, socket NumaSock
 
 	ptr := C.rte_zmalloc_socket(typeC, sizeC, C.uint(align*C.RTE_CACHE_LINE_SIZE), C.int(socket.ID()))
 	if ptr == nil {
-		log.Panicf("ZmallocAligned(%d) failed", size)
+		logger.Panic(
+			"ZmallocAligned failed",
+			zap.Uintptr("size", uintptr(sizeC)),
+		)
 	}
 	return ptr
 }

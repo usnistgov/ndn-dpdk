@@ -13,6 +13,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
+	"go.uber.org/zap"
 )
 
 var threadLibInitOnce sync.Once
@@ -29,7 +30,9 @@ type Thread struct {
 func NewThread() (*Thread, error) {
 	threadLibInitOnce.Do(func() {
 		if res := C.spdk_thread_lib_init(nil, 0); res != 0 {
-			log.WithError(eal.Errno(-res)).Fatal("spdk_thread_lib_init error")
+			logger.Fatal("spdk_thread_lib_init error",
+				zap.Error(eal.Errno(-res)),
+			)
 		}
 	})
 

@@ -10,10 +10,14 @@ import (
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
+	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
+	"go.uber.org/zap"
 )
+
+var logger = logging.New("ndni")
 
 // Packet represents a NDN network layer packet with parsed LP and Interest/Data headers.
 type Packet C.Packet
@@ -77,7 +81,9 @@ func (pkt *Packet) ComputeDataImplicitDigest() []byte {
 func (pkt *Packet) ToNPacket() (npkt ndn.Packet) {
 	e := tlv.Decode(pkt.Mbuf().Bytes(), &npkt)
 	if e != nil {
-		log.WithError(e).Panic("tlv.Decode")
+		logger.Panic("tlv.Decode",
+			zap.Error(e),
+		)
 	}
 
 	lpl3 := C.Packet_GetLpL3Hdr(pkt.ptr())

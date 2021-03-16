@@ -15,10 +15,14 @@ import (
 
 	"github.com/kballard/go-shellquote"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
+	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealconfig"
 	"github.com/usnistgov/ndn-dpdk/dpdk/spdkenv"
+	"go.uber.org/zap"
 )
+
+var logger = logging.New("ealinit")
 
 func init() {
 	ealconfig.PmdPath = C.RTE_EAL_PMD_PATH
@@ -43,15 +47,14 @@ func Init(args []string) {
 		eal.MainThread = th
 		eal.MainReadSide = th.RcuReadSide
 		eal.CallMain(func() {
-			log.Debug("MainThread is running")
+			logger.Debug("MainThread is running")
 		})
 		spdkenv.InitFinal()
 	})
-	return
 }
 
 func initEal(args []string) {
-	logEntry := log.WithField("args", shellquote.Join(args...))
+	logEntry := logger.With(zap.String("args", shellquote.Join(args...)))
 	exe, e := os.Executable()
 	if e != nil {
 		exe = os.Args[0]
@@ -63,7 +66,9 @@ func initEal(args []string) {
 	C.rte_mp_disable()
 	res := C.rte_eal_init(C.int(a.Argc), (**C.char)(a.Argv))
 	if res < 0 {
-		logEntry.WithError(eal.GetErrno()).Fatal("EAL init error")
+		logEntry.Fatal("EAL init error",
+			zap.Error(eal.GetErrno()),
+		)
 		return
 	}
 
@@ -77,12 +82,18 @@ func initEal(args []string) {
 			hasSocket[socket] = true
 		}
 	}
-	logEntry.WithFields(makeLogFields("main", eal.MainLCore, "workers", eal.Workers, "sockets", eal.Sockets)).Info("EAL ready")
+	logEntry.Info("EAL ready",
+		eal.MainLCore.ZapField("main"),
+		zap.Any("workers", eal.Workers),
+		zap.Any("sockets", eal.Sockets),
+	)
 }
 
 func initMbufDynfields() {
 	ok := bool(C.Mbuf_RegisterDynFields())
 	if !ok {
-		log.WithError(eal.GetErrno()).Fatal("mbuf dynfields init error")
+		logger.Fatal("mbuf dynfields init error",
+			zap.Error(eal.GetErrno()),
+		)
 	}
 }

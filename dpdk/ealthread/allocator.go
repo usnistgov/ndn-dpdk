@@ -4,6 +4,7 @@ import (
 	"sort"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"go.uber.org/zap"
 )
 
 // AllocConfig contains per-role lcore allocation config.
@@ -196,8 +197,12 @@ func (la *Allocator) Alloc(role string, socket eal.NumaSocket) (lc eal.LCore) {
 	}
 
 	la.allocated[lc.ID()] = role
-	log.WithFields(makeLogFields("role", role, "socket", socket,
-		"lc", lc, "lc-socket", la.provider.NumaSocketOf(lc))).Info("lcore allocated")
+	logger.Info("lcore allocated",
+		zap.String("role", role),
+		socket.ZapField("socket"),
+		lc.ZapField("lc"),
+		la.provider.NumaSocketOf(lc).ZapField("lc-socket"),
+	)
 	return lc
 }
 
@@ -215,7 +220,11 @@ func (la *Allocator) AllocGroup(roles []string, sockets []eal.NumaSocket) (list 
 			list[i] = append(list[i], lc)
 		}
 	}
-	log.WithFields(makeLogFields("roles", roles, "sockets", sockets, "list", list)).Info("lcores allocated")
+	logger.Info("lcores allocated",
+		zap.Strings("roles", roles),
+		zap.Any("sockets", sockets),
+		zap.Any("list", list),
+	)
 	return list
 
 FAIL:
@@ -244,7 +253,11 @@ func (la *Allocator) Free(lc eal.LCore) {
 	if la.allocated[lc.ID()] == "" {
 		panic("lcore double free")
 	}
-	log.WithFields(makeLogFields("lc", lc, "role", la.allocated[lc.ID()], "socket", la.provider.NumaSocketOf(lc))).Info("lcore freed")
+	logger.Info("lcore freed",
+		lc.ZapField("lc"),
+		zap.String("role", la.allocated[lc.ID()]),
+		la.provider.NumaSocketOf(lc).ZapField("socket"),
+	)
 	la.allocated[lc.ID()] = ""
 }
 

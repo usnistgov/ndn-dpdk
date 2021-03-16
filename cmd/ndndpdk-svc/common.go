@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/usnistgov/ndn-dpdk/core/logger"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealconfig"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealinit"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
@@ -9,11 +8,6 @@ import (
 
 	_ "github.com/usnistgov/ndn-dpdk/iface/ethface"
 	_ "github.com/usnistgov/ndn-dpdk/iface/socketface"
-)
-
-var (
-	log           = logger.New("ndndpdk-svc")
-	makeLogFields = logger.MakeFields
 )
 
 // CommonArgs contains arguments shared between forwarder and traffic generator.

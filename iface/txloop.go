@@ -70,7 +70,7 @@ func (txl *txLoop) CountFaces() int {
 func (txl *txLoop) add(face Face) {
 	id := face.ID()
 	if mapFaceTxl[id] != nil {
-		log.Panic("Face is in another TxLoop")
+		logger.Panic("Face is in another TxLoop")
 	}
 	mapFaceTxl[id] = txl
 	txl.nFaces++
@@ -82,7 +82,7 @@ func (txl *txLoop) add(face Face) {
 func (txl *txLoop) remove(face Face) {
 	id := face.ID()
 	if mapFaceTxl[id] != txl {
-		log.Panic("Face is not in this TxLoop")
+		logger.Panic("Face is not in this TxLoop")
 	}
 	delete(mapFaceTxl, id)
 	txl.nFaces--
@@ -117,7 +117,7 @@ func ActivateTxFace(face Face) {
 		return
 	}
 	if len(txLoopThreads) == 0 {
-		log.Panic("no TxLoop available")
+		logger.Panic("no TxLoop available")
 	}
 
 	faceSocket := face.NumaSocket()

@@ -97,11 +97,11 @@ func (rxl *rxLoop) CountRxGroups() int {
 func (rxl *rxLoop) add(rxg RxGroup) {
 	rxgC := (*C.RxGroup)(rxg.Ptr())
 	if rxgC.rxBurstOp == nil {
-		log.Panic("RxGroup missing rxBurstOp")
+		logger.Panic("RxGroup missing rxBurstOp")
 	}
 
 	if mapRxgRxl[rxg] != nil {
-		log.Panic("RxGroup is in another RxLoop")
+		logger.Panic("RxGroup is in another RxLoop")
 	}
 	mapRxgRxl[rxg] = rxl
 	rxl.nRxgs++
@@ -111,7 +111,7 @@ func (rxl *rxLoop) add(rxg RxGroup) {
 
 func (rxl *rxLoop) remove(rxg RxGroup) {
 	if mapRxgRxl[rxg] != rxl {
-		log.Panic("RxGroup is not in this RxLoop")
+		logger.Panic("RxGroup is not in this RxLoop")
 	}
 	delete(mapRxgRxl, rxg)
 	rxl.nRxgs--
@@ -147,7 +147,7 @@ func ActivateRxGroup(rxg RxGroup) {
 	}
 
 	if len(rxLoopThreads) == 0 {
-		log.Panic("no RxLoop available")
+		logger.Panic("no RxLoop available")
 	}
 
 	rxgSocket := rxg.NumaSocket()

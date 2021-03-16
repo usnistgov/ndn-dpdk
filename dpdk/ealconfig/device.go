@@ -48,7 +48,7 @@ func (cfg DeviceConfig) args(req Request, hwInfo HwInfoSource) (args []string, e
 	case PmdPath != "":
 		args = append(args, "-d", PmdPath)
 	default:
-		log.Fatal("PmdPath is unassigned")
+		logger.Fatal("PmdPath is unassigned")
 	}
 
 	switch {

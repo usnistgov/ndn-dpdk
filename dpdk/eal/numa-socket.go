@@ -11,6 +11,7 @@ import (
 
 	"github.com/graphql-go/graphql"
 	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
+	"go.uber.org/zap"
 )
 
 // NumaSocket represents a NUMA socket.
@@ -57,6 +58,14 @@ func (socket NumaSocket) MarshalJSON() ([]byte, error) {
 		return json.Marshal(nil)
 	}
 	return json.Marshal(socket.ID())
+}
+
+// ZapField returns a zap.Field for logging.
+func (socket NumaSocket) ZapField(key string) zap.Field {
+	if socket.IsAny() {
+		return zap.String(key, "any")
+	}
+	return zap.Int(key, socket.ID())
 }
 
 // NumaSocket implements WithNumaSocket.

@@ -6,8 +6,11 @@ package ethface
 */
 import "C"
 import (
+	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/iface"
 )
+
+var logger = logging.New("ethface")
 
 type ethFace struct {
 	iface.Face

@@ -6,6 +6,7 @@ import (
 	"reflect"
 
 	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
+	"go.uber.org/zap"
 )
 
 // Locator identifies the endpoints of a face.
@@ -32,7 +33,9 @@ var locatorTypes = make(map[string]reflect.Type)
 func RegisterLocatorType(loc Locator, schemes ...string) {
 	typ := reflect.TypeOf(loc)
 	if typ.Kind() != reflect.Struct {
-		log.Panicf("Locator must be a struct %T", loc)
+		logger.Panic("Locator must be a struct",
+			zap.Stringer("type", typ),
+		)
 	}
 	for _, scheme := range schemes {
 		locatorTypes[scheme] = typ

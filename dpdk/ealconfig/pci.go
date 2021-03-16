@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/jaypipes/ghw"
+	"go.uber.org/zap"
 )
 
 // ErrPciAddress indicates the input PCI address is invalid.
@@ -63,7 +64,9 @@ func ParsePciAddress(input string) (a PciAddress, e error) {
 func MustParsePciAddress(input string) (a PciAddress) {
 	var e error
 	if a, e = ParsePciAddress(input); e != nil {
-		log.WithError(e).Panic("MustParsePciAddress")
+		logger.Panic("MustParsePciAddress",
+			zap.Error(e),
+		)
 	}
 	return a
 }

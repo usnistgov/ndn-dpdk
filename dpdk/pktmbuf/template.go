@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"go.uber.org/zap"
 )
 
 var templates = make(map[string]*template)
@@ -76,16 +77,20 @@ func (tpl *template) Update(update PoolConfig) Template {
 	if update.PrivSize > tpl.cfg.PrivSize {
 		tpl.cfg.PrivSize = update.PrivSize
 	} else if update.PrivSize > 0 {
-		log.WithFields(makeLogFields(
-			"key", tpl.id, "oldPrivSize", tpl.cfg.PrivSize,
-			"newPrivSize", update.PrivSize)).Info("ignoring attempt to decrease PrivSize")
+		logger.Info("ignoring attempt to decrease PrivSize",
+			zap.String("key", tpl.id),
+			zap.Int("oldPrivSize", tpl.cfg.PrivSize),
+			zap.Int("newPrivSize", update.PrivSize),
+		)
 	}
 
 	if tpl.cfg.Dataroom > 0 && update.Dataroom > 0 {
 		if update.Dataroom < tpl.cfg.Dataroom {
-			log.WithFields(makeLogFields(
-				"key", tpl.id, "oldDataroom", tpl.cfg.Dataroom,
-				"newDataroom", update.Dataroom)).Info("decreasing Dataroom")
+			logger.Info("decreasing Dataroom",
+				zap.String("key", tpl.id),
+				zap.Int("oldDataroom", tpl.cfg.Dataroom),
+				zap.Int("newDataroom", update.Dataroom),
+			)
 		}
 		tpl.cfg.Dataroom = update.Dataroom
 	}
@@ -101,37 +106,47 @@ func (tpl *template) Pools() (list []PoolInfo) {
 }
 
 func (tpl *template) Get(socket eal.NumaSocket) *Pool {
-	logEntry := log.WithField("template", tpl.id)
+	logEntry := logger.With(zap.String("template", tpl.id))
 
 	useSocket := socket
 	if len(eal.Sockets) <= 1 {
 		useSocket = eal.NumaSocket{}
 	}
-	logEntry = logEntry.WithFields(makeLogFields("socket", socket, "use-socket", useSocket, "cfg", tpl.cfg))
+	logEntry = logEntry.With(
+		socket.ZapField("socket"),
+		useSocket.ZapField("use-socket"),
+		zap.Any("cfg", tpl.cfg),
+	)
 
 	if pool, ok := tpl.pools[useSocket]; ok {
-		logEntry.WithField("pool", pool).Debug("mempool found")
+		logEntry.Debug("mempool found",
+			zap.Stringer("pool", pool),
+		)
 		return pool
 	}
 
 	pool, e := NewPool(tpl.cfg, useSocket)
 	if e != nil {
-		logEntry.WithError(e).Fatal("mempool creation failed")
+		logEntry.Fatal("mempool creation failed",
+			zap.Error(e),
+		)
 	}
 	tpl.pools[useSocket] = pool
-	logEntry.WithField("pool", pool).Debug("mempool created")
+	logEntry.Debug("mempool created",
+		zap.Stringer("pool", pool),
+	)
 	return pool
 }
 
 // RegisterTemplate adds a mempool template.
 func RegisterTemplate(id string, cfg PoolConfig) Template {
-	logEntry := log.WithField("template", id)
+	logEntry := logger.With(zap.String("template", id))
 
 	if _, ok := templates[id]; ok {
 		logEntry.Panic("duplicate template ID")
 	}
 	if !validateTemplateID(id) {
-		logEntry.Panicf("template ID can only contain upper-case letters and digits")
+		logEntry.Panic("template ID can only contain upper-case letters and digits")
 	}
 	tpl := &template{
 		id:    id,
@@ -176,7 +191,9 @@ func (updates TemplateUpdates) Apply() {
 	for key, update := range updates {
 		tpl := FindTemplate(key)
 		if tpl == nil {
-			log.WithField("key", key).Warn("unknown mempool template")
+			logger.Warn("unknown mempool template",
+				zap.String("key", key),
+			)
 			continue
 		}
 		tpl.Update(update)

@@ -11,6 +11,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
+	"go.uber.org/zap"
 )
 
 // DataGen is a Data encoder optimized for traffic generator.
@@ -37,7 +38,9 @@ func (gen *DataGen) ptr() *C.DataGen {
 func (gen *DataGen) Init(m *pktmbuf.Packet, data ndn.Data) {
 	_, wire, e := data.MarshalTlv()
 	if e != nil {
-		log.WithError(e).Panic("data.MarshalTlv error")
+		logger.Panic("data.MarshalTlv error",
+			zap.Error(e),
+		)
 	}
 
 	var nameL, tplSize int
@@ -54,7 +57,9 @@ DecodeLoop:
 
 	m.SetHeadroom(0)
 	if e := m.Append(wire[len(wire)-tplSize:]); e != nil {
-		log.WithError(e).Panic("mbuf.Append error")
+		logger.Panic("mbuf.Append error",
+			zap.Error(e),
+		)
 	}
 
 	c := gen.ptr()

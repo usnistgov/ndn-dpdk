@@ -5,8 +5,11 @@ import (
 	"fmt"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
+	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
+
+var logger = logging.New("ealthread")
 
 // Thread represents a procedure running on an LCore.
 type Thread interface {
@@ -54,11 +57,13 @@ func (th *threadImpl) IsRunning() bool {
 
 func (th *threadImpl) Launch() {
 	if !th.lc.Valid() {
-		log.WithField("th", th).Panic("lcore unassigned")
+		logger.Panic("lcore unassigned")
 		panic("lcore unassigned")
 	}
 	if th.IsRunning() {
-		log.WithField("lc", th.lc).Panic("lcore is busy")
+		logger.Panic("lcore is busy",
+			th.lc.ZapField("lc"),
+		)
 	}
 	th.lc.RemoteLaunch(th.main)
 }

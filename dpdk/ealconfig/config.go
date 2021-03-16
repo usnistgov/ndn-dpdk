@@ -1,6 +1,12 @@
 // Package ealconfig prepares EAL parameters.
 package ealconfig
 
+import (
+	"github.com/usnistgov/ndn-dpdk/core/logging"
+)
+
+var logger = logging.New("ealconfig")
+
 // Request contains requirements of the activating application.
 type Request struct {
 	// MinLCores is the minimum required number of lcores.

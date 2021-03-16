@@ -2,6 +2,8 @@ package eal
 
 import (
 	"fmt"
+
+	"go.uber.org/zap"
 )
 
 var lastObjectID uint64
@@ -10,6 +12,9 @@ var lastObjectID uint64
 func AllocObjectID(dbgtype string) string {
 	lastObjectID++
 	id := fmt.Sprintf("K%016x", lastObjectID)
-	log.WithFields(makeLogFields("type", dbgtype, "id", id)).Debug("object ID allocated")
+	logger.Debug("object ID allocated",
+		zap.String("type", dbgtype),
+		zap.String("id", id),
+	)
 	return id
 }

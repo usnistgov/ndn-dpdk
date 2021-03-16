@@ -10,8 +10,11 @@ import (
 	"fmt"
 	"unsafe"
 
+	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
+
+var logger = logging.New("pktmbuf")
 
 // DefaultHeadroom is the default headroom of a mbuf.
 const DefaultHeadroom = C.RTE_PKTMBUF_HEADROOM

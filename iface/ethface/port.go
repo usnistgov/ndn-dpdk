@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/pkg/math"
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
@@ -65,7 +65,7 @@ func ListPorts() (list []*Port) {
 // Port organizes EthFaces on an EthDev.
 type Port struct {
 	cfg          PortConfig
-	logger       logrus.FieldLogger
+	logger       *zap.Logger
 	dev          ethdev.EthDev
 	closeVdev    func()
 	rxBouncePool *pktmbuf.Pool
@@ -96,7 +96,7 @@ func NewPort(dev ethdev.EthDev, cfg PortConfig) (port *Port, e error) {
 
 	port = &Port{
 		cfg:    cfg,
-		logger: newPortLogger(dev),
+		logger: logger.With(dev.ZapField("port")),
 		dev:    dev,
 		faces:  make(map[iface.ID]*ethFace),
 	}
@@ -165,9 +165,11 @@ func (port *Port) fallbackImpl() error {
 			face.SetDown(true)
 		}
 
-		logEntry = logEntry.WithField("old-impl", port.impl.String())
+		logEntry = logEntry.With(zap.Stringer("old-impl", port.impl))
 		if e := port.impl.Close(); e != nil {
-			logEntry.WithError(e).Warn("impl close error")
+			logEntry.Warn("impl close error",
+				zap.Error(e),
+			)
 			return e
 		}
 	}
@@ -178,16 +180,21 @@ func (port *Port) fallbackImpl() error {
 	}
 	port.impl = impls[port.nextImpl](port)
 	port.nextImpl++
-	logEntry = logEntry.WithField("impl", port.impl.String())
+	logEntry = logEntry.With(zap.Stringer("impl", port.impl))
 
 	if e := port.impl.Init(); e != nil {
-		logEntry.WithError(e).Info("impl init error, trying next impl")
+		logEntry.Info("impl init error, trying next impl",
+			zap.Error(e),
+		)
 		return port.fallbackImpl()
 	}
 
 	for faceID, face := range port.faces {
 		if e := port.impl.Start(face); e != nil {
-			logEntry.WithField("face", faceID).WithError(e).Info("face restart error, trying next impl")
+			logEntry.Info("face restart error, trying next impl",
+				faceID.ZapField("face"),
+				zap.Error(e),
+			)
 			return port.fallbackImpl()
 		}
 		face.SetDown(false)
@@ -206,19 +213,28 @@ func (port *Port) startFace(face *ethFace, forceFallback bool) error {
 	}
 
 	if e := port.impl.Start(face); e != nil {
-		port.logger.WithError(e).Info("face start error, trying next impl")
+		port.logger.Info("face start error, trying next impl",
+			zap.Error(e),
+		)
 		return port.startFace(face, true)
 	}
 
-	port.logger.WithFields(makeLogFields("impl", port.impl.String(), "face", face.ID())).Info("face started")
+	port.logger.Info("face started",
+		zap.Stringer("impl", port.impl),
+		face.ID().ZapField("face"),
+	)
 	port.faces[face.ID()] = face
 	return nil
 }
 
 // Stop face in impl (called by ethFace.Close).
 func (port *Port) stopFace(face *ethFace) (e error) {
-	delete(port.faces, face.ID())
+	id := face.ID()
+	delete(port.faces, id)
 	e = port.impl.Stop(face)
-	port.logger.WithError(e).Info("face stopped")
+	port.logger.Info("face stopped",
+		zap.Error(e),
+		id.ZapField("face"),
+	)
 	return nil
 }

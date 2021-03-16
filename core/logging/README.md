@@ -1,6 +1,6 @@
 # ndn-dpdk/core/logger
 
-This package is a thin wrapper of [Logrus](https://github.com/sirupsen/logrus), a structured logger for Go.
+This package is a thin wrapper of [zap](https://pkg.go.dev/go.uber.org/zap), a structured logger for Go.
 C code in this project uses the [zf\_log](https://github.com/wonder-mice/zf_log) library.
 
 Loggers in both C and Go support log level configuration through environment variables.
@@ -12,11 +12,11 @@ The value of this environment variable must be one of:
 * **I**: INFO level (default)
 * **W**: WARNING level
 * **E**: ERROR level
-* **F**: FATAL level
+* **F**: PANIC level
 * **N**: disabled (in C), PANIC level (in Go)
 
 To find all log module names in the codebase, execute:
 
 ```bash
-git grep -E 'INIT_ZF_LOG|logger\.New'
+git grep -wE 'INIT_ZF_LOG|logging\.New'
 ```

@@ -14,6 +14,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"go.uber.org/zap"
 )
 
 var randomizedMacAddrs sync.Map
@@ -35,6 +36,14 @@ func (port EthDev) cID() C.uint16_t {
 // Valid returns true if this is a valid Ethernet port.
 func (port EthDev) Valid() bool {
 	return port.v != 0
+}
+
+// ZapField returns a zap.Field for logging.
+func (port EthDev) ZapField(key string) zap.Field {
+	if !port.Valid() {
+		return zap.String(key, "invalid")
+	}
+	return zap.Int(key, port.ID())
 }
 
 func (port EthDev) String() string {
