@@ -3,18 +3,18 @@
 #include "../core/logger.h"
 #include "cs.h"
 
-INIT_ZF_LOG(Pit);
+N_LOG_INIT(Pit);
 
 static void
 Pit_SgTimerCb_Empty(Pit* pit, PitEntry* entry, void* arg)
 {
-  ZF_LOGD("%p SgTimerCb(%p) no-callback", pit, entry);
+  N_LOGD("SgTimerCb pit=%p pit-entry=%p no-callback", pit, entry);
 }
 
 void
 Pit_Init(Pit* pit)
 {
-  ZF_LOGI("%p Init() pcct=%p", pit, Pcct_FromPit(pit));
+  N_LOGI("Init pit=%p pcct=%p", pit, Pcct_FromPit(pit));
 
   // 2^12 slots of 33ms interval, accommodates InterestLifetime up to 136533ms
   pit->timeoutSched = MinSched_New(12, rte_get_tsc_hz() / 30, PitEntry_Timeout_, pit);
@@ -53,8 +53,8 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
   if (pccEntry->hasCsEntry && likely(Cs_MatchInterest_(&pcct->cs, pccEntry, npkt))) {
     // CS entry satisfies Interest
     char debugStringBuffer[PccSearchDebugStringLength];
-    ZF_LOGD("%p Insert(%s) pcc=%p has-CS", pit, PccSearch_ToDebugString(&search, debugStringBuffer),
-            pccEntry);
+    N_LOGD("Insert has-CS pit=%p search=%s pcc=%p", pit,
+           PccSearch_ToDebugString(&search, debugStringBuffer), pccEntry);
     ++pit->nCsMatch;
     return PitResult_New_(pccEntry, PIT_INSERT_CS);
   }
@@ -96,16 +96,14 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
     ++pit->nInsert;
     PitEntry_Init(entry, npkt, fibEntry);
     char debugStringBuffer[PccSearchDebugStringLength];
-    ZF_LOGD("%p Insert(%s) pcc=%p ins-PIT%d pit=%p", pit,
-            PccSearch_ToDebugString(&search, debugStringBuffer), pccEntry, (int)entry->mustBeFresh,
-            entry);
+    N_LOGD("Insert ins-PIT%d pit=%p search=%s pcc-entry=%p pit-entry=%p", (int)entry->mustBeFresh,
+           pit, PccSearch_ToDebugString(&search, debugStringBuffer), pccEntry, entry);
   } else {
     ++pit->nFound;
     PitEntry_RefreshFibEntry(entry, npkt, fibEntry);
     char debugStringBuffer[PccSearchDebugStringLength];
-    ZF_LOGD("%p Insert(%s) pcc=%p has-PIT%d pit=%p", pit,
-            PccSearch_ToDebugString(&search, debugStringBuffer), pccEntry, (int)entry->mustBeFresh,
-            entry);
+    N_LOGD("Insert has-PIT%d pit=%p search=%s pcc-entry=%p pit-entry=%p", (int)entry->mustBeFresh,
+           pit, PccSearch_ToDebugString(&search, debugStringBuffer), pccEntry, entry);
   }
 
   return PitResult_New_(pccEntry, resKind);
@@ -118,11 +116,11 @@ Pit_Erase(Pit* pit, PitEntry* entry)
   if (!entry->mustBeFresh) {
     NDNDPDK_ASSERT(pccEntry->hasPitEntry0);
     PccEntry_RemovePitEntry0(pccEntry);
-    ZF_LOGD("%p Erase(%p) del-PIT0 pcc=%p", pit, entry, pccEntry);
+    N_LOGD("Erase del-PIT0 pit=%p pcc-entry=%p pit-entry=%p", pit, pccEntry, entry);
   } else {
     NDNDPDK_ASSERT(pccEntry->hasPitEntry1);
     PccEntry_RemovePitEntry1(pccEntry);
-    ZF_LOGD("%p Erase(%p) del-PIT1 pcc=%p", pit, entry, pccEntry);
+    N_LOGD("Erase del-PIT1 pit=%p pcc-entry=%p pit-entry=%p", pit, pccEntry, entry);
   }
   PitEntry_Finalize(entry);
 

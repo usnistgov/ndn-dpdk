@@ -9,10 +9,10 @@ package mempool
 import "C"
 import (
 	"errors"
-	"io"
-	"os"
+	"unsafe"
 
 	"github.com/graphql-go/graphql"
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
@@ -24,31 +24,10 @@ var (
 
 func makeFileDumpResolver(f func(fp *C.FILE)) graphql.FieldResolveFn {
 	return func(p graphql.ResolveParams) (interface{}, error) {
-		file, e := os.CreateTemp("", "")
-		if e != nil {
-			return nil, e
-		}
-		filename := file.Name()
-		defer os.Remove(filename)
-
-		conn, e := file.SyscallConn()
-		if e != nil {
-			return nil, e
-		}
-		conn.Write(func(fd uintptr) bool {
-			mode := []C.char{'w', 0}
-			fp := C.fdopen(C.int(fd), &mode[0])
-			f(fp)
-			C.fflush(fp)
-			return true
+		data, e := cptr.CaptureFileDump(func(fp unsafe.Pointer) {
+			f((*C.FILE)(fp))
 		})
-
-		file.Seek(0, 0)
-		content, e := io.ReadAll(file)
-		if e != nil {
-			return nil, e
-		}
-		return string(content), e
+		return string(data), e
 	}
 }
 

@@ -3,7 +3,7 @@
 
 #include "../core/logger.h"
 
-INIT_ZF_LOG(FwFwd);
+N_LOG_INIT(FwFwd);
 
 static_assert((int)SGEVT_INTEREST == (int)PktInterest, "");
 static_assert((int)SGEVT_DATA == (int)PktData, "");
@@ -66,8 +66,8 @@ int
 FwFwd_Run(FwFwd* fwd)
 {
   rcu_register_thread();
-  ZF_LOGI("Run(%" PRIu8 ") fwd=%p fib=%p pit=%p cs=%p crypto=%p", fwd->id, fwd, fwd->fib, fwd->pit,
-          fwd->cs, fwd->crypto);
+  N_LOGI("Run fwd-id=%" PRIu8 " fwd=%p fib=%p pit=%p cs=%p crypto=%p", fwd->id, fwd, fwd->fib,
+         fwd->pit, fwd->cs, fwd->crypto);
 
   fwd->sgGlobal.tscHz = rte_get_tsc_hz();
   Pit_SetSgTimerCb(fwd->pit, SgTriggerTimer, fwd);
@@ -81,7 +81,7 @@ FwFwd_Run(FwFwd* fwd)
     FwFwd_RxByType(fwd, PktNack);
   }
 
-  ZF_LOGI("Stop(%" PRIu8 ")", fwd->id);
+  N_LOGI("Stop fwd-id=%" PRIu8, fwd->id);
   rcu_unregister_thread();
   return 0;
 }

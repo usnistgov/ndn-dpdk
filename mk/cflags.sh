@@ -3,7 +3,9 @@ export CGO_CFLAGS_ALLOW='.*'
 
 CFLAGS='-Wno-unused-function -Wno-unused-parameter -Wno-missing-braces'
 if [[ $NDNDPDK_MK_RELEASE -eq 1 ]]; then
-  CFLAGS=$CFLAGS' -DNDEBUG -DZF_LOG_DEF_LEVEL=ZF_LOG_INFO'
+  CFLAGS=$CFLAGS' -DNDEBUG -DN_LOG_LEVEL=RTE_LOG_NOTICE'
+else
+  CFLAGS=$CFLAGS' -DN_LOG_LEVEL=RTE_LOG_DEBUG'
 fi
 if [[ $NDNDPDK_MK_THREADSLEEP -eq 1 ]]; then
   CFLAGS=$CFLAGS' -DNDNDPDK_THREADSLEEP'

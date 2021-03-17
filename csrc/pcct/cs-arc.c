@@ -2,7 +2,7 @@
 
 #include "../core/logger.h"
 
-INIT_ZF_LOG(CsArc);
+N_LOG_INIT(CsArc);
 
 CsList*
 CsArc_GetList(CsArc* arc, CsArcListId cslId)
@@ -35,7 +35,7 @@ CsArc_GetList(CsArc* arc, CsArcListId cslId)
     CsList_Remove(&(arc)->src, (entry));                                                           \
     (entry)->arcList = CSL_ARC_##dst;                                                              \
     CsList_Append(&(arc)->dst, (entry));                                                           \
-    ZF_LOGV("^ move=%p from=" #src " to=" #dst, (entry));                                          \
+    N_LOGV("^ move=%p from=" #src " to=" #dst, (entry));                                           \
   } while (false)
 
 static inline void
@@ -83,7 +83,7 @@ CsArc_AddB1(CsArc* arc, CsEntry* entry)
     delta1 = (double)arc->B2.count / (double)arc->B1.count;
   }
   CsArc_SetP(arc, RTE_MIN(arc->p + delta1, arc->c));
-  ZF_LOGD("%p Add(%p) found-in=B1 p=%0.3f", arc, entry, arc->p);
+  N_LOGD("Add arc=%p cs-entry=%p found-in=B1 p=%0.3f", arc, entry, arc->p);
   CsArc_Replace(arc, false);
   CsArc_Move(arc, entry, B1, T2);
 }
@@ -96,7 +96,7 @@ CsArc_AddB2(CsArc* arc, CsEntry* entry)
     delta2 = (double)arc->B1.count / (double)arc->B2.count;
   }
   CsArc_SetP(arc, RTE_MAX(arc->p - delta2, 0.0));
-  ZF_LOGD("%p Add(%p) found-in=B2 p=%0.3f", arc, entry, arc->p);
+  N_LOGD("Add arc=%p cs-entry=%p found-in=B2 p=%0.3f", arc, entry, arc->p);
   CsArc_Replace(arc, true);
   CsArc_Move(arc, entry, B2, T2);
 }
@@ -104,17 +104,17 @@ CsArc_AddB2(CsArc* arc, CsEntry* entry)
 static void
 CsArc_AddNew(CsArc* arc, CsEntry* entry)
 {
-  ZF_LOGD("%p Add(%p) found-in=NEW append-to=T1", arc, entry);
+  N_LOGD("Add arc=%p cs-entry=%p found-in=NEW append-to=T1", arc, entry);
   uint32_t nL1 = arc->T1.count + arc->B1.count;
   if (nL1 == CsArc_c(arc)) {
     if (arc->T1.count < CsArc_c(arc)) {
-      ZF_LOGV("^ evict-from=B1");
+      N_LOGV("^ evict-from=B1");
       CsEntry* deleting = CsList_GetFront(&arc->B1);
       CsArc_Move(arc, deleting, B1, DEL);
       CsArc_Replace(arc, false);
     } else {
       NDNDPDK_ASSERT(arc->B1.count == 0);
-      ZF_LOGV("^ evict-from=T1");
+      N_LOGV("^ evict-from=T1");
       CsEntry* deleting = CsList_GetFront(&arc->T1);
       CsEntry_ClearData(deleting);
       CsArc_Move(arc, deleting, T1, DEL);
@@ -124,7 +124,7 @@ CsArc_AddNew(CsArc* arc, CsEntry* entry)
     uint32_t nL1L2 = nL1 + arc->T2.count + arc->B2.count;
     if (nL1L2 >= CsArc_c(arc)) {
       if (nL1L2 == CsArc_2c(arc)) {
-        ZF_LOGV("^ evict-from=B2");
+        N_LOGV("^ evict-from=B2");
         CsEntry* deleting = CsList_GetFront(&arc->B2);
         CsArc_Move(arc, deleting, B2, DEL);
       }
@@ -140,11 +140,11 @@ CsArc_Add(CsArc* arc, CsEntry* entry)
 {
   switch (entry->arcList) {
     case CSL_ARC_T1:
-      ZF_LOGD("%p Add(%p) found-in=T1", arc, entry);
+      N_LOGD("Add arc=%p cs-entry=%p found-in=T1", arc, entry);
       CsArc_Move(arc, entry, T1, T2);
       return;
     case CSL_ARC_T2:
-      ZF_LOGD("%p Add(%p) found-in=T2", arc, entry);
+      N_LOGD("Add arc=%p cs-entry=%p found-in=T2", arc, entry);
       CsList_MoveToLast(&arc->T2, entry);
       return;
     case CSL_ARC_B1:
@@ -167,7 +167,7 @@ CsArc_Add(CsArc* arc, CsEntry* entry)
 void
 CsArc_Remove(CsArc* arc, CsEntry* entry)
 {
-  ZF_LOGD("%p Remove(%p)", arc, entry);
+  N_LOGD("Remove arc=%p cs-entry=%p", arc, entry);
   CsList_Remove(CsArc_GetList(arc, entry->arcList), entry);
   entry->arcList = CSL_ARC_NONE;
 }

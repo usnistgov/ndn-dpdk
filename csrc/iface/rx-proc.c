@@ -2,7 +2,7 @@
 #include "../core/logger.h"
 #include "faceid.h"
 
-INIT_ZF_LOG(RxProc);
+N_LOG_INIT(RxProc);
 
 Packet*
 RxProc_Input(RxProc* rx, int thread, struct rte_mbuf* frame)
@@ -15,7 +15,7 @@ RxProc_Input(RxProc* rx, int thread, struct rte_mbuf* frame)
   Packet* npkt = Packet_FromMbuf(frame);
   if (unlikely(!Packet_Parse(npkt))) {
     ++rxt->nDecodeErr;
-    ZF_LOGD("%" PRI_FaceID "-%d decode-error", faceID, thread);
+    N_LOGD("l2-decode-error face=%" PRI_FaceID " thread=%d", faceID, thread);
     rte_pktmbuf_free(frame);
     return NULL;
   }
@@ -28,7 +28,7 @@ RxProc_Input(RxProc* rx, int thread, struct rte_mbuf* frame)
 
   if (unlikely(thread != 0)) {
     // reassembler is available on thread 0 only
-    ZF_LOGW("%" PRI_FaceID "-%d lp-reassembler-unavail", faceID, thread);
+    N_LOGW("lp-reassembler-unavail face=%" PRI_FaceID " thread=%d", faceID, thread);
     rte_pktmbuf_free(frame);
     return NULL;
   }
@@ -41,7 +41,7 @@ RxProc_Input(RxProc* rx, int thread, struct rte_mbuf* frame)
 
   if (unlikely(!Packet_ParseL3(npkt))) {
     ++rxt->nDecodeErr;
-    ZF_LOGD("%" PRI_FaceID "-%d decode-error", faceID, thread);
+    N_LOGD("l3-decode-error face=%" PRI_FaceID " thread=%d", faceID, thread);
     rte_pktmbuf_free(Packet_ToMbuf(npkt));
     return NULL;
   }

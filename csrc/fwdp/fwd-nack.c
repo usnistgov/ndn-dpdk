@@ -5,7 +5,7 @@
 #include "../core/logger.h"
 #include "../pcct/pit-iterator.h"
 
-INIT_ZF_LOG(FwFwd);
+N_LOG_INIT(FwFwd);
 
 __attribute__((nonnull)) static void
 FwFwd_TxNacks(FwFwd* fwd, PitEntry* pitEntry, TscTime now, NackReason reason, uint8_t nackHopLimit)
@@ -21,7 +21,7 @@ FwFwd_TxNacks(FwFwd* fwd, PitEntry* pitEntry, TscTime now, NackReason reason, ui
     }
 
     if (unlikely(Face_IsDown(dn->face))) {
-      ZF_LOGD("^ no-nack-to=%" PRI_FaceID " drop=face-down", dn->face);
+      N_LOGD("^ no-nack-to=%" PRI_FaceID " drop=face-down", dn->face);
       continue;
     }
 
@@ -32,7 +32,7 @@ FwFwd_TxNacks(FwFwd* fwd, PitEntry* pitEntry, TscTime now, NackReason reason, ui
     PacketTxAlign align = Face_PacketTxAlign(dn->face);
     Packet* output = Interest_ModifyGuiders(pitEntry->npkt, guiders, &fwd->mp, align);
     if (unlikely(output == NULL)) {
-      ZF_LOGD("^ no-nack-to=%" PRI_FaceID " drop=alloc-error", dn->face);
+      N_LOGD("^ no-nack-to=%" PRI_FaceID " drop=alloc-error", dn->face);
       break;
     }
     output = Nack_FromInterest(output, reason, &fwd->mp, align);
@@ -40,8 +40,8 @@ FwFwd_TxNacks(FwFwd* fwd, PitEntry* pitEntry, TscTime now, NackReason reason, ui
                    NULL); // cannot fail because Interest_ModifyGuiders result is already aligned
 
     Packet_GetLpL3Hdr(output)->pitToken = dn->token;
-    ZF_LOGD("^ nack-to=%" PRI_FaceID " reason=%s npkt=%p nonce=%08" PRIx32 " dn-token=%016" PRIx64,
-            dn->face, NackReason_ToString(reason), output, dn->nonce, dn->token);
+    N_LOGD("^ nack-to=%" PRI_FaceID " reason=%s npkt=%p nonce=%08" PRIx32 " dn-token=%016" PRIx64,
+           dn->face, NackReason_ToString(reason), output, dn->nonce, dn->token);
     Face_Tx(dn->face, output);
   }
 }
@@ -75,7 +75,7 @@ FwFwd_RxNackDuplicate(FwFwd* fwd, FwFwdCtx* ctx)
   Packet* outNpkt =
     Interest_ModifyGuiders(ctx->pitEntry->npkt, guiders, &fwd->mp, Face_PacketTxAlign(up->face));
   if (unlikely(outNpkt == NULL)) {
-    ZF_LOGD("^ no-interest-to=%" PRI_FaceID " drop=alloc-error", up->face);
+    N_LOGD("^ no-interest-to=%" PRI_FaceID " drop=alloc-error", up->face);
     return true;
   }
 
@@ -83,8 +83,8 @@ FwFwd_RxNackDuplicate(FwFwd* fwd, FwFwdCtx* ctx)
   Packet_GetLpL3Hdr(outNpkt)->pitToken = token;
   Mbuf_SetTimestamp(Packet_ToMbuf(outNpkt), Mbuf_GetTimestamp(ctx->pkt)); // for latency stats
 
-  ZF_LOGD("^ interest-to=%" PRI_FaceID " npkt=%p " PRI_InterestGuiders " up-token=%016" PRIx64,
-          up->face, outNpkt, InterestGuiders_Fmt(guiders), token);
+  N_LOGD("^ interest-to=%" PRI_FaceID " npkt=%p " PRI_InterestGuiders " up-token=%016" PRIx64,
+         up->face, outNpkt, InterestGuiders_Fmt(guiders), token);
   Face_Tx(up->face, outNpkt);
   if (ctx->fibEntryDyn != NULL) {
     ++ctx->fibEntryDyn->nTxInterests;
@@ -101,13 +101,13 @@ FwFwd_ProcessNack(FwFwd* fwd, FwFwdCtx* ctx)
   NackReason reason = nack->lpl3.nackReason;
   uint8_t nackHopLimit = nack->interest.hopLimit;
 
-  ZF_LOGD("nack-from=%" PRI_FaceID " npkt=%p up-token=%016" PRIx64 " reason=%" PRIu8, ctx->rxFace,
-          ctx->npkt, ctx->rxToken, reason);
+  N_LOGD("RxNack nack-from=%" PRI_FaceID " npkt=%p up-token=%016" PRIx64 " reason=%" PRIu8,
+         ctx->rxFace, ctx->npkt, ctx->rxToken, reason);
 
   // find PIT entry
   ctx->pitEntry = Pit_FindByNack(fwd->pit, ctx->npkt);
   if (unlikely(ctx->pitEntry == NULL)) {
-    ZF_LOGD("^ drop=no-PIT-entry");
+    N_LOGD("^ drop=no-PIT-entry");
     return;
   }
 
@@ -122,8 +122,8 @@ FwFwd_ProcessNack(FwFwd* fwd, FwFwdCtx* ctx)
     }
     if (it.up->face == ctx->rxFace) {
       if (unlikely(it.up->nonce != nack->interest.nonce)) {
-        ZF_LOGD("^ drop=wrong-nonce pit-nonce=%" PRIx32 " up-nonce=%" PRIx32, it.up->nonce,
-                nack->interest.nonce);
+        N_LOGD("^ drop=wrong-nonce pit-nonce=%" PRIx32 " up-nonce=%" PRIx32, it.up->nonce,
+               nack->interest.nonce);
         break;
       }
       ctx->pitUp = it.up;
@@ -162,15 +162,15 @@ FwFwd_ProcessNack(FwFwd* fwd, FwFwdCtx* ctx)
   if (likely(ctx->fibEntry != NULL)) {
     // TODO set ctx->nhFlt to prevent forwarding to downstream
     uint64_t res = SgInvoke(ctx->fibEntry->strategy, ctx);
-    ZF_LOGD("^ fib-entry-depth=%" PRIu8 " sg-id=%d sg-res=%" PRIu64, ctx->fibEntry->nComps,
-            ctx->fibEntry->strategy->id, res);
+    N_LOGD("^ fib-entry-depth=%" PRIu8 " sg-id=%d sg-res=%" PRIu64, ctx->fibEntry->nComps,
+           ctx->fibEntry->strategy->id, res);
   }
   NULLize(ctx->fibEntry); // fibEntry is inaccessible upon RCU unlock
   rcu_read_unlock();
 
   // if there are more pending upstream or strategy retries, wait for them
   if (nPending + ctx->nForwarded > 0) {
-    ZF_LOGD("^ up-pendings=%d sg-forwarded=%d", nPending, ctx->nForwarded);
+    N_LOGD("^ up-pendings=%d sg-forwarded=%d", nPending, ctx->nForwarded);
     return;
   }
 

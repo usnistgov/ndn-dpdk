@@ -5,39 +5,36 @@
 
 #include "common.h"
 
-#ifndef ZF_LOG_DEF_LEVEL
-/**
- * @brief Set compile-time maximum log level.
- *
- * Logging statements below this level incur zero runtime overhead.
- */
-#define ZF_LOG_DEF_LEVEL ZF_LOG_VERBOSE
+#ifdef N_LOG_LEVEL
+#undef RTE_LOG_DP_LEVEL
+#define RTE_LOG_DP_LEVEL N_LOG_LEVEL
 #endif
 
-#define ZF_LOG_VERSION_REQUIRED 4
-#define ZF_LOG_OUTPUT_LEVEL gZfLogOutputLvl
-#define ZF_LOG_SRCLOC ZF_LOG_SRCLOC_SHORT
-#include "../vendor/zf_log.h"
-
-/**
- * @brief Initialize zf_log and set module log level.
- * @param module log module name; cannot exceed 16 characters.
- *
- * This macro must appear in every .c that uses logging.
- * It is permitted to reuse the same module name in multiple .c files.
- * @code
- * INIT_ZF_LOG(Foo);
- * @endcode
- */
-#define INIT_ZF_LOG(module)                                                                        \
-  static int gZfLogOutputLvl;                                                                      \
-  RTE_INIT(InitLogOutputLvl)                                                                       \
+#define N_LOG_INIT(module)                                                                         \
+  static int RTE_LOGTYPE_NDN = -1;                                                                 \
+  RTE_INIT(Logger_Init_##module)                                                                   \
   {                                                                                                \
-    gZfLogOutputLvl = Logger_GetLevel(#module);                                                    \
+    RTE_LOGTYPE_NDN = rte_log_register_type_and_pick_level("NDN." #module, RTE_LOG_INFO);          \
   }                                                                                                \
   struct AllowTrailingSemicolon_
 
+#define N_LOG(lvl, fmt, ...) RTE_LOG_DP(lvl, NDN, fmt "\n", ##__VA_ARGS__)
+
+#define N_LOGV(...) N_LOG(DEBUG, __VA_ARGS__)
+#define N_LOGD(...) N_LOG(INFO, __VA_ARGS__)
+#define N_LOGI(...) N_LOG(NOTICE, __VA_ARGS__)
+#define N_LOGW(...) N_LOG(WARNING, __VA_ARGS__)
+#define N_LOGE(...) N_LOG(ERR, __VA_ARGS__)
+
+#define N_LOG_ERROR(s) " ERROR={" s "}"
+#define N_LOG_ERROR_BLANK N_LOG_ERROR("-")
+#define N_LOG_ERROR_STR N_LOG_ERROR("%s")
+
 int
-Logger_GetLevel(const char* module);
+Logger_Dpdk_Init(FILE* output);
+
+void
+Logger_Spdk(int level, const char* file, const int line, const char* func, const char* format,
+            va_list args);
 
 #endif // NDNDPDK_CORE_LOGGER_H

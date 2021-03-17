@@ -3,7 +3,7 @@
 #include "../core/logger.h"
 #include "token.h"
 
-INIT_ZF_LOG(TgConsumer);
+N_LOG_INIT(TgConsumer);
 
 __attribute__((nonnull)) static PingPatternId
 TgConsumerTx_SelectPattern(TgConsumerTx* ct)
@@ -35,7 +35,7 @@ TgConsumerTx_MakeInterest(TgConsumerTx* ct, struct rte_mbuf* pkt, TgTime now)
   uint32_t nonce = NonceGen_Next(&ct->nonceGen);
   Packet* npkt = InterestTemplate_Encode(&pattern->tpl, pkt, nameSuffix, nonce);
   Packet_GetLpL3Hdr(npkt)->pitToken = TgToken_New(patternId, ct->runNum, now);
-  ZF_LOGD("<I pattern=%" PRIu8 " seq=%" PRIx64 "", patternId, seqNum);
+  N_LOGD("<I pattern=%" PRIu8 " seq=%" PRIx64 "", patternId, seqNum);
 }
 
 __attribute__((nonnull)) static void
@@ -44,7 +44,7 @@ TgConsumerTx_Burst(TgConsumerTx* ct)
   struct rte_mbuf* pkts[TGCONSUMER_TX_BURST_SIZE];
   int res = rte_pktmbuf_alloc_bulk(ct->interestMp, pkts, TGCONSUMER_TX_BURST_SIZE);
   if (unlikely(res != 0)) {
-    ZF_LOGW("interestMp-full");
+    N_LOGW("interestMp-full");
     return;
   }
 

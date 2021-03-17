@@ -1,7 +1,7 @@
 #include "face.h"
 #include "../core/logger.h"
 
-INIT_ZF_LOG(EthFace);
+N_LOG_INIT(EthFace);
 
 __attribute__((nonnull)) static uint16_t
 EthRxFlow_RxBurst_Unchecked(RxGroup* rxg, struct rte_mbuf** pkts, uint16_t nPkts)

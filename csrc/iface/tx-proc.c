@@ -3,7 +3,7 @@
 #include "../core/logger.h"
 #include "../ndni/tlv-decoder.h"
 
-INIT_ZF_LOG(TxProc);
+N_LOG_INIT(TxProc);
 
 static_assert((int)MinMTU > (int)LpHeaderHeadroom, "");
 
@@ -11,7 +11,7 @@ __attribute__((nonnull)) static __rte_always_inline uint16_t
 TxProc_One(const char* logVerb, Packet* npkt, struct rte_mbuf* frames[LpMaxFragments])
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
-  ZF_LOGV("%s pktLen=%" PRIu32, logVerb, pkt->pkt_len);
+  N_LOGV("%s pktLen=%" PRIu32, logVerb, pkt->pkt_len);
 
   LpL2 l2 = { .fragCount = 1 };
   LpHeader_Prepend(pkt, Packet_GetLpL3Hdr(npkt), &l2);
@@ -39,8 +39,8 @@ TxProc_LinearFrag(TxProc* tx, Packet* npkt, struct rte_mbuf* frames[LpMaxFragmen
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   LpL2 l2 = { .seqNumBase = tx->nextSeqNum, .fragCount = pkt->nb_segs };
-  ZF_LOGV("linear-frag pktLen=%" PRIu32 " seq=%016" PRIx64 " fragCount=%" PRIu8, pkt->pkt_len,
-          l2.seqNumBase, l2.fragCount);
+  N_LOGV("linear-frag pktLen=%" PRIu32 " seq=%016" PRIx64 " fragCount=%" PRIu8, pkt->pkt_len,
+         l2.seqNumBase, l2.fragCount);
   LpL3* l3 = Packet_GetLpL3Hdr(npkt);
   TscTime timestamp = Mbuf_GetTimestamp(pkt);
   PktType framePktType = PktType_ToSlim(Packet_GetType(npkt));
@@ -77,8 +77,8 @@ TxProc_ChainedFrag(TxProc* tx, Packet* npkt, struct rte_mbuf* frames[LpMaxFragme
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   LpL2 l2 = { .seqNumBase = tx->nextSeqNum };
   l2.fragCount = DIV_CEIL(pkt->pkt_len, align.fragmentPayloadSize);
-  ZF_LOGV("chained-frag pktLen=%" PRIu32 " seq=%016" PRIx64 " fragCount=%" PRIu8, pkt->pkt_len,
-          l2.seqNumBase, l2.fragCount);
+  N_LOGV("chained-frag pktLen=%" PRIu32 " seq=%016" PRIx64 " fragCount=%" PRIu8, pkt->pkt_len,
+         l2.seqNumBase, l2.fragCount);
   if (unlikely(l2.fragCount > LpMaxFragments)) {
     ++tx->nL3OverLength;
     return 0;

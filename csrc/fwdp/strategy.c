@@ -2,14 +2,15 @@
 
 #include "../core/logger.h"
 
-INIT_ZF_LOG(FwFwd);
+N_LOG_INIT(FwFwd);
 
 void
 SgTriggerTimer(Pit* pit, PitEntry* pitEntry, void* fwd0)
 {
+  FwFwd* fwd = fwd0;
   FwFwdCtx ctx = {
     .rxTime = rte_get_tsc_cycles(),
-    .fwd = (FwFwd*)fwd0,
+    .fwd = fwd,
     .eventKind = SGEVT_TIMER,
     .pitEntry = pitEntry,
   };
@@ -18,16 +19,16 @@ SgTriggerTimer(Pit* pit, PitEntry* pitEntry, void* fwd0)
   rcu_read_lock();
   FwFwdCtx_SetFibEntry(&ctx, PitEntry_FindFibEntry(pitEntry, ctx.fwd->fib));
   if (unlikely(ctx.fibEntry == NULL)) {
-    ZF_LOGD("sgtimer-at=%p drop=no-FIB-match", pitEntry);
+    N_LOGD("Timer no-FIB-match sgtimer-at=%p", pitEntry);
     rcu_read_unlock();
     return;
   }
 
   // invoke strategy
-  ZF_LOGD("sgtimer-at=%p fib-entry=%p sg-id=%d", pitEntry, ctx.fibEntry,
-          ctx.fibEntry->strategy->id);
+  N_LOGD("Timer invoke sgtimer-at=%p fib-entry=%p sg-id=%d", pitEntry, ctx.fibEntry,
+         ctx.fibEntry->strategy->id);
   uint64_t res = SgInvoke(ctx.fibEntry->strategy, &ctx);
-  ZF_LOGD("^ sg-res=%" PRIu64 " sg-forwarded=%d", res, ctx.nForwarded);
+  N_LOGD("^ sg-res=%" PRIu64 " sg-forwarded=%d", res, ctx.nForwarded);
 
   NULLize(ctx.fibEntry); // fibEntry is inaccessible upon RCU unlock
   rcu_read_unlock();
@@ -38,7 +39,7 @@ SgSetTimer(SgCtx* ctx0, TscDuration after)
 {
   FwFwdCtx* ctx = (FwFwdCtx*)ctx0;
   bool ok = PitEntry_SetSgTimer(ctx->pitEntry, ctx->fwd->pit, after);
-  ZF_LOGD("^ sgtimer-after=%" PRId64 " %s", after, ok ? "OK" : "FAIL");
+  N_LOGD("^ sgtimer-after=%" PRId64 " %s", after, ok ? "OK" : "FAIL");
   return ok;
 }
 

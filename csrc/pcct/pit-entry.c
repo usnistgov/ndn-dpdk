@@ -4,7 +4,7 @@
 
 #include "../core/logger.h"
 
-INIT_ZF_LOG(PitEntry);
+N_LOG_INIT(PitEntry);
 
 static_assert(sizeof(PitEntryExt) <= sizeof(PccEntry), "");
 
@@ -109,11 +109,11 @@ PitEntry_Timeout_(MinTmr* tmr, void* pit0)
   Pit* pit = (Pit*)pit0;
   PitEntry* entry = container_of(tmr, PitEntry, timeout);
   if (entry->hasSgTimer) {
-    ZF_LOGD("%p Timeout() reason=sgtimer", entry);
+    N_LOGD("Timeout(sgtimer) pit=%p pit-entry=%p", pit, entry);
     PitEntry_SetExpiryTimer(entry, pit);
     Pit_InvokeSgTimerCb_(pit, entry);
   } else {
-    ZF_LOGD("%p Timeout() reason=expiry", entry);
+    N_LOGD("Timeout(expiry) pit=%p pit-entry=%p", pit, entry);
     Pit_Erase(pit, entry);
   }
 }

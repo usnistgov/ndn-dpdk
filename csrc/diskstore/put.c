@@ -2,7 +2,7 @@
 
 #include "../core/logger.h"
 
-INIT_ZF_LOG(DiskStore);
+N_LOG_INIT(DiskStore);
 
 /** @brief Parameters related to PutData, stored over PData.digest field. */
 typedef struct DiskStore_PutDataRequest
@@ -21,7 +21,7 @@ DiskStore_PutData_End(struct spdk_bdev_io* io, bool success, void* npkt0)
   uint64_t slotID = req->slotID;
 
   if (unlikely(!success)) {
-    ZF_LOGW("PutData_End(%" PRIu64 ", %p): fail=io-err", slotID, npkt);
+    N_LOGW("PutData_End slot=%" PRIu64 " npkt=%p fail=io-err", slotID, npkt);
   }
 
   rte_pktmbuf_free(Packet_ToMbuf(npkt));
@@ -42,7 +42,7 @@ DiskStore_PutData_Begin(void* npkt0)
   int res = SpdkBdev_WritePacket(store->bdev, store->ch, Packet_ToMbuf(npkt), blockOffset,
                                  blockCount, store->blockSize, DiskStore_PutData_End, npkt);
   if (unlikely(res != 0)) {
-    ZF_LOGW("PutData_Begin(%" PRIu64 ", %p): fail=write(%d)", slotID, npkt, res);
+    N_LOGW("PutData_Begin slot=%" PRIu64 " npkt=%p fail=write(%d)", slotID, npkt, res);
     rte_pktmbuf_free(Packet_ToMbuf(npkt));
   }
 }
@@ -53,7 +53,7 @@ DiskStore_PutData(DiskStore* store, uint64_t slotID, Packet* npkt)
   NDNDPDK_ASSERT(slotID > 0);
   uint64_t blockCount = DiskStore_ComputeBlockCount_(store, npkt);
   if (unlikely(blockCount > store->nBlocksPerSlot)) {
-    ZF_LOGW("PutData(%" PRIu64 ", %p): fail=packet-too-long", slotID, npkt);
+    N_LOGW("PutData slot=%" PRIu64 " npkt=%p fail=packet-too-long", slotID, npkt);
     rte_pktmbuf_free(Packet_ToMbuf(npkt));
     return;
   }

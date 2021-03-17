@@ -2,9 +2,14 @@
 package spdkenv
 
 /*
-#include "../../csrc/core/common.h"
+#include "../../csrc/core/logger.h"
 #include <spdk/env_dpdk.h>
 #include <spdk/log.h>
+
+void c_SpdkLoggerReady()
+{
+	SPDK_NOTICELOG("SPDK logger ready\n");
+}
 */
 import "C"
 import (
@@ -33,6 +38,8 @@ func InitEnv() {
 		return
 	}
 
+	C.spdk_log_open((*C.logfunc)(C.Logger_Spdk))
+
 	if res := int(C.spdk_env_dpdk_post_init(C.bool(false))); res != 0 {
 		logger.Fatal("SPDK env init error",
 			zap.Error(eal.Errno(-res)),
@@ -40,24 +47,7 @@ func InitEnv() {
 		return
 	}
 
-	C.spdk_log_set_print_level(func() C.enum_spdk_log_level {
-		switch logging.GetLevel("SPDK") {
-		case 'V':
-			return C.SPDK_LOG_DEBUG
-		case 'D':
-			return C.SPDK_LOG_INFO
-		case 'I':
-			return C.SPDK_LOG_NOTICE
-		case 'W':
-			return C.SPDK_LOG_WARN
-		case 'E', 'F':
-			return C.SPDK_LOG_ERROR
-		case 'N':
-			return C.SPDK_LOG_DISABLED
-		}
-		return C.SPDK_LOG_INFO
-	}())
-
+	C.c_SpdkLoggerReady()
 }
 
 // InitMainThread creates a main thread, and launches on the current goroutine.

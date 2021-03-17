@@ -2,7 +2,7 @@
 
 #include "../core/logger.h"
 
-INIT_ZF_LOG(TgProducer);
+N_LOG_INIT(TgProducer);
 
 __attribute__((nonnull)) static int
 TgProducer_FindPattern(TgProducer* p, LName name)
@@ -69,7 +69,7 @@ TgProducer_ProcessInterest(TgProducer* p, Packet* npkt)
 
   int patternId = TgProducer_FindPattern(p, *name);
   if (unlikely(patternId < 0)) {
-    ZF_LOGD(">I dn-token=%016" PRIx64 " no-pattern", token);
+    N_LOGD(">I dn-token=%016" PRIx64 " no-pattern", token);
     ++p->nNoMatch;
     if (p->wantNackNoRoute) {
       return Nack_FromInterest(npkt, NackNoRoute, &p->mp, Face_PacketTxAlign(p->face));
@@ -83,7 +83,7 @@ TgProducer_ProcessInterest(TgProducer* p, Packet* npkt)
   uint8_t replyId = TgProducer_SelectReply(p, pattern);
   TgProducerReply* reply = &pattern->reply[replyId];
 
-  ZF_LOGD(">I dn-token=%016" PRIx64 " pattern=%d reply=%" PRIu8, token, patternId, replyId);
+  N_LOGD(">I dn-token=%016" PRIx64 " pattern=%d reply=%" PRIu8, token, patternId, replyId);
   ++reply->nInterests;
   return TgProducer_RespondJmp[reply->kind](p, pattern, reply, npkt);
 }
@@ -110,7 +110,7 @@ TgProducer_Run(TgProducer* p)
       nTx += (int)(tx[nTx] != NULL);
     }
 
-    ZF_LOGD("face=%" PRI_FaceID "nRx=%" PRIu16 " nTx=%" PRIu16, p->face, pop.count, nTx);
+    N_LOGD("burst face=%" PRI_FaceID "nRx=%" PRIu16 " nTx=%" PRIu16, p->face, pop.count, nTx);
     Face_TxBurst(p->face, tx, nTx);
   }
   return 0;

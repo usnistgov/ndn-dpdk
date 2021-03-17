@@ -6,7 +6,7 @@
 #include "../core/logger.h"
 #include "../dpdk/hashtable.h"
 
-INIT_ZF_LOG(Pcct);
+N_LOG_INIT(Pcct);
 
 #define uthash_malloc(sz) rte_malloc("PCCT.uthash", (sz), 0)
 #define uthash_free(ptr, sz) rte_free((ptr))
@@ -27,8 +27,8 @@ INIT_ZF_LOG(Pcct);
 static __rte_noinline void
 Pcct_KeyHt_Expand_(UT_hash_table* tbl)
 {
-  ZF_LOGE("KeyHt(%p) Expand-rejected num_items=%u num_buckets=%u", tbl, tbl->num_items,
-          tbl->num_buckets);
+  N_LOGE("KeyHt Expand-rejected tbl=%p num_items=%u num_buckets=%u", tbl, tbl->num_items,
+         tbl->num_buckets);
 }
 
 #define PCCT_TOKEN_MASK (((uint64_t)1 << 48) - 1)
@@ -49,14 +49,14 @@ Pcct_Init(Pcct* pcct, const char* id, uint32_t maxEntries, unsigned numaSocket)
     return false;
   }
 
-  ZF_LOGI("%p Init()", pcct);
+  N_LOGI("Init pcct=%p", pcct);
   return true;
 }
 
 void
 Pcct_Clear(Pcct* pcct)
 {
-  ZF_LOGI("%p Clear()", pcct);
+  N_LOGI("Clear pcct=%p", pcct);
 
   PccEntry* entry = NULL;
   PccEntry* tmp = NULL;
@@ -92,7 +92,7 @@ Pcct_Insert(Pcct* pcct, PccSearch* search, bool* isNew)
   int nExts = PccKey_CountExtensions(search);
   int res = rte_mempool_get_bulk(pcct->mp, objs, 1 + nExts);
   if (unlikely(res != 0)) {
-    ZF_LOGE("%p Insert() table-full", pcct);
+    N_LOGE("Insert pcct=%p" N_LOG_ERROR("table-full"), pcct);
     return NULL;
   }
   entry = (PccEntry*)objs[0];
@@ -105,8 +105,8 @@ Pcct_Insert(Pcct* pcct, PccSearch* search, bool* isNew)
   *isNew = true;
 
   char debugStringBuffer[PccSearchDebugStringLength];
-  ZF_LOGD("%p Insert(%016" PRIx64 ", %s) %p", pcct, hash,
-          PccSearch_ToDebugString(search, debugStringBuffer), entry);
+  N_LOGD("Insert pcct=%p hash=%016" PRIx64 " search=%s entry=%p", pcct, hash,
+         PccSearch_ToDebugString(search, debugStringBuffer), entry);
   return entry;
 }
 
@@ -147,7 +147,7 @@ Pcct_AddToken_(Pcct* pcct, PccEntry* entry)
 
   entry->token = token;
   entry->hasToken = true;
-  ZF_LOGD("%p AddToken(%p) %012" PRIx64, pcct, entry, token);
+  N_LOGD("AddToken pcct=%p entry=%p token=%012" PRIx64, pcct, entry, token);
   return token;
 }
 
@@ -158,7 +158,7 @@ Pcct_RemoveToken_(Pcct* pcct, PccEntry* entry)
   NDNDPDK_ASSERT(Pcct_FindByToken(pcct, entry->token) == entry);
 
   uint64_t token = entry->token;
-  ZF_LOGD("%p RemoveToken(%p, %012" PRIx64 ")", pcct, entry, token);
+  N_LOGD("RemoveToken pcct=%p entry=%p token=%012" PRIx64, pcct, entry, token);
 
   entry->hasToken = false;
   int res = rte_hash_del_key(pcct->tokenHt, &token);
@@ -183,7 +183,7 @@ PcctEraseBatch_EraseBurst_(PcctEraseBatch* peb)
   int nObjs = peb->nEntries;
   for (int i = 0; i < peb->nEntries; ++i) {
     PccEntry* entry = (PccEntry*)peb->objs[i];
-    ZF_LOGD("%p Erase(%p)", peb->pcct, entry);
+    N_LOGD("Erase pcct=%p entry=%p", peb->pcct, entry);
     NDNDPDK_ASSERT(!entry->hasEntries);
     Pcct_RemoveToken(peb->pcct, entry);
     HASH_DELETE(hh, peb->pcct->keyHt, entry);

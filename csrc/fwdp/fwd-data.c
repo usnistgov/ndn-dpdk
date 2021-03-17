@@ -4,12 +4,12 @@
 #include "../core/logger.h"
 #include "../pcct/pit-iterator.h"
 
-INIT_ZF_LOG(FwFwd);
+N_LOG_INIT(FwFwd);
 
 __attribute__((nonnull)) static void
 FwFwd_DataUnsolicited(FwFwd* fwd, FwFwdCtx* ctx)
 {
-  ZF_LOGD("^ drop=unsolicited");
+  N_LOGD("^ drop=unsolicited");
   rte_pktmbuf_free(ctx->pkt);
   ctx->pkt = NULL;
 }
@@ -19,11 +19,11 @@ FwFwd_DataNeedDigest(FwFwd* fwd, FwFwdCtx* ctx)
 {
   int res = rte_ring_enqueue(fwd->crypto, ctx->npkt);
   if (unlikely(res != 0)) {
-    ZF_LOGD("^ error=crypto-enqueue-error-%d", res);
+    N_LOGD("^ error=crypto-enqueue-error-%d", res);
     rte_pktmbuf_free(ctx->pkt);
     NULLize(ctx->pkt);
   } else {
-    ZF_LOGD("^ helper=crypto");
+    N_LOGD("^ helper=crypto");
     NULLize(ctx->npkt); // npkt is now owned by FwCrypto
   }
 }
@@ -32,29 +32,29 @@ __attribute__((nonnull)) static void
 FwFwd_DataSatisfy(FwFwd* fwd, FwFwdCtx* ctx)
 {
   char debugStringBuffer[PitDebugStringLength];
-  ZF_LOGD("^ pit-entry=%p pit-key=%s", ctx->pitEntry,
-          PitEntry_ToDebugString(ctx->pitEntry, debugStringBuffer));
+  N_LOGD("^ pit-entry=%p pit-key=%s", ctx->pitEntry,
+         PitEntry_ToDebugString(ctx->pitEntry, debugStringBuffer));
 
   PitDnIt it;
   for (PitDnIt_Init(&it, ctx->pitEntry); PitDnIt_Valid(&it); PitDnIt_Next(&it)) {
     PitDn* dn = it.dn;
     if (unlikely(dn->face == 0)) {
       if (it.index == 0) {
-        ZF_LOGD("^ drop=PitDn-empty");
+        N_LOGD("^ drop=PitDn-empty");
       }
       break;
     }
     if (unlikely(dn->expiry < ctx->rxTime)) {
-      ZF_LOGD("^ dn-expired=%" PRI_FaceID, dn->face);
+      N_LOGD("^ dn-expired=%" PRI_FaceID, dn->face);
       continue;
     }
     if (unlikely(Face_IsDown(dn->face))) {
-      ZF_LOGD("^ no-data-to=%" PRI_FaceID " drop=face-down", dn->face);
+      N_LOGD("^ no-data-to=%" PRI_FaceID " drop=face-down", dn->face);
       continue;
     }
 
     Packet* outNpkt = Packet_Clone(ctx->npkt, &fwd->mp, Face_PacketTxAlign(dn->face));
-    ZF_LOGD("^ data-to=%" PRI_FaceID " npkt=%p dn-token=%016" PRIx64, dn->face, outNpkt, dn->token);
+    N_LOGD("^ data-to=%" PRI_FaceID " npkt=%p dn-token=%016" PRIx64, dn->face, outNpkt, dn->token);
     if (likely(outNpkt != NULL)) {
       struct rte_mbuf* outPkt = Packet_ToMbuf(outNpkt);
       outPkt->port = ctx->rxFace;
@@ -69,16 +69,16 @@ FwFwd_DataSatisfy(FwFwd* fwd, FwFwdCtx* ctx)
   if (likely(ctx->fibEntry != NULL)) {
     ++ctx->fibEntryDyn->nRxData;
     uint64_t res = SgInvoke(ctx->fibEntry->strategy, ctx);
-    ZF_LOGD("^ fib-entry-depth=%" PRIu8 " sg-id=%d sg-res=%" PRIu64, ctx->fibEntry->nComps,
-            ctx->fibEntry->strategy->id, res);
+    N_LOGD("^ fib-entry-depth=%" PRIu8 " sg-id=%d sg-res=%" PRIu64, ctx->fibEntry->nComps,
+           ctx->fibEntry->strategy->id, res);
   }
 }
 
 void
 FwFwd_RxData(FwFwd* fwd, FwFwdCtx* ctx)
 {
-  ZF_LOGD("data-from=%" PRI_FaceID " npkt=%p up-token=%016" PRIx64, ctx->rxFace, ctx->npkt,
-          ctx->rxToken);
+  N_LOGD("RxData data-from=%" PRI_FaceID " npkt=%p up-token=%016" PRIx64, ctx->rxFace, ctx->npkt,
+         ctx->rxToken);
 
   PitFindResult pitFound = Pit_FindByData(fwd->pit, ctx->npkt);
   if (PitFindResult_Is(pitFound, PIT_FIND_NONE)) {

@@ -1,39 +1,42 @@
-#include "logger.h"
+#define _GNU_SOURCE
+#include <stdio.h>
 
-#define LOGGER_ENV "NDNDPDK_LOG"
+#include "logger.h"
+#include <spdk/log.h>
+
+static ssize_t
+Logger_Dpdk(void* ctx, const char* buf, size_t size)
+{
+  FILE* output = ctx;
+  fprintf(output, "%d %d %u * ", rte_log_cur_msg_logtype(), rte_log_cur_msg_loglevel(),
+          rte_lcore_id());
+  return fwrite(buf, size, 1, output);
+}
 
 int
-Logger_GetLevel(const char* module)
+Logger_Dpdk_Init(FILE* output)
 {
-  NDNDPDK_ASSERT(strlen(module) <= 16);
-  char envKey[32];
-  int envKeyLen = snprintf(envKey, sizeof(envKey), "%s_%s", LOGGER_ENV, module);
-  NDNDPDK_ASSERT(envKeyLen > 0 && envKeyLen < (int)sizeof(envKey));
-
-  const char* lvl = getenv(envKey);
-  if (lvl == NULL) {
-    lvl = getenv(LOGGER_ENV);
+  cookie_io_functions_t cookieFunc = {
+    .write = Logger_Dpdk,
+  };
+  FILE* fp = fopencookie(output, "w+", cookieFunc);
+  if (fp == NULL) {
+    return -EBADF;
   }
-  if (lvl == NULL) {
-    lvl = "";
-  }
+  return rte_openlog_stream(fp);
+}
 
-  switch (lvl[0]) {
-    case 'V':
-      return ZF_LOG_VERBOSE;
-    case 'D':
-      return ZF_LOG_DEBUG;
-    case 'I':
-      return ZF_LOG_INFO;
-    case 'W':
-      return ZF_LOG_WARN;
-    case 'E':
-      return ZF_LOG_ERROR;
-    case 'F':
-      return ZF_LOG_FATAL;
-    case 'N':
-      return ZF_LOG_NONE;
-  }
+RTE_LOG_REGISTER(RTE_LOGTYPE_SPDK, SPDK, DEBUG);
 
-  return ZF_LOG_INFO;
+static const uint32_t spdk2dpdkLogLevels[] = {
+  [SPDK_LOG_ERROR] = RTE_LOG_ERR,     [SPDK_LOG_WARN] = RTE_LOG_WARNING,
+  [SPDK_LOG_NOTICE] = RTE_LOG_NOTICE, [SPDK_LOG_INFO] = RTE_LOG_INFO,
+  [SPDK_LOG_DEBUG] = RTE_LOG_DEBUG,
+};
+
+void
+Logger_Spdk(int level, __rte_unused const char* file, __rte_unused const int line,
+            __rte_unused const char* func, const char* format, va_list args)
+{
+  rte_vlog(spdk2dpdkLogLevels[level], RTE_LOGTYPE_SPDK, format, args);
 }

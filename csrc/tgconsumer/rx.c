@@ -4,7 +4,7 @@
 #include "../iface/face.h"
 #include "token.h"
 
-INIT_ZF_LOG(TgConsumer);
+N_LOG_INIT(TgConsumer);
 
 __attribute__((nonnull)) static bool
 TgConsumerRx_GetSeqNumFromName(TgConsumerRx* cr, const TgConsumerRxPattern* pattern,
@@ -37,7 +37,7 @@ TgConsumerRx_ProcessData(TgConsumerRx* cr, Packet* npkt)
     return;
   }
 
-  ZF_LOGD(">D seq=%" PRIx64 " pattern=%d", seqNum, patternId);
+  N_LOGD(">D seq=%" PRIx64 " pattern=%d", seqNum, patternId);
   ++pattern->nData;
   TgTime recvTime = TgTime_FromTsc(Mbuf_GetTimestamp(Packet_ToMbuf(npkt)));
   TgTime sendTime = TgToken_GetTimestamp(token);
@@ -58,7 +58,7 @@ TgConsumerRx_ProcessNack(TgConsumerRx* cr, Packet* npkt)
     return;
   }
 
-  ZF_LOGD(">N seq=%" PRIx64 " pattern=%d", seqNum, patternId);
+  N_LOGD(">N seq=%" PRIx64 " pattern=%d", seqNum, patternId);
   ++pattern->nNacks;
 }
 

@@ -2,15 +2,15 @@
 
 #include "../core/logger.h"
 
-INIT_ZF_LOG(InputDemux);
+N_LOG_INIT(InputDemux);
 
 static void
 InputDemux_Drop(InputDemux* demux, Packet* npkt, const char* reason)
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
-  ZF_LOGD("%s-from=%" PRI_FaceID " npkt=%p token=%016" PRIx64 " drop=%s",
-          PktType_ToString(Packet_GetType(npkt)), pkt->port, npkt,
-          Packet_GetLpL3Hdr(npkt)->pitToken, reason);
+  N_LOGD("Drop(%s) %s-from=%" PRI_FaceID " npkt=%p token=%016" PRIx64, reason,
+         PktType_ToString(Packet_GetType(npkt)), pkt->port, npkt,
+         Packet_GetLpL3Hdr(npkt)->pitToken);
 
   ++demux->nDrops;
   rte_pktmbuf_free(pkt);
@@ -26,9 +26,9 @@ InputDemux_PassTo(InputDemux* demux, Packet* npkt, uint8_t index)
   }
 
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
-  ZF_LOGD("%s-from=%" PRI_FaceID " npkt=%p token=%016" PRIx64 " dest-index=%" PRIu8,
-          PktType_ToString(Packet_GetType(npkt)), pkt->port, npkt,
-          Packet_GetLpL3Hdr(npkt)->pitToken, index);
+  N_LOGD("PassTo %s-from=%" PRI_FaceID " npkt=%p token=%016" PRIx64 " dest-index=%" PRIu8,
+         PktType_ToString(Packet_GetType(npkt)), pkt->port, npkt, Packet_GetLpL3Hdr(npkt)->pitToken,
+         index);
 
   uint32_t nRej = PktQueue_PushPlain(dest->queue, &pkt, 1);
   dest->nDropped += nRej;

@@ -3,7 +3,7 @@
 #include "../core/logger.h"
 #include "../ndni/nni.h"
 
-INIT_ZF_LOG(FetchProc);
+N_LOG_INIT(FetchProc);
 
 #define FETCHER_TX_BURST_SIZE 64
 
@@ -32,7 +32,7 @@ FetchProc_TxBurst(FetchProc* fp, FetchThread* fth)
   struct rte_mbuf* pkts[FETCHER_TX_BURST_SIZE];
   int res = rte_pktmbuf_alloc_bulk(fth->interestMp, pkts, count);
   if (unlikely(res != 0)) {
-    ZF_LOGW("%p interestMp-full", fp);
+    N_LOGW("%p interestMp-full", fp);
     return;
   }
 

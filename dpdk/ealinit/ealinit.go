@@ -35,6 +35,8 @@ var initOnce sync.Once
 // Panics on error.
 func Init(args []string) {
 	initOnce.Do(func() {
+		updateLogLevels()
+		initLogStream()
 		assignMainThread := make(chan *spdkenv.Thread)
 		go func() {
 			runtime.LockOSThread()
@@ -44,6 +46,7 @@ func Init(args []string) {
 			spdkenv.InitMainThread(assignMainThread) // never returns
 		}()
 		th := <-assignMainThread
+		updateLogLevels()
 		eal.MainThread = th
 		eal.MainReadSide = th.RcuReadSide
 		eal.CallMain(func() {

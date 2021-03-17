@@ -17,28 +17,21 @@ var root = func() *zap.Logger {
 	return zap.New(core)
 }()
 
-// New creates a logger.
+// Named creates a named logger without initialization.
+func Named(pkg string) *zap.Logger {
+	return root.Named(pkg)
+}
+
+// New creates a logger initialized with configured log level.
 // By convention, this should appear in the same .go file as the package docstring:
 //  var logger = logging.New("Foo")
 func New(pkg string) *zap.Logger {
+	lvl := parseLevel(GetLevel(pkg))
 	return root.Named(pkg).
-		WithOptions(zap.IncreaseLevel(zap.NewAtomicLevelAt(parseLevel(pkg))))
+		WithOptions(zap.IncreaseLevel(zap.NewAtomicLevelAt(lvl)))
 }
 
-// GetLevel returns configured log level of a package as a letter.
-func GetLevel(pkg string) rune {
-	lvl, ok := os.LookupEnv("NDNDPDK_LOG_" + pkg)
-	if !ok {
-		lvl, ok = os.LookupEnv("NDNDPDK_LOG")
-	}
-	if !ok || len(lvl) == 0 {
-		return 0
-	}
-	return rune(lvl[0])
-}
-
-func parseLevel(pkg string) zapcore.Level {
-	lvl := GetLevel(pkg)
+func parseLevel(lvl rune) zapcore.Level {
 	switch lvl {
 	case 'V', 'D':
 		return zapcore.DebugLevel
@@ -52,4 +45,16 @@ func parseLevel(pkg string) zapcore.Level {
 		return zapcore.DPanicLevel
 	}
 	return zapcore.InfoLevel
+}
+
+// GetLevel returns configured log level of a package as a letter.
+func GetLevel(pkg string) rune {
+	lvl, ok := os.LookupEnv("NDNDPDK_LOG_" + pkg)
+	if !ok {
+		lvl, ok = os.LookupEnv("NDNDPDK_LOG")
+	}
+	if !ok || len(lvl) == 0 {
+		return 0
+	}
+	return rune(lvl[0])
 }

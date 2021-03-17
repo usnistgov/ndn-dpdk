@@ -2,7 +2,7 @@
 
 #include "../core/logger.h"
 
-INIT_ZF_LOG(FetchLogic);
+N_LOG_INIT(FetchLogic);
 
 size_t
 FetchLogic_TxInterestBurst(FetchLogic* fl, uint64_t* segNums, size_t limit)
@@ -35,10 +35,10 @@ FetchLogic_TxInterestBurst(FetchLogic* fl, uint64_t* segNums, size_t limit)
   }
 
   if (likely(count > 0)) {
-    ZF_LOGV("%p TX(%d,%d) win=[%" PRIu64 ",%" PRIu64 ") rto=%" PRId64 " cwnd=%" PRIu32
-            " nInFlight=%" PRIu32 "",
-            fl, nNew, nRetx, fl->win.loSegNum, fl->win.hiSegNum, TscDuration_ToMillis(fl->rtte.rto),
-            cwnd, fl->nInFlight);
+    N_LOGV("TX fl=%p new=%d retx=%d win=[%" PRIu64 ",%" PRIu64 ") rto=%" PRId64 " cwnd=%" PRIu32
+           " nInFlight=%" PRIu32 "",
+           fl, nNew, nRetx, fl->win.loSegNum, fl->win.hiSegNum, TscDuration_ToMillis(fl->rtte.rto),
+           cwnd, fl->nInFlight);
   }
   fl->nTxRetx += nRetx;
 
@@ -54,10 +54,10 @@ FetchLogic_DecreaseCwnd(FetchLogic* fl, const char* caller, uint64_t segNum, Tsc
   TcpCubic_Decrease(&fl->ca, now);
   fl->cwndDecreaseInterestSegNum = fl->win.hiSegNum;
 
-  ZF_LOGD("%p %s(%" PRIu64 ") win=[%" PRIu64 ",%" PRIu64 ") hi-data=%" PRIu64 " rto=%" PRId64
-          " cwnd=%" PRIu32 " nInFlight=%" PRIu32 "",
-          fl, caller, segNum, fl->win.loSegNum, fl->win.hiSegNum, fl->hiDataSegNum,
-          TscDuration_ToMillis(fl->rtte.rto), TcpCubic_GetCwnd(&fl->ca), fl->nInFlight);
+  N_LOGD("%s fl=%p seg=%" PRIu64 " win=[%" PRIu64 ",%" PRIu64 ") hi-data=%" PRIu64 " rto=%" PRId64
+         " cwnd=%" PRIu32 " nInFlight=%" PRIu32 "",
+         caller, fl, segNum, fl->win.loSegNum, fl->win.hiSegNum, fl->hiDataSegNum,
+         TscDuration_ToMillis(fl->rtte.rto), TcpCubic_GetCwnd(&fl->ca), fl->nInFlight);
   return true;
 }
 
