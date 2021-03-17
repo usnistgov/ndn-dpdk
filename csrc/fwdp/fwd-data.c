@@ -32,7 +32,7 @@ __attribute__((nonnull)) static void
 FwFwd_DataSatisfy(FwFwd* fwd, FwFwdCtx* ctx)
 {
   char debugStringBuffer[PitDebugStringLength];
-  N_LOGD("^ pit-entry=%p pit-key=%s", ctx->pitEntry,
+  N_LOGD("^ pit-entry=%p(%s)", ctx->pitEntry,
          PitEntry_ToDebugString(ctx->pitEntry, debugStringBuffer));
 
   PitDnIt it;

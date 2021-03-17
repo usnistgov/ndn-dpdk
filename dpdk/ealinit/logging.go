@@ -16,15 +16,16 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/logging"
+	_ "github.com/usnistgov/ndn-dpdk/core/logging/logginggql"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
 const (
-	logPkgDPDK = "DPDK"
-	logPkgSPDK = "SPDK"
-	logPkgNDN  = "NDN"
+	logPkgDPDK   = "DPDK"
+	logPkgSPDK   = "SPDK"
+	logPrefixNDN = "NDN."
 )
 
 var (
@@ -50,8 +51,8 @@ func updateLogTypes() {
 			continue
 		}
 		pkg := string(m[2])
-		if strings.HasPrefix(pkg, logPkgNDN+".") {
-			pkg = strings.TrimPrefix(pkg, logPkgNDN+".")
+		if strings.HasPrefix(pkg, logPrefixNDN) {
+			pkg = strings.TrimPrefix(pkg, logPrefixNDN)
 		} else if pkg != logPkgSPDK {
 			pkg = logPkgDPDK
 		}
@@ -62,11 +63,15 @@ func updateLogTypes() {
 func updateLogLevels() {
 	updateLogTypes()
 	for id, logtype := range logTypes {
-		C.rte_log_set_level(C.uint32_t(id), parseLogLevel(logging.GetLevel(logtype)))
+		pl := logging.GetLevel(logtype)
+		idC := C.uint32_t(id)
+		set := func() { C.rte_log_set_level(idC, parseLogLevel(pl.Level())) }
+		pl.SetCallback(set)
+		set()
 	}
 }
 
-func parseLogLevel(lvl rune) C.uint32_t {
+func parseLogLevel(lvl byte) C.uint32_t {
 	switch lvl {
 	case 'V':
 		return C.RTE_LOG_DEBUG
@@ -108,14 +113,14 @@ func initLogStream() {
 }
 
 var dpdk2zapLogLevels = map[byte]zapcore.Level{
-	C.RTE_LOG_EMERG:   zapcore.ErrorLevel,
-	C.RTE_LOG_ALERT:   zapcore.ErrorLevel,
-	C.RTE_LOG_CRIT:    zapcore.ErrorLevel,
-	C.RTE_LOG_ERR:     zapcore.ErrorLevel,
-	C.RTE_LOG_WARNING: zapcore.WarnLevel,
-	C.RTE_LOG_NOTICE:  zapcore.InfoLevel,
-	C.RTE_LOG_INFO:    zapcore.DebugLevel,
-	C.RTE_LOG_DEBUG:   zapcore.DebugLevel,
+	'0' + C.RTE_LOG_EMERG:   zapcore.ErrorLevel,
+	'0' + C.RTE_LOG_ALERT:   zapcore.ErrorLevel,
+	'0' + C.RTE_LOG_CRIT:    zapcore.ErrorLevel,
+	'0' + C.RTE_LOG_ERR:     zapcore.ErrorLevel,
+	'0' + C.RTE_LOG_WARNING: zapcore.WarnLevel,
+	'0' + C.RTE_LOG_NOTICE:  zapcore.InfoLevel,
+	'0' + C.RTE_LOG_INFO:    zapcore.DebugLevel,
+	'0' + C.RTE_LOG_DEBUG:   zapcore.DebugLevel,
 }
 
 func processLogStream() {
@@ -139,15 +144,18 @@ func processLogLine(line []byte) {
 	}
 
 	logtype, _ := strconv.Atoi(string(m[1]))
+	logName := logTypes[logtype]
 	l := logging.Named(logTypes[logtype])
+	if logName == "" {
+		l = logging.Named(logPkgDPDK)
+	}
+
 	lvl := dpdk2zapLogLevels[m[2][0]]
 	msg := string(m[4])
 	ce := l.Check(lvl, msg)
 	if ce == nil {
 		return
 	}
-
-	lc, _ := strconv.Atoi(string(m[3]))
 
 	pairs := bytes.Split(m[5], []byte{' '})[1:]
 	fields := make([]zapcore.Field, 0, len(pairs)+2)
@@ -157,7 +165,7 @@ func processLogLine(line []byte) {
 		fields = append(fields, zap.ByteString(string(kv[0]), kv[1]))
 	}
 
-	if lc != math.MaxUint32 {
+	if lc, _ := strconv.Atoi(string(m[3])); lc != math.MaxUint32 {
 		fields = append(fields, zap.Int("lc", lc))
 	}
 

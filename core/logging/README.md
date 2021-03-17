@@ -5,7 +5,7 @@ Log entries are written to stderr in JSON format.
 
 ## Loggers
 
-NDN-DPDK components are organized into many named loggers.
+NDN-DPDK components are organized into named loggers.
 You can find all logger names in the codebase with this command:
 
 ```bash
@@ -20,7 +20,7 @@ In addition:
 ## Log Level Configuration
 
 Log level of each logger can be configured through environment variables.
-For logger "Foo", the initialization code first looks for "NDNDPDK_LOG\_Foo" and, if not found, looks for the generic "NDNDPDK_LOG" environment variable.
+For logger "Foo", the initialization code first looks for "NDNDPDK\_LOG\_Foo" and, if not found, looks for the generic "NDNDPDK\_LOG" environment variable.
 The value of this environment variable should be one of the values in "env" column:
 
 env | Go level | C level | DPDK level | SPDK level
@@ -30,8 +30,10 @@ D   | DEBUG    | DEBUG   | INFO       | INFO
 I   | INFO     | INFO    | NOTICE     | NOTICE
 W   | WARNING  | WARNING | WARNING    | WARNING
 E   | ERROR    | ERROR   | ERR        | ERROR
-F   | FATAL    | (none)  | ALERT      | (none)
+F   | FATAL    | (none)  | CRIT       | (none)
 N   | FATAL    | (none)  | ALERT      | (none)
+
+When the NDN-DPDK service is running, you can retrieve and change log levels via GraphQL (implemented in [package logginggql](logginggql)).
 
 ## Internals
 

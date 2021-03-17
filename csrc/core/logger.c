@@ -10,7 +10,9 @@ Logger_Dpdk(void* ctx, const char* buf, size_t size)
   FILE* output = ctx;
   fprintf(output, "%d %d %u * ", rte_log_cur_msg_logtype(), rte_log_cur_msg_loglevel(),
           rte_lcore_id());
-  return fwrite(buf, size, 1, output);
+  size_t res = fwrite(buf, size, 1, output);
+  fflush(output);
+  return res;
 }
 
 int

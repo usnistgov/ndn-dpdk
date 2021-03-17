@@ -27,7 +27,7 @@ PitEntry_ToDebugString(PitEntry* entry, char buffer[PitDebugStringLength])
     append("[F]");
   }
 
-  append(" DN=[");
+  append(",DN[");
   {
     const char* delim = "";
     PitDnIt it;
@@ -44,7 +44,7 @@ PitEntry_ToDebugString(PitEntry* entry, char buffer[PitDebugStringLength])
     }
   }
 
-  append("] UP=[");
+  append("],UP[");
   {
     const char* delim = "";
     PitUpIt it;
