@@ -1,8 +1,12 @@
 # NDNgo: Named Data Networking in Go
 
 **NDNgo** is a minimal [Named Data Networking](https://named-data.net/) library compatible with the NDN-DPDK forwarder.
-This library does not depend on Cgo, and can be used in external projects via Go Modules.
-However, NDNgo has no API stability guarantees: breaking changes may happen at any time.
+The main purpose of this library is for implementing unit tests and management functionality of NDN-DPDK.
+It also serves as a demonstration on how to create a library compatible with NDN-DPDK.
+
+NDNgo does not depend on Cgo, and can be used in external projects via Go Modules.
+It is intended to be cross-platform, and part of the library can be compiled for WebAssembly via [TinyGo](https://tinygo.org/) compiler.
+However, this is not a high performance library, and there is no API stability guarantees.
 
 ![NDNgo logo](../docs/NDNgo-logo.svg)
 
@@ -37,7 +41,7 @@ KeyChain
   * RSA: yes (in [package rsakey](keychain/rsakey))
   * HMAC-SHA256: no
   * [Null](https://redmine.named-data.net/projects/ndn-tlv/wiki/NullSignature): yes
-* [NDN certificates](https://named-data.net/doc/ndn-cxx/0.7.0/specs/certificate-format.html): no
+* [NDN certificates](https://named-data.net/doc/ndn-cxx/0.7.1/specs/certificate-format.html): no
 * Key persistence: no
 * Trust schema: no
 

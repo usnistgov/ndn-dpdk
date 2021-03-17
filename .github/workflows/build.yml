@@ -70,26 +70,6 @@ jobs:
         if: ${{ matrix.compiler != 'gcc-8' }}
       - name: build documentation
         run: make doxygen
-  ubuntu20:
-    runs-on: ubuntu-20.04
-    container: ubuntu:20.04
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - name: install basics
-        run: |
-          apt-get -y -qq update
-          apt-get -y -qq install curl git sudo
-      - uses: actions/checkout@v2
-      - name: install dependencies
-        run: ./docs/ndndpdk-depends.sh --skiprootcheck -y
-      - name: build NDN-DPDK in release mode
-        run: |
-          source ~/.bashrc
-          npm install
-          NDNDPDK_MK_RELEASE=1 make
-          sudo make install
   docker:
     runs-on: ubuntu-20.04
     steps:
@@ -97,3 +77,32 @@ jobs:
       - uses: docker/build-push-action@v2
         with:
           context: .
+  library:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/setup-go@v2
+        with:
+          go-version: ^1.16
+      - name: install TinyGo
+        run: |
+          wget https://github.com/tinygo-org/tinygo/releases/download/v${TINYGO_VERSION}/tinygo_${TINYGO_VERSION}_amd64.deb
+          sudo dpkg -i tinygo_${TINYGO_VERSION}_amd64.deb
+        working-directory: /tmp
+        env:
+          TINYGO_VERSION: 0.17.0
+      - uses: actions/checkout@v2
+      - name: build for Linux without cgo
+        run: |
+          go build -v -o /dev/null ./ndn/...
+          go build -v -o /dev/null ./cmd/ndndpdk-godemo
+        env:
+          CGO_ENABLED: 0
+      - name: build for Windows without cgo
+        run: |
+          go build -v -o /dev/null ./ndn/...
+        env:
+          CGO_ENABLED: 0
+          GOOS: windows
+      - name: build with TinyGo
+        run: |
+          tinygo build -o /dev/null -target=wasm ./ndn/ndntestenv/tiny

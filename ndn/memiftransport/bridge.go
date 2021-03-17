@@ -1,3 +1,5 @@
+// +build linux
+
 package memiftransport
 
 import (
@@ -27,7 +29,7 @@ func NewBridge(locA, locB Locator, role Role) (bridge *Bridge, e error) {
 	}
 	locB.ApplyDefaults()
 	if role == RoleServer && locA.SocketName == locB.SocketName {
-		return nil, errors.New("Locators must use different SocketName")
+		return nil, errors.New("locators must use different SocketName")
 	}
 
 	bridge = &Bridge{

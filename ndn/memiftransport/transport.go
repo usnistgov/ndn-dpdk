@@ -1,3 +1,5 @@
+// +build linux
+
 // Package memiftransport implements a transport over a shared memory packet interface (memif).
 package memiftransport
 
@@ -37,6 +39,10 @@ func New(loc Locator) (Transport, error) {
 		TransportQueueConfig: loc.TransportQueueConfig,
 	}
 	packetTr, e := packettransport.New(hdl, packetCfg)
+	if e != nil {
+		hdl.Close()
+		return nil, e
+	}
 
 	return &transport{
 		Transport: packetTr,
