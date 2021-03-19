@@ -95,3 +95,15 @@ func (app *App) launchInput(input *Input) {
 
 	input.rxl.Launch()
 }
+
+// Stop stops and closes the traffic generator.
+func (app *App) Close() error {
+	for _, task := range app.Tasks {
+		task.close()
+	}
+	for _, input := range app.inputs {
+		input.rxl.Stop()
+		input.rxl.Close()
+	}
+	return nil
+}

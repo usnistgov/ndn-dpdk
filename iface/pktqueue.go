@@ -53,10 +53,10 @@ func (q *PktQueue) Init(cfg PktQueueConfig, socket eal.NumaSocket) error {
 	c := q.ptr()
 
 	capacity := 131072
-	convertDuration := func(input nnduration.Nanoseconds, defaultMs time.Duration) C.TscDuration {
+	convertDuration := func(input nnduration.Nanoseconds, defaultMs int) C.TscDuration {
 		d := input.Duration()
 		if d == 0 {
-			d = defaultMs * time.Millisecond
+			d = time.Duration(defaultMs) * time.Millisecond
 		}
 		return C.TscDuration(eal.ToTscDuration(d))
 	}

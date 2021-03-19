@@ -47,5 +47,4 @@ func TestCubic(t *testing.T) {
 	ca.Decrease(now)
 	thisCwnd := ca.Cwnd()
 	assert.Less(thisCwnd, lastCwnd)
-	now = now.Add(5 * time.Millisecond)
 }

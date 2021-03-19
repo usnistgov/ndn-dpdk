@@ -28,6 +28,6 @@ func TestEncode(t *testing.T) {
 		0x04, 0x04, 0x00, 0x00, 0x00, 0x00,
 	}, wire)
 
-	wire, e = tlv.Encode(testEncodeMarshaler(-1))
+	_, e = tlv.Encode(testEncodeMarshaler(-1))
 	assert.Error(e)
 }

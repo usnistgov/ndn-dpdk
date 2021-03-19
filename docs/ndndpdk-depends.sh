@@ -12,7 +12,7 @@ fi
 
 if ! which curl >/dev/null; then
   echo 'curl is required to start this script; to install:'
-  echo '  apt install curl'
+  echo '  sudo apt install curl'
   exit 1
 fi
 
@@ -170,6 +170,7 @@ else
   fi
   echo "Will install Go ${GOVER}"
 fi
+echo 'Will install Go linters and tools'
 
 if [[ $UBPFVER == '0' ]]; then
   if ! [[ -f /usr/local/include/ubpf.h ]]; then
@@ -327,3 +328,8 @@ fi
 
 ${SUDO} update-alternatives --remove-all python || true
 ${SUDO} update-alternatives --install /usr/bin/python python /usr/bin/python3 1
+
+(
+  cd /tmp
+  which staticcheck || go get honnef.co/go/tools/cmd/staticcheck
+)

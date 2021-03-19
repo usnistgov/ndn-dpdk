@@ -25,10 +25,11 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           node-version: 14
-      - name: install APT dependencies
+      - name: install build tools
         run: |
           sudo apt-get update
           sudo apt-get install doxygen gcc-multilib libelf-dev liburcu-dev linux-libc-dev
+          go get honnef.co/go/tools/cmd/staticcheck
       - name: install uBPF
         run: |
           mkdir -p $HOME/ubpf
@@ -77,6 +78,8 @@ jobs:
       - uses: docker/build-push-action@v2
         with:
           context: .
+          build-args: |
+            MAKE_ENV=NDNDPDK_MK_RELEASE=1
   library:
     runs-on: ubuntu-20.04
     steps:

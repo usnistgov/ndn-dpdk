@@ -7,7 +7,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealtestenv"
 	"github.com/usnistgov/ndn-dpdk/ndn"
-	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
 )
 
 func TestMain(m *testing.M) {
@@ -16,9 +15,7 @@ func TestMain(m *testing.M) {
 }
 
 var (
-	makeAR       = testenv.MakeAR
-	makeInterest = ndnitestenv.MakeInterest
-	makeData     = ndnitestenv.MakeData
+	makeAR = testenv.MakeAR
 )
 
 func lphToken(token uint64) ndn.LpL3 {

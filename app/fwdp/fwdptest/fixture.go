@@ -19,8 +19,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
-const nFwds = 2
-
 // Fixture is a test fixture for forwarder data plane.
 type Fixture struct {
 	require  *require.Assertions

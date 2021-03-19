@@ -6,7 +6,6 @@ import (
 )
 
 var (
-	makeAR       = testenv.MakeAR
-	nameEqual    = ndntestenv.NameEqual
-	nameIsPrefix = ndntestenv.NameIsPrefix
+	makeAR    = testenv.MakeAR
+	nameEqual = ndntestenv.NameEqual
 )

@@ -11,6 +11,7 @@ import (
 
 // Error conditions.
 var (
+	//lint:ignore ST1005 'Interest' is a proper noun
 	ErrExpire = errors.New("Interest expired")
 )
 

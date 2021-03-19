@@ -22,10 +22,7 @@ func (mockLCoreProvider) Workers() []eal.LCore {
 }
 
 func (mockLCoreProvider) IsBusy(lc eal.LCore) bool {
-	if lc.ID() == 7 {
-		return true
-	}
-	return false
+	return lc.ID() == 7
 }
 
 func (mockLCoreProvider) NumaSocketOf(lc eal.LCore) eal.NumaSocket {

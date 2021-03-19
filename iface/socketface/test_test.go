@@ -6,10 +6,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealtestenv"
-	"github.com/usnistgov/ndn-dpdk/iface/socketface"
 )
-
-var socketfaceCfg socketface.Config
 
 func TestMain(m *testing.M) {
 	ealtestenv.Init()

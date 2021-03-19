@@ -6,8 +6,9 @@ cd "$(dirname "${BASH_SOURCE[0]}")"/..
 git ls-files -- 'csrc/**/*.[hc]' 'strategy/*.[hc]' -x ':!:csrc/vendor' | xargs clang-format-8 -i -style=file
 
 # Go
-go mod tidy
 gofmt -l -w -s .
+go mod tidy
+staticcheck ./...
 
 # TypeScript
 node_modules/.bin/xo --fix

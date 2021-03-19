@@ -53,12 +53,6 @@ func (la *Allocator) invert(pred lCorePredicate) lCorePredicate {
 	}
 }
 
-func (la *Allocator) lcIsIdle() lCorePredicate {
-	return func(lc eal.LCore) bool {
-		return !la.provider.IsBusy(lc)
-	}
-}
-
 func (la *Allocator) lcIsAvailable() lCorePredicate {
 	return func(lc eal.LCore) bool {
 		return la.allocated[lc.ID()] == "" && !la.provider.IsBusy(lc)

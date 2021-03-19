@@ -159,7 +159,11 @@ func RegisterTemplate(id string, cfg PoolConfig) Template {
 
 // FindTemplate locates template by ID.
 func FindTemplate(id string) Template {
-	return templates[id]
+	tpl, ok := templates[id]
+	if !ok {
+		return nil
+	}
+	return tpl
 }
 
 // Predefined mempool templates.

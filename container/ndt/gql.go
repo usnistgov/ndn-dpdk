@@ -14,7 +14,8 @@ var (
 	GqlNdt *Ndt
 
 	errNoGqlNdt = errors.New("NDT unavailable")
-	errNoIndex  = errors.New("Index is unspecified")
+	//lint:ignore ST1005 'Index' is a field name
+	errNoIndex = errors.New("Index is unspecified")
 )
 
 // GraphQL types.

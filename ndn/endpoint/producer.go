@@ -13,6 +13,7 @@ import (
 
 // Error conditions.
 var (
+	//lint:ignore ST1005 'Handler' is a field name
 	ErrNoHandler = errors.New("Handler is missing")
 )
 

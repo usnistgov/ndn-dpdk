@@ -30,7 +30,7 @@ var (
 func initRPC() error {
 	dir, e := os.MkdirTemp("", "spdk-*")
 	if e != nil {
-		return fmt.Errorf("Unix socket path unavailable: %w", e)
+		return fmt.Errorf("unix socket path unavailable: %w", e)
 	}
 	defer os.RemoveAll(dir)
 
