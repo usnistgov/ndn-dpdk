@@ -20,4 +20,4 @@ git ls-files '*.yml' '*.yaml' | xargs yamllint
 git ls-files '*.md' | xargs node_modules/.bin/markdownlint
 
 # Docker
-node_modules/.bin/dockerfilelint Dockerfile
+node_modules/.bin/dockerfilelint Dockerfile $(git ls-files -- '**/Dockerfile')

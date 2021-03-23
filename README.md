@@ -14,8 +14,9 @@ It is in pre-release stage and will continue to be updated.
 * [NDN-DPDK Docker container](docs/Docker.md)
 * [NDN-DPDK forwarder activation and usage](docs/forwarder.md)
 * [hardware known to work with NDN-DPDK](docs/hardware.md)
+* [NDN-DPDK interoperability with other NDN software](docs/interop)
 * [NDN-DPDK publications and presentations](docs/publication.md)
-* [godoc](https://pkg.go.dev/github.com/usnistgov/ndn-dpdk)
+* [Go reference](https://pkg.go.dev/github.com/usnistgov/ndn-dpdk)
 
 If you use NDN-DPDK in your research, please cite the [NDN-DPDK paper](docs/publication.md) instead of this GitHub repository.
 
@@ -23,28 +24,27 @@ If you use NDN-DPDK in your research, please cite the [NDN-DPDK paper](docs/publ
 
 Packet encoding and decoding
 
-* Interest and Data
-  * [v0.3](https://named-data.net/doc/NDN-packet-spec/0.3/) format only
-  * TLV evolvability: no
-  * forwarding hint: yes
+* Interest and Data: [v0.3](https://named-data.net/doc/NDN-packet-spec/0.3/) format only
+  * TLV evolvability: yes
+  * Forwarding hint: yes
 * [NDNLPv2](https://redmine.named-data.net/projects/nfd/wiki/NDNLPv2)
-  * fragmentation and reassembly: yes
+  * Fragmentation and reassembly: yes
   * Nack: yes
   * PIT token: yes, only support 8-octet length
-  * congestion mark: yes
-  * link layer reliability: no
+  * Congestion mark: yes
+  * Link layer reliability: no
 
 Transports
 
 * DPDK-based high-speed transports: Ethernet, VLAN, UDP, VXLAN
   * Ethernet adapter must be dedicated to DPDK
-* socket-based transports via kernel: UDP, TCP
-* local application transports: memif, Unix sockets
+* Socket-based transports via kernel: UDP, TCP
+* Local application transports: memif, Unix sockets
 
 Forwarding plane
 
-* multi-threaded architecture
-* forwarding strategies: eBPF programs
+* Multi-threaded architecture
+* Forwarding strategies: eBPF programs
 * FIB: includes strategy choice and statistics
 * PIT-CS Composite Table (PCCT): includes PIT and CS
 

@@ -56,6 +56,9 @@ NDN-DPDK service provides a GraphQL endpoint at `http://127.0.0.1:3030/` (change
 As an alternative of using `ndndpdk-ctrl`, you can execute queries and mutations on the GraphQL endpoint.
 The GraphQL service schema may be discovered via introspection.
 
+Some GraphQL examples in NDN-DPDK documentation requires [graphqurl](https://github.com/hasura/graphqurl) command-line GraphQL client.
+Execute `sudo npm install -g graphqurl` to install this command.
+
 ## Other Build Targets
 
 * `make godeps` builds C objects and generates certain Go source files.

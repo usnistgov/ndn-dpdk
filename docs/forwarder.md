@@ -92,19 +92,16 @@ When the forwarder is running, with faces created and traffic flowing, you can g
 Some example queries:
 
 ```bash
-gql() {
-  curl -s -X POST -H 'Content-Type: application/json' \
-    -d "$(echo "$1" | jq -sR '{query:.}')" http://127.0.0.1:3030/
-}
+GQLSERVER=http://127.0.0.1:3030/
 
 # packet buffers usage
-gql '{ pktmbufPoolTemplates{ tid pools{ numaSocket used }}}' |\
+gq $GQLSERVER -q '{pktmbufPoolTemplates{tid pools{numaSocket used}}}' |\
   jq -c '.data.pktmbufPoolTemplates[] | select(.pools|length>0)'
 # This query shows how many objects are currently used in each packet buffer pool.
 # You can adjust the packet buffer capacity settings to fit traffic volume.
 
 # memzone report
-gql '{ memoryDiag{ memzones }}' | jq -r '.data.memoryDiag.memzones'
+gq $GQLSERVER -q '{memoryDiag{memzones}}' | jq -r '.data.memoryDiag.memzones'
 # This query shows how DPDK is using hugepages, including size of each memory zone and
 # their placement in physical segments (i.e. hugepages).
 # You can count how many distinct physical segments are being used, which is useful for

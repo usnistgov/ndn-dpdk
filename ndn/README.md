@@ -17,6 +17,7 @@ Packet encoding and decoding
 * General purpose TLV codec (in [package tlv](tlv))
 * Interest and Data: [v0.3](https://named-data.net/doc/NDN-packet-spec/0.3/) format only
   * TLV evolvability: yes
+  * Forwarding hint: yes
   * Signed Interest: basic support
 * [NDNLPv2](https://redmine.named-data.net/projects/nfd/wiki/NDNLPv2)
   * Fragmentation and reassembly: no
