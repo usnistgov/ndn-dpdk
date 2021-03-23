@@ -242,6 +242,7 @@ fi
 
 APT_PKG_LIST="${APT_PKGS[@]}"
 ${SUDO} sh -c "DEBIAN_FRONTEND=noninteractive apt-get -y -qq install ${APT_PKG_LIST}"
+which gq || ${SUDO} npm install -g graphqurl
 
 curl -sfL https://bootstrap.pypa.io/get-pip.py | ${SUDO} python3
 ${SUDO} pip install -U meson ninja

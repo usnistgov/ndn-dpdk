@@ -17,7 +17,7 @@ func (c *Client) OpenFace() (mgmt.Face, error) {
 	return c.OpenMemif(memiftransport.Locator{})
 }
 
-const autoSocketPath = "/run/ndndpdk-memif"
+const autoSocketPath = "/run/ndn"
 
 var (
 	autoSocketName = ""
@@ -29,7 +29,7 @@ var (
 func (c *Client) OpenMemif(loc memiftransport.Locator) (mgmt.Face, error) {
 	if loc.SocketName == "" {
 		if autoSocketName == "" {
-			autoSocketName = fmt.Sprintf("%s/%d-%d.sock", autoSocketPath, os.Getpid(), rand.Int())
+			autoSocketName = fmt.Sprintf("%s/memif-%d-%d.sock", autoSocketPath, os.Getpid(), rand.Int())
 			if e := os.MkdirAll(autoSocketPath, os.ModePerm); e != nil {
 				return nil, fmt.Errorf("os.MkdirAll: %w", e)
 			}

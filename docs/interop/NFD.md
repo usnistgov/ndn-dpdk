@@ -7,14 +7,15 @@ This page gives a few samples on how to establish communication between NDN-DPDK
 
 When you follow through this guide, it is recommended to install NFD as a Docker container.
 This provides a clean environment for running NFD, and avoids interference from other software you may have.
-Once you have finished this guide, you can apply the same procedures to NFD installed via other methods.
+Once you have finished this guide, you can use the same procedures on other NFD installations.
 
 Dockerfile and related scripts are provided in [docs/interop/nfd](nfd) directory.
-It installs the latest NFD version from the [NFD nightly APT repository](https://yoursunny.com/t/2021/NFD-nightly-apt/).
+It installs the latest NFD version from the [NFD nightly APT repository](https://yoursunny.com/t/2021/NFD-nightly-apt/), and generates configurations suitable for this guide.
+
 To build the NFD container:
 
 ```bash
-cd ndn-dpdk/docs/interop/nfd
+cd docs/interop/nfd
 docker build -t nfd .
 ```
 
@@ -88,9 +89,11 @@ On node B, start NFD and producer:
 docker rm -f nfd
 
 # start NFD
+sudo mkdir -p /run/ndn
 docker run -d --rm --name nfd \
   --cap-add=NET_ADMIN --network none --init \
-  -v /run/ndn:/run/ndn -e 'NFD_ENABLE_ETHER=1' \
+  --mount type=bind,source=/run/ndn,target=/run/ndn \
+  -e 'NFD_ENABLE_ETHER=1' \
   nfd
 
 # activate the Ethernet adapter in NFD
@@ -109,7 +112,9 @@ B_FACEID=$(nfdc face create local dev://${B_IFNAME} remote ether://[${A_HWADDR}]
 nfdc route add prefix $A_NAME nexthop $B_FACEID
 
 # start the producer
-docker run -it --rm -v /run/ndn:/run/ndn nfd \
+docker run -it --rm \
+  --mount type=bind,source=/run/ndn,target=/run/ndn \
+  nfd \
   ndnpingserver --size 512 $B_NAME
 ```
 
@@ -124,20 +129,33 @@ On node B, start a consumer:
 
 ```bash
 # run the consumer
-docker run -it --rm -v /run/ndn:/run/ndn nfd \
+docker run -it --rm \
+  --mount type=bind,source=/run/ndn,target=/run/ndn \
+  nfd \
   ndnping -i 10 $A_NAME
 ```
 
 ## Local Communication over Unix Socket
 
-In this scenario, NDN-DPDK forwarder and NFD running on the same machine communicate over a Unix socket.
-A use case is to run application designed for NFD on a machine running NDN-DPDK forwarder.
+```text
+|--------|        |---------|    Unix    |---------|        |--------|
+|consumer|---\    |NDN-DPDK |   socket   |         |    /---|producer|
+| /app/B |    \---|forwarder|------------|   NFD   |---/    | /app/B |
+|--------|        |  (A)    |            |   (B)   |        |--------|
+                  |---------|            |---------|
+```
+
+In this scenario, NDN-DPDK forwarder and NFD run on the same machine:
+
+* NDN-DPDK and NFD communicate over a Unix socket.
+* Producer for prefix `/app/B` connects to NFD.
+* Consumer for prefix `/app/B` connects to NDN-DPDK.
 
 Declare variables:
 
 ```bash
 # name prefix of producer in NFD
-B_NAME=/net/B
+B_NAME=/app/B
 ```
 
 Start NFD and producer:
@@ -147,35 +165,38 @@ Start NFD and producer:
 docker rm -f nfd
 
 # start NFD
+sudo mkdir -p /run/ndn
 docker run -d --rm --name nfd \
   --network none --init \
-  -v /run/ndn:/run/ndn -e 'NFD_CS_CAP=1024' \
+  --mount type=bind,source=/run/ndn,target=/run/ndn \
+  -e 'NFD_CS_CAP=1024' \
   nfd
 
 # start the producer
-docker run -it --rm -v /run/ndn:/run/ndn nfd \
+docker run -it --rm \
+  --mount type=bind,source=/run/ndn,target=/run/ndn \
+  nfd \
   ndnpingserver --size 512 $B_NAME
 ```
 
 Start and activate NDN-DPDK forwarder: see [forwarder activation](../forwarder.md).
-If NDN-DPDK is running in a Docker container, you should mount the `/run/ndn` volume.
 
 Connect NDN-DPDK to NFD and run consumer:
 
 ```bash
+# declare variable for NDN-DPDK GraphQL endpoint
+# if using Docker, see "NDN-DPDK Docker Container" page
 GQLSERVER=http://127.0.0.1:3030/
 
 # create face
 A_FACEID=$(gq $GQLSERVER \
   -q 'mutation($loc:JSON!){createFace(locator:$loc){id}}' \
-  --variablesJSON '
-    {
-      "loc": {
-        "scheme": "unix",
-        "remote": "/run/ndn/nfd.sock"
-      }
+  --variablesJSON '{
+    "loc": {
+      "scheme": "unix",
+      "remote": "/run/ndn/nfd.sock"
     }
-  ' | tee /dev/stderr | jq -r .data.createFace.id)
+  }' | tee /dev/stderr | jq -r .data.createFace.id)
 
 # insert FIB entry
 A_FIBID=$(ndndpdk-ctrl insert-fib --name $B_NAME --nh $A_FACEID | tee /dev/stderr | jq -r .id)

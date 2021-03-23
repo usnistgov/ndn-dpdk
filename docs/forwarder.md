@@ -92,6 +92,8 @@ When the forwarder is running, with faces created and traffic flowing, you can g
 Some example queries:
 
 ```bash
+# declare variable for NDN-DPDK GraphQL endpoint
+# if using Docker, see "NDN-DPDK Docker Container" page
 GQLSERVER=http://127.0.0.1:3030/
 
 # packet buffers usage

@@ -19,15 +19,13 @@ If NDN-DPDK is interoperable with another NDN implementation, sample steps to ac
 
 ## NDN Forwarding Daemon (NFD)
 
-NDN-DPDK is interoperable with [NFD](https://named-data.net/doc/NFD/) v0.7.1 or later.
+[NFD](https://named-data.net/doc/NFD/) v0.7.1 or later is interoperable with NDN-DPDK.
 See [NDN-DPDK interoperability with NFD](NFD.md) for a few sample scenarios on how to establish communication.
 
 ## ndn-cxx and python-ndn
 
-[ndn-cxx](https://named-data.net/doc/ndn-cxx/) and [python-ndn](https://python-ndn.readthedocs.io) are incompatible with NDN-DPDK:
-
-* They do not support PIT tokens.
-* They do not support NDN-DPDK management protocol.
+[ndn-cxx](https://named-data.net/doc/ndn-cxx/) and [python-ndn](https://python-ndn.readthedocs.io) are incompatible with NDN-DPDK.
+They do not support PIT tokens, and do not support NDN-DPDK management protocol.
 
 To use applications based on these libraries, you can run NFD alongside NDN-DPDK on the same machine.
 In this case:
@@ -41,6 +39,7 @@ See [NDN-DPDK interoperability with NFD](NFD.md) for a sample scenario.
 
 ## NDNts
 
-[NDNts](https://yoursunny.com/p/NDNts/) is compatible with NDN-DPDK when running in Node.js environment.
+[NDNts](https://yoursunny.com/p/NDNts/), when running in Node.js environment, is interoperable with NDN-DPDK.
 It fully supports PIT tokens, and has partial integration with NDN-DPDK management API.
+
 Applications must be import [`@ndn/dpdkmgmt` package](https://www.npmjs.com/package/@ndn/dpdkmgmt) in order to communicate with NDN-DPDK.

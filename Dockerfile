@@ -15,5 +15,5 @@ RUN export PATH=$PATH:/usr/local/go/bin && \
     npm install && \
     env ${MAKE_ENV} make && \
     make install
-VOLUME /dev/hugepages /run/ndndpdk-memif
+VOLUME /dev/hugepages /run/ndn
 CMD ["/usr/local/sbin/ndndpdk-svc", "--gqlserver", "http://:3030"]
