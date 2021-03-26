@@ -7,7 +7,7 @@ require (
 	github.com/FDio/vpp v1.0.1-0.20200715183738-b1500e9fffa8
 	github.com/bhoriuchi/graphql-go-tools v0.2.0-beta1
 	github.com/chuckpreslar/emission v0.0.0-20170206194824-a7ddd980baf9
-	github.com/coreos/go-systemd/v22 v22.2.0
+	github.com/coreos/go-systemd/v22 v22.3.0
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/gabstv/freeport v0.0.0-20171005142102-7952fe2e67ce
 	github.com/go-ole/go-ole v1.2.5 // indirect
@@ -39,4 +39,5 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 	howett.net/plist v0.0.0-20201203080718-1454fab16a06 // indirect
+	inet.af/netstack v0.0.0-20210317161235-a1bf4e56ef22
 )

@@ -5,12 +5,12 @@ package ndt
 */
 import "C"
 import (
-	"reflect"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndni"
+	"inet.af/netstack/gohacks"
 )
 
 // Thread represents an NDT lookup thread.
@@ -39,8 +39,8 @@ func (ndtt *Thread) Lookup(name ndn.Name) uint8 {
 }
 
 func (ndtt *Thread) hitCounters(nEntries int) (hits []uint32) {
-	sh := (*reflect.SliceHeader)(unsafe.Pointer(&hits))
-	sh.Data = uintptr(unsafe.Pointer(C.Ndtt_Hits_(ndtt.ptr())))
+	sh := (*gohacks.SliceHeader)(unsafe.Pointer(&hits))
+	sh.Data = unsafe.Pointer(C.Ndtt_Hits_(ndtt.ptr()))
 	sh.Len = nEntries
 	sh.Cap = nEntries
 	return hits

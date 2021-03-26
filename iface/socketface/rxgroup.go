@@ -7,11 +7,11 @@ uint16_t go_SocketRxGroup_RxBurst(RxGroup* rxg, struct rte_mbuf** pkts, uint16_t
 */
 import "C"
 import (
-	"reflect"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
+	"inet.af/netstack/gohacks"
 )
 
 // Limits of RxGroupQueueSize.
@@ -47,8 +47,8 @@ func (rxGroup) Ptr() unsafe.Pointer {
 //export go_SocketRxGroup_RxBurst
 func go_SocketRxGroup_RxBurst(rxg *C.RxGroup, pkts **C.struct_rte_mbuf, nPkts C.uint16_t) C.uint16_t {
 	var vec []*pktmbuf.Packet
-	sh := (*reflect.SliceHeader)(unsafe.Pointer(&vec))
-	sh.Data = uintptr(unsafe.Pointer(pkts))
+	sh := (*gohacks.SliceHeader)(unsafe.Pointer(&vec))
+	sh.Data = unsafe.Pointer(pkts)
 	sh.Len = int(nPkts)
 	sh.Cap = sh.Len
 

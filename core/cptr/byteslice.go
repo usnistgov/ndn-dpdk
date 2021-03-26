@@ -3,6 +3,8 @@ package cptr
 import (
 	"reflect"
 	"unsafe"
+
+	"inet.af/netstack/gohacks"
 )
 
 // AsByteSlice converts *[n]C.uint8_t or *[n]C.char or []C.uint8_t or []C.char to []byte.
@@ -21,8 +23,8 @@ func AsByteSlice(value interface{}) (b []byte) {
 		}
 	}
 
-	if val.Type().Elem().Size() != 1 {
-		panic(val.Type().String() + " is incompatible with []byte")
+	if typ := val.Type(); typ.Elem().Size() != 1 {
+		panic(typ.String() + " is incompatible with []byte")
 	}
 
 	count := val.Len()
@@ -30,10 +32,9 @@ func AsByteSlice(value interface{}) (b []byte) {
 		return nil
 	}
 
-	*(*reflect.SliceHeader)(unsafe.Pointer(&b)) = reflect.SliceHeader{
-		Data: val.Index(0).UnsafeAddr(),
-		Len:  count,
-		Cap:  count,
-	}
+	sh := (*gohacks.SliceHeader)(unsafe.Pointer(&b))
+	sh.Data = unsafe.Pointer(val.Index(0).UnsafeAddr())
+	sh.Len = count
+	sh.Cap = count
 	return b
 }

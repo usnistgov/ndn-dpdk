@@ -18,7 +18,7 @@ type FilePipeConfig struct {
 	NonBlock bool
 }
 
-// FilePipeCGo is a pipe with *C.FILE writer and *os.File reader.
+// FilePipeCGo is a pipe from *C.FILE writer to *os.File reader.
 type FilePipeCGo struct {
 	Reader *os.File
 	Writer unsafe.Pointer
