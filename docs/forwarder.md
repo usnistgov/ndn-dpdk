@@ -47,6 +47,7 @@ This section explains some commonly used parameters.
 
 **.eal.cores** is a list of CPU cores allocated to DPDK.
 To find the available CPU cores, run `lscpu` and look at "NUMA node? CPU(s)" line.
+If a cpuset is configured through systemd `AllowedCPUs` option or Docker `--cpuset-cpus` flag, it will be respected.
 
 **.eal.pciDevices** is a list of Ethernet adapters you want to use in the forwarder, written as PCI addresses.
 To find the PCI addresses of available Ethernet adapters, run `dpdk-devbind.py --status-dev net`.

@@ -44,6 +44,8 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/envoyproxy/go-control-plane v0.9.1-0.20191026205805-5f8ba28d4473/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/protoc-gen-validate v0.1.0/go.mod h1:iSmxcyjqTsJpI2R4NaDN7+kN2VEUnK/pcBlmesArF7c=
+github.com/fromanirh/cpuset v0.0.1 h1:WmCseohxvFRTuizpLczA/pjw0sGf4QD+AxcDoKtKySM=
+github.com/fromanirh/cpuset v0.0.1/go.mod h1:9lEAgXAusbccWNAvnt81P76p0g+dCgm1AR91DlpDgy0=
 github.com/gabstv/freeport v0.0.0-20171005142102-7952fe2e67ce h1:rtvUEogq8dSoKvV5pQiJqm+dlZXIk5c9gcBHND0BjWo=
 github.com/gabstv/freeport v0.0.0-20171005142102-7952fe2e67ce/go.mod h1:mCn8UhDWrCaUI1MdkrWOzBxn52geHr/ID9D2PVDDgFw=
 github.com/ghodss/yaml v1.0.0 h1:wQHKEahhL6wmXdzwWG11gIVCkOv05bNOh+Rxn0yngAk=

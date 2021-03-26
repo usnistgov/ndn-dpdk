@@ -9,6 +9,7 @@ require (
 	github.com/chuckpreslar/emission v0.0.0-20170206194824-a7ddd980baf9
 	github.com/coreos/go-systemd/v22 v22.3.0
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
+	github.com/fromanirh/cpuset v0.0.1
 	github.com/gabstv/freeport v0.0.0-20171005142102-7952fe2e67ce
 	github.com/go-ole/go-ole v1.2.5 // indirect
 	github.com/gogf/greuse v1.1.0
