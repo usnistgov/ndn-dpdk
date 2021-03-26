@@ -20,6 +20,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
+	"go4.org/must"
 )
 
 func TestMain(m *testing.M) {
@@ -79,8 +80,8 @@ func NewFixture(cfg pcct.Config) *Fixture {
 }
 
 func (fixture *Fixture) Close() error {
-	fixture.Fib.Close()
-	fixture.Pcct.Close()
+	must.Close(fixture.Fib)
+	must.Close(fixture.Pcct)
 	return nil
 }
 
@@ -96,8 +97,8 @@ func (fixture *Fixture) CountMpInUse() int {
 func (fixture *Fixture) Insert(interest *ndni.Packet, data *ndni.Packet) (isReplacing bool) {
 	pitEntry, csEntry := fixture.Pit.Insert(interest, fixture.FibEntry)
 	if csEntry != nil {
-		interest.Close()
-		data.Close()
+		must.Close(interest)
+		must.Close(data)
 		return false
 	}
 	if pitEntry == nil {
@@ -136,7 +137,7 @@ func (fixture *Fixture) Find(interest *ndni.Packet) *cs.Entry {
 	if pitEntry != nil {
 		fixture.Pit.Erase(pitEntry)
 	} else {
-		interest.Close()
+		must.Close(interest)
 	}
 	return csEntry
 }

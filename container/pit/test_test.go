@@ -18,6 +18,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
+	"go4.org/must"
 )
 
 func TestMain(m *testing.M) {
@@ -68,8 +69,9 @@ func NewFixture(pcctCapacity int) *Fixture {
 }
 
 func (fixture *Fixture) Close() error {
-	fixture.Fib.Close()
-	return fixture.Pcct.Close()
+	must.Close(fixture.Fib)
+	must.Close(fixture.Pcct)
+	return nil
 }
 
 // Return number of in-use entries in PCCT's underlying mempool.

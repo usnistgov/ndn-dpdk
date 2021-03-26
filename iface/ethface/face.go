@@ -8,6 +8,7 @@ import "C"
 import (
 	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"go4.org/must"
 )
 
 var logger = logging.New("ethface")
@@ -77,7 +78,7 @@ func New(port *Port, loc ethLocator) (iface.Face, error) {
 		},
 		Close: func(iface.Face) error {
 			if len(face.port.faces) == 0 {
-				face.port.Close()
+				must.Close(face.port)
 			}
 			return nil
 		},

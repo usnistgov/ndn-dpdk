@@ -11,6 +11,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface/ethface"
 	"github.com/usnistgov/ndn-dpdk/iface/ifacetestenv"
 	"github.com/usnistgov/ndn-dpdk/ndn/memiftransport"
+	"go4.org/must"
 )
 
 func TestMemif(t *testing.T) {
@@ -68,5 +69,5 @@ func memifbridgeHelper() {
 	}
 
 	io.ReadAtLeast(os.Stdin, make([]byte, 1), 1)
-	bridge.Close()
+	must.Close(bridge)
 }

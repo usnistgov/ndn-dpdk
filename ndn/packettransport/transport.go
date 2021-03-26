@@ -12,6 +12,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
+	"go4.org/must"
 )
 
 // PacketDataHandle represents a network interface to send and receive Ethernet frames.
@@ -166,7 +167,7 @@ func (tr *transport) txLoop() {
 
 	switch hdl := tr.hdl.(type) {
 	case io.Closer:
-		hdl.Close()
+		must.Close(hdl)
 	case closer:
 		hdl.Close()
 	}

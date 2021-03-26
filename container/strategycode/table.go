@@ -4,6 +4,8 @@ package strategycode
 import (
 	"fmt"
 	"sync"
+
+	"go4.org/must"
 )
 
 // Table of Strategy instances.
@@ -55,6 +57,6 @@ func DestroyAll() {
 		if nRefs := sc.CountRefs(); nRefs > 1 {
 			panic(fmt.Errorf("%s has %d refs", sc, nRefs))
 		}
-		sc.Close()
+		must.Close(sc)
 	}
 }

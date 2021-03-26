@@ -9,6 +9,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
+	"go4.org/must"
 )
 
 func TestEthDev(t *testing.T) {
@@ -45,7 +46,7 @@ func TestEthDev(t *testing.T) {
 					assert.Equal(1, pkt.Len(), "bad RX length at %d", nReceived)
 				}
 			}
-			vec.Close()
+			must.Close(vec)
 
 			select {
 			case <-rxQuit:

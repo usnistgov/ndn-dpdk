@@ -18,6 +18,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"go.uber.org/zap"
+	"go4.org/must"
 )
 
 var logger = logging.New("iface")
@@ -297,7 +298,7 @@ func (f *face) clear() Face {
 		eal.Free(c.impl)
 	}
 	if c.outputQueue != nil {
-		ringbuffer.FromPtr(unsafe.Pointer(c.outputQueue)).Close()
+		must.Close(ringbuffer.FromPtr(unsafe.Pointer(c.outputQueue)))
 	}
 	c.id = 0
 	gFaces[id] = nil

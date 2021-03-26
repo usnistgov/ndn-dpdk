@@ -14,6 +14,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"go4.org/must"
 )
 
 const (
@@ -98,7 +99,7 @@ func New(cfg Config) (dp *DataPlane, e error) {
 		fwd := newFwd(i)
 		if e = fwd.Init(lc, cfg.Pcct, cfg.FwdInterestQueue, cfg.FwdDataQueue, cfg.FwdNackQueue,
 			cfg.latencySampleFreq(), cfg.Suppress); e != nil {
-			dp.Close()
+			must.Close(dp)
 			return nil, fmt.Errorf("Fwd.Init(%d): %w", i, e)
 		}
 		dp.fwds = append(dp.fwds, fwd)
@@ -106,14 +107,14 @@ func New(cfg Config) (dp *DataPlane, e error) {
 	}
 
 	if dp.fib, e = fib.New(cfg.Fib, fibFwds); e != nil {
-		dp.Close()
+		must.Close(dp)
 		return nil, fmt.Errorf("fib.New: %w", e)
 	}
 
 	{
 		dp.crypto, e = newCrypto(len(dp.inputs), lcCrypto, cfg.Crypto, dp.ndt, dp.fwds)
 		if e != nil {
-			dp.Close()
+			must.Close(dp)
 			return nil, fmt.Errorf("Crypto.Init(): %w", e)
 		}
 		dp.crypto.Launch()
@@ -151,19 +152,19 @@ func (dp *DataPlane) Fwds() []*Fwd {
 func (dp *DataPlane) Close() error {
 	iface.CloseAll()
 	if dp.crypto != nil {
-		dp.crypto.Close()
+		must.Close(dp.crypto)
 	}
 	for _, fwd := range dp.fwds {
-		fwd.Close()
+		must.Close(fwd)
 	}
 	for _, fwi := range dp.inputs {
-		fwi.Close()
+		must.Close(fwi)
 	}
 	if dp.fib != nil {
-		dp.fib.Close()
+		must.Close(dp.fib)
 	}
 	if dp.ndt != nil {
-		dp.ndt.Close()
+		must.Close(dp.ndt)
 	}
 	ealthread.DefaultAllocator.Clear()
 	return nil

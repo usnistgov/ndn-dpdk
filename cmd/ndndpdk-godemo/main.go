@@ -17,6 +17,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/memiftransport"
 	"github.com/usnistgov/ndn-dpdk/ndn/mgmt"
 	"github.com/usnistgov/ndn-dpdk/ndn/mgmt/gqlmgmt"
+	"go4.org/must"
 )
 
 var (
@@ -70,7 +71,7 @@ var app = &cli.App{
 	},
 	After: func(c *cli.Context) (e error) {
 		if face != nil {
-			face.Close()
+			must.Close(face)
 			log.Print("uplink closed")
 		}
 		return client.Close()

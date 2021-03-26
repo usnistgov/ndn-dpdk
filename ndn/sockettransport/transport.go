@@ -9,6 +9,7 @@ import (
 
 	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
+	"go4.org/must"
 )
 
 // Config contains socket transport configuration.
@@ -153,7 +154,7 @@ func (tr *transport) txLoop() {
 	}
 	tr.closing <- true
 	atomic.StoreInt32(&tr.closed, 1)
-	tr.Conn().Close()
+	must.Close(tr.Conn())
 }
 
 func (tr *transport) redialLoop() {

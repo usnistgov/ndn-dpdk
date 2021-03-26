@@ -8,6 +8,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/endpoint"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
+	"go4.org/must"
 )
 
 func addRetxLimitTestProducer(invokeCount *int) (endpoint.Producer, error) {
@@ -46,7 +47,7 @@ func TestRetxLimit(t *testing.T) {
 		assert.EqualError(e, endpoint.ErrExpire.Error(), "%d", i)
 
 		assert.Equal(tt.nInterests, invokeCount)
-		p.Close()
+		must.Close(p)
 		l3.DeleteDefaultForwarder()
 	}
 }

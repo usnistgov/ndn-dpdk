@@ -19,6 +19,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
+	"go4.org/must"
 )
 
 var makeAR = testenv.MakeAR
@@ -134,7 +135,7 @@ func (fixture *Fixture) recvCheck(pkt *pktmbuf.Packet) (increment int) {
 	assert.Equal(fixture.rxFace.ID(), faceID)
 	assert.NotZero(pkt.Timestamp())
 	increment = 1
-	pkt.Close()
+	must.Close(pkt)
 	return increment
 }
 

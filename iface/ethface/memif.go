@@ -8,6 +8,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn/memiftransport"
+	"go4.org/must"
 )
 
 const schemeMemif = "memif"
@@ -58,7 +59,7 @@ func (loc MemifLocator) CreateFace() (iface.Face, error) {
 	}
 	port, e := NewPort(dev, pc)
 	if e != nil {
-		vdev.Close()
+		must.Close(vdev)
 		return nil, fmt.Errorf("NewPort %w", e)
 	}
 	port.closeVdev = func() {

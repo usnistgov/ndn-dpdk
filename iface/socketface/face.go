@@ -17,6 +17,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"github.com/usnistgov/ndn-dpdk/ndn/sockettransport"
 	"github.com/usnistgov/ndn-dpdk/ndni"
+	"go4.org/must"
 )
 
 // Config contains socket face configuration.
@@ -161,7 +162,7 @@ func (face *socketFace) rxLoop() {
 		select {
 		case rxQueue <- mbuf:
 		default:
-			mbuf.Close()
+			must.Close(mbuf)
 		}
 	}
 }
@@ -174,7 +175,7 @@ func go_SocketFace_TxBurst(faceC *C.Face, pkts **C.struct_rte_mbuf, nPkts C.uint
 		mbufPtr := (**C.struct_rte_mbuf)(unsafe.Pointer(uintptr(unsafe.Pointer(pkts)) + i*unsafe.Sizeof(*pkts)))
 		mbuf := pktmbuf.PacketFromPtr(unsafe.Pointer(*mbufPtr))
 		wire := mbuf.Bytes()
-		mbuf.Close()
+		must.Close(mbuf)
 
 		select {
 		case innerTx <- wire:

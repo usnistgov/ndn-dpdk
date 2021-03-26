@@ -10,6 +10,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"github.com/usnistgov/ndn-dpdk/ndn/memiftransport"
 	"github.com/usnistgov/ndn-dpdk/ndn/mgmt"
+	"go4.org/must"
 )
 
 // OpenFace invokes OpenMemif with default settings.
@@ -69,13 +70,13 @@ func (c *Client) OpenMemif(loc memiftransport.Locator) (mgmt.Face, error) {
 func (f *face) openMemif(loc memiftransport.Locator) error {
 	tr, e := memiftransport.New(loc)
 	if e != nil {
-		f.Close()
+		must.Close(f)
 		return fmt.Errorf("memiftransport.New: %w", e)
 	}
 
 	tr.OnStateChange(func(st l3.TransportState) {
 		if st == l3.TransportClosed {
-			f.Close()
+			must.Close(f)
 		}
 	})
 

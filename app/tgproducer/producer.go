@@ -18,6 +18,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndni"
+	"go4.org/must"
 )
 
 // Producer represents a traffic generator producer thread.
@@ -129,7 +130,7 @@ func (producer *Producer) RxQueue() *iface.PktQueue {
 // The thread must be stopped before calling this.
 func (producer *Producer) Close() error {
 	producer.Stop()
-	producer.RxQueue().Close()
+	must.Close(producer.RxQueue())
 	eal.Free(producer.c)
 	return nil
 }

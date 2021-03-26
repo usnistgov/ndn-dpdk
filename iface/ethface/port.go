@@ -5,6 +5,7 @@ import (
 
 	"github.com/pkg/math"
 	"go.uber.org/zap"
+	"go4.org/must"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
@@ -121,7 +122,7 @@ func (port *Port) Close() (e error) {
 	}
 
 	if port.impl != nil {
-		port.impl.Close()
+		must.Close(port.impl)
 		port.impl = nil
 	}
 
@@ -137,7 +138,7 @@ func (port *Port) Close() (e error) {
 	}
 
 	if port.rxBouncePool != nil {
-		port.rxBouncePool.Close()
+		must.Close(port.rxBouncePool)
 		port.rxBouncePool = nil
 	}
 

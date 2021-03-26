@@ -11,6 +11,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/ndn"
+	"go4.org/must"
 )
 
 func rewriteUnknownSocket(socket eal.NumaSocket) eal.NumaSocket {
@@ -46,7 +47,7 @@ func (fib *Fib) doClose() {
 	urcu.Barrier() // allow call_rcu to complete; otherwise they could invoke rte_mempool_put on free'd objects
 	for _, replica := range fib.replicas {
 		if replica != nil {
-			replica.Close()
+			must.Close(replica)
 		}
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
+	"go4.org/must"
 )
 
 // VNetConfig contains VNet configuration.
@@ -100,10 +101,10 @@ func (vnet *VNet) bridge() {
 					nTx := dstQ.TxBurst(txPkts)
 					txDrops := txPkts[nTx:]
 					vnet.NDrops += len(txDrops)
-					txDrops.Close()
+					must.Close(txDrops)
 				}
 
-				rxPkts.Close()
+				must.Close(rxPkts)
 			}
 		}
 	}
@@ -118,7 +119,7 @@ func (*VNet) ThreadRole() string {
 func (vnet *VNet) Close() error {
 	vnet.Stop()
 	for _, pair := range vnet.pairs {
-		pair.Close()
+		must.Close(pair)
 	}
 	return nil
 }

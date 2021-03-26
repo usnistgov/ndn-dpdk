@@ -8,6 +8,7 @@ import (
 	"github.com/google/gopacket"
 	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
+	"go4.org/must"
 )
 
 type pipePacketDataHandle struct {
@@ -42,8 +43,8 @@ func (h *pipePacketDataHandle) WritePacketData(pkt []byte) error {
 }
 
 func (h *pipePacketDataHandle) Close() {
-	h.rx.Close()
-	h.tx.Close()
+	must.Close(h.rx)
+	must.Close(h.tx)
 }
 
 func TestPipe(t *testing.T) {

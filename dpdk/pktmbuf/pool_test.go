@@ -5,6 +5,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
+	"go4.org/must"
 )
 
 func TestPool(t *testing.T) {
@@ -33,7 +34,7 @@ func TestPool(t *testing.T) {
 	assert.Error(e)
 	assert.Len(vec2, 0)
 
-	vec0.Close()
-	vec1.Close()
+	must.Close(vec0)
+	must.Close(vec1)
 	assert.Equal(63, mp.CountAvailable())
 }

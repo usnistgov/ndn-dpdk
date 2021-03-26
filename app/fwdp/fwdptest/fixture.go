@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"go4.org/must"
 
 	"github.com/usnistgov/ndn-dpdk/app/fwdp"
 	"github.com/usnistgov/ndn-dpdk/container/fib"
@@ -65,7 +66,7 @@ func NewFixture(t *testing.T) (fixture *Fixture) {
 
 // Close destroys the fixture.
 func (fixture *Fixture) Close() error {
-	fixture.DataPlane.Close()
+	must.Close(fixture.DataPlane)
 	strategycode.DestroyAll()
 	return nil
 }

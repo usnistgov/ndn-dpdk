@@ -14,6 +14,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 	"github.com/usnistgov/ndn-dpdk/ndn/ndntestvector"
+	"go4.org/must"
 )
 
 func ctestTlvDecoderReadSkip(t *testing.T) {
@@ -80,7 +81,7 @@ func ctestTlvDecoderClone(t *testing.T) {
 			clonePkt := pktmbuf.PacketFromPtr(unsafe.Pointer(clone))
 			assert.Equal(count, clonePkt.Len(), "%d-%d", offset, count)
 			assert.Equal(payload[offset:offset+count], clonePkt.Bytes(), "%d-%d", offset, count)
-			clonePkt.Close()
+			must.Close(clonePkt)
 		}
 	}
 }

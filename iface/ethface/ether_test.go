@@ -13,6 +13,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface/ifacetestenv"
 	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
 	"github.com/usnistgov/ndn-dpdk/ndni"
+	"go4.org/must"
 )
 
 func makeEtherLocator(dev ethdev.EthDev) (loc ethface.EtherLocator) {
@@ -67,8 +68,9 @@ func makeTopo3(t *testing.T) (topo topo3) {
 }
 
 func (topo *topo3) Close() error {
-	topo.Fixture.Close()
-	return topo.vnet.Close()
+	must.Close(topo.Fixture)
+	must.Close(topo.vnet)
+	return nil
 }
 
 func TestTopoBA(t *testing.T) {

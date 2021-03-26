@@ -29,7 +29,7 @@ type localAddrRedialer struct{}
 
 func (localAddrRedialer) Redial(oldConn net.Conn) (net.Conn, error) {
 	local, remote := oldConn.LocalAddr(), oldConn.RemoteAddr()
-	oldConn.Close()
+	oldConn.Close() // ignore error
 	dialer := net.Dialer{LocalAddr: local}
 	return dialer.Dial(remote.Network(), remote.String())
 }
@@ -39,11 +39,11 @@ type noLocalAddrRedialer struct{}
 
 func (noLocalAddrRedialer) Redial(oldConn net.Conn) (net.Conn, error) {
 	remote := oldConn.RemoteAddr()
-	oldConn.Close()
+	oldConn.Close() // ignore error
 	return net.Dial(remote.Network(), remote.String())
 }
 
-// nopRedialer redials doing nothing.
+// nopRedialer redials by doing nothing.
 type nopRedialer struct{}
 
 func (nopRedialer) Redial(oldConn net.Conn) (net.Conn, error) {

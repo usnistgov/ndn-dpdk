@@ -16,6 +16,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/mempool"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"go4.org/must"
 )
 
 // CryptoConfig contains crypto helper thread configuration.
@@ -93,10 +94,10 @@ func newCrypto(id int, lc eal.LCore, cfg CryptoConfig, ndt *ndt.Ndt, fwds []*Fwd
 func (fwc *Crypto) Close() error {
 	fwc.Stop()
 
-	fwc.devM.Close()
-	fwc.devS.Close()
-	mempool.FromPtr(unsafe.Pointer(fwc.c.opPool)).Close()
-	ringbuffer.FromPtr(unsafe.Pointer(fwc.c.input)).Close()
+	must.Close(fwc.devM)
+	must.Close(fwc.devS)
+	must.Close(mempool.FromPtr(unsafe.Pointer(fwc.c.opPool)))
+	must.Close(ringbuffer.FromPtr(unsafe.Pointer(fwc.c.input)))
 	eal.Free(unsafe.Pointer(fwc.c))
 	return nil
 }

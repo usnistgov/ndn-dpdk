@@ -13,6 +13,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
+	"go4.org/must"
 )
 
 // PairConfig contains configuration for Pair.
@@ -107,10 +108,10 @@ func (pair *Pair) Close() error {
 	pair.PortA.Stop(StopDetach)
 	pair.PortB.Stop(StopDetach)
 	for _, r := range pair.ringsAB {
-		r.Close()
+		must.Close(r)
 	}
 	for _, r := range pair.ringsBA {
-		r.Close()
+		must.Close(r)
 	}
 	return nil
 }

@@ -19,6 +19,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndni"
+	"go4.org/must"
 )
 
 // Consumer represents a traffic generator consumer instance.
@@ -160,7 +161,7 @@ func (consumer *Consumer) Stop(delay time.Duration) error {
 // Close closes the consumer.
 // Both RX and TX threads must be stopped before calling this.
 func (consumer *Consumer) Close() error {
-	consumer.RxQueue().Close()
+	must.Close(consumer.RxQueue())
 	eal.Free(consumer.rxC)
 	eal.Free(consumer.txC)
 	return nil

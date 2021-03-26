@@ -12,6 +12,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndni"
+	"go4.org/must"
 )
 
 type rxTableImpl struct {
@@ -51,7 +52,7 @@ func (impl *rxTableImpl) Stop(face *ethFace) error {
 
 func (impl *rxTableImpl) Close() error {
 	if impl.rxt != nil {
-		impl.rxt.Close()
+		must.Close(impl.rxt)
 		impl.rxt = nil
 	}
 	impl.port.dev.Stop(ethdev.StopReset)

@@ -16,6 +16,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface/ifacetestenv"
 	"github.com/usnistgov/ndn-dpdk/iface/socketface"
 	"github.com/usnistgov/ndn-dpdk/ndn/sockettransport"
+	"go4.org/must"
 )
 
 func mustParseLocator(input string) socketface.Locator {
@@ -90,11 +91,11 @@ func checkStreamRedialing(t *testing.T, listener net.Listener, makeFaceA func() 
 	fixture.RunTest(faceA, faceB)
 	fixture.CheckCounters()
 
-	accepted.Close()                // close initial connection
+	must.Close(accepted)            // close initial connection
 	accepted, e = listener.Accept() // faceA should redial
 	require.NoError(e)
 	time.Sleep(100 * time.Millisecond)
-	accepted.Close()
+	must.Close(accepted)
 
 	assert.True(hasDownEvt)
 	assert.True(hasUpEvt)

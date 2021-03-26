@@ -5,6 +5,8 @@ package memiftransport
 import (
 	"errors"
 	"fmt"
+
+	"go4.org/must"
 )
 
 // Bridge bridges two memif interfaces.
@@ -41,7 +43,7 @@ func NewBridge(locA, locB Locator, role Role) (bridge *Bridge, e error) {
 	}
 	bridge.hdlB, e = newHandle(locB, role)
 	if e != nil {
-		bridge.hdlA.Close()
+		must.Close(bridge.hdlA)
 		return nil, fmt.Errorf("newHandleB %w", e)
 	}
 
@@ -75,7 +77,7 @@ func (bridge *Bridge) transferLoop(src, dst *handle) {
 func (bridge *Bridge) Close() error {
 	bridge.closing <- true
 	bridge.closing <- true
-	bridge.hdlA.Close()
-	bridge.hdlB.Close()
+	must.Close(bridge.hdlA)
+	must.Close(bridge.hdlB)
 	return nil
 }

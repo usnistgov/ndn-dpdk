@@ -6,6 +6,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/cryptodev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
+	"go4.org/must"
 )
 
 func TestCryptoDev(t *testing.T) {
@@ -62,6 +63,6 @@ func TestCryptoDev(t *testing.T) {
 	assert.Equal(0, qp[0].DequeueBurst(ops))
 
 	assert.Equal(3, mp.CountInUse())
-	ops0[0].Close()
+	must.Close(ops0[0])
 	assert.Equal(2, mp.CountInUse())
 }

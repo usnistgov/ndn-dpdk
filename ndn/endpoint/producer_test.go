@@ -16,6 +16,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/keychain"
 	"github.com/usnistgov/ndn-dpdk/ndn/keychain/eckey"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
+	"go4.org/must"
 )
 
 func TestSignVerify(t *testing.T) {
@@ -178,11 +179,11 @@ func TestProducerAdvertise(t *testing.T) {
 	require.NoError(e)
 	assert.Len(dest.advertised, 1)
 
-	p1.Close()
+	must.Close(p1)
 	time.Sleep(50 * time.Millisecond)
 	assert.Len(dest.withdrawn, 0)
 
-	p2.Close()
+	must.Close(p2)
 	time.Sleep(50 * time.Millisecond) // producer.Close is asynchronous
 	if assert.Len(dest.withdrawn, 1) {
 		nameEqual(assert, dest.withdrawn[0], "/A")
@@ -204,7 +205,7 @@ func TestProducerNoAdvertise(t *testing.T) {
 	require.NoError(e)
 	assert.Len(dest.advertised, 0)
 
-	p.Close()
+	must.Close(p)
 	time.Sleep(50 * time.Millisecond) // producer.Close is asynchronous
 	assert.Len(dest.withdrawn, 0)
 }

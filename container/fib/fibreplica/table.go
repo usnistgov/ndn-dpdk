@@ -15,6 +15,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/mempool"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndni"
+	"go4.org/must"
 )
 
 // Table represents a FIB replica.
@@ -102,7 +103,7 @@ func New(cfg fibdef.Config, nDyns int, socket eal.NumaSocket) (*Table, error) {
 
 	t.c.lfht = C.cds_lfht_new(C.ulong(cfg.NBuckets), C.ulong(cfg.NBuckets), C.ulong(cfg.NBuckets), 0, nil)
 	if t.c.lfht == nil {
-		t.mp.Close()
+		must.Close(t.mp)
 		return nil, errors.New("cds_lfht_new error")
 	}
 

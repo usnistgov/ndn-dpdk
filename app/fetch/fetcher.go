@@ -16,6 +16,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndni"
+	"go4.org/must"
 )
 
 var fetcherByFace = make(map[iface.ID]*Fetcher)
@@ -170,8 +171,8 @@ func (fetcher *Fetcher) Stop() {
 func (fetcher *Fetcher) Close() error {
 	faceID := fetcher.Face().ID()
 	for i, fp := range fetcher.fp {
-		fetcher.RxQueue(i).Close()
-		fetcher.Logic(i).Close()
+		must.Close(fetcher.RxQueue(i))
+		must.Close(fetcher.Logic(i))
 		eal.Free(fp)
 	}
 	for _, fth := range fetcher.fth {

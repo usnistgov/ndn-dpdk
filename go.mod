@@ -33,6 +33,7 @@ require (
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/xeipuuv/gojsonschema v1.2.0
 	go.uber.org/zap v1.16.0
+	go4.org v0.0.0-20201209231011-d4a079459e60
 	golang.org/x/net v0.0.0-20210316092652-d523dce5a7f4 // indirect
 	golang.org/x/sys v0.0.0-20210316164454-77fc1eacc6aa
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect

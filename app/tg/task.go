@@ -6,6 +6,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/app/tgproducer"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"go4.org/must"
 )
 
 // Task contains consumer and producer on a face.
@@ -90,14 +91,14 @@ func (task *Task) launch() {
 
 func (task *Task) close() error {
 	for _, server := range task.Producer {
-		server.Close()
+		must.Close(server)
 	}
 	if task.Consumer != nil {
-		task.Consumer.Close()
+		must.Close(task.Consumer)
 	}
 	if task.Fetch != nil {
-		task.Fetch.Close()
+		must.Close(task.Fetch)
 	}
-	task.Face.Close()
+	must.Close(task.Face)
 	return nil
 }

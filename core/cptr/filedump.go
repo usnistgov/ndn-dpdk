@@ -10,6 +10,7 @@ import (
 	"os"
 	"unsafe"
 
+	"go4.org/must"
 	"golang.org/x/sys/unix"
 )
 
@@ -35,7 +36,7 @@ func (p *FilePipeCGo) ReadAll() (data []byte, e error) {
 // CloseReader closes the reader.
 func (p *FilePipeCGo) CloseReader() {
 	if p.Reader != nil {
-		p.Reader.Close()
+		must.Close(p.Reader)
 		p.Reader = nil
 	}
 }
@@ -106,6 +107,6 @@ func CaptureFileDump(f func(fp unsafe.Pointer)) (data []byte, e error) {
 	f(p.Writer)
 	p.CloseWriter()
 	<-done
-	p.Close()
+	must.Close(p)
 	return
 }

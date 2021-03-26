@@ -11,6 +11,7 @@ import (
 	"github.com/urfave/cli/v2"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/endpoint"
+	"go4.org/must"
 )
 
 func init() {
@@ -55,7 +56,7 @@ func init() {
 				return e
 			}
 			<-interrupt
-			p.Close()
+			must.Close(p)
 			return nil
 		},
 	})

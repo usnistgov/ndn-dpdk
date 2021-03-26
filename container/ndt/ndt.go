@@ -7,6 +7,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndni"
+	"go4.org/must"
 )
 
 // Entry contains information from an NDT entry.
@@ -43,11 +44,11 @@ func (ndt *Ndt) Threads() (list []*Thread) {
 // Close releases memory of all replicas and threads.
 func (ndt *Ndt) Close() error {
 	for _, ndtt := range ndt.threads {
-		ndtt.Close()
+		must.Close(ndtt)
 	}
 	ndt.threads = nil
 	for _, ndtr := range ndt.replicas {
-		ndtr.Close()
+		must.Close(ndtr)
 	}
 	ndt.replicas = nil
 	return nil

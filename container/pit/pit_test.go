@@ -8,6 +8,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndni"
+	"go4.org/must"
 )
 
 func TestInsertErase(t *testing.T) {
@@ -30,7 +31,7 @@ func TestInsertErase(t *testing.T) {
 	interest3 := makeInterest("/A/2",
 		ndn.MakeFHDelegation(1, "/F"), ndn.MakeFHDelegation(1, "/G"))
 	entry3 := fixture.Insert(interest3)
-	interest3.Close()
+	must.Close(interest3)
 	assert.NotNil(entry3)
 	assert.Equal(uintptr(entry2.Ptr()), uintptr(entry3.Ptr()))
 
@@ -86,8 +87,8 @@ func TestToken(t *testing.T) {
 		entry, _ := pit.Insert(interest, fixture.FibEntry)
 		if i == 255 { // PCCT is full
 			assert.Nil(entry)
-			data.Close()
-			interest.Close()
+			must.Close(data)
+			must.Close(interest)
 			continue
 		}
 		require.NotNil(entry, "unexpected PCCT full at %d", i)
@@ -144,9 +145,9 @@ func TestToken(t *testing.T) {
 		foundEntry = pit.FindByNack(nack)
 		assert.Nil(foundEntry)
 
-		data.Close()
-		nack.Close()
-		data2.Close()
+		must.Close(data)
+		must.Close(nack)
+		must.Close(data2)
 	}
 
 	cnt := pit.ReadCounters()

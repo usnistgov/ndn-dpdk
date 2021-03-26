@@ -9,6 +9,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
+	"go4.org/must"
 )
 
 // Error conditions.
@@ -109,7 +110,7 @@ func (p *producer) loop(ctx context.Context) {
 	wg.Add(1)
 	defer func() {
 		wg.Wait()
-		p.face.Close()
+		must.Close(p.face)
 		p.close()
 	}()
 

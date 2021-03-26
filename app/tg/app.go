@@ -6,6 +6,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"go4.org/must"
 )
 
 // LCoreAlloc roles.
@@ -103,7 +104,7 @@ func (app *App) Close() error {
 	}
 	for _, input := range app.inputs {
 		input.rxl.Stop()
-		input.rxl.Close()
+		must.Close(input.rxl)
 	}
 	return nil
 }

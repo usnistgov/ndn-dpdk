@@ -9,6 +9,7 @@ import (
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"go4.org/must"
 )
 
 // External symbols available to eBPF programs, provided by ndn-dpdk/app/fwdp package.
@@ -57,7 +58,7 @@ func Load(name string, elf []byte) (sc *Strategy, e error) {
 	if _, e := file.Write(elf); e != nil {
 		return nil, e
 	}
-	file.Close()
+	must.Close(file)
 
 	return LoadFile(name, filename)
 }

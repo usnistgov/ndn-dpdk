@@ -9,6 +9,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/bdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/spdkenv"
+	"go4.org/must"
 )
 
 func TestDiskStore(t *testing.T) {
@@ -53,9 +54,9 @@ func TestDiskStore(t *testing.T) {
 		}
 		if assert.NotNil(data, n) {
 			assert.Equal(time.Duration(n)*time.Millisecond, data.ToNPacket().Data.Freshness, n)
-			data.Close()
+			must.Close(data)
 		}
-		interest.Close()
+		must.Close(interest)
 	}
 
 	for _, n := range []uint64{2, 32} {
@@ -66,7 +67,7 @@ func TestDiskStore(t *testing.T) {
 			continue
 		}
 		assert.Nil(data, n)
-		interest.Close()
+		must.Close(interest)
 	}
 
 	assert.Zero(packetPool.CountInUse())
