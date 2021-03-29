@@ -12,36 +12,37 @@ gopkg: godeps
 	go build -v ./...
 
 .PHONY: godeps
-godeps: build/libndn-dpdk-c.a build/cgodeps.done build/strategy.done
+godeps: build/libndn-dpdk-c.a build/cgodeps.done build/bpf.done
+
+csrc/meson.build mk/meson.build:
+	mk/update-list.sh
+
+build/build.ninja: csrc/meson.build mk/meson.build
+	bash -c 'source mk/cflags.sh; meson build'
 
 csrc/fib/enum.h: container/fib/fibdef/enum.go
-	mk/gogenerate.sh ./$(<D)
+	go generate ./$(<D)
 
 csrc/ndni/enum.h csrc/ndni/an.h: ndni/enum.go ndn/an/*.go
-	mk/gogenerate.sh ./$(<D)
+	go generate ./$(<D)
 
 csrc/iface/enum.h: iface/enum.go
-	mk/gogenerate.sh ./$(<D)
+	go generate ./$(<D)
 
 csrc/pcct/cs-enum.h: container/cs/enum.go
-	mk/gogenerate.sh ./$(<D)
-
-build/strategy.done: strategy/*.c csrc/strategyapi/* csrc/fib/enum.h
-	strategy/compile.sh
+	go generate ./$(<D)
 
 .PHONY: build/libndn-dpdk-c.a
 build/libndn-dpdk-c.a: build/build.ninja csrc/fib/enum.h csrc/ndni/an.h csrc/ndni/enum.h csrc/iface/enum.h csrc/pcct/cs-enum.h
 	ninja -C build
 
-build/build.ninja: csrc/meson.build mk/meson.build
-	bash -c 'source mk/cflags.sh; meson build'
-
 build/cgodeps.done: build/build.ninja
 	ninja -C build cgoflags cgostruct cgotest schema
 	touch $@
 
-csrc/meson.build mk/meson.build:
-	mk/update-list.sh
+build/bpf.done: build/build.ninja bpf/**/*.c csrc/strategyapi/* csrc/fib/enum.h
+	ninja -C build bpf
+	touch $@
 
 .PHONY: cmds
 cmds: build/bin/ndndpdk-ctrl build/bin/ndndpdk-godemo build/bin/ndndpdk-hrlog2histogram build/bin/ndndpdk-jrproxy build/bin/ndndpdk-svc

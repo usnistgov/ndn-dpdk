@@ -3,6 +3,6 @@
 
 /** @file */
 
-#include "../csrc/strategyapi/api.h"
+#include "../../csrc/strategyapi/api.h"
 
 #endif // NDNDPDK_STRATEGY_API_H

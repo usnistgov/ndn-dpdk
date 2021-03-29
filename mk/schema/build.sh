@@ -1,6 +1,6 @@
 #!/bin/bash
 set -eo pipefail
-if [[ -z $MESON_SOURCE_ROOT ]] || [[ -z $MESON_BUILD_ROOT ]] || [[ $# -lt 1 ]]; then
+if [[ -z $MESON_SOURCE_ROOT ]] || [[ -z $MESON_BUILD_ROOT ]]; then
   echo 'USAGE: ninja -C build schema' >/dev/stderr
   exit 1
 fi

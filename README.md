@@ -61,12 +61,12 @@ Management
 * [mk](mk): build helper scripts.
 * [csrc](csrc): C source code.
 * [js](js): TypeScript source code.
+* [bpf](bpf): eBPF programs, such as forwarding strategies.
 * [core](core): common shared code.
 * [dpdk](dpdk): Go bindings for DPDK and SPDK.
 * [ndni](ndni): NDN packet representation for internal use.
 * [iface](iface): network interfaces.
 * [container](container): data structures.
-* [strategy](strategy): forwarding strategy BPF programs.
 * [app](app): applications, including the forwarder dataplane.
 * [cmd](cmd): executables.
 

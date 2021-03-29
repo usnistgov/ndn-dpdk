@@ -1,6 +1,6 @@
-# ndn-dpdk/strategy
+# ndn-dpdk/bpf/strategy
 
-This directory contains forwarding strategies, implemented using the strategy API defined in `api.h`.
+This directory contains forwarding strategies, implemented using the strategy API defined in [`api.h`](../../csrc/strategyapi/api.h).
 
 To implement a strategy named `foo`:
 
