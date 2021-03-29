@@ -20,7 +20,7 @@ type DeviceConfig struct {
 	// PciDevices is an allowlist of PCI devices to enable.
 	// This may include Ethernet adapters, NVMe storage controllers, etc.
 	// Each should be a PCI address.
-	PciDevices []PciAddress `json:"pciDevices,omitempty"`
+	PciDevices []PCIAddress `json:"pciDevices,omitempty"`
 
 	// AllPciDevices enables all PCI devices.
 	// If AllPciDevices is false and PciDevices is empty, the PCI bus is disabled.

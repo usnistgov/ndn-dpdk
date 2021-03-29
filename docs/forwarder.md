@@ -20,7 +20,7 @@ You can also programmatically activate the forwarder via GraphQL using the `acti
 The `ndndpdk-svc` service process can be activated only once.
 You must restart the process to activate again as a different role or with different parameters.
 
-### Authoring Activate Parameters in TypeScript
+### Authoring Activation Parameters in TypeScript
 
 NDN-DPDK provides TypeScript definitions to help with authoring the activation parameters.
 Commonly used options have description or links to the corresponding Go documentation.
@@ -47,7 +47,7 @@ This section explains some commonly used parameters.
 
 **.eal.cores** is a list of CPU cores allocated to DPDK.
 To find the available CPU cores, run `lscpu` and look at "NUMA node? CPU(s)" line.
-If a cpuset is configured through systemd `AllowedCPUs` option or Docker `--cpuset-cpus` flag, it will be respected.
+If a CPU list is configured through systemd `AllowedCPUs` option or Docker `--cpuset-cpus` flag, it will be honored.
 
 **.eal.pciDevices** is a list of Ethernet adapters you want to use in the forwarder, written as PCI addresses.
 To find the PCI addresses of available Ethernet adapters, run `dpdk-devbind.py --status-dev net`.

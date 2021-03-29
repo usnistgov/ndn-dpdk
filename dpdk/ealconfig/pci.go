@@ -3,68 +3,90 @@ package ealconfig
 import (
 	"errors"
 	"fmt"
-	"strings"
+	"regexp"
+	"strconv"
 
-	"github.com/jaypipes/ghw"
 	"go.uber.org/zap"
 )
 
-// ErrPciAddress indicates the input PCI address is invalid.
-var ErrPciAddress = errors.New("bad PCI address")
+// ErrPCIAddress indicates the input PCI address is invalid.
+var ErrPCIAddress = errors.New("bad PCI address")
 
-// PciAddress represents a PCI address.
-type PciAddress struct {
-	ghw.PCIAddress
+var rePCI = regexp.MustCompile(`^(?:([[:xdigit:]]{1,4}):)?([[:xdigit:]]{1,2}):([[:xdigit:]]{1,2})\.([[:xdigit:]])$`)
+
+// PCIAddress represents a PCI address.
+type PCIAddress struct {
+	Domain   uint16
+	Bus      uint8
+	Slot     uint8
+	Function uint8
 }
 
-// Valid determines whether the PCI address is valid.
-func (a PciAddress) Valid() bool {
-	return ghw.PCIAddressFromString(a.String()) != nil
+// ShortString returns a compact string for sorting and indexing.
+func (a PCIAddress) ShortString() string {
+	return fmt.Sprintf("%04x%02x%02x%01x", a.Domain, a.Bus, a.Slot, a.Function)
 }
 
 // String returns the PCI address in 0000:00:01.0 format.
-func (a PciAddress) String() string {
-	a.normalize()
-	return fmt.Sprintf("%s:%s:%s.%s", a.Domain, a.Bus, a.Slot, a.Function)
+func (a PCIAddress) String() string {
+	return fmt.Sprintf("%04x:%02x:%02x.%01x", a.Domain, a.Bus, a.Slot, a.Function)
 }
 
 // MarshalText implements encoding.TextMarshaler interface.
-func (a PciAddress) MarshalText() (text []byte, e error) {
-	if !a.Valid() {
-		return nil, ErrPciAddress
+func (a PCIAddress) MarshalText() (text []byte, e error) {
+	if a.Function > 0x0F {
+		return nil, ErrPCIAddress
 	}
 	return []byte(a.String()), nil
 }
 
 // UnmarshalText implements encoding.TextUnmarshaler interface.
-func (a *PciAddress) UnmarshalText(text []byte) (e error) {
-	*a, e = ParsePciAddress(string(text))
+func (a *PCIAddress) UnmarshalText(text []byte) (e error) {
+	*a, e = ParsePCIAddress(string(text))
 	return e
 }
 
-func (a *PciAddress) normalize() {
-	a.Domain = strings.ToLower(a.Domain)
-	a.Bus = strings.ToLower(a.Bus)
-	a.Slot = strings.ToLower(a.Slot)
-	a.Function = strings.ToLower(a.Function)
-}
-
-// ParsePciAddress parses a PCI address.
-func ParsePciAddress(input string) (a PciAddress, e error) {
-	parsed := ghw.PCIAddressFromString(input)
-	if parsed == nil {
-		return a, ErrPciAddress
+// ParsePCIAddress parses a PCI address.
+func ParsePCIAddress(input string) (a PCIAddress, e error) {
+	m := rePCI.FindStringSubmatch(input)
+	if m == nil {
+		return PCIAddress{}, ErrPCIAddress
 	}
-	a.PCIAddress = *parsed
-	a.normalize()
+
+	if m[1] != "" {
+		u, e := strconv.ParseUint(m[1], 16, 16)
+		if e != nil {
+			return PCIAddress{}, ErrPCIAddress
+		}
+		a.Domain = uint16(u)
+	}
+
+	u, e := strconv.ParseUint(m[2], 16, 8)
+	if e != nil {
+		return PCIAddress{}, ErrPCIAddress
+	}
+	a.Bus = uint8(u)
+
+	u, e = strconv.ParseUint(m[3], 16, 8)
+	if e != nil {
+		return PCIAddress{}, ErrPCIAddress
+	}
+	a.Slot = uint8(u)
+
+	u, e = strconv.ParseUint(m[4], 16, 4)
+	if e != nil {
+		return PCIAddress{}, ErrPCIAddress
+	}
+	a.Function = uint8(u)
+
 	return a, nil
 }
 
-// MustParsePciAddress parses a PCI string, and panics on failure.
-func MustParsePciAddress(input string) (a PciAddress) {
+// MustParsePCIAddress parses a PCI string, and panics on failure.
+func MustParsePCIAddress(input string) (a PCIAddress) {
 	var e error
-	if a, e = ParsePciAddress(input); e != nil {
-		logger.Panic("MustParsePciAddress",
+	if a, e = ParsePCIAddress(input); e != nil {
+		logger.Panic("MustParsePCIAddress",
 			zap.Error(e),
 		)
 	}

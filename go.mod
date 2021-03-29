@@ -6,22 +6,19 @@ require (
 	github.com/EGT-Ukraine/go2gql v0.0.0-20190528134259-79533208556f
 	github.com/FDio/vpp v1.0.1-0.20200715183738-b1500e9fffa8
 	github.com/bhoriuchi/graphql-go-tools v0.2.0-beta1
+	github.com/c9s/goprocinfo v0.0.0-20210130143923-c95fcf8c64a8
 	github.com/chuckpreslar/emission v0.0.0-20170206194824-a7ddd980baf9
 	github.com/coreos/go-systemd/v22 v22.3.0
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
-	github.com/fromanirh/cpuset v0.0.1
 	github.com/gabstv/freeport v0.0.0-20171005142102-7952fe2e67ce
-	github.com/go-ole/go-ole v1.2.5 // indirect
 	github.com/gogf/greuse v1.1.0
 	github.com/google/gopacket v1.1.19
 	github.com/gopherjs/gopherjs v0.0.0-20210202160940-bed99a852dfe // indirect
 	github.com/graphql-go/graphql v0.7.9
-	github.com/jaypipes/ghw v0.7.0
 	github.com/jfoster/binary-utilities v0.2.0
 	github.com/jwangsadinata/go-multimap v0.0.0-20190620162914-c29f3d7f33b6
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/kr/text v0.2.0 // indirect
-	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pkg/math v0.0.0-20141027224758-f2ed9e40e245
 	github.com/powerman/rpc-codec v1.2.2
@@ -40,6 +37,5 @@ require (
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
-	howett.net/plist v0.0.0-20201203080718-1454fab16a06 // indirect
 	inet.af/netstack v0.0.0-20210317161235-a1bf4e56ef22
 )

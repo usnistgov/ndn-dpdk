@@ -19,11 +19,11 @@ import (
 )
 
 type listNvmesResult struct {
-	nvmes []ealconfig.PciAddress
+	nvmes []ealconfig.PCIAddress
 }
 
 // ListNvmes returns a list of NVMe drives.
-func ListNvmes() (nvmes []ealconfig.PciAddress, e error) {
+func ListNvmes() (nvmes []ealconfig.PCIAddress, e error) {
 	var result listNvmesResult
 	ctx := cptr.CtxPut(&result)
 	defer cptr.CtxClear(ctx)
@@ -39,7 +39,7 @@ func ListNvmes() (nvmes []ealconfig.PciAddress, e error) {
 
 //export go_nvmeProbed
 func go_nvmeProbed(ctx unsafe.Pointer, trid *C.struct_spdk_nvme_transport_id, opts *C.struct_spdk_nvme_ctrlr_opts) C.bool {
-	pciAddr := ealconfig.MustParsePciAddress(C.GoString(&trid.traddr[0]))
+	pciAddr := ealconfig.MustParsePCIAddress(C.GoString(&trid.traddr[0]))
 	result := cptr.CtxGet(ctx).(*listNvmesResult)
 	result.nvmes = append(result.nvmes, pciAddr)
 	return C.bool(false)
@@ -50,15 +50,15 @@ type Nvme struct {
 	// Namespaces is a list of NVMe namespaces as block devices.
 	Namespaces []*Info
 
-	pciAddr ealconfig.PciAddress
+	pciAddr ealconfig.PCIAddress
 }
 
 func (nvme *Nvme) getName() string {
-	return fmt.Sprintf("nvme%s%s%s%s", nvme.pciAddr.Domain, nvme.pciAddr.Bus, nvme.pciAddr.Slot, nvme.pciAddr.Function)
+	return fmt.Sprintf("nvme%s", nvme.pciAddr.ShortString())
 }
 
 // AttachNvme attaches block devices on an NVMe drives.
-func AttachNvme(pciAddr ealconfig.PciAddress) (nvme *Nvme, e error) {
+func AttachNvme(pciAddr ealconfig.PCIAddress) (nvme *Nvme, e error) {
 	initBdevLib()
 	nvme = new(Nvme)
 	nvme.pciAddr = pciAddr

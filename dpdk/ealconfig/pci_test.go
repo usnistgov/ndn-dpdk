@@ -6,24 +6,24 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealconfig"
 )
 
-func TestPciAddress(t *testing.T) {
+func TestPCIAddress(t *testing.T) {
 	assert, _ := makeAR(t)
 
-	a, e := ealconfig.ParsePciAddress("0000:8F:00.0")
+	a, e := ealconfig.ParsePCIAddress("0000:8F:00.0")
 	assert.NoError(e)
 	assert.Equal("0000:8f:00.0", a.String())
 
-	a, e = ealconfig.ParsePciAddress("01:00.0")
+	a, e = ealconfig.ParsePCIAddress("01:00.0")
 	assert.NoError(e)
 	assert.Equal("0000:01:00.0", a.String())
 
-	_, e = ealconfig.ParsePciAddress("bad")
+	_, e = ealconfig.ParsePCIAddress("bad")
 	assert.Error(e)
 
-	a.Bus, a.Slot, a.Function = "5e", "01", "0"
+	a.Bus, a.Slot, a.Function = 0x5e, 0x01, 0x0
 	assert.Equal(`"0000:5e:01.0"`, toJSON(a))
 
-	var decoded ealconfig.PciAddress
+	var decoded ealconfig.PCIAddress
 	fromJSON(`"0000:5e:01.0"`, &decoded)
 	assert.Equal(a, decoded)
 }

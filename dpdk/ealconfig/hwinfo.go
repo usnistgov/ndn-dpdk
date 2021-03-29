@@ -1,14 +1,16 @@
 package ealconfig
 
 import (
-	"os"
-	"path"
-	"strings"
+	"math/big"
 
-	"github.com/fromanirh/cpuset"
-	"github.com/jaypipes/ghw"
+	procinfo "github.com/c9s/goprocinfo/linux"
 	"github.com/pkg/math"
 	"go.uber.org/zap"
+)
+
+const (
+	pathCPUInfo       = "/proc/cpuinfo"
+	pathProcessStatus = "/proc/self/status"
 )
 
 // CoreInfo describes a CPU core.
@@ -32,84 +34,35 @@ func DefaultHwInfoSource() HwInfoSource {
 type defaultHwInfoSource struct{}
 
 func (hwInfo defaultHwInfoSource) Cores() (list []CoreInfo) {
-	topo := hwInfo.getTopo()
-	cpusetFilter := hwInfo.getCpusetFilter()
-
-	for _, node := range topo.Nodes {
-		for _, core := range node.Cores {
-			ht := false
-			for _, lp := range core.LogicalProcessors {
-				if !cpusetFilter(lp) {
-					continue
-				}
-				list = append(list, CoreInfo{
-					ID:          lp,
-					NumaSocket:  node.ID,
-					HyperThread: ht,
-				})
-				ht = true
-			}
-		}
-	}
-	return list
-}
-
-func (defaultHwInfoSource) getTopo() *ghw.TopologyInfo {
-	topo, e := ghw.Topology()
+	status, e := procinfo.ReadProcessStatus(pathProcessStatus)
 	if e != nil {
-		logger.Panic("ghw.Topology",
-			zap.Error(e),
-		)
+		logger.Panic(pathProcessStatus, zap.Error(e))
 	}
-	return topo
-}
+	allowed := &big.Int{}
+	for _, word := range status.CpusAllowed {
+		allowed.Lsh(allowed, 32)
+		allowed.Add(allowed, big.NewInt(int64(word)))
+	}
 
-func (hwInfo defaultHwInfoSource) getCpusetFilter() func(lp int) bool {
-	cpusetNameB, e := os.ReadFile("/proc/self/cpuset")
+	cpuInfo, e := procinfo.ReadCPUInfo(pathCPUInfo)
 	if e != nil {
-		logger.Warn("cannot determine cpuset name",
-			zap.Error(e),
-		)
-		return func(int) bool { return true }
+		logger.Panic(pathCPUInfo, zap.Error(e))
 	}
 
-	cpusetName := strings.Trim(string(cpusetNameB), "/\n")
-	filenames := []string{
-		path.Join("/sys/fs/cgroup/cpuset", cpusetName, "cpuset.effective_cpus"), // systemd, cgroup v1
-		path.Join("/sys/fs/cgroup", cpusetName, "cpuset.cpus.effective"),        // systemd, cgroup v2
-		"/sys/fs/cgroup/cpuset/cpuset.effective_cpus",                           // Docker, cgroup v1
-		"/sys/fs/cgroup/cpuset.cpus.effective",                                  // Docker, cgroup v1
-	}
-
-	var cpuList []int
-	for _, filename := range filenames {
-		b, e := os.ReadFile(filename)
-		if e != nil {
+	hasHyperThread := make(map[[2]int64]bool)
+	for _, processor := range cpuInfo.Processors {
+		if allowed.Bit(int(processor.Id)) == 0 {
 			continue
 		}
-
-		cpuList, e = cpuset.Parse(string(b))
-		if e != nil {
-			break
-		}
-		logger.Debug("retrieved cpuset",
-			zap.String("filename", filename),
-			zap.Ints("list", cpuList),
-		)
+		htKey := [2]int64{processor.PhysicalId, processor.CoreId}
+		list = append(list, CoreInfo{
+			ID:          int(processor.Id),
+			NumaSocket:  int(processor.PhysicalId),
+			HyperThread: hasHyperThread[htKey],
+		})
+		hasHyperThread[htKey] = true
 	}
-
-	if cpuList == nil {
-		logger.Warn("cannot retrieve cpuset",
-			zap.Strings("filenames", filenames),
-		)
-		return func(int) bool { return true }
-	}
-
-	m := make(map[int]bool)
-	for _, cpu := range cpuList {
-		m[cpu] = true
-	}
-	return func(lp int) bool { return m[lp] }
+	return list
 }
 
 func maxNumaSocket(hwInfo HwInfoSource) (maxSocket int) {

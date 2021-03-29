@@ -236,9 +236,9 @@ func TestDeviceSome(t *testing.T) {
 
 	cfg := makeBaseConfig()
 	cfg.DeviceFlags = ""
-	cfg.PciDevices = []ealconfig.PciAddress{
-		ealconfig.MustParsePciAddress("02:00.0"),
-		ealconfig.MustParsePciAddress("0A:00.0"),
+	cfg.PciDevices = []ealconfig.PCIAddress{
+		ealconfig.MustParsePCIAddress("02:00.0"),
+		ealconfig.MustParsePCIAddress("0A:00.0"),
 	}
 	cfg.VirtualDevices = []string{
 		"net_af_packet1,iface=eth1",
