@@ -117,19 +117,15 @@ func NewPort(dev ethdev.EthDev, cfg PortConfig) (port *Port, e error) {
 
 // Close closes the port.
 func (port *Port) Close() (e error) {
-	if !port.dev.Valid() { // already closed
-		return nil
-	}
-
 	if port.impl != nil {
 		must.Close(port.impl)
 		port.impl = nil
 	}
 
-	if port.dev.Valid() {
+	if port.dev != nil {
 		delete(portByEthDev, port.dev)
 		port.logger.Debug("closing")
-		port.dev = ethdev.EthDev{}
+		port.dev = nil
 	}
 
 	if port.closeVdev != nil {

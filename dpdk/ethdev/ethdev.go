@@ -17,44 +17,65 @@ import (
 	"go.uber.org/zap"
 )
 
+// EthDev represents an Ethernet adapter.
+type EthDev interface {
+	fmt.Stringer
+	eal.WithNumaSocket
+
+	// ID returns DPDK ethdev ID.
+	ID() int
+	// ZapField returns a zap.Field for logging.
+	ZapField(key string) zap.Field
+	// Name returns port name.
+	Name() string
+
+	// DevInfo returns information about the hardware device.
+	DevInfo() DevInfo
+	// MACAddr returns the device MAC address.
+	// If the driver returns an invalid MAC address, a random MAC address is returned instead.
+	MACAddr() net.HardwareAddr
+	// MTU returns MTU of this EthDev.
+	MTU() int
+	// IsDown determines whether this device is down.
+	IsDown() bool
+
+	// Start configures and starts this device.
+	Start(cfg Config) error
+	// Stop stops this device.
+	Stop(mode StopMode) error
+
+	// RxQueues returns RX queues of a running port.
+	RxQueues() (list []RxQueue)
+	// TxQueues returns TX queues of a running port.
+	TxQueues() (list []TxQueue)
+
+	// Stats retrieves hardware statistics.
+	Stats() Stats
+	// ResetStats clears hardware statistics.
+	ResetStats() error
+}
+
 var randomizedMacAddrs sync.Map
 
-// EthDev represents an Ethernet adapter.
-type EthDev struct {
-	v int // ethdev ID + 1
+type ethDev int
+
+func (port ethDev) ID() int {
+	return int(port)
 }
 
-// ID returns EthDev ID.
-func (port EthDev) ID() int {
-	return port.v - 1
+func (port ethDev) cID() C.uint16_t {
+	return C.uint16_t(port)
 }
 
-func (port EthDev) cID() C.uint16_t {
-	return C.uint16_t(port.ID())
-}
-
-// Valid returns true if this is a valid Ethernet port.
-func (port EthDev) Valid() bool {
-	return port.v != 0
-}
-
-// ZapField returns a zap.Field for logging.
-func (port EthDev) ZapField(key string) zap.Field {
-	if !port.Valid() {
-		return zap.String(key, "invalid")
-	}
+func (port ethDev) ZapField(key string) zap.Field {
 	return zap.Int(key, port.ID())
 }
 
-func (port EthDev) String() string {
-	if !port.Valid() {
-		return "invalid"
-	}
+func (port ethDev) String() string {
 	return strconv.Itoa(port.ID())
 }
 
-// Name returns port name.
-func (port EthDev) Name() string {
+func (port ethDev) Name() string {
 	var ifname [C.RTE_ETH_NAME_MAX_LEN]C.char
 	res := C.rte_eth_dev_get_name_by_port(port.cID(), &ifname[0])
 	if res != 0 {
@@ -63,20 +84,16 @@ func (port EthDev) Name() string {
 	return C.GoString(&ifname[0])
 }
 
-// NumaSocket returns the NUMA socket where this EthDev is located.
-func (port EthDev) NumaSocket() (socket eal.NumaSocket) {
+func (port ethDev) NumaSocket() (socket eal.NumaSocket) {
 	return eal.NumaSocketFromID(int(C.rte_eth_dev_socket_id(port.cID())))
 }
 
-// DevInfo retrieves information about the hardware device.
-func (port EthDev) DevInfo() (info DevInfo) {
+func (port ethDev) DevInfo() (info DevInfo) {
 	C.rte_eth_dev_info_get(port.cID(), (*C.struct_rte_eth_dev_info)(unsafe.Pointer(&info)))
 	return info
 }
 
-// MacAddr retrieves MAC address of this EthDev.
-// If the underlying EthDev returns an invalid MAC address, a random MAC address is returned instead.
-func (port EthDev) MacAddr() (a net.HardwareAddr) {
+func (port ethDev) MACAddr() (a net.HardwareAddr) {
 	var c C.struct_rte_ether_addr
 	C.rte_eth_macaddr_get(port.cID(), &c)
 	a = net.HardwareAddr(C.GoBytes(unsafe.Pointer(&c.addr_bytes[0]), C.RTE_ETHER_ADDR_LEN))
@@ -87,20 +104,17 @@ func (port EthDev) MacAddr() (a net.HardwareAddr) {
 	return a
 }
 
-// MTU retrieves MTU of this EthDev.
-func (port EthDev) MTU() int {
+func (port ethDev) MTU() int {
 	var mtu C.uint16_t
 	C.rte_eth_dev_get_mtu(port.cID(), &mtu)
 	return int(mtu)
 }
 
-// IsDown determines whether this EthDev is down.
-func (port EthDev) IsDown() bool {
+func (port ethDev) IsDown() bool {
 	return bool(C.EthDev_IsDown(port.cID()))
 }
 
-// Start configures and starts this EthDev.
-func (port EthDev) Start(cfg Config) error {
+func (port ethDev) Start(cfg Config) error {
 	info := port.DevInfo()
 	if info.Max_rx_queues > 0 && len(cfg.RxQueues) > int(info.Max_rx_queues) {
 		return fmt.Errorf("cannot add more than %d RX queues", info.Max_rx_queues)
@@ -158,10 +172,7 @@ func (port EthDev) Start(cfg Config) error {
 	return nil
 }
 
-// Stop stops this EthDev.
-// If mode is StopDetach, this EthDev cannot be restarted.
-// Otherwise, it may be re-configured and started again.
-func (port EthDev) Stop(mode StopMode) error {
+func (port ethDev) Stop(mode StopMode) error {
 	res := C.rte_eth_dev_stop(port.cID())
 	if res != 0 {
 		return eal.Errno(-res)
@@ -173,35 +184,34 @@ func (port EthDev) Stop(mode StopMode) error {
 	case StopReset:
 		res = C.rte_eth_dev_reset(port.cID())
 	}
-	if res != 0 {
-		return eal.Errno(-res)
-	}
-	return nil
+	return eal.MakeErrno(res)
 }
 
-// Stats retrieves hardware statistics.
-func (port EthDev) Stats() (stats Stats) {
+func (port ethDev) Stats() (stats Stats) {
 	C.rte_eth_stats_get(port.cID(), (*C.struct_rte_eth_stats)(unsafe.Pointer(&stats)))
 	return
 }
 
-// ResetStats clears hardware statistics.
-func (port EthDev) ResetStats() {
-	C.rte_eth_stats_reset(port.cID())
+func (port ethDev) ResetStats() error {
+	res := C.rte_eth_stats_reset(port.cID())
+	return eal.MakeErrno(res)
 }
 
 // FromID converts port ID to EthDev.
 func FromID(id int) EthDev {
 	if id < 0 || id >= C.RTE_MAX_ETHPORTS {
-		return EthDev{}
+		return nil
 	}
-	return EthDev{id + 1}
+	if p := C.rte_eth_find_next(C.uint16_t(id)); p != C.uint16_t(id) {
+		return nil
+	}
+	return ethDev(id)
 }
 
 // List returns a list of Ethernet adapters.
 func List() (list []EthDev) {
 	for p := C.rte_eth_find_next(0); p < C.RTE_MAX_ETHPORTS; p = C.rte_eth_find_next(p + 1) {
-		list = append(list, FromID(int(p)))
+		list = append(list, ethDev(p))
 	}
 	return list
 }
@@ -209,10 +219,10 @@ func List() (list []EthDev) {
 // Find locates an EthDev by name.
 func Find(name string) EthDev {
 	for p := C.rte_eth_find_next(0); p < C.RTE_MAX_ETHPORTS; p = C.rte_eth_find_next(p + 1) {
-		port := FromID(int(p))
+		port := ethDev(p)
 		if port.Name() == name {
 			return port
 		}
 	}
-	return EthDev{}
+	return nil
 }

@@ -126,7 +126,7 @@ func newRingDev(rxRings, txRings []*ringbuffer.Ring, socket eal.NumaSocket) (dev
 		(**C.struct_rte_ring)(txRingPtr), C.uint(txRingCount),
 		C.uint(socket.ID()))
 	if res < 0 {
-		return EthDev{}, eal.GetErrno()
+		return nil, eal.GetErrno()
 	}
 	return FromID(int(res)), nil
 }

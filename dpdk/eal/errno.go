@@ -7,6 +7,7 @@ int c_rte_errno() { return rte_errno; }
 */
 import "C"
 import (
+	"reflect"
 	"syscall"
 )
 
@@ -20,4 +21,18 @@ func GetErrno() Errno {
 
 func (e Errno) Error() string {
 	return C.GoString(C.rte_strerror(C.int(e)))
+}
+
+// MakeErrno creates Errno from non-zero number or returns nil for zero.
+// errno must be a signed integer.
+func MakeErrno(errno interface{}) error {
+	v := reflect.ValueOf(errno).Int()
+	switch {
+	case v == 0:
+		return nil
+	case v < 0:
+		return Errno(-v)
+	default:
+		return Errno(v)
+	}
 }

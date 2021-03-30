@@ -61,7 +61,7 @@ func (loc EtherLocator) CreateFace() (face iface.Face, e error) {
 
 func (loc *EtherLocator) makePort() (port *Port, e error) {
 	dev := loc.findEthDev()
-	if !dev.Valid() {
+	if dev == nil {
 		return nil, ErrNoPort
 	}
 	port = FindPort(dev)
@@ -84,14 +84,14 @@ func (loc *EtherLocator) makePort() (port *Port, e error) {
 func (loc EtherLocator) findEthDev() ethdev.EthDev {
 	for _, dev := range ethdev.List() {
 		if loc.Port == "" {
-			if macaddr.Equal(dev.MacAddr(), loc.Local.HardwareAddr) {
+			if macaddr.Equal(dev.MACAddr(), loc.Local.HardwareAddr) {
 				return dev
 			}
 		} else if dev.Name() == loc.Port {
 			return dev
 		}
 	}
-	return ethdev.EthDev{}
+	return nil
 }
 
 func init() {

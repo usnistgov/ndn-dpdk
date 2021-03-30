@@ -17,7 +17,7 @@ import (
 )
 
 func makeEtherLocator(dev ethdev.EthDev) (loc ethface.EtherLocator) {
-	loc.Local.HardwareAddr = dev.MacAddr()
+	loc.Local.HardwareAddr = dev.MACAddr()
 	loc.Remote.HardwareAddr = packettransport.MulticastAddressNDN
 	return
 }
@@ -39,7 +39,7 @@ func makeTopo3(t *testing.T) (topo topo3) {
 	vnet := ethdev.NewVNet(vnetCfg)
 	topo.vnet = vnet
 
-	topo.macA = vnet.Ports[0].MacAddr()
+	topo.macA = vnet.Ports[0].MACAddr()
 	topo.macB, _ = net.ParseMAC("02:00:00:00:00:02")
 	topo.macC, _ = net.ParseMAC("02:00:00:00:00:03")
 

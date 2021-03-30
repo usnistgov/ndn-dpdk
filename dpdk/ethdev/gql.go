@@ -15,7 +15,7 @@ var (
 )
 
 func init() {
-	GqlEthDevNodeType = gqlserver.NewNodeType(EthDev{})
+	GqlEthDevNodeType = gqlserver.NewNodeType((*EthDev)(nil))
 	GqlEthDevNodeType.Retrieve = func(id string) (interface{}, error) {
 		nid, e := strconv.Atoi(id)
 		if e != nil {
@@ -57,7 +57,7 @@ func init() {
 				Description: "MAC address.",
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					port := p.Source.(EthDev)
-					return port.MacAddr(), nil
+					return port.MACAddr(), nil
 				},
 			},
 			"mtu": &graphql.Field{
