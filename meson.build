@@ -34,5 +34,5 @@ run_target('schema',
   command: [find_program('mk/schema/build.sh')]
 )
 run_target('bpf',
-  command: [find_program('mk/bpf.sh')]
+  command: [find_program('mk/bpf.sh'), (cc.has_header('bpf/bpf_helpers.h') ? 'xdp=1' : 'xdp=0')]
 )

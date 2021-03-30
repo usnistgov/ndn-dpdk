@@ -3,7 +3,7 @@ set -eo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"/..
 
 # C
-git ls-files -- 'csrc/**/*.[hc]' 'strategy/*.[hc]' -x ':!:csrc/vendor' | xargs clang-format-8 -i -style=file
+git ls-files -- 'csrc/**/*.[hc]' 'bpf/**/*.[hc]' -x ':!:csrc/vendor' | xargs clang-format-8 -i -style=file
 
 # Go
 gofmt -l -w -s .

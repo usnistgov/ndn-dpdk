@@ -39,12 +39,12 @@ jobs:
           make
           sudo make install
         env:
-          UBPFCOMMIT: 5b5763639a8096c30257e51214636f544129380c
+          UBPFCOMMIT: 0014f298be3e2a636fd6243908238fb027527e28
       - uses: actions/cache@v2
         with:
           path: |
             ~/setup-dpdk
-          key: ${{ matrix.compiler }}_DPDK2011_SPDK2010_20210121
+          key: ${{ matrix.compiler }}_DPDK2011_SPDK2010_20210330
       - uses: yoursunny/setup-dpdk@main
         with:
           dpdk-version: '20.11'

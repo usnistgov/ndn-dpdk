@@ -173,6 +173,8 @@ func (port *Port) fallbackImpl() error {
 			)
 			return e
 		}
+
+		port.impl = nil
 	}
 
 	if port.nextImpl >= len(impls) {
