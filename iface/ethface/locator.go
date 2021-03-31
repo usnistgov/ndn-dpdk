@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"unsafe"
 
+	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev/ethvdev"
 	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
@@ -38,6 +39,10 @@ func (loc cLocator) sizeofHeader() int {
 // They appear as input-only fields of EtherLocator.
 type FaceConfig struct {
 	iface.Config
+
+	// VDevConfig specifies additional configuration for virtual device creation.
+	// This is only used when creating the first face on a network interface.
+	VDevConfig *ethvdev.NetifConfig `json:"vdevConfig,omitempty"`
 
 	// PortConfig specifies additional configuration for Port activation.
 	// This is only used when creating the first face on an EthDev.

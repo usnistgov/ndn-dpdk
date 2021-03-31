@@ -19,6 +19,7 @@ require (
 	github.com/jwangsadinata/go-multimap v0.0.0-20190620162914-c29f3d7f33b6
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/kr/text v0.2.0 // indirect
+	github.com/peterbourgon/mergemap v0.0.0-20130613134717-e21c03b7a721
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pkg/math v0.0.0-20141027224758-f2ed9e40e245
 	github.com/powerman/rpc-codec v1.2.2

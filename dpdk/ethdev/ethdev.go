@@ -182,7 +182,7 @@ func (dev ethDev) Start(cfg Config) error {
 		return bail(fmt.Errorf("rte_eth_dev_start(%d) %w", dev, eal.Errno(-res)))
 	}
 
-	logEntry.Info("started")
+	logEntry.Info("ethdev started")
 	return nil
 }
 
@@ -219,7 +219,7 @@ func (dev ethDev) Stop(mode StopMode) error {
 			logEntry.Warn("rte_eth_dev_reset error", zap.Error(e))
 			return e
 		}
-		logEntry.Info("stopped and reset")
+		logEntry.Info("ethdev stopped and reset")
 		return nil
 	}
 	panic(mode)
@@ -249,21 +249,22 @@ func FromID(id int) EthDev {
 }
 
 // List returns a list of Ethernet adapters.
-func List(filters ...func(dev EthDev) bool) (list []EthDev) {
+func List() (list []EthDev) {
 	for p := C.rte_eth_find_next(0); p < C.RTE_MAX_ETHPORTS; p = C.rte_eth_find_next(p + 1) {
-		dev := ethDev(p)
-
-		ok := true
-		for _, filter := range filters {
-			ok = ok && filter(dev)
-			if !ok {
-				break
-			}
-		}
-
-		if ok {
-			list = append(list, dev)
-		}
+		list = append(list, ethDev(p))
 	}
 	return list
+}
+
+// FromName retrieves Ethernet adapter by name.
+func FromName(name string) EthDev {
+	nameC := C.CString(name)
+	defer C.free(unsafe.Pointer(nameC))
+
+	var port C.uint16_t
+	if res := C.rte_eth_dev_get_port_by_name(nameC, &port); res != 0 {
+		return nil
+	}
+
+	return ethDev(port)
 }

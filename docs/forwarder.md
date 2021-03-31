@@ -51,10 +51,7 @@ If a CPU list is configured through systemd `AllowedCPUs` option or Docker `--cp
 
 **.eal.pciDevices** is a list of Ethernet adapters you want to use in the forwarder, written as PCI addresses.
 To find the PCI addresses of available Ethernet adapters, run `dpdk-devbind.py --status-dev net`.
-
-**.eal.virtualDevices** is a list of DPDK virtual devices.
-This can be used to enable an Ethernet adapter that is not natively supported by DPDK using the AF\_PACKET socket.
-For example, `net_af_packet1,iface=eth1` enables the `eth1` Ethernet adapter as a virtual device named `net_af_packet1`.
+Ethernet adapters not included in this list can still be activated as virtual devices using `net_af_xdp` or `net_af_packet` driver, at reduced performance.
 
 **.mempool.DIRECT.dataroom** is the size of each packet buffer.
 The maximum MTU supported by the forwarder is this dataroom minus 128 (`RTE_PKTMBUF_HEADROOM` constant).

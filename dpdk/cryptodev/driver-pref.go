@@ -1,11 +1,10 @@
 package cryptodev
 
 import (
-	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"go.uber.org/multierr"
 )
 
 // DriverPref is a priority list of CryptoDev drivers.
@@ -22,26 +21,25 @@ var (
 // Create constructs a CryptoDev from a list of drivers.
 func (drvs DriverPref) Create(cfg Config, socket eal.NumaSocket) (cd *CryptoDev, e error) {
 	cfg.applyDefaults()
-	var args strings.Builder
-	fmt.Fprintf(&args, "max_nb_queue_pairs=%d", cfg.NQueuePairs)
-	if !socket.IsAny() {
-		fmt.Fprintf(&args, ",socket_id=%d", socket.ID())
+	args := map[string]interface{}{
+		"max_nb_queue_pairs": cfg.NQueuePairs,
 	}
-	arg := args.String()
+	if !socket.IsAny() {
+		args["socket_id"] = socket.ID()
+	}
 
 	var vdev *eal.VDev
-	var drvErrors strings.Builder
-	drvErrors.WriteString("virtual cryptodev unavailable: ")
+	drvErrors := []error{}
 	for _, drv := range drvs {
 		name := fmt.Sprintf("crypto_%s_%s", drv, eal.AllocObjectID("cryptodev.Driver["+drv+"]"))
-		vdev, e = eal.NewVDev(name, arg, socket)
+		vdev, e = eal.NewVDev(name, args, socket)
 		if e == nil {
 			break
 		}
-		fmt.Fprintf(&drvErrors, "%s: %v; ", drv, e)
+		drvErrors = append(drvErrors, fmt.Errorf("cryptodev[%s] %w", drv, e))
 	}
 	if vdev == nil {
-		return nil, errors.New(drvErrors.String())
+		return nil, multierr.Combine(drvErrors...)
 	}
 
 	if cd, e = New(vdev, cfg); e != nil {

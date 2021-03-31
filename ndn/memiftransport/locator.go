@@ -5,7 +5,6 @@ package memiftransport
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"math"
 	"net"
 	"os"
@@ -120,15 +119,21 @@ func (loc *Locator) toArguments(a *memif.Arguments) error {
 // ToVDevArgs builds arguments for DPDK virtual device.
 //  key: a unique key for each memif vdev; creating vdev with duplicate key would fail.
 //  args: arguments passed to eal.NewVDev() function.
-func (loc *Locator) ToVDevArgs() (key, args string, e error) {
+func (loc *Locator) ToVDevArgs() (args map[string]interface{}, e error) {
 	if e = loc.Validate(); e != nil {
-		return
+		return nil, e
 	}
+
 	loc.ApplyDefaults()
-	key = fmt.Sprintf("%s|%d", loc.SocketName, loc.ID)
-	args = fmt.Sprintf("id=%d,role=server,bsize=%d,rsize=%d,socket=%s,socket-abstract=no,mac=%v",
-		loc.ID, loc.Dataroom, loc.rsize(), loc.SocketName, AddressDPDK)
-	return
+	return map[string]interface{}{
+		"id":              loc.ID,
+		"role":            "server",
+		"bsize":           loc.Dataroom,
+		"rsize":           loc.rsize(),
+		"socket":          loc.SocketName,
+		"socket-abstract": "no",
+		"mac":             AddressDPDK,
+	}, nil
 }
 
 // ToCreateFaceLocator builds a JSON object suitable for NDN-DPDK face creation API.

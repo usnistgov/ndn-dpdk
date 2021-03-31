@@ -1,5 +1,5 @@
-// Package ethdevring contains bindings of DPDK net_eth_ring driver.
-package ethdevring
+// Package ethringdev contains bindings of DPDK net_eth_ring driver.
+package ethringdev
 
 /*
 #include "../../../csrc/core/common.h"
@@ -18,7 +18,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
 )
 
-var logger = logging.New("ethdevring")
+var logger = logging.New("ethringdev")
 
 // New creates an EthDev from a set of software FIFOs.
 func New(rxRings, txRings []*ringbuffer.Ring, socket eal.NumaSocket) (dev ethdev.EthDev, e error) {

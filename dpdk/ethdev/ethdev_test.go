@@ -7,7 +7,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
-	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev/ethdevring"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev/ethringdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"go4.org/must"
 )
@@ -15,7 +15,7 @@ import (
 func TestEthDev(t *testing.T) {
 	assert, require := makeAR(t)
 
-	pair, e := ethdevring.NewPair(ethdevring.PairConfig{RxPool: directMp})
+	pair, e := ethringdev.NewPair(ethringdev.PairConfig{RxPool: directMp})
 	require.NoError(e)
 	defer pair.Close()
 	pair.PortA.Start(pair.EthDevConfig())

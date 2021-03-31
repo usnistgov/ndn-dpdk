@@ -22,11 +22,6 @@ type PCIAddress struct {
 	Function uint8
 }
 
-// ShortString returns a compact string for sorting and indexing.
-func (a PCIAddress) ShortString() string {
-	return fmt.Sprintf("%04x%02x%02x%01x", a.Domain, a.Bus, a.Slot, a.Function)
-}
-
 // String returns the PCI address in 0000:00:01.0 format.
 func (a PCIAddress) String() string {
 	return fmt.Sprintf("%04x:%02x:%02x.%01x", a.Domain, a.Bus, a.Slot, a.Function)

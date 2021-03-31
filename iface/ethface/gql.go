@@ -9,7 +9,7 @@ import (
 func init() {
 	resolvePort := func(p graphql.ResolveParams) *Port {
 		dev := p.Source.(ethdev.EthDev)
-		return FindPort(dev)
+		return portByEthDev[dev]
 	}
 	ethdev.GqlEthDevType.AddFieldConfig("implName", &graphql.Field{
 		Description: "Active ethface internal implementation name.",

@@ -1,4 +1,4 @@
-package ethdevring
+package ethringdev
 
 import (
 	"fmt"
@@ -76,12 +76,12 @@ func NewPair(cfg PairConfig) (pair *Pair, e error) {
 	pair.PortA, e = New(ringsAB, ringsBA, cfg.Socket)
 	if e != nil {
 		must.Close(pair)
-		return nil, fmt.Errorf("ethdevring.New %w", e)
+		return nil, fmt.Errorf("ethringdev.New %w", e)
 	}
 	pair.PortB, e = New(ringsBA, ringsAB, cfg.Socket)
 	if e != nil {
 		must.Close(pair)
-		return nil, fmt.Errorf("ethdevring.New %w", e)
+		return nil, fmt.Errorf("ethringdev.New %w", e)
 	}
 
 	return pair, nil

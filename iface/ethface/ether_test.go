@@ -8,7 +8,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
-	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev/ethdevring"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev/ethringdev"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/ethface"
 	"github.com/usnistgov/ndn-dpdk/iface/ifacetestenv"
@@ -25,7 +25,7 @@ func makeEtherLocator(dev ethdev.EthDev) (loc ethface.EtherLocator) {
 
 type topo3 struct {
 	*ifacetestenv.Fixture
-	vnet                                           *ethdevring.VNet
+	vnet                                           *ethringdev.VNet
 	macA, macB, macC                               net.HardwareAddr
 	faceAB, faceAC, faceAm, faceBm, faceBA, faceCA iface.Face
 }
@@ -34,10 +34,10 @@ func makeTopo3(t *testing.T) (topo topo3) {
 	_, require := makeAR(t)
 	topo.Fixture = ifacetestenv.NewFixture(t)
 
-	var vnetCfg ethdevring.VNetConfig
+	var vnetCfg ethringdev.VNetConfig
 	vnetCfg.RxPool = ndni.PacketMempool.Get(eal.NumaSocket{})
 	vnetCfg.NNodes = 3
-	vnet, e := ethdevring.NewVNet(vnetCfg)
+	vnet, e := ethringdev.NewVNet(vnetCfg)
 	require.NoError(e)
 	topo.vnet = vnet
 
@@ -113,12 +113,12 @@ func TestFragmentation(t *testing.T) {
 	fixture.PayloadLen = 6000
 	fixture.DataFrames = 2
 
-	var vnetCfg ethdevring.VNetConfig
+	var vnetCfg ethringdev.VNetConfig
 	vnetCfg.RxPool = ndni.PacketMempool.Get(eal.NumaSocket{})
 	vnetCfg.NNodes = 2
 	vnetCfg.LossProbability = 0.01
 	vnetCfg.Shuffle = true
-	vnet, e := ethdevring.NewVNet(vnetCfg)
+	vnet, e := ethringdev.NewVNet(vnetCfg)
 	require.NoError(e)
 	ealthread.Launch(vnet)
 	time.Sleep(time.Second)

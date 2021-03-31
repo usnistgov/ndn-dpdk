@@ -50,19 +50,6 @@ type PortConfig struct {
 
 var portByEthDev = make(map[ethdev.EthDev]*Port)
 
-// FindPort returns a Port associated with given EthDev.
-func FindPort(ethdev ethdev.EthDev) *Port {
-	return portByEthDev[ethdev]
-}
-
-// ListPorts returns a list of active Ports.
-func ListPorts() (list []*Port) {
-	for _, port := range portByEthDev {
-		list = append(list, port)
-	}
-	return list
-}
-
 // Port organizes EthFaces on an EthDev.
 type Port struct {
 	cfg          PortConfig
@@ -90,7 +77,7 @@ func NewPort(dev ethdev.EthDev, cfg PortConfig) (port *Port, e error) {
 		cfg.TxQueueSize = DefaultTxQueueSize
 	}
 
-	if FindPort(dev) != nil {
+	if portByEthDev[dev] != nil {
 		return nil, errors.New("Port already exists")
 	}
 

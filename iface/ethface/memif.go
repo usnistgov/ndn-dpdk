@@ -1,18 +1,15 @@
 package ethface
 
 import (
-	"errors"
 	"fmt"
 
-	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev/ethvdev"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn/memiftransport"
 )
 
 const schemeMemif = "memif"
-
-var memifKeySet = make(map[string]bool)
 
 // MemifLocator describes a memif face.
 type MemifLocator struct {
@@ -36,21 +33,10 @@ func (loc MemifLocator) faceConfig() FaceConfig {
 
 // CreateFace creates a memif face.
 func (loc MemifLocator) CreateFace() (iface.Face, error) {
-	name := "net_memif" + eal.AllocObjectID("ethface.Memif")
-	key, args, e := loc.ToVDevArgs()
+	dev, e := ethvdev.NewMemif(loc.Locator)
 	if e != nil {
-		return nil, fmt.Errorf("memif.Locator.ToVDevArgs %w", e)
+		return nil, e
 	}
-	if memifKeySet[key] {
-		return nil, errors.New("memif.Locator duplicate SocketName+ID with existing device")
-	}
-
-	dev, e := ethdev.NewVDev(name, args, eal.NumaSocket{})
-	if e != nil {
-		return nil, fmt.Errorf("ethdev.NewVDev(%s,%s) %w", name, args, e)
-	}
-	memifKeySet[key] = true
-	ethdev.OnDetach(dev, func() { delete(memifKeySet, key) })
 
 	pc := PortConfig{
 		MTU:           loc.Dataroom,

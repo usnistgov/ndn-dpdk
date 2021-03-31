@@ -1,4 +1,4 @@
-package ethdevring
+package ethringdev
 
 import (
 	"fmt"
@@ -72,7 +72,7 @@ func NewVNet(cfg VNetConfig) (vnet *VNet, e error) {
 		pair, e := NewPair(cfg.PairConfig)
 		if e != nil {
 			must.Close(vnet)
-			return nil, fmt.Errorf("ethdevring.NewPair %w", e)
+			return nil, fmt.Errorf("ethringdev.NewPair %w", e)
 		}
 		pair.PortB.Start(pair.EthDevConfig())
 		vnet.pairs = append(vnet.pairs, vnetPair{
