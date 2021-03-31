@@ -25,14 +25,6 @@ func (q RxQueue) RxBurst(vec pktmbuf.Vector) int {
 	return int(res)
 }
 
-func (port ethDev) RxQueues() (list []RxQueue) {
-	info := port.DevInfo()
-	for queue := uint16(0); queue < info.Nb_rx_queues; queue++ {
-		list = append(list, RxQueue{port, queue})
-	}
-	return list
-}
-
 // TxQueue represents an TX queue.
 type TxQueue struct {
 	port  EthDev
@@ -48,6 +40,14 @@ func (q TxQueue) TxBurst(vec pktmbuf.Vector) int {
 	res := C.rte_eth_tx_burst(C.uint16_t(q.port.ID()), C.uint16_t(q.queue),
 		(**C.struct_rte_mbuf)(vec.Ptr()), C.uint16_t(len(vec)))
 	return int(res)
+}
+
+func (port ethDev) RxQueues() (list []RxQueue) {
+	info := port.DevInfo()
+	for queue := uint16(0); queue < info.Nb_rx_queues; queue++ {
+		list = append(list, RxQueue{port, queue})
+	}
+	return list
 }
 
 func (port ethDev) TxQueues() (list []TxQueue) {

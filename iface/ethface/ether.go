@@ -84,7 +84,7 @@ func (loc *EtherLocator) makePort() (port *Port, e error) {
 func (loc EtherLocator) findEthDev() ethdev.EthDev {
 	for _, dev := range ethdev.List() {
 		if loc.Port == "" {
-			if macaddr.Equal(dev.MACAddr(), loc.Local.HardwareAddr) {
+			if macaddr.Equal(dev.HardwareAddr(), loc.Local.HardwareAddr) {
 				return dev
 			}
 		} else if dev.Name() == loc.Port {

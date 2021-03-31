@@ -30,6 +30,7 @@ require (
 	github.com/urfave/cli/v2 v2.3.0
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/xeipuuv/gojsonschema v1.2.0
+	go.uber.org/multierr v1.6.0
 	go.uber.org/zap v1.16.0
 	go4.org v0.0.0-20201209231011-d4a079459e60
 	golang.org/x/net v0.0.0-20210316092652-d523dce5a7f4 // indirect

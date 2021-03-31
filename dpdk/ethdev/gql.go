@@ -57,7 +57,7 @@ func init() {
 				Description: "MAC address.",
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					port := p.Source.(EthDev)
-					return port.MACAddr(), nil
+					return port.HardwareAddr(), nil
 				},
 			},
 			"mtu": &graphql.Field{

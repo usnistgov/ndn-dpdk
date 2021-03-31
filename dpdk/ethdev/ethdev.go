@@ -9,10 +9,8 @@ import (
 	"fmt"
 	"net"
 	"strconv"
-	"sync"
 	"unsafe"
 
-	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"go.uber.org/zap"
 )
@@ -31,9 +29,9 @@ type EthDev interface {
 
 	// DevInfo returns information about the hardware device.
 	DevInfo() DevInfo
-	// MACAddr returns the device MAC address.
+	// HardwareAddr returns the device MAC address.
 	// If the driver returns an invalid MAC address, a random MAC address is returned instead.
-	MACAddr() net.HardwareAddr
+	HardwareAddr() net.HardwareAddr
 	// MTU returns MTU of this EthDev.
 	MTU() int
 	// IsDown determines whether this device is down.
@@ -54,8 +52,6 @@ type EthDev interface {
 	// ResetStats clears hardware statistics.
 	ResetStats() error
 }
-
-var randomizedMacAddrs sync.Map
 
 type ethDev int
 
@@ -93,15 +89,10 @@ func (port ethDev) DevInfo() (info DevInfo) {
 	return info
 }
 
-func (port ethDev) MACAddr() (a net.HardwareAddr) {
-	var c C.struct_rte_ether_addr
-	C.rte_eth_macaddr_get(port.cID(), &c)
-	a = net.HardwareAddr(C.GoBytes(unsafe.Pointer(&c.addr_bytes[0]), C.RTE_ETHER_ADDR_LEN))
-	if !macaddr.IsUnicast(a) {
-		randomized, _ := randomizedMacAddrs.LoadOrStore(port.ID(), macaddr.MakeRandom(false))
-		a = randomized.(net.HardwareAddr)
-	}
-	return a
+func (port ethDev) HardwareAddr() (a net.HardwareAddr) {
+	var macC C.struct_rte_ether_addr
+	C.rte_eth_macaddr_get(port.cID(), &macC)
+	return net.HardwareAddr(C.GoBytes(unsafe.Pointer(&macC.addr_bytes[0]), C.RTE_ETHER_ADDR_LEN))
 }
 
 func (port ethDev) MTU() int {
