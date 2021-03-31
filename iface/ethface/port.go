@@ -4,8 +4,8 @@ import (
 	"errors"
 
 	"github.com/pkg/math"
+	"go.uber.org/multierr"
 	"go.uber.org/zap"
-	"go4.org/must"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
@@ -68,7 +68,6 @@ type Port struct {
 	cfg          PortConfig
 	logger       *zap.Logger
 	dev          ethdev.EthDev
-	closeVdev    func()
 	rxBouncePool *pktmbuf.Pool
 	faces        map[iface.ID]*ethFace
 	impl         impl
@@ -110,35 +109,40 @@ func NewPort(dev ethdev.EthDev, cfg PortConfig) (port *Port, e error) {
 		}
 	}
 
-	port.logger.Debug("opening")
+	port.logger.Info("port opened")
 	portByEthDev[port.dev] = port
 	return port, nil
 }
 
 // Close closes the port.
 func (port *Port) Close() (e error) {
+	errs := []error{}
+
 	if port.impl != nil {
-		must.Close(port.impl)
+		errs = append(errs, port.impl.Close())
 		port.impl = nil
 	}
 
 	if port.dev != nil {
+		if port.dev.DevInfo().IsVDev() {
+			errs = append(errs, port.dev.Stop(ethdev.StopDetach))
+		}
 		delete(portByEthDev, port.dev)
-		port.logger.Debug("closing")
 		port.dev = nil
 	}
 
-	if port.closeVdev != nil {
-		port.closeVdev()
-		port.closeVdev = nil
-	}
-
 	if port.rxBouncePool != nil {
-		must.Close(port.rxBouncePool)
+		errs = append(errs, port.rxBouncePool.Close())
 		port.rxBouncePool = nil
 	}
 
-	return nil
+	e = multierr.Combine(errs...)
+	if e != nil {
+		port.logger.Error("port closed", zap.Error(e))
+	} else {
+		port.logger.Info("port closed")
+	}
+	return e
 }
 
 // Faces returns a list of active faces.

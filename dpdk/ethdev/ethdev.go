@@ -11,9 +11,12 @@ import (
 	"strconv"
 	"unsafe"
 
+	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"go.uber.org/zap"
 )
+
+var logger = logging.New("ethdev")
 
 // EthDev represents an Ethernet adapter.
 type EthDev interface {
@@ -55,58 +58,58 @@ type EthDev interface {
 
 type ethDev int
 
-func (port ethDev) ID() int {
-	return int(port)
+func (dev ethDev) ID() int {
+	return int(dev)
 }
 
-func (port ethDev) cID() C.uint16_t {
-	return C.uint16_t(port)
+func (dev ethDev) cID() C.uint16_t {
+	return C.uint16_t(dev)
 }
 
-func (port ethDev) ZapField(key string) zap.Field {
-	return zap.Int(key, port.ID())
+func (dev ethDev) ZapField(key string) zap.Field {
+	return zap.Int(key, dev.ID())
 }
 
-func (port ethDev) String() string {
-	return strconv.Itoa(port.ID())
+func (dev ethDev) String() string {
+	return strconv.Itoa(dev.ID())
 }
 
-func (port ethDev) Name() string {
+func (dev ethDev) Name() string {
 	var ifname [C.RTE_ETH_NAME_MAX_LEN]C.char
-	res := C.rte_eth_dev_get_name_by_port(port.cID(), &ifname[0])
+	res := C.rte_eth_dev_get_name_by_port(dev.cID(), &ifname[0])
 	if res != 0 {
 		return ""
 	}
 	return C.GoString(&ifname[0])
 }
 
-func (port ethDev) NumaSocket() (socket eal.NumaSocket) {
-	return eal.NumaSocketFromID(int(C.rte_eth_dev_socket_id(port.cID())))
+func (dev ethDev) NumaSocket() (socket eal.NumaSocket) {
+	return eal.NumaSocketFromID(int(C.rte_eth_dev_socket_id(dev.cID())))
 }
 
-func (port ethDev) DevInfo() (info DevInfo) {
-	C.rte_eth_dev_info_get(port.cID(), (*C.struct_rte_eth_dev_info)(unsafe.Pointer(&info)))
+func (dev ethDev) DevInfo() (info DevInfo) {
+	C.rte_eth_dev_info_get(dev.cID(), (*C.struct_rte_eth_dev_info)(unsafe.Pointer(&info)))
 	return info
 }
 
-func (port ethDev) HardwareAddr() (a net.HardwareAddr) {
+func (dev ethDev) HardwareAddr() (a net.HardwareAddr) {
 	var macC C.struct_rte_ether_addr
-	C.rte_eth_macaddr_get(port.cID(), &macC)
+	C.rte_eth_macaddr_get(dev.cID(), &macC)
 	return net.HardwareAddr(C.GoBytes(unsafe.Pointer(&macC.addr_bytes[0]), C.RTE_ETHER_ADDR_LEN))
 }
 
-func (port ethDev) MTU() int {
+func (dev ethDev) MTU() int {
 	var mtu C.uint16_t
-	C.rte_eth_dev_get_mtu(port.cID(), &mtu)
+	C.rte_eth_dev_get_mtu(dev.cID(), &mtu)
 	return int(mtu)
 }
 
-func (port ethDev) IsDown() bool {
-	return bool(C.EthDev_IsDown(port.cID()))
+func (dev ethDev) IsDown() bool {
+	return bool(C.EthDev_IsDown(dev.cID()))
 }
 
-func (port ethDev) Start(cfg Config) error {
-	info := port.DevInfo()
+func (dev ethDev) Start(cfg Config) error {
+	info := dev.DevInfo()
 	if info.Max_rx_queues > 0 && len(cfg.RxQueues) > int(info.Max_rx_queues) {
 		return fmt.Errorf("cannot add more than %d RX queues", info.Max_rx_queues)
 	}
@@ -114,77 +117,121 @@ func (port ethDev) Start(cfg Config) error {
 		return fmt.Errorf("cannot add more than %d TX queues", info.Max_tx_queues)
 	}
 
+	mtuField := zap.Int("mtu", cfg.MTU)
+	if cfg.MTU == 0 {
+		mtuField = zap.String("mtu", "unchanged")
+	}
+	logEntry := logger.With(
+		zap.Int("id", dev.ID()),
+		zap.String("name", dev.Name()),
+		mtuField,
+		zap.Int("rxq", len(cfg.RxQueues)),
+		zap.Int("txq", len(cfg.TxQueues)),
+		zap.Bool("promisc", cfg.Promisc),
+	)
+	bail := func(e error) error {
+		dev.Stop(StopReset)
+		logEntry.Warn("Start error", zap.Error(e))
+		return e
+	}
+
 	if cfg.MTU > 0 {
-		if res := C.rte_eth_dev_set_mtu(port.cID(), C.uint16_t(cfg.MTU)); res != 0 {
-			return fmt.Errorf("rte_eth_dev_set_mtu(%v,%d) error %w", port, cfg.MTU, eal.Errno(-res))
+		if res := C.rte_eth_dev_set_mtu(dev.cID(), C.uint16_t(cfg.MTU)); res != 0 {
+			return bail(fmt.Errorf("rte_eth_dev_set_mtu(%d,%d) %w", dev, cfg.MTU, eal.Errno(-res)))
 		}
 	}
 
 	conf := (*C.struct_rte_eth_conf)(cfg.Conf)
 	if conf == nil {
 		conf = &C.struct_rte_eth_conf{}
-		conf.rxmode.max_rx_pkt_len = C.uint32_t(port.MTU())
+		conf.rxmode.max_rx_pkt_len = C.uint32_t(dev.MTU())
 		conf.txmode.offloads = C.uint64_t(info.Tx_offload_capa & (txOffloadMultiSegs | txOffloadChecksum))
 	}
 
-	res := C.rte_eth_dev_configure(port.cID(), C.uint16_t(len(cfg.RxQueues)), C.uint16_t(len(cfg.TxQueues)), conf)
+	res := C.rte_eth_dev_configure(dev.cID(), C.uint16_t(len(cfg.RxQueues)), C.uint16_t(len(cfg.TxQueues)), conf)
 	if res < 0 {
-		return fmt.Errorf("rte_eth_dev_configure(%v) error %w", port, eal.Errno(-res))
+		return bail(fmt.Errorf("rte_eth_dev_configure(%d) %w", dev, eal.Errno(-res)))
 	}
 
 	for i, qcfg := range cfg.RxQueues {
 		capacity := info.Rx_desc_lim.adjustQueueCapacity(qcfg.Capacity)
-		res = C.rte_eth_rx_queue_setup(port.cID(), C.uint16_t(i), C.uint16_t(capacity),
+		res = C.rte_eth_rx_queue_setup(dev.cID(), C.uint16_t(i), C.uint16_t(capacity),
 			C.uint(qcfg.Socket.ID()), (*C.struct_rte_eth_rxconf)(qcfg.Conf), (*C.struct_rte_mempool)(qcfg.RxPool.Ptr()))
 		if res != 0 {
-			return fmt.Errorf("rte_eth_rx_queue_setup(%v,%d) error %w", port, i, eal.Errno(-res))
+			return bail(fmt.Errorf("rte_eth_rx_queue_setup(%d,%d) %w", dev, i, eal.Errno(-res)))
 		}
 	}
 
 	for i, qcfg := range cfg.TxQueues {
 		capacity := info.Tx_desc_lim.adjustQueueCapacity(qcfg.Capacity)
-		res = C.rte_eth_tx_queue_setup(port.cID(), C.uint16_t(i), C.uint16_t(capacity),
+		res = C.rte_eth_tx_queue_setup(dev.cID(), C.uint16_t(i), C.uint16_t(capacity),
 			C.uint(qcfg.Socket.ID()), (*C.struct_rte_eth_txconf)(qcfg.Conf))
 		if res != 0 {
-			return fmt.Errorf("rte_eth_tx_queue_setup(%v,%d) error %w", port, i, eal.Errno(-res))
+			return bail(fmt.Errorf("rte_eth_tx_queue_setup(%d,%d) %w", dev, i, eal.Errno(-res)))
 		}
 	}
 
 	if cfg.Promisc {
-		C.rte_eth_promiscuous_enable(port.cID())
+		C.rte_eth_promiscuous_enable(dev.cID())
 	} else {
-		C.rte_eth_promiscuous_disable(port.cID())
+		C.rte_eth_promiscuous_disable(dev.cID())
 	}
 
-	res = C.rte_eth_dev_start(port.cID())
+	res = C.rte_eth_dev_start(dev.cID())
 	if res != 0 {
-		return fmt.Errorf("rte_eth_dev_start(%v) error %w", port, eal.Errno(-res))
+		return bail(fmt.Errorf("rte_eth_dev_start(%d) %w", dev, eal.Errno(-res)))
 	}
+
+	logEntry.Info("started")
 	return nil
 }
 
-func (port ethDev) Stop(mode StopMode) error {
-	res := C.rte_eth_dev_stop(port.cID())
-	if res != 0 {
-		return eal.Errno(-res)
+func (dev ethDev) Stop(mode StopMode) error {
+	logEntry := logger.With(
+		zap.Int("id", dev.ID()),
+		zap.String("name", dev.Name()),
+	)
+
+	res := C.rte_eth_dev_stop(dev.cID())
+	switch res {
+	case 0, -C.ENOTSUP:
+	case -C.ENODEV: // already detached
+		return nil
+	default:
+		e := eal.Errno(-res)
+		logEntry.Warn("rte_eth_dev_stop error", zap.Error(e))
+		return e
 	}
 
 	switch mode {
 	case StopDetach:
-		res = C.rte_eth_dev_close(port.cID())
+		if res := C.rte_eth_dev_close(dev.cID()); res != 0 {
+			e := eal.Errno(-res)
+			logEntry.Warn("rte_eth_dev_close error", zap.Error(e))
+			return e
+		}
+		detachEmitter.EmitSync(dev.ID())
+		logEntry.Info("stopped and detached")
+		return nil
 	case StopReset:
-		res = C.rte_eth_dev_reset(port.cID())
+		if res := C.rte_eth_dev_reset(dev.cID()); res != 0 {
+			e := eal.Errno(-res)
+			logEntry.Warn("rte_eth_dev_reset error", zap.Error(e))
+			return e
+		}
+		logEntry.Info("stopped and reset")
+		return nil
 	}
-	return eal.MakeErrno(res)
+	panic(mode)
 }
 
-func (port ethDev) Stats() (stats Stats) {
-	C.rte_eth_stats_get(port.cID(), (*C.struct_rte_eth_stats)(unsafe.Pointer(&stats)))
+func (dev ethDev) Stats() (stats Stats) {
+	C.rte_eth_stats_get(dev.cID(), (*C.struct_rte_eth_stats)(unsafe.Pointer(&stats)))
 	return
 }
 
-func (port ethDev) ResetStats() error {
-	res := C.rte_eth_stats_reset(port.cID())
+func (dev ethDev) ResetStats() error {
+	res := C.rte_eth_stats_reset(dev.cID())
 	return eal.MakeErrno(res)
 }
 
@@ -193,27 +240,30 @@ func FromID(id int) EthDev {
 	if id < 0 || id >= C.RTE_MAX_ETHPORTS {
 		return nil
 	}
+
 	if p := C.rte_eth_find_next(C.uint16_t(id)); p != C.uint16_t(id) {
 		return nil
 	}
+
 	return ethDev(id)
 }
 
 // List returns a list of Ethernet adapters.
-func List() (list []EthDev) {
+func List(filters ...func(dev EthDev) bool) (list []EthDev) {
 	for p := C.rte_eth_find_next(0); p < C.RTE_MAX_ETHPORTS; p = C.rte_eth_find_next(p + 1) {
-		list = append(list, ethDev(p))
-	}
-	return list
-}
+		dev := ethDev(p)
 
-// Find locates an EthDev by name.
-func Find(name string) EthDev {
-	for p := C.rte_eth_find_next(0); p < C.RTE_MAX_ETHPORTS; p = C.rte_eth_find_next(p + 1) {
-		port := ethDev(p)
-		if port.Name() == name {
-			return port
+		ok := true
+		for _, filter := range filters {
+			ok = ok && filter(dev)
+			if !ok {
+				break
+			}
+		}
+
+		if ok {
+			list = append(list, dev)
 		}
 	}
-	return nil
+	return list
 }

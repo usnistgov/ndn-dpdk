@@ -8,12 +8,11 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn/memiftransport"
-	"go4.org/must"
 )
 
 const schemeMemif = "memif"
 
-var memifVdevMap = make(map[string]*eal.VDev)
+var memifKeySet = make(map[string]bool)
 
 // MemifLocator describes a memif face.
 type MemifLocator struct {
@@ -42,16 +41,16 @@ func (loc MemifLocator) CreateFace() (iface.Face, error) {
 	if e != nil {
 		return nil, fmt.Errorf("memif.Locator.ToVDevArgs %w", e)
 	}
-	if _, ok := memifVdevMap[key]; ok {
+	if memifKeySet[key] {
 		return nil, errors.New("memif.Locator duplicate SocketName+ID with existing device")
 	}
 
-	vdev, e := eal.NewVDev(name, args, eal.NumaSocket{})
+	dev, e := ethdev.NewVDev(name, args, eal.NumaSocket{})
 	if e != nil {
-		return nil, fmt.Errorf("eal.NewVDev(%s,%s) %w", name, args, e)
+		return nil, fmt.Errorf("ethdev.NewVDev(%s,%s) %w", name, args, e)
 	}
-	memifVdevMap[key] = vdev
-	dev := ethdev.Find(vdev.Name())
+	memifKeySet[key] = true
+	ethdev.OnDetach(dev, func() { delete(memifKeySet, key) })
 
 	pc := PortConfig{
 		MTU:           loc.Dataroom,
@@ -59,14 +58,8 @@ func (loc MemifLocator) CreateFace() (iface.Face, error) {
 	}
 	port, e := NewPort(dev, pc)
 	if e != nil {
-		must.Close(vdev)
+		dev.Stop(ethdev.StopDetach)
 		return nil, fmt.Errorf("NewPort %w", e)
-	}
-	port.closeVdev = func() {
-		vdev := memifVdevMap[key]
-		if vdev != nil && vdev.Close() == nil {
-			delete(memifVdevMap, key)
-		}
 	}
 
 	return New(port, loc)

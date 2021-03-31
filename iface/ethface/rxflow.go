@@ -80,8 +80,8 @@ func (impl *rxFlowImpl) Init() error {
 	}
 
 	devInfo := impl.port.dev.DevInfo()
-	if !devInfo.CanAttemptRxFlow() {
-		return fmt.Errorf("%s cannot use RxFlow", devInfo.DriverName())
+	if devInfo.IsVDev() {
+		return errors.New("cannot use RxFlow on virtual device")
 	}
 
 	if e := impl.setIsolate(true); e != nil {

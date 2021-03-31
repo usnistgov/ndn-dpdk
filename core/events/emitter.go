@@ -27,6 +27,13 @@ func (emitter *Emitter) On(event, listener interface{}) io.Closer {
 	return canceler{emitter.Emitter, event, listener}
 }
 
+// Once registers a one-time callback when an event occurs.
+// Returns an io.Closer that cancels the callback registration.
+func (emitter *Emitter) Once(event, listener interface{}) io.Closer {
+	emitter.Emitter.Once(event, listener)
+	return canceler{emitter.Emitter, event, listener}
+}
+
 type canceler struct {
 	emitter  *emission.Emitter
 	event    interface{}

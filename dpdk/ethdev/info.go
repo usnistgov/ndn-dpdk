@@ -21,15 +21,13 @@ func (info DevInfo) DriverName() string {
 	return C.GoString((*C.char)(unsafe.Pointer(info.Driver_name)))
 }
 
-// CanAttemptRxFlow determines whether rte_flow activation can be attempted.
-// If this is false, failed activation of rte_flow would cause permanent device failure.
-// A common reason is that eth_dev_stop closes the device in a way that it's not restartable.
-func (info DevInfo) CanAttemptRxFlow() bool {
+// IsVDev determines whether the driver is a virtual device.
+func (info DevInfo) IsVDev() bool {
 	switch info.DriverName() {
-	case "net_af_packet", "net_af_xdp", "net_memif":
-		return false
+	case "net_af_packet", "net_af_xdp", "net_memif", "net_ring":
+		return true
 	}
-	return true
+	return false
 }
 
 // HasTxMultiSegOffload determines whether device can transmit multi-segment packets.

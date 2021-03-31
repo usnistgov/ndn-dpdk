@@ -22,7 +22,7 @@ type NumaSocket struct {
 
 // NumaSocketFromID converts socket ID to NumaSocket.
 func NumaSocketFromID(id int) (socket NumaSocket) {
-	if id < 0 || id > C.RTE_MAX_NUMA_NODES {
+	if id < 0 || id >= C.RTE_MAX_NUMA_NODES {
 		return socket
 	}
 	socket.v = id + 1
