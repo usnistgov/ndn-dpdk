@@ -14,6 +14,7 @@ import (
 )
 
 // JoinDevArgs converts device argument key-value pairs to a string.
+// nil values are skipped.
 // As a special case, if the map has a "" key, its value would override all other arguments.
 func JoinDevArgs(m map[string]interface{}) string {
 	var b strings.Builder
@@ -22,6 +23,9 @@ func JoinDevArgs(m map[string]interface{}) string {
 	} else {
 		delim := ""
 		for k, v := range m {
+			if v == nil {
+				continue
+			}
 			fmt.Fprintf(&b, "%s%s=%v", delim, k, v)
 			delim = ","
 		}

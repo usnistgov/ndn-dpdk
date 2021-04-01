@@ -1,8 +1,6 @@
 package fwdptest
 
 import (
-	"path"
-	"runtime"
 	"testing"
 	"time"
 
@@ -96,10 +94,7 @@ func (fixture *Fixture) makeStrategy(shortname string) *strategycode.Strategy {
 		return sc
 	}
 
-	_, thisFile, _, _ := runtime.Caller(1)
-	elfFile := path.Join(path.Dir(thisFile), "../../../build/lib/bpf", "ndndpdk-strategy-"+shortname+".o")
-
-	sc, e := strategycode.LoadFile(shortname, elfFile)
+	sc, e := strategycode.LoadFile(shortname, "")
 	fixture.require.NoError(e)
 
 	return sc

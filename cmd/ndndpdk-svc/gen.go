@@ -16,6 +16,8 @@ type genArgs struct {
 }
 
 func (a genArgs) Activate() error {
+	initXDPProgram()
+
 	var req ealconfig.Request
 	req.MinLCores = 1 // main
 	for _, task := range a.Tasks {

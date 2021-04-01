@@ -8,6 +8,7 @@ import (
 	"os"
 	"unsafe"
 
+	"github.com/usnistgov/ndn-dpdk/bpf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"go4.org/must"
 )
@@ -49,7 +50,7 @@ var dotTextSection = C.CString(".text")
 
 // Load loads a strategy BPF program from ELF object.
 func Load(name string, elf []byte) (sc *Strategy, e error) {
-	file, e := os.CreateTemp("", "strategy*.so")
+	file, e := os.CreateTemp("", "strategy*.o")
 	if e != nil {
 		return nil, e
 	}
@@ -64,7 +65,15 @@ func Load(name string, elf []byte) (sc *Strategy, e error) {
 }
 
 // LoadFile loads a strategy BPF program from ELF file.
+// If filename is empty, search for an ELF file in default locations.
 func LoadFile(name, filename string) (sc *Strategy, e error) {
+	if filename == "" {
+		filename, e = bpf.Strategy.Find(name)
+		if e != nil {
+			return nil, e
+		}
+	}
+
 	var prm C.struct_rte_bpf_prm
 	prm.xsym = (*C.struct_rte_bpf_xsym)(Xsyms)
 	prm.nb_xsym = (C.uint32_t)(NXsyms)

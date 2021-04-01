@@ -3,6 +3,7 @@ package ethvdev
 import (
 	"errors"
 	"fmt"
+	"math"
 	"net"
 	"os"
 	"path/filepath"
@@ -12,7 +13,9 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealconfig"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
+	"github.com/vishvananda/netlink"
 	"go.uber.org/multierr"
+	"go.uber.org/zap"
 )
 
 const (
@@ -67,6 +70,34 @@ func findNetifDev(netif *net.Interface) (dev ethdev.EthDev) {
 	return nil
 }
 
+func unloadXDP(netif *net.Interface) {
+	logEntry := logger.With(
+		zap.String("netif", netif.Name),
+		zap.Int("ifindex", netif.Index),
+	)
+
+	link, e := netlink.LinkByIndex(netif.Index)
+	if e != nil {
+		logEntry.Error("netlink.LinkByIndex error", zap.Error(e))
+		return
+	}
+	attrs := link.Attrs()
+
+	if attrs.Xdp == nil || !attrs.Xdp.Attached {
+		logEntry.Debug("netlink has no attached XDP program")
+		return
+	}
+	logEntry = logEntry.With(zap.Uint32("old-xdp-prog", attrs.Xdp.ProgId))
+
+	e = netlink.LinkSetXdpFd(link, math.MaxUint32)
+	if e != nil {
+		logEntry.Error("netlink.LinkSetXdpFd error", zap.Error(e))
+		return
+	}
+
+	logEntry.Debug("unloaded previous XDP program")
+}
+
 // NetifConfig contains preferences for FromNetif.
 type NetifConfig struct {
 	// DisableXDP disallows net_af_xdp driver.
@@ -92,7 +123,15 @@ func (cfg NetifConfig) makeXDP(netif *net.Interface, socket eal.NumaSocket) (dev
 		"start_queue": 0,
 		"queue_count": 1,
 	}
-	return New(drvXDP+netif.Name, mergemap.Merge(args, cfg.XDPDevArgs), socket)
+	if XDPProgram != "" {
+		args["xdp_prog"] = XDPProgram
+	}
+	args = mergemap.Merge(args, cfg.XDPDevArgs)
+
+	if prog, ok := args["xdp_prog"]; ok && prog != nil {
+		unloadXDP(netif)
+	}
+	return New(drvXDP+netif.Name, args, socket)
 }
 
 func (cfg NetifConfig) makeAfPacket(netif *net.Interface, socket eal.NumaSocket) (dev ethdev.EthDev, e error) {
@@ -104,9 +143,7 @@ func (cfg NetifConfig) makeAfPacket(netif *net.Interface, socket eal.NumaSocket)
 		"iface":  netif.Name,
 		"qpairs": 1,
 	}
-	if XDPProgram != "" {
-		args["xdp_prog"] = XDPProgram
-	}
+	args = mergemap.Merge(args, cfg.XDPDevArgs)
 	return New(drvAfPacket+netif.Name, mergemap.Merge(args, cfg.XDPDevArgs), socket)
 }
 
