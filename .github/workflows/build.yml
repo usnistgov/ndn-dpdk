@@ -25,10 +25,10 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           node-version: 14
-      - name: install build tools
+      - name: install compilers and tools
         run: |
           sudo apt-get update
-          sudo apt-get install doxygen gcc-multilib libelf-dev liburcu-dev linux-libc-dev
+          sudo apt-get install $CC clang-8 clang-format-8 doxygen gcc-multilib libelf-dev liburcu-dev linux-libc-dev
           go get honnef.co/go/tools/cmd/staticcheck
       - name: install uBPF
         run: |
@@ -44,7 +44,7 @@ jobs:
         with:
           path: |
             ~/setup-dpdk
-          key: ${{ matrix.compiler }}_DPDK2011_SPDK2010_20210330
+          key: ${{ matrix.compiler }}_DPDK2011_SPDK2010_20210401
       - uses: yoursunny/setup-dpdk@main
         with:
           dpdk-version: '20.11'
