@@ -54,13 +54,13 @@ var app = &cli.App{
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:        "gqlserver",
-			Usage:       "GraphQL `endpoint` of NDN-DPDK service.",
+			Usage:       "GraphQL `endpoint` of NDN-DPDK service",
 			Value:       "http://127.0.0.1:3030/",
 			Destination: &gqlserverFlag,
 		},
 		&cli.IntFlag{
 			Name:        "mtu",
-			Usage:       "Application face `MTU`.",
+			Usage:       "application face `MTU`",
 			Destination: &mtuFlag,
 		},
 	},

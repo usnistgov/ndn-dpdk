@@ -18,6 +18,7 @@ You can also [build a Docker container](Docker.md), which would work on other op
 * [Intel Multi-Buffer Crypto for IPsec Library](https://github.com/intel/intel-ipsec-mb) v0.55 (optional)
 * [Data Plane Development Kit (DPDK)](https://www.dpdk.org/) 20.11
 * [Storage Performance Development Kit (SPDK)](https://spdk.io/) 20.10
+* [graphqurl](https://www.npmjs.com/package/graphqurl) command (optional, only used in sample commands)
 
 You can execute the [ndndpdk-depends.sh](ndndpdk-depends.sh) script to install these dependencies, or refer to this script for the specific configuration options.
 Certain hardware drivers may require installing extra dependencies before building DPDK or running the script; see [hardware known to work](hardware.md) for more information.
@@ -53,12 +54,8 @@ See [DPDK Network Interface Controller Drivers](https://doc.dpdk.org/guides/nics
 You can then execute `sudo systemctl start ndndpdk-svc` to start the NDN-DPDK service, use `ndndpdk-ctrl` command to activate it as a forwarder or a traffic generator, and then control the service.
 See [forwarder activation and usage](forwarder.md) for sample commands to perform common operations on the forwarder.
 
-NDN-DPDK service provides a GraphQL endpoint at `http://127.0.0.1:3030/` (changeable via `--gqlserver` argument).
 As an alternative of using `ndndpdk-ctrl`, you can execute queries and mutations on the GraphQL endpoint.
-The GraphQL service schema may be discovered via introspection.
-
-Some GraphQL examples in NDN-DPDK documentation requires [graphqurl](https://github.com/hasura/graphqurl) command-line GraphQL client.
-Execute `sudo npm install -g graphqurl` to install this command.
+See [ndndpdk-ctrl](../cmd/ndndpdk-ctrl) for more information.
 
 ## Other Build Targets
 

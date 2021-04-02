@@ -9,15 +9,38 @@ import (
 	"reflect"
 	"sort"
 
+	"github.com/kballard/go-shellquote"
 	"github.com/urfave/cli/v2"
 	"github.com/usnistgov/ndn-dpdk/core/gqlclient"
 	"github.com/usnistgov/ndn-dpdk/mk/version"
 )
 
-var gqlserver string
-var client *gqlclient.Client
+var (
+	gqlserver string
+	cmdout    bool
+	client    *gqlclient.Client
+)
 
 func clientDoPrint(query string, vars interface{}, key string) error {
+	if cmdout {
+		gqArgs := []string{gqlserver, "-q", query}
+		if vars != nil {
+			j, e := json.MarshalIndent(vars, "", "  ")
+			if e != nil {
+				return e
+			}
+			gqArgs = append(gqArgs, "--variablesJSON", string(j))
+		}
+		jqArgs := []string{"-c"}
+		if key == "" {
+			jqArgs = append(jqArgs, ".data")
+		} else {
+			jqArgs = append(jqArgs, ".data."+key)
+		}
+		fmt.Println("gq", shellquote.Join(gqArgs...), "|", "jq", shellquote.Join(jqArgs...))
+		return nil
+	}
+
 	var value interface{}
 	e := client.Do(query, vars, key, &value)
 	if e != nil {
@@ -46,8 +69,17 @@ var app = &cli.App{
 			Usage:       "GraphQL `endpoint` of NDN-DPDK service",
 			Destination: &gqlserver,
 		},
+		&cli.BoolFlag{
+			Name:        "cmdout",
+			Value:       false,
+			Usage:       "print command line instead of executing",
+			Destination: &cmdout,
+		},
 	},
 	Before: func(c *cli.Context) (e error) {
+		if cmdout {
+			return nil
+		}
 		client, e = gqlclient.New(gqlserver)
 		return e
 	},

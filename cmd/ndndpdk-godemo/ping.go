@@ -24,19 +24,19 @@ func init() {
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:        "name",
-				Usage:       "Producer name `prefix`.",
+				Usage:       "producer name `prefix`",
 				Destination: &name,
 				Required:    true,
 			},
 			&cli.BoolFlag{
 				Name:        "advertise",
-				Usage:       "Whether to advertise/register prefix.",
+				Usage:       "whether to advertise/register prefix",
 				Value:       true,
 				Destination: &wantAdvertise,
 			},
 			&cli.IntFlag{
 				Name:        "payload",
-				Usage:       "Payload length.",
+				Usage:       "payload length",
 				Destination: &payloadLen,
 			},
 		},
@@ -71,19 +71,19 @@ func init() {
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:        "name",
-				Usage:       "Consumer name `prefix`.",
+				Usage:       "consumer name `prefix`",
 				Destination: &name,
 				Required:    true,
 			},
 			&cli.DurationFlag{
 				Name:        "interval",
-				Usage:       "The `interval` between Interests.",
+				Usage:       "the `interval` between Interests",
 				Value:       100 * time.Millisecond,
 				Destination: &interval,
 			},
 			&cli.DurationFlag{
 				Name:        "lifetime",
-				Usage:       "Interest `lifetime`.",
+				Usage:       "Interest `lifetime`",
 				Value:       1000 * time.Millisecond,
 				Destination: &lifetime,
 			},

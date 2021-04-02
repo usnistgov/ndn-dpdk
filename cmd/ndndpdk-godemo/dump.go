@@ -27,28 +27,28 @@ func init() {
 			},
 			&cli.GenericFlag{
 				Name:  "local",
-				Usage: "Local MAC address.",
+				Usage: "local MAC `address`",
 				Value: &cfg.Local,
 			},
 			&cli.GenericFlag{
 				Name:  "remote",
-				Usage: "Remote MAC address.",
+				Usage: "remote MAC `address`",
 				Value: &cfg.Remote,
 			},
 			&cli.BoolFlag{
 				Name:        "respond",
-				Usage:       "Respond every Interest with Data.",
+				Usage:       "respond every Interest with Data",
 				Destination: &respond,
 			},
 			&cli.IntFlag{
 				Name:        "rxq",
-				Usage:       "RX queue size.",
+				Usage:       "RX queue size",
 				Value:       l3.DefaultTransportRxQueueSize,
 				Destination: &cfg.RxQueueSize,
 			},
 			&cli.IntFlag{
 				Name:        "txq",
-				Usage:       "TX queue size.",
+				Usage:       "TX queue size",
 				Value:       l3.DefaultTransportTxQueueSize,
 				Destination: &cfg.TxQueueSize,
 			},
