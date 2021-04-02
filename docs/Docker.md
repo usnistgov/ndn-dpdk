@@ -53,13 +53,12 @@ docker rm $CTID
 Example command to start the NDN-DPDK service container:
 
 ```bash
-sudo mkdir -p /run/ndn
-
+docker volume create run-ndn
 docker run -d --name ndndpdk-svc \
   --cap-add IPC_LOCK --cap-add NET_ADMIN --cap-add NET_RAW --cap-add SYS_ADMIN --cap-add SYS_NICE \
   --device /dev/infiniband --device /dev/vfio \
   --mount type=bind,source=/dev/hugepages,target=/dev/hugepages \
-  --mount type=bind,source=/run/ndn,target=/run/ndn \
+  --mount type=volume,source=run-ndn,target=/run/ndn \
   ndn-dpdk
 
 # retrieve container IP address for NDN-DPDK GraphQL endpoint
@@ -75,8 +74,7 @@ The required device list is hardware dependent; see [hardware known to work](har
 
 `--mount target=/dev/hugepages` mounts hugepages into the container.
 
-`--mount target=/run/ndn` shares a directory for memif control sockets.
-You may use to use a Docker volume instead of a bind mount.
+`--mount target=/run/ndn` shares a volume for memif control sockets.
 Applications using memif transport must set the memif *SocketName* to a socket in this directory.
 
 ## Control the NDN-DPDK Service Container
@@ -109,17 +107,17 @@ If the NDN-DPDK service container has been [activated as a forwarder](forwarder.
 
 ```bash
 docker run --rm \
-  --mount type=bind,source=/run/ndn,target=/run/ndn \
+  --mount type=volume,source=run-ndn,target=/run/ndn \
   ndn-dpdk \
   ndndpdk-godemo --gqlserver $GQLSERVER pingserver --name /example/P
 
 docker run --rm \
-  --mount type=bind,source=/run/ndn,target=/run/ndn \
+  --mount type=volume,source=run-ndn,target=/run/ndn \
   ndn-dpdk \
   ndndpdk-godemo --gqlserver $GQLSERVER pingclient --name /example/P
 ```
 
 In the example commands:
 
-* `--mount target=/run/ndn` shares a directory for memif control sockets.
+* `--mount target=/run/ndn` shares a volume for memif control sockets.
 * `--gqlserver` makes the demo application connect to the GraphQL endpoint in the service container instead of localhost.

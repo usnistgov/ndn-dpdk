@@ -3,18 +3,17 @@
 This package implements the face system, which provides network interfaces (faces) that can send and receive NDN packets.
 Each face has a **ID**, a uint16 number that identifies the face.
 
-There are three lower layer implementations:
+There are two transport-specific implementations:
 
 * [EthFace](ethface/) communicates on Ethernet via DPDK ethdev.
 * [SocketFace](socketface/) communicates on Unix/TCP/UDP tunnels via Go sockets.
-* [MockFace](mockface/) is for unit testing.
 
 Unit tests of this package are in [ifacetest](ifacetest/) subdirectory.
 
 ## Face System API
 
 In C, public APIs are defined in term of **FaceID**.
-There are functions to query face status, and to transmit a burst of packets.
+There are functions to query face status and to transmit a burst of packets.
 Notably, there isn't a function to receive packets; instead, RxLoop type is used for receiving packets.
 
 In Go, **Face** type defines what methods a face must provide.
@@ -23,7 +22,7 @@ Lower layer implementation invokes `New` to construct an object that satisfy thi
 
 All faces are assumed to be point-to-point.
 **Locator** type identifies the endpoints of a face.
-It has a `Scheme` field that indicates the underlying network protocol, as well as other fields added by each lower layer implementation.
+It has a `Scheme` field that indicates the underlying network protocol, as well as other fields added by each transport-specific implementation.
 This type can be marshaled as JSON.
 
 ## Receive Path
@@ -33,7 +32,7 @@ Lower layer implementation places each face into one or more **RxGroup**s, which
 `RxLoop_Run` function continually invokes `RxGroup.rxBurstOp` function to retrieve L2 frames arriving on these faces.
 
 Each frame is decoded by **RxProc**, which also performs NDNLPv2 reassembly on fragments using the **Reassembler**.
-Successfully decoded L3 Interest, Data, or Nack packets are passed to the upper layer (such as the forwarder's forwarding thread) via an **InputDemux** of that packet type.
+Successfully decoded L3 Interest, Data, or Nack packets are passed to the upper layer (such as the forwarder's input thread) via an **InputDemux** of that packet type.
 
 It's possible to receive packets arriving on one face in multiple **RxLoop** threads, by placing the face into multiple **RxGroup**s.
 However, currently only "thread 0" can perform reassembly; fragments arriving on other threads are dropped.

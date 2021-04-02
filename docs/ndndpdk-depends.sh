@@ -37,7 +37,6 @@ HAS_KERNEL_HEADERS=0
 if [[ -d /usr/src/linux-headers-${KERNELVER} ]]; then
   HAS_KERNEL_HEADERS=1
 else
-  DFLT_LIBBPFVER=0
   DFLT_KMODSVER=0
 fi
 if [[ $KERNELVER == 5.10.* ]]; then
@@ -45,7 +44,7 @@ if [[ $KERNELVER == 5.10.* ]]; then
   # TODO delete this when Debian and Ubuntu fix this bug
   DFLT_KMODSVER=0
 fi
-if [[ $(echo $KERNELVER | awk -F. '{ print ($1*1000+$2>=4018) }') -eq 0 ]]; then
+if [[ $(echo $KERNELVER | awk -F. '{ print ($1*1000+$2>=5004) }') -eq 0 ]]; then
   DFLT_LIBBPFVER=0
 fi
 

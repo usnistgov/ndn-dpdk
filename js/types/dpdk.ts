@@ -71,3 +71,14 @@ export interface PktmbufPoolConfig {
  * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf#TemplateUpdates>
  */
 export type PktmbufPoolTemplateUpdates<K extends string = string> = Partial<Record<K, PktmbufPoolConfig>>;
+
+/**
+ * Preferences for creating virtual Ethernet device from kernel network interface.
+ * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/dpdk/ethdev/ethvdev#NetifConfig>
+ */
+export interface VDevNetifConfig {
+  disableXDP?: boolean;
+  xdpDevArgs?: object;
+  disableAfPacket?: boolean;
+  afPacketDevArgs?: object;
+}

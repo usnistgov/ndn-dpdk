@@ -13,10 +13,11 @@ You can also [build a Docker container](Docker.md), which would work on other op
 * Go 1.16
 * Node.js 14.x
 * Python 3, [pip](https://pip.pypa.io/en/stable/installing/), and PyPI packages: `meson ninja`
+* [ubpf](https://github.com/iovisor/ubpf) library, installed to `/usr/local`
+* [libbpf](https://github.com/libbpf/libbpf) library, installed to `/usr/local` (optional)
 * [Intel Multi-Buffer Crypto for IPsec Library](https://github.com/intel/intel-ipsec-mb) v0.55 (optional)
 * [Data Plane Development Kit (DPDK)](https://www.dpdk.org/) 20.11
 * [Storage Performance Development Kit (SPDK)](https://spdk.io/) 20.10
-* [ubpf](https://github.com/iovisor/ubpf) library, installed to `/usr/local`
 
 You can execute the [ndndpdk-depends.sh](ndndpdk-depends.sh) script to install these dependencies, or refer to this script for the specific configuration options.
 Certain hardware drivers may require installing extra dependencies before building DPDK or running the script; see [hardware known to work](hardware.md) for more information.

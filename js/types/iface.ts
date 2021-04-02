@@ -1,14 +1,24 @@
 import type { Counter, NNMilliseconds } from "./core";
+import type { VDevNetifConfig } from "./dpdk";
 
 /**
+ * Numeric face identifier.
  * @TJS-type integer
  * @minimum 1
  * @maximum 65535
  */
 export type FaceID = number;
 
+/**
+ * Face locator.
+ * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/iface#Locator>
+ */
 export type FaceLocator = EtherLocator | UdpLocator | VxlanLocator | MemifLocator | SocketFaceLocator;
 
+/**
+ * Face configuration.
+ * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/iface#Config>
+ */
 export interface FaceConfig {
   /**
    * @TJS-type integer
@@ -33,6 +43,10 @@ export interface FaceConfig {
   mtu?: number;
 }
 
+/**
+ * Ethernet port configuration.
+ * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/iface/ethface#PortConfig>
+ */
 export interface EthPortConfig {
   disableRxFlow?: boolean;
 
@@ -62,6 +76,7 @@ export interface EthPortConfig {
 
 interface EtherLocatorBase extends FaceConfig {
   port?: string;
+  vdevConfig?: VDevNetifConfig;
   portConfig?: EthPortConfig;
 
   /**
@@ -86,6 +101,10 @@ interface EtherLocatorBase extends FaceConfig {
   vlan?: number;
 }
 
+/**
+ * Ethernet face locator.
+ * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/iface/ethface#EtherLocator>
+ */
 export interface EtherLocator extends EtherLocatorBase {
   scheme: "ether";
 }
@@ -109,10 +128,18 @@ interface UdpLocatorBase extends EtherLocatorBase {
   remoteUDP: number;
 }
 
+/**
+ * Ethernet-based UDP face locator.
+ * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/iface/ethface#UDPLocator>
+ */
 export interface UdpLocator extends UdpLocatorBase {
   scheme: "udpe";
 }
 
+/**
+ * VXLAN face locator.
+ * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/iface/ethface#VxlanLocator>
+ */
 export interface VxlanLocator extends UdpLocatorBase {
   scheme: "vxlan";
 
@@ -127,6 +154,10 @@ export interface VxlanLocator extends UdpLocatorBase {
   innerRemote: string;
 }
 
+/**
+ * memif face locator.
+ * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/iface/ethface#MemifLocator>
+ */
 export interface MemifLocator {
   scheme: "memif";
 
@@ -156,6 +187,10 @@ export interface MemifLocator {
   ringCapacity?: number;
 }
 
+/**
+ * Socket face configuration.
+ * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/iface/socketface#Config>
+ */
 export interface SocketFaceConfig extends FaceConfig {
   /**
    * @TJS-type integer
@@ -170,6 +205,10 @@ export interface SocketFaceConfig extends FaceConfig {
   redialBackoffMaximum?: NNMilliseconds;
 }
 
+/**
+ * Socket face locator.
+ * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/iface/socketface#Locator>
+ */
 export interface SocketFaceLocator {
   scheme: "udp"|"tcp"|"unix";
   local?: string;
@@ -178,6 +217,10 @@ export interface SocketFaceLocator {
   config?: SocketFaceConfig;
 }
 
+/**
+ * Face counters.
+ * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/iface#Counters>
+ */
 export interface FaceCounters {
   rxFrames: Counter;
   rxOctets: Counter;

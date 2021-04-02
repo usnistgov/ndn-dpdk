@@ -101,16 +101,16 @@ func unloadXDP(netif *net.Interface) {
 // NetifConfig contains preferences for FromNetif.
 type NetifConfig struct {
 	// DisableXDP disallows net_af_xdp driver.
-	DisableXDP bool `json:"disableXdp,omitempty"`
+	DisableXDP bool `json:"disableXDP,omitempty"`
 
 	// XDPDevArgs overrides device arguments for net_af_xdp driver.
-	XDPDevArgs map[string]interface{} `json:"xdpOptions,omitempty"`
+	XDPDevArgs map[string]interface{} `json:"xdpDevArgs,omitempty"`
 
 	// DisableAfPacket disallows net_af_packet driver.
 	DisableAfPacket bool `json:"disableAfPacket,omitempty"`
 
 	// AfPacketDevArgs overrides device arguments for net_af_packet driver.
-	AfPacketDevArgs map[string]interface{} `json:"afPacketOptions,omitempty"`
+	AfPacketDevArgs map[string]interface{} `json:"afPacketDevArgs,omitempty"`
 }
 
 func (cfg NetifConfig) makeXDP(netif *net.Interface, socket eal.NumaSocket) (dev ethdev.EthDev, e error) {

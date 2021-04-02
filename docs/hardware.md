@@ -29,8 +29,6 @@ The developers have tested NDN-DPDK with the following Ethernet adapters:
 * Intel X520, 10 Gbps, ixgbe driver
 * Intel I350, 1 Gbps, igb driver
 
-NDN-DPDK can also be used with DPDK [AF\_PACKET poll mode driver](https://doc.dpdk.org/guides/nics/af_packet.html) to support any Ethernet adapter, at reduced speeds.
-
 ### Mellanox Ethernet Adapters
 
 The libibverbs library must be installed before building DPDK or running the `ndndpdk-depends.sh` script:
@@ -87,3 +85,37 @@ docker run \
 
 * `find` subcommand constructs `--device` flags for `/dev/uio*` devices.
 * `--mount target=/sys` flag enables access to attributes in `/sys/class/uio` directory.
+
+### AF\_XDP and AF\_PACKET Sockets
+
+NDN-DPDK can work with any Ethernet adapter supported by the Linux kernel via DPDK net\_af\_xdp and net\_af\_packet socket drivers.
+This allows the use of Ethernet adapters not supported by DPDK PCI drivers.
+However, these socket-based drivers have limited functionality and lower performance.
+See [package ethvdev](../dpdk/ethdev/ethvdev) for more information.
+
+To use socket-based drivers, the Ethernet adapter must be "up" and visible to the NDN-DPDK service process.
+Example command to ensure these conditions:
+
+```bash
+NETIF=eth1
+
+# if NDN-DPDK is running on the host: bring up the network interface
+sudo ip link set $NETIF up
+
+# if NDN-DPDK is running in a Docker container:
+# (1) move the network interface into the container's network namespace
+sudo ip link set $NETIF netns $(docker inspect --format='{{ .State.Pid }}' ndndpdk-svc)
+# (2) bring up the network interface
+docker exec ndndpdk-svc ip link set $NETIF up
+```
+
+During face creation, if the Ethernet adapter has not been activated with a DPDK PCI driver, NDN-DPDK will attempt to activate it with a socket-based driver.
+It is unnecessary to manually define a DPDK virtual device in activation parameters.
+
+The net\_af\_xdp driver uses AF\_XDP sockets, optimized for high performance packet processing.
+This requires Linux kernel ≥5.4.
+The libbpf library must be installed before building DPDK; the `ndndpdk-depends.sh` script installs libbpf automatically if a compatible kernel version is found.
+Due to kernel limitation, MTU is limited to about 3300 octets.
+
+The net\_af\_packet driver uses AF\_PACKET sockets.
+This is compatible with older kernels, but it is substantially slower.

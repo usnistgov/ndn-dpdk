@@ -89,10 +89,10 @@ On node B, start NFD and producer:
 docker rm -f nfd
 
 # start NFD
-sudo mkdir -p /run/ndn
+docker volume create run-ndn
 docker run -d --rm --name nfd \
   --cap-add=NET_ADMIN --network none --init \
-  --mount type=bind,source=/run/ndn,target=/run/ndn \
+  --mount type=volume,source=run-ndn,target=/run/ndn \
   -e 'NFD_ENABLE_ETHER=1' \
   nfd
 
@@ -113,7 +113,7 @@ nfdc route add prefix $A_NAME nexthop $B_FACEID
 
 # start the producer
 docker run -it --rm \
-  --mount type=bind,source=/run/ndn,target=/run/ndn \
+  --mount type=volume,source=run-ndn,target=/run/ndn \
   nfd \
   ndnpingserver --size 512 $B_NAME
 ```
@@ -130,7 +130,7 @@ On node B, start a consumer:
 ```bash
 # run the consumer
 docker run -it --rm \
-  --mount type=bind,source=/run/ndn,target=/run/ndn \
+  --mount type=volume,source=run-ndn,target=/run/ndn \
   nfd \
   ndnping -i 10 $A_NAME
 ```
@@ -165,16 +165,16 @@ Start NFD and producer:
 docker rm -f nfd
 
 # start NFD
-sudo mkdir -p /run/ndn
+docker volume create run-ndn
 docker run -d --rm --name nfd \
   --network none --init \
-  --mount type=bind,source=/run/ndn,target=/run/ndn \
+  --mount type=volume,source=run-ndn,target=/run/ndn \
   -e 'NFD_CS_CAP=1024' \
   nfd
 
 # start the producer
 docker run -it --rm \
-  --mount type=bind,source=/run/ndn,target=/run/ndn \
+  --mount type=volume,source=run-ndn,target=/run/ndn \
   nfd \
   ndnpingserver --size 512 $B_NAME
 ```
