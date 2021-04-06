@@ -24,6 +24,7 @@ require (
 	github.com/pkg/math v0.0.0-20141027224758-f2ed9e40e245
 	github.com/powerman/rpc-codec v1.2.2
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
+	github.com/safchain/ethtool v0.0.0-20201023143004-874930cb3ce0
 	github.com/smartystreets/assertions v1.2.0 // indirect
 	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/soh335/sliceflag v0.0.0-20160923061056-d2d28a5acab8

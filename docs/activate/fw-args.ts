@@ -6,9 +6,6 @@ const eal: EalConfig = {
   pciDevices: [
     "0000:04:00.0",
   ],
-  virtualDevices: [
-    "net_af_packet1,iface=eth1",
-  ],
 };
 
 const args: ActivateFwArgs = {

@@ -10,6 +10,8 @@ import (
 	"strconv"
 
 	"github.com/peterbourgon/mergemap"
+	mathpkg "github.com/pkg/math"
+	"github.com/safchain/ethtool"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealconfig"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
@@ -27,8 +29,19 @@ const (
 // This should be assigned by package main.
 var XDPProgram string
 
-func pciAddrOf(netif *net.Interface) (a ealconfig.PCIAddress, e error) {
-	device, e := filepath.EvalSymlinks(filepath.Join("/sys/class/net", netif.Name, "device"))
+type netIntf struct {
+	*net.Interface
+}
+
+func (n netIntf) Logger() *zap.Logger {
+	return logger.With(
+		zap.String("netif", n.Name),
+		zap.Int("ifindex", n.Index),
+	)
+}
+
+func (n netIntf) PCIAddr() (a ealconfig.PCIAddress, e error) {
+	device, e := filepath.EvalSymlinks(filepath.Join("/sys/class/net", n.Name, "device"))
 	if e != nil {
 		return ealconfig.PCIAddress{}, e
 	}
@@ -42,8 +55,8 @@ func pciAddrOf(netif *net.Interface) (a ealconfig.PCIAddress, e error) {
 	return
 }
 
-func numaSocketOf(netif *net.Interface) (socket eal.NumaSocket) {
-	body, e := os.ReadFile(filepath.Join("/dev/class/net", netif.Name, "device/numa_node"))
+func (n netIntf) NumaSocket() (socket eal.NumaSocket) {
+	body, e := os.ReadFile(filepath.Join("/dev/class/net", n.Name, "device/numa_node"))
 	if e != nil {
 		return eal.NumaSocket{}
 	}
@@ -55,28 +68,66 @@ func numaSocketOf(netif *net.Interface) (socket eal.NumaSocket) {
 	return eal.NumaSocketFromID(int(i))
 }
 
-func findNetifDev(netif *net.Interface) (dev ethdev.EthDev) {
-	if pciAddr, e := pciAddrOf(netif); e == nil {
+func (n netIntf) FindDev() (dev ethdev.EthDev) {
+	if pciAddr, e := n.PCIAddr(); e == nil {
 		if dev = ethdev.FromName(pciAddr.String()); dev != nil {
 			return dev
 		}
 	}
-	if dev = ethdev.FromName(drvXDP + netif.Name); dev != nil {
+	if dev = ethdev.FromName(drvXDP + n.Name); dev != nil {
 		return dev
 	}
-	if dev = ethdev.FromName(drvAfPacket + netif.Name); dev != nil {
+	if dev = ethdev.FromName(drvAfPacket + n.Name); dev != nil {
 		return dev
 	}
 	return nil
 }
 
-func unloadXDP(netif *net.Interface) {
-	logEntry := logger.With(
-		zap.String("netif", netif.Name),
-		zap.Int("ifindex", netif.Index),
+func (n netIntf) SetOneChannel() {
+	logEntry := n.Logger()
+
+	etht, e := ethtool.NewEthtool()
+	if e != nil {
+		logEntry.Error("ethtool.NewEthtool error", zap.Error(e))
+		return
+	}
+	defer etht.Close()
+
+	channels, e := etht.GetChannels(n.Name)
+	if e != nil {
+		logEntry.Error("ethtool.GetChannels error", zap.Error(e))
+		return
+	}
+
+	channelsUpdate := channels
+	channelsUpdate.RxCount = mathpkg.MinUint32(channels.MaxRx, 1)
+	channelsUpdate.CombinedCount = mathpkg.MinUint32(channels.MaxCombined, 1)
+
+	logEntry = logEntry.With(
+		zap.Uint32("old-rx", channels.RxCount),
+		zap.Uint32("old-combined", channels.CombinedCount),
+		zap.Uint32("new-rx", channelsUpdate.RxCount),
+		zap.Uint32("new-combined", channelsUpdate.CombinedCount),
 	)
 
-	link, e := netlink.LinkByIndex(netif.Index)
+	if channelsUpdate == channels {
+		logEntry.Debug("no change in channels")
+		return
+	}
+
+	_, e = etht.SetChannels(n.Name, channelsUpdate)
+	if e != nil {
+		logEntry.Error("ethtool.SetChannels error", zap.Error(e))
+		return
+	}
+
+	logEntry.Debug("changed to 1 channel")
+}
+
+func (n netIntf) UnloadXDP() {
+	logEntry := n.Logger()
+
+	link, e := netlink.LinkByIndex(n.Index)
 	if e != nil {
 		logEntry.Error("netlink.LinkByIndex error", zap.Error(e))
 		return
@@ -100,24 +151,44 @@ func unloadXDP(netif *net.Interface) {
 
 // NetifConfig contains preferences for FromNetif.
 type NetifConfig struct {
-	// DisableXDP disallows net_af_xdp driver.
-	DisableXDP bool `json:"disableXDP,omitempty"`
+	// XDP contains preferences for net_af_xdp driver.
+	XDP XDPDriverConfig `json:"xdp,omitempty"`
 
-	// XDPDevArgs overrides device arguments for net_af_xdp driver.
-	XDPDevArgs map[string]interface{} `json:"xdpDevArgs,omitempty"`
-
-	// DisableAfPacket disallows net_af_packet driver.
-	DisableAfPacket bool `json:"disableAfPacket,omitempty"`
-
-	// AfPacketDevArgs overrides device arguments for net_af_packet driver.
-	AfPacketDevArgs map[string]interface{} `json:"afPacketDevArgs,omitempty"`
+	// AfPacket contains preferences for net_af_packet driver.
+	AfPacket AfPacketDriverConfig `json:"afPacket,omitempty"`
 }
 
-func (cfg NetifConfig) makeXDP(netif *net.Interface, socket eal.NumaSocket) (dev ethdev.EthDev, e error) {
-	if cfg.DisableXDP {
+// NetifDriverConfig contains preferences for a netif-activatable driver.
+type NetifDriverConfig struct {
+	// Disabled prevents vdev creation with this driver.
+	Disabled bool `json:"disabled,omitempty"`
+	// Args overrides device arguments passed to the driver.
+	Args map[string]interface{} `json:"args,omitempty"`
+}
+
+func (cfg NetifDriverConfig) makeDevImpl(drv string, netif netIntf, socket eal.NumaSocket,
+	args map[string]interface{}, prepare func(args map[string]interface{}) error) (dev ethdev.EthDev, e error) {
+	if cfg.Disabled {
 		return nil, errors.New("driver disabled")
 	}
 
+	args = mergemap.Merge(args, cfg.Args)
+	if e = prepare(args); e != nil {
+		return nil, e
+	}
+
+	return New(drv+netif.Name, args, socket)
+}
+
+// XDPDriverConfig contains preferences for net_af_xdp driver.
+type XDPDriverConfig struct {
+	NetifDriverConfig
+
+	// SkipSetChannels skips `ethtool --setchannels combined 1` operation.
+	SkipSetChannels bool `json:"skipSetChannels,omitempty"`
+}
+
+func (cfg XDPDriverConfig) makeDev(netif netIntf, socket eal.NumaSocket) (dev ethdev.EthDev, e error) {
 	args := map[string]interface{}{
 		"iface":       netif.Name,
 		"start_queue": 0,
@@ -126,31 +197,37 @@ func (cfg NetifConfig) makeXDP(netif *net.Interface, socket eal.NumaSocket) (dev
 	if XDPProgram != "" {
 		args["xdp_prog"] = XDPProgram
 	}
-	args = mergemap.Merge(args, cfg.XDPDevArgs)
 
-	if prog, ok := args["xdp_prog"]; ok && prog != nil {
-		unloadXDP(netif)
-	}
-	return New(drvXDP+netif.Name, args, socket)
+	return cfg.makeDevImpl(drvXDP, netif, socket, args, func(args map[string]interface{}) error {
+		if !cfg.SkipSetChannels {
+			netif.SetOneChannel()
+		}
+		if prog, ok := args["xdp_prog"]; ok && prog != nil {
+			netif.UnloadXDP()
+		}
+		return nil
+	})
 }
 
-func (cfg NetifConfig) makeAfPacket(netif *net.Interface, socket eal.NumaSocket) (dev ethdev.EthDev, e error) {
-	if cfg.DisableAfPacket {
-		return nil, errors.New("driver disabled")
-	}
+// AfPacketDriverConfig contains preferences for net_af_packet driver.
+type AfPacketDriverConfig struct {
+	NetifDriverConfig
+}
 
-	args := map[string]interface{}{
+func (cfg AfPacketDriverConfig) makeDev(netif netIntf, socket eal.NumaSocket) (dev ethdev.EthDev, e error) {
+	return cfg.makeDevImpl(drvAfPacket, netif, socket, map[string]interface{}{
 		"iface":  netif.Name,
 		"qpairs": 1,
-	}
-	args = mergemap.Merge(args, cfg.XDPDevArgs)
-	return New(drvAfPacket+netif.Name, mergemap.Merge(args, cfg.XDPDevArgs), socket)
+	}, func(args map[string]interface{}) error {
+		return nil
+	})
 }
 
 // FromNetif finds or creates an Ethernet device.
 // It can find existing PCI devices, or create a virtual device with net_af_xdp or net_af_packet driver.
-func FromNetif(netif *net.Interface, cfg NetifConfig) (dev ethdev.EthDev, e error) {
-	if dev = findNetifDev(netif); dev != nil {
+func FromNetif(nif *net.Interface, cfg NetifConfig) (dev ethdev.EthDev, e error) {
+	netif := netIntf{nif}
+	if dev = netif.FindDev(); dev != nil {
 		return dev, nil
 	}
 
@@ -159,16 +236,14 @@ func FromNetif(netif *net.Interface, cfg NetifConfig) (dev ethdev.EthDev, e erro
 	}
 
 	errs := []error{}
-	socket := numaSocketOf(netif)
+	socket := netif.NumaSocket()
 
-	dev, e = cfg.makeXDP(netif, socket)
-	if dev != nil {
+	if dev, e = cfg.XDP.makeDev(netif, socket); e == nil {
 		return dev, nil
 	}
 	errs = append(errs, fmt.Errorf("XDP %w", e))
 
-	dev, e = cfg.makeAfPacket(netif, socket)
-	if dev != nil {
+	if dev, e = cfg.AfPacket.makeDev(netif, socket); e == nil {
 		return dev, nil
 	}
 	errs = append(errs, fmt.Errorf("AF_PACKET %w", e))

@@ -91,7 +91,6 @@ docker run \
 NDN-DPDK can work with any Ethernet adapter supported by the Linux kernel via DPDK net\_af\_xdp and net\_af\_packet socket drivers.
 This allows the use of Ethernet adapters not supported by DPDK PCI drivers.
 However, these socket-based drivers have limited functionality and lower performance.
-See [package ethvdev](../dpdk/ethdev/ethvdev) for more information.
 
 To use socket-based drivers, the Ethernet adapter must be "up" and visible to the NDN-DPDK service process.
 Example command to ensure these conditions:
@@ -112,10 +111,17 @@ docker exec ndndpdk-svc ip link set $NETIF up
 During face creation, if the Ethernet adapter has not been activated with a DPDK PCI driver, NDN-DPDK will attempt to activate it with a socket-based driver.
 It is unnecessary to manually define a DPDK virtual device in activation parameters.
 
-The net\_af\_xdp driver uses AF\_XDP sockets, optimized for high performance packet processing.
-This requires Linux kernel ≥5.4.
+The **net\_af\_xdp** driver uses AF\_XDP sockets, optimized for high performance packet processing.
+This driver requires Linux kernel ≥5.4.
 The libbpf library must be installed before building DPDK; the `ndndpdk-depends.sh` script installs libbpf automatically if a compatible kernel version is found.
 Due to kernel limitation, MTU is limited to about 3300 octets.
 
-The net\_af\_packet driver uses AF\_PACKET sockets.
+During net\_af\_xdp activation, the Ethernet adapter is configured to have only 1 RX channel, and an XDP program is loaded.
+The current XDP program recognizes NDN over Ethernet (no VLAN), and NDN over IPv4/IPv6 + UDP on port 6363; it does not recognize VLAN, VXLAN, and UDP on other ports.
+If you need VLAN or VXLAN, you can create a kernel interface with `ip link add` command, and create the face on that network interface.
+
+The **net\_af\_packet** driver uses AF\_PACKET sockets.
 This is compatible with older kernels, but it is substantially slower.
+
+It's recommended to use net\_af\_packet for NDN over Ethernet (no VLAN) only.
+Trying to use VLAN, UDP, and VXLAN may trigger undesirable reactions from the kernel network stack (e.g. ICMP port unreachable packets or UFW drop logs), because the kernel is unaware of NDN-DPDK's UDP endpoint.

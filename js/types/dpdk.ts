@@ -77,8 +77,13 @@ export type PktmbufPoolTemplateUpdates<K extends string = string> = Partial<Reco
  * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/dpdk/ethdev/ethvdev#NetifConfig>
  */
 export interface VDevNetifConfig {
-  disableXDP?: boolean;
-  xdpDevArgs?: object;
-  disableAfPacket?: boolean;
-  afPacketDevArgs?: object;
+  xdp?: {
+    disabled?: boolean;
+    args?: object;
+    skipSetChannels?: boolean;
+  };
+  afPacket?: {
+    disabled?: boolean;
+    args?: object;
+  };
 }

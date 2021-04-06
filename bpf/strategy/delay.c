@@ -1,7 +1,7 @@
 /**
  * @file
  * The delay strategy delays every incoming Interest by 200 milliseconds,
- * and then forwards it to the first available nexthop/
+ * and then forwards it to the first available nexthop.
  */
 #include "api.h"
 

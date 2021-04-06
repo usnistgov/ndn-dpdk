@@ -7,11 +7,20 @@
 #include "../../csrc/ndni/an.h"
 
 #include <linux/bpf.h>
+#include <linux/if_ether.h>
+#include <linux/in.h>
+#include <linux/ip.h>
+#include <linux/ipv6.h>
+#include <linux/udp.h>
 
 #include <bpf/bpf_endian.h>
 #include <bpf/bpf_helpers.h>
 
-#include <linux/if_ether.h>
+struct vlanhdr
+{
+  uint16_t vlan_tci;
+  uint16_t eth_proto;
+} __rte_packet;
 
 #define PacketPtrAs_(ptr, size, ...)                                                               \
   __extension__({                                                                                  \
