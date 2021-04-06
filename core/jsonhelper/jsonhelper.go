@@ -1,3 +1,4 @@
+// Package jsonhelper provides JSON-related helper functions.
 package jsonhelper
 
 import (

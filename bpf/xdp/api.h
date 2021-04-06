@@ -4,6 +4,7 @@
 /** @file */
 
 #include "../../csrc/core/common.h"
+#include "../../csrc/ndni/an.h"
 
 #include <linux/bpf.h>
 
@@ -11,8 +12,6 @@
 #include <bpf/bpf_helpers.h>
 
 #include <linux/if_ether.h>
-
-#define NDN_ETHERTYPE 0x8624
 
 #define PacketPtrAs_(ptr, size, ...)                                                               \
   __extension__({                                                                                  \

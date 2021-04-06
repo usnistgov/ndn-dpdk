@@ -39,6 +39,18 @@ func TestMacAddr(t *testing.T) {
 	assert.False(macaddr.IsMulticast(uA1))
 	assert.True(macaddr.IsMulticast(mA1))
 	assert.False(macaddr.IsMulticast(mac64))
+
+	assert.Equal(uint64(0), macaddr.ToUint64(macZero))
+	assert.Equal(uint64(0x0200000000A1), macaddr.ToUint64(uA1))
+	assert.Equal(uint64(0x0200000000A2), macaddr.ToUint64(uA2))
+	assert.Equal(uint64(0x0300000000A1), macaddr.ToUint64(mA1))
+	assert.Equal(uint64(0), macaddr.ToUint64(mac64))
+
+	assert.True(macaddr.Equal(macZero, macaddr.FromUint64(0)))
+	assert.True(macaddr.Equal(uA1, macaddr.FromUint64(0x0200000000A1)))
+	assert.True(macaddr.Equal(uA1, macaddr.FromUint64(0xFFFF0200000000A1)))
+	assert.True(macaddr.Equal(uA2, macaddr.FromUint64(0x0200000000A2)))
+	assert.True(macaddr.Equal(mA1, macaddr.FromUint64(0x0300000000A1)))
 }
 
 func TestMakeRandom(t *testing.T) {

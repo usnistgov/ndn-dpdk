@@ -1,4 +1,4 @@
-// Package tlv implements Type-Length-Value (TLV) encoding in Named Data Networking (NDN).
+// Package tlv implements NDN Type-Length-Value (TLV) encoding.
 package tlv
 
 // Marshaler is the interface implemented by an object that can encode itself into an TLV element.

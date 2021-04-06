@@ -2,9 +2,9 @@ package packettransport
 
 import (
 	"errors"
-	"net"
 
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
+	"github.com/usnistgov/ndn-dpdk/ndn/an"
 )
 
 const (
@@ -15,13 +15,11 @@ const (
 	MaxVLAN = 0xFFF
 
 	// EthernetTypeNDN is the NDN EtherType.
-	EthernetTypeNDN = 0x8624
+	EthernetTypeNDN = an.EtherTypeNDN
 )
 
-var (
-	// MulticastAddressNDN is the default NDN multicast address.
-	MulticastAddressNDN = net.HardwareAddr{0x01, 0x00, 0x5E, 0x00, 0x17, 0xAA}
-)
+// MulticastAddressNDN is the default NDN multicast address.
+var MulticastAddressNDN = macaddr.FromUint64(an.EtherMulticastNDN)
 
 // Error conditions.
 var (

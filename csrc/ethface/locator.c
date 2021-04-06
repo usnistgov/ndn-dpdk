@@ -1,6 +1,6 @@
 #include "locator.h"
+#include "../ndni/an.h"
 
-#define NDN_ETHERTYPE 0x8624
 #define ETHER_VLAN_HLEN (RTE_ETHER_HDR_LEN + sizeof(struct rte_vlan_hdr))
 #define ETHER_ETHERTYPE_OFFSET (offsetof(struct rte_ether_hdr, ether_type))
 #define VXLAN_ETHER_HLEN (sizeof(struct rte_vxlan_hdr) + RTE_ETHER_HDR_LEN)
@@ -28,7 +28,7 @@ EthLocator_Classify(const EthLocator* loc)
   c.udp = loc->remoteUDP != 0;
   c.v4 = memcmp(loc->remoteIP, V4_IN_V6_PREFIX, sizeof(V4_IN_V6_PREFIX)) == 0;
   c.vxlan = !rte_is_zero_ether_addr(&loc->innerRemote);
-  c.etherType = !c.udp ? NDN_ETHERTYPE : c.v4 ? RTE_ETHER_TYPE_IPV4 : RTE_ETHER_TYPE_IPV6;
+  c.etherType = !c.udp ? EtherTypeNDN : c.v4 ? RTE_ETHER_TYPE_IPV4 : RTE_ETHER_TYPE_IPV6;
   return c;
 }
 
@@ -216,7 +216,7 @@ EthRxMatch_Prepare(EthRxMatch* match, const EthLocator* loc)
 
   match->l3matchLen = l3addrsLen;
   match->len += PutVxlanHdr(BUF_TAIL, loc->vxlan);
-  match->len += PutEtherVlanHdr(BUF_TAIL, &loc->innerRemote, &loc->innerLocal, 0, NDN_ETHERTYPE);
+  match->len += PutEtherVlanHdr(BUF_TAIL, &loc->innerRemote, &loc->innerLocal, 0, EtherTypeNDN);
   match->f = MatchVxlan;
 
 #undef BUF_TAIL
@@ -299,7 +299,7 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, const EthLocator* loc)
   MASK(flow->innerEthMask.type);
   rte_ether_addr_copy(&loc->innerLocal, &flow->innerEthSpec.dst);
   rte_ether_addr_copy(&loc->innerRemote, &flow->innerEthSpec.src);
-  flow->innerEthSpec.type = rte_cpu_to_be_16(NDN_ETHERTYPE);
+  flow->innerEthSpec.type = rte_cpu_to_be_16(EtherTypeNDN);
   APPEND(ETH, innerEth);
 
 #undef MASK
@@ -407,7 +407,7 @@ EthTxHdr_Prepare(EthTxHdr* hdr, const EthLocator* loc, bool hasChecksumOffloads)
   }
   hdr->vxlanSrcPort = true;
   hdr->len += PutVxlanHdr(BUF_TAIL, loc->vxlan);
-  hdr->len += PutEtherVlanHdr(BUF_TAIL, &loc->innerLocal, &loc->innerRemote, 0, NDN_ETHERTYPE);
+  hdr->len += PutEtherVlanHdr(BUF_TAIL, &loc->innerLocal, &loc->innerRemote, 0, EtherTypeNDN);
 
 #undef BUF_TAIL
 }
