@@ -21,9 +21,9 @@ DFLT_NODEVER=14.x
 DFLT_GOVER=latest
 DFLT_UBPFVER=HEAD
 DFLT_LIBBPFVER=HEAD
-DFLT_DPDKVER=20.11
+DFLT_DPDKVER=21.02
 DFLT_KMODSVER=HEAD
-DFLT_SPDKVER=20.10
+DFLT_SPDKVER=21.01.1
 DFLT_NJOBS=$(nproc)
 DFLT_TARGETARCH=native
 
@@ -115,10 +115,44 @@ if [[ $(id -u) -eq 0 ]] && [[ $SKIPROOTCHECK -ne 1 ]]; then
   exit 1
 fi
 
+NDNDPDK_DL_GITHUB=${NDNDPDK_DL_GITHUB:-https://github.com}
+NDNDPDK_DL_GITHUB_API=${NDNDPDK_DL_GITHUB_API:-https://api.github.com}
+NDNDPDK_DL_NODESOURCE_DEB=${NDNDPDK_DL_NODESOURCE_DEB:-https://deb.nodesource.com}
+NDNDPDK_DL_PYPA_BOOTSTRAP=${NDNDPDK_DL_PYPA_BOOTSTRAP:-https://bootstrap.pypa.io}
+NDNDPDK_DL_GOLANG=${NDNDPDK_DL_GOLANG:-https://golang.org}
+NDNDPDK_DL_DPDK_FAST=${NDNDPDK_DL_DPDK_FAST:-https://fast.dpdk.org}
+NDNDPDK_DL_DPDK=${NDNDPDK_DL_DPDK:-https://dpdk.org}
+# you can also set GOPROXY enviornment variable, which will be persisted
+
+curl_test() {
+  local SITE=${!1}
+  if ! curl -sfL $SITE$2 >/dev/null; then
+    echo 'Cannot reach '$SITE
+    echo 'You can specify a mirror site by setting '$1' environ'
+    echo 'Example: '$1=$SITE
+    exit 1
+  fi
+}
+curl_test NDNDPDK_DL_GITHUB /robots.txt
+curl_test NDNDPDK_DL_GITHUB_API /robots.txt
+curl_test NDNDPDK_DL_NODESOURCE_DEB
+curl_test NDNDPDK_DL_PYPA_BOOTSTRAP
+curl_test NDNDPDK_DL_GOLANG /VERSION
+curl_test NDNDPDK_DL_DPDK_FAST
+curl_test NDNDPDK_DL_DPDK
+
 DISPLAYARCH=$TARGETARCH
 if [[ $TARGETARCH == native ]] && which gcc >/dev/null; then
   DISPLAYARCH=$DISPLAYARCH' ('$(gcc -march=native -Q --help=target | awk '$1=="-march=" { print $2 }')')'
 fi
+
+github_resolve_commit() {
+  if [[ ${#1} -ne 40 ]] && which jq >/dev/null; then
+    curl -sfL ${NDNDPDK_DL_GITHUB_API}/repos/$2/commits/$1 | jq -r '.sha'
+  else
+    echo $1
+  fi
+}
 
 APT_PKGS=(
   build-essential
@@ -165,7 +199,7 @@ if [[ $GOVER == '0' ]]; then
   fi
 else
   if [[ $GOVER == 'latest' ]]; then
-    GOVER=$(curl -sfL https://golang.org/VERSION?m=text)
+    GOVER=$(curl -sfL ${NDNDPDK_DL_GOLANG}/VERSION?m=text)
   fi
   echo "Will install Go ${GOVER}"
 fi
@@ -177,16 +211,12 @@ if [[ $UBPFVER == '0' ]]; then
     exit 1
   fi
 else
-  if [[ ${#UBPFVER} -ne 40 ]] && which jq >/dev/null; then
-    UBPFVER=$(curl -sfL https://api.github.com/repos/iovisor/ubpf/commits/${UBPFVER} | jq -r '.sha')
-  fi
+  UBPFVER=$(github_resolve_commit $UBPFVER iovisor/ubpf)
   echo "Will install uBPF ${UBPFVER}"
 fi
 
 if [[ $LIBBPFVER != '0' ]]; then
-  if [[ ${#LIBBPFVER} -ne 40 ]] && which jq >/dev/null; then
-    LIBBPFVER=$(curl -sfL https://api.github.com/repos/libbpf/libbpf/commits/${LIBBPFVER} | jq -r '.sha')
-  fi
+  LIBBPFVER=$(github_resolve_commit $LIBBPFVER libbpf/libbpf)
   echo "Will install libbpf ${LIBBPFVER}"
 fi
 
@@ -230,50 +260,49 @@ APT::Install-Recommends "no";
 APT::Install-Suggests "no";' | ${SUDO} tee /etc/apt/apt.conf.d/80custom >/dev/null
 if [[ ${IS_DEBIAN} == '1' ]]; then
   echo 'deb http://deb.debian.org/debian/ buster-backports main' | ${SUDO} tee /etc/apt/sources.list.d/buster-backports.list >/dev/null
-  ${SUDO} apt-get -y -qq update
 fi
+${SUDO} apt-get -y -qq update
 ${SUDO} sh -c 'DEBIAN_FRONTEND=noninteractive apt-get -y -qq dist-upgrade'
 
 if [[ $NODEVER != '0' ]]; then
-  curl -sfL https://deb.nodesource.com/setup_${NODEVER} | ${SUDO} bash -
+  curl -sfL ${NDNDPDK_DL_NODESOURCE_DEB}/setup_${NODEVER} | ${SUDO} bash -
   APT_PKGS+=(nodejs)
 fi
 
 APT_PKG_LIST="${APT_PKGS[@]}"
 ${SUDO} sh -c "DEBIAN_FRONTEND=noninteractive apt-get -y -qq install ${APT_PKG_LIST}"
-which gq || ${SUDO} npm install -g graphqurl
+${SUDO} npm install -g graphqurl
 
-curl -sfL https://bootstrap.pypa.io/get-pip.py | ${SUDO} python3
-${SUDO} pip install -U meson ninja
+curl -sfL ${NDNDPDK_DL_PYPA_BOOTSTRAP}/get-pip.py | ${SUDO} python3
+${SUDO} pip install -U meson ninja pyelftools
 
 if [[ $GOVER != '0' ]]; then
   ${SUDO} rm -rf /usr/local/go
-  curl -sfL https://dl.google.com/go/${GOVER}.linux-amd64.tar.gz | ${SUDO} tar -C /usr/local -xz
+  curl -sfL ${NDNDPDK_DL_GOLANG}/dl/${GOVER}.linux-amd64.tar.gz | ${SUDO} tar -C /usr/local -xz
   export PATH=$HOME/go/bin:/usr/local/go/bin:$PATH
   if ! grep /usr/local/go/bin ~/.bashrc >/dev/null; then
     echo 'export PATH=$HOME/go/bin:/usr/local/go/bin:$PATH' >>~/.bashrc
   fi
+  if [[ -n $GOPROXY ]]; then
+    go env -w GOPROXY="$GOPROXY"
+  fi
 fi
 
 if [[ $UBPFVER != '0' ]]; then
-  if [[ ${#UBPFVER} -ne 40 ]]; then
-    UBPFVER=$(curl -sfL https://api.github.com/repos/iovisor/ubpf/commits/${UBPFVER} | jq -r '.sha')
-  fi
+  UBPFVER=$(github_resolve_commit $UBPFVER iovisor/ubpf)
   cd $CODEROOT
   rm -rf ubpf-${UBPFVER}
-  curl -sfL https://github.com/iovisor/ubpf/archive/${UBPFVER}.tar.gz | tar -xz
+  curl -sfL ${NDNDPDK_DL_GITHUB}/iovisor/ubpf/archive/${UBPFVER}.tar.gz | tar -xz
   cd ubpf-${UBPFVER}/vm
   make -j${NJOBS}
   ${SUDO} make install
 fi
 
 if [[ $LIBBPFVER != '0' ]]; then
-  if [[ ${#LIBBPFVER} -ne 40 ]]; then
-    LIBBPFVER=$(curl -sfL https://api.github.com/repos/libbpf/libbpf/commits/${LIBBPFVER} | jq -r '.sha')
-  fi
+  LIBBPFVER=$(github_resolve_commit $LIBBPFVER libbpf/libbpf)
   cd $CODEROOT
   rm -rf libbpf-${LIBBPFVER}
-  curl -sfL https://github.com/libbpf/libbpf/archive/${LIBBPFVER}.tar.gz | tar -xz
+  curl -sfL ${NDNDPDK_DL_GITHUB}/libbpf/libbpf/archive/${LIBBPFVER}.tar.gz | tar -xz
   cd libbpf-${LIBBPFVER}/src
   sh -c "umask 0000 && make -j${NJOBS}"
   ${SUDO} find /usr/local/lib -name 'libbpf.*' -delete
@@ -286,7 +315,7 @@ fi
 if [[ $DPDKVER != '0' ]]; then
   cd $CODEROOT
   rm -rf dpdk-${DPDKVER}
-  curl -sfL https://static.dpdk.org/rel/dpdk-${DPDKVER}.tar.xz | tar -xJ
+  curl -sfL ${NDNDPDK_DL_DPDK_FAST}/rel/dpdk-${DPDKVER}.tar.xz | tar -xJ
   cd dpdk-${DPDKVER}
   meson -Ddebug=true -Doptimization=3 -Dmachine=${TARGETARCH} -Dtests=false --libdir=lib build
   cd build
@@ -300,7 +329,7 @@ fi
 if [[ $KMODSVER != '0' ]]; then
   cd $CODEROOT
   rm -rf dpdk-kmods
-  git clone https://dpdk.org/git/dpdk-kmods
+  git clone ${NDNDPDK_DL_DPDK}/git/dpdk-kmods
   cd dpdk-kmods
   git -c advice.detachedHead=false checkout $KMODSVER
   cd linux/igb_uio
@@ -314,9 +343,9 @@ fi
 if [[ $SPDKVER != '0' ]]; then
   cd $CODEROOT
   rm -rf spdk-${SPDKVER}
-  curl -sfL https://github.com/spdk/spdk/archive/v${SPDKVER}.tar.gz | tar -xz
+  curl -sfL ${NDNDPDK_DL_GITHUB}/spdk/spdk/archive/v${SPDKVER}.tar.gz | tar -xz
   cd spdk-${SPDKVER}
-  ${SUDO} ./scripts/pkgdep.sh
+  ${SUDO} sh -c 'DEBIAN_FRONTEND=noninteractive ./scripts/pkgdep.sh'
   ./configure --target-arch=${TARGETARCH} --enable-debug --disable-tests --with-shared \
     --with-dpdk=/usr/local --without-vhost --without-isal --without-fuse
   make -j${NJOBS}
@@ -331,5 +360,5 @@ ${SUDO} update-alternatives --install /usr/bin/python python /usr/bin/python3 1
 
 (
   cd /tmp
-  which staticcheck || go get honnef.co/go/tools/cmd/staticcheck
+  go get honnef.co/go/tools/cmd/staticcheck
 )

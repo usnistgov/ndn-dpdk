@@ -34,7 +34,7 @@ jobs:
         run: |
           mkdir -p $HOME/ubpf
           cd $HOME/ubpf
-          curl -sL https://github.com/iovisor/ubpf/archive/$UBPFCOMMIT.tar.gz | tar -xz --strip-components=1
+          curl -sfL https://github.com/iovisor/ubpf/archive/$UBPFCOMMIT.tar.gz | tar -xz --strip-components=1
           cd vm
           make
           sudo make install
@@ -44,11 +44,12 @@ jobs:
         with:
           path: |
             ~/setup-dpdk
-          key: ${{ matrix.compiler }}_DPDK2011_SPDK2010_20210401
+          key: ${{ matrix.compiler }}_20210406
       - uses: yoursunny/setup-dpdk@main
         with:
-          dpdk-version: '20.11'
-          spdk-version: '20.10'
+          dpdk-version: '21.02'
+          spdk-version: '21.01.1'
+          target-arch: haswell
       - uses: actions/checkout@v2
       - name: build NDN-DPDK in debug mode
         run: |

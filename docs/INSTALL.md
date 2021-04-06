@@ -16,8 +16,8 @@ You can also [build a Docker container](Docker.md), which would work on other op
 * [ubpf](https://github.com/iovisor/ubpf) library, installed to `/usr/local`
 * [libbpf](https://github.com/libbpf/libbpf) library, installed to `/usr/local` (optional)
 * [Intel Multi-Buffer Crypto for IPsec Library](https://github.com/intel/intel-ipsec-mb) v0.55 (optional)
-* [Data Plane Development Kit (DPDK)](https://www.dpdk.org/) 20.11
-* [Storage Performance Development Kit (SPDK)](https://spdk.io/) 20.10
+* [Data Plane Development Kit (DPDK)](https://www.dpdk.org/) 21.02
+* [Storage Performance Development Kit (SPDK)](https://spdk.io/) 21.01.1
 * [graphqurl](https://www.npmjs.com/package/graphqurl) command (optional, only used in sample commands)
 
 You can execute the [ndndpdk-depends.sh](ndndpdk-depends.sh) script to install these dependencies, or refer to this script for the specific configuration options.
@@ -27,6 +27,10 @@ By default, DPDK and SPDK are compiled with `-march=native` flag to maximize per
 Binaries built this way are non-portable and can only work on machines with the same CPU model.
 You can pass `--arch=CPU-TYPE` argument to the script to change the target CPU architecture.
 *CPU-TYPE* should be set to the oldest CPU architecture you want to support, see [gcc - x86 options](https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html) for available options.
+
+The script automatically downloads dependencies from the Internet.
+If your network cannot reach certain download sites, you can specify a mirror site via `NDNDPDK_DL_*` environment variables.
+See script source code for variable names and their default values.
 
 ## Build Steps
 
