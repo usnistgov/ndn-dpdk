@@ -58,7 +58,7 @@ func MakeInterest(input interface{}, args ...interface{}) (pkt *ndni.Packet) {
 	modifiers, mArgs := filterPacketModifers(args)
 	if s, ok := input.(string); ok && strings.HasPrefix(s, "/") {
 		interest := ndn.MakeInterest(append(mArgs, s)...)
-		wire, e := tlv.Encode(interest)
+		wire, e := tlv.EncodeFrom(interest)
 		if e != nil {
 			panic(e)
 		}
@@ -75,7 +75,7 @@ func MakeData(input interface{}, args ...interface{}) (pkt *ndni.Packet) {
 	modifiers, mArgs := filterPacketModifers(args)
 	if s, ok := input.(string); ok && strings.HasPrefix(s, "/") {
 		data := ndn.MakeData(append(mArgs, s)...)
-		wire, e := tlv.Encode(data)
+		wire, e := tlv.EncodeFrom(data)
 		if e != nil {
 			panic(e)
 		}
@@ -90,7 +90,7 @@ func MakeData(input interface{}, args ...interface{}) (pkt *ndni.Packet) {
 func MakeNack(args ...interface{}) (pkt *ndni.Packet) {
 	modifiers, mArgs := filterPacketModifers(args)
 	nack := ndn.MakeNack(mArgs...)
-	wire, e := tlv.Encode(nack.ToPacket())
+	wire, e := tlv.EncodeFrom(nack.ToPacket())
 	if e != nil {
 		panic(e)
 	}

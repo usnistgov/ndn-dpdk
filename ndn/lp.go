@@ -17,7 +17,7 @@ func lpIsCritical(typ uint32) bool {
 type LpL3 struct {
 	PitToken   []byte
 	NackReason uint8
-	CongMark   int
+	CongMark   uint8
 }
 
 // Empty returns true if LpL3 has zero fields.
@@ -25,19 +25,19 @@ func (lph LpL3) Empty() bool {
 	return len(lph.PitToken) == 0 && lph.NackReason == an.NackNone && lph.CongMark == 0
 }
 
-func (lph LpL3) encode() (fields []interface{}) {
+func (lph LpL3) encode() (fields []tlv.Field) {
 	if len(lph.PitToken) > 0 {
-		fields = append(fields, tlv.MakeElement(an.TtPitToken, lph.PitToken))
+		fields = append(fields, tlv.TLVBytes(an.TtPitToken, lph.PitToken))
 	}
-	if lph.NackReason != an.NackNone {
-		var nackV []byte
-		if lph.NackReason != an.NackUnspecified {
-			nackV, _ = tlv.Encode(tlv.MakeElementNNI(an.TtNackReason, lph.NackReason))
-		}
-		fields = append(fields, tlv.MakeElement(an.TtNack, nackV))
+	switch lph.NackReason {
+	case an.NackNone:
+	case an.NackUnspecified:
+		fields = append(fields, tlv.TLV(an.TtNack))
+	default:
+		fields = append(fields, tlv.TLV(an.TtNack, tlv.TLVNNI(an.TtNackReason, uint64(lph.NackReason))))
 	}
 	if lph.CongMark != 0 {
-		fields = append(fields, tlv.MakeElementNNI(an.TtCongestionMark, lph.CongMark))
+		fields = append(fields, tlv.TLVNNI(an.TtCongestionMark, uint64(lph.CongMark)))
 	}
 	return fields
 }
@@ -76,19 +76,19 @@ func (frag LpFragment) String() string {
 	return strconv.FormatUint(frag.SeqNum, 16) + ":" + strconv.Itoa(frag.FragIndex) + ":" + strconv.Itoa(frag.FragCount)
 }
 
-// MarshalTlv encodes this fragment.
-func (frag LpFragment) MarshalTlv() (typ uint32, value []byte, e error) {
+// Field encodes this fragment.
+func (frag LpFragment) Field() tlv.Field {
 	if frag.FragIndex < 0 || frag.FragIndex >= frag.FragCount {
-		return 0, nil, ErrFragment
+		return tlv.FieldError(ErrFragment)
 	}
 	seqNum := make([]byte, 8)
 	binary.BigEndian.PutUint64(seqNum, frag.SeqNum)
-	return tlv.EncodeTlv(an.TtLpPacket,
-		tlv.MakeElement(an.TtLpSeqNum, seqNum),
-		tlv.MakeElementNNI(an.TtFragIndex, frag.FragIndex),
-		tlv.MakeElementNNI(an.TtFragCount, frag.FragCount),
-		frag.header,
-		tlv.MakeElement(an.TtLpPayload, frag.payload))
+	return tlv.TLV(an.TtLpPacket,
+		tlv.TLVBytes(an.TtLpSeqNum, seqNum),
+		tlv.TLVNNI(an.TtFragIndex, uint64(frag.FragIndex)),
+		tlv.TLVNNI(an.TtFragCount, uint64(frag.FragCount)),
+		tlv.Bytes(frag.header),
+		tlv.TLVBytes(an.TtLpPayload, frag.payload))
 }
 
 // LpFragmenter splits Packet into fragments.

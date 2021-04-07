@@ -103,7 +103,7 @@ func TestProducer(t *testing.T) {
 			face.Tx <- ndn.MakeInterest(fmt.Sprintf("/C/%d", i))
 			time.Sleep(50 * time.Microsecond)
 		}
-		time.Sleep(80 * time.Millisecond)
+		time.Sleep(200 * time.Millisecond)
 		close(face.Tx)
 	}()
 

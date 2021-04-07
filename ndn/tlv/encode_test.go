@@ -9,17 +9,17 @@ import (
 
 type testEncodeMarshaler int
 
-func (m testEncodeMarshaler) MarshalTlv() (typ uint32, value []byte, e error) {
+func (m testEncodeMarshaler) Field() tlv.Field {
 	if m < 0 {
-		return 0, nil, errors.New("testEncodeMarshaler error")
+		return tlv.FieldError(errors.New("testEncodeMarshaler error"))
 	}
-	return uint32(m), make([]byte, int(m)), nil
+	return tlv.TLVBytes(uint32(m), make([]byte, int(m)))
 }
 
 func TestEncode(t *testing.T) {
 	assert, _ := makeAR(t)
 
-	wire, e := tlv.Encode([]byte{0xF1}, testEncodeMarshaler(2), []testEncodeMarshaler{3, 4})
+	wire, e := tlv.EncodeFrom(tlv.Bytes([]byte{0xF1}), testEncodeMarshaler(2), testEncodeMarshaler(3), testEncodeMarshaler(4))
 	assert.NoError(e)
 	assert.Equal([]byte{
 		0xF1,
@@ -28,6 +28,6 @@ func TestEncode(t *testing.T) {
 		0x04, 0x04, 0x00, 0x00, 0x00, 0x00,
 	}, wire)
 
-	_, e = tlv.Encode(testEncodeMarshaler(-1))
+	_, e = tlv.Encode(testEncodeMarshaler(-1).Field())
 	assert.Error(e)
 }

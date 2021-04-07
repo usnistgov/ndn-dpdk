@@ -19,18 +19,27 @@ func (n NNI) Size() int {
 	}
 }
 
-// MarshalBinary encodes this number.
-func (n NNI) MarshalBinary() (wire []byte, e error) {
+// Encode encodes this number.
+func (n NNI) Encode(b []byte) []byte {
 	switch {
 	case n <= math.MaxUint8:
-		return []byte{byte(n)}, nil
+		b = append(b, byte(n))
 	case n <= math.MaxUint16:
-		return []byte{byte(n >> 8), byte(n)}, nil
+		b = append(b, byte(n>>8), byte(n))
 	case n <= math.MaxUint32:
-		return []byte{byte(n >> 24), byte(n >> 16), byte(n >> 8), byte(n)}, nil
+		b = append(b, byte(n>>24), byte(n>>16), byte(n>>8), byte(n))
 	default:
-		return []byte{byte(n >> 56), byte(n >> 48), byte(n >> 40), byte(n >> 32),
-			byte(n >> 24), byte(n >> 16), byte(n >> 8), byte(n)}, nil
+		b = append(b, byte(n>>56), byte(n>>48), byte(n>>40), byte(n>>32),
+			byte(n>>24), byte(n>>16), byte(n>>8), byte(n))
+	}
+	return b
+}
+
+// Field implements Fielder interface.
+func (n NNI) Field() Field {
+	return Field{
+		typ:     fieldTypeNNI,
+		integer: uint64(n),
 	}
 }
 
@@ -50,11 +59,4 @@ func (n *NNI) UnmarshalBinary(wire []byte) error {
 		return ErrIncomplete
 	}
 	return nil
-}
-
-// MakeElementNNI creates Element from TLV-TYPE and TLV-VALUE encoding as NNI.
-func MakeElementNNI(typ uint32, value interface{}) Element {
-	n := NNI(toUint(value))
-	b, _ := n.MarshalBinary()
-	return MakeElement(typ, b)
 }

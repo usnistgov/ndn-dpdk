@@ -10,14 +10,17 @@ import (
 )
 
 // NameComponent represents a name component.
-// The zero NameComponent is invalid.
+// Zero value is invalid.
 type NameComponent struct {
 	tlv.Element
 }
 
 // MakeNameComponent constructs a NameComponent from TLV-TYPE and TLV-VALUE.
 func MakeNameComponent(typ uint32, value []byte) (comp NameComponent) {
-	comp.Element = tlv.MakeElement(typ, value)
+	comp.Element = tlv.Element{
+		Type:  typ,
+		Value: value,
+	}
 	return comp
 }
 
@@ -42,17 +45,17 @@ func (comp NameComponent) Compare(other NameComponent) int {
 	return bytes.Compare(comp.Value, other.Value)
 }
 
-// MarshalTlv encodes this component.
-func (comp NameComponent) MarshalTlv() (typ uint32, value []byte, e error) {
+// Field encodes this component.
+func (comp NameComponent) Field() tlv.Field {
 	if !comp.Valid() {
-		return 0, nil, ErrComponentType
+		return tlv.FieldError(ErrComponentType)
 	}
-	return comp.Element.MarshalTlv()
+	return comp.Element.Field()
 }
 
-// UnmarshalTlv decodes from wire format.
-func (comp *NameComponent) UnmarshalTlv(typ uint32, value []byte) error {
-	if e := comp.Element.UnmarshalTlv(typ, value); e != nil {
+// UnmarshalTLV decodes from wire format.
+func (comp *NameComponent) UnmarshalTLV(typ uint32, value []byte) error {
+	if e := comp.Element.UnmarshalTLV(typ, value); e != nil {
 		return e
 	}
 	if !comp.Valid() {

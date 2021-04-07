@@ -3,20 +3,12 @@ package tlv
 import "math"
 
 // Element represents a TLV element.
-// The zero Element is invalid.
+// Zero value is invalid.
 type Element struct {
 	// Type is the TLV-TYPE.
 	Type uint32
 	// Value is the TLV-VALUE.
 	Value []byte
-}
-
-// MakeElement constructs Element from TLV-TYPE and TLV-VALUE.
-// typ can be any integer type.
-func MakeElement(typ uint32, value []byte) (element Element) {
-	element.Type = typ
-	element.Value = value
-	return element
 }
 
 // Size returns encoded size.
@@ -31,30 +23,36 @@ func (element Element) Length() int {
 
 // Decode extracts an element from the buffer.
 func (element *Element) Decode(wire []byte) (rest []byte, e error) {
+	d := DecodingBuffer(wire)
 	var typ, length VarNum
-	if wire, e = typ.Decode(wire); e != nil {
+
+	if e = d.Decode(&typ); e != nil {
 		return nil, e
 	}
 	if typ < minType || typ > maxType {
 		return nil, ErrType
 	}
-	if wire, e = length.Decode(wire); e != nil {
+
+	if e = d.Decode(&length); e != nil {
 		return nil, e
 	}
-	if len(wire) < int(length) {
+
+	valueRest := d.Rest()
+	if len(valueRest) < int(length) {
 		return nil, ErrIncomplete
 	}
-	element.UnmarshalTlv(uint32(typ), wire[:length])
-	return wire[length:], nil
+	element.Type = uint32(typ)
+	element.Value = valueRest[:length]
+	return valueRest[length:], nil
 }
 
-// MarshalTlv implements Marshaler interface.
-func (element Element) MarshalTlv() (typ uint32, value []byte, e error) {
-	return element.Type, element.Value, nil
+// Field implements Fielder interface.
+func (element Element) Field() Field {
+	return TLVBytes(element.Type, element.Value)
 }
 
-// UnmarshalTlv implements Unmarshaler interface.
-func (element *Element) UnmarshalTlv(typ uint32, value []byte) error {
+// UnmarshalTLV implements Unmarshaler interface.
+func (element *Element) UnmarshalTLV(typ uint32, value []byte) error {
 	element.Type = typ
 	element.Value = value
 	return nil

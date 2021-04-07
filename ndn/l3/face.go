@@ -85,7 +85,7 @@ func (f *face) rxLoop() {
 func (f *face) txLoop() {
 	transportTx := f.faceTr.Tx()
 	for l3packet := range f.tx {
-		wire, e := tlv.Encode(l3packet.ToPacket())
+		wire, e := tlv.EncodeFrom(l3packet.ToPacket())
 		if e != nil {
 			continue
 		}

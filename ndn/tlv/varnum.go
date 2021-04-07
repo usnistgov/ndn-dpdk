@@ -2,7 +2,6 @@ package tlv
 
 import (
 	"math"
-	"reflect"
 )
 
 // VarNum represents a number in variable size encoding for TLV-TYPE or TLV-LENGTH.
@@ -55,18 +54,4 @@ func (n *VarNum) Decode(wire []byte) (rest []byte, e error) {
 		return wire[9:], nil
 	}
 	return nil, ErrIncomplete
-}
-
-func toUint(input interface{}) uint64 {
-	val := reflect.ValueOf(input)
-	switch val.Kind() {
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		n := val.Int()
-		if n < 0 {
-			panic("uint cannot be negative")
-		}
-		return uint64(n)
-	default:
-		return val.Uint()
-	}
 }

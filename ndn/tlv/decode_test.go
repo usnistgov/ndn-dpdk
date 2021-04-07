@@ -9,7 +9,7 @@ import (
 func TestDecode(t *testing.T) {
 	assert, _ := makeAR(t)
 
-	d := tlv.Decoder(bytesFromHex("F100 F20120 1F023031 01"))
+	d := tlv.DecodingBuffer(bytesFromHex("F100 F20120 1F023031 01"))
 
 	elements := d.Elements()
 	assert.Len(elements, 3)
@@ -34,9 +34,9 @@ func TestDecode(t *testing.T) {
 
 	var element1 tlv.Element
 	assert.NoError(elements[1].Unmarshal(&element1))
-	var nni2 int
-	assert.NoError(elements[2].UnmarshalNNI(&nni2))
-	assert.Equal(0x3031, nni2)
+	var nni2 tlv.NNI
+	assert.NoError(elements[2].UnmarshalValue(&nni2))
+	assert.EqualValues(0x3031, nni2)
 
 	assert.Len(d.Rest(), 1)
 	assert.False(d.EOF())

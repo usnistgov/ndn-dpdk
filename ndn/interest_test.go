@@ -13,7 +13,7 @@ func TestInterestEncode(t *testing.T) {
 
 	var interest ndn.Interest
 	interest.Name = ndn.ParseName("/A")
-	wire, e := tlv.Encode(interest)
+	wire, e := tlv.EncodeFrom(interest)
 	assert.NoError(e)
 	assert.Len(wire, 13)
 	assert.Equal(bytesFromHex("050B 0703080141 0A04"), wire[:9])
@@ -23,7 +23,7 @@ func TestInterestEncode(t *testing.T) {
 		ndn.MakeFHDelegation(33, "/FH"), ndn.NonceFromUint(0x85AC8579),
 		8198*time.Millisecond, ndn.HopLimit(5),
 	)
-	wire, e = tlv.Encode(interest)
+	wire, e = tlv.EncodeFrom(interest)
 	assert.NoError(e)
 	assert.Equal(bytesFromHex("0523 name=0703080142 cbp=2100 mbf=1200 "+
 		"fh=1E0B1F091E0121070408024648 nonce=0A0485AC8579 lifetime=0C022006 hoplimit=220105"), wire)
@@ -37,7 +37,7 @@ func TestInterestLpEncode(t *testing.T) {
 	lph.PitToken = ndn.PitTokenFromUint(0xF0F1F2F3F4F5F6F7)
 	interest := ndn.MakeInterest("/A", lph, ndn.NonceFromUint(0xC0C1C2C3))
 
-	wire, e := tlv.Encode(interest.ToPacket())
+	wire, e := tlv.EncodeFrom(interest.ToPacket())
 	assert.NoError(e)
 	assert.Equal(bytesFromHex("6419 pittoken=6208F0F1F2F3F4F5F6F7 payload=500D "+
 		"interest=050B 0703080141 0A04C0C1C2C3"), wire)

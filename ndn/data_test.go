@@ -13,7 +13,7 @@ func TestDataEncode(t *testing.T) {
 
 	var data ndn.Data
 	data.Name = ndn.ParseName("/A")
-	wire, e := tlv.Encode(data)
+	wire, e := tlv.EncodeFrom(data)
 	assert.NoError(e)
 	assert.Contains(string(wire), string(bytesFromHex("0703080141")))
 	assert.Equal("/8=A", data.String())
@@ -21,7 +21,7 @@ func TestDataEncode(t *testing.T) {
 	data = ndn.MakeData("/B", ndn.ContentType(3), 2500*time.Millisecond,
 		[]byte{0xC0, 0xC1},
 	)
-	wire, e = tlv.Encode(data)
+	wire, e = tlv.EncodeFrom(data)
 	assert.NoError(e)
 	assert.Contains(string(wire),
 		string(bytesFromHex("name=0703080142 meta=1407 contenttype=180103 freshness=190209C4 content=1502C0C1")))
@@ -36,7 +36,7 @@ func TestDataLpEncode(t *testing.T) {
 	interest := ndn.MakeInterest("/A", lph, ndn.NonceFromUint(0xC0C1C2C3), ndn.MustBeFreshFlag)
 	data := ndn.MakeData(interest, bytesFromHex("content=C0C1"))
 
-	wire, e := tlv.Encode(data.ToPacket())
+	wire, e := tlv.EncodeFrom(data.ToPacket())
 	assert.NoError(e)
 	assert.Contains(string(wire),
 		string(bytesFromHex("pittoken=6208F0F1F2F3F4F5F6F7 congmark=FD03400101")))

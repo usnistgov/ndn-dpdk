@@ -34,7 +34,7 @@ func TestNameComponent(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		d := tlv.Decoder(bytesFromHex(tt.input))
+		d := tlv.DecodingBuffer(bytesFromHex(tt.input))
 		var comp ndn.NameComponent
 		e := d.Elements()[0].Unmarshal(&comp)
 		if tt.bad {

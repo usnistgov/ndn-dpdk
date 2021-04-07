@@ -87,6 +87,7 @@ func makeRandomKeyID() ndn.NameComponent {
 }
 
 func makeVersionFromCurrentTime() (comp ndn.NameComponent) {
-	comp.Element = tlv.MakeElementNNI(an.TtVersionNameComponent, time.Now().UnixNano()/int64(time.Microsecond/time.Nanosecond))
+	comp.Type = an.TtVersionNameComponent
+	comp.Value = tlv.NNI(time.Now().UnixNano() / int64(time.Microsecond/time.Nanosecond)).Encode(nil)
 	return
 }

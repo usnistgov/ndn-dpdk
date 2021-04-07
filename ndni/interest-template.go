@@ -34,24 +34,22 @@ func (tpl *InterestTemplate) ptr() *C.InterestTemplate {
 // Panics on error.
 func (tpl *InterestTemplate) Init(args ...interface{}) {
 	interest := ndn.MakeInterest(args...)
-	_, wire, e := interest.MarshalTlv()
+	wire, e := tlv.EncodeValueOnly(interest)
 	if e != nil {
-		logger.Panic("interest.MarshalTlv error",
-			zap.Error(e),
-		)
+		logger.Panic("encode Interest error", zap.Error(e))
 	}
 
 	c := tpl.ptr()
 	*c = C.InterestTemplate{}
 
-	d := tlv.Decoder(wire)
-	for _, field := range d.Elements() {
-		switch field.Type {
+	d := tlv.DecodingBuffer(wire)
+	for _, de := range d.Elements() {
+		switch de.Type {
 		case an.TtName:
-			c.prefixL = C.uint16_t(copy(cptr.AsByteSlice(&c.prefixV), field.Value))
-			c.midLen = C.uint16_t(copy(cptr.AsByteSlice(&c.midBuf), field.After))
+			c.prefixL = C.uint16_t(copy(cptr.AsByteSlice(&c.prefixV), de.Value))
+			c.midLen = C.uint16_t(copy(cptr.AsByteSlice(&c.midBuf), de.After))
 		case an.TtNonce:
-			c.nonceVOffset = c.midLen - C.uint16_t(len(field.After)+len(field.Value))
+			c.nonceVOffset = c.midLen - C.uint16_t(len(de.After)+len(de.Value))
 		}
 	}
 }

@@ -30,7 +30,7 @@ func TestElement(t *testing.T) {
 			if e := nni.UnmarshalBinary(value); e == nil {
 				assert.EqualValues(tt.Nni, nni, tt.Input)
 				assert.Equal(len(value), nni.Size())
-				nniV, _ := nni.MarshalBinary()
+				nniV := nni.Encode(nil)
 				assert.Equal(value, nniV)
 			} else {
 				assert.True(tt.Nni == ndntestvector.NotNni, tt.Input)

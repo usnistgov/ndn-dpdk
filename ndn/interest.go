@@ -103,7 +103,7 @@ func (interest *Interest) ApplyDefaultLifetime() time.Duration {
 // UpdateParamsDigest appends or updates ParametersSha256DigestComponent.
 // It will not remove erroneously present or duplicate ParametersSha256DigestComponent.
 func (interest *Interest) UpdateParamsDigest() {
-	paramsPortion, _ := tlv.Encode(interest.encodeParamsPortion())
+	paramsPortion, _ := tlv.EncodeFrom(interest.encodeParamsPortion()...)
 	if len(paramsPortion) == 0 {
 		return
 	}
@@ -166,14 +166,14 @@ func (interest Interest) VerifyWith(verifier func(name Name, si SigInfo) (LLVeri
 	return llVerify(signedPortion, interest.SigValue)
 }
 
-// MarshalTlv encodes this Interest.
-func (interest Interest) MarshalTlv() (typ uint32, value []byte, e error) {
-	fields := []interface{}{interest.Name}
+// Field encodes this Interest.
+func (interest Interest) Field() tlv.Field {
+	fields := []tlv.Fielder{interest.Name}
 	if interest.CanBePrefix {
-		fields = append(fields, tlv.MakeElement(an.TtCanBePrefix, nil))
+		fields = append(fields, tlv.TLV(an.TtCanBePrefix))
 	}
 	if interest.MustBeFresh {
-		fields = append(fields, tlv.MakeElement(an.TtMustBeFresh, nil))
+		fields = append(fields, tlv.TLV(an.TtMustBeFresh))
 	}
 	if len(interest.ForwardingHint) > 0 {
 		fields = append(fields, interest.ForwardingHint)
@@ -187,26 +187,26 @@ func (interest Interest) MarshalTlv() (typ uint32, value []byte, e error) {
 
 	if lifetime := interest.Lifetime; lifetime != 0 && lifetime != DefaultInterestLifetime {
 		if lifetime < MinInterestLifetime {
-			return 0, nil, ErrLifetime
+			return tlv.FieldError(ErrLifetime)
 		}
-		fields = append(fields, tlv.MakeElementNNI(an.TtInterestLifetime, lifetime/time.Millisecond))
+		fields = append(fields, tlv.TLVNNI(an.TtInterestLifetime, uint64(lifetime/time.Millisecond)))
 	}
 	if interest.HopLimit != 0 {
 		fields = append(fields, interest.HopLimit)
 	}
-	fields = append(fields, interest.encodeParamsPortion())
-	return tlv.EncodeTlv(an.TtInterest, fields)
+	fields = append(fields, interest.encodeParamsPortion()...)
+	return tlv.TLVFrom(an.TtInterest, fields...)
 }
 
 // UnmarshalBinary decodes from TLV-VALUE.
-func (interest *Interest) UnmarshalBinary(wire []byte) error {
+func (interest *Interest) UnmarshalBinary(wire []byte) (e error) {
 	*interest = Interest{}
-	d := tlv.Decoder(wire)
+	d := tlv.DecodingBuffer(wire)
 	var paramsPortion []byte
-	for _, field := range d.Elements() {
-		switch field.Type {
+	for _, de := range d.Elements() {
+		switch de.Type {
 		case an.TtName:
-			if e := field.UnmarshalValue(&interest.Name); e != nil {
+			if e = de.UnmarshalValue(&interest.Name); e != nil {
 				return e
 			}
 		case an.TtCanBePrefix:
@@ -214,35 +214,35 @@ func (interest *Interest) UnmarshalBinary(wire []byte) error {
 		case an.TtMustBeFresh:
 			interest.MustBeFresh = true
 		case an.TtForwardingHint:
-			if e := field.UnmarshalValue(&interest.ForwardingHint); e != nil {
+			if e = de.UnmarshalValue(&interest.ForwardingHint); e != nil {
 				return e
 			}
 		case an.TtNonce:
-			if e := field.UnmarshalValue(&interest.Nonce); e != nil {
+			if e = de.UnmarshalValue(&interest.Nonce); e != nil {
 				return e
 			}
 		case an.TtInterestLifetime:
-			if e := field.UnmarshalNNI(&interest.Lifetime); e != nil {
+			if interest.Lifetime = time.Duration(unmarshalNNI(de, uint64(math.MaxInt64/time.Millisecond), &e, ErrLifetime)); e != nil {
 				return e
 			}
 			interest.Lifetime *= time.Millisecond
 		case an.TtHopLimit:
-			if e := field.UnmarshalValue(&interest.HopLimit); e != nil {
+			if e := de.UnmarshalValue(&interest.HopLimit); e != nil {
 				return e
 			}
 		case an.TtAppParameters:
-			interest.AppParameters = field.Value
-			paramsPortion = field.WireAfter()
+			interest.AppParameters = de.Value
+			paramsPortion = de.WireAfter()
 		case an.TtISigInfo:
 			var si SigInfo
-			if e := field.UnmarshalValue(&si); e != nil {
+			if e := de.UnmarshalValue(&si); e != nil {
 				return e
 			}
 			interest.SigInfo = &si
 		case an.TtISigValue:
-			interest.SigValue = field.Value
+			interest.SigValue = de.Value
 		default:
-			if field.IsCriticalType() {
+			if de.IsCriticalType() {
 				return tlv.ErrCritical
 			}
 		}
@@ -271,26 +271,31 @@ func (interest *Interest) UnmarshalBinary(wire []byte) error {
 	return d.ErrUnlessEOF()
 }
 
-func (interest Interest) encodeParamsPortion() (fields []interface{}) {
+func (interest Interest) encodeParamsPortion() (fields []tlv.Fielder) {
 	if len(interest.AppParameters) == 0 && interest.SigInfo == nil {
 		return
 	}
-	fields = []interface{}{tlv.MakeElement(an.TtAppParameters, interest.AppParameters)}
+	fields = append(fields, tlv.TLVBytes(an.TtAppParameters, interest.AppParameters))
 	if interest.SigInfo != nil {
-		fields = append(fields, interest.SigInfo.EncodeAs(an.TtISigInfo), tlv.MakeElement(an.TtISigValue, interest.SigValue))
+		fields = append(fields, interest.SigInfo.EncodeAs(an.TtISigInfo), tlv.TLVBytes(an.TtISigValue, interest.SigValue))
 	}
 	return
 }
 
 func (interest Interest) encodeSignedPortion() (wire []byte, e error) {
-	var fields []interface{}
+	fields := make([]tlv.Fielder, 0, len(interest.Name)+2)
+
+	nameWithoutDigest := interest.Name
 	if interest.Name.Get(-1).Type == an.TtParametersSha256DigestComponent {
-		fields = append(fields, []NameComponent(interest.Name.GetPrefix(-1)))
-	} else {
-		fields = append(fields, []NameComponent(interest.Name))
+		nameWithoutDigest = interest.Name.GetPrefix(-1)
 	}
-	fields = append(fields, tlv.MakeElement(an.TtAppParameters, interest.AppParameters), interest.SigInfo.EncodeAs(an.TtISigInfo))
-	return tlv.Encode(fields...)
+	for _, comp := range nameWithoutDigest {
+		fields = append(fields, comp)
+	}
+
+	fields = append(fields, tlv.TLVBytes(an.TtAppParameters, interest.AppParameters))
+	fields = append(fields, interest.SigInfo.EncodeAs(an.TtISigInfo))
+	return tlv.EncodeFrom(fields...)
 }
 
 // ForwardingHint represents a forwarding hint.
@@ -302,24 +307,28 @@ func (fh *ForwardingHint) Append(preference int, name interface{}) {
 	*fh = append(*fh, MakeFHDelegation(preference, name))
 }
 
-// MarshalTlv encodes this forwarding hint.
-func (fh ForwardingHint) MarshalTlv() (typ uint32, value []byte, e error) {
-	return tlv.EncodeTlv(an.TtForwardingHint, []FHDelegation(fh))
+// Field encodes this forwarding hint.
+func (fh ForwardingHint) Field() tlv.Field {
+	subs := make([]tlv.Field, len(fh))
+	for i, del := range fh {
+		subs[i] = del.Field()
+	}
+	return tlv.TLV(an.TtForwardingHint, subs...)
 }
 
 // UnmarshalBinary decodes from TLV-VALUE.
 func (fh *ForwardingHint) UnmarshalBinary(wire []byte) error {
-	d := tlv.Decoder(wire)
-	for _, field := range d.Elements() {
-		switch field.Type {
+	d := tlv.DecodingBuffer(wire)
+	for _, de := range d.Elements() {
+		switch de.Type {
 		case an.TtDelegation:
 			var del FHDelegation
-			if e := del.UnmarshalBinary(field.Value); e != nil {
+			if e := del.UnmarshalBinary(de.Value); e != nil {
 				return e
 			}
 			*fh = append(*fh, del)
 		default:
-			if field.IsCriticalType() {
+			if de.IsCriticalType() {
 				return tlv.ErrCritical
 			}
 		}
@@ -348,30 +357,29 @@ func MakeFHDelegation(preference int, name interface{}) (del FHDelegation) {
 	return del
 }
 
-// MarshalTlv encodes this delegation.
-func (del FHDelegation) MarshalTlv() (typ uint32, value []byte, e error) {
-	value, e = tlv.Encode(
-		tlv.MakeElementNNI(an.TtPreference, del.Preference),
-		del.Name,
+// Field encodes this delegation.
+func (del FHDelegation) Field() tlv.Field {
+	return tlv.TLV(an.TtDelegation,
+		tlv.TLVNNI(an.TtPreference, uint64(del.Preference)),
+		del.Name.Field(),
 	)
-	return uint32(an.TtDelegation), value, e
 }
 
 // UnmarshalBinary decodes from TLV-VALUE.
-func (del *FHDelegation) UnmarshalBinary(wire []byte) error {
-	d := tlv.Decoder(wire)
-	for _, field := range d.Elements() {
-		switch field.Type {
+func (del *FHDelegation) UnmarshalBinary(wire []byte) (e error) {
+	d := tlv.DecodingBuffer(wire)
+	for _, de := range d.Elements() {
+		switch de.Type {
 		case an.TtPreference:
-			if e := field.UnmarshalNNI(&del.Preference); e != nil {
+			if del.Preference = int(unmarshalNNI(de, math.MaxInt32, &e, tlv.ErrRange)); e != nil {
 				return e
 			}
 		case an.TtName:
-			if e := field.UnmarshalValue(&del.Name); e != nil {
+			if e := de.UnmarshalValue(&del.Name); e != nil {
 				return e
 			}
 		default:
-			if field.IsCriticalType() {
+			if de.IsCriticalType() {
 				return tlv.ErrCritical
 			}
 		}
@@ -404,9 +412,9 @@ func (nonce Nonce) ToUint() uint32 {
 	return binary.BigEndian.Uint32(nonce[:])
 }
 
-// MarshalTlv encodes this Nonce.
-func (nonce Nonce) MarshalTlv() (typ uint32, value []byte, e error) {
-	return uint32(an.TtNonce), nonce[:], nil
+// Field encodes this Nonce.
+func (nonce Nonce) Field() tlv.Field {
+	return tlv.TLVBytes(an.TtNonce, nonce[:])
 }
 
 // UnmarshalBinary decodes from wire encoding.
@@ -421,9 +429,9 @@ func (nonce *Nonce) UnmarshalBinary(wire []byte) error {
 // HopLimit represents a HopLimit field.
 type HopLimit uint8
 
-// MarshalTlv encodes this HopLimit.
-func (hl HopLimit) MarshalTlv() (typ uint32, value []byte, e error) {
-	return tlv.EncodeTlv(an.TtHopLimit, tlv.NNI(hl))
+// Field encodes this HopLimit.
+func (hl HopLimit) Field() tlv.Field {
+	return tlv.TLVNNI(an.TtHopLimit, uint64(hl))
 }
 
 // UnmarshalBinary decodes from wire encoding.

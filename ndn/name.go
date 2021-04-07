@@ -3,6 +3,7 @@ package ndn
 import (
 	"strings"
 
+	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
@@ -91,10 +92,7 @@ func (name Name) IsPrefixOf(other Name) bool {
 }
 
 func (name Name) compareCommonPrefix(other Name) int {
-	commonPrefixLen := len(name)
-	if commonPrefixLen > len(other) {
-		commonPrefixLen = len(other)
-	}
+	commonPrefixLen := math.MinInt(len(name), len(other))
 	for i := 0; i < commonPrefixLen; i++ {
 		if d := name[i].Compare(other[i]); d != 0 {
 			return d
@@ -103,20 +101,24 @@ func (name Name) compareCommonPrefix(other Name) int {
 	return 0
 }
 
-// MarshalTlv encodes this name.
-func (name Name) MarshalTlv() (typ uint32, value []byte, e error) {
-	return tlv.EncodeTlv(an.TtName, ([]NameComponent)(name))
+// Field encodes this Name.
+func (name Name) Field() tlv.Field {
+	compFields := make([]tlv.Field, len(name))
+	for i, comp := range name {
+		compFields[i] = comp.Field()
+	}
+	return tlv.TLV(an.TtName, compFields...)
 }
 
-// MarshalBinary encodes TLV-VALUE of this name.
+// MarshalBinary encodes to TLV-VALUE.
 func (name Name) MarshalBinary() (value []byte, e error) {
-	return tlv.Encode(([]NameComponent)(name))
+	return tlv.EncodeValueOnly(name)
 }
 
 // UnmarshalBinary decodes TLV-VALUE from wire format.
 func (name *Name) UnmarshalBinary(wire []byte) error {
 	*name = make(Name, 0)
-	d := tlv.Decoder(wire)
+	d := tlv.DecodingBuffer(wire)
 	for _, element := range d.Elements() {
 		var comp NameComponent
 		if e := element.Unmarshal(&comp); e != nil {

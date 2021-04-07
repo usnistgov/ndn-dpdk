@@ -21,7 +21,7 @@ func TestLpFragmenter(t *testing.T) {
 	require.Len(frags, 4)
 
 	for _, frag := range frags {
-		wire, _ := tlv.Encode(frag)
+		wire, _ := tlv.EncodeFrom(frag)
 		assert.LessOrEqual(len(wire), 1000)
 	}
 

@@ -10,7 +10,7 @@ import (
 )
 
 func componentToString(comp ndn.NameComponent) string {
-	compV, _ := tlv.Encode(comp)
+	compV, _ := tlv.EncodeFrom(comp)
 	return string(compV)
 }
 

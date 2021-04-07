@@ -36,21 +36,19 @@ func (gen *DataGen) ptr() *C.DataGen {
 // data is a Data packet serving as template, whose Name is used as name suffix.
 // Panics on error.
 func (gen *DataGen) Init(m *pktmbuf.Packet, data ndn.Data) {
-	_, wire, e := data.MarshalTlv()
+	wire, e := tlv.EncodeValueOnly(data)
 	if e != nil {
-		logger.Panic("data.MarshalTlv error",
-			zap.Error(e),
-		)
+		logger.Panic("encode Data error", zap.Error(e))
 	}
 
 	var nameL, tplSize int
-	d := tlv.Decoder(wire)
+	d := tlv.DecodingBuffer(wire)
 DecodeLoop:
-	for _, field := range d.Elements() {
-		switch field.Type {
+	for _, de := range d.Elements() {
+		switch de.Type {
 		case an.TtName:
-			nameL = field.Length()
-			tplSize = nameL + len(field.After)
+			nameL = de.Length()
+			tplSize = nameL + len(de.After)
 			break DecodeLoop
 		}
 	}

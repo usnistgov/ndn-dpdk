@@ -42,7 +42,7 @@ func ctestPacketClone(t *testing.T) {
 	mp := makeMempoolsC()
 
 	data := ndn.MakeData("/D", bytes.Repeat([]byte{0xC0}, 1200))
-	wire, _ := tlv.Encode(data)
+	wire, _ := tlv.EncodeFrom(data)
 	p := makePacket(wire)
 	defer p.Close()
 

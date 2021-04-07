@@ -127,7 +127,7 @@ DROP:
 				continue
 			}
 
-			d := tlv.Decoder(payload)
+			d := tlv.DecodingBuffer(payload)
 			element, e := d.Element()
 			if e != nil {
 				continue DROP

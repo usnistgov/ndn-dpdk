@@ -15,6 +15,7 @@ package ndn
 
 import (
 	"encoding/hex"
+	"math"
 
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
@@ -60,59 +61,59 @@ func (pkt *Packet) ToPacket() *Packet {
 	return pkt
 }
 
-// MarshalTlv encodes this packet.
-func (pkt *Packet) MarshalTlv() (typ uint32, value []byte, e error) {
+// Field encodes this packet.
+func (pkt *Packet) Field() tlv.Field {
 	if pkt.Fragment != nil {
-		return pkt.Fragment.MarshalTlv()
+		return pkt.Fragment.Field()
 	}
 
 	header, payload, e := pkt.encodeL3()
 	if e != nil {
-		return 0, nil, e
+		return tlv.FieldError(e)
 	}
 
 	if len(header) == 0 {
-		return pkt.l3type, pkt.l3value, nil
+		return tlv.Bytes(payload)
 	}
-	return tlv.EncodeTlv(an.TtLpPacket, header, tlv.MakeElement(an.TtLpPayload, payload))
+	return tlv.TLV(an.TtLpPacket, tlv.Bytes(header), tlv.TLVBytes(an.TtLpPayload, payload))
 }
 
-// UnmarshalTlv decodes from wire format.
-func (pkt *Packet) UnmarshalTlv(typ uint32, value []byte) error {
+// UnmarshalTLV decodes from wire format.
+func (pkt *Packet) UnmarshalTLV(typ uint32, value []byte) (e error) {
 	*pkt = Packet{}
 	if typ != an.TtLpPacket {
 		return pkt.decodeL3(typ, value)
 	}
 
-	d := tlv.Decoder(value)
-	for _, field := range d.Elements() {
-		switch field.Type {
+	d := tlv.DecodingBuffer(value)
+	for _, de := range d.Elements() {
+		switch de.Type {
 		case an.TtPitToken:
-			pkt.Lp.PitToken = field.Value
+			pkt.Lp.PitToken = de.Value
 		case an.TtNack:
 			pkt.Lp.NackReason = an.NackUnspecified
-			d1 := tlv.Decoder(field.Value)
-			for _, field1 := range d1.Elements() {
-				switch field1.Type {
+			d1 := tlv.DecodingBuffer(de.Value)
+			for _, de1 := range d1.Elements() {
+				switch de1.Type {
 				case an.TtNackReason:
-					if e := field1.UnmarshalNNI(&pkt.Lp.NackReason); e != nil {
+					if pkt.Lp.NackReason = uint8(unmarshalNNI(de1, math.MaxUint8, &e, tlv.ErrRange)); e != nil {
 						return e
 					}
 				default:
-					if lpIsCritical(field1.Type) {
+					if lpIsCritical(de1.Type) {
 						return tlv.ErrCritical
 					}
 				}
 			}
-			if e := d1.ErrUnlessEOF(); e != nil {
+			if e = d1.ErrUnlessEOF(); e != nil {
 				return e
 			}
 		case an.TtCongestionMark:
-			if e := field.UnmarshalNNI(&pkt.Lp.CongMark); e != nil {
+			if pkt.Lp.CongMark = uint8(unmarshalNNI(de, math.MaxUint8, &e, tlv.ErrRange)); e != nil {
 				return e
 			}
 		case an.TtLpPayload:
-			d1 := tlv.Decoder(field.Value)
+			d1 := tlv.DecodingBuffer(de.Value)
 			field1, e := d1.Element()
 			if e != nil {
 				return e
@@ -121,7 +122,7 @@ func (pkt *Packet) UnmarshalTlv(typ uint32, value []byte) error {
 			if e != nil {
 				return e
 			}
-			if e := d1.ErrUnlessEOF(); e != nil {
+			if e = d1.ErrUnlessEOF(); e != nil {
 				return e
 			}
 		}
@@ -130,27 +131,30 @@ func (pkt *Packet) UnmarshalTlv(typ uint32, value []byte) error {
 }
 
 func (pkt *Packet) encodeL3() (header, payload []byte, e error) {
-	e = ErrFragment
+	var l3fielder tlv.Fielder
 	switch {
 	case pkt.Interest != nil:
-		pkt.l3type, pkt.l3value, e = pkt.Interest.MarshalTlv()
+		l3fielder = pkt.Interest
 		pkt.l3digest = nil
 		pkt.Lp.NackReason = an.NackNone
 	case pkt.Data != nil:
-		pkt.l3type, pkt.l3value, e = pkt.Data.MarshalTlv()
+		l3fielder = pkt.Data
 		pkt.l3digest = nil
 		pkt.Lp.NackReason = an.NackNone
 	case pkt.Nack != nil:
-		pkt.l3type, pkt.l3value, e = pkt.Nack.Interest.MarshalTlv()
+		l3fielder = pkt.Nack.Interest
 		pkt.l3digest = nil
 		pkt.Lp.NackReason = pkt.Nack.Reason
-	}
-	if e != nil {
-		return nil, nil, e
+	default:
+		return nil, nil, ErrFragment
 	}
 
-	header, _ = tlv.Encode(pkt.Lp.encode())
-	payload, _ = tlv.Encode(tlv.MakeElement(pkt.l3type, pkt.l3value))
+	if payload, e = tlv.EncodeFrom(l3fielder); e != nil {
+		return nil, nil, e
+	}
+	if header, e = tlv.Encode(pkt.Lp.encode()...); e != nil {
+		return nil, nil, e
+	}
 	return header, payload, nil
 }
 

@@ -79,10 +79,12 @@ func (pkt *Packet) ComputeDataImplicitDigest() []byte {
 // ToNPacket copies this packet into ndn.Packet.
 // Panics on error.
 func (pkt *Packet) ToNPacket() (npkt ndn.Packet) {
-	e := tlv.Decode(pkt.Mbuf().Bytes(), &npkt)
+	wire := pkt.Mbuf().Bytes()
+	e := tlv.Decode(wire, &npkt)
 	if e != nil {
 		logger.Panic("tlv.Decode",
 			zap.Error(e),
+			zap.Binary("wire", wire),
 		)
 	}
 
@@ -90,7 +92,7 @@ func (pkt *Packet) ToNPacket() (npkt ndn.Packet) {
 	npkt.Lp.PitToken = make([]byte, 8)
 	binary.BigEndian.PutUint64(npkt.Lp.PitToken, uint64(lpl3.pitToken))
 	npkt.Lp.NackReason = uint8(lpl3.nackReason)
-	npkt.Lp.CongMark = int(lpl3.congMark)
+	npkt.Lp.CongMark = uint8(lpl3.congMark)
 	if npkt.Lp.NackReason != 0 {
 		return *ndn.MakeNack(npkt.Interest, npkt.Lp.NackReason).ToPacket()
 	}

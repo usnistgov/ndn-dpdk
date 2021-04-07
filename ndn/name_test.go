@@ -166,7 +166,7 @@ func TestNameParse(t *testing.T) {
 	}
 	for _, tt := range tests {
 		name := ndn.ParseName(tt.input)
-		wire, e := tlv.Encode(name)
+		wire, e := tlv.EncodeFrom(name)
 		assert.NoError(e, tt.input)
 		bytesEqual(assert, bytesFromHex(tt.output), wire, tt.input)
 

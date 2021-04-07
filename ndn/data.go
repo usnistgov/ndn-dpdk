@@ -2,6 +2,7 @@ package ndn
 
 import (
 	"crypto/sha256"
+	"math"
 	"reflect"
 	"time"
 
@@ -87,15 +88,25 @@ func (data Data) String() string {
 // If data was constructed (data.packet is unassigned), the digest is of the encoding of the current packet,
 // and is not cached.
 func (data Data) ComputeDigest() []byte {
+	var e error
+
 	if data.packet == nil {
 		data.packet = new(Packet)
 		data.packet.Data = &data
 	}
+
 	if data.packet.l3type != an.TtData {
-		data.packet.l3type, data.packet.l3value, _ = data.MarshalTlv()
+		if data.packet.l3value, e = tlv.EncodeValueOnly(data); e != nil {
+			return nil
+		}
+		data.packet.l3type = an.TtData
 	}
+
 	if data.packet.l3digest == nil {
-		wire, _ := tlv.Encode(tlv.MakeElement(data.packet.l3type, data.packet.l3value))
+		wire, e := tlv.Encode(tlv.TLVBytes(an.TtData, data.packet.l3value))
+		if e != nil {
+			return nil
+		}
 		digest := sha256.Sum256(wire)
 		data.packet.l3digest = digest[:]
 	}
@@ -179,56 +190,56 @@ func (data Data) VerifyWith(verifier func(name Name, si SigInfo) (LLVerify, erro
 	return llVerify(signedPortion, data.SigValue)
 }
 
-// MarshalTlv encodes this Data.
-func (data Data) MarshalTlv() (typ uint32, value []byte, e error) {
+// Field encodes this Data.
+func (data Data) Field() tlv.Field {
 	signedPortion, e := data.encodeSignedPortion()
 	if e != nil {
-		return 0, nil, e
+		return tlv.FieldError(e)
 	}
-	return tlv.EncodeTlv(an.TtData, signedPortion, tlv.MakeElement(an.TtDSigValue, data.SigValue))
+	return tlv.TLV(an.TtData, tlv.Bytes(signedPortion), tlv.TLVBytes(an.TtDSigValue, data.SigValue))
 }
 
 // UnmarshalBinary decodes from TLV-VALUE.
-func (data *Data) UnmarshalBinary(wire []byte) error {
+func (data *Data) UnmarshalBinary(value []byte) (e error) {
 	*data = Data{}
-	d := tlv.Decoder(wire)
-	for _, field := range d.Elements() {
-		switch field.Type {
+	d := tlv.DecodingBuffer(value)
+	for _, de := range d.Elements() {
+		switch de.Type {
 		case an.TtName:
-			if e := field.UnmarshalValue(&data.Name); e != nil {
+			if e = de.UnmarshalValue(&data.Name); e != nil {
 				return e
 			}
 		case an.TtMetaInfo:
-			d1 := tlv.Decoder(field.Value)
-			for _, field1 := range d1.Elements() {
-				switch field1.Type {
+			d1 := tlv.DecodingBuffer(de.Value)
+			for _, de1 := range d1.Elements() {
+				switch de1.Type {
 				case an.TtContentType:
-					if e := field1.UnmarshalValue(&data.ContentType); e != nil {
+					if data.ContentType = ContentType(unmarshalNNI(de1, math.MaxUint64, &e, tlv.ErrRange)); e != nil {
 						return e
 					}
 				case an.TtFreshnessPeriod:
-					if e := field1.UnmarshalNNI(&data.Freshness); e != nil {
+					if data.Freshness = time.Duration(unmarshalNNI(de1, uint64(math.MaxInt64/time.Millisecond), &e, tlv.ErrRange)); e != nil {
 						return e
 					}
 					data.Freshness *= time.Millisecond
 				}
 			}
-			if e := d1.ErrUnlessEOF(); e != nil {
+			if e = d1.ErrUnlessEOF(); e != nil {
 				return e
 			}
 		case an.TtContent:
-			data.Content = field.Value
+			data.Content = de.Value
 		case an.TtDSigInfo:
 			var si SigInfo
-			if e := field.UnmarshalValue(&si); e != nil {
+			if e = de.UnmarshalValue(&si); e != nil {
 				return e
 			}
 			data.SigInfo = &si
 		case an.TtDSigValue:
-			data.SigValue = field.Value
-			data.l3SigValueOffset = len(wire) - len(field.WireAfter())
+			data.SigValue = de.Value
+			data.l3SigValueOffset = len(value) - len(de.WireAfter())
 		default:
-			if field.IsCriticalType() {
+			if de.IsCriticalType() {
 				return tlv.ErrCritical
 			}
 		}
@@ -237,36 +248,31 @@ func (data *Data) UnmarshalBinary(wire []byte) error {
 }
 
 func (data Data) encodeSignedPortion() (wire []byte, e error) {
-	fields := []interface{}{data.Name}
+	fields := []tlv.Fielder{data.Name}
 
-	var metaFields []interface{}
+	var metaFields []tlv.Field
 	if data.ContentType > 0 {
-		metaFields = append(metaFields, data.ContentType)
+		metaFields = append(metaFields, data.ContentType.Field())
 	}
 	if data.Freshness > 0 {
-		metaFields = append(metaFields, tlv.MakeElementNNI(an.TtFreshnessPeriod, data.Freshness/time.Millisecond))
+		metaFields = append(metaFields, tlv.TLVNNI(an.TtFreshnessPeriod, uint64(data.Freshness/time.Millisecond)))
 	}
 	if len(metaFields) > 0 {
-		metaV, e := tlv.Encode(metaFields...)
-		if e != nil {
-			return nil, e
-		}
-		fields = append(fields, tlv.MakeElement(an.TtMetaInfo, metaV))
+		fields = append(fields, tlv.TLV(an.TtMetaInfo, metaFields...))
 	}
 
 	if len(data.Content) > 0 {
-		fields = append(fields, tlv.MakeElement(an.TtContent, data.Content))
+		fields = append(fields, tlv.TLVBytes(an.TtContent, data.Content))
 	}
 	fields = append(fields, data.SigInfo.EncodeAs(an.TtDSigInfo))
-	return tlv.Encode(fields...)
+	return tlv.EncodeFrom(fields...)
 }
 
 // ContentType represents a ContentType field.
-type ContentType uint
+type ContentType uint64
 
-// MarshalTlv encodes this ContentType.
-func (ct ContentType) MarshalTlv() (typ uint32, value []byte, e error) {
-	return tlv.EncodeTlv(an.TtContentType, tlv.NNI(ct))
+func (ct ContentType) Field() tlv.Field {
+	return tlv.TLVNNI(an.TtContentType, uint64(ct))
 }
 
 // UnmarshalBinary decodes from wire encoding.

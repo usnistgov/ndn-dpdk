@@ -17,7 +17,7 @@ func (streamRxLooper) RxLoop(tr *transport) error {
 		nAvail += nRead
 
 		// parse and post packets
-		d := tlv.Decoder(buffer[:nAvail])
+		d := tlv.DecodingBuffer(buffer[:nAvail])
 		elements := d.Elements()
 		if len(elements) == 0 {
 			continue
