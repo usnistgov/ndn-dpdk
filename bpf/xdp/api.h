@@ -20,7 +20,7 @@ struct vlanhdr
 {
   uint16_t vlan_tci;
   uint16_t eth_proto;
-} __rte_packet;
+} __rte_packed;
 
 #define PacketPtrAs_(ptr, size, ...)                                                               \
   __extension__({                                                                                  \

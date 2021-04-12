@@ -25,6 +25,8 @@ const (
 	drvAfPacket = "net_af_packet_"
 )
 
+var etht *ethtool.Ethtool
+
 // XDPProgram is the absolution path to an XDP program ELF object.
 // This should be assigned by package main.
 var XDPProgram string
@@ -41,18 +43,12 @@ func (n netIntf) Logger() *zap.Logger {
 }
 
 func (n netIntf) PCIAddr() (a ealconfig.PCIAddress, e error) {
-	device, e := filepath.EvalSymlinks(filepath.Join("/sys/class/net", n.Name, "device"))
+	busInfo, e := etht.BusInfo(n.Name)
 	if e != nil {
 		return ealconfig.PCIAddress{}, e
 	}
 
-	subsystem, e := filepath.EvalSymlinks(filepath.Join(device, "subsystem"))
-	if e != nil || subsystem != "/sys/bus/pci" {
-		return ealconfig.PCIAddress{}, e
-	}
-
-	a, e = ealconfig.ParsePCIAddress(filepath.Base(device))
-	return
+	return ealconfig.ParsePCIAddress(filepath.Base(busInfo))
 }
 
 func (n netIntf) NumaSocket() (socket eal.NumaSocket) {
@@ -86,13 +82,6 @@ func (n netIntf) FindDev() (dev ethdev.EthDev) {
 func (n netIntf) SetOneChannel() {
 	logEntry := n.Logger()
 
-	etht, e := ethtool.NewEthtool()
-	if e != nil {
-		logEntry.Error("ethtool.NewEthtool error", zap.Error(e))
-		return
-	}
-	defer etht.Close()
-
 	channels, e := etht.GetChannels(n.Name)
 	if e != nil {
 		logEntry.Error("ethtool.GetChannels error", zap.Error(e))
@@ -122,6 +111,37 @@ func (n netIntf) SetOneChannel() {
 	}
 
 	logEntry.Debug("changed to 1 channel")
+}
+
+func (n netIntf) DisableVLANOffload() {
+	logEntry := n.Logger()
+
+	features, e := etht.Features(n.Name)
+	if e != nil {
+		logEntry.Error("ethtool.Features error", zap.Error(e))
+		return
+	}
+
+	const rxvlanKey = "rx-vlan-hw-parse"
+	rxvlan, ok := features[rxvlanKey]
+	if !ok {
+		logEntry.Debug("rxvlan offload not supported")
+		return
+	}
+	if !rxvlan {
+		logEntry.Debug("rxvlan offload already disabled")
+		return
+	}
+
+	e = etht.Change(n.Name, map[string]bool{
+		rxvlanKey: false,
+	})
+	if e != nil {
+		logEntry.Error("ethtool.Change(rxvlan=false) error", zap.Error(e))
+		return
+	}
+
+	logEntry.Debug("disabled rxvlan offload")
 }
 
 func (n netIntf) UnloadXDP() {
@@ -184,8 +204,10 @@ func (cfg NetifDriverConfig) makeDevImpl(drv string, netif netIntf, socket eal.N
 type XDPDriverConfig struct {
 	NetifDriverConfig
 
-	// SkipSetChannels skips `ethtool --setchannels combined 1` operation.
-	SkipSetChannels bool `json:"skipSetChannels,omitempty"`
+	// SkipEthtool skips ethtool operations:
+	//  ethtool --setchannels IFNAME combined 1
+	//  ethtool --offload IFNAME rxvlan off
+	SkipEthtool bool `json:"skipEthtool,omitempty"`
 }
 
 func (cfg XDPDriverConfig) makeDev(netif netIntf, socket eal.NumaSocket) (dev ethdev.EthDev, e error) {
@@ -199,8 +221,9 @@ func (cfg XDPDriverConfig) makeDev(netif netIntf, socket eal.NumaSocket) (dev et
 	}
 
 	return cfg.makeDevImpl(drvXDP, netif, socket, args, func(args map[string]interface{}) error {
-		if !cfg.SkipSetChannels {
+		if !cfg.SkipEthtool {
 			netif.SetOneChannel()
+			netif.DisableVLANOffload()
 		}
 		if prog, ok := args["xdp_prog"]; ok && prog != nil {
 			netif.UnloadXDP()
@@ -226,6 +249,13 @@ func (cfg AfPacketDriverConfig) makeDev(netif netIntf, socket eal.NumaSocket) (d
 // FromNetif finds or creates an Ethernet device.
 // It can find existing PCI devices, or create a virtual device with net_af_xdp or net_af_packet driver.
 func FromNetif(nif *net.Interface, cfg NetifConfig) (dev ethdev.EthDev, e error) {
+	if etht == nil {
+		etht, e = ethtool.NewEthtool()
+		if e != nil {
+			return nil, fmt.Errorf("NewEthtool %w", e)
+		}
+	}
+
 	netif := netIntf{nif}
 	if dev = netif.FindDev(); dev != nil {
 		return dev, nil

@@ -114,11 +114,11 @@ It is unnecessary to manually define a DPDK virtual device in activation paramet
 The **net\_af\_xdp** driver uses AF\_XDP sockets, optimized for high performance packet processing.
 This driver requires Linux kernel ≥5.4.
 The libbpf library must be installed before building DPDK; the `ndndpdk-depends.sh` script installs libbpf automatically if a compatible kernel version is found.
-Due to kernel limitation, MTU is limited to about 3300 octets.
+Due to kernel limitation, MTU is limited to about 3300 octets; setting an unacceptable MTU causes port activation failure.
 
-During net\_af\_xdp activation, the Ethernet adapter is configured to have only 1 RX channel, and an XDP program is loaded.
-The current XDP program recognizes NDN over Ethernet (no VLAN), and NDN over IPv4/IPv6 + UDP on port 6363; it does not recognize VLAN, VXLAN, and UDP on other ports.
-If you need VLAN or VXLAN, you can create a kernel interface with `ip link add` command, and create the face on that network interface.
+During net\_af\_xdp activation, the Ethernet adapter is configured to have only 1 RX channel and RX-VLAN offload is disabled, and then an XDP program is loaded.
+The XDP program recognizes NDN over Ethernet, and NDN over IPv4/IPv6 + UDP on port 6363; it does not recognize VXLAN or other UDP ports.
+If you need VXLAN, you can create a kernel interface with `ip link add` command, and create the face on that network interface.
 
 The **net\_af\_packet** driver uses AF\_PACKET sockets.
 This is compatible with older kernels, but it is substantially slower.

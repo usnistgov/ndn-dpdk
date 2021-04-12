@@ -92,8 +92,9 @@ Known limitations:
     sudo ip neigh replace 2001:0db8::3cfe lladdr 5e:c8:55:7a:c9:1f nud noarp dev eth1
     ```
 
-  * For mlx5 driver and IPv4 only: add the IP address to the kernel using `ip addr` command, but do not create the VXLAN interface.
+  * For mlx5 or af\_xdp driver and IPv4: add the IP address to the kernel using `ip addr` command, but do not create the VXLAN interface.
     Even if DPDK is controlling the Ethernet adapter, the kernel can still receive broadcast frames such as ARP queries and respond to them.
+    In this case, it is unnecessary to configure MAC-IP binding on the IP router.
 
 * NDN-DPDK does not lookup IP routing tables or send ARP queries.
   To allow outgoing packets to reach the IP router, the *remote* field of the locator should be the MAC address of the IP router.

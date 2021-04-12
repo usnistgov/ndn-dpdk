@@ -22,9 +22,15 @@ SEC("xdp_sock") int xdp_sock_prog(struct xdp_md* ctx)
 
   const struct ethhdr* eth = PacketPtrAs((const struct ethhdr*)pkt);
   pkt += sizeof(*eth);
+  uint16_t ethProto = eth->h_proto;
+  if (eth->h_proto == bpf_htons(ETH_P_8021Q)) {
+    const struct vlanhdr* vlan = PacketPtrAs((const struct vlanhdr*)pkt);
+    pkt += sizeof(*vlan);
+    ethProto = vlan->eth_proto;
+  }
 
   uint8_t ipProto = 0;
-  switch (eth->h_proto) {
+  switch (ethProto) {
     case bpf_htons(EtherTypeNDN):
       goto ACCEPT;
     case bpf_htons(ETH_P_IP): {
@@ -40,17 +46,20 @@ SEC("xdp_sock") int xdp_sock_prog(struct xdp_md* ctx)
       break;
     }
     default:
-      return XDP_PASS;
+      goto REJECT;
   }
 
   if (ipProto != IPPROTO_UDP) {
-    return XDP_PASS;
+    goto REJECT;
   }
   const struct udphdr* udp = PacketPtrAs((const struct udphdr*)pkt);
   pkt += sizeof(*udp);
-  if (udp->dest != bpf_htons(UDPPortNDN)) {
-    return XDP_PASS;
+  if (udp->dest == bpf_htons(UDPPortNDN)) {
+    goto ACCEPT;
   }
+
+REJECT:
+  return XDP_PASS;
 
 ACCEPT:
   return bpf_redirect_map(&xsks_map, 0, XDP_PASS);

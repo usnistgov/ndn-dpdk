@@ -80,7 +80,7 @@ export interface VDevNetifConfig {
   xdp?: {
     disabled?: boolean;
     args?: object;
-    skipSetChannels?: boolean;
+    skipEthtool?: boolean;
   };
   afPacket?: {
     disabled?: boolean;
