@@ -6,6 +6,7 @@ import (
 	"container/list"
 	"context"
 	"fmt"
+	"io"
 	"math"
 	"time"
 
@@ -62,13 +63,18 @@ type FetchResult interface {
 	Ordered(ctx context.Context, ordered chan<- *ndn.Data) error
 	// Chunks emits Data packet payload in segment number order.
 	Chunks(ctx context.Context, chunks chan<- []byte) error
+	// Pipe writes the payload to the Writer.
+	Pipe(ctx context.Context, w io.Writer) error
 	// Packet returns a slice of Data packets.
 	Packets(ctx context.Context) ([]*ndn.Data, error)
-	// Payload returns reassembly payload.
+	// Payload returns reassembled payload.
 	Payload(ctx context.Context) ([]byte, error)
 
 	// Count returns the number of segments retrieved so far.
 	Count() int
+	// EstimatedTotal returns the estimated number of total segment.
+	// Returns -1 if unknown.
+	EstimatedTotal() int
 }
 
 func Fetch(name ndn.Name, opts FetchOptions) FetchResult {
@@ -76,13 +82,15 @@ func Fetch(name ndn.Name, opts FetchOptions) FetchResult {
 	return &fetcher{
 		FetchOptions: opts,
 		prefix:       name,
+		finalBlock:   math.MaxUint64,
 	}
 }
 
 type fetcher struct {
 	FetchOptions
-	prefix ndn.Name
-	count  int
+	prefix     ndn.Name
+	count      int
+	finalBlock uint64
 }
 
 func (f *fetcher) makeInterest(seg uint64) ndn.Interest {
@@ -146,6 +154,12 @@ func (f *fetcher) Unordered(ctx context.Context, unordered chan<- *ndn.Data) err
 			fs, ok := pendings[seg]
 			if !ok {
 				break
+			}
+			if pkt.Data.FinalBlock.Type == an.TtSegmentNameComponent {
+				var finalSeg tlv.NNI
+				if e := finalSeg.UnmarshalBinary(pkt.Data.FinalBlock.Value); e == nil {
+					f.finalBlock = uint64(finalSeg + 1)
+				}
 			}
 
 			rtt := now.Sub(fs.TxTime)
@@ -261,6 +275,23 @@ func (f *fetcher) Chunks(ctx context.Context, chunks chan<- []byte) error {
 	return <-done
 }
 
+func (f *fetcher) Pipe(ctx context.Context, w io.Writer) error {
+	ctx, cancel := context.WithCancel(context.TODO())
+	defer cancel()
+
+	chunks := make(chan []byte)
+	done := make(chan error)
+	go func() { done <- f.Chunks(ctx, chunks) }()
+	for chunk := range chunks {
+		if _, e := w.Write(chunk); e != nil {
+			return e
+		}
+	}
+
+	cancel()
+	return <-done
+}
+
 func (f *fetcher) Packets(ctx context.Context) (packets []*ndn.Data, e error) {
 	ordered := make(chan *ndn.Data)
 	done := make(chan error)
@@ -289,4 +320,12 @@ func (f *fetcher) Payload(ctx context.Context) ([]byte, error) {
 
 func (f *fetcher) Count() int {
 	return f.count
+}
+
+func (f *fetcher) EstimatedTotal() int {
+	segLast := mathpkg.MinUint64(f.SegmentEnd, f.finalBlock)
+	if segLast == math.MaxUint64 {
+		return -1
+	}
+	return int(segLast - f.SegmentBegin + 1)
 }

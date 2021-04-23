@@ -40,19 +40,11 @@ func init() {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			f := segmented.Fetch(ndn.ParseName(name), fetchOptions)
-			chunks := make(chan []byte)
 			go func() {
-				for {
-					select {
-					case <-interrupt:
-						cancel()
-					case chunk := <-chunks:
-						os.Stdout.Write(chunk)
-					}
-				}
+				<-interrupt
+				cancel()
 			}()
-			return f.Chunks(ctx, chunks)
+			return segmented.Fetch(ndn.ParseName(name), fetchOptions).Pipe(ctx, os.Stdout)
 		},
 	})
 }
