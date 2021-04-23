@@ -187,6 +187,11 @@ func (f *fetcher) Unordered(ctx context.Context, unordered chan<- *ndn.Data) err
 
 		now := time.Now()
 		for seg, fs := range pendings {
+			if seg > segLast {
+				delete(pendings, seg)
+				continue
+			}
+
 			if fs.RetxElement == nil && fs.RtoExpiry.Before(now) {
 				if fs.NRetx >= f.RetxLimit {
 					return fmt.Errorf("exceed retx limit on segment %d", seg)
