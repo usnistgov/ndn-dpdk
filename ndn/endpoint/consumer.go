@@ -31,9 +31,6 @@ type ConsumerOptions struct {
 }
 
 func (opts *ConsumerOptions) applyDefaults() {
-	if opts.Fw == nil {
-		opts.Fw = l3.GetDefaultForwarder()
-	}
 	if opts.Retx == nil {
 		opts.Retx = noRetx{}
 	}
@@ -45,7 +42,7 @@ func (opts *ConsumerOptions) applyDefaults() {
 // Consume retrieves a single piece of Data.
 func Consume(ctx context.Context, interest ndn.Interest, opts ConsumerOptions) (data *ndn.Data, e error) {
 	opts.applyDefaults()
-	face, e := newLFace(opts.Fw)
+	face, e := NewLFace(opts.Fw)
 	if e != nil {
 		return nil, e
 	}
@@ -62,7 +59,7 @@ L:
 			timer = time.NewTimer(interest.Lifetime)
 		}
 
-		face.ep2fw <- interest.ToPacket()
+		face.Tx() <- interest.ToPacket()
 
 		for {
 			select {
@@ -73,7 +70,7 @@ L:
 					continue L
 				}
 				return nil, ErrExpire
-			case l3pkt := <-face.fw2ep:
+			case l3pkt := <-face.Rx():
 				data = l3pkt.ToPacket().Data
 				if data != nil && data.CanSatisfy(interest) {
 					break L

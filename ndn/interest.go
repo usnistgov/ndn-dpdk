@@ -456,9 +456,9 @@ type tCanBePrefix bool
 type tMustBeFresh bool
 
 const (
-	// CanBePrefixFlag enables CanBePrefix in NewInterest.
+	// CanBePrefixFlag enables CanBePrefix in MakeInterest.
 	CanBePrefixFlag = tCanBePrefix(true)
 
-	// MustBeFreshFlag enables MustBeFresh in NewInterest.
+	// MustBeFreshFlag enables MustBeFresh in MakeInterest.
 	MustBeFreshFlag = tMustBeFresh(true)
 )

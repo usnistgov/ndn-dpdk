@@ -11,7 +11,7 @@
  */
 typedef struct TcpCubic
 {
-  TscDuration t0;
+  TscTime t0;
   double cwnd;
   double wMax;
   double k;

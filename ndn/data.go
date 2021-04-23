@@ -17,6 +17,7 @@ type Data struct {
 	Name             Name
 	ContentType      ContentType
 	Freshness        time.Duration
+	FinalBlock       NameComponent
 	Content          []byte
 	SigInfo          *SigInfo
 	SigValue         []byte
@@ -27,12 +28,15 @@ type Data struct {
 //  - string or Name: set Name
 //  - ContentType
 //  - time.Duration: set Freshness
+//  - FinalBlock: set FinalBlock
+//  - FinalBlockFlag: set FinalBlock to the last name component, ignored if name is empty
 //  - []byte: set Content
 //  - LpL3: copy PitToken and CongMark
 //  - Interest or *Interest: copy Name, set FreshnessPeriod if Interest has MustBeFresh, inherit LpL3
 func MakeData(args ...interface{}) (data Data) {
 	packet := Packet{Data: &data}
 	data.packet = &packet
+	hasFinalBlockFlag := false
 	handleInterestArg := func(a *Interest) {
 		data.Name = a.Name
 		if a.MustBeFresh {
@@ -52,6 +56,10 @@ func MakeData(args ...interface{}) (data Data) {
 			data.ContentType = a
 		case time.Duration:
 			data.Freshness = a
+		case FinalBlock:
+			data.FinalBlock = NameComponent(a)
+		case tFinalBlockFlag:
+			hasFinalBlockFlag = true
 		case []byte:
 			data.Content = a
 		case LpL3:
@@ -63,6 +71,9 @@ func MakeData(args ...interface{}) (data Data) {
 		default:
 			panic("bad argument type " + reflect.TypeOf(arg).String())
 		}
+	}
+	if hasFinalBlockFlag && len(data.Name) > 0 {
+		data.FinalBlock = data.Name.Get(-1)
 	}
 	return data
 }
@@ -119,6 +130,11 @@ func (data Data) FullName() Name {
 	i := copy(fullName, data.Name)
 	fullName[i] = MakeNameComponent(an.TtImplicitSha256DigestComponent, data.ComputeDigest())
 	return fullName
+}
+
+// IsFinalBlock determines whether FinalBlock field equals the last name component.
+func (data Data) IsFinalBlock() bool {
+	return data.FinalBlock.Valid() && data.FinalBlock.Equal(data.Name.Get(-1))
 }
 
 // CanSatisfy determines whether this Data can satisfy the given Interest.
@@ -210,21 +226,7 @@ func (data *Data) UnmarshalBinary(value []byte) (e error) {
 				return e
 			}
 		case an.TtMetaInfo:
-			d1 := tlv.DecodingBuffer(de.Value)
-			for _, de1 := range d1.Elements() {
-				switch de1.Type {
-				case an.TtContentType:
-					if data.ContentType = ContentType(unmarshalNNI(de1, math.MaxUint64, &e, tlv.ErrRange)); e != nil {
-						return e
-					}
-				case an.TtFreshnessPeriod:
-					if data.Freshness = time.Duration(unmarshalNNI(de1, uint64(math.MaxInt64/time.Millisecond), &e, tlv.ErrRange)); e != nil {
-						return e
-					}
-					data.Freshness *= time.Millisecond
-				}
-			}
-			if e = d1.ErrUnlessEOF(); e != nil {
+			if e = data.decodeMetaInfo(de.Value); e != nil {
 				return e
 			}
 		case an.TtContent:
@@ -247,6 +249,39 @@ func (data *Data) UnmarshalBinary(value []byte) (e error) {
 	return d.ErrUnlessEOF()
 }
 
+func (data *Data) decodeMetaInfo(value []byte) (e error) {
+	d := tlv.DecodingBuffer(value)
+	for _, de := range d.Elements() {
+		switch de.Type {
+		case an.TtContentType:
+			if data.ContentType = ContentType(unmarshalNNI(de, math.MaxUint64, &e, tlv.ErrRange)); e != nil {
+				return e
+			}
+		case an.TtFreshnessPeriod:
+			if data.Freshness = time.Duration(unmarshalNNI(de, uint64(math.MaxInt64/time.Millisecond), &e, tlv.ErrRange)); e != nil {
+				return e
+			}
+			data.Freshness *= time.Millisecond
+		case an.TtFinalBlock:
+			d1 := tlv.DecodingBuffer(de.Value)
+			if e = d1.Decode(&data.FinalBlock); e != nil {
+				return e
+			}
+			if !data.FinalBlock.Valid() {
+				return ErrComponentType
+			}
+			if e = d1.ErrUnlessEOF(); e != nil {
+				return e
+			}
+		default:
+			if de.IsCriticalType() {
+				return tlv.ErrCritical
+			}
+		}
+	}
+	return d.ErrUnlessEOF()
+}
+
 func (data Data) encodeSignedPortion() (wire []byte, e error) {
 	fields := []tlv.Fielder{data.Name}
 
@@ -256,6 +291,9 @@ func (data Data) encodeSignedPortion() (wire []byte, e error) {
 	}
 	if data.Freshness > 0 {
 		metaFields = append(metaFields, tlv.TLVNNI(an.TtFreshnessPeriod, uint64(data.Freshness/time.Millisecond)))
+	}
+	if data.FinalBlock.Valid() {
+		metaFields = append(metaFields, tlv.TLVFrom(an.TtFinalBlock, data.FinalBlock))
 	}
 	if len(metaFields) > 0 {
 		fields = append(fields, tlv.TLV(an.TtMetaInfo, metaFields...))
@@ -282,3 +320,11 @@ func (ct *ContentType) UnmarshalBinary(wire []byte) error {
 	*ct = ContentType(n)
 	return e
 }
+
+// FinalBlock is passed to MakeData to set FinalBlock field.
+type FinalBlock NameComponent
+
+type tFinalBlockFlag bool
+
+// FinalBlockFlag enables MakeData to set FinalBlock to the last name component.
+const FinalBlockFlag = tFinalBlockFlag(true)

@@ -18,13 +18,14 @@ func TestDataEncode(t *testing.T) {
 	assert.Contains(string(wire), string(bytesFromHex("0703080141")))
 	assert.Equal("/8=A", data.String())
 
-	data = ndn.MakeData("/B", ndn.ContentType(3), 2500*time.Millisecond,
+	data = ndn.MakeData("/B/F", ndn.ContentType(3), 2500*time.Millisecond, ndn.FinalBlockFlag,
 		[]byte{0xC0, 0xC1},
 	)
+	assert.True(data.IsFinalBlock())
 	wire, e = tlv.EncodeFrom(data)
 	assert.NoError(e)
 	assert.Contains(string(wire),
-		string(bytesFromHex("name=0703080142 meta=1407 contenttype=180103 freshness=190209C4 content=1502C0C1")))
+		string(bytesFromHex("name=0706080142080146 meta=140C contenttype=180103 freshness=190209C4 finalblock=1A03080146 content=1502C0C1")))
 }
 
 func TestDataLpEncode(t *testing.T) {
@@ -34,14 +35,14 @@ func TestDataLpEncode(t *testing.T) {
 	lph.PitToken = ndn.PitTokenFromUint(0xF0F1F2F3F4F5F6F7)
 	lph.CongMark = 1
 	interest := ndn.MakeInterest("/A", lph, ndn.NonceFromUint(0xC0C1C2C3), ndn.MustBeFreshFlag)
-	data := ndn.MakeData(interest, bytesFromHex("content=C0C1"))
+	data := ndn.MakeData(interest, bytesFromHex("content=C0C1"), ndn.FinalBlock(ndn.ParseNameComponent("F")))
 
 	wire, e := tlv.EncodeFrom(data.ToPacket())
 	assert.NoError(e)
 	assert.Contains(string(wire),
 		string(bytesFromHex("pittoken=6208F0F1F2F3F4F5F6F7 congmark=FD03400101")))
 	assert.Contains(string(wire),
-		string(bytesFromHex("name=0703080141 meta=1403 freshness=190101 content=1502C0C1")))
+		string(bytesFromHex("name=0703080141 meta=1408 freshness=190101 finalblock=1A03080146 content=1502C0C1")))
 }
 
 func TestDataDecode(t *testing.T) {
@@ -66,6 +67,8 @@ func TestDataDecode(t *testing.T) {
 	nameEqual(assert, "/B/0", data)
 	assert.EqualValues(3, data.ContentType)
 	assert.Equal(260*time.Millisecond, data.Freshness)
+	assert.False(data.IsFinalBlock())
+	assert.True(data.FinalBlock.Equal(ndn.ParseNameComponent("1")))
 	assert.Equal([]byte{0xC0, 0xC1}, data.Content)
 }
 

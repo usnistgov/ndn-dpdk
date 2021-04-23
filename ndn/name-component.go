@@ -9,19 +9,19 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
 
+var (
+	unescapedChars = []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
+	hexChars       = []byte("0123456789ABCDEF")
+)
+
+func isValidNameComponentType(typ uint32) bool {
+	return typ >= 1 && typ <= 65535
+}
+
 // NameComponent represents a name component.
 // Zero value is invalid.
 type NameComponent struct {
 	tlv.Element
-}
-
-// MakeNameComponent constructs a NameComponent from TLV-TYPE and TLV-VALUE.
-func MakeNameComponent(typ uint32, value []byte) (comp NameComponent) {
-	comp.Element = tlv.Element{
-		Type:  typ,
-		Value: value,
-	}
-	return comp
 }
 
 // Valid checks whether this component has a valid TLV-TYPE.
@@ -94,6 +94,25 @@ func (comp NameComponent) writeStringTo(w *strings.Builder) {
 	}
 }
 
+// MakeNameComponent constructs a NameComponent from TLV-TYPE and TLV-VALUE.
+func MakeNameComponent(typ uint32, value []byte) (comp NameComponent) {
+	comp.Element = tlv.Element{
+		Type:  typ,
+		Value: value,
+	}
+	return comp
+}
+
+// NameComponentFrom constructs a NameComponent from TLV-TYPE and tlv.Fielder as TLV-VALUE.
+// If value encodes to an error, returns an invalid NameComponent.
+func NameComponentFrom(typ uint32, value tlv.Fielder) NameComponent {
+	v, e := value.Field().Encode(nil)
+	if e != nil {
+		return NameComponent{}
+	}
+	return MakeNameComponent(typ, v)
+}
+
 // ParseNameComponent parses URI representation of name component.
 // It uses best effort and can accept any input.
 func ParseNameComponent(input string) (comp NameComponent) {
@@ -134,10 +153,3 @@ func ParseNameComponent(input string) (comp NameComponent) {
 	comp.Value = value.Bytes()
 	return comp
 }
-
-func isValidNameComponentType(typ uint32) bool {
-	return typ >= 1 && typ <= 65535
-}
-
-var unescapedChars = []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
-var hexChars = []byte("0123456789ABCDEF")

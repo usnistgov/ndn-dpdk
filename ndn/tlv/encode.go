@@ -48,21 +48,21 @@ type Field struct {
 // Encode appends to the byte slice.
 func (f Field) Encode(b []byte) (o []byte, e error) {
 	switch f.typ {
+	case fieldTypeEmpty:
+		return b, nil
 	case fieldTypeError:
 		return nil, f.object.(error)
-	case fieldTypeEmpty:
 	case fieldTypeBytes:
-		b = append(b, f.object.([]byte)...)
+		return append(b, f.object.([]byte)...), nil
 	case fieldTypeNNI:
-		b = NNI(f.integer).Encode(b)
+		return NNI(f.integer).Encode(b), nil
 	case fieldTypeTLVFields:
-		b, e = f.encodeTLVFields(b)
+		return f.encodeTLVFields(b)
 	case fieldTypeTLVFielders:
-		b, e = f.encodeTLVFielders(b)
+		return f.encodeTLVFielders(b)
 	default:
 		panic(f.typ)
 	}
-	return b, e
 }
 
 func (f Field) encodeTLVFields(b []byte) (o []byte, e error) {
@@ -178,18 +178,16 @@ func EncodeFrom(fields ...Fielder) (wire []byte, e error) {
 	return eb.Output()
 }
 
-// EncodeValueOnly encodes a Field to TLV-VALUE only.
+// EncodeValueOnly returns TLV-VALUE of a Fielder created by TLV, TLVFrom, TLVBytes, or TLVNNI.
 func EncodeValueOnly(f Fielder) ([]byte, error) {
 	field := f.Field()
 	switch field.typ {
 	case fieldTypeError:
 		return nil, field.object.(error)
 	case fieldTypeTLVFields, fieldTypeTLVFielders:
-		break
+		field.integer = math.MaxUint64
+		return field.Encode(nil)
 	default:
 		return nil, ErrErrorField
 	}
-
-	field.integer = math.MaxUint64
-	return field.Encode(nil)
 }

@@ -13,34 +13,46 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 )
 
-// lFace is a logical face between endpoint (consumer or producer) and internal forwarder.
-type lFace struct {
-	ep2fw  chan *ndn.Packet
-	fw2ep  chan ndn.L3Packet
-	fwFace l3.FwFace
+type lFaceL3 struct {
+	*LFace
 }
 
-func (face *lFace) Transport() l3.Transport {
+func (face lFaceL3) Transport() l3.Transport {
 	panic("not supported")
 }
 
-func (face *lFace) Rx() <-chan *ndn.Packet {
+func (face lFaceL3) Rx() <-chan *ndn.Packet {
 	return face.ep2fw
 }
 
-func (face *lFace) Tx() chan<- ndn.L3Packet {
+func (face lFaceL3) Tx() chan<- ndn.L3Packet {
 	return face.fw2ep
 }
 
-func (face *lFace) State() l3.TransportState {
+func (face lFaceL3) State() l3.TransportState {
 	return l3.TransportUp
 }
 
-func (face *lFace) OnStateChange(cb func(st l3.TransportState)) io.Closer {
+func (face lFaceL3) OnStateChange(cb func(st l3.TransportState)) io.Closer {
 	panic("not supported")
 }
 
-func (face *lFace) Close() error {
+// LFace is a logical face between endpoint (consumer or producer) and internal forwarder.
+type LFace struct {
+	ep2fw  chan *ndn.Packet
+	fw2ep  chan ndn.L3Packet
+	FwFace l3.FwFace
+}
+
+func (face *LFace) Rx() <-chan ndn.L3Packet {
+	return face.fw2ep
+}
+
+func (face *LFace) Tx() chan<- *ndn.Packet {
+	return face.ep2fw
+}
+
+func (face *LFace) Close() error {
 	close(face.ep2fw)
 	go func() {
 		n := 0
@@ -48,14 +60,19 @@ func (face *lFace) Close() error {
 			n++
 		}
 	}()
-	return face.fwFace.Close()
+	return face.FwFace.Close()
 }
 
-func newLFace(fw l3.Forwarder) (face *lFace, e error) {
-	face = &lFace{
+// NewLFace creates a logical face to an internal forwarder.
+func NewLFace(fw l3.Forwarder) (face *LFace, e error) {
+	if fw == nil {
+		fw = l3.GetDefaultForwarder()
+	}
+	face = &LFace{
 		ep2fw: make(chan *ndn.Packet, 16),
 		fw2ep: make(chan ndn.L3Packet, 16),
 	}
-	face.fwFace, e = fw.AddFace(face)
+	l3face := lFaceL3{face}
+	face.FwFace, e = fw.AddFace(l3face)
 	return face, e
 }

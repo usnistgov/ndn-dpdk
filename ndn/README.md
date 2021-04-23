@@ -20,12 +20,12 @@ Packet encoding and decoding
   * Forwarding hint: yes
   * Signed Interest: basic support
 * [NDNLPv2](https://redmine.named-data.net/projects/nfd/wiki/NDNLPv2)
-  * Fragmentation and reassembly: no
+  * Fragmentation and reassembly: partial
   * Nack: yes
   * PIT token: yes
   * Congestion mark: yes
   * Link layer reliability: no
-* Naming Convention: no
+* Naming Convention: TLV-TYPE numbers only
 
 Transports
 
@@ -49,7 +49,7 @@ KeyChain
 Application layer services
 
 * Endpoint: yes
-* Segmented object producer and consumer: no
+* Segmented object: consumer only (in [package segmented](segmented))
 
 ## Getting Started
 

@@ -1,6 +1,7 @@
 package tgproducer_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -10,9 +11,11 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface/intface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
+	"github.com/usnistgov/ndn-dpdk/ndn/l3"
+	"github.com/usnistgov/ndn-dpdk/ndn/segmented"
 )
 
-func TestProducer(t *testing.T) {
+func TestPatterns(t *testing.T) {
 	assert, require := makeAR(t)
 
 	face := intface.MustNew()
@@ -113,4 +116,62 @@ func TestProducer(t *testing.T) {
 	assert.InDelta(60, nDataA0, 20)
 	assert.InDelta(40, nDataA1, 20)
 	assert.Equal(100, nNacksB)
+}
+
+func TestDataProducer(t *testing.T) {
+	assert, require := makeAR(t)
+
+	face := intface.MustNew()
+	defer face.D.Close()
+
+	nameP := ndn.ParseName("/P")
+	cfg := tgproducer.Config{
+		Patterns: []tgproducer.Pattern{
+			{
+				Prefix: nameP,
+				Replies: []tgproducer.Reply{
+					{
+						FreshnessPeriod: 100,
+						PayloadLen:      1000,
+					},
+				},
+			},
+		},
+	}
+
+	producer, e := tgproducer.New(face.D, 0, cfg)
+	require.NoError(e)
+	defer producer.Close()
+	producer.SetLCore(tgtestenv.WorkerLCores[0])
+	tgtestenv.DemuxI.SetDest(0, producer.RxQueue())
+	producer.Launch()
+
+	fw := l3.NewForwarder()
+	fwFace, e := fw.AddFace(face.A)
+	require.NoError(e)
+	fwFace.AddRoute(ndn.Name{})
+
+	fetcher := segmented.Fetch(nameP, segmented.FetchOptions{
+		Fw:           fw,
+		SegmentBegin: 0,
+		SegmentEnd:   5000,
+		RetxLimit:    10,
+	})
+
+	ordered := make(chan *ndn.Data)
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		e := fetcher.Ordered(ctx, ordered)
+		assert.NoError(e)
+	}()
+
+	received := 0
+	for range ordered {
+		received++
+	}
+	assert.Equal(5000, received)
+
+	e = producer.Stop()
+	assert.NoError(e)
 }

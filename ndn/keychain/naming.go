@@ -14,7 +14,7 @@ import (
 var (
 	ComponentKEY           = ndn.ParseNameComponent("KEY")
 	ComponentSelfIssuer    = ndn.ParseNameComponent("self")
-	ComponentDefaultIssuer = ndn.ParseNameComponent("ndn-dpdk.go")
+	ComponentDefaultIssuer = ndn.ParseNameComponent("NDNgo-keychain")
 )
 
 // Error conditions for certificate naming.
@@ -87,7 +87,6 @@ func makeRandomKeyID() ndn.NameComponent {
 }
 
 func makeVersionFromCurrentTime() (comp ndn.NameComponent) {
-	comp.Type = an.TtVersionNameComponent
-	comp.Value = tlv.NNI(time.Now().UnixNano() / int64(time.Microsecond/time.Nanosecond)).Encode(nil)
-	return
+	now := time.Now().UnixNano() / int64(time.Microsecond/time.Nanosecond)
+	return ndn.NameComponentFrom(an.TtVersionNameComponent, tlv.NNI(now))
 }

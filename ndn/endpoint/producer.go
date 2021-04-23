@@ -57,26 +57,19 @@ type ProducerOptions struct {
 	DataSigner ndn.Signer
 }
 
-func (opts *ProducerOptions) applyDefaults() {
-	if opts.Fw == nil {
-		opts.Fw = l3.GetDefaultForwarder()
-	}
-}
-
 // Produce starts a producer.
 func Produce(ctx context.Context, opts ProducerOptions) (Producer, error) {
-	opts.applyDefaults()
 	if opts.Handler == nil {
 		return nil, ErrNoHandler
 	}
 
-	face, e := newLFace(opts.Fw)
+	face, e := NewLFace(opts.Fw)
 	if e != nil {
 		return nil, e
 	}
-	face.fwFace.AddRoute(opts.Prefix)
+	face.FwFace.AddRoute(opts.Prefix)
 	if !opts.NoAdvertise {
-		face.fwFace.AddAnnouncement(opts.Prefix)
+		face.FwFace.AddAnnouncement(opts.Prefix)
 	}
 
 	ctx1, cancel := context.WithCancel(ctx)
@@ -96,7 +89,7 @@ type Producer interface {
 
 type producer struct {
 	ProducerOptions
-	face  *lFace
+	face  *LFace
 	close context.CancelFunc
 }
 
@@ -120,7 +113,7 @@ L:
 		case <-ctx.Done():
 			wg.Done()
 			return
-		case l3pkt := <-p.face.fw2ep:
+		case l3pkt := <-p.face.Rx():
 			pkt := l3pkt.ToPacket()
 			if pkt.Interest == nil {
 				continue L
@@ -166,6 +159,6 @@ func (p *producer) handleInterest(ctx context.Context, wg *sync.WaitGroup, pkt *
 	}
 	select {
 	case <-ctx.Done():
-	case p.face.ep2fw <- reply:
+	case p.face.Tx() <- reply:
 	}
 }

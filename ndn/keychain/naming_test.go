@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndn/keychain"
 )
 
@@ -48,8 +49,13 @@ func TestToCertName(t *testing.T) {
 
 	certName := keychain.ToCertName(ndn.ParseName("/owner/KEY/key-id"))
 	assert.Len(certName, 5)
+	nameIsPrefix(assert, "/owner/KEY/key-id", certName)
+	assert.True(certName[3].Equal(keychain.ComponentDefaultIssuer))
+	assert.EqualValues(an.TtVersionNameComponent, certName[4].Type)
 
 	certName = keychain.ToCertName(ndn.ParseName("/owner"))
 	assert.Len(certName, 5)
 	nameIsPrefix(assert, "/owner/KEY", certName)
+	assert.True(certName[3].Equal(keychain.ComponentDefaultIssuer))
+	assert.EqualValues(an.TtVersionNameComponent, certName[4].Type)
 }
