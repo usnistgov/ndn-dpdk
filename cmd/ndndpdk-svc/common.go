@@ -1,12 +1,15 @@
 package main
 
 import (
+	"time"
+
 	"github.com/usnistgov/ndn-dpdk/bpf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealconfig"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealinit"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev/ethvdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
+	"github.com/usnistgov/ndn-dpdk/iface"
 	"go.uber.org/zap"
 
 	_ "github.com/usnistgov/ndn-dpdk/iface/ethface"
@@ -39,4 +42,13 @@ func initXDPProgram() {
 	}
 
 	ethvdev.XDPProgram = path
+}
+
+func delayedShutdown(then func()) {
+	go func() {
+		iface.CloseAll()
+
+		time.Sleep(100 * time.Millisecond)
+		then()
+	}()
 }

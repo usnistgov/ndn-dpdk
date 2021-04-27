@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math/rand"
 	"os"
+	"os/signal"
 	"sync/atomic"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/mk/version"
 	"go.uber.org/zap"
+	"golang.org/x/sys/unix"
 )
 
 var logger = logging.New("main")
@@ -31,9 +33,7 @@ type activator interface {
 	Activate() error
 }
 
-func main() {
-	rand.Seed(time.Now().UnixNano())
-
+func init() {
 	gqlserver.AddMutation(&graphql.Field{
 		Name: "activate",
 		Description: "Activate NDN-DPDK service. " +
@@ -71,18 +71,12 @@ func main() {
 					return
 				}
 
-				logger.Info("activating",
-					zap.String("role", key),
-				)
+				logEntry := logger.With(zap.String("role", key))
+				logEntry.Info("activate start")
 				if e = arg.Activate(); e != nil {
-					go func() {
-						time.Sleep(time.Second)
-						logger.Fatal("activate error",
-							zap.String("role", key),
-							zap.Error(e),
-						)
-					}()
+					delayedShutdown(func() { logEntry.Fatal("activate error", zap.Error(e)) })
 				}
+				logEntry.Info("activate success")
 			}
 
 			tryActivate("forwarder", &fwArgs{})
@@ -98,47 +92,51 @@ func main() {
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 			logger.Info("shutdown requested")
 			daemon.SdNotify(false, daemon.SdNotifyStopping)
-			go func() {
-				time.Sleep(time.Second)
-				os.Exit(0)
-			}()
+			delayedShutdown(func() { os.Exit(0) })
 			return true, nil
 		},
 	})
+}
 
-	var gqlserverURI string
-	app := &cli.App{
-		Version: version.Get().String(),
-		Usage:   "Provide NDN-DPDK service.",
-		Flags: []cli.Flag{
-			&cli.StringFlag{
-				Name:        "gqlserver",
-				Value:       "http://127.0.0.1:3030/",
-				Usage:       "GraphQL `endpoint` of NDN-DPDK service",
-				Destination: &gqlserverURI,
-			},
+var app = &cli.App{
+	Version: version.Get().String(),
+	Usage:   "Provide NDN-DPDK service.",
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:  "gqlserver",
+			Usage: "GraphQL `endpoint` of NDN-DPDK service",
+			Value: "http://127.0.0.1:3030/",
 		},
-		Action: func(c *cli.Context) (e error) {
-			gqlserver.Start(gqlserverURI)
-			daemon.SdNotify(false, daemon.SdNotifyReady)
+	},
+	Action: func(c *cli.Context) (e error) {
+		gqlserver.Start(c.String("gqlserver"))
+		daemon.SdNotify(false, daemon.SdNotifyReady)
 
-			watchdog := func() <-chan time.Time {
-				d, e := daemon.SdWatchdogEnabled(false)
-				if d == 0 || e != nil {
-					logger.Debug("systemd watchdog not configured", zap.Error(e))
-					return nil
-				}
-				d /= 2
-				logger.Debug("systemd watchdog enabled",
-					zap.Duration("duration", d),
-				)
-				return time.Tick(d)
-			}()
-			for range watchdog {
-				daemon.SdNotify(false, daemon.SdNotifyWatchdog)
+		go func() {
+			c := make(chan os.Signal, 1)
+			signal.Notify(c, unix.SIGINT, unix.SIGTERM)
+			<-c
+			delayedShutdown(func() { os.Exit(0) })
+		}()
+
+		watchdog := func() <-chan time.Time {
+			d, e := daemon.SdWatchdogEnabled(false)
+			if d == 0 || e != nil {
+				logger.Debug("systemd watchdog not configured", zap.Error(e))
+				return nil
 			}
-			select {}
-		},
-	}
+			d /= 2
+			logger.Debug("systemd watchdog enabled", zap.Duration("duration", d))
+			return time.Tick(d)
+		}()
+		for range watchdog {
+			daemon.SdNotify(false, daemon.SdNotifyWatchdog)
+		}
+		select {}
+	},
+}
+
+func main() {
+	rand.Seed(time.Now().UnixNano())
 	app.Run(os.Args)
 }
