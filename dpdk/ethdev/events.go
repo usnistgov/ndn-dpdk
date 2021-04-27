@@ -1,8 +1,6 @@
 package ethdev
 
 import (
-	"io"
-
 	"github.com/usnistgov/ndn-dpdk/core/events"
 )
 
@@ -10,6 +8,6 @@ var detachEmitter = events.NewEmitter()
 
 // OnDetach registers a callback when a port is stopped and detached.
 // Return a Closer that cancels the callback registration.
-func OnDetach(dev EthDev, cb func()) io.Closer {
+func OnDetach(dev EthDev, cb func()) (cancel func()) {
 	return detachEmitter.Once(dev.ID(), cb)
 }

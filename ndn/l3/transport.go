@@ -1,9 +1,5 @@
 package l3
 
-import (
-	"io"
-)
-
 // Transport represents a communicate channel to send and receive TLV packets.
 type Transport interface {
 	// Rx returns a channel to receive incoming TLV elements.
@@ -20,8 +16,8 @@ type Transport interface {
 	State() TransportState
 
 	// OnStateChange registers a callback to be invoked when State() changes.
-	// Returns an io.Closer to cancel the callback registration.
-	OnStateChange(cb func(st TransportState)) io.Closer
+	// Returns a function to cancel the callback registration.
+	OnStateChange(cb func(st TransportState)) (cancel func())
 }
 
 // TransportQueueConfig defaults.

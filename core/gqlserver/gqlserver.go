@@ -69,9 +69,7 @@ func parseListenAddress(uri string) (listen string) {
 
 	u, e := url.Parse(uri)
 	if e != nil {
-		logger.Warn("gqlserver URI invalid, using the default",
-			zap.Error(e),
-		)
+		logger.Warn("gqlserver URI invalid, using the default", zap.Error(e))
 		return
 	}
 

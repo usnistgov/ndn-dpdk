@@ -155,9 +155,7 @@ func (port *Port) fallbackImpl() error {
 
 		logEntry = logEntry.With(zap.Stringer("old-impl", port.impl))
 		if e := port.impl.Close(); e != nil {
-			logEntry.Warn("impl close error",
-				zap.Error(e),
-			)
+			logEntry.Warn("impl close error", zap.Error(e))
 			return e
 		}
 
@@ -173,9 +171,7 @@ func (port *Port) fallbackImpl() error {
 	logEntry = logEntry.With(zap.Stringer("impl", port.impl))
 
 	if e := port.impl.Init(); e != nil {
-		logEntry.Info("impl init error, trying next impl",
-			zap.Error(e),
-		)
+		logEntry.Info("impl init error, trying next impl", zap.Error(e))
 		return port.fallbackImpl()
 	}
 
@@ -203,9 +199,7 @@ func (port *Port) startFace(face *ethFace, forceFallback bool) error {
 	}
 
 	if e := port.impl.Start(face); e != nil {
-		port.logger.Info("face start error, trying next impl",
-			zap.Error(e),
-		)
+		port.logger.Info("face start error, trying next impl", zap.Error(e))
 		return port.startFace(face, true)
 	}
 

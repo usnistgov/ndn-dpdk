@@ -32,9 +32,7 @@ func InitEnv() {
 
 	e := dlopen.LoadGroup("/usr/local/lib/libspdk.so")
 	if e != nil {
-		logger.Fatal("SPDK dlopen error",
-			zap.Error(e),
-		)
+		logger.Fatal("SPDK dlopen error", zap.Error(e))
 		return
 	}
 
@@ -64,9 +62,7 @@ func InitMainThread(assignThread chan<- *Thread) {
 	var e error
 	mainThread, e = NewThread()
 	if e != nil {
-		logger.Fatal("SPDK thread error",
-			zap.Error(e),
-		)
+		logger.Fatal("SPDK thread error", zap.Error(e))
 		return
 	}
 	mainThread.SetLCore(eal.MainLCore)
@@ -78,9 +74,7 @@ func InitMainThread(assignThread chan<- *Thread) {
 // Errors are fatal.
 func InitFinal() {
 	if e := initRPC(); e != nil {
-		logger.Fatal("SPDK RPC init error",
-			zap.Error(e),
-		)
+		logger.Fatal("SPDK RPC init error", zap.Error(e))
 		return
 	}
 }

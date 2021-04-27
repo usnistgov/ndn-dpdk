@@ -2,13 +2,11 @@
 package events
 
 import (
-	"io"
-
-	"github.com/chuckpreslar/emission"
+	"github.com/tul/emission"
 )
 
 // Emitter is a simple event emitter.
-// This is a thin wrapper of emission.Emitter that modifies emitter.On method to return an io.Closer that cancels the callback registration.
+// This is a thin wrapper of emission.Emitter that modifies emitter.On method to return a function that cancels the callback registration.
 type Emitter struct {
 	*emission.Emitter
 }
@@ -21,26 +19,19 @@ func NewEmitter() *Emitter {
 }
 
 // On registers a callback when an event occurs.
-// Returns an io.Closer that cancels the callback registration.
-func (emitter *Emitter) On(event, listener interface{}) io.Closer {
-	emitter.Emitter.On(event, listener)
-	return canceler{emitter.Emitter, event, listener}
+// Returns a function that cancels the callback registration.
+func (emitter *Emitter) On(event, listener interface{}) (cancel func()) {
+	hdl := emitter.Emitter.On(event, listener)
+	return emitter.makeCancel(event, hdl)
 }
 
 // Once registers a one-time callback when an event occurs.
-// Returns an io.Closer that cancels the callback registration.
-func (emitter *Emitter) Once(event, listener interface{}) io.Closer {
-	emitter.Emitter.Once(event, listener)
-	return canceler{emitter.Emitter, event, listener}
+// Returns a function that cancels the callback registration.
+func (emitter *Emitter) Once(event, listener interface{}) (cancel func()) {
+	hdl := emitter.Emitter.Once(event, listener)
+	return emitter.makeCancel(event, hdl)
 }
 
-type canceler struct {
-	emitter  *emission.Emitter
-	event    interface{}
-	listener interface{}
-}
-
-func (c canceler) Close() error {
-	c.emitter.Off(c.event, c.listener)
-	return nil
+func (emitter *Emitter) makeCancel(event interface{}, hdl emission.ListenerHandle) func() {
+	return func() { emitter.RemoveListener(event, hdl) }
 }

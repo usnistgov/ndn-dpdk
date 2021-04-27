@@ -39,9 +39,7 @@ var (
 func updateLogTypes() {
 	data, e := cptr.CaptureFileDump(func(fp unsafe.Pointer) { C.rte_log_dump((*C.FILE)(fp)) })
 	if e != nil {
-		logger.Error("rte_log_dump",
-			zap.Error(e),
-		)
+		logger.Error("rte_log_dump", zap.Error(e))
 		return
 	}
 
@@ -95,17 +93,13 @@ func initLogStream() {
 	var e error
 	logStream, e = cptr.NewFilePipeCGo(cptr.FilePipeConfig{NonBlock: true})
 	if e != nil {
-		logger.Error("cptr.NewFilePipeCGo",
-			zap.Error(e),
-		)
+		logger.Error("cptr.NewFilePipeCGo", zap.Error(e))
 		return
 	}
 
 	res := C.Logger_Dpdk_Init((*C.FILE)(logStream.Writer))
 	if res != 0 {
-		logger.Error("Logger_Dpdk_Init",
-			zap.Error(eal.Errno(-res)),
-		)
+		logger.Error("Logger_Dpdk_Init", zap.Error(eal.Errno(-res)))
 		return
 	}
 
@@ -128,9 +122,7 @@ func processLogStream() {
 	for {
 		line, e := r.ReadBytes('\n')
 		if e != nil {
-			logger.Error("logStream.Reader read line error",
-				zap.Error(e),
-			)
+			logger.Error("logStream.Reader read line error", zap.Error(e))
 		}
 
 		processLogLine(line)

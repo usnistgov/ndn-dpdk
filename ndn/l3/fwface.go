@@ -21,7 +21,7 @@ type FwFace interface {
 	io.Closer
 	Transport() Transport
 	State() TransportState
-	OnStateChange(cb func(st TransportState)) io.Closer
+	OnStateChange(cb func(st TransportState)) (cancel func())
 
 	AddRoute(name ndn.Name)
 	RemoveRoute(name ndn.Name)

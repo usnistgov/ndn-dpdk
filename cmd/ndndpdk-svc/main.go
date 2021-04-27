@@ -125,9 +125,7 @@ func main() {
 			watchdog := func() <-chan time.Time {
 				d, e := daemon.SdWatchdogEnabled(false)
 				if d == 0 || e != nil {
-					logger.Debug("systemd watchdog not configured",
-						zap.Error(e),
-					)
+					logger.Debug("systemd watchdog not configured", zap.Error(e))
 					return nil
 				}
 				d /= 2

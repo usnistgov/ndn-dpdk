@@ -55,9 +55,7 @@ DecodeLoop:
 
 	m.SetHeadroom(0)
 	if e := m.Append(wire[len(wire)-tplSize:]); e != nil {
-		logger.Panic("mbuf.Append error",
-			zap.Error(e),
-		)
+		logger.Panic("mbuf.Append error", zap.Error(e))
 	}
 
 	c := gen.ptr()

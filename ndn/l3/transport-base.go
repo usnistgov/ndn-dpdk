@@ -1,8 +1,6 @@
 package l3
 
 import (
-	"io"
-
 	"github.com/usnistgov/ndn-dpdk/core/events"
 )
 
@@ -34,7 +32,7 @@ func (b *TransportBase) State() TransportState {
 }
 
 // OnStateChange implements Transport.
-func (b *TransportBase) OnStateChange(cb func(st TransportState)) io.Closer {
+func (b *TransportBase) OnStateChange(cb func(st TransportState)) (cancel func()) {
 	return b.emitter.On(evtStateChange, cb)
 }
 

@@ -48,21 +48,21 @@ func TestEvents(t *testing.T) {
 	var faceClosedEvts []iface.ID
 	defer iface.OnFaceNew(func(id iface.ID) {
 		faceNewEvts = append(faceNewEvts, id)
-	}).Close()
+	})()
 	defer iface.OnFaceUp(func(id iface.ID) {
 		faceUpEvts = append(faceUpEvts, id)
-	}).Close()
+	})()
 	defer iface.OnFaceDown(func(id iface.ID) {
 		faceDownEvts = append(faceDownEvts, id)
-	}).Close()
+	})()
 	defer iface.OnFaceClosing(func(id iface.ID) {
 		faceClosingEvts = append(faceClosingEvts, id)
-	}).Close()
+	})()
 	defer iface.OnFaceClosed(func(id iface.ID) {
 		faceClosedEvts = append(faceClosedEvts, id)
 		assert.Len(faceClosingEvts, len(faceClosedEvts))
 		assert.Equal(id, faceClosedEvts[len(faceClosingEvts)-1])
-	}).Close()
+	})()
 
 	face1 := intface.MustNew()
 	face2 := intface.MustNew()

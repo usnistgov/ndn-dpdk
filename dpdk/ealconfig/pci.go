@@ -81,9 +81,7 @@ func ParsePCIAddress(input string) (a PCIAddress, e error) {
 func MustParsePCIAddress(input string) (a PCIAddress) {
 	var e error
 	if a, e = ParsePCIAddress(input); e != nil {
-		logger.Panic("MustParsePCIAddress",
-			zap.Error(e),
-		)
+		logger.Panic("MustParsePCIAddress", zap.Error(e))
 	}
 	return a
 }

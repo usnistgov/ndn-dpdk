@@ -34,9 +34,7 @@ func (a CommonArgs) apply(req ealconfig.Request) error {
 func initXDPProgram() {
 	path, e := bpf.XDP.Find("map0")
 	if e != nil {
-		logger.Warn("XDP program not found, AF_XDP may not work correctly",
-			zap.Error(e),
-		)
+		logger.Warn("XDP program not found, AF_XDP may not work correctly", zap.Error(e))
 		return
 	}
 

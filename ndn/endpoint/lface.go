@@ -7,8 +7,6 @@
 package endpoint
 
 import (
-	"io"
-
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 )
@@ -33,7 +31,7 @@ func (face lFaceL3) State() l3.TransportState {
 	return l3.TransportUp
 }
 
-func (face lFaceL3) OnStateChange(cb func(st l3.TransportState)) io.Closer {
+func (face lFaceL3) OnStateChange(cb func(st l3.TransportState)) (cancel func()) {
 	panic("not supported")
 }
 

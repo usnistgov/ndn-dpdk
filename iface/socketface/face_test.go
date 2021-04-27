@@ -73,12 +73,12 @@ func checkStreamRedialing(t *testing.T, listener net.Listener, makeFaceA func() 
 		if id == faceA.ID() {
 			hasDownEvt = true
 		}
-	}).Close()
+	})()
 	defer iface.OnFaceUp(func(id iface.ID) {
 		if id == faceA.ID() {
 			hasUpEvt = true
 		}
-	}).Close()
+	})()
 
 	accepted, e := listener.Accept()
 	require.NoError(e)

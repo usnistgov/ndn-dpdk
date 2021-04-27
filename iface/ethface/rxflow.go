@@ -85,9 +85,7 @@ func (impl *rxFlowImpl) Init() error {
 	}
 
 	if e := impl.setIsolate(true); e != nil {
-		impl.port.logger.Warn("flow isolated mode unavailable",
-			zap.Error(e),
-		)
+		impl.port.logger.Warn("flow isolated mode unavailable", zap.Error(e))
 	}
 
 	nRxQueues := math.MinInt(int(devInfo.Max_rx_queues), rxfMaxPortQueues)

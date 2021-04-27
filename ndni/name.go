@@ -19,9 +19,7 @@ func PNameToName(pname unsafe.Pointer) (name ndn.Name) {
 	}
 	value := C.GoBytes(unsafe.Pointer(p.value), C.int(p.length))
 	if e := name.UnmarshalBinary(value); e != nil {
-		logger.Panic("name.UnmarshalBinary error",
-			zap.Error(e),
-		)
+		logger.Panic("name.UnmarshalBinary error", zap.Error(e))
 	}
 	return name
 }

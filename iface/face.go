@@ -188,9 +188,7 @@ func newFace(p NewParams) (Face, error) {
 
 	initResult, e := p.Init(f)
 	if e != nil {
-		logEntry.Warn("init error",
-			zap.Error(e),
-		)
+		logEntry.Warn("init error", zap.Error(e))
 		return f.clear(), e
 	}
 	logEntry = logEntry.With(zap.Any("locator", f.Locator()))
@@ -204,9 +202,7 @@ func newFace(p NewParams) (Face, error) {
 
 	outputQueue, e := ringbuffer.New(p.OutputQueueSize, p.Socket, ringbuffer.ProducerMulti, ringbuffer.ConsumerSingle)
 	if e != nil {
-		logEntry.Warn("outputQueue error",
-			zap.Error(e),
-		)
+		logEntry.Warn("outputQueue error", zap.Error(e))
 		return f.clear(), e
 	}
 	c.outputQueue = (*C.struct_rte_ring)(outputQueue.Ptr())
@@ -215,9 +211,7 @@ func newFace(p NewParams) (Face, error) {
 	defer C.free(unsafe.Pointer(reassID))
 	if ok := bool(C.Reassembler_Init(&c.impl.rx.reass, reassID, C.uint32_t(p.ReassemblerCapacity), C.unsigned(p.Socket.ID()))); !ok {
 		e := eal.GetErrno()
-		logEntry.Warn("Reassembler_Init error",
-			zap.Error(e),
-		)
+		logEntry.Warn("Reassembler_Init error", zap.Error(e))
 		return f.clear(), e
 	}
 
@@ -225,9 +219,7 @@ func newFace(p NewParams) (Face, error) {
 
 	f2, e := p.Start(f)
 	if e != nil {
-		logEntry.Warn("start error",
-			zap.Error(e),
-		)
+		logEntry.Warn("start error", zap.Error(e))
 		return f.clear(), e
 	}
 

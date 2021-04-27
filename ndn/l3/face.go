@@ -10,8 +10,6 @@
 package l3
 
 import (
-	"io"
-
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
@@ -32,7 +30,7 @@ type Face interface {
 	Tx() chan<- ndn.L3Packet
 
 	State() TransportState
-	OnStateChange(cb func(st TransportState)) io.Closer
+	OnStateChange(cb func(st TransportState)) (cancel func())
 }
 
 // NewFace creates a Face.

@@ -127,9 +127,7 @@ func (tpl *template) Get(socket eal.NumaSocket) *Pool {
 
 	pool, e := NewPool(tpl.cfg, useSocket)
 	if e != nil {
-		logEntry.Fatal("mempool creation failed",
-			zap.Error(e),
-		)
+		logEntry.Fatal("mempool creation failed", zap.Error(e))
 	}
 	tpl.pools[useSocket] = pool
 	logEntry.Debug("mempool created",
