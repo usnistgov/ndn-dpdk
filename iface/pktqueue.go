@@ -94,6 +94,9 @@ func (q *PktQueue) Init(cfg PktQueueConfig, socket eal.NumaSocket) error {
 // Close deallocates the PktQueue.
 func (q *PktQueue) Close() error {
 	ring := ringbuffer.FromPtr(unsafe.Pointer(q.ptr().ring))
+	if ring == nil {
+		return nil
+	}
 	return ring.Close()
 }
 

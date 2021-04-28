@@ -6,7 +6,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"go4.org/must"
+	"go.uber.org/multierr"
 )
 
 // LCoreAlloc roles.
@@ -99,12 +99,15 @@ func (app *App) launchInput(input *Input) {
 
 // Stop stops and closes the traffic generator.
 func (app *App) Close() error {
+	errs := []error{}
 	for _, task := range app.Tasks {
-		task.close()
+		errs = append(errs, task.close())
 	}
 	for _, input := range app.inputs {
-		input.rxl.Stop()
-		must.Close(input.rxl)
+		errs = append(errs,
+			input.rxl.Stop(),
+			input.rxl.Close(),
+		)
 	}
-	return nil
+	return multierr.Combine(errs...)
 }

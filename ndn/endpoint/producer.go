@@ -132,8 +132,8 @@ func (p *producer) handleInterest(ctx context.Context, wg *sync.WaitGroup, pkt *
 		return
 	}
 
-	ctx1, cancel := context.WithTimeout(ctx, interest.ApplyDefaultLifetime())
-	defer cancel()
+	ctx1, cancel1 := context.WithTimeout(ctx, interest.ApplyDefaultLifetime())
+	defer cancel1()
 	data, e := p.Handler(ctx1, *interest)
 
 	var reply *ndn.Packet

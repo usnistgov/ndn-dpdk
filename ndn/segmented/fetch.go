@@ -213,7 +213,7 @@ func (f *fetcher) Unordered(ctx context.Context, unordered chan<- *ndn.Data) err
 
 			fs.setTimeNow(rtte.Rto())
 			fs.NRetx++
-			face.Tx() <- f.makeInterest(seg).ToPacket()
+			face.Send(f.makeInterest(seg).ToPacket())
 
 		case segNext <= segLast:
 			seg := segNext
@@ -222,7 +222,7 @@ func (f *fetcher) Unordered(ctx context.Context, unordered chan<- *ndn.Data) err
 			fs := &fetchSeg{}
 			fs.setTimeNow(rtte.Rto())
 			pendings[seg] = fs
-			face.Tx() <- f.makeInterest(seg).ToPacket()
+			face.Send(f.makeInterest(seg).ToPacket())
 
 		case len(pendings) == 0:
 			return nil

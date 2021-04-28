@@ -2,7 +2,7 @@
 
 This package is the [traffic generator](../tg) consumer.
 It may act as a [ndnping client](https://github.com/named-data/ndn-tools/blob/ndn-tools-0.7.1/tools/ping/README.md#ndnping-protocol).
-It requires two threads, running `TgConsumerTx_Run` and `TgConsumerRx_Run` functions.
+It requires two threads, running `TgcTx_Run` and `TgcRx_Run` functions.
 
 The consumer sends Interests and receives Data or Nacks.
 It supports multiple configurable patterns:

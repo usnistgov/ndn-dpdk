@@ -2,15 +2,13 @@
 
 #include "../core/logger.h"
 #include "../iface/face.h"
-#include "token.h"
 
-N_LOG_INIT(TgConsumer);
+N_LOG_INIT(Tgc);
 
 __attribute__((nonnull)) static bool
-TgConsumerRx_GetSeqNumFromName(TgConsumerRx* cr, const TgConsumerRxPattern* pattern,
-                               const PName* name, uint64_t* seqNum)
+TgcRx_GetSeqNumFromName(TgcRx* cr, const TgcRxPattern* pattern, const PName* name, uint64_t* seqNum)
 {
-  if (unlikely(name->length < pattern->prefixLen + TGCONSUMER_SUFFIX_LEN)) {
+  if (unlikely(name->length < pattern->prefixLen + TGCONSUMER_SEQNUM_SIZE)) {
     return false;
   }
 
@@ -24,46 +22,46 @@ TgConsumerRx_GetSeqNumFromName(TgConsumerRx* cr, const TgConsumerRxPattern* patt
 }
 
 __attribute__((nonnull)) static void
-TgConsumerRx_ProcessData(TgConsumerRx* cr, Packet* npkt)
+TgcRx_ProcessData(TgcRx* cr, Packet* npkt)
 {
   uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
-  uint8_t patternId = TgToken_GetPatternId(token);
-  TgConsumerRxPattern* pattern = &cr->pattern[patternId];
+  uint8_t id = TgcToken_GetPatternID(token);
+  TgcRxPattern* pattern = &cr->pattern[id];
 
   const PData* data = Packet_GetDataHdr(npkt);
   uint64_t seqNum;
-  if (unlikely(TgToken_GetRunNum(token) != cr->runNum || patternId >= cr->nPatterns ||
-               !TgConsumerRx_GetSeqNumFromName(cr, pattern, &data->name, &seqNum))) {
+  if (unlikely(TgcToken_GetRunNum(token) != cr->runNum || id >= cr->nPatterns ||
+               !TgcRx_GetSeqNumFromName(cr, pattern, &data->name, &seqNum))) {
     return;
   }
 
-  N_LOGD(">D seq=%" PRIx64 " pattern=%d", seqNum, patternId);
+  N_LOGD(">D seq=%" PRIx64 " pattern=%d", seqNum, id);
   ++pattern->nData;
-  TgTime recvTime = TgTime_FromTsc(Mbuf_GetTimestamp(Packet_ToMbuf(npkt)));
-  TgTime sendTime = TgToken_GetTimestamp(token);
+  TscTime recvTime = Mbuf_GetTimestamp(Packet_ToMbuf(npkt));
+  TscTime sendTime = TgcToken_GetTimestamp(token);
   RunningStat_Push(&pattern->rtt, recvTime - sendTime);
 }
 
 __attribute__((nonnull)) static void
-TgConsumerRx_ProcessNack(TgConsumerRx* cr, Packet* npkt)
+TgcRx_ProcessNack(TgcRx* cr, Packet* npkt)
 {
   uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
-  uint8_t patternId = TgToken_GetPatternId(token);
-  TgConsumerRxPattern* pattern = &cr->pattern[patternId];
+  uint8_t id = TgcToken_GetPatternID(token);
+  TgcRxPattern* pattern = &cr->pattern[id];
 
   const PNack* nack = Packet_GetNackHdr(npkt);
   uint64_t seqNum;
-  if (unlikely(TgToken_GetRunNum(token) != cr->runNum || patternId >= cr->nPatterns ||
-               !TgConsumerRx_GetSeqNumFromName(cr, pattern, &nack->interest.name, &seqNum))) {
+  if (unlikely(TgcToken_GetRunNum(token) != cr->runNum || id >= cr->nPatterns ||
+               !TgcRx_GetSeqNumFromName(cr, pattern, &nack->interest.name, &seqNum))) {
     return;
   }
 
-  N_LOGD(">N seq=%" PRIx64 " pattern=%d", seqNum, patternId);
+  N_LOGD(">N seq=%" PRIx64 " pattern=%d", seqNum, id);
   ++pattern->nNacks;
 }
 
 int
-TgConsumerRx_Run(TgConsumerRx* cr)
+TgcRx_Run(TgcRx* cr)
 {
   struct rte_mbuf* pkts[MaxBurstSize];
   while (ThreadStopFlag_ShouldContinue(&cr->stop)) {
@@ -73,10 +71,10 @@ TgConsumerRx_Run(TgConsumerRx* cr)
       Packet* npkt = Packet_FromMbuf(pkts[i]);
       switch (Packet_GetType(npkt)) {
         case PktData:
-          TgConsumerRx_ProcessData(cr, npkt);
+          TgcRx_ProcessData(cr, npkt);
           break;
         case PktNack:
-          TgConsumerRx_ProcessNack(cr, npkt);
+          TgcRx_ProcessNack(cr, npkt);
           break;
         default:
           NDNDPDK_ASSERT(false);

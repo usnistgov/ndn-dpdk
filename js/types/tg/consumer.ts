@@ -1,13 +1,10 @@
-import type { Counter, Name, NNMilliseconds, NNNanoseconds, RunningStatSnapshot } from "../core";
-import type { PktQueueConfig } from "../pktqueue";
+import type { Counter, Name, NNMilliseconds, RunningStatSnapshot } from "../core";
 
-export interface TgConsumerConfig {
-  rxQueue?: PktQueueConfig;
-  patterns: TgConsumerPattern[];
-  interval: NNNanoseconds;
-}
-
-export interface TgConsumerPattern {
+/**
+ * Traffic generator consumer pattern definition.
+ * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/app/tgconsumer#Pattern>
+ */
+export interface TgcPattern {
   /**
      * @TJS-type integer
      * @default 1
@@ -46,13 +43,13 @@ export interface TgConsumerPattern {
   seqNumOffset?: number;
 }
 
-export interface TgConsumerCounters extends TgConsumerCounters.PacketCounters {
+export interface TgcCounters extends TgcCounters.PacketCounters {
   nAllocError: Counter;
   rtt: RunningStatSnapshot;
-  perPattern: TgConsumerCounters.PatternCounters[];
+  perPattern: TgcCounters.PatternCounters[];
 }
 
-export namespace TgConsumerCounters {
+export namespace TgcCounters {
   export interface PacketCounters {
     nInterests: Counter;
     nData: Counter;

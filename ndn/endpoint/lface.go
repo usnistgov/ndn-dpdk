@@ -42,14 +42,28 @@ type LFace struct {
 	FwFace l3.FwFace
 }
 
+// Rx returns a channel for receiving packets from internal forwarder.
 func (face *LFace) Rx() <-chan ndn.L3Packet {
 	return face.fw2ep
 }
 
+// Tx returns a channel for sending packets to internal forwarder.
 func (face *LFace) Tx() chan<- *ndn.Packet {
 	return face.ep2fw
 }
 
+// Send attempts to send a packet to internal forwarder.
+// Returns true if packet is queued, or false if packet is dropped.
+func (face *LFace) Send(pkt *ndn.Packet) bool {
+	select {
+	case face.ep2fw <- pkt:
+		return true
+	default:
+		return false
+	}
+}
+
+// Close closes the logical face.
 func (face *LFace) Close() error {
 	close(face.ep2fw)
 	go func() {

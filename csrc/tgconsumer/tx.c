@@ -1,27 +1,26 @@
 #include "tx.h"
 
 #include "../core/logger.h"
-#include "token.h"
 
-N_LOG_INIT(TgConsumer);
+N_LOG_INIT(Tgc);
 
-__attribute__((nonnull)) static PingPatternId
-TgConsumerTx_SelectPattern(TgConsumerTx* ct)
+__attribute__((nonnull)) static TgcPatternID
+TgcTx_SelectPattern(TgcTx* ct)
 {
-  uint32_t rnd = pcg32_random_r(&ct->trafficRng);
-  return ct->weight[rnd % ct->nWeights];
+  uint32_t w = pcg32_boundedrand_r(&ct->trafficRng, ct->nWeights);
+  return ct->weight[w];
 }
 
 __attribute__((nonnull)) static void
-TgConsumerTx_MakeInterest(TgConsumerTx* ct, struct rte_mbuf* pkt, TgTime now)
+TgcTx_MakeInterest(TgcTx* ct, struct rte_mbuf* pkt, TscTime now)
 {
-  PingPatternId patternId = TgConsumerTx_SelectPattern(ct);
-  TgConsumerTxPattern* pattern = &ct->pattern[patternId];
+  TgcPatternID id = TgcTx_SelectPattern(ct);
+  TgcTxPattern* pattern = &ct->pattern[id];
   ++pattern->nInterests;
 
   uint64_t seqNum = 0;
   if (unlikely(pattern->seqNumOffset != 0)) {
-    TgConsumerTxPattern* basePattern = &ct->pattern[patternId - 1];
+    TgcTxPattern* basePattern = &ct->pattern[id - 1];
     seqNum = basePattern->seqNum.compV - pattern->seqNumOffset;
     if (unlikely(seqNum == pattern->seqNum.compV)) {
       ++seqNum;
@@ -30,33 +29,33 @@ TgConsumerTx_MakeInterest(TgConsumerTx* ct, struct rte_mbuf* pkt, TgTime now)
   } else {
     seqNum = ++pattern->seqNum.compV;
   }
-  LName nameSuffix = { .length = TGCONSUMER_SUFFIX_LEN, .value = &pattern->seqNum.compT };
+  LName nameSuffix = { .length = TGCONSUMER_SEQNUM_SIZE, .value = &pattern->seqNum.compT };
 
   uint32_t nonce = NonceGen_Next(&ct->nonceGen);
   Packet* npkt = InterestTemplate_Encode(&pattern->tpl, pkt, nameSuffix, nonce);
-  Packet_GetLpL3Hdr(npkt)->pitToken = TgToken_New(patternId, ct->runNum, now);
-  N_LOGD("<I pattern=%" PRIu8 " seq=%" PRIx64 "", patternId, seqNum);
+  Packet_GetLpL3Hdr(npkt)->pitToken = TgcToken_New(id, ct->runNum, now);
+  N_LOGD("<I pattern=%" PRIu8 " seq=%" PRIx64 "", id, seqNum);
 }
 
 __attribute__((nonnull)) static void
-TgConsumerTx_Burst(TgConsumerTx* ct)
+TgcTx_Burst(TgcTx* ct)
 {
-  struct rte_mbuf* pkts[TGCONSUMER_TX_BURST_SIZE];
-  int res = rte_pktmbuf_alloc_bulk(ct->interestMp, pkts, TGCONSUMER_TX_BURST_SIZE);
+  struct rte_mbuf* pkts[MaxBurstSize];
+  int res = rte_pktmbuf_alloc_bulk(ct->interestMp, pkts, MaxBurstSize);
   if (unlikely(res != 0)) {
     N_LOGW("interestMp-full");
     return;
   }
 
-  TgTime now = TgTime_Now();
-  for (uint16_t i = 0; i < TGCONSUMER_TX_BURST_SIZE; ++i) {
-    TgConsumerTx_MakeInterest(ct, pkts[i], now);
+  TscTime now = rte_get_tsc_cycles();
+  for (uint16_t i = 0; i < MaxBurstSize; ++i) {
+    TgcTx_MakeInterest(ct, pkts[i], now);
   }
-  Face_TxBurst(ct->face, (Packet**)pkts, TGCONSUMER_TX_BURST_SIZE);
+  Face_TxBurst(ct->face, (Packet**)pkts, MaxBurstSize);
 }
 
 int
-TgConsumerTx_Run(TgConsumerTx* ct)
+TgcTx_Run(TgcTx* ct)
 {
   TscTime nextTxBurst = rte_get_tsc_cycles();
   while (ThreadStopFlag_ShouldContinue(&ct->stop)) {
@@ -64,7 +63,7 @@ TgConsumerTx_Run(TgConsumerTx* ct)
       rte_pause();
       continue;
     }
-    TgConsumerTx_Burst(ct);
+    TgcTx_Burst(ct);
     nextTxBurst += ct->burstInterval;
   }
   return 0;

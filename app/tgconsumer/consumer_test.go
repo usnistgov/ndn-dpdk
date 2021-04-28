@@ -7,7 +7,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/app/tgconsumer"
 	"github.com/usnistgov/ndn-dpdk/app/tgtestenv"
-	"github.com/usnistgov/ndn-dpdk/core/nnduration"
+	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/intface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 )
@@ -18,36 +18,35 @@ func TestConsumer(t *testing.T) {
 	face := intface.MustNew()
 	defer face.D.Close()
 
+	c, e := tgconsumer.New(face.D, iface.PktQueueConfig{})
+	require.NoError(e)
+	defer c.Close()
+
 	nameA := ndn.ParseName("/A")
 	nameB := ndn.ParseName("/B")
-	cfg := tgconsumer.Config{
-		Patterns: []tgconsumer.Pattern{
-			{
-				Weight:           50,
-				Prefix:           nameA,
-				CanBePrefix:      true,
-				MustBeFresh:      true,
-				InterestLifetime: 500,
-				HopLimit:         10,
-			},
-			{
-				Weight: 45,
-				Prefix: nameB,
-			},
-			{
-				Weight:       5,
-				Prefix:       nameB,
-				SeqNumOffset: 100,
-			},
+	require.NoError(c.SetPatterns([]tgconsumer.Pattern{
+		{
+			Weight:           50,
+			Prefix:           nameA,
+			CanBePrefix:      true,
+			MustBeFresh:      true,
+			InterestLifetime: 500,
+			HopLimit:         10,
 		},
-		Interval: nnduration.Nanoseconds(200000),
-	}
+		{
+			Weight: 45,
+			Prefix: nameB,
+		},
+		{
+			Weight:       5,
+			Prefix:       nameB,
+			SeqNumOffset: 100,
+		},
+	}))
 
-	consumer, e := tgconsumer.New(face.D, cfg)
-	require.NoError(e)
-	defer consumer.Close()
-	consumer.SetLCores(tgtestenv.WorkerLCores[0], tgtestenv.WorkerLCores[1])
-	tgtestenv.DemuxD.SetDest(0, consumer.RxQueue())
+	require.NoError(c.SetInterval(200 * time.Microsecond))
+	c.SetLCores(tgtestenv.WorkerLCores[0], tgtestenv.WorkerLCores[1])
+	tgtestenv.DemuxD.SetDest(0, c.RxQueue())
 
 	nInterestsA := 0
 	nInterestsB1 := 0
@@ -89,13 +88,13 @@ func TestConsumer(t *testing.T) {
 		close(face.Tx)
 	}()
 
-	assert.InDelta(200*time.Microsecond, consumer.Interval(), float64(1*time.Microsecond))
-	consumer.Launch()
+	assert.InDelta(200*time.Microsecond, c.Interval(), float64(1*time.Microsecond))
+	c.Launch()
 
 	time.Sleep(900 * time.Millisecond)
 
 	timeBeforeStop := time.Now()
-	e = consumer.Stop(200 * time.Millisecond)
+	e = c.Stop(200 * time.Millisecond)
 	assert.NoError(e)
 	assert.InDelta(200*time.Millisecond, time.Since(timeBeforeStop), float64(50*time.Millisecond))
 
@@ -106,7 +105,7 @@ func TestConsumer(t *testing.T) {
 	assert.InDelta(nInterests*0.05, nInterestsB2, 100)
 	assert.LessOrEqual(nInterestsB2Far, nInterestsB2/10)
 
-	cnt := consumer.ReadCounters()
+	cnt := c.ReadCounters()
 	assert.InDelta(nInterests, cnt.NInterests, 500)
 	assert.InDelta(nInterests, cnt.NData, 500)
 	require.Len(cnt.PerPattern, 3)

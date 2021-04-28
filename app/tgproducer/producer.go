@@ -6,17 +6,14 @@ package tgproducer
 */
 import "C"
 import (
-	"fmt"
 	"math/rand"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
-	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
-	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"go4.org/must"
 )
@@ -24,113 +21,127 @@ import (
 // Producer represents a traffic generator producer thread.
 type Producer struct {
 	ealthread.Thread
-	c         *C.TgProducer
-	payloadMp *pktmbuf.Pool
+	c        *C.Tgp
+	patterns []Pattern
 }
 
-// New creates a Producer.
-func New(face iface.Face, index int, cfg Config) (producer *Producer, e error) {
-	faceID := face.ID()
-	socket := face.NumaSocket()
-	producer = &Producer{
-		c:         (*C.TgProducer)(eal.Zmalloc("TgProducer", C.sizeof_TgProducer, socket)),
-		payloadMp: ndni.PayloadMempool.Get(socket),
-	}
-
-	cfg.RxQueue.DisableCoDel = true
-	if e := iface.PktQueueFromPtr(unsafe.Pointer(&producer.c.rxQueue)).Init(cfg.RxQueue, socket); e != nil {
-		eal.Free(producer.c)
-		return nil, nil
-	}
-
-	producer.c.face = (C.FaceID)(faceID)
-	producer.c.wantNackNoRoute = C.bool(cfg.Nack)
-	C.pcg32_srandom_r(&producer.c.replyRng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
-
-	(*ndni.Mempools)(unsafe.Pointer(&producer.c.mp)).Assign(socket, ndni.DataMempool)
-
-	producer.Thread = ealthread.New(
-		cptr.Func0.C(unsafe.Pointer(C.TgProducer_Run), unsafe.Pointer(producer.c)),
-		ealthread.InitStopFlag(unsafe.Pointer(&producer.c.stop)),
-	)
-
-	for i, pattern := range cfg.Patterns {
-		if _, e := producer.addPattern(pattern); e != nil {
-			return nil, fmt.Errorf("pattern(%d): %s", i, e)
-		}
-	}
-
-	return producer, nil
+// Patterns returns traffic patterns.
+func (p Producer) Patterns() []Pattern {
+	return p.patterns
 }
 
-func (producer *Producer) addPattern(cfg Pattern) (index int, e error) {
-	if producer.c.nPatterns >= C.TGPRODUCER_MAX_PATTERNS {
-		return -1, fmt.Errorf("cannot add more than %d patterns", C.TGPRODUCER_MAX_PATTERNS)
+// SetPatterns sets new traffic patterns.
+// This can only be used when the thread is stopped.
+func (p *Producer) SetPatterns(inputPatterns []Pattern) error {
+	if len(inputPatterns) == 0 {
+		return ErrNoPattern
 	}
-	if len(cfg.Replies) < 1 || len(cfg.Replies) > C.TGPRODUCER_MAX_REPLIES {
-		return -1, fmt.Errorf("must have between 1 and %d reply definitions", C.TGPRODUCER_MAX_REPLIES)
+	if len(inputPatterns) > MaxPatterns {
+		return ErrTooManyPatterns
 	}
-
-	index = int(producer.c.nPatterns)
-	patternC := &producer.c.pattern[index]
-	*patternC = C.TgProducerPattern{}
-
-	prefixV, _ := cfg.Prefix.MarshalBinary()
-	if len(prefixV) > len(patternC.prefixBuffer) {
-		return -1, fmt.Errorf("prefix too long")
-	}
-	for i, b := range prefixV {
-		patternC.prefixBuffer[i] = C.uint8_t(b)
-	}
-	patternC.prefix.value = &patternC.prefixBuffer[0]
-	patternC.prefix.length = C.uint16_t(len(prefixV))
-
-	for i, reply := range cfg.Replies {
-		if reply.Weight < 1 {
-			reply.Weight = 1
+	patterns := []Pattern{}
+	nDataGen := 0
+	for _, pattern := range inputPatterns {
+		sumWeight, nData := pattern.applyDefaults()
+		if sumWeight > MaxSumWeight {
+			return ErrTooManyWeights
 		}
-		if patternC.nWeights+C.uint16_t(reply.Weight) >= C.TGPRODUCER_MAX_SUM_WEIGHT {
-			return -1, fmt.Errorf("sum of weight cannot exceed %d", C.TGPRODUCER_MAX_SUM_WEIGHT)
+		nDataGen += nData
+		if len(pattern.prefixV) > ndni.NameMaxLength {
+			return ErrPrefixTooLong
 		}
-		for j := 0; j < reply.Weight; j++ {
-			patternC.weight[patternC.nWeights] = C.PingReplyId(i)
-			patternC.nWeights++
-		}
+		patterns = append(patterns, pattern)
+	}
 
-		replyC := &patternC.reply[i]
-		switch {
-		case reply.Timeout:
-			replyC.kind = C.TGPRODUCER_REPLY_TIMEOUT
-		case reply.Nack != an.NackNone:
-			replyC.kind = C.TGPRODUCER_REPLY_NACK
-			replyC.nackReason = C.uint8_t(reply.Nack)
-		default:
-			replyC.kind = C.TGPRODUCER_REPLY_DATA
-			vec, e := producer.payloadMp.Alloc(1)
-			if e != nil {
-				return -1, fmt.Errorf("cannot allocate from payloadMp for reply definition %d", i)
+	payloadMp := ndni.PayloadMempool.Get(p.Face().NumaSocket())
+	dataGenVec, e := payloadMp.Alloc(nDataGen)
+	if e != nil {
+		return e
+	}
+
+	if p.IsRunning() {
+		return ealthread.ErrRunning
+	}
+
+	p.patterns = patterns
+	p.c.nPatterns = C.uint8_t(len(patterns))
+	for i, pattern := range patterns {
+		c := &p.c.pattern[i]
+		*c = C.TgpPattern{
+			nReplies: C.uint8_t(len(pattern.Replies)),
+		}
+		prefixL := copy(cptr.AsByteSlice(&c.prefixBuffer), pattern.prefixV)
+		c.prefix.value = &c.prefixBuffer[0]
+		c.prefix.length = C.uint16_t(prefixL)
+
+		w := 0
+		for k, reply := range pattern.Replies {
+			r := &c.reply[k]
+			kind := reply.Kind()
+			r.kind = C.uint8_t(kind)
+			switch kind {
+			case ReplyNack:
+				r.nackReason = C.uint8_t(reply.Nack)
+			case ReplyData:
+				data := ndn.MakeData(reply.Suffix, reply.FreshnessPeriod.Duration(), make([]byte, reply.PayloadLen))
+				dataGen := ndni.DataGenFromPtr(unsafe.Pointer(&r.dataGen))
+				dataGen.Init(dataGenVec[0], data)
+				dataGenVec = dataGenVec[1:]
 			}
-			data := ndn.MakeData(reply.Suffix, reply.FreshnessPeriod.Duration(), make([]byte, reply.PayloadLen))
-			dataGen := ndni.DataGenFromPtr(unsafe.Pointer(&replyC.dataGen))
-			dataGen.Init(vec[0], data)
-		}
-	}
-	patternC.nReplies = C.uint16_t(len(cfg.Replies))
 
-	producer.c.nPatterns++
-	return index, nil
+			for j := 0; j < reply.Weight; j++ {
+				c.weight[w] = C.TgpReplyID(k)
+				w++
+			}
+		}
+		c.nWeights = C.uint32_t(w)
+	}
+	return nil
 }
 
 // RxQueue returns the ingress queue.
-func (producer *Producer) RxQueue() *iface.PktQueue {
-	return iface.PktQueueFromPtr(unsafe.Pointer(&producer.c.rxQueue))
+func (p Producer) RxQueue() *iface.PktQueue {
+	return iface.PktQueueFromPtr(unsafe.Pointer(&p.c.rxQueue))
+}
+
+// Face returns the associated face.
+func (p Producer) Face() iface.Face {
+	return iface.Get(iface.ID(p.c.face))
 }
 
 // Close closes the producer.
 // The thread must be stopped before calling this.
-func (producer *Producer) Close() error {
-	producer.Stop()
-	must.Close(producer.RxQueue())
-	eal.Free(producer.c)
+func (p *Producer) Close() error {
+	p.Stop()
+	must.Close(p.RxQueue())
+	eal.Free(p.c)
 	return nil
+}
+
+// New creates a Producer.
+func New(face iface.Face, rxqCfg iface.PktQueueConfig) (p *Producer, e error) {
+	faceID := face.ID()
+	socket := face.NumaSocket()
+	p = &Producer{
+		c: (*C.Tgp)(eal.Zmalloc("Tgp", C.sizeof_Tgp, socket)),
+	}
+
+	rxqCfg.DisableCoDel = true
+	rxQueue := iface.PktQueueFromPtr(unsafe.Pointer(&p.c.rxQueue))
+	if e := rxQueue.Init(rxqCfg, socket); e != nil {
+		eal.Free(p.c)
+		return nil, nil
+	}
+
+	p.c.face = (C.FaceID)(faceID)
+	C.pcg32_srandom_r(&p.c.replyRng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
+
+	(*ndni.Mempools)(unsafe.Pointer(&p.c.mp)).Assign(socket, ndni.DataMempool)
+
+	p.Thread = ealthread.New(
+		cptr.Func0.C(unsafe.Pointer(C.Tgp_Run), unsafe.Pointer(p.c)),
+		ealthread.InitStopFlag(unsafe.Pointer(&p.c.stop)),
+	)
+
+	return p, nil
 }

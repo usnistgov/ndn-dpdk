@@ -8,6 +8,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/app/tgproducer"
 	"github.com/usnistgov/ndn-dpdk/app/tgtestenv"
+	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/intface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
@@ -21,51 +22,48 @@ func TestPatterns(t *testing.T) {
 	face := intface.MustNew()
 	defer face.D.Close()
 
+	p, e := tgproducer.New(face.D, iface.PktQueueConfig{})
+	require.NoError(e)
+	defer p.Close()
+
 	nameA := ndn.ParseName("/A")
 	nameB := ndn.ParseName("/B")
-	cfg := tgproducer.Config{
-		Patterns: []tgproducer.Pattern{
-			{
-				Prefix: nameA,
-				Replies: []tgproducer.Reply{
-					{
-						Weight:          60,
-						FreshnessPeriod: 100,
-						PayloadLen:      1000,
-					},
-					{
-						Weight:          40,
-						Suffix:          ndn.ParseName("/Z"),
-						FreshnessPeriod: 100,
-						PayloadLen:      2000,
-					},
+	require.NoError(p.SetPatterns([]tgproducer.Pattern{
+		{
+			Prefix: nameA,
+			Replies: []tgproducer.Reply{
+				{
+					Weight:          60,
+					FreshnessPeriod: 100,
+					PayloadLen:      1000,
 				},
-			},
-			{
-				Prefix: nameB,
-				Replies: []tgproducer.Reply{
-					{
-						Nack: an.NackCongestion,
-					},
-				},
-			},
-			{
-				Prefix: ndn.ParseName("/C"),
-				Replies: []tgproducer.Reply{
-					{
-						Timeout: true,
-					},
+				{
+					Weight:          40,
+					Suffix:          ndn.ParseName("/Z"),
+					FreshnessPeriod: 100,
+					PayloadLen:      2000,
 				},
 			},
 		},
-		Nack: true,
-	}
-
-	producer, e := tgproducer.New(face.D, 0, cfg)
-	require.NoError(e)
-	defer producer.Close()
-	producer.SetLCore(tgtestenv.WorkerLCores[0])
-	tgtestenv.DemuxI.SetDest(0, producer.RxQueue())
+		{
+			Prefix: nameB,
+			Replies: []tgproducer.Reply{
+				{
+					Nack: an.NackCongestion,
+				},
+			},
+		},
+		{
+			Prefix: ndn.ParseName("/C"),
+			Replies: []tgproducer.Reply{
+				{
+					Timeout: true,
+				},
+			},
+		},
+	}))
+	p.SetLCore(tgtestenv.WorkerLCores[0])
+	tgtestenv.DemuxI.SetDest(0, p.RxQueue())
 
 	nDataA0 := 0
 	nDataA1 := 0
@@ -97,7 +95,7 @@ func TestPatterns(t *testing.T) {
 		}
 	}()
 
-	producer.Launch()
+	p.Launch()
 
 	func() {
 		for i := 0; i < 100; i++ {
@@ -110,7 +108,7 @@ func TestPatterns(t *testing.T) {
 		close(face.Tx)
 	}()
 
-	e = producer.Stop()
+	e = p.Stop()
 	assert.NoError(e)
 	assert.Equal(100, nDataA0+nDataA1)
 	assert.InDelta(60, nDataA0, 20)
@@ -124,27 +122,26 @@ func TestDataProducer(t *testing.T) {
 	face := intface.MustNew()
 	defer face.D.Close()
 
+	p, e := tgproducer.New(face.D, iface.PktQueueConfig{})
+	require.NoError(e)
+	defer p.Close()
+
 	nameP := ndn.ParseName("/P")
-	cfg := tgproducer.Config{
-		Patterns: []tgproducer.Pattern{
-			{
-				Prefix: nameP,
-				Replies: []tgproducer.Reply{
-					{
-						FreshnessPeriod: 100,
-						PayloadLen:      1000,
-					},
+	require.NoError(p.SetPatterns([]tgproducer.Pattern{
+		{
+			Prefix: nameP,
+			Replies: []tgproducer.Reply{
+				{
+					FreshnessPeriod: 100,
+					PayloadLen:      1000,
 				},
 			},
 		},
-	}
+	}))
 
-	producer, e := tgproducer.New(face.D, 0, cfg)
-	require.NoError(e)
-	defer producer.Close()
-	producer.SetLCore(tgtestenv.WorkerLCores[0])
-	tgtestenv.DemuxI.SetDest(0, producer.RxQueue())
-	producer.Launch()
+	p.SetLCore(tgtestenv.WorkerLCores[0])
+	tgtestenv.DemuxI.SetDest(0, p.RxQueue())
+	p.Launch()
 
 	fw := l3.NewForwarder()
 	fwFace, e := fw.AddFace(face.A)
@@ -172,6 +169,6 @@ func TestDataProducer(t *testing.T) {
 	}
 	assert.Equal(5000, received)
 
-	e = producer.Stop()
+	e = p.Stop()
 	assert.NoError(e)
 }

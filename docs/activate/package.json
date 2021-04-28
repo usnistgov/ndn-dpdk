@@ -2,15 +2,19 @@
   "private": true,
   "scripts": {
     "fw-args": "ts-node ./fw-args",
+    "gen-args": "ts-node ./gen-args",
     "typecheck": "tsc"
   },
   "dependencies": {
     "stdout-stream": "^1.4.1",
     "ts-node": "^9.1.1",
-    "typescript": "^4.2.2"
+    "typescript": "^4.2.4"
   },
   "devDependencies": {
     "@types/stdout-stream": "^1.4.0",
     "@usnistgov/ndn-dpdk": "file:///usr/local/share/ndn-dpdk/ndn-dpdk.npm.tgz"
+  },
+  "engines": {
+    "node": "14.x"
   }
 }

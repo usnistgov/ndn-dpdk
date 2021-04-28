@@ -3,7 +3,6 @@ package endpoint
 import (
 	"context"
 	"errors"
-	"time"
 
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
@@ -48,39 +47,62 @@ func Consume(ctx context.Context, interest ndn.Interest, opts ConsumerOptions) (
 	}
 	defer face.Close()
 
-	retxIntervals := opts.Retx.IntervalIterable(interest.ApplyDefaultLifetime())
-L:
-	for {
-		var timer *time.Timer
-		rto := retxIntervals()
-		if rto > 0 {
-			timer = time.NewTimer(rto)
-		} else {
-			timer = time.NewTimer(interest.Lifetime)
+	c := &consumer{
+		face:     face,
+		interest: interest,
+		retxIter: opts.Retx.IntervalIterable(interest.ApplyDefaultLifetime()),
+	}
+	for !c.retxEnd {
+		data, e = c.once(ctx)
+		switch e {
+		case nil:
+			if e = opts.Verifier.Verify(data); e != nil {
+				return nil, e
+			}
+			return data, nil
+		case context.DeadlineExceeded:
+			if e = ctx.Err(); e != nil { // parent context timeout
+				return nil, e
+			}
+			// per-packet context timeout, proceed to retransmission
+		default:
+			return nil, e
 		}
+	}
+	return nil, ErrExpire
+}
 
-		face.Tx() <- interest.ToPacket()
+type consumer struct {
+	face     *LFace
+	interest ndn.Interest
+	retxIter RetxIterable
+	retxEnd  bool
+}
 
-		for {
-			select {
-			case <-ctx.Done():
-				return nil, ctx.Err()
-			case <-timer.C:
-				if rto > 0 {
-					continue L
-				}
-				return nil, ErrExpire
-			case l3pkt := <-face.Rx():
-				data = l3pkt.ToPacket().Data
-				if data != nil && data.CanSatisfy(interest) {
-					break L
-				}
+func (c *consumer) once(ctx context.Context) (data *ndn.Data, e error) {
+	rto := c.retxIter()
+	if rto == 0 {
+		c.retxEnd = true
+		rto = c.interest.Lifetime
+	}
+	ctx1, cancel1 := context.WithTimeout(ctx, rto)
+	defer cancel1()
+
+	select {
+	case c.face.Tx() <- c.interest.ToPacket():
+	case <-ctx1.Done():
+		return nil, ctx1.Err()
+	}
+
+	for {
+		select {
+		case <-ctx1.Done():
+			return nil, ctx1.Err()
+		case l3pkt := <-c.face.Rx():
+			data := l3pkt.ToPacket().Data
+			if data != nil && data.CanSatisfy(c.interest) {
+				return data, nil
 			}
 		}
 	}
-
-	if e := opts.Verifier.Verify(data); e != nil {
-		return nil, e
-	}
-	return data, nil
 }

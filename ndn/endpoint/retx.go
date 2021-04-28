@@ -6,14 +6,18 @@ import (
 	"time"
 )
 
+// RetxIterable is a generator function for successive retransmission intervals.
+// Returns zero to disallow further retransmissions.
+type RetxIterable func() time.Duration
+
 // RetxPolicy represents an Interest retransmission policy.
 type RetxPolicy interface {
-	IntervalIterable(lifetime time.Duration) func() time.Duration
+	IntervalIterable(lifetime time.Duration) RetxIterable
 }
 
 type noRetx struct{}
 
-func (noRetx) IntervalIterable(lifetime time.Duration) func() time.Duration {
+func (noRetx) IntervalIterable(lifetime time.Duration) RetxIterable {
 	return func() time.Duration {
 		return 0
 	}
@@ -44,7 +48,7 @@ type RetxOptions struct {
 }
 
 // IntervalIterable implements RetxPolicy.
-func (retx RetxOptions) IntervalIterable(lifetime time.Duration) func() time.Duration {
+func (retx RetxOptions) IntervalIterable(lifetime time.Duration) RetxIterable {
 	if retx.Interval == 0 {
 		retx.Interval = lifetime / 2
 	}

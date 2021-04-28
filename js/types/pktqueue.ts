@@ -1,5 +1,9 @@
 import type { NNNanoseconds } from "./core";
 
+/**
+ * Packet queue configuration.
+ * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/iface#PktQueueConfig>
+ */
 export type PktQueueConfig = PktQueueConfig.Plain | PktQueueConfig.Delay | PktQueueConfig.CoDel;
 
 export namespace PktQueueConfig {

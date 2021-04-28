@@ -1,12 +1,13 @@
 package tg
 
 import (
+	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/app/fetch"
 	"github.com/usnistgov/ndn-dpdk/app/tgconsumer"
 	"github.com/usnistgov/ndn-dpdk/app/tgproducer"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"go4.org/must"
+	"go.uber.org/multierr"
 )
 
 // Task contains consumer and producer on a face.
@@ -24,25 +25,33 @@ func newTask(face iface.Face, cfg TaskConfig) (task *Task, e error) {
 	}
 
 	if cfg.Producer != nil {
-		nThreads := cfg.Producer.NThreads
-		if nThreads <= 0 {
-			nThreads = 1
-		}
+		nThreads := math.MaxInt(1, cfg.Producer.NThreads)
 		for i := 0; i < nThreads; i++ {
-			server, e := tgproducer.New(task.Face, i, cfg.Producer.Config)
+			p, e := tgproducer.New(task.Face, cfg.Producer.RxQueue)
 			if e != nil {
 				return nil, e
 			}
-			server.SetLCore(ealthread.DefaultAllocator.Alloc(roleProducer, socket))
-			task.Producer = append(task.Producer, server)
+			if e = p.SetPatterns(cfg.Producer.Patterns); e != nil {
+				return nil, e
+			}
+			p.SetLCore(ealthread.DefaultAllocator.Alloc(roleProducer, socket))
+			task.Producer = append(task.Producer, p)
 		}
 	}
 
 	if cfg.Consumer != nil {
-		if task.Consumer, e = tgconsumer.New(task.Face, *cfg.Consumer); e != nil {
+		c, e := tgconsumer.New(task.Face, cfg.Consumer.RxQueue)
+		if e != nil {
 			return nil, e
 		}
-		task.Consumer.SetLCores(ealthread.DefaultAllocator.Alloc(roleConsumer, socket), ealthread.DefaultAllocator.Alloc(roleConsumer, socket))
+		if e = c.SetPatterns(cfg.Consumer.Patterns); e != nil {
+			return nil, e
+		}
+		if e = c.SetInterval(cfg.Consumer.Interval.Duration()); e != nil {
+			return nil, e
+		}
+		c.SetLCores(ealthread.DefaultAllocator.Alloc(roleConsumer, socket), ealthread.DefaultAllocator.Alloc(roleConsumer, socket))
+		task.Consumer = c
 	} else if cfg.Fetch != nil {
 		if task.Fetch, e = fetch.New(task.Face, *cfg.Fetch); e != nil {
 			return nil, e
@@ -56,10 +65,10 @@ func newTask(face iface.Face, cfg TaskConfig) (task *Task, e error) {
 }
 
 func (task *Task) configureDemux(demuxI, demuxD, demuxN *iface.InputDemux) {
-	if nServers := len(task.Producer); nServers > 0 {
-		demuxI.InitRoundrobin(nServers)
-		for i, server := range task.Producer {
-			demuxI.SetDest(i, server.RxQueue())
+	if nProducers := len(task.Producer); nProducers > 0 {
+		demuxI.InitRoundrobin(nProducers)
+		for i, producer := range task.Producer {
+			demuxI.SetDest(i, producer.RxQueue())
 		}
 	}
 
@@ -81,8 +90,8 @@ func (task *Task) configureDemux(demuxI, demuxD, demuxN *iface.InputDemux) {
 }
 
 func (task *Task) launch() {
-	for _, server := range task.Producer {
-		server.Launch()
+	for _, p := range task.Producer {
+		p.Launch()
 	}
 	if task.Consumer != nil {
 		task.Consumer.Launch()
@@ -90,15 +99,16 @@ func (task *Task) launch() {
 }
 
 func (task *Task) close() error {
-	for _, server := range task.Producer {
-		must.Close(server)
+	errs := []error{}
+	for _, p := range task.Producer {
+		errs = append(errs, p.Close())
 	}
 	if task.Consumer != nil {
-		must.Close(task.Consumer)
+		errs = append(errs, task.Consumer.Close())
 	}
 	if task.Fetch != nil {
-		must.Close(task.Fetch)
+		errs = append(errs, task.Fetch.Close())
 	}
-	must.Close(task.Face)
-	return nil
+	errs = append(errs, task.Face.Close())
+	return multierr.Combine(errs...)
 }

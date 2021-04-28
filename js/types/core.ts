@@ -18,22 +18,26 @@ export type Index = number;
 export type Blob = string;
 
 /**
- * Non-negative duration in milliseconds.
  * @TJS-type integer
  * @minimum 0
  */
-export type NNMilliseconds = number;
+type NNDurationNumber = number;
+
+type NNDuration = NNDurationNumber | string;
+
+/**
+ * Non-negative duration in milliseconds.
+ * This can be either a number in milliseconds, or a string with any valid duration unit.
+ */
+export type NNMilliseconds = NNDuration;
 
 /**
  * Non-negative duration in nanoseconds.
- * @TJS-type integer
- * @minimum 0
+ * This can be either a number in nanoseconds, or a string with any valid duration unit.
  */
-export type NNNanoseconds = number;
+export type NNNanoseconds = NNDuration;
 
-/**
- * Snapshot from runningstat.
- */
+/** Snapshot from runningstat. */
 export interface RunningStatSnapshot {
   /**
    * Number of inputs.
@@ -49,19 +53,13 @@ export interface RunningStatSnapshot {
    */
   len: number;
 
-  /**
-   * Minimum value.
-   */
+  /** Minimum value. */
   min?: number;
 
-  /**
-   * Maximum value.
-   */
+  /** Maximum value. */
   max?: number;
 
-  /**
-   * Mean.
-   */
+  /** Mean. */
   mean?: number;
 
   /**
@@ -76,18 +74,12 @@ export interface RunningStatSnapshot {
    */
   stdev?: number;
 
-  /**
-   * Internal variable M1.
-   */
+  /** Internal variable M1. */
   m1: number;
 
-  /**
-   * Internal variable M2.
-   */
+  /** Internal variable M2. */
   m2: number;
 }
 
-/**
- * Name represented as canonical URI.
- */
+/** Name represented as canonical URI. */
 export type Name = string;

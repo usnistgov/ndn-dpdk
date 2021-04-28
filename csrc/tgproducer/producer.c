@@ -2,13 +2,13 @@
 
 #include "../core/logger.h"
 
-N_LOG_INIT(TgProducer);
+N_LOG_INIT(Tgp);
 
 __attribute__((nonnull)) static int
-TgProducer_FindPattern(TgProducer* p, LName name)
+Tgp_FindPattern(Tgp* p, LName name)
 {
   for (uint16_t i = 0; i < p->nPatterns; ++i) {
-    TgProducerPattern* pattern = &p->pattern[i];
+    TgpPattern* pattern = &p->pattern[i];
     if (pattern->prefix.length <= name.length &&
         memcmp(pattern->prefix.value, name.value, pattern->prefix.length) == 0) {
       return i;
@@ -17,16 +17,15 @@ TgProducer_FindPattern(TgProducer* p, LName name)
   return -1;
 }
 
-__attribute__((nonnull)) static PingReplyId
-TgProducer_SelectReply(TgProducer* p, TgProducerPattern* pattern)
+__attribute__((nonnull)) static TgpReplyID
+Tgp_SelectReply(Tgp* p, TgpPattern* pattern)
 {
-  uint32_t rnd = pcg32_random_r(&p->replyRng);
-  return pattern->weight[rnd % pattern->nWeights];
+  uint32_t w = pcg32_boundedrand_r(&p->replyRng, pattern->nWeights);
+  return pattern->weight[w];
 }
 
 __attribute__((nonnull)) static Packet*
-TgProducer_RespondData(TgProducer* p, TgProducerPattern* pattern, TgProducerReply* reply,
-                       Packet* npkt)
+Tgp_RespondData(Tgp* p, TgpPattern* pattern, TgpReply* reply, Packet* npkt)
 {
   const LName* name = (const LName*)&Packet_GetInterestHdr(npkt)->name;
   Packet* output = DataGen_Encode(&reply->dataGen, *name, &p->mp, Face_PacketTxAlign(p->face));
@@ -38,58 +37,51 @@ TgProducer_RespondData(TgProducer* p, TgProducerPattern* pattern, TgProducerRepl
 }
 
 __attribute__((nonnull)) static Packet*
-TgProducer_RespondNack(TgProducer* p, TgProducerPattern* pattern, TgProducerReply* reply,
-                       Packet* npkt)
+Tgp_RespondNack(Tgp* p, TgpPattern* pattern, TgpReply* reply, Packet* npkt)
 {
   return Nack_FromInterest(npkt, reply->nackReason, &p->mp, Face_PacketTxAlign(p->face));
 }
 
 __attribute__((nonnull)) static Packet*
-TgProducer_RespondTimeout(TgProducer* p, TgProducerPattern* pattern, TgProducerReply* reply,
-                          Packet* npkt)
+Tgp_RespondTimeout(Tgp* p, TgpPattern* pattern, TgpReply* reply, Packet* npkt)
 {
   rte_pktmbuf_free(Packet_ToMbuf(npkt));
   return NULL;
 }
 
-typedef Packet* (*TgProducer_Respond)(TgProducer* p, TgProducerPattern* pattern,
-                                      TgProducerReply* reply, Packet* npkt);
+typedef Packet* (*Tgp_Respond)(Tgp* p, TgpPattern* pattern, TgpReply* reply, Packet* npkt);
 
-static const TgProducer_Respond TgProducer_RespondJmp[3] = {
-  [TGPRODUCER_REPLY_DATA] = TgProducer_RespondData,
-  [TGPRODUCER_REPLY_NACK] = TgProducer_RespondNack,
-  [TGPRODUCER_REPLY_TIMEOUT] = TgProducer_RespondTimeout,
+static const Tgp_Respond Tgp_RespondJmp[3] = {
+  [TgpReplyData] = Tgp_RespondData,
+  [TgpReplyNack] = Tgp_RespondNack,
+  [TgpReplyTimeout] = Tgp_RespondTimeout,
 };
 
 __attribute__((nonnull)) static Packet*
-TgProducer_ProcessInterest(TgProducer* p, Packet* npkt)
+Tgp_ProcessInterest(Tgp* p, Packet* npkt)
 {
   uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
   const LName* name = (const LName*)&Packet_GetInterestHdr(npkt)->name;
 
-  int patternId = TgProducer_FindPattern(p, *name);
+  int patternId = Tgp_FindPattern(p, *name);
   if (unlikely(patternId < 0)) {
     N_LOGD(">I dn-token=%016" PRIx64 " no-pattern", token);
     ++p->nNoMatch;
-    if (p->wantNackNoRoute) {
-      return Nack_FromInterest(npkt, NackNoRoute, &p->mp, Face_PacketTxAlign(p->face));
-    } else {
-      rte_pktmbuf_free(Packet_ToMbuf(npkt));
-      return NULL;
-    }
+    rte_pktmbuf_free(Packet_ToMbuf(npkt));
+    return NULL;
   }
 
-  TgProducerPattern* pattern = &p->pattern[patternId];
-  uint8_t replyId = TgProducer_SelectReply(p, pattern);
-  TgProducerReply* reply = &pattern->reply[replyId];
+  TgpPattern* pattern = &p->pattern[patternId];
+  uint8_t replyId = Tgp_SelectReply(p, pattern);
+  TgpReply* reply = &pattern->reply[replyId];
 
   N_LOGD(">I dn-token=%016" PRIx64 " pattern=%d reply=%" PRIu8, token, patternId, replyId);
   ++reply->nInterests;
-  return TgProducer_RespondJmp[reply->kind](p, pattern, reply, npkt);
+  return Tgp_RespondJmp[reply->kind](p, pattern, reply, npkt);
 }
 
 int
-TgProducer_Run(TgProducer* p)
+Tgp_Run(Tgp* p)
 {
   struct rte_mbuf* rx[MaxBurstSize];
   Packet* tx[MaxBurstSize];
@@ -106,7 +98,7 @@ TgProducer_Run(TgProducer* p)
     for (uint16_t i = 0; i < pop.count; ++i) {
       Packet* npkt = Packet_FromMbuf(rx[i]);
       NDNDPDK_ASSERT(Packet_GetType(npkt) == PktInterest);
-      tx[nTx] = TgProducer_ProcessInterest(p, npkt);
+      tx[nTx] = Tgp_ProcessInterest(p, npkt);
       nTx += (int)(tx[nTx] != NULL);
     }
 

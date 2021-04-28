@@ -7,57 +7,46 @@
 #include "../iface/face.h"
 #include "../iface/pktqueue.h"
 #include "../vendor/pcg_basic.h"
+#include "enum.h"
 
-#define TGPRODUCER_MAX_PATTERNS 256
-#define TGPRODUCER_MAX_REPLIES 8
-#define TGPRODUCER_MAX_SUM_WEIGHT 256
+typedef uint8_t TgpReplyID;
 
-typedef uint8_t PingReplyId;
-
-typedef enum TgProducerReplyKind
-{
-  TGPRODUCER_REPLY_DATA,
-  TGPRODUCER_REPLY_NACK,
-  TGPRODUCER_REPLY_TIMEOUT,
-} TgProducerReplyKind;
-
-typedef struct TgProducerReply
+typedef struct TgpReply
 {
   uint64_t nInterests;
   DataGen dataGen;
   uint8_t kind;
   uint8_t nackReason;
-} TgProducerReply;
+} TgpReply;
 
 /** @brief Per-prefix information in ndnping server. */
-typedef struct TgProducerPattern
+typedef struct TgpPattern
 {
   LName prefix;
-  uint16_t nReplies;
-  uint16_t nWeights;
-  PingReplyId weight[TGPRODUCER_MAX_SUM_WEIGHT];
-  TgProducerReply reply[TGPRODUCER_MAX_REPLIES];
+  uint32_t nWeights;
+  uint8_t nReplies;
+  TgpReplyID weight[TgpMaxSumWeight];
+  TgpReply reply[TgpMaxReplies];
   uint8_t prefixBuffer[NameMaxLength];
-} TgProducerPattern;
+} TgpPattern;
 
 /** @brief ndnping server. */
-typedef struct TgProducer
+typedef struct Tgp
 {
   PktQueue rxQueue;
   PacketMempools mp; ///< mempools for Data encoding
   FaceID face;
-  uint16_t nPatterns;
-  bool wantNackNoRoute; ///< whether to Nack Interests not matching any pattern
+  uint8_t nPatterns;
 
   ThreadStopFlag stop;
   uint64_t nNoMatch;
   uint64_t nAllocError;
   pcg32_random_t replyRng;
 
-  TgProducerPattern pattern[TGPRODUCER_MAX_PATTERNS];
-} TgProducer;
+  TgpPattern pattern[TgpMaxPatterns];
+} Tgp;
 
 __attribute__((nonnull)) int
-TgProducer_Run(TgProducer* p);
+Tgp_Run(Tgp* p);
 
 #endif // NDNDPDK_TGPRODUCER_PRODUCER_H

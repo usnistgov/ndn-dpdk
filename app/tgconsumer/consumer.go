@@ -7,7 +7,6 @@ package tgconsumer
 */
 import "C"
 import (
-	"errors"
 	"fmt"
 	"math/rand"
 	"time"
@@ -17,134 +16,124 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndni"
+	"go.uber.org/multierr"
 	"go4.org/must"
 )
 
 // Consumer represents a traffic generator consumer instance.
 type Consumer struct {
-	Rx ealthread.Thread
-	Tx ealthread.Thread
-
-	rxC *C.TgConsumerRx
-	txC *C.TgConsumerTx
+	Rx       ealthread.Thread
+	Tx       ealthread.Thread
+	rxC      *C.TgcRx
+	txC      *C.TgcTx
+	patterns []Pattern
 }
 
-// New creates a Consumer.
-func New(face iface.Face, cfg Config) (*Consumer, error) {
-	socket := face.NumaSocket()
-	rxC := (*C.TgConsumerRx)(eal.Zmalloc("TgConsumerRx", C.sizeof_TgConsumerRx, socket))
-	cfg.RxQueue.DisableCoDel = true
-	if e := iface.PktQueueFromPtr(unsafe.Pointer(&rxC.rxQueue)).Init(cfg.RxQueue, socket); e != nil {
-		eal.Free(rxC)
-		return nil, nil
+// Patterns returns traffic patterns.
+func (c Consumer) Patterns() []Pattern {
+	return c.patterns
+}
+
+// SetPatterns sets new traffic patterns.
+// This can only be used when both RX and TX threads are stopped.
+func (c *Consumer) SetPatterns(inputPatterns []Pattern) error {
+	if len(inputPatterns) == 0 {
+		return ErrNoPattern
 	}
-
-	txC := (*C.TgConsumerTx)(eal.Zmalloc("TgConsumerTx", C.sizeof_TgConsumerTx, socket))
-	txC.face = (C.FaceID)(face.ID())
-	txC.interestMp = (*C.struct_rte_mempool)(ndni.InterestMempool.Get(socket).Ptr())
-	C.pcg32_srandom_r(&txC.trafficRng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
-	C.NonceGen_Init(&txC.nonceGen)
-
-	var consumer Consumer
-	consumer.rxC = rxC
-	consumer.txC = txC
-	consumer.Rx = ealthread.New(
-		cptr.Func0.C(unsafe.Pointer(C.TgConsumerRx_Run), unsafe.Pointer(rxC)),
-		ealthread.InitStopFlag(unsafe.Pointer(&rxC.stop)),
-	)
-	consumer.Tx = ealthread.New(
-		cptr.Func0.C(unsafe.Pointer(C.TgConsumerTx_Run), unsafe.Pointer(txC)),
-		ealthread.InitStopFlag(unsafe.Pointer(&txC.stop)),
-	)
-
-	for i, pattern := range cfg.Patterns {
-		if _, e := consumer.addPattern(pattern); e != nil {
-			return nil, fmt.Errorf("pattern(%d): %s", i, e)
+	if len(inputPatterns) > MaxPatterns {
+		return ErrTooManyPatterns
+	}
+	patterns := []Pattern{}
+	nWeights := 0
+	for i, pattern := range inputPatterns {
+		pattern.applyDefaults()
+		patterns = append(patterns, pattern)
+		if pattern.SeqNumOffset != 0 && i == 0 {
+			return ErrFirstSeqNumOffset
 		}
+		nWeights += pattern.Weight
 	}
-	consumer.SetInterval(cfg.Interval.Duration())
-	return &consumer, nil
-}
-
-func (consumer *Consumer) addPattern(cfg Pattern) (index int, e error) {
-	if consumer.rxC.nPatterns >= C.TGCONSUMER_MAX_PATTERNS {
-		return -1, fmt.Errorf("cannot add more than %d patterns", C.TGCONSUMER_MAX_PATTERNS)
-	}
-	if cfg.Weight < 1 {
-		cfg.Weight = 1
-	}
-	if consumer.txC.nWeights+C.uint16_t(cfg.Weight) >= C.TGCONSUMER_MAX_SUM_WEIGHT {
-		return -1, fmt.Errorf("sum of weight cannot exceed %d", C.TGCONSUMER_MAX_SUM_WEIGHT)
-	}
-	index = int(consumer.rxC.nPatterns)
-	if cfg.SeqNumOffset != 0 && index == 0 {
-		return -1, errors.New("first pattern cannot have SeqNumOffset")
+	if nWeights > MaxSumWeight {
+		return ErrTooManyWeights
 	}
 
-	tplArgs := []interface{}{cfg.Prefix}
-	if cfg.CanBePrefix {
-		tplArgs = append(tplArgs, ndn.CanBePrefixFlag)
-	}
-	if cfg.MustBeFresh {
-		tplArgs = append(tplArgs, ndn.MustBeFreshFlag)
-	}
-	if lifetime := cfg.InterestLifetime.Duration(); lifetime != 0 {
-		tplArgs = append(tplArgs, lifetime)
-	}
-	if cfg.HopLimit != 0 {
-		tplArgs = append(tplArgs, cfg.HopLimit)
+	if c.Rx.IsRunning() || c.Tx.IsRunning() {
+		return ealthread.ErrRunning
 	}
 
-	consumer.clearCounter(index)
-	rxP := &consumer.rxC.pattern[index]
-	rxP.prefixLen = C.uint16_t(cfg.Prefix.Length())
-	txP := &consumer.txC.pattern[index]
-	ndni.InterestTemplateFromPtr(unsafe.Pointer(&txP.tpl)).Init(tplArgs...)
+	c.patterns = patterns
+	c.rxC.nPatterns = C.uint8_t(len(patterns))
+	c.txC.nWeights = C.uint32_t(nWeights)
+	w := 0
+	for i, pattern := range patterns {
+		rxP := &c.rxC.pattern[i]
+		*rxP = C.TgcRxPattern{
+			prefixLen: C.uint16_t(pattern.Prefix.Length()),
+		}
 
-	txP.seqNum.compT = C.TtGenericNameComponent
-	txP.seqNum.compL = C.uint8_t(C.sizeof_uint64_t)
-	txP.seqNum.compV = C.uint64_t(rand.Uint64())
-	txP.seqNumOffset = C.uint32_t(cfg.SeqNumOffset)
+		txP := &c.txC.pattern[i]
+		*txP = C.TgcTxPattern{
+			seqNum: C.TgcSeqNum{
+				compT: C.TtGenericNameComponent,
+				compL: C.uint8_t(C.sizeof_uint64_t),
+				compV: C.uint64_t(rand.Uint64()),
+			},
+			seqNumOffset: C.uint32_t(pattern.SeqNumOffset),
+		}
+		pattern.initInterestTemplate(ndni.InterestTemplateFromPtr(unsafe.Pointer(&txP.tpl)))
 
-	consumer.rxC.nPatterns++
-	for i := 0; i < cfg.Weight; i++ {
-		consumer.txC.weight[consumer.txC.nWeights] = C.PingPatternId(index)
-		consumer.txC.nWeights++
+		for j := 0; j < pattern.Weight; j++ {
+			c.txC.weight[w] = C.TgcPatternID(i)
+			w++
+		}
+
+		c.clearCounter(i)
 	}
-	return index, nil
+	return nil
 }
 
 // Interval returns average Interest interval.
-func (consumer *Consumer) Interval() time.Duration {
-	return eal.FromTscDuration(int64(consumer.txC.burstInterval)) / C.TGCONSUMER_TX_BURST_SIZE
+func (c Consumer) Interval() time.Duration {
+	return eal.FromTscDuration(int64(c.txC.burstInterval)) / iface.MaxBurstSize
 }
 
 // SetInterval sets average Interest interval.
 // TX thread transmits Interests in bursts, so the specified interval will be converted to
 // a burst interval with equivalent traffic amount.
-func (consumer *Consumer) SetInterval(interval time.Duration) {
-	consumer.txC.burstInterval = C.TscDuration(eal.ToTscDuration(interval * C.TGCONSUMER_TX_BURST_SIZE))
+// This can only be used when both RX and TX threads are stopped.
+func (c *Consumer) SetInterval(interval time.Duration) error {
+	if c.Rx.IsRunning() || c.Tx.IsRunning() {
+		return ealthread.ErrRunning
+	}
+
+	c.txC.burstInterval = C.TscDuration(eal.ToTscDuration(interval * iface.MaxBurstSize))
+	return nil
 }
 
 // RxQueue returns the ingress queue.
-func (consumer *Consumer) RxQueue() *iface.PktQueue {
-	return iface.PktQueueFromPtr(unsafe.Pointer(&consumer.rxC.rxQueue))
+func (c Consumer) RxQueue() *iface.PktQueue {
+	return iface.PktQueueFromPtr(unsafe.Pointer(&c.rxC.rxQueue))
+}
+
+// Face returns the associated face.
+func (c Consumer) Face() iface.Face {
+	return iface.Get(iface.ID(c.txC.face))
 }
 
 // SetLCores assigns LCores to RX and TX threads.
-func (consumer *Consumer) SetLCores(rxLCore, txLCore eal.LCore) {
-	consumer.Rx.SetLCore(rxLCore)
-	consumer.Tx.SetLCore(txLCore)
+// This can only be used when both RX and TX threads are stopped.
+func (c *Consumer) SetLCores(rxLCore, txLCore eal.LCore) {
+	c.Rx.SetLCore(rxLCore)
+	c.Tx.SetLCore(txLCore)
 }
 
 // Launch launches RX and TX threads.
-func (consumer *Consumer) Launch() {
-	consumer.rxC.runNum++
-	consumer.txC.runNum = consumer.rxC.runNum
-	consumer.Rx.Launch()
-	consumer.Tx.Launch()
+func (c *Consumer) Launch() {
+	c.rxC.runNum++
+	c.txC.runNum = c.rxC.runNum
+	c.Rx.Launch()
+	c.Tx.Launch()
 }
 
 // Stop stops RX and TX threads.
@@ -152,17 +141,46 @@ func (consumer *Consumer) Stop(delay time.Duration) error {
 	eTx := consumer.Tx.Stop()
 	time.Sleep(delay)
 	eRx := consumer.Rx.Stop()
-	if eRx != nil || eTx != nil {
-		return fmt.Errorf("RX %v; TX %v", eRx, eTx)
-	}
-	return nil
+	return multierr.Append(eTx, eRx)
 }
 
 // Close closes the consumer.
-// Both RX and TX threads must be stopped before calling this.
-func (consumer *Consumer) Close() error {
-	must.Close(consumer.RxQueue())
-	eal.Free(consumer.rxC)
-	eal.Free(consumer.txC)
+// This can only be used when both RX and TX threads are stopped.
+func (c *Consumer) Close() error {
+	must.Close(c.RxQueue())
+	eal.Free(c.rxC)
+	eal.Free(c.txC)
 	return nil
+}
+
+// New creates a Consumer.
+func New(face iface.Face, rxqCfg iface.PktQueueConfig) (c *Consumer, e error) {
+	socket := face.NumaSocket()
+	c = &Consumer{
+		rxC: (*C.TgcRx)(eal.Zmalloc("TgcRx", C.sizeof_TgcRx, socket)),
+		txC: (*C.TgcTx)(eal.Zmalloc("TgcTx", C.sizeof_TgcTx, socket)),
+	}
+
+	rxqCfg.DisableCoDel = true
+	if e = c.RxQueue().Init(rxqCfg, socket); e != nil {
+		must.Close(c)
+		return nil, fmt.Errorf("error initializing RxQueue %w", e)
+	}
+
+	c.txC.face = (C.FaceID)(face.ID())
+	c.txC.interestMp = (*C.struct_rte_mempool)(ndni.InterestMempool.Get(socket).Ptr())
+	C.pcg32_srandom_r(&c.txC.trafficRng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
+	C.NonceGen_Init(&c.txC.nonceGen)
+
+	c.Rx = ealthread.New(
+		cptr.Func0.C(unsafe.Pointer(C.TgcRx_Run), unsafe.Pointer(c.rxC)),
+		ealthread.InitStopFlag(unsafe.Pointer(&c.rxC.stop)),
+	)
+	c.Tx = ealthread.New(
+		cptr.Func0.C(unsafe.Pointer(C.TgcTx_Run), unsafe.Pointer(c.txC)),
+		ealthread.InitStopFlag(unsafe.Pointer(&c.txC.stop)),
+	)
+
+	c.SetInterval(time.Millisecond)
+	return c, nil
 }

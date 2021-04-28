@@ -2,12 +2,16 @@
 package ealthread
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
+
+// ErrRunning indicates an error condition when a function expects the thread to be stopped.
+var ErrRunning = errors.New("operation not permitted when thread is running")
 
 var logger = logging.New("ealthread")
 
@@ -17,6 +21,7 @@ type Thread interface {
 	LCore() eal.LCore
 
 	// SetLCore assigns an lcore.
+	// This can only be used when the thread is stopped.
 	SetLCore(lc eal.LCore)
 
 	// IsRunning indicates whether the thread is running.
@@ -48,6 +53,9 @@ func (th *threadImpl) LCore() eal.LCore {
 }
 
 func (th *threadImpl) SetLCore(lc eal.LCore) {
+	if th.IsRunning() {
+		panic(ErrRunning)
+	}
 	th.lc = lc
 }
 
@@ -61,9 +69,7 @@ func (th *threadImpl) Launch() {
 		panic("lcore unassigned")
 	}
 	if th.IsRunning() {
-		logger.Panic("lcore is busy",
-			th.lc.ZapField("lc"),
-		)
+		logger.Panic("lcore is busy", th.lc.ZapField("lc"))
 	}
 	th.lc.RemoteLaunch(th.main)
 }

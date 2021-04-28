@@ -10,25 +10,25 @@
 #include "../iface/pktqueue.h"
 
 /** @brief Per-pattern information in traffic generator consumer. */
-typedef struct TgConsumerRxPattern
+typedef struct TgcRxPattern
 {
   uint64_t nData;
   uint64_t nNacks;
   RunningStat rtt;
   uint16_t prefixLen;
-} TgConsumerRxPattern;
+} TgcRxPattern;
 
-/** @brief traffic generator consumer RX thread. */
-typedef struct TgConsumerRx
+/** @brief Traffic generator consumer RX thread. */
+typedef struct TgcRx
 {
   PktQueue rxQueue;
   ThreadStopFlag stop;
   uint8_t runNum;
-  uint16_t nPatterns;
-  TgConsumerRxPattern pattern[TGCONSUMER_MAX_PATTERNS];
-} TgConsumerRx;
+  uint8_t nPatterns;
+  TgcRxPattern pattern[TgcMaxPatterns];
+} TgcRx;
 
 __attribute__((nonnull)) int
-TgConsumerRx_Run(TgConsumerRx* cr);
+TgcRx_Run(TgcRx* cr);
 
 #endif // NDNDPDK_TGCONSUMER_RX_H

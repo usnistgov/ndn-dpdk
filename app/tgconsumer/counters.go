@@ -1,14 +1,7 @@
 package tgconsumer
 
-/*
-#include "../../csrc/tgconsumer/rx.h"
-#include "../../csrc/tgconsumer/token.h"
-#include "../../csrc/tgconsumer/tx.h"
-*/
-import "C"
 import (
 	"fmt"
-	"math"
 	"time"
 	"unsafe"
 
@@ -23,24 +16,24 @@ type PacketCounters struct {
 	NNacks     uint64 `json:"nNacks"`
 }
 
-// ComputeDataRatio returns NData/NInterests.
-func (cnt PacketCounters) ComputeDataRatio() float64 {
+// DataRatio returns NData/NInterests.
+func (cnt PacketCounters) DataRatio() float64 {
 	return float64(cnt.NData) / float64(cnt.NInterests)
 }
 
-// ComputeNackRatio returns NNacks/NInterests.
-func (cnt PacketCounters) ComputeNackRatio() float64 {
+// NackRatio returns NNacks/NInterests.
+func (cnt PacketCounters) NackRatio() float64 {
 	return float64(cnt.NNacks) / float64(cnt.NInterests)
 }
 
 func (cnt PacketCounters) String() string {
 	return fmt.Sprintf("%dI %dD(%0.2f%%) %dN(%0.2f%%)",
 		cnt.NInterests,
-		cnt.NData, cnt.ComputeDataRatio()*100.0,
-		cnt.NNacks, cnt.ComputeNackRatio()*100.0)
+		cnt.NData, cnt.DataRatio()*100.0,
+		cnt.NNacks, cnt.NackRatio()*100.0)
 }
 
-// RttCounters contains RTT statistics.
+// RttCounters contains RTT statistics in nanoseconds.
 type RttCounters struct {
 	runningstat.Snapshot
 }
@@ -78,7 +71,7 @@ func (cnt Counters) String() string {
 
 // ReadCounters retrieves counters.
 func (consumer *Consumer) ReadCounters() (cnt Counters) {
-	rttScale := eal.GetNanosInTscUnit() * math.Exp2(C.TGCONSUMER_TIMING_PRECISION)
+	rttScale := eal.GetNanosInTscUnit()
 	for i := 0; i < int(consumer.rxC.nPatterns); i++ {
 		crP := consumer.rxC.pattern[i]
 		ctP := consumer.txC.pattern[i]

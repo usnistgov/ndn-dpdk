@@ -1,20 +1,17 @@
 import type { Name, NNMilliseconds } from "../core";
-import type { PktQueueConfig } from "../pktqueue";
 
-export interface TgProducerConfig {
-  rxQueue?: PktQueueConfig.Plain|PktQueueConfig.Delay;
-  patterns: TgProducerPattern[];
-  nack?: boolean;
-}
-
-export interface TgProducerPattern {
+/**
+ * Traffic generator producer pattern definition.
+ * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/app/tgproducer#Pattern>
+ */
+export interface TgpPattern {
   prefix: Name;
-  replies: TgProducerReply[];
+  replies: TgpReply[];
 }
 
-export type TgProducerReply = TgProducerReply.Data | TgProducerReply.Nack | TgProducerReply.Timeout;
+export type TgpReply = TgpReply.Data | TgpReply.Nack | TgpReply.Timeout;
 
-export namespace TgProducerReply {
+export namespace TgpReply {
   interface Common {
     /**
      * @TJS-type integer
@@ -54,13 +51,13 @@ export namespace TgProducerReply {
   }
 }
 
-export interface TgProducerCounters {
-  perPattern: TgProducerCounters.PatternCounters[];
+export interface TgpCounters {
+  perPattern: TgpCounters.PatternCounters[];
   nInterests: number;
   nNoMatch: number;
   nAllocError: number;
 }
-export namespace TgProducerCounters {
+export namespace TgpCounters {
   export interface PatternCounters {
     nInterests: number;
     perReply: number[];
