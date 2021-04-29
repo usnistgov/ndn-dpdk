@@ -2,6 +2,8 @@
 package eal
 
 import (
+	"math/rand"
+
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
@@ -23,6 +25,14 @@ var (
 	// MainReadSide is an RCU read-side object of the MainThread.
 	MainReadSide *urcu.ReadSide
 )
+
+// RandomSocket returns a random NumaSocket that has at least one worker lcore.
+func RandomSocket() (socket NumaSocket) {
+	if n := len(Sockets); n > 0 {
+		return Sockets[rand.Intn(n)]
+	}
+	return NumaSocket{}
+}
 
 // PollThread represents a thread that can accept and execute posted functions.
 type PollThread interface {

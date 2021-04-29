@@ -197,7 +197,7 @@ export interface SocketFaceConfig extends FaceConfig {
    * @minimum 256
    * @default 4096
    */
-  rxGroupQueueSize?: number;
+  rxGroupCapacity?: number;
 
   rxQueueSize?: number;
   txQueueSize?: number;

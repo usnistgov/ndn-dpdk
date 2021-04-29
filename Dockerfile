@@ -6,7 +6,8 @@ ARG MAKE_ENV=
 COPY ./docs/ndndpdk-depends.sh /root/ndndpdk-depends.sh
 RUN sh -c 'apt-get -y -qq update' && \
     apt-get -y -qq install --no-install-recommends ca-certificates curl iproute2 jq ${APT_PKGS} && \
-    env ${DEPENDS_ENV} /root/ndndpdk-depends.sh --skiprootcheck --dir=/root/ndndpdk-depends -y ${DEPENDS_ARGS}
+    env ${DEPENDS_ENV} /root/ndndpdk-depends.sh --skiprootcheck --dir=/root/ndndpdk-depends -y ${DEPENDS_ARGS} && \
+    rm -rf /root/ndndpdk-depends
 COPY . /root/ndn-dpdk/
 RUN export PATH=$PATH:/usr/local/go/bin && \
     cd /root/ndn-dpdk && \

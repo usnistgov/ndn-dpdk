@@ -9,7 +9,6 @@ import "C"
 import (
 	"unsafe"
 
-	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
@@ -24,13 +23,10 @@ import (
 type Config struct {
 	iface.Config
 
-	// RxGroupQueueSize is the Go channel buffer size of the RX group channel.
-	// Minimum is MinRxGroupQueueSize. Default is DefaultRxGroupQueueSize.
+	// RxGroupCapacity is the ring buffer capacity of the RX group shared among all socket faces.
+	// Minimum is MinRxGroupCapacity. Default is DefaultRxGroupCapacity.
 	// This can be changed only if no socket face is present, otherwise this is ignored.
-	//
-	// The RX group channel is a queue shared among all socket faces, which collects packets received
-	// from socket transports, and converts them into DPDK mbufs.
-	RxGroupQueueSize int `json:"rxGroupQueueSize,omitempty"`
+	RxGroupCapacity int `json:"rxGroupCapacity,omitempty"`
 
 	// sockettransport.Config fields.
 	// See ndn-dpdk/ndn/sockettransport package for their semantics and defaults.
@@ -67,12 +63,6 @@ func New(loc Locator) (iface.Face, error) {
 
 // Wrap wraps a sockettransport.Transport to a socket face.
 func Wrap(transport sockettransport.Transport, cfg Config) (iface.Face, error) {
-	if cfg.RxGroupQueueSize == 0 {
-		cfg.RxGroupQueueSize = DefaultRxGroupQueueSize
-	} else {
-		cfg.RxGroupQueueSize = math.MaxInt(cfg.RxGroupQueueSize, MinRxGroupQueueSize)
-	}
-
 	face := &socketFace{
 		transport: transport,
 		rxMempool: ndni.PacketMempool.Get(eal.NumaSocket{}),
@@ -91,12 +81,11 @@ func Wrap(transport sockettransport.Transport, cfg Config) (iface.Face, error) {
 					f.SetDown(true)
 				}
 			})
-			if nFaces == 0 {
-				rxQueue = make(chan *pktmbuf.Packet, cfg.RxGroupQueueSize)
-				iface.ActivateRxGroup(rxg)
+
+			if e := rxg.addFace(cfg.RxGroupCapacity); e != nil {
+				return nil, e
 			}
 			go face.rxLoop()
-			nFaces++
 			return face, nil
 		},
 		Locator: func(iface.Face) iface.Locator {
@@ -112,10 +101,7 @@ func Wrap(transport sockettransport.Transport, cfg Config) (iface.Face, error) {
 			return loc
 		},
 		Stop: func(iface.Face) error {
-			nFaces--
-			if nFaces == 0 {
-				iface.DeactivateRxGroup(rxg)
-			}
+			rxg.removeFace()
 			return nil
 		},
 		Close: func(iface.Face) error {
@@ -159,18 +145,13 @@ func (face *socketFace) rxLoop() {
 		mbuf.SetHeadroom(0)
 		mbuf.Append(wire)
 
-		select {
-		case rxQueue <- mbuf:
-		default:
-			must.Close(mbuf)
-		}
+		rxg.rx(vec)
 	}
 }
 
 //export go_SocketFace_TxBurst
 func go_SocketFace_TxBurst(faceC *C.Face, pkts **C.struct_rte_mbuf, nPkts C.uint16_t) C.uint16_t {
 	face := iface.Get(iface.ID(faceC.id)).(*socketFace)
-	innerTx := face.transport.Tx()
 	for i := uintptr(0); i < uintptr(nPkts); i++ {
 		mbufPtr := (**C.struct_rte_mbuf)(unsafe.Pointer(uintptr(unsafe.Pointer(pkts)) + i*unsafe.Sizeof(*pkts)))
 		mbuf := pktmbuf.PacketFromPtr(unsafe.Pointer(*mbufPtr))
@@ -178,7 +159,7 @@ func go_SocketFace_TxBurst(faceC *C.Face, pkts **C.struct_rte_mbuf, nPkts C.uint
 		must.Close(mbuf)
 
 		select {
-		case innerTx <- wire:
+		case face.transport.Tx() <- wire:
 		default: // packet loss
 		}
 	}
