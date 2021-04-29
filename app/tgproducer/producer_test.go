@@ -22,7 +22,7 @@ func TestPatterns(t *testing.T) {
 	face := intface.MustNew()
 	defer face.D.Close()
 
-	p, e := tgproducer.New(face.D, iface.PktQueueConfig{})
+	p, e := tgproducer.New(face.D, 0, iface.PktQueueConfig{})
 	require.NoError(e)
 	defer p.Close()
 
@@ -122,7 +122,7 @@ func TestDataProducer(t *testing.T) {
 	face := intface.MustNew()
 	defer face.D.Close()
 
-	p, e := tgproducer.New(face.D, iface.PktQueueConfig{})
+	p, e := tgproducer.New(face.D, 0, iface.PktQueueConfig{})
 	require.NoError(e)
 	defer p.Close()
 

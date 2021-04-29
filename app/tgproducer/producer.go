@@ -21,6 +21,7 @@ import (
 // Producer represents a traffic generator producer thread.
 type Producer struct {
 	ealthread.Thread
+	Index    int // thread index
 	c        *C.Tgp
 	patterns []Pattern
 }
@@ -119,11 +120,12 @@ func (p *Producer) Close() error {
 }
 
 // New creates a Producer.
-func New(face iface.Face, rxqCfg iface.PktQueueConfig) (p *Producer, e error) {
+func New(face iface.Face, index int, rxqCfg iface.PktQueueConfig) (p *Producer, e error) {
 	faceID := face.ID()
 	socket := face.NumaSocket()
 	p = &Producer{
-		c: (*C.Tgp)(eal.Zmalloc("Tgp", C.sizeof_Tgp, socket)),
+		Index: index,
+		c:     (*C.Tgp)(eal.Zmalloc("Tgp", C.sizeof_Tgp, socket)),
 	}
 
 	rxqCfg.DisableCoDel = true

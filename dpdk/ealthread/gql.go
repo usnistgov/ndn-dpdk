@@ -95,3 +95,27 @@ func init() {
 		},
 	})
 }
+
+// GqlWithWorker is a GraphQL field for source object that implements Worker.
+// get is a function that returns a Thread; if nil, p.Source must implement Thread.
+func GqlWithWorker(get func(p graphql.ResolveParams) Thread) *graphql.Field {
+	return &graphql.Field{
+		Type:        GqlWorkerType,
+		Name:        "worker",
+		Description: "Worker lcore.",
+		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+			var thread Thread
+			if get == nil {
+				thread = p.Source.(Thread)
+			} else {
+				thread = get(p)
+			}
+			if thread == nil {
+				return nil, nil
+			}
+
+			lc := thread.LCore()
+			return gqlserver.Optional(lc, lc.Valid()), nil
+		},
+	}
+}

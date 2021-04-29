@@ -27,22 +27,23 @@ func (a genArgs) Activate() error {
 		return e
 	}
 
-	app, e := tg.New(a.Tasks)
+	gen, e := tg.New(a.Tasks)
 	if e != nil {
 		return e
 	}
-	app.Launch()
+	tg.GqlTrafficGen = gen
 
-	go printPingCounters(app, a.CounterInterval.DurationOr(1000))
+	gen.Launch()
+	go printPingCounters(gen, a.CounterInterval.DurationOr(1000))
 	return nil
 }
 
-func printPingCounters(app *tg.App, counterInterval time.Duration) {
+func printPingCounters(gen *tg.TrafficGen, counterInterval time.Duration) {
 	for range time.Tick(counterInterval) {
-		for _, task := range app.Tasks {
+		for _, task := range gen.Tasks {
 			face := task.Face
 			stdlog.Printf("face(%d): %v %v", face.ID(), face.ReadCounters(), face.ReadExCounters())
-			for i, producer := range task.Producer {
+			for i, producer := range task.Producers {
 				stdlog.Printf("  producer[%d]: %v", i, producer.ReadCounters())
 			}
 			if consumer := task.Consumer; consumer != nil {

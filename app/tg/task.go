@@ -12,10 +12,10 @@ import (
 
 // Task contains consumer and producer on a face.
 type Task struct {
-	Face     iface.Face
-	Producer []*tgproducer.Producer
-	Consumer *tgconsumer.Consumer
-	Fetch    *fetch.Fetcher
+	Face      iface.Face
+	Producers []*tgproducer.Producer
+	Consumer  *tgconsumer.Consumer
+	Fetch     *fetch.Fetcher
 }
 
 func newTask(face iface.Face, cfg TaskConfig) (task *Task, e error) {
@@ -27,7 +27,7 @@ func newTask(face iface.Face, cfg TaskConfig) (task *Task, e error) {
 	if cfg.Producer != nil {
 		nThreads := math.MaxInt(1, cfg.Producer.NThreads)
 		for i := 0; i < nThreads; i++ {
-			p, e := tgproducer.New(task.Face, cfg.Producer.RxQueue)
+			p, e := tgproducer.New(task.Face, i, cfg.Producer.RxQueue)
 			if e != nil {
 				return nil, e
 			}
@@ -35,7 +35,7 @@ func newTask(face iface.Face, cfg TaskConfig) (task *Task, e error) {
 				return nil, e
 			}
 			p.SetLCore(ealthread.DefaultAllocator.Alloc(roleProducer, socket))
-			task.Producer = append(task.Producer, p)
+			task.Producers = append(task.Producers, p)
 		}
 	}
 
@@ -65,9 +65,9 @@ func newTask(face iface.Face, cfg TaskConfig) (task *Task, e error) {
 }
 
 func (task *Task) configureDemux(demuxI, demuxD, demuxN *iface.InputDemux) {
-	if nProducers := len(task.Producer); nProducers > 0 {
+	if nProducers := len(task.Producers); nProducers > 0 {
 		demuxI.InitRoundrobin(nProducers)
-		for i, producer := range task.Producer {
+		for i, producer := range task.Producers {
 			demuxI.SetDest(i, producer.RxQueue())
 		}
 	}
@@ -90,7 +90,7 @@ func (task *Task) configureDemux(demuxI, demuxD, demuxN *iface.InputDemux) {
 }
 
 func (task *Task) launch() {
-	for _, p := range task.Producer {
+	for _, p := range task.Producers {
 		p.Launch()
 	}
 	if task.Consumer != nil {
@@ -100,7 +100,7 @@ func (task *Task) launch() {
 
 func (task *Task) close() error {
 	errs := []error{}
-	for _, p := range task.Producer {
+	for _, p := range task.Producers {
 		errs = append(errs, p.Close())
 	}
 	if task.Consumer != nil {

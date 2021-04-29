@@ -61,14 +61,7 @@ func init() {
 					return input.id, nil
 				},
 			},
-			"lcore": &graphql.Field{
-				Description: "Worker LCore.",
-				Type:        ealthread.GqlWorkerType,
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					input := p.Source.(*Input)
-					return input.rxl.LCore(), nil
-				},
-			},
+			"worker": ealthread.GqlWithWorker(nil),
 		},
 	}))
 	GqlInputNodeType.Register(GqlInputType)
@@ -189,14 +182,7 @@ func init() {
 					return fwd.id, nil
 				},
 			},
-			"lcore": &graphql.Field{
-				Description: "Worker LCore.",
-				Type:        ealthread.GqlWorkerType,
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					fwd := p.Source.(*Fwd)
-					return fwd.LCore(), nil
-				},
-			},
+			"worker": ealthread.GqlWithWorker(nil),
 			"counters": &graphql.Field{
 				Description: "Forwarding counters.",
 				Type:        graphql.NewNonNull(GqlFwdCountersType),
