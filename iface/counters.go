@@ -41,8 +41,8 @@ func (cnt Counters) String() string {
 		cnt.TxFrames, cnt.TxOctets, cnt.TxInterests, cnt.TxData, cnt.TxNacks, cnt.FragGood, cnt.FragBad, cnt.TxAllocErrs, cnt.TxDropped)
 }
 
-// ReadCounters retrieves basic face counters.
-func (f *face) ReadCounters() (cnt Counters) {
+// Counters retrieves basic face counters.
+func (f *face) Counters() (cnt Counters) {
 	c := f.ptr()
 	if c.impl == nil {
 		return cnt

@@ -63,7 +63,7 @@ func init() {
 				Description: "Face counters.",
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					face := p.Source.(Face)
-					return face.ReadCounters(), nil
+					return face.Counters(), nil
 				},
 			},
 		},

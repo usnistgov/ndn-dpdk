@@ -27,8 +27,8 @@ func (cnt Counters) String() string {
 		cnt.NDataHit, cnt.NDataMiss, cnt.NNackHit, cnt.NNackMiss, cnt.NExpired)
 }
 
-// ReadCounters reads counters from this PIT.
-func (pit *Pit) ReadCounters() (cnt Counters) {
+// Counters reads counters from this PIT.
+func (pit *Pit) Counters() (cnt Counters) {
 	cnt.NEntries = uint64(pit.nEntries)
 	cnt.NInsert = uint64(pit.nInsert)
 	cnt.NFound = uint64(pit.nFound)

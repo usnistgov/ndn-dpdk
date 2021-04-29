@@ -21,13 +21,30 @@ import (
 	"go4.org/must"
 )
 
+// RoleConsumer indicates consumer thread role.
+const RoleConsumer = "CONSUMER"
+
+type worker struct {
+	ealthread.Thread
+}
+
+// ThreadRole implements ealthread.ThreadWithRole interface.
+func (worker) ThreadRole() string {
+	return RoleConsumer
+}
+
 // Consumer represents a traffic generator consumer instance.
 type Consumer struct {
-	Rx       ealthread.Thread
-	Tx       ealthread.Thread
+	rx       worker
+	tx       worker
 	rxC      *C.TgcRx
 	txC      *C.TgcTx
 	patterns []Pattern
+}
+
+// Workers returns worker threads.
+func (c Consumer) Workers() []ealthread.ThreadWithRole {
+	return []ealthread.ThreadWithRole{c.rx, c.tx}
 }
 
 // Patterns returns traffic patterns.
@@ -58,7 +75,7 @@ func (c *Consumer) SetPatterns(inputPatterns []Pattern) error {
 		return ErrTooManyWeights
 	}
 
-	if c.Rx.IsRunning() || c.Tx.IsRunning() {
+	if c.rx.IsRunning() || c.tx.IsRunning() {
 		return ealthread.ErrRunning
 	}
 
@@ -103,7 +120,7 @@ func (c Consumer) Interval() time.Duration {
 // a burst interval with equivalent traffic amount.
 // This can only be used when both RX and TX threads are stopped.
 func (c *Consumer) SetInterval(interval time.Duration) error {
-	if c.Rx.IsRunning() || c.Tx.IsRunning() {
+	if c.rx.IsRunning() || c.tx.IsRunning() {
 		return ealthread.ErrRunning
 	}
 
@@ -121,32 +138,34 @@ func (c Consumer) Face() iface.Face {
 	return iface.Get(iface.ID(c.txC.face))
 }
 
-// SetLCores assigns LCores to RX and TX threads.
-// This can only be used when both RX and TX threads are stopped.
-func (c *Consumer) SetLCores(rxLCore, txLCore eal.LCore) {
-	c.Rx.SetLCore(rxLCore)
-	c.Tx.SetLCore(txLCore)
+// AllocLCores allocates worker lcores.
+// This can only be used when all workers are stopped.
+func (p *Consumer) AllocLCores(allocator *ealthread.Allocator) error {
+	return multierr.Append(
+		allocator.AllocThread(p.rx),
+		allocator.AllocThread(p.tx),
+	)
 }
 
 // Launch launches RX and TX threads.
 func (c *Consumer) Launch() {
 	c.rxC.runNum++
 	c.txC.runNum = c.rxC.runNum
-	c.Rx.Launch()
-	c.Tx.Launch()
+	c.rx.Launch()
+	c.tx.Launch()
 }
 
 // Stop stops RX and TX threads.
 func (consumer *Consumer) Stop(delay time.Duration) error {
-	eTx := consumer.Tx.Stop()
+	eTx := consumer.tx.Stop()
 	time.Sleep(delay)
-	eRx := consumer.Rx.Stop()
+	eRx := consumer.rx.Stop()
 	return multierr.Append(eTx, eRx)
 }
 
 // Close closes the consumer.
-// This can only be used when both RX and TX threads are stopped.
 func (c *Consumer) Close() error {
+	c.Stop(0)
 	must.Close(c.RxQueue())
 	eal.Free(c.rxC)
 	eal.Free(c.txC)
@@ -172,11 +191,11 @@ func New(face iface.Face, rxqCfg iface.PktQueueConfig) (c *Consumer, e error) {
 	C.pcg32_srandom_r(&c.txC.trafficRng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
 	C.NonceGen_Init(&c.txC.nonceGen)
 
-	c.Rx = ealthread.New(
+	c.rx.Thread = ealthread.New(
 		cptr.Func0.C(unsafe.Pointer(C.TgcRx_Run), unsafe.Pointer(c.rxC)),
 		ealthread.InitStopFlag(unsafe.Pointer(&c.rxC.stop)),
 	)
-	c.Tx = ealthread.New(
+	c.tx.Thread = ealthread.New(
 		cptr.Func0.C(unsafe.Pointer(C.TgcTx_Run), unsafe.Pointer(c.txC)),
 		ealthread.InitStopFlag(unsafe.Pointer(&c.txC.stop)),
 	)

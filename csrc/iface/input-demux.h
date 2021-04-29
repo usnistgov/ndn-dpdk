@@ -37,8 +37,6 @@ InputDemux_DispatchByNdt(InputDemux* demux, Packet* npkt, const PName* name);
 void
 InputDemux_DispatchByToken(InputDemux* demux, Packet* npkt, const PName* name);
 
-#define INPUTDEMUX_DEST_MAX 128
-
 struct InputDemux
 {
   InputDemux_DispatchFunc dispatch;
@@ -49,7 +47,7 @@ struct InputDemux
     uint32_t i;
     uint32_t n;
   } roundrobin;
-  InputDemuxDest dest[INPUTDEMUX_DEST_MAX];
+  InputDemuxDest dest[MaxInputDemuxDest];
 };
 
 static inline void

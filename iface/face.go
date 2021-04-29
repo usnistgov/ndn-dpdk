@@ -37,8 +37,8 @@ type Face interface {
 	// Locator returns a Locator describing face endpoints.
 	Locator() Locator
 
-	// ReadCounters returns basic face counters.
-	ReadCounters() Counters
+	// Counters returns basic face counters.
+	Counters() Counters
 
 	// ReadExCounters returns extended counters.
 	ReadExCounters() interface{}

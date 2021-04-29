@@ -150,7 +150,7 @@ func TestToken(t *testing.T) {
 		must.Close(data2)
 	}
 
-	cnt := pit.ReadCounters()
+	cnt := pit.Counters()
 	assert.Equal(uint64(255), cnt.NInsert)
 	assert.Equal(uint64(1), cnt.NAllocErr)
 	assert.Equal(uint64(255), cnt.NDataHit)

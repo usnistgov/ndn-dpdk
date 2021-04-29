@@ -9,14 +9,6 @@ import (
 	"go.uber.org/multierr"
 )
 
-// LCoreAlloc roles.
-const (
-	roleInput    = "RX"
-	roleOutput   = "TX"
-	roleProducer = "PRODUCER"
-	roleConsumer = "CONSUMER"
-)
-
 // TrafficGen represents the traffic generator.
 type TrafficGen struct {
 	Tasks  []*Task

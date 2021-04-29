@@ -19,7 +19,7 @@ type Counters struct {
 
 // ReadCounters retrieves CS counters from PIT and CS.
 func ReadCounters(p *pit.Pit, c *cs.Cs) (cnt Counters) {
-	pitCnt := p.ReadCounters()
+	pitCnt := p.Counters()
 	cnt.NHits = pitCnt.NCsMatch
 	cnt.NMisses = pitCnt.NInsert + pitCnt.NFound
 	cnt.DirectEntries, cnt.DirectCapacity = readCslCnt(c, cs.ListMd)

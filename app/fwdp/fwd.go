@@ -130,8 +130,8 @@ type FwdCounters struct {
 	NNackMismatch uint64 `json:"nNackMismatch"` // Nacks dropped due to outdated nonce
 }
 
-// ReadCounters retrieves forwarding thread counters.
-func (fwd *Fwd) ReadCounters() (cnt FwdCounters) {
+// Counters retrieves forwarding thread counters.
+func (fwd *Fwd) Counters() (cnt FwdCounters) {
 	cnt.id = fwd.id
 	cnt.NNoFibMatch = uint64(fwd.c.nNoFibMatch)
 	cnt.NDupNonce = uint64(fwd.c.nDupNonce)

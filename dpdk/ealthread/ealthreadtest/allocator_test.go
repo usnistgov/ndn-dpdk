@@ -56,11 +56,15 @@ func TestAllocator(t *testing.T) {
 	// pick from reserved-A on NUMA 0
 	// 1=allocated-A, 2=idle, 3=idle, 4=reserved-B, 5=idle, 6=reserved-A, 7=busy
 	// pick from reserved-A on NUMA 1
-	lc16 := la.AllocGroup([]string{"A"}, []eal.NumaSocket{numa0, numa1})
-	assert.Len(lc16, 1)
-	assert.Len(lc16[0], 2)
-	assert.Equal(1, lc16[0][0].ID())
-	assert.Equal(6, lc16[0][1].ID())
+	lc16 := la.Request(
+		ealthread.AllocRequest{Role: "A", Socket: numa0},
+		ealthread.AllocRequest{},
+		ealthread.AllocRequest{Role: "A", Socket: numa1},
+	)
+	assert.Len(lc16, 3)
+	assert.Equal(1, lc16[0].ID())
+	assert.False(lc16[1].Valid())
+	assert.Equal(6, lc16[2].ID())
 
 	// 1=allocated-A, 2=idle, 3=idle, 4=reserved-B, 5=idle, 6=allocated-A, 7=busy
 	// pick from idle on NUMA 1
@@ -75,7 +79,11 @@ func TestAllocator(t *testing.T) {
 	// 1=allocated-A, 2=allocated-A, 3=idle, 4=reserved-B, 5=allocated-A, 6=allocated-A, 7=busy
 	// fail because exceeding OnNuma limit
 	assert.False(la.Alloc("A", numa1).Valid())
-	assert.Nil(la.AllocGroup([]string{"A"}, []eal.NumaSocket{numa0, numa1}))
+	assert.Len(la.Request(
+		ealthread.AllocRequest{Role: "A", Socket: numa0},
+		ealthread.AllocRequest{},
+		ealthread.AllocRequest{Role: "A", Socket: numa1},
+	), 0)
 
 	// 1=allocated-A, 2=allocated-A, 3=idle, 4=reserved-B, 5=allocated-A, 6=allocated-A, 7=busy
 	// pick from idle on NUMA 0

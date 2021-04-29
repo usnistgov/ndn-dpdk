@@ -30,6 +30,13 @@ func (c AllocRoleConfig) limitOn(socket eal.NumaSocket) int {
 	return c.EachNuma
 }
 
+// AllocRequest represents a request to the allocator.
+// If Role is empty, the entry is ignored and no allocation will occur.
+type AllocRequest struct {
+	Role   string
+	Socket eal.NumaSocket
+}
+
 // Allocator allocates lcores to roles.
 type Allocator struct {
 	Config    AllocConfig
@@ -183,51 +190,50 @@ func (la *Allocator) pickLeastOccupied(availsByNuma map[eal.NumaSocket][]eal.LCo
 	return candidate
 }
 
-// Alloc allocates an lcore for a role.
-func (la *Allocator) Alloc(role string, socket eal.NumaSocket) (lc eal.LCore) {
-	lc = la.pick(role, socket)
-	if !lc.Valid() {
-		return lc
-	}
-
-	la.allocated[lc.ID()] = role
-	logger.Info("lcore allocated",
-		zap.String("role", role),
-		socket.ZapField("socket"),
-		lc.ZapField("lc"),
-		la.provider.NumaSocketOf(lc).ZapField("lc-socket"),
-	)
-	return lc
-}
-
-// AllocGroup allocates several LCores for each NUMA socket.
-// Returns a list organized by roles, or nil on failure.
-func (la *Allocator) AllocGroup(roles []string, sockets []eal.NumaSocket) (list [][]eal.LCore) {
-	list = make([][]eal.LCore, len(roles))
-	for _, socket := range sockets {
-		for i, role := range roles {
-			lc := la.pick(role, socket)
-			if !lc.Valid() {
-				goto FAIL
-			}
-			la.allocated[lc.ID()] = role
-			list[i] = append(list[i], lc)
+// Request allocates lcores for requests.
+func (la *Allocator) Request(requests ...AllocRequest) []eal.LCore {
+	list := make([]eal.LCore, len(requests))
+	for i, request := range requests {
+		if request.Role == "" {
+			continue
 		}
+
+		lc := la.pick(request.Role, request.Socket)
+		if !lc.Valid() {
+			goto FAIL
+		}
+
+		la.allocated[lc.ID()] = request.Role
+		list[i] = lc
 	}
-	logger.Info("lcores allocated",
-		zap.Strings("roles", roles),
-		zap.Any("sockets", sockets),
-		zap.Any("list", list),
-	)
+
+	for i, request := range requests {
+		lc := list[i]
+		logger.Info("lcore allocated",
+			zap.String("role", request.Role),
+			request.Socket.ZapField("socket"),
+			lc.ZapField("lc"),
+			la.provider.NumaSocketOf(lc).ZapField("lc-socket"),
+		)
+	}
 	return list
 
 FAIL:
-	for _, roleList := range list {
-		for _, lc := range roleList {
+	for _, lc := range list {
+		if lc.Valid() {
 			la.allocated[lc.ID()] = ""
 		}
 	}
 	return nil
+}
+
+// Alloc allocates an lcore for a role.
+func (la *Allocator) Alloc(role string, socket eal.NumaSocket) (lc eal.LCore) {
+	list := la.Request(AllocRequest{Role: role, Socket: socket})
+	if len(list) == 0 {
+		return eal.LCore{}
+	}
+	return list[0]
 }
 
 // AllocMax allocates all remaining LCores to a role.

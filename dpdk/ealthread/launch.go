@@ -15,29 +15,44 @@ type ThreadWithRole interface {
 	ThreadRole() string
 }
 
-// AllocThread allocates lcore to a thread.
-// If th implements eal.WithNumaSocket, the lcore comes from the preferred NUMA socket.
-func (la *Allocator) AllocThread(th ThreadWithRole) error {
+func requestFromThread(th ThreadWithRole) (req AllocRequest) {
 	if th.LCore().Valid() {
-		return nil
+		return
 	}
 
-	var socket eal.NumaSocket
+	req.Role = th.ThreadRole()
+
 	if thn, ok := th.(eal.WithNumaSocket); ok {
-		socket = thn.NumaSocket()
+		req.Socket = thn.NumaSocket()
 	}
 
-	lc := la.Alloc(th.ThreadRole(), socket)
-	if !lc.Valid() {
+	return
+}
+
+// AllocThread allocates lcores to threads.
+// If th implements eal.WithNumaSocket, the lcore comes from the preferred NUMA socket.
+func (la *Allocator) AllocThread(threads ...ThreadWithRole) error {
+	requests := make([]AllocRequest, len(threads))
+	for i, th := range threads {
+		requests[i] = requestFromThread(th)
+	}
+
+	list := la.Request(requests...)
+	if list == nil {
 		return ErrNoLCore
 	}
-	th.SetLCore(lc)
+
+	for i, lc := range list {
+		if lc.Valid() {
+			threads[i].SetLCore(lc)
+		}
+	}
 	return nil
 }
 
-// AllocThread allocates lcore to a thread from DefaultAllocator.
-func AllocThread(th ThreadWithRole) error {
-	return DefaultAllocator.AllocThread(th)
+// AllocThread allocates lcores to threads from DefaultAllocator.
+func AllocThread(threads ...ThreadWithRole) error {
+	return DefaultAllocator.AllocThread(threads...)
 }
 
 // Launch allocates lcore to a thread from DefaultAllocator, and launches the thread.

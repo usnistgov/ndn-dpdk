@@ -6,7 +6,6 @@ package eal
 import "C"
 import (
 	"encoding/json"
-	"reflect"
 	"strconv"
 
 	"github.com/graphql-go/graphql"
@@ -76,21 +75,6 @@ func (socket NumaSocket) NumaSocket() NumaSocket {
 // WithNumaSocket interface is implemented by types that have an associated or preferred NUMA socket.
 type WithNumaSocket interface {
 	NumaSocket() NumaSocket
-}
-
-// NumaSocketsOf collects associated/preferred NUMA sockets of a list of objects.
-// list must be a slice of objects that implement WithNumaSocket; panics otherwise.
-func NumaSocketsOf(list interface{}) (result []NumaSocket) {
-	v := reflect.ValueOf(list)
-	if v.Kind() != reflect.Slice {
-		panic(v.Type().String() + " is not a slice")
-	}
-
-	result = make([]NumaSocket, v.Len())
-	for i := range result {
-		result[i] = v.Index(i).Interface().(WithNumaSocket).NumaSocket()
-	}
-	return result
 }
 
 // GqlWithNumaSocket is a GraphQL field for source object that implements WithNumaSocket.

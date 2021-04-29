@@ -1,9 +1,5 @@
 package tgproducer
 
-/*
-#include "../../csrc/tgproducer/producer.h"
-*/
-import "C"
 import (
 	"fmt"
 	"strconv"
@@ -45,20 +41,29 @@ func (cnt Counters) String() string {
 	return s
 }
 
-// ReadCounters retrieves counters.
-func (producer *Producer) ReadCounters() (cnt Counters) {
-	for i := 0; i < int(producer.c.nPatterns); i++ {
-		patternC := producer.c.pattern[i]
-		var pcnt PatternCounters
-		for j := 0; j < int(patternC.nReplies); j++ {
+func (w *worker) accumulateCounters(cnt *Counters) {
+	for i := range cnt.PerPattern {
+		patternC, pcnt := w.c.pattern[i], &cnt.PerPattern[i]
+		for j := range pcnt.PerReply {
 			replyC := patternC.reply[j]
-			pcnt.PerReply = append(pcnt.PerReply, uint64(replyC.nInterests))
+			pcnt.PerReply[j] += uint64(replyC.nInterests)
 			pcnt.NInterests += uint64(replyC.nInterests)
 		}
-		cnt.PerPattern = append(cnt.PerPattern, pcnt)
 		cnt.NInterests += pcnt.NInterests
 	}
-	cnt.NNoMatch = uint64(producer.c.nNoMatch)
-	cnt.NAllocError = uint64(producer.c.nAllocError)
+	cnt.NNoMatch += uint64(w.c.nNoMatch)
+	cnt.NAllocError += uint64(w.c.nAllocError)
+}
+
+// Counters retrieves counters.
+func (p Producer) Counters() (cnt Counters) {
+	cnt.PerPattern = make([]PatternCounters, len(p.patterns))
+	for i, pattern := range p.patterns {
+		cnt.PerPattern[i].PerReply = make([]uint64, len(pattern.Replies))
+	}
+
+	for _, w := range p.workers {
+		w.accumulateCounters(&cnt)
+	}
 	return cnt
 }

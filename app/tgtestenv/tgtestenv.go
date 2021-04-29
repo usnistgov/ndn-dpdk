@@ -4,15 +4,16 @@ package tgtestenv
 import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealtestenv"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
 // Init initializes testing environment for traffic generator applications.
 func Init() {
 	ealtestenv.Init()
-	WorkerLCores = eal.Workers[2:]
 
-	rxl := iface.NewRxLoop(eal.Workers[0].NumaSocket())
+	rxl := iface.NewRxLoop(eal.RandomSocket())
+	ealthread.AllocThread(rxl)
 	rxl.SetLCore(eal.Workers[0])
 	DemuxI, DemuxD, DemuxN = rxl.InterestDemux(), rxl.DataDemux(), rxl.NackDemux()
 	DemuxI.InitFirst()
@@ -21,12 +22,9 @@ func Init() {
 	rxl.Launch()
 
 	txl := iface.NewTxLoop(eal.Workers[1].NumaSocket())
-	txl.SetLCore(eal.Workers[1])
+	ealthread.AllocThread(txl)
 	txl.Launch()
 }
-
-// WorkerLCores is a list of unused lcores.
-var WorkerLCores []eal.LCore
 
 // Demuxes in RxLoop.
 var (

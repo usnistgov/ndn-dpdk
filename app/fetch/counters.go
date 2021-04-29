@@ -17,8 +17,8 @@ type Counters struct {
 	NRxData   uint64        `json:"nRxData"`   // number of Data satisfying pending Interests
 }
 
-// ReadCounters retrieves counters.
-func (fl *Logic) ReadCounters() (cnt Counters) {
+// Counters retrieves counters.
+func (fl *Logic) Counters() (cnt Counters) {
 	cnt.Time = time.Now()
 	rtte := fl.RttEst()
 	cnt.LastRtt = rtte.LastRtt()

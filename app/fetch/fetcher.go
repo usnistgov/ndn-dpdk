@@ -16,10 +16,8 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"go4.org/must"
+	"go.uber.org/multierr"
 )
-
-var fetcherByFace = make(map[iface.ID]*Fetcher)
 
 // FetcherConfig contains Fetcher configuration.
 type FetcherConfig struct {
@@ -29,11 +27,33 @@ type FetcherConfig struct {
 	WindowCapacity int                  `json:"windowCapacity,omitempty"`
 }
 
+// RoleConsumer indicates consumer thread role.
+const RoleConsumer = "CONSUMER"
+
+type worker struct {
+	ealthread.Thread
+	c *C.FetchThread
+}
+
+// ThreadRole implements ealthread.ThreadWithRole interface.
+func (worker) ThreadRole() string {
+	return RoleConsumer
+}
+
+// NumaSocket implements eal.WithNumaSocket interface.
+func (w worker) NumaSocket() eal.NumaSocket {
+	return w.face().NumaSocket()
+}
+
+func (w worker) face() iface.Face {
+	return iface.Get(iface.ID(w.c.face))
+}
+
 // Fetcher controls fetch threads and fetch procedures on a face.
 // A fetch procedure retrieves Data under a single name prefix, and has independent congestion control.
 // A fetch thread runs on an lcore, and can serve multiple fetch procedures.
 type Fetcher struct {
-	fth          []*fetchThread
+	workers      []*worker
 	fp           []*C.FetchProc
 	nActiveProcs int
 }
@@ -53,21 +73,21 @@ func New(face iface.Face, cfg FetcherConfig) (*Fetcher, error) {
 	interestMp := (*C.struct_rte_mempool)(ndni.InterestMempool.Get(socket).Ptr())
 
 	fetcher := &Fetcher{
-		fth: make([]*fetchThread, cfg.NThreads),
-		fp:  make([]*C.FetchProc, cfg.NProcs),
+		workers: make([]*worker, cfg.NThreads),
+		fp:      make([]*C.FetchProc, cfg.NProcs),
 	}
-	for i := range fetcher.fth {
-		fth := &fetchThread{
+	for i := range fetcher.workers {
+		w := &worker{
 			c: (*C.FetchThread)(eal.Zmalloc("FetchThread", C.sizeof_FetchThread, socket)),
 		}
-		fth.c.face = (C.FaceID)(faceID)
-		fth.c.interestMp = interestMp
-		C.NonceGen_Init(&fth.c.nonceGen)
-		fth.Thread = ealthread.New(
-			cptr.Func0.C(unsafe.Pointer(C.FetchThread_Run), unsafe.Pointer(fth.c)),
-			ealthread.InitStopFlag(unsafe.Pointer(&fth.c.stop)),
+		w.c.face = (C.FaceID)(faceID)
+		w.c.interestMp = interestMp
+		C.NonceGen_Init(&w.c.nonceGen)
+		w.Thread = ealthread.New(
+			cptr.Func0.C(unsafe.Pointer(C.FetchThread_Run), unsafe.Pointer(w.c)),
+			ealthread.InitStopFlag(unsafe.Pointer(&w.c.stop)),
 		)
-		fetcher.fth[i] = fth
+		fetcher.workers[i] = w
 	}
 
 	for i := range fetcher.fp {
@@ -80,23 +100,20 @@ func New(face iface.Face, cfg FetcherConfig) (*Fetcher, error) {
 		fetcher.Logic(i).Init(cfg.WindowCapacity, socket)
 	}
 
-	fetcherByFace[faceID] = fetcher
 	return fetcher, nil
 }
 
 // Face returns the face.
 func (fetcher *Fetcher) Face() iface.Face {
-	return iface.Get(iface.ID(fetcher.fth[0].c.face))
+	return fetcher.workers[0].face()
 }
 
-// CountThreads returns number of threads.
-func (fetcher *Fetcher) CountThreads() int {
-	return len(fetcher.fth)
-}
-
-// Thread returns i-th thread.
-func (fetcher *Fetcher) Thread(i int) ealthread.Thread {
-	return fetcher.fth[i]
+// Workers returns worker threads.
+func (fetcher Fetcher) Workers() (list []ealthread.ThreadWithRole) {
+	for _, w := range fetcher.workers {
+		list = append(list, w)
+	}
+	return list
 }
 
 // CountProcs returns number of fetch procedures.
@@ -104,8 +121,16 @@ func (fetcher *Fetcher) CountProcs() int {
 	return len(fetcher.fp)
 }
 
-// RxQueue returns the RX queue of i-th fetch procedure.
-func (fetcher *Fetcher) RxQueue(i int) *iface.PktQueue {
+// ConnectRxQueue connects Data+Nack InputDemux to RxQueues.
+func (fetcher *Fetcher) ConnectRxQueues(demuxD, demuxN *iface.InputDemux, first int) {
+	for i := range fetcher.fp {
+		q := fetcher.rxQueue(i)
+		demuxD.SetDest(first+i, q)
+		demuxN.SetDest(first+i, q)
+	}
+}
+
+func (fetcher *Fetcher) rxQueue(i int) *iface.PktQueue {
 	return iface.PktQueueFromPtr(unsafe.Pointer(&fetcher.fp[i].rxQueue))
 }
 
@@ -118,7 +143,7 @@ func (fetcher *Fetcher) Logic(i int) *Logic {
 // If the fetcher is running, it is automatically stopped.
 func (fetcher *Fetcher) Reset() {
 	fetcher.Stop()
-	for _, fth := range fetcher.fth {
+	for _, fth := range fetcher.workers {
 		fth.c.head.next = nil
 	}
 	for i := range fetcher.fp {
@@ -147,7 +172,7 @@ func (fetcher *Fetcher) AddTemplate(tplArgs ...interface{}) (i int, e error) {
 
 	rs := urcu.NewReadSide()
 	defer rs.Close()
-	fth := fetcher.fth[i%len(fetcher.fth)]
+	fth := fetcher.workers[i%len(fetcher.workers)]
 	C.cds_hlist_add_head_rcu(&fp.fthNode, &fth.c.head)
 	fetcher.nActiveProcs++
 	return i, nil
@@ -155,34 +180,30 @@ func (fetcher *Fetcher) AddTemplate(tplArgs ...interface{}) (i int, e error) {
 
 // Launch launches all fetch threads.
 func (fetcher *Fetcher) Launch() {
-	for _, fth := range fetcher.fth {
+	for _, fth := range fetcher.workers {
 		fth.Launch()
 	}
 }
 
 // Stop stops all fetch threads.
 func (fetcher *Fetcher) Stop() {
-	for _, fth := range fetcher.fth {
+	for _, fth := range fetcher.workers {
 		fth.Stop()
 	}
 }
 
 // Close deallocates data structures.
 func (fetcher *Fetcher) Close() error {
-	faceID := fetcher.Face().ID()
+	errs := []error{}
 	for i, fp := range fetcher.fp {
-		must.Close(fetcher.RxQueue(i))
-		must.Close(fetcher.Logic(i))
+		errs = append(errs,
+			fetcher.rxQueue(i).Close(),
+			fetcher.Logic(i).Close(),
+		)
 		eal.Free(fp)
 	}
-	for _, fth := range fetcher.fth {
+	for _, fth := range fetcher.workers {
 		eal.Free(fth.c)
 	}
-	delete(fetcherByFace, faceID)
-	return nil
-}
-
-type fetchThread struct {
-	ealthread.Thread
-	c *C.FetchThread
+	return multierr.Combine(errs...)
 }

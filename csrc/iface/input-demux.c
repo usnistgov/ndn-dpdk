@@ -20,7 +20,7 @@ static void
 InputDemux_PassTo(InputDemux* demux, Packet* npkt, uint8_t index)
 {
   InputDemuxDest* dest = &demux->dest[index];
-  if (unlikely(index >= INPUTDEMUX_DEST_MAX || dest->queue == NULL)) {
+  if (unlikely(index >= MaxInputDemuxDest || dest->queue == NULL)) {
     InputDemux_Drop(demux, npkt, "no-dest");
     return;
   }

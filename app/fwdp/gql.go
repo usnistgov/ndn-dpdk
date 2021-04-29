@@ -195,7 +195,7 @@ func init() {
 				Type:        graphql.NewNonNull(pit.GqlCountersType),
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					fwd := p.Source.(*Fwd)
-					return fwd.Pit().ReadCounters(), nil
+					return fwd.Pit().Counters(), nil
 				},
 			},
 			"csCounters": &graphql.Field{

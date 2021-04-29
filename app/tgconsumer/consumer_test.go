@@ -7,6 +7,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/app/tgconsumer"
 	"github.com/usnistgov/ndn-dpdk/app/tgtestenv"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/intface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
@@ -21,6 +22,7 @@ func TestConsumer(t *testing.T) {
 	c, e := tgconsumer.New(face.D, iface.PktQueueConfig{})
 	require.NoError(e)
 	defer c.Close()
+	c.AllocLCores(ealthread.DefaultAllocator)
 
 	nameA := ndn.ParseName("/A")
 	nameB := ndn.ParseName("/B")
@@ -45,7 +47,6 @@ func TestConsumer(t *testing.T) {
 	}))
 
 	require.NoError(c.SetInterval(200 * time.Microsecond))
-	c.SetLCores(tgtestenv.WorkerLCores[0], tgtestenv.WorkerLCores[1])
 	tgtestenv.DemuxD.SetDest(0, c.RxQueue())
 
 	nInterestsA := 0
@@ -105,7 +106,7 @@ func TestConsumer(t *testing.T) {
 	assert.InDelta(nInterests*0.05, nInterestsB2, 100)
 	assert.LessOrEqual(nInterestsB2Far, nInterestsB2/10)
 
-	cnt := c.ReadCounters()
+	cnt := c.Counters()
 	assert.InDelta(nInterests, cnt.NInterests, 500)
 	assert.InDelta(nInterests, cnt.NData, 500)
 	require.Len(cnt.PerPattern, 3)

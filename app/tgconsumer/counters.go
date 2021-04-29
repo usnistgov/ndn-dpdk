@@ -69,8 +69,8 @@ func (cnt Counters) String() string {
 	return s
 }
 
-// ReadCounters retrieves counters.
-func (consumer *Consumer) ReadCounters() (cnt Counters) {
+// Counters retrieves counters.
+func (consumer *Consumer) Counters() (cnt Counters) {
 	rttScale := eal.GetNanosInTscUnit()
 	for i := 0; i < int(consumer.rxC.nPatterns); i++ {
 		crP := consumer.rxC.pattern[i]
@@ -96,17 +96,17 @@ func (consumer *Consumer) ReadCounters() (cnt Counters) {
 
 // ClearCounters clears counters.
 // Both RX and TX threads should be stopped before calling this, otherwise race conditions may occur.
-func (consumer *Consumer) ClearCounters() {
-	nPatterns := int(consumer.rxC.nPatterns)
+func (c *Consumer) ClearCounters() {
+	nPatterns := int(c.rxC.nPatterns)
 	for i := 0; i < nPatterns; i++ {
-		consumer.clearCounter(i)
+		c.clearCounter(i)
 	}
 }
 
-func (consumer *Consumer) clearCounter(index int) {
-	consumer.rxC.pattern[index].nData = 0
-	consumer.rxC.pattern[index].nNacks = 0
-	rtt := runningstat.FromPtr(unsafe.Pointer(&consumer.rxC.pattern[index].rtt))
+func (c *Consumer) clearCounter(index int) {
+	c.rxC.pattern[index].nData = 0
+	c.rxC.pattern[index].nNacks = 0
+	rtt := runningstat.FromPtr(unsafe.Pointer(&c.rxC.pattern[index].rtt))
 	rtt.Clear(true)
-	consumer.txC.pattern[index].nInterests = 0
+	c.txC.pattern[index].nInterests = 0
 }

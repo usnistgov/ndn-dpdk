@@ -1,28 +1,18 @@
 // Package tgproducer implements a traffic generator producer.
 package tgproducer
 
-/*
-#include "../../csrc/tgproducer/producer.h"
-*/
-import "C"
 import (
-	"math/rand"
-	"unsafe"
-
-	"github.com/usnistgov/ndn-dpdk/core/cptr"
-	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndni"
+	"go.uber.org/multierr"
 	"go4.org/must"
 )
 
-// Producer represents a traffic generator producer thread.
+// Producer represents a traffic generator producer instance.
 type Producer struct {
-	ealthread.Thread
-	Index    int // thread index
-	c        *C.Tgp
+	workers  []*worker
 	patterns []Pattern
 }
 
@@ -32,7 +22,7 @@ func (p Producer) Patterns() []Pattern {
 }
 
 // SetPatterns sets new traffic patterns.
-// This can only be used when the thread is stopped.
+// This can only be used when the threads are stopped.
 func (p *Producer) SetPatterns(inputPatterns []Pattern) error {
 	if len(inputPatterns) == 0 {
 		return ErrNoPattern
@@ -54,96 +44,86 @@ func (p *Producer) SetPatterns(inputPatterns []Pattern) error {
 		patterns = append(patterns, pattern)
 	}
 
+	for _, w := range p.workers {
+		if w.IsRunning() {
+			return ealthread.ErrRunning
+		}
+	}
+
 	payloadMp := ndni.PayloadMempool.Get(p.Face().NumaSocket())
-	dataGenVec, e := payloadMp.Alloc(nDataGen)
+	dataGenVec, e := payloadMp.Alloc(nDataGen * len(p.workers))
 	if e != nil {
 		return e
 	}
 
-	if p.IsRunning() {
-		return ealthread.ErrRunning
-	}
-
 	p.patterns = patterns
-	p.c.nPatterns = C.uint8_t(len(patterns))
-	for i, pattern := range patterns {
-		c := &p.c.pattern[i]
-		*c = C.TgpPattern{
-			nReplies: C.uint8_t(len(pattern.Replies)),
-		}
-		prefixL := copy(cptr.AsByteSlice(&c.prefixBuffer), pattern.prefixV)
-		c.prefix.value = &c.prefixBuffer[0]
-		c.prefix.length = C.uint16_t(prefixL)
-
-		w := 0
-		for k, reply := range pattern.Replies {
-			r := &c.reply[k]
-			kind := reply.Kind()
-			r.kind = C.uint8_t(kind)
-			switch kind {
-			case ReplyNack:
-				r.nackReason = C.uint8_t(reply.Nack)
-			case ReplyData:
-				data := ndn.MakeData(reply.Suffix, reply.FreshnessPeriod.Duration(), make([]byte, reply.PayloadLen))
-				dataGen := ndni.DataGenFromPtr(unsafe.Pointer(&r.dataGen))
-				dataGen.Init(dataGenVec[0], data)
-				dataGenVec = dataGenVec[1:]
-			}
-
-			for j := 0; j < reply.Weight; j++ {
-				c.weight[w] = C.TgpReplyID(k)
-				w++
-			}
-		}
-		c.nWeights = C.uint32_t(w)
+	for _, w := range p.workers {
+		w.setPatterns(patterns, &dataGenVec)
 	}
 	return nil
-}
-
-// RxQueue returns the ingress queue.
-func (p Producer) RxQueue() *iface.PktQueue {
-	return iface.PktQueueFromPtr(unsafe.Pointer(&p.c.rxQueue))
 }
 
 // Face returns the associated face.
 func (p Producer) Face() iface.Face {
-	return iface.Get(iface.ID(p.c.face))
+	return p.workers[0].face()
+}
+
+// Workers returns worker threads.
+func (p Producer) Workers() (list []ealthread.ThreadWithRole) {
+	for _, w := range p.workers {
+		list = append(list, w)
+	}
+	return list
+}
+
+// ConnectRxQueue connects Interest InputDemux to RxQueues.
+func (p *Producer) ConnectRxQueues(demuxI *iface.InputDemux, first int) {
+	for i, w := range p.workers {
+		demuxI.SetDest(first+i, w.rxQueue())
+	}
+}
+
+// Launch launches all workers.
+func (p *Producer) Launch() {
+	for _, w := range p.workers {
+		w.Launch()
+	}
+}
+
+// Stop stops all workers.
+func (p *Producer) Stop() error {
+	errs := []error{}
+	for _, w := range p.workers {
+		errs = append(errs, w.Stop())
+	}
+	return multierr.Combine(errs...)
 }
 
 // Close closes the producer.
-// The thread must be stopped before calling this.
 func (p *Producer) Close() error {
-	p.Stop()
-	must.Close(p.RxQueue())
-	eal.Free(p.c)
-	return nil
+	errs := []error{p.Stop()}
+	for _, w := range p.workers {
+		errs = append(errs, w.close())
+	}
+	p.workers = nil
+	return multierr.Combine(errs...)
 }
 
 // New creates a Producer.
-func New(face iface.Face, index int, rxqCfg iface.PktQueueConfig) (p *Producer, e error) {
+func New(face iface.Face, rxqCfg iface.PktQueueConfig, nWorkers int) (p *Producer, e error) {
 	faceID := face.ID()
 	socket := face.NumaSocket()
-	p = &Producer{
-		Index: index,
-		c:     (*C.Tgp)(eal.Zmalloc("Tgp", C.sizeof_Tgp, socket)),
-	}
-
 	rxqCfg.DisableCoDel = true
-	rxQueue := iface.PktQueueFromPtr(unsafe.Pointer(&p.c.rxQueue))
-	if e := rxQueue.Init(rxqCfg, socket); e != nil {
-		eal.Free(p.c)
-		return nil, nil
+	nWorkers = math.MaxInt(1, nWorkers)
+
+	p = &Producer{}
+	for i := 0; i < nWorkers; i++ {
+		w, e := newWorker(faceID, socket, rxqCfg)
+		if e != nil {
+			must.Close(p)
+			return nil, e
+		}
+		p.workers = append(p.workers, w)
 	}
-
-	p.c.face = (C.FaceID)(faceID)
-	C.pcg32_srandom_r(&p.c.replyRng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
-
-	(*ndni.Mempools)(unsafe.Pointer(&p.c.mp)).Assign(socket, ndni.DataMempool)
-
-	p.Thread = ealthread.New(
-		cptr.Func0.C(unsafe.Pointer(C.Tgp_Run), unsafe.Pointer(p.c)),
-		ealthread.InitStopFlag(unsafe.Pointer(&p.c.stop)),
-	)
-
 	return p, nil
 }

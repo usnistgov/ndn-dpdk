@@ -2,14 +2,13 @@ package fetch
 
 import (
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/graphql-go/graphql"
+	"github.com/usnistgov/ndn-dpdk/app/tg/tggql"
 	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
 	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
-	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
@@ -27,51 +26,13 @@ type benchmarkTemplate struct {
 }
 
 func init() {
-	GqlFetcherNodeType = gqlserver.NewNodeType((*Fetcher)(nil))
-	GqlFetcherNodeType.GetID = func(source interface{}) string {
-		fetcher := source.(*Fetcher)
-		return strconv.Itoa(int(fetcher.Face().ID()))
-	}
-	GqlFetcherNodeType.Retrieve = func(id string) (interface{}, error) {
-		nid, e := strconv.Atoi(id)
-		if e != nil {
-			return nil, nil
-		}
-		faceID := iface.ID(nid)
-		return fetcherByFace[faceID], nil
-	}
-
+	GqlFetcherNodeType = tggql.NewNodeType((*Fetcher)(nil), "Fetch")
 	GqlFetcherType = graphql.NewObject(GqlFetcherNodeType.Annotate(graphql.ObjectConfig{
-		Name: "Fetcher",
-		Fields: graphql.Fields{
-			"face": &graphql.Field{
-				Description: "Face.",
-				Type:        graphql.NewNonNull(iface.GqlFaceType),
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					fetcher := p.Source.(*Fetcher)
-					return fetcher.Face(), nil
-				},
-			},
-			"isRunning": &graphql.Field{
-				Description: "Face.",
-				Type:        gqlserver.NonNullBoolean,
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					fetcher := p.Source.(*Fetcher)
-					return fetcher.Thread(0).IsRunning(), nil
-				},
-			},
-		},
+		Name:   "Fetcher",
+		Fields: tggql.CommonFields(graphql.Fields{}),
 	}))
 	GqlFetcherNodeType.Register(GqlFetcherType)
-
-	iface.GqlFaceType.AddFieldConfig("fetcher", &graphql.Field{
-		Description: "Fetcher.",
-		Type:        GqlFetcherType,
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-			face := p.Source.(iface.Face)
-			return fetcherByFace[face.ID()], nil
-		},
-	})
+	tggql.AddFaceField("fetcher", "Fetcher on this face.", "Fetch", GqlFetcherType)
 
 	GqlTemplateType = graphql.NewInputObject(graphql.InputObjectConfig{
 		Name:        "FetchTemplateInput",
@@ -155,7 +116,7 @@ func init() {
 			for c := 0; c < count; c++ {
 				<-ticker.C
 				for i, logic := range logics {
-					result[i][c] = logic.ReadCounters()
+					result[i][c] = logic.Counters()
 				}
 			}
 			fetcher.Stop()

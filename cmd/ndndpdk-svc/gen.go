@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/app/tg"
+	"github.com/usnistgov/ndn-dpdk/app/tg/tggql"
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealconfig"
 )
@@ -31,7 +32,7 @@ func (a genArgs) Activate() error {
 	if e != nil {
 		return e
 	}
-	tg.GqlTrafficGen = gen
+	tggql.GqlTrafficGen = gen
 
 	gen.Launch()
 	go printPingCounters(gen, a.CounterInterval.DurationOr(1000))
@@ -42,15 +43,15 @@ func printPingCounters(gen *tg.TrafficGen, counterInterval time.Duration) {
 	for range time.Tick(counterInterval) {
 		for _, task := range gen.Tasks {
 			face := task.Face
-			stdlog.Printf("face(%d): %v %v", face.ID(), face.ReadCounters(), face.ReadExCounters())
-			for i, producer := range task.Producers {
-				stdlog.Printf("  producer[%d]: %v", i, producer.ReadCounters())
+			stdlog.Printf("face(%d): %v %v", face.ID(), face.Counters(), face.ReadExCounters())
+			if p := task.Producer; p != nil {
+				stdlog.Printf("  producer: %v", p.Counters())
 			}
-			if consumer := task.Consumer; consumer != nil {
-				stdlog.Printf("  consumer: %v", consumer.ReadCounters())
+			if c := task.Consumer; c != nil {
+				stdlog.Printf("  consumer: %v", c.Counters())
 			} else if fetcher := task.Fetch; fetcher != nil {
 				for i, last := 0, fetcher.CountProcs(); i < last; i++ {
-					cnt := fetcher.Logic(i).ReadCounters()
+					cnt := fetcher.Logic(i).Counters()
 					stdlog.Printf("  fetch[%d]: %v", i, cnt)
 				}
 			}

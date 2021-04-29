@@ -10,6 +10,9 @@ const (
 	// MaxBurstSize is the maximum and default burst size.
 	MaxBurstSize = 64
 
+	// MaxInputDemuxDest is the maximum number of destination in InputDemux.
+	MaxInputDemuxDest = 128
+
 	// MinReassemblerCapacity is the minimum partial message store capacity in the reassembler.
 	MinReassemblerCapacity = 4
 

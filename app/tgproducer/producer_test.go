@@ -8,6 +8,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/app/tgproducer"
 	"github.com/usnistgov/ndn-dpdk/app/tgtestenv"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/intface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
@@ -22,9 +23,11 @@ func TestPatterns(t *testing.T) {
 	face := intface.MustNew()
 	defer face.D.Close()
 
-	p, e := tgproducer.New(face.D, 0, iface.PktQueueConfig{})
+	p, e := tgproducer.New(face.D, iface.PktQueueConfig{}, 1)
 	require.NoError(e)
 	defer p.Close()
+	require.NoError(ealthread.DefaultAllocator.AllocThread(p.Workers()...))
+	p.ConnectRxQueues(tgtestenv.DemuxI, 0)
 
 	nameA := ndn.ParseName("/A")
 	nameB := ndn.ParseName("/B")
@@ -62,8 +65,6 @@ func TestPatterns(t *testing.T) {
 			},
 		},
 	}))
-	p.SetLCore(tgtestenv.WorkerLCores[0])
-	tgtestenv.DemuxI.SetDest(0, p.RxQueue())
 
 	nDataA0 := 0
 	nDataA1 := 0
@@ -122,9 +123,11 @@ func TestDataProducer(t *testing.T) {
 	face := intface.MustNew()
 	defer face.D.Close()
 
-	p, e := tgproducer.New(face.D, 0, iface.PktQueueConfig{})
+	p, e := tgproducer.New(face.D, iface.PktQueueConfig{}, 2)
 	require.NoError(e)
 	defer p.Close()
+	require.NoError(ealthread.DefaultAllocator.AllocThread(p.Workers()...))
+	p.ConnectRxQueues(tgtestenv.DemuxI, 0)
 
 	nameP := ndn.ParseName("/P")
 	require.NoError(p.SetPatterns([]tgproducer.Pattern{
@@ -139,8 +142,6 @@ func TestDataProducer(t *testing.T) {
 		},
 	}))
 
-	p.SetLCore(tgtestenv.WorkerLCores[0])
-	tgtestenv.DemuxI.SetDest(0, p.RxQueue())
 	p.Launch()
 
 	fw := l3.NewForwarder()

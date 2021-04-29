@@ -155,7 +155,7 @@ func (fixture *Fixture) sendProc() {
 func (fixture *Fixture) CheckCounters() {
 	assert, _ := makeAR(fixture.t)
 
-	txCnt := fixture.txFace.ReadCounters()
+	txCnt := fixture.txFace.Counters()
 	assert.InEpsilon(fixture.TxIterations, int(txCnt.TxInterests), fixture.TxLossTolerance)
 	assert.InEpsilon(fixture.TxIterations, int(txCnt.TxData), fixture.TxLossTolerance)
 	assert.InEpsilon(fixture.TxIterations, int(txCnt.TxNacks), fixture.TxLossTolerance)
@@ -166,7 +166,7 @@ func (fixture *Fixture) CheckCounters() {
 		assert.Zero(txCnt.FragGood)
 	}
 
-	rxCnt := fixture.rxFace.ReadCounters()
+	rxCnt := fixture.rxFace.Counters()
 	assert.EqualValues(fixture.NRxInterests, rxCnt.RxInterests)
 	assert.EqualValues(fixture.NRxData, rxCnt.RxData)
 	assert.EqualValues(fixture.NRxNacks, rxCnt.RxNacks)

@@ -27,7 +27,7 @@ func TestDataWrongName(t *testing.T) {
 	assert.Equal(0, collect1.Count())
 
 	assert.Equal(uint64(1), fixture.SumCounter(func(fwd *fwdp.Fwd) uint64 {
-		return fwd.Pit().ReadCounters().NDataMiss
+		return fwd.Pit().Counters().NDataMiss
 	}))
 }
 
@@ -49,7 +49,7 @@ func TestDataLongerName(t *testing.T) {
 	assert.Equal(0, collect1.Count())
 
 	assert.Equal(uint64(1), fixture.SumCounter(func(fwd *fwdp.Fwd) uint64 {
-		return fwd.Pit().ReadCounters().NDataMiss
+		return fwd.Pit().Counters().NDataMiss
 	}))
 }
 
@@ -71,7 +71,7 @@ func TestDataZeroFreshnessPeriod(t *testing.T) {
 	assert.Equal(0, collect1.Count())
 
 	assert.Equal(uint64(1), fixture.SumCounter(func(fwd *fwdp.Fwd) uint64 {
-		return fwd.Pit().ReadCounters().NDataMiss
+		return fwd.Pit().Counters().NDataMiss
 	}))
 }
 
@@ -93,7 +93,7 @@ func TestNackWrongName(t *testing.T) {
 	assert.Equal(0, collect1.Count())
 
 	assert.Equal(uint64(1), fixture.SumCounter(func(fwd *fwdp.Fwd) uint64 {
-		return fwd.Pit().ReadCounters().NNackMiss
+		return fwd.Pit().Counters().NNackMiss
 	}))
 }
 
@@ -115,6 +115,6 @@ func TestNackWrongNonce(t *testing.T) {
 	assert.Equal(0, collect1.Count())
 
 	assert.Equal(uint64(1), fixture.SumCounter(func(fwd *fwdp.Fwd) uint64 {
-		return fwd.ReadCounters().NNackMismatch
+		return fwd.Counters().NNackMismatch
 	}))
 }

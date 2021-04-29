@@ -25,11 +25,11 @@ func TestSgTimer(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 	assert.Equal(0, collect2.Count())
 	assert.Equal(uint64(1), fixture.SumCounter(func(fwd *fwdp.Fwd) uint64 {
-		return fwd.Pit().ReadCounters().NEntries
+		return fwd.Pit().Counters().NEntries
 	}))
 	time.Sleep(100 * time.Millisecond)
 	assert.Equal(uint64(0), fixture.SumCounter(func(fwd *fwdp.Fwd) uint64 {
-		return fwd.Pit().ReadCounters().NEntries
+		return fwd.Pit().Counters().NEntries
 	}))
 	time.Sleep(100 * time.Millisecond)
 	assert.Equal(0, collect2.Count())
@@ -39,7 +39,7 @@ func TestSgTimer(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 	assert.Equal(0, collect2.Count())
 	assert.Equal(uint64(1), fixture.SumCounter(func(fwd *fwdp.Fwd) uint64 {
-		return fwd.Pit().ReadCounters().NEntries
+		return fwd.Pit().Counters().NEntries
 	}))
 	time.Sleep(150 * time.Millisecond)
 	assert.Equal(1, collect2.Count())

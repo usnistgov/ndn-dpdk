@@ -69,22 +69,30 @@ type DataPlane struct {
 // New creates and launches forwarder data plane.
 func New(cfg Config) (dp *DataPlane, e error) {
 	cfg.applyDefaults()
-	dp = new(DataPlane)
+	dp = &DataPlane{}
 
-	faceSockets := append(eal.NumaSocketsOf(ethdev.List()), eal.NumaSocket{})
-	lcRxTx := ealthread.DefaultAllocator.AllocGroup([]string{roleInput, roleOutput}, faceSockets)
+	reqRx := []ealthread.AllocRequest{{Role: roleInput}}
+	reqTx := []ealthread.AllocRequest{{Role: roleOutput}}
+	for _, dev := range ethdev.List() {
+		socket := dev.NumaSocket()
+		reqRx = append(reqRx, ealthread.AllocRequest{Role: roleInput, Socket: socket})
+		reqTx = append(reqTx, ealthread.AllocRequest{Role: roleOutput, Socket: socket})
+	}
+	lcRx := ealthread.DefaultAllocator.Request(reqRx...)
+	lcTx := ealthread.DefaultAllocator.Request(reqTx...)
 	lcCrypto := ealthread.DefaultAllocator.Alloc(roleCrypto, eal.NumaSocket{})
 	lcFwds := ealthread.DefaultAllocator.AllocMax(roleFwd)
-	if lcRxTx == nil || len(lcFwds) == 0 {
+	if len(lcRx) == 0 || len(lcTx) == 0 || !lcCrypto.Valid() || len(lcFwds) == 0 {
 		return nil, ealthread.ErrNoLCore
 	}
-	lcRx, lcTx := lcRxTx[0], lcRxTx[1]
 
 	{
-		var lcInputs []eal.LCore
-		lcInputs = append(lcInputs, lcRx...)
-		lcInputs = append(lcInputs, lcCrypto)
-		dp.ndt = ndt.New(cfg.Ndt, eal.NumaSocketsOf(lcInputs))
+		ndtSockets := []eal.NumaSocket{}
+		for _, lc := range lcRx {
+			ndtSockets = append(ndtSockets, lc.NumaSocket())
+		}
+		ndtSockets = append(ndtSockets, lcCrypto.NumaSocket())
+		dp.ndt = ndt.New(cfg.Ndt, ndtSockets)
 		dp.ndt.Randomize(len(lcFwds))
 	}
 
@@ -124,7 +132,7 @@ func New(cfg Config) (dp *DataPlane, e error) {
 		fwd.Launch()
 	}
 
-	for i, lc := range lcRxTx[0] {
+	for i, lc := range lcRx {
 		fwi := newInput(i, lc, dp.ndt, dp.fwds)
 		dp.inputs = append(dp.inputs, fwi)
 		fwi.rxl.Launch()
