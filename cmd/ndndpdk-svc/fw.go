@@ -17,8 +17,6 @@ type fwArgs struct {
 }
 
 func (a fwArgs) Activate() error {
-	initXDPProgram()
-
 	var req ealconfig.Request
 	// main + CRYPTO + 2*FWD + (RX+TX)*(socket faces + Ethernet ports)
 	req.MinLCores = 4 + 2*(1+len(a.Eal.PciDevices)+len(a.Eal.VirtualDevices))

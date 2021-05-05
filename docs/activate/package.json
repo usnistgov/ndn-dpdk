@@ -2,6 +2,7 @@
   "private": true,
   "scripts": {
     "fw-args": "ts-node ./fw-args",
+    "gen-config": "ts-node ./gen-config",
     "gen-args": "ts-node ./gen-args",
     "typecheck": "tsc"
   },

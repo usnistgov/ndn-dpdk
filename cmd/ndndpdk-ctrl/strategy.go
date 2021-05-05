@@ -91,5 +91,5 @@ func init() {
 }
 
 func init() {
-	defineDeleteCommand("strategy", "unload-strategy", "Unload a strategy ELF program")
+	defineDeleteCommand("strategy", "unload-strategy", "Unload a strategy ELF program", "strategy program")
 }

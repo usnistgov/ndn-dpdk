@@ -78,5 +78,5 @@ func init() {
 }
 
 func init() {
-	defineDeleteCommand("fib", "erase-fib", "Erase a FIB entry")
+	defineDeleteCommand("fib", "erase-fib", "Erase a FIB entry", "FIB entry")
 }

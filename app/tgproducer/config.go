@@ -46,7 +46,9 @@ type Pattern struct {
 func (pattern *Pattern) applyDefaults() (sumWeight, nDataGen int) {
 	pattern.prefixV, _ = pattern.Prefix.MarshalBinary()
 	if len(pattern.Replies) == 0 {
-		pattern.Replies = []Reply{}
+		pattern.Replies = []Reply{
+			{FreshnessPeriod: 1},
+		}
 	}
 	for i := range pattern.Replies {
 		reply := &pattern.Replies[i]

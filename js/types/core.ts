@@ -18,24 +18,16 @@ export type Index = number;
 export type Blob = string;
 
 /**
- * @TJS-type integer
- * @minimum 0
- */
-type NNDurationNumber = number;
-
-type NNDuration = NNDurationNumber | string;
-
-/**
  * Non-negative duration in milliseconds.
- * This can be either a number in milliseconds, or a string with any valid duration unit.
+ * This can be either a non-negative integer in milliseconds or a string with any valid duration unit.
  */
-export type NNMilliseconds = NNDuration;
+export type NNMilliseconds = number | string;
 
 /**
  * Non-negative duration in nanoseconds.
- * This can be either a number in nanoseconds, or a string with any valid duration unit.
+ * This can be either a non-negative integer in nanoseconds or a string with any valid duration unit.
  */
-export type NNNanoseconds = NNDuration;
+export type NNNanoseconds = number | string;
 
 /** Snapshot from runningstat. */
 export interface RunningStatSnapshot {

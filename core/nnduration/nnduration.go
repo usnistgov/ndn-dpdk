@@ -2,9 +2,9 @@
 package nnduration
 
 import (
+	"bytes"
 	"reflect"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -16,7 +16,7 @@ func parse(input string, unit time.Duration) (value uint64, e error) {
 }
 
 func parseJSON(ptr interface{}, p []byte, unit time.Duration) error {
-	value, e := parse(strings.Trim(string(p), `"`), unit)
+	value, e := parse(string(bytes.Trim(p, `"`)), unit)
 	reflect.ValueOf(ptr).Elem().SetUint(value)
 	return e
 }
@@ -25,7 +25,7 @@ func parseJSON(ptr interface{}, p []byte, unit time.Duration) error {
 type Milliseconds uint64
 
 // UnmarshalJSON implements json.Unmarshaler interface.
-// It accepts either an integer as milliseconds, or a duration string specified by time.ParseDuration.
+// It accepts either an integer as milliseconds, or a duration string recognized by time.ParseDuration.
 func (d *Milliseconds) UnmarshalJSON(p []byte) (e error) {
 	return parseJSON(d, p, time.Millisecond)
 }
@@ -47,7 +47,7 @@ func (d Milliseconds) DurationOr(dflt Milliseconds) time.Duration {
 type Nanoseconds uint64
 
 // UnmarshalJSON implements json.Unmarshaler interface.
-// It accepts either an integer as nanoseconds, or a duration string specified by time.ParseDuration.
+// It accepts either an integer as nanoseconds, or a duration string recognized by time.ParseDuration.
 func (d *Nanoseconds) UnmarshalJSON(p []byte) (e error) {
 	return parseJSON(d, p, time.Nanosecond)
 }

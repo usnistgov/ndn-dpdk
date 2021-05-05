@@ -1,7 +1,7 @@
 import type { Counter, NNNanoseconds } from "../core";
 import type { PktQueueConfig } from "../pktqueue";
 
-export interface FetchConfig {
+export interface FetcherConfig {
   /**
    * @TJS-type integer
    * @minimum 1

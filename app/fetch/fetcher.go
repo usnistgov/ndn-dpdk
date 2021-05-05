@@ -9,6 +9,7 @@ import (
 	"errors"
 	"unsafe"
 
+	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
@@ -60,12 +61,8 @@ type Fetcher struct {
 
 // New creates a Fetcher.
 func New(face iface.Face, cfg FetcherConfig) (*Fetcher, error) {
-	if cfg.NThreads == 0 {
-		cfg.NThreads = 1
-	}
-	if cfg.NProcs == 0 {
-		cfg.NProcs = 1
-	}
+	cfg.NThreads = math.MaxInt(1, cfg.NThreads)
+	cfg.NProcs = math.MaxInt(1, cfg.NProcs)
 	cfg.RxQueue.DisableCoDel = true
 
 	faceID := face.ID()
@@ -186,15 +183,19 @@ func (fetcher *Fetcher) Launch() {
 }
 
 // Stop stops all fetch threads.
-func (fetcher *Fetcher) Stop() {
+func (fetcher *Fetcher) Stop() error {
+	errs := []error{}
 	for _, fth := range fetcher.workers {
-		fth.Stop()
+		errs = append(errs, fth.Stop())
 	}
+	return multierr.Combine(errs...)
 }
 
 // Close deallocates data structures.
 func (fetcher *Fetcher) Close() error {
-	errs := []error{}
+	errs := []error{
+		fetcher.Stop(),
+	}
 	for i, fp := range fetcher.fp {
 		errs = append(errs,
 			fetcher.rxQueue(i).Close(),

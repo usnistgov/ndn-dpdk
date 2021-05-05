@@ -71,6 +71,8 @@ func init() {
 					return
 				}
 
+				initXDPProgram()
+
 				logEntry := logger.With(zap.String("role", key))
 				logEntry.Info("activate start")
 				if e = arg.Activate(); e != nil {

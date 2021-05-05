@@ -14,3 +14,4 @@ node mk/schema/make-jrgen.js $INFILE Mgmt >$OUTDIR/jsonrpc2.jrgen.json
 node mk/schema/make-schema.js $INFILE FaceLocator >$OUTDIR/locator.schema.json
 node mk/schema/make-schema.js $INFILE ActivateFwArgs >$OUTDIR/forwarder.schema.json
 node mk/schema/make-schema.js $INFILE ActivateGenArgs >$OUTDIR/trafficgen.schema.json
+node mk/schema/make-schema.js $INFILE TgConfig >$OUTDIR/gen.schema.json

@@ -199,7 +199,9 @@ export interface SocketFaceConfig extends FaceConfig {
    */
   rxGroupCapacity?: number;
 
+  /** @TJS-type integer */
   rxQueueSize?: number;
+  /** @TJS-type integer */
   txQueueSize?: number;
   redialBackoffInitial?: NNMilliseconds;
   redialBackoffMaximum?: NNMilliseconds;

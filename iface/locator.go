@@ -22,6 +22,7 @@ type Locator interface {
 	CreateFace() (Face, error)
 }
 
+// locatorWithSchemeField indicates that "scheme" field should be kept in JSON serialization.
 type locatorWithSchemeField interface {
 	Locator
 	WithSchemeField()
@@ -90,7 +91,7 @@ func (locw *LocatorWrapper) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// LocatorString converts a locator to JSON string
+// LocatorString converts a locator to JSON string.
 func LocatorString(loc Locator) string {
 	locw := LocatorWrapper{Locator: loc}
 	j, _ := json.Marshal(locw)

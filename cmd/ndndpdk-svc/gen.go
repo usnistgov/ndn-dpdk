@@ -1,60 +1,24 @@
 package main
 
 import (
-	stdlog "log"
-	"time"
-
+	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/app/tg"
-	"github.com/usnistgov/ndn-dpdk/app/tg/tggql"
-	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealconfig"
 )
 
 type genArgs struct {
 	CommonArgs
-	Tasks           []tg.TaskConfig         `json:"tasks"`
-	CounterInterval nnduration.Milliseconds `json:"counterInterval,omitempty"`
+
+	MinLCores int `json:"minLCores,omitempty"`
 }
 
 func (a genArgs) Activate() error {
-	initXDPProgram()
-
 	var req ealconfig.Request
-	req.MinLCores = 1 // main
-	for _, task := range a.Tasks {
-		req.MinLCores += task.EstimateLCores()
-	}
+	req.MinLCores = math.MaxInt(1, a.MinLCores)
 	if e := a.CommonArgs.apply(req); e != nil {
 		return e
 	}
 
-	gen, e := tg.New(a.Tasks)
-	if e != nil {
-		return e
-	}
-	tggql.GqlTrafficGen = gen
-
-	gen.Launch()
-	go printPingCounters(gen, a.CounterInterval.DurationOr(1000))
+	tg.GqlEnabled = true
 	return nil
-}
-
-func printPingCounters(gen *tg.TrafficGen, counterInterval time.Duration) {
-	for range time.Tick(counterInterval) {
-		for _, task := range gen.Tasks {
-			face := task.Face
-			stdlog.Printf("face(%d): %v %v", face.ID(), face.Counters(), face.ReadExCounters())
-			if p := task.Producer; p != nil {
-				stdlog.Printf("  producer: %v", p.Counters())
-			}
-			if c := task.Consumer; c != nil {
-				stdlog.Printf("  consumer: %v", c.Counters())
-			} else if fetcher := task.Fetch; fetcher != nil {
-				for i, last := 0, fetcher.CountProcs(); i < last; i++ {
-					cnt := fetcher.Logic(i).Counters()
-					stdlog.Printf("  fetch[%d]: %v", i, cnt)
-				}
-			}
-		}
-	}
 }

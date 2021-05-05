@@ -243,7 +243,7 @@ func init() {
 }
 
 func init() {
-	defineDeleteCommand("face", "destroy-face", "Destroy a face")
+	defineDeleteCommand("face", "destroy-face", "Destroy a face", "face")
 }
 
 func init() {

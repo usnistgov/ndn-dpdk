@@ -9,14 +9,20 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
 	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
+	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
+// GqlRetrieveByFaceID returns *Fetcher associated with a face.
+// It is assigned during package tg initialization.
+var GqlRetrieveByFaceID func(id iface.ID) interface{}
+
 // GraphQL types.
 var (
+	GqlConfigInput     *graphql.InputObject
+	GqlTemplateInput   *graphql.InputObject
 	GqlFetcherNodeType *gqlserver.NodeType
 	GqlFetcherType     *graphql.Object
-	GqlTemplateType    *graphql.InputObject
 )
 
 type benchmarkTemplate struct {
@@ -26,15 +32,26 @@ type benchmarkTemplate struct {
 }
 
 func init() {
-	GqlFetcherNodeType = tggql.NewNodeType((*Fetcher)(nil), "Fetch")
-	GqlFetcherType = graphql.NewObject(GqlFetcherNodeType.Annotate(graphql.ObjectConfig{
-		Name:   "Fetcher",
-		Fields: tggql.CommonFields(graphql.Fields{}),
-	}))
-	GqlFetcherNodeType.Register(GqlFetcherType)
-	tggql.AddFaceField("fetcher", "Fetcher on this face.", "Fetch", GqlFetcherType)
+	GqlConfigInput = graphql.NewInputObject(graphql.InputObjectConfig{
+		Name:        "FetcherConfigInput",
+		Description: "Fetcher config.",
+		Fields: graphql.InputObjectConfigFieldMap{
+			"nThreads": &graphql.InputObjectFieldConfig{
+				Type: graphql.Int,
+			},
+			"nProc": &graphql.InputObjectFieldConfig{
+				Type: graphql.Int,
+			},
+			"rxQueue": &graphql.InputObjectFieldConfig{
+				Type: iface.GqlPktQueueInput,
+			},
+			"windowCapacity": &graphql.InputObjectFieldConfig{
+				Type: graphql.Int,
+			},
+		},
+	})
 
-	GqlTemplateType = graphql.NewInputObject(graphql.InputObjectConfig{
+	GqlTemplateInput = graphql.NewInputObject(graphql.InputObjectConfig{
 		Name:        "FetchTemplateInput",
 		Description: "Fetcher template.",
 		Fields: graphql.InputObjectConfigFieldMap{
@@ -44,7 +61,7 @@ func init() {
 			},
 			"interestLifetime": &graphql.InputObjectFieldConfig{
 				Description: "Interest lifetime (milliseconds).",
-				Type:        graphql.Int,
+				Type:        nnduration.GqlMilliseconds,
 			},
 			"canBePrefix": &graphql.InputObjectFieldConfig{
 				Description: "Whether to include the CanBePrefix element.",
@@ -52,6 +69,13 @@ func init() {
 			},
 		},
 	})
+
+	GqlFetcherNodeType = tggql.NewNodeType((*Fetcher)(nil), &GqlRetrieveByFaceID)
+	GqlFetcherType = graphql.NewObject(GqlFetcherNodeType.Annotate(graphql.ObjectConfig{
+		Name:   "Fetcher",
+		Fields: tggql.CommonFields(graphql.Fields{}),
+	}))
+	GqlFetcherNodeType.Register(GqlFetcherType)
 
 	gqlserver.AddMutation(&graphql.Field{
 		Name:        "runFetchBenchmark",
@@ -63,11 +87,11 @@ func init() {
 			},
 			"templates": &graphql.ArgumentConfig{
 				Description: "Interest templates.",
-				Type:        gqlserver.NewNonNullList(GqlTemplateType),
+				Type:        gqlserver.NewNonNullList(GqlTemplateInput),
 			},
 			"interval": &graphql.ArgumentConfig{
-				Description: "How often to collect statistics (milliseconds).",
-				Type:        gqlserver.NonNullInt,
+				Description: "How often to collect statistics.",
+				Type:        graphql.NewNonNull(nnduration.GqlNanoseconds),
 			},
 			"count": &graphql.ArgumentConfig{
 				Description: "How many sets of statistics to be collected.",
@@ -102,7 +126,7 @@ func init() {
 				logics = append(logics, fetcher.Logic(i))
 			}
 
-			interval := p.Args["interval"].(int)
+			interval := p.Args["interval"].(nnduration.Nanoseconds)
 			count := p.Args["count"].(int)
 
 			result := make([][]Counters, len(templates))
@@ -111,7 +135,7 @@ func init() {
 			}
 
 			fetcher.Launch()
-			ticker := time.NewTicker(time.Duration(interval) * time.Millisecond)
+			ticker := time.NewTicker(interval.Duration())
 			defer ticker.Stop()
 			for c := 0; c < count; c++ {
 				<-ticker.C

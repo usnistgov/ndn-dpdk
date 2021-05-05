@@ -30,7 +30,7 @@ func requestFromThread(th ThreadWithRole) (req AllocRequest) {
 }
 
 // AllocThread allocates lcores to threads.
-// If th implements eal.WithNumaSocket, the lcore comes from the preferred NUMA socket.
+// If thread type implements eal.WithNumaSocket, the lcore comes from the preferred NUMA socket.
 func (la *Allocator) AllocThread(threads ...ThreadWithRole) error {
 	requests := make([]AllocRequest, len(threads))
 	for i, th := range threads {

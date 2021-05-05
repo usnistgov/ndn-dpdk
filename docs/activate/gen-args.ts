@@ -14,38 +14,6 @@ const args: ActivateGenArgs = {
     DIRECT: { capacity: 1048575, dataroom: 9128 },
     INDIRECT: { capacity: 1048575 },
   },
-  tasks: [
-    {
-      face: {
-        scheme: "ether",
-        local: "02:00:00:00:00:01",
-        remote: "01:00:5e:00:17:aa",
-      },
-      consumer: {
-        patterns: [{
-          prefix: "/P/0",
-        }],
-        interval: "1ms",
-      },
-    },
-    {
-      face: {
-        scheme: "ether",
-        local: "02:00:00:00:00:02",
-        remote: "01:00:5e:00:17:aa",
-      },
-      producer: {
-        patterns: [{
-          prefix: "/P/0",
-          replies: [
-            {
-              payloadLen: 8000,
-            },
-          ],
-        }],
-      },
-    },
-  ],
 };
 
 stdout.write(JSON.stringify(args));

@@ -6,17 +6,44 @@ import (
 	"github.com/graphql-go/graphql"
 	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
 	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
+	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
 // GraphQL types.
 var (
-	GqlCountersType *graphql.Object
-	GqlFaceNodeType *gqlserver.NodeType
-	GqlFaceType     *graphql.Object
+	GqlPktQueueInput *graphql.InputObject
+	GqlCountersType  *graphql.Object
+	GqlFaceNodeType  *gqlserver.NodeType
+	GqlFaceType      *graphql.Object
 )
 
 func init() {
+	GqlPktQueueInput = graphql.NewInputObject(graphql.InputObjectConfig{
+		Name:        "FacePktQueueInput",
+		Description: "Packet queue configuration.",
+		Fields: graphql.InputObjectConfigFieldMap{
+			"capacity": &graphql.InputObjectFieldConfig{
+				Type: graphql.Int,
+			},
+			"dequeueBurstSize": &graphql.InputObjectFieldConfig{
+				Type: graphql.Int,
+			},
+			"delay": &graphql.InputObjectFieldConfig{
+				Type: nnduration.GqlNanoseconds,
+			},
+			"disableCoDel": &graphql.InputObjectFieldConfig{
+				Type: graphql.Boolean,
+			},
+			"target": &graphql.InputObjectFieldConfig{
+				Type: nnduration.GqlNanoseconds,
+			},
+			"interval": &graphql.InputObjectFieldConfig{
+				Type: nnduration.GqlNanoseconds,
+			},
+		},
+	})
+
 	GqlCountersType = graphql.NewObject(graphql.ObjectConfig{
 		Name:   "FaceCounters",
 		Fields: graphql.BindFields(Counters{}),
