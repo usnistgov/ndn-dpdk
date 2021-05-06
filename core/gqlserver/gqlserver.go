@@ -1,15 +1,19 @@
 // Package gqlserver provides a GraphQL server.
-// It is a singleton and is initialized via init() functions.
+// It is a singleton initialized via init() functions.
 package gqlserver
 
 import (
+	"context"
 	"net/http"
-	"net/url"
-	"strings"
+	"time"
 
 	"github.com/bhoriuchi/graphql-go-tools/handler"
+	"github.com/functionalfoundry/graphqlws"
 	"github.com/graphql-go/graphql"
+	"github.com/sirupsen/logrus"
+	"github.com/usnistgov/ndn-dpdk/core/gqlserver/gqlsub"
 	"github.com/usnistgov/ndn-dpdk/core/logging"
+	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/mk/version"
 	"go.uber.org/zap"
 )
@@ -17,13 +21,18 @@ import (
 var logger = logging.New("gqlserver")
 
 // Schema is the singleton of graphql.SchemaConfig.
-var Schema = graphql.SchemaConfig{
+// It is available until Prepare() is called.
+var Schema = &graphql.SchemaConfig{
 	Query: graphql.NewObject(graphql.ObjectConfig{
 		Name:   "Query",
 		Fields: graphql.Fields{},
 	}),
 	Mutation: graphql.NewObject(graphql.ObjectConfig{
 		Name:   "Mutation",
+		Fields: graphql.Fields{},
+	}),
+	Subscription: graphql.NewObject(graphql.ObjectConfig{
+		Name:   "Subscription",
 		Fields: graphql.Fields{},
 	}),
 }
@@ -38,6 +47,12 @@ func AddMutation(f *graphql.Field) {
 	Schema.Mutation.AddFieldConfig(f.Name, f)
 }
 
+// AddSubscription adds a top-level subscription field.
+func AddSubscription(f *graphql.Field, h gqlsub.Handler) {
+	Schema.Subscription.AddFieldConfig(f.Name, f)
+	subHandlers[f.Name] = h
+}
+
 func init() {
 	AddQuery(&graphql.Field{
 		Name: "version",
@@ -46,59 +61,65 @@ func init() {
 			return version.Get(), nil
 		},
 	})
+
+	AddSubscription(&graphql.Field{
+		Name:        "tick",
+		Description: "time.Ticker subscription for testing subscription implementations.",
+		Type:        graphql.NewNonNull(graphql.DateTime),
+		Args: graphql.FieldConfigArgument{
+			"interval": &graphql.ArgumentConfig{
+				Type: graphql.NewNonNull(nnduration.GqlNanoseconds),
+			},
+		},
+		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+			t := p.Info.RootValue.(time.Time)
+			return t, nil
+		},
+	}, func(ctx context.Context, sub *graphqlws.Subscription, updates chan<- interface{}) {
+		defer close(updates)
+
+		interval, ok := gqlsub.GetArg(sub, "interval", nnduration.GqlNanoseconds).(nnduration.Nanoseconds)
+		if !ok {
+			return
+		}
+
+		ticker := time.NewTicker(interval.Duration())
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case t := <-ticker.C:
+				updates <- t
+			}
+		}
+	})
 }
 
-// Start starts the server.
-func Start(uri string) {
-	sch, e := graphql.NewSchema(Schema)
+var (
+	subHandlers = make(gqlsub.HandlerMap)
+	subManager  *gqlsub.SubscriptionManager
+)
+
+// Prepare compiles the schema and adds handlers on http.DefaultServeMux.
+func Prepare() {
+	sch, e := graphql.NewSchema(*Schema)
 	if e != nil {
 		logger.Panic("graphql.NewSchema",
 			zap.Error(e),
 			zap.Any("schema", Schema),
 		)
 	}
+	Schema = nil
 
-	go startHTTP(&sch, parseListenAddress(uri))
-}
+	logrus.SetLevel(logrus.PanicLevel)
+	subManager = gqlsub.NewManager(context.Background(), &sch, subHandlers)
+	http.Handle("/subscriptions", graphqlws.NewHandler(graphqlws.HandlerConfig{
+		SubscriptionManager: subManager,
+	}))
 
-func parseListenAddress(uri string) (listen string) {
-	listen = "127.0.0.1:3030"
-	if uri == "" {
-		return
-	}
-
-	u, e := url.Parse(uri)
-	if e != nil {
-		logger.Warn("gqlserver URI invalid, using the default", zap.Error(e))
-		return
-	}
-
-	if u.Scheme != "http" {
-		logger.Warn("gqlserver URI is not HTTP, using the default")
-		return
-	}
-
-	if u.User != nil || strings.TrimPrefix(u.Path, "/") != "" || u.RawQuery != "" {
-		logger.Warn("gqlserver URI contains User/Path/Query, ignored")
-	}
-	return u.Host
-}
-
-func startHTTP(sch *graphql.Schema, listen string) {
-	h := handler.New(&handler.Config{
-		Schema:           sch,
+	http.Handle("/", handler.New(&handler.Config{
+		Schema:           &sch,
 		Pretty:           true,
 		PlaygroundConfig: handler.NewDefaultPlaygroundConfig(),
-	})
-	logger.Info("GraphQL HTTP server starting",
-		zap.String("listen", listen),
-	)
-
-	var mux http.ServeMux
-	mux.HandleFunc("/robots.txt", func(w http.ResponseWriter, req *http.Request) {
-		w.Header().Add("Content-Type", "text/plain")
-		w.Write([]byte("User-Agent: *\nDisallow: /\n"))
-	})
-	mux.Handle("/", h)
-	http.ListenAndServe(listen, &mux)
+	}))
 }

@@ -24,7 +24,7 @@ func init() {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			return clientDoPrint(`
+			return clientDoPrint(c.Context, `
 				query listStrategy($withFib: Boolean!) {
 					strategies {
 						id
@@ -75,7 +75,7 @@ func init() {
 			return nil
 		},
 		Action: func(c *cli.Context) error {
-			return clientDoPrint(`
+			return clientDoPrint(c.Context, `
 				mutation loadStrategy($name: String!, $elf: Bytes!) {
 					loadStrategy(name: $name, elf: $elf) {
 						id

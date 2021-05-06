@@ -15,7 +15,7 @@ func init() {
 		Aliases:  []string{"list-faces"},
 		Usage:    "List faces",
 		Action: func(c *cli.Context) error {
-			return clientDoPrint(`
+			return clientDoPrint(c.Context, `
 				{
 					faces {
 						id
@@ -49,7 +49,7 @@ func init() {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			return clientDoPrint(`
+			return clientDoPrint(c.Context, `
 				query getFace($id: ID!, $withCounters: Boolean!) {
 					face: node(id: $id) {
 						id
@@ -199,7 +199,7 @@ func init() {
 	makeAction := func(scheme string) cli.ActionFunc {
 		return func(c *cli.Context) error {
 			loc.Scheme = scheme
-			return clientDoPrint(`
+			return clientDoPrint(c.Context, `
 				mutation createFace($locator: JSON!) {
 					createFace(locator: $locator) {
 						id
@@ -271,7 +271,7 @@ func init() {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			return clientDoPrint(`
+			return clientDoPrint(c.Context, `
 				query getEthDev(
 					$withDevInfo: Boolean!
 					$withStats: Boolean!
@@ -318,7 +318,7 @@ func init() {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			return clientDoPrint(`
+			return clientDoPrint(c.Context, `
 				mutation resetEthStats($id: ID!) {
 					resetEthStats(id: $id) {
 						id

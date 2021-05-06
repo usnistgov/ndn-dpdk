@@ -2,22 +2,51 @@ package gqlserver
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/base64"
 	"errors"
 	"fmt"
 	"reflect"
-	"strings"
 
 	"github.com/graphql-go/graphql"
 )
 
 var (
+	idKey     [64]byte
 	nodeTypes = make(map[string]*NodeType)
 
 	errNoRetrieve = errors.New("cannot retrieve Node")
 	errNoDelete   = errors.New("cannot delete Node")
 	errWrongType  = errors.New("ID refers to wrong NodeType")
 )
+
+func makeID(prefix string, suffix interface{}) (id string) {
+	var buffer bytes.Buffer
+	fmt.Fprintf(&buffer, "%s:%v", prefix, suffix)
+	value := buffer.Bytes()
+	for i, b := range value {
+		value[i] = b ^ idKey[i%len(idKey)]
+	}
+	return base64.RawURLEncoding.EncodeToString(value)
+}
+
+func parseID(id string) (prefix, suffix string, ok bool) {
+	value, e := base64.RawURLEncoding.DecodeString(id)
+	if e != nil {
+		return
+	}
+
+	for i, b := range value {
+		value[i] = b ^ idKey[i%len(idKey)]
+	}
+
+	tokens := bytes.SplitN(value, []byte{':'}, 2)
+	if len(tokens) != 2 {
+		return
+	}
+
+	return string(tokens[0]), string(tokens[1]), true
+}
 
 // NodeType defines a Node subtype.
 type NodeType struct {
@@ -40,7 +69,7 @@ type NodeType struct {
 //
 // The 'id' can be resolved from:
 //  - nt.GetID function.
-//  - ObjectConfig 'nid' field of NonNullInt or NonNullString type.
+//  - ObjectConfig 'nid' field, which must have NonNullID, NonNullInt, or NonNullString type.
 // If neither is present, this function panics.
 func (nt *NodeType) Annotate(oc graphql.ObjectConfig) graphql.ObjectConfig {
 	if oc.Interfaces == nil {
@@ -56,7 +85,7 @@ func (nt *NodeType) Annotate(oc graphql.ObjectConfig) graphql.ObjectConfig {
 	var resolve graphql.FieldResolveFn
 	if nt.GetID != nil {
 		resolve = func(p graphql.ResolveParams) (interface{}, error) {
-			return nt.makeID(nt.GetID(p.Source))
+			return makeID(nt.prefix, nt.GetID(p.Source)), nil
 		}
 	} else if nidField := fields["nid"]; nidField != nil {
 		switch nidField.Type {
@@ -66,7 +95,7 @@ func (nt *NodeType) Annotate(oc graphql.ObjectConfig) graphql.ObjectConfig {
 				if e != nil {
 					return nil, e
 				}
-				return nt.makeID(nid)
+				return makeID(nt.prefix, nid), nil
 			}
 		}
 	}
@@ -81,12 +110,6 @@ func (nt *NodeType) Annotate(oc graphql.ObjectConfig) graphql.ObjectConfig {
 	}
 
 	return oc
-}
-
-func (nt *NodeType) makeID(suffix interface{}) (interface{}, error) {
-	var buffer bytes.Buffer
-	fmt.Fprintf(&buffer, "%s:%v", nt.prefix, suffix)
-	return base64.RawURLEncoding.EncodeToString(buffer.Bytes()), nil
 }
 
 // Register enables accessing Node of this type by ID.
@@ -144,21 +167,17 @@ var nodeInterface = graphql.NewInterface(graphql.InterfaceConfig{
 
 // RetrieveNode locates Node by full ID.
 func RetrieveNode(id interface{}) (*NodeType, interface{}, error) {
-	idDecoded, e := base64.RawURLEncoding.DecodeString(id.(string))
-	if e != nil {
-		return nil, nil, nil
-	}
-	tokens := strings.SplitN(string(idDecoded), ":", 2)
-	if len(tokens) != 2 {
+	prefix, suffix, ok := parseID(id.(string))
+	if !ok {
 		return nil, nil, nil
 	}
 
-	nt := nodeTypes[tokens[0]]
+	nt := nodeTypes[prefix]
 	if nt == nil || nt.Retrieve == nil {
 		return nt, nil, errNoRetrieve
 	}
 
-	obj, e := nt.Retrieve(tokens[1])
+	obj, e := nt.Retrieve(suffix)
 	if val := reflect.ValueOf(obj); obj == nil || (val.Kind() == reflect.Ptr && val.IsNil()) {
 		obj = nil
 	}
@@ -179,6 +198,10 @@ func RetrieveNodeOfType(expectedNodeType *NodeType, id, ptr interface{}) error {
 }
 
 func init() {
+	if _, e := rand.Read(idKey[:]); e != nil {
+		panic(e)
+	}
+
 	AddQuery(&graphql.Field{
 		Name:        "node",
 		Description: "Retrieve object by global ID.",

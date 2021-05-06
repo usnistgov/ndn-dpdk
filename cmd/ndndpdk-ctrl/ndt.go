@@ -24,7 +24,7 @@ func init() {
 				vars["name"] = name
 			}
 
-			return clientDoPrint(`
+			return clientDoPrint(c.Context, `
 				query queryNdt($name: Name) {
 					ndt(name: $name) {
 						index
@@ -60,7 +60,7 @@ func init() {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			return clientDoPrint(`
+			return clientDoPrint(c.Context, `
 				mutation updateNdt($name: Name!, $value: Int!) {
 					updateNdt(name: $name, value: $value) {
 						index

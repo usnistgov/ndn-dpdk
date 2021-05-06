@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"sync"
 
 	"github.com/usnistgov/ndn-dpdk/ndn"
@@ -20,14 +21,14 @@ func fibToGid(name ndn.Name) (gID string) {
 type Fib struct{}
 
 func (Fib) List(args struct{}, reply *[]FibItem) error {
-	e := client.Do(`
+	e := client.Do(context.TODO(), `
 		{
 			fib {
 				id
 				name
 			}
 		}
-	`, nil, "fib", reply)
+	`, "", nil, "fib", reply)
 	if e != nil {
 		return e
 	}
@@ -53,14 +54,14 @@ func (Fib) Insert(args FibInsertArg, reply *struct{}) error {
 	}
 
 	var item FibItem
-	e := client.Do(`
+	e := client.Do(context.TODO(), `
 		mutation insertFibEntry($name: Name!, $nexthops: [ID!]!) {
 			insertFibEntry(name: $name, nexthops: $nexthops) {
 				id
 				name
 			}
 		}
-	`, map[string]interface{}{
+	`, "", map[string]interface{}{
 		"name":     args.Name,
 		"nexthops": gNexthops,
 	}, "insertFibEntry", &item)
@@ -80,11 +81,11 @@ func (Fib) Erase(args FibNameArg, reply *struct{}) error {
 		return nil
 	}
 
-	e := client.Do(`
+	e := client.Do(context.TODO(), `
 		mutation delete($id: ID!) {
 			delete(id: $id)
 		}
-	`, map[string]interface{}{
+	`, "", map[string]interface{}{
 		"id": gID,
 	}, "", nil)
 	if e != nil {
@@ -109,7 +110,7 @@ func (Fib) Find(args FibNameArg, reply *FibLookupReply) error {
 			Nid int `json:"nid"`
 		} `json:"nexthops"`
 	}
-	e := client.Do(`
+	e := client.Do(context.TODO(), `
 		query getFibEntry($id: ID!) {
 			node(id: $id) {
 				... on FibEntry {
@@ -119,7 +120,7 @@ func (Fib) Find(args FibNameArg, reply *FibLookupReply) error {
 				}
 			}
 		}
-	`, map[string]interface{}{
+	`, "", map[string]interface{}{
 		"id": gID,
 	}, "node", &res)
 	if e != nil {

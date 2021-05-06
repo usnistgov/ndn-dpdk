@@ -3,6 +3,7 @@
 package gqlmgmt
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"os"
@@ -46,13 +47,13 @@ func (c *Client) OpenMemif(loc memiftransport.Locator) (mgmt.Face, error) {
 		return nil, fmt.Errorf("loc.ToCreateFaceLocator: %w", e)
 	}
 	var faceJ faceJSON
-	e = c.Do(`
+	e = c.Do(context.TODO(), `
 		mutation createFace($locator: JSON!) {
 			createFace(locator: $locator) {
 				id
 			}
 		}
-	`, map[string]interface{}{
+	`, "", map[string]interface{}{
 		"locator": locJ,
 	}, "createFace", &faceJ)
 	if e != nil {

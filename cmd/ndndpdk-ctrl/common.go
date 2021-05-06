@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -34,7 +35,7 @@ func defineDeleteCommand(category, commandName, usage, objectNoun string) {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			return clientDoPrint(`
+			return clientDoPrint(c.Context, `
 				mutation delete($id: ID!) {
 					delete(id: $id)
 				}
@@ -138,7 +139,7 @@ func defineStdinJSONCommand(opts stdinJSONCommand) {
 	})
 }
 
-func clientDoPrint(query string, vars interface{}, key string) error {
+func clientDoPrint(ctx context.Context, query string, vars interface{}, key string) error {
 	if cmdout {
 		gqArgs := []string{gqlserver, "-q", query}
 		if vars != nil {
@@ -159,7 +160,7 @@ func clientDoPrint(query string, vars interface{}, key string) error {
 	}
 
 	var value interface{}
-	e := client.Do(query, vars, key, &value)
+	e := client.Do(ctx, query, "", vars, key, &value)
 	if e != nil {
 		return e
 	}

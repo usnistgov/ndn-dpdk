@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"sync"
@@ -16,7 +17,7 @@ var errNoFace = errors.New("face not found")
 type Face struct{}
 
 func (Face) List(args struct{}, reply *[]*FaceBasicInfo) error {
-	e := client.Do(`
+	e := client.Do(context.TODO(), `
 		{
 			faces {
 				gID: id
@@ -24,7 +25,7 @@ func (Face) List(args struct{}, reply *[]*FaceBasicInfo) error {
 				Locator: locator
 			}
 		}
-	`, nil, "faces", reply)
+	`, "", nil, "faces", reply)
 	if e != nil {
 		return e
 	}
@@ -46,7 +47,7 @@ func (Face) Get(args FaceIdArg, reply *FaceInfo) error {
 		return errNoFace
 	}
 
-	e := client.Do(`
+	e := client.Do(context.TODO(), `
 		query getFace($id: ID!) {
 			node(id: $id) {
 				... on Face {
@@ -58,7 +59,7 @@ func (Face) Get(args FaceIdArg, reply *FaceInfo) error {
 				}
 			}
 		}
-	`, map[string]interface{}{
+	`, "", map[string]interface{}{
 		"id": gID,
 	}, "node", reply)
 	if e != nil {
@@ -73,7 +74,7 @@ func (Face) Get(args FaceIdArg, reply *FaceInfo) error {
 }
 
 func (Face) Create(args interface{}, reply *FaceBasicInfo) error {
-	e := client.Do(`
+	e := client.Do(context.TODO(), `
 		mutation createFace($locator: JSON!) {
 			createFace(locator: $locator) {
 				gID: id
@@ -81,7 +82,7 @@ func (Face) Create(args interface{}, reply *FaceBasicInfo) error {
 				Locator: locator
 			}
 		}
-	`, map[string]interface{}{
+	`, "", map[string]interface{}{
 		"locator": args,
 	}, "createFace", reply)
 	if e != nil {
@@ -103,11 +104,11 @@ func (Face) Destroy(args FaceIdArg, reply *struct{}) error {
 		return nil
 	}
 
-	e := client.Do(`
+	e := client.Do(context.TODO(), `
 		mutation delete($id: ID!) {
 			delete(id: $id)
 		}
-	`, map[string]interface{}{
+	`, "", map[string]interface{}{
 		"id": gID,
 	}, "", nil)
 	if e != nil {

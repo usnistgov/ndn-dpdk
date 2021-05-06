@@ -9,7 +9,7 @@ func init() {
 		Usage:      "Start a traffic generator",
 		SchemaName: "gen",
 		Action: func(c *cli.Context, arg map[string]interface{}) error {
-			return clientDoPrint(`
+			return clientDoPrint(c.Context, `
 				mutation startTrafficGen(
 					$face: JSON!
 					$producer: TgProducerConfigInput

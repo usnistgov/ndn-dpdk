@@ -2,6 +2,8 @@
 package gqlmgmt
 
 import (
+	"context"
+
 	"github.com/usnistgov/ndn-dpdk/core/gqlclient"
 	"github.com/usnistgov/ndn-dpdk/ndn/mgmt"
 )
@@ -12,11 +14,11 @@ type Client struct {
 }
 
 func (c *Client) delete(id string) error {
-	return c.Do(`
+	return c.Do(context.TODO(), `
 		mutation delete($id: ID!) {
 			delete(id: $id)
 		}
-	`, map[string]interface{}{
+	`, "", map[string]interface{}{
 		"id": id,
 	}, "", nil)
 }

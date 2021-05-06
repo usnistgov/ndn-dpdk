@@ -10,7 +10,7 @@ func init() {
 		Name:     "list-fib",
 		Usage:    "List FIB entries",
 		Action: func(c *cli.Context) error {
-			return clientDoPrint(`
+			return clientDoPrint(c.Context, `
 				{
 					fib {
 						id
@@ -66,7 +66,7 @@ func init() {
 				vars["strategy"] = strategy
 			}
 
-			return clientDoPrint(`
+			return clientDoPrint(c.Context, `
 				mutation insertFibEntry($name: Name!, $nexthops: [ID!]!, $strategy: ID) {
 					insertFibEntry(name: $name, nexthops: $nexthops, strategy: $strategy) {
 						id

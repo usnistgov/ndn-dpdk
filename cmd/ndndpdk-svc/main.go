@@ -5,6 +5,7 @@ package main
 import (
 	"errors"
 	"math/rand"
+	"net/http"
 	"os"
 	"os/signal"
 	"sync/atomic"
@@ -34,6 +35,11 @@ type activator interface {
 }
 
 func init() {
+	http.HandleFunc("/robots.txt", func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Add("Content-Type", "text/plain")
+		w.Write([]byte("User-Agent: *\nDisallow: /\n"))
+	})
+
 	gqlserver.AddMutation(&graphql.Field{
 		Name: "activate",
 		Description: "Activate NDN-DPDK service. " +
@@ -105,15 +111,12 @@ var app = &cli.App{
 	Usage:   "Provide NDN-DPDK service.",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  "gqlserver",
-			Usage: "GraphQL `endpoint` of NDN-DPDK service",
-			Value: "http://127.0.0.1:3030/",
+			Name:  "listen",
+			Usage: "GraphQL HTTP server `host:port`",
+			Value: "127.0.0.1:3030",
 		},
 	},
 	Action: func(c *cli.Context) (e error) {
-		gqlserver.Start(c.String("gqlserver"))
-		daemon.SdNotify(false, daemon.SdNotifyReady)
-
 		go func() {
 			c := make(chan os.Signal, 1)
 			signal.Notify(c, unix.SIGINT, unix.SIGTERM)
@@ -121,24 +124,34 @@ var app = &cli.App{
 			delayedShutdown(func() { os.Exit(0) })
 		}()
 
-		watchdog := func() <-chan time.Time {
-			d, e := daemon.SdWatchdogEnabled(false)
-			if d == 0 || e != nil {
-				logger.Debug("systemd watchdog not configured", zap.Error(e))
-				return nil
-			}
-			d /= 2
-			logger.Debug("systemd watchdog enabled", zap.Duration("duration", d))
-			return time.Tick(d)
-		}()
-		for range watchdog {
-			daemon.SdNotify(false, daemon.SdNotifyWatchdog)
-		}
-		select {}
+		go systemdNotify()
+
+		gqlserver.Prepare()
+		listen := c.String("listen")
+		logger.Info("GraphQL HTTP server starting",
+			zap.String("listen", listen),
+		)
+		return http.ListenAndServe(listen, nil)
 	},
 }
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
 	app.Run(os.Args)
+}
+
+func systemdNotify() {
+	daemon.SdNotify(false, daemon.SdNotifyReady)
+
+	d, e := daemon.SdWatchdogEnabled(false)
+	if d == 0 || e != nil {
+		logger.Debug("systemd watchdog not configured", zap.Error(e))
+		return
+	}
+
+	d /= 2
+	logger.Debug("systemd watchdog enabled", zap.Duration("duration", d))
+	for range time.Tick(d) {
+		daemon.SdNotify(false, daemon.SdNotifyWatchdog)
+	}
 }

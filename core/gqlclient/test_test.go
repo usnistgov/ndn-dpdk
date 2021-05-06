@@ -1,12 +1,12 @@
 package gqlclient_test
 
 import (
-	"fmt"
+	"net"
+	"net/http"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/gabstv/freeport"
 	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
 )
@@ -18,14 +18,15 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	port, e := freeport.TCP()
+	listener, e := net.Listen("tcp", "127.0.0.1:0")
 	if e != nil {
 		panic(e)
 	}
 
-	serverURI = fmt.Sprintf("http://127.0.0.1:%d", port)
-	gqlserver.Start(serverURI)
+	gqlserver.Prepare()
+	go http.Serve(listener, nil)
 	time.Sleep(100 * time.Millisecond)
 
+	serverURI = "http://" + listener.Addr().String()
 	os.Exit(m.Run())
 }

@@ -63,7 +63,7 @@ func init() {
 		Name:  "show-version",
 		Usage: "Show daemon version",
 		Action: func(c *cli.Context) error {
-			return clientDoPrint(`
+			return clientDoPrint(c.Context, `
 				query version {
 					version {
 						version

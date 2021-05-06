@@ -11,7 +11,7 @@ func defineActivateCommand(id, noun string) {
 		Usage:      "Activate ndndpdk-svc as " + noun,
 		SchemaName: id,
 		Action: func(c *cli.Context, arg map[string]interface{}) error {
-			return clientDoPrint(`
+			return clientDoPrint(c.Context, `
 				mutation activate($arg: JSON!) {
 					activate(`+id+`: $arg)
 				}
@@ -31,7 +31,7 @@ func init() {
 		Name:     "shutdown",
 		Usage:    "Shutdown NDN-DPDK service",
 		Action: func(c *cli.Context) error {
-			return clientDoPrint(`
+			return clientDoPrint(c.Context, `
 				mutation shutdown {
 					shutdown
 				}

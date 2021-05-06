@@ -1,6 +1,7 @@
 package gqlmgmt
 
 import (
+	"context"
 	"errors"
 
 	"github.com/usnistgov/ndn-dpdk/ndn"
@@ -54,13 +55,13 @@ func (f *face) Advertise(name ndn.Name) error {
 	var fibEntryJ struct {
 		ID string `json:"id"`
 	}
-	e := f.client.Do(`
+	e := f.client.Do(context.TODO(), `
 		mutation insertFibEntry($name: Name!, $nexthops: [ID!]!, $strategy: ID) {
 			insertFibEntry(name: $name, nexthops: $nexthops, strategy: $strategy) {
 				id
 			}
 		}
-	`, map[string]interface{}{
+	`, "", map[string]interface{}{
 		"name":     name.String(),
 		"nexthops": []string{f.ID()},
 	}, "insertFibEntry", &fibEntryJ)
