@@ -139,7 +139,7 @@ func defineStdinJSONCommand(opts stdinJSONCommand) {
 	})
 }
 
-func clientDoPrint(ctx context.Context, query string, vars interface{}, key string) error {
+func clientDoPrint(ctx context.Context, query string, vars map[string]interface{}, key string) error {
 	if cmdout {
 		gqArgs := []string{gqlserver, "-q", query}
 		if vars != nil {
@@ -160,7 +160,7 @@ func clientDoPrint(ctx context.Context, query string, vars interface{}, key stri
 	}
 
 	var value interface{}
-	e := client.Do(ctx, query, "", vars, key, &value)
+	e := client.Do(ctx, query, vars, key, &value)
 	if e != nil {
 		return e
 	}

@@ -11,7 +11,7 @@ import (
 func TestClient(t *testing.T) {
 	assert, require := makeAR(t)
 
-	c, e := gqlclient.New(serverURI)
+	c, e := gqlclient.New(serverConfig)
 	require.NoError(e)
 	defer c.Close()
 
@@ -24,7 +24,7 @@ func TestClient(t *testing.T) {
 				version
 			}
 		}
-	`, "", nil, "version", &reply)
+	`, nil, "version", &reply)
 	assert.NoError(e)
 	assert.NotZero(reply.Version)
 
@@ -35,7 +35,7 @@ func TestClient(t *testing.T) {
 		subscription tick($interval: NNNanoseconds!) {
 			tick(interval: $interval)
 		}
-	`, "", map[string]interface{}{
+	`, map[string]interface{}{
 		"interval": "200ms",
 	}, "tick", ticks)
 	assert.NoError(e)

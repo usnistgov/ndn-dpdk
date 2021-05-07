@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/urfave/cli/v2"
+	"github.com/usnistgov/ndn-dpdk/core/gqlclient"
 	"github.com/usnistgov/ndn-dpdk/mk/version"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
@@ -26,8 +27,8 @@ var (
 	face      mgmt.Face
 	fwFace    l3.FwFace
 
-	gqlserverFlag string
-	mtuFlag       int
+	gqlserver string
+	mtuFlag   int
 )
 
 func openUplink(c *cli.Context) (e error) {
@@ -56,7 +57,7 @@ var app = &cli.App{
 			Name:        "gqlserver",
 			Usage:       "GraphQL `endpoint` of NDN-DPDK service",
 			Value:       "http://127.0.0.1:3030/",
-			Destination: &gqlserverFlag,
+			Destination: &gqlserver,
 		},
 		&cli.IntFlag{
 			Name:        "mtu",
@@ -66,7 +67,7 @@ var app = &cli.App{
 	},
 	Before: func(c *cli.Context) (e error) {
 		signal.Notify(interrupt, syscall.SIGINT)
-		client, e = gqlmgmt.New(gqlserverFlag)
+		client, e = gqlmgmt.New(gqlclient.Config{HTTPUri: gqlserver})
 		return e
 	},
 	After: func(c *cli.Context) (e error) {

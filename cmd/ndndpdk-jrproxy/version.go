@@ -11,7 +11,7 @@ func (Version) Version(args struct{}, reply *VersionReply) error {
 				Commit: commit
 			}
 		}
-	`, "", nil, "version", reply)
+	`, nil, "version", reply)
 }
 
 type VersionReply struct {

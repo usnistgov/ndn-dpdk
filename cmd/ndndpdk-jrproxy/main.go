@@ -36,7 +36,7 @@ func main() {
 			},
 		},
 		Action: func(c *cli.Context) (e error) {
-			client, e = gqlclient.New(gqlserver)
+			client, e = gqlclient.New(gqlclient.Config{HTTPUri: gqlserver})
 			if e != nil {
 				return e
 			}

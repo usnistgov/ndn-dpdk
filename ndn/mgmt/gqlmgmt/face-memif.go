@@ -53,7 +53,7 @@ func (c *Client) OpenMemif(loc memiftransport.Locator) (mgmt.Face, error) {
 				id
 			}
 		}
-	`, "", map[string]interface{}{
+	`, map[string]interface{}{
 		"locator": locJ,
 	}, "createFace", &faceJ)
 	if e != nil {

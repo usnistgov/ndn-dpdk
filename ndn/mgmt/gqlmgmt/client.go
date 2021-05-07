@@ -18,7 +18,7 @@ func (c *Client) delete(id string) error {
 		mutation delete($id: ID!) {
 			delete(id: $id)
 		}
-	`, "", map[string]interface{}{
+	`, map[string]interface{}{
 		"id": id,
 	}, "", nil)
 }
@@ -26,8 +26,8 @@ func (c *Client) delete(id string) error {
 var _ mgmt.Client = (*Client)(nil)
 
 // New creates a Client.
-func New(uri string) (*Client, error) {
-	c, e := gqlclient.New(uri)
+func New(cfg gqlclient.Config) (*Client, error) {
+	c, e := gqlclient.New(cfg)
 	if e != nil {
 		return nil, e
 	}

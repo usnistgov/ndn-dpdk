@@ -25,7 +25,7 @@ func (Face) List(args struct{}, reply *[]*FaceBasicInfo) error {
 				Locator: locator
 			}
 		}
-	`, "", nil, "faces", reply)
+	`, nil, "faces", reply)
 	if e != nil {
 		return e
 	}
@@ -59,7 +59,7 @@ func (Face) Get(args FaceIdArg, reply *FaceInfo) error {
 				}
 			}
 		}
-	`, "", map[string]interface{}{
+	`, map[string]interface{}{
 		"id": gID,
 	}, "node", reply)
 	if e != nil {
@@ -82,7 +82,7 @@ func (Face) Create(args interface{}, reply *FaceBasicInfo) error {
 				Locator: locator
 			}
 		}
-	`, "", map[string]interface{}{
+	`, map[string]interface{}{
 		"locator": args,
 	}, "createFace", reply)
 	if e != nil {
@@ -108,7 +108,7 @@ func (Face) Destroy(args FaceIdArg, reply *struct{}) error {
 		mutation delete($id: ID!) {
 			delete(id: $id)
 		}
-	`, "", map[string]interface{}{
+	`, map[string]interface{}{
 		"id": gID,
 	}, "", nil)
 	if e != nil {

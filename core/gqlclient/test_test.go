@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/usnistgov/ndn-dpdk/core/gqlclient"
 	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
 )
@@ -14,7 +15,7 @@ import (
 var (
 	makeAR = testenv.MakeAR
 
-	serverURI string
+	serverConfig gqlclient.Config
 )
 
 func TestMain(m *testing.M) {
@@ -27,6 +28,6 @@ func TestMain(m *testing.M) {
 	go http.Serve(listener, nil)
 	time.Sleep(100 * time.Millisecond)
 
-	serverURI = "http://" + listener.Addr().String()
+	serverConfig.HTTPUri = "http://" + listener.Addr().String()
 	os.Exit(m.Run())
 }

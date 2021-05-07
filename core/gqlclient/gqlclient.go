@@ -2,10 +2,8 @@
 package gqlclient
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,236 +12,215 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/bhoriuchi/graphql-go-tools/handler"
-	"github.com/functionalfoundry/graphqlws"
-	"github.com/gorilla/websocket"
-	"github.com/graphql-go/graphql"
-	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
-	"go.uber.org/multierr"
+	gqlws "github.com/korylprince/go-graphql-ws"
+	"github.com/machinebox/graphql"
 )
 
-func encodeParams(query, op string, vars interface{}, wsID string) ([]byte, error) {
-	var message interface{}
-	var varsMap *map[string]interface{}
-
-	if wsID == "" {
-		params := handler.RequestOptions{
-			Query:         query,
-			OperationName: op,
-		}
-		varsMap = &params.Variables
-		message = params
-	} else {
-		payload := graphqlws.StartMessagePayload{
-			Query:         query,
-			OperationName: op,
-		}
-		varsMap = &payload.Variables
-		message = graphqlws.OperationMessage{
-			ID:      wsID,
-			Type:    "start",
-			Payload: &payload,
-		}
+func parseResultData(j json.RawMessage, key string, ptr interface{}) error {
+	if key == "" {
+		return json.Unmarshal([]byte(j), ptr)
 	}
 
-	if e := jsonhelper.Roundtrip(vars, varsMap); e != nil {
-		return nil, fmt.Errorf("json(vars): %w", e)
+	m := make(map[string]json.RawMessage)
+	if e := json.Unmarshal([]byte(j), &m); e != nil {
+		return e
 	}
-
-	j, e := json.Marshal(message)
-	if e != nil {
-		return nil, fmt.Errorf("json.Marshal(message): %w", e)
-	}
-	return j, nil
+	return json.Unmarshal([]byte(m[key]), ptr)
 }
 
-func decodeResult(data interface{}, key string, res interface{}) error {
-	if key != "" {
-		m, ok := data.(map[string]interface{})
-		if !ok {
-			return errors.New("data is not an object")
-		}
+// Config contains Client configuration.
+type Config struct {
+	// HTTPUri is HTTP URI for query and mutation operations.
+	HTTPUri string
 
-		data, ok = m[key]
-		if !ok {
-			return fmt.Errorf("data[%s] missing", key)
+	HTTPClient *http.Client
+
+	// WebSocketUri is WebSocket URI for subscription operations.
+	// Default is appending '/subscriptions' to HTTPUri.
+	WebSocketUri string
+
+	WebSocketDialer *gqlws.Dialer
+}
+
+func (cfg *Config) applyDefaults() error {
+	u, e := url.Parse(cfg.HTTPUri)
+	if e != nil {
+		return fmt.Errorf("HTTPUri: %w", e)
+	}
+	cfg.HTTPUri = u.String()
+
+	if cfg.WebSocketUri == "" {
+		switch u.Scheme {
+		case "http":
+			u.Scheme = "ws"
+		case "https":
+			u.Scheme = "wss"
 		}
+		u.Path = path.Join(u.Path, "subscriptions")
+		cfg.WebSocketUri = u.String()
+	} else {
+		u, e = url.Parse(cfg.WebSocketUri)
+		if e != nil {
+			return fmt.Errorf("WebSocketUri: %w", e)
+		}
+		cfg.WebSocketUri = u.String()
 	}
 
-	if e := jsonhelper.Roundtrip(data, res); e != nil {
-		return fmt.Errorf("json(data): %w", e)
+	if cfg.HTTPClient == nil {
+		cfg.HTTPClient = http.DefaultClient
 	}
+
+	if cfg.WebSocketDialer == nil {
+		dialer := *gqlws.DefaultDialer
+		dialer.Subprotocols = []string{"graphql-ws"}
+		cfg.WebSocketDialer = &dialer
+	}
+
 	return nil
 }
 
 // Client is a GraphQL client.
 type Client struct {
-	httpUri    string
-	wsUri      string
-	HTTPClient http.Client
+	cfg        Config
 	wg         sync.WaitGroup
+	httpClient *graphql.Client
+
+	wsConnMutex sync.Mutex
+	wsConn      *gqlws.Conn
+	wsConnErr   error
+	wsClosed    chan struct{}
 }
 
 // Close blocks until all pending operations have concluded.
 func (c *Client) Close() error {
 	c.wg.Wait()
+
+	c.wsConnMutex.Lock()
+	defer c.wsConnMutex.Unlock()
+	if c.wsConn != nil {
+		c.wsConn.Close()
+	}
+
 	return nil
 }
 
 // Do executes a query or mutation on the GraphQL server.
 //  ctx: a Context for canceling the operation.
 //  query: a GraphQL document.
-//  op: operation name; may be empty if the GraphQL document has only one operation.
 //  vars: query variables.
 //  key: if non-empty, unmarshal result.data[key] instead of result.data.
 //  res: pointer to result struct.
-func (c *Client) Do(ctx context.Context, query, op string, vars interface{}, key string, res interface{}) error {
+func (c *Client) Do(ctx context.Context, query string, vars map[string]interface{}, key string, res interface{}) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
-	j, e := encodeParams(query, op, vars, "")
-	if e != nil {
+	request := graphql.NewRequest(query)
+	for key, value := range vars {
+		request.Var(key, value)
+	}
+
+	var response json.RawMessage
+	if e := c.httpClient.Run(ctx, request, &response); e != nil {
 		return e
 	}
-	request, e := http.NewRequestWithContext(ctx, http.MethodPost, c.httpUri, bytes.NewReader(j))
-	if e != nil {
-		return fmt.Errorf("http.NewRequest: %w", e)
-	}
-	request.Header.Add("accept", "application/json")
-
-	response, e := c.HTTPClient.Do(request)
-	if e != nil {
-		return fmt.Errorf("http.Post: %w", e)
-	}
-	defer response.Body.Close()
-	if response.StatusCode != 200 {
-		return fmt.Errorf("response.Status: %s", response.Status)
-	}
-	body, e := io.ReadAll(response.Body)
-	if e != nil {
-		return fmt.Errorf("io.ReadAll(response.Body): %w", e)
-	}
-
-	var result graphql.Result
-	e = json.Unmarshal(body, &result)
-	if e != nil {
-		return fmt.Errorf("json.Unmarshal(response.Body): %w", e)
-	}
-	if result.HasErrors() {
-		errs := make([]error, len(result.Errors))
-		for i, e := range result.Errors {
-			errs[i] = e
-		}
-		return fmt.Errorf("result.HasErrors: %w", multierr.Combine(errs...))
-	}
-
-	if res != nil {
-		if e := decodeResult(result.Data, key, res); e != nil {
-			return e
-		}
-	}
-	return nil
+	return parseResultData(response, key, res)
 }
 
 // Subscribe executes a subscription on the GraphQL server.
 //  ctx: a Context for canceling the subscription.
 //  query: a GraphQL document.
-//  op: operation name; may be empty if the GraphQL document has only one operation.
 //  vars: query variables.
 //  key: if non-empty, unmarshal result.data[key] instead of result.data.
 //  res: channel for sending updates.
-func (c *Client) Subscribe(ctx context.Context, query, op string, vars interface{}, key string, res interface{}) error {
-	j, e := encodeParams(query, op, vars, "w")
+func (c *Client) Subscribe(ctx context.Context, query string, vars map[string]interface{}, key string, res interface{}) error {
+	c.wg.Add(1)
+	defer c.wg.Done()
+
+	resR := reflect.ValueOf(res)
+	defer resR.Close()
+	valueTyp := resR.Type().Elem()
+
+	conn, e := c.wsConnect()
 	if e != nil {
 		return e
 	}
 
-	conn, response, e := websocket.DefaultDialer.DialContext(ctx, c.wsUri, http.Header{"Sec-WebSocket-Protocol": []string{"graphql-ws"}})
-	if e != nil {
-		body, _ := io.ReadAll(response.Body)
-		return fmt.Errorf("websocket.Dial: %w\n%s", e, string(body))
-	}
-	defer conn.Close()
+	fail := make(chan error, 1)
 
-	if e := conn.WriteMessage(websocket.TextMessage, j); e != nil {
-		return fmt.Errorf("conn.WriteMessage(start): %w", e)
-	}
+	id, e := conn.Subscribe(&gqlws.MessagePayloadStart{
+		Query:     query,
+		Variables: vars,
+	}, func(message *gqlws.Message) {
+		switch message.Type {
+		case gqlws.MessageTypeError:
+			fail <- gqlws.ParseError(message.Payload)
 
-	fail := make(chan error, 2)
-	messages := make(chan []byte)
-	go func() {
-		defer close(messages)
-		for {
-			_, message, e := conn.ReadMessage()
-			if e != nil {
+		case gqlws.MessageTypeComplete:
+			fail <- nil
+
+		case gqlws.MessageTypeData:
+			var payload gqlws.MessagePayloadData
+			if e := json.Unmarshal([]byte(message.Payload), &payload); e != nil {
 				fail <- e
-				break
-			}
-			messages <- message
-		}
-	}()
-	go func() {
-		resR := reflect.ValueOf(res)
-		defer resR.Close()
-		valueTyp := resR.Type().Elem()
-		for j := range messages {
-			var message graphqlws.OperationMessage
-			if e := json.Unmarshal(j, &message); e != nil {
-				fail <- fmt.Errorf("json.Unmarshal(message): %w", e)
-				break
-			}
-			if message.Type != "data" {
-				continue
-			}
-
-			var payload graphqlws.DataMessagePayload
-			if e := jsonhelper.Roundtrip(message.Payload, &payload); e != nil {
-				fail <- fmt.Errorf("json(message): %w", e)
-				break
+				return
 			}
 
 			if len(payload.Errors) > 0 {
-				fail <- multierr.Combine(payload.Errors...)
-				break
+				fail <- payload.Errors
+				return
 			}
 
 			value := reflect.New(valueTyp)
-			if e := decodeResult(payload.Data, key, value.Interface()); e != nil {
+			if e := parseResultData(payload.Data, key, value.Interface()); e != nil {
 				fail <- e
-				break
+				return
 			}
 
 			resR.Send(value.Elem())
 		}
-	}()
+	})
+	if e != nil {
+		return e
+	}
+	defer conn.Unsubscribe(id)
 
 	select {
 	case <-ctx.Done():
 		return nil
+	case <-c.wsClosed:
+		return io.ErrUnexpectedEOF
 	case e := <-fail:
 		return e
 	}
 }
 
-// New creates a Client.
-func New(uri string) (*Client, error) {
-	httpUri, e := url.Parse(uri)
-	if e != nil {
-		return nil, fmt.Errorf("url.Parse: %w", e)
-	}
+func (c *Client) wsConnect() (conn *gqlws.Conn, e error) {
+	c.wsConnMutex.Lock()
+	defer c.wsConnMutex.Unlock()
 
-	wsUri := *httpUri
-	switch wsUri.Scheme {
-	case "http":
-		wsUri.Scheme = "ws"
-	case "https":
-		wsUri.Scheme = "wss"
+	if c.wsConn == nil && c.wsConnErr == nil {
+		c.wg.Add(1)
+		defer c.wg.Done()
+		c.wsConn, _, c.wsConnErr = c.cfg.WebSocketDialer.Dial(c.cfg.WebSocketUri, nil, &gqlws.MessagePayloadConnectionInit{})
+		if c.wsConnErr == nil {
+			c.wsConn.SetCloseHandler(func(int, string) {
+				close(c.wsClosed)
+			})
+		}
 	}
-	wsUri.Path = path.Join(wsUri.Path, "subscriptions")
+	return c.wsConn, c.wsConnErr
+}
+
+// New creates a Client.
+func New(cfg Config) (*Client, error) {
+	if e := cfg.applyDefaults(); e != nil {
+		return nil, e
+	}
 
 	c := &Client{
-		httpUri: httpUri.String(),
-		wsUri:   wsUri.String(),
+		cfg:        cfg,
+		httpClient: graphql.NewClient(cfg.HTTPUri, graphql.WithHTTPClient(cfg.HTTPClient)),
+		wsClosed:   make(chan struct{}),
 	}
 	return c, nil
 }

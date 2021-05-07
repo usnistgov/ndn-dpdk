@@ -38,7 +38,7 @@ var app = &cli.App{
 		if cmdout {
 			return nil
 		}
-		client, e = gqlclient.New(gqlserver)
+		client, e = gqlclient.New(gqlclient.Config{HTTPUri: gqlserver})
 		return e
 	},
 	After: func(c *cli.Context) (e error) {
