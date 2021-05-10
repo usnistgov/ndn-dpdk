@@ -71,7 +71,7 @@ func init() {
 		Fields: graphql.Fields{
 			"inputLatency": &graphql.Field{
 				Description: "Latency between packet arrival and dequeuing at forwarding thread, in nanoseconds.",
-				Type:        gqlserver.NonNullJSON,
+				Type:        graphql.NewNonNull(runningstat.GqlSnapshotType),
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					fwd := p.Source.(*Fwd)
 					latencyStat := runningstat.FromPtr(unsafe.Pointer(&fwd.c.latencyStat))
@@ -117,9 +117,6 @@ func init() {
 			Description: fmt.Sprintf("%s queued in input thread.", plural),
 			Type:        gqlserver.NonNullInt,
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				if GqlDataPlane == nil {
-					return 0, nil
-				}
 				index := p.Source.(*Fwd).id
 				var sum uint64
 				for _, input := range GqlDataPlane.inputs {
@@ -132,9 +129,6 @@ func init() {
 			Description: fmt.Sprintf("%s dropped in input thread.", plural),
 			Type:        gqlserver.NonNullInt,
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				if GqlDataPlane == nil {
-					return 0, nil
-				}
 				index := p.Source.(*Fwd).id
 				var sum uint64
 				for _, input := range GqlDataPlane.inputs {
@@ -147,9 +141,6 @@ func init() {
 			Description: fmt.Sprintf("Congestion marks added to %s.", plural),
 			Type:        gqlserver.NonNullInt,
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				if GqlDataPlane == nil {
-					return 0, nil
-				}
 				fwd := p.Source.(*Fwd)
 				return int(getQueue(fwd.c).nDrops), nil
 			},

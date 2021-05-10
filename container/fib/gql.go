@@ -33,7 +33,7 @@ var (
 func init() {
 	GqlEntryCountersType = graphql.NewObject(graphql.ObjectConfig{
 		Name:   "FibEntryCounters",
-		Fields: graphql.BindFields(fibdef.EntryCounters{}),
+		Fields: gqlserver.BindFields(fibdef.EntryCounters{}, nil),
 	})
 
 	GqlEntryNodeType = gqlserver.NewNodeType(Entry{})

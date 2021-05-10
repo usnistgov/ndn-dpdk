@@ -27,7 +27,7 @@ var (
 func init() {
 	GqlConfigType = graphql.NewObject(graphql.ObjectConfig{
 		Name:   "NdtConfig",
-		Fields: graphql.BindFields(Config{}),
+		Fields: gqlserver.BindFields(Config{}, nil),
 	})
 
 	gqlserver.AddQuery(&graphql.Field{

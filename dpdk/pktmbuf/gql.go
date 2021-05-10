@@ -16,7 +16,7 @@ var (
 func init() {
 	GqlConfigType = graphql.NewObject(graphql.ObjectConfig{
 		Name:   "PktmbufPoolConfig",
-		Fields: graphql.BindFields(PoolConfig{}),
+		Fields: gqlserver.BindFields(PoolConfig{}, nil),
 	})
 
 	GqlPoolType = graphql.NewObject(graphql.ObjectConfig{

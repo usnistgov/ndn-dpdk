@@ -5,6 +5,7 @@ import (
 	"github.com/graphql-go/graphql"
 	"github.com/usnistgov/ndn-dpdk/container/cs"
 	"github.com/usnistgov/ndn-dpdk/container/pit"
+	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
 )
 
 // Counters contains CS counters.
@@ -34,5 +35,5 @@ func readCslCnt(c *cs.Cs, list cs.ListID) (nEntries, capacity int) {
 // GqlCountersType is the GraphQL type for Counters.
 var GqlCountersType = graphql.NewObject(graphql.ObjectConfig{
 	Name:   "CsCounters",
-	Fields: graphql.BindFields(Counters{}),
+	Fields: gqlserver.BindFields(Counters{}, nil),
 })

@@ -1,56 +1,90 @@
-import type { RunningStatSnapshot } from "../types/core";
+import type { RunningStatSnapshot as SnapshotJSON } from "../types/core";
 
-export type Snapshot = RunningStatSnapshot;
-
-function updateDerivedFields(v: Snapshot) {
-  if (v.len > 0) {
-    v.mean = v.m1;
-  }
-  if (v.len > 1) {
-    v.variance = v.m2 / (v.len - 1);
-    v.stdev = Math.sqrt(v.variance);
-  }
+function nullNaN(v: number): number|undefined {
+  return Number.isNaN(v) ? undefined : v;
 }
 
-export const empty: Readonly<Snapshot> = {
+const empty: Readonly<SnapshotJSON> = {
   count: 0,
   len: 0,
   m1: 0,
   m2: 0,
 };
 
-/** Combine stats instances. */
-export function add(a: Readonly<Snapshot>, b: Readonly<Snapshot>): Snapshot {
-  if (a.len === 0) {
-    return { ...b };
-  } if (b.len === 0) {
-    return { ...a };
+export class Snapshot {
+  constructor(v: SnapshotJSON = empty) {
+    this.count = BigInt(v.count);
+    this.len = BigInt(v.len);
+    this.min = v.min;
+    this.max = v.min;
+    this.m1 = v.m1;
+    this.m2 = v.m2;
   }
-  const cLen = a.len + b.len;
-  const delta = b.m1 - a.m1;
-  const delta2 = delta * delta;
-  const c: Snapshot = {
-    count: a.count + b.count,
-    len: cLen,
-    m1: (a.len * a.m1 + b.len * b.m1) / cLen,
-    m2: a.m2 + b.m2 + delta2 * a.len * b.len / cLen,
-  };
-  updateDerivedFields(c);
-  return c;
-}
 
-/** Subtract stats instances. */
-export function sub(c: Readonly<Snapshot>, a: Readonly<Snapshot>): Snapshot {
-  const bLen = c.len - a.len;
-  const bM1 = (c.len * c.m1 - a.len * a.m1) / bLen;
-  const delta = a.m1 - bM1;
-  const delta2 = delta * delta;
-  const b: Snapshot = {
-    count: c.count - a.count,
-    len: bLen,
-    m1: bM1,
-    m2: c.m2 - a.m2 - delta2 * a.len * bLen / c.len,
-  };
-  updateDerivedFields(b);
-  return b;
+  count: bigint;
+  len: bigint;
+  min?: number;
+  max?: number;
+  m1: number;
+  m2: number;
+
+  public get mean(): number {
+    return this.len > 0n ? this.m1 : Number.NaN;
+  }
+
+  public get variance(): number {
+    return this.len > 1n ? this.m2 / Number(this.len - 1n) : Number.NaN;
+  }
+
+  public get stdev(): number {
+    return Math.sqrt(this.variance);
+  }
+
+  public toJSON(): SnapshotJSON {
+    const j: SnapshotJSON = {
+      count: this.count.toString(),
+      len: this.len.toString(),
+      min: this.min,
+      max: this.max,
+      mean: nullNaN(this.mean),
+      variance: nullNaN(this.variance),
+      stdev: nullNaN(this.stdev),
+      m1: this.m1,
+      m2: this.m2,
+    };
+    return j;
+  }
+
+  /** Combine stats instances. */
+  public add(other: Readonly<Snapshot>): Snapshot {
+    if (this.len === 0n) {
+      return new Snapshot(other.toJSON());
+    } if (other.len === 0n) {
+      return new Snapshot(this.toJSON());
+    }
+
+    const sum = new Snapshot();
+    sum.count = this.count + other.count;
+    sum.len = this.len + other.len;
+
+    const delta = other.m1 - this.m1;
+    const delta2 = delta * delta;
+    sum.m1 = (Number(this.len) * this.m1 + Number(other.len) * other.m1) / Number(sum.len);
+    sum.m2 = this.m2 + other.m2 + delta2 * Number(this.len * other.len) / Number(sum.len);
+    return sum;
+  }
+
+  /** Subtract stats instances. */
+  public sub(this: Readonly<Snapshot>, other: Readonly<Snapshot>): Snapshot {
+    const diff = new Snapshot();
+    diff.count = this.count - other.count;
+    diff.len = this.len - other.len;
+
+    const diffM1 = (Number(this.len) * this.m1 - Number(other.len) * other.m1) / Number(diff.len);
+    const delta = other.m1 - diffM1;
+    const delta2 = delta * delta;
+    diff.m1 = diffM1;
+    diff.m2 = this.m2 - other.m2 - delta2 * Number(other.len * diff.len) / Number(this.len);
+    return diff;
+  }
 }

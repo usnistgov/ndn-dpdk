@@ -1,9 +1,5 @@
 package runningstat
 
-/*
-#include "../../csrc/core/running-stat.h"
-*/
-import "C"
 import (
 	"encoding/json"
 	"math"
@@ -59,6 +55,16 @@ func (s Snapshot) Variance() float64 {
 // Stdev returns standard deviation of samples.
 func (s Snapshot) Stdev() float64 {
 	return math.Sqrt(s.Variance())
+}
+
+// M1 returns internal variable m1.
+func (s Snapshot) M1() float64 {
+	return s.v.M1
+}
+
+// M2 returns internal variable m1.
+func (s Snapshot) M2() float64 {
+	return s.v.M2
 }
 
 // Add combines stats with another instance.

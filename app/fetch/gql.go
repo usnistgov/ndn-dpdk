@@ -2,6 +2,7 @@ package fetch
 
 import (
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/graphql-go/graphql"
@@ -35,39 +36,18 @@ func init() {
 	GqlConfigInput = graphql.NewInputObject(graphql.InputObjectConfig{
 		Name:        "FetcherConfigInput",
 		Description: "Fetcher config.",
-		Fields: graphql.InputObjectConfigFieldMap{
-			"nThreads": &graphql.InputObjectFieldConfig{
-				Type: graphql.Int,
-			},
-			"nProc": &graphql.InputObjectFieldConfig{
-				Type: graphql.Int,
-			},
-			"rxQueue": &graphql.InputObjectFieldConfig{
-				Type: iface.GqlPktQueueInput,
-			},
-			"windowCapacity": &graphql.InputObjectFieldConfig{
-				Type: graphql.Int,
-			},
-		},
+		Fields: gqlserver.BindInputFields(FetcherConfig{}, gqlserver.FieldTypes{
+			reflect.TypeOf(iface.PktQueueConfig{}): iface.GqlPktQueueInput,
+		}),
 	})
 
 	GqlTemplateInput = graphql.NewInputObject(graphql.InputObjectConfig{
 		Name:        "FetchTemplateInput",
 		Description: "Fetcher template.",
-		Fields: graphql.InputObjectConfigFieldMap{
-			"prefix": &graphql.InputObjectFieldConfig{
-				Description: "Interest name prefix.",
-				Type:        gqlserver.NonNullString,
-			},
-			"interestLifetime": &graphql.InputObjectFieldConfig{
-				Description: "Interest lifetime (milliseconds).",
-				Type:        nnduration.GqlMilliseconds,
-			},
-			"canBePrefix": &graphql.InputObjectFieldConfig{
-				Description: "Whether to include the CanBePrefix element.",
-				Type:        graphql.Boolean,
-			},
-		},
+		Fields: gqlserver.BindInputFields(benchmarkTemplate{}, gqlserver.FieldTypes{
+			reflect.TypeOf(ndn.Name{}):                 gqlserver.NonNullString,
+			reflect.TypeOf(nnduration.Milliseconds(0)): nnduration.GqlMilliseconds,
+		}),
 	})
 
 	GqlFetcherNodeType = tggql.NewNodeType((*Fetcher)(nil), &GqlRetrieveByFaceID)

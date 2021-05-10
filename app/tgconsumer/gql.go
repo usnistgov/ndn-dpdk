@@ -1,11 +1,15 @@
 package tgconsumer
 
 import (
+	"reflect"
+
 	"github.com/graphql-go/graphql"
 	"github.com/usnistgov/ndn-dpdk/app/tg/tggql"
 	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
+	"github.com/usnistgov/ndn-dpdk/core/runningstat"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 // GqlRetrieveByFaceID returns *Consumer associated with a face.
@@ -14,38 +18,35 @@ var GqlRetrieveByFaceID func(id iface.ID) interface{}
 
 // GraphQL types.
 var (
-	GqlPatternInput     *graphql.InputObject
-	GqlConsumerNodeType *gqlserver.NodeType
-	GqlConsumerType     *graphql.Object
+	GqlPatternInput        *graphql.InputObject
+	GqlPatternCountersType *graphql.Object
+	GqlCountersType        *graphql.Object
+	GqlConsumerNodeType    *gqlserver.NodeType
+	GqlConsumerType        *graphql.Object
 )
 
 func init() {
 	GqlPatternInput = graphql.NewInputObject(graphql.InputObjectConfig{
 		Name:        "TgcPatternInput",
 		Description: "Traffic generator consumer pattern definition.",
-		Fields: graphql.InputObjectConfigFieldMap{
-			"weight": &graphql.InputObjectFieldConfig{
-				Type: graphql.Int,
-			},
-			"prefix": &graphql.InputObjectFieldConfig{
-				Type: gqlserver.NonNullString,
-			},
-			"canBePrefix": &graphql.InputObjectFieldConfig{
-				Type: graphql.Boolean,
-			},
-			"mustBeFresh": &graphql.InputObjectFieldConfig{
-				Type: graphql.Boolean,
-			},
-			"interestLifetime": &graphql.InputObjectFieldConfig{
-				Type: nnduration.GqlMilliseconds,
-			},
-			"hopLimit": &graphql.InputObjectFieldConfig{
-				Type: graphql.Int,
-			},
-			"seqNumOffset": &graphql.InputObjectFieldConfig{
-				Type: graphql.Int,
-			},
-		},
+		Fields: gqlserver.BindInputFields(Pattern{}, gqlserver.FieldTypes{
+			reflect.TypeOf(ndn.Name{}):                 gqlserver.NonNullString,
+			reflect.TypeOf(nnduration.Milliseconds(0)): nnduration.GqlMilliseconds,
+		}),
+	})
+
+	GqlPatternCountersType = graphql.NewObject(graphql.ObjectConfig{
+		Name: "TgcPatternCounters",
+		Fields: gqlserver.BindFields(PatternCounters{}, gqlserver.FieldTypes{
+			reflect.TypeOf(RttCounters{}): runningstat.GqlSnapshotType,
+		}),
+	})
+	GqlCountersType = graphql.NewObject(graphql.ObjectConfig{
+		Name: "TgcCounters",
+		Fields: gqlserver.BindFields(Counters{}, gqlserver.FieldTypes{
+			reflect.TypeOf(RttCounters{}):     runningstat.GqlSnapshotType,
+			reflect.TypeOf(PatternCounters{}): GqlPatternCountersType,
+		}),
 	})
 
 	GqlConsumerNodeType = tggql.NewNodeType((*Consumer)(nil), &GqlRetrieveByFaceID)
@@ -55,18 +56,12 @@ func init() {
 			"patterns": &graphql.Field{
 				Description: "Traffic patterns.",
 				Type:        gqlserver.NonNullJSON,
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					consumer := p.Source.(*Consumer)
-					return consumer.Patterns(), nil
-				},
+				Resolve:     gqlserver.MethodResolver("Patterns"),
 			},
 			"counters": &graphql.Field{
 				Description: "Counters.",
-				Type:        gqlserver.NonNullJSON,
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					consumer := p.Source.(*Consumer)
-					return consumer.Counters(), nil
-				},
+				Type:        graphql.NewNonNull(GqlCountersType),
+				Resolve:     gqlserver.MethodResolver("Counters"),
 			},
 		}),
 	}))

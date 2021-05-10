@@ -2,7 +2,7 @@
  * Non-negative counter.
  * It may be encoded as integer (uint32 or shorter) or string (uint64).
  */
-export type Counter = number|string;
+export type Counter = number | string;
 
 /**
  * @TJS-type integer
@@ -31,19 +31,11 @@ export type NNNanoseconds = number | string;
 
 /** Snapshot from runningstat. */
 export interface RunningStatSnapshot {
-  /**
-   * Number of inputs.
-   * @TJS-type integer
-   * @minimum 0
-   */
-  count: number;
+  /** Number of inputs. */
+  count: Counter;
 
-  /**
-   * Number of samples.
-   * @TJS-type integer
-   * @minimum 0
-   */
-  len: number;
+  /** Number of samples. */
+  len: Counter;
 
   /** Minimum value. */
   min?: number;

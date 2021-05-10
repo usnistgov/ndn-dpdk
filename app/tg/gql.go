@@ -1,14 +1,18 @@
 package tg
 
 import (
+	"context"
 	"errors"
+	"time"
 
+	"github.com/functionalfoundry/graphqlws"
 	"github.com/graphql-go/graphql"
 	"github.com/usnistgov/ndn-dpdk/app/fetch"
 	"github.com/usnistgov/ndn-dpdk/app/tg/tggql"
 	"github.com/usnistgov/ndn-dpdk/app/tgconsumer"
 	"github.com/usnistgov/ndn-dpdk/app/tgproducer"
 	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
+	"github.com/usnistgov/ndn-dpdk/core/gqlserver/gqlsub"
 	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/iface"
@@ -28,6 +32,7 @@ var (
 	GqlConsumerConfigInput *graphql.InputObject
 	GqlTrafficGenNodeType  *gqlserver.NodeType
 	GqlTrafficGenType      *graphql.Object
+	GqlCountersType        *graphql.Object
 )
 
 func init() {
@@ -148,5 +153,79 @@ func init() {
 			}
 			return gen, nil
 		},
+	})
+
+	GqlCountersType = graphql.NewObject(graphql.ObjectConfig{
+		Name: "TgCounters",
+		Fields: graphql.Fields{
+			"producer": &graphql.Field{
+				Type: tgproducer.GqlCountersType,
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					producer := p.Source.(*TrafficGen).producer
+					if producer == nil {
+						return nil, nil
+					}
+					return producer.Counters(), nil
+				},
+			},
+			"consumer": &graphql.Field{
+				Type: tgconsumer.GqlCountersType,
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					consumer := p.Source.(*TrafficGen).consumer
+					if consumer == nil {
+						return nil, nil
+					}
+					return consumer.Counters(), nil
+				},
+			},
+		},
+	})
+
+	gqlserver.AddSubscription(&graphql.Field{
+		Name:        "tgCounters",
+		Description: "Obtain traffic generator counters.",
+		Args: graphql.FieldConfigArgument{
+			"id": &graphql.ArgumentConfig{
+				Description: "Traffic generator ID.",
+				Type:        gqlserver.NonNullID,
+			},
+			"interval": &graphql.ArgumentConfig{
+				Description: "Interval between updates.",
+				Type:        nnduration.GqlNanoseconds,
+			},
+		},
+		Type: GqlCountersType,
+		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+			return p.Info.RootValue.(*TrafficGen), nil
+		},
+	}, func(ctx context.Context, sub *graphqlws.Subscription, updates chan<- interface{}) {
+		defer close(updates)
+
+		id, ok := gqlsub.GetArg(sub, "id", graphql.ID).(string)
+		if !ok {
+			return
+		}
+
+		var gen *TrafficGen
+		if e := gqlserver.RetrieveNodeOfType(GqlTrafficGenNodeType, id, &gen); e != nil || gen == nil {
+			return
+		}
+
+		interval, ok := gqlsub.GetArg(sub, "interval", nnduration.GqlNanoseconds).(nnduration.Nanoseconds)
+		if !ok {
+			return
+		}
+
+		ticker := time.NewTicker(interval.Duration())
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-gen.exit:
+				return
+			case <-ticker.C:
+				updates <- gen
+			}
+		}
 	})
 }

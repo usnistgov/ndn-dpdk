@@ -46,7 +46,7 @@ func init() {
 
 	GqlCountersType = graphql.NewObject(graphql.ObjectConfig{
 		Name:   "FaceCounters",
-		Fields: graphql.BindFields(Counters{}),
+		Fields: gqlserver.BindFields(Counters{}, nil),
 	})
 
 	GqlFaceNodeType = gqlserver.NewNodeType((*Face)(nil))

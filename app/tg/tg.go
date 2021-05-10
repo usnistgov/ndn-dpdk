@@ -37,6 +37,7 @@ type TrafficGen struct {
 	producer *tgproducer.Producer
 	consumer *tgconsumer.Consumer
 	fetcher  *fetch.Fetcher
+	exit     chan struct{}
 }
 
 // Face returns the face on which this traffic generator operates.
@@ -125,6 +126,7 @@ func (gen *TrafficGen) Close() error {
 	if e := gen.Stop(); e != nil {
 		return e
 	}
+	close(gen.exit)
 
 	if gen.face != nil {
 		mapFaceGenMutex.Lock()
@@ -168,7 +170,9 @@ func New(cfg Config) (gen *TrafficGen, e error) {
 		return nil, e
 	}
 
-	gen = &TrafficGen{}
+	gen = &TrafficGen{
+		exit: make(chan struct{}),
+	}
 	success := false
 	defer func(gen *TrafficGen) {
 		if !success {

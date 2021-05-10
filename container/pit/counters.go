@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/graphql-go/graphql"
+	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
 )
 
 // Counters contains PIT counters.
@@ -45,5 +46,5 @@ func (pit *Pit) Counters() (cnt Counters) {
 // GqlCountersType is the GraphQL type for Counters.
 var GqlCountersType = graphql.NewObject(graphql.ObjectConfig{
 	Name:   "PitCounters",
-	Fields: graphql.BindFields(Counters{}),
+	Fields: gqlserver.BindFields(Counters{}, nil),
 })
