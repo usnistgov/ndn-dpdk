@@ -8,8 +8,8 @@ You can also [build a Docker container](Docker.md), which would work on other op
 
 ## Dependencies
 
-* Required APT packages: `build-essential clang-8 git libc6-dev-i386 libelf-dev libnuma-dev libssl-dev liburcu-dev pkg-config python3-distutils`
-* Optional APT packages: `clang-format-8 doxygen jq yamllint`
+* Required APT packages: `build-essential clang-8 git jq libc6-dev-i386 libelf-dev libnuma-dev libssl-dev liburcu-dev pkg-config python3-distutils`
+* Optional APT packages: `clang-format-8 doxygen yamllint`
 * Go 1.16
 * Node.js 14.x
 * Python 3, [pip](https://pip.pypa.io/en/stable/installing/), and PyPI packages: `meson ninja`

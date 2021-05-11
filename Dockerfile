@@ -38,7 +38,7 @@ RUN rm -rf \
     done | sort -u | grep -vE '^/usr/local/' > /tmp/libs.txt && \
     while read -r F; do \
       dpkg-query -S "$F" 2>/dev/null || dpkg-query -S $(readlink -f "$F") 2>/dev/null || true; \
-    done < /tmp/libs.txt | cut -d: -f1 > /pkgs.txt
+    done < /tmp/libs.txt | cut -d: -f1 | sort -u > /pkgs.txt
 
 FROM ubuntu:focal
 COPY --from=build /pkgs.txt /
@@ -47,5 +47,5 @@ RUN apt-get -y -qq update && \
     rm -rf /var/lib/apt/lists/* /pkgs.txt
 COPY --from=build /usr/local/ /usr/local/
 RUN ldconfig
-VOLUME /dev/hugepages /run/ndn
+VOLUME /run/ndn
 CMD ["/usr/local/sbin/ndndpdk-svc", "--gqlserver", "http://:3030"]

@@ -61,6 +61,7 @@ npm: build/share/ndn-dpdk/ndn-dpdk.npm.tgz
 
 build/share/ndn-dpdk/ndn-dpdk.npm.tgz:
 	node_modules/.bin/tsc
+	jq -n '{ type: "module" }' >build/js/package.json
 	mv $$(npm pack -s .) $@
 
 .PHONY: install

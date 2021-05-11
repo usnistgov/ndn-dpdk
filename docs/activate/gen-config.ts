@@ -25,16 +25,24 @@ const cfg: TgConfig = {
         prefix: "/P/1",
         replies: [
           {
-            weight: 1,
+            weight: 5,
             suffix: "/S100",
             freshnessPeriod: "100ms",
             payloadLen: 100,
           },
           {
-            weight: 1,
+            weight: 5,
             suffix: "/S200",
             freshnessPeriod: "200ms",
             payloadLen: 200,
+          },
+          {
+            weight: 2,
+            nack: 100,
+          },
+          {
+            weight: 1,
+            timeout: true,
           },
         ],
       },

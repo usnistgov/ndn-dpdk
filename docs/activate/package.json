@@ -1,14 +1,16 @@
 {
   "private": true,
+  "type": "module",
   "scripts": {
-    "fw-args": "ts-node ./fw-args",
-    "gen-config": "ts-node ./gen-config",
-    "gen-args": "ts-node ./gen-args",
+    "fw-args": "node --loader @k-foss/ts-esnode --experimental-specifier-resolution=node ./fw-args.ts",
+    "gen-config": "node --loader @k-foss/ts-esnode --experimental-specifier-resolution=node ./gen-config.ts",
+    "gen-args": "node --loader @k-foss/ts-esnode --experimental-specifier-resolution=node ./gen-args.ts",
     "typecheck": "tsc"
   },
   "dependencies": {
+    "@k-foss/ts-esnode": "^2.0.2",
     "stdout-stream": "^1.4.1",
-    "ts-node": "^9.1.1",
+    "tslib": "^2.2.0",
     "typescript": "^4.2.4"
   },
   "devDependencies": {
