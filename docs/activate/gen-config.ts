@@ -10,6 +10,14 @@ const cfg: TgConfig = {
     portConfig: {
       mtu: 9000,
     },
+    vdevConfig: {
+      xdp: {
+        disabled: true,
+      },
+      afPacket: {
+        disabled: true,
+      },
+    },
   },
   producer: {
     patterns: [
