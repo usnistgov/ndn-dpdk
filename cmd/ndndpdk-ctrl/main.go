@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"sort"
+	"strings"
 
 	"github.com/urfave/cli/v2"
 	"github.com/usnistgov/ndn-dpdk/core/gqlclient"
@@ -12,9 +13,10 @@ import (
 )
 
 var (
-	gqlserver string
-	cmdout    bool
-	client    *gqlclient.Client
+	gqlserver   string
+	gqWebSocket string
+	cmdout      bool
+	client      *gqlclient.Client
 )
 
 var app = &cli.App{
@@ -35,10 +37,13 @@ var app = &cli.App{
 		},
 	},
 	Before: func(c *cli.Context) (e error) {
+		cfg := gqlclient.Config{HTTPUri: gqlserver}
 		if cmdout {
-			return nil
+			e = cfg.ApplyDefaults()
+			gqWebSocket = strings.Replace(cfg.WebSocketUri, "ws", "http", 1)
+		} else {
+			client, e = gqlclient.New(cfg)
 		}
-		client, e = gqlclient.New(gqlclient.Config{HTTPUri: gqlserver})
 		return e
 	},
 	After: func(c *cli.Context) (e error) {
@@ -48,6 +53,10 @@ var app = &cli.App{
 		}
 		return e
 	},
+}
+
+func defineCommand(command *cli.Command) {
+	app.Commands = append(app.Commands, command)
 }
 
 func main() {

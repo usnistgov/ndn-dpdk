@@ -16,10 +16,6 @@ import (
 	"github.com/xeipuuv/gojsonschema"
 )
 
-func defineCommand(command *cli.Command) {
-	app.Commands = append(app.Commands, command)
-}
-
 func defineDeleteCommand(category, commandName, usage, objectNoun string) {
 	var id string
 	defineCommand(&cli.Command{
@@ -139,34 +135,35 @@ func defineStdinJSONCommand(opts stdinJSONCommand) {
 	})
 }
 
-func clientDoPrint(ctx context.Context, query string, vars map[string]interface{}, key string) error {
-	if cmdout {
-		gqArgs := []string{gqlserver, "-q", query}
-		if vars != nil {
-			j, e := json.MarshalIndent(vars, "", "  ")
-			if e != nil {
-				return e
-			}
-			gqArgs = append(gqArgs, "--variablesJSON", string(j))
-		}
-		jqArgs := []string{"-c"}
-		if key == "" {
-			jqArgs = append(jqArgs, ".data")
-		} else {
-			jqArgs = append(jqArgs, ".data."+key)
-		}
-		fmt.Println("gq", shellquote.Join(gqArgs...), "|", "jq", shellquote.Join(jqArgs...))
-		return nil
-	}
+type request struct {
+	Query string
+	Vars  map[string]interface{}
+	Key   string
+}
 
+func (r request) isSubscription() bool {
+	var verb string
+	if _, e := fmt.Sscan(r.Query, &verb); e == nil && verb == "subscription" {
+		return true
+	}
+	return false
+}
+
+func (r request) Execute(ctx context.Context) error {
+	if r.isSubscription() {
+		return r.subscribe(ctx)
+	}
+	return r.do(ctx)
+}
+
+func (r request) do(ctx context.Context) error {
 	var value interface{}
-	e := client.Do(ctx, query, vars, key, &value)
-	if e != nil {
+	if e := client.Do(ctx, r.Query, r.Vars, r.Key, &value); e != nil {
 		return e
 	}
 
 	if val := reflect.ValueOf(value); val.Kind() == reflect.Slice {
-		for i, last := 0, val.Len(); i < last; i++ {
+		for i, n := 0, val.Len(); i < n; i++ {
 			j, _ := json.Marshal(val.Index(i).Interface())
 			fmt.Println(string(j))
 		}
@@ -175,4 +172,52 @@ func clientDoPrint(ctx context.Context, query string, vars map[string]interface{
 		fmt.Println(string(j))
 	}
 	return nil
+}
+
+func (r request) subscribe(ctx context.Context) error {
+	updates := make(chan interface{})
+	go func() {
+		for update := range updates {
+			j, _ := json.Marshal(update)
+			fmt.Println(string(j))
+		}
+	}()
+	return client.Subscribe(ctx, r.Query, r.Vars, r.Key, updates)
+}
+
+func (r request) Print() error {
+	gqArgs := []string{gqlserver, "-q", r.Query}
+	if r.isSubscription() {
+		gqArgs[0] = gqWebSocket
+	}
+	if r.Vars != nil {
+		j, e := json.MarshalIndent(r.Vars, "", "  ")
+		if e != nil {
+			return e
+		}
+		gqArgs = append(gqArgs, "--variablesJSON", string(j))
+	}
+
+	jqArgs := []string{"-c"}
+	if r.Key == "" {
+		jqArgs = append(jqArgs, ".data")
+	} else {
+		jqArgs = append(jqArgs, ".data."+r.Key)
+	}
+
+	fmt.Println("gq", shellquote.Join(gqArgs...), "|", "jq", shellquote.Join(jqArgs...))
+	return nil
+}
+
+func clientDoPrint(ctx context.Context, query string, vars map[string]interface{}, key string) error {
+	r := request{
+		Query: query,
+		Vars:  vars,
+		Key:   key,
+	}
+
+	if cmdout {
+		return r.Print()
+	}
+	return r.Execute(ctx)
 }

@@ -42,7 +42,8 @@ type Config struct {
 	WebSocketDialer *gqlws.Dialer
 }
 
-func (cfg *Config) applyDefaults() error {
+// ApplyDefaults applies defaults.
+func (cfg *Config) ApplyDefaults() error {
 	u, e := url.Parse(cfg.HTTPUri)
 	if e != nil {
 		return fmt.Errorf("HTTPUri: %w", e)
@@ -213,7 +214,7 @@ func (c *Client) wsConnect() (conn *gqlws.Conn, e error) {
 
 // New creates a Client.
 func New(cfg Config) (*Client, error) {
-	if e := cfg.applyDefaults(); e != nil {
+	if e := cfg.ApplyDefaults(); e != nil {
 		return nil, e
 	}
 

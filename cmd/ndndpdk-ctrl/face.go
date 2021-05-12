@@ -30,7 +30,6 @@ func init() {
 func init() {
 	var id string
 	var withCounters bool
-
 	defineCommand(&cli.Command{
 		Category: "face",
 		Name:     "get-face",
