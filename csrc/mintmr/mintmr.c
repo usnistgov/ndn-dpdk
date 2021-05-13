@@ -84,6 +84,7 @@ MinTmr_After(MinTmr* tmr, TscDuration after, MinSched* sched)
   if (unlikely(nSlotsAway >= sched->nSlots)) {
     N_LOGW("After(too-far) sched=%p tmr=%p after=%" PRId64 " nSlotsAway=%" PRIu64, sched, tmr,
            after, nSlotsAway);
+    MinTmr_Init(tmr);
     return false;
   }
 

@@ -1,4 +1,5 @@
-import type { Index, Name } from "../core";
+import type { Index } from "../core";
+import type { Name } from "../ndni";
 
 export interface IdArg {
   Id: Index;

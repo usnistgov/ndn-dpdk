@@ -64,6 +64,3 @@ export interface RunningStatSnapshot {
   /** Internal variable M2. */
   m2: number;
 }
-
-/** Name represented as canonical URI. */
-export type Name = string;

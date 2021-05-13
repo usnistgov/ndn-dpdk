@@ -1,5 +1,6 @@
-import type { Counter, Index, Name } from "../core";
+import type { Counter, Index } from "../core";
 import type { FaceID } from "../iface";
+import type { Name } from "../ndni";
 import type { NameArg } from "./common";
 
 export interface FibMgmt {

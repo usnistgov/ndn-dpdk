@@ -88,7 +88,7 @@ func (gen *TrafficGen) configureDemux(demuxI, demuxD, demuxN *iface.InputDemux) 
 
 	if gen.producer != nil {
 		demuxI.InitRoundrobin(len(gen.producer.Workers()))
-		gen.producer.ConnectRxQueues(demuxI, 0)
+		gen.producer.ConnectRxQueues(demuxI)
 	}
 
 	if gen.consumer != nil {
@@ -100,7 +100,7 @@ func (gen *TrafficGen) configureDemux(demuxI, demuxD, demuxN *iface.InputDemux) 
 	} else if gen.fetcher != nil {
 		demuxD.InitToken()
 		demuxN.InitToken()
-		gen.fetcher.ConnectRxQueues(demuxD, demuxN, 0)
+		gen.fetcher.ConnectRxQueues(demuxD, demuxN)
 	}
 }
 

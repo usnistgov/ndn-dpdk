@@ -61,9 +61,9 @@ FetchProc_Decode(FetchProc* fp, Packet* npkt, FetchLogicRxData* lpkt)
 __attribute__((nonnull)) static void
 FetchProc_RxBurst(FetchProc* fp)
 {
+  TscTime now = rte_get_tsc_cycles();
   Packet* npkts[MaxBurstSize];
-  uint32_t nRx =
-    PktQueue_Pop(&fp->rxQueue, (struct rte_mbuf**)npkts, MaxBurstSize, rte_get_tsc_cycles()).count;
+  uint32_t nRx = PktQueue_Pop(&fp->rxQueue, (struct rte_mbuf**)npkts, MaxBurstSize, now).count;
 
   FetchLogicRxData lpkts[MaxBurstSize];
   size_t count = 0;

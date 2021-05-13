@@ -2,7 +2,6 @@ import type { ActivateGenArgs, EalConfig } from "@usnistgov/ndn-dpdk";
 import stdout from "stdout-stream";
 
 const eal: EalConfig = {
-  cores: [4, 5, 6, 7, 12, 13, 14, 15],
   pciDevices: [
     "0000:04:00.0",
   ],

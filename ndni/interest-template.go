@@ -8,6 +8,7 @@ import (
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
+	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
@@ -60,4 +61,31 @@ func (tpl *InterestTemplate) Encode(m *pktmbuf.Packet, suffix ndn.Name, nonce ui
 	defer suffixP.Free()
 	pktC := C.InterestTemplate_Encode(tpl.ptr(), (*C.struct_rte_mbuf)(m.Ptr()), suffixP.lname(), C.uint32_t(nonce))
 	return PacketFromPtr(unsafe.Pointer(pktC))
+}
+
+// InterestTemplateConfig is a JSON serializable object that can construct InterestTemplate.
+type InterestTemplateConfig struct {
+	Prefix           ndn.Name                `json:"prefix"`
+	CanBePrefix      bool                    `json:"canBePrefix,omitempty"`
+	MustBeFresh      bool                    `json:"mustBeFresh,omitempty"`
+	InterestLifetime nnduration.Milliseconds `json:"interestLifetime,omitempty"`
+	HopLimit         ndn.HopLimit            `json:"hopLimit,omitempty"`
+}
+
+// InitTemplate initializes InterestTemplate.
+func (cfg InterestTemplateConfig) InitTemplate(tpl *InterestTemplate) {
+	a := []interface{}{cfg.Prefix}
+	if cfg.CanBePrefix {
+		a = append(a, ndn.CanBePrefixFlag)
+	}
+	if cfg.MustBeFresh {
+		a = append(a, ndn.MustBeFreshFlag)
+	}
+	if lifetime := cfg.InterestLifetime.Duration(); lifetime != 0 {
+		a = append(a, lifetime)
+	}
+	if cfg.HopLimit != 0 {
+		a = append(a, cfg.HopLimit)
+	}
+	tpl.Init(a...)
 }

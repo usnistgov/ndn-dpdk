@@ -11,6 +11,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/intface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 func TestConsumer(t *testing.T) {
@@ -28,20 +29,26 @@ func TestConsumer(t *testing.T) {
 	nameB := ndn.ParseName("/B")
 	require.NoError(c.SetPatterns([]tgconsumer.Pattern{
 		{
-			Weight:           50,
-			Prefix:           nameA,
-			CanBePrefix:      true,
-			MustBeFresh:      true,
-			InterestLifetime: 500,
-			HopLimit:         10,
+			Weight: 50,
+			InterestTemplateConfig: ndni.InterestTemplateConfig{
+				Prefix:           nameA,
+				CanBePrefix:      true,
+				MustBeFresh:      true,
+				InterestLifetime: 500,
+				HopLimit:         10,
+			},
 		},
 		{
 			Weight: 45,
-			Prefix: nameB,
+			InterestTemplateConfig: ndni.InterestTemplateConfig{
+				Prefix: nameB,
+			},
 		},
 		{
-			Weight:       5,
-			Prefix:       nameB,
+			Weight: 5,
+			InterestTemplateConfig: ndni.InterestTemplateConfig{
+				Prefix: nameB,
+			},
 			SeqNumOffset: 100,
 		},
 	}))

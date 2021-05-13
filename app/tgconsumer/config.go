@@ -7,8 +7,6 @@ import (
 	"fmt"
 
 	"github.com/pkg/math"
-	"github.com/usnistgov/ndn-dpdk/core/nnduration"
-	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
@@ -43,11 +41,7 @@ var (
 type Pattern struct {
 	Weight int `json:"weight,omitempty"` // weight of random choice, minimum/default is 1
 
-	Prefix           ndn.Name                `json:"prefix"`
-	CanBePrefix      bool                    `json:"canBePrefix,omitempty"`
-	MustBeFresh      bool                    `json:"mustBeFresh,omitempty"`
-	InterestLifetime nnduration.Milliseconds `json:"interestLifetime,omitempty"`
-	HopLimit         ndn.HopLimit            `json:"hopLimit,omitempty"`
+	ndni.InterestTemplateConfig
 
 	// If non-zero, request cached Data. This must appear after a pattern without SeqNumOffset.
 	// The client derives sequence number by subtracting SeqNumOffset from the previous pattern's
@@ -57,21 +51,4 @@ type Pattern struct {
 
 func (pattern *Pattern) applyDefaults() {
 	pattern.Weight = math.MaxInt(1, pattern.Weight)
-}
-
-func (pattern *Pattern) initInterestTemplate(tpl *ndni.InterestTemplate) {
-	a := []interface{}{pattern.Prefix}
-	if pattern.CanBePrefix {
-		a = append(a, ndn.CanBePrefixFlag)
-	}
-	if pattern.MustBeFresh {
-		a = append(a, ndn.MustBeFreshFlag)
-	}
-	if lifetime := pattern.InterestLifetime.Duration(); lifetime != 0 {
-		a = append(a, lifetime)
-	}
-	if pattern.HopLimit != 0 {
-		a = append(a, pattern.HopLimit)
-	}
-	tpl.Init(a...)
 }

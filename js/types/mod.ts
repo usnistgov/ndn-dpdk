@@ -5,6 +5,7 @@ export * from "./fib";
 export * from "./fwdp";
 export * from "./iface";
 export * from "./mgmt/mod";
+export * from "./ndni";
 export * from "./ndt";
 export * from "./pcct";
 export * from "./pit";

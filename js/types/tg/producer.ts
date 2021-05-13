@@ -1,4 +1,5 @@
-import type { Name, NNMilliseconds } from "../core";
+import type { NNMilliseconds } from "../core";
+import type { Name } from "../ndni";
 
 /**
  * Traffic generator producer pattern definition.

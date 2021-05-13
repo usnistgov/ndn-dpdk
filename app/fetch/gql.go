@@ -11,7 +11,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 // GqlRetrieveByFaceID returns *Fetcher associated with a face.
@@ -21,16 +21,9 @@ var GqlRetrieveByFaceID func(id iface.ID) interface{}
 // GraphQL types.
 var (
 	GqlConfigInput     *graphql.InputObject
-	GqlTemplateInput   *graphql.InputObject
 	GqlFetcherNodeType *gqlserver.NodeType
 	GqlFetcherType     *graphql.Object
 )
-
-type benchmarkTemplate struct {
-	Prefix           ndn.Name                `json:"prefix"`
-	InterestLifetime nnduration.Milliseconds `json:"interestLifetime,omitempty"`
-	CanBePrefix      bool                    `json:"canBePrefix,omitempty"`
-}
 
 func init() {
 	GqlConfigInput = graphql.NewInputObject(graphql.InputObjectConfig{
@@ -38,15 +31,6 @@ func init() {
 		Description: "Fetcher config.",
 		Fields: gqlserver.BindInputFields(FetcherConfig{}, gqlserver.FieldTypes{
 			reflect.TypeOf(iface.PktQueueConfig{}): iface.GqlPktQueueInput,
-		}),
-	})
-
-	GqlTemplateInput = graphql.NewInputObject(graphql.InputObjectConfig{
-		Name:        "FetchTemplateInput",
-		Description: "Fetcher template.",
-		Fields: gqlserver.BindInputFields(benchmarkTemplate{}, gqlserver.FieldTypes{
-			reflect.TypeOf(ndn.Name{}):                 gqlserver.NonNullString,
-			reflect.TypeOf(nnduration.Milliseconds(0)): nnduration.GqlMilliseconds,
 		}),
 	})
 
@@ -67,7 +51,7 @@ func init() {
 			},
 			"templates": &graphql.ArgumentConfig{
 				Description: "Interest templates.",
-				Type:        gqlserver.NewNonNullList(GqlTemplateInput),
+				Type:        gqlserver.NewNonNullList(ndni.GqlTemplateInput),
 			},
 			"interval": &graphql.ArgumentConfig{
 				Description: "How often to collect statistics.",
@@ -85,7 +69,7 @@ func init() {
 				return nil, e
 			}
 
-			var templates []benchmarkTemplate
+			var templates []ndni.InterestTemplateConfig
 			if e := jsonhelper.Roundtrip(p.Args["templates"], &templates, jsonhelper.DisallowUnknownFields); e != nil {
 				return nil, e
 			}
@@ -93,14 +77,7 @@ func init() {
 			fetcher.Reset()
 			var logics []*Logic
 			for i, tpl := range templates {
-				tplArgs := []interface{}{tpl.Prefix}
-				if tpl.CanBePrefix {
-					tplArgs = append(tplArgs, ndn.CanBePrefixFlag)
-				}
-				if d := tpl.InterestLifetime.Duration(); d > 0 {
-					tplArgs = append(tplArgs, d)
-				}
-				if _, e := fetcher.AddTemplate(tplArgs...); e != nil {
+				if _, e := fetcher.AddTemplate(tpl); e != nil {
 					return nil, fmt.Errorf("AddTemplate[%d]: %w", i, e)
 				}
 				logics = append(logics, fetcher.Logic(i))

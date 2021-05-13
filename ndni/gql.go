@@ -1,14 +1,19 @@
 package ndni
 
 import (
+	"reflect"
+
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/graphql/language/ast"
+	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
+	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
 // GraphQL types.
 var (
-	GqlNameType *graphql.Scalar
+	GqlNameType      *graphql.Scalar
+	GqlTemplateInput *graphql.InputObject
 )
 
 func init() {
@@ -40,5 +45,14 @@ func init() {
 			}
 			return nil
 		},
+	})
+
+	GqlTemplateInput = graphql.NewInputObject(graphql.InputObjectConfig{
+		Name:        "InterestTemplateInput",
+		Description: "Interest template.",
+		Fields: gqlserver.BindInputFields(InterestTemplateConfig{}, gqlserver.FieldTypes{
+			reflect.TypeOf(ndn.Name{}):                 gqlserver.NonNullString,
+			reflect.TypeOf(nnduration.Milliseconds(0)): nnduration.GqlMilliseconds,
+		}),
 	})
 }

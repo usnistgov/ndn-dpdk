@@ -28,6 +28,12 @@ type FetcherConfig struct {
 	WindowCapacity int                  `json:"windowCapacity,omitempty"`
 }
 
+func (cfg *FetcherConfig) applyDefaults() {
+	cfg.NThreads = math.MaxInt(1, cfg.NThreads)
+	cfg.NProcs = math.MaxInt(1, cfg.NProcs)
+	cfg.RxQueue.DisableCoDel = true
+}
+
 // RoleConsumer indicates consumer thread role.
 const RoleConsumer = "CONSUMER"
 
@@ -61,9 +67,7 @@ type Fetcher struct {
 
 // New creates a Fetcher.
 func New(face iface.Face, cfg FetcherConfig) (*Fetcher, error) {
-	cfg.NThreads = math.MaxInt(1, cfg.NThreads)
-	cfg.NProcs = math.MaxInt(1, cfg.NProcs)
-	cfg.RxQueue.DisableCoDel = true
+	cfg.applyDefaults()
 
 	faceID := face.ID()
 	socket := face.NumaSocket()
@@ -113,17 +117,12 @@ func (fetcher Fetcher) Workers() (list []ealthread.ThreadWithRole) {
 	return list
 }
 
-// CountProcs returns number of fetch procedures.
-func (fetcher *Fetcher) CountProcs() int {
-	return len(fetcher.fp)
-}
-
-// ConnectRxQueue connects Data+Nack InputDemux to RxQueues.
-func (fetcher *Fetcher) ConnectRxQueues(demuxD, demuxN *iface.InputDemux, first int) {
+// ConnectRxQueues connects Data+Nack InputDemux to RxQueues.
+func (fetcher *Fetcher) ConnectRxQueues(demuxD, demuxN *iface.InputDemux) {
 	for i := range fetcher.fp {
 		q := fetcher.rxQueue(i)
-		demuxD.SetDest(first+i, q)
-		demuxN.SetDest(first+i, q)
+		demuxD.SetDest(i, q)
+		demuxN.SetDest(i, q)
 	}
 }
 
@@ -151,7 +150,7 @@ func (fetcher *Fetcher) Reset() {
 
 // AddTemplate sets name prefix and other InterestTemplate arguments.
 // Return index of fetch procedure.
-func (fetcher *Fetcher) AddTemplate(tplArgs ...interface{}) (i int, e error) {
+func (fetcher *Fetcher) AddTemplate(tplCfg ndni.InterestTemplateConfig) (i int, e error) {
 	i = fetcher.nActiveProcs
 	if i >= len(fetcher.fp) {
 		return -1, errors.New("too many templates")
@@ -159,7 +158,7 @@ func (fetcher *Fetcher) AddTemplate(tplArgs ...interface{}) (i int, e error) {
 
 	fp := fetcher.fp[i]
 	tpl := ndni.InterestTemplateFromPtr(unsafe.Pointer(&fp.tpl))
-	tpl.Init(tplArgs...)
+	tplCfg.InitTemplate(tpl)
 
 	if uintptr(fp.tpl.prefixL+1) >= unsafe.Sizeof(fp.tpl.prefixV) {
 		return -1, errors.New("name too long")

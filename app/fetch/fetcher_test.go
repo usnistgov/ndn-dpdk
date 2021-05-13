@@ -11,6 +11,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface/intface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 func TestFetcher(t *testing.T) {
@@ -19,16 +20,17 @@ func TestFetcher(t *testing.T) {
 	intFace := intface.MustNew()
 	defer intFace.D.Close()
 
-	var cfg fetch.FetcherConfig
-	cfg.NThreads = 1
-	cfg.NProcs = 1
-	cfg.WindowCapacity = 1024
+	cfg := fetch.FetcherConfig{
+		NThreads:       1,
+		NProcs:         1,
+		WindowCapacity: 1024,
+	}
 
 	fetcher, e := fetch.New(intFace.D, cfg)
 	require.NoError(e)
 	defer fetcher.Close()
-	require.NoError(ealthread.DefaultAllocator.AllocThread(fetcher.Workers()...))
-	fetcher.ConnectRxQueues(tgtestenv.DemuxD, tgtestenv.DemuxN, 0)
+	require.NoError(ealthread.AllocThread(fetcher.Workers()...))
+	fetcher.ConnectRxQueues(tgtestenv.DemuxD, tgtestenv.DemuxN)
 
 	nInterests := 0
 	go func() {
@@ -38,7 +40,7 @@ func TestFetcher(t *testing.T) {
 			assert.NotZero(token)
 			assert.EqualValues(0, token>>56)
 			nInterests++
-			if rand.Float32() > 0.01 {
+			if rand.Float64() > 0.01 {
 				intFace.Tx <- ndn.MakeData(packet.Interest)
 			}
 		}
@@ -46,7 +48,9 @@ func TestFetcher(t *testing.T) {
 	}()
 
 	fetcher.Reset()
-	i, e := fetcher.AddTemplate("/A")
+	i, e := fetcher.AddTemplate(ndni.InterestTemplateConfig{
+		Prefix: ndn.ParseName("/A"),
+	})
 	require.NoError(e)
 	assert.Equal(i, 0)
 

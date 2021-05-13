@@ -1,41 +1,17 @@
-import type { Counter, Name, NNMilliseconds, RunningStatSnapshot } from "../core";
+import type { Counter, RunningStatSnapshot } from "../core";
+import type { InterestTemplate } from "../ndni";
 
 /**
  * Traffic generator consumer pattern definition.
  * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/app/tgconsumer#Pattern>
  */
-export interface TgcPattern {
+export interface TgcPattern extends InterestTemplate {
   /**
      * @TJS-type integer
      * @default 1
      * @minimum 1
      */
   weight?: number;
-
-  prefix: Name;
-
-  /**
-   * @default false
-   */
-  canBePrefix?: boolean;
-
-  /**
-   * @default false
-   */
-  mustBeFresh?: boolean;
-
-  /**
-   * @default 4000
-   */
-  interestLifetime?: NNMilliseconds;
-
-  /**
-   * @TJS-type integer
-   * @default 255
-   * @minimum 1
-   * @maximum 255
-   */
-  hopLimit?: number;
 
   /**
    * @TJS-type integer

@@ -98,7 +98,7 @@ func (c *Consumer) SetPatterns(inputPatterns []Pattern) error {
 			},
 			seqNumOffset: C.uint32_t(pattern.SeqNumOffset),
 		}
-		pattern.initInterestTemplate(ndni.InterestTemplateFromPtr(unsafe.Pointer(&txP.tpl)))
+		pattern.InitTemplate(ndni.InterestTemplateFromPtr(unsafe.Pointer(&txP.tpl)))
 
 		for j := 0; j < pattern.Weight; j++ {
 			c.txC.weight[w] = C.TgcPatternID(i)
