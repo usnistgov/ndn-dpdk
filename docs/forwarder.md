@@ -46,8 +46,7 @@ You can pass an empty JSON object `{}` to activate the forwarder with default se
 This section explains some commonly used parameters.
 
 **.eal.cores** is a list of CPU cores allocated to DPDK.
-To find the available CPU cores, run `lscpu` and look at "NUMA node? CPU(s)" line.
-If a CPU list is configured through systemd `AllowedCPUs` option or Docker `--cpuset-cpus` flag, it will be honored.
+NDN-DPDK also honors CPU affinity configured in systemd or Docker, see [performance tuning](tuning.md) "CPU isolation".
 
 **.eal.pciDevices** is a list of Ethernet adapters you want to use in the forwarder, written as PCI addresses.
 To find the PCI addresses of available Ethernet adapters, run `dpdk-devbind.py --status-dev net`.
@@ -82,37 +81,6 @@ Indirect CS entries enable prefix match lookups in the CS.
 Each indirect CS entry is a pointer to a direct CS entry, but does not contain a Data packet by itself and thus does not occupy a packet buffer.
 In most cases, it's recommended to set this to the same as `.pcct.csDirectCapacity`.
 If the majority of traffic in your network is exact match only, you may set a smaller value.
-
-### Memory Usage Insights
-
-When the forwarder is running, with faces created and traffic flowing, you can gain insights in memory usage via GraphQL queries.
-
-Some example queries:
-
-```bash
-# declare variable for NDN-DPDK GraphQL endpoint
-# if using Docker, see "NDN-DPDK Docker Container" page
-GQLSERVER=http://127.0.0.1:3030/
-
-# packet buffers usage
-gq $GQLSERVER -q '{pktmbufPoolTemplates{tid pools{numaSocket used}}}' |\
-  jq -c '.data.pktmbufPoolTemplates[] | select(.pools|length>0)'
-# This query shows how many objects are currently used in each packet buffer pool.
-# You can adjust the packet buffer capacity settings to fit traffic volume.
-
-# memzone report
-gq $GQLSERVER -q '{memoryDiag{memzones}}' | jq -r '.data.memoryDiag.memzones'
-# This query shows how DPDK is using hugepages, including size of each memory zone and
-# their placement in physical segments (i.e. hugepages).
-# You can count how many distinct physical segments are being used, which is useful for
-# deciding how many hugepages should be allocated in the system.
-```
-
-If you need to run the forwarder on a machine with limited amount of memory, you can try:
-
-1. Set small numbers for packet buffer pool capacity (start with 8192) and table sizes (start with 512).
-2. Activate the forwarder and read the usage reports.
-3. Change configuration and repeat.
 
 ## Sample Scenario: ndnping
 

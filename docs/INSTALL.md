@@ -56,7 +56,7 @@ Depending on your hardware, you may need to change PCI driver bindings using the
 See [DPDK Network Interface Controller Drivers](https://doc.dpdk.org/guides/nics/) for more information.
 
 You can then execute `sudo systemctl start ndndpdk-svc` to start the NDN-DPDK service, use `ndndpdk-ctrl` command to activate it as a forwarder or a traffic generator, and then control the service.
-See [forwarder activation and usage](forwarder.md) for sample commands to perform common operations on the forwarder.
+See [forwarder activation and usage](forwarder.md) and [traffic generator activation and usage](trafficgen.md) for basic usage under each role.
 
 As an alternative of using `ndndpdk-ctrl`, you can execute queries and mutations on the GraphQL endpoint.
 See [ndndpdk-ctrl](../cmd/ndndpdk-ctrl) for more information.

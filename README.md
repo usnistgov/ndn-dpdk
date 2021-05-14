@@ -15,6 +15,7 @@ It is in pre-release stage and will continue to be updated.
 * [NDN-DPDK forwarder activation and usage](docs/forwarder.md)
 * [NDN-DPDK traffic generator activation and usage](docs/trafficgen.md)
 * [hardware known to work with NDN-DPDK](docs/hardware.md)
+* [NDN-DPDK performance tuning](docs/tuning.md)
 * [NDN-DPDK interoperability with other NDN software](docs/interop)
 * [NDN-DPDK publications and presentations](docs/publication.md)
 * [Go reference](https://pkg.go.dev/github.com/usnistgov/ndn-dpdk)

@@ -16,7 +16,7 @@ In particular, SSE 4.2 instruction set is required.
 The developers have tested NDN-DPDK on servers with one, two, and four NUMA sockets.
 
 Default configuration of NDN-DPDK requires at least 6 CPU cores (total) and 8 GB memory (per NUMA socket).
-With a custom configuration, NDN-DPDK could work on 2 CPU cores and 2 GB memory, albeit at reduced performance; see [installation guide](INSTALL.md) `NDNDPDK_MK_THREADSLEEP` build option and [forwarder activation](forwarder.md) "memory usage insights" for some hints on how to do so.
+With a custom configuration, NDN-DPDK could work on 2 CPU cores and 2 GB memory, albeit at reduced performance; see [installation guide](INSTALL.md) `NDNDPDK_MK_THREADSLEEP` build option and [performance tuning](tuning.md) "memory usage insights" for some hints on how to do so.
 
 ## Ethernet Adapters
 
@@ -42,7 +42,7 @@ docker build \
   [other arguments]
 ```
 
-To use Mellanox adapters in Docker container, add these `docker run` flags when you launch the service container:
+To use Mellanox adapters in Docker container, add these flags when you launch the service container:
 
 ```bash
 docker run \
@@ -74,7 +74,7 @@ sudo modprobe igb_uio
 sudo dpdk-devbind.sh -b igb_uio 04:00.0
 ```
 
-To use Intel adapters in Docker container, add these `docker run` flags when you launch the service container:
+To use Intel adapters in Docker container, add these flags when you launch the service container:
 
 ```bash
 docker run \
