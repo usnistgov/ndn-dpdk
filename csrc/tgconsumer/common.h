@@ -6,10 +6,6 @@
 #include "../iface/common.h"
 #include "enum.h"
 
-typedef uint8_t TgcPatternID;
-static_assert(UINT8_MAX > TgcMaxPatterns, "");
-static_assert(TgcMaxPatterns < (1 << TgcTokenPatternBits), "");
-
 /** @brief Sequence number component. */
 typedef struct TgcSeqNum
 {
@@ -24,37 +20,39 @@ static_assert(offsetof(TgcSeqNum, compV) % sizeof(uint64_t) == 0, "");
 
 enum
 {
-  TgcTimeShift = 64 - TgcTokenTimeBits,
+  TgcTokenLength = 10,
+  TgcTokenOffsetPatternID = 0,
+  TgcTokenOffsetRunNum = 1,
+  TgcTokenOffsetTimestamp = 2,
 };
 
-/** @brief Construct a "PIT token" for traffic generator client. */
-static inline uint64_t
-TgcToken_New(uint8_t patternID, uint8_t runNum, TscTime timestamp)
+static __rte_always_inline void
+TgcToken_Set(LpPitToken* token, uint8_t patternID, uint8_t runNum, TscTime timestamp)
 {
-  static_assert(TgcTokenPatternBits >= 8, "");
-  static_assert(TgcTokenRunBits >= 8, "");
-  static_assert(TgcTokenPatternBits + TgcTokenRunBits + TgcTokenTimeBits == 64, "");
-
-  return ((uint64_t)patternID << (TgcTokenRunBits + TgcTokenTimeBits)) |
-         ((uint64_t)runNum << TgcTokenTimeBits) | ((uint64_t)timestamp >> TgcTimeShift);
+  *token = (LpPitToken){
+    .length = TgcTokenLength,
+  };
+  token->value[TgcTokenOffsetPatternID] = patternID;
+  token->value[TgcTokenOffsetRunNum] = runNum;
+  *(unaligned_uint64_t*)RTE_PTR_ADD(token->value, TgcTokenOffsetTimestamp) = timestamp;
 }
 
-static inline TgcPatternID
-TgcToken_GetPatternID(uint64_t token)
+static __rte_always_inline uint8_t
+TgcToken_GetPatternID(const LpPitToken* token)
 {
-  return token >> (TgcTokenRunBits + TgcTokenTimeBits);
+  return token->value[TgcTokenOffsetPatternID];
 }
 
-static inline uint8_t
-TgcToken_GetRunNum(uint64_t token)
+static __rte_always_inline uint8_t
+TgcToken_GetRunNum(const LpPitToken* token)
 {
-  return token >> TgcTokenTimeBits;
+  return token->value[TgcTokenOffsetRunNum];
 }
 
-static inline TscTime
-TgcToken_GetTimestamp(uint64_t token)
+static __rte_always_inline TscTime
+TgcToken_GetTimestamp(const LpPitToken* token)
 {
-  return token << TgcTimeShift;
+  return *(const unaligned_uint64_t*)RTE_PTR_ADD(token->value, TgcTokenOffsetTimestamp);
 }
 
 #endif // NDNDPDK_TGCONSUMER_COMMON_H

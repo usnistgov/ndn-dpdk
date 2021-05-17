@@ -60,22 +60,24 @@ static const Tgp_Respond Tgp_RespondJmp[3] = {
 __attribute__((nonnull)) static Packet*
 Tgp_ProcessInterest(Tgp* p, Packet* npkt)
 {
-  uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
   const LName* name = (const LName*)&Packet_GetInterestHdr(npkt)->name;
 
-  int patternId = Tgp_FindPattern(p, *name);
-  if (unlikely(patternId < 0)) {
-    N_LOGD(">I dn-token=%016" PRIx64 " no-pattern", token);
+  int patternID = Tgp_FindPattern(p, *name);
+  if (unlikely(patternID < 0)) {
+    const LpPitToken* token = &Packet_GetLpL3Hdr(npkt)->pitToken;
+    N_LOGD(">I dn-token=" PRI_LpPitToken " no-pattern", LpPitToken_Fmt(token));
     ++p->nNoMatch;
     rte_pktmbuf_free(Packet_ToMbuf(npkt));
     return NULL;
   }
 
-  TgpPattern* pattern = &p->pattern[patternId];
-  uint8_t replyId = Tgp_SelectReply(p, pattern);
-  TgpReply* reply = &pattern->reply[replyId];
+  TgpPattern* pattern = &p->pattern[patternID];
+  uint8_t replyID = Tgp_SelectReply(p, pattern);
+  TgpReply* reply = &pattern->reply[replyID];
 
-  N_LOGD(">I dn-token=%016" PRIx64 " pattern=%d reply=%" PRIu8, token, patternId, replyId);
+  const LpPitToken* token = &Packet_GetLpL3Hdr(npkt)->pitToken;
+  N_LOGD(">I dn-token=" PRI_LpPitToken " pattern=%d reply=%" PRIu8, LpPitToken_Fmt(token),
+         patternID, replyID);
   ++reply->nInterests;
   return Tgp_RespondJmp[reply->kind](p, pattern, reply, npkt);
 }

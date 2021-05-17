@@ -17,15 +17,6 @@ const (
 	// MaxSumWeight is maximum sum of weights among traffic patterns.
 	MaxSumWeight = 8192
 
-	// TokenPatternBits is the bitwidth of pattern ID in PIT token.
-	TokenPatternBits = 8
-
-	// TokenRunBits in the bitwidth of run number in PIT token.
-	TokenRunBits = 8
-
-	// TokenTimeBits is the number of timestamp in PIT token.
-	TokenTimeBits = 48
-
 	_ = "enumgen::Tgc"
 )
 

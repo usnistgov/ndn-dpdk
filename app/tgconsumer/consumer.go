@@ -101,7 +101,7 @@ func (c *Consumer) SetPatterns(inputPatterns []Pattern) error {
 		pattern.InitTemplate(ndni.InterestTemplateFromPtr(unsafe.Pointer(&txP.tpl)))
 
 		for j := 0; j < pattern.Weight; j++ {
-			c.txC.weight[w] = C.TgcPatternID(i)
+			c.txC.weight[w] = C.uint8_t(i)
 			w++
 		}
 

@@ -149,10 +149,8 @@ Pit_RawErase01_(Pit* pit, PccEntry* pccEntry)
 }
 
 PitFindResult
-Pit_FindByData(Pit* pit, Packet* npkt)
+Pit_FindByData(Pit* pit, Packet* npkt, uint64_t token)
 {
-  uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
-
   PccEntry* pccEntry = Pcct_FindByToken(Pcct_FromPit(pit), token);
   if (unlikely(pccEntry == NULL)) {
     ++pit->nDataMiss;
@@ -192,9 +190,8 @@ Pit_FindByData(Pit* pit, Packet* npkt)
 }
 
 PitEntry*
-Pit_FindByNack(Pit* pit, Packet* npkt)
+Pit_FindByNack(Pit* pit, Packet* npkt, uint64_t token)
 {
-  uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
   PNack* nack = Packet_GetNackHdr(npkt);
   PInterest* interest = &nack->interest;
 

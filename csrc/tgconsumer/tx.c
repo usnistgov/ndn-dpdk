@@ -4,7 +4,7 @@
 
 N_LOG_INIT(Tgc);
 
-__attribute__((nonnull)) static TgcPatternID
+__attribute__((nonnull)) static __rte_always_inline uint8_t
 TgcTx_SelectPattern(TgcTx* ct)
 {
   uint32_t w = pcg32_boundedrand_r(&ct->trafficRng, ct->nWeights);
@@ -14,7 +14,7 @@ TgcTx_SelectPattern(TgcTx* ct)
 __attribute__((nonnull)) static void
 TgcTx_MakeInterest(TgcTx* ct, struct rte_mbuf* pkt, TscTime now)
 {
-  TgcPatternID id = TgcTx_SelectPattern(ct);
+  uint8_t id = TgcTx_SelectPattern(ct);
   TgcTxPattern* pattern = &ct->pattern[id];
   ++pattern->nInterests;
 
@@ -33,7 +33,7 @@ TgcTx_MakeInterest(TgcTx* ct, struct rte_mbuf* pkt, TscTime now)
 
   uint32_t nonce = NonceGen_Next(&ct->nonceGen);
   Packet* npkt = InterestTemplate_Encode(&pattern->tpl, pkt, nameSuffix, nonce);
-  Packet_GetLpL3Hdr(npkt)->pitToken = TgcToken_New(id, ct->runNum, now);
+  TgcToken_Set(&Packet_GetLpL3Hdr(npkt)->pitToken, id, ct->runNum, now);
   N_LOGD("<I pattern=%" PRIu8 " seq=%" PRIx64 "", id, seqNum);
 }
 

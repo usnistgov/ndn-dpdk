@@ -18,7 +18,8 @@ func TestNackMerge(t *testing.T) {
 	fixture.SetFibEntry("/A", "multicast", face2.ID, face3.ID)
 
 	// Interest is forwarded to two upstream nodes
-	face1.Tx <- ndn.MakeInterest("/A/1", ndn.NonceFromUint(0x2ea29515), lphToken(0xf3fb4ef802d3a9d3))
+	token := makeToken()
+	face1.Tx <- ndn.MakeInterest("/A/1", ndn.NonceFromUint(0x2ea29515), token.LpL3())
 	fixture.StepDelay()
 	assert.Equal(1, collect2.Count())
 	assert.Equal(1, collect3.Count())
@@ -41,7 +42,7 @@ func TestNackMerge(t *testing.T) {
 	if packet := collect1.Get(-1); assert.NotNil(packet.Nack) {
 		assert.EqualValues(an.NackCongestion, packet.Nack.Reason)
 		assert.Equal(ndn.NonceFromUint(0x2ea29515), packet.Nack.Interest.Nonce)
-		assert.Equal(ndn.PitTokenFromUint(0xf3fb4ef802d3a9d3), packet.Lp.PitToken)
+		assert.EqualValues(token, packet.Lp.PitToken)
 	}
 
 	// Data from first upstream, should not reach downstream because PIT entry is gone

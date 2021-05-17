@@ -79,9 +79,11 @@ LpHeader_Parse(LpHeader* lph, struct rte_mbuf* pkt)
         break;
       }
       case TtPitToken: {
-        if (unlikely(length != 8 || !TlvDecoder_ReadNniTo(&d, length, &lph->l3.pitToken))) {
+        if (unlikely(length > sizeof(lph->l3.pitToken.value))) {
           return false;
         }
+        lph->l3.pitToken.length = length;
+        TlvDecoder_Copy(&d, lph->l3.pitToken.value, length);
         break;
       }
       case TtNack: {
@@ -157,18 +159,18 @@ LpHeader_Prepend(struct rte_mbuf* pkt, const LpL3* l3, const LpL2* l2)
       }
     }
 
-    if (likely(l3->pitToken != 0)) {
+    if (likely(l3->pitToken.length > 0)) {
       typedef struct PitTokenF
       {
         uint8_t pitTokenT;
         uint8_t pitTokenL;
-        unaligned_uint64_t pitTokenV;
+        uint8_t pitTokenV[0];
       } __rte_packed PitTokenF;
 
-      PitTokenF* f = (PitTokenF*)rte_pktmbuf_prepend(pkt, sizeof(PitTokenF));
+      PitTokenF* f = (PitTokenF*)rte_pktmbuf_prepend(pkt, 2 + l3->pitToken.length);
       f->pitTokenT = TtPitToken;
-      f->pitTokenL = 8;
-      f->pitTokenV = rte_cpu_to_be_64(l3->pitToken);
+      f->pitTokenL = l3->pitToken.length;
+      rte_memcpy(f->pitTokenV, l3->pitToken.value, l3->pitToken.length);
     }
   }
 

@@ -8,15 +8,15 @@
 typedef struct SgPitDn
 {
   TscTime expiry;
-  char _a[12];
+  char a_[4];
   FaceID face;
-} __rte_aligned(32) SgPitDn;
+} __rte_aligned(64) SgPitDn;
 
 typedef struct SgPitUp
 {
-  char _a[4];
+  char a_[4];
   FaceID face;
-  char _b[1];
+  char b_[1];
   uint8_t nack;
 
   TscTime lastTx;
@@ -26,15 +26,15 @@ typedef struct SgPitUp
 
 #define SG_PIT_ENTRY_MAX_DNS 6
 #define SG_PIT_ENTRY_MAX_UPS 2
-#define SG_PIT_ENTRY_EXT_MAX_DNS 16
-#define SG_PIT_ENTRY_EXT_MAX_UPS 8
+#define SG_PIT_ENTRY_EXT_MAX_DNS 6
+#define SG_PIT_ENTRY_EXT_MAX_UPS 4
 #define SG_PIT_ENTRY_SCRATCH 64
 
 typedef struct SgPitEntryExt SgPitEntryExt;
 
 typedef struct SgPitEntry
 {
-  char _a[48];
+  char a_[48];
   SgPitEntryExt* ext;
   SgPitDn dns[SG_PIT_ENTRY_MAX_DNS];
   SgPitUp ups[SG_PIT_ENTRY_MAX_UPS];

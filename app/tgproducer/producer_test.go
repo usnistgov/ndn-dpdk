@@ -26,7 +26,8 @@ func TestPatterns(t *testing.T) {
 	p, e := tgproducer.New(face.D, iface.PktQueueConfig{}, 1)
 	require.NoError(e)
 	defer p.Close()
-	require.NoError(ealthread.DefaultAllocator.AllocThread(p.Workers()...))
+	defer ealthread.DefaultAllocator.Clear()
+	require.NoError(ealthread.AllocThread(p.Workers()...))
 	p.ConnectRxQueues(tgtestenv.DemuxI)
 
 	nameA := ndn.ParseName("/A")
@@ -126,7 +127,8 @@ func TestDataProducer(t *testing.T) {
 	p, e := tgproducer.New(face.D, iface.PktQueueConfig{}, 2)
 	require.NoError(e)
 	defer p.Close()
-	require.NoError(ealthread.DefaultAllocator.AllocThread(p.Workers()...))
+	defer ealthread.DefaultAllocator.Clear()
+	require.NoError(ealthread.AllocThread(p.Workers()...))
 	p.ConnectRxQueues(tgtestenv.DemuxI)
 
 	nameP := ndn.ParseName("/P")

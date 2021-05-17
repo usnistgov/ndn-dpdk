@@ -29,6 +29,7 @@ func TestFetcher(t *testing.T) {
 	fetcher, e := fetch.New(intFace.D, cfg)
 	require.NoError(e)
 	defer fetcher.Close()
+	defer ealthread.DefaultAllocator.Clear()
 	require.NoError(ealthread.AllocThread(fetcher.Workers()...))
 	fetcher.ConnectRxQueues(tgtestenv.DemuxD, tgtestenv.DemuxN)
 
@@ -36,9 +37,7 @@ func TestFetcher(t *testing.T) {
 	go func() {
 		for packet := range intFace.Rx {
 			require.NotNil(packet.Interest)
-			token := ndn.PitTokenToUint(packet.Lp.PitToken)
-			assert.NotZero(token)
-			assert.EqualValues(0, token>>56)
+			assert.Equal([]byte{0}, packet.Lp.PitToken)
 			nInterests++
 			if rand.Float64() > 0.01 {
 				intFace.Tx <- ndn.MakeData(packet.Interest)

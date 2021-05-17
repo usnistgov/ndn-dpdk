@@ -56,14 +56,14 @@ func (pit *Pit) Erase(entry *Entry) {
 }
 
 // FindByData searches for PIT entries matching a Data.
-func (pit *Pit) FindByData(data *ndni.Packet) FindResult {
-	resC := C.Pit_FindByData(pit.ptr(), (*C.Packet)(data.Ptr()))
+func (pit *Pit) FindByData(data *ndni.Packet, token uint64) FindResult {
+	resC := C.Pit_FindByData(pit.ptr(), (*C.Packet)(data.Ptr()), C.uint64_t(token))
 	return FindResult(resC)
 }
 
 // FindByNack searches for PIT entries matching a Nack.
-func (pit *Pit) FindByNack(nack *ndni.Packet) *Entry {
-	entryC := C.Pit_FindByNack(pit.ptr(), (*C.Packet)(nack.Ptr()))
+func (pit *Pit) FindByNack(nack *ndni.Packet, token uint64) *Entry {
+	entryC := C.Pit_FindByNack(pit.ptr(), (*C.Packet)(nack.Ptr()), C.uint64_t(token))
 	if entryC == nil {
 		return nil
 	}

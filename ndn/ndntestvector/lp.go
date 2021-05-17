@@ -1,6 +1,9 @@
 package ndntestvector
 
-import "github.com/usnistgov/ndn-dpdk/ndn/an"
+import (
+	"github.com/usnistgov/ndn-dpdk/core/testenv"
+	"github.com/usnistgov/ndn-dpdk/ndn/an"
+)
 
 const (
 	bareInterest     = "0505 0703080141"
@@ -10,6 +13,8 @@ const (
 	payloadFragmentL = 4
 )
 
+var bytesFromHex = testenv.BytesFromHex
+
 // LpDecodeTests contains test vectors for NDNLPv2 decoder.
 var LpDecodeTests = []struct {
 	Input      string
@@ -17,7 +22,7 @@ var LpDecodeTests = []struct {
 	SeqNum     uint64
 	FragIndex  uint16
 	FragCount  uint16
-	PitToken   uint64
+	PitToken   []byte
 	NackReason uint8
 	CongMark   uint8
 	PayloadL   int
@@ -38,12 +43,19 @@ var LpDecodeTests = []struct {
 	{Input: "6417 seq=5108A0A1A2A3A4A5A601 fragindex=520102 fragcount=530102 " +
 		"payload=" + payloadFragment, Bad: true}, // FragIndex >= FragCount
 	{Input: "6413 pittoken=62089A414B412BC38EB2 payload=" + payloadInterest,
-		FragCount: 1, PitToken: 0x9A414B412BC38EB2, PayloadL: payloadInterestL},
-	{Input: "6406 pittoken=620420A3C0D7", Bad: true}, // PitToken is not 8-octet
+		PitToken: bytesFromHex("9A414B412BC38EB2"), PayloadL: payloadInterestL},
+	{Input: "640F pittoken=620420A3C0D7 payload=" + payloadInterest,
+		PitToken: bytesFromHex("20A3C0D7"), PayloadL: payloadInterestL},
+	{Input: "642B pittoken=6220B0B1B2B3B4B5B6B7B0B1B2B3B4B5B6B7B0B1B2B3B4B5B6B7B0B1B2B3B4B5B6B7 " +
+		"payload=" + payloadInterest,
+		PitToken: bytesFromHex("B0B1B2B3B4B5B6B7B0B1B2B3B4B5B6B7B0B1B2B3B4B5B6B7B0B1B2B3B4B5B6B7"),
+		PayloadL: payloadInterestL},
+	{Input: "642C pittoken=6221B0B1B2B3B4B5B6B7B0B1B2B3B4B5B6B7B0B1B2B3B4B5B6B7B0B1B2B3B4B5B6B7BB " +
+		"payload=" + payloadInterest, Bad: true}, // PitToken too long
 	{Input: "640D nack=FD032000(noreason) payload=" + payloadInterest,
-		FragCount: 1, NackReason: an.NackUnspecified, PayloadL: payloadInterestL},
+		NackReason: an.NackUnspecified, PayloadL: payloadInterestL},
 	{Input: "6412 nack=FD032005(FD03210196~noroute) payload=" + payloadInterest,
-		FragCount: 1, NackReason: an.NackNoRoute, PayloadL: payloadInterestL},
+		NackReason: an.NackNoRoute, PayloadL: payloadInterestL},
 	{Input: "640E congmark=FD03400104 payload=" + payloadInterest,
-		FragCount: 1, CongMark: 4, PayloadL: payloadInterestL},
+		CongMark: 4, PayloadL: payloadInterestL},
 }

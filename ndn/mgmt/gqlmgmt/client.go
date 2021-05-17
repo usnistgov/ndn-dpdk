@@ -14,13 +14,14 @@ type Client struct {
 }
 
 func (c *Client) delete(id string) error {
+	deleted := false
 	return c.Do(context.TODO(), `
 		mutation delete($id: ID!) {
 			delete(id: $id)
 		}
 	`, map[string]interface{}{
 		"id": id,
-	}, "", nil)
+	}, "delete", &deleted)
 }
 
 var _ mgmt.Client = (*Client)(nil)

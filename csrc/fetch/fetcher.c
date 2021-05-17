@@ -17,7 +17,7 @@ FetchProc_Encode(FetchProc* fp, FetchThread* fth, struct rte_mbuf* pkt, uint64_t
 
   uint32_t nonce = NonceGen_Next(&fth->nonceGen);
   Packet* npkt = InterestTemplate_Encode(&fp->tpl, pkt, nameSuffix, nonce);
-  Packet_GetLpL3Hdr(npkt)->pitToken = fp->pitToken;
+  LpPitToken_Set(&Packet_GetLpL3Hdr(npkt)->pitToken, sizeof(fp->pitToken), &fp->pitToken);
 }
 
 __attribute__((nonnull)) static void

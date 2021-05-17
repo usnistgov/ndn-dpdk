@@ -42,11 +42,18 @@ struct InputDemux
   InputDemux_DispatchFunc dispatch;
   NdtThread* ndtt;
   uint64_t nDrops;
-  struct
+  union
   {
-    uint32_t i;
-    uint32_t n;
-  } roundrobin;
+    struct
+    {
+      uint32_t i;
+      uint32_t n;
+    } roundrobin;
+    struct
+    {
+      uint8_t offset;
+    } byToken;
+  };
   InputDemuxDest dest[MaxInputDemuxDest];
 };
 
@@ -68,6 +75,13 @@ InputDemux_SetDispatchRoundrobin_(InputDemux* demux, uint32_t nDest)
     demux->roundrobin.n = nDest;
     demux->dispatch = InputDemux_DispatchRoundrobinDiv;
   }
+}
+
+static inline void
+InputDemux_SetDispatchByToken_(InputDemux* demux, uint8_t offset)
+{
+  demux->byToken.offset = offset;
+  demux->dispatch = InputDemux_DispatchByToken;
 }
 
 static inline void

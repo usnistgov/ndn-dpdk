@@ -21,7 +21,8 @@ func TestInterestData(t *testing.T) {
 	fixture.SetFibEntry("/B", "multicast", face2.ID)
 	fixture.SetFibEntry("/C", "multicast", face3.ID)
 
-	face1.Tx <- ndn.MakeInterest("/B/1", lphToken(0x0290dd7089e9d790))
+	token := makeToken()
+	face1.Tx <- ndn.MakeInterest("/B/1", token.LpL3())
 	fixture.StepDelay()
 	assert.Equal(1, collect2.Count())
 	assert.Equal(0, collect3.Count())
@@ -30,7 +31,7 @@ func TestInterestData(t *testing.T) {
 	fixture.StepDelay()
 	assert.Equal(1, collect1.Count())
 	if packet := collect1.Get(-1); assert.NotNil(packet.Data) {
-		assert.Equal(uint64(0x0290dd7089e9d790), ndn.PitTokenToUint(packet.Lp.PitToken))
+		assert.EqualValues(token, packet.Lp.PitToken)
 	}
 
 	fibCnt := fixture.ReadFibCounters("/B")
@@ -49,17 +50,18 @@ func TestInterestDupNonce(t *testing.T) {
 	collect1, collect2, collect3 := intface.Collect(face1), intface.Collect(face2), intface.Collect(face3)
 	fixture.SetFibEntry("/A", "multicast", face3.ID)
 
-	face1.Tx <- ndn.MakeInterest("/A/1", ndn.NonceFromUint(0x6f937a51), lphToken(0x3bddf54cffbc6ad0))
+	token1, token2 := makeToken(), makeToken()
+	face1.Tx <- ndn.MakeInterest("/A/1", ndn.NonceFromUint(0x6f937a51), token1.LpL3())
 	fixture.StepDelay()
 	assert.Equal(1, collect3.Count())
 
-	face2.Tx <- ndn.MakeInterest("/A/1", ndn.NonceFromUint(0x6f937a51), lphToken(0x3bddf54cffbc6ad0))
+	face2.Tx <- ndn.MakeInterest("/A/1", ndn.NonceFromUint(0x6f937a51), token2.LpL3())
 	fixture.StepDelay()
 	assert.Equal(1, collect3.Count())
 	assert.Equal(1, collect2.Count())
 	if packet := collect2.Get(-1); assert.NotNil(packet.Nack) {
 		assert.EqualValues(an.NackDuplicate, packet.Nack.Reason)
-		assert.Equal(uint64(0x3bddf54cffbc6ad0), ndn.PitTokenToUint(packet.Lp.PitToken))
+		assert.EqualValues(token2, packet.Lp.PitToken)
 	}
 	assert.Equal(uint64(1), fixture.SumCounter(func(fwd *fwdp.Fwd) uint64 {
 		return fwd.Counters().NDupNonce
@@ -88,7 +90,7 @@ func TestInterestSuppress(t *testing.T) {
 		defer ticker.Stop()
 		for i := 0; i < 400; i++ {
 			<-ticker.C
-			interest := ndn.MakeInterest("/A/1", lphToken(0xf4aab9f23eb5271e^uint64(i)))
+			interest := ndn.MakeInterest("/A/1")
 			if i%2 == 0 {
 				face1.Tx <- interest
 			} else {
@@ -112,11 +114,12 @@ func TestInterestNoRoute(t *testing.T) {
 	face1 := intface.MustNew()
 	collect1 := intface.Collect(face1)
 
-	face1.Tx <- ndn.MakeInterest("/A/1", lphToken(0x431328d8b4075167))
+	token := makeToken()
+	face1.Tx <- ndn.MakeInterest("/A/1", token.LpL3())
 	fixture.StepDelay()
 	assert.Equal(1, collect1.Count())
 	if packet := collect1.Get(-1); assert.NotNil(packet.Nack) {
-		assert.Equal(uint64(0x431328d8b4075167), ndn.PitTokenToUint(packet.Lp.PitToken))
+		assert.EqualValues(token, packet.Lp.PitToken)
 		assert.EqualValues(an.NackNoRoute, packet.Nack.Reason)
 	}
 	assert.Equal(uint64(1), fixture.SumCounter(func(fwd *fwdp.Fwd) uint64 {
@@ -167,8 +170,9 @@ func TestCsHit(t *testing.T) {
 	face1, face2 := intface.MustNew(), intface.MustNew()
 	collect1, collect2 := intface.Collect(face1), intface.Collect(face2)
 	fixture.SetFibEntry("/B", "multicast", face2.ID)
+	token1, token2, token3, token4 := makeToken(), makeToken(), makeToken(), makeToken()
 
-	face1.Tx <- ndn.MakeInterest("/B/1", lphToken(0x193d673cdb9f85ac))
+	face1.Tx <- ndn.MakeInterest("/B/1", token1.LpL3())
 	fixture.StepDelay()
 	assert.Equal(1, collect2.Count())
 
@@ -176,11 +180,11 @@ func TestCsHit(t *testing.T) {
 	fixture.StepDelay()
 	assert.Equal(1, collect1.Count())
 	if packet := collect1.Get(-1); assert.NotNil(packet.Data) {
-		assert.Equal(uint64(0x193d673cdb9f85ac), ndn.PitTokenToUint(packet.Lp.PitToken))
+		assert.EqualValues(token1, packet.Lp.PitToken)
 		assert.Equal(0*time.Millisecond, packet.Data.Freshness)
 	}
 
-	face1.Tx <- ndn.MakeInterest("/B/1", ndn.MustBeFreshFlag, lphToken(0xf716737325e04a77))
+	face1.Tx <- ndn.MakeInterest("/B/1", ndn.MustBeFreshFlag, token2.LpL3())
 	fixture.StepDelay()
 	assert.Equal(2, collect2.Count())
 
@@ -188,25 +192,25 @@ func TestCsHit(t *testing.T) {
 	fixture.StepDelay()
 	assert.Equal(2, collect1.Count())
 	if packet := collect1.Get(-1); assert.NotNil(packet.Data) {
-		assert.Equal(uint64(0xf716737325e04a77), ndn.PitTokenToUint(packet.Lp.PitToken))
+		assert.EqualValues(token2, packet.Lp.PitToken)
 		assert.Equal(2500*time.Millisecond, packet.Data.Freshness)
 	}
 
-	face1.Tx <- ndn.MakeInterest("/B/1", lphToken(0xaec62dad2f669e6b))
+	face1.Tx <- ndn.MakeInterest("/B/1", token3.LpL3())
 	fixture.StepDelay()
 	assert.Equal(2, collect2.Count())
 	assert.Equal(3, collect1.Count())
 	if packet := collect1.Get(-1); assert.NotNil(packet.Data) {
-		assert.Equal(uint64(0xaec62dad2f669e6b), ndn.PitTokenToUint(packet.Lp.PitToken))
+		assert.EqualValues(token3, packet.Lp.PitToken)
 		assert.Equal(2500*time.Millisecond, packet.Data.Freshness)
 	}
 
-	face1.Tx <- ndn.MakeInterest("/B/1", ndn.MustBeFreshFlag, lphToken(0xb5565a4e715c858d))
+	face1.Tx <- ndn.MakeInterest("/B/1", ndn.MustBeFreshFlag, token4.LpL3())
 	fixture.StepDelay()
 	assert.Equal(2, collect2.Count())
 	assert.Equal(4, collect1.Count())
 	if packet := collect1.Get(-1); assert.NotNil(packet.Data) {
-		assert.Equal(uint64(0xb5565a4e715c858d), ndn.PitTokenToUint(packet.Lp.PitToken))
+		assert.EqualValues(token4, packet.Lp.PitToken)
 		assert.Equal(2500*time.Millisecond, packet.Data.Freshness)
 	}
 
@@ -227,20 +231,21 @@ func TestFwHint(t *testing.T) {
 	fixture.SetFibEntry("/A", "multicast", face1.ID)
 	fixture.SetFibEntry("/B", "multicast", face2.ID)
 	fixture.SetFibEntry("/C", "multicast", face3.ID)
+	token1, token2, token3, token4 := makeToken(), makeToken(), makeToken(), makeToken()
 
-	face4.Tx <- ndn.MakeInterest("/A/1", ndn.MakeFHDelegation(1, "/B"), ndn.MakeFHDelegation(2, "/C"), lphToken(0x5c2fc6c972d830e7))
+	face4.Tx <- ndn.MakeInterest("/A/1", ndn.MakeFHDelegation(1, "/B"), ndn.MakeFHDelegation(2, "/C"), token1.LpL3())
 	fixture.StepDelay()
 	assert.Equal(0, collect1.Count())
 	assert.Equal(1, collect2.Count())
 	assert.Equal(0, collect3.Count())
 
-	face5.Tx <- ndn.MakeInterest("/A/1", ndn.MakeFHDelegation(1, "/C"), ndn.MakeFHDelegation(2, "/B"), lphToken(0x52e61e9eee7025b7))
+	face5.Tx <- ndn.MakeInterest("/A/1", ndn.MakeFHDelegation(1, "/C"), ndn.MakeFHDelegation(2, "/B"), token2.LpL3())
 	fixture.StepDelay()
 	assert.Equal(0, collect1.Count())
 	assert.Equal(1, collect2.Count())
 	assert.Equal(1, collect3.Count())
 
-	face5.Tx <- ndn.MakeInterest("/A/1", ndn.MakeFHDelegation(1, "/Z"), ndn.MakeFHDelegation(2, "/B"), lphToken(0xa4291e2123c8211e))
+	face5.Tx <- ndn.MakeInterest("/A/1", ndn.MakeFHDelegation(1, "/Z"), ndn.MakeFHDelegation(2, "/B"), token3.LpL3())
 	fixture.StepDelay()
 	assert.Equal(0, collect1.Count())
 	assert.Equal(2, collect2.Count())
@@ -251,12 +256,12 @@ func TestFwHint(t *testing.T) {
 	fixture.StepDelay()
 	assert.Equal(1, collect4.Count())
 	if packet := collect4.Get(-1); assert.NotNil(packet.Data) {
-		assert.Equal(uint64(0x5c2fc6c972d830e7), ndn.PitTokenToUint(packet.Lp.PitToken))
+		assert.EqualValues(token1, packet.Lp.PitToken)
 		assert.Equal(1*time.Second, packet.Data.Freshness)
 	}
 	assert.Equal(1, collect5.Count())
 	if packet := collect5.Get(-1); assert.NotNil(packet.Data) {
-		assert.Equal(uint64(0xa4291e2123c8211e), ndn.PitTokenToUint(packet.Lp.PitToken))
+		assert.EqualValues(token3, packet.Lp.PitToken)
 		assert.Equal(1*time.Second, packet.Data.Freshness)
 	}
 
@@ -264,15 +269,15 @@ func TestFwHint(t *testing.T) {
 	fixture.StepDelay()
 	assert.Equal(2, collect5.Count())
 	if packet := collect5.Get(-1); assert.NotNil(packet.Data) {
-		assert.Equal(uint64(0x52e61e9eee7025b7), ndn.PitTokenToUint(packet.Lp.PitToken))
+		assert.EqualValues(token2, packet.Lp.PitToken)
 		assert.Equal(2*time.Second, packet.Data.Freshness)
 	}
 
-	face4.Tx <- ndn.MakeInterest("/A/1", ndn.MakeFHDelegation(1, "/C"), lphToken(0xbb19e173f937f221)) // matches second Data
+	face4.Tx <- ndn.MakeInterest("/A/1", ndn.MakeFHDelegation(1, "/C"), token4.LpL3()) // matches second Data
 	fixture.StepDelay()
 	assert.Equal(2, collect4.Count())
 	if packet := collect4.Get(-1); assert.NotNil(packet.Data) {
-		assert.Equal(uint64(0xbb19e173f937f221), ndn.PitTokenToUint(packet.Lp.PitToken))
+		assert.EqualValues(token4, packet.Lp.PitToken)
 		assert.Equal(2*time.Second, packet.Data.Freshness)
 	}
 
@@ -301,11 +306,12 @@ func TestImplicitDigest(t *testing.T) {
 	face1, face2 := intface.MustNew(), intface.MustNew()
 	collect1, collect2 := intface.Collect(face1), intface.Collect(face2)
 	fixture.SetFibEntry("/B", "multicast", face2.ID)
+	token1, token2 := makeToken(), makeToken()
 
 	data := ndn.MakeData("/B/1")
 	fullName := data.FullName()
 
-	face1.Tx <- ndn.MakeInterest(fullName, lphToken(0xce2e9bce22327e97))
+	face1.Tx <- ndn.MakeInterest(fullName, token1.LpL3())
 	fixture.StepDelay()
 	assert.Equal(1, collect2.Count())
 
@@ -315,17 +321,17 @@ func TestImplicitDigest(t *testing.T) {
 	fixture.StepDelay()
 	require.Equal(1, collect1.Count())
 	if packet := collect1.Get(-1); assert.NotNil(packet.Data) {
-		assert.Equal(uint64(0xce2e9bce22327e97), ndn.PitTokenToUint(packet.Lp.PitToken))
+		assert.EqualValues(token1, packet.Lp.PitToken)
 	}
 
-	face1.Tx <- ndn.MakeInterest(fullName, lphToken(0x5446c548dd1a5c89))
+	face1.Tx <- ndn.MakeInterest(fullName, token2.LpL3())
 	fixture.StepDelay()
 	assert.Equal(1, collect2.Count())
 
 	// CS hit
 	require.Equal(2, collect1.Count())
 	if packet := collect1.Get(-1); assert.NotNil(packet.Data) {
-		assert.Equal(uint64(0x5446c548dd1a5c89), ndn.PitTokenToUint(packet.Lp.PitToken))
+		assert.EqualValues(token2, packet.Lp.PitToken)
 	}
 
 	fibCnt := fixture.ReadFibCounters("/B")
@@ -348,7 +354,8 @@ func TestImplicitDigestFragmented(t *testing.T) {
 	data := ndn.MakeData("/B/2", bytes.Repeat([]byte{0xC0}, 300))
 	fullName := data.FullName()
 
-	face1.Tx <- ndn.MakeInterest(fullName, lphToken(0x02a0f62d1828a80c))
+	token := makeToken()
+	face1.Tx <- ndn.MakeInterest(fullName, token.LpL3())
 	fixture.StepDelay()
 	assert.Equal(1, collect2.Count())
 
@@ -363,6 +370,6 @@ func TestImplicitDigestFragmented(t *testing.T) {
 	}
 	assert.Equal(1, collect1.Count())
 	if packet := collect1.Get(-1); assert.NotNil(packet.Data) {
-		assert.Equal(uint64(0x02a0f62d1828a80c), ndn.PitTokenToUint(packet.Lp.PitToken))
+		assert.EqualValues(token, packet.Lp.PitToken)
 	}
 }

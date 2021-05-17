@@ -43,24 +43,8 @@ func (lph LpL3) encode() (fields []tlv.Field) {
 }
 
 func (lph *LpL3) inheritFrom(src LpL3) {
-	lph.PitToken = src.PitToken
+	lph.PitToken = append([]byte{}, src.PitToken...)
 	lph.CongMark = src.CongMark
-}
-
-// PitTokenFromUint creates a PIT token from uint64, interpreted as big endian.
-func PitTokenFromUint(n uint64) []byte {
-	token := make([]byte, 8)
-	binary.BigEndian.PutUint64(token, n)
-	return token
-}
-
-// PitTokenToUint reads a 8-octet PIT token as uint64, interpreted as big endian.
-// Returns 0 if the input token is not 8 octets.
-func PitTokenToUint(token []byte) uint64 {
-	if len(token) != 8 {
-		return 0
-	}
-	return binary.BigEndian.Uint64(token)
 }
 
 // LpFragment represents an NDNLPv2 fragmented frame.

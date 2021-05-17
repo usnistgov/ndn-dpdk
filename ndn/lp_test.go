@@ -13,7 +13,7 @@ func TestLpFragmenter(t *testing.T) {
 
 	data := ndn.MakeData("/D", bytes.Repeat([]byte{0xCC}, 3000))
 	packet := data.ToPacket()
-	packet.Lp.PitToken = ndn.PitTokenFromUint(0x808ecd3df4e1b062)
+	packet.Lp.PitToken = bytesFromHex("808ECD3DF4E1B062")
 
 	fragmenter := ndn.NewLpFragmenter(1000)
 	frags, e := fragmenter.Fragment(packet)

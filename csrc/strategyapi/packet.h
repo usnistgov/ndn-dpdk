@@ -7,22 +7,21 @@
 
 typedef struct SgPacket
 {
-  char _a[22];
+  char a_[22];
   FaceID rxFace;
-  char _b[8];
+  char b_[8];
   union
   {
-    uint32_t _packet_type;
+    uint32_t packet_type_;
     struct
     {
-      uint16_t _c : 16;
+      uint16_t c_ : 16;
       uint8_t l2type : 4;
       uint8_t l3type : 4;
     };
   };
-  char _d[92];
-  char _mbuf_end[0];
-  char _e[8];
+  char d_[92];
+  char mbuf_end_[0];
   uint8_t nackReason;
   uint8_t congMark;
 } SgPacket;

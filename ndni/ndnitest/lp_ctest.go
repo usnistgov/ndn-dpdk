@@ -8,6 +8,8 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/pkg/math"
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/ndntestvector"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
@@ -28,8 +30,12 @@ func ctestLpParse(t *testing.T) {
 		} else if assert.True(ok, tt.Input) {
 			assert.EqualValues(tt.SeqNum, C.LpL2_GetSeqNum(&lph.l2), tt.Input)
 			assert.EqualValues(tt.FragIndex, lph.l2.fragIndex, tt.Input)
-			assert.EqualValues(tt.FragCount, lph.l2.fragCount, tt.Input)
-			assert.EqualValues(tt.PitToken, lph.l3.pitToken, tt.Input)
+			assert.EqualValues(math.MaxUint16(1, tt.FragCount), lph.l2.fragCount, tt.Input)
+			if len(tt.PitToken) == 0 {
+				assert.Zero(lph.l3.pitToken.length, tt.Input)
+			} else {
+				assert.Equal(tt.PitToken, cptr.AsByteSlice(&lph.l3.pitToken.value)[:lph.l3.pitToken.length], tt.Input)
+			}
 			assert.EqualValues(tt.NackReason, lph.l3.nackReason, tt.Input)
 			assert.EqualValues(tt.CongMark, lph.l3.congMark, tt.Input)
 			assert.EqualValues(tt.PayloadL, p.Len(), tt.Input)

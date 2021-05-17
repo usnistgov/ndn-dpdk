@@ -31,22 +31,14 @@ type FwFace interface {
 }
 
 func tokenInsertID(oldToken []byte, id uint16) (token []byte) {
-	token = make([]byte, 3, len(oldToken)+8)
-	binary.BigEndian.PutUint16(token, id)
-	token[2] = byte(len(oldToken))
-	token = append(token, oldToken...)
-	for len(token) < 8 {
-		token = append(token, 0)
-	}
-	return token
+	token = make([]byte, 2, 2+len(oldToken))
+	binary.LittleEndian.PutUint16(token, id)
+	return append(token, oldToken...)
 }
 
 func tokenStripID(token []byte) (id uint16, newToken []byte) {
-	if sz := len(token); sz < 3 || sz < 3+int(token[2]) {
-		return 0, token
-	}
-	id = binary.BigEndian.Uint16(token)
-	newToken = token[3 : 3+token[2]]
+	id = binary.LittleEndian.Uint16(token)
+	newToken = token[2:]
 	return
 }
 

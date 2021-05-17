@@ -14,7 +14,7 @@ typedef struct FetchProc
   struct cds_hlist_node fthNode;
   PktQueue rxQueue;
   FetchLogic logic;
-  uint64_t pitToken;
+  uint8_t pitToken;
   InterestTemplate tpl;
 } FetchProc;
 

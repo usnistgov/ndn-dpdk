@@ -60,17 +60,19 @@ Pit_RawErase01_(Pit* pit, PccEntry* pccEntry);
 
 /**
  * @brief Find PIT entries matching a Data.
- * @param npkt Data packet, its token will be used.
+ * @param npkt Data packet.
+ * @param token PCC token of the packet.
  */
 __attribute__((nonnull)) PitFindResult
-Pit_FindByData(Pit* pit, Packet* npkt);
+Pit_FindByData(Pit* pit, Packet* npkt, uint64_t token);
 
 /**
  * @brief Find PIT entry matching a Nack.
- * @param npkt Nack packet, its token will be used.
+ * @param npkt Nack packet.
+ * @param token PCC token of the packet.
  */
 __attribute__((nonnull)) PitEntry*
-Pit_FindByNack(Pit* pit, Packet* npkt);
+Pit_FindByNack(Pit* pit, Packet* npkt, uint64_t token);
 
 __attribute__((nonnull)) static inline uint64_t
 PitEntry_GetToken(PitEntry* entry)

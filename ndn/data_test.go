@@ -32,7 +32,7 @@ func TestDataLpEncode(t *testing.T) {
 	assert, _ := makeAR(t)
 
 	var lph ndn.LpL3
-	lph.PitToken = ndn.PitTokenFromUint(0xF0F1F2F3F4F5F6F7)
+	lph.PitToken = bytesFromHex("B0B1B2")
 	lph.CongMark = 1
 	interest := ndn.MakeInterest("/A", lph, ndn.NonceFromUint(0xC0C1C2C3), ndn.MustBeFreshFlag)
 	data := ndn.MakeData(interest, bytesFromHex("content=C0C1"), ndn.FinalBlock(ndn.ParseNameComponent("F")))
@@ -40,7 +40,7 @@ func TestDataLpEncode(t *testing.T) {
 	wire, e := tlv.EncodeFrom(data.ToPacket())
 	assert.NoError(e)
 	assert.Contains(string(wire),
-		string(bytesFromHex("pittoken=6208F0F1F2F3F4F5F6F7 congmark=FD03400101")))
+		string(bytesFromHex("pittoken=6203B0B1B2 congmark=FD03400101")))
 	assert.Contains(string(wire),
 		string(bytesFromHex("name=0703080141 meta=1408 freshness=190101 finalblock=1A03080146 content=1502C0C1")))
 }

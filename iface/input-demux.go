@@ -45,9 +45,9 @@ func (demux *InputDemux) InitNdt(ndtt *ndt.Thread) {
 	demuxC.ndtt = (*C.NdtThread)(ndtt.Ptr())
 }
 
-// InitToken configures to dispatch according to high 8 bits of PIT token.
-func (demux *InputDemux) InitToken() {
-	C.InputDemux_SetDispatchFunc_(demux.ptr(), C.InputDemux_DispatchByToken)
+// InitToken configures to dispatch according to specified octet in the PIT token.
+func (demux *InputDemux) InitToken(offset uint8) {
+	C.InputDemux_SetDispatchByToken_(demux.ptr(), C.uint8_t(offset))
 }
 
 // SetDest assigns i-th destination.

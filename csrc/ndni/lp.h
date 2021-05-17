@@ -32,12 +32,50 @@ LpL2_GetSeqNum(const LpL2* l2)
   return l2->seqNumBase + l2->fragIndex;
 }
 
+typedef struct LpPitToken
+{
+  uint8_t length;
+  uint8_t value[32];
+} __rte_packed LpPitToken;
+
+__attribute__((nonnull)) static __rte_always_inline bool
+LpPitToken_Equal(const LpPitToken* a, const LpPitToken* b)
+{
+  return memcmp(a, b, sizeof(*a)) == 0;
+}
+
+__attribute__((nonnull)) static __rte_always_inline void
+LpPitToken_Set(LpPitToken* token, uint8_t length, const uint8_t* value)
+{
+  token->length = length;
+  rte_memcpy(token->value, value, length);
+  memset(RTE_PTR_ADD(token->value, length), 0, sizeof(token->value) - length);
+}
+
+/** @brief printf format string for LpPitToken. */
+#define PRI_LpPitToken                                                                             \
+  "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8  \
+  "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8  \
+  "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8  \
+  "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8
+
+/** @brief printf variables for FaceID. */
+#define LpPitToken_Fmt(token)                                                                      \
+  (token)->value[0], (token)->value[1], (token)->value[2], (token)->value[3], (token)->value[4],   \
+    (token)->value[5], (token)->value[6], (token)->value[7], (token)->value[8], (token)->value[9], \
+    (token)->value[10], (token)->value[11], (token)->value[12], (token)->value[13],                \
+    (token)->value[14], (token)->value[15], (token)->value[16], (token)->value[17],                \
+    (token)->value[18], (token)->value[19], (token)->value[20], (token)->value[21],                \
+    (token)->value[22], (token)->value[23], (token)->value[24], (token)->value[25],                \
+    (token)->value[26], (token)->value[27], (token)->value[28], (token)->value[29],                \
+    (token)->value[30], (token)->value[31]
+
 /** @brief NDNLPv2 layer 3 fields. */
 typedef struct LpL3
 {
-  uint64_t pitToken;
   uint8_t nackReason;
   uint8_t congMark;
+  LpPitToken pitToken;
 } LpL3;
 
 /** @brief Parsed NDNLPv2 header. */

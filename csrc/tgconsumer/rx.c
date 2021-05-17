@@ -22,41 +22,34 @@ TgcRx_GetSeqNumFromName(TgcRx* cr, const TgcRxPattern* pattern, const PName* nam
 }
 
 __attribute__((nonnull)) static void
-TgcRx_ProcessData(TgcRx* cr, Packet* npkt)
+TgcRx_ProcessData(TgcRx* cr, Packet* npkt, uint8_t id, TscTime sendTime)
 {
-  uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
-  uint8_t id = TgcToken_GetPatternID(token);
   TgcRxPattern* pattern = &cr->pattern[id];
-
   const PData* data = Packet_GetDataHdr(npkt);
+
   uint64_t seqNum;
-  if (unlikely(TgcToken_GetRunNum(token) != cr->runNum || id >= cr->nPatterns ||
-               !TgcRx_GetSeqNumFromName(cr, pattern, &data->name, &seqNum))) {
+  if (unlikely(!TgcRx_GetSeqNumFromName(cr, pattern, &data->name, &seqNum))) {
     return;
   }
 
-  N_LOGD(">D seq=%" PRIx64 " pattern=%d", seqNum, id);
+  N_LOGD(">D seq=%" PRIx64 " pattern=%" PRIu8, seqNum, id);
   ++pattern->nData;
   TscTime recvTime = Mbuf_GetTimestamp(Packet_ToMbuf(npkt));
-  TscTime sendTime = TgcToken_GetTimestamp(token);
   RunningStat_Push(&pattern->rtt, recvTime - sendTime);
 }
 
 __attribute__((nonnull)) static void
-TgcRx_ProcessNack(TgcRx* cr, Packet* npkt)
+TgcRx_ProcessNack(TgcRx* cr, Packet* npkt, uint8_t id)
 {
-  uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
-  uint8_t id = TgcToken_GetPatternID(token);
   TgcRxPattern* pattern = &cr->pattern[id];
-
   const PNack* nack = Packet_GetNackHdr(npkt);
+
   uint64_t seqNum;
-  if (unlikely(TgcToken_GetRunNum(token) != cr->runNum || id >= cr->nPatterns ||
-               !TgcRx_GetSeqNumFromName(cr, pattern, &nack->interest.name, &seqNum))) {
+  if (unlikely(!TgcRx_GetSeqNumFromName(cr, pattern, &nack->interest.name, &seqNum))) {
     return;
   }
 
-  N_LOGD(">N seq=%" PRIx64 " pattern=%d", seqNum, id);
+  N_LOGD(">N seq=%" PRIx64 " pattern=%" PRIu8, seqNum, id);
   ++pattern->nNacks;
 }
 
@@ -69,12 +62,21 @@ TgcRx_Run(TgcRx* cr)
     PktQueuePopResult pop = PktQueue_Pop(&cr->rxQueue, pkts, RTE_DIM(pkts), now);
     for (uint16_t i = 0; i < pop.count; ++i) {
       Packet* npkt = Packet_FromMbuf(pkts[i]);
+      const LpPitToken* token = &Packet_GetLpL3Hdr(npkt)->pitToken;
+      if (unlikely(token->length != TgcTokenLength) ||
+          unlikely(TgcToken_GetRunNum(token) != cr->runNum)) {
+        continue;
+      }
+      uint8_t id = TgcToken_GetPatternID(token);
+      if (unlikely(id >= cr->nPatterns)) {
+        continue;
+      }
       switch (Packet_GetType(npkt)) {
         case PktData:
-          TgcRx_ProcessData(cr, npkt);
+          TgcRx_ProcessData(cr, npkt, id, TgcToken_GetTimestamp(token));
           break;
         case PktNack:
-          TgcRx_ProcessNack(cr, npkt);
+          TgcRx_ProcessNack(cr, npkt, id);
           break;
         default:
           NDNDPDK_ASSERT(false);

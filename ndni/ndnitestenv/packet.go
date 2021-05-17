@@ -131,14 +131,14 @@ func (m modifyActiveFwHint) modify(pkt *ndni.Packet) {
 }
 
 // SetPitToken updates PIT token of packet.
-func SetPitToken(token uint64) PacketModifier {
+func SetPitToken(token []byte) PacketModifier {
 	return modifyPitToken(token)
 }
 
-type modifyPitToken uint64
+type modifyPitToken []byte
 
 func (m modifyPitToken) modify(pkt *ndni.Packet) {
-	pkt.SetPitToken(uint64(m))
+	pkt.SetPitToken([]byte(m))
 }
 
 // SetFace updates ingress faceID of packet.

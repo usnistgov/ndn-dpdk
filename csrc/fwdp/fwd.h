@@ -13,6 +13,8 @@
 #include "../pcct/pit.h"
 #include "../strategyapi/api.h"
 
+typedef struct FwFwdCtx FwFwdCtx;
+
 /** @brief Forwarding thread. */
 typedef struct FwFwd
 {
@@ -47,6 +49,15 @@ typedef struct FwFwd
 int
 FwFwd_Run(FwFwd* fwd);
 
+__attribute__((nonnull)) void
+FwFwd_RxInterest(FwFwd* fwd, FwFwdCtx* ctx);
+
+__attribute__((nonnull)) void
+FwFwd_RxData(FwFwd* fwd, FwFwdCtx* ctx);
+
+__attribute__((nonnull)) void
+FwFwd_RxNack(FwFwd* fwd, FwFwdCtx* ctx);
+
 /**
  * @brief Per-packet context in forwarding.
  *
@@ -57,7 +68,7 @@ FwFwd_Run(FwFwd* fwd);
  * D: available during SGEVT_DATA
  * N: available during SGEVT_NACK
  */
-typedef struct FwFwdCtx
+struct FwFwdCtx
 {
   FwFwd* fwd;             // T,F,I,D,N
   TscTime rxTime;         // T(=now),F,I,D,N
@@ -75,12 +86,12 @@ typedef struct FwFwdCtx
   // end of SgCtx fields
   char endofSgCtx[0];
 
-  PitUp* pitUp;     // N
-  uint64_t rxToken; // F,I,D,N
-  uint32_t dnNonce; // I
-  int nForwarded;   // T,I,N
-  FaceID rxFace;    // F,I,D
-} FwFwdCtx;
+  PitUp* pitUp;       // N
+  LpPitToken rxToken; // F,I,D,N
+  uint32_t dnNonce;   // I
+  int nForwarded;     // T,I,N
+  FaceID rxFace;      // F,I,D
+};
 
 static __rte_always_inline void
 FwFwdCtx_SetFibEntry(FwFwdCtx* ctx, FibEntry* fibEntry)
@@ -93,13 +104,37 @@ FwFwdCtx_SetFibEntry(FwFwdCtx* ctx, FibEntry* fibEntry)
   }
 }
 
-__attribute__((nonnull)) void
-FwFwd_RxInterest(FwFwd* fwd, FwFwdCtx* ctx);
+enum
+{
+  FwTokenLength = 8,
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+  FwTokenOffsetFwdID = 7,
+#else
+  FwTokenOffsetFwdID = 0,
+#endif
+  FwTokenOffsetPitToken = 0,
+};
 
-__attribute__((nonnull)) void
-FwFwd_RxData(FwFwd* fwd, FwFwdCtx* ctx);
+static __rte_always_inline void
+FwToken_Set(LpPitToken* token, uint8_t fwdID, uint64_t pccToken)
+{
+  *token = (LpPitToken){
+    .length = FwTokenLength,
+  };
+  *(unaligned_uint64_t*)RTE_PTR_ADD(token->value, FwTokenOffsetPitToken) = pccToken;
+  token->value[FwTokenOffsetFwdID] = fwdID;
+}
 
-__attribute__((nonnull)) void
-FwFwd_RxNack(FwFwd* fwd, FwFwdCtx* ctx);
+static __rte_always_inline uint8_t
+FwToken_GetFwdID(const LpPitToken* token)
+{
+  return token->value[FwTokenOffsetFwdID];
+}
+
+static __rte_always_inline TscTime
+FwToken_GetPitToken(const LpPitToken* token)
+{
+  return *(const unaligned_uint64_t*)RTE_PTR_ADD(token->value, FwTokenOffsetPitToken);
+}
 
 #endif // NDNDPDK_FWDP_FWD_H

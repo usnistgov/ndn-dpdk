@@ -34,12 +34,12 @@ func TestInterestLpEncode(t *testing.T) {
 	assert, _ := makeAR(t)
 
 	var lph ndn.LpL3
-	lph.PitToken = ndn.PitTokenFromUint(0xF0F1F2F3F4F5F6F7)
+	lph.PitToken = bytesFromHex("B0B1B2")
 	interest := ndn.MakeInterest("/A", lph, ndn.NonceFromUint(0xC0C1C2C3))
 
 	wire, e := tlv.EncodeFrom(interest.ToPacket())
 	assert.NoError(e)
-	assert.Equal(bytesFromHex("6419 pittoken=6208F0F1F2F3F4F5F6F7 payload=500D "+
+	assert.Equal(bytesFromHex("6414 pittoken=6203B0B1B2 payload=500D "+
 		"interest=050B 0703080141 0A04C0C1C2C3"), wire)
 }
 

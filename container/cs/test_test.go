@@ -105,8 +105,7 @@ func (fixture *Fixture) Insert(interest *ndni.Packet, data *ndni.Packet) (isRepl
 		panic("Pit.Insert failed")
 	}
 
-	data.SetPitToken(pitEntry.PitToken())
-	pitFound := fixture.Pit.FindByData(data)
+	pitFound := fixture.Pit.FindByData(data, pitEntry.PitToken())
 	if len(pitFound.ListEntries()) == 0 {
 		panic("Pit.FindByData returned empty result")
 	}

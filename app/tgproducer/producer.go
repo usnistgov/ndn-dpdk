@@ -78,6 +78,7 @@ func (p Producer) Workers() (list []ealthread.ThreadWithRole) {
 
 // ConnectRxQueues connects Interest InputDemux to RxQueues.
 func (p *Producer) ConnectRxQueues(demuxI *iface.InputDemux) {
+	demuxI.InitRoundrobin(len(p.workers))
 	for i, w := range p.workers {
 		demuxI.SetDest(i, w.rxQueue())
 	}

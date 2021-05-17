@@ -33,7 +33,7 @@ typedef struct TgcTx
   NonceGen nonceGen;
   uint64_t nAllocError;
 
-  TgcPatternID weight[TgcMaxSumWeight];
+  uint8_t weight[TgcMaxSumWeight];
   TgcTxPattern pattern[TgcMaxPatterns];
 } TgcTx;
 

@@ -5,7 +5,6 @@ package fwdp
 #include "../../csrc/fwdp/strategy.h"
 */
 import "C"
-
 import (
 	"fmt"
 	"unsafe"

@@ -66,26 +66,33 @@ func TestInsertErase(t *testing.T) {
 	assert.Zero(fixture.CountMpInUse())
 }
 
+type testTokenRecord struct {
+	name  string
+	data  *ndni.Packet
+	entry *pit.Entry
+	token uint64
+}
+
 func TestToken(t *testing.T) {
 	assert, require := makeAR(t)
-	interestNames := make([]string, 255)
-	dataPkts := make([]*ndni.Packet, 255)
-	entries := make([]*pit.Entry, 255)
-	fixture := NewFixture(255)
+	records := make([]testTokenRecord, 255)
+	nImplicitDigest := 32
+	nAllocErr := 2
+	fixture := NewFixture(len(records))
 	defer fixture.Close()
 	pit := fixture.Pit
 
-	for i := 0; i <= 255; i++ {
+	for i := 0; i < len(records)+nAllocErr; i++ {
 		data := makeData(fmt.Sprintf("/I/%d", i))
 		nData := data.ToNPacket().Data
 		name := nData.Name.String()
-		if i < 32 {
+		if i < nImplicitDigest {
 			name = nData.FullName().String()
 		}
 		interest := makeInterest(name)
 
 		entry, _ := pit.Insert(interest, fixture.FibEntry)
-		if i == 255 { // PCCT is full
+		if i >= len(records) { // PCCT is full
 			assert.Nil(entry)
 			must.Close(data)
 			must.Close(interest)
@@ -94,67 +101,62 @@ func TestToken(t *testing.T) {
 		require.NotNil(entry, "unexpected PCCT full at %d", i)
 
 		token := entry.PitToken()
-		assert.Equal(token&(1<<48-1), token) // token has 48 bits
-		data.SetPitToken(token)
+		assert.Less(token, uint64(1<<48))
 
-		interestNames[i] = name
-		dataPkts[i] = data
-		entries[i] = entry
+		records[i] = testTokenRecord{
+			name:  name,
+			data:  data,
+			entry: entry,
+			token: token,
+		}
 	}
+	assert.Len(records, pit.Len())
 
-	assert.Equal(255, pit.Len())
-	assert.Len(entries, 255)
-
-	for i, entry := range entries {
-		name := interestNames[i]
-		data := dataPkts[i]
-		token := data.PitToken()
-
-		found := pit.FindByData(data)
+	for i, record := range records {
+		found := pit.FindByData(record.data, record.token)
 		foundEntries := found.ListEntries()
 		if assert.Len(foundEntries, 1) {
-			assert.Equal(uintptr(entry.Ptr()), uintptr(foundEntries[0].Ptr()))
+			assert.Equal(uintptr(record.entry.Ptr()), uintptr(foundEntries[0].Ptr()))
 		}
 
 		// Interest carries implicit digest, so Data digest is needed
-		if i < 32 && assert.True(found.NeedDataDigest()) {
-			data.ComputeDataImplicitDigest()
-			found = pit.FindByData(data)
+		if i < nImplicitDigest && assert.True(found.NeedDataDigest()) {
+			record.data.ComputeDataImplicitDigest()
+			found = pit.FindByData(record.data, record.token)
 			foundEntries = found.ListEntries()
 			if assert.Len(foundEntries, 1) {
-				assert.Equal(uintptr(entry.Ptr()), uintptr(foundEntries[0].Ptr()))
+				assert.Equal(uintptr(record.entry.Ptr()), uintptr(foundEntries[0].Ptr()))
 			}
 		}
 		assert.False(found.NeedDataDigest())
 
 		// high 16 bits of the token should be ignored
-		token2 := token ^ 0x79BC000000000000
-		nack := makeNack(ndn.MakeInterest(name), an.NackNoRoute, setPitToken(token2))
-		foundEntry := pit.FindByNack(nack)
+		token2 := record.token ^ 0x79BC000000000000
+		nack := makeNack(ndn.MakeInterest(record.name), an.NackNoRoute)
+		foundEntry := pit.FindByNack(nack, token2)
 		if assert.NotNil(foundEntry) {
-			assert.Equal(uintptr(entry.Ptr()), uintptr(foundEntry.Ptr()))
+			assert.Equal(uintptr(record.entry.Ptr()), uintptr(foundEntry.Ptr()))
 		}
 
 		// name mismatch
 		data2 := makeData(fmt.Sprintf("/K/%d", i))
-		data2.SetPitToken(token)
-		foundEntries = pit.FindByData(data2).ListEntries()
+		foundEntries = pit.FindByData(data2, record.token).ListEntries()
 		assert.Len(foundEntries, 0)
 
-		pit.Erase(entry)
-		foundEntry = pit.FindByNack(nack)
+		pit.Erase(record.entry)
+		foundEntry = pit.FindByNack(nack, record.token)
 		assert.Nil(foundEntry)
 
-		must.Close(data)
+		must.Close(record.data)
 		must.Close(nack)
 		must.Close(data2)
 	}
 
 	cnt := pit.Counters()
-	assert.Equal(uint64(255), cnt.NInsert)
-	assert.Equal(uint64(1), cnt.NAllocErr)
-	assert.Equal(uint64(255), cnt.NDataHit)
-	assert.Equal(uint64(255), cnt.NDataMiss)
-	assert.Equal(uint64(255), cnt.NNackHit)
-	assert.Equal(uint64(255), cnt.NNackMiss)
+	assert.EqualValues(len(records), cnt.NInsert)
+	assert.EqualValues(nAllocErr, cnt.NAllocErr)
+	assert.EqualValues(len(records), cnt.NDataHit)
+	assert.EqualValues(len(records), cnt.NDataMiss)
+	assert.EqualValues(len(records), cnt.NNackHit)
+	assert.EqualValues(len(records), cnt.NNackMiss)
 }

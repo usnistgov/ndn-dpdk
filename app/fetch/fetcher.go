@@ -7,9 +7,10 @@ package fetch
 import "C"
 import (
 	"errors"
+	"math"
 	"unsafe"
 
-	"github.com/pkg/math"
+	mathpkg "github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
@@ -29,8 +30,8 @@ type FetcherConfig struct {
 }
 
 func (cfg *FetcherConfig) applyDefaults() {
-	cfg.NThreads = math.MaxInt(1, cfg.NThreads)
-	cfg.NProcs = math.MaxInt(1, cfg.NProcs)
+	cfg.NThreads = mathpkg.MaxInt(1, cfg.NThreads)
+	cfg.NProcs = mathpkg.MaxInt(1, cfg.NProcs)
 	cfg.RxQueue.DisableCoDel = true
 }
 
@@ -68,6 +69,9 @@ type Fetcher struct {
 // New creates a Fetcher.
 func New(face iface.Face, cfg FetcherConfig) (*Fetcher, error) {
 	cfg.applyDefaults()
+	if cfg.NProcs >= math.MaxUint8 { // InputDemux dispatches on 1-octet of PIT token
+		return nil, errors.New("too many procs")
+	}
 
 	faceID := face.ID()
 	socket := face.NumaSocket()
@@ -96,7 +100,7 @@ func New(face iface.Face, cfg FetcherConfig) (*Fetcher, error) {
 		if e := iface.PktQueueFromPtr(unsafe.Pointer(&fp.rxQueue)).Init(cfg.RxQueue, socket); e != nil {
 			return nil, e
 		}
-		fp.pitToken = (C.uint64_t(i) << 56) | 0x6665746368 // 'fetch'
+		fp.pitToken = C.uint8_t(i)
 		fetcher.fp[i] = fp
 		fetcher.Logic(i).Init(cfg.WindowCapacity, socket)
 	}
@@ -119,6 +123,8 @@ func (fetcher Fetcher) Workers() (list []ealthread.ThreadWithRole) {
 
 // ConnectRxQueues connects Data+Nack InputDemux to RxQueues.
 func (fetcher *Fetcher) ConnectRxQueues(demuxD, demuxN *iface.InputDemux) {
+	demuxD.InitToken(0)
+	demuxN.InitToken(0)
 	for i := range fetcher.fp {
 		q := fetcher.rxQueue(i)
 		demuxD.SetDest(i, q)

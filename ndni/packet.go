@@ -6,7 +6,6 @@ package ndni
 */
 import "C"
 import (
-	"encoding/binary"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
@@ -55,13 +54,17 @@ func (pkt *Packet) Type() PktType {
 }
 
 // PitToken retrieves the PIT token.
-func (pkt *Packet) PitToken() uint64 {
-	return uint64(C.Packet_GetLpL3Hdr(pkt.ptr()).pitToken)
+func (pkt *Packet) PitToken() (token []byte) {
+	tokenC := &C.Packet_GetLpL3Hdr(pkt.ptr()).pitToken
+	token = make([]byte, int(tokenC.length))
+	copy(token, cptr.AsByteSlice(&tokenC.value))
+	return
 }
 
 // SetPitToken updates the PIT token.
-func (pkt *Packet) SetPitToken(token uint64) {
-	C.Packet_GetLpL3Hdr(pkt.ptr()).pitToken = C.uint64_t(token)
+func (pkt *Packet) SetPitToken(token []byte) {
+	tokenC := &C.Packet_GetLpL3Hdr(pkt.ptr()).pitToken
+	tokenC.length = C.uint8_t(copy(cptr.AsByteSlice(&tokenC.value), token))
 }
 
 // ComputeDataImplicitDigest computes and stores implicit digest in *C.PData.
@@ -89,8 +92,7 @@ func (pkt *Packet) ToNPacket() (npkt ndn.Packet) {
 	}
 
 	lpl3 := C.Packet_GetLpL3Hdr(pkt.ptr())
-	npkt.Lp.PitToken = make([]byte, 8)
-	binary.BigEndian.PutUint64(npkt.Lp.PitToken, uint64(lpl3.pitToken))
+	npkt.Lp.PitToken = pkt.PitToken()
 	npkt.Lp.NackReason = uint8(lpl3.nackReason)
 	npkt.Lp.CongMark = uint8(lpl3.congMark)
 	if npkt.Lp.NackReason != 0 {

@@ -1,6 +1,5 @@
 #include "fwd.h"
 #include "strategy.h"
-#include "token.h"
 
 #include "../core/logger.h"
 
@@ -95,8 +94,8 @@ __attribute__((nonnull)) static void
 FwFwd_InterestHitCs(FwFwd* fwd, FwFwdCtx* ctx, CsEntry* csEntry)
 {
   Packet* outNpkt = Packet_Clone(csEntry->data, &fwd->mp, Face_PacketTxAlign(ctx->rxFace));
-  N_LOGD("^ cs-entry=%p data-to=%" PRI_FaceID " npkt=%p dn-token=%016" PRIx64, csEntry, ctx->rxFace,
-         outNpkt, ctx->rxToken);
+  N_LOGD("^ cs-entry=%p data-to=%" PRI_FaceID " npkt=%p dn-token=" PRI_LpPitToken, csEntry,
+         ctx->rxFace, outNpkt, LpPitToken_Fmt(&ctx->rxToken));
   if (likely(outNpkt != NULL)) {
     struct rte_mbuf* outPkt = Packet_ToMbuf(outNpkt);
     outPkt->port = MBUF_INVALID_PORT;
@@ -116,8 +115,8 @@ FwFwd_RxInterest(FwFwd* fwd, FwFwdCtx* ctx)
   PInterest* interest = Packet_GetInterestHdr(ctx->npkt);
   NDNDPDK_ASSERT(interest->hopLimit > 0);
 
-  N_LOGD("RxInterest interest-from=%" PRI_FaceID " npkt=%p dn-token=%016" PRIx64, ctx->rxFace,
-         ctx->npkt, ctx->rxToken);
+  N_LOGD("RxInterest interest-from=%" PRI_FaceID " npkt=%p dn-token=" PRI_LpPitToken, ctx->rxFace,
+         ctx->npkt, LpPitToken_Fmt(&ctx->rxToken));
 
   // query FIB, reply Nack if no FIB match
   rcu_read_lock();
@@ -205,12 +204,12 @@ SgForwardInterest(SgCtx* ctx0, FaceID nh)
     return SGFWDI_ALLOCERR;
   }
 
-  uint64_t token = FwToken_New(fwd->id, PitEntry_GetToken(ctx->pitEntry));
-  Packet_GetLpL3Hdr(outNpkt)->pitToken = token;
+  LpPitToken* outToken = &Packet_GetLpL3Hdr(outNpkt)->pitToken;
+  FwToken_Set(outToken, fwd->id, PitEntry_GetToken(ctx->pitEntry));
   Mbuf_SetTimestamp(Packet_ToMbuf(outNpkt), ctx->rxTime); // for latency stats
 
-  N_LOGD("^ interest-to=%" PRI_FaceID " npkt=%p " PRI_InterestGuiders " up-token=%016" PRIx64, nh,
-         outNpkt, InterestGuiders_Fmt(guiders), token);
+  N_LOGD("^ interest-to=%" PRI_FaceID " npkt=%p " PRI_InterestGuiders " up-token=" PRI_LpPitToken,
+         nh, outNpkt, InterestGuiders_Fmt(guiders), LpPitToken_Fmt(outToken));
   Face_Tx(nh, outNpkt);
   ++ctx->fibEntryDyn->nTxInterests;
 

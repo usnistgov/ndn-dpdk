@@ -12,8 +12,8 @@ enum
 {
   PitMaxDns = 6,
   PitMaxUps = 2,
-  PitMaxExtDns = 16,
-  PitMaxExtUps = 8,
+  PitMaxExtDns = 6,
+  PitMaxExtUps = 4,
   PitScratchSize = 64,
   PitDebugStringLength =
     NameHexBufferLength + 6 * (PitMaxDns + PitMaxExtDns + PitMaxUps + PitMaxExtUps) + 32,

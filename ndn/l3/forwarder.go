@@ -17,8 +17,8 @@ import (
 //    If multiple uplinks have "/" route, Interests will be forwarded among them and might cause persistent loops.
 //    Thus, it is not recommended to connect to multiple uplinks.
 //  - There is no pending Interest table. Instead, downstream 'face' ID is inserted as part of the PIT token.
-//    Since the NDN-DPDK forwarder expects 8-octet PIT tokens, this takes away some space.
-//    Thus, consumers are allowed to use a PIT token up to 4 octets; Interests with longer PIT tokens may be dropped.
+//    Since PIT token cannot exceed 32 octets, this takes away some space.
+//    Thus, consumers are allowed to use a PIT token up to 30 octets; Interests with longer PIT tokens may be dropped.
 type Forwarder interface {
 	// AddFace adds a Face to the forwarder.
 	// face.Rx() and face.Tx() should not be used after this operation.

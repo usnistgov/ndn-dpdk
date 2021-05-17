@@ -32,7 +32,7 @@ Packet encoding and decoding
 * [NDNLPv2](https://redmine.named-data.net/projects/nfd/wiki/NDNLPv2)
   * Fragmentation and reassembly: yes
   * Nack: yes
-  * PIT token: yes, only support 8-octet length
+  * PIT token: yes
   * Congestion mark: yes
   * Link layer reliability: no
 

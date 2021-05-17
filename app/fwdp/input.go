@@ -1,5 +1,9 @@
 package fwdp
 
+/*
+#include "../../csrc/fwdp/fwd.h"
+*/
+import "C"
 import (
 	"fmt"
 
@@ -25,9 +29,9 @@ func newInput(id int, lc eal.LCore, ndt *ndt.Ndt, fwds []*Fwd) *Input {
 	demuxI := rxl.InterestDemux()
 	demuxI.InitNdt(ndt.Threads()[id])
 	demuxD := rxl.DataDemux()
-	demuxD.InitToken()
+	demuxD.InitToken(uint8(C.FwTokenOffsetFwdID))
 	demuxN := rxl.NackDemux()
-	demuxN.InitToken()
+	demuxN.InitToken(uint8(C.FwTokenOffsetFwdID))
 	for i, fwd := range fwds {
 		demuxI.SetDest(i, fwd.queueI)
 		demuxD.SetDest(i, fwd.queueD)

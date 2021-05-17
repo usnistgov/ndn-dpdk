@@ -8,9 +8,9 @@ static void
 InputDemux_Drop(InputDemux* demux, Packet* npkt, const char* reason)
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
-  N_LOGD("Drop(%s) %s-from=%" PRI_FaceID " npkt=%p token=%016" PRIx64, reason,
-         PktType_ToString(Packet_GetType(npkt)), pkt->port, npkt,
-         Packet_GetLpL3Hdr(npkt)->pitToken);
+  const LpPitToken* token = &Packet_GetLpL3Hdr(npkt)->pitToken;
+  N_LOGD("Drop(%s) %s-from=%" PRI_FaceID " npkt=%p token=" PRI_LpPitToken, reason,
+         PktType_ToString(Packet_GetType(npkt)), pkt->port, npkt, LpPitToken_Fmt(token));
 
   ++demux->nDrops;
   rte_pktmbuf_free(pkt);
@@ -26,9 +26,9 @@ InputDemux_PassTo(InputDemux* demux, Packet* npkt, uint8_t index)
   }
 
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
-  N_LOGD("PassTo %s-from=%" PRI_FaceID " npkt=%p token=%016" PRIx64 " dest-index=%" PRIu8,
-         PktType_ToString(Packet_GetType(npkt)), pkt->port, npkt, Packet_GetLpL3Hdr(npkt)->pitToken,
-         index);
+  const LpPitToken* token = &Packet_GetLpL3Hdr(npkt)->pitToken;
+  N_LOGD("PassTo %s-from=%" PRI_FaceID " npkt=%p token=" PRI_LpPitToken " dest-index=%" PRIu8,
+         PktType_ToString(Packet_GetType(npkt)), pkt->port, npkt, LpPitToken_Fmt(token), index);
 
   uint32_t nRej = PktQueue_PushPlain(dest->queue, &pkt, 1);
   dest->nDropped += nRej;
@@ -71,12 +71,12 @@ InputDemux_DispatchByNdt(InputDemux* demux, Packet* npkt, const PName* name)
 void
 InputDemux_DispatchByToken(InputDemux* demux, Packet* npkt, const PName* name)
 {
-  uint64_t token = Packet_GetLpL3Hdr(npkt)->pitToken;
-  if (unlikely(token == 0)) {
-    InputDemux_Drop(demux, npkt, "no-token");
+  const LpPitToken* token = &Packet_GetLpL3Hdr(npkt)->pitToken;
+  if (unlikely(token->length <= demux->byToken.offset)) {
+    InputDemux_Drop(demux, npkt, "token-too-short");
     return;
   }
 
-  uint8_t index = token >> 56;
+  uint8_t index = token->value[demux->byToken.offset];
   InputDemux_PassTo(demux, npkt, index);
 }
