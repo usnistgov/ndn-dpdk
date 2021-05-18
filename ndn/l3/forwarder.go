@@ -18,7 +18,7 @@ import (
 //    Thus, it is not recommended to connect to multiple uplinks.
 //  - There is no pending Interest table. Instead, downstream 'face' ID is inserted as part of the PIT token.
 //    Since PIT token cannot exceed 32 octets, this takes away some space.
-//    Thus, consumers are allowed to use a PIT token up to 30 octets; Interests with longer PIT tokens may be dropped.
+//    Thus, consumers are allowed to use a PIT token up to 28 octets; Interests with longer PIT tokens may be dropped.
 type Forwarder interface {
 	// AddFace adds a Face to the forwarder.
 	// face.Rx() and face.Tx() should not be used after this operation.
@@ -43,28 +43,34 @@ type Forwarder interface {
 // NewForwarder creates a Forwarder.
 func NewForwarder() Forwarder {
 	fw := &forwarder{
-		faces:         make(map[uint16]*fwFace),
+		faces:         make(map[uint32]*fwFace),
 		announcements: setmultimap.New(),
 		readvertise:   make(map[ReadvertiseDestination]bool),
 		cmd:           make(chan func()),
-		pkt:           make(chan *ndn.Packet),
+		rx:            make(chan fwRxPkt),
 	}
 	go fw.loop()
 	return fw
 }
 
+type fwRxPkt struct {
+	*ndn.Packet
+	rxFace *fwFace
+}
+
 type forwarder struct {
-	faces         map[uint16]*fwFace
+	faces         map[uint32]*fwFace
 	announcements multimap.MultiMap // multimap[string(prefixV)]*fwFace
 	readvertise   map[ReadvertiseDestination]bool
 	cmd           chan func()
-	pkt           chan *ndn.Packet
+	rx            chan fwRxPkt
 }
 
 func (fw *forwarder) AddFace(face Face) (ff FwFace, e error) {
 	f := &fwFace{
 		Face:          face,
 		fw:            fw,
+		tx:            face.Tx(),
 		routes:        make(map[string]ndn.Name),
 		announcements: make(map[string]ndn.Name),
 	}
@@ -77,7 +83,7 @@ func (fw *forwarder) AddFace(face Face) (ff FwFace, e error) {
 		}
 
 		for f.id == 0 || fw.faces[f.id] != nil {
-			f.id = uint16(rand.Uint32())
+			f.id = rand.Uint32()
 		}
 		fw.faces[f.id] = f
 	})
@@ -118,7 +124,7 @@ func (fw *forwarder) loop() {
 		select {
 		case fn := <-fw.cmd:
 			fn()
-		case pkt := <-fw.pkt:
+		case pkt := <-fw.rx:
 			switch {
 			case pkt.Interest != nil:
 				fw.forwardInterest(pkt)
@@ -129,10 +135,14 @@ func (fw *forwarder) loop() {
 	}
 }
 
-func (fw *forwarder) forwardInterest(pkt *ndn.Packet) {
+func (fw *forwarder) forwardInterest(pkt fwRxPkt) {
 	lpmLen := 0
 	var nexthops []*fwFace
 	for _, f := range fw.faces {
+		if pkt.rxFace == f {
+			continue
+		}
+
 		matchLen := f.lpmRoute(pkt.Interest.Name)
 		switch {
 		case matchLen > lpmLen:
@@ -145,15 +155,15 @@ func (fw *forwarder) forwardInterest(pkt *ndn.Packet) {
 	}
 
 	for _, f := range nexthops {
-		f.Tx() <- pkt
+		f.tx <- pkt
 	}
 }
 
-func (fw *forwarder) forwardDataNack(pkt *ndn.Packet) {
-	id, token := tokenStripID(pkt.Lp.PitToken)
+func (fw *forwarder) forwardDataNack(pkt fwRxPkt) {
+	var id uint32
+	id, pkt.Lp.PitToken = tokenStripID(pkt.Lp.PitToken)
 	if f := fw.faces[id]; f != nil {
-		pkt.Lp.PitToken = token
-		f.Tx() <- pkt
+		f.tx <- pkt.Packet
 	}
 }
 

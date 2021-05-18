@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
+	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/ndn"
 )
@@ -30,22 +31,28 @@ type FwFace interface {
 	RemoveAnnouncement(name ndn.Name)
 }
 
-func tokenInsertID(oldToken []byte, id uint16) (token []byte) {
-	token = make([]byte, 2, 2+len(oldToken))
-	binary.LittleEndian.PutUint16(token, id)
+const tokenSize = int(unsafe.Sizeof(uint32(0)))
+
+func tokenInsertID(oldToken []byte, id uint32) (token []byte) {
+	token = make([]byte, tokenSize, tokenSize+len(oldToken))
+	binary.LittleEndian.PutUint32(token, id)
 	return append(token, oldToken...)
 }
 
-func tokenStripID(token []byte) (id uint16, newToken []byte) {
-	id = binary.LittleEndian.Uint16(token)
-	newToken = token[2:]
+func tokenStripID(token []byte) (id uint32, newToken []byte) {
+	if len(token) < tokenSize {
+		return 0, nil
+	}
+	id = binary.LittleEndian.Uint32(token)
+	newToken = token[tokenSize:]
 	return
 }
 
 type fwFace struct {
 	Face
 	fw            *forwarder
-	id            uint16
+	id            uint32
+	tx            chan<- ndn.L3Packet
 	routes        map[string]ndn.Name
 	announcements map[string]ndn.Name
 }
@@ -55,9 +62,13 @@ func (f *fwFace) rxLoop() {
 		switch {
 		case pkt.Interest != nil:
 			pkt.Lp.PitToken = tokenInsertID(pkt.Lp.PitToken, f.id)
-			f.fw.pkt <- pkt
 		case pkt.Data != nil, pkt.Nack != nil:
-			f.fw.pkt <- pkt
+		default:
+			continue
+		}
+		f.fw.rx <- fwRxPkt{
+			Packet: pkt,
+			rxFace: f,
 		}
 	}
 }
@@ -127,7 +138,7 @@ func (f *fwFace) Close() error {
 			f.removeAnnouncementImpl(name, nameS)
 		}
 		delete(f.fw.faces, f.id)
-		close(f.Tx())
+		close(f.tx)
 	})
 	return nil
 }

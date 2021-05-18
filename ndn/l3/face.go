@@ -19,12 +19,12 @@ type Face interface {
 	// Transport returns the underlying transport.
 	Transport() Transport
 
-	// Rx returns a channel to receive incoming packets.
+	// Rx returns a channel to receive incoming packets toward the forwarder.
 	// This function always returns the same channel.
 	// This channel is closed when the face is closed.
 	Rx() <-chan *ndn.Packet
 
-	// Tx returns a channel to send outgoing packets.
+	// Tx returns a channel to send outgoing packets from the forwarder.
 	// This function always returns the same channel.
 	// Closing this channel causes the face to close.
 	Tx() chan<- ndn.L3Packet

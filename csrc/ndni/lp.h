@@ -57,7 +57,8 @@ LpPitToken_Set(LpPitToken* token, uint8_t length, const uint8_t* value)
   "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8  \
   "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8  \
   "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8  \
-  "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8
+  "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8  \
+  "(%" PRIu8 ")"
 
 /** @brief printf variables for FaceID. */
 #define LpPitToken_Fmt(token)                                                                      \
@@ -68,7 +69,7 @@ LpPitToken_Set(LpPitToken* token, uint8_t length, const uint8_t* value)
     (token)->value[18], (token)->value[19], (token)->value[20], (token)->value[21],                \
     (token)->value[22], (token)->value[23], (token)->value[24], (token)->value[25],                \
     (token)->value[26], (token)->value[27], (token)->value[28], (token)->value[29],                \
-    (token)->value[30], (token)->value[31]
+    (token)->value[30], (token)->value[31], (token)->length
 
 /** @brief NDNLPv2 layer 3 fields. */
 typedef struct LpL3
