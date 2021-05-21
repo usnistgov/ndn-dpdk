@@ -3,7 +3,7 @@ package gqlserver
 import (
 	"bytes"
 	"crypto/rand"
-	"encoding/base64"
+	"encoding/base32"
 	"errors"
 	"fmt"
 	"reflect"
@@ -12,33 +12,34 @@ import (
 )
 
 var (
-	idKey     [64]byte
-	nodeTypes = make(map[string]*NodeType)
+	idKey      [64]byte
+	idEncoding = base32.HexEncoding.WithPadding(base32.NoPadding)
+	nodeTypes  = make(map[string]*NodeType)
 
 	errNoRetrieve = errors.New("cannot retrieve Node")
 	errNoDelete   = errors.New("cannot delete Node")
 	errWrongType  = errors.New("ID refers to wrong NodeType")
 )
 
+func xorID(value []byte) []byte {
+	for i, b := range value {
+		value[i] = b ^ idKey[i%len(idKey)]
+	}
+	return value
+}
+
 func makeID(prefix string, suffix interface{}) (id string) {
 	var buffer bytes.Buffer
 	fmt.Fprintf(&buffer, "%s:%v", prefix, suffix)
-	value := buffer.Bytes()
-	for i, b := range value {
-		value[i] = b ^ idKey[i%len(idKey)]
-	}
-	return base64.RawURLEncoding.EncodeToString(value)
+	return idEncoding.EncodeToString(xorID(buffer.Bytes()))
 }
 
 func parseID(id string) (prefix, suffix string, ok bool) {
-	value, e := base64.RawURLEncoding.DecodeString(id)
+	value, e := idEncoding.DecodeString(id)
 	if e != nil {
 		return
 	}
-
-	for i, b := range value {
-		value[i] = b ^ idKey[i%len(idKey)]
-	}
+	value = xorID(value)
 
 	tokens := bytes.SplitN(value, []byte{':'}, 2)
 	if len(tokens) != 2 {

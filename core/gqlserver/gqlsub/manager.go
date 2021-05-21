@@ -1,3 +1,4 @@
+// Package gqlsub provides GraphQL subscriptions functionality.
 package gqlsub
 
 import (
