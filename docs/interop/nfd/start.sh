@@ -12,27 +12,30 @@ fi
 mkdir -p /etc/ndn/certs
 ndnsec cert-dump -i $(ndnsec get-default) > /etc/ndn/certs/localhost.ndncert
 
-cp /nfd.conf.sample /etc/ndn/nfd.conf
-infoedit -f /etc/ndn/nfd.conf -s general.user -v ndn
-infoedit -f /etc/ndn/nfd.conf -s general.group -v ndn
-infoedit -f /etc/ndn/nfd.conf -s tables.cs_max_packets -v $NFD_CS_CAP
-infoedit -f /etc/ndn/nfd.conf -s face_system.unix.path -v /run/ndn/nfd.sock
-infoedit -f /etc/ndn/nfd.conf -d face_system.tcp
-infoedit -f /etc/ndn/nfd.conf -d face_system.websocket
+cp /etc/ndn/nfd.conf.sample /etc/ndn/nfd.conf
+nfdconfedit() {
+  infoedit -f /etc/ndn/nfd.conf "$@"
+}
+
+nfdconfedit -s general.user -v ndn
+nfdconfedit -s general.group -v ndn
+nfdconfedit -s tables.cs_max_packets -v $NFD_CS_CAP
+nfdconfedit -s face_system.unix.path -v /run/ndn/nfd.sock
+nfdconfedit -d face_system.tcp
+nfdconfedit -d face_system.websocket
 if [[ $NFD_ENABLE_UDP -eq 1 ]]; then
-  infoedit -f /etc/ndn/nfd.conf -s face_system.udp.listen -v no
-  infoedit -f /etc/ndn/nfd.conf -s face_system.udp.mcast -v no
+  nfdconfedit -s face_system.udp.listen -v no
+  nfdconfedit -s face_system.udp.mcast -v no
 else
-  infoedit -f /etc/ndn/nfd.conf -d face_system.udp
+  nfdconfedit -d face_system.udp
 fi
 if [[ $NFD_ENABLE_ETHER -eq 1 ]]; then
-  infoedit -f /etc/ndn/nfd.conf -s face_system.ether.listen -v no
-  infoedit -f /etc/ndn/nfd.conf -s face_system.ether.mcast -v no
+  nfdconfedit -s face_system.ether.listen -v no
+  nfdconfedit -s face_system.ether.mcast -v no
 else
-  infoedit -f /etc/ndn/nfd.conf -d face_system.ether
+  nfdconfedit -d face_system.ether
 fi
-infoedit -f /etc/ndn/nfd.conf -d rib.auto_prefix_propagate
+nfdconfedit -d rib.auto_prefix_propagate
 
 chown -R ndn:ndn /var/lib/ndn/nfd
-/connect.sh &
 exec /usr/bin/nfd

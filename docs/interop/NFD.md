@@ -188,6 +188,10 @@ Connect NDN-DPDK to NFD and run consumer:
 # if using Docker, see "NDN-DPDK Docker Container" page
 GQLSERVER=http://127.0.0.1:3030/
 
+# expose run-ndn volume on host machine
+# if using Docker, omit this step
+sudo ln -s $(docker volume inspect -f '{{.Mountpoint}}' run-ndn) /run/ndn
+
 # create face
 A_FACEID=$(gq $GQLSERVER \
   -q 'mutation($loc:JSON!){createFace(locator:$loc){id}}' \
