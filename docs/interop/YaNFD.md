@@ -11,7 +11,7 @@ This provides a clean environment for running YaNFD, and avoids interference fro
 Once you have finished this guide, you can use the same procedures on other YaNFD installations.
 
 Dockerfile and related scripts are provided in [docs/interop/yanfd](yanfd) directory.
-It installs a specific version of YaNFD, and generates configurations suitable for this guide.
+It compiles latest version of YaNFD, and generates configurations suitable for this guide.
 
 To build the YaNFD Docker image:
 
@@ -47,23 +47,24 @@ In this scenario, NDN-DPDK forwarder and YaNFD on two separate machines communic
 
 This scenario uses the following variables.
 You need to modify them to fit your hardware, and paste them on every terminal before entering commands.
-As of this writing, [UDP over IPv6 face creation is broken in YaNFD](https://github.com/eric135/YaNFD/issues/6), so that you can only use IPv4 addresses.
 
 ```bash
+# PCI address of the Ethernet adapter on node A
+A_IF_PCI=04:00.0
 # network interface name of the Ethernet adapter on node A
 A_IFNAME=eth1
 # hardware address of the Ethernet adapter on node A
 A_HWADDR=02:00:00:00:00:01
-# IP address of the Ethernet adapter on node A
-A_IP=192.168.92.1/24
+# IP address of the Ethernet adapter on node A (either IPv4 or IPv6)
+A_IP=fd54:450f:f5ac:807a::1/64
 # name prefix of producer A
 A_NAME=/net/A
 # network interface name of the Ethernet adapter on node B
 B_IFNAME=eth1
 # hardware address of the Ethernet adapter on node B
 B_HWADDR=02:00:00:00:00:02
-# IP address of the Ethernet adapter on node B
-B_IP=192.168.92.2/24
+# IP address of the Ethernet adapter on node B (same address family as A_IP)
+B_IP=fd54:450f:f5ac:807a::2/64
 # name prefix of producer B
 B_NAME=/net/B
 ```
@@ -78,7 +79,18 @@ sudo ip addr replace $A_IP dev $A_IFNAME
 # (re)start NDN-DPDK service
 sudo systemctl restart ndndpdk-svc
 
-# activate NDN-DPDK forwarder
+# activate NDN-DPDK forwarder with PCI Ethernet adapter driver
+# (this only works with bifurcated driver such as mlx5, because kernel needs to respond to ARP/NDP queries)
+jq -n --arg if_pci $A_IF_PCI '
+{
+  eal: {
+    coresPerNuma: { "0": 4, "1": 4 },
+    pciDevices: [$if_pci]
+  }
+}' | ndndpdk-ctrl activate-forwarder
+
+# or, activate NDN-DPDK forwarder with AF_XDP Ethernet adapter driver
+# (IPv6 does not work because NDN-DPDK cannot compute UDP checksum without hardware offload)
 jq -n '
 {
   eal: {

@@ -4,8 +4,8 @@ RUN apt-get -y -qq update && \
     rm -rf /var/lib/apt/lists/*
 RUN wget -q -O /dasel https://github.com/TomWright/dasel/releases/download/v1.15.0/dasel_linux_amd64 && \
     chmod +x /dasel
-WORKDIR /go/src/app
-RUN curl -sfL https://github.com/eric135/YaNFD/archive/156fcdf74ea01d5749a8af9399400d13c9f7a78c.tar.gz | tar xz --strip-components=1 && \
+RUN git clone https://github.com/eric135/YaNFD.git /go/src/app && \
+    cd /go/src/app && \
     make
 
 FROM debian:buster
