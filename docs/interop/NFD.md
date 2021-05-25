@@ -3,16 +3,16 @@
 NDN-DPDK is interoperable with [NFD](https://named-data.net/doc/NFD/) v0.7.1 or later.
 This page gives a few samples on how to establish communication between NDN-DPDK and NFD.
 
-## Prepare NFD Docker Container
+## Prepare NFD Docker Image
 
-When you follow through this guide, it is recommended to install NFD as a Docker container.
+When you follow through this guide, it is recommended to install NFD as a Docker image.
 This provides a clean environment for running NFD, and avoids interference from other software you may have.
 Once you have finished this guide, you can use the same procedures on other NFD installations.
 
 Dockerfile and related scripts are provided in [docs/interop/nfd](nfd) directory.
 It installs the latest NFD version from the [NFD nightly APT repository](https://yoursunny.com/t/2021/NFD-nightly-apt/), and generates configurations suitable for this guide.
 
-To build the NFD container:
+To build the NFD Docker image:
 
 ```bash
 cd docs/interop/nfd
@@ -112,7 +112,7 @@ B_FACEID=$(nfdc face create local dev://${B_IFNAME} remote ether://[${A_HWADDR}]
 nfdc route add prefix $A_NAME nexthop $B_FACEID
 
 # start the producer
-docker run -it --rm \
+docker run -it --rm --network none \
   --mount type=volume,source=run-ndn,target=/run/ndn \
   nfd \
   ndnpingserver --size 512 $B_NAME
@@ -129,7 +129,7 @@ On node B, start a consumer:
 
 ```bash
 # run the consumer
-docker run -it --rm \
+docker run -it --rm --network none \
   --mount type=volume,source=run-ndn,target=/run/ndn \
   nfd \
   ndnping -i 10 $A_NAME
