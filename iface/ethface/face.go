@@ -59,6 +59,10 @@ func New(port *Port, loc ethLocator) (iface.Face, error) {
 			C.EthRxMatch_Prepare(&priv.rxMatch, face.cloc.ptr())
 			useTxMultiSegOffload := !cfg.DisableTxMultiSegOffload && devInfo.HasTxMultiSegOffload()
 			useTxChecksumOffload := !cfg.DisableTxChecksumOffload && devInfo.HasTxChecksumOffload()
+			if loc, ok := face.loc.(UDPLocator); ok && !useTxChecksumOffload && loc.RemoteIP.Unmap().Is6() {
+				// UDP checksum is required in IPv6, and rte_ipv6_udptcp_cksum expects a linear buffer
+				useTxMultiSegOffload = false
+			}
 			C.EthTxHdr_Prepare(&priv.txHdr, face.cloc.ptr(), C.bool(useTxChecksumOffload))
 
 			face.priv = priv

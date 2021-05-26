@@ -1,6 +1,6 @@
 # NDN-DPDK Interoperability with YaNFD
 
-NDN-DPDK is interoperable with recent versions of [YaNFD](https://github.com/eric135/YaNFD), Yet another NDN
+NDN-DPDK is interoperable with recent version of [YaNFD](https://github.com/eric135/YaNFD), Yet another NDN
 Forwarder.
 This page gives a few samples on how to establish communication between NDN-DPDK and YaNFD.
 
@@ -80,7 +80,7 @@ sudo ip addr replace $A_IP dev $A_IFNAME
 sudo systemctl restart ndndpdk-svc
 
 # activate NDN-DPDK forwarder with PCI Ethernet adapter driver
-# (this only works with bifurcated driver such as mlx5, because kernel needs to respond to ARP/NDP queries)
+# (this only works with bifurcated driver such as mlx5, because NDN-DPDK relies on the kernel to respond to ARP/NDP queries)
 jq -n --arg if_pci $A_IF_PCI '
 {
   eal: {
@@ -90,7 +90,6 @@ jq -n --arg if_pci $A_IF_PCI '
 }' | ndndpdk-ctrl activate-forwarder
 
 # or, activate NDN-DPDK forwarder with AF_XDP Ethernet adapter driver
-# (IPv6 does not work because NDN-DPDK cannot compute UDP checksum without hardware offload)
 jq -n '
 {
   eal: {

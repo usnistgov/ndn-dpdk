@@ -6,6 +6,7 @@ import (
 	"github.com/urfave/cli/v2"
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
+	"inet.af/netaddr"
 )
 
 func init() {
@@ -86,8 +87,8 @@ func init() {
 		Local       macaddr.Flag  `json:"local"`
 		Remote      macaddr.Flag  `json:"remote"`
 		VLAN        int           `json:"vlan,omitempty"`
-		LocalIP     net.IP        `json:"localIP,omitempty"`
-		RemoteIP    net.IP        `json:"remoteIP,omitempty"`
+		LocalIP     *netaddr.IP   `json:"localIP,omitempty"`
+		RemoteIP    *netaddr.IP   `json:"remoteIP,omitempty"`
 		LocalUDP    int           `json:"localUDP,omitempty"`
 		RemoteUDP   int           `json:"remoteUDP,omitempty"`
 		VXLAN       int           `json:"vxlan,omitempty"`
@@ -184,13 +185,15 @@ func init() {
 		if e != nil {
 			return e
 		}
-		loc.LocalIP, loc.LocalUDP = local.IP, local.Port
+		localIP, _ := netaddr.FromStdIP(local.IP)
+		loc.LocalIP, loc.LocalUDP = &localIP, local.Port
 
 		remote, e := net.ResolveUDPAddr("udp", remoteUDP)
 		if e != nil {
 			return e
 		}
-		loc.RemoteIP, loc.RemoteUDP = remote.IP, remote.Port
+		remoteIP, _ := netaddr.FromStdIP(remote.IP)
+		loc.RemoteIP, loc.RemoteUDP = &remoteIP, remote.Port
 
 		return nil
 	}

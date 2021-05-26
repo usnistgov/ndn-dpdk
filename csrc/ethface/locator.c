@@ -368,8 +368,10 @@ TxUdp6(const EthTxHdr* hdr, struct rte_mbuf* m)
 __attribute__((nonnull)) static void
 TxUdp6Checksum(const EthTxHdr* hdr, struct rte_mbuf* m)
 {
-  TxUdp6(hdr, m);
-  // XXX rte_ipv6_udptcp_cksum cannot handle multi-segment mbuf, UDP checksum will be zero
+  NDNDPDK_ASSERT(rte_pktmbuf_is_contiguous(m));
+  struct rte_ipv6_hdr* ip = TxUdp6(hdr, m);
+  struct rte_udp_hdr* udp = RTE_PTR_ADD(ip, sizeof(*ip));
+  udp->dgram_cksum = rte_ipv6_udptcp_cksum(ip, udp);
 }
 
 __attribute__((nonnull)) static void

@@ -51,5 +51,6 @@ require (
 	golang.org/x/sys v0.0.0-20210521090106-6ca3eb03dfc2
 	golang.org/x/term v0.0.0-20210503060354-a79de5458b56 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
+	inet.af/netaddr v0.0.0-20210525141459-c0eff8545de6
 	inet.af/netstack v0.0.0-20210317161235-a1bf4e56ef22
 )

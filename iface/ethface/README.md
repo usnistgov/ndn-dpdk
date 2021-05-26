@@ -99,12 +99,6 @@ Known limitations:
 * NDN-DPDK does not lookup IP routing tables or send ARP queries.
   To allow outgoing packets to reach the IP router, the *remote* field of the locator should be the MAC address of the IP router.
 
-* IPv4 and UDP checksum are computed through hardware offloads if available.
-  In case the Ethernet adapter does not support checksum offloads,
-
-  * IPv4 checksum can be computed in software.
-  * UDP checksum cannot be computed and is set to zero, which is illegal in IPv6.
-
 * IPv4 options and IPv6 extension headers are not allowed.
   Incoming packets with these are dropped.
 

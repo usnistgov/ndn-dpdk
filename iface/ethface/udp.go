@@ -3,11 +3,11 @@ package ethface
 import (
 	"errors"
 	"math"
-	"net"
 
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
+	"inet.af/netaddr"
 )
 
 // Error conditions.
@@ -28,11 +28,11 @@ type UDPLocator struct {
 
 	// LocalIP is the local IP address.
 	// It may be either IPv4 or IPv6.
-	LocalIP net.IP `json:"localIP"`
+	LocalIP netaddr.IP `json:"localIP"`
 
 	// RemoteIP is the remote IP address.
 	// It may be either IPv4 or IPv6.
-	RemoteIP net.IP `json:"remoteIP"`
+	RemoteIP netaddr.IP `json:"remoteIP"`
 
 	// LocalUDP is the local UDP port number.
 	LocalUDP int `json:"localUDP"`
@@ -52,17 +52,15 @@ func (loc UDPLocator) Validate() error {
 		return e
 	}
 
-	l4, l16 := loc.LocalIP.To4(), loc.LocalIP.To16()
-	r4, r16 := loc.RemoteIP.To4(), loc.RemoteIP.To16()
+	local, remote := loc.LocalIP.Unmap(), loc.RemoteIP.Unmap()
 	switch {
 	case !macaddr.IsUnicast(loc.Remote.HardwareAddr):
 		return packettransport.ErrUnicastMacAddr
-	case l16 == nil, r16 == nil:
+	case local.IsZero(), remote.IsZero():
 		return ErrIP
-	case l4 == nil && r4 != nil, l4 != nil && r4 == nil:
+	case local.BitLen() != remote.BitLen():
 		return ErrIPFamily
-	case !(l16.IsGlobalUnicast() || l16.IsLinkLocalUnicast()),
-		!(r16.IsGlobalUnicast() || r16.IsLinkLocalUnicast()):
+	case local.IsMulticast(), remote.IsMulticast():
 		return ErrUnicastIP
 	case loc.LocalUDP <= 0 || loc.LocalUDP > math.MaxUint16,
 		loc.RemoteUDP <= 0 || loc.RemoteUDP > math.MaxUint16:
@@ -74,8 +72,8 @@ func (loc UDPLocator) Validate() error {
 
 func (loc UDPLocator) cLoc() (c cLocator) {
 	c = loc.EtherLocator.cLoc()
-	copy(c.LocalIP[:], loc.LocalIP.To16())
-	copy(c.RemoteIP[:], loc.RemoteIP.To16())
+	c.LocalIP = loc.LocalIP.As16()
+	c.RemoteIP = loc.RemoteIP.As16()
 	c.LocalUDP = uint16(loc.LocalUDP)
 	c.RemoteUDP = uint16(loc.RemoteUDP)
 	return
