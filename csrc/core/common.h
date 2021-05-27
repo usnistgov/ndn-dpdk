@@ -9,6 +9,11 @@
 
 /** @file */
 
+#if __INTELLISENSE__
+// https://github.com/microsoft/vscode-cpptools/issues/4503
+#pragma diag_suppress 1094
+#endif
+
 #include <assert.h>
 #include <inttypes.h>
 #include <limits.h>
@@ -47,5 +52,15 @@
 
 /** @brief Compute ceil( @p a / @p b ) . */
 #define DIV_CEIL(a, b) (((a) + (b)-1) / (b))
+
+#ifdef NDEBUG
+#define NULLize(x) (void)(x)
+#else
+/** @brief Set x to NULL to crash on memory access bugs. */
+#define NULLize(x)                                                                                 \
+  do {                                                                                             \
+    (x) = NULL;                                                                                    \
+  } while (false)
+#endif
 
 #endif // NDNDPDK_CORE_COMMON_H

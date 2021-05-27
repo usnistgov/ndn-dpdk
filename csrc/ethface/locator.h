@@ -44,7 +44,6 @@ struct EthRxMatch
   EthRxMatchFunc f;
   uint8_t len;
   uint8_t l2len;
-  uint8_t l2matchLen;
   uint8_t l3matchOff;
   uint8_t l3matchLen;
   uint8_t udpOff;
@@ -95,7 +94,7 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, const EthLocator* loc);
 
 typedef struct EthTxHdr EthTxHdr;
 
-typedef void (*EthTxHdrFunc)(const EthTxHdr* hdr, struct rte_mbuf* m);
+typedef void (*EthTxHdrFunc)(const EthTxHdr* hdr, struct rte_mbuf* m, bool newBurst);
 
 struct EthTxHdr
 {
@@ -113,11 +112,12 @@ EthTxHdr_Prepare(EthTxHdr* hdr, const EthLocator* loc, bool hasChecksumOffloads)
 /**
  * @brief Prepend TX header.
  * @param hdr prepared by @c EthTxHdr_Prepare .
+ * @param newBurst whether @p m is the first frame in a new burst.
  */
 __attribute__((nonnull)) static inline void
-EthTxHdr_Prepend(const EthTxHdr* hdr, struct rte_mbuf* m)
+EthTxHdr_Prepend(const EthTxHdr* hdr, struct rte_mbuf* m, bool newBurst)
 {
-  (hdr->f)(hdr, m);
+  (hdr->f)(hdr, m, newBurst);
 }
 
 #endif // NDNDPDK_ETHFACE_LOCATOR_H

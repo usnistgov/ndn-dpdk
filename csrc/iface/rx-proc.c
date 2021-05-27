@@ -26,15 +26,8 @@ RxProc_Input(RxProc* rx, int thread, struct rte_mbuf* frame)
     return npkt;
   }
 
-  if (unlikely(thread != 0)) {
-    // reassembler is available on thread 0 only
-    N_LOGW("lp-reassembler-unavail face=%" PRI_FaceID " thread=%d", faceID, thread);
-    rte_pktmbuf_free(frame);
-    return NULL;
-  }
-
-  npkt = Reassembler_Accept(&rx->reass, npkt);
-  frame = NULL; // disallow further usage of 'frame'
+  NULLize(frame); // frame aliases npkt, but npkt will be owned by reassembler
+  npkt = Reassembler_Accept(&rxt->reass, npkt);
   if (npkt == NULL) {
     return NULL;
   }

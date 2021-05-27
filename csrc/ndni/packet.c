@@ -39,8 +39,7 @@ Packet_Parse(Packet* npkt)
   }
 
   if (lph->l2.fragCount > 1) {
-    // PktFragment is zero, no need to invoke setter
-    NDNDPDK_ASSERT(Packet_GetType(npkt) == PktFragment);
+    Packet_SetType(npkt, PktFragment);
     return true;
   }
 
@@ -58,7 +57,7 @@ Packet_ParseL3(Packet* npkt)
     return false;
   }
 
-  uint8_t type = *rte_pktmbuf_mtod(pkt, const uint8_t*);
+  uint8_t type = rte_pktmbuf_mtod(pkt, const uint8_t*)[0];
   switch (type) {
     case TtInterest:
       Packet_SetType(npkt, priv->lpl3.nackReason == 0 ? PktInterest : PktNack);

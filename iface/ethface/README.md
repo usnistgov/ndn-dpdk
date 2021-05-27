@@ -83,7 +83,7 @@ Multiple UDP and VXLAN tunnels can coexist if any of the following is true:
 
 Known limitations:
 
-* NDN-DPDK does not respond to Address Resolution Protocol (ARP) queries.
+* NDN-DPDK does not respond to Address Resolution Protocol (ARP) or Neighbor Discovery Protocol (NDP) queries.
 
   * To allow incoming packets to reach NDN-DPDK, configure MAC-IP binding on the IP router.
 
@@ -104,7 +104,8 @@ Known limitations:
 
 * IPv4 fragments are not accepted.
 
-* If multiple RX queues are being used, NDNLPv2 reassembly does not work.
+* If a VXLAN face has multiple RX queues, NDNLPv2 reassembly works only if all fragments of a network layer packets are sent with the same UDP source port number.
+  NDN-DPDK send path and the VXLAN driver in the Linux kernel both fulfill this requirement.
 
 ## Memif Face
 

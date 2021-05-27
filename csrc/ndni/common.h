@@ -12,16 +12,6 @@
 #include "an.h"
 #include "enum.h"
 
-#ifdef NDEBUG
-#define NULLize(x) (void)(x)
-#else
-/** @brief Set x to NULL to crash on memory access bugs. */
-#define NULLize(x)                                                                                 \
-  do {                                                                                             \
-    (x) = NULL;                                                                                    \
-  } while (false)
-#endif
-
 typedef struct Packet Packet;
 typedef struct PInterest PInterest;
 typedef struct PData PData;

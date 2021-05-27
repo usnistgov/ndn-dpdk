@@ -8,7 +8,7 @@ LpHeader_IsCriticalType_(uint32_t type)
   return type < 800 || type > 959 || (type & 0x03) != 0x00;
 }
 
-static __rte_always_inline bool
+__attribute__((nonnull)) static __rte_always_inline bool
 LpHeader_ParseNack_(LpHeader* lph, TlvDecoder* d)
 {
   lph->l3.nackReason = NackUnspecified;
@@ -23,6 +23,7 @@ LpHeader_ParseNack_(LpHeader* lph, TlvDecoder* d)
         if (LpHeader_IsCriticalType_(type)) {
           return false;
         }
+        TlvDecoder_Skip(d, length);
         break;
     }
   }
@@ -175,8 +176,8 @@ LpHeader_Prepend(struct rte_mbuf* pkt, const LpL3* l3, const LpL2* l2)
   }
 
   if (unlikely(l2->fragCount > 1)) {
-    assert(l2->fragIndex < l2->fragCount);
-    assert(l2->fragCount <= LpMaxFragments);
+    NDNDPDK_ASSERT(l2->fragIndex < l2->fragCount);
+    NDNDPDK_ASSERT(l2->fragCount <= LpMaxFragments);
 
     typedef struct FragF
     {

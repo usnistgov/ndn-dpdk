@@ -26,7 +26,6 @@ const (
 
 const (
 	rxfMaxPortQueues = 4 // up to C.RTE_MAX_QUEUES_PER_PORT
-	rxfMaxFaceQueues = C.RXPROC_MAX_THREADS
 )
 
 // Read rte_flow_error into Go error.
@@ -102,7 +101,7 @@ func (impl *rxFlowImpl) Init() error {
 }
 
 func (impl *rxFlowImpl) Start(face *ethFace) error {
-	queues := impl.allocQueues(math.MaxInt(1, face.loc.faceConfig().MaxRxQueues))
+	queues := impl.allocQueues(math.MinInt(math.MaxInt(1, face.loc.faceConfig().MaxRxQueues), iface.MaxRxProcThreads))
 	if len(queues) == 0 {
 		// TODO reclaim deferred-destroy queues
 		return errors.New("no available queue")

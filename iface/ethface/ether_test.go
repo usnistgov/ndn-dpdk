@@ -139,5 +139,5 @@ func TestFragmentation(t *testing.T) {
 	fixture.CheckCounters()
 
 	cntB := faceB.Counters()
-	assert.Greater(cntB.ReassDrops, uint64(0))
+	assert.Greater(cntB.RxReassDrops, uint64(0))
 }

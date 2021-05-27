@@ -1,6 +1,7 @@
 package iface
 
 import (
+	"reflect"
 	"strconv"
 
 	"github.com/graphql-go/graphql"
@@ -12,10 +13,12 @@ import (
 
 // GraphQL types.
 var (
-	GqlPktQueueInput *graphql.InputObject
-	GqlCountersType  *graphql.Object
-	GqlFaceNodeType  *gqlserver.NodeType
-	GqlFaceType      *graphql.Object
+	GqlPktQueueInput  *graphql.InputObject
+	GqlRxCountersType *graphql.Object
+	GqlTxCountersType *graphql.Object
+	GqlCountersType   *graphql.Object
+	GqlFaceNodeType   *gqlserver.NodeType
+	GqlFaceType       *graphql.Object
 )
 
 func init() {
@@ -44,9 +47,20 @@ func init() {
 		},
 	})
 
+	GqlRxCountersType = graphql.NewObject(graphql.ObjectConfig{
+		Name:   "FaceRxCounters",
+		Fields: gqlserver.BindFields(RxCounters{}, nil),
+	})
+	GqlTxCountersType = graphql.NewObject(graphql.ObjectConfig{
+		Name:   "FaceTxCounters",
+		Fields: gqlserver.BindFields(TxCounters{}, nil),
+	})
 	GqlCountersType = graphql.NewObject(graphql.ObjectConfig{
-		Name:   "FaceCounters",
-		Fields: gqlserver.BindFields(Counters{}, nil),
+		Name: "FaceCounters",
+		Fields: gqlserver.BindFields(Counters{}, gqlserver.FieldTypes{
+			reflect.TypeOf(RxCounters{}): GqlRxCountersType,
+			reflect.TypeOf(TxCounters{}): GqlTxCountersType,
+		}),
 	})
 
 	GqlFaceNodeType = gqlserver.NewNodeType((*Face)(nil))

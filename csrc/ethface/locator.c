@@ -51,13 +51,13 @@ EthLocator_CanCoexist(const EthLocator* a, const EthLocator* b)
     return true;
   }
   if (!ac.udp) {
-    if (memcmp(&a->local, &b->local, sizeof(a->local)) != 0 ||
-        memcmp(&a->remote, &b->remote, sizeof(a->remote)) != 0) {
-      // Ethernet faces with different unicast MAC addresses can coexist
-      return true;
+    if (rte_is_same_ether_addr(&a->local, &b->local) &&
+        rte_is_same_ether_addr(&a->remote, &b->remote)) {
+      // Ethernet faces with same MAC addresses and VLAN conflict
+      return false;
     }
-    // Ethernet faces with same MAC addresses and VLAN conflict
-    return false;
+    // Ethernet faces with different unicast MAC addresses can coexist
+    return true;
   }
   if (memcmp(a->localIP, b->localIP, sizeof(a->localIP)) != 0 ||
       memcmp(a->remoteIP, b->remoteIP, sizeof(a->remoteIP)) != 0) {
@@ -76,10 +76,9 @@ EthLocator_CanCoexist(const EthLocator* a, const EthLocator* b)
     // UDP face and VXLAN face with same port numbers conflict
     return false;
   }
-  // VXLAN faces can coexist if VNI or either inner MAC address differ
-  return a->vxlan != b->vxlan ||
-         memcmp(&a->innerLocal, &b->innerLocal, sizeof(a->innerLocal)) != 0 ||
-         memcmp(&a->innerRemote, &b->innerRemote, sizeof(a->innerRemote)) != 0;
+  // VXLAN faces can coexist if VNI or inner MAC address differ
+  return a->vxlan != b->vxlan || !rte_is_same_ether_addr(&a->innerLocal, &b->innerLocal) ||
+         !rte_is_same_ether_addr(&a->innerRemote, &b->innerRemote);
 }
 
 __attribute__((nonnull)) static uint8_t
@@ -95,7 +94,7 @@ PutEtherVlanHdr(uint8_t* buffer, const struct rte_ether_addr* src, const struct 
   }
 
   struct rte_vlan_hdr* vlan = (struct rte_vlan_hdr*)RTE_PTR_ADD(buffer, RTE_ETHER_HDR_LEN);
-  vlan->vlan_tci = rte_cpu_to_be_16(vid);
+  vlan->vlan_tci = rte_cpu_to_be_16(vid & 0x0FFF);
   vlan->eth_proto = ether->ether_type;
   ether->ether_type = rte_cpu_to_be_16(RTE_ETHER_TYPE_VLAN);
   return ETHER_VLAN_HLEN;
@@ -144,11 +143,23 @@ PutVxlanHdr(uint8_t* buffer, uint32_t vni)
   return sizeof(*vxlan);
 }
 
+__attribute__((nonnull)) static __rte_always_inline bool
+MatchVlan(const EthRxMatch* match, const struct rte_mbuf* m)
+{
+  const struct rte_vlan_hdr* vlan =
+    rte_pktmbuf_mtod_offset(m, const struct rte_vlan_hdr*, RTE_ETHER_HDR_LEN);
+  const struct rte_vlan_hdr* vlant = RTE_PTR_ADD(match->buf, RTE_ETHER_HDR_LEN);
+  return match->l2len != ETHER_VLAN_HLEN ||
+         (vlan->eth_proto == vlant->eth_proto &&
+          (vlan->vlan_tci & rte_cpu_to_be_16(0x0FFF)) == vlant->vlan_tci);
+}
+
 __attribute__((nonnull)) static bool
 MatchEtherUnicast(const EthRxMatch* match, const struct rte_mbuf* m)
 {
   // exact match on Ethernet and VLAN headers
-  return memcmp(rte_pktmbuf_mtod(m, const uint8_t*), match->buf, match->l2len) == 0;
+  return memcmp(rte_pktmbuf_mtod(m, const uint8_t*), match->buf, RTE_ETHER_HDR_LEN) == 0 &&
+         MatchVlan(match, m);
 }
 
 __attribute__((nonnull)) static bool
@@ -158,7 +169,9 @@ MatchEtherMulticast(const EthRxMatch* match, const struct rte_mbuf* m)
   const struct rte_ether_hdr* ether = rte_pktmbuf_mtod(m, const struct rte_ether_hdr*);
   return rte_is_multicast_ether_addr(&ether->d_addr) &&
          memcmp(RTE_PTR_ADD(ether, ETHER_ETHERTYPE_OFFSET),
-                RTE_PTR_ADD(match->buf, ETHER_ETHERTYPE_OFFSET), match->l2matchLen) == 0;
+                RTE_PTR_ADD(match->buf, ETHER_ETHERTYPE_OFFSET),
+                RTE_ETHER_HDR_LEN - ETHER_ETHERTYPE_OFFSET) == 0 &&
+         MatchVlan(match, m);
 }
 
 __attribute__((nonnull)) static bool
@@ -195,7 +208,6 @@ EthRxMatch_Prepare(EthRxMatch* match, const EthLocator* loc)
   match->l2len =
     PutEtherVlanHdr(BUF_TAIL, &loc->remote, &loc->local, loc->vlan, classify.etherType);
   match->len += match->l2len;
-  match->l2matchLen = match->l2len - ETHER_ETHERTYPE_OFFSET;
   match->f = classify.multicast ? MatchEtherMulticast : MatchEtherUnicast;
   if (!classify.udp) {
     return;
@@ -314,14 +326,21 @@ TxPrepend(const EthTxHdr* hdr, struct rte_mbuf* m)
   rte_memcpy(room, hdr->buf, hdr->len);
 }
 
-static __rte_always_inline uint16_t
-TxMakeVxlanSrcPort()
+__attribute__((nonnull)) static void
+TxEther(const EthTxHdr* hdr, struct rte_mbuf* m, bool newBurst)
 {
-  return ((++RTE_PER_LCORE(txVxlanSrcPort)) & VXLAN_SRCPORT_MASK) | VXLAN_SRCPORT_BASE;
+  TxPrepend(hdr, m);
+}
+
+static __rte_always_inline uint16_t
+TxMakeVxlanSrcPort(bool newBurst)
+{
+  RTE_PER_LCORE(txVxlanSrcPort) += (int)newBurst;
+  return (RTE_PER_LCORE(txVxlanSrcPort) & VXLAN_SRCPORT_MASK) | VXLAN_SRCPORT_BASE;
 }
 
 __attribute__((nonnull)) static __rte_always_inline struct rte_ipv4_hdr*
-TxUdp4(const EthTxHdr* hdr, struct rte_mbuf* m)
+TxUdp4(const EthTxHdr* hdr, struct rte_mbuf* m, bool newBurst)
 {
   TxPrepend(hdr, m);
   struct rte_ipv4_hdr* ip = rte_pktmbuf_mtod_offset(m, struct rte_ipv4_hdr*, hdr->l2len);
@@ -330,29 +349,29 @@ TxUdp4(const EthTxHdr* hdr, struct rte_mbuf* m)
   ip->total_length = rte_cpu_to_be_16(ipLen);
   udp->dgram_len = rte_cpu_to_be_16(ipLen - sizeof(*ip));
   if (hdr->vxlanSrcPort) {
-    udp->src_port = rte_cpu_to_be_16(TxMakeVxlanSrcPort());
+    udp->src_port = rte_cpu_to_be_16(TxMakeVxlanSrcPort(newBurst));
   }
   return ip;
 }
 
 __attribute__((nonnull)) static void
-TxUdp4Checksum(const EthTxHdr* hdr, struct rte_mbuf* m)
+TxUdp4Checksum(const EthTxHdr* hdr, struct rte_mbuf* m, bool newBurst)
 {
-  struct rte_ipv4_hdr* ip = TxUdp4(hdr, m);
+  struct rte_ipv4_hdr* ip = TxUdp4(hdr, m, newBurst);
   ip->hdr_checksum = rte_ipv4_cksum(ip);
 }
 
 __attribute__((nonnull)) static void
-TxUdp4Offload(const EthTxHdr* hdr, struct rte_mbuf* m)
+TxUdp4Offload(const EthTxHdr* hdr, struct rte_mbuf* m, bool newBurst)
 {
-  struct rte_ipv4_hdr* ip = TxUdp4(hdr, m);
+  struct rte_ipv4_hdr* ip = TxUdp4(hdr, m, newBurst);
   m->l2_len = hdr->l2len;
   m->l3_len = sizeof(*ip);
   m->ol_flags |= PKT_TX_IPV4 | PKT_TX_IP_CKSUM;
 }
 
 __attribute__((nonnull)) static __rte_always_inline struct rte_ipv6_hdr*
-TxUdp6(const EthTxHdr* hdr, struct rte_mbuf* m)
+TxUdp6(const EthTxHdr* hdr, struct rte_mbuf* m, bool newBurst)
 {
   TxPrepend(hdr, m);
   struct rte_ipv6_hdr* ip = rte_pktmbuf_mtod_offset(m, struct rte_ipv6_hdr*, hdr->l2len);
@@ -360,24 +379,24 @@ TxUdp6(const EthTxHdr* hdr, struct rte_mbuf* m)
   ip->payload_len = rte_cpu_to_be_16(m->pkt_len - hdr->l2len - sizeof(*ip));
   udp->dgram_len = ip->payload_len;
   if (hdr->vxlanSrcPort) {
-    udp->src_port = rte_cpu_to_be_16(TxMakeVxlanSrcPort());
+    udp->src_port = rte_cpu_to_be_16(TxMakeVxlanSrcPort(newBurst));
   }
   return ip;
 }
 
 __attribute__((nonnull)) static void
-TxUdp6Checksum(const EthTxHdr* hdr, struct rte_mbuf* m)
+TxUdp6Checksum(const EthTxHdr* hdr, struct rte_mbuf* m, bool newBurst)
 {
   NDNDPDK_ASSERT(rte_pktmbuf_is_contiguous(m));
-  struct rte_ipv6_hdr* ip = TxUdp6(hdr, m);
+  struct rte_ipv6_hdr* ip = TxUdp6(hdr, m, newBurst);
   struct rte_udp_hdr* udp = RTE_PTR_ADD(ip, sizeof(*ip));
   udp->dgram_cksum = rte_ipv6_udptcp_cksum(ip, udp);
 }
 
 __attribute__((nonnull)) static void
-TxUdp6Offload(const EthTxHdr* hdr, struct rte_mbuf* m)
+TxUdp6Offload(const EthTxHdr* hdr, struct rte_mbuf* m, bool newBurst)
 {
-  struct rte_ipv6_hdr* ip = TxUdp6(hdr, m);
+  struct rte_ipv6_hdr* ip = TxUdp6(hdr, m, newBurst);
   struct rte_udp_hdr* udp = RTE_PTR_ADD(ip, sizeof(*ip));
   m->l2_len = hdr->l2len;
   m->l3_len = sizeof(*ip);
@@ -390,7 +409,7 @@ EthTxHdr_Prepare(EthTxHdr* hdr, const EthLocator* loc, bool hasChecksumOffloads)
 {
   ClassifyResult classify = EthLocator_Classify(loc);
 
-  *hdr = (const EthTxHdr){ .f = TxPrepend };
+  *hdr = (const EthTxHdr){ .f = TxEther };
 #define BUF_TAIL (RTE_PTR_ADD(hdr->buf, hdr->len))
 
   hdr->l2len = PutEtherVlanHdr(BUF_TAIL, &loc->local, &loc->remote, loc->vlan, classify.etherType);

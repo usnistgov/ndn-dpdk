@@ -106,7 +106,7 @@ EthFace_TxBurst(Face* face, struct rte_mbuf** pkts, uint16_t nPkts)
   for (uint16_t i = 0; i < nPkts; ++i) {
     struct rte_mbuf* m = pkts[i];
     NDNDPDK_ASSERT(!face->txAlign.linearize || rte_pktmbuf_is_contiguous(m));
-    EthTxHdr_Prepend(&priv->txHdr, m);
+    EthTxHdr_Prepend(&priv->txHdr, m, i == 0);
   }
   return rte_eth_tx_burst(priv->port, TX_QUEUE_0, pkts, nPkts);
 }

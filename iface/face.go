@@ -207,12 +207,18 @@ func newFace(p NewParams) (Face, error) {
 	}
 	c.outputQueue = (*C.struct_rte_ring)(outputQueue.Ptr())
 
-	reassID := C.CString(eal.AllocObjectID("iface.Reassembler"))
-	defer C.free(unsafe.Pointer(reassID))
-	if ok := bool(C.Reassembler_Init(&c.impl.rx.reass, reassID, C.uint32_t(p.ReassemblerCapacity), C.unsigned(p.Socket.ID()))); !ok {
-		e := eal.GetErrno()
-		logEntry.Warn("Reassembler_Init error", zap.Error(e))
-		return f.clear(), e
+	for i := 0; i < MaxRxProcThreads; i++ {
+		ok := func() bool {
+			reassID := C.CString(eal.AllocObjectID("iface.Reassembler"))
+			defer C.free(unsafe.Pointer(reassID))
+			return bool(C.Reassembler_Init(&c.impl.rx.threads[i].reass, reassID,
+				C.uint32_t(p.ReassemblerCapacity), C.unsigned(p.Socket.ID())))
+		}()
+		if !ok {
+			e := eal.GetErrno()
+			logEntry.Warn("Reassembler_Init error", zap.Int("rx-thread", i), zap.Error(e))
+			return f.clear(), e
+		}
 	}
 
 	C.TxProc_Init(&c.impl.tx, c.txAlign)
@@ -286,7 +292,9 @@ func (f *face) clear() Face {
 	id, c := f.id, f.ptr()
 	c.state = StateRemoved
 	if c.impl != nil {
-		C.Reassembler_Close(&c.impl.rx.reass)
+		for i := 0; i < MaxRxProcThreads; i++ {
+			C.Reassembler_Close(&c.impl.rx.threads[i].reass)
+		}
 		eal.Free(c.impl)
 	}
 	if c.outputQueue != nil {

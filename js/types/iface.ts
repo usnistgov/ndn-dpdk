@@ -223,26 +223,31 @@ export interface SocketFaceLocator {
  * Face counters.
  * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/iface#Counters>
  */
-export interface FaceCounters {
+export interface FaceCounters extends FaceRxCounters, FaceTxCounters {
+  rxThreads: FaceRxCounters[];
+}
+
+export interface FaceRxCounters {
   rxFrames: Counter;
   rxOctets: Counter;
-
-  decodeErrs: Counter;
-  reassPackets: Counter;
-  reassDrops: Counter;
-
   rxInterests: Counter;
   rxData: Counter;
   rxNacks: Counter;
 
+  rxDecodeErrs: Counter;
+  rxReassPackets: Counter;
+  rxReassDrops: Counter;
+}
+
+export interface FaceTxCounters {
+  txFrames: Counter;
+  txOctets: Counter;
   txInterests: Counter;
   txData: Counter;
   txNacks: Counter;
 
-  fragGood: Counter;
-  fragBad: Counter;
+  txFragGood: Counter;
+  txFragBad: Counter;
   txAllocErrs: Counter;
   txDropped: Counter;
-  txFrames: Counter;
-  txOctets: Counter;
 }

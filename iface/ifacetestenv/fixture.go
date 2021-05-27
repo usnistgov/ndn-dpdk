@@ -161,9 +161,9 @@ func (fixture *Fixture) CheckCounters() {
 	assert.InEpsilon(fixture.TxIterations, int(txCnt.TxNacks), fixture.TxLossTolerance)
 	assert.InEpsilon(txCnt.TxInterests+uint64(fixture.DataFrames)*txCnt.TxData+txCnt.TxNacks, txCnt.TxFrames, 0.01)
 	if fixture.DataFrames > 1 {
-		assert.InEpsilon(txCnt.TxData, txCnt.FragGood, 0.01)
+		assert.InEpsilon(txCnt.TxData, txCnt.TxFragGood, 0.01)
 	} else {
-		assert.Zero(txCnt.FragGood)
+		assert.Zero(txCnt.TxFragGood)
 	}
 
 	rxCnt := fixture.rxFace.Counters()
@@ -172,9 +172,9 @@ func (fixture *Fixture) CheckCounters() {
 	assert.EqualValues(fixture.NRxNacks, rxCnt.RxNacks)
 	assert.InEpsilon(rxCnt.RxInterests+uint64(fixture.DataFrames)*rxCnt.RxData+rxCnt.RxNacks, rxCnt.RxFrames, 0.01)
 	if fixture.DataFrames > 1 {
-		assert.InEpsilon(rxCnt.RxData, rxCnt.ReassPackets, 0.01)
+		assert.InEpsilon(rxCnt.RxData, rxCnt.RxReassPackets, 0.01)
 	} else {
-		assert.Zero(rxCnt.ReassPackets)
+		assert.Zero(rxCnt.RxReassPackets)
 	}
 
 	assert.InEpsilon(fixture.TxIterations, fixture.NRxInterests, fixture.RxLossTolerance)
