@@ -48,7 +48,7 @@ type LocatorWrapper struct {
 	Locator
 }
 
-// MarshalJSON implements json.Marshaler.
+// MarshalJSON implements json.Marshaler interface.
 func (locw LocatorWrapper) MarshalJSON() (data []byte, e error) {
 	var kv map[string]interface{}
 	e = jsonhelper.Roundtrip(locw.Locator, &kv)
@@ -61,7 +61,7 @@ func (locw LocatorWrapper) MarshalJSON() (data []byte, e error) {
 	return json.Marshal(kv)
 }
 
-// UnmarshalJSON implements json.Unmarshaler.
+// UnmarshalJSON implements json.Unmarshaler interface.
 func (locw *LocatorWrapper) UnmarshalJSON(data []byte) error {
 	var kv map[string]interface{}
 	if e := json.Unmarshal(data, &kv); e != nil {

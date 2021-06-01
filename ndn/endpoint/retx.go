@@ -47,7 +47,7 @@ type RetxOptions struct {
 	Max time.Duration
 }
 
-// IntervalIterable implements RetxPolicy.
+// IntervalIterable implements RetxPolicy interface.
 func (retx RetxOptions) IntervalIterable(lifetime time.Duration) RetxIterable {
 	if retx.Interval == 0 {
 		retx.Interval = lifetime / 2

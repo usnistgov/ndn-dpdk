@@ -29,7 +29,7 @@ func (loc Locator) Scheme() string {
 	return loc.Network
 }
 
-// WithSchemeField implements iface.locatorWithSchemeField.
+// WithSchemeField implements iface.locatorWithSchemeField interface.
 func (Locator) WithSchemeField() {}
 
 // Validate checks the addresses.

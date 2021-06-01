@@ -16,27 +16,27 @@ type TransportBase struct {
 	emitter *events.Emitter
 }
 
-// Rx implements Transport.
+// Rx implements Transport interface.
 func (b *TransportBase) Rx() <-chan []byte {
 	return b.rx
 }
 
-// Tx implements Transport.
+// Tx implements Transport interface.
 func (b *TransportBase) Tx() chan<- []byte {
 	return b.tx
 }
 
-// State implements Transport.
+// State implements Transport interface.
 func (b *TransportBase) State() TransportState {
 	return b.state
 }
 
-// OnStateChange implements Transport.
+// OnStateChange implements Transport interface.
 func (b *TransportBase) OnStateChange(cb func(st TransportState)) (cancel func()) {
 	return b.emitter.On(evtStateChange, cb)
 }
 
-// TransportBasePriv is an optional helper for implementing Transport.
+// TransportBasePriv is an optional helper for implementing Transport interface.
 type TransportBasePriv struct {
 	b  *TransportBase
 	Rx chan<- []byte
