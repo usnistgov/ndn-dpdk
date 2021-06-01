@@ -3,9 +3,7 @@
 
 /** @file */
 
-#include "../core/common.h"
-#include <rte_flow.h>
-#include <rte_vxlan.h>
+#include "../dpdk/ethdev.h"
 
 /** @brief EthFace header buffer length. */
 #define ETHHDR_MAXLEN                                                                              \

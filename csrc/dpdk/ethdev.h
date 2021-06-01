@@ -5,6 +5,7 @@
 
 #include "../core/common.h"
 #include <rte_ethdev.h>
+#include <rte_flow.h>
 
 /** @brief Retrieve whether an Ethernet device is DOWN. */
 static inline bool

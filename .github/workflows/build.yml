@@ -24,7 +24,7 @@ jobs:
           go-version: ^1.16
       - uses: actions/setup-node@v2
         with:
-          node-version: 14
+          node-version: 16
       - name: install compilers and tools
         run: |
           sudo apt-get update
@@ -44,11 +44,11 @@ jobs:
         with:
           path: |
             ~/setup-dpdk
-          key: ${{ matrix.compiler }}_20210406
+          key: ${{ matrix.compiler }}_20210601
       - uses: yoursunny/setup-dpdk@main
         with:
-          dpdk-version: '21.02'
-          spdk-version: '21.01.1'
+          dpdk-version: '21.05'
+          spdk-version: '21.04'
           target-arch: haswell
       - uses: actions/checkout@v2
       - name: build NDN-DPDK in debug mode

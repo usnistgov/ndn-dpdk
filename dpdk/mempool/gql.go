@@ -24,10 +24,10 @@ var (
 
 func makeFileDumpResolver(f func(fp *C.FILE)) graphql.FieldResolveFn {
 	return func(p graphql.ResolveParams) (interface{}, error) {
-		data, e := cptr.CaptureFileDump(func(fp unsafe.Pointer) {
+		dump, e := cptr.CaptureFileDump(func(fp unsafe.Pointer) {
 			f((*C.FILE)(fp))
 		})
-		return string(data), e
+		return string(dump), e
 	}
 }
 

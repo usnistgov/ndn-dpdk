@@ -3,7 +3,6 @@
 
 /** @file */
 
-#include "../dpdk/ethdev.h"
 #include "../iface/face.h"
 #include "../iface/rxloop.h"
 #include "locator.h"
