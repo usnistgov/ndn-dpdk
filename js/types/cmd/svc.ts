@@ -7,8 +7,8 @@ import type { FwdpConfig } from "../fwdp";
  */
 export interface ActivateFwArgs extends FwdpConfig {
   eal?: EalConfig;
-  mempool?: PktmbufPoolTemplateUpdates<"DIRECT"|"INDIRECT"|"HEADER">;
-  lcoreAlloc?: LCoreAllocConfig<"RX"|"TX"|"CRYPTO"|"FWD">;
+  mempool?: PktmbufPoolTemplateUpdates<"DIRECT" | "INDIRECT" | "HEADER">;
+  lcoreAlloc?: LCoreAllocConfig<"RX" | "TX" | "CRYPTO" | "FWD">;
 }
 
 /**
@@ -17,8 +17,8 @@ export interface ActivateFwArgs extends FwdpConfig {
  */
 export interface ActivateGenArgs {
   eal?: EalConfig;
-  mempool?: PktmbufPoolTemplateUpdates<"DIRECT"|"INDIRECT"|"HEADER"|"INTEREST"|"DATA"|"PAYLOAD">;
-  lcoreAlloc?: LCoreAllocConfig<"RX"|"TX"|"PRODUCER"|"CONSUMER">;
+  mempool?: PktmbufPoolTemplateUpdates<"DIRECT" | "INDIRECT" | "HEADER" | "INTEREST" | "DATA" | "PAYLOAD">;
+  lcoreAlloc?: LCoreAllocConfig<"RX" | "TX" | "PRODUCER" | "CONSUMER">;
 
   /**
    * Minimum number of LCores to reserve.

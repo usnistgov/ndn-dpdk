@@ -212,7 +212,7 @@ export interface SocketFaceConfig extends FaceConfig {
  * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/iface/socketface#Locator>
  */
 export interface SocketFaceLocator {
-  scheme: "udp"|"tcp"|"unix";
+  scheme: "udp" | "tcp" | "unix";
   local?: string;
   remote: string;
 

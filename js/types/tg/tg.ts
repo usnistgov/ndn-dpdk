@@ -12,13 +12,13 @@ import type { TgpPattern } from "./producer";
 export interface TgConfig {
   face: FaceLocator;
   producer?: {
-    rxQueue?: PktQueueConfig.Plain|PktQueueConfig.Delay;
+    rxQueue?: PktQueueConfig.Plain | PktQueueConfig.Delay;
     patterns: TgpPattern[];
     /** @TJS-type integer */
     nThreads?: number;
   };
   consumer?: {
-    rxQueue?: PktQueueConfig.Plain|PktQueueConfig.Delay;
+    rxQueue?: PktQueueConfig.Plain | PktQueueConfig.Delay;
     patterns: TgcPattern[];
     interval: NNNanoseconds;
   };

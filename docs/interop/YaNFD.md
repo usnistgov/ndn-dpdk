@@ -1,6 +1,6 @@
 # NDN-DPDK Interoperability with YaNFD
 
-NDN-DPDK is interoperable with recent version of [YaNFD](https://github.com/eric135/YaNFD), Yet another NDN
+NDN-DPDK is interoperable with recent version of [YaNFD](https://github.com/named-data/YaNFD), Yet another NDN
 Forwarder.
 This page gives a few samples on how to establish communication between NDN-DPDK and YaNFD.
 

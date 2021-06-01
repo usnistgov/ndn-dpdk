@@ -1,6 +1,6 @@
 import type { RunningStatSnapshot as SnapshotJSON } from "../types/core";
 
-function nullNaN(v: number): number|undefined {
+function nullNaN(v: number): number | undefined {
   return Number.isNaN(v) ? undefined : v;
 }
 
