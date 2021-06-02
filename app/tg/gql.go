@@ -217,6 +217,7 @@ func init() {
 		}
 
 		ticker := time.NewTicker(interval.Duration())
+		defer ticker.Stop()
 		for {
 			select {
 			case <-ctx.Done():

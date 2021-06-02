@@ -33,15 +33,10 @@ type Fwd struct {
 	queueN *iface.PktQueue
 }
 
-func newFwd(id int) *Fwd {
-	return &Fwd{
-		id: id,
-	}
-}
-
-func (fwd *Fwd) String() string {
-	return fmt.Sprintf("fwd%d", fwd.id)
-}
+var (
+	_ ealthread.ThreadWithRole     = (*Fwd)(nil)
+	_ ealthread.ThreadWithLoadStat = (*Fwd)(nil)
+)
 
 // Init initializes the forwarding thread.
 // Excluding FIB.
@@ -88,7 +83,7 @@ func (fwd *Fwd) Init(lc eal.LCore, pcctCfg pcct.Config, qcfgI, qcfgD, qcfgN ifac
 	return nil
 }
 
-// Close stops and releases the forwarding thread.
+// Close stops and releases the thread.
 func (fwd *Fwd) Close() error {
 	fwd.Stop()
 	must.Close(fwd.queueI)
@@ -99,12 +94,12 @@ func (fwd *Fwd) Close() error {
 	return nil
 }
 
-// NumaSocket implements fib.LookupThread.
+// NumaSocket implements fib.LookupThread interface.
 func (fwd *Fwd) NumaSocket() eal.NumaSocket {
 	return fwd.Thread.LCore().NumaSocket()
 }
 
-// SetFib implements fib.LookupThread.
+// SetFib implements fib.LookupThread interface.
 func (fwd *Fwd) SetFib(replica unsafe.Pointer, index int) {
 	fwd.c.fib = (*C.Fib)(replica)
 	fwd.c.fibDynIndex = C.uint8_t(index)
@@ -120,15 +115,6 @@ func (fwd *Fwd) Cs() *cs.Cs {
 	return cs.FromPcct(fwd.pcct)
 }
 
-// FwdCounters contains forwarding thread counters.
-type FwdCounters struct {
-	id            int    // FwFwd index
-	NNoFibMatch   uint64 `json:"nNoFibMatch"`   // Interests dropped due to no FIB match
-	NDupNonce     uint64 `json:"nDupNonce"`     // Interests dropped due to duplicate nonce
-	NSgNoFwd      uint64 `json:"nSgNoFwd"`      // Interests not forwarded by strategy
-	NNackMismatch uint64 `json:"nNackMismatch"` // Nacks dropped due to outdated nonce
-}
-
 // Counters retrieves forwarding thread counters.
 func (fwd *Fwd) Counters() (cnt FwdCounters) {
 	cnt.id = fwd.id
@@ -137,6 +123,33 @@ func (fwd *Fwd) Counters() (cnt FwdCounters) {
 	cnt.NSgNoFwd = uint64(fwd.c.nSgNoFwd)
 	cnt.NNackMismatch = uint64(fwd.c.nNackMismatch)
 	return cnt
+}
+
+func (fwd *Fwd) String() string {
+	return fmt.Sprintf("fwd%d", fwd.id)
+}
+
+// ThreadRole implements ealthread.ThreadWithRole interface.
+func (Fwd) ThreadRole() string {
+	return RoleFwd
+}
+
+// ThreadLoadStat implements ealthread.ThreadWithLoadStat interface.
+func (fwd *Fwd) ThreadLoadStat() ealthread.LoadStat {
+	return ealthread.LoadStatFromPtr(unsafe.Pointer(&fwd.c.loadStat))
+}
+
+func newFwd(id int) *Fwd {
+	return &Fwd{id: id}
+}
+
+// FwdCounters contains forwarding thread counters.
+type FwdCounters struct {
+	id            int    // FwFwd index
+	NNoFibMatch   uint64 `json:"nNoFibMatch"`   // Interests dropped due to no FIB match
+	NDupNonce     uint64 `json:"nDupNonce"`     // Interests dropped due to duplicate nonce
+	NSgNoFwd      uint64 `json:"nSgNoFwd"`      // Interests not forwarded by strategy
+	NNackMismatch uint64 `json:"nNackMismatch"` // Nacks dropped due to outdated nonce
 }
 
 func init() {

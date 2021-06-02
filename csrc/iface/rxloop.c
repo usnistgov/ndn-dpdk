@@ -2,7 +2,7 @@
 
 RxGroup theChanRxGroup_;
 
-__attribute__((nonnull)) static void
+__attribute__((nonnull)) static uint64_t
 RxLoop_Transfer(RxLoop* rxl, RxGroup* rxg)
 {
   struct rte_mbuf* frames[MaxBurstSize];
@@ -41,6 +41,8 @@ RxLoop_Transfer(RxLoop* rxl, RxGroup* rxg)
         break;
     }
   }
+
+  return nRx;
 }
 
 int
@@ -49,14 +51,17 @@ RxLoop_Run(RxLoop* rxl)
   rcu_register_thread();
   while (ThreadStopFlag_ShouldContinue(&rxl->stop)) {
     rcu_quiescent_state();
-    rcu_read_lock();
+    uint64_t nProcessed = 0;
 
+    rcu_read_lock();
     RxGroup* rxg;
     struct cds_hlist_node* pos;
     cds_hlist_for_each_entry_rcu (rxg, pos, &rxl->head, rxlNode) {
-      RxLoop_Transfer(rxl, rxg);
+      nProcessed += RxLoop_Transfer(rxl, rxg);
     }
     rcu_read_unlock();
+
+    ThreadLoadStat_Report(&rxl->loadStat, nProcessed);
   }
   rcu_unregister_thread();
   return 0;

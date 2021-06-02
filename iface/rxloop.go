@@ -29,8 +29,9 @@ type RxGroup interface {
 // RxLoop is the input thread that processes incoming packets on a set of RxGroups.
 // Functions are non-thread-safe.
 type RxLoop interface {
-	ealthread.ThreadWithRole
 	eal.WithNumaSocket
+	ealthread.ThreadWithRole
+	ealthread.ThreadWithLoadStat
 	io.Closer
 
 	InterestDemux() *InputDemux
@@ -63,12 +64,16 @@ type rxLoop struct {
 	nRxgs  int
 }
 
+func (rxl *rxLoop) NumaSocket() eal.NumaSocket {
+	return rxl.socket
+}
+
 func (rxl *rxLoop) ThreadRole() string {
 	return "RX"
 }
 
-func (rxl *rxLoop) NumaSocket() eal.NumaSocket {
-	return rxl.socket
+func (rxl *rxLoop) ThreadLoadStat() ealthread.LoadStat {
+	return ealthread.LoadStatFromPtr(unsafe.Pointer(&rxl.c.loadStat))
 }
 
 func (rxl *rxLoop) Close() error {

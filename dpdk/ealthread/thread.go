@@ -32,20 +32,25 @@ type Thread interface {
 
 	// Stop stops the thread.
 	Stop() error
+
+	// stopChan returns a channel that is closed when the thread is stopped.
+	stopped() <-chan struct{}
 }
 
 // New creates a Thread.
 func New(main cptr.Function, stop Stopper) Thread {
 	return &threadImpl{
-		main: main,
-		stop: stop,
+		main:        main,
+		stop:        stop,
+		stoppedChan: make(chan struct{}),
 	}
 }
 
 type threadImpl struct {
-	lc   eal.LCore
-	main cptr.Function
-	stop Stopper
+	lc          eal.LCore
+	main        cptr.Function
+	stop        Stopper
+	stoppedChan chan struct{}
 }
 
 func (th *threadImpl) LCore() eal.LCore {
@@ -71,6 +76,7 @@ func (th *threadImpl) Launch() {
 	if th.IsRunning() {
 		logger.Panic("lcore is busy", th.lc.ZapField("lc"))
 	}
+	th.stoppedChan = make(chan struct{})
 	th.lc.RemoteLaunch(th.main)
 }
 
@@ -81,8 +87,29 @@ func (th *threadImpl) Stop() error {
 	th.stop.BeforeWait()
 	exitCode := th.lc.Wait()
 	th.stop.AfterWait()
+	close(th.stoppedChan)
 	if exitCode != 0 {
 		return fmt.Errorf("exit code %d", exitCode)
+	}
+	return nil
+}
+
+func (th *threadImpl) stopped() <-chan struct{} {
+	return th.stoppedChan
+}
+
+// WithThread is an object that encloses a Thread.
+type WithThread interface {
+	Thread() Thread
+}
+
+// ThreadOf retrieves Thread from Thread or WithThread.
+func ThreadOf(obj interface{}) Thread {
+	switch obj := obj.(type) {
+	case Thread:
+		return obj
+	case WithThread:
+		return obj.Thread()
 	}
 	return nil
 }

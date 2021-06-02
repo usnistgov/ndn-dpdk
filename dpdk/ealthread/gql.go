@@ -1,10 +1,15 @@
 package ealthread
 
 import (
+	"context"
 	"strconv"
+	"time"
 
+	"github.com/functionalfoundry/graphqlws"
 	"github.com/graphql-go/graphql"
 	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
+	"github.com/usnistgov/ndn-dpdk/core/gqlserver/gqlsub"
+	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
@@ -12,6 +17,7 @@ import (
 var (
 	GqlWorkerNodeType *gqlserver.NodeType
 	GqlWorkerType     *graphql.Object
+	GqlLoadStatType   *graphql.Object
 )
 
 func init() {
@@ -93,6 +99,67 @@ func init() {
 			}
 			return list, nil
 		},
+	})
+
+	GqlLoadStatType = graphql.NewObject(graphql.ObjectConfig{
+		Name:   "ThreadLoadStat",
+		Fields: gqlserver.BindFields(LoadStat{}, nil),
+	})
+
+	gqlserver.AddSubscription(&graphql.Field{
+		Name:        "threadLoadStat",
+		Description: "Obtain thread load statistics.",
+		Args: graphql.FieldConfigArgument{
+			"id": &graphql.ArgumentConfig{
+				Description: "Thread object ID.",
+				Type:        gqlserver.NonNullID,
+			},
+			"interval": &graphql.ArgumentConfig{
+				Description: "Interval between updates.",
+				Type:        nnduration.GqlNanoseconds,
+			},
+		},
+		Type: GqlLoadStatType,
+		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+			return p.Info.RootValue.(LoadStat), nil
+		},
+	}, func(ctx context.Context, sub *graphqlws.Subscription, updates chan<- interface{}) {
+		defer close(updates)
+
+		id, ok := gqlsub.GetArg(sub, "id", graphql.ID).(string)
+		if !ok {
+			return
+		}
+
+		_, obj, e := gqlserver.RetrieveNode(id)
+		if e != nil {
+			return
+		}
+		th, ok := ThreadOf(obj).(ThreadWithLoadStat)
+		if !ok {
+			return
+		}
+
+		interval, ok := gqlsub.GetArg(sub, "interval", nnduration.GqlNanoseconds).(nnduration.Nanoseconds)
+		if !ok {
+			return
+		}
+
+		prev := th.ThreadLoadStat()
+		ticker := time.NewTicker(interval.Duration())
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-th.stopped():
+				return
+			case <-ticker.C:
+				stat := th.ThreadLoadStat()
+				updates <- stat.Sub(prev)
+				prev = stat
+			}
+		}
 	})
 }
 

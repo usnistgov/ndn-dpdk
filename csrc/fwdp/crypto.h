@@ -18,6 +18,7 @@ typedef struct FwCrypto
   CryptoQueuePair singleSeg; ///< CryptoDev for single-segment packets
   CryptoQueuePair multiSeg;  ///< CryptoDev for multi-segment packets
   ThreadStopFlag stop;
+  ThreadLoadStat loadStat;
 } FwCrypto;
 
 void

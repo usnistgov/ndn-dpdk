@@ -35,6 +35,7 @@ typedef struct RxLoop
 
   struct cds_hlist_head head;
   ThreadStopFlag stop;
+  ThreadLoadStat loadStat;
 } RxLoop;
 
 __attribute__((nonnull)) int

@@ -25,7 +25,7 @@ TxLoop_TxFrames(Face* face, struct rte_mbuf** frames, uint16_t count)
   }
 }
 
-__attribute__((nonnull)) static void
+__attribute__((nonnull)) static uint64_t
 TxLoop_Transfer(Face* face)
 {
   TxProc* tx = &face->impl->tx;
@@ -70,6 +70,8 @@ TxLoop_Transfer(Face* face)
   if (likely(nHrls > 0)) {
     Hrlog_PostBulk(hrl, nHrls);
   }
+
+  return count;
 }
 
 int
@@ -78,14 +80,17 @@ TxLoop_Run(TxLoop* txl)
   rcu_register_thread();
   while (ThreadStopFlag_ShouldContinue(&txl->stop)) {
     rcu_quiescent_state();
-    rcu_read_lock();
+    uint64_t nProcessed = 0;
 
+    rcu_read_lock();
     Face* face;
     struct cds_hlist_node* pos;
     cds_hlist_for_each_entry_rcu (face, pos, &txl->head, txlNode) {
-      TxLoop_Transfer(face);
+      nProcessed += TxLoop_Transfer(face);
     }
     rcu_read_unlock();
+
+    ThreadLoadStat_Report(&txl->loadStat, nProcessed);
   }
   rcu_unregister_thread();
   return 0;

@@ -22,13 +22,13 @@ FwCrypto_InputEnqueue(FwCrypto* fwc, const CryptoQueuePair* cqp, struct rte_cryp
   }
 }
 
-static void
+static uint64_t
 FwCrypto_Input(FwCrypto* fwc)
 {
   Packet* npkts[FW_CRYPTO_BURST_SIZE];
   uint16_t nDeq = rte_ring_dequeue_burst(fwc->input, (void**)npkts, FW_CRYPTO_BURST_SIZE, NULL);
   if (nDeq == 0) {
-    return;
+    return nDeq;
   }
 
   struct rte_crypto_op* ops[FW_CRYPTO_BURST_SIZE];
@@ -36,14 +36,13 @@ FwCrypto_Input(FwCrypto* fwc)
   if (unlikely(nAlloc == 0)) {
     N_LOGW("rte_crypto_op_bulk_alloc fail fwc=%p", fwc);
     rte_pktmbuf_free_bulk((struct rte_mbuf**)npkts, nDeq);
-    return;
+    return nDeq;
   }
 
   uint16_t posS = 0, posM = nDeq;
   for (uint16_t i = 0; i < nDeq; ++i) {
     Packet* npkt = npkts[i];
-    struct rte_mbuf* pkt = Packet_ToMbuf(npkts[i]);
-    if (likely(pkt->nb_segs == 1)) {
+    if (likely(rte_pktmbuf_is_contiguous(Packet_ToMbuf(npkts[i])))) {
       DataDigest_Prepare(npkt, ops[posS++]);
     } else {
       DataDigest_Prepare(npkt, ops[--posM]);
@@ -53,6 +52,7 @@ FwCrypto_Input(FwCrypto* fwc)
 
   FwCrypto_InputEnqueue(fwc, &fwc->singleSeg, ops, posS);
   FwCrypto_InputEnqueue(fwc, &fwc->multiSeg, &ops[posM], nDeq - posM);
+  return nDeq;
 }
 
 static void
@@ -87,6 +87,7 @@ FwCrypto_Run(FwCrypto* fwc)
   while (ThreadStopFlag_ShouldContinue(&fwc->stop)) {
     FwCrypto_Output(fwc, &fwc->singleSeg);
     FwCrypto_Output(fwc, &fwc->multiSeg);
-    FwCrypto_Input(fwc);
+    uint64_t nProcessed = FwCrypto_Input(fwc);
+    ThreadLoadStat_Report(&fwc->loadStat, nProcessed);
   }
 }

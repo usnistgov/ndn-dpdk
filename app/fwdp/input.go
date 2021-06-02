@@ -9,6 +9,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
@@ -18,19 +19,18 @@ type Input struct {
 	rxl iface.RxLoop
 }
 
-func newInput(id int, lc eal.LCore, ndt *ndt.Ndt, fwds []*Fwd) *Input {
+// Init initializes the input thread.
+func (fwi *Input) Init(lc eal.LCore, ndt *ndt.Ndt, fwds []*Fwd) error {
 	socket := lc.NumaSocket()
-	var fwi Input
-	fwi.id = id
 
-	rxl := iface.NewRxLoop(socket)
-	rxl.SetLCore(lc)
+	fwi.rxl = iface.NewRxLoop(socket)
+	fwi.rxl.SetLCore(lc)
 
-	demuxI := rxl.InterestDemux()
-	demuxI.InitNdt(ndt.Threads()[id])
-	demuxD := rxl.DataDemux()
+	demuxI := fwi.rxl.InterestDemux()
+	demuxI.InitNdt(ndt.Threads()[fwi.id])
+	demuxD := fwi.rxl.DataDemux()
 	demuxD.InitToken(uint8(C.FwTokenOffsetFwdID))
-	demuxN := rxl.NackDemux()
+	demuxN := fwi.rxl.NackDemux()
 	demuxN.InitToken(uint8(C.FwTokenOffsetFwdID))
 	for i, fwd := range fwds {
 		demuxI.SetDest(i, fwd.queueI)
@@ -38,8 +38,7 @@ func newInput(id int, lc eal.LCore, ndt *ndt.Ndt, fwds []*Fwd) *Input {
 		demuxN.SetDest(i, fwd.queueN)
 	}
 
-	fwi.rxl = rxl
-	return &fwi
+	return nil
 }
 
 // Close stops the thread.
@@ -49,4 +48,13 @@ func (fwi *Input) Close() error {
 
 func (fwi *Input) String() string {
 	return fmt.Sprintf("input%d", fwi.id)
+}
+
+// Thread implements ealthread.WithThread interface.
+func (fwi *Input) Thread() ealthread.Thread {
+	return fwi.rxl
+}
+
+func newInput(id int) *Input {
+	return &Input{id: id}
 }

@@ -78,40 +78,17 @@ func init() {
 					return latencyStat.Read().Scale(eal.GetNanosInTscUnit()), nil
 				},
 			},
-			"nNoFibMatch": &graphql.Field{
-				Description: "Interests dropped due to no FIB match.",
-				Type:        gqlserver.NonNullInt,
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					fwd := p.Source.(*Fwd)
-					return int(fwd.c.nNoFibMatch), nil
-				},
-			},
-			"nDupNonce": &graphql.Field{
-				Description: "Interests dropped due to duplicate nonce.",
-				Type:        gqlserver.NonNullInt,
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					fwd := p.Source.(*Fwd)
-					return int(fwd.c.nDupNonce), nil
-				},
-			},
-			"nSgNoFwd": &graphql.Field{
-				Description: "Interests not forwarded by strategy.",
-				Type:        gqlserver.NonNullInt,
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					fwd := p.Source.(*Fwd)
-					return int(fwd.c.nSgNoFwd), nil
-				},
-			},
-			"nNackMismatch": &graphql.Field{
-				Description: "Nacks dropped due to outdated nonce.",
-				Type:        gqlserver.NonNullInt,
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					fwd := p.Source.(*Fwd)
-					return int(fwd.c.nNackMismatch), nil
-				},
-			},
 		},
 	})
+	for fieldName, field := range gqlserver.BindFields(FwdCounters{}, nil) {
+		resolveFromCounters := field.Resolve
+		field.Resolve = func(p graphql.ResolveParams) (interface{}, error) {
+			fwd := p.Source.(*Fwd)
+			p.Source = fwd.Counters()
+			return resolveFromCounters(p)
+		}
+		GqlFwdCountersType.AddFieldConfig(fieldName, field)
+	}
 	defineFwdPktCounter := func(plural string, getDemux func(iface.RxLoop) *iface.InputDemux, getQueue func(fwdC *C.FwFwd) *C.PktQueue) {
 		GqlFwdCountersType.AddFieldConfig(fmt.Sprintf("n%sQueued", plural), &graphql.Field{
 			Description: fmt.Sprintf("%s queued in input thread.", plural),

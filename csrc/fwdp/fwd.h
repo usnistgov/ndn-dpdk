@@ -44,6 +44,7 @@ typedef struct FwFwd
 
   /** @brief Statistics of latency from packet arrival to start processing. */
   RunningStat latencyStat;
+  ThreadLoadStat loadStat;
 } FwFwd;
 
 int

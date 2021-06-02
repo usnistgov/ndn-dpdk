@@ -42,13 +42,11 @@ type Crypto struct {
 	devM   *cryptodev.CryptoDev
 }
 
-func newCrypto(id int, lc eal.LCore, cfg CryptoConfig, ndt *ndt.Ndt, fwds []*Fwd) (*Crypto, error) {
+// Init initializes the crypto helper thread.
+func (fwc *Crypto) Init(lc eal.LCore, cfg CryptoConfig, ndt *ndt.Ndt, fwds []*Fwd) error {
 	cfg.applyDefaults()
 	socket := lc.NumaSocket()
-	fwc := &Crypto{
-		id: id,
-		c:  (*C.FwCrypto)(eal.ZmallocAligned("FwCrypto", C.sizeof_FwCrypto, 1, socket)),
-	}
+	fwc.c = (*C.FwCrypto)(eal.ZmallocAligned("FwCrypto", C.sizeof_FwCrypto, 1, socket))
 	fwc.Thread = ealthread.New(
 		cptr.Func0.C(unsafe.Pointer(C.FwCrypto_Run), unsafe.Pointer(fwc.c)),
 		ealthread.InitStopFlag(unsafe.Pointer(&fwc.c.stop)),
@@ -58,42 +56,41 @@ func newCrypto(id int, lc eal.LCore, cfg CryptoConfig, ndt *ndt.Ndt, fwds []*Fwd
 	input, e := ringbuffer.New(cfg.InputCapacity, socket,
 		ringbuffer.ProducerMulti, ringbuffer.ConsumerSingle)
 	if e != nil {
-		return nil, fmt.Errorf("ringbuffer.New: %w", e)
+		return fmt.Errorf("ringbuffer.New: %w", e)
 	}
 	fwc.c.input = (*C.struct_rte_ring)(input.Ptr())
 
 	opPool, e := cryptodev.NewOpPool(cryptodev.OpPoolConfig{Capacity: cfg.OpPoolCapacity}, socket)
 	if e != nil {
-		return nil, fmt.Errorf("cryptodev.NewOpPool: %w", e)
+		return fmt.Errorf("cryptodev.NewOpPool: %w", e)
 	}
 	fwc.c.opPool = (*C.struct_rte_mempool)(opPool.Ptr())
 
 	fwc.devS, e = cryptodev.SingleSegDrv.Create(cryptodev.Config{}, socket)
 	if e != nil {
-		return nil, fmt.Errorf("cryptodev.SingleSegDrv.Create: %w", e)
+		return fmt.Errorf("cryptodev.SingleSegDrv.Create: %w", e)
 	}
 	fwc.devS.QueuePairs()[0].CopyToC(unsafe.Pointer(&fwc.c.singleSeg))
 
 	fwc.devM, e = cryptodev.MultiSegDrv.Create(cryptodev.Config{}, socket)
 	if e != nil {
-		return nil, fmt.Errorf("cryptodev.MultiSegDrv.Create: %w", e)
+		return fmt.Errorf("cryptodev.MultiSegDrv.Create: %w", e)
 	}
 	fwc.devM.QueuePairs()[0].CopyToC(unsafe.Pointer(&fwc.c.multiSeg))
 
 	fwc.demuxD = iface.InputDemuxFromPtr(unsafe.Pointer(&fwc.c.output))
-	fwc.demuxD.InitNdt(ndt.Threads()[id])
+	fwc.demuxD.InitNdt(ndt.Threads()[fwc.id])
 	for i, fwd := range fwds {
 		fwc.demuxD.SetDest(i, fwd.queueD)
 		fwd.c.crypto = fwc.c.input
 	}
 
-	return fwc, nil
+	return nil
 }
 
-// Close stops the thread.
+// Close stops and releases the thread.
 func (fwc *Crypto) Close() error {
 	fwc.Stop()
-
 	must.Close(fwc.devM)
 	must.Close(fwc.devS)
 	must.Close(mempool.FromPtr(unsafe.Pointer(fwc.c.opPool)))
@@ -104,4 +101,18 @@ func (fwc *Crypto) Close() error {
 
 func (fwc *Crypto) String() string {
 	return fmt.Sprintf("crypto%d", fwc.id)
+}
+
+// ThreadRole implements ealthread.ThreadWithRole interface.
+func (Crypto) ThreadRole() string {
+	return RoleCrypto
+}
+
+// ThreadLoadStat implements ealthread.ThreadWithLoadStat interface.
+func (fwc *Crypto) ThreadLoadStat() ealthread.LoadStat {
+	return ealthread.LoadStatFromPtr(unsafe.Pointer(&fwc.c.loadStat))
+}
+
+func newCrypto(id int) *Crypto {
+	return &Crypto{id: id}
 }

@@ -11,6 +11,7 @@ typedef struct TxLoop
 {
   struct cds_hlist_head head;
   ThreadStopFlag stop;
+  ThreadLoadStat loadStat;
 } TxLoop;
 
 __attribute__((nonnull)) int

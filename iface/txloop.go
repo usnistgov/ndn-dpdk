@@ -18,8 +18,9 @@ import (
 // TxLoop is the output thread that processes outgoing packets on a set of faces.
 // Functions are non-thread-safe.
 type TxLoop interface {
-	ealthread.ThreadWithRole
 	eal.WithNumaSocket
+	ealthread.ThreadWithRole
+	ealthread.ThreadWithLoadStat
 	io.Closer
 
 	CountFaces() int
@@ -48,12 +49,16 @@ type txLoop struct {
 	nFaces int
 }
 
+func (txl *txLoop) NumaSocket() eal.NumaSocket {
+	return txl.socket
+}
+
 func (txl *txLoop) ThreadRole() string {
 	return "TX"
 }
 
-func (txl *txLoop) NumaSocket() eal.NumaSocket {
-	return txl.socket
+func (txl *txLoop) ThreadLoadStat() ealthread.LoadStat {
+	return ealthread.LoadStatFromPtr(unsafe.Pointer(&txl.c.loadStat))
 }
 
 func (txl *txLoop) Close() error {

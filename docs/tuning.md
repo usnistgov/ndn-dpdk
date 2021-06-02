@@ -48,7 +48,23 @@ To configure CPU isolation for the NDN-DPDK Docker container:
 
 3. When launching other containers, add the `--cpuset-cpus` flag but specify distinct CPU cores.
 
-### Memory Usage Insights
+## CPU Usage Insights
+
+Packet processing with DPDK uses continuous polling: every thread runs an endless loop, in which packets are retrieved from queues and then processed.
+CPU cores used by DPDK always show 100% busy independent of how much works those cores are doing.
+
+NDN-DPDK maintains thread load statistic in several types of threads, which includes two counters:
+
+* empty poll counter, incremented when a thread receives zero packets from its input queue.
+* valid poll counter, incremented when a thread receives non-zero packets from its input queue.
+
+These counters can be retrieved using GraphQL subscription `threadLoadStat`.
+The ID input supports these object types:
+
+* Forwarder's input thread.
+* Forwarder's forwarding thread.
+
+## Memory Usage Insights
 
 When the forwarder or traffic generator is running, with faces created and traffic flowing, you can gain insights in memory usage via GraphQL queries.
 

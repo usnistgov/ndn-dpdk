@@ -17,11 +17,12 @@ import (
 	"go4.org/must"
 )
 
+// Thread roles.
 const (
-	roleInput  = "RX"
-	roleOutput = "TX"
-	roleCrypto = "CRYPTO"
-	roleFwd    = "FWD"
+	RoleInput  = "RX"
+	RoleOutput = "TX"
+	RoleCrypto = "CRYPTO"
+	RoleFwd    = "FWD"
 )
 
 // Config contains data plane configuration.
@@ -71,17 +72,17 @@ func New(cfg Config) (dp *DataPlane, e error) {
 	cfg.applyDefaults()
 	dp = &DataPlane{}
 
-	reqRx := []ealthread.AllocRequest{{Role: roleInput}}
-	reqTx := []ealthread.AllocRequest{{Role: roleOutput}}
+	reqRx := []ealthread.AllocRequest{{Role: RoleInput}}
+	reqTx := []ealthread.AllocRequest{{Role: RoleOutput}}
 	for _, dev := range ethdev.List() {
 		socket := dev.NumaSocket()
-		reqRx = append(reqRx, ealthread.AllocRequest{Role: roleInput, Socket: socket})
-		reqTx = append(reqTx, ealthread.AllocRequest{Role: roleOutput, Socket: socket})
+		reqRx = append(reqRx, ealthread.AllocRequest{Role: RoleInput, Socket: socket})
+		reqTx = append(reqTx, ealthread.AllocRequest{Role: RoleOutput, Socket: socket})
 	}
 	lcRx := ealthread.DefaultAllocator.Request(reqRx...)
 	lcTx := ealthread.DefaultAllocator.Request(reqTx...)
-	lcCrypto := ealthread.DefaultAllocator.Alloc(roleCrypto, eal.NumaSocket{})
-	lcFwds := ealthread.DefaultAllocator.AllocMax(roleFwd)
+	lcCrypto := ealthread.DefaultAllocator.Alloc(RoleCrypto, eal.NumaSocket{})
+	lcFwds := ealthread.DefaultAllocator.AllocMax(RoleFwd)
 	if len(lcRx) == 0 || len(lcTx) == 0 || !lcCrypto.Valid() || len(lcFwds) == 0 {
 		return nil, ealthread.ErrNoLCore
 	}
@@ -108,7 +109,7 @@ func New(cfg Config) (dp *DataPlane, e error) {
 		if e = fwd.Init(lc, cfg.Pcct, cfg.FwdInterestQueue, cfg.FwdDataQueue, cfg.FwdNackQueue,
 			cfg.latencySampleFreq(), cfg.Suppress); e != nil {
 			must.Close(dp)
-			return nil, fmt.Errorf("Fwd.Init(%d): %w", i, e)
+			return nil, fmt.Errorf("Fwd[%d].Init(): %w", i, e)
 		}
 		dp.fwds = append(dp.fwds, fwd)
 		fibFwds = append(fibFwds, fwd)
@@ -120,8 +121,8 @@ func New(cfg Config) (dp *DataPlane, e error) {
 	}
 
 	{
-		dp.crypto, e = newCrypto(len(dp.inputs), lcCrypto, cfg.Crypto, dp.ndt, dp.fwds)
-		if e != nil {
+		dp.crypto = newCrypto(len(dp.inputs))
+		if e = dp.crypto.Init(lcCrypto, cfg.Crypto, dp.ndt, dp.fwds); e != nil {
 			must.Close(dp)
 			return nil, fmt.Errorf("Crypto.Init(): %w", e)
 		}
@@ -133,7 +134,11 @@ func New(cfg Config) (dp *DataPlane, e error) {
 	}
 
 	for i, lc := range lcRx {
-		fwi := newInput(i, lc, dp.ndt, dp.fwds)
+		fwi := newInput(i)
+		if e = fwi.Init(lc, dp.ndt, dp.fwds); e != nil {
+			must.Close(dp)
+			return nil, fmt.Errorf("Input[%d].Init(): %w", i, e)
+		}
 		dp.inputs = append(dp.inputs, fwi)
 		fwi.rxl.Launch()
 	}
