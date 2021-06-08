@@ -3,7 +3,7 @@
 NDN-DPDK supports Ubuntu 18.04, Ubuntu 20.04, and Debian 10 operating systems.
 It only works on x64\_64 (amd64) architecture.
 
-This page describes how to install and start NDN-DPDK on a supported operating system.
+This page describes how to install and start NDN-DPDK on a supported operating system, which could be a physical server or a virtual machine with KVM acceleration.
 You can also [build a Docker container](Docker.md), which would work on other operating systems.
 
 ## Dependencies
@@ -53,7 +53,7 @@ You may setup hugepages using the `dpdk-hugepages.py` script.
 See [DPDK system requirements](https://doc.dpdk.org/guides/linux_gsg/sys_reqs.html#use-of-hugepages-in-the-linux-environment) for more information.
 
 Depending on your hardware, you may need to change PCI driver bindings using the `dpdk-devbind.py` script.
-See [DPDK Network Interface Controller Drivers](https://doc.dpdk.org/guides/nics/) for more information.
+See [DPDK Network Interface Controller Drivers](https://doc.dpdk.org/guides/nics/) and [hardware known to work](hardware.md) for more information.
 
 You can then execute `sudo systemctl start ndndpdk-svc` to start the NDN-DPDK service, use `ndndpdk-ctrl` command to activate it as a forwarder or a traffic generator, and then control the service.
 See [forwarder activation and usage](forwarder.md) and [traffic generator activation and usage](trafficgen.md) for basic usage under each role.

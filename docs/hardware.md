@@ -24,10 +24,12 @@ NDN-DPDK aims to work with most Ethernet adapters supported by [DPDK Network Int
 
 The developers have tested NDN-DPDK with the following Ethernet adapters:
 
-* Mellanox ConnectX-5, 100 Gbps, mlx5 driver
-* Intel X710, 10 Gbps, i40e driver
-* Intel X520, 10 Gbps, ixgbe driver
-* Intel I350, 1 Gbps, igb driver
+model | speed | DPDK driver
+-|-|-
+Mellanox ConnectX-5 | 100 Gbps | mlx5
+Intel X710 | 10 Gbps | i40e, iavf
+Intel X520 | 10 Gbps | ixgbe
+Intel I350 | 1 Gbps | igb
 
 ### Mellanox Ethernet Adapters
 
@@ -71,7 +73,7 @@ Example command to bind the PCI device to igb\_uio driver:
 
 ```bash
 sudo modprobe igb_uio
-sudo dpdk-devbind.sh -b igb_uio 04:00.0
+sudo dpdk-devbind.py -b igb_uio 04:00.0
 ```
 
 To use Intel adapters in Docker container, add these flags when you launch the service container:
@@ -85,6 +87,32 @@ docker run \
 
 * `find` subcommand constructs `--device` flags for `/dev/uio*` devices.
 * `--mount target=/sys` flag enables access to attributes in `/sys/class/uio` directory.
+
+Some Intel Ethernet adapters support network virtual functions (VFs).
+It allows sharing the same physical adapter between NDN-DPDK and kernel IP stack, either on the physical server or with NDN-DPDK in a virtual machine.
+To use Intel VF:
+
+1. Create a VF using the procedure given in [Intel SR-IOV Configuration Guide](https://www.intel.com/content/dam/www/public/us/en/documents/technology-briefs/xl710-sr-iov-config-guide-gbe-linux-brief.pdf) "Server Setup" section.
+
+    * You must assign a valid unicast MAC address to the VF.
+      Example command:
+
+      ```bash
+      # generate a random locally administered unicast MAC address
+      HWADDR=$(openssl rand -hex 6 | sed -E 's/../:\0/g;s/^:(.)./\12/')
+
+      # assign the MAC address to the VF; 'enp4s0f0' refers to the physical adapter
+      sudo ip link set enp4s0f0 vf 0 mac $HWADDR
+
+      # verify the settings: you should see a non-zero MAC address on 'vf 0' line
+      ip link show enp4s0f0
+      ```
+
+    * Face creation commands should use the MAC address assigned above, not the MAC address of the physical adapter.
+
+2. If NDN-DPDK is installed on the physical server: bind the VF PCI device to igb\_uio driver.
+
+3. If NDN-DPDK is installed in a virtual machine: passthrough the VF PCI device to the virtual machine, bind the VF to igb\_uio driver in the guest OS.
 
 ### AF\_XDP and AF\_PACKET Sockets
 

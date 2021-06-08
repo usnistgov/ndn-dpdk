@@ -33,7 +33,6 @@ type EthDev interface {
 	// DevInfo returns information about the hardware device.
 	DevInfo() DevInfo
 	// HardwareAddr returns the device MAC address.
-	// If the driver returns an invalid MAC address, a random MAC address is returned instead.
 	HardwareAddr() net.HardwareAddr
 	// MTU returns MTU of this EthDev.
 	MTU() int
