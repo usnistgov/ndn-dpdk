@@ -10,6 +10,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/runningstat"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 // GqlRetrieveByFaceID returns *Consumer associated with a face.
@@ -32,6 +33,7 @@ func init() {
 		Fields: gqlserver.BindInputFields(Pattern{}, gqlserver.FieldTypes{
 			reflect.TypeOf(ndn.Name{}):                 gqlserver.NonNullString,
 			reflect.TypeOf(nnduration.Milliseconds(0)): nnduration.GqlMilliseconds,
+			reflect.TypeOf(ndni.DataGenConfig{}):       ndni.GqlDataGenInput,
 		}),
 	})
 

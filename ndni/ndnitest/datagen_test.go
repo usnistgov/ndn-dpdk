@@ -18,10 +18,9 @@ func testDataGen(t *testing.T, fragmentPayloadSize int, checkMbuf func(m *pktmbu
 
 	tplMbuf := payloadMp.MustAlloc(1)[0]
 	content := bytes.Repeat([]byte{0xC0, 0xC1, 0xC2, 0xC3}, 300)
-	dataInput := ndn.MakeData(ndn.ParseName("/suffix"), ndn.ContentType(an.ContentLink), 3016*time.Millisecond, content)
 
 	var gen ndni.DataGen
-	gen.Init(tplMbuf, dataInput)
+	gen.Init(tplMbuf, ndn.ParseName("/suffix"), ndn.ContentType(an.ContentLink), 3016*time.Millisecond, content)
 	defer gen.Close()
 
 	var mp ndni.Mempools

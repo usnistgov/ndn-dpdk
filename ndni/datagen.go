@@ -7,6 +7,7 @@ import "C"
 import (
 	"unsafe"
 
+	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
@@ -33,9 +34,11 @@ func (gen *DataGen) ptr() *C.DataGen {
 
 // Init initializes a DataGen.
 // m is a pktmbuf with at least DataGenBufLen + len(content) buffer size; it can be allocated from PayloadMempool.
-// data is a Data packet serving as template, whose Name is used as name suffix.
+// Arguments should be acceptable to ndn.MakeData.
+// Name is used as name suffix.
 // Panics on error.
-func (gen *DataGen) Init(m *pktmbuf.Packet, data ndn.Data) {
+func (gen *DataGen) Init(m *pktmbuf.Packet, args ...interface{}) {
+	data := ndn.MakeData(args...)
 	wire, e := tlv.EncodeValueOnly(data)
 	if e != nil {
 		logger.Panic("encode Data error", zap.Error(e))
@@ -67,7 +70,9 @@ DecodeLoop:
 
 // Close discards this DataGen.
 func (gen *DataGen) Close() error {
-	return pktmbuf.PacketFromPtr(unsafe.Pointer(gen.ptr().tpl)).Close()
+	c := gen.ptr()
+	defer func() { c.tpl = nil }()
+	return pktmbuf.PacketFromPtr(unsafe.Pointer(c.tpl)).Close()
 }
 
 // Encode encodes a Data packet.
@@ -82,4 +87,17 @@ func (gen *DataGen) Encode(prefix ndn.Name, mp *Mempools, fragmentPayloadSize in
 			fragmentPayloadSize: C.uint16_t(fragmentPayloadSize),
 		})
 	return PacketFromPtr(unsafe.Pointer(pktC))
+}
+
+// DataGenConfig is a JSON serializable object that can construct DataGen.
+type DataGenConfig struct {
+	Suffix          ndn.Name                `json:"suffix,omitempty"`
+	FreshnessPeriod nnduration.Milliseconds `json:"freshnessPeriod"`
+	PayloadLen      int                     `json:"payloadLen"`
+}
+
+// Apply initializes InterestTemplate.
+func (cfg DataGenConfig) Apply(gen *DataGen, m *pktmbuf.Packet) {
+	content := make([]byte, cfg.PayloadLen)
+	gen.Init(m, cfg.Suffix, cfg.FreshnessPeriod.Duration(), content)
 }

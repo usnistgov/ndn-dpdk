@@ -4,6 +4,99 @@
 
 N_LOG_INIT(Tgc);
 
+__attribute__((nonnull, returns_nonnull)) static __rte_always_inline unaligned_uint64_t*
+TgcTxDigestPattern_DataSeqNum(TgcTxPattern* pattern)
+{
+  TgcTxDigestPattern* dp = pattern->digest;
+  return RTE_PTR_ADD(dp->prefix.value,
+                     pattern->tpl.prefixL + TGCONSUMER_SEQNUM_SIZE - sizeof(uint64_t));
+}
+
+void
+TgcTxDigestPattern_Fill(TgcTxPattern* pattern)
+{
+  TgcTxDigestPattern* dp = pattern->digest;
+  struct rte_crypto_op* ops[TgcDigestBurstSize];
+  uint16_t nAlloc =
+    rte_crypto_op_bulk_alloc(dp->opPool, RTE_CRYPTO_OP_TYPE_SYMMETRIC, ops, RTE_DIM(ops));
+  if (unlikely(nAlloc == 0)) {
+    N_LOGW("digest-fill error=alloc-error");
+    return;
+  }
+
+  for (int i = 0; i < TgcDigestBurstSize; ++i) {
+    ++*TgcTxDigestPattern_DataSeqNum(pattern);
+    Packet* npkt = DataGen_Encode(&dp->dataGen, dp->prefix, &dp->dataMp,
+                                  (PacketTxAlign){ .linearize = TgcDigestLinearize });
+    *Packet_GetLpL3Hdr(npkt) = (const LpL3){ 0 };
+    bool ok = Packet_ParseL3(npkt);
+    NDNDPDK_ASSERT(ok && Packet_GetType(npkt) == PktData);
+    DataDigest_Prepare(npkt, ops[i]);
+  }
+
+  uint16_t nRej = DataDigest_Enqueue(dp->cqp, ops, TgcDigestBurstSize);
+  if (unlikely(nRej > 0)) {
+    N_LOGW("digest-fill error=enqueue-reject count=%" PRIu16 " nRej=%" PRIu16, TgcDigestBurstSize,
+           nRej);
+    return;
+  }
+  N_LOGD("digest-fill count=%" PRIu16, TgcDigestBurstSize);
+}
+
+uint16_t
+TgcTxPattern_MakeSuffix_Digest(TgcTx* ct, uint8_t patternID, TgcTxPattern* pattern)
+{
+  TgcTxDigestPattern* dp = pattern->digest;
+  N_LOGV("digest-seqnum data=%" PRIu64 " interest=%" PRIu64,
+         *TgcTxDigestPattern_DataSeqNum(pattern), pattern->seqNum.compV);
+  if (unlikely(*TgcTxDigestPattern_DataSeqNum(pattern) - pattern->seqNum.compV <=
+               TgcDigestLowWatermark)) {
+    TgcTxDigestPattern_Fill(pattern);
+  }
+
+  struct rte_crypto_op* op = NULL;
+  uint16_t nDeq = rte_cryptodev_dequeue_burst(dp->cqp.dev, dp->cqp.qp, &op, 1);
+  if (unlikely(nDeq == 0)) {
+    N_LOGW("digest-pull error=dequeue-empty");
+    return 0;
+  }
+  Packet* npkt = DataDigest_Finish(op);
+  if (unlikely(npkt == NULL)) {
+    N_LOGW("digest-pull error=digest-fail");
+    return 0;
+  }
+
+  PData* data = Packet_GetDataHdr(npkt);
+  unaligned_uint64_t* dataSeqNum =
+    RTE_PTR_ADD(PName_ToLName(&data->name).value,
+                pattern->tpl.prefixL + TGCONSUMER_SEQNUM_SIZE - sizeof(uint64_t));
+  pattern->seqNum.compV = *dataSeqNum;
+
+  static_assert(ImplicitDigestLength == 32, "");
+  rte_mov32(pattern->digestV, data->digest);
+  rte_pktmbuf_free(Packet_ToMbuf(npkt));
+  return TGCONSUMER_SEQNUM_SIZE + ImplicitDigestSize;
+}
+
+uint16_t
+TgcTxPattern_MakeSuffix_Offset(TgcTx* ct, uint8_t patternID, TgcTxPattern* pattern)
+{
+  TgcTxPattern* basePattern = &ct->pattern[patternID - 1];
+  uint64_t seqNum = basePattern->seqNum.compV - pattern->seqNumOffset;
+  if (unlikely(pattern->seqNum.compV - seqNum <= UINT32_MAX)) { // same seqNum already requested
+    seqNum = pattern->seqNum.compV + 1;
+  }
+  pattern->seqNum.compV = seqNum;
+  return TGCONSUMER_SEQNUM_SIZE;
+}
+
+uint16_t
+TgcTxPattern_MakeSuffix_Increment(TgcTx* ct, uint8_t patternID, TgcTxPattern* pattern)
+{
+  ++pattern->seqNum.compV;
+  return TGCONSUMER_SEQNUM_SIZE;
+}
+
 __attribute__((nonnull)) static __rte_always_inline uint8_t
 TgcTx_SelectPattern(TgcTx* ct)
 {
@@ -11,30 +104,25 @@ TgcTx_SelectPattern(TgcTx* ct)
   return ct->weight[w];
 }
 
-__attribute__((nonnull)) static void
+__attribute__((nonnull)) static __rte_always_inline bool
 TgcTx_MakeInterest(TgcTx* ct, struct rte_mbuf* pkt, TscTime now)
 {
   uint8_t id = TgcTx_SelectPattern(ct);
   TgcTxPattern* pattern = &ct->pattern[id];
   ++pattern->nInterests;
 
-  uint64_t seqNum = 0;
-  if (unlikely(pattern->seqNumOffset != 0)) {
-    TgcTxPattern* basePattern = &ct->pattern[id - 1];
-    seqNum = basePattern->seqNum.compV - pattern->seqNumOffset;
-    if (unlikely(seqNum == pattern->seqNum.compV)) {
-      ++seqNum;
-    }
-    pattern->seqNum.compV = seqNum;
-  } else {
-    seqNum = ++pattern->seqNum.compV;
+  uint16_t suffixL = (pattern->makeSuffix)(ct, id, pattern);
+  if (unlikely(suffixL == 0)) {
+    N_LOGW("error pattern=%" PRIu8, id);
+    return false;
   }
-  LName nameSuffix = { .length = TGCONSUMER_SEQNUM_SIZE, .value = &pattern->seqNum.compT };
 
+  LName suffix = (LName){ .length = suffixL, .value = &pattern->seqNum.compT };
   uint32_t nonce = NonceGen_Next(&ct->nonceGen);
-  Packet* npkt = InterestTemplate_Encode(&pattern->tpl, pkt, nameSuffix, nonce);
+  Packet* npkt = InterestTemplate_Encode(&pattern->tpl, pkt, suffix, nonce);
   TgcToken_Set(&Packet_GetLpL3Hdr(npkt)->pitToken, id, ct->runNum, now);
-  N_LOGD("<I pattern=%" PRIu8 " seq=%" PRIx64 "", id, seqNum);
+  N_LOGD("<I pattern=%" PRIu8 " seq=%" PRIx64 "", id, pattern->seqNum.compV);
+  return true;
 }
 
 __attribute__((nonnull)) static void
@@ -49,7 +137,8 @@ TgcTx_Burst(TgcTx* ct)
 
   TscTime now = rte_get_tsc_cycles();
   for (uint16_t i = 0; i < MaxBurstSize; ++i) {
-    TgcTx_MakeInterest(ct, pkts[i], now);
+    while (!likely(TgcTx_MakeInterest(ct, pkts[i], now))) {
+    }
   }
   Face_TxBurst(ct->face, (Packet**)pkts, MaxBurstSize);
 }

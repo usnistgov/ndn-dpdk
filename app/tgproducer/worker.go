@@ -13,7 +13,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
@@ -44,6 +43,8 @@ func (w worker) rxQueue() *iface.PktQueue {
 }
 
 func (w *worker) setPatterns(patterns []Pattern, dataGenVec *pktmbuf.Vector) {
+	w.freeDataGen()
+
 	w.c.nPatterns = C.uint8_t(len(patterns))
 	for i, pattern := range patterns {
 		c := &w.c.pattern[i]
@@ -63,9 +64,8 @@ func (w *worker) setPatterns(patterns []Pattern, dataGenVec *pktmbuf.Vector) {
 			case ReplyNack:
 				r.nackReason = C.uint8_t(reply.Nack)
 			case ReplyData:
-				data := ndn.MakeData(reply.Suffix, reply.FreshnessPeriod.Duration(), make([]byte, reply.PayloadLen))
 				dataGen := ndni.DataGenFromPtr(unsafe.Pointer(&r.dataGen))
-				dataGen.Init((*dataGenVec)[0], data)
+				reply.DataGenConfig.Apply(dataGen, (*dataGenVec)[0])
 				*dataGenVec = (*dataGenVec)[1:]
 			}
 
@@ -79,9 +79,19 @@ func (w *worker) setPatterns(patterns []Pattern, dataGenVec *pktmbuf.Vector) {
 }
 
 func (w *worker) close() error {
+	w.freeDataGen()
 	e := w.rxQueue().Close()
 	eal.Free(w.c)
 	return e
+}
+
+func (w *worker) freeDataGen() {
+	for _, pattern := range w.c.pattern[:w.c.nPatterns] {
+		for _, r := range pattern.reply[:pattern.nReplies] {
+			dataGen := ndni.DataGenFromPtr(unsafe.Pointer(&r.dataGen))
+			dataGen.Close()
+		}
+	}
 }
 
 func newWorker(faceID iface.ID, socket eal.NumaSocket, rxqCfg iface.PktQueueConfig) (w *worker, e error) {

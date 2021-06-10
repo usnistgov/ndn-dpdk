@@ -11,6 +11,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/intface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
@@ -25,11 +26,11 @@ func TestConsumer(t *testing.T) {
 	defer c.Close()
 	c.AllocLCores(ealthread.DefaultAllocator)
 
-	nameA := ndn.ParseName("/A")
-	nameB := ndn.ParseName("/B")
+	nameA, nameB, nameC := ndn.ParseName("/A"), ndn.ParseName("/B"), ndn.ParseName("/C")
+	contentC := make([]byte, 100)
 	require.NoError(c.SetPatterns([]tgconsumer.Pattern{
 		{
-			Weight: 50,
+			Weight: 30,
 			InterestTemplateConfig: ndni.InterestTemplateConfig{
 				Prefix:           nameA,
 				CanBePrefix:      true,
@@ -51,6 +52,15 @@ func TestConsumer(t *testing.T) {
 			},
 			SeqNumOffset: 100,
 		},
+		{
+			Weight: 20,
+			InterestTemplateConfig: ndni.InterestTemplateConfig{
+				Prefix: nameC,
+			},
+			Digest: &ndni.DataGenConfig{
+				PayloadLen: len(contentC),
+			},
+		},
 	}))
 
 	require.NoError(c.SetInterval(200 * time.Microsecond))
@@ -60,6 +70,7 @@ func TestConsumer(t *testing.T) {
 	nInterestsB1 := 0
 	nInterestsB2 := 0
 	nInterestsB2Far := 0
+	nInterestsC := 0
 	var lastSeqB uint64
 	go func() {
 		for packet := range face.Rx {
@@ -68,6 +79,7 @@ func TestConsumer(t *testing.T) {
 			switch {
 			case nameA.IsPrefixOf(interest.Name) && len(interest.Name) == 2:
 				nInterestsA++
+				face.Tx <- ndn.MakeData(interest)
 			case nameB.IsPrefixOf(interest.Name) && len(interest.Name) == 2:
 				lastComp := interest.Name.Get(-1)
 				seqNum := binary.LittleEndian.Uint64(lastComp.Value)
@@ -87,11 +99,13 @@ func TestConsumer(t *testing.T) {
 					}
 					nInterestsB2++
 				}
+				face.Tx <- ndn.MakeData(interest)
+			case nameC.IsPrefixOf(interest.Name) && len(interest.Name) == 3 && interest.Name[2].Type == an.TtImplicitSha256DigestComponent:
+				nInterestsC++
+				face.Tx <- ndn.MakeData(interest.Name.GetPrefix(-1), contentC, packet.Lp)
 			default:
 				assert.Fail("unexpected Interest", "%v", interest)
 			}
-
-			face.Tx <- ndn.MakeData(interest)
 		}
 		close(face.Tx)
 	}()
@@ -106,18 +120,20 @@ func TestConsumer(t *testing.T) {
 	assert.NoError(e)
 	assert.InDelta(200*time.Millisecond, time.Since(timeBeforeStop), float64(50*time.Millisecond))
 
-	nInterests := float64(nInterestsA + nInterestsB1 + nInterestsB2)
+	nInterests := float64(nInterestsA + nInterestsB1 + nInterestsB2 + nInterestsC)
 	assert.InDelta(4500, nInterests, 1000)
-	assert.InDelta(nInterests*0.50, nInterestsA, 100)
+	assert.InDelta(nInterests*0.30, nInterestsA, 100)
 	assert.InDelta(nInterests*0.45, nInterestsB1, 100)
 	assert.InDelta(nInterests*0.05, nInterestsB2, 100)
+	assert.InDelta(nInterests*0.20, nInterestsC, 100)
 	assert.LessOrEqual(nInterestsB2Far, nInterestsB2/10)
 
 	cnt := c.Counters()
 	assert.InDelta(nInterests, cnt.NInterests, 500)
 	assert.InDelta(nInterests, cnt.NData, 500)
-	require.Len(cnt.PerPattern, 3)
+	require.Len(cnt.PerPattern, 4)
 	assert.InDelta(nInterestsA, cnt.PerPattern[0].NData, 100)
 	assert.InDelta(nInterestsB1, cnt.PerPattern[1].NData, 100)
 	assert.InDelta(nInterestsB2, cnt.PerPattern[2].NData, 100)
+	assert.InDelta(nInterestsC, cnt.PerPattern[3].NData, 100)
 }

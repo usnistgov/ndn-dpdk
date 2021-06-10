@@ -1,5 +1,4 @@
-import type { NNMilliseconds } from "../core";
-import type { Name } from "../ndni";
+import type { DataGen, Name } from "../ndni";
 
 /**
  * Traffic generator producer pattern definition.
@@ -22,20 +21,7 @@ export namespace TgpReply {
     weight?: number;
   }
 
-  export interface Data extends Common {
-    suffix?: Name;
-
-    /**
-     * @default 0
-     */
-    freshnessPeriod?: NNMilliseconds;
-
-    /**
-     * @TJS-type integer
-     * @default 0
-     * @minimum 0
-     */
-    payloadLen?: number;
+  export interface Data extends Common, DataGen {
   }
 
   export interface Nack extends Common {

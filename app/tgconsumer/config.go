@@ -17,6 +17,15 @@ const (
 	// MaxSumWeight is maximum sum of weights among traffic patterns.
 	MaxSumWeight = 8192
 
+	// DigestLowWatermark is the number of remaining Data packets in the crypto device before enqueuing a new burst.
+	DigestLowWatermark = 16
+
+	// DigestBurstSize is the number of Data packets to enqueue into crypto device.
+	DigestBurstSize = 64
+
+	// DigestLinearize indicates whether Data packets generated for digest computation must be linearized.
+	DigestLinearize = false
+
 	_ = "enumgen::Tgc"
 )
 
@@ -35,9 +44,13 @@ type Pattern struct {
 	ndni.InterestTemplateConfig
 
 	// If non-zero, request cached Data. This must appear after a pattern without SeqNumOffset.
-	// The client derives sequence number by subtracting SeqNumOffset from the previous pattern's
+	// The consumer derives sequence number by subtracting SeqNumOffset from the previous pattern's
 	// sequence number. Sufficient CS capacity is necessary for Data to actually come from CS.
 	SeqNumOffset int `json:"seqNumOffset,omitempty"`
+
+	// If specified, append implicit digest to Interest name.
+	// For Data to satisfy Interests, the producer pattern must reply with the same DataGenConfig.
+	Digest *ndni.DataGenConfig `json:"digest,omitempty"`
 }
 
 func (pattern *Pattern) applyDefaults() {

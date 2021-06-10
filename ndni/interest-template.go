@@ -72,8 +72,8 @@ type InterestTemplateConfig struct {
 	HopLimit         ndn.HopLimit            `json:"hopLimit,omitempty"`
 }
 
-// InitTemplate initializes InterestTemplate.
-func (cfg InterestTemplateConfig) InitTemplate(tpl *InterestTemplate) {
+// Apply initializes InterestTemplate.
+func (cfg InterestTemplateConfig) Apply(tpl *InterestTemplate) {
 	a := []interface{}{cfg.Prefix}
 	if cfg.CanBePrefix {
 		a = append(a, ndn.CanBePrefixFlag)

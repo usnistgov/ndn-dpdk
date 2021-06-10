@@ -3,7 +3,10 @@ import type { NNMilliseconds } from "./core";
 /** Name represented as canonical URI. */
 export type Name = string;
 
-/** Interest template. */
+/**
+ * Interest template.
+ * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/ndni#InterestTemplateConfig>
+ */
 export interface InterestTemplate {
   prefix: Name;
 
@@ -29,4 +32,24 @@ export interface InterestTemplate {
    * @maximum 255
    */
   hopLimit?: number;
+}
+
+/**
+ * Data template.
+ * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/ndni#DataGenConfig>
+ */
+export interface DataGen {
+  suffix?: Name;
+
+  /**
+   * @default 0
+   */
+  freshnessPeriod?: NNMilliseconds;
+
+  /**
+   * @TJS-type integer
+   * @default 0
+   * @minimum 0
+   */
+  payloadLen?: number;
 }

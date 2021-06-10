@@ -124,6 +124,21 @@ DataDigest_Prepare(Packet* npkt, struct rte_crypto_op* op)
   CryptoOp_PrepareSha256Digest(op, pkt, 0, pkt->pkt_len, data->digest);
 }
 
+uint16_t
+DataDigest_Enqueue(CryptoQueuePair cqp, struct rte_crypto_op** ops, uint16_t count)
+{
+  if (unlikely(count == 0)) {
+    return 0;
+  }
+
+  uint16_t nEnq = rte_cryptodev_enqueue_burst(cqp.dev, cqp.qp, ops, count);
+  for (uint16_t i = nEnq; i < count; ++i) {
+    Packet* npkt = DataDigest_Finish(ops[i]);
+    NDNDPDK_ASSERT(npkt == NULL);
+  }
+  return count - nEnq;
+}
+
 Packet*
 DataDigest_Finish(struct rte_crypto_op* op)
 {

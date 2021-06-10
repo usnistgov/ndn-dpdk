@@ -15,6 +15,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"github.com/usnistgov/ndn-dpdk/ndn/segmented"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 func TestPatterns(t *testing.T) {
@@ -37,15 +38,19 @@ func TestPatterns(t *testing.T) {
 			Prefix: nameA,
 			Replies: []tgproducer.Reply{
 				{
-					Weight:          60,
-					FreshnessPeriod: 100,
-					PayloadLen:      1000,
+					Weight: 60,
+					DataGenConfig: ndni.DataGenConfig{
+						FreshnessPeriod: 100,
+						PayloadLen:      1000,
+					},
 				},
 				{
-					Weight:          40,
-					Suffix:          ndn.ParseName("/Z"),
-					FreshnessPeriod: 100,
-					PayloadLen:      2000,
+					Weight: 40,
+					DataGenConfig: ndni.DataGenConfig{
+						Suffix:          ndn.ParseName("/Z"),
+						FreshnessPeriod: 100,
+						PayloadLen:      2000,
+					},
 				},
 			},
 		},
@@ -137,8 +142,10 @@ func TestDataProducer(t *testing.T) {
 			Prefix: nameP,
 			Replies: []tgproducer.Reply{
 				{
-					FreshnessPeriod: 100,
-					PayloadLen:      1000,
+					DataGenConfig: ndni.DataGenConfig{
+						FreshnessPeriod: 100,
+						PayloadLen:      1000,
+					},
 				},
 			},
 		},

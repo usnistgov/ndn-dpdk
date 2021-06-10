@@ -13,7 +13,7 @@ typedef struct TgcSeqNum
   uint8_t compT;
   uint8_t compL;
   uint64_t compV; ///< sequence number in native endianness
-} __rte_packed TgcSeqNum;
+} TgcSeqNum;
 static_assert(offsetof(TgcSeqNum, compV) % sizeof(uint64_t) == 0, "");
 
 #define TGCONSUMER_SEQNUM_SIZE (sizeof(TgcSeqNum) - offsetof(TgcSeqNum, compT))

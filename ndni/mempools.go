@@ -42,7 +42,7 @@ func init() {
 
 	IndirectMempool = pktmbuf.Indirect
 
-	headerDataroom := pktmbuf.DefaultHeadroom + LpHeaderHeadroom
+	const headerDataroom = pktmbuf.DefaultHeadroom + LpHeaderHeadroom
 	HeaderMempool = pktmbuf.RegisterTemplate("HEADER", pktmbuf.PoolConfig{
 		Capacity: 65535,
 		PrivSize: int(C.sizeof_PacketPriv),

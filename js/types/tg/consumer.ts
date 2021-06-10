@@ -1,5 +1,5 @@
 import type { Counter, RunningStatSnapshot } from "../core";
-import type { InterestTemplate } from "../ndni";
+import type { DataGen, InterestTemplate } from "../ndni";
 
 /**
  * Traffic generator consumer pattern definition.
@@ -17,6 +17,8 @@ export interface TgcPattern extends InterestTemplate {
    * @TJS-type integer
    */
   seqNumOffset?: number;
+
+  digest?: DataGen;
 }
 
 export interface TgcCounters extends TgcCounters.PacketCounters {

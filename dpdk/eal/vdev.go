@@ -61,7 +61,7 @@ func (vdev *VDev) Close() error {
 		return e
 	}
 
-	logEntry.Error("vdev uninitialized")
+	logEntry.Info("vdev uninitialized")
 	return nil
 }
 

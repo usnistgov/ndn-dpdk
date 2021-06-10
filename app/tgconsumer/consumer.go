@@ -4,18 +4,32 @@ package tgconsumer
 /*
 #include "../../csrc/tgconsumer/rx.h"
 #include "../../csrc/tgconsumer/tx.h"
+
+TgcTxDigestPattern** c_TgcTxPattern_digest(TgcTxPattern* pattern) { return &pattern->digest; }
+uint32_t* c_TgcTxPattern_seqNumOffset(TgcTxPattern* pattern) { return &pattern->seqNumOffset; }
+void c_TgcTxDigestPattern_putPrefix(TgcTxDigestPattern* dp, uint16_t length, const uint8_t* value)
+{
+	dp->prefix.length = length;
+	dp->prefix.value = rte_memcpy(RTE_PTR_ADD(dp, sizeof(*dp)), value, length);
+}
 */
 import "C"
 import (
+	"encoding/binary"
 	"fmt"
 	"math/rand"
 	"time"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
+	"github.com/usnistgov/ndn-dpdk/dpdk/cryptodev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn/an"
+	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"go.uber.org/multierr"
 	"go4.org/must"
@@ -40,6 +54,14 @@ type Consumer struct {
 	rxC      *C.TgcRx
 	txC      *C.TgcTx
 	patterns []Pattern
+
+	digestOpPool *cryptodev.OpPool
+	digestCrypto *cryptodev.CryptoDev
+	dPatterns    []*C.TgcTxDigestPattern
+}
+
+func (c Consumer) socket() eal.NumaSocket {
+	return c.Face().NumaSocket()
 }
 
 // Workers returns worker threads.
@@ -54,7 +76,7 @@ func (c Consumer) Patterns() []Pattern {
 
 // SetPatterns sets new traffic patterns.
 // This can only be used when both RX and TX threads are stopped.
-func (c *Consumer) SetPatterns(inputPatterns []Pattern) error {
+func (c *Consumer) SetPatterns(inputPatterns []Pattern) (e error) {
 	if len(inputPatterns) == 0 {
 		return ErrNoPattern
 	}
@@ -62,7 +84,7 @@ func (c *Consumer) SetPatterns(inputPatterns []Pattern) error {
 		return ErrTooManyPatterns
 	}
 	patterns := []Pattern{}
-	nWeights := 0
+	nWeights, nDigestPatterns := 0, 0
 	for i, pattern := range inputPatterns {
 		pattern.applyDefaults()
 		patterns = append(patterns, pattern)
@@ -70,6 +92,9 @@ func (c *Consumer) SetPatterns(inputPatterns []Pattern) error {
 			return ErrFirstSeqNumOffset
 		}
 		nWeights += pattern.Weight
+		if pattern.Digest != nil {
+			nDigestPatterns++
+		}
 	}
 	if nWeights > MaxSumWeight {
 		return ErrTooManyWeights
@@ -79,26 +104,24 @@ func (c *Consumer) SetPatterns(inputPatterns []Pattern) error {
 		return ealthread.ErrRunning
 	}
 
+	if e := c.prepareDigest(nDigestPatterns); e != nil {
+		return fmt.Errorf("enableDigest %w", e)
+	}
+	var dataGenVec pktmbuf.Vector
+	if nDigestPatterns > 0 {
+		payloadMp := ndni.PayloadMempool.Get(c.socket())
+		dataGenVec, e = payloadMp.Alloc(nDigestPatterns)
+		if e != nil {
+			return e
+		}
+	}
+
 	c.patterns = patterns
 	c.rxC.nPatterns = C.uint8_t(len(patterns))
 	c.txC.nWeights = C.uint32_t(nWeights)
 	w := 0
 	for i, pattern := range patterns {
-		rxP := &c.rxC.pattern[i]
-		*rxP = C.TgcRxPattern{
-			prefixLen: C.uint16_t(pattern.Prefix.Length()),
-		}
-
-		txP := &c.txC.pattern[i]
-		*txP = C.TgcTxPattern{
-			seqNum: C.TgcSeqNum{
-				compT: C.TtGenericNameComponent,
-				compL: C.uint8_t(C.sizeof_uint64_t),
-				compV: C.uint64_t(rand.Uint64()),
-			},
-			seqNumOffset: C.uint32_t(pattern.SeqNumOffset),
-		}
-		pattern.InitTemplate(ndni.InterestTemplateFromPtr(unsafe.Pointer(&txP.tpl)))
+		c.assignPattern(i, pattern, dataGenVec)
 
 		for j := 0; j < pattern.Weight; j++ {
 			c.txC.weight[w] = C.uint8_t(i)
@@ -107,6 +130,89 @@ func (c *Consumer) SetPatterns(inputPatterns []Pattern) error {
 
 		c.clearCounter(i)
 	}
+	return nil
+}
+
+func (c *Consumer) assignPattern(i int, pattern Pattern, dataGenVec pktmbuf.Vector) {
+	rxP := &c.rxC.pattern[i]
+	*rxP = C.TgcRxPattern{
+		prefixLen: C.uint16_t(pattern.Prefix.Length()),
+	}
+
+	txP := &c.txC.pattern[i]
+	*txP = C.TgcTxPattern{
+		seqNum: C.TgcSeqNum{
+			compT: C.TtGenericNameComponent,
+			compL: C.uint8_t(C.sizeof_uint64_t),
+			compV: C.uint64_t(rand.Uint64()),
+		},
+	}
+	pattern.InterestTemplateConfig.Apply(ndni.InterestTemplateFromPtr(unsafe.Pointer(&txP.tpl)))
+
+	switch {
+	case pattern.Digest != nil:
+		c.assignDigestPattern(pattern, txP, dataGenVec)
+	case pattern.SeqNumOffset != 0:
+		txP.makeSuffix = C.TgcTxPattern_MakeSuffix(C.TgcTxPattern_MakeSuffix_Offset)
+		*C.c_TgcTxPattern_seqNumOffset(txP) = C.uint32_t(pattern.SeqNumOffset)
+	default:
+		txP.makeSuffix = C.TgcTxPattern_MakeSuffix(C.TgcTxPattern_MakeSuffix_Increment)
+	}
+}
+
+func (c *Consumer) assignDigestPattern(pattern Pattern, txP *C.TgcTxPattern, dataGenVec pktmbuf.Vector) {
+	txP.makeSuffix = C.TgcTxPattern_MakeSuffix(C.TgcTxPattern_MakeSuffix_Digest)
+	txP.digestT = an.TtImplicitSha256DigestComponent
+	txP.digestL = ndni.ImplicitDigestLength
+	txP.digestV = [ndni.ImplicitDigestLength]C.uint8_t{}
+
+	name := append(ndn.Name{}, pattern.Prefix...)
+	seqNumV := make([]byte, 8)
+	binary.LittleEndian.PutUint64(seqNumV, uint64(txP.seqNum.compV))
+	name = append(name, ndn.MakeNameComponent(an.TtGenericNameComponent, seqNumV))
+	nameV, _ := tlv.EncodeValueOnly(name.Field())
+
+	d := len(c.dPatterns)
+	dp := (*C.TgcTxDigestPattern)(eal.Zmalloc("TgcTxDigestPattern", C.sizeof_TgcTxDigestPattern+len(nameV), c.socket()))
+	(*ndni.Mempools)(unsafe.Pointer(&dp.dataMp)).Assign(c.socket(), ndni.DataMempool)
+	dp.opPool = (*C.struct_rte_mempool)(c.digestOpPool.Ptr())
+	c.digestCrypto.QueuePairs()[d].CopyToC(unsafe.Pointer(&dp.cqp))
+
+	dataGen := ndni.DataGenFromPtr(unsafe.Pointer(&dp.dataGen))
+	pattern.Digest.Apply(dataGen, dataGenVec[d])
+
+	nameVC := C.CBytes(nameV)
+	defer C.free(nameVC)
+	C.c_TgcTxDigestPattern_putPrefix(dp, C.uint16_t(len(nameV)), (*C.uint8_t)(nameVC))
+
+	*C.c_TgcTxPattern_digest(txP) = dp
+	c.dPatterns = append(c.dPatterns, dp)
+}
+
+func (c *Consumer) prepareDigest(nDigestPatterns int) (e error) {
+	c.closeDigest()
+	if nDigestPatterns == 0 {
+		return nil
+	}
+
+	c.digestOpPool, e = cryptodev.NewOpPool(cryptodev.OpPoolConfig{
+		Capacity: 2 * nDigestPatterns * (DigestLowWatermark + DigestBurstSize),
+	}, c.socket())
+	if e != nil {
+		return e
+	}
+
+	drvPref := cryptodev.MultiSegDrv
+	if DigestLinearize {
+		drvPref = cryptodev.SingleSegDrv
+	}
+	c.digestCrypto, e = drvPref.Create(cryptodev.Config{
+		NQueuePairs: nDigestPatterns,
+	}, c.socket())
+	if e != nil {
+		return e
+	}
+
 	return nil
 }
 
@@ -166,10 +272,28 @@ func (consumer *Consumer) Stop(delay time.Duration) error {
 // Close closes the consumer.
 func (c *Consumer) Close() error {
 	c.Stop(0)
+	c.closeDigest()
 	must.Close(c.RxQueue())
 	eal.Free(c.rxC)
 	eal.Free(c.txC)
 	return nil
+}
+
+func (c *Consumer) closeDigest() {
+	if c.digestCrypto != nil {
+		must.Close(c.digestCrypto)
+		c.digestCrypto = nil
+	}
+	if c.digestOpPool != nil {
+		must.Close(c.digestOpPool)
+		c.digestOpPool = nil
+	}
+	for _, dp := range c.dPatterns {
+		dataGen := ndni.DataGenFromPtr(unsafe.Pointer(&dp.dataGen))
+		dataGen.Close()
+		eal.Free(dp)
+	}
+	c.dPatterns = nil
 }
 
 // New creates a Consumer.

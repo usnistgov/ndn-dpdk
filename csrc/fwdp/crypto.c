@@ -6,23 +6,7 @@ N_LOG_INIT(FwCrypto);
 
 #define FW_CRYPTO_BURST_SIZE 16
 
-static void
-FwCrypto_InputEnqueue(FwCrypto* fwc, const CryptoQueuePair* cqp, struct rte_crypto_op** ops,
-                      uint16_t count)
-{
-  if (unlikely(count == 0)) {
-    return;
-  }
-
-  uint16_t nEnq = rte_cryptodev_enqueue_burst(cqp->dev, cqp->qp, ops, count);
-  for (uint16_t i = nEnq; i < count; ++i) {
-    Packet* npkt = DataDigest_Finish(ops[i]);
-    NDNDPDK_ASSERT(npkt == NULL);
-    ++fwc->nDrops;
-  }
-}
-
-static uint64_t
+__attribute__((nonnull)) static uint64_t
 FwCrypto_Input(FwCrypto* fwc)
 {
   Packet* npkts[FW_CRYPTO_BURST_SIZE];
@@ -50,16 +34,16 @@ FwCrypto_Input(FwCrypto* fwc)
   }
   NDNDPDK_ASSERT(posS == posM);
 
-  FwCrypto_InputEnqueue(fwc, &fwc->singleSeg, ops, posS);
-  FwCrypto_InputEnqueue(fwc, &fwc->multiSeg, &ops[posM], nDeq - posM);
+  fwc->nDrops += DataDigest_Enqueue(fwc->singleSeg, ops, posS);
+  fwc->nDrops += DataDigest_Enqueue(fwc->multiSeg, &ops[posM], nDeq - posM);
   return nDeq;
 }
 
-static void
-FwCrypto_Output(FwCrypto* fwc, const CryptoQueuePair* cqp)
+__attribute__((nonnull)) static void
+FwCrypto_Output(FwCrypto* fwc, CryptoQueuePair cqp)
 {
   struct rte_crypto_op* ops[FW_CRYPTO_BURST_SIZE];
-  uint16_t nDeq = rte_cryptodev_dequeue_burst(cqp->dev, cqp->qp, ops, FW_CRYPTO_BURST_SIZE);
+  uint16_t nDeq = rte_cryptodev_dequeue_burst(cqp.dev, cqp.qp, ops, FW_CRYPTO_BURST_SIZE);
 
   Packet* npkts[FW_CRYPTO_BURST_SIZE];
   uint16_t nFinish = 0;
@@ -85,8 +69,8 @@ FwCrypto_Run(FwCrypto* fwc)
          fwc, fwc->input, fwc->opPool, fwc->singleSeg.dev, fwc->singleSeg.qp, fwc->multiSeg.dev,
          fwc->multiSeg.qp);
   while (ThreadStopFlag_ShouldContinue(&fwc->stop)) {
-    FwCrypto_Output(fwc, &fwc->singleSeg);
-    FwCrypto_Output(fwc, &fwc->multiSeg);
+    FwCrypto_Output(fwc, fwc->singleSeg);
+    FwCrypto_Output(fwc, fwc->multiSeg);
     uint64_t nProcessed = FwCrypto_Input(fwc);
     ThreadLoadStat_Report(&fwc->loadStat, nProcessed);
   }

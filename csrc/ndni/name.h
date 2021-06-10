@@ -24,19 +24,14 @@ static __rte_always_inline LName
 LName_Init(uint16_t length, const uint8_t* value)
 {
   NDNDPDK_ASSERT(length <= NameMaxLength);
-  LName lname = {
-    .value = value,
-    .length = length,
-  };
-  return lname;
+  return (LName){ .length = length, .value = value };
 }
 
 /** @brief Construct empty LName. */
 static __rte_always_inline LName
 LName_Empty()
 {
-  LName lname = { 0 };
-  return lname;
+  return (LName){ 0 };
 }
 
 /**

@@ -14,6 +14,7 @@ It supports multiple configurable patterns:
 * InterestLifetime value
 * HopLimit value
 * override the sequence number by subtracting a fixed offset from the previous pattern's sequence number, thus allowing to retrieve cached Data
+* implicit digest
 
 The consumer randomly selects a pattern and creates an Interest with the pattern settings.
 The Interest name ends with a sequence number, which is a 64-bit integer encoded in binary format and native endianness.

@@ -51,7 +51,7 @@ func init() {
 			},
 			"templates": &graphql.ArgumentConfig{
 				Description: "Interest templates.",
-				Type:        gqlserver.NewNonNullList(ndni.GqlTemplateInput),
+				Type:        gqlserver.NewNonNullList(ndni.GqlInterestTemplateInput),
 			},
 			"interval": &graphql.ArgumentConfig{
 				Description: "How often to collect statistics.",

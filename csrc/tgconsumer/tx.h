@@ -9,25 +9,58 @@
 #include "../iface/face.h"
 #include "../vendor/pcg_basic.h"
 
+typedef struct TgcTx TgcTx;
+typedef struct TgcTxPattern TgcTxPattern;
+
+typedef struct TgcTxDigestPattern
+{
+  PacketMempools dataMp;
+  struct rte_mempool* opPool;
+  CryptoQueuePair cqp;
+  DataGen dataGen;
+  LName prefix;
+} TgcTxDigestPattern;
+
+typedef uint16_t (*TgcTxPattern_MakeSuffix)(TgcTx* ct, uint8_t patternID, TgcTxPattern* pattern);
+
+__attribute__((nonnull)) uint16_t
+TgcTxPattern_MakeSuffix_Digest(TgcTx* ct, uint8_t patternID, TgcTxPattern* pattern);
+__attribute__((nonnull)) uint16_t
+TgcTxPattern_MakeSuffix_Offset(TgcTx* ct, uint8_t patternID, TgcTxPattern* pattern);
+__attribute__((nonnull)) uint16_t
+TgcTxPattern_MakeSuffix_Increment(TgcTx* ct, uint8_t patternID, TgcTxPattern* pattern);
+
 /** @brief Per-pattern information in traffic generator consumer. */
-typedef struct TgcTxPattern
+struct TgcTxPattern
 {
   uint64_t nInterests;
+  TgcTxPattern_MakeSuffix makeSuffix;
+
   TgcSeqNum seqNum;
-  uint32_t seqNumOffset;
+  uint8_t digestT;
+  uint8_t digestL;
+  uint8_t digestV[ImplicitDigestLength];
+
+  union
+  {
+    uint32_t seqNumOffset;
+    TgcTxDigestPattern* digest;
+  };
 
   InterestTemplate tpl;
-} TgcTxPattern;
+};
+static_assert(offsetof(TgcTxPattern, seqNum) + sizeof(TgcSeqNum) == offsetof(TgcTxPattern, digestT),
+              "");
 
 /** @brief Traffic generator consumer TX thread. */
-typedef struct TgcTx
+struct TgcTx
 {
   FaceID face;
   ThreadStopFlag stop;
   uint8_t runNum;
   uint32_t nWeights;
-  struct rte_mempool* interestMp; ///< mempool for Interests
-  TscDuration burstInterval;      ///< interval between two bursts
+  struct rte_mempool* interestMp;
+  TscDuration burstInterval; ///< interval between two bursts
 
   pcg32_random_t trafficRng;
   NonceGen nonceGen;
@@ -35,7 +68,7 @@ typedef struct TgcTx
 
   uint8_t weight[TgcMaxSumWeight];
   TgcTxPattern pattern[TgcMaxPatterns];
-} TgcTx;
+};
 
 __attribute__((nonnull)) int
 TgcTx_Run(TgcTx* ct);

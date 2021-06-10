@@ -1,23 +1,36 @@
 #!/bin/bash
 set -eo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"/..
+LANG=${1,,}
 
 # C
-git ls-files -- 'csrc/**/*.[hc]' 'bpf/**/*.[hc]' -x ':!:csrc/vendor' | xargs clang-format-8 -i -style=file
+if [[ -z $LANG ]] || [[ $LANG == c ]]; then
+  git ls-files -- 'csrc/**/*.[hc]' 'bpf/**/*.[hc]' -x ':!:csrc/vendor' | xargs clang-format-8 -i -style=file
+fi
 
 # Go
-gofmt -l -w -s .
-go mod tidy
-staticcheck ./...
+if [[ -z $LANG ]] || [[ $LANG == go ]]; then
+  gofmt -l -w -s .
+  go mod tidy
+  staticcheck ./...
+fi
 
 # TypeScript
-node_modules/.bin/xo --fix
+if [[ -z $LANG ]] || [[ $LANG == ts ]]; then
+  node_modules/.bin/xo --fix
+fi
 
 # YAML
-git ls-files '*.yml' '*.yaml' | xargs yamllint
+if [[ -z $LANG ]] || [[ $LANG == yaml ]]; then
+  git ls-files '*.yml' '*.yaml' | xargs yamllint
+fi
 
 # Markdown
-git ls-files '*.md' | xargs node_modules/.bin/markdownlint
+if [[ -z $LANG ]] || [[ $LANG == md ]]; then
+  git ls-files '*.md' | xargs node_modules/.bin/markdownlint
+fi
 
 # Docker
-node_modules/.bin/dockerfilelint Dockerfile $(git ls-files -- '**/Dockerfile')
+if [[ -z $LANG ]] || [[ $LANG == docker ]]; then
+  node_modules/.bin/dockerfilelint Dockerfile $(git ls-files -- '**/Dockerfile')
+fi

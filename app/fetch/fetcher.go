@@ -164,7 +164,7 @@ func (fetcher *Fetcher) AddTemplate(tplCfg ndni.InterestTemplateConfig) (i int, 
 
 	fp := fetcher.fp[i]
 	tpl := ndni.InterestTemplateFromPtr(unsafe.Pointer(&fp.tpl))
-	tplCfg.InitTemplate(tpl)
+	tplCfg.Apply(tpl)
 
 	if uintptr(fp.tpl.prefixL+1) >= unsafe.Sizeof(fp.tpl.prefixV) {
 		return -1, errors.New("name too long")

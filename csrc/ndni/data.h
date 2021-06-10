@@ -11,7 +11,7 @@ typedef struct PData
   PName name;
   uint32_t freshness; ///< FreshnessPeriod in millis
   bool hasDigest;
-  uint8_t digest[32];
+  uint8_t digest[ImplicitDigestLength];
 } PData;
 
 /**
@@ -35,16 +35,19 @@ __attribute__((nonnull)) void
 DataDigest_Prepare(Packet* npkt, struct rte_crypto_op* op);
 
 /**
+ * @brief Enqueue crypto_ops for Data digest computation.
+ * @return number of rejections, which have been freed.
+ */
+__attribute__((nonnull)) uint16_t
+DataDigest_Enqueue(CryptoQueuePair cqp, struct rte_crypto_op** ops, uint16_t count);
+
+/**
  * @brief Finish Data digest computation.
  * @param op a dequeued crypto_op; will be freed.
  * @return the Data packet, or NULL if crypto_op was unsuccessful.
  */
 __attribute__((nonnull)) Packet*
 DataDigest_Finish(struct rte_crypto_op* op);
-
-typedef struct DataGen DataGen;
-
-typedef Packet* (*DataGen_EncodeFunc)(DataGen* gen, LName prefix, PacketMempools* mp);
 
 /** @brief Data encoder optimized for traffic generator. */
 typedef struct DataGen
