@@ -78,8 +78,8 @@ Cs_Evict(Cs* cs)
   if (unlikely(cs->indirect.count > cs->indirect.capacity)) {
     Cs_EvictBulk_(cs, &cs->indirect, "indirect", (CsList_EvictCb)CsEraseBatch_AddIndirect);
   }
-  if (unlikely(cs->direct.DEL.count >= CS_EVICT_BULK)) {
-    Cs_EvictBulk_(cs, &cs->direct.DEL, "direct", (CsList_EvictCb)CsEraseBatch_AddDirect);
+  if (unlikely(cs->direct.Del.count >= CS_EVICT_BULK)) {
+    Cs_EvictBulk_(cs, &cs->direct.Del, "direct", (CsList_EvictCb)CsEraseBatch_AddDirect);
   }
 }
 
@@ -168,7 +168,7 @@ Cs_PutDirect(Cs* cs, Packet* npkt, PccEntry* pccEntry)
       return NULL;
     }
     N_LOGD("PutDirect insert cs=%p npkt=%p pcc-entry=%p cs-entry=%p", cs, npkt, pccEntry, entry);
-    entry->arcList = CSL_ARC_NONE;
+    entry->arcList = 0;
     entry->nIndirects = 0;
     CsArc_Add(&cs->direct, entry);
   }

@@ -55,7 +55,7 @@ struct CsEntry
    */
   int8_t nIndirects;
 
-  CsArcListId arcList : 8;
+  CsListID arcList : 8;
 
   /**
    * @brief Associated indirect entries.

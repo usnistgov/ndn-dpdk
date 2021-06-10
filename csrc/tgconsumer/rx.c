@@ -37,7 +37,6 @@ TgcRx_ProcessData(TgcRx* cr, Packet* npkt, uint8_t id, TscTime sendTime)
   }
 
   N_LOGD(">D pattern=%" PRIu8 " seq=%" PRIx64, id, seqNum);
-  ++pattern->nData;
   TscTime recvTime = Mbuf_GetTimestamp(Packet_ToMbuf(npkt));
   RunningStat_Push(&pattern->rtt, recvTime - sendTime);
 }

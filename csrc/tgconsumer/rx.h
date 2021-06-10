@@ -12,7 +12,6 @@
 /** @brief Per-pattern information in traffic generator consumer. */
 typedef struct TgcRxPattern
 {
-  uint64_t nData;
   uint64_t nNacks;
   RunningStat rtt;
   uint16_t prefixLen;

@@ -19,14 +19,6 @@ typedef struct LName
   uint16_t length;
 } LName;
 
-/** @brief Construct LName. */
-static __rte_always_inline LName
-LName_Init(uint16_t length, const uint8_t* value)
-{
-  NDNDPDK_ASSERT(length <= NameMaxLength);
-  return (LName){ .length = length, .value = value };
-}
-
 /**
  * @brief Determine whether @p a is a prefix of @b b .
  * @retval 0 @p a equals @p b .
@@ -100,7 +92,7 @@ PName_GetPrefix(const PName* p, int n)
     return PName_GetPrefix_Uncached_(p, n);
   }
 
-  return LName_Init(p->comp_[n - 1], p->value);
+  return (LName){ .length = p->comp_[n - 1], .value = p->value };
 }
 
 __attribute__((nonnull)) void

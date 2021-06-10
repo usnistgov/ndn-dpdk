@@ -12,13 +12,6 @@ typedef struct PitResult
   int kind;
 } PitResult;
 
-static inline PitResult
-PitResult_New_(PccEntry* entry, int kind)
-{
-  PitResult pr = { .entry = entry, .kind = kind };
-  return pr;
-}
-
 /** @brief Result of PIT insert. */
 typedef PitResult PitInsertResult;
 

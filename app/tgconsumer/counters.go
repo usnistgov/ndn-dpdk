@@ -79,7 +79,7 @@ func (consumer *Consumer) Counters() (cnt Counters) {
 
 		var pcnt PatternCounters
 		pcnt.NInterests = uint64(ctP.nInterests)
-		pcnt.NData = uint64(crP.nData)
+		pcnt.NData = rtt.Count()
 		pcnt.NNacks = uint64(crP.nNacks)
 		pcnt.Rtt.Snapshot = rtt
 		cnt.PerPattern = append(cnt.PerPattern, pcnt)
@@ -101,10 +101,10 @@ func (c *Consumer) ClearCounters() {
 	for i := 0; i < nPatterns; i++ {
 		c.clearCounter(i)
 	}
+	c.txC.nAllocError = 0
 }
 
 func (c *Consumer) clearCounter(index int) {
-	c.rxC.pattern[index].nData = 0
 	c.rxC.pattern[index].nNacks = 0
 	rtt := runningstat.FromPtr(unsafe.Pointer(&c.rxC.pattern[index].rtt))
 	rtt.Clear(true)

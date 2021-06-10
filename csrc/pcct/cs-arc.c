@@ -5,19 +5,19 @@
 N_LOG_INIT(CsArc);
 
 CsList*
-CsArc_GetList(CsArc* arc, CsArcListId cslId)
+CsArc_GetList(CsArc* arc, CsListID l)
 {
-  switch (cslId) {
-    case CSL_ARC_T1:
+  switch (l) {
+    case CslMdT1:
       return &arc->T1;
-    case CSL_ARC_B1:
+    case CslMdB1:
       return &arc->B1;
-    case CSL_ARC_T2:
+    case CslMdT2:
       return &arc->T2;
-    case CSL_ARC_B2:
+    case CslMdB2:
       return &arc->B2;
-    case CSL_ARC_DEL:
-      return &arc->DEL;
+    case CslMdDel:
+      return &arc->Del;
     default:
       NDNDPDK_ASSERT(false);
       return NULL;
@@ -31,9 +31,9 @@ CsArc_GetList(CsArc* arc, CsArcListId cslId)
 
 #define CsArc_Move(arc, entry, src, dst)                                                           \
   do {                                                                                             \
-    NDNDPDK_ASSERT((entry)->arcList == CSL_ARC_##src);                                             \
+    NDNDPDK_ASSERT((entry)->arcList == CslMd##src);                                                \
     CsList_Remove(&(arc)->src, (entry));                                                           \
-    (entry)->arcList = CSL_ARC_##dst;                                                              \
+    (entry)->arcList = CslMd##dst;                                                                 \
     CsList_Append(&(arc)->dst, (entry));                                                           \
     N_LOGV("^ move=%p from=" #src " to=" #dst, (entry));                                           \
   } while (false)
@@ -53,7 +53,7 @@ CsArc_Init(CsArc* arc, uint32_t capacity)
   CsList_Init(&arc->B1);
   CsList_Init(&arc->T2);
   CsList_Init(&arc->B2);
-  CsList_Init(&arc->DEL);
+  CsList_Init(&arc->Del);
 
   arc->c = (double)capacity;
   CsArc_c(arc) = capacity;
@@ -110,14 +110,14 @@ CsArc_AddNew(CsArc* arc, CsEntry* entry)
     if (arc->T1.count < CsArc_c(arc)) {
       N_LOGV("^ evict-from=B1");
       CsEntry* deleting = CsList_GetFront(&arc->B1);
-      CsArc_Move(arc, deleting, B1, DEL);
+      CsArc_Move(arc, deleting, B1, Del);
       CsArc_Replace(arc, false);
     } else {
       NDNDPDK_ASSERT(arc->B1.count == 0);
       N_LOGV("^ evict-from=T1");
       CsEntry* deleting = CsList_GetFront(&arc->T1);
       CsEntry_ClearData(deleting);
-      CsArc_Move(arc, deleting, T1, DEL);
+      CsArc_Move(arc, deleting, T1, Del);
     }
   } else {
     NDNDPDK_ASSERT(nL1 < CsArc_c(arc));
@@ -126,12 +126,12 @@ CsArc_AddNew(CsArc* arc, CsEntry* entry)
       if (nL1L2 == CsArc_2c(arc)) {
         N_LOGV("^ evict-from=B2");
         CsEntry* deleting = CsList_GetFront(&arc->B2);
-        CsArc_Move(arc, deleting, B2, DEL);
+        CsArc_Move(arc, deleting, B2, Del);
       }
       CsArc_Replace(arc, false);
     }
   }
-  entry->arcList = CSL_ARC_T1;
+  entry->arcList = CslMdT1;
   CsList_Append(&arc->T1, entry);
 }
 
@@ -139,25 +139,26 @@ void
 CsArc_Add(CsArc* arc, CsEntry* entry)
 {
   switch (entry->arcList) {
-    case CSL_ARC_T1:
+    case CslMdT1:
       N_LOGD("Add arc=%p cs-entry=%p found-in=T1", arc, entry);
       CsArc_Move(arc, entry, T1, T2);
       return;
-    case CSL_ARC_T2:
+    case CslMdT2:
       N_LOGD("Add arc=%p cs-entry=%p found-in=T2", arc, entry);
       CsList_MoveToLast(&arc->T2, entry);
       return;
-    case CSL_ARC_B1:
+    case CslMdB1:
       CsArc_AddB1(arc, entry);
       return;
-    case CSL_ARC_B2:
+    case CslMdB2:
       CsArc_AddB2(arc, entry);
       return;
-    case CSL_ARC_DEL:
-      CsList_Remove(&arc->DEL, entry);
-      entry->arcList = CSL_ARC_NONE;
+    case CslMdDel:
+      CsList_Remove(&arc->Del, entry);
+      entry->arcList = 0;
     // fallthrough
-    case CSL_ARC_NONE:
+    case 0: // this ensures other case constants are non-zero
+    default:
       CsArc_AddNew(arc, entry);
       return;
   }
@@ -169,5 +170,5 @@ CsArc_Remove(CsArc* arc, CsEntry* entry)
 {
   N_LOGD("Remove arc=%p cs-entry=%p", arc, entry);
   CsList_Remove(CsArc_GetList(arc, entry->arcList), entry);
-  entry->arcList = CSL_ARC_NONE;
+  entry->arcList = 0;
 }

@@ -46,7 +46,7 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
   PccEntry* pccEntry = Pcct_Insert(pcct, &search, &isNewPcc);
   if (unlikely(pccEntry == NULL)) {
     ++pit->nAllocErr;
-    return PitResult_New_(NULL, PIT_INSERT_FULL);
+    return (PitInsertResult){ .kind = PIT_INSERT_FULL };
   }
 
   // check for CS match
@@ -56,7 +56,7 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
     N_LOGD("Insert has-CS pit=%p search=%s pcc=%p", pit,
            PccSearch_ToDebugString(&search, debugStringBuffer), pccEntry);
     ++pit->nCsMatch;
-    return PitResult_New_(pccEntry, PIT_INSERT_CS);
+    return (PitInsertResult){ .entry = pccEntry, .kind = PIT_INSERT_CS };
   }
 
   // add token
@@ -66,7 +66,7 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
       Pcct_Erase(pcct, pccEntry);
     }
     ++pit->nAllocErr;
-    return PitResult_New_(NULL, PIT_INSERT_FULL);
+    return (PitInsertResult){ .kind = PIT_INSERT_FULL };
   }
 
   PitEntry* entry = NULL;
@@ -87,7 +87,7 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
   if (unlikely(entry == NULL)) {
     NDNDPDK_ASSERT(!isNewPcc); // new PccEntry must have occupied slot1
     ++pit->nAllocErr;
-    return PitResult_New_(NULL, PIT_INSERT_FULL);
+    return (PitInsertResult){ .kind = PIT_INSERT_FULL };
   }
 
   // initialize new PIT entry, or refresh FIB entry reference on old PIT entry
@@ -106,7 +106,7 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
            pit, PccSearch_ToDebugString(&search, debugStringBuffer), pccEntry, entry);
   }
 
-  return PitResult_New_(pccEntry, resKind);
+  return (PitInsertResult){ .entry = pccEntry, .kind = resKind };
 }
 
 void
@@ -154,7 +154,7 @@ Pit_FindByData(Pit* pit, Packet* npkt, uint64_t token)
   PccEntry* pccEntry = Pcct_FindByToken(Pcct_FromPit(pit), token);
   if (unlikely(pccEntry == NULL)) {
     ++pit->nDataMiss;
-    return PitResult_New_(NULL, PIT_FIND_NONE);
+    return (PitFindResult){ .kind = PIT_FIND_NONE };
   }
 
   PitFindResultFlag flags = PIT_FIND_NONE;
@@ -186,7 +186,7 @@ Pit_FindByData(Pit* pit, Packet* npkt, uint64_t token)
         break;
     }
   }
-  return PitResult_New_(pccEntry, flags);
+  return (PitFindResult){ .entry = pccEntry, .kind = flags };
 }
 
 PitEntry*

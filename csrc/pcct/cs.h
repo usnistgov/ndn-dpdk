@@ -4,7 +4,6 @@
 /** @file */
 
 #include "cs-arc.h"
-#include "cs-enum.h"
 #include "pcct.h"
 #include "pit-result.h"
 

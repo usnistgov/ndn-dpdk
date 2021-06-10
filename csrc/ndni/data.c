@@ -43,11 +43,11 @@ PData_Parse(PData* data, struct rte_mbuf* pkt)
   TlvDecoder_EachTL (&d, type, length) {
     switch (type) {
       case TtName: {
-        const uint8_t* v;
-        if (unlikely(length > NameMaxLength || (v = TlvDecoder_Linearize(&d, length)) == NULL)) {
+        LName lname = (LName){ .length = length };
+        if (unlikely(length > NameMaxLength ||
+                     (lname.value = TlvDecoder_Linearize(&d, length)) == NULL)) {
           return false;
         }
-        LName lname = LName_Init(length, v);
         if (unlikely(!PName_Parse(&data->name, lname))) {
           return false;
         }

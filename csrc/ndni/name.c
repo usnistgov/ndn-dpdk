@@ -119,7 +119,7 @@ PName_GetPrefix_Uncached_(const PName* p, int n)
     uint16_t type, length;
     PName_ParseComponent_(p, &pos, &type, &length);
   }
-  return LName_Init(pos, p->value);
+  return (LName){ .length = pos, .value = p->value };
 }
 
 void

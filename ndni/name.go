@@ -33,7 +33,7 @@ func NewPName(name ndn.Name) *PName {
 	if len(name) > 0 {
 		value, _ := name.MarshalBinary()
 		valueC := C.CBytes(value)
-		lname = C.LName_Init(C.uint16_t(len(value)), (*C.uint8_t)(valueC))
+		lname = C.LName{length: C.uint16_t(len(value)), value: (*C.uint8_t)(valueC)}
 	}
 	pname := (*C.PName)(C.malloc(C.sizeof_PName))
 	ok := bool(C.PName_Parse(pname, lname))

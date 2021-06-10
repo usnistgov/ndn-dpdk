@@ -88,11 +88,11 @@ PInterest_Parse(PInterest* interest, struct rte_mbuf* pkt)
   TlvDecoder_EachTL (&d, type, length) {
     switch (type) {
       case TtName: {
-        const uint8_t* v;
-        if (unlikely(length > NameMaxLength || (v = TlvDecoder_Linearize(&d, length)) == NULL)) {
+        LName lname = (LName){ .length = length };
+        if (unlikely(length > NameMaxLength ||
+                     (lname.value = TlvDecoder_Linearize(&d, length)) == NULL)) {
           return false;
         }
-        LName lname = LName_Init(length, v);
         if (unlikely(!PName_Parse(&interest->name, lname))) {
           return false;
         }
@@ -169,7 +169,8 @@ bool
 PInterest_SelectFwHint(PInterest* interest, int i)
 {
   NDNDPDK_ASSERT(i >= 0 && i < (int)interest->nFwHints);
-  bool ok = PName_Parse(&interest->fwHint, LName_Init(interest->fwHintL[i], interest->fwHintV[i]));
+  bool ok = PName_Parse(&interest->fwHint,
+                        (LName){ .length = interest->fwHintL[i], .value = interest->fwHintV[i] });
   interest->activeFwHint = likely(ok) ? i : -1;
   return -1;
 }
