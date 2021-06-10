@@ -9,8 +9,7 @@ Tgp_FindPattern(Tgp* p, LName name)
 {
   for (uint16_t i = 0; i < p->nPatterns; ++i) {
     TgpPattern* pattern = &p->pattern[i];
-    if (pattern->prefix.length <= name.length &&
-        memcmp(pattern->prefix.value, name.value, pattern->prefix.length) == 0) {
+    if (LName_IsPrefix(pattern->prefix, name) >= 0) {
       return i;
     }
   }
@@ -27,8 +26,8 @@ Tgp_SelectReply(Tgp* p, TgpPattern* pattern)
 __attribute__((nonnull)) static Packet*
 Tgp_RespondData(Tgp* p, TgpPattern* pattern, TgpReply* reply, Packet* npkt)
 {
-  const LName* name = (const LName*)&Packet_GetInterestHdr(npkt)->name;
-  Packet* output = DataGen_Encode(&reply->dataGen, *name, &p->mp, Face_PacketTxAlign(p->face));
+  LName name = PName_ToLName(&Packet_GetInterestHdr(npkt)->name);
+  Packet* output = DataGen_Encode(&reply->dataGen, name, &p->mp, Face_PacketTxAlign(p->face));
   if (likely(output != NULL)) {
     Packet_GetLpL3Hdr(output)->pitToken = Packet_GetLpL3Hdr(npkt)->pitToken;
   }
@@ -60,9 +59,8 @@ static const Tgp_Respond Tgp_RespondJmp[3] = {
 __attribute__((nonnull)) static Packet*
 Tgp_ProcessInterest(Tgp* p, Packet* npkt)
 {
-  const LName* name = (const LName*)&Packet_GetInterestHdr(npkt)->name;
-
-  int patternID = Tgp_FindPattern(p, *name);
+  LName name = PName_ToLName(&Packet_GetInterestHdr(npkt)->name);
+  int patternID = Tgp_FindPattern(p, name);
   if (unlikely(patternID < 0)) {
     const LpPitToken* token = &Packet_GetLpL3Hdr(npkt)->pitToken;
     N_LOGD(">I dn-token=" PRI_LpPitToken " no-pattern", LpPitToken_Fmt(token));

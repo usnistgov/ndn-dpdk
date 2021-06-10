@@ -40,17 +40,6 @@ TlvEncoder_WriteVarNum(uint8_t* room, uint32_t n)
 }
 
 /**
- * @brief Prepend VAR-NUMBER to mbuf.
- * @param m target mbuf, must have enough headroom.
- */
-__attribute__((nonnull)) static __rte_always_inline void
-TlvEncoder_PrependVarNum(struct rte_mbuf* m, uint32_t n)
-{
-  uint8_t* room = (uint8_t*)rte_pktmbuf_prepend(m, TlvEncoder_SizeofVarNum(n));
-  TlvEncoder_WriteVarNum(room, n);
-}
-
-/**
  * @brief Prepend TLV-TYPE and TLV-LENGTH to mbuf.
  * @param m target mbuf, must have enough headroom.
  */
@@ -63,5 +52,33 @@ TlvEncoder_PrependTL(struct rte_mbuf* m, uint32_t type, uint32_t length)
   TlvEncoder_WriteVarNum(room, type);
   TlvEncoder_WriteVarNum((uint8_t*)RTE_PTR_ADD(room, sizeT), length);
 }
+
+/**
+ * @brief Encode constant TLV-TYPE and TLV-LENGTH to unaligned_uint16_t constant.
+ * @param type TLV-TYPE number, compile-time constant less than 0xFD.
+ * @param length TLV-LENGTH number, compile-time constant no more than 0xFF.
+ */
+#define TlvEncoder_ConstTL1(type, length)                                                          \
+  __extension__({                                                                                  \
+    static_assert(__builtin_constant_p((type)), "");                                               \
+    static_assert(__builtin_constant_p((length)), "");                                             \
+    static_assert((type) < 0xFD, "");                                                              \
+    static_assert((length) <= UINT8_MAX, "");                                                      \
+    rte_cpu_to_be_16(((type) << 8) | (length));                                                    \
+  })
+
+/**
+ * @brief Encode constant TLV-TYPE and TLV-LENGTH to unaligned_uint32_t constant.
+ * @param type TLV-TYPE number, compile-time constant between 0xFD and 0xFFFF.
+ * @param length TLV-LENGTH number, compile-time constant no more than 0xFF.
+ */
+#define TlvEncoder_ConstTL3(type, length)                                                          \
+  __extension__({                                                                                  \
+    static_assert(__builtin_constant_p((type)), "");                                               \
+    static_assert(__builtin_constant_p((length)), "");                                             \
+    static_assert(0xFD <= (type) && (type) <= UINT16_MAX, "");                                     \
+    static_assert((length) <= UINT8_MAX, "");                                                      \
+    rte_cpu_to_be_32(0xFD000000 | ((type) << 8) | (length));                                       \
+  })
 
 #endif // NDNDPDK_NDNI_TLV_ENCODER_H

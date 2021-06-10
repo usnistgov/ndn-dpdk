@@ -6,20 +6,10 @@
 #include "../iface/common.h"
 #include "enum.h"
 
-/** @brief Sequence number component. */
-typedef struct TgcSeqNum
-{
-  char a_[6]; // make compV aligned
-  uint8_t compT;
-  uint8_t compL;
-  uint64_t compV; ///< sequence number in native endianness
-} TgcSeqNum;
-static_assert(offsetof(TgcSeqNum, compV) % sizeof(uint64_t) == 0, "");
-
-#define TGCONSUMER_SEQNUM_SIZE (sizeof(TgcSeqNum) - offsetof(TgcSeqNum, compT))
-
 enum
 {
+  TgcSeqNumSize = 1 + 1 + sizeof(uint64_t),
+
   TgcTokenLength = 10,
   TgcTokenOffsetPatternID = 0,
   TgcTokenOffsetRunNum = 1,

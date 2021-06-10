@@ -219,8 +219,7 @@ Pit_FindByNack(Pit* pit, Packet* npkt, uint64_t token)
   }
 
   // verify Interest name matches PCC key
-  const LName* interestName = (const LName*)(&interest->name);
-  if (unlikely(!PccKey_MatchName(&pccEntry->key, *interestName))) {
+  if (unlikely(!PccKey_MatchName(&pccEntry->key, PName_ToLName(&interest->name)))) {
     ++pit->nNackMiss;
     return NULL;
   }

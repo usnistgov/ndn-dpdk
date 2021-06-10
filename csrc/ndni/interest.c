@@ -176,16 +176,13 @@ PInterest_SelectFwHint(PInterest* interest, int i)
 
 typedef struct GuiderFields
 {
-  uint8_t nonceT;
-  uint8_t nonceL;
+  unaligned_uint16_t nonceTL;
   unaligned_uint32_t nonceV;
 
-  uint8_t lifetimeT;
-  uint8_t lifetimeL;
+  unaligned_uint16_t lifetimeTL;
   unaligned_uint32_t lifetimeV;
 
-  uint8_t hopLimitT;
-  uint8_t hopLimitL;
+  unaligned_uint16_t hopLimitTL;
   uint8_t hopLimitV;
 } __rte_packed GuiderFields;
 
@@ -194,14 +191,11 @@ ModifyGuiders_Append(struct rte_mbuf* m, InterestGuiders g)
 {
   GuiderFields* f = (GuiderFields*)rte_pktmbuf_append(m, sizeof(GuiderFields));
   NDNDPDK_ASSERT(f != NULL);
-  f->nonceT = TtNonce;
-  f->nonceL = sizeof(f->nonceV);
+  f->nonceTL = TlvEncoder_ConstTL1(TtNonce, sizeof(f->nonceV));
   f->nonceV = rte_cpu_to_be_32(g.nonce);
-  f->lifetimeT = TtInterestLifetime;
-  f->lifetimeL = sizeof(f->lifetimeV);
+  f->lifetimeTL = TlvEncoder_ConstTL1(TtInterestLifetime, sizeof(f->lifetimeV));
   f->lifetimeV = rte_cpu_to_be_32(g.lifetime);
-  f->hopLimitT = TtHopLimit;
-  f->hopLimitL = sizeof(f->hopLimitV);
+  f->hopLimitTL = TlvEncoder_ConstTL1(TtHopLimit, sizeof(f->hopLimitV));
   f->hopLimitV = g.hopLimit;
 }
 

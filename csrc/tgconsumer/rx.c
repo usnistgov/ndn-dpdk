@@ -2,22 +2,26 @@
 
 #include "../core/logger.h"
 #include "../iface/face.h"
+#include "../ndni/tlv-encoder.h"
 
 N_LOG_INIT(Tgc);
 
 __attribute__((nonnull)) static bool
 TgcRx_GetSeqNumFromName(TgcRx* cr, const TgcRxPattern* pattern, const PName* name, uint64_t* seqNum)
 {
-  if (unlikely(name->length < pattern->prefixLen + TGCONSUMER_SEQNUM_SIZE)) {
+  typedef struct SeqNumF
+  {
+    unaligned_uint16_t tl;
+    unaligned_uint64_t value;
+  } __rte_packed SeqNumF;
+  static_assert(sizeof(SeqNumF) == TgcSeqNumSize, "");
+
+  const SeqNumF* comp = RTE_PTR_ADD(name->value, pattern->prefixLen);
+  if (unlikely(name->length < pattern->prefixLen + TgcSeqNumSize ||
+               comp->tl != TlvEncoder_ConstTL1(TtGenericNameComponent, sizeof(uint64_t)))) {
     return false;
   }
-
-  const uint8_t* comp = RTE_PTR_ADD(name->value, pattern->prefixLen);
-  if (unlikely(comp[0] != TtGenericNameComponent || comp[1] != sizeof(uint64_t))) {
-    return false;
-  }
-
-  *seqNum = *(const unaligned_uint64_t*)RTE_PTR_ADD(comp, 2);
+  *seqNum = comp->value;
   return true;
 }
 
@@ -32,7 +36,7 @@ TgcRx_ProcessData(TgcRx* cr, Packet* npkt, uint8_t id, TscTime sendTime)
     return;
   }
 
-  N_LOGD(">D seq=%" PRIx64 " pattern=%" PRIu8, seqNum, id);
+  N_LOGD(">D pattern=%" PRIu8 " seq=%" PRIx64, id, seqNum);
   ++pattern->nData;
   TscTime recvTime = Mbuf_GetTimestamp(Packet_ToMbuf(npkt));
   RunningStat_Push(&pattern->rtt, recvTime - sendTime);
@@ -49,7 +53,7 @@ TgcRx_ProcessNack(TgcRx* cr, Packet* npkt, uint8_t id)
     return;
   }
 
-  N_LOGD(">N seq=%" PRIx64 " pattern=%" PRIu8, seqNum, id);
+  N_LOGD(">N pattern=%" PRIu8 " seq=%" PRIx64, id, seqNum);
   ++pattern->nNacks;
 }
 
@@ -63,8 +67,7 @@ TgcRx_Run(TgcRx* cr)
     for (uint16_t i = 0; i < pop.count; ++i) {
       Packet* npkt = Packet_FromMbuf(pkts[i]);
       const LpPitToken* token = &Packet_GetLpL3Hdr(npkt)->pitToken;
-      if (unlikely(token->length != TgcTokenLength) ||
-          unlikely(TgcToken_GetRunNum(token) != cr->runNum)) {
+      if (unlikely(token->length != TgcTokenLength || TgcToken_GetRunNum(token) != cr->runNum)) {
         continue;
       }
       uint8_t id = TgcToken_GetPatternID(token);

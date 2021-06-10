@@ -31,9 +31,6 @@ typedef struct PInterest
   uint8_t guiderSize;   ///< size of Nonce+InterestLifetime+HopLimit
 
   uint8_t hopLimit; ///< HopLimit value, "omitted" is same as 0xFF
-#ifdef GODEF
-  uint8_t placeholder0_;
-#else
   struct
   {
     bool canBePrefix : 1;
@@ -41,7 +38,6 @@ typedef struct PInterest
     uint8_t nFwHints : 3;    ///< number of forwarding hints, up to PInterestMaxFwHints
     int8_t activeFwHint : 3; ///< index of active forwarding hint
   } __rte_packed;
-#endif
 
   PName name;
   const uint8_t* fwHintV[PInterestMaxFwHints]; ///< TLV-VALUE of forwarding hints

@@ -105,7 +105,7 @@ func (c *Consumer) SetPatterns(inputPatterns []Pattern) (e error) {
 	}
 
 	if e := c.prepareDigest(nDigestPatterns); e != nil {
-		return fmt.Errorf("enableDigest %w", e)
+		return fmt.Errorf("prepareDigest %w", e)
 	}
 	var dataGenVec pktmbuf.Vector
 	if nDigestPatterns > 0 {
@@ -141,11 +141,11 @@ func (c *Consumer) assignPattern(i int, pattern Pattern, dataGenVec pktmbuf.Vect
 
 	txP := &c.txC.pattern[i]
 	*txP = C.TgcTxPattern{
-		seqNum: C.TgcSeqNum{
-			compT: C.TtGenericNameComponent,
-			compL: C.uint8_t(C.sizeof_uint64_t),
-			compV: C.uint64_t(rand.Uint64()),
-		},
+		seqNumT: an.TtGenericNameComponent,
+		seqNumL: C.uint8_t(C.sizeof_uint64_t),
+		seqNumV: C.uint64_t(rand.Uint64()),
+		digestT: an.TtImplicitSha256DigestComponent,
+		digestL: ndni.ImplicitDigestLength,
 	}
 	pattern.InterestTemplateConfig.Apply(ndni.InterestTemplateFromPtr(unsafe.Pointer(&txP.tpl)))
 
@@ -162,13 +162,10 @@ func (c *Consumer) assignPattern(i int, pattern Pattern, dataGenVec pktmbuf.Vect
 
 func (c *Consumer) assignDigestPattern(pattern Pattern, txP *C.TgcTxPattern, dataGenVec pktmbuf.Vector) {
 	txP.makeSuffix = C.TgcTxPattern_MakeSuffix(C.TgcTxPattern_MakeSuffix_Digest)
-	txP.digestT = an.TtImplicitSha256DigestComponent
-	txP.digestL = ndni.ImplicitDigestLength
-	txP.digestV = [ndni.ImplicitDigestLength]C.uint8_t{}
 
 	name := append(ndn.Name{}, pattern.Prefix...)
 	seqNumV := make([]byte, 8)
-	binary.LittleEndian.PutUint64(seqNumV, uint64(txP.seqNum.compV))
+	binary.LittleEndian.PutUint64(seqNumV, uint64(txP.seqNumV))
 	name = append(name, ndn.MakeNameComponent(an.TtGenericNameComponent, seqNumV))
 	nameV, _ := tlv.EncodeValueOnly(name.Field())
 

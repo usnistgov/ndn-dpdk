@@ -36,7 +36,10 @@ struct TgcTxPattern
   uint64_t nInterests;
   TgcTxPattern_MakeSuffix makeSuffix;
 
-  TgcSeqNum seqNum;
+  uint8_t a_[6];
+  uint8_t seqNumT;
+  uint8_t seqNumL;
+  uint64_t seqNumV;
   uint8_t digestT;
   uint8_t digestL;
   uint8_t digestV[ImplicitDigestLength];
@@ -49,7 +52,9 @@ struct TgcTxPattern
 
   InterestTemplate tpl;
 };
-static_assert(offsetof(TgcTxPattern, seqNum) + sizeof(TgcSeqNum) == offsetof(TgcTxPattern, digestT),
+static_assert(offsetof(TgcTxPattern, seqNumL) + 1 == offsetof(TgcTxPattern, seqNumV), "");
+static_assert(offsetof(TgcTxPattern, seqNumT) + TgcSeqNumSize + ImplicitDigestSize ==
+                offsetof(TgcTxPattern, digestV) + sizeof(((TgcTxPattern*)NULL)->digestV),
               "");
 
 /** @brief Traffic generator consumer TX thread. */

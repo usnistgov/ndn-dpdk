@@ -126,15 +126,12 @@ LpHeader_Prepend(struct rte_mbuf* pkt, const LpL3* l3, const LpL2* l2)
     if (unlikely(l3->congMark != 0)) {
       typedef struct CongMarkF
       {
-        uint8_t congMarkT[3];
-        uint8_t congMarkL;
+        unaligned_uint32_t congMarkTL;
         uint8_t congMarkV;
       } __rte_packed CongMarkF;
 
       CongMarkF* f = (CongMarkF*)rte_pktmbuf_prepend(pkt, sizeof(CongMarkF));
-      NDNDPDK_ASSERT(TlvEncoder_SizeofVarNum(TtCongestionMark) == sizeof(f->congMarkT));
-      TlvEncoder_WriteVarNum(f->congMarkT, TtCongestionMark);
-      f->congMarkL = 1;
+      f->congMarkTL = TlvEncoder_ConstTL3(TtCongestionMark, sizeof(f->congMarkV));
       f->congMarkV = l3->congMark;
     }
 
@@ -144,18 +141,14 @@ LpHeader_Prepend(struct rte_mbuf* pkt, const LpL3* l3, const LpL2* l2)
       } else {
         typedef struct NackF
         {
-          uint8_t nackT[3];
-          uint8_t nackL;
-          uint8_t nackReasonT[3];
-          uint8_t nackReasonL;
+          unaligned_uint32_t nackTL;
+          unaligned_uint32_t nackReasonTL;
           uint8_t nackReasonV;
         } __rte_packed NackF;
 
         NackF* f = (NackF*)rte_pktmbuf_prepend(pkt, sizeof(NackF));
-        TlvEncoder_WriteVarNum(f->nackT, TtNack);
-        f->nackL = 5;
-        TlvEncoder_WriteVarNum(f->nackReasonT, TtNackReason);
-        f->nackReasonL = 1;
+        f->nackTL = TlvEncoder_ConstTL3(TtNack, sizeof(f->nackReasonTL) + sizeof(f->nackReasonV));
+        f->nackReasonTL = TlvEncoder_ConstTL3(TtNackReason, sizeof(f->nackReasonV));
         f->nackReasonV = l3->nackReason;
       }
     }
@@ -164,14 +157,13 @@ LpHeader_Prepend(struct rte_mbuf* pkt, const LpL3* l3, const LpL2* l2)
       typedef struct PitTokenF
       {
         uint8_t pitTokenT;
-        uint8_t pitTokenL;
-        uint8_t pitTokenV[0];
+        uint8_t pitTokenLV[0];
       } __rte_packed PitTokenF;
 
-      PitTokenF* f = (PitTokenF*)rte_pktmbuf_prepend(pkt, 2 + l3->pitToken.length);
+      size_t sizeofLV = sizeof(l3->pitToken.length) + l3->pitToken.length;
+      PitTokenF* f = (PitTokenF*)rte_pktmbuf_prepend(pkt, sizeof(f->pitTokenT) + sizeofLV);
       f->pitTokenT = TtPitToken;
-      f->pitTokenL = l3->pitToken.length;
-      rte_memcpy(f->pitTokenV, l3->pitToken.value, l3->pitToken.length);
+      rte_memcpy(f->pitTokenLV, &l3->pitToken, sizeofLV);
     }
   }
 
@@ -181,28 +173,20 @@ LpHeader_Prepend(struct rte_mbuf* pkt, const LpL3* l3, const LpL2* l2)
 
     typedef struct FragF
     {
-      uint8_t seqNumT;
-      uint8_t seqNumL;
+      unaligned_uint16_t seqNumTL;
       unaligned_uint64_t seqNumV;
-
-      uint8_t fragIndexT;
-      uint8_t fragIndexL;
+      unaligned_uint16_t fragIndexTL;
       uint8_t fragIndexV;
-
-      uint8_t fragCountT;
-      uint8_t fragCountL;
+      unaligned_uint16_t fragCountTL;
       uint8_t fragCountV;
     } __rte_packed FragF;
 
     FragF* f = (FragF*)rte_pktmbuf_prepend(pkt, sizeof(FragF));
-    f->seqNumT = TtLpSeqNum;
-    f->seqNumL = 8;
+    f->seqNumTL = TlvEncoder_ConstTL1(TtLpSeqNum, sizeof(f->seqNumV));
     f->seqNumV = rte_cpu_to_be_64(LpL2_GetSeqNum(l2));
-    f->fragIndexT = TtFragIndex;
-    f->fragIndexL = 1;
+    f->fragIndexTL = TlvEncoder_ConstTL1(TtFragIndex, sizeof(f->fragIndexV));
     f->fragIndexV = l2->fragIndex;
-    f->fragCountT = TtFragCount;
-    f->fragCountL = 1;
+    f->fragCountTL = TlvEncoder_ConstTL1(TtFragCount, sizeof(f->fragCountV));
     f->fragCountV = l2->fragCount;
   }
 

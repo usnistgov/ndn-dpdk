@@ -177,15 +177,13 @@ TlvDecoder_ReadVarNum(TlvDecoder* d, uint32_t* n)
   switch (first) {
     case 0xFD:
       if (likely(d->length >= 2)) {
-        const unaligned_uint16_t* b = (const unaligned_uint16_t*)TlvDecoder_Read(d, scratch, 2);
-        *n = rte_be_to_cpu_16(*b);
+        *n = rte_be_to_cpu_16(*(const unaligned_uint16_t*)TlvDecoder_Read(d, scratch, 2));
         return likely(*n >= 0xFD);
       }
       return false;
     case 0xFE:
       if (likely(d->length >= 4)) {
-        const unaligned_uint32_t* b = (const unaligned_uint32_t*)TlvDecoder_Read(d, scratch, 4);
-        *n = rte_be_to_cpu_32(*b);
+        *n = rte_be_to_cpu_32(*(const unaligned_uint32_t*)TlvDecoder_Read(d, scratch, 4));
         return likely(*n > UINT16_MAX);
       }
       return false;
@@ -257,28 +255,22 @@ TlvDecoder_ReadNni(TlvDecoder* d, uint32_t length, uint64_t max, uint64_t* n)
 {
   uint8_t scratch[8];
   const uint8_t* value = TlvDecoder_Read(d, scratch, RTE_MIN(sizeof(scratch), length));
-  return likely(Nni_Decode(length, value, n) && *n <= max);
+  return Nni_Decode(length, value, n) && *n <= max;
 }
 
+#define TlvDecoder_ReadNniToTypeMax_(sizeofPtr)                                                    \
+  (sizeofPtr) == sizeof(uint8_t)                                                                   \
+    ? UINT8_MAX                                                                                    \
+    : (sizeofPtr) == sizeof(uint16_t)                                                              \
+        ? UINT16_MAX                                                                               \
+        : (sizeofPtr) == sizeof(uint32_t) ? UINT32_MAX                                             \
+                                          : (sizeofPtr) == sizeof(uint64_t) ? UINT64_MAX : 0
 #define TlvDecoder_ReadNniTo4_(d, length, max, ptr)                                                \
   __extension__({                                                                                  \
-    uint64_t tmax = 0;                                                                             \
-    switch (sizeof(*(ptr))) {                                                                      \
-      case sizeof(uint8_t):                                                                        \
-        tmax = UINT8_MAX;                                                                          \
-        break;                                                                                     \
-      case sizeof(uint16_t):                                                                       \
-        tmax = UINT16_MAX;                                                                         \
-        break;                                                                                     \
-      case sizeof(uint32_t):                                                                       \
-        tmax = UINT32_MAX;                                                                         \
-        break;                                                                                     \
-      case sizeof(uint64_t):                                                                       \
-        tmax = UINT64_MAX;                                                                         \
-        break;                                                                                     \
-    }                                                                                              \
+    static_assert(__builtin_constant_p(TlvDecoder_ReadNniToTypeMax_(sizeof(*(ptr)))), "");         \
     uint64_t value;                                                                                \
-    bool ok = TlvDecoder_ReadNni((d), (length), RTE_MIN((max), tmax), &value);                     \
+    bool ok = TlvDecoder_ReadNni(                                                                  \
+      (d), (length), RTE_MIN((max), TlvDecoder_ReadNniToTypeMax_(sizeof(*(ptr)))), &value);        \
     *(ptr) = value;                                                                                \
     ok;                                                                                            \
   })
