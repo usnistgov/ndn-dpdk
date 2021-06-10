@@ -31,8 +31,7 @@ func TestPatterns(t *testing.T) {
 	require.NoError(ealthread.AllocThread(p.Workers()...))
 	p.ConnectRxQueues(tgtestenv.DemuxI)
 
-	nameA := ndn.ParseName("/A")
-	nameB := ndn.ParseName("/B")
+	nameA, nameB, nameC := ndn.ParseName("/A"), ndn.ParseName("/B"), ndn.ParseName("/C")
 	require.NoError(p.SetPatterns([]tgproducer.Pattern{
 		{
 			Prefix: nameA,
@@ -60,21 +59,21 @@ func TestPatterns(t *testing.T) {
 				{
 					Nack: an.NackCongestion,
 				},
-			},
-		},
-		{
-			Prefix: ndn.ParseName("/C"),
-			Replies: []tgproducer.Reply{
 				{
 					Timeout: true,
 				},
 			},
+		},
+		{
+			Prefix:  nameC,
+			Replies: nil, // default Data reply
 		},
 	}))
 
 	nDataA0 := 0
 	nDataA1 := 0
 	nNacksB := 0
+	nDataC := 0
 	go func() {
 		for packet := range face.Rx {
 			switch {
@@ -85,6 +84,8 @@ func TestPatterns(t *testing.T) {
 					nDataA0++
 				case nameA.IsPrefixOf(dataName) && len(dataName) == 3:
 					nDataA1++
+				case nameC.IsPrefixOf(dataName) && len(dataName) == 4:
+					nDataC++
 				default:
 					assert.Fail("unexpected Data", "%v", *packet.Data)
 				}
@@ -108,7 +109,10 @@ func TestPatterns(t *testing.T) {
 		for i := 0; i < 100; i++ {
 			face.Tx <- ndn.MakeInterest(fmt.Sprintf("/A/%d", i))
 			face.Tx <- ndn.MakeInterest(fmt.Sprintf("/B/%d", i))
-			face.Tx <- ndn.MakeInterest(fmt.Sprintf("/C/%d", i))
+			face.Tx <- func(i int) ndn.Interest {
+				data := ndn.MakeData(fmt.Sprintf("/C/z/%d/z", i), 1*time.Millisecond)
+				return ndn.MakeInterest(data.FullName())
+			}(i)
 			time.Sleep(50 * time.Microsecond)
 		}
 		time.Sleep(200 * time.Millisecond)
@@ -120,7 +124,8 @@ func TestPatterns(t *testing.T) {
 	assert.Equal(100, nDataA0+nDataA1)
 	assert.InDelta(60, nDataA0, 20)
 	assert.InDelta(40, nDataA1, 20)
-	assert.Equal(100, nNacksB)
+	assert.InDelta(50, nNacksB, 20)
+	assert.Equal(100, nDataC)
 }
 
 func TestDataProducer(t *testing.T) {

@@ -27,7 +27,7 @@ RTE_INIT(LName_HashInit_)
   }
   SipHashKey_FromBuffer(&LName_HashKey_, key);
 
-  LName_EmptyHash_ = LName_ComputeHash(LName_Empty());
+  LName_EmptyHash_ = LName_ComputeHash((LName){ 0 });
 }
 
 int

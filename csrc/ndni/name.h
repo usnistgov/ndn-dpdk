@@ -27,13 +27,6 @@ LName_Init(uint16_t length, const uint8_t* value)
   return (LName){ .length = length, .value = value };
 }
 
-/** @brief Construct empty LName. */
-static __rte_always_inline LName
-LName_Empty()
-{
-  return (LName){ 0 };
-}
-
 /**
  * @brief Determine whether @p a is a prefix of @b b .
  * @retval 0 @p a equals @p b .
@@ -100,7 +93,7 @@ PName_GetPrefix(const PName* p, int n)
   n = RTE_MIN(n, (int)p->nComps);
 
   if (unlikely(n <= 0)) {
-    return LName_Empty();
+    return (LName){ 0 };
   }
 
   if (unlikely(n > PNameCachedComponents)) {

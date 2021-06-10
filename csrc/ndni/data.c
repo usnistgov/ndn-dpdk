@@ -81,10 +81,8 @@ PData_Parse(PData* data, struct rte_mbuf* pkt)
 static DataSatisfyResult
 PData_CanSatisfy_HasDigestComp_(PData* data, PInterest* interest)
 {
-  LName nameI = PName_ToLName(&interest->name);
-  LName nameD = PName_ToLName(&data->name);
-  if (nameI.length != nameD.length + ImplicitDigestSize ||
-      memcmp(nameI.value, nameD.value, nameD.length) != 0) {
+  if (interest->name.length != data->name.length + ImplicitDigestSize ||
+      memcmp(interest->name.value, data->name.value, data->name.length) != 0) {
     return DataSatisfyNo;
   }
 
@@ -92,8 +90,8 @@ PData_CanSatisfy_HasDigestComp_(PData* data, PInterest* interest)
     return DataSatisfyNeedDigest;
   }
 
-  return memcmp(RTE_PTR_ADD(nameI.value, nameI.length - ImplicitDigestLength), data->digest,
-                ImplicitDigestLength) == 0
+  return memcmp(RTE_PTR_ADD(interest->name.value, interest->name.length - ImplicitDigestLength),
+                data->digest, ImplicitDigestLength) == 0
            ? DataSatisfyYes
            : DataSatisfyNo;
 }

@@ -37,7 +37,7 @@ var (
 // Pattern configures how the producer replies to Interests under a name prefix.
 type Pattern struct {
 	Prefix  ndn.Name `json:"prefix"`
-	Replies []Reply  `json:"replies"` // if empty, reply with Data
+	Replies []Reply  `json:"replies"` // if empty, reply with Data FreshnessPeriod=1
 
 	prefixV []byte
 }

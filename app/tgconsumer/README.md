@@ -23,6 +23,15 @@ However, the current C++ `ndnpingserver` implementation can respond to such Inte
 
 The consumer maintains Interest, Data, Nack counters and collects Data round-trip time for each pattern.
 
+## Implicit Digest
+
+The consumer can generate Interests whose name contains an implicit digest component.
+This is achieved by locally constructing a Data packet according to a Data template, and then computing its implicit digest using a DPDK crypto device.
+Due to its performance overhead, patterns using this feature should be assigned lower weights.
+
+For the [producer](../tgproducer) to create Data packets that can satisfy those Interests, the producer's pattern should have a reply definition that has the same Data template.
+Name suffix cannot be used in the Data template.
+
 ## PIT token usage
 
 The consumer encodes the following information in the PIT token field:
@@ -32,4 +41,4 @@ The consumer encodes the following information in the PIT token field:
 * a "run number", so that replies to Interests from previous executions are not considered.
 
 Having the above information inside the packet eliminates the need for a pending Interest table, allowing the consumer to operate more efficiently.
-However, the consumer cannot detect network faults, such as unsolicited replies or duplicate replies.
+However, the consumer cannot detect network faults, such as unsolicited replies, duplicate replies, mismatched implicit digests.

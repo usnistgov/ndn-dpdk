@@ -26,8 +26,13 @@ Tgp_SelectReply(Tgp* p, TgpPattern* pattern)
 __attribute__((nonnull)) static Packet*
 Tgp_RespondData(Tgp* p, TgpPattern* pattern, TgpReply* reply, Packet* npkt)
 {
-  LName name = PName_ToLName(&Packet_GetInterestHdr(npkt)->name);
-  Packet* output = DataGen_Encode(&reply->dataGen, name, &p->mp, Face_PacketTxAlign(p->face));
+  const PName* interestName = &Packet_GetInterestHdr(npkt)->name;
+  LName dataPrefix = PName_ToLName(interestName);
+  if (unlikely(interestName->hasDigestComp)) {
+    dataPrefix.length -= ImplicitDigestSize;
+  }
+
+  Packet* output = DataGen_Encode(&reply->dataGen, dataPrefix, &p->mp, Face_PacketTxAlign(p->face));
   if (likely(output != NULL)) {
     Packet_GetLpL3Hdr(output)->pitToken = Packet_GetLpL3Hdr(npkt)->pitToken;
   }
@@ -59,8 +64,7 @@ static const Tgp_Respond Tgp_RespondJmp[3] = {
 __attribute__((nonnull)) static Packet*
 Tgp_ProcessInterest(Tgp* p, Packet* npkt)
 {
-  LName name = PName_ToLName(&Packet_GetInterestHdr(npkt)->name);
-  int patternID = Tgp_FindPattern(p, name);
+  int patternID = Tgp_FindPattern(p, PName_ToLName(&Packet_GetInterestHdr(npkt)->name));
   if (unlikely(patternID < 0)) {
     const LpPitToken* token = &Packet_GetLpL3Hdr(npkt)->pitToken;
     N_LOGD(">I dn-token=" PRI_LpPitToken " no-pattern", LpPitToken_Fmt(token));

@@ -30,9 +30,7 @@ type PName C.PName
 // NewPName creates PName from ndn.Name.
 func NewPName(name ndn.Name) *PName {
 	var lname C.LName
-	if len(name) == 0 {
-		lname = C.LName_Empty()
-	} else {
+	if len(name) > 0 {
 		value, _ := name.MarshalBinary()
 		valueC := C.CBytes(value)
 		lname = C.LName_Init(C.uint16_t(len(value)), (*C.uint8_t)(valueC))
