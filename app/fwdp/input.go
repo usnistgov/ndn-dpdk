@@ -9,7 +9,6 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
-	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
@@ -48,11 +47,6 @@ func (fwi *Input) Close() error {
 
 func (fwi *Input) String() string {
 	return fmt.Sprintf("input%d", fwi.id)
-}
-
-// Thread implements ealthread.WithThread interface.
-func (fwi *Input) Thread() ealthread.Thread {
-	return fwi.rxl
 }
 
 func newInput(id int) *Input {

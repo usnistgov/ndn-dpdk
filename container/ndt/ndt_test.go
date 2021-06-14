@@ -109,7 +109,7 @@ func TestNdt(t *testing.T) {
 	table.Randomize(250)
 	list0 := table.List()
 	for _, th := range threads {
-		require.NoError(ealthread.Launch(th))
+		require.NoError(ealthread.AllocLaunch(th))
 	}
 
 	time.Sleep(100 * time.Millisecond)

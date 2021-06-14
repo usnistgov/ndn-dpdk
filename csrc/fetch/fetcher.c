@@ -20,26 +20,27 @@ FetchProc_Encode(FetchProc* fp, FetchThread* fth, struct rte_mbuf* pkt, uint64_t
   LpPitToken_Set(&Packet_GetLpL3Hdr(npkt)->pitToken, sizeof(fp->pitToken), &fp->pitToken);
 }
 
-__attribute__((nonnull)) static void
+__attribute__((nonnull)) static uint64_t
 FetchProc_TxBurst(FetchProc* fp, FetchThread* fth)
 {
   uint64_t segNums[FETCHER_TX_BURST_SIZE];
   size_t count = FetchLogic_TxInterestBurst(&fp->logic, segNums, FETCHER_TX_BURST_SIZE);
   if (unlikely(count == 0)) {
-    return;
+    return count;
   }
 
   struct rte_mbuf* pkts[FETCHER_TX_BURST_SIZE];
   int res = rte_pktmbuf_alloc_bulk(fth->interestMp, pkts, count);
   if (unlikely(res != 0)) {
     N_LOGW("%p interestMp-full", fp);
-    return;
+    return count;
   }
 
   for (size_t i = 0; i < count; ++i) {
     FetchProc_Encode(fp, fth, pkts[i], segNums[i]);
   }
   Face_TxBurst(fth->face, (Packet**)pkts, count);
+  return count;
 }
 
 __attribute__((nonnull)) static bool
@@ -58,7 +59,7 @@ FetchProc_Decode(FetchProc* fp, Packet* npkt, FetchLogicRxData* lpkt)
          Nni_Decode(seqNumComp[1], RTE_PTR_ADD(seqNumComp, 2), &lpkt->segNum);
 }
 
-__attribute__((nonnull)) static void
+__attribute__((nonnull)) static uint64_t
 FetchProc_RxBurst(FetchProc* fp)
 {
   TscTime now = rte_get_tsc_cycles();
@@ -75,6 +76,7 @@ FetchProc_RxBurst(FetchProc* fp)
   }
   FetchLogic_RxDataBurst(&fp->logic, lpkts, count);
   rte_pktmbuf_free_bulk((struct rte_mbuf**)npkts, nRx);
+  return nRx;
 }
 
 int
@@ -84,14 +86,16 @@ FetchThread_Run(FetchThread* fth)
     rcu_quiescent_state();
     rcu_read_lock();
 
+    uint64_t nProcessed = 0;
     FetchProc* fp;
     struct cds_hlist_node* pos;
     cds_hlist_for_each_entry_rcu (fp, pos, &fth->head, fthNode) {
       MinSched_Trigger(fp->logic.sched);
-      FetchProc_TxBurst(fp, fth);
-      FetchProc_RxBurst(fp);
+      nProcessed += FetchProc_TxBurst(fp, fth);
+      nProcessed += FetchProc_RxBurst(fp);
     }
     rcu_read_unlock();
+    ThreadLoadStat_Report(&fth->loadStat, nProcessed);
   }
   return 0;
 }

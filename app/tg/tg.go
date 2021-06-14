@@ -67,9 +67,9 @@ func (gen TrafficGen) Workers() []ealthread.ThreadWithRole {
 
 // Launch launches the traffic generator.
 func (gen *TrafficGen) Launch() error {
-	gen.txl.Launch()
+	ealthread.Launch(gen.txl)
 	gen.configureDemux(gen.rxl.InterestDemux(), gen.rxl.DataDemux(), gen.rxl.NackDemux())
-	gen.rxl.Launch()
+	ealthread.Launch(gen.rxl)
 
 	if gen.producer != nil {
 		gen.producer.Launch()

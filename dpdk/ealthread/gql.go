@@ -111,7 +111,7 @@ func init() {
 		Description: "Obtain thread load statistics.",
 		Args: graphql.FieldConfigArgument{
 			"id": &graphql.ArgumentConfig{
-				Description: "Thread object ID.",
+				Description: "Worker ID.",
 				Type:        gqlserver.NonNullID,
 			},
 			"interval": &graphql.ArgumentConfig{
@@ -130,12 +130,15 @@ func init() {
 		if !ok {
 			return
 		}
-
-		_, obj, e := gqlserver.RetrieveNode(id)
-		if e != nil {
+		var lc eal.LCore
+		if e := gqlserver.RetrieveNodeOfType(GqlWorkerNodeType, id, &lc); e != nil {
 			return
 		}
-		th, ok := ThreadOf(obj).(ThreadWithLoadStat)
+		thObj, ok := activeThread.Load(lc)
+		if !ok {
+			return
+		}
+		th, ok := thObj.(ThreadWithLoadStat)
 		if !ok {
 			return
 		}
@@ -152,7 +155,7 @@ func init() {
 			select {
 			case <-ctx.Done():
 				return
-			case <-th.stopped():
+			case <-th.threadImpl().stopped:
 				return
 			case <-ticker.C:
 				stat := th.ThreadLoadStat()

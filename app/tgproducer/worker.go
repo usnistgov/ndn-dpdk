@@ -24,9 +24,19 @@ type worker struct {
 	c *C.Tgp
 }
 
+var (
+	_ ealthread.ThreadWithRole     = (*worker)(nil)
+	_ ealthread.ThreadWithLoadStat = (*worker)(nil)
+)
+
 // ThreadRole implements ealthread.ThreadWithRole interface.
 func (worker) ThreadRole() string {
 	return RoleProducer
+}
+
+// ThreadLoadStat implements ealthread.ThreadWithLoadStat interface.
+func (w worker) ThreadLoadStat() ealthread.LoadStat {
+	return ealthread.LoadStatFromPtr(unsafe.Pointer(&w.c.loadStat))
 }
 
 // NumaSocket implements eal.WithNumaSocket interface.

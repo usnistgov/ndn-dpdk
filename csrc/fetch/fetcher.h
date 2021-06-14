@@ -23,6 +23,7 @@ typedef struct FetchThread
 {
   struct rte_mempool* interestMp;
   struct cds_hlist_head head;
+  ThreadLoadStat loadStat;
   NonceGen nonceGen;
   FaceID face;
   ThreadStopFlag stop;

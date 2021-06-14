@@ -20,9 +20,9 @@ func TestMain(m *testing.M) {
 	ndnitestenv.MakePacketHeadroom = mbuftestenv.Headroom(pktmbuf.DefaultHeadroom + ndni.LpHeaderHeadroom)
 
 	rxl = iface.NewRxLoop(eal.NumaSocket{})
-	ealthread.Launch(rxl)
+	ealthread.AllocLaunch(rxl)
 	txl = iface.NewTxLoop(eal.NumaSocket{})
-	ealthread.Launch(txl)
+	ealthread.AllocLaunch(txl)
 
 	os.Exit(m.Run())
 }

@@ -21,6 +21,7 @@ typedef struct TgcRxPattern
 typedef struct TgcRx
 {
   PktQueue rxQueue;
+  ThreadLoadStat loadStat;
   ThreadStopFlag stop;
   uint8_t runNum;
   uint8_t nPatterns;

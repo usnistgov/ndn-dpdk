@@ -4,6 +4,7 @@ package ealthread
 import (
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/logging"
@@ -14,6 +15,8 @@ import (
 var ErrRunning = errors.New("operation not permitted when thread is running")
 
 var logger = logging.New("ealthread")
+
+var activeThread sync.Map // map[eal.LCore]Thread
 
 // Thread represents a procedure running on an LCore.
 type Thread interface {
@@ -27,30 +30,26 @@ type Thread interface {
 	// IsRunning indicates whether the thread is running.
 	IsRunning() bool
 
-	// Launch launches the thread.
-	Launch()
-
 	// Stop stops the thread.
 	Stop() error
 
-	// stopChan returns a channel that is closed when the thread is stopped.
-	stopped() <-chan struct{}
+	threadImpl() *threadImpl
 }
 
 // New creates a Thread.
 func New(main cptr.Function, stop Stopper) Thread {
 	return &threadImpl{
-		main:        main,
-		stop:        stop,
-		stoppedChan: make(chan struct{}),
+		main:    main,
+		stop:    stop,
+		stopped: make(chan struct{}),
 	}
 }
 
 type threadImpl struct {
-	lc          eal.LCore
-	main        cptr.Function
-	stop        Stopper
-	stoppedChan chan struct{}
+	lc      eal.LCore
+	main    cptr.Function
+	stop    Stopper
+	stopped chan struct{}
 }
 
 func (th *threadImpl) LCore() eal.LCore {
@@ -68,48 +67,36 @@ func (th *threadImpl) IsRunning() bool {
 	return th.lc.Valid() && th.lc.IsBusy()
 }
 
-func (th *threadImpl) Launch() {
-	if !th.lc.Valid() {
-		logger.Panic("lcore unassigned")
-		panic("lcore unassigned")
-	}
-	if th.IsRunning() {
-		logger.Panic("lcore is busy", th.lc.ZapField("lc"))
-	}
-	th.stoppedChan = make(chan struct{})
-	th.lc.RemoteLaunch(th.main)
-}
-
 func (th *threadImpl) Stop() error {
 	if !th.IsRunning() {
 		return nil
 	}
+	defer func(lc eal.LCore) { activeThread.Delete(lc) }(th.lc)
 	th.stop.BeforeWait()
 	exitCode := th.lc.Wait()
 	th.stop.AfterWait()
-	close(th.stoppedChan)
+	close(th.stopped)
 	if exitCode != 0 {
 		return fmt.Errorf("exit code %d", exitCode)
 	}
 	return nil
 }
 
-func (th *threadImpl) stopped() <-chan struct{} {
-	return th.stoppedChan
+func (th *threadImpl) threadImpl() *threadImpl {
+	return th
 }
 
-// WithThread is an object that encloses a Thread.
-type WithThread interface {
-	Thread() Thread
-}
-
-// ThreadOf retrieves Thread from Thread or WithThread.
-func ThreadOf(obj interface{}) Thread {
-	switch obj := obj.(type) {
-	case Thread:
-		return obj
-	case WithThread:
-		return obj.Thread()
+// Launch launches the thread.
+func Launch(th Thread) {
+	thi := th.threadImpl()
+	if !thi.lc.Valid() {
+		logger.Panic("lcore unassigned")
+		panic("lcore unassigned")
 	}
-	return nil
+	if th.IsRunning() {
+		logger.Panic("lcore is busy", thi.lc.ZapField("lc"))
+	}
+	thi.stopped = make(chan struct{})
+	activeThread.Store(thi.lc, th)
+	thi.lc.RemoteLaunch(thi.main)
 }

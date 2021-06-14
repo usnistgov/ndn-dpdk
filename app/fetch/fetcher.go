@@ -43,9 +43,19 @@ type worker struct {
 	c *C.FetchThread
 }
 
+var (
+	_ ealthread.ThreadWithRole     = (*worker)(nil)
+	_ ealthread.ThreadWithLoadStat = (*worker)(nil)
+)
+
 // ThreadRole implements ealthread.ThreadWithRole interface.
 func (worker) ThreadRole() string {
 	return RoleConsumer
+}
+
+// ThreadLoadStat implements ealthread.ThreadWithLoadStat interface.
+func (w worker) ThreadLoadStat() ealthread.LoadStat {
+	return ealthread.LoadStatFromPtr(unsafe.Pointer(&w.c.loadStat))
 }
 
 // NumaSocket implements eal.WithNumaSocket interface.
@@ -183,7 +193,7 @@ func (fetcher *Fetcher) AddTemplate(tplCfg ndni.InterestTemplateConfig) (i int, 
 // Launch launches all fetch threads.
 func (fetcher *Fetcher) Launch() {
 	for _, fth := range fetcher.workers {
-		fth.Launch()
+		ealthread.Launch(fth)
 	}
 }
 

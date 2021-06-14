@@ -68,8 +68,8 @@ func NewFixture(t *testing.T) (fixture *Fixture) {
 	fixture.rxQueueD = fixture.preparePktQueue(fixture.rxl.DataDemux())
 	fixture.rxQueueN = fixture.preparePktQueue(fixture.rxl.NackDemux())
 	fixture.txl = iface.NewTxLoop(eal.NumaSocket{})
-	require.NoError(ealthread.Launch(fixture.rxl))
-	require.NoError(ealthread.Launch(fixture.txl))
+	require.NoError(ealthread.AllocLaunch(fixture.rxl))
+	require.NoError(ealthread.AllocLaunch(fixture.txl))
 
 	return fixture
 }

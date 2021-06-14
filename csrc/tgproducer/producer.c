@@ -93,6 +93,7 @@ Tgp_Run(Tgp* p)
   while (ThreadStopFlag_ShouldContinue(&p->stop)) {
     TscTime now = rte_get_tsc_cycles();
     PktQueuePopResult pop = PktQueue_Pop(&p->rxQueue, rx, MaxBurstSize, now);
+    ThreadLoadStat_Report(&p->loadStat, pop.count);
     if (unlikely(pop.count == 0)) {
       rte_pause();
       continue;

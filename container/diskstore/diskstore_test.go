@@ -23,7 +23,7 @@ func TestDiskStore(t *testing.T) {
 	th, e := spdkenv.NewThread()
 	require.NoError(e)
 	defer th.Close()
-	require.NoError(ealthread.Launch(th))
+	require.NoError(ealthread.AllocLaunch(th))
 
 	assert.Zero(packetPool.CountInUse())
 

@@ -40,11 +40,22 @@ const RoleConsumer = "CONSUMER"
 
 type worker struct {
 	ealthread.Thread
+	loadStat *C.ThreadLoadStat
 }
+
+var (
+	_ ealthread.ThreadWithRole     = (*worker)(nil)
+	_ ealthread.ThreadWithLoadStat = (*worker)(nil)
+)
 
 // ThreadRole implements ealthread.ThreadWithRole interface.
 func (worker) ThreadRole() string {
 	return RoleConsumer
+}
+
+// ThreadLoadStat implements ealthread.ThreadWithLoadStat interface.
+func (w worker) ThreadLoadStat() ealthread.LoadStat {
+	return ealthread.LoadStatFromPtr(unsafe.Pointer(w.loadStat))
 }
 
 // Consumer represents a traffic generator consumer instance.
@@ -254,8 +265,8 @@ func (p *Consumer) AllocLCores(allocator *ealthread.Allocator) error {
 func (c *Consumer) Launch() {
 	c.rxC.runNum++
 	c.txC.runNum = c.rxC.runNum
-	c.rx.Launch()
-	c.tx.Launch()
+	ealthread.Launch(c.rx)
+	ealthread.Launch(c.tx)
 }
 
 // Stop stops RX and TX threads.
@@ -312,14 +323,20 @@ func New(face iface.Face, rxqCfg iface.PktQueueConfig) (c *Consumer, e error) {
 	C.pcg32_srandom_r(&c.txC.trafficRng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
 	C.NonceGen_Init(&c.txC.nonceGen)
 
-	c.rx.Thread = ealthread.New(
-		cptr.Func0.C(unsafe.Pointer(C.TgcRx_Run), unsafe.Pointer(c.rxC)),
-		ealthread.InitStopFlag(unsafe.Pointer(&c.rxC.stop)),
-	)
-	c.tx.Thread = ealthread.New(
-		cptr.Func0.C(unsafe.Pointer(C.TgcTx_Run), unsafe.Pointer(c.txC)),
-		ealthread.InitStopFlag(unsafe.Pointer(&c.txC.stop)),
-	)
+	c.rx = worker{
+		Thread: ealthread.New(
+			cptr.Func0.C(unsafe.Pointer(C.TgcRx_Run), unsafe.Pointer(c.rxC)),
+			ealthread.InitStopFlag(unsafe.Pointer(&c.rxC.stop)),
+		),
+		loadStat: &c.rxC.loadStat,
+	}
+	c.tx = worker{
+		Thread: ealthread.New(
+			cptr.Func0.C(unsafe.Pointer(C.TgcTx_Run), unsafe.Pointer(c.txC)),
+			ealthread.InitStopFlag(unsafe.Pointer(&c.txC.stop)),
+		),
+		loadStat: &c.txC.loadStat,
+	}
 
 	c.SetInterval(time.Millisecond)
 	return c, nil

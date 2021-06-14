@@ -14,16 +14,14 @@ func Init() {
 
 	rxl := iface.NewRxLoop(eal.RandomSocket())
 	ealthread.AllocThread(rxl)
-	rxl.SetLCore(eal.Workers[0])
 	DemuxI, DemuxD, DemuxN = rxl.InterestDemux(), rxl.DataDemux(), rxl.NackDemux()
 	DemuxI.InitFirst()
 	DemuxD.InitFirst()
 	DemuxN.InitFirst()
-	rxl.Launch()
+	ealthread.Launch(rxl)
 
 	txl := iface.NewTxLoop(eal.Workers[1].NumaSocket())
-	ealthread.AllocThread(txl)
-	txl.Launch()
+	ealthread.AllocLaunch(txl)
 }
 
 // Demuxes in RxLoop.

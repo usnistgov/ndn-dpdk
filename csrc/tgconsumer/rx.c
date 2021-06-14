@@ -63,6 +63,7 @@ TgcRx_Run(TgcRx* cr)
   while (ThreadStopFlag_ShouldContinue(&cr->stop)) {
     TscTime now = rte_get_tsc_cycles();
     PktQueuePopResult pop = PktQueue_Pop(&cr->rxQueue, pkts, RTE_DIM(pkts), now);
+    ThreadLoadStat_Report(&cr->loadStat, pop.count);
     for (uint16_t i = 0; i < pop.count; ++i) {
       Packet* npkt = Packet_FromMbuf(pkts[i]);
       const LpPitToken* token = &Packet_GetLpL3Hdr(npkt)->pitToken;

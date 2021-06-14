@@ -39,6 +39,7 @@ typedef struct Tgp
   uint8_t nPatterns;
 
   ThreadStopFlag stop;
+  ThreadLoadStat loadStat;
   uint64_t nNoMatch;
   uint64_t nAllocError;
   pcg32_random_t replyRng;

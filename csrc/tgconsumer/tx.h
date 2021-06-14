@@ -60,13 +60,14 @@ static_assert(offsetof(TgcTxPattern, seqNumT) + TgcSeqNumSize + ImplicitDigestSi
 /** @brief Traffic generator consumer TX thread. */
 struct TgcTx
 {
+  uint32_t nWeights;
   FaceID face;
   ThreadStopFlag stop;
   uint8_t runNum;
-  uint32_t nWeights;
   struct rte_mempool* interestMp;
   TscDuration burstInterval; ///< interval between two bursts
 
+  ThreadLoadStat loadStat;
   pcg32_random_t trafficRng;
   NonceGen nonceGen;
   uint64_t nAllocError;

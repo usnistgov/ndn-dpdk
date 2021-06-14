@@ -55,11 +55,11 @@ func AllocThread(threads ...ThreadWithRole) error {
 	return DefaultAllocator.AllocThread(threads...)
 }
 
-// Launch allocates lcore to a thread from DefaultAllocator, and launches the thread.
-func Launch(th ThreadWithRole) error {
+// AllocLaunch allocates lcore to a thread from DefaultAllocator, and launches the thread.
+func AllocLaunch(th ThreadWithRole) error {
 	if e := AllocThread(th); e != nil {
 		return e
 	}
-	th.Launch()
+	Launch(th)
 	return nil
 }

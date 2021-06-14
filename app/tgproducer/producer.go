@@ -87,7 +87,7 @@ func (p *Producer) ConnectRxQueues(demuxI *iface.InputDemux) {
 // Launch launches all workers.
 func (p *Producer) Launch() {
 	for _, w := range p.workers {
-		w.Launch()
+		ealthread.Launch(w)
 	}
 }
 

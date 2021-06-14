@@ -64,7 +64,7 @@ func makeTopo3(t *testing.T) (topo topo3) {
 	topo.faceBA = makeFace(vnet.Port(1), topo.macB, topo.macA)
 	topo.faceCA = makeFace(vnet.Port(2), topo.macC, topo.macA)
 
-	ealthread.Launch(vnet)
+	ealthread.AllocLaunch(vnet)
 	time.Sleep(time.Second)
 	return topo
 }
@@ -120,7 +120,7 @@ func TestFragmentation(t *testing.T) {
 	vnetCfg.Shuffle = true
 	vnet, e := ethringdev.NewVNet(vnetCfg)
 	require.NoError(e)
-	ealthread.Launch(vnet)
+	ealthread.AllocLaunch(vnet)
 	time.Sleep(time.Second)
 
 	locA := makeEtherLocator(vnet.Port(0))

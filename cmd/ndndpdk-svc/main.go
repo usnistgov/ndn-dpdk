@@ -131,7 +131,7 @@ var app = &cli.App{
 		logger.Info("GraphQL HTTP server starting",
 			zap.String("listen", listen),
 		)
-		return http.ListenAndServe(listen, nil)
+		return cli.Exit(http.ListenAndServe(listen, nil), 1)
 	},
 }
 

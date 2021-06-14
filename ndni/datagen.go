@@ -92,8 +92,8 @@ func (gen *DataGen) Encode(prefix ndn.Name, mp *Mempools, fragmentPayloadSize in
 // DataGenConfig is a JSON serializable object that can construct DataGen.
 type DataGenConfig struct {
 	Suffix          ndn.Name                `json:"suffix,omitempty"`
-	FreshnessPeriod nnduration.Milliseconds `json:"freshnessPeriod"`
-	PayloadLen      int                     `json:"payloadLen"`
+	FreshnessPeriod nnduration.Milliseconds `json:"freshnessPeriod,omitempty"`
+	PayloadLen      int                     `json:"payloadLen,omitempty"`
 }
 
 // Apply initializes InterestTemplate.

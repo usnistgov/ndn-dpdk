@@ -54,6 +54,5 @@ func NewNodeType(value withCommonFields, retrieve *func(iface.ID) interface{}) (
 		}
 		return (*retrieve)(iface.ID(i)), nil
 	}
-
 	return nt
 }

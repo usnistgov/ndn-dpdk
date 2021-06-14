@@ -18,7 +18,7 @@ func TestThread(t *testing.T) {
 	assert.True(th.LCore().Valid())
 	assert.False(th.IsRunning())
 
-	th.Launch()
+	ealthread.Launch(th)
 	assert.True(th.IsRunning())
 	time.Sleep(5 * time.Millisecond)
 

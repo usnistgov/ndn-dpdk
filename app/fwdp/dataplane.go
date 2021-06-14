@@ -100,7 +100,7 @@ func New(cfg Config) (dp *DataPlane, e error) {
 	for _, lc := range lcTx {
 		txl := iface.NewTxLoop(lc.NumaSocket())
 		txl.SetLCore(lc)
-		txl.Launch()
+		ealthread.Launch(txl)
 	}
 
 	var fibFwds []fib.LookupThread
@@ -126,11 +126,11 @@ func New(cfg Config) (dp *DataPlane, e error) {
 			must.Close(dp)
 			return nil, fmt.Errorf("Crypto.Init(): %w", e)
 		}
-		dp.crypto.Launch()
+		ealthread.Launch(dp.crypto)
 	}
 
 	for _, fwd := range dp.fwds {
-		fwd.Launch()
+		ealthread.Launch(fwd)
 	}
 
 	for i, lc := range lcRx {
@@ -140,7 +140,7 @@ func New(cfg Config) (dp *DataPlane, e error) {
 			return nil, fmt.Errorf("Input[%d].Init(): %w", i, e)
 		}
 		dp.inputs = append(dp.inputs, fwi)
-		fwi.rxl.Launch()
+		ealthread.Launch(fwi.rxl)
 	}
 
 	return dp, nil
