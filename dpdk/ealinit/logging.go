@@ -26,6 +26,9 @@ const (
 	logPkgDPDK   = "DPDK"
 	logPkgSPDK   = "SPDK"
 	logPrefixNDN = "NDN."
+
+	logErrorPrefix = " ERROR={"
+	logErrorSuffix = "}"
 )
 
 var (
@@ -33,7 +36,7 @@ var (
 	logStream *cptr.FilePipeCGo
 
 	reLogDump = regexp.MustCompile(`(?m)^id (\d+): ([^,]+), level is `)
-	reLogLine = regexp.MustCompile(`^(\d+) (\d) (\d+) \* (?:NDN: )?(.*?)((?: [^ =]+=[^ =]+)*?)( ERROR={[^=}]+})?\n`)
+	reLogLine = regexp.MustCompile(`^(\d+) (\d) (\d+) \* (?:NDN: )?(.*?)((?: [^ =]+=[^ =]+)*?)(` + logErrorPrefix + `[^=}]+` + logErrorSuffix + `)?\n`)
 )
 
 func updateLogTypes() {
@@ -50,7 +53,7 @@ func updateLogTypes() {
 		}
 		pkg := string(m[2])
 		if strings.HasPrefix(pkg, logPrefixNDN) {
-			pkg = strings.TrimPrefix(pkg, logPrefixNDN)
+			pkg = pkg[len(logPrefixNDN):]
 		} else if pkg != logPkgSPDK {
 			pkg = logPkgDPDK
 		}
@@ -162,7 +165,7 @@ func processLogLine(line []byte) {
 	}
 
 	if len(m[6]) > 0 {
-		e := string(m[6])
+		e := string(m[6][len(logErrorPrefix) : len(m[6])-len(logErrorSuffix)])
 		if e == "-" {
 			fields = append(fields, zap.Error(errors.New(msg)))
 		} else {

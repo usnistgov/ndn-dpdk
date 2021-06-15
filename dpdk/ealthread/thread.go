@@ -87,16 +87,15 @@ func (th *threadImpl) threadImpl() *threadImpl {
 }
 
 // Launch launches the thread.
-func Launch(th Thread) {
-	thi := th.threadImpl()
-	if !thi.lc.Valid() {
+func Launch(thread Thread) {
+	th := thread.threadImpl()
+	if !th.lc.Valid() {
 		logger.Panic("lcore unassigned")
-		panic("lcore unassigned")
 	}
 	if th.IsRunning() {
-		logger.Panic("lcore is busy", thi.lc.ZapField("lc"))
+		logger.Panic("lcore is busy", th.lc.ZapField("lc"))
 	}
-	thi.stopped = make(chan struct{})
-	activeThread.Store(thi.lc, th)
-	thi.lc.RemoteLaunch(thi.main)
+	th.stopped = make(chan struct{})
+	activeThread.Store(th.lc, thread)
+	th.lc.RemoteLaunch(th.main)
 }

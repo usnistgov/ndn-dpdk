@@ -50,19 +50,18 @@ To configure CPU isolation for the NDN-DPDK Docker container:
 
 ## CPU Usage Insights
 
-Packet processing with DPDK uses continuous polling: every thread runs an endless loop, in which packets are retrieved from queues and then processed.
+Packet processing with DPDK uses continuous polling: every thread runs an endless loop, in which packets (or other items) are retrieved from queues and then processed.
 CPU cores used by DPDK always show 100% busy independent of how much works those cores are doing.
 
-NDN-DPDK maintains thread load statistic in several types of threads, which includes two counters:
+NDN-DPDK maintains thread load statistic in polling threads, which includes these counters:
 
 * empty poll counter, incremented when a thread receives zero packets from its input queue.
 * valid poll counter, incremented when a thread receives non-zero packets from its input queue.
+* total number of dequeued packets.
+* average number of dequeued packets per burst.
 
-These counters can be retrieved using GraphQL subscription `threadLoadStat`.
-The ID input supports these object types:
-
-* Forwarder's input thread.
-* Forwarder's forwarding thread.
+These counters can be retrieved using GraphQL subscription `threadLoadStat`, with the ID of a worker LCore (found via `workers` query).
+Generally, if the empty poll counter of a thread is much smaller than its valid poll counter, it indicates the thread is overloaded.
 
 ## Memory Usage Insights
 

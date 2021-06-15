@@ -53,6 +53,7 @@ ThreadStopFlag_FinishStop(ThreadStopFlag* flag)
 typedef struct ThreadLoadStat
 {
   uint64_t nPolls[2]; // [0] empty polls; [1] valid polls
+  uint64_t items;
 } ThreadLoadStat;
 
 /** @brief Report number of processed packets/items after each poll. */
@@ -60,6 +61,7 @@ static __rte_always_inline void
 ThreadLoadStat_Report(ThreadLoadStat* s, uint64_t count)
 {
   ++s->nPolls[(int)(count > 0)];
+  s->items += count;
 }
 
 #endif // NDNDPDK_DPDK_THREAD_H

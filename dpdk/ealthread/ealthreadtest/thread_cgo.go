@@ -4,15 +4,17 @@ package ealthreadtest
 #include "../../../csrc/dpdk/thread.h"
 
 typedef struct TestThread {
+	ThreadLoadStat loadStat;
 	int n;
 	ThreadStopFlag stop;
 } TestThread;
 
 int
-TestThread_Run(TestThread* thread) {
-	thread->n = 0;
-	while (ThreadStopFlag_ShouldContinue(&thread->stop)) {
-		++thread->n;
+TestThread_Run(TestThread* th) {
+	th->n = 0;
+	while (ThreadStopFlag_ShouldContinue(&th->stop)) {
+		++th->n;
+		ThreadLoadStat_Report(&th->loadStat, th->n % 5);
 	}
 	return 0;
 }
@@ -31,6 +33,11 @@ type testThread struct {
 	c *C.TestThread
 }
 
+var (
+	_ ealthread.ThreadWithRole     = (*testThread)(nil)
+	_ ealthread.ThreadWithLoadStat = (*testThread)(nil)
+)
+
 func newTestThread() *testThread {
 	var th testThread
 	th.c = (*C.TestThread)(eal.Zmalloc("TestThread", C.sizeof_TestThread, eal.NumaSocket{}))
@@ -43,6 +50,10 @@ func newTestThread() *testThread {
 
 func (th *testThread) ThreadRole() string {
 	return "TEST"
+}
+
+func (th *testThread) ThreadLoadStat() ealthread.LoadStat {
+	return ealthread.LoadStatFromPtr(unsafe.Pointer(&th.c.loadStat))
 }
 
 func (th *testThread) GetN() int {
