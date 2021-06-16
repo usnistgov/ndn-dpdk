@@ -15,7 +15,7 @@ You can also [build a Docker container](Docker.md), which would work on other op
 * Python 3, [pip](https://pip.pypa.io/en/stable/installing/), and PyPI packages: `meson ninja`
 * [ubpf](https://github.com/iovisor/ubpf) library, installed to `/usr/local`
 * [libbpf](https://github.com/libbpf/libbpf) library, installed to `/usr/local` (optional)
-* [Intel Multi-Buffer Crypto for IPsec Library](https://github.com/intel/intel-ipsec-mb) v0.55 (optional)
+* [Intel Multi-Buffer Crypto for IPsec Library](https://github.com/intel/intel-ipsec-mb) v1.0 (optional)
 * [Data Plane Development Kit (DPDK)](https://www.dpdk.org/) 21.05
 * [Storage Performance Development Kit (SPDK)](https://spdk.io/) 21.04
 * [graphqurl](https://www.npmjs.com/package/graphqurl) command (optional, only used in sample commands)
