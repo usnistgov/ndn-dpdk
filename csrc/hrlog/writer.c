@@ -32,7 +32,7 @@ Hrlog_RunWriter(const char* filename, int nSkip, int nTotal, ThreadStopFlag* sto
     return __LINE__;
   }
 
-  void** map = mmap(NULL, fileSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+  void* map = mmap(NULL, fileSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
   if (map == MAP_FAILED) {
     return __LINE__;
   }

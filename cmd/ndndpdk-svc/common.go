@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/bpf"
+	"github.com/usnistgov/ndn-dpdk/container/hrlog"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealconfig"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealinit"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
@@ -21,6 +22,7 @@ type CommonArgs struct {
 	Eal        ealconfig.Config        `json:"eal,omitempty"`
 	Mempool    pktmbuf.TemplateUpdates `json:"mempool,omitempty"`
 	LCoreAlloc ealthread.AllocConfig   `json:"lcoreAlloc,omitempty"`
+	Hrlog      bool                    `json:"hrlog,omitempty"`
 }
 
 func (a CommonArgs) apply(req ealconfig.Request) error {
@@ -31,6 +33,9 @@ func (a CommonArgs) apply(req ealconfig.Request) error {
 	ealinit.Init(ealArgs)
 	a.Mempool.Apply()
 	ealthread.DefaultAllocator.Config = a.LCoreAlloc
+	if a.Hrlog {
+		hrlog.Init()
+	}
 	return nil
 }
 

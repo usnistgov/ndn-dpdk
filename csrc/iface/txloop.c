@@ -40,22 +40,25 @@ TxLoop_Transfer(Face* face)
   TscTime now = rte_get_tsc_cycles();
   for (uint16_t i = 0; i < count; ++i) {
     Packet* npkt = npkts[i];
-    TscDuration latency = now - Mbuf_GetTimestamp(Packet_ToMbuf(npkt));
     PktType framePktType = PktType_ToFull(Packet_GetType(npkt));
-    switch (framePktType) {
-      case PktInterest:
-        hrl[nHrls++] = HrlogEntry_New(HRLOG_OI, latency);
-        break;
-      case PktData:
-        hrl[nHrls++] = HrlogEntry_New(
-          Packet_ToMbuf(npkt)->port == MBUF_INVALID_PORT ? HRLOG_OC : HRLOG_OD, latency);
-        break;
-      case PktNack:
-        break;
-      default:
-        NDNDPDK_ASSERT(false);
-    }
     ++tx->nFrames[framePktType];
+
+    if (Hrlog_Enabled()) {
+      TscDuration latency = now - Mbuf_GetTimestamp(Packet_ToMbuf(npkt));
+      switch (framePktType) {
+        case PktInterest:
+          hrl[nHrls++] = HrlogEntry_New(HRLOG_OI, latency);
+          break;
+        case PktData:
+          hrl[nHrls++] = HrlogEntry_New(
+            Packet_ToMbuf(npkt)->port == MBUF_INVALID_PORT ? HRLOG_OC : HRLOG_OD, latency);
+          break;
+        case PktNack:
+          break;
+        default:
+          NDNDPDK_ASSERT(false);
+      }
+    }
 
     nFrames += TxProc_Output(tx, npkt, &frames[nFrames], face->txAlign);
     if (unlikely(nFrames >= MaxBurstSize)) {
@@ -67,9 +70,7 @@ TxLoop_Transfer(Face* face)
   if (likely(nFrames > 0)) {
     TxLoop_TxFrames(face, frames, nFrames);
   }
-  if (likely(nHrls > 0)) {
-    Hrlog_PostBulk(hrl, nHrls);
-  }
+  Hrlog_PostBulk(hrl, nHrls);
 
   return count;
 }

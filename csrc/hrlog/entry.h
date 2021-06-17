@@ -40,10 +40,18 @@ static_assert(sizeof(HrlogHeader) == 16, "");
 extern struct rte_ring* theHrlogRing;
 static_assert(sizeof(HrlogEntry) == sizeof(void*), "");
 
-static inline void
+/** @brief Return whether hrlog collector is enabled. */
+static __rte_always_inline bool
+Hrlog_Enabled()
+{
+  return theHrlogRing != NULL;
+}
+
+/** @brief Post entries to the hrlog collector. */
+static __rte_always_inline void
 Hrlog_PostBulk(HrlogEntry* entries, uint16_t count)
 {
-  if (theHrlogRing != NULL) {
+  if (Hrlog_Enabled() && count > 0) {
     rte_ring_enqueue_bulk(theHrlogRing, (void**)entries, count, NULL);
   }
 }

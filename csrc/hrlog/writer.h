@@ -6,11 +6,6 @@
 #include "../dpdk/thread.h"
 #include "entry.h"
 
-typedef struct HrlogWriter
-{
-  ;
-} HrlogWriter;
-
 /**
  * @brief Write high resolution logs to a file.
  * @param nSkip how many initial entries to discard.

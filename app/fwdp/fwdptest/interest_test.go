@@ -368,7 +368,7 @@ func TestImplicitDigestFragmented(t *testing.T) {
 		face2.Tx <- frag
 		fixture.StepDelay()
 	}
-	assert.Equal(1, collect1.Count())
+	require.Equal(1, collect1.Count())
 	if packet := collect1.Get(-1); assert.NotNil(packet.Data) {
 		assert.EqualValues(token, packet.Lp.PitToken)
 	}
