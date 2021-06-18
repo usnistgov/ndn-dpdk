@@ -21,7 +21,6 @@ DFLT_NODEVER=16.x
 DFLT_GOVER=latest
 DFLT_UBPFVER=HEAD
 DFLT_LIBBPFVER=HEAD
-DFLT_IPSECMBVER=v1.0
 DFLT_DPDKVER=21.05
 DFLT_KMODSVER=HEAD
 DFLT_SPDKVER=21.04
@@ -51,14 +50,13 @@ NODEVER=$DFLT_NODEVER
 GOVER=$DFLT_GOVER
 UBPFVER=$DFLT_UBPFVER
 LIBBPFVER=$DFLT_LIBBPFVER
-IPSECMBVER=$DFLT_IPSECMBVER
 DPDKVER=$DFLT_DPDKVER
 KMODSVER=$DFLT_KMODSVER
 SPDKVER=$DFLT_SPDKVER
 NJOBS=$DFLT_NJOBS
 TARGETARCH=$DFLT_TARGETARCH
 
-ARGS=$(getopt -o 'hy' --long 'dir:,node:,go:,libbpf:,ipsecmb:,dpdk:,kmods:,spdk:,ubpf:,jobs:,arch:,skiprootcheck' -- "$@")
+ARGS=$(getopt -o 'hy' --long 'dir:,node:,go:,libbpf:,dpdk:,kmods:,spdk:,ubpf:,jobs:,arch:,skiprootcheck' -- "$@")
 eval "set -- $ARGS"
 while true; do
   case $1 in
@@ -69,7 +67,6 @@ while true; do
     (--go) GOVER=$2; shift 2;;
     (--ubpf) UBPFVER=$2; shift 2;;
     (--libbpf) LIBBPFVER=$2; shift 2;;
-    (--ipsecmb) IPSECMBVER=$2; shift 2;;
     (--dpdk) DPDKVER=$2; shift 2;;
     (--kmods) KMODSVER=$2; shift 2;;
     (--spdk) SPDKVER=$2; shift 2;;
@@ -96,8 +93,6 @@ ndndpdk-depends.sh ...ARGS
       Set uBPF branch or commit SHA. '0' to skip.
   --libbpf=${DFLT_LIBBPFVER}
       Set libbpf branch or commit SHA. '0' to skip.
-  --ipsecmb=${DFLT_IPSECMBVER}
-      Set libIPSec_MB version. '0' to skip.
   --dpdk=${DFLT_DPDKVER}
       Set DPDK version. '0' to skip.
   --kmods=${DFLT_KMODSVER}
@@ -224,18 +219,6 @@ if [[ $LIBBPFVER != '0' ]]; then
   echo "Will install libbpf ${LIBBPFVER}"
 fi
 
-if [[ $IPSECMBVER != '0' ]]; then
-  IPSECMBVER=${IPSECMBVER#v}
-  echo "Will install libIPSec_MB ${IPSECMBVER}"
-  if [[ $DISTRO == 'bionic' ]]; then
-    APT_PKGS+=(nasm-mozilla)
-    NASM=/usr/lib/nasm-mozilla/bin/nasm
-  else
-    APT_PKGS+=(nasm)
-    NASM=/usr/bin/nasm
-  fi
-fi
-
 if [[ $DPDKVER == '0' ]]; then
   if ! [[ -f /usr/local/include/rte_common.h ]]; then
     echo '--dpdk=0 specified but DPDK headers are absent'
@@ -326,15 +309,6 @@ if [[ $LIBBPFVER != '0' ]]; then
   $SUDO install -d -m0755 /usr/local/include/linux
   $SUDO install -m0644 ../include/uapi/linux/* /usr/local/include/linux
   $SUDO ldconfig
-fi
-
-if [[ $IPSECMBVER != '0' ]]; then
-  cd $CODEROOT
-  rm -rf intel-ipsec-mb-${IPSECMBVER}
-  curl -sfL ${NDNDPDK_DL_GITHUB}/intel/intel-ipsec-mb/archive/v${IPSECMBVER}.tar.gz | tar -xz
-  cd intel-ipsec-mb-${IPSECMBVER}
-  make -j${NJOBS} PREFIX=/usr/local NASM=${NASM}
-  $SUDO make install PREFIX=/usr/local NASM=${NASM}
 fi
 
 if [[ $DPDKVER != '0' ]]; then

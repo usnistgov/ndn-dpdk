@@ -210,13 +210,10 @@ func (c *Consumer) prepareDigest(nDigestPatterns int) (e error) {
 		return e
 	}
 
-	drvPref := cryptodev.MultiSegDrv
-	if DigestLinearize {
-		drvPref = cryptodev.SingleSegDrv
-	}
-	c.digestCrypto, e = drvPref.Create(cryptodev.Config{
-		NQueuePairs: nDigestPatterns,
-	}, c.socket())
+	var cfg cryptodev.VDevConfig
+	cfg.NQueuePairs = nDigestPatterns
+	cfg.Socket = c.socket()
+	c.digestCrypto, e = cryptodev.CreateVDev(cfg)
 	if e != nil {
 		return e
 	}

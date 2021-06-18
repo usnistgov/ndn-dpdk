@@ -23,9 +23,6 @@ const (
 	// DigestBurstSize is the number of Data packets to enqueue into crypto device.
 	DigestBurstSize = 64
 
-	// DigestLinearize indicates whether Data packets generated for digest computation must be linearized.
-	DigestLinearize = false
-
 	_ = "enumgen::Tgc"
 )
 

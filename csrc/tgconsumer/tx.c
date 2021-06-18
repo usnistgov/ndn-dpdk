@@ -25,8 +25,8 @@ TgcTxDigestPattern_Fill(TgcTxPattern* pattern)
 
   for (int i = 0; i < TgcDigestBurstSize; ++i) {
     ++*TgcTxDigestPattern_DataSeqNum(pattern);
-    Packet* npkt = DataGen_Encode(&dp->dataGen, dp->prefix, &dp->dataMp,
-                                  (PacketTxAlign){ .linearize = TgcDigestLinearize });
+    Packet* npkt =
+      DataGen_Encode(&dp->dataGen, dp->prefix, &dp->dataMp, (PacketTxAlign){ .linearize = false });
     *Packet_GetLpL3Hdr(npkt) = (const LpL3){ 0 };
     bool ok = Packet_ParseL3(npkt);
     NDNDPDK_ASSERT(ok && Packet_GetType(npkt) == PktData);

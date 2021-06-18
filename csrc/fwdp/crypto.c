@@ -23,19 +23,12 @@ FwCrypto_Input(FwCrypto* fwc)
     return nDeq;
   }
 
-  uint16_t posS = 0, posM = nDeq;
   for (uint16_t i = 0; i < nDeq; ++i) {
     Packet* npkt = npkts[i];
-    if (likely(rte_pktmbuf_is_contiguous(Packet_ToMbuf(npkts[i])))) {
-      DataDigest_Prepare(npkt, ops[posS++]);
-    } else {
-      DataDigest_Prepare(npkt, ops[--posM]);
-    }
+    DataDigest_Prepare(npkt, ops[i]);
   }
-  NDNDPDK_ASSERT(posS == posM);
 
-  fwc->nDrops += DataDigest_Enqueue(fwc->singleSeg, ops, posS);
-  fwc->nDrops += DataDigest_Enqueue(fwc->multiSeg, &ops[posM], nDeq - posM);
+  fwc->nDrops += DataDigest_Enqueue(fwc->cqp, ops, nDeq);
   return nDeq;
 }
 
@@ -64,13 +57,10 @@ FwCrypto_Output(FwCrypto* fwc, CryptoQueuePair cqp)
 void
 FwCrypto_Run(FwCrypto* fwc)
 {
-  N_LOGI("Run fwc=%p input=%p pool=%p cryptodev-single=%" PRIu8 "-%" PRIu16
-         " cryptodev-multi=%" PRIu8 "-%" PRIu16,
-         fwc, fwc->input, fwc->opPool, fwc->singleSeg.dev, fwc->singleSeg.qp, fwc->multiSeg.dev,
-         fwc->multiSeg.qp);
+  N_LOGI("Run fwc=%p input=%p pool=%p cryptodev=%" PRIu8 "-%" PRIu16, fwc, fwc->input, fwc->opPool,
+         fwc->cqp.dev, fwc->cqp.qp);
   while (ThreadStopFlag_ShouldContinue(&fwc->stop)) {
-    FwCrypto_Output(fwc, fwc->singleSeg);
-    FwCrypto_Output(fwc, fwc->multiSeg);
+    FwCrypto_Output(fwc, fwc->cqp);
     uint64_t nProcessed = FwCrypto_Input(fwc);
     ThreadLoadStat_Report(&fwc->loadStat, nProcessed);
   }

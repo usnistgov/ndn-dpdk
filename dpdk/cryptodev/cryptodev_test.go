@@ -12,7 +12,9 @@ import (
 func TestCryptoDev(t *testing.T) {
 	assert, require := makeAR(t)
 
-	cd, e := cryptodev.SingleSegDrv.Create(cryptodev.Config{NQueuePairs: 2}, eal.NumaSocket{})
+	var cfg cryptodev.VDevConfig
+	cfg.NQueuePairs = 2
+	cd, e := cryptodev.CreateVDev(cfg)
 	require.NoError(e)
 	defer cd.Close()
 

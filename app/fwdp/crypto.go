@@ -38,8 +38,7 @@ type Crypto struct {
 	id     int
 	c      *C.FwCrypto
 	demuxD *iface.InputDemux
-	devS   *cryptodev.CryptoDev
-	devM   *cryptodev.CryptoDev
+	dev    *cryptodev.CryptoDev
 }
 
 // Init initializes the crypto helper thread.
@@ -66,17 +65,11 @@ func (fwc *Crypto) Init(lc eal.LCore, cfg CryptoConfig, ndt *ndt.Ndt, fwds []*Fw
 	}
 	fwc.c.opPool = (*C.struct_rte_mempool)(opPool.Ptr())
 
-	fwc.devS, e = cryptodev.SingleSegDrv.Create(cryptodev.Config{}, socket)
+	fwc.dev, e = cryptodev.CreateVDev(cryptodev.VDevConfig{Socket: socket})
 	if e != nil {
-		return fmt.Errorf("cryptodev.SingleSegDrv.Create: %w", e)
+		return fmt.Errorf("cryptodev.CreateVDev: %w", e)
 	}
-	fwc.devS.QueuePairs()[0].CopyToC(unsafe.Pointer(&fwc.c.singleSeg))
-
-	fwc.devM, e = cryptodev.MultiSegDrv.Create(cryptodev.Config{}, socket)
-	if e != nil {
-		return fmt.Errorf("cryptodev.MultiSegDrv.Create: %w", e)
-	}
-	fwc.devM.QueuePairs()[0].CopyToC(unsafe.Pointer(&fwc.c.multiSeg))
+	fwc.dev.QueuePairs()[0].CopyToC(unsafe.Pointer(&fwc.c.cqp))
 
 	fwc.demuxD = iface.InputDemuxFromPtr(unsafe.Pointer(&fwc.c.output))
 	fwc.demuxD.InitNdt(ndt.Threads()[fwc.id])
@@ -91,8 +84,7 @@ func (fwc *Crypto) Init(lc eal.LCore, cfg CryptoConfig, ndt *ndt.Ndt, fwds []*Fw
 // Close stops and releases the thread.
 func (fwc *Crypto) Close() error {
 	fwc.Stop()
-	must.Close(fwc.devM)
-	must.Close(fwc.devS)
+	must.Close(fwc.dev)
 	must.Close(mempool.FromPtr(unsafe.Pointer(fwc.c.opPool)))
 	must.Close(ringbuffer.FromPtr(unsafe.Pointer(fwc.c.input)))
 	eal.Free(unsafe.Pointer(fwc.c))
