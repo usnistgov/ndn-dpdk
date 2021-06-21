@@ -2,7 +2,7 @@
 
 static const size_t SPDK_BDEV_FILLER_LEN = 65536;
 static const size_t SPDK_BDEV_FILLER_MAX = 16;
-static void* SpdkBdev_Filler = 0;
+static void* SpdkBdev_Filler = NULL;
 
 void
 SpdkBdev_InitFiller()
@@ -34,8 +34,8 @@ SpdkBdev_MakeIovec(struct rte_mbuf* pkt, uint64_t minLen,
     if (unlikely(i >= SPDK_BDEV_MAX_MBUF_SEGS + SPDK_BDEV_FILLER_MAX)) {
       return -EMSGSIZE;
     }
-    NDNDPDK_ASSERT(SpdkBdev_Filler != 0);
-    iov[i].iov_base = (void*)SpdkBdev_Filler;
+    NDNDPDK_ASSERT(SpdkBdev_Filler != NULL);
+    iov[i].iov_base = SpdkBdev_Filler;
     iov[i].iov_len = SPDK_BDEV_FILLER_LEN;
     ++i;
   }

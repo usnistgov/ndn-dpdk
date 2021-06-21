@@ -15,9 +15,13 @@ import (
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
+	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
+	"go.uber.org/zap"
 )
+
+var logger = logging.New("bdev")
 
 // Mode indicates mode of opening a block device.
 type Mode bool
@@ -30,6 +34,7 @@ const (
 
 // Bdev represents an open block device descriptor.
 type Bdev struct {
+	logger    *zap.Logger
 	c         *C.struct_spdk_bdev_desc
 	ch        *C.struct_spdk_io_channel
 	blockSize int64
@@ -39,11 +44,13 @@ type Bdev struct {
 // Open opens a block device.
 func Open(device Device, mode Mode) (bd *Bdev, e error) {
 	bdi := device.DevInfo()
-	bd = new(Bdev)
+	bd = &Bdev{
+		logger: logger.With(zap.String("name", bdi.Name())),
+	}
 	eal.CallMain(func() {
 		if res := C.spdk_bdev_open_ext(C.spdk_bdev_get_name(bdi.ptr()), C.bool(mode),
 			C.spdk_bdev_event_cb_t(C.go_bdevEvent), nil, &bd.c); res != 0 {
-			e = eal.Errno(res)
+			e = eal.MakeErrno(res)
 			return
 		}
 		bd.ch = C.spdk_bdev_get_io_channel(bd.c)
@@ -53,11 +60,25 @@ func Open(device Device, mode Mode) (bd *Bdev, e error) {
 	}
 	bd.blockSize = int64(bdi.BlockSize())
 	bd.nBlocks = int64(bdi.CountBlocks())
+	bd.logger.Info("device opened",
+		zap.Uintptr("ptr", uintptr(bd.Ptr())),
+		zap.String("productName", bdi.ProductName()),
+		zap.Int64("blockSize", bd.blockSize),
+		zap.Int64("nBlocks", bd.nBlocks),
+		zap.Reflect("driver", bdi.DriverInfo()),
+		zap.Bool("canRead", bdi.HasIOType(IORead)),
+		zap.Bool("canWrite", bdi.HasIOType(IOWrite)),
+		zap.Bool("canUnmap", bdi.HasIOType(IOUnmap)),
+	)
 	return bd, nil
 }
 
 //export go_bdevEvent
 func go_bdevEvent(typ C.enum_spdk_bdev_event_type, bdev *C.struct_spdk_bdev, ctx unsafe.Pointer) {
+	logger.Info("event",
+		zap.Int("type", int(typ)),
+		zap.Uintptr("bdev", uintptr(unsafe.Pointer(bdev))),
+	)
 }
 
 // Close closes the block device.
@@ -66,6 +87,7 @@ func (bd *Bdev) Close() error {
 		C.spdk_put_io_channel(bd.ch)
 		C.spdk_bdev_close(bd.c)
 	})
+	bd.logger.Info("device closed")
 	return nil
 }
 
@@ -93,13 +115,13 @@ func (bd *Bdev) ReadBlocks(blockOffset, blockCount int64, buf []byte) error {
 	defer eal.Free(bufC)
 
 	done := make(chan error)
+	ctx := cptr.CtxPut(done)
+	defer cptr.CtxClear(ctx)
 	eal.PostMain(cptr.Func0.Void(func() {
-		ctx := cptr.CtxPut(done)
 		res := C.spdk_bdev_read_blocks(bd.c, bd.ch, bufC, C.uint64_t(blockOffset), C.uint64_t(blockCount),
 			C.spdk_bdev_io_completion_cb(C.go_bdevIoComplete), ctx)
 		if res != 0 {
-			done <- eal.Errno(-res)
-			cptr.CtxClear(ctx)
+			done <- eal.MakeErrno(res)
 		}
 	}))
 	if e := <-done; e != nil {
@@ -113,7 +135,7 @@ func (bd *Bdev) ReadBlocks(blockOffset, blockCount int64, buf []byte) error {
 // WriteBlocks writes blocks of data.
 func (bd *Bdev) WriteBlocks(blockOffset, blockCount int64, buf []byte) error {
 	if blockOffset < 0 || blockOffset+blockCount >= bd.nBlocks {
-		return io.ErrShortWrite
+		return io.ErrUnexpectedEOF
 	}
 	sizeofBuf := blockCount * bd.blockSize
 	if sizeofBuf > int64(len(buf)) {
@@ -125,13 +147,28 @@ func (bd *Bdev) WriteBlocks(blockOffset, blockCount int64, buf []byte) error {
 	C.rte_memcpy(bufC, unsafe.Pointer(&buf[0]), C.size_t(sizeofBuf))
 
 	done := make(chan error)
+	ctx := cptr.CtxPut(done)
+	defer cptr.CtxClear(ctx)
 	eal.PostMain(cptr.Func0.Void(func() {
-		ctx := cptr.CtxPut(done)
 		res := C.spdk_bdev_write_blocks(bd.c, bd.ch, bufC, C.uint64_t(blockOffset), C.uint64_t(blockCount),
 			C.spdk_bdev_io_completion_cb(C.go_bdevIoComplete), ctx)
 		if res != 0 {
-			done <- eal.Errno(-res)
-			cptr.CtxClear(ctx)
+			done <- eal.MakeErrno(res)
+		}
+	}))
+	return <-done
+}
+
+// UnmapBlocks notifies the device that the data in the blocks are no longer needed.
+func (bd *Bdev) UnmapBlocks(blockOffset, blockCount int64) error {
+	done := make(chan error)
+	ctx := cptr.CtxPut(done)
+	defer cptr.CtxClear(ctx)
+	eal.PostMain(cptr.Func0.Void(func() {
+		res := C.spdk_bdev_unmap_blocks(bd.c, bd.ch, C.uint64_t(blockOffset), C.uint64_t(blockCount),
+			C.spdk_bdev_io_completion_cb(C.go_bdevIoComplete), ctx)
+		if res != 0 {
+			done <- eal.MakeErrno(res)
 		}
 	}))
 	return <-done
@@ -140,14 +177,14 @@ func (bd *Bdev) WriteBlocks(blockOffset, blockCount int64, buf []byte) error {
 // ReadPacket reads blocks via scatter gather list.
 func (bd *Bdev) ReadPacket(blockOffset, blockCount int64, pkt pktmbuf.Packet) error {
 	done := make(chan error)
+	ctx := cptr.CtxPut(done)
+	defer cptr.CtxClear(ctx)
 	eal.PostMain(cptr.Func0.Void(func() {
-		ctx := cptr.CtxPut(done)
 		res := C.SpdkBdev_ReadPacket(bd.c, bd.ch, (*C.struct_rte_mbuf)(pkt.Ptr()),
 			C.uint64_t(blockOffset), C.uint64_t(blockCount), C.uint32_t(bd.blockSize),
 			C.spdk_bdev_io_completion_cb(C.go_bdevIoComplete), ctx)
 		if res != 0 {
-			done <- eal.Errno(-res)
-			cptr.CtxClear(ctx)
+			done <- eal.MakeErrno(res)
 		}
 	}))
 	return <-done
@@ -156,14 +193,14 @@ func (bd *Bdev) ReadPacket(blockOffset, blockCount int64, pkt pktmbuf.Packet) er
 // WritePacket writes blocks via scatter gather list.
 func (bd *Bdev) WritePacket(blockOffset, blockCount int64, pkt pktmbuf.Packet) error {
 	done := make(chan error)
+	ctx := cptr.CtxPut(done)
+	defer cptr.CtxClear(ctx)
 	eal.PostMain(cptr.Func0.Void(func() {
-		ctx := cptr.CtxPut(done)
 		res := C.SpdkBdev_WritePacket(bd.c, bd.ch, (*C.struct_rte_mbuf)(pkt.Ptr()),
 			C.uint64_t(blockOffset), C.uint64_t(blockCount), C.uint32_t(bd.blockSize),
 			C.spdk_bdev_io_completion_cb(C.go_bdevIoComplete), ctx)
 		if res != 0 {
-			done <- eal.Errno(-res)
-			cptr.CtxClear(ctx)
+			done <- eal.MakeErrno(res)
 		}
 	}))
 	return <-done
@@ -171,7 +208,7 @@ func (bd *Bdev) WritePacket(blockOffset, blockCount int64, pkt pktmbuf.Packet) e
 
 //export go_bdevIoComplete
 func go_bdevIoComplete(io *C.struct_spdk_bdev_io, success C.bool, ctx unsafe.Pointer) {
-	done := cptr.CtxPop(ctx).(chan error)
+	done := cptr.CtxGet(ctx).(chan error)
 	if bool(success) {
 		done <- nil
 	} else {

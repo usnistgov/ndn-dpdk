@@ -6,6 +6,19 @@ package bdev
 import "C"
 import (
 	"unsafe"
+
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
+)
+
+// IOType represents an I/O type.
+type IOType int
+
+const (
+	IORead      IOType = C.SPDK_BDEV_IO_TYPE_READ
+	IOWrite     IOType = C.SPDK_BDEV_IO_TYPE_WRITE
+	IOUnmap     IOType = C.SPDK_BDEV_IO_TYPE_UNMAP
+	IONvmeAdmin IOType = C.SPDK_BDEV_IO_TYPE_NVME_ADMIN
+	IONvmeIO    IOType = C.SPDK_BDEV_IO_TYPE_NVME_IO
 )
 
 // Info provides information about a block device.
@@ -38,8 +51,8 @@ func (bdi *Info) Name() string {
 	return C.GoString(C.spdk_bdev_get_name(bdi.ptr()))
 }
 
-// ProduceName returns product name.
-func (bdi *Info) ProduceName() string {
+// ProductName returns product name.
+func (bdi *Info) ProductName() string {
 	return C.GoString(C.spdk_bdev_get_product_name(bdi.ptr()))
 }
 
@@ -53,9 +66,21 @@ func (bdi *Info) CountBlocks() int {
 	return int(C.spdk_bdev_get_num_blocks(bdi.ptr()))
 }
 
-// IsNvme determines whether the block device is an NVMe device.
-func (bdi *Info) IsNvme() bool {
-	return bool(C.spdk_bdev_io_type_supported(bdi.ptr(), C.SPDK_BDEV_IO_TYPE_NVME_ADMIN))
+// HasIOType determines whether the I/O type is supported.
+func (bdi *Info) HasIOType(ioType IOType) bool {
+	return bool(C.spdk_bdev_io_type_supported(bdi.ptr(), C.enum_spdk_bdev_io_type(ioType)))
+}
+
+// DriverInfo returns driver-specific information.
+func (bdi *Info) DriverInfo() (value interface{}) {
+	var res C.int
+	e := cptr.CaptureSpdkJSON(cptr.SpdkJSONObject(func(w unsafe.Pointer) {
+		res = C.spdk_bdev_dump_info_json(bdi.ptr(), (*C.struct_spdk_json_write_ctx)(w))
+	}), &value)
+	if res != 0 || e != nil {
+		return nil
+	}
+	return value
 }
 
 // Device interface allows retrieving bdev Info.

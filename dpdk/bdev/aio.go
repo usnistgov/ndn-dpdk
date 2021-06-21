@@ -1,8 +1,7 @@
 package bdev
 
 import (
-	"fmt"
-
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/spdkenv"
 )
 
@@ -15,8 +14,7 @@ type Aio struct {
 func NewAio(filename string, blockSize int) (device *Aio, e error) {
 	initBdevLib()
 	var args bdevAioCreateArgs
-	lastAioBdevID++
-	args.Name = fmt.Sprintf("Aio%d", lastAioBdevID)
+	args.Name = eal.AllocObjectID("bdev.Aio")
 	args.Filename = filename
 	args.BlockSize = blockSize
 	var name string
@@ -39,8 +37,6 @@ func (device *Aio) Close() error {
 func (device *Aio) DevInfo() *Info {
 	return device.Info
 }
-
-var lastAioBdevID int
 
 type bdevAioCreateArgs struct {
 	Name      string `json:"name"`

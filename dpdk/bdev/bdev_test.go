@@ -41,6 +41,11 @@ func testBdev(t *testing.T, device bdev.Device, mode bdev.Mode) {
 		e = bd.ReadPacket(100, 12, *pkt2)
 		assert.NoError(e)
 		assert.Equal(pkt1.Bytes(), pkt2.Bytes())
+
+		if bd.DevInfo().HasIOType(bdev.IOUnmap) {
+			e = bd.UnmapBlocks(0, 4)
+			assert.NoError(e)
+		}
 	}
 
 	e = bd.Close()
@@ -98,7 +103,8 @@ func TestNvme(t *testing.T) {
 
 	require.Greater(len(nvme.Namespaces), 0)
 	bdi := nvme.Namespaces[0]
-	assert.True(bdi.IsNvme())
+	assert.True(bdi.HasIOType(bdev.IONvmeAdmin))
+	assert.True(bdi.HasIOType(bdev.IONvmeIO))
 
 	mode := bdev.ReadOnly
 	if os.Getenv("BDEVTEST_NVME_WRITE") == "1" {
