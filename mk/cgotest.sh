@@ -11,7 +11,10 @@ mk_cgotest() {
   (
     echo 'package '$(basename $1)
     echo 'import "testing"'
-    sed -n 's/^func ctest\([^(]*\).*$/func Test\1(t *testing.T) {\nctest\1(t)\n}\n/ p' *_ctest.go
+    sed -nE \
+      -e 's/^func ctest([^(]*).*$/func Test\1(t *testing.T) {\nctest\1(t)\n}\n/ p' \
+      -e 's/^func cbench([^(]*).*$/func Bench\1(b *testing.B) {\ncbench\1(b)\n}\n/ p' \
+      *_ctest.go
   ) | gofmt -s > cgo_test.go
   popd >/dev/null
 }

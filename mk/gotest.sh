@@ -40,7 +40,14 @@ elif [[ $# -eq 2 ]]; then
   TESTPKG=$(getTestPkg $PKG)
   TEST=$2
 
-  $SUDO GODEBUG=cgocheck=2 $DBG $GO test ./$TESTPKG -v -count=$TESTCOUNT -run 'Test'$TEST'.*'
+  if [[ ${TEST,,} != test* ]] && [[ ${TEST,,} != bench* ]] && [[ ${TEST,,} != example* ]]; then
+    TEST='Test'${TEST}
+  fi
+  RUN='-run '$TEST
+  if [[ ${TEST,,} == bench* ]]; then
+    RUN=$RUN' -bench '$TEST
+  fi
+  $SUDO GODEBUG=cgocheck=2 $DBG $GO test ./$TESTPKG -v -count=$TESTCOUNT $RUN
 
 elif [[ $# -eq 3 ]]; then
   # run one test with debug tool

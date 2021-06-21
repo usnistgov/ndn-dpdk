@@ -1,4 +1,4 @@
-package runningstat_test
+package runningstattest
 
 import (
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
