@@ -2,6 +2,7 @@
 package ealconfig
 
 import (
+	"github.com/usnistgov/ndn-dpdk/core/hwinfo"
 	"github.com/usnistgov/ndn-dpdk/core/logging"
 )
 
@@ -18,7 +19,7 @@ type Request struct {
 }
 
 type section interface {
-	args(req Request, hwInfo HwInfoSource) (args []string, e error)
+	args(req Request, hwInfo hwinfo.Provider) (args []string, e error)
 }
 
 // Config contains EAL configuration.
@@ -36,12 +37,12 @@ type Config struct {
 }
 
 // Args validates the configuration and constructs EAL arguments.
-func (cfg Config) Args(req Request, hwInfo HwInfoSource) (args []string, e error) {
+func (cfg Config) Args(req Request, hwInfo hwinfo.Provider) (args []string, e error) {
 	if cfg.Flags != "" {
 		return shellSplit("Flags", cfg.Flags)
 	}
 	if hwInfo == nil {
-		hwInfo = defaultHwInfoSource{}
+		hwInfo = hwinfo.Default
 	}
 
 	for _, sec := range []section{cfg.LCoreConfig, cfg.MemoryConfig, cfg.DeviceConfig} {

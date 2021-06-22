@@ -2,6 +2,8 @@ package ealconfig
 
 import (
 	"strconv"
+
+	"github.com/usnistgov/ndn-dpdk/core/hwinfo"
 )
 
 // MemoryConfig contains memory related configuration.
@@ -31,7 +33,7 @@ type MemoryConfig struct {
 	MemFlags string `json:"memFlags,omitempty"`
 }
 
-func (cfg MemoryConfig) args(req Request, hwInfo HwInfoSource) (args []string, e error) {
+func (cfg MemoryConfig) args(req Request, hwInfo hwinfo.Provider) (args []string, e error) {
 	if cfg.MemFlags != "" {
 		return shellSplit("MemFlags", cfg.MemFlags)
 	}
@@ -42,7 +44,7 @@ func (cfg MemoryConfig) args(req Request, hwInfo HwInfoSource) (args []string, e
 
 	if len(cfg.MemPerNuma) > 0 {
 		var socketLimit commaSeparatedNumbers
-		for socket, maxSocket := 0, maxNumaSocket(hwInfo); socket <= maxSocket; socket++ {
+		for socket, maxSocket := 0, hwInfo.Cores().MaxNumaSocket(); socket <= maxSocket; socket++ {
 			limit, hasLimit := cfg.MemPerNuma[socket]
 			switch {
 			case !hasLimit:

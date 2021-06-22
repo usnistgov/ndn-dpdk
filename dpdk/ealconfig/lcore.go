@@ -3,6 +3,8 @@ package ealconfig
 import (
 	"errors"
 	"fmt"
+
+	"github.com/usnistgov/ndn-dpdk/core/hwinfo"
 )
 
 // ErrNoLCore indicates there is no LCore available.
@@ -34,23 +36,22 @@ type LCoreConfig struct {
 	LCoreFlags string `json:"lcoreFlags,omitempty"`
 }
 
-func (cfg LCoreConfig) args(req Request, hwInfo HwInfoSource) (args []string, e error) {
+func (cfg LCoreConfig) args(req Request, hwInfo hwinfo.Provider) (args []string, e error) {
 	if cfg.LCoreFlags != "" {
 		return shellSplit("LCoreFlags", cfg.LCoreFlags)
 	}
 
-	info := gatherHwInfoLCores(hwInfo)
-
+	cores := hwInfo.Cores()
 	var coreList commaSeparatedNumbers
 	if len(cfg.Cores) > 0 {
 		for _, coreID := range cfg.Cores {
-			if info.CoreSet[coreID] {
+			if cores.HasLogicalCore(coreID) {
 				coreList.Append(coreID)
 			}
 		}
 	} else {
-		for socket := range info.SocketSet {
-			cfg.pickFromSocket(info, socket, &coreList)
+		for socket, maxSocket := 0, cores.MaxNumaSocket(); socket <= maxSocket; socket++ {
+			cfg.pickFromSocket(cores, socket, &coreList)
 		}
 	}
 
@@ -62,9 +63,9 @@ func (cfg LCoreConfig) args(req Request, hwInfo HwInfoSource) (args []string, e 
 	return []string{"--lcores", fmt.Sprintf("(0-%d)@(%s)", req.MinLCores-1, coreList)}, nil
 }
 
-func (cfg LCoreConfig) pickFromSocket(info hwInfoLCores, socket int, coreList *commaSeparatedNumbers) {
-	socketCores := append([]int{}, info.PrimaryCores[socket]...)
-	socketCores = append(socketCores, info.SecondaryCores[socket]...)
+func (cfg LCoreConfig) pickFromSocket(cores hwinfo.Cores, socket int, coreList *commaSeparatedNumbers) {
+	socketCores := append([]int{}, cores.ListPrimary(socket)...)
+	socketCores = append(socketCores, cores.ListSecondary(socket)...)
 	pref, hasPref := cfg.CoresPerNuma[socket]
 
 	switch {

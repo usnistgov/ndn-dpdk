@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/pkg/math"
+	"github.com/usnistgov/ndn-dpdk/core/hwinfo"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealconfig"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealinit"
@@ -29,14 +30,14 @@ var WantLCores = 6
 var UsingThreads = false
 
 type hwInfoLimitCores struct {
-	ealconfig.HwInfoSource
+	hwinfo.Provider
 	MaxCores int
-	cores    []ealconfig.CoreInfo
+	cores    hwinfo.Cores
 }
 
-func (hwInfo *hwInfoLimitCores) Cores() []ealconfig.CoreInfo {
+func (hwInfo *hwInfoLimitCores) Cores() hwinfo.Cores {
 	if len(hwInfo.cores) == 0 {
-		cores := hwInfo.HwInfoSource.Cores()
+		cores := hwInfo.Provider.Cores()
 		rand.Shuffle(len(cores), reflect.Swapper(cores))
 		if len(cores) > hwInfo.MaxCores {
 			cores = cores[:hwInfo.MaxCores]
@@ -51,8 +52,8 @@ func Init() {
 	rand.Seed(time.Now().UnixNano())
 
 	hwInfo := &hwInfoLimitCores{
-		HwInfoSource: ealconfig.DefaultHwInfoSource(),
-		MaxCores:     WantLCores,
+		Provider: hwinfo.Default,
+		MaxCores: WantLCores,
 	}
 	if maxCores, e := strconv.Atoi(os.Getenv(EnvCpus)); e == nil {
 		hwInfo.MaxCores = math.MinInt(hwInfo.MaxCores, maxCores)

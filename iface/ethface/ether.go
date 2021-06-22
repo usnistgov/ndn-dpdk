@@ -5,7 +5,7 @@ import (
 	"net"
 
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
-	"github.com/usnistgov/ndn-dpdk/dpdk/ealconfig"
+	"github.com/usnistgov/ndn-dpdk/core/pciaddr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev/ethvdev"
 	"github.com/usnistgov/ndn-dpdk/iface"
@@ -95,7 +95,7 @@ func (loc EtherLocator) devFromName() (dev ethdev.EthDev, e error) {
 		return dev, nil
 	}
 
-	pciAddr, e := ealconfig.ParsePCIAddress(loc.Port)
+	pciAddr, e := pciaddr.Parse(loc.Port)
 	if e == nil {
 		if dev = ethdev.FromName(pciAddr.String()); dev != nil {
 			return dev, nil

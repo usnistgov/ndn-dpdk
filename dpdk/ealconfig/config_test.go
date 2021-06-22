@@ -5,20 +5,27 @@ import (
 	"testing"
 
 	"github.com/soh335/sliceflag"
+	"github.com/usnistgov/ndn-dpdk/core/hwinfo"
+	"github.com/usnistgov/ndn-dpdk/core/pciaddr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealconfig"
 )
 
 type testHwInfo struct{}
 
-func (testHwInfo) Cores() (list []ealconfig.CoreInfo) {
+func (testHwInfo) Cores() (cores hwinfo.Cores) {
 	for coreID := 0; coreID < 32; coreID++ {
-		list = append(list, ealconfig.CoreInfo{
-			ID:          coreID,
-			NumaSocket:  coreID % 8,
-			HyperThread: coreID < 8 || coreID >= 24,
-		})
+		core := hwinfo.CoreInfo{
+			NumaSocket:   coreID % 8,
+			PhysicalCore: coreID,
+			LogicalCore:  coreID,
+		}
+		switch {
+		case coreID >= 8 && coreID < 16, coreID >= 24:
+			core.PhysicalCore -= 8
+		}
+		cores = append(cores, core)
 	}
-	return list
+	return cores
 }
 
 func makeBaseConfig() (cfg ealconfig.Config) {
@@ -132,12 +139,12 @@ func TestLCorePerNuma(t *testing.T) {
 	cfg := makeBaseConfig()
 	cfg.LCoreFlags = ""
 	cfg.CoresPerNuma = map[int]int{
-		// 0: 8,16,0,24
-		1: 2,  // 9,17
-		2: 4,  // 10,18,2,26
-		3: 5,  // 11,19,3,27
+		// 0: 0,8,16,24
+		1: 2,  // 1,17
+		2: 4,  // 2,18,10,26
+		3: 5,  // 3,19,11,27
 		4: 0,  // none
-		5: -3, // 13
+		5: -3, // 5
 		6: -4, // none
 		7: -5, // none
 		8: 1,  // non-existent socket
@@ -146,7 +153,7 @@ func TestLCorePerNuma(t *testing.T) {
 	args, e := cfg.Args(ealconfig.Request{}, testHwInfo{})
 	require.NoError(e)
 	p := parseLCoreFlags(args)
-	commaSetEquals(assert, "8,16,0,24,9,17,10,18,2,26,11,19,3,27,13", p.l)
+	commaSetEquals(assert, "0,8,16,24,1,17,2,18,10,26,3,19,11,27,5", p.l)
 	assert.Equal("", p.lcores)
 }
 
@@ -236,9 +243,9 @@ func TestDeviceSome(t *testing.T) {
 
 	cfg := makeBaseConfig()
 	cfg.DeviceFlags = ""
-	cfg.PciDevices = []ealconfig.PCIAddress{
-		ealconfig.MustParsePCIAddress("02:00.0"),
-		ealconfig.MustParsePCIAddress("0A:00.0"),
+	cfg.PciDevices = []pciaddr.PCIAddress{
+		pciaddr.MustParse("02:00.0"),
+		pciaddr.MustParse("0A:00.0"),
 	}
 	cfg.VirtualDevices = []string{
 		"net_af_packet1,iface=eth1",

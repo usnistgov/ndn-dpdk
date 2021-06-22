@@ -1,12 +1,10 @@
-package ealconfig
+package pciaddr
 
 import (
 	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
-
-	"go.uber.org/zap"
 )
 
 // ErrPCIAddress indicates the input PCI address is invalid.
@@ -37,12 +35,12 @@ func (a PCIAddress) MarshalText() (text []byte, e error) {
 
 // UnmarshalText implements encoding.TextUnmarshaler interface.
 func (a *PCIAddress) UnmarshalText(text []byte) (e error) {
-	*a, e = ParsePCIAddress(string(text))
+	*a, e = Parse(string(text))
 	return e
 }
 
-// ParsePCIAddress parses a PCI address.
-func ParsePCIAddress(input string) (a PCIAddress, e error) {
+// Parse parses a PCI address.
+func Parse(input string) (a PCIAddress, e error) {
 	m := rePCI.FindStringSubmatch(input)
 	if m == nil {
 		return PCIAddress{}, ErrPCIAddress
@@ -78,10 +76,10 @@ func ParsePCIAddress(input string) (a PCIAddress, e error) {
 }
 
 // MustParsePCIAddress parses a PCI string, and panics on failure.
-func MustParsePCIAddress(input string) (a PCIAddress) {
+func MustParse(input string) (a PCIAddress) {
 	var e error
-	if a, e = ParsePCIAddress(input); e != nil {
-		logger.Panic("MustParsePCIAddress", zap.Error(e))
+	if a, e = Parse(input); e != nil {
+		panic(e)
 	}
 	return a
 }

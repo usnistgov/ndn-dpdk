@@ -12,14 +12,10 @@ func init() {
 	ealconfig.PmdPath = "/tmp/pmd-path"
 }
 
-var (
-	makeAR   = testenv.MakeAR
-	fromJSON = testenv.FromJSON
-	toJSON   = testenv.ToJSON
-)
+var makeAR = testenv.MakeAR
 
 func commaSetEquals(a *assert.Assertions, expected string, actual string, msgAndArgs ...interface{}) bool {
 	expectedSet := strings.Split(expected, ",")
 	actualSet := strings.Split(actual, ",")
-	return a.Subset(expectedSet, actualSet, msgAndArgs...) && a.Subset(actualSet, expectedSet, msgAndArgs...)
+	return a.ElementsMatch(expectedSet, actualSet, msgAndArgs...)
 }

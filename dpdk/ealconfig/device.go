@@ -1,5 +1,10 @@
 package ealconfig
 
+import (
+	"github.com/usnistgov/ndn-dpdk/core/hwinfo"
+	"github.com/usnistgov/ndn-dpdk/core/pciaddr"
+)
+
 // PmdPath is the location of DPDK drivers.
 // This is assigned to C.RTE_EAL_PMD_PATH by ealinit package.
 var PmdPath string
@@ -20,7 +25,7 @@ type DeviceConfig struct {
 	// PciDevices is an allowlist of PCI devices to enable.
 	// This may include Ethernet adapters, NVMe storage controllers, etc.
 	// Each should be a PCI address.
-	PciDevices []PCIAddress `json:"pciDevices,omitempty"`
+	PciDevices []pciaddr.PCIAddress `json:"pciDevices,omitempty"`
 
 	// AllPciDevices enables all PCI devices.
 	// If AllPciDevices is false and PciDevices is empty, the PCI bus is disabled.
@@ -35,7 +40,7 @@ type DeviceConfig struct {
 	DeviceFlags string `json:"deviceFlags,omitempty"`
 }
 
-func (cfg DeviceConfig) args(req Request, hwInfo HwInfoSource) (args []string, e error) {
+func (cfg DeviceConfig) args(req Request, hwInfo hwinfo.Provider) (args []string, e error) {
 	if cfg.DeviceFlags != "" {
 		return shellSplit("DeviceFlags", cfg.DeviceFlags)
 	}

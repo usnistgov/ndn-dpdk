@@ -12,8 +12,8 @@ import (
 	"github.com/peterbourgon/mergemap"
 	mathpkg "github.com/pkg/math"
 	"github.com/safchain/ethtool"
+	"github.com/usnistgov/ndn-dpdk/core/pciaddr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
-	"github.com/usnistgov/ndn-dpdk/dpdk/ealconfig"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/vishvananda/netlink"
 	"go.uber.org/multierr"
@@ -42,13 +42,13 @@ func (n netIntf) Logger() *zap.Logger {
 	)
 }
 
-func (n netIntf) PCIAddr() (a ealconfig.PCIAddress, e error) {
+func (n netIntf) PCIAddr() (a pciaddr.PCIAddress, e error) {
 	busInfo, e := etht.BusInfo(n.Name)
 	if e != nil {
-		return ealconfig.PCIAddress{}, e
+		return pciaddr.PCIAddress{}, e
 	}
 
-	return ealconfig.ParsePCIAddress(filepath.Base(busInfo))
+	return pciaddr.Parse(filepath.Base(busInfo))
 }
 
 func (n netIntf) NumaSocket() (socket eal.NumaSocket) {
