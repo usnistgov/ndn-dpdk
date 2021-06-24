@@ -24,7 +24,7 @@ func TestConsumer(t *testing.T) {
 	c, e := tgconsumer.New(face.D, iface.PktQueueConfig{})
 	require.NoError(e)
 	defer c.Close()
-	c.AllocLCores(ealthread.DefaultAllocator)
+	require.NoError(ealthread.AllocThread(c.Workers()...))
 
 	nameA, nameB, nameC := ndn.ParseName("/A"), ndn.ParseName("/B"), ndn.ParseName("/C")
 	contentC := make([]byte, 100)

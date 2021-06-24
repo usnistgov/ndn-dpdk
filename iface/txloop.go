@@ -15,6 +15,9 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 )
 
+// RoleTx is the thread role for TxLoop.
+const RoleTx = "TX"
+
 // TxLoop is the output thread that processes outgoing packets on a set of faces.
 // Functions are non-thread-safe.
 type TxLoop interface {
@@ -54,7 +57,7 @@ func (txl *txLoop) NumaSocket() eal.NumaSocket {
 }
 
 func (txl *txLoop) ThreadRole() string {
-	return "TX"
+	return RoleTx
 }
 
 func (txl *txLoop) ThreadLoadStat() ealthread.LoadStat {

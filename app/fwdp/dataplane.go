@@ -19,14 +19,16 @@ import (
 
 // Thread roles.
 const (
-	RoleInput  = "RX"
-	RoleOutput = "TX"
+	RoleInput  = iface.RoleRx
+	RoleOutput = iface.RoleTx
 	RoleCrypto = "CRYPTO"
 	RoleFwd    = "FWD"
 )
 
 // Config contains data plane configuration.
 type Config struct {
+	LCoreAlloc ealthread.Config `json:"lcoreAlloc,omitempty"`
+
 	Ndt      ndt.Config         `json:"ndt,omitempty"`
 	Fib      fibdef.Config      `json:"fib,omitempty"`
 	Pcct     pcct.Config        `json:"pcct,omitempty"`
@@ -39,7 +41,13 @@ type Config struct {
 	LatencySampleFreq *int                 `json:"latencySampleFreq,omitempty"` // latency sample frequency, between 0 and 30
 }
 
-func (cfg *Config) applyDefaults() {
+func (cfg *Config) validate() error {
+	if len(cfg.LCoreAlloc) > 0 {
+		if e := cfg.LCoreAlloc.ValidateRoles(map[string]int{RoleInput: 1, RoleOutput: 1, RoleCrypto: 1, RoleFwd: 1}); e != nil {
+			return e
+		}
+	}
+
 	if cfg.FwdDataQueue.DequeueBurstSize <= 0 {
 		cfg.FwdDataQueue.DequeueBurstSize = iface.MaxBurstSize
 	}
@@ -49,13 +57,60 @@ func (cfg *Config) applyDefaults() {
 	if cfg.FwdInterestQueue.DequeueBurstSize <= 0 {
 		cfg.FwdInterestQueue.DequeueBurstSize = math.MaxInt(cfg.FwdDataQueue.DequeueBurstSize/2, 1)
 	}
+
+	if cfg.LatencySampleFreq == nil {
+		var latencySampleFreq = 16
+		cfg.LatencySampleFreq = &latencySampleFreq
+	} else {
+		var latencySampleFreq = math.MinInt(math.MaxInt(0, *cfg.LatencySampleFreq), 30)
+		cfg.LatencySampleFreq = &latencySampleFreq
+	}
+
+	return nil
 }
 
-func (cfg Config) latencySampleFreq() int {
-	if cfg.LatencySampleFreq == nil {
-		return 16
+func defaultAlloc() (m map[string]eal.LCores, e error) {
+	m = map[string]eal.LCores{}
+
+	ethdevSockets := map[eal.NumaSocket]int{}
+	for _, dev := range ethdev.List() {
+		ethdevSockets[dev.NumaSocket()]++
 	}
-	return math.MinInt(math.MaxInt(0, *cfg.LatencySampleFreq), 30)
+
+	reqs := []ealthread.AllocReq{{Role: RoleCrypto}, {Role: RoleFwd}, {Role: RoleInput}, {Role: RoleOutput}}
+	lc, e := ealthread.AllocRequest(reqs...)
+	if e != nil {
+		return nil, e
+	}
+
+	for ; e == nil; lc, e = ealthread.AllocRequest(reqs...) {
+		for i, req := range reqs {
+			m[req.Role] = append(m[req.Role], lc[i])
+		}
+
+		if len(reqs) == 4 {
+			reqs = reqs[1:] // only 1 crypto
+		}
+
+		if len(reqs) == 3 {
+			var socket eal.NumaSocket
+			maxCount := 0
+			for s, n := range ethdevSockets {
+				if n > maxCount {
+					socket = s
+					ethdevSockets[s]--
+					break
+				}
+			}
+			if maxCount > 0 {
+				reqs[1].Socket, reqs[2].Socket = socket, socket
+			} else {
+				reqs = reqs[:1] // no more ethdev
+			}
+		}
+	}
+
+	return m, nil
 }
 
 // DataPlane represents the forwarder data plane.
@@ -69,32 +124,30 @@ type DataPlane struct {
 
 // New creates and launches forwarder data plane.
 func New(cfg Config) (dp *DataPlane, e error) {
-	cfg.applyDefaults()
+	if e := cfg.validate(); e != nil {
+		return nil, e
+	}
 	dp = &DataPlane{}
 
-	reqRx := []ealthread.AllocRequest{{Role: RoleInput}}
-	reqTx := []ealthread.AllocRequest{{Role: RoleOutput}}
-	for _, dev := range ethdev.List() {
-		socket := dev.NumaSocket()
-		reqRx = append(reqRx, ealthread.AllocRequest{Role: RoleInput, Socket: socket})
-		reqTx = append(reqTx, ealthread.AllocRequest{Role: RoleOutput, Socket: socket})
+	var alloc map[string]eal.LCores
+	if len(cfg.LCoreAlloc) > 0 {
+		alloc, e = ealthread.AllocConfig(cfg.LCoreAlloc)
+	} else {
+		alloc, e = defaultAlloc()
 	}
-	lcRx := ealthread.DefaultAllocator.Request(reqRx...)
-	lcTx := ealthread.DefaultAllocator.Request(reqTx...)
-	lcCrypto := ealthread.DefaultAllocator.Alloc(RoleCrypto, eal.NumaSocket{})
-	lcFwds := ealthread.DefaultAllocator.AllocMax(RoleFwd)
-	if len(lcRx) == 0 || len(lcTx) == 0 || !lcCrypto.Valid() || len(lcFwds) == 0 {
-		return nil, ealthread.ErrNoLCore
+	if e != nil {
+		return nil, e
 	}
+	lcRx, lcTx, lcCrypto, lcFwd := alloc[RoleInput], alloc[RoleOutput], alloc[RoleCrypto], alloc[RoleFwd]
 
 	{
 		ndtSockets := []eal.NumaSocket{}
 		for _, lc := range lcRx {
 			ndtSockets = append(ndtSockets, lc.NumaSocket())
 		}
-		ndtSockets = append(ndtSockets, lcCrypto.NumaSocket())
+		ndtSockets = append(ndtSockets, lcCrypto[0].NumaSocket())
 		dp.ndt = ndt.New(cfg.Ndt, ndtSockets)
-		dp.ndt.Randomize(len(lcFwds))
+		dp.ndt.Randomize(len(lcFwd))
 	}
 
 	for _, lc := range lcTx {
@@ -104,10 +157,10 @@ func New(cfg Config) (dp *DataPlane, e error) {
 	}
 
 	var fibFwds []fib.LookupThread
-	for i, lc := range lcFwds {
+	for i, lc := range lcFwd {
 		fwd := newFwd(i)
 		if e = fwd.Init(lc, cfg.Pcct, cfg.FwdInterestQueue, cfg.FwdDataQueue, cfg.FwdNackQueue,
-			cfg.latencySampleFreq(), cfg.Suppress); e != nil {
+			*cfg.LatencySampleFreq, cfg.Suppress); e != nil {
 			must.Close(dp)
 			return nil, fmt.Errorf("Fwd[%d].Init(): %w", i, e)
 		}
@@ -122,7 +175,7 @@ func New(cfg Config) (dp *DataPlane, e error) {
 
 	{
 		dp.crypto = newCrypto(len(dp.inputs))
-		if e = dp.crypto.Init(lcCrypto, cfg.Crypto, dp.ndt, dp.fwds); e != nil {
+		if e = dp.crypto.Init(lcCrypto[0], cfg.Crypto, dp.ndt, dp.fwds); e != nil {
 			must.Close(dp)
 			return nil, fmt.Errorf("Crypto.Init(): %w", e)
 		}
@@ -163,11 +216,21 @@ func (dp *DataPlane) Fwds() []*Fwd {
 
 // Close stops the data plane and releases resources.
 func (dp *DataPlane) Close() error {
+	var lcores eal.LCores
+	for _, rxl := range iface.ListRxLoops() {
+		lcores = append(lcores, rxl.LCore())
+	}
+	for _, txl := range iface.ListTxLoops() {
+		lcores = append(lcores, txl.LCore())
+	}
+
 	iface.CloseAll()
 	if dp.crypto != nil {
+		lcores = append(lcores, dp.crypto.LCore())
 		must.Close(dp.crypto)
 	}
 	for _, fwd := range dp.fwds {
+		lcores = append(lcores, fwd.LCore())
 		must.Close(fwd)
 	}
 	for _, fwi := range dp.inputs {
@@ -179,6 +242,7 @@ func (dp *DataPlane) Close() error {
 	if dp.ndt != nil {
 		must.Close(dp.ndt)
 	}
-	ealthread.DefaultAllocator.Clear()
+
+	ealthread.AllocFree(lcores...)
 	return nil
 }

@@ -10,7 +10,6 @@ import (
 
 	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/core/hwinfo"
-	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealconfig"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealinit"
 )
@@ -63,14 +62,14 @@ func Init() {
 	cfg.FilePrefix = "ealtestenv"
 	cfg.AllPciDevices = os.Getenv(EnvPci) == "1"
 
-	var req ealconfig.Request
-	req.MinLCores = WantLCores
+	if len(hwInfo.Cores()) < WantLCores {
+		cfg.LCoresPerNuma = map[int]int{0: WantLCores}
+		UsingThreads = true
+	}
 
-	args, e := cfg.Args(req, hwInfo)
+	args, e := cfg.Args(hwInfo)
 	if e != nil {
 		panic(e)
 	}
 	ealinit.Init(args)
-
-	UsingThreads = len(hwInfo.Cores()) < 1+len(eal.Workers)
 }

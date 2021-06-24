@@ -27,7 +27,7 @@ func init() {
 		if e != nil {
 			return nil, e
 		}
-		for _, lc := range DefaultAllocator.provider.Workers() {
+		for _, lc := range eal.Workers {
 			if lc.ID() == nid {
 				return lc, nil
 			}
@@ -59,7 +59,7 @@ func init() {
 				Type:        graphql.String,
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					lc := p.Source.(eal.LCore)
-					return gqlserver.Optional(DefaultAllocator.allocated[lc.ID()]), nil
+					return gqlserver.Optional(allocated[lc.ID()]), nil
 				},
 			},
 			"numaSocket": eal.GqlWithNumaSocket,
@@ -82,22 +82,14 @@ func init() {
 			},
 		},
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-			roleFilter := func(lc eal.LCore) bool { return true }
+			pred := []eal.LCorePredicate{}
 			if role, ok := p.Args["role"].(string); ok {
-				roleFilter = func(lc eal.LCore) bool { return DefaultAllocator.allocated[lc.ID()] == role }
+				pred = append(pred, lcAllocatedTo(role))
 			}
-			numaSocketFilter := func(lc eal.LCore) bool { return true }
 			if numaSocket, ok := p.Args["numaSocket"].(int); ok {
-				numaSocketFilter = func(lc eal.LCore) bool { return DefaultAllocator.provider.NumaSocketOf(lc).ID() == numaSocket }
+				pred = append(pred, eal.LCoreOnNumaSocket(eal.NumaSocketFromID(numaSocket)))
 			}
-
-			var list []eal.LCore
-			for _, lc := range DefaultAllocator.provider.Workers() {
-				if roleFilter(lc) && numaSocketFilter(lc) {
-					list = append(list, lc)
-				}
-			}
-			return list, nil
+			return eal.Workers.Filter(pred...), nil
 		},
 	})
 

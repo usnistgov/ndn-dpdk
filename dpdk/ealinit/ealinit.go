@@ -5,7 +5,6 @@ package ealinit
 #include "../../csrc/dpdk/mbuf.h"
 #include <rte_eal.h>
 #include <rte_lcore.h>
-#include <rte_random.h>
 */
 import "C"
 import (
@@ -69,25 +68,18 @@ func initEal(args []string) {
 	C.rte_mp_disable()
 	res := C.rte_eal_init(C.int(a.Argc), (**C.char)(a.Argv))
 	if res < 0 {
-		logEntry.Fatal("EAL init error",
-			zap.Error(eal.GetErrno()),
-		)
+		logEntry.Fatal("EAL init error", zap.Error(eal.GetErrno()))
 		return
 	}
 
-	eal.MainLCore = eal.LCoreFromID(int(C.rte_get_main_lcore()))
-	hasSocket := make(map[eal.NumaSocket]bool)
-	for i := C.rte_get_next_lcore(C.RTE_MAX_LCORE, 1, 1); i < C.RTE_MAX_LCORE; i = C.rte_get_next_lcore(i, 1, 0) {
-		lc := eal.LCoreFromID(int(i))
-		eal.Workers = append(eal.Workers, lc)
-		if socket := lc.NumaSocket(); !hasSocket[socket] {
-			eal.Sockets = append(eal.Sockets, socket)
-			hasSocket[socket] = true
-		}
+	lcoreSockets := map[int]int{}
+	for lcID := C.rte_get_next_lcore(C.RTE_MAX_LCORE, 1, 1); lcID < C.RTE_MAX_LCORE; lcID = C.rte_get_next_lcore(lcID, 1, 0) {
+		lcoreSockets[int(lcID)] = int(C.rte_lcore_to_socket_id(lcID))
 	}
+	eal.UpdateLCoreSockets(lcoreSockets, int(C.rte_get_main_lcore()))
 	logEntry.Info("EAL ready",
 		eal.MainLCore.ZapField("main"),
-		zap.Any("workers", eal.Workers),
+		zap.Array("workers", eal.Workers),
 		zap.Any("sockets", eal.Sockets),
 	)
 }

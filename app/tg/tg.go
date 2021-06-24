@@ -10,9 +10,18 @@ import (
 	"github.com/usnistgov/ndn-dpdk/app/tgconsumer"
 	"github.com/usnistgov/ndn-dpdk/app/tgproducer"
 	"github.com/usnistgov/ndn-dpdk/core/logging"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"go.uber.org/multierr"
+)
+
+// Thread roles.
+const (
+	RoleInput    = iface.RoleRx
+	RoleOutput   = iface.RoleTx
+	RoleConsumer = tgconsumer.RoleConsumer
+	RoleProducer = tgproducer.RoleProducer
 )
 
 var logger = logging.New("tg")
@@ -151,11 +160,13 @@ func (gen *TrafficGen) Close() error {
 		errs = append(errs, gen.txl.Close())
 	}
 
+	var lcores eal.LCores
 	for _, w := range gen.workers {
 		if lc := w.LCore(); lc.Valid() {
-			ealthread.DefaultAllocator.Free(w.LCore())
+			lcores = append(lcores, lc)
 		}
 	}
+	ealthread.AllocFree(lcores...)
 
 	*gen = TrafficGen{}
 	return multierr.Combine(errs...)

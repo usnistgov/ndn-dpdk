@@ -13,12 +13,16 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
-// MaxLCoreID is the maximum LCore ID.
+// MaxLCoreID is the (exclusive) maximum LCore ID.
 const MaxLCoreID = C.RTE_MAX_LCORE
 
-var lcoreIsBusy [MaxLCoreID + 1]bool
+var (
+	lcoreIsBusy   [MaxLCoreID]bool
+	lcoreToSocket [MaxLCoreID]int
+)
 
 // LCore represents a logical core.
 // Zero LCore is invalid.
@@ -28,7 +32,7 @@ type LCore struct {
 
 // LCoreFromID converts lcore ID to LCore.
 func LCoreFromID(id int) (lc LCore) {
-	if id < 0 || id > C.RTE_MAX_LCORE {
+	if id < 0 || id >= C.RTE_MAX_LCORE {
 		return lc
 	}
 	lc.v = id + 1
@@ -79,7 +83,7 @@ func (lc LCore) NumaSocket() (socket NumaSocket) {
 	if !lc.Valid() {
 		return socket
 	}
-	return NumaSocketFromID(int(C.rte_lcore_to_socket_id(C.uint(lc.ID()))))
+	return NumaSocketFromID(lcoreToSocket[lc.ID()])
 }
 
 // IsBusy returns true if this lcore is running a function.
@@ -101,9 +105,7 @@ func (lc LCore) RemoteLaunch(fn cptr.Function) {
 		f, arg := cptr.Func0.CallbackOnce(fn)
 		res := C.rte_eal_remote_launch((*C.lcore_function_t)(f), arg, C.uint(lc.ID()))
 		if res != 0 {
-			logger.Fatal("RemoteLaunch error",
-				zap.Error(Errno(res)),
-			)
+			logger.Fatal("RemoteLaunch error", zap.Error(Errno(res)))
 		}
 	}))
 }
@@ -116,4 +118,64 @@ func (lc LCore) Wait() (exitCode int) {
 	})
 	lcoreIsBusy[lc.ID()] = false
 	return exitCode
+}
+
+// LCorePredicate is a predicate function on LCore.
+type LCorePredicate func(lc LCore) bool
+
+// Negate returns the negated predicate.
+func (pred LCorePredicate) Negate() LCorePredicate {
+	return func(lc LCore) bool {
+		return !pred(lc)
+	}
+}
+
+// LCoreOnNumaSocket creates a predicate that accepts lcores on a particular NUMA socket.
+// If socket==any, it accepts any NUMA socket.
+func LCoreOnNumaSocket(socket NumaSocket) LCorePredicate {
+	if socket.IsAny() {
+		return func(lc LCore) bool { return true }
+	}
+	return func(lc LCore) bool {
+		return lc.NumaSocket() == socket
+	}
+}
+
+// LCores is a slice of LCore.
+type LCores []LCore
+
+// MarshalLogArray implements zapcore.ArrayMarshaler interface.
+func (lcores LCores) MarshalLogArray(enc zapcore.ArrayEncoder) error {
+	for _, lc := range lcores {
+		if lc.Valid() {
+			enc.AppendInt(lc.ID())
+		} else {
+			enc.AppendString("invalid")
+		}
+	}
+	return nil
+}
+
+// ByNumaSocket classifies lcores by NUMA socket.
+func (lcores LCores) ByNumaSocket() (m map[NumaSocket]LCores) {
+	m = map[NumaSocket]LCores{}
+	for _, lc := range lcores {
+		socket := lc.NumaSocket()
+		m[socket] = append(m[socket], lc)
+	}
+	return m
+}
+
+// Filter returns lcores that satisfy zero or more predicates.
+func (lcores LCores) Filter(pred ...LCorePredicate) (filtered LCores) {
+	for _, lc := range lcores {
+		ok := true
+		for _, f := range pred {
+			ok = ok && f(lc)
+		}
+		if ok {
+			filtered = append(filtered, lc)
+		}
+	}
+	return filtered
 }

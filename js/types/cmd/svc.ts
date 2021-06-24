@@ -23,15 +23,4 @@ export interface ActivateFwArgs extends ActivateArgsCommon, FwdpConfig {
  */
 export interface ActivateGenArgs extends ActivateArgsCommon {
   mempool?: PktmbufPoolTemplateUpdates<"DIRECT" | "INDIRECT" | "HEADER" | "INTEREST" | "DATA" | "PAYLOAD">;
-  lcoreAlloc?: LCoreAllocConfig<"RX" | "TX" | "PRODUCER" | "CONSUMER">;
-
-  /**
-   * Minimum number of LCores to reserve.
-   * Traffic generator on each face needs 3~5 LCores.
-   * If there are fewer processor cores than LCores needed, use this option to create more LCores from threads.
-   *
-   * @TJS-type integer
-   * @default 1
-   */
-  minLCores?: number;
 }

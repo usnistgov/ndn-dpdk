@@ -19,6 +19,7 @@ import (
 )
 
 func TestPatterns(t *testing.T) {
+	defer ealthread.AllocClear()
 	assert, require := makeAR(t)
 
 	face := intface.MustNew()
@@ -27,7 +28,6 @@ func TestPatterns(t *testing.T) {
 	p, e := tgproducer.New(face.D, iface.PktQueueConfig{}, 1)
 	require.NoError(e)
 	defer p.Close()
-	defer ealthread.DefaultAllocator.Clear()
 	require.NoError(ealthread.AllocThread(p.Workers()...))
 	p.ConnectRxQueues(tgtestenv.DemuxI)
 
@@ -129,6 +129,7 @@ func TestPatterns(t *testing.T) {
 }
 
 func TestDataProducer(t *testing.T) {
+	defer ealthread.AllocClear()
 	assert, require := makeAR(t)
 
 	face := intface.MustNew()
@@ -137,7 +138,6 @@ func TestDataProducer(t *testing.T) {
 	p, e := tgproducer.New(face.D, iface.PktQueueConfig{}, 2)
 	require.NoError(e)
 	defer p.Close()
-	defer ealthread.DefaultAllocator.Clear()
 	require.NoError(ealthread.AllocThread(p.Workers()...))
 	p.ConnectRxQueues(tgtestenv.DemuxI)
 

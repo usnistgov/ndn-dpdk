@@ -1,274 +1,123 @@
 package ealthread
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"go.uber.org/zap"
 )
 
-// AllocConfig contains per-role lcore allocation config.
-type AllocConfig map[string]AllocRoleConfig
+var allocated [eal.MaxLCoreID]string
 
-// AllocRoleConfig contains lcore allocation config for a role.
-type AllocRoleConfig struct {
-	// List of lcores reserved for this role.
-	LCores []int `json:"lcores,omitempty"`
-	// Number of lcores on a specified NUMA socket.
-	OnNuma map[int]int `json:"onNuma,omitempty"`
-	// Number of lcores on each NUMA socket.
-	EachNuma int `json:"eachNuma,omitempty"`
+// AllocReq represents a request to the allocator.
+type AllocReq struct {
+	Role   string         // role name, must not be empty
+	Socket eal.NumaSocket // preferred NUMA socket
 }
 
-func (c AllocRoleConfig) limitOn(socket eal.NumaSocket) int {
-	if c.OnNuma == nil {
-		return c.EachNuma
-	}
-	if n, ok := c.OnNuma[socket.ID()]; ok {
-		return n
-	}
-	return c.EachNuma
-}
-
-// AllocRequest represents a request to the allocator.
-// If Role is empty, the entry is ignored and no allocation will occur.
-type AllocRequest struct {
-	Role   string
-	Socket eal.NumaSocket
-}
-
-// Allocator allocates lcores to roles.
-type Allocator struct {
-	Config    AllocConfig
-	provider  lCoreProvider
-	allocated [eal.MaxLCoreID + 1]string
-}
-
-// NewAllocator creates an Allocator.
-func NewAllocator(provider lCoreProvider) *Allocator {
-	return &Allocator{
-		Config:   make(AllocConfig),
-		provider: provider,
-	}
-}
-
-type lCorePredicate func(lc eal.LCore) bool
-
-func (la *Allocator) invert(pred lCorePredicate) lCorePredicate {
+func lcAllocatedTo(role string) eal.LCorePredicate {
 	return func(lc eal.LCore) bool {
-		return !pred(lc)
+		return allocated[lc.ID()] == role
 	}
 }
 
-func (la *Allocator) lcIsAvailable() lCorePredicate {
-	return func(lc eal.LCore) bool {
-		return la.allocated[lc.ID()] == "" && !la.provider.IsBusy(lc)
-	}
+func lcUnallocated() eal.LCorePredicate {
+	return lcAllocatedTo("")
 }
 
-func (la *Allocator) lcOnNuma(socket eal.NumaSocket) lCorePredicate {
-	return func(lc eal.LCore) bool {
-		return socket.IsAny() || la.provider.NumaSocketOf(lc).ID() == socket.ID()
-	}
-}
-
-func (la *Allocator) lcInList(list []int) lCorePredicate {
-	sorted := append([]int{}, list...)
-	sort.Ints(sorted)
-
-	return func(lc eal.LCore) bool {
-		i := sort.SearchInts(sorted, lc.ID())
-		return i < len(sorted) && sorted[i] == lc.ID()
-	}
-}
-
-func (la *Allocator) lcAllocatedTo(role string) lCorePredicate {
-	return func(lc eal.LCore) bool {
-		return la.allocated[lc.ID()] == role
-	}
-}
-
-// Return subset of lcores that match all predicates.
-func (la *Allocator) filter(lcores []eal.LCore, predicates ...lCorePredicate) (filtered []eal.LCore) {
-L:
-	for _, lc := range lcores {
-		for _, pred := range predicates {
-			if !pred(lc) {
-				continue L
+// AllocConfig allocates lcores according to configuration.
+func AllocConfig(c Config) (m map[string]eal.LCores, e error) {
+	m, e = c.assignWorkers(lcUnallocated())
+	if e == nil {
+		for role, lcores := range m {
+			for _, lc := range lcores {
+				allocated[lc.ID()] = role
 			}
-		}
-		filtered = append(filtered, lc)
-	}
-	return filtered
-}
-
-// Classify lcores by NumaSocket.
-func (la *Allocator) classifyByNuma(lcores []eal.LCore) (m map[eal.NumaSocket][]eal.LCore) {
-	m = make(map[eal.NumaSocket][]eal.LCore)
-	for _, lc := range lcores {
-		socket := la.provider.NumaSocketOf(lc)
-		m[socket] = append(m[socket], lc)
-	}
-	return m
-}
-
-func (la *Allocator) pick(role string, socket eal.NumaSocket) eal.LCore {
-	// 0. When Config is empty, satisfy every request.
-	if len(la.Config) == 0 {
-		return la.pickNoConfig(role, socket)
-	}
-
-	// 1. Allocate on preferred NUMA socket.
-	if lcores := la.pickCfgOnNuma(role, socket); len(lcores) > 0 {
-		return lcores[0]
-	}
-
-	// 2. Allocate on other NUMA sockets.
-	numaLCores := la.classifyByNuma(la.provider.Workers())
-	for remoteSocket := range numaLCores {
-		numaLCores[remoteSocket] = la.pickCfgOnNuma(role, remoteSocket)
-	}
-	return la.pickLeastOccupied(numaLCores)
-}
-
-func (la *Allocator) pickNoConfig(role string, socket eal.NumaSocket) eal.LCore {
-	workers := la.provider.Workers()
-	avails := la.filter(workers, la.lcIsAvailable())
-
-	// 1. Allocate from preferred NUMA socket.
-	if !socket.IsAny() {
-		if numaAvails := la.filter(avails, la.lcOnNuma(socket)); len(numaAvails) > 0 {
-			return numaAvails[0]
+			logger.Info("lcores configured", zap.String("role", role), zap.Array("lc", lcores))
 		}
 	}
-
-	// 2. Allocate from least occupied NUMA socket.
-	availsByNuma := la.classifyByNuma(avails)
-	return la.pickLeastOccupied(availsByNuma)
+	return m, e
 }
 
-func (la *Allocator) pickCfgOnNuma(role string, socket eal.NumaSocket) []eal.LCore {
-	workers := la.provider.Workers()
-	avails := la.filter(workers, la.lcIsAvailable(), la.lcOnNuma(socket))
-	rc := la.Config[role]
-
-	// 1. Allocate from role-specific list on specified NUMA socket.
-	if listed := la.filter(avails, la.lcInList(rc.LCores)); len(listed) > 0 {
-		return listed
-	}
-
-	// 2. Allocate within role-specific per-socket limit on specified NUMA socket.
-	// (1) Find lcores not listed by other roles.
-	var unreservedPred []lCorePredicate
-	for otherRole, otherRc := range la.Config {
-		if otherRole != role {
-			unreservedPred = append(unreservedPred, la.invert(la.lcInList(otherRc.LCores)))
-		}
-	}
-	unreserved := la.filter(avails, unreservedPred...)
-
-	// (2) Count lcores already allocated to this role.
-	nAllocated := len(la.filter(workers, la.lcOnNuma(socket), la.lcAllocatedTo(role)))
-
-	// (3) Allocate if within limit.
-	if nAllocated < rc.limitOn(socket) && len(unreserved) > 0 {
-		return unreserved
-	}
-
-	return nil
-}
-
-func (la *Allocator) pickLeastOccupied(availsByNuma map[eal.NumaSocket][]eal.LCore) eal.LCore {
-	var candidate eal.LCore
-	candidateRem := 0
-	for _, numaAvails := range availsByNuma {
-		if len(numaAvails) > candidateRem {
-			candidate = numaAvails[0]
-			candidateRem = len(numaAvails)
-		}
-	}
-	return candidate
-}
-
-// Request allocates lcores for requests.
-func (la *Allocator) Request(requests ...AllocRequest) []eal.LCore {
-	list := make([]eal.LCore, len(requests))
-	for i, request := range requests {
-		if request.Role == "" {
+// AllocRequest allocates lcores to requests.
+// Any request with Role=="" is skipped.
+func AllocRequest(requests ...AllocReq) (list []eal.LCore, e error) {
+	reqBySocket, reqAny, nReq := map[eal.NumaSocket][]int{}, []int{}, 0
+	for i, req := range requests {
+		if req.Role == "" {
 			continue
 		}
-
-		lc := la.pick(request.Role, request.Socket)
-		if !lc.Valid() {
-			goto FAIL
-		}
-
-		la.allocated[lc.ID()] = request.Role
-		list[i] = lc
-	}
-
-	for i, request := range requests {
-		lc := list[i]
-		logger.Info("lcore allocated",
-			zap.String("role", request.Role),
-			request.Socket.ZapField("socket"),
-			lc.ZapField("lc"),
-			la.provider.NumaSocketOf(lc).ZapField("lc-socket"),
-		)
-	}
-	return list
-
-FAIL:
-	for _, lc := range list {
-		if lc.Valid() {
-			la.allocated[lc.ID()] = ""
-		}
-	}
-	return nil
-}
-
-// Alloc allocates an lcore for a role.
-func (la *Allocator) Alloc(role string, socket eal.NumaSocket) (lc eal.LCore) {
-	list := la.Request(AllocRequest{Role: role, Socket: socket})
-	if len(list) == 0 {
-		return eal.LCore{}
-	}
-	return list[0]
-}
-
-// AllocMax allocates all remaining LCores to a role.
-func (la *Allocator) AllocMax(role string) (list []eal.LCore) {
-	for {
-		if lc := la.Alloc(role, eal.NumaSocket{}); lc.Valid() {
-			list = append(list, lc)
+		nReq++
+		if req.Socket.IsAny() {
+			reqAny = append(reqAny, i)
 		} else {
-			break
+			reqBySocket[req.Socket] = append(reqBySocket[req.Socket], i)
 		}
 	}
-	return list
-}
 
-// Free deallocates an lcore.
-func (la *Allocator) Free(lc eal.LCore) {
-	if la.allocated[lc.ID()] == "" {
-		panic("lcore double free")
+	workers := eal.Workers.Filter(lcUnallocated())
+	if nAvail := len(workers); nReq > nAvail {
+		return nil, fmt.Errorf("need %d lcores but only %d available", nReq, nAvail)
 	}
-	logger.Info("lcore freed",
-		lc.ZapField("lc"),
-		zap.String("role", la.allocated[lc.ID()]),
-		la.provider.NumaSocketOf(lc).ZapField("socket"),
-	)
-	la.allocated[lc.ID()] = ""
+	list = make([]eal.LCore, len(requests))
+
+	workersBySocket := workers.ByNumaSocket()
+	take := func(socket eal.NumaSocket) eal.LCore {
+		lc := workersBySocket[socket][0]
+		workersBySocket[socket] = workersBySocket[socket][1:]
+		return lc
+	}
+	for socket, reqIndexes := range reqBySocket {
+		for _, i := range reqIndexes {
+			if len(workersBySocket[socket]) > 0 {
+				list[i] = take(socket)
+			} else {
+				reqAny = append(reqAny, i)
+			}
+		}
+	}
+
+	sockets := append([]eal.NumaSocket{}, eal.Sockets...)
+	for _, i := range reqAny {
+		sort.Slice(sockets, func(a, b int) bool { return len(workersBySocket[sockets[a]]) > len(workersBySocket[sockets[b]]) })
+		list[i] = take(sockets[0]) // pick from least occupied NUMA socket
+	}
+
+	for i, req := range requests {
+		if req.Role == "" {
+			continue
+		}
+		lc := list[i]
+		allocated[lc.ID()] = req.Role
+		logger.Info("lcore requested", zap.String("role", req.Role), req.Socket.ZapField("req-socket"), lc.ZapField("lc"))
+	}
+
+	return list, nil
 }
 
-// Clear deletes all allocations.
-func (la *Allocator) Clear() {
-	for lc, role := range la.allocated {
+// AllocFree deallocates an lcore.
+func AllocFree(lcores ...eal.LCore) {
+	allocFree(lcores, false)
+}
+
+// AllocClear deletes all allocations.
+func AllocClear() {
+	allocFree(eal.Workers, true)
+}
+
+func allocFree(lcores []eal.LCore, maybeFree bool) {
+	var freed eal.LCores
+	for _, lc := range lcores {
+		role := allocated[lc.ID()]
 		if role != "" {
-			la.Free(eal.LCoreFromID(lc))
+			freed = append(freed, lc)
+			allocated[lc.ID()] = ""
+		} else if !maybeFree {
+			logger.Panic("lcore double free", lc.ZapField("lc"))
 		}
 	}
+	if len(freed) > 0 {
+		logger.Info("lcores freed", zap.Array("lc", freed))
+	}
 }
-
-// DefaultAllocator is the default instance of Allocator.
-var DefaultAllocator = NewAllocator(ealLCoreProvider{})

@@ -15,6 +15,7 @@ import (
 )
 
 func TestFetcher(t *testing.T) {
+	defer ealthread.AllocClear()
 	assert, require := makeAR(t)
 
 	intFace := intface.MustNew()
@@ -29,7 +30,6 @@ func TestFetcher(t *testing.T) {
 	fetcher, e := fetch.New(intFace.D, cfg)
 	require.NoError(e)
 	defer fetcher.Close()
-	defer ealthread.DefaultAllocator.Clear()
 	require.NoError(ealthread.AllocThread(fetcher.Workers()...))
 	fetcher.ConnectRxQueues(tgtestenv.DemuxD, tgtestenv.DemuxN)
 

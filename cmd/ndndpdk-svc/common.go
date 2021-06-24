@@ -7,7 +7,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/container/hrlog"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealconfig"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealinit"
-	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev/ethvdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
@@ -19,20 +18,18 @@ import (
 
 // CommonArgs contains arguments shared between forwarder and traffic generator.
 type CommonArgs struct {
-	Eal        ealconfig.Config        `json:"eal,omitempty"`
-	Mempool    pktmbuf.TemplateUpdates `json:"mempool,omitempty"`
-	LCoreAlloc ealthread.AllocConfig   `json:"lcoreAlloc,omitempty"`
-	Hrlog      bool                    `json:"hrlog,omitempty"`
+	Eal     ealconfig.Config        `json:"eal,omitempty"`
+	Mempool pktmbuf.TemplateUpdates `json:"mempool,omitempty"`
+	Hrlog   bool                    `json:"hrlog,omitempty"`
 }
 
-func (a CommonArgs) apply(req ealconfig.Request) error {
-	ealArgs, e := a.Eal.Args(req, nil)
+func (a CommonArgs) apply() error {
+	ealArgs, e := a.Eal.Args(nil)
 	if e != nil {
 		return e
 	}
 	ealinit.Init(ealArgs)
 	a.Mempool.Apply()
-	ealthread.DefaultAllocator.Config = a.LCoreAlloc
 	if a.Hrlog {
 		hrlog.Init()
 	}

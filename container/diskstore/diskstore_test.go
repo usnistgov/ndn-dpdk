@@ -13,8 +13,8 @@ import (
 )
 
 func TestDiskStore(t *testing.T) {
-	defer ealthread.DefaultAllocator.Clear()
 	assert, require := makeAR(t)
+	defer ealthread.AllocClear()
 
 	device, e := bdev.NewMalloc(diskstore.BlockSize, 256)
 	require.NoError(e)

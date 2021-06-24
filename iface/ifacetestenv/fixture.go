@@ -89,7 +89,7 @@ func (fixture *Fixture) Close() error {
 	eal.Free(fixture.rxQueueI)
 	eal.Free(fixture.rxQueueD)
 	eal.Free(fixture.rxQueueN)
-	ealthread.DefaultAllocator.Clear()
+	ealthread.AllocClear()
 	return nil
 }
 

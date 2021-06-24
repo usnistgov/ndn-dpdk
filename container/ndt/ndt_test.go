@@ -65,7 +65,7 @@ func (th *lookupTestThread) main() {
 }
 
 func TestNdt(t *testing.T) {
-	defer ealthread.DefaultAllocator.Clear()
+	defer ealthread.AllocClear()
 	assert, require := makeAR(t)
 
 	cfg := ndt.Config{

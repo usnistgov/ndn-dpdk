@@ -15,6 +15,9 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 )
 
+// RoleRx is the thread role for RxLoop.
+const RoleRx = "RX"
+
 // RxGroup is a receive channel for a group of faces.
 type RxGroup interface {
 	eal.WithNumaSocket
@@ -69,7 +72,7 @@ func (rxl *rxLoop) NumaSocket() eal.NumaSocket {
 }
 
 func (rxl *rxLoop) ThreadRole() string {
-	return "RX"
+	return RoleRx
 }
 
 func (rxl *rxLoop) ThreadLoadStat() ealthread.LoadStat {

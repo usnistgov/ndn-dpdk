@@ -3,6 +3,7 @@ package eal
 
 import (
 	"math/rand"
+	"sort"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/logging"
@@ -16,7 +17,7 @@ var (
 	// MainLCore is the main lcore.
 	MainLCore LCore
 	// Workers are worker lcores.
-	Workers []LCore
+	Workers LCores
 	// Sockets are NUMA sockets of worker lcores.
 	Sockets []NumaSocket
 
@@ -25,6 +26,35 @@ var (
 	// MainReadSide is an RCU read-side object of the MainThread.
 	MainReadSide *urcu.ReadSide
 )
+
+// UpdateLCoreSockets saves LCores and Sockets information.
+// If this is used for mocking in unit tests, an undo function is provided to revert the changes.
+func UpdateLCoreSockets(lcoreSockets map[int]int, mainLCoreID int) (undo func()) {
+	oldMainLCore, oldWorkers, oldSockets, oldLCoreToSocket := MainLCore, Workers, Sockets, lcoreToSocket
+	undo = func() {
+		MainLCore, Workers, Sockets, lcoreToSocket = oldMainLCore, oldWorkers, oldSockets, oldLCoreToSocket
+	}
+
+	MainLCore, Workers, Sockets = LCoreFromID(mainLCoreID), nil, nil
+
+	socketIDs := map[int]bool{}
+	for lcID, socketID := range lcoreSockets {
+		lcoreToSocket[lcID] = socketID
+		socketIDs[socketID] = true
+		if lcID != mainLCoreID {
+			Workers = append(Workers, LCoreFromID(lcID))
+		}
+	}
+	sort.Slice(Workers, func(i, j int) bool { return Workers[i].v < Workers[j].v })
+
+	for socketID := range socketIDs {
+		Sockets = append(Sockets, NumaSocketFromID(socketID))
+	}
+
+	sort.Slice(Sockets, func(i, j int) bool { return Sockets[i].v < Sockets[j].v })
+
+	return
+}
 
 // RandomSocket returns a random NumaSocket that has at least one worker lcore.
 func RandomSocket() (socket NumaSocket) {

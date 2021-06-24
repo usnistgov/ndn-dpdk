@@ -58,7 +58,7 @@ func TestReplaceFlags(t *testing.T) {
 	cfg.LCoreFlags = "--flag-a value-a"
 	cfg.Flags = "--flag-b value-b"
 
-	args, e := cfg.Args(ealconfig.Request{}, testHwInfo{})
+	args, e := cfg.Args(testHwInfo{})
 	require.NoError(e)
 	a, b := parseExtraFlags(args)
 	assert.Equal("", a)
@@ -72,7 +72,7 @@ func TestExtraFlags(t *testing.T) {
 	cfg.LCoreFlags = "--flag-a value-a"
 	cfg.ExtraFlags = "--flag-b value-b"
 
-	args, e := cfg.Args(ealconfig.Request{}, testHwInfo{})
+	args, e := cfg.Args(testHwInfo{})
 	require.NoError(e)
 	a, b := parseExtraFlags(args)
 	assert.Equal("value-a", a)
@@ -82,10 +82,12 @@ func TestExtraFlags(t *testing.T) {
 func parseLCoreFlags(args []string) (p struct {
 	l      string
 	lcores string
+	main   int
 }) {
 	fset := makeBaseFlagSet()
 	fset.StringVar(&p.l, "l", "", "")
 	fset.StringVar(&p.lcores, "lcores", "", "")
+	fset.IntVar(&p.main, "main-lcore", -1, "")
 	fset.Parse(args)
 	return
 }
@@ -97,11 +99,12 @@ func TestLCoreCores(t *testing.T) {
 	cfg.LCoreFlags = ""
 	cfg.Cores = []int{0, 1, 4, 7, 32}
 
-	args, e := cfg.Args(ealconfig.Request{}, testHwInfo{})
+	args, e := cfg.Args(testHwInfo{})
 	require.NoError(e)
 	p := parseLCoreFlags(args)
 	commaSetEquals(assert, "0,1,4,7", p.l)
 	assert.Equal("", p.lcores)
+	assert.Equal(-1, p.main)
 }
 
 func TestLCoreFewerCores(t *testing.T) {
@@ -109,17 +112,14 @@ func TestLCoreFewerCores(t *testing.T) {
 
 	cfg := makeBaseConfig()
 	cfg.LCoreFlags = ""
-	cfg.Cores = []int{0, 1, 4, 7, 32}
+	cfg.Cores = []int{0, 8, 9, 32}
+	cfg.LCoresPerNuma = map[int]int{0: 6, 1: 1}
 
-	req := ealconfig.Request{
-		MinLCores: 6,
-	}
-
-	args, e := cfg.Args(req, testHwInfo{})
+	args, e := cfg.Args(testHwInfo{})
 	require.NoError(e)
 	p := parseLCoreFlags(args)
 	assert.Equal("", p.l)
-	assert.Equal("(0-5)@(0,1,4,7)", p.lcores)
+	assert.Equal("(0,1,2,3,4,5)@(0,8),(6)@(9)", p.lcores)
 }
 
 func TestLCoreNoCores(t *testing.T) {
@@ -129,7 +129,19 @@ func TestLCoreNoCores(t *testing.T) {
 	cfg.LCoreFlags = ""
 	cfg.Cores = []int{32}
 
-	_, e := cfg.Args(ealconfig.Request{}, testHwInfo{})
+	_, e := cfg.Args(testHwInfo{})
+	assert.Error(e)
+}
+
+func TestLCoreNoCoresNuma(t *testing.T) {
+	assert, _ := makeAR(t)
+
+	cfg := makeBaseConfig()
+	cfg.LCoreFlags = ""
+	cfg.Cores = []int{0, 16}
+	cfg.LCoresPerNuma = map[int]int{1: 2}
+
+	_, e := cfg.Args(testHwInfo{})
 	assert.Error(e)
 }
 
@@ -150,7 +162,7 @@ func TestLCorePerNuma(t *testing.T) {
 		8: 1,  // non-existent socket
 	}
 
-	args, e := cfg.Args(ealconfig.Request{}, testHwInfo{})
+	args, e := cfg.Args(testHwInfo{})
 	require.NoError(e)
 	p := parseLCoreFlags(args)
 	commaSetEquals(assert, "0,8,16,24,1,17,2,18,10,26,3,19,11,27,5", p.l)
@@ -176,7 +188,7 @@ func TestMemoryEmpty(t *testing.T) {
 	cfg := makeBaseConfig()
 	cfg.MemFlags = ""
 
-	args, e := cfg.Args(ealconfig.Request{}, testHwInfo{})
+	args, e := cfg.Args(testHwInfo{})
 	require.NoError(e)
 	p := parseMemFlags(args)
 	assert.Equal("", p.n)
@@ -201,7 +213,7 @@ func TestMemoryAll(t *testing.T) {
 	cfg.FilePrefix = "ealconfigtest"
 	cfg.DisableHugeUnlink = true
 
-	args, e := cfg.Args(ealconfig.Request{}, testHwInfo{})
+	args, e := cfg.Args(testHwInfo{})
 	require.NoError(e)
 	p := parseMemFlags(args)
 	assert.Equal("2", p.n)
@@ -229,7 +241,7 @@ func TestDeviceEmpty(t *testing.T) {
 	cfg := makeBaseConfig()
 	cfg.DeviceFlags = ""
 
-	args, e := cfg.Args(ealconfig.Request{}, testHwInfo{})
+	args, e := cfg.Args(testHwInfo{})
 	require.NoError(e)
 	p := parseDeviceFlags(args)
 	assert.Equal([]string{"/tmp/pmd-path"}, p.d)
@@ -251,7 +263,7 @@ func TestDeviceSome(t *testing.T) {
 		"net_af_packet1,iface=eth1",
 	}
 
-	args, e := cfg.Args(ealconfig.Request{}, testHwInfo{})
+	args, e := cfg.Args(testHwInfo{})
 	require.NoError(e)
 	p := parseDeviceFlags(args)
 	assert.Equal([]string{"/tmp/pmd-path"}, p.d)
@@ -274,7 +286,7 @@ func TestDeviceAll(t *testing.T) {
 		"net_af_packet1,iface=eth1",
 	}
 
-	args, e := cfg.Args(ealconfig.Request{}, testHwInfo{})
+	args, e := cfg.Args(testHwInfo{})
 	require.NoError(e)
 	p := parseDeviceFlags(args)
 	assert.Equal([]string{"/usr/lib/pmd-A.so", "/usr/lib/pmd-B.so"}, p.d)

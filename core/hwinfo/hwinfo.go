@@ -17,6 +17,15 @@ type CoreInfo struct {
 // Cores contains information about CPU cores.
 type Cores []CoreInfo
 
+// ByNumaSocket classifies cores as map[NumaSocket]Cores.
+func (cores Cores) ByNumaSocket() (m map[int]Cores) {
+	m = map[int]Cores{}
+	for _, core := range cores {
+		m[core.NumaSocket] = append(m[core.NumaSocket], core)
+	}
+	return m
+}
+
 // MaxNumaSocket determines the maximum NUMA socket.
 func (cores Cores) MaxNumaSocket() int {
 	maxSocket := -1
@@ -26,34 +35,28 @@ func (cores Cores) MaxNumaSocket() int {
 	return maxSocket
 }
 
-// HasLogicalCore determines whether a logical core exists.
-func (cores Cores) HasLogicalCore(id int) bool {
+// ByLogicalCore converts to map[LogicalCore]CoreInfo.
+func (cores Cores) ByLogicalCore() (m map[int]CoreInfo) {
+	m = map[int]CoreInfo{}
 	for _, core := range cores {
-		if core.LogicalCore == id {
-			return true
-		}
+		m[core.LogicalCore] = core
 	}
-	return false
+	return m
 }
 
 // ListPrimary returns a list of logical cores that are the first logical core in each physical core.
-// If socket is non-negative, the list only includes logical cores on this NUMA socket.
-func (cores Cores) ListPrimary(socket int) []int {
-	return cores.listHyperThread(socket, false)
+func (cores Cores) ListPrimary() []int {
+	return cores.listHyperThread(false)
 }
 
 // ListSecondary returns a list of logical cores that are not in ListPrimary().
-// If socket is non-negative, the list only includes logical cores on this NUMA socket.
-func (cores Cores) ListSecondary(socket int) []int {
-	return cores.listHyperThread(socket, true)
+func (cores Cores) ListSecondary() []int {
+	return cores.listHyperThread(true)
 }
 
-func (cores Cores) listHyperThread(socket int, secondary bool) (list []int) {
+func (cores Cores) listHyperThread(secondary bool) (list []int) {
 	ht := map[[2]int]bool{}
 	for _, core := range cores {
-		if socket >= 0 && core.NumaSocket != socket {
-			continue
-		}
 		key := [2]int{core.NumaSocket, core.PhysicalCore}
 		if ht[key] == secondary {
 			list = append(list, core.LogicalCore)

@@ -13,7 +13,9 @@ import (
 	"github.com/usnistgov/ndn-dpdk/container/fib/fibtestenv"
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
 	"github.com/usnistgov/ndn-dpdk/container/strategycode"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealtestenv"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 )
@@ -37,23 +39,29 @@ func NewFixture(t *testing.T) (fixture *Fixture) {
 		fixture.StepUnit = 200 * time.Millisecond
 	}
 
-	var dpCfg fwdp.Config
+	var cfg fwdp.Config
+	cfg.LCoreAlloc = ealthread.Config{
+		fwdp.RoleInput:  {LCores: []int{eal.Workers[0].ID()}},
+		fwdp.RoleOutput: {LCores: []int{eal.Workers[1].ID()}},
+		fwdp.RoleCrypto: {LCores: []int{eal.Workers[2].ID()}},
+		fwdp.RoleFwd:    {LCores: []int{eal.Workers[3].ID(), eal.Workers[4].ID()}},
+	}
 
-	dpCfg.Crypto.InputCapacity = 64
-	dpCfg.Crypto.OpPoolCapacity = 1023
+	cfg.Crypto.InputCapacity = 64
+	cfg.Crypto.OpPoolCapacity = 1023
 
-	dpCfg.Fib.Capacity = 65535
-	dpCfg.Fib.NBuckets = 256
-	dpCfg.Fib.StartDepth = 8
+	cfg.Fib.Capacity = 65535
+	cfg.Fib.NBuckets = 256
+	cfg.Fib.StartDepth = 8
 
-	dpCfg.Pcct.PcctCapacity = 65535
-	dpCfg.Pcct.CsDirectCapacity = 16384
-	dpCfg.Pcct.CsIndirectCapacity = 16384
+	cfg.Pcct.PcctCapacity = 65535
+	cfg.Pcct.CsDirectCapacity = 16384
+	cfg.Pcct.CsIndirectCapacity = 16384
 
-	dpCfg.LatencySampleFreq = new(int)
-	*dpCfg.LatencySampleFreq = 0
+	cfg.LatencySampleFreq = new(int)
+	*cfg.LatencySampleFreq = 0
 
-	dp, e := fwdp.New(dpCfg)
+	dp, e := fwdp.New(cfg)
 	fixture.require.NoError(e)
 	fixture.DataPlane = dp
 	fixture.Ndt = dp.Ndt()

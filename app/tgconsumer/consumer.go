@@ -249,15 +249,6 @@ func (c Consumer) Face() iface.Face {
 	return iface.Get(iface.ID(c.txC.face))
 }
 
-// AllocLCores allocates worker lcores.
-// This can only be used when all workers are stopped.
-func (p *Consumer) AllocLCores(allocator *ealthread.Allocator) error {
-	return multierr.Append(
-		allocator.AllocThread(p.rx),
-		allocator.AllocThread(p.tx),
-	)
-}
-
 // Launch launches RX and TX threads.
 func (c *Consumer) Launch() {
 	c.rxC.runNum++

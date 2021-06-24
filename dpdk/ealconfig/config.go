@@ -8,18 +8,8 @@ import (
 
 var logger = logging.New("ealconfig")
 
-// Request contains requirements of the activating application.
-type Request struct {
-	// MinLCores is the minimum required number of lcores.
-	// This is processed by LCoreConfig.
-	//
-	// If there are fewer processor cores than MinLCores, lcores will be created as threads
-	// floating among available cores, resulting in lower performance.
-	MinLCores int
-}
-
 type section interface {
-	args(req Request, hwInfo hwinfo.Provider) (args []string, e error)
+	args(hwInfo hwinfo.Provider) (args []string, e error)
 }
 
 // Config contains EAL configuration.
@@ -37,7 +27,7 @@ type Config struct {
 }
 
 // Args validates the configuration and constructs EAL arguments.
-func (cfg Config) Args(req Request, hwInfo hwinfo.Provider) (args []string, e error) {
+func (cfg Config) Args(hwInfo hwinfo.Provider) (args []string, e error) {
 	if cfg.Flags != "" {
 		return shellSplit("Flags", cfg.Flags)
 	}
@@ -46,7 +36,7 @@ func (cfg Config) Args(req Request, hwInfo hwinfo.Provider) (args []string, e er
 	}
 
 	for _, sec := range []section{cfg.LCoreConfig, cfg.MemoryConfig, cfg.DeviceConfig} {
-		a, e := sec.args(req, hwInfo)
+		a, e := sec.args(hwInfo)
 		if e != nil {
 			return nil, e
 		}

@@ -33,7 +33,7 @@ type MemoryConfig struct {
 	MemFlags string `json:"memFlags,omitempty"`
 }
 
-func (cfg MemoryConfig) args(req Request, hwInfo hwinfo.Provider) (args []string, e error) {
+func (cfg MemoryConfig) args(hwInfo hwinfo.Provider) (args []string, e error) {
 	if cfg.MemFlags != "" {
 		return shellSplit("MemFlags", cfg.MemFlags)
 	}
@@ -43,7 +43,7 @@ func (cfg MemoryConfig) args(req Request, hwInfo hwinfo.Provider) (args []string
 	}
 
 	if len(cfg.MemPerNuma) > 0 {
-		var socketLimit commaSeparatedNumbers
+		var socketLimit commaSeparated
 		for socket, maxSocket := 0, hwInfo.Cores().MaxNumaSocket(); socket <= maxSocket; socket++ {
 			limit, hasLimit := cfg.MemPerNuma[socket]
 			switch {
@@ -52,7 +52,7 @@ func (cfg MemoryConfig) args(req Request, hwInfo hwinfo.Provider) (args []string
 			case limit <= 0:
 				limit = 1
 			}
-			socketLimit.Append(limit)
+			socketLimit.AppendInt(limit)
 		}
 		args = append(args, "--socket-limit", socketLimit.String())
 	}

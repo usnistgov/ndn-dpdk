@@ -40,7 +40,7 @@ type DeviceConfig struct {
 	DeviceFlags string `json:"deviceFlags,omitempty"`
 }
 
-func (cfg DeviceConfig) args(req Request, hwInfo hwinfo.Provider) (args []string, e error) {
+func (cfg DeviceConfig) args(hwInfo hwinfo.Provider) (args []string, e error) {
 	if cfg.DeviceFlags != "" {
 		return shellSplit("DeviceFlags", cfg.DeviceFlags)
 	}

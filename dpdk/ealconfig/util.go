@@ -16,12 +16,18 @@ func shellSplit(field, flags string) (args []string, e error) {
 	return args, nil
 }
 
-type commaSeparatedNumbers []string
+type commaSeparated []string
 
-func (csn *commaSeparatedNumbers) Append(n int) {
-	*csn = append(*csn, strconv.Itoa(n))
+func (cs *commaSeparated) AppendInt(n ...int) {
+	for _, v := range n {
+		*cs = append(*cs, strconv.Itoa(v))
+	}
 }
 
-func (csn commaSeparatedNumbers) String() string {
-	return strings.Join([]string(csn), ",")
+func (cs *commaSeparated) AppendString(s ...string) {
+	*cs = append(*cs, s...)
+}
+
+func (cs commaSeparated) String() string {
+	return strings.Join([]string(cs), ",")
 }

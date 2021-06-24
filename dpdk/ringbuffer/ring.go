@@ -33,7 +33,7 @@ const (
 	ConsumerMulti  ConsumerMode = 0
 	ConsumerSingle ConsumerMode = C.RING_F_SC_DEQ
 	ConsumerRts    ConsumerMode = C.RING_F_MC_RTS_DEQ
-	ConsumerCts    ConsumerMode = C.RING_F_MC_HTS_DEQ
+	ConsumerHts    ConsumerMode = C.RING_F_MC_HTS_DEQ
 )
 
 // Ring represents a FIFO ring buffer.
