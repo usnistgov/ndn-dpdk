@@ -67,10 +67,10 @@ Example:
       "1": 3
     },
     "lcoresPerNuma": {
-      "0": 5, // 4 lcores on NUMA socket 0, numbered 0,1,2,3,4
+      "0": 5, // 5 lcores on NUMA socket 0, numbered 0,1,2,3,4
       "1": 4  // 4 lcores on NUMA socket 1, numbered 5,6,7,8
     },
-    "lcoreMain": 8 // let lcore 4 be the DPDK main lcore
+    "lcoreMain": 8 // let lcore 8 be the DPDK main lcore
   },
   "lcoreAlloc": { // all roles must be specified
     "RX":     { "0": 1, "1": 1 }, // 1 input thread on each NUMA socket

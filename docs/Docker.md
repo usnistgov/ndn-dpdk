@@ -57,8 +57,7 @@ Example command to start the NDN-DPDK service container:
 ```bash
 docker volume create run-ndn
 docker run -d --name ndndpdk-svc \
-  --cap-add IPC_LOCK --cap-add NET_ADMIN --cap-add NET_RAW --cap-add SYS_ADMIN --cap-add SYS_NICE \
-  --device /dev/infiniband --device /dev/vfio \
+  --cap-add IPC_LOCK --cap-add NET_ADMIN --cap-add SYS_ADMIN --cap-add SYS_NICE \
   --mount type=bind,source=/dev/hugepages,target=/dev/hugepages \
   --mount type=volume,source=run-ndn,target=/run/ndn \
   ndn-dpdk
@@ -71,13 +70,13 @@ GQLSERVER=$(docker inspect -f 'http://{{range.NetworkSettings.Networks}}{{.IPAdd
 
 `--cap-add` adds capabilities required by DPDK.
 
-`--device` allows access to PCI devices such as Ethernet adapters.
-The required device list is hardware dependent; see [hardware known to work](hardware.md) for some examples.
-
 `--mount target=/dev/hugepages` mounts hugepages into the container.
 
 `--mount target=/run/ndn` shares a volume for memif control sockets.
 Applications using memif transport must set the memif *SocketName* to a socket in this directory.
+
+Certain hardware may require additional `--device` and `--mount` flags.
+See [hardware known to work](hardware.md) for some examples.
 
 ## Control the NDN-DPDK Service Container
 

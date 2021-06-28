@@ -44,12 +44,17 @@ docker build \
   [other arguments]
 ```
 
-To use Mellanox adapters in Docker container, add these flags when you launch the service container:
+To use Mellanox adapters in Docker container:
 
 ```bash
+# add these flags when starting the container
 docker run \
-  --device /dev/infiniband --device /dev/vfio \
+  --device /dev/infiniband \
   [other arguments]
+
+# before activating, move the network interface into the container's network namespace
+NETIF=enp4s0f0
+sudo ip link set $NETIF netns $(docker inspect --format='{{ .State.Pid }}' ndndpdk-svc)
 ```
 
 ### Intel Ethernet Adapters
