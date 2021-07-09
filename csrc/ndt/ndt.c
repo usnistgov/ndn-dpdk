@@ -1,7 +1,7 @@
 #include "ndt.h"
 
 Ndt*
-Ndt_New_(uint64_t nEntries, int numaSocket)
+Ndt_New(uint64_t nEntries, int numaSocket)
 {
   NDNDPDK_ASSERT(rte_is_power_of_2(nEntries));
   size_t sz = sizeof(Ndt) + nEntries * sizeof(((Ndt*)NULL)->table[0]);
@@ -17,14 +17,15 @@ Ndt_New_(uint64_t nEntries, int numaSocket)
   return ndt;
 }
 
-NdtThread*
-Ndtt_New_(Ndt* ndt, int numaSocket)
+NdtQuerier*
+NdtQuerier_New(Ndt* ndt, int numaSocket)
 {
-  size_t sz = sizeof(NdtThread) + (ndt->indexMask + 1) * sizeof(((NdtThread*)NULL)->nHits[0]);
-  NdtThread* ndtt = rte_zmalloc_socket("NdtThread", sz, RTE_CACHE_LINE_SIZE, numaSocket);
-  if (unlikely(ndtt == NULL)) {
+  NdtQuerier* ndq = NULL;
+  size_t sz = sizeof(NdtQuerier) + (ndt->indexMask + 1) * sizeof(ndq->nHits[0]);
+  ndq = rte_zmalloc_socket("NdtThread", sz, RTE_CACHE_LINE_SIZE, numaSocket);
+  if (unlikely(ndq == NULL)) {
     abort();
   }
-  ndtt->ndt = ndt;
-  return ndtt;
+  ndq->ndt = ndt;
+  return ndq;
 }

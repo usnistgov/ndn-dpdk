@@ -41,7 +41,7 @@ func (ndtr *replica) Lookup(name ndn.Name) (index uint64, value uint8) {
 }
 
 func newReplica(cfg Config, socket eal.NumaSocket) *replica {
-	c := C.Ndt_New_(C.uint64_t(cfg.Capacity), C.int(socket.ID()))
+	c := C.Ndt_New(C.uint64_t(cfg.Capacity), C.int(socket.ID()))
 	c.sampleMask = C.uint64_t(cfg.SampleInterval)
 	c.prefixLen = C.uint16_t(cfg.PrefixLen)
 	return (*replica)(c)

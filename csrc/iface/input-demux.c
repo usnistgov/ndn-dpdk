@@ -64,7 +64,7 @@ InputDemux_DispatchRoundrobinMask(InputDemux* demux, Packet* npkt, const PName* 
 void
 InputDemux_DispatchByNdt(InputDemux* demux, Packet* npkt, const PName* name)
 {
-  uint8_t index = Ndtt_Lookup(demux->ndtt, name);
+  uint8_t index = NdtQuerier_Lookup(demux->ndq, name);
   InputDemux_PassTo(demux, npkt, index);
 }
 

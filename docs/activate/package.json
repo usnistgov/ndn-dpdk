@@ -10,14 +10,14 @@
   "dependencies": {
     "@k-foss/ts-esnode": "^2.0.2",
     "stdout-stream": "^1.4.1",
-    "tslib": "^2.2.0",
-    "typescript": "^4.2.4"
+    "tslib": "^2.3.0",
+    "typescript": "^4.3.5"
   },
   "devDependencies": {
     "@types/stdout-stream": "^1.4.0",
     "@usnistgov/ndn-dpdk": "file:///usr/local/share/ndn-dpdk/ndn-dpdk.npm.tgz"
   },
   "engines": {
-    "node": "14.x"
+    "node": "16.x"
   }
 }

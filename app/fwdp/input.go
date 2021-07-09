@@ -26,7 +26,7 @@ func (fwi *Input) Init(lc eal.LCore, ndt *ndt.Ndt, fwds []*Fwd) error {
 	fwi.rxl.SetLCore(lc)
 
 	demuxI := fwi.rxl.InterestDemux()
-	demuxI.InitNdt(ndt.Threads()[fwi.id])
+	demuxI.InitNdt(ndt.Queriers()[fwi.id])
 	demuxD := fwi.rxl.DataDemux()
 	demuxD.InitToken(uint8(C.FwTokenOffsetFwdID))
 	demuxN := fwi.rxl.NackDemux()

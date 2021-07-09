@@ -44,10 +44,10 @@ func init() {
 			return nil, errNoGqlDataPlane
 		}
 		i, e := strconv.Atoi(id)
-		if e != nil || i < 0 || i >= len(GqlDataPlane.inputs) {
+		if e != nil || i < 0 || i >= len(GqlDataPlane.fwis) {
 			return nil, nil
 		}
-		return GqlDataPlane.inputs[i], nil
+		return GqlDataPlane.fwis[i], nil
 	}
 
 	GqlInputType = graphql.NewObject(GqlInputNodeType.Annotate(graphql.ObjectConfig{
@@ -96,7 +96,7 @@ func init() {
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 				index := p.Source.(*Fwd).id
 				var sum uint64
-				for _, input := range GqlDataPlane.inputs {
+				for _, input := range GqlDataPlane.fwis {
 					sum += getDemux(input.rxl).ReadDestCounters(index).NQueued
 				}
 				return sum, nil
@@ -108,7 +108,7 @@ func init() {
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 				index := p.Source.(*Fwd).id
 				var sum uint64
-				for _, input := range GqlDataPlane.inputs {
+				for _, input := range GqlDataPlane.fwis {
 					sum += getDemux(input.rxl).ReadDestCounters(index).NDropped
 				}
 				return sum, nil
@@ -186,7 +186,7 @@ func init() {
 				Type:        gqlserver.NewNonNullList(GqlInputType),
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					dp := p.Source.(*DataPlane)
-					return dp.inputs, nil
+					return dp.fwis, nil
 				},
 			},
 			"fwds": &graphql.Field{

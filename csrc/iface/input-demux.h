@@ -40,7 +40,7 @@ InputDemux_DispatchByToken(InputDemux* demux, Packet* npkt, const PName* name);
 struct InputDemux
 {
   InputDemux_DispatchFunc dispatch;
-  NdtThread* ndtt;
+  NdtQuerier* ndq;
   uint64_t nDrops;
   union
   {

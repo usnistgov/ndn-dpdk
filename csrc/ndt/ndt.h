@@ -16,13 +16,12 @@ typedef struct Ndt
 
 /** @brief Create NDT replica. */
 __attribute__((returns_nonnull)) Ndt*
-Ndt_New_(uint64_t nEntries, int numaSocket);
+Ndt_New(uint64_t nEntries, int numaSocket);
 
 /** @brief Update an entry. */
 __attribute__((nonnull)) static inline void
 Ndt_Update(Ndt* ndt, uint64_t index, uint8_t value)
 {
-  NDNDPDK_ASSERT(index == (index & ndt->indexMask));
   atomic_store_explicit(&ndt->table[index], value, memory_order_relaxed);
 }
 
@@ -30,7 +29,6 @@ Ndt_Update(Ndt* ndt, uint64_t index, uint8_t value)
 __attribute__((nonnull)) static __rte_always_inline uint8_t
 Ndt_Read(Ndt* ndt, uint64_t index)
 {
-  NDNDPDK_ASSERT(index == (index & ndt->indexMask));
   return atomic_load_explicit(&ndt->table[index], memory_order_relaxed);
 }
 
@@ -46,33 +44,26 @@ Ndt_Lookup(Ndt* ndt, const PName* name, uint64_t* index)
   return Ndt_Read(ndt, *index);
 }
 
-/** @brief NDT lookup thread with counters. */
-typedef struct NdtThread
+/** @brief NDT querier with counters. */
+typedef struct NdtQuerier
 {
   Ndt* ndt;
   uint64_t nLookups;
   uint32_t nHits[0];
-} NdtThread;
+} NdtQuerier;
 
-/** @brief Create NDT lookup thread. */
-__attribute__((nonnull, returns_nonnull)) NdtThread*
-Ndtt_New_(Ndt* ndt, int numaSocket);
-
-/** @brief Access array of hit counters. */
-__attribute__((nonnull, returns_nonnull)) static inline uint32_t*
-Ndtt_Hits_(NdtThread* ndtt)
-{
-  return ndtt->nHits;
-}
+/** @brief Create NDT querier. */
+__attribute__((nonnull, returns_nonnull)) NdtQuerier*
+NdtQuerier_New(Ndt* ndt, int numaSocket);
 
 /** @brief Query NDT by name with counting. */
 __attribute__((nonnull)) static inline uint8_t
-Ndtt_Lookup(NdtThread* ndtt, const PName* name)
+NdtQuerier_Lookup(NdtQuerier* ndq, const PName* name)
 {
   uint64_t index;
-  uint8_t value = Ndt_Lookup(ndtt->ndt, name, &index);
-  if ((++ndtt->nLookups & ndtt->ndt->sampleMask) == 0) {
-    ++ndtt->nHits[index];
+  uint8_t value = Ndt_Lookup(ndq->ndt, name, &index);
+  if ((++ndq->nLookups & ndq->ndt->sampleMask) == 0) {
+    ++ndq->nHits[index];
   }
   return value;
 }

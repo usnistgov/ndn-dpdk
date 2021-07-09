@@ -14,7 +14,7 @@ require (
 	github.com/gogf/greuse v1.1.0
 	github.com/google/gopacket v1.1.19
 	github.com/google/uuid v1.2.0 // indirect
-	github.com/gopherjs/gopherjs v0.0.0-20210621113107-84c6004145de // indirect
+	github.com/gopherjs/gopherjs v0.0.0-20210707094841-eea289f08d45 // indirect
 	github.com/graphql-go/graphql v0.7.9
 	github.com/jfoster/binary-utilities v0.2.1
 	github.com/jwangsadinata/go-multimap v0.0.0-20190620162914-c29f3d7f33b6
@@ -26,7 +26,7 @@ require (
 	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/mattn/go-isatty v0.0.13 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
-	github.com/onsi/gomega v1.13.0 // indirect
+	github.com/onsi/gomega v1.14.0 // indirect
 	github.com/peterbourgon/mergemap v0.0.0-20130613134717-e21c03b7a721
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pkg/math v0.0.0-20141027224758-f2ed9e40e245
@@ -46,13 +46,13 @@ require (
 	github.com/xeipuuv/gojsonschema v1.2.0
 	go.uber.org/atomic v1.8.0 // indirect
 	go.uber.org/multierr v1.7.0
-	go.uber.org/zap v1.17.0
+	go.uber.org/zap v1.18.1
 	go4.org v0.0.0-20201209231011-d4a079459e60
 	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e // indirect
 	golang.org/x/net v0.0.0-20210614182718-04defd469f4e // indirect
-	golang.org/x/sys v0.0.0-20210616094352-59db8d763f22
+	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c
 	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
-	inet.af/netaddr v0.0.0-20210603230628-bf05d8b52dda
+	inet.af/netaddr v0.0.0-20210707202901-70468d781e6c
 	inet.af/netstack v0.0.0-20210622165351-29b14ebc044e
 )

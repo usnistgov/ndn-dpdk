@@ -28,14 +28,14 @@ func (entry *lookupTestEntry) AddResult(result uint8) {
 type lookupTestThread struct {
 	ealthread.Thread
 	stop    ealthread.StopChan
-	ndtt    *ndt.Thread
+	ndq     *ndt.Querier
 	Entries []lookupTestEntry
 }
 
-func newNdtLookupTestThread(ndtt *ndt.Thread, names []ndn.Name) *lookupTestThread {
+func newNdtLookupTestThread(ndq *ndt.Querier, names []ndn.Name) *lookupTestThread {
 	th := &lookupTestThread{
 		stop: ealthread.NewStopChan(),
-		ndtt: ndtt,
+		ndq:  ndq,
 	}
 	for _, name := range names {
 		th.Entries = append(th.Entries, lookupTestEntry{name, nil})
@@ -58,7 +58,7 @@ func (th *lookupTestThread) main() {
 	for th.stop.Continue() {
 		rand.Shuffle(len(entries), swapper)
 		for _, entry := range entries {
-			result := th.ndtt.Lookup(entry.Name)
+			result := th.ndq.Lookup(entry.Name)
 			entry.AddResult(result)
 		}
 	}
@@ -98,12 +98,13 @@ func TestNdt(t *testing.T) {
 		}
 	}
 
-	ndtts := table.Threads()
+	queriers := table.Queriers()
+	require.Len(queriers, 4)
 	threads := []*lookupTestThread{
-		newNdtLookupTestThread(ndtts[0], names[:6]),
-		newNdtLookupTestThread(ndtts[1], names[:6]),
-		newNdtLookupTestThread(ndtts[2], names[:6]),
-		newNdtLookupTestThread(ndtts[3], names[6:]),
+		newNdtLookupTestThread(queriers[0], names[:6]),
+		newNdtLookupTestThread(queriers[1], names[:6]),
+		newNdtLookupTestThread(queriers[2], names[:6]),
+		newNdtLookupTestThread(queriers[3], names[6:]),
 	}
 
 	table.Randomize(250)

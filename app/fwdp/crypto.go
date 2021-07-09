@@ -13,7 +13,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/cryptodev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
-	"github.com/usnistgov/ndn-dpdk/dpdk/mempool"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"go4.org/must"
@@ -38,12 +37,10 @@ type Crypto struct {
 	id     int
 	c      *C.FwCrypto
 	demuxD *iface.InputDemux
-	dev    *cryptodev.CryptoDev
 }
 
 // Init initializes the crypto helper thread.
-func (fwc *Crypto) Init(lc eal.LCore, cfg CryptoConfig, ndt *ndt.Ndt, fwds []*Fwd) error {
-	cfg.applyDefaults()
+func (fwc *Crypto) Init(lc eal.LCore, ndt *ndt.Ndt, fwds []*Fwd) error {
 	socket := lc.NumaSocket()
 	fwc.c = (*C.FwCrypto)(eal.ZmallocAligned("FwCrypto", C.sizeof_FwCrypto, 1, socket))
 	fwc.Thread = ealthread.New(
@@ -52,30 +49,10 @@ func (fwc *Crypto) Init(lc eal.LCore, cfg CryptoConfig, ndt *ndt.Ndt, fwds []*Fw
 	)
 	fwc.SetLCore(lc)
 
-	input, e := ringbuffer.New(cfg.InputCapacity, socket,
-		ringbuffer.ProducerMulti, ringbuffer.ConsumerSingle)
-	if e != nil {
-		return fmt.Errorf("ringbuffer.New: %w", e)
-	}
-	fwc.c.input = (*C.struct_rte_ring)(input.Ptr())
-
-	opPool, e := cryptodev.NewOpPool(cryptodev.OpPoolConfig{Capacity: cfg.OpPoolCapacity}, socket)
-	if e != nil {
-		return fmt.Errorf("cryptodev.NewOpPool: %w", e)
-	}
-	fwc.c.opPool = (*C.struct_rte_mempool)(opPool.Ptr())
-
-	fwc.dev, e = cryptodev.CreateVDev(cryptodev.VDevConfig{Socket: socket})
-	if e != nil {
-		return fmt.Errorf("cryptodev.CreateVDev: %w", e)
-	}
-	fwc.dev.QueuePairs()[0].CopyToC(unsafe.Pointer(&fwc.c.cqp))
-
 	fwc.demuxD = iface.InputDemuxFromPtr(unsafe.Pointer(&fwc.c.output))
-	fwc.demuxD.InitNdt(ndt.Threads()[fwc.id])
+	fwc.demuxD.InitNdt(ndt.Queriers()[fwc.id])
 	for i, fwd := range fwds {
 		fwc.demuxD.SetDest(i, fwd.queueD)
-		fwd.c.crypto = fwc.c.input
 	}
 
 	return nil
@@ -84,8 +61,6 @@ func (fwc *Crypto) Init(lc eal.LCore, cfg CryptoConfig, ndt *ndt.Ndt, fwds []*Fw
 // Close stops and releases the thread.
 func (fwc *Crypto) Close() error {
 	fwc.Stop()
-	must.Close(fwc.dev)
-	must.Close(mempool.FromPtr(unsafe.Pointer(fwc.c.opPool)))
 	must.Close(ringbuffer.FromPtr(unsafe.Pointer(fwc.c.input)))
 	eal.Free(unsafe.Pointer(fwc.c))
 	return nil
@@ -107,4 +82,63 @@ func (fwc *Crypto) ThreadLoadStat() ealthread.LoadStat {
 
 func newCrypto(id int) *Crypto {
 	return &Crypto{id: id}
+}
+
+// CryptoShared contains per NUMA socket shared resources for crypto helper threads.
+type CryptoShared struct {
+	input  *ringbuffer.Ring
+	opPool *cryptodev.OpPool
+	dev    *cryptodev.CryptoDev
+}
+
+// AssignTo assigns shared resources to crypto helper threads.
+func (fwcsh *CryptoShared) AssignTo(fwcs []*Crypto) {
+	qp := fwcsh.dev.QueuePairs()
+	for i, fwc := range fwcs {
+		fwc.c.input = (*C.struct_rte_ring)(fwcsh.input.Ptr())
+		fwc.c.opPool = (*C.struct_rte_mempool)(fwcsh.opPool.Ptr())
+		qp[i].CopyToC(unsafe.Pointer(&fwc.c.cqp))
+	}
+}
+
+// ConnectTo connects forwarding thread to crypto input queue.
+func (fwcsh *CryptoShared) ConnectTo(fwd *Fwd) {
+	fwd.c.crypto = (*C.struct_rte_ring)(fwcsh.input.Ptr())
+}
+
+// Close deletes resources.
+func (fwcsh *CryptoShared) Close() error {
+	must.Close(fwcsh.dev)
+	must.Close(fwcsh.opPool)
+	return nil
+}
+
+func newCryptoShared(cfg CryptoConfig, socket eal.NumaSocket, count int) (fwcsh *CryptoShared, e error) {
+	cfg.applyDefaults()
+
+	fwcsh = &CryptoShared{}
+
+	ringConsumerMode := ringbuffer.ConsumerSingle
+	if count > 1 {
+		ringConsumerMode = ringbuffer.ConsumerMulti
+	}
+	fwcsh.input, e = ringbuffer.New(cfg.InputCapacity, socket, ringbuffer.ProducerMulti, ringConsumerMode)
+	if e != nil {
+		return nil, fmt.Errorf("ringbuffer.New: %w", e)
+	}
+
+	fwcsh.opPool, e = cryptodev.NewOpPool(cryptodev.OpPoolConfig{Capacity: cfg.OpPoolCapacity}, socket)
+	if e != nil {
+		return nil, fmt.Errorf("cryptodev.NewOpPool: %w", e)
+	}
+
+	var vcfg cryptodev.VDevConfig
+	vcfg.Socket = socket
+	vcfg.NQueuePairs = count
+	fwcsh.dev, e = cryptodev.CreateVDev(vcfg)
+	if e != nil {
+		return nil, fmt.Errorf("cryptodev.CreateVDev: %w", e)
+	}
+
+	return fwcsh, nil
 }

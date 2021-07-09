@@ -39,10 +39,10 @@ func (demux *InputDemux) InitRoundrobin(nDest int) {
 }
 
 // InitNdt configures to dispatch via NDT loopup.
-func (demux *InputDemux) InitNdt(ndtt *ndt.Thread) {
+func (demux *InputDemux) InitNdt(ndq *ndt.Querier) {
 	demuxC := demux.ptr()
 	C.InputDemux_SetDispatchFunc_(demuxC, C.InputDemux_DispatchByNdt)
-	demuxC.ndtt = (*C.NdtThread)(ndtt.Ptr())
+	demuxC.ndq = (*C.NdtQuerier)(ndq.Ptr())
 }
 
 // InitToken configures to dispatch according to specified octet in the PIT token.

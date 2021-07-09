@@ -43,7 +43,7 @@ type device interface {
 // CryptoDev represents a crypto device.
 type CryptoDev struct {
 	dev         device
-	devID       C.uint8_t
+	id          C.uint8_t
 	sessionPool *mempool.Mempool
 	queuePairs  []*QueuePair
 }
@@ -55,21 +55,21 @@ func New(dev device, cfg Config) (cd *CryptoDev, e error) {
 	defer C.free(unsafe.Pointer(nameC))
 	socketC := C.int(dev.NumaSocket().ID())
 
-	devID := C.rte_cryptodev_get_dev_id(nameC)
-	if devID < 0 {
+	id := C.rte_cryptodev_get_dev_id(nameC)
+	if id < 0 {
 		return nil, fmt.Errorf("cryptodev %s not found", dev.Name())
 	}
 
 	cd = &CryptoDev{
 		dev:        dev,
-		devID:      C.uint8_t(devID),
+		id:         C.uint8_t(id),
 		queuePairs: make([]*QueuePair, cfg.NQueuePairs),
 	}
 
 	mpNameC := C.CString(eal.AllocObjectID("cryptodev.SymSessionPool"))
 	defer C.free(unsafe.Pointer(mpNameC))
 	mpC := C.rte_cryptodev_sym_session_pool_create(mpNameC, C.uint32_t(cfg.MaxSessions*2),
-		C.uint32_t(C.rte_cryptodev_sym_get_private_session_size(cd.devID)), 0, 0, socketC)
+		C.uint32_t(C.rte_cryptodev_sym_get_private_session_size(cd.id)), 0, 0, socketC)
 	if mpC == nil {
 		return nil, errors.New("rte_cryptodev_sym_session_pool_create error")
 	}
@@ -78,7 +78,7 @@ func New(dev device, cfg Config) (cd *CryptoDev, e error) {
 	var devConf C.struct_rte_cryptodev_config
 	devConf.socket_id = socketC
 	devConf.nb_queue_pairs = C.uint16_t(cfg.NQueuePairs)
-	if res := C.rte_cryptodev_configure(cd.devID, &devConf); res < 0 {
+	if res := C.rte_cryptodev_configure(cd.id, &devConf); res < 0 {
 		return nil, fmt.Errorf("rte_cryptodev_configure error %d", res)
 	}
 
@@ -88,12 +88,12 @@ func New(dev device, cfg Config) (cd *CryptoDev, e error) {
 	qpConf.mp_session_private = mpC
 	for i := range cd.queuePairs {
 		cd.queuePairs[i] = &QueuePair{cd, C.uint16_t(i)}
-		if res := C.rte_cryptodev_queue_pair_setup(cd.devID, C.uint16_t(i), &qpConf, socketC); res < 0 {
+		if res := C.rte_cryptodev_queue_pair_setup(cd.id, C.uint16_t(i), &qpConf, socketC); res < 0 {
 			return nil, fmt.Errorf("rte_cryptodev_queue_pair_setup(%d) error %d", i, res)
 		}
 	}
 
-	if res := C.rte_cryptodev_start(cd.devID); res < 0 {
+	if res := C.rte_cryptodev_start(cd.id); res < 0 {
 		return nil, fmt.Errorf("rte_cryptodev_start error %d", res)
 	}
 	return cd, nil
@@ -103,8 +103,8 @@ func New(dev device, cfg Config) (cd *CryptoDev, e error) {
 func (cd *CryptoDev) Close() error {
 	defer cd.sessionPool.Close()
 	name := cd.Name()
-	C.rte_cryptodev_stop(cd.devID)
-	if res := C.rte_cryptodev_close(cd.devID); res < 0 {
+	C.rte_cryptodev_stop(cd.id)
+	if res := C.rte_cryptodev_close(cd.id); res < 0 {
 		return fmt.Errorf("rte_cryptodev_close(%s) error %d", name, res)
 	}
 	return cd.dev.Close()
@@ -112,7 +112,7 @@ func (cd *CryptoDev) Close() error {
 
 // ID returns crypto device ID.
 func (cd *CryptoDev) ID() int {
-	return int(cd.devID)
+	return int(cd.id)
 }
 
 // Name returns crypto device name.

@@ -5,7 +5,7 @@ This package implements the forwarder's data plane.
 ## Input Thread (FwInput)
 
 An FwInput thread runs an **iface.RxLoop** as its main loop ("RX" role), which reads and decodes packets from one or more network interfaces.
-Bursts of received L3 packets are processed by [InputDemux3](../inputdemux), configured to use the [NDT](../../container/ndt) for Interests and the PIT token for Data and Nacks.
+Bursts of received L3 packets are processed by InputDemux, configured to use the [NDT](../../container/ndt) for Interests and the PIT token for Data and Nacks.
 
 ## Forwarding Thread (FwFwd)
 
@@ -23,14 +23,14 @@ Then it reads packets from the input queues and handles each packet separately:
 
 ### Data Structure Usage
 
-All FwFwd threads have read-only access to a shared [FIB](../../container/fib).
+All FwFwd threads have read-only access to a shared [FIB](../../container/fib) replica on the same NUMA socket.
 
 Each FwFwd has a private partition of [PIT and CS](../../container/pcct).
 An outgoing Interest from a FwFwd must carry the identifier of this FwFwd as the first 8 bits of its PIT token, so that returning Data or Nack can be dispatched to the same FwFwd and thus use the same PIT-CS partition.
 
 ### Congestion Control
 
-Each FwFwd has three [CoDel queues](../../container/pktqueue), one for each L3 packet type.
+Each FwFwd has three [CoDel queues](../../iface), one for each L3 packet type.
 They are backed by DPDK rings in multi-producer single-consumer mode.
 An FwInput thread enqueues packets to these queues; in case the DPDK ring is full, the packet is dropped.
 An FwFwd dequeues packets from these queues; if the CoDel algorithm indicates a packet should be dropped, FwFwd places a congestion mark on the packet but does not drop it.
@@ -45,7 +45,7 @@ Some limitations are:
 
 ### Per-Packet Logging
 
-FwFwd uses the `DEBUG` log level for per-packet logging.
+FwFwd C code uses the `DEBUG` log level for per-packet logging.
 Generally, a log line has several key-value pairs delimited by whitespace.
 Keys use "kebab-case".
 Common keys include:
@@ -72,4 +72,4 @@ After the digest is computed, the Data packet goes back to FwFwd, which can then
 An FwCrypto thread runs the `FwCrypto_Run` function as its main loop ("CRYPTO" role).
 It receives Data packets from FwFwd threads through a queue, and enqueues crypto operations toward a DPDK cryptodev.
 The cryptodev computes the SHA-256 digest of the packet and stores it in the mbuf header.
-The FwCrypto then dequeues the completed crypto operations from the cryptodev and re-dispatches the Data to FwFwd using an [InputDemux](../inputdemux) that is configured to use the PIT token.
+The FwCrypto then dequeues the completed crypto operations from the cryptodev and re-dispatches the Data to FwFwd in the same fashion as an input thread.

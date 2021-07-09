@@ -21,7 +21,7 @@ type Entry struct {
 type Ndt struct {
 	cfg      Config
 	replicas map[eal.NumaSocket]*replica
-	threads  []*Thread
+	queriers []*Querier
 }
 
 // Config returns effective configuration.
@@ -36,17 +36,17 @@ func (ndt *Ndt) firstReplica() *replica {
 	panic("NDT has no replica")
 }
 
-// Threads returns lookup threads.
-func (ndt *Ndt) Threads() (list []*Thread) {
-	return ndt.threads
+// Queriers returns queriers.
+func (ndt *Ndt) Queriers() (list []*Querier) {
+	return ndt.queriers
 }
 
 // Close releases memory of all replicas and threads.
 func (ndt *Ndt) Close() error {
-	for _, ndtt := range ndt.threads {
+	for _, ndtt := range ndt.queriers {
 		must.Close(ndtt)
 	}
-	ndt.threads = nil
+	ndt.queriers = nil
 	for _, ndtr := range ndt.replicas {
 		must.Close(ndtr)
 	}
@@ -77,8 +77,8 @@ func (ndt *Ndt) IndexOfName(name ndn.Name) uint64 {
 // Get returns one entry.
 func (ndt *Ndt) Get(index uint64) (entry Entry) {
 	entry = ndt.firstReplica().Read(int(index))
-	for _, ndtt := range ndt.Threads() {
-		entry.Hits += ndtt.hitCounters(ndt.cfg.Capacity)[index]
+	for _, ndq := range ndt.Queriers() {
+		entry.Hits += ndq.hitCounters(ndt.cfg.Capacity)[index]
 	}
 	return entry
 }
@@ -91,8 +91,8 @@ func (ndt *Ndt) List() (list []Entry) {
 		list[i] = ndtr.Read(i)
 	}
 
-	for _, ndtt := range ndt.Threads() {
-		for index, hit := range ndtt.hitCounters(ndt.cfg.Capacity) {
+	for _, ndq := range ndt.Queriers() {
+		for index, hit := range ndq.hitCounters(ndt.cfg.Capacity) {
 			list[index].Hits += hit
 		}
 	}
@@ -126,14 +126,14 @@ func New(cfg Config, sockets []eal.NumaSocket) (ndt *Ndt) {
 	ndt = &Ndt{
 		cfg:      cfg,
 		replicas: make(map[eal.NumaSocket]*replica),
-		threads:  make([]*Thread, len(sockets)),
+		queriers: make([]*Querier, len(sockets)),
 	}
 
 	for i, socket := range sockets {
 		if ndt.replicas[socket] == nil {
 			ndt.replicas[socket] = newReplica(cfg, socket)
 		}
-		ndt.threads[i] = newThread(ndt, socket)
+		ndt.queriers[i] = newThread(ndt, socket)
 	}
 	return ndt
 }

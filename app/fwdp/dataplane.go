@@ -3,6 +3,7 @@ package fwdp
 
 import (
 	"fmt"
+	"math/rand"
 
 	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/container/fib"
@@ -14,6 +15,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"go.uber.org/multierr"
 	"go4.org/must"
 )
 
@@ -58,13 +60,11 @@ func (cfg *Config) validate() error {
 		cfg.FwdInterestQueue.DequeueBurstSize = math.MaxInt(cfg.FwdDataQueue.DequeueBurstSize/2, 1)
 	}
 
-	if cfg.LatencySampleFreq == nil {
-		var latencySampleFreq = 16
-		cfg.LatencySampleFreq = &latencySampleFreq
-	} else {
-		var latencySampleFreq = math.MinInt(math.MaxInt(0, *cfg.LatencySampleFreq), 30)
-		cfg.LatencySampleFreq = &latencySampleFreq
+	latencySampleFreq := 16
+	if cfg.LatencySampleFreq != nil {
+		latencySampleFreq = math.MinInt(math.MaxInt(0, *cfg.LatencySampleFreq), 30)
 	}
+	cfg.LatencySampleFreq = &latencySampleFreq
 
 	return nil
 }
@@ -115,11 +115,12 @@ func defaultAlloc() (m map[string]eal.LCores, e error) {
 
 // DataPlane represents the forwarder data plane.
 type DataPlane struct {
-	ndt    *ndt.Ndt
-	fib    *fib.Fib
-	inputs []*Input
-	crypto *Crypto
-	fwds   []*Fwd
+	ndt   *ndt.Ndt
+	fib   *fib.Fib
+	fwis  []*Input
+	fwcs  []*Crypto
+	fwcsh map[eal.NumaSocket]*CryptoShared
+	fwds  []*Fwd
 }
 
 // New creates and launches forwarder data plane.
@@ -145,7 +146,9 @@ func New(cfg Config) (dp *DataPlane, e error) {
 		for _, lc := range lcRx {
 			ndtSockets = append(ndtSockets, lc.NumaSocket())
 		}
-		ndtSockets = append(ndtSockets, lcCrypto[0].NumaSocket())
+		for _, lc := range lcCrypto {
+			ndtSockets = append(ndtSockets, lc.NumaSocket())
+		}
 		dp.ndt = ndt.New(cfg.Ndt, ndtSockets)
 		dp.ndt.Randomize(len(lcFwd))
 	}
@@ -173,16 +176,43 @@ func New(cfg Config) (dp *DataPlane, e error) {
 		return nil, fmt.Errorf("fib.New: %w", e)
 	}
 
+	fwcshList := []*CryptoShared{}
 	{
-		dp.crypto = newCrypto(len(dp.inputs))
-		if e = dp.crypto.Init(lcCrypto[0], cfg.Crypto, dp.ndt, dp.fwds); e != nil {
-			must.Close(dp)
-			return nil, fmt.Errorf("Crypto.Init(): %w", e)
+		dp.fwcsh = map[eal.NumaSocket]*CryptoShared{}
+		fwcID := len(dp.fwis)
+		for socket, lcs := range lcCrypto.ByNumaSocket() {
+			socketFwcs := []*Crypto{}
+			for _, lc := range lcs {
+				fwc := newCrypto(fwcID)
+				if e = fwc.Init(lc, dp.ndt, dp.fwds); e != nil {
+					must.Close(dp)
+					return nil, fmt.Errorf("Crypto[%d].Init(): %w", fwcID, e)
+				}
+				socketFwcs = append(socketFwcs, fwc)
+				dp.fwcs = append(dp.fwcs, fwc)
+				fwcID++
+			}
+
+			fwcsh, e := newCryptoShared(cfg.Crypto, socket, len(socketFwcs))
+			if e != nil {
+				must.Close(dp)
+				return nil, fmt.Errorf("newCryptoShared[%s]: %w", socket, e)
+			}
+			fwcsh.AssignTo(socketFwcs)
+			fwcshList = append(fwcshList, fwcsh)
+			dp.fwcsh[socket] = fwcsh
 		}
-		ealthread.Launch(dp.crypto)
 	}
 
+	for _, fwc := range dp.fwcs {
+		ealthread.Launch(fwc)
+	}
 	for _, fwd := range dp.fwds {
+		if fwcsh := dp.fwcsh[fwd.NumaSocket()]; fwcsh != nil {
+			fwcsh.ConnectTo(fwd)
+		} else {
+			fwcshList[rand.Intn(len(fwcshList))].ConnectTo(fwd)
+		}
 		ealthread.Launch(fwd)
 	}
 
@@ -192,7 +222,7 @@ func New(cfg Config) (dp *DataPlane, e error) {
 			must.Close(dp)
 			return nil, fmt.Errorf("Input[%d].Init(): %w", i, e)
 		}
-		dp.inputs = append(dp.inputs, fwi)
+		dp.fwis = append(dp.fwis, fwi)
 		ealthread.Launch(fwi.rxl)
 	}
 
@@ -217,6 +247,8 @@ func (dp *DataPlane) Fwds() []*Fwd {
 // Close stops the data plane and releases resources.
 func (dp *DataPlane) Close() error {
 	var lcores eal.LCores
+	errs := []error{}
+
 	for _, rxl := range iface.ListRxLoops() {
 		lcores = append(lcores, rxl.LCore())
 	}
@@ -224,25 +256,28 @@ func (dp *DataPlane) Close() error {
 		lcores = append(lcores, txl.LCore())
 	}
 
-	iface.CloseAll()
-	if dp.crypto != nil {
-		lcores = append(lcores, dp.crypto.LCore())
-		must.Close(dp.crypto)
+	errs = append(errs, iface.CloseAll())
+	for _, fwc := range dp.fwcs {
+		lcores = append(lcores, fwc.LCore())
+		errs = append(errs, fwc.Close())
+	}
+	for _, fwcsh := range dp.fwcsh {
+		errs = append(errs, fwcsh.Close())
 	}
 	for _, fwd := range dp.fwds {
 		lcores = append(lcores, fwd.LCore())
-		must.Close(fwd)
+		errs = append(errs, fwd.Close())
 	}
-	for _, fwi := range dp.inputs {
-		must.Close(fwi)
+	for _, fwi := range dp.fwis {
+		errs = append(errs, fwi.Close())
 	}
 	if dp.fib != nil {
-		must.Close(dp.fib)
+		errs = append(errs, dp.fib.Close())
 	}
 	if dp.ndt != nil {
-		must.Close(dp.ndt)
+		errs = append(errs, dp.ndt.Close())
 	}
 
 	ealthread.AllocFree(lcores...)
-	return nil
+	return multierr.Combine(errs...)
 }

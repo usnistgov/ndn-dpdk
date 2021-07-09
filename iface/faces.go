@@ -1,5 +1,7 @@
 package iface
 
+import "go.uber.org/multierr"
+
 var gFaces [MaxID + 1]Face
 
 // Get retrieves face by ID.
@@ -22,14 +24,16 @@ func List() (list []Face) {
 }
 
 // CloseAll closes all faces, RxLoops, and TxLoops.
-func CloseAll() {
+func CloseAll() error {
+	errs := []error{}
 	for _, face := range List() {
-		face.Close()
+		errs = append(errs, face.Close())
 	}
 	for _, rxl := range ListRxLoops() {
-		rxl.Close()
+		errs = append(errs, rxl.Close())
 	}
 	for _, txl := range ListTxLoops() {
-		txl.Close()
+		errs = append(errs, txl.Close())
 	}
+	return multierr.Combine(errs...)
 }
