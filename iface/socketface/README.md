@@ -6,7 +6,7 @@ This package implements a face using socket as transport.
 Its Locator has the following fields:
 
 * *scheme* is one of "udp", "tcp", "unix".
-* *remote* is an address string acceptable to Go [net.Dial](https://golang.org/pkg/net/#Dial) function.
+* *remote* is an address string acceptable to Go [net.Dial](https://pkg.go.dev/net#Dial) function.
 * *local* (optional) has the same format as *remote*, and is accepted only with "udp" scheme.
 
 The underlying transport and redial logic are implemented in [socketransport](../../ndn/sockettransport) package.

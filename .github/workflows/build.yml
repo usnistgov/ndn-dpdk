@@ -67,7 +67,7 @@ jobs:
           MK_GOTEST_FILTER="/${TEST_ACCEPTABLE_FAILURES}/ d" make test
           MK_GOTEST_FILTER="/${TEST_ACCEPTABLE_FAILURES}/! d" make test || true
         env:
-          TEST_ACCEPTABLE_FAILURES: diskstore|ethface|fetch|fwdp|memiftransport|tgconsumer|tgproducer
+          TEST_ACCEPTABLE_FAILURES: bdev|diskstore|ethface|fetch|fwdp|memiftransport|tgconsumer|tgproducer
           NDNDPDK_MK_THREADSLEEP: 1
         if: ${{ matrix.compiler != 'gcc-8' }}
       - name: build documentation

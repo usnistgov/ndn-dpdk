@@ -41,6 +41,10 @@ type FetchOptions struct {
 	// MaxCwnd is the maximum effective congestion window.
 	// Default is no limitation.
 	MaxCwnd int
+
+	// Verifier is a public key to verify Data.
+	// Default is NopVerifier.
+	Verifier ndn.Verifier
 }
 
 func (opts *FetchOptions) applyDefaults() {
@@ -49,6 +53,9 @@ func (opts *FetchOptions) applyDefaults() {
 	}
 	if opts.MaxCwnd == 0 {
 		opts.MaxCwnd = math.MaxInt32
+	}
+	if opts.Verifier == nil {
+		opts.Verifier = ndn.NopVerifier
 	}
 }
 
@@ -72,11 +79,12 @@ type FetchResult interface {
 
 	// Count returns the number of segments retrieved so far.
 	Count() int
-	// EstimatedTotal returns the estimated number of total segment.
+	// EstimatedTotal returns the estimated number of total segments.
 	// Returns -1 if unknown.
 	EstimatedTotal() int
 }
 
+// Fetch retrieves a segmented object.
 func Fetch(name ndn.Name, opts FetchOptions) FetchResult {
 	opts.applyDefaults()
 	return &fetcher{
@@ -95,25 +103,8 @@ type fetcher struct {
 
 func (f *fetcher) makeInterest(seg uint64) ndn.Interest {
 	name := append(ndn.Name{}, f.prefix...)
-	name = append(name, ndn.NameComponentFrom(an.TtSegmentNameComponent, tlv.NNI(seg)))
+	name = append(name, makeSegmentNameComponent(seg))
 	return ndn.MakeInterest(name)
-}
-
-func (f *fetcher) extractSeg(data *ndn.Data) (segment uint64, ok bool) {
-	if len(data.Name) != len(f.prefix)+1 {
-		return 0, false
-	}
-
-	comp := data.Name.Get(-1)
-	if comp.Type != an.TtSegmentNameComponent {
-		return 0, false
-	}
-
-	var value tlv.NNI
-	if e := value.UnmarshalBinary(comp.Value); e != nil {
-		return 0, false
-	}
-	return uint64(value), true
 }
 
 func (f *fetcher) Unordered(ctx context.Context, unordered chan<- *ndn.Data) error {
@@ -142,12 +133,12 @@ func (f *fetcher) Unordered(ctx context.Context, unordered chan<- *ndn.Data) err
 
 		case l3pkt := <-face.Rx():
 			pkt := l3pkt.ToPacket()
-			if pkt.Data == nil {
+			if pkt.Data == nil || f.Verifier.Verify(pkt.Data) != nil {
 				break
 			}
 			now := time.Now()
 
-			seg, ok := f.extractSeg(pkt.Data)
+			seg, ok := extractSegment(pkt.Data.Name, len(f.prefix))
 			if !ok || !f.prefix.IsPrefixOf(pkt.Data.Name) {
 				break
 			}
@@ -239,7 +230,7 @@ func (f *fetcher) Ordered(ctx context.Context, ordered chan<- *ndn.Data) error {
 	next := f.SegmentBegin
 	buffer := make(map[uint64]*ndn.Data)
 	for data := range unordered {
-		seg, ok := f.extractSeg(data)
+		seg, ok := extractSegment(data.Name, len(f.prefix))
 		switch {
 		case !ok, seg < next:
 			continue

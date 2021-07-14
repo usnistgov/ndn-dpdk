@@ -49,7 +49,7 @@ KeyChain
 Application layer services
 
 * Endpoint: yes
-* Segmented object: consumer only (in [package segmented](segmented))
+* Segmented object: consumer and producer (in [package segmented](segmented))
 
 ## Getting Started
 
