@@ -1,5 +1,4 @@
-// Package eckey implements SigSha256WithEcdsa signature type.
-package eckey
+package keychain
 
 import (
 	"crypto/ecdsa"
@@ -9,41 +8,40 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
-	"github.com/usnistgov/ndn-dpdk/ndn/keychain"
 )
 
-// NewPrivateKey creates a private key for SigSha256WithEcdsa signature type.
-func NewPrivateKey(name ndn.Name, key *ecdsa.PrivateKey) (keychain.PrivateKeyKeyLocatorChanger, error) {
-	if !keychain.IsKeyName(name) {
-		return nil, keychain.ErrKeyName
+// NewECDSAPrivateKey creates a private key for SigSha256WithEcdsa signature type.
+func NewECDSAPrivateKey(name ndn.Name, key *ecdsa.PrivateKey) (PrivateKeyKeyLocatorChanger, error) {
+	if !IsKeyName(name) {
+		return nil, ErrKeyName
 	}
-	var pvt privateKey
+	var pvt ecdsaPrivateKey
 	pvt.name = name
 	pvt.key = key
 	return &pvt, nil
 }
 
-// NewPublicKey creates a public key for SigSha256WithEcdsa signature type.
-func NewPublicKey(name ndn.Name, key *ecdsa.PublicKey) (keychain.PublicKey, error) {
-	if !keychain.IsKeyName(name) {
-		return nil, keychain.ErrKeyName
+// NewECDSAPublicKey creates a public key for SigSha256WithEcdsa signature type.
+func NewECDSAPublicKey(name ndn.Name, key *ecdsa.PublicKey) (PublicKey, error) {
+	if !IsKeyName(name) {
+		return nil, ErrKeyName
 	}
-	var pub publicKey
+	var pub ecdsaPublicKey
 	pub.name = name
 	pub.key = key
 	return &pub, nil
 }
 
-type privateKey struct {
+type ecdsaPrivateKey struct {
 	name ndn.Name
 	key  *ecdsa.PrivateKey
 }
 
-func (pvt *privateKey) Name() ndn.Name {
+func (pvt *ecdsaPrivateKey) Name() ndn.Name {
 	return pvt.name
 }
 
-func (pvt *privateKey) Sign(packet ndn.Signable) error {
+func (pvt *ecdsaPrivateKey) Sign(packet ndn.Signable) error {
 	return packet.SignWith(func(name ndn.Name, si *ndn.SigInfo) (ndn.LLSign, error) {
 		si.Type = an.SigSha256WithEcdsa
 		si.KeyLocator = ndn.KeyLocator{
@@ -56,22 +54,22 @@ func (pvt *privateKey) Sign(packet ndn.Signable) error {
 	})
 }
 
-func (pvt *privateKey) WithKeyLocator(klName ndn.Name) ndn.Signer {
+func (pvt *ecdsaPrivateKey) WithKeyLocator(klName ndn.Name) ndn.Signer {
 	signer := *pvt
 	signer.name = klName
 	return &signer
 }
 
-type publicKey struct {
+type ecdsaPublicKey struct {
 	name ndn.Name
 	key  *ecdsa.PublicKey
 }
 
-func (pub *publicKey) Name() ndn.Name {
+func (pub *ecdsaPublicKey) Name() ndn.Name {
 	return pub.name
 }
 
-func (pub *publicKey) Verify(packet ndn.Verifiable) error {
+func (pub *ecdsaPublicKey) Verify(packet ndn.Verifiable) error {
 	return packet.VerifyWith(func(name ndn.Name, si ndn.SigInfo) (ndn.LLVerify, error) {
 		if si.Type != an.SigSha256WithEcdsa {
 			return nil, ndn.ErrSigType

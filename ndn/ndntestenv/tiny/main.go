@@ -6,8 +6,6 @@ import (
 	_ "github.com/usnistgov/ndn-dpdk/ndn"
 	_ "github.com/usnistgov/ndn-dpdk/ndn/an"
 	_ "github.com/usnistgov/ndn-dpdk/ndn/keychain"
-	_ "github.com/usnistgov/ndn-dpdk/ndn/keychain/eckey"
-	_ "github.com/usnistgov/ndn-dpdk/ndn/keychain/rsakey"
 	_ "github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
 

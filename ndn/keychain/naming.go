@@ -75,11 +75,6 @@ func ToCertName(input ndn.Name) ndn.Name {
 	return append(append(ndn.Name{}, input...), ComponentKEY, keyID, ComponentDefaultIssuer, version)
 }
 
-// IsCertificate determines if the Data packet is a certificate.
-func IsCertificate(data ndn.Data) bool {
-	return data.ContentType == an.ContentKey && IsCertName(data.Name)
-}
-
 func makeRandomKeyID() ndn.NameComponent {
 	value := make([]byte, 8)
 	rand.Read(value)

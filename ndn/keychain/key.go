@@ -3,7 +3,6 @@ package keychain
 
 import (
 	"github.com/usnistgov/ndn-dpdk/ndn"
-	"github.com/usnistgov/ndn-dpdk/ndn/an"
 )
 
 // PrivateKey represents a named private key.
@@ -25,8 +24,4 @@ type PrivateKeyKeyLocatorChanger interface {
 type PublicKey interface {
 	ndn.Verifier
 	Name() ndn.Name
-}
-
-func init() {
-	ndn.RegisterSigInfoExtension(an.TtValidityPeriod)
 }

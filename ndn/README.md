@@ -38,11 +38,11 @@ KeyChain
 * Encryption: no
 * Signing algorithms
   * SHA256: yes
-  * ECDSA: yes (in [package eckey](keychain/eckey))
-  * RSA: yes (in [package rsakey](keychain/rsakey))
+  * ECDSA: yes
+  * RSA: yes
   * HMAC-SHA256: no
   * [Null](https://redmine.named-data.net/projects/ndn-tlv/wiki/NullSignature): yes
-* [NDN certificates](https://named-data.net/doc/ndn-cxx/0.7.1/specs/certificate-format.html): no
+* [NDN certificates](https://named-data.net/doc/ndn-cxx/0.7.1/specs/certificate-format.html): decoding
 * Key persistence: no
 * Trust schema: no
 

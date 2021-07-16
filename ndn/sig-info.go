@@ -79,6 +79,16 @@ func (si *SigInfo) EncodeAs(typ uint32) tlv.Fielder {
 	return sigInfoFielder{typ, si}
 }
 
+// FindExtension retrieves extension field by TLV-TYPE number.
+func (si *SigInfo) FindExtension(typ uint32) *tlv.Element {
+	for _, ext := range si.Extensions {
+		if ext.Type == typ {
+			return &ext
+		}
+	}
+	return nil
+}
+
 // UnmarshalBinary decodes from TLV-VALUE.
 func (si *SigInfo) UnmarshalBinary(wire []byte) (e error) {
 	*si = SigInfo{}

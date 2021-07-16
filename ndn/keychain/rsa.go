@@ -1,5 +1,4 @@
-// Package rsakey implements SigSha256WithRsa signature type.
-package rsakey
+package keychain
 
 import (
 	"crypto"
@@ -9,41 +8,40 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
-	"github.com/usnistgov/ndn-dpdk/ndn/keychain"
 )
 
-// NewPrivateKey creates a private key for SigSha256WithRsa signature type.
-func NewPrivateKey(name ndn.Name, key *rsa.PrivateKey) (keychain.PrivateKeyKeyLocatorChanger, error) {
-	if !keychain.IsKeyName(name) {
-		return nil, keychain.ErrKeyName
+// NewRSAPrivateKey creates a private key for SigSha256WithRsa signature type.
+func NewRSAPrivateKey(name ndn.Name, key *rsa.PrivateKey) (PrivateKeyKeyLocatorChanger, error) {
+	if !IsKeyName(name) {
+		return nil, ErrKeyName
 	}
-	var pvt privateKey
+	var pvt rsaPrivateKey
 	pvt.name = name
 	pvt.key = key
 	return &pvt, nil
 }
 
-// NewPublicKey creates a public key for SigSha256WithRsa signature type.
-func NewPublicKey(name ndn.Name, key *rsa.PublicKey) (keychain.PublicKey, error) {
-	if !keychain.IsKeyName(name) {
-		return nil, keychain.ErrKeyName
+// NewRSAPublicKey creates a public key for SigSha256WithRsa signature type.
+func NewRSAPublicKey(name ndn.Name, key *rsa.PublicKey) (PublicKey, error) {
+	if !IsKeyName(name) {
+		return nil, ErrKeyName
 	}
-	var pub publicKey
+	var pub rsaPublicKey
 	pub.name = name
 	pub.key = key
 	return &pub, nil
 }
 
-type privateKey struct {
+type rsaPrivateKey struct {
 	name ndn.Name
 	key  *rsa.PrivateKey
 }
 
-func (pvt *privateKey) Name() ndn.Name {
+func (pvt *rsaPrivateKey) Name() ndn.Name {
 	return pvt.name
 }
 
-func (pvt *privateKey) Sign(packet ndn.Signable) error {
+func (pvt *rsaPrivateKey) Sign(packet ndn.Signable) error {
 	return packet.SignWith(func(name ndn.Name, si *ndn.SigInfo) (ndn.LLSign, error) {
 		si.Type = an.SigSha256WithRsa
 		si.KeyLocator = ndn.KeyLocator{
@@ -56,22 +54,22 @@ func (pvt *privateKey) Sign(packet ndn.Signable) error {
 	})
 }
 
-func (pvt *privateKey) WithKeyLocator(klName ndn.Name) ndn.Signer {
+func (pvt *rsaPrivateKey) WithKeyLocator(klName ndn.Name) ndn.Signer {
 	signer := *pvt
 	signer.name = klName
 	return &signer
 }
 
-type publicKey struct {
+type rsaPublicKey struct {
 	name ndn.Name
 	key  *rsa.PublicKey
 }
 
-func (pub *publicKey) Name() ndn.Name {
+func (pub *rsaPublicKey) Name() ndn.Name {
 	return pub.name
 }
 
-func (pub *publicKey) Verify(packet ndn.Verifiable) error {
+func (pub *rsaPublicKey) Verify(packet ndn.Verifiable) error {
 	return packet.VerifyWith(func(name ndn.Name, si ndn.SigInfo) (ndn.LLVerify, error) {
 		if si.Type != an.SigSha256WithRsa {
 			return nil, ndn.ErrSigType

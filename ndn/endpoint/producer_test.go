@@ -14,7 +14,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/endpoint"
 	"github.com/usnistgov/ndn-dpdk/ndn/keychain"
-	"github.com/usnistgov/ndn-dpdk/ndn/keychain/eckey"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"go4.org/must"
 )
@@ -27,9 +26,9 @@ func TestSignVerify(t *testing.T) {
 		keyName := keychain.ToKeyName(ndn.ParseName(name))
 		pvt, e := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 		require.NoError(e)
-		signer, e := eckey.NewPrivateKey(keyName, pvt)
+		signer, e := keychain.NewECDSAPrivateKey(keyName, pvt)
 		require.NoError(e)
-		verifier, e := eckey.NewPublicKey(keyName, &pvt.PublicKey)
+		verifier, e := keychain.NewECDSAPublicKey(keyName, &pvt.PublicKey)
 		require.NoError(e)
 		return signer, verifier
 	}
