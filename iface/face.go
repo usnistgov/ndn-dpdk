@@ -230,7 +230,7 @@ func newFace(p NewParams) (Face, error) {
 	}
 
 	gFaces[f.id] = f2
-	emitter.EmitSync(evtFaceNew, f.id)
+	emitter.Emit(evtFaceNew, f.id)
 	ActivateTxFace(f2)
 	logEntry.Info("face created")
 	return f2, nil
@@ -272,7 +272,7 @@ func (f *face) Close() (e error) {
 
 func (f *face) close() error {
 	f.ptr().state = StateDown
-	emitter.EmitSync(evtFaceClosing, f.id)
+	emitter.Emit(evtFaceClosing, f.id)
 	DeactivateTxFace(f)
 
 	if e := f.stopCallback(f); e != nil {
@@ -280,7 +280,7 @@ func (f *face) close() error {
 	}
 
 	f.clear()
-	emitter.EmitSync(evtFaceClosed, f.id)
+	emitter.Emit(evtFaceClosed, f.id)
 
 	if f.closeCallback != nil {
 		return f.closeCallback(f)
@@ -319,10 +319,10 @@ func (f *face) SetDown(isDown bool) {
 	}
 	if isDown {
 		c.state = StateDown
-		emitter.EmitSync(evtFaceDown, id)
+		emitter.Emit(evtFaceDown, id)
 	} else {
 		c.state = StateUp
-		emitter.EmitSync(evtFaceUp, id)
+		emitter.Emit(evtFaceUp, id)
 	}
 }
 

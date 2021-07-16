@@ -49,7 +49,7 @@ func (p *TransportBasePriv) SetState(st TransportState) {
 		return
 	}
 	p.b.state = st
-	p.b.emitter.EmitSync(evtStateChange, st)
+	p.b.emitter.Emit(evtStateChange, st)
 }
 
 // NewTransportBase creates helpers for implementing Transport.

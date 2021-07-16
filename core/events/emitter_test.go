@@ -21,36 +21,36 @@ func TestOnCancel(t *testing.T) {
 	cancelC := emitter.Once(2, fC)
 	cancelD := emitter.Once(2, fD)
 
-	emitter.EmitSync(1)
+	emitter.Emit(1)
 	assert.Equal(1, nA)
 	assert.Equal(1, nB)
 
 	cancelA()
-	emitter.EmitSync(1)
+	emitter.Emit(1)
 	assert.Equal(1, nA)
 	assert.Equal(2, nB)
 
 	cancelA()
-	emitter.EmitSync(1)
+	emitter.Emit(1)
 	assert.Equal(1, nA)
 	assert.Equal(3, nB)
 
 	cancelB()
-	emitter.EmitSync(1)
+	emitter.Emit(1)
 	assert.Equal(1, nA)
 	assert.Equal(3, nB)
 
 	cancelD()
-	emitter.EmitSync(2)
+	emitter.Emit(2)
 	assert.Equal(1, nC)
 	assert.Equal(0, nD)
 
-	emitter.EmitSync(2)
+	emitter.Emit(2)
 	assert.Equal(1, nC)
 	assert.Equal(0, nD)
 
 	cancelC()
-	emitter.EmitSync(2)
+	emitter.Emit(2)
 	assert.Equal(1, nC)
 	assert.Equal(0, nD)
 }

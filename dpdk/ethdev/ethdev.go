@@ -209,7 +209,7 @@ func (dev ethDev) Stop(mode StopMode) error {
 			logEntry.Warn("rte_eth_dev_close error", zap.Error(e))
 			return e
 		}
-		detachEmitter.EmitSync(dev.ID())
+		detachEmitter.Emit(dev.ID())
 		logEntry.Info("stopped and detached")
 		return nil
 	case StopReset:
