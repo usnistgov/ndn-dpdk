@@ -19,7 +19,7 @@ var (
 
 	errNoGqlFib = errors.New("FIB unavailable")
 
-	// GqlDefaultStrategy is the default strategy when inserted a FIB entry via GraphQL.
+	// GqlDefaultStrategy is the default strategy when inserting a FIB entry via GraphQL.
 	GqlDefaultStrategy *strategycode.Strategy
 )
 

@@ -5,6 +5,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/container/fib"
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
 	"github.com/usnistgov/ndn-dpdk/container/strategycode"
+	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
 const defaultStrategyName = "multicast"
@@ -25,6 +26,7 @@ func (a fwArgs) Activate() error {
 	}
 
 	fwdp.GqlDataPlane = dp
+	iface.GqlCreateFaceAllowed = true
 	ndt.GqlNdt = dp.Ndt()
 	fib.GqlFib = dp.Fib()
 

@@ -1,6 +1,7 @@
 package iface
 
 import (
+	"errors"
 	"reflect"
 	"strconv"
 
@@ -9,6 +10,13 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+)
+
+var (
+	// GqlCreateFaceAllowed indicates whether face creation via GraphQL is allowed.
+	GqlCreateFaceAllowed bool
+
+	errGqlCreateFaceDisallowed = errors.New("createFace is disallowed; is NDN-DPDK forwarder activated?")
 )
 
 // GraphQL types.
@@ -131,6 +139,10 @@ func init() {
 		},
 		Type: graphql.NewNonNull(GqlFaceType),
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+			if !GqlCreateFaceAllowed {
+				return nil, errGqlCreateFaceDisallowed
+			}
+
 			var locw LocatorWrapper
 			if e := jsonhelper.Roundtrip(p.Args["locator"], &locw, jsonhelper.DisallowUnknownFields); e != nil {
 				return nil, e
