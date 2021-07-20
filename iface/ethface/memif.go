@@ -39,7 +39,7 @@ func (loc MemifLocator) CreateFace() (iface.Face, error) {
 	}
 
 	pc := PortConfig{
-		MTU:           loc.Dataroom,
+		MTU:           loc.Dataroom - 14, // Ethernet header is not part of MTU
 		DisableSetMTU: true,
 	}
 	port, e := NewPort(dev, pc)

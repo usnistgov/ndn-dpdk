@@ -44,6 +44,7 @@ func TestMemif(t *testing.T) {
 	helper.Stdout = os.Stdout
 	helper.Stderr = os.Stderr
 	require.NoError(helper.Start())
+	defer helper.Process.Kill()
 	time.Sleep(1 * time.Second)
 
 	fixture.RunTest(faceA, faceB)

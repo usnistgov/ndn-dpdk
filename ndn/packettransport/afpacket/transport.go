@@ -42,6 +42,7 @@ func New(ifname string, cfg Config) (Transport, error) {
 	if cfg.Remote.Empty() {
 		cfg.Remote.HardwareAddr = packettransport.MulticastAddressNDN
 	}
+	cfg.MTU = intf.MTU
 
 	h, e := af.NewTPacket()
 	if e != nil {
@@ -49,9 +50,10 @@ func New(ifname string, cfg Config) (Transport, error) {
 	}
 
 	tr := &transport{
+		h:    h,
 		intf: *intf,
 	}
-	if e = tr.prepare(h, cfg.Locator); e != nil {
+	if e = tr.prepare(cfg.Locator); e != nil {
 		return nil, e
 	}
 
@@ -61,7 +63,7 @@ func New(ifname string, cfg Config) (Transport, error) {
 	}
 	tr.Transport.OnStateChange(func(st l3.TransportState) {
 		if st == l3.TransportClosed {
-			h.Close()
+			tr.h.Close()
 		}
 	})
 	return tr, nil
@@ -73,8 +75,8 @@ type transport struct {
 	intf net.Interface
 }
 
-func (tr *transport) prepare(h *af.TPacket, loc packettransport.Locator) error {
-	fd := int(reflect.ValueOf(h).Elem().FieldByName("fd").Int())
+func (tr *transport) prepare(loc packettransport.Locator) error {
+	fd := int(reflect.ValueOf(tr.h).Elem().FieldByName("fd").Int())
 	ifindex := tr.intf.Index
 	ethtype := make([]byte, 2)
 	binary.BigEndian.PutUint16(ethtype, packettransport.EthernetTypeNDN)

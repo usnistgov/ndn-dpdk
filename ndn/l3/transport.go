@@ -2,6 +2,9 @@ package l3
 
 // Transport represents a communicate channel to send and receive TLV packets.
 type Transport interface {
+	// MTU returns maximum size of outgoing packets, or zero if it's unlimited.
+	MTU() int
+
 	// Rx returns a channel to receive incoming TLV elements.
 	// This function always returns the same channel.
 	// This channel is closed when the transport is closed.

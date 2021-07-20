@@ -14,6 +14,7 @@
 package ndn
 
 import (
+	"encoding/binary"
 	"encoding/hex"
 	"math"
 
@@ -78,58 +79,6 @@ func (pkt *Packet) Field() tlv.Field {
 	return tlv.TLV(an.TtLpPacket, tlv.Bytes(header), tlv.TLVBytes(an.TtLpPayload, payload))
 }
 
-// UnmarshalTLV decodes from wire format.
-func (pkt *Packet) UnmarshalTLV(typ uint32, value []byte) (e error) {
-	*pkt = Packet{}
-	if typ != an.TtLpPacket {
-		return pkt.decodeL3(typ, value)
-	}
-
-	d := tlv.DecodingBuffer(value)
-	for _, de := range d.Elements() {
-		switch de.Type {
-		case an.TtPitToken:
-			pkt.Lp.PitToken = de.Value
-		case an.TtNack:
-			pkt.Lp.NackReason = an.NackUnspecified
-			d1 := tlv.DecodingBuffer(de.Value)
-			for _, de1 := range d1.Elements() {
-				switch de1.Type {
-				case an.TtNackReason:
-					if pkt.Lp.NackReason = uint8(unmarshalNNI(de1, math.MaxUint8, &e, tlv.ErrRange)); e != nil {
-						return e
-					}
-				default:
-					if lpIsCritical(de1.Type) {
-						return tlv.ErrCritical
-					}
-				}
-			}
-			if e = d1.ErrUnlessEOF(); e != nil {
-				return e
-			}
-		case an.TtCongestionMark:
-			if pkt.Lp.CongMark = uint8(unmarshalNNI(de, math.MaxUint8, &e, tlv.ErrRange)); e != nil {
-				return e
-			}
-		case an.TtLpPayload:
-			d1 := tlv.DecodingBuffer(de.Value)
-			field1, e := d1.Element()
-			if e != nil {
-				return e
-			}
-			e = pkt.decodeL3(field1.Type, field1.Value)
-			if e != nil {
-				return e
-			}
-			if e = d1.ErrUnlessEOF(); e != nil {
-				return e
-			}
-		}
-	}
-	return d.ErrUnlessEOF()
-}
-
 func (pkt *Packet) encodeL3() (header, payload []byte, e error) {
 	var l3fielder tlv.Fielder
 	switch {
@@ -156,6 +105,94 @@ func (pkt *Packet) encodeL3() (header, payload []byte, e error) {
 		return nil, nil, e
 	}
 	return header, payload, nil
+}
+
+// UnmarshalTLV decodes from wire format.
+func (pkt *Packet) UnmarshalTLV(typ uint32, value []byte) (e error) {
+	*pkt = Packet{}
+	if typ != an.TtLpPacket {
+		return pkt.decodeL3(typ, value)
+	}
+
+	return pkt.decodeValue(value)
+}
+
+func (pkt *Packet) decodeValue(value []byte) (e error) {
+	fragment := LpFragment{FragCount: 1}
+	d := tlv.DecodingBuffer(value)
+	for _, de := range d.Elements() {
+		switch de.Type {
+		case an.TtLpSeqNum:
+			if de.Length() != 8 {
+				return ErrFragment
+			}
+			fragment.SeqNum = binary.BigEndian.Uint64(de.Value)
+		case an.TtFragIndex:
+			if fragment.FragIndex = int(unmarshalNNI(de, math.MaxInt32, &e, ErrFragment)); e != nil {
+				return e
+			}
+		case an.TtFragCount:
+			if fragment.FragCount = int(unmarshalNNI(de, math.MaxInt32, &e, ErrFragment)); e != nil {
+				return e
+			}
+			if fragment.FragCount > 1 {
+				pkt.Fragment = &fragment
+			}
+		case an.TtPitToken:
+			pkt.Lp.PitToken = de.Value
+		case an.TtNack:
+			pkt.Lp.NackReason = an.NackUnspecified
+			d1 := tlv.DecodingBuffer(de.Value)
+			for _, de1 := range d1.Elements() {
+				switch de1.Type {
+				case an.TtNackReason:
+					if pkt.Lp.NackReason = uint8(unmarshalNNI(de1, math.MaxUint8, &e, tlv.ErrRange)); e != nil {
+						return e
+					}
+				default:
+					if lpIsCritical(de1.Type) {
+						return tlv.ErrCritical
+					}
+				}
+			}
+			if e = d1.ErrUnlessEOF(); e != nil {
+				return e
+			}
+		case an.TtCongestionMark:
+			if pkt.Lp.CongMark = uint8(unmarshalNNI(de, math.MaxUint8, &e, tlv.ErrRange)); e != nil {
+				return e
+			}
+		case an.TtLpPayload:
+			if e = pkt.decodePayload(de.Value); e != nil {
+				return e
+			}
+		default:
+			if lpIsCritical(de.Type) {
+				return tlv.ErrCritical
+			}
+		}
+	}
+	if fragment.FragIndex >= fragment.FragCount {
+		return ErrFragment
+	}
+	return d.ErrUnlessEOF()
+}
+
+func (pkt *Packet) decodePayload(payload []byte) error {
+	if pkt.Fragment != nil {
+		pkt.Fragment.payload = payload
+		return nil
+	}
+
+	d := tlv.DecodingBuffer(payload)
+	field, e := d.Element()
+	if e != nil {
+		return e
+	}
+	if e := pkt.decodeL3(field.Type, field.Value); e != nil {
+		return e
+	}
+	return d.ErrUnlessEOF()
 }
 
 func (pkt *Packet) decodeL3(typ uint32, value []byte) error {

@@ -59,7 +59,7 @@ func init() {
 				return e
 			}
 
-			f, e := l3.NewFace(tr)
+			f, e := l3.NewFace(tr, l3.FaceConfig{})
 			if e != nil {
 				return e
 			}

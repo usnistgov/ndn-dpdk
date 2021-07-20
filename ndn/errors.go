@@ -6,7 +6,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
 
-// Simple error conditions.
+// Error conditions.
 var (
 	ErrFragment      = errors.New("bad fragment")
 	ErrL3Type        = errors.New("unknown L3 packet type")

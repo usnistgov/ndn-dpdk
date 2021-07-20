@@ -41,7 +41,7 @@ func New(cfg socketface.Config) (*IntFace, error) {
 		return nil, e
 	}
 
-	if f.A, e = l3.NewFace(trA); e != nil {
+	if f.A, e = l3.NewFace(trA, l3.FaceConfig{}); e != nil {
 		return nil, e
 	}
 	if f.D, e = socketface.Wrap(trD, cfg); e != nil {

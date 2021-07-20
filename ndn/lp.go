@@ -1,17 +1,28 @@
 package ndn
 
 import (
+	"bytes"
 	"encoding/binary"
 	"math/rand"
 	"strconv"
 
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
+
+	"github.com/hashicorp/golang-lru/simplelru"
 )
 
 func lpIsCritical(typ uint32) bool {
 	return typ < 800 || typ > 959 && (typ&0x03) != 0
 }
+
+const fragmentOverhead = 0 +
+	1 + 3 + // LpPacket TL
+	1 + 1 + 8 + // LpSeqNum
+	1 + 1 + 2 + // FragIndex
+	1 + 1 + 2 + // FragCount
+	1 + 3 + // LpPayload TL
+	0
 
 // LpL3 contains layer 3 fields in NDNLPv2 header.
 type LpL3 struct {
@@ -81,14 +92,6 @@ type LpFragmenter struct {
 	room       int
 }
 
-// NewLpFragmenter creates a LpFragmenter.
-func NewLpFragmenter(mtu int) *LpFragmenter {
-	var fragmenter LpFragmenter
-	fragmenter.nextSeqNum = rand.Uint64()
-	fragmenter.room = mtu - fragmentOverhead
-	return &fragmenter
-}
-
 // Fragment fragments a packet.
 func (fragmenter *LpFragmenter) Fragment(full *Packet) (frags []*Packet, e error) {
 	header, payload, e := full.encodeL3()
@@ -134,10 +137,87 @@ func (fragmenter *LpFragmenter) Fragment(full *Packet) (frags []*Packet, e error
 	return frags, nil
 }
 
-const fragmentOverhead = 0 +
-	1 + 3 + // LpPacket TL
-	1 + 1 + 8 + // LpSeqNum
-	1 + 1 + 2 + // FragIndex
-	1 + 1 + 2 + // FragCount
-	1 + 3 + // LpPayload TL
-	0
+// NewLpFragmenter creates a LpFragmenter.
+func NewLpFragmenter(mtu int) *LpFragmenter {
+	var fragmenter LpFragmenter
+	fragmenter.nextSeqNum = rand.Uint64()
+	fragmenter.room = mtu - fragmentOverhead
+	return &fragmenter
+}
+
+// LpReassembler reassembles fragments.
+type LpReassembler struct {
+	pms *simplelru.LRU
+}
+
+// Accept processes a fragment.
+// pkt.Fragment must not be nil.
+func (reass *LpReassembler) Accept(pkt *Packet) (full *Packet, e error) {
+	seq0 := pkt.Fragment.SeqNum - uint64(pkt.Fragment.FragIndex)
+
+	pp, _ := reass.pms.Get(seq0)
+	if pp == nil {
+		pp = &lpPartialPacket{}
+		reass.pms.Add(seq0, pp)
+	}
+
+	full, discard, e := pp.(*lpPartialPacket).Accept(pkt)
+	if discard {
+		reass.pms.Remove(seq0)
+	}
+
+	return full, e
+}
+
+// NewLpReassembler creates a LpReassembler.
+func NewLpReassembler(capacity int) *LpReassembler {
+	lru, _ := simplelru.NewLRU(capacity, nil)
+	return &LpReassembler{pms: lru}
+}
+
+type lpPartialPacket struct {
+	lpl3     LpL3
+	buffer   [][]byte
+	accepted int
+}
+
+func (pp *lpPartialPacket) Accept(pkt *Packet) (full *Packet, discard bool, e error) {
+	if pp.accepted == 0 {
+		pp.buffer = make([][]byte, pkt.Fragment.FragCount)
+		pp.acceptOne(pkt)
+		return nil, false, nil
+	}
+
+	if pkt.Fragment.FragCount != len(pp.buffer) {
+		return nil, true, ErrFragment
+	}
+	if pp.buffer[pkt.Fragment.FragIndex] != nil {
+		return nil, false, ErrFragment
+	}
+
+	pp.acceptOne(pkt)
+	if pp.accepted == len(pp.buffer) {
+		full, e = pp.reassemble()
+		return full, true, e
+	}
+	return nil, false, nil
+}
+
+func (pp *lpPartialPacket) acceptOne(pkt *Packet) {
+	if pkt.Fragment.FragIndex == 0 {
+		pp.lpl3 = pkt.Lp
+	}
+	pp.buffer[pkt.Fragment.FragIndex] = pkt.Fragment.payload
+	pp.accepted++
+}
+
+func (pp *lpPartialPacket) reassemble() (full *Packet, e error) {
+	full = &Packet{Lp: pp.lpl3}
+
+	payload := bytes.Join(pp.buffer, nil)
+	if e = full.decodePayload(payload); e != nil {
+		return nil, e
+	}
+
+	return full, nil
+}

@@ -4,7 +4,7 @@ import (
 	"errors"
 )
 
-// Simple error conditions.
+// Error conditions.
 var (
 	ErrIncomplete = errors.New("incomplete input")
 	ErrTail       = errors.New("junk after end of TLV")

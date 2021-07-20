@@ -16,6 +16,10 @@ import (
 type Config struct {
 	l3.TransportQueueConfig
 
+	// MTU is maximum outgoing packet size.
+	// The default is 0, which means unlimited.
+	MTU int
+
 	// RxBufferLength is the packet buffer length allocated for incoming packets.
 	// The default is 16384.
 	// Packet larger than this length cannot be received.
@@ -107,7 +111,10 @@ func New(conn net.Conn, cfg Config) (Transport, error) {
 		err:     make(chan error, 1), // 1-item buffer allows rxLoop to send its error after redialLoop exits
 		closing: make(chan bool),
 	}
-	tr.TransportBase, tr.p = l3.NewTransportBase(cfg.TransportQueueConfig)
+	tr.TransportBase, tr.p = l3.NewTransportBase(l3.TransportBaseConfig{
+		TransportQueueConfig: cfg.TransportQueueConfig,
+		MTU:                  cfg.MTU,
+	})
 
 	tr.conn.Store(conn)
 	go tr.rxLoop()

@@ -8,12 +8,24 @@ const (
 	evtStateChange = "StateChange"
 )
 
+// TransportBaseConfig contains parameters to NewTransportBase.
+type TransportBaseConfig struct {
+	TransportQueueConfig
+	MTU int
+}
+
 // TransportBase is an optional helper for implementing Transport.
 type TransportBase struct {
+	mtu     int
 	rx      <-chan []byte
 	tx      chan<- []byte
 	state   TransportState
 	emitter *events.Emitter
+}
+
+// MTU implements Transport interface.
+func (b *TransportBase) MTU() int {
+	return b.mtu
 }
 
 // Rx implements Transport interface.
@@ -53,11 +65,12 @@ func (p *TransportBasePriv) SetState(st TransportState) {
 }
 
 // NewTransportBase creates helpers for implementing Transport.
-func NewTransportBase(qcfg TransportQueueConfig) (b *TransportBase, p *TransportBasePriv) {
-	qcfg.ApplyTransportQueueConfigDefaults()
-	rx := make(chan []byte, qcfg.RxQueueSize)
-	tx := make(chan []byte, qcfg.TxQueueSize)
+func NewTransportBase(cfg TransportBaseConfig) (b *TransportBase, p *TransportBasePriv) {
+	cfg.ApplyTransportQueueConfigDefaults()
+	rx := make(chan []byte, cfg.RxQueueSize)
+	tx := make(chan []byte, cfg.TxQueueSize)
 	b = &TransportBase{
+		mtu:     cfg.MTU,
 		rx:      rx,
 		tx:      tx,
 		state:   TransportUp,

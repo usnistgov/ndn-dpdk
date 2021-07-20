@@ -25,6 +25,7 @@ type PacketDataHandle interface {
 type Config struct {
 	Locator
 	l3.TransportQueueConfig
+	MTU int
 }
 
 func (cfg *Config) applyDefaults() {
@@ -58,7 +59,10 @@ func New(hdl PacketDataHandle, cfg Config) (Transport, error) {
 		hdl: hdl,
 		loc: cfg.Locator,
 	}
-	tr.TransportBase, tr.p = l3.NewTransportBase(cfg.TransportQueueConfig)
+	tr.TransportBase, tr.p = l3.NewTransportBase(l3.TransportBaseConfig{
+		TransportQueueConfig: cfg.TransportQueueConfig,
+		MTU:                  cfg.MTU,
+	})
 
 	go tr.rxLoop()
 	go tr.txLoop()
