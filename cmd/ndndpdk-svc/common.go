@@ -1,6 +1,7 @@
 package main
 
 import (
+	"sync"
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/bpf"
@@ -24,11 +25,14 @@ type CommonArgs struct {
 }
 
 func (a CommonArgs) apply() error {
-	ealArgs, e := a.Eal.Args(nil)
+	args, e := a.Eal.Args(nil)
 	if e != nil {
 		return e
 	}
-	ealinit.Init(ealArgs)
+	if e := ealinit.Init(args); e != nil {
+		return e
+	}
+
 	a.Mempool.Apply()
 	if a.Hrlog {
 		hrlog.Init()
@@ -46,11 +50,19 @@ func initXDPProgram() {
 	ethvdev.XDPProgram = path
 }
 
-func delayedShutdown(then func()) {
-	go func() {
-		iface.CloseAll()
+var shutdownOnce sync.Once
 
+func delayedShutdown(then func()) {
+	// Shutdown is slightly delayed to allow enough time to send back the GraphQL result.
+	// It's possible to receive shutdown command from both GraphQL and os.Signal at the same time,
+	// so that the cleanup step must be protected by sync.Once.
+
+	go func() {
+		shutdownOnce.Do(func() {
+			iface.CloseAll()
+		})
 		time.Sleep(100 * time.Millisecond)
 		then()
+		panic("delayedShutdown then() must not return")
 	}()
 }

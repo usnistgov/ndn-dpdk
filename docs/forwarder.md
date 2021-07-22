@@ -5,6 +5,8 @@ This page explains how to activate the NDN-DPDK service as a forwarder, and how 
 
 ## Activate the Forwarder
 
+Before attempting to activate the forwarder, make sure you have configured hugepages and PCI driver bindings, as described on [installation guide](INSTALL.md) "usage" section.
+
 The `ndndpdk-ctrl activate-forwarder` command sends a command to the `ndndpdk-svc` service process to activate it as a forwarder.
 This command reads, from standard input, a JSON document that contains forwarder activation parameters.
 The JSON document must conform to the JSON schema `/usr/local/share/ndn-dpdk/forwarder.schema.json`.
@@ -18,7 +20,16 @@ ndndpdk-ctrl activate-forwarder < fw-args.json
 You can also programmatically activate the forwarder via GraphQL using the `activate` mutation, passing the JSON document as the `forwarder` input.
 
 The `ndndpdk-svc` service process can be activated only once.
-You must restart the process to activate again as a different role or with different parameters.
+You must restart the systemd service or Docker container to activate again as a different role or with different parameters.
+
+### What's My Activation Parameters?
+
+All fields in the forwarder activation parameters are optional.
+You can pass an empty JSON object `{}` to activate the forwarder with default settings, which would work if your system has sufficient CPU and memory described in [hardware known to work](hardware.md) "CPU and memory" section.
+If this is your first time setting up NDN-DPDK, it is strongly recommended to use a system with the required resources.
+
+The optimal activation parameters to take full advantage of your system is hardware dependent.
+See [hardware known to work](hardware.md) and [performance tuning](tuning.md) for hints.
 
 ### Authoring Activation Parameters in TypeScript
 
@@ -41,8 +52,6 @@ To use the sample:
 
 ### Commonly Used Activation Parameters
 
-All fields in the forwarder activation parameters are optional.
-You can pass an empty JSON object `{}` to activate the forwarder with default settings.
 This section explains some commonly used parameters.
 
 **.eal.cores** is a list of CPU cores allocated to DPDK.
@@ -50,7 +59,7 @@ NDN-DPDK also honors CPU affinity configured in systemd or Docker, see [performa
 
 **.eal.pciDevices** is a list of Ethernet adapters you want to use in the forwarder, written as PCI addresses.
 To find the PCI addresses of available Ethernet adapters, run `dpdk-devbind.py --status-dev net`.
-Ethernet adapters not included in this list can still be activated as virtual devices using `net_af_xdp` or `net_af_packet` driver, at reduced performance.
+Ethernet adapters not included in this list can still be activated as virtual devices using `net_af_xdp` or `net_af_packet` driver, at reduced performance; see [hardware known to work](hardware.md) "AF\_XDP and AF\_PACKET sockets" for more information.
 
 **.mempool.DIRECT.dataroom** is the size of each packet buffer.
 The maximum MTU supported by the forwarder is this dataroom minus 128 (`RTE_PKTMBUF_HEADROOM` constant).

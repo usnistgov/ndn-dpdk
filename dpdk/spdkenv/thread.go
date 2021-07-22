@@ -2,6 +2,9 @@ package spdkenv
 
 /*
 #include "../../csrc/dpdk/spdk-thread.h"
+
+// workaround gopls "compiler(InvalidCall)" false positive
+int c_SpdkThread_Run(SpdkThread* th) { return SpdkThread_Run(th); }
 */
 import "C"
 import (
@@ -24,6 +27,9 @@ type Thread struct {
 	c           *C.SpdkThread
 	RcuReadSide *urcu.ReadSide
 }
+
+var _ eal.PollThread = (*Thread)(nil)
+var _ ealthread.ThreadWithRole = (*Thread)(nil)
 
 // NewThread creates an SPDK thread.
 // The caller needs to assigned it a DPDK lcore and launch it.
@@ -71,7 +77,7 @@ func (th *Thread) Close() error {
 }
 
 func (th *Thread) main() {
-	C.SpdkThread_Run(th.c)
+	C.c_SpdkThread_Run(th.c)
 }
 
 // Post asynchronously posts a function to be executed on the SPDK thread.

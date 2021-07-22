@@ -8,6 +8,7 @@ int c_rte_errno() { return rte_errno; }
 import "C"
 import (
 	"reflect"
+	"strconv"
 	"syscall"
 )
 
@@ -15,7 +16,7 @@ import (
 type Errno syscall.Errno
 
 func (e Errno) Error() string {
-	return C.GoString(C.rte_strerror(C.int(e)))
+	return strconv.Itoa(int(e)) + " " + C.GoString(C.rte_strerror(C.int(e)))
 }
 
 // MakeErrno creates Errno from non-zero number or returns nil for zero.

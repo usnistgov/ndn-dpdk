@@ -8,6 +8,7 @@ package ealinit
 */
 import "C"
 import (
+	"fmt"
 	"os"
 	"runtime"
 	"sync"
@@ -27,35 +28,57 @@ func init() {
 	ealconfig.PmdPath = C.RTE_EAL_PMD_PATH
 }
 
-var initOnce sync.Once
+var (
+	initOnce  sync.Once
+	initError error
+)
 
 // Init initializes DPDK and SPDK.
 // args should not include program name.
-// Panics on error.
-func Init(args []string) {
+func Init(args []string) error {
 	initOnce.Do(func() {
 		updateLogLevels()
 		initLogStream()
-		assignMainThread := make(chan *spdkenv.Thread)
+
+		ret := make(chan interface{})
 		go func() {
 			runtime.LockOSThread()
-			initEal(args)
+			if e := initEal(args); e != nil {
+				ret <- e
+				return
+			}
 			initMbufDynfields()
-			spdkenv.InitEnv()
-			spdkenv.InitMainThread(assignMainThread) // never returns
+			if e := spdkenv.InitEnv(); e != nil {
+				ret <- e
+				return
+			}
+			spdkenv.InitMainThread(ret) // never returns
 		}()
-		th := <-assignMainThread
+
+		rv := <-ret
+		switch rv := rv.(type) {
+		case error:
+			initError = rv
+			return
+		case *spdkenv.Thread:
+			eal.MainThread = rv
+			eal.MainReadSide = rv.RcuReadSide
+		default:
+			panic(rv)
+		}
+
 		updateLogLevels()
-		eal.MainThread = th
-		eal.MainReadSide = th.RcuReadSide
-		eal.CallMain(func() {
-			logger.Debug("MainThread is running")
-		})
-		spdkenv.InitFinal()
+		eal.CallMain(func() { logger.Debug("MainThread is running") })
+
+		initError = spdkenv.InitFinal()
 	})
+	if initError != nil {
+		logger.Error("EAL init error", zap.Error(initError))
+	}
+	return initError
 }
 
-func initEal(args []string) {
+func initEal(args []string) error {
 	logEntry := logger.With(zap.String("args", shellquote.Join(args...)))
 	exe, e := os.Executable()
 	if e != nil {
@@ -68,8 +91,7 @@ func initEal(args []string) {
 	C.rte_mp_disable()
 	res := C.rte_eal_init(C.int(a.Argc), (**C.char)(a.Argv))
 	if res < 0 {
-		logEntry.Fatal("EAL init error", zap.Error(eal.GetErrno()))
-		return
+		return fmt.Errorf("rte_eal_init %w", eal.GetErrno())
 	}
 
 	lcoreSockets := map[int]int{}
@@ -82,13 +104,12 @@ func initEal(args []string) {
 		zap.Array("workers", eal.Workers),
 		zap.Any("sockets", eal.Sockets),
 	)
+	return nil
 }
 
 func initMbufDynfields() {
 	ok := bool(C.Mbuf_RegisterDynFields())
 	if !ok {
-		logger.Fatal("mbuf dynfields init error",
-			zap.Error(eal.GetErrno()),
-		)
+		logger.Fatal("mbuf dynfields init error", zap.Error(eal.GetErrno()))
 	}
 }

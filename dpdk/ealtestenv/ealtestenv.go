@@ -71,5 +71,7 @@ func Init() {
 	if e != nil {
 		panic(e)
 	}
-	ealinit.Init(args)
+	if e := ealinit.Init(args); e != nil {
+		panic(e)
+	}
 }

@@ -14,7 +14,7 @@ This would assign distinct CPU cores to NDN-DPDK and other programs, so that the
 
 To configure CPU isolation for the NDN-DPDK systemd service:
 
-1. Run `lscpu` and look at "NUMA node? CPU(s)" line to determine the available CPU cores on your system.
+1. Run `lscpu` and look at "NUMA node*X* CPU(s)" line to determine the available CPU cores on your system.
 
 2. Run `sudoedit /etc/systemd/system.conf.d/cpuset.conf`, and assign CPU cores to programs other than NDN-DPDK, such as:
 

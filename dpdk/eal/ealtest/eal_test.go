@@ -44,7 +44,7 @@ func TestEal(t *testing.T) {
 	assert.Equal(0, eal.Workers[0].Wait())
 }
 
-func TestEalJson(t *testing.T) {
+func TestEalJSON(t *testing.T) {
 	assert, _ := makeAR(t)
 
 	var lc eal.LCore

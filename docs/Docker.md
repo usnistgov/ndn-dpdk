@@ -66,6 +66,8 @@ docker run -d --name ndndpdk-svc \
 GQLSERVER=$(docker inspect -f 'http://{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}:3030/' ndndpdk-svc)
 ```
 
+You can view logs from the NDN-DPDK service container with `docker logs -f ndn-dpdk` command.
+
 ### Explanation of Docker Flags
 
 `--cap-add` adds capabilities required by DPDK.

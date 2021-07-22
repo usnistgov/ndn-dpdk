@@ -8,17 +8,18 @@ import (
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
 // Poller periodically executes a function on an SPDK thread.
 type Poller struct {
 	c      *C.struct_spdk_poller
-	th     *Thread
+	th     eal.PollThread
 	revoke func()
 }
 
 // NewPoller creates a Poller.
-func NewPoller(th *Thread, fn cptr.Function, d time.Duration) *Poller {
+func NewPoller(th eal.PollThread, fn cptr.Function, d time.Duration) *Poller {
 	f, arg, revoke := cptr.Func0.CallbackReuse(fn)
 	poller := &Poller{
 		th:     th,
