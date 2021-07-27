@@ -31,10 +31,11 @@ type Fixture struct {
 }
 
 // NewFixture creates a Fixture.
-func NewFixture(t *testing.T) (fixture *Fixture) {
-	fixture = new(Fixture)
-	fixture.require = require.New(t)
-	fixture.StepUnit = 50 * time.Millisecond
+func NewFixture(t *testing.T, modifyConfig ...func(cfg *fwdp.Config)) (fixture *Fixture) {
+	fixture = &Fixture{
+		require:  require.New(t),
+		StepUnit: 50 * time.Millisecond,
+	}
 	if ealtestenv.UsingThreads {
 		fixture.StepUnit = 200 * time.Millisecond
 	}
@@ -58,8 +59,12 @@ func NewFixture(t *testing.T) (fixture *Fixture) {
 	cfg.Pcct.CsDirectCapacity = 16384
 	cfg.Pcct.CsIndirectCapacity = 16384
 
-	cfg.LatencySampleFreq = new(int)
-	*cfg.LatencySampleFreq = 0
+	latencySampleFreq := 0
+	cfg.LatencySampleFreq = &latencySampleFreq
+
+	for _, m := range modifyConfig {
+		m(&cfg)
+	}
 
 	dp, e := fwdp.New(cfg)
 	fixture.require.NoError(e)

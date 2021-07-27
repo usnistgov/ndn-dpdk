@@ -15,22 +15,23 @@ type Config map[string]RoleConfig
 
 // ValidateRoles ensures the configured roles match application roles and minimums.
 func (c Config) ValidateRoles(roles map[string]int) error {
+	cRoles := map[string]int{}
+	for role, rc := range c {
+		cRoles[role] = rc.Count()
+	}
+
 	ok := len(c) == len(roles)
 	if ok {
 		for role, min := range roles {
-			rc, found := c[role]
-			ok = ok && found && rc.Count() >= min
+			cnt, found := cRoles[role]
+			ok = ok && found && cnt >= min
 		}
 	}
 	if ok {
 		return nil
 	}
 
-	cRoles := []string{}
-	for role := range c {
-		cRoles = append(cRoles, role)
-	}
-	return fmt.Errorf("configured roles [%v] do not match application roles [%v]", cRoles, roles)
+	return fmt.Errorf("configured roles %v do not match application roles or minimum counts %v", cRoles, roles)
 }
 
 func (c Config) assignWorkers(filter eal.LCorePredicate) (m map[string]eal.LCores, e error) {

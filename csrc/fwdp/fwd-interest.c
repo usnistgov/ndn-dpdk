@@ -116,6 +116,13 @@ FwFwd_RxInterest(FwFwd* fwd, FwFwdCtx* ctx)
   N_LOGD("RxInterest interest-from=%" PRI_FaceID " npkt=%p dn-token=" PRI_LpPitToken, ctx->rxFace,
          ctx->npkt, LpPitToken_Fmt(&ctx->rxToken));
 
+  if (unlikely(fwd->crypto == NULL && interest->name.hasDigestComp)) {
+    N_LOGD("^ drop=no-crypto-helper");
+    rte_pktmbuf_free(ctx->pkt);
+    NULLize(ctx->pkt);
+    return;
+  }
+
   // query FIB, reply Nack if no FIB match
   rcu_read_lock();
   FwFwdCtx_SetFibEntry(ctx, FwFwd_InterestLookupFib(fwd, ctx->npkt, &ctx->nhFlt));

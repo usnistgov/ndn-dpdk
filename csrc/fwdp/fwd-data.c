@@ -17,6 +17,10 @@ FwFwd_DataUnsolicited(FwFwd* fwd, FwFwdCtx* ctx)
 __attribute__((nonnull)) static void
 FwFwd_DataNeedDigest(FwFwd* fwd, FwFwdCtx* ctx)
 {
+  // if crypto helper is unavailable, incoming Interests with implicit digest are dropped, won't get
+  // here
+  NDNDPDK_ASSERT(fwd->crypto != NULL);
+
   int res = rte_ring_enqueue(fwd->crypto, ctx->npkt);
   if (unlikely(res != 0)) {
     N_LOGD("^ error=crypto-enqueue-error-%d", res);

@@ -83,6 +83,7 @@ func init() {
 				logEntry.Info("activate start")
 				if e = arg.Activate(); e != nil {
 					delayedShutdown(func() { logEntry.Fatal("activate error", zap.Error(e)) })
+					return
 				}
 				logEntry.Info("activate success")
 			}

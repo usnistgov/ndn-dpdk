@@ -78,7 +78,7 @@ PData_Parse(PData* data, struct rte_mbuf* pkt)
   return true;
 }
 
-static DataSatisfyResult
+__attribute__((nonnull)) static DataSatisfyResult
 PData_CanSatisfy_HasDigestComp_(PData* data, PInterest* interest)
 {
   if (interest->name.length != data->name.length + ImplicitDigestSize ||

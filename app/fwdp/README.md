@@ -73,3 +73,6 @@ An FwCrypto thread runs the `FwCrypto_Run` function as its main loop ("CRYPTO" r
 It receives Data packets from FwFwd threads through a queue, and enqueues crypto operations toward a DPDK cryptodev.
 The cryptodev computes the SHA-256 digest of the packet and stores it in the mbuf header.
 The FwCrypto then dequeues the completed crypto operations from the cryptodev and re-dispatches the Data to FwFwd in the same fashion as an input thread.
+
+It is possible to disable FwCrypto by assigning zero lcores to "CRYPTO" role.
+In this case, the forwarder does not support implicit digest computation, and incoming Interests with implicit digest component are dropped.

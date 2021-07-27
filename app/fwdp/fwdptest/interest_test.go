@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/app/fwdp"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface/intface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
@@ -298,7 +299,7 @@ func TestFwHint(t *testing.T) {
 	assert.Equal(uint64(1), fibCnt.NTxInterests)
 }
 
-func TestImplicitDigest(t *testing.T) {
+func TestImplicitDigestSimple(t *testing.T) {
 	assert, require := makeAR(t)
 	fixture := NewFixture(t)
 	defer fixture.Close()
@@ -308,7 +309,7 @@ func TestImplicitDigest(t *testing.T) {
 	fixture.SetFibEntry("/B", "multicast", face2.ID)
 	token1, token2 := makeToken(), makeToken()
 
-	data := ndn.MakeData("/B/1")
+	data := ndn.MakeData("/B/2", bytes.Repeat([]byte{0xC0}, 2000))
 	fullName := data.FullName()
 
 	face1.Tx <- ndn.MakeInterest(fullName, token1.LpL3())
@@ -317,8 +318,13 @@ func TestImplicitDigest(t *testing.T) {
 
 	packet := data.ToPacket()
 	packet.Lp.PitToken = collect2.Get(-1).Lp.PitToken
-	face2.Tx <- packet
-	fixture.StepDelay()
+	frags, e := ndn.NewLpFragmenter(1400).Fragment(data.ToPacket())
+	require.NoError(e)
+	require.Greater(len(frags), 1)
+	for _, frag := range frags {
+		face2.Tx <- frag
+		fixture.StepDelay()
+	}
 	require.Equal(1, collect1.Count())
 	if packet := collect1.Get(-1); assert.NotNil(packet.Data) {
 		assert.EqualValues(token1, packet.Lp.PitToken)
@@ -341,35 +347,22 @@ func TestImplicitDigest(t *testing.T) {
 	assert.Equal(uint64(1), fibCnt.NTxInterests)
 }
 
-func TestImplicitDigestFragmented(t *testing.T) {
-	assert, require := makeAR(t)
-	fixture := NewFixture(t)
+func TestImplicitDigestDisabled(t *testing.T) {
+	assert, _ := makeAR(t)
+	fixture := NewFixture(t,
+		func(cfg *fwdp.Config) { cfg.LCoreAlloc[fwdp.RoleCrypto] = ealthread.RoleConfig{} }, // no CRYPTO thread
+	)
 	defer fixture.Close()
 
 	face1, face2 := intface.MustNew(), intface.MustNew()
-	collect1, collect2 := intface.Collect(face1), intface.Collect(face2)
+	collect2 := intface.Collect(face2)
 	fixture.SetFibEntry("/B", "multicast", face2.ID)
+	token := makeToken()
 
-	// /B/2 is fragmented, which is not supported in some cryptodev
-	data := ndn.MakeData("/B/2", bytes.Repeat([]byte{0xC0}, 300))
+	data := ndn.MakeData("/B/3")
 	fullName := data.FullName()
 
-	token := makeToken()
 	face1.Tx <- ndn.MakeInterest(fullName, token.LpL3())
 	fixture.StepDelay()
-	assert.Equal(1, collect2.Count())
-
-	packet := data.ToPacket()
-	packet.Lp.PitToken = collect2.Get(-1).Lp.PitToken
-	frags, e := ndn.NewLpFragmenter(200).Fragment(data.ToPacket())
-	require.NoError(e)
-	require.Greater(len(frags), 1)
-	for _, frag := range frags {
-		face2.Tx <- frag
-		fixture.StepDelay()
-	}
-	require.Equal(1, collect1.Count())
-	if packet := collect1.Get(-1); assert.NotNil(packet.Data) {
-		assert.EqualValues(token, packet.Lp.PitToken)
-	}
+	assert.Equal(0, collect2.Count())
 }

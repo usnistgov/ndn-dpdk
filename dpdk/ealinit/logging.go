@@ -140,9 +140,14 @@ func processLogLine(line []byte) {
 
 	logtype, _ := strconv.Atoi(string(m[1]))
 	logName := logTypes[logtype]
-	l := logging.Named(logTypes[logtype])
+	var l *zap.Logger
 	if logName == "" {
 		l = logging.Named(logPkgDPDK)
+	} else {
+		l = logging.Named(logTypes[logtype])
+	}
+	if lc, _ := strconv.Atoi(string(m[3])); lc != math.MaxUint32 {
+		l = l.Named(string(m[3]))
 	}
 
 	lvl := dpdk2zapLogLevels[m[2][0]]
@@ -158,10 +163,6 @@ func processLogLine(line []byte) {
 	for _, pair := range pairs {
 		kv := bytes.Split(pair, []byte{'='})
 		fields = append(fields, zap.ByteString(string(kv[0]), kv[1]))
-	}
-
-	if lc, _ := strconv.Atoi(string(m[3])); lc != math.MaxUint32 {
-		fields = append(fields, zap.Int("lc", lc))
 	}
 
 	if len(m[6]) > 0 {

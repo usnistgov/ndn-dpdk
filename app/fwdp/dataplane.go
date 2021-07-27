@@ -45,7 +45,7 @@ type Config struct {
 
 func (cfg *Config) validate() error {
 	if len(cfg.LCoreAlloc) > 0 {
-		if e := cfg.LCoreAlloc.ValidateRoles(map[string]int{RoleInput: 1, RoleOutput: 1, RoleCrypto: 1, RoleFwd: 1}); e != nil {
+		if e := cfg.LCoreAlloc.ValidateRoles(map[string]int{RoleInput: 1, RoleOutput: 1, RoleCrypto: 0, RoleFwd: 1}); e != nil {
 			return e
 		}
 	}
@@ -97,7 +97,7 @@ func defaultAlloc() (m map[string]eal.LCores, e error) {
 			maxCount := 0
 			for s, n := range ethdevSockets {
 				if n > maxCount {
-					socket = s
+					socket, maxCount = s, n
 					ethdevSockets[s]--
 					break
 				}
@@ -210,8 +210,8 @@ func New(cfg Config) (dp *DataPlane, e error) {
 	for _, fwd := range dp.fwds {
 		if fwcsh := dp.fwcsh[fwd.NumaSocket()]; fwcsh != nil {
 			fwcsh.ConnectTo(fwd)
-		} else {
-			fwcshList[rand.Intn(len(fwcshList))].ConnectTo(fwd)
+		} else if n := len(fwcshList); n > 0 {
+			fwcshList[rand.Intn(n)].ConnectTo(fwd)
 		}
 		ealthread.Launch(fwd)
 	}
