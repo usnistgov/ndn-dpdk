@@ -78,9 +78,7 @@ FwFwd_InterestForward(FwFwd* fwd, FwFwdCtx* ctx)
     return;
   }
   NULLize(ctx->npkt); // npkt is owned and possibly freed by pitEntry
-  char debugStringBuffer[PitDebugStringLength];
-  N_LOGD("^ pit-entry=%p(%s)", ctx->pitEntry,
-         PitEntry_ToDebugString(ctx->pitEntry, debugStringBuffer));
+  N_LOGD("^ pit-entry=%p(%s)", ctx->pitEntry, PitEntry_ToDebugString(ctx->pitEntry));
 
   uint64_t res = SgInvoke(ctx->fibEntry->strategy, ctx);
   NULLize(ctx->pitEntry); // strategy may have deleted PIT entry via SgReturnNacks

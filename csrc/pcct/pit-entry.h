@@ -15,8 +15,6 @@ enum
   PitMaxExtDns = 6,
   PitMaxExtUps = 4,
   PitScratchSize = 64,
-  PitDebugStringLength =
-    NameHexBufferLength + 6 * (PitMaxDns + PitMaxExtDns + PitMaxUps + PitMaxExtUps) + 32,
   PitFibPrefixLenBits_ = 9,
 };
 static_assert((1 << PitFibPrefixLenBits_) > FibMaxNameLength, "");
@@ -110,10 +108,10 @@ PitEntry_Finalize(PitEntry* entry)
 
 /**
  * @brief Convert @p entry to a string for debug purpose.
- * @return @p buffer .
+ * @return pointer to a per-lcore static buffer that will be overwritten on subsequent calls.
  */
 __attribute__((nonnull, returns_nonnull)) const char*
-PitEntry_ToDebugString(PitEntry* entry, char buffer[PitDebugStringLength]);
+PitEntry_ToDebugString(PitEntry* entry);
 
 /** @brief Get a token that identifies the PIT entry. */
 __attribute__((nonnull)) static inline uint64_t

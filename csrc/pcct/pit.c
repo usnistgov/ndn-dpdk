@@ -52,9 +52,8 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
   // check for CS match
   if (pccEntry->hasCsEntry && likely(Cs_MatchInterest_(&pcct->cs, pccEntry, npkt))) {
     // CS entry satisfies Interest
-    char debugStringBuffer[PccSearchDebugStringLength];
-    N_LOGD("Insert has-CS pit=%p search=%s pcc=%p", pit,
-           PccSearch_ToDebugString(&search, debugStringBuffer), pccEntry);
+    N_LOGD("Insert has-CS pit=%p search=%s pcc=%p", pit, PccSearch_ToDebugString(&search),
+           pccEntry);
     ++pit->nCsMatch;
     return (PitInsertResult){ .entry = pccEntry, .kind = PIT_INSERT_CS };
   }
@@ -95,15 +94,13 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
     ++pit->nEntries;
     ++pit->nInsert;
     PitEntry_Init(entry, npkt, fibEntry);
-    char debugStringBuffer[PccSearchDebugStringLength];
     N_LOGD("Insert ins-PIT%d pit=%p search=%s pcc-entry=%p pit-entry=%p", (int)entry->mustBeFresh,
-           pit, PccSearch_ToDebugString(&search, debugStringBuffer), pccEntry, entry);
+           pit, PccSearch_ToDebugString(&search), pccEntry, entry);
   } else {
     ++pit->nFound;
     PitEntry_RefreshFibEntry(entry, npkt, fibEntry);
-    char debugStringBuffer[PccSearchDebugStringLength];
     N_LOGD("Insert has-PIT%d pit=%p search=%s pcc-entry=%p pit-entry=%p", (int)entry->mustBeFresh,
-           pit, PccSearch_ToDebugString(&search, debugStringBuffer), pccEntry, entry);
+           pit, PccSearch_ToDebugString(&search), pccEntry, entry);
   }
 
   return (PitInsertResult){ .entry = pccEntry, .kind = resKind };

@@ -8,10 +8,19 @@ N_LOG_INIT(PitEntry);
 
 static_assert(sizeof(PitEntryExt) <= sizeof(PccEntry), "");
 
+enum
+{
+  PitDebugStringLength =
+    NameHexBufferLength + 6 * (PitMaxDns + PitMaxExtDns + PitMaxUps + PitMaxExtUps) + 32,
+};
+RTE_DEFINE_PER_LCORE(
+  struct { char buffer[PitDebugStringLength]; }, PitDebugStringBuffer);
+
 const char*
-PitEntry_ToDebugString(PitEntry* entry, char buffer[PitDebugStringLength])
+PitEntry_ToDebugString(PitEntry* entry)
 {
   int pos = 0;
+#define buffer (RTE_PER_LCORE(PitDebugStringBuffer).buffer)
 #define append(...)                                                                                \
   do {                                                                                             \
     pos += snprintf(RTE_PTR_ADD(buffer, pos), PitDebugStringLength - pos, __VA_ARGS__);            \
@@ -62,8 +71,9 @@ PitEntry_ToDebugString(PitEntry* entry, char buffer[PitDebugStringLength])
   }
   append("]");
 
-#undef append
   return buffer;
+#undef buffer
+#undef append
 }
 
 FibEntry*

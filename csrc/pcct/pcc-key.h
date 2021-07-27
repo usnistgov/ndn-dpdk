@@ -11,7 +11,6 @@
 
 enum
 {
-  PccSearchDebugStringLength = 2 * NameHexBufferLength + 32,
   PccKeyNameCapacity = 240,
   PccKeyFhCapacity = 160,
   PccKeyExtCapacity = 1000,
@@ -54,7 +53,7 @@ PccSearch_ComputeHash(const PccSearch* search)
  * @return @p buffer .
  */
 __attribute__((nonnull, returns_nonnull)) const char*
-PccSearch_ToDebugString(const PccSearch* search, char buffer[PccSearchDebugStringLength]);
+PccSearch_ToDebugString(const PccSearch* search);
 
 typedef struct PccKeyExt PccKeyExt;
 

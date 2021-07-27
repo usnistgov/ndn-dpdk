@@ -31,9 +31,7 @@ FwFwd_DataNeedDigest(FwFwd* fwd, FwFwdCtx* ctx)
 __attribute__((nonnull)) static void
 FwFwd_DataSatisfy(FwFwd* fwd, FwFwdCtx* ctx)
 {
-  char debugStringBuffer[PitDebugStringLength];
-  N_LOGD("^ pit-entry=%p(%s)", ctx->pitEntry,
-         PitEntry_ToDebugString(ctx->pitEntry, debugStringBuffer));
+  N_LOGD("^ pit-entry=%p(%s)", ctx->pitEntry, PitEntry_ToDebugString(ctx->pitEntry));
 
   PitDnIt it;
   for (PitDnIt_Init(&it, ctx->pitEntry); PitDnIt_Valid(&it); PitDnIt_Next(&it)) {

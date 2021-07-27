@@ -86,9 +86,7 @@ PName_ParseComponent_(const PName* p, uint16_t* pos, uint16_t* type, uint16_t* l
 bool
 PName_Parse(PName* p, LName l)
 {
-  *p = (const PName){ 0 };
-  p->value = l.value;
-  p->length = l.length;
+  *p = (const PName){ .value = l.value, .length = l.length };
 
   uint16_t pos = 0, end = 0, type = 0, length = 0;
   while (likely(PName_ParseComponent_(p, &pos, &type, &length))) {
@@ -102,15 +100,16 @@ PName_Parse(PName* p, LName l)
     return false;
   }
 
-  p->hasDigestComp =
-    unlikely(type == TtImplicitSha256DigestComponent) && length == ImplicitDigestLength;
+  if (unlikely(type == TtImplicitSha256DigestComponent) && likely(length == ImplicitDigestLength)) {
+    p->hasDigestComp = true;
+  }
   return true;
 }
 
 LName
 PName_GetPrefix_Uncached_(const PName* p, int n)
 {
-  if (unlikely(n == (int)p->nComps)) {
+  if (unlikely(n >= (int)p->nComps)) {
     return PName_ToLName(p);
   }
 

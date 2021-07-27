@@ -42,7 +42,7 @@ LName_ComputeHash(LName name);
  * @brief Print name in hexadecimal format.
  * @return number of characters written, excluding trailing null character.
  */
-int
+__attribute__((nonnull)) int
 LName_PrintHex(LName name, char buffer[NameHexBufferLength]);
 
 /** @brief Parsed name. */

@@ -335,7 +335,7 @@ TxEther(const EthTxHdr* hdr, struct rte_mbuf* m, bool newBurst)
 static __rte_always_inline uint16_t
 TxMakeVxlanSrcPort(bool newBurst)
 {
-  RTE_PER_LCORE(txVxlanSrcPort) += (int)newBurst;
+  RTE_PER_LCORE(txVxlanSrcPort) += (uint16_t)newBurst;
   return (RTE_PER_LCORE(txVxlanSrcPort) & VXLAN_SRCPORT_MASK) | VXLAN_SRCPORT_BASE;
 }
 

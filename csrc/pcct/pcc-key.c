@@ -3,10 +3,18 @@
 
 static_assert(sizeof(PccKeyExt) <= sizeof(PccEntry), "");
 
+enum
+{
+  PccSearchDebugStringLength = 2 * NameHexBufferLength + 32,
+};
+RTE_DEFINE_PER_LCORE(
+  struct { char buffer[PccSearchDebugStringLength]; }, PccSearchDebugStringBuffer);
+
 const char*
-PccSearch_ToDebugString(const PccSearch* search, char buffer[PccSearchDebugStringLength])
+PccSearch_ToDebugString(const PccSearch* search)
 {
   int pos = 0;
+#define buffer (RTE_PER_LCORE(PccSearchDebugStringBuffer).buffer)
 #define append(...)                                                                                \
   do {                                                                                             \
     pos += snprintf(RTE_PTR_ADD(buffer, pos), PccSearchDebugStringLength - pos, __VA_ARGS__);      \
@@ -21,8 +29,9 @@ PccSearch_ToDebugString(const PccSearch* search, char buffer[PccSearchDebugStrin
     pos += LName_PrintHex(search->fh, RTE_PTR_ADD(buffer, pos));
   }
 
-#undef append
   return buffer;
+#undef buffer
+#undef append
 }
 
 bool

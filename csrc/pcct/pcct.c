@@ -104,9 +104,8 @@ Pcct_Insert(Pcct* pcct, PccSearch* search, bool* isNew)
   HASH_ADD_BYHASHVALUE(hh, pcct->keyHt, key, 0, hash, entry);
   *isNew = true;
 
-  char debugStringBuffer[PccSearchDebugStringLength];
   N_LOGD("Insert pcct=%p hash=%016" PRIx64 " search=%s entry=%p", pcct, hash,
-         PccSearch_ToDebugString(search, debugStringBuffer), entry);
+         PccSearch_ToDebugString(search), entry);
   return entry;
 }
 
