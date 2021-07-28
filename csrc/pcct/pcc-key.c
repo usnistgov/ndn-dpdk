@@ -7,7 +7,7 @@ enum
 {
   PccSearchDebugStringLength = 2 * NameHexBufferLength + 32,
 };
-RTE_DEFINE_PER_LCORE(
+static RTE_DEFINE_PER_LCORE(
   struct { char buffer[PccSearchDebugStringLength]; }, PccSearchDebugStringBuffer);
 
 const char*

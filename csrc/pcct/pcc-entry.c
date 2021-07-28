@@ -1,7 +1,7 @@
 #include "pcc-entry.h"
 #include "pcct.h"
 
-static struct rte_mempool*
+__attribute__((nonnull, returns_nonnull)) static inline struct rte_mempool*
 PccEntry_ToMempool(PccEntry* entry)
 {
   return rte_mempool_from_obj(entry);

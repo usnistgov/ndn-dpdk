@@ -50,15 +50,18 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
   }
 
   // check for CS match
-  if (pccEntry->hasCsEntry && likely(Cs_MatchInterest_(&pcct->cs, pccEntry, npkt))) {
-    // CS entry satisfies Interest
-    N_LOGD("Insert has-CS pit=%p search=%s pcc=%p", pit, PccSearch_ToDebugString(&search),
-           pccEntry);
-    ++pit->nCsMatch;
-    return (PitInsertResult){ .entry = pccEntry, .kind = PIT_INSERT_CS };
+  if (pccEntry->hasCsEntry) {
+    CsEntry* csEntry = PccEntry_GetCsEntry(pccEntry);
+    if (likely(Cs_MatchInterest(&pcct->cs, csEntry, npkt))) {
+      // CS entry satisfies Interest
+      N_LOGD("Insert has-CS pit=%p search=%s pcc=%p", pit, PccSearch_ToDebugString(&search),
+             pccEntry);
+      ++pit->nCsMatch;
+      return (PitInsertResult){ .kind = PIT_INSERT_CS, .csEntry = CsEntry_GetDirect(csEntry) };
+    }
   }
 
-  // add token
+  // assign token if it does not exist
   uint64_t token = Pcct_AddToken(pcct, pccEntry);
   if (unlikely(token == 0)) {
     if (isNewPcc) {
@@ -68,23 +71,20 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
     return (PitInsertResult){ .kind = PIT_INSERT_FULL };
   }
 
-  PitEntry* entry = NULL;
+  PitEntry* pitEntry = NULL;
   bool isNew = false;
-  PitInsertResultKind resKind = 0;
 
   // add PIT entry if it does not exist
   if (!interest->mustBeFresh) {
     isNew = !pccEntry->hasPitEntry0;
-    entry = PccEntry_AddPitEntry0(pccEntry);
-    resKind = PIT_INSERT_PIT0;
+    pitEntry = PccEntry_AddPitEntry0(pccEntry);
   } else {
     isNew = !pccEntry->hasPitEntry1;
-    entry = PccEntry_AddPitEntry1(pccEntry);
-    resKind = PIT_INSERT_PIT1;
+    pitEntry = PccEntry_AddPitEntry1(pccEntry);
   }
 
-  if (unlikely(entry == NULL)) {
-    NDNDPDK_ASSERT(!isNewPcc); // new PccEntry must have occupied slot1
+  if (unlikely(pitEntry == NULL)) {
+    NDNDPDK_ASSERT(!isNewPcc); // new PccEntry should have unoccupied slot1
     ++pit->nAllocErr;
     return (PitInsertResult){ .kind = PIT_INSERT_FULL };
   }
@@ -93,17 +93,17 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
   if (isNew) {
     ++pit->nEntries;
     ++pit->nInsert;
-    PitEntry_Init(entry, npkt, fibEntry);
-    N_LOGD("Insert ins-PIT%d pit=%p search=%s pcc-entry=%p pit-entry=%p", (int)entry->mustBeFresh,
-           pit, PccSearch_ToDebugString(&search), pccEntry, entry);
+    PitEntry_Init(pitEntry, npkt, fibEntry);
+    N_LOGD("Insert ins-PIT%d pit=%p search=%s pcc-entry=%p pit-entry=%p",
+           (int)pitEntry->mustBeFresh, pit, PccSearch_ToDebugString(&search), pccEntry, pitEntry);
   } else {
     ++pit->nFound;
-    PitEntry_RefreshFibEntry(entry, npkt, fibEntry);
-    N_LOGD("Insert has-PIT%d pit=%p search=%s pcc-entry=%p pit-entry=%p", (int)entry->mustBeFresh,
-           pit, PccSearch_ToDebugString(&search), pccEntry, entry);
+    PitEntry_RefreshFibEntry(pitEntry, npkt, fibEntry);
+    N_LOGD("Insert has-PIT%d pit=%p search=%s pcc-entry=%p pit-entry=%p",
+           (int)pitEntry->mustBeFresh, pit, PccSearch_ToDebugString(&search), pccEntry, pitEntry);
   }
 
-  return (PitInsertResult){ .entry = pccEntry, .kind = resKind };
+  return (PitInsertResult){ .kind = PIT_INSERT_PIT, .pitEntry = pitEntry };
 }
 
 void

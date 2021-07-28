@@ -139,16 +139,14 @@ FwFwd_RxInterest(FwFwd* fwd, FwFwdCtx* ctx)
 
   // lookup PIT-CS
   PitInsertResult pitIns = Pit_Insert(fwd->pit, ctx->npkt, ctx->fibEntry);
-  switch (PitInsertResult_GetKind(pitIns)) {
-    case PIT_INSERT_PIT0:
-    case PIT_INSERT_PIT1: {
-      ctx->pitEntry = PitInsertResult_GetPitEntry(pitIns);
+  switch (pitIns.kind) {
+    case PIT_INSERT_PIT: {
+      ctx->pitEntry = pitIns.pitEntry;
       FwFwd_InterestForward(fwd, ctx);
       break;
     }
     case PIT_INSERT_CS: {
-      CsEntry* csEntry = CsEntry_GetDirect(PitInsertResult_GetCsEntry(pitIns));
-      FwFwd_InterestHitCs(fwd, ctx, csEntry);
+      FwFwd_InterestHitCs(fwd, ctx, pitIns.csEntry);
       break;
     }
     case PIT_INSERT_FULL:

@@ -13,7 +13,7 @@ enum
   PitDebugStringLength =
     NameHexBufferLength + 6 * (PitMaxDns + PitMaxExtDns + PitMaxUps + PitMaxExtUps) + 32,
 };
-RTE_DEFINE_PER_LCORE(
+static RTE_DEFINE_PER_LCORE(
   struct { char buffer[PitDebugStringLength]; }, PitDebugStringBuffer);
 
 const char*

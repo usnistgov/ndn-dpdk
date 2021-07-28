@@ -3,6 +3,9 @@ package pit
 
 /*
 #include "../../csrc/pcct/pit.h"
+
+static_assert(offsetof(PitInsertResult, pitEntry) == offsetof(PitInsertResult, csEntry), "");
+void* c_PitInsertResult_GetEntry(PitInsertResult r) { return r.pitEntry; }
 */
 import "C"
 import (
@@ -41,11 +44,11 @@ func (pit *Pit) TriggerTimeoutSched() {
 // It returns either a new or existing PIT entry, or a CS entry that satisfies the Interest.
 func (pit *Pit) Insert(interest *ndni.Packet, fibEntry *fibreplica.Entry) (pitEntry *Entry, csEntry *cs.Entry) {
 	res := C.Pit_Insert(pit.ptr(), (*C.Packet)(interest.Ptr()), (*C.FibEntry)(fibEntry.Ptr()))
-	switch C.PitInsertResult_GetKind(res) {
-	case C.PIT_INSERT_PIT0, C.PIT_INSERT_PIT1:
-		pitEntry = (*Entry)(C.PitInsertResult_GetPitEntry(res))
+	switch res.kind {
+	case C.PIT_INSERT_PIT:
+		pitEntry = (*Entry)(C.c_PitInsertResult_GetEntry(res))
 	case C.PIT_INSERT_CS:
-		csEntry = cs.EntryFromPtr(unsafe.Pointer(C.PitInsertResult_GetCsEntry(res)))
+		csEntry = cs.EntryFromPtr(C.c_PitInsertResult_GetEntry(res))
 	}
 	return
 }

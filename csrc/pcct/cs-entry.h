@@ -55,7 +55,7 @@ struct CsEntry
    */
   int8_t nIndirects;
 
-  CsListID arcList : 8;
+  CsListID arcList;
 
   /**
    * @brief Associated indirect entries.
@@ -65,25 +65,34 @@ struct CsEntry
 };
 static_assert(CsMaxIndirects < INT8_MAX, "");
 
+/** @brief Determine if @p entry is a direct entry. */
 __attribute__((nonnull)) static __rte_always_inline bool
 CsEntry_IsDirect(CsEntry* entry)
 {
   return entry->nIndirects >= 0;
 }
 
+/** @brief Retrieve direct entry. */
 __attribute__((nonnull)) static __rte_always_inline CsEntry*
 CsEntry_GetDirect(CsEntry* entry)
 {
   return likely(CsEntry_IsDirect(entry)) ? entry : entry->direct;
 }
 
+/**
+ * @brief Retrieve Data packet on the direct entry.
+ * @warning undefined behavior if @p entry does not have a direct entry.
+ */
 __attribute__((nonnull)) static __rte_always_inline Packet*
 CsEntry_GetData(CsEntry* entry)
 {
   return CsEntry_GetDirect(entry)->data;
 }
 
-/** @brief Determine if @p entry is fresh. */
+/**
+ * @brief Determine if @p entry is fresh.
+ * @warning undefined behavior if @p entry does not have a direct entry.
+ */
 __attribute__((nonnull)) static __rte_always_inline bool
 CsEntry_IsFresh(CsEntry* entry, TscTime now)
 {

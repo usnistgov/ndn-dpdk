@@ -104,14 +104,21 @@ PccEntry_AllocateSlot_(PccEntry* entry, PccSlot** slot);
 __attribute__((nonnull)) void
 PccEntry_ClearSlot_(PccEntry* entry, PccSlotIndex slot);
 
-/** @brief Get PIT entry of MustBeFresh=0 from @p entry . */
-__attribute__((nonnull)) static inline PitEntry*
+/**
+ * @brief Get PIT entry of MustBeFresh=0 from @p entry .
+ * @warning undefined behavior if @p entry does not have a PIT entry of MustBeFresh=0.
+ */
+__attribute__((nonnull, returns_nonnull)) static inline PitEntry*
 PccEntry_GetPitEntry0(PccEntry* entry)
 {
   return &PccEntry_GetSlot_(entry, entry->pitEntry0Slot)->pitEntry;
 }
 
-/** @brief Add PIT entry of MustBeFresh=0 to @p entry . */
+/**
+ * @brief Add PIT entry of MustBeFresh=0 to @p entry .
+ * @return existing or new entry.
+ * @retval NULL allocation failure.
+ */
 __attribute__((nonnull)) static inline PitEntry*
 PccEntry_AddPitEntry0(PccEntry* entry)
 {
@@ -134,14 +141,21 @@ PccEntry_RemovePitEntry0(PccEntry* entry)
   entry->pitEntry0Slot = PCC_SLOT_NONE;
 }
 
-/** @brief Get PIT entry of MustBeFresh=1 from @p entry . */
-__attribute__((nonnull)) static inline PitEntry*
+/**
+ * @brief Get PIT entry of MustBeFresh=1 from @p entry .
+ * @warning undefined behavior if @p entry does not have a PIT entry of MustBeFresh=1.
+ */
+__attribute__((nonnull, returns_nonnull)) static inline PitEntry*
 PccEntry_GetPitEntry1(PccEntry* entry)
 {
   return &PccEntry_GetSlot_(entry, entry->pitEntry1Slot)->pitEntry;
 }
 
-/** @brief Add PIT entry of MustBeFresh=1 to @p entry . */
+/**
+ * @brief Add PIT entry of MustBeFresh=1 to @p entry .
+ * @return existing or new entry.
+ * @retval NULL allocation failure.
+ */
 __attribute__((nonnull)) static inline PitEntry*
 PccEntry_AddPitEntry1(PccEntry* entry)
 {
@@ -171,14 +185,21 @@ PccEntry_FromPitEntry(PitEntry* pitEntry)
   return container_of(pitEntry, PccSlot, pitEntry)->pccEntry;
 }
 
-/** @brief Get CS entry from @p entry . */
-__attribute__((nonnull)) static inline CsEntry*
+/**
+ * @brief Get CS entry from @p entry .
+ * @warning undefined behavior if @p entry does not have a CS entry.
+ */
+__attribute__((nonnull, returns_nonnull)) static inline CsEntry*
 PccEntry_GetCsEntry(PccEntry* entry)
 {
   return &PccEntry_GetSlot_(entry, entry->csEntrySlot)->csEntry;
 }
 
-/** @brief Add CS entry to @p entry . */
+/**
+ * @brief Add CS entry to @p entry .
+ * @return existing or new entry.
+ * @retval NULL allocation failure.
+ */
 __attribute__((nonnull)) static inline CsEntry*
 PccEntry_AddCsEntry(PccEntry* entry)
 {

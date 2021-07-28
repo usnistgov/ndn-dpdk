@@ -95,7 +95,7 @@ PitDnIt_Next(PitDnIt* it)
 /**
  * @brief Add an extension for more DN slots.
  * @retval true extension added, iterator points to next slot.
- * @retval false unable to allocate extension
+ * @retval false allocation failure.
  */
 __attribute__((nonnull)) static inline bool
 PitDnIt_Extend(PitDnIt* it, Pit* pit)
@@ -141,7 +141,7 @@ PitUpIt_Next(PitUpIt* it)
 /**
  * @brief Add an extension for more UP slots.
  * @retval true extension added, iterator points to next slot.
- * @retval false unable to allocate extension
+ * @retval false allocation failure.
  */
 __attribute__((nonnull)) static inline bool
 PitUpIt_Extend(PitDnIt* it, Pit* pit)

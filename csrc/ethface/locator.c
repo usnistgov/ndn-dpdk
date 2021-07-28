@@ -9,7 +9,7 @@
 #define VXLAN_SRCPORT_MASK 0x3FFF
 static const uint8_t V4_IN_V6_PREFIX[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                                            0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF };
-RTE_DEFINE_PER_LCORE(uint16_t, txVxlanSrcPort);
+static RTE_DEFINE_PER_LCORE(uint16_t, txVxlanSrcPort);
 
 typedef struct ClassifyResult
 {

@@ -17,7 +17,7 @@ __attribute__((nonnull)) void
 CsList_Remove(CsList* csl, CsEntry* entry);
 
 /** @brief Access the front entry of list. */
-__attribute__((nonnull)) static inline CsEntry*
+__attribute__((nonnull, returns_nonnull)) static inline CsEntry*
 CsList_GetFront(CsList* csl)
 {
   NDNDPDK_ASSERT(csl->count > 0);
@@ -34,7 +34,7 @@ typedef void (*CsList_EvictCb)(void* arg, CsEntry* entry);
  * @brief Evict up to @p max entries from front of list.
  * @param cb callback to erase an entry; the callback must not invoke CsList_Remove.
  */
-__attribute__((nonnull(1))) uint32_t
+__attribute__((nonnull)) uint32_t
 CsList_EvictBulk(CsList* csl, uint32_t max, CsList_EvictCb cb, void* cbarg);
 
 #endif // NDNDPDK_PCCT_CS_LIST_H

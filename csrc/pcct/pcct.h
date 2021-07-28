@@ -13,7 +13,7 @@ typedef struct Pcct
   struct rte_mempool* mp;   ///< entry mempool
   PccEntry* keyHt;          ///< key hashtable
   struct rte_hash* tokenHt; ///< token hashtable
-  uint64_t lastToken;       ///< last assigned token;
+  uint64_t lastToken;       ///< last assigned token
 
   Pit pit;
   Cs cs;

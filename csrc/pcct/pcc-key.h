@@ -50,7 +50,7 @@ PccSearch_ComputeHash(const PccSearch* search)
 
 /**
  * @brief Convert @p search to a string for debug purpose.
- * @return @p buffer .
+ * @return pointer to a per-lcore static buffer that will be overwritten on subsequent calls.
  */
 __attribute__((nonnull, returns_nonnull)) const char*
 PccSearch_ToDebugString(const PccSearch* search);

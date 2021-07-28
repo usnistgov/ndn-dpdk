@@ -19,7 +19,7 @@ CsList_Init(CsList* csl)
   csl->capacity = 0;
 }
 
-static void
+static __rte_always_inline void
 CsList_AppendNode(CsList* csl, CsNode* node)
 {
   CsNode* last = csl->prev;
@@ -29,7 +29,7 @@ CsList_AppendNode(CsList* csl, CsNode* node)
   csl->prev = node;
 }
 
-static void
+static __rte_always_inline void
 CsList_RemoveNode(CsList* csl, CsNode* node)
 {
   CsNode* prev = node->prev;

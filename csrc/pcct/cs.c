@@ -253,7 +253,7 @@ Cs_Insert(Cs* cs, Packet* npkt, PitFindResult pitFound)
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   PData* data = Packet_GetDataHdr(npkt);
   PccEntry* pccEntry = pitFound.entry;
-  PInterest* interest = PitFindResult_GetInterest_(pitFound);
+  PInterest* interest = PitFindResult_GetInterest(pitFound);
   CsEntry* direct = NULL;
 
   // if Interest name differs from Data name, insert a direct entry elsewhere
@@ -288,9 +288,8 @@ Cs_Insert(Cs* cs, Packet* npkt, PitFindResult pitFound)
 }
 
 bool
-Cs_MatchInterest_(Cs* cs, PccEntry* pccEntry, Packet* interestNpkt)
+Cs_MatchInterest(Cs* cs, CsEntry* entry, Packet* interestNpkt)
 {
-  CsEntry* entry = PccEntry_GetCsEntry(pccEntry);
   CsEntry* direct = CsEntry_GetDirect(entry);
   bool hasData = CsEntry_GetData(direct) != NULL;
   PccEntry* pccDirect = PccEntry_FromCsEntry(direct);
@@ -300,8 +299,8 @@ Cs_MatchInterest_(Cs* cs, PccEntry* pccEntry, Packet* interestNpkt)
   bool violateMustBeFresh =
     interest->mustBeFresh &&
     !CsEntry_IsFresh(direct, Mbuf_GetTimestamp(Packet_ToMbuf(interestNpkt)));
-  N_LOGD("MatchInterest cs=%p pcc-entry=%p cs-entry=%p~%s cbp=%s mbf=%s has-data=%s", cs, pccEntry,
-         entry, CsEntry_IsDirect(entry) ? "direct" : "indirect", violateCanBePrefix ? "N" : "Y",
+  N_LOGD("MatchInterest cs=%p cs-entry=%p~%s cbp=%s mbf=%s has-data=%s", cs, entry,
+         CsEntry_IsDirect(entry) ? "direct" : "indirect", violateCanBePrefix ? "N" : "Y",
          violateMustBeFresh ? "N" : "Y", hasData ? "Y" : "N");
 
   if (likely(!violateCanBePrefix && !violateMustBeFresh)) {
