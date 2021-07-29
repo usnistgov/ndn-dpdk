@@ -72,7 +72,7 @@ Example:
     },
     "lcoreMain": 8 // let lcore 8 be the DPDK main lcore
   },
-  "lcoreAlloc": { // all roles must be specified
+  "lcoreAlloc": { // all roles must be specified unless it has zero lcores
     "RX":     { "0": 1, "1": 1 }, // 1 input thread on each NUMA socket
     "TX":     { "0": 1, "1": 1 }, // 1 output thread on each NUMA socket
     "FWD":    { "0": 3, "1": 0 }, // 3 forwarding threads on NUMA socket 0

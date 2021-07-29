@@ -4,8 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/rickb777/plural"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"go.uber.org/multierr"
+)
+
+var (
+	lcoresPlural = plural.FromOne("%d lcore", "%d lcores")
+	nArePlural   = plural.FromZero("none is", "only %d is", "only %d are")
 )
 
 // Config contains lcore allocation config.
@@ -15,23 +21,21 @@ type Config map[string]RoleConfig
 
 // ValidateRoles ensures the configured roles match application roles and minimums.
 func (c Config) ValidateRoles(roles map[string]int) error {
-	cRoles := map[string]int{}
-	for role, rc := range c {
-		cRoles[role] = rc.Count()
-	}
-
-	ok := len(c) == len(roles)
-	if ok {
-		for role, min := range roles {
-			cnt, found := cRoles[role]
-			ok = ok && found && cnt >= min
+	errs := []error{}
+	for role, min := range roles {
+		if n := c[role].Count(); n < min {
+			errs = append(errs, fmt.Errorf("role %s needs at least %s but %s configured",
+				role, lcoresPlural.FormatInt(min), nArePlural.FormatInt(n)))
 		}
 	}
-	if ok {
-		return nil
+
+	for role := range c {
+		if _, ok := roles[role]; !ok {
+			errs = append(errs, fmt.Errorf("unknown role %s", role))
+		}
 	}
 
-	return fmt.Errorf("configured roles %v do not match application roles or minimum counts %v", cRoles, roles)
+	return multierr.Combine(errs...)
 }
 
 func (c Config) assignWorkers(filter eal.LCorePredicate) (m map[string]eal.LCores, e error) {
@@ -68,7 +72,8 @@ func (c Config) assignWorkers(filter eal.LCorePredicate) (m map[string]eal.LCore
 				m[role] = append(m[role], workersBySocket[socket][:count]...)
 				workersBySocket[socket] = workersBySocket[socket][count:]
 			} else {
-				errs = append(errs, fmt.Errorf("role %s needs %d lcores on NUMA socket %d but only %d are available", role, count, socketID, avail))
+				errs = append(errs, fmt.Errorf("role %s has %s configured on NUMA socket %d but %s available after prior assignments",
+					role, lcoresPlural.FormatInt(count), socketID, nArePlural.FormatInt(avail)))
 			}
 		}
 	}

@@ -44,7 +44,7 @@ export type LCore = number;
  * LCore allocation configuration.
  * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/dpdk/ealthread#Config>
  */
-export type LCoreAllocConfig<K extends string = string> = Record<K, LCoreAllocConfig.Role>;
+export type LCoreAllocConfig<K extends string = string> = Partial<Record<K, LCoreAllocConfig.Role>>;
 
 export namespace LCoreAllocConfig {
   /**

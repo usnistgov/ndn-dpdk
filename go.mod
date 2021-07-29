@@ -33,6 +33,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pkg/math v0.0.0-20141027224758-f2ed9e40e245
 	github.com/powerman/rpc-codec v1.2.2
+	github.com/rickb777/plural v1.3.0
 	github.com/safchain/ethtool v0.0.0-20201023143004-874930cb3ce0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/smartystreets/assertions v1.2.0 // indirect
@@ -50,7 +51,7 @@ require (
 	go.uber.org/zap v1.18.1
 	go4.org v0.0.0-20201209231011-d4a079459e60
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97 // indirect
-	golang.org/x/net v0.0.0-20210716203947-853a461950ff // indirect
+	golang.org/x/net v0.0.0-20210726213435-c6fcb2dbf985 // indirect
 	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c
 	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
