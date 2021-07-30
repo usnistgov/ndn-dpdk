@@ -4,10 +4,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/usnistgov/ndn-dpdk/app/hrlog"
 	"github.com/usnistgov/ndn-dpdk/bpf"
-	"github.com/usnistgov/ndn-dpdk/container/hrlog"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealconfig"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealinit"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev/ethvdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
@@ -19,12 +20,12 @@ import (
 
 // CommonArgs contains arguments shared between forwarder and traffic generator.
 type CommonArgs struct {
-	Eal     ealconfig.Config        `json:"eal,omitempty"`
-	Mempool pktmbuf.TemplateUpdates `json:"mempool,omitempty"`
-	Hrlog   bool                    `json:"hrlog,omitempty"`
+	Eal        ealconfig.Config        `json:"eal,omitempty"`
+	Mempool    pktmbuf.TemplateUpdates `json:"mempool,omitempty"`
+	LCoreAlloc ealthread.Config        `json:"lcoreAlloc,omitempty"`
 }
 
-func (a CommonArgs) apply() error {
+func (a *CommonArgs) apply() error {
 	args, e := a.Eal.Args(nil)
 	if e != nil {
 		return e
@@ -34,8 +35,23 @@ func (a CommonArgs) apply() error {
 	}
 
 	a.Mempool.Apply()
-	if a.Hrlog {
-		hrlog.Init()
+
+	lcoreAlloc, e := a.LCoreAlloc.Extract(map[string]int{hrlog.Role: 0})
+	if e != nil {
+		return e
+	}
+	alloc, e := ealthread.AllocConfig(lcoreAlloc)
+	if e != nil {
+		return e
+	}
+	lcHrlog := alloc[hrlog.Role]
+	if len(lcHrlog) > 0 {
+		w, e := hrlog.NewWriter(hrlog.WriterConfig{})
+		if e != nil {
+			return e
+		}
+		w.SetLCore(lcHrlog[0])
+		ealthread.Launch(w)
 	}
 	return nil
 }

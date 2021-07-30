@@ -29,7 +29,7 @@ const (
 
 // Config contains data plane configuration.
 type Config struct {
-	LCoreAlloc ealthread.Config `json:"lcoreAlloc,omitempty"`
+	LCoreAlloc ealthread.Config `json:"-"`
 
 	Ndt      ndt.Config         `json:"ndt,omitempty"`
 	Fib      fibdef.Config      `json:"fib,omitempty"`

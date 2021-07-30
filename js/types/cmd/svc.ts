@@ -1,20 +1,18 @@
 import type { EalConfig, LCoreAllocConfig, PktmbufPoolTemplateUpdates } from "../dpdk";
 import type { FwdpConfig } from "../fwdp";
 
-export interface ActivateArgsCommon {
+export interface ActivateArgsCommon<Roles extends string = never> {
   eal?: EalConfig;
 
-  /** Whether to enable high resolution per-packet tracing module. */
-  hrlog?: boolean;
+  lcoreAlloc?: LCoreAllocConfig<Roles | "HRLOG">;
 }
 
 /**
  * Forwarder activation arguments.
  * These are provided to the 'activate' mutation in GraphQL.
  */
-export interface ActivateFwArgs extends ActivateArgsCommon, FwdpConfig {
+export interface ActivateFwArgs extends ActivateArgsCommon<"RX" | "TX" | "CRYPTO" | "FWD">, FwdpConfig {
   mempool?: PktmbufPoolTemplateUpdates<"DIRECT" | "INDIRECT" | "HEADER">;
-  lcoreAlloc?: LCoreAllocConfig<"RX" | "TX" | "CRYPTO" | "FWD">;
 }
 
 /**

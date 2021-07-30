@@ -1,4 +1,4 @@
-# ndn-dpdk/container/hrlog
+# ndn-dpdk/app/hrlog
 
 This package implements a high resolution logger, suitable for per-packet tracing.
 

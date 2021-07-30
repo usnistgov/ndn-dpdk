@@ -4,14 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"os"
-	"path"
 	"strconv"
 	"testing"
 	"time"
 
 	"github.com/gabstv/freeport"
 	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
+	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/ifacetestenv"
 	"github.com/usnistgov/ndn-dpdk/iface/socketface"
@@ -132,10 +131,8 @@ func TestTcp(t *testing.T) {
 func TestUnix(t *testing.T) {
 	assert, require := makeAR(t)
 
-	dir, e := os.MkdirTemp("", "socketface-test")
-	require.NoError(e)
-	defer os.RemoveAll(dir)
-	addr := path.Join(dir, "unix.sock")
+	addr, del := testenv.TempName("unix.sock")
+	defer del()
 	listener, e := net.Listen("unix", addr)
 	require.NoError(e)
 	defer listener.Close()

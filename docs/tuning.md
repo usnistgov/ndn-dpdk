@@ -83,7 +83,7 @@ Example:
 }
 ```
 
-The traffic generator does not accept **.lcoreAlloc** option.
+The traffic generator does not follow **.lcoreAlloc** option.
 It always tries to allocate lcores on the same NUMA socket as the Ethernet adapter.
 
 ## CPU Usage Insights

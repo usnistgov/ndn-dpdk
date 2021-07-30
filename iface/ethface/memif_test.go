@@ -4,10 +4,10 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"path"
 	"testing"
 	"time"
 
+	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/iface/ethface"
 	"github.com/usnistgov/ndn-dpdk/iface/ifacetestenv"
 	"github.com/usnistgov/ndn-dpdk/ndn/memiftransport"
@@ -17,10 +17,8 @@ import (
 func TestMemif(t *testing.T) {
 	assert, require := makeAR(t)
 
-	dir, e := os.MkdirTemp("", "ethface-test")
-	require.NoError(e)
-	defer os.RemoveAll(dir)
-	socketName := path.Join(dir, "memif.sock")
+	socketName, del := testenv.TempName("memif.sock")
+	defer del()
 
 	fixture := ifacetestenv.NewFixture(t)
 	defer fixture.Close()

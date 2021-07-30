@@ -7,40 +7,42 @@ import (
 
 // GraphQL types.
 var (
-	GqlCollectJobNodeType *gqlserver.NodeType
-	GqlCollectJobType     *graphql.Object
+	GqlTaskNodeType *gqlserver.NodeType
+	GqlTaskType     *graphql.Object
 )
 
 func init() {
-	GqlCollectJobNodeType = gqlserver.NewNodeType((*Collector)(nil))
-	GqlCollectJobNodeType.GetID = func(source interface{}) string {
-		c := source.(*Collector)
+	GqlTaskNodeType = gqlserver.NewNodeType((*Task)(nil))
+	GqlTaskNodeType.GetID = func(source interface{}) string {
+		c := source.(*Task)
 		return c.cfg.Filename
 	}
-	GqlCollectJobNodeType.Retrieve = func(id string) (interface{}, error) {
-		collectorLock.Lock()
-		defer collectorLock.Unlock()
-		return collectorMap[id], nil
+	GqlTaskNodeType.Retrieve = func(id string) (interface{}, error) {
+		if TheWriter == nil {
+			return nil, nil
+		}
+		task, _ := TheWriter.tasks.Load(id)
+		return task, nil
 	}
-	GqlCollectJobNodeType.Delete = func(source interface{}) error {
-		c := source.(*Collector)
+	GqlTaskNodeType.Delete = func(source interface{}) error {
+		c := source.(*Task)
 		return c.Stop()
 	}
 
-	GqlCollectJobType = graphql.NewObject(GqlCollectJobNodeType.Annotate(graphql.ObjectConfig{
-		Name: "HrlogCollectJob",
+	GqlTaskType = graphql.NewObject(GqlTaskNodeType.Annotate(graphql.ObjectConfig{
+		Name: "HrlogTask",
 		Fields: graphql.Fields{
 			"filename": &graphql.Field{
 				Type:        gqlserver.NonNullString,
 				Description: "Filename.",
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					c := p.Source.(*Collector)
+					c := p.Source.(*Task)
 					return c.cfg.Filename, nil
 				},
 			},
 		},
 	}))
-	GqlCollectJobNodeType.Register(GqlCollectJobType)
+	GqlTaskNodeType.Register(GqlTaskType)
 
 	gqlserver.AddMutation(&graphql.Field{
 		Name:        "collectHrlog",
@@ -53,15 +55,19 @@ func init() {
 				Type: graphql.Int,
 			},
 		},
-		Type: GqlCollectJobType,
+		Type: GqlTaskType,
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-			cfg := Config{
+			if TheWriter == nil {
+				return nil, ErrDisabled
+			}
+
+			cfg := TaskConfig{
 				Filename: p.Args["filename"].(string),
 			}
 			if count, ok := p.Args["count"]; ok {
 				cfg.Count = count.(int)
 			}
-			return Start(cfg)
+			return TheWriter.Submit(cfg)
 		},
 	})
 }

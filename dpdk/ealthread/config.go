@@ -38,6 +38,28 @@ func (c Config) ValidateRoles(roles map[string]int) error {
 	return multierr.Combine(errs...)
 }
 
+// Extract moves specified roles to another Config, and validates their minimums.
+func (c Config) Extract(roles map[string]int) (p Config, e error) {
+	p = Config{}
+	if c == nil {
+		return p, nil
+	}
+
+	for role, rc := range c {
+		if _, ok := roles[role]; ok {
+			p[role] = rc
+		}
+	}
+	if e = p.ValidateRoles(roles); e != nil {
+		return nil, e
+	}
+
+	for role := range roles {
+		delete(c, role)
+	}
+	return p, nil
+}
+
 func (c Config) assignWorkers(filter eal.LCorePredicate) (m map[string]eal.LCores, e error) {
 	m = map[string]eal.LCores{}
 	errs := []error{}

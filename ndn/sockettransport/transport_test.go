@@ -2,11 +2,10 @@ package sockettransport_test
 
 import (
 	"net"
-	"os"
-	"path"
 	"sync"
 	"testing"
 
+	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 	"github.com/usnistgov/ndn-dpdk/ndn/sockettransport"
 )
@@ -54,10 +53,8 @@ func TestTcp(t *testing.T) {
 func TestUnix(t *testing.T) {
 	_, require := makeAR(t)
 
-	dir, e := os.MkdirTemp("", "sockettransport-test")
-	require.NoError(e)
-	defer os.RemoveAll(dir)
-	addr := path.Join(dir, "unix.sock")
+	addr, del := testenv.TempName("unix.sock")
+	defer del()
 	listener, e := net.Listen("unix", addr)
 	require.NoError(e)
 	defer listener.Close()

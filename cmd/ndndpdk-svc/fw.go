@@ -19,6 +19,7 @@ func (a fwArgs) Activate() error {
 	if e := a.CommonArgs.apply(); e != nil {
 		return e
 	}
+	a.Config.LCoreAlloc = a.CommonArgs.LCoreAlloc
 
 	dp, e := fwdp.New(a.Config)
 	if e != nil {

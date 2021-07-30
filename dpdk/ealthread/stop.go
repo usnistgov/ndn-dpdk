@@ -11,6 +11,7 @@ package ealthread
 */
 import "C"
 import (
+	"reflect"
 	"time"
 	"unsafe"
 )
@@ -29,6 +30,16 @@ type StopFlag struct {
 	c *C.ThreadStopFlag
 }
 
+// BeforeWait requests a stop.
+func (stop StopFlag) BeforeWait() {
+	C.ThreadStopFlag_RequestStop(stop.c)
+}
+
+// AfterWait completes a stop request.
+func (stop StopFlag) AfterWait() {
+	C.ThreadStopFlag_FinishStop(stop.c)
+}
+
 // NewStopFlag constructs a StopFlag from initialized C pointer.
 func NewStopFlag(c unsafe.Pointer) (stop StopFlag) {
 	stop.c = (*C.ThreadStopFlag)(c)
@@ -42,23 +53,8 @@ func InitStopFlag(c unsafe.Pointer) (stop StopFlag) {
 	return stop
 }
 
-// BeforeWait requests a stop.
-func (stop StopFlag) BeforeWait() {
-	C.ThreadStopFlag_RequestStop(stop.c)
-}
-
-// AfterWait completes a stop request.
-func (stop StopFlag) AfterWait() {
-	C.ThreadStopFlag_FinishStop(stop.c)
-}
-
 // StopChan stops a thread by sending to a channel.
 type StopChan chan bool
-
-// NewStopChan constructs a StopChan.
-func NewStopChan() (stop StopChan) {
-	return make(StopChan)
-}
 
 // Continue returns true if the thread should continue.
 // This should be invoked within the running thread.
@@ -88,4 +84,33 @@ func (stop StopChan) AfterWait() {
 // This may be used independent from Thread.
 func (stop StopChan) RequestStop() {
 	stop <- true
+}
+
+// NewStopChan constructs a StopChan.
+func NewStopChan() (stop StopChan) {
+	return make(StopChan)
+}
+
+// StopClose stops a thread by closing a channel.
+// The thread is not restartable.
+type StopClose struct {
+	v reflect.Value
+}
+
+// BeforeWait requests a stop.
+func (stop StopClose) BeforeWait() {
+	stop.v.Close()
+}
+
+// AfterWait completes a stop request.
+func (stop StopClose) AfterWait() {
+}
+
+// NewStopClose constructs a StopClose.
+func NewStopClose(ch interface{}) (stop StopClose) {
+	v := reflect.ValueOf(ch)
+	if (v.Type().ChanDir() & reflect.SendDir) == 0 {
+		panic("StopClose requires chan<-")
+	}
+	return StopClose{v}
 }
