@@ -11,7 +11,7 @@
  * @param nSkip how many initial entries to discard.
  * @param nTotal how many entries to collect.
  */
-int
+bool
 Hrlog_RunWriter(const char* filename, int nSkip, int nTotal, ThreadStopFlag* stop);
 
 #endif // NDNDPDK_HRLOG_WRITER_H

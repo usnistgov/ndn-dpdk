@@ -25,8 +25,8 @@ func init() {
 		return task, nil
 	}
 	GqlTaskNodeType.Delete = func(source interface{}) error {
-		c := source.(*Task)
-		return c.Stop()
+		task := source.(*Task)
+		return task.Stop()
 	}
 
 	GqlTaskType = graphql.NewObject(GqlTaskNodeType.Annotate(graphql.ObjectConfig{
@@ -36,8 +36,8 @@ func init() {
 				Type:        gqlserver.NonNullString,
 				Description: "Filename.",
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					c := p.Source.(*Task)
-					return c.cfg.Filename, nil
+					task := p.Source.(*Task)
+					return task.cfg.Filename, nil
 				},
 			},
 		},

@@ -49,10 +49,10 @@ Hrlog_Enabled()
 
 /** @brief Post entries to the hrlog collector. */
 static __rte_always_inline void
-Hrlog_PostBulk(HrlogEntry* entries, uint16_t count)
+Hrlog_Post(HrlogEntry* entries, uint16_t count)
 {
   if (Hrlog_Enabled() && count > 0) {
-    rte_ring_enqueue_bulk(theHrlogRing, (void**)entries, count, NULL);
+    rte_ring_enqueue_burst(theHrlogRing, (void**)entries, count, NULL);
   }
 }
 

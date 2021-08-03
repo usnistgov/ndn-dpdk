@@ -1,42 +1,23 @@
 #include "writer.h"
-
-#include <fcntl.h>
-#include <rte_memcpy.h>
-#include <sys/mman.h>
-#include <sys/types.h>
-#include <unistd.h>
+#include "../core/mmapfd.h"
 
 struct rte_ring* theHrlogRing = NULL;
 
-int
+bool
 Hrlog_RunWriter(const char* filename, int nSkip, int nTotal, ThreadStopFlag* stop)
 {
-  int fd = open(filename, O_RDWR | O_CREAT | O_TRUNC, (mode_t)0600);
-  if (fd == -1) {
-    return __LINE__;
-  }
-
   HrlogHeader hdr = { .magic = HRLOG_HEADER_MAGIC,
                       .version = HRLOG_HEADER_VERSION,
                       .tschz = rte_get_tsc_hz() };
-  if (write(fd, &hdr, sizeof(hdr)) == -1) {
-    return __LINE__;
-  }
-
   void* buf[64];
-  size_t fileSize = sizeof(hdr) + nTotal * sizeof(buf[0]) + sizeof(buf);
-  if (lseek(fd, fileSize - 1, SEEK_SET) == -1) {
-    return __LINE__;
-  }
-  if (write(fd, "", 1) == -1) {
-    return __LINE__;
+
+  MmapFd m;
+  if (!MmapFd_Open(&m, filename, sizeof(hdr) + nTotal * sizeof(buf[0]) + sizeof(buf))) {
+    return false;
   }
 
-  void* map = mmap(NULL, fileSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-  if (map == MAP_FAILED) {
-    return __LINE__;
-  }
-  HrlogEntry* output = RTE_PTR_ADD(map, sizeof(hdr));
+  rte_memcpy(MmapFd_At(&m, 0), &hdr, sizeof(hdr));
+  HrlogEntry* output = MmapFd_At(&m, sizeof(hdr));
 
   int nCollected = 0;
   while (ThreadStopFlag_ShouldContinue(stop) && nCollected < nTotal) {
@@ -49,15 +30,5 @@ Hrlog_RunWriter(const char* filename, int nSkip, int nTotal, ThreadStopFlag* sto
     }
   }
 
-  if (msync(map, fileSize, MS_SYNC) == -1) {
-    return __LINE__;
-  }
-  if (munmap(map, fileSize) == -1) {
-    return __LINE__;
-  }
-  if (ftruncate(fd, sizeof(hdr) + nCollected * sizeof(buf[0])) == -1) {
-    return __LINE__;
-  }
-  close(fd);
-  return 0;
+  return MmapFd_Close(&m, sizeof(hdr) + nCollected * sizeof(buf[0]));
 }

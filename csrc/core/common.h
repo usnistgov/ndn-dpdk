@@ -41,6 +41,7 @@
 #include <rte_debug.h>
 #include <rte_errno.h>
 #include <rte_malloc.h>
+#include <rte_memcpy.h>
 
 #ifdef NDEBUG
 #define NDNDPDK_ASSERT(x) RTE_SET_USED(x)

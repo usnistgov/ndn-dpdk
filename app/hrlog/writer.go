@@ -6,7 +6,6 @@ package hrlog
 import "C"
 import (
 	"errors"
-	"fmt"
 	"path"
 	"sync"
 	"unsafe"
@@ -31,6 +30,7 @@ var logger = logging.New("hrlog")
 var (
 	ErrDisabled  = errors.New("hrlog module disabled")
 	ErrDuplicate = errors.New("duplicate filename")
+	ErrWriter    = errors.New("writer failed")
 )
 
 // WriterConfig contains writer configuration.
@@ -138,16 +138,16 @@ func (task *Task) execute(nSkip int) {
 	filenameC := C.CString(task.cfg.Filename)
 	defer C.free(unsafe.Pointer(filenameC))
 
-	res := C.Hrlog_RunWriter(filenameC, C.int(nSkip), C.int(task.cfg.Count), &task.stopC)
-	if res != 0 {
-		task.finish <- fmt.Errorf("Hrlog_RunWriter error %d", res)
-	} else {
+	ok := bool(C.Hrlog_RunWriter(filenameC, C.int(nSkip), C.int(task.cfg.Count), &task.stopC))
+	if ok {
 		task.finish <- nil
+	} else {
+		task.finish <- ErrWriter
 	}
 }
 
 // Post posts entries to the hrlog collector.
 func Post(entries []uint64) {
 	ptr, count := cptr.ParseCptrArray(entries)
-	C.Hrlog_PostBulk((*C.HrlogEntry)(ptr), C.uint16_t(count))
+	C.Hrlog_Post((*C.HrlogEntry)(ptr), C.uint16_t(count))
 }

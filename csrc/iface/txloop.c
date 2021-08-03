@@ -44,14 +44,15 @@ TxLoop_Transfer(Face* face)
     ++tx->nFrames[framePktType];
 
     if (Hrlog_Enabled()) {
-      TscDuration latency = now - Mbuf_GetTimestamp(Packet_ToMbuf(npkt));
+      struct rte_mbuf* m = Packet_ToMbuf(npkt);
+      TscDuration latency = now - Mbuf_GetTimestamp(m);
       switch (framePktType) {
         case PktInterest:
           hrl[nHrls++] = HrlogEntry_New(HRLOG_OI, latency);
           break;
         case PktData:
-          hrl[nHrls++] = HrlogEntry_New(
-            Packet_ToMbuf(npkt)->port == MBUF_INVALID_PORT ? HRLOG_OC : HRLOG_OD, latency);
+          hrl[nHrls++] =
+            HrlogEntry_New(m->port == MBUF_INVALID_PORT ? HRLOG_OC : HRLOG_OD, latency);
           break;
         case PktNack:
           break;
@@ -70,7 +71,7 @@ TxLoop_Transfer(Face* face)
   if (likely(nFrames > 0)) {
     TxLoop_TxFrames(face, frames, nFrames);
   }
-  Hrlog_PostBulk(hrl, nHrls);
+  Hrlog_Post(hrl, nHrls);
 
   return count;
 }

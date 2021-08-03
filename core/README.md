@@ -4,6 +4,7 @@ C shared code in [csrc/core](../csrc/core/):
 
 * common includes
 * logging macros
+* mmap
 * runningstat
 * SipHash wrapper
 
