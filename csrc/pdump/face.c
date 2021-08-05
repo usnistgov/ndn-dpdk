@@ -1,10 +1,5 @@
 #include "face.h"
-
-__attribute__((nonnull)) static inline LName
-ExtractName(struct rte_mbuf* pkt)
-{
-  return (LName){ 0 };
-}
+#include "parse.h"
 
 __attribute__((nonnull)) static inline uint32_t
 NameFilter(PdumpFace* pd, struct rte_mbuf* pkt)
@@ -13,7 +8,7 @@ NameFilter(PdumpFace* pd, struct rte_mbuf* pkt)
     return pd->sample[0];
   }
 
-  LName name = ExtractName(pkt);
+  LName name = Pdump_ExtractName(pkt);
   if (name.length == 0) {
     return 0;
   }
@@ -29,7 +24,7 @@ NameFilter(PdumpFace* pd, struct rte_mbuf* pkt)
       .value = RTE_PTR_ADD(pd->nameV, offset),
       .length = pd->nameL[i],
     };
-    if (LName_IsPrefix(prefix, name)) {
+    if (LName_IsPrefix(prefix, name) >= 0) {
       return pd->sample[i];
     }
     offset += prefix.length;
@@ -46,6 +41,7 @@ PdumpFace_Process(PdumpFace* pd, FaceID id, struct rte_mbuf** pkts, uint16_t cou
   for (uint16_t i = 0; i < count; ++i) {
     struct rte_mbuf* pkt = pkts[i];
     uint32_t sample = NameFilter(pd, pkt);
+    fflush(stdout);
     if (sample == 0 || sample < pcg32_random_r(&pd->rng)) {
       continue;
     }

@@ -205,6 +205,7 @@ func ngMakeHeader(id iface.ID, loc string) (shb, idb []byte) {
 	var b bytes.Buffer
 	w, _ := pcapgo.NewNgWriterInterface(&b, intf, wOpt)
 	w.Flush()
+
 	for b.Len() >= 12 {
 		totalLength := binary.LittleEndian.Uint32(b.Bytes()[4:])
 		block := make([]byte, totalLength)
@@ -217,9 +218,14 @@ func ngMakeHeader(id iface.ID, loc string) (shb, idb []byte) {
 			idb = block
 		}
 	}
-
 	if b.Len() != 0 {
-		panic("incomplete block from NgWriter")
+		panic("NgWriter incomplete block")
+	}
+	if len(shb) == 0 {
+		panic("NgWriter missing SHB")
+	}
+	if len(idb) == 0 {
+		panic("NgWriter missing IDB")
 	}
 	return
 }

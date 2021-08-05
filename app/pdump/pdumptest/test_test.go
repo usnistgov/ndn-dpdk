@@ -1,4 +1,4 @@
-package pdump_test
+package pdumptest
 
 import (
 	"os"

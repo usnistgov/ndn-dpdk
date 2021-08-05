@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"sort"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
@@ -32,9 +33,18 @@ const (
 	DirOutgoing Direction = "TX"
 )
 
-var dirSLL = map[Direction]C.rte_be16_t{
-	DirIncoming: C.SLLIncoming,
-	DirOutgoing: C.SLLOutgoing,
+var dirImpls = map[Direction]struct {
+	sllType C.rte_be16_t
+	getRef  func(faceC *C.Face) *C.PdumpFaceRef
+}{
+	DirIncoming: {
+		C.SLLIncoming,
+		func(faceC *C.Face) *C.PdumpFaceRef { return &faceC.impl.rx.pdump },
+	},
+	DirOutgoing: {
+		C.SLLOutgoing,
+		func(faceC *C.Face) *C.PdumpFaceRef { return &faceC.impl.tx.pdump },
+	},
 }
 
 // FaceConfig contains face dumper configuration.
@@ -45,7 +55,7 @@ type FaceConfig struct {
 
 func (cfg FaceConfig) validate() error {
 	errs := []error{}
-	if _, ok := dirSLL[cfg.Dir]; !ok {
+	if _, ok := dirImpls[cfg.Dir]; !ok {
 		errs = append(errs, errors.New("invalid traffic direction"))
 	}
 	if n := len(cfg.Names); n == 0 || n > MaxNames {
@@ -106,18 +116,23 @@ func DumpFace(face iface.Face, w *Writer, cfg FaceConfig) (pd *Face, e error) {
 	if e := cfg.validate(); e != nil {
 		return nil, e
 	}
+	// a zero-length name (i.e. capture all packets) should appear first
+	sort.Slice(cfg.Names, func(i, j int) bool { return len(cfg.Names[i].Name) < len(cfg.Names[j].Name) })
+
 	socket := face.NumaSocket()
+	dirImpl := dirImpls[cfg.Dir]
 
 	pd = &Face{
 		face: face,
 		dir:  cfg.Dir,
 		w:    w,
 		c:    (*C.PdumpFace)(eal.Zmalloc("PdumpFace", C.sizeof_PdumpFace, socket)),
+		cr:   dirImpl.getRef((*C.Face)(face.Ptr())),
 	}
 	pd.c.directMp = (*C.struct_rte_mempool)(pktmbuf.Direct.Get(socket).Ptr())
 	pd.c.queue = w.c.queue
 	C.pcg32_srandom_r(&pd.c.rng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
-	pd.c.sllType = dirSLL[pd.dir]
+	pd.c.sllType = dirImpl.sllType
 
 	nameBuf := cptr.AsByteSlice(&pd.c.nameV)
 	for i, nf := range cfg.Names {
@@ -131,13 +146,6 @@ func DumpFace(face iface.Face, w *Writer, cfg FaceConfig) (pd *Face, e error) {
 	w.AddFace(face)
 	w.startDumper()
 
-	faceC := (*C.Face)(face.Ptr())
-	switch pd.dir {
-	case DirIncoming:
-		pd.cr = &faceC.impl.rx.pdump
-	case DirOutgoing:
-		pd.cr = &faceC.impl.tx.pdump
-	}
 	if ptr := C.PdumpFaceRef_Set(pd.cr, pd.c); ptr != nil {
 		panic(fmt.Errorf("PdumpFaceRef pointer mismatch %p != nil", ptr))
 	}

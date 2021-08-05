@@ -196,6 +196,24 @@ TlvDecoder_ReadVarNum(TlvDecoder* d, uint32_t* n)
 }
 
 /**
+ * @brief Read TLV-TYPE and TLV-LENGTH, without checking for truncated TLV-VALUE.
+ * @param[out] length TLV-LENGTH.
+ * @return TLV-TYPE number.
+ * @retval 0 truncated packet.
+ * @post Decoder is advanced after TLV-LENGTH.
+ */
+__attribute__((nonnull)) static __rte_always_inline uint32_t
+TlvDecoder_ReadTL_MaybeTruncated(TlvDecoder* d, uint32_t* length)
+{
+  *length = 0;
+  uint32_t type;
+  if (likely(TlvDecoder_ReadVarNum(d, &type)) && likely(TlvDecoder_ReadVarNum(d, length))) {
+    return type;
+  }
+  return 0;
+}
+
+/**
  * @brief Read TLV-TYPE and TLV-LENGTH.
  * @param[out] length TLV-LENGTH.
  * @return TLV-TYPE number.
@@ -205,13 +223,11 @@ TlvDecoder_ReadVarNum(TlvDecoder* d, uint32_t* n)
 __attribute__((nonnull)) static inline uint32_t
 TlvDecoder_ReadTL(TlvDecoder* d, uint32_t* length)
 {
-  *length = 0;
-  uint32_t type;
-  if (likely(TlvDecoder_ReadVarNum(d, &type)) && likely(TlvDecoder_ReadVarNum(d, length)) &&
-      likely(d->length >= *length)) {
-    return type;
+  uint32_t type = TlvDecoder_ReadTL_MaybeTruncated(d, length);
+  if (unlikely(*length > d->length)) {
+    return 0;
   }
-  return 0;
+  return type;
 }
 
 /**
