@@ -28,7 +28,7 @@ jobs:
       - name: install compilers and tools
         run: |
           sudo apt-get update
-          sudo apt-get install $CC clang-8 clang-format-8 doxygen gcc-multilib libelf-dev liburcu-dev linux-libc-dev
+          sudo apt-get install $CC clang-8 clang-format-8 doxygen gcc-multilib libelf-dev libpcap-dev liburcu-dev linux-libc-dev
           go get honnef.co/go/tools/cmd/staticcheck
       - name: install uBPF
         run: |
@@ -44,11 +44,11 @@ jobs:
         with:
           path: |
             ~/setup-dpdk
-          key: ${{ matrix.compiler }}_20210601
+          key: ${{ matrix.compiler }}_20210805
       - uses: yoursunny/setup-dpdk@main
         with:
           dpdk-version: '21.05'
-          spdk-version: '21.04'
+          spdk-version: '21.07'
           target-arch: haswell
       - uses: actions/checkout@v2
       - name: build NDN-DPDK in debug mode

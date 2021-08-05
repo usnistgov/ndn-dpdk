@@ -4,9 +4,10 @@ package spdkenv
 /*
 #include "../../csrc/core/logger.h"
 #include <spdk/env_dpdk.h>
+#include <spdk/init.h>
 #include <spdk/log.h>
 
-void c_SpdkLoggerReady()
+static void c_SpdkLoggerReady()
 {
 	SPDK_NOTICELOG("SPDK logger ready\n");
 }
@@ -26,7 +27,7 @@ var mainThread *Thread
 
 // InitEnv initializes the SPDK environment.
 func InitEnv() error {
-	// As of SPDK 21.04, libspdk_event.so depends on rte_power_set_freq symbol exported by
+	// As of SPDK 21.07, libspdk_event.so depends on rte_power_set_freq symbol exported by
 	// librte_power.so but does not link with that library.
 	dlopen.Load("/usr/local/lib/librte_power.so")
 
@@ -65,8 +66,9 @@ func InitMainThread(ret chan<- interface{}) {
 }
 
 // InitFinal finishes initializing SPDK.
-func InitFinal() error {
-	if e := initRPC(); e != nil {
+func InitFinal() (e error) {
+	e, _ = eal.CallMain(initRPC).(error)
+	if e != nil {
 		return fmt.Errorf("SPDK RPC init error %w", e)
 	}
 	return nil

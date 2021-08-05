@@ -68,7 +68,9 @@ func Init(args []string) error {
 		}
 
 		updateLogLevels()
-		eal.CallMain(func() { logger.Debug("MainThread is running") })
+		eal.CallMain(func() {
+			logger.Debug("MainThread is running")
+		})
 
 		initError = spdkenv.InitFinal()
 	})

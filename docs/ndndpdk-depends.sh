@@ -20,10 +20,10 @@ DFLT_CODEROOT=$HOME/code
 DFLT_NODEVER=16.x
 DFLT_GOVER=latest
 DFLT_UBPFVER=HEAD
-DFLT_LIBBPFVER=HEAD
+DFLT_LIBBPFVER=v0.4.0
 DFLT_DPDKVER=21.05
 DFLT_KMODSVER=HEAD
-DFLT_SPDKVER=21.04
+DFLT_SPDKVER=21.07
 DFLT_NJOBS=$(nproc)
 DFLT_TARGETARCH=native
 
@@ -163,6 +163,7 @@ APT_PKGS=(
   libc6-dev-i386
   libelf-dev
   libnuma-dev
+  libpcap-dev
   libssl-dev
   liburcu-dev
   pkg-config

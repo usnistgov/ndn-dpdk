@@ -2,29 +2,21 @@ package spdkenv
 
 /*
 #include "../../csrc/core/common.h"
+#include <spdk/init.h>
 #include <spdk/rpc.h>
-
-int c_spdk_rpc_accept(void* arg)
-{
-	spdk_rpc_accept();
-	return -1;
-}
 */
 import "C"
 import (
 	"fmt"
 	"os"
-	"time"
+	"path"
 	"unsafe"
 
 	"github.com/powerman/rpc-codec/jsonrpc2"
-	"github.com/usnistgov/ndn-dpdk/core/cptr"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
-var (
-	rpcClient *jsonrpc2.Client
-	rpcPoller *Poller
-)
+var rpcClient *jsonrpc2.Client
 
 // Enable SPDK RPC server and internal RPC client.
 func initRPC() error {
@@ -34,15 +26,15 @@ func initRPC() error {
 	}
 	defer os.RemoveAll(dir)
 
-	sockName := dir + "/spdk.sock"
+	sockName := path.Join(dir, "spdk.sock")
 	sockNameC := C.CString(sockName)
 	defer C.free(unsafe.Pointer(sockNameC))
 
-	res := C.spdk_rpc_listen(sockNameC)
+	res := C.spdk_rpc_initialize(sockNameC)
 	if res != 0 {
-		return fmt.Errorf("spdk_rpc_listen error on %s", sockName)
+		return fmt.Errorf("spdk_rpc_initialize error %w", eal.MakeErrno(res))
 	}
-	rpcPoller = NewPoller(mainThread, cptr.Func0.C(C.c_spdk_rpc_accept, nil), 10*time.Millisecond)
+	C.spdk_rpc_set_state(C.SPDK_RPC_RUNTIME)
 
 	rpcClient, e = jsonrpc2.Dial("unix", sockName)
 	if e != nil {
