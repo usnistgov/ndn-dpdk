@@ -5,7 +5,6 @@
 
 #include "../dpdk/mbuf.h"
 #include "common.h"
-#include <rte_ring.h>
 
 /** @brief A packet queue with simplified CoDel algorithm. */
 typedef struct PktQueue PktQueue;
@@ -47,12 +46,7 @@ struct PktQueue
 __attribute__((nonnull)) static inline uint32_t
 PktQueue_PushPlain(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count)
 {
-  uint32_t nEnq = rte_ring_enqueue_burst(q->ring, (void**)pkts, count, NULL);
-  uint32_t nRej = count - nEnq;
-  if (unlikely(nRej > 0)) {
-    rte_pktmbuf_free_bulk(&pkts[nEnq], nRej);
-  }
-  return nRej;
+  return Mbuf_EnqueueVector(pkts, count, q->ring);
 }
 
 /**

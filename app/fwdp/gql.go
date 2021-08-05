@@ -75,7 +75,7 @@ func init() {
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					fwd := p.Source.(*Fwd)
 					latencyStat := runningstat.FromPtr(unsafe.Pointer(&fwd.c.latencyStat))
-					return latencyStat.Read().Scale(eal.GetNanosInTscUnit()), nil
+					return latencyStat.Read().Scale(eal.TscNanos), nil
 				},
 			},
 		},

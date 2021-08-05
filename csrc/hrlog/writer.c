@@ -1,5 +1,6 @@
 #include "writer.h"
 #include "../core/mmapfd.h"
+#include "../dpdk/tsc.h"
 
 struct rte_ring* theHrlogRing = NULL;
 
@@ -8,7 +9,7 @@ Hrlog_RunWriter(const char* filename, int nSkip, int nTotal, ThreadStopFlag* sto
 {
   HrlogHeader hdr = { .magic = HRLOG_HEADER_MAGIC,
                       .version = HRLOG_HEADER_VERSION,
-                      .tschz = rte_get_tsc_hz() };
+                      .tschz = TscHz };
   void* buf[64];
 
   MmapFd m;

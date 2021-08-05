@@ -14,8 +14,9 @@ RxLoop_Transfer(RxLoop* rxl, RxGroup* rxg)
       rte_pktmbuf_free(frame);
       continue;
     }
-
-    Packet* npkt = RxProc_Input(&face->impl->rx, rxg->rxThread, frame);
+    RxProc* rx = &face->impl->rx;
+    PdumpFaceRef_Process(&rx->pdump, face->id, &frame, 1);
+    Packet* npkt = RxProc_Input(rx, rxg->rxThread, frame);
     if (npkt == NULL) {
       continue;
     }

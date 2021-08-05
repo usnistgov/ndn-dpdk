@@ -32,6 +32,9 @@ csrc/iface/enum.h: iface/enum.go
 csrc/pcct/cs-enum.h: container/cs/enum.go
 	go generate ./$(<D)
 
+csrc/pdump/enum.h: app/pdump/enum.go
+	go generate ./$(<D)
+
 csrc/tgconsumer/enum.h: app/tgconsumer/config.go
 	go generate ./$(<D)
 
@@ -39,7 +42,7 @@ csrc/tgproducer/enum.h: app/tgproducer/config.go
 	go generate ./$(<D)
 
 .PHONY: build/libndn-dpdk-c.a
-build/libndn-dpdk-c.a: build/build.ninja csrc/fib/enum.h csrc/ndni/an.h csrc/ndni/enum.h csrc/iface/enum.h csrc/pcct/cs-enum.h csrc/tgconsumer/enum.h csrc/tgproducer/enum.h
+build/libndn-dpdk-c.a: build/build.ninja csrc/fib/enum.h csrc/ndni/an.h csrc/ndni/enum.h csrc/iface/enum.h csrc/pcct/cs-enum.h csrc/pdump/enum.h csrc/tgconsumer/enum.h csrc/tgproducer/enum.h
 	ninja -C build
 
 build/cgodeps.done: build/build.ninja

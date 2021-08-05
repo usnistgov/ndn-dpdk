@@ -52,6 +52,10 @@ func NewRxLoop(socket eal.NumaSocket) RxLoop {
 		c:      (*C.RxLoop)(eal.Zmalloc("RxLoop", C.sizeof_RxLoop, socket)),
 		socket: socket,
 	}
+	C.InputDemux_SetDispatchFunc_(&rxl.c.demuxI, C.InputDemux_DispatchDrop)
+	C.InputDemux_SetDispatchFunc_(&rxl.c.demuxD, C.InputDemux_DispatchDrop)
+	C.InputDemux_SetDispatchFunc_(&rxl.c.demuxN, C.InputDemux_DispatchDrop)
+
 	rxl.Thread = ealthread.New(
 		cptr.Func0.C(unsafe.Pointer(C.RxLoop_Run), unsafe.Pointer(rxl.c)),
 		ealthread.InitStopFlag(unsafe.Pointer(&rxl.c.stop)),

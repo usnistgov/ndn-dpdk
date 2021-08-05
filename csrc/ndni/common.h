@@ -4,7 +4,6 @@
 /** @file */
 
 #include "../core/common.h"
-#include <rte_byteorder.h>
 
 #include "../dpdk/cryptodev.h"
 #include "../dpdk/mbuf.h"

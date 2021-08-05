@@ -71,11 +71,10 @@ func (cnt Counters) String() string {
 
 // Counters retrieves counters.
 func (consumer *Consumer) Counters() (cnt Counters) {
-	rttScale := eal.GetNanosInTscUnit()
 	for i := 0; i < int(consumer.rxC.nPatterns); i++ {
 		crP := consumer.rxC.pattern[i]
 		ctP := consumer.txC.pattern[i]
-		rtt := runningstat.FromPtr(unsafe.Pointer(&crP.rtt)).Read().Scale(rttScale)
+		rtt := runningstat.FromPtr(unsafe.Pointer(&crP.rtt)).Read().Scale(eal.TscNanos)
 
 		var pcnt PatternCounters
 		pcnt.NInterests = uint64(ctP.nInterests)

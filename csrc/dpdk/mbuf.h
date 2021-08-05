@@ -6,6 +6,7 @@
 #include "tsc.h"
 #include <rte_mbuf.h>
 #include <rte_mbuf_dyn.h>
+#include <rte_ring.h>
 
 extern int Mbuf_Timestamp_DynFieldOffset_;
 
@@ -25,6 +26,12 @@ __attribute__((nonnull)) static inline void
 Mbuf_SetTimestamp(struct rte_mbuf* m, TscTime timestamp)
 {
   *RTE_MBUF_DYNFIELD(m, Mbuf_Timestamp_DynFieldOffset_, TscTime*) = timestamp;
+}
+
+__attribute__((nonnull)) static inline uint32_t*
+Mbuf_PtrPacketType(struct rte_mbuf* m)
+{
+  return &m->packet_type;
 }
 
 /**
@@ -78,6 +85,21 @@ Mbuf_ChainVector(struct rte_mbuf* vec[], uint16_t count)
     vec[i - 1]->next = vec[i];
   }
   head->nb_segs = count;
+}
+
+/**
+ * @brief Enqueue a burst of packets to a ring buyffer.
+ * @return number of rejected packets; they have been freed.
+ */
+__attribute__((nonnull)) static inline uint16_t
+Mbuf_EnqueueVector(struct rte_mbuf* vec[], uint16_t count, struct rte_ring* ring)
+{
+  uint16_t nEnq = rte_ring_enqueue_burst(ring, (void**)vec, count, NULL);
+  uint16_t nRej = count - nEnq;
+  if (unlikely(nRej > 0)) {
+    rte_pktmbuf_free_bulk(&vec[nEnq], nRej);
+  }
+  return nRej;
 }
 
 #endif // NDNDPDK_DPDK_MBUF_H

@@ -15,7 +15,7 @@ LName_ComputeHash(LName name)
   return SipHash_Final(&h);
 }
 
-RTE_INIT(LName_HashInit_)
+RTE_INIT(InitLNameHash)
 {
   pcg32_random_t rng;
   // seed with time, because rte_rand() is unavailable before EAL init

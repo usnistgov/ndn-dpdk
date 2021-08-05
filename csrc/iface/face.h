@@ -72,13 +72,12 @@ __attribute__((nonnull)) static inline void
 Face_TxBurst(FaceID faceID, Packet** npkts, uint16_t count)
 {
   Face* face = Face_Get(faceID);
-  uint16_t nQueued = 0;
   if (likely(face->state == FaceStateUp)) {
-    nQueued = rte_ring_enqueue_burst(face->outputQueue, (void**)npkts, count, NULL);
+    Mbuf_EnqueueVector((struct rte_mbuf**)npkts, count, face->outputQueue);
+    // TODO count rejects
+  } else {
+    rte_pktmbuf_free_bulk((struct rte_mbuf**)npkts, count);
   }
-  uint16_t nRejects = count - nQueued;
-  rte_pktmbuf_free_bulk((struct rte_mbuf**)&npkts[nQueued], nRejects);
-  // TODO count nRejects
 }
 
 /**

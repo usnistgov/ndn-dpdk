@@ -70,7 +70,7 @@ FwFwd_Run(FwFwd* fwd)
   N_LOGI("Run fwd-id=%" PRIu8 " fwd=%p fib=%p pit=%p cs=%p crypto=%p", fwd->id, fwd, fwd->fib,
          fwd->pit, fwd->cs, fwd->crypto);
 
-  fwd->sgGlobal.tscHz = rte_get_tsc_hz();
+  fwd->sgGlobal.tscHz = TscHz;
   Pit_SetSgTimerCb(fwd->pit, SgTriggerTimer, fwd);
 
   while (ThreadStopFlag_ShouldContinue(&fwd->stop)) {

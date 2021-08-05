@@ -17,9 +17,9 @@ Pit_Init(Pit* pit)
   N_LOGI("Init pit=%p pcct=%p", pit, Pcct_FromPit(pit));
 
   // 2^12 slots of 33ms interval, accommodates InterestLifetime up to 136533ms
-  pit->timeoutSched = MinSched_New(12, rte_get_tsc_hz() / 30, PitEntry_Timeout_, pit);
+  pit->timeoutSched = MinSched_New(12, TscHz / 30, PitEntry_Timeout_, pit);
   NDNDPDK_ASSERT(MinSched_GetMaxDelay(pit->timeoutSched) >=
-                 (TscDuration)(PIT_MAX_LIFETIME * rte_get_tsc_hz() / 1000));
+                 (TscDuration)(PIT_MAX_LIFETIME * TscHz / 1000));
 
   pit->sgTimerCb = Pit_SgTimerCb_Empty;
 }

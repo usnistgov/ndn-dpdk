@@ -6,6 +6,7 @@ TxLoop_TxFrames(Face* face, struct rte_mbuf** frames, uint16_t count)
 {
   NDNDPDK_ASSERT(count > 0);
   TxProc* tx = &face->impl->tx;
+  PdumpFaceRef_Process(&tx->pdump, face->id, frames, count);
 
   tx->nFrames[PktFragment] += count;
   for (uint16_t i = 0; i < count; ++i) {

@@ -99,6 +99,7 @@ func initEal(args []string) error {
 		lcoreSockets[int(lcID)] = int(C.rte_lcore_to_socket_id(lcID))
 	}
 	eal.UpdateLCoreSockets(lcoreSockets, int(C.rte_get_main_lcore()))
+	eal.InitTscUnit()
 	logEntry.Info("EAL ready",
 		eal.MainLCore.ZapField("main"),
 		zap.Array("workers", eal.Workers),

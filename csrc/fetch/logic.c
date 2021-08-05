@@ -136,7 +136,6 @@ FetchLogic_Init_(FetchLogic* fl)
   fl->nInFlight = 0;
 
   // 2^16 slots of 1ms interval, accommodates RTO up to 65536ms
-  fl->sched = MinSched_New(16, rte_get_tsc_hz() / 1000, FetchLogic_RtoTimeout, fl);
-  NDNDPDK_ASSERT(MinSched_GetMaxDelay(fl->sched) >=
-                 (TscDuration)(RTTEST_MAXRTO_MS * rte_get_tsc_hz() / 1000));
+  fl->sched = MinSched_New(16, TscHz / 1000, FetchLogic_RtoTimeout, fl);
+  NDNDPDK_ASSERT(MinSched_GetMaxDelay(fl->sched) >= (TscDuration)(RTTEST_MAXRTO_MS * TscHz / 1000));
 }

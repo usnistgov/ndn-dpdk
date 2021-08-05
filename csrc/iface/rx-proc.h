@@ -3,6 +3,7 @@
 
 /** @file */
 
+#include "../pdump/face.h"
 #include "reassembler.h"
 
 /** @brief RxProc per-thread information. */
@@ -17,6 +18,7 @@ typedef struct RxProcThread
 typedef struct RxProc
 {
   RxProcThread threads[MaxRxProcThreads];
+  PdumpFaceRef pdump;
 } RxProc;
 
 /**

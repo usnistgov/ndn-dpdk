@@ -37,6 +37,7 @@
 #include <math.h>
 #include <sys/queue.h>
 
+#include <rte_byteorder.h>
 #include <rte_cycles.h>
 #include <rte_debug.h>
 #include <rte_errno.h>

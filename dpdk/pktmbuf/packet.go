@@ -67,6 +67,16 @@ func (pkt *Packet) SetTimestamp(t eal.TscTime) {
 	C.Mbuf_SetTimestamp(pkt.ptr(), C.TscTime(t))
 }
 
+// Type32 returns 32-bit packet type.
+func (pkt *Packet) Type32() uint32 {
+	return uint32(*C.Mbuf_PtrPacketType(pkt.ptr()))
+}
+
+// SetType32 sets 32-bit packet type.
+func (pkt *Packet) SetType32(packetType uint32) {
+	*C.Mbuf_PtrPacketType(pkt.ptr()) = C.uint32_t(packetType)
+}
+
 // SegmentLengths returns lengths of segments in this packet.
 func (pkt *Packet) SegmentLengths() (list []int) {
 	for m := pkt.ptr(); m != nil; m = m.next {

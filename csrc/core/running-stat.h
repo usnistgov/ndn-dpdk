@@ -25,7 +25,7 @@ static_assert(sizeof(RunningStat) <= RTE_CACHE_LINE_SIZE, "");
  * @brief Set sample rate to once every 2^q inputs.
  * @param q sample rate, must be between 0 and 30.
  */
-static inline void
+__attribute__((nonnull)) static inline void
 RunningStat_SetSampleRate(RunningStat* s, int q)
 {
   NDNDPDK_ASSERT(q >= 0 && q <= 30);
@@ -33,7 +33,7 @@ RunningStat_SetSampleRate(RunningStat* s, int q)
 }
 
 /** @brief Clear statistics portion of @p s. */
-static inline void
+__attribute__((nonnull)) static inline void
 RunningStat_Clear(RunningStat* s, bool enableMinMax)
 {
   s->i = 0;
@@ -49,14 +49,14 @@ RunningStat_Clear(RunningStat* s, bool enableMinMax)
   s->m2 = 0.0;
 }
 
-static inline void
+__attribute__((nonnull)) static inline void
 RunningStat_UpdateMinMax_(RunningStat* s, double x)
 {
   s->min = RTE_MIN(s->min, x);
   s->max = RTE_MAX(s->max, x);
 }
 
-static inline void
+__attribute__((nonnull)) static inline void
 RunningStat_UpdateM_(RunningStat* s, double x)
 {
   uint64_t n1 = s->n;
@@ -68,7 +68,7 @@ RunningStat_UpdateM_(RunningStat* s, double x)
 }
 
 /** @brief Add a sample to RunningStat with min-max update. */
-static __rte_always_inline void
+__attribute__((nonnull)) static __rte_always_inline void
 RunningStat_Push(RunningStat* s, double x)
 {
   ++s->i;
@@ -80,7 +80,7 @@ RunningStat_Push(RunningStat* s, double x)
 }
 
 /** @brief Add a sample to RunningStat without min-max update. */
-static __rte_always_inline void
+__attribute__((nonnull)) static __rte_always_inline void
 RunningStat_Push1(RunningStat* s, double x)
 {
   ++s->i;
