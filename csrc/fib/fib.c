@@ -69,19 +69,6 @@ Fib_Erase(Fib* fib, FibEntry* entry)
   NDNDPDK_ASSERT(res == 0);
 }
 
-__attribute__((nonnull)) static void
-Fib_RcuFree_(struct rcu_head* rcuhead)
-{
-  FibEntry* entry = container_of(rcuhead, FibEntry, rcuhead);
-  rte_mempool_put(rte_mempool_from_obj(entry), entry);
-}
-
-void
-Fib_DeferredFree(Fib* fib, FibEntry* entry)
-{
-  call_rcu(&entry->rcuhead, Fib_RcuFree_);
-}
-
 FibEntry*
 Fib_Get(Fib* fib, LName name, uint64_t hash)
 {

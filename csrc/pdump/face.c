@@ -41,7 +41,6 @@ PdumpFace_Process(PdumpFace* pd, FaceID id, struct rte_mbuf** pkts, uint16_t cou
   for (uint16_t i = 0; i < count; ++i) {
     struct rte_mbuf* pkt = pkts[i];
     uint32_t sample = NameFilter(pd, pkt);
-    fflush(stdout);
     if (sample == 0 || sample < pcg32_random_r(&pd->rng)) {
       continue;
     }

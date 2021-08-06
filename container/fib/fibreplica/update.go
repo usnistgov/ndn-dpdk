@@ -116,12 +116,7 @@ func (u *realUpdate) execute(t *Table, allocated []*Entry) {
 		}
 	}
 
-	if u.oldReal != nil {
-		t.deferredFree(u.oldReal)
-	}
-	if u.oldVirt != nil {
-		t.deferredFree(u.oldVirt)
-	}
+	t.deferredFree(u.oldReal, u.oldVirt)
 }
 
 type virtUpdate struct {
@@ -174,7 +169,5 @@ func (u *virtUpdate) execute(t *Table, allocated []*Entry) {
 		}
 	}
 
-	if u.oldVirt != nil {
-		t.deferredFree(u.oldVirt)
-	}
+	t.deferredFree(u.oldVirt)
 }

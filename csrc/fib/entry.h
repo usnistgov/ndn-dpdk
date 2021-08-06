@@ -63,8 +63,7 @@ struct FibEntry
   FaceID nexthops[FibMaxNexthops];
 
   char copyEnd_[0];
-  struct rcu_head rcuhead;
-  char padB_[16];
+  char padB_[32];
   char cachelineB_[0];
   FibEntryDyn dyn[0];
 };

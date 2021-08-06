@@ -41,13 +41,6 @@ __attribute__((nonnull)) void
 Fib_Erase(Fib* fib, FibEntry* entry);
 
 /**
- * @brief Free given entry after RCU.
- * @pre Calling thread holds rcu_read_lock.
- */
-__attribute__((nonnull)) void
-Fib_DeferredFree(Fib* fib, FibEntry* entry);
-
-/**
  * @brief Retrieve FIB entry.
  * @pre Calling thread holds rcu_read_lock, which must be retained until it stops
  *      using the returned entry.

@@ -11,6 +11,7 @@ import (
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/container/fib/fibdef"
+	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/mempool"
 	"github.com/usnistgov/ndn-dpdk/ndn"
@@ -71,8 +72,21 @@ func (t *Table) erase(entry *Entry) {
 	C.Fib_Erase(t.c, entry.ptr())
 }
 
-func (t *Table) deferredFree(entry *Entry) {
-	C.Fib_DeferredFree(t.c, entry.ptr())
+func (t *Table) deferredFree(entries ...*Entry) {
+	objs := []unsafe.Pointer{}
+	for _, entry := range entries {
+		if entry != nil {
+			objs = append(objs, entry.Ptr())
+		}
+	}
+	if len(objs) == 0 {
+		return
+	}
+
+	go func() {
+		urcu.Synchronize()
+		t.mp.Free(objs)
+	}()
 }
 
 // New creates a Table.
