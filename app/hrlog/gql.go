@@ -14,8 +14,8 @@ var (
 func init() {
 	GqlTaskNodeType = gqlserver.NewNodeType((*Task)(nil))
 	GqlTaskNodeType.GetID = func(source interface{}) string {
-		c := source.(*Task)
-		return c.cfg.Filename
+		task := source.(*Task)
+		return task.id
 	}
 	GqlTaskNodeType.Retrieve = func(id string) (interface{}, error) {
 		if TheWriter == nil {

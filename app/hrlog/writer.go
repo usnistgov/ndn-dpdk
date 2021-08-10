@@ -6,12 +6,13 @@ package hrlog
 import "C"
 import (
 	"errors"
+	"fmt"
 	"path"
 	"sync"
+	"time"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
-	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
@@ -24,13 +25,10 @@ const Role = "HRLOG"
 // TheWriter is the current Writer instance.
 var TheWriter *Writer
 
-var logger = logging.New("hrlog")
-
 // Error conditions.
 var (
-	ErrDisabled  = errors.New("hrlog module disabled")
-	ErrDuplicate = errors.New("duplicate filename")
-	ErrWriter    = errors.New("writer failed")
+	ErrDisabled = errors.New("hrlog module disabled")
+	ErrWriter   = errors.New("writer failed")
 )
 
 // WriterConfig contains writer configuration.
@@ -58,16 +56,16 @@ func (Writer) ThreadRole() string {
 func (w *Writer) Submit(cfg TaskConfig) (task *Task, e error) {
 	cfg.applyDefaults()
 	task = &Task{
+		id:     fmt.Sprintf("%s %d", cfg.Filename, time.Now().UnixNano()),
 		cfg:    cfg,
 		finish: make(chan error, 1),
 	}
 	task.stop = ealthread.InitStopFlag(unsafe.Pointer(&task.stopC))
 
-	_, loaded := w.tasks.LoadOrStore(task.cfg.Filename, task)
-	if loaded {
-		return nil, ErrDuplicate
-	}
-	w.queue <- task
+	w.tasks.Store(task.id, task)
+	go func() {
+		w.queue <- task
+	}()
 	return task, nil
 }
 
@@ -80,11 +78,11 @@ func (w *Writer) loop() {
 
 	capacity := w.ring.Capacity()
 	logger.Info("writer ready", w.LCore().ZapField("lc"), zap.Int("capacity", capacity))
-	for c := range w.queue {
-		logger.Info("writer open", zap.String("filename", c.cfg.Filename))
-		c.execute(capacity)
-		w.tasks.Delete(c.cfg.Filename)
-		logger.Info("writer close", zap.String("filename", c.cfg.Filename))
+	for task := range w.queue {
+		logger.Info("writer open", zap.String("filename", task.cfg.Filename))
+		task.execute(capacity)
+		w.tasks.Delete(task.id)
+		logger.Info("writer close", zap.String("filename", task.cfg.Filename))
 	}
 	logger.Info("writer shutdown")
 }
@@ -118,15 +116,16 @@ func (cfg *TaskConfig) applyDefaults() {
 	}
 }
 
-// Task is an ongoing hrlog collection task.
+// Task is a pending or ongoing hrlog collection task.
 type Task struct {
+	id     string
 	cfg    TaskConfig
 	stopC  C.ThreadStopFlag
 	stop   ealthread.StopFlag
 	finish chan error
 }
 
-// Stop stops a collection job.
+// Stop stops a collection task.
 func (task *Task) Stop() (e error) {
 	task.stop.BeforeWait()
 	e = <-task.finish
@@ -144,10 +143,4 @@ func (task *Task) execute(nSkip int) {
 	} else {
 		task.finish <- ErrWriter
 	}
-}
-
-// Post posts entries to the hrlog collector.
-func Post(entries []uint64) {
-	ptr, count := cptr.ParseCptrArray(entries)
-	C.Hrlog_Post((*C.HrlogEntry)(ptr), C.uint16_t(count))
 }

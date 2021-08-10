@@ -12,8 +12,11 @@ import (
 	"math"
 	"math/rand"
 	"sort"
+	"sync"
 	"unsafe"
 
+	"github.com/jwangsadinata/go-multimap"
+	"github.com/jwangsadinata/go-multimap/setmultimap"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
@@ -23,6 +26,18 @@ import (
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
 )
+
+var (
+	faceDumps       multimap.MultiMap = setmultimap.New()
+	faceClosingOnce sync.Once
+)
+
+func handleFaceClosing(id iface.ID) {
+	pds, _ := faceDumps.Get(id)
+	for _, pd := range pds {
+		pd.(*Face).Close()
+	}
+}
 
 // Direction indicates traffic direction.
 type Direction string
@@ -49,6 +64,7 @@ var dirImpls = map[Direction]struct {
 
 // FaceConfig contains face dumper configuration.
 type FaceConfig struct {
+	ID    string            `json:"id"` // GraphQL face ID
 	Dir   Direction         `json:"dir"`
 	Names []NameFilterEntry `json:"names"`
 }
@@ -63,7 +79,7 @@ func (cfg FaceConfig) validate() error {
 	}
 	for i, nf := range cfg.Names {
 		if !(nf.SampleRate >= 0.0 && nf.SampleRate <= 1.0) {
-			errs = append(errs, fmt.Errorf("sample rate %d must be between 0.0 and 1.0", i))
+			errs = append(errs, fmt.Errorf("sample rate at index %d must be between 0.0 and 1.0", i))
 		}
 	}
 	return multierr.Combine(errs...)
@@ -85,11 +101,6 @@ type Face struct {
 	cr   *C.PdumpFaceRef
 }
 
-// Process submits packets for potential dumping.
-func (pd *Face) Process(pkts pktmbuf.Vector) {
-	C.PdumpFace_Process(pd.c, C.FaceID(pd.face.ID()), (**C.struct_rte_mbuf)(pkts.Ptr()), C.uint16_t(len(pkts)))
-}
-
 // Close detaches the dumper.
 func (pd *Face) Close() error {
 	logger.Info("PdumpFace close",
@@ -101,6 +112,7 @@ func (pd *Face) Close() error {
 	if ptr := C.PdumpFaceRef_Set(pd.cr, nil); ptr != pd.c {
 		panic(fmt.Errorf("PdumpFaceRef pointer mismatch %p %p", ptr, pd.c))
 	}
+	faceDumps.Remove(pd.face.ID(), pd)
 
 	go func() {
 		urcu.Synchronize()
@@ -149,6 +161,9 @@ func DumpFace(face iface.Face, w *Writer, cfg FaceConfig) (pd *Face, e error) {
 	if ptr := C.PdumpFaceRef_Set(pd.cr, pd.c); ptr != nil {
 		panic(fmt.Errorf("PdumpFaceRef pointer mismatch %p != nil", ptr))
 	}
+
+	faceClosingOnce.Do(func() { iface.OnFaceClosing(handleFaceClosing) })
+	faceDumps.Put(face.ID(), pd)
 
 	logger.Info("PdumpFace open",
 		face.ID().ZapField("face"),

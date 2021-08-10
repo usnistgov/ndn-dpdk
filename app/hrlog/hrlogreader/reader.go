@@ -1,3 +1,4 @@
+// Package hrlogreader reads high resolution tracing logs.
 package hrlogreader
 
 import (

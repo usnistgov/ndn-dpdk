@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/app/hrlog"
+	"github.com/usnistgov/ndn-dpdk/app/pdump"
 	"github.com/usnistgov/ndn-dpdk/bpf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealconfig"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealinit"
@@ -36,7 +37,7 @@ func (a *CommonArgs) apply() error {
 
 	a.Mempool.Apply()
 
-	lcoreAlloc, e := a.LCoreAlloc.Extract(map[string]int{hrlog.Role: 0})
+	lcoreAlloc, e := a.LCoreAlloc.Extract(map[string]int{hrlog.Role: 0, pdump.Role: 0})
 	if e != nil {
 		return e
 	}
@@ -44,14 +45,16 @@ func (a *CommonArgs) apply() error {
 	if e != nil {
 		return e
 	}
-	lcHrlog := alloc[hrlog.Role]
-	if len(lcHrlog) > 0 {
+	if lc := alloc[hrlog.Role]; len(lc) > 0 {
 		w, e := hrlog.NewWriter(hrlog.WriterConfig{})
 		if e != nil {
 			return e
 		}
-		w.SetLCore(lcHrlog[0])
+		w.SetLCore(lc[0])
 		ealthread.Launch(w)
+	}
+	if lc := alloc[pdump.Role]; len(lc) > 0 {
+		pdump.GqlLCore = lc[0]
 	}
 	return nil
 }

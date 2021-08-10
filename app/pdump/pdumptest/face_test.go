@@ -73,9 +73,9 @@ func TestFaceRxTx(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	assert.NoError(dumpRx.Close())
-	assert.NoError(dumpTx.Close())
-	assert.NoError(w.Close())
+	_ = dumpTx // closing the face should automatically close dumpers
 	face.D.Close()
+	assert.NoError(w.Close())
 
 	f, e := os.Open(filename)
 	require.NoError(e)

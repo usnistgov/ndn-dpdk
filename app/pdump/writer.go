@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strconv"
 	"sync"
 	"time"
 	"unsafe"
@@ -195,9 +196,10 @@ func NewWriter(cfg WriterConfig) (w *Writer, e error) {
 
 func ngMakeHeader(id iface.ID, loc string) (shb, idb []byte) {
 	intf := pcapgo.DefaultNgInterface
-	intf.Name = fmt.Sprintf("face%d", id)
+	intf.Name = strconv.Itoa(int(id))
 	intf.Description = loc
 	intf.LinkType = layers.LinkTypeLinuxSLL
+	intf.SnapLength = 262144
 
 	wOpt := pcapgo.DefaultNgWriterOptions
 	wOpt.SectionInfo.Application = "NDN-DPDK"

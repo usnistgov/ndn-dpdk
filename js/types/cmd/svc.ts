@@ -4,7 +4,7 @@ import type { FwdpConfig } from "../fwdp";
 export interface ActivateArgsCommon<Roles extends string = never> {
   eal?: EalConfig;
 
-  lcoreAlloc?: LCoreAllocConfig<Roles | "HRLOG">;
+  lcoreAlloc?: LCoreAllocConfig<Roles | "HRLOG" | "PDUMP">;
 }
 
 /**

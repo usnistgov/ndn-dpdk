@@ -9,7 +9,7 @@ NameFilter(PdumpFace* pd, struct rte_mbuf* pkt)
   }
 
   LName name = Pdump_ExtractName(pkt);
-  if (name.length == 0) {
+  if (unlikely(name.length == 0)) {
     return 0;
   }
 
