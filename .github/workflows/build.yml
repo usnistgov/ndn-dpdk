@@ -39,15 +39,15 @@ jobs:
           make
           sudo make install
         env:
-          UBPFCOMMIT: 0014f298be3e2a636fd6243908238fb027527e28
+          UBPFCOMMIT: 843394752c752e38f79d6d49fc704a73ee6490bd
       - uses: actions/cache@v2
         with:
           path: |
             ~/setup-dpdk
-          key: ${{ matrix.compiler }}_20210805
+          key: ${{ matrix.compiler }}_20210813
       - uses: yoursunny/setup-dpdk@main
         with:
-          dpdk-version: '21.05'
+          dpdk-version: '21.08'
           spdk-version: '21.07'
           target-arch: haswell
       - uses: actions/checkout@v2
