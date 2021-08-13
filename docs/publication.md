@@ -2,7 +2,7 @@
 
 ## NDN-DPDK Papers
 
-* Junxiao Shi, Davide Pesavento, and Lotfi Benmohamed. 2020. [**NDN-DPDK: NDN Forwarding at 100 Gbps on Commodity Hardware**](https://www.nist.gov/publications/ndn-forwarding-100-gbps-commodity-hardware). In Proceedings of the 7th ACM Conference on Information-Centric Networking (ICN '20). Association for Computing Machinery, New York, NY, USA, 30–40. DOI:<https://doi.org/10.1145/3405656.3418715>
+* Junxiao Shi, Davide Pesavento, and Lotfi Benmohamed. 2020. [**NDN-DPDK: NDN Forwarding at 100 Gbps on Commodity Hardware**](https://www.nist.gov/publications/ndn-dpdk-ndn-forwarding-100-gbps-commodity-hardware). In Proceedings of the 7th ACM Conference on Information-Centric Networking (ICN '20). Association for Computing Machinery, New York, NY, USA, 30–40. DOI:<https://doi.org/10.1145/3405656.3418715>
 
 If you use NDN-DPDK in your research, please cite the paper instead of this GitHub repository.
 

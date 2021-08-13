@@ -23,7 +23,7 @@ var (
 type Certificate struct {
 	data     ndn.Data
 	validity ValidityPeriod
-	key      PublicKey
+	key      *PublicKey
 }
 
 // Data returns the certificate Data packet.
@@ -45,7 +45,7 @@ func (cert Certificate) Issuer() ndn.Name {
 	return cert.data.SigInfo.KeyLocator.Name
 }
 
-// SelfSigned determins whether the certificate is self-signed.
+// SelfSigned determines whether the certificate is self-signed.
 func (cert Certificate) SelfSigned() bool {
 	issuer := cert.Issuer()
 	return issuer != nil && issuer.IsPrefixOf(cert.data.Name)
@@ -57,7 +57,7 @@ func (cert Certificate) Validity() ValidityPeriod {
 }
 
 // PublicKey returns the enclosed public key.
-func (cert Certificate) PublicKey() PublicKey {
+func (cert Certificate) PublicKey() *PublicKey {
 	return cert.key
 }
 

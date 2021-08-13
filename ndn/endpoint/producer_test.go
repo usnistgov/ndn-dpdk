@@ -2,9 +2,6 @@ package endpoint_test
 
 import (
 	"context"
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
 	"fmt"
 	"strconv"
 	"sync"
@@ -22,18 +19,10 @@ func TestSignVerify(t *testing.T) {
 	fw := l3.NewForwarder()
 	assert, require := makeAR(t)
 
-	makeSignerVerifier := func(name string) (ndn.Signer, ndn.Verifier) {
-		keyName := keychain.ToKeyName(ndn.ParseName(name))
-		pvt, e := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-		require.NoError(e)
-		signer, e := keychain.NewECDSAPrivateKey(keyName, pvt)
-		require.NoError(e)
-		verifier, e := keychain.NewECDSAPublicKey(keyName, &pvt.PublicKey)
-		require.NoError(e)
-		return signer, verifier
-	}
-	signer1, verifier1 := makeSignerVerifier("/K1")
-	signer2, verifier2 := makeSignerVerifier("/K2")
+	signer1, verifier1, e := keychain.NewECDSAKeyPair(ndn.ParseName("/K1"))
+	require.NoError(e)
+	signer2, verifier2, e := keychain.NewECDSAKeyPair(ndn.ParseName("/K2"))
+	require.NoError(e)
 
 	p, e := endpoint.Produce(context.Background(), endpoint.ProducerOptions{
 		Prefix: ndn.ParseName("/A"),

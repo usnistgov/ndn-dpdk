@@ -18,8 +18,6 @@ func TestECDSASigning(t *testing.T) {
 	assert, require := makeAR(t)
 	privA, e := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	require.NoError(e)
-	privB, e := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	require.NoError(e)
 
 	subjectName := ndn.ParseName("/K")
 	_, e = keychain.NewECDSAPrivateKey(subjectName, privA)
@@ -35,13 +33,11 @@ func TestECDSASigning(t *testing.T) {
 	nameEqual(assert, keyNameA, pvtA)
 	nameEqual(assert, keyNameA, pubA)
 
-	keyNameB := keychain.ToKeyName(subjectName)
-	pvtB, e := keychain.NewECDSAPrivateKey(keyNameB, privB)
+	pvtB, pubB, e := keychain.NewECDSAKeyPair(subjectName)
 	require.NoError(e)
-	certNameB := keychain.ToCertName(keyNameB)
+	nameEqual(assert, pvtB, pubB)
+	certNameB := keychain.ToCertName(pvtB.Name())
 	signerB := pvtB.WithKeyLocator(certNameB)
-	pubB, e := keychain.NewECDSAPublicKey(keyNameB, &privB.PublicKey)
-	require.NoError(e)
 
 	var c ndntestenv.SignVerifyTester
 	c.PvtA, c.PvtB, c.PubA, c.PubB = pvtA, signerB, pubA, pubB

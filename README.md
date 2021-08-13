@@ -53,8 +53,8 @@ Forwarding plane
 Management
 
 * GraphQL endpoint: yes
-* configuration file: none
-* routing: no
+* Configuration file: none
+* Routing: no
   * [Multiverse](https://github.com/multiverse-nms) can provide centralized routing
 
 ## Code Organization

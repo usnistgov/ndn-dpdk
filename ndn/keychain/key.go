@@ -5,23 +5,88 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
-// PrivateKey represents a named private key.
-type PrivateKey interface {
-	ndn.Signer
-	Name() ndn.Name
+type namedSigner struct {
+	sigType uint32
+	klName  ndn.Name
+	llSign  ndn.LLSign
 }
 
-// PrivateKeyKeyLocatorChanger is a PrivateKey that can change KeyLocator.
-type PrivateKeyKeyLocatorChanger interface {
-	PrivateKey
+// Sign implements ndn.Signer interface.
+func (signer namedSigner) Sign(packet ndn.Signable) error {
+	return packet.SignWith(func(name ndn.Name, si *ndn.SigInfo) (ndn.LLSign, error) {
+		si.Type = signer.sigType
+		si.KeyLocator = ndn.KeyLocator{Name: signer.klName}
+		return signer.llSign, nil
+	})
+}
 
-	// WithKeyLocator creates a new Signer that uses a different KeyLocator.
-	// This may be used to put certificate name in KeyLocator.
-	WithKeyLocator(klName ndn.Name) ndn.Signer
+// PrivateKey represents a named private key.
+type PrivateKey struct {
+	namedSigner
+}
+
+var _ ndn.Signer = (*PrivateKey)(nil)
+
+// Name returns key name.
+func (pvt PrivateKey) Name() ndn.Name {
+	return pvt.klName
+}
+
+// WithKeyLocator creates a new Signer that uses a different KeyLocator.
+// This may be used to put certificate name in KeyLocator.
+func (pvt PrivateKey) WithKeyLocator(klName ndn.Name) ndn.Signer {
+	signer := pvt.namedSigner
+	signer.klName = klName
+	return &signer
+}
+
+// NewPrivateKey constructs a PrivateKey.
+func NewPrivateKey(sigType uint32, keyName ndn.Name, llSign ndn.LLSign) (*PrivateKey, error) {
+	if !IsKeyName(keyName) {
+		return nil, ErrKeyName
+	}
+	return &PrivateKey{namedSigner{
+		sigType: sigType,
+		klName:  keyName,
+		llSign:  llSign,
+	}}, nil
 }
 
 // PublicKey represents a named public key.
-type PublicKey interface {
-	ndn.Verifier
-	Name() ndn.Name
+type PublicKey struct {
+	sigType  uint32
+	keyName  ndn.Name
+	llVerify ndn.LLVerify
+}
+
+var _ ndn.Verifier = (*PublicKey)(nil)
+
+// Name returns key name.
+func (pub PublicKey) Name() ndn.Name {
+	return pub.keyName
+}
+
+// Verify implements ndn.Verifier interface.
+func (pub PublicKey) Verify(packet ndn.Verifiable) error {
+	return packet.VerifyWith(func(name ndn.Name, si ndn.SigInfo) (ndn.LLVerify, error) {
+		if si.Type != pub.sigType {
+			return nil, ndn.ErrSigType
+		}
+		if !ToKeyName(si.KeyLocator.Name).Equal(ToKeyName(pub.keyName)) {
+			return nil, ndn.ErrKeyLocator
+		}
+		return pub.llVerify, nil
+	})
+}
+
+// NewPublicKey constructs a PublicKey.
+func NewPublicKey(sigType uint32, keyName ndn.Name, llVerify ndn.LLVerify) (*PublicKey, error) {
+	if !IsKeyName(keyName) {
+		return nil, ErrKeyName
+	}
+	return &PublicKey{
+		sigType:  sigType,
+		keyName:  keyName,
+		llVerify: llVerify,
+	}, nil
 }

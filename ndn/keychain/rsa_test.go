@@ -16,8 +16,6 @@ func TestRSASigning(t *testing.T) {
 	assert, require := makeAR(t)
 	privA, e := rsa.GenerateKey(rand.Reader, 2048)
 	require.NoError(e)
-	privB, e := rsa.GenerateKey(rand.Reader, 2048)
-	require.NoError(e)
 
 	subjectName := ndn.ParseName("/K")
 	_, e = keychain.NewRSAPrivateKey(subjectName, privA)
@@ -33,13 +31,11 @@ func TestRSASigning(t *testing.T) {
 	nameEqual(assert, keyNameA, pvtA)
 	nameEqual(assert, keyNameA, pubA)
 
-	keyNameB := keychain.ToKeyName(subjectName)
-	pvtB, e := keychain.NewRSAPrivateKey(keyNameB, privB)
+	pvtB, pubB, e := keychain.NewRSAKeyPair(subjectName)
 	require.NoError(e)
-	certNameB := keychain.ToCertName(keyNameB)
+	nameEqual(assert, pvtB, pubB)
+	certNameB := keychain.ToCertName(pvtB.Name())
 	signerB := pvtB.WithKeyLocator(certNameB)
-	pubB, e := keychain.NewRSAPublicKey(keyNameB, &privB.PublicKey)
-	require.NoError(e)
 
 	var c ndntestenv.SignVerifyTester
 	c.PvtA, c.PvtB, c.PubA, c.PubB = pvtA, signerB, pubA, pubB
