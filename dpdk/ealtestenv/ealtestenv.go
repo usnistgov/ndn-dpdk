@@ -2,13 +2,14 @@
 package ealtestenv
 
 import (
+	"math"
 	"math/rand"
 	"os"
 	"reflect"
 	"strconv"
 	"time"
 
-	"github.com/pkg/math"
+	mathpkg "github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/core/hwinfo"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealconfig"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealinit"
@@ -55,15 +56,18 @@ func Init() {
 		MaxCores: WantLCores,
 	}
 	if maxCores, e := strconv.Atoi(os.Getenv(EnvCpus)); e == nil {
-		hwInfo.MaxCores = math.MinInt(hwInfo.MaxCores, maxCores)
+		hwInfo.MaxCores = mathpkg.MinInt(hwInfo.MaxCores, maxCores)
 	}
 
 	var cfg ealconfig.Config
 	cfg.FilePrefix = "ealtestenv"
 	cfg.AllPciDevices = os.Getenv(EnvPci) == "1"
 
-	if len(hwInfo.Cores()) < WantLCores {
-		cfg.LCoresPerNuma = map[int]int{0: WantLCores}
+	if cores := hwInfo.Cores(); len(cores) < WantLCores {
+		cfg.LCoresPerNuma = map[int]int{}
+		for socket, numaCores := range cores.ByNumaSocket() {
+			cfg.LCoresPerNuma[socket] = int(math.Ceil(float64(WantLCores) * float64(len(numaCores)) / float64(len(cores))))
+		}
 		UsingThreads = true
 	}
 

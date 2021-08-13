@@ -24,6 +24,7 @@ type Table struct {
 	mp    *mempool.Mempool
 	c     *C.Fib
 	nDyns int
+	free  chan []unsafe.Pointer
 }
 
 // Ptr returns *C.Fib pointer.
@@ -33,9 +34,8 @@ func (t *Table) Ptr() unsafe.Pointer {
 
 // Close frees C memory.
 func (t *Table) Close() error {
-	C.Fib_Clear(t.c)
-	C.cds_lfht_destroy(t.c.lfht, nil)
-	return t.mp.Close()
+	close(t.free)
+	return nil
 }
 
 // Get retrieves an entry.
@@ -83,10 +83,18 @@ func (t *Table) deferredFree(entries ...*Entry) {
 		return
 	}
 
-	go func() {
+	t.free <- objs
+}
+
+func (t *Table) freeLoop() {
+	for objs := range t.free {
 		urcu.Synchronize()
 		t.mp.Free(objs)
-	}()
+	}
+
+	C.Fib_Clear(t.c)
+	C.cds_lfht_destroy(t.c.lfht, nil)
+	t.mp.Close()
 }
 
 // New creates a Table.
@@ -107,12 +115,16 @@ func New(cfg fibdef.Config, nDyns int, socket eal.NumaSocket) (*Table, error) {
 	t := &Table{
 		mp:    mp,
 		nDyns: nDyns,
+		// t.deferredFree may be called in RCU critical section (eal.MainThread), add caching to avoid deadlock
+		free: make(chan []unsafe.Pointer, 1),
 	}
 
 	mpC := (*C.struct_rte_mempool)(t.mp.Ptr())
 	t.c = (*C.Fib)(C.rte_mempool_get_priv(mpC))
 	*t.c = C.Fib{
-		mp: mpC,
+		mp:           mpC,
+		startDepth:   C.int(cfg.StartDepth),
+		insertSeqNum: C.uint32_t(rand.Uint32()),
 	}
 
 	t.c.lfht = C.cds_lfht_new(C.ulong(cfg.NBuckets), C.ulong(cfg.NBuckets), C.ulong(cfg.NBuckets), 0, nil)
@@ -121,7 +133,6 @@ func New(cfg fibdef.Config, nDyns int, socket eal.NumaSocket) (*Table, error) {
 		return nil, errors.New("cds_lfht_new error")
 	}
 
-	t.c.startDepth = C.int(cfg.StartDepth)
-	t.c.insertSeqNum = C.uint32_t(rand.Uint32())
+	go t.freeLoop()
 	return t, nil
 }
