@@ -67,11 +67,13 @@ type LpFragment struct {
 	payload   []byte
 }
 
+var _ tlv.Fielder = LpFragment{}
+
 func (frag LpFragment) String() string {
 	return strconv.FormatUint(frag.SeqNum, 16) + ":" + strconv.Itoa(frag.FragIndex) + ":" + strconv.Itoa(frag.FragCount)
 }
 
-// Field encodes this fragment.
+// Field implements tlv.Fielder interface.
 func (frag LpFragment) Field() tlv.Field {
 	if frag.FragIndex < 0 || frag.FragIndex >= frag.FragCount {
 		return tlv.FieldError(ErrFragment)

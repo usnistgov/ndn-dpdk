@@ -41,9 +41,9 @@ KeyChain
   * ECDSA: yes
   * RSA: yes
   * HMAC-SHA256: no
-  * [Null](https://redmine.named-data.net/projects/ndn-tlv/wiki/NullSignature): yes
-* [NDN certificates](https://named-data.net/doc/ndn-cxx/0.7.1/specs/certificate-format.html): decoding
-* Key persistence: no
+  * Null: yes
+* [NDN certificates](https://named-data.net/doc/ndn-cxx/0.7.1/specs/certificate-format.html): basic support
+* Persistent key and certificate storage: no
 * Trust schema: no
 
 Application layer services

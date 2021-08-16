@@ -4,6 +4,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding"
 	"errors"
 	"time"
 
@@ -11,6 +12,8 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
+
+const validityPeriodTimeFormat = "20060102T150405"
 
 // Error conditions for certificate.
 var (
@@ -24,6 +27,11 @@ type Certificate struct {
 	data     ndn.Data
 	validity ValidityPeriod
 	key      *PublicKey
+}
+
+// Name returns the certificate name.
+func (cert Certificate) Name() ndn.Name {
+	return cert.data.Name
 }
 
 // Data returns the certificate Data packet.
@@ -76,11 +84,11 @@ func CertFromData(data ndn.Data) (cert *Certificate, e error) {
 	if data.SigInfo == nil {
 		return nil, ErrValidityPeriod
 	}
-	validityTlv := data.SigInfo.FindExtension(an.TtValidityPeriod)
-	if validityTlv == nil {
+	vp := data.SigInfo.FindExtension(an.TtValidityPeriod)
+	if vp == nil {
 		return nil, ErrValidityPeriod
 	}
-	if e := cert.validity.UnmarshalBinary(validityTlv.Value); e != nil {
+	if e := cert.validity.UnmarshalBinary(vp.Value); e != nil {
 		return nil, e
 	}
 
@@ -101,16 +109,91 @@ func CertFromData(data ndn.Data) (cert *Certificate, e error) {
 	return cert, nil
 }
 
+// MakeCertOptions contains arguments to MakeCert function.
+type MakeCertOptions struct {
+	IssuerID  ndn.NameComponent
+	Version   ndn.NameComponent
+	Freshness time.Duration
+	Validity  ValidityPeriod
+}
+
+func (opts *MakeCertOptions) applyDefaults() {
+	if !opts.IssuerID.Valid() {
+		opts.IssuerID = ComponentDefaultIssuer
+	}
+	if !opts.Version.Valid() {
+		opts.Version = makeVersionFromCurrentTime()
+	}
+	opts.Freshness = opts.Freshness.Truncate(time.Second)
+	if opts.Freshness <= 0 {
+		opts.Freshness = time.Hour
+	}
+	if !opts.Validity.Valid() {
+		opts.Validity = MaxValidityPeriod
+	}
+}
+
+// MakeCert generates a certificate of the given public key, signed by the given signer.
+func MakeCert(pub *PublicKey, signer ndn.Signer, opts MakeCertOptions) (cert *Certificate, e error) {
+	opts.applyDefaults()
+
+	name := append(ndn.Name{}, pub.Name()...)
+	name = append(name, opts.IssuerID, opts.Version)
+
+	spki, e := pub.SPKI()
+	if e != nil {
+		return nil, e
+	}
+
+	vpWire, _ := tlv.EncodeFrom(opts.Validity)
+	var vp tlv.Element
+	if e = tlv.Decode(vpWire, &vp); e != nil {
+		return nil, e
+	}
+
+	data := ndn.MakeData(name, ndn.ContentType(an.ContentKey), opts.Freshness, spki)
+	data.SigInfo = &ndn.SigInfo{}
+	data.SigInfo.Extensions = append(data.SigInfo.Extensions, vp)
+	if e = signer.Sign(&data); e != nil {
+		return nil, e
+	}
+	return CertFromData(data)
+}
+
 // ValidityPeriod represents ValidityPeriod element in an NDN certificate.
 type ValidityPeriod struct {
 	NotBefore time.Time
 	NotAfter  time.Time
 }
 
+// MaxValidityPeriod is a very long ValidityPeriod.
+var MaxValidityPeriod = ValidityPeriod{time.Unix(540109800, 0), time.Unix(253402300799, 0)}
+
+var (
+	_ tlv.Fielder                = ValidityPeriod{}
+	_ encoding.BinaryUnmarshaler = (*ValidityPeriod)(nil)
+)
+
+// Valid checks whether fields are valid.
+func (vp ValidityPeriod) Valid() bool {
+	return !vp.NotBefore.IsZero() && !vp.NotAfter.IsZero() && !vp.NotBefore.After(vp.NotAfter)
+}
+
 // Includes determines whether the given timestamp is within validity period.
 func (vp ValidityPeriod) Includes(t time.Time) bool {
 	t = t.Truncate(time.Second)
 	return !t.Before(vp.NotBefore) && !t.After(vp.NotAfter)
+}
+
+// Field implements tlv.Fielder interface.
+func (vp ValidityPeriod) Field() tlv.Field {
+	if !vp.Valid() {
+		return tlv.FieldError(ErrValidityPeriod)
+	}
+	return tlv.TLV(an.TtValidityPeriod,
+		tlv.TLVBytes(an.TtNotBefore, []byte(vp.NotBefore.Format(validityPeriodTimeFormat))),
+		tlv.TLVBytes(an.TtNotAfter, []byte(vp.NotAfter.Format(validityPeriodTimeFormat))),
+	)
 }
 
 // UnmarshalBinary decodes from TLV-VALUE.
@@ -129,14 +212,14 @@ func (vp *ValidityPeriod) UnmarshalBinary(wire []byte) (e error) {
 			}
 		}
 	}
-	if vp.NotBefore.IsZero() || vp.NotAfter.IsZero() || vp.NotBefore.After(vp.NotAfter) {
+	if !vp.Valid() {
 		return ErrValidityPeriod
 	}
 	return d.ErrUnlessEOF()
 }
 
 func parseValidityPeriodTime(value []byte) time.Time {
-	t, e := time.Parse("20060102T150405", string(value))
+	t, e := time.Parse(validityPeriodTimeFormat, string(value))
 	if e != nil {
 		return time.Time{}
 	}

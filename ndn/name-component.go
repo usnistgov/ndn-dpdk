@@ -24,6 +24,11 @@ type NameComponent struct {
 	tlv.Element
 }
 
+var (
+	_ tlv.Fielder     = NameComponent{}
+	_ tlv.Unmarshaler = (*NameComponent)(nil)
+)
+
 // Valid checks whether this component has a valid TLV-TYPE.
 func (comp NameComponent) Valid() bool {
 	return isValidNameComponentType(comp.Type)
@@ -45,7 +50,7 @@ func (comp NameComponent) Compare(other NameComponent) int {
 	return bytes.Compare(comp.Value, other.Value)
 }
 
-// Field encodes this component.
+// Field implements tlv.Fielder interface.
 func (comp NameComponent) Field() tlv.Field {
 	if !comp.Valid() {
 		return tlv.FieldError(ErrComponentType)

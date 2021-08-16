@@ -42,5 +42,6 @@ See [NDN-DPDK interoperability with NFD](NFD.md) for a sample scenario.
 
 [NDNts](https://yoursunny.com/p/NDNts/), when running in Node.js environment, is interoperable with NDN-DPDK.
 It fully supports PIT tokens, and has partial integration with NDN-DPDK management API.
+Applications can import [`@ndn/dpdkmgmt` package](https://ndnts-docs.ndn.today/typedoc/modules/dpdkmgmt.html) to communicate with NDN-DPDK.
 
-Applications can import [`@ndn/dpdkmgmt` package](https://www.npmjs.com/package/@ndn/dpdkmgmt) to communicate with NDN-DPDK.
+NDNts in browser environment cannot connect to NDN-DPDK, because NDN-DPDK supports neither WebSockets nor HTTP/3 WebTransport.

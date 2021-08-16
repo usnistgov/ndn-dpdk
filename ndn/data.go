@@ -2,6 +2,7 @@ package ndn
 
 import (
 	"crypto/sha256"
+	"encoding"
 	"math"
 	"reflect"
 	"time"
@@ -22,6 +23,11 @@ type Data struct {
 	SigInfo          *SigInfo
 	SigValue         []byte
 }
+
+var (
+	_ tlv.Fielder                = Data{}
+	_ encoding.BinaryUnmarshaler = (*Data)(nil)
+)
 
 // MakeData creates a Data from flexible arguments.
 // Arguments can contain:
@@ -206,7 +212,7 @@ func (data Data) VerifyWith(verifier func(name Name, si SigInfo) (LLVerify, erro
 	return llVerify(signedPortion, data.SigValue)
 }
 
-// Field encodes this Data.
+// Field implements tlv.Fielder interface.
 func (data Data) Field() tlv.Field {
 	signedPortion, e := data.encodeSignedPortion()
 	if e != nil {

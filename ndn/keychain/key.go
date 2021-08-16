@@ -57,6 +57,7 @@ type PublicKey struct {
 	sigType  uint32
 	keyName  ndn.Name
 	llVerify ndn.LLVerify
+	spki     func() ([]byte, error)
 }
 
 var _ ndn.Verifier = (*PublicKey)(nil)
@@ -79,8 +80,13 @@ func (pub PublicKey) Verify(packet ndn.Verifiable) error {
 	})
 }
 
+// SPKI returns public key in SubjectPublicKeyInfo format as used in NDN certificate.
+func (pub PublicKey) SPKI() (spki []byte, e error) {
+	return pub.spki()
+}
+
 // NewPublicKey constructs a PublicKey.
-func NewPublicKey(sigType uint32, keyName ndn.Name, llVerify ndn.LLVerify) (*PublicKey, error) {
+func NewPublicKey(sigType uint32, keyName ndn.Name, llVerify ndn.LLVerify, spki func() ([]byte, error)) (*PublicKey, error) {
 	if !IsKeyName(keyName) {
 		return nil, ErrKeyName
 	}
@@ -88,5 +94,6 @@ func NewPublicKey(sigType uint32, keyName ndn.Name, llVerify ndn.LLVerify) (*Pub
 		sigType:  sigType,
 		keyName:  keyName,
 		llVerify: llVerify,
+		spki:     spki,
 	}, nil
 }

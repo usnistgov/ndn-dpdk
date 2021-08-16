@@ -1,6 +1,7 @@
 package ndn
 
 import (
+	"encoding"
 	"strings"
 
 	"github.com/pkg/math"
@@ -11,6 +12,14 @@ import (
 // Name represents a name.
 // The zero Name has zero components.
 type Name []NameComponent
+
+var (
+	_ tlv.Fielder                = Name{}
+	_ encoding.BinaryMarshaler   = Name{}
+	_ encoding.BinaryUnmarshaler = (*Name)(nil)
+	_ encoding.TextMarshaler     = Name{}
+	_ encoding.TextUnmarshaler   = (*Name)(nil)
+)
 
 // Length returns TLV-LENGTH.
 // Use len(name) to get number of components.
@@ -101,7 +110,7 @@ func (name Name) compareCommonPrefix(other Name) int {
 	return 0
 }
 
-// Field encodes this Name.
+// Field implements tlv.Fielder interface.
 func (name Name) Field() tlv.Field {
 	compFields := make([]tlv.Field, len(name))
 	for i, comp := range name {

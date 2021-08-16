@@ -5,6 +5,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/x509"
 
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
@@ -26,6 +27,8 @@ func NewECDSAPublicKey(keyName ndn.Name, key *ecdsa.PublicKey) (*PublicKey, erro
 			return ndn.ErrSigValue
 		}
 		return nil
+	}, func() ([]byte, error) {
+		return x509.MarshalPKIXPublicKey(key)
 	})
 }
 

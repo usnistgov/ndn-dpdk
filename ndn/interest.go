@@ -3,6 +3,7 @@ package ndn
 import (
 	"crypto/hmac"
 	"crypto/sha256"
+	"encoding"
 	"encoding/binary"
 	"math"
 	"math/rand"
@@ -28,6 +29,11 @@ type Interest struct {
 	SigInfo        *SigInfo
 	SigValue       []byte
 }
+
+var (
+	_ tlv.Fielder                = Interest{}
+	_ encoding.BinaryUnmarshaler = (*Interest)(nil)
+)
 
 // MakeInterest creates an Interest from flexible arguments.
 // Arguments can contain:
@@ -166,7 +172,7 @@ func (interest Interest) VerifyWith(verifier func(name Name, si SigInfo) (LLVeri
 	return llVerify(signedPortion, interest.SigValue)
 }
 
-// Field encodes this Interest.
+// Field implements tlv.Fielder interface.
 func (interest Interest) Field() tlv.Field {
 	fields := []tlv.Fielder{interest.Name}
 	if interest.CanBePrefix {
@@ -301,13 +307,18 @@ func (interest Interest) encodeSignedPortion() (wire []byte, e error) {
 // ForwardingHint represents a forwarding hint.
 type ForwardingHint []FHDelegation
 
+var (
+	_ tlv.Fielder                = ForwardingHint{}
+	_ encoding.BinaryUnmarshaler = (*ForwardingHint)(nil)
+)
+
 // Append adds a delegation.
 // name should be either Name or string.
 func (fh *ForwardingHint) Append(preference int, name interface{}) {
 	*fh = append(*fh, MakeFHDelegation(preference, name))
 }
 
-// Field encodes this forwarding hint.
+// Field implements tlv.Fielder interface.
 func (fh ForwardingHint) Field() tlv.Field {
 	subs := make([]tlv.Field, len(fh))
 	for i, del := range fh {
@@ -342,6 +353,11 @@ type FHDelegation struct {
 	Name       Name
 }
 
+var (
+	_ tlv.Fielder                = FHDelegation{}
+	_ encoding.BinaryUnmarshaler = (*FHDelegation)(nil)
+)
+
 // MakeFHDelegation creates a delegation.
 // name should be either Name or string.
 func MakeFHDelegation(preference int, name interface{}) (del FHDelegation) {
@@ -357,7 +373,7 @@ func MakeFHDelegation(preference int, name interface{}) (del FHDelegation) {
 	return del
 }
 
-// Field encodes this delegation.
+// Field implements tlv.Fielder interface.
 func (del FHDelegation) Field() tlv.Field {
 	return tlv.TLV(an.TtDelegation,
 		tlv.TLVNNI(an.TtPreference, uint64(del.Preference)),
@@ -390,6 +406,11 @@ func (del *FHDelegation) UnmarshalBinary(wire []byte) (e error) {
 // Nonce represents an Interest Nonce.
 type Nonce [4]byte
 
+var (
+	_ tlv.Fielder                = Nonce{}
+	_ encoding.BinaryUnmarshaler = (*Nonce)(nil)
+)
+
 // NewNonce generates a random Nonce.
 func NewNonce() (nonce Nonce) {
 	rand.Read(nonce[:])
@@ -412,7 +433,7 @@ func (nonce Nonce) ToUint() uint32 {
 	return binary.BigEndian.Uint32(nonce[:])
 }
 
-// Field encodes this Nonce.
+// Field implements tlv.Fielder interface.
 func (nonce Nonce) Field() tlv.Field {
 	return tlv.TLVBytes(an.TtNonce, nonce[:])
 }
@@ -429,7 +450,12 @@ func (nonce *Nonce) UnmarshalBinary(wire []byte) error {
 // HopLimit represents a HopLimit field.
 type HopLimit uint8
 
-// Field encodes this HopLimit.
+var (
+	_ tlv.Fielder                = HopLimit(0)
+	_ encoding.BinaryUnmarshaler = (*HopLimit)(nil)
+)
+
+// Field implements tlv.Fielder interface.
 func (hl HopLimit) Field() tlv.Field {
 	return tlv.TLVNNI(an.TtHopLimit, uint64(hl))
 }

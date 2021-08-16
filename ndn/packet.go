@@ -39,6 +39,11 @@ type Packet struct {
 	Nack     *Nack
 }
 
+var (
+	_ tlv.Fielder     = (*Packet)(nil)
+	_ tlv.Unmarshaler = (*Packet)(nil)
+)
+
 func (pkt *Packet) String() string {
 	suffix := ""
 	if len(pkt.Lp.PitToken) != 0 {
@@ -62,7 +67,7 @@ func (pkt *Packet) ToPacket() *Packet {
 	return pkt
 }
 
-// Field encodes this packet.
+// Field implements tlv.Fielder interface.
 func (pkt *Packet) Field() tlv.Field {
 	if pkt.Fragment != nil {
 		return pkt.Fragment.Field()

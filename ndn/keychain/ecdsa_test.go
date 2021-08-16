@@ -36,8 +36,9 @@ func TestECDSASigning(t *testing.T) {
 	pvtB, pubB, e := keychain.NewECDSAKeyPair(subjectName)
 	require.NoError(e)
 	nameEqual(assert, pvtB, pubB)
-	certNameB := keychain.ToCertName(pvtB.Name())
-	signerB := pvtB.WithKeyLocator(certNameB)
+	certB, e := keychain.MakeCert(pubB, pvtA, keychain.MakeCertOptions{})
+	require.NoError(e)
+	signerB := pvtB.WithKeyLocator(certB.Name())
 
 	var c ndntestenv.SignVerifyTester
 	c.PvtA, c.PvtB, c.PubA, c.PubB = pvtA, signerB, pubA, pubB
@@ -50,7 +51,7 @@ func TestECDSASigning(t *testing.T) {
 	nameEqual(assert, keyNameA, dataA.SigInfo.KeyLocator)
 	dataB := rec.PktB.(*ndn.Data)
 	assert.EqualValues(an.SigSha256WithEcdsa, dataB.SigInfo.Type)
-	nameEqual(assert, certNameB, dataB.SigInfo.KeyLocator)
+	nameEqual(assert, certB, dataB.SigInfo.KeyLocator)
 }
 
 func TestECDSAVerify(t *testing.T) {

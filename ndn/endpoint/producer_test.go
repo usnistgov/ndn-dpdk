@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -82,7 +83,7 @@ func TestProducerConcurrent(t *testing.T) {
 	defer l3.DeleteDefaultForwarder()
 	assert, require := makeAR(t)
 
-	pCompleted, pCanceled := 0, 0
+	var pCompleted, pCanceled int32
 	pCtx, pCancel := context.WithTimeout(context.Background(), 150*time.Millisecond)
 	defer pCancel()
 	p, e := endpoint.Produce(pCtx, endpoint.ProducerOptions{
@@ -91,9 +92,9 @@ func TestProducerConcurrent(t *testing.T) {
 			delay, _ := strconv.Atoi(string(interest.Name.Get(-1).Value))
 			select {
 			case <-time.After(time.Duration(delay) * time.Millisecond):
-				pCompleted++
+				atomic.AddInt32(&pCompleted, 1)
 			case <-ctx.Done():
-				pCanceled++
+				atomic.AddInt32(&pCanceled, 1)
 			}
 			return ndn.MakeData(interest), nil
 		},
@@ -102,7 +103,7 @@ func TestProducerConcurrent(t *testing.T) {
 	defer p.Close()
 
 	var cWait sync.WaitGroup
-	cData, cExpire := 0, 0
+	var cData, cExpire int32
 	for i := 0; i < 250; i++ {
 		cWait.Add(1)
 		go func(i int) {
@@ -110,15 +111,15 @@ func TestProducerConcurrent(t *testing.T) {
 			interest := ndn.MakeInterest(fmt.Sprintf("/A/%d", i), 300*time.Millisecond)
 			data, e := endpoint.Consume(context.Background(), interest, endpoint.ConsumerOptions{})
 			if data != nil {
-				cData++
+				atomic.AddInt32(&cData, 1)
 			} else if assert.EqualError(e, endpoint.ErrExpire.Error()) {
-				cExpire++
+				atomic.AddInt32(&cExpire, 1)
 			}
 		}(i)
 	}
 
 	cWait.Wait()
-	assert.Equal(250, cData+cExpire)
+	assert.EqualValues(250, cData+cExpire)
 	assert.InDelta(250, pCompleted+pCanceled, 70)
 	assert.InDelta(150, pCompleted, 70)
 	assert.InDelta(pCompleted, cData, 70)

@@ -10,7 +10,7 @@ This provides a clean environment for running NFD, and avoids interference from 
 Once you have finished this guide, you can use the same procedures on other NFD installations.
 
 Dockerfile and related scripts are provided in [docs/interop/nfd](nfd) directory.
-It installs the latest NFD version from the [NFD nightly APT repository](https://yoursunny.com/t/2021/NFD-nightly-apt/), and generates configurations suitable for this guide.
+It installs the latest NFD version from the [NFD nightly APT repository](https://nfd-nightly.ndn.today/), and generates configurations suitable for this guide.
 
 To build the NFD Docker image:
 
@@ -35,7 +35,7 @@ docker build -t nfd .
 
 In this scenario, NDN-DPDK forwarder and NFD on two separate machines communicate via Ethernet unicast:
 
-* Node A runs NDN-DPDK forwarder, a producer for `/net/A` prefix, and a consumer for `/net/B` prefix.
+* Node A runs NDN-DPDK forwarder (systemd installation), a producer for `/net/A` prefix, and a consumer for `/net/B` prefix.
 * Node B runs NFD, a producer for `/net/B` prefix, and a consumer for `/net/A` prefix.
 * FIB entries are created on each forwarder so that the applications can communicate.
 
@@ -61,6 +61,7 @@ On node A, start NDN-DPDK forwarder and producer:
 
 ```bash
 # (re)start NDN-DPDK service
+# if using Docker, see "NDN-DPDK Docker Container" page
 sudo systemctl restart ndndpdk-svc
 
 # activate NDN-DPDK forwarder
@@ -151,7 +152,8 @@ In this scenario, NDN-DPDK forwarder and NFD run on the same machine:
 * Producer for prefix `/app/B` connects to NFD.
 * Consumer for prefix `/app/B` connects to NDN-DPDK.
 
-Declare variables:
+This scenario uses the following variables.
+You need to paste them on every terminal before entering commands.
 
 ```bash
 # name prefix of producer in NFD

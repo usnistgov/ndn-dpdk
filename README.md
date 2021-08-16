@@ -69,7 +69,7 @@ Management
 * [ndni](ndni): NDN packet representation for internal use.
 * [iface](iface): network interfaces.
 * [container](container): data structures.
-* [app](app): applications, including the forwarder dataplane.
+* [app](app): application level modules, such as the forwarder data plane.
 * [cmd](cmd): executables.
 
 These is a `README.md` file in most directories of this codebase that explains the relevant module.

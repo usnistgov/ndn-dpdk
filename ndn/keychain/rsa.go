@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/x509"
 
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
@@ -23,6 +24,8 @@ func NewRSAPublicKey(keyName ndn.Name, key *rsa.PublicKey) (*PublicKey, error) {
 	return NewPublicKey(an.SigSha256WithRsa, keyName, func(input, sig []byte) error {
 		h := sha256.Sum256(input)
 		return rsa.VerifyPKCS1v15(key, crypto.SHA256, h[:], sig)
+	}, func() ([]byte, error) {
+		return x509.MarshalPKIXPublicKey(key)
 	})
 }
 

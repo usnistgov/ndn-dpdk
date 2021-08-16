@@ -1,6 +1,7 @@
 package ndn
 
 import (
+	"encoding"
 	"encoding/hex"
 	"fmt"
 	"math"
@@ -15,12 +16,17 @@ type KeyLocator struct {
 	Digest []byte
 }
 
+var (
+	_ tlv.Fielder                = KeyLocator{}
+	_ encoding.BinaryUnmarshaler = (*KeyLocator)(nil)
+)
+
 // Empty returns true if KeyLocator has zero fields.
 func (kl KeyLocator) Empty() bool {
 	return len(kl.Name)+len(kl.Digest) == 0
 }
 
-// Field encodes this KeyLocator.
+// Field implements tlv.Fielder interface.
 func (kl KeyLocator) Field() tlv.Field {
 	if len(kl.Name) > 0 && len(kl.Digest) > 0 {
 		return tlv.FieldError(ErrKeyLocator)
@@ -72,6 +78,8 @@ type SigInfo struct {
 	SeqNum     uint64
 	Extensions []tlv.Element
 }
+
+var _ encoding.BinaryUnmarshaler = (*SigInfo)(nil)
 
 // EncodeAs creates a tlv.Fielder for either ISigInfo or DSigInfo TLV-TYPE.
 // If si is nil, the encoding result contains SigType=SigNull.
@@ -161,7 +169,7 @@ func (sim sigInfoFielder) Field() tlv.Field {
 	return tlv.TLVFrom(sim.typ, fields...)
 }
 
-var sigInfoExtensionTypes = make(map[uint32]bool)
+var sigInfoExtensionTypes = map[uint32]bool{}
 
 // RegisterSigInfoExtension registers an extension TLV-TYPE in SigInfo.
 func RegisterSigInfoExtension(typ uint32) {
