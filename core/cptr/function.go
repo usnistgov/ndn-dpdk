@@ -22,6 +22,7 @@ static int c_invokeFunction1(Function1 f, void* param1, void* arg)
 import "C"
 import (
 	"reflect"
+	"runtime/cgo"
 	"unsafe"
 )
 
@@ -151,12 +152,12 @@ type functionGo0 struct {
 }
 
 func (fn *functionGo0) callbackOnce() (f, arg unsafe.Pointer) {
-	return C.go_functionGo0_once, CtxPut(fn.f)
+	return C.go_functionGo0_once, unsafe.Pointer(cgo.NewHandle(fn.f))
 }
 
 func (fn *functionGo0) callbackReuse() (f, arg unsafe.Pointer, revoke func()) {
-	ctx := CtxPut(fn.f)
-	return C.go_functionGo0_reuse, ctx, func() { CtxClear(ctx) }
+	ctx := cgo.NewHandle(fn.f)
+	return C.go_functionGo0_reuse, unsafe.Pointer(ctx), func() { ctx.Delete() }
 }
 
 func (fn *functionGo0) functionType() FunctionType {
@@ -164,13 +165,15 @@ func (fn *functionGo0) functionType() FunctionType {
 }
 
 //export go_functionGo0_once
-func go_functionGo0_once(ctx unsafe.Pointer) C.int {
-	f := CtxPop(ctx).(func() int)
+func go_functionGo0_once(ctx0 unsafe.Pointer) C.int {
+	ctx := cgo.Handle(ctx0)
+	defer ctx.Delete()
+	f := ctx.Value().(func() int)
 	return C.int(f())
 }
 
 //export go_functionGo0_reuse
 func go_functionGo0_reuse(ctx unsafe.Pointer) C.int {
-	f := CtxGet(ctx).(func() int)
+	f := cgo.Handle(ctx).Value().(func() int)
 	return C.int(f())
 }

@@ -10,9 +10,9 @@ import "C"
 import (
 	"errors"
 	"fmt"
+	"runtime/cgo"
 	"unsafe"
 
-	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/pciaddr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/spdkenv"
@@ -25,10 +25,10 @@ type listNvmesResult struct {
 // ListNvmes returns a list of NVMe drives.
 func ListNvmes() (nvmes []pciaddr.PCIAddress, e error) {
 	var result listNvmesResult
-	ctx := cptr.CtxPut(&result)
-	defer cptr.CtxClear(ctx)
+	ctx := cgo.NewHandle(&result)
+	defer ctx.Delete()
 	res := eal.CallMain(func() int {
-		res := C.spdk_nvme_probe(nil, ctx, C.spdk_nvme_probe_cb(unsafe.Pointer(C.go_nvmeProbed)), nil, nil)
+		res := C.spdk_nvme_probe(nil, unsafe.Pointer(ctx), C.spdk_nvme_probe_cb(unsafe.Pointer(C.go_nvmeProbed)), nil, nil)
 		return int(res)
 	}).(int)
 	if res != 0 {
@@ -40,7 +40,7 @@ func ListNvmes() (nvmes []pciaddr.PCIAddress, e error) {
 //export go_nvmeProbed
 func go_nvmeProbed(ctx unsafe.Pointer, trid *C.struct_spdk_nvme_transport_id, opts *C.struct_spdk_nvme_ctrlr_opts) C.bool {
 	pciAddr := pciaddr.MustParse(C.GoString(&trid.traddr[0]))
-	result := cptr.CtxGet(ctx).(*listNvmesResult)
+	result := cgo.Handle(ctx).Value().(*listNvmesResult)
 	result.nvmes = append(result.nvmes, pciAddr)
 	return C.bool(false)
 }

@@ -153,7 +153,7 @@ func (face *socketFace) rxLoop() {
 func go_SocketFace_TxBurst(faceC *C.Face, pkts **C.struct_rte_mbuf, nPkts C.uint16_t) C.uint16_t {
 	face := iface.Get(iface.ID(faceC.id)).(*socketFace)
 	for i := uintptr(0); i < uintptr(nPkts); i++ {
-		mbufPtr := (**C.struct_rte_mbuf)(unsafe.Pointer(uintptr(unsafe.Pointer(pkts)) + i*unsafe.Sizeof(*pkts)))
+		mbufPtr := (**C.struct_rte_mbuf)(unsafe.Add(unsafe.Pointer(pkts), i*unsafe.Sizeof(*pkts)))
 		mbuf := pktmbuf.PacketFromPtr(unsafe.Pointer(*mbufPtr))
 		wire := mbuf.Bytes()
 		must.Close(mbuf)

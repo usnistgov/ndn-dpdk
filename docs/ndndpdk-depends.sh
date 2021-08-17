@@ -360,5 +360,5 @@ $SUDO update-alternatives --install /usr/bin/python python /usr/bin/python3 1
 
 (
   cd /tmp
-  go get honnef.co/go/tools/cmd/staticcheck
+  go install honnef.co/go/tools/cmd/staticcheck@latest
 )

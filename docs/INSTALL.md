@@ -10,7 +10,7 @@ You can also [build a Docker container](Docker.md), which would work on other op
 
 * Required APT packages: `build-essential clang-8 git jq libc6-dev-i386 libelf-dev libnuma-dev libpcap-dev libssl-dev liburcu-dev pkg-config python3-distutils`
 * Optional APT packages: `clang-format-8 doxygen yamllint`
-* Go 1.16
+* Go 1.17
 * Node.js 16.x
 * Python 3, [pip](https://pip.pypa.io/en/stable/installing/), and PyPI packages: `meson ninja`
 * [ubpf](https://github.com/iovisor/ubpf) library, installed to `/usr/local`
@@ -69,7 +69,7 @@ See [ndndpdk-ctrl](../cmd/ndndpdk-ctrl) for more information.
   You can also execute `mk/gotest.sh <PKG>` to run the tests for a given package.
 * `make doxygen` builds C documentation (requires the `doxygen` dependency).
 * To view Go documentation, execute `godoc &` and access the website on port 6060.
-  You may need to install [godoc](https://pkg.go.dev/golang.org/x/tools/cmd/godoc) command: `( cd /tmp && go get -u golang.org/x/tools/cmd/godoc )`.
+  You may need to install [godoc](https://pkg.go.dev/golang.org/x/tools/cmd/godoc) command: `( cd /tmp && go install golang.org/x/tools/cmd/godoc@latest )`.
 * `make lint` fixes code style issues before committing (requires the `clang-format-8` and `yamllint` dependencies).
 
 ## Compile-Time Settings

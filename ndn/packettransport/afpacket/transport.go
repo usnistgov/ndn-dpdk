@@ -1,4 +1,4 @@
-// +build linux,cgo
+//go:build linux && cgo
 
 // Package afpacket implements a transport that communicates over AF_PACKET sockets.
 // This only works on Linux.

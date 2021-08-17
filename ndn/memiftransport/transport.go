@@ -1,4 +1,4 @@
-// +build linux
+//go:build linux
 
 // Package memiftransport implements a transport over a shared memory packet interface (memif).
 package memiftransport

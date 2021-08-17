@@ -2,7 +2,6 @@ package ringbuffer_test
 
 import (
 	"testing"
-	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
@@ -20,27 +19,27 @@ func TestRing(t *testing.T) {
 	assert.Equal(3, r.CountAvailable())
 	assert.Equal(r.CountAvailable(), r.Capacity())
 
-	output := make([]unsafe.Pointer, 3)
+	output := make([]uintptr, 3)
 	assert.Equal(0, r.Dequeue(output[:2]))
 
-	input := []unsafe.Pointer{unsafe.Pointer(uintptr(9971)), unsafe.Pointer(uintptr(3087))}
+	input := []uintptr{9971, 3087}
 	assert.Equal(2, r.Enqueue(input))
 	assert.Equal(2, r.CountInUse())
 	assert.Equal(1, r.CountAvailable())
 
-	input = []unsafe.Pointer{unsafe.Pointer(uintptr(2776)), unsafe.Pointer(uintptr(1876))}
+	input = []uintptr{2776, 1876}
 	assert.Equal(1, r.Enqueue(input))
 	assert.Equal(3, r.CountInUse())
 	assert.Equal(0, r.CountAvailable())
 
 	assert.Equal(1, r.Dequeue(output[:1]))
-	assert.Equal(unsafe.Pointer(uintptr(9971)), output[0])
+	assert.Equal(uintptr(9971), output[0])
 	assert.Equal(2, r.CountInUse())
 	assert.Equal(1, r.CountAvailable())
 
 	assert.Equal(2, r.Dequeue(output[:3]))
-	assert.Equal(unsafe.Pointer(uintptr(3087)), output[0])
-	assert.Equal(unsafe.Pointer(uintptr(2776)), output[1])
+	assert.Equal(uintptr(3087), output[0])
+	assert.Equal(uintptr(2776), output[1])
 	assert.Equal(0, r.CountInUse())
 	assert.Equal(3, r.CountAvailable())
 }

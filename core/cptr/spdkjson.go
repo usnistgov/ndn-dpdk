@@ -12,6 +12,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"runtime/cgo"
 	"unsafe"
 )
 
@@ -23,10 +24,10 @@ func init() {
 // CaptureSpdkJSON invokes a function that writes to *C.struct_spdk_json_write_ctx, and unmarshals what's been written.
 func CaptureSpdkJSON(f func(w unsafe.Pointer), ptr interface{}) (e error) {
 	buf := new(bytes.Buffer)
-	ctx := CtxPut(buf)
-	defer CtxClear(ctx)
+	ctx := cgo.NewHandle(buf)
+	defer ctx.Delete()
 
-	w := C.spdk_json_write_begin(C.spdk_json_write_cb(C.go_spdkJSONWrite), ctx, 0)
+	w := C.spdk_json_write_begin(C.spdk_json_write_cb(C.go_spdkJSONWrite), unsafe.Pointer(ctx), 0)
 	f(unsafe.Pointer(w))
 	if res := C.spdk_json_write_end(w); res != 0 {
 		return errors.New("spdk_json_write_end failed")
@@ -46,7 +47,7 @@ func SpdkJSONObject(f func(w unsafe.Pointer)) func(w unsafe.Pointer) {
 
 //export go_spdkJSONWrite
 func go_spdkJSONWrite(ctx, data unsafe.Pointer, size C.size_t) C.int {
-	buf := CtxGet(ctx).(*bytes.Buffer)
+	buf := cgo.Handle(ctx).Value().(*bytes.Buffer)
 	buf.Write(C.GoBytes(data, C.int(size)))
 	return 0
 }

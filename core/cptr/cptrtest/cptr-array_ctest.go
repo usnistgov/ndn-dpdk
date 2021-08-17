@@ -30,5 +30,5 @@ func ctestCptrArray(t *testing.T) {
 	ptr, count := cptr.ParseCptrArray([]*C.int{(*C.int)(int0), (*C.int)(int1)})
 	assert.Equal(2, count)
 	assert.EqualValues(0xAAA1, **(**C.int)(ptr))
-	assert.EqualValues(0xAAA2, **(**C.int)(unsafe.Pointer(uintptr(ptr) + unsafe.Sizeof(int0))))
+	assert.EqualValues(0xAAA2, **(**C.int)(unsafe.Add(ptr, unsafe.Sizeof(int0))))
 }

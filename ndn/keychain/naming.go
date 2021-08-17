@@ -82,6 +82,6 @@ func makeRandomKeyID() ndn.NameComponent {
 }
 
 func makeVersionFromCurrentTime() (comp ndn.NameComponent) {
-	now := time.Now().UnixNano() / int64(time.Microsecond/time.Nanosecond)
+	now := time.Now().UnixMicro()
 	return ndn.NameComponentFrom(an.TtVersionNameComponent, tlv.NNI(now))
 }

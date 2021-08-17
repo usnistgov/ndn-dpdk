@@ -12,7 +12,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"inet.af/netstack/gohacks"
 )
 
 // Querier represents an NDT querier with counters.
@@ -41,11 +40,7 @@ func (ndq *Querier) Lookup(name ndn.Name) uint8 {
 }
 
 func (ndq *Querier) hitCounters(nEntries int) (hits []uint32) {
-	sh := (*gohacks.SliceHeader)(unsafe.Pointer(&hits))
-	sh.Data = unsafe.Pointer(C.c_NdtQuerier_Hits(ndq.ptr()))
-	sh.Len = nEntries
-	sh.Cap = nEntries
-	return hits
+	return unsafe.Slice((*uint32)(unsafe.Pointer(C.c_NdtQuerier_Hits(ndq.ptr()))), nEntries)
 }
 
 func newThread(ndt *Ndt, socket eal.NumaSocket) *Querier {

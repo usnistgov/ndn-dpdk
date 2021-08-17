@@ -88,7 +88,7 @@ func (pkt *Packet) SegmentLengths() (list []int) {
 // DataPtr returns void* pointer to data in first segment.
 func (pkt *Packet) DataPtr() unsafe.Pointer {
 	pktC := pkt.ptr()
-	return unsafe.Pointer(uintptr(pktC.buf_addr) + uintptr(pktC.data_off))
+	return unsafe.Add(pktC.buf_addr, pktC.data_off)
 }
 
 // Bytes returns a []byte that contains a copy of the data in this packet.
