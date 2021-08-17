@@ -3,6 +3,7 @@ package gqlclient_test
 import (
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"testing"
 	"time"
@@ -28,6 +29,9 @@ func TestMain(m *testing.M) {
 	go http.Serve(listener, nil)
 	time.Sleep(100 * time.Millisecond)
 
-	serverConfig.HTTPUri = "http://" + listener.Addr().String()
+	serverConfig.HTTPUri = (&url.URL{
+		Scheme: "http",
+		Host:   listener.Addr().String(),
+	}).String()
 	os.Exit(m.Run())
 }

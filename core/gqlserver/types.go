@@ -19,14 +19,19 @@ var (
 	NonNullString  = graphql.NewNonNull(graphql.String)
 )
 
+func toNonNull(ofType graphql.Type) graphql.Type {
+	if _, ok := ofType.(*graphql.NonNull); ok {
+		return ofType
+	}
+	return graphql.NewNonNull(ofType)
+}
+
 // NewNonNullList constructs a non-null list type.
 // NewNonNullList(T) returns [T!]!.
 // NewNonNullList(T, true) returns [T]!.
 func NewNonNullList(ofType graphql.Type, optionalNullable ...bool) graphql.Type {
 	if len(optionalNullable) < 1 || !optionalNullable[0] {
-		if _, ok := ofType.(*graphql.NonNull); !ok {
-			ofType = graphql.NewNonNull(ofType)
-		}
+		ofType = toNonNull(ofType)
 	}
 	return graphql.NewNonNull(graphql.NewList(ofType))
 }

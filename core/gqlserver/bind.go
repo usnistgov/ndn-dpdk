@@ -16,7 +16,7 @@ func (m FieldTypes) resolveType(typ reflect.Type) graphql.Type {
 		if kind := typ.Kind(); kind == reflect.Ptr || kind == reflect.Slice {
 			return t
 		}
-		return graphql.NewNonNull(graphql.GetNullable(t).(graphql.Type))
+		return toNonNull(t)
 	}
 
 	switch typ.Kind() {
@@ -41,10 +41,12 @@ func (m FieldTypes) resolveType(typ reflect.Type) graphql.Type {
 	return nil
 }
 
-func (m FieldTypes) bindFields(typ reflect.Type, saveField func(name string, t graphql.Type, resolve graphql.FieldResolveFn)) {
+func (m FieldTypes) bindFields(value interface{}, saveField func(name string, t graphql.Type, resolve graphql.FieldResolveFn)) {
+	typ := reflect.TypeOf(value)
 	if typ.Kind() == reflect.Ptr {
 		typ = typ.Elem()
 	}
+
 	for _, field := range reflect.VisibleFields(typ) {
 		if !field.IsExported() {
 			continue
@@ -69,6 +71,7 @@ func (m FieldTypes) bindFields(typ reflect.Type, saveField func(name string, t g
 		index := append([]int{}, field.Index...)
 		saveField(name, ft, func(p graphql.ResolveParams) (interface{}, error) {
 			obj := reflect.ValueOf(p.Source)
+			// unlike obj.FieldByIndex, this logic does not panic upon nil pointer
 			for _, i := range index {
 				if obj.Kind() == reflect.Ptr {
 					if obj.IsNil() {
@@ -76,11 +79,7 @@ func (m FieldTypes) bindFields(typ reflect.Type, saveField func(name string, t g
 					}
 					obj = obj.Elem()
 				}
-
 				obj = obj.Field(i)
-				if !obj.IsValid() {
-					return nil, nil
-				}
 			}
 			return obj.Interface(), nil
 		})
@@ -90,7 +89,7 @@ func (m FieldTypes) bindFields(typ reflect.Type, saveField func(name string, t g
 // BindFields creates graphql.Field from a struct.
 func BindFields(value interface{}, m FieldTypes) graphql.Fields {
 	fields := graphql.Fields{}
-	m.bindFields(reflect.TypeOf(value), func(name string, t graphql.Type, resolve graphql.FieldResolveFn) {
+	m.bindFields(value, func(name string, t graphql.Type, resolve graphql.FieldResolveFn) {
 		fields[name] = &graphql.Field{
 			Type:    t,
 			Resolve: resolve,
@@ -102,7 +101,7 @@ func BindFields(value interface{}, m FieldTypes) graphql.Fields {
 // BindInputFields creates graphql.InputObjectConfigFieldMap from a struct.
 func BindInputFields(value interface{}, m FieldTypes) graphql.InputObjectConfigFieldMap {
 	fields := graphql.InputObjectConfigFieldMap{}
-	m.bindFields(reflect.TypeOf(value), func(name string, t graphql.Type, resolve graphql.FieldResolveFn) {
+	m.bindFields(value, func(name string, t graphql.Type, resolve graphql.FieldResolveFn) {
 		fields[name] = &graphql.InputObjectFieldConfig{Type: t}
 	})
 	return fields
