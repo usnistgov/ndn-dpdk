@@ -20,7 +20,7 @@ func TestPipe(t *testing.T) {
 	c.CheckTransport(t, trA, trB)
 }
 
-func TestUdp(t *testing.T) {
+func TestUDP(t *testing.T) {
 	assert, require := makeAR(t)
 
 	var dialer sockettransport.Dialer
@@ -40,7 +40,7 @@ func TestUdp(t *testing.T) {
 	c.CheckTransport(t, trA, trB)
 }
 
-func TestTcp(t *testing.T) {
+func TestTCP(t *testing.T) {
 	_, require := makeAR(t)
 
 	listener, e := net.Listen("tcp", "127.0.0.1:7002")

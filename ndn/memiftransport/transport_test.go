@@ -32,6 +32,7 @@ func TestTransport(t *testing.T) {
 		ID:         1216,
 	})
 	require.NoError(e)
+	assert.Equal(memiftransport.DefaultDataroom, trA.MTU())
 	trB, e := memiftransport.New(memiftransport.Locator{
 		SocketName: path.Join(dir, "memifB.sock"),
 		ID:         2643,

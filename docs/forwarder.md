@@ -11,7 +11,7 @@ The `ndndpdk-ctrl activate-forwarder` command sends a command to the `ndndpdk-sv
 This command reads, from standard input, a JSON document that contains forwarder activation parameters.
 The JSON document must conform to the JSON schema `/usr/local/share/ndn-dpdk/forwarder.schema.json`.
 
-If you have prepared the required JSON document, you can activate the forwarder with:
+If you have prepared the required JSON document (e.g. using the TypeScript definitions, as described below), you can activate the forwarder with:
 
 ```bash
 ndndpdk-ctrl activate-forwarder < fw-args.json
@@ -105,7 +105,7 @@ When you read the example commands, make sure to use them on the correct host.
 
 ### Create Faces
 
-The `ndndpdk-ctrl create-ether-face` command sends a command to create an Ethernet face.
+The `ndndpdk-ctrl create-ether-face` command creates an Ethernet face.
 You can run this command with `-h` option to see available command line arguments.
 It returns a JSON object that contains an `id` property, whose value is an opaque identifier of the face.
 
@@ -122,9 +122,24 @@ B $ ndndpdk-ctrl create-ether-face --local 02:00:00:00:00:02 --remote 02:00:00:0
 {"id":"e6vdYnE6G"}
 ```
 
+If your Ethernet adapter supports jumbo frames, you may set a higher port MTU to take advantage.
+Both hosts must have the same MTU settings.
+
+```bash
+ndndpdk-ctrl create-ether-face --port-mtu 9000 --local 02:00:00:00:00:01 --remote 02:00:00:00:00:02
+# to use '--port-mtu 9000', .mempool.DIRECT.dataroom in activation parameters should be at least 9128
+```
+
 You can programmatically create a face via GraphQL using the `createFace` mutation.
-Its input is a JSON document that conforms to the JSON schema `/usr/local/share/ndn-dpdk/locator.schema.json`.
-It supports more transport types and options than what's available through `ndndpdk-ctrl` commands.
+Its input is a JSON document that conforms to the JSON schema `/usr/local/share/ndn-dpdk/locator.schema.json`, which supports more transport types and options than what's available through `ndndpdk-ctrl` commands.
+
+As a starting point, you may see the GraphQL operation used by a `ndndpdk-ctrl` command by adding `--cmdout` flag, such as:
+
+```bash
+ndndpdk-ctrl --cmdout create-ether-face --local 02:00:00:00:00:01 --remote 02:00:00:00:00:02
+# --cmdout flag must appear between 'ndndpdk-ctrl' and the subcommand name
+# it is supported on all subcommands
+```
 
 ### Insert a FIB Entry
 
@@ -143,18 +158,43 @@ You can programmatically insert a FIB entry via GraphQL using the `insertFibEntr
 
 ### Start the Application
 
-Part of the NDN-DPDK repository is [NDNgo](../ndn) that is a minimal NDN application development library compatible with NDN-DPDK.
+Part of the NDN-DPDK repository is [NDNgo](../ndn), a minimal NDN application development library compatible with NDN-DPDK.
 Its demo program, [command ndndpdk-godemo](../cmd/ndndpdk-godemo), contains a simple ndnping application.
 
 You can start the producer and the consumer as follows:
 
 ```shell
 B $ sudo ndndpdk-godemo pingserver --name /example/P
+2021/08/18 19:06:27 uplink opened
+2021/08/18 19:06:28 /8=A/8=D7515293C179BDDE[F]
+2021/08/18 19:06:29 /8=A/8=D7515293C179BDDF[F]
+2021/08/18 19:06:29 /8=A/8=D7515293C179BDE0[F]
+2021/08/18 19:06:29 /8=A/8=D7515293C179BDE1[F]
+2021/08/18 19:06:31 uplink closed
 
 A $ sudo ndndpdk-godemo pingclient --name /example/P
+2021/08/18 19:06:28 uplink opened
+2021/08/18 19:06:29 100.00% D D7515293C179BDDE    615us
+2021/08/18 19:06:29 100.00% D D7515293C179BDDF    622us
+2021/08/18 19:06:29 100.00% D D7515293C179BDE0    590us
+2021/08/18 19:06:29 100.00% D D7515293C179BDE1    498us
+2021/08/18 19:06:29 uplink closed
 ```
 
 The consumer prints, among other fields, the percentage of satisfied Interests and the last round-trip time.
+
+Optionally, you can specify Data payload length with `--payload` flag and specify memif transport MTU with `--mtu` flag:
+
+```shell
+B $ sudo ndndpdk-godemo --mtu 9000 pingserver --name /example/P --payload 8000
+# --mtu flag must appear between 'ndndpdk-godemo' and the subcommand name
+# to use '--mtu 9000', .mempool.DIRECT.dataroom in activation parameters should be at least 9128
+#
+# --payload flag must appear after 'pingserver' subcommand name
+# it's best to keep Data packet length under MTU; otherwise, NDNLPv2 fragmentation is used
+
+A $ sudo ndndpdk-godemo --mtu 9000 pingclient --name /example/P
+```
 
 ### List Faces and View Face Counters
 

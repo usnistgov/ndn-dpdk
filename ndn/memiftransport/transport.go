@@ -37,6 +37,7 @@ func New(loc Locator) (Transport, error) {
 			Remote: macaddr.Flag{HardwareAddr: AddressDPDK},
 		},
 		TransportQueueConfig: loc.TransportQueueConfig,
+		MTU:                  loc.Dataroom,
 	}
 	packetTr, e := packettransport.New(hdl, packetCfg)
 	if e != nil {
