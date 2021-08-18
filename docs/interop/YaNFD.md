@@ -24,6 +24,8 @@ The YaNFD package only contains a forwarder, and does not contain a management p
 The YaNFD forwarder implements a subnet of NFD management protocol, and therefore can be used with NFD's management programs.
 Thus, you also need to build the NFD container, as described on [NFD page](NFD.md).
 
+NDN-DPDK should be installed as a systemd service, not a Docker container.
+
 ## UDP Unicast over a Link
 
 ```text

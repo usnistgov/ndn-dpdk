@@ -19,6 +19,8 @@ cd docs/interop/nfd
 docker build -t nfd .
 ```
 
+NDN-DPDK should be installed as a systemd service, not a Docker container.
+
 ## Ethernet Unicast over a Link
 
 ```text
@@ -35,7 +37,7 @@ docker build -t nfd .
 
 In this scenario, NDN-DPDK forwarder and NFD on two separate machines communicate via Ethernet unicast:
 
-* Node A runs NDN-DPDK forwarder (systemd installation), a producer for `/net/A` prefix, and a consumer for `/net/B` prefix.
+* Node A runs NDN-DPDK forwarder, a producer for `/net/A` prefix, and a consumer for `/net/B` prefix.
 * Node B runs NFD, a producer for `/net/B` prefix, and a consumer for `/net/A` prefix.
 * FIB entries are created on each forwarder so that the applications can communicate.
 
@@ -61,7 +63,6 @@ On node A, start NDN-DPDK forwarder and producer:
 
 ```bash
 # (re)start NDN-DPDK service
-# if using Docker, see "NDN-DPDK Docker Container" page
 sudo systemctl restart ndndpdk-svc
 
 # activate NDN-DPDK forwarder
@@ -187,11 +188,9 @@ Connect NDN-DPDK to NFD and run consumer:
 
 ```bash
 # declare variable for NDN-DPDK GraphQL endpoint
-# if using Docker, see "NDN-DPDK Docker Container" page
 GQLSERVER=http://127.0.0.1:3030/
 
 # expose run-ndn volume on host machine
-# if using Docker, omit this step
 sudo ln -s $(docker volume inspect -f '{{.Mountpoint}}' run-ndn) /run/ndn
 
 # create face
@@ -209,9 +208,11 @@ A_FIBID=$(ndndpdk-ctrl insert-fib --name $B_NAME --nh $A_FACEID | tee /dev/stder
 
 # run the consumer
 sudo build/bin/ndndpdk-godemo pingclient --name ${B_NAME}/ping --interval 10ms
+# press CTRL+C to stop the consumer
 
-# erase FIB entry
+# erase FIB entry and destroy face
 ndndpdk-ctrl erase-fib --id $A_FIBID
+ndndpdk-ctrl destroy-face --id $A_FACEID
 ```
 
 The procedure above runs a producer on NFD side and a consumer on NDN-DPDK side.
