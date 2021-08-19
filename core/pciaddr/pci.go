@@ -1,3 +1,4 @@
+// Package pciaddr parses and validates PCI addresses.
 package pciaddr
 
 import (

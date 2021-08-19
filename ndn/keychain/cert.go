@@ -26,7 +26,7 @@ var (
 type Certificate struct {
 	data     ndn.Data
 	validity ValidityPeriod
-	key      *PublicKey
+	key      PublicKey
 }
 
 // Name returns the certificate name.
@@ -65,7 +65,7 @@ func (cert Certificate) Validity() ValidityPeriod {
 }
 
 // PublicKey returns the enclosed public key.
-func (cert Certificate) PublicKey() *PublicKey {
+func (cert Certificate) PublicKey() PublicKey {
 	return cert.key
 }
 
@@ -134,7 +134,7 @@ func (opts *MakeCertOptions) applyDefaults() {
 }
 
 // MakeCert generates a certificate of the given public key, signed by the given signer.
-func MakeCert(pub *PublicKey, signer ndn.Signer, opts MakeCertOptions) (cert *Certificate, e error) {
+func MakeCert(pub PublicKey, signer ndn.Signer, opts MakeCertOptions) (cert *Certificate, e error) {
 	opts.applyDefaults()
 
 	name := append(ndn.Name{}, pub.Name()...)

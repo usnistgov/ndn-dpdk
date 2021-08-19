@@ -10,7 +10,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndn/keychain"
-	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 	"github.com/usnistgov/ndn-dpdk/ndn/ndntestvector"
 )
 
@@ -36,22 +35,8 @@ func TestECDSASigning(t *testing.T) {
 	pvtB, pubB, e := keychain.NewECDSAKeyPair(subjectName)
 	require.NoError(e)
 	nameEqual(assert, pvtB, pubB)
-	certB, e := keychain.MakeCert(pubB, pvtA, keychain.MakeCertOptions{})
-	require.NoError(e)
-	signerB := pvtB.WithKeyLocator(certB.Name())
 
-	var c ndntestenv.SignVerifyTester
-	c.PvtA, c.PvtB, c.PubA, c.PubB = pvtA, signerB, pubA, pubB
-	c.CheckInterest(t)
-	c.CheckInterestParameterized(t)
-	rec := c.CheckData(t)
-
-	dataA := rec.PktA.(*ndn.Data)
-	assert.EqualValues(an.SigSha256WithEcdsa, dataA.SigInfo.Type)
-	nameEqual(assert, keyNameA, dataA.SigInfo.KeyLocator)
-	dataB := rec.PktB.(*ndn.Data)
-	assert.EqualValues(an.SigSha256WithEcdsa, dataB.SigInfo.Type)
-	nameEqual(assert, certB, dataB.SigInfo.KeyLocator)
+	checkKeyCertPair(t, an.SigSha256WithEcdsa, pvtA, pvtB, pubA, pubB)
 }
 
 func TestECDSAVerify(t *testing.T) {

@@ -8,7 +8,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndn/keychain"
-	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 	"github.com/usnistgov/ndn-dpdk/ndn/ndntestvector"
 )
 
@@ -34,21 +33,8 @@ func TestRSASigning(t *testing.T) {
 	pvtB, pubB, e := keychain.NewRSAKeyPair(subjectName)
 	require.NoError(e)
 	nameEqual(assert, pvtB, pubB)
-	certNameB := keychain.ToCertName(pvtB.Name())
-	signerB := pvtB.WithKeyLocator(certNameB)
 
-	var c ndntestenv.SignVerifyTester
-	c.PvtA, c.PvtB, c.PubA, c.PubB = pvtA, signerB, pubA, pubB
-	c.CheckInterest(t)
-	c.CheckInterestParameterized(t)
-	rec := c.CheckData(t)
-
-	dataA := rec.PktA.(*ndn.Data)
-	assert.EqualValues(an.SigSha256WithRsa, dataA.SigInfo.Type)
-	nameEqual(assert, keyNameA, dataA.SigInfo.KeyLocator)
-	dataB := rec.PktB.(*ndn.Data)
-	assert.EqualValues(an.SigSha256WithRsa, dataB.SigInfo.Type)
-	nameEqual(assert, certNameB, dataB.SigInfo.KeyLocator)
+	checkKeyCertPair(t, an.SigSha256WithRsa, pvtA, pvtB, pubA, pubB)
 }
 
 func TestRSAVerify(t *testing.T) {

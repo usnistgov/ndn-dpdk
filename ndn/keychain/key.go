@@ -2,8 +2,22 @@
 package keychain
 
 import (
+	"crypto/x509"
+
 	"github.com/usnistgov/ndn-dpdk/ndn"
 )
+
+// PrivateKey represents a named private key.
+type PrivateKey interface {
+	ndn.Signer
+
+	// Name returns key name.
+	Name() ndn.Name
+
+	// WithKeyLocator creates a new Signer that uses a different KeyLocator.
+	// This may be used to put certificate name in KeyLocator.
+	WithKeyLocator(klName ndn.Name) ndn.Signer
+}
 
 type namedSigner struct {
 	sigType uint32
@@ -11,7 +25,6 @@ type namedSigner struct {
 	llSign  ndn.LLSign
 }
 
-// Sign implements ndn.Signer interface.
 func (signer namedSigner) Sign(packet ndn.Signable) error {
 	return packet.SignWith(func(name ndn.Name, si *ndn.SigInfo) (ndn.LLSign, error) {
 		si.Type = signer.sigType
@@ -20,55 +33,58 @@ func (signer namedSigner) Sign(packet ndn.Signable) error {
 	})
 }
 
-// PrivateKey represents a named private key.
-type PrivateKey struct {
+type privateKey struct {
 	namedSigner
+	key interface{} // *rsa.PrivateKey or *ecdsa.PrivateKey
 }
 
-var _ ndn.Signer = (*PrivateKey)(nil)
-
-// Name returns key name.
-func (pvt PrivateKey) Name() ndn.Name {
+func (pvt privateKey) Name() ndn.Name {
 	return pvt.klName
 }
 
-// WithKeyLocator creates a new Signer that uses a different KeyLocator.
-// This may be used to put certificate name in KeyLocator.
-func (pvt PrivateKey) WithKeyLocator(klName ndn.Name) ndn.Signer {
+func (pvt privateKey) WithKeyLocator(klName ndn.Name) ndn.Signer {
 	signer := pvt.namedSigner
 	signer.klName = klName
 	return &signer
 }
 
-// NewPrivateKey constructs a PrivateKey.
-func NewPrivateKey(sigType uint32, keyName ndn.Name, llSign ndn.LLSign) (*PrivateKey, error) {
+func newPrivateKey(sigType uint32, keyName ndn.Name, key interface{}, llSign ndn.LLSign) (PrivateKey, error) {
 	if !IsKeyName(keyName) {
 		return nil, ErrKeyName
 	}
-	return &PrivateKey{namedSigner{
-		sigType: sigType,
-		klName:  keyName,
-		llSign:  llSign,
-	}}, nil
+	return &privateKey{
+		namedSigner: namedSigner{
+			sigType: sigType,
+			klName:  keyName,
+			llSign:  llSign,
+		},
+		key: key,
+	}, nil
 }
 
 // PublicKey represents a named public key.
-type PublicKey struct {
-	sigType  uint32
-	keyName  ndn.Name
-	llVerify ndn.LLVerify
-	spki     func() ([]byte, error)
+type PublicKey interface {
+	ndn.Verifier
+
+	// Name returns key name.
+	Name() ndn.Name
+
+	// SPKI returns public key in SubjectPublicKeyInfo format as used in NDN certificate.
+	SPKI() (spki []byte, e error)
 }
 
-var _ ndn.Verifier = (*PublicKey)(nil)
+type publicKey struct {
+	sigType  uint32
+	keyName  ndn.Name
+	key      interface{} // *rsa.PublicKey or *ecdsa.PublicKey
+	llVerify ndn.LLVerify
+}
 
-// Name returns key name.
-func (pub PublicKey) Name() ndn.Name {
+func (pub publicKey) Name() ndn.Name {
 	return pub.keyName
 }
 
-// Verify implements ndn.Verifier interface.
-func (pub PublicKey) Verify(packet ndn.Verifiable) error {
+func (pub publicKey) Verify(packet ndn.Verifiable) error {
 	return packet.VerifyWith(func(name ndn.Name, si ndn.SigInfo) (ndn.LLVerify, error) {
 		if si.Type != pub.sigType {
 			return nil, ndn.ErrSigType
@@ -80,20 +96,18 @@ func (pub PublicKey) Verify(packet ndn.Verifiable) error {
 	})
 }
 
-// SPKI returns public key in SubjectPublicKeyInfo format as used in NDN certificate.
-func (pub PublicKey) SPKI() (spki []byte, e error) {
-	return pub.spki()
+func (pub publicKey) SPKI() (spki []byte, e error) {
+	return x509.MarshalPKIXPublicKey(pub.key)
 }
 
-// NewPublicKey constructs a PublicKey.
-func NewPublicKey(sigType uint32, keyName ndn.Name, llVerify ndn.LLVerify, spki func() ([]byte, error)) (*PublicKey, error) {
+func newPublicKey(sigType uint32, keyName ndn.Name, key interface{}, llVerify ndn.LLVerify) (PublicKey, error) {
 	if !IsKeyName(keyName) {
 		return nil, ErrKeyName
 	}
-	return &PublicKey{
+	return &publicKey{
 		sigType:  sigType,
 		keyName:  keyName,
+		key:      key,
 		llVerify: llVerify,
-		spki:     spki,
 	}, nil
 }

@@ -14,7 +14,7 @@ import (
 var (
 	ComponentKEY           = ndn.ParseNameComponent("KEY")
 	ComponentSelfIssuer    = ndn.ParseNameComponent("self")
-	ComponentDefaultIssuer = ndn.ParseNameComponent("NDNgo-keychain")
+	ComponentDefaultIssuer = ndn.ParseNameComponent("NDNgo")
 )
 
 // Error conditions for certificate naming.

@@ -5,35 +5,32 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
-	"crypto/x509"
 
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 )
 
 // NewECDSAPrivateKey creates a private key for SigSha256WithEcdsa signature type.
-func NewECDSAPrivateKey(keyName ndn.Name, key *ecdsa.PrivateKey) (*PrivateKey, error) {
-	return NewPrivateKey(an.SigSha256WithEcdsa, keyName, func(input []byte) (sig []byte, e error) {
+func NewECDSAPrivateKey(keyName ndn.Name, key *ecdsa.PrivateKey) (PrivateKey, error) {
+	return newPrivateKey(an.SigSha256WithEcdsa, keyName, key, func(input []byte) (sig []byte, e error) {
 		h := sha256.Sum256(input)
 		return ecdsa.SignASN1(rand.Reader, key, h[:])
 	})
 }
 
 // NewECDSAPublicKey creates a public key for SigSha256WithEcdsa signature type.
-func NewECDSAPublicKey(keyName ndn.Name, key *ecdsa.PublicKey) (*PublicKey, error) {
-	return NewPublicKey(an.SigSha256WithEcdsa, keyName, func(input, sig []byte) error {
+func NewECDSAPublicKey(keyName ndn.Name, key *ecdsa.PublicKey) (PublicKey, error) {
+	return newPublicKey(an.SigSha256WithEcdsa, keyName, key, func(input, sig []byte) error {
 		h := sha256.Sum256(input)
 		if ok := ecdsa.VerifyASN1(key, h[:], sig); !ok {
 			return ndn.ErrSigValue
 		}
 		return nil
-	}, func() ([]byte, error) {
-		return x509.MarshalPKIXPublicKey(key)
 	})
 }
 
 // NewECDSAKeyPair creates a key pair for SigSha256WithEcdsa signature type.
-func NewECDSAKeyPair(name ndn.Name) (*PrivateKey, *PublicKey, error) {
+func NewECDSAKeyPair(name ndn.Name) (PrivateKey, PublicKey, error) {
 	keyName := ToKeyName(name)
 	key, e := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if e != nil {
