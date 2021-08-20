@@ -3,6 +3,7 @@ package ethface
 import (
 	"fmt"
 	"io"
+	"reflect"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/ndni"
@@ -14,7 +15,7 @@ type impl interface {
 	io.Closer
 
 	// Initialize.
-	Init() error
+	Init(port *Port) error
 
 	// Start a face.
 	Start(face *ethFace) error
@@ -23,9 +24,11 @@ type impl interface {
 	Stop(face *ethFace) error
 }
 
-type implCtor func(*Port) impl
-
-var impls = []implCtor{newRxFlowImpl, newRxTableImpl}
+var impls = []reflect.Type{
+	reflect.TypeOf(rxMemifImpl{}),
+	reflect.TypeOf(rxFlowImpl{}),
+	reflect.TypeOf(rxTableImpl{}),
+}
 
 // Start EthDev (called by impl).
 func startDev(port *Port, nRxQueues int, promisc bool) error {

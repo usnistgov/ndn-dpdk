@@ -1,6 +1,11 @@
 package ethface
 
+/*
+#include "../../csrc/ethface/face.h"
+*/
+import "C"
 import (
+	"errors"
 	"fmt"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
@@ -22,8 +27,6 @@ func (MemifLocator) Scheme() string {
 }
 
 func (loc MemifLocator) cLoc() (c cLocator) {
-	copy(c.Local.Bytes[:], []uint8(memiftransport.AddressDPDK))
-	copy(c.Remote.Bytes[:], []uint8(memiftransport.AddressApp))
 	return
 }
 
@@ -33,13 +36,18 @@ func (loc MemifLocator) faceConfig() FaceConfig {
 
 // CreateFace creates a memif face.
 func (loc MemifLocator) CreateFace() (iface.Face, error) {
+	if e := loc.Locator.Validate(); e != nil {
+		return nil, e
+	}
+	loc.Locator.ApplyDefaults(memiftransport.RoleServer)
+
 	dev, e := ethvdev.NewMemif(loc.Locator)
 	if e != nil {
 		return nil, e
 	}
 
 	pc := PortConfig{
-		MTU:           loc.Dataroom - 14, // Ethernet header is not part of MTU
+		MTU:           loc.Dataroom,
 		DisableSetMTU: true,
 	}
 	port, e := NewPort(dev, pc)
@@ -53,4 +61,45 @@ func (loc MemifLocator) CreateFace() (iface.Face, error) {
 
 func init() {
 	iface.RegisterLocatorType(MemifLocator{}, schemeMemif)
+}
+
+type rxMemifImpl struct{}
+
+func (rxMemifImpl) String() string {
+	return "RxMemif"
+}
+
+func (impl *rxMemifImpl) Init(port *Port) error {
+	if port.dev.DevInfo().DriverName() != "net_memif" {
+		return errors.New("cannot use RxMemif on non-memif port")
+	}
+	return nil
+}
+
+func (impl *rxMemifImpl) Start(face *ethFace) error {
+	if e := startDev(face.port, 1, false); e != nil {
+		return e
+	}
+	cLoc := face.loc.cLoc()
+	C.EthFace_SetupRxMemif(face.priv, cLoc.ptr())
+	rxf := &rxFlow{
+		face:  face,
+		index: 0,
+		queue: 0,
+	}
+	face.rxf = []*rxFlow{rxf}
+	iface.ActivateRxGroup(rxf)
+	return nil
+}
+
+func (impl *rxMemifImpl) Stop(face *ethFace) error {
+	for _, rxf := range face.rxf {
+		iface.DeactivateRxGroup(rxf)
+	}
+	face.rxf = nil
+	return nil
+}
+
+func (impl *rxMemifImpl) Close() error {
+	return nil
 }

@@ -2,6 +2,7 @@ package ethface
 
 import (
 	"errors"
+	"reflect"
 
 	"github.com/pkg/math"
 	"go.uber.org/multierr"
@@ -164,13 +165,13 @@ func (port *Port) fallbackImpl() error {
 
 	if port.nextImpl >= len(impls) {
 		logEntry.Warn("no feasible impl")
-		return errors.New("no feasible impl")
+		return errors.New("no feasible impl, check NDN-DPDK service logs for details")
 	}
-	port.impl = impls[port.nextImpl](port)
+	port.impl = reflect.New(impls[port.nextImpl]).Interface().(impl)
 	port.nextImpl++
 	logEntry = logEntry.With(zap.Stringer("impl", port.impl))
 
-	if e := port.impl.Init(); e != nil {
+	if e := port.impl.Init(port); e != nil {
 		logEntry.Info("impl init error, trying next impl", zap.Error(e))
 		return port.fallbackImpl()
 	}

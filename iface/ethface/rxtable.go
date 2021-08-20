@@ -20,21 +20,16 @@ type rxTableImpl struct {
 	rxt  *rxTable
 }
 
-func newRxTableImpl(port *Port) impl {
-	return &rxTableImpl{
-		port: port,
-	}
-}
-
-func (*rxTableImpl) String() string {
+func (rxTableImpl) String() string {
 	return "RxTable"
 }
 
-func (impl *rxTableImpl) Init() error {
-	if e := startDev(impl.port, 1, true); e != nil {
+func (impl *rxTableImpl) Init(port *Port) error {
+	impl.port = port
+	if e := startDev(port, 1, true); e != nil {
 		return e
 	}
-	impl.rxt = newRxTable(impl.port)
+	impl.rxt = newRxTable(port)
 	return nil
 }
 

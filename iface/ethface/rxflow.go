@@ -48,13 +48,7 @@ type rxFlowImpl struct {
 	queues   []rxqState
 }
 
-func newRxFlowImpl(port *Port) impl {
-	return &rxFlowImpl{
-		port: port,
-	}
-}
-
-func (*rxFlowImpl) String() string {
+func (rxFlowImpl) String() string {
 	return "RxFlow"
 }
 
@@ -73,18 +67,19 @@ func (impl *rxFlowImpl) setIsolate(enable bool) error {
 	return nil
 }
 
-func (impl *rxFlowImpl) Init() error {
-	if impl.port.cfg.DisableRxFlow {
+func (impl *rxFlowImpl) Init(port *Port) error {
+	impl.port = port
+	if port.cfg.DisableRxFlow {
 		return errors.New("disabled")
 	}
 
-	devInfo := impl.port.dev.DevInfo()
+	devInfo := port.dev.DevInfo()
 	if devInfo.IsVDev() {
 		return errors.New("cannot use RxFlow on virtual device")
 	}
 
 	if e := impl.setIsolate(true); e != nil {
-		impl.port.logger.Warn("flow isolated mode unavailable", zap.Error(e))
+		impl.port.logger.Info("flow isolated mode unavailable", zap.Error(e))
 	}
 
 	nRxQueues := math.MinInt(int(devInfo.Max_rx_queues), rxfMaxPortQueues)
@@ -92,7 +87,7 @@ func (impl *rxFlowImpl) Init() error {
 		return errors.New("unable to retrieve max_rx_queues")
 	}
 
-	if e := startDev(impl.port, nRxQueues, !impl.isolated); e != nil {
+	if e := startDev(port, nRxQueues, !impl.isolated); e != nil {
 		return e
 	}
 

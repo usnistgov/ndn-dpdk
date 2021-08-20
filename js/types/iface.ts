@@ -154,12 +154,16 @@ export interface VxlanLocator extends UdpLocatorBase {
   innerRemote: string;
 }
 
+export type MemifRole = "server" | "client";
+
 /**
  * memif face locator.
  * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/iface/ethface#MemifLocator>
  */
 export interface MemifLocator {
   scheme: "memif";
+
+  role?: MemifRole;
 
   socketName: string;
 

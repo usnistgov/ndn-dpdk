@@ -5,10 +5,9 @@ package memiftransport
 
 import (
 	"fmt"
+	"io"
 
-	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
-	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
 )
 
 // Transport is an l3.Transport that communicates via libmemif.
@@ -19,43 +18,63 @@ type Transport interface {
 }
 
 // New creates a Transport.
-// The memif operates in client mode.
 func New(loc Locator) (Transport, error) {
 	if e := loc.Validate(); e != nil {
 		return nil, fmt.Errorf("loc.Validate %w", e)
 	}
-	loc.ApplyDefaults()
+	loc.ApplyDefaults(RoleClient)
 
-	hdl, e := newHandle(loc, RoleClient)
-	if e != nil {
-		return nil, e
-	}
-
-	packetCfg := packettransport.Config{
-		Locator: packettransport.Locator{
-			Local:  macaddr.Flag{HardwareAddr: AddressApp},
-			Remote: macaddr.Flag{HardwareAddr: AddressDPDK},
-		},
+	tr := &transport{}
+	tr.TransportBase, tr.p = l3.NewTransportBase(l3.TransportBaseConfig{
 		TransportQueueConfig: loc.TransportQueueConfig,
 		MTU:                  loc.Dataroom,
-	}
-	packetTr, e := packettransport.New(hdl, packetCfg)
+	})
+
+	hdl, e := newHandle(loc, tr.p.SetState)
 	if e != nil {
-		hdl.Close()
 		return nil, e
 	}
+	tr.hdl = hdl
 
-	return &transport{
-		Transport: packetTr,
-		loc:       loc,
-	}, nil
+	go tr.rxLoop()
+	go tr.txLoop()
+	return tr, nil
 }
 
 type transport struct {
-	packettransport.Transport
-	loc Locator
+	*l3.TransportBase
+	p   *l3.TransportBasePriv
+	hdl *handle
 }
 
 func (tr *transport) Locator() Locator {
-	return tr.loc
+	return tr.hdl.Locator
+}
+
+func (tr *transport) rxLoop() {
+	dataroom := tr.MTU()
+	buf := make([]byte, dataroom)
+	for {
+		n, e := tr.hdl.Read(buf)
+		if e == io.EOF {
+			break
+		}
+		if e != nil {
+			continue
+		}
+
+		select {
+		case tr.p.Rx <- buf[:n]:
+		default: // drop
+		}
+		buf = make([]byte, dataroom)
+	}
+	close(tr.p.Rx)
+}
+
+func (tr *transport) txLoop() {
+	for pkt := range tr.p.Tx {
+		tr.hdl.Write(pkt)
+	}
+	tr.hdl.Close()
 }

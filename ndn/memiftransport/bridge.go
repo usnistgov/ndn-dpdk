@@ -3,9 +3,9 @@
 package memiftransport
 
 import (
-	"errors"
 	"fmt"
 
+	"github.com/pkg/math"
 	"go4.org/must"
 )
 
@@ -21,27 +21,24 @@ type Bridge struct {
 }
 
 // NewBridge creates a Bridge.
-func NewBridge(locA, locB Locator, role Role) (bridge *Bridge, e error) {
+func NewBridge(locA, locB Locator) (bridge *Bridge, e error) {
 	if e = locA.Validate(); e != nil {
 		return nil, fmt.Errorf("LocatorA %w", e)
 	}
-	locA.ApplyDefaults()
+	locA.ApplyDefaults(RoleServer)
 	if e = locB.Validate(); e != nil {
 		return nil, fmt.Errorf("LocatorB %w", e)
 	}
-	locB.ApplyDefaults()
-	if role == RoleServer && locA.SocketName == locB.SocketName {
-		return nil, errors.New("locators must use different SocketName")
-	}
+	locB.ApplyDefaults(RoleServer)
 
 	bridge = &Bridge{
 		closing: make(chan bool, 2),
 	}
-	bridge.hdlA, e = newHandle(locA, role)
+	bridge.hdlA, e = newHandle(locA, nil)
 	if e != nil {
 		return nil, fmt.Errorf("newHandleA %w", e)
 	}
-	bridge.hdlB, e = newHandle(locB, role)
+	bridge.hdlB, e = newHandle(locB, nil)
 	if e != nil {
 		must.Close(bridge.hdlA)
 		return nil, fmt.Errorf("newHandleB %w", e)
@@ -53,7 +50,7 @@ func NewBridge(locA, locB Locator, role Role) (bridge *Bridge, e error) {
 }
 
 func (bridge *Bridge) transferLoop(src, dst *handle) {
-	macBuffer := make([]byte, 6)
+	buf := make([]byte, math.MaxInt(src.Locator.Dataroom, dst.Locator.Dataroom))
 	for {
 		select {
 		case <-bridge.closing:
@@ -61,15 +58,10 @@ func (bridge *Bridge) transferLoop(src, dst *handle) {
 		default:
 		}
 
-		data, ci, e := src.ReadPacketData()
-		if e != nil || ci.CaptureLength < 14 {
-			continue
+		n, e := src.Read(buf)
+		if e == nil {
+			dst.Write(buf[:n])
 		}
-
-		copy(macBuffer, data[0:6])
-		copy(data[0:6], data[6:12])
-		copy(data[6:12], macBuffer)
-		dst.WritePacketData(data)
 	}
 }
 

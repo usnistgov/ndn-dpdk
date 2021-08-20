@@ -1,16 +1,11 @@
-//go:build linux
-
 package memiftransport
 
 import (
 	"encoding/json"
 	"errors"
 	"math"
-	"net"
-	"os"
 	"path"
 
-	"github.com/FDio/vpp/extras/gomemif/memif"
 	binutils "github.com/jfoster/binary-utilities"
 	mathpkg "github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
@@ -33,17 +28,22 @@ const (
 	DefaultRingCapacity = 1 << 10
 )
 
-var (
-	// AddressDPDK is the MAC address on DPDK side.
-	AddressDPDK = net.HardwareAddr{0xF2, 0x6C, 0xE6, 0x8D, 0x9E, 0x34}
+// Role indicates memif role.
+type Role string
 
-	// AddressApp is the MAC address on application side.
-	AddressApp = net.HardwareAddr{0xF2, 0x71, 0x7E, 0x76, 0x5D, 0x1C}
+// Role constants.
+const (
+	RoleServer Role = "server"
+	RoleClient Role = "client"
 )
 
 // Locator identifies memif interface.
 type Locator struct {
 	l3.TransportQueueConfig
+
+	// Role selects memif role.
+	// Default is "client" in NDNgo library and "server" in NDN-DPDK service.
+	Role Role `json:"role,omitempty"`
 
 	// SocketName is the control socket filename.
 	// It must be an absolute path, not longer than MaxSocketNameSize.
@@ -66,6 +66,11 @@ type Locator struct {
 
 // Validate checks Locator fields.
 func (loc Locator) Validate() error {
+	switch loc.Role {
+	case "", RoleServer, RoleClient:
+	default:
+		return errors.New("invalid Role")
+	}
 	if socketName := path.Clean(loc.SocketName); !path.IsAbs(socketName) || len(socketName) > MaxSocketNameSize {
 		return errors.New("invalid SocketName")
 	}
@@ -76,10 +81,14 @@ func (loc Locator) Validate() error {
 }
 
 // ApplyDefaults sets empty values to defaults.
-func (loc *Locator) ApplyDefaults() {
+func (loc *Locator) ApplyDefaults(defaultRole Role) {
 	loc.ApplyTransportQueueConfigDefaults()
 
 	loc.SocketName = path.Clean(loc.SocketName)
+
+	if loc.Role == "" {
+		loc.Role = defaultRole
+	}
 
 	if loc.Dataroom == 0 {
 		loc.Dataroom = DefaultDataroom
@@ -95,25 +104,20 @@ func (loc *Locator) ApplyDefaults() {
 	loc.RingCapacity = int(binutils.NextPowerOfTwo(int64(loc.RingCapacity)))
 }
 
-func (loc Locator) rsize() uint8 {
-	return uint8(math.Log2(float64(loc.RingCapacity)))
+// ReverseRole returns a copy of Locator with server and client roles reversed.
+func (loc Locator) ReverseRole() (reversed Locator) {
+	reversed = loc
+	switch loc.Role {
+	case RoleServer:
+		reversed.Role = RoleClient
+	case RoleClient:
+		reversed.Role = RoleServer
+	}
+	return
 }
 
-func (loc *Locator) toArguments(a *memif.Arguments) error {
-	if e := loc.Validate(); e != nil {
-		return e
-	}
-	loc.ApplyDefaults()
-
-	a.Id = uint32(loc.ID)
-	a.Name = os.Args[0]
-	a.Secret = [24]byte{}
-	a.MemoryConfig = memif.MemoryConfig{
-		NumQueuePairs:    1,
-		Log2RingSize:     loc.rsize(),
-		PacketBufferSize: uint32(loc.Dataroom),
-	}
-	return nil
+func (loc Locator) rsize() uint8 {
+	return uint8(math.Log2(float64(loc.RingCapacity)))
 }
 
 // ToVDevArgs builds arguments for DPDK virtual device.
@@ -123,16 +127,16 @@ func (loc *Locator) ToVDevArgs() (args map[string]interface{}, e error) {
 	if e = loc.Validate(); e != nil {
 		return nil, e
 	}
+	loc.ApplyDefaults(RoleServer)
 
-	loc.ApplyDefaults()
 	return map[string]interface{}{
 		"id":              loc.ID,
-		"role":            "server",
+		"role":            string(loc.Role),
 		"bsize":           loc.Dataroom,
 		"rsize":           loc.rsize(),
 		"socket":          loc.SocketName,
 		"socket-abstract": "no",
-		"mac":             AddressDPDK,
+		"mac":             "F2:6D:65:6D:69:66", // F2:memif
 	}, nil
 }
 
@@ -141,7 +145,7 @@ func (loc *Locator) ToCreateFaceLocator() (json.RawMessage, error) {
 	if e := loc.Validate(); e != nil {
 		return nil, e
 	}
-	loc.ApplyDefaults()
+	loc.ApplyDefaults(RoleServer)
 
 	var m map[string]interface{}
 	if e := jsonhelper.Roundtrip(loc, &m); e != nil {

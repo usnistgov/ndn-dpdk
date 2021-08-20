@@ -25,9 +25,6 @@ func New(name string, args map[string]interface{}, socket eal.NumaSocket) (ethde
 		)
 	}
 
-	ethdev.OnDetach(dev, func() {
-		vdev.Close()
-	})
-
+	ethdev.OnDetach(dev, func() { vdev.Close() })
 	return dev, nil
 }

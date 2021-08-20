@@ -13,7 +13,7 @@ static RTE_DEFINE_PER_LCORE(uint16_t, txVxlanSrcPort);
 
 typedef struct ClassifyResult
 {
-  uint16_t etherType; ///< outer EtherType
+  uint16_t etherType; ///< outer EtherType, 0 for memif
   bool multicast;     ///< is outer Ethernet multicast?
   bool udp;           ///< is UDP tunnel?
   bool v4;            ///< is IPv4?
@@ -23,7 +23,10 @@ typedef struct ClassifyResult
 __attribute__((nonnull)) static ClassifyResult
 EthLocator_Classify(const EthLocator* loc)
 {
-  ClassifyResult c;
+  ClassifyResult c = { 0 };
+  if (rte_is_zero_ether_addr(&loc->local)) {
+    return c;
+  }
   c.multicast = rte_is_multicast_ether_addr(&loc->remote);
   c.udp = loc->remoteUDP != 0;
   c.v4 = memcmp(loc->remoteIP, V4_IN_V6_PREFIX, sizeof(V4_IN_V6_PREFIX)) == 0;
@@ -37,6 +40,9 @@ EthLocator_CanCoexist(const EthLocator* a, const EthLocator* b)
 {
   ClassifyResult ac = EthLocator_Classify(a);
   ClassifyResult bc = EthLocator_Classify(b);
+  if (ac.etherType == 0 || bc.etherType == 0) {
+    return false;
+  }
   if (ac.multicast != bc.multicast || ac.udp != bc.udp || ac.v4 != bc.v4) {
     // Ethernet unicast and multicast can coexist
     // Ethernet, IPv4-UDP, and IPv6-UDP can coexist
@@ -143,6 +149,12 @@ PutVxlanHdr(uint8_t* buffer, uint32_t vni)
   return sizeof(*vxlan);
 }
 
+__attribute__((nonnull)) static bool
+MatchAlways(const EthRxMatch* match, const struct rte_mbuf* m)
+{
+  return true;
+}
+
 __attribute__((nonnull)) static __rte_always_inline bool
 MatchVlan(const EthRxMatch* match, const struct rte_mbuf* m)
 {
@@ -203,6 +215,11 @@ EthRxMatch_Prepare(EthRxMatch* match, const EthLocator* loc)
   ClassifyResult classify = EthLocator_Classify(loc);
 
   *match = (const EthRxMatch){ 0 };
+  if (classify.etherType == 0) {
+    match->f = MatchAlways;
+    return;
+  }
+
 #define BUF_TAIL (RTE_PTR_ADD(match->buf, match->len))
 
   match->l2len =
@@ -319,6 +336,10 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, const EthLocator* loc)
 }
 
 __attribute__((nonnull)) static void
+TxNoHdr(const EthTxHdr* hdr, struct rte_mbuf* m, bool newBurst)
+{}
+
+__attribute__((nonnull)) static __rte_always_inline void
 TxPrepend(const EthTxHdr* hdr, struct rte_mbuf* m)
 {
   char* room = rte_pktmbuf_prepend(m, hdr->len);
@@ -410,6 +431,11 @@ EthTxHdr_Prepare(EthTxHdr* hdr, const EthLocator* loc, bool hasChecksumOffloads)
   ClassifyResult classify = EthLocator_Classify(loc);
 
   *hdr = (const EthTxHdr){ .f = TxEther };
+  if (classify.etherType == 0) {
+    hdr->f = TxNoHdr;
+    return;
+  }
+
 #define BUF_TAIL (RTE_PTR_ADD(hdr->buf, hdr->len))
 
   hdr->l2len = PutEtherVlanHdr(BUF_TAIL, &loc->local, &loc->remote, loc->vlan, classify.etherType);

@@ -10,7 +10,7 @@ import (
 
 var errNoOpenFace = errors.New("OpenFace not supported on this platform")
 
-// OpenFace invokes OpenMemif with default settings.
+// OpenFace returns an error on unsupported platform.
 func (c *Client) OpenFace() (mgmt.Face, error) {
 	return nil, errNoOpenFace
 }

@@ -1,7 +1,6 @@
 package ethvdev
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
@@ -9,7 +8,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/memiftransport"
 )
 
-var activeMemifs = make(map[string]bool)
+var memifCoexist = make(memiftransport.CoexistMap)
 
 // NewMemif creates a net_memif device.
 func NewMemif(loc memiftransport.Locator) (ethdev.EthDev, error) {
@@ -18,18 +17,17 @@ func NewMemif(loc memiftransport.Locator) (ethdev.EthDev, error) {
 		return nil, fmt.Errorf("memiftransport.Locator.ToVDevArgs %w", e)
 	}
 
-	key := fmt.Sprintf("%s %d", loc.SocketName, loc.ID)
-	if activeMemifs[key] {
-		return nil, errors.New("duplicate SocketName+ID with existing memif device")
+	if e := memifCoexist.Check(loc); e != nil {
+		return nil, e
 	}
 
-	name := "net_memif" + eal.AllocObjectID("ethface.Memif")
+	name := "net_memif" + eal.AllocObjectID("ethvdev.Memif")
 	dev, e := New(name, args, eal.NumaSocket{})
 	if e != nil {
 		return nil, fmt.Errorf("ethvdev.New %w", e)
 	}
 
-	activeMemifs[key] = true
-	ethdev.OnDetach(dev, func() { delete(activeMemifs, key) })
+	memifCoexist.Add(loc)
+	ethdev.OnDetach(dev, func() { memifCoexist.Remove(loc) })
 	return dev, nil
 }

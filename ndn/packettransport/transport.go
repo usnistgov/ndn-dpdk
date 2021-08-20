@@ -169,6 +169,9 @@ func (tr *transport) txLoop() {
 		tr.hdl.WritePacketData(buf.Bytes())
 	}
 
+	type closer interface {
+		Close()
+	}
 	switch hdl := tr.hdl.(type) {
 	case io.Closer:
 		must.Close(hdl)
@@ -176,10 +179,6 @@ func (tr *transport) txLoop() {
 		hdl.Close()
 	}
 	tr.p.SetState(l3.TransportClosed)
-}
-
-type closer interface {
-	Close()
 }
 
 func init() {

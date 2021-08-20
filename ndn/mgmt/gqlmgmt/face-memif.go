@@ -5,8 +5,10 @@ package gqlmgmt
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"os"
+	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"github.com/usnistgov/ndn-dpdk/ndn/memiftransport"
@@ -22,27 +24,28 @@ func (c *Client) OpenFace() (mgmt.Face, error) {
 const autoSocketPath = "/run/ndn"
 
 var (
+	autoSocketOnce sync.Once
 	autoSocketName = ""
-	autoMemifID    = 0
+	autoMemifID    uint32
 )
 
 // OpenMemif creates a face connected to the current application using memif transport.
 // If loc.SocketName is empty, loc.SocketName and loc.ID will be assigned automatically.
 func (c *Client) OpenMemif(loc memiftransport.Locator) (mgmt.Face, error) {
 	if loc.SocketName == "" {
-		if autoSocketName == "" {
-			autoSocketName = fmt.Sprintf("%s/memif-%d-%d.sock", autoSocketPath, os.Getpid(), rand.Int())
+		autoSocketOnce.Do(func() {
+			autoSocketName = fmt.Sprintf("%s/memif-%d-%d.sock", autoSocketPath, os.Getpid(), time.Now().UnixNano())
 			if e := os.MkdirAll(autoSocketPath, os.ModePerm); e != nil {
-				return nil, fmt.Errorf("os.MkdirAll: %w", e)
+				panic(e)
 			}
-		}
+		})
 		loc.SocketName = autoSocketName
-		autoMemifID++
-		loc.ID = autoMemifID
+		loc.ID = int(atomic.AddUint32(&autoMemifID, 1))
 	}
-	loc.ApplyDefaults()
+	loc.ApplyDefaults(memiftransport.RoleClient)
 
-	locJ, e := loc.ToCreateFaceLocator()
+	locR := loc.ReverseRole()
+	locJ, e := locR.ToCreateFaceLocator()
 	if e != nil {
 		return nil, fmt.Errorf("loc.ToCreateFaceLocator: %w", e)
 	}

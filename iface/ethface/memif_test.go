@@ -56,13 +56,18 @@ const memifbridgeArg = "memifbridge"
 
 func memifbridgeHelper() {
 	socketName := os.Args[2]
-	var locA, locB memiftransport.Locator
-	locA.SocketName = socketName
-	locA.ID = 7655
-	locB.SocketName = socketName
-	locB.ID = 1891
+	locA := memiftransport.Locator{
+		Role:       memiftransport.RoleClient,
+		SocketName: socketName,
+		ID:         7655,
+	}
+	locB := memiftransport.Locator{
+		Role:       memiftransport.RoleClient,
+		SocketName: socketName,
+		ID:         1891,
+	}
 
-	bridge, e := memiftransport.NewBridge(locA, locB, memiftransport.RoleClient)
+	bridge, e := memiftransport.NewBridge(locA, locB)
 	if e != nil {
 		panic(e)
 	}

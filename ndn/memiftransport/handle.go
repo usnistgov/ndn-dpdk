@@ -10,43 +10,62 @@ import (
 	"sync"
 
 	"github.com/FDio/vpp/extras/gomemif/memif"
-	"github.com/google/gopacket"
-	"github.com/pkg/math"
+	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 )
 
-// Role indicates memif role.
-type Role int
+var handleCoexist = make(CoexistMap)
 
-// Role constants.
-const (
-	RoleServer Role = iota
-	RoleClient
-)
+func (loc *Locator) toArguments() (a *memif.Arguments, e error) {
+	if e := loc.Validate(); e != nil {
+		return nil, e
+	}
+	loc.ApplyDefaults(RoleClient)
 
-func newHandle(loc Locator, role Role) (hdl *handle, e error) {
+	return &memif.Arguments{
+		Id:       uint32(loc.ID),
+		IsMaster: loc.Role == RoleServer,
+		Name:     os.Args[0],
+		MemoryConfig: memif.MemoryConfig{
+			NumQueuePairs:    1,
+			Log2RingSize:     loc.rsize(),
+			PacketBufferSize: uint32(loc.Dataroom),
+		},
+	}, nil
+}
+
+func newHandle(loc Locator, setState func(l3.TransportState)) (hdl *handle, e error) {
+	a, e := loc.toArguments()
+	if e != nil {
+		return nil, e
+	}
+	if e := handleCoexist.Check(loc); e != nil {
+		return nil, e
+	}
+
 	sock, e := memif.NewSocket(os.Args[0], loc.SocketName)
 	if e != nil {
 		return nil, fmt.Errorf("memif.NewSocket %w", e)
 	}
 
+	if setState == nil {
+		setState = func(l3.TransportState) {}
+	}
 	hdl = &handle{
+		Locator:    loc,
 		sock:       sock,
 		memifError: make(chan error),
-		dataroom:   loc.Dataroom,
+		setState:   setState,
 	}
 
-	a := &memif.Arguments{
-		IsMaster:         role == RoleServer,
-		ConnectedFunc:    hdl.memifConnected,
-		DisconnectedFunc: hdl.memifDisconnected,
-	}
-	loc.toArguments(a)
+	a.ConnectedFunc = hdl.memifConnected
+	a.DisconnectedFunc = hdl.memifDisconnected
 	hdl.intf, e = sock.NewInterface(a)
 	if e != nil {
 		sock.Delete()
 		return nil, fmt.Errorf("sock.NewInterface %w", e)
 	}
 
+	handleCoexist.Add(loc)
 	hdl.sock.StartPolling(hdl.memifError)
 	if !hdl.intf.IsMaster() {
 		hdl.intf.RequestConnection()
@@ -55,22 +74,27 @@ func newHandle(loc Locator, role Role) (hdl *handle, e error) {
 }
 
 type handle struct {
+	Locator Locator
+
 	sock       *memif.Socket
 	memifError chan error
 	intf       *memif.Interface
-	dataroom   int
+	setState   func(l3.TransportState)
 
 	mutex  sync.RWMutex
 	rxq    *memif.Queue
 	txq    *memif.Queue
-	closed error
+	closed bool
 }
+
+var _ io.ReadWriteCloser = &handle{}
 
 func (hdl *handle) memifConnected(intf *memif.Interface) error {
 	hdl.mutex.Lock()
 	defer hdl.mutex.Unlock()
 	hdl.rxq, _ = intf.GetRxQueue(0)
 	hdl.txq, _ = intf.GetTxQueue(0)
+	hdl.setState(l3.TransportUp)
 	return nil
 }
 
@@ -79,51 +103,54 @@ func (hdl *handle) memifDisconnected(intf *memif.Interface) error {
 	defer hdl.mutex.Unlock()
 	hdl.rxq = nil
 	hdl.txq = nil
+	hdl.setState(l3.TransportDown)
 	return nil
 }
 
-func (hdl *handle) ReadPacketData() (data []byte, ci gopacket.CaptureInfo, e error) {
-	data = make([]byte, hdl.dataroom)
-	for {
-		ci, e = hdl.recvPacket(data)
-		if e != nil || ci.CaptureLength > 0 {
-			data = data[:ci.CaptureLength]
-			return
-		}
-		runtime.Gosched()
-	}
-}
-
-func (hdl *handle) recvPacket(buf []byte) (ci gopacket.CaptureInfo, e error) {
+func (hdl *handle) Read(buf []byte) (n int, e error) {
 	hdl.mutex.RLock()
 	defer hdl.mutex.RUnlock()
 
-	if hdl.closed != nil {
-		e = hdl.closed
-	} else if hdl.rxq != nil {
-		ci.Length, e = hdl.rxq.ReadPacket(buf)
-		ci.CaptureLength = math.MinInt(ci.Length, hdl.dataroom)
+	if hdl.closed {
+		return 0, io.EOF
 	}
-	return
+
+	if hdl.rxq != nil {
+		n, e = hdl.rxq.ReadPacket(buf)
+	}
+
+	if e == nil {
+		if n == 0 {
+			runtime.Gosched()
+			e = io.ErrNoProgress
+		} else if n > len(buf) {
+			e = io.ErrShortBuffer
+		}
+	}
+	return n, e
 }
 
-func (hdl *handle) WritePacketData(pkt []byte) error {
+func (hdl *handle) Write(buf []byte) (n int, e error) {
 	hdl.mutex.RLock()
 	defer hdl.mutex.RUnlock()
 
 	if hdl.txq != nil {
-		hdl.txq.WritePacket(pkt)
+		n = hdl.txq.WritePacket(buf)
 	}
-	return nil
+
+	if n < len(buf) {
+		return n, io.ErrShortWrite
+	}
+	return n, nil
 }
 
 func (hdl *handle) Close() error {
-	func() {
-		hdl.mutex.Lock()
-		defer hdl.mutex.Unlock()
-		hdl.closed = io.EOF
-	}()
+	hdl.mutex.Lock()
+	hdl.closed = true
+	hdl.setState(l3.TransportClosed)
+	hdl.mutex.Unlock()
 
 	hdl.sock.Delete()
+	handleCoexist.Remove(hdl.Locator)
 	return nil
 }

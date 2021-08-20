@@ -96,8 +96,21 @@ EthFace_SetupFlow(EthFacePriv* priv, uint16_t queues[], int nQueues, const EthLo
   return flow;
 }
 
-// EthFace currently only supports one TX queue, so queue number is hardcoded with this macro.
-#define TX_QUEUE_0 0
+__attribute__((nonnull)) void
+EthFace_SetupRxMemif(EthFacePriv* priv, const EthLocator* loc)
+{
+  priv->rxf[0] = (const EthRxFlow){
+    .base = {
+      .rxBurstOp = EthRxFlow_RxBurst_Unchecked,
+      .rxThread = 0,
+    },
+    .faceID = priv->faceID,
+    .port = priv->port,
+    .queue = 0,
+    .hdrLen = 0,
+    .rxMatch = NULL,
+  };
+}
 
 uint16_t
 EthFace_TxBurst(Face* face, struct rte_mbuf** pkts, uint16_t nPkts)
@@ -108,5 +121,5 @@ EthFace_TxBurst(Face* face, struct rte_mbuf** pkts, uint16_t nPkts)
     NDNDPDK_ASSERT(!face->txAlign.linearize || rte_pktmbuf_is_contiguous(m));
     EthTxHdr_Prepend(&priv->txHdr, m, i == 0);
   }
-  return rte_eth_tx_burst(priv->port, TX_QUEUE_0, pkts, nPkts);
+  return rte_eth_tx_burst(priv->port, 0, pkts, nPkts);
 }
