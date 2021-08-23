@@ -26,7 +26,6 @@ typedef struct FibEntry FibEntry;
 struct FibEntry
 {
   struct cds_lfht_node lfhtnode;
-  char copyBegin_[0];
   uint16_t nameL; ///< TLV-LENGTH of name
   uint8_t nameV[FibMaxNameLength];
   char cachelineA_[0];
@@ -62,7 +61,6 @@ struct FibEntry
 
   FaceID nexthops[FibMaxNexthops];
 
-  char copyEnd_[0];
   char padB_[32];
   char cachelineB_[0];
   FibEntryDyn dyn[0];

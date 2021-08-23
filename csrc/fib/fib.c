@@ -98,10 +98,7 @@ Fib_Lpm(Fib* fib, const PName* name)
     if (entry == NULL) { // continue to shorter prefixes
       prefixLen = fib->startDepth - 1;
     } else if (entry->height > 0) { // found virtual entry, restart at longest prefix
-      prefixLen = fib->startDepth + entry->height;
-      if (prefixLen > name->nComps) {
-        prefixLen = name->nComps;
-      }
+      prefixLen = RTE_MIN(fib->startDepth + entry->height, (int)name->nComps);
     } else { // the start entry itself is a match
       return entry;
     }

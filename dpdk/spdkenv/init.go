@@ -6,6 +6,7 @@ package spdkenv
 #include <spdk/env_dpdk.h>
 #include <spdk/init.h>
 #include <spdk/log.h>
+#include <spdk/version.h>
 
 static void c_SpdkLoggerReady()
 {
@@ -22,6 +23,9 @@ import (
 )
 
 var logger = logging.New("spdkenv")
+
+// Version is SPDK version.
+var Version = string(C.SPDK_VERSION_STRING)
 
 var mainThread *Thread
 

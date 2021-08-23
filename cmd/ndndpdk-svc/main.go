@@ -3,6 +3,7 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"math/rand"
 	"net/http"
@@ -17,6 +18,8 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
 	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
 	"github.com/usnistgov/ndn-dpdk/core/logging"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/spdkenv"
 	"github.com/usnistgov/ndn-dpdk/mk/version"
 	"go.uber.org/zap"
 	"golang.org/x/sys/unix"
@@ -138,6 +141,17 @@ var app = &cli.App{
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
+
+	var uname unix.Utsname
+	unix.Uname(&uname)
+	logger.Info("NDN-DPDK service starting",
+		zap.Any("version", version.Get()),
+		zap.Int("uid", unix.Getuid()),
+		zap.ByteString("linux", bytes.TrimRight(uname.Release[:], string([]byte{0}))),
+		zap.String("dpdk", eal.Version),
+		zap.String("spdk", spdkenv.Version),
+	)
+
 	app.Run(os.Args)
 }
 

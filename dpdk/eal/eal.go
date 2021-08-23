@@ -12,6 +12,10 @@ import (
 
 var logger = logging.New("eal")
 
+// Version is DPDK version.
+// This is populated by package ealinit.
+var Version string
+
 // EAL variables, available after ealinit.Init().
 var (
 	// MainLCore is the main lcore.

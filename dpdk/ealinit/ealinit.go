@@ -5,6 +5,7 @@ package ealinit
 #include "../../csrc/dpdk/mbuf.h"
 #include <rte_eal.h>
 #include <rte_lcore.h>
+#include <rte_version.h>
 */
 import "C"
 import (
@@ -25,6 +26,7 @@ import (
 var logger = logging.New("ealinit")
 
 func init() {
+	eal.Version = C.GoString(C.rte_version())
 	ealconfig.PmdPath = C.RTE_EAL_PMD_PATH
 }
 
