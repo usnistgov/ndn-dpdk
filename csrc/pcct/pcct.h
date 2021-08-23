@@ -7,6 +7,12 @@
 #include "pcc-entry.h"
 #include "pit-struct.h"
 
+enum
+{
+  PccTokenSize = 6,
+  PccTokenMask = ((uint64_t)1 << (PccTokenSize * 8)) - 1,
+};
+
 /** @brief The PIT-CS Composite Table (PCCT). */
 typedef struct Pcct
 {

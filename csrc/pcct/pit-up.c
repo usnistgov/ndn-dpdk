@@ -38,7 +38,7 @@ PitUp_ChooseNonce(PitUp* up, PitEntry* entry, TscTime now, uint32_t* nonce)
 
 void
 PitUp_RecordTx(PitUp* up, PitEntry* entry, TscTime now, uint32_t nonce,
-               PitSuppressConfig* suppressCfg)
+               const PitSuppressConfig* suppressCfg)
 {
   up->nonce = nonce;
   up->canBePrefix = (bool)entry->nCanBePrefix;

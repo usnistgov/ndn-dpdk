@@ -28,11 +28,11 @@ typedef struct PacketMempools
  * @brief mbuf alignment requirements for packet modification.
  *
  * If @c linearize is set to true, a packet modification function should output direct mbufs,
- * copying payload when necessary. data_len of each mbuf cannot exceed @c fragmentPayloadSize .
+ * copying payload when necessary. @c mbuf.data_len cannot exceed @c fragmentPayloadSize .
  * Each mbuf will be transmitted as a NDNLPv2 fragment.
  *
  * If @c linearize is set to false, a packet modification function should use indirect mbufs,
- * and @c fragmentPayloadSize is ignore. TxProc will perform fragmentation when necessary.
+ * and @c fragmentPayloadSize is ignored. TxProc will perform fragmentation when necessary.
  */
 typedef struct PacketTxAlign
 {

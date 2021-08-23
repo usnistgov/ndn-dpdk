@@ -34,7 +34,7 @@ typedef struct FwFwd
   ThreadStopFlag stop;
 
   uint64_t nNoFibMatch;   ///< Interests dropped due to no FIB match
-  uint64_t nDupNonce;     ///< Interests dropped due duplicate nonce
+  uint64_t nDupNonce;     ///< Interests dropped due to duplicate nonce
   uint64_t nSgNoFwd;      ///< Interests not forwarded by strategy
   uint64_t nNackMismatch; ///< Nack dropped due to outdated nonce
 
@@ -107,23 +107,26 @@ FwFwdCtx_SetFibEntry(FwFwdCtx* ctx, FibEntry* fibEntry)
 
 enum
 {
-  FwTokenLength = 8,
+  FwTokenLength = 7,
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-  FwTokenOffsetFwdID = 7,
+  FwTokenOffsetPccToken = 0,
+  FwTokenOffsetFwdID = 6,
 #else
+  FwTokenOffsetPccToken = -1,
   FwTokenOffsetFwdID = 0,
 #endif
-  FwTokenOffsetPitToken = 0,
 };
+static_assert(FwTokenLength == PccTokenSize + 1, "");
+static_assert(offsetof(LpPitToken, value) + FwTokenOffsetPccToken >= 0, "");
+static_assert(sizeof(((LpPitToken*)NULL)->value) >= sizeof(uint64_t), "");
 
 static __rte_always_inline void
 FwToken_Set(LpPitToken* token, uint8_t fwdID, uint64_t pccToken)
 {
-  *token = (LpPitToken){
-    .length = FwTokenLength,
-  };
-  *(unaligned_uint64_t*)RTE_PTR_ADD(token->value, FwTokenOffsetPitToken) = pccToken;
+  *token = (LpPitToken){ 0 };
+  *(unaligned_uint64_t*)RTE_PTR_ADD(token->value, FwTokenOffsetPccToken) = pccToken;
   token->value[FwTokenOffsetFwdID] = fwdID;
+  token->length = FwTokenLength;
 }
 
 static __rte_always_inline uint8_t
@@ -132,10 +135,10 @@ FwToken_GetFwdID(const LpPitToken* token)
   return token->value[FwTokenOffsetFwdID];
 }
 
-static __rte_always_inline TscTime
-FwToken_GetPitToken(const LpPitToken* token)
+static __rte_always_inline uint64_t
+FwToken_GetPccToken(const LpPitToken* token)
 {
-  return *(const unaligned_uint64_t*)RTE_PTR_ADD(token->value, FwTokenOffsetPitToken);
+  return *(const unaligned_uint64_t*)RTE_PTR_ADD(token->value, FwTokenOffsetPccToken);
 }
 
 #endif // NDNDPDK_FWDP_FWD_H

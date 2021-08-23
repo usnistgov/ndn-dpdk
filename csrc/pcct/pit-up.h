@@ -24,7 +24,7 @@ typedef struct PitUp
   /// nonces rejected by Nack~Duplicate from upstream
   uint32_t rejectedNonces[PIT_UP_MAX_REJ_NONCES];
 } __rte_aligned(64) PitUp;
-static_assert(sizeof(PitUp) == 64, "");
+static_assert(sizeof(PitUp) <= 64, "");
 
 __attribute__((nonnull)) static inline void
 PitUp_Reset(PitUp* up, FaceID face)
@@ -44,9 +44,8 @@ PitUp_ShouldSuppress(PitUp* up, TscTime now)
 __attribute__((nonnull)) static inline void
 PitUp_AddRejectedNonce(PitUp* up, uint32_t nonce)
 {
-  for (int i = PIT_UP_MAX_REJ_NONCES - 1; i > 0; --i) {
-    up->rejectedNonces[i] = up->rejectedNonces[i - 1];
-  }
+  memmove(&up->rejectedNonces[1], &up->rejectedNonces[0],
+          sizeof(up->rejectedNonces) - sizeof(up->rejectedNonces[0]));
   up->rejectedNonces[0] = nonce;
 }
 
@@ -67,6 +66,6 @@ PitUp_ChooseNonce(PitUp* up, PitEntry* entry, TscTime now, uint32_t* nonce);
  */
 __attribute__((nonnull)) void
 PitUp_RecordTx(PitUp* up, PitEntry* entry, TscTime now, uint32_t nonce,
-               PitSuppressConfig* suppressCfg);
+               const PitSuppressConfig* suppressCfg);
 
 #endif // NDNDPDK_PCCT_PIT_UP_H

@@ -35,6 +35,7 @@ FwFwd_DataNeedDigest(FwFwd* fwd, FwFwdCtx* ctx)
 __attribute__((nonnull)) static void
 FwFwd_DataSatisfy(FwFwd* fwd, FwFwdCtx* ctx)
 {
+  uint8_t upCongMark = Packet_GetLpL3Hdr(ctx->npkt)->congMark;
   N_LOGD("^ pit-entry=%p(%s)", ctx->pitEntry, PitEntry_ToDebugString(ctx->pitEntry));
 
   PitDnIt it;
@@ -58,15 +59,16 @@ FwFwd_DataSatisfy(FwFwd* fwd, FwFwdCtx* ctx)
     Packet* outNpkt = Packet_Clone(ctx->npkt, &fwd->mp, Face_PacketTxAlign(dn->face));
     N_LOGD("^ data-to=%" PRI_FaceID " npkt=%p dn-token=" PRI_LpPitToken, dn->face, outNpkt,
            LpPitToken_Fmt(&dn->token));
-    if (likely(outNpkt != NULL)) {
-      struct rte_mbuf* outPkt = Packet_ToMbuf(outNpkt);
-      outPkt->port = ctx->rxFace;
-      Mbuf_SetTimestamp(outPkt, ctx->rxTime);
-      LpL3* lpl3 = Packet_GetLpL3Hdr(outNpkt);
-      lpl3->pitToken = dn->token;
-      lpl3->congMark = dn->congMark;
-      Face_Tx(dn->face, outNpkt);
+    if (unlikely(outNpkt == NULL)) {
+      continue;
     }
+    struct rte_mbuf* outPkt = Packet_ToMbuf(outNpkt);
+    outPkt->port = ctx->rxFace;
+    Mbuf_SetTimestamp(outPkt, ctx->rxTime);
+    LpL3* lpl3 = Packet_GetLpL3Hdr(outNpkt);
+    lpl3->pitToken = dn->token;
+    lpl3->congMark = RTE_MAX(dn->congMark, upCongMark);
+    Face_Tx(dn->face, outNpkt);
   }
 
   if (likely(ctx->fibEntry != NULL)) {
@@ -89,7 +91,7 @@ FwFwd_RxData(FwFwd* fwd, FwFwdCtx* ctx)
     return;
   }
 
-  PitFindResult pitFound = Pit_FindByData(fwd->pit, ctx->npkt, FwToken_GetPitToken(&ctx->rxToken));
+  PitFindResult pitFound = Pit_FindByData(fwd->pit, ctx->npkt, FwToken_GetPccToken(&ctx->rxToken));
   if (PitFindResult_Is(pitFound, PIT_FIND_NONE)) {
     FwFwd_DataUnsolicited(fwd, ctx);
     return;

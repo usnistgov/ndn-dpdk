@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/app/fwdp"
-	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface/intface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
@@ -155,7 +154,7 @@ func TestHopLimit(t *testing.T) {
 	face1.Tx <- ndn.MakeData(collect1.Get(-1).Interest)
 	fixture.StepDelay()
 	assert.Equal(1, collect3.Count())
-	// whether face3 receives Data or not is unspecified
+	// whether face2 receives Data or not is unspecified
 
 	// HopLimit reaches zero, can still retrieve from CS
 	face4.Tx <- ndn.MakeInterest("/A/1", ndn.HopLimit(1))
@@ -350,7 +349,7 @@ func TestImplicitDigestSimple(t *testing.T) {
 func TestImplicitDigestDisabled(t *testing.T) {
 	assert, _ := makeAR(t)
 	fixture := NewFixture(t,
-		func(cfg *fwdp.Config) { cfg.LCoreAlloc[fwdp.RoleCrypto] = ealthread.RoleConfig{} }, // no CRYPTO thread
+		func(cfg *fwdp.Config) { delete(cfg.LCoreAlloc, fwdp.RoleCrypto) }, // no CRYPTO thread
 	)
 	defer fixture.Close()
 
@@ -365,4 +364,58 @@ func TestImplicitDigestDisabled(t *testing.T) {
 	face1.Tx <- ndn.MakeInterest(fullName, token.LpL3())
 	fixture.StepDelay()
 	assert.Equal(0, collect2.Count())
+}
+
+func TestCongMark(t *testing.T) {
+	assert, require := makeAR(t)
+	fixture := NewFixture(t)
+	defer fixture.Close()
+
+	face1, face2, face3 := intface.MustNew(), intface.MustNew(), intface.MustNew()
+	collect1, collect2, collect3 := intface.Collect(face1), intface.Collect(face2), intface.Collect(face3)
+	fixture.SetFibEntry("/A", "multicast", face1.ID)
+	name1, name2, name3 := ndn.ParseName("/A/1"), ndn.ParseName("/A/2"), ndn.ParseName("/A/3")
+
+	face2.Tx <- ndn.MakeInterest(name1)
+	face2.Tx <- ndn.MakeInterest(name2)
+	face2.Tx <- ndn.MakeInterest(name3, ndn.LpL3{CongMark: 1})
+	fixture.StepDelay()
+	collect1.Peek(func(received []*ndn.Packet) {
+		require.Len(received, 3)
+		for _, pkt := range received {
+			data := ndn.MakeData(pkt.Interest).ToPacket()
+			if pkt.Interest.Name.Equal(name2) {
+				data.Lp.CongMark = 1
+			}
+			face1.Tx <- data
+		}
+	})
+	collect1.Clear()
+
+	fixture.StepDelay()
+	collect2.Peek(func(received []*ndn.Packet) {
+		require.Len(received, 3)
+		for _, pkt := range received {
+			if pkt.Data.Name.Equal(name1) {
+				assert.EqualValues(0, pkt.Lp.CongMark)
+			} else {
+				assert.EqualValues(1, pkt.Lp.CongMark)
+			}
+		}
+	})
+
+	face3.Tx <- ndn.MakeInterest(name1, ndn.LpL3{CongMark: 1})
+	face3.Tx <- ndn.MakeInterest(name2)
+	face3.Tx <- ndn.MakeInterest(name3)
+	fixture.StepDelay()
+	collect3.Peek(func(received []*ndn.Packet) {
+		require.Len(received, 3)
+		for _, pkt := range received {
+			if pkt.Data.Name.Equal(name1) {
+				assert.EqualValues(1, pkt.Lp.CongMark)
+			} else {
+				assert.EqualValues(0, pkt.Lp.CongMark)
+			}
+		}
+	})
 }

@@ -109,7 +109,7 @@ FwFwd_ProcessNack(FwFwd* fwd, FwFwdCtx* ctx)
   }
 
   // find PIT entry
-  ctx->pitEntry = Pit_FindByNack(fwd->pit, ctx->npkt, FwToken_GetPitToken(&ctx->rxToken));
+  ctx->pitEntry = Pit_FindByNack(fwd->pit, ctx->npkt, FwToken_GetPccToken(&ctx->rxToken));
   if (unlikely(ctx->pitEntry == NULL)) {
     N_LOGD("^ drop=no-PIT-entry");
     return;

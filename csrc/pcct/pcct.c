@@ -31,13 +31,11 @@ Pcct_KeyHt_Expand_(UT_hash_table* tbl)
          tbl->num_buckets);
 }
 
-#define PCCT_TOKEN_MASK (((uint64_t)1 << 48) - 1)
-
 bool
 Pcct_Init(Pcct* pcct, const char* id, uint32_t maxEntries, unsigned numaSocket)
 {
   pcct->nKeyHtBuckets = rte_align32prevpow2(maxEntries);
-  pcct->lastToken = PCCT_TOKEN_MASK - 16;
+  pcct->lastToken = PccTokenMask - 16;
 
   pcct->tokenHt = HashTable_New((struct rte_hash_parameters){
     .name = id,
@@ -125,7 +123,7 @@ Pcct_AddToken_(Pcct* pcct, PccEntry* entry)
   uint64_t token = pcct->lastToken;
   while (true) {
     ++token;
-    if (unlikely(token > PCCT_TOKEN_MASK)) {
+    if (unlikely(token > PccTokenMask)) {
       token = 1;
     }
 
@@ -167,7 +165,7 @@ Pcct_RemoveToken_(Pcct* pcct, PccEntry* entry)
 PccEntry*
 Pcct_FindByToken(const Pcct* pcct, uint64_t token)
 {
-  token &= PCCT_TOKEN_MASK;
+  token &= PccTokenMask;
 
   void* entry = NULL;
   int res = rte_hash_lookup_data(pcct->tokenHt, &token, &entry);
