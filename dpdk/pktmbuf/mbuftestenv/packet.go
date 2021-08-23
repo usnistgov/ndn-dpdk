@@ -45,7 +45,7 @@ func MakePacket(args ...interface{}) (pkt *pktmbuf.Packet) {
 		mp = pktmbuf.Direct.Get(eal.NumaSocket{})
 	}
 	if len(segments) == 0 {
-		return mp.MustAlloc(1)[0]
+		segments = append(segments, []byte{})
 	}
 
 	vec := mp.MustAlloc(len(segments))

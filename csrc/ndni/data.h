@@ -49,6 +49,27 @@ DataDigest_Enqueue(CryptoQueuePair cqp, struct rte_crypto_op** ops, uint16_t cou
 __attribute__((nonnull)) Packet*
 DataDigest_Finish(struct rte_crypto_op* op);
 
+typedef struct MetaInfoBuffer
+{
+  uint8_t size;
+  uint8_t buffer[63];
+} __rte_aligned(64) MetaInfoBuffer;
+static_assert(sizeof(MetaInfoBuffer) == 64, "");
+
+__attribute__((nonnull)) bool
+DataEnc_PrepareMetaInfo(MetaInfoBuffer* meta, ContentType ct, uint32_t freshness, LName finalBlock);
+
+/**
+ * @brief Encode Data with payload.
+ * @param name Data name.
+ * @param meta prepare MetaInfo.
+ * @param m a uniquely owned, unsegmented, direct mbuf of Content payload.
+ * @return encoded packet, same as @p m .
+ * @retval NULL insufficient headroom or tailroom.
+ */
+__attribute__((nonnull)) Packet*
+DataEnc_EncodePayload(LName name, const MetaInfoBuffer* meta, struct rte_mbuf* m);
+
 /** @brief Data encoder optimized for traffic generator. */
 typedef struct DataGen
 {

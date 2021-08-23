@@ -91,5 +91,6 @@ Also, `Interest_ModifyGuiders` does not preserve unrecognized non-critical eleme
 There are limited support for packet encoding.
 
 * **InterestTemplate** struct and related functions can encode Interest packets.
-* **DataGen** struct and related functions can generate Data packets without signing.
+* **DataGen** struct and related functions can generate Data packets from a template without signing.
+* `DataEnc_*` functions can generate Data packets with payload without signing.
 * `Nack_FromInterest` turns an Interest packet into a Nack packet in-place.
