@@ -18,6 +18,8 @@ RTE_INIT(InitNullSig)
   NullSig.sigTypeTL = TlvEncoder_ConstTL1(TtSigType, sizeof(NullSig.sigTypeV));
   NullSig.sigTypeV = SigNull;
   NullSig.sigValueTL = TlvEncoder_ConstTL1(TtDSigValue, 0);
+
+  static_assert(sizeof(NullSig) == DataEncNullSigLen, "");
 }
 
 static __rte_always_inline bool

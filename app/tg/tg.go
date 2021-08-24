@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/usnistgov/ndn-dpdk/app/fetch"
+	"github.com/usnistgov/ndn-dpdk/app/tg/tgdef"
 	"github.com/usnistgov/ndn-dpdk/app/tgconsumer"
 	"github.com/usnistgov/ndn-dpdk/app/tgproducer"
 	"github.com/usnistgov/ndn-dpdk/core/logging"
@@ -20,8 +21,8 @@ import (
 const (
 	RoleInput    = iface.RoleRx
 	RoleOutput   = iface.RoleTx
-	RoleConsumer = tgconsumer.RoleConsumer
-	RoleProducer = tgproducer.RoleProducer
+	RoleConsumer = tgdef.RoleConsumer
+	RoleProducer = tgdef.RoleProducer
 )
 
 var logger = logging.New("tg")
@@ -100,11 +101,7 @@ func (gen *TrafficGen) configureDemux(demuxI, demuxD, demuxN *iface.InputDemux) 
 	}
 
 	if gen.consumer != nil {
-		demuxD.InitFirst()
-		demuxN.InitFirst()
-		q := gen.consumer.RxQueue()
-		demuxD.SetDest(0, q)
-		demuxN.SetDest(0, q)
+		gen.consumer.ConnectRxQueues(demuxD, demuxN)
 	} else if gen.fetcher != nil {
 		gen.fetcher.ConnectRxQueues(demuxD, demuxN)
 	}
@@ -118,7 +115,7 @@ func (gen *TrafficGen) Stop() error {
 		errs = append(errs, gen.producer.Stop())
 	}
 	if gen.consumer != nil {
-		errs = append(errs, gen.consumer.Stop(0))
+		errs = append(errs, gen.consumer.Stop())
 	}
 	if gen.fetcher != nil {
 		errs = append(errs, gen.fetcher.Stop())

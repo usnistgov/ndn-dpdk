@@ -45,6 +45,37 @@ LName_ComputeHash(LName name);
 __attribute__((nonnull)) int
 LName_PrintHex(LName name, char buffer[NameHexBufferLength]);
 
+/**
+ * @brief Find a matching prefix of @p name .
+ * @param name a packet name.
+ * @param maxPrefix exclusive upper bound of @p prefixL vector.
+ * @param prefixL a vector of name prefix TLV-LENGTH; zero indicates end of vector.
+ * @param prefixV a buffer of name prefix TLV-VALUE, written consecutively.
+ * @pre SUM(prefixL) <= cap(prefixV)
+ * @return index of first matching prefix.
+ * @retval -1 no matching prefix.
+ */
+__attribute__((nonnull)) static inline int
+LNamePrefixFilter_Find(LName name, int maxPrefix, const uint16_t* prefixL, const uint8_t* prefixV)
+{
+  size_t offset = 0;
+  for (int i = 0; i < maxPrefix; ++i) {
+    if (prefixL[i] == 0) {
+      break;
+    }
+
+    LName prefix = {
+      .value = RTE_PTR_ADD(prefixV, offset),
+      .length = prefixL[i],
+    };
+    if (LName_IsPrefix(prefix, name) >= 0) {
+      return i;
+    }
+    offset += prefix.length;
+  }
+  return -1;
+}
+
 /** @brief Parsed name. */
 typedef struct PName
 {

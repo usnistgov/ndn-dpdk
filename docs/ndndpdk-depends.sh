@@ -24,6 +24,7 @@ DFLT_LIBBPFVER=v0.4.0
 DFLT_DPDKVER=21.08
 DFLT_KMODSVER=HEAD
 DFLT_SPDKVER=21.07
+DFLT_URINGVER=liburing-2.0
 DFLT_NJOBS=$(nproc)
 DFLT_TARGETARCH=native
 
@@ -53,10 +54,11 @@ LIBBPFVER=$DFLT_LIBBPFVER
 DPDKVER=$DFLT_DPDKVER
 KMODSVER=$DFLT_KMODSVER
 SPDKVER=$DFLT_SPDKVER
+URINGVER=$DFLT_URINGVER
 NJOBS=$DFLT_NJOBS
 TARGETARCH=$DFLT_TARGETARCH
 
-ARGS=$(getopt -o 'hy' --long 'dir:,node:,go:,libbpf:,dpdk:,kmods:,spdk:,ubpf:,jobs:,arch:,skiprootcheck' -- "$@")
+ARGS=$(getopt -o 'hy' --long 'dir:,node:,go:,ubpf:,libbpf:,dpdk:,kmods:,spdk:,uring:,jobs:,arch:,skiprootcheck' -- "$@")
 eval "set -- $ARGS"
 while true; do
   case $1 in
@@ -70,6 +72,7 @@ while true; do
     (--dpdk) DPDKVER=$2; shift 2;;
     (--kmods) KMODSVER=$2; shift 2;;
     (--spdk) SPDKVER=$2; shift 2;;
+    (--uring) URINGVER=$2; shift 2;;
     (--jobs) NJOBS=$2; shift 2;;
     (--arch) TARGETARCH=$2; shift 2;;
     (--skiprootcheck) SKIPROOTCHECK=1; shift;;
@@ -99,6 +102,8 @@ ndndpdk-depends.sh ...ARGS
       Set DPDK kernel modules branch or commit SHA. '0' to skip.
   --spdk=${DFLT_SPDKVER}
       Set SPDK version. '0' to skip.
+  --uring=${DFLT_URINGVER}
+      Set liburing version. '0' to skip.
   --jobs=${DFLT_NJOBS}
       Set number of parallel jobs.
   --arch=${DFLT_TARGETARCH}
@@ -243,6 +248,16 @@ else
   echo "Will install SPDK ${SPDKVER} for ${DISPLAYARCH} architecture"
 fi
 
+if [[ $URINGVER == '0' ]]; then
+  if ! pkg-config liburing; then
+    echo '--liburing=0 specified but liburing is absent'
+    exit 1
+  fi
+else
+  URINGVER=$(github_resolve_commit $URINGVER axboe/liburing)
+  echo "Will install liburing ${URINGVER}"
+fi
+
 echo "Will compile with ${NJOBS} parallel jobs"
 echo 'Will delete conflicting versions if present'
 if [[ $CONFIRM -ne 1 ]]; then
@@ -352,6 +367,21 @@ if [[ $SPDKVER != '0' ]]; then
   $SUDO find /usr/local/lib -name 'libspdk_*' -delete
   $SUDO make install
   $SUDO find /usr/local/lib -name 'libspdk_*.a' -delete
+  $SUDO ldconfig
+fi
+
+if [[ $URINGVER != '0' ]]; then
+  URINGVER=$(github_resolve_commit $URINGVER axboe/liburing)
+  cd $CODEROOT
+  rm -rf liburing-${URINGVER}
+  curl -sfL ${NDNDPDK_DL_GITHUB}/axboe/liburing/archive/${URINGVER}.tar.gz | tar -xz
+  cd liburing-${URINGVER}
+  ./configure --prefix=/usr/local
+  make
+  $SUDO find /usr/local/lib -name 'liburing.*' -delete
+  $SUDO find /usr/local/share/man -name 'io_uring*' -delete
+  $SUDO rm -rf /usr/local/include/liburing /usr/local/include/liburing.h
+  $SUDO make install
   $SUDO ldconfig
 fi
 

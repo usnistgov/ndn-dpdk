@@ -12,5 +12,5 @@ if [[ $NDNDPDK_MK_THREADSLEEP -eq 1 ]]; then
 fi
 
 export CFLAGS
-CGO_CFLAGS='-Werror '$CFLAGS' -m64 -pthread -O3 -g '$(pkg-config --cflags libdpdk | sed 's/-include [^ ]*//')
-CGO_LIBS='-L/usr/local/lib -lurcu-qsbr -lurcu-cds -lubpf '$(pkg-config --libs spdk_bdev spdk_init spdk_env_dpdk)' -lrte_bus_pci -lrte_bus_vdev -lrte_net_ring '$(pkg-config --libs libdpdk)' -lnuma -lm'
+CGO_CFLAGS="-Werror $CFLAGS -m64 -pthread -O3 -g $(pkg-config --cflags libdpdk liburing | sed 's/-include [^ ]*//')"
+CGO_LIBS="-L/usr/local/lib -lurcu-qsbr -lurcu-cds -lubpf $(pkg-config --libs spdk_bdev spdk_init spdk_env_dpdk) -lrte_bus_pci -lrte_bus_vdev -lrte_net_ring $(pkg-config --libs libdpdk liburing) -lnuma -lm"

@@ -8,6 +8,7 @@ You can also [build a Docker container](Docker.md), which would work on other op
 
 ## Dependencies
 
+* Linux kernel 5.4 or newer (install `linux-image-generic-hwe-18.04` on Ubuntu 18.04)
 * Required APT packages: `build-essential clang-8 git jq libc6-dev-i386 libelf-dev libnuma-dev libpcap-dev libssl-dev liburcu-dev pkg-config python3-distutils`
 * Optional APT packages: `clang-format-8 doxygen yamllint`
 * Go 1.17
@@ -17,6 +18,7 @@ You can also [build a Docker container](Docker.md), which would work on other op
 * [libbpf](https://github.com/libbpf/libbpf) library, installed to `/usr/local` (optional)
 * [Data Plane Development Kit (DPDK)](https://www.dpdk.org/) 21.08
 * [Storage Performance Development Kit (SPDK)](https://spdk.io/) 21.07
+* [liburing](https://github.com/axboe/liburing) library, installed to `/usr/local`
 * [graphqurl](https://www.npmjs.com/package/graphqurl) command (optional, only used in sample commands)
 
 You can execute the [ndndpdk-depends.sh](ndndpdk-depends.sh) script to install these dependencies, or refer to this script for the specific configuration options.

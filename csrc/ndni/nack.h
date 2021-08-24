@@ -13,7 +13,7 @@ NackReason_GetMin(NackReason a, NackReason b)
   return RTE_MIN(a, b);
 }
 
-const char*
+__attribute__((returns_nonnull)) const char*
 NackReason_ToString(NackReason reason);
 
 /** @brief Parsed Nack packet. */

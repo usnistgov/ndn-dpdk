@@ -64,7 +64,7 @@ func TestConsumer(t *testing.T) {
 	}))
 
 	require.NoError(c.SetInterval(200 * time.Microsecond))
-	tgtestenv.DemuxD.SetDest(0, c.RxQueue())
+	c.ConnectRxQueues(tgtestenv.DemuxD, tgtestenv.DemuxN)
 
 	nInterestsA := 0
 	nInterestsB1 := 0
@@ -116,7 +116,7 @@ func TestConsumer(t *testing.T) {
 	time.Sleep(900 * time.Millisecond)
 
 	timeBeforeStop := time.Now()
-	e = c.Stop(200 * time.Millisecond)
+	e = c.StopDelay(200 * time.Millisecond)
 	assert.NoError(e)
 	assert.InDelta(200*time.Millisecond, time.Since(timeBeforeStop), float64(50*time.Millisecond))
 

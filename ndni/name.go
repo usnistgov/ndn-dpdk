@@ -5,11 +5,54 @@ package ndni
 */
 import "C"
 import (
+	"errors"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"go.uber.org/zap"
 )
+
+// LNamePrefixFilterBuilder prepares vector for C.LNamePrefixFilter_Find.
+type LNamePrefixFilterBuilder struct {
+	prefixL []uint16
+	prefixV []byte
+	index   int
+	offset  int
+}
+
+// Len returns number of prefixes added.
+func (b *LNamePrefixFilterBuilder) Len() int {
+	return b.index
+}
+
+// Append adds a name.
+func (b *LNamePrefixFilterBuilder) Append(name ndn.Name) error {
+	if b.index == len(b.prefixL) {
+		return errors.New("prefixL is full")
+	}
+	nameV, _ := name.MarshalBinary()
+	nameL := len(nameV)
+	if b.offset+nameL > len(b.prefixV) {
+		return errors.New("prefixV is full")
+	}
+	b.prefixL[b.index] = uint16(len(nameV))
+	b.index++
+	copy(b.prefixV[b.offset:], nameV)
+	b.offset += nameL
+	return nil
+}
+
+// NewLNamePrefixFilterBuilder constructs LNamePrefixFilterBuilder.
+func NewLNamePrefixFilterBuilder(prefixL unsafe.Pointer, sizeL uintptr, prefixV unsafe.Pointer, sizeV uintptr) (b *LNamePrefixFilterBuilder) {
+	b = &LNamePrefixFilterBuilder{
+		prefixL: unsafe.Slice((*uint16)(prefixL), sizeL/2),
+		prefixV: unsafe.Slice((*uint8)(prefixV), sizeV),
+	}
+	for i := range b.prefixL {
+		b.prefixL[i] = 0
+	}
+	return b
+}
 
 // PNameToName converts PName to ndn.Name.
 func PNameToName(pname unsafe.Pointer) (name ndn.Name) {

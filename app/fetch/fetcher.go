@@ -11,6 +11,7 @@ import (
 	"unsafe"
 
 	mathpkg "github.com/pkg/math"
+	"github.com/usnistgov/ndn-dpdk/app/tg/tgdef"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
@@ -35,9 +36,6 @@ func (cfg *FetcherConfig) applyDefaults() {
 	cfg.RxQueue.DisableCoDel = true
 }
 
-// RoleConsumer indicates consumer thread role.
-const RoleConsumer = "CONSUMER"
-
 type worker struct {
 	ealthread.Thread
 	c *C.FetchThread
@@ -50,7 +48,7 @@ var (
 
 // ThreadRole implements ealthread.ThreadWithRole interface.
 func (worker) ThreadRole() string {
-	return RoleConsumer
+	return tgdef.RoleConsumer
 }
 
 // ThreadLoadStat implements ealthread.ThreadWithLoadStat interface.
@@ -75,6 +73,8 @@ type Fetcher struct {
 	fp           []*C.FetchProc
 	nActiveProcs int
 }
+
+var _ tgdef.Consumer = &Fetcher{}
 
 // New creates a Fetcher.
 func New(face iface.Face, cfg FetcherConfig) (*Fetcher, error) {

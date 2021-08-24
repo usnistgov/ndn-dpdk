@@ -3,6 +3,7 @@ package tgproducer
 
 import (
 	"github.com/pkg/math"
+	"github.com/usnistgov/ndn-dpdk/app/tg/tgdef"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndni"
@@ -15,6 +16,8 @@ type Producer struct {
 	workers  []*worker
 	patterns []Pattern
 }
+
+var _ tgdef.Producer = &Producer{}
 
 // Patterns returns traffic patterns.
 func (p Producer) Patterns() []Pattern {

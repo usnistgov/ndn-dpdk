@@ -21,6 +21,7 @@ import (
 	"time"
 	"unsafe"
 
+	"github.com/usnistgov/ndn-dpdk/app/tg/tgdef"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/cryptodev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
@@ -35,9 +36,6 @@ import (
 	"go4.org/must"
 )
 
-// RoleConsumer indicates consumer thread role.
-const RoleConsumer = "CONSUMER"
-
 type worker struct {
 	ealthread.Thread
 	loadStat *C.ThreadLoadStat
@@ -50,7 +48,7 @@ var (
 
 // ThreadRole implements ealthread.ThreadWithRole interface.
 func (worker) ThreadRole() string {
-	return RoleConsumer
+	return tgdef.RoleConsumer
 }
 
 // ThreadLoadStat implements ealthread.ThreadWithLoadStat interface.
@@ -70,6 +68,8 @@ type Consumer struct {
 	digestCrypto *cryptodev.CryptoDev
 	dPatterns    []*C.TgcTxDigestPattern
 }
+
+var _ tgdef.Consumer = &Consumer{}
 
 func (c Consumer) socket() eal.NumaSocket {
 	return c.Face().NumaSocket()
@@ -239,14 +239,22 @@ func (c *Consumer) SetInterval(interval time.Duration) error {
 	return nil
 }
 
-// RxQueue returns the ingress queue.
-func (c Consumer) RxQueue() *iface.PktQueue {
+func (c Consumer) rxQueue() *iface.PktQueue {
 	return iface.PktQueueFromPtr(unsafe.Pointer(&c.rxC.rxQueue))
 }
 
 // Face returns the associated face.
 func (c Consumer) Face() iface.Face {
 	return iface.Get(iface.ID(c.txC.face))
+}
+
+// ConnectRxQueues connects Data+Nack InputDemux to RxQueues.
+func (c *Consumer) ConnectRxQueues(demuxD, demuxN *iface.InputDemux) {
+	demuxD.InitFirst()
+	demuxN.InitFirst()
+	q := c.rxQueue()
+	demuxD.SetDest(0, q)
+	demuxN.SetDest(0, q)
 }
 
 // Launch launches RX and TX threads.
@@ -258,18 +266,23 @@ func (c *Consumer) Launch() {
 }
 
 // Stop stops RX and TX threads.
-func (consumer *Consumer) Stop(delay time.Duration) error {
-	eTx := consumer.tx.Stop()
+func (c *Consumer) Stop() error {
+	return c.StopDelay(0)
+}
+
+// Stop stops the TX thread, delay for the specified duration, then stops the RX thread.
+func (c *Consumer) StopDelay(delay time.Duration) error {
+	eTx := c.tx.Stop()
 	time.Sleep(delay)
-	eRx := consumer.rx.Stop()
+	eRx := c.rx.Stop()
 	return multierr.Append(eTx, eRx)
 }
 
 // Close closes the consumer.
 func (c *Consumer) Close() error {
-	c.Stop(0)
+	c.Stop()
 	c.closeDigest()
-	must.Close(c.RxQueue())
+	must.Close(c.rxQueue())
 	eal.Free(c.rxC)
 	eal.Free(c.txC)
 	return nil
@@ -301,7 +314,7 @@ func New(face iface.Face, rxqCfg iface.PktQueueConfig) (c *Consumer, e error) {
 	}
 
 	rxqCfg.DisableCoDel = true
-	if e = c.RxQueue().Init(rxqCfg, socket); e != nil {
+	if e = c.rxQueue().Init(rxqCfg, socket); e != nil {
 		must.Close(c)
 		return nil, fmt.Errorf("error initializing RxQueue %w", e)
 	}

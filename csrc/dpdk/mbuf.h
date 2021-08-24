@@ -88,7 +88,7 @@ Mbuf_ChainVector(struct rte_mbuf* vec[], uint16_t count)
 }
 
 /**
- * @brief Enqueue a burst of packets to a ring buyffer.
+ * @brief Enqueue a burst of packets to a ring buffer.
  * @return number of rejected packets; they have been freed.
  */
 __attribute__((nonnull)) static inline uint16_t

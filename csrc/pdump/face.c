@@ -13,23 +13,8 @@ NameFilter(PdumpFace* pd, struct rte_mbuf* pkt)
     return 0;
   }
 
-  static_assert(sizeof(pd->nameV) <= UINT16_MAX, "");
-  uint16_t offset = 0;
-  for (int i = 0; i < PdumpMaxNames; ++i) {
-    if (pd->nameL[i] == 0) {
-      break;
-    }
-
-    LName prefix = {
-      .value = RTE_PTR_ADD(pd->nameV, offset),
-      .length = pd->nameL[i],
-    };
-    if (LName_IsPrefix(prefix, name) >= 0) {
-      return pd->sample[i];
-    }
-    offset += prefix.length;
-  }
-  return 0;
+  int index = LNamePrefixFilter_Find(name, PdumpMaxNames, pd->nameL, pd->nameV);
+  return index >= 0 ? pd->sample[index] : 0;
 }
 
 void

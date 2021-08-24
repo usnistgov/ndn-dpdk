@@ -17,12 +17,12 @@ import (
 
 	"github.com/jwangsadinata/go-multimap"
 	"github.com/jwangsadinata/go-multimap/setmultimap"
-	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
 )
@@ -146,13 +146,13 @@ func DumpFace(face iface.Face, w *Writer, cfg FaceConfig) (pd *Face, e error) {
 	C.pcg32_srandom_r(&pd.c.rng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
 	pd.c.sllType = dirImpl.sllType
 
-	nameBuf := cptr.AsByteSlice(&pd.c.nameV)
+	prefixes := ndni.NewLNamePrefixFilterBuilder(unsafe.Pointer(&pd.c.nameL), unsafe.Sizeof(pd.c.nameL),
+		unsafe.Pointer(&pd.c.nameV), unsafe.Sizeof(pd.c.nameV))
 	for i, nf := range cfg.Names {
-		nameV, _ := nf.Name.MarshalBinary()
+		if e := prefixes.Append(nf.Name); e != nil {
+			panic(e)
+		}
 		pd.c.sample[i] = C.uint32_t(math.Ceil(nf.SampleRate * math.MaxUint32))
-		pd.c.nameL[i] = C.uint16_t(len(nameV))
-		copy(nameBuf, nameV)
-		nameBuf = nameBuf[len(nameV):]
 	}
 
 	w.AddFace(face)

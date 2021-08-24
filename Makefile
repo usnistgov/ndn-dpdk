@@ -20,6 +20,9 @@ csrc/meson.build mk/meson.build:
 build/build.ninja: csrc/meson.build mk/meson.build
 	bash -c 'source mk/cflags.sh; meson build'
 
+csrc/fileserver/enum.h: app/fileserver/config.go
+	go generate ./$(<D)
+
 csrc/fib/enum.h: container/fib/fibdef/enum.go
 	go generate ./$(<D)
 
@@ -42,7 +45,7 @@ csrc/tgproducer/enum.h: app/tgproducer/config.go
 	go generate ./$(<D)
 
 .PHONY: build/libndn-dpdk-c.a
-build/libndn-dpdk-c.a: build/build.ninja csrc/fib/enum.h csrc/ndni/an.h csrc/ndni/enum.h csrc/iface/enum.h csrc/pcct/cs-enum.h csrc/pdump/enum.h csrc/tgconsumer/enum.h csrc/tgproducer/enum.h
+build/libndn-dpdk-c.a: build/build.ninja csrc/fib/enum.h csrc/fileserver/enum.h csrc/ndni/an.h csrc/ndni/enum.h csrc/iface/enum.h csrc/pcct/cs-enum.h csrc/pdump/enum.h csrc/tgconsumer/enum.h csrc/tgproducer/enum.h
 	ninja -C build
 
 build/cgodeps.done: build/build.ninja

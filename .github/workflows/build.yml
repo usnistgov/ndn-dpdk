@@ -40,6 +40,16 @@ jobs:
           sudo make install
         env:
           UBPFCOMMIT: 843394752c752e38f79d6d49fc704a73ee6490bd
+      - name: install liburing
+        run: |
+          mkdir -p $HOME/liburing
+          cd $HOME/liburing
+          curl -sfL https://github.com/axboe/liburing/archive/$URINGVER.tar.gz | tar -xz --strip-components=1
+          ./configure --prefix=/usr/local
+          make
+          sudo make install
+        env:
+          URINGVER: liburing-2.0
       - uses: actions/cache@v2
         with:
           path: |

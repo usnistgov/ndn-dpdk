@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"unsafe"
 
+	"github.com/usnistgov/ndn-dpdk/app/tg/tgdef"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
@@ -15,9 +16,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
-
-// RoleProducer indicates producer thread role.
-const RoleProducer = "PRODUCER"
 
 type worker struct {
 	ealthread.Thread
@@ -31,7 +29,7 @@ var (
 
 // ThreadRole implements ealthread.ThreadWithRole interface.
 func (worker) ThreadRole() string {
-	return RoleProducer
+	return tgdef.RoleProducer
 }
 
 // ThreadLoadStat implements ealthread.ThreadWithLoadStat interface.

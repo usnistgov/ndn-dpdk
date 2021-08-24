@@ -57,6 +57,11 @@ const (
 		1 + 3 + NameMaxLength + // Name
 		InterestTemplateBufLen // other fields
 
+	// DataEncNullSigLen is the required tailroom in DataEnc to append NullSignature.
+	DataEncNullSigLen = 0 +
+		1 + 1 + 1 + 1 + 1 + // DSigInfo
+		1 + 1 // DSigValue
+
 	// DataGenBufLen is the buffer length for DataGen.
 	DataGenBufLen = 0 +
 		1 + 3 + NameMaxLength + // Name suffix
