@@ -3,20 +3,20 @@ package cptr
 /*
 #include "../../csrc/core/common.h"
 
-extern int go_functionGo0_once(void* ctx);
-extern int go_functionGo0_reuse(void* ctx);
+extern int go_functionGo0_once(uintptr_t ctx);
+extern int go_functionGo0_reuse(uintptr_t ctx);
 
-typedef int (*Function0)(void* arg);
-typedef int (*Function1)(void* param1, void* arg);
+typedef int (*Function0)(uintptr_t ctx);
+typedef int (*Function1)(void* param1, uintptr_t ctx);
 
-static int c_invokeFunction0(Function0 f, void* arg)
+static int c_invokeFunction0(Function0 f, uintptr_t ctx)
 {
-	return (*f)(arg);
+	return (*f)(ctx);
 }
 
-static int c_invokeFunction1(Function1 f, void* param1, void* arg)
+static int c_invokeFunction1(Function1 f, void* param1, uintptr_t ctx)
 {
-	return (*f)(param1, arg);
+	return (*f)(param1, ctx);
 }
 */
 import "C"
@@ -27,14 +27,24 @@ import (
 )
 
 // FunctionType identifies the type of a C function.
-// The zero FunctionType identifies `int f(void* arg)`.
-// FunctionType{"T1"} identifies `int f(T1* item1, void* arg)`.
+// The zero FunctionType identifies `int f(uintptr_t ctx)`.
+// FunctionType{"T1"} identifies `int f(T1* item1, uintptr_t ctx)`.
 type FunctionType []string
 
 // C wraps a C function as Function.
 // f must be a C function consistent with ft.
-func (ft FunctionType) C(f, arg unsafe.Pointer) Function {
-	return &functionC{ft, f, arg}
+func (ft FunctionType) C(f unsafe.Pointer, arg interface{}) Function {
+	val := reflect.ValueOf(arg)
+	var ctx uintptr
+	switch val.Kind() {
+	case reflect.Uintptr:
+		ctx = uintptr(val.Uint())
+	case reflect.Ptr, reflect.UnsafePointer:
+		ctx = val.Pointer()
+	default:
+		panic("arg must be pointer or uintptr_t")
+	}
+	return &functionC{ft, f, ctx}
 }
 
 // Assert panics if fn is not created from ft.
@@ -51,14 +61,14 @@ func (ft FunctionType) Assert(fn Function) {
 }
 
 // CallbackOnce returns C callback function and arg that can be invoked only once.
-func (ft FunctionType) CallbackOnce(fn Function) (f, arg unsafe.Pointer) {
+func (ft FunctionType) CallbackOnce(fn Function) (f unsafe.Pointer, ctx uintptr) {
 	ft.Assert(fn)
 	return fn.callbackOnce()
 }
 
 // CallbackReuse returns C callback function and arg that can be invoked repeatedly.
 // Use revoke() to avoid memory leak.
-func (ft FunctionType) CallbackReuse(fn Function) (f, arg unsafe.Pointer, revoke func()) {
+func (ft FunctionType) CallbackReuse(fn Function) (f unsafe.Pointer, ctx uintptr, revoke func()) {
 	ft.Assert(fn)
 	return fn.callbackReuse()
 }
@@ -71,18 +81,18 @@ func (ft FunctionType) Invoke(fn Function, param ...unsafe.Pointer) int {
 		panic("FunctionType param mismatch")
 	}
 
-	f, arg := fn.callbackOnce()
+	f, ctx := fn.callbackOnce()
 	switch len(ft) {
 	case 0:
-		return int(C.c_invokeFunction0(C.Function0(f), arg))
+		return int(C.c_invokeFunction0(C.Function0(f), C.uintptr_t(ctx)))
 	case 1:
-		return int(C.c_invokeFunction1(C.Function0(f), param[0], arg))
+		return int(C.c_invokeFunction1(C.Function0(f), param[0], C.uintptr_t(ctx)))
 	default:
 		panic("FunctionType unimplemented")
 	}
 }
 
-// ZeroFunctionType is the `int f(void* arg)` type.
+// ZeroFunctionType is the `int f(uintptr_t ctx)` type.
 type ZeroFunctionType struct {
 	FunctionType
 }
@@ -100,16 +110,16 @@ func (ft ZeroFunctionType) Void(f func()) Function {
 	})
 }
 
-// Func0 is the `int f(void* arg)` type.
+// Func0 is the `int f(uintptr_t ctx)` type.
 var Func0 ZeroFunctionType
 
 // Function provides a C function with void* argument.
 type Function interface {
 	functionType() FunctionType
 
-	callbackOnce() (f, arg unsafe.Pointer)
+	callbackOnce() (f unsafe.Pointer, ctx uintptr)
 
-	callbackReuse() (f, arg unsafe.Pointer, revoke func())
+	callbackReuse() (f unsafe.Pointer, ctx uintptr, revoke func())
 }
 
 // Call wraps a Go function as Function and immediately uses it.
@@ -132,15 +142,15 @@ func Call(post func(fn Function), f interface{}) interface{} {
 type functionC struct {
 	ft  FunctionType
 	f   unsafe.Pointer
-	arg unsafe.Pointer
+	ctx uintptr
 }
 
-func (fn *functionC) callbackOnce() (f, arg unsafe.Pointer) {
-	return fn.f, fn.arg
+func (fn *functionC) callbackOnce() (f unsafe.Pointer, ctx uintptr) {
+	return fn.f, fn.ctx
 }
 
-func (fn *functionC) callbackReuse() (f, arg unsafe.Pointer, revoke func()) {
-	return fn.f, fn.arg, func() {}
+func (fn *functionC) callbackReuse() (f unsafe.Pointer, ctx uintptr, revoke func()) {
+	return fn.f, fn.ctx, func() {}
 }
 
 func (fn *functionC) functionType() FunctionType {
@@ -151,13 +161,13 @@ type functionGo0 struct {
 	f func() int
 }
 
-func (fn *functionGo0) callbackOnce() (f, arg unsafe.Pointer) {
-	return C.go_functionGo0_once, unsafe.Pointer(cgo.NewHandle(fn.f))
+func (fn *functionGo0) callbackOnce() (f unsafe.Pointer, arg uintptr) {
+	return C.go_functionGo0_once, uintptr(cgo.NewHandle(fn.f))
 }
 
-func (fn *functionGo0) callbackReuse() (f, arg unsafe.Pointer, revoke func()) {
+func (fn *functionGo0) callbackReuse() (f unsafe.Pointer, arg uintptr, revoke func()) {
 	ctx := cgo.NewHandle(fn.f)
-	return C.go_functionGo0_reuse, unsafe.Pointer(ctx), func() { ctx.Delete() }
+	return C.go_functionGo0_reuse, uintptr(ctx), func() { ctx.Delete() }
 }
 
 func (fn *functionGo0) functionType() FunctionType {
@@ -165,15 +175,16 @@ func (fn *functionGo0) functionType() FunctionType {
 }
 
 //export go_functionGo0_once
-func go_functionGo0_once(ctx0 unsafe.Pointer) C.int {
-	ctx := cgo.Handle(ctx0)
+func go_functionGo0_once(ctxC C.uintptr_t) C.int {
+	ctx := cgo.Handle(ctxC)
 	defer ctx.Delete()
 	f := ctx.Value().(func() int)
 	return C.int(f())
 }
 
 //export go_functionGo0_reuse
-func go_functionGo0_reuse(ctx unsafe.Pointer) C.int {
-	f := cgo.Handle(ctx).Value().(func() int)
+func go_functionGo0_reuse(ctxC C.uintptr_t) C.int {
+	ctx := cgo.Handle(ctxC)
+	f := ctx.Value().(func() int)
 	return C.int(f())
 }

@@ -38,7 +38,7 @@ func NewTxLoop(socket eal.NumaSocket) TxLoop {
 		socket: socket,
 	}
 	txl.Thread = ealthread.New(
-		cptr.Func0.C(unsafe.Pointer(C.TxLoop_Run), unsafe.Pointer(txl.c)),
+		cptr.Func0.C(unsafe.Pointer(C.TxLoop_Run), txl.c),
 		ealthread.InitStopFlag(unsafe.Pointer(&txl.c.stop)),
 	)
 	txLoopThreads[txl] = true

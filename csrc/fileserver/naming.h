@@ -60,7 +60,7 @@ typedef struct FileServerSuffix
   bool isMetadata;
 } FileServerSuffix;
 
-__attribute__((nonnull)) static inline FileServerSuffix
+static inline FileServerSuffix
 FileServer_ParseSuffix(LName name, uint16_t prefixL)
 {
   FileServerSuffix result = { 0 };

@@ -118,7 +118,7 @@ func newWorker(faceID iface.ID, socket eal.NumaSocket, rxqCfg iface.PktQueueConf
 	(*ndni.Mempools)(unsafe.Pointer(&w.c.mp)).Assign(socket, ndni.DataMempool)
 
 	w.Thread = ealthread.New(
-		cptr.Func0.C(unsafe.Pointer(C.Tgp_Run), unsafe.Pointer(w.c)),
+		cptr.Func0.C(unsafe.Pointer(C.Tgp_Run), w.c),
 		ealthread.InitStopFlag(unsafe.Pointer(&w.c.stop)),
 	)
 	return w, nil

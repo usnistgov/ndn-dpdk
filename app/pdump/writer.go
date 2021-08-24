@@ -175,7 +175,7 @@ func NewWriter(cfg WriterConfig) (w *Writer, e error) {
 	}
 
 	w.Thread = ealthread.New(
-		cptr.Func0.C(unsafe.Pointer(C.PdumpWriter_Run), unsafe.Pointer(w.c)),
+		cptr.Func0.C(unsafe.Pointer(C.PdumpWriter_Run), w.c),
 		ealthread.InitStopFlag(unsafe.Pointer(&w.c.stop)),
 	)
 	defer func() {

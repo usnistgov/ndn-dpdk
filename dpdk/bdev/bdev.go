@@ -5,8 +5,8 @@ package bdev
 #include "../../csrc/dpdk/bdev.h"
 #include <spdk/thread.h>
 
-extern void go_bdevEvent(enum spdk_bdev_event_type type, struct spdk_bdev* bdev, void* ctx);
-extern void go_bdevIoComplete(struct spdk_bdev_io* io, bool success, void* ctx);
+extern void go_bdevEvent(enum spdk_bdev_event_type type, struct spdk_bdev* bdev, uintptr_t ctx);
+extern void go_bdevIoComplete(struct spdk_bdev_io* io, bool success, uintptr_t ctx);
 */
 import "C"
 import (
@@ -75,7 +75,7 @@ func Open(device Device, mode Mode) (bd *Bdev, e error) {
 }
 
 //export go_bdevEvent
-func go_bdevEvent(typ C.enum_spdk_bdev_event_type, bdev *C.struct_spdk_bdev, ctx unsafe.Pointer) {
+func go_bdevEvent(typ C.enum_spdk_bdev_event_type, bdev *C.struct_spdk_bdev, ctx C.uintptr_t) {
 	logger.Info("event",
 		zap.Int("type", int(typ)),
 		zap.Uintptr("bdev", uintptr(unsafe.Pointer(bdev))),
@@ -208,7 +208,7 @@ func (bd *Bdev) WritePacket(blockOffset, blockCount int64, pkt pktmbuf.Packet) e
 }
 
 //export go_bdevIoComplete
-func go_bdevIoComplete(io *C.struct_spdk_bdev_io, success C.bool, ctx unsafe.Pointer) {
+func go_bdevIoComplete(io *C.struct_spdk_bdev_io, success C.bool, ctx C.uintptr_t) {
 	done := cgo.Handle(ctx).Value().(chan error)
 	if bool(success) {
 		done <- nil

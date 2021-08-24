@@ -326,14 +326,14 @@ func New(face iface.Face, rxqCfg iface.PktQueueConfig) (c *Consumer, e error) {
 
 	c.rx = worker{
 		Thread: ealthread.New(
-			cptr.Func0.C(unsafe.Pointer(C.TgcRx_Run), unsafe.Pointer(c.rxC)),
+			cptr.Func0.C(unsafe.Pointer(C.TgcRx_Run), c.rxC),
 			ealthread.InitStopFlag(unsafe.Pointer(&c.rxC.stop)),
 		),
 		loadStat: &c.rxC.loadStat,
 	}
 	c.tx = worker{
 		Thread: ealthread.New(
-			cptr.Func0.C(unsafe.Pointer(C.TgcTx_Run), unsafe.Pointer(c.txC)),
+			cptr.Func0.C(unsafe.Pointer(C.TgcTx_Run), c.txC),
 			ealthread.InitStopFlag(unsafe.Pointer(&c.txC.stop)),
 		),
 		loadStat: &c.txC.loadStat,

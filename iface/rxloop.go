@@ -57,7 +57,7 @@ func NewRxLoop(socket eal.NumaSocket) RxLoop {
 	C.InputDemux_SetDispatchFunc_(&rxl.c.demuxN, C.InputDemux_DispatchDrop)
 
 	rxl.Thread = ealthread.New(
-		cptr.Func0.C(unsafe.Pointer(C.RxLoop_Run), unsafe.Pointer(rxl.c)),
+		cptr.Func0.C(unsafe.Pointer(C.RxLoop_Run), rxl.c),
 		ealthread.InitStopFlag(unsafe.Pointer(&rxl.c.stop)),
 	)
 	rxLoopThreads[rxl] = true

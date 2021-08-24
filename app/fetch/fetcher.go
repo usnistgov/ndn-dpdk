@@ -99,7 +99,7 @@ func New(face iface.Face, cfg FetcherConfig) (*Fetcher, error) {
 		w.c.interestMp = interestMp
 		C.NonceGen_Init(&w.c.nonceGen)
 		w.Thread = ealthread.New(
-			cptr.Func0.C(unsafe.Pointer(C.FetchThread_Run), unsafe.Pointer(w.c)),
+			cptr.Func0.C(unsafe.Pointer(C.FetchThread_Run), w.c),
 			ealthread.InitStopFlag(unsafe.Pointer(&w.c.stop)),
 		)
 		fetcher.workers[i] = w

@@ -4,7 +4,7 @@ package bdev
 #include "../../csrc/core/common.h"
 #include <spdk/nvme.h>
 
-extern bool go_nvmeProbed(void* ctx, struct spdk_nvme_transport_id* trid, struct spdk_nvme_ctrlr_opts* opts);
+extern bool go_nvmeProbed(uintptr_t ctx, struct spdk_nvme_transport_id* trid, struct spdk_nvme_ctrlr_opts* opts);
 */
 import "C"
 import (
@@ -38,7 +38,7 @@ func ListNvmes() (nvmes []pciaddr.PCIAddress, e error) {
 }
 
 //export go_nvmeProbed
-func go_nvmeProbed(ctx unsafe.Pointer, trid *C.struct_spdk_nvme_transport_id, opts *C.struct_spdk_nvme_ctrlr_opts) C.bool {
+func go_nvmeProbed(ctx C.uintptr_t, trid *C.struct_spdk_nvme_transport_id, opts *C.struct_spdk_nvme_ctrlr_opts) C.bool {
 	pciAddr := pciaddr.MustParse(C.GoString(&trid.traddr[0]))
 	result := cgo.Handle(ctx).Value().(*listNvmesResult)
 	result.nvmes = append(result.nvmes, pciAddr)

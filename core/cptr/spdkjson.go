@@ -5,7 +5,7 @@ package cptr
 #include <spdk/env.h>
 #include <spdk/json.h>
 
-int go_spdkJSONWrite(void* ctx, void* data, size_t size);
+int go_spdkJSONWrite(uintptr_t ctx, void* data, size_t size);
 */
 import "C"
 import (
@@ -46,7 +46,7 @@ func SpdkJSONObject(f func(w unsafe.Pointer)) func(w unsafe.Pointer) {
 }
 
 //export go_spdkJSONWrite
-func go_spdkJSONWrite(ctx, data unsafe.Pointer, size C.size_t) C.int {
+func go_spdkJSONWrite(ctx C.uintptr_t, data unsafe.Pointer, size C.size_t) C.int {
 	buf := cgo.Handle(ctx).Value().(*bytes.Buffer)
 	buf.Write(C.GoBytes(data, C.int(size)))
 	return 0
