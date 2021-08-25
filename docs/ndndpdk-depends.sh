@@ -1,18 +1,35 @@
 #!/bin/bash
 set -eo pipefail
 
-SUDO=sudo
-if [[ $(id -u) -eq 0 ]]; then
-  SUDO=
-elif ! which sudo >/dev/null; then
-  echo 'sudo is required to start this script; to install:'
-  echo '  apt install sudo'
-  exit 1
+NEEDED_BINARIES=(
+  curl
+  lsb_release
+)
+MISSING_BINARIES=()
+
+SUDO=
+SUDOPKG=
+APTSUGGEST='apt install --no-install-recommends'
+if [[ -z $SKIPROOTCHECK ]]; then
+  NEEDED_BINARIES+=(sudo)
+  SUDO=sudo
+  SUDOPKG=sudo
+  APTSUGGEST='sudo '$APTSUGGEST
+  if [[ $(id -u) -eq 0 ]] && [[ -z $SKIPROOTCHECK ]]; then
+    echo 'Do not run this script as root'
+    echo 'To skip this check, set SKIPROOTCHECK=1 environ'
+    exit 1
+  fi
 fi
 
-if ! which curl >/dev/null; then
-  echo 'curl is required to start this script; to install:'
-  echo '  sudo apt install curl'
+for B in "${NEEDED_BINARIES[@]}"; do
+  if ! which $B &>/dev/null ; then
+    MISSING_BINARIES+=($B)
+  fi
+done
+if [[ ${#MISSING_BINARIES[@]} -gt 0 ]] ; then
+  echo "Missing commands (${MISSING_BINARIES[@]}) to start this script. To install:"
+  echo "  ${APTSUGGEST} ca-certificates curl lsb-release ${SUDOPKG}"
   exit 1
 fi
 
@@ -28,22 +45,12 @@ DFLT_URINGVER=liburing-2.0
 DFLT_NJOBS=$(nproc)
 DFLT_TARGETARCH=native
 
-DISTRO=$(awk '$1=="deb" && $3!~"-" { print $3; exit }' /etc/apt/sources.list)
-
 KERNELVER=$(uname -r)
 HAS_KERNEL_HEADERS=0
 if [[ -d /usr/src/linux-headers-${KERNELVER} ]]; then
   HAS_KERNEL_HEADERS=1
 else
   DFLT_KMODSVER=0
-fi
-if [[ $KERNELVER == 5.10.* ]]; then
-  # kmods build is broken on kernel 5.10, https://bugs.debian.org/975571
-  # TODO delete this when Debian and Ubuntu fix this bug
-  DFLT_KMODSVER=0
-fi
-if [[ $(echo $KERNELVER | awk -F. '{ print ($1*1000+$2>=5004) }') -eq 0 ]]; then
-  DFLT_LIBBPFVER=0
 fi
 
 CODEROOT=$DFLT_CODEROOT
@@ -58,7 +65,7 @@ URINGVER=$DFLT_URINGVER
 NJOBS=$DFLT_NJOBS
 TARGETARCH=$DFLT_TARGETARCH
 
-ARGS=$(getopt -o 'hy' --long 'dir:,node:,go:,ubpf:,libbpf:,dpdk:,kmods:,spdk:,uring:,jobs:,arch:,skiprootcheck' -- "$@")
+ARGS=$(getopt -o 'hy' --long 'dir:,node:,go:,ubpf:,libbpf:,dpdk:,kmods:,spdk:,uring:,jobs:,arch:' -- "$@")
 eval "set -- $ARGS"
 while true; do
   case $1 in
@@ -75,7 +82,6 @@ while true; do
     (--uring) URINGVER=$2; shift 2;;
     (--jobs) NJOBS=$2; shift 2;;
     (--arch) TARGETARCH=$2; shift 2;;
-    (--skiprootcheck) SKIPROOTCHECK=1; shift;;
     (--) shift; break;;
     (*) exit 1;;
   esac
@@ -112,13 +118,9 @@ EOT
   exit 0
 fi
 
-if [[ $(id -u) -eq 0 ]] && [[ $SKIPROOTCHECK -ne 1 ]]; then
-  echo 'Do not run this script as root'
-  exit 1
-fi
-
 NDNDPDK_DL_GITHUB=${NDNDPDK_DL_GITHUB:-https://github.com}
 NDNDPDK_DL_GITHUB_API=${NDNDPDK_DL_GITHUB_API:-https://api.github.com}
+NDNDPDK_DL_LLVM_APT=${NDNDPDK_DL_LLVM_APT:-https://apt.llvm.org}
 NDNDPDK_DL_NODESOURCE_DEB=${NDNDPDK_DL_NODESOURCE_DEB:-https://deb.nodesource.com}
 NDNDPDK_DL_PYPA_BOOTSTRAP=${NDNDPDK_DL_PYPA_BOOTSTRAP:-https://bootstrap.pypa.io}
 NDNDPDK_DL_GOLANG=${NDNDPDK_DL_GOLANG:-https://golang.org}
@@ -129,24 +131,20 @@ NDNDPDK_DL_DPDK=${NDNDPDK_DL_DPDK:-https://dpdk.org}
 curl_test() {
   local SITE=${!1}
   if ! curl -sfL $SITE$2 >/dev/null; then
-    echo 'Cannot reach '$SITE
-    echo 'You can specify a mirror site by setting '$1' environ'
-    echo 'Example: '$1=$SITE
+    echo "Cannot reach ${SITE}"
+    echo "You can specify a mirror site by setting $1 environ"
+    echo "Example: $1=${SITE}"
     exit 1
   fi
 }
 curl_test NDNDPDK_DL_GITHUB /robots.txt
 curl_test NDNDPDK_DL_GITHUB_API /robots.txt
+curl_test NDNDPDK_DL_LLVM_APT
 curl_test NDNDPDK_DL_NODESOURCE_DEB
 curl_test NDNDPDK_DL_PYPA_BOOTSTRAP
 curl_test NDNDPDK_DL_GOLANG /VERSION
 curl_test NDNDPDK_DL_DPDK_FAST
 curl_test NDNDPDK_DL_DPDK
-
-DISPLAYARCH=$TARGETARCH
-if [[ $TARGETARCH == native ]] && which gcc >/dev/null; then
-  DISPLAYARCH=$DISPLAYARCH' ('$(gcc -march=native -Q --help=target | awk '$1=="-march=" { print $2 }')')'
-fi
 
 github_resolve_commit() {
   local COMMIT=$1
@@ -158,13 +156,48 @@ github_resolve_commit() {
   fi
 }
 
+DISTRO=$(lsb_release -sc)
+case $DISTRO in
+  (bionic) ;;
+  (focal) ;;
+  (bullseye) ;;
+  (*)
+    echo "Distro ${DISTRO} is not supported by this script."
+    if [[ -z $SKIPDISTROCHECK ]]; then
+      echo 'To skip this check, set SKIPDISTROCHECK=1 environ'
+      exit 1
+    fi
+    ;;
+esac
+
+if [[ $(echo $KERNELVER | awk -F. '{ print ($1*1000+$2>=5004) }') -ne 1 ]] &&
+   [[ -z $SKIPKERNELCHECK ]] && ! [[ -f /.dockerenv ]]; then
+  echo 'Linux kernel 5.4 or newer is required'
+  if [[ $DISTRO == 'bionic' ]]; then
+    echo 'To upgrade kernel, run this command and reboot:'
+    echo "  ${APTSUGGEST} linux-generic-hwe-18.04"
+  fi
+  echo 'To skip this check, set SKIPKERNELCHECK=1 environ'
+  exit 1
+fi
+
+if [[ $HAS_KERNEL_HEADERS == '0' ]] && ! [[ -f /.dockerenv ]]; then
+  echo "Will skip certain features due to missing kernel headers. To install:"
+  if [[ $DISTRO == 'bullseye' ]]; then
+    echo "  ${APTSUGGEST} linux-headers-amd64 linux-headers-${KERNELVER}-amd64"
+  else
+    echo "  ${APTSUGGEST} linux-generic linux-headers-${KERNELVER}"
+  fi
+fi
+
 APT_PKGS=(
   build-essential
-  clang-8
-  clang-format-8
+  clang-11
+  clang-format-11
   doxygen
   git
   jq
+  libaio-dev
   libc6-dev-i386
   libelf-dev
   libnuma-dev
@@ -173,20 +206,16 @@ APT_PKGS=(
   liburcu-dev
   pkg-config
   python3-distutils
+  uuid-dev
   yamllint
 )
 
+if [[ $DISTRO != 'bionic' ]]; then
+  APT_PKGS+=(python-is-python3)
+fi
+
 echo "Will download to ${CODEROOT}"
 echo 'Will install C compiler and build tools'
-
-if [[ $HAS_KERNEL_HEADERS == '0' ]]; then
-  echo "Will skip certain features due to missing kernel headers; to install:"
-  if [[ $DISTRO == 'buster' ]]; then
-    echo "  sudo apt install linux-headers-amd64 linux-headers-${KERNELVER}-amd64"
-  else
-    echo "  sudo apt install linux-generic linux-headers-${KERNELVER}"
-  fi
-fi
 
 if [[ $NODEVER == '0' ]]; then
   if ! which node >/dev/null; then
@@ -231,7 +260,7 @@ if [[ $DPDKVER == '0' ]]; then
     exit 1
   fi
 else
-  echo "Will install DPDK ${DPDKVER} for ${DISPLAYARCH} architecture"
+  echo "Will install DPDK ${DPDKVER} for ${TARGETARCH} architecture"
 fi
 
 if [[ $KMODSVER != '0' ]]; then
@@ -245,11 +274,11 @@ if [[ $SPDKVER == '0' ]]; then
     exit 1
   fi
 else
-  echo "Will install SPDK ${SPDKVER} for ${DISPLAYARCH} architecture"
+  echo "Will install SPDK ${SPDKVER} for ${TARGETARCH} architecture"
 fi
 
 if [[ $URINGVER == '0' ]]; then
-  if ! pkg-config liburing; then
+  if ! [[ -f /usr/local/include/liburing.h ]] && ! [[ -f /usr/include/liburing.h ]]; then
     echo '--liburing=0 specified but liburing is absent'
     exit 1
   fi
@@ -273,8 +302,9 @@ echo 'Dpkg::Options {
 }
 APT::Install-Recommends "no";
 APT::Install-Suggests "no";' | $SUDO tee /etc/apt/apt.conf.d/80custom >/dev/null
-if [[ $DISTRO == 'buster' ]]; then
-  echo 'deb http://deb.debian.org/debian/ buster-backports main' | $SUDO tee /etc/apt/sources.list.d/buster-backports.list >/dev/null
+if [[ $DISTRO == 'bionic' ]] && ! [[ -f /etc/apt/sources.list.d/llvm-11.list ]]; then
+  curl -sfL ${NDNDPDK_DL_LLVM_APT}/llvm-snapshot.gpg.key | $SUDO apt-key add -
+  echo "deb ${NDNDPDK_DL_LLVM_APT}/bionic/ llvm-toolchain-bionic-11 main" | $SUDO tee /etc/apt/sources.list.d/llvm-11.list
 fi
 $SUDO apt-get -y -qq update
 $SUDO sh -c 'DEBIAN_FRONTEND=noninteractive apt-get -y -qq dist-upgrade'
@@ -288,7 +318,11 @@ APT_PKG_LIST="${APT_PKGS[@]}"
 $SUDO sh -c "DEBIAN_FRONTEND=noninteractive apt-get -y -qq install ${APT_PKG_LIST}"
 $SUDO npm install -g graphqurl
 
-curl -sfL ${NDNDPDK_DL_PYPA_BOOTSTRAP}/get-pip.py | $SUDO python3
+if [[ $DISTRO == 'bionic' ]]; then
+  $SUDO update-alternatives --remove-all python || true
+  $SUDO update-alternatives --install /usr/bin/python python /usr/bin/python3 1
+fi
+curl -sfL ${NDNDPDK_DL_PYPA_BOOTSTRAP}/get-pip.py | $SUDO python
 $SUDO pip install -U meson ninja pyelftools
 
 if [[ $GOVER != '0' ]]; then
@@ -360,9 +394,9 @@ if [[ $SPDKVER != '0' ]]; then
   rm -rf spdk-${SPDKVER}
   curl -sfL ${NDNDPDK_DL_GITHUB}/spdk/spdk/archive/v${SPDKVER}.tar.gz | tar -xz
   cd spdk-${SPDKVER}
-  $SUDO sh -c 'DEBIAN_FRONTEND=noninteractive ./scripts/pkgdep.sh'
-  ./configure --target-arch=${TARGETARCH} --enable-debug --disable-tests --with-shared \
-    --with-dpdk=/usr/local --without-vhost --without-isal --without-fuse
+  ./configure --target-arch=${TARGETARCH} --with-shared --with-dpdk=/usr/local \
+    --disable-tests --disable-unit-tests --disable-examples --disable-apps \
+    --without-crypto --without-fuse --without-isal --without-vhost
   make -j${NJOBS}
   $SUDO find /usr/local/lib -name 'libspdk_*' -delete
   $SUDO make install
@@ -384,9 +418,6 @@ if [[ $URINGVER != '0' ]]; then
   $SUDO make install
   $SUDO ldconfig
 fi
-
-$SUDO update-alternatives --remove-all python || true
-$SUDO update-alternatives --install /usr/bin/python python /usr/bin/python3 1
 
 (
   cd /tmp

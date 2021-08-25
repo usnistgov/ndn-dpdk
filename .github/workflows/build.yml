@@ -13,8 +13,8 @@ jobs:
       matrix:
         compiler:
           - gcc-7
-          - gcc-8
-          - clang-8
+          - gcc-10
+          - clang-11
       fail-fast: false
     env:
       CC: ${{ matrix.compiler }}
@@ -27,8 +27,9 @@ jobs:
           node-version: 16
       - name: install compilers and tools
         run: |
-          sudo apt-get update
-          sudo apt-get install $CC clang-8 clang-format-8 doxygen gcc-multilib libelf-dev libpcap-dev liburcu-dev linux-libc-dev
+          wget https://apt.llvm.org/llvm.sh
+          sudo bash ./llvm.sh 11
+          sudo apt-get install $CC clang-format-11 doxygen gcc-multilib libelf-dev libpcap-dev liburcu-dev linux-libc-dev
           go install honnef.co/go/tools/cmd/staticcheck@latest
       - name: install uBPF
         run: |
@@ -80,7 +81,6 @@ jobs:
         env:
           TEST_ACCEPTABLE_FAILURES: bdev|diskstore|ethface|fetch|fileserver|fwdp|memiftransport|tgconsumer|tgproducer
           NDNDPDK_MK_THREADSLEEP: 1
-        if: ${{ matrix.compiler != 'gcc-8' }}
       - name: build documentation
         run: make doxygen
   docker:

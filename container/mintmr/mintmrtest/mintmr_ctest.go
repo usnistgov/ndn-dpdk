@@ -1,8 +1,15 @@
 package mintmrtest
 
 /*
-#include "mintmrtest.h"
-extern void go_TriggerRecord(MinTmr* tmr, void* arg);
+#include "../../../csrc/mintmr/mintmr.h"
+
+typedef struct MinTmrTestRecord
+{
+  MinTmr tmr;
+  int triggered;
+} MinTmrTestRecord;
+
+extern void go_TriggerRecord(MinTmr* tmr, uintptr_t arg);
 */
 import "C"
 import (
@@ -14,27 +21,28 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
+const schedArg = 0xBBB89535DC3634F7
+
 func ctestMinTmr(t *testing.T) {
 	assert, _ := testenv.MakeAR(t)
-	C.c_ClearRecords()
-	schedArg = C.malloc(1)
-	defer C.free(schedArg)
+	records := (*[6]C.MinTmrTestRecord)(C.calloc(6, C.size_t(unsafe.Sizeof(C.MinTmrTestRecord{}))))
+	defer C.free(unsafe.Pointer(records))
 
 	// 2^5 slots * 100ms = 3200ms
 	sched := C.MinSched_New(5, C.TscDuration(eal.ToTscDuration(100*time.Millisecond)),
-		C.MinTmrCallback(C.go_TriggerRecord), schedArg)
+		C.MinTmrCallback(C.go_TriggerRecord), unsafe.Pointer(uintptr(schedArg)))
 	defer C.MinSched_Close(sched)
 
 	setTimer := func(i int, after time.Duration) bool {
-		return bool(C.MinTmr_After(&C.records[i].tmr, C.TscDuration(eal.ToTscDuration(after)), sched))
+		return bool(C.MinTmr_After(&records[i].tmr, C.TscDuration(eal.ToTscDuration(after)), sched))
 	}
 
 	checkRecords := func(t1, t2, t3, t4, t5 int) {
-		assert.EqualValues(t1, C.records[1].triggered)
-		assert.EqualValues(t2, C.records[2].triggered)
-		assert.EqualValues(t3, C.records[3].triggered)
-		assert.EqualValues(t4, C.records[4].triggered)
-		assert.EqualValues(t5, C.records[5].triggered)
+		assert.EqualValues(t1, records[1].triggered)
+		assert.EqualValues(t2, records[2].triggered)
+		assert.EqualValues(t3, records[3].triggered)
+		assert.EqualValues(t4, records[4].triggered)
+		assert.EqualValues(t5, records[5].triggered)
 	}
 
 	assert.False(setTimer(1, 3300*time.Millisecond)) // tmr1 is too far into the future
@@ -61,10 +69,8 @@ func ctestMinTmr(t *testing.T) {
 	checkRecords(0, 1, 1, 1, 1)
 }
 
-var schedArg unsafe.Pointer
-
 //export go_TriggerRecord
-func go_TriggerRecord(tmr *C.MinTmr, arg unsafe.Pointer) {
+func go_TriggerRecord(tmr *C.MinTmr, arg C.uintptr_t) {
 	if arg != schedArg {
 		panic(arg)
 	}

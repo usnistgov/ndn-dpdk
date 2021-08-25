@@ -275,12 +275,11 @@ TlvDecoder_ReadNni(TlvDecoder* d, uint32_t length, uint64_t max, uint64_t* n)
 }
 
 #define TlvDecoder_ReadNniToTypeMax_(sizeofPtr)                                                    \
-  (sizeofPtr) == sizeof(uint8_t)                                                                   \
-    ? UINT8_MAX                                                                                    \
-    : (sizeofPtr) == sizeof(uint16_t)                                                              \
-        ? UINT16_MAX                                                                               \
-        : (sizeofPtr) == sizeof(uint32_t) ? UINT32_MAX                                             \
-                                          : (sizeofPtr) == sizeof(uint64_t) ? UINT64_MAX : 0
+  (sizeofPtr) == sizeof(uint8_t)    ? UINT8_MAX                                                    \
+  : (sizeofPtr) == sizeof(uint16_t) ? UINT16_MAX                                                   \
+  : (sizeofPtr) == sizeof(uint32_t) ? UINT32_MAX                                                   \
+  : (sizeofPtr) == sizeof(uint64_t) ? UINT64_MAX                                                   \
+                                    : 0
 #define TlvDecoder_ReadNniTo4_(d, length, max, ptr)                                                \
   __extension__({                                                                                  \
     static_assert(__builtin_constant_p(TlvDecoder_ReadNniToTypeMax_(sizeof(*(ptr)))), "");         \

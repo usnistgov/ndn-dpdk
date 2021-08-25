@@ -14,10 +14,11 @@ subdir('mk')
 
 cc = meson.get_compiler('c')
 dpdk = dependency('libdpdk')
-cc.has_header('spdk/thread.h', required: true)
+spdk = dependency('spdk_init')
+uring = dependency('liburing')
 
 static_library('ndn-dpdk-c', csrc,
-  dependencies: [dpdk],
+  dependencies: [dpdk, spdk, uring],
   pic: true
 )
 

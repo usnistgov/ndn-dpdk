@@ -1,6 +1,6 @@
 # NDN-DPDK Installation Guide
 
-NDN-DPDK supports Ubuntu 18.04, Ubuntu 20.04, and Debian 10 operating systems.
+NDN-DPDK supports Ubuntu 18.04, Ubuntu 20.04, and Debian 11 operating systems.
 It only works on x64\_64 (amd64) architecture.
 
 This page describes how to install and start NDN-DPDK on a supported operating system, which could be a physical server or a virtual machine with KVM acceleration.
@@ -9,8 +9,8 @@ You can also [build a Docker container](Docker.md), which would work on other op
 ## Dependencies
 
 * Linux kernel 5.4 or newer (install `linux-image-generic-hwe-18.04` on Ubuntu 18.04)
-* Required APT packages: `build-essential clang-8 git jq libc6-dev-i386 libelf-dev libnuma-dev libpcap-dev libssl-dev liburcu-dev pkg-config python3-distutils`
-* Optional APT packages: `clang-format-8 doxygen yamllint`
+* Required APT packages: `build-essential clang-11 git jq libc6-dev-i386 libelf-dev libnuma-dev libpcap-dev libssl-dev liburcu-dev pkg-config python3-distutils` (enable [llvm-toolchain-bionic-11](https://apt.llvm.org/) repository on Ubuntu 18.04)
+* Optional APT packages: `clang-format-11 doxygen yamllint`
 * Go 1.17
 * Node.js 16.x
 * Python 3, [pip](https://pip.pypa.io/en/stable/installing/), and PyPI packages: `meson ninja`
@@ -82,6 +82,6 @@ You can change compile-time settings by setting these environment variables:
 * `NDNDPDK_MK_THREADSLEEP=1` inserts `nanosleep(1ns)` to each thread.
   This reduces performance significantly, but is occasionally useful when running on a machine with fewer CPU cores.
 * C code (except eBPF) is compiled with `gcc` by default; you can override this by setting the `CC` environment variable.
-* eBPF programs are compiled with `clang-8` by default; you can override this by setting the `BPFCC` environment variable.
+* eBPF programs are compiled with `clang-11` by default; you can override this by setting the `BPFCC` environment variable.
 
 You must run `make clean` when switching compile-time settings.

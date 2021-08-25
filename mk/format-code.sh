@@ -5,7 +5,7 @@ LANG=${1,,}
 
 # C
 if [[ -z $LANG ]] || [[ $LANG == c ]]; then
-  git ls-files -- 'csrc/**/*.[hc]' 'bpf/**/*.[hc]' -x ':!:csrc/vendor' | xargs clang-format-8 -i -style=file
+  git ls-files -- 'csrc/**/*.[hc]' 'bpf/**/*.[hc]' -x ':!:csrc/vendor' | xargs clang-format-11 -i -style=file
 fi
 
 # Go

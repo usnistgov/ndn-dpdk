@@ -9,6 +9,5 @@ import (
 
 func TestMain(m *testing.M) {
 	ealtestenv.Init()
-
 	os.Exit(m.Run())
 }
