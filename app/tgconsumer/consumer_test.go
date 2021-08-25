@@ -5,10 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/usnistgov/ndn-dpdk/app/tg/tgtestenv"
 	"github.com/usnistgov/ndn-dpdk/app/tgconsumer"
-	"github.com/usnistgov/ndn-dpdk/app/tgtestenv"
-	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
-	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/iface/intface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
@@ -21,50 +20,50 @@ func TestConsumer(t *testing.T) {
 	face := intface.MustNew()
 	defer face.D.Close()
 
-	c, e := tgconsumer.New(face.D, iface.PktQueueConfig{})
-	require.NoError(e)
-	defer c.Close()
-	require.NoError(ealthread.AllocThread(c.Workers()...))
-
 	nameA, nameB, nameC := ndn.ParseName("/A"), ndn.ParseName("/B"), ndn.ParseName("/C")
 	contentC := make([]byte, 100)
-	require.NoError(c.SetPatterns([]tgconsumer.Pattern{
-		{
-			Weight: 30,
-			InterestTemplateConfig: ndni.InterestTemplateConfig{
-				Prefix:           nameA,
-				CanBePrefix:      true,
-				MustBeFresh:      true,
-				InterestLifetime: 500,
-				HopLimit:         10,
+	cfg := tgconsumer.Config{
+		Interval: nnduration.Nanoseconds(200 * time.Microsecond),
+		Patterns: []tgconsumer.Pattern{
+			{
+				Weight: 30,
+				InterestTemplateConfig: ndni.InterestTemplateConfig{
+					Prefix:           nameA,
+					CanBePrefix:      true,
+					MustBeFresh:      true,
+					InterestLifetime: 500,
+					HopLimit:         10,
+				},
+			},
+			{
+				Weight: 45,
+				InterestTemplateConfig: ndni.InterestTemplateConfig{
+					Prefix: nameB,
+				},
+			},
+			{
+				Weight: 5,
+				InterestTemplateConfig: ndni.InterestTemplateConfig{
+					Prefix: nameB,
+				},
+				SeqNumOffset: 100,
+			},
+			{
+				Weight: 20,
+				InterestTemplateConfig: ndni.InterestTemplateConfig{
+					Prefix: nameC,
+				},
+				Digest: &ndni.DataGenConfig{
+					PayloadLen: len(contentC),
+				},
 			},
 		},
-		{
-			Weight: 45,
-			InterestTemplateConfig: ndni.InterestTemplateConfig{
-				Prefix: nameB,
-			},
-		},
-		{
-			Weight: 5,
-			InterestTemplateConfig: ndni.InterestTemplateConfig{
-				Prefix: nameB,
-			},
-			SeqNumOffset: 100,
-		},
-		{
-			Weight: 20,
-			InterestTemplateConfig: ndni.InterestTemplateConfig{
-				Prefix: nameC,
-			},
-			Digest: &ndni.DataGenConfig{
-				PayloadLen: len(contentC),
-			},
-		},
-	}))
+	}
 
-	require.NoError(c.SetInterval(200 * time.Microsecond))
-	c.ConnectRxQueues(tgtestenv.DemuxD, tgtestenv.DemuxN)
+	c, e := tgconsumer.New(face.D, cfg)
+	require.NoError(e)
+	defer c.Close()
+	tgtestenv.Open(t, c)
 
 	nInterestsA := 0
 	nInterestsB1 := 0

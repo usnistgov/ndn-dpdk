@@ -1,3 +1,4 @@
+// Package tgdef contains common definitions and helpers for traffic generator.
 package tgdef
 
 import (
@@ -18,20 +19,20 @@ type Module interface {
 	io.Closer
 
 	Face() iface.Face
-	Workers() (list []ealthread.ThreadWithRole)
 
+	Workers() (list []ealthread.ThreadWithRole)
 	Launch()
 	Stop() error
-}
-
-// Consumer represents a consumer module.
-type Consumer interface {
-	Module
-	ConnectRxQueues(demuxD, demuxN *iface.InputDemux)
 }
 
 // Producer represents a producer module.
 type Producer interface {
 	Module
 	ConnectRxQueues(demuxI *iface.InputDemux)
+}
+
+// Consumer represents a consumer module.
+type Consumer interface {
+	Module
+	ConnectRxQueues(demuxD, demuxN *iface.InputDemux)
 }

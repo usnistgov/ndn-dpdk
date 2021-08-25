@@ -5,7 +5,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"go.uber.org/multierr"
 	"go4.org/must"
 )
 
@@ -28,14 +27,6 @@ func (p *Server) Face() iface.Face {
 	return p.workers[0].face()
 }
 
-// Workers returns worker threads.
-func (p *Server) Workers() (list []ealthread.ThreadWithRole) {
-	for _, w := range p.workers {
-		list = append(list, w)
-	}
-	return list
-}
-
 // ConnectRxQueues connects Interest InputDemux to RxQueues.
 func (p *Server) ConnectRxQueues(demuxI *iface.InputDemux) {
 	demuxI.InitRoundrobin(len(p.workers))
@@ -44,20 +35,19 @@ func (p *Server) ConnectRxQueues(demuxI *iface.InputDemux) {
 	}
 }
 
+// Workers returns worker threads.
+func (p *Server) Workers() []ealthread.ThreadWithRole {
+	return tgdef.GatherWorkers(p.workers)
+}
+
 // Launch launches all workers.
 func (p *Server) Launch() {
-	for _, w := range p.workers {
-		ealthread.Launch(w)
-	}
+	tgdef.LaunchWorkers(p.Workers())
 }
 
 // Stop stops all workers.
 func (p *Server) Stop() error {
-	errs := []error{}
-	for _, w := range p.workers {
-		errs = append(errs, w.Stop())
-	}
-	return multierr.Combine(errs...)
+	return tgdef.StopWorkers(p.Workers())
 }
 
 // Close closes the server.

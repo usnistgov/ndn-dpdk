@@ -2,7 +2,8 @@
 package tgproducer
 
 import (
-	"github.com/pkg/math"
+	"fmt"
+
 	"github.com/usnistgov/ndn-dpdk/app/tg/tgdef"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
@@ -13,55 +14,26 @@ import (
 
 // Producer represents a traffic generator producer instance.
 type Producer struct {
-	workers  []*worker
-	patterns []Pattern
+	cfg     Config
+	workers []*worker
 }
 
 var _ tgdef.Producer = &Producer{}
 
 // Patterns returns traffic patterns.
 func (p Producer) Patterns() []Pattern {
-	return p.patterns
+	return p.cfg.Patterns
 }
 
-// SetPatterns sets new traffic patterns.
-// This can only be used when the threads are stopped.
-func (p *Producer) SetPatterns(inputPatterns []Pattern) error {
-	if len(inputPatterns) == 0 {
-		return ErrNoPattern
-	}
-	if len(inputPatterns) > MaxPatterns {
-		return ErrTooManyPatterns
-	}
-	patterns := []Pattern{}
-	nDataGen := 0
-	for _, pattern := range inputPatterns {
-		sumWeight, nData := pattern.applyDefaults()
-		if sumWeight > MaxSumWeight {
-			return ErrTooManyWeights
-		}
-		nDataGen += nData
-		if len(pattern.prefixV) > ndni.NameMaxLength {
-			return ErrPrefixTooLong
-		}
-		patterns = append(patterns, pattern)
-	}
-
-	for _, w := range p.workers {
-		if w.IsRunning() {
-			return ealthread.ErrRunning
-		}
-	}
-
+func (p *Producer) initPatterns() error {
 	payloadMp := ndni.PayloadMempool.Get(p.Face().NumaSocket())
-	dataGenVec, e := payloadMp.Alloc(nDataGen * len(p.workers))
+	dataGenVec, e := payloadMp.Alloc(p.cfg.nDataGen * len(p.workers))
 	if e != nil {
 		return e
 	}
 
-	p.patterns = patterns
 	for _, w := range p.workers {
-		w.setPatterns(patterns, &dataGenVec)
+		w.setPatterns(p.cfg.Patterns, &dataGenVec)
 	}
 	return nil
 }
@@ -69,14 +41,6 @@ func (p *Producer) SetPatterns(inputPatterns []Pattern) error {
 // Face returns the associated face.
 func (p Producer) Face() iface.Face {
 	return p.workers[0].face()
-}
-
-// Workers returns worker threads.
-func (p Producer) Workers() (list []ealthread.ThreadWithRole) {
-	for _, w := range p.workers {
-		list = append(list, w)
-	}
-	return list
 }
 
 // ConnectRxQueues connects Interest InputDemux to RxQueues.
@@ -87,20 +51,19 @@ func (p *Producer) ConnectRxQueues(demuxI *iface.InputDemux) {
 	}
 }
 
+// Workers returns worker threads.
+func (p Producer) Workers() []ealthread.ThreadWithRole {
+	return tgdef.GatherWorkers(p.workers)
+}
+
 // Launch launches all workers.
 func (p *Producer) Launch() {
-	for _, w := range p.workers {
-		ealthread.Launch(w)
-	}
+	tgdef.LaunchWorkers(p.Workers())
 }
 
 // Stop stops all workers.
 func (p *Producer) Stop() error {
-	errs := []error{}
-	for _, w := range p.workers {
-		errs = append(errs, w.Stop())
-	}
-	return multierr.Combine(errs...)
+	return tgdef.StopWorkers(p.Workers())
 }
 
 // Close closes the producer.
@@ -114,20 +77,29 @@ func (p *Producer) Close() error {
 }
 
 // New creates a Producer.
-func New(face iface.Face, rxqCfg iface.PktQueueConfig, nWorkers int) (p *Producer, e error) {
+func New(face iface.Face, cfg Config) (p *Producer, e error) {
+	if e := cfg.validateWithDefaults(); e != nil {
+		return nil, e
+	}
+
 	faceID := face.ID()
 	socket := face.NumaSocket()
-	rxqCfg.DisableCoDel = true
-	nWorkers = math.MaxInt(1, nWorkers)
 
-	p = &Producer{}
-	for i := 0; i < nWorkers; i++ {
-		w, e := newWorker(faceID, socket, rxqCfg)
+	p = &Producer{
+		cfg: cfg,
+	}
+	for i := 0; i < cfg.NThreads; i++ {
+		w, e := newWorker(faceID, socket, cfg.RxQueue)
 		if e != nil {
 			must.Close(p)
 			return nil, e
 		}
 		p.workers = append(p.workers, w)
+	}
+
+	if e := p.initPatterns(); e != nil {
+		must.Close(p)
+		return nil, fmt.Errorf("error setting patterns %w", e)
 	}
 	return p, nil
 }

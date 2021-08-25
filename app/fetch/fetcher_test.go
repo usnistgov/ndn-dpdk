@@ -7,15 +7,13 @@ import (
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/app/fetch"
-	"github.com/usnistgov/ndn-dpdk/app/tgtestenv"
-	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
+	"github.com/usnistgov/ndn-dpdk/app/tg/tgtestenv"
 	"github.com/usnistgov/ndn-dpdk/iface/intface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 func TestFetcher(t *testing.T) {
-	defer ealthread.AllocClear()
 	assert, require := makeAR(t)
 
 	intFace := intface.MustNew()
@@ -29,9 +27,8 @@ func TestFetcher(t *testing.T) {
 
 	fetcher, e := fetch.New(intFace.D, cfg)
 	require.NoError(e)
+	tgtestenv.Open(t, fetcher)
 	defer fetcher.Close()
-	require.NoError(ealthread.AllocThread(fetcher.Workers()...))
-	fetcher.ConnectRxQueues(tgtestenv.DemuxD, tgtestenv.DemuxN)
 
 	nInterests := 0
 	go func() {

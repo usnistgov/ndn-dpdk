@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/pkg/math"
+	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndni"
@@ -33,6 +34,43 @@ var (
 	ErrTooManyReplies  = fmt.Errorf("cannot add more than %d replies", MaxReplies)
 	ErrTooManyWeights  = fmt.Errorf("sum of weight cannot exceed %d", MaxSumWeight)
 )
+
+// Config describes producer configuration.
+type Config struct {
+	NThreads int                  `json:"nThreads,omitempty"` // number of threads, minimum/default is 1
+	RxQueue  iface.PktQueueConfig `json:"rxQueue,omitempty"`
+	Patterns []Pattern            `json:"patterns"`
+
+	nDataGen int
+}
+
+func (cfg *Config) validateWithDefaults() error {
+	cfg.NThreads = math.MaxInt(1, cfg.NThreads)
+	cfg.RxQueue.DisableCoDel = true
+
+	if len(cfg.Patterns) == 0 {
+		return ErrNoPattern
+	}
+	if len(cfg.Patterns) > MaxPatterns {
+		return ErrTooManyPatterns
+	}
+	patterns := []Pattern{}
+	nDataGen := 0
+	for _, pattern := range cfg.Patterns {
+		sumWeight, nData := pattern.applyDefaults()
+		if sumWeight > MaxSumWeight {
+			return ErrTooManyWeights
+		}
+		nDataGen += nData
+		if len(pattern.prefixV) > ndni.NameMaxLength {
+			return ErrPrefixTooLong
+		}
+		patterns = append(patterns, pattern)
+	}
+
+	cfg.Patterns, cfg.nDataGen = patterns, nDataGen
+	return nil
+}
 
 // Pattern configures how the producer replies to Interests under a name prefix.
 type Pattern struct {

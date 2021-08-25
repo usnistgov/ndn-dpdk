@@ -1,5 +1,16 @@
-import type { Counter, RunningStatSnapshot } from "../core";
+import type { Counter, NNNanoseconds, RunningStatSnapshot } from "../core";
 import type { DataGen, InterestTemplate } from "../ndni";
+import type { PktQueueConfig } from "../pktqueue";
+
+/**
+ * Traffic generator consumer config.
+ * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/app/tgconsumer#Config>
+ */
+export interface TgcConfig {
+  rxQueue?: PktQueueConfig.Plain | PktQueueConfig.Delay;
+  interval: NNNanoseconds;
+  patterns: TgcPattern[];
+}
 
 /**
  * Traffic generator consumer pattern definition.

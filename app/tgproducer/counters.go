@@ -57,8 +57,8 @@ func (w *worker) accumulateCounters(cnt *Counters) {
 
 // Counters retrieves counters.
 func (p Producer) Counters() (cnt Counters) {
-	cnt.PerPattern = make([]PatternCounters, len(p.patterns))
-	for i, pattern := range p.patterns {
+	cnt.PerPattern = make([]PatternCounters, len(p.cfg.Patterns))
+	for i, pattern := range p.cfg.Patterns {
 		cnt.PerPattern[i].PerReply = make([]uint64, len(pattern.Replies))
 	}
 

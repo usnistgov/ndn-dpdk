@@ -9,8 +9,7 @@ import (
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/app/fileserver"
-	"github.com/usnistgov/ndn-dpdk/app/tgtestenv"
-	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
+	"github.com/usnistgov/ndn-dpdk/app/tg/tgtestenv"
 	"github.com/usnistgov/ndn-dpdk/iface/intface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
@@ -18,7 +17,6 @@ import (
 )
 
 func TestServer(t *testing.T) {
-	defer ealthread.AllocClear()
 	assert, require := makeAR(t)
 
 	face := intface.MustNew()
@@ -37,8 +35,7 @@ func TestServer(t *testing.T) {
 	p, e := fileserver.New(face.D, cfg)
 	require.NoError(e)
 	defer p.Close()
-	require.NoError(ealthread.AllocThread(p.Workers()...))
-	p.ConnectRxQueues(tgtestenv.DemuxI)
+	tgtestenv.Open(t, p)
 	p.Launch()
 	time.Sleep(time.Second)
 

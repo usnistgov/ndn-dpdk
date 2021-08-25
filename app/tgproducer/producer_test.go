@@ -6,10 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/usnistgov/ndn-dpdk/app/tg/tgtestenv"
 	"github.com/usnistgov/ndn-dpdk/app/tgproducer"
-	"github.com/usnistgov/ndn-dpdk/app/tgtestenv"
-	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
-	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/intface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
@@ -19,56 +17,56 @@ import (
 )
 
 func TestPatterns(t *testing.T) {
-	defer ealthread.AllocClear()
 	assert, require := makeAR(t)
 
 	face := intface.MustNew()
 	defer face.D.Close()
 
-	p, e := tgproducer.New(face.D, iface.PktQueueConfig{}, 1)
+	nameA, nameB, nameC := ndn.ParseName("/A"), ndn.ParseName("/B"), ndn.ParseName("/C")
+	cfg := tgproducer.Config{
+		Patterns: []tgproducer.Pattern{
+			{
+				Prefix: nameA,
+				Replies: []tgproducer.Reply{
+					{
+						Weight: 60,
+						DataGenConfig: ndni.DataGenConfig{
+							FreshnessPeriod: 100,
+							PayloadLen:      1000,
+						},
+					},
+					{
+						Weight: 40,
+						DataGenConfig: ndni.DataGenConfig{
+							Suffix:          ndn.ParseName("/Z"),
+							FreshnessPeriod: 100,
+							PayloadLen:      2000,
+						},
+					},
+				},
+			},
+			{
+				Prefix: nameB,
+				Replies: []tgproducer.Reply{
+					{
+						Nack: an.NackCongestion,
+					},
+					{
+						Timeout: true,
+					},
+				},
+			},
+			{
+				Prefix:  nameC,
+				Replies: nil, // default Data reply
+			},
+		},
+	}
+
+	p, e := tgproducer.New(face.D, cfg)
 	require.NoError(e)
 	defer p.Close()
-	require.NoError(ealthread.AllocThread(p.Workers()...))
-	p.ConnectRxQueues(tgtestenv.DemuxI)
-
-	nameA, nameB, nameC := ndn.ParseName("/A"), ndn.ParseName("/B"), ndn.ParseName("/C")
-	require.NoError(p.SetPatterns([]tgproducer.Pattern{
-		{
-			Prefix: nameA,
-			Replies: []tgproducer.Reply{
-				{
-					Weight: 60,
-					DataGenConfig: ndni.DataGenConfig{
-						FreshnessPeriod: 100,
-						PayloadLen:      1000,
-					},
-				},
-				{
-					Weight: 40,
-					DataGenConfig: ndni.DataGenConfig{
-						Suffix:          ndn.ParseName("/Z"),
-						FreshnessPeriod: 100,
-						PayloadLen:      2000,
-					},
-				},
-			},
-		},
-		{
-			Prefix: nameB,
-			Replies: []tgproducer.Reply{
-				{
-					Nack: an.NackCongestion,
-				},
-				{
-					Timeout: true,
-				},
-			},
-		},
-		{
-			Prefix:  nameC,
-			Replies: nil, // default Data reply
-		},
-	}))
+	tgtestenv.Open(t, p)
 
 	nDataA0 := 0
 	nDataA1 := 0
@@ -129,33 +127,33 @@ func TestPatterns(t *testing.T) {
 }
 
 func TestDataProducer(t *testing.T) {
-	defer ealthread.AllocClear()
 	assert, require := makeAR(t)
 
 	face := intface.MustNew()
 	defer face.D.Close()
 
-	p, e := tgproducer.New(face.D, iface.PktQueueConfig{}, 2)
-	require.NoError(e)
-	defer p.Close()
-	require.NoError(ealthread.AllocThread(p.Workers()...))
-	p.ConnectRxQueues(tgtestenv.DemuxI)
-
 	nameP := ndn.ParseName("/P")
-	require.NoError(p.SetPatterns([]tgproducer.Pattern{
-		{
-			Prefix: nameP,
-			Replies: []tgproducer.Reply{
-				{
-					DataGenConfig: ndni.DataGenConfig{
-						FreshnessPeriod: 100,
-						PayloadLen:      1000,
+	cfg := tgproducer.Config{
+		NThreads: 2,
+		Patterns: []tgproducer.Pattern{
+			{
+				Prefix: nameP,
+				Replies: []tgproducer.Reply{
+					{
+						DataGenConfig: ndni.DataGenConfig{
+							FreshnessPeriod: 100,
+							PayloadLen:      1000,
+						},
 					},
 				},
 			},
 		},
-	}))
+	}
 
+	p, e := tgproducer.New(face.D, cfg)
+	require.NoError(e)
+	defer p.Close()
+	tgtestenv.Open(t, p)
 	p.Launch()
 
 	fw := l3.NewForwarder()

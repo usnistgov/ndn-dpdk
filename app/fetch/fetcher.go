@@ -118,34 +118,6 @@ func New(face iface.Face, cfg FetcherConfig) (*Fetcher, error) {
 	return fetcher, nil
 }
 
-// Face returns the face.
-func (fetcher *Fetcher) Face() iface.Face {
-	return fetcher.workers[0].face()
-}
-
-// Workers returns worker threads.
-func (fetcher Fetcher) Workers() (list []ealthread.ThreadWithRole) {
-	for _, w := range fetcher.workers {
-		list = append(list, w)
-	}
-	return list
-}
-
-// ConnectRxQueues connects Data+Nack InputDemux to RxQueues.
-func (fetcher *Fetcher) ConnectRxQueues(demuxD, demuxN *iface.InputDemux) {
-	demuxD.InitToken(0)
-	demuxN.InitToken(0)
-	for i := range fetcher.fp {
-		q := fetcher.rxQueue(i)
-		demuxD.SetDest(i, q)
-		demuxN.SetDest(i, q)
-	}
-}
-
-func (fetcher *Fetcher) rxQueue(i int) *iface.PktQueue {
-	return iface.PktQueueFromPtr(unsafe.Pointer(&fetcher.fp[i].rxQueue))
-}
-
 // Logic returns the Logic of i-th fetch procedure.
 func (fetcher *Fetcher) Logic(i int) *Logic {
 	return LogicFromPtr(unsafe.Pointer(&fetcher.fp[i].logic))
@@ -190,20 +162,39 @@ func (fetcher *Fetcher) AddTemplate(tplCfg ndni.InterestTemplateConfig) (i int, 
 	return i, nil
 }
 
+// Face returns the face.
+func (fetcher *Fetcher) Face() iface.Face {
+	return fetcher.workers[0].face()
+}
+
+func (fetcher *Fetcher) rxQueue(i int) *iface.PktQueue {
+	return iface.PktQueueFromPtr(unsafe.Pointer(&fetcher.fp[i].rxQueue))
+}
+
+// ConnectRxQueues connects Data+Nack InputDemux to RxQueues.
+func (fetcher *Fetcher) ConnectRxQueues(demuxD, demuxN *iface.InputDemux) {
+	demuxD.InitToken(0)
+	demuxN.InitToken(0)
+	for i := range fetcher.fp {
+		q := fetcher.rxQueue(i)
+		demuxD.SetDest(i, q)
+		demuxN.SetDest(i, q)
+	}
+}
+
+// Workers returns worker threads.
+func (fetcher Fetcher) Workers() []ealthread.ThreadWithRole {
+	return tgdef.GatherWorkers(fetcher.workers)
+}
+
 // Launch launches all fetch threads.
 func (fetcher *Fetcher) Launch() {
-	for _, fth := range fetcher.workers {
-		ealthread.Launch(fth)
-	}
+	tgdef.LaunchWorkers(fetcher.Workers())
 }
 
 // Stop stops all fetch threads.
 func (fetcher *Fetcher) Stop() error {
-	errs := []error{}
-	for _, fth := range fetcher.workers {
-		errs = append(errs, fth.Stop())
-	}
-	return multierr.Combine(errs...)
+	return tgdef.StopWorkers(fetcher.Workers())
 }
 
 // Close deallocates data structures.

@@ -2,10 +2,21 @@
 package tgtestenv
 
 import (
+	"testing"
+
+	"github.com/usnistgov/ndn-dpdk/app/tg/tgdef"
+	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealtestenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
+)
+
+// Demuxes in RxLoop.
+var (
+	DemuxI *iface.InputDemux
+	DemuxD *iface.InputDemux
+	DemuxN *iface.InputDemux
 )
 
 // Init initializes testing environment for traffic generator applications.
@@ -27,9 +38,20 @@ func Init() {
 	eal.Workers = eal.Workers[2:] // rxl and txl won't be freed by allocator
 }
 
-// Demuxes in RxLoop.
-var (
-	DemuxI *iface.InputDemux
-	DemuxD *iface.InputDemux
-	DemuxN *iface.InputDemux
-)
+// Open allocates lcores to workers, then connects RxQueues.
+func Open(t *testing.T, m tgdef.Module) {
+	_, require := testenv.MakeAR(t)
+	if e := ealthread.AllocThread(m.Workers()...); e != nil {
+		require.NoError(e)
+	}
+	t.Cleanup(ealthread.AllocClear)
+
+	switch m := m.(type) {
+	case tgdef.Producer:
+		m.ConnectRxQueues(DemuxI)
+	case tgdef.Consumer:
+		m.ConnectRxQueues(DemuxD, DemuxN)
+	default:
+		require.FailNow("unexpected traffic generator module type")
+	}
+}

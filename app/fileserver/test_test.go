@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/usnistgov/ndn-dpdk/app/tgtestenv"
+	"github.com/usnistgov/ndn-dpdk/app/tg/tgtestenv"
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/ndni"

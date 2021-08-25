@@ -1,4 +1,16 @@
 import type { DataGen, Name } from "../ndni";
+import type { PktQueueConfig } from "../pktqueue";
+
+/**
+ * Traffic generator producer config.
+ * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/app/tgproducer#Config>
+ */
+export interface TgpConfig {
+  /** @TJS-type integer */
+  nThreads?: number;
+  rxQueue?: PktQueueConfig.Plain | PktQueueConfig.Delay;
+  patterns: TgpPattern[];
+}
 
 /**
  * Traffic generator producer pattern definition.

@@ -207,27 +207,18 @@ func New(cfg Config) (gen *TrafficGen, e error) {
 	gen.workers = []ealthread.ThreadWithRole{gen.rxl, gen.txl}
 
 	if cfg.Producer != nil {
-		producer, e := tgproducer.New(gen.face, cfg.Producer.RxQueue, cfg.Producer.NThreads)
+		producer, e := tgproducer.New(gen.face, *cfg.Producer)
 		if e != nil {
 			return nil, fmt.Errorf("error creating producer %w", e)
-		}
-		if e = producer.SetPatterns(cfg.Producer.Patterns); e != nil {
-			return nil, fmt.Errorf("error setting producer patterns %w", e)
 		}
 		gen.workers = append(gen.workers, producer.Workers()...)
 		gen.producer = producer
 	}
 
 	if cfg.Consumer != nil {
-		consumer, e := tgconsumer.New(gen.face, cfg.Consumer.RxQueue)
+		consumer, e := tgconsumer.New(gen.face, *cfg.Consumer)
 		if e != nil {
 			return nil, fmt.Errorf("error creating consumer %w", e)
-		}
-		if e = consumer.SetPatterns(cfg.Consumer.Patterns); e != nil {
-			return nil, fmt.Errorf("error setting consumer patterns %w", e)
-		}
-		if e = consumer.SetInterval(cfg.Consumer.Interval.Duration()); e != nil {
-			return nil, fmt.Errorf("error setting consumer interval %w", e)
 		}
 		gen.workers = append(gen.workers, consumer.Workers()...)
 		gen.consumer = consumer

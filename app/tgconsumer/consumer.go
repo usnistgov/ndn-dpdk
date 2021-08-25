@@ -23,6 +23,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/app/tg/tgdef"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
+	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/dpdk/cryptodev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
@@ -58,11 +59,11 @@ func (w worker) ThreadLoadStat() ealthread.LoadStat {
 
 // Consumer represents a traffic generator consumer instance.
 type Consumer struct {
-	rx       worker
-	tx       worker
-	rxC      *C.TgcRx
-	txC      *C.TgcTx
-	patterns []Pattern
+	cfg Config
+	rx  worker
+	tx  worker
+	rxC *C.TgcRx
+	txC *C.TgcTx
 
 	digestOpPool *cryptodev.OpPool
 	digestCrypto *cryptodev.CryptoDev
@@ -75,63 +76,28 @@ func (c Consumer) socket() eal.NumaSocket {
 	return c.Face().NumaSocket()
 }
 
-// Workers returns worker threads.
-func (c Consumer) Workers() []ealthread.ThreadWithRole {
-	return []ealthread.ThreadWithRole{c.rx, c.tx}
-}
-
 // Patterns returns traffic patterns.
 func (c Consumer) Patterns() []Pattern {
-	return c.patterns
+	return c.cfg.Patterns
 }
 
-// SetPatterns sets new traffic patterns.
-// This can only be used when both RX and TX threads are stopped.
-func (c *Consumer) SetPatterns(inputPatterns []Pattern) (e error) {
-	if len(inputPatterns) == 0 {
-		return ErrNoPattern
-	}
-	if len(inputPatterns) > MaxPatterns {
-		return ErrTooManyPatterns
-	}
-	patterns := []Pattern{}
-	nWeights, nDigestPatterns := 0, 0
-	for i, pattern := range inputPatterns {
-		pattern.applyDefaults()
-		patterns = append(patterns, pattern)
-		if pattern.SeqNumOffset != 0 && i == 0 {
-			return ErrFirstSeqNumOffset
-		}
-		nWeights += pattern.Weight
-		if pattern.Digest != nil {
-			nDigestPatterns++
-		}
-	}
-	if nWeights > MaxSumWeight {
-		return ErrTooManyWeights
-	}
-
-	if c.rx.IsRunning() || c.tx.IsRunning() {
-		return ealthread.ErrRunning
-	}
-
-	if e := c.prepareDigest(nDigestPatterns); e != nil {
+func (c *Consumer) initPatterns() (e error) {
+	if e := c.prepareDigest(c.cfg.nDigestPatterns); e != nil {
 		return fmt.Errorf("prepareDigest %w", e)
 	}
 	var dataGenVec pktmbuf.Vector
-	if nDigestPatterns > 0 {
+	if c.cfg.nDigestPatterns > 0 {
 		payloadMp := ndni.PayloadMempool.Get(c.socket())
-		dataGenVec, e = payloadMp.Alloc(nDigestPatterns)
+		dataGenVec, e = payloadMp.Alloc(c.cfg.nDigestPatterns)
 		if e != nil {
 			return e
 		}
 	}
 
-	c.patterns = patterns
-	c.rxC.nPatterns = C.uint8_t(len(patterns))
-	c.txC.nWeights = C.uint32_t(nWeights)
+	c.rxC.nPatterns = C.uint8_t(len(c.cfg.Patterns))
+	c.txC.nWeights = C.uint32_t(c.cfg.nWeights)
 	w := 0
-	for i, pattern := range patterns {
+	for i, pattern := range c.cfg.Patterns {
 		c.assignPattern(i, pattern, dataGenVec)
 
 		for j := 0; j < pattern.Weight; j++ {
@@ -226,26 +192,13 @@ func (c Consumer) Interval() time.Duration {
 	return eal.FromTscDuration(int64(c.txC.burstInterval)) / iface.MaxBurstSize
 }
 
-// SetInterval sets average Interest interval.
-// TX thread transmits Interests in bursts, so the specified interval will be converted to
-// a burst interval with equivalent traffic amount.
-// This can only be used when both RX and TX threads are stopped.
-func (c *Consumer) SetInterval(interval time.Duration) error {
-	if c.rx.IsRunning() || c.tx.IsRunning() {
-		return ealthread.ErrRunning
-	}
-
-	c.txC.burstInterval = C.TscDuration(eal.ToTscDuration(interval * iface.MaxBurstSize))
-	return nil
+// Face returns the associated face.
+func (c Consumer) Face() iface.Face {
+	return iface.Get(iface.ID(c.txC.face))
 }
 
 func (c Consumer) rxQueue() *iface.PktQueue {
 	return iface.PktQueueFromPtr(unsafe.Pointer(&c.rxC.rxQueue))
-}
-
-// Face returns the associated face.
-func (c Consumer) Face() iface.Face {
-	return iface.Get(iface.ID(c.txC.face))
 }
 
 // ConnectRxQueues connects Data+Nack InputDemux to RxQueues.
@@ -255,6 +208,11 @@ func (c *Consumer) ConnectRxQueues(demuxD, demuxN *iface.InputDemux) {
 	q := c.rxQueue()
 	demuxD.SetDest(0, q)
 	demuxN.SetDest(0, q)
+}
+
+// Workers returns worker threads.
+func (c Consumer) Workers() []ealthread.ThreadWithRole {
+	return []ealthread.ThreadWithRole{c.rx, c.tx}
 }
 
 // Launch launches RX and TX threads.
@@ -306,15 +264,19 @@ func (c *Consumer) closeDigest() {
 }
 
 // New creates a Consumer.
-func New(face iface.Face, rxqCfg iface.PktQueueConfig) (c *Consumer, e error) {
+func New(face iface.Face, cfg Config) (c *Consumer, e error) {
+	if e := cfg.validateWithDefaults(); e != nil {
+		return nil, e
+	}
+
 	socket := face.NumaSocket()
 	c = &Consumer{
+		cfg: cfg,
 		rxC: (*C.TgcRx)(eal.Zmalloc("TgcRx", C.sizeof_TgcRx, socket)),
 		txC: (*C.TgcTx)(eal.Zmalloc("TgcTx", C.sizeof_TgcTx, socket)),
 	}
 
-	rxqCfg.DisableCoDel = true
-	if e = c.rxQueue().Init(rxqCfg, socket); e != nil {
+	if e := c.rxQueue().Init(cfg.RxQueue, socket); e != nil {
 		must.Close(c)
 		return nil, fmt.Errorf("error initializing RxQueue %w", e)
 	}
@@ -339,6 +301,11 @@ func New(face iface.Face, rxqCfg iface.PktQueueConfig) (c *Consumer, e error) {
 		loadStat: &c.txC.loadStat,
 	}
 
-	c.SetInterval(time.Millisecond)
+	c.txC.burstInterval = C.TscDuration(eal.ToTscDuration(
+		cfg.Interval.DurationOr(nnduration.Nanoseconds(defaultInterval)) * iface.MaxBurstSize))
+	if e := c.initPatterns(); e != nil {
+		must.Close(c)
+		return nil, fmt.Errorf("error setting patterns %w", e)
+	}
 	return c, nil
 }
