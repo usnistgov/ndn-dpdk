@@ -15,7 +15,7 @@ if [[ -z $SKIPROOTCHECK ]]; then
   SUDO=sudo
   SUDOPKG=sudo
   APTSUGGEST='sudo '$APTSUGGEST
-  if [[ $(id -u) -eq 0 ]] && [[ -z $SKIPROOTCHECK ]]; then
+  if [[ $(id -u) -eq 0 ]]; then
     echo 'Do not run this script as root'
     echo 'To skip this check, set SKIPROOTCHECK=1 environ'
     exit 1
@@ -204,6 +204,7 @@ APT_PKGS=(
   libpcap-dev
   libssl-dev
   liburcu-dev
+  ninja-build
   pkg-config
   python3-distutils
   uuid-dev
@@ -217,36 +218,27 @@ fi
 echo "Will download to ${CODEROOT}"
 echo 'Will install C compiler and build tools'
 
-if [[ $NODEVER == '0' ]]; then
-  if ! which node >/dev/null; then
-    echo '--node=0 specified but `node` command is unavailable'
-    exit 1
-  fi
-else
+if [[ $NODEVER != '0' ]]; then
   echo "Will install Node ${NODEVER}"
+elif ! which node >/dev/null; then
+  echo '--node=0 specified but `node` command is unavailable, which may cause build errors'
 fi
 
-if [[ $GOVER == '0' ]]; then
-  if ! which go >/dev/null; then
-    echo '--go=0 specified but `go` command is unavailable'
-    exit 1
-  fi
-else
+if [[ $GOVER != '0' ]]; then
   if [[ $GOVER == 'latest' ]]; then
     GOVER=$(curl -sfL ${NDNDPDK_DL_GOLANG}/VERSION?m=text)
   fi
   echo "Will install Go ${GOVER}"
+elif ! which go >/dev/null; then
+  echo '--go=0 specified but `go` command is unavailable, which may cause build errors'
 fi
 echo 'Will install Go linters and tools'
 
-if [[ $UBPFVER == '0' ]]; then
-  if ! [[ -f /usr/local/include/ubpf.h ]]; then
-    echo '--ubpf=0 specified but uBPF headers are absent'
-    exit 1
-  fi
-else
+if [[ $UBPFVER != '0' ]]; then
   UBPFVER=$(github_resolve_commit $UBPFVER iovisor/ubpf)
   echo "Will install uBPF ${UBPFVER}"
+elif ! [[ -f /usr/local/include/ubpf.h ]]; then
+  echo '--ubpf=0 specified but uBPF is not found, which may cause build errors'
 fi
 
 if [[ $LIBBPFVER != '0' ]]; then
@@ -254,13 +246,10 @@ if [[ $LIBBPFVER != '0' ]]; then
   echo "Will install libbpf ${LIBBPFVER}"
 fi
 
-if [[ $DPDKVER == '0' ]]; then
-  if ! [[ -f /usr/local/include/rte_common.h ]]; then
-    echo '--dpdk=0 specified but DPDK headers are absent'
-    exit 1
-  fi
-else
+if [[ $DPDKVER != '0' ]]; then
   echo "Will install DPDK ${DPDKVER} for ${TARGETARCH} architecture"
+elif ! pkg-config libdpdk; then
+  echo '--dpdk=0 specified but DPDK is not found, which may cause build errors'
 fi
 
 if [[ $KMODSVER != '0' ]]; then
@@ -268,23 +257,17 @@ if [[ $KMODSVER != '0' ]]; then
   APT_PKGS+=(kmod)
 fi
 
-if [[ $SPDKVER == '0' ]]; then
-  if ! [[ -f /usr/local/include/spdk/version.h ]]; then
-    echo '--spdk=0 specified but SPDK headers are absent'
-    exit 1
-  fi
-else
+if [[ $SPDKVER != '0' ]]; then
   echo "Will install SPDK ${SPDKVER} for ${TARGETARCH} architecture"
+elif ! pkg-config spdk_thread; then
+  echo '--spdk=0 specified but SPDK is not found, which may cause build errors'
 fi
 
-if [[ $URINGVER == '0' ]]; then
-  if ! [[ -f /usr/local/include/liburing.h ]] && ! [[ -f /usr/include/liburing.h ]]; then
-    echo '--liburing=0 specified but liburing is absent'
-    exit 1
-  fi
-else
+if [[ $URINGVER != '0' ]]; then
   URINGVER=$(github_resolve_commit $URINGVER axboe/liburing)
   echo "Will install liburing ${URINGVER}"
+elif ! pkg-config liburing; then
+  echo '--uring=0 specified but liburing is not found, which may cause build errors'
 fi
 
 echo "Will compile with ${NJOBS} parallel jobs"
@@ -323,7 +306,7 @@ if [[ $DISTRO == 'bionic' ]]; then
   $SUDO update-alternatives --install /usr/bin/python python /usr/bin/python3 1
 fi
 curl -sfL ${NDNDPDK_DL_PYPA_BOOTSTRAP}/get-pip.py | $SUDO python
-$SUDO pip install -U meson ninja pyelftools
+$SUDO pip install -U meson pyelftools
 
 if [[ $GOVER != '0' ]]; then
   $SUDO rm -rf /usr/local/go
@@ -421,5 +404,6 @@ fi
 
 (
   cd /tmp
+  go install golang.org/x/tools/cmd/godoc@latest
   go install honnef.co/go/tools/cmd/staticcheck@latest
 )
