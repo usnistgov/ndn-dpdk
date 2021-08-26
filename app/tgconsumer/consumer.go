@@ -38,8 +38,7 @@ import (
 )
 
 type worker struct {
-	ealthread.Thread
-	loadStat *C.ThreadLoadStat
+	ealthread.ThreadWithCtrl
 }
 
 var (
@@ -52,16 +51,11 @@ func (worker) ThreadRole() string {
 	return tgdef.RoleConsumer
 }
 
-// ThreadLoadStat implements ealthread.ThreadWithLoadStat interface.
-func (w worker) ThreadLoadStat() ealthread.LoadStat {
-	return ealthread.LoadStatFromPtr(unsafe.Pointer(w.loadStat))
-}
-
 // Consumer represents a traffic generator consumer instance.
 type Consumer struct {
 	cfg Config
-	rx  worker
-	tx  worker
+	rx  *worker
+	tx  *worker
 	rxC *C.TgcRx
 	txC *C.TgcTx
 
@@ -286,19 +280,17 @@ func New(face iface.Face, cfg Config) (c *Consumer, e error) {
 	C.pcg32_srandom_r(&c.txC.trafficRng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
 	C.NonceGen_Init(&c.txC.nonceGen)
 
-	c.rx = worker{
-		Thread: ealthread.New(
+	c.rx = &worker{
+		ThreadWithCtrl: ealthread.NewThreadWithCtrl(
 			cptr.Func0.C(unsafe.Pointer(C.TgcRx_Run), c.rxC),
-			ealthread.InitStopFlag(unsafe.Pointer(&c.rxC.stop)),
+			unsafe.Pointer(&c.rxC.ctrl),
 		),
-		loadStat: &c.rxC.loadStat,
 	}
-	c.tx = worker{
-		Thread: ealthread.New(
+	c.tx = &worker{
+		ThreadWithCtrl: ealthread.NewThreadWithCtrl(
 			cptr.Func0.C(unsafe.Pointer(C.TgcTx_Run), c.txC),
-			ealthread.InitStopFlag(unsafe.Pointer(&c.txC.stop)),
+			unsafe.Pointer(&c.txC.ctrl),
 		),
-		loadStat: &c.txC.loadStat,
 	}
 
 	c.txC.burstInterval = C.TscDuration(eal.ToTscDuration(

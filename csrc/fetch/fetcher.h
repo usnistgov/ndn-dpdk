@@ -21,12 +21,11 @@ typedef struct FetchProc
 /** @brief Fetch thread that runs several fetch procedures. */
 typedef struct FetchThread
 {
+  ThreadCtrl ctrl;
   struct rte_mempool* interestMp;
   struct cds_hlist_head head;
-  ThreadLoadStat loadStat;
   NonceGen nonceGen;
   FaceID face;
-  ThreadStopFlag stop;
 } FetchThread;
 
 int

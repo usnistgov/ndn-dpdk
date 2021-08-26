@@ -6,9 +6,10 @@ SpdkThread_Run(SpdkThread* th)
 {
   rcu_register_thread();
   spdk_set_thread(th->spdkTh);
-  while (ThreadStopFlag_ShouldContinue(&th->stop)) {
+  int work = 0;
+  while (ThreadCtrl_Continue(th->ctrl, work)) {
     rcu_quiescent_state();
-    spdk_thread_poll(th->spdkTh, 64, 0);
+    work = spdk_thread_poll(th->spdkTh, 64, 0);
   }
   spdk_thread_exit(th->spdkTh);
   rcu_unregister_thread();

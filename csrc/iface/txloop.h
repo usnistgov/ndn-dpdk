@@ -9,9 +9,8 @@
 /** @brief TX loop thread. */
 typedef struct TxLoop
 {
+  ThreadCtrl ctrl;
   struct cds_hlist_head head;
-  ThreadStopFlag stop;
-  ThreadLoadStat loadStat;
 } TxLoop;
 
 __attribute__((nonnull)) int

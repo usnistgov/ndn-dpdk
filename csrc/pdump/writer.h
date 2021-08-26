@@ -9,12 +9,12 @@
 /** @brief Packet dump writer. */
 typedef struct PdumpWriter
 {
+  ThreadCtrl ctrl;
   struct rte_ring* queue;
   const char* filename;
   MmapFd m;
   size_t maxSize;
   size_t pos;
-  ThreadStopFlag stop;
   uint32_t nextIntf;
   uint32_t intf[UINT16_MAX + 1];
 } PdumpWriter;

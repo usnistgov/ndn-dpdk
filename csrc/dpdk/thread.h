@@ -5,63 +5,62 @@
 
 #include "../core/common.h"
 
-/**
- * @brief Flag for instructing a thread to stop.
- *
- * This should be embedded in the thread structure.
- */
-typedef atomic_bool ThreadStopFlag;
-
-static inline void
-ThreadStopFlag_Init(ThreadStopFlag* flag)
+/** @brief Thread load stats and stop flag. */
+typedef struct ThreadCtrl
 {
-  atomic_init(flag, true);
+  uint64_t nPolls[2]; // [0] empty polls; [1] valid polls
+  uint64_t items;
+  uint32_t sleepFor;
+  atomic_bool stop;
+} ThreadCtrl;
+
+static __rte_always_inline void
+ThreadCtrl_Sleep(ThreadCtrl* ctrl)
+{
+#ifdef NDNDPDK_THREADSLEEP
+  struct timespec req = { .tv_sec = 0, .tv_nsec = ctrl->sleepFor };
+  nanosleep(&req, NULL);
+#else
+  rte_pause();
+#endif // NDNDPDK_THREADSLEEP
 }
 
 /**
  * @brief Determine if a stop has been requested.
+ * @param ctrl ThreadCtrl object reference.
+ * @param count integral type, number of processed items.
  * @retval false the thread should stop.
  * @retval true the thread should continue execution.
+ * @post count==0
  */
-static inline bool
-ThreadStopFlag_ShouldContinue(ThreadStopFlag* flag)
+#define ThreadCtrl_Continue(ctrl, count)                                                           \
+  __extension__({                                                                                  \
+    ++(ctrl).nPolls[(int)(count > 0)];                                                             \
+    (ctrl).items += count;                                                                         \
+    if (count == 0) {                                                                              \
+      ThreadCtrl_Sleep(&(ctrl));                                                                   \
+    }                                                                                              \
+    count = 0;                                                                                     \
+    atomic_load_explicit(&(ctrl).stop, memory_order_acquire);                                      \
+  })
+
+static inline void
+ThreadCtrl_Init(ThreadCtrl* ctrl)
 {
-#ifdef NDNDPDK_THREADSLEEP
-  struct timespec req = { .tv_sec = 0, .tv_nsec = 1 };
-  nanosleep(&req, NULL);
-#endif // NDNDPDK_THREADSLEEP
-  return atomic_load_explicit(flag, memory_order_acquire);
+  ctrl->sleepFor = 1;
+  atomic_init(&ctrl->stop, true);
 }
 
 static inline void
-ThreadStopFlag_RequestStop(ThreadStopFlag* flag)
+ThreadCtrl_RequestStop(ThreadCtrl* ctrl)
 {
-  atomic_store_explicit(flag, false, memory_order_release);
+  atomic_store_explicit(&ctrl->stop, false, memory_order_release);
 }
 
 static inline void
-ThreadStopFlag_FinishStop(ThreadStopFlag* flag)
+ThreadCtrl_FinishStop(ThreadCtrl* ctrl)
 {
-  atomic_store_explicit(flag, true, memory_order_release);
-}
-
-/**
- * @brief Load statistics of a polling thread.
- *
- * This should be embedded in the thread structure.
- */
-typedef struct ThreadLoadStat
-{
-  uint64_t nPolls[2]; // [0] empty polls; [1] valid polls
-  uint64_t items;
-} ThreadLoadStat;
-
-/** @brief Report number of processed packets/items after each poll. */
-static __rte_always_inline void
-ThreadLoadStat_Report(ThreadLoadStat* s, uint64_t count)
-{
-  ++s->nPolls[(int)(count > 0)];
-  s->items += count;
+  atomic_store_explicit(&ctrl->stop, true, memory_order_release);
 }
 
 #endif // NDNDPDK_DPDK_THREAD_H

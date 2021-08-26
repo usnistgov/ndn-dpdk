@@ -13,7 +13,6 @@ import "C"
 import (
 	"reflect"
 	"time"
-	"unsafe"
 )
 
 // Stopper abstracts how to tell a thread top stop.
@@ -23,34 +22,6 @@ type Stopper interface {
 
 	// AfterWait is invoked after lcore.Wait().
 	AfterWait()
-}
-
-// StopFlag stops a thread by setting a boolean flag.
-type StopFlag struct {
-	c *C.ThreadStopFlag
-}
-
-// BeforeWait requests a stop.
-func (stop StopFlag) BeforeWait() {
-	C.ThreadStopFlag_RequestStop(stop.c)
-}
-
-// AfterWait completes a stop request.
-func (stop StopFlag) AfterWait() {
-	C.ThreadStopFlag_FinishStop(stop.c)
-}
-
-// NewStopFlag constructs a StopFlag from initialized C pointer.
-func NewStopFlag(c unsafe.Pointer) (stop StopFlag) {
-	stop.c = (*C.ThreadStopFlag)(c)
-	return stop
-}
-
-// InitStopFlag constructs and initializes a StopFlag.
-func InitStopFlag(c unsafe.Pointer) (stop StopFlag) {
-	stop = NewStopFlag(c)
-	C.ThreadStopFlag_Init(stop.c)
-	return stop
 }
 
 // StopChan stops a thread by sending to a channel.

@@ -8,7 +8,7 @@ import (
 )
 
 func TestThread(t *testing.T) {
-	defer ealthread.AllocClear()
+	t.Cleanup(ealthread.AllocClear)
 	assert, require := makeAR(t)
 
 	th := newTestThread()

@@ -143,14 +143,13 @@ int
 TgcTx_Run(TgcTx* ct)
 {
   TscTime nextTxBurst = rte_get_tsc_cycles();
-  while (ThreadStopFlag_ShouldContinue(&ct->stop)) {
+  int sent = 0;
+  while (ThreadCtrl_Continue(ct->ctrl, sent)) {
     if (rte_get_tsc_cycles() < nextTxBurst) {
-      ThreadLoadStat_Report(&ct->loadStat, 0);
-      rte_pause();
       continue;
     }
-    ThreadLoadStat_Report(&ct->loadStat, MaxBurstSize);
     TgcTx_Burst(ct);
+    sent = MaxBurstSize;
     nextTxBurst += ct->burstInterval;
   }
   return 0;

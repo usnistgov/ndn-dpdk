@@ -5,7 +5,7 @@
 struct rte_ring* theHrlogRing = NULL;
 
 bool
-Hrlog_RunWriter(const char* filename, int nSkip, int nTotal, ThreadStopFlag* stop)
+Hrlog_RunWriter(HrlogWriter* w)
 {
   HrlogHeader hdr = { .magic = HRLOG_HEADER_MAGIC,
                       .version = HRLOG_HEADER_VERSION,
@@ -13,7 +13,7 @@ Hrlog_RunWriter(const char* filename, int nSkip, int nTotal, ThreadStopFlag* sto
   void* buf[64];
 
   MmapFd m;
-  if (!MmapFd_Open(&m, filename, sizeof(hdr) + nTotal * sizeof(buf[0]) + sizeof(buf))) {
+  if (!MmapFd_Open(&m, w->filename, sizeof(hdr) + w->nTotal * sizeof(buf[0]) + sizeof(buf))) {
     return false;
   }
 
@@ -21,10 +21,11 @@ Hrlog_RunWriter(const char* filename, int nSkip, int nTotal, ThreadStopFlag* sto
   HrlogEntry* output = MmapFd_At(&m, sizeof(hdr));
 
   int nCollected = 0;
-  while (ThreadStopFlag_ShouldContinue(stop) && nCollected < nTotal) {
-    int count = rte_ring_dequeue_burst(theHrlogRing, buf, RTE_DIM(buf), NULL);
-    if (unlikely(nSkip > 0)) {
-      nSkip -= count;
+  int count = 0;
+  while (ThreadCtrl_Continue(w->ctrl, count) && nCollected < w->nTotal) {
+    count = rte_ring_dequeue_burst(theHrlogRing, buf, RTE_DIM(buf), NULL);
+    if (unlikely(w->nSkip > 0)) {
+      w->nSkip -= count;
     } else {
       rte_memcpy(&output[nCollected], buf, count * sizeof(buf[0]));
       nCollected += count;

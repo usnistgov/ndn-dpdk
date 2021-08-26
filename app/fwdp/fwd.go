@@ -24,7 +24,7 @@ import (
 
 // Fwd represents a forwarding thread.
 type Fwd struct {
-	ealthread.Thread
+	ealthread.ThreadWithCtrl
 	id     int
 	c      *C.FwFwd
 	pcct   *pcct.Pcct
@@ -46,9 +46,9 @@ func (fwd *Fwd) Init(lc eal.LCore, pcctCfg pcct.Config, qcfgI, qcfgD, qcfgN ifac
 
 	fwd.c = (*C.FwFwd)(eal.Zmalloc("FwFwd", C.sizeof_FwFwd, socket))
 	fwd.c.id = C.uint8_t(fwd.id)
-	fwd.Thread = ealthread.New(
+	fwd.ThreadWithCtrl = ealthread.NewThreadWithCtrl(
 		cptr.Func0.C(unsafe.Pointer(C.FwFwd_Run), fwd.c),
-		ealthread.InitStopFlag(unsafe.Pointer(&fwd.c.stop)),
+		unsafe.Pointer(&fwd.c.ctrl),
 	)
 	fwd.SetLCore(lc)
 
@@ -96,7 +96,7 @@ func (fwd *Fwd) Close() error {
 
 // NumaSocket implements fib.LookupThread interface.
 func (fwd *Fwd) NumaSocket() eal.NumaSocket {
-	return fwd.Thread.LCore().NumaSocket()
+	return fwd.LCore().NumaSocket()
 }
 
 // SetFib implements fib.LookupThread interface.
@@ -132,11 +132,6 @@ func (fwd *Fwd) String() string {
 // ThreadRole implements ealthread.ThreadWithRole interface.
 func (Fwd) ThreadRole() string {
 	return RoleFwd
-}
-
-// ThreadLoadStat implements ealthread.ThreadWithLoadStat interface.
-func (fwd *Fwd) ThreadLoadStat() ealthread.LoadStat {
-	return ealthread.LoadStatFromPtr(unsafe.Pointer(&fwd.c.loadStat))
 }
 
 func newFwd(id int) *Fwd {

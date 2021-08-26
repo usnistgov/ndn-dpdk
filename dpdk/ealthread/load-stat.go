@@ -1,11 +1,5 @@
 package ealthread
 
-/*
-#include "../../csrc/dpdk/thread.h"
-*/
-import "C"
-import "unsafe"
-
 // LoadStat contains polling thread workload statistics.
 type LoadStat struct {
 	// EmptyPolls is number of polls that processed zero item.
@@ -30,16 +24,6 @@ func (s LoadStat) Sub(prev LoadStat) (diff LoadStat) {
 		diff.ItemsPerPoll = float64(diff.Items) / float64(diff.ValidPolls)
 	}
 	return diff
-}
-
-// LoadStatFromPtr copies *C.ThreadLoadStat to LoadStat.
-func LoadStatFromPtr(ptr unsafe.Pointer) (s LoadStat) {
-	c := (*C.ThreadLoadStat)(ptr)
-	s.EmptyPolls = uint64(c.nPolls[0])
-	s.ValidPolls = uint64(c.nPolls[1])
-	s.Items = uint64(c.items)
-	// don't populate s.ItemsPerPoll, because Items and ValidPolls can possibly wraparound
-	return s
 }
 
 // ThreadWithLoadStat is an object that tracks thread load statistics.

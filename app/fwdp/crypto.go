@@ -33,19 +33,24 @@ func (cfg *CryptoConfig) applyDefaults() {
 
 // Crypto represents a crypto helper thread.
 type Crypto struct {
-	ealthread.Thread
+	ealthread.ThreadWithCtrl
 	id     int
 	c      *C.FwCrypto
 	demuxD *iface.InputDemux
 }
 
+var (
+	_ ealthread.ThreadWithRole     = (*Crypto)(nil)
+	_ ealthread.ThreadWithLoadStat = (*Crypto)(nil)
+)
+
 // Init initializes the crypto helper thread.
 func (fwc *Crypto) Init(lc eal.LCore, ndt *ndt.Ndt, fwds []*Fwd) error {
 	socket := lc.NumaSocket()
 	fwc.c = (*C.FwCrypto)(eal.ZmallocAligned("FwCrypto", C.sizeof_FwCrypto, 1, socket))
-	fwc.Thread = ealthread.New(
+	fwc.ThreadWithCtrl = ealthread.NewThreadWithCtrl(
 		cptr.Func0.C(unsafe.Pointer(C.FwCrypto_Run), unsafe.Pointer(fwc.c)),
-		ealthread.InitStopFlag(unsafe.Pointer(&fwc.c.stop)),
+		unsafe.Pointer(&fwc.c.ctrl),
 	)
 	fwc.SetLCore(lc)
 
@@ -73,11 +78,6 @@ func (fwc *Crypto) String() string {
 // ThreadRole implements ealthread.ThreadWithRole interface.
 func (Crypto) ThreadRole() string {
 	return RoleCrypto
-}
-
-// ThreadLoadStat implements ealthread.ThreadWithLoadStat interface.
-func (fwc *Crypto) ThreadLoadStat() ealthread.LoadStat {
-	return ealthread.LoadStatFromPtr(unsafe.Pointer(&fwc.c.loadStat))
 }
 
 func newCrypto(id int) *Crypto {

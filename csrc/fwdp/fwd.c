@@ -34,7 +34,7 @@ static const FwFwd_RxFunc FwFwd_RxFuncs[PktMax] = {
   FwFwd_RxNack,
 };
 
-static __rte_always_inline uint64_t
+static __rte_always_inline uint32_t
 FwFwd_RxByType(FwFwd* fwd, PktType pktType)
 {
   NDNDPDK_ASSERT(pktType < PktMax);
@@ -73,15 +73,14 @@ FwFwd_Run(FwFwd* fwd)
   fwd->sgGlobal.tscHz = TscHz;
   Pit_SetSgTimerCb(fwd->pit, SgTriggerTimer, fwd);
 
-  while (ThreadStopFlag_ShouldContinue(&fwd->stop)) {
+  uint32_t nProcessed = 0;
+  while (ThreadCtrl_Continue(fwd->ctrl, nProcessed)) {
     rcu_quiescent_state();
     Pit_TriggerTimers(fwd->pit);
 
-    uint64_t nProcessed = 0;
     nProcessed += FwFwd_RxByType(fwd, PktInterest);
     nProcessed += FwFwd_RxByType(fwd, PktData);
     nProcessed += FwFwd_RxByType(fwd, PktNack);
-    ThreadLoadStat_Report(&fwd->loadStat, nProcessed);
   }
 
   N_LOGI("Stop fwd-id=%" PRIu8, fwd->id);

@@ -60,10 +60,10 @@ int
 TgcRx_Run(TgcRx* cr)
 {
   struct rte_mbuf* pkts[MaxBurstSize];
-  while (ThreadStopFlag_ShouldContinue(&cr->stop)) {
+  PktQueuePopResult pop = { 0 };
+  while (ThreadCtrl_Continue(cr->ctrl, pop.count)) {
     TscTime now = rte_get_tsc_cycles();
-    PktQueuePopResult pop = PktQueue_Pop(&cr->rxQueue, pkts, RTE_DIM(pkts), now);
-    ThreadLoadStat_Report(&cr->loadStat, pop.count);
+    pop = PktQueue_Pop(&cr->rxQueue, pkts, RTE_DIM(pkts), now);
     for (uint16_t i = 0; i < pop.count; ++i) {
       Packet* npkt = Packet_FromMbuf(pkts[i]);
       const LpPitToken* token = &Packet_GetLpL3Hdr(npkt)->pitToken;

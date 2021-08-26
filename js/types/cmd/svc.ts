@@ -1,10 +1,13 @@
 import type { EalConfig, LCoreAllocConfig, PktmbufPoolTemplateUpdates } from "../dpdk";
 import type { FwdpConfig } from "../fwdp";
+import type { HrlogWriterConfig } from "../hrlog";
 
 export interface ActivateArgsCommon<Roles extends string = never> {
   eal?: EalConfig;
 
   lcoreAlloc?: LCoreAllocConfig<Roles | "HRLOG" | "PDUMP">;
+
+  hrlog?: HrlogWriterConfig;
 }
 
 /**

@@ -23,7 +23,7 @@ var threadLibInitOnce sync.Once
 
 // Thread represents an SPDK thread.
 type Thread struct {
-	ealthread.Thread
+	ealthread.ThreadWithCtrl
 	c           *C.SpdkThread
 	RcuReadSide *urcu.ReadSide
 }
@@ -52,9 +52,9 @@ func NewThread() (*Thread, error) {
 		RcuReadSide: &urcu.ReadSide{IsOnline: true},
 	}
 	th.c.spdkTh = spdkThread
-	th.Thread = ealthread.New(
+	th.ThreadWithCtrl = ealthread.NewThreadWithCtrl(
 		cptr.Func0.C(C.SpdkThread_Run, unsafe.Pointer(th.c)),
-		ealthread.InitStopFlag(unsafe.Pointer(&th.c.stop)),
+		unsafe.Pointer(&th.c.ctrl),
 	)
 	return th, nil
 }

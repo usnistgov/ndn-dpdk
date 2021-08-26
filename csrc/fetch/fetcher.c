@@ -20,7 +20,7 @@ FetchProc_Encode(FetchProc* fp, FetchThread* fth, struct rte_mbuf* pkt, uint64_t
   LpPitToken_Set(&Packet_GetLpL3Hdr(npkt)->pitToken, sizeof(fp->pitToken), &fp->pitToken);
 }
 
-__attribute__((nonnull)) static uint64_t
+__attribute__((nonnull)) static uint32_t
 FetchProc_TxBurst(FetchProc* fp, FetchThread* fth)
 {
   uint64_t segNums[FETCHER_TX_BURST_SIZE];
@@ -59,7 +59,7 @@ FetchProc_Decode(FetchProc* fp, Packet* npkt, FetchLogicRxData* lpkt)
          Nni_Decode(seqNumComp[1], RTE_PTR_ADD(seqNumComp, 2), &lpkt->segNum);
 }
 
-__attribute__((nonnull)) static uint64_t
+__attribute__((nonnull)) static uint32_t
 FetchProc_RxBurst(FetchProc* fp)
 {
   TscTime now = rte_get_tsc_cycles();
@@ -82,11 +82,11 @@ FetchProc_RxBurst(FetchProc* fp)
 int
 FetchThread_Run(FetchThread* fth)
 {
-  while (ThreadStopFlag_ShouldContinue(&fth->stop)) {
+  uint32_t nProcessed = 0;
+  while (ThreadCtrl_Continue(fth->ctrl, nProcessed)) {
     rcu_quiescent_state();
     rcu_read_lock();
 
-    uint64_t nProcessed = 0;
     FetchProc* fp;
     struct cds_hlist_node* pos;
     cds_hlist_for_each_entry_rcu (fp, pos, &fth->head, fthNode) {
@@ -95,7 +95,6 @@ FetchThread_Run(FetchThread* fth)
       nProcessed += FetchProc_RxBurst(fp);
     }
     rcu_read_unlock();
-    ThreadLoadStat_Report(&fth->loadStat, nProcessed);
   }
   return 0;
 }

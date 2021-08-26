@@ -29,13 +29,12 @@ extern RxGroup theChanRxGroup_;
 /** @brief RX loop thread. */
 typedef struct RxLoop
 {
+  ThreadCtrl ctrl;
   InputDemux demuxI;
   InputDemux demuxD;
   InputDemux demuxN;
 
   struct cds_hlist_head head;
-  ThreadStopFlag stop;
-  ThreadLoadStat loadStat;
 } RxLoop;
 
 __attribute__((nonnull)) int

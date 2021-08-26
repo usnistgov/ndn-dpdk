@@ -6,12 +6,17 @@
 #include "../dpdk/thread.h"
 #include "entry.h"
 
-/**
- * @brief Write high resolution logs to a file.
- * @param nSkip how many initial entries to discard.
- * @param nTotal how many entries to collect.
- */
+/** @brief High resolution log writer task. */
+typedef struct HrlogWriter
+{
+  ThreadCtrl ctrl;
+  const char* filename;
+  int nSkip;  ///< how many initial entries to discard
+  int nTotal; ///< how many entries to collect
+} HrlogWriter;
+
+/** @brief Write high resolution logs to a file. */
 bool
-Hrlog_RunWriter(const char* filename, int nSkip, int nTotal, ThreadStopFlag* stop);
+Hrlog_RunWriter(HrlogWriter* w);
 
 #endif // NDNDPDK_HRLOG_WRITER_H

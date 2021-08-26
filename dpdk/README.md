@@ -28,8 +28,10 @@ Go bindings are object-oriented when possible.
 **ealthread.Allocator** provides an LCore allocator.
 It allows a program to reserve a number of LCores for each "role", and then obtain a NUMA-local LCore reserved for a certain role when needed.
 
-**ealthread.LoadStat** collects statistics of thread empty polls.
+**ealthread.LoadStat** contains statistics of thread empty polls.
 It is a simplified version of DPDK empty poll API, intended for informational purpose instead of power management.
+
+**ealthread.Ctrl** controls a C polling thread and collects LoadStat information.
 
 **pktmbuf.Template** is a template of mempool configuration.
 It can be used to create per-NUMA mempools for packet buffers.

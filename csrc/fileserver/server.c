@@ -197,11 +197,10 @@ FileServer_Run(FileServer* p)
     return 1;
   }
 
-  while (ThreadStopFlag_ShouldContinue(&p->stop)) {
-    uint32_t nProcessed = 0;
+  uint32_t nProcessed = 0;
+  while (ThreadCtrl_Continue(p->ctrl, nProcessed)) {
     nProcessed += FileServer_RxBurst(p);
     nProcessed += FileServer_TxBurst(p);
-    ThreadLoadStat_Report(&p->loadStat, nProcessed);
   }
 
   io_uring_queue_exit(&p->uring);

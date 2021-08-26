@@ -37,7 +37,7 @@ func (cfg *FetcherConfig) applyDefaults() {
 }
 
 type worker struct {
-	ealthread.Thread
+	ealthread.ThreadWithCtrl
 	c *C.FetchThread
 }
 
@@ -49,11 +49,6 @@ var (
 // ThreadRole implements ealthread.ThreadWithRole interface.
 func (worker) ThreadRole() string {
 	return tgdef.RoleConsumer
-}
-
-// ThreadLoadStat implements ealthread.ThreadWithLoadStat interface.
-func (w worker) ThreadLoadStat() ealthread.LoadStat {
-	return ealthread.LoadStatFromPtr(unsafe.Pointer(&w.c.loadStat))
 }
 
 // NumaSocket implements eal.WithNumaSocket interface.
@@ -98,9 +93,9 @@ func New(face iface.Face, cfg FetcherConfig) (*Fetcher, error) {
 		w.c.face = (C.FaceID)(faceID)
 		w.c.interestMp = interestMp
 		C.NonceGen_Init(&w.c.nonceGen)
-		w.Thread = ealthread.New(
+		w.ThreadWithCtrl = ealthread.NewThreadWithCtrl(
 			cptr.Func0.C(unsafe.Pointer(C.FetchThread_Run), w.c),
-			ealthread.InitStopFlag(unsafe.Pointer(&w.c.stop)),
+			unsafe.Pointer(&w.c.ctrl),
 		)
 		fetcher.workers[i] = w
 	}

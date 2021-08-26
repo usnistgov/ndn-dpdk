@@ -13,14 +13,13 @@
 /** @brief FileServer. */
 typedef struct FileServer
 {
+  ThreadCtrl ctrl;
   PktQueue rxQueue;
   struct rte_mempool* payloadMp;
   struct io_uring uring;
-  ThreadLoadStat loadStat;
   FaceID face;
   uint16_t segmentLen;
   uint16_t payloadHeadroom;
-  ThreadStopFlag stop;
   int dfd[FileServerMaxMounts];
   uint16_t prefixL[FileServerMaxMounts];
   uint8_t prefixV[FileServerMaxMounts * NameMaxLength];

@@ -6,7 +6,7 @@ N_LOG_INIT(FwCrypto);
 
 #define FW_CRYPTO_BURST_SIZE 16
 
-__attribute__((nonnull)) static uint64_t
+__attribute__((nonnull)) static uint16_t
 FwCrypto_Input(FwCrypto* fwc)
 {
   Packet* npkts[FW_CRYPTO_BURST_SIZE];
@@ -32,7 +32,7 @@ FwCrypto_Input(FwCrypto* fwc)
   return nDeq;
 }
 
-__attribute__((nonnull)) static void
+__attribute__((nonnull)) static uint16_t
 FwCrypto_Output(FwCrypto* fwc, CryptoQueuePair cqp)
 {
   struct rte_crypto_op* ops[FW_CRYPTO_BURST_SIZE];
@@ -52,6 +52,8 @@ FwCrypto_Output(FwCrypto* fwc, CryptoQueuePair cqp)
     PData* data = Packet_GetDataHdr(npkt);
     InputDemux_Dispatch(&fwc->output, npkt, &data->name);
   }
+
+  return nDeq;
 }
 
 void
@@ -59,9 +61,9 @@ FwCrypto_Run(FwCrypto* fwc)
 {
   N_LOGI("Run fwc=%p input=%p pool=%p cryptodev=%" PRIu8 "-%" PRIu16, fwc, fwc->input, fwc->opPool,
          fwc->cqp.dev, fwc->cqp.qp);
-  while (ThreadStopFlag_ShouldContinue(&fwc->stop)) {
-    FwCrypto_Output(fwc, fwc->cqp);
-    uint64_t nProcessed = FwCrypto_Input(fwc);
-    ThreadLoadStat_Report(&fwc->loadStat, nProcessed);
+  uint16_t nProcessed = 0;
+  while (ThreadCtrl_Continue(fwc->ctrl, nProcessed)) {
+    nProcessed += FwCrypto_Output(fwc, fwc->cqp);
+    nProcessed += FwCrypto_Input(fwc);
   }
 }

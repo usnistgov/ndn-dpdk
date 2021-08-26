@@ -8,8 +8,8 @@
 
 typedef struct SpdkThread
 {
+  ThreadCtrl ctrl;
   struct spdk_thread* spdkTh;
-  ThreadStopFlag stop;
 } SpdkThread;
 
 int

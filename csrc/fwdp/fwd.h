@@ -19,6 +19,7 @@ typedef struct FwFwdCtx FwFwdCtx;
 typedef struct FwFwd
 {
   SgGlobal sgGlobal;
+  ThreadCtrl ctrl;
   PktQueue queueI;
   PktQueue queueD;
   PktQueue queueN;
@@ -31,7 +32,6 @@ typedef struct FwFwd
 
   uint8_t id;          ///< fwd process id
   uint8_t fibDynIndex; ///< FibEntry.dyn index
-  ThreadStopFlag stop;
 
   uint64_t nNoFibMatch;   ///< Interests dropped due to no FIB match
   uint64_t nDupNonce;     ///< Interests dropped due to duplicate nonce
@@ -44,7 +44,6 @@ typedef struct FwFwd
 
   /** @brief Statistics of latency from packet arrival to start processing. */
   RunningStat latencyStat;
-  ThreadLoadStat loadStat;
 } FwFwd;
 
 int

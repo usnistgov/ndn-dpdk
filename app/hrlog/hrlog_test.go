@@ -1,7 +1,9 @@
 package hrlog_test
 
 import (
+	"context"
 	"math/rand"
+	"path"
 	"testing"
 	"time"
 
@@ -12,24 +14,39 @@ import (
 )
 
 func TestWriter(t *testing.T) {
-	defer ealthread.AllocClear()
+	t.Cleanup(ealthread.AllocClear)
 	assert, require := makeAR(t)
 
-	filename, del := testenv.TempName()
+	dir, del := testenv.TempDir()
 	defer del()
+	fileA, fileB, fileC := path.Join(dir, "A.bin"), path.Join(dir, "B.bin"), path.Join(dir, "C.bin")
 
 	w, e := hrlog.NewWriter(hrlog.WriterConfig{
 		RingCapacity: 256,
 	})
 	require.NoError(e)
 	require.NoError(ealthread.AllocLaunch(w))
+	defer w.Stop()
 
-	task, e := w.Submit(hrlog.TaskConfig{
-		Filename: filename,
+	ctxA, cancelA := context.WithCancel(context.TODO())
+	ctxB, cancelB := context.WithCancel(context.TODO())
+	ctxC, cancelC := context.WithCancel(context.TODO())
+	resA := w.Submit(ctxA, hrlog.TaskConfig{
+		Filename: fileA,
 		Count:    1024,
 	})
-	require.NoError(e)
-	time.Sleep(50 * time.Millisecond)
+	resB := w.Submit(ctxB, hrlog.TaskConfig{
+		Filename: fileB,
+		Count:    16384,
+	})
+	resC := w.Submit(ctxC, hrlog.TaskConfig{
+		Filename: fileC,
+		Count:    16384,
+	})
+	time.Sleep(200 * time.Millisecond)
+
+	cancelB()
+	assert.ErrorIs(<-resB, context.Canceled)
 
 	entries := make([]uint64, 8192)
 	for i := range entries {
@@ -40,12 +57,17 @@ func TestWriter(t *testing.T) {
 		time.Sleep(1 * time.Millisecond)
 	}
 
-	time.Sleep(50 * time.Millisecond)
-	assert.NoError(task.Stop())
-	assert.NoError(w.Stop())
+	time.Sleep(300 * time.Millisecond)
+	cancelA()
+	cancelC()
+	assert.NoError(<-resA)
+	assert.ErrorIs(<-resC, context.Canceled)
+	assert.FileExists(fileA)
+	assert.NoFileExists(fileB)
+	assert.FileExists(fileC)
 
 	count := 0
-	r, e := hrlogreader.Open(filename)
+	r, e := hrlogreader.Open(fileA)
 	require.NoError(e)
 	for entry := range r.Read() {
 		count++

@@ -2,7 +2,7 @@
 
 RxGroup theChanRxGroup_;
 
-__attribute__((nonnull)) static uint64_t
+__attribute__((nonnull)) static uint16_t
 RxLoop_Transfer(RxLoop* rxl, RxGroup* rxg)
 {
   struct rte_mbuf* frames[MaxBurstSize];
@@ -50,10 +50,9 @@ int
 RxLoop_Run(RxLoop* rxl)
 {
   rcu_register_thread();
-  while (ThreadStopFlag_ShouldContinue(&rxl->stop)) {
+  uint16_t nProcessed = 0;
+  while (ThreadCtrl_Continue(rxl->ctrl, nProcessed)) {
     rcu_quiescent_state();
-    uint64_t nProcessed = 0;
-
     rcu_read_lock();
     RxGroup* rxg;
     struct cds_hlist_node* pos;
@@ -61,8 +60,6 @@ RxLoop_Run(RxLoop* rxl)
       nProcessed += RxLoop_Transfer(rxl, rxg);
     }
     rcu_read_unlock();
-
-    ThreadLoadStat_Report(&rxl->loadStat, nProcessed);
   }
   rcu_unregister_thread();
   return 0;

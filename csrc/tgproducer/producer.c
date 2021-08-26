@@ -89,13 +89,11 @@ Tgp_Run(Tgp* p)
 {
   struct rte_mbuf* rx[MaxBurstSize];
   Packet* tx[MaxBurstSize];
-
-  while (ThreadStopFlag_ShouldContinue(&p->stop)) {
+  PktQueuePopResult pop = { 0 };
+  while (ThreadCtrl_Continue(p->ctrl, pop.count)) {
     TscTime now = rte_get_tsc_cycles();
-    PktQueuePopResult pop = PktQueue_Pop(&p->rxQueue, rx, MaxBurstSize, now);
-    ThreadLoadStat_Report(&p->loadStat, pop.count);
+    pop = PktQueue_Pop(&p->rxQueue, rx, MaxBurstSize, now);
     if (unlikely(pop.count == 0)) {
-      rte_pause();
       continue;
     }
 

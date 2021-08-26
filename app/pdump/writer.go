@@ -65,7 +65,7 @@ func (cfg WriterConfig) validate() error {
 
 // Writer is a pdump writer thread.
 type Writer struct {
-	ealthread.Thread
+	ealthread.ThreadWithCtrl
 	c     *C.PdumpWriter
 	queue *ringbuffer.Ring
 	mp    *pktmbuf.Pool
@@ -75,7 +75,10 @@ type Writer struct {
 	hasSHB bool
 }
 
-var _ ealthread.ThreadWithRole = (*Writer)(nil)
+var (
+	_ ealthread.ThreadWithRole     = (*Writer)(nil)
+	_ ealthread.ThreadWithLoadStat = (*Writer)(nil)
+)
 
 func (w *Writer) startDumper() {
 	w.wg.Add(1)
@@ -174,9 +177,9 @@ func NewWriter(cfg WriterConfig) (w *Writer, e error) {
 		w.c.intf[i] = math.MaxUint32
 	}
 
-	w.Thread = ealthread.New(
+	w.ThreadWithCtrl = ealthread.NewThreadWithCtrl(
 		cptr.Func0.C(unsafe.Pointer(C.PdumpWriter_Run), w.c),
-		ealthread.InitStopFlag(unsafe.Pointer(&w.c.stop)),
+		unsafe.Pointer(&w.c.ctrl),
 	)
 	defer func() {
 		if e != nil {

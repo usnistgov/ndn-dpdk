@@ -4,17 +4,17 @@ package ealthreadtest
 #include "../../../csrc/dpdk/thread.h"
 
 typedef struct TestThread {
-	ThreadLoadStat loadStat;
+	ThreadCtrl ctrl;
 	int n;
-	ThreadStopFlag stop;
 } TestThread;
 
 int
 TestThread_Run(TestThread* th) {
 	th->n = 0;
-	while (ThreadStopFlag_ShouldContinue(&th->stop)) {
+	int x = 0;
+	while (ThreadCtrl_Continue(th->ctrl, x)) {
 		++th->n;
-		ThreadLoadStat_Report(&th->loadStat, th->n % 5);
+		x = th->n % 5;
 	}
 	return 0;
 }
@@ -29,31 +29,28 @@ import (
 )
 
 type testThread struct {
-	ealthread.Thread
+	ealthread.ThreadWithCtrl
 	c *C.TestThread
 }
 
 var (
 	_ ealthread.ThreadWithRole     = (*testThread)(nil)
 	_ ealthread.ThreadWithLoadStat = (*testThread)(nil)
+	_ ealthread.ThreadWithCtrl     = (*testThread)(nil)
 )
 
 func newTestThread() *testThread {
 	var th testThread
 	th.c = (*C.TestThread)(eal.Zmalloc("TestThread", C.sizeof_TestThread, eal.NumaSocket{}))
-	th.Thread = ealthread.New(
+	th.ThreadWithCtrl = ealthread.NewThreadWithCtrl(
 		cptr.Func0.C(unsafe.Pointer(C.TestThread_Run), th.c),
-		ealthread.InitStopFlag(unsafe.Pointer(&th.c.stop)),
+		unsafe.Pointer(&th.c.ctrl),
 	)
 	return &th
 }
 
 func (th *testThread) ThreadRole() string {
 	return "TEST"
-}
-
-func (th *testThread) ThreadLoadStat() ealthread.LoadStat {
-	return ealthread.LoadStatFromPtr(unsafe.Pointer(&th.c.loadStat))
 }
 
 func (th *testThread) GetN() int {

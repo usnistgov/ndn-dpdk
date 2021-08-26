@@ -37,16 +37,16 @@ func NewTxLoop(socket eal.NumaSocket) TxLoop {
 		c:      (*C.TxLoop)(eal.Zmalloc("TxLoop", C.sizeof_TxLoop, socket)),
 		socket: socket,
 	}
-	txl.Thread = ealthread.New(
+	txl.ThreadWithCtrl = ealthread.NewThreadWithCtrl(
 		cptr.Func0.C(unsafe.Pointer(C.TxLoop_Run), txl.c),
-		ealthread.InitStopFlag(unsafe.Pointer(&txl.c.stop)),
+		unsafe.Pointer(&txl.c.ctrl),
 	)
 	txLoopThreads[txl] = true
 	return txl
 }
 
 type txLoop struct {
-	ealthread.Thread
+	ealthread.ThreadWithCtrl
 	c      *C.TxLoop
 	socket eal.NumaSocket
 	nFaces int
@@ -58,10 +58,6 @@ func (txl *txLoop) NumaSocket() eal.NumaSocket {
 
 func (txl *txLoop) ThreadRole() string {
 	return RoleTx
-}
-
-func (txl *txLoop) ThreadLoadStat() ealthread.LoadStat {
-	return ealthread.LoadStatFromPtr(unsafe.Pointer(&txl.c.loadStat))
 }
 
 func (txl *txLoop) Close() error {

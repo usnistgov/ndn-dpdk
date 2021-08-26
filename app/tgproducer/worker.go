@@ -18,7 +18,7 @@ import (
 )
 
 type worker struct {
-	ealthread.Thread
+	ealthread.ThreadWithCtrl
 	c *C.Tgp
 }
 
@@ -30,11 +30,6 @@ var (
 // ThreadRole implements ealthread.ThreadWithRole interface.
 func (worker) ThreadRole() string {
 	return tgdef.RoleProducer
-}
-
-// ThreadLoadStat implements ealthread.ThreadWithLoadStat interface.
-func (w worker) ThreadLoadStat() ealthread.LoadStat {
-	return ealthread.LoadStatFromPtr(unsafe.Pointer(&w.c.loadStat))
 }
 
 // NumaSocket implements eal.WithNumaSocket interface.
@@ -117,9 +112,9 @@ func newWorker(faceID iface.ID, socket eal.NumaSocket, rxqCfg iface.PktQueueConf
 	C.pcg32_srandom_r(&w.c.replyRng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
 	(*ndni.Mempools)(unsafe.Pointer(&w.c.mp)).Assign(socket, ndni.DataMempool)
 
-	w.Thread = ealthread.New(
+	w.ThreadWithCtrl = ealthread.NewThreadWithCtrl(
 		cptr.Func0.C(unsafe.Pointer(C.Tgp_Run), w.c),
-		ealthread.InitStopFlag(unsafe.Pointer(&w.c.stop)),
+		unsafe.Pointer(&w.c.ctrl),
 	)
 	return w, nil
 }

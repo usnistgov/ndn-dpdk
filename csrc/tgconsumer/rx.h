@@ -20,9 +20,8 @@ typedef struct TgcRxPattern
 /** @brief Traffic generator consumer RX thread. */
 typedef struct TgcRx
 {
+  ThreadCtrl ctrl;
   PktQueue rxQueue;
-  ThreadLoadStat loadStat;
-  ThreadStopFlag stop;
   uint8_t runNum;
   uint8_t nPatterns;
   TgcRxPattern pattern[TgcMaxPatterns];

@@ -1,52 +1,18 @@
 package hrlog
 
 import (
+	"context"
+
+	"github.com/functionalfoundry/graphqlws"
 	"github.com/graphql-go/graphql"
 	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
-)
-
-// GraphQL types.
-var (
-	GqlTaskNodeType *gqlserver.NodeType
-	GqlTaskType     *graphql.Object
+	"github.com/usnistgov/ndn-dpdk/core/gqlserver/gqlsub"
 )
 
 func init() {
-	GqlTaskNodeType = gqlserver.NewNodeType((*Task)(nil))
-	GqlTaskNodeType.GetID = func(source interface{}) string {
-		task := source.(*Task)
-		return task.id
-	}
-	GqlTaskNodeType.Retrieve = func(id string) (interface{}, error) {
-		if TheWriter == nil {
-			return nil, nil
-		}
-		task, _ := TheWriter.tasks.Load(id)
-		return task, nil
-	}
-	GqlTaskNodeType.Delete = func(source interface{}) error {
-		task := source.(*Task)
-		return task.Stop()
-	}
-
-	GqlTaskType = graphql.NewObject(GqlTaskNodeType.Annotate(graphql.ObjectConfig{
-		Name: "HrlogTask",
-		Fields: graphql.Fields{
-			"filename": &graphql.Field{
-				Type:        gqlserver.NonNullString,
-				Description: "Filename.",
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					task := p.Source.(*Task)
-					return task.cfg.Filename, nil
-				},
-			},
-		},
-	}))
-	GqlTaskNodeType.Register(GqlTaskType)
-
-	gqlserver.AddMutation(&graphql.Field{
+	gqlserver.AddSubscription(&graphql.Field{
 		Name:        "collectHrlog",
-		Description: "Start hrlog collection.",
+		Description: "Perform hrlog collection.",
 		Args: graphql.FieldConfigArgument{
 			"filename": &graphql.ArgumentConfig{
 				Type: gqlserver.NonNullString,
@@ -55,19 +21,29 @@ func init() {
 				Type: graphql.Int,
 			},
 		},
-		Type: GqlTaskType,
+		Type: gqlserver.NonNullBoolean,
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-			if TheWriter == nil {
-				return nil, ErrDisabled
+			if e, ok := p.Info.RootValue.(error); ok {
+				return nil, e
 			}
-
-			cfg := TaskConfig{
-				Filename: p.Args["filename"].(string),
-			}
-			if count, ok := p.Args["count"]; ok {
-				cfg.Count = count.(int)
-			}
-			return TheWriter.Submit(cfg)
+			return true, nil
 		},
+	}, func(ctx context.Context, sub *graphqlws.Subscription, updates chan<- interface{}) {
+		defer close(updates)
+
+		if TheWriter == nil {
+			updates <- ErrDisabled
+			return
+		}
+
+		cfg, ok := TaskConfig{}, true
+		if cfg.Filename, ok = gqlsub.GetArg(sub, "filename", graphql.String).(string); !ok {
+			return
+		}
+		if cfg.Count, ok = gqlsub.GetArg(sub, "count", graphql.Int).(int); !ok {
+			cfg.Count = 0
+		}
+
+		updates <- (<-TheWriter.Submit(ctx, cfg))
 	})
 }

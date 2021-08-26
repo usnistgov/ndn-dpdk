@@ -56,16 +56,16 @@ func NewRxLoop(socket eal.NumaSocket) RxLoop {
 	C.InputDemux_SetDispatchFunc_(&rxl.c.demuxD, C.InputDemux_DispatchDrop)
 	C.InputDemux_SetDispatchFunc_(&rxl.c.demuxN, C.InputDemux_DispatchDrop)
 
-	rxl.Thread = ealthread.New(
+	rxl.ThreadWithCtrl = ealthread.NewThreadWithCtrl(
 		cptr.Func0.C(unsafe.Pointer(C.RxLoop_Run), rxl.c),
-		ealthread.InitStopFlag(unsafe.Pointer(&rxl.c.stop)),
+		unsafe.Pointer(&rxl.c.ctrl),
 	)
 	rxLoopThreads[rxl] = true
 	return rxl
 }
 
 type rxLoop struct {
-	ealthread.Thread
+	ealthread.ThreadWithCtrl
 	c      *C.RxLoop
 	socket eal.NumaSocket
 	nRxgs  int
@@ -77,10 +77,6 @@ func (rxl *rxLoop) NumaSocket() eal.NumaSocket {
 
 func (rxl *rxLoop) ThreadRole() string {
 	return RoleRx
-}
-
-func (rxl *rxLoop) ThreadLoadStat() ealthread.LoadStat {
-	return ealthread.LoadStatFromPtr(unsafe.Pointer(&rxl.c.loadStat))
 }
 
 func (rxl *rxLoop) Close() error {

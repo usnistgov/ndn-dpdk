@@ -82,9 +82,10 @@ PdumpWriter_Run(PdumpWriter* w)
     return 1;
   }
 
-  while (ThreadStopFlag_ShouldContinue(&w->stop)) {
+  uint16_t count = 0;
+  while (ThreadCtrl_Continue(w->ctrl, count)) {
     struct rte_mbuf* pkts[PdumpWriterBurstSize];
-    uint16_t count = rte_ring_dequeue_burst(w->queue, (void**)pkts, RTE_DIM(pkts), NULL);
+    count = rte_ring_dequeue_burst(w->queue, (void**)pkts, RTE_DIM(pkts), NULL);
 
     bool full = false;
     for (uint16_t i = 0; i < count; ++i) {
