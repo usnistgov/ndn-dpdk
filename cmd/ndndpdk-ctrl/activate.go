@@ -26,16 +26,26 @@ func init() {
 	defineActivateCommand("forwarder", "forwarder")
 	defineActivateCommand("trafficgen", "traffic generator")
 
+	restart := false
 	defineCommand(&cli.Command{
 		Category: "activate",
 		Name:     "shutdown",
 		Usage:    "Shutdown NDN-DPDK service",
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:        "restart",
+				Usage:       "restart after shutdown",
+				Destination: &restart,
+			},
+		},
 		Action: func(c *cli.Context) error {
 			return clientDoPrint(c.Context, `
-				mutation shutdown {
-					shutdown
+				mutation shutdown($restart: Boolean) {
+					shutdown(restart: $restart)
 				}
-			`, nil, "shutdown")
+			`, map[string]interface{}{
+				"restart": restart,
+			}, "shutdown")
 		},
 	})
 }

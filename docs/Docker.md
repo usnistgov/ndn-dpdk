@@ -57,6 +57,7 @@ Example command to start the NDN-DPDK service container:
 ```bash
 docker volume create run-ndn
 docker run -d --name ndndpdk-svc \
+  --restart on-failure \
   --cap-add IPC_LOCK --cap-add NET_ADMIN --cap-add SYS_ADMIN --cap-add SYS_NICE \
   --mount type=bind,source=/dev/hugepages,target=/dev/hugepages \
   --mount type=volume,source=run-ndn,target=/run/ndn \
@@ -69,6 +70,8 @@ GQLSERVER=$(docker inspect -f 'http://{{range.NetworkSettings.Networks}}{{.IPAdd
 You can view logs from the NDN-DPDK service container with `docker logs -f ndn-dpdk` command.
 
 ### Explanation of Docker Flags
+
+`--restart on-failure` automatically restarts the service upon failure or `ndndpdk-ctrl shutdown --restart`.
 
 `--cap-add` adds capabilities required by DPDK.
 

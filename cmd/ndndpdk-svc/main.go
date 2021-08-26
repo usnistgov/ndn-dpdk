@@ -100,11 +100,26 @@ func init() {
 	gqlserver.AddMutation(&graphql.Field{
 		Name:        "shutdown",
 		Description: "Shutdown NDN-DPDK service.",
-		Type:        gqlserver.NonNullBoolean,
+		Args: graphql.FieldConfigArgument{
+			"restart": &graphql.ArgumentConfig{
+				Description: "Whether to restart the service.",
+				Type:        graphql.Boolean,
+			},
+		},
+		Type: gqlserver.NonNullBoolean,
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-			logger.Info("shutdown requested")
+			restart, ok := p.Args["restart"].(bool)
+			if !ok {
+				restart = false
+			}
+			exitCode := 0
+			if restart {
+				exitCode = 75
+			}
+
+			logger.Info("shutdown requested", zap.Bool("restart", restart))
 			daemon.SdNotify(false, daemon.SdNotifyStopping)
-			delayedShutdown(func() { os.Exit(0) })
+			delayedShutdown(func() { os.Exit(exitCode) })
 			return true, nil
 		},
 	})
