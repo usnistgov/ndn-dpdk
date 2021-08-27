@@ -35,12 +35,12 @@ ThreadCtrl_Sleep(ThreadCtrl* ctrl)
  */
 #define ThreadCtrl_Continue(ctrl, count)                                                           \
   __extension__({                                                                                  \
-    ++(ctrl).nPolls[(int)(count > 0)];                                                             \
-    (ctrl).items += count;                                                                         \
+    ++(ctrl).nPolls[(int)((count) > 0)];                                                           \
+    (ctrl).items += (count);                                                                       \
     if (count == 0) {                                                                              \
       ThreadCtrl_Sleep(&(ctrl));                                                                   \
     }                                                                                              \
-    count = 0;                                                                                     \
+    (count) = 0;                                                                                   \
     atomic_load_explicit(&(ctrl).stop, memory_order_acquire);                                      \
   })
 

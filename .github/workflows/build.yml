@@ -73,7 +73,9 @@ jobs:
         run: |
           go get -t ./...
           make lint
-          [[ $(git status --porcelain | tee >(cat 1>&2) | wc -l) -eq 0 ]]
+          if [[ $(git status --porcelain | tee /dev/stderr | wc -l) -ne 0 ]]; then
+            git diff && false
+          fi
       - name: run unit tests
         run: |
           MK_GOTEST_FILTER="/${TEST_ACCEPTABLE_FAILURES}/ d" make test
@@ -81,8 +83,20 @@ jobs:
         env:
           TEST_ACCEPTABLE_FAILURES: bdev|diskstore|ethface|fetch|fileserver|fwdp|memiftransport|tgconsumer|tgproducer
           NDNDPDK_MK_THREADSLEEP: 1
-      - name: build documentation
+      - name: build docs
         run: make doxygen
+        if: ${{ matrix.compiler == 'gcc-10' && (github.repository != 'yoursunny/ndn-dpdk' || github.event_name != 'push') }}
+      - name: build docs
+        run: bash docs/build-netlify.sh
+        if: ${{ matrix.compiler == 'gcc-10' && github.repository == 'yoursunny/ndn-dpdk' && github.event_name == 'push' }}
+      - name: deploy docs
+        uses: South-Paw/action-netlify-deploy@v1.2.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          netlify-auth-token: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          netlify-site-id: a0fbfa66-eecb-46d0-9e0b-093ddd1d0fad
+          build-dir: ./build/docs/
+        if: ${{ matrix.compiler == 'gcc-10' && github.repository == 'yoursunny/ndn-dpdk' && github.event_name == 'push' }}
   docker:
     runs-on: ubuntu-20.04
     steps:
