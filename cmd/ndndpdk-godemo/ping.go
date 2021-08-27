@@ -11,12 +11,11 @@ import (
 	"github.com/urfave/cli/v2"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/endpoint"
-	"go4.org/must"
 )
 
 func init() {
 	var name string
-	var wantAdvertise bool
+	var wantAdvertise, wantSign bool
 	var payloadLen int
 	defineCommand(&cli.Command{
 		Name:  "pingserver",
@@ -39,24 +38,38 @@ func init() {
 				Usage:       "payload length",
 				Destination: &payloadLen,
 			},
+			&cli.BoolFlag{
+				Name:        "signed",
+				Usage:       "enable packet signing (SigSha256)",
+				Destination: &wantSign,
+			},
 		},
 		Before: openUplink,
 		Action: func(c *cli.Context) error {
 			payload := make([]byte, payloadLen)
 			rand.Read(payload)
-			p, e := endpoint.Produce(context.Background(), endpoint.ProducerOptions{
+			var signer ndn.Signer
+			if wantSign {
+				signer = ndn.DigestSigning
+			}
+
+			ctx, cancel := context.WithCancel(context.Background())
+			onInterrupt(cancel)
+
+			_, e := endpoint.Produce(ctx, endpoint.ProducerOptions{
 				Prefix:      ndn.ParseName(name),
 				NoAdvertise: !wantAdvertise,
 				Handler: func(ctx context.Context, interest ndn.Interest) (ndn.Data, error) {
 					log.Print(interest)
 					return ndn.MakeData(interest, payload), nil
 				},
+				DataSigner: signer,
 			})
 			if e != nil {
 				return e
 			}
-			<-interrupt
-			must.Close(p)
+
+			<-ctx.Done()
 			return nil
 		},
 	})
@@ -65,6 +78,7 @@ func init() {
 func init() {
 	var name string
 	var interval, lifetime time.Duration
+	var wantVerify bool
 	defineCommand(&cli.Command{
 		Name:  "pingclient",
 		Usage: "Reachability test client: periodically send Interest under a prefix.",
@@ -87,12 +101,21 @@ func init() {
 				Value:       1000 * time.Millisecond,
 				Destination: &lifetime,
 			},
+			&cli.BoolFlag{
+				Name:        "verified",
+				Usage:       "enable packet verification (SigSha256)",
+				Destination: &wantVerify,
+			},
 		},
 		Before: openUplink,
 		Action: func(c *cli.Context) error {
+			var verifier ndn.Verifier
+			if wantVerify {
+				verifier = ndn.DigestSigning
+			}
+
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
-
 			ticker := time.NewTicker(interval)
 			defer ticker.Stop()
 
@@ -105,14 +128,16 @@ func init() {
 				case timestamp := <-ticker.C:
 					go func(t0 time.Time, s uint64) {
 						interest := ndn.MakeInterest(fmt.Sprintf("%s/%016X", name, seqNum), ndn.MustBeFreshFlag, lifetime)
-						_, e := endpoint.Consume(ctx, interest, endpoint.ConsumerOptions{})
+						_, e := endpoint.Consume(ctx, interest, endpoint.ConsumerOptions{
+							Verifier: verifier,
+						})
 						rtt := time.Since(t0)
 						if e == nil {
-							atomic.AddInt64(&nData, 1)
-							log.Printf("%6.2f%% D %016X %6dus", 100*float64(nData)/float64(nData+nErrors), seqNum, rtt.Microseconds())
+							nDataL, nErrorsL := atomic.AddInt64(&nData, 1), atomic.LoadInt64(&nErrors)
+							log.Printf("%6.2f%% D %016X %6dus", 100*float64(nDataL)/float64(nDataL+nErrorsL), seqNum, rtt.Microseconds())
 						} else {
-							atomic.AddInt64(&nErrors, 1)
-							log.Printf("%6.2f%% E %016X %v", 100*float64(nData)/float64(nData+nErrors), seqNum, e)
+							nDataL, nErrorsL := atomic.LoadInt64(&nData), atomic.AddInt64(&nErrors, 1)
+							log.Printf("%6.2f%% E %016X %v", 100*float64(nDataL)/float64(nDataL+nErrorsL), seqNum, e)
 						}
 					}(timestamp, seqNum)
 					seqNum++

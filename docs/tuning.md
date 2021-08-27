@@ -52,7 +52,7 @@ To configure CPU isolation for the NDN-DPDK Docker container:
 
 In DPDK, the main thread as well as each worker thread is referred to as an *lcore*.
 Normally, each lcore requires a CPU core (logical processor).
-If you need to run NDN-DPDK on a machine with fewer CPU cores, it is possible to map more lcores to fewer CPU cores by setting **.eal.lcorePerNuma** option in the activation parameters.
+If you need to run NDN-DPDK on a machine with fewer CPU cores, it is possible to map more lcores to fewer CPU cores by setting **.eal.lcoresPerNuma** option in the activation parameters.
 NDN-DPDK would run at reduced performance because multiple threads are competing for the same CPU core.
 In this case, you may also want to use `NDNDPDK_MK_THREADSLEEP=1` option, see [installation guide](INSTALL.md) "compile-time settings".
 
@@ -78,7 +78,7 @@ Example:
     "FWD":    { "0": 3, "1": 0 }, // 3 forwarding threads on NUMA socket 0
     "CRYPTO": { "0": 0, "1": 1 }, // 1 crypto helper thread on NUMA socket 1
   }
-  // This snippet is for demonstration purposes. Typically, you should reduce the number of lcores
+  // This snippet is for demonstration purpose. Typically, you should reduce the number of lcores
   // in each role before using .eal.lcoresPerNuma option.
 }
 ```
@@ -89,7 +89,7 @@ It always tries to allocate lcores on the same NUMA socket as the Ethernet adapt
 ## CPU Usage Insights
 
 Packet processing with DPDK uses continuous polling: every thread runs an endless loop, in which packets (or other items) are retrieved from queues and then processed.
-CPU cores used by DPDK always show 100% busy independent of how much works those cores are doing.
+CPU cores used by DPDK always show 100% busy independent of how much work those cores are doing.
 
 NDN-DPDK maintains thread load statistic in polling threads, including these counters:
 
@@ -98,7 +98,7 @@ NDN-DPDK maintains thread load statistic in polling threads, including these cou
 * total number of dequeued packets.
 * average number of dequeued packets per burst.
 
-These counters can be retrieved using GraphQL subscription `threadLoadStat`, with the ID of a worker LCore (found via `workers` query).
+These counters can be retrieved using GraphQL subscription `threadLoadStat` with the ID of a worker LCore (found via `workers` query).
 Generally, if the empty poll counter of a thread is much smaller than its valid poll counter, it indicates the thread is overloaded.
 
 ## Memory Usage Insights
@@ -128,6 +128,7 @@ gq $GQLSERVER -q '{memoryDiag{memzones}}' | jq -r '.data.memoryDiag.memzones'
 
 If you need to run NDN-DPDK on a machine with limited amount of memory, you can try:
 
-1. Set small numbers for packet buffer pool capacity (start with 8192) and table sizes (start with 512).
-2. Activate the forwarder or traffic generator, and read the usage reports.
-3. Change configuration and repeat.
+1. Set small numbers for packet buffer pool capacity (start with 8192) and FIB/PCCT capacity (start with 1024).
+2. Use fewer forwarding threads, because each would create a separate PCCT.
+3. Activate the forwarder or traffic generator, and read the usage reports.
+4. Change configuration and repeat.

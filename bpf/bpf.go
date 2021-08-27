@@ -26,7 +26,7 @@ const (
 // It then searches the file in the following locations:
 //  1. The path specified in NDNDPDK_BPF_PATH environ.
 //  2. ../lib/bpf relative to the executable.
-//     From /usr/local/sbin/ndndpdk-svc, this step looks for eBPF objects in /usr/local/lib/bpf.
+//     From /usr/local/bin/ndndpdk-svc, this step looks for eBPF objects in /usr/local/lib/bpf.
 //  3. build/lib/bpf in the source tree.
 //     This is used in unit tests, and is skipped if the executable is installed under /usr.
 func (kind Kind) Find(name string) (path string, e error) {

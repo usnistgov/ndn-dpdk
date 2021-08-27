@@ -45,19 +45,19 @@ After starting the `ndndpdk-svc` service process or container, there are two ste
 1. Activate the service process as a traffic generator role.
    This prepares the service to accept traffic generator related commands.
 
-   You must prepare a JSON document that contains traffic generator activation parameters, which must conform to the JSON schema `/usr/local/share/ndn-dpdk/trafficgen.schema.json`.
+   You must prepare a JSON document that contains traffic generator activation parameters, which must conform to the JSON schema `trafficgen.schema.json` (installed in `/usr/local/share/ndn-dpdk` and [available online](https://ndn-dpdk.ndn.today/schema/trafficgen.schema.json)).
    You can use the `ndndpdk-ctrl activate-trafficgen` command, or programmatically activate the traffic generator via GraphQL `activate` mutation with `trafficgen` input.
 
 2. Start a traffic generator with traffic patterns.
    This requests the service process to create a face, allocate producer and consumer threads, and launch them with the provided traffic patterns.
 
-   You must prepare a JSON document that contains traffic patterns configuration, which must conform to the JSON schema `/usr/local/share/ndn-dpdk/gen.schema.json`.
+   You must prepare a JSON document that contains traffic patterns configuration, which must conform to the JSON schema `gen.schema.json` (installed in `/usr/local/share/ndn-dpdk` and [available online](https://ndn-dpdk.ndn.today/schema/gen.schema.json)).
    You can use the `ndndpdk-ctrl start-trafficgen` command, or programmatically start a traffic generator via GraphQL `startTrafficGen` mutation.
 
 ### Authoring Parameters in TypeScript
 
 NDN-DPDK provides TypeScript definitions to help with authoring the parameters.
-You may install the NPM package from `/usr/local/share/ndn-dpdk/ndn-dpdk.npm.tgz`, and then construct an object of `ActivateGenArgs` type for activation and `TgConfig` for starting.
+You may install the NPM package from `/usr/local/share/ndn-dpdk/ndn-dpdk.npm.tgz` (built from [js](../js) directory), and then construct an object of `ActivateGenArgs` type for activation and `TgConfig` for starting.
 
 [docs/activate](activate) is a sample TypeScript project that generates the parameters.
 You can follow a similar procedure as [forwarder activation and usage](forwarder.md) to use this sample.

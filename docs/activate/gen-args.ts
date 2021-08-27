@@ -1,14 +1,12 @@
-import type { ActivateGenArgs, EalConfig } from "@usnistgov/ndn-dpdk";
+import type { ActivateGenArgs } from "@usnistgov/ndn-dpdk";
 import stdout from "stdout-stream";
 
-const eal: EalConfig = {
-  pciDevices: [
-    "0000:04:00.0",
-  ],
-};
-
 const args: ActivateGenArgs = {
-  eal,
+  eal: {
+    pciDevices: [
+      "0000:04:00.0",
+    ],
+  },
   mempool: {
     DIRECT: { capacity: 1048575, dataroom: 9128 },
     INDIRECT: { capacity: 1048575 },

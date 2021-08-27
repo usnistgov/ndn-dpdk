@@ -19,6 +19,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/mgmt"
 	"github.com/usnistgov/ndn-dpdk/ndn/mgmt/gqlmgmt"
 	"go4.org/must"
+	"golang.org/x/sys/unix"
 )
 
 var (
@@ -49,6 +50,13 @@ func openUplink(c *cli.Context) (e error) {
 	return nil
 }
 
+func onInterrupt(cancel func()) {
+	go func() {
+		<-interrupt
+		cancel()
+	}()
+}
+
 var app = &cli.App{
 	Version: version.Get().String(),
 	Usage:   "NDNgo library demo.",
@@ -66,6 +74,9 @@ var app = &cli.App{
 		},
 	},
 	Before: func(c *cli.Context) (e error) {
+		if unix.Geteuid() != 0 {
+			log.Print("running as non-root, some features will not work")
+		}
 		signal.Notify(interrupt, syscall.SIGINT)
 		client, e = gqlmgmt.New(gqlclient.Config{HTTPUri: gqlserver})
 		return e
@@ -85,7 +96,6 @@ func defineCommand(command *cli.Command) {
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
-
 	sort.Sort(cli.CommandsByName(app.Commands))
 	e := app.Run(os.Args)
 	if e != nil {

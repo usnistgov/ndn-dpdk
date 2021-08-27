@@ -4,7 +4,7 @@ Documentation=https://github.com/usnistgov/ndn-dpdk
 
 [Service]
 Type=notify
-ExecStart=/usr/local/sbin/ndndpdk-svc
+ExecStart=/usr/local/bin/ndndpdk-svc
 ExecStop=/usr/local/bin/ndndpdk-ctrl shutdown
 RestartSec=5s
 TimeoutSec=10s

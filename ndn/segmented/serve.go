@@ -64,6 +64,17 @@ func Serve(ctx context.Context, source io.ReaderAt, opts ServeOptions) (endpoint
 	opts.applyDefaults()
 	prefixLen := len(opts.Prefix)
 
+	var finalBlock ndn.NameComponent
+	if seeker, ok := source.(io.Seeker); ok {
+		if size, e := seeker.Seek(0, io.SeekEnd); e == nil {
+			lastSeg := uint64(size)/uint64(opts.ChunkSize) - 1
+			if size%int64(opts.ChunkSize) != 0 {
+				lastSeg++
+			}
+			finalBlock = makeSegmentNameComponent(lastSeg)
+		}
+	}
+
 	opts.Handler = func(ctx context.Context, interest ndn.Interest) (data ndn.Data, e error) {
 		seg, ok := extractSegment(interest.Name, prefixLen)
 		if !ok {
@@ -73,11 +84,18 @@ func Serve(ctx context.Context, source io.ReaderAt, opts ServeOptions) (endpoint
 		data.Name = interest.Name
 		data.ContentType = opts.ContentType
 		data.Freshness = opts.Freshness
+		data.FinalBlock = finalBlock
 
 		payload := make([]byte, opts.ChunkSize+1)
 		n, e := source.ReadAt(payload, int64(seg)*int64(opts.ChunkSize))
 		switch n {
 		case 0:
+			if errors.Is(e, io.EOF) {
+				e = nil
+			}
+			if seg == 0 {
+				data.FinalBlock = data.Name[prefixLen]
+			}
 			return data, e
 		case opts.ChunkSize + 1:
 			data.Content = payload[:opts.ChunkSize]

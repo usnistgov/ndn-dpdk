@@ -4,8 +4,10 @@ package gqlclient
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"path"
@@ -122,6 +124,10 @@ func (c *Client) Do(ctx context.Context, query string, vars map[string]interface
 
 	var response json.RawMessage
 	if e := c.httpClient.Run(ctx, request, &response); e != nil {
+		var netOpError *net.OpError
+		if errors.As(e, &netOpError) && netOpError.Op == "dial" {
+			e = fmt.Errorf("%w; is NDN-DPDK running? is GraphQL server endpoint specified correctly?", e)
+		}
 		return e
 	}
 	return parseResultData(response, key, res)

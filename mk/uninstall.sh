@@ -5,8 +5,6 @@ source mk/install-dirs.sh
 
 rm -f $DESTBPF/ndndpdk-strategy-*.o
 
-rm -f $DESTSBIN/ndndpdk-*
-
 rm -f $DESTBIN/ndndpdk-*
 
 rm -rf $DESTSHARE

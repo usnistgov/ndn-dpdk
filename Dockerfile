@@ -32,7 +32,7 @@ RUN rm -rf \
       /usr/local/man \
       /usr/local/share/dpdk \
       /usr/local/src && \
-    for F in /usr/local/lib/*.so /usr/local/bin/* /usr/local/sbin/*; do \
+    for F in /usr/local/lib/*.so /usr/local/bin/*; do \
       ldd "$F" 2>/dev/null | awk 'NF==4 && $2=="=>" && $3~"^/" {print $3}'; \
     done | sort -u | grep -vE '^/usr/local/' > /libs.txt && \
     while read -r F; do \
@@ -47,4 +47,4 @@ RUN apt-get -y -qq update && \
 COPY --from=build /usr/local/ /usr/local/
 RUN ldconfig
 VOLUME /run/ndn
-CMD ["/usr/local/sbin/ndndpdk-svc", "--listen", ":3030"]
+CMD ["/usr/local/bin/ndndpdk-svc", "--listen", ":3030"]

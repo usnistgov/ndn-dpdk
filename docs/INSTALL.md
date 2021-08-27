@@ -43,7 +43,7 @@ See script source code for variable names and their default values.
 
 Installed files include:
 
-* NDN-DPDK [commands](../cmd) in `/usr/local/bin` and `/usr/local/sbin`
+* NDN-DPDK [commands](../cmd) in `/usr/local/bin`
 * eBPF objects in `/usr/local/lib/bpf`
 * systemd service `ndndpdk-svc.service`
 * configuration schemas and TypeScript definition in `/usr/local/share/ndn-dpdk`

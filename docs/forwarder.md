@@ -9,7 +9,7 @@ Before attempting to activate the forwarder, make sure you have configured hugep
 
 The `ndndpdk-ctrl activate-forwarder` command sends a command to the `ndndpdk-svc` service process to activate it as a forwarder.
 This command reads, from standard input, a JSON document that contains forwarder activation parameters.
-The JSON document must conform to the JSON schema `/usr/local/share/ndn-dpdk/forwarder.schema.json`.
+The JSON document must conform to the JSON schema `forwarder.schema.json` (installed in `/usr/local/share/ndn-dpdk` and [available online](https://ndn-dpdk.ndn.today/schema/forwarder.schema.json)).
 
 If you have prepared the required JSON document (e.g. using the TypeScript definitions, as described below), you can activate the forwarder with:
 
@@ -35,7 +35,7 @@ See [hardware known to work](hardware.md) and [performance tuning](tuning.md) fo
 
 NDN-DPDK provides TypeScript definitions to help with authoring the activation parameters.
 Commonly used options have description or links to the corresponding Go documentation.
-You may install the NPM package from `/usr/local/share/ndn-dpdk/ndn-dpdk.npm.tgz`, and then construct an object of `ActivateFwArgs` type.
+You may install the NPM package from `/usr/local/share/ndn-dpdk/ndn-dpdk.npm.tgz` (built from [js](../js) directory), and then construct an object of `ActivateFwArgs` type.
 
 [docs/activate](activate) is a sample TypeScript project that generates the activation parameters.
 To use the sample:
@@ -63,6 +63,7 @@ Ethernet adapters not included in this list can still be activated as virtual de
 
 **.mempool.DIRECT.dataroom** is the size of each packet buffer.
 The maximum MTU supported by the forwarder is this dataroom minus 128 (`RTE_PKTMBUF_HEADROOM` constant).
+For example, to support MTU=9000, this must be set to at least 9128.
 
 **.mempool.DIRECT.capacity** is the maximum quantity of packet buffers on each NUMA socket.
 Every packet received by the forwarder and not yet released, including those buffered in the PIT or cached in the CS, occupies one of the packet buffers.
@@ -131,7 +132,7 @@ ndndpdk-ctrl create-ether-face --port-mtu 9000 --local 02:00:00:00:00:01 --remot
 ```
 
 You can programmatically create a face via GraphQL using the `createFace` mutation.
-Its input is a JSON document that conforms to the JSON schema `/usr/local/share/ndn-dpdk/locator.schema.json`, which supports more transport types and options than what's available through `ndndpdk-ctrl` commands.
+Its input is a JSON document that conforms to the JSON schema `locator.schema.json` (installed in `/usr/local/share/ndn-dpdk` and [available online](https://ndn-dpdk.ndn.today/schema/locator.schema.json)), which supports more transport types and options than what's available through `ndndpdk-ctrl` commands.
 
 As a starting point, you may see the GraphQL operation used by a `ndndpdk-ctrl` command by adding `--cmdout` flag, such as:
 
@@ -182,19 +183,7 @@ A $ sudo ndndpdk-godemo pingclient --name /example/P
 ```
 
 The consumer prints, among other fields, the percentage of satisfied Interests and the last round-trip time.
-
-Optionally, you can specify Data payload length with `--payload` flag and specify memif transport MTU with `--mtu` flag:
-
-```shell
-B $ sudo ndndpdk-godemo --mtu 9000 pingserver --name /example/P --payload 8000
-# --mtu flag must appear between 'ndndpdk-godemo' and the subcommand name
-# to use '--mtu 9000', .mempool.DIRECT.dataroom in activation parameters should be at least 9128
-#
-# --payload flag must appear after 'pingserver' subcommand name
-# it's best to keep Data packet length under MTU; otherwise, NDNLPv2 fragmentation is used
-
-A $ sudo ndndpdk-godemo --mtu 9000 pingclient --name /example/P
-```
+See [command ndndpdk-godemo](../cmd/ndndpdk-godemo) for additional options such as MTU and Data payload length.
 
 ### List Faces and View Face Counters
 

@@ -1,15 +1,13 @@
-import type { ActivateFwArgs, EalConfig } from "@usnistgov/ndn-dpdk";
+import type { ActivateFwArgs } from "@usnistgov/ndn-dpdk";
 import stdout from "stdout-stream";
 
-const eal: EalConfig = {
-  cores: [6, 7, 8, 9, 24, 25, 26, 27],
-  pciDevices: [
-    "0000:04:00.0",
-  ],
-};
-
 const args: ActivateFwArgs = {
-  eal,
+  eal: {
+    cores: [6, 7, 8, 9, 24, 25, 26, 27],
+    pciDevices: [
+      "0000:04:00.0",
+    ],
+  },
   mempool: {
     DIRECT: { capacity: 1048575, dataroom: 9128 },
     INDIRECT: { capacity: 1048575 },

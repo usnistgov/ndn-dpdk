@@ -3,47 +3,117 @@ package segmented_test
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
+	"math/rand"
 	"testing"
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/segmented"
+	"go4.org/must"
 )
 
 var makeAR = testenv.MakeAR
 
-func TestSimple(t *testing.T) {
-	assert, require := makeAR(t)
+type ServeFetchFixture struct {
+	t       *testing.T
+	Payload []byte
+	SOpt    segmented.ServeOptions
+	FOpt    segmented.FetchOptions
+}
 
-	payload := make([]byte, 10000)
-	rand.Read(payload)
+func (f *ServeFetchFixture) Prepare(payloadLen, chunkSize int) {
+	f.Payload = make([]byte, payloadLen)
+	rand.Read(f.Payload)
+	f.SOpt.ChunkSize = chunkSize
+}
 
-	var sOpt segmented.ServeOptions
-	sOpt.Prefix = ndn.ParseName("/D")
-	sOpt.DataSigner = ndn.DigestSigning
-	sOpt.ChunkSize = 3333
-	s, e := segmented.Serve(context.Background(), bytes.NewReader(payload), sOpt)
+func (f *ServeFetchFixture) Serve() (close func()) {
+	_, require := makeAR(f.t)
+	s, e := segmented.Serve(context.Background(), bytes.NewReader(f.Payload), f.SOpt)
 	require.NoError(e)
-	defer s.Close()
+	return func() { must.Close(s) }
+}
 
-	var fOpt segmented.FetchOptions
-	fOpt.Verifier = ndn.DigestSigning
-	f := segmented.Fetch(sOpt.Prefix, fOpt)
+func (f *ServeFetchFixture) Fetch() segmented.FetchResult {
+	return segmented.Fetch(f.SOpt.Prefix, f.FOpt)
+}
+
+func NewServeFetchFixture(t *testing.T) (f *ServeFetchFixture) {
+	f = &ServeFetchFixture{t: t}
+	f.SOpt.Prefix = ndn.ParseName("/D")
+	return f
+}
+
+func TestInexact(t *testing.T) {
+	assert, require := makeAR(t)
+	fixture := NewServeFetchFixture(t)
+
+	fixture.Prepare(10000, 3333)
+	fixture.SOpt.DataSigner = ndn.DigestSigning
+	fixture.FOpt.Verifier = ndn.DigestSigning
+	defer fixture.Serve()()
+
+	f := fixture.Fetch()
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	pkts, e := f.Packets(ctx)
 	require.NoError(e)
 	require.Len(pkts, 4)
+	assert.Equal(len(pkts), f.Count())
 
-	assert.Equal(payload[0:3333], pkts[0].Content)
-	assert.Equal(payload[3333:6666], pkts[1].Content)
-	assert.Equal(payload[6666:9999], pkts[2].Content)
-	assert.Equal(payload[9999:10000], pkts[3].Content)
+	assert.Equal(fixture.Payload[0:3333], pkts[0].Content)
+	assert.Equal(fixture.Payload[3333:6666], pkts[1].Content)
+	assert.Equal(fixture.Payload[6666:9999], pkts[2].Content)
+	assert.Equal(fixture.Payload[9999:10000], pkts[3].Content)
 
 	assert.False(pkts[0].IsFinalBlock())
 	assert.False(pkts[1].IsFinalBlock())
 	assert.False(pkts[2].IsFinalBlock())
 	assert.True(pkts[3].IsFinalBlock())
+}
+
+func TestExact(t *testing.T) {
+	assert, require := makeAR(t)
+	fixture := NewServeFetchFixture(t)
+
+	fixture.Prepare(4000, 2000)
+	defer fixture.Serve()()
+
+	f := fixture.Fetch()
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	chunks := make(chan []byte, 64)
+	e := f.Chunks(ctx, chunks)
+	require.NoError(e)
+	require.Len(chunks, 2)
+
+	chunk0 := <-chunks
+	chunk1 := <-chunks
+	assert.Equal(fixture.Payload[0:2000], chunk0)
+	assert.Equal(fixture.Payload[2000:4000], chunk1)
+}
+
+func TestEmpty(t *testing.T) {
+	assert, require := makeAR(t)
+	fixture := NewServeFetchFixture(t)
+
+	fixture.Prepare(0, 1024)
+	defer fixture.Serve()()
+
+	f1 := fixture.Fetch()
+	f2 := fixture.Fetch()
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	pkts, e := f1.Packets(ctx)
+	require.NoError(e)
+	require.Len(pkts, 1)
+	assert.Len(pkts[0].Content, 0)
+	assert.True(pkts[0].IsFinalBlock())
+
+	payload, e := f2.Payload(ctx)
+	require.NoError(e)
+	require.Len(payload, 0)
 }
