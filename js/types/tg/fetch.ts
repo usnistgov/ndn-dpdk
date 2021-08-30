@@ -1,29 +1,26 @@
-import type { Counter, NNNanoseconds } from "../core";
+import type { Counter, NNNanoseconds, Uint } from "../core";
 import type { PktQueueConfig } from "../pktqueue";
 
 export interface FetcherConfig {
   /**
-   * @TJS-type integer
    * @minimum 1
    * @default 1
    */
-  nThreads?: number;
+  nThreads?: Uint;
 
   /**
-   * @TJS-type integer
    * @minimum 1
    * @default 1
    */
-  nProcs?: number;
+  nProcs?: Uint;
 
   rxQueue?: PktQueueConfig;
 
   /**
-   * @TJS-type integer
    * @minimum 1
    * @default 65536
    */
-  windowCapacity?: number;
+  windowCapacity?: Uint;
 }
 
 export interface FetchCounters {

@@ -1,33 +1,26 @@
 /**
+ * @asType integer
+ * @minimum 0
+ */
+export type Uint = number;
+
+/**
  * Non-negative counter.
  * It may be encoded as integer (uint32 or shorter) or string (uint64).
  */
-export type Counter = number | string;
-
-/**
- * @TJS-type integer
- * @minimum 0
- */
-export type Index = number;
-
-/**
- * Base64 encoded binary blob.
- * @TJS-contentEncoding base64
- * @TJS-contentMediaType application/octet-stream
- */
-export type Blob = string;
+export type Counter = Uint | string;
 
 /**
  * Non-negative duration in milliseconds.
  * This can be either a non-negative integer in milliseconds or a string with any valid duration unit.
  */
-export type NNMilliseconds = number | string;
+export type NNMilliseconds = Uint | string;
 
 /**
  * Non-negative duration in nanoseconds.
  * This can be either a non-negative integer in nanoseconds or a string with any valid duration unit.
  */
-export type NNNanoseconds = number | string;
+export type NNNanoseconds = Uint | string;
 
 /** Snapshot from runningstat. */
 export interface RunningStatSnapshot {

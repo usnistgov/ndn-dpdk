@@ -1,3 +1,4 @@
+import type { Counter, Uint } from "../core";
 import type { DataGen, Name } from "../ndni";
 import type { PktQueueConfig } from "../pktqueue";
 
@@ -6,8 +7,7 @@ import type { PktQueueConfig } from "../pktqueue";
  * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/app/tgproducer#Config>
  */
 export interface TgpConfig {
-  /** @TJS-type integer */
-  nThreads?: number;
+  nThreads?: Uint;
   rxQueue?: PktQueueConfig.Plain | PktQueueConfig.Delay;
   patterns: TgpPattern[];
 }
@@ -26,11 +26,10 @@ export type TgpReply = TgpReply.Data | TgpReply.Nack | TgpReply.Timeout;
 export namespace TgpReply {
   interface Common {
     /**
-     * @TJS-type integer
      * @default 1
      * @minimum 1
      */
-    weight?: number;
+    weight?: Uint;
   }
 
   export interface Data extends Common, DataGen {
@@ -38,11 +37,10 @@ export namespace TgpReply {
 
   export interface Nack extends Common {
     /**
-     * @TJS-type integer
      * @minimum 1
      * @maximum 255
      */
-    nack: number;
+    nack: Uint;
   }
 
   export interface Timeout extends Common {
@@ -52,13 +50,13 @@ export namespace TgpReply {
 
 export interface TgpCounters {
   perPattern: TgpCounters.PatternCounters[];
-  nInterests: number;
-  nNoMatch: number;
-  nAllocError: number;
+  nInterests: Counter;
+  nNoMatch: Counter;
+  nAllocError: Counter;
 }
 export namespace TgpCounters {
   export interface PatternCounters {
-    nInterests: number;
-    perReply: number[];
+    nInterests: Counter;
+    perReply: Counter[];
   }
 }

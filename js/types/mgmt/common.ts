@@ -1,12 +1,12 @@
-import type { Index } from "../core";
+import type { Uint } from "../core";
 import type { Name } from "../ndni";
 
 export interface IdArg {
-  Id: Index;
+  Id: Uint;
 }
 
 export interface IndexArg {
-  Index: Index;
+  Index: Uint;
 }
 
 export interface NameArg {

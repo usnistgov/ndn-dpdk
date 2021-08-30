@@ -1,3 +1,4 @@
+import type { Uint } from "./core";
 import type { FibConfig } from "./fib";
 import type { NdtConfig } from "./ndt";
 import type { PcctConfig } from "./pcct";
@@ -21,6 +22,6 @@ export interface FwdpConfig {
 }
 
 export interface FwdpCryptoConfig {
-  inputCapacity?: number;
-  opPoolCapacity?: number;
+  inputCapacity?: Uint;
+  opPoolCapacity?: Uint;
 }

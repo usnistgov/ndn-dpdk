@@ -1,4 +1,4 @@
-import type { NNNanoseconds } from "./core";
+import type { NNNanoseconds, Uint } from "./core";
 
 /**
  * Packet queue configuration.
@@ -9,18 +9,16 @@ export type PktQueueConfig = PktQueueConfig.Plain | PktQueueConfig.Delay | PktQu
 export namespace PktQueueConfig {
   interface Common {
     /**
-     * @TJS-type integer
      * @minimum 64
      */
-    capacity?: number;
+    capacity?: Uint;
 
     /**
-     * @TJS-type integer
      * @default 64
      * @minimum 1
      * @maximum 64
      */
-    dequeueBurstSize?: number;
+    dequeueBurstSize?: Uint;
   }
 
   export interface Plain extends Common {

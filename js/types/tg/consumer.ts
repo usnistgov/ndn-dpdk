@@ -1,4 +1,4 @@
-import type { Counter, NNNanoseconds, RunningStatSnapshot } from "../core";
+import type { Counter, NNNanoseconds, RunningStatSnapshot, Uint } from "../core";
 import type { DataGen, InterestTemplate } from "../ndni";
 import type { PktQueueConfig } from "../pktqueue";
 
@@ -18,16 +18,10 @@ export interface TgcConfig {
  */
 export interface TgcPattern extends InterestTemplate {
   /**
-     * @TJS-type integer
-     * @default 1
-     * @minimum 1
-     */
-  weight?: number;
-
-  /**
-   * @TJS-type integer
+   * @default 1
+   * @minimum 1
    */
-  seqNumOffset?: number;
+  weight?: Uint;
 
   digest?: DataGen;
 }

@@ -1,15 +1,17 @@
+import type { Uint } from "./core";
+
 type EalLCoreConfig = {
   cores?: number[];
-  coresPerNuma?: Record<number, number>;
-  lcoresPerNuma?: Record<number, number>;
+  coresPerNuma?: QuantityPerNumaSocket;
+  lcoresPerNuma?: QuantityPerNumaSocket;
   lcoreMain?: LCore;
 } | {
   lcoreFlags?: string;
 };
 
 type EalMemoryConfig = {
-  memChannels?: number;
-  memPerNuma?: Record<number, number>;
+  memChannels?: Uint;
+  memPerNuma?: QuantityPerNumaSocket;
   filePrefix?: string;
   disableHugeUnlink?: boolean;
 } | {
@@ -34,11 +36,21 @@ export type EalConfig =
   { flags?: string };
 
 /**
- * DPDK logical core number.
- * @TJS-type integer
+ * NUMA socket number.
  * @minimum 0
  */
-export type LCore = number;
+export type NumaSocket = Uint;
+
+/**
+ * @propertyNames { "pattern": "^\\d+$" }
+ */
+export type QuantityPerNumaSocket = Record<string, Uint>;
+
+/**
+ * DPDK logical core number.
+ * @minimum 0
+ */
+export type LCore = Uint;
 
 /**
  * LCore allocation configuration.
@@ -51,7 +63,7 @@ export namespace LCoreAllocConfig {
    * LCore allocation configuration for a role.
    * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/dpdk/ealthread#RoleConfig>
    */
-  export type Role = LCore[] | Record<number, number>;
+  export type Role = LCore[] | QuantityPerNumaSocket;
 }
 
 /**
@@ -59,9 +71,9 @@ export namespace LCoreAllocConfig {
  * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf#PoolConfig>
  */
 export interface PktmbufPoolConfig {
-  capacity?: number;
-  privSize?: number;
-  dataroom?: number;
+  capacity?: Uint;
+  privSize?: Uint;
+  dataroom?: Uint;
 }
 
 /**

@@ -1,4 +1,4 @@
-import type { NNMilliseconds } from "./core";
+import type { NNMilliseconds, Uint } from "./core";
 
 /** Name represented as canonical URI. */
 export type Name = string;
@@ -26,12 +26,11 @@ export interface InterestTemplate {
   interestLifetime?: NNMilliseconds;
 
   /**
-   * @TJS-type integer
    * @default 255
    * @minimum 1
    * @maximum 255
    */
-  hopLimit?: number;
+  hopLimit?: Uint;
 }
 
 /**
@@ -47,9 +46,8 @@ export interface DataGen {
   freshnessPeriod?: NNMilliseconds;
 
   /**
-   * @TJS-type integer
    * @default 0
    * @minimum 0
    */
-  payloadLen?: number;
+  payloadLen?: Uint;
 }

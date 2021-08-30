@@ -1,4 +1,4 @@
-import type { Counter, Index } from "../core";
+import type { Counter, Uint } from "../core";
 import type { FaceID } from "../iface";
 import type { Name } from "../ndni";
 import type { NameArg } from "./common";
@@ -17,7 +17,7 @@ export interface FibInfo {
 
 export interface FibInsertArg extends NameArg {
   Nexthops: FaceID[];
-  StrategyId?: Index;
+  StrategyId?: Uint;
 }
 
 export type FibLookupReply = FibLookupReply.No | FibLookupReply.Yes;
@@ -31,6 +31,6 @@ export namespace FibLookupReply {
     HasEntry: true;
     Name: Name;
     Nexthops: FaceID[];
-    StrategyId: Index;
+    StrategyId: Uint;
   }
 }

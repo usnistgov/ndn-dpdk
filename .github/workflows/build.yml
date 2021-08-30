@@ -87,7 +87,7 @@ jobs:
         run: make doxygen
         if: ${{ matrix.compiler == 'gcc-10' && (github.repository != 'yoursunny/ndn-dpdk' || github.event_name != 'push') }}
       - name: build docs
-        run: bash docs/build-netlify.sh
+        run: bash mk/netlify.sh
         if: ${{ matrix.compiler == 'gcc-10' && github.repository == 'yoursunny/ndn-dpdk' && github.event_name == 'push' }}
       - name: deploy docs
         uses: South-Paw/action-netlify-deploy@v1.2.0

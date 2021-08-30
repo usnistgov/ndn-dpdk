@@ -1,10 +1,13 @@
 import jsonStringify from "json-stable-stringify";
-
-import { makeSchema } from "./tjs-schema.js";
+import * as TSJ from "ts-json-schema-generator";
 
 const filename = process.argv[2];
 const typ = process.argv[3];
-const schema = makeSchema(filename, typ);
+const schema = TSJ.createGenerator({
+  path: filename,
+  type: typ,
+  topRef: false,
+}).createSchema(typ);
 
 /** @type {import("./jrgen-spec-schema").JrgenSpecSchema} */
 const spec = {

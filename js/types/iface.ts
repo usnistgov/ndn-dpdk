@@ -1,13 +1,12 @@
-import type { Counter, NNMilliseconds } from "./core";
+import type { Counter, NNMilliseconds, Uint } from "./core";
 import type { VDevNetifConfig } from "./dpdk";
 
 /**
  * Numeric face identifier.
- * @TJS-type integer
  * @minimum 1
  * @maximum 65535
  */
-export type FaceID = number;
+export type FaceID = Uint;
 
 /**
  * Face locator.
@@ -21,26 +20,23 @@ export type FaceLocator = EtherLocator | UdpLocator | VxlanLocator | MemifLocato
  */
 export interface FaceConfig {
   /**
-   * @TJS-type integer
    * @minimum 4
    * @maximum 8192
    * @default 64
    */
-  reassemblerCapacity?: number;
+  reassemblerCapacity?: Uint;
 
   /**
-   * @TJS-type integer
    * @minimum 256
    * @default 1024
    */
-  outputQueueSize?: number;
+  outputQueueSize?: Uint;
 
   /**
-   * @TJS-type integer
    * @minimum 960
    * @maximum 65000
    */
-  mtu?: number;
+  mtu?: Uint;
 }
 
 /**
@@ -51,25 +47,22 @@ export interface EthPortConfig {
   disableRxFlow?: boolean;
 
   /**
-   * @TJS-type integer
    * @minimum 256
    * @default 8192
    */
-  rxQueueSize?: number;
+  rxQueueSize?: Uint;
 
   /**
-   * @TJS-type integer
    * @minimum 256
    * @default 8192
    */
-  txQueueSize?: number;
+  txQueueSize?: Uint;
 
   /**
-   * @TJS-type integer
    * @minimum 960
    * @maximum 65000
    */
-  mtu?: number;
+  mtu?: Uint;
 
   disableSetMTU?: boolean;
 }
@@ -80,12 +73,11 @@ interface EtherLocatorBase extends FaceConfig {
   portConfig?: EthPortConfig;
 
   /**
-   * @TJS-type integer
    * @minimum 1
    * @maximum 8
    * @default 1
    */
-  maxRxQueues?: number;
+  maxRxQueues?: Uint;
 
   disableTxMultiSegOffload?: boolean;
   disableTxChecksumOffload?: boolean;
@@ -94,11 +86,10 @@ interface EtherLocatorBase extends FaceConfig {
   remote: string;
 
   /**
-   * @TJS-type integer
    * @minimum 1
    * @maximum 4095
    */
-  vlan?: number;
+  vlan?: Uint;
 }
 
 /**
@@ -109,23 +100,17 @@ export interface EtherLocator extends EtherLocatorBase {
   scheme: "ether";
 }
 
+/**
+ * @minimum 1
+ * @maximum 65535
+ */
+type UdpPort = Uint;
+
 interface UdpLocatorBase extends EtherLocatorBase {
   localIP: string;
   remoteIP: string;
-
-  /**
-   * @TJS-type integer
-   * @minimum 1
-   * @maximum 65535
-   */
-  localUDP: number;
-
-  /**
-   * @TJS-type integer
-   * @minimum 1
-   * @maximum 65535
-   */
-  remoteUDP: number;
+  localUDP: UdpPort;
+  remoteUDP: UdpPort;
 }
 
 /**
@@ -144,11 +129,10 @@ export interface VxlanLocator extends UdpLocatorBase {
   scheme: "vxlan";
 
   /**
-   * @TJS-type integer
    * @minimum 0
    * @maximum 16777215
    */
-  vxlan: number;
+  vxlan: Uint;
 
   innerLocal: string;
   innerRemote: string;
@@ -168,27 +152,24 @@ export interface MemifLocator {
   socketName: string;
 
   /**
-   * @TJS-type integer
    * @minimum 0
    * @maximum 4294967295
    */
-  id: number;
+  id: Uint;
 
   /**
-   * @TJS-type integer
    * @minimum 512
    * @maximum 65535
    * @default 2048
    */
-  dataroom?: number;
+  dataroom?: Uint;
 
   /**
-   * @TJS-type integer
    * @minimum 2
    * @maximum 16384
    * @default 1024
    */
-  ringCapacity?: number;
+  ringCapacity?: Uint;
 }
 
 /**
@@ -197,16 +178,13 @@ export interface MemifLocator {
  */
 export interface SocketFaceConfig extends FaceConfig {
   /**
-   * @TJS-type integer
    * @minimum 256
    * @default 4096
    */
-  rxGroupCapacity?: number;
+  rxGroupCapacity?: Uint;
 
-  /** @TJS-type integer */
-  rxQueueSize?: number;
-  /** @TJS-type integer */
-  txQueueSize?: number;
+  rxQueueSize?: Uint;
+  txQueueSize?: Uint;
   redialBackoffInitial?: NNMilliseconds;
   redialBackoffMaximum?: NNMilliseconds;
 }
