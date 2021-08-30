@@ -17,7 +17,7 @@ import (
 type Bridge struct {
 	hdlA    *handle
 	hdlB    *handle
-	closing chan bool
+	closing chan struct{}
 }
 
 // NewBridge creates a Bridge.
@@ -32,7 +32,7 @@ func NewBridge(locA, locB Locator) (bridge *Bridge, e error) {
 	locB.ApplyDefaults(RoleServer)
 
 	bridge = &Bridge{
-		closing: make(chan bool, 2),
+		closing: make(chan struct{}),
 	}
 	bridge.hdlA, e = newHandle(locA, nil)
 	if e != nil {
@@ -67,8 +67,7 @@ func (bridge *Bridge) transferLoop(src, dst *handle) {
 
 // Close stops the bridge.
 func (bridge *Bridge) Close() error {
-	bridge.closing <- true
-	bridge.closing <- true
+	close(bridge.closing)
 	must.Close(bridge.hdlA)
 	must.Close(bridge.hdlB)
 	return nil

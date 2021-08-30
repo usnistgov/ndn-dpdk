@@ -9,6 +9,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 	"github.com/usnistgov/ndn-dpdk/ndn/segmented"
 	"go4.org/must"
 )
@@ -17,9 +18,27 @@ var makeAR = testenv.MakeAR
 
 type ServeFetchFixture struct {
 	t       *testing.T
+	Bridge  *ndntestenv.Bridge
 	Payload []byte
 	SOpt    segmented.ServeOptions
 	FOpt    segmented.FetchOptions
+}
+
+func (f *ServeFetchFixture) EnableBridge() {
+	relay := ndntestenv.BridgeRelayConfig{
+		Loss:     0.01,
+		MinDelay: 40 * time.Millisecond,
+		MaxDelay: 80 * time.Millisecond,
+	}
+	f.Bridge = ndntestenv.NewBridge(ndntestenv.BridgeConfig{
+		RelayAB: relay,
+		RelayBA: relay,
+	})
+	f.SOpt.Fw = f.Bridge.FwA
+	f.FOpt.Fw = f.Bridge.FwB
+	if f.FOpt.RetxLimit == 0 {
+		f.FOpt.RetxLimit = 3
+	}
 }
 
 func (f *ServeFetchFixture) Prepare(payloadLen, chunkSize int) {
@@ -48,6 +67,7 @@ func NewServeFetchFixture(t *testing.T) (f *ServeFetchFixture) {
 func TestInexact(t *testing.T) {
 	assert, require := makeAR(t)
 	fixture := NewServeFetchFixture(t)
+	fixture.EnableBridge()
 
 	fixture.Prepare(10000, 3333)
 	fixture.SOpt.DataSigner = ndn.DigestSigning
@@ -76,6 +96,7 @@ func TestInexact(t *testing.T) {
 func TestExact(t *testing.T) {
 	assert, require := makeAR(t)
 	fixture := NewServeFetchFixture(t)
+	fixture.EnableBridge()
 
 	fixture.Prepare(4000, 2000)
 	defer fixture.Serve()()
@@ -98,6 +119,7 @@ func TestExact(t *testing.T) {
 func TestEmpty(t *testing.T) {
 	assert, require := makeAR(t)
 	fixture := NewServeFetchFixture(t)
+	fixture.EnableBridge()
 
 	fixture.Prepare(0, 1024)
 	defer fixture.Serve()()

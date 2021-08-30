@@ -179,6 +179,9 @@ func (f *fetcher) Unordered(ctx context.Context, unordered chan<- *ndn.Data) err
 		now := time.Now()
 		for seg, fs := range pendings {
 			if seg > segLast {
+				if fs.RetxElement != nil {
+					retxQ.Remove(fs.RetxElement)
+				}
 				delete(pendings, seg)
 				continue
 			}

@@ -95,6 +95,8 @@ func Serve(ctx context.Context, source io.ReaderAt, opts ServeOptions) (endpoint
 			}
 			if seg == 0 {
 				data.FinalBlock = data.Name[prefixLen]
+			} else {
+				e = io.EOF
 			}
 			return data, e
 		case opts.ChunkSize + 1:
