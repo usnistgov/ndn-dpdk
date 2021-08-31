@@ -24,15 +24,15 @@ const (
 	MaxSegmentLen     = 16384
 	DefaultSegmentLen = 4096
 
-	_ = "enumgen::FileServer"
-)
+	MinOpenFds     = 16
+	MaxOpenFds     = 16384
+	DefaultOpenFds = 256
 
-// Error conditions.
-var (
-	ErrNoMount       = errors.New("no mount specified")
-	ErrTooManyMounts = fmt.Errorf("cannot add more than %d mounts", MaxMounts)
-	ErrPrefixTooLong = fmt.Errorf("prefix cannot exceed %d octets", ndni.NameMaxLength)
-	ErrSegmentLen    = fmt.Errorf("segmentLen out of range [%d:%d]", MinSegmentLen, MaxSegmentLen)
+	MinKeepFds     = 4
+	MaxKeepFds     = 16384
+	DefaultKeepFds = 64
+
+	_ = "enumgen::FileServer"
 )
 
 // Config contains FileServer configuration.
@@ -53,6 +53,18 @@ type Config struct {
 	// Default is 4096.
 	UringCapacity int `json:"uringCapacity,omitempty"`
 
+	// OpenFds is the limit of open file descriptors (including KeepFds) per thread.
+	// This is used to calculate data structure sizes; it is not a hard limit.
+	// You must also set `ulimit -n` or systemd `LimitNOFILE=` appropriately.
+	// Default is 256.
+	OpenFds int `json:"openFds,omitempty"`
+
+	// KeepFds is the number of unused file descriptor per thread.
+	// A file descriptor is unused if no I/O operation is ongoing on the file.
+	// Keeping them open can speed up subsequent requests referencing the same file.
+	// Default is 64.
+	KeepFds int `json:"keepFds,omitempty"`
+
 	payloadHeadroom int
 }
 
@@ -63,35 +75,39 @@ func (cfg *Config) applyDefaults() {
 		cfg.SegmentLen = DefaultSegmentLen
 	}
 	cfg.UringCapacity = ringbuffer.AlignCapacity(cfg.UringCapacity, 64, 4096)
+	if cfg.OpenFds == 0 {
+		cfg.OpenFds = DefaultOpenFds
+	}
+	if cfg.KeepFds == 0 {
+		cfg.KeepFds = DefaultKeepFds
+	}
 }
 
 func (cfg Config) validate() error {
 	if len(cfg.Mounts) == 0 {
-		return ErrNoMount
+		return errors.New("no mount specified")
 	}
 	if len(cfg.Mounts) > MaxMounts {
-		return ErrTooManyMounts
+		return fmt.Errorf("cannot add more than %d mounts", MaxMounts)
 	}
-	for _, m := range cfg.Mounts {
+	for i, m := range cfg.Mounts {
 		if m.Prefix.Length() > ndni.NameMaxLength {
-			return ErrPrefixTooLong
+			return fmt.Errorf("mount[%d].prefix cannot exceed %d octets", i, ndni.NameMaxLength)
 		}
 	}
 	if cfg.SegmentLen < MinSegmentLen || cfg.SegmentLen > MaxSegmentLen {
-		return ErrSegmentLen
+		return fmt.Errorf("segmentLen out of range [%d:%d]", MinSegmentLen, MaxSegmentLen)
+	}
+	if cfg.OpenFds < MinOpenFds || cfg.OpenFds > MaxOpenFds {
+		return fmt.Errorf("openFds out of range [%d:%d]", MinOpenFds, MaxOpenFds)
+	}
+	if cfg.KeepFds < MinKeepFds || cfg.KeepFds > MaxKeepFds {
+		return fmt.Errorf("keepFds out of range [%d:%d]", MinKeepFds, MaxKeepFds)
+	}
+	if cfg.OpenFds <= cfg.KeepFds {
+		return errors.New("openFds must be greater than keepFds")
 	}
 	return nil
-}
-
-func (cfg Config) checkDirectMempoolDataroom() {
-	dataroom := pktmbuf.Direct.Config().Dataroom
-	suggest := pktmbuf.DefaultHeadroom + ndni.NameMaxLength + 64 + unix.PathMax
-	if dataroom < suggest {
-		logger.Warn("DIRECT dataroom too small, Interests with long names may be dropped",
-			zap.Int("configured-dataroom", dataroom),
-			zap.Int("suggested-dataroom", suggest),
-		)
-	}
 }
 
 func (cfg *Config) checkPayloadMempool(segmentLen int) error {
@@ -104,6 +120,11 @@ func (cfg *Config) checkPayloadMempool(segmentLen int) error {
 			zap.Int("configured-capacity", tpl.Capacity),
 			zap.Int("suggested-capacity", suggestCapacity),
 		)
+	}
+
+	if tpl.Dataroom-pktmbuf.DefaultHeadroom < int(sizeofFileServerFd) {
+		return fmt.Errorf("PAYLOAD dataroom %d too small for struct FileServerFd; increase PAYLOAD dataroom to %d",
+			tpl.Dataroom, sizeofFileServerFd)
 	}
 
 	suggest := pktmbuf.DefaultHeadroom + ndni.NameMaxLength + segmentLen + ndni.DataEncNullSigLen + 64

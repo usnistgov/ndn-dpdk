@@ -13,7 +13,7 @@ typedef struct PInterestUnpacked
 } PInterestUnpacked;
 
 static void
-PInterest_Unpack(const PInterest* p, PInterestUnpacked* u)
+c_PInterest_Unpack(const PInterest* p, PInterestUnpacked* u)
 {
 	u->canBePrefix = p->canBePrefix;
 	u->mustBeFresh = p->mustBeFresh;
@@ -51,10 +51,9 @@ func ctestInterestParse(t *testing.T) {
 	require.EqualValues(ndni.PktInterest, C.Packet_GetType(p.npkt))
 	interest := C.Packet_GetInterestHdr(p.npkt)
 	var u C.PInterestUnpacked
-	C.PInterest_Unpack(interest, &u)
+	C.c_PInterest_Unpack(interest, &u)
 	assert.EqualValues(1, interest.name.nComps)
 	assert.Equal(bytesFromHex("050141"), C.GoBytes(unsafe.Pointer(interest.name.value), C.int(interest.name.length)))
-	assert.False(bool(interest.name.hasDigestComp))
 	assert.EqualValues(false, u.canBePrefix)
 	assert.EqualValues(false, u.mustBeFresh)
 	assert.EqualValues(0, u.nFwHints)
@@ -81,10 +80,9 @@ func ctestInterestParse(t *testing.T) {
 	require.True(bool(C.Packet_ParseL3(p.npkt)))
 	require.EqualValues(ndni.PktInterest, C.Packet_GetType(p.npkt))
 	interest = C.Packet_GetInterestHdr(p.npkt)
-	C.PInterest_Unpack(interest, &u)
+	C.c_PInterest_Unpack(interest, &u)
 	assert.EqualValues(2, interest.name.nComps)
 	assert.EqualValues(37, interest.name.length)
-	assert.True(bool(interest.name.hasDigestComp))
 	assert.EqualValues(true, u.canBePrefix)
 	assert.EqualValues(true, u.mustBeFresh)
 	assert.EqualValues(2, u.nFwHints)
@@ -95,19 +93,19 @@ func ctestInterestParse(t *testing.T) {
 
 	// SelectFwHint
 	assert.True(bool(C.PInterest_SelectFwHint(interest, 0)))
-	C.PInterest_Unpack(interest, &u)
+	C.c_PInterest_Unpack(interest, &u)
 	assert.EqualValues(0, u.activeFwHint)
 	assert.EqualValues(1, interest.fwHint.nComps)
 	assert.Equal(bytesFromHex("08024648"), C.GoBytes(unsafe.Pointer(interest.fwHint.value), C.int(interest.fwHint.length)))
 
 	assert.True(bool(C.PInterest_SelectFwHint(interest, 1)))
-	C.PInterest_Unpack(interest, &u)
+	C.c_PInterest_Unpack(interest, &u)
 	assert.EqualValues(1, u.activeFwHint)
 	assert.EqualValues(1, interest.fwHint.nComps)
 	assert.Equal(bytesFromHex("0803484632"), C.GoBytes(unsafe.Pointer(interest.fwHint.value), C.int(interest.fwHint.length)))
 }
 
-func caseInterestModify(t *testing.T, fragmentPayloadSize C.uint16_t, nSegs int, input string, check func(interest *C.PInterest, u C.PInterestUnpacked)) {
+func checkInterestModify(t *testing.T, fragmentPayloadSize C.uint16_t, nSegs int, input string, check func(interest *C.PInterest, u C.PInterestUnpacked)) {
 	assert, require := makeAR(t)
 
 	p := makePacket(input)
@@ -139,7 +137,7 @@ func caseInterestModify(t *testing.T, fragmentPayloadSize C.uint16_t, nSegs int,
 	require.EqualValues(ndni.PktInterest, C.Packet_GetType(copy.npkt))
 	interest := C.Packet_GetInterestHdr(copy.npkt)
 	var u C.PInterestUnpacked
-	C.PInterest_Unpack(interest, &u)
+	C.c_PInterest_Unpack(interest, &u)
 	check(interest, u)
 	assert.EqualValues(0, u.nFwHints)
 	assert.EqualValues(-1, u.activeFwHint)
@@ -155,23 +153,21 @@ func ctestInterestModify(t *testing.T) {
 	checkShort := func(interest *C.PInterest, u C.PInterestUnpacked) {
 		assert.EqualValues(1, interest.name.nComps)
 		assert.Equal(bytesFromHex("080141"), C.GoBytes(unsafe.Pointer(interest.name.value), C.int(interest.name.length)))
-		assert.False(bool(interest.name.hasDigestComp))
 		assert.EqualValues(false, u.canBePrefix)
 		assert.EqualValues(false, u.mustBeFresh)
 	}
-	caseInterestModify(t, 0, 3, inputShort, checkShort)
-	caseInterestModify(t, 9000, 1, inputShort, checkShort)
+	checkInterestModify(t, 0, 3, inputShort, checkShort)
+	checkInterestModify(t, 9000, 1, inputShort, checkShort)
 
-	nameLong := "800142 08FD0300" + strings.Repeat("43", 0x0300)
+	nameLong := "080142 08FD0300" + strings.Repeat("43", 0x0300)
 	inputLong := "05FD0320 07FD0307" + nameLong + " 2100 1200 0A04A0A1A2A3 2400 2C031B0101 2E02E0E1"
 	checkLong := func(interest *C.PInterest, u C.PInterestUnpacked) {
 		assert.EqualValues(2, interest.name.nComps)
 		assert.Equal(bytesFromHex(nameLong), C.GoBytes(unsafe.Pointer(interest.name.value), C.int(interest.name.length)))
-		assert.False(bool(interest.name.hasDigestComp))
 		assert.EqualValues(true, u.canBePrefix)
 		assert.EqualValues(true, u.mustBeFresh)
 	}
-	caseInterestModify(t, 0, 4, inputLong, checkLong)
-	caseInterestModify(t, 9000, 1, inputLong, checkLong)
-	caseInterestModify(t, 500, 2, inputLong, checkLong)
+	checkInterestModify(t, 0, 4, inputLong, checkLong)
+	checkInterestModify(t, 9000, 1, inputLong, checkLong)
+	checkInterestModify(t, 500, 2, inputLong, checkLong)
 }

@@ -35,7 +35,12 @@ func (demux *InputDemux) InitFirst() {
 
 // InitRoundrobin configures to pass all packets to each destination in a round-robin fashion.
 func (demux *InputDemux) InitRoundrobin(nDest int) {
-	C.InputDemux_SetDispatchRoundrobin_(demux.ptr(), C.uint32_t(nDest))
+	C.InputDemux_SetDispatchDiv_(demux.ptr(), C.uint32_t(nDest), false)
+}
+
+// InitGenericHash configures to dispatch according to hash of GenericNameComponents.
+func (demux *InputDemux) InitGenericHash(nDest int) {
+	C.InputDemux_SetDispatchDiv_(demux.ptr(), C.uint32_t(nDest), true)
 }
 
 // InitNdt configures to dispatch via NDT loopup.

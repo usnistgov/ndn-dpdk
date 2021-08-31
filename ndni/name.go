@@ -81,9 +81,7 @@ func NewPName(name ndn.Name) *PName {
 	pname := (*C.PName)(C.malloc(C.sizeof_PName))
 	ok := bool(C.PName_Parse(pname, lname))
 	if !ok {
-		logger.Panic("PName_Parse error",
-			zap.Stringer("name", name),
-		)
+		logger.Panic("PName_Parse error", zap.Stringer("name", name))
 	}
 	return (*PName)(pname)
 }

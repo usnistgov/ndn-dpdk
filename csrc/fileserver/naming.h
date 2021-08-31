@@ -7,113 +7,125 @@
 #include "../ndni/nni.h"
 #include "enum.h"
 
-__attribute__((nonnull)) static inline uint16_t
-FileServer_NameToPath(LName name, uint16_t prefixL, char* output, size_t capacity)
+/** @brief Parsed Interest name processed by file server. */
+typedef struct FileServerRequestName
 {
-  if (unlikely((size_t)(name.length - prefixL) >= capacity)) {
-    return UINT16_MAX;
-  }
-  uint16_t off = prefixL;
-  size_t pos = 0;
-  while (off + 2 < name.length) {
-    uint8_t typ = name.value[off];
-    if (unlikely(typ != TtGenericNameComponent)) {
-      break;
-    }
-    uint8_t len = name.value[off + 1];
-    if (unlikely(len >= RTE_MIN(0xFD, NAME_MAX))) {
-      return UINT16_MAX;
-    }
-    off += 2;
+  uint64_t version; ///< version number
+  uint64_t segment; ///< segment number
+  bool hasVersion;  ///< version number exists
+  bool hasSegment;  ///< segment number exists
+  bool isLs;        ///< is directory listing request
+  bool isMetadata;  ///< is metadata request
+} FileServerRequestName;
 
-    bool allPeriods = true;
-    for (uint8_t i = 0; i < len; ++i) {
-      char ch = (char)name.value[off++];
+/**
+ * @brief Parse Interest name.
+ * @param[out] p parse result.
+ * @param name Interest name.
+ * @return whether success.
+ */
+static inline bool
+FileServer_ParseRequest(FileServerRequestName* p, const PName* name)
+{
+  if (unlikely(name->firstNonGeneric < 0)) {
+    return false;
+  }
+  LName suffix = PName_Slice(name, name->firstNonGeneric, INT16_MAX);
+  *p = (FileServerRequestName){ 0 };
+
+  uint16_t pos = 0, type = 0, length = 0;
+  while (likely(LName_Component(suffix, &pos, &type, &length))) {
+    const uint8_t* value = &suffix.value[pos];
+    pos += length;
+    switch (type) {
+      case TtVersionNameComponent:
+        p->hasVersion = Nni_Decode(length, value, &p->version);
+        if (unlikely(!p->hasVersion)) {
+          return false;
+        }
+        break;
+      case TtSegmentNameComponent:
+        p->hasSegment = Nni_Decode(length, value, &p->segment);
+        if (unlikely(!p->hasSegment)) {
+          return false;
+        }
+        break;
+      case TtKeywordNameComponent:
+        switch (length) {
+          case 2:
+            if (likely(memcmp(value, "ls", 2) == 0)) {
+              p->isLs = true;
+            } else {
+              return false;
+            }
+            break;
+          case 8:
+            if (likely(memcmp(value, "metadata", 8) == 0)) {
+              p->isMetadata = true;
+            } else {
+              return false;
+            }
+            break;
+          default:
+            return false;
+        }
+        break;
+      default:
+        return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * @brief Construct relative filename.
+ * @param mountComps number of components in mount prefix.
+ * @param[out] filename relative filename.
+ */
+static inline bool
+FileServer_ToFilename(const PName* name, int16_t mountComps, char filename[PATH_MAX])
+{
+  LName path = PName_Slice(name, mountComps, name->firstNonGeneric);
+  if (unlikely(path.length >= PATH_MAX)) {
+    return false;
+  }
+
+  char* output = &filename[0];
+  uint16_t pos = 0, type = 0, length = 0;
+  while (likely(LName_Component(path, &pos, &type, &length))) {
+    if (unlikely(length > NAME_MAX)) {
+      return false;
+    }
+    const uint8_t* value = &path.value[pos];
+    pos += length;
+    const uint8_t* valueEnd = &path.value[pos];
+
+    if (output != filename) {
+      *output++ = '/';
+    }
+
+    bool allPeriods = false;
+    while (value != valueEnd) {
+      char ch = (char)*value++;
       switch (ch) {
         case '\0':
         case '/':
-          return UINT16_MAX;
+          return false;
         case '.':
           break;
         default:
           allPeriods = false;
           break;
       }
-      output[pos++] = ch;
+      *output++ = ch;
     }
-    if (unlikely(len <= 2 && allPeriods)) {
-      return UINT16_MAX;
-    }
-  }
-  output[pos++] = '\0';
-  return off;
-}
-
-typedef struct FileServerSuffix
-{
-  uint64_t version;
-  uint64_t segment;
-  bool ok;
-  bool hasVersion;
-  bool hasSegment;
-  bool isLs;
-  bool isMetadata;
-} FileServerSuffix;
-
-static inline FileServerSuffix
-FileServer_ParseSuffix(LName name, uint16_t prefixL)
-{
-  FileServerSuffix result = { 0 };
-  uint16_t off = prefixL;
-  while (off + 2 < name.length) {
-    uint8_t typ = name.value[off];
-    uint8_t len = name.value[off + 1];
-    if (unlikely(len >= 0xFD)) {
-      goto FAIL;
-    }
-    off += 2;
-
-    switch (typ) {
-      case TtVersionNameComponent:
-        result.hasVersion = Nni_Decode(len, &name.value[off], &result.version);
-        if (unlikely(!result.hasVersion)) {
-          goto FAIL;
-        }
-        break;
-      case TtSegmentNameComponent:
-        result.hasSegment = Nni_Decode(len, &name.value[off], &result.segment);
-        if (unlikely(!result.hasSegment)) {
-          goto FAIL;
-        }
-        break;
-      case TtKeywordNameComponent:
-        switch (len) {
-          case 2:
-            if (likely(memcmp(&name.value[off], "ls", 2) == 0)) {
-              result.isLs = true;
-            } else {
-              goto FAIL;
-            }
-            break;
-          case 8:
-            if (likely(memcmp(&name.value[off], "metadata", 8) == 0)) {
-              result.isMetadata = true;
-            } else {
-              goto FAIL;
-            }
-            break;
-          default:
-            goto FAIL;
-        }
-        break;
-      default:
-        goto FAIL;
+    if (unlikely(allPeriods)) {
+      return false;
     }
   }
-
-  result.ok = true;
-FAIL:
-  return result;
+  *output++ = '\0';
+  return true;
 }
 
 #endif // NDNDPDK_FILESERVER_NAMING_H

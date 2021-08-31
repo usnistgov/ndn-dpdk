@@ -1,19 +1,15 @@
-#define _POSIX_C_SOURCE 200809L
 #include "server.h"
 #include "../core/logger.h"
 #include "naming.h"
-#include <fcntl.h>
-#include <unistd.h>
 
 N_LOG_INIT(FileServer);
 
 typedef struct FilePayloadPriv
 {
+  FileServerFd* fd;
   struct rte_mbuf* interest;
-  struct iovec iov;
   uint64_t segment;
-  int prefix;
-  int fd;
+  struct iovec iov;
 } FilePayloadPriv;
 static_assert(sizeof(FilePayloadPriv) <= sizeof(PacketPriv), "");
 
@@ -22,57 +18,53 @@ FileServer_ProcessInterest(FileServer* p, struct rte_mbuf* interest, struct rte_
 {
   Packet* npkt = Packet_FromMbuf(interest);
   PInterest* pi = Packet_GetInterestHdr(npkt);
-  LName name = PName_ToLName(&pi->name);
-
-  FilePayloadPriv* priv = rte_mbuf_to_priv(payload);
-  priv->prefix = LNamePrefixFilter_Find(name, FileServerMaxMounts, p->prefixL, p->prefixV);
-  if (unlikely(priv->prefix < 0)) {
-    N_LOGD("I drop=no-prefix");
-    return false;
-  }
-
-  char* filename = rte_pktmbuf_mtod_offset(interest, char*, interest->data_len);
-  uint16_t suffixOff =
-    FileServer_NameToPath(name, p->prefixL[priv->prefix], filename, rte_pktmbuf_tailroom(interest));
-  if (unlikely(suffixOff == UINT16_MAX)) {
+  FileServerRequestName rn;
+  if (unlikely(!FileServer_ParseRequest(&rn, &pi->name))) {
     N_LOGD("I drop=bad-name");
     return false;
   }
-  FileServerSuffix suffix = FileServer_ParseSuffix(name, suffixOff);
-  if (unlikely(!suffix.ok)) {
-    N_LOGD("I drop=bad-suffix");
-    return false;
-  }
 
-  if (unlikely(!suffix.hasSegment)) {
+  if (unlikely(!rn.hasSegment)) {
     // "32=ls" and "32=metadata" not implemented
     N_LOGD("I drop=keyword-not-implemented");
     return false;
   }
 
-  priv->fd = openat(p->dfd[priv->prefix], filename, O_RDONLY);
-  if (unlikely(priv->fd < 0)) {
-    N_LOGD("I drop=openat-error errno=%d", errno);
+  FilePayloadPriv* priv = rte_mbuf_to_priv(payload);
+  priv->fd = FileServer_FdOpen(p, &pi->name);
+  if (unlikely(priv->fd == NULL)) {
+    N_LOGD("I drop=no-fd");
     return false;
+  }
+  if (unlikely(priv->fd == FileServer_NotFound)) {
+    N_LOGD("I drop=file-not-found");
+    return false;
+  }
+  if (unlikely(rn.segment > priv->fd->lastSeg)) {
+    N_LOGD("I drop=segment-out-of-range segment=%" PRIu64 " lastseg=%" PRIu64, rn.segment,
+           priv->fd->lastSeg);
+    goto UNREF;
   }
 
   struct io_uring_sqe* sqe = io_uring_get_sqe(&p->uring);
   if (unlikely(sqe == NULL)) {
-    N_LOGD("I drop=no-sqe");
-    close(priv->fd);
-    return false;
+    N_LOGE("I" N_LOG_ERROR("no-sqe"));
+    goto UNREF;
   }
 
   priv->interest = interest;
-  priv->segment = suffix.segment;
 
   payload->data_off = p->payloadHeadroom;
   priv->iov.iov_base = rte_pktmbuf_mtod(payload, uint8_t*);
-  priv->iov.iov_len = p->segmentLen + 1;
+  priv->iov.iov_len = p->segmentLen;
 
-  io_uring_prep_readv(sqe, priv->fd, &priv->iov, 1, suffix.segment * p->segmentLen);
+  io_uring_prep_readv(sqe, priv->fd->fd, &priv->iov, 1, rn.segment * p->segmentLen);
   io_uring_sqe_set_data(sqe, payload);
   return true;
+
+UNREF:
+  FileServer_FdUnref(p, priv->fd);
+  return false;
 }
 
 __attribute__((nonnull)) static inline uint32_t
@@ -84,7 +76,7 @@ FileServer_RxBurst(FileServer* p)
 
   PktQueuePopResult pop = PktQueue_Pop(&p->rxQueue, interest, MaxBurstSize, now);
   if (unlikely(pop.count == 0)) {
-    return 0;
+    return pop.count;
   }
 
   int res = rte_pktmbuf_alloc_bulk(p->payloadMp, payload, pop.count);
@@ -123,27 +115,15 @@ FileServer_ProcessCqe(FileServer* p, struct io_uring_cqe* cqe, TscTime now)
   }
 
   struct rte_mbuf* payload = io_uring_cqe_get_data(cqe);
-  rte_pktmbuf_append(payload, RTE_MIN((uint16_t)cqe->res, p->segmentLen));
+  rte_pktmbuf_append(payload, (uint16_t)cqe->res);
 
   FilePayloadPriv* priv = rte_mbuf_to_priv(payload);
-  uint64_t segment = priv->segment;
   Packet* interest = Packet_FromMbuf(priv->interest);
   PInterest* pi = Packet_GetInterestHdr(interest);
   LName name = PName_ToLName(&pi->name);
 
-  LName finalBlock = { 0 };
-  uint8_t finalBlockV[10];
-  if (unlikely((uint16_t)cqe->res <= p->segmentLen)) {
-    finalBlockV[0] = TtSegmentNameComponent;
-    finalBlockV[1] = Nni_Encode(&finalBlockV[2], segment);
-    finalBlock.length = 2 + finalBlockV[1];
-    finalBlock.value = finalBlockV;
-  }
-  MetaInfoBuffer meta;
-  DataEnc_PrepareMetaInfo(&meta, ContentBlob, 300000, finalBlock);
-
+  Packet* data = DataEnc_EncodePayload(name, &priv->fd->meta, payload);
   NULLize(priv); // overwritten by DataEnc
-  Packet* data = DataEnc_EncodePayload(name, &meta, payload);
   if (unlikely(data == NULL)) {
     N_LOGD("C drop=dataenc-error");
     return false;
@@ -171,15 +151,16 @@ FileServer_TxBurst(FileServer* p)
   for (uint32_t i = 0; i < nCqe; ++i) {
     struct rte_mbuf* payload = io_uring_cqe_get_data(cqe[i]);
     FilePayloadPriv* priv = rte_mbuf_to_priv(payload);
-    close(priv->fd);
+    FileServerFd* fd = priv->fd;
     discard[nDiscard++] = priv->interest;
     NULLize(priv); // overwritten by DataEnc
-
     if (likely(FileServer_ProcessCqe(p, cqe[i], now))) {
       data[nData++] = payload;
     } else {
       discard[nDiscard++] = payload;
     }
+    FileServer_FdUnref(p, fd);
+    NULLize(fd);
     io_uring_cqe_seen(&p->uring, cqe[i]);
   }
 
@@ -196,6 +177,7 @@ FileServer_Run(FileServer* p)
     N_LOGE("io_uring_queue_init errno=%d", -res);
     return 1;
   }
+  TAILQ_INIT(&p->fdQ);
 
   uint32_t nProcessed = 0;
   while (ThreadCtrl_Continue(p->ctrl, nProcessed)) {
@@ -204,5 +186,6 @@ FileServer_Run(FileServer* p)
   }
 
   io_uring_queue_exit(&p->uring);
+  FileServer_FdClear(p);
   return 0;
 }

@@ -19,6 +19,46 @@ typedef struct LName
   uint16_t length;
 } LName;
 
+static __rte_always_inline bool
+LName_ParseVarNum_(LName name, uint16_t* restrict pos, uint16_t* restrict n, uint16_t minTail)
+{
+  if (unlikely(*pos + 1 + minTail > name.length)) {
+    return false;
+  }
+
+  *n = name.value[*pos];
+  *pos += 1;
+  if (likely(*n < 0xFD)) {
+    return true;
+  }
+
+  if (unlikely(*n > 0xFD) || unlikely(*pos + 2 + minTail > name.length)) {
+    return false;
+  }
+
+  *n = rte_cpu_to_be_16(*(unaligned_uint16_t*)&name.value[*pos]);
+  *pos += 2;
+  return true;
+}
+
+/**
+ * @brief Iterate over name components.
+ * @code
+ * uint16_t pos = 0, type = 0, length = 0;
+ * while (likely(LName_Component(name, &pos, &type, &length))) {
+ *   uint8_t* value = &name.value[pos];
+ *   pos += length;
+ * }
+ * @endcode
+ */
+static inline bool
+LName_Component(LName name, uint16_t* restrict pos, uint16_t* restrict type,
+                uint16_t* restrict length)
+{
+  return LName_ParseVarNum_(name, pos, type, 1) && likely(*type != 0) &&
+         LName_ParseVarNum_(name, pos, length, 0) && *pos + *length <= name.length;
+}
+
 /**
  * @brief Determine whether @p a is a prefix of @b b .
  * @retval 0 @p a equals @p b .
@@ -32,6 +72,60 @@ LName_IsPrefix(LName a, LName b)
     return -1;
   }
   return b.length - a.length;
+}
+
+static __rte_always_inline LName
+LName_SliceByte_(LName name, uint16_t start, uint16_t end)
+{
+  return (LName){ .length = end - start, .value = RTE_PTR_ADD(name.value, start) };
+}
+
+/**
+ * @brief Get a sub name of @c [start:end-1] byte range.
+ * @param start first byte offset (inclusive).
+ * @param end last byte offset (exclusive).
+ */
+static __rte_always_inline LName
+LName_SliceByte(LName name, uint16_t start, uint16_t end)
+{
+  end = RTE_MIN(end, name.length);
+  if (unlikely(start >= end)) {
+    return (LName){ 0 };
+  }
+  return (LName){ .length = end - start, .value = RTE_PTR_ADD(name.value, start) };
+}
+
+static __rte_always_inline LName
+LName_Slice_(LName name, uint16_t start, uint16_t end)
+{
+  uint16_t i = 0, pos = 0, type = 0, length = 0;
+  uint16_t posStart = likely(start == 0) ? 0 : name.length;
+  uint16_t posEnd = name.length;
+  while (likely(LName_Component(name, &pos, &type, &length))) {
+    ++i;
+    pos += length;
+    if (i == start) {
+      posStart = pos;
+    } else if (i == end) {
+      posEnd = pos;
+      break;
+    }
+  }
+  return LName_SliceByte_(name, posStart, posEnd);
+}
+
+/**
+ * @brief Get a sub name of @c [start:end-1] components.
+ * @param start first component index (inclusive).
+ * @param end last component index (exclusive).
+ */
+static inline LName
+LName_Slice(LName name, uint16_t start, uint16_t end)
+{
+  if (unlikely(start >= end)) {
+    return (LName){ 0 };
+  }
+  return LName_Slice_(name, start, end);
 }
 
 /** @brief Compute hash for a name. */
@@ -82,17 +176,25 @@ typedef struct PName
   const uint8_t* value; ///< TLV-VALUE
   uint16_t length;      ///< TLV-LENGTH
   uint16_t nComps;      ///< number of components
-  bool hasDigestComp;   ///< ends with digest component?
-
-  bool hasHashes_;                       ///< are hash[i] computed?
+  struct
+  {
+    int16_t firstNonGeneric : 12; ///< index of first non-generic component
+    bool hasDigestComp : 1;       ///< ends with digest component?
+    bool hasHashes_ : 1;          ///< hash_ computed?
+    uint32_t a_ : 2;
+  } __rte_packed;
   uint16_t comp_[PNameCachedComponents]; ///< end offset of i-th component
   uint64_t hash_[PNameCachedComponents]; ///< hash of i+1-component prefix
 } PName;
+// maximum component index must fit in firstNonGeneric
+static_assert((NameMaxLength / 2) <= (1 << 11), "");
 
 /** @brief Convert PName to LName. */
 static __rte_always_inline LName
 PName_ToLName(const PName* p)
 {
+  static_assert(offsetof(LName, value) == offsetof(PName, value), "");
+  static_assert(offsetof(LName, length) == offsetof(PName, length), "");
   return *(const LName*)p;
 }
 
@@ -100,30 +202,50 @@ PName_ToLName(const PName* p)
 __attribute__((nonnull)) bool
 PName_Parse(PName* p, LName l);
 
-__attribute__((nonnull)) LName
-PName_GetPrefix_Uncached_(const PName* p, int n);
+__attribute__((nonnull)) static __rte_noinline LName
+PName_Slice_Uncached_(const PName* p, int16_t start, int16_t end)
+{
+  return LName_Slice_(PName_ToLName(p), (uint16_t)start, (uint16_t)end);
+}
+
+/**
+ * @brief Get a sub name of @c [start:end-1] components.
+ * @param start first component index (inclusive); if negative, count from end.
+ * @param end last component index (exclusive); if negative, count from end.
+ */
+__attribute__((nonnull)) static inline LName
+PName_Slice(const PName* p, int16_t start, int16_t end)
+{
+  if (unlikely(start < 0)) {
+    start += p->nComps;
+  }
+  start = RTE_MAX(0, RTE_MIN(start, (int16_t)p->nComps));
+
+  if (unlikely(end < 0)) {
+    end += p->nComps;
+  }
+  end = RTE_MAX(0, RTE_MIN(end, (int16_t)p->nComps));
+
+  if (unlikely(start >= end)) {
+    return (LName){ 0 };
+  }
+
+  if (unlikely(end > PNameCachedComponents)) {
+    return PName_Slice_Uncached_(p, start, end);
+  }
+
+  return LName_SliceByte_(PName_ToLName(p), likely(start == 0) ? 0 : p->comp_[start - 1],
+                          p->comp_[end - 1]);
+}
 
 /**
  * @brief Get a prefix of first @p n components.
  * @param n number of components; if negative, count from end.
  */
 __attribute__((nonnull)) static inline LName
-PName_GetPrefix(const PName* p, int n)
+PName_GetPrefix(const PName* p, int16_t n)
 {
-  if (n < 0) {
-    n += p->nComps;
-  }
-  n = RTE_MIN(n, (int)p->nComps);
-
-  if (unlikely(n <= 0)) {
-    return (LName){ 0 };
-  }
-
-  if (unlikely(n > PNameCachedComponents)) {
-    return PName_GetPrefix_Uncached_(p, n);
-  }
-
-  return (LName){ .length = p->comp_[n - 1], .value = p->value };
+  return PName_Slice(p, 0, n);
 }
 
 __attribute__((nonnull)) void

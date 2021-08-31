@@ -50,14 +50,32 @@ InputDemux_DispatchToFirst(InputDemux* demux, Packet* npkt, const PName* name)
 void
 InputDemux_DispatchRoundrobinDiv(InputDemux* demux, Packet* npkt, const PName* name)
 {
-  uint8_t index = (++demux->roundrobin.i) % demux->roundrobin.n;
+  uint8_t index = (++demux->div.i) % demux->div.n;
   InputDemux_PassTo(demux, npkt, index);
 }
 
 void
 InputDemux_DispatchRoundrobinMask(InputDemux* demux, Packet* npkt, const PName* name)
 {
-  uint8_t index = (++demux->roundrobin.i) & demux->roundrobin.n;
+  uint8_t index = (++demux->div.i) & demux->div.n;
+  InputDemux_PassTo(demux, npkt, index);
+}
+
+__attribute__((nonnull)) void
+InputDemux_DispatchGenericHashDiv(InputDemux* demux, Packet* npkt, const PName* name)
+{
+  uint64_t hash = PName_ComputePrefixHash(
+    name, likely(name->firstNonGeneric >= 0) ? (uint16_t)name->firstNonGeneric : name->nComps);
+  uint8_t index = hash % demux->div.n;
+  InputDemux_PassTo(demux, npkt, index);
+}
+
+__attribute__((nonnull)) void
+InputDemux_DispatchGenericHashMask(InputDemux* demux, Packet* npkt, const PName* name)
+{
+  uint64_t hash = PName_ComputePrefixHash(
+    name, likely(name->firstNonGeneric >= 0) ? (uint16_t)name->firstNonGeneric : name->nComps);
+  uint8_t index = hash & demux->div.n;
   InputDemux_PassTo(demux, npkt, index);
 }
 
@@ -79,4 +97,27 @@ InputDemux_DispatchByToken(InputDemux* demux, Packet* npkt, const PName* name)
 
   uint8_t index = token->value[demux->byToken.offset];
   InputDemux_PassTo(demux, npkt, index);
+}
+
+void
+InputDemux_SetDispatchDiv_(InputDemux* demux, uint32_t nDest, bool byGenericHash)
+{
+  if (nDest <= 1) {
+    demux->dispatch = InputDemux_DispatchToFirst;
+  } else if (RTE_IS_POWER_OF_2(nDest)) {
+    demux->div.n = nDest - 1;
+    demux->dispatch =
+      byGenericHash ? InputDemux_DispatchGenericHashMask : InputDemux_DispatchRoundrobinMask;
+  } else {
+    demux->div.n = nDest;
+    demux->dispatch =
+      byGenericHash ? InputDemux_DispatchGenericHashDiv : InputDemux_DispatchRoundrobinDiv;
+  }
+}
+
+void
+InputDemux_SetDispatchByToken_(InputDemux* demux, uint8_t offset)
+{
+  demux->byToken.offset = offset;
+  demux->dispatch = InputDemux_DispatchByToken;
 }

@@ -7,6 +7,7 @@ import "C"
 import (
 	"unsafe"
 
+	binutils "github.com/jfoster/binary-utilities"
 	"github.com/usnistgov/ndn-dpdk/app/tg/tgdef"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
@@ -14,6 +15,8 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
+
+const sizeofFileServerFd = C.sizeof_FileServerFd
 
 type worker struct {
 	ealthread.ThreadWithCtrl
@@ -54,8 +57,7 @@ func newWorker(faceID iface.ID, socket eal.NumaSocket, cfg Config) (w *worker, e
 		c: (*C.FileServer)(eal.Zmalloc("FileServer", C.sizeof_FileServer, socket)),
 	}
 
-	rxQueue := iface.PktQueueFromPtr(unsafe.Pointer(&w.c.rxQueue))
-	if e := rxQueue.Init(cfg.RxQueue, socket); e != nil {
+	if e := w.rxQueue().Init(cfg.RxQueue, socket); e != nil {
 		eal.Free(w.c)
 		return nil, e
 	}
@@ -64,12 +66,15 @@ func newWorker(faceID iface.ID, socket eal.NumaSocket, cfg Config) (w *worker, e
 	w.c.face = (C.FaceID)(faceID)
 	w.c.segmentLen = C.uint16_t(cfg.SegmentLen)
 	w.c.payloadHeadroom = C.uint16_t(cfg.payloadHeadroom)
+	w.c.fdQCapacity = C.uint16_t(cfg.KeepFds)
 	w.c.uringCapacity = C.uint32_t(cfg.UringCapacity)
+	w.c.nFdHtBuckets = C.uint32_t(binutils.PrevPowerOfTwo(int64(cfg.OpenFds)))
 
-	prefixes := ndni.NewLNamePrefixFilterBuilder(unsafe.Pointer(&w.c.prefixL), unsafe.Sizeof(w.c.prefixL),
-		unsafe.Pointer(&w.c.prefixV), unsafe.Sizeof(w.c.prefixV))
+	prefixes := ndni.NewLNamePrefixFilterBuilder(unsafe.Pointer(&w.c.mountPrefixL), unsafe.Sizeof(w.c.mountPrefixL),
+		unsafe.Pointer(&w.c.mountPrefixV), unsafe.Sizeof(w.c.mountPrefixV))
 	for i, m := range cfg.Mounts {
 		w.c.dfd[i] = C.int(*m.dfd)
+		w.c.mountPrefixComps[i] = C.int16_t(len(m.Prefix))
 		prefixes.Append(m.Prefix)
 	}
 

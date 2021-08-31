@@ -29,7 +29,7 @@ func (p *Server) Face() iface.Face {
 
 // ConnectRxQueues connects Interest InputDemux to RxQueues.
 func (p *Server) ConnectRxQueues(demuxI *iface.InputDemux) {
-	demuxI.InitRoundrobin(len(p.workers))
+	demuxI.InitGenericHash(len(p.workers))
 	for i, w := range p.workers {
 		demuxI.SetDest(i, w.rxQueue())
 	}
@@ -70,7 +70,6 @@ func New(face iface.Face, cfg Config) (p *Server, e error) {
 	if e := cfg.validate(); e != nil {
 		return nil, e
 	}
-	cfg.checkDirectMempoolDataroom()
 	if e := cfg.checkPayloadMempool(cfg.SegmentLen); e != nil {
 		return nil, e
 	}
