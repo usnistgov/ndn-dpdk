@@ -4,9 +4,11 @@ package tg
 import (
 	"errors"
 	"fmt"
+	"io"
 	"sync"
 
 	"github.com/usnistgov/ndn-dpdk/app/fetch"
+	"github.com/usnistgov/ndn-dpdk/app/fileserver"
 	"github.com/usnistgov/ndn-dpdk/app/tg/tgdef"
 	"github.com/usnistgov/ndn-dpdk/app/tgconsumer"
 	"github.com/usnistgov/ndn-dpdk/app/tgproducer"
@@ -44,10 +46,11 @@ type TrafficGen struct {
 	txl     iface.TxLoop
 	workers []ealthread.ThreadWithRole
 
-	producer *tgproducer.Producer
-	consumer *tgconsumer.Consumer
-	fetcher  *fetch.Fetcher
-	exit     chan struct{}
+	producer   *tgproducer.Producer
+	fileServer *fileserver.Server
+	consumer   *tgconsumer.Consumer
+	fetcher    *fetch.Fetcher
+	exit       chan struct{}
 }
 
 // Face returns the face on which this traffic generator operates.
@@ -55,17 +58,22 @@ func (gen TrafficGen) Face() iface.Face {
 	return gen.face
 }
 
-// Producer returns the producer element.
+// Producer returns the producer module.
 func (gen TrafficGen) Producer() *tgproducer.Producer {
 	return gen.producer
 }
 
-// Consumer returns the fixed rate consumer element.
+// FileServer returns the file server module.
+func (gen TrafficGen) FileServer() *fileserver.Server {
+	return gen.fileServer
+}
+
+// Consumer returns the fixed rate consumer module.
 func (gen TrafficGen) Consumer() *tgconsumer.Consumer {
 	return gen.consumer
 }
 
-// Fetcher returns the congestion aware fetcher element.
+// Fetcher returns the congestion aware fetcher module.
 func (gen TrafficGen) Fetcher() *fetch.Fetcher {
 	return gen.fetcher
 }
@@ -83,7 +91,10 @@ func (gen *TrafficGen) Launch() error {
 
 	if gen.producer != nil {
 		gen.producer.Launch()
+	} else if gen.fileServer != nil {
+		gen.fileServer.Launch()
 	}
+
 	if gen.consumer != nil {
 		gen.consumer.Launch()
 	}
@@ -98,6 +109,8 @@ func (gen *TrafficGen) configureDemux(demuxI, demuxD, demuxN *iface.InputDemux) 
 
 	if gen.producer != nil {
 		gen.producer.ConnectRxQueues(demuxI)
+	} else if gen.fileServer != nil {
+		gen.fileServer.ConnectRxQueues(demuxI)
 	}
 
 	if gen.consumer != nil {
@@ -138,24 +151,18 @@ func (gen *TrafficGen) Close() error {
 	}
 
 	errs := []error{}
-	if gen.producer != nil {
-		errs = append(errs, gen.producer.Close())
+	gatherCloseErr := func(c io.Closer) {
+		if c != nil {
+			errs = append(errs, c.Close())
+		}
 	}
-	if gen.consumer != nil {
-		errs = append(errs, gen.consumer.Close())
-	}
-	if gen.fetcher != nil {
-		errs = append(errs, gen.fetcher.Close())
-	}
-	if gen.face != nil {
-		errs = append(errs, gen.face.Close())
-	}
-	if gen.rxl != nil {
-		errs = append(errs, gen.rxl.Close())
-	}
-	if gen.txl != nil {
-		errs = append(errs, gen.txl.Close())
-	}
+	gatherCloseErr(gen.producer)
+	gatherCloseErr(gen.fileServer)
+	gatherCloseErr(gen.consumer)
+	gatherCloseErr(gen.fetcher)
+	gatherCloseErr(gen.face)
+	gatherCloseErr(gen.rxl)
+	gatherCloseErr(gen.txl)
 
 	var lcores eal.LCores
 	for _, w := range gen.workers {
@@ -178,9 +185,8 @@ func New(cfg Config) (gen *TrafficGen, e error) {
 	gen = &TrafficGen{
 		exit: make(chan struct{}),
 	}
-	success := false
 	defer func(gen *TrafficGen) {
-		if !success {
+		if e != nil {
 			gen.Close()
 		}
 	}(gen)
@@ -214,6 +220,14 @@ func New(cfg Config) (gen *TrafficGen, e error) {
 		gen.workers = append(gen.workers, producer.Workers()...)
 		gen.producer = producer
 	}
+	if cfg.FileServer != nil {
+		fileServer, e := fileserver.New(gen.face, *cfg.FileServer)
+		if e != nil {
+			return nil, fmt.Errorf("error creating fileServer %w", e)
+		}
+		gen.workers = append(gen.workers, fileServer.Workers()...)
+		gen.fileServer = fileServer
+	}
 
 	if cfg.Consumer != nil {
 		consumer, e := tgconsumer.New(gen.face, *cfg.Consumer)
@@ -222,7 +236,8 @@ func New(cfg Config) (gen *TrafficGen, e error) {
 		}
 		gen.workers = append(gen.workers, consumer.Workers()...)
 		gen.consumer = consumer
-	} else if cfg.Fetcher != nil {
+	}
+	if cfg.Fetcher != nil {
 		fetcher, e := fetch.New(gen.face, *cfg.Fetcher)
 		if e != nil {
 			return nil, fmt.Errorf("error creating fetcher %w", e)
@@ -235,7 +250,6 @@ func New(cfg Config) (gen *TrafficGen, e error) {
 		return nil, fmt.Errorf("error allocating gen.workers %w", e)
 	}
 
-	success = true
 	mapFaceGenMutex.Lock()
 	defer mapFaceGenMutex.Unlock()
 	mapFaceGen[gen.face.ID()] = gen

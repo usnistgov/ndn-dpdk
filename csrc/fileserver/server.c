@@ -147,17 +147,17 @@ FileServer_TxBurst(FileServer* p)
 
   struct rte_mbuf* data[2 * MaxBurstSize];
   struct rte_mbuf* discard[2 * MaxBurstSize];
-  uint32_t nData = 0, nDiscard = 0;
+  uint32_t nData = 0, discardInterest = MaxBurstSize, discardPayload = MaxBurstSize;
   for (uint32_t i = 0; i < nCqe; ++i) {
     struct rte_mbuf* payload = io_uring_cqe_get_data(cqe[i]);
     FilePayloadPriv* priv = rte_mbuf_to_priv(payload);
     FileServerFd* fd = priv->fd;
-    discard[nDiscard++] = priv->interest;
+    discard[discardInterest++] = priv->interest;
     NULLize(priv); // overwritten by DataEnc
     if (likely(FileServer_ProcessCqe(p, cqe[i], now))) {
       data[nData++] = payload;
     } else {
-      discard[nDiscard++] = payload;
+      discard[--discardPayload] = payload;
     }
     FileServer_FdUnref(p, fd);
     NULLize(fd);
@@ -165,7 +165,7 @@ FileServer_TxBurst(FileServer* p)
   }
 
   Face_TxBurst(p->face, (Packet**)data, nData);
-  rte_pktmbuf_free_bulk(discard, nDiscard);
+  rte_pktmbuf_free_bulk(&discard[discardPayload], discardInterest - discardPayload);
   return nCqe;
 }
 

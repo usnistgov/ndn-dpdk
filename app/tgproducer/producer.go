@@ -78,7 +78,7 @@ func (p *Producer) Close() error {
 
 // New creates a Producer.
 func New(face iface.Face, cfg Config) (p *Producer, e error) {
-	if e := cfg.validateWithDefaults(); e != nil {
+	if e := cfg.Validate(); e != nil {
 		return nil, e
 	}
 

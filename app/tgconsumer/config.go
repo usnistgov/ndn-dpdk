@@ -57,7 +57,8 @@ type Config struct {
 	nDigestPatterns int
 }
 
-func (cfg *Config) validateWithDefaults() error {
+// Validate applies defaults and validates the configuration.
+func (cfg *Config) Validate() error {
 	cfg.RxQueue.DisableCoDel = true
 
 	if len(cfg.Patterns) == 0 {

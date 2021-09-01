@@ -34,7 +34,7 @@ func init() {
 		}),
 	})
 
-	GqlFetcherNodeType = tggql.NewNodeType((*Fetcher)(nil), &GqlRetrieveByFaceID)
+	GqlFetcherNodeType = tggql.NewNodeType("Fetcher", (*Fetcher)(nil), &GqlRetrieveByFaceID)
 	GqlFetcherType = graphql.NewObject(GqlFetcherNodeType.Annotate(graphql.ObjectConfig{
 		Name:   "Fetcher",
 		Fields: tggql.CommonFields(graphql.Fields{}),

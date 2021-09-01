@@ -66,8 +66,7 @@ func (p *Server) Close() error {
 
 // New creates a Server.
 func New(face iface.Face, cfg Config) (p *Server, e error) {
-	cfg.applyDefaults()
-	if e := cfg.validate(); e != nil {
+	if e := cfg.Validate(); e != nil {
 		return nil, e
 	}
 	if e := cfg.checkPayloadMempool(cfg.SegmentLen); e != nil {

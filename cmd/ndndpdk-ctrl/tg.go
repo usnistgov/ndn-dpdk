@@ -17,12 +17,14 @@ func init() {
 				mutation startTrafficGen(
 					$face: JSON!
 					$producer: TgProducerConfigInput
+					$fileServer: FileServerConfigInput
 					$consumer: TgConsumerConfigInput
 					$fetcher: FetcherConfigInput
 				) {
 					startTrafficGen(
 						face: $face
 						producer: $producer
+						fileServer: $fileServer
 						consumer: $consumer
 						fetcher: $fetcher
 					) {

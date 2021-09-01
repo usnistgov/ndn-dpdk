@@ -1,6 +1,7 @@
 import type { FaceLocator } from "../iface";
 import type { TgcConfig } from "./consumer";
 import type { FetcherConfig } from "./fetch";
+import type { FileServerConfig } from "./fileserver";
 import type { TgpConfig } from "./producer";
 
 /**
@@ -9,9 +10,11 @@ import type { TgpConfig } from "./producer";
  */
 export type TgConfig = {
   face: FaceLocator;
-} & {
-  producer?: TgpConfig;
 } & ({
+  producer?: TgpConfig;
+} | {
+  fileServer?: FileServerConfig;
+}) & ({
   consumer?: TgcConfig;
 } | {
   fetcher?: FetcherConfig;

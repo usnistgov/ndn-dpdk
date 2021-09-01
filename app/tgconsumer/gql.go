@@ -20,6 +20,7 @@ var GqlRetrieveByFaceID func(id iface.ID) interface{}
 // GraphQL types.
 var (
 	GqlPatternInput        *graphql.InputObject
+	GqlConfigInput         *graphql.InputObject
 	GqlPatternCountersType *graphql.Object
 	GqlCountersType        *graphql.Object
 	GqlConsumerNodeType    *gqlserver.NodeType
@@ -34,6 +35,15 @@ func init() {
 			reflect.TypeOf(ndn.Name{}):                 gqlserver.NonNullString,
 			reflect.TypeOf(nnduration.Milliseconds(0)): nnduration.GqlMilliseconds,
 			reflect.TypeOf(ndni.DataGenConfig{}):       ndni.GqlDataGenInput,
+		}),
+	})
+	GqlConfigInput = graphql.NewInputObject(graphql.InputObjectConfig{
+		Name:        "TgConsumerConfigInput",
+		Description: "Traffic generator consumer config.",
+		Fields: gqlserver.BindInputFields(Config{}, gqlserver.FieldTypes{
+			reflect.TypeOf(iface.PktQueueConfig{}):    iface.GqlPktQueueInput,
+			reflect.TypeOf(nnduration.Nanoseconds(0)): nnduration.GqlNanoseconds,
+			reflect.TypeOf(Pattern{}):                 GqlPatternInput,
 		}),
 	})
 
@@ -51,7 +61,7 @@ func init() {
 		}),
 	})
 
-	GqlConsumerNodeType = tggql.NewNodeType((*Consumer)(nil), &GqlRetrieveByFaceID)
+	GqlConsumerNodeType = tggql.NewNodeType("Tgc", (*Consumer)(nil), &GqlRetrieveByFaceID)
 	GqlConsumerType = graphql.NewObject(GqlConsumerNodeType.Annotate(graphql.ObjectConfig{
 		Name: "TgConsumer",
 		Fields: tggql.CommonFields(graphql.Fields{

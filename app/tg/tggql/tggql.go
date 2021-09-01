@@ -42,8 +42,8 @@ func CommonFields(fields graphql.Fields) graphql.Fields {
 }
 
 // NewNodeType creates a NodeType for traffic generator element.
-func NewNodeType(value withCommonFields, retrieve *func(iface.ID) interface{}) (nt *gqlserver.NodeType) {
-	nt = gqlserver.NewNodeType(value)
+func NewNodeType(name string, value withCommonFields, retrieve *func(iface.ID) interface{}) (nt *gqlserver.NodeType) {
+	nt = gqlserver.NewNodeTypeNamed(name, value)
 	nt.GetID = func(source interface{}) string {
 		return strconv.Itoa(int(source.(withCommonFields).Face().ID()))
 	}

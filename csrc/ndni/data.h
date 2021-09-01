@@ -53,8 +53,7 @@ typedef struct MetaInfoBuffer
 {
   uint8_t size;
   uint8_t buffer[63];
-} __rte_aligned(64) MetaInfoBuffer;
-static_assert(sizeof(MetaInfoBuffer) == 64, "");
+} MetaInfoBuffer;
 
 __attribute__((nonnull)) bool
 DataEnc_PrepareMetaInfo(MetaInfoBuffer* meta, ContentType ct, uint32_t freshness, LName finalBlock);

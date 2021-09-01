@@ -22,12 +22,8 @@ func (win *Window) ptr() *C.FetchWindow {
 }
 
 // Init allocates and initializes the FetchWindow.
+// capacity must be power of two.
 func (win *Window) Init(capacity int, socket eal.NumaSocket) {
-	if capacity < 1 {
-		capacity = 65536
-	}
-	capacity = int(C.rte_align32pow2(C.uint32_t(capacity)))
-
 	c := win.ptr()
 	c.array = (*C.FetchSeg)(eal.ZmallocAligned("FetchWindow", capacity*int(C.sizeof_FetchSeg), 1, socket))
 	c.capacityMask = C.uint(capacity - 1)

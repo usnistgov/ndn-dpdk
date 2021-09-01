@@ -33,26 +33,9 @@ func init() {
 	GqlPktQueueInput = graphql.NewInputObject(graphql.InputObjectConfig{
 		Name:        "FacePktQueueInput",
 		Description: "Packet queue configuration.",
-		Fields: graphql.InputObjectConfigFieldMap{
-			"capacity": &graphql.InputObjectFieldConfig{
-				Type: graphql.Int,
-			},
-			"dequeueBurstSize": &graphql.InputObjectFieldConfig{
-				Type: graphql.Int,
-			},
-			"delay": &graphql.InputObjectFieldConfig{
-				Type: nnduration.GqlNanoseconds,
-			},
-			"disableCoDel": &graphql.InputObjectFieldConfig{
-				Type: graphql.Boolean,
-			},
-			"target": &graphql.InputObjectFieldConfig{
-				Type: nnduration.GqlNanoseconds,
-			},
-			"interval": &graphql.InputObjectFieldConfig{
-				Type: nnduration.GqlNanoseconds,
-			},
-		},
+		Fields: gqlserver.BindInputFields(PktQueueConfig{}, gqlserver.FieldTypes{
+			reflect.TypeOf(nnduration.Nanoseconds(0)): nnduration.GqlNanoseconds,
+		}),
 	})
 
 	GqlRxCountersType = graphql.NewObject(graphql.ObjectConfig{

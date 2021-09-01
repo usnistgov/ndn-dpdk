@@ -259,7 +259,7 @@ func (c *Consumer) closeDigest() {
 
 // New creates a Consumer.
 func New(face iface.Face, cfg Config) (c *Consumer, e error) {
-	if e := cfg.validateWithDefaults(); e != nil {
+	if e := cfg.Validate(); e != nil {
 		return nil, e
 	}
 

@@ -61,11 +61,16 @@ InputDemux_DispatchRoundrobinMask(InputDemux* demux, Packet* npkt, const PName* 
   InputDemux_PassTo(demux, npkt, index);
 }
 
+static __rte_always_inline uint64_t
+ComputeGenericHash(const PName* name)
+{
+  return PName_ComputePrefixHash(name, RTE_MIN(name->nComps, (uint16_t)name->firstNonGeneric));
+}
+
 __attribute__((nonnull)) void
 InputDemux_DispatchGenericHashDiv(InputDemux* demux, Packet* npkt, const PName* name)
 {
-  uint64_t hash = PName_ComputePrefixHash(
-    name, likely(name->firstNonGeneric >= 0) ? (uint16_t)name->firstNonGeneric : name->nComps);
+  uint64_t hash = ComputeGenericHash(name);
   uint8_t index = hash % demux->div.n;
   InputDemux_PassTo(demux, npkt, index);
 }
@@ -73,8 +78,7 @@ InputDemux_DispatchGenericHashDiv(InputDemux* demux, Packet* npkt, const PName* 
 __attribute__((nonnull)) void
 InputDemux_DispatchGenericHashMask(InputDemux* demux, Packet* npkt, const PName* name)
 {
-  uint64_t hash = PName_ComputePrefixHash(
-    name, likely(name->firstNonGeneric >= 0) ? (uint16_t)name->firstNonGeneric : name->nComps);
+  uint64_t hash = ComputeGenericHash(name);
   uint8_t index = hash & demux->div.n;
   InputDemux_PassTo(demux, npkt, index);
 }

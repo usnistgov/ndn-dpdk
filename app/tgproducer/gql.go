@@ -18,6 +18,7 @@ var GqlRetrieveByFaceID func(id iface.ID) interface{}
 var (
 	GqlReplyInput          *graphql.InputObject
 	GqlPatternInput        *graphql.InputObject
+	GqlConfigInput         *graphql.InputObject
 	GqlPatternCountersType *graphql.Object
 	GqlCountersType        *graphql.Object
 	GqlProducerNodeType    *gqlserver.NodeType
@@ -40,6 +41,14 @@ func init() {
 			reflect.TypeOf(Reply{}):    GqlReplyInput,
 		}),
 	})
+	GqlConfigInput = graphql.NewInputObject(graphql.InputObjectConfig{
+		Name:        "TgProducerConfigInput",
+		Description: "Traffic generator producer config.",
+		Fields: gqlserver.BindInputFields(Config{}, gqlserver.FieldTypes{
+			reflect.TypeOf(iface.PktQueueConfig{}): iface.GqlPktQueueInput,
+			reflect.TypeOf(Pattern{}):              GqlPatternInput,
+		}),
+	})
 
 	GqlPatternCountersType = graphql.NewObject(graphql.ObjectConfig{
 		Name:   "TgpPatternCounters",
@@ -52,7 +61,7 @@ func init() {
 		}),
 	})
 
-	GqlProducerNodeType = tggql.NewNodeType((*Producer)(nil), &GqlRetrieveByFaceID)
+	GqlProducerNodeType = tggql.NewNodeType("Tgp", (*Producer)(nil), &GqlRetrieveByFaceID)
 	GqlProducerType = graphql.NewObject(GqlProducerNodeType.Annotate(graphql.ObjectConfig{
 		Name:        "TgProducer",
 		Description: "Traffic generator producer.",

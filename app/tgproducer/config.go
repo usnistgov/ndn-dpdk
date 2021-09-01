@@ -44,7 +44,8 @@ type Config struct {
 	nDataGen int
 }
 
-func (cfg *Config) validateWithDefaults() error {
+// Validate applies defaults and validates the configuration.
+func (cfg *Config) Validate() error {
 	cfg.NThreads = math.MaxInt(1, cfg.NThreads)
 	cfg.RxQueue.DisableCoDel = true
 

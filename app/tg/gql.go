@@ -8,6 +8,7 @@ import (
 	"github.com/functionalfoundry/graphqlws"
 	"github.com/graphql-go/graphql"
 	"github.com/usnistgov/ndn-dpdk/app/fetch"
+	"github.com/usnistgov/ndn-dpdk/app/fileserver"
 	"github.com/usnistgov/ndn-dpdk/app/tg/tggql"
 	"github.com/usnistgov/ndn-dpdk/app/tgconsumer"
 	"github.com/usnistgov/ndn-dpdk/app/tgproducer"
@@ -28,47 +29,14 @@ var (
 
 // GraphQL types.
 var (
-	GqlProducerConfigInput *graphql.InputObject
-	GqlConsumerConfigInput *graphql.InputObject
-	GqlTrafficGenNodeType  *gqlserver.NodeType
-	GqlTrafficGenType      *graphql.Object
-	GqlCountersType        *graphql.Object
+	GqlTrafficGenNodeType *gqlserver.NodeType
+	GqlTrafficGenType     *graphql.Object
+	GqlCountersType       *graphql.Object
 )
 
 func init() {
-	GqlProducerConfigInput = graphql.NewInputObject(graphql.InputObjectConfig{
-		Name:        "TgProducerConfigInput",
-		Description: "Traffic generator producer config.",
-		Fields: graphql.InputObjectConfigFieldMap{
-			"rxQueue": &graphql.InputObjectFieldConfig{
-				Type: iface.GqlPktQueueInput,
-			},
-			"patterns": &graphql.InputObjectFieldConfig{
-				Type: gqlserver.NewNonNullList(tgproducer.GqlPatternInput),
-			},
-			"nThreads": &graphql.InputObjectFieldConfig{
-				Type: graphql.Int,
-			},
-		},
-	})
-	GqlConsumerConfigInput = graphql.NewInputObject(graphql.InputObjectConfig{
-		Name:        "TgConsumerConfigInput",
-		Description: "Traffic generator consumer config.",
-		Fields: graphql.InputObjectConfigFieldMap{
-			"rxQueue": &graphql.InputObjectFieldConfig{
-				Type: iface.GqlPktQueueInput,
-			},
-			"patterns": &graphql.InputObjectFieldConfig{
-				Type: gqlserver.NewNonNullList(tgconsumer.GqlPatternInput),
-			},
-			"interval": &graphql.InputObjectFieldConfig{
-				Type: graphql.NewNonNull(nnduration.GqlNanoseconds),
-			},
-		},
-	})
-
 	retrieve := func(id iface.ID) interface{} { return Get(id) }
-	GqlTrafficGenNodeType = tggql.NewNodeType((*TrafficGen)(nil), &retrieve)
+	GqlTrafficGenNodeType = tggql.NewNodeType("Tg", (*TrafficGen)(nil), &retrieve)
 	GqlTrafficGenNodeType.Delete = func(source interface{}) error {
 		return source.(*TrafficGen).Close()
 	}
@@ -76,27 +44,35 @@ func init() {
 		Name: "TrafficGen",
 		Fields: tggql.CommonFields(graphql.Fields{
 			"producer": &graphql.Field{
-				Description: "Producer element.",
+				Description: "Producer module.",
 				Type:        tgproducer.GqlProducerType,
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					gen := p.Source.(*TrafficGen)
-					return gen.producer, nil
+					return gen.Producer(), nil
+				},
+			},
+			"fileServer": &graphql.Field{
+				Description: "File server module.",
+				Type:        fileserver.GqlServerType,
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					gen := p.Source.(*TrafficGen)
+					return gen.FileServer(), nil
 				},
 			},
 			"consumer": &graphql.Field{
-				Description: "Consumer element.",
+				Description: "Consumer module.",
 				Type:        tgconsumer.GqlConsumerType,
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					gen := p.Source.(*TrafficGen)
-					return gen.consumer, nil
+					return gen.Consumer(), nil
 				},
 			},
 			"fetcher": &graphql.Field{
-				Description: "Fetcher element.",
+				Description: "Fetcher module.",
 				Type:        fetch.GqlFetcherType,
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					gen := p.Source.(*TrafficGen)
-					return gen.fetcher, nil
+					return gen.Fetcher(), nil
 				},
 			},
 		}),
@@ -121,11 +97,15 @@ func init() {
 			},
 			"producer": &graphql.ArgumentConfig{
 				Description: "Producer configuration.",
-				Type:        GqlProducerConfigInput,
+				Type:        tgproducer.GqlConfigInput,
+			},
+			"fileServer": &graphql.ArgumentConfig{
+				Description: "File server configuration.",
+				Type:        fileserver.GqlConfigInput,
 			},
 			"consumer": &graphql.ArgumentConfig{
 				Description: "Consumer configuration.",
-				Type:        GqlConsumerConfigInput,
+				Type:        tgconsumer.GqlConfigInput,
 			},
 			"fetcher": &graphql.ArgumentConfig{
 				Description: "Fetcher configuration.",
@@ -161,7 +141,7 @@ func init() {
 			"producer": &graphql.Field{
 				Type: tgproducer.GqlCountersType,
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					producer := p.Source.(*TrafficGen).producer
+					producer := p.Source.(*TrafficGen).Producer()
 					if producer == nil {
 						return nil, nil
 					}
@@ -171,7 +151,7 @@ func init() {
 			"consumer": &graphql.Field{
 				Type: tgconsumer.GqlCountersType,
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					consumer := p.Source.(*TrafficGen).consumer
+					consumer := p.Source.(*TrafficGen).Consumer()
 					if consumer == nil {
 						return nil, nil
 					}

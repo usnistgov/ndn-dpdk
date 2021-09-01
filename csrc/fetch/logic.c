@@ -127,6 +127,8 @@ FetchLogic_RtoTimeout(MinTmr* tmr, void* cbarg)
 void
 FetchLogic_Init_(FetchLogic* fl)
 {
+  NDNDPDK_ASSERT(rte_align32pow2(fl->win.capacityMask) - 1 == fl->win.capacityMask);
+
   TAILQ_INIT(&fl->retxQ);
   fl->nTxRetx = 0;
   fl->nRxData = 0;

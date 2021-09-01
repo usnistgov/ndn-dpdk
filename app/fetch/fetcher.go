@@ -16,6 +16,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndni"
@@ -30,10 +31,13 @@ type FetcherConfig struct {
 	WindowCapacity int                  `json:"windowCapacity,omitempty"`
 }
 
-func (cfg *FetcherConfig) applyDefaults() {
+// Validate applies defaults and validates the configuration.
+func (cfg *FetcherConfig) Validate() error {
 	cfg.NThreads = mathpkg.MaxInt(1, cfg.NThreads)
 	cfg.NProcs = mathpkg.MaxInt(1, cfg.NProcs)
 	cfg.RxQueue.DisableCoDel = true
+	cfg.WindowCapacity = ringbuffer.AlignCapacity(cfg.WindowCapacity, 16, 65536)
+	return nil
 }
 
 type worker struct {
@@ -73,7 +77,7 @@ var _ tgdef.Consumer = &Fetcher{}
 
 // New creates a Fetcher.
 func New(face iface.Face, cfg FetcherConfig) (*Fetcher, error) {
-	cfg.applyDefaults()
+	cfg.Validate()
 	if cfg.NProcs >= math.MaxUint8 { // InputDemux dispatches on 1-octet of PIT token
 		return nil, errors.New("too many procs")
 	}
