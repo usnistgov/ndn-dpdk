@@ -45,7 +45,7 @@ Installed files include:
 
 * NDN-DPDK [commands](../cmd) in `/usr/local/bin`
 * eBPF objects in `/usr/local/lib/bpf`
-* systemd service `ndndpdk-svc.service`
+* systemd template unit `ndndpdk-svc@.service`
 * configuration schemas and TypeScript definition in `/usr/local/share/ndn-dpdk`
 
 ## Usage
@@ -57,9 +57,9 @@ See [DPDK system requirements](https://doc.dpdk.org/guides/linux_gsg/sys_reqs.ht
 Depending on your hardware, you may need to change PCI driver bindings using the `dpdk-devbind.py` script.
 See [DPDK Network Interface Controller Drivers](https://doc.dpdk.org/guides/nics/) and [hardware known to work](hardware.md) for more information.
 
-You can then execute `sudo systemctl start ndndpdk-svc` to start the NDN-DPDK service, use `ndndpdk-ctrl` command to activate it as a forwarder or a traffic generator, and then control the service.
+You can then execute `sudo ndndpdk-ctrl systemd start` to start the NDN-DPDK service, use `ndndpdk-ctrl` command to activate it as a forwarder or a traffic generator, and then control the service.
 See [forwarder activation and usage](forwarder.md) and [traffic generator activation and usage](trafficgen.md) for basic usage under each role.
-You can view logs from the NDN-DPDK service with `sudo journalctl -ocat -fu ndndpdk-svc` command, which is especially useful in case of errors during activation and face creation.
+You can view logs from the NDN-DPDK service with `sudo ndndpdk-ctrl systemd logs -f` command, which is especially useful in case of errors during activation and face creation.
 
 As an alternative of using `ndndpdk-ctrl`, you can execute queries and mutations on the GraphQL endpoint.
 See [ndndpdk-ctrl](../cmd/ndndpdk-ctrl) for more information.

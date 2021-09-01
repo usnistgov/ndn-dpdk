@@ -123,6 +123,7 @@ jobs:
       - name: build for Linux without cgo
         run: |
           go build -v -o /dev/null ./ndn/...
+          go build -v -o /dev/null ./cmd/ndndpdk-ctrl
           go build -v -o /dev/null ./cmd/ndndpdk-godemo
         env:
           CGO_ENABLED: 0

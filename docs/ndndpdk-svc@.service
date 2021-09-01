@@ -1,11 +1,11 @@
 [Unit]
-Description=NDN-DPDK service
+Description=NDN-DPDK service on %I
 Documentation=https://github.com/usnistgov/ndn-dpdk
 
 [Service]
 Type=notify
-ExecStart=/usr/local/bin/ndndpdk-svc
-ExecStop=/usr/local/bin/ndndpdk-ctrl shutdown
+ExecStart=/usr/local/bin/ndndpdk-svc --gqlserver http://%I
+ExecStop=/usr/local/bin/ndndpdk-ctrl --gqlserver http://%I shutdown
 RestartSec=5s
 TimeoutSec=10s
 WatchdogSec=10s

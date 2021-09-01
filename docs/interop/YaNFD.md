@@ -79,7 +79,7 @@ sudo ip link set $A_IFNAME up
 sudo ip addr replace $A_IP dev $A_IFNAME
 
 # (re)start NDN-DPDK service
-sudo systemctl restart ndndpdk-svc
+sudo ndndpdk-ctrl systemd restart
 
 # activate NDN-DPDK forwarder with PCI Ethernet adapter driver
 # (this only works with bifurcated driver such as mlx5, because NDN-DPDK relies on the kernel to respond to ARP/NDP queries)

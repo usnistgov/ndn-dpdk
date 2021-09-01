@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 	"sort"
-	"strings"
 
 	"github.com/urfave/cli/v2"
 	"github.com/usnistgov/ndn-dpdk/core/gqlclient"
@@ -13,10 +12,9 @@ import (
 )
 
 var (
-	gqlserver   string
-	gqWebSocket string
-	cmdout      bool
-	client      *gqlclient.Client
+	cmdout bool
+	gqlCfg gqlclient.Config
+	client *gqlclient.Client
 )
 
 var app = &cli.App{
@@ -27,7 +25,7 @@ var app = &cli.App{
 			Name:        "gqlserver",
 			Value:       "http://127.0.0.1:3030/",
 			Usage:       "GraphQL `endpoint` of NDN-DPDK service",
-			Destination: &gqlserver,
+			Destination: &gqlCfg.HTTPUri,
 		},
 		&cli.BoolFlag{
 			Name:        "cmdout",
@@ -37,12 +35,11 @@ var app = &cli.App{
 		},
 	},
 	Before: func(c *cli.Context) (e error) {
-		cfg := gqlclient.Config{HTTPUri: gqlserver}
-		if cmdout {
-			e = cfg.ApplyDefaults()
-			gqWebSocket = strings.Replace(cfg.WebSocketUri, "ws", "http", 1)
-		} else {
-			client, e = gqlclient.New(cfg)
+		if e := gqlCfg.Validate(); e != nil {
+			return e
+		}
+		if !cmdout {
+			client, e = gqlclient.New(gqlCfg)
 		}
 		return e
 	},

@@ -63,7 +63,7 @@ On node A, start NDN-DPDK forwarder and producer:
 
 ```bash
 # (re)start NDN-DPDK service
-sudo systemctl restart ndndpdk-svc
+sudo ndndpdk-ctrl systemd restart
 
 # activate NDN-DPDK forwarder
 jq -n --arg if_pci $A_IF_PCI '

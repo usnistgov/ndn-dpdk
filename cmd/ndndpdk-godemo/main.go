@@ -19,7 +19,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/mgmt"
 	"github.com/usnistgov/ndn-dpdk/ndn/mgmt/gqlmgmt"
 	"go4.org/must"
-	"golang.org/x/sys/unix"
 )
 
 var (
@@ -74,7 +73,7 @@ var app = &cli.App{
 		},
 	},
 	Before: func(c *cli.Context) (e error) {
-		if unix.Geteuid() != 0 {
+		if os.Getuid() != 0 {
 			log.Print("running as non-root, some features will not work")
 		}
 		signal.Notify(interrupt, syscall.SIGINT)

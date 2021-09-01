@@ -15,6 +15,7 @@ import (
 	"github.com/coreos/go-systemd/v22/daemon"
 	"github.com/graphql-go/graphql"
 	"github.com/urfave/cli/v2"
+	"github.com/usnistgov/ndn-dpdk/core/gqlclient"
 	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
 	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
 	"github.com/usnistgov/ndn-dpdk/core/logging"
@@ -130,12 +131,17 @@ var app = &cli.App{
 	Usage:   "Provide NDN-DPDK service.",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  "listen",
-			Usage: "GraphQL HTTP server `host:port`",
-			Value: "127.0.0.1:3030",
+			Name:  "gqlserver",
+			Usage: "GraphQL HTTP server base URI",
+			Value: "http://127.0.0.1:3030/",
 		},
 	},
 	Action: func(c *cli.Context) (e error) {
+		listen, e := gqlclient.MakeListenAddress(c.String("gqlserver"))
+		if e != nil {
+			return cli.Exit(e, 1)
+		}
+
 		go func() {
 			c := make(chan os.Signal, 1)
 			signal.Notify(c, unix.SIGINT, unix.SIGTERM)
@@ -146,7 +152,6 @@ var app = &cli.App{
 		go systemdNotify()
 
 		gqlserver.Prepare()
-		listen := c.String("listen")
 		logger.Info("GraphQL HTTP server starting",
 			zap.String("listen", listen),
 		)
@@ -161,7 +166,7 @@ func main() {
 	unix.Uname(&uname)
 	logger.Info("NDN-DPDK service starting",
 		zap.Any("version", version.Get()),
-		zap.Int("uid", unix.Getuid()),
+		zap.Int("uid", os.Getuid()),
 		zap.ByteString("linux", bytes.TrimRight(uname.Release[:], string([]byte{0}))),
 		zap.String("dpdk", eal.Version),
 		zap.String("spdk", spdkenv.Version),

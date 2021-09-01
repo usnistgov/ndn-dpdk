@@ -1,6 +1,13 @@
 package main
 
 import (
+	"fmt"
+	"os"
+	"os/exec"
+	"sort"
+
+	"github.com/coreos/go-systemd/v22/unit"
+	"github.com/kballard/go-shellquote"
 	"github.com/urfave/cli/v2"
 )
 
@@ -25,7 +32,9 @@ func defineActivateCommand(id, noun string) {
 func init() {
 	defineActivateCommand("forwarder", "forwarder")
 	defineActivateCommand("trafficgen", "traffic generator")
+}
 
+func init() {
 	restart := false
 	defineCommand(&cli.Command{
 		Category: "activate",
@@ -48,4 +57,70 @@ func init() {
 			}, "shutdown")
 		},
 	})
+}
+
+func init() {
+	run := func(name string, arg ...string) error {
+		if cmdout {
+			fmt.Println("sudo", name, shellquote.Join(arg...))
+			return nil
+		}
+
+		cmd := exec.Command(name, arg...)
+		cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+		return cmd.Run()
+	}
+
+	unitName := ""
+	logsFollow := false
+	cmd := &cli.Command{
+		Category: "activate",
+		Name:     "systemd",
+		Usage:    "Control NDN-DPDK systemd service",
+		Before: func(c *cli.Context) error {
+			hostport, e := gqlCfg.Listen()
+			if e != nil {
+				return e
+			}
+			unitName = "ndndpdk-svc@" + unit.UnitNameEscape(hostport) + ".service"
+			return nil
+		},
+		Subcommands: []*cli.Command{
+			{
+				Name:    "start",
+				Aliases: []string{"restart"},
+				Usage:   "Start or restart the service (requires sudo)",
+				Action: func(c *cli.Context) error {
+					return run("systemctl", "restart", unitName)
+				},
+			},
+			{
+				Name:  "stop",
+				Usage: "Stop the service (requires sudo)",
+				Action: func(c *cli.Context) error {
+					return run("systemctl", "stop", unitName)
+				},
+			},
+			{
+				Name:  "logs",
+				Usage: "View service logs",
+				Flags: []cli.Flag{
+					&cli.BoolFlag{
+						Name:        "f",
+						Usage:       "follow new log entries",
+						Destination: &logsFollow,
+					},
+				},
+				Action: func(c *cli.Context) error {
+					if logsFollow {
+						return run("journalctl", "-ocat", "-f", "-u", unitName)
+					}
+					return run("journalctl", "-ocat", "-u", unitName)
+				},
+			},
+		},
+	}
+
+	sort.Sort(cli.CommandsByName(cmd.Subcommands))
+	defineCommand(cmd)
 }

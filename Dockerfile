@@ -47,4 +47,4 @@ RUN apt-get -y -qq update && \
 COPY --from=build /usr/local/ /usr/local/
 RUN ldconfig
 VOLUME /run/ndn
-CMD ["/usr/local/bin/ndndpdk-svc", "--listen", ":3030"]
+CMD ["/usr/local/bin/ndndpdk-svc", "--gqlserver", "http://:3030"]

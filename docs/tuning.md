@@ -25,7 +25,7 @@ To configure CPU isolation for the NDN-DPDK systemd service:
 
    Generally, the lowest numbered CPU core on each NUMA socket should be assigned to programs other than NDN-DPDK.
 
-3. Run `sudo systemctl edit ndndpdk-svc`, assign CPU cores to NDN-DPDK service, such as:
+3. Run `sudo systemctl edit ndndpdk-svc@127.0.0.1:3030`, assign CPU cores to NDN-DPDK service, such as:
 
     ```ini
     [Service]

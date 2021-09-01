@@ -8,9 +8,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"net/http"
-	"net/url"
-	"path"
 	"reflect"
 	"sync"
 
@@ -28,58 +25,6 @@ func parseResultData(j json.RawMessage, key string, ptr interface{}) error {
 		return e
 	}
 	return json.Unmarshal([]byte(m[key]), ptr)
-}
-
-// Config contains Client configuration.
-type Config struct {
-	// HTTPUri is HTTP URI for query and mutation operations.
-	HTTPUri string
-
-	HTTPClient *http.Client
-
-	// WebSocketUri is WebSocket URI for subscription operations.
-	// Default is appending '/subscriptions' to HTTPUri.
-	WebSocketUri string
-
-	WebSocketDialer *gqlws.Dialer
-}
-
-// ApplyDefaults applies defaults.
-func (cfg *Config) ApplyDefaults() error {
-	u, e := url.Parse(cfg.HTTPUri)
-	if e != nil {
-		return fmt.Errorf("HTTPUri: %w", e)
-	}
-	cfg.HTTPUri = u.String()
-
-	if cfg.WebSocketUri == "" {
-		switch u.Scheme {
-		case "http":
-			u.Scheme = "ws"
-		case "https":
-			u.Scheme = "wss"
-		}
-		u.Path = path.Join(u.Path, "subscriptions")
-		cfg.WebSocketUri = u.String()
-	} else {
-		u, e = url.Parse(cfg.WebSocketUri)
-		if e != nil {
-			return fmt.Errorf("WebSocketUri: %w", e)
-		}
-		cfg.WebSocketUri = u.String()
-	}
-
-	if cfg.HTTPClient == nil {
-		cfg.HTTPClient = http.DefaultClient
-	}
-
-	if cfg.WebSocketDialer == nil {
-		dialer := *gqlws.DefaultDialer
-		dialer.Subprotocols = []string{"graphql-ws"}
-		cfg.WebSocketDialer = &dialer
-	}
-
-	return nil
 }
 
 // Client is a GraphQL client.
@@ -220,7 +165,7 @@ func (c *Client) wsConnect() (conn *gqlws.Conn, e error) {
 
 // New creates a Client.
 func New(cfg Config) (*Client, error) {
-	if e := cfg.ApplyDefaults(); e != nil {
+	if e := cfg.Validate(); e != nil {
 		return nil, e
 	}
 

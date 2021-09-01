@@ -186,9 +186,9 @@ func (r request) subscribe(ctx context.Context) error {
 }
 
 func (r request) Print() error {
-	gqArgs := []string{gqlserver, "-q", r.Query}
+	gqArgs := []string{gqlCfg.HTTPUri, "-q", r.Query}
 	if r.isSubscription() {
-		gqArgs[0] = gqWebSocket
+		gqArgs[0] = strings.Replace(gqlCfg.WebSocketUri, "ws", "http", 1)
 	}
 	if r.Vars != nil {
 		j, e := json.MarshalIndent(r.Vars, "", "  ")
