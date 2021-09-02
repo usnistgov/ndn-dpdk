@@ -187,7 +187,7 @@ func init() {
 		}
 
 		var gen *TrafficGen
-		if e := gqlserver.RetrieveNodeOfType(GqlTrafficGenNodeType, id, &gen); e != nil || gen == nil {
+		if e := gqlserver.RetrieveNodeOfType(GqlTrafficGenNodeType, id, &gen); e != nil {
 			return
 		}
 

@@ -16,6 +16,8 @@ var (
 	idEncoding = base32.HexEncoding.WithPadding(base32.NoPadding)
 	nodeTypes  = make(map[string]*NodeType)
 
+	//lint:ignore ST1005 'Node' is a proper noun referring to GraphQL type
+	errNotFound   = errors.New("Node not found")
 	errNoRetrieve = errors.New("cannot retrieve Node")
 	errNoDelete   = errors.New("cannot delete Node")
 	errWrongType  = errors.New("ID refers to wrong NodeType")
@@ -170,7 +172,7 @@ var nodeInterface = graphql.NewInterface(graphql.InterfaceConfig{
 func RetrieveNode(id interface{}) (*NodeType, interface{}, error) {
 	prefix, suffix, ok := parseID(id.(string))
 	if !ok {
-		return nil, nil, nil
+		return nil, nil, errNotFound
 	}
 
 	nt := nodeTypes[prefix]
@@ -179,16 +181,19 @@ func RetrieveNode(id interface{}) (*NodeType, interface{}, error) {
 	}
 
 	obj, e := nt.Retrieve(suffix)
-	if val := reflect.ValueOf(obj); obj == nil || (val.Kind() == reflect.Ptr && val.IsNil()) {
-		obj = nil
+	if e != nil {
+		return nt, nil, e
 	}
-	return nt, obj, e
+	if val := reflect.ValueOf(obj); obj == nil || (val.Kind() == reflect.Ptr && val.IsNil()) {
+		return nt, nil, errNotFound
+	}
+	return nt, obj, nil
 }
 
 // RetrieveNodeOfType locates Node by full ID, ensures it has correct type, and assigns it to *ptr.
 func RetrieveNodeOfType(expectedNodeType *NodeType, id, ptr interface{}) error {
 	nt, node, e := RetrieveNode(id)
-	if e != nil || node == nil {
+	if e != nil {
 		return e
 	}
 	if nt != expectedNodeType {

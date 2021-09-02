@@ -9,7 +9,7 @@ typedef struct FilePayloadPriv
   FileServerFd* fd;
   struct rte_mbuf* interest;
   uint64_t segment;
-  struct iovec iov;
+  struct iovec iov[1];
 } FilePayloadPriv;
 static_assert(sizeof(FilePayloadPriv) <= sizeof(PacketPriv), "");
 
@@ -55,10 +55,10 @@ FileServer_ProcessInterest(FileServer* p, struct rte_mbuf* interest, struct rte_
   priv->interest = interest;
 
   payload->data_off = p->payloadHeadroom;
-  priv->iov.iov_base = rte_pktmbuf_mtod(payload, uint8_t*);
-  priv->iov.iov_len = p->segmentLen;
+  priv->iov[0].iov_base = rte_pktmbuf_mtod(payload, uint8_t*);
+  priv->iov[0].iov_len = p->segmentLen;
 
-  io_uring_prep_readv(sqe, priv->fd->fd, &priv->iov, 1, rn.segment * p->segmentLen);
+  io_uring_prep_readv(sqe, priv->fd->fd, priv->iov, 1, rn.segment * p->segmentLen);
   io_uring_sqe_set_data(sqe, payload);
   return true;
 
@@ -172,11 +172,14 @@ FileServer_TxBurst(FileServer* p)
 int
 FileServer_Run(FileServer* p)
 {
-  int res = io_uring_queue_init(p->uringCapacity, &p->uring, 0);
+  struct io_uring_params uringParams = { 0 };
+  int res = io_uring_queue_init_params(p->uringCapacity, &p->uring, &uringParams);
   if (res < 0) {
-    N_LOGE("io_uring_queue_init errno=%d", -res);
+    N_LOGE("uring init errno=%d", -res);
     return 1;
   }
+  N_LOGI("uring init sqe=%" PRIu32 " cqe=%" PRIu32 " features=%" PRIx32, uringParams.sq_entries,
+         uringParams.cq_entries, uringParams.features);
   TAILQ_INIT(&p->fdQ);
 
   uint32_t nProcessed = 0;

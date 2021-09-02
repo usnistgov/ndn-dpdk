@@ -25,7 +25,11 @@ func init() {
 			if gen == nil {
 				return nil
 			}
-			return method.Func.Call([]reflect.Value{reflect.ValueOf(gen)})
+			val := method.Func.Call([]reflect.Value{reflect.ValueOf(gen)})[0]
+			if val.IsNil() {
+				return nil
+			}
+			return val.Interface()
 		}
 	}
 

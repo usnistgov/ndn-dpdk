@@ -15,23 +15,25 @@
 typedef struct FileServerFd
 {
   uint8_t self[0];                     // self reference for HASH_ADD_BYHASHVALUE
+  struct rte_mbuf* mbuf;               // mbuf storing this entry
   UT_hash_handle hh;                   // fdHt hashtable handle
   TAILQ_ENTRY(FileServerFd) queueNode; // fdQ node
-  struct rte_mbuf* mbuf;               // mbuf storing this entry
+  MetaInfoBuffer meta;                 // MetaInfo with FinalBlock
+  struct statx st;                     // statx result
+  uint64_t lastSeg;                    // last segment number
   int fd;                              // file descriptor
   uint16_t refcnt;                     // number of inflight requests referencing this entry
   uint16_t nameL;                      // mount+path TLV-LENGTH
   uint8_t nameV[NameMaxLength];        // mount+path TLV-VALUE
-  uint64_t lastSeg;                    // last segment number
-  uint16_t lastLen;                    // last segment length
-  MetaInfoBuffer meta;                 // MetaInfo with FinalBlock
-  struct statx st;                     // statx result
 } FileServerFd;
 
 /** @brief Sentinel value to indicate file not found. */
 extern FileServerFd* FileServer_NotFound;
 
-extern const unsigned FileServer_StatxFlags_;
+enum
+{
+  FileServer_AT_EMPTY_PATH_ = 0x1000,
+};
 
 /** @brief File server. */
 typedef struct FileServer

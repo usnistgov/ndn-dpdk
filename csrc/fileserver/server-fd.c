@@ -86,7 +86,8 @@ FileServer_FdOpen(FileServer* p, const PName* name)
 
   static_assert(RTE_PKTMBUF_HEADROOM >= RTE_CACHE_LINE_SIZE, "");
   entry = RTE_PTR_ALIGN_FLOOR(mbuf->buf_addr, RTE_CACHE_LINE_SIZE);
-  if (unlikely(syscall(__NR_statx, fd, "", FileServer_StatxFlags_, StatxMask, &entry->st) != 0)) {
+  if (unlikely(syscall(__NR_statx, fd, "", FileServer_AT_EMPTY_PATH_, StatxMask, &entry->st) !=
+               0)) {
     N_LOGD("FdOpen statx-error" N_LOG_ERROR("statx errno=%d"), errno);
     goto FAIL_MBUF;
   }
@@ -97,8 +98,7 @@ FileServer_FdOpen(FileServer* p, const PName* name)
   entry->nameL = prefix.length;
   rte_memcpy(entry->nameV, prefix.value, entry->nameL);
 
-  entry->lastLen = entry->st.stx_size % (uint64_t)p->segmentLen;
-  entry->lastSeg = entry->st.stx_size / (uint64_t)p->segmentLen + (int)(entry->lastLen > 0);
+  entry->lastSeg = DIV_CEIL(entry->st.stx_size, p->segmentLen) - (uint64_t)(entry->st.stx_size > 0);
   uint8_t finalBlockV[10] = { TtSegmentNameComponent };
   finalBlockV[1] = Nni_Encode(&finalBlockV[2], entry->lastSeg);
   DataEnc_PrepareMetaInfo(&entry->meta, ContentBlob, 300000,

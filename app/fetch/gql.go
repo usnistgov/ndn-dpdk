@@ -53,6 +53,10 @@ func init() {
 				Description: "Interest templates.",
 				Type:        gqlserver.NewNonNullList(ndni.GqlInterestTemplateInput),
 			},
+			"finalSegNum": &graphql.ArgumentConfig{
+				Description: "Final segment number for each Interest template",
+				Type:        graphql.NewList(gqlserver.NonNullInt),
+			},
 			"interval": &graphql.ArgumentConfig{
 				Description: "How often to collect statistics.",
 				Type:        graphql.NewNonNull(nnduration.GqlNanoseconds),
@@ -73,14 +77,20 @@ func init() {
 			if e := jsonhelper.Roundtrip(p.Args["templates"], &templates, jsonhelper.DisallowUnknownFields); e != nil {
 				return nil, e
 			}
+			finalSegNums, _ := p.Args["finalSegNum"].([]interface{})
 
 			fetcher.Reset()
 			var logics []*Logic
-			for i, tpl := range templates {
-				if _, e := fetcher.AddTemplate(tpl); e != nil {
+			for _, tpl := range templates {
+				i, e := fetcher.AddTemplate(tpl)
+				if e != nil {
 					return nil, fmt.Errorf("AddTemplate[%d]: %w", i, e)
 				}
-				logics = append(logics, fetcher.Logic(i))
+				logic := fetcher.Logic(i)
+				if i < len(finalSegNums) {
+					logic.SetFinalSegNum(uint64(finalSegNums[i].(int)))
+				}
+				logics = append(logics, logic)
 			}
 
 			interval := p.Args["interval"].(nnduration.Nanoseconds)

@@ -102,7 +102,7 @@ func init() {
 			jsonhelper.Roundtrip(p.Args["faces"], &faceConfigs)
 			for i, f := range faceConfigs {
 				var face iface.Face
-				if e := gqlserver.RetrieveNodeOfType(iface.GqlFaceNodeType, f.ID, &face); e != nil || face == nil {
+				if e := gqlserver.RetrieveNodeOfType(iface.GqlFaceNodeType, f.ID, &face); e != nil {
 					return nil, fmt.Errorf("face %s at index %d not found", f.ID, i)
 				}
 				pd, e := DumpFace(face, w, f)
