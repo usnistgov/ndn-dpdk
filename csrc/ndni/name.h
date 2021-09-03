@@ -59,8 +59,15 @@ LName_Component(LName name, uint16_t* restrict pos, uint16_t* restrict type,
          LName_ParseVarNum_(name, pos, length, 0) && *pos + *length <= name.length;
 }
 
+/** @brief Determine whether @p a equals @p b . */
+static inline bool
+LName_Equal(LName a, LName b)
+{
+  return a.length == b.length && memcmp(a.value, b.value, a.length) == 0;
+}
+
 /**
- * @brief Determine whether @p a is a prefix of @b b .
+ * @brief Determine whether @p a is a prefix of @p b .
  * @retval 0 @p a equals @p b .
  * @retval positive @p a is a prefix of @p b .
  * @retval negative otherwise.

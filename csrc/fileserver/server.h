@@ -38,6 +38,12 @@ typedef struct FileServer
   uint32_t nFdHtBuckets;
 } FileServer;
 
+__attribute__((nonnull)) uint32_t
+FileServer_RxBurst(FileServer* p);
+
+__attribute__((nonnull)) uint32_t
+FileServer_TxBurst(FileServer* p);
+
 __attribute__((nonnull)) int
 FileServer_Run(FileServer* p);
 

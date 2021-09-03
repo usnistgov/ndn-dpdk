@@ -141,7 +141,7 @@ FAIL_FD:
 FileServerFd*
 FileServerFd_Open(FileServer* p, const PName* name, TscTime now)
 {
-  LName prefix = PName_GetPrefix(name, name->firstNonGeneric);
+  LName prefix = FileServer_GetPrefix(name);
   uint64_t hash = PName_ComputePrefixHash(name, name->firstNonGeneric);
   FileServerFd* entry = NULL;
   HASH_FIND_BYHASHVALUE(hh, p->fdHt, &prefix, 0, hash, entry);

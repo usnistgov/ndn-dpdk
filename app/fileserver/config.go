@@ -23,6 +23,7 @@ import (
 // Limits and defaults.
 const (
 	MaxMounts = 8
+	MaxIovecs = 16
 
 	MinSegmentLen     = 64
 	MaxSegmentLen     = 16384

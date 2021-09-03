@@ -19,7 +19,7 @@ typedef struct FileServerFd
   DataEnc_MetaInfoBuffer(15) meta;     // MetaInfo (FinalBlockId only)
   uint64_t lastSeg;                    // last segment number
   int fd;                              // file descriptor
-  uint16_t refcnt;                     // number of inflight requests referencing this entry
+  uint16_t refcnt;                     // number of inflight SQEs referencing this entry
   uint16_t nameL;                      // mount+path TLV-LENGTH
   uint8_t nameV[NameMaxLength];        // mount+path TLV-VALUE
 } FileServerFd;

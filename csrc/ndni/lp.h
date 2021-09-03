@@ -60,7 +60,7 @@ LpPitToken_Set(LpPitToken* token, uint8_t length, const uint8_t* value)
   "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8 "%02" PRIx8  \
   "(%" PRIu8 ")"
 
-/** @brief printf variables for FaceID. */
+/** @brief printf variables for LpPitToken. */
 #define LpPitToken_Fmt(token)                                                                      \
   (token)->value[0], (token)->value[1], (token)->value[2], (token)->value[3], (token)->value[4],   \
     (token)->value[5], (token)->value[6], (token)->value[7], (token)->value[8], (token)->value[9], \

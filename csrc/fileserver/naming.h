@@ -18,6 +18,13 @@ typedef struct FileServerRequestName
   bool isMetadata;  ///< is metadata request
 } FileServerRequestName;
 
+/** @brief Get mount + path prefix. */
+static inline LName
+FileServer_GetPrefix(const PName* name)
+{
+  return PName_GetPrefix(name, name->firstNonGeneric);
+}
+
 /**
  * @brief Parse Interest name.
  * @param[out] p parse result.
