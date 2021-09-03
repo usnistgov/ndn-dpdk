@@ -10,6 +10,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/app/fileserver"
 	"github.com/usnistgov/ndn-dpdk/app/tg/tgtestenv"
+	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/iface/intface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
@@ -29,7 +30,8 @@ func TestServer(t *testing.T) {
 			{Prefix: ndn.ParseName("/usr/local-bin"), Path: "/usr/local/bin"},
 			{Prefix: ndn.ParseName("/usr/local-lib"), Path: "/usr/local/lib"},
 		},
-		SegmentLen: 3000,
+		SegmentLen:   3000,
+		StatValidity: nnduration.Nanoseconds(100 * time.Millisecond),
 	}
 
 	p, e := fileserver.New(face.D, cfg)

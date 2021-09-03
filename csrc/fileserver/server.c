@@ -1,5 +1,6 @@
 #include "server.h"
 #include "../core/logger.h"
+#include "fd.h"
 #include "naming.h"
 
 N_LOG_INIT(FileServer);
@@ -14,7 +15,8 @@ typedef struct FilePayloadPriv
 static_assert(sizeof(FilePayloadPriv) <= sizeof(PacketPriv), "");
 
 __attribute__((nonnull)) static inline bool
-FileServer_ProcessInterest(FileServer* p, struct rte_mbuf* interest, struct rte_mbuf* payload)
+FileServer_ProcessInterest(FileServer* p, struct rte_mbuf* interest, struct rte_mbuf* payload,
+                           TscTime now)
 {
   Packet* npkt = Packet_FromMbuf(interest);
   PInterest* pi = Packet_GetInterestHdr(npkt);
@@ -31,7 +33,7 @@ FileServer_ProcessInterest(FileServer* p, struct rte_mbuf* interest, struct rte_
   }
 
   FilePayloadPriv* priv = rte_mbuf_to_priv(payload);
-  priv->fd = FileServer_FdOpen(p, &pi->name);
+  priv->fd = FileServerFd_Open(p, &pi->name, now);
   if (unlikely(priv->fd == NULL)) {
     N_LOGD("I drop=no-fd");
     return false;
@@ -63,7 +65,7 @@ FileServer_ProcessInterest(FileServer* p, struct rte_mbuf* interest, struct rte_
   return true;
 
 UNREF:
-  FileServer_FdUnref(p, priv->fd);
+  FileServerFd_Unref(p, priv->fd);
   return false;
 }
 
@@ -87,7 +89,7 @@ FileServer_RxBurst(FileServer* p)
 
   uint32_t nPayload = 0, discardPos = pop.count;
   for (uint32_t i = 0; i < pop.count; ++i) {
-    if (likely(FileServer_ProcessInterest(p, interest[i], payload[nPayload]))) {
+    if (likely(FileServer_ProcessInterest(p, interest[i], payload[nPayload], now))) {
       ++nPayload;
     } else {
       payload[discardPos++] = interest[i];
@@ -159,7 +161,7 @@ FileServer_TxBurst(FileServer* p)
     } else {
       discard[--discardPayload] = payload;
     }
-    FileServer_FdUnref(p, fd);
+    FileServerFd_Unref(p, fd);
     NULLize(fd);
     io_uring_cqe_seen(&p->uring, cqe[i]);
   }
@@ -178,7 +180,7 @@ FileServer_Run(FileServer* p)
     N_LOGE("uring init errno=%d", -res);
     return 1;
   }
-  N_LOGI("uring init sqe=%" PRIu32 " cqe=%" PRIu32 " features=%" PRIx32, uringParams.sq_entries,
+  N_LOGI("uring init sqe=%" PRIu32 " cqe=%" PRIu32 " features=0x%" PRIx32, uringParams.sq_entries,
          uringParams.cq_entries, uringParams.features);
   TAILQ_INIT(&p->fdQ);
 
@@ -189,6 +191,6 @@ FileServer_Run(FileServer* p)
   }
 
   io_uring_queue_exit(&p->uring);
-  FileServer_FdClear(p);
+  FileServerFd_Clear(p);
   return 0;
 }

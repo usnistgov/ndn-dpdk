@@ -3,10 +3,19 @@ package ndnitest
 /*
 #include "../../csrc/ndni/data.h"
 #include "../../csrc/ndni/packet.h"
+
+typedef DataEnc_MetaInfoBuffer(23) MetaInfoBuffer23;
+
+bool
+c_DataEnc_PrepareMetaInfo23(MetaInfoBuffer23* metaBuf, ContentType ct, uint32_t freshness, LName finalBlock)
+{
+	return DataEnc_PrepareMetaInfo(metaBuf, ct, freshness, finalBlock);
+}
 */
 import "C"
 import (
 	"crypto/rand"
+	"math"
 	"testing"
 	"time"
 	"unsafe"
@@ -14,6 +23,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
+	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
@@ -56,8 +66,8 @@ func ctestDataParse(t *testing.T) {
 func ctestDataEncMinimal(t *testing.T) {
 	assert, require := makeAR(t)
 
-	var meta C.MetaInfoBuffer
-	ok := C.DataEnc_PrepareMetaInfo(&meta, an.ContentBlob, 0, C.LName{})
+	var meta C.MetaInfoBuffer23
+	ok := C.c_DataEnc_PrepareMetaInfo23(&meta, an.ContentBlob, 0, C.LName{})
 	require.True(bool(ok))
 
 	nameP := ndni.NewPName(ndn.ParseName("/DataEnc/minimal"))
@@ -65,7 +75,7 @@ func ctestDataEncMinimal(t *testing.T) {
 
 	m := makePacket(mbuftestenv.Headroom(256))
 	defer m.Close()
-	npkt := C.DataEnc_EncodePayload(*(*C.LName)(nameP.Ptr()), &meta, m.mbuf)
+	npkt := C.DataEnc_EncodePayload(*(*C.LName)(nameP.Ptr()), unsafe.Pointer(&meta), m.mbuf)
 	assert.Equal(m.npkt, npkt)
 
 	data := ndni.PacketFromPtr(m.Ptr()).ToNPacket().Data
@@ -81,10 +91,11 @@ func ctestDataEncMinimal(t *testing.T) {
 func ctestDataEncFull(t *testing.T) {
 	assert, require := makeAR(t)
 
-	var meta C.MetaInfoBuffer
-	finalBlockP := ndni.NewPName(ndn.ParseName("/final"))
+	var meta C.MetaInfoBuffer23
+	finalBlock := ndn.NameComponentFrom(an.TtSegmentNameComponent, tlv.NNI(math.MaxUint32+1))
+	finalBlockP := ndni.NewPName(ndn.Name{finalBlock})
 	defer finalBlockP.Free()
-	ok := C.DataEnc_PrepareMetaInfo(&meta, an.ContentKey, 3600_000, *(*C.LName)(finalBlockP.Ptr()))
+	ok := C.c_DataEnc_PrepareMetaInfo23(&meta, an.ContentKey, 3600_000, *(*C.LName)(finalBlockP.Ptr()))
 	require.True(bool(ok))
 
 	nameP := ndni.NewPName(ndn.ParseName("/DataEnc/full"))
@@ -94,7 +105,7 @@ func ctestDataEncFull(t *testing.T) {
 
 	m := makePacket(mbuftestenv.Headroom(256), content)
 	defer m.Close()
-	npkt := C.DataEnc_EncodePayload(*(*C.LName)(nameP.Ptr()), &meta, m.mbuf)
+	npkt := C.DataEnc_EncodePayload(*(*C.LName)(nameP.Ptr()), unsafe.Pointer(&meta), m.mbuf)
 	assert.Equal(m.npkt, npkt)
 
 	data := ndni.PacketFromPtr(m.Ptr()).ToNPacket().Data
@@ -102,6 +113,6 @@ func ctestDataEncFull(t *testing.T) {
 	nameEqual(assert, "/DataEnc/full", data)
 	assert.EqualValues(an.ContentKey, data.ContentType)
 	assert.Equal(time.Hour, data.Freshness)
-	assert.Equal(ndn.ParseNameComponent("final"), data.FinalBlock)
+	assert.Equal(finalBlock, data.FinalBlock)
 	assert.Equal(content, data.Content)
 }

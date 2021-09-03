@@ -56,7 +56,7 @@
 #define DIV_CEIL(a, b) (((a) + (b)-1) / (b))
 
 #ifdef NDEBUG
-#define NULLize(x) (void)(x)
+#define NULLize(x) RTE_SET_USED(x)
 #else
 /** @brief Set x to NULL to crash on memory access bugs. */
 #define NULLize(x)                                                                                 \

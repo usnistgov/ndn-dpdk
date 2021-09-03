@@ -1,6 +1,3 @@
-#define _GNU_SOURCE
-#include <stdio.h>
-
 #include "logger.h"
 #include <spdk/log.h>
 

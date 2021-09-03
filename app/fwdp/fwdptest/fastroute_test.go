@@ -1,7 +1,9 @@
 package fwdptest
 
 import (
+	"context"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -100,28 +102,39 @@ func TestFastrouteProbe(t *testing.T) {
 	face1, face2, face3, face4 := intface.MustNew(), intface.MustNew(), intface.MustNew(), intface.MustNew()
 	fixture.SetFibEntry("/F", "fastroute", face1.ID, face2.ID, face3.ID)
 
-	exit := make(chan bool)
-	runConsumer := func() { // 250 Interests per second
-		tick := time.NewTicker(4 * time.Millisecond)
-		defer tick.Stop()
-		for {
-			select {
-			case <-exit:
-				return
-			case t := <-tick.C:
-				face4.Tx <- ndn.MakeInterest(fmt.Sprintf("/F/F/%d", t.UnixNano()))
-			case <-face4.Rx:
+	ctx, cancel := context.WithCancel(context.TODO())
+	var wg sync.WaitGroup
+	defer func() {
+		cancel()
+		wg.Wait()
+	}()
+	startConsumer := func() { // 250 Interests per second
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			tick := time.NewTicker(4 * time.Millisecond)
+			defer tick.Stop()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case t := <-tick.C:
+					face4.Tx <- ndn.MakeInterest(fmt.Sprintf("/F/F/%d", t.UnixNano()))
+				case <-face4.Rx:
+				}
 			}
-		}
+		}()
 	}
-	runProducer := func(face *intface.IntFace) (cnt *int, delay *time.Duration) {
+	startProducer := func(face *intface.IntFace) (cnt *int, delay *time.Duration) {
 		cnt = new(int)
 		delay = new(time.Duration)
 		queue := make(chan fastrouteProbeQueueItem, 65536)
+		wg.Add(2)
 		go func() {
+			defer wg.Done()
 			for {
 				select {
-				case <-exit:
+				case <-ctx.Done():
 					return
 				case item := <-queue:
 					now := time.Now()
@@ -134,9 +147,10 @@ func TestFastrouteProbe(t *testing.T) {
 			}
 		}()
 		go func() {
+			defer wg.Done()
 			for {
 				select {
-				case <-exit:
+				case <-ctx.Done():
 					return
 				case pkt := <-face.Rx:
 					if pkt.Interest != nil {
@@ -151,11 +165,10 @@ func TestFastrouteProbe(t *testing.T) {
 		}()
 		return
 	}
-	cnt1, delay1 := runProducer(face1)
-	cnt2, delay2 := runProducer(face2)
-	cnt3, delay3 := runProducer(face3)
-
-	go runConsumer()
+	cnt1, delay1 := startProducer(face1)
+	cnt2, delay2 := startProducer(face2)
+	cnt3, delay3 := startProducer(face3)
+	startConsumer()
 
 	// face2 is fastest
 	*delay1, *delay2, *delay3 = 20*time.Millisecond, 1*time.Millisecond, 20*time.Millisecond
@@ -173,8 +186,4 @@ func TestFastrouteProbe(t *testing.T) {
 	time.Sleep(3 * time.Second)
 	assert.Greater(*cnt1/4, *cnt2)
 	assert.Greater(*cnt1/4, *cnt3)
-
-	for i := 0; i < 7; i++ {
-		exit <- true
-	}
 }

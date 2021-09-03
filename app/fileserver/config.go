@@ -3,8 +3,11 @@ package fileserver
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/pkg/math"
+	"github.com/usnistgov/ndn-dpdk/core/nnduration"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
 	"github.com/usnistgov/ndn-dpdk/iface"
@@ -36,6 +39,8 @@ const (
 	MaxKeepFds     = 16384
 	DefaultKeepFds = 64
 
+	DefaultStatValidityMilliseconds = 10 * 1000 // 10 seconds
+
 	_ = "enumgen::FileServer"
 )
 
@@ -65,6 +70,9 @@ type Config struct {
 	// A file descriptor is unused if no I/O operation is ongoing on the file.
 	// Keeping them open can speed up subsequent requests referencing the same file.
 	KeepFds int `json:"keepFds,omitempty"`
+
+	// StatValidity is the validity period of statx result.
+	StatValidity nnduration.Nanoseconds `json:"statValidity,omitempty"`
 
 	payloadHeadroom int
 }
@@ -154,6 +162,10 @@ func (cfg *Config) checkPayloadMempool(segmentLen int) error {
 			tpl.Dataroom, segmentLen, suggest)
 	}
 	return nil
+}
+
+func (cfg Config) tscStatValidity() int64 {
+	return eal.ToTscDuration(cfg.StatValidity.DurationOr(nnduration.Nanoseconds(DefaultStatValidityMilliseconds * time.Millisecond)))
 }
 
 // Mount defines a mapping between name prefix and filesystem path.

@@ -2,6 +2,7 @@ package fileserver
 
 /*
 #include "../../csrc/fileserver/server.h"
+#include "../../csrc/fileserver/fd.h"
 */
 import "C"
 import (
@@ -63,6 +64,7 @@ func newWorker(faceID iface.ID, socket eal.NumaSocket, cfg Config) (w *worker, e
 	}
 
 	w.c.payloadMp = (*C.struct_rte_mempool)(ndni.PayloadMempool.Get(socket).Ptr())
+	w.c.statValidity = (C.TscDuration)(cfg.tscStatValidity())
 	w.c.face = (C.FaceID)(faceID)
 	w.c.segmentLen = C.uint16_t(cfg.SegmentLen)
 	w.c.payloadHeadroom = C.uint16_t(cfg.payloadHeadroom)

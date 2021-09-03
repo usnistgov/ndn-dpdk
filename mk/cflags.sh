@@ -1,7 +1,7 @@
 export CC=${CC:-gcc}
 export CGO_CFLAGS_ALLOW='.*'
 
-CFLAGS='-Wno-unused-function -Wno-unused-parameter -Wno-missing-braces -D_DEFAULT_SOURCE'
+CFLAGS='-Wno-unused-function -Wno-unused-parameter -Wno-missing-braces -D_GNU_SOURCE'
 if [[ $NDNDPDK_MK_RELEASE -eq 1 ]]; then
   CFLAGS=$CFLAGS' -DNDEBUG -DN_LOG_LEVEL=RTE_LOG_NOTICE'
 else

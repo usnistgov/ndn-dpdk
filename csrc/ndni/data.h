@@ -49,25 +49,60 @@ DataDigest_Enqueue(CryptoQueuePair cqp, struct rte_crypto_op** ops, uint16_t cou
 __attribute__((nonnull)) Packet*
 DataDigest_Finish(struct rte_crypto_op* op);
 
-typedef struct MetaInfoBuffer
-{
-  uint8_t size;
-  uint8_t buffer[63];
-} MetaInfoBuffer;
+/**
+ * @brief Declare a buffer from preparing Data MetaInfo.
+ * @param capacity maximum MetaInfo TLV-LENGTH.
+ *
+ * Specified @p capacity must have room for:
+ * @li MetaInfo TLV-TYPE and TLV-LENGTH, 2 octets
+ * @li ContentType TLV, 3 octets.
+ * @li FreshnessPeriod TLV, 6 octets.
+ * @li FinalBlockId TLV, 2 octets + maximum @c finalBlock.length .
+ *
+ * Additional requirements for @p capacity :
+ * @li @c capacity+1 must be a multiple of 8, for alignment.
+ * @li @c capacity-2 must be less than 0xFD, because MetaInfo TLV-LENGTH is assumed as 1-octet.
+ */
+#define DataEnc_MetaInfoBuffer(capacity)                                                           \
+  struct                                                                                           \
+  {                                                                                                \
+    uint8_t size;                                                                                  \
+    uint8_t value[capacity];                                                                       \
+    static_assert(capacity - 2 < 0xFD && (capacity % 8 == 7 || capacity == 0), "");                \
+  }
 
 __attribute__((nonnull)) bool
-DataEnc_PrepareMetaInfo(MetaInfoBuffer* meta, ContentType ct, uint32_t freshness, LName finalBlock);
+DataEnc_PrepareMetaInfo_(void* metaBuf, size_t capacity, ContentType ct, uint32_t freshness,
+                         LName finalBlock);
+
+/**
+ * @brief Prepare Data MetaInfo.
+ * @param metaBuf pointer to DataEnc_MetaInfoBuffer.
+ * @param ct ContentType numeric value.
+ * @param freshness FreshnessPeriod numeric value.
+ * @param finalBlock FinalBlockId TLV-VALUE.
+ * @return whether success.
+ * @post @c metaBuf->value contains MetaInfo TLV.
+ */
+#define DataEnc_PrepareMetaInfo(metaBuf, ct, freshness, finalBlock)                                \
+  DataEnc_PrepareMetaInfo_((metaBuf), sizeof((metaBuf)->value), (ct), (freshness), (finalBlock))
+
+#define DataEnc_MustPrepareMetaInfo(...)                                                           \
+  do {                                                                                             \
+    bool ok = DataEnc_PrepareMetaInfo(__VA_ARGS__);                                                \
+    NDNDPDK_ASSERT(ok);                                                                            \
+  } while (false)
 
 /**
  * @brief Encode Data with payload.
  * @param name Data name.
- * @param meta prepare MetaInfo.
+ * @param metaBuf prepared DataEnc_MetaInfoBuffer.
  * @param m a uniquely owned, unsegmented, direct mbuf of Content payload.
  * @return encoded packet, same as @p m .
  * @retval NULL insufficient headroom or tailroom.
  */
 __attribute__((nonnull)) Packet*
-DataEnc_EncodePayload(LName name, const MetaInfoBuffer* meta, struct rte_mbuf* m);
+DataEnc_EncodePayload(LName name, const void* metaBuf, struct rte_mbuf* m);
 
 /** @brief Data encoder optimized for traffic generator. */
 typedef struct DataGen

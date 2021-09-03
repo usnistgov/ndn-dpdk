@@ -173,54 +173,59 @@ DataDigest_Finish(struct rte_crypto_op* op)
 }
 
 bool
-DataEnc_PrepareMetaInfo(MetaInfoBuffer* meta, ContentType ct, uint32_t freshness, LName finalBlock)
+DataEnc_PrepareMetaInfo_(void* metaBuf, size_t capacity, ContentType ct, uint32_t freshness,
+                         LName finalBlock)
 {
+  DataEnc_MetaInfoBuffer(0)* meta = metaBuf;
   meta->size = 2;
+#define APPEND(ptr)                                                                                \
+  do {                                                                                             \
+    if (unlikely((size_t)meta->size + sizeof(*ptr) > capacity)) {                                  \
+      return false;                                                                                \
+    }                                                                                              \
+    ptr = RTE_PTR_ADD(meta->value, meta->size);                                                    \
+    meta->size += sizeof(*ptr);                                                                    \
+  } while (false)
+
   if (unlikely(ct != ContentBlob)) {
-    typedef struct ContentTypeF
+    struct ContentTypeF
     {
       unaligned_uint16_t contentTypeTL;
       uint8_t contentTypeV;
-    } __rte_packed ContentTypeF;
-
-    ContentTypeF* f = (ContentTypeF*)RTE_PTR_ADD(meta->buffer, meta->size);
+    } __rte_packed* f = NULL;
+    APPEND(f);
     f->contentTypeTL = TlvEncoder_ConstTL1(TtContentType, sizeof(f->contentTypeV));
     f->contentTypeV = ct;
-    static_assert(sizeof(f->contentTypeV) == sizeof(ct), "");
-    meta->size += sizeof(*f);
   }
-  {
-    typedef struct FreshnessF
+  if (freshness > 0) {
+    struct FreshnessF
     {
       unaligned_uint16_t freshnessTL;
       unaligned_uint32_t freshnessV;
-    } __rte_packed FreshnessF;
-
-    FreshnessF* f = (FreshnessF*)RTE_PTR_ADD(meta->buffer, meta->size);
+    } __rte_packed* f = NULL;
+    APPEND(f);
     f->freshnessTL = TlvEncoder_ConstTL1(TtFreshnessPeriod, sizeof(f->freshnessV));
     f->freshnessV = rte_cpu_to_be_32(freshness);
-    meta->size += sizeof(*f);
   }
   if (finalBlock.length > 0) {
-    typedef struct FinalBlockF
+    struct FinalBlockF
     {
       uint8_t finalBlockT;
       uint8_t finalBlockL;
       uint8_t finalBlockV[0];
-    } __rte_packed FinalBlockF;
-
-    FinalBlockF* f = (FinalBlockF*)RTE_PTR_ADD(meta->buffer, meta->size);
-    if (unlikely(meta->size + sizeof(*f) + finalBlock.length > sizeof(meta->buffer))) {
+    } __rte_packed* f = NULL;
+    APPEND(f);
+    if (unlikely((size_t)meta->size + finalBlock.length > capacity)) {
       return false;
     }
+    meta->size += finalBlock.length;
     f->finalBlockT = TtFinalBlock;
     f->finalBlockL = finalBlock.length;
     rte_memcpy(f->finalBlockV, finalBlock.value, finalBlock.length);
-    meta->size += sizeof(*f) + finalBlock.length;
   }
-  meta->buffer[0] = TtMetaInfo;
-  meta->buffer[1] = meta->size - 2;
-  static_assert(sizeof(meta->buffer) < 0xFD, "");
+  meta->value[0] = TtMetaInfo;
+  meta->value[1] = meta->size - 2;
+#undef APPEND
   return true;
 }
 
@@ -236,10 +241,11 @@ Encode_Finish(struct rte_mbuf* m)
 }
 
 Packet*
-DataEnc_EncodePayload(LName name, const MetaInfoBuffer* meta, struct rte_mbuf* m)
+DataEnc_EncodePayload(LName name, const void* metaBuf, struct rte_mbuf* m)
 {
   NDNDPDK_ASSERT(RTE_MBUF_DIRECT(m) && rte_pktmbuf_is_contiguous(m) &&
                  rte_mbuf_refcnt_read(m) == 1);
+  const DataEnc_MetaInfoBuffer(0)* meta = metaBuf;
 
   uint32_t contentL = m->pkt_len;
   uint16_t sizeofNameL = TlvEncoder_SizeofVarNum(name.length);
@@ -257,7 +263,7 @@ DataEnc_EncodePayload(LName name, const MetaInfoBuffer* meta, struct rte_mbuf* m
   head += TlvEncoder_WriteVarNum(head, name.length);
   rte_memcpy(head, name.value, name.length);
   head += name.length;
-  rte_memcpy(head, meta->buffer, meta->size);
+  rte_memcpy(head, meta->value, meta->size);
   head += meta->size;
   *head++ = TtContent;
   head += TlvEncoder_WriteVarNum(head, contentL);
