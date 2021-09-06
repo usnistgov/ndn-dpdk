@@ -49,6 +49,10 @@ type Locator struct {
 	// It must be an absolute path, not longer than MaxSocketNameSize.
 	SocketName string `json:"socketName"`
 
+	// SocketOwner changes owner uid:gid of the socket file.
+	// This is only applicable in NDN-DPDK service when creating the first memif in "server" role on a SocketName.
+	SocketOwner *[2]int `json:"socketOwner,omitempty"`
+
 	// ID is the interface identifier.
 	// It must be between MinID and MaxID.
 	ID int `json:"id"`

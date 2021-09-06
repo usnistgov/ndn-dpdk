@@ -12,6 +12,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface/ifacetestenv"
 	"github.com/usnistgov/ndn-dpdk/ndn/memiftransport"
 	"go4.org/must"
+	"golang.org/x/sys/unix"
 )
 
 func TestMemif(t *testing.T) {
@@ -26,6 +27,7 @@ func TestMemif(t *testing.T) {
 	var locA ethface.MemifLocator
 	locA.SocketName = socketName
 	locA.ID = 7655
+	locA.SocketOwner = &[2]int{0, 8000}
 	faceA, e := locA.CreateFace()
 	require.NoError(e)
 	assert.Equal("memif", faceA.Locator().Scheme())
@@ -33,6 +35,7 @@ func TestMemif(t *testing.T) {
 	var locB ethface.MemifLocator
 	locB.SocketName = socketName
 	locB.ID = 1891
+	locB.SocketOwner = &[2]int{0, 8001}
 	faceB, e := locB.CreateFace()
 	require.NoError(e)
 
@@ -47,6 +50,11 @@ func TestMemif(t *testing.T) {
 
 	fixture.RunTest(faceA, faceB)
 	fixture.CheckCounters()
+
+	var st unix.Stat_t
+	require.NoError(unix.Stat(socketName, &st))
+	assert.EqualValues(0, st.Uid)
+	assert.EqualValues(8000, st.Gid)
 
 	helperIn.Write([]byte("."))
 	assert.NoError(helper.Wait())

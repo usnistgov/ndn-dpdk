@@ -30,7 +30,9 @@ var (
 )
 
 // OpenMemif creates a face connected to the current application using memif transport.
-// If loc.SocketName is empty, loc.SocketName and loc.ID will be assigned automatically.
+// If loc.SocketName is empty:
+//  - loc.SocketName and loc.ID are automatically assigned
+//  - loc.SocketOwner is set to current uid:gid
 func (c *Client) OpenMemif(loc memiftransport.Locator) (mgmt.Face, error) {
 	if loc.SocketName == "" {
 		autoSocketOnce.Do(func() {
@@ -41,6 +43,7 @@ func (c *Client) OpenMemif(loc memiftransport.Locator) (mgmt.Face, error) {
 		})
 		loc.SocketName = autoSocketName
 		loc.ID = int(atomic.AddUint32(&autoMemifID, 1))
+		loc.SocketOwner = &[2]int{os.Getuid(), os.Getgid()}
 	}
 	loc.ApplyDefaults(memiftransport.RoleClient)
 

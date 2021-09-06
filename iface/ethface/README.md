@@ -122,6 +122,8 @@ Locator of a memif face has the following fields:
 * *socketName* is the control socket filename.
   It must be an absolute path not exceeding 108 characters.
 * *id* is the interface identifier in the range 0x00000000-0xFFFFFFFF.
+* *socketOwner* may be set to a tuple `[uid,gid]` to change owner uid:gid of the control socket.
+  It would allow applications to connect to NDN-DPDK without running as root.
 
 In the data plane:
 

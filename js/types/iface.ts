@@ -151,6 +151,8 @@ export interface MemifLocator {
 
   socketName: string;
 
+  socketOwner?: [Uint, Uint];
+
   /**
    * @minimum 0
    * @maximum 4294967295
