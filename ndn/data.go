@@ -260,11 +260,11 @@ func (data *Data) decodeMetaInfo(value []byte) (e error) {
 	for _, de := range d.Elements() {
 		switch de.Type {
 		case an.TtContentType:
-			if data.ContentType = ContentType(unmarshalNNI(de, math.MaxUint64, &e, tlv.ErrRange)); e != nil {
+			if data.ContentType = ContentType(de.UnmarshalNNI(math.MaxUint64, &e, tlv.ErrRange)); e != nil {
 				return e
 			}
 		case an.TtFreshnessPeriod:
-			if data.Freshness = time.Duration(unmarshalNNI(de, uint64(math.MaxInt64/time.Millisecond), &e, tlv.ErrRange)); e != nil {
+			if data.Freshness = time.Duration(de.UnmarshalNNI(uint64(math.MaxInt64/time.Millisecond), &e, tlv.ErrRange)); e != nil {
 				return e
 			}
 			data.Freshness *= time.Millisecond

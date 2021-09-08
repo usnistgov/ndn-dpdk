@@ -1,11 +1,26 @@
 #include "server.h"
 
 #include "../core/logger.h"
+#include "../ndni/tlv-encoder.h"
 #include "fd.h"
 #include "naming.h"
 #include "op.h"
 
 N_LOG_INIT(FileServer);
+
+DataEnc_MetaInfoBuffer(15) MetadataMetaInfo;
+DataEnc_MetaInfoBuffer(15) NackMetaInfo;
+
+RTE_INIT(InitMetaInfo)
+{
+  uint8_t segment0[10];
+  segment0[0] = TtSegmentNameComponent;
+  segment0[1] = Nni_Encode(&segment0[2], 0);
+  LName finalBlock = (LName){ .length = 2 + segment0[1], .value = segment0 };
+  DataEnc_MustPrepareMetaInfo(&MetadataMetaInfo, ContentBlob, 1, finalBlock);
+
+  DataEnc_MustPrepareMetaInfo(&NackMetaInfo, ContentNack, 1, (LName){ 0 });
+}
 
 typedef struct RxBurstCtx
 {
@@ -15,6 +30,7 @@ typedef struct RxBurstCtx
   uint8_t interestCount; ///< interest[interestIndex:interestCount] are unprocessed
   uint8_t payloadIndex;  ///< payload[payloadIndex:] are unused
   uint8_t discardIndex;  ///< discard[MaxBurstSize:discardIndex] are dropped Interests
+  uint8_t dataCount;     ///< data[:dataCount] are Data packets to be sent
   bool hasSqe;
   char zeroizeEnd_[0];
   struct rte_mbuf* interest[MaxBurstSize];
@@ -23,6 +39,7 @@ typedef struct RxBurstCtx
     struct rte_mbuf* payload[MaxBurstSize];
     struct rte_mbuf* discard[2 * MaxBurstSize];
   };
+  Packet* data[MaxBurstSize];
 } RxBurstCtx;
 static_assert(RTE_DIM(((RxBurstCtx*)NULL)->discard) <= UINT8_MAX, "");
 
@@ -58,7 +75,7 @@ FileServerRx_NoSqe(RxBurstCtx* ctx)
  * @return whether success.
  */
 __attribute__((nonnull)) static inline bool
-FileServerRx_Readv(FileServer* p, RxBurstCtx* ctx)
+FileServerRx_SubmitReadv(FileServer* p, RxBurstCtx* ctx)
 {
   struct io_uring_sqe* sqe = io_uring_get_sqe(&p->uring);
   if (unlikely(sqe == NULL)) {
@@ -75,22 +92,11 @@ FileServerRx_Readv(FileServer* p, RxBurstCtx* ctx)
 }
 
 __attribute__((nonnull)) static inline void
-FileServerRx_ProcessInterest(FileServer* p, RxBurstCtx* ctx)
+FileServerRx_Read(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
 {
   struct rte_mbuf* interest = ctx->interest[ctx->interestIndex];
   Packet* npkt = Packet_FromMbuf(interest);
   PInterest* pi = Packet_GetInterestHdr(npkt);
-  FileServerRequestName rn;
-  if (unlikely(!FileServer_ParseRequest(&rn, &pi->name))) {
-    N_LOGD("I drop=bad-name");
-    goto DROP;
-  }
-
-  if (unlikely(!rn.hasSegment)) {
-    // "32=ls" and "32=metadata" not implemented
-    N_LOGD("I drop=keyword-not-implemented");
-    goto DROP;
-  }
 
   LName prefix = FileServer_GetPrefix(&pi->name);
   struct rte_mbuf* payload = ctx->payload[ctx->payloadIndex];
@@ -100,8 +106,8 @@ FileServerRx_ProcessInterest(FileServer* p, RxBurstCtx* ctx)
     if (likely(FileServerOp_IsContinuous(ctx->op, prefix, rn.segment))) {
       goto ADD_IOV;
     }
-    if (unlikely(!FileServerRx_Readv(p, ctx))) {
-      // not `goto DROP` because FileServerRx_Readv has dropped `interest`,
+    if (unlikely(!FileServerRx_SubmitReadv(p, ctx))) {
+      // not `goto DROP` because FileServerRx_SubmitReadv has dropped `interest`,
       // which was "unprocessed" until returning to RxBurst
       return;
     }
@@ -114,6 +120,10 @@ FileServerRx_ProcessInterest(FileServer* p, RxBurstCtx* ctx)
   }
   if (unlikely(fd == FileServer_NotFound)) {
     N_LOGD("I drop=file-not-found");
+    goto DROP;
+  }
+  if (unlikely(!S_ISREG(fd->st.stx_mode))) {
+    N_LOGD("I drop=mode-not-file");
     goto UNREF;
   }
   if (unlikely(rn.segment > fd->lastSeg)) {
@@ -135,13 +145,88 @@ ADD_IOV:
   ++ctx->payloadIndex;
 
   if (unlikely(ctx->op->nIov == FileServerMaxIovecs)) {
-    FileServerRx_Readv(p, ctx);
+    FileServerRx_SubmitReadv(p, ctx);
   }
   return;
 UNREF:
   FileServerFd_Unref(p, fd);
 DROP:
   ctx->discard[ctx->discardIndex++] = interest;
+}
+
+__attribute__((nonnull)) static __rte_noinline void
+FileServerRx_Metadata(FileServer* p, RxBurstCtx* ctx)
+{
+  struct rte_mbuf* interest = ctx->interest[ctx->interestIndex];
+  ctx->discard[ctx->discardIndex++] = interest;
+  Packet* npkt = Packet_FromMbuf(interest);
+  PInterest* pi = Packet_GetInterestHdr(npkt);
+  LName name = PName_ToLName(&pi->name);
+
+  FileServerFd* fd = FileServerFd_Open(p, &pi->name, ctx->now);
+  if (unlikely(fd == NULL)) {
+    N_LOGD("Metadata drop=no-fd");
+    return;
+  }
+
+  struct rte_mbuf* payload = ctx->payload[ctx->payloadIndex];
+  payload->data_off = p->payloadHeadroom;
+  const void* metaInfo = NULL;
+
+  if (unlikely(fd == FileServer_NotFound)) {
+    metaInfo = &NackMetaInfo;
+  } else {
+    metaInfo = &MetadataMetaInfo;
+    bool ok = FileServerFd_EncodeMetadata(p, fd, payload);
+    FileServerFd_Unref(p, fd);
+    if (unlikely(!ok)) {
+      goto ENCERR;
+    }
+  }
+
+  uint8_t suffixV[20];
+  suffixV[0] = TtVersionNameComponent;
+  suffixV[1] = Nni_Encode(&suffixV[2], ctx->now);
+  LName suffix = (LName){ .length = 2 + suffixV[1], .value = suffixV };
+  *(unaligned_uint16_t*)RTE_PTR_ADD(suffixV, suffix.length) =
+    TlvEncoder_ConstTL1(TtSegmentNameComponent, 1);
+  suffixV[suffix.length + 2] = 0;
+  suffix.length += 3;
+  Packet* data = DataEnc_EncodePayload(name, suffix, metaInfo, payload);
+  if (unlikely(data == NULL)) {
+    goto ENCERR;
+  }
+  ++ctx->payloadIndex;
+
+  Mbuf_SetTimestamp(payload, ctx->now);
+  *Packet_GetLpL3Hdr(data) = *Packet_GetLpL3Hdr(npkt);
+  ctx->data[ctx->dataCount++] = data;
+  return;
+
+ENCERR:
+  N_LOGD("Metadata drop=dataenc-error");
+  rte_pktmbuf_reset(payload);
+}
+
+__attribute__((nonnull)) static inline void
+FileServerRx_ProcessInterest(FileServer* p, RxBurstCtx* ctx)
+{
+  struct rte_mbuf* interest = ctx->interest[ctx->interestIndex];
+  Packet* npkt = Packet_FromMbuf(interest);
+  PInterest* pi = Packet_GetInterestHdr(npkt);
+  FileServerRequestName rn = FileServer_ParseRequest(pi);
+  switch ((uint32_t)rn.kind) {
+    case FileServerRequestVersion | FileServerRequestSegment:
+      FileServerRx_Read(p, ctx, rn);
+      break;
+    case FileServerRequestMetadata:
+      FileServerRx_Metadata(p, ctx);
+      break;
+    default:
+      N_LOGD("I drop=bad-name rn.kind=%" PRIx32, (uint32_t)rn.kind);
+      ctx->discard[ctx->discardIndex++] = interest;
+      break;
+  }
 }
 
 uint32_t
@@ -169,7 +254,7 @@ FileServer_RxBurst(FileServer* p)
     // upon failure, ctx.interestIndex is set to ctx.interestCount, stopping the loop
   }
   if (likely(ctx.op != NULL)) {
-    FileServerRx_Readv(p, &ctx);
+    FileServerRx_SubmitReadv(p, &ctx);
   }
 
   if (likely(ctx.hasSqe)) {
@@ -179,6 +264,7 @@ FileServer_RxBurst(FileServer* p)
     }
   }
 
+  Face_TxBurst(p->face, ctx.data, ctx.dataCount);
   rte_pktmbuf_free_bulk(&ctx.discard[ctx.payloadIndex], ctx.discardIndex - ctx.payloadIndex);
   return ctx.interestCount;
 }

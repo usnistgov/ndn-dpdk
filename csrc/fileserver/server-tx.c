@@ -6,18 +6,22 @@
 
 N_LOG_INIT(FileServer);
 
+enum
+{
+  MaxBurstIovecs = MaxBurstSize * FileServerMaxIovecs,
+};
+
 typedef struct TxBurstCtx
 {
   TscTime now;
   uint16_t nData; ///< data[nData] are Data packets to be transmitted
-  /// discard[discardPayloadIndex : MaxBurstSize*FileServerMaxIovecs] are payload mbufs to be freed
+  /// discard[discardPayloadIndex : MaxBurstIovecs] are payload mbufs to be freed
   uint16_t discardPayloadIndex;
-  ///< discard[MaxBurstSize*FileServerMaxIovecs : discardInterestIndex] are Interest mbufs to be
-  ///< freed
+  /// discard[MaxBurstIovecs : discardInterestIndex] are Interest mbufs to be freed
   uint16_t discardInterestIndex;
   struct io_uring_cqe* cqe[MaxBurstSize];
-  Packet* data[MaxBurstSize * FileServerMaxIovecs];
-  struct rte_mbuf* discard[MaxBurstSize * FileServerMaxIovecs * 2];
+  Packet* data[MaxBurstIovecs];
+  struct rte_mbuf* discard[MaxBurstIovecs * 2];
 } TxBurstCtx;
 static_assert(RTE_DIM(((TxBurstCtx*)NULL)->discard) <= UINT16_MAX, "");
 
@@ -44,10 +48,10 @@ FileServerTx_ProcessCqe(FileServer* p, TxBurstCtx* ctx, uint32_t i)
 
   N_LOGV("CQE fd=%d nIov=%" PRIu32 " res=%" PRId32, fd->fd, nIov, (int32_t)cqe->res);
   FileServerOpMbufs mbufs;
-  static_assert(sizeof(mbufs) == 128, "");
-  rte_mov128((uint8_t*)&mbufs, (uint8_t*)&op->mbufs);
+  FileServerOpMbufs_Copy(&mbufs, &op->mbufs, nIov);
   NULLize(op); // overwritten by DataEnc
 
+  uint32_t totalLen = cqe->res;
   for (uint32_t i = 0; i < nIov; ++i) {
     struct rte_mbuf* payload = NULL;
     struct rte_mbuf* interestPkt = NULL;
@@ -58,11 +62,11 @@ FileServerTx_ProcessCqe(FileServer* p, TxBurstCtx* ctx, uint32_t i)
     LName name = PName_ToLName(&pi->name);
     ctx->discard[ctx->discardInterestIndex++] = interestPkt;
 
-    uint16_t segmentLen = RTE_MIN(p->segmentLen, (uint32_t)cqe->res);
-    cqe->res -= segmentLen;
+    uint16_t segmentLen = RTE_MIN(p->segmentLen, totalLen);
+    totalLen -= segmentLen;
     rte_pktmbuf_append(payload, segmentLen);
 
-    Packet* data = DataEnc_EncodePayload(name, &fd->meta, payload);
+    Packet* data = DataEnc_EncodePayload(name, (LName){ 0 }, &fd->meta, payload);
     if (unlikely(data == NULL)) {
       N_LOGD("CQE drop=dataenc-error");
       ctx->discard[--ctx->discardPayloadIndex] = payload;
@@ -85,8 +89,8 @@ FileServer_TxBurst(FileServer* p)
   TxBurstCtx ctx;
   ctx.now = rte_get_tsc_cycles();
   ctx.nData = 0;
-  ctx.discardPayloadIndex = MaxBurstSize * FileServerMaxIovecs;
-  ctx.discardInterestIndex = MaxBurstSize * FileServerMaxIovecs;
+  ctx.discardPayloadIndex = MaxBurstIovecs;
+  ctx.discardInterestIndex = MaxBurstIovecs;
 
   uint32_t nCqe = io_uring_peek_batch_cqe(&p->uring, ctx.cqe, RTE_DIM(ctx.cqe));
   for (uint32_t i = 0; i < nCqe; ++i) {

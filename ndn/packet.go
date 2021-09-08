@@ -133,11 +133,11 @@ func (pkt *Packet) decodeValue(value []byte) (e error) {
 			}
 			fragment.SeqNum = binary.BigEndian.Uint64(de.Value)
 		case an.TtFragIndex:
-			if fragment.FragIndex = int(unmarshalNNI(de, math.MaxInt32, &e, ErrFragment)); e != nil {
+			if fragment.FragIndex = int(de.UnmarshalNNI(math.MaxInt32, &e, ErrFragment)); e != nil {
 				return e
 			}
 		case an.TtFragCount:
-			if fragment.FragCount = int(unmarshalNNI(de, math.MaxInt32, &e, ErrFragment)); e != nil {
+			if fragment.FragCount = int(de.UnmarshalNNI(math.MaxInt32, &e, ErrFragment)); e != nil {
 				return e
 			}
 			if fragment.FragCount > 1 {
@@ -151,7 +151,7 @@ func (pkt *Packet) decodeValue(value []byte) (e error) {
 			for _, de1 := range d1.Elements() {
 				switch de1.Type {
 				case an.TtNackReason:
-					if pkt.Lp.NackReason = uint8(unmarshalNNI(de1, math.MaxUint8, &e, tlv.ErrRange)); e != nil {
+					if pkt.Lp.NackReason = uint8(de1.UnmarshalNNI(math.MaxUint8, &e, tlv.ErrRange)); e != nil {
 						return e
 					}
 				default:
@@ -164,7 +164,7 @@ func (pkt *Packet) decodeValue(value []byte) (e error) {
 				return e
 			}
 		case an.TtCongestionMark:
-			if pkt.Lp.CongMark = uint8(unmarshalNNI(de, math.MaxUint8, &e, tlv.ErrRange)); e != nil {
+			if pkt.Lp.CongMark = uint8(de.UnmarshalNNI(math.MaxUint8, &e, tlv.ErrRange)); e != nil {
 				return e
 			}
 		case an.TtLpPayload:

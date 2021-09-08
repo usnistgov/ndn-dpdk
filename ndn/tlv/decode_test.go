@@ -1,6 +1,7 @@
 package tlv_test
 
 import (
+	"math"
 	"testing"
 
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
@@ -37,6 +38,13 @@ func TestDecode(t *testing.T) {
 	var nni2 tlv.NNI
 	assert.NoError(elements[2].UnmarshalValue(&nni2))
 	assert.EqualValues(0x3031, nni2)
+	{
+		var e error
+		assert.Equal(0x3031, int(elements[2].UnmarshalNNI(math.MaxUint16, &e, tlv.ErrRange)))
+		assert.NoError(e)
+		elements[2].UnmarshalNNI(math.MaxUint8, &e, tlv.ErrRange)
+		assert.ErrorIs(e, tlv.ErrRange)
+	}
 
 	assert.Len(d.Rest(), 1)
 	assert.False(d.EOF())

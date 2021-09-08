@@ -9,19 +9,23 @@
 #include <linux/stat.h>
 #include <sys/stat.h>
 
+/** @brief File descriptor related information in the file server. */
 typedef struct FileServerFd
 {
-  uint8_t self[0];                     // self reference used in HASH_ADD_BYHASHVALUE
-  struct statx st;                     // statx result (.stx_ino is TscTime nextUpdate)
-  UT_hash_handle hh;                   // fdHt hashtable handle
-  struct rte_mbuf* mbuf;               // mbuf storing this entry
-  TAILQ_ENTRY(FileServerFd) queueNode; // fdQ node
-  DataEnc_MetaInfoBuffer(15) meta;     // MetaInfo (FinalBlockId only)
-  uint64_t lastSeg;                    // last segment number
-  int fd;                              // file descriptor
-  uint16_t refcnt;                     // number of inflight SQEs referencing this entry
-  uint16_t nameL;                      // mount+path TLV-LENGTH
-  uint8_t nameV[NameMaxLength];        // mount+path TLV-VALUE
+  uint8_t self[0];                     ///< self reference used in HASH_ADD_BYHASHVALUE
+  struct statx st;                     ///< statx result (.stx_ino is TscTime nextUpdate)
+  UT_hash_handle hh;                   ///< fdHt hashtable handle
+  struct rte_mbuf* mbuf;               ///< mbuf storing this entry
+  TAILQ_ENTRY(FileServerFd) queueNode; ///< fdQ node
+  DataEnc_MetaInfoBuffer(15) meta;     ///< MetaInfo (FinalBlockId only)
+  uint64_t version;                    ///< version number
+  uint64_t lastSeg;                    ///< last segment number
+  int fd;                              ///< file descriptor
+  uint16_t refcnt;                     ///< number of inflight SQEs referencing this entry
+  uint16_t prefixL;                    ///< mount+path TLV-LENGTH
+  uint16_t versionedL;                 ///< mount+path+[32=ls]+version TLV-LENGTH
+  uint16_t segmentL;                   ///< mount+path+[32=ls]+version+finalSeg TLV-LENGTH
+  uint8_t nameV[NameMaxLength];        ///< name TLV-VALUE
 } FileServerFd;
 
 /** @brief Sentinel value to indicate file not found. */
@@ -32,8 +36,7 @@ typedef struct FileServer FileServer;
 /**
  * @brief Open or reference file descriptor.
  * @param name Interest name.
- * @retval true filename is valid and matches a mount.
- * @retval false filename is invalid or does not match a mount.
+ * @retval NULL filename is invalid or does not match a mount.
  */
 __attribute__((nonnull)) FileServerFd*
 FileServerFd_Open(FileServer* p, const PName* name, TscTime now);
@@ -57,5 +60,19 @@ FileServerFd_HasStatBit(const FileServerFd* entry, uint32_t bit)
 {
   return (entry->st.stx_mask & bit) == bit;
 }
+
+static __rte_always_inline uint64_t
+FileServerFd_StatTime(struct statx_timestamp t)
+{
+  return (uint64_t)t.tv_sec * 1000000000 + (uint64_t)t.tv_nsec;
+}
+
+/**
+ * @brief Encode metadata packet payload.
+ * @param entry a valid FileServerFd entry.
+ * @param payload payload mbuf.
+ */
+__attribute__((nonnull)) bool
+FileServerFd_EncodeMetadata(FileServer* p, FileServerFd* entry, struct rte_mbuf* payload);
 
 #endif // NDNDPDK_FILESERVER_FD_H

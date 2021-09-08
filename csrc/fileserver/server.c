@@ -11,7 +11,7 @@ FileServer_Run(FileServer* p)
   struct io_uring_params uringParams = { 0 };
   int res = io_uring_queue_init_params(p->uringCapacity, &p->uring, &uringParams);
   if (res < 0) {
-    N_LOGE("uring init errno=%d", -res);
+    N_LOGE("uring init" N_LOG_ERROR("errno=%d"), -res);
     return 1;
   }
   N_LOGI("uring init sqe=%" PRIu32 " cqe=%" PRIu32 " features=0x%" PRIx32, uringParams.sq_entries,

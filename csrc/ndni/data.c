@@ -241,16 +241,17 @@ Encode_Finish(struct rte_mbuf* m)
 }
 
 Packet*
-DataEnc_EncodePayload(LName name, const void* metaBuf, struct rte_mbuf* m)
+DataEnc_EncodePayload(LName prefix, LName suffix, const void* metaBuf, struct rte_mbuf* m)
 {
   NDNDPDK_ASSERT(RTE_MBUF_DIRECT(m) && rte_pktmbuf_is_contiguous(m) &&
                  rte_mbuf_refcnt_read(m) == 1);
   const DataEnc_MetaInfoBuffer(0)* meta = metaBuf;
 
+  uint16_t nameL = prefix.length + suffix.length;
+  uint16_t sizeofNameL = TlvEncoder_SizeofVarNum(nameL);
   uint32_t contentL = m->pkt_len;
-  uint16_t sizeofNameL = TlvEncoder_SizeofVarNum(name.length);
   uint16_t sizeofContentL = TlvEncoder_SizeofVarNum(contentL);
-  uint16_t sizeofHeadroom = 1 + sizeofNameL + name.length + meta->size + 1 + sizeofContentL;
+  uint16_t sizeofHeadroom = 1 + sizeofNameL + nameL + meta->size + 1 + sizeofContentL;
 
   uint8_t* sig = (uint8_t*)rte_pktmbuf_append(m, sizeof(NullSig));
   if (unlikely(sig == NULL || rte_pktmbuf_headroom(m) < 4 + sizeofHeadroom)) {
@@ -260,9 +261,11 @@ DataEnc_EncodePayload(LName name, const void* metaBuf, struct rte_mbuf* m)
 
   uint8_t* head = (uint8_t*)rte_pktmbuf_prepend(m, sizeofHeadroom);
   *head++ = TtName;
-  head += TlvEncoder_WriteVarNum(head, name.length);
-  rte_memcpy(head, name.value, name.length);
-  head += name.length;
+  head += TlvEncoder_WriteVarNum(head, nameL);
+  rte_memcpy(head, prefix.value, prefix.length);
+  head += prefix.length;
+  rte_memcpy(head, suffix.value, suffix.length);
+  head += suffix.length;
   rte_memcpy(head, meta->value, meta->size);
   head += meta->size;
   *head++ = TtContent;

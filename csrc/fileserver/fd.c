@@ -1,5 +1,6 @@
 #include "fd.h"
 #include "../core/logger.h"
+#include "../ndni/tlv-encoder.h"
 #include "naming.h"
 #include "server.h"
 #include <sys/syscall.h>
@@ -26,7 +27,8 @@ N_LOG_INIT(FileServerFd);
 __attribute__((nonnull)) static inline bool
 FdHt_Cmp_(const FileServerFd* entry, const LName* search)
 {
-  return entry->nameL == search->length && memcmp(entry->nameV, search->value, entry->nameL) == 0;
+  return entry->prefixL == search->length &&
+         memcmp(entry->nameV, search->value, search->length) == 0;
 }
 
 static __rte_noinline void
@@ -36,26 +38,67 @@ FdHt_Expand_(UT_hash_table* tbl)
          tbl->num_buckets);
 }
 
+enum
+{
+  /// Maximum mount+path TLV-LENGTH to accommodate [32=ls]+version+segment components.
+  FileServer_MaxPrefixL = NameMaxLength - 4 - 10 - 10,
+};
+
 static FileServerFd notFound;
 FileServerFd* FileServer_NotFound = &notFound;
 
 __attribute__((nonnull)) static inline int
-FileServerFd_UpdateStatx(FileServer* p, FileServerFd* entry, TscTime now)
+FileServerFd_UpdateStatx(FileServer* p, FileServerFd* entry, TscTime now, bool* changed)
 {
+  uint64_t oldVersion = entry->version;
+  uint64_t oldSize = entry->st.stx_size;
+
   int res = syscall(__NR_statx, entry->fd, "", AT_EMPTY_PATH,
                     FileServerStatxRequired | FileServerStatxOptional, &entry->st);
-  if (likely(res == 0 || FileServerFd_HasStatBit(entry, FileServerStatxRequired))) {
-    static_assert(sizeof(entry->st.stx_ino) == sizeof(TscTime), "");
-    entry->st.stx_ino = now + p->statValidity;
-
-    entry->lastSeg =
-      DIV_CEIL(entry->st.stx_size, p->segmentLen) - (uint64_t)(entry->st.stx_size > 0);
-    uint8_t finalBlockV[10] = { TtSegmentNameComponent };
-    finalBlockV[1] = Nni_Encode(&finalBlockV[2], entry->lastSeg);
-    DataEnc_MustPrepareMetaInfo(&entry->meta, ContentBlob, 0,
-                                ((LName){ .length = 2 + finalBlockV[1], .value = finalBlockV }));
+  if (likely(res == 0)) {
+    if (unlikely(!FileServerFd_HasStatBit(entry, FileServerStatxRequired) ||
+                 !(S_ISREG(entry->st.stx_mode) || S_ISDIR(entry->st.stx_mode)))) {
+      res = EPIPE; // use an "impossible" errno to indicate this condition
+    } else {
+      entry->version = FileServerFd_StatTime(entry->st.stx_mtime);
+      *changed = oldVersion != entry->version || oldSize != entry->st.stx_size;
+    }
   }
+  static_assert(sizeof(entry->st.stx_ino) == sizeof(TscTime), "");
+  entry->st.stx_ino = now + p->statValidity;
   return res;
+}
+
+__attribute__((nonnull)) static inline void
+FileServerFd_PrepapeMeta(FileServer* p, FileServerFd* entry)
+{
+  entry->lastSeg = DIV_CEIL(entry->st.stx_size, p->segmentLen) - (uint64_t)(entry->st.stx_size > 0);
+
+  uint16_t nameL = entry->prefixL;
+  if (unlikely(S_ISDIR(entry->st.stx_mode))) {
+    struct
+    {
+      unaligned_uint16_t keywordTL;
+      char keywordV[2];
+    } __rte_packed* ls = RTE_PTR_ADD(entry->nameV, nameL);
+    ls->keywordTL = TlvEncoder_ConstTL1(TtKeywordNameComponent, 2);
+    ls->keywordV[0] = 'l';
+    ls->keywordV[1] = 's';
+    nameL += 4;
+  }
+
+  uint8_t* version = RTE_PTR_ADD(entry->nameV, nameL);
+  version[0] = TtVersionNameComponent;
+  version[1] = Nni_Encode(&version[2], entry->version);
+  entry->versionedL = (nameL += 2 + version[1]);
+
+  uint8_t* segment = RTE_PTR_ADD(entry->nameV, nameL);
+  segment[0] = TtSegmentNameComponent;
+  segment[1] = Nni_Encode(&segment[2], entry->lastSeg);
+  entry->segmentL = (nameL += 2 + segment[1]);
+
+  DataEnc_MustPrepareMetaInfo(&entry->meta, ContentBlob, 0,
+                              ((LName){ .length = 2 + segment[1], .value = segment }));
 }
 
 __attribute__((nonnull)) static inline FileServerFd*
@@ -67,16 +110,18 @@ FileServerFd_Ref(FileServer* p, FileServerFd* entry, TscTime now)
   }
 
   if (unlikely((TscTime)entry->st.stx_ino < now)) {
-    uint64_t oldSize = entry->st.stx_size;
-    int res = FileServerFd_UpdateStatx(p, entry, now);
+    bool changed = false;
+    int res = FileServerFd_UpdateStatx(p, entry, now, &changed);
     if (unlikely(res != 0)) {
       N_LOGD(
         "Ref statx-update fd=%d refcnt=%" PRIu16 N_LOG_ERROR("statx-res=%d statx-mask=0x%" PRIx32),
         entry->fd, entry->refcnt, res, entry->st.stx_mask);
       return NULL;
     }
-    N_LOGD("Ref statx-update fd=%d refcnt=%" PRIu16 " size=%" PRIu64 " size-changed=%d", entry->fd,
-           entry->refcnt, (uint64_t)entry->st.stx_size, (int)(oldSize != entry->st.stx_size));
+    N_LOGD("Ref statx-update fd=%d refcnt=%" PRIu16 " version=%" PRIu64 " size=%" PRIu64
+           " changed=%d",
+           entry->fd, entry->refcnt, entry->version, (uint64_t)entry->st.stx_size, (int)changed);
+    FileServerFd_PrepapeMeta(p, entry);
   }
 
   ++entry->refcnt;
@@ -114,7 +159,10 @@ FileServerFd_New(FileServer* p, const PName* name, LName prefix, uint64_t hash, 
   static_assert(RTE_PKTMBUF_HEADROOM >= RTE_CACHE_LINE_SIZE, "");
   FileServerFd* entry = RTE_PTR_ALIGN_FLOOR(mbuf->buf_addr, RTE_CACHE_LINE_SIZE);
   entry->fd = fd;
-  int res = FileServerFd_UpdateStatx(p, entry, now);
+
+  entry->st.stx_size = 0;
+  bool changed_ = false;
+  int res = FileServerFd_UpdateStatx(p, entry, now, &changed_);
   if (unlikely(res != 0)) {
     N_LOGD("New mount=%d filename=%s" N_LOG_ERROR("statx-res=%d statx-mask=0x%" PRIx32), mount,
            filename, res, entry->st.stx_mask);
@@ -123,8 +171,9 @@ FileServerFd_New(FileServer* p, const PName* name, LName prefix, uint64_t hash, 
 
   entry->mbuf = mbuf;
   entry->refcnt = 1;
-  entry->nameL = prefix.length;
-  rte_memcpy(entry->nameV, prefix.value, entry->nameL);
+  entry->prefixL = prefix.length;
+  rte_memcpy(entry->nameV, prefix.value, prefix.length);
+  FileServerFd_PrepapeMeta(p, entry);
 
   HASH_ADD_BYHASHVALUE(hh, p->fdHt, self, 0, hash, entry);
   N_LOGD("New mount=%d filename=%s fd=%d statx-mask=0x%" PRIu32 " size=%" PRIu64, mount, filename,
@@ -142,7 +191,11 @@ FileServerFd*
 FileServerFd_Open(FileServer* p, const PName* name, TscTime now)
 {
   LName prefix = FileServer_GetPrefix(name);
+  if (unlikely(prefix.length > FileServer_MaxPrefixL)) {
+    return NULL;
+  }
   uint64_t hash = PName_ComputePrefixHash(name, name->firstNonGeneric);
+
   FileServerFd* entry = NULL;
   HASH_FIND_BYHASHVALUE(hh, p->fdHt, &prefix, 0, hash, entry);
   if (likely(entry != NULL)) {
@@ -189,4 +242,56 @@ FileServerFd_Clear(FileServer* p)
   HASH_CLEAR(hh, p->fdHt);
   TAILQ_INIT(&p->fdQ);
   p->fdQCount = 0;
+}
+
+bool
+FileServerFd_EncodeMetadata(FileServer* p, FileServerFd* entry, struct rte_mbuf* payload)
+{
+  if (unlikely(rte_pktmbuf_tailroom(payload) <
+               entry->versionedL + FileServerEstimatedMetadataSize)) {
+    return false;
+  }
+  uint8_t* value = rte_pktmbuf_mtod(payload, uint8_t*);
+  size_t off = 0;
+
+#define APPEND_NNI(type, bits, val)                                                                \
+  do {                                                                                             \
+    struct                                                                                         \
+    {                                                                                              \
+      unaligned_uint32_t tl;                                                                       \
+      unaligned_uint##bits##_t v;                                                                  \
+    } __rte_packed* f = RTE_PTR_ADD(value, off);                                                   \
+    f->tl = TlvEncoder_ConstTL3(TtFileServer##type, sizeof(f->v));                                 \
+    f->v = rte_cpu_to_be_##bits((uint##bits##_t)(val));                                            \
+    off += sizeof(*f);                                                                             \
+  } while (false)
+
+  value[off++] = TtName;
+  off += TlvEncoder_WriteVarNum(&value[off], entry->versionedL);
+  rte_memcpy(&value[off], entry->nameV, entry->versionedL);
+  off += entry->versionedL;
+
+  if (likely(S_ISREG(entry->st.stx_mode))) {
+    NDNDPDK_ASSERT(entry->meta.value[2] == TtFinalBlock);
+    rte_memcpy(&value[off], &entry->meta.value[2], entry->meta.value[1]);
+    off += entry->meta.value[1];
+    APPEND_NNI(SegmentSize, 16, p->segmentLen);
+    APPEND_NNI(Size, 64, entry->st.stx_size);
+  }
+  APPEND_NNI(Mode, 16, entry->st.stx_mode);
+  if (likely(FileServerFd_HasStatBit(entry, STATX_ATIME))) {
+    APPEND_NNI(Atime, 64, FileServerFd_StatTime(entry->st.stx_atime));
+  }
+  if (likely(FileServerFd_HasStatBit(entry, STATX_BTIME))) {
+    APPEND_NNI(Btime, 64, FileServerFd_StatTime(entry->st.stx_btime));
+  }
+  if (likely(FileServerFd_HasStatBit(entry, STATX_CTIME))) {
+    APPEND_NNI(Ctime, 64, FileServerFd_StatTime(entry->st.stx_ctime));
+  }
+  APPEND_NNI(Mtime, 64, entry->version);
+
+#undef APPEND_NNI
+  const char* room = rte_pktmbuf_append(payload, off);
+  NDNDPDK_ASSERT(room != NULL);
+  return true;
 }

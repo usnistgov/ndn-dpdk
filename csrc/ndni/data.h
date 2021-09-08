@@ -95,14 +95,15 @@ DataEnc_PrepareMetaInfo_(void* metaBuf, size_t capacity, ContentType ct, uint32_
 
 /**
  * @brief Encode Data with payload.
- * @param name Data name.
+ * @param prefix Data name prefix.
+ * @param suffix Data name suffix.
  * @param metaBuf prepared DataEnc_MetaInfoBuffer.
  * @param m a uniquely owned, unsegmented, direct mbuf of Content payload.
  * @return encoded packet, same as @p m .
  * @retval NULL insufficient headroom or tailroom.
  */
 __attribute__((nonnull)) Packet*
-DataEnc_EncodePayload(LName name, const void* metaBuf, struct rte_mbuf* m);
+DataEnc_EncodePayload(LName prefix, LName suffix, const void* metaBuf, struct rte_mbuf* m);
 
 /** @brief Data encoder optimized for traffic generator. */
 typedef struct DataGen

@@ -228,7 +228,7 @@ func (interest *Interest) UnmarshalBinary(wire []byte) (e error) {
 				return e
 			}
 		case an.TtInterestLifetime:
-			if interest.Lifetime = time.Duration(unmarshalNNI(de, uint64(math.MaxInt64/time.Millisecond), &e, ErrLifetime)); e != nil {
+			if interest.Lifetime = time.Duration(de.UnmarshalNNI(uint64(math.MaxInt64/time.Millisecond), &e, ErrLifetime)); e != nil {
 				return e
 			}
 			interest.Lifetime *= time.Millisecond
@@ -387,7 +387,7 @@ func (del *FHDelegation) UnmarshalBinary(wire []byte) (e error) {
 	for _, de := range d.Elements() {
 		switch de.Type {
 		case an.TtPreference:
-			if del.Preference = int(unmarshalNNI(de, math.MaxInt32, &e, tlv.ErrRange)); e != nil {
+			if del.Preference = int(de.UnmarshalNNI(math.MaxInt32, &e, tlv.ErrRange)); e != nil {
 				return e
 			}
 		case an.TtName:

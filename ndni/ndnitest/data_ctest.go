@@ -75,7 +75,7 @@ func ctestDataEncMinimal(t *testing.T) {
 
 	m := makePacket(mbuftestenv.Headroom(256))
 	defer m.Close()
-	npkt := C.DataEnc_EncodePayload(*(*C.LName)(nameP.Ptr()), unsafe.Pointer(&meta), m.mbuf)
+	npkt := C.DataEnc_EncodePayload(*(*C.LName)(nameP.Ptr()), C.LName{}, unsafe.Pointer(&meta), m.mbuf)
 	assert.Equal(m.npkt, npkt)
 
 	data := ndni.PacketFromPtr(m.Ptr()).ToNPacket().Data
@@ -105,12 +105,12 @@ func ctestDataEncFull(t *testing.T) {
 
 	m := makePacket(mbuftestenv.Headroom(256), content)
 	defer m.Close()
-	npkt := C.DataEnc_EncodePayload(*(*C.LName)(nameP.Ptr()), unsafe.Pointer(&meta), m.mbuf)
+	npkt := C.DataEnc_EncodePayload(*(*C.LName)(nameP.Ptr()), *(*C.LName)(finalBlockP.Ptr()), unsafe.Pointer(&meta), m.mbuf)
 	assert.Equal(m.npkt, npkt)
 
 	data := ndni.PacketFromPtr(m.Ptr()).ToNPacket().Data
 	require.NotNil(data)
-	nameEqual(assert, "/DataEnc/full", data)
+	nameEqual(assert, "/DataEnc/full/33=%00%00%00%01%00%00%00%00", data)
 	assert.EqualValues(an.ContentKey, data.ContentType)
 	assert.Equal(time.Hour, data.Freshness)
 	assert.Equal(finalBlock, data.FinalBlock)

@@ -3,19 +3,25 @@
 
 /** @file */
 
-#include "../ndni/name.h"
+#include "../ndni/interest.h"
 #include "../ndni/nni.h"
 #include "enum.h"
+
+typedef enum FileServerRequestKind
+{
+  FileServerRequestNone = 0,
+  FileServerRequestVersion = 1 << 0,
+  FileServerRequestSegment = 1 << 1,
+  FileServerRequestLs = 1 << 2,
+  FileServerRequestMetadata = 1 << 3,
+} FileServerRequestKind;
 
 /** @brief Parsed Interest name processed by file server. */
 typedef struct FileServerRequestName
 {
-  uint64_t version; ///< version number
-  uint64_t segment; ///< segment number
-  bool hasVersion;  ///< version number exists
-  bool hasSegment;  ///< segment number exists
-  bool isLs;        ///< is directory listing request
-  bool isMetadata;  ///< is metadata request
+  uint64_t version;
+  uint64_t segment;
+  FileServerRequestKind kind;
 } FileServerRequestName;
 
 /** @brief Get mount + path prefix. */
@@ -25,20 +31,15 @@ FileServer_GetPrefix(const PName* name)
   return PName_GetPrefix(name, name->firstNonGeneric);
 }
 
-/**
- * @brief Parse Interest name.
- * @param[out] p parse result.
- * @param name Interest name.
- * @return whether success.
- */
-static inline bool
-FileServer_ParseRequest(FileServerRequestName* p, const PName* name)
+/** @brief Parse Interest name. */
+static inline FileServerRequestName
+FileServer_ParseRequest(const PInterest* pi)
 {
-  if (unlikely(name->firstNonGeneric < 0)) {
-    return false;
+  FileServerRequestName rn = { 0 };
+  if (unlikely(pi->name.firstNonGeneric < 0)) {
+    goto FAIL;
   }
-  LName suffix = PName_Slice(name, name->firstNonGeneric, INT16_MAX);
-  *p = (FileServerRequestName){ 0 };
+  LName suffix = PName_Slice(&pi->name, pi->name.firstNonGeneric, INT16_MAX);
 
   uint16_t pos = 0, type = 0, length = 0;
   while (likely(LName_Component(suffix, &pos, &type, &length))) {
@@ -46,43 +47,48 @@ FileServer_ParseRequest(FileServerRequestName* p, const PName* name)
     pos += length;
     switch (type) {
       case TtVersionNameComponent:
-        p->hasVersion = Nni_Decode(length, value, &p->version);
-        if (unlikely(!p->hasVersion)) {
-          return false;
+        if (likely(Nni_Decode(length, value, &rn.version))) {
+          rn.kind = rn.kind | FileServerRequestVersion;
+        } else {
+          goto FAIL;
         }
         break;
       case TtSegmentNameComponent:
-        p->hasSegment = Nni_Decode(length, value, &p->segment);
-        if (unlikely(!p->hasSegment)) {
-          return false;
+        if (likely(Nni_Decode(length, value, &rn.segment))) {
+          rn.kind = rn.kind | FileServerRequestSegment;
+        } else {
+          goto FAIL;
         }
         break;
       case TtKeywordNameComponent:
         switch (length) {
           case 2:
             if (likely(memcmp(value, "ls", 2) == 0)) {
-              p->isLs = true;
+              rn.kind = rn.kind | FileServerRequestLs;
             } else {
-              return false;
+              goto FAIL;
             }
             break;
           case 8:
-            if (likely(memcmp(value, "metadata", 8) == 0)) {
-              p->isMetadata = true;
+            if (likely(memcmp(value, "metadata", 8) == 0 && pi->canBePrefix && pi->mustBeFresh)) {
+              rn.kind = rn.kind | FileServerRequestMetadata;
             } else {
-              return false;
+              goto FAIL;
             }
             break;
           default:
-            return false;
+            goto FAIL;
         }
         break;
       default:
-        return false;
+        goto FAIL;
     }
   }
+  return rn;
 
-  return true;
+FAIL:
+  rn.kind = FileServerRequestNone;
+  return rn;
 }
 
 /**

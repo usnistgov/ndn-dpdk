@@ -104,7 +104,7 @@ func (si *SigInfo) UnmarshalBinary(wire []byte) (e error) {
 	for _, de := range d.Elements() {
 		switch de.Type {
 		case an.TtSigType:
-			if si.Type = uint32(unmarshalNNI(de, math.MaxUint32, &e, ErrSigType)); e != nil {
+			if si.Type = uint32(de.UnmarshalNNI(math.MaxUint32, &e, ErrSigType)); e != nil {
 				return e
 			}
 		case an.TtKeyLocator:
@@ -117,11 +117,11 @@ func (si *SigInfo) UnmarshalBinary(wire []byte) (e error) {
 			}
 			si.Nonce = de.Value
 		case an.TtSigTime:
-			if si.Time = unmarshalNNI(de, math.MaxUint64, &e, tlv.ErrRange); e != nil {
+			if si.Time = de.UnmarshalNNI(math.MaxUint64, &e, tlv.ErrRange); e != nil {
 				return e
 			}
 		case an.TtSigSeqNum:
-			if si.SeqNum = unmarshalNNI(de, math.MaxUint64, &e, tlv.ErrRange); e != nil {
+			if si.SeqNum = de.UnmarshalNNI(math.MaxUint64, &e, tlv.ErrRange); e != nil {
 				return e
 			}
 		default:

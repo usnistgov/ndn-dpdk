@@ -23,7 +23,7 @@ import (
 // Limits and defaults.
 const (
 	MaxMounts = 8
-	MaxIovecs = 16
+	MaxIovecs = 1
 
 	MinSegmentLen     = 64
 	MaxSegmentLen     = 16384
@@ -41,6 +41,10 @@ const (
 	DefaultKeepFds = 64
 
 	DefaultStatValidityMilliseconds = 10 * 1000 // 10 seconds
+
+	EstimatedMetadataSize = 4 + // NameTL, excluding NameV
+		2 + 10 + // FinalBlockId
+		7*10 // NNI fields
 
 	_ = "enumgen::FileServer"
 )
@@ -148,7 +152,8 @@ func (cfg *Config) checkPayloadMempool(segmentLen int) error {
 			tpl.Dataroom, sizeofFileServerFd)
 	}
 
-	suggest := pktmbuf.DefaultHeadroom + ndni.NameMaxLength + segmentLen + ndni.DataEncNullSigLen + 64
+	suggest := pktmbuf.DefaultHeadroom + ndni.NameMaxLength +
+		math.MaxInt(segmentLen, ndni.NameMaxLength+EstimatedMetadataSize) + ndni.DataEncNullSigLen + 64
 	if tpl.Dataroom < suggest {
 		logger.Warn("PAYLOAD dataroom too small for configured segmentLen, Interests with long names may be dropped",
 			zap.Int("configured-dataroom", tpl.Dataroom),
@@ -157,7 +162,7 @@ func (cfg *Config) checkPayloadMempool(segmentLen int) error {
 		)
 	}
 
-	cfg.payloadHeadroom = tpl.Dataroom - ndni.DataEncNullSigLen - segmentLen
+	cfg.payloadHeadroom = tpl.Dataroom - ndni.DataEncNullSigLen - math.MaxInt(segmentLen, EstimatedMetadataSize)
 	if cfg.payloadHeadroom < pktmbuf.DefaultHeadroom {
 		return fmt.Errorf("PAYLOAD dataroom %d too small for segmentLen %d; increase PAYLOAD dataroom to %d",
 			tpl.Dataroom, segmentLen, suggest)
