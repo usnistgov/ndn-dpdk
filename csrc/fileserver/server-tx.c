@@ -11,6 +11,8 @@ enum
   MaxBurstIovecs = MaxBurstSize * FileServerMaxIovecs,
 };
 
+#define FileServerOp_NIov(op) (FileServer_EnableIovBatching ? (op->nIov) : 1)
+
 typedef struct TxBurstCtx
 {
   TscTime now;
@@ -25,24 +27,34 @@ typedef struct TxBurstCtx
 } TxBurstCtx;
 static_assert(RTE_DIM(((TxBurstCtx*)NULL)->discard) <= UINT16_MAX, "");
 
-__attribute__((nonnull)) static inline void
-FileServerTx_ProcessCqe(FileServer* p, TxBurstCtx* ctx, uint32_t i)
+__attribute__((nonnull)) static __rte_noinline void
+FileServerTx_FailCqe(FileServer* p, TxBurstCtx* ctx, struct io_uring_cqe* cqe)
 {
-  struct io_uring_cqe* cqe = ctx->cqe[i];
   FileServerOp* op = io_uring_cqe_get_data(cqe);
   FileServerFd* fd = op->fd;
-  uint32_t nIov = op->nIov;
+  uint32_t nIov = FileServerOp_NIov(op);
+  N_LOGD("CQE fd=%d nIov=%" PRIu32 " drop=cqe-error" N_LOG_ERROR("errno=%" PRId32), fd->fd, nIov,
+         (int32_t)-cqe->res);
+
+  for (uint32_t i = 0; i < nIov; ++i) {
+    struct rte_mbuf* payload = NULL;
+    struct rte_mbuf* interest = NULL;
+    FileServerOpMbufs_Get(&op->mbufs, i, &payload, &interest);
+    ctx->discard[--ctx->discardPayloadIndex] = payload;
+    ctx->discard[ctx->discardInterestIndex++] = interest;
+  }
+}
+
+__attribute__((nonnull)) static inline void
+FileServerTx_ProcessCqe(FileServer* p, TxBurstCtx* ctx, uint32_t index)
+{
+  struct io_uring_cqe* cqe = ctx->cqe[index];
+  FileServerOp* op = io_uring_cqe_get_data(cqe);
+  FileServerFd* fd = op->fd;
+  uint32_t nIov = FileServerOp_NIov(op);
 
   if (unlikely(cqe->res < 0)) {
-    N_LOGD("CQE fd=%d nIov=%" PRIu32 " drop=cqe-error" N_LOG_ERROR("errno=%d"), fd->fd, nIov,
-           -cqe->res);
-    for (uint32_t i = 0; i < op->nIov; ++i) {
-      struct rte_mbuf* payload = NULL;
-      struct rte_mbuf* interest = NULL;
-      FileServerOpMbufs_Get(&op->mbufs, i, &payload, &interest);
-      ctx->discard[--ctx->discardPayloadIndex] = payload;
-      ctx->discard[ctx->discardInterestIndex++] = interest;
-    }
+    FileServerTx_FailCqe(p, ctx, cqe);
     goto FINISH;
   }
 

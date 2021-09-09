@@ -37,6 +37,7 @@ typedef struct FileServer FileServer;
  * @brief Open or reference file descriptor.
  * @param name Interest name.
  * @retval NULL filename is invalid or does not match a mount.
+ * @retval FileServer_NotFound file does not exist; do not Unref this value.
  */
 __attribute__((nonnull)) FileServerFd*
 FileServerFd_Open(FileServer* p, const PName* name, TscTime now);
@@ -51,16 +52,34 @@ FileServerFd_Clear(FileServer* p);
 
 enum
 {
+  /** @brief Required bits in @c stx_mask . */
   FileServerStatxRequired = STATX_TYPE | STATX_MODE | STATX_MTIME | STATX_SIZE,
+  /** @brief Optional bits in @c stx_mask . */
   FileServerStatxOptional = STATX_ATIME | STATX_CTIME | STATX_BTIME,
 };
 
+/** @brief Determine whether @c stx_mask has requested bits. */
 static __rte_always_inline bool
 FileServerFd_HasStatBit(const FileServerFd* entry, uint32_t bit)
 {
   return (entry->st.stx_mask & bit) == bit;
 }
 
+/** @brief Determine whether this entry refers to a regular file. */
+static __rte_always_inline bool
+FileServerFd_IsFile(const FileServerFd* entry)
+{
+  return S_ISREG(entry->st.stx_mode);
+}
+
+/** @brief Determine whether this entry refers to a directory. */
+static __rte_always_inline bool
+FileServerFd_IsDir(const FileServerFd* entry)
+{
+  return S_ISDIR(entry->st.stx_mode);
+}
+
+/** @brief Convert @c statx_timestamp to nanoseconds. */
 static __rte_always_inline uint64_t
 FileServerFd_StatTime(struct statx_timestamp t)
 {

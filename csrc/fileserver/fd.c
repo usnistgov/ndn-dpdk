@@ -41,7 +41,7 @@ FdHt_Expand_(UT_hash_table* tbl)
 enum
 {
   /// Maximum mount+path TLV-LENGTH to accommodate [32=ls]+version+segment components.
-  FileServer_MaxPrefixL = NameMaxLength - 4 - 10 - 10,
+  FileServer_MaxPrefixL = NameMaxLength - sizeof(FileServer_KeywordLs) - 10 - 10,
 };
 
 static FileServerFd notFound;
@@ -50,6 +50,7 @@ FileServerFd* FileServer_NotFound = &notFound;
 __attribute__((nonnull)) static inline int
 FileServerFd_UpdateStatx(FileServer* p, FileServerFd* entry, TscTime now, bool* changed)
 {
+  *changed = true;
   uint64_t oldVersion = entry->version;
   uint64_t oldSize = entry->st.stx_size;
 
@@ -57,7 +58,7 @@ FileServerFd_UpdateStatx(FileServer* p, FileServerFd* entry, TscTime now, bool* 
                     FileServerStatxRequired | FileServerStatxOptional, &entry->st);
   if (likely(res == 0)) {
     if (unlikely(!FileServerFd_HasStatBit(entry, FileServerStatxRequired) ||
-                 !(S_ISREG(entry->st.stx_mode) || S_ISDIR(entry->st.stx_mode)))) {
+                 !(FileServerFd_IsFile(entry) || FileServerFd_IsDir(entry)))) {
       res = EPIPE; // use an "impossible" errno to indicate this condition
     } else {
       entry->version = FileServerFd_StatTime(entry->st.stx_mtime);
@@ -75,16 +76,10 @@ FileServerFd_PrepapeMeta(FileServer* p, FileServerFd* entry)
   entry->lastSeg = DIV_CEIL(entry->st.stx_size, p->segmentLen) - (uint64_t)(entry->st.stx_size > 0);
 
   uint16_t nameL = entry->prefixL;
-  if (unlikely(S_ISDIR(entry->st.stx_mode))) {
-    struct
-    {
-      unaligned_uint16_t keywordTL;
-      char keywordV[2];
-    } __rte_packed* ls = RTE_PTR_ADD(entry->nameV, nameL);
-    ls->keywordTL = TlvEncoder_ConstTL1(TtKeywordNameComponent, 2);
-    ls->keywordV[0] = 'l';
-    ls->keywordV[1] = 's';
-    nameL += 4;
+  if (unlikely(FileServerFd_IsDir(entry))) {
+    rte_memcpy(RTE_PTR_ADD(entry->nameV, nameL), FileServer_KeywordLs,
+               sizeof(FileServer_KeywordLs));
+    nameL += sizeof(FileServer_KeywordLs);
   }
 
   uint8_t* version = RTE_PTR_ADD(entry->nameV, nameL);
@@ -254,6 +249,9 @@ FileServerFd_EncodeMetadata(FileServer* p, FileServerFd* entry, struct rte_mbuf*
   uint8_t* value = rte_pktmbuf_mtod(payload, uint8_t*);
   size_t off = 0;
 
+#define HAS_STAT_BIT(bit)                                                                          \
+  (likely((FileServerStatxRequired & (bit)) == (bit) || FileServerFd_HasStatBit(entry, (bit))))
+
 #define APPEND_NNI(type, bits, val)                                                                \
   do {                                                                                             \
     struct                                                                                         \
@@ -271,26 +269,33 @@ FileServerFd_EncodeMetadata(FileServer* p, FileServerFd* entry, struct rte_mbuf*
   rte_memcpy(&value[off], entry->nameV, entry->versionedL);
   off += entry->versionedL;
 
-  if (likely(S_ISREG(entry->st.stx_mode))) {
+  if (likely(FileServerFd_IsFile(entry))) {
     NDNDPDK_ASSERT(entry->meta.value[2] == TtFinalBlock);
     rte_memcpy(&value[off], &entry->meta.value[2], entry->meta.value[1]);
     off += entry->meta.value[1];
     APPEND_NNI(SegmentSize, 16, p->segmentLen);
-    APPEND_NNI(Size, 64, entry->st.stx_size);
+    if (HAS_STAT_BIT(STATX_SIZE)) {
+      APPEND_NNI(Size, 64, entry->st.stx_size);
+    }
   }
-  APPEND_NNI(Mode, 16, entry->st.stx_mode);
-  if (likely(FileServerFd_HasStatBit(entry, STATX_ATIME))) {
+  if (HAS_STAT_BIT(STATX_TYPE | STATX_MODE)) {
+    APPEND_NNI(Mode, 16, entry->st.stx_mode);
+  }
+  if (HAS_STAT_BIT(STATX_ATIME)) {
     APPEND_NNI(Atime, 64, FileServerFd_StatTime(entry->st.stx_atime));
   }
-  if (likely(FileServerFd_HasStatBit(entry, STATX_BTIME))) {
+  if (HAS_STAT_BIT(STATX_BTIME)) {
     APPEND_NNI(Btime, 64, FileServerFd_StatTime(entry->st.stx_btime));
   }
-  if (likely(FileServerFd_HasStatBit(entry, STATX_CTIME))) {
+  if (HAS_STAT_BIT(STATX_CTIME)) {
     APPEND_NNI(Ctime, 64, FileServerFd_StatTime(entry->st.stx_ctime));
   }
-  APPEND_NNI(Mtime, 64, entry->version);
+  if (HAS_STAT_BIT(STATX_MTIME)) {
+    APPEND_NNI(Mtime, 64, entry->version);
+  }
 
 #undef APPEND_NNI
+#undef HAS_STAT_BIT
   const char* room = rte_pktmbuf_append(payload, off);
   NDNDPDK_ASSERT(room != NULL);
   return true;

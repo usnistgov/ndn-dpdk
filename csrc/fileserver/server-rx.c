@@ -102,13 +102,13 @@ FileServerRx_Read(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
   struct rte_mbuf* payload = ctx->payload[ctx->payloadIndex];
   payload->data_off = p->payloadHeadroom;
 
-  if (likely(ctx->op != NULL)) {
-    if (likely(FileServerOp_IsContinuous(ctx->op, prefix, rn.segment))) {
+  if (FileServer_EnableIovBatching && likely(ctx->op != NULL)) {
+    if (likely(FileServerOp_Follows(ctx->op, prefix, rn.segment))) {
       goto ADD_IOV;
     }
     if (unlikely(!FileServerRx_SubmitReadv(p, ctx))) {
-      // not `goto DROP` because FileServerRx_SubmitReadv has dropped `interest`,
-      // which was "unprocessed" until returning to RxBurst
+      // not `goto DROP` because FileServerRx_NoSqe has discarded 'interest',
+      // which was "unprocessed" before returning to RxBurst
       return;
     }
   }
@@ -122,7 +122,7 @@ FileServerRx_Read(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
     N_LOGD("I drop=file-not-found");
     goto DROP;
   }
-  if (unlikely(!S_ISREG(fd->st.stx_mode))) {
+  if (unlikely(!FileServerFd_IsFile(fd))) {
     N_LOGD("I drop=mode-not-file");
     goto UNREF;
   }
@@ -136,15 +136,10 @@ FileServerRx_Read(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
   FileServerOp_Init(ctx->op, fd, prefix, rn.segment);
 
 ADD_IOV:
-  ctx->op->iov[ctx->op->nIov] = (struct iovec){
-    .iov_base = rte_pktmbuf_mtod(payload, uint8_t*),
-    .iov_len = p->segmentLen,
-  };
-  FileServerOpMbufs_Set(&ctx->op->mbufs, ctx->op->nIov, payload, interest);
-  ++ctx->op->nIov;
+  FileServerOp_AppendIov(ctx->op, payload, p->segmentLen, interest);
   ++ctx->payloadIndex;
 
-  if (unlikely(ctx->op->nIov == FileServerMaxIovecs)) {
+  if (!FileServer_EnableIovBatching) {
     FileServerRx_SubmitReadv(p, ctx);
   }
   return;
@@ -253,7 +248,7 @@ FileServer_RxBurst(FileServer* p)
     FileServerRx_ProcessInterest(p, &ctx);
     // upon failure, ctx.interestIndex is set to ctx.interestCount, stopping the loop
   }
-  if (likely(ctx.op != NULL)) {
+  if (FileServer_EnableIovBatching && likely(ctx.op != NULL)) {
     FileServerRx_SubmitReadv(p, &ctx);
   }
 
