@@ -5,14 +5,14 @@ go 1.17
 require (
 	github.com/EGT-Ukraine/go2gql v0.0.0-20190528134259-79533208556f
 	github.com/FDio/vpp v1.0.1-0.20210630131113-fc83f8cc67e6
-	github.com/bhoriuchi/graphql-go-tools v0.0.1
+	github.com/bhoriuchi/graphql-go-tools v0.3.0
 	github.com/c9s/goprocinfo v0.0.0-20210130143923-c95fcf8c64a8
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/functionalfoundry/graphqlws v0.0.0-20200611113535-7bc58903ce7b
 	github.com/gabstv/freeport v0.0.0-20171005142102-7952fe2e67ce
 	github.com/gogf/greuse v1.1.0
 	github.com/google/gopacket v1.1.19
-	github.com/graphql-go/graphql v0.7.9
+	github.com/graphql-go/graphql v0.8.0
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/jfoster/binary-utilities v0.2.1
 	github.com/jwangsadinata/go-multimap v0.0.0-20190620162914-c29f3d7f33b6
@@ -22,7 +22,7 @@ require (
 	github.com/peterbourgon/mergemap v0.0.0-20130613134717-e21c03b7a721
 	github.com/pkg/math v0.0.0-20141027224758-f2ed9e40e245
 	github.com/powerman/rpc-codec v1.2.2
-	github.com/rickb777/plural v1.3.0
+	github.com/rickb777/plural v1.4.0
 	github.com/safchain/ethtool v0.0.0-20210803160452-9aa261dae9b1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/soh335/sliceflag v0.0.0-20160923061056-d2d28a5acab8
@@ -32,10 +32,10 @@ require (
 	github.com/vishvananda/netlink v1.1.0
 	github.com/xeipuuv/gojsonschema v1.2.0
 	go.uber.org/multierr v1.7.0
-	go.uber.org/zap v1.19.0
+	go.uber.org/zap v1.19.1
 	go4.org v0.0.0-20201209231011-d4a079459e60
-	golang.org/x/sys v0.0.0-20210817142637-7d9622a276b7
-	inet.af/netaddr v0.0.0-20210729200904-31d5ee66059c
+	golang.org/x/sys v0.0.0-20210909193231-528a39cd75f3
+	inet.af/netaddr v0.0.0-20210903134321-85fa6c94624e
 )
 
 require (
@@ -49,7 +49,7 @@ require (
 	github.com/mattn/go-isatty v0.0.12 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/onsi/ginkgo v1.16.4 // indirect
-	github.com/onsi/gomega v1.15.0 // indirect
+	github.com/onsi/gomega v1.16.0 // indirect
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/russross/blackfriday/v2 v2.0.1 // indirect

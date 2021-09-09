@@ -5,16 +5,24 @@ package ethdev
 */
 import "C"
 import (
+	"encoding/json"
 	"fmt"
+	"reflect"
 	"unsafe"
 
 	"github.com/pkg/math"
+	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
 )
 
 const (
 	txOffloadMultiSegs = C.DEV_TX_OFFLOAD_MULTI_SEGS
 	txOffloadChecksum  = C.DEV_TX_OFFLOAD_IPV4_CKSUM | C.DEV_TX_OFFLOAD_UDP_CKSUM
 )
+
+// DevInfo provides contextual information of an Ethernet port.
+type DevInfo struct {
+	DevInfoC
+}
 
 // DriverName returns DPDK net driver name.
 func (info DevInfo) DriverName() string {
@@ -37,7 +45,7 @@ func (info DevInfo) HasTxMultiSegOffload() bool {
 	}
 
 	switch info.DriverName() { // some drivers support multi-segment TX but do not advertise it
-	case "net_memif", "net_ring":
+	case "net_ring":
 		return true
 	}
 	return false
@@ -46,6 +54,22 @@ func (info DevInfo) HasTxMultiSegOffload() bool {
 // HasTxChecksumOffload determines whether device can compute IPv4 and UDP checksum offload upon transmission.
 func (info DevInfo) HasTxChecksumOffload() bool {
 	return (info.Tx_offload_capa & txOffloadChecksum) == txOffloadChecksum
+}
+
+// MarshalJSON implements json.Marshaler interface.
+func (info DevInfo) MarshalJSON() ([]byte, error) {
+	var m map[string]interface{}
+	if e := jsonhelper.Roundtrip(info.DevInfoC, &m); e != nil {
+		return nil, e
+	}
+	typ, val := reflect.TypeOf(info), []reflect.Value{reflect.ValueOf(info)}
+	for i, n := 0, typ.NumMethod(); i < n; i++ {
+		method := typ.Method(i)
+		if method.IsExported() && method.Type.NumIn() == 1 && method.Type.NumOut() == 1 {
+			m[method.Name] = method.Func.Call(val)[0].Interface()
+		}
+	}
+	return json.Marshal(m)
 }
 
 // adjustQueueCapacity adjust RX/TX queue capacity to satisfy driver requirements.

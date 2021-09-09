@@ -7,8 +7,7 @@ package ethdev
 */
 import "C"
 
-// DevInfo provides contextual information of an Ethernet port.
-type DevInfo C.struct_rte_eth_dev_info
+type DevInfoC C.struct_rte_eth_dev_info
 
 // DescLim contains information about hardware descriptor ring limitations.
 type DescLim C.struct_rte_eth_desc_lim
