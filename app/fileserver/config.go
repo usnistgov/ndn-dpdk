@@ -46,6 +46,8 @@ const (
 		2 + 10 + // FinalBlockId
 		7*10 // NNI fields
 
+	MetadataFreshness = 1
+
 	_ = "enumgen::FileServer"
 )
 

@@ -10,8 +10,13 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
 
-// KeywordMetadata is the 32=metadata component.
-var KeywordMetadata = ndn.MakeNameComponent(an.TtKeywordNameComponent, []byte("metadata"))
+var (
+	// KeywordMetadata is the 32=metadata component.
+	KeywordMetadata = ndn.MakeNameComponent(an.TtKeywordNameComponent, []byte("metadata"))
+
+	// KeywordLs is the 32=ls component.
+	KeywordLs = ndn.MakeNameComponent(an.TtKeywordNameComponent, []byte("ls"))
+)
 
 // Assigned numbers.
 const (

@@ -8,18 +8,19 @@
 
 N_LOG_INIT(FileServer);
 
-DataEnc_MetaInfoBuffer(15) MetadataMetaInfo;
-DataEnc_MetaInfoBuffer(15) NackMetaInfo;
+static DataEnc_MetaInfoBuffer(15) MetaInfo_Metadata;
+static DataEnc_MetaInfoBuffer(15) MetaInfo_Ls;
+static DataEnc_MetaInfoBuffer(15) MetaInfo_Nack;
 
 RTE_INIT(InitMetaInfo)
 {
-  uint8_t segment0[10];
-  segment0[0] = TtSegmentNameComponent;
-  segment0[1] = Nni_Encode(&segment0[2], 0);
-  LName finalBlock = (LName){ .length = 2 + segment0[1], .value = segment0 };
-  DataEnc_MustPrepareMetaInfo(&MetadataMetaInfo, ContentBlob, 1, finalBlock);
-
-  DataEnc_MustPrepareMetaInfo(&NackMetaInfo, ContentNack, 1, (LName){ 0 });
+  uint8_t segment0[] = { TtSegmentNameComponent, 1, 0 };
+  LName finalBlock = (LName){ .length = sizeof(segment0), .value = segment0 };
+  DataEnc_MustPrepareMetaInfo(&MetaInfo_Metadata, ContentBlob, FileServerMetadataFreshness,
+                              finalBlock);
+  DataEnc_MustPrepareMetaInfo(&MetaInfo_Ls, ContentBlob, 0, finalBlock);
+  DataEnc_MustPrepareMetaInfo(&MetaInfo_Nack, ContentNack, FileServerMetadataFreshness,
+                              (LName){ 0 });
 }
 
 typedef struct RxBurstCtx
@@ -150,7 +151,59 @@ DROP:
 }
 
 __attribute__((nonnull)) static __rte_noinline void
-FileServerRx_Metadata(FileServer* p, RxBurstCtx* ctx)
+FileServerRx_Ls(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
+{
+  if (rn.segment != 0) {
+    N_LOGD("Ls drop=not-segment0");
+    return;
+  }
+
+  struct rte_mbuf* interest = ctx->interest[ctx->interestIndex];
+  Packet* npkt = Packet_FromMbuf(interest);
+  PInterest* pi = Packet_GetInterestHdr(npkt);
+  LName name = PName_ToLName(&pi->name);
+
+  FileServerFd* fd = FileServerFd_Open(p, &pi->name, ctx->now);
+  if (unlikely(fd == NULL)) {
+    N_LOGD("Ls drop=no-fd");
+    return;
+  }
+  if (unlikely(fd == FileServer_NotFound)) {
+    N_LOGD("Ls drop=not-found");
+    return;
+  }
+  if (unlikely(!FileServerFd_IsDir(fd))) {
+    N_LOGD("Ls drop=not-dir");
+    FileServerFd_Unref(p, fd);
+    return;
+  }
+
+  struct rte_mbuf* payload = ctx->payload[ctx->payloadIndex];
+  payload->data_off = p->payloadHeadroom;
+  bool ok = FileServerFd_EncodeLs(p, fd, payload, p->segmentLen);
+  FileServerFd_Unref(p, fd);
+  if (unlikely(!ok)) {
+    goto ENCERR;
+  }
+
+  Packet* data = DataEnc_EncodePayload(name, (LName){ 0 }, &MetaInfo_Ls, payload);
+  if (unlikely(data == NULL)) {
+    goto ENCERR;
+  }
+  ++ctx->payloadIndex;
+
+  Mbuf_SetTimestamp(payload, ctx->now);
+  *Packet_GetLpL3Hdr(data) = *Packet_GetLpL3Hdr(npkt);
+  ctx->data[ctx->dataCount++] = data;
+  return;
+
+ENCERR:
+  N_LOGD("Ls drop=dataenc-error");
+  rte_pktmbuf_reset(payload);
+}
+
+__attribute__((nonnull)) static __rte_noinline void
+FileServerRx_Metadata(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
 {
   struct rte_mbuf* interest = ctx->interest[ctx->interestIndex];
   ctx->discard[ctx->discardIndex++] = interest;
@@ -169,9 +222,11 @@ FileServerRx_Metadata(FileServer* p, RxBurstCtx* ctx)
   const void* metaInfo = NULL;
 
   if (unlikely(fd == FileServer_NotFound)) {
-    metaInfo = &NackMetaInfo;
+    metaInfo = &MetaInfo_Nack;
+  } else if (unlikely((rn.kind & FileServerRequestLs) != 0 && !FileServerFd_IsDir(fd))) {
+    FileServerFd_Unref(p, fd);
+    metaInfo = &MetaInfo_Nack;
   } else {
-    metaInfo = &MetadataMetaInfo;
     bool ok = FileServerFd_EncodeMetadata(p, fd, payload);
     FileServerFd_Unref(p, fd);
     if (unlikely(!ok)) {
@@ -179,14 +234,20 @@ FileServerRx_Metadata(FileServer* p, RxBurstCtx* ctx)
     }
   }
 
+  struct timespec utcNow;
+  if (unlikely(clock_gettime(CLOCK_REALTIME, &utcNow) != 0)) {
+    goto ENCERR;
+  }
   uint8_t suffixV[20];
+  LName suffix = (LName){ .length = 0, .value = suffixV };
   suffixV[0] = TtVersionNameComponent;
-  suffixV[1] = Nni_Encode(&suffixV[2], ctx->now);
-  LName suffix = (LName){ .length = 2 + suffixV[1], .value = suffixV };
-  *(unaligned_uint16_t*)RTE_PTR_ADD(suffixV, suffix.length) =
-    TlvEncoder_ConstTL1(TtSegmentNameComponent, 1);
-  suffixV[suffix.length + 2] = 0;
-  suffix.length += 3;
+  suffixV[1] = Nni_Encode(&suffixV[2], utcNow.tv_sec * 1000000000 + utcNow.tv_nsec);
+  suffix.length = 2 + suffixV[1];
+  suffixV[suffix.length++] = TtSegmentNameComponent;
+  suffixV[suffix.length++] = 1;
+  suffixV[suffix.length++] = 0;
+  metaInfo = &MetaInfo_Metadata;
+
   Packet* data = DataEnc_EncodePayload(name, suffix, metaInfo, payload);
   if (unlikely(data == NULL)) {
     goto ENCERR;
@@ -214,8 +275,12 @@ FileServerRx_ProcessInterest(FileServer* p, RxBurstCtx* ctx)
     case FileServerRequestVersion | FileServerRequestSegment:
       FileServerRx_Read(p, ctx, rn);
       break;
+    case FileServerRequestLs | FileServerRequestVersion | FileServerRequestSegment:
+      FileServerRx_Ls(p, ctx, rn);
+      break;
     case FileServerRequestMetadata:
-      FileServerRx_Metadata(p, ctx);
+    case FileServerRequestLs | FileServerRequestMetadata:
+      FileServerRx_Metadata(p, ctx, rn);
       break;
     default:
       N_LOGD("I drop=bad-name rn.kind=%" PRIx32, (uint32_t)rn.kind);

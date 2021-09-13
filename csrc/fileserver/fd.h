@@ -94,4 +94,18 @@ FileServerFd_StatTime(struct statx_timestamp t)
 __attribute__((nonnull)) bool
 FileServerFd_EncodeMetadata(FileServer* p, FileServerFd* entry, struct rte_mbuf* payload);
 
+/**
+ * @brief Encode directory listing.
+ * @param entry a valid FileServerFd entry.
+ * @param payload payload mbuf.
+ * @param segmentLen maximum payload length.
+ * @pre FileServerFd_IsDir(entry) is true.
+ *
+ * This is a limited implementation that returns one segment a subset of directory entries that
+ * can fit in one segment. It also depends on dirent.d_type field being available.
+ */
+__attribute__((nonnull)) bool
+FileServerFd_EncodeLs(FileServer* p, FileServerFd* entry, struct rte_mbuf* payload,
+                      uint16_t segmentLen);
+
 #endif // NDNDPDK_FILESERVER_FD_H

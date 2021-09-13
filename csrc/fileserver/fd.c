@@ -3,6 +3,7 @@
 #include "../ndni/tlv-encoder.h"
 #include "naming.h"
 #include "server.h"
+#include <dirent.h>
 #include <sys/syscall.h>
 #include <unistd.h>
 
@@ -139,10 +140,19 @@ FileServerFd_New(FileServer* p, const PName* name, LName prefix, uint64_t hash, 
     return NULL;
   }
 
-  int fd = openat(p->dfd[mount], filename, O_RDONLY);
-  if (unlikely(fd < 0)) {
-    N_LOGD("New openat-err mount=%d filename=%s" N_LOG_ERROR("errno=%d"), mount, filename, errno);
-    return FileServer_NotFound;
+  int fd = -1;
+  if (likely(filename[0] != '\0')) {
+    fd = openat(p->dfd[mount], filename, O_RDONLY);
+    if (unlikely(fd < 0)) {
+      N_LOGD("New openat-err mount=%d filename=%s" N_LOG_ERROR("errno=%d"), mount, filename, errno);
+      return FileServer_NotFound;
+    }
+  } else {
+    fd = dup(p->dfd[mount]);
+    if (unlikely(fd < 0)) {
+      N_LOGD("New dup-err mount=%d filename=''" N_LOG_ERROR("errno=%d"), mount, errno);
+      return FileServer_NotFound;
+    }
   }
 
   struct rte_mbuf* mbuf = rte_pktmbuf_alloc(p->payloadMp);
@@ -296,6 +306,61 @@ FileServerFd_EncodeMetadata(FileServer* p, FileServerFd* entry, struct rte_mbuf*
 
 #undef APPEND_NNI
 #undef HAS_STAT_BIT
+  const char* room = rte_pktmbuf_append(payload, off);
+  NDNDPDK_ASSERT(room != NULL);
+  return true;
+}
+
+bool
+FileServerFd_EncodeLs(FileServer* p, FileServerFd* entry, struct rte_mbuf* payload,
+                      uint16_t segmentLen)
+{
+  NDNDPDK_ASSERT(FileServerFd_IsDir(entry));
+  int dfd = dup(entry->fd);
+  if (unlikely(dfd < 0)) {
+    N_LOGD("Ls dup-err fd=%d errno=%d" N_LOG_ERROR_BLANK, entry->fd, errno);
+    return false;
+  }
+
+  DIR* dir = fdopendir(dfd);
+  if (unlikely(dir == NULL)) {
+    N_LOGD("Ls fdopendir-err fd=%d dfd=%d errno=%d" N_LOG_ERROR_BLANK, entry->fd, dfd, errno);
+    close(dfd);
+    return false;
+  }
+
+  char* value = rte_pktmbuf_mtod(payload, char*);
+  size_t off = 0;
+  struct dirent* ent = NULL;
+  while ((ent = readdir(dir)) != NULL) {
+    bool isDir = false;
+    switch (ent->d_type) {
+      case DT_REG:
+        break;
+      case DT_DIR:
+        isDir = 1;
+        break;
+      default:
+        continue;
+    }
+
+    size_t entNameL = strlen(ent->d_name);
+    if (unlikely(entNameL <= 2 && strspn(ent->d_name, ".") == entNameL)) { // . or ..
+      continue;
+    }
+    uint16_t lineL = entNameL + (uint16_t)isDir + 1;
+    if (unlikely(off + lineL > segmentLen)) {
+      break;
+    }
+    rte_memcpy(&value[off], ent->d_name, entNameL);
+    off += entNameL;
+    if (isDir) {
+      value[off++] = '/';
+    }
+    value[off++] = '\0';
+  }
+
+  closedir(dir);
   const char* room = rte_pktmbuf_append(payload, off);
   NDNDPDK_ASSERT(room != NULL);
   return true;

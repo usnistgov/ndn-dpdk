@@ -14,8 +14,6 @@
 #define FileServer_EnableIovBatching (FileServerMaxIovecs > 1)
 static_assert(__builtin_constant_p(FileServer_EnableIovBatching), "");
 
-typedef struct FileServerFd FileServerFd;
-
 typedef struct FileServerOpMbufs
 {
   struct rte_mbuf* m[FileServerMaxIovecs];
@@ -43,10 +41,13 @@ FileServerOpMbufs_Set(FileServerOpMbufs* vector, uint32_t i, struct rte_mbuf* pa
                       struct rte_mbuf* interest)
 {
   // save interest mbuf in payload->next field to reduce sizeof(FileServerOp)
-  // rte_mbuf_sanity_check(payload) would fail until payload->next is cleared
+  // cannot call any mbuf function until it's cleared: rte_mbuf_sanity_check would panic
+  NDNDPDK_ASSERT(payload->next == NULL);
   payload->next = interest;
   vector->m[i] = payload;
 }
+
+typedef struct FileServerFd FileServerFd;
 
 /** @brief File server readv operation. */
 typedef struct FileServerOp
@@ -72,11 +73,12 @@ FileServerOp_Init(FileServerOp* op, FileServerFd* fd, LName prefix, uint64_t seg
 }
 
 /**
- * @brief Determine whether a new request directly follows the pending operation, and there's room
- * to append iovec.
+ * @brief Determine whether the next request follows the pending operation.
  * @param op a pending operation.
- * @param prefix mount+name of new request.
- * @param segment segment number of new request.
+ * @param prefix mount+name of next request.
+ * @param segment segment number of next request.
+ * @retval true next request can be appended.
+ * @retval false next request is not adjacent or there's no room to append.
  */
 __attribute__((nonnull)) static inline bool
 FileServerOp_Follows(const FileServerOp* op, LName prefix, uint64_t segment)
