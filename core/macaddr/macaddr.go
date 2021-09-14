@@ -20,12 +20,12 @@ func IsValid(a net.HardwareAddr) bool {
 
 // IsUnicast determines whether the HardwareAddr is a non-zero unicast MAC-48 address.
 func IsUnicast(a net.HardwareAddr) bool {
-	return IsValid(a) && (a[0]&0x01) == 0 && (a[0]|a[1]|a[2]|a[3]|a[4]|a[5]) != 0
+	return IsValid(a) && a[0]&0x01 == 0 && a[0]|a[1]|a[2]|a[3]|a[4]|a[5] != 0
 }
 
 // IsMulticast determines whether the HardwareAddr is a multicast MAC-48 address.
 func IsMulticast(a net.HardwareAddr) bool {
-	return IsValid(a) && (a[0]&0x01) != 0
+	return IsValid(a) && a[0]&0x01 != 0
 }
 
 // FromUint64 converts uint64 to HardwareAddr.

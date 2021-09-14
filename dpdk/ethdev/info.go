@@ -40,7 +40,7 @@ func (info DevInfo) IsVDev() bool {
 
 // HasTxMultiSegOffload determines whether device can transmit multi-segment packets.
 func (info DevInfo) HasTxMultiSegOffload() bool {
-	if (info.Tx_offload_capa & txOffloadMultiSegs) == txOffloadMultiSegs {
+	if info.Tx_offload_capa&txOffloadMultiSegs == txOffloadMultiSegs {
 		return true
 	}
 
@@ -53,7 +53,7 @@ func (info DevInfo) HasTxMultiSegOffload() bool {
 
 // HasTxChecksumOffload determines whether device can compute IPv4 and UDP checksum offload upon transmission.
 func (info DevInfo) HasTxChecksumOffload() bool {
-	return (info.Tx_offload_capa & txOffloadChecksum) == txOffloadChecksum
+	return info.Tx_offload_capa&txOffloadChecksum == txOffloadChecksum
 }
 
 // MarshalJSON implements json.Marshaler interface.

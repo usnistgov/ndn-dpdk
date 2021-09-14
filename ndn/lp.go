@@ -13,7 +13,7 @@ import (
 )
 
 func lpIsCritical(typ uint32) bool {
-	return typ < 800 || typ > 959 && (typ&0x03) != 0
+	return typ < 800 || typ > 959 || typ&0x03 != 0
 }
 
 const fragmentOverhead = 0 +

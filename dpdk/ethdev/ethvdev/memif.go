@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path"
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
@@ -29,6 +30,7 @@ func NewMemif(loc memiftransport.Locator) (ethdev.EthDev, error) {
 	if e := memifCoexist.Check(loc); e != nil {
 		return nil, e
 	}
+	memifCheckSocket(loc.Role, loc.SocketName)
 
 	name := "net_memif" + eal.AllocObjectID("ethvdev.Memif")
 	dev, e := New(name, args, eal.NumaSocket{})
@@ -51,7 +53,26 @@ func NewMemif(loc memiftransport.Locator) (ethdev.EthDev, error) {
 	return dev, nil
 }
 
+func memifCheckSocket(role memiftransport.Role, socketName string) {
+	logEntry := logger.With(zap.String("socketName", socketName))
+	st, e := os.Stat(socketName)
+	switch role {
+	case memiftransport.RoleServer:
+		if e := os.MkdirAll(path.Dir(socketName), 0777); e != nil {
+			logEntry.Warn("cannot create directory containing socket file", zap.Error(e))
+		}
+		if e == nil && st.Mode().Type()&os.ModeSocket == 0 {
+			logEntry.Warn("socket file already exists but it is not a Unix socket; if ethdev creation fails, delete the socket file")
+		}
+	case memiftransport.RoleClient:
+		if e != nil || st.Mode().Type()&os.ModeSocket == 0 {
+			logEntry.Warn("socket file does not exist or it is not a Unix socket; if ethdev creation fails, ensure the memif server is running")
+		}
+	}
+}
+
 func memifChown(ctx context.Context, cancel context.CancelFunc, socketName string, owner [2]int) {
+	defer cancel()
 	uid, gid := owner[0], owner[1]
 	logEntry := logger.With(zap.String("socketName", socketName), zap.Int("uid", uid), zap.Int("gid", gid))
 	tick := time.NewTicker(time.Millisecond)

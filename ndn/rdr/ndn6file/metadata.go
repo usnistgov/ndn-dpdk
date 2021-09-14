@@ -51,12 +51,12 @@ var (
 
 // IsFile determines whether Mode indicates a regular file.
 func (m Metadata) IsFile() bool {
-	return (m.Mode & sIFREG) == sIFREG
+	return m.Mode&sIFREG == sIFREG
 }
 
 // IsDir determines whether Mode indicates a directory.
 func (m Metadata) IsDir() bool {
-	return (m.Mode & sIFDIR) == sIFDIR
+	return m.Mode&sIFDIR == sIFDIR
 }
 
 // MarshalBinary encodes to TLV-VALUE.

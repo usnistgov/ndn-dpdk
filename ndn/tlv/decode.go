@@ -69,7 +69,7 @@ type DecodingElement struct {
 
 // IsCriticalType returns true if the TLV-TYPE is considered critical for evolvability purpose.
 func (de DecodingElement) IsCriticalType() bool {
-	return de.Type <= 31 || (de.Type&0x01) != 0
+	return de.Type <= 31 || de.Type&0x01 != 0
 }
 
 // WireAfter returns Wire+After.
