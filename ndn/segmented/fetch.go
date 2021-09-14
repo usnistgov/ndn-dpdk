@@ -102,8 +102,7 @@ type fetcher struct {
 }
 
 func (f *fetcher) makeInterest(seg uint64) ndn.Interest {
-	name := append(ndn.Name{}, f.prefix...)
-	name = append(name, makeSegmentNameComponent(seg))
+	name := f.prefix.Append(makeSegmentNameComponent(seg))
 	return ndn.MakeInterest(name)
 }
 

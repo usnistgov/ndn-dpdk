@@ -1,6 +1,7 @@
 #include "fd.h"
 #include "../core/logger.h"
 #include "../ndni/tlv-encoder.h"
+#include "an.h"
 #include "naming.h"
 #include "server.h"
 #include <dirent.h>
@@ -269,7 +270,7 @@ FileServerFd_EncodeMetadata(FileServer* p, FileServerFd* entry, struct rte_mbuf*
       unaligned_uint32_t tl;                                                                       \
       unaligned_uint##bits##_t v;                                                                  \
     } __rte_packed* f = RTE_PTR_ADD(value, off);                                                   \
-    f->tl = TlvEncoder_ConstTL3(TtFileServer##type, sizeof(f->v));                                 \
+    f->tl = TlvEncoder_ConstTL3(TtFile##type, sizeof(f->v));                                       \
     f->v = rte_cpu_to_be_##bits((uint##bits##_t)(val));                                            \
     off += sizeof(*f);                                                                             \
   } while (false)

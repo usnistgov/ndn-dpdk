@@ -19,6 +19,7 @@ import (
 )
 
 //go:generate go run ../../mk/enumgen/ -guard=NDNDPDK_FILESERVER_ENUM_H -out=../../csrc/fileserver/enum.h .
+//go:generate go run ../../mk/enumgen/ -guard=NDNDPDK_FILESERVER_AN_H -out=../../csrc/fileserver/an.h ../../ndn/rdr/ndn6file
 
 // Limits and defaults.
 const (

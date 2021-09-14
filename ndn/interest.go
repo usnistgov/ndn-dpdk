@@ -114,15 +114,22 @@ func (interest *Interest) UpdateParamsDigest() {
 		return
 	}
 	digest := sha256.Sum256(paramsPortion)
+	digestComp := MakeNameComponent(an.TtParametersSha256DigestComponent, digest[:])
 
+	name, isReplaced := Name{}, false
 	for _, comp := range interest.Name {
 		if comp.Type == an.TtParametersSha256DigestComponent {
-			comp.Value = digest[:]
-			return
+			name = append(name, digestComp)
+			isReplaced = true
+		} else {
+			name = append(name, comp)
 		}
 	}
 
-	interest.Name = append(interest.Name, MakeNameComponent(an.TtParametersSha256DigestComponent, digest[:]))
+	if !isReplaced {
+		name = append(name, digestComp)
+	}
+	interest.Name = name
 }
 
 // SignWith implements Signable interface.

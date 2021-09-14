@@ -50,6 +50,7 @@ Application layer services
 
 * Endpoint: yes
 * Segmented object: consumer and producer (in [package segmented](segmented))
+* [Realtime Data Retrieval (RDR)](https://redmine.named-data.net/projects/ndn-tlv/wiki/RDR): metadata structure (in [package rdr](rdr))
 
 ## Getting Started
 

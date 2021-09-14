@@ -137,8 +137,7 @@ func (opts *MakeCertOptions) applyDefaults() {
 func MakeCert(pub PublicKey, signer ndn.Signer, opts MakeCertOptions) (cert *Certificate, e error) {
 	opts.applyDefaults()
 
-	name := append(ndn.Name{}, pub.Name()...)
-	name = append(name, opts.IssuerID, opts.Version)
+	name := pub.Name().Append(opts.IssuerID, opts.Version)
 
 	spki, e := pub.SPKI()
 	if e != nil {

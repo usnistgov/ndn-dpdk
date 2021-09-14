@@ -1,7 +1,6 @@
 package fileserver_test
 
 import (
-	"bytes"
 	"context"
 	"crypto/sha256"
 	"math"
@@ -19,6 +18,8 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndn/endpoint"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
+	"github.com/usnistgov/ndn-dpdk/ndn/rdr"
+	"github.com/usnistgov/ndn-dpdk/ndn/rdr/ndn6file"
 	"github.com/usnistgov/ndn-dpdk/ndn/segmented"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 	"golang.org/x/sys/unix"
@@ -57,21 +58,19 @@ func TestServer(t *testing.T) {
 	var wg sync.WaitGroup
 	timeout, cancel := context.WithTimeout(context.TODO(), 20*time.Second)
 	defer cancel()
-	fetchMetadata := func(name string) (m fileserver.Metadata, e error) {
-		mName := ndn.ParseName(name)
-		mName = append(mName, fileserver.KeywordMetadata)
-		mInterest := ndn.MakeInterest(mName, ndn.CanBePrefixFlag, ndn.MustBeFreshFlag)
-		mData, e := endpoint.Consume(timeout, mInterest, endpoint.ConsumerOptions{
+	fetchMetadata := func(name string) (m ndn6file.Metadata, e error) {
+		interest := rdr.MakeDiscoveryInterest(ndn.ParseName(name))
+		data, e := endpoint.Consume(timeout, interest, endpoint.ConsumerOptions{
 			Fw:   fw,
 			Retx: endpoint.RetxOptions{Limit: 3},
 		})
 		if e != nil {
 			return m, e
 		}
-		e = m.UnmarshalBinary(mData.Content)
+		e = m.UnmarshalBinary(data.Content)
 		return m, e
 	}
-	fetchPayload := func(m fileserver.Metadata, lastSeg *tlv.NNI) (payload []byte, e error) {
+	fetchPayload := func(m ndn6file.Metadata, lastSeg *tlv.NNI) (payload []byte, e error) {
 		fOpts := segmented.FetchOptions{
 			Fw:        fw,
 			RetxLimit: 3,
@@ -80,7 +79,7 @@ func TestServer(t *testing.T) {
 		if lastSeg != nil {
 			fOpts.SegmentEnd = 1 + uint64(*lastSeg)
 		}
-		fetcher := segmented.Fetch(m.Versioned, fOpts)
+		fetcher := segmented.Fetch(m.Name, fOpts)
 		return fetcher.Payload(timeout)
 	}
 	testFetchFile := func(filename, name string, setSegmentEnd bool) {
@@ -107,7 +106,9 @@ func TestServer(t *testing.T) {
 			fetcherLastSeg = nil
 		}
 		payload, e := fetchPayload(m, fetcherLastSeg)
-		assert.NoError(e)
+		if !assert.NoError(e) {
+			return
+		}
 		assert.Len(payload, len(content))
 		assert.Equal(digest, sha256.Sum256(payload))
 	}
@@ -135,13 +136,17 @@ func TestServer(t *testing.T) {
 
 		payload, e := fetchPayload(m, nil)
 		assert.NoError(e)
+		var ls ndn6file.DirectoryListing
+		if e := ls.UnmarshalBinary(payload); !assert.NoError(e) {
+			return
+		}
 
 		nFound := 0
-		for _, line := range bytes.Split(bytes.TrimSuffix(payload, []byte{0}), []byte{0}) {
-			filename := bytes.TrimSuffix(line, []byte{'/'})
-			isDir, ok := dirEntryNames[string(filename)]
-			if assert.True(ok, "%s", string(filename)) {
-				assert.Equal(isDir, bytes.HasSuffix(line, []byte{'/'}), "%s", string(filename))
+		for _, entry := range ls {
+			filename := entry.Name()
+			isDir, ok := dirEntryNames[filename]
+			if assert.True(ok, "%s", filename) {
+				assert.Equal(isDir, entry.IsDir(), "%s", string(filename))
 			}
 			nFound++
 		}
@@ -152,6 +157,6 @@ func TestServer(t *testing.T) {
 	go testFetchFile("/usr/local/bin/dpdk-testpmd", "/usr/local-bin/dpdk-testpmd", true)
 	go testFetchFile("/usr/bin/jq", "/usr/bin/jq", false)
 	go testFetchDir("/usr/bin", "/usr/bin")
-	go testFetchDir("/usr/local/bin", "/usr/local-bin/"+fileserver.KeywordLs.String())
+	go testFetchDir("/usr/local/bin", "/usr/local-bin/"+ndn6file.KeywordLs.String())
 	wg.Wait()
 }

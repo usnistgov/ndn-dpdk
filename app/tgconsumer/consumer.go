@@ -134,10 +134,9 @@ func (c *Consumer) assignPattern(i int, pattern Pattern, dataGenVec pktmbuf.Vect
 func (c *Consumer) assignDigestPattern(pattern Pattern, txP *C.TgcTxPattern, dataGenVec pktmbuf.Vector) {
 	txP.makeSuffix = C.TgcTxPattern_MakeSuffix(C.TgcTxPattern_MakeSuffix_Digest)
 
-	name := append(ndn.Name{}, pattern.Prefix...)
 	seqNumV := make([]byte, 8)
 	binary.LittleEndian.PutUint64(seqNumV, uint64(txP.seqNumV))
-	name = append(name, ndn.MakeNameComponent(an.TtGenericNameComponent, seqNumV))
+	name := pattern.Prefix.Append(ndn.MakeNameComponent(an.TtGenericNameComponent, seqNumV))
 	nameV, _ := tlv.EncodeValueOnly(name.Field())
 
 	d := len(c.dPatterns)

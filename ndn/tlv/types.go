@@ -1,12 +1,6 @@
 // Package tlv implements NDN Type-Length-Value (TLV) encoding.
 package tlv
 
-// Encoder is the interface implemented by an object that can encode itself to bytes.
-type Encoder interface {
-	// Encode encodes the object by appending to the given byte slice.
-	Encode(b []byte) ([]byte, error)
-}
-
 // Fielder is the interface implemented by an object that can encode itself to a Field.
 type Fielder interface {
 	Field() Field

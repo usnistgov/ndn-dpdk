@@ -79,6 +79,13 @@ func (name Name) GetPrefix(i int) Name {
 	return name.Slice(0, i)
 }
 
+// Append appends zero or more components to a copy of this name.
+func (name Name) Append(comps ...NameComponent) (copy Name) {
+	copy = append(copy, name...)
+	copy = append(copy, comps...)
+	return copy
+}
+
 // Equal determines whether two names are the same.
 func (name Name) Equal(other Name) bool {
 	return name.Compare(other) == 0

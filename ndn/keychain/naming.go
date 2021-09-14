@@ -55,7 +55,7 @@ func ToKeyName(input ndn.Name) ndn.Name {
 	}
 
 	keyID := makeRandomKeyID()
-	return append(append(ndn.Name{}, input...), ComponentKEY, keyID)
+	return input.Append(ComponentKEY, keyID)
 }
 
 // ToCertName extracts or builds certificate name from subject name, key name, or certificate name.
@@ -67,12 +67,12 @@ func ToCertName(input ndn.Name) ndn.Name {
 		return input
 	case IsKeyName(input):
 		version := makeVersionFromCurrentTime()
-		return append(append(ndn.Name{}, input...), ComponentDefaultIssuer, version)
+		return input.Append(ComponentDefaultIssuer, version)
 	}
 
 	keyID := makeRandomKeyID()
 	version := makeVersionFromCurrentTime()
-	return append(append(ndn.Name{}, input...), ComponentKEY, keyID, ComponentDefaultIssuer, version)
+	return input.Append(ComponentKEY, keyID, ComponentDefaultIssuer, version)
 }
 
 func makeRandomKeyID() ndn.NameComponent {

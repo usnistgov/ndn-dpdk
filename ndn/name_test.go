@@ -79,6 +79,20 @@ func TestNameSlice(t *testing.T) {
 	assert.Panics(func() { name.Slice(0, 1, 2) })
 }
 
+func TestNameAppend(t *testing.T) {
+	assert, _ := makeAR(t)
+
+	name1 := ndn.ParseName("/A")
+	name1a := name1.Append()
+	name2 := name1.Append(ndn.ParseNameComponent("B"))
+	name3 := name1.Append(ndn.ParseNameComponent("B"), ndn.ParseNameComponent("C"))
+
+	nameEqual(assert, "/A", name1)
+	nameEqual(assert, "/A", name1a)
+	nameEqual(assert, "/A/B", name2)
+	nameEqual(assert, "/A/B/C", name3)
+}
+
 func TestNameCompare(t *testing.T) {
 	assert, _ := makeAR(t)
 
