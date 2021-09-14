@@ -140,8 +140,8 @@ func (task *writerTask) execute(nSkip int) {
 	c := (*C.HrlogWriter)(eal.Zmalloc("HrlogWriter", C.sizeof_HrlogWriter, eal.NumaSocket{}))
 	*c = C.HrlogWriter{
 		filename: C.CString(task.cfg.Filename),
-		nSkip:    C.int(nSkip),
-		nTotal:   C.int(task.cfg.Count),
+		nSkip:    C.int64_t(nSkip),
+		nTotal:   C.int64_t(task.cfg.Count),
 	}
 	ctrl := ealthread.InitCtrl(unsafe.Pointer(&c.ctrl))
 	defer func() {

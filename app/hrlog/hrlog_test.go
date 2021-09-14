@@ -33,7 +33,7 @@ func TestWriter(t *testing.T) {
 	ctxC, cancelC := context.WithCancel(context.TODO())
 	resA := w.Submit(ctxA, hrlog.TaskConfig{
 		Filename: fileA,
-		Count:    1024,
+		Count:    1000,
 	})
 	resB := w.Submit(ctxB, hrlog.TaskConfig{
 		Filename: fileB,
@@ -73,5 +73,5 @@ func TestWriter(t *testing.T) {
 		count++
 		assert.Contains(entries, entry)
 	}
-	assert.Equal(1024, count)
+	assert.Equal(1000, count)
 }

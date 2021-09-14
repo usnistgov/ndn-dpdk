@@ -20,10 +20,10 @@ Hrlog_RunWriter(HrlogWriter* w)
   rte_memcpy(MmapFd_At(&m, 0), &hdr, sizeof(hdr));
   HrlogEntry* output = MmapFd_At(&m, sizeof(hdr));
 
-  int nCollected = 0;
-  int count = 0;
+  int64_t nCollected = 0;
+  int64_t count = 0;
   while (ThreadCtrl_Continue(w->ctrl, count) && nCollected < w->nTotal) {
-    count = rte_ring_dequeue_burst(theHrlogRing, buf, RTE_DIM(buf), NULL);
+    count = (int64_t)rte_ring_dequeue_burst(theHrlogRing, buf, RTE_DIM(buf), NULL);
     if (unlikely(w->nSkip > 0)) {
       w->nSkip -= count;
     } else {
@@ -32,5 +32,5 @@ Hrlog_RunWriter(HrlogWriter* w)
     }
   }
 
-  return MmapFd_Close(&m, sizeof(hdr) + nCollected * sizeof(buf[0]));
+  return MmapFd_Close(&m, sizeof(hdr) + RTE_MIN(nCollected, w->nTotal) * sizeof(buf[0]));
 }

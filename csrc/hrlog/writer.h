@@ -11,8 +11,8 @@ typedef struct HrlogWriter
 {
   ThreadCtrl ctrl;
   const char* filename;
-  int nSkip;  ///< how many initial entries to discard
-  int nTotal; ///< how many entries to collect
+  int64_t nSkip;  ///< how many initial entries to discard
+  int64_t nTotal; ///< how many entries to collect
 } HrlogWriter;
 
 /** @brief Write high resolution logs to a file. */
