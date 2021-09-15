@@ -57,12 +57,33 @@ See [DPDK system requirements](https://doc.dpdk.org/guides/linux_gsg/sys_reqs.ht
 Depending on your hardware, you may need to change PCI driver bindings using the `dpdk-devbind.py` script.
 See [DPDK Network Interface Controller Drivers](https://doc.dpdk.org/guides/nics/) and [hardware known to work](hardware.md) for more information.
 
-You can then execute `sudo ndndpdk-ctrl systemd start` to start the NDN-DPDK service, use `ndndpdk-ctrl` command to activate it as a forwarder or a traffic generator, and then control the service.
-See [forwarder activation and usage](forwarder.md) and [traffic generator activation and usage](trafficgen.md) for basic usage under each role.
-You can view logs from the NDN-DPDK service with `sudo ndndpdk-ctrl systemd logs -f` command, which is especially useful in case of errors during activation and face creation.
+You can then execute `sudo ndndpdk-ctrl systemd start` to start the NDN-DPDK service, use `ndndpdk-ctrl` command to activate it as a forwarder or some other role, and then control the service.
+See [forwarder activation and usage](forwarder.md), [traffic generator activation and usage](trafficgen.md), [file server activation and usage](fileserver.md) for basic usage in each role.
+You can view logs from the NDN-DPDK service with `ndndpdk-ctrl systemd logs -f` command, which is especially useful in case of errors during activation and face creation.
 
 As an alternative of using `ndndpdk-ctrl`, you can execute queries and mutations on the GraphQL endpoint.
 See [ndndpdk-ctrl](../cmd/ndndpdk-ctrl) for more information.
+
+### Running Multiple Instances
+
+NDN-DPDK installs a systemd template unit `ndndpdk-svc@.service`.
+The template can be instantiated multiple times, with `host:port` of the GraphQL listener as the instance parameter.
+For example, `ndndpdk-svc@127.0.0.1:3030.service` refers to an NDN-DPDK service instance listening on `http://127.0.0.1:3030`.
+
+To successfully run multiple instances of NDN-DPDK service, it's necessary to ensure:
+
+* Each GraphQL listener has a distinct `host:port`.
+* Each instance has a distinct DPDK "file prefix", which is specified in `.eal.filePrefix` option of activation parameters.
+* If using [CPU isolation](tuning.md), each instance has a distinct set of CPU cores.
+* GraphQL commands are sent to the correct instance.
+
+The `ndndpdk-ctrl` command accepts `--gqlserver` flag to specify the target instance.
+This flag must appear between `ndndpdk-ctrl` and the subcommand name.
+For example:
+
+* start the service: `sudo ndndpdk-ctrl --gqlserver http://127.0.0.1:3030 systemd start`
+* view service logs: `ndndpdk-ctrl --gqlserver http://127.0.0.1:3030 systemd logs -f`
+* show face list: `ndndpdk-ctrl --gqlserver http://127.0.0.1:3030 list-faces`
 
 ## Other Build Targets
 
@@ -72,7 +93,7 @@ See [ndndpdk-ctrl](../cmd/ndndpdk-ctrl) for more information.
   You can also execute `mk/gotest.sh <PKG>` to run the tests for a given package.
 * `make doxygen` builds C documentation (requires the `doxygen` dependency).
 * To view Go documentation, execute `godoc &` and access the website on port 6060 (requires `godoc` dependency).
-* `make lint` fixes code style issues before committing (requires the `clang-format-11`, `staticcheck`, and `yamllint` dependencies).
+* `make lint` fixes code style issues before committing (requires `clang-format-11`, `staticcheck`, and `yamllint` dependencies).
 
 ## Compile-Time Settings
 

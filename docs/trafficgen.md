@@ -1,13 +1,12 @@
 # NDN-DPDK Traffic Generator Activation and Usage
 
-After [installing NDN-DPDK](INSTALL.md) and starting the `ndndpdk-svc` service process, it can be activated as either a forwarder or a traffic generator.
+After [installing NDN-DPDK](INSTALL.md) and starting the `ndndpdk-svc` service process, it can be activated as a traffic generator or some other role.
 This page explains how to activate the NDN-DPDK service as a traffic generator, and how to perform some common operations.
 
 ## Features and Limitations
 
 The NDN-DPDK traffic generator is a program that transmits and receives NDN packets as fast as possible on a network interface.
-It is designed to operate directly on Ethernet adapters, similar as a hardware appliance.
-It does not require a local forwarder, and cannot run alongside the forwarder; if needed, you may run `ndndpdk-godemo` to send traffic into a local forwarder.
+It is designed to operate directly on Ethernet adapters, similar as a hardware appliance; it does not require a local forwarder.
 
 You can attach producer, consumer, or both to a network interface.
 Compare to an IP/Ethernet traffic generator, the NDN-DPDK traffic generator understands NDN packet semantics.
@@ -42,7 +41,7 @@ It is not recommended to use the traffic generator on socket faces, AF\_PACKET, 
 
 After starting the `ndndpdk-svc` service process or container, there are two steps to start a traffic generator:
 
-1. Activate the service process as a traffic generator role.
+1. Activate the service process as traffic generator role.
    This prepares the service to accept traffic generator related commands.
 
    You must prepare a JSON document that contains traffic generator activation parameters, which must conform to the JSON schema `trafficgen.schema.json` (installed in `/usr/local/share/ndn-dpdk` and [available online](https://ndn-dpdk.ndn.today/schema/trafficgen.schema.json)).
@@ -66,7 +65,7 @@ You can follow a similar procedure as [forwarder activation and usage](forwarder
 
 ### Commonly Used Activation Parameters
 
-**.eal.pciDevices** is a list of Ethernet adapters you want to use in the forwarder, written as PCI addresses.
+**.eal.pciDevices** is a list of Ethernet adapters you want to use, written as PCI addresses.
 To find the PCI addresses of available Ethernet adapters, run `dpdk-devbind.py --status-dev net`.
 You should list the PCI address of every Ethernet adapter that you intend to use.
 

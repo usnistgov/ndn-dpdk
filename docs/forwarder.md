@@ -1,6 +1,6 @@
 # NDN-DPDK Forwarder Activation and Usage
 
-After [installing NDN-DPDK](INSTALL.md) and starting the `ndndpdk-svc` service process, it can be activated as either a forwarder or a traffic generator.
+After [installing NDN-DPDK](INSTALL.md) and starting the `ndndpdk-svc` service process, it can be activated as a forwarder or some other role.
 This page explains how to activate the NDN-DPDK service as a forwarder, and how to perform some common operations.
 
 ## Activate the Forwarder
@@ -57,7 +57,7 @@ This section explains some commonly used parameters.
 **.eal.cores** is a list of CPU cores allocated to DPDK.
 NDN-DPDK also honors CPU affinity configured in systemd or Docker, see [performance tuning](tuning.md) "CPU isolation".
 
-**.eal.pciDevices** is a list of Ethernet adapters you want to use in the forwarder, written as PCI addresses.
+**.eal.pciDevices** is a list of Ethernet adapters you want to use, written as PCI addresses.
 To find the PCI addresses of available Ethernet adapters, run `dpdk-devbind.py --status-dev net`.
 Ethernet adapters not included in this list can still be activated as virtual devices using `net_af_xdp` or `net_af_packet` driver, at reduced performance; see [hardware known to work](hardware.md) "AF\_XDP and AF\_PACKET sockets" for more information.
 
@@ -97,9 +97,9 @@ If the majority of traffic in your network is exact match only, you may set a sm
 This section guides through face creation and FIB entry insertion commands, in order to complete a simple `ndnping`.
 To try this scenario, you need:
 
-* two hosts each equipped with an Ethernet adapter.
-* a direct attach cable connecting the two Ethernet adapters.
-* NDN-DPDK forwarders activated on both hosts.
+* two hosts each equipped with an Ethernet adapter
+* a direct attach cable connecting the two Ethernet adapters
+* NDN-DPDK forwarders activated on both hosts
 
 The hosts are labeled *A* and *B*.
 When you read the example commands, make sure to use them on the correct host.

@@ -40,14 +40,15 @@ NDN-DPDK requires hugepages to run, and you may need to change PCI driver bindin
 These must be configured on the host machine.
 The [installation guide](INSTALL.md) "usage" section describes how to perform these tasks.
 
-You can [download](https://core.dpdk.org/download/) DPDK setup scripts, or extract from the image:
+You can extract DPDK setup scripts and NDN-DPDK management schemas from the image:
 
 ```bash
+sudo mkdir -p /usr/local/bin /usr/local/share
 CTID=$(docker container create ndn-dpdk)
-for S in dpdk-devbind.py dpdk-hugepages.py; do
-  docker cp $CTID:/usr/local/bin/$S - | sudo tar -x -C /usr/local/bin
-done
-docker rm $CTID
+docker cp $CTID:/usr/local/bin/dpdk-devbind.py - | sudo tar -x -C /usr/local/bin
+docker cp $CTID:/usr/local/bin/dpdk-hugepages.py - | sudo tar -x -C /usr/local/bin
+docker cp $CTID:/usr/local/share/ndn-dpdk - | sudo tar -x -C /usr/local/share
+docker container rm $CTID
 ```
 
 ## Start the NDN-DPDK Service Container
@@ -64,10 +65,10 @@ docker run -d --name ndndpdk-svc \
   ndn-dpdk
 
 # retrieve container IP address for NDN-DPDK GraphQL endpoint
-GQLSERVER=$(docker inspect -f 'http://{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}:3030/' ndndpdk-svc)
+GQLSERVER=$(docker inspect -f 'http://{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}:3030' ndndpdk-svc)
 ```
 
-You can view logs from the NDN-DPDK service container with `docker logs -f ndn-dpdk` command.
+You can view logs from the NDN-DPDK service container with `docker logs -f ndndpdk-svc` command.
 
 ### Explanation of Docker Flags
 

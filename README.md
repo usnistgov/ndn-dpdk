@@ -1,7 +1,7 @@
 # NDN-DPDK: High-Speed Named Data Networking Forwarder
 
 NDN-DPDK is a set of high-speed [Named Data Networking (NDN)](https://named-data.net/) programs developed with the [Data Plane Development Kit (DPDK)](https://www.dpdk.org/).
-Included are a network forwarder and a traffic generator.
+Included are a network forwarder, a traffic generator, and a file server.
 
 ![NDN-DPDK logo](docs/NDN-DPDK-logo.svg)
 
@@ -14,6 +14,7 @@ It is in pre-release stage and will continue to be updated.
 * [NDN-DPDK Docker container](docs/Docker.md)
 * [NDN-DPDK forwarder activation and usage](docs/forwarder.md)
 * [NDN-DPDK traffic generator activation and usage](docs/trafficgen.md)
+* [NDN-DPDK file server activation and usage](docs/fileserver.md)
 * [hardware known to work with NDN-DPDK](docs/hardware.md)
 * [NDN-DPDK performance tuning](docs/tuning.md)
 * [NDN-DPDK interoperability with other NDN software](docs/interop)

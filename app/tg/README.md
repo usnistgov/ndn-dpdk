@@ -11,14 +11,6 @@ This traffic generator has up to five threads for each face:
 * Either:
   * two *consumer threads* ("CONSUMER" role) run a [traffic generator consumer](../tgconsumer); or
   * one *consumer thread* ("CONSUMER" role) runs a [fetcher](../fetch).
-* The *producer thread* ("PRODUCER" role) runs a [traffic generator producer](../tgproducer).
-
-```
-      /--consumer0-RX
-      |           consumer0-TX--\
-      |                         |
-input-+---------fetch1----------+-output
-      |                         |
-      +--------producer0--------+
-      \--------producer1--------/
-```
+* The *producer thread* ("PRODUCER" role) runs either:
+  * a [traffic generator producer](../tgproducer); or
+  * a [file server](../fileserver).
