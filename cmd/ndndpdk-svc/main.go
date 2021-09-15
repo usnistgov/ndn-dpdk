@@ -28,21 +28,18 @@ import (
 
 var logger = logging.New("main")
 
-var (
-	isActivated            int32
-	errActivated           = errors.New("ndndpdk-svc is already activated")
-	errActivateArgConflict = errors.New("exactly one activate argument should be specified")
-)
-
-type activator interface {
-	Activate() error
-}
-
 func init() {
 	http.HandleFunc("/robots.txt", func(w http.ResponseWriter, req *http.Request) {
 		w.Header().Add("Content-Type", "text/plain")
 		w.Write([]byte("User-Agent: *\nDisallow: /\n"))
 	})
+}
+
+func init() {
+	type activator interface {
+		Activate() error
+	}
+	var isActivated int32
 
 	gqlserver.AddMutation(&graphql.Field{
 		Name: "activate",
@@ -59,16 +56,21 @@ func init() {
 					"This must be a JSON object that satisfies the schema given in 'trafficgen.schema.json'.",
 				Type: gqlserver.JSON,
 			},
+			"fileserver": &graphql.ArgumentConfig{
+				Description: "Activate as a file server. " +
+					"This must be a JSON object that satisfies the schema given in 'fileserver.schema.json'.",
+				Type: gqlserver.JSON,
+			},
 		},
 		Type: gqlserver.NonNullBoolean,
 		Resolve: func(p graphql.ResolveParams) (result interface{}, e error) {
 			if len(p.Args) != 1 {
-				return nil, errActivateArgConflict
+				return nil, errors.New("exactly one activate argument should be specified")
 			}
 			result = true
 
-			tryActivate := func(key string, arg activator) {
-				a, ok := p.Args[key]
+			tryActivate := func(role string, arg activator) {
+				a, ok := p.Args[role]
 				if !ok {
 					return
 				}
@@ -77,13 +79,13 @@ func init() {
 				}
 
 				if !atomic.CompareAndSwapInt32(&isActivated, 0, 1) {
-					e = errActivated
+					e = errors.New("ndndpdk-svc is already activated")
 					return
 				}
 
 				initXDPProgram()
 
-				logEntry := logger.With(zap.String("role", key))
+				logEntry := logger.With(zap.String("role", role))
 				logEntry.Info("activate start")
 				if e = arg.Activate(); e != nil {
 					delayedShutdown(func() { logEntry.Fatal("activate error", zap.Error(e)) })
@@ -94,10 +96,13 @@ func init() {
 
 			tryActivate("forwarder", &fwArgs{})
 			tryActivate("trafficgen", &genArgs{})
+			tryActivate("fileserver", &fileServerArgs{})
 			return
 		},
 	})
+}
 
+func init() {
 	gqlserver.AddMutation(&graphql.Field{
 		Name:        "shutdown",
 		Description: "Shutdown NDN-DPDK service.",
@@ -152,9 +157,7 @@ var app = &cli.App{
 		go systemdNotify()
 
 		gqlserver.Prepare()
-		logger.Info("GraphQL HTTP server starting",
-			zap.String("listen", listen),
-		)
+		logger.Info("GraphQL HTTP server starting", zap.String("listen", listen))
 		return cli.Exit(http.ListenAndServe(listen, nil), 1)
 	},
 }

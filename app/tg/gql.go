@@ -21,8 +21,8 @@ import (
 )
 
 var (
-	// GqlEnabled allows creating traffic generator instances via GraphQL.
-	GqlEnabled = false
+	// GqlCreateEnabled allows creating traffic generator instances via GraphQL.
+	GqlCreateEnabled = false
 
 	errGqlDisabled = errors.New("traffic generator not activated")
 )
@@ -114,7 +114,7 @@ func init() {
 		},
 		Type: graphql.NewNonNull(GqlTrafficGenType),
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-			if !GqlEnabled {
+			if !GqlCreateEnabled {
 				return nil, errGqlDisabled
 			}
 

@@ -32,6 +32,7 @@ func defineActivateCommand(id, noun string) {
 func init() {
 	defineActivateCommand("forwarder", "forwarder")
 	defineActivateCommand("trafficgen", "traffic generator")
+	defineActivateCommand("fileserver", "file server")
 }
 
 func init() {

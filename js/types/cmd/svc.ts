@@ -1,6 +1,8 @@
 import type { EalConfig, LCoreAllocConfig, PktmbufPoolTemplateUpdates } from "../dpdk";
 import type { FwdpConfig } from "../fwdp";
 import type { HrlogWriterConfig } from "../hrlog";
+import type { FaceLocator } from "../iface";
+import type { FileServerConfig } from "../tg/mod";
 
 export interface ActivateArgsCommon<Roles extends string = never> {
   eal?: EalConfig;
@@ -24,4 +26,14 @@ export interface ActivateFwArgs extends ActivateArgsCommon<"RX" | "TX" | "CRYPTO
  */
 export interface ActivateGenArgs extends ActivateArgsCommon {
   mempool?: PktmbufPoolTemplateUpdates<"DIRECT" | "INDIRECT" | "HEADER" | "INTEREST" | "DATA" | "PAYLOAD">;
+}
+
+/**
+ * File server activation arguments.
+ * These are provided to the 'activate' mutation in GraphQL.
+ */
+export interface ActivateFileServerArgs extends ActivateArgsCommon {
+  mempool?: ActivateGenArgs["mempool"];
+  face: FaceLocator;
+  fileServer: FileServerConfig;
 }

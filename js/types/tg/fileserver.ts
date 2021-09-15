@@ -1,4 +1,4 @@
-import type { Uint } from "../core";
+import type { NNNanoseconds, Uint } from "../core";
 import type { Name } from "../ndni";
 import type { PktQueueConfig } from "../pktqueue";
 
@@ -14,6 +14,7 @@ export interface FileServerConfig {
   uringCapacity?: Uint;
   openFds?: Uint;
   keepFds?: Uint;
+  statValidity?: NNNanoseconds;
 }
 
 /**
