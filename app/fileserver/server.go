@@ -10,6 +10,7 @@ import (
 
 var logger = logging.New("fileserver")
 
+// Server represents a file server.
 type Server struct {
 	workers []*worker
 	mounts  []Mount

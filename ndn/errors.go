@@ -13,6 +13,7 @@ var (
 	ErrLifetime      = errors.New("InterestLifetime out of range")
 	ErrHopLimit      = errors.New("HopLimit out of range")
 	ErrParamsDigest  = errors.New("bad ParamsDigest")
+	ErrContentType   = errors.New("bad ContentType")
 	ErrSigType       = errors.New("bad SigType")
 	ErrKeyLocator    = errors.New("bad KeyLocator")
 	ErrSigNonce      = errors.New("bad SigNonce")

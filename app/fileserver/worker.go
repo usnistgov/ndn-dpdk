@@ -53,6 +53,10 @@ func (w *worker) close() error {
 	return e
 }
 
+func (w worker) counters() countersC {
+	return *(*countersC)(unsafe.Pointer(&w.c.cnt))
+}
+
 func newWorker(faceID iface.ID, socket eal.NumaSocket, cfg Config) (w *worker, e error) {
 	w = &worker{
 		c: (*C.FileServer)(eal.Zmalloc("FileServer", C.sizeof_FileServer, socket)),

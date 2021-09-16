@@ -11,11 +11,26 @@
 
 typedef struct FileServerFd FileServerFd;
 
+typedef struct FileServerCounters
+{
+  uint64_t reqRead;
+  uint64_t reqLs;
+  uint64_t reqMetadata;
+  uint64_t fdNew;
+  uint64_t fdNotFound;
+  uint64_t fdUpdateStat;
+  uint64_t uringSubmitNonBlock;
+  uint64_t uringSubmitWait;
+  uint64_t sqeSubmit;
+  uint64_t cqeFail;
+} FileServerCounters;
+
 /** @brief File server. */
 typedef struct FileServer
 {
   ThreadCtrl ctrl;
   PktQueue rxQueue;
+  FileServerCounters cnt;
 
   struct rte_mempool* payloadMp;
   struct io_uring uring;

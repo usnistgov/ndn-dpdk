@@ -3,11 +3,14 @@
 package rdr
 
 import (
+	"context"
 	"encoding"
+	"encoding/hex"
 	"fmt"
 
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
+	"github.com/usnistgov/ndn-dpdk/ndn/endpoint"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
 
@@ -31,6 +34,21 @@ func MakeDiscoveryInterest(prefix ndn.Name) ndn.Interest {
 func IsDiscoveryInterest(interest ndn.Interest) bool {
 	return len(interest.Name) > 1 && interest.Name[len(interest.Name)-1].Equal(KeywordMetadata) &&
 		interest.CanBePrefix && interest.MustBeFresh
+}
+
+// RetrieveMetadata retrieves RDR metadata.
+//  m: either *Metadata or its derived type.
+func RetrieveMetadata(ctx context.Context, m encoding.BinaryUnmarshaler, name ndn.Name, opts endpoint.ConsumerOptions) error {
+	interest := MakeDiscoveryInterest(name)
+	data, e := endpoint.Consume(ctx, interest, opts)
+	if e != nil {
+		return e
+	}
+	if data.ContentType != an.ContentBlob {
+		return ndn.ErrContentType
+	}
+	fmt.Println(data.Name.String(), int(data.ContentType), hex.EncodeToString(data.Content))
+	return m.UnmarshalBinary(data.Content)
 }
 
 // Metadata contains RDR metadata packet content.

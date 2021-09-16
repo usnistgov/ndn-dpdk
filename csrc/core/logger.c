@@ -1,7 +1,7 @@
 #include "logger.h"
 #include <spdk/log.h>
 
-static ssize_t
+__attribute__((nonnull)) static ssize_t
 Logger_Dpdk(void* ctx, const char* buf, size_t size)
 {
   FILE* output = ctx;
@@ -38,4 +38,14 @@ Logger_Spdk(int level, __rte_unused const char* file, __rte_unused const int lin
             __rte_unused const char* func, const char* format, va_list args)
 {
   rte_vlog(spdk2dpdkLogLevels[level], RTE_LOGTYPE_SPDK, format, args);
+}
+
+void
+Logger_HexDump(const uint8_t* b, size_t count)
+{
+  for (size_t i = 0; i < count; ++i) {
+    fprintf(stderr, "%02X", b[i]);
+  }
+  fprintf(stderr, "\n");
+  fflush(stderr);
 }

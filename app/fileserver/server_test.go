@@ -58,17 +58,9 @@ func TestServer(t *testing.T) {
 	var wg sync.WaitGroup
 	timeout, cancel := context.WithTimeout(context.TODO(), 20*time.Second)
 	defer cancel()
-	fetchMetadata := func(name string) (m ndn6file.Metadata, e error) {
-		interest := rdr.MakeDiscoveryInterest(ndn.ParseName(name))
-		data, e := endpoint.Consume(timeout, interest, endpoint.ConsumerOptions{
-			Fw:   fw,
-			Retx: endpoint.RetxOptions{Limit: 3},
-		})
-		if e != nil {
-			return m, e
-		}
-		e = m.UnmarshalBinary(data.Content)
-		return m, e
+	metadataOpts := endpoint.ConsumerOptions{
+		Fw:   fw,
+		Retx: endpoint.RetxOptions{Limit: 3},
 	}
 	fetchPayload := func(m ndn6file.Metadata, lastSeg *tlv.NNI) (payload []byte, e error) {
 		fOpts := segmented.FetchOptions{
@@ -88,8 +80,8 @@ func TestServer(t *testing.T) {
 		require.NoError(e)
 		digest := sha256.Sum256(content)
 
-		m, e := fetchMetadata(name)
-		if !assert.NoError(e) {
+		var m ndn6file.Metadata
+		if !assert.NoError(rdr.RetrieveMetadata(timeout, &m, ndn.ParseName(name), metadataOpts)) {
 			return
 		}
 		lastSeg := tlv.NNI(math.MaxUint64)
@@ -127,8 +119,8 @@ func TestServer(t *testing.T) {
 			}
 		}
 
-		m, e := fetchMetadata(name)
-		if !assert.NoError(e) {
+		var m ndn6file.Metadata
+		if !assert.NoError(rdr.RetrieveMetadata(timeout, &m, ndn.ParseName(name), metadataOpts)) {
 			return
 		}
 		assert.False(m.FinalBlock.Valid())
@@ -152,11 +144,30 @@ func TestServer(t *testing.T) {
 		}
 		assert.GreaterOrEqual(nFound, mathpkg.MinInt(segmentLen/(unix.NAME_MAX+2), len(dirEntryNames)))
 	}
+	testNotFound := func(name string) {
+		defer wg.Done()
+		var m ndn6file.Metadata
+		e := rdr.RetrieveMetadata(timeout, &m, ndn.ParseName(name), metadataOpts)
+		assert.ErrorIs(e, ndn.ErrContentType)
+	}
 
-	wg.Add(4)
+	assert.NoFileExists("/usr/local/bin/ndndpdk/no-such-program")
+	wg.Add(6)
 	go testFetchFile("/usr/local/bin/dpdk-testpmd", "/usr/local-bin/dpdk-testpmd", true)
 	go testFetchFile("/usr/bin/jq", "/usr/bin/jq", false)
 	go testFetchDir("/usr/bin", "/usr/bin")
 	go testFetchDir("/usr/local/bin", "/usr/local-bin/"+ndn6file.KeywordLs.String())
+	go testNotFound("/usr/local-bin/ndndpdk/no-such-program")
+	go testNotFound("/usr/local-bin/dpdk-testpmd/" + ndn6file.KeywordLs.String())
 	wg.Wait()
+
+	cnt := p.Counters()
+	assert.Greater(cnt.ReqRead, uint64(0))
+	assert.Greater(cnt.ReqLs, uint64(0))
+	assert.Greater(cnt.ReqMetadata, uint64(0))
+	assert.Greater(cnt.FdNew, uint64(0))
+	assert.Greater(cnt.FdNotFound, uint64(0))
+	assert.Greater(cnt.UringSubmit, uint64(0))
+	assert.Greater(cnt.UringSubmitNonBlock, uint64(0))
+	assert.Greater(cnt.SqeSubmit, uint64(0))
 }

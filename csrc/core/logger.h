@@ -30,11 +30,19 @@
 #define N_LOG_ERROR_BLANK N_LOG_ERROR("-")
 #define N_LOG_ERROR_STR N_LOG_ERROR("%s")
 
-int
+__attribute__((nonnull)) int
 Logger_Dpdk_Init(FILE* output);
 
-void
+__attribute__((nonnull)) void
 Logger_Spdk(int level, const char* file, const int line, const char* func, const char* format,
             va_list args);
+
+/**
+ * @brief Print buffer in hexadecimal to stderr.
+ *
+ * This is only used during debugging, and should not appear in committed code.
+ */
+__attribute__((nonnull)) void
+Logger_HexDump(const uint8_t* b, size_t count);
 
 #endif // NDNDPDK_CORE_LOGGER_H

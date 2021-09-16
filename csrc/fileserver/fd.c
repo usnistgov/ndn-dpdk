@@ -109,6 +109,7 @@ FileServerFd_Ref(FileServer* p, FileServerFd* entry, TscTime now)
   if (unlikely((TscTime)entry->st.stx_ino < now)) {
     bool changed = false;
     int res = FileServerFd_UpdateStatx(p, entry, now, &changed);
+    ++p->cnt.fdUpdateStat;
     if (unlikely(res != 0)) {
       N_LOGD(
         "Ref statx-update fd=%d refcnt=%" PRIu16 N_LOG_ERROR("statx-res=%d statx-mask=0x%" PRIx32),
@@ -145,16 +146,19 @@ FileServerFd_New(FileServer* p, const PName* name, LName prefix, uint64_t hash, 
   if (likely(filename[0] != '\0')) {
     fd = openat(p->dfd[mount], filename, O_RDONLY);
     if (unlikely(fd < 0)) {
+      ++p->cnt.fdNotFound;
       N_LOGD("New openat-err mount=%d filename=%s" N_LOG_ERROR("errno=%d"), mount, filename, errno);
       return FileServer_NotFound;
     }
   } else {
     fd = dup(p->dfd[mount]);
     if (unlikely(fd < 0)) {
+      ++p->cnt.fdNotFound;
       N_LOGD("New dup-err mount=%d filename=''" N_LOG_ERROR("errno=%d"), mount, errno);
       return FileServer_NotFound;
     }
   }
+  ++p->cnt.fdNew;
 
   struct rte_mbuf* mbuf = rte_pktmbuf_alloc(p->payloadMp);
   if (unlikely(mbuf == NULL)) {

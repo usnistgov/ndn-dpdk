@@ -32,7 +32,7 @@ typedef struct RxBurstCtx
   uint8_t payloadIndex;  ///< payload[payloadIndex:] are unused
   uint8_t discardIndex;  ///< discard[MaxBurstSize:discardIndex] are dropped Interests
   uint8_t dataCount;     ///< data[:dataCount] are Data packets to be sent
-  bool hasSqe;
+  uint8_t nSqe;
   char zeroizeEnd_[0];
   struct rte_mbuf* interest[MaxBurstSize];
   union
@@ -82,7 +82,7 @@ FileServerRx_SubmitReadv(FileServer* p, RxBurstCtx* ctx)
   if (unlikely(sqe == NULL)) {
     return FileServerRx_NoSqe(ctx);
   }
-  ctx->hasSqe = true;
+  ++ctx->nSqe;
 
   FileServerOp* op = ctx->op;
   N_LOGV("SQE fd=%d segment=%" PRIu64 " nIov=%" PRIu32, op->fd->fd, op->segment, op->nIov);
@@ -95,6 +95,7 @@ FileServerRx_SubmitReadv(FileServer* p, RxBurstCtx* ctx)
 __attribute__((nonnull)) static inline void
 FileServerRx_Read(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
 {
+  ++p->cnt.reqRead;
   struct rte_mbuf* interest = ctx->interest[ctx->interestIndex];
   Packet* npkt = Packet_FromMbuf(interest);
   PInterest* pi = Packet_GetInterestHdr(npkt);
@@ -153,6 +154,7 @@ DROP:
 __attribute__((nonnull)) static __rte_noinline void
 FileServerRx_Ls(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
 {
+  ++p->cnt.reqLs;
   if (rn.segment != 0) {
     N_LOGD("Ls drop=not-segment0");
     return;
@@ -205,6 +207,7 @@ ENCERR:
 __attribute__((nonnull)) static __rte_noinline void
 FileServerRx_Metadata(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
 {
+  ++p->cnt.reqMetadata;
   struct rte_mbuf* interest = ctx->interest[ctx->interestIndex];
   ctx->discard[ctx->discardIndex++] = interest;
   Packet* npkt = Packet_FromMbuf(interest);
@@ -232,6 +235,7 @@ FileServerRx_Metadata(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
     if (unlikely(!ok)) {
       goto ENCERR;
     }
+    metaInfo = &MetaInfo_Metadata;
   }
 
   struct timespec utcNow;
@@ -246,7 +250,6 @@ FileServerRx_Metadata(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
   suffixV[suffix.length++] = TtSegmentNameComponent;
   suffixV[suffix.length++] = 1;
   suffixV[suffix.length++] = 0;
-  metaInfo = &MetaInfo_Metadata;
 
   Packet* data = DataEnc_EncodePayload(name, suffix, metaInfo, payload);
   if (unlikely(data == NULL)) {
@@ -317,10 +320,13 @@ FileServer_RxBurst(FileServer* p)
     FileServerRx_SubmitReadv(p, &ctx);
   }
 
-  if (likely(ctx.hasSqe)) {
+  if (likely(ctx.nSqe > 0)) {
+    p->cnt.sqeSubmit += ctx.nSqe;
     if (unlikely(p->uringCount >= p->uringWaitThreshold)) {
+      ++p->cnt.uringSubmitWait;
       res = io_uring_submit_and_wait(&p->uring, MaxBurstSize);
     } else {
+      ++p->cnt.uringSubmitNonBlock;
       res = io_uring_submit(&p->uring);
     }
     if (unlikely(res < 0)) {

@@ -31,6 +31,7 @@ static_assert(RTE_DIM(((TxBurstCtx*)NULL)->discard) <= UINT16_MAX, "");
 __attribute__((nonnull)) static __rte_noinline void
 FileServerTx_FailCqe(FileServer* p, TxBurstCtx* ctx, struct io_uring_cqe* cqe)
 {
+  ++p->cnt.cqeFail;
   FileServerOp* op = io_uring_cqe_get_data(cqe);
   FileServerFd* fd = op->fd;
   uint32_t nIov = FileServerOp_NIov(op);

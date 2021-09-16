@@ -36,7 +36,7 @@ var (
 	logStream *cptr.FilePipeCGo
 
 	reLogDump = regexp.MustCompile(`(?m)^id (\d+): ([^,]+), level is `)
-	reLogLine = regexp.MustCompile(`^(\d+) (\d) (\d+) \* (?:NDN: )?(.*?)((?: [^ =]+=[^ =]+)*?)(` + logErrorPrefix + `[^=}]+` + logErrorSuffix + `)?\n`)
+	reLogLine = regexp.MustCompile(`^(\d+) (\d) (\d+) \* (?:NDN: )?(.*?)((?: [^ =]+=[^ =]+)*?)(` + logErrorPrefix + `[^}]+` + logErrorSuffix + `)?\n`)
 )
 
 func updateLogTypes() {
