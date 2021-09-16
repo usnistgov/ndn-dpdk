@@ -318,9 +318,15 @@ FileServer_RxBurst(FileServer* p)
   }
 
   if (likely(ctx.hasSqe)) {
-    res = io_uring_submit(&p->uring);
+    if (unlikely(p->uringCount >= p->uringWaitThreshold)) {
+      res = io_uring_submit_and_wait(&p->uring, MaxBurstSize);
+    } else {
+      res = io_uring_submit(&p->uring);
+    }
     if (unlikely(res < 0)) {
       N_LOGE("io_uring_submit errno=%d", -res);
+    } else {
+      p->uringCount += (uint32_t)res;
     }
   }
 

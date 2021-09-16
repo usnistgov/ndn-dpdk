@@ -21,6 +21,7 @@ typedef struct TxBurstCtx
   uint16_t discardPayloadIndex;
   /// discard[MaxBurstIovecs : discardInterestIndex] are Interest mbufs to be freed
   uint16_t discardInterestIndex;
+  uint8_t congMark;
   struct io_uring_cqe* cqe[MaxBurstSize];
   Packet* data[MaxBurstIovecs];
   struct rte_mbuf* discard[MaxBurstIovecs * 2];
@@ -86,7 +87,10 @@ FileServerTx_ProcessCqe(FileServer* p, TxBurstCtx* ctx, uint32_t index)
     }
 
     Mbuf_SetTimestamp(payload, ctx->now);
-    *Packet_GetLpL3Hdr(data) = *Packet_GetLpL3Hdr(interest);
+    LpL3* dataL3 = Packet_GetLpL3Hdr(data);
+    *dataL3 = *Packet_GetLpL3Hdr(interest);
+    dataL3->congMark = RTE_MAX(dataL3->congMark, ctx->congMark);
+    ctx->congMark = 0;
     ctx->data[ctx->nData++] = data;
   }
 
@@ -100,11 +104,13 @@ FileServer_TxBurst(FileServer* p)
 {
   TxBurstCtx ctx;
   ctx.now = rte_get_tsc_cycles();
+  ctx.congMark = (uint8_t)(p->uringCount >= p->uringCongMarkThreshold);
   ctx.nData = 0;
   ctx.discardPayloadIndex = MaxBurstIovecs;
   ctx.discardInterestIndex = MaxBurstIovecs;
 
   uint32_t nCqe = io_uring_peek_batch_cqe(&p->uring, ctx.cqe, RTE_DIM(ctx.cqe));
+  p->uringCount -= nCqe;
   for (uint32_t i = 0; i < nCqe; ++i) {
     FileServerTx_ProcessCqe(p, &ctx, i);
   }

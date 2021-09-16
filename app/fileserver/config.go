@@ -30,7 +30,7 @@ const (
 	MaxSegmentLen     = 16384
 	DefaultSegmentLen = 4096
 
-	MinUringCapacity     = 64
+	MinUringCapacity     = 512
 	DefaultUringCapacity = 4096
 
 	MinOpenFds     = 16
@@ -66,7 +66,9 @@ type Config struct {
 	// This value must be set consistently in every producer of the same name prefix.
 	SegmentLen int `json:"segmentLen,omitempty"`
 
-	// UringCapacity is io_uring queue size.
+	// UringCapacity is io_uring submission queue size.
+	// When pending I/O operations exceed 50% capacity, congestion marks start to appear on Data packets.
+	// When pending I/O operations exceed 75% capacity, submissions will block waiting for completions.
 	UringCapacity int `json:"uringCapacity,omitempty"`
 
 	// OpenFds is the limit of open file descriptors (including KeepFds) per thread.
@@ -74,7 +76,7 @@ type Config struct {
 	// You must also set `ulimit -n` or systemd `LimitNOFILE=` appropriately.
 	OpenFds int `json:"openFds,omitempty"`
 
-	// KeepFds is the number of unused file descriptor per thread.
+	// KeepFds is the number of unused file descriptors per thread.
 	// A file descriptor is unused if no I/O operation is ongoing on the file.
 	// Keeping them open can speed up subsequent requests referencing the same file.
 	KeepFds int `json:"keepFds,omitempty"`

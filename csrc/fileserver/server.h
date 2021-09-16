@@ -23,6 +23,9 @@ typedef struct FileServer
   TAILQ_HEAD(FileServerFdQueue, FileServerFd) fdQ;
   TscDuration statValidity;
 
+  uint32_t uringCount;
+  uint32_t uringCongMarkThreshold;
+  uint32_t uringWaitThreshold;
   FaceID face;
   uint16_t segmentLen;
   uint16_t payloadHeadroom;

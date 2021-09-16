@@ -68,9 +68,11 @@ func newWorker(faceID iface.ID, socket eal.NumaSocket, cfg Config) (w *worker, e
 	w.c.face = (C.FaceID)(faceID)
 	w.c.segmentLen = C.uint16_t(cfg.SegmentLen)
 	w.c.payloadHeadroom = C.uint16_t(cfg.payloadHeadroom)
-	w.c.fdQCapacity = C.uint16_t(cfg.KeepFds)
 	w.c.uringCapacity = C.uint32_t(cfg.UringCapacity)
+	w.c.uringCongMarkThreshold = C.uint32_t(cfg.UringCapacity / 2)
+	w.c.uringWaitThreshold = C.uint32_t(cfg.UringCapacity / 4 * 3)
 	w.c.nFdHtBuckets = C.uint32_t(binutils.PrevPowerOfTwo(int64(cfg.OpenFds)))
+	w.c.fdQCapacity = C.uint16_t(cfg.KeepFds)
 
 	prefixes := ndni.NewLNamePrefixFilterBuilder(unsafe.Pointer(&w.c.mountPrefixL), unsafe.Sizeof(w.c.mountPrefixL),
 		unsafe.Pointer(&w.c.mountPrefixV), unsafe.Sizeof(w.c.mountPrefixV))
