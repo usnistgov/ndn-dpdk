@@ -73,8 +73,8 @@ func newWorker(faceID iface.ID, socket eal.NumaSocket, cfg Config) (w *worker, e
 	w.c.segmentLen = C.uint16_t(cfg.SegmentLen)
 	w.c.payloadHeadroom = C.uint16_t(cfg.payloadHeadroom)
 	w.c.uringCapacity = C.uint32_t(cfg.UringCapacity)
-	w.c.uringCongMarkThreshold = C.uint32_t(cfg.UringCapacity / 2)
-	w.c.uringWaitThreshold = C.uint32_t(cfg.UringCapacity / 4 * 3)
+	w.c.uringCongestionLbound = C.uint32_t(cfg.uringCongestionLbound)
+	w.c.uringWaitLbound = C.uint32_t(cfg.uringWaitLbound)
 	w.c.nFdHtBuckets = C.uint32_t(binutils.PrevPowerOfTwo(int64(cfg.OpenFds)))
 	w.c.fdQCapacity = C.uint16_t(cfg.KeepFds)
 

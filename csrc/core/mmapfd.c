@@ -9,7 +9,7 @@
 N_LOG_INIT(MmapFd);
 
 #define MmapFd_Error(func)                                                                         \
-  N_LOGE("%s(%s,fd=%d) errno=%d %s", #func, m->filename, m->fd, errno, strerror(errno))
+  N_LOGE("%s(%s,fd=%d)" N_LOG_ERROR_ERRNO, #func, m->filename, m->fd, errno)
 
 bool
 MmapFd_Open(MmapFd* m, const char* filename, size_t size)

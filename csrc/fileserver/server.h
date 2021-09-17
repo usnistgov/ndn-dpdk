@@ -19,6 +19,7 @@ typedef struct FileServerCounters
   uint64_t fdNew;
   uint64_t fdNotFound;
   uint64_t fdUpdateStat;
+  uint64_t fdClose;
   uint64_t uringSubmitNonBlock;
   uint64_t uringSubmitWait;
   uint64_t sqeSubmit;
@@ -39,8 +40,8 @@ typedef struct FileServer
   TscDuration statValidity;
 
   uint32_t uringCount;
-  uint32_t uringCongMarkThreshold;
-  uint32_t uringWaitThreshold;
+  uint32_t uringCongestionLbound;
+  uint32_t uringWaitLbound;
   FaceID face;
   uint16_t segmentLen;
   uint16_t payloadHeadroom;

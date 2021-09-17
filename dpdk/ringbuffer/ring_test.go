@@ -7,6 +7,20 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
 )
 
+func TestCapacity(t *testing.T) {
+	assert, require := makeAR(t)
+
+	r, e := ringbuffer.New(-1, eal.NumaSocket{}, ringbuffer.ProducerMulti, ringbuffer.ConsumerMulti)
+	require.NoError(e)
+	assert.Equal(255, r.Capacity())
+	defer r.Close()
+
+	r, e = ringbuffer.New(513, eal.NumaSocket{}, ringbuffer.ProducerMulti, ringbuffer.ConsumerMulti)
+	require.NoError(e)
+	assert.Equal(1023, r.Capacity())
+	defer r.Close()
+}
+
 func TestRing(t *testing.T) {
 	assert, require := makeAR(t)
 
@@ -42,18 +56,4 @@ func TestRing(t *testing.T) {
 	assert.Equal(uintptr(2776), output[1])
 	assert.Equal(0, r.CountInUse())
 	assert.Equal(3, r.CountAvailable())
-}
-
-func TestCapacity(t *testing.T) {
-	assert, require := makeAR(t)
-
-	r, e := ringbuffer.New(-1, eal.NumaSocket{}, ringbuffer.ProducerMulti, ringbuffer.ConsumerMulti)
-	require.NoError(e)
-	assert.Equal(63, r.Capacity())
-	defer r.Close()
-
-	r, e = ringbuffer.New(129, eal.NumaSocket{}, ringbuffer.ProducerMulti, ringbuffer.ConsumerMulti)
-	require.NoError(e)
-	assert.Equal(255, r.Capacity())
-	defer r.Close()
 }

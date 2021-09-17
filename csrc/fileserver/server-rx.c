@@ -314,7 +314,7 @@ FileServer_RxBurst(FileServer* p)
 
   for (; ctx.interestIndex < ctx.interestCount; ++ctx.interestIndex) {
     FileServerRx_ProcessInterest(p, &ctx);
-    // upon failure, ctx.interestIndex is set to ctx.interestCount, stopping the loop
+    // upon failure, callee sets ctx.interestIndex to ctx.interestCount, stopping the loop
   }
   if (FileServer_EnableIovBatching && likely(ctx.op != NULL)) {
     FileServerRx_SubmitReadv(p, &ctx);
@@ -322,7 +322,7 @@ FileServer_RxBurst(FileServer* p)
 
   if (likely(ctx.nSqe > 0)) {
     p->cnt.sqeSubmit += ctx.nSqe;
-    if (unlikely(p->uringCount >= p->uringWaitThreshold)) {
+    if (unlikely(p->uringCount >= p->uringWaitLbound)) {
       ++p->cnt.uringSubmitWait;
       res = io_uring_submit_and_wait(&p->uring, MaxBurstSize);
     } else {
@@ -330,7 +330,7 @@ FileServer_RxBurst(FileServer* p)
       res = io_uring_submit(&p->uring);
     }
     if (unlikely(res < 0)) {
-      N_LOGE("io_uring_submit errno=%d", -res);
+      N_LOGE("io_uring_submit" N_LOG_ERROR_ERRNO, res);
     } else {
       p->uringCount += (uint32_t)res;
     }

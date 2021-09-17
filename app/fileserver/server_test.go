@@ -3,6 +3,8 @@ package fileserver_test
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/json"
+	"fmt"
 	"math"
 	"os"
 	"sync"
@@ -31,7 +33,6 @@ func TestServer(t *testing.T) {
 	face := intface.MustNew()
 	defer face.D.Close()
 
-	segmentLen := 3000
 	cfg := fileserver.Config{
 		NThreads: 2,
 		Mounts: []fileserver.Mount{
@@ -39,8 +40,9 @@ func TestServer(t *testing.T) {
 			{Prefix: ndn.ParseName("/usr/local-bin"), Path: "/usr/local/bin"},
 			{Prefix: ndn.ParseName("/usr/local-lib"), Path: "/usr/local/lib"},
 		},
-		SegmentLen:   segmentLen,
+		SegmentLen:   3000,
 		StatValidity: nnduration.Nanoseconds(100 * time.Millisecond),
+		KeepFds:      4,
 	}
 
 	p, e := fileserver.New(face.D, cfg)
@@ -142,7 +144,7 @@ func TestServer(t *testing.T) {
 			}
 			nFound++
 		}
-		assert.GreaterOrEqual(nFound, mathpkg.MinInt(segmentLen/(unix.NAME_MAX+2), len(dirEntryNames)))
+		assert.GreaterOrEqual(nFound, mathpkg.MinInt(cfg.SegmentLen/(unix.NAME_MAX+2), len(dirEntryNames)))
 	}
 	testNotFound := func(name string) {
 		defer wg.Done()
@@ -152,13 +154,28 @@ func TestServer(t *testing.T) {
 	}
 
 	assert.NoFileExists("/usr/local/bin/ndndpdk/no-such-program")
-	wg.Add(6)
+	localLibs := func() (list []string) {
+		dirEntries, e := os.ReadDir("/usr/local/lib")
+		require.NoError(e)
+		for _, dirEntry := range dirEntries {
+			if dirEntry.Type().IsRegular() {
+				list = append(list, dirEntry.Name())
+			}
+		}
+		require.GreaterOrEqual(len(dirEntries), cfg.NThreads*cfg.KeepFds)
+		return
+	}()
+
+	wg.Add(5 + len(localLibs))
 	go testFetchFile("/usr/local/bin/dpdk-testpmd", "/usr/local-bin/dpdk-testpmd", true)
 	go testFetchFile("/usr/bin/jq", "/usr/bin/jq", false)
 	go testFetchDir("/usr/bin", "/usr/bin")
 	go testFetchDir("/usr/local/bin", "/usr/local-bin/"+ndn6file.KeywordLs.String())
 	go testNotFound("/usr/local-bin/ndndpdk/no-such-program")
-	go testNotFound("/usr/local-bin/dpdk-testpmd/" + ndn6file.KeywordLs.String())
+	for _, localLib := range localLibs {
+		// cannot get file metadata with 32=ls component, but this opens file descriptor for testing keepFds limit
+		go testNotFound("/usr/local-lib/" + localLib + "/" + ndn6file.KeywordLs.String())
+	}
 	wg.Wait()
 
 	cnt := p.Counters()
@@ -167,7 +184,11 @@ func TestServer(t *testing.T) {
 	assert.Greater(cnt.ReqMetadata, uint64(0))
 	assert.Greater(cnt.FdNew, uint64(0))
 	assert.Greater(cnt.FdNotFound, uint64(0))
+	assert.Greater(cnt.FdClose, uint64(0))
+	assert.LessOrEqual(cnt.FdNew, cnt.FdClose+uint64(cfg.NThreads*cfg.KeepFds))
 	assert.Greater(cnt.UringSubmit, uint64(0))
 	assert.Greater(cnt.UringSubmitNonBlock, uint64(0))
 	assert.Greater(cnt.SqeSubmit, uint64(0))
+	cntJ, _ := json.Marshal(cnt)
+	fmt.Println(string(cntJ))
 }

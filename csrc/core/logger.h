@@ -28,6 +28,7 @@
 
 #define N_LOG_ERROR(s) " ERROR={" s "}"
 #define N_LOG_ERROR_BLANK N_LOG_ERROR("-")
+#define N_LOG_ERROR_ERRNO N_LOG_ERROR("errno<%d>")
 #define N_LOG_ERROR_STR N_LOG_ERROR("%s")
 
 __attribute__((nonnull)) int

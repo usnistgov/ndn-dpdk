@@ -35,8 +35,7 @@ FileServerTx_FailCqe(FileServer* p, TxBurstCtx* ctx, struct io_uring_cqe* cqe)
   FileServerOp* op = io_uring_cqe_get_data(cqe);
   FileServerFd* fd = op->fd;
   uint32_t nIov = FileServerOp_NIov(op);
-  N_LOGD("CQE fd=%d nIov=%" PRIu32 " drop=cqe-error" N_LOG_ERROR("errno=%" PRId32), fd->fd, nIov,
-         (int32_t)-cqe->res);
+  N_LOGD("CQE fd=%d nIov=%" PRIu32 " drop=cqe-error" N_LOG_ERROR_ERRNO, fd->fd, nIov, cqe->res);
 
   for (uint32_t i = 0; i < nIov; ++i) {
     struct rte_mbuf* payload = NULL;
@@ -105,7 +104,7 @@ FileServer_TxBurst(FileServer* p)
 {
   TxBurstCtx ctx;
   ctx.now = rte_get_tsc_cycles();
-  ctx.congMark = (uint8_t)(p->uringCount >= p->uringCongMarkThreshold);
+  ctx.congMark = (uint8_t)(p->uringCount >= p->uringCongestionLbound);
   ctx.nData = 0;
   ctx.discardPayloadIndex = MaxBurstIovecs;
   ctx.discardInterestIndex = MaxBurstIovecs;

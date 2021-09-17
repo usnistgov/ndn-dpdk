@@ -11,6 +11,12 @@ export type Uint = number;
 export type Counter = Uint | string;
 
 /**
+ * @mininum 0.0
+ * @maximum 1.0
+ */
+export type Ratio = number;
+
+/**
  * Non-negative duration in milliseconds.
  * This can be either a non-negative integer in milliseconds or a string with any valid duration unit.
  */

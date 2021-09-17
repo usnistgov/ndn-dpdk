@@ -143,18 +143,21 @@ FileServerFd_New(FileServer* p, const PName* name, LName prefix, uint64_t hash, 
   }
 
   int fd = -1;
+  const char* logFilename = NULL;
   if (likely(filename[0] != '\0')) {
+    logFilename = filename;
     fd = openat(p->dfd[mount], filename, O_RDONLY);
     if (unlikely(fd < 0)) {
       ++p->cnt.fdNotFound;
-      N_LOGD("New openat-err mount=%d filename=%s" N_LOG_ERROR("errno=%d"), mount, filename, errno);
+      N_LOGD("New openat-err mount=%d filename=%s" N_LOG_ERROR_ERRNO, mount, filename, errno);
       return FileServer_NotFound;
     }
   } else {
+    logFilename = "(empty)";
     fd = dup(p->dfd[mount]);
     if (unlikely(fd < 0)) {
       ++p->cnt.fdNotFound;
-      N_LOGD("New dup-err mount=%d filename=''" N_LOG_ERROR("errno=%d"), mount, errno);
+      N_LOGD("New dup-err mount=%d filename=''" N_LOG_ERROR_ERRNO, mount, errno);
       return FileServer_NotFound;
     }
   }
@@ -175,7 +178,7 @@ FileServerFd_New(FileServer* p, const PName* name, LName prefix, uint64_t hash, 
   int res = FileServerFd_UpdateStatx(p, entry, now, &changed_);
   if (unlikely(res != 0)) {
     N_LOGD("New mount=%d filename=%s" N_LOG_ERROR("statx-res=%d statx-mask=0x%" PRIx32), mount,
-           filename, res, entry->st.stx_mask);
+           logFilename, res, entry->st.stx_mask);
     goto FAIL_MBUF;
   }
 
@@ -186,8 +189,8 @@ FileServerFd_New(FileServer* p, const PName* name, LName prefix, uint64_t hash, 
   FileServerFd_PrepapeMeta(p, entry);
 
   HASH_ADD_BYHASHVALUE(hh, p->fdHt, self, 0, hash, entry);
-  N_LOGD("New mount=%d filename=%s fd=%d statx-mask=0x%" PRIu32 " size=%" PRIu64, mount, filename,
-         entry->fd, entry->st.stx_mask, (uint64_t)entry->st.stx_size);
+  N_LOGD("New mount=%d filename=%s fd=%d statx-mask=0x%" PRIu32 " size=%" PRIu64, mount,
+         logFilename, entry->fd, entry->st.stx_mask, (uint64_t)entry->st.stx_size);
   return entry;
 
 FAIL_MBUF:
@@ -237,6 +240,7 @@ FileServerFd_Unref(FileServer* p, FileServerFd* entry)
   --p->fdQCount;
   close(evict->fd);
   rte_pktmbuf_free(evict->mbuf);
+  ++p->cnt.fdClose;
 }
 
 void
@@ -323,13 +327,13 @@ FileServerFd_EncodeLs(FileServer* p, FileServerFd* entry, struct rte_mbuf* paylo
   NDNDPDK_ASSERT(FileServerFd_IsDir(entry));
   int dfd = dup(entry->fd);
   if (unlikely(dfd < 0)) {
-    N_LOGD("Ls dup-err fd=%d errno=%d" N_LOG_ERROR_BLANK, entry->fd, errno);
+    N_LOGD("Ls dup-err fd=%d" N_LOG_ERROR_ERRNO, entry->fd, errno);
     return false;
   }
 
   DIR* dir = fdopendir(dfd);
   if (unlikely(dir == NULL)) {
-    N_LOGD("Ls fdopendir-err fd=%d dfd=%d errno=%d" N_LOG_ERROR_BLANK, entry->fd, dfd, errno);
+    N_LOGD("Ls fdopendir-err fd=%d dfd=%d" N_LOG_ERROR_ERRNO, entry->fd, dfd, errno);
     close(dfd);
     return false;
   }

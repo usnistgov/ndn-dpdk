@@ -20,6 +20,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"golang.org/x/sys/unix"
 )
 
 const (
@@ -37,6 +38,7 @@ var (
 
 	reLogDump = regexp.MustCompile(`(?m)^id (\d+): ([^,]+), level is `)
 	reLogLine = regexp.MustCompile(`^(\d+) (\d) (\d+) \* (?:NDN: )?(.*?)((?: [^ =]+=[^ =]+)*?)(` + logErrorPrefix + `[^}]+` + logErrorSuffix + `)?\n`)
+	reErrno   = regexp.MustCompile(`^errno<-?(\d+)>$`)
 )
 
 func updateLogTypes() {
@@ -169,6 +171,14 @@ func processLogLine(line []byte) {
 		e := string(m[6][len(logErrorPrefix) : len(m[6])-len(logErrorSuffix)])
 		if e == "-" {
 			fields = append(fields, zap.Error(errors.New(msg)))
+		} else if em := reErrno.FindStringSubmatch(e); em != nil {
+			errno, _ := strconv.ParseUint(em[1], 10, 64)
+			err := unix.Errno(errno)
+			fields = append(fields,
+				zap.Uint64("errno", errno),
+				zap.String("errname", unix.ErrnoName(err)),
+				zap.Error(err),
+			)
 		} else {
 			fields = append(fields, zap.Error(errors.New(e)))
 		}

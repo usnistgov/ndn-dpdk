@@ -46,6 +46,10 @@ To connect to the local NDN-DPDK forwarder, it should use "memif" scheme with "c
 It should be small enough so that the Data packet size (containing name, payload, and other fields) stays below the MTU of most network links.
 Once the file server is deployed in a network, you should not change this setting without also changing `.fileServer.mounts[].prefix`, because network caches may respond with previously generated Data packets and lead to corrupted file retrieval.
 
+**.fileServer.uringCapacity** is the io\_uring submission queue capacity.
+Lower values are suitable for faster disks such as local NVMe.
+If the file server will be accessing slower disks such as HDD or iSCSI, higher values (up to 32768) are recommended.
+
 **.mempool.DIRECT** configures the mempool for incoming packets, which are expected to be Interests.
 Its dataroom should accommodate the face MTU plus 128-octet headroom.
 Its capacity should accommodate incoming packet queues and io\_uring capacity of all file server threads.

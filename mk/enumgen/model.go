@@ -94,14 +94,22 @@ func (pc *pkgConsts) recognizeConstDecl(decl *ast.GenDecl) {
 }
 
 func (pc *pkgConsts) collectEnum(enum *enumDecl, decl *ast.GenDecl, rename func(string) string) {
+	skipUntil := -1
 	for i, spec := range decl.Specs {
 		vspec := spec.(*ast.ValueSpec)
-		if len(vspec.Names) != 1 || len(vspec.Values) > 1 {
+		if len(vspec.Names) != 1 || len(vspec.Values) > 1 || i <= skipUntil {
 			continue
 		}
 
 		name := vspec.Names[0].Name
 		if name == "_" {
+			if len(vspec.Values) == 1 {
+				str := strings.Trim(pc.nodeToString(vspec.Values[0]), "\"")
+				if strings.HasPrefix(str, "enumgen+") {
+					nSkip, _ := strconv.Atoi(str[8:])
+					skipUntil = i + nSkip
+				}
+			}
 			continue
 		}
 		name = rename(name)

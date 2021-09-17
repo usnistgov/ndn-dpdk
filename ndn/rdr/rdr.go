@@ -5,7 +5,6 @@ package rdr
 import (
 	"context"
 	"encoding"
-	"encoding/hex"
 	"fmt"
 
 	"github.com/usnistgov/ndn-dpdk/ndn"
@@ -47,7 +46,6 @@ func RetrieveMetadata(ctx context.Context, m encoding.BinaryUnmarshaler, name nd
 	if data.ContentType != an.ContentBlob {
 		return ndn.ErrContentType
 	}
-	fmt.Println(data.Name.String(), int(data.ContentType), hex.EncodeToString(data.Content))
 	return m.UnmarshalBinary(data.Content)
 }
 

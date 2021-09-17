@@ -3,9 +3,10 @@ package fileserver
 import (
 	"errors"
 	"fmt"
+	"math"
 	"time"
 
-	"github.com/pkg/math"
+	mathpkg "github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
@@ -30,8 +31,13 @@ const (
 	MaxSegmentLen     = 16384
 	DefaultSegmentLen = 4096
 
-	MinUringCapacity     = 512
+	MinUringCapacity     = 256
+	MaxUringCapacity     = 32768 // KERN_MAX_ENTRIES in liburing
 	DefaultUringCapacity = 4096
+
+	_                           = "enumgen+2"
+	DefaultUringCongestionThres = 0.7
+	DefaultUringWaitThres       = 0.9
 
 	MinOpenFds     = 16
 	MaxOpenFds     = 16384
@@ -71,6 +77,16 @@ type Config struct {
 	// When pending I/O operations exceed 75% capacity, submissions will block waiting for completions.
 	UringCapacity int `json:"uringCapacity,omitempty"`
 
+	// UringCongestionThres is the uring occupancy threshold to start inserting congetion marks.
+	// If uring occupancy ratio exceeds this threshold, congestion marks are added to some outgoing Data packets
+	// This must be between 0.0 (exclusive) and 1.0 (exclusive); it should be smaller than UringWaitThres.
+	UringCongestionThres float64 `json:"uringCongestionThres,omitempty"`
+
+	// UringWaitThres is the uring occupancy threshold to start inserting congetion marks.
+	// If uring occupancy ratio exceeds this threshold, uring submission will block and wait for completions.
+	// This must be between 0.0 (exclusive) and 1.0 (exclusive).
+	UringWaitThres float64 `json:"uringWaitThres,omitempty"`
+
 	// OpenFds is the limit of open file descriptors (including KeepFds) per thread.
 	// This is used to calculate data structure sizes; it is not a hard limit.
 	// You must also set `ulimit -n` or systemd `LimitNOFILE=` appropriately.
@@ -84,12 +100,14 @@ type Config struct {
 	// StatValidity is the validity period of statx result.
 	StatValidity nnduration.Nanoseconds `json:"statValidity,omitempty"`
 
-	payloadHeadroom int
+	payloadHeadroom       int
+	uringCongestionLbound int
+	uringWaitLbound       int
 }
 
 // Validate applies defaults and validates the configuration.
 func (cfg *Config) Validate() error {
-	cfg.NThreads = math.MaxInt(1, cfg.NThreads)
+	cfg.NThreads = mathpkg.MaxInt(1, cfg.NThreads)
 
 	cfg.RxQueue.DisableCoDel = true
 
@@ -117,7 +135,9 @@ func (cfg *Config) Validate() error {
 		return fmt.Errorf("segmentLen out of range [%d:%d]", MinSegmentLen, MaxSegmentLen)
 	}
 
-	cfg.UringCapacity = ringbuffer.AlignCapacity(cfg.UringCapacity, MinUringCapacity, DefaultUringCapacity)
+	cfg.UringCapacity = ringbuffer.AlignCapacity(cfg.UringCapacity, MinUringCapacity, DefaultUringCapacity, MaxUringCapacity)
+	cfg.uringCongestionLbound = cfg.adjustUringThres(&cfg.UringCongestionThres, DefaultUringCongestionThres)
+	cfg.uringWaitLbound = cfg.adjustUringThres(&cfg.UringWaitThres, DefaultUringWaitThres)
 
 	if cfg.OpenFds == 0 {
 		cfg.OpenFds = DefaultOpenFds
@@ -140,6 +160,14 @@ func (cfg *Config) Validate() error {
 	return nil
 }
 
+func (cfg Config) adjustUringThres(thres *float64, dflt float64) (lbound int) {
+	if math.IsNaN(*thres) || *thres <= 0.0 || *thres >= 1.0 {
+		*thres = dflt
+	}
+	lbound = int(float64(cfg.UringCapacity) * (*thres))
+	return mathpkg.Min(mathpkg.Max(iface.MaxBurstSize, lbound), cfg.UringCapacity-iface.MaxBurstSize)
+}
+
 func (cfg *Config) checkPayloadMempool(segmentLen int) error {
 	tpl := ndni.PayloadMempool.Config()
 
@@ -158,7 +186,7 @@ func (cfg *Config) checkPayloadMempool(segmentLen int) error {
 	}
 
 	suggest := pktmbuf.DefaultHeadroom + ndni.NameMaxLength +
-		math.MaxInt(segmentLen, ndni.NameMaxLength+EstimatedMetadataSize) + ndni.DataEncNullSigLen + 64
+		mathpkg.MaxInt(segmentLen, ndni.NameMaxLength+EstimatedMetadataSize) + ndni.DataEncNullSigLen + 64
 	if tpl.Dataroom < suggest {
 		logger.Warn("PAYLOAD dataroom too small for configured segmentLen, Interests with long names may be dropped",
 			zap.Int("configured-dataroom", tpl.Dataroom),
@@ -167,7 +195,7 @@ func (cfg *Config) checkPayloadMempool(segmentLen int) error {
 		)
 	}
 
-	cfg.payloadHeadroom = tpl.Dataroom - ndni.DataEncNullSigLen - math.MaxInt(segmentLen, EstimatedMetadataSize)
+	cfg.payloadHeadroom = tpl.Dataroom - ndni.DataEncNullSigLen - mathpkg.MaxInt(segmentLen, EstimatedMetadataSize)
 	if cfg.payloadHeadroom < pktmbuf.DefaultHeadroom {
 		return fmt.Errorf("PAYLOAD dataroom %d too small for segmentLen %d; increase PAYLOAD dataroom to %d",
 			tpl.Dataroom, segmentLen, suggest)

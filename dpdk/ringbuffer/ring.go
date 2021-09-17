@@ -10,9 +10,48 @@ import (
 	"unsafe"
 
 	binutils "github.com/jfoster/binary-utilities"
+	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
+
+// Limits and defaults.
+const (
+	MinCapacity     = 4
+	MaxCapacity     = (C.RTE_RING_SZ_MASK + 1) / 2
+	DefaultCapacity = 256
+)
+
+// AlignCapacity adjusts Ring capacity to a power of two between minimum and maximum.
+// Optional arguments: minimum capacity, default capacity, maximum capacity.
+// Default capacity is used if input is zero.
+func AlignCapacity(capacity int, opts ...int) int {
+	min, dflt, max := MinCapacity, DefaultCapacity, MaxCapacity
+	switch len(opts) {
+	case 0:
+	case 1:
+		min, dflt = opts[0], opts[0]
+	case 2:
+		min, dflt = opts[0], opts[1]
+	case 3:
+		min, dflt, max = opts[0], opts[1], opts[2]
+	default:
+		panic("unexpected opts count")
+	}
+	if dflt < min || dflt > max ||
+		binutils.NextPowerOfTwo(int64(min)) != int64(min) ||
+		binutils.NextPowerOfTwo(int64(dflt)) != int64(dflt) ||
+		binutils.NextPowerOfTwo(int64(max)) != int64(max) {
+		panic("invalid min, dflt, max")
+	}
+
+	if capacity <= 0 {
+		capacity = dflt
+	} else {
+		capacity = int(binutils.NextPowerOfTwo(int64(capacity)))
+	}
+	return math.MinInt(math.MaxInt(min, capacity), max)
+}
 
 // ProducerMode indicates ring producer synchronization mode.
 type ProducerMode int
@@ -38,21 +77,6 @@ const (
 
 // Ring represents a FIFO ring buffer.
 type Ring C.struct_rte_ring
-
-// New creates a Ring.
-func New(capacity int, socket eal.NumaSocket,
-	producerMode ProducerMode, consumerMode ConsumerMode) (r *Ring, e error) {
-	nameC := C.CString(eal.AllocObjectID("ringbuffer.Ring"))
-	defer C.free(unsafe.Pointer(nameC))
-	capacity = AlignCapacity(capacity, 4, 64)
-	flags := C.uint(producerMode) | C.uint(consumerMode)
-
-	ringC := C.rte_ring_create(nameC, C.uint(capacity), C.int(socket.ID()), flags)
-	if ringC == nil {
-		return nil, eal.GetErrno()
-	}
-	return (*Ring)(ringC), nil
-}
 
 // FromPtr converts *C.struct_rte_ring pointer to Ring.
 func FromPtr(ptr unsafe.Pointer) *Ring {
@@ -107,28 +131,16 @@ func (r *Ring) Dequeue(objs interface{}) (nDequeued int) {
 	return int(C.rte_ring_dequeue_burst(r.ptr(), (*unsafe.Pointer)(ptr), C.uint(count), nil))
 }
 
-// AlignCapacity returns an acceptable capacity for Ring.
-// It takes up to three parameters:
-//   capacity: input capacity
-//   min: minimum capacity; default is 64.
-//   dflt: default capacity, if input is less than minimum; default is same as min.
-//
-// If input capacity is less than minimum, use dflt. Then, adjust to next power of 2.
-func AlignCapacity(capacity int, opts ...int) int {
-	var min, dflt int
-	switch len(opts) {
-	case 0:
-		min, dflt = 64, 64
-	case 1:
-		min, dflt = opts[0], opts[0]
-	case 2:
-		min, dflt = opts[0], opts[1]
-	default:
-		panic("opts")
-	}
+// New creates a Ring.
+func New(capacity int, socket eal.NumaSocket, pm ProducerMode, cm ConsumerMode) (r *Ring, e error) {
+	nameC := C.CString(eal.AllocObjectID("ringbuffer.Ring"))
+	defer C.free(unsafe.Pointer(nameC))
+	capacity = AlignCapacity(capacity)
+	flags := C.uint(pm) | C.uint(cm)
 
-	if capacity < min {
-		capacity = dflt
+	ringC := C.rte_ring_create(nameC, C.uint(capacity), C.int(socket.ID()), flags)
+	if ringC == nil {
+		return nil, eal.GetErrno()
 	}
-	return int(binutils.NextPowerOfTwo(int64(capacity)))
+	return (*Ring)(ringC), nil
 }

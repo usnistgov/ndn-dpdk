@@ -1,4 +1,4 @@
-import type { NNNanoseconds, Uint } from "../core";
+import type { NNNanoseconds, Ratio, Uint } from "../core";
 import type { Name } from "../ndni";
 import type { PktQueueConfig } from "../pktqueue";
 
@@ -12,6 +12,8 @@ export interface FileServerConfig {
   mounts: FileServerMount[];
   segmentLen?: Uint;
   uringCapacity?: Uint;
+  uringCongestionThres?: Ratio;
+  uringWaitThres?: Ratio;
   openFds?: Uint;
   keepFds?: Uint;
   statValidity?: NNNanoseconds;

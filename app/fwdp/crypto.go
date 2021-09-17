@@ -25,7 +25,7 @@ type CryptoConfig struct {
 }
 
 func (cfg *CryptoConfig) applyDefaults() {
-	cfg.InputCapacity = ringbuffer.AlignCapacity(cfg.InputCapacity, 63)
+	cfg.InputCapacity = ringbuffer.AlignCapacity(cfg.InputCapacity, iface.MaxBurstSize)
 	if cfg.OpPoolCapacity <= 0 {
 		cfg.OpPoolCapacity = 1023
 	}
