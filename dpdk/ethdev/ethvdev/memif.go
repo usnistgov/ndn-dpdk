@@ -18,7 +18,7 @@ import (
 
 const memifChownDeadline = 5 * time.Second
 
-var memifCoexist = make(memiftransport.CoexistMap)
+var memifCoexist = memiftransport.NewCoexistMap()
 
 // NewMemif creates a net_memif device.
 func NewMemif(loc memiftransport.Locator) (ethdev.EthDev, error) {
@@ -30,7 +30,8 @@ func NewMemif(loc memiftransport.Locator) (ethdev.EthDev, error) {
 	if e := memifCoexist.Check(loc); e != nil {
 		return nil, e
 	}
-	memifCheckSocket(loc.Role, loc.SocketName)
+	isFirst := !memifCoexist.Has(loc.SocketName)
+	memifCheckSocket(loc.Role, loc.SocketName, isFirst)
 
 	name := "net_memif" + eal.AllocObjectID("ethvdev.Memif")
 	dev, e := New(name, args, eal.NumaSocket{})
@@ -38,34 +39,48 @@ func NewMemif(loc memiftransport.Locator) (ethdev.EthDev, error) {
 		return nil, fmt.Errorf("ethvdev.New %w", e)
 	}
 
-	chownTimeout, chownCancel := context.WithTimeout(context.TODO(), memifChownDeadline)
-	if _, ok := memifCoexist[loc.SocketName]; !ok && loc.SocketOwner != nil {
-		go memifChown(chownTimeout, chownCancel, loc.SocketName, *loc.SocketOwner)
-	} else {
-		chownCancel()
+	var chownCancel context.CancelFunc
+	if isFirst && loc.Role == memiftransport.RoleServer && loc.SocketOwner != nil {
+		timeout, cancel := context.WithTimeout(context.TODO(), memifChownDeadline)
+		go memifChown(timeout, cancel, loc.SocketName, *loc.SocketOwner)
+		chownCancel = cancel
 	}
 
 	memifCoexist.Add(loc)
 	ethdev.OnDetach(dev, func() {
-		chownCancel()
+		if chownCancel != nil {
+			chownCancel()
+		}
 		memifCoexist.Remove(loc)
 	})
 	return dev, nil
 }
 
-func memifCheckSocket(role memiftransport.Role, socketName string) {
-	logEntry := logger.With(zap.String("socketName", socketName))
-	st, e := os.Stat(socketName)
+func memifCheckSocket(role memiftransport.Role, socketName string, isFirst bool) {
+	logEntry := logger.With(
+		zap.String("role", string(role)),
+		zap.String("socketName", socketName),
+		zap.Bool("isFirst", isFirst),
+	)
+
+	st, ste := os.Stat(socketName)
 	switch role {
 	case memiftransport.RoleServer:
-		if e := os.MkdirAll(path.Dir(socketName), 0777); e != nil {
-			logEntry.Warn("cannot create directory containing socket file", zap.Error(e))
-		}
-		if e == nil && st.Mode().Type()&os.ModeSocket == 0 {
-			logEntry.Warn("socket file already exists but it is not a Unix socket; if ethdev creation fails, delete the socket file")
+		if isFirst {
+			if ste == nil {
+				if e := os.Remove(socketName); e != nil {
+					logEntry.Warn("cannot delete dangling socket file; if ethdev creation fails, manually delete the socket file", zap.Error(e))
+				} else {
+					logEntry.Info("deleted dangling socket file")
+				}
+			} else if e := os.MkdirAll(path.Dir(socketName), 0777); e != nil {
+				logEntry.Warn("cannot create directory containing socket file", zap.Error(e))
+			}
+		} else if ste == nil && st.Mode().Type()&os.ModeSocket == 0 {
+			logEntry.Warn("socket file exists but it is not a Unix socket; if ethdev creation fails, manually delete the socket file")
 		}
 	case memiftransport.RoleClient:
-		if e != nil || st.Mode().Type()&os.ModeSocket == 0 {
+		if ste != nil || st.Mode().Type()&os.ModeSocket == 0 {
 			logEntry.Warn("socket file does not exist or it is not a Unix socket; if ethdev creation fails, ensure the memif server is running")
 		}
 	}

@@ -13,7 +13,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 )
 
-var handleCoexist = make(CoexistMap)
+var handleCoexist = NewCoexistMap()
 
 func (loc *Locator) toArguments() (a *memif.Arguments, e error) {
 	if e := loc.Validate(); e != nil {

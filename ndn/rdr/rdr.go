@@ -5,6 +5,7 @@ package rdr
 import (
 	"context"
 	"encoding"
+	"errors"
 	"fmt"
 
 	"github.com/usnistgov/ndn-dpdk/ndn"
@@ -96,6 +97,9 @@ func (m *Metadata) Decode(value []byte, extensions MetadataDecoderMap) error {
 		if e := f(de); e != nil {
 			return fmt.Errorf("TLV-TYPE 0x%02x: %w", de.Type, e)
 		}
+	}
+	if !hasName {
+		return errors.New("missing Name in RDR metadata")
 	}
 	return d.ErrUnlessEOF()
 }
