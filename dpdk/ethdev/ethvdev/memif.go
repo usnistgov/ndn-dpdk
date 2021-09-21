@@ -71,7 +71,7 @@ func memifCheckSocket(role memiftransport.Role, socketName string, isFirst bool)
 				if e := os.Remove(socketName); e != nil {
 					logEntry.Warn("cannot delete dangling socket file; if ethdev creation fails, manually delete the socket file", zap.Error(e))
 				} else {
-					logEntry.Info("deleted dangling socket file")
+					logEntry.Debug("deleted dangling socket file")
 				}
 			} else if e := os.MkdirAll(path.Dir(socketName), 0777); e != nil {
 				logEntry.Warn("cannot create directory containing socket file", zap.Error(e))

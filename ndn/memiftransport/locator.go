@@ -140,7 +140,7 @@ func (loc *Locator) ToVDevArgs() (args map[string]interface{}, e error) {
 		"rsize":           loc.rsize(),
 		"socket":          loc.SocketName,
 		"socket-abstract": "no",
-		"mac":             "F2:6D:65:6D:69:66", // F2:memif
+		"mac":             "F2:6D:65:6D:69:66", // F2:"memif"
 	}, nil
 }
 

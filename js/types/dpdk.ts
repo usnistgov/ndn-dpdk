@@ -12,8 +12,8 @@ type EalLCoreConfig = {
 type EalMemoryConfig = {
   memChannels?: Uint;
   memPerNuma?: QuantityPerNumaSocket;
+  preallocateMem?: boolean;
   filePrefix?: string;
-  disableHugeUnlink?: boolean;
 } | {
   memFlags?: string;
 };
