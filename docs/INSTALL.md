@@ -100,8 +100,8 @@ For example:
 You can change compile-time settings by setting these environment variables:
 
 * `NDNDPDK_MK_RELEASE=1` selects release mode that disables assertions and verbose logging in C code.
-* `NDNDPDK_MK_THREADSLEEP=1` inserts `nanosleep(1ns)` to each thread.
-  This reduces performance significantly, but is occasionally useful when running on a machine with fewer CPU cores.
+* `NDNDPDK_MK_THREADSLEEP=1` causes a polling thread to sleep for a short duration if it processed zero packets in a loop iteration.
+  This reduces CPU utilization when running on a machine with fewer CPU cores, but may negatively impact performance.
 * C code (except eBPF) is compiled with `gcc` by default; you can override this by setting the `CC` environment variable.
 * eBPF programs are compiled with `clang-11` by default; you can override this by setting the `BPFCC` environment variable.
 

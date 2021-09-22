@@ -12,6 +12,7 @@ type LoadStat struct {
 	Items uint64 `json:"items"`
 
 	// ItemsPerPoll is average number of processed items per valid poll.
+	// This is only available from Sub() return value.
 	ItemsPerPoll float64 `json:"itemsPerPoll,omitempty"`
 }
 

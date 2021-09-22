@@ -5,6 +5,11 @@ package spdkenv
 
 // workaround gopls "compiler(InvalidCall)" false positive
 int c_SpdkThread_Run(SpdkThread* th) { return SpdkThread_Run(th); }
+
+int c_spdk_thread_send_msg(const struct spdk_thread* th, spdk_msg_fn fn, uintptr_t ctx)
+{
+	return spdk_thread_send_msg(th, fn, (void*)ctx);
+}
 */
 import "C"
 import (
@@ -28,36 +33,10 @@ type Thread struct {
 	RcuReadSide *urcu.ReadSide
 }
 
-var _ eal.PollThread = (*Thread)(nil)
-var _ ealthread.ThreadWithRole = (*Thread)(nil)
-
-// NewThread creates an SPDK thread.
-// The caller needs to assigned it a DPDK lcore and launch it.
-func NewThread() (*Thread, error) {
-	threadLibInitOnce.Do(func() {
-		if res := C.spdk_thread_lib_init(nil, 0); res != 0 {
-			logger.Fatal("spdk_thread_lib_init error",
-				zap.Error(eal.Errno(-res)),
-			)
-		}
-	})
-
-	spdkThread := C.spdk_thread_create(nil, nil)
-	if spdkThread == nil {
-		return nil, errors.New("spdk_thread_create error")
-	}
-
-	th := &Thread{
-		c:           (*C.SpdkThread)(eal.Zmalloc("SpdkThread", C.sizeof_SpdkThread, eal.NumaSocket{})),
-		RcuReadSide: &urcu.ReadSide{IsOnline: true},
-	}
-	th.c.spdkTh = spdkThread
-	th.ThreadWithCtrl = ealthread.NewThreadWithCtrl(
-		cptr.Func0.C(C.SpdkThread_Run, unsafe.Pointer(th.c)),
-		unsafe.Pointer(&th.c.ctrl),
-	)
-	return th, nil
-}
+var (
+	_ eal.PollThread           = (*Thread)(nil)
+	_ ealthread.ThreadWithRole = (*Thread)(nil)
+)
 
 // ThreadRole returns "SPDK" used in lcore allocator.
 func (th *Thread) ThreadRole() string {
@@ -83,5 +62,31 @@ func (th *Thread) main() {
 // Post asynchronously posts a function to be executed on the SPDK thread.
 func (th *Thread) Post(fn cptr.Function) {
 	f, ctx := cptr.Func0.CallbackOnce(fn)
-	C.spdk_thread_send_msg(th.c.spdkTh, C.spdk_msg_fn(f), unsafe.Pointer(ctx))
+	C.c_spdk_thread_send_msg(th.c.spdkTh, C.spdk_msg_fn(f), C.uintptr_t(ctx))
+}
+
+// NewThread creates an SPDK thread.
+// The caller needs to assigned it a DPDK lcore and launch it.
+func NewThread() (*Thread, error) {
+	threadLibInitOnce.Do(func() {
+		if res := C.spdk_thread_lib_init(nil, 0); res != 0 {
+			logger.Fatal("spdk_thread_lib_init error", zap.Error(eal.MakeErrno(res)))
+		}
+	})
+
+	spdkThread := C.spdk_thread_create(nil, nil)
+	if spdkThread == nil {
+		return nil, errors.New("spdk_thread_create error")
+	}
+
+	th := &Thread{
+		c:           (*C.SpdkThread)(eal.Zmalloc("SpdkThread", C.sizeof_SpdkThread, eal.NumaSocket{})),
+		RcuReadSide: &urcu.ReadSide{IsOnline: true},
+	}
+	th.c.spdkTh = spdkThread
+	th.ThreadWithCtrl = ealthread.NewThreadWithCtrl(
+		cptr.Func0.C(C.SpdkThread_Run, unsafe.Pointer(th.c)),
+		unsafe.Pointer(&th.c.ctrl),
+	)
+	return th, nil
 }
