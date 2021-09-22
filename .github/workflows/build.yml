@@ -69,13 +69,6 @@ jobs:
           make
         env:
           NDNDPDK_MK_THREADSLEEP: 1
-      - name: check code style
-        run: |
-          go get -t ./...
-          make lint
-          if [[ $(git status --porcelain | tee /dev/stderr | wc -l) -ne 0 ]]; then
-            git diff && false
-          fi
       - name: run unit tests
         run: |
           MK_GOTEST_FILTER="/${TEST_ACCEPTABLE_FAILURES}/ d" make test
@@ -83,6 +76,10 @@ jobs:
         env:
           TEST_ACCEPTABLE_FAILURES: bdev|diskstore|ethface|fetch|fileserver|fwdp|memiftransport|tgconsumer|tgproducer
           NDNDPDK_MK_THREADSLEEP: 1
+      - name: check code style
+        run: |
+          make lint
+          git diff --exit-code
       - name: build docs
         run: make doxygen
         if: ${{ matrix.compiler == 'gcc-10' && (github.repository != 'yoursunny/ndn-dpdk' || github.event_name != 'push') }}
@@ -118,7 +115,7 @@ jobs:
           sudo dpkg -i tinygo_${TINYGO_VERSION}_amd64.deb
         working-directory: /tmp
         env:
-          TINYGO_VERSION: "0.19.0"
+          TINYGO_VERSION: "0.20.0"
       - uses: actions/checkout@v2
       - name: build for Linux without cgo
         run: |
@@ -135,5 +132,4 @@ jobs:
           GOOS: windows
       - name: build with TinyGo
         run: |
-          tinygo build -o /dev/null -target=wasm ./ndn/ndntestenv/tiny || true
-          # 2021-08-17 allow failure due to https://github.com/tinygo-org/tinygo/issues/2054
+          tinygo build -o /dev/null -target=wasm ./ndn/ndntestenv/tiny

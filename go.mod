@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/EGT-Ukraine/go2gql v0.0.0-20190528134259-79533208556f
 	github.com/FDio/vpp v1.0.1-0.20210630131113-fc83f8cc67e6
-	github.com/bhoriuchi/graphql-go-tools v0.3.0
+	github.com/bhoriuchi/graphql-go-tools v0.3.1
 	github.com/c9s/goprocinfo v0.0.0-20210130143923-c95fcf8c64a8
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/functionalfoundry/graphqlws v0.0.0-20200611113535-7bc58903ce7b
@@ -22,7 +22,7 @@ require (
 	github.com/peterbourgon/mergemap v0.0.0-20130613134717-e21c03b7a721
 	github.com/pkg/math v0.0.0-20141027224758-f2ed9e40e245
 	github.com/powerman/rpc-codec v1.2.2
-	github.com/rickb777/plural v1.4.0
+	github.com/rickb777/plural v1.4.1
 	github.com/safchain/ethtool v0.0.0-20210803160452-9aa261dae9b1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/soh335/sliceflag v0.0.0-20160923061056-d2d28a5acab8
@@ -34,7 +34,7 @@ require (
 	go.uber.org/multierr v1.7.0
 	go.uber.org/zap v1.19.1
 	go4.org v0.0.0-20201209231011-d4a079459e60
-	golang.org/x/sys v0.0.0-20210909193231-528a39cd75f3
+	golang.org/x/sys v0.0.0-20210921065528-437939a70204
 	inet.af/netaddr v0.0.0-20210903134321-85fa6c94624e
 )
 
@@ -45,7 +45,7 @@ require (
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/matryer/is v1.4.0 // indirect
-	github.com/mattn/go-colorable v0.1.8 // indirect
+	github.com/mattn/go-colorable v0.1.9 // indirect
 	github.com/mattn/go-isatty v0.0.12 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/onsi/ginkgo v1.16.4 // indirect
