@@ -66,20 +66,24 @@ func memifCheckSocket(role memiftransport.Role, socketName string, isFirst bool)
 	st, ste := os.Stat(socketName)
 	switch role {
 	case memiftransport.RoleServer:
-		if isFirst {
-			if ste == nil {
+		if isFirst { // first interface: socket should not exist, directory should exist
+			switch {
+			case ste != nil: // socket does not exist, directory may or may not exist
+				if e := os.MkdirAll(path.Dir(socketName), 0777); e != nil {
+					logEntry.Warn("cannot create directory containing socket file", zap.Error(e))
+				}
+			case st.Mode().Type()&os.ModeSocket != 0: // socket exist
 				if e := os.Remove(socketName); e != nil {
 					logEntry.Warn("cannot delete dangling socket file; if ethdev creation fails, manually delete the socket file", zap.Error(e))
 				} else {
 					logEntry.Debug("deleted dangling socket file")
 				}
-			} else if e := os.MkdirAll(path.Dir(socketName), 0777); e != nil {
-				logEntry.Warn("cannot create directory containing socket file", zap.Error(e))
+			default: // file exist but not a socket
+				logEntry.Warn("file exists but is not a socket; if ethdev creation fails, manually delete the socket file")
 			}
-		} else if ste == nil && st.Mode().Type()&os.ModeSocket == 0 {
-			logEntry.Warn("socket file exists but it is not a Unix socket; if ethdev creation fails, manually delete the socket file")
 		}
-	case memiftransport.RoleClient:
+		// not checking for non-first interface: if there's a problem, first interface should fail to create
+	case memiftransport.RoleClient: // socket should exist
 		if ste != nil || st.Mode().Type()&os.ModeSocket == 0 {
 			logEntry.Warn("socket file does not exist or it is not a Unix socket; if ethdev creation fails, ensure the memif server is running")
 		}
