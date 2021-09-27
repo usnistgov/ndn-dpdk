@@ -80,7 +80,7 @@ func (th *Thread) main() {
 	C.c_SpdkThread_Run(th.c)
 }
 
-// Post asynchronously posts a function to be executed on the SPDK thread.
+// Post asynchronously posts a function to be run on the SPDK thread.
 func (th *Thread) Post(fn cptr.Function) {
 	f, ctx := cptr.Func0.CallbackOnce(fn)
 	C.spdk_thread_send_msg(th.c.spdkTh, C.spdk_msg_fn(f), unsafe.Pointer(ctx))

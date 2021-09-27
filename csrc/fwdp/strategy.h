@@ -17,7 +17,7 @@ SgTriggerTimer(Pit* pit, PitEntry* pitEntry, void* fwd0);
 static inline uint64_t
 SgInvoke(StrategyCode* strategy, FwFwdCtx* ctx)
 {
-  return StrategyCode_Execute(strategy, ctx, sizeof(SgCtx));
+  return StrategyCode_Run(strategy, ctx, sizeof(SgCtx));
 }
 
 #endif // NDNDPDK_FWDP_STRATEGY_H

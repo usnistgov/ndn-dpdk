@@ -52,7 +52,7 @@ func (c *Client) Close() error {
 	return nil
 }
 
-// Do executes a query or mutation on the GraphQL server.
+// Do runs a query or mutation on the GraphQL server.
 //  ctx: a Context for canceling the operation.
 //  query: a GraphQL document.
 //  vars: query variables.
@@ -78,7 +78,7 @@ func (c *Client) Do(ctx context.Context, query string, vars map[string]interface
 	return parseResultData(response, key, res)
 }
 
-// Subscribe executes a subscription on the GraphQL server.
+// Subscribe performs a subscription on the GraphQL server.
 //  ctx: a Context for canceling the subscription.
 //  query: a GraphQL document.
 //  vars: query variables.

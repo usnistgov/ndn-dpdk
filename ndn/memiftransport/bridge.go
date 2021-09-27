@@ -13,7 +13,7 @@ import (
 // The memifs can operate in either server or client mode.
 //
 // This is mainly useful for unit testing.
-// It is impossible to run both memif peers in the same process, so the test program should execute this bridge in a separate process.
+// It is impossible to run both memif peers in the same process, so the test program should run this bridge in a separate process.
 type Bridge struct {
 	hdlA    *handle
 	hdlB    *handle

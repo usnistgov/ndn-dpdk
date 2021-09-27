@@ -1,5 +1,5 @@
-// Command ndndpdk-svc executes the NDN-DPDK service.
-// It may be activated as a forwarder or a traffic generator.
+// Command ndndpdk-svc runs the NDN-DPDK service.
+// It may be activated as a forwarder, a traffic generator, or a file server.
 package main
 
 import (

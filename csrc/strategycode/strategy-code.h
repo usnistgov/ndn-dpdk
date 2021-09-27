@@ -15,16 +15,16 @@ typedef struct StrategyCode
   struct rte_bpf* bpf;  ///< BPF execution context
   StrategyCodeFunc jit; ///< JIT-compiled strategy function
   int id;               ///< identifier
-  atomic_int nRefs;     ///< how many FibEntry* references this
+  atomic_int nRefs;     ///< how many FibEntry* reference this
 } StrategyCode;
 
 /**
- * @brief Execute strategy BPF program.
+ * @brief Run the strategy's BPF program.
  * @param arg argument to BPF program.
  * @param sizeofArg sizeof(*arg)
  */
 static inline uint64_t
-StrategyCode_Execute(StrategyCode* sc, void* arg, size_t sizeofArg)
+StrategyCode_Run(StrategyCode* sc, void* arg, size_t sizeofArg)
 {
   return (*sc->jit)(arg, sizeofArg);
 }

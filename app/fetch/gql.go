@@ -43,7 +43,7 @@ func init() {
 
 	gqlserver.AddMutation(&graphql.Field{
 		Name:        "runFetchBenchmark",
-		Description: "Execute a fetcher benchmark.",
+		Description: "Run a fetcher benchmark.",
 		Args: graphql.FieldConfigArgument{
 			"fetcher": &graphql.ArgumentConfig{
 				Description: "Fetcher ID.",
