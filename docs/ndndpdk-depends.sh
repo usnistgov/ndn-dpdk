@@ -38,11 +38,11 @@ DFLT_NODEVER=16.x
 DFLT_GOVER=latest
 DFLT_UBPFVER=HEAD
 DFLT_LIBBPFVER=v0.5.0
+DFLT_URINGVER=liburing-2.1
 DFLT_DPDKVER=21.08
 DFLT_DPDKPATCH=18798
 DFLT_KMODSVER=HEAD
 DFLT_SPDKVER=21.07
-DFLT_URINGVER=liburing-2.1
 DFLT_NJOBS=$(nproc)
 DFLT_TARGETARCH=native
 
@@ -59,11 +59,11 @@ NODEVER=$DFLT_NODEVER
 GOVER=$DFLT_GOVER
 UBPFVER=$DFLT_UBPFVER
 LIBBPFVER=$DFLT_LIBBPFVER
+URINGVER=$DFLT_URINGVER
 DPDKVER=$DFLT_DPDKVER
 DPDKPATCH=$DFLT_DPDKPATCH
 KMODSVER=$DFLT_KMODSVER
 SPDKVER=$DFLT_SPDKVER
-URINGVER=$DFLT_URINGVER
 NJOBS=$DFLT_NJOBS
 TARGETARCH=$DFLT_TARGETARCH
 
@@ -78,11 +78,11 @@ while true; do
     (--go) GOVER=$2; shift 2;;
     (--ubpf) UBPFVER=$2; shift 2;;
     (--libbpf) LIBBPFVER=$2; shift 2;;
+    (--uring) URINGVER=$2; shift 2;;
     (--dpdk) DPDKVER=$2; DPDKPATCH=''; shift 2;;
     (--dpdk-patch) DPDKPATCH=$2; shift 2;;
     (--kmods) KMODSVER=$2; shift 2;;
     (--spdk) SPDKVER=$2; shift 2;;
-    (--uring) URINGVER=$2; shift 2;;
     (--jobs) NJOBS=$2; shift 2;;
     (--arch) TARGETARCH=$2; shift 2;;
     (--) shift; break;;
@@ -105,6 +105,8 @@ ndndpdk-depends.sh ...ARGS
       Set uBPF branch or commit SHA. '0' to skip.
   --libbpf=${DFLT_LIBBPFVER}
       Set libbpf branch or commit SHA. '0' to skip.
+  --uring=${DFLT_URINGVER}
+      Set liburing version. '0' to skip.
   --dpdk=${DFLT_DPDKVER}
       Set DPDK version. '0' to skip.
   --dpdk-patch=${DFLT_DPDKPATCH}
@@ -113,8 +115,6 @@ ndndpdk-depends.sh ...ARGS
       Set DPDK kernel modules branch or commit SHA. '0' to skip.
   --spdk=${DFLT_SPDKVER}
       Set SPDK version. '0' to skip.
-  --uring=${DFLT_URINGVER}
-      Set liburing version. '0' to skip.
   --jobs=${DFLT_NJOBS}
       Set number of parallel jobs.
   --arch=${DFLT_TARGETARCH}
@@ -251,9 +251,16 @@ if [[ $LIBBPFVER != '0' ]]; then
   echo "Will install libbpf ${LIBBPFVER}"
 fi
 
+if [[ $URINGVER != '0' ]]; then
+  URINGVER=$(github_resolve_commit $URINGVER axboe/liburing)
+  echo "Will install liburing ${URINGVER}"
+elif ! pkg-config liburing; then
+  echo '--uring=0 specified but liburing is not found, which may cause build errors'
+fi
+
 if [[ $DPDKVER != '0' ]]; then
   echo "Will install DPDK ${DPDKVER} for ${TARGETARCH} architecture"
-  echo -n $DPDKPATCH | xargs -d, -L1 --no-run-if-empty -I{} echo 'Will patch DPDK with https://patches.dpdk.org/series/{}/mbox/'
+  echo -n $DPDKPATCH | xargs -d, --no-run-if-empty -I{} echo 'Will patch DPDK with https://patches.dpdk.org/series/{}/mbox/'
 elif ! pkg-config libdpdk; then
   echo '--dpdk=0 specified but DPDK is not found, which may cause build errors'
 fi
@@ -267,13 +274,6 @@ if [[ $SPDKVER != '0' ]]; then
   echo "Will install SPDK ${SPDKVER} for ${TARGETARCH} architecture"
 elif ! pkg-config spdk_thread; then
   echo '--spdk=0 specified but SPDK is not found, which may cause build errors'
-fi
-
-if [[ $URINGVER != '0' ]]; then
-  URINGVER=$(github_resolve_commit $URINGVER axboe/liburing)
-  echo "Will install liburing ${URINGVER}"
-elif ! pkg-config liburing; then
-  echo '--uring=0 specified but liburing is not found, which may cause build errors'
 fi
 
 echo "Will compile with ${NJOBS} parallel jobs"
@@ -350,12 +350,27 @@ if [[ $LIBBPFVER != '0' ]]; then
   $SUDO ldconfig
 fi
 
+if [[ $URINGVER != '0' ]]; then
+  URINGVER=$(github_resolve_commit $URINGVER axboe/liburing)
+  cd $CODEROOT
+  rm -rf liburing-${URINGVER}
+  curl -sfL ${NDNDPDK_DL_GITHUB}/axboe/liburing/archive/${URINGVER}.tar.gz | tar -xz
+  cd liburing-${URINGVER}
+  ./configure --prefix=/usr/local
+  make
+  $SUDO find /usr/local/lib -name 'liburing.*' -delete
+  $SUDO find /usr/local/share/man -name 'io_uring*' -delete
+  $SUDO rm -rf /usr/local/include/liburing /usr/local/include/liburing.h
+  $SUDO make install
+  $SUDO ldconfig
+fi
+
 if [[ $DPDKVER != '0' ]]; then
   cd $CODEROOT
   rm -rf dpdk-${DPDKVER}
   curl -sfL ${NDNDPDK_DL_DPDK_FAST}/rel/dpdk-${DPDKVER}.tar.xz | tar -xJ
   cd dpdk-${DPDKVER}
-  echo -n $DPDKPATCH | xargs -d, -L1 --no-run-if-empty -I{} sh -c 'curl -sL https://patches.dpdk.org/series/{}/mbox/ | patch -p1'
+  echo -n $DPDKPATCH | xargs -d, --no-run-if-empty -I{} sh -c 'curl -sL https://patches.dpdk.org/series/{}/mbox/ | patch -p1'
   meson -Ddebug=true -Doptimization=3 -Dmachine=${TARGETARCH} -Dtests=false --libdir=lib build
   cd build
   ninja -j${NJOBS}
@@ -392,21 +407,6 @@ if [[ $SPDKVER != '0' ]]; then
   $SUDO find /usr/local/lib -name 'libspdk_*' -delete
   $SUDO make install
   $SUDO find /usr/local/lib -name 'libspdk_*.a' -delete
-  $SUDO ldconfig
-fi
-
-if [[ $URINGVER != '0' ]]; then
-  URINGVER=$(github_resolve_commit $URINGVER axboe/liburing)
-  cd $CODEROOT
-  rm -rf liburing-${URINGVER}
-  curl -sfL ${NDNDPDK_DL_GITHUB}/axboe/liburing/archive/${URINGVER}.tar.gz | tar -xz
-  cd liburing-${URINGVER}
-  ./configure --prefix=/usr/local
-  make
-  $SUDO find /usr/local/lib -name 'liburing.*' -delete
-  $SUDO find /usr/local/share/man -name 'io_uring*' -delete
-  $SUDO rm -rf /usr/local/include/liburing /usr/local/include/liburing.h
-  $SUDO make install
   $SUDO ldconfig
 fi
 

@@ -1,4 +1,4 @@
-FROM ubuntu:focal AS build
+FROM debian:bullseye AS build
 ARG APT_PKGS=
 ARG DEPENDS_ENV=
 ARG DEPENDS_ARGS=
@@ -39,7 +39,7 @@ RUN rm -rf \
       dpkg-query -S "$F" 2>/dev/null || dpkg-query -S $(readlink -f "$F") 2>/dev/null || true; \
     done < /libs.txt | cut -d: -f1 | sort -u > /pkgs.txt
 
-FROM ubuntu:focal
+FROM debian:bullseye
 COPY --from=build /pkgs.txt /
 RUN apt-get -y -qq update && \
     apt-get -y -qq install --no-install-recommends iproute2 jq $(cat /pkgs.txt) && \
