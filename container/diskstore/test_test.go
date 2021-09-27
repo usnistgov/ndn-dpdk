@@ -1,7 +1,6 @@
 package diskstore_test
 
 import (
-	"os"
 	"testing"
 
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
@@ -15,7 +14,7 @@ import (
 func TestMain(m *testing.M) {
 	ealtestenv.Init()
 	packetPool = ndni.PacketMempool.Get(eal.NumaSocket{})
-	os.Exit(m.Run())
+	testenv.Exit(m.Run())
 }
 
 var (

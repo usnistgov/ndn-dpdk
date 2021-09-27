@@ -5,9 +5,11 @@
 
 #include "common.h"
 
-#ifdef N_LOG_LEVEL
 #undef RTE_LOG_DP_LEVEL
+#ifdef N_LOG_LEVEL
 #define RTE_LOG_DP_LEVEL N_LOG_LEVEL
+#else
+#define RTE_LOG_DP_LEVEL RTE_LOG_DEBUG
 #endif
 
 #define N_LOG_INIT(module)                                                                         \

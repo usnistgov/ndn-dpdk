@@ -2,7 +2,6 @@ package cs_test
 
 import (
 	"fmt"
-	"os"
 	"testing"
 	"time"
 
@@ -25,8 +24,7 @@ import (
 
 func TestMain(m *testing.M) {
 	ealtestenv.Init()
-
-	os.Exit(m.Run())
+	testenv.Exit(m.Run())
 }
 
 var (

@@ -10,7 +10,7 @@ You can also [build a Docker container](Docker.md), which would work on other op
 
 * Linux kernel 5.4 or newer (install `linux-image-generic-hwe-18.04` on Ubuntu 18.04)
 * Required APT packages: `build-essential clang-11 git jq libc6-dev-i386 libelf-dev libpcap-dev libssl-dev liburcu-dev ninja-build pkg-config` (enable [llvm-toolchain-bionic-11](https://apt.llvm.org/) repository on Ubuntu 18.04)
-* Optional APT packages: `clang-format-11 doxygen yamllint`
+* Optional APT packages: `clang-format-11 doxygen lcov yamllint`
 * Go 1.17
 * Node.js 16.x
 * [Meson build system](https://mesonbuild.com/Getting-meson.html#installing-meson-with-pip)
@@ -102,6 +102,8 @@ You can change compile-time settings by setting these environment variables:
 * `NDNDPDK_MK_RELEASE=1` selects release mode that disables assertions and verbose logging in C code.
 * `NDNDPDK_MK_THREADSLEEP=1` causes a polling thread to sleep for a short duration if it processed zero packets in a loop iteration.
   This reduces CPU utilization when running on a machine with fewer CPU cores, but may negatively impact performance.
+* `NDNDPDK_MK_COVERAGE=1` enables C code coverage collection.
+  After running unit tests, you can generate coverage report with `make coverage` (requires `lcov` dependency).
 * C code (except eBPF) is compiled with `gcc` by default; you can override this by setting the `CC` environment variable.
 * eBPF programs are compiled with `clang-11` by default; you can override this by setting the `BPFCC` environment variable.
 

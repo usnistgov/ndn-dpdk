@@ -3,7 +3,6 @@ package fwdptest
 import (
 	"crypto/rand"
 	"encoding/binary"
-	"os"
 	"testing"
 
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
@@ -13,12 +12,10 @@ import (
 
 func TestMain(m *testing.M) {
 	ealtestenv.Init()
-	os.Exit(m.Run())
+	testenv.Exit(m.Run())
 }
 
-var (
-	makeAR = testenv.MakeAR
-)
+var makeAR = testenv.MakeAR
 
 var lastTestToken uint32
 

@@ -1,7 +1,6 @@
 package pit_test
 
 import (
-	"os"
 	"testing"
 
 	"github.com/usnistgov/ndn-dpdk/container/fib"
@@ -24,7 +23,7 @@ import (
 func TestMain(m *testing.M) {
 	ealtestenv.Init()
 	pktmbuf.Direct.Update(pktmbuf.PoolConfig{Dataroom: 8000}) // needed for TestEntryLongName
-	os.Exit(m.Run())
+	testenv.Exit(m.Run())
 }
 
 var (

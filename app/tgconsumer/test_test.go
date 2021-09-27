@@ -1,7 +1,6 @@
 package tgconsumer_test
 
 import (
-	"os"
 	"testing"
 
 	"github.com/usnistgov/ndn-dpdk/app/tg/tgtestenv"
@@ -10,7 +9,7 @@ import (
 
 func TestMain(m *testing.M) {
 	tgtestenv.Init()
-	os.Exit(m.Run())
+	testenv.Exit(m.Run())
 }
 
 var makeAR = testenv.MakeAR

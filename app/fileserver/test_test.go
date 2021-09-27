@@ -1,7 +1,6 @@
 package fileserver_test
 
 import (
-	"os"
 	"testing"
 
 	"github.com/usnistgov/ndn-dpdk/app/tg/tgtestenv"
@@ -15,7 +14,7 @@ func TestMain(m *testing.M) {
 	ndni.PayloadMempool.Update(pktmbuf.PoolConfig{
 		Capacity: 4095,
 	})
-	os.Exit(m.Run())
+	testenv.Exit(m.Run())
 }
 
 var makeAR = testenv.MakeAR

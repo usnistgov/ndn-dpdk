@@ -4,7 +4,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"os"
 	"testing"
 	"time"
 
@@ -33,5 +32,5 @@ func TestMain(m *testing.M) {
 		Scheme: "http",
 		Host:   listener.Addr().String(),
 	}).String()
-	os.Exit(m.Run())
+	testenv.Exit(m.Run())
 }

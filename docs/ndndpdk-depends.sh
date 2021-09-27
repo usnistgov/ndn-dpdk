@@ -202,6 +202,7 @@ APT_PKGS=(
   doxygen
   git
   jq
+  lcov
   libaio-dev
   libc6-dev-i386
   libelf-dev

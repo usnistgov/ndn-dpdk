@@ -18,7 +18,7 @@ csrc/meson.build mk/meson.build:
 	mk/update-list.sh
 
 build/build.ninja: csrc/meson.build mk/meson.build
-	bash -c 'source mk/cflags.sh; meson build'
+	bash -c 'source mk/cflags.sh; meson build $$MESONFLAGS'
 
 csrc/dpdk/thread-enum.h: dpdk/ealthread/ctrl.go
 	go generate ./$(<D)
@@ -92,6 +92,10 @@ lint:
 .PHONY: test
 test: godeps
 	mk/gotest.sh
+
+.PHONY: coverage
+coverage:
+	ninja -C build coverage-html
 
 .PHONY: clean
 clean:

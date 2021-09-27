@@ -22,7 +22,7 @@ func TestMain(m *testing.M) {
 		Capacity: 16383,
 	})
 
-	os.Exit(m.Run())
+	testenv.Exit(m.Run())
 }
 
 var (

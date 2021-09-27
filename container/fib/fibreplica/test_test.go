@@ -1,7 +1,6 @@
 package fibreplica_test
 
 import (
-	"os"
 	"testing"
 
 	"github.com/usnistgov/ndn-dpdk/container/fib/fibtestenv"
@@ -11,7 +10,7 @@ import (
 
 func TestMain(m *testing.M) {
 	ealtestenv.Init()
-	os.Exit(m.Run())
+	testenv.Exit(m.Run())
 }
 
 var (

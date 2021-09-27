@@ -1,7 +1,6 @@
 package iface_test
 
 import (
-	"os"
 	"testing"
 
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
@@ -12,7 +11,7 @@ import (
 func TestMain(m *testing.M) {
 	ealtestenv.Init()
 	ifacetestenv.PrepareRxlTxl()
-	os.Exit(m.Run())
+	testenv.Exit(m.Run())
 }
 
 var (
