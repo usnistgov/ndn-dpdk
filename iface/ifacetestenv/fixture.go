@@ -93,7 +93,7 @@ func (fixture *Fixture) Close() error {
 	return nil
 }
 
-// RunTest executes the test.
+// RunTest runs the test.
 func (fixture *Fixture) RunTest(txFace, rxFace iface.Face) {
 	fixture.rxFace = rxFace
 	fixture.txFace = txFace

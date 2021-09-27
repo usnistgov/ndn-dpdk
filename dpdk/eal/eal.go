@@ -68,17 +68,17 @@ func RandomSocket() (socket NumaSocket) {
 	return NumaSocket{}
 }
 
-// PollThread represents a thread that can accept and execute posted functions.
+// PollThread represents a thread that can accept and run posted functions.
 type PollThread interface {
 	Post(fn cptr.Function)
 }
 
-// PostMain asynchronously posts a function to be executed on the main thread.
+// PostMain asynchronously posts a function to be run on the main thread.
 func PostMain(fn cptr.Function) {
 	MainThread.Post(fn)
 }
 
-// CallMain executes a function on the main thread and waits for its completion.
+// CallMain runs a function on the main thread and waits for its completion.
 // f must be a function with zero parameters and zero or one return values.
 // Returns f's return value, or nil if f does not have a return value.
 func CallMain(f interface{}) interface{} {

@@ -108,7 +108,7 @@ func (w *Writer) loop() {
 			continue
 		}
 		logger.Info("writer open", zap.String("filename", task.cfg.Filename))
-		task.execute(capacity)
+		task.run(capacity)
 		logger.Info("writer close", zap.String("filename", task.cfg.Filename))
 	}
 	logger.Info("writer shutdown")
@@ -136,7 +136,7 @@ type writerTask struct {
 	finish chan bool
 }
 
-func (task *writerTask) execute(nSkip int) {
+func (task *writerTask) run(nSkip int) {
 	c := (*C.HrlogWriter)(eal.Zmalloc("HrlogWriter", C.sizeof_HrlogWriter, eal.NumaSocket{}))
 	*c = C.HrlogWriter{
 		filename: C.CString(task.cfg.Filename),

@@ -23,7 +23,7 @@ Go bindings are object-oriented when possible.
 
 ## Other Go Types and Functions
 
-**ealthread.Thread** abstracts a thread that can be executed on an LCore and controls its lifetime.
+**ealthread.Thread** abstracts a thread that can be run on an LCore and controls its lifetime.
 
 **ealthread.Allocator** provides an LCore allocator.
 It allows a program to reserve a number of LCores for each "role", and then obtain a NUMA-local LCore reserved for a certain role when needed.
@@ -46,8 +46,8 @@ They can be used in unit tests to simulate links.
 
 Certain DPDK library functions must run on the initial lcore; certain SPDK library functions must run on an SPDK thread.
 To satisfy both requirements, package `ealinit` creates and launches a main thread on the initial lcore.
-This thread is initialized as an SPDK thread, and is also registered as a [URCU](../core/urcu) read-side thread.
-Most operations invoked via the Go API are executed on this thread.
+This thread is initialized as an SPDK thread and is also registered as a [URCU](../core/urcu) read-side thread.
+Most operations invoked via the Go API run on this thread.
 
 ## SPDK Internal RPC Client
 

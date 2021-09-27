@@ -20,7 +20,7 @@ Supported commands include:
 The FIB uses the [fibtree](./fibtree) package to organize FIB entries in a name hierarchy.
 Read commands are fulfilled in this tree.
 
-Update commands are executed, sequentially, in these steps:
+Update commands are carried out, sequentially, in these steps:
 
 1. Validate command parameters.
 2. Apply the update to the tree, which determines what should be inserted and deleted in every replica.

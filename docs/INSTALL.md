@@ -22,13 +22,13 @@ You can also [build a Docker container](Docker.md), which would work on other op
 * [godoc](https://pkg.go.dev/golang.org/x/tools/cmd/godoc) and [staticcheck](https://pkg.go.dev/honnef.co/go/tools/cmd/staticcheck) commands (optional)
 * [gq](https://www.npmjs.com/package/graphqurl) command (optional, only used in sample commands)
 
-You can execute the [ndndpdk-depends.sh](ndndpdk-depends.sh) script to install these dependencies, or refer to this script for the specific configuration options.
+You can run the [ndndpdk-depends.sh](ndndpdk-depends.sh) script to install these dependencies, or refer to the script for specific configuration options.
 Certain hardware drivers may require installing extra dependencies before building DPDK or running the script; see [hardware known to work](hardware.md) for more information.
 
 By default, DPDK and SPDK are compiled with `-march=native` flag to maximize performance.
 Binaries built this way are non-portable and can only work on machines with the same CPU model.
 You can pass `--arch=CPU-TYPE` argument to the script to change the target CPU architecture.
-*CPU-TYPE* should be set to the oldest CPU architecture you want to support, see [gcc - x86 options](https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html) for available options.
+*CPU-TYPE* should be set to the oldest CPU architecture you want to support, see [GCC - x86 options](https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html) for available options.
 
 The script automatically downloads dependencies from the Internet.
 If your network cannot reach certain download sites, you can specify a mirror site via `NDNDPDK_DL_*` environment variables.
@@ -37,9 +37,9 @@ See script source code for variable names and their default values.
 ## Build Steps
 
 1. Clone the NDN-DPDK repository.
-2. Execute `npm install` to download NPM dependencies.
-3. Execute `NDNDPDK_MK_RELEASE=1 make` to compile the project.
-4. Execute `sudo make install` to install the programs, and `sudo make uninstall` to uninstall them.
+2. Run `npm install` to download NPM dependencies.
+3. Run `NDNDPDK_MK_RELEASE=1 make` to compile the project.
+4. Run `sudo make install` to install the programs, and `sudo make uninstall` to uninstall them.
 
 Installed files include:
 
@@ -57,11 +57,11 @@ See [DPDK system requirements](https://doc.dpdk.org/guides/linux_gsg/sys_reqs.ht
 Depending on your hardware, you may need to change PCI driver bindings using the `dpdk-devbind.py` script.
 See [DPDK Network Interface Controller Drivers](https://doc.dpdk.org/guides/nics/) and [hardware known to work](hardware.md) for more information.
 
-You can then execute `sudo ndndpdk-ctrl systemd start` to start the NDN-DPDK service, use `ndndpdk-ctrl` command to activate it as a forwarder or some other role, and then control the service.
+You can then run `sudo ndndpdk-ctrl systemd start` to start the NDN-DPDK service, use `ndndpdk-ctrl` command to activate it as a forwarder or some other role, and then control the service.
 See [forwarder activation and usage](forwarder.md), [traffic generator activation and usage](trafficgen.md), [file server activation and usage](fileserver.md) for basic usage in each role.
 You can view logs from the NDN-DPDK service with `ndndpdk-ctrl systemd logs -f` command, which is especially useful in case of errors during activation and face creation.
 
-As an alternative of using `ndndpdk-ctrl`, you can execute queries and mutations on the GraphQL endpoint.
+As an alternative of using `ndndpdk-ctrl`, you can run queries and mutations on the GraphQL endpoint.
 See [ndndpdk-ctrl](../cmd/ndndpdk-ctrl) for more information.
 
 ### Running Multiple Instances
@@ -90,9 +90,9 @@ For example:
 * `make godeps` builds C objects and generates certain Go source files.
 * `make gopkg` builds all Go packages.
 * `make test` runs all unit tests.
-  You can also execute `mk/gotest.sh <PKG>` to run the tests for a given package.
+  You can also use `mk/gotest.sh <PKG>` to run the tests for a given package.
 * `make doxygen` builds C documentation (requires the `doxygen` dependency).
-* To view Go documentation, execute `godoc &` and access the website on port 6060 (requires `godoc` dependency).
+* To view Go documentation, run `godoc &` and access the website on port 6060 (requires `godoc` dependency).
 * `make lint` fixes code style issues before committing (requires `clang-format-11`, `staticcheck`, and `yamllint` dependencies).
 
 ## Compile-Time Settings
