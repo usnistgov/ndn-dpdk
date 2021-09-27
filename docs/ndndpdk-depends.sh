@@ -37,12 +37,12 @@ DFLT_CODEROOT=$HOME/code
 DFLT_NODEVER=16.x
 DFLT_GOVER=latest
 DFLT_UBPFVER=HEAD
-DFLT_LIBBPFVER=v0.4.0
+DFLT_LIBBPFVER=v0.5.0
 DFLT_DPDKVER=21.08
 DFLT_DPDKPATCH=18798
 DFLT_KMODSVER=HEAD
 DFLT_SPDKVER=21.07
-DFLT_URINGVER=liburing-2.0
+DFLT_URINGVER=liburing-2.1
 DFLT_NJOBS=$(nproc)
 DFLT_TARGETARCH=native
 
@@ -384,8 +384,9 @@ if [[ $SPDKVER != '0' ]]; then
   rm -rf spdk-${SPDKVER}
   curl -sfL ${NDNDPDK_DL_GITHUB}/spdk/spdk/archive/v${SPDKVER}.tar.gz | tar -xz
   cd spdk-${SPDKVER}
-  ./configure --target-arch=${TARGETARCH} --with-shared --with-dpdk=/usr/local \
+  ./configure --target-arch=${TARGETARCH} --with-shared \
     --disable-tests --disable-unit-tests --disable-examples --disable-apps \
+    --with-dpdk --with-uring \
     --without-crypto --without-fuse --without-isal --without-vhost
   make -j${NJOBS}
   $SUDO find /usr/local/lib -name 'libspdk_*' -delete

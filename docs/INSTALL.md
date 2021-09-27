@@ -14,13 +14,13 @@ You can also [build a Docker container](Docker.md), which would work on other op
 * Go 1.17
 * Node.js 16.x
 * [Meson build system](https://mesonbuild.com/Getting-meson.html#installing-meson-with-pip)
-* [ubpf](https://github.com/iovisor/ubpf) library, installed to `/usr/local`
-* [libbpf](https://github.com/libbpf/libbpf) library, installed to `/usr/local` (optional)
+* [ubpf](https://github.com/iovisor/ubpf)
+* [libbpf](https://github.com/libbpf/libbpf) 0.5.0 (optional)
 * [Data Plane Development Kit (DPDK)](https://www.dpdk.org/) 21.08
 * [Storage Performance Development Kit (SPDK)](https://spdk.io/) 21.07
-* [liburing](https://github.com/axboe/liburing) library, installed to `/usr/local`
+* [liburing](https://github.com/axboe/liburing) 2.1
 * [godoc](https://pkg.go.dev/golang.org/x/tools/cmd/godoc) and [staticcheck](https://pkg.go.dev/honnef.co/go/tools/cmd/staticcheck) commands (optional)
-* [graphqurl](https://www.npmjs.com/package/graphqurl) command (optional, only used in sample commands)
+* [gq](https://www.npmjs.com/package/graphqurl) command (optional, only used in sample commands)
 
 You can execute the [ndndpdk-depends.sh](ndndpdk-depends.sh) script to install these dependencies, or refer to this script for the specific configuration options.
 Certain hardware drivers may require installing extra dependencies before building DPDK or running the script; see [hardware known to work](hardware.md) for more information.

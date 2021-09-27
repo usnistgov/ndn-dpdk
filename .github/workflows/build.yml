@@ -40,7 +40,7 @@ jobs:
           make
           sudo make install
         env:
-          UBPFCOMMIT: 843394752c752e38f79d6d49fc704a73ee6490bd
+          UBPFCOMMIT: 9eb26b4bfdec6cafbf629a056155363f12cec972
       - name: install liburing
         run: |
           mkdir -p $HOME/liburing
@@ -51,7 +51,7 @@ jobs:
           sudo make install
         env:
           CXX: false
-          URINGVER: liburing-2.0
+          URINGVER: liburing-2.1
       - uses: actions/cache@v2
         with:
           path: |
