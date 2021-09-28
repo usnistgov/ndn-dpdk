@@ -23,7 +23,7 @@ if [[ -z $SKIPROOTCHECK ]]; then
 fi
 
 for B in "${NEEDED_BINARIES[@]}"; do
-  if ! which "$B" &>/dev/null ; then
+  if ! command -v "$B" >/dev/null ; then
     MISSING_BINARIES+=("$B")
   fi
 done
@@ -154,7 +154,7 @@ curl_test NDNDPDK_DL_DPDK
 github_resolve_commit() {
   local COMMIT=$1
   local REPO=$2
-  if [[ ${#COMMIT} -ne 40 ]] && which jq >/dev/null; then
+  if [[ ${#COMMIT} -ne 40 ]] && command -v jq >/dev/null; then
     curl -sfL "${NDNDPDK_DL_GITHUB_API}/repos/${REPO}/commits/${COMMIT}" | jq -r '.sha'
   else
     echo "${COMMIT}"
@@ -226,8 +226,8 @@ echo 'Will install C compiler and build tools'
 
 if [[ $NODEVER != 0 ]]; then
   echo "Will install Node ${NODEVER}"
-elif ! which node >/dev/null; then
-  echo '--node=0 specified but `node` command is unavailable, which may cause build errors'
+elif ! command -v node >/dev/null; then
+  echo '--node=0 specified but the `node` command was not found, which may cause build errors'
 fi
 
 if [[ $GOVER != 0 ]]; then
@@ -235,8 +235,8 @@ if [[ $GOVER != 0 ]]; then
     GOVER=$(curl -sfL "${NDNDPDK_DL_GOLANG}/VERSION?m=text")
   fi
   echo "Will install Go ${GOVER}"
-elif ! which go >/dev/null; then
-  echo '--go=0 specified but `go` command is unavailable, which may cause build errors'
+elif ! command -v go >/dev/null; then
+  echo '--go=0 specified but the `go` command was not found, which may cause build errors'
 fi
 echo 'Will install Go linters and tools'
 
@@ -244,7 +244,7 @@ if [[ $UBPFVER != 0 ]]; then
   UBPFVER=$(github_resolve_commit "$UBPFVER" iovisor/ubpf)
   echo "Will install uBPF ${UBPFVER}"
 elif ! [[ -f /usr/local/include/ubpf.h ]]; then
-  echo '--ubpf=0 specified but uBPF is not found, which may cause build errors'
+  echo '--ubpf=0 specified but uBPF was not found, which may cause build errors'
 fi
 
 if [[ $LIBBPFVER != 0 ]]; then
@@ -256,14 +256,14 @@ if [[ $URINGVER != 0 ]]; then
   URINGVER=$(github_resolve_commit "$URINGVER" axboe/liburing)
   echo "Will install liburing ${URINGVER}"
 elif ! pkg-config liburing; then
-  echo '--uring=0 specified but liburing is not found, which may cause build errors'
+  echo '--uring=0 specified but liburing was not found, which may cause build errors'
 fi
 
 if [[ $DPDKVER != 0 ]]; then
   echo "Will install DPDK ${DPDKVER} for ${TARGETARCH} architecture"
   echo -n "$DPDKPATCH" | xargs -d, --no-run-if-empty -I{} echo 'Will patch DPDK with https://patches.dpdk.org/series/{}/mbox/'
 elif ! pkg-config libdpdk; then
-  echo '--dpdk=0 specified but DPDK is not found, which may cause build errors'
+  echo '--dpdk=0 specified but DPDK was not found, which may cause build errors'
 fi
 
 if [[ $KMODSVER != 0 ]]; then
@@ -274,7 +274,7 @@ fi
 if [[ $SPDKVER != 0 ]]; then
   echo "Will install SPDK ${SPDKVER} for ${TARGETARCH} architecture"
 elif ! pkg-config spdk_thread; then
-  echo '--spdk=0 specified but SPDK is not found, which may cause build errors'
+  echo '--spdk=0 specified but SPDK was not found, which may cause build errors'
 fi
 
 echo "Will compile with ${NJOBS} parallel jobs"
@@ -296,15 +296,15 @@ if [[ $DISTRO == bionic ]] && ! [[ -f /etc/apt/sources.list.d/llvm-11.list ]]; t
   curl -sfL "${NDNDPDK_DL_LLVM_APT}/llvm-snapshot.gpg.key" | $SUDO apt-key add -
   echo "deb ${NDNDPDK_DL_LLVM_APT}/bionic/ llvm-toolchain-bionic-11 main" | $SUDO tee /etc/apt/sources.list.d/llvm-11.list
 fi
-$SUDO apt-get -y -qq update
-$SUDO env DEBIAN_FRONTEND=noninteractive apt-get -y -qq dist-upgrade
+$SUDO apt-get -qq update
+$SUDO env DEBIAN_FRONTEND=noninteractive apt-get -qq dist-upgrade
 
 if [[ $NODEVER != 0 ]]; then
   curl -sfL "${NDNDPDK_DL_NODESOURCE_DEB}/setup_${NODEVER}" | $SUDO bash -
   APT_PKGS+=(nodejs)
 fi
 
-$SUDO env DEBIAN_FRONTEND=noninteractive apt-get -y -qq install "${APT_PKGS[@]}"
+$SUDO env DEBIAN_FRONTEND=noninteractive apt-get -qq install "${APT_PKGS[@]}"
 $SUDO npm install -g graphqurl
 
 if [[ $DISTRO == bionic ]]; then
@@ -318,7 +318,7 @@ if [[ $GOVER != 0 ]]; then
   $SUDO rm -rf /usr/local/go
   curl -sfL "${NDNDPDK_DL_GOLANG}/dl/${GOVER}.linux-amd64.tar.gz" | $SUDO tar -C /usr/local -xz
   export PATH=${HOME}/go/bin:/usr/local/go/bin${PATH:+:}${PATH}
-  if ! grep /usr/local/go/bin ~/.bashrc >/dev/null; then
+  if ! grep -q /usr/local/go/bin ~/.bashrc; then
     echo 'export PATH=${HOME}/go/bin:/usr/local/go/bin${PATH:+:}${PATH}' >>~/.bashrc
   fi
   if [[ -n $GOPROXY ]]; then
