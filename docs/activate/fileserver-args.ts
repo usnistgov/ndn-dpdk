@@ -4,7 +4,7 @@ import stdout from "stdout-stream";
 const args: ActivateFileServerArgs = {
   eal: {
     coresPerNuma: { 0: 4, 1: 0 },
-    memPerNuma: { 0: 2048, 1: 0 },
+    memPerNuma: { 0: 4096, 1: 0 },
     filePrefix: "fileserver",
   },
   mempool: {
