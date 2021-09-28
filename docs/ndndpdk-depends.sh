@@ -357,7 +357,7 @@ if [[ $URINGVER != 0 ]]; then
   curl -sfL "${NDNDPDK_DL_GITHUB}/axboe/liburing/archive/${URINGVER}.tar.gz" | tar -xz
   cd "liburing-${URINGVER}"
   ./configure --prefix=/usr/local
-  make
+  make -j${NJOBS}
   $SUDO find /usr/local/lib -name 'liburing.*' -delete
   $SUDO find /usr/local/share/man -name 'io_uring*' -delete
   $SUDO rm -rf /usr/local/include/liburing /usr/local/include/liburing.h
@@ -387,7 +387,7 @@ if [[ $KMODSVER != 0 ]]; then
   cd dpdk-kmods
   git -c advice.detachedHead=false checkout $KMODSVER
   cd linux/igb_uio
-  make
+  make -j${NJOBS}
   UIODIR=/lib/modules/${KERNELVER}/kernel/drivers/uio
   $SUDO install -d -m0755 "$UIODIR"
   $SUDO install -m0644 igb_uio.ko "$UIODIR"
