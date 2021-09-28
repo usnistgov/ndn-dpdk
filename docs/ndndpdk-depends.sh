@@ -135,7 +135,7 @@ fi
 
 curl_test() {
   local SITE=${!1}
-  if ! curl -sfL "$SITE$2" >/dev/null; then
+  if ! curl -fsILS "$SITE$2" >/dev/null; then
     echo "Cannot reach ${SITE}"
     echo "You can specify a mirror site by setting the $1 environment variable"
     echo "Example: $1=${SITE}"
@@ -155,7 +155,7 @@ github_resolve_commit() {
   local COMMIT=$1
   local REPO=$2
   if [[ ${#COMMIT} -ne 40 ]] && command -v jq >/dev/null; then
-    curl -sfL "${NDNDPDK_DL_GITHUB_API}/repos/${REPO}/commits/${COMMIT}" | jq -r '.sha'
+    curl -fsLS "${NDNDPDK_DL_GITHUB_API}/repos/${REPO}/commits/${COMMIT}" | jq -r '.sha'
   else
     echo "${COMMIT}"
   fi
@@ -232,7 +232,7 @@ fi
 
 if [[ $GOVER != 0 ]]; then
   if [[ $GOVER == latest ]]; then
-    GOVER=$(curl -sfL "${NDNDPDK_DL_GOLANG}/VERSION?m=text")
+    GOVER=$(curl -fsLS "${NDNDPDK_DL_GOLANG}/VERSION?m=text")
   fi
   echo "Will install Go ${GOVER}"
 elif ! command -v go >/dev/null; then
@@ -293,14 +293,14 @@ echo 'Dpkg::Options {
 APT::Install-Recommends "no";
 APT::Install-Suggests "no";' | $SUDO tee /etc/apt/apt.conf.d/80custom >/dev/null
 if [[ $DISTRO == bionic ]] && ! [[ -f /etc/apt/sources.list.d/llvm-11.list ]]; then
-  curl -sfL "${NDNDPDK_DL_LLVM_APT}/llvm-snapshot.gpg.key" | $SUDO apt-key add -
+  curl -fsLS "${NDNDPDK_DL_LLVM_APT}/llvm-snapshot.gpg.key" | $SUDO apt-key add -
   echo "deb ${NDNDPDK_DL_LLVM_APT}/bionic/ llvm-toolchain-bionic-11 main" | $SUDO tee /etc/apt/sources.list.d/llvm-11.list
 fi
 $SUDO apt-get -qq update
 $SUDO env DEBIAN_FRONTEND=noninteractive apt-get -qq dist-upgrade
 
 if [[ $NODEVER != 0 ]]; then
-  curl -sfL "${NDNDPDK_DL_NODESOURCE_DEB}/setup_${NODEVER}" | $SUDO bash -
+  curl -fsLS "${NDNDPDK_DL_NODESOURCE_DEB}/setup_${NODEVER}" | $SUDO bash -
   APT_PKGS+=(nodejs)
 fi
 
@@ -311,12 +311,12 @@ if [[ $DISTRO == bionic ]]; then
   $SUDO update-alternatives --remove-all python || true
   $SUDO update-alternatives --install /usr/bin/python python /usr/bin/python3 1
 fi
-curl -sfL "${NDNDPDK_DL_PYPA_BOOTSTRAP}/get-pip.py" | $SUDO python
+curl -fsLS "${NDNDPDK_DL_PYPA_BOOTSTRAP}/get-pip.py" | $SUDO python
 $SUDO pip install -U meson pyelftools
 
 if [[ $GOVER != 0 ]]; then
   $SUDO rm -rf /usr/local/go
-  curl -sfL "${NDNDPDK_DL_GOLANG}/dl/${GOVER}.linux-amd64.tar.gz" | $SUDO tar -C /usr/local -xz
+  curl -fsLS "${NDNDPDK_DL_GOLANG}/dl/${GOVER}.linux-amd64.tar.gz" | $SUDO tar -C /usr/local -xz
   export PATH=${HOME}/go/bin:/usr/local/go/bin${PATH:+:}${PATH}
   if ! grep -q /usr/local/go/bin ~/.bashrc; then
     echo 'export PATH=${HOME}/go/bin:/usr/local/go/bin${PATH:+:}${PATH}' >>~/.bashrc
@@ -330,7 +330,7 @@ if [[ $UBPFVER != 0 ]]; then
   UBPFVER=$(github_resolve_commit "$UBPFVER" iovisor/ubpf)
   cd "$CODEROOT"
   rm -rf "ubpf-${UBPFVER}"
-  curl -sfL "${NDNDPDK_DL_GITHUB}/iovisor/ubpf/archive/${UBPFVER}.tar.gz" | tar -xz
+  curl -fsLS "${NDNDPDK_DL_GITHUB}/iovisor/ubpf/archive/${UBPFVER}.tar.gz" | tar -xz
   cd "ubpf-${UBPFVER}/vm"
   make -j${NJOBS}
   $SUDO make install
@@ -340,7 +340,7 @@ if [[ $LIBBPFVER != 0 ]]; then
   LIBBPFVER=$(github_resolve_commit "$LIBBPFVER" libbpf/libbpf)
   cd "$CODEROOT"
   rm -rf "libbpf-${LIBBPFVER}"
-  curl -sfL "${NDNDPDK_DL_GITHUB}/libbpf/libbpf/archive/${LIBBPFVER}.tar.gz" | tar -xz
+  curl -fsLS "${NDNDPDK_DL_GITHUB}/libbpf/libbpf/archive/${LIBBPFVER}.tar.gz" | tar -xz
   cd "libbpf-${LIBBPFVER}/src"
   sh -c "umask 0000 && make -j${NJOBS}"
   $SUDO find /usr/local/lib -name 'libbpf.*' -delete
@@ -354,7 +354,7 @@ if [[ $URINGVER != 0 ]]; then
   URINGVER=$(github_resolve_commit "$URINGVER" axboe/liburing)
   cd "$CODEROOT"
   rm -rf "liburing-${URINGVER}"
-  curl -sfL "${NDNDPDK_DL_GITHUB}/axboe/liburing/archive/${URINGVER}.tar.gz" | tar -xz
+  curl -fsLS "${NDNDPDK_DL_GITHUB}/axboe/liburing/archive/${URINGVER}.tar.gz" | tar -xz
   cd "liburing-${URINGVER}"
   ./configure --prefix=/usr/local
   make -j${NJOBS}
@@ -368,9 +368,9 @@ fi
 if [[ $DPDKVER != 0 ]]; then
   cd "$CODEROOT"
   rm -rf "dpdk-${DPDKVER}"
-  curl -sfL "${NDNDPDK_DL_DPDK_FAST}/rel/dpdk-${DPDKVER}.tar.xz" | tar -xJ
+  curl -fsLS "${NDNDPDK_DL_DPDK_FAST}/rel/dpdk-${DPDKVER}.tar.xz" | tar -xJ
   cd "dpdk-${DPDKVER}"
-  echo -n "$DPDKPATCH" | xargs -d, --no-run-if-empty -I{} sh -c 'curl -sL https://patches.dpdk.org/series/{}/mbox/ | patch -p1'
+  echo -n "$DPDKPATCH" | xargs -d, --no-run-if-empty -I{} sh -c 'curl -fsLS https://patches.dpdk.org/series/{}/mbox/ | patch -p1'
   meson -Ddebug=true -Doptimization=3 -Dmachine=${TARGETARCH} -Dtests=false --libdir=lib build
   cd build
   ninja -j${NJOBS}
@@ -397,7 +397,7 @@ fi
 if [[ $SPDKVER != 0 ]]; then
   cd "$CODEROOT"
   rm -rf "spdk-${SPDKVER}"
-  curl -sfL "${NDNDPDK_DL_GITHUB}/spdk/spdk/archive/v${SPDKVER}.tar.gz" | tar -xz
+  curl -fsLS "${NDNDPDK_DL_GITHUB}/spdk/spdk/archive/v${SPDKVER}.tar.gz" | tar -xz
   cd "spdk-${SPDKVER}"
   ./configure --target-arch=${TARGETARCH} --with-shared \
     --disable-tests --disable-unit-tests --disable-examples --disable-apps \
