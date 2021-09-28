@@ -30,7 +30,7 @@ func ctestMinTmr(t *testing.T) {
 
 	// 2^5 slots * 100ms = 3200ms
 	sched := C.MinSched_New(5, C.TscDuration(eal.ToTscDuration(100*time.Millisecond)),
-		C.MinTmrCallback(C.go_TriggerRecord), unsafe.Pointer(uintptr(schedArg)))
+		C.MinTmrCallback(C.go_TriggerRecord), schedArg)
 	defer C.MinSched_Close(sched)
 
 	setTimer := func(i int, after time.Duration) bool {

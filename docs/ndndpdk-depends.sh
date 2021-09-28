@@ -9,12 +9,12 @@ MISSING_BINARIES=()
 
 SUDO=
 SUDOPKG=
-APTSUGGEST='apt install --no-install-recommends'
+APTINSTALL='apt install --no-install-recommends'
 if [[ -z $SKIPROOTCHECK ]]; then
   NEEDED_BINARIES+=(sudo)
   SUDO=sudo
   SUDOPKG=sudo
-  APTSUGGEST='sudo '$APTSUGGEST
+  APTINSTALL='sudo '$APTINSTALL
   if [[ $(id -u) -eq 0 ]]; then
     echo 'Do not run this script as root'
     echo 'To skip this check, set SKIPROOTCHECK=1 environ'
@@ -29,7 +29,7 @@ for B in "${NEEDED_BINARIES[@]}"; do
 done
 if [[ ${#MISSING_BINARIES[@]} -gt 0 ]] ; then
   echo "Missing commands (${MISSING_BINARIES[@]}) to start this script. To install:"
-  echo "  ${APTSUGGEST} ca-certificates curl lsb-release ${SUDOPKG}"
+  echo "  ${APTINSTALL} ca-certificates curl lsb-release ${SUDOPKG}"
   exit 1
 fi
 
@@ -40,7 +40,7 @@ DFLT_UBPFVER=HEAD
 DFLT_LIBBPFVER=v0.5.0
 DFLT_URINGVER=liburing-2.1
 DFLT_DPDKVER=21.08
-DFLT_DPDKPATCH=18798
+DFLT_DPDKPATCH=18798,19232
 DFLT_KMODSVER=HEAD
 DFLT_SPDKVER=21.07
 DFLT_NJOBS=$(nproc)
@@ -180,7 +180,7 @@ if [[ $(echo $KERNELVER | awk -F. '{ print ($1*1000+$2>=5004) }') -ne 1 ]] &&
   echo 'Linux kernel 5.4 or newer is required'
   if [[ $DISTRO == 'bionic' ]]; then
     echo 'To upgrade kernel, run this command and reboot:'
-    echo "  ${APTSUGGEST} linux-generic-hwe-18.04"
+    echo "  ${APTINSTALL} linux-generic-hwe-18.04"
   fi
   echo 'To skip this check, set SKIPKERNELCHECK=1 environ'
   exit 1
@@ -189,9 +189,9 @@ fi
 if [[ $HAS_KERNEL_HEADERS == '0' ]] && ! [[ -f /.dockerenv ]]; then
   echo "Will skip certain features due to missing kernel headers. To install:"
   if [[ $DISTRO == 'bullseye' ]]; then
-    echo "  ${APTSUGGEST} linux-headers-amd64 linux-headers-${KERNELVER}-amd64"
+    echo "  ${APTINSTALL} linux-headers-amd64 linux-headers-${KERNELVER}-amd64"
   else
-    echo "  ${APTSUGGEST} linux-generic linux-headers-${KERNELVER}"
+    echo "  ${APTINSTALL} linux-generic linux-headers-${KERNELVER}"
   fi
 fi
 

@@ -13,7 +13,7 @@ import (
 var logger = logging.New("eal")
 
 // Version is DPDK version.
-// This is populated by package ealinit.
+// This is populated during package ealinit initialization.
 var Version string
 
 // EAL variables, available after ealinit.Init().
@@ -32,7 +32,7 @@ var (
 )
 
 // UpdateLCoreSockets saves LCores and Sockets information.
-// If this is used for mocking in unit tests, an undo function is provided to revert the changes.
+// Returns an undo function that reverts the changes, useful for mocking in unit tests.
 func UpdateLCoreSockets(lcoreSockets map[int]int, mainLCoreID int) (undo func()) {
 	oldMainLCore, oldWorkers, oldSockets, oldLCoreToSocket := MainLCore, Workers, Sockets, lcoreToSocket
 	undo = func() {

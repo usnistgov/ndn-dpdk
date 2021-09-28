@@ -154,7 +154,7 @@ __attribute__((nonnull)) bool
 PitEntry_SetSgTimer(PitEntry* entry, Pit* pit, TscDuration after);
 
 __attribute__((nonnull)) void
-PitEntry_Timeout_(MinTmr* tmr, void* pit0);
+PitEntry_Timeout_(MinTmr* tmr, uintptr_t pitPtr);
 
 /**
  * @brief Find duplicate nonce among DN records other than @p rxFace.

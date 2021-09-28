@@ -114,9 +114,9 @@ PitEntry_SetSgTimer(PitEntry* entry, Pit* pit, TscDuration after)
 }
 
 void
-PitEntry_Timeout_(MinTmr* tmr, void* pit0)
+PitEntry_Timeout_(MinTmr* tmr, uintptr_t pitPtr)
 {
-  Pit* pit = (Pit*)pit0;
+  Pit* pit = (Pit*)pitPtr;
   PitEntry* entry = container_of(tmr, PitEntry, timeout);
   if (entry->hasSgTimer) {
     N_LOGD("Timeout(sgtimer) pit=%p pit-entry=%p", pit, entry);

@@ -5,12 +5,16 @@ package eal
 
 #include <rte_launch.h>
 #include <rte_lcore.h>
+
+int c_rte_eal_remote_launch(void* f, uintptr_t arg, unsigned worker_id)
+{
+	return rte_eal_remote_launch((lcore_function_t*)f, (void*)arg, worker_id);
+}
 */
 import "C"
 import (
 	"encoding/json"
 	"strconv"
-	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"go.uber.org/zap"
@@ -104,7 +108,7 @@ func (lc LCore) RemoteLaunch(fn cptr.Function) {
 	lcoreIsBusy[lc.ID()] = true
 	PostMain(cptr.Func0.Void(func() {
 		f, ctx := cptr.Func0.CallbackOnce(fn)
-		res := C.rte_eal_remote_launch((*C.lcore_function_t)(f), unsafe.Pointer(ctx), C.uint(lc.ID()))
+		res := C.c_rte_eal_remote_launch(f, C.uintptr_t(ctx), C.uint(lc.ID()))
 		if res != 0 {
 			logger.Fatal("RemoteLaunch error", zap.Error(MakeErrno(res)))
 		}

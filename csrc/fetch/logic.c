@@ -105,9 +105,9 @@ FetchLogic_RxDataBurst(FetchLogic* fl, const FetchLogicRxData* pkts, size_t coun
 }
 
 static void
-FetchLogic_RtoTimeout(MinTmr* tmr, void* cbarg)
+FetchLogic_RtoTimeout(MinTmr* tmr, uintptr_t flPtr)
 {
-  FetchLogic* fl = (FetchLogic*)cbarg;
+  FetchLogic* fl = (FetchLogic*)flPtr;
   FetchSeg* seg = container_of(tmr, FetchSeg, rtoExpiry);
 
   --fl->nInFlight;
@@ -138,6 +138,6 @@ FetchLogic_Init_(FetchLogic* fl)
   fl->nInFlight = 0;
 
   // 2^16 slots of 1ms interval, accommodates RTO up to 65536ms
-  fl->sched = MinSched_New(16, TscHz / 1000, FetchLogic_RtoTimeout, fl);
+  fl->sched = MinSched_New(16, TscHz / 1000, FetchLogic_RtoTimeout, (uintptr_t)fl);
   NDNDPDK_ASSERT(MinSched_GetMaxDelay(fl->sched) >= (TscDuration)(RTTEST_MAXRTO_MS * TscHz / 1000));
 }

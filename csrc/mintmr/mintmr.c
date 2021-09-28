@@ -5,7 +5,7 @@
 N_LOG_INIT(MinTmr);
 
 MinSched*
-MinSched_New(int nSlotBits, TscDuration interval, MinTmrCallback cb, void* cbarg)
+MinSched_New(int nSlotBits, TscDuration interval, MinTmrCallback cb, uintptr_t ctx)
 {
   uint32_t nSlots = 1 << nSlotBits;
   NDNDPDK_ASSERT(nSlots != 0);
@@ -13,7 +13,7 @@ MinSched_New(int nSlotBits, TscDuration interval, MinTmrCallback cb, void* cbarg
   MinSched* sched = rte_zmalloc("MinSched", sizeof(MinSched) + nSlots * sizeof(MinTmr), 0);
   sched->interval = interval;
   sched->cb = cb;
-  sched->cbarg = cbarg;
+  sched->ctx = ctx;
   sched->nSlots = nSlots;
   sched->slotMask = nSlots - 1;
   sched->lastSlot = nSlots - 1;
@@ -52,7 +52,7 @@ MinSched_Trigger_(MinSched* sched, TscTime now)
       // clear timer before invoking callback, because callback could reschedule timer
       N_LOGD("Trigger sched=%p slot=%" PRIu16 " tmr=%p", sched, sched->lastSlot, tmr);
       ++sched->nTriggered;
-      (sched->cb)(tmr, sched->cbarg);
+      (sched->cb)(tmr, sched->ctx);
     }
     slot->next = slot->prev = slot;
   }
