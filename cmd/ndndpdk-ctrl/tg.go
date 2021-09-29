@@ -12,6 +12,7 @@ func init() {
 		Name:       "start-trafficgen",
 		Usage:      "Start a traffic generator",
 		SchemaName: "gen",
+		ParamNoun:  "traffic patterns",
 		Action: func(c *cli.Context, arg map[string]interface{}) error {
 			return clientDoPrint(c.Context, `
 				mutation startTrafficGen(

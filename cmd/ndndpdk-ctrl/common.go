@@ -85,16 +85,20 @@ type stdinJSONCommand struct {
 	Name       string
 	Usage      string
 	SchemaName string
+	ParamNoun  string
 	Flags      []cli.Flag
 	Action     func(c *cli.Context, arg map[string]interface{}) error
 }
 
 func defineStdinJSONCommand(opts stdinJSONCommand) {
+	if opts.ParamNoun == "" {
+		opts.ParamNoun = "parameters"
+	}
 	var skipSchema bool
 	defineCommand(&cli.Command{
 		Category: opts.Category,
 		Name:     opts.Name,
-		Usage:    opts.Usage + " (pass parameters via stdin)",
+		Usage:    opts.Usage + " (pass " + opts.ParamNoun + " via stdin)",
 		Flags: append([]cli.Flag{
 			&cli.BoolFlag{
 				Name:        "skip-schema",

@@ -9,21 +9,42 @@ import (
 	"inet.af/netaddr"
 )
 
+const gqlFaceCounters = "rxInterests rxData rxNacks txInterests txData txNacks"
+
+const gqlCreateFace = `
+	mutation createFace($locator: JSON!) {
+		createFace(locator: $locator) {
+			id
+		}
+	}
+`
+
 func init() {
+	var withCounters bool
 	defineCommand(&cli.Command{
 		Category: "face",
 		Name:     "list-face",
 		Aliases:  []string{"list-faces"},
 		Usage:    "List faces",
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:        "cnt",
+				Usage:       "show counters",
+				Destination: &withCounters,
+			},
+		},
 		Action: func(c *cli.Context) error {
 			return clientDoPrint(c.Context, `
 				{
 					faces {
 						id
 						locator
+						counters @include(if: $withCounters) {`+gqlFaceCounters+`}
 					}
 				}
-			`, nil, "faces")
+			`, map[string]interface{}{
+				"withCounters": withCounters,
+			}, "faces")
 		},
 	})
 }
@@ -55,14 +76,7 @@ func init() {
 						id
 						... on Face {
 							locator
-							counters @include(if: $withCounters) {
-								rxInterests
-								rxData
-								rxNacks
-								txInterests
-								txData
-								txNacks
-							}
+							counters @include(if: $withCounters) {`+gqlFaceCounters+`}
 						}
 					}
 				}
@@ -70,6 +84,21 @@ func init() {
 				"id":           id,
 				"withCounters": withCounters,
 			}, "face")
+		},
+	})
+}
+
+func init() {
+	defineStdinJSONCommand(stdinJSONCommand{
+		Category:   "face",
+		Name:       "create-face",
+		Usage:      "Create a face",
+		SchemaName: "locator",
+		ParamNoun:  "locator",
+		Action: func(c *cli.Context, arg map[string]interface{}) error {
+			return clientDoPrint(c.Context, gqlCreateFace, map[string]interface{}{
+				"locator": arg,
+			}, "createFace")
 		},
 	})
 }
@@ -201,13 +230,7 @@ func init() {
 	makeAction := func(scheme string) cli.ActionFunc {
 		return func(c *cli.Context) error {
 			loc.Scheme = scheme
-			return clientDoPrint(c.Context, `
-				mutation createFace($locator: JSON!) {
-					createFace(locator: $locator) {
-						id
-					}
-				}
-		`, map[string]interface{}{
+			return clientDoPrint(c.Context, gqlCreateFace, map[string]interface{}{
 				"locator": loc,
 			}, "createFace")
 		}

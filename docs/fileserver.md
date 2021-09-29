@@ -88,23 +88,18 @@ In order to establish a connection, one peer must assume the server role, and th
 Moreover, the server should be created before the client.
 It's recommended to let the forwarder be the server, while the file server is the client.
 
-You can create a memif face by invoking GraphQL `createFace` mutation, and then insert a FIB entry via `ndndpdk-ctrl insert-fib` command.
+You can create a memif face by passing its locator to `ndndpdk-ctrl create-face` command, and then insert a FIB entry via `ndndpdk-ctrl insert-fib` command.
 
 Example command and output:
 
 ```shell
-$ FACEID=$(gq http://127.0.0.1:3030 \
-    -q 'mutation createFace($locator:JSON!){createFace(locator:$locator){id}}' \
-    --variablesJSON '{
-      "locator": {
-        "scheme": "memif",
-        "socketName": "/run/ndn/fileserver.sock",
-        "id": 0,
-        "role": "server",
-        "dataroom": 9000
-      }
-    }' | jq -c .data.createFace | tee /dev/stderr | jq -r .id)
-Executing query... done
+$ FACEID=$(jq -n '{
+      scheme: "memif",
+      socketName: "/run/ndn/fileserver.sock",
+      id: 0,
+      role: "server",
+      dataroom: 9000
+    }' | ndndpdk-ctrl --gqlserver http://127.0.0.1:3030 create-face | tee /dev/stderr | jq -r .id)
 {"id":"7CLE6J8CP1Q8103O0Q6CPIQVR8"}
 
 $ ndndpdk-ctrl --gqlserver http://127.0.0.1:3030 insert-fib \

@@ -81,7 +81,7 @@ A_FACEID=$(ndndpdk-ctrl create-ether-face --local $A_HWADDR --remote $B_HWADDR |
 A_FIBID=$(ndndpdk-ctrl insert-fib --name $B_NAME --nh $A_FACEID | tee /dev/stderr | jq -r .id)
 
 # start the producer
-sudo build/bin/ndndpdk-godemo pingserver --name $A_NAME --payload 512
+sudo ndndpdk-godemo pingserver --name $A_NAME --payload 512
 ```
 
 On node B, start NFD and producer:
@@ -124,7 +124,7 @@ On node A, start a consumer:
 
 ```bash
 # run the consumer
-sudo build/bin/ndndpdk-godemo pingclient --name ${B_NAME}/ping --interval 10ms
+sudo ndndpdk-godemo pingclient --name ${B_NAME}/ping --interval 10ms
 ```
 
 On node B, start a consumer:
@@ -187,27 +187,20 @@ Start and activate NDN-DPDK forwarder: see [forwarder activation](../forwarder.m
 Connect NDN-DPDK to NFD and run consumer:
 
 ```bash
-# declare variable for NDN-DPDK GraphQL endpoint
-GQLSERVER=http://127.0.0.1:3030/
-
 # expose run-ndn volume on host machine
-sudo ln -s $(docker volume inspect -f '{{.Mountpoint}}' run-ndn) /run/ndn
+sudo ln -s -T $(docker volume inspect -f '{{.Mountpoint}}' run-ndn) /run/ndn
 
 # create face
-A_FACEID=$(gq $GQLSERVER \
-  -q 'mutation($loc:JSON!){createFace(locator:$loc){id}}' \
-  --variablesJSON '{
-    "loc": {
-      "scheme": "unix",
-      "remote": "/run/ndn/nfd.sock"
-    }
-  }' | tee /dev/stderr | jq -r .data.createFace.id)
+A_FACEID=$(jq -n '{
+  scheme: "unix",
+  remote: "/run/ndn/nfd.sock"
+}' | ndndpdk-ctrl create-face | tee /dev/stderr | jq -r .id)
 
 # insert FIB entry
 A_FIBID=$(ndndpdk-ctrl insert-fib --name $B_NAME --nh $A_FACEID | tee /dev/stderr | jq -r .id)
 
 # run the consumer
-sudo build/bin/ndndpdk-godemo pingclient --name ${B_NAME}/ping --interval 10ms
+sudo ndndpdk-godemo pingclient --name ${B_NAME}/ping --interval 10ms
 # press CTRL+C to stop the consumer
 
 # erase FIB entry and destroy face
