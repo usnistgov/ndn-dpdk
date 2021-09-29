@@ -3,6 +3,7 @@ set -eo pipefail
 
 NEEDED_BINARIES=(
   curl
+  jq
   lsb_release
 )
 MISSING_BINARIES=()
@@ -29,7 +30,7 @@ for B in "${NEEDED_BINARIES[@]}"; do
 done
 if [[ ${#MISSING_BINARIES[@]} -gt 0 ]] ; then
   echo "Missing commands (${MISSING_BINARIES[*]}) to start this script. To install, run:"
-  echo "  ${APTINSTALL} ca-certificates curl lsb-release ${SUDOPKG}"
+  echo "  ${APTINSTALL} ca-certificates curl jq lsb-release ${SUDOPKG}"
   exit 1
 fi
 
@@ -154,7 +155,7 @@ curl_test NDNDPDK_DL_DPDK
 github_resolve_commit() {
   local COMMIT=$1
   local REPO=$2
-  if [[ ${#COMMIT} -ne 40 ]] && command -v jq >/dev/null; then
+  if [[ ${#COMMIT} -ne 40 ]]; then
     curl -fsLS "${NDNDPDK_DL_GITHUB_API}/repos/${REPO}/commits/${COMMIT}" | jq -r '.sha'
   else
     echo "${COMMIT}"
@@ -201,7 +202,6 @@ APT_PKGS=(
   clang-format-11
   doxygen
   git
-  jq
   lcov
   libaio-dev
   libc6-dev-i386
@@ -327,7 +327,6 @@ if [[ $GOVER != 0 ]]; then
 fi
 
 if [[ $UBPFVER != 0 ]]; then
-  UBPFVER=$(github_resolve_commit "$UBPFVER" iovisor/ubpf)
   cd "$CODEROOT"
   rm -rf "ubpf-${UBPFVER}"
   curl -fsLS "${NDNDPDK_DL_GITHUB}/iovisor/ubpf/archive/${UBPFVER}.tar.gz" | tar -xz
@@ -337,7 +336,6 @@ if [[ $UBPFVER != 0 ]]; then
 fi
 
 if [[ $LIBBPFVER != 0 ]]; then
-  LIBBPFVER=$(github_resolve_commit "$LIBBPFVER" libbpf/libbpf)
   cd "$CODEROOT"
   rm -rf "libbpf-${LIBBPFVER}"
   curl -fsLS "${NDNDPDK_DL_GITHUB}/libbpf/libbpf/archive/${LIBBPFVER}.tar.gz" | tar -xz
@@ -351,7 +349,6 @@ if [[ $LIBBPFVER != 0 ]]; then
 fi
 
 if [[ $URINGVER != 0 ]]; then
-  URINGVER=$(github_resolve_commit "$URINGVER" axboe/liburing)
   cd "$CODEROOT"
   rm -rf "liburing-${URINGVER}"
   curl -fsLS "${NDNDPDK_DL_GITHUB}/axboe/liburing/archive/${URINGVER}.tar.gz" | tar -xz
