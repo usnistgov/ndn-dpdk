@@ -9,12 +9,13 @@ fi
 BPFCC=${BPFCC:-clang-11}
 BPFFLAGS='-O2 -target bpf -Wno-int-to-void-pointer-cast -I/usr/include/x86_64-linux-gnu'
 BPFDIR=${MESON_BUILD_ROOT}/lib/bpf
-mkdir -p $BPFDIR
+mkdir -p "$BPFDIR"
 
 build_category() {
   CATEGORY=$1
-  for F in ${MESON_SOURCE_ROOT}/bpf/$CATEGORY/*.c; do
-    $BPFCC $BPFFLAGS -c $F -o $BPFDIR/ndndpdk-$CATEGORY-$(basename -s .c $F).o
+  local F
+  for F in "${MESON_SOURCE_ROOT}/bpf/${CATEGORY}"/*.c; do
+    $BPFCC $BPFFLAGS -c "$F" -o "${BPFDIR}/ndndpdk-${CATEGORY}-$(basename -s .c "$F").o"
   done
 }
 
