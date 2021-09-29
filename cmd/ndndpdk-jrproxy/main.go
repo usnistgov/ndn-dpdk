@@ -12,6 +12,7 @@ import (
 	"github.com/powerman/rpc-codec/jsonrpc2"
 	"github.com/urfave/cli/v2"
 	"github.com/usnistgov/ndn-dpdk/core/gqlclient"
+	"github.com/usnistgov/ndn-dpdk/mk/version"
 )
 
 var client *gqlclient.Client
@@ -20,7 +21,8 @@ func main() {
 	var gqlserver string
 	var tcpListen string
 	app := &cli.App{
-		Name: "ndndpdk-ctrl",
+		Version: version.Get().String(),
+		Usage:   "NDN-DPDK JSON-RPC 2.0 management proxy.",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:        "gqlserver",

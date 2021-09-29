@@ -3,7 +3,6 @@ set -eo pipefail
 source mk/cflags.sh
 TESTCOUNT=${TESTCOUNT:-1}
 
-GO=$(which go)
 SUDO='sudo -E'
 if [[ $(id -u) -eq 0 ]]; then
   SUDO=
@@ -23,16 +22,16 @@ if [[ $# -eq 0 ]]; then
   # run all tests, optional filter in $MK_GOTEST_FILTER
 
   find -name '*_test.go' -printf '%h\n' | sort -u | sed -E "${MK_GOTEST_FILTER:-}" \
-    | xargs -I{} $SUDO $GO test {} -count=$TESTCOUNT
+    | xargs -I{} $SUDO go test {} -count=$TESTCOUNT
 
 elif [[ $# -eq 1 ]]; then
   # run tests in one package
   PKG=${1%/}
   TESTPKG=$(getTestPkg $PKG)
 
-  $SUDO $GO test -cover -covermode count -coverpkg ./$PKG -coverprofile /tmp/gotest.cover ./$TESTPKG -v -count=$TESTCOUNT
+  $SUDO go test -cover -covermode count -coverpkg ./$PKG -coverprofile /tmp/gotest.cover ./$TESTPKG -v -count=$TESTCOUNT
   $SUDO chown $(id -u) /tmp/gotest.cover
-  $GO tool cover -html /tmp/gotest.cover -o /tmp/gotest.cover.html
+  go tool cover -html /tmp/gotest.cover -o /tmp/gotest.cover.html
 
 elif [[ $# -eq 2 ]]; then
   # run one test
@@ -47,7 +46,7 @@ elif [[ $# -eq 2 ]]; then
   if [[ ${TEST,,} == bench* ]]; then
     RUN=$RUN' -bench '$TEST
   fi
-  $SUDO GODEBUG=cgocheck=2 $DBG $GO test ./$TESTPKG -v -count=$TESTCOUNT $RUN
+  $SUDO GODEBUG=cgocheck=2 $DBG go test ./$TESTPKG -v -count=$TESTCOUNT $RUN
 
 elif [[ $# -eq 3 ]]; then
   # run one test with debug tool
@@ -63,7 +62,7 @@ elif [[ $# -eq 3 ]]; then
     exit 1
   fi
 
-  $GO test -c ./$TESTPKG -o /tmp/gotest.exe
+  go test -c ./$TESTPKG -o /tmp/gotest.exe
   $SUDO $DBG /tmp/gotest.exe -test.v -test.run 'Test'$TEST'.*'
 else
   echo 'USAGE: mk/gotest.sh [debug-tool] [directory] [test-name]' >/dev/stderr

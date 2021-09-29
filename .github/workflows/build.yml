@@ -30,6 +30,8 @@ jobs:
           wget https://apt.llvm.org/llvm.sh
           sudo bash ./llvm.sh 11
           sudo apt-get install $CC clang-format-11 doxygen gcc-multilib libelf-dev libpcap-dev liburcu-dev linux-libc-dev
+          sudo update-alternatives --remove-all go || true
+          sudo update-alternatives --install /usr/bin/go go $(which go) 1
           go install honnef.co/go/tools/cmd/staticcheck@latest
       - name: install uBPF
         run: |
@@ -56,7 +58,7 @@ jobs:
         with:
           path: |
             ~/setup-dpdk
-          key: ${{ matrix.compiler }}_20210813
+          key: ${{ matrix.compiler }}_20210929
       - uses: yoursunny/setup-dpdk@main
         with:
           dpdk-version: '21.08'

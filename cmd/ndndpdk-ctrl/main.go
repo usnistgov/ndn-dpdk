@@ -18,8 +18,9 @@ var (
 )
 
 var app = &cli.App{
-	Version: version.Get().String(),
-	Usage:   "Control NDN-DPDK service.",
+	Version:              version.Get().String(),
+	Usage:                "Control NDN-DPDK service.",
+	EnableBashCompletion: true,
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:        "gqlserver",
@@ -30,7 +31,7 @@ var app = &cli.App{
 		&cli.BoolFlag{
 			Name:        "cmdout",
 			Value:       false,
-			Usage:       "print command line instead of executing",
+			Usage:       "print command line instead of running the command",
 			Destination: &cmdout,
 		},
 	},

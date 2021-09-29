@@ -36,7 +36,9 @@ func ZmallocAligned(dbgtype string, size interface{}, align int, socket NumaSock
 	if ptr == nil {
 		logger.Panic(
 			"ZmallocAligned failed",
+			zap.String("type", dbgtype),
 			zap.Uintptr("size", uintptr(sizeC)),
+			socket.ZapField("socket"),
 		)
 	}
 	return ptr

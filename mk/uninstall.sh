@@ -9,6 +9,8 @@ rm -f $DESTBIN/ndndpdk-*
 
 rm -rf $DESTSHARE
 
+rm -f $DESTBASHCOMPLETION/ndndpdk-*
+
 rm -f $DESTSYSTEMD/ndndpdk-*.service
 if which systemctl >/dev/null; then
   systemctl daemon-reload

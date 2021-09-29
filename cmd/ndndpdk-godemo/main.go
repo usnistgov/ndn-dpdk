@@ -57,8 +57,9 @@ func onInterrupt(cancel func()) {
 }
 
 var app = &cli.App{
-	Version: version.Get().String(),
-	Usage:   "NDNgo library demo.",
+	Version:              version.Get().String(),
+	Usage:                "NDNgo library demo.",
+	EnableBashCompletion: true,
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:        "gqlserver",
