@@ -144,9 +144,9 @@ One of the mountpoints defined in the activation parameters is:
 }
 ```
 
-This means, the file `/usr/local/bin/ndndpdk-svc` has NDN name prefix `/fileserver/usr-local/bin/ndndpdk-svc`.
+This means that the file `/usr/local/bin/ndndpdk-svc` will have the NDN name prefix `/fileserver/usr-local-bin/ndndpdk-svc`.
 
-You can use [ndncat command](https://ndnts-docs.ndn.today/typedoc/modules/cat.html) to retrieve the file, and then compare it against the original file.
+You can use the [ndncat command](https://ndnts-docs.ndn.today/typedoc/modules/cat.html) to retrieve the file, and then compare it against the original.
 
 Example command and output:
 
@@ -156,7 +156,7 @@ $ export NDNTS_NDNDPDK_GQLSERVER=http://127.0.0.1:3030
 $ npx -y -p https://ndnts-nightly.ndn.today/cat.tgz ndncat get-segmented \
     --ver=rdr /fileserver/usr-local-bin/ndndpdk-svc > /tmp/ndndpdk-svc.retrieved
 
-$ openssl sha256 /usr/local/bin/ndndpdk-svc /tmp/ndndpdk-svc.retrieved
-SHA256(/usr/local/bin/ndndpdk-svc)= d7d68600dd33a2e344bb4e4895e10302d4f9781930b601241d5ec5aaacab6392
-SHA256(/tmp/ndndpdk-svc.retrieved)= d7d68600dd33a2e344bb4e4895e10302d4f9781930b601241d5ec5aaacab6392
+$ sha256sum /usr/local/bin/ndndpdk-svc /tmp/ndndpdk-svc.retrieved
+d7d68600dd33a2e344bb4e4895e10302d4f9781930b601241d5ec5aaacab6392  /usr/local/bin/ndndpdk-svc
+d7d68600dd33a2e344bb4e4895e10302d4f9781930b601241d5ec5aaacab6392  /tmp/ndndpdk-svc.retrieved
 ```
