@@ -45,8 +45,9 @@ Installed files include:
 
 * NDN-DPDK [commands](../cmd) in `/usr/local/bin`
 * eBPF objects in `/usr/local/lib/bpf`
-* systemd template unit `ndndpdk-svc@.service`
+* bash completion scripts in `/usr/local/share/bash-completion/completions`
 * configuration schemas and TypeScript definition in `/usr/local/share/ndn-dpdk`
+* systemd template unit `ndndpdk-svc@.service`
 
 ## Usage
 
@@ -83,7 +84,7 @@ For example:
 
 * start the service: `sudo ndndpdk-ctrl --gqlserver http://127.0.0.1:3030 systemd start`
 * view service logs: `ndndpdk-ctrl --gqlserver http://127.0.0.1:3030 systemd logs -f`
-* show face list: `ndndpdk-ctrl --gqlserver http://127.0.0.1:3030 list-faces`
+* show face list: `ndndpdk-ctrl --gqlserver http://127.0.0.1:3030 list-face`
 
 ## Other Build Targets
 

@@ -69,6 +69,8 @@ jobs:
         run: |
           npm install
           make
+          sudo make install
+          sudo make uninstall
         env:
           NDNDPDK_MK_THREADSLEEP: 1
       - name: run unit tests
