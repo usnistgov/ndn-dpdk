@@ -35,7 +35,7 @@ func init() {
 		},
 		Action: func(c *cli.Context) error {
 			return clientDoPrint(c.Context, `
-				{
+				query listFace($withCounters: Boolean!) {
 					faces {
 						id
 						locator
