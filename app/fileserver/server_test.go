@@ -139,18 +139,23 @@ func TestServer(t *testing.T) {
 		for _, entry := range ls {
 			filename := entry.Name()
 			isDir, ok := dirEntryNames[filename]
-			if assert.True(ok, "%s", filename) {
+			if assert.True(ok, "%s", string(filename)) {
 				assert.Equal(isDir, entry.IsDir(), "%s", string(filename))
 			}
 			nFound++
 		}
 		assert.GreaterOrEqual(nFound, mathpkg.MinInt(cfg.SegmentLen/(unix.NAME_MAX+2), len(dirEntryNames)))
 	}
-	testNotFound := func(name string) {
+	testNotFound := func(name string, expectNack bool) {
 		defer wg.Done()
+		expectedErr := endpoint.ErrExpire
+		if expectNack {
+			expectedErr = ndn.ErrContentType
+		}
+
 		var m ndn6file.Metadata
 		e := rdr.RetrieveMetadata(timeout, &m, ndn.ParseName(name), metadataOpts)
-		assert.ErrorIs(e, ndn.ErrContentType)
+		assert.ErrorIs(e, expectedErr, "%s", name)
 	}
 
 	assert.NoFileExists("/usr/local/bin/ndndpdk/no-such-program")
@@ -166,15 +171,22 @@ func TestServer(t *testing.T) {
 		return
 	}()
 
-	wg.Add(5 + len(localLibs))
+	wg.Add(12 + len(localLibs))
 	go testFetchFile("/usr/local/bin/dpdk-testpmd", "/usr/local-bin/dpdk-testpmd", true)
 	go testFetchFile("/usr/bin/jq", "/usr/bin/jq", false)
 	go testFetchDir("/usr/bin", "/usr/bin")
 	go testFetchDir("/usr/local/bin", "/usr/local-bin/"+ndn6file.KeywordLs.String())
-	go testNotFound("/usr/local-bin/ndndpdk/no-such-program")
+	go testNotFound("/usr/local-bin/ndndpdk/no-such-program", true)
+	go testNotFound("/no-such-mount/autoexec.bat", false)
+	go testNotFound("/usr/local-bin/bad/zero%00/filename", false)
+	go testNotFound("/usr/local-bin/bad/slash%2F/filename", false)
+	go testNotFound("/usr/local-bin/bad/.../filename", false)
+	go testNotFound("/usr/local-bin/bad/..../filename", false)
+	go testNotFound("/usr/local-bin/bad/...../filename", false)
+	go testNotFound("/usr/local-bin/bad/....../filename", true)
 	for _, localLib := range localLibs {
 		// cannot get file metadata with 32=ls component, but this opens file descriptor for testing keepFds limit
-		go testNotFound("/usr/local-lib/" + localLib + "/" + ndn6file.KeywordLs.String())
+		go testNotFound("/usr/local-lib/"+localLib+"/"+ndn6file.KeywordLs.String(), true)
 	}
 	wg.Wait()
 

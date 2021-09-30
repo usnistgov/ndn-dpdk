@@ -3,7 +3,7 @@
 
 /** @file */
 
+#include "../core/mintmr.h"
 #include "../iface/faceid.h"
-#include "../mintmr/mintmr.h"
 
 #endif // NDNDPDK_PCCT_COMMON_H

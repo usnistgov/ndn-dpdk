@@ -28,12 +28,11 @@ var makeAR = testenv.MakeAR
 type Fixture struct {
 	t *testing.T
 
-	SkipLocatorCheck bool    // don't CheckLocatorMarshal
-	PayloadLen       int     // Data payload length
-	DataFrames       int     // expected number of LpPackets per Data packet
-	TxIterations     int     // number of TX iterations
-	TxLossTolerance  float64 // permitted TX packet loss (counter discrepancy)
-	RxLossTolerance  float64 // permitted RX packet loss
+	PayloadLen      int     // Data payload length
+	DataFrames      int     // expected number of LpPackets per Data packet
+	TxIterations    int     // number of TX iterations
+	TxLossTolerance float64 // permitted TX packet loss (counter discrepancy)
+	RxLossTolerance float64 // permitted RX packet loss
 
 	rxl      iface.RxLoop
 	rxQueueI *iface.PktQueue
@@ -97,10 +96,8 @@ func (fixture *Fixture) Close() error {
 func (fixture *Fixture) RunTest(txFace, rxFace iface.Face) {
 	fixture.rxFace = rxFace
 	fixture.txFace = txFace
-	if !fixture.SkipLocatorCheck {
-		CheckLocatorMarshal(fixture.t, rxFace.Locator())
-		CheckLocatorMarshal(fixture.t, txFace.Locator())
-	}
+	CheckLocatorMarshal(fixture.t, rxFace.Locator())
+	CheckLocatorMarshal(fixture.t, txFace.Locator())
 
 	recvStop := ealthread.NewStopChan()
 	go fixture.recvProc(recvStop)

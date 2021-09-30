@@ -25,7 +25,7 @@ func (demux *InputDemux) ptr() *C.InputDemux {
 
 // InitDrop configures to drop all packets.
 func (demux *InputDemux) InitDrop() {
-	C.InputDemux_SetDispatchFunc_(demux.ptr(), C.InputDemux_DispatchDrop)
+	demux.ptr().dispatch = C.InputDemux_DispatchFunc(C.InputDemux_DispatchDrop)
 }
 
 // InitFirst configures to pass all packets to the first and only destination.
@@ -35,24 +35,24 @@ func (demux *InputDemux) InitFirst() {
 
 // InitRoundrobin configures to pass all packets to each destination in a round-robin fashion.
 func (demux *InputDemux) InitRoundrobin(nDest int) {
-	C.InputDemux_SetDispatchDiv_(demux.ptr(), C.uint32_t(nDest), false)
+	C.InputDemux_SetDispatchDiv(demux.ptr(), C.uint32_t(nDest), false)
 }
 
 // InitGenericHash configures to dispatch according to hash of GenericNameComponents.
 func (demux *InputDemux) InitGenericHash(nDest int) {
-	C.InputDemux_SetDispatchDiv_(demux.ptr(), C.uint32_t(nDest), true)
+	C.InputDemux_SetDispatchDiv(demux.ptr(), C.uint32_t(nDest), true)
 }
 
 // InitNdt configures to dispatch via NDT loopup.
 func (demux *InputDemux) InitNdt(ndq *ndt.Querier) {
 	demuxC := demux.ptr()
-	C.InputDemux_SetDispatchFunc_(demuxC, C.InputDemux_DispatchByNdt)
+	demux.ptr().dispatch = C.InputDemux_DispatchFunc(C.InputDemux_DispatchByNdt)
 	demuxC.ndq = (*C.NdtQuerier)(ndq.Ptr())
 }
 
 // InitToken configures to dispatch according to specified octet in the PIT token.
 func (demux *InputDemux) InitToken(offset uint8) {
-	C.InputDemux_SetDispatchByToken_(demux.ptr(), C.uint8_t(offset))
+	C.InputDemux_SetDispatchByToken(demux.ptr(), C.uint8_t(offset))
 }
 
 // SetDest assigns i-th destination.

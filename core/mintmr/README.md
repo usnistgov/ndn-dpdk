@@ -1,4 +1,4 @@
-# ndn-dpdk/container/mintmr
+# ndn-dpdk/core/mintmr
 
 [csrc/mintmr](../../csrc/mintmr) implements a **minute scheduler (MinTmr)**.
 It allows scheduling events within the next few minutes, and triggering them at an accuracy on the order of milliseconds.

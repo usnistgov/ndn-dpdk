@@ -4,8 +4,8 @@
 
 N_LOG_INIT(InputDemux);
 
-static void
-InputDemux_Drop(InputDemux* demux, Packet* npkt, const char* reason)
+__attribute__((nonnull)) static __rte_always_inline void
+InputDemux_Drop_(InputDemux* demux, Packet* npkt, const char* reason)
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   const LpPitToken* token = &Packet_GetLpL3Hdr(npkt)->pitToken;
@@ -16,7 +16,13 @@ InputDemux_Drop(InputDemux* demux, Packet* npkt, const char* reason)
   rte_pktmbuf_free(pkt);
 }
 
-static void
+__attribute__((nonnull)) static __rte_noinline void
+InputDemux_Drop(InputDemux* demux, Packet* npkt, const char* reason)
+{
+  InputDemux_Drop_(demux, npkt, reason);
+}
+
+__attribute__((nonnull)) static __rte_always_inline void
 InputDemux_PassTo(InputDemux* demux, Packet* npkt, uint8_t index)
 {
   InputDemuxDest* dest = &demux->dest[index];
@@ -38,7 +44,7 @@ InputDemux_PassTo(InputDemux* demux, Packet* npkt, uint8_t index)
 void
 InputDemux_DispatchDrop(InputDemux* demux, Packet* npkt, const PName* name)
 {
-  InputDemux_Drop(demux, npkt, "op-drop");
+  InputDemux_Drop_(demux, npkt, "op-drop");
 }
 
 void
@@ -57,7 +63,7 @@ InputDemux_DispatchRoundrobinDiv(InputDemux* demux, Packet* npkt, const PName* n
 void
 InputDemux_DispatchRoundrobinMask(InputDemux* demux, Packet* npkt, const PName* name)
 {
-  uint8_t index = (++demux->div.i) & demux->div.n;
+  uint8_t index = (++demux->div.i) & demux->div.mask;
   InputDemux_PassTo(demux, npkt, index);
 }
 
@@ -79,7 +85,7 @@ __attribute__((nonnull)) void
 InputDemux_DispatchGenericHashMask(InputDemux* demux, Packet* npkt, const PName* name)
 {
   uint64_t hash = ComputeGenericHash(name);
-  uint8_t index = hash & demux->div.n;
+  uint8_t index = hash & demux->div.mask;
   InputDemux_PassTo(demux, npkt, index);
 }
 
@@ -104,12 +110,12 @@ InputDemux_DispatchByToken(InputDemux* demux, Packet* npkt, const PName* name)
 }
 
 void
-InputDemux_SetDispatchDiv_(InputDemux* demux, uint32_t nDest, bool byGenericHash)
+InputDemux_SetDispatchDiv(InputDemux* demux, uint32_t nDest, bool byGenericHash)
 {
   if (nDest <= 1) {
     demux->dispatch = InputDemux_DispatchToFirst;
   } else if (RTE_IS_POWER_OF_2(nDest)) {
-    demux->div.n = nDest - 1;
+    demux->div.mask = nDest - 1;
     demux->dispatch =
       byGenericHash ? InputDemux_DispatchGenericHashMask : InputDemux_DispatchRoundrobinMask;
   } else {
@@ -120,7 +126,7 @@ InputDemux_SetDispatchDiv_(InputDemux* demux, uint32_t nDest, bool byGenericHash
 }
 
 void
-InputDemux_SetDispatchByToken_(InputDemux* demux, uint8_t offset)
+InputDemux_SetDispatchByToken(InputDemux* demux, uint8_t offset)
 {
   demux->byToken.offset = offset;
   demux->dispatch = InputDemux_DispatchByToken;

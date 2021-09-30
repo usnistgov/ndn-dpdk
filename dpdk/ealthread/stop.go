@@ -31,7 +31,7 @@ type StopChan chan bool
 // This should be invoked within the running thread.
 func (stop StopChan) Continue() bool {
 	if C.ENABLE_THREADSLEEP > 0 {
-		time.Sleep(time.Nanosecond)
+		time.Sleep(time.Microsecond)
 	}
 
 	select {

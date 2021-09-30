@@ -84,7 +84,7 @@ FileServer_ToFilename(const PName* name, int16_t mountComps, char filename[PATH_
       *output++ = '/';
     }
 
-    bool allPeriods = false;
+    bool allPeriods = true;
     while (value != valueEnd) {
       char ch = (char)*value++;
       switch (ch) {

@@ -34,11 +34,6 @@ type PktQueueConfig struct {
 // PktQueue is a packet queue with simplified CoDel algorithm.
 type PktQueue C.PktQueue
 
-// PktQueueFromPtr converts *C.PktQueue to PktQueue.
-func PktQueueFromPtr(ptr unsafe.Pointer) (q *PktQueue) {
-	return (*PktQueue)(ptr)
-}
-
 // Ptr return *C.PktQueue pointer.
 func (q *PktQueue) Ptr() unsafe.Pointer {
 	return unsafe.Pointer(q)
@@ -91,11 +86,27 @@ func (q *PktQueue) Init(cfg PktQueueConfig, socket eal.NumaSocket) error {
 	return nil
 }
 
-// Close deallocates the PktQueue.
+// Ring provides access to the internal ring.
+func (q *PktQueue) Ring() *ringbuffer.Ring {
+	return ringbuffer.FromPtr(unsafe.Pointer(q.ring))
+}
+
+// Close drains and deallocates the PktQueue.
+// It will not free *C.PktQueue itself.
 func (q *PktQueue) Close() error {
-	ring := ringbuffer.FromPtr(unsafe.Pointer(q.ptr().ring))
+	ring := q.Ring()
 	if ring == nil {
 		return nil
+	}
+	q.ring = nil
+
+	vec := make(pktmbuf.Vector, MaxBurstSize)
+	for {
+		n := ring.Dequeue(vec)
+		if n == 0 {
+			break
+		}
+		vec[:n].Close()
 	}
 	return ring.Close()
 }
@@ -109,4 +120,9 @@ func (q *PktQueue) Push(vec pktmbuf.Vector, now eal.TscTime) (nRej int) {
 func (q *PktQueue) Pop(vec pktmbuf.Vector, now eal.TscTime) (count int, drop bool) {
 	res := C.PktQueue_Pop(q.ptr(), (**C.struct_rte_mbuf)(vec.Ptr()), C.uint(len(vec)), C.TscTime(now))
 	return int(res.count), bool(res.drop)
+}
+
+// PktQueueFromPtr converts *C.PktQueue to PktQueue.
+func PktQueueFromPtr(ptr unsafe.Pointer) (q *PktQueue) {
+	return (*PktQueue)(ptr)
 }

@@ -64,8 +64,7 @@ func TestEvents(t *testing.T) {
 		assert.Equal(id, faceClosedEvts[len(faceClosingEvts)-1])
 	})()
 
-	face1 := intface.MustNew()
-	face2 := intface.MustNew()
+	face1, face2 := intface.MustNew(), intface.MustNew()
 	id1, id2 := face1.ID, face2.ID
 	if assert.Len(faceNewEvts, 2) {
 		assert.Equal(id1, faceNewEvts[0])

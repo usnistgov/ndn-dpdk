@@ -53,7 +53,11 @@ struct InputDemux
     struct
     {
       uint32_t i;
-      uint32_t n;
+      union
+      {
+        uint32_t n;
+        uint32_t mask;
+      };
     } div;
     struct
     {
@@ -63,17 +67,11 @@ struct InputDemux
   InputDemuxDest dest[MaxInputDemuxDest];
 };
 
-__attribute__((nonnull)) static inline void
-InputDemux_SetDispatchFunc_(InputDemux* demux, void* f)
-{
-  demux->dispatch = f;
-}
+__attribute__((nonnull)) void
+InputDemux_SetDispatchDiv(InputDemux* demux, uint32_t nDest, bool byGenericHash);
 
 __attribute__((nonnull)) void
-InputDemux_SetDispatchDiv_(InputDemux* demux, uint32_t nDest, bool byGenericHash);
-
-__attribute__((nonnull)) void
-InputDemux_SetDispatchByToken_(InputDemux* demux, uint8_t offset);
+InputDemux_SetDispatchByToken(InputDemux* demux, uint8_t offset);
 
 __attribute__((nonnull)) static inline void
 InputDemux_Dispatch(InputDemux* demux, Packet* npkt, const PName* name)

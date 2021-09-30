@@ -3,7 +3,7 @@
 
 /** @file */
 
-#include "../mintmr/mintmr.h"
+#include "../core/mintmr.h"
 
 typedef TAILQ_ENTRY(FetchSeg) FetchRetxNode;
 
