@@ -5,6 +5,12 @@ package cptr
 #include <spdk/env.h>
 #include <spdk/json.h>
 
+static struct spdk_json_write_ctx*
+c_spdk_json_write_begin(void* write_cb, uintptr_t cb_ctx, uint32_t flags)
+{
+	return spdk_json_write_begin((spdk_json_write_cb)write_cb, (void*)cb_ctx, flags);
+}
+
 int go_spdkJSONWrite(uintptr_t ctx, void* data, size_t size);
 */
 import "C"
@@ -16,10 +22,9 @@ import (
 	"unsafe"
 )
 
-func init() {
-	// As of SPDK 21.04, explicitly calling a function in libspdk_env_dpdk.so is needed to prevent a linker error.
-	C.spdk_env_get_core_count()
-}
+// As of SPDK 21.07, explicitly calling a function in libspdk_env_dpdk.so is needed to prevent a linker error:
+//  /usr/local/lib/libspdk_util.so: undefined reference to `spdk_realloc'
+var _ = C.spdk_env_get_core_count()
 
 // CaptureSpdkJSON invokes a function that writes to *C.struct_spdk_json_write_ctx, and unmarshals what's been written.
 func CaptureSpdkJSON(f func(w unsafe.Pointer), ptr interface{}) (e error) {
@@ -27,7 +32,7 @@ func CaptureSpdkJSON(f func(w unsafe.Pointer), ptr interface{}) (e error) {
 	ctx := cgo.NewHandle(buf)
 	defer ctx.Delete()
 
-	w := C.spdk_json_write_begin(C.spdk_json_write_cb(C.go_spdkJSONWrite), unsafe.Pointer(ctx), 0)
+	w := C.c_spdk_json_write_begin(C.go_spdkJSONWrite, C.uintptr_t(ctx), 0)
 	f(unsafe.Pointer(w))
 	if res := C.spdk_json_write_end(w); res != 0 {
 		return errors.New("spdk_json_write_end failed")

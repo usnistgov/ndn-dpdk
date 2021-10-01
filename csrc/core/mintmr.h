@@ -36,18 +36,18 @@ typedef struct MinSched
  * @param interval duration between executing slots
  * @param cb callback function when a timer expires
  */
-MinSched*
+__attribute__((returns_nonnull)) MinSched*
 MinSched_New(int nSlotBits, TscDuration interval, MinTmrCallback cb, uintptr_t ctx);
 
 /** @brief Destroy a minute scheduler. */
-void
+__attribute__((nonnull)) void
 MinSched_Close(MinSched* sched);
 
-void
+__attribute__((nonnull)) void
 MinSched_Trigger_(MinSched* sched, TscTime now);
 
 /** @brief Trigger callback function on expired timers. */
-static __rte_always_inline void
+__attribute__((nonnull)) static __rte_always_inline void
 MinSched_Trigger(MinSched* sched)
 {
   TscTime now = rte_get_tsc_cycles();
@@ -58,24 +58,24 @@ MinSched_Trigger(MinSched* sched)
 }
 
 /** @brief Initialize a timer. */
-static __rte_always_inline void
+__attribute__((nonnull)) static __rte_always_inline void
 MinTmr_Init(MinTmr* tmr)
 {
   tmr->next = tmr->prev = NULL;
 }
 
 /** @brief Calculate the maximum delay allowed in @c MinTmr_After. */
-static inline TscDuration
+__attribute__((nonnull)) static inline TscDuration
 MinSched_GetMaxDelay(MinSched* sched)
 {
   return sched->interval * (sched->nSlots - 2);
 }
 
-void
+__attribute__((nonnull)) void
 MinTmr_Cancel_(MinTmr* tmr);
 
 /** @brief Cancel a timer. */
-static __rte_always_inline void
+__attribute__((nonnull)) static __rte_always_inline void
 MinTmr_Cancel(MinTmr* tmr)
 {
   if (tmr->next == NULL) {
@@ -90,11 +90,11 @@ MinTmr_Cancel(MinTmr* tmr)
  * @param after expiration delay; negative value is changed to zero
  * @retval false @p after >= MinSched_GetMaxDelay(sched)
  */
-bool
+__attribute__((nonnull)) bool
 MinTmr_After(MinTmr* tmr, TscDuration after, MinSched* sched);
 
 /** @brief Schedule a timer to expire at @p at. */
-static inline bool
+__attribute__((nonnull)) static inline bool
 MinTmr_At(MinTmr* tmr, TscTime at, MinSched* sched)
 {
   TscTime now = rte_get_tsc_cycles();

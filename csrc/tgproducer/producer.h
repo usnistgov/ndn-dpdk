@@ -19,7 +19,7 @@ typedef struct TgpReply
   uint8_t nackReason;
 } TgpReply;
 
-/** @brief Per-prefix information in ndnping server. */
+/** @brief Per-prefix information in traffic generator server. */
 typedef struct TgpPattern
 {
   LName prefix;
@@ -30,7 +30,7 @@ typedef struct TgpPattern
   uint8_t prefixBuffer[NameMaxLength];
 } TgpPattern;
 
-/** @brief ndnping server. */
+/** @brief Traffic generator server. */
 typedef struct Tgp
 {
   ThreadCtrl ctrl;

@@ -58,7 +58,7 @@ MinSched_Trigger_(MinSched* sched, TscTime now)
   }
 }
 
-static __rte_always_inline void
+__attribute__((nonnull)) static __rte_always_inline void
 MinTmr_Cancel2(MinTmr* tmr)
 {
   tmr->next->prev = tmr->prev;

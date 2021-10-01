@@ -3,13 +3,13 @@
 #include "tlv-encoder.h"
 
 static __rte_always_inline bool
-LpHeader_IsCriticalType_(uint32_t type)
+LpHeader_IsCriticalType(uint32_t type)
 {
   return type < 800 || type > 959 || (type & 0x03) != 0x00;
 }
 
 __attribute__((nonnull)) static __rte_always_inline bool
-LpHeader_ParseNack_(LpHeader* lph, TlvDecoder* d)
+LpHeader_ParseNack(LpHeader* lph, TlvDecoder* d)
 {
   lph->l3.nackReason = NackUnspecified;
   TlvDecoder_EachTL (d, type, length) {
@@ -20,7 +20,7 @@ LpHeader_ParseNack_(LpHeader* lph, TlvDecoder* d)
         }
         break;
       default:
-        if (LpHeader_IsCriticalType_(type)) {
+        if (LpHeader_IsCriticalType(type)) {
           return false;
         }
         TlvDecoder_Skip(d, length);
@@ -90,7 +90,7 @@ LpHeader_Parse(LpHeader* lph, struct rte_mbuf* pkt)
       case TtNack: {
         TlvDecoder vd;
         TlvDecoder_MakeValueDecoder(&d, length, &vd);
-        if (unlikely(!LpHeader_ParseNack_(lph, &vd))) {
+        if (unlikely(!LpHeader_ParseNack(lph, &vd))) {
           return false;
         }
         break;
@@ -102,7 +102,7 @@ LpHeader_Parse(LpHeader* lph, struct rte_mbuf* pkt)
         break;
       }
       default:
-        if (LpHeader_IsCriticalType_(type)) {
+        if (LpHeader_IsCriticalType(type)) {
           return false;
         }
         TlvDecoder_Skip(&d, length);

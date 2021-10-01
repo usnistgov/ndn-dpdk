@@ -10,8 +10,8 @@ NonceGen_Init(NonceGen* g)
   pcg32_srandom_r(&g->rng, rte_rand(), rte_rand());
 }
 
-static __rte_always_inline bool
-PInterest_ParseDelegation_(PInterest* interest, TlvDecoder* d)
+__attribute__((nonnull)) static __rte_always_inline bool
+PInterest_ParseDelegation(PInterest* interest, TlvDecoder* d)
 {
   TlvDecoder_EachTL (d, type, length) {
     switch (type) {
@@ -39,8 +39,8 @@ PInterest_ParseDelegation_(PInterest* interest, TlvDecoder* d)
   return likely(d->length == 0);
 }
 
-static bool
-PInterest_ParseFwHint_(PInterest* interest, TlvDecoder* d)
+__attribute__((nonnull)) static bool
+PInterest_ParseFwHint(PInterest* interest, TlvDecoder* d)
 {
   TlvDecoder_EachTL (d, type, length) {
     switch (type) {
@@ -52,7 +52,7 @@ PInterest_ParseFwHint_(PInterest* interest, TlvDecoder* d)
 
         TlvDecoder vd;
         TlvDecoder_MakeValueDecoder(d, length, &vd);
-        if (unlikely(!PInterest_ParseDelegation_(interest, &vd))) {
+        if (unlikely(!PInterest_ParseDelegation(interest, &vd))) {
           return false;
         }
         d->m = vd.m; // mbuf may change when linearizing
@@ -111,7 +111,7 @@ PInterest_Parse(PInterest* interest, struct rte_mbuf* pkt)
       case TtForwardingHint: {
         TlvDecoder vd;
         TlvDecoder_MakeValueDecoder(&d, length, &vd);
-        if (unlikely(!PInterest_ParseFwHint_(interest, &vd))) {
+        if (unlikely(!PInterest_ParseFwHint(interest, &vd))) {
           return false;
         }
         d.m = vd.m; // mbuf may change when linearizing

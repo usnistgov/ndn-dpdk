@@ -91,7 +91,7 @@ jobs:
         run: bash mk/netlify.sh
         if: ${{ matrix.compiler == 'gcc-10' && github.repository == 'yoursunny/ndn-dpdk' && github.event_name == 'push' }}
       - name: deploy docs
-        uses: South-Paw/action-netlify-deploy@v1.2.0
+        uses: South-Paw/action-netlify-deploy@v1.2.1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           netlify-auth-token: ${{ secrets.NETLIFY_AUTH_TOKEN }}

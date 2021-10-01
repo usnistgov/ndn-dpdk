@@ -22,8 +22,8 @@ RTE_INIT(InitNullSig)
   static_assert(sizeof(NullSig) == DataEncNullSigLen, "");
 }
 
-static __rte_always_inline bool
-PData_ParseMetaInfo_(PData* data, TlvDecoder* d)
+__attribute__((nonnull)) static __rte_always_inline bool
+PData_ParseMetaInfo(PData* data, TlvDecoder* d)
 {
   TlvDecoder_EachTL (d, type, length) {
     switch (type) {
@@ -75,7 +75,7 @@ PData_Parse(PData* data, struct rte_mbuf* pkt)
       case TtMetaInfo: {
         TlvDecoder vd;
         TlvDecoder_MakeValueDecoder(&d, length, &vd);
-        if (unlikely(!PData_ParseMetaInfo_(data, &vd))) {
+        if (unlikely(!PData_ParseMetaInfo(data, &vd))) {
           return false;
         }
         break;

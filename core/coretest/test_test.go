@@ -1,4 +1,4 @@
-package mintmrtest
+package coretest
 
 import (
 	"testing"

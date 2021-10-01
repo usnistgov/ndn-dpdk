@@ -1,7 +1,7 @@
-package mintmrtest
+package coretest
 
 /*
-#include "../../../csrc/core/mintmr.h"
+#include "../../csrc/core/mintmr.h"
 
 typedef struct MinTmrTestRecord
 {

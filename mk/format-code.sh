@@ -22,7 +22,7 @@ fi
 
 # YAML
 if [[ -z $LANG ]] || [[ $LANG == yaml ]]; then
-  git ls-files '*.yml' '*.yaml' | xargs yamllint
+  git ls-files '*.yml' '*.yaml' '.clang-format' | xargs yamllint
 fi
 
 # Markdown

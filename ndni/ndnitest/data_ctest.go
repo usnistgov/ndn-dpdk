@@ -47,20 +47,43 @@ func ctestDataParse(t *testing.T) {
 
 	// full
 	p = makePacket(`
-		0623
+		0625
 		07060801`, `42080130 // name
-		140C 180103 19020104 1A03080131 // metainfo
+		F000 // unknown-ignored
+		140E F000 180103 19020104 1A03080131 // metainfo with unknown-ignored
 		1502C0C1 // content
 		16031B0100 // siginfo
-		F000 // unknown-ignored
 		1700 // sigvalue
 	`)
+	defer p.Close()
 	require.True(bool(C.Packet_ParseL3(p.npkt)))
 	require.EqualValues(ndni.PktData, C.Packet_GetType(p.npkt))
 	data = C.Packet_GetDataHdr(p.npkt)
 	assert.EqualValues(2, data.name.nComps)
-	assert.Equal(bytesFromHex("080142080130"), C.GoBytes(unsafe.Pointer(data.name.value), C.int(data.name.length)))
+	assert.Equal(bytesFromHex("080142080130"), C.GoBytes(unsafe.Pointer(data.name.value), C.int(data.name.length))) // linearized
 	assert.EqualValues(260, data.freshness)
+
+	// invalid: unknown-critical
+	p = makePacket(`
+		060E
+		0703080141 // name
+		F100 // unknown-critical
+		16031B0100 // siginfo
+		1700 // sigvalue
+	`)
+	defer p.Close()
+	assert.False(bool(C.Packet_ParseL3(p.npkt)))
+
+	// invalid: MetaInfo with unknown-critical
+	p = makePacket(`
+		0613
+		0703080141 // name
+		1405 F100 180103 // metainfo with unknown-critical
+		16031B0100 // siginfo
+		1700 // sigvalue
+	`)
+	defer p.Close()
+	assert.False(bool(C.Packet_ParseL3(p.npkt)))
 }
 
 func ctestDataEncMinimal(t *testing.T) {
