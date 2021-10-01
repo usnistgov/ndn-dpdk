@@ -23,19 +23,19 @@ typedef struct StrategyCode
  * @param arg argument to BPF program.
  * @param sizeofArg sizeof(*arg)
  */
-static inline uint64_t
+__attribute__((nonnull)) static inline uint64_t
 StrategyCode_Run(StrategyCode* sc, void* arg, size_t sizeofArg)
 {
   return (*sc->jit)(arg, sizeofArg);
 }
 
-void
+__attribute__((nonnull)) void
 StrategyCode_Ref(StrategyCode* sc);
 
-void
+__attribute__((nonnull)) void
 StrategyCode_Unref(StrategyCode* sc);
 
-const struct ebpf_insn*
+__attribute__((nonnull, returns_nonnull)) const struct ebpf_insn*
 StrategyCode_GetEmptyProgram_(uint32_t* nInsn);
 
 #endif // NDNDPDK_STRATEGYCODE_STRATEGY_CODE_H

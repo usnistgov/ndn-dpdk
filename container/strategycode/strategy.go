@@ -24,19 +24,19 @@ func (sc *Strategy) ptr() *C.StrategyCode {
 
 // ID returns numeric ID.
 func (sc *Strategy) ID() int {
-	return int(sc.ptr().id)
+	return int(sc.id)
 }
 
 // Name returns short name.
 func (sc *Strategy) Name() string {
-	return C.GoString(sc.ptr().name)
+	return C.GoString(sc.name)
 }
 
 // CountRefs returns number of references.
 // Each FIB entry using the strategy has a reference.
 // There's also a reference from table.go.
 func (sc *Strategy) CountRefs() int {
-	return int(sc.ptr().nRefs)
+	return int(sc.nRefs)
 }
 
 // Close reduces the number of references by one.

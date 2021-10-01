@@ -8,6 +8,7 @@ import "C"
 import (
 	"errors"
 	"math/rand"
+	"sync"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/container/fib/fibdef"
@@ -25,6 +26,7 @@ type Table struct {
 	c     *C.Fib
 	nDyns int
 	free  chan []unsafe.Pointer
+	wg    sync.WaitGroup
 }
 
 // Ptr returns *C.Fib pointer.
@@ -35,6 +37,7 @@ func (t *Table) Ptr() unsafe.Pointer {
 // Close frees C memory.
 func (t *Table) Close() error {
 	close(t.free)
+	t.wg.Wait()
 	return nil
 }
 
@@ -95,6 +98,7 @@ func (t *Table) freeLoop() {
 	C.Fib_Clear(t.c)
 	C.cds_lfht_destroy(t.c.lfht, nil)
 	t.mp.Close()
+	t.wg.Done()
 }
 
 // New creates a Table.
@@ -115,7 +119,7 @@ func New(cfg fibdef.Config, nDyns int, socket eal.NumaSocket) (*Table, error) {
 	t := &Table{
 		mp:    mp,
 		nDyns: nDyns,
-		// t.deferredFree may be called in RCU critical section (eal.MainThread), add caching to avoid deadlock
+		// t.deferredFree may be called in RCU critical section (eal.MainThread), add buffer to avoid deadlock
 		free: make(chan []unsafe.Pointer, 1),
 	}
 
@@ -133,6 +137,7 @@ func New(cfg fibdef.Config, nDyns int, socket eal.NumaSocket) (*Table, error) {
 		return nil, errors.New("cds_lfht_new error")
 	}
 
+	t.wg.Add(1)
 	go t.freeLoop()
 	return t, nil
 }
