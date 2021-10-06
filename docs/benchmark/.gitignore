@@ -1,0 +1,4 @@
+.env
+/package-lock.json
+/public/bundle.*
+node_modules

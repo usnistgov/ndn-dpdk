@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"reflect"
 	"sync"
 
 	"github.com/usnistgov/ndn-dpdk/app/fetch"
@@ -42,7 +43,7 @@ func saveChooseRxlTxl() (undo func()) {
 // TrafficGen represents the traffic generator on a face.
 type TrafficGen struct {
 	face    iface.Face
-	rxl     iface.RxLoop
+	rxl     []iface.RxLoop
 	txl     iface.TxLoop
 	workers []ealthread.ThreadWithRole
 
@@ -86,8 +87,10 @@ func (gen TrafficGen) Workers() []ealthread.ThreadWithRole {
 // Launch launches the traffic generator.
 func (gen *TrafficGen) Launch() error {
 	ealthread.Launch(gen.txl)
-	gen.configureDemux(gen.rxl.InterestDemux(), gen.rxl.DataDemux(), gen.rxl.NackDemux())
-	ealthread.Launch(gen.rxl)
+	for _, rxl := range gen.rxl {
+		gen.configureDemux(rxl.InterestDemux(), rxl.DataDemux(), rxl.NackDemux())
+		ealthread.Launch(rxl)
+	}
 
 	if gen.producer != nil {
 		gen.producer.Launch()
@@ -152,7 +155,7 @@ func (gen *TrafficGen) Close() error {
 
 	errs := []error{}
 	gatherCloseErr := func(c io.Closer) {
-		if c != nil {
+		if !reflect.ValueOf(c).IsNil() {
 			errs = append(errs, c.Close())
 		}
 	}
@@ -161,7 +164,9 @@ func (gen *TrafficGen) Close() error {
 	gatherCloseErr(gen.consumer)
 	gatherCloseErr(gen.fetcher)
 	gatherCloseErr(gen.face)
-	gatherCloseErr(gen.rxl)
+	for _, rxl := range gen.rxl {
+		gatherCloseErr(rxl)
+	}
 	gatherCloseErr(gen.txl)
 
 	var lcores eal.LCores
@@ -193,11 +198,14 @@ func New(cfg Config) (gen *TrafficGen, e error) {
 
 	defer saveChooseRxlTxl()()
 	iface.ChooseRxLoop = func(rxg iface.RxGroup) iface.RxLoop {
-		gen.rxl = iface.NewRxLoop(rxg.NumaSocket())
-		return gen.rxl
+		rxl := iface.NewRxLoop(rxg.NumaSocket())
+		gen.rxl = append(gen.rxl, rxl)
+		gen.workers = append(gen.workers, rxl)
+		return rxl
 	}
 	iface.ChooseTxLoop = func(face iface.Face) iface.TxLoop {
 		gen.txl = iface.NewTxLoop(face.NumaSocket())
+		gen.workers = append(gen.workers, gen.txl)
 		return gen.txl
 	}
 
@@ -210,7 +218,6 @@ func New(cfg Config) (gen *TrafficGen, e error) {
 	if gen.txl == nil {
 		return nil, errors.New("face creation did not result in TxLoop creation")
 	}
-	gen.workers = []ealthread.ThreadWithRole{gen.rxl, gen.txl}
 
 	if cfg.Producer != nil {
 		producer, e := tgproducer.New(gen.face, *cfg.Producer)

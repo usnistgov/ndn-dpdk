@@ -3,6 +3,8 @@
 After [installing NDN-DPDK](INSTALL.md) and starting the `ndndpdk-svc` service process, it can be activated as a traffic generator or some other role.
 This page explains how to activate the NDN-DPDK service as a traffic generator, and how to perform some common operations.
 
+See [interactive benchmark](benchmark) for a web application that performs forwarder throughput benchmark using the traffic generator.
+
 ## Features and Limitations
 
 The NDN-DPDK traffic generator is a program that transmits and receives NDN packets as fast as possible on a network interface.
