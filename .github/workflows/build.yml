@@ -25,19 +25,22 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           node-version: 16
-      - name: install compilers and tools
+      - id: compilers
+        name: install compilers and tools
         run: |
           wget https://apt.llvm.org/llvm.sh
           sudo bash ./llvm.sh 11
-          sudo apt-get install $CC clang-format-11 doxygen gcc-multilib libelf-dev libpcap-dev liburcu-dev linux-libc-dev
+          sudo apt-get install $CC clang-format-11 doxygen gcc-multilib libelf-dev libpcap-dev liburcu-dev linux-libc-dev python3-pip python3-setuptools python3-wheel
           sudo update-alternatives --remove-all go || true
           sudo update-alternatives --install /usr/bin/go go $(which go) 1
           go install honnef.co/go/tools/cmd/staticcheck@latest
+          sudo pip3 install meson
+          echo '::set-output name=meson::'$(meson --version)
       - name: install uBPF
         run: |
           mkdir -p $HOME/ubpf
           cd $HOME/ubpf
-          curl -sfL https://github.com/iovisor/ubpf/archive/$UBPFCOMMIT.tar.gz | tar -xz --strip-components=1
+          curl -sfLS https://github.com/iovisor/ubpf/archive/$UBPFCOMMIT.tar.gz | tar -xz --strip-components=1
           cd vm
           make
           sudo make install
@@ -47,7 +50,7 @@ jobs:
         run: |
           mkdir -p $HOME/liburing
           cd $HOME/liburing
-          curl -sfL https://github.com/axboe/liburing/archive/$URINGVER.tar.gz | tar -xz --strip-components=1
+          curl -sfLS https://github.com/axboe/liburing/archive/$URINGVER.tar.gz | tar -xz --strip-components=1
           ./configure --prefix=/usr/local
           make
           sudo make install
@@ -58,7 +61,7 @@ jobs:
         with:
           path: |
             ~/setup-dpdk
-          key: ${{ matrix.compiler }}_20210929
+          key: ${{ matrix.compiler }}_${{ steps.compilers.outputs.meson }}_20211007
       - uses: yoursunny/setup-dpdk@main
         with:
           dpdk-version: '21.08'
@@ -70,6 +73,11 @@ jobs:
           npm install
           make
           sudo make install
+          for D in docs/activate docs/benchmark; do
+            pushd $D
+            npm install
+            popd
+          done
           sudo make uninstall
         env:
           NDNDPDK_MK_THREADSLEEP: 1
@@ -86,17 +94,16 @@ jobs:
           git diff --exit-code
       - name: build docs
         run: make doxygen
-        if: ${{ matrix.compiler == 'gcc-10' && (github.repository != 'yoursunny/ndn-dpdk' || github.event_name != 'push') }}
-      - name: build docs
+      - name: build docs site
         run: bash mk/netlify.sh
         if: ${{ matrix.compiler == 'gcc-10' && github.repository == 'yoursunny/ndn-dpdk' && github.event_name == 'push' }}
-      - name: deploy docs
+      - name: deploy docs site
         uses: South-Paw/action-netlify-deploy@v1.2.1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           netlify-auth-token: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           netlify-site-id: a0fbfa66-eecb-46d0-9e0b-093ddd1d0fad
-          build-dir: ./build/docs/
+          build-dir: ./build/netlify/
         if: ${{ matrix.compiler == 'gcc-10' && github.repository == 'yoursunny/ndn-dpdk' && github.event_name == 'push' }}
   docker:
     runs-on: ubuntu-20.04

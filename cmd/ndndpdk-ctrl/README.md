@@ -11,7 +11,8 @@ You may use [jq](https://stedolan.github.io/jq/) or [gron](https://github.com/to
 The default GraphQL endpoint of the NDN-DPDK service is `http://127.0.0.1:3030/`.
 You may change it by passing the `--gqlserver` flag to both `ndndpdk-svc` and this command.
 
-You can discover the GraphQL service schema via introspection.
+GraphQL service schema is [published online](https://ndn-dpdk.ndn.today/schema/ndndpdk-svc.graphql).
+You can also discover the schema via introspection.
 With the NDN-DPDK service running (does not need to be activated), run:
 
 ```bash

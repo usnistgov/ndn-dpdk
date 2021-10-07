@@ -2,6 +2,8 @@
 
 /** @type {import("@yoursunny/xo-config")} */
 const { js, ts, web, preact, merge } = require("@yoursunny/xo-config");
+const fs = require("node:fs");
+const path = require("node:path");
 
 /** @type {XoOptions} */
 module.exports = {
@@ -20,4 +22,8 @@ module.exports = {
       ...merge(js, ts, web, preact),
     },
   ],
+  ignores: [
+    "docs/activate",
+    "docs/benchmark",
+  ].filter((d) => !fs.statSync(path.resolve(__dirname, d, "node_modules"), { throwIfNoEntry: false })?.isDirectory()),
 };

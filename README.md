@@ -19,6 +19,7 @@ It is in pre-release stage and will continue to be updated.
 * [NDN-DPDK performance tuning](docs/tuning.md)
 * [NDN-DPDK interoperability with other NDN software](docs/interop)
 * [NDN-DPDK publications and presentations](docs/publication.md)
+* [Doxygen reference](https://ndn-dpdk.ndn.today/doxygen/)
 * [Go reference](https://pkg.go.dev/github.com/usnistgov/ndn-dpdk)
 
 If you use NDN-DPDK in your research, please cite the [NDN-DPDK paper](docs/publication.md) instead of this GitHub repository.
