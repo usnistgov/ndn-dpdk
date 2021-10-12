@@ -37,8 +37,8 @@ __attribute__((nonnull)) int
 Logger_Dpdk_Init(FILE* output);
 
 __attribute__((nonnull)) void
-Logger_Spdk(int level, const char* file, const int line, const char* func, const char* format,
-            va_list args);
+Logger_Spdk(int level, const char* restrict file, const int line, const char* restrict func,
+            const char* restrict format, va_list args);
 
 /**
  * @brief Print buffer in hexadecimal to stderr.

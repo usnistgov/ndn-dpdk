@@ -38,7 +38,7 @@ The libibverbs library must be installed before building DPDK or running the `nd
 ```bash
 sudo apt install libibverbs-dev
 
-# for Docker installation
+# for building Docker image
 docker build \
   --build-arg APT_PKGS="libibverbs-dev"
   [other arguments]
@@ -150,7 +150,7 @@ The libbpf library must be installed before building DPDK; the `ndndpdk-depends.
 Due to kernel limitation, MTU is limited to about 3300 octets; setting an unacceptable MTU causes port activation failure.
 
 During net\_af\_xdp activation, the Ethernet adapter is configured to have only 1 RX channel and RX-VLAN offload is disabled, and then an XDP program is loaded.
-The XDP program recognizes NDN over Ethernet, and NDN over IPv4/IPv6 + UDP on port 6363; it does not recognize VXLAN or other UDP ports.
+The XDP program recognizes NDN over Ethernet and NDN over IPv4/IPv6 + UDP on port 6363; it does not recognize VXLAN or other UDP ports.
 If you need VXLAN, you can create a kernel interface with `ip link add` command, and create the face on that network interface.
 
 The **net\_af\_packet** driver uses AF\_PACKET sockets.
@@ -158,3 +158,15 @@ This is compatible with older kernels, but it is substantially slower.
 
 It's recommended to use net\_af\_packet for NDN over Ethernet (no VLAN) only.
 Trying to use VLAN, UDP, and VXLAN may trigger undesirable reactions from the kernel network stack (e.g. ICMP port unreachable packets or UFW drop logs), because the kernel is unaware of NDN-DPDK's UDP endpoint.
+
+In case you encounter problems during face creation on an AF\_XDP virtual device, you may disable AF\_XDP and force AF\_PACKET by setting `.vdevConfig.xdp.disabled=true` on the locator, such as:
+
+```jsonc
+{
+  "scheme": "ether", // also supported on "udpe" and "vxlan"
+  "vdevConfig": {
+    "xdp": { "disabled": true }
+  }
+  // other fields
+}
+```

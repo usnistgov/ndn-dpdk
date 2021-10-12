@@ -34,8 +34,8 @@ static const uint32_t spdk2dpdkLogLevels[] = {
 };
 
 void
-Logger_Spdk(int level, __rte_unused const char* file, __rte_unused const int line,
-            __rte_unused const char* func, const char* format, va_list args)
+Logger_Spdk(int level, __rte_unused const char* restrict file, __rte_unused const int line,
+            __rte_unused const char* restrict func, const char* restrict format, va_list args)
 {
   rte_vlog(spdk2dpdkLogLevels[level], RTE_LOGTYPE_SPDK, format, args);
 }

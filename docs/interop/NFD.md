@@ -188,7 +188,8 @@ Connect NDN-DPDK to NFD and run consumer:
 
 ```bash
 # expose run-ndn volume on host machine
-sudo ln -s -T $(docker volume inspect -f '{{.Mountpoint}}' run-ndn) /run/ndn
+sudo mkdir -p /run/ndn
+sudo mount --bind $(docker volume inspect -f '{{.Mountpoint}}' run-ndn) /run/ndn
 
 # create face
 A_FACEID=$(jq -n '{

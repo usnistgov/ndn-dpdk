@@ -1,11 +1,14 @@
 #!/bin/bash
 set -eo pipefail
-YANFD_CS_CAP=${YANFD_CS_CAP:-65536}
 
-dasel select -f /usr/local/etc/ndn/yanfd.toml.sample -r toml -w json |
-jq -c --arg csCap $YANFD_CS_CAP '.
-  | setpath(["faces","unix","socket_path"]; "/run/ndn/yanfd.sock")
-  | setpath(["tables","content_store","capacity"]; $csCap|tonumber)
-' | dasel select -r json -w toml > /usr/local/etc/ndn/yanfd.toml
+cp /usr/local/etc/ndn/yanfd.toml.sample /usr/local/etc/ndn/yanfd.toml
+
+yanfd_put() {
+  dasel put "$1" -f /usr/local/etc/ndn/yanfd.toml "$2" "$3"
+}
+
+yanfd_put bool .faces.tcp.enabled false
+yanfd_put string .faces.unix.socket_path /run/ndn/yanfd.sock
+yanfd_put bool .faces.websocket.enabled false
 
 exec yanfd

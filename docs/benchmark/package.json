@@ -12,14 +12,14 @@
     "fastify": "^3.22.0",
     "fastify-express": "^0.3.3",
     "fastify-http-proxy": "^6.2.1",
-    "fastify-static": "^4.2.3",
+    "fastify-static": "^4.4.2",
     "graphql": "^15.6.1",
     "graphql-request": "^3.5.0",
-    "preact": "^10.5.14",
+    "preact": "^10.5.15",
     "ts-loader": "^9.2.6",
     "tslib": "^2.3.1",
-    "typescript": "~4.4.3",
-    "webpack": "^5.56.1",
+    "typescript": "~4.4.4",
+    "webpack": "^5.58.1",
     "webpack-dev-middleware": "^5.2.1"
   },
   "engines": {

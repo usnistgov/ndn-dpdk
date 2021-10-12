@@ -115,7 +115,7 @@ TlvDecoder_Read(TlvDecoder* d, uint8_t* scratch, uint16_t count)
  * @return indirect mbufs.
  * @retval NULL allocation failure.
  * @pre Decoder has no less than @p count remaining octets.
- * @post Decoder is advanced by @c count octets.
+ * @post Decoder is advanced by @p count octets.
  */
 __attribute__((nonnull(1, 3))) struct rte_mbuf*
 TlvDecoder_Clone(TlvDecoder* d, uint32_t count, struct rte_mempool* indirectMp,
