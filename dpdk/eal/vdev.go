@@ -56,7 +56,7 @@ func (vdev *VDev) Close() error {
 
 	logEntry := logger.With(zap.String("name", vdev.name))
 	if res := C.rte_vdev_uninit(nameC); res != 0 {
-		e := Errno(-res)
+		e := MakeErrno(res)
 		logEntry.Error("rte_vdev_uninit error", zap.Error(e))
 		return e
 	}
@@ -79,7 +79,7 @@ func NewVDev(name string, args map[string]interface{}, socket NumaSocket) (vdev 
 		socket.ZapField("socket"),
 	)
 	if res := C.rte_vdev_init(nameC, argC); res != 0 {
-		e := Errno(-res)
+		e := MakeErrno(res)
 		logEntry.Error("rte_vdev_init error", zap.Error(e))
 		return nil, e
 	}

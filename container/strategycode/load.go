@@ -28,7 +28,7 @@ func makeStrategyCode(name string, bpf *C.struct_rte_bpf) (sc *Strategy, e error
 	res := C.rte_bpf_get_jit(bpf, &jit)
 	if res != 0 {
 		C.rte_bpf_destroy(bpf)
-		return nil, eal.Errno(-res)
+		return nil, eal.MakeErrno(res)
 	}
 
 	tableLock.Lock()

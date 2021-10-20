@@ -8,7 +8,7 @@ You can also [build a Docker container](Docker.md), which would work on other op
 
 ## Dependencies
 
-* Linux kernel 5.4 or newer (install `linux-image-generic-hwe-18.04` on Ubuntu 18.04)
+* Linux kernel 5.4 or newer (install `linux-generic-hwe-18.04` on Ubuntu 18.04)
 * Required APT packages: `build-essential clang-11 git jq libc6-dev-i386 libelf-dev libpcap-dev libssl-dev liburcu-dev ninja-build pkg-config` (enable [llvm-toolchain-bionic-11](https://apt.llvm.org/) repository on Ubuntu 18.04)
 * Optional APT packages: `clang-format-11 doxygen lcov yamllint`
 * Go 1.17

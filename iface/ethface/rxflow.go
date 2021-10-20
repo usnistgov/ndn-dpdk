@@ -68,7 +68,6 @@ func (impl *rxFlowImpl) setIsolate(enable bool) error {
 }
 
 func (impl *rxFlowImpl) Init(port *Port) error {
-	impl.port = port
 	if port.cfg.DisableRxFlow {
 		return errors.New("disabled")
 	}
@@ -78,6 +77,7 @@ func (impl *rxFlowImpl) Init(port *Port) error {
 		return errors.New("cannot use RxFlow on virtual device")
 	}
 
+	impl.port = port
 	if e := impl.setIsolate(true); e != nil {
 		impl.port.logger.Info("flow isolated mode unavailable", zap.Error(e))
 	}
@@ -192,6 +192,10 @@ func (impl *rxFlowImpl) destroyFlow(flow *C.struct_rte_flow) error {
 }
 
 func (impl *rxFlowImpl) Close() error {
+	if impl.port == nil {
+		return nil
+	}
+
 	for _, face := range impl.port.faces {
 		if face.flow != nil {
 			impl.destroyFlow(face.flow)

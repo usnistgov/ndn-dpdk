@@ -101,7 +101,7 @@ func init() {
 						res = C.rte_flow_dev_dump(port.cID(), nil, (*C.FILE)(fp), nil)
 					})
 					if e == nil && res != 0 {
-						return fmt.Sprint("ERROR: ", eal.Errno(-res)), nil
+						return fmt.Sprint("ERROR: ", eal.MakeErrno(res)), nil
 					}
 					return string(dump), e
 				},

@@ -43,7 +43,7 @@ func InitEnv() error {
 	C.spdk_log_open((*C.logfunc)(C.Logger_Spdk))
 
 	if res := int(C.spdk_env_dpdk_post_init(C.bool(false))); res != 0 {
-		return fmt.Errorf("spdk_env_dpdk_post_init error %w", eal.Errno(-res))
+		return fmt.Errorf("spdk_env_dpdk_post_init error %w", eal.MakeErrno(res))
 	}
 
 	C.c_SpdkLoggerReady()

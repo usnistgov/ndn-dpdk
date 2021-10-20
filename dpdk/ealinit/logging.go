@@ -104,7 +104,7 @@ func initLogStream() {
 
 	res := C.Logger_Dpdk_Init((*C.FILE)(logStream.Writer))
 	if res != 0 {
-		logger.Error("Logger_Dpdk_Init", zap.Error(eal.Errno(-res)))
+		logger.Error("Logger_Dpdk_Init", zap.Error(eal.MakeErrno(res)))
 		return
 	}
 

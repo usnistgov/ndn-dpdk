@@ -128,15 +128,15 @@ func (dev ethDev) Start(cfg Config) error {
 		zap.Int("txq", len(cfg.TxQueues)),
 		zap.Bool("promisc", cfg.Promisc),
 	)
-	bail := func(e error) error {
+	bail := func(step string, e error) error {
 		dev.Stop(StopReset)
-		logEntry.Warn("Start error", zap.Error(e))
-		return e
+		logEntry.Warn(step+" error", zap.Error(e))
+		return fmt.Errorf("%s %w", step, e)
 	}
 
 	if cfg.MTU > 0 {
 		if res := C.rte_eth_dev_set_mtu(dev.cID(), C.uint16_t(cfg.MTU)); res != 0 {
-			return bail(fmt.Errorf("rte_eth_dev_set_mtu(%d,%d) %w", dev, cfg.MTU, eal.Errno(-res)))
+			return bail("rte_eth_dev_set_mtu", eal.MakeErrno(res))
 		}
 	}
 
@@ -149,7 +149,7 @@ func (dev ethDev) Start(cfg Config) error {
 
 	res := C.rte_eth_dev_configure(dev.cID(), C.uint16_t(len(cfg.RxQueues)), C.uint16_t(len(cfg.TxQueues)), conf)
 	if res < 0 {
-		return bail(fmt.Errorf("rte_eth_dev_configure(%d) %w", dev, eal.Errno(-res)))
+		return bail("rte_eth_dev_configure", eal.MakeErrno(res))
 	}
 
 	for i, qcfg := range cfg.RxQueues {
@@ -157,7 +157,7 @@ func (dev ethDev) Start(cfg Config) error {
 		res = C.rte_eth_rx_queue_setup(dev.cID(), C.uint16_t(i), C.uint16_t(capacity),
 			C.uint(qcfg.Socket.ID()), (*C.struct_rte_eth_rxconf)(qcfg.Conf), (*C.struct_rte_mempool)(qcfg.RxPool.Ptr()))
 		if res != 0 {
-			return bail(fmt.Errorf("rte_eth_rx_queue_setup(%d,%d) %w", dev, i, eal.Errno(-res)))
+			return bail(fmt.Sprintf("rte_eth_rx_queue_setup[%d]", i), eal.MakeErrno(res))
 		}
 	}
 
@@ -166,7 +166,7 @@ func (dev ethDev) Start(cfg Config) error {
 		res = C.rte_eth_tx_queue_setup(dev.cID(), C.uint16_t(i), C.uint16_t(capacity),
 			C.uint(qcfg.Socket.ID()), (*C.struct_rte_eth_txconf)(qcfg.Conf))
 		if res != 0 {
-			return bail(fmt.Errorf("rte_eth_tx_queue_setup(%d,%d) %w", dev, i, eal.Errno(-res)))
+			return bail(fmt.Sprintf("rte_eth_tx_queue_setup[%d]", i), eal.MakeErrno(res))
 		}
 	}
 
@@ -178,7 +178,7 @@ func (dev ethDev) Start(cfg Config) error {
 
 	res = C.rte_eth_dev_start(dev.cID())
 	if res != 0 {
-		return bail(fmt.Errorf("rte_eth_dev_start(%d) %w", dev, eal.Errno(-res)))
+		return bail("rte_eth_dev_start", eal.MakeErrno(res))
 	}
 
 	logEntry.Info("ethdev started")
@@ -190,6 +190,10 @@ func (dev ethDev) Stop(mode StopMode) error {
 		zap.Int("id", dev.ID()),
 		zap.String("name", dev.Name()),
 	)
+	bail := func(step string, e error) error {
+		logEntry.Warn(step+" error", zap.Error(e))
+		return fmt.Errorf("%s %w", step, e)
+	}
 
 	res := C.rte_eth_dev_stop(dev.cID())
 	switch res {
@@ -197,26 +201,20 @@ func (dev ethDev) Stop(mode StopMode) error {
 	case -C.ENODEV: // already detached
 		return nil
 	default:
-		e := eal.Errno(-res)
-		logEntry.Warn("rte_eth_dev_stop error", zap.Error(e))
-		return e
+		return bail("rte_eth_dev_stop", eal.MakeErrno(res))
 	}
 
 	switch mode {
 	case StopDetach:
 		if res := C.rte_eth_dev_close(dev.cID()); res != 0 {
-			e := eal.Errno(-res)
-			logEntry.Warn("rte_eth_dev_close error", zap.Error(e))
-			return e
+			return bail("rte_eth_dev_close", eal.MakeErrno(res))
 		}
 		detachEmitter.Emit(dev.ID())
-		logEntry.Info("stopped and detached")
+		logEntry.Info("ethdev stopped and detached")
 		return nil
 	case StopReset:
 		if res := C.rte_eth_dev_reset(dev.cID()); res != 0 {
-			e := eal.Errno(-res)
-			logEntry.Warn("rte_eth_dev_reset error", zap.Error(e))
-			return e
+			return bail("rte_eth_dev_reset", eal.MakeErrno(res))
 		}
 		logEntry.Info("ethdev stopped and reset")
 		return nil

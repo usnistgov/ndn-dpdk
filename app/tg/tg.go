@@ -155,7 +155,7 @@ func (gen *TrafficGen) Close() error {
 
 	errs := []error{}
 	gatherCloseErr := func(c io.Closer) {
-		if !reflect.ValueOf(c).IsNil() {
+		if c != nil && !reflect.ValueOf(c).IsNil() {
 			errs = append(errs, c.Close())
 		}
 	}
