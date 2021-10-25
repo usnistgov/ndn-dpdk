@@ -34,7 +34,7 @@ jobs:
           sudo update-alternatives --remove-all go || true
           sudo update-alternatives --install /usr/bin/go go $(which go) 1
           go install honnef.co/go/tools/cmd/staticcheck@latest
-          sudo pip3 install meson
+          sudo pip3 install 'meson >=0.55, <0.60'
           echo '::set-output name=meson::'$(meson --version)
       - name: install uBPF
         run: |

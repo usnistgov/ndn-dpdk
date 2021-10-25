@@ -312,7 +312,7 @@ if [[ $DISTRO == bionic ]]; then
   $SUDO update-alternatives --install /usr/bin/python python /usr/bin/python3 1
 fi
 curl -fsLS "${NDNDPDK_DL_PYPA_BOOTSTRAP}/get-pip.py" | $SUDO python
-$SUDO pip install -U meson pyelftools
+$SUDO pip install -U 'meson >=0.55, <0.60' pyelftools
 
 if [[ $GOVER != 0 ]]; then
   $SUDO rm -rf /usr/local/go
