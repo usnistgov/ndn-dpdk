@@ -25,7 +25,7 @@ Packet encoding and decoding
   * PIT token: yes
   * Congestion mark: yes
   * Link layer reliability: no
-* Naming Convention: TLV-TYPE numbers only
+* Naming Convention: [rev3 format](https://named-data.net/publications/techreports/ndn-tr-22-3-ndn-memo-naming-conventions/) ([TLV-TYPE numbers](https://redmine.named-data.net/projects/ndn-tlv/wiki/NameComponentType/28))
 
 Transports
 

@@ -19,11 +19,11 @@ const (
 	TtImplicitSha256DigestComponent   = 0x01
 	TtParametersSha256DigestComponent = 0x02
 	TtKeywordNameComponent            = 0x20
-	TtSegmentNameComponent            = 0x21
-	TtByteOffsetNameComponent         = 0x22
-	TtVersionNameComponent            = 0x23
-	TtTimestampNameComponent          = 0x24
-	TtSequenceNumNameComponent        = 0x25
+	TtSegmentNameComponent            = 0x32
+	TtByteOffsetNameComponent         = 0x34
+	TtVersionNameComponent            = 0x36
+	TtTimestampNameComponent          = 0x38
+	TtSequenceNumNameComponent        = 0x3A
 
 	TtInterest         = 0x05
 	TtCanBePrefix      = 0x21

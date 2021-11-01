@@ -12,9 +12,9 @@ import (
 
 // Name components for certificate naming.
 var (
-	ComponentKEY           = ndn.ParseNameComponent("KEY")
-	ComponentSelfIssuer    = ndn.ParseNameComponent("self")
-	ComponentDefaultIssuer = ndn.ParseNameComponent("NDNgo")
+	ComponentKEY           = ndn.MakeNameComponent(an.TtGenericNameComponent, []byte("KEY"))
+	ComponentSelfIssuer    = ndn.MakeNameComponent(an.TtGenericNameComponent, []byte("self"))
+	ComponentDefaultIssuer = ndn.MakeNameComponent(an.TtGenericNameComponent, []byte("NDNgo"))
 )
 
 // Error conditions for certificate naming.

@@ -133,7 +133,7 @@ func ctestDataEncFull(t *testing.T) {
 
 	data := ndni.PacketFromPtr(m.Ptr()).ToNPacket().Data
 	require.NotNil(data)
-	nameEqual(assert, "/DataEnc/full/33=%00%00%00%01%00%00%00%00", data)
+	nameEqual(assert, "/DataEnc/full/50=%00%00%00%01%00%00%00%00", data)
 	assert.EqualValues(an.ContentKey, data.ContentType)
 	assert.Equal(time.Hour, data.Freshness)
 	assert.Equal(finalBlock, data.FinalBlock)
