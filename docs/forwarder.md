@@ -47,7 +47,7 @@ To use the sample:
 4. Open `fw-args.ts` in the editor, and make changes.
    The editor can provide hints on available options.
 5. Run `npm run -s typecheck` to verify your arguments conform to the TypeScript definitions.
-6. Run `npm run -s fw-args | jq .` to see the JSON document.
+6. Run `npm run -s fw-args | jq` to see the JSON document.
 7. Run `npm run -s fw-args | ndndpdk-ctrl activate-forwarder` to send a forwarder activation command.
 
 ### Commonly Used Activation Parameters

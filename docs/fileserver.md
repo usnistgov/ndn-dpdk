@@ -123,7 +123,7 @@ The sample activation parameters given in [docs/activate](activate) may be used 
 
 1. Make a copy of this directory to somewhere outside the NDN-DPDK repository.
 2. Run `npm install` to install dependencies.
-3. Run `npm run -s fileserver-args | jq .` to see the JSON document.
+3. Run `npm run -s fileserver-args | jq` to see the JSON document.
    Notice in the output that `.face.role` is set to "client", opposite from the locator sent to the forwarder.
 4. Run `npm run -s fileserver-args | ndndpdk-ctrl --gqlserver http://127.0.0.1:3031 activate-fileserver` to send a file server activation command.
    Notice the `--gqlserver` flag, targeting the second NDN-DPDK service instance.
