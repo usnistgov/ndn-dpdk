@@ -9,6 +9,7 @@ import (
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev/ethvdev"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
@@ -89,4 +90,30 @@ type ethLocator interface {
 // LocatorCanCoexist determines whether two locators can coexist on the same port.
 func LocatorCanCoexist(a, b iface.Locator) bool {
 	return a.(ethLocator).cLoc().canCoexist(b.(ethLocator).cLoc())
+}
+
+// RxMatchFunc matches an incoming packet against the locator and strips headers.
+type RxMatchFunc func(m *pktmbuf.Packet) bool
+
+// LocatorRxMatch creates RxMatchFunc from a locator.
+func LocatorRxMatch(loc iface.Locator) RxMatchFunc {
+	cLoc := loc.(ethLocator).cLoc()
+	var match C.EthRxMatch
+	C.EthRxMatch_Prepare(&match, cLoc.ptr())
+	return func(m *pktmbuf.Packet) bool {
+		return bool(C.EthRxMatch_Match(&match, (*C.struct_rte_mbuf)(m.Ptr())))
+	}
+}
+
+// TxHdrFunc prepends headers to an outgoing packet according to the locator
+type TxHdrFunc func(m *pktmbuf.Packet, newBurst bool)
+
+// LocatorTxHdr creates TxHdrFunc from a locator.
+func LocatorTxHdr(loc iface.Locator, hasChecksumOffloads bool) TxHdrFunc {
+	cLoc := loc.(ethLocator).cLoc()
+	var hdr C.EthTxHdr
+	C.EthTxHdr_Prepare(&hdr, cLoc.ptr(), C.bool(hasChecksumOffloads))
+	return func(m *pktmbuf.Packet, newBurst bool) {
+		C.EthTxHdr_Prepend(&hdr, (*C.struct_rte_mbuf)(m.Ptr()), C.bool(newBurst))
+	}
 }

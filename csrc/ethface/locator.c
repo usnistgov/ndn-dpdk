@@ -199,14 +199,17 @@ MatchUdp(const EthRxMatch* match, const struct rte_mbuf* m)
 __attribute__((nonnull)) static bool
 MatchVxlan(const EthRxMatch* match, const struct rte_mbuf* m)
 {
-  // exact match on UDP destination port and VNI
+  // exact match on UDP destination port, VNI, and inner Ethernet header
   const struct rte_udp_hdr* udp =
     rte_pktmbuf_mtod_offset(m, const struct rte_udp_hdr*, match->udpOff);
   const struct rte_vxlan_hdr* vxlan = RTE_PTR_ADD(udp, sizeof(*udp));
+  const struct rte_ether_hdr* ieth = RTE_PTR_ADD(vxlan, sizeof(*vxlan));
   const struct rte_udp_hdr* udpt = RTE_PTR_ADD(match->buf, match->udpOff);
   const struct rte_vxlan_hdr* vxlant = RTE_PTR_ADD(udpt, sizeof(*udpt));
+  const struct rte_ether_hdr* ietht = RTE_PTR_ADD(vxlant, sizeof(*vxlant));
   return MatchUdp(match, m) && udp->dst_port == udpt->dst_port &&
-         (vxlan->vx_vni & ~rte_cpu_to_be_32(0xFF)) == vxlant->vx_vni;
+         (vxlan->vx_vni & ~rte_cpu_to_be_32(0xFF)) == vxlant->vx_vni &&
+         memcmp(ieth, ietht, RTE_ETHER_HDR_LEN) == 0;
 }
 
 void

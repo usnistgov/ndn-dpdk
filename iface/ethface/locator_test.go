@@ -1,25 +1,23 @@
 package ethface_test
 
 import (
+	"crypto/rand"
+	"net"
 	"testing"
 
-	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/google/gopacket"
+	"github.com/google/gopacket/layers"
 	"github.com/usnistgov/ndn-dpdk/iface/ethface"
+	"github.com/usnistgov/ndn-dpdk/ndn/an"
 )
 
 func TestLocatorCoexist(t *testing.T) {
 	assert, _ := makeAR(t)
-
-	parse := func(j string) iface.Locator {
-		var locw iface.LocatorWrapper
-		fromJSON(j, &locw)
-		return locw.Locator
-	}
 	coexist := func(a, b string) {
-		assert.True(ethface.LocatorCanCoexist(parse(a), parse(b)))
+		assert.True(ethface.LocatorCanCoexist(parseLocator(a), parseLocator(b)))
 	}
 	conflict := func(a, b string) {
-		assert.False(ethface.LocatorCanCoexist(parse(a), parse(b)))
+		assert.False(ethface.LocatorCanCoexist(parseLocator(a), parseLocator(b)))
 	}
 
 	// "ether" scheme
@@ -120,4 +118,297 @@ func TestLocatorCoexist(t *testing.T) {
 	coexist( // "udp" with "vxlan", different ports
 		`{"scheme":"udpe","localUDP":6363,"remoteUDP":6363`+ipA+etherA,
 		`{"scheme":"vxlan","localUDP":4789,"remoteUDP":4789,"vxlan":1`+innerA+ipA+etherA)
+}
+
+func TestLocatorRxMatch(t *testing.T) {
+	assert, require := makeAR(t)
+
+	matchers := make(map[string]ethface.RxMatchFunc)
+	addMatcher := func(key string, locator string) {
+		matchers[key] = ethface.LocatorRxMatch(parseLocator(locator))
+	}
+	addMatcher("ether-unicast", `{
+		"scheme": "ether",
+		"local": "02:00:00:00:00:01",
+		"remote": "02:00:00:00:00:02"
+	}`)
+	addMatcher("ether-unicast-vlan", `{
+		"scheme": "ether",
+		"local": "02:00:00:00:00:01",
+		"remote": "02:00:00:00:00:02",
+		"vlan": 3
+	}`)
+	addMatcher("ether-multicast", `{
+		"scheme": "ether",
+		"local": "02:00:00:00:00:01",
+		"remote": "01:00:5E:00:17:AA"
+	}`)
+	addMatcher("ether-multicast-vlan", `{
+		"scheme": "ether",
+		"local": "02:00:00:00:00:01",
+		"remote": "01:00:5E:00:17:AA",
+		"vlan": 3
+	}`)
+	addMatcher("udp4", `{
+		"scheme": "udpe",
+		"local": "02:00:00:00:00:01",
+		"remote": "02:00:00:00:00:02",
+		"localIP": "192.168.37.1",
+		"remoteIP": "192.168.37.2",
+		"localUDP": 6363,
+		"remoteUDP": 16363
+	}`)
+	addMatcher("udp6", `{
+		"scheme": "udpe",
+		"local": "02:00:00:00:00:01",
+		"remote": "02:00:00:00:00:02",
+		"localIP": "fde0:fd0a:3557:a8c7:db87:639f:9bd2:0001",
+		"remoteIP": "fde0:fd0a:3557:a8c7:db87:639f:9bd2:0002",
+		"localUDP": 6363,
+		"remoteUDP": 16363
+	}`)
+	addMatcher("vxlan0", `{
+		"scheme": "vxlan",
+		"local": "02:00:00:00:00:01",
+		"remote": "02:00:00:00:00:02",
+		"localIP": "fde0:fd0a:3557:a8c7:db87:639f:9bd2:0001",
+		"remoteIP": "fde0:fd0a:3557:a8c7:db87:639f:9bd2:0002",
+		"localUDP": 4789,
+		"remoteUDP": 14789,
+		"vxlan": 0,
+		"innerLocal": "02:00:00:00:00:03",
+		"innerRemote": "02:00:00:00:00:04"
+	}`)
+	addMatcher("vxlan1", `{
+		"scheme": "vxlan",
+		"local": "02:00:00:00:00:01",
+		"remote": "02:00:00:00:00:02",
+		"localIP": "fde0:fd0a:3557:a8c7:db87:639f:9bd2:0001",
+		"remoteIP": "fde0:fd0a:3557:a8c7:db87:639f:9bd2:0002",
+		"localUDP": 4789,
+		"remoteUDP": 14789,
+		"vxlan": 1,
+		"innerLocal": "02:00:00:00:00:03",
+		"innerRemote": "02:00:00:00:00:04"
+	}`)
+
+	payload := make(gopacket.Payload, 200)
+	rand.Read([]byte(payload))
+	onlyMatch := func(matcherKey string, headers ...gopacket.SerializableLayer) {
+		pkt := packetFromLayers(append(append([]gopacket.SerializableLayer{}, headers...), payload)...)
+		defer pkt.Close()
+
+		pktLen := pkt.Len()
+		for key, matcher := range matchers {
+			if key == matcherKey {
+				continue
+			}
+			assert.False(matcher(pkt))
+			require.Equal(pktLen, pkt.Len())
+		}
+
+		if matcherKey != "" {
+			assert.True(matchers[matcherKey](pkt))
+			assert.Equal([]byte(payload), pkt.Bytes())
+		}
+	}
+
+	mac0 := net.HardwareAddr{0x02, 0x00, 0x00, 0x00, 0x00, 0x00}
+	mac1 := net.HardwareAddr{0x02, 0x00, 0x00, 0x00, 0x00, 0x01}
+	mac2 := net.HardwareAddr{0x02, 0x00, 0x00, 0x00, 0x00, 0x02}
+	mac3 := net.HardwareAddr{0x02, 0x00, 0x00, 0x00, 0x00, 0x03}
+	mac4 := net.HardwareAddr{0x02, 0x00, 0x00, 0x00, 0x00, 0x04}
+	macM := net.HardwareAddr{0x01, 0x00, 0x5E, 0x00, 0x17, 0xAA}
+	ip40 := net.ParseIP("192.168.37.0")
+	ip41 := net.ParseIP("192.168.37.1")
+	ip42 := net.ParseIP("192.168.37.2")
+	ip60 := net.ParseIP("fde0:fd0a:3557:a8c7:db87:639f:9bd2:0000")
+	ip61 := net.ParseIP("fde0:fd0a:3557:a8c7:db87:639f:9bd2:0001")
+	ip62 := net.ParseIP("fde0:fd0a:3557:a8c7:db87:639f:9bd2:0002")
+
+	onlyMatch("ether-unicast",
+		&layers.Ethernet{SrcMAC: mac2, DstMAC: mac1, EthernetType: an.EtherTypeNDN},
+	)
+	onlyMatch("", // wrong EtherType
+		&layers.Ethernet{SrcMAC: mac2, DstMAC: mac1, EthernetType: layers.EthernetTypeDot1Q},
+	)
+	onlyMatch("", // wrong SrcMAC
+		&layers.Ethernet{SrcMAC: mac0, DstMAC: mac1, EthernetType: layers.EthernetTypeDot1Q},
+	)
+	onlyMatch("", // wrong DstMAC
+		&layers.Ethernet{SrcMAC: mac2, DstMAC: mac0, EthernetType: layers.EthernetTypeDot1Q},
+	)
+	onlyMatch("ether-unicast-vlan",
+		&layers.Ethernet{SrcMAC: mac2, DstMAC: mac1, EthernetType: layers.EthernetTypeDot1Q},
+		&layers.Dot1Q{VLANIdentifier: 3, Type: an.EtherTypeNDN},
+	)
+	onlyMatch("", // wrong VLAN
+		&layers.Ethernet{SrcMAC: mac2, DstMAC: mac1, EthernetType: layers.EthernetTypeDot1Q},
+		&layers.Dot1Q{VLANIdentifier: 4, Type: an.EtherTypeNDN},
+	)
+	onlyMatch("ether-multicast",
+		&layers.Ethernet{SrcMAC: mac2, DstMAC: macM, EthernetType: an.EtherTypeNDN},
+	)
+	onlyMatch("ether-multicast-vlan",
+		&layers.Ethernet{SrcMAC: mac2, DstMAC: macM, EthernetType: layers.EthernetTypeDot1Q},
+		&layers.Dot1Q{VLANIdentifier: 3, Type: an.EtherTypeNDN},
+	)
+
+	onlyMatch("udp4",
+		&layers.Ethernet{SrcMAC: mac2, DstMAC: mac1, EthernetType: layers.EthernetTypeIPv4},
+		&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: ip42, DstIP: ip41},
+		&layers.UDP{SrcPort: 16363, DstPort: 6363},
+	)
+	onlyMatch("", // wrong SrcIP
+		&layers.Ethernet{SrcMAC: mac2, DstMAC: mac1, EthernetType: layers.EthernetTypeIPv4},
+		&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: ip40, DstIP: ip41},
+		&layers.UDP{SrcPort: 16363, DstPort: 6363},
+	)
+	onlyMatch("", // wrong DstIP
+		&layers.Ethernet{SrcMAC: mac2, DstMAC: mac1, EthernetType: layers.EthernetTypeIPv4},
+		&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: ip42, DstIP: ip40},
+		&layers.UDP{SrcPort: 16363, DstPort: 6363},
+	)
+	onlyMatch("", // wrong SrcPort
+		&layers.Ethernet{SrcMAC: mac2, DstMAC: mac1, EthernetType: layers.EthernetTypeIPv4},
+		&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: ip42, DstIP: ip41},
+		&layers.UDP{SrcPort: 26363, DstPort: 6363},
+	)
+	onlyMatch("", // wrong DstPort
+		&layers.Ethernet{SrcMAC: mac2, DstMAC: mac1, EthernetType: layers.EthernetTypeIPv4},
+		&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: ip42, DstIP: ip41},
+		&layers.UDP{SrcPort: 16363, DstPort: 26363},
+	)
+
+	onlyMatch("udp6",
+		&layers.Ethernet{SrcMAC: mac2, DstMAC: mac1, EthernetType: layers.EthernetTypeIPv6},
+		&layers.IPv6{Version: 6, NextHeader: layers.IPProtocolUDP, SrcIP: ip62, DstIP: ip61},
+		&layers.UDP{SrcPort: 16363, DstPort: 6363},
+	)
+	onlyMatch("", // wrong SrcIP
+		&layers.Ethernet{SrcMAC: mac2, DstMAC: mac1, EthernetType: layers.EthernetTypeIPv6},
+		&layers.IPv6{Version: 6, NextHeader: layers.IPProtocolUDP, SrcIP: ip60, DstIP: ip61},
+		&layers.UDP{SrcPort: 16363, DstPort: 6363},
+	)
+	onlyMatch("", // wrong DstIP
+		&layers.Ethernet{SrcMAC: mac2, DstMAC: mac1, EthernetType: layers.EthernetTypeIPv6},
+		&layers.IPv6{Version: 6, NextHeader: layers.IPProtocolUDP, SrcIP: ip62, DstIP: ip60},
+		&layers.UDP{SrcPort: 16363, DstPort: 6363},
+	)
+	onlyMatch("", // wrong SrcPort
+		&layers.Ethernet{SrcMAC: mac2, DstMAC: mac1, EthernetType: layers.EthernetTypeIPv6},
+		&layers.IPv6{Version: 6, NextHeader: layers.IPProtocolUDP, SrcIP: ip62, DstIP: ip61},
+		&layers.UDP{SrcPort: 26363, DstPort: 6363},
+	)
+	onlyMatch("", // wrong DstPort
+		&layers.Ethernet{SrcMAC: mac2, DstMAC: mac1, EthernetType: layers.EthernetTypeIPv6},
+		&layers.IPv6{Version: 6, NextHeader: layers.IPProtocolUDP, SrcIP: ip62, DstIP: ip61},
+		&layers.UDP{SrcPort: 16363, DstPort: 26363},
+	)
+
+	onlyMatch("vxlan0",
+		&layers.Ethernet{SrcMAC: mac2, DstMAC: mac1, EthernetType: layers.EthernetTypeIPv6},
+		&layers.IPv6{Version: 6, NextHeader: layers.IPProtocolUDP, SrcIP: ip62, DstIP: ip61},
+		&layers.UDP{SrcPort: 65000, DstPort: 4789},
+		&layers.VXLAN{VNI: 0},
+		&layers.Ethernet{SrcMAC: mac4, DstMAC: mac3, EthernetType: an.EtherTypeNDN},
+	)
+	onlyMatch("vxlan1",
+		&layers.Ethernet{SrcMAC: mac2, DstMAC: mac1, EthernetType: layers.EthernetTypeIPv6},
+		&layers.IPv6{Version: 6, NextHeader: layers.IPProtocolUDP, SrcIP: ip62, DstIP: ip61},
+		&layers.UDP{SrcPort: 65000, DstPort: 4789},
+		&layers.VXLAN{VNI: 1},
+		&layers.Ethernet{SrcMAC: mac4, DstMAC: mac3, EthernetType: an.EtherTypeNDN},
+	)
+	onlyMatch("", // wrong inner SrcMAC
+		&layers.Ethernet{SrcMAC: mac2, DstMAC: mac1, EthernetType: layers.EthernetTypeIPv6},
+		&layers.IPv6{Version: 6, NextHeader: layers.IPProtocolUDP, SrcIP: ip62, DstIP: ip61},
+		&layers.UDP{SrcPort: 65000, DstPort: 4789},
+		&layers.VXLAN{VNI: 1},
+		&layers.Ethernet{SrcMAC: mac0, DstMAC: mac3, EthernetType: an.EtherTypeNDN},
+	)
+	onlyMatch("", // wrong inner DstMAC
+		&layers.Ethernet{SrcMAC: mac2, DstMAC: mac1, EthernetType: layers.EthernetTypeIPv6},
+		&layers.IPv6{Version: 6, NextHeader: layers.IPProtocolUDP, SrcIP: ip62, DstIP: ip61},
+		&layers.UDP{SrcPort: 65000, DstPort: 4789},
+		&layers.VXLAN{VNI: 1},
+		&layers.Ethernet{SrcMAC: mac4, DstMAC: mac0, EthernetType: an.EtherTypeNDN},
+	)
+	onlyMatch("", // wrong inner EtherType
+		&layers.Ethernet{SrcMAC: mac2, DstMAC: mac1, EthernetType: layers.EthernetTypeIPv6},
+		&layers.IPv6{Version: 6, NextHeader: layers.IPProtocolUDP, SrcIP: ip62, DstIP: ip61},
+		&layers.UDP{SrcPort: 65000, DstPort: 4789},
+		&layers.VXLAN{VNI: 1},
+		&layers.Ethernet{SrcMAC: mac4, DstMAC: mac3, EthernetType: layers.EthernetTypePPP},
+	)
+}
+
+func TestLocatorTxHdr(t *testing.T) {
+	assert, _ := makeAR(t)
+
+	payload := make([]byte, 200)
+	rand.Read(payload)
+
+	checkTxHdr := func(locator string, expectedLayerTypes ...gopacket.LayerType) gopacket.Packet {
+		loc := parseLocator(locator)
+		prependTxHdr := ethface.LocatorTxHdr(loc, false)
+		pkt := makePacket(payload)
+		defer pkt.Close()
+		prependTxHdr(pkt, true)
+
+		parsed := gopacket.NewPacket(pkt.Bytes(), layers.LayerTypeEthernet, gopacket.Default)
+		expectedLayerTypes = append(expectedLayerTypes, gopacket.LayerTypePayload)
+		actualLayerTypes := []gopacket.LayerType{}
+		for _, l := range parsed.Layers() {
+			actualLayerTypes = append(actualLayerTypes, l.LayerType())
+		}
+		assert.Equal(expectedLayerTypes, actualLayerTypes)
+		return parsed
+	}
+
+	checkTxHdr(`{
+		"scheme": "ether",
+		"local": "02:00:00:00:00:01",
+		"remote": "02:00:00:00:00:02"
+	}`, layers.LayerTypeEthernet)
+	checkTxHdr(`{
+		"scheme": "ether",
+		"local": "02:00:00:00:00:01",
+		"remote": "02:00:00:00:00:02",
+		"vlan": 3
+	}`, layers.LayerTypeEthernet, layers.LayerTypeDot1Q)
+	checkTxHdr(`{
+		"scheme": "udpe",
+		"local": "02:00:00:00:00:01",
+		"remote": "02:00:00:00:00:02",
+		"localIP": "192.168.37.1",
+		"remoteIP": "192.168.37.2",
+		"localUDP": 6363,
+		"remoteUDP": 16363
+	}`, layers.LayerTypeEthernet, layers.LayerTypeIPv4, layers.LayerTypeUDP)
+	checkTxHdr(`{
+		"scheme": "udpe",
+		"local": "02:00:00:00:00:01",
+		"remote": "02:00:00:00:00:02",
+		"localIP": "fde0:fd0a:3557:a8c7:db87:639f:9bd2:0001",
+		"remoteIP": "fde0:fd0a:3557:a8c7:db87:639f:9bd2:0002",
+		"localUDP": 6363,
+		"remoteUDP": 16363
+	}`, layers.LayerTypeEthernet, layers.LayerTypeIPv6, layers.LayerTypeUDP)
+
+	vxlanParsed := checkTxHdr(`{
+		"scheme": "vxlan",
+		"local": "02:00:00:00:00:01",
+		"remote": "02:00:00:00:00:02",
+		"localIP": "fde0:fd0a:3557:a8c7:db87:639f:9bd2:0001",
+		"remoteIP": "fde0:fd0a:3557:a8c7:db87:639f:9bd2:0002",
+		"localUDP": 4789,
+		"remoteUDP": 4789,
+		"vxlan": 0,
+		"innerLocal": "02:00:00:00:00:03",
+		"innerRemote": "02:00:00:00:00:04"
+	}`, layers.LayerTypeEthernet, layers.LayerTypeIPv6, layers.LayerTypeUDP, layers.LayerTypeVXLAN, layers.LayerTypeEthernet)
+	vxlanUDP := vxlanParsed.Layer(layers.LayerTypeUDP).(*layers.UDP)
+	assert.GreaterOrEqual(uint16(vxlanUDP.SrcPort), uint16(0xC000))
+	assert.EqualValues(4789, vxlanUDP.DstPort)
 }

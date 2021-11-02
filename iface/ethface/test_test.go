@@ -4,9 +4,12 @@ import (
 	"os"
 	"testing"
 
+	"github.com/google/gopacket"
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealtestenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
+	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
 func TestMain(m *testing.M) {
@@ -26,6 +29,40 @@ func TestMain(m *testing.M) {
 }
 
 var (
-	makeAR   = testenv.MakeAR
-	fromJSON = testenv.FromJSON
+	makeAR     = testenv.MakeAR
+	fromJSON   = testenv.FromJSON
+	makePacket = mbuftestenv.MakePacket
 )
+
+func parseLocator(j string) iface.Locator {
+	var locw iface.LocatorWrapper
+	fromJSON(j, &locw)
+	return locw.Locator
+}
+
+func packetFromLayers(hdrs ...gopacket.SerializableLayer) *pktmbuf.Packet {
+	type TransportLayer interface {
+		SetNetworkLayerForChecksum(l gopacket.NetworkLayer) error
+	}
+	var netLayer gopacket.NetworkLayer
+	for _, hdr := range hdrs {
+		switch layer := hdr.(type) {
+		case gopacket.NetworkLayer:
+			netLayer = layer
+		case TransportLayer:
+			if netLayer != nil {
+				layer.SetNetworkLayerForChecksum(netLayer)
+			}
+		}
+	}
+
+	buf := gopacket.NewSerializeBuffer()
+	e := gopacket.SerializeLayers(buf, gopacket.SerializeOptions{
+		FixLengths:       true,
+		ComputeChecksums: true,
+	}, hdrs...)
+	if e != nil {
+		panic(e)
+	}
+	return makePacket(mbuftestenv.Headroom(0), buf.Bytes())
+}
