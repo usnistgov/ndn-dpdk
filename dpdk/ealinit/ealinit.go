@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"strings"
 	"sync"
 
 	"github.com/kballard/go-shellquote"
@@ -26,7 +27,7 @@ import (
 var logger = logging.New("ealinit")
 
 func init() {
-	eal.Version = C.GoString(C.rte_version())
+	eal.Version = strings.TrimPrefix(C.GoString(C.rte_version()), "DPDK ")
 	ealconfig.PmdPath = C.RTE_EAL_PMD_PATH
 }
 

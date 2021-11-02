@@ -21,10 +21,10 @@ DiskStore_GetData_Fail(struct rte_ring* reply, Packet* npkt)
     interest->diskData = NULL;
   }
 
-  if (likely(reply != NULL) && likely(rte_ring_enqueue(reply, npkt) == 0)) {
-    return;
-  }
-  if (reply != NULL) {
+  if (likely(reply != NULL)) {
+    if (likely(rte_ring_enqueue(reply, npkt) == 0)) {
+      return;
+    }
     N_LOGW("GetData_Fail reply=%p npkt=%p fail=enqueue", reply, npkt);
   }
   rte_pktmbuf_free(Packet_ToMbuf(npkt));
@@ -70,7 +70,7 @@ DiskStore_GetData_Begin(void* npkt0)
   uint64_t blockOffset = DiskStore_ComputeBlockOffset_(store, slotID);
 
   int res = SpdkBdev_ReadPacket(store->bdev, store->ch, dataPkt, blockOffset, store->nBlocksPerSlot,
-                                store->blockSize, DiskStore_GetData_End, npkt);
+                                store->blockSize, DiskStore_GetData_End, (uintptr_t)npkt);
   if (unlikely(res != 0)) {
     N_LOGW("GetData_Begin slot=%" PRIu64 " npkt=%p fail=read(%d)", slotID, npkt, res);
     DiskStore_GetData_Fail(req->reply, npkt);

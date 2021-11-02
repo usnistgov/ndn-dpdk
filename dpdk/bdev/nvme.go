@@ -5,13 +5,16 @@ package bdev
 #include <spdk/nvme.h>
 
 extern bool go_nvmeProbed(uintptr_t ctx, struct spdk_nvme_transport_id* trid, struct spdk_nvme_ctrlr_opts* opts);
+
+static int c_spdk_nvme_probe(uintptr_t ctx)
+{
+	return spdk_nvme_probe(NULL, (void*)ctx, (spdk_nvme_probe_cb)go_nvmeProbed, NULL, NULL);
+}
 */
 import "C"
 import (
 	"errors"
-	"fmt"
 	"runtime/cgo"
-	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/pciaddr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
@@ -27,10 +30,7 @@ func ListNvmes() (nvmes []pciaddr.PCIAddress, e error) {
 	var result listNvmesResult
 	ctx := cgo.NewHandle(&result)
 	defer ctx.Delete()
-	res := eal.CallMain(func() int {
-		res := C.spdk_nvme_probe(nil, unsafe.Pointer(ctx), C.spdk_nvme_probe_cb(unsafe.Pointer(C.go_nvmeProbed)), nil, nil)
-		return int(res)
-	}).(int)
+	res := eal.CallMain(func() int { return int(C.c_spdk_nvme_probe(C.uintptr_t(ctx))) }).(int)
 	if res != 0 {
 		return nil, errors.New("spdk_nvme_probe error")
 	}
@@ -54,7 +54,7 @@ type Nvme struct {
 }
 
 func (nvme *Nvme) getName() string {
-	return fmt.Sprintf("nvme%s", nvme.pciAddr.String())
+	return "nvme" + nvme.pciAddr.String()
 }
 
 // AttachNvme attaches block devices on an NVMe drives.

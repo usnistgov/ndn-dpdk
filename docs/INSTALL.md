@@ -18,7 +18,7 @@ You can also [build a Docker container](Docker.md), which would work on other op
 * [libbpf](https://github.com/libbpf/libbpf) 0.5.0 (optional)
 * [liburing](https://github.com/axboe/liburing) 2.1
 * [Data Plane Development Kit (DPDK)](https://www.dpdk.org/) 21.08
-* [Storage Performance Development Kit (SPDK)](https://spdk.io/) 21.07
+* [Storage Performance Development Kit (SPDK)](https://spdk.io/) 21.10
 * [godoc](https://pkg.go.dev/golang.org/x/tools/cmd/godoc) and [staticcheck](https://pkg.go.dev/honnef.co/go/tools/cmd/staticcheck) commands (optional)
 * [gq](https://www.npmjs.com/package/graphqurl) command (optional, only used in sample commands)
 

@@ -39,8 +39,9 @@ DiskStore_PutData_Begin(void* npkt0)
 
   uint64_t blockOffset = DiskStore_ComputeBlockOffset_(store, slotID);
   uint64_t blockCount = DiskStore_ComputeBlockCount_(store, npkt);
-  int res = SpdkBdev_WritePacket(store->bdev, store->ch, Packet_ToMbuf(npkt), blockOffset,
-                                 blockCount, store->blockSize, DiskStore_PutData_End, npkt);
+  int res =
+    SpdkBdev_WritePacket(store->bdev, store->ch, Packet_ToMbuf(npkt), blockOffset, blockCount,
+                         store->blockSize, DiskStore_PutData_End, (uintptr_t)npkt);
   if (unlikely(res != 0)) {
     N_LOGW("PutData_Begin slot=%" PRIu64 " npkt=%p fail=write(%d)", slotID, npkt, res);
     rte_pktmbuf_free(Packet_ToMbuf(npkt));

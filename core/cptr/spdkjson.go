@@ -22,7 +22,7 @@ import (
 	"unsafe"
 )
 
-// As of SPDK 21.07, explicitly calling a function in libspdk_env_dpdk.so is needed to prevent a linker error:
+// As of SPDK 21.10, explicitly calling a function in libspdk_env_dpdk.so is needed to prevent a linker error:
 //  /usr/local/lib/libspdk_util.so: undefined reference to `spdk_realloc'
 var _ = C.spdk_env_get_core_count()
 

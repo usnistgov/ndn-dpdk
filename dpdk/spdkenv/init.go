@@ -16,6 +16,7 @@ static void c_SpdkLoggerReady()
 import "C"
 import (
 	"fmt"
+	"strings"
 
 	"github.com/usnistgov/ndn-dpdk/core/dlopen"
 	"github.com/usnistgov/ndn-dpdk/core/logging"
@@ -25,14 +26,14 @@ import (
 var logger = logging.New("spdkenv")
 
 // Version is SPDK version.
-var Version = string(C.SPDK_VERSION_STRING)
+var Version = strings.TrimPrefix(C.SPDK_VERSION_STRING, "SPDK v")
 
 var mainThread *Thread
 
 // InitEnv initializes the SPDK environment.
 func InitEnv() error {
-	// As of SPDK 21.07, libspdk_event.so depends on rte_power_set_freq symbol exported by
-	// librte_power.so but does not link with that library.
+	// As of SPDK 21.10, libspdk_scheduler_dpdk_governor.so depends on rte_power_freq_max symbol
+	// exported by librte_power.so but does not link with that library.
 	dlopen.Load("/usr/local/lib/librte_power.so")
 
 	e := dlopen.LoadGroup("/usr/local/lib/libspdk.so")

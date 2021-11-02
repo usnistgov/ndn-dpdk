@@ -7,11 +7,15 @@ package bdev
 
 extern void go_bdevEvent(enum spdk_bdev_event_type type, struct spdk_bdev* bdev, uintptr_t ctx);
 extern void go_bdevIoComplete(struct spdk_bdev_io* io, bool success, uintptr_t ctx);
+
+static int c_spdk_bdev_unmap_blocks(struct spdk_bdev_desc* desc, 	struct spdk_io_channel* ch, uint64_t offset_blocks, uint64_t num_blocks, uintptr_t ctx)
+{
+	return spdk_bdev_unmap_blocks(desc, ch, offset_blocks, num_blocks, (spdk_bdev_io_completion_cb)go_bdevIoComplete, (void*)ctx);
+}
 */
 import "C"
 import (
 	"errors"
-	"io"
 	"runtime/cgo"
 	"unsafe"
 
@@ -102,72 +106,13 @@ func (bd *Bdev) DevInfo() (bdi *Info) {
 	return (*Info)(C.spdk_bdev_desc_get_bdev(bd.c))
 }
 
-// ReadBlocks reads blocks of data.
-func (bd *Bdev) ReadBlocks(blockOffset, blockCount int64, buf []byte) error {
-	if blockOffset < 0 || blockOffset+blockCount >= bd.nBlocks {
-		return io.ErrUnexpectedEOF
-	}
-	sizeofBuf := blockCount * bd.blockSize
-	if sizeofBuf > int64(len(buf)) {
-		return io.ErrShortBuffer
-	}
-
-	bufC := eal.Zmalloc("SpdkBdevBuf", sizeofBuf, eal.NumaSocket{})
-	defer eal.Free(bufC)
-
-	done := make(chan error)
-	ctx := cgo.NewHandle(done)
-	defer ctx.Delete()
-	eal.PostMain(cptr.Func0.Void(func() {
-		res := C.spdk_bdev_read_blocks(bd.c, bd.ch, bufC, C.uint64_t(blockOffset), C.uint64_t(blockCount),
-			C.spdk_bdev_io_completion_cb(C.go_bdevIoComplete), unsafe.Pointer(ctx))
-		if res != 0 {
-			done <- eal.MakeErrno(res)
-		}
-	}))
-	if e := <-done; e != nil {
-		return e
-	}
-
-	C.rte_memcpy(unsafe.Pointer(&buf[0]), bufC, C.size_t(sizeofBuf))
-	return nil
-}
-
-// WriteBlocks writes blocks of data.
-func (bd *Bdev) WriteBlocks(blockOffset, blockCount int64, buf []byte) error {
-	if blockOffset < 0 || blockOffset+blockCount >= bd.nBlocks {
-		return io.ErrUnexpectedEOF
-	}
-	sizeofBuf := blockCount * bd.blockSize
-	if sizeofBuf > int64(len(buf)) {
-		return io.ErrShortBuffer
-	}
-
-	bufC := eal.Zmalloc("SpdkBdevBuf", sizeofBuf, eal.NumaSocket{})
-	defer eal.Free(bufC)
-	C.rte_memcpy(bufC, unsafe.Pointer(&buf[0]), C.size_t(sizeofBuf))
-
-	done := make(chan error)
-	ctx := cgo.NewHandle(done)
-	defer ctx.Delete()
-	eal.PostMain(cptr.Func0.Void(func() {
-		res := C.spdk_bdev_write_blocks(bd.c, bd.ch, bufC, C.uint64_t(blockOffset), C.uint64_t(blockCount),
-			C.spdk_bdev_io_completion_cb(C.go_bdevIoComplete), unsafe.Pointer(ctx))
-		if res != 0 {
-			done <- eal.MakeErrno(res)
-		}
-	}))
-	return <-done
-}
-
 // UnmapBlocks notifies the device that the data in the blocks are no longer needed.
 func (bd *Bdev) UnmapBlocks(blockOffset, blockCount int64) error {
 	done := make(chan error)
 	ctx := cgo.NewHandle(done)
 	defer ctx.Delete()
 	eal.PostMain(cptr.Func0.Void(func() {
-		res := C.spdk_bdev_unmap_blocks(bd.c, bd.ch, C.uint64_t(blockOffset), C.uint64_t(blockCount),
-			C.spdk_bdev_io_completion_cb(C.go_bdevIoComplete), unsafe.Pointer(ctx))
+		res := C.c_spdk_bdev_unmap_blocks(bd.c, bd.ch, C.uint64_t(blockOffset), C.uint64_t(blockCount), C.uintptr_t(ctx))
 		if res != 0 {
 			done <- eal.MakeErrno(res)
 		}
@@ -183,7 +128,7 @@ func (bd *Bdev) ReadPacket(blockOffset, blockCount int64, pkt pktmbuf.Packet) er
 	eal.PostMain(cptr.Func0.Void(func() {
 		res := C.SpdkBdev_ReadPacket(bd.c, bd.ch, (*C.struct_rte_mbuf)(pkt.Ptr()),
 			C.uint64_t(blockOffset), C.uint64_t(blockCount), C.uint32_t(bd.blockSize),
-			C.spdk_bdev_io_completion_cb(C.go_bdevIoComplete), unsafe.Pointer(ctx))
+			C.spdk_bdev_io_completion_cb(C.go_bdevIoComplete), C.uintptr_t(ctx))
 		if res != 0 {
 			done <- eal.MakeErrno(res)
 		}
@@ -199,7 +144,7 @@ func (bd *Bdev) WritePacket(blockOffset, blockCount int64, pkt pktmbuf.Packet) e
 	eal.PostMain(cptr.Func0.Void(func() {
 		res := C.SpdkBdev_WritePacket(bd.c, bd.ch, (*C.struct_rte_mbuf)(pkt.Ptr()),
 			C.uint64_t(blockOffset), C.uint64_t(blockCount), C.uint32_t(bd.blockSize),
-			C.spdk_bdev_io_completion_cb(C.go_bdevIoComplete), unsafe.Pointer(ctx))
+			C.spdk_bdev_io_completion_cb(C.go_bdevIoComplete), C.uintptr_t(ctx))
 		if res != 0 {
 			done <- eal.MakeErrno(res)
 		}
