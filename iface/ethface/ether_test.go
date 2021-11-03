@@ -1,6 +1,8 @@
 package ethface_test
 
 import (
+	"fmt"
+	"math/rand"
 	"net"
 	"testing"
 	"time"
@@ -9,10 +11,14 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev/ethringdev"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/ethface"
 	"github.com/usnistgov/ndn-dpdk/iface/ifacetestenv"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
+	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"go4.org/must"
 )
@@ -108,10 +114,6 @@ func TestTopoAm(t *testing.T) {
 
 func TestFragmentation(t *testing.T) {
 	assert, require := makeAR(t)
-	fixture := ifacetestenv.NewFixture(t)
-	defer fixture.Close()
-	fixture.PayloadLen = 6000
-	fixture.DataFrames = 2
 
 	var vnetCfg ethringdev.VNetConfig
 	vnetCfg.RxPool = ndni.PacketMempool.Get(eal.NumaSocket{})
@@ -120,13 +122,19 @@ func TestFragmentation(t *testing.T) {
 	vnetCfg.Shuffle = true
 	vnet, e := ethringdev.NewVNet(vnetCfg)
 	require.NoError(e)
+	defer vnet.Close()
 	ealthread.AllocLaunch(vnet)
-	time.Sleep(time.Second)
+
+	fixture := ifacetestenv.NewFixture(t)
+	defer fixture.Close() // RxLoop must be closed before closing vnet
+	fixture.PayloadLen = 6000
+	fixture.DataFrames = 2
 
 	locA := makeEtherLocator(vnet.Port(0))
-	locA.PortConfig = new(ethface.PortConfig)
-	locA.PortConfig.MTU = 5000
-	locA.PortConfig.DisableSetMTU = true
+	locA.PortConfig = &ethface.PortConfig{
+		MTU:           5000,
+		DisableSetMTU: true,
+	}
 	faceA, e := locA.CreateFace()
 	require.NoError(e)
 
@@ -140,4 +148,130 @@ func TestFragmentation(t *testing.T) {
 
 	cntB := faceB.Counters()
 	assert.Greater(cntB.RxReassDrops, uint64(0))
+}
+
+func TestReassembly(t *testing.T) {
+	assert, require := makeAR(t)
+	payload := make([]byte, 6000)
+	rand.Read(payload)
+
+	var vnetCfg ethringdev.VNetConfig
+	vnetCfg.RxPool = ndni.PacketMempool.Get(eal.NumaSocket{})
+	vnetCfg.NNodes = 2
+	vnet, e := ethringdev.NewVNet(vnetCfg)
+	require.NoError(e)
+	defer vnet.Close()
+	ealthread.AllocLaunch(vnet)
+
+	fixture := ifacetestenv.NewFixture(t) // needed for RxLoop & TxLoop
+	defer fixture.Close()                 // RxLoop must be closed before closing vnet
+
+	portA := vnet.Port(0)
+	locA := makeEtherLocator(vnet.Port(0))
+	prependTxHdrA := ethface.LocatorTxHdr(locA, false)
+	txqA := portA.TxQueues()[0]
+	sendA := func(pkt *ndn.Packet) {
+		b, e := tlv.EncodeFrom(pkt)
+		require.NoError(e)
+		m := mbuftestenv.MakePacket(b)
+		prependTxHdrA(m, false)
+		n := txqA.TxBurst(pktmbuf.Vector{m})
+		assert.Equal(1, n)
+	}
+
+	locB := makeEtherLocator(vnet.Port(1))
+	locB.ReassemblerCapacity = 16
+	faceB, e := locB.CreateFace()
+	require.NoError(e)
+	defer must.Close(faceB)
+	prevCntB := faceB.Counters()
+	readCntB := func() (diff iface.Counters) {
+		cntB := faceB.Counters()
+		diff = cntB.Since(prevCntB)
+		prevCntB = cntB
+		return diff
+	}
+
+	{ // reassemble 2 fragments
+		fragmenter := ndn.NewLpFragmenter(5000)
+		data := ndn.MakeData("/D", payload)
+		frags, e := fragmenter.Fragment(data.ToPacket())
+		require.NoError(e)
+		require.Len(frags, 2)
+		sendA(frags[0])
+		sendA(frags[1])
+		time.Sleep(5 * time.Millisecond)
+		cntB := readCntB()
+		assert.Equal(2, int(cntB.RxFrames))
+		assert.Equal(1, int(cntB.RxReassPackets))
+		assert.Equal(0, int(cntB.RxReassDrops))
+		assert.Equal(1, int(cntB.RxData))
+	}
+
+	{ // reassemble 3 fragments, with reordering and duplicate
+		fragmenter := ndn.NewLpFragmenter(2900)
+		data := ndn.MakeData("/D", payload)
+		frags, e := fragmenter.Fragment(data.ToPacket())
+		require.NoError(e)
+		require.Len(frags, 3)
+		sendA(frags[0])
+		sendA(frags[2])
+		sendA(frags[2])
+		sendA(frags[1])
+		time.Sleep(5 * time.Millisecond)
+		cntB := readCntB()
+		assert.Equal(4, int(cntB.RxFrames))
+		assert.Equal(1, int(cntB.RxReassPackets))
+		assert.Equal(1, int(cntB.RxReassDrops))
+		assert.Equal(1, int(cntB.RxData))
+	}
+
+	{ // discard packet due to unexpected FragCount change
+		fragmenter := ndn.NewLpFragmenter(2900)
+		data := ndn.MakeData("/D", payload)
+		frags, e := fragmenter.Fragment(data.ToPacket())
+		require.NoError(e)
+		require.Len(frags, 3)
+		frags[1].Fragment.FragCount--
+		sendA(frags[0])
+		sendA(frags[2])
+		sendA(frags[1])
+		time.Sleep(5 * time.Millisecond)
+		cntB := readCntB()
+		assert.Equal(3, int(cntB.RxFrames))
+		assert.Equal(0, int(cntB.RxReassPackets))
+		assert.Equal(3, int(cntB.RxReassDrops))
+		assert.Equal(0, int(cntB.RxData))
+	}
+
+	{ // too many incomplete packets
+		fragmenter := ndn.NewLpFragmenter(4000)
+		secondFrag := make([]*ndn.Packet, 200)
+		for i := range secondFrag {
+			data := ndn.MakeData(fmt.Sprintf("/D/%d", i), payload)
+			frags, e := fragmenter.Fragment(data.ToPacket())
+			require.NoError(e)
+			require.Len(frags, 2)
+			sendA(frags[0])
+			secondFrag[i] = frags[1]
+			switch {
+			case i == 50:
+				sendA(secondFrag[40]) // within reassembler capacity, can reassemble
+				sendA(secondFrag[20]) // exceed reassembler capacity, cannot reassemble
+				fallthrough
+			case i >= 100:
+				sendA(frags[1])
+			}
+			time.Sleep(time.Millisecond)
+		}
+		time.Sleep(5 * time.Millisecond)
+		cntB := readCntB()
+		assert.LessOrEqual(int(cntB.RxFrames), 303)
+		assert.GreaterOrEqual(int(cntB.RxFrames), 303-locB.ReassemblerCapacity)
+		assert.Equal(102, int(cntB.RxReassPackets))
+		assert.LessOrEqual(int(cntB.RxReassDrops), 99)
+		assert.GreaterOrEqual(int(cntB.RxReassDrops), 99-locB.ReassemblerCapacity)
+		assert.Equal(102, int(cntB.RxData))
+		// incomplete packets are left in the reassembler; do not add another test after this
+	}
 }

@@ -4,7 +4,7 @@
 bool
 Reassembler_Init(Reassembler* reass, const char* id, uint32_t capacity, unsigned numaSocket)
 {
-  assert(capacity >= MinReassemblerCapacity && capacity <= MaxReassemblerCapacity);
+  NDNDPDK_ASSERT(capacity >= MinReassemblerCapacity && capacity <= MaxReassemblerCapacity);
 
   reass->table = HashTable_New((struct rte_hash_parameters){
     .name = id,

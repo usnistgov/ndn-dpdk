@@ -48,7 +48,7 @@ struct rte_flow*
 EthFace_SetupFlow(EthFacePriv* priv, uint16_t queues[], int nQueues, const EthLocator* loc,
                   bool isolated, struct rte_flow_error* error)
 {
-  assert(nQueues > 0 && nQueues < (int)RTE_DIM(priv->rxf));
+  NDNDPDK_ASSERT(nQueues > 0 && nQueues < (int)RTE_DIM(priv->rxf));
 
   struct rte_flow_attr attr = { .ingress = true };
 
