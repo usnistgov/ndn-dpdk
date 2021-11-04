@@ -9,6 +9,7 @@ import (
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 // InputDemux is a demultiplexer for incoming packets of one L3 type.
@@ -25,7 +26,7 @@ func (demux *InputDemux) ptr() *C.InputDemux {
 
 // InitDrop configures to drop all packets.
 func (demux *InputDemux) InitDrop() {
-	demux.ptr().dispatch = C.InputDemux_DispatchFunc(C.InputDemux_DispatchDrop)
+	demux.dispatch = C.InputDemux_DispatchFunc(C.InputDemux_DispatchDrop)
 }
 
 // InitFirst configures to pass all packets to the first and only destination.
@@ -45,9 +46,8 @@ func (demux *InputDemux) InitGenericHash(nDest int) {
 
 // InitNdt configures to dispatch via NDT loopup.
 func (demux *InputDemux) InitNdt(ndq *ndt.Querier) {
-	demuxC := demux.ptr()
-	demux.ptr().dispatch = C.InputDemux_DispatchFunc(C.InputDemux_DispatchByNdt)
-	demuxC.ndq = (*C.NdtQuerier)(ndq.Ptr())
+	demux.dispatch = C.InputDemux_DispatchFunc(C.InputDemux_DispatchByNdt)
+	demux.ndq = (*C.NdtQuerier)(ndq.Ptr())
 }
 
 // InitToken configures to dispatch according to specified octet in the PIT token.
@@ -57,7 +57,23 @@ func (demux *InputDemux) InitToken(offset uint8) {
 
 // SetDest assigns i-th destination.
 func (demux *InputDemux) SetDest(i int, q *PktQueue) {
-	demux.ptr().dest[i].queue = q.ptr()
+	demux.dest[i].queue = q.ptr()
+}
+
+// Dispatch submits a packet for dispatching.
+func (demux *InputDemux) Dispatch(pkt *ndni.Packet) {
+	C.InputDemux_Dispatch(demux.ptr(), (*C.Packet)(pkt.Ptr()), (*C.PName)(unsafe.Pointer(pkt.PName())))
+}
+
+// InputDemuxCounters contains InputDemux counters.
+type InputDemuxCounters struct {
+	NDrops uint64
+}
+
+// Counters reads counters.
+func (demux *InputDemux) Counters() (cnt InputDemuxCounters) {
+	cnt.NDrops = uint64(demux.nDrops)
+	return cnt
 }
 
 // InputDemuxDestCounters contains counters of an InputDemux destination.
@@ -66,10 +82,9 @@ type InputDemuxDestCounters struct {
 	NDropped uint64
 }
 
-// ReadDestCounters returns counters of i-th destination.
-func (demux *InputDemux) ReadDestCounters(i int) (cnt InputDemuxDestCounters) {
-	c := demux.ptr()
-	cnt.NQueued = uint64(c.dest[i].nQueued)
-	cnt.NDropped = uint64(c.dest[i].nDropped)
+// DestCounters returns counters of i-th destination.
+func (demux *InputDemux) DestCounters(i int) (cnt InputDemuxDestCounters) {
+	cnt.NQueued = uint64(demux.dest[i].nQueued)
+	cnt.NDropped = uint64(demux.dest[i].nDropped)
 	return cnt
 }

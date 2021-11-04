@@ -1,12 +1,9 @@
 package fwdp
 
-/*
-#include "../../csrc/fwdp/fwd.h"
-*/
-import "C"
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"strconv"
 	"unsafe"
 
@@ -89,7 +86,7 @@ func init() {
 		}
 		GqlFwdCountersType.AddFieldConfig(fieldName, field)
 	}
-	defineFwdPktCounter := func(plural string, getDemux func(iface.RxLoop) *iface.InputDemux, getQueue func(fwdC *C.FwFwd) *C.PktQueue) {
+	defineFwdPktCounter := func(plural string, getDemux func(iface.RxLoop) *iface.InputDemux) {
 		GqlFwdCountersType.AddFieldConfig(fmt.Sprintf("n%sQueued", plural), &graphql.Field{
 			Description: fmt.Sprintf("%s queued in input thread.", plural),
 			Type:        gqlserver.NonNullInt,
@@ -97,7 +94,7 @@ func init() {
 				index := p.Source.(*Fwd).id
 				var sum uint64
 				for _, input := range GqlDataPlane.fwis {
-					sum += getDemux(input.rxl).ReadDestCounters(index).NQueued
+					sum += getDemux(input.rxl).DestCounters(index).NQueued
 				}
 				return sum, nil
 			},
@@ -109,23 +106,25 @@ func init() {
 				index := p.Source.(*Fwd).id
 				var sum uint64
 				for _, input := range GqlDataPlane.fwis {
-					sum += getDemux(input.rxl).ReadDestCounters(index).NDropped
+					sum += getDemux(input.rxl).DestCounters(index).NDropped
 				}
 				return sum, nil
 			},
 		})
+		pktQueueF, _ := reflect.TypeOf(Fwd{}).FieldByName("queue" + plural[:1])
 		GqlFwdCountersType.AddFieldConfig(fmt.Sprintf("n%sCongMarked", plural), &graphql.Field{
 			Description: fmt.Sprintf("Congestion marks added to %s.", plural),
 			Type:        gqlserver.NonNullInt,
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				fwd := p.Source.(*Fwd)
-				return int(getQueue(fwd.c).nDrops), nil
+				fwdV := reflect.ValueOf(p.Source.(*Fwd)).Elem()
+				q := fwdV.FieldByIndex(pktQueueF.Index).Interface().(*iface.PktQueue)
+				return int(q.Counters().NDrops), nil
 			},
 		})
 	}
-	defineFwdPktCounter("Interests", iface.RxLoop.InterestDemux, func(fwdC *C.FwFwd) *C.PktQueue { return &fwdC.queueI })
-	defineFwdPktCounter("Data", iface.RxLoop.DataDemux, func(fwdC *C.FwFwd) *C.PktQueue { return &fwdC.queueD })
-	defineFwdPktCounter("Nacks", iface.RxLoop.NackDemux, func(fwdC *C.FwFwd) *C.PktQueue { return &fwdC.queueN })
+	defineFwdPktCounter("Interests", iface.RxLoop.InterestDemux)
+	defineFwdPktCounter("Data", iface.RxLoop.DataDemux)
+	defineFwdPktCounter("Nacks", iface.RxLoop.NackDemux)
 
 	GqlFwdNodeType = gqlserver.NewNodeType((*Fwd)(nil))
 	GqlFwdNodeType.Retrieve = func(id string) (interface{}, error) {

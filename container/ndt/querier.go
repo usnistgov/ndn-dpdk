@@ -19,7 +19,7 @@ type Querier C.NdtQuerier
 
 // Ptr returns *C.NdtQuerier pointer.
 func (ndq *Querier) Ptr() unsafe.Pointer {
-	return unsafe.Pointer(ndq.ptr())
+	return unsafe.Pointer(ndq)
 }
 
 func (ndq *Querier) ptr() *C.NdtQuerier {
@@ -28,7 +28,7 @@ func (ndq *Querier) ptr() *C.NdtQuerier {
 
 // Close releases memory.
 func (ndq *Querier) Close() error {
-	eal.Free(ndq.ptr())
+	eal.Free(ndq)
 	return nil
 }
 
@@ -43,7 +43,7 @@ func (ndq *Querier) hitCounters(nEntries int) (hits []uint32) {
 	return unsafe.Slice((*uint32)(unsafe.Pointer(C.c_NdtQuerier_Hits(ndq.ptr()))), nEntries)
 }
 
-func newThread(ndt *Ndt, socket eal.NumaSocket) *Querier {
+func newQuerier(ndt *Ndt, socket eal.NumaSocket) *Querier {
 	c := C.NdtQuerier_New(ndt.replicas[socket].ptr(), C.int(socket.ID()))
 	return (*Querier)(c)
 }

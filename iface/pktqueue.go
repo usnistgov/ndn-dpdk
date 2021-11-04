@@ -34,6 +34,11 @@ type PktQueueConfig struct {
 // PktQueue is a packet queue with simplified CoDel algorithm.
 type PktQueue C.PktQueue
 
+// PktQueueFromPtr converts *C.PktQueue to PktQueue.
+func PktQueueFromPtr(ptr unsafe.Pointer) (q *PktQueue) {
+	return (*PktQueue)(ptr)
+}
+
 // Ptr return *C.PktQueue pointer.
 func (q *PktQueue) Ptr() unsafe.Pointer {
 	return unsafe.Pointer(q)
@@ -45,8 +50,6 @@ func (q *PktQueue) ptr() *C.PktQueue {
 
 // Init initializes PktQueue.
 func (q *PktQueue) Init(cfg PktQueueConfig, socket eal.NumaSocket) error {
-	c := q.ptr()
-
 	capacity := 131072
 	convertDuration := func(input nnduration.Nanoseconds, defaultMs int) C.TscDuration {
 		d := input.Duration()
@@ -57,15 +60,15 @@ func (q *PktQueue) Init(cfg PktQueueConfig, socket eal.NumaSocket) error {
 	}
 	switch {
 	case cfg.Delay > 0:
-		c.pop = C.PktQueue_PopOp(C.PktQueue_PopDelay)
-		c.target = convertDuration(cfg.Delay, 0)
+		q.pop = C.PktQueue_PopOp(C.PktQueue_PopDelay)
+		q.target = convertDuration(cfg.Delay, 0)
 	case cfg.DisableCoDel:
-		c.pop = C.PktQueue_PopOp(C.PktQueue_PopPlain)
+		q.pop = C.PktQueue_PopOp(C.PktQueue_PopPlain)
 		capacity = 4096
 	default:
-		c.pop = C.PktQueue_PopOp(C.PktQueue_PopCoDel)
-		c.target = convertDuration(cfg.Target, 5)
-		c.interval = convertDuration(cfg.Interval, 100)
+		q.pop = C.PktQueue_PopOp(C.PktQueue_PopCoDel)
+		q.target = convertDuration(cfg.Target, 5)
+		q.interval = convertDuration(cfg.Interval, 100)
 	}
 	if cfg.Capacity > 0 {
 		capacity = cfg.Capacity
@@ -75,12 +78,12 @@ func (q *PktQueue) Init(cfg PktQueueConfig, socket eal.NumaSocket) error {
 	if e != nil {
 		return e
 	}
-	c.ring = (*C.struct_rte_ring)(ring.Ptr())
+	q.ring = (*C.struct_rte_ring)(ring.Ptr())
 
 	if cfg.DequeueBurstSize > 0 && cfg.DequeueBurstSize < MaxBurstSize {
-		c.dequeueBurstSize = C.uint32_t(cfg.DequeueBurstSize)
+		q.dequeueBurstSize = C.uint32_t(cfg.DequeueBurstSize)
 	} else {
-		c.dequeueBurstSize = MaxBurstSize
+		q.dequeueBurstSize = MaxBurstSize
 	}
 
 	return nil
@@ -122,7 +125,13 @@ func (q *PktQueue) Pop(vec pktmbuf.Vector, now eal.TscTime) (count int, drop boo
 	return int(res.count), bool(res.drop)
 }
 
-// PktQueueFromPtr converts *C.PktQueue to PktQueue.
-func PktQueueFromPtr(ptr unsafe.Pointer) (q *PktQueue) {
-	return (*PktQueue)(ptr)
+// PktQueueCounters contains PktQueue counters.
+type PktQueueCounters struct {
+	NDrops uint64 `json:"nDrops"`
+}
+
+// Counters reads counters.
+func (q *PktQueue) Counters() (cnt PktQueueCounters) {
+	cnt.NDrops = uint64(q.nDrops)
+	return cnt
 }

@@ -7,7 +7,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"go4.org/must"
+	"go.uber.org/multierr"
 )
 
 // Entry contains information from an NDT entry.
@@ -43,15 +43,16 @@ func (ndt *Ndt) Queriers() (list []*Querier) {
 
 // Close releases memory of all replicas and threads.
 func (ndt *Ndt) Close() error {
+	errs := []error{}
 	for _, ndtt := range ndt.queriers {
-		must.Close(ndtt)
+		errs = append(errs, ndtt.Close())
 	}
 	ndt.queriers = nil
 	for _, ndtr := range ndt.replicas {
-		must.Close(ndtr)
+		errs = append(errs, ndtr.Close())
 	}
 	ndt.replicas = nil
-	return nil
+	return multierr.Combine(errs...)
 }
 
 // ComputeHash computes the hash used for a name.
@@ -130,10 +131,13 @@ func New(cfg Config, sockets []eal.NumaSocket) (ndt *Ndt) {
 	}
 
 	for i, socket := range sockets {
+		if socket.IsAny() {
+			socket = eal.Sockets[0]
+		}
 		if ndt.replicas[socket] == nil {
 			ndt.replicas[socket] = newReplica(cfg, socket)
 		}
-		ndt.queriers[i] = newThread(ndt, socket)
+		ndt.queriers[i] = newQuerier(ndt, socket)
 	}
 	return ndt
 }
