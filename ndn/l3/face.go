@@ -3,7 +3,7 @@
 // The Transport interface defines a lower layer communication channel.
 // It knows NDN-TLV structure, but not NDN packet types.
 // It should be implemented for different communication technologies.
-// NDNgo library offers Transport implementations for Unix, UDP, TCP, and AF_PACKET sockets.
+// NDNgo library offers Transport implementations for memif, UDP sockets, etc.
 //
 // The Face type is the service exposed to the network layer.
 // It allows sending and receiving packets on a Transport.

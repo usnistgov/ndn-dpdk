@@ -7,12 +7,15 @@ import "C"
 import (
 	"bytes"
 	"testing"
+	"unsafe"
 
 	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/ndntestvector"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
+	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
 )
 
 func ctestLpParse(t *testing.T) {
@@ -45,39 +48,39 @@ func ctestLpParse(t *testing.T) {
 
 func ctestPacketClone(t *testing.T) {
 	assert, require := makeAR(t)
-	mp := makeMempoolsC()
+	mp := ndnitestenv.MakeMempools()
 
 	data := ndn.MakeData("/D", bytes.Repeat([]byte{0xC0}, 1200))
 	wire, _ := tlv.EncodeFrom(data)
 	p := makePacket(wire)
 	defer p.Close()
 
-	mSingle := C.Packet_ToMbuf(C.Packet_Clone(p.npkt, mp, C.PacketTxAlign{
-		linearize:           true,
-		fragmentPayloadSize: 7000,
-	}))
-	require.NotNil(mSingle)
-	defer C.rte_pktmbuf_free(mSingle)
-	assert.EqualValues(len(wire), mSingle.pkt_len)
-	assert.EqualValues(1, mSingle.nb_segs)
-	assert.EqualValues(len(wire), mSingle.data_len)
+	single := toPacket(unsafe.Pointer(p.N.Clone(mp, ndni.PacketTxAlign{
+		Linearize:           true,
+		FragmentPayloadSize: 7000,
+	})))
+	require.NotNil(single)
+	defer single.Close()
+	assert.EqualValues(len(wire), single.mbuf.pkt_len)
+	assert.EqualValues(1, single.mbuf.nb_segs)
+	assert.EqualValues(len(wire), single.mbuf.data_len)
 
-	mLinearFrag := C.Packet_ToMbuf(C.Packet_Clone(p.npkt, mp, C.PacketTxAlign{
-		linearize:           true,
-		fragmentPayloadSize: 500,
-	}))
-	require.NotNil(mLinearFrag)
-	defer C.rte_pktmbuf_free(mLinearFrag)
-	assert.EqualValues(len(wire), mLinearFrag.pkt_len)
-	assert.EqualValues(3, mLinearFrag.nb_segs)
-	assert.EqualValues(500, mLinearFrag.data_len)
+	linearFrag := toPacket(unsafe.Pointer(p.N.Clone(mp, ndni.PacketTxAlign{
+		Linearize:           true,
+		FragmentPayloadSize: 500,
+	})))
+	require.NotNil(linearFrag)
+	defer linearFrag.Close()
+	assert.EqualValues(len(wire), linearFrag.mbuf.pkt_len)
+	assert.EqualValues(3, linearFrag.mbuf.nb_segs)
+	assert.EqualValues(500, linearFrag.mbuf.data_len)
 
-	mChained := C.Packet_ToMbuf(C.Packet_Clone(p.npkt, mp, C.PacketTxAlign{
-		linearize: false,
-	}))
-	require.NotNil(mChained)
-	defer C.rte_pktmbuf_free(mChained)
-	assert.EqualValues(len(wire), mChained.pkt_len)
-	assert.EqualValues(2, mChained.nb_segs)
-	assert.EqualValues(0, mChained.data_len)
+	chained := toPacket(unsafe.Pointer(p.N.Clone(mp, ndni.PacketTxAlign{
+		Linearize: false,
+	})))
+	require.NotNil(chained)
+	defer chained.Close()
+	assert.EqualValues(len(wire), chained.mbuf.pkt_len)
+	assert.EqualValues(2, chained.mbuf.nb_segs)
+	assert.EqualValues(0, chained.mbuf.data_len)
 }

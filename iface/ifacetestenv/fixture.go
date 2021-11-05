@@ -5,6 +5,7 @@
 package ifacetestenv
 
 import (
+	"math/rand"
 	"testing"
 	"time"
 	"unsafe"
@@ -53,14 +54,14 @@ func NewFixture(t *testing.T) (fixture *Fixture) {
 	ndnitestenv.MakePacketHeadroom = mbuftestenv.Headroom(pktmbuf.DefaultHeadroom + ndni.LpHeaderHeadroom)
 
 	_, require := makeAR(t)
-	fixture = new(Fixture)
-	fixture.t = t
-
-	fixture.PayloadLen = 100
-	fixture.DataFrames = 1
-	fixture.TxIterations = 5000
-	fixture.TxLossTolerance = 0.05
-	fixture.RxLossTolerance = 0.10
+	fixture = &Fixture{
+		t:               t,
+		PayloadLen:      100,
+		DataFrames:      1,
+		TxIterations:    5000,
+		TxLossTolerance: 0.05,
+		RxLossTolerance: 0.10,
+	}
 
 	fixture.rxl = iface.NewRxLoop(eal.NumaSocket{})
 	fixture.rxQueueI = fixture.preparePktQueue(fixture.rxl.InterestDemux())
@@ -138,11 +139,20 @@ func (fixture *Fixture) recvCheck(pkt *pktmbuf.Packet) (increment int) {
 
 func (fixture *Fixture) sendProc() {
 	content := make([]byte, fixture.PayloadLen)
+	rand.Read(content)
+	mp := ndnitestenv.MakeMempools()
+	txAlign := fixture.txFace.TxAlign()
+
 	for i := 0; i < fixture.TxIterations; i++ {
 		pkts := make([]*ndni.Packet, 3)
 		pkts[0] = ndnitestenv.MakeInterest("/A")
 		pkts[1] = ndnitestenv.MakeData("/A", content)
 		pkts[2] = ndnitestenv.MakeNack(ndn.MakeInterest("/A"), an.NackNoRoute)
+		if txAlign.Linearize {
+			data := pkts[1]
+			pkts[1] = data.Clone(mp, txAlign)
+			data.Close()
+		}
 		iface.TxBurst(fixture.txFace.ID(), pkts)
 		time.Sleep(time.Millisecond)
 	}

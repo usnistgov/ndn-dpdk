@@ -36,7 +36,7 @@ type topo3 struct {
 	faceAB, faceAC, faceAm, faceBm, faceBA, faceCA iface.Face
 }
 
-func makeTopo3(t *testing.T) (topo topo3) {
+func makeTopo3(t *testing.T, forceLinearize bool) (topo topo3) {
 	_, require := makeAR(t)
 	topo.Fixture = ifacetestenv.NewFixture(t)
 
@@ -58,6 +58,7 @@ func makeTopo3(t *testing.T) (topo topo3) {
 			loc.Local.HardwareAddr = local
 		}
 		loc.Remote.HardwareAddr = remote
+		loc.DisableTxMultiSegOffload = forceLinearize
 		face, e := loc.CreateFace()
 		require.NoError(e, "%s %s %s", dev.Name(), local, remote)
 		return face
@@ -82,7 +83,7 @@ func (topo *topo3) Close() error {
 }
 
 func TestTopoBA(t *testing.T) {
-	topo := makeTopo3(t)
+	topo := makeTopo3(t, false)
 	defer topo.Close()
 
 	topo.RunTest(topo.faceBA, topo.faceAB)
@@ -90,7 +91,7 @@ func TestTopoBA(t *testing.T) {
 }
 
 func TestTopoCA(t *testing.T) {
-	topo := makeTopo3(t)
+	topo := makeTopo3(t, true)
 	defer topo.Close()
 
 	topo.RunTest(topo.faceCA, topo.faceAC)
@@ -99,7 +100,7 @@ func TestTopoCA(t *testing.T) {
 
 func TestTopoAm(t *testing.T) {
 	assert, _ := makeAR(t)
-	topo := makeTopo3(t)
+	topo := makeTopo3(t, false)
 	defer topo.Close()
 
 	locAm := topo.faceAm.Locator().(ethface.EtherLocator)
@@ -112,7 +113,7 @@ func TestTopoAm(t *testing.T) {
 	topo.CheckCounters()
 }
 
-func TestFragmentation(t *testing.T) {
+func testFragmentation(t *testing.T, forceLinearize bool) {
 	assert, require := makeAR(t)
 
 	var vnetCfg ethringdev.VNetConfig
@@ -135,6 +136,7 @@ func TestFragmentation(t *testing.T) {
 		MTU:           5000,
 		DisableSetMTU: true,
 	}
+	locA.DisableTxMultiSegOffload = forceLinearize
 	faceA, e := locA.CreateFace()
 	require.NoError(e)
 
@@ -148,6 +150,14 @@ func TestFragmentation(t *testing.T) {
 
 	cntB := faceB.Counters()
 	assert.Greater(cntB.RxReassDrops, uint64(0))
+}
+
+func TestFragmentationLinear(t *testing.T) {
+	testFragmentation(t, true)
+}
+
+func TestFragmentationChained(t *testing.T) {
+	testFragmentation(t, false)
 }
 
 func TestReassembly(t *testing.T) {

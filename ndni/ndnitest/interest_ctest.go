@@ -29,6 +29,7 @@ import (
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
 )
 
 func ctestInterestParse(t *testing.T) {
@@ -107,6 +108,8 @@ func ctestInterestParse(t *testing.T) {
 
 func checkInterestModify(t *testing.T, fragmentPayloadSize C.uint16_t, nSegs int, input string, check func(interest *C.PInterest, u C.PInterestUnpacked)) {
 	assert, require := makeAR(t)
+	mp := ndnitestenv.MakeMempools()
+	mpC := (*C.PacketMempools)(unsafe.Pointer(mp))
 
 	p := makePacket(input)
 	defer p.Close()
@@ -122,7 +125,7 @@ func checkInterestModify(t *testing.T, fragmentPayloadSize C.uint16_t, nSegs int
 		linearize:           C.bool(fragmentPayloadSize > 0),
 		fragmentPayloadSize: fragmentPayloadSize,
 	}
-	modify := toPacket(unsafe.Pointer(C.Interest_ModifyGuiders(p.npkt, guiders, makeMempoolsC(), align)))
+	modify := toPacket(unsafe.Pointer(C.Interest_ModifyGuiders(p.npkt, guiders, mpC, align)))
 	defer modify.Close()
 	assert.EqualValues(ndni.PktSInterest, C.Packet_GetType(modify.npkt))
 	assert.EqualValues(nSegs, modify.mbuf.nb_segs)

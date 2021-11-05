@@ -26,8 +26,8 @@ The minute scheduler takes a different approach.
 1. The `MinSched` instance has a number of slots.
    Each slot contains timers that should expire at the same time, organized in a doubly linked list.
 2. The `MinTmr_After` function selects a slot that a timer belongs to, and inserts the timer into that slot.
-3. The `MinSched_Trigger` function checks whether the timers of the next slot are expiring.
-   If so, it invokes the callback function on each timer. `MinTmr_After` also implicitly invokes `MinSched_Trigger`.
+3. The `MinSched_Trigger` function checks whether timers in the next slot are expiring.
+   If so, it invokes the callback function on each timer.
 
 The minute scheduler is faster than generic timer libraries because it does not maintain an ordered list of scheduled events, but simply puts them into a slot within an array.
 It also consumes less memory because it records only one callback function for all events instead of one for each event.

@@ -93,6 +93,13 @@ func (pkt *Packet) ComputeDataImplicitDigest() []byte {
 	return digest
 }
 
+// Clone clones this packet to new mbufs, with specified alignment requirement.
+// Returns nil upon allocation error.
+func (pkt *Packet) Clone(mp *Mempools, align PacketTxAlign) *Packet {
+	m := C.Packet_Clone(pkt.ptr(), (*C.PacketMempools)(mp), *(*C.PacketTxAlign)(unsafe.Pointer(&align)))
+	return PacketFromPtr(unsafe.Pointer(m))
+}
+
 // ToNPacket copies this packet into ndn.Packet.
 // Panics on error.
 func (pkt *Packet) ToNPacket() (npkt ndn.Packet) {

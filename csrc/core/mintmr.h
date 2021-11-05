@@ -64,7 +64,7 @@ MinTmr_Init(MinTmr* tmr)
   tmr->next = tmr->prev = NULL;
 }
 
-/** @brief Calculate the maximum delay allowed in @c MinTmr_After. */
+/** @brief Calculate the maximum delay allowed in @c MinTmr_After . */
 __attribute__((nonnull)) static inline TscDuration
 MinSched_GetMaxDelay(MinSched* sched)
 {
@@ -87,13 +87,13 @@ MinTmr_Cancel(MinTmr* tmr)
 /**
  * @brief Schedule a timer to expire @p after since current time.
  * @param tmr the timer; any previous setting will be cancelled.
- * @param after expiration delay; negative value is changed to zero
+ * @param after expiration delay; negative value is changed to zero.
  * @retval false @p after >= MinSched_GetMaxDelay(sched)
  */
 __attribute__((nonnull)) bool
 MinTmr_After(MinTmr* tmr, TscDuration after, MinSched* sched);
 
-/** @brief Schedule a timer to expire at @p at. */
+/** @brief Schedule a timer to expire at @p at . */
 __attribute__((nonnull)) static inline bool
 MinTmr_At(MinTmr* tmr, TscTime at, MinSched* sched)
 {

@@ -43,6 +43,9 @@ type Face interface {
 	// ReadExCounters returns extended counters.
 	ReadExCounters() interface{}
 
+	// TxAlign returns TX packet alignment requirement.
+	TxAlign() ndni.PacketTxAlign
+
 	// SetDown changes face UP/DOWN state.
 	SetDown(isDown bool)
 }
@@ -310,6 +313,10 @@ func (f *face) ReadExCounters() interface{} {
 		return f.readExCountersCallback(f)
 	}
 	return nil
+}
+
+func (f *face) TxAlign() ndni.PacketTxAlign {
+	return *(*ndni.PacketTxAlign)(unsafe.Pointer(&f.ptr().txAlign))
 }
 
 func (f *face) SetDown(isDown bool) {

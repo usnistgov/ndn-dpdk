@@ -1,4 +1,4 @@
-// Package rdr implements ndn6-file-server protocol.
+// Package ndn6file implements ndn6-file-server protocol.
 // https://github.com/yoursunny/ndn6-tools/blob/main/file-server.md
 package ndn6file
 
