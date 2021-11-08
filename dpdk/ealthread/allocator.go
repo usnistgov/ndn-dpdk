@@ -102,6 +102,11 @@ func AllocFree(lcores ...eal.LCore) {
 }
 
 // AllocClear deletes all allocations.
+//
+// When this is used together with eal.UpdateLCoreSockets mock in a test case, the cleanup statement should be ordered as:
+//  defer eal.UpdateLCoreSockets(...)()
+//  defer ealthread.AllocClear()
+// This ensures AllocClear() clears allocations for mocked workers instead of real workers.
 func AllocClear() {
 	allocFree(eal.Workers, true)
 }

@@ -6,6 +6,7 @@ package eal
 import "C"
 import (
 	"encoding/json"
+	"reflect"
 	"strconv"
 
 	"github.com/graphql-go/graphql"
@@ -72,9 +73,72 @@ func (socket NumaSocket) NumaSocket() NumaSocket {
 	return socket
 }
 
+// RewriteAnyNumaSocket provides a function to change "any NUMA socket" to a concrete NUMA socket.
+type RewriteAnyNumaSocket int
+
+const (
+	// KeepAnyNumaSocket keeps "any NUMA socket" unchanged.
+	KeepAnyNumaSocket RewriteAnyNumaSocket = -2 - iota
+	// RewriteAnyNumaSocketFirst rewrites "any NUMA socket" to eal.Sockets[0].
+	RewriteAnyNumaSocketFirst
+	// RewriteAnyNumaSocketRandom rewrites "any NUMA socket" to eal.RandomSocket().
+	RewriteAnyNumaSocketRandom
+)
+
+// RewriteAnyNumaSocketTo rewrites "any NUMA socket" to the specified NUMA socket.
+func RewriteAnyNumaSocketTo(socket NumaSocket) (r RewriteAnyNumaSocket) {
+	return RewriteAnyNumaSocket(socket.ID())
+}
+
+// Rewrite rewrites the input if it is "any NUMA socket", otherwise keeps it unchanged.
+func (r RewriteAnyNumaSocket) Rewrite(socket NumaSocket) NumaSocket {
+	if !socket.IsAny() {
+		return socket
+	}
+	switch r {
+	case KeepAnyNumaSocket:
+		return socket
+	case RewriteAnyNumaSocketFirst:
+		if len(Sockets) > 0 {
+			return Sockets[0]
+		}
+		return socket
+	case RewriteAnyNumaSocketRandom:
+		return RandomSocket()
+	default:
+		return NumaSocketFromID(int(r))
+	}
+}
+
 // WithNumaSocket interface is implemented by types that have an associated or preferred NUMA socket.
 type WithNumaSocket interface {
 	NumaSocket() NumaSocket
+}
+
+// ClassifyByNumaSocket classifies items by NUMA socket.
+//  T: type that satisfies WithNumaSocket interface
+//  s: source []T
+// Returns map[eal.NumaSocket][]T
+func ClassifyByNumaSocket(s interface{}, r RewriteAnyNumaSocket) interface{} {
+	sV := reflect.ValueOf(s)
+	sT := sV.Type()
+	mV := reflect.MakeMap(reflect.MapOf(reflect.TypeOf(NumaSocket{}), sT))
+
+	for i, count := 0, sV.Len(); i < count; i++ {
+		itemV := sV.Index(i)
+
+		socket := r.Rewrite(itemV.Interface().(WithNumaSocket).NumaSocket())
+		socketV := reflect.ValueOf(socket)
+
+		bucketV := mV.MapIndex(socketV)
+		if bucketV.Kind() == 0 {
+			bucketV = reflect.MakeSlice(sT, 0, count)
+		}
+		bucketV = reflect.Append(bucketV, itemV)
+		mV.SetMapIndex(socketV, bucketV)
+	}
+
+	return mV.Interface()
 }
 
 // GqlWithNumaSocket is a GraphQL field for source object that implements WithNumaSocket.

@@ -14,13 +14,6 @@ import (
 	"go4.org/must"
 )
 
-func rewriteUnknownSocket(socket eal.NumaSocket) eal.NumaSocket {
-	if socket.IsAny() && len(eal.Sockets) > 0 {
-		return eal.Sockets[0]
-	}
-	return socket
-}
-
 // Fib represents a Forwarding Information Base (FIB).
 type Fib struct {
 	tree     *fibtree.Tree
@@ -34,7 +27,7 @@ func (fib *Fib) Len() int {
 
 // Replica returns replica on specified NUMA socket.
 func (fib *Fib) Replica(socket eal.NumaSocket) *fibreplica.Table {
-	return fib.replicas[rewriteUnknownSocket(socket)]
+	return fib.replicas[eal.RewriteAnyNumaSocketFirst.Rewrite(socket)]
 }
 
 // Close frees the FIB.
@@ -125,11 +118,7 @@ func New(cfg fibdef.Config, threads []LookupThread) (*Fib, error) {
 		replicas: make(map[eal.NumaSocket]*fibreplica.Table),
 	}
 
-	threadByNuma := make(map[eal.NumaSocket][]LookupThread)
-	for _, th := range threads {
-		socket := rewriteUnknownSocket(th.NumaSocket())
-		threadByNuma[socket] = append(threadByNuma[socket], th)
-	}
+	threadByNuma := eal.ClassifyByNumaSocket(threads, eal.RewriteAnyNumaSocketFirst).(map[eal.NumaSocket][]LookupThread)
 	for socket, ths := range threadByNuma {
 		replica, e := fibreplica.New(cfg, len(ths), socket)
 		if e != nil {

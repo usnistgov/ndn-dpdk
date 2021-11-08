@@ -77,17 +77,31 @@ func TestEntryLongName(t *testing.T) {
 	fixture := NewFixture(255)
 	defer fixture.Close()
 
-	interest := makeInterest(strings.Repeat("/LLLLLLLL", 180),
-		ndn.MakeFHDelegation(1, strings.Repeat("/FHFHFHFH", 70)),
-		setActiveFwHint(0), setPitToken([]byte{0xB0, 0xB1}), setFace(1000))
+	names := []struct {
+		Name string
+		FH   string
+	}{
+		{strings.Repeat("/LLLLLLLL", 180), strings.Repeat("/FHFHFHFH", 70)},
+		{strings.Repeat("/LLLLLLLL", 180), "/FH"},
+	}
+	entries := []*pit.Entry{}
+	for i := 0; i < 4; i++ {
+		name := names[i/2]
+		interest := makeInterest(name.Name, ndn.MakeFHDelegation(1+i, name.FH),
+			setActiveFwHint(0), setPitToken([]byte{0xB0, 0xB1, byte(i)}), setFace(iface.ID(1000+i)))
 
-	entry := fixture.Insert(interest)
-	require.NotNil(entry)
+		entry := fixture.Insert(interest)
+		require.NotNil(entry)
+		entries = append(entries, entry)
+	}
+	assert.Equal(entries[0], entries[1])
+	assert.Equal(entries[2], entries[3])
 
-	assert.Equal(1, fixture.Pit.Len())
-	assert.Greater(fixture.CountMpInUse(), 1)
+	assert.Equal(2, fixture.Pit.Len())
+	assert.GreaterOrEqual(fixture.CountMpInUse(), 6)
 
-	fixture.Pit.Erase(entry)
+	fixture.Pit.Erase(entries[0])
+	fixture.Pit.Erase(entries[2])
 	assert.Zero(fixture.Pit.Len())
 	assert.Zero(fixture.CountMpInUse())
 }

@@ -45,7 +45,7 @@ type Fixture struct {
 	FibEntry   *fibreplica.Entry
 }
 
-func NewFixture(cfg pcct.Config) *Fixture {
+func NewFixture(cfg pcct.Config) (fixture *Fixture) {
 	cfg.PcctCapacity = 4095
 	if cfg.CsDirectCapacity == 0 {
 		cfg.CsDirectCapacity = 200
@@ -54,7 +54,7 @@ func NewFixture(cfg pcct.Config) *Fixture {
 		cfg.CsIndirectCapacity = 200
 	}
 
-	fixture := new(Fixture)
+	fixture = &Fixture{}
 	var e error
 	fixture.Pcct, e = pcct.New(cfg, eal.NumaSocket{})
 	if e != nil {
@@ -112,8 +112,8 @@ func (fixture *Fixture) Insert(interest *ndni.Packet, data *ndni.Packet) (isRepl
 	return true
 }
 
-func (fixture *Fixture) InsertBulk(minId, maxId int, dataNameFmt, interestNameFmt string, makeInterestArgs ...interface{}) (nInserted int) {
-	for i := minId; i <= maxId; i++ {
+func (fixture *Fixture) InsertBulk(minIndex, maxIndex int, dataNameFmt, interestNameFmt string, makeInterestArgs ...interface{}) (nInserted int) {
+	for i := minIndex; i <= maxIndex; i++ {
 		dataName := fmt.Sprintf(dataNameFmt, i)
 		interestName := fmt.Sprintf(interestNameFmt, i)
 		interest := ndnitestenv.MakeInterest(interestName, makeInterestArgs...)

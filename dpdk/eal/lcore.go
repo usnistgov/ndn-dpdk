@@ -162,13 +162,8 @@ func (lcores LCores) MarshalLogArray(enc zapcore.ArrayEncoder) error {
 }
 
 // ByNumaSocket classifies lcores by NUMA socket.
-func (lcores LCores) ByNumaSocket() (m map[NumaSocket]LCores) {
-	m = map[NumaSocket]LCores{}
-	for _, lc := range lcores {
-		socket := lc.NumaSocket()
-		m[socket] = append(m[socket], lc)
-	}
-	return m
+func (lcores LCores) ByNumaSocket() map[NumaSocket]LCores {
+	return ClassifyByNumaSocket(lcores, KeepAnyNumaSocket).(map[NumaSocket]LCores)
 }
 
 // Filter returns lcores that satisfy zero or more predicates.

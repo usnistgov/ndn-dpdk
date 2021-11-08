@@ -4,6 +4,7 @@ package fwdp
 import (
 	"fmt"
 	"math/rand"
+	"sort"
 
 	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/container/fib"
@@ -69,45 +70,60 @@ func (cfg *Config) validate() error {
 	return nil
 }
 
-func defaultAlloc() (m map[string]eal.LCores, e error) {
+// DefaultAlloc is the default lcore allocation algorithm.
+func DefaultAlloc(ethDevs []ethdev.EthDev) (m map[string]eal.LCores, e error) {
 	m = map[string]eal.LCores{}
 
-	ethdevSockets := map[eal.NumaSocket]int{}
-	for _, dev := range ethdev.List() {
-		ethdevSockets[dev.NumaSocket()]++
-	}
-
+	// minimum requests
 	reqs := []ealthread.AllocReq{{Role: RoleCrypto}, {Role: RoleFwd}, {Role: RoleInput}, {Role: RoleOutput}}
-	lc, e := ealthread.AllocRequest(reqs...)
-	if e != nil {
-		return nil, e
+
+	// RX+TX for EthDevs paired with FWD, prefer "popular" NUMA sockets
+	type ethDevSocketCount struct {
+		Socket eal.NumaSocket
+		Count  int
+	}
+	ethDevSockets := []*ethDevSocketCount{}
+	for socket, ethDevs := range eal.ClassifyByNumaSocket(ethDevs, eal.KeepAnyNumaSocket).(map[eal.NumaSocket][]ethdev.EthDev) {
+		ethDevSockets = append(ethDevSockets, &ethDevSocketCount{socket, len(ethDevs)})
+	}
+	for len(ethDevSockets) > 0 {
+		sort.Slice(ethDevSockets, func(i, j int) bool { return ethDevSockets[i].Count > ethDevSockets[j].Count })
+		socket := ethDevSockets[0].Socket
+		reqs = append(reqs,
+			ealthread.AllocReq{Role: RoleFwd},
+			ealthread.AllocReq{Role: RoleInput, Socket: socket},
+			ealthread.AllocReq{Role: RoleOutput, Socket: socket},
+		)
+
+		ethDevSockets[0].Count--
+		if ethDevSockets[0].Count == 0 {
+			ethDevSockets = ethDevSockets[1:]
+		}
 	}
 
-	for ; e == nil; lc, e = ealthread.AllocRequest(reqs...) {
-		for i, req := range reqs {
-			m[req.Role] = append(m[req.Role], lc[i])
+	var lc []eal.LCore
+	for {
+		lc, e = ealthread.AllocRequest(reqs...)
+		if e == nil {
+			break
 		}
+		if len(reqs) == 4 { // cannot allocate minimum
+			return nil, e
+		}
+		// retry with fewer requests
+		reqs = reqs[:len(reqs)-3]
+	}
+	for i, req := range reqs {
+		m[req.Role] = append(m[req.Role], lc[i])
+	}
 
-		if len(reqs) == 4 {
-			reqs = reqs[1:] // only 1 crypto
+	// allocate remaining lcores as FWD
+	for {
+		lc, e := ealthread.AllocRequest(ealthread.AllocReq{Role: RoleFwd})
+		if e != nil {
+			break
 		}
-
-		if len(reqs) == 3 {
-			var socket eal.NumaSocket
-			maxCount := 0
-			for s, n := range ethdevSockets {
-				if n > maxCount {
-					socket, maxCount = s, n
-					ethdevSockets[s]--
-					break
-				}
-			}
-			if maxCount > 0 {
-				reqs[1].Socket, reqs[2].Socket = socket, socket
-			} else {
-				reqs = reqs[:1] // no more ethdev
-			}
-		}
+		m[RoleFwd] = append(m[RoleFwd], lc[0])
 	}
 
 	return m, nil
@@ -134,7 +150,7 @@ func New(cfg Config) (dp *DataPlane, e error) {
 	if len(cfg.LCoreAlloc) > 0 {
 		alloc, e = ealthread.AllocConfig(cfg.LCoreAlloc)
 	} else {
-		alloc, e = defaultAlloc()
+		alloc, e = DefaultAlloc(ethdev.List())
 	}
 	if e != nil {
 		return nil, e

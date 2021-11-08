@@ -8,8 +8,8 @@ import (
 )
 
 func TestAllocator(t *testing.T) {
-	defer ealthread.AllocClear()
 	defer eal.UpdateLCoreSockets(map[int]int{0: 0, 1: 0, 2: 0, 3: 0, 4: 1, 5: 1, 6: 1}, 0)()
+	defer ealthread.AllocClear()
 
 	assert, require := makeAR(t)
 	lc1, lc2, lc3, lc4, lc5, lc6 := eal.LCoreFromID(1), eal.LCoreFromID(2), eal.LCoreFromID(3), eal.LCoreFromID(4), eal.LCoreFromID(5), eal.LCoreFromID(6)

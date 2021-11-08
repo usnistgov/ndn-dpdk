@@ -13,25 +13,25 @@ static RTE_DEFINE_PER_LCORE(
 const char*
 PccSearch_ToDebugString(const PccSearch* search)
 {
+  const char* buffer = RTE_PER_LCORE(PccSearchDebugStringBuffer).buffer;
   int pos = 0;
-#define buffer (RTE_PER_LCORE(PccSearchDebugStringBuffer).buffer)
-#define append(...)                                                                                \
+#define APPEND(...)                                                                                \
   do {                                                                                             \
     pos += snprintf(RTE_PTR_ADD(buffer, pos), PccSearchDebugStringLength - pos, __VA_ARGS__);      \
   } while (false)
 
   pos += LName_PrintHex(search->name, RTE_PTR_ADD(buffer, pos));
 
-  append(" ");
-  if (unlikely(search->fh.length == 0)) {
-    append("(no-fh)");
+  APPEND(" ");
+  if (search->fh.length == 0) {
+    APPEND("(no-fh)");
   } else {
     pos += LName_PrintHex(search->fh, RTE_PTR_ADD(buffer, pos));
   }
 
+#undef APPEND
+  NDNDPDK_ASSERT(pos + 1 <= PccSearchDebugStringLength);
   return buffer;
-#undef buffer
-#undef append
 }
 
 bool
