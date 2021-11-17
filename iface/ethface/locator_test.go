@@ -74,33 +74,24 @@ func TestLocatorCoexist(t *testing.T) {
 	// "vxlan" scheme
 	const innerA = `,"innerLocal":"02:01:00:00:00:00","innerRemote":"02:01:00:00:01:00"`
 	const innerB = `,"innerLocal":"02:01:00:00:00:00","innerRemote":"02:01:00:00:01:01"`
-	conflict( // same IP addresses and ports, same outer MAC addresse
-		`{"scheme":"vxlan","localUDP":4789,"remoteUDP":4789,"vxlan":1`+innerA+ipA+etherA,
-		`{"scheme":"vxlan","localUDP":4789,"remoteUDP":4789,"vxlan":1`+innerA+ipA+etherA)
-	conflict( // same IP addresses and ports, different outer MAC addresses
-		`{"scheme":"vxlan","localUDP":4789,"remoteUDP":4789,"vxlan":1`+innerA+ipA+etherA,
-		`{"scheme":"vxlan","localUDP":4789,"remoteUDP":4789,"vxlan":1`+innerA+ipA+etherB)
-	coexist( // same IP addresses and ports, different outer VLAN
-		`{"scheme":"vxlan","localUDP":4789,"remoteUDP":4789,"vxlan":1`+innerA+ipA+etherA,
-		`{"scheme":"vxlan","localUDP":4789,"remoteUDP":4789,"vxlan":1,"vlan":2`+innerA+ipA+etherA)
+	conflict( // same IP addresses, same outer MAC addresse
+		`{"scheme":"vxlan","vxlan":1`+innerA+ipA+etherA,
+		`{"scheme":"vxlan","vxlan":1`+innerA+ipA+etherA)
+	conflict( // same IP addresses, different outer MAC addresses
+		`{"scheme":"vxlan","vxlan":1`+innerA+ipA+etherA,
+		`{"scheme":"vxlan","vxlan":1`+innerA+ipA+etherB)
+	coexist( // same IP addresses, different outer VLAN
+		`{"scheme":"vxlan","vxlan":1`+innerA+ipA+etherA,
+		`{"scheme":"vxlan","vxlan":1,"vlan":2`+innerA+ipA+etherA)
 	coexist( // different IP addresses
-		`{"scheme":"vxlan","localUDP":4789,"remoteUDP":4789,"vxlan":1`+innerA+ipA+etherA,
-		`{"scheme":"vxlan","localUDP":4789,"remoteUDP":4789,"vxlan":1`+innerA+ipB+etherA)
-	conflict( // same localUDP, different remoteUDP
-		`{"scheme":"vxlan","localUDP":4789,"remoteUDP":4789,"vxlan":1`+innerA+ipA+etherA,
-		`{"scheme":"vxlan","localUDP":4789,"remoteUDP":14789,"vxlan":1`+innerA+ipA+etherA)
-	conflict( // different localUDP, same remoteUDP
-		`{"scheme":"vxlan","localUDP":4789,"remoteUDP":4789,"vxlan":1`+innerA+ipA+etherA,
-		`{"scheme":"vxlan","localUDP":14789,"remoteUDP":4789,"vxlan":1`+innerA+ipA+etherA)
-	coexist( // different localUDP, different remoteUDP
-		`{"scheme":"vxlan","localUDP":4789,"remoteUDP":4789,"vxlan":1`+innerA+ipA+etherA,
-		`{"scheme":"vxlan","localUDP":14789,"remoteUDP":14789,"vxlan":1`+innerA+ipA+etherA)
-	coexist( // same IP addresses and ports, but different VNI
-		`{"scheme":"vxlan","localUDP":4789,"remoteUDP":4789,"vxlan":0`+innerA+ipA+etherA,
-		`{"scheme":"vxlan","localUDP":4789,"remoteUDP":4789,"vxlan":1`+innerA+ipA+etherA)
-	coexist( // same IP addresses and ports, but different inner MAC addresses
-		`{"scheme":"vxlan","localUDP":4789,"remoteUDP":4789,"vxlan":1`+innerA+ipA+etherA,
-		`{"scheme":"vxlan","localUDP":4789,"remoteUDP":4789,"vxlan":1`+innerB+ipA+etherA)
+		`{"scheme":"vxlan","vxlan":1`+innerA+ipA+etherA,
+		`{"scheme":"vxlan","vxlan":1`+innerA+ipB+etherA)
+	coexist( // same IP addresses, different VNI
+		`{"scheme":"vxlan","vxlan":0`+innerA+ipA+etherA,
+		`{"scheme":"vxlan","vxlan":1`+innerA+ipA+etherA)
+	coexist( // same IP addresses, different inner MAC addresses
+		`{"scheme":"vxlan","vxlan":1`+innerA+ipA+etherA,
+		`{"scheme":"vxlan","vxlan":1`+innerB+ipA+etherA)
 
 	// mixed schemes
 	coexist( // "ether" with "udpe"
@@ -108,16 +99,16 @@ func TestLocatorCoexist(t *testing.T) {
 		`{"scheme":"udpe","localUDP":6363,"remoteUDP":6363`+ipA+etherA)
 	coexist( // "ether" with "vxlan"
 		`{"scheme":"ether"`+etherA,
-		`{"scheme":"vxlan","localUDP":4789,"remoteUDP":4789,"vxlan":1`+innerA+ipA+etherA)
+		`{"scheme":"vxlan","vxlan":1`+innerA+ipA+etherA)
 	conflict( // "udp" with "vxlan", same localUDP
-		`{"scheme":"udpe","localUDP":4444,"remoteUDP":4444`+ipA+etherA,
-		`{"scheme":"vxlan","localUDP":4444,"remoteUDP":14444,"vxlan":1`+innerA+ipA+etherA)
+		`{"scheme":"udpe","localUDP":4789,"remoteUDP":4444`+ipA+etherA,
+		`{"scheme":"vxlan","vxlan":1`+innerA+ipA+etherA)
 	conflict( // "udp" with "vxlan", same remoteUDP
-		`{"scheme":"udpe","localUDP":4444,"remoteUDP":4444`+ipA+etherA,
-		`{"scheme":"vxlan","localUDP":14444,"remoteUDP":4444,"vxlan":1`+innerA+ipA+etherA)
+		`{"scheme":"udpe","localUDP":4444,"remoteUDP":4789`+ipA+etherA,
+		`{"scheme":"vxlan","vxlan":1`+innerA+ipA+etherA)
 	coexist( // "udp" with "vxlan", different ports
 		`{"scheme":"udpe","localUDP":6363,"remoteUDP":6363`+ipA+etherA,
-		`{"scheme":"vxlan","localUDP":4789,"remoteUDP":4789,"vxlan":1`+innerA+ipA+etherA)
+		`{"scheme":"vxlan","vxlan":1`+innerA+ipA+etherA)
 }
 
 func TestLocatorRxMatch(t *testing.T) {
@@ -173,8 +164,6 @@ func TestLocatorRxMatch(t *testing.T) {
 		"remote": "02:00:00:00:00:02",
 		"localIP": "fde0:fd0a:3557:a8c7:db87:639f:9bd2:0001",
 		"remoteIP": "fde0:fd0a:3557:a8c7:db87:639f:9bd2:0002",
-		"localUDP": 4789,
-		"remoteUDP": 14789,
 		"vxlan": 0,
 		"innerLocal": "02:00:00:00:00:03",
 		"innerRemote": "02:00:00:00:00:04"
@@ -185,8 +174,6 @@ func TestLocatorRxMatch(t *testing.T) {
 		"remote": "02:00:00:00:00:02",
 		"localIP": "fde0:fd0a:3557:a8c7:db87:639f:9bd2:0001",
 		"remoteIP": "fde0:fd0a:3557:a8c7:db87:639f:9bd2:0002",
-		"localUDP": 4789,
-		"remoteUDP": 14789,
 		"vxlan": 1,
 		"innerLocal": "02:00:00:00:00:03",
 		"innerRemote": "02:00:00:00:00:04"
@@ -402,8 +389,6 @@ func TestLocatorTxHdr(t *testing.T) {
 		"remote": "02:00:00:00:00:02",
 		"localIP": "fde0:fd0a:3557:a8c7:db87:639f:9bd2:0001",
 		"remoteIP": "fde0:fd0a:3557:a8c7:db87:639f:9bd2:0002",
-		"localUDP": 4789,
-		"remoteUDP": 4789,
 		"vxlan": 0,
 		"innerLocal": "02:00:00:00:00:03",
 		"innerRemote": "02:00:00:00:00:04"

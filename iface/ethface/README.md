@@ -69,8 +69,8 @@ Locator of a UDP tunnel face has the following fields:
 Locator of a VXLAN tunnel face has the following fields:
 
 * *scheme* is set to "vxlan".
-* All fields in "udpe" locator are inherited.
-* *localUDP* and *remoteUDP* are destination port numbers; source port numbers are random.
+* *localIP* and *remoteIP* fields in "udpe" locator are inherited.
+* UDP destination port number is fixed to 4789; source port is random.
 * *vxlan* is the VXLAN Network Identifier.
 * *innerLocal* and *innerRemote* are MAC addresses for inner Ethernet header.
 * *maxRxQueues* (optional) is the maximum number of RX queues.
@@ -81,7 +81,7 @@ Multiple UDP and VXLAN tunnels can coexist if any of the following is true:
 
 * One of *vlan*, *localIP*, and *remoteIP* is different.
 * Both are UDP tunnels, and one of *localUDP* and *remoteUDP* is different.
-* Both *localUDP* and *remoteUDP* are different.
+* Between a UDP tunnel and a VXLAN tunnel, the UDP tunnel's *localUDP* is not 4789.
 * Both are VXLAN tunnels, and one of *vxlan*, *innerLocal*, and *innerRemote* is different.
 
 Known limitations:
@@ -110,6 +110,9 @@ Known limitations:
 * If a VXLAN face has multiple RX queues, NDNLPv2 reassembly works only if all fragments of a network layer packets are sent with the same UDP source port number.
   NDN-DPDK send path and the VXLAN driver in the Linux kernel both fulfill this requirement.
 
+* The default eBPF program used with AF\_XDP driver only supports UDP tunnels on port 6363.
+  It does not support UDP tunnels on other ports or VXLAN tunnels.
+
 ## Memif Face
 
 Shared memory packet interface (memif) is supported through this package.
@@ -124,6 +127,7 @@ Locator of a memif face has the following fields:
 * *id* is the interface identifier in the range 0x00000000-0xFFFFFFFF.
 * *socketOwner* may be set to a tuple `[uid,gid]` to change owner uid:gid of the control socket.
   It would allow applications to connect to NDN-DPDK without running as root.
+  This currently works with libmemif but not gomemif, so that NDNgo still needs to run as root.
 
 In the data plane:
 

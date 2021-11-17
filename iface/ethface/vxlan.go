@@ -14,6 +14,8 @@ const (
 
 	// MaxVXLAN is the maximum VXLAN Network Identifier.
 	MaxVXLAN = 0xFFFFFF
+
+	vxlanPort = 4789
 )
 
 // Error conditions.
@@ -25,9 +27,7 @@ const schemeVxlan = "vxlan"
 
 // VxlanLocator describes an Ethernet VXLAN face.
 type VxlanLocator struct {
-	// UDPLocator contains MAC addresses, EthDev specification, and UDP endpoints.
-	// loc.LocalUDP and loc.RemoteUDP are interpreted as destination port numbers.
-	UDPLocator
+	IPLocator
 
 	// VXLAN is the VXLAN virtual network identifier.
 	// This must be between MinVXLAN and MaxVXLAN.
@@ -49,15 +49,14 @@ func (VxlanLocator) Scheme() string {
 
 // Validate checks Locator fields.
 func (loc VxlanLocator) Validate() error {
-	if e := loc.UDPLocator.Validate(); e != nil {
+	if e := loc.IPLocator.Validate(); e != nil {
 		return e
 	}
 
-	if loc.VXLAN < MinVXLAN || loc.VXLAN > MaxVXLAN {
+	switch {
+	case loc.VXLAN < MinVXLAN, loc.VXLAN > MaxVXLAN:
 		return ErrVXLAN
-	}
-
-	if !macaddr.IsUnicast(loc.InnerLocal.HardwareAddr) || !macaddr.IsUnicast(loc.InnerRemote.HardwareAddr) {
+	case !macaddr.IsUnicast(loc.InnerLocal.HardwareAddr), !macaddr.IsUnicast(loc.InnerRemote.HardwareAddr):
 		return packettransport.ErrUnicastMacAddr
 	}
 
@@ -65,7 +64,9 @@ func (loc VxlanLocator) Validate() error {
 }
 
 func (loc VxlanLocator) cLoc() (c cLocator) {
-	c = loc.UDPLocator.cLoc()
+	c = loc.IPLocator.cLoc()
+	c.LocalUDP = vxlanPort
+	c.RemoteUDP = vxlanPort
 	c.Vxlan = uint32(loc.VXLAN)
 	copy(c.InnerLocal.Bytes[:], ([]byte)(loc.InnerLocal.HardwareAddr))
 	copy(c.InnerRemote.Bytes[:], ([]byte)(loc.InnerRemote.HardwareAddr))

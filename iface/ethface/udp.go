@@ -18,10 +18,8 @@ var (
 	ErrUDPPort   = errors.New("invalid UDP port")
 )
 
-const schemeUDP = "udpe"
-
-// UDPLocator describes a UDP face.
-type UDPLocator struct {
+// IPLocator describes an IP-based face.
+type IPLocator struct {
 	// EtherLocator contains MAC addresses and EthDev specification.
 	// loc.Remote must be a unicast address.
 	EtherLocator
@@ -33,6 +31,41 @@ type UDPLocator struct {
 	// RemoteIP is the remote IP address.
 	// It may be either IPv4 or IPv6.
 	RemoteIP netaddr.IP `json:"remoteIP"`
+}
+
+// Validate checks Locator fields.
+func (loc IPLocator) Validate() error {
+	if e := loc.EtherLocator.Validate(); e != nil {
+		return e
+	}
+
+	local, remote := loc.LocalIP.Unmap(), loc.RemoteIP.Unmap()
+	switch {
+	case !macaddr.IsUnicast(loc.Remote.HardwareAddr):
+		return packettransport.ErrUnicastMacAddr
+	case local.IsZero(), remote.IsZero():
+		return ErrIP
+	case local.BitLen() != remote.BitLen():
+		return ErrIPFamily
+	case local.IsMulticast(), remote.IsMulticast():
+		return ErrUnicastIP
+	}
+
+	return nil
+}
+
+func (loc IPLocator) cLoc() (c cLocator) {
+	c = loc.EtherLocator.cLoc()
+	c.LocalIP = loc.LocalIP.As16()
+	c.RemoteIP = loc.RemoteIP.As16()
+	return
+}
+
+const schemeUDP = "udpe"
+
+// UDPLocator describes a UDP face.
+type UDPLocator struct {
+	IPLocator
 
 	// LocalUDP is the local UDP port number.
 	LocalUDP int `json:"localUDP"`
@@ -48,20 +81,11 @@ func (UDPLocator) Scheme() string {
 
 // Validate checks Locator fields.
 func (loc UDPLocator) Validate() error {
-	if e := loc.EtherLocator.Validate(); e != nil {
+	if e := loc.IPLocator.Validate(); e != nil {
 		return e
 	}
 
-	local, remote := loc.LocalIP.Unmap(), loc.RemoteIP.Unmap()
 	switch {
-	case !macaddr.IsUnicast(loc.Remote.HardwareAddr):
-		return packettransport.ErrUnicastMacAddr
-	case local.IsZero(), remote.IsZero():
-		return ErrIP
-	case local.BitLen() != remote.BitLen():
-		return ErrIPFamily
-	case local.IsMulticast(), remote.IsMulticast():
-		return ErrUnicastIP
 	case loc.LocalUDP <= 0 || loc.LocalUDP > math.MaxUint16,
 		loc.RemoteUDP <= 0 || loc.RemoteUDP > math.MaxUint16:
 		return ErrUDPPort
@@ -71,9 +95,7 @@ func (loc UDPLocator) Validate() error {
 }
 
 func (loc UDPLocator) cLoc() (c cLocator) {
-	c = loc.EtherLocator.cLoc()
-	c.LocalIP = loc.LocalIP.As16()
-	c.RemoteIP = loc.RemoteIP.As16()
+	c = loc.IPLocator.cLoc()
 	c.LocalUDP = uint16(loc.LocalUDP)
 	c.RemoteUDP = uint16(loc.RemoteUDP)
 	return
