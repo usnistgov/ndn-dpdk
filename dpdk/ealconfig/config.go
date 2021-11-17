@@ -29,7 +29,7 @@ type Config struct {
 // Args validates the configuration and constructs EAL arguments.
 func (cfg Config) Args(hwInfo hwinfo.Provider) (args []string, e error) {
 	if cfg.Flags != "" {
-		return shellSplit("Flags", cfg.Flags)
+		return shellSplit("flags", cfg.Flags)
 	}
 	if hwInfo == nil {
 		hwInfo = hwinfo.Default
@@ -44,7 +44,7 @@ func (cfg Config) Args(hwInfo hwinfo.Provider) (args []string, e error) {
 	}
 
 	if cfg.ExtraFlags != "" {
-		a, e := shellSplit("ExtraFlags", cfg.ExtraFlags)
+		a, e := shellSplit("extraFlags", cfg.ExtraFlags)
 		if e != nil {
 			return nil, e
 		}

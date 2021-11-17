@@ -56,7 +56,7 @@ type LCoreConfig struct {
 
 func (cfg LCoreConfig) args(hwInfo hwinfo.Provider) (args []string, e error) {
 	if cfg.LCoreFlags != "" {
-		return shellSplit("LCoreFlags", cfg.LCoreFlags)
+		return shellSplit("lcoreFlags", cfg.LCoreFlags)
 	}
 
 	avail := cfg.gatherAvail(hwInfo)

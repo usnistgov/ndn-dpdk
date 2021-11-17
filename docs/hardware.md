@@ -18,6 +18,10 @@ The developers have tested NDN-DPDK on servers with one, two, and four NUMA sock
 Default configuration of NDN-DPDK requires at least 6 CPU cores (total) and 8 GB hugepages memory (per NUMA socket).
 With a custom configuration, NDN-DPDK might work on 2 CPU cores and 2 GB memory, albeit at reduced performance; see [performance tuning](tuning.md) "lcore allocation" and "memory usage insights" for some hints on how to do so.
 
+Additionally, you should have at least 1 GB memory on NUMA socket 0 and on each NUMA socket where you have PCI device(s) that you want to use.
+DPDK device drivers are not well-tested when they cannot allocate memory on NUMA socket 0 or the NUMA socket of the PCI device.
+In that case, you would see "Cannot allocate memory" error in NDN-DPDK service logs.
+
 ## Ethernet Adapters
 
 NDN-DPDK aims to work with most Ethernet adapters supported by [DPDK Network Interface Controller Drivers](https://doc.dpdk.org/guides/nics/).
@@ -30,6 +34,10 @@ Mellanox ConnectX-5 | 100 Gbps | mlx5
 Intel X710 | 10 Gbps | i40e, iavf
 Intel X520 | 10 Gbps | ixgbe
 Intel I350 | 1 Gbps | igb
+
+Some Ethernet adapters have more than one physical ports on the same PCI card.
+NDN-DPDK is only tested to work on the first port (lowest PCI address) of those dual-port or quad-port adapters.
+If you encounter face creation failure or you are unable to send/receive packets, please use the first port instead.
 
 ### Mellanox Ethernet Adapters
 

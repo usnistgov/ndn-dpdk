@@ -42,7 +42,7 @@ type DeviceConfig struct {
 
 func (cfg DeviceConfig) args(hwInfo hwinfo.Provider) (args []string, e error) {
 	if cfg.DeviceFlags != "" {
-		return shellSplit("DeviceFlags", cfg.DeviceFlags)
+		return shellSplit("deviceFlags", cfg.DeviceFlags)
 	}
 
 	switch {

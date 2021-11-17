@@ -19,6 +19,10 @@ type MemoryConfig struct {
 	//  MemPerNuma[0] = 16384  limits up to 16384MB on socket 0.
 	//  Omitting MemPerNuma[1] places no memory limit on socket 1.
 	//  MemPerNuma[2] = 0      limits up to 1MB on socket 2; DPDK does not support a zero limit.
+	//
+	// It's not recommended to set a low limit (<1024MB) on NUMA socket 0 and each NUMA socket where
+	// you have PCI device(s) that you want to use. Otherwise, you may run into memory allocation
+	// errors in DPDK drivers.
 	MemPerNuma map[int]int `json:"memPerNuma,omitempty"`
 
 	// PreallocateMem preallocates memory up to the limit on each NUMA socket.
@@ -36,7 +40,7 @@ type MemoryConfig struct {
 
 func (cfg MemoryConfig) args(hwInfo hwinfo.Provider) (args []string, e error) {
 	if cfg.MemFlags != "" {
-		return shellSplit("MemFlags", cfg.MemFlags)
+		return shellSplit("memFlags", cfg.MemFlags)
 	}
 
 	if cfg.MemChannels > 0 {
