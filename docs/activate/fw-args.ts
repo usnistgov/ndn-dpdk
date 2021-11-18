@@ -9,7 +9,7 @@ const args: ActivateFwArgs = {
     ],
   },
   mempool: {
-    DIRECT: { capacity: 1048575, dataroom: 9128 },
+    DIRECT: { capacity: 1048575, dataroom: 9146 },
     INDIRECT: { capacity: 1048575 },
   },
   fib: {

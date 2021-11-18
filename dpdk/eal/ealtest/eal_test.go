@@ -41,7 +41,6 @@ func TestEal(t *testing.T) {
 	}))
 	assert.Equal(66, eal.Workers[0].Wait())
 	assert.True(isWorkerExecuted)
-	assert.Equal(0, eal.Workers[0].Wait())
 }
 
 func TestEalJSON(t *testing.T) {

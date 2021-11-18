@@ -79,7 +79,7 @@ To try this scenario, you need:
 
 * single host
 * NDN-DPDK forwarder running on `http://127.0.0.1:3030` and activated
-* forwarder must be able to accommodate MTU=9000, i.e. its `.mempool.DIRECT.dataroom` should be at least 9128
+* forwarder must be able to accommodate MTU=9000, i.e. its `.mempool.DIRECT.dataroom` should be at least 9146
 
 ### Create Face and Insert FIB Entry on Forwarder
 

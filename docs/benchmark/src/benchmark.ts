@@ -75,7 +75,7 @@ export class Benchmark {
         CRYPTO: [this.env.F_CORES_SECONDARY[1]],
       },
       mempool: {
-        DIRECT: { capacity: 1048575, dataroom: 9128 },
+        DIRECT: { capacity: 1048575, dataroom: 9146 },
         INDIRECT: { capacity: 2097151 },
       },
       ndt: { prefixLen: 2 },
@@ -137,7 +137,7 @@ export class Benchmark {
         pciDevices: this.env.G_PORTS,
       },
       mempool: {
-        DIRECT: { capacity: 1048575, dataroom: 9128 },
+        DIRECT: { capacity: 1048575, dataroom: 9146 },
         INDIRECT: { capacity: 2097151 },
       },
     };

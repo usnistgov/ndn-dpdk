@@ -34,7 +34,7 @@ jobs:
           sudo update-alternatives --remove-all go || true
           sudo update-alternatives --install /usr/bin/go go $(which go) 1
           go install honnef.co/go/tools/cmd/staticcheck@latest
-          sudo pip3 install 'meson >=0.55, <0.60'
+          sudo pip3 install meson
           echo '::set-output name=meson::'$(meson --version)
       - name: install uBPF
         run: |
@@ -61,10 +61,10 @@ jobs:
         with:
           path: |
             ~/setup-dpdk
-          key: ${{ matrix.compiler }}_${{ steps.compilers.outputs.meson }}_20211102
+          key: ${{ matrix.compiler }}_${{ steps.compilers.outputs.meson }}_20211118
       - uses: yoursunny/setup-dpdk@main
         with:
-          dpdk-version: '21.08'
+          dpdk-version: '21.11-rc3'
           spdk-version: '21.10'
           target-arch: haswell
       - uses: actions/checkout@v2

@@ -8,9 +8,9 @@ const args: ActivateFileServerArgs = {
     filePrefix: "fileserver",
   },
   mempool: {
-    DIRECT: { capacity: 65535, dataroom: 9128 },
+    DIRECT: { capacity: 65535, dataroom: 9146 },
     INDIRECT: { capacity: 65535 },
-    PAYLOAD: { capacity: 65535, dataroom: 9128 },
+    PAYLOAD: { capacity: 65535, dataroom: 9146 },
   },
   face: {
     scheme: "memif",

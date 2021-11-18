@@ -15,6 +15,7 @@ RUN export PATH=$PATH:/usr/local/go/bin && \
     env ${MAKE_ENV} make && \
     make install
 RUN rm -rf \
+      /usr/local/bin/dpdk-dumpcap \
       /usr/local/bin/dpdk-pdump \
       /usr/local/bin/dpdk-proc-info \
       /usr/local/bin/dpdk-test* \

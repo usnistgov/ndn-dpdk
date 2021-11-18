@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	txOffloadMultiSegs = C.DEV_TX_OFFLOAD_MULTI_SEGS
-	txOffloadChecksum  = C.DEV_TX_OFFLOAD_IPV4_CKSUM | C.DEV_TX_OFFLOAD_UDP_CKSUM
+	txOffloadMultiSegs = C.RTE_ETH_TX_OFFLOAD_MULTI_SEGS
+	txOffloadChecksum  = C.RTE_ETH_TX_OFFLOAD_IPV4_CKSUM | C.RTE_ETH_TX_OFFLOAD_UDP_CKSUM
 )
 
 // DevInfo provides contextual information of an Ethernet port.

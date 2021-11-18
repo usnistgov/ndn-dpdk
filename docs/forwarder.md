@@ -62,8 +62,8 @@ To find the PCI addresses of available Ethernet adapters, run `dpdk-devbind.py -
 Ethernet adapters not included in this list can still be activated as virtual devices using `net_af_xdp` or `net_af_packet` driver, at reduced performance; see [hardware known to work](hardware.md) "AF\_XDP and AF\_PACKET sockets" for more information.
 
 **.mempool.DIRECT.dataroom** is the size of each packet buffer.
-The maximum MTU supported by the forwarder is this dataroom minus 128 (`RTE_PKTMBUF_HEADROOM` constant).
-For example, to support MTU=9000, this must be set to at least 9128.
+The maximum Ethernet port MTU supported by the forwarder is this dataroom minus DPDK mbuf headroom (`RTE_PKTMBUF_HEADROOM`, normally 128) and Ethernet+VLAN header length (18).
+For example, to support MTU=9000, this must be set to at least 9146.
 
 **.mempool.DIRECT.capacity** is the maximum quantity of packet buffers on each NUMA socket.
 Every packet received by the forwarder and not yet released, including those buffered in the PIT or cached in the CS, occupies one of the packet buffers.
@@ -128,7 +128,7 @@ Both hosts must have the same MTU settings.
 
 ```bash
 ndndpdk-ctrl create-ether-face --port-mtu 9000 --local 02:00:00:00:00:01 --remote 02:00:00:00:00:02
-# to use '--port-mtu 9000', .mempool.DIRECT.dataroom in activation parameters should be at least 9128
+# to use '--port-mtu 9000', .mempool.DIRECT.dataroom in activation parameters should be at least 9146
 ```
 
 You can programmatically create a face via GraphQL using the `createFace` mutation.

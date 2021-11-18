@@ -134,22 +134,22 @@ func (dev ethDev) Start(cfg Config) error {
 		return fmt.Errorf("%s %w", step, e)
 	}
 
-	if cfg.MTU > 0 {
-		if res := C.rte_eth_dev_set_mtu(dev.cID(), C.uint16_t(cfg.MTU)); res != 0 {
-			return bail("rte_eth_dev_set_mtu", eal.MakeErrno(res))
-		}
-	}
-
 	conf := (*C.struct_rte_eth_conf)(cfg.Conf)
 	if conf == nil {
 		conf = &C.struct_rte_eth_conf{}
-		conf.rxmode.max_rx_pkt_len = C.uint32_t(dev.MTU())
+		conf.rxmode.mtu = C.uint32_t(dev.MTU())
 		conf.txmode.offloads = C.uint64_t(info.Tx_offload_capa & (txOffloadMultiSegs | txOffloadChecksum))
 	}
 
 	res := C.rte_eth_dev_configure(dev.cID(), C.uint16_t(len(cfg.RxQueues)), C.uint16_t(len(cfg.TxQueues)), conf)
 	if res < 0 {
 		return bail("rte_eth_dev_configure", eal.MakeErrno(res))
+	}
+
+	if cfg.MTU > 0 {
+		if res := C.rte_eth_dev_set_mtu(dev.cID(), C.uint16_t(cfg.MTU)); res != 0 {
+			return bail("rte_eth_dev_set_mtu", eal.MakeErrno(res))
+		}
 	}
 
 	for i, qcfg := range cfg.RxQueues {

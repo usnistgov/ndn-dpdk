@@ -177,6 +177,9 @@ func TestReassembly(t *testing.T) {
 	defer fixture.Close()                 // RxLoop must be closed before closing vnet
 
 	portA := vnet.Port(0)
+	cfgA := ethdev.Config{}
+	cfgA.AddTxQueues(1, ethdev.TxQueueConfig{})
+	portA.Start(cfgA)
 	locA := makeEtherLocator(vnet.Port(0))
 	prependTxHdrA := ethface.LocatorTxHdr(locA, false)
 	txqA := portA.TxQueues()[0]

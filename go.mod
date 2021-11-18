@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/EGT-Ukraine/go2gql v0.0.0-20190528134259-79533208556f
-	github.com/FDio/vpp v1.0.1-0.20210630131113-fc83f8cc67e6
+	github.com/FDio/vpp v21.10.1+incompatible
 	github.com/bhoriuchi/graphql-go-tools v0.3.2
 	github.com/c9s/goprocinfo v0.0.0-20210130143923-c95fcf8c64a8
 	github.com/coreos/go-systemd/v22 v22.3.2
@@ -23,7 +23,7 @@ require (
 	github.com/pkg/math v0.0.0-20141027224758-f2ed9e40e245
 	github.com/powerman/rpc-codec v1.2.2
 	github.com/rickb777/plural v1.4.1
-	github.com/safchain/ethtool v0.0.0-20211027131506-00502cff1260
+	github.com/safchain/ethtool v0.1.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/soh335/sliceflag v0.0.0-20160923061056-d2d28a5acab8
 	github.com/stretchr/testify v1.7.0
@@ -34,7 +34,7 @@ require (
 	go.uber.org/multierr v1.7.0
 	go.uber.org/zap v1.19.1
 	go4.org v0.0.0-20201209231011-d4a079459e60
-	golang.org/x/sys v0.0.0-20211031064116-611d5d643895
+	golang.org/x/sys v0.0.0-20211117180635-dee7805ff2e1
 	inet.af/netaddr v0.0.0-20211027220019-c74959edd3b6
 )
 
@@ -49,7 +49,7 @@ require (
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
-	github.com/onsi/gomega v1.16.0 // indirect
+	github.com/onsi/gomega v1.17.0 // indirect
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/russross/blackfriday/v2 v2.0.1 // indirect

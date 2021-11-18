@@ -40,8 +40,8 @@ DFLT_GOVER=latest
 DFLT_UBPFVER=HEAD
 DFLT_LIBBPFVER=v0.5.0
 DFLT_URINGVER=liburing-2.1
-DFLT_DPDKVER=21.08
-DFLT_DPDKPATCH=18798,19232
+DFLT_DPDKVER=21.11-rc3
+DFLT_DPDKPATCH=20651
 DFLT_KMODSVER=HEAD
 DFLT_SPDKVER=21.10
 DFLT_NJOBS=$(nproc)
@@ -130,8 +130,8 @@ fi
 : "${NDNDPDK_DL_NODESOURCE_DEB:=https://deb.nodesource.com}"
 : "${NDNDPDK_DL_PYPA_BOOTSTRAP:=https://bootstrap.pypa.io}"
 : "${NDNDPDK_DL_GOLANG:=https://golang.org}"
-: "${NDNDPDK_DL_DPDK_FAST:=https://fast.dpdk.org}"
 : "${NDNDPDK_DL_DPDK:=https://dpdk.org}"
+: "${NDNDPDK_DL_DPDK_PATCHES:=https://patches.dpdk.org}"
 # you can also set the GOPROXY environment variable, which will be persisted
 
 curl_test() {
@@ -149,8 +149,8 @@ curl_test NDNDPDK_DL_LLVM_APT
 curl_test NDNDPDK_DL_NODESOURCE_DEB
 curl_test NDNDPDK_DL_PYPA_BOOTSTRAP
 curl_test NDNDPDK_DL_GOLANG /VERSION
-curl_test NDNDPDK_DL_DPDK_FAST
 curl_test NDNDPDK_DL_DPDK
+curl_test NDNDPDK_DL_DPDK_PATCHES
 
 github_resolve_commit() {
   local COMMIT=$1
@@ -261,7 +261,7 @@ fi
 
 if [[ $DPDKVER != 0 ]]; then
   echo "Will install DPDK ${DPDKVER} for ${TARGETARCH} architecture"
-  echo -n "$DPDKPATCH" | xargs -d, --no-run-if-empty -I{} echo 'Will patch DPDK with https://patches.dpdk.org/series/{}/mbox/'
+  echo -n "$DPDKPATCH" | xargs -d, --no-run-if-empty -I{} echo "Will patch DPDK with ${NDNDPDK_DL_DPDK_PATCHES}/series/{}/mbox/"
 elif ! pkg-config libdpdk; then
   echo '--dpdk=0 specified but DPDK was not found, which may cause build errors'
 fi
@@ -312,7 +312,7 @@ if [[ $DISTRO == bionic ]]; then
   $SUDO update-alternatives --install /usr/bin/python python /usr/bin/python3 1
 fi
 curl -fsLS "${NDNDPDK_DL_PYPA_BOOTSTRAP}/get-pip.py" | $SUDO python
-$SUDO pip install -U 'meson >=0.55, <0.60' pyelftools
+$SUDO pip install -U meson pyelftools
 
 if [[ $GOVER != 0 ]]; then
   $SUDO rm -rf /usr/local/go
@@ -367,10 +367,11 @@ fi
 if [[ $DPDKVER != 0 ]]; then
   cd "$CODEROOT"
   rm -rf "dpdk-${DPDKVER}"
-  curl -fsLS "${NDNDPDK_DL_DPDK_FAST}/rel/dpdk-${DPDKVER}.tar.xz" | tar -xJ
+  curl -fsLS "${NDNDPDK_DL_GITHUB}/DPDK/dpdk/archive/v${DPDKVER}.tar.gz" | tar -xz
   cd "dpdk-${DPDKVER}"
-  echo -n "$DPDKPATCH" | xargs -d, --no-run-if-empty -I{} sh -c 'curl -fsLS https://patches.dpdk.org/series/{}/mbox/ | patch -p1'
-  meson -Ddebug=true -Doptimization=3 -Dmachine=${TARGETARCH} -Dtests=false --libdir=lib build
+  echo -n "$DPDKPATCH" | xargs -d, --no-run-if-empty -I{} \
+    sh -c "curl -fsLS ${NDNDPDK_DL_DPDK_PATCHES}/series/{}/mbox/ | patch -p1"
+  meson -Ddebug=true -Dcpu_instruction_set=${TARGETARCH} -Doptimization=3 -Dtests=false --libdir=lib build
   cd build
   ninja -j${NJOBS}
   $SUDO find /usr/local/lib -name 'librte_*' -delete
@@ -382,10 +383,13 @@ fi
 if [[ $KMODSVER != 0 ]]; then
   cd "$CODEROOT"
   rm -rf dpdk-kmods
-  git clone "${NDNDPDK_DL_DPDK}/git/dpdk-kmods"
-  cd dpdk-kmods
-  git -c advice.detachedHead=false checkout $KMODSVER
-  cd linux/igb_uio
+  if [[ $KMODSVER == HEAD ]]; then
+    git clone --single-branch --depth=1 $KMODSDEPTH "${NDNDPDK_DL_DPDK}/git/dpdk-kmods"
+  else
+    git clone $KMODSDEPTH "${NDNDPDK_DL_DPDK}/git/dpdk-kmods"
+    git -C dpdk-kmods -c advice.detachedHead=false checkout $KMODSVER
+  fi
+  cd dpdk-kmods/linux/igb_uio
   make -j${NJOBS}
   UIODIR=/lib/modules/${KERNELVER}/kernel/drivers/uio
   $SUDO install -d -m0755 "$UIODIR"

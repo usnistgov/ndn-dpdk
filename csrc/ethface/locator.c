@@ -92,8 +92,8 @@ PutEtherVlanHdr(uint8_t* buffer, const struct rte_ether_addr* src, const struct 
                 uint16_t vid, uint16_t etherType)
 {
   struct rte_ether_hdr* ether = (struct rte_ether_hdr*)buffer;
-  rte_ether_addr_copy(dst, &ether->d_addr);
-  rte_ether_addr_copy(src, &ether->s_addr);
+  rte_ether_addr_copy(dst, &ether->dst_addr);
+  rte_ether_addr_copy(src, &ether->src_addr);
   ether->ether_type = rte_cpu_to_be_16(etherType);
   if (vid == 0) {
     return RTE_ETHER_HDR_LEN;
@@ -179,7 +179,7 @@ MatchEtherMulticast(const EthRxMatch* match, const struct rte_mbuf* m)
 {
   // Ethernet destination must be multicast, exact match on ether_type and VLAN header
   const struct rte_ether_hdr* ether = rte_pktmbuf_mtod(m, const struct rte_ether_hdr*);
-  return rte_is_multicast_ether_addr(&ether->d_addr) &&
+  return rte_is_multicast_ether_addr(&ether->dst_addr) &&
          memcmp(RTE_PTR_ADD(ether, ETHER_ETHERTYPE_OFFSET),
                 RTE_PTR_ADD(match->buf, ETHER_ETHERTYPE_OFFSET),
                 RTE_ETHER_HDR_LEN - ETHER_ETHERTYPE_OFFSET) == 0 &&
@@ -391,7 +391,7 @@ TxUdp4Offload(const EthTxHdr* hdr, struct rte_mbuf* m, bool newBurst)
   struct rte_ipv4_hdr* ip = TxUdp4(hdr, m, newBurst);
   m->l2_len = hdr->l2len;
   m->l3_len = sizeof(*ip);
-  m->ol_flags |= PKT_TX_IPV4 | PKT_TX_IP_CKSUM;
+  m->ol_flags |= RTE_MBUF_F_TX_IPV4 | RTE_MBUF_F_TX_IP_CKSUM;
 }
 
 __attribute__((nonnull)) static __rte_always_inline struct rte_ipv6_hdr*
@@ -424,7 +424,7 @@ TxUdp6Offload(const EthTxHdr* hdr, struct rte_mbuf* m, bool newBurst)
   struct rte_udp_hdr* udp = RTE_PTR_ADD(ip, sizeof(*ip));
   m->l2_len = hdr->l2len;
   m->l3_len = sizeof(*ip);
-  m->ol_flags |= PKT_TX_IPV6 | PKT_TX_UDP_CKSUM;
+  m->ol_flags |= RTE_MBUF_F_TX_IPV6 | RTE_MBUF_F_TX_UDP_CKSUM;
   udp->dgram_cksum = rte_ipv6_phdr_cksum(ip, m->ol_flags);
 }
 

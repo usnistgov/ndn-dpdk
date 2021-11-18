@@ -63,7 +63,9 @@ func init() {
 	iface.RegisterLocatorType(MemifLocator{}, schemeMemif)
 }
 
-type rxMemifImpl struct{}
+type rxMemifImpl struct {
+	port *Port
+}
 
 func (rxMemifImpl) String() string {
 	return "RxMemif"
@@ -73,6 +75,7 @@ func (impl *rxMemifImpl) Init(port *Port) error {
 	if port.dev.DevInfo().DriverName() != "net_memif" {
 		return errors.New("cannot use RxMemif on non-memif port")
 	}
+	impl.port = port
 	return nil
 }
 
@@ -101,5 +104,8 @@ func (impl *rxMemifImpl) Stop(face *ethFace) error {
 }
 
 func (impl *rxMemifImpl) Close() error {
+	if impl.port != nil {
+		impl.port.dev.Stop(ethdev.StopReset)
+	}
 	return nil
 }
