@@ -37,6 +37,7 @@ typedef struct EthRxMatch EthRxMatch;
 
 typedef bool (*EthRxMatchFunc)(const EthRxMatch* match, const struct rte_mbuf* m);
 
+/** @brief EthFace RX matcher. */
 struct EthRxMatch
 {
   EthRxMatchFunc f;
@@ -67,6 +68,7 @@ EthRxMatch_Match(const EthRxMatch* match, struct rte_mbuf* m)
   return false;
 }
 
+/** @brief EthFace rte_flow pattern. */
 typedef struct EthFlowPattern
 {
   struct rte_flow_item pattern[7];
@@ -94,6 +96,7 @@ typedef struct EthTxHdr EthTxHdr;
 
 typedef void (*EthTxHdrFunc)(const EthTxHdr* hdr, struct rte_mbuf* m, bool newBurst);
 
+/** @brief EthFace TX header template. */
 struct EthTxHdr
 {
   EthTxHdrFunc f;

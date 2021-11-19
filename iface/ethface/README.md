@@ -72,7 +72,7 @@ Locator of a VXLAN tunnel face has the following fields:
 * *localIP* and *remoteIP* fields in "udpe" locator are inherited.
 * UDP destination port number is fixed to 4789; source port is random.
 * *vxlan* is the VXLAN Network Identifier.
-* *innerLocal* and *innerRemote* are MAC addresses for inner Ethernet header.
+* *innerLocal* and *innerRemote* are unicast MAC addresses for inner Ethernet header.
 * *maxRxQueues* (optional) is the maximum number of RX queues.
   When using rxFlow in the NDN-DPDK forwarder, having multiple RX queues for the same face can alleviate FwInput bottleneck.
 

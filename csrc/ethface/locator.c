@@ -1,9 +1,6 @@
 #include "locator.h"
 #include "../ndni/an.h"
 
-#define ETHER_VLAN_HLEN (RTE_ETHER_HDR_LEN + sizeof(struct rte_vlan_hdr))
-#define ETHER_ETHERTYPE_OFFSET (offsetof(struct rte_ether_hdr, ether_type))
-#define VXLAN_ETHER_HLEN (sizeof(struct rte_vxlan_hdr) + RTE_ETHER_HDR_LEN)
 #define IP_HOPLIMIT_VALUE 64
 #define VXLAN_SRCPORT_BASE 0xC000
 #define VXLAN_SRCPORT_MASK 0x3FFF
@@ -88,22 +85,34 @@ EthLocator_CanCoexist(const EthLocator* a, const EthLocator* b)
 }
 
 __attribute__((nonnull)) static uint8_t
-PutEtherVlanHdr(uint8_t* buffer, const struct rte_ether_addr* src, const struct rte_ether_addr* dst,
-                uint16_t vid, uint16_t etherType)
+PutEtherHdr(uint8_t* buffer, const struct rte_ether_addr* src, const struct rte_ether_addr* dst,
+            uint16_t vid, uint16_t etherType)
 {
   struct rte_ether_hdr* ether = (struct rte_ether_hdr*)buffer;
   rte_ether_addr_copy(dst, &ether->dst_addr);
   rte_ether_addr_copy(src, &ether->src_addr);
-  ether->ether_type = rte_cpu_to_be_16(etherType);
-  if (vid == 0) {
-    return RTE_ETHER_HDR_LEN;
-  }
+  ether->ether_type = rte_cpu_to_be_16(vid == 0 ? etherType : RTE_ETHER_TYPE_VLAN);
+  return RTE_ETHER_HDR_LEN;
+}
 
-  struct rte_vlan_hdr* vlan = (struct rte_vlan_hdr*)RTE_PTR_ADD(buffer, RTE_ETHER_HDR_LEN);
-  vlan->vlan_tci = rte_cpu_to_be_16(vid & 0x0FFF);
-  vlan->eth_proto = ether->ether_type;
-  ether->ether_type = rte_cpu_to_be_16(RTE_ETHER_TYPE_VLAN);
-  return ETHER_VLAN_HLEN;
+__attribute__((nonnull)) static uint8_t
+PutVlanHdr(uint8_t* buffer, uint16_t vid, uint16_t etherType)
+{
+  struct rte_vlan_hdr* vlan = (struct rte_vlan_hdr*)buffer;
+  vlan->vlan_tci = rte_cpu_to_be_16(vid);
+  vlan->eth_proto = rte_cpu_to_be_16(etherType);
+  return sizeof(*vlan);
+}
+
+__attribute__((nonnull)) static uint8_t
+PutEtherVlanHdr(uint8_t* buffer, const struct rte_ether_addr* src, const struct rte_ether_addr* dst,
+                uint16_t vid, uint16_t etherType)
+{
+  uint8_t off = PutEtherHdr(buffer, src, dst, vid, etherType);
+  if (vid != 0) {
+    off += PutVlanHdr(RTE_PTR_ADD(buffer, off), vid, etherType);
+  }
+  return off;
 }
 
 __attribute__((nonnull)) static uint8_t
@@ -158,12 +167,12 @@ MatchAlways(const EthRxMatch* match, const struct rte_mbuf* m)
 __attribute__((nonnull)) static __rte_always_inline bool
 MatchVlan(const EthRxMatch* match, const struct rte_mbuf* m)
 {
-  const struct rte_vlan_hdr* vlan =
+  const struct rte_vlan_hdr* vlanM =
     rte_pktmbuf_mtod_offset(m, const struct rte_vlan_hdr*, RTE_ETHER_HDR_LEN);
-  const struct rte_vlan_hdr* vlant = RTE_PTR_ADD(match->buf, RTE_ETHER_HDR_LEN);
-  return match->l2len != ETHER_VLAN_HLEN ||
-         (vlan->eth_proto == vlant->eth_proto &&
-          (vlan->vlan_tci & rte_cpu_to_be_16(0x0FFF)) == vlant->vlan_tci);
+  const struct rte_vlan_hdr* vlanT = RTE_PTR_ADD(match->buf, RTE_ETHER_HDR_LEN);
+  return match->l2len != RTE_ETHER_HDR_LEN + sizeof(struct rte_vlan_hdr) ||
+         (vlanM->eth_proto == vlanT->eth_proto &&
+          (vlanM->vlan_tci & rte_cpu_to_be_16(0x0FFF)) == vlanT->vlan_tci);
 }
 
 __attribute__((nonnull)) static bool
@@ -178,11 +187,9 @@ __attribute__((nonnull)) static bool
 MatchEtherMulticast(const EthRxMatch* match, const struct rte_mbuf* m)
 {
   // Ethernet destination must be multicast, exact match on ether_type and VLAN header
-  const struct rte_ether_hdr* ether = rte_pktmbuf_mtod(m, const struct rte_ether_hdr*);
-  return rte_is_multicast_ether_addr(&ether->dst_addr) &&
-         memcmp(RTE_PTR_ADD(ether, ETHER_ETHERTYPE_OFFSET),
-                RTE_PTR_ADD(match->buf, ETHER_ETHERTYPE_OFFSET),
-                RTE_ETHER_HDR_LEN - ETHER_ETHERTYPE_OFFSET) == 0 &&
+  const struct rte_ether_hdr* ethM = rte_pktmbuf_mtod(m, const struct rte_ether_hdr*);
+  const struct rte_ether_hdr* ethT = (const struct rte_ether_hdr*)match->buf;
+  return rte_is_multicast_ether_addr(&ethM->dst_addr) && ethM->ether_type == ethT->ether_type &&
          MatchVlan(match, m);
 }
 
@@ -200,16 +207,16 @@ __attribute__((nonnull)) static bool
 MatchVxlan(const EthRxMatch* match, const struct rte_mbuf* m)
 {
   // exact match on UDP destination port, VNI, and inner Ethernet header
-  const struct rte_udp_hdr* udp =
+  const struct rte_udp_hdr* udpM =
     rte_pktmbuf_mtod_offset(m, const struct rte_udp_hdr*, match->udpOff);
-  const struct rte_vxlan_hdr* vxlan = RTE_PTR_ADD(udp, sizeof(*udp));
-  const struct rte_ether_hdr* ieth = RTE_PTR_ADD(vxlan, sizeof(*vxlan));
-  const struct rte_udp_hdr* udpt = RTE_PTR_ADD(match->buf, match->udpOff);
-  const struct rte_vxlan_hdr* vxlant = RTE_PTR_ADD(udpt, sizeof(*udpt));
-  const struct rte_ether_hdr* ietht = RTE_PTR_ADD(vxlant, sizeof(*vxlant));
-  return MatchUdp(match, m) && udp->dst_port == udpt->dst_port &&
-         (vxlan->vx_vni & ~rte_cpu_to_be_32(0xFF)) == vxlant->vx_vni &&
-         memcmp(ieth, ietht, RTE_ETHER_HDR_LEN) == 0;
+  const struct rte_vxlan_hdr* vxlanM = RTE_PTR_ADD(udpM, sizeof(*udpM));
+  const struct rte_ether_hdr* innerEthM = RTE_PTR_ADD(vxlanM, sizeof(*vxlanM));
+  const struct rte_udp_hdr* udpT = RTE_PTR_ADD(match->buf, match->udpOff);
+  const struct rte_vxlan_hdr* vxlanT = RTE_PTR_ADD(udpT, sizeof(*udpT));
+  const struct rte_ether_hdr* innerEthT = RTE_PTR_ADD(vxlanT, sizeof(*vxlanT));
+  return MatchUdp(match, m) && udpM->dst_port == udpT->dst_port &&
+         (vxlanM->vx_vni & ~rte_cpu_to_be_32(0xFF)) == vxlanT->vx_vni &&
+         memcmp(innerEthM, innerEthT, RTE_ETHER_HDR_LEN) == 0;
 }
 
 void
@@ -217,9 +224,8 @@ EthRxMatch_Prepare(EthRxMatch* match, const EthLocator* loc)
 {
   ClassifyResult classify = EthLocator_Classify(loc);
 
-  *match = (const EthRxMatch){ 0 };
+  *match = (const EthRxMatch){ .f = MatchAlways };
   if (classify.etherType == 0) {
-    match->f = MatchAlways;
     return;
   }
 
@@ -272,31 +278,29 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, const EthLocator* loc)
     flow->pattern[i].type = RTE_FLOW_ITEM_TYPE_END;                                                \
   } while (false)
 
-  MASK(flow->ethMask.dst);
+  MASK(flow->ethMask.hdr.dst_addr);
+  MASK(flow->ethMask.hdr.ether_type);
+  PutEtherHdr((uint8_t*)(&flow->ethSpec.hdr), &loc->remote, &loc->local, loc->vlan,
+              classify.etherType);
   if (classify.multicast) {
-    rte_ether_addr_copy(&loc->remote, &flow->ethSpec.dst);
+    rte_ether_addr_copy(&loc->remote, &flow->ethSpec.hdr.dst_addr);
   } else {
-    MASK(flow->ethMask.src);
-    rte_ether_addr_copy(&loc->local, &flow->ethSpec.dst);
-    rte_ether_addr_copy(&loc->remote, &flow->ethSpec.src);
+    MASK(flow->ethMask.hdr.src_addr);
   }
-  MASK(flow->ethMask.type);
-  flow->ethSpec.type = rte_cpu_to_be_16(classify.etherType);
   APPEND(ETH, eth);
 
   if (loc->vlan != 0) {
-    MASK(flow->vlanMask.tci);
-    flow->vlanSpec.tci = rte_cpu_to_be_16(loc->vlan);
-    flow->vlanSpec.inner_type = flow->ethSpec.type;
-    flow->ethSpec.type = rte_cpu_to_be_16(RTE_ETHER_TYPE_VLAN);
+    flow->vlanMask.hdr.vlan_tci = rte_cpu_to_be_16(0x0FFF); // don't mask PCP & DEI bits
+    PutVlanHdr((uint8_t*)(&flow->vlanSpec.hdr), loc->vlan, classify.etherType);
     APPEND(VLAN, vlan);
   }
 
   if (!classify.udp) {
-    MASK(flow->vlanMask.inner_type);
+    MASK(flow->vlanMask.hdr.eth_proto);
     return;
   }
-  flow->pattern[0].spec = NULL; // ETH
+  // several drivers do not support ETH+IP combination, so clear ETH spec
+  flow->pattern[0].spec = NULL;
   flow->pattern[0].mask = NULL;
 
   if (classify.v4) {
@@ -320,18 +324,15 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, const EthLocator* loc)
     return;
   }
 
-  MASK(flow->vxlanMask.vni);
-  flow->vxlanSpec.vni[0] = (uint8_t)(loc->vxlan >> 16);
-  flow->vxlanSpec.vni[1] = (uint8_t)(loc->vxlan >> 8);
-  flow->vxlanSpec.vni[2] = (uint8_t)(loc->vxlan >> 0);
+  flow->vxlanMask.hdr.vx_vni = ~rte_cpu_to_be_32(0xFF); // don't mask reserved byte
+  PutVxlanHdr((uint8_t*)(&flow->vxlanSpec.hdr), loc->vxlan);
   APPEND(VXLAN, vxlan);
 
-  MASK(flow->innerEthMask.dst);
-  MASK(flow->innerEthMask.src);
-  MASK(flow->innerEthMask.type);
-  rte_ether_addr_copy(&loc->innerLocal, &flow->innerEthSpec.dst);
-  rte_ether_addr_copy(&loc->innerRemote, &flow->innerEthSpec.src);
-  flow->innerEthSpec.type = rte_cpu_to_be_16(EtherTypeNDN);
+  MASK(flow->innerEthMask.hdr.dst_addr);
+  MASK(flow->innerEthMask.hdr.src_addr);
+  MASK(flow->innerEthMask.hdr.ether_type);
+  PutEtherHdr((uint8_t*)(&flow->innerEthSpec.hdr), &loc->innerRemote, &loc->innerLocal, 0,
+              EtherTypeNDN);
   APPEND(ETH, innerEth);
 
 #undef MASK
@@ -359,6 +360,7 @@ TxEther(const EthTxHdr* hdr, struct rte_mbuf* m, bool newBurst)
 static __rte_always_inline uint16_t
 TxMakeVxlanSrcPort(bool newBurst)
 {
+  static_assert((VXLAN_SRCPORT_BASE & VXLAN_SRCPORT_MASK) == 0, "");
   RTE_PER_LCORE(txVxlanSrcPort) += (uint16_t)newBurst;
   return (RTE_PER_LCORE(txVxlanSrcPort) & VXLAN_SRCPORT_MASK) | VXLAN_SRCPORT_BASE;
 }
