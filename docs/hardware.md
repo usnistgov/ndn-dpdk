@@ -41,6 +41,10 @@ If you encounter face creation failure or you are unable to send/receive packets
 
 ### Mellanox Ethernet Adapters
 
+DPDK supports Mellanox adapters in Ethernet mode, but not in Infiniband mode.
+If you have VPI adapters, use `mlxconfig` tool to verify and change port mode.
+See [MLX5 poll mode driver](https://doc.dpdk.org/guides/nics/mlx5.html) for more information.
+
 The libibverbs library must be installed before building DPDK or running the `ndndpdk-depends.sh` script:
 
 ```bash
@@ -52,15 +56,24 @@ docker build \
   [other arguments]
 ```
 
-To use Mellanox adapters in Docker container:
+To use Mellanox adapters in Docker container, add these flags when you launch the service container:
 
 ```bash
-# add these flags when starting the container
 docker run \
   --device /dev/infiniband \
+  --mount type=bind,source=/sys,target=/sys \
   [other arguments]
+```
 
-# before activating, move the network interface into the container's network namespace
+* `--device /dev/infiniband` flag enables access to IB verbs device.
+* `--mount target=/sys` flag enables access to hardware counters in `/sys/class/net` directory.
+
+It's also necessary to move the kernel network interface into the container's network namespace.
+This needs to be performed every time the container is started or restarted, before activating NDN-DPDK.
+Forgetting this step would cause `Unable to recognize master/representors on the multiple IB devices` error in container logs, and the device would be unusable.
+Example command:
+
+```bash
 NETIF=enp4s0f0
 sudo ip link set $NETIF netns $(docker inspect --format='{{ .State.Pid }}' ndndpdk-svc)
 ```

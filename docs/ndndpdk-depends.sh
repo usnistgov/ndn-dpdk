@@ -317,7 +317,6 @@ $SUDO pip install -U meson pyelftools
 if [[ $GOVER != 0 ]]; then
   $SUDO rm -rf /usr/local/go
   curl -fsLS "${NDNDPDK_DL_GOLANG}/dl/${GOVER}.linux-amd64.tar.gz" | $SUDO tar -C /usr/local -xz
-  export PATH=${HOME}/go/bin:/usr/local/go/bin${PATH:+:}${PATH}
   if ! grep -q go/bin ~/.bashrc; then
     echo 'export PATH=${HOME}/go/bin${PATH:+:}${PATH}' >>~/.bashrc
   fi
@@ -326,6 +325,8 @@ if [[ $GOVER != 0 ]]; then
   fi
   $SUDO update-alternatives --remove-all go || true
   $SUDO update-alternatives --install /usr/bin/go go /usr/local/go/bin/go 1
+  $SUDO update-alternatives --remove-all gofmt || true
+  $SUDO update-alternatives --install /usr/bin/gofmt gofmt /usr/local/go/bin/gofmt 1
 fi
 
 if [[ $UBPFVER != 0 ]]; then
