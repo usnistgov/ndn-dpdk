@@ -87,7 +87,7 @@ interface EtherLocatorBase extends FaceConfig {
 
   /**
    * @minimum 1
-   * @maximum 4095
+   * @maximum 4094
    */
   vlan?: Uint;
 }
@@ -100,32 +100,32 @@ export interface EtherLocator extends EtherLocatorBase {
   scheme: "ether";
 }
 
+interface IpLocatorBase extends EtherLocatorBase {
+  localIP: string;
+  remoteIP: string;
+}
+
 /**
  * @minimum 1
  * @maximum 65535
  */
-type UdpPort = Uint;
-
-interface UdpLocatorBase extends EtherLocatorBase {
-  localIP: string;
-  remoteIP: string;
-  localUDP: UdpPort;
-  remoteUDP: UdpPort;
-}
+ type UdpPort = Uint;
 
 /**
  * Ethernet-based UDP face locator.
  * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/iface/ethface#UDPLocator>
  */
-export interface UdpLocator extends UdpLocatorBase {
+export interface UdpLocator extends IpLocatorBase {
   scheme: "udpe";
+  localUDP: UdpPort;
+  remoteUDP: UdpPort;
 }
 
 /**
  * VXLAN face locator.
  * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/iface/ethface#VxlanLocator>
  */
-export interface VxlanLocator extends UdpLocatorBase {
+export interface VxlanLocator extends IpLocatorBase {
   scheme: "vxlan";
 
   /**

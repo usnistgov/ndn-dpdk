@@ -282,8 +282,6 @@ const vxlanLocatorFields: Omit<VxlanLocator, keyof EtherLocator> & Pick<VxlanLoc
   scheme: "vxlan",
   localIP: "192.168.118.0",
   remoteIP: "192.168.118.0",
-  localUDP: 4789,
-  remoteUDP: 4789,
   vxlan: 2,
   innerLocal: "02:00:00:ff:ff:ff",
   innerRemote: "02:00:00:ff:ff:ff",
