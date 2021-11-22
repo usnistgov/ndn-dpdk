@@ -4,6 +4,12 @@ package ealthread
 
 /*
 #include "../../csrc/dpdk/thread.h"
+
+#ifdef NDNDPDK_THREADSLEEP
+#define ENABLE_THREADSLEEP 1
+#else
+#define ENABLE_THREADSLEEP 0
+#endif
 */
 import "C"
 import (
@@ -11,6 +17,8 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 )
+
+const sleepEnabled = C.ENABLE_THREADSLEEP > 0
 
 // ThreadSleep constants.
 // These are effective only if NDNDPDK_MK_THREADSLEEP=1 is set during compilation.

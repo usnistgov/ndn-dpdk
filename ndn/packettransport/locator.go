@@ -12,7 +12,7 @@ const (
 	MinVLAN = 0x001
 
 	// MaxVLAN is the maximum VLAN number.
-	MaxVLAN = 0xFFF
+	MaxVLAN = 0xFFE
 
 	// EthernetTypeNDN is the NDN EtherType.
 	EthernetTypeNDN = an.EtherTypeNDN

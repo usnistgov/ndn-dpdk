@@ -1,21 +1,11 @@
 package ealthread
 
-/*
-#include "../../csrc/dpdk/thread.h"
-
-#ifdef NDNDPDK_THREADSLEEP
-#define ENABLE_THREADSLEEP 1
-#else
-#define ENABLE_THREADSLEEP 0
-#endif
-*/
-import "C"
 import (
 	"reflect"
 	"time"
 )
 
-// Stopper abstracts how to tell a thread top stop.
+// Stopper abstracts how to tell a thread to stop.
 type Stopper interface {
 	// BeforeWait is invoked before lcore.Wait().
 	BeforeWait()
@@ -30,7 +20,7 @@ type StopChan chan bool
 // Continue returns true if the thread should continue.
 // This should be invoked within the running thread.
 func (stop StopChan) Continue() bool {
-	if C.ENABLE_THREADSLEEP > 0 {
+	if sleepEnabled {
 		time.Sleep(time.Microsecond)
 	}
 
