@@ -16,7 +16,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"github.com/usnistgov/ndn-dpdk/ndn/sockettransport"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"go4.org/must"
 )
 
 // Config contains socket face configuration.
@@ -71,24 +70,24 @@ func Wrap(transport sockettransport.Transport, cfg Config) (iface.Face, error) {
 		Config: cfg.Config,
 		Init: func(f iface.Face) (iface.InitResult, error) {
 			face.Face = f
-			return iface.InitResult{L2TxBurst: C.go_SocketFace_TxBurst}, nil
+			return iface.InitResult{
+				Face:      face,
+				L2TxBurst: C.go_SocketFace_TxBurst,
+			}, nil
 		},
-		Start: func(f iface.Face) (iface.Face, error) {
+		Start: func() error {
 			face.transport.OnStateChange(func(st l3.TransportState) {
-				if st == l3.TransportUp {
-					f.SetDown(false)
-				} else {
-					f.SetDown(true)
-				}
+				face.SetDown(st != l3.TransportUp)
 			})
 
 			if e := rxg.addFace(cfg.RxGroupCapacity); e != nil {
-				return nil, e
+				return e
 			}
 			go face.rxLoop()
-			return face, nil
+			iface.ActivateTxFace(face)
+			return nil
 		},
-		Locator: func(iface.Face) iface.Locator {
+		Locator: func() iface.Locator {
 			conn := face.transport.Conn()
 			laddr, raddr := conn.LocalAddr(), conn.RemoteAddr()
 
@@ -100,17 +99,18 @@ func Wrap(transport sockettransport.Transport, cfg Config) (iface.Face, error) {
 			}
 			return loc
 		},
-		Stop: func(iface.Face) error {
+		Stop: func() error {
 			rxg.removeFace()
+			iface.DeactivateTxFace(face)
 			return nil
 		},
-		Close: func(iface.Face) error {
+		Close: func() error {
 			// close the channel after Get(id) would return nil.
 			// Otherwise, go_SocketFace_TxBurst could panic for sending into closed channel.
 			close(face.transport.Tx())
 			return nil
 		},
-		ReadExCounters: func(iface.Face) interface{} {
+		ReadExCounters: func() interface{} {
 			return face.transport.Counters()
 		},
 	})
@@ -128,12 +128,7 @@ func (face *socketFace) ptr() *C.Face {
 }
 
 func (face *socketFace) rxLoop() {
-	for {
-		wire, ok := <-face.transport.Rx()
-		if !ok {
-			break
-		}
-
+	for wire := range face.transport.Rx() {
 		vec, e := face.rxMempool.Alloc(1)
 		if e != nil { // ignore alloc error
 			continue
@@ -152,12 +147,10 @@ func (face *socketFace) rxLoop() {
 //export go_SocketFace_TxBurst
 func go_SocketFace_TxBurst(faceC *C.Face, pkts **C.struct_rte_mbuf, nPkts C.uint16_t) C.uint16_t {
 	face := iface.Get(iface.ID(faceC.id)).(*socketFace)
-	for i := uintptr(0); i < uintptr(nPkts); i++ {
-		mbufPtr := (**C.struct_rte_mbuf)(unsafe.Add(unsafe.Pointer(pkts), i*unsafe.Sizeof(*pkts)))
-		mbuf := pktmbuf.PacketFromPtr(unsafe.Pointer(*mbufPtr))
-		wire := mbuf.Bytes()
-		must.Close(mbuf)
-
+	vec := pktmbuf.VectorFromPtr(unsafe.Pointer(pkts), int(nPkts))
+	defer vec.Close()
+	for _, pkt := range vec {
+		wire := pkt.Bytes()
 		select {
 		case face.transport.Tx() <- wire:
 		default: // packet loss

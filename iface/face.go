@@ -8,7 +8,6 @@ import "C"
 import (
 	"fmt"
 	"io"
-	"math/rand"
 	"unsafe"
 
 	"github.com/pkg/math"
@@ -119,31 +118,35 @@ type NewParams struct {
 	Init func(f Face) (InitResult, error)
 
 	// Start callback is invoked after data structure initialization.
-	// It should activate RxGroups associated with the face.
-	// It may return a 'subclass' Face interface implementation to make available via Get(id).
+	// It should activate the face in RxLoop and TxLoop.
+	// It returns a 'subclass' Face interface implementation to make available via Get(id).
 	// This is always invoked on the main thread.
-	Start func(f Face) (Face, error)
+	Start func() error
 
 	// Locator callback returns a Locator describing the face.
-	Locator func(f Face) Locator
+	Locator func() Locator
 
 	// Stop callback is invoked to stop the face.
-	// It should deactivate RxGroups associated with the face.
+	// It should deactivate the face in RxLoop and TxLoop.
 	// This is always invoked on the main thread.
-	Stop func(f Face) error
+	Stop func() error
 
 	// Close callback is invoked after the face has been removed.
 	// This is optional.
 	// This is always invoked on the main thread.
-	Close func(f Face) error
+	Close func() error
 
 	// ReadExCounters callback returns extended counters.
 	// This is optional.
-	ReadExCounters func(f Face) interface{}
+	ReadExCounters func() interface{}
 }
 
 // InitResult contains results of NewParams.Init callback.
 type InitResult struct {
+	// Face is a Face interface implementation that would be returned via Get(id).
+	// It must embed the base Face passed to NewParams.Init().
+	Face Face
+
 	// TxLinearize indicates whether TX mbufs must be direct mbufs in contiguous memory.
 	// See C.PacketTxAlign.linearize field.
 	TxLinearize bool
@@ -159,7 +162,7 @@ func New(p NewParams) (face Face, e error) {
 		return nil, e
 	}
 	if p.Socket.IsAny() {
-		p.Socket = eal.Sockets[rand.Intn(len(eal.Sockets))]
+		p.Socket = eal.RandomSocket()
 	}
 
 	eal.CallMain(func() {
@@ -186,13 +189,15 @@ func newFace(p NewParams) (Face, error) {
 	c := f.ptr()
 	c.id = C.FaceID(f.id)
 	c.state = StateUp
-	sizeofImpl := C.sizeof_FaceImpl + p.SizeofPriv
-	c.impl = (*C.FaceImpl)(eal.ZmallocAligned("FaceImpl", sizeofImpl, 1, p.Socket))
+	c.impl = (*C.FaceImpl)(eal.ZmallocAligned("FaceImpl", C.sizeof_FaceImpl+p.SizeofPriv, 1, p.Socket))
 
 	initResult, e := p.Init(f)
 	if e != nil {
 		logEntry.Warn("init error", zap.Error(e))
 		return f.clear(), e
+	}
+	if initResult.Face.ID() != f.id {
+		panic("initResult.Face should embed base Face")
 	}
 	logEntry = logEntry.With(zap.Any("locator", f.Locator()))
 
@@ -226,26 +231,24 @@ func newFace(p NewParams) (Face, error) {
 
 	C.TxProc_Init(&c.impl.tx, c.txAlign)
 
-	f2, e := p.Start(f)
-	if e != nil {
+	if e := p.Start(); e != nil {
 		logEntry.Warn("start error", zap.Error(e))
 		return f.clear(), e
 	}
 
-	gFaces[f.id] = f2
+	gFaces[f.id] = initResult.Face
 	emitter.Emit(evtFaceNew, f.id)
-	ActivateTxFace(f2)
 	logEntry.Info("face created")
-	return f2, nil
+	return initResult.Face, nil
 }
 
 type face struct {
 	id                     ID
 	socket                 eal.NumaSocket
-	locatorCallback        func(f Face) Locator
-	stopCallback           func(f Face) error
-	closeCallback          func(f Face) error
-	readExCountersCallback func(f Face) interface{}
+	locatorCallback        func() Locator
+	stopCallback           func() error
+	closeCallback          func() error
+	readExCountersCallback func() interface{}
 }
 
 func (f *face) ptr() *C.Face {
@@ -265,7 +268,7 @@ func (f *face) NumaSocket() eal.NumaSocket {
 }
 
 func (f *face) Locator() Locator {
-	return f.locatorCallback(f)
+	return f.locatorCallback()
 }
 
 func (f *face) Close() (e error) {
@@ -276,9 +279,8 @@ func (f *face) Close() (e error) {
 func (f *face) close() error {
 	f.ptr().state = StateDown
 	emitter.Emit(evtFaceClosing, f.id)
-	DeactivateTxFace(f)
 
-	if e := f.stopCallback(f); e != nil {
+	if e := f.stopCallback(); e != nil {
 		return e
 	}
 
@@ -286,7 +288,7 @@ func (f *face) close() error {
 	emitter.Emit(evtFaceClosed, f.id)
 
 	if f.closeCallback != nil {
-		return f.closeCallback(f)
+		return f.closeCallback()
 	}
 	return nil
 }
@@ -310,7 +312,7 @@ func (f *face) clear() Face {
 
 func (f *face) ReadExCounters() interface{} {
 	if f.readExCountersCallback != nil {
-		return f.readExCountersCallback(f)
+		return f.readExCountersCallback()
 	}
 	return nil
 }

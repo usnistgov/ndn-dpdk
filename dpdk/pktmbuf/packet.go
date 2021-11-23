@@ -22,11 +22,6 @@ const DefaultHeadroom = C.RTE_PKTMBUF_HEADROOM
 // Packet represents a packet in mbuf.
 type Packet C.struct_rte_mbuf
 
-// PacketFromPtr converts *C.struct_rte_mbuf pointer to Packet.
-func PacketFromPtr(ptr unsafe.Pointer) *Packet {
-	return (*Packet)(ptr)
-}
-
 // Ptr returns *C.struct_rte_mbuf pointer.
 func (pkt *Packet) Ptr() unsafe.Pointer {
 	return unsafe.Pointer(pkt)
@@ -162,4 +157,9 @@ func (pkt *Packet) Chain(tail *Packet) error {
 		return errors.New("too many segments")
 	}
 	return nil
+}
+
+// PacketFromPtr converts *C.struct_rte_mbuf pointer to Packet.
+func PacketFromPtr(ptr unsafe.Pointer) *Packet {
+	return (*Packet)(ptr)
 }

@@ -37,25 +37,6 @@ type Pool struct {
 	mempool.Mempool
 }
 
-// NewPool creates a Pool.
-func NewPool(cfg PoolConfig, socket eal.NumaSocket) (mp *Pool, e error) {
-	cfg.applyDefaults()
-	nameC := C.CString(eal.AllocObjectID("pktmbuf.Pool"))
-	defer C.free(unsafe.Pointer(nameC))
-
-	mpC := C.rte_pktmbuf_pool_create(nameC, C.uint(cfg.Capacity), C.uint(mempool.ComputeCacheSize(cfg.Capacity)),
-		C.uint16_t(cfg.PrivSize), C.uint16_t(cfg.Dataroom), C.int(socket.ID()))
-	if mpC == nil {
-		return nil, eal.GetErrno()
-	}
-	return PoolFromPtr(unsafe.Pointer(mpC)), nil
-}
-
-// PoolFromPtr converts *C.struct_rte_mempool pointer to Pool.
-func PoolFromPtr(ptr unsafe.Pointer) *Pool {
-	return (*Pool)(ptr)
-}
-
 func (mp *Pool) ptr() *C.struct_rte_mempool {
 	return (*C.struct_rte_mempool)(mp.Ptr())
 }
@@ -82,4 +63,23 @@ func (mp *Pool) MustAlloc(count int) Vector {
 		panic(e)
 	}
 	return vec
+}
+
+// NewPool creates a Pool.
+func NewPool(cfg PoolConfig, socket eal.NumaSocket) (mp *Pool, e error) {
+	cfg.applyDefaults()
+	nameC := C.CString(eal.AllocObjectID("pktmbuf.Pool"))
+	defer C.free(unsafe.Pointer(nameC))
+
+	mpC := C.rte_pktmbuf_pool_create(nameC, C.uint(cfg.Capacity), C.uint(mempool.ComputeCacheSize(cfg.Capacity)),
+		C.uint16_t(cfg.PrivSize), C.uint16_t(cfg.Dataroom), C.int(socket.ID()))
+	if mpC == nil {
+		return nil, eal.GetErrno()
+	}
+	return PoolFromPtr(unsafe.Pointer(mpC)), nil
+}
+
+// PoolFromPtr converts *C.struct_rte_mempool pointer to Pool.
+func PoolFromPtr(ptr unsafe.Pointer) *Pool {
+	return (*Pool)(ptr)
 }

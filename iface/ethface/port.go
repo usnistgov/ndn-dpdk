@@ -204,6 +204,7 @@ func (port *Port) startFace(face *ethFace, forceFallback bool) error {
 		return port.startFace(face, true)
 	}
 
+	iface.ActivateTxFace(face)
 	port.logger.Info("face started",
 		zap.Stringer("impl", port.impl),
 		face.ID().ZapField("face"),
@@ -217,6 +218,7 @@ func (port *Port) stopFace(face *ethFace) (e error) {
 	id := face.ID()
 	delete(port.faces, id)
 	e = port.impl.Stop(face)
+	iface.DeactivateTxFace(face)
 	port.logger.Info("face stopped",
 		zap.Error(e),
 		id.ZapField("face"),

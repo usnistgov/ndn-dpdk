@@ -24,8 +24,6 @@ typedef struct RxGroup
   int rxThread; ///< RX thread number for RxProc_Input
 } RxGroup;
 
-extern RxGroup theChanRxGroup_;
-
 /** @brief RX loop thread. */
 typedef struct RxLoop
 {

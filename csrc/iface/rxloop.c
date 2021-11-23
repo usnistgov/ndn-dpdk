@@ -1,7 +1,5 @@
 #include "rxloop.h"
 
-RxGroup theChanRxGroup_;
-
 __attribute__((nonnull)) static uint16_t
 RxLoop_Transfer(RxLoop* rxl, RxGroup* rxg)
 {

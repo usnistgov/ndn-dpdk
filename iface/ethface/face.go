@@ -66,20 +66,21 @@ func New(port *Port, loc ethLocator) (iface.Face, error) {
 
 			face.priv = priv
 			return iface.InitResult{
+				Face:        face,
 				L2TxBurst:   C.EthFace_TxBurst,
 				TxLinearize: !useTxMultiSegOffload,
 			}, nil
 		},
-		Start: func(iface.Face) (iface.Face, error) {
-			return face, port.startFace(face, false)
+		Start: func() error {
+			return port.startFace(face, false)
 		},
-		Locator: func(iface.Face) iface.Locator {
+		Locator: func() iface.Locator {
 			return face.loc
 		},
-		Stop: func(iface.Face) error {
+		Stop: func() error {
 			return face.port.stopFace(face)
 		},
-		Close: func(iface.Face) error {
+		Close: func() error {
 			if len(face.port.faces) == 0 {
 				return face.port.Close()
 			}
