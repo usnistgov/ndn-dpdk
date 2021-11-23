@@ -18,7 +18,8 @@ import (
 // RoleRx is the thread role for RxLoop.
 const RoleRx = "RX"
 
-// RxGroup is a receive channel for a group of faces.
+// RxGroup is a receive channel for faces.
+// An RxGroup may serve multiple faces; a face may have multiple RxGroups.
 type RxGroup interface {
 	eal.WithNumaSocket
 
@@ -42,8 +43,8 @@ type RxLoop interface {
 	NackDemux() *InputDemux
 
 	CountRxGroups() int
-	add(rxg RxGroup)
-	remove(rxg RxGroup)
+	Add(rxg RxGroup)
+	Remove(rxg RxGroup)
 }
 
 // NewRxLoop creates an RxLoop.
@@ -102,7 +103,7 @@ func (rxl *rxLoop) CountRxGroups() int {
 	return rxl.nRxgs
 }
 
-func (rxl *rxLoop) add(rxg RxGroup) {
+func (rxl *rxLoop) Add(rxg RxGroup) {
 	rxgC := (*C.RxGroup)(rxg.Ptr())
 	if rxgC.rxBurstOp == nil {
 		logger.Panic("RxGroup missing rxBurstOp")
@@ -117,7 +118,7 @@ func (rxl *rxLoop) add(rxg RxGroup) {
 	C.cds_hlist_add_head_rcu(&rxgC.rxlNode, &rxl.c.head)
 }
 
-func (rxl *rxLoop) remove(rxg RxGroup) {
+func (rxl *rxLoop) Remove(rxg RxGroup) {
 	if mapRxgRxl[rxg] != rxl {
 		logger.Panic("RxGroup is not in this RxLoop")
 	}
@@ -147,13 +148,13 @@ func ListRxLoops() (list []RxLoop) {
 }
 
 // ActivateRxGroup selects an available RxLoop and adds the RxGroup to it.
+// Returns chosen RxLoop.
 // Panics if no RxLoop is available.
-func ActivateRxGroup(rxg RxGroup) {
+func ActivateRxGroup(rxg RxGroup) RxLoop {
 	if rxl := ChooseRxLoop(rxg); rxl != nil {
-		rxl.add(rxg)
-		return
+		rxl.Add(rxg)
+		return rxl
 	}
-
 	if len(rxLoopThreads) == 0 {
 		logger.Panic("no RxLoop available")
 	}
@@ -170,10 +171,11 @@ func ActivateRxGroup(rxg RxGroup) {
 			bestRxl, bestScore = rxl, score
 		}
 	}
-	bestRxl.add(rxg)
+	bestRxl.Add(rxg)
+	return bestRxl
 }
 
 // DeactivateRxGroup removes the RxGroup from the owning RxLoop.
 func DeactivateRxGroup(rxg RxGroup) {
-	mapRxgRxl[rxg].remove(rxg)
+	mapRxgRxl[rxg].Remove(rxg)
 }

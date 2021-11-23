@@ -51,7 +51,7 @@ func (info DevInfo) HasTxMultiSegOffload() bool {
 	return false
 }
 
-// HasTxChecksumOffload determines whether device can compute IPv4 and UDP checksum offload upon transmission.
+// HasTxChecksumOffload determines whether device can compute IPv4 and UDP checksum upon transmission.
 func (info DevInfo) HasTxChecksumOffload() bool {
 	return info.Tx_offload_capa&txOffloadChecksum == txOffloadChecksum
 }

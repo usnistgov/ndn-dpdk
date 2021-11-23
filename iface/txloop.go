@@ -18,7 +18,7 @@ import (
 // RoleTx is the thread role for TxLoop.
 const RoleTx = "TX"
 
-// TxLoop is the output thread that processes outgoing packets on a set of faces.
+// TxLoop is the output thread that processes outgoing packets on a set of TxGroups.
 // Functions are non-thread-safe.
 type TxLoop interface {
 	eal.WithNumaSocket
@@ -27,8 +27,8 @@ type TxLoop interface {
 	io.Closer
 
 	CountFaces() int
-	add(face Face)
-	remove(face Face)
+	Add(face Face)
+	Remove(face Face)
 }
 
 // NewTxLoop creates a TxLoop.
@@ -71,10 +71,10 @@ func (txl *txLoop) CountFaces() int {
 	return txl.nFaces
 }
 
-func (txl *txLoop) add(face Face) {
+func (txl *txLoop) Add(face Face) {
 	id := face.ID()
 	if mapFaceTxl[id] != nil {
-		logger.Panic("Face is in another TxLoop")
+		logger.Panic("face is in another TxLoop")
 	}
 	mapFaceTxl[id] = txl
 	txl.nFaces++
@@ -83,10 +83,10 @@ func (txl *txLoop) add(face Face) {
 	C.cds_hlist_add_head_rcu(&faceC.txlNode, &txl.c.head)
 }
 
-func (txl *txLoop) remove(face Face) {
+func (txl *txLoop) Remove(face Face) {
 	id := face.ID()
 	if mapFaceTxl[id] != txl {
-		logger.Panic("Face is not in this TxLoop")
+		logger.Panic("face is not in this TxLoop")
 	}
 	delete(mapFaceTxl, id)
 	txl.nFaces--
@@ -114,11 +114,12 @@ func ListTxLoops() (list []TxLoop) {
 }
 
 // ActivateTxFace selects an available TxLoop and adds the Face to it.
+// Returns chosen TxLoop
 // Panics if no TxLoop is available.
-func ActivateTxFace(face Face) {
+func ActivateTxFace(face Face) TxLoop {
 	if txl := ChooseTxLoop(face); txl != nil {
-		txl.add(face)
-		return
+		txl.Add(face)
+		return txl
 	}
 	if len(txLoopThreads) == 0 {
 		logger.Panic("no TxLoop available")
@@ -136,10 +137,11 @@ func ActivateTxFace(face Face) {
 			bestTxl, bestScore = txl, score
 		}
 	}
-	bestTxl.add(face)
+	bestTxl.Add(face)
+	return bestTxl
 }
 
 // DeactivateTxFace removes the Face from the owning TxLoop.
 func DeactivateTxFace(face Face) {
-	mapFaceTxl[face.ID()].remove(face)
+	mapFaceTxl[face.ID()].Remove(face)
 }

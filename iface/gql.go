@@ -10,6 +10,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 )
 
 var (
@@ -96,6 +97,19 @@ func init() {
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					face := p.Source.(Face)
 					return face.Counters(), nil
+				},
+			},
+			"txLoop": &graphql.Field{
+				Type:        ealthread.GqlWorkerType,
+				Description: "TxLoop serving this face.",
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					face := p.Source.(Face)
+					txl := mapFaceTxl[face.ID()]
+					if txl == nil {
+						return nil, nil
+					}
+					lc := txl.LCore()
+					return gqlserver.Optional(lc, lc.Valid()), nil
 				},
 			},
 		},

@@ -16,7 +16,7 @@ typedef struct RxGroup RxGroup;
  */
 typedef uint16_t (*RxGroup_RxBurst)(RxGroup* rxg, struct rte_mbuf** pkts, uint16_t nPkts);
 
-/** @brief Receive channel for a group of faces. */
+/** @brief Receive channel for faces. */
 typedef struct RxGroup
 {
   struct cds_hlist_node rxlNode;

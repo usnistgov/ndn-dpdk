@@ -60,46 +60,7 @@ type Port struct {
 	faces        map[iface.ID]*ethFace
 	impl         impl
 	nextImpl     int
-}
-
-// NewPort opens a Port.
-func NewPort(dev ethdev.EthDev, cfg PortConfig) (port *Port, e error) {
-	if cfg.MTU == 0 {
-		cfg.MTU = dev.MTU()
-		cfg.DisableSetMTU = true
-	}
-	if ndni.PacketMempool.Config().Dataroom < pktmbuf.DefaultHeadroom+cfg.MTU {
-		return nil, errors.New("PacketMempool dataroom is too small for requested MTU")
-	}
-	if cfg.RxQueueSize == 0 {
-		cfg.RxQueueSize = DefaultRxQueueSize
-	}
-	if cfg.TxQueueSize == 0 {
-		cfg.TxQueueSize = DefaultTxQueueSize
-	}
-
-	if portByEthDev[dev] != nil {
-		return nil, errors.New("Port already exists")
-	}
-
-	port = &Port{
-		cfg:    cfg,
-		logger: logger.With(dev.ZapField("port")),
-		dev:    dev,
-		faces:  make(map[iface.ID]*ethFace),
-	}
-	if dev.DevInfo().DriverName() == "net_af_xdp" {
-		if port.rxBouncePool, e = pktmbuf.NewPool(pktmbuf.PoolConfig{
-			Capacity: cfg.RxQueueSize + iface.MaxBurstSize,
-			Dataroom: math.MaxInt(pktmbuf.DefaultHeadroom+cfg.MTU, xdpMinDataroom),
-		}, dev.NumaSocket()); e != nil {
-			return nil, e
-		}
-	}
-
-	port.logger.Info("port opened")
-	portByEthDev[port.dev] = port
-	return port, nil
+	txl          iface.TxLoop
 }
 
 // Close closes the port.
@@ -204,7 +165,11 @@ func (port *Port) startFace(face *ethFace, forceFallback bool) error {
 		return port.startFace(face, true)
 	}
 
-	iface.ActivateTxFace(face)
+	if port.txl == nil {
+		port.txl = iface.ActivateTxFace(face)
+	} else {
+		port.txl.Add(face)
+	}
 	port.logger.Info("face started",
 		zap.Stringer("impl", port.impl),
 		face.ID().ZapField("face"),
@@ -223,5 +188,48 @@ func (port *Port) stopFace(face *ethFace) (e error) {
 		zap.Error(e),
 		id.ZapField("face"),
 	)
+	if len(port.faces) == 0 {
+		port.txl = nil
+	}
 	return nil
+}
+
+// NewPort opens a Port.
+func NewPort(dev ethdev.EthDev, cfg PortConfig) (port *Port, e error) {
+	if cfg.MTU == 0 {
+		cfg.MTU = dev.MTU()
+		cfg.DisableSetMTU = true
+	}
+	if ndni.PacketMempool.Config().Dataroom < pktmbuf.DefaultHeadroom+cfg.MTU {
+		return nil, errors.New("PacketMempool dataroom is too small for requested MTU")
+	}
+	if cfg.RxQueueSize == 0 {
+		cfg.RxQueueSize = DefaultRxQueueSize
+	}
+	if cfg.TxQueueSize == 0 {
+		cfg.TxQueueSize = DefaultTxQueueSize
+	}
+
+	if portByEthDev[dev] != nil {
+		return nil, errors.New("Port already exists")
+	}
+
+	port = &Port{
+		cfg:    cfg,
+		logger: logger.With(dev.ZapField("port")),
+		dev:    dev,
+		faces:  make(map[iface.ID]*ethFace),
+	}
+	if dev.DevInfo().DriverName() == "net_af_xdp" {
+		if port.rxBouncePool, e = pktmbuf.NewPool(pktmbuf.PoolConfig{
+			Capacity: cfg.RxQueueSize + iface.MaxBurstSize,
+			Dataroom: math.MaxInt(pktmbuf.DefaultHeadroom+cfg.MTU, xdpMinDataroom),
+		}, dev.NumaSocket()); e != nil {
+			return nil, e
+		}
+	}
+
+	port.logger.Info("port opened")
+	portByEthDev[port.dev] = port
+	return port, nil
 }

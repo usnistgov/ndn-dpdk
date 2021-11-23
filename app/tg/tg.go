@@ -212,11 +212,11 @@ func New(cfg Config) (gen *TrafficGen, e error) {
 	if gen.face, e = cfg.Face.CreateFace(); e != nil {
 		return nil, fmt.Errorf("error creating face %w", e)
 	}
-	if gen.rxl == nil {
-		return nil, errors.New("face creation did not result in RxLoop creation")
+	if len(gen.rxl) == 0 {
+		return nil, errors.New("face creation did not result in RxLoop creation; this face is incompatible with traffic generator")
 	}
 	if gen.txl == nil {
-		return nil, errors.New("face creation did not result in TxLoop creation")
+		return nil, errors.New("face creation did not result in TxLoop creation; this face is incompatible with traffic generator")
 	}
 
 	if cfg.Producer != nil {
