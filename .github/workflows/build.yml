@@ -61,10 +61,10 @@ jobs:
         with:
           path: |
             ~/setup-dpdk
-          key: ${{ matrix.compiler }}_${{ steps.compilers.outputs.meson }}_20211118
+          key: ${{ matrix.compiler }}_${{ steps.compilers.outputs.meson }}_20211126
       - uses: yoursunny/setup-dpdk@main
         with:
-          dpdk-version: '21.11-rc3'
+          dpdk-version: '21.11'
           spdk-version: '21.10'
           target-arch: haswell
       - uses: actions/checkout@v2
