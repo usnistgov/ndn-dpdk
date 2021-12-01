@@ -10,12 +10,12 @@ import (
 
 // Counters contains CS counters.
 type Counters struct {
-	NHits            uint64 `json:"nHits"`            // lookup hits
-	NMisses          uint64 `json:"nMisses"`          // lookup misses
-	DirectEntries    int    `json:"directEntries"`    // direct entries
-	DirectCapacity   int    `json:"directCapacity"`   // direct capacity
-	IndirectEntries  int    `json:"indirectEntries"`  // indirect entries
-	IndirectCapacity int    `json:"indirectCapacity"` // indirect capacity
+	NHits            uint64 `json:"nHits" gqldesc:"Lookup hits."`
+	NMisses          uint64 `json:"nMisses" gqldesc:"Lookup misses."`
+	DirectEntries    int    `json:"directEntries" gqldesc:"Direct entries."`
+	DirectCapacity   int    `json:"directCapacity" gqldesc:"Direct capacity."`
+	IndirectEntries  int    `json:"indirectEntries" gqldesc:"Indirect entries."`
+	IndirectCapacity int    `json:"indirectCapacity" gqldesc:"Indirect capacity."`
 }
 
 // ReadCounters retrieves CS counters from PIT and CS.

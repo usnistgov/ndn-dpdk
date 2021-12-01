@@ -141,10 +141,10 @@ func newFwd(id int) *Fwd {
 // FwdCounters contains forwarding thread counters.
 type FwdCounters struct {
 	id            int    // FwFwd index
-	NNoFibMatch   uint64 `json:"nNoFibMatch"`   // Interests dropped due to no FIB match
-	NDupNonce     uint64 `json:"nDupNonce"`     // Interests dropped due to duplicate nonce
-	NSgNoFwd      uint64 `json:"nSgNoFwd"`      // Interests not forwarded by strategy
-	NNackMismatch uint64 `json:"nNackMismatch"` // Nacks dropped due to outdated nonce
+	NNoFibMatch   uint64 `json:"nNoFibMatch" gqldesc:"Interests dropped due to no FIB match."`
+	NDupNonce     uint64 `json:"nDupNonce" gqldesc:"Interests dropped due to duplicate nonce."`
+	NSgNoFwd      uint64 `json:"nSgNoFwd" gqldesc:"Interests not forwarded by strategy."`
+	NNackMismatch uint64 `json:"nNackMismatch" gqldesc:"Nacks dropped due to outdated nonce."`
 }
 
 func init() {

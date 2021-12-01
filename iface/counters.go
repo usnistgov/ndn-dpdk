@@ -14,15 +14,15 @@ import (
 
 // RxCounters contains face/queue RX counters.
 type RxCounters struct {
-	RxFrames    uint64 `json:"rxFrames"`    // RX total frames
-	RxOctets    uint64 `json:"rxOctets"`    // RX total bytes
-	RxInterests uint64 `json:"rxInterests"` // RX Interest packets
-	RxData      uint64 `json:"rxData"`      // RX Data packets
-	RxNacks     uint64 `json:"rxNacks"`     // RX Nack packets
+	RxFrames    uint64 `json:"rxFrames" gqldesc:"RX total frames."`
+	RxOctets    uint64 `json:"rxOctets" gqldesc:"RX total bytes."`
+	RxInterests uint64 `json:"rxInterests" gqldesc:"RX Interest packets."`
+	RxData      uint64 `json:"rxData" gqldesc:"RX Data packets."`
+	RxNacks     uint64 `json:"rxNacks" gqldesc:"RX Nack packets."`
 
-	RxDecodeErrs   uint64 `json:"rxDecodeErrs"`   // decode errors
-	RxReassPackets uint64 `json:"rxReassPackets"` // RX packets that were reassembled
-	RxReassDrops   uint64 `json:"rxReassDrops"`   // RX frames that were dropped by reassembler
+	RxDecodeErrs   uint64 `json:"rxDecodeErrs" gqldesc:"RX decode errors."`
+	RxReassPackets uint64 `json:"rxReassPackets" gqldesc:"RX packets that were reassembled."`
+	RxReassDrops   uint64 `json:"rxReassDrops" gqldesc:"RX frames that were dropped by reassembler."`
 }
 
 func (cnt RxCounters) String() string {
@@ -54,16 +54,16 @@ func (cnt *RxCounters) readFrom(c *C.RxProcThread) {
 
 // RxCounters contains face/queue TX counters.
 type TxCounters struct {
-	TxFrames    uint64 `json:"txFrames"`    // sent total frames
-	TxOctets    uint64 `json:"txOctets"`    // sent total bytes
-	TxInterests uint64 `json:"txInterests"` // TX Interest packets
-	TxData      uint64 `json:"txData"`      // TX Data packets
-	TxNacks     uint64 `json:"txNacks"`     // TX Nack packets
+	TxFrames    uint64 `json:"txFrames" gqldesc:"TX total frames."`
+	TxOctets    uint64 `json:"txOctets" gqldesc:"TX total bytes."`
+	TxInterests uint64 `json:"txInterests" gqldesc:"TX Interest packets."`
+	TxData      uint64 `json:"txData" gqldesc:"TX Data packets."`
+	TxNacks     uint64 `json:"txNacks" gqldesc:"TX Nack packets."`
 
-	TxFragGood  uint64 `json:"txFragGood"`  // fragmented L3 packets
-	TxFragBad   uint64 `json:"txFragBad"`   // fragmentation failures
-	TxAllocErrs uint64 `json:"txAllocErrs"` // allocation errors during TX
-	TxDropped   uint64 `json:"txDropped"`   // L2 frames dropped due to full queue
+	TxFragGood  uint64 `json:"txFragGood" gqldesc:"TX fragmented L3 packets."`
+	TxFragBad   uint64 `json:"txFragBad" gqldesc:"TX fragmentation failures."`
+	TxAllocErrs uint64 `json:"txAllocErrs" gqldesc:"TX allocation errors."`
+	TxDropped   uint64 `json:"txDropped" gqldesc:"TX dropped L2 frames due to full queue."`
 }
 
 func (cnt TxCounters) String() string {

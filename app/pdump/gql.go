@@ -28,11 +28,20 @@ var (
 
 // GraphQL types.
 var (
+	GqlDirectionEnum        *graphql.Enum
 	GqlNameFilterEntryInput *graphql.InputObject
 	GqlFaceConfigInput      *graphql.InputObject
 )
 
 func init() {
+	GqlDirectionEnum = graphql.NewEnum(graphql.EnumConfig{
+		Name:        "PdumpDirection",
+		Description: "Packet dumper traffic direction.",
+		Values: graphql.EnumValueConfigMap{
+			string(DirIncoming): &graphql.EnumValueConfig{Value: DirIncoming},
+			string(DirOutgoing): &graphql.EnumValueConfig{Value: DirOutgoing},
+		},
+	})
 	GqlNameFilterEntryInput = graphql.NewInputObject(graphql.InputObjectConfig{
 		Name:        "PdumpNameFilterEntryInput",
 		Description: "Packet dumper name filter entry.",
@@ -44,6 +53,7 @@ func init() {
 		Name:        "PdumpFaceConfigInput",
 		Description: "Face packet dumper configuration.",
 		Fields: gqlserver.BindInputFields(FaceConfig{}, gqlserver.FieldTypes{
+			reflect.TypeOf(Direction("")):     GqlDirectionEnum,
 			reflect.TypeOf(NameFilterEntry{}): GqlNameFilterEntryInput,
 		}),
 	})

@@ -70,35 +70,35 @@ type Config struct {
 
 	// SegmentLen is maximum TLV-LENGTH of Data Content payload.
 	// This value must be set consistently in every producer of the same name prefix.
-	SegmentLen int `json:"segmentLen,omitempty"`
+	SegmentLen int `json:"segmentLen,omitempty" gqldesc:"Maximum TLV-LENGTH of Data Content payload."`
 
 	// UringCapacity is io_uring submission queue size.
 	// When pending I/O operations exceed 50% capacity, congestion marks start to appear on Data packets.
 	// When pending I/O operations exceed 75% capacity, submissions will block waiting for completions.
-	UringCapacity int `json:"uringCapacity,omitempty"`
+	UringCapacity int `json:"uringCapacity,omitempty" gqldesc:"uring submission queue size."`
 
 	// UringCongestionThres is the uring occupancy threshold to start inserting congetion marks.
 	// If uring occupancy ratio exceeds this threshold, congestion marks are added to some outgoing Data packets
 	// This must be between 0.0 (exclusive) and 1.0 (exclusive); it should be smaller than UringWaitThres.
-	UringCongestionThres float64 `json:"uringCongestionThres,omitempty"`
+	UringCongestionThres float64 `json:"uringCongestionThres,omitempty" gqldesc:"uring occupancy threshold to start inserting congestion marks."`
 
-	// UringWaitThres is the uring occupancy threshold to start inserting congetion marks.
+	// UringWaitThres is the uring occupancy threshold to start waiting for completions.
 	// If uring occupancy ratio exceeds this threshold, uring submission will block and wait for completions.
 	// This must be between 0.0 (exclusive) and 1.0 (exclusive).
-	UringWaitThres float64 `json:"uringWaitThres,omitempty"`
+	UringWaitThres float64 `json:"uringWaitThres,omitempty" gqldesc:"uring occupancy threshold to start waiting for completions."`
 
 	// OpenFds is the limit of open file descriptors (including KeepFds) per thread.
 	// This is used to calculate data structure sizes; it is not a hard limit.
 	// You must also set `ulimit -n` or systemd `LimitNOFILE=` appropriately.
-	OpenFds int `json:"openFds,omitempty"`
+	OpenFds int `json:"openFds,omitempty" gqldesc:"Soft limit of open file descriptors per thread."`
 
 	// KeepFds is the number of unused file descriptors per thread.
 	// A file descriptor is unused if no I/O operation is ongoing on the file.
 	// Keeping them open can speed up subsequent requests referencing the same file.
-	KeepFds int `json:"keepFds,omitempty"`
+	KeepFds int `json:"keepFds,omitempty" gqldesc:"Maximum unused file descriptors per thread."`
 
 	// StatValidity is the validity period of statx result.
-	StatValidity nnduration.Nanoseconds `json:"statValidity,omitempty"`
+	StatValidity nnduration.Nanoseconds `json:"statValidity,omitempty" gqldesc:"statx result validity period."`
 
 	payloadHeadroom       int
 	uringCongestionLbound int
@@ -209,8 +209,8 @@ func (cfg Config) tscStatValidity() int64 {
 
 // Mount defines a mapping between name prefix and filesystem path.
 type Mount struct {
-	Prefix ndn.Name `json:"prefix"`
-	Path   string   `json:"path"`
+	Prefix ndn.Name `json:"prefix" gqldesc:"NDN name prefix."`
+	Path   string   `json:"path" gqldesc:"Filesystem path."`
 	dfd    *int
 }
 

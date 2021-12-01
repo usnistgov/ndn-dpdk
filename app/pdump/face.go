@@ -64,9 +64,9 @@ var dirImpls = map[Direction]struct {
 
 // FaceConfig contains face dumper configuration.
 type FaceConfig struct {
-	ID    string            `json:"id"` // GraphQL face ID
-	Dir   Direction         `json:"dir"`
-	Names []NameFilterEntry `json:"names"`
+	ID    string            `json:"id" gqldesc:"Face ID."`
+	Dir   Direction         `json:"dir" gqldesc:"Traffic direction."`
+	Names []NameFilterEntry `json:"names" gqldesc:"Name filters."`
 }
 
 func (cfg FaceConfig) validate() error {
@@ -88,8 +88,8 @@ func (cfg FaceConfig) validate() error {
 // NameFilterEntry matches a name prefix and specifies its sample rate.
 // An empty name matches all packets.
 type NameFilterEntry struct {
-	Name       ndn.Name `json:"name"`
-	SampleRate float64  `json:"sampleRate"`
+	Name       ndn.Name `json:"name" gqldesc:"NDN name prefix."`
+	SampleRate float64  `json:"sampleRate" gqldesc:"Sample rate between 0.0 and 1.0."`
 }
 
 // Face is a packet dumper attached to a face on a single direction.

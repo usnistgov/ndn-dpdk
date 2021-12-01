@@ -8,6 +8,47 @@ import (
 	"go.uber.org/zap"
 )
 
+type fieldTag struct {
+	Skip        bool
+	Name        string
+	OmitEmpty   bool
+	Description string
+}
+
+func parseFieldTag(field reflect.StructField) (tag fieldTag) {
+	jsonTag, ok := field.Tag.Lookup("json")
+	if !ok {
+		tag.Skip = true
+		return
+	}
+
+	jsonTokens := strings.Split(jsonTag, ",")
+	tag.Name = jsonTokens[0]
+	tag.Skip = tag.Name == "-"
+	tag.OmitEmpty = len(jsonTokens) >= 2 && jsonTokens[1] == "omitempty"
+
+	tag.Description = field.Tag.Get("gqldesc")
+	return
+}
+
+// fieldIndexResolver provides a graphql.FieldResolveFn that extracts a nested field corresponding to index.
+type fieldIndexResolver []int
+
+func (index fieldIndexResolver) Resolve(p graphql.ResolveParams) (interface{}, error) {
+	v := reflect.ValueOf(p.Source)
+	// unlike v.FieldByIndex, this logic does not panic upon nil pointer
+	for _, i := range index {
+		if v.Kind() == reflect.Ptr {
+			if v.IsNil() {
+				return nil, nil
+			}
+			v = v.Elem()
+		}
+		v = v.Field(i)
+	}
+	return v.Interface(), nil
+}
+
 // FieldTypes contains known GraphQL types of fields.
 type FieldTypes map[reflect.Type]graphql.Type
 
@@ -32,7 +73,8 @@ func (m FieldTypes) resolveType(typ reflect.Type) graphql.Type {
 		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32:
 		return NonNullInt
 	case reflect.Float32, reflect.Float64:
-		return graphql.Float // NaN is null
+		// NaN is null, so this would not allow NaN
+		return graphql.NewNonNull(graphql.Float)
 	case reflect.Uint64, reflect.Int64, reflect.String:
 		return NonNullString
 	}
@@ -41,58 +83,36 @@ func (m FieldTypes) resolveType(typ reflect.Type) graphql.Type {
 	return nil
 }
 
-func (m FieldTypes) bindFields(value interface{}, saveField func(name string, t graphql.Type, resolve graphql.FieldResolveFn)) {
+func (m FieldTypes) bindFields(value interface{}, saveField func(name, desc string, t graphql.Type, resolve graphql.FieldResolveFn)) {
 	typ := reflect.TypeOf(value)
 	if typ.Kind() == reflect.Ptr {
 		typ = typ.Elem()
 	}
 
 	for _, field := range reflect.VisibleFields(typ) {
-		if !field.IsExported() {
+		tag := parseFieldTag(field)
+		if !field.IsExported() || tag.Skip {
 			continue
 		}
 
-		tag, ok := field.Tag.Lookup("json")
-		if !ok {
-			continue
-		}
-		tagTokens := strings.Split(tag, ",")
-
-		name := tagTokens[0]
-		if name == "-" {
-			continue
+		t := m.resolveType(field.Type)
+		if tag.OmitEmpty {
+			t = graphql.GetNullable(t).(graphql.Type)
 		}
 
-		ft := m.resolveType(field.Type)
-		if len(tagTokens) >= 2 && tagTokens[1] == "omitempty" {
-			ft = graphql.GetNullable(ft).(graphql.Type)
-		}
-
-		index := append([]int{}, field.Index...)
-		saveField(name, ft, func(p graphql.ResolveParams) (interface{}, error) {
-			obj := reflect.ValueOf(p.Source)
-			// unlike obj.FieldByIndex, this logic does not panic upon nil pointer
-			for _, i := range index {
-				if obj.Kind() == reflect.Ptr {
-					if obj.IsNil() {
-						return nil, nil
-					}
-					obj = obj.Elem()
-				}
-				obj = obj.Field(i)
-			}
-			return obj.Interface(), nil
-		})
+		index := append(fieldIndexResolver{}, field.Index...)
+		saveField(tag.Name, tag.Description, t, index.Resolve)
 	}
 }
 
 // BindFields creates graphql.Field from a struct.
 func BindFields(value interface{}, m FieldTypes) graphql.Fields {
 	fields := graphql.Fields{}
-	m.bindFields(value, func(name string, t graphql.Type, resolve graphql.FieldResolveFn) {
+	m.bindFields(value, func(name, desc string, t graphql.Type, resolve graphql.FieldResolveFn) {
 		fields[name] = &graphql.Field{
-			Type:    t,
-			Resolve: resolve,
+			Type:        t,
+			Description: desc,
+			Resolve:     resolve,
 		}
 	})
 	return fields
@@ -101,8 +121,11 @@ func BindFields(value interface{}, m FieldTypes) graphql.Fields {
 // BindInputFields creates graphql.InputObjectConfigFieldMap from a struct.
 func BindInputFields(value interface{}, m FieldTypes) graphql.InputObjectConfigFieldMap {
 	fields := graphql.InputObjectConfigFieldMap{}
-	m.bindFields(value, func(name string, t graphql.Type, resolve graphql.FieldResolveFn) {
-		fields[name] = &graphql.InputObjectFieldConfig{Type: t}
+	m.bindFields(value, func(name, desc string, t graphql.Type, resolve graphql.FieldResolveFn) {
+		fields[name] = &graphql.InputObjectFieldConfig{
+			Type:        t,
+			Description: desc,
+		}
 	})
 	return fields
 }

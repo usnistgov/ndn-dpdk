@@ -9,16 +9,16 @@ import (
 
 // Counters contains PIT counters.
 type Counters struct {
-	NEntries  uint64 `json:"nEntries"`  // current number of entries
-	NInsert   uint64 `json:"nInsert"`   // how many inserts created a new PIT entry
-	NFound    uint64 `json:"nFound"`    // how many inserts found an existing PIT entry
-	NCsMatch  uint64 `json:"nCsMatch"`  // how many inserts matched a CS entry
-	NAllocErr uint64 `json:"nAllocErr"` // how many inserts failed due to allocation error
-	NDataHit  uint64 `json:"nDataHit"`  // how many find-by-Data found PIT entry/entries
-	NDataMiss uint64 `json:"nDataMiss"` // how many find-by-Data did not find PIT entry
-	NNackHit  uint64 `json:"nNackHit"`  // how many find-by-Nack found PIT entry
-	NNackMiss uint64 `json:"nNackMiss"` // how many find-by-Nack did not found PIT entry
-	NExpired  uint64 `json:"nExpired"`  // how many entries expired
+	NEntries  uint64 `json:"nEntries" gqldesc:"Current number of entries."`
+	NInsert   uint64 `json:"nInsert" gqldesc:"Insertions that created a new PIT entry."`
+	NFound    uint64 `json:"nFound" gqldesc:"Insertions that found an existing PIT entry."`
+	NCsMatch  uint64 `json:"nCsMatch" gqldesc:"Insertions that matched a CS entry."`
+	NAllocErr uint64 `json:"nAllocErr" gqldesc:"Insertions that failed due to allocation error."`
+	NDataHit  uint64 `json:"nDataHit" gqldesc:"Lookup-by-Data operations that found PIT entry/entries."`
+	NDataMiss uint64 `json:"nDataMiss" gqldesc:"Lookup-by-Data operations that did not find PIT entry."`
+	NNackHit  uint64 `json:"nNackHit" gqldesc:"Lookup-by-Nack operations that found PIT entry."`
+	NNackMiss uint64 `json:"nNackMiss" gqldesc:"Lookup-by-Nack operations that did not found PIT entry."`
+	NExpired  uint64 `json:"nExpired" gqldesc:"Entries expired."`
 }
 
 func (cnt Counters) String() string {

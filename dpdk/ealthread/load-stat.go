@@ -3,17 +3,17 @@ package ealthread
 // LoadStat contains polling thread workload statistics.
 type LoadStat struct {
 	// EmptyPolls is number of polls that processed zero item.
-	EmptyPolls uint64 `json:"emptyPolls"`
+	EmptyPolls uint64 `json:"emptyPolls" gqldesc:"Polls that processed zero item."`
 
 	// ValidPolls is number of polls that processed non-zero items.
-	ValidPolls uint64 `json:"validPolls"`
+	ValidPolls uint64 `json:"validPolls" gqldesc:"Polls that processed non-zero items."`
 
-	// Items is number of processed items.
-	Items uint64 `json:"items"`
+	// Items is count of processed items.
+	Items uint64 `json:"items" gqldesc:"Count of processed items."`
 
-	// ItemsPerPoll is average number of processed items per valid poll.
+	// ItemsPerPoll is average count of processed items per valid poll.
 	// This is only available from Sub() return value.
-	ItemsPerPoll float64 `json:"itemsPerPoll,omitempty"`
+	ItemsPerPoll float64 `json:"itemsPerPoll,omitempty" gqldesc:"Average count of processed items per valid poll."`
 }
 
 // Sub computes the difference.

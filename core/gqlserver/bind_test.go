@@ -11,10 +11,10 @@ import (
 type bindTestA struct {
 	NoTag       int
 	Skip        int     `json:"-"`
-	RequiredInt int     `json:"requiredInt"`
+	RequiredInt int     `json:"requiredInt" gqldesc:"This is a required integer field."`
 	OptionalInt int     `json:"optionalInt,omitempty"`
 	Bool        bool    `json:"bool"`
-	Float       float64 `json:"float"`
+	Float       float64 `json:"float" gqldesc:"It's a floating point number."`
 	String      string  `json:"string"`
 	Slice       []int   `json:"slice"`
 	Array       [2]int  `json:"array"`
@@ -44,7 +44,7 @@ var bindTypesC = map[string]graphql.Type{
 	"requiredInt": gqlserver.NonNullInt,
 	"optionalInt": graphql.Int,
 	"bool":        gqlserver.NonNullBoolean,
-	"float":       graphql.Float,
+	"float":       graphql.NewNonNull(graphql.Float),
 	"string":      gqlserver.NonNullString,
 	"slice":       graphql.NewList(gqlserver.NonNullInt),
 	"array":       gqlserver.NewNonNullList(graphql.Int),
@@ -63,6 +63,10 @@ func TestBindFields(t *testing.T) {
 	for fieldName, fieldType := range bindTypesC {
 		assert.Equal(fieldType, fC[fieldName].Type, "%s", fieldName)
 	}
+
+	assert.Equal("This is a required integer field.", fC["requiredInt"].Description)
+	assert.Equal("", fC["bool"].Description)
+	assert.Equal("It's a floating point number.", fC["float"].Description)
 
 	vC := bindTestC{
 		bindTestA: bindTestA{

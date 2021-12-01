@@ -90,7 +90,8 @@ func (cfg *Config) Validate() error {
 
 // Pattern configures how the consumer generates a sequence of Interests.
 type Pattern struct {
-	Weight int `json:"weight,omitempty"` // weight of random choice, minimum/default is 1
+	// Weight of random choice, minimum/default is 1.
+	Weight int `json:"weight,omitempty"`
 
 	ndni.InterestTemplateConfig
 
