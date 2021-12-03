@@ -51,49 +51,8 @@ type VNet struct {
 
 	pairs []vnetPair
 
-	NDrops int // number of dropped packets
-}
-
-// NewVNet creates a virtual Ethernet subnet.
-func NewVNet(cfg VNetConfig) (vnet *VNet, e error) {
-	cfg.applyDefaults()
-	vnet = &VNet{
-		cfg:    cfg,
-		logger: logger.With(zap.Int("vnet", rand.Int())),
-		rng:    rand.New(rand.NewSource(time.Now().UnixNano())),
-		stop:   ealthread.NewStopChan(),
-	}
-	vnet.Thread = ealthread.New(
-		cptr.Func0.Void(vnet.bridge),
-		vnet.stop,
-	)
-
-	for i := 0; i < cfg.NNodes; i++ {
-		pair, e := NewPair(cfg.PairConfig)
-		if e != nil {
-			must.Close(vnet)
-			return nil, fmt.Errorf("ethringdev.NewPair %w", e)
-		}
-		pair.PortB.Start(pair.EthDevConfig())
-		vnet.pairs = append(vnet.pairs, vnetPair{
-			Pair: pair,
-			rxq:  pair.PortB.RxQueues(),
-			txq:  pair.PortB.TxQueues(),
-		})
-	}
-
-	vnet.logger.Info("vnet ready",
-		zap.Int("nNodes", cfg.NNodes),
-	)
-	return vnet, nil
-}
-
-// Port retrieves i-th app-side EthDev.
-func (vnet *VNet) Port(i int) ethdev.EthDev {
-	if i < 0 && i >= len(vnet.pairs) {
-		return nil
-	}
-	return vnet.pairs[i].PortA
+	Ports  []ethdev.EthDev // app-side EthDev
+	NDrops int             // number of dropped packets
 }
 
 func (vnet *VNet) bridge() {
@@ -159,4 +118,44 @@ func (vnet *VNet) Close() error {
 		must.Close(pair)
 	}
 	return e
+}
+
+// NewVNet creates a virtual Ethernet subnet.
+func NewVNet(cfg VNetConfig) (vnet *VNet, e error) {
+	cfg.applyDefaults()
+	vnet = &VNet{
+		cfg:    cfg,
+		logger: logger.With(zap.Int("vnet", rand.Int())),
+		rng:    rand.New(rand.NewSource(time.Now().UnixNano())),
+		stop:   ealthread.NewStopChan(),
+	}
+	vnet.Thread = ealthread.New(
+		cptr.Func0.Void(vnet.bridge),
+		vnet.stop,
+	)
+
+	ports, bridgePorts := []int{}, []int{}
+	for i := 0; i < cfg.NNodes; i++ {
+		pair, e := NewPair(cfg.PairConfig)
+		if e != nil {
+			must.Close(vnet)
+			return nil, fmt.Errorf("ethringdev.NewPair %w", e)
+		}
+		pair.PortB.Start(pair.EthDevConfig())
+		vnet.pairs = append(vnet.pairs, vnetPair{
+			Pair: pair,
+			rxq:  pair.PortB.RxQueues(),
+			txq:  pair.PortB.TxQueues(),
+		})
+		vnet.Ports = append(vnet.Ports, pair.PortA)
+		ports = append(ports, pair.PortA.ID())
+		bridgePorts = append(bridgePorts, pair.PortB.ID())
+	}
+
+	vnet.logger.Info("vnet ready",
+		zap.Int("nNodes", cfg.NNodes),
+		zap.Ints("ports", ports),
+		zap.Ints("bridgePorts", bridgePorts),
+	)
+	return vnet, nil
 }

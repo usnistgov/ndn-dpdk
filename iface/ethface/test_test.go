@@ -6,10 +6,18 @@ import (
 
 	"github.com/google/gopacket"
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealtestenv"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev/ethringdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/iface/ethface"
+	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
+	"github.com/usnistgov/ndn-dpdk/ndni"
+	"go4.org/must"
 )
 
 func TestMain(m *testing.M) {
@@ -33,6 +41,41 @@ var (
 	fromJSON   = testenv.FromJSON
 	makePacket = mbuftestenv.MakePacket
 )
+
+// createVNet creates a VNet from config template, and schedules its cleanup.
+//
+// ifacetestenv.NewFixture should be called after this, so that fixture cleanup (including
+// closing faces) occurs before VNet is closed.
+func createVNet(t *testing.T, cfg ethringdev.VNetConfig) *ethringdev.VNet {
+	_, require := makeAR(t)
+	cfg.RxPool = ndni.PacketMempool.Get(eal.NumaSocket{})
+	vnet, e := ethringdev.NewVNet(cfg)
+	require.NoError(e)
+	t.Cleanup(func() { must.Close(vnet) })
+	ealthread.AllocLaunch(vnet)
+	return vnet
+}
+
+// ensurePorts creates a Port for each EthDev on the VNet, if it doesn't already have one.
+//
+// ifacetestenv.NewFixture should be called before this, so that RxLoop and TxLoop exist.
+func ensurePorts(t *testing.T, devs []ethdev.EthDev, cfg ethface.PortConfig) {
+	_, require := makeAR(t)
+	for _, dev := range devs {
+		if ethface.FindPort(dev) != nil {
+			continue
+		}
+		cfg.EthDev = dev
+		_, e := ethface.NewPort(cfg)
+		require.NoError(e)
+	}
+}
+
+func makeEtherLocator(dev ethdev.EthDev) (loc ethface.EtherLocator) {
+	loc.Local.HardwareAddr = dev.HardwareAddr()
+	loc.Remote.HardwareAddr = packettransport.MulticastAddressNDN
+	return
+}
 
 func parseLocator(j string) iface.Locator {
 	var locw iface.LocatorWrapper

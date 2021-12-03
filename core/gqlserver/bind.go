@@ -52,6 +52,18 @@ func (index fieldIndexResolver) Resolve(p graphql.ResolveParams) (interface{}, e
 // FieldTypes contains known GraphQL types of fields.
 type FieldTypes map[reflect.Type]graphql.Type
 
+// Merge combines two or more FieldTypes maps.
+// Inputs are not modified.
+func (m FieldTypes) Merge(a ...FieldTypes) (s FieldTypes) {
+	s = FieldTypes{}
+	for _, v := range append([]FieldTypes{m}, a...) {
+		for k, t := range v {
+			s[k] = t
+		}
+	}
+	return s
+}
+
 func (m FieldTypes) resolveType(typ reflect.Type) graphql.Type {
 	if t := m[typ]; t != nil {
 		if kind := typ.Kind(); kind == reflect.Ptr || kind == reflect.Slice {
@@ -123,6 +135,18 @@ func BindInputFields(value interface{}, m FieldTypes) graphql.InputObjectConfigF
 	fields := graphql.InputObjectConfigFieldMap{}
 	m.bindFields(value, func(name, desc string, t graphql.Type, resolve graphql.FieldResolveFn) {
 		fields[name] = &graphql.InputObjectFieldConfig{
+			Type:        t,
+			Description: desc,
+		}
+	})
+	return fields
+}
+
+// BindArguments creates graphql.FieldConfigArgument from a struct.
+func BindArguments(value interface{}, m FieldTypes) graphql.FieldConfigArgument {
+	fields := graphql.FieldConfigArgument{}
+	m.bindFields(value, func(name, desc string, t graphql.Type, resolve graphql.FieldResolveFn) {
+		fields[name] = &graphql.ArgumentConfig{
 			Type:        t,
 			Description: desc,
 		}

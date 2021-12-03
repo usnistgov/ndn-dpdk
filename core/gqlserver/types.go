@@ -36,6 +36,21 @@ func NewNonNullList(ofType graphql.Type, optionalNullable ...bool) graphql.Type 
 	return graphql.NewNonNull(graphql.NewList(ofType))
 }
 
+// NewStringEnum constructs an enum type.
+// The underlying type of value must be string.
+func NewStringEnum(name, desc string, values ...interface{}) *graphql.Enum {
+	vm := graphql.EnumValueConfigMap{}
+	for _, value := range values {
+		val := reflect.ValueOf(value)
+		vm[val.String()] = &graphql.EnumValueConfig{Value: value}
+	}
+	return graphql.NewEnum(graphql.EnumConfig{
+		Name:        name,
+		Description: desc,
+		Values:      vm,
+	})
+}
+
 // Optional turns invalid value to nil.
 //  Optional(value) considers the value invalid if it is zero.
 //  Optional(value, valid) considers the value invalid if valid is false.

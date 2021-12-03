@@ -10,6 +10,7 @@ import (
 	"strings"
 	"unsafe"
 
+	"github.com/usnistgov/ndn-dpdk/core/pciaddr"
 	"go.uber.org/zap"
 )
 
@@ -31,6 +32,30 @@ func JoinDevArgs(m map[string]interface{}) string {
 		}
 	}
 	return b.String()
+}
+
+// ProbePCI requests to probe a PCI device.
+func ProbePCI(addr pciaddr.PCIAddress, args map[string]interface{}) error {
+	arg := JoinDevArgs(args)
+	devargs := addr.String()
+	if arg != "" {
+		devargs += "," + arg
+	}
+	devargsC := C.CString(devargs)
+	defer C.free(unsafe.Pointer(devargsC))
+
+	logEntry := logger.With(
+		zap.String("addr", addr.String()),
+		zap.String("args", arg),
+	)
+	if res := C.rte_dev_probe(devargsC); res != 0 {
+		e := MakeErrno(res)
+		logEntry.Error("rte_dev_probe error", zap.Error(e))
+		return e
+	}
+
+	logEntry.Info("PCI device probed")
+	return nil
 }
 
 // VDev represents a DPDK virtual device.

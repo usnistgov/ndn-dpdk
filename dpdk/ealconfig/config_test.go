@@ -6,7 +6,6 @@ import (
 
 	"github.com/soh335/sliceflag"
 	"github.com/usnistgov/ndn-dpdk/core/hwinfo"
-	"github.com/usnistgov/ndn-dpdk/core/pciaddr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealconfig"
 )
 
@@ -229,13 +228,12 @@ func TestMemoryAll(t *testing.T) {
 }
 
 func parseDeviceFlags(args []string) (p struct {
-	d, a, vdev []string
-	noPci      bool
+	d, a  []string
+	noPci bool
 }) {
 	fset := makeBaseFlagSet()
 	sliceflag.StringVar(fset, &p.d, "d", nil, "")
 	sliceflag.StringVar(fset, &p.a, "a", nil, "")
-	sliceflag.StringVar(fset, &p.vdev, "vdev", nil, "")
 	fset.BoolVar(&p.noPci, "no-pci", false, "")
 	fset.Parse(args)
 	return
@@ -251,30 +249,7 @@ func TestDeviceEmpty(t *testing.T) {
 	require.NoError(e)
 	p := parseDeviceFlags(args)
 	assert.Equal([]string{"/tmp/pmd-path"}, p.d)
-	assert.Len(p.a, 0)
-	assert.Len(p.vdev, 0)
-	assert.True(p.noPci)
-}
-
-func TestDeviceSome(t *testing.T) {
-	assert, require := makeAR(t)
-
-	cfg := makeBaseConfig()
-	cfg.DeviceFlags = ""
-	cfg.PciDevices = []pciaddr.PCIAddress{
-		pciaddr.MustParse("02:00.0"),
-		pciaddr.MustParse("0A:00.0"),
-	}
-	cfg.VirtualDevices = []string{
-		"net_af_packet1,iface=eth1",
-	}
-
-	args, e := cfg.Args(testHwInfo{})
-	require.NoError(e)
-	p := parseDeviceFlags(args)
-	assert.Equal([]string{"/tmp/pmd-path"}, p.d)
-	assert.Equal([]string{"0000:02:00.0", "0000:0a:00.0"}, p.a)
-	assert.Equal([]string{"net_af_packet1,iface=eth1"}, p.vdev)
+	assert.Len(p.a, 1)
 	assert.False(p.noPci)
 }
 
@@ -287,16 +262,12 @@ func TestDeviceAll(t *testing.T) {
 		"/usr/lib/pmd-A.so",
 		"/usr/lib/pmd-B.so",
 	}
-	cfg.AllPciDevices = true
-	cfg.VirtualDevices = []string{
-		"net_af_packet1,iface=eth1",
-	}
+	cfg.DisablePCI = true
 
 	args, e := cfg.Args(testHwInfo{})
 	require.NoError(e)
 	p := parseDeviceFlags(args)
 	assert.Equal([]string{"/usr/lib/pmd-A.so", "/usr/lib/pmd-B.so"}, p.d)
 	assert.Len(p.a, 0)
-	assert.Equal([]string{"net_af_packet1,iface=eth1"}, p.vdev)
-	assert.False(p.noPci)
+	assert.True(p.noPci)
 }

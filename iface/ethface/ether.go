@@ -2,12 +2,8 @@ package ethface
 
 import (
 	"errors"
-	"net"
 
-	"github.com/usnistgov/ndn-dpdk/core/macaddr"
-	"github.com/usnistgov/ndn-dpdk/core/pciaddr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
-	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev/ethvdev"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
 )
@@ -63,71 +59,19 @@ func (loc EtherLocator) cLoc() (c cLocator) {
 	return
 }
 
-func (loc EtherLocator) vdevConfig() ethvdev.NetifConfig {
-	if loc.VDevConfig != nil {
-		return *loc.VDevConfig
-	}
-	return ethvdev.NetifConfig{}
-}
-
-func (loc EtherLocator) devFromAddr() (dev ethdev.EthDev, e error) {
-	for _, dev := range ethdev.List() {
-		if macaddr.Equal(dev.HardwareAddr(), loc.Local.HardwareAddr) {
-			return dev, nil
-		}
-	}
-
-	netifs, e := net.Interfaces()
-	if e != nil {
-		return nil, e
-	}
-
-	for _, netif := range netifs {
-		if macaddr.Equal(netif.HardwareAddr, loc.Local.HardwareAddr) {
-			return ethvdev.FromNetif(&netif, loc.vdevConfig())
-		}
-	}
-	return nil, ErrNoPort
-}
-
-func (loc EtherLocator) devFromName() (dev ethdev.EthDev, e error) {
-	if dev = ethdev.FromName(loc.Port); dev != nil {
-		return dev, nil
-	}
-
-	pciAddr, e := pciaddr.Parse(loc.Port)
-	if e == nil {
-		if dev = ethdev.FromName(pciAddr.String()); dev != nil {
-			return dev, nil
-		}
-	}
-
-	netif, e := net.InterfaceByName(loc.Port)
-	if e != nil {
-		return nil, ErrNoPort
-	}
-	return ethvdev.FromNetif(netif, loc.vdevConfig())
-}
-
-func (loc *EtherLocator) makePort() (port *Port, e error) {
+func (loc *EtherLocator) findPort() (port *Port, e error) {
 	var dev ethdev.EthDev
 	if loc.Port == "" {
-		dev, e = loc.devFromAddr()
+		dev = ethdev.FromHardwareAddr(loc.Local.HardwareAddr)
 	} else {
-		dev, e = loc.devFromName()
+		dev = ethdev.FromName(loc.Port)
 	}
-	if dev == nil {
-		return nil, e
+	if dev != nil {
+		port = portByEthDev[dev]
 	}
 
-	if port = portByEthDev[dev]; port == nil {
-		var cfg PortConfig
-		if loc.PortConfig != nil {
-			cfg = *loc.PortConfig
-		}
-		if port, e = NewPort(dev, cfg); e != nil {
-			return nil, e
-		}
+	if port == nil {
+		return nil, errors.New("Port does not exist; Port must be created before creating face")
 	}
 
 	loc.Port = dev.Name()
@@ -137,7 +81,7 @@ func (loc *EtherLocator) makePort() (port *Port, e error) {
 
 // CreateFace creates an Ethernet face.
 func (loc EtherLocator) CreateFace() (face iface.Face, e error) {
-	port, e := loc.makePort()
+	port, e := loc.findPort()
 	if e != nil {
 		return nil, e
 	}

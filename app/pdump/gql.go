@@ -34,14 +34,7 @@ var (
 )
 
 func init() {
-	GqlDirectionEnum = graphql.NewEnum(graphql.EnumConfig{
-		Name:        "PdumpDirection",
-		Description: "Packet dumper traffic direction.",
-		Values: graphql.EnumValueConfigMap{
-			string(DirIncoming): &graphql.EnumValueConfig{Value: DirIncoming},
-			string(DirOutgoing): &graphql.EnumValueConfig{Value: DirOutgoing},
-		},
-	})
+	GqlDirectionEnum = gqlserver.NewStringEnum("PdumpDirection", "Packet dumper traffic direction.", DirIncoming, DirOutgoing)
 	GqlNameFilterEntryInput = graphql.NewInputObject(graphql.InputObjectConfig{
 		Name:        "PdumpNameFilterEntryInput",
 		Description: "Packet dumper name filter entry.",

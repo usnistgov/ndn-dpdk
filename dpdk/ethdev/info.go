@@ -14,6 +14,14 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
 )
 
+// Driver names.
+const (
+	DriverAfPacket = "net_af_packet"
+	DriverXDP      = "net_af_xdp"
+	DriverMemif    = "net_memif"
+	DriverRing     = "net_ring"
+)
+
 const (
 	txOffloadMultiSegs = C.RTE_ETH_TX_OFFLOAD_MULTI_SEGS
 	txOffloadChecksum  = C.RTE_ETH_TX_OFFLOAD_IPV4_CKSUM | C.RTE_ETH_TX_OFFLOAD_UDP_CKSUM
@@ -32,7 +40,16 @@ func (info DevInfo) DriverName() string {
 // IsVDev determines whether the driver is a virtual device.
 func (info DevInfo) IsVDev() bool {
 	switch info.DriverName() {
-	case "net_af_packet", "net_af_xdp", "net_memif", "net_ring":
+	case DriverAfPacket, DriverXDP, DriverMemif, DriverRing:
+		return true
+	}
+	return false
+}
+
+// CanIgnoreSetMTUError determines whether set MTU error should be ignored.
+func (info DevInfo) CanIgnoreSetMTUError() bool {
+	switch info.DriverName() {
+	case DriverMemif, DriverRing:
 		return true
 	}
 	return false
@@ -45,7 +62,7 @@ func (info DevInfo) HasTxMultiSegOffload() bool {
 	}
 
 	switch info.DriverName() { // some drivers support multi-segment TX but do not advertise it
-	case "net_ring":
+	case DriverRing:
 		return true
 	}
 	return false

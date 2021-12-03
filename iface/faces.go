@@ -35,5 +35,6 @@ func CloseAll() error {
 	for _, txl := range ListTxLoops() {
 		errs = append(errs, txl.Close())
 	}
+	emitter.Emit(evtCloseAll)
 	return multierr.Combine(errs...)
 }

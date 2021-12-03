@@ -103,7 +103,7 @@ func (loc UDPLocator) cLoc() (c cLocator) {
 
 // CreateFace creates a UDP face.
 func (loc UDPLocator) CreateFace() (face iface.Face, e error) {
-	port, e := loc.makePort()
+	port, e := loc.findPort()
 	if e != nil {
 		return nil, e
 	}

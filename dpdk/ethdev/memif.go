@@ -1,4 +1,4 @@
-package ethvdev
+package ethdev
 
 import (
 	"context"
@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
-	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/ndn/memiftransport"
 	"go.uber.org/zap"
 	"golang.org/x/sys/unix"
@@ -21,7 +20,7 @@ const memifChownDeadline = 5 * time.Second
 var memifCoexist = memiftransport.NewCoexistMap()
 
 // NewMemif creates a net_memif device.
-func NewMemif(loc memiftransport.Locator) (ethdev.EthDev, error) {
+func NewMemif(loc memiftransport.Locator) (EthDev, error) {
 	args, e := loc.ToVDevArgs()
 	if e != nil {
 		return nil, fmt.Errorf("memiftransport.Locator.ToVDevArgs %w", e)
@@ -34,7 +33,7 @@ func NewMemif(loc memiftransport.Locator) (ethdev.EthDev, error) {
 	memifCheckSocket(loc.Role, loc.SocketName, isFirst)
 
 	name := "net_memif" + eal.AllocObjectID("ethvdev.Memif")
-	dev, e := New(name, args, eal.NumaSocket{})
+	dev, e := NewVDev(name, args, eal.NumaSocket{})
 	if e != nil {
 		return nil, fmt.Errorf("ethvdev.New %w", e)
 	}
@@ -47,7 +46,7 @@ func NewMemif(loc memiftransport.Locator) (ethdev.EthDev, error) {
 	}
 
 	memifCoexist.Add(loc)
-	ethdev.OnDetach(dev, func() {
+	OnDetach(dev, func() {
 		if chownCancel != nil {
 			chownCancel()
 		}

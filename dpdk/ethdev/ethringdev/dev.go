@@ -22,7 +22,7 @@ var logger = logging.New("ethringdev")
 
 // New creates an EthDev from a set of software FIFOs.
 func New(rxRings, txRings []*ringbuffer.Ring, socket eal.NumaSocket) (dev ethdev.EthDev, e error) {
-	nameC := C.CString(eal.AllocObjectID("ethdev.Rings"))
+	nameC := C.CString(eal.AllocObjectID("ethringdev.EthDev"))
 	defer C.free(unsafe.Pointer(nameC))
 
 	rxRingPtr, rxRingCount := cptr.ParseCptrArray(rxRings)

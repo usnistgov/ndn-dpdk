@@ -9,7 +9,6 @@ import (
 	"fmt"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
-	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev/ethvdev"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn/memiftransport"
 )
@@ -41,21 +40,21 @@ func (loc MemifLocator) CreateFace() (iface.Face, error) {
 	}
 	loc.Locator.ApplyDefaults(memiftransport.RoleServer)
 
-	dev, e := ethvdev.NewMemif(loc.Locator)
+	dev, e := ethdev.NewMemif(loc.Locator)
 	if e != nil {
 		return nil, e
 	}
 
-	pc := PortConfig{
-		MTU:           loc.Dataroom,
-		DisableSetMTU: true,
-	}
-	port, e := NewPort(dev, pc)
+	port, e := NewPort(PortConfig{
+		EthDev: dev,
+		MTU:    loc.Dataroom,
+	})
 	if e != nil {
 		dev.Stop(ethdev.StopDetach)
 		return nil, fmt.Errorf("NewPort %w", e)
 	}
 
+	port.autoClose = true
 	return New(port, loc)
 }
 
@@ -63,24 +62,21 @@ func init() {
 	iface.RegisterLocatorType(MemifLocator{}, schemeMemif)
 }
 
-type rxMemifImpl struct {
-	port *Port
-}
+type rxMemifImpl struct{}
 
-func (rxMemifImpl) String() string {
-	return "RxMemif"
+func (rxMemifImpl) Kind() RxImplKind {
+	return RxImplMemif
 }
 
 func (impl *rxMemifImpl) Init(port *Port) error {
-	if port.dev.DevInfo().DriverName() != "net_memif" {
+	if port.devInfo.DriverName() != ethdev.DriverMemif {
 		return errors.New("cannot use RxMemif on non-memif port")
 	}
-	impl.port = port
 	return nil
 }
 
 func (impl *rxMemifImpl) Start(face *ethFace) error {
-	if e := startDev(face.port, 1, false); e != nil {
+	if e := face.port.startDev(1, false); e != nil {
 		return e
 	}
 	cLoc := face.loc.cLoc()
@@ -103,9 +99,7 @@ func (impl *rxMemifImpl) Stop(face *ethFace) error {
 	return nil
 }
 
-func (impl *rxMemifImpl) Close() error {
-	if impl.port != nil {
-		impl.port.dev.Stop(ethdev.StopReset)
-	}
+func (impl *rxMemifImpl) Close(port *Port) error {
+	port.dev.Stop(ethdev.StopReset)
 	return nil
 }

@@ -75,7 +75,7 @@ func (loc VxlanLocator) cLoc() (c cLocator) {
 
 // CreateFace creates a VXLAN face.
 func (loc VxlanLocator) CreateFace() (face iface.Face, e error) {
-	port, e := loc.makePort()
+	port, e := loc.findPort()
 	if e != nil {
 		return nil, e
 	}

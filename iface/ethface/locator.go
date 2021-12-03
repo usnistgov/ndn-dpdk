@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"unsafe"
 
-	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev/ethvdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
 )
@@ -41,20 +40,11 @@ func (loc cLocator) sizeofHeader() int {
 type FaceConfig struct {
 	iface.Config
 
-	// VDevConfig specifies additional configuration for virtual device creation.
-	// This is only used when creating the first face on a network interface.
-	VDevConfig *ethvdev.NetifConfig `json:"vdevConfig,omitempty"`
-
-	// PortConfig specifies additional configuration for Port activation.
-	// This is only used when creating the first face on an EthDev.
-	PortConfig *PortConfig `json:"portConfig,omitempty"`
-
 	// MaxRxQueues is the maximum number of RX queues for this face.
 	// It is meaningful only if the face is using RxFlow dispatching.
 	// It is effective in improving performance on VXLAN face only.
 	//
 	// Default is 1.
-	// If this is greater than 1, NDNLPv2 reassembly will not work on this face.
 	MaxRxQueues int `json:"maxRxQueues,omitempty"`
 
 	// DisableTxMultiSegOffload forces every packet to be copied into a linear buffer in software.

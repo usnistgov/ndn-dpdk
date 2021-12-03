@@ -26,10 +26,9 @@ func mustParseLocator(input string) socketface.Locator {
 	return locw.Locator.(socketface.Locator)
 }
 
-func TestUdp(t *testing.T) {
+func TestUDP(t *testing.T) {
 	assert, require := makeAR(t)
 	fixture := ifacetestenv.NewFixture(t)
-	defer fixture.Close()
 
 	portA, portB := 0, 0
 	for portA == portB {
@@ -62,7 +61,6 @@ func TestUdp(t *testing.T) {
 func checkStreamRedialing(t *testing.T, listener net.Listener, makeFaceA func() iface.Face) {
 	assert, require := makeAR(t)
 	fixture := ifacetestenv.NewFixture(t)
-	defer fixture.Close()
 
 	faceA := makeFaceA()
 	defer faceA.Close()
@@ -104,7 +102,7 @@ func checkStreamRedialing(t *testing.T, listener net.Listener, makeFaceA func() 
 	assert.InDelta(1.5, cntMap["nRedials"], 0.6) // redial counter should be 1 or 2
 }
 
-func TestTcp(t *testing.T) {
+func TestTCP(t *testing.T) {
 	assert, require := makeAR(t)
 
 	addr, e := net.ResolveTCPAddr("tcp", "127.0.0.1:0")

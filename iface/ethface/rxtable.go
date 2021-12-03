@@ -16,17 +16,15 @@ import (
 )
 
 type rxTableImpl struct {
-	port *Port
-	rxt  *rxTable
+	rxt *rxTable
 }
 
-func (rxTableImpl) String() string {
-	return "RxTable"
+func (rxTableImpl) Kind() RxImplKind {
+	return RxImplTable
 }
 
 func (impl *rxTableImpl) Init(port *Port) error {
-	impl.port = port
-	if e := startDev(port, 1, true); e != nil {
+	if e := port.startDev(1, true); e != nil {
 		return e
 	}
 	impl.rxt = newRxTable(port)
@@ -45,12 +43,12 @@ func (impl *rxTableImpl) Stop(face *ethFace) error {
 	return nil
 }
 
-func (impl *rxTableImpl) Close() error {
+func (impl *rxTableImpl) Close(port *Port) error {
 	if impl.rxt != nil {
 		must.Close(impl.rxt)
 		impl.rxt = nil
 	}
-	impl.port.dev.Stop(ethdev.StopReset)
+	port.dev.Stop(ethdev.StopReset)
 	return nil
 }
 

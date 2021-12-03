@@ -12,6 +12,7 @@ const (
 	evtFaceDown    = "FaceDown"
 	evtFaceClosing = "FaceClosing"
 	evtFaceClosed  = "FaceClosed"
+	evtCloseAll    = "CloseAll"
 )
 
 // OnFaceNew registers a callback when a new face is created.
@@ -42,4 +43,10 @@ func OnFaceClosing(cb func(ID)) (cancel func()) {
 // Return a function that cancels the callback registration.
 func OnFaceClosed(cb func(ID)) (cancel func()) {
 	return emitter.On(evtFaceClosed, cb)
+}
+
+// OnCloseAll registers a callback when CloseAll() is requested.
+// Return a function that cancels the callback registration.
+func OnCloseAll(cb func()) (cancel func()) {
+	return emitter.On(evtCloseAll, cb)
 }

@@ -7,8 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
-	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev/ethringdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
@@ -19,15 +17,8 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
-	"github.com/usnistgov/ndn-dpdk/ndni"
 	"go4.org/must"
 )
-
-func makeEtherLocator(dev ethdev.EthDev) (loc ethface.EtherLocator) {
-	loc.Local.HardwareAddr = dev.HardwareAddr()
-	loc.Remote.HardwareAddr = packettransport.MulticastAddressNDN
-	return
-}
 
 type topo3 struct {
 	*ifacetestenv.Fixture
@@ -38,16 +29,12 @@ type topo3 struct {
 
 func makeTopo3(t *testing.T, forceLinearize bool) (topo topo3) {
 	_, require := makeAR(t)
-	topo.Fixture = ifacetestenv.NewFixture(t)
-
-	var vnetCfg ethringdev.VNetConfig
-	vnetCfg.RxPool = ndni.PacketMempool.Get(eal.NumaSocket{})
-	vnetCfg.NNodes = 3
-	vnet, e := ethringdev.NewVNet(vnetCfg)
-	require.NoError(e)
+	vnet := createVNet(t, ethringdev.VNetConfig{NNodes: 3})
 	topo.vnet = vnet
+	topo.Fixture = ifacetestenv.NewFixture(t)
+	ensurePorts(t, vnet.Ports, ethface.PortConfig{})
 
-	topo.macA = vnet.Port(0).HardwareAddr()
+	topo.macA = vnet.Ports[0].HardwareAddr()
 	topo.macB, _ = net.ParseMAC("02:00:00:00:00:02")
 	topo.macC, _ = net.ParseMAC("02:00:00:00:00:03")
 
@@ -64,36 +51,25 @@ func makeTopo3(t *testing.T, forceLinearize bool) (topo topo3) {
 		return face
 	}
 
-	topo.faceAB = makeFace(vnet.Port(0), nil, topo.macB)
-	topo.faceAC = makeFace(vnet.Port(0), nil, topo.macC)
-	topo.faceAm = makeFace(vnet.Port(0), nil, packettransport.MulticastAddressNDN)
-	topo.faceBm = makeFace(vnet.Port(1), topo.macB, packettransport.MulticastAddressNDN)
-	topo.faceBA = makeFace(vnet.Port(1), topo.macB, topo.macA)
-	topo.faceCA = makeFace(vnet.Port(2), topo.macC, topo.macA)
+	topo.faceAB = makeFace(vnet.Ports[0], nil, topo.macB)
+	topo.faceAC = makeFace(vnet.Ports[0], nil, topo.macC)
+	topo.faceAm = makeFace(vnet.Ports[0], nil, packettransport.MulticastAddressNDN)
+	topo.faceBm = makeFace(vnet.Ports[1], topo.macB, packettransport.MulticastAddressNDN)
+	topo.faceBA = makeFace(vnet.Ports[1], topo.macB, topo.macA)
+	topo.faceCA = makeFace(vnet.Ports[2], topo.macC, topo.macA)
 
-	ealthread.AllocLaunch(vnet)
 	time.Sleep(time.Second)
 	return topo
 }
 
-func (topo *topo3) Close() error {
-	must.Close(topo.Fixture)
-	must.Close(topo.vnet)
-	return nil
-}
-
 func TestTopoBA(t *testing.T) {
 	topo := makeTopo3(t, false)
-	defer topo.Close()
-
 	topo.RunTest(topo.faceBA, topo.faceAB)
 	topo.CheckCounters()
 }
 
 func TestTopoCA(t *testing.T) {
 	topo := makeTopo3(t, true)
-	defer topo.Close()
-
 	topo.RunTest(topo.faceCA, topo.faceAC)
 	topo.CheckCounters()
 }
@@ -101,11 +77,10 @@ func TestTopoCA(t *testing.T) {
 func TestTopoAm(t *testing.T) {
 	assert, _ := makeAR(t)
 	topo := makeTopo3(t, false)
-	defer topo.Close()
 
 	locAm := topo.faceAm.Locator().(ethface.EtherLocator)
 	assert.Equal("ether", locAm.Scheme())
-	assert.Equal(topo.vnet.Port(0).Name(), locAm.Port)
+	assert.Equal(topo.vnet.Ports[0].Name(), locAm.Port)
 	assert.Equal(topo.macA, locAm.Local.HardwareAddr)
 	assert.Equal(packettransport.MulticastAddressNDN, locAm.Remote.HardwareAddr)
 
@@ -116,32 +91,24 @@ func TestTopoAm(t *testing.T) {
 func testFragmentation(t *testing.T, forceLinearize bool) {
 	assert, require := makeAR(t)
 
-	var vnetCfg ethringdev.VNetConfig
-	vnetCfg.RxPool = ndni.PacketMempool.Get(eal.NumaSocket{})
-	vnetCfg.NNodes = 2
-	vnetCfg.LossProbability = 0.01
-	vnetCfg.Shuffle = true
-	vnet, e := ethringdev.NewVNet(vnetCfg)
-	require.NoError(e)
-	defer vnet.Close()
-	ealthread.AllocLaunch(vnet)
+	vnet := createVNet(t, ethringdev.VNetConfig{
+		NNodes:          2,
+		LossProbability: 0.01,
+		Shuffle:         true,
+	})
 
 	fixture := ifacetestenv.NewFixture(t)
-	defer fixture.Close() // RxLoop must be closed before closing vnet
 	fixture.PayloadLen = 6000
 	fixture.DataFrames = 2
 
-	locA := makeEtherLocator(vnet.Port(0))
-	locA.PortConfig = &ethface.PortConfig{
-		MTU:           5000,
-		DisableSetMTU: true,
-	}
+	ensurePorts(t, vnet.Ports, ethface.PortConfig{MTU: 5000})
+
+	locA := makeEtherLocator(vnet.Ports[0])
 	locA.DisableTxMultiSegOffload = forceLinearize
 	faceA, e := locA.CreateFace()
 	require.NoError(e)
 
-	locB := makeEtherLocator(vnet.Port(1))
-	locB.PortConfig = locA.PortConfig
+	locB := makeEtherLocator(vnet.Ports[1])
 	faceB, e := locB.CreateFace()
 	require.NoError(e)
 
@@ -165,22 +132,15 @@ func TestReassembly(t *testing.T) {
 	payload := make([]byte, 6000)
 	rand.Read(payload)
 
-	var vnetCfg ethringdev.VNetConfig
-	vnetCfg.RxPool = ndni.PacketMempool.Get(eal.NumaSocket{})
-	vnetCfg.NNodes = 2
-	vnet, e := ethringdev.NewVNet(vnetCfg)
-	require.NoError(e)
-	defer vnet.Close()
-	ealthread.AllocLaunch(vnet)
+	vnet := createVNet(t, ethringdev.VNetConfig{NNodes: 2})
+	ifacetestenv.NewFixture(t) // provides RxLoop + TxLoop
+	ensurePorts(t, vnet.Ports[1:], ethface.PortConfig{})
 
-	fixture := ifacetestenv.NewFixture(t) // needed for RxLoop & TxLoop
-	defer fixture.Close()                 // RxLoop must be closed before closing vnet
-
-	portA := vnet.Port(0)
+	portA := vnet.Ports[0]
 	cfgA := ethdev.Config{}
 	cfgA.AddTxQueues(1, ethdev.TxQueueConfig{})
 	portA.Start(cfgA)
-	locA := makeEtherLocator(vnet.Port(0))
+	locA := makeEtherLocator(vnet.Ports[0])
 	prependTxHdrA := ethface.LocatorTxHdr(locA, false)
 	txqA := portA.TxQueues()[0]
 	sendA := func(pkt *ndn.Packet) {
@@ -192,7 +152,7 @@ func TestReassembly(t *testing.T) {
 		assert.Equal(1, n)
 	}
 
-	locB := makeEtherLocator(vnet.Port(1))
+	locB := makeEtherLocator(vnet.Ports[1])
 	locB.ReassemblerCapacity = 16
 	faceB, e := locB.CreateFace()
 	require.NoError(e)

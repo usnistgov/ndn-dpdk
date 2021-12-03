@@ -2,7 +2,6 @@ package ealconfig
 
 import (
 	"github.com/usnistgov/ndn-dpdk/core/hwinfo"
-	"github.com/usnistgov/ndn-dpdk/core/pciaddr"
 )
 
 // PmdPath is the location of DPDK drivers.
@@ -22,18 +21,8 @@ type DeviceConfig struct {
 	// Not loading these drivers will likely cause NDN-DPDK activation failure.
 	Drivers []string `json:"drivers,omitempty"`
 
-	// PciDevices is an allowlist of PCI devices to enable.
-	// This may include Ethernet adapters, NVMe storage controllers, etc.
-	// Each should be a PCI address.
-	PciDevices []pciaddr.PCIAddress `json:"pciDevices,omitempty"`
-
-	// AllPciDevices enables all PCI devices.
-	// If AllPciDevices is false and PciDevices is empty, the PCI bus is disabled.
-	AllPciDevices bool `json:"allPciDevices,omitempty"`
-
-	// VirtualDevices is a list of virtual devices.
-	// Each should be a device argument for DPDK --vdev flag.
-	VirtualDevices []string `json:"virtualDevices,omitempty"`
+	// DisablePCI disables the PCI bus.
+	DisablePCI bool `json:"disablePCI,omitempty"`
 
 	// DeviceFlags is device-related flags passed to DPDK.
 	// This replaces all other options.
@@ -56,18 +45,10 @@ func (cfg DeviceConfig) args(hwInfo hwinfo.Provider) (args []string, e error) {
 		logger.Fatal("PmdPath is unassigned")
 	}
 
-	switch {
-	case cfg.AllPciDevices:
-	case len(cfg.PciDevices) == 0:
+	if cfg.DisablePCI {
 		args = append(args, "--no-pci")
-	default:
-		for _, dev := range cfg.PciDevices {
-			args = append(args, "-a", dev.String())
-		}
-	}
-
-	for _, dev := range cfg.VirtualDevices {
-		args = append(args, "--vdev", dev)
+	} else {
+		args = append(args, "-a", "00:00.0")
 	}
 
 	return args, nil

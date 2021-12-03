@@ -24,10 +24,6 @@ const (
 	rxqStateDeferred
 )
 
-const (
-	rxfMaxPortQueues = 4 // up to C.RTE_MAX_QUEUES_PER_PORT
-)
-
 // Read rte_flow_error into Go error.
 func readFlowErr(e C.struct_rte_flow_error) error {
 	if e._type == C.RTE_FLOW_ERROR_TYPE_NONE {
@@ -43,24 +39,23 @@ func readFlowErr(e C.struct_rte_flow_error) error {
 }
 
 type rxFlowImpl struct {
-	port     *Port
 	isolated bool
 	queues   []rxqState
 }
 
-func (rxFlowImpl) String() string {
-	return "RxFlow"
+func (rxFlowImpl) Kind() RxImplKind {
+	return RxImplFlow
 }
 
 // Enter or leave flow isolation mode.
-func (impl *rxFlowImpl) setIsolate(enable bool) error {
+func (impl *rxFlowImpl) setIsolate(port *Port, enable bool) error {
 	var set C.int
 	if enable {
 		set = 1
 	}
 
 	var flowErr C.struct_rte_flow_error
-	if res := C.rte_flow_isolate(C.uint16_t(impl.port.dev.ID()), set, &flowErr); res != 0 {
+	if res := C.rte_flow_isolate(C.uint16_t(port.dev.ID()), set, &flowErr); res != 0 {
 		return readFlowErr(flowErr)
 	}
 	impl.isolated = enable
@@ -68,26 +63,20 @@ func (impl *rxFlowImpl) setIsolate(enable bool) error {
 }
 
 func (impl *rxFlowImpl) Init(port *Port) error {
-	if port.cfg.DisableRxFlow {
-		return errors.New("disabled")
-	}
-
-	devInfo := port.dev.DevInfo()
-	if devInfo.IsVDev() {
+	if port.devInfo.IsVDev() {
 		return errors.New("cannot use RxFlow on virtual device")
 	}
 
-	impl.port = port
-	if e := impl.setIsolate(true); e != nil {
-		impl.port.logger.Info("flow isolated mode unavailable", zap.Error(e))
+	if e := impl.setIsolate(port, true); e != nil {
+		port.logger.Info("flow isolated mode unavailable", zap.Error(e))
 	}
 
-	nRxQueues := math.MinInt(int(devInfo.Max_rx_queues), rxfMaxPortQueues)
+	nRxQueues := math.MinInt(int(port.devInfo.Max_rx_queues), port.cfg.RxFlowQueues)
 	if nRxQueues == 0 {
 		return errors.New("unable to retrieve max_rx_queues")
 	}
 
-	if e := startDev(port, nRxQueues, !impl.isolated); e != nil {
+	if e := port.startDev(nRxQueues, !impl.isolated); e != nil {
 		return e
 	}
 
@@ -106,7 +95,7 @@ func (impl *rxFlowImpl) Start(face *ethFace) error {
 		return e
 	}
 
-	impl.port.logger.Debug("create RxFlow",
+	face.port.logger.Debug("create RxFlow",
 		zap.Ints("queues", queues),
 		face.ID().ZapField("face"),
 	)
@@ -162,14 +151,14 @@ func (impl *rxFlowImpl) Stop(face *ethFace) error {
 	}
 
 	nextState := rxqStateIdle
-	if e := impl.destroyFlow(face.flow); e != nil {
-		impl.port.logger.Debug("destroy RxFlow deferred",
+	if e := impl.destroyFlow(face); e != nil {
+		face.port.logger.Debug("destroy RxFlow deferred",
 			face.ID().ZapField("face"),
 			zap.Error(e),
 		)
 		nextState = rxqStateDeferred
 	} else {
-		impl.port.logger.Debug("destroy RxFlow success",
+		face.port.logger.Debug("destroy RxFlow success",
 			face.ID().ZapField("face"),
 		)
 	}
@@ -178,34 +167,33 @@ func (impl *rxFlowImpl) Stop(face *ethFace) error {
 		impl.queues[rxf.queue] = nextState
 	}
 
-	face.flow = nil
 	face.rxf = nil
 	return nil
 }
 
-func (impl *rxFlowImpl) destroyFlow(flow *C.struct_rte_flow) error {
-	var e C.struct_rte_flow_error
-	if res := C.rte_flow_destroy(C.uint16_t(impl.port.dev.ID()), flow, &e); res != 0 {
-		return readFlowErr(e)
-	}
-	return nil
-}
-
-func (impl *rxFlowImpl) Close() error {
-	if impl.port == nil {
+func (impl *rxFlowImpl) destroyFlow(face *ethFace) error {
+	if face.flow == nil {
 		return nil
 	}
 
-	for _, face := range impl.port.faces {
-		if face.flow != nil {
-			impl.destroyFlow(face.flow)
-		}
+	var e C.struct_rte_flow_error
+	if res := C.rte_flow_destroy(C.uint16_t(face.port.dev.ID()), face.flow, &e); res != 0 {
+		return readFlowErr(e)
+	}
+
+	face.flow = nil
+	return nil
+}
+
+func (impl *rxFlowImpl) Close(port *Port) error {
+	for _, face := range port.faces {
+		impl.destroyFlow(face)
 	}
 	impl.queues = nil
 
-	impl.port.dev.Stop(ethdev.StopReset)
+	port.dev.Stop(ethdev.StopReset)
 	if impl.isolated {
-		impl.setIsolate(false)
+		impl.setIsolate(port, false)
 	}
 	return nil
 }

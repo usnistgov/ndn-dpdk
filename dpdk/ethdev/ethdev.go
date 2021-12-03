@@ -6,12 +6,15 @@ package ethdev
 */
 import "C"
 import (
+	"errors"
 	"fmt"
 	"net"
 	"strconv"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/logging"
+	"github.com/usnistgov/ndn-dpdk/core/macaddr"
+	"github.com/usnistgov/ndn-dpdk/core/pciaddr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"go.uber.org/zap"
 )
@@ -123,6 +126,7 @@ func (dev ethDev) Start(cfg Config) error {
 	logEntry := logger.With(
 		zap.Int("id", dev.ID()),
 		zap.String("name", dev.Name()),
+		zap.String("driver", info.DriverName()),
 		mtuField,
 		zap.Int("rxq", len(cfg.RxQueues)),
 		zap.Int("txq", len(cfg.TxQueues)),
@@ -146,8 +150,8 @@ func (dev ethDev) Start(cfg Config) error {
 		return bail("rte_eth_dev_configure", eal.MakeErrno(res))
 	}
 
-	if cfg.MTU > 0 {
-		if res := C.rte_eth_dev_set_mtu(dev.cID(), C.uint16_t(cfg.MTU)); res != 0 {
+	if cfg.MTU > 0 && cfg.MTU != dev.MTU() {
+		if res := C.rte_eth_dev_set_mtu(dev.cID(), C.uint16_t(cfg.MTU)); res != 0 && !info.CanIgnoreSetMTUError() {
 			return bail("rte_eth_dev_set_mtu", eal.MakeErrno(res))
 		}
 	}
@@ -264,4 +268,32 @@ func FromName(name string) EthDev {
 	}
 
 	return ethDev(port)
+}
+
+// FromHardwareAddr returns the first EthDev with specified MAC address.
+func FromHardwareAddr(a net.HardwareAddr) EthDev {
+	for p := C.rte_eth_find_next(0); p < C.RTE_MAX_ETHPORTS; p = C.rte_eth_find_next(p + 1) {
+		dev := ethDev(p)
+		if macaddr.Equal(dev.HardwareAddr(), a) {
+			return dev
+		}
+	}
+	return nil
+}
+
+// FromPCI finds an EthDev from PCI address.
+func FromPCI(addr pciaddr.PCIAddress) EthDev {
+	return FromName(addr.String())
+}
+
+// ProbePCI requests to probe a PCI Ethernet adapter.
+func ProbePCI(addr pciaddr.PCIAddress, args map[string]interface{}) (EthDev, error) {
+	if e := eal.ProbePCI(addr, args); e != nil {
+		return nil, e
+	}
+	dev := FromPCI(addr)
+	if dev == nil {
+		return nil, errors.New("PCI probe did not create an Ethernet adapter")
+	}
+	return dev, nil
 }

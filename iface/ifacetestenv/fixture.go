@@ -49,31 +49,6 @@ type Fixture struct {
 	NRxNacks     int
 }
 
-// NewFixture creates a Fixture.
-func NewFixture(t *testing.T) (fixture *Fixture) {
-	ndnitestenv.MakePacketHeadroom = mbuftestenv.Headroom(pktmbuf.DefaultHeadroom + ndni.LpHeaderHeadroom)
-
-	_, require := makeAR(t)
-	fixture = &Fixture{
-		t:               t,
-		PayloadLen:      100,
-		DataFrames:      1,
-		TxIterations:    5000,
-		TxLossTolerance: 0.05,
-		RxLossTolerance: 0.10,
-	}
-
-	fixture.rxl = iface.NewRxLoop(eal.NumaSocket{})
-	fixture.rxQueueI = fixture.preparePktQueue(fixture.rxl.InterestDemux())
-	fixture.rxQueueD = fixture.preparePktQueue(fixture.rxl.DataDemux())
-	fixture.rxQueueN = fixture.preparePktQueue(fixture.rxl.NackDemux())
-	fixture.txl = iface.NewTxLoop(eal.NumaSocket{})
-	require.NoError(ealthread.AllocLaunch(fixture.rxl))
-	require.NoError(ealthread.AllocLaunch(fixture.txl))
-
-	return fixture
-}
-
 func (fixture *Fixture) preparePktQueue(demux *iface.InputDemux) *iface.PktQueue {
 	q := (*iface.PktQueue)(eal.Zmalloc("PktQueue", unsafe.Sizeof(iface.PktQueue{}), eal.NumaSocket{}))
 	q.Init(iface.PktQueueConfig{}, eal.NumaSocket{})
@@ -82,15 +57,12 @@ func (fixture *Fixture) preparePktQueue(demux *iface.InputDemux) *iface.PktQueue
 	return q
 }
 
-// Close releases resources.
-// This automatically closes all faces and clears LCore allocation.
-func (fixture *Fixture) Close() error {
+func (fixture *Fixture) close() {
 	iface.CloseAll()
 	eal.Free(fixture.rxQueueI)
 	eal.Free(fixture.rxQueueD)
 	eal.Free(fixture.rxQueueN)
 	ealthread.AllocClear()
-	return nil
 }
 
 // RunTest runs the test.
@@ -187,4 +159,31 @@ func (fixture *Fixture) CheckCounters() {
 	assert.InEpsilon(fixture.TxIterations, fixture.NRxInterests, fixture.RxLossTolerance)
 	assert.InEpsilon(fixture.TxIterations, fixture.NRxData, fixture.RxLossTolerance)
 	assert.InEpsilon(fixture.TxIterations, fixture.NRxNacks, fixture.RxLossTolerance)
+}
+
+// NewFixture creates a Fixture.
+func NewFixture(t *testing.T) (fixture *Fixture) {
+	ndnitestenv.MakePacketHeadroom = mbuftestenv.Headroom(pktmbuf.DefaultHeadroom + ndni.LpHeaderHeadroom)
+
+	_, require := makeAR(t)
+	fixture = &Fixture{
+		t:               t,
+		PayloadLen:      100,
+		DataFrames:      1,
+		TxIterations:    5000,
+		TxLossTolerance: 0.05,
+		RxLossTolerance: 0.10,
+	}
+
+	fixture.rxl = iface.NewRxLoop(eal.NumaSocket{})
+	fixture.rxQueueI = fixture.preparePktQueue(fixture.rxl.InterestDemux())
+	fixture.rxQueueD = fixture.preparePktQueue(fixture.rxl.DataDemux())
+	fixture.rxQueueN = fixture.preparePktQueue(fixture.rxl.NackDemux())
+	fixture.txl = iface.NewTxLoop(eal.NumaSocket{})
+	require.NoError(ealthread.AllocLaunch(fixture.rxl))
+	require.NoError(ealthread.AllocLaunch(fixture.txl))
+	time.Sleep(time.Second)
+
+	t.Cleanup(fixture.close)
+	return fixture
 }

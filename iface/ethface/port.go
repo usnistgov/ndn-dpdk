@@ -2,13 +2,15 @@ package ethface
 
 import (
 	"errors"
-	"reflect"
+	"fmt"
+	"sync"
 
 	"github.com/pkg/math"
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev/ethnetif"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndni"
@@ -24,56 +26,50 @@ const (
 
 // PortConfig contains Port creation arguments.
 type PortConfig struct {
-	// DisableRxFlow disables RxFlow implementation.
-	DisableRxFlow bool `json:"disableRxFlow,omitempty"`
+	ethnetif.Config
+	EthDev ethdev.EthDev `json:"-"` // override EthDev
 
-	// RxQueueSize is the hardware RX queue capacity.
-	//
-	// If this value is zero, it defaults to DefaultRxQueueSize.
-	// It is also adjusted to satisfy driver requirements.
-	RxQueueSize int `json:"rxQueueSize,omitempty"`
+	RxQueueSize int `json:"rxQueueSize,omitempty" gqldesc:"Hardware RX queue capacity."`
+	TxQueueSize int `json:"txQueueSize,omitempty" gqldesc:"Hardware TX queue capacity."`
 
-	// TxQueueSize is the hardware TX queue capacity.
-	//
-	// If this value is zero, it defaults to DefaultTxQueueSize.
-	// It is also adjusted to satisfy driver requirements.
-	TxQueueSize int `json:"txQueueSize,omitempty"`
+	MTU int `json:"mtu,omitempty" gqldesc:"Change interface MTU (excluding Ethernet/VLAN headers)."`
 
-	// MTU configures Maximum Transmission Unit (MTU) on the EthDev.
-	// This excludes Ethernet headers, but includes VLAN/IP/UDP/VXLAN headers.
-	// If this value is zero, the EthDev MTU remains unchanged.
-	MTU int `json:"mtu,omitempty"`
-
-	// DisableSetMTU skips setting MTU on the device.
-	// Set to true only if the EthDev lacks support for setting MTU.
-	DisableSetMTU bool `json:"disableSetMTU,omitempty"`
+	RxFlowQueues int `json:"rxFlowQueues,omitempty" gqldesc:"Enable RxFlow and set maximum queue count."`
 }
 
-var portByEthDev = make(map[ethdev.EthDev]*Port)
+var (
+	portByEthDev      = map[ethdev.EthDev]*Port{}
+	closeAllPortsOnce sync.Once
+)
 
 // Port organizes EthFaces on an EthDev.
 type Port struct {
 	cfg          PortConfig
 	logger       *zap.Logger
 	dev          ethdev.EthDev
-	rxBouncePool *pktmbuf.Pool
+	devInfo      ethdev.DevInfo
 	faces        map[iface.ID]*ethFace
-	impl         impl
-	nextImpl     int
+	rxBouncePool *pktmbuf.Pool
+	rxImpl       rxImpl
 	txl          iface.TxLoop
+	autoClose    bool
 }
 
 // Close closes the port.
-func (port *Port) Close() (e error) {
+func (port *Port) Close() error {
+	if nFaces := len(port.faces); nFaces > 0 {
+		return fmt.Errorf("cannot close Port with %d active faces", nFaces)
+	}
+
 	errs := []error{}
 
-	if port.impl != nil {
-		errs = append(errs, port.impl.Close())
-		port.impl = nil
+	if port.rxImpl != nil {
+		errs = append(errs, port.rxImpl.Close(port))
+		port.rxImpl = nil
 	}
 
 	if port.dev != nil {
-		if port.dev.DevInfo().IsVDev() {
+		if port.devInfo.IsVDev() {
 			errs = append(errs, port.dev.Stop(ethdev.StopDetach))
 		}
 		delete(portByEthDev, port.dev)
@@ -85,7 +81,7 @@ func (port *Port) Close() (e error) {
 		port.rxBouncePool = nil
 	}
 
-	e = multierr.Combine(errs...)
+	e := multierr.Combine(errs...)
 	if e != nil {
 		port.logger.Error("port closed", zap.Error(e))
 	} else {
@@ -102,103 +98,59 @@ func (port *Port) Faces() (list []iface.Face) {
 	return list
 }
 
-// ImplName returns internal implementation name.
-func (port *Port) ImplName() string {
-	return port.impl.String()
+func (port *Port) startDev(nRxQueues int, promisc bool) error {
+	socket := port.dev.NumaSocket()
+	rxPool := port.rxBouncePool
+	if rxPool == nil {
+		rxPool = ndni.PacketMempool.Get(socket)
+	}
+
+	cfg := ethdev.Config{
+		MTU:     port.cfg.MTU,
+		Promisc: promisc,
+	}
+	cfg.AddRxQueues(nRxQueues, ethdev.RxQueueConfig{
+		Capacity: port.cfg.RxQueueSize,
+		Socket:   socket,
+		RxPool:   rxPool,
+	})
+	cfg.AddTxQueues(1, ethdev.TxQueueConfig{
+		Capacity: port.cfg.TxQueueSize,
+		Socket:   socket,
+	})
+	return port.dev.Start(cfg)
 }
 
-// Switch to next impl.
-func (port *Port) fallbackImpl() error {
-	logEntry := port.logger
-	if port.impl != nil {
-		for _, face := range port.faces {
-			face.SetDown(true)
-		}
-
-		logEntry = logEntry.With(zap.Stringer("old-impl", port.impl))
-		if e := port.impl.Close(); e != nil {
-			logEntry.Warn("impl close error", zap.Error(e))
-			return e
-		}
-
-		port.impl = nil
-	}
-
-	if port.nextImpl >= len(impls) {
-		logEntry.Warn("no feasible impl")
-		return errors.New("no feasible impl, check NDN-DPDK service logs for details")
-	}
-	port.impl = reflect.New(impls[port.nextImpl]).Interface().(impl)
-	port.nextImpl++
-	logEntry = logEntry.With(zap.Stringer("impl", port.impl))
-
-	if e := port.impl.Init(port); e != nil {
-		logEntry.Info("impl init error, trying next impl", zap.Error(e))
-		return port.fallbackImpl()
-	}
-
-	for faceID, face := range port.faces {
-		if e := port.impl.Start(face); e != nil {
-			logEntry.Info("face restart error, trying next impl",
-				faceID.ZapField("face"),
-				zap.Error(e),
-			)
-			return port.fallbackImpl()
-		}
-		face.SetDown(false)
-	}
-
-	logEntry.Info("impl initialized")
-	return nil
-}
-
-// Start face in impl (called by New).
-func (port *Port) startFace(face *ethFace, forceFallback bool) error {
-	if port.impl == nil || forceFallback {
-		if e := port.fallbackImpl(); e != nil {
-			return e
-		}
-	}
-
-	if e := port.impl.Start(face); e != nil {
-		port.logger.Info("face start error, trying next impl", zap.Error(e))
-		return port.startFace(face, true)
-	}
-
+func (port *Port) activateTx(face *ethFace) {
 	if port.txl == nil {
 		port.txl = iface.ActivateTxFace(face)
 	} else {
 		port.txl.Add(face)
 	}
-	port.logger.Info("face started",
-		zap.Stringer("impl", port.impl),
-		face.ID().ZapField("face"),
-	)
-	port.faces[face.ID()] = face
-	return nil
 }
 
-// Stop face in impl (called by ethFace.Close).
-func (port *Port) stopFace(face *ethFace) (e error) {
-	id := face.ID()
-	delete(port.faces, id)
-	e = port.impl.Stop(face)
+func (port *Port) deactivateTx(face *ethFace) {
 	iface.DeactivateTxFace(face)
-	port.logger.Info("face stopped",
-		zap.Error(e),
-		id.ZapField("face"),
-	)
 	if len(port.faces) == 0 {
 		port.txl = nil
 	}
-	return nil
 }
 
 // NewPort opens a Port.
-func NewPort(dev ethdev.EthDev, cfg PortConfig) (port *Port, e error) {
+func NewPort(cfg PortConfig) (port *Port, e error) {
+	dev := cfg.EthDev
+	if dev == nil {
+		dev, e = ethnetif.CreateEthDev(cfg.Config)
+		if e != nil {
+			return nil, e
+		}
+	}
+	if portByEthDev[dev] != nil {
+		return nil, errors.New("Port already exists")
+	}
+
 	if cfg.MTU == 0 {
 		cfg.MTU = dev.MTU()
-		cfg.DisableSetMTU = true
 	}
 	if ndni.PacketMempool.Config().Dataroom < pktmbuf.DefaultHeadroom+cfg.MTU {
 		return nil, errors.New("PacketMempool dataroom is too small for requested MTU")
@@ -210,26 +162,52 @@ func NewPort(dev ethdev.EthDev, cfg PortConfig) (port *Port, e error) {
 		cfg.TxQueueSize = DefaultTxQueueSize
 	}
 
-	if portByEthDev[dev] != nil {
-		return nil, errors.New("Port already exists")
-	}
-
 	port = &Port{
-		cfg:    cfg,
-		logger: logger.With(dev.ZapField("port")),
-		dev:    dev,
-		faces:  make(map[iface.ID]*ethFace),
+		cfg:     cfg,
+		dev:     dev,
+		devInfo: dev.DevInfo(),
+		faces:   map[iface.ID]*ethFace{},
 	}
-	if dev.DevInfo().DriverName() == "net_af_xdp" {
+	switch port.devInfo.DriverName() {
+	case ethdev.DriverXDP:
 		if port.rxBouncePool, e = pktmbuf.NewPool(pktmbuf.PoolConfig{
 			Capacity: cfg.RxQueueSize + iface.MaxBurstSize,
 			Dataroom: math.MaxInt(pktmbuf.DefaultHeadroom+cfg.MTU, xdpMinDataroom),
 		}, dev.NumaSocket()); e != nil {
 			return nil, e
 		}
+	case ethdev.DriverMemif:
+		port.rxImpl = &rxMemifImpl{}
+	}
+	if port.rxImpl == nil {
+		if port.cfg.RxFlowQueues > 0 {
+			port.rxImpl = &rxFlowImpl{}
+		} else {
+			port.rxImpl = &rxTableImpl{}
+		}
+	}
+
+	port.logger = logger.With(dev.ZapField("port"), zap.String("rxImpl", string(port.rxImpl.Kind())))
+	if e := port.rxImpl.Init(port); e != nil {
+		port.logger.Error("rxImpl init error", zap.Error(e))
+		port.rxImpl = nil
+		port.Close()
+		return nil, e
 	}
 
 	port.logger.Info("port opened")
 	portByEthDev[port.dev] = port
+	closeAllPortsOnce.Do(func() {
+		iface.OnCloseAll(func() {
+			for _, port := range portByEthDev {
+				port.Close()
+			}
+		})
+	})
 	return port, nil
+}
+
+// FindPort returns Port on EthDev.
+func FindPort(dev ethdev.EthDev) *Port {
+	return portByEthDev[dev]
 }

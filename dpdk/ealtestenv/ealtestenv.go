@@ -19,10 +19,6 @@ import (
 // This allows running tests on fewer CPU cores.
 const EnvCpus = "EALTESTENV_CPUS"
 
-// EnvPci declares an environment variable that, when set to 1, enables the use of PCI devices.
-// The default is disabling PCI devices.
-const EnvPci = "EALTESTENV_PCI"
-
 // WantLCores indicates the number of lcores to be created.
 var WantLCores = 6
 
@@ -61,7 +57,6 @@ func Init() {
 
 	var cfg ealconfig.Config
 	cfg.FilePrefix = "ealtestenv"
-	cfg.AllPciDevices = os.Getenv(EnvPci) == "1"
 
 	if cores := hwInfo.Cores(); len(cores) < WantLCores {
 		cfg.LCoresPerNuma = map[int]int{}
