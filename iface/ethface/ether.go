@@ -24,26 +24,15 @@ type EtherLocator struct {
 
 	// Port is the EthDev name.
 	//
-	// During face creation, Ethernet adapters are searched in this order:
-	// 1. Existing EthDevs are considered first, including:
-	//    * Physical Ethernet adapters using DPDK PCI drivers.
-	//    * Virtual EthDev created during prior face creations.
-	// 2. Kernel-managed network interfaces are considered next.
-	//    They will be activated as virtual EthDev using net_af_xdp or net_af_packet driver.
-	//    loc.VDevConfig contains parameters for virtual device creation.
-	//
-	// If this is empty:
+	// During face creation, if this field is empty:
 	// * Face is created on an Ethernet adapter whose physical MAC address equals loc.Local.
 	// * Local MAC address of the face is set to loc.Local, i.e. same as the physical MAC address.
 	//
-	// If this is non-empty:
-	// * Face is created on an Ethernet adapter whose name equals loc.Port.
-	//   * loc.Port can be either the kernel network interface name or its PCI address.
-	//   * If the PCI device is bound to a generic driver (e.g. uio_pci_generic), loc.Port can only be
-	//     a PCI address, because the kernel no longer recognizes its as a network interface.
+	// During face creation, if this field is non-empty:
+	// * Face is created on an Ethernet adapter whose DPDK EthDev name equals loc.Port.
 	// * Local MAC address of the face is set to loc.Local, which could differ from the physical MAC address.
 	//
-	// When retrieving face information, this reflects the EthDev name.
+	// When retrieving face information, this reflects the DPDK EthDev name.
 	Port string `json:"port,omitempty"`
 }
 

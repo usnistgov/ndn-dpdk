@@ -20,9 +20,7 @@ type EalMemoryConfig = {
 
 type EalDeviceConfig = {
   drivers?: string[];
-  pciDevices?: string[];
-  allPciDevices?: boolean;
-  virtualDevices?: string[];
+  disablePCI?: boolean;
 } | {
   deviceFlags?: string;
 };
@@ -83,17 +81,34 @@ export interface PktmbufPoolConfig {
 export type PktmbufPoolTemplateUpdates<K extends string = string> = Partial<Record<K, PktmbufPoolConfig>>;
 
 /**
- * Preferences for creating virtual Ethernet device from kernel network interface.
- * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/dpdk/ethdev/ethvdev#NetifConfig>
+ * EthDev selection and creation arguments.
+ * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/dpdk/ethdev/ethnetif#Config>
  */
-export interface VDevNetifConfig {
-  xdp?: {
-    disabled?: boolean;
-    args?: object;
+export type EthNetifConfig = EthNetifConfig.PCI | EthNetifConfig.BifurcatedPCI | EthNetifConfig.XDP | EthNetifConfig.AfPacket;
+
+export namespace EthNetifConfig {
+  interface Base {
+    devargs?: Record<string, string>;
+  }
+
+  export interface PCI extends Base {
+    driver: "PCI";
+    pciAddr: string;
+  }
+
+  export interface BifurcatedPCI extends Base {
+    driver: "PCI";
+    netif: string;
+  }
+
+  export interface XDP extends Base {
+    driver: "XDP";
+    netif: string;
     skipEthtool?: boolean;
-  };
-  afPacket?: {
-    disabled?: boolean;
-    args?: object;
-  };
+  }
+
+  export interface AfPacket extends Base {
+    driver: "AF_PACKET";
+    netif: string;
+  }
 }

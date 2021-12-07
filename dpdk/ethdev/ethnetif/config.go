@@ -29,7 +29,7 @@ type Config struct {
 	PCIAddr *pciaddr.PCIAddress    `json:"pciAddr,omitempty" gqldesc:"PCI address (PCI devices)."`
 	DevArgs map[string]interface{} `json:"devargs,omitempty" gqldesc:"DPDK device arguments."`
 
-	SkipEthtool bool `json:"xdpSkipEthtool,omitempty" gqldesc:"Don't perform ethtool updates for XDP."`
+	SkipEthtool bool `json:"skipEthtool,omitempty" gqldesc:"Don't perform ethtool updates for XDP."`
 }
 
 // CreateEthDev creates an Ethernet device.

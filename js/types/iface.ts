@@ -1,5 +1,5 @@
 import type { Counter, NNMilliseconds, Uint } from "./core";
-import type { VDevNetifConfig } from "./dpdk";
+import type { EthNetifConfig } from "./dpdk";
 
 /**
  * Numeric face identifier.
@@ -43,18 +43,16 @@ export interface FaceConfig {
  * Ethernet port configuration.
  * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/iface/ethface#PortConfig>
  */
-export interface EthPortConfig {
-  disableRxFlow?: boolean;
-
+export type EthPortConfig = EthNetifConfig & {
   /**
    * @minimum 256
-   * @default 8192
+   * @default 4096
    */
   rxQueueSize?: Uint;
 
   /**
    * @minimum 256
-   * @default 8192
+   * @default 4096
    */
   txQueueSize?: Uint;
 
@@ -64,13 +62,11 @@ export interface EthPortConfig {
    */
   mtu?: Uint;
 
-  disableSetMTU?: boolean;
-}
+  rxFlowQueues?: number;
+};
 
 interface EtherLocatorBase extends FaceConfig {
   port?: string;
-  vdevConfig?: VDevNetifConfig;
-  portConfig?: EthPortConfig;
 
   /**
    * @minimum 1

@@ -13,8 +13,6 @@ Locator of an Ethernet face has the following fields:
 * *vlan* (optional) is an VLAN ID in the range 0x001-0xFFF.
 * *port* (optional) is the port name as presented by DPDK.
   If omitted, *local* is used to search for a suitable port; if specified, this takes priority over *local*.
-* *portConfig* (optional) contains configuration for **Port** creation, considered on the first face on a port.
-  See **PortConfig** type for details.
 
 **Port** type organizes faces on the same DPDK ethdev.
 Each port can have zero or one Ethernet face with multicast remote address, and zero or more Ethernet faces with unicast remote addresses.
@@ -23,7 +21,7 @@ Faces on the same port can be created and destroyed individually.
 ## Receive Path
 
 There are three receive path implementations.
-All faces on the same port must use the same receive path implementation.
+One of them is chosen during port creation; the choice cannot be changed afterwards.
 
 **RxFlow** is a hardware-accelerated receive path.
 It uses one RX queue per face, and creates an rte\_flow to steer incoming frames to that queue.
@@ -38,11 +36,6 @@ If no match is found, drop the frame.
 **RxMemif** is a memif-specific receive path, where each port has only one face.
 It continuously polls ethdev RX queue 0 for incoming frames, then labels each frame with the only face ID.
 
-Port/face setup procedure is dominated by the choice of receive path implementation.
-Initially, the port attempts to operate with rxFlows.
-This can fail if the ethdev does not support rte\_flow, does not support the specific rte\_flow features used in `EthFace_SetupFlow`, or has fewer RX queues than the number of requested faces.
-If rxFlows fail to setup for these or any other reason, the port falls back to rxTable.
-
 ## Send Path
 
 `EthFace_TxBurst` function implements the send path.
@@ -50,7 +43,7 @@ Currently, the send path only uses ethdev TX queue 0.
 It requires every outgoing packet to have sufficient headroom for the Ethernet header.
 
 The send path is thread-safe only if the underlying DPDK PMD is thread safe, which generally is not the case.
-Normally, **iface.TxLoop** invokes `EthFace_TxBurst` from the same thread.
+Therefore, **iface.TxLoop** calls `EthFace_TxBurst` from the same thread for all faces on the same port.
 
 ## UDP and VXLAN Tunnel Face
 
@@ -69,7 +62,7 @@ Locator of a UDP tunnel face has the following fields:
 Locator of a VXLAN tunnel face has the following fields:
 
 * *scheme* is set to "vxlan".
-* *localIP* and *remoteIP* fields in "udpe" locator are inherited.
+* All fields in "udpe" locator, except *localUDP* and *remoteUDP*, are inherited.
 * UDP destination port number is fixed to 4789; source port is random.
 * *vxlan* is the VXLAN Network Identifier.
 * *innerLocal* and *innerRemote* are unicast MAC addresses for inner Ethernet header.

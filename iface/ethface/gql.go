@@ -54,7 +54,7 @@ func init() {
 	})
 
 	gqlserver.AddMutation(&graphql.Field{
-		Name:        "createEtherPort",
+		Name:        "createEthPort",
 		Description: "Create an Ethernet port.",
 		Args:        gqlserver.BindArguments(PortConfig{}, ethnetif.GqlConfigFieldTypes),
 		Type:        ethdev.GqlEthDevType,

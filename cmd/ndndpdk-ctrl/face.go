@@ -9,7 +9,7 @@ import (
 	"inet.af/netaddr"
 )
 
-const gqlFaceCounters = "rxInterests rxData rxNacks txInterests txData txNacks"
+const gqlFaceCounters = "rxFrames rxInterests rxData rxNacks txFrames txInterests txData txNacks"
 
 const gqlCreateFace = `
 	mutation createFace($locator: JSON!) {
@@ -104,13 +104,9 @@ func init() {
 }
 
 func init() {
-	var innerLocal, innerRemote macaddr.Flag
 	var loc struct {
-		Scheme     string `json:"scheme"`
-		Port       string `json:"port,omitempty"`
-		PortConfig struct {
-			MTU int `json:"mtu,omitempty"`
-		} `json:"portConfig,omitempty"`
+		Scheme      string        `json:"scheme"`
+		Port        string        `json:"port,omitempty"`
 		MTU         int           `json:"mtu,omitempty"`
 		MaxRxQueues int           `json:"maxRxQueues,omitempty"`
 		Local       macaddr.Flag  `json:"local"`
@@ -132,12 +128,6 @@ func init() {
 			Usage:       "DPDK `port` name",
 			DefaultText: "search by local MAC address",
 			Destination: &loc.Port,
-		},
-		&cli.IntFlag{
-			Name:        "port-mtu",
-			Usage:       "port `MTU` (excluding Ethernet headers)",
-			DefaultText: "hardware default",
-			Destination: &loc.PortConfig.MTU,
 		},
 		&cli.IntFlag{
 			Name:        "mtu",
@@ -223,6 +213,7 @@ func init() {
 		Action: makeAction("udpe"),
 	})
 
+	var innerLocal, innerRemote macaddr.Flag
 	defineCommand(&cli.Command{
 		Category: "face",
 		Name:     "create-vxlan-face",
@@ -282,90 +273,4 @@ func init() {
 
 func init() {
 	defineDeleteCommand("face", "destroy-face", "Destroy a face", "face")
-}
-
-func init() {
-	var withDevInfo, withStats, withFaces bool
-	defineCommand(&cli.Command{
-		Category: "face",
-		Name:     "list-ethdev",
-		Aliases:  []string{"list-ethdevs"},
-		Usage:    "List Ethernet devices",
-		Flags: []cli.Flag{
-			&cli.BoolFlag{
-				Name:        "devinfo",
-				Usage:       "show DPDK device information",
-				Destination: &withDevInfo,
-			},
-			&cli.BoolFlag{
-				Name:        "stats",
-				Usage:       "show hardware statistics",
-				Destination: &withStats,
-			},
-			&cli.BoolFlag{
-				Name:        "faces",
-				Usage:       "show face list",
-				Destination: &withFaces,
-			},
-		},
-		Action: func(c *cli.Context) error {
-			return clientDoPrint(c.Context, `
-				query getEthDev(
-					$withDevInfo: Boolean!
-					$withStats: Boolean!
-					$withFaces: Boolean!
-				) {
-					ethDevs {
-						id
-						name
-						numaSocket
-						macAddr
-						mtu
-						isDown
-						devInfo @include(if: $withDevInfo)
-						stats @include(if: $withStats)
-						implName
-						faces @include(if: $withFaces) {
-							id
-							locator
-						}
-					}
-				}
-			`, map[string]interface{}{
-				"withDevInfo": withDevInfo,
-				"withStats":   withStats,
-				"withFaces":   withFaces,
-			}, "ethDevs")
-		},
-	})
-}
-
-func init() {
-	var id string
-
-	defineCommand(&cli.Command{
-		Category: "face",
-		Name:     "reset-eth-stats",
-		Usage:    "Reset hardware statistics of an Ethernet device",
-		Flags: []cli.Flag{
-			&cli.StringFlag{
-				Name:        "id",
-				Usage:       "device `ID`",
-				Destination: &id,
-				Required:    true,
-			},
-		},
-		Action: func(c *cli.Context) error {
-			return clientDoPrint(c.Context, `
-				mutation resetEthStats($id: ID!) {
-					resetEthStats(id: $id) {
-						id
-						name
-					}
-				}
-			`, map[string]interface{}{
-				"id": id,
-			}, "resetEthStats")
-		},
-	})
 }
