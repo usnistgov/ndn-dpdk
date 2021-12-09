@@ -7,17 +7,6 @@ const cfg: TgConfig = {
     local: "02:00:00:00:00:01",
     remote: "01:00:5e:00:17:aa",
     mtu: 8800,
-    portConfig: {
-      mtu: 9000,
-    },
-    vdevConfig: {
-      xdp: {
-        disabled: true,
-      },
-      afPacket: {
-        disabled: true,
-      },
-    },
   },
   producer: {
     patterns: [

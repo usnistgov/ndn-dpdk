@@ -1,18 +1,10 @@
 # ndn-dpdk/iface/ethface
 
-This package implements Ethernet faces using DPDK ethdev as transport.
+This package implements Ethernet-based faces using DPDK ethdev as transport.
 
-**ethFace** type represents an Ethernet face.
-Locator of an Ethernet face has the following fields:
-
-* *scheme* is set to "ether".
-* *local* and *remote* are MAC-48 addresses written in the six groups of two lower-case hexadecimal digits separated by colons.
-* *local* must be a unicast address.
-* *remote* may be unicast or multicast.
-  Every face is assumed to be point-to-point, even when using a multicast remote address.
-* *vlan* (optional) is an VLAN ID in the range 0x001-0xFFF.
-* *port* (optional) is the port name as presented by DPDK.
-  If omitted, *local* is used to search for a suitable port; if specified, this takes priority over *local*.
+**ethFace** type represents an Ethernet-based face.
+This includes NDN over Ethernet (with optional VLAN header), UDP tunnel, and VXLAN tunnel.
+See [face creation](../../docs/face.md) "creating Ethernet-based face" section for locator syntax.
 
 **Port** type organizes faces on the same DPDK ethdev.
 Each port can have zero or one Ethernet face with multicast remote address, and zero or more Ethernet faces with unicast remote addresses.
@@ -49,26 +41,6 @@ Therefore, **iface.TxLoop** calls `EthFace_TxBurst` from the same thread for all
 
 UDP and VXLAN tunnels are supported through this package.
 
-Locator of a UDP tunnel face has the following fields:
-
-* *scheme* is set to "udpe".
-  The suffix "e" means "ethface"; it is added to differentiate from the "udp" scheme implemented in socketface package.
-* All fields in "ether" locator are inherited.
-* Both *local* and *remote* MAC addresses must be unicast.
-* *localIP* and *remoteIP* are local and remote IP addresses.
-  They may be either IPv4 or IPv6, and must be unicast.
-* *localUDP* and *remoteUDP* are local and remote UDP port numbers.
-
-Locator of a VXLAN tunnel face has the following fields:
-
-* *scheme* is set to "vxlan".
-* All fields in "udpe" locator, except *localUDP* and *remoteUDP*, are inherited.
-* UDP destination port number is fixed to 4789; source port is random.
-* *vxlan* is the VXLAN Network Identifier.
-* *innerLocal* and *innerRemote* are unicast MAC addresses for inner Ethernet header.
-* *maxRxQueues* (optional) is the maximum number of RX queues.
-  When using rxFlow in the NDN-DPDK forwarder, having multiple RX queues for the same face can alleviate FwInput bottleneck.
-
 UDP and VXLAN tunnels can coexist with Ethernet faces on the same port.
 Multiple UDP and VXLAN tunnels can coexist if any of the following is true:
 
@@ -77,7 +49,7 @@ Multiple UDP and VXLAN tunnels can coexist if any of the following is true:
 * Between a UDP tunnel and a VXLAN tunnel, the UDP tunnel's *localUDP* is not 4789.
 * Both are VXLAN tunnels, and one of *vxlan*, *innerLocal*, and *innerRemote* is different.
 
-Known limitations:
+Caveats and limitations:
 
 * NDN-DPDK does not respond to Address Resolution Protocol (ARP) or Neighbor Discovery Protocol (NDP) queries.
 
@@ -109,18 +81,7 @@ Known limitations:
 ## Memif Face
 
 Shared memory packet interface (memif) is supported through this package.
-
-Locator of a memif face has the following fields:
-
-* *scheme* is set to "memif".
-* *role* is either "server" or "client".
-  It's recommended to use "server" role on NDN-DPDK side and "client" role on application side.
-* *socketName* is the control socket filename.
-  It must be an absolute path not exceeding 108 characters.
-* *id* is the interface identifier in the range 0x00000000-0xFFFFFFFF.
-* *socketOwner* may be set to a tuple `[uid,gid]` to change owner uid:gid of the control socket.
-  It would allow applications to connect to NDN-DPDK without running as root.
-  This currently works with libmemif but not gomemif, so that NDNgo still needs to run as root.
+See [face creation](../../docs/face.md) "memif face" section for locator syntax.
 
 In the data plane:
 

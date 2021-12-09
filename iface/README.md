@@ -8,8 +8,6 @@ There are two transport-specific implementations:
 * [EthFace](ethface/) communicates on Ethernet via DPDK ethdev.
 * [SocketFace](socketface/) communicates on Unix/TCP/UDP tunnels via Go sockets.
 
-Unit tests of this package are in [ifacetest](ifacetest/) subdirectory.
-
 ## Face System API
 
 In C, public APIs are defined in term of **FaceID**.
