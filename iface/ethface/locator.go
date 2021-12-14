@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"unsafe"
 
+	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
 )
@@ -40,9 +41,22 @@ func (loc cLocator) sizeofHeader() int {
 type FaceConfig struct {
 	iface.Config
 
+	// EthDev causes the face to be created on a specific Ethernet adapter.
+	// This allows setting a local MAC address that differs from the physical MAC address.
+	//
+	// If omitted, local MAC address is used to find the Ethernet adapter.
+	//
+	// In either case, a Port must be created on the Ethernet adapter before creating faces.
+	EthDev ethdev.EthDev `json:"-"`
+
+	// Port is GraphQL ID of the EthDev.
+	// This field has the same semantics as EthDev.
+	// If both EthDev and Port are specified, EthDev takes priority.
+	Port string `json:"port,omitempty"`
+
 	// MaxRxQueues is the maximum number of RX queues for this face.
-	// It is meaningful only if the face is using RxFlow dispatching.
-	// It is effective in improving performance on VXLAN face only.
+	// It is meaningful only if the port is using RxFlow.
+	// For most DPDK drivers, it is effective in improving performance on VXLAN face only.
 	//
 	// Default is 1.
 	MaxRxQueues int `json:"maxRxQueues,omitempty"`

@@ -285,8 +285,8 @@ const vxlanLocatorFields: Omit<VxlanLocator, keyof EtherLocator> & Pick<VxlanLoc
 };
 
 async function createEthPort(client: GraphQLClient, pciAddr: string): Promise<string> {
-  const { createEthPort: { name } } = await client.request<{
-    createEthPort: { name: string };
+  const { createEthPort: { id } } = await client.request<{
+    createEthPort: { id: string };
   }>(gql`
     mutation createEthPort(
       $pciAddr: String
@@ -297,11 +297,11 @@ async function createEthPort(client: GraphQLClient, pciAddr: string): Promise<st
         mtu: 9000
         rxFlowQueues: 2
       ) {
-        name
+        id
       }
     }
   `, { pciAddr });
-  return name;
+  return id;
 }
 
 async function createFace(client: GraphQLClient, locator: FaceLocator): Promise<string> {

@@ -41,7 +41,7 @@ func makeTopo3(t *testing.T, forceLinearize bool) (topo topo3) {
 	makeFace := func(dev ethdev.EthDev, local, remote net.HardwareAddr) iface.Face {
 		loc := makeEtherLocator(dev)
 		if local != nil {
-			loc.Port = dev.Name()
+			loc.EthDev = dev
 			loc.Local.HardwareAddr = local
 		}
 		loc.Remote.HardwareAddr = remote
@@ -80,7 +80,6 @@ func TestTopoAm(t *testing.T) {
 
 	locAm := topo.faceAm.Locator().(ethface.EtherLocator)
 	assert.Equal("ether", locAm.Scheme())
-	assert.Equal(topo.vnet.Ports[0].Name(), locAm.Port)
 	assert.Equal(topo.macA, locAm.Local.HardwareAddr)
 	assert.Equal(packettransport.MulticastAddressNDN, locAm.Remote.HardwareAddr)
 

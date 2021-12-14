@@ -35,7 +35,7 @@ driver kind | speed | supported hardware | Ethernet | VLAN | UDP | VXLAN | main 
 -|-|-|-|-|-|-|-
 PCI | fastest | some | yes | yes | yes | yes | exclusive NIC control
 XDP | fast | all | yes | yes | port 6363 | no | MTU≤3300
-AF\_PACKET | slow | all | yes | no | no | no |
+AF\_PACKET | slow | all | yes | no | no | no | slow
 
 The most suitable port creation command is hardware dependent, and some trial-and-error may be necessary.
 Due to limitations in DPDK drivers, a failed port creation command may cause DPDK to enter an inconsistent state.
@@ -147,13 +147,13 @@ After creating an Ethernet port, you can create Ethernet-based faces on the adap
 Locator of an Ethernet face has the following fields:
 
 * *scheme* is set to "ether".
-* *local* and *remote* are MAC-48 addresses written in the six groups of two lower-case hexadecimal digits separated by colons.
+* *local* and *remote* are MAC-48 addresses written in six groups of two lower-case hexadecimal digits separated by colons.
 * *local* must be a unicast address.
 * *remote* may be unicast or multicast.
   Every face is assumed to be point-to-point, even when using a multicast remote address.
-* *vlan* (optional) is an VLAN ID in the range 0x001-0xFFF.
+* *vlan* (optional) is an VLAN identifier in the range 0x001-0xFFE.
   If omitted, the packets do not have VLAN header.
-* *port* (optional) is the port name as presented by DPDK.
+* *port* (optional) is the EthDev ID as returned by `ndndpdk-ctrl create-eth-port` command.
   If omitted, *local* is used to search for a suitable port; if specified, this takes priority over *local*.
 
 Locator of a UDP tunnel face has the following fields:

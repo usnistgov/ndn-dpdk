@@ -97,3 +97,9 @@ func LocatorString(loc Locator) string {
 	j, _ := json.Marshal(locw)
 	return string(j)
 }
+
+// LocatorZapField converts a locator to a zap.Field for logging.
+func LocatorZapField(key string, loc Locator) zap.Field {
+	locw := LocatorWrapper{Locator: loc}
+	return zap.Any(key, locw)
+}
