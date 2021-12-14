@@ -66,13 +66,15 @@ On node A, start NDN-DPDK forwarder and producer:
 sudo ndndpdk-ctrl systemd restart
 
 # activate NDN-DPDK forwarder
-jq -n --arg if_pci $A_IF_PCI '
+jq -n '
 {
   eal: {
-    coresPerNuma: { "0": 4, "1": 4 },
-    pciDevices: [$if_pci]
+    coresPerNuma: { "0": 4, "1": 4 }
   }
 }' | ndndpdk-ctrl activate-forwarder
+
+# create Ethernet port with PCI driver
+ndndpdk-ctrl create-eth-port --pci $A_IF_PCI
 
 # create face
 A_FACEID=$(ndndpdk-ctrl create-ether-face --local $A_HWADDR --remote $B_HWADDR | tee /dev/stderr | jq -r .id)
@@ -99,8 +101,9 @@ docker run -d --rm --name nfd \
   nfd
 
 # activate the Ethernet adapter in NFD
-sudo ip link set $B_IFNAME netns $(docker inspect --format='{{ .State.Pid }}' nfd)
-docker exec nfd ip link set $B_IFNAME up
+B_CTPID=$(docker inspect --format='{{ .State.Pid }}' nfd)
+sudo ip link set $B_IFNAME netns $B_CTPID
+sudo nsenter -t $B_CTPID -n ip link set $B_IFNAME up
 docker exec nfd pkill -SIGHUP nfd
 
 # make 'nfdc' alias

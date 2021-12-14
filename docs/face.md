@@ -70,7 +70,7 @@ sudo dpdk-devbind.py -b uio_pci_generic 04:00.0
 # create an Ethernet port with PCI driver, enabling RxFlow with 16 queues
 ndndpdk-ctrl create-eth-port --pci 04:00.0 --mtu 1500 --rx-flow 16
 
-# create an Ethernet port with PCI driver, disabling RxFlow
+# or, create an Ethernet port with PCI driver, disabling RxFlow
 ndndpdk-ctrl create-eth-port --pci 04:00.0 --mtu 1500
 ```
 
@@ -214,3 +214,97 @@ The differences are:
   It is fast but does not follow normal IP routing and cannot communicate with local applications.
 * Socket UDP face ("udp" scheme) goes through the kernel network stack.
   It behaves like a normal IP application but is much slower.
+
+## Troubleshooting
+
+### Error during Ethernet Port Creation or Face Creation
+
+If the command or GraphQL mutation for creating an Ethernet port or a face returns an error, you can typically gather additional error information from NDN-DPDK service logs.
+See [installation guide](INSTALL.md) "usage" section and [Docker container](Docker.md) "control the service container" section for how to access NDN-DPDK service logs.
+
+Common mistakes include:
+
+* Trying to create a face before activating NDN-DPDK service.
+* NDN-DPDK is running in Docker but the Docker container was started with insufficient privileges and bind mounts.
+* Requesting a higher MTU than what's allowed by `.mempool.DIRECT.dataroom` of the activation parameter.
+* Requesting a driver kind or parameter on an Ethernet adapter that doesn't support it.
+
+### Face Created but No Packet Received
+
+Problem scenario is similar as the ndnping sample of [NDN-DPDK forwarder](forwarder.md):
+
+* You have two forwarders A and B connected over a network link.
+* The consumer program is connected to forwarder A over memif.
+* The producer program is connected to forwarder B over memif.
+* Faces were created without immediate errors.
+* You expect the consumer program to receive Data packets, but it does not.
+
+```text
+|--------|  memif  |-----------|  Ethernet  |-----------|  memif  |--------|
+|consumer|---------|forwarder A|------------|forwarder B|---------|producer|
+|--------|         |-----------|            |-----------|         |--------|
+
+faces   (1)       (2)         (3)          (4)         (5)       (6)
+```
+
+General steps to troubleshoot this issue is:
+
+1. Confirm that all the faces exist.
+
+   Run `ndndpdk-ctrl list-face` command on both forwarders.
+   You should see faces (2) (3) (4) (5).
+
+   Ethernet faces (3) and (4) are meant to be created manually.
+   Some applications, such as `ndndpdk-godemo`, can automatically create memif faces (2) and (5); other applications, such as the NDN-DPDK fileserver, require you to manually create the memif faces.
+
+2. Confirm that the FIB entries exist and point to the correct nexthops.
+
+   Run `ndndpdk-ctrl list-fib` command on both forwarders.
+   You should see a FIB entry on each forwarder for the producer's name prefix, pointing to face (3) and (5) respectively.
+
+3. Locate where does packet loss start through face counters.
+
+   Run `ndndpdk-ctrl get-face --cnt --id` *FACE-ID* command to retrieve counters of a face.
+   Wait a few seconds and run this command again, and you can observe which counters are increasing.
+
+   Follow the traffic flow in the order below, and locate the first counter that is not increasing:
+
+   1. (1) TX-Interest, (2) RX-Interest, (3) TX-Interest, (4) RX-Interest, (5) TX-Interest, (6) RX-Interest.
+   2. (6) TX-Data, (5) RX-Data, (4) TX-Data, (3) RX-Data, (2) TX-Data, (1) RX-Data.
+
+   If the loss starts at an RX counter, some possible causes are:
+
+   * Mismatched face locator.
+   * Incorrect MTU configuration, such as MTU larger than what the link supports.
+   * Driver issue/limitation, such as trying to use VXLAN on an Ethernet port with XDP driver.
+   * Insufficient DIRECT mempool capacity: if the DIRECT mempool is full, DPDK silently drops all incoming packets.
+     See [performance tuning](tuning.md) "memory usage insights" for how to see mempool utilization.
+   * Packet corruption along the network link.
+     If this occurs on face (4) RX-Interest, you can stop NDN-DPDK, capture traffic with `tcpdump`, and analyze the packet trace.
+
+   If the loss starts at an TX counter, some possible causes are:
+
+   * Missing FIB entry.
+   * For face (1) and (6): The consumer/producer is not sending Interests/Data as you expected.
+   * For face (4): the Data sent by producer are not satisfying the Interests according to the NDN protocol.
+
+   In case an application does not publish face counters, you can skip to the next counter, but then you need to consider the possible causes for the previous step.
+   For example, if you cannot retrieve face (1) TX-Interest counter from the consumer, and you see face (2) RX-Interest not increasing, you should consider "consumer not sending Interests" as a possible cause.
+
+### Combination of Multiple Ethernet-based Faces Not Working
+
+Problem scenario:
+
+* You want to create two or more Ethernet-based faces on the same Ethernet port.
+* When you have only one face on the Ethernet port, it works perfectly.
+* After you create the second (or third, etc) face on the same Ethernet port, face creation fails with error, or some faces cannot send or receive traffic.
+
+This is probably a DPDK driver limitation.
+It most frequently occurs when using the PCI driver and enabling RxFlow.
+
+You can try these options, one at a time (restart NDN-DPDK before trying another):
+
+* Increase number of queues for RxFlow.
+* Decrease number of RX queues in VXLAN locator.
+* Disable RxFlow.
+* Switch to XDP or AF\_PACKET driver.

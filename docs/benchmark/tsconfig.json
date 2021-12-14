@@ -4,19 +4,18 @@
     "esModuleInterop": true,
     "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
-    "lib": ["ES2020"],
     "importHelpers": true,
     "jsx": "react",
     "jsxFactory": "h",
     "jsxFragmentFactory": "Fragment",
-    "module": "ES2020",
+    "module": "es2022",
     "moduleResolution": "Node",
     "noImplicitAny": false,
     "noImplicitReturns": true,
     "noUnusedLocals": true,
     "sourceMap": true,
     "strict": true,
-    "target": "ES2020"
+    "target": "ES2021"
   },
   "include": [
     "**/*.ts",

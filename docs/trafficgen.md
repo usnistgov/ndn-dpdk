@@ -35,13 +35,9 @@ Traffic generator associated with each face is given dedicated packet queues and
 Generally, each face requires 1 input thread, 1 output thread, 2 consumer threads, and 1 producer thread.
 They should be on the same NUMA socket as the Ethernet adapter.
 
-The input dispatching method in the traffic generator requires every face to have a separate input thread.
-Hence, if two faces are on the same Ethernet adapter, the Ethernet adapter must support [hardware-accelerate receive path (rxFlow)](../iface/ethface).
-It is not recommended to use the traffic generator on socket faces, AF\_PACKET, or AF\_XDP Ethernet adapters.
-
 ## Start the Traffic Generator
 
-After starting the `ndndpdk-svc` service process or container, there are two steps to start a traffic generator:
+After starting the `ndndpdk-svc` service process or container, follow these steps to start a traffic generator:
 
 1. Activate the service process as traffic generator role.
    This prepares the service to accept traffic generator related commands.
@@ -49,11 +45,23 @@ After starting the `ndndpdk-svc` service process or container, there are two ste
    You must prepare a JSON document that contains traffic generator activation parameters, which must conform to the JSON schema `trafficgen.schema.json` (installed in `/usr/local/share/ndn-dpdk` and [available online](https://ndn-dpdk.ndn.today/schema/trafficgen.schema.json)).
    You can use the `ndndpdk-ctrl activate-trafficgen` command, or programmatically activate the traffic generator via GraphQL `activate` mutation with `trafficgen` input.
 
-2. Start a traffic generator with traffic patterns.
+2. Create Ethernet ports for the faces needed in traffic generators.
+   See [face creation](face.md) for instructions.
+
+   The input dispatching method in the traffic generator requires every face to have a separate input thread.
+   Hence, the Ethernet port should be created with PCI driver and the RxFlow feature should be enabled.
+
+   For Ethernet ports with non-PCI driver or RxFlow disabled, you can run one traffic generator instance per port.
+   However, such setup is not recommended because it is unreliable and slower.
+
+3. Start a traffic generator with traffic patterns.
    This requests the service process to create a face, allocate producer and consumer threads, and launch them with the provided traffic patterns.
 
    You must prepare a JSON document that contains traffic patterns configuration, which must conform to the JSON schema `gen.schema.json` (installed in `/usr/local/share/ndn-dpdk` and [available online](https://ndn-dpdk.ndn.today/schema/gen.schema.json)).
    You can use the `ndndpdk-ctrl start-trafficgen` command, or programmatically start a traffic generator via GraphQL `startTrafficGen` mutation.
+
+4. If the traffic generator shall communicate with a forwarder, create face and FIB entry on the forwarder.
+   The traffic generator would not automatically perform prefix registration on the forwarder.
 
 ### Authoring Parameters in TypeScript
 
@@ -67,29 +75,20 @@ You can follow a similar procedure as [forwarder activation and usage](forwarder
 
 ### Commonly Used Activation Parameters
 
-**.eal.pciDevices** is a list of Ethernet adapters you want to use, written as PCI addresses.
-To find the PCI addresses of available Ethernet adapters, run `dpdk-devbind.py --status-dev net`.
-You should list the PCI address of every Ethernet adapter that you intend to use.
-
 **.mempool.DIRECT.dataroom** is the size of each packet buffer.
-The maximum MTU supported by the traffic generator is this dataroom minus 128 (`RTE_PKTMBUF_HEADROOM` constant).
+The maximum Ethernet port MTU supported by the forwarder is this dataroom minus DPDK mbuf headroom (`RTE_PKTMBUF_HEADROOM`, normally 128) and Ethernet+VLAN header length (18).
+For example, to support MTU=9000, this must be set to at least 9146.
 
 ### Commonly Used Traffic Pattern Configuration Parameters
 
-**.face.scheme** should be one of "ether", "udpe", or "vxlan".
-Other schemes will not work properly.
-
-**.face.portConfig.mtu** is the Ethernet adapter MTU, which includes Ethernet/UDP/VXLAN headers.
-It cannot exceed the limitation described in `.mempool.DIRECT.dataroom` activation parameter.
-
-**.face.mtu** is the face MTU, which excludes Ethernet/UDP/VXLAN headers.
-It cannot exceed `.face.portConfig.mtu` minus header length.
+**.face** should be the locator of an Ethernet-based face that can be created on an Ethernet port that is already created.
+See [face creation](face.md) for locator syntax.
 
 **.producer.patterns\[\].prefix** is the name prefix for matching Interests.
 The producer selects the first pattern whose prefix matches an incoming Interest, and does not perform longest prefix match.
 
 **.producer.patterns\[\].replies\[\].payloadLen** is the content payload length.
-The total packet size, including NDNLPv2 header, name, payload, and signature, cannot exceed `.face.mtu`, or the packet would be dropped.
+The total packet size, including NDNLPv2 header, name, payload, and signature, cannot exceed the face MTU, or the packet would be dropped.
 
 **.producer.patterns\[\].replies\[\].weight** is the probability of selecting a reply among all replies defined under a pattern.
 If you define two replies with weights 9 and 1, the first reply has a 90% probability of being selected.
@@ -102,7 +101,7 @@ If you define two patterns with weights 2 and 3, 40% of the outgoing Interests w
 
 ## Control the Traffic Generator
 
-When you start a traffic generator, the `ndndpdk-ctrl start-trafficgen` command or `startTrafficGen` mutation returns a JSON object that contains the ID of the traffic generator.
+When you start a traffic generator, the `ndndpdk-ctrl start-trafficgen` command or GraphQL `startTrafficGen` mutation returns a JSON object that contains the ID of the traffic generator.
 You may use `ndndpdk-ctrl watch-trafficgen` command or GraphQL `watchTrafficGen` subscription to receive periodical updates of traffic generator counters.
 You may use `ndndpdk-ctrl stop-trafficgen` command or GraphQL `delete` mutation to stop the traffic generator.
 

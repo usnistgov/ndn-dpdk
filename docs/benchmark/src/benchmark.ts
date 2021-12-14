@@ -66,7 +66,6 @@ export class Benchmark {
         cores: [...this.env.F_CORES_PRIMARY, ...this.env.F_CORES_SECONDARY],
         lcoreMain: this.env.F_CORES_SECONDARY[0],
         memPerNuma: { [this.env.F_NUMA_PRIMARY]: 16384 },
-        pciDevices: this.env.F_PORTS,
       },
       lcoreAlloc: {
         RX: this.env.F_CORES_PRIMARY.slice(-2 * faceRxQueues),
@@ -97,13 +96,12 @@ export class Benchmark {
 
     const seenNdtIndices = new Set<number>();
     for (const [i, [label]] of DIRECTIONS.entries()) {
+      const port = await createEthPort(this.cF, this.env.F_PORTS[i]!);
       const face = await createFace(this.cF, {
-        port: this.env.F_PORTS[i]!,
-        portConfig: { mtu: 9000 },
+        port,
         maxRxQueues: faceRxQueues,
         local: macAddr("F", label),
         remote: macAddr("G", label),
-        mtu: 8800,
         ...(faceScheme === "vxlan" ? vxlanLocatorFields : { scheme: "ether" }),
       });
       this.state.face[label] = face;
@@ -134,7 +132,6 @@ export class Benchmark {
         cores: [...this.env.G_CORES_PRIMARY, ...this.env.G_CORES_SECONDARY],
         lcoreMain: this.env.G_CORES_SECONDARY[0],
         memPerNuma: { [this.env.G_NUMA_PRIMARY]: 16384 },
-        pciDevices: this.env.G_PORTS,
       },
       mempool: {
         DIRECT: { capacity: 1048575, dataroom: 9146 },
@@ -148,14 +145,14 @@ export class Benchmark {
     `, { arg });
 
     for (const [i, [label]] of DIRECTIONS.entries()) {
+      const port = await createEthPort(this.cG, this.env.G_PORTS[i]!);
+
       const cfg: TgConfig = {
         face: {
-          port: this.env.G_PORTS[i % 2]!,
-          portConfig: { mtu: 9000 },
+          port,
           maxRxQueues: faceRxQueues,
           local: macAddr("G", label),
           remote: macAddr("F", label),
-          mtu: 8800,
           ...(faceScheme === "vxlan" ? vxlanLocatorFields : { scheme: "ether" }),
         },
         producer: {
@@ -286,6 +283,26 @@ const vxlanLocatorFields: Omit<VxlanLocator, keyof EtherLocator> & Pick<VxlanLoc
   innerLocal: "02:00:00:ff:ff:ff",
   innerRemote: "02:00:00:ff:ff:ff",
 };
+
+async function createEthPort(client: GraphQLClient, pciAddr: string): Promise<string> {
+  const { createEthPort: { name } } = await client.request<{
+    createEthPort: { name: string };
+  }>(gql`
+    mutation createEthPort(
+      $pciAddr: String
+    ) {
+      createEthPort(
+        driver: PCI
+        pciAddr: $pciAddr
+        mtu: 9000
+        rxFlowQueues: 2
+      ) {
+        name
+      }
+    }
+  `, { pciAddr });
+  return name;
+}
 
 async function createFace(client: GraphQLClient, locator: FaceLocator): Promise<string> {
   const { createFace: { id } } = await client.request<{

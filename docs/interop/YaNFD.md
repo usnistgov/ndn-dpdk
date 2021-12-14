@@ -74,30 +74,19 @@ B_NAME=/net/B
 On node A, start NDN-DPDK forwarder and producer:
 
 ```bash
-# bring up the network interface and assign IP address
-sudo ip link set $A_IFNAME up
-sudo ip addr replace $A_IP dev $A_IFNAME
-
 # (re)start NDN-DPDK service
 sudo ndndpdk-ctrl systemd restart
 
-# activate NDN-DPDK forwarder with PCI Ethernet adapter driver
-# (this only works with bifurcated driver such as mlx5, because NDN-DPDK relies on the kernel to respond to ARP/NDP queries)
-jq -n --arg if_pci $A_IF_PCI '
-{
-  eal: {
-    coresPerNuma: { "0": 4, "1": 4 },
-    pciDevices: [$if_pci]
-  }
-}' | ndndpdk-ctrl activate-forwarder
-
-# or, activate NDN-DPDK forwarder with AF_XDP Ethernet adapter driver
+# activate NDN-DPDK forwarder
 jq -n '
 {
   eal: {
     coresPerNuma: { "0": 4, "1": 4 }
   }
 }' | ndndpdk-ctrl activate-forwarder
+
+# create Ethernet port with PCI driver
+ndndpdk-ctrl create-eth-port --pci $A_IF_PCI
 
 # create face
 A_IPPORT=$(echo $A_IP | awk -F/ '{ if ($1~":") { print "[" $1 "]:6363" } else { print $1 ":6363" } }')
@@ -109,15 +98,17 @@ A_FACEID=$(ndndpdk-ctrl create-udp-face --local $A_HWADDR --remote $B_HWADDR \
 A_FIBID=$(ndndpdk-ctrl insert-fib --name $B_NAME --nh $A_FACEID | tee /dev/stderr | jq -r .id)
 
 # start the producer
-sudo build/bin/ndndpdk-godemo pingserver --name $A_NAME --payload 512
+sudo ndndpdk-godemo pingserver --name $A_NAME --payload 512
 ```
 
 On node B, start YaNFD and producer:
 
 ```bash
-# bring up the network interface and assign IP address
+# bring up the Ethernet adapter and configure ARP/NDP entry
 sudo ip link set $B_IFNAME up
 sudo ip addr replace $B_IP dev $B_IFNAME
+A_IPADDR=$(echo $A_IP | awk -F/ '{ print $1 }')
+sudo ip neigh replace $A_IPADDR lladdr $A_HWADDR nud noarp dev $B_IFNAME
 
 # stop YaNFD if it's already running
 docker rm -f yanfd
@@ -125,7 +116,7 @@ docker rm -f yanfd
 # start YaNFD
 docker volume create run-ndn
 docker run -d --rm --name yanfd \
-  --network host \
+  --network host --init \
   --mount type=volume,source=run-ndn,target=/run/ndn \
   yanfd
 
@@ -153,7 +144,7 @@ On node A, start a consumer:
 
 ```bash
 # run the consumer
-sudo build/bin/ndndpdk-godemo pingclient --name ${B_NAME}/ping --interval 10ms
+sudo ndndpdk-godemo pingclient --name ${B_NAME}/ping --interval 10ms
 ```
 
 On node B, start a consumer:

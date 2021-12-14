@@ -65,12 +65,13 @@ See [performance tuning](tuning.md) "LCore Allocation" section on how to run wit
 
 ### Alternate Setup Methods
 
-Instead of connecting to the local NDN-DPDK forwarder, it is possible to run a standalone file server that listens on a physical Ethernet adapter.
-You may do so by setting `.face` locator to an Ethernet adapter, and including the PCI address of the Ethernet adapter in `.eal.pciDevices`.
-
 The file server is internally implemented as a traffic generator component.
 Therefore, it is possible to start a file server as part of the traffic generator.
 You may do so by invoking GraphQL `startTrafficGen` mutation with a JSON document that contains `.fileServer` field.
+
+Instead of connecting to the local NDN-DPDK forwarder, it is possible to run a standalone file server that listens on a physical Ethernet adapter.
+You may do so by setting `.face` locator to an Ethernet-based face instead of a memif face.
+See [traffic generator](trafficgen.md) for requirements of Ethernet port creation.
 
 ## Sample Scenario: transfer NDN-DPDK itself
 

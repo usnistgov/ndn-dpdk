@@ -9,6 +9,8 @@ This is a web application that performs simple benchmark of NDN-DPDK forwarder.
 * Two physical machines.
 * Two PCI Ethernet adapters, connected via direct attach cables.
   * Both adapters must be on the same NUMA socket.
+  * The adapter must support PCI driver and RxFlow with 2 queues.
+  * The link must support MTU 9000.
 * At least 8 CPU cores on the same NUMA socket as the Ethernet adapters.
 * At least 2 CPU cores on any NUMA socket.
 
@@ -36,19 +38,19 @@ This benchmark controls a forwarder and a traffic generator via GraphQL.
 The forwarder is setup as follows:
 
 * There are *n* forwarding threads.
-* First face has FIB prefixes `/A/0`, `/A/1`, &hellip;, `/A/`*n-1*.
-* Second face has FIB prefixes `/B/0`, `/B/1`, &hellip;, `/B/`*n-1*.
+* Face A has FIB prefixes `/A/0`, `/A/1`, &hellip;, `/A/`*n-1*.
+* Face B has FIB prefixes `/B/0`, `/B/1`, &hellip;, `/B/`*n-1*.
 * NDT is setup so that traffic is balanced: `/A/`*i* and `/B/`*i* prefixes are dispatched to forwarding thread #*i*.
 * Caching is minimal and cache hits are not expected.
 
 The traffic generator is setup as follows:
 
-* First face has a producer serving infinitely larger "files" under `/A/0`, `/A/1`, &hellip;, `/A/`*n-1* prefixes.
-* Second face has a producer serving infinitely larger "files" under `/B/0`, `/B/1`, &hellip;, `/B/`*n-1* prefixes.
-* First face has consumers fetching from the second producer through the forwarder.
-* Second face has consumers fetching from the first producer through the forwarder.
+* Face A has producer A serving infinitely large "files" under `/A/0`, `/A/1`, &hellip;, `/A/`*n-1* prefixes.
+* Face B has producer B serving infinitely large "files" under `/B/0`, `/B/1`, &hellip;, `/B/`*n-1* prefixes.
+* Face A has consumers fetching from producer B through the forwarder.
+* Face B has consumers fetching from producer A through the forwarder.
 * An Interest name looks like `/A/0/i/i/i/seg=202`, in which `/i` is repeated to make up desired name length.
 * If Data "prefix match" is selected, Data name is Interest name plus `/d` suffix; otherwise, Data name is same as Interest name.
 
 [benchmark.ts](src/benchmark.ts) implements the core benchmark logic.
-Read the code to understand the exact parameters, or use it as a starting point for developing additional benchmarks.
+Read the code to understand the exact parameters, or use it as a starting point for developing other benchmarks.
