@@ -67,10 +67,10 @@ dpdk-devbind.py --status-dev net
 # change kernel driver binding (only needed for some NICs, see DPDK docs on what driver to use)
 sudo dpdk-devbind.py -b uio_pci_generic 04:00.0
 
-# create an Ethernet port with PCI driver, enabling RxFlow with 16 queues
+# create an Ethernet port with PCI driver, enable RxFlow with 16 queues
 ndndpdk-ctrl create-eth-port --pci 04:00.0 --mtu 1500 --rx-flow 16
 
-# or, create an Ethernet port with PCI driver, disabling RxFlow
+# or, create an Ethernet port with PCI driver, disable RxFlow
 ndndpdk-ctrl create-eth-port --pci 04:00.0 --mtu 1500
 ```
 
@@ -100,7 +100,8 @@ sudo ip link set $NETIF up
 
 # if NDN-DPDK is running in a Docker container:
 # (1) move the network interface into the container's network namespace
-sudo ip link set $NETIF netns $(docker inspect --format='{{ .State.Pid }}' ndndpdk-svc)
+CTPID=$(docker inspect --format='{{ .State.Pid }}' ndndpdk-svc)
+sudo ip link set $NETIF netns $CTPID
 # (2) bring up the network interface
 docker exec ndndpdk-svc ip link set $NETIF up
 

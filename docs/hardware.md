@@ -18,7 +18,7 @@ The developers have tested NDN-DPDK on servers with one, two, and four NUMA sock
 Default configuration of NDN-DPDK requires at least 6 CPU cores (total) and 8 GB hugepages memory (per NUMA socket).
 With a custom configuration, NDN-DPDK might work on 2 CPU cores and 2 GB memory, albeit at reduced performance; see [performance tuning](tuning.md) "lcore allocation" and "memory usage insights" for some hints on how to do so.
 
-Additionally, you should have at least 1 GB memory on NUMA socket 0 and on each NUMA socket where you have PCI device(s) that you want to use.
+Generally, you should allow at least 1 GB memory on NUMA socket 0 and on each NUMA socket where you have Ethernet adapters that you want to use with PCI driver.
 DPDK device drivers are not well-tested when they cannot allocate memory on NUMA socket 0 or the NUMA socket of the PCI device.
 In that case, you would see "Cannot allocate memory" error in NDN-DPDK service logs.
 
@@ -28,19 +28,20 @@ NDN-DPDK aims to work with most Ethernet adapters supported by [DPDK Network Int
 
 The developers have tested NDN-DPDK with the following Ethernet adapters:
 
-model | speed | DPDK driver
--|-|-
-Mellanox ConnectX-5 | 100 Gbps | mlx5
-Intel X710 | 10 Gbps | i40e, iavf
-Intel X520 | 10 Gbps | ixgbe
-Intel I350 | 1 Gbps | igb
+model | speed | DPDK driver | RxFlow
+-|-|-|-
+Mellanox ConnectX-5 | 100 Gbps | mlx5 | yes
+Intel X710 | 10 Gbps | i40e | UDP only
+Intel X710 VF | 10 Gbps | iavf | untested
+Intel X520 | 10 Gbps | ixgbe | UDP only
+Intel I350 | 1 Gbps | igb | no
 
 Some Ethernet adapters have more than one physical ports on the same PCI card.
 NDN-DPDK is only tested to work on the first port (lowest PCI address) of those dual-port or quad-port adapters.
 If you encounter face creation failure or you are unable to send/receive packets, please use the first port instead.
 
 See [face creation](face.md) for the general procedure of face creation on Ethernet adapters.
-The next sections describe specifics on select NIC models.
+The next sections provide information on specific NIC models.
 
 ### Mellanox Ethernet Adapters
 
@@ -78,21 +79,27 @@ Example command:
 
 ```bash
 NETIF=enp4s0f0
-sudo ip link set $NETIF netns $(docker inspect --format='{{ .State.Pid }}' ndndpdk-svc)
+CTPID=$(docker inspect --format='{{ .State.Pid }}' ndndpdk-svc)
+sudo ip link set $NETIF netns $CTPID
 ```
 
-Mellanox adapters generally support RxFlow feature.
+Most Mellanox adapters are compatible with NDN-DPDK RxFlow feature.
 Unless you encounter errors, you should enable RxFlow while creating the Ethernet port.
 Example command:
 
 ```bash
+# determine maximum number of RxFlow queues
+# look at "current hardware settings - combined" row
+ethtool --show-channels enp4s0f0
+
+# create Ethernet port
 ndndpdk-ctrl create-eth-port --pci 04:00.0 --mtu 1500 --rx-flow 16
 ```
 
 ### Intel Ethernet Adapters
 
 The PCI device must use igb\_uio driver.
-The `ndndpdk-depends.sh` script can automatically install this kernel module if kernel headers are present.
+The `ndndpdk-depends.sh` script automatically installs this kernel module if kernel headers are present.
 
 If you have upgraded the kernel or you are using the Docker container, you can install the kernel module manually:
 
@@ -125,12 +132,22 @@ docker run \
 * `find` subcommand constructs `--device` flags for `/dev/uio*` devices.
 * `--mount target=/sys` flag enables access to attributes in `/sys/class/uio` directory.
 
-Mellanox adapters generally support RxFlow feature.
-Unless you encounter errors, you should enable RxFlow while creating the Ethernet port.
+Intel adapters have limited compatibility with NDN-DPDK RxFlow feature.
+As tested with i40e and ixgbe drivers, RxFlow can be used with UDP faces, but not Ethernet or VXLAN faces.
+You should test RxFlow with your specific hardware and face locators, and decide whether to use this feature.
 Example command:
 
 ```bash
+# determine maximum number of RxFlow queues
+# look at "current hardware settings - combined" row
+# you can only run this command before binding to igb_uio driver
+ethtool --show-channels enp4s0f0
+
+# create Ethernet port, enable RxFlow
 ndndpdk-ctrl create-eth-port --pci 04:00.0 --mtu 1500 --rx-flow 16
+
+# or, create Ethernet port, disable RxFlow
+ndndpdk-ctrl create-eth-port --pci 04:00.0 --mtu 1500
 ```
 
 ### Intel Virtual Function
@@ -156,7 +173,8 @@ To use Intel VF:
       ip link show enp4s0f0
       ```
 
-    * Face creation commands should use the MAC address assigned above, not the MAC address of the physical adapter.
+    * All faces must use this assigned MAC address as the local address.
+      You cannot use the MAC address of the physical adapter or any other address.
 
 2. If NDN-DPDK is installed on the physical server: bind the VF PCI device to igb\_uio driver.
 

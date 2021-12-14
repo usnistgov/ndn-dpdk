@@ -260,19 +260,31 @@ EthRxMatch_Prepare(EthRxMatch* match, const EthLocator* loc)
 #undef BUF_TAIL
 }
 
+static void
+EthFlowPattern_Set(EthFlowPattern* flow, size_t i, enum rte_flow_item_type typ, uint8_t* spec,
+                   uint8_t* mask, size_t size)
+{
+  for (size_t j = 0; j < size; ++j) {
+    spec[j] &= mask[j];
+  }
+  flow->pattern[i].type = typ;
+  flow->pattern[i].spec = spec;
+  flow->pattern[i].mask = mask;
+}
+
 void
 EthFlowPattern_Prepare(EthFlowPattern* flow, const EthLocator* loc)
 {
   ClassifyResult classify = EthLocator_Classify(loc);
 
   *flow = (const EthFlowPattern){ 0 };
+  flow->pattern[0].type = RTE_FLOW_ITEM_TYPE_END;
   size_t i = 0;
 #define MASK(field) memset(&(field), 0xFF, sizeof(field))
 #define APPEND(typ, field)                                                                         \
   do {                                                                                             \
-    flow->pattern[i].type = RTE_FLOW_ITEM_TYPE_##typ;                                              \
-    flow->pattern[i].spec = &flow->field##Spec;                                                    \
-    flow->pattern[i].mask = &flow->field##Mask;                                                    \
+    EthFlowPattern_Set(flow, i, RTE_FLOW_ITEM_TYPE_##typ, (uint8_t*)&flow->field##Spec,            \
+                       (uint8_t*)&flow->field##Mask, sizeof(flow->field##Mask));                   \
     ++i;                                                                                           \
     NDNDPDK_ASSERT(i < RTE_DIM(flow->pattern));                                                    \
     flow->pattern[i].type = RTE_FLOW_ITEM_TYPE_END;                                                \
