@@ -53,7 +53,7 @@ Generally, to create an Ethernet port with PCI driver, you should:
 3. Run `ndndpdk-ctrl create-eth-port` command with `--pci` flag.
 
 Some Ethernet adapters support rte\_flow API that allows for a hardware-accelerated receive path called *RxFlow*.
-See [package ethface](../iface/ethface) "Receive Path" section for detailed explanation.
+See [package ethport](../iface/ethport) "Receive Path" section for detailed explanation.
 You may enable this feature with `--rx-flow` flag, which substantially improves performance.
 The specified number of queues is the maximum number of faces you can create on the Ethernet port.
 Enabling RxFlow on a NIC that does not support it causes either port creation failure or face creation failure.

@@ -1,4 +1,4 @@
-package ethface
+package ethport
 
 import (
 	"errors"
@@ -9,12 +9,17 @@ import (
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
 
+	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev/ethnetif"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
+
+var logger = logging.New("ethport")
+var portByEthDevID = [ethdev.MaxEthDevs]*Port{}
+var closeAllPortsOnce sync.Once
 
 // Limits and defaults.
 const (
@@ -24,10 +29,14 @@ const (
 	xdpMinDataroom = 2048 // XDP_UMEM_MIN_CHUNK_SIZE in kernel
 )
 
-// PortConfig contains Port creation arguments.
-type PortConfig struct {
+// Config contains Port creation arguments.
+type Config struct {
+	// ethnetif.Config specifies how to find or create EthDev.
 	ethnetif.Config
-	EthDev ethdev.EthDev `json:"-"` // override EthDev
+	// EthDev specifies EthDev. It overrides ethnetif.Config.
+	EthDev ethdev.EthDev `json:"-"`
+	// AutoClose indicates that EthDev should be closed when the last face is closed.
+	AutoClose bool `json:"-"`
 
 	RxQueueSize int `json:"rxQueueSize,omitempty" gqldesc:"Hardware RX queue capacity."`
 	TxQueueSize int `json:"txQueueSize,omitempty" gqldesc:"Hardware TX queue capacity."`
@@ -37,22 +46,49 @@ type PortConfig struct {
 	RxFlowQueues int `json:"rxFlowQueues,omitempty" gqldesc:"Enable RxFlow and set maximum queue count."`
 }
 
-var (
-	portByEthDev      = map[ethdev.EthDev]*Port{}
-	closeAllPortsOnce sync.Once
-)
+// ensureEthDev creates EthDev if it's not set.
+func (cfg *Config) ensureEthDev() (e error) {
+	if cfg.EthDev != nil {
+		return nil
+	}
+	if cfg.EthDev, e = ethnetif.CreateEthDev(cfg.Config); e != nil {
+		return e
+	}
+	return nil
+}
+
+// applyDefaults applies defaults.
+// cfg.EthDev must be set before calling this function.
+func (cfg *Config) applyDefaults() {
+	if cfg.MTU == 0 {
+		cfg.MTU = cfg.EthDev.MTU()
+	}
+	if cfg.RxQueueSize == 0 {
+		cfg.RxQueueSize = DefaultRxQueueSize
+	}
+	if cfg.TxQueueSize == 0 {
+		cfg.TxQueueSize = DefaultTxQueueSize
+	}
+}
 
 // Port organizes EthFaces on an EthDev.
 type Port struct {
-	cfg          PortConfig
+	cfg          Config
 	logger       *zap.Logger
 	dev          ethdev.EthDev
 	devInfo      ethdev.DevInfo
-	faces        map[iface.ID]*ethFace
+	faces        map[iface.ID]*Face
 	rxBouncePool *pktmbuf.Pool
 	rxImpl       rxImpl
 	txl          iface.TxLoop
-	autoClose    bool
+}
+
+// Faces returns a list of active faces.
+func (port *Port) Faces() (list []iface.Face) {
+	for _, face := range port.faces {
+		list = append(list, face)
+	}
+	return list
 }
 
 // Close closes the port.
@@ -72,7 +108,7 @@ func (port *Port) Close() error {
 		if port.devInfo.IsVDev() {
 			errs = append(errs, port.dev.Stop(ethdev.StopDetach))
 		}
-		delete(portByEthDev, port.dev)
+		portByEthDevID[port.dev.ID()] = nil
 		port.dev = nil
 	}
 
@@ -88,14 +124,6 @@ func (port *Port) Close() error {
 		port.logger.Info("port closed")
 	}
 	return e
-}
-
-// Faces returns a list of active faces.
-func (port *Port) Faces() (list []iface.Face) {
-	for _, face := range port.faces {
-		list = append(list, face.Face)
-	}
-	return list
 }
 
 func (port *Port) startDev(nRxQueues int, promisc bool) error {
@@ -121,7 +149,7 @@ func (port *Port) startDev(nRxQueues int, promisc bool) error {
 	return port.dev.Start(cfg)
 }
 
-func (port *Port) activateTx(face *ethFace) {
+func (port *Port) activateTx(face iface.Face) {
 	if port.txl == nil {
 		port.txl = iface.ActivateTxFace(face)
 	} else {
@@ -129,85 +157,80 @@ func (port *Port) activateTx(face *ethFace) {
 	}
 }
 
-func (port *Port) deactivateTx(face *ethFace) {
+func (port *Port) deactivateTx(face iface.Face) {
 	iface.DeactivateTxFace(face)
 	if len(port.faces) == 0 {
 		port.txl = nil
 	}
 }
 
-// NewPort opens a Port.
-func NewPort(cfg PortConfig) (port *Port, e error) {
-	dev := cfg.EthDev
-	if dev == nil {
-		dev, e = ethnetif.CreateEthDev(cfg.Config)
-		if e != nil {
-			return nil, e
-		}
+// New opens a Port.
+func New(cfg Config) (port *Port, e error) {
+	if e = cfg.ensureEthDev(); e != nil {
+		return nil, e
 	}
-	if portByEthDev[dev] != nil {
+	if Find(cfg.EthDev) != nil {
 		return nil, errors.New("Port already exists")
 	}
 
-	if cfg.MTU == 0 {
-		cfg.MTU = dev.MTU()
-	}
+	cfg.applyDefaults()
 	if ndni.PacketMempool.Config().Dataroom < pktmbuf.DefaultHeadroom+cfg.MTU {
 		return nil, errors.New("PacketMempool dataroom is too small for requested MTU")
-	}
-	if cfg.RxQueueSize == 0 {
-		cfg.RxQueueSize = DefaultRxQueueSize
-	}
-	if cfg.TxQueueSize == 0 {
-		cfg.TxQueueSize = DefaultTxQueueSize
 	}
 
 	port = &Port{
 		cfg:     cfg,
-		dev:     dev,
-		devInfo: dev.DevInfo(),
-		faces:   map[iface.ID]*ethFace{},
+		logger:  logger.With(cfg.EthDev.ZapField("port")),
+		dev:     cfg.EthDev,
+		devInfo: cfg.EthDev.DevInfo(),
+		faces:   map[iface.ID]*Face{},
 	}
 	switch port.devInfo.DriverName() {
 	case ethdev.DriverXDP:
 		if port.rxBouncePool, e = pktmbuf.NewPool(pktmbuf.PoolConfig{
 			Capacity: cfg.RxQueueSize + iface.MaxBurstSize,
 			Dataroom: math.MaxInt(pktmbuf.DefaultHeadroom+cfg.MTU, xdpMinDataroom),
-		}, dev.NumaSocket()); e != nil {
+		}, cfg.EthDev.NumaSocket()); e != nil {
 			return nil, e
 		}
 	case ethdev.DriverMemif:
-		port.rxImpl = &rxMemifImpl{}
+		port.rxImpl = &rxMemif{}
 	}
 	if port.rxImpl == nil {
 		if port.cfg.RxFlowQueues > 0 {
-			port.rxImpl = &rxFlowImpl{}
+			port.rxImpl = &rxFlow{}
 		} else {
-			port.rxImpl = &rxTableImpl{}
+			port.rxImpl = &rxTable{}
 		}
 	}
 
-	port.logger = logger.With(dev.ZapField("port"), zap.String("rxImpl", string(port.rxImpl.Kind())))
-	if e := port.rxImpl.Init(port); e != nil {
+	if e = port.rxImpl.Init(port); e != nil {
 		port.logger.Error("rxImpl init error", zap.Error(e))
 		port.rxImpl = nil
 		port.Close()
 		return nil, e
 	}
 
-	port.logger.Info("port opened")
-	portByEthDev[port.dev] = port
+	port.logger.Info("port opened",
+		zap.Stringer("rxImpl", port.rxImpl),
+	)
+	portByEthDevID[port.dev.ID()] = port
 	closeAllPortsOnce.Do(func() {
 		iface.OnCloseAll(func() {
-			for _, port := range portByEthDev {
-				port.Close()
+			for _, port := range portByEthDevID {
+				if port != nil {
+					port.Close()
+				}
 			}
 		})
 	})
 	return port, nil
 }
 
-// FindPort returns Port on EthDev.
-func FindPort(dev ethdev.EthDev) *Port {
-	return portByEthDev[dev]
+// Find finds Port by EthDev.
+func Find(dev ethdev.EthDev) *Port {
+	if dev == nil {
+		return nil
+	}
+	return portByEthDevID[dev.ID()]
 }

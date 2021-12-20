@@ -5,6 +5,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/iface/ethport"
 	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
 )
 
@@ -63,7 +64,8 @@ func (loc VxlanLocator) Validate() error {
 	return nil
 }
 
-func (loc VxlanLocator) cLoc() (c cLocator) {
+// EthCLocator implements ethport.Locator interface.
+func (loc VxlanLocator) EthCLocator() (c ethport.CLocator) {
 	c = loc.IPLocator.cLoc()
 	c.LocalUDP = vxlanPort
 	c.RemoteUDP = vxlanPort
@@ -75,11 +77,13 @@ func (loc VxlanLocator) cLoc() (c cLocator) {
 
 // CreateFace creates a VXLAN face.
 func (loc VxlanLocator) CreateFace() (face iface.Face, e error) {
-	port, e := loc.findPort()
+	port, e := loc.FaceConfig.FindPort(loc.Local.HardwareAddr)
 	if e != nil {
 		return nil, e
 	}
-	return New(port, loc)
+
+	loc.FaceConfig.HideFaceConfigFromJSON()
+	return ethport.NewFace(port, loc)
 }
 
 func init() {

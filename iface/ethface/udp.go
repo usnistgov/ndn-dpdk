@@ -6,6 +6,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/iface/ethport"
 	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
 	"inet.af/netaddr"
 )
@@ -54,8 +55,8 @@ func (loc IPLocator) Validate() error {
 	return nil
 }
 
-func (loc IPLocator) cLoc() (c cLocator) {
-	c = loc.EtherLocator.cLoc()
+func (loc IPLocator) cLoc() (c ethport.CLocator) {
+	c = loc.EtherLocator.EthCLocator()
 	c.LocalIP = loc.LocalIP.As16()
 	c.RemoteIP = loc.RemoteIP.As16()
 	return
@@ -94,7 +95,8 @@ func (loc UDPLocator) Validate() error {
 	return nil
 }
 
-func (loc UDPLocator) cLoc() (c cLocator) {
+// EthCLocator implements ethport.Locator interface.
+func (loc UDPLocator) EthCLocator() (c ethport.CLocator) {
 	c = loc.IPLocator.cLoc()
 	c.LocalUDP = uint16(loc.LocalUDP)
 	c.RemoteUDP = uint16(loc.RemoteUDP)
@@ -103,11 +105,13 @@ func (loc UDPLocator) cLoc() (c cLocator) {
 
 // CreateFace creates a UDP face.
 func (loc UDPLocator) CreateFace() (face iface.Face, e error) {
-	port, e := loc.findPort()
+	port, e := loc.FaceConfig.FindPort(loc.Local.HardwareAddr)
 	if e != nil {
 		return nil, e
 	}
-	return New(port, loc)
+
+	loc.FaceConfig.HideFaceConfigFromJSON()
+	return ethport.NewFace(port, loc)
 }
 
 func init() {

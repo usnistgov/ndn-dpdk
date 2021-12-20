@@ -7,17 +7,17 @@ import (
 
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
-	"github.com/usnistgov/ndn-dpdk/iface/ethface"
+	"github.com/usnistgov/ndn-dpdk/iface/ethport"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 )
 
 func TestLocatorCoexist(t *testing.T) {
 	assert, _ := makeAR(t)
 	coexist := func(a, b string) {
-		assert.True(ethface.LocatorCanCoexist(parseLocator(a), parseLocator(b)))
+		assert.True(ethport.LocatorCanCoexist(parseLocator(a), parseLocator(b)))
 	}
 	conflict := func(a, b string) {
-		assert.False(ethface.LocatorCanCoexist(parseLocator(a), parseLocator(b)))
+		assert.False(ethport.LocatorCanCoexist(parseLocator(a), parseLocator(b)))
 	}
 
 	// "ether" scheme
@@ -114,9 +114,9 @@ func TestLocatorCoexist(t *testing.T) {
 func TestLocatorRxMatch(t *testing.T) {
 	assert, require := makeAR(t)
 
-	matchers := make(map[string]ethface.RxMatchFunc)
+	matchers := make(map[string]ethport.RxMatchFunc)
 	addMatcher := func(key string, locator string) {
-		matchers[key] = ethface.LocatorRxMatch(parseLocator(locator))
+		matchers[key] = ethport.LocatorRxMatch(parseLocator(locator))
 	}
 	addMatcher("ether-unicast", `{
 		"scheme": "ether",
@@ -338,7 +338,7 @@ func TestLocatorTxHdr(t *testing.T) {
 
 	checkTxHdr := func(locator string, expectedLayerTypes ...gopacket.LayerType) gopacket.Packet {
 		loc := parseLocator(locator)
-		prependTxHdr := ethface.LocatorTxHdr(loc, false)
+		prependTxHdr := ethport.LocatorTxHdr(loc, false)
 		pkt := makePacket(payload)
 		defer pkt.Close()
 		prependTxHdr(pkt, true)

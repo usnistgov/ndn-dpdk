@@ -1,4 +1,4 @@
-package ethface
+package ethport
 
 import (
 	"github.com/graphql-go/graphql"
@@ -9,30 +9,23 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
-// GraphQL types.
-var (
-	GqlRxImplKind *graphql.Enum
-)
-
 func init() {
-	GqlRxImplKind = gqlserver.NewStringEnum("EthFaceRxImplKind", "Port RX implementation.", RxImplMemif, RxImplFlow, RxImplTable)
-
 	ethdev.GqlEthDevType.AddFieldConfig("rxImpl", &graphql.Field{
 		Description: "Active ethface RX implementation.",
-		Type:        GqlRxImplKind,
+		Type:        graphql.String,
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-			port := FindPort(p.Source.(ethdev.EthDev))
+			port := Find(p.Source.(ethdev.EthDev))
 			if port == nil {
 				return nil, nil
 			}
-			return port.rxImpl.Kind(), nil
+			return port.rxImpl.String(), nil
 		},
 	})
 	ethdev.GqlEthDevType.AddFieldConfig("faces", &graphql.Field{
 		Description: "Faces on Ethernet device.",
 		Type:        graphql.NewList(graphql.NewNonNull(iface.GqlFaceType)),
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-			port := FindPort(p.Source.(ethdev.EthDev))
+			port := Find(p.Source.(ethdev.EthDev))
 			if port == nil {
 				return nil, nil
 			}
@@ -44,27 +37,26 @@ func init() {
 		Description: "Ethernet device containing this face.",
 		Type:        ethdev.GqlEthDevType,
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-			face := p.Source.(iface.Face)
-			ethFace, ok := face.(*ethFace)
+			face, ok := p.Source.(*Face)
 			if !ok {
 				return nil, nil
 			}
-			return ethFace.port.dev, nil
+			return face.port.dev, nil
 		},
 	})
 
 	gqlserver.AddMutation(&graphql.Field{
 		Name:        "createEthPort",
 		Description: "Create an Ethernet port.",
-		Args:        gqlserver.BindArguments(PortConfig{}, ethnetif.GqlConfigFieldTypes),
+		Args:        gqlserver.BindArguments(Config{}, ethnetif.GqlConfigFieldTypes),
 		Type:        ethdev.GqlEthDevType,
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-			var cfg PortConfig
+			var cfg Config
 			if e := jsonhelper.Roundtrip(p.Args, &cfg); e != nil {
 				return nil, e
 			}
 
-			port, e := NewPort(cfg)
+			port, e := New(cfg)
 			if e != nil {
 				return nil, e
 			}

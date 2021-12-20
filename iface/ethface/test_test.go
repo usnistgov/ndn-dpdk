@@ -1,7 +1,6 @@
 package ethface_test
 
 import (
-	"os"
 	"testing"
 
 	"github.com/google/gopacket"
@@ -15,17 +14,13 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/ethface"
+	"github.com/usnistgov/ndn-dpdk/iface/ethport"
 	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"go4.org/must"
 )
 
 func TestMain(m *testing.M) {
-	if len(os.Args) >= 2 && os.Args[1] == memifbridgeArg {
-		memifbridgeHelper()
-		os.Exit(0)
-	}
-
 	ealtestenv.Init()
 
 	pktmbuf.Direct.Update(pktmbuf.PoolConfig{
@@ -59,14 +54,14 @@ func createVNet(t *testing.T, cfg ethringdev.VNetConfig) *ethringdev.VNet {
 // ensurePorts creates a Port for each EthDev on the VNet, if it doesn't already have one.
 //
 // ifacetestenv.NewFixture should be called before this, so that RxLoop and TxLoop exist.
-func ensurePorts(t *testing.T, devs []ethdev.EthDev, cfg ethface.PortConfig) {
+func ensurePorts(t *testing.T, devs []ethdev.EthDev, cfg ethport.Config) {
 	_, require := makeAR(t)
 	for _, dev := range devs {
-		if ethface.FindPort(dev) != nil {
+		if ethport.Find(dev) != nil {
 			continue
 		}
 		cfg.EthDev = dev
-		_, e := ethface.NewPort(cfg)
+		_, e := ethport.New(cfg)
 		require.NoError(e)
 	}
 }
@@ -77,10 +72,10 @@ func makeEtherLocator(dev ethdev.EthDev) (loc ethface.EtherLocator) {
 	return
 }
 
-func parseLocator(j string) iface.Locator {
+func parseLocator(j string) ethport.Locator {
 	var locw iface.LocatorWrapper
 	fromJSON(j, &locw)
-	return locw.Locator
+	return locw.Locator.(ethport.Locator)
 }
 
 func packetFromLayers(hdrs ...gopacket.SerializableLayer) *pktmbuf.Packet {

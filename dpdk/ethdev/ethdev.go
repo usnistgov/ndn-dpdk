@@ -21,6 +21,9 @@ import (
 
 var logger = logging.New("ethdev")
 
+// MaxEthDevs is maximum number of EthDevs.
+const MaxEthDevs = C.RTE_MAX_ETHPORTS
+
 // EthDev represents an Ethernet adapter.
 type EthDev interface {
 	fmt.Stringer
@@ -238,7 +241,7 @@ func (dev ethDev) ResetStats() error {
 
 // FromID converts port ID to EthDev.
 func FromID(id int) EthDev {
-	if id < 0 || id >= C.RTE_MAX_ETHPORTS {
+	if id < 0 || id >= MaxEthDevs {
 		return nil
 	}
 

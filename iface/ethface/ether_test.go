@@ -13,6 +13,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/ethface"
+	"github.com/usnistgov/ndn-dpdk/iface/ethport"
 	"github.com/usnistgov/ndn-dpdk/iface/ifacetestenv"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
@@ -32,7 +33,7 @@ func makeTopo3(t *testing.T, forceLinearize bool) (topo topo3) {
 	vnet := createVNet(t, ethringdev.VNetConfig{NNodes: 3})
 	topo.vnet = vnet
 	topo.Fixture = ifacetestenv.NewFixture(t)
-	ensurePorts(t, vnet.Ports, ethface.PortConfig{})
+	ensurePorts(t, vnet.Ports, ethport.Config{})
 
 	topo.macA = vnet.Ports[0].HardwareAddr()
 	topo.macB, _ = net.ParseMAC("02:00:00:00:00:02")
@@ -100,7 +101,7 @@ func testFragmentation(t *testing.T, forceLinearize bool) {
 	fixture.PayloadLen = 6000
 	fixture.DataFrames = 2
 
-	ensurePorts(t, vnet.Ports, ethface.PortConfig{MTU: 5000})
+	ensurePorts(t, vnet.Ports, ethport.Config{MTU: 5000})
 
 	locA := makeEtherLocator(vnet.Ports[0])
 	locA.DisableTxMultiSegOffload = forceLinearize
@@ -133,14 +134,14 @@ func TestReassembly(t *testing.T) {
 
 	vnet := createVNet(t, ethringdev.VNetConfig{NNodes: 2})
 	ifacetestenv.NewFixture(t) // provides RxLoop + TxLoop
-	ensurePorts(t, vnet.Ports[1:], ethface.PortConfig{})
+	ensurePorts(t, vnet.Ports[1:], ethport.Config{})
 
 	portA := vnet.Ports[0]
 	cfgA := ethdev.Config{}
 	cfgA.AddTxQueues(1, ethdev.TxQueueConfig{})
 	portA.Start(cfgA)
 	locA := makeEtherLocator(vnet.Ports[0])
-	prependTxHdrA := ethface.LocatorTxHdr(locA, false)
+	prependTxHdrA := ethport.LocatorTxHdr(locA, false)
 	txqA := portA.TxQueues()[0]
 	sendA := func(pkt *ndn.Packet) {
 		b, e := tlv.EncodeFrom(pkt)

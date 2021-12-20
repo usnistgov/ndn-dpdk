@@ -1,4 +1,4 @@
-package ethface
+package ethport
 
 /*
 #include "../../csrc/ethface/rxtable.h"
@@ -15,35 +15,34 @@ import (
 	"go4.org/must"
 )
 
-type rxTableImpl struct {
-	rxt *rxTable
+type rxTable struct {
+	rxt *rxgTable
 }
 
-func (rxTableImpl) Kind() RxImplKind {
-	return RxImplTable
+func (rxTable) String() string {
+	return "RxTable"
 }
 
-func (impl *rxTableImpl) Init(port *Port) error {
+func (impl *rxTable) Init(port *Port) error {
 	if e := port.startDev(1, true); e != nil {
 		return e
 	}
-	impl.rxt = newRxTable(port)
+	impl.rxt = newRxgTable(port)
 	return nil
 }
 
-func (impl *rxTableImpl) Start(face *ethFace) error {
-	rxtC := impl.rxt.ptr()
-	C.cds_hlist_add_head_rcu(&face.priv.rxtNode, &rxtC.head)
+func (impl *rxTable) Start(face *Face) error {
+	C.cds_hlist_add_head_rcu(&face.priv.rxtNode, &impl.rxt.head)
 	return nil
 }
 
-func (impl *rxTableImpl) Stop(face *ethFace) error {
+func (impl *rxTable) Stop(face *Face) error {
 	C.cds_hlist_del_rcu(&face.priv.rxtNode)
 	urcu.Barrier()
 	return nil
 }
 
-func (impl *rxTableImpl) Close(port *Port) error {
+func (impl *rxTable) Close(port *Port) error {
 	if impl.rxt != nil {
 		must.Close(impl.rxt)
 		impl.rxt = nil
@@ -52,9 +51,27 @@ func (impl *rxTableImpl) Close(port *Port) error {
 	return nil
 }
 
-type rxTable C.EthRxTable
+type rxgTable C.EthRxTable
 
-func newRxTable(port *Port) (rxt *rxTable) {
+var _ iface.RxGroup = &rxgTable{}
+
+func (*rxgTable) IsRxGroup() {}
+
+func (rxt *rxgTable) NumaSocket() eal.NumaSocket {
+	return ethdev.FromID(int(rxt.port)).NumaSocket()
+}
+
+func (rxt *rxgTable) Ptr() unsafe.Pointer {
+	return unsafe.Pointer(&rxt.base)
+}
+
+func (rxt *rxgTable) Close() error {
+	iface.DeactivateRxGroup(rxt)
+	eal.Free(rxt)
+	return nil
+}
+
+func newRxgTable(port *Port) (rxt *rxgTable) {
 	socket := port.dev.NumaSocket()
 	c := (*C.EthRxTable)(eal.Zmalloc("EthRxTable", C.sizeof_EthRxTable, socket))
 	c.port = C.uint16_t(port.dev.ID())
@@ -66,27 +83,7 @@ func newRxTable(port *Port) (rxt *rxTable) {
 		c.copyTo = (*C.struct_rte_mempool)(rxPool.Ptr())
 	}
 
-	rxt = (*rxTable)(c)
+	rxt = (*rxgTable)(c)
 	iface.ActivateRxGroup(rxt)
 	return rxt
-}
-
-func (rxt *rxTable) ptr() *C.EthRxTable {
-	return (*C.EthRxTable)(rxt)
-}
-
-func (*rxTable) IsRxGroup() {}
-
-func (rxt *rxTable) NumaSocket() eal.NumaSocket {
-	return ethdev.FromID(int(rxt.ptr().port)).NumaSocket()
-}
-
-func (rxt *rxTable) Ptr() unsafe.Pointer {
-	return unsafe.Pointer(&rxt.ptr().base)
-}
-
-func (rxt *rxTable) Close() error {
-	iface.DeactivateRxGroup(rxt)
-	eal.Free(rxt.ptr())
-	return nil
 }

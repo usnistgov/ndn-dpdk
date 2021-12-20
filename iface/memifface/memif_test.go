@@ -1,4 +1,4 @@
-package ethface_test
+package memifface_test
 
 import (
 	"io"
@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
-	"github.com/usnistgov/ndn-dpdk/iface/ethface"
 	"github.com/usnistgov/ndn-dpdk/iface/ifacetestenv"
+	"github.com/usnistgov/ndn-dpdk/iface/memifface"
 	"github.com/usnistgov/ndn-dpdk/ndn/memiftransport"
 	"go4.org/must"
 	"golang.org/x/sys/unix"
@@ -21,7 +21,7 @@ func TestMemif(t *testing.T) {
 	socketName, del := testenv.TempName("subdir/memif.sock")
 	defer del()
 
-	var locA ethface.MemifLocator
+	var locA memifface.Locator
 	locA.SocketName = socketName
 	locA.ID = 7655
 	locA.SocketOwner = &[2]int{0, 8000}
@@ -29,7 +29,7 @@ func TestMemif(t *testing.T) {
 	require.NoError(e)
 	assert.Equal("memif", faceA.Locator().Scheme())
 
-	var locB ethface.MemifLocator
+	var locB memifface.Locator
 	locB.SocketName = socketName
 	locB.ID = 1891
 	locB.SocketOwner = &[2]int{0, 8001}
