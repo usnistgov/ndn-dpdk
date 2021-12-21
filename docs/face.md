@@ -172,7 +172,7 @@ Locator of a VXLAN tunnel face has the following fields:
 * UDP destination port number is fixed to 4789; source port is random.
 * *vxlan* is the VXLAN Network Identifier.
 * *innerLocal* and *innerRemote* are unicast MAC addresses for inner Ethernet header.
-* *maxRxQueues* (optional) is the maximum number of RX queues.
+* *nRxQueues* (optional) is the number of RX queues.
   When the Ethernet port is using PCI driver and has RxFlow enabled, setting this to greater than 1 could alleviate the bottleneck in forwarder's input thread.
   However, it would take up multiple RX queues as specified in `--rx-flow` flag during port creation.
 

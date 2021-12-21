@@ -73,7 +73,7 @@ interface EtherLocatorBase extends FaceConfig {
    * @maximum 8
    * @default 1
    */
-  maxRxQueues?: Uint;
+  nRxQueues?: Uint;
 
   disableTxMultiSegOffload?: boolean;
   disableTxChecksumOffload?: boolean;

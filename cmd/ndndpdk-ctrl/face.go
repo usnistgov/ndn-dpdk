@@ -108,7 +108,7 @@ func init() {
 		Scheme      string        `json:"scheme"`
 		Port        string        `json:"port,omitempty"`
 		MTU         int           `json:"mtu,omitempty"`
-		MaxRxQueues int           `json:"maxRxQueues,omitempty"`
+		NRxQueues   int           `json:"nRxQueues,omitempty"`
 		Local       macaddr.Flag  `json:"local"`
 		Remote      macaddr.Flag  `json:"remote"`
 		VLAN        int           `json:"vlan,omitempty"`
@@ -136,10 +136,10 @@ func init() {
 			Destination: &loc.MTU,
 		},
 		&cli.IntFlag{
-			Name:        "max-rxq",
-			Usage:       "maximum number of RX queues",
+			Name:        "rx-queues",
+			Usage:       "number of RX queues",
 			DefaultText: "1",
-			Destination: &loc.MaxRxQueues,
+			Destination: &loc.NRxQueues,
 		},
 		&cli.GenericFlag{
 			Name:     "local",

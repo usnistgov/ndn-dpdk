@@ -10,8 +10,8 @@ import (
 
 // RxQueue represents an RX queue.
 type RxQueue struct {
-	port  EthDev
-	queue uint16
+	Port  uint16
+	Queue uint16
 }
 
 // RxBurst receives a burst of input packets.
@@ -20,15 +20,15 @@ func (q RxQueue) RxBurst(vec pktmbuf.Vector) int {
 	if len(vec) == 0 {
 		return 0
 	}
-	res := C.rte_eth_rx_burst(C.uint16_t(q.port.ID()), C.uint16_t(q.queue),
+	res := C.rte_eth_rx_burst(C.uint16_t(q.Port), C.uint16_t(q.Queue),
 		(**C.struct_rte_mbuf)(vec.Ptr()), C.uint16_t(len(vec)))
 	return int(res)
 }
 
 // TxQueue represents an TX queue.
 type TxQueue struct {
-	port  EthDev
-	queue uint16
+	Port  uint16
+	Queue uint16
 }
 
 // TxBurst transmits a burst of output packets.
@@ -37,23 +37,23 @@ func (q TxQueue) TxBurst(vec pktmbuf.Vector) int {
 	if len(vec) == 0 {
 		return 0
 	}
-	res := C.rte_eth_tx_burst(C.uint16_t(q.port.ID()), C.uint16_t(q.queue),
+	res := C.rte_eth_tx_burst(C.uint16_t(q.Port), C.uint16_t(q.Queue),
 		(**C.struct_rte_mbuf)(vec.Ptr()), C.uint16_t(len(vec)))
 	return int(res)
 }
 
 func (port ethDev) RxQueues() (list []RxQueue) {
-	info := port.DevInfo()
+	id, info := uint16(port.ID()), port.DevInfo()
 	for queue := uint16(0); queue < info.Nb_rx_queues; queue++ {
-		list = append(list, RxQueue{port, queue})
+		list = append(list, RxQueue{id, queue})
 	}
 	return list
 }
 
 func (port ethDev) TxQueues() (list []TxQueue) {
-	info := port.DevInfo()
+	id, info := uint16(port.ID()), port.DevInfo()
 	for queue := uint16(0); queue < info.Nb_tx_queues; queue++ {
-		list = append(list, TxQueue{port, queue})
+		list = append(list, TxQueue{id, queue})
 	}
 	return list
 }

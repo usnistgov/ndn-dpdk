@@ -33,12 +33,12 @@ type FaceConfig struct {
 	// If both EthDev and Port are specified, EthDev takes priority.
 	Port string `json:"port,omitempty"`
 
-	// MaxRxQueues is the maximum number of RX queues for this face.
+	// NRxQueues is the number of RX queues for this face.
 	// It is meaningful only if the port is using RxFlow.
 	// For most DPDK drivers, it is effective in improving performance on VXLAN face only.
 	//
 	// Default is 1.
-	MaxRxQueues int `json:"maxRxQueues,omitempty"`
+	NRxQueues int `json:"nRxQueues,omitempty"`
 
 	// DisableTxMultiSegOffload forces every packet to be copied into a linear buffer in software.
 	DisableTxMultiSegOffload bool `json:"disableTxMultiSegOffload,omitempty"`
@@ -93,8 +93,9 @@ type Face struct {
 	loc    Locator
 	logger *zap.Logger
 	priv   *C.EthFacePriv
-	flow   *C.struct_rte_flow
-	rxf    []*rxgFlow
+
+	flow *C.struct_rte_flow
+	rxf  []*rxgFlow
 }
 
 // NewFace creates a face on the given port.

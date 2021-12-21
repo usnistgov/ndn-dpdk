@@ -35,7 +35,6 @@ func (impl *rxMemif) Start(face *Face) error {
 	rxf := &rxgFlow{
 		face:  face,
 		index: 0,
-		queue: 0,
 	}
 	face.rxf = []*rxgFlow{rxf}
 

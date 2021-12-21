@@ -48,7 +48,8 @@ struct rte_flow*
 EthFace_SetupFlow(EthFacePriv* priv, uint16_t queues[], int nQueues, const EthLocator* loc,
                   bool isolated, struct rte_flow_error* error)
 {
-  NDNDPDK_ASSERT(nQueues > 0 && nQueues < (int)RTE_DIM(priv->rxf));
+  EthLocatorClass c = EthLocator_Classify(loc);
+  NDNDPDK_ASSERT(nQueues > 0 && nQueues <= (int)RTE_DIM(priv->rxf));
 
   struct rte_flow_attr attr = { .ingress = true };
 
@@ -58,7 +59,7 @@ EthFace_SetupFlow(EthFacePriv* priv, uint16_t queues[], int nQueues, const EthLo
   struct rte_flow_action_queue queue = { .index = queues[0] };
   struct rte_flow_action_rss rss = {
     .level = 1,
-    .types = ETH_RSS_NONFRAG_IPV4_UDP,
+    .types = c.v4 ? RTE_ETH_RSS_NONFRAG_IPV4_UDP : RTE_ETH_RSS_NONFRAG_IPV6_UDP,
     .queue = queues,
     .queue_num = nQueues,
   };
@@ -74,7 +75,7 @@ EthFace_SetupFlow(EthFacePriv* priv, uint16_t queues[], int nQueues, const EthLo
   if (flow == NULL) {
     ptrdiff_t offset = RTE_PTR_DIFF(error->cause, &pattern);
     if (offset >= 0 && (size_t)offset < sizeof(pattern)) {
-      error->cause = (const void*)RTE_PTR_DIFF(error->cause, &pattern);
+      error->cause = (const void*)offset;
     }
     return NULL;
   }

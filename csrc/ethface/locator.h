@@ -33,6 +33,19 @@ typedef struct EthLocator
 __attribute__((nonnull)) bool
 EthLocator_CanCoexist(const EthLocator* a, const EthLocator* b);
 
+typedef struct EthLocatorClass
+{
+  uint16_t etherType; ///< outer EtherType, 0 for memif
+  bool multicast;     ///< is outer Ethernet multicast?
+  bool udp;           ///< is UDP tunnel?
+  bool v4;            ///< is IPv4?
+  bool vxlan;         ///< is VXLAN?
+} EthLocatorClass;
+
+/** @brief Classify EthFace locator. */
+__attribute__((nonnull)) EthLocatorClass
+EthLocator_Classify(const EthLocator* loc);
+
 typedef struct EthRxMatch EthRxMatch;
 
 typedef bool (*EthRxMatchFunc)(const EthRxMatch* match, const struct rte_mbuf* m);

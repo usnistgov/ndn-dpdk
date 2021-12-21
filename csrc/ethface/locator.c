@@ -8,19 +8,10 @@ static const uint8_t V4_IN_V6_PREFIX[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                                            0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF };
 static RTE_DEFINE_PER_LCORE(uint16_t, txVxlanSrcPort);
 
-typedef struct ClassifyResult
-{
-  uint16_t etherType; ///< outer EtherType, 0 for memif
-  bool multicast;     ///< is outer Ethernet multicast?
-  bool udp;           ///< is UDP tunnel?
-  bool v4;            ///< is IPv4?
-  bool vxlan;         ///< is VXLAN?
-} ClassifyResult;
-
-__attribute__((nonnull)) static ClassifyResult
+EthLocatorClass
 EthLocator_Classify(const EthLocator* loc)
 {
-  ClassifyResult c = { 0 };
+  EthLocatorClass c = { 0 };
   if (rte_is_zero_ether_addr(&loc->local)) {
     return c;
   }
@@ -35,8 +26,8 @@ EthLocator_Classify(const EthLocator* loc)
 bool
 EthLocator_CanCoexist(const EthLocator* a, const EthLocator* b)
 {
-  ClassifyResult ac = EthLocator_Classify(a);
-  ClassifyResult bc = EthLocator_Classify(b);
+  EthLocatorClass ac = EthLocator_Classify(a);
+  EthLocatorClass bc = EthLocator_Classify(b);
   if (ac.etherType == 0 || bc.etherType == 0) {
     return false;
   }
@@ -222,33 +213,31 @@ MatchVxlan(const EthRxMatch* match, const struct rte_mbuf* m)
 void
 EthRxMatch_Prepare(EthRxMatch* match, const EthLocator* loc)
 {
-  ClassifyResult classify = EthLocator_Classify(loc);
+  EthLocatorClass c = EthLocator_Classify(loc);
 
   *match = (const EthRxMatch){ .f = MatchAlways };
-  if (classify.etherType == 0) {
+  if (c.etherType == 0) {
     return;
   }
 
 #define BUF_TAIL (RTE_PTR_ADD(match->buf, match->len))
 
-  match->l2len =
-    PutEtherVlanHdr(BUF_TAIL, &loc->remote, &loc->local, loc->vlan, classify.etherType);
+  match->l2len = PutEtherVlanHdr(BUF_TAIL, &loc->remote, &loc->local, loc->vlan, c.etherType);
   match->len += match->l2len;
-  match->f = classify.multicast ? MatchEtherMulticast : MatchEtherUnicast;
-  if (!classify.udp) {
+  match->f = c.multicast ? MatchEtherMulticast : MatchEtherUnicast;
+  if (!c.udp) {
     return;
   }
 
-  match->len += (classify.v4 ? PutIpv4Hdr : PutIpv6Hdr)(BUF_TAIL, loc->remoteIP, loc->localIP);
-  uint8_t l3addrsLen = classify.v4
-                         ? sizeof(struct rte_ipv4_hdr) - offsetof(struct rte_ipv4_hdr, src_addr)
-                         : sizeof(struct rte_ipv6_hdr) - offsetof(struct rte_ipv6_hdr, src_addr);
+  match->len += (c.v4 ? PutIpv4Hdr : PutIpv6Hdr)(BUF_TAIL, loc->remoteIP, loc->localIP);
+  uint8_t l3addrsLen = c.v4 ? sizeof(struct rte_ipv4_hdr) - offsetof(struct rte_ipv4_hdr, src_addr)
+                            : sizeof(struct rte_ipv6_hdr) - offsetof(struct rte_ipv6_hdr, src_addr);
   match->udpOff = match->len;
   match->len += PutUdpHdr(BUF_TAIL, loc->remoteUDP, loc->localUDP);
   match->f = MatchUdp;
   match->l3matchOff = match->udpOff - l3addrsLen;
   match->l3matchLen = l3addrsLen + offsetof(struct rte_udp_hdr, dgram_len);
-  if (!classify.vxlan) {
+  if (!c.vxlan) {
     return;
   }
 
@@ -275,7 +264,7 @@ EthFlowPattern_Set(EthFlowPattern* flow, size_t i, enum rte_flow_item_type typ, 
 void
 EthFlowPattern_Prepare(EthFlowPattern* flow, const EthLocator* loc)
 {
-  ClassifyResult classify = EthLocator_Classify(loc);
+  EthLocatorClass c = EthLocator_Classify(loc);
 
   *flow = (const EthFlowPattern){ 0 };
   flow->pattern[0].type = RTE_FLOW_ITEM_TYPE_END;
@@ -292,9 +281,8 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, const EthLocator* loc)
 
   MASK(flow->ethMask.hdr.dst_addr);
   MASK(flow->ethMask.hdr.ether_type);
-  PutEtherHdr((uint8_t*)(&flow->ethSpec.hdr), &loc->remote, &loc->local, loc->vlan,
-              classify.etherType);
-  if (classify.multicast) {
+  PutEtherHdr((uint8_t*)(&flow->ethSpec.hdr), &loc->remote, &loc->local, loc->vlan, c.etherType);
+  if (c.multicast) {
     rte_ether_addr_copy(&loc->remote, &flow->ethSpec.hdr.dst_addr);
   } else {
     MASK(flow->ethMask.hdr.src_addr);
@@ -303,11 +291,11 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, const EthLocator* loc)
 
   if (loc->vlan != 0) {
     flow->vlanMask.hdr.vlan_tci = rte_cpu_to_be_16(0x0FFF); // don't mask PCP & DEI bits
-    PutVlanHdr((uint8_t*)(&flow->vlanSpec.hdr), loc->vlan, classify.etherType);
+    PutVlanHdr((uint8_t*)(&flow->vlanSpec.hdr), loc->vlan, c.etherType);
     APPEND(VLAN, vlan);
   }
 
-  if (!classify.udp) {
+  if (!c.udp) {
     MASK(flow->vlanMask.hdr.eth_proto);
     return;
   }
@@ -315,7 +303,7 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, const EthLocator* loc)
   flow->pattern[0].spec = NULL;
   flow->pattern[0].mask = NULL;
 
-  if (classify.v4) {
+  if (c.v4) {
     MASK(flow->ip4Mask.hdr.src_addr);
     MASK(flow->ip4Mask.hdr.dst_addr);
     PutIpv4Hdr((uint8_t*)(&flow->ip4Spec.hdr), loc->remoteIP, loc->localIP);
@@ -331,7 +319,7 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, const EthLocator* loc)
   PutUdpHdr((uint8_t*)(&flow->udpSpec.hdr), loc->remoteUDP, loc->localUDP);
   APPEND(UDP, udp);
 
-  if (!classify.vxlan) {
+  if (!c.vxlan) {
     MASK(flow->udpMask.hdr.src_port);
     return;
   }
@@ -445,28 +433,28 @@ TxUdp6Offload(const EthTxHdr* hdr, struct rte_mbuf* m, bool newBurst)
 void
 EthTxHdr_Prepare(EthTxHdr* hdr, const EthLocator* loc, bool hasChecksumOffloads)
 {
-  ClassifyResult classify = EthLocator_Classify(loc);
+  EthLocatorClass c = EthLocator_Classify(loc);
 
   *hdr = (const EthTxHdr){ .f = TxEther };
-  if (classify.etherType == 0) {
+  if (c.etherType == 0) {
     hdr->f = TxNoHdr;
     return;
   }
 
 #define BUF_TAIL (RTE_PTR_ADD(hdr->buf, hdr->len))
 
-  hdr->l2len = PutEtherVlanHdr(BUF_TAIL, &loc->local, &loc->remote, loc->vlan, classify.etherType);
+  hdr->l2len = PutEtherVlanHdr(BUF_TAIL, &loc->local, &loc->remote, loc->vlan, c.etherType);
   hdr->len += hdr->l2len;
 
-  if (!classify.udp) {
+  if (!c.udp) {
     return;
   }
-  hdr->f = classify.v4 ? (hasChecksumOffloads ? TxUdp4Offload : TxUdp4Checksum)
-                       : (hasChecksumOffloads ? TxUdp6Offload : TxUdp6Checksum);
-  hdr->len += (classify.v4 ? PutIpv4Hdr : PutIpv6Hdr)(BUF_TAIL, loc->localIP, loc->remoteIP);
+  hdr->f = c.v4 ? (hasChecksumOffloads ? TxUdp4Offload : TxUdp4Checksum)
+                : (hasChecksumOffloads ? TxUdp6Offload : TxUdp6Checksum);
+  hdr->len += (c.v4 ? PutIpv4Hdr : PutIpv6Hdr)(BUF_TAIL, loc->localIP, loc->remoteIP);
   hdr->len += PutUdpHdr(BUF_TAIL, loc->localUDP, loc->remoteUDP);
 
-  if (!classify.vxlan) {
+  if (!c.vxlan) {
     return;
   }
   hdr->vxlanSrcPort = true;

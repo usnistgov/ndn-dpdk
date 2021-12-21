@@ -99,7 +99,7 @@ export class Benchmark {
       const port = await createEthPort(this.cF, this.env.F_PORTS[i]!);
       const face = await createFace(this.cF, {
         port,
-        maxRxQueues: faceRxQueues,
+        nRxQueues: faceRxQueues,
         local: macAddr("F", label),
         remote: macAddr("G", label),
         ...(faceScheme === "vxlan" ? vxlanLocatorFields : { scheme: "ether" }),
@@ -150,7 +150,7 @@ export class Benchmark {
       const cfg: TgConfig = {
         face: {
           port,
-          maxRxQueues: faceRxQueues,
+          nRxQueues: faceRxQueues,
           local: macAddr("G", label),
           remote: macAddr("F", label),
           ...(faceScheme === "vxlan" ? vxlanLocatorFields : { scheme: "ether" }),
