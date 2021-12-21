@@ -14,10 +14,10 @@ import (
 func TestLocatorCoexist(t *testing.T) {
 	assert, _ := makeAR(t)
 	coexist := func(a, b string) {
-		assert.True(ethport.LocatorCanCoexist(parseLocator(a), parseLocator(b)))
+		assert.NoError(ethport.CheckLocatorCoexist(parseLocator(a), parseLocator(b)))
 	}
 	conflict := func(a, b string) {
-		assert.False(ethport.LocatorCanCoexist(parseLocator(a), parseLocator(b)))
+		assert.Error(ethport.CheckLocatorCoexist(parseLocator(a), parseLocator(b)))
 	}
 
 	// "ether" scheme
@@ -114,9 +114,9 @@ func TestLocatorCoexist(t *testing.T) {
 func TestLocatorRxMatch(t *testing.T) {
 	assert, require := makeAR(t)
 
-	matchers := make(map[string]ethport.RxMatchFunc)
+	matchers := make(map[string]ethport.RxMatch)
 	addMatcher := func(key string, locator string) {
-		matchers[key] = ethport.LocatorRxMatch(parseLocator(locator))
+		matchers[key] = ethport.NewRxMatch(parseLocator(locator))
 	}
 	addMatcher("ether-unicast", `{
 		"scheme": "ether",
@@ -190,12 +190,12 @@ func TestLocatorRxMatch(t *testing.T) {
 			if key == matcherKey {
 				continue
 			}
-			assert.False(matcher(pkt))
+			assert.False(matcher.Match(pkt))
 			require.Equal(pktLen, pkt.Len())
 		}
 
 		if matcherKey != "" {
-			assert.True(matchers[matcherKey](pkt))
+			assert.True(matchers[matcherKey].Match(pkt))
 			assert.Equal([]byte(payload), pkt.Bytes())
 		}
 	}
@@ -338,17 +338,24 @@ func TestLocatorTxHdr(t *testing.T) {
 
 	checkTxHdr := func(locator string, expectedLayerTypes ...gopacket.LayerType) gopacket.Packet {
 		loc := parseLocator(locator)
-		prependTxHdr := ethport.LocatorTxHdr(loc, false)
+		txHdr := ethport.NewTxHdr(loc, false)
 		pkt := makePacket(payload)
 		defer pkt.Close()
-		prependTxHdr(pkt, true)
+		txHdr.Prepend(pkt, true)
 
 		parsed := gopacket.NewPacket(pkt.Bytes(), layers.LayerTypeEthernet, gopacket.Default)
 		expectedLayerTypes = append(expectedLayerTypes, gopacket.LayerTypePayload)
-		actualLayerTypes := []gopacket.LayerType{}
-		for _, l := range parsed.Layers() {
+		ipLen, actualLayerTypes := 0, []gopacket.LayerType{}
+		for i, l := range parsed.Layers() {
+			if i < 2 {
+				switch l.LayerType() {
+				case layers.LayerTypeEthernet, layers.LayerTypeDot1Q:
+					ipLen = len(l.LayerPayload()) - len(payload)
+				}
+			}
 			actualLayerTypes = append(actualLayerTypes, l.LayerType())
 		}
+		assert.Equal(ipLen, txHdr.IPLen())
 		assert.Equal(expectedLayerTypes, actualLayerTypes)
 		return parsed
 	}

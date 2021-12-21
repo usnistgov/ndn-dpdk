@@ -98,7 +98,7 @@ func (c *Config) checkMTU() error {
 		c.MTU = c.maxMTU
 	}
 	if c.MTU < MinMTU || c.MTU > c.maxMTU {
-		return fmt.Errorf("MTU must be between %d and %d", MinMTU, c.maxMTU)
+		return fmt.Errorf("face MTU must be between %d and %d", MinMTU, c.maxMTU)
 	}
 	return nil
 }

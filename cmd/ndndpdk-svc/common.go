@@ -16,6 +16,7 @@ import (
 	"go.uber.org/zap"
 
 	_ "github.com/usnistgov/ndn-dpdk/iface/ethface"
+	_ "github.com/usnistgov/ndn-dpdk/iface/memifface"
 	_ "github.com/usnistgov/ndn-dpdk/iface/socketface"
 )
 

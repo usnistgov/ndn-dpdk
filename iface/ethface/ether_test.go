@@ -141,13 +141,13 @@ func TestReassembly(t *testing.T) {
 	cfgA.AddTxQueues(1, ethdev.TxQueueConfig{})
 	portA.Start(cfgA)
 	locA := makeEtherLocator(vnet.Ports[0])
-	prependTxHdrA := ethport.LocatorTxHdr(locA, false)
+	txHdrA := ethport.NewTxHdr(locA, false)
 	txqA := portA.TxQueues()[0]
 	sendA := func(pkt *ndn.Packet) {
 		b, e := tlv.EncodeFrom(pkt)
 		require.NoError(e)
 		m := mbuftestenv.MakePacket(b)
-		prependTxHdrA(m, false)
+		txHdrA.Prepend(m, false)
 		n := txqA.TxBurst(pktmbuf.Vector{m})
 		assert.Equal(1, n)
 	}

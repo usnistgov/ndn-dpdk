@@ -9,6 +9,7 @@ import (
 	"net"
 
 	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
+	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"go.uber.org/zap"
@@ -74,7 +75,7 @@ func (cfg FaceConfig) FindPort(local net.HardwareAddr) (port *Port, e error) {
 	case dev != nil:
 	case cfg.Port != "":
 		gqlserver.RetrieveNodeOfType(ethdev.GqlEthDevNodeType, cfg.Port, &dev)
-	default:
+	case macaddr.IsUnicast(local):
 		dev = ethdev.FromHardwareAddr(local)
 	}
 
@@ -90,7 +91,6 @@ type Face struct {
 	iface.Face
 	port   *Port
 	loc    Locator
-	cLoc   CLocator
 	logger *zap.Logger
 	priv   *C.EthFacePriv
 	flow   *C.struct_rte_flow
@@ -102,18 +102,17 @@ func NewFace(port *Port, loc Locator) (iface.Face, error) {
 	face := &Face{
 		port:   port,
 		loc:    loc,
-		cLoc:   loc.EthCLocator(),
 		logger: port.logger,
 	}
 	port, loc = nil, nil
 	return iface.New(iface.NewParams{
-		Config:     face.loc.EthFaceConfig().Config.WithMaxMTU(face.port.cfg.MTU + C.RTE_ETHER_HDR_LEN - face.cLoc.sizeofHeader()),
+		Config:     face.loc.EthFaceConfig().Config.WithMaxMTU(face.port.cfg.MTU - NewTxHdr(face.loc, false).IPLen()),
 		Socket:     face.port.dev.NumaSocket(),
 		SizeofPriv: uintptr(C.sizeof_EthFacePriv),
 		Init: func(f iface.Face) (iface.InitResult, error) {
 			for _, other := range face.port.faces {
-				if !face.cLoc.canCoexist(other.cLoc) {
-					return iface.InitResult{}, LocatorConflictError{a: face.loc, b: other.loc}
+				if e := CheckLocatorCoexist(face.loc, other.loc); e != nil {
+					return iface.InitResult{}, e
 				}
 			}
 
@@ -129,13 +128,13 @@ func NewFace(port *Port, loc Locator) (iface.Face, error) {
 			}
 
 			cfg := face.loc.EthFaceConfig()
-			C.EthRxMatch_Prepare(&face.priv.rxMatch, face.cLoc.ptr())
+			NewRxMatch(face.loc).copyToC(&face.priv.rxMatch)
 			useTxMultiSegOffload := !cfg.DisableTxMultiSegOffload && face.port.devInfo.HasTxMultiSegOffload()
 			useTxChecksumOffload := !cfg.DisableTxChecksumOffload && face.port.devInfo.HasTxChecksumOffload()
 			if !useTxChecksumOffload && cfg.TxChecksumRequireLinear {
 				useTxMultiSegOffload = false
 			}
-			C.EthTxHdr_Prepare(&face.priv.txHdr, face.cLoc.ptr(), C.bool(useTxChecksumOffload))
+			NewTxHdr(face.loc, useTxChecksumOffload).copyToC(&face.priv.txHdr)
 
 			return iface.InitResult{
 				Face:        face,

@@ -28,13 +28,17 @@ func (impl *rxMemif) Start(face *Face) error {
 	if e := face.port.startDev(1, false); e != nil {
 		return e
 	}
-	C.EthFace_SetupRxMemif(face.priv, face.cLoc.ptr())
+
+	cLoc := face.loc.EthCLocator()
+	C.EthFace_SetupRxMemif(face.priv, cLoc.ptr())
+
 	rxf := &rxgFlow{
 		face:  face,
 		index: 0,
 		queue: 0,
 	}
 	face.rxf = []*rxgFlow{rxf}
+
 	iface.ActivateRxGroup(rxf)
 	return nil
 }

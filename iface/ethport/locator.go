@@ -16,14 +16,11 @@ func (loc *CLocator) ptr() *C.EthLocator {
 	return (*C.EthLocator)(unsafe.Pointer(loc))
 }
 
-func (loc CLocator) canCoexist(other CLocator) bool {
-	return bool(C.EthLocator_CanCoexist(loc.ptr(), other.ptr()))
-}
-
-func (loc CLocator) sizeofHeader() int {
-	var hdr C.EthTxHdr
-	C.EthTxHdr_Prepare(&hdr, loc.ptr(), true)
-	return int(hdr.len - hdr.l2len)
+// Locator is an Ethernet-based face locator.
+type Locator interface {
+	iface.Locator
+	EthCLocator() CLocator
+	EthFaceConfig() FaceConfig
 }
 
 // LocatorConflictError indicates that the locator of a new face conflicts with an existing face.
@@ -35,41 +32,58 @@ func (e LocatorConflictError) Error() string {
 	return fmt.Sprintf("locator %s conflicts with %s", iface.LocatorString(e.a), iface.LocatorString(e.b))
 }
 
-// Locator is an Ethernet-based face locator.
-type Locator interface {
-	iface.Locator
-	EthCLocator() CLocator
-	EthFaceConfig() FaceConfig
+// CheckLocatorCoexist determines whether two locators can coexist on the same port.
+func CheckLocatorCoexist(a, b Locator) error {
+	aC, bC := a.EthCLocator(), b.EthCLocator()
+	if C.EthLocator_CanCoexist(aC.ptr(), bC.ptr()) {
+		return nil
+	}
+	return LocatorConflictError{a: a, b: b}
 }
 
-// LocatorCanCoexist determines whether two locators can coexist on the same port.
-func LocatorCanCoexist(a, b Locator) bool {
-	return a.EthCLocator().canCoexist(b.EthCLocator())
+// RxMatch contains prepared buffer to match incoming packets with a locator.
+type RxMatch C.EthRxMatch
+
+func (match RxMatch) copyToC(c *C.EthRxMatch) {
+	*c = *(*C.EthRxMatch)(&match)
 }
 
-// RxMatchFunc matches an incoming packet against the locator.
+// Match determines whether an incoming packet matches the locator.
 // Headers are stripped after a successful match.
-type RxMatchFunc func(m *pktmbuf.Packet) bool
-
-// LocatorRxMatch creates RxMatchFunc from a locator.
-func LocatorRxMatch(loc Locator) RxMatchFunc {
-	cLoc := loc.EthCLocator()
-	var match C.EthRxMatch
-	C.EthRxMatch_Prepare(&match, cLoc.ptr())
-	return func(m *pktmbuf.Packet) bool {
-		return bool(C.EthRxMatch_Match(&match, (*C.struct_rte_mbuf)(m.Ptr())))
-	}
+func (match RxMatch) Match(pkt *pktmbuf.Packet) bool {
+	return bool(C.EthRxMatch_Match((*C.EthRxMatch)(&match), (*C.struct_rte_mbuf)(pkt.Ptr())))
 }
 
-// TxHdrFunc prepends headers to an outgoing packet according to the locator.
-type TxHdrFunc func(m *pktmbuf.Packet, newBurst bool)
-
-// LocatorTxHdr creates TxHdrFunc from a locator.
-func LocatorTxHdr(loc Locator, hasChecksumOffloads bool) TxHdrFunc {
+// NewRxMatch creates RxMatch from a locator.
+func NewRxMatch(loc Locator) (match RxMatch) {
 	cLoc := loc.EthCLocator()
-	var hdr C.EthTxHdr
-	C.EthTxHdr_Prepare(&hdr, cLoc.ptr(), C.bool(hasChecksumOffloads))
-	return func(m *pktmbuf.Packet, newBurst bool) {
-		C.EthTxHdr_Prepend(&hdr, (*C.struct_rte_mbuf)(m.Ptr()), C.bool(newBurst))
-	}
+	C.EthRxMatch_Prepare((*C.EthRxMatch)(&match), cLoc.ptr())
+	return
+}
+
+// TxHdrFunc contains prepare buffer to prepend headers to outgoing packets.
+type TxHdr C.EthTxHdr
+
+func (hdr TxHdr) copyToC(c *C.EthTxHdr) {
+	*c = *(*C.EthTxHdr)(&hdr)
+}
+
+// IPLen returns the total length of IP, UDP, and VXLAN headers.
+func (hdr TxHdr) IPLen() int {
+	return int(hdr.len - hdr.l2len)
+}
+
+// Prepend prepends headers to an outgoing packet.
+//  newBurst: whether pkt is the first packet in a burst. It increments UDP source port in VXLAN
+//            headers. If NDN network layer packet is fragmented, only the first fragment might
+//            start a new burst, so that all fragments have the same UDP source port.
+func (hdr TxHdr) Prepend(pkt *pktmbuf.Packet, newBurst bool) {
+	C.EthTxHdr_Prepend((*C.EthTxHdr)(&hdr), (*C.struct_rte_mbuf)(pkt.Ptr()), C.bool(newBurst))
+}
+
+// NewTxHdr creates TxHdr from a locator.
+func NewTxHdr(loc Locator, hasChecksumOffloads bool) (hdr TxHdr) {
+	cLoc := loc.EthCLocator()
+	C.EthTxHdr_Prepare((*C.EthTxHdr)(&hdr), cLoc.ptr(), C.bool(hasChecksumOffloads))
+	return
 }
