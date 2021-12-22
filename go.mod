@@ -34,7 +34,7 @@ require (
 	go.uber.org/multierr v1.7.0
 	go.uber.org/zap v1.19.1
 	go4.org v0.0.0-20201209231011-d4a079459e60
-	golang.org/x/sys v0.0.0-20211124211545-fe61309f8881
+	golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e
 	inet.af/netaddr v0.0.0-20211027220019-c74959edd3b6
 )
 
