@@ -46,7 +46,7 @@ func NewMemif(loc memiftransport.Locator) (EthDev, error) {
 	}
 
 	memifCoexist.Add(loc)
-	OnDetach(dev, func() {
+	OnClose(dev, func() {
 		if chownCancel != nil {
 			chownCancel()
 		}

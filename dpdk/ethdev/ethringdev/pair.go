@@ -66,10 +66,10 @@ func (pair *Pair) EthDevConfig() ethdev.Config {
 func (pair *Pair) Close() error {
 	errs := []error{}
 	if pair.PortA != nil {
-		errs = append(errs, pair.PortA.Stop(ethdev.StopDetach))
+		errs = append(errs, pair.PortA.Close())
 	}
 	if pair.PortB != nil {
-		errs = append(errs, pair.PortB.Stop(ethdev.StopDetach))
+		errs = append(errs, pair.PortB.Close())
 	}
 	for _, r := range pair.rings {
 		errs = append(errs, r.Close())

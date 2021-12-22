@@ -8,6 +8,7 @@ import "C"
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"strconv"
 	"unsafe"
@@ -26,8 +27,9 @@ const MaxEthDevs = C.RTE_MAX_ETHPORTS
 
 // EthDev represents an Ethernet adapter.
 type EthDev interface {
-	fmt.Stringer
 	eal.WithNumaSocket
+	fmt.Stringer
+	io.Closer
 
 	// ID returns DPDK ethdev ID.
 	ID() int
@@ -47,13 +49,11 @@ type EthDev interface {
 
 	// Start configures and starts this device.
 	Start(cfg Config) error
-	// Stop stops this device.
-	Stop(mode StopMode) error
 
 	// RxQueues returns RX queues of a running port.
-	RxQueues() (list []RxQueue)
+	RxQueues() []RxQueue
 	// TxQueues returns TX queues of a running port.
-	TxQueues() (list []TxQueue)
+	TxQueues() []TxQueue
 
 	// Stats retrieves hardware statistics.
 	Stats() Stats
@@ -135,8 +135,9 @@ func (dev ethDev) Start(cfg Config) error {
 		zap.Int("txq", len(cfg.TxQueues)),
 		zap.Bool("promisc", cfg.Promisc),
 	)
-	bail := func(step string, e error) error {
-		dev.Stop(StopReset)
+	bail := func(step string, res C.int) error {
+		dev.stop(false)
+		e := eal.MakeErrno(res)
 		logEntry.Warn(step+" error", zap.Error(e))
 		return fmt.Errorf("%s %w", step, e)
 	}
@@ -148,56 +149,57 @@ func (dev ethDev) Start(cfg Config) error {
 		conf.txmode.offloads = C.uint64_t(info.Tx_offload_capa & (txOffloadMultiSegs | txOffloadChecksum))
 	}
 
-	res := C.rte_eth_dev_configure(dev.cID(), C.uint16_t(len(cfg.RxQueues)), C.uint16_t(len(cfg.TxQueues)), conf)
-	if res < 0 {
-		return bail("rte_eth_dev_configure", eal.MakeErrno(res))
+	if res := C.rte_eth_dev_configure(dev.cID(), C.uint16_t(len(cfg.RxQueues)), C.uint16_t(len(cfg.TxQueues)), conf); res < 0 {
+		return bail("rte_eth_dev_configure", res)
 	}
 
 	if cfg.MTU > 0 && cfg.MTU != dev.MTU() {
-		if res := C.rte_eth_dev_set_mtu(dev.cID(), C.uint16_t(cfg.MTU)); res != 0 && !info.CanIgnoreSetMTUError() {
-			return bail("rte_eth_dev_set_mtu", eal.MakeErrno(res))
+		if res := C.rte_eth_dev_set_mtu(dev.cID(), C.uint16_t(cfg.MTU)); res != 0 && !info.canIgnoreSetMTUError() {
+			return bail("rte_eth_dev_set_mtu", res)
 		}
 	}
 
-	for i, qcfg := range cfg.RxQueues {
-		capacity := info.Rx_desc_lim.adjustQueueCapacity(qcfg.Capacity)
-		res = C.rte_eth_rx_queue_setup(dev.cID(), C.uint16_t(i), C.uint16_t(capacity),
-			C.uint(qcfg.Socket.ID()), (*C.struct_rte_eth_rxconf)(qcfg.Conf), (*C.struct_rte_mempool)(qcfg.RxPool.Ptr()))
-		if res != 0 {
-			return bail(fmt.Sprintf("rte_eth_rx_queue_setup[%d]", i), eal.MakeErrno(res))
+	for i, q := range cfg.RxQueues {
+		capacity := info.Rx_desc_lim.adjustQueueCapacity(q.Capacity)
+		if res := C.rte_eth_rx_queue_setup(dev.cID(), C.uint16_t(i), C.uint16_t(capacity), C.uint(q.Socket.ID()),
+			(*C.struct_rte_eth_rxconf)(q.Conf), (*C.struct_rte_mempool)(q.RxPool.Ptr())); res != 0 {
+			return bail(fmt.Sprintf("rte_eth_rx_queue_setup[%d]", i), res)
 		}
 	}
 
-	for i, qcfg := range cfg.TxQueues {
-		capacity := info.Tx_desc_lim.adjustQueueCapacity(qcfg.Capacity)
-		res = C.rte_eth_tx_queue_setup(dev.cID(), C.uint16_t(i), C.uint16_t(capacity),
-			C.uint(qcfg.Socket.ID()), (*C.struct_rte_eth_txconf)(qcfg.Conf))
-		if res != 0 {
-			return bail(fmt.Sprintf("rte_eth_tx_queue_setup[%d]", i), eal.MakeErrno(res))
+	for i, q := range cfg.TxQueues {
+		capacity := info.Tx_desc_lim.adjustQueueCapacity(q.Capacity)
+		if res := C.rte_eth_tx_queue_setup(dev.cID(), C.uint16_t(i), C.uint16_t(capacity), C.uint(q.Socket.ID()),
+			(*C.struct_rte_eth_txconf)(q.Conf)); res != 0 {
+			return bail(fmt.Sprintf("rte_eth_tx_queue_setup[%d]", i), res)
 		}
 	}
 
 	if cfg.Promisc {
-		C.rte_eth_promiscuous_enable(dev.cID())
+		if res := C.rte_eth_promiscuous_enable(dev.cID()); res != 0 && !info.canIgnorePromiscError() {
+			return bail("rte_eth_promiscuous_enable", res)
+		}
 	} else {
-		C.rte_eth_promiscuous_disable(dev.cID())
+		if res := C.rte_eth_promiscuous_disable(dev.cID()); res != 0 && !info.canIgnorePromiscError() {
+			return bail("rte_eth_promiscuous_disable", res)
+		}
 	}
 
-	res = C.rte_eth_dev_start(dev.cID())
-	if res != 0 {
-		return bail("rte_eth_dev_start", eal.MakeErrno(res))
+	if res := C.rte_eth_dev_start(dev.cID()); res != 0 {
+		return bail("rte_eth_dev_start", res)
 	}
 
 	logEntry.Info("ethdev started")
 	return nil
 }
 
-func (dev ethDev) Stop(mode StopMode) error {
+func (dev ethDev) stop(close bool) error {
 	logEntry := logger.With(
 		zap.Int("id", dev.ID()),
 		zap.String("name", dev.Name()),
 	)
-	bail := func(step string, e error) error {
+	bail := func(step string, res C.int) error {
+		e := eal.MakeErrno(res)
 		logEntry.Warn(step+" error", zap.Error(e))
 		return fmt.Errorf("%s %w", step, e)
 	}
@@ -208,25 +210,27 @@ func (dev ethDev) Stop(mode StopMode) error {
 	case -C.ENODEV: // already detached
 		return nil
 	default:
-		return bail("rte_eth_dev_stop", eal.MakeErrno(res))
+		return bail("rte_eth_dev_stop", res)
 	}
 
-	switch mode {
-	case StopDetach:
+	if close {
 		if res := C.rte_eth_dev_close(dev.cID()); res != 0 {
-			return bail("rte_eth_dev_close", eal.MakeErrno(res))
+			return bail("rte_eth_dev_close", res)
 		}
-		detachEmitter.Emit(dev.ID())
-		logEntry.Info("ethdev stopped and detached")
-		return nil
-	case StopReset:
-		if res := C.rte_eth_dev_reset(dev.cID()); res != 0 {
-			return bail("rte_eth_dev_reset", eal.MakeErrno(res))
-		}
-		logEntry.Info("ethdev stopped and reset")
+		closeEmitter.Emit(dev.ID())
+		logEntry.Info("ethdev stopped and closed")
 		return nil
 	}
-	panic(mode)
+
+	if res := C.rte_eth_dev_reset(dev.cID()); res != 0 {
+		return bail("rte_eth_dev_reset", res)
+	}
+	logEntry.Info("ethdev stopped and reset")
+	return nil
+}
+
+func (dev ethDev) Close() error {
+	return dev.stop(true)
 }
 
 func (dev ethDev) Stats() (stats Stats) {

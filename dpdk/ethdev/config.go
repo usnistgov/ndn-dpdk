@@ -44,14 +44,3 @@ type TxQueueConfig struct {
 	Socket   eal.NumaSocket // where to allocate the ring
 	Conf     unsafe.Pointer // pointer to rte_eth_txconf
 }
-
-// StopMode selects the behavior of stopping an EthDev.
-type StopMode int
-
-const (
-	// StopDetach detaches the device. It cannot be restarted.
-	StopDetach StopMode = iota
-
-	// StopReset resets the device. It can be restarted.
-	StopReset
-)

@@ -18,8 +18,10 @@ import (
 )
 
 var logger = logging.New("ethport")
-var portByEthDevID = [ethdev.MaxEthDevs]*Port{}
-var closeAllPortsOnce sync.Once
+var (
+	ports      = map[ethdev.EthDev]*Port{}
+	portsMutex sync.RWMutex
+)
 
 // Limits and defaults.
 const (
@@ -73,6 +75,7 @@ func (cfg *Config) applyDefaults() {
 
 // Port organizes EthFaces on an EthDev.
 type Port struct {
+	mutex        sync.Mutex
 	cfg          Config
 	logger       *zap.Logger
 	dev          ethdev.EthDev
@@ -85,6 +88,9 @@ type Port struct {
 
 // Faces returns a list of active faces.
 func (port *Port) Faces() (list []iface.Face) {
+	port.mutex.Lock()
+	defer port.mutex.Unlock()
+
 	for _, face := range port.faces {
 		list = append(list, face)
 	}
@@ -93,6 +99,15 @@ func (port *Port) Faces() (list []iface.Face) {
 
 // Close closes the port.
 func (port *Port) Close() error {
+	portsMutex.Lock()
+	defer portsMutex.Unlock()
+	return port.closeWithPortsMutex()
+}
+
+func (port *Port) closeWithPortsMutex() error {
+	port.mutex.Lock()
+	defer port.mutex.Unlock()
+
 	if nFaces := len(port.faces); nFaces > 0 {
 		return fmt.Errorf("cannot close Port with %d active faces", nFaces)
 	}
@@ -105,10 +120,8 @@ func (port *Port) Close() error {
 	}
 
 	if port.dev != nil {
-		if port.devInfo.IsVDev() {
-			errs = append(errs, port.dev.Stop(ethdev.StopDetach))
-		}
-		portByEthDevID[port.dev.ID()] = nil
+		errs = append(errs, port.dev.Close())
+		delete(ports, port.dev)
 		port.dev = nil
 	}
 
@@ -117,13 +130,12 @@ func (port *Port) Close() error {
 		port.rxBouncePool = nil
 	}
 
-	e := multierr.Combine(errs...)
-	if e != nil {
-		port.logger.Error("port closed", zap.Error(e))
+	if e := multierr.Combine(errs...); e != nil {
+		port.logger.Warn("port closed with errors", zap.Error(e))
 	} else {
 		port.logger.Info("port closed")
 	}
-	return e
+	return nil
 }
 
 func (port *Port) startDev(nRxQueues int, promisc bool) error {
@@ -166,10 +178,12 @@ func (port *Port) deactivateTx(face iface.Face) {
 
 // New opens a Port.
 func New(cfg Config) (port *Port, e error) {
+	portsMutex.Lock()
+	defer portsMutex.Unlock()
 	if e = cfg.ensureEthDev(); e != nil {
 		return nil, e
 	}
-	if Find(cfg.EthDev) != nil {
+	if ports[cfg.EthDev] != nil {
 		return nil, errors.New("Port already exists")
 	}
 
@@ -204,26 +218,15 @@ func New(cfg Config) (port *Port, e error) {
 		}
 	}
 
-	if e = port.rxImpl.Init(port); e != nil {
+	if e := port.rxImpl.Init(port); e != nil {
 		port.logger.Error("rxImpl init error", zap.Error(e))
 		port.rxImpl = nil
 		port.Close()
 		return nil, e
 	}
 
-	port.logger.Info("port opened",
-		zap.Stringer("rxImpl", port.rxImpl),
-	)
-	portByEthDevID[port.dev.ID()] = port
-	closeAllPortsOnce.Do(func() {
-		iface.OnCloseAll(func() {
-			for _, port := range portByEthDevID {
-				if port != nil {
-					port.Close()
-				}
-			}
-		})
-	})
+	port.logger.Info("port opened", zap.Stringer("rxImpl", port.rxImpl))
+	ports[port.dev] = port
 	return port, nil
 }
 
@@ -232,5 +235,17 @@ func Find(dev ethdev.EthDev) *Port {
 	if dev == nil {
 		return nil
 	}
-	return portByEthDevID[dev.ID()]
+	portsMutex.RLock()
+	defer portsMutex.RUnlock()
+	return ports[dev]
+}
+
+func init() {
+	iface.OnCloseAll(func() {
+		portsMutex.Lock()
+		defer portsMutex.Unlock()
+		for _, port := range ports {
+			port.closeWithPortsMutex()
+		}
+	})
 }

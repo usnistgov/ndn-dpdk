@@ -51,6 +51,5 @@ func (impl *rxMemif) Stop(face *Face) error {
 }
 
 func (impl *rxMemif) Close(port *Port) error {
-	port.dev.Stop(ethdev.StopReset)
 	return nil
 }

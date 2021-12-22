@@ -111,6 +111,9 @@ func NewFace(port *Port, loc Locator) (iface.Face, error) {
 		Socket:     face.port.dev.NumaSocket(),
 		SizeofPriv: uintptr(C.sizeof_EthFacePriv),
 		Init: func(f iface.Face) (iface.InitResult, error) {
+			face.port.mutex.Lock()
+			defer face.port.mutex.Unlock()
+
 			for _, other := range face.port.faces {
 				if e := CheckLocatorCoexist(face.loc, other.loc); e != nil {
 					return iface.InitResult{}, e
@@ -144,6 +147,9 @@ func NewFace(port *Port, loc Locator) (iface.Face, error) {
 			}, nil
 		},
 		Start: func() error {
+			face.port.mutex.Lock()
+			defer face.port.mutex.Unlock()
+
 			id := face.ID()
 			if e := face.port.rxImpl.Start(face); e != nil {
 				face.logger.Error("face start error; change Port config or locator, and try again", zap.Error(e))
@@ -159,8 +165,12 @@ func NewFace(port *Port, loc Locator) (iface.Face, error) {
 			return face.loc
 		},
 		Stop: func() error {
+			face.port.mutex.Lock()
+			defer face.port.mutex.Unlock()
+
 			id := face.ID()
 			delete(face.port.faces, id)
+
 			if e := face.port.rxImpl.Stop(face); e != nil {
 				face.logger.Warn("face stop error", zap.Error(e))
 			} else {
@@ -170,8 +180,13 @@ func NewFace(port *Port, loc Locator) (iface.Face, error) {
 			return nil
 		},
 		Close: func() error {
-			if len(face.port.faces) == 0 && face.port.cfg.AutoClose {
-				return face.port.Close()
+			if face.port.cfg.AutoClose {
+				face.port.mutex.Lock()
+				nFaces := len(face.port.faces)
+				face.port.mutex.Unlock()
+				if nFaces == 0 {
+					return face.port.Close()
+				}
 			}
 			return nil
 		},

@@ -10,7 +10,6 @@ import (
 
 	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
-	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"go.uber.org/zap"
 )
@@ -172,15 +171,6 @@ func (impl *rxFlow) destroyFlow(face *Face) error {
 }
 
 func (impl *rxFlow) Close(port *Port) error {
-	for _, face := range port.faces {
-		impl.destroyFlow(face)
-	}
-	impl.availQueues = nil
-
-	port.dev.Stop(ethdev.StopReset)
-	if impl.isolated {
-		impl.setIsolate(port, false)
-	}
 	return nil
 }
 

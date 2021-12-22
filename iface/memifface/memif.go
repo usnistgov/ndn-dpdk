@@ -49,7 +49,7 @@ func (loc Locator) CreateFace() (iface.Face, error) {
 		AutoClose: true,
 	})
 	if e != nil {
-		dev.Stop(ethdev.StopDetach)
+		dev.Close()
 		return nil, fmt.Errorf("NewPort %w", e)
 	}
 

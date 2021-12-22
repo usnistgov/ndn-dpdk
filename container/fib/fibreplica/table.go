@@ -90,10 +90,16 @@ func (t *Table) deferredFree(entries ...*Entry) {
 }
 
 func (t *Table) freeLoop() {
+	var wg sync.WaitGroup
 	for objs := range t.free {
-		urcu.Synchronize()
-		t.mp.Free(objs)
+		wg.Add(1)
+		go func(objs []unsafe.Pointer) {
+			urcu.Synchronize()
+			t.mp.Free(objs)
+			wg.Done()
+		}(objs)
 	}
+	wg.Wait()
 
 	C.Fib_Clear(t.c)
 	C.cds_lfht_destroy(t.c.lfht, nil)
@@ -119,8 +125,7 @@ func New(cfg fibdef.Config, nDyns int, socket eal.NumaSocket) (*Table, error) {
 	t := &Table{
 		mp:    mp,
 		nDyns: nDyns,
-		// t.deferredFree may be called in RCU critical section (eal.MainThread), add buffer to avoid deadlock
-		free: make(chan []unsafe.Pointer, 1),
+		free:  make(chan []unsafe.Pointer),
 	}
 
 	mpC := (*C.struct_rte_mempool)(t.mp.Ptr())

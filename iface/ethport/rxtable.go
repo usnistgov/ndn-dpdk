@@ -47,7 +47,6 @@ func (impl *rxTable) Close(port *Port) error {
 		must.Close(impl.rxt)
 		impl.rxt = nil
 	}
-	port.dev.Stop(ethdev.StopReset)
 	return nil
 }
 

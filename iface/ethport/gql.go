@@ -63,4 +63,13 @@ func init() {
 			return port.dev, nil
 		},
 	})
+
+	ethdev.GqlEthDevNodeType.Delete = func(source interface{}) error {
+		dev := source.(ethdev.EthDev)
+		port := Find(dev)
+		if port == nil {
+			return dev.Close()
+		}
+		return port.Close()
+	}
 }

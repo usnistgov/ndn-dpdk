@@ -20,6 +20,6 @@ func NewVDev(name string, args map[string]interface{}, socket eal.NumaSocket) (E
 		)
 	}
 
-	OnDetach(dev, func() { vdev.Close() })
+	OnClose(dev, func() { vdev.Close() })
 	return dev, nil
 }

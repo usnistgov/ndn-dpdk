@@ -4,10 +4,10 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/events"
 )
 
-var detachEmitter = events.NewEmitter()
+var closeEmitter = events.NewEmitter()
 
-// OnDetach registers a callback when a port is stopped and detached.
+// OnClose registers a callback when a port is stopped and closed.
 // Return a Closer that cancels the callback registration.
-func OnDetach(dev EthDev, cb func()) (cancel func()) {
-	return detachEmitter.Once(dev.ID(), cb)
+func OnClose(dev EthDev, cb func()) (cancel func()) {
+	return closeEmitter.Once(dev.ID(), cb)
 }

@@ -46,8 +46,17 @@ func (info DevInfo) IsVDev() bool {
 	return false
 }
 
-// CanIgnoreSetMTUError determines whether set MTU error should be ignored.
-func (info DevInfo) CanIgnoreSetMTUError() bool {
+// canIgnoreSetMTUError determines whether set MTU error should be ignored.
+func (info DevInfo) canIgnoreSetMTUError() bool {
+	switch info.DriverName() {
+	case DriverMemif, DriverRing:
+		return true
+	}
+	return false
+}
+
+// canIgnoreSetMTUError determines whether enable/disable promiscuous mode error should be ignored.
+func (info DevInfo) canIgnorePromiscError() bool {
 	switch info.DriverName() {
 	case DriverMemif, DriverRing:
 		return true
