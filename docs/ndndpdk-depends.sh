@@ -42,6 +42,7 @@ DFLT_LIBBPFVER=v0.5.0
 DFLT_URINGVER=liburing-2.1
 DFLT_DPDKVER=21.11
 DFLT_DPDKPATCH=
+DFLT_DPDKOPTS={}
 DFLT_KMODSVER=HEAD
 DFLT_SPDKVER=21.10
 DFLT_NJOBS=$(nproc)
@@ -63,12 +64,13 @@ LIBBPFVER=$DFLT_LIBBPFVER
 URINGVER=$DFLT_URINGVER
 DPDKVER=$DFLT_DPDKVER
 DPDKPATCH=$DFLT_DPDKPATCH
+DPDKOPTS=$DFLT_DPDKOPTS
 KMODSVER=$DFLT_KMODSVER
 SPDKVER=$DFLT_SPDKVER
 NJOBS=$DFLT_NJOBS
 TARGETARCH=$DFLT_TARGETARCH
 
-ARGS=$(getopt -o 'hy' -l 'dir:,node:,go:,ubpf:,libbpf:,dpdk:,dpdk-patch:,kmods:,spdk:,uring:,jobs:,arch:' -- "$@")
+ARGS=$(getopt -o 'hy' -l 'dir:,node:,go:,ubpf:,libbpf:,dpdk:,dpdk-patch:,dpdk-opts:,kmods:,spdk:,uring:,jobs:,arch:' -- "$@")
 eval set -- "$ARGS"
 while true; do
   case $1 in
@@ -82,6 +84,7 @@ while true; do
     --uring) URINGVER=$2; shift 2;;
     --dpdk) DPDKVER=$2; DPDKPATCH=''; shift 2;;
     --dpdk-patch) DPDKPATCH=$2; shift 2;;
+    --dpdk-opts) DPDKOPTS=$2; shift 2;;
     --kmods) KMODSVER=$2; shift 2;;
     --spdk) SPDKVER=$2; shift 2;;
     --jobs) NJOBS=$2; shift 2;;
@@ -112,6 +115,8 @@ ndndpdk-depends.sh [OPTION]...
       Set DPDK version. '0' to skip.
   --dpdk-patch=${DFLT_DPDKPATCH}
       Add DPDK patch series (comma separated). '0' to skip.
+  --dpdk-opts=${DFLT_DPDKOPTS}
+      Set/override DPDK Meson options (JSON object).
   --kmods=${DFLT_KMODSVER}
       Set DPDK kernel modules branch or commit SHA. '0' to skip.
   --spdk=${DFLT_SPDKVER}
@@ -372,7 +377,9 @@ if [[ $DPDKVER != 0 ]]; then
   cd "dpdk-${DPDKVER}"
   echo -n "$DPDKPATCH" | xargs -d, --no-run-if-empty -I{} \
     sh -c "curl -fsLS ${NDNDPDK_DL_DPDK_PATCHES}/series/{}/mbox/ | patch -p1"
-  meson -Ddebug=true -Dcpu_instruction_set=${TARGETARCH} -Doptimization=3 -Dtests=false --libdir=lib build
+  meson $(echo "$DPDKOPTS" | jq -r --arg arch "$TARGETARCH" \
+          '{ debug:true, cpu_instruction_set:$arch, optimization:3, tests:false } + .
+           | to_entries[] | "-D"+.key+"="+(.value|tostring)') --libdir=lib build
   cd build
   ninja -j${NJOBS}
   $SUDO find /usr/local/lib -name 'librte_*' -delete

@@ -220,7 +220,7 @@ The differences are:
 
 ### Error during Ethernet Port Creation or Face Creation
 
-If the command or GraphQL mutation for creating an Ethernet port or a face returns an error, you can typically gather additional error information from NDN-DPDK service logs.
+If the command or GraphQL mutation for creating an Ethernet port or a face returns an error, you can view detailed error messages from NDN-DPDK service logs.
 See [installation guide](INSTALL.md) "usage" section and [Docker container](Docker.md) "control the service container" section for how to access NDN-DPDK service logs.
 
 Common mistakes include:
@@ -229,6 +229,33 @@ Common mistakes include:
 * NDN-DPDK is running in Docker but the Docker container was started with insufficient privileges and bind mounts.
 * Requesting a higher MTU than what's allowed by `.mempool.DIRECT.dataroom` of the activation parameter.
 * Requesting a driver kind or parameter on an Ethernet adapter that doesn't support it.
+* Requesting more RX queues on an Ethernet port than what's supported by the driver.
+* Creating too many faces or requesting too many RX queues on the same Ethernet port, exceeding the `--rx-flow` setting.
+
+### "Reached maximum number of Ethernet ports"
+
+DPDK supports up to 32 Ethernet devices by default.
+Both Ethernet ports and memif faces count toward this limit.
+
+If necessary, you can increase this limit at DPDK compile time.
+Example command:
+
+```bash
+# build DPDK manually
+meson \
+  -Dmax_ethports=64 \
+  [other arguments]
+
+# install DPDK with ndndpdk-depends.sh
+docs/ndndpdk-depends.sh \
+  --dpdk-opts='{"max_ethports":64}' \
+  [other arguments]
+
+# build NDN-DPDK Docker image
+docker build \
+  --build-arg DEPENDS_ARGS='--dpdk-opts={"max_ethports":64}' \
+  [other arguments]
+```
 
 ### Face Created but No Packet Received
 
