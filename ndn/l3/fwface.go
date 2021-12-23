@@ -89,9 +89,9 @@ func (f *fwFace) RemoveRoute(name ndn.Name) {
 	})
 }
 
-func (f *fwFace) lpmRoute(name ndn.Name) int {
+func (f *fwFace) lpmRoute(query ndn.Name) int {
 	for _, name := range f.routes {
-		if name.IsPrefixOf(name) {
+		if name.IsPrefixOf(query) {
 			return len(name)
 		}
 	}
@@ -106,7 +106,7 @@ func (f *fwFace) AddAnnouncement(name ndn.Name) {
 
 		if !f.fw.announcements.ContainsKey(nameS) {
 			for dest := range f.fw.readvertise {
-				dest.Advertise(name)
+				go dest.Advertise(name)
 			}
 		}
 		f.fw.announcements.Put(nameS, f)
@@ -127,7 +127,7 @@ func (f *fwFace) removeAnnouncementImpl(name ndn.Name, nameS string) {
 	f.fw.announcements.Remove(nameS, f)
 	if !f.fw.announcements.ContainsKey(nameS) {
 		for dest := range f.fw.readvertise {
-			dest.Withdraw(name)
+			go dest.Withdraw(name)
 		}
 	}
 }

@@ -52,6 +52,11 @@ Application layer services
 * Segmented object: consumer and producer (in [package segmented](segmented))
 * [Realtime Data Retrieval (RDR)](https://redmine.named-data.net/projects/ndn-tlv/wiki/RDR): metadata structure (in [package rdr](rdr))
 
+Management integration:
+
+* Connecting to NDN-DPDK: yes (in [package gqlmgmt](mgmt/gqlmgmt))
+* Connecting to NFD and YaNFD: yes (in [package nfdmgmt](mgmt/nfdmgmt))
+
 ## Getting Started
 
 The best places to get started are:

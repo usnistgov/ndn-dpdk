@@ -17,7 +17,7 @@ All subcommands require sudo privilege in order to use AF\_PACKET socket or memi
 ## L3 Face API
 
 [dump.go](dump.go) implements a traffic dump tool using [l3.Face API](../../ndn/l3).
-This example does not need a running local NDN-DPDK forwarder.
+This example does not need a local forwarder.
 
 ```bash
 sudo ndndpdk-godemo dump --netif eth1
@@ -29,7 +29,7 @@ sudo ndndpdk-godemo dump --netif eth1 --respond
 ## Endpoint API
 
 [ping.go](ping.go) implements ndnping reachability test client and server using [endpoint API](../../ndn/endpoint).
-This example requires a running local NDN-DPDK forwarder.
+This example requires a local forwarder.
 
 ```bash
 # minimal
@@ -56,7 +56,7 @@ sudo ndndpdk-godemo --mtu 9000 pingclient --name /pingdemo --interval 100ms --li
 ## Segmented Object API
 
 [segmented.go](segmented.go) implements a file transfer utility using [segmented object API](../../ndn/segmented).
-This example requires a running local NDN-DPDK forwarder.
+This example requires a local forwarder.
 
 ```bash
 # generate test file and view digest

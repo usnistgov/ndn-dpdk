@@ -13,18 +13,24 @@ type Client struct {
 	*gqlclient.Client
 }
 
-func (c *Client) delete(id string) error {
-	deleted := false
-	return c.Do(context.TODO(), `
-		mutation delete($id: ID!) {
-			delete(id: $id)
+var _ mgmt.Client = (*Client)(nil)
+
+// CreateFace requests to create a face via GraphQL.
+func (c *Client) CreateFace(ctx context.Context, locator interface{}) (id string, e error) {
+	var faceJ struct {
+		ID string `json:"id"`
+	}
+	e = c.Do(ctx, `
+		mutation createFace($locator: JSON!) {
+			createFace(locator: $locator) {
+				id
+			}
 		}
 	`, map[string]interface{}{
-		"id": id,
-	}, "delete", &deleted)
+		"locator": locator,
+	}, "createFace", &faceJ)
+	return faceJ.ID, e
 }
-
-var _ mgmt.Client = (*Client)(nil)
 
 // New creates a Client.
 func New(cfg gqlclient.Config) (*Client, error) {

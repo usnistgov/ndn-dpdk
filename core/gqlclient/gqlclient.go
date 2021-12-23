@@ -78,6 +78,18 @@ func (c *Client) Do(ctx context.Context, query string, vars map[string]interface
 	return parseResultData(response, key, res)
 }
 
+// Delete runs the delete mutation.
+func (c *Client) Delete(ctx context.Context, id string) (deleted bool, e error) {
+	e = c.Do(ctx, `
+		mutation delete($id: ID!) {
+			delete(id: $id)
+		}
+	`, map[string]interface{}{
+		"id": id,
+	}, "delete", &deleted)
+	return deleted, e
+}
+
 // Subscribe performs a subscription on the GraphQL server.
 //  ctx: a Context for canceling the subscription.
 //  query: a GraphQL document.

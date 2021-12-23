@@ -13,31 +13,27 @@ var (
 	ErrFaceClosed = errors.New("face is closed")
 )
 
-type faceJSON struct {
-	ID string `json:"id"`
-}
-
 type face struct {
-	faceJSON
 	client *Client
+	id     string
 	l3face l3.Face
 	routes map[string]string
 }
 
 func (f *face) ID() string {
-	return f.faceJSON.ID
+	return f.id
 }
 
 func (f *face) Face() l3.Face {
 	return f.l3face
 }
 
-func (f *face) Close() error {
+func (f *face) Close() (e error) {
 	if f.client == nil {
 		return ErrFaceClosed
 	}
 
-	e := f.client.delete(f.ID())
+	_, e = f.client.Delete(context.TODO(), f.ID())
 	f.client = nil
 	return e
 }
@@ -56,8 +52,8 @@ func (f *face) Advertise(name ndn.Name) error {
 		ID string `json:"id"`
 	}
 	e := f.client.Do(context.TODO(), `
-		mutation insertFibEntry($name: Name!, $nexthops: [ID!]!, $strategy: ID) {
-			insertFibEntry(name: $name, nexthops: $nexthops, strategy: $strategy) {
+		mutation insertFibEntry($name: Name!, $nexthops: [ID!]!) {
+			insertFibEntry(name: $name, nexthops: $nexthops) {
 				id
 			}
 		}
@@ -71,7 +67,7 @@ func (f *face) Advertise(name ndn.Name) error {
 	return e
 }
 
-func (f *face) Withdraw(name ndn.Name) error {
+func (f *face) Withdraw(name ndn.Name) (e error) {
 	if f.client == nil {
 		return ErrFaceClosed
 	}
@@ -82,7 +78,7 @@ func (f *face) Withdraw(name ndn.Name) error {
 		return nil
 	}
 
-	e := f.client.delete(id)
+	_, e = f.client.Delete(context.TODO(), id)
 	if e == nil {
 		delete(f.routes, string(nameV))
 	}

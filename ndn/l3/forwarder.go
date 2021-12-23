@@ -43,9 +43,9 @@ type Forwarder interface {
 // NewForwarder creates a Forwarder.
 func NewForwarder() Forwarder {
 	fw := &forwarder{
-		faces:         make(map[uint32]*fwFace),
+		faces:         map[uint32]*fwFace{},
 		announcements: setmultimap.New(),
-		readvertise:   make(map[ReadvertiseDestination]bool),
+		readvertise:   map[ReadvertiseDestination]bool{},
 		cmd:           make(chan func()),
 		rx:            make(chan fwRxPkt),
 	}

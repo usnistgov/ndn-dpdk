@@ -52,24 +52,15 @@ func (c *Client) OpenMemif(loc memiftransport.Locator) (mgmt.Face, error) {
 	if e != nil {
 		return nil, fmt.Errorf("loc.ToCreateFaceLocator: %w", e)
 	}
-	var faceJ faceJSON
-	e = c.Do(context.TODO(), `
-		mutation createFace($locator: JSON!) {
-			createFace(locator: $locator) {
-				id
-			}
-		}
-	`, map[string]interface{}{
-		"locator": locJ,
-	}, "createFace", &faceJ)
+	id, e := c.CreateFace(context.TODO(), locJ)
 	if e != nil {
 		return nil, e
 	}
 
 	f := &face{
-		faceJSON: faceJ,
-		client:   c,
-		routes:   make(map[string]string),
+		client: c,
+		id:     id,
+		routes: map[string]string{},
 	}
 	return f, f.openMemif(loc)
 }

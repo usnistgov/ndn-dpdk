@@ -18,23 +18,30 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/memiftransport"
 	"github.com/usnistgov/ndn-dpdk/ndn/mgmt"
 	"github.com/usnistgov/ndn-dpdk/ndn/mgmt/gqlmgmt"
+	"github.com/usnistgov/ndn-dpdk/ndn/mgmt/nfdmgmt"
 	"go4.org/must"
 )
 
 var (
 	interrupt = make(chan os.Signal, 1)
-	client    *gqlmgmt.Client
+	client    mgmt.Client
 	face      mgmt.Face
 	fwFace    l3.FwFace
 
 	gqlserver string
 	mtuFlag   int
+	useNfd    bool
 )
 
 func openUplink(c *cli.Context) (e error) {
-	var loc memiftransport.Locator
-	loc.Dataroom = mtuFlag
-	if face, e = client.OpenMemif(loc); e != nil {
+	if gqlClient, ok := client.(*gqlmgmt.Client); ok {
+		var loc memiftransport.Locator
+		loc.Dataroom = mtuFlag
+		face, e = gqlClient.OpenMemif(loc)
+	} else {
+		face, e = client.OpenFace()
+	}
+	if e != nil {
 		return e
 	}
 
@@ -72,13 +79,22 @@ var app = &cli.App{
 			Usage:       "application face `MTU`",
 			Destination: &mtuFlag,
 		},
+		&cli.BoolFlag{
+			Name:        "nfd",
+			Usage:       "connect to NFD or YaNFD (set FaceUri in NDN_CLIENT_TRANSPORT environment variable)",
+			Destination: &useNfd,
+		},
 	},
 	Before: func(c *cli.Context) (e error) {
-		if os.Getuid() != 0 {
-			log.Print("running as non-root, some features will not work")
-		}
 		signal.Notify(interrupt, syscall.SIGINT)
-		client, e = gqlmgmt.New(gqlclient.Config{HTTPUri: gqlserver})
+		if useNfd {
+			client, e = nfdmgmt.New()
+		} else {
+			if os.Getuid() != 0 {
+				log.Print("running as non-root, some features will not work")
+			}
+			client, e = gqlmgmt.New(gqlclient.Config{HTTPUri: gqlserver})
+		}
 		return e
 	},
 	After: func(c *cli.Context) (e error) {

@@ -25,6 +25,10 @@ type FaceConfig struct {
 	ReassemblerCapacity int
 }
 
+func (cfg *FaceConfig) applyDefaults() {
+	cfg.ReassemblerCapacity = math.MaxInt(cfg.ReassemblerCapacity, MinReassemblerCapacity)
+}
+
 // Face represents a communicate channel to send and receive NDN network layer packets.
 type Face interface {
 	// Transport returns the underlying transport.
@@ -47,11 +51,12 @@ type Face interface {
 // NewFace creates a Face.
 // tr.Rx() and tr.Tx() should not be used after this operation.
 func NewFace(tr Transport, cfg FaceConfig) (Face, error) {
+	cfg.applyDefaults()
 	f := &face{
 		faceTr:      faceTr{tr},
 		rx:          make(chan *ndn.Packet),
 		tx:          make(chan ndn.L3Packet),
-		reassembler: ndn.NewLpReassembler(math.MaxInt(cfg.ReassemblerCapacity, MinReassemblerCapacity)),
+		reassembler: ndn.NewLpReassembler(cfg.ReassemblerCapacity),
 	}
 
 	if mtu := tr.MTU(); mtu > 0 {
