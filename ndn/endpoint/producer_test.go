@@ -157,6 +157,7 @@ func TestProducerAdvertise(t *testing.T) {
 		Handler: producerHandlerNever,
 	})
 	require.NoError(e)
+	time.Sleep(50 * time.Millisecond)
 	if assert.Len(dest.advertised, 1) {
 		nameEqual(assert, dest.advertised[0], "/A")
 	}
@@ -166,6 +167,7 @@ func TestProducerAdvertise(t *testing.T) {
 		Handler: producerHandlerNever,
 	})
 	require.NoError(e)
+	time.Sleep(50 * time.Millisecond)
 	assert.Len(dest.advertised, 1)
 
 	must.Close(p1)
@@ -173,7 +175,7 @@ func TestProducerAdvertise(t *testing.T) {
 	assert.Len(dest.withdrawn, 0)
 
 	must.Close(p2)
-	time.Sleep(50 * time.Millisecond) // producer.Close is asynchronous
+	time.Sleep(50 * time.Millisecond)
 	if assert.Len(dest.withdrawn, 1) {
 		nameEqual(assert, dest.withdrawn[0], "/A")
 	}
@@ -192,9 +194,10 @@ func TestProducerNoAdvertise(t *testing.T) {
 		Handler:     producerHandlerNever,
 	})
 	require.NoError(e)
+	time.Sleep(50 * time.Millisecond)
 	assert.Len(dest.advertised, 0)
 
 	must.Close(p)
-	time.Sleep(50 * time.Millisecond) // producer.Close is asynchronous
+	time.Sleep(50 * time.Millisecond)
 	assert.Len(dest.withdrawn, 0)
 }

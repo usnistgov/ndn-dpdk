@@ -138,7 +138,7 @@ ndndpdk-ctrl create-eth-port --netif $NETIF --mtu 9000
 ```
 
 An Ethernet port with AF\_PACKET only works reliably for NDN over Ethernet (without VLAN header).
-While it is possible to create VLAN, UDP, or VXLAN faces on such as port, they may trigger undesirable reactions from the kernel network stack (e.g. ICMP port unreachable packets or UFW drop logs), because the kernel is unaware of NDN-DPDK's UDP endpoint.
+While it is possible to create VLAN, UDP, or VXLAN faces on such a port, they may trigger undesirable reactions from the kernel network stack (e.g. ICMP port unreachable packets or UFW drop logs), because the kernel is unaware of NDN-DPDK's UDP endpoint.
 
 ### Creating Ethernet-based Face
 
@@ -181,7 +181,7 @@ See [package ethface](../iface/ethface) "UDP and VXLAN tunnel face" section for 
 ## Memif Face
 
 A memif face communicates with a local application via [shared memory packet interface (memif)](https://docs.fd.io/vpp/21.10/dc/dea/libmemif_doc.html).
-Its implementation is in [package ethface](../iface/ethface).
+Its implementation is in [package memifface](../iface/memifface).
 Although memif is implemented as an Ethernet device, you do not need to create an Ethernet port for the memif device.
 
 Locator of a memif face has the following fields:
@@ -200,7 +200,7 @@ Locator of a memif face has the following fields:
 
 A socket face communicates with either a local application or a remote entity via TCP/IP sockets.
 It supports UDP, TCP, and Unix stream.
-Its implementation is in [package ethface](../iface/socketface).
+Its implementation is in [package socketface](../iface/socketface).
 
 Locator of a socket face has the following fields:
 

@@ -55,7 +55,7 @@ func TestServer(t *testing.T) {
 	fw := l3.NewForwarder()
 	fwFace, e := fw.AddFace(face.A)
 	require.NoError(e)
-	fwFace.AddRoute(ndn.ParseName("/F"))
+	fwFace.AddRoute(ndn.ParseName("/"))
 
 	var wg sync.WaitGroup
 	timeout, cancel := context.WithTimeout(context.TODO(), 20*time.Second)
