@@ -27,19 +27,19 @@ type Config struct {
 	//
 	// If this value is zero, it defaults to DefaultPrefixLen.
 	// Otherwise, it is clamped between MinPrefixLen and MaxPrefixLen.
-	PrefixLen int `json:"prefixLen,omitempty"`
+	PrefixLen int `json:"prefixLen,omitempty" gqldesc:"Number of name components considered in NDT lookup."`
 
 	// Capacity is the number of NDT entries.
 	//
 	// If this value is zero, it defaults to DefaultCapacity.
 	// Otherwise, it is clamped between MinCapacity and MaxCapacity, and adjusted up to the next power of 2.
-	Capacity int `json:"capacity,omitempty"`
+	Capacity int `json:"capacity,omitempty" gqldesc:"Number of NDT entries."`
 
 	// SampleInterval indicates how often per-entry counters are incremented within a lookup thread.
 	//
 	// If this value is zero, it defaults to DefaultSampleInterval.
 	// Otherwise, it is clamped between MinSampleInterval and MaxSampleInterval, and adjusted up to the next power of 2.
-	SampleInterval int `json:"sampleInterval,omitempty"`
+	SampleInterval int `json:"sampleInterval,omitempty" gqldesc:"How often per-entry counters are incremented."`
 }
 
 func (c *Config) applyDefaults() {

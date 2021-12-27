@@ -12,9 +12,9 @@ import (
 
 // Entry contains information from an NDT entry.
 type Entry struct {
-	Index int    `json:"index"`
-	Value int    `json:"value"`
-	Hits  uint32 `json:"hits"`
+	Index int    `json:"index" gqldesc:"Entry index."`
+	Value int    `json:"value" gqldesc:"Entry value, i.e. forwarding thread index."`
+	Hits  uint32 `json:"hits" gqldesc:"Hit counter value, wrapping at uint32 limit."`
 }
 
 // Ndt represents a Name Dispatch Table (NDT).
@@ -126,7 +126,7 @@ func New(cfg Config, sockets []eal.NumaSocket) (ndt *Ndt) {
 	cfg.applyDefaults()
 	ndt = &Ndt{
 		cfg:      cfg,
-		replicas: make(map[eal.NumaSocket]*replica),
+		replicas: map[eal.NumaSocket]*replica{},
 		queriers: make([]*Querier, len(sockets)),
 	}
 

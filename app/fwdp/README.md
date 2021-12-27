@@ -41,7 +41,6 @@ Some limitations are:
 
 * FwFwd can place a congestion mark only on the ingress side (e.g., to signal that the forwarder cannot sustain the current rate of incoming packets), not on the egress side (e.g., to signal link congestion).
 * FwFwd does not add or remove the congestion mark during Interest aggregation or Data caching.
-* FwFwd does not place a congestion mark on reply Data/Nack when Interest congestion occurs, although the producer could do so.
 
 ### Per-Packet Logging
 

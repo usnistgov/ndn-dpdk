@@ -44,21 +44,8 @@ func init() {
 	})
 
 	GqlEntryType = graphql.NewObject(graphql.ObjectConfig{
-		Name: "NdtEntry",
-		Fields: graphql.Fields{
-			"index": &graphql.Field{
-				Description: "Entry index.",
-				Type:        gqlserver.NonNullInt,
-			},
-			"value": &graphql.Field{
-				Description: "Entry value, aka forwarding thread index.",
-				Type:        gqlserver.NonNullInt,
-			},
-			"hits": &graphql.Field{
-				Description: "Hit counter value, wrapping at uint32 limit.",
-				Type:        gqlserver.NonNullInt,
-			},
-		},
+		Name:   "NdtEntry",
+		Fields: gqlserver.BindFields(Entry{}, nil),
 	})
 
 	gqlserver.AddQuery(&graphql.Field{

@@ -36,7 +36,7 @@ To configure CPU isolation for the NDN-DPDK systemd service:
 
 To configure CPU isolation for the NDN-DPDK Docker container:
 
-1. Following the above instructions to assign CPU cores to non-containerized programs.
+1. Following the above instructions to assign CPU cores to non-containerized programs in `cpuset.conf`.
 
 2. When launching the NDN-DPDK service container, add the `--cpuset-cpus` flag, such as:
 
@@ -99,7 +99,7 @@ NDN-DPDK maintains thread load statistic in polling threads, including these cou
 * average number of dequeued packets per burst.
 
 These counters can be retrieved using GraphQL subscription `threadLoadStat` with the ID of a worker LCore (found via `workers` query).
-Generally, if the empty poll counter of a thread is much smaller than its valid poll counter, it indicates the thread is overloaded.
+Generally, if the empty poll counter of a thread is smaller than its valid poll counter, it indicates the thread is overloaded.
 
 ## Memory Usage Insights
 
