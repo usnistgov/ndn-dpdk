@@ -16,6 +16,7 @@ import (
 
 // FilePipeConfig configures FilePipe*.
 type FilePipeConfig struct {
+	// NonBlock sets O_NONBLOCK on the writer file descriptor.
 	NonBlock bool
 }
 
@@ -97,16 +98,16 @@ func CaptureFileDump(f func(fp unsafe.Pointer)) (data []byte, e error) {
 	if e != nil {
 		return nil, e
 	}
+	defer must.Close(p)
 
-	done := make(chan bool)
+	done := make(chan struct{})
 	go func() {
 		data, e = p.ReadAll()
-		done <- true
+		close(done)
 	}()
 
 	f(p.Writer)
 	p.CloseWriter()
 	<-done
-	must.Close(p)
 	return
 }

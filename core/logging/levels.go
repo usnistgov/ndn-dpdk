@@ -31,6 +31,8 @@ func (pl *PkgLevel) SetCallback(cb func()) {
 
 // SetLevel assigns log level.
 func (pl *PkgLevel) SetLevel(input string) {
+	defer pl.cb()
+
 	if len(input) == 0 {
 		pl.lvl = 'I'
 		pl.al.SetLevel(zap.InfoLevel)
@@ -54,13 +56,9 @@ func (pl *PkgLevel) SetLevel(input string) {
 		return
 	}
 	pl.lvl = input[0]
-
-	if pl.cb != nil {
-		pl.cb()
-	}
 }
 
-var pkgLevels = make(map[string]*PkgLevel)
+var pkgLevels = map[string]*PkgLevel{}
 
 // ListLevels returns all package levels.
 func ListLevels() (list []PkgLevel) {
@@ -82,6 +80,7 @@ func GetLevel(pkg string) (pl *PkgLevel) {
 		pl = &PkgLevel{
 			pkg: pkg,
 			al:  zap.NewAtomicLevel(),
+			cb:  func() {},
 		}
 		pl.SetLevel(envLevel(pkg))
 		pkgLevels[pkg] = pl

@@ -30,14 +30,26 @@ const (
 
 	logErrorPrefix = " ERROR={"
 	logErrorSuffix = "}"
+
+	reLogDumpID  = 1
+	reLogDumpPkg = 2
+
+	reLogLineType    = 1
+	reLogLineLevel   = 2
+	reLogLineLCore   = 3
+	reLogLineIsNDN   = 4
+	reLogLineFullMsg = 5
+	reLogLineMsg     = 6
+	reLogLineKV      = 7
+	reLogLineError   = 8
 )
 
 var (
-	logTypes  = make(map[int]string)
+	logTypes  = map[int]string{}
 	logStream *cptr.FilePipeCGo
 
 	reLogDump = regexp.MustCompile(`(?m)^id (\d+): ([^,]+), level is `)
-	reLogLine = regexp.MustCompile(`^(\d+) (\d) (\d+) \* (?:NDN: )?(.*?)((?: [^ =]+=[^ =]+)*?)(` + logErrorPrefix + `[^}]+` + logErrorSuffix + `)?\n`)
+	reLogLine = regexp.MustCompile(`^(\d+) (\d) (\d+) \* (NDN: )?((.*?)((?: [^ =]+=[^ =]+)*?)(` + logErrorPrefix + `[^}]+` + logErrorSuffix + `)?)\n`)
 	reErrno   = regexp.MustCompile(`^errno<-?(\d+)>$`)
 )
 
@@ -49,11 +61,11 @@ func updateLogTypes() {
 	}
 
 	for _, m := range reLogDump.FindAllSubmatch(data, -1) {
-		id, e := strconv.Atoi(string(m[1]))
+		id, e := strconv.Atoi(string(m[reLogDumpID]))
 		if e != nil {
 			continue
 		}
-		pkg := string(m[2])
+		pkg := string(m[reLogDumpPkg])
 		if strings.HasPrefix(pkg, logPrefixNDN) {
 			pkg = pkg[len(logPrefixNDN):]
 		} else if pkg != logPkgSPDK {
@@ -65,8 +77,8 @@ func updateLogTypes() {
 
 func updateLogLevels() {
 	updateLogTypes()
-	for id, logtype := range logTypes {
-		pl := logging.GetLevel(logtype)
+	for id, logType := range logTypes {
+		pl := logging.GetLevel(logType)
 		idC := C.uint32_t(id)
 		set := func() { C.rte_log_set_level(idC, parseLogLevel(pl.Level())) }
 		pl.SetCallback(set)
@@ -140,26 +152,32 @@ func processLogLine(line []byte) {
 		return
 	}
 
-	logtype, _ := strconv.Atoi(string(m[1]))
-	logName := logTypes[logtype]
+	logTypeID, _ := strconv.Atoi(string(m[reLogLineType]))
 	var l *zap.Logger
-	if logName == "" {
-		l = logging.Named(logPkgDPDK)
+	if logName, ok := logTypes[logTypeID]; ok {
+		l = logging.Named(logName)
 	} else {
-		l = logging.Named(logTypes[logtype])
+		l = logging.Named(logPkgDPDK)
 	}
-	if lc, _ := strconv.Atoi(string(m[3])); lc != math.MaxUint32 {
-		l = l.Named(string(m[3]))
+	if lc, _ := strconv.Atoi(string(m[reLogLineLCore])); lc != math.MaxUint32 {
+		l = l.Named(string(m[reLogLineLCore]))
 	}
 
-	lvl := dpdk2zapLogLevels[m[2][0]]
-	msg := string(m[4])
+	lvl := dpdk2zapLogLevels[m[reLogLineLevel][0]]
+	if len(m[reLogLineIsNDN]) == 0 {
+		if ce := l.Check(lvl, string(m[reLogLineFullMsg])); ce != nil {
+			ce.Write()
+		}
+		return
+	}
+
+	msg := string(m[reLogLineMsg])
 	ce := l.Check(lvl, msg)
 	if ce == nil {
 		return
 	}
 
-	pairs := bytes.Split(m[5], []byte{' '})[1:]
+	pairs := bytes.Split(m[reLogLineKV], []byte{' '})[1:]
 	fields := make([]zapcore.Field, 0, len(pairs)+2)
 
 	for _, pair := range pairs {
@@ -167,8 +185,8 @@ func processLogLine(line []byte) {
 		fields = append(fields, zap.ByteString(string(kv[0]), kv[1]))
 	}
 
-	if len(m[6]) > 0 {
-		e := string(m[6][len(logErrorPrefix) : len(m[6])-len(logErrorSuffix)])
+	if len(m[reLogLineError]) > 0 {
+		e := string(m[reLogLineError][len(logErrorPrefix) : len(m[reLogLineError])-len(logErrorSuffix)])
 		if e == "-" {
 			fields = append(fields, zap.Error(errors.New(msg)))
 		} else if em := reErrno.FindStringSubmatch(e); em != nil {
