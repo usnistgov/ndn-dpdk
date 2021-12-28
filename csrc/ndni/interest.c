@@ -143,7 +143,7 @@ PInterest_SelectFwHint(PInterest* interest, int i)
   bool ok = PName_Parse(&interest->fwHint,
                         (LName){ .length = interest->fwHintL[i], .value = interest->fwHintV[i] });
   interest->activeFwHint = likely(ok) ? i : -1;
-  return -1;
+  return ok;
 }
 
 typedef struct GuiderFields

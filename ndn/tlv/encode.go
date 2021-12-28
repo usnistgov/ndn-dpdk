@@ -2,7 +2,6 @@ package tlv
 
 import (
 	"bytes"
-
 	"math"
 )
 

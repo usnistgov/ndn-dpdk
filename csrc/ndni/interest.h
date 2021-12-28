@@ -77,7 +77,7 @@ typedef struct InterestGuiders
 /**
  * @brief printf format string for InterestGuiders.
  * @code
- * printf("mbuf=%p " PRI_InterestGuiders " suffix", mbuf, InterestGuiders_Fmt(guiders))
+ * printf("mbuf=%p " PRI_InterestGuiders " suffix", mbuf, InterestGuiders_Fmt(guiders));
  * @endcode
  */
 #define PRI_InterestGuiders "nonce=%08" PRIx32 " lifetime=%" PRIu32 " hopLimit=%" PRIu8
