@@ -14,7 +14,7 @@ func TestInterestTemplate(t *testing.T) {
 	interestMp := ndni.InterestMempool.Get(eal.NumaSocket{})
 
 	var tpl ndni.InterestTemplate
-	tpl.Init("/prefix", ndn.CanBePrefixFlag, ndn.MakeFHDelegation(10, "/FH"), 1895*time.Millisecond)
+	tpl.Init("/prefix", ndn.CanBePrefixFlag, ndn.ForwardingHint{ndn.ParseName("/FH")}, 1895*time.Millisecond)
 
 	interestPkt := tpl.Encode(interestMp.MustAlloc(1)[0], ndn.ParseName("/suffix"), 0xABF0E278)
 	require.NotNil(interestPkt)

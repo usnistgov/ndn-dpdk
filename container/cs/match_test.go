@@ -39,13 +39,13 @@ func TestInsertErase(t *testing.T) {
 	assert.Equal(100*time.Millisecond, csData.Freshness)
 
 	ok = fixture.Insert(
-		makeInterest("/A/B", ndn.MakeFHDelegation(1, "/F"), setActiveFwHint(0)),
+		makeInterest("/A/B", ndn.ForwardingHint{ndn.ParseName("/F")}, setActiveFwHint(0)),
 		makeData("/A/B", 200*time.Millisecond))
 	assert.True(ok)
 	assert.Equal(2, fixture.Cs.CountEntries(cs.ListMd))
 
 	csEntry3 := fixture.Find(makeInterest("/A/B",
-		ndn.MakeFHDelegation(1, "/G"), ndn.MakeFHDelegation(2, "/F"), setActiveFwHint(1)))
+		ndn.ForwardingHint{ndn.ParseName("/G"), ndn.ParseName("/F")}, setActiveFwHint(1)))
 	require.NotNil(csEntry3)
 	csData3 := csEntry3.Data().ToNPacket().Data
 	nameEqual(assert, "/A/B", csData3)
@@ -105,7 +105,7 @@ func TestPrefixMatch(t *testing.T) {
 
 	// /A/B/C/D <- [/A/B] with fh=/F
 	ok = fixture.Insert(
-		makeInterest("/A/B", ndn.CanBePrefixFlag, ndn.MakeFHDelegation(1, "/F"), setActiveFwHint(0)),
+		makeInterest("/A/B", ndn.CanBePrefixFlag, ndn.ForwardingHint{ndn.ParseName("/F")}, setActiveFwHint(0)),
 		makeData("/A/B/C/D"))
 	assert.True(ok)
 	assert.Equal(1, fixture.Cs.CountEntries(cs.ListMd))
@@ -113,14 +113,14 @@ func TestPrefixMatch(t *testing.T) {
 
 	// /A/B/C/D <- [/A/B, /A/B/C] with fh=/F
 	ok = fixture.Insert(
-		makeInterest("/A/B/C", ndn.CanBePrefixFlag, ndn.MakeFHDelegation(1, "/F"), setActiveFwHint(0)),
+		makeInterest("/A/B/C", ndn.CanBePrefixFlag, ndn.ForwardingHint{ndn.ParseName("/F")}, setActiveFwHint(0)),
 		makeData("/A/B/C/D"))
 	assert.True(ok)
 	assert.Equal(1, fixture.Cs.CountEntries(cs.ListMd))
 	assert.Equal(2, fixture.Cs.CountEntries(cs.ListMi))
 
 	assert.Nil(fixture.Find(makeInterest("/A/B", ndn.CanBePrefixFlag))) // no match due to missing fh=/F
-	assert.NotNil(fixture.Find(makeInterest("/A/B", ndn.CanBePrefixFlag, ndn.MakeFHDelegation(1, "/F"), setActiveFwHint(0))))
+	assert.NotNil(fixture.Find(makeInterest("/A/B", ndn.CanBePrefixFlag, ndn.ForwardingHint{ndn.ParseName("/F")}, setActiveFwHint(0))))
 }
 
 func TestImplicitDigestMatch(t *testing.T) {

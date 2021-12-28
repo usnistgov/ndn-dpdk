@@ -29,8 +29,6 @@ const (
 	TtCanBePrefix      = 0x21
 	TtMustBeFresh      = 0x12
 	TtForwardingHint   = 0x1E
-	TtDelegation       = 0x1F
-	TtPreference       = 0x1E
 	TtNonce            = 0x0A
 	TtInterestLifetime = 0x0C
 	TtHopLimit         = 0x22

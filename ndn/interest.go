@@ -40,7 +40,7 @@ var (
 //  - string or Name: set Name
 //  - CanBePrefixFlag: set CanBePrefix
 //  - MustBeFreshFlag: set MustBeFresh
-//  - FHDelegation: append forwarding hint delegation
+//  - ForwardingHint: set forwarding hint
 //  - Nonce: set Nonce
 //  - time.Duration: set Lifetime
 //  - HopLimit: set HopLimit
@@ -59,8 +59,8 @@ func MakeInterest(args ...interface{}) (interest Interest) {
 			interest.CanBePrefix = true
 		case tMustBeFresh:
 			interest.MustBeFresh = true
-		case FHDelegation:
-			interest.ForwardingHint = append(interest.ForwardingHint, a)
+		case ForwardingHint:
+			interest.ForwardingHint = a
 		case Nonce:
 			interest.Nonce = a
 		case time.Duration:
@@ -312,18 +312,12 @@ func (interest Interest) encodeSignedPortion() (wire []byte, e error) {
 }
 
 // ForwardingHint represents a forwarding hint.
-type ForwardingHint []FHDelegation
+type ForwardingHint []Name
 
 var (
 	_ tlv.Fielder                = ForwardingHint{}
 	_ encoding.BinaryUnmarshaler = (*ForwardingHint)(nil)
 )
-
-// Append adds a delegation.
-// name should be either Name or string.
-func (fh *ForwardingHint) Append(preference int, name interface{}) {
-	*fh = append(*fh, MakeFHDelegation(preference, name))
-}
 
 // Field implements tlv.Fielder interface.
 func (fh ForwardingHint) Field() tlv.Field {
@@ -339,68 +333,12 @@ func (fh *ForwardingHint) UnmarshalBinary(wire []byte) error {
 	d := tlv.DecodingBuffer(wire)
 	for _, de := range d.Elements() {
 		switch de.Type {
-		case an.TtDelegation:
-			var del FHDelegation
+		case an.TtName:
+			var del Name
 			if e := del.UnmarshalBinary(de.Value); e != nil {
 				return e
 			}
 			*fh = append(*fh, del)
-		default:
-			if de.IsCriticalType() {
-				return tlv.ErrCritical
-			}
-		}
-	}
-	return d.ErrUnlessEOF()
-}
-
-// FHDelegation represents a delegation of forwarding hint.
-type FHDelegation struct {
-	Preference int
-	Name       Name
-}
-
-var (
-	_ tlv.Fielder                = FHDelegation{}
-	_ encoding.BinaryUnmarshaler = (*FHDelegation)(nil)
-)
-
-// MakeFHDelegation creates a delegation.
-// name should be either Name or string.
-func MakeFHDelegation(preference int, name interface{}) (del FHDelegation) {
-	del.Preference = preference
-	switch a := name.(type) {
-	case string:
-		del.Name = ParseName(a)
-	case Name:
-		del.Name = a
-	default:
-		panic(reflect.TypeOf(name))
-	}
-	return del
-}
-
-// Field implements tlv.Fielder interface.
-func (del FHDelegation) Field() tlv.Field {
-	return tlv.TLV(an.TtDelegation,
-		tlv.TLVNNI(an.TtPreference, uint64(del.Preference)),
-		del.Name.Field(),
-	)
-}
-
-// UnmarshalBinary decodes from TLV-VALUE.
-func (del *FHDelegation) UnmarshalBinary(wire []byte) (e error) {
-	d := tlv.DecodingBuffer(wire)
-	for _, de := range d.Elements() {
-		switch de.Type {
-		case an.TtPreference:
-			if del.Preference = int(de.UnmarshalNNI(math.MaxInt32, &e, tlv.ErrRange)); e != nil {
-				return e
-			}
-		case an.TtName:
-			if e := de.UnmarshalValue(&del.Name); e != nil {
-				return e
-			}
 		default:
 			if de.IsCriticalType() {
 				return tlv.ErrCritical
@@ -432,7 +370,7 @@ func NonceFromUint(n uint32) (nonce Nonce) {
 
 // IsZero returns true if the nonce is zero.
 func (nonce Nonce) IsZero() bool {
-	return (nonce[0] | nonce[1] | nonce[2] | nonce[3]) == 0
+	return nonce[0]|nonce[1]|nonce[2]|nonce[3] == 0
 }
 
 // ToUint converts Nonce to uint32, interpreted as big endian.

@@ -10,53 +10,24 @@ NonceGen_Init(NonceGen* g)
   pcg32_srandom_r(&g->rng, rte_rand(), rte_rand());
 }
 
-__attribute__((nonnull)) static __rte_always_inline bool
-PInterest_ParseDelegation(PInterest* interest, TlvDecoder* d)
-{
-  TlvDecoder_EachTL (d, type, length) {
-    switch (type) {
-      case TtPreference:
-        TlvDecoder_Skip(d, length);
-        break;
-      case TtName: {
-        const uint8_t* v;
-        if (unlikely(length > NameMaxLength || (v = TlvDecoder_Linearize(d, length)) == NULL)) {
-          return false;
-        }
-        interest->fwHintL[interest->nFwHints] = length;
-        interest->fwHintV[interest->nFwHints] = v;
-        break;
-      }
-      default:
-        if (TlvDecoder_IsCriticalType(type)) {
-          return false;
-        }
-        TlvDecoder_Skip(d, length);
-        break;
-    }
-  }
-  ++interest->nFwHints;
-  return likely(d->length == 0);
-}
-
 __attribute__((nonnull)) static bool
 PInterest_ParseFwHint(PInterest* interest, TlvDecoder* d)
 {
   TlvDecoder_EachTL (d, type, length) {
     switch (type) {
-      case TtDelegation: {
+      case TtName: {
         if (unlikely(interest->nFwHints >= PInterestMaxFwHints)) {
           TlvDecoder_Skip(d, length);
           break;
         }
 
-        TlvDecoder vd;
-        TlvDecoder_MakeValueDecoder(d, length, &vd);
-        if (unlikely(!PInterest_ParseDelegation(interest, &vd))) {
+        const uint8_t* v = NULL;
+        if (unlikely(length > NameMaxLength || (v = TlvDecoder_Linearize(d, length)) == NULL)) {
           return false;
         }
-        d->m = vd.m; // mbuf may change when linearizing
-        d->offset = vd.offset;
+        interest->fwHintV[interest->nFwHints] = v;
+        interest->fwHintL[interest->nFwHints] = length;
+        ++interest->nFwHints;
         break;
       }
       default:
@@ -67,7 +38,7 @@ PInterest_ParseFwHint(PInterest* interest, TlvDecoder* d)
         break;
     }
   }
-  return likely(d->length == 0);
+  return likely(d->length == 0 && interest->nFwHints > 0);
 }
 
 bool

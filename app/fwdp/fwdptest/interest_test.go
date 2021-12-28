@@ -233,19 +233,19 @@ func TestFwHint(t *testing.T) {
 	fixture.SetFibEntry("/C", "multicast", face3.ID)
 	token1, token2, token3, token4 := makeToken(), makeToken(), makeToken(), makeToken()
 
-	face4.Tx <- ndn.MakeInterest("/A/1", ndn.MakeFHDelegation(1, "/B"), ndn.MakeFHDelegation(2, "/C"), token1.LpL3())
+	face4.Tx <- ndn.MakeInterest("/A/1", ndn.ForwardingHint{ndn.ParseName("/B"), ndn.ParseName("/C")}, token1.LpL3())
 	fixture.StepDelay()
 	assert.Equal(0, collect1.Count())
 	assert.Equal(1, collect2.Count())
 	assert.Equal(0, collect3.Count())
 
-	face5.Tx <- ndn.MakeInterest("/A/1", ndn.MakeFHDelegation(1, "/C"), ndn.MakeFHDelegation(2, "/B"), token2.LpL3())
+	face5.Tx <- ndn.MakeInterest("/A/1", ndn.ForwardingHint{ndn.ParseName("/C"), ndn.ParseName("/B")}, token2.LpL3())
 	fixture.StepDelay()
 	assert.Equal(0, collect1.Count())
 	assert.Equal(1, collect2.Count())
 	assert.Equal(1, collect3.Count())
 
-	face5.Tx <- ndn.MakeInterest("/A/1", ndn.MakeFHDelegation(1, "/Z"), ndn.MakeFHDelegation(2, "/B"), token3.LpL3())
+	face5.Tx <- ndn.MakeInterest("/A/1", ndn.ForwardingHint{ndn.ParseName("/Z"), ndn.ParseName("/B")}, token3.LpL3())
 	fixture.StepDelay()
 	assert.Equal(0, collect1.Count())
 	assert.Equal(2, collect2.Count())
@@ -273,7 +273,7 @@ func TestFwHint(t *testing.T) {
 		assert.Equal(2*time.Second, packet.Data.Freshness)
 	}
 
-	face4.Tx <- ndn.MakeInterest("/A/1", ndn.MakeFHDelegation(1, "/C"), token4.LpL3()) // matches second Data
+	face4.Tx <- ndn.MakeInterest("/A/1", ndn.ForwardingHint{ndn.ParseName("/C")}, token4.LpL3()) // matches second Data
 	fixture.StepDelay()
 	assert.Equal(2, collect4.Count())
 	if packet := collect4.Get(-1); assert.NotNil(packet.Data) {

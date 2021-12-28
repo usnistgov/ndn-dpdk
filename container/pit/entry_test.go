@@ -87,7 +87,7 @@ func TestEntryLongName(t *testing.T) {
 	entries := []*pit.Entry{}
 	for i := 0; i < 4; i++ {
 		name := names[i/2]
-		interest := makeInterest(name.Name, ndn.MakeFHDelegation(1+i, name.FH),
+		interest := makeInterest(name.Name, ndn.ForwardingHint{ndn.ParseName(name.FH)},
 			setActiveFwHint(0), setPitToken([]byte{0xB0, 0xB1, byte(i)}), setFace(iface.ID(1000+i)))
 
 		entry := fixture.Insert(interest)

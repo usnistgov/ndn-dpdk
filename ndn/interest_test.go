@@ -20,13 +20,13 @@ func TestInterestEncode(t *testing.T) {
 	assert.Equal("/8=A", interest.String())
 
 	interest = ndn.MakeInterest("/B", ndn.CanBePrefixFlag, ndn.MustBeFreshFlag,
-		ndn.MakeFHDelegation(33, "/FH"), ndn.NonceFromUint(0x85AC8579),
+		ndn.ForwardingHint{ndn.ParseName("/FH")}, ndn.NonceFromUint(0x85AC8579),
 		8198*time.Millisecond, ndn.HopLimit(5),
 	)
 	wire, e = tlv.EncodeFrom(interest)
 	assert.NoError(e)
-	assert.Equal(bytesFromHex("0523 name=0703080142 cbp=2100 mbf=1200 "+
-		"fh=1E0B1F091E0121070408024648 nonce=0A0485AC8579 lifetime=0C022006 hoplimit=220105"), wire)
+	assert.Equal(bytesFromHex("051E name=0703080142 cbp=2100 mbf=1200 "+
+		"fh=1E06070408024648 nonce=0A0485AC8579 lifetime=0C022006 hoplimit=220105"), wire)
 	assert.Equal("/8=B[P][F]", interest.String())
 }
 
@@ -55,8 +55,8 @@ func TestInterestDecode(t *testing.T) {
 	assert.False(interest.CanBePrefix)
 	assert.False(interest.MustBeFresh)
 
-	assert.NoError(tlv.Decode(bytesFromHex("0523 name=0703080141 cbp=2100 mbf=1200 "+
-		"fh=1E0B1F091E0121070408024648 nonce=0A04A0A1A2A3 lifetime=0C0276A1 hoplimit=2201DC"), &pkt))
+	assert.NoError(tlv.Decode(bytesFromHex("051E name=0703080141 cbp=2100 mbf=1200 "+
+		"fh=1E06070408024648 nonce=0A04A0A1A2A3 lifetime=0C0276A1 hoplimit=2201DC"), &pkt))
 	interest = pkt.Interest
 	assert.NotNil(interest)
 

@@ -65,14 +65,14 @@ func ctestInterestParse(t *testing.T) {
 
 	// full
 	p = makePacket(`
-		055C
+		0552
 		072508`, `0141 01207F6A877C0CCD0AA5A7638F9749E9293CF81C32793670B481D5A6DB788C0831CE // name
 		2100 // canbeprefix
 		FD03BC00 // unknown-ignored
 		1200 // mustbefresh
-		1E1B // fwhint
-			1F091E0121070408`, `024648
-			1F0E (unknown FD03BC00) 1E012207050803484632
+		1E11 // fwhint
+			070408`, `024648
+			(unknown FD03BC00) 07050803484632
 		0A04A0A1A2A3 // nonce
 		0C0276A1 // lifetime
 		2201DC // hoplimit
@@ -152,7 +152,7 @@ func checkInterestModify(t *testing.T, fragmentPayloadSize C.uint16_t, nSegs int
 func ctestInterestModify(t *testing.T) {
 	assert, _ := makeAR(t)
 
-	const inputShort = "050B 0703080141 0A04A0A1A2A3"
+	inputShort := "050B 0703080141 0A04A0A1A2A3"
 	checkShort := func(interest *C.PInterest, u C.PInterestUnpacked) {
 		assert.EqualValues(1, interest.name.nComps)
 		assert.Equal(bytesFromHex("080141"), C.GoBytes(unsafe.Pointer(interest.name.value), C.int(interest.name.length)))

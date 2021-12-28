@@ -29,19 +29,19 @@ func TestInsertErase(t *testing.T) {
 	assert.NotEqual(uintptr(entry1.Ptr()), uintptr(entry2.Ptr()))
 
 	interest3 := makeInterest("/A/2",
-		ndn.MakeFHDelegation(1, "/F"), ndn.MakeFHDelegation(1, "/G"))
+		ndn.ForwardingHint{ndn.ParseName("/F"), ndn.ParseName("/G")})
 	entry3 := fixture.Insert(interest3)
 	must.Close(interest3)
 	assert.NotNil(entry3)
 	assert.Equal(uintptr(entry2.Ptr()), uintptr(entry3.Ptr()))
 
 	entry4 := fixture.Insert(makeInterest("/A/2",
-		ndn.MakeFHDelegation(1, "/F"), ndn.MakeFHDelegation(1, "/G"), setActiveFwHint(0)))
+		ndn.ForwardingHint{ndn.ParseName("/F"), ndn.ParseName("/G")}, setActiveFwHint(0)))
 	assert.NotNil(entry4)
 	assert.NotEqual(uintptr(entry2.Ptr()), uintptr(entry4.Ptr()))
 
 	entry5 := fixture.Insert(makeInterest("/A/2",
-		ndn.MakeFHDelegation(1, "/F"), ndn.MakeFHDelegation(1, "/G"), setActiveFwHint(1)))
+		ndn.ForwardingHint{ndn.ParseName("/F"), ndn.ParseName("/G")}, setActiveFwHint(1)))
 	assert.NotNil(entry5)
 	assert.NotEqual(uintptr(entry2.Ptr()), uintptr(entry5.Ptr()))
 	assert.NotEqual(uintptr(entry4.Ptr()), uintptr(entry5.Ptr()))
