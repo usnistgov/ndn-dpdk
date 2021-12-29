@@ -9,7 +9,6 @@ import (
 
 	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
-	"go4.org/must"
 )
 
 // Config contains socket transport configuration.
@@ -92,7 +91,7 @@ type transport struct {
 	conn    atomic.Value // net.Conn
 	err     chan error
 	cnt     Counters
-	closing chan bool
+	closing chan struct{}
 	closed  int32 // atomic bool
 }
 
@@ -109,7 +108,7 @@ func New(conn net.Conn, cfg Config) (Transport, error) {
 		cfg:     cfg,
 		impl:    impl,
 		err:     make(chan error, 1), // 1-item buffer allows rxLoop to send its error after redialLoop exits
-		closing: make(chan bool),
+		closing: make(chan struct{}),
 	}
 	tr.TransportBase, tr.p = l3.NewTransportBase(l3.TransportBaseConfig{
 		TransportQueueConfig: cfg.TransportQueueConfig,
@@ -159,21 +158,23 @@ func (tr *transport) txLoop() {
 			tr.err <- e
 		}
 	}
-	tr.closing <- true
-	atomic.StoreInt32(&tr.closed, 1)
-	must.Close(tr.Conn())
+	close(tr.closing)
 }
 
 func (tr *transport) redialLoop() {
+CLOSING:
 	for {
 		select {
 		case <-tr.closing:
-			tr.drainErrors()
-			return
+			break CLOSING
 		case e := <-tr.err:
 			tr.handleError(e)
 		}
 	}
+
+	atomic.StoreInt32(&tr.closed, 1)
+	tr.drainErrors()
+	tr.Conn().Close()
 }
 
 func (tr *transport) drainErrors() {

@@ -15,7 +15,7 @@ import (
 // This is a simplified forwarder with several limitations.
 //  - There is no loop prevention: no Nonce list and no decrementing HopLimit.
 //    If multiple uplinks have "/" route, Interests will be forwarded among them and might cause persistent loops.
-//    Thus, it is not recommended to connect to multiple uplinks.
+//    Thus, it is not recommended to connect to multiple uplinks with overlapping routes.
 //  - There is no pending Interest table. Instead, downstream 'face' ID is inserted as part of the PIT token.
 //    Since PIT token cannot exceed 32 octets, this takes away some space.
 //    Thus, consumers are allowed to use a PIT token up to 28 octets; Interests with longer PIT tokens may be dropped.
@@ -71,8 +71,8 @@ func (fw *forwarder) AddFace(face Face) (ff FwFace, e error) {
 		Face:          face,
 		fw:            fw,
 		tx:            face.Tx(),
-		routes:        make(map[string]ndn.Name),
-		announcements: make(map[string]ndn.Name),
+		routes:        map[string]ndn.Name{},
+		announcements: map[string]ndn.Name{},
 	}
 
 	fw.execute(func() {
@@ -88,8 +88,11 @@ func (fw *forwarder) AddFace(face Face) (ff FwFace, e error) {
 		fw.faces[f.id] = f
 	})
 
+	if e != nil {
+		return nil, e
+	}
 	go f.rxLoop()
-	return f, e
+	return f, nil
 }
 
 func (fw *forwarder) AddReadvertiseDestination(dest ReadvertiseDestination) {
@@ -111,10 +114,10 @@ func (fw *forwarder) RemoveReadvertiseDestination(dest ReadvertiseDestination) {
 }
 
 func (fw *forwarder) execute(fn func()) {
-	done := make(chan bool)
+	done := make(chan struct{})
 	fw.cmd <- func() {
+		defer close(done)
 		fn()
-		done <- true
 	}
 	<-done
 }

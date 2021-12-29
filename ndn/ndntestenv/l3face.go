@@ -64,7 +64,7 @@ func (c *L3FaceTester) CheckL3Face(t *testing.T, faceA, faceB l3.Face) {
 		}
 	})
 
-	doneA := make(chan bool)
+	doneA := make(chan struct{})
 
 	go func() {
 		rxB := faceB.Rx()
@@ -130,7 +130,7 @@ func (c *L3FaceTester) CheckL3Face(t *testing.T, faceA, faceB l3.Face) {
 
 		time.Sleep(c.CloseDelay)
 		close(txA)
-		doneA <- true
+		close(doneA)
 		wg.Done()
 	}()
 
