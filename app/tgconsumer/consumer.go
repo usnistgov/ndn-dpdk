@@ -277,7 +277,7 @@ func New(face iface.Face, cfg Config) (c *Consumer, e error) {
 	c.txC.face = (C.FaceID)(face.ID())
 	c.txC.interestMp = (*C.struct_rte_mempool)(ndni.InterestMempool.Get(socket).Ptr())
 	C.pcg32_srandom_r(&c.txC.trafficRng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
-	C.NonceGen_Init(&c.txC.nonceGen)
+	ndni.InitNonceGen(unsafe.Pointer(&c.txC.nonceGen))
 
 	c.rx = &worker{
 		ThreadWithCtrl: ealthread.NewThreadWithCtrl(

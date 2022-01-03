@@ -7,8 +7,8 @@ WriteBlock(PdumpWriter* w, struct rte_mbuf* pkt)
 {
   NDNDPDK_ASSERT(pkt->pkt_len % 4 == 0);
   NDNDPDK_ASSERT(pkt->pkt_len == pkt->data_len);
-  rte_memcpy(MmapFd_At(&w->m, w->pos), rte_pktmbuf_mtod(pkt, const uint8_t*), pkt->data_len);
-  w->pos += pkt->data_len;
+  rte_memcpy(MmapFd_At(&w->m, w->pos), rte_pktmbuf_mtod(pkt, const uint8_t*), pkt->pkt_len);
+  w->pos += pkt->pkt_len;
 }
 
 __attribute__((nonnull)) static inline void
@@ -39,11 +39,9 @@ WriteSLL(PdumpWriter* w, struct rte_mbuf* pkt, uint32_t len4)
   };
   rte_memcpy(MmapFd_At(&w->m, w->pos), &hdr, sizeof(hdr));
   uint8_t* dst = MmapFd_At(&w->m, w->pos + sizeof(hdr));
-  if (likely(pkt->pkt_len <= pkt->data_len)) {
-    rte_memcpy(dst, rte_pktmbuf_mtod(pkt, const uint8_t*), pkt->data_len);
-  } else {
-    const uint8_t* readTo = rte_pktmbuf_read(pkt, 0, pkt->pkt_len, dst);
-    NDNDPDK_ASSERT(readTo == dst);
+  const uint8_t* readTo = rte_pktmbuf_read(pkt, 0, pkt->pkt_len, dst);
+  if (readTo != dst) {
+    rte_memcpy(dst, readTo, pkt->pkt_len);
   }
   *(rte_le32_t*)RTE_PTR_ADD(dst, len4) = hdr.epb.totalLength;
   w->pos += sizeof(PcapngEPBSLL) + len4 + sizeof(rte_le32_t);
@@ -83,22 +81,15 @@ PdumpWriter_Run(PdumpWriter* w)
   }
 
   uint16_t count = 0;
-  while (ThreadCtrl_Continue(w->ctrl, count)) {
+  bool full = false;
+  while (ThreadCtrl_Continue(w->ctrl, count) && !full) {
     struct rte_mbuf* pkts[PdumpWriterBurstSize];
     count = rte_ring_dequeue_burst(w->queue, (void**)pkts, RTE_DIM(pkts), NULL);
 
-    bool full = false;
-    for (uint16_t i = 0; i < count; ++i) {
+    for (uint16_t i = 0; i < count && !full; ++i) {
       full = ProcessMbuf(w, pkts[i]);
-      if (unlikely(full)) {
-        break;
-      }
     }
-
     rte_pktmbuf_free_bulk(pkts, count);
-    if (unlikely(full)) {
-      break;
-    }
   }
 
   if (!MmapFd_Close(&w->m, w->pos)) {

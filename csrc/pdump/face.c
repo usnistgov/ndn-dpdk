@@ -1,7 +1,7 @@
 #include "face.h"
 #include "parse.h"
 
-__attribute__((nonnull)) static inline uint32_t
+__attribute__((nonnull)) static __rte_always_inline uint32_t
 NameFilter(PdumpFace* pd, struct rte_mbuf* pkt)
 {
   if (pd->nameL[0] == 0) {

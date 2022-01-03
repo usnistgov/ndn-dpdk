@@ -2,13 +2,6 @@
 #include "packet.h"
 #include "tlv-decoder.h"
 #include "tlv-encoder.h"
-#include <rte_random.h>
-
-void
-NonceGen_Init(NonceGen* g)
-{
-  pcg32_srandom_r(&g->rng, rte_rand(), rte_rand());
-}
 
 __attribute__((nonnull)) static bool
 PInterest_ParseFwHint(PInterest* interest, TlvDecoder* d)

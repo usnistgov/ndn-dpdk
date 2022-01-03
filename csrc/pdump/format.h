@@ -8,7 +8,11 @@
 #include <pcap/pcap.h>
 #include <pcap/sll.h>
 
-/** @brief DLT_LINUX_SLL direction constants in network byte order. */
+/**
+ * @brief DLT_LINUX_SLL direction constants in network byte order.
+ *
+ * Each value is rte_be16_t type, which has same size as sll_pkttype.
+ */
 enum
 {
   SLLIncoming = RTE_BE16(LINUX_SLL_HOST),

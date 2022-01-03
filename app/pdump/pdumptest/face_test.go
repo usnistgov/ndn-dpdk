@@ -45,18 +45,22 @@ func TestFaceRxTx(t *testing.T) {
 		}
 	}()
 
-	dumpRx, e := pdump.DumpFace(face.D, w, pdump.FaceConfig{
-		Dir: pdump.DirIncoming,
+	dumpRx, e := pdump.NewFaceSource(pdump.FaceConfig{
+		Writer: w,
+		Face:   face.D,
+		Dir:    pdump.DirIncoming,
 		Names: []pdump.NameFilterEntry{
-			{Name: ndn.ParseName("/"), SampleRate: 0.8},
+			{Name: ndn.ParseName("/"), SampleProbability: 0.8},
 		},
 	})
 	require.NoError(e)
-	dumpTx, e := pdump.DumpFace(face.D, w, pdump.FaceConfig{
-		Dir: pdump.DirOutgoing,
+	dumpTx, e := pdump.NewFaceSource(pdump.FaceConfig{
+		Writer: w,
+		Face:   face.D,
+		Dir:    pdump.DirOutgoing,
 		Names: []pdump.NameFilterEntry{
-			{Name: ndn.ParseName("/0"), SampleRate: 0.5},
-			{Name: ndn.ParseName("/3"), SampleRate: 0.2},
+			{Name: ndn.ParseName("/0"), SampleProbability: 0.5},
+			{Name: ndn.ParseName("/3"), SampleProbability: 0.2},
 		},
 	})
 	require.NoError(e)

@@ -17,11 +17,11 @@ If a packet is chosen to be captured, it is copied into a new mbuf, and sent to 
 The packet parser for extracting name is greatly simplified compared to the [regular parser](../../ndni).
 It understands both NDNLPv2 and NDN 0.3 packet format, but does not perform NDNLPv2 reassembly.
 The parser can extract a portion of name that appears in the first fragment, but cannot process subsequent fragments.
-The only way to capture non-first fragments is setting a `/` prefix that disables the parser.
+The only way to capture non-first fragments is setting a `/` prefix as the only name filter entry, which disables the parser.
 
 ## Writer
 
-**PdumpWriter** type runs in an LCore of "PDUMP" role.
+**PdumpWriter** type represents a packet dump writer thread that runs in an LCore of "PDUMP" role.
 It receives packets from packet dump sources via a ring buffer, and writes them to a PCAP Next Generation (pcapng) file.
 
 Three pcapng block types may appear in the output file:
@@ -38,4 +38,4 @@ Packets are written with [Linux cooked-mode capture (SLL)](https://www.tcpdump.o
 SLL is chosen instead of Ethernet because:
 
 * By the time faceID is determined, the Ethernet header is already removed.
-* In addition to Ethernet faces, NDN-DPDK also supports [socket faces](../../iface/socketface) where no Ethernet headers exist.
+* In addition to Ethernet-based faces, NDN-DPDK also supports [socket faces](../../iface/socketface) where no Ethernet headers exist.

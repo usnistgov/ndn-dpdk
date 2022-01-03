@@ -130,7 +130,7 @@ func (pkt *Packet) Prepend(input []byte) error {
 	if room == nil {
 		return fmt.Errorf("insufficient headroom %d", pkt.Headroom())
 	}
-	C.rte_memcpy(unsafe.Pointer(room), unsafe.Pointer(&input[0]), C.size_t(count))
+	copy(unsafe.Slice((*byte)(unsafe.Pointer(room)), count), input)
 	return nil
 }
 
@@ -145,7 +145,7 @@ func (pkt *Packet) Append(input []byte) error {
 	if room == nil {
 		return fmt.Errorf("insufficient tailroom %d", pkt.Tailroom())
 	}
-	C.rte_memcpy(unsafe.Pointer(room), unsafe.Pointer(&input[0]), C.size_t(count))
+	copy(unsafe.Slice((*byte)(unsafe.Pointer(room)), count), input)
 	return nil
 }
 

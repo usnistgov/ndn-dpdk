@@ -11,6 +11,14 @@ N_LOG_INIT(MmapFd);
 #define MmapFd_Error(func)                                                                         \
   N_LOGE("%s(%s,fd=%d)" N_LOG_ERROR_ERRNO, #func, m->filename, m->fd, errno)
 
+__attribute__((nonnull)) static inline void
+MmapFd_Free(MmapFd* m)
+{
+  free((void*)m->filename);
+  close(m->fd);
+  *m = (const MmapFd){ 0 };
+}
+
 bool
 MmapFd_Open(MmapFd* m, const char* filename, size_t size)
 {
@@ -44,7 +52,7 @@ MmapFd_Open(MmapFd* m, const char* filename, size_t size)
   return true;
 
 FAIL:
-  close(m->fd);
+  MmapFd_Free(m);
   return false;
 }
 
@@ -70,8 +78,6 @@ MmapFd_Close(MmapFd* m, size_t size)
 
   ok = true;
 FAIL:
-  free((void*)m->filename);
-  close(m->fd);
-  *m = (const MmapFd){ 0 };
+  MmapFd_Free(m);
   return ok;
 }

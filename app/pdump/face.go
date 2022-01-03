@@ -15,8 +15,6 @@ import (
 	"sync"
 	"unsafe"
 
-	"github.com/jwangsadinata/go-multimap"
-	"github.com/jwangsadinata/go-multimap/setmultimap"
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
@@ -26,18 +24,6 @@ import (
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
 )
-
-var (
-	faceDumps       multimap.MultiMap = setmultimap.New()
-	faceClosingOnce sync.Once
-)
-
-func handleFaceClosing(id iface.ID) {
-	pds, _ := faceDumps.Get(id)
-	for _, pd := range pds {
-		pd.(*Face).Close()
-	}
-}
 
 // Direction indicates traffic direction.
 type Direction string
@@ -62,114 +48,171 @@ var dirImpls = map[Direction]struct {
 	},
 }
 
-// FaceConfig contains face dumper configuration.
-type FaceConfig struct {
-	ID    string            `json:"id" gqldesc:"Face ID."`
-	Dir   Direction         `json:"dir" gqldesc:"Traffic direction."`
-	Names []NameFilterEntry `json:"names" gqldesc:"Name filters."`
+type faceDir struct {
+	face iface.ID
+	dir  Direction
 }
 
-func (cfg FaceConfig) validate() error {
+func (fd faceDir) String() string {
+	return fmt.Sprintf("%d-%s", fd.face, fd.dir)
+}
+
+func parseFaceDir(input string) (fd faceDir, e error) {
+	_, e = fmt.Sscanf(input, "%d-%s", &fd.face, &fd.dir)
+	return
+}
+
+var (
+	faceSources     = map[faceDir]*FaceSource{}
+	faceSourcesLock sync.Mutex
+	faceClosingOnce sync.Once
+)
+
+func handleFaceClosing(id iface.ID) {
+	faceSourcesLock.Lock()
+	defer faceSourcesLock.Unlock()
+
+	for dir := range dirImpls {
+		fs, ok := faceSources[faceDir{id, dir}]
+		if !ok {
+			continue
+		}
+		fs.closeImpl()
+	}
+}
+
+// FaceConfig contains face dumper configuration.
+type FaceConfig struct {
+	Writer *Writer
+	Face   iface.Face
+	Dir    Direction
+	Names  []NameFilterEntry
+}
+
+func (cfg *FaceConfig) validate() error {
 	errs := []error{}
+
+	if cfg.Writer == nil {
+		errs = append(errs, errors.New("writer not found"))
+	}
+
+	if cfg.Face == nil {
+		errs = append(errs, errors.New("face not found"))
+	}
+
 	if _, ok := dirImpls[cfg.Dir]; !ok {
 		errs = append(errs, errors.New("invalid traffic direction"))
 	}
+
 	if n := len(cfg.Names); n == 0 || n > MaxNames {
 		errs = append(errs, fmt.Errorf("must have between 1 and %d name filters", MaxNames))
 	}
-	for i, nf := range cfg.Names {
-		if !(nf.SampleRate >= 0.0 && nf.SampleRate <= 1.0) {
-			errs = append(errs, fmt.Errorf("sample rate at index %d must be between 0.0 and 1.0", i))
+
+	for _, nf := range cfg.Names {
+		if !(nf.SampleProbability >= 0.0 && nf.SampleProbability <= 1.0) {
+			errs = append(errs, fmt.Errorf("sample probability of %s must be between 0.0 and 1.0", nf.Name))
 		}
 	}
+
 	return multierr.Combine(errs...)
 }
 
 // NameFilterEntry matches a name prefix and specifies its sample rate.
 // An empty name matches all packets.
 type NameFilterEntry struct {
-	Name       ndn.Name `json:"name" gqldesc:"NDN name prefix."`
-	SampleRate float64  `json:"sampleRate" gqldesc:"Sample rate between 0.0 and 1.0."`
+	Name              ndn.Name `json:"name" gqldesc:"NDN name prefix."`
+	SampleProbability float64  `json:"sampleProbability" gqldesc:"Sample probability between 0.0 and 1.0." gqldflt:"1.0"`
 }
 
-// Face is a packet dumper attached to a face on a single direction.
-type Face struct {
-	face iface.Face
-	dir  Direction
-	w    *Writer
-	c    *C.PdumpFace
-	cr   *C.PdumpFaceRef
+// FaceSource is a packet dump source attached to a face on a single direction.
+type FaceSource struct {
+	FaceConfig
+	key    faceDir
+	logger *zap.Logger
+	c      *C.PdumpFace
 }
 
-// Close detaches the dumper.
-func (pd *Face) Close() error {
-	logger.Info("PdumpFace close",
-		pd.face.ID().ZapField("face"),
-		zap.String("dir", string(pd.dir)),
-		zap.Uintptr("dumper", uintptr(unsafe.Pointer(pd.c))),
-	)
-
-	if ptr := C.PdumpFaceRef_Set(pd.cr, nil); ptr != pd.c {
-		panic(fmt.Errorf("PdumpFaceRef pointer mismatch %p %p", ptr, pd.c))
+func (fs *FaceSource) setPdumpFaceRef(expected, newPtr *C.PdumpFace) {
+	ref := dirImpls[fs.Dir].getRef((*C.Face)(fs.Face.Ptr()))
+	if old := C.PdumpFaceRef_Set(ref, newPtr); old != expected {
+		fs.logger.Panic("PdumpFaceRef pointer mismatch",
+			zap.Uintptr("new", uintptr(unsafe.Pointer(newPtr))),
+			zap.Uintptr("old", uintptr(unsafe.Pointer(old))),
+			zap.Uintptr("expected", uintptr(unsafe.Pointer(expected))),
+		)
 	}
-	faceDumps.Remove(pd.face.ID(), pd)
+}
+
+// Close detaches the dump source.
+func (fs *FaceSource) Close() error {
+	faceSourcesLock.Lock()
+	defer faceSourcesLock.Unlock()
+	return fs.closeImpl()
+}
+
+func (fs *FaceSource) closeImpl() error {
+	fs.logger.Info("PdumpFace close")
+	fs.setPdumpFaceRef(fs.c, nil)
+	delete(faceSources, fs.key)
 
 	go func() {
 		urcu.Synchronize()
-		pd.w.stopDumper()
-		logger.Info("PdumpFace freed", zap.Uintptr("dumper", uintptr(unsafe.Pointer(pd.c))))
-		eal.Free(pd.c)
+		fs.Writer.stopSource()
+		fs.logger.Info("PdumpFace freed")
+		eal.Free(fs.c)
 	}()
 	return nil
 }
 
-// DumpFace attaches a packet dumper on a face.
-func DumpFace(face iface.Face, w *Writer, cfg FaceConfig) (pd *Face, e error) {
+// NewFaceSource creates a FaceSource.
+func NewFaceSource(cfg FaceConfig) (fs *FaceSource, e error) {
 	if e := cfg.validate(); e != nil {
 		return nil, e
 	}
-	// a zero-length name (i.e. capture all packets) should appear first
-	sort.Slice(cfg.Names, func(i, j int) bool { return len(cfg.Names[i].Name) < len(cfg.Names[j].Name) })
 
-	socket := face.NumaSocket()
-	dirImpl := dirImpls[cfg.Dir]
+	faceSourcesLock.Lock()
+	defer faceSourcesLock.Unlock()
 
-	pd = &Face{
-		face: face,
-		dir:  cfg.Dir,
-		w:    w,
-		c:    (*C.PdumpFace)(eal.Zmalloc("PdumpFace", C.sizeof_PdumpFace, socket)),
-		cr:   dirImpl.getRef((*C.Face)(face.Ptr())),
+	fs = &FaceSource{
+		FaceConfig: cfg,
+		key:        faceDir{cfg.Face.ID(), cfg.Dir},
 	}
-	pd.c.directMp = (*C.struct_rte_mempool)(pktmbuf.Direct.Get(socket).Ptr())
-	pd.c.queue = w.c.queue
-	C.pcg32_srandom_r(&pd.c.rng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
-	pd.c.sllType = dirImpl.sllType
+	if _, ok := faceSources[fs.key]; ok {
+		return nil, errors.New("another PdumpFace is attached to this face and direction")
+	}
+	socket := cfg.Face.NumaSocket()
 
-	prefixes := ndni.NewLNamePrefixFilterBuilder(unsafe.Pointer(&pd.c.nameL), unsafe.Sizeof(pd.c.nameL),
-		unsafe.Pointer(&pd.c.nameV), unsafe.Sizeof(pd.c.nameV))
+	fs.logger = logger.With(cfg.Face.ID().ZapField("face"), zap.String("dir", string(cfg.Dir)))
+	fs.c = (*C.PdumpFace)(eal.Zmalloc("PdumpFace", C.sizeof_PdumpFace, socket))
+	*fs.c = C.PdumpFace{
+		directMp: (*C.struct_rte_mempool)(pktmbuf.Direct.Get(socket).Ptr()),
+		queue:    fs.Writer.c.queue,
+		sllType:  dirImpls[cfg.Dir].sllType,
+	}
+	C.pcg32_srandom_r(&fs.c.rng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
+
+	// sort by decending name length for longest prefix match
+	sort.Slice(cfg.Names, func(i, j int) bool { return len(cfg.Names[i].Name) > len(cfg.Names[j].Name) })
+	prefixes := ndni.NewLNamePrefixFilterBuilder(unsafe.Pointer(&fs.c.nameL), unsafe.Sizeof(fs.c.nameL),
+		unsafe.Pointer(&fs.c.nameV), unsafe.Sizeof(fs.c.nameV))
 	for i, nf := range cfg.Names {
 		if e := prefixes.Append(nf.Name); e != nil {
-			panic(e)
+			eal.Free(fs.c)
+			return nil, errors.New("names too long")
 		}
-		pd.c.sample[i] = C.uint32_t(math.Ceil(nf.SampleRate * math.MaxUint32))
+		fs.c.sample[i] = C.uint32_t(math.Ceil(nf.SampleProbability * math.MaxUint32))
 	}
 
-	w.AddFace(face)
-	w.startDumper()
-
-	if ptr := C.PdumpFaceRef_Set(pd.cr, pd.c); ptr != nil {
-		panic(fmt.Errorf("PdumpFaceRef pointer mismatch %p != nil", ptr))
-	}
+	fs.Writer.defineFace(fs.Face)
+	fs.Writer.startSource()
+	fs.setPdumpFaceRef(nil, fs.c)
 
 	faceClosingOnce.Do(func() { iface.OnFaceClosing(handleFaceClosing) })
-	faceDumps.Put(face.ID(), pd)
+	faceSources[fs.key] = fs
 
-	logger.Info("PdumpFace open",
-		face.ID().ZapField("face"),
-		zap.String("dir", string(pd.dir)),
-		zap.Uintptr("dumper", uintptr(unsafe.Pointer(pd.c))),
-		zap.Uintptr("queue", uintptr(unsafe.Pointer(pd.c.queue))),
+	fs.logger.Info("PdumpFace open",
+		zap.Uintptr("dumper", uintptr(unsafe.Pointer(fs.c))),
+		zap.Uintptr("queue", uintptr(unsafe.Pointer(fs.c.queue))),
 	)
-	return pd, nil
+	return fs, nil
 }

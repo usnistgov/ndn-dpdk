@@ -1,35 +1,13 @@
 package gqlserver
 
 import (
+	"encoding/json"
 	"reflect"
 	"strings"
 
 	"github.com/graphql-go/graphql"
 	"go.uber.org/zap"
 )
-
-type fieldTag struct {
-	Skip        bool
-	Name        string
-	OmitEmpty   bool
-	Description string
-}
-
-func parseFieldTag(field reflect.StructField) (tag fieldTag) {
-	jsonTag, ok := field.Tag.Lookup("json")
-	if !ok {
-		tag.Skip = true
-		return
-	}
-
-	jsonTokens := strings.Split(jsonTag, ",")
-	tag.Name = jsonTokens[0]
-	tag.Skip = tag.Name == "-"
-	tag.OmitEmpty = len(jsonTokens) >= 2 && jsonTokens[1] == "omitempty"
-
-	tag.Description = field.Tag.Get("gqldesc")
-	return
-}
 
 // fieldIndexResolver provides a graphql.FieldResolveFn that extracts a nested field corresponding to index.
 type fieldIndexResolver []int
@@ -52,8 +30,7 @@ func (index fieldIndexResolver) Resolve(p graphql.ResolveParams) (interface{}, e
 // FieldTypes contains known GraphQL types of fields.
 type FieldTypes map[reflect.Type]graphql.Type
 
-// Merge combines two or more FieldTypes maps.
-// Inputs are not modified.
+// Merge combines two or more FieldTypes maps to a new FieldTypes map.
 func (m FieldTypes) Merge(a ...FieldTypes) (s FieldTypes) {
 	s = FieldTypes{}
 	for _, v := range append([]FieldTypes{m}, a...) {
@@ -95,36 +72,70 @@ func (m FieldTypes) resolveType(typ reflect.Type) graphql.Type {
 	return nil
 }
 
-func (m FieldTypes) bindFields(value interface{}, saveField func(name, desc string, t graphql.Type, resolve graphql.FieldResolveFn)) {
+func (m FieldTypes) bindFields(value interface{}, saveField func(p fieldInfo)) {
 	typ := reflect.TypeOf(value)
 	if typ.Kind() == reflect.Ptr {
 		typ = typ.Elem()
 	}
 
 	for _, field := range reflect.VisibleFields(typ) {
-		tag := parseFieldTag(field)
-		if !field.IsExported() || tag.Skip {
+		if !field.IsExported() {
 			continue
 		}
 
-		t := m.resolveType(field.Type)
-		if tag.OmitEmpty {
-			t = graphql.GetNullable(t).(graphql.Type)
+		jsonTag, ok := field.Tag.Lookup("json")
+		if !ok {
+			continue
+		}
+		jsonTokens := strings.Split(jsonTag, ",")
+
+		p := fieldInfo{}
+		p.Name = jsonTokens[0]
+		if p.Name == "-" {
+			continue
+		}
+
+		p.Description = field.Tag.Get("gqldesc")
+
+		if dfltTag, ok := field.Tag.Lookup("gqldflt"); ok {
+			dfltPtr := reflect.New(field.Type)
+			if e := json.Unmarshal([]byte(dfltTag), dfltPtr.Interface()); e != nil {
+				logger.Panic("cannot parse gqldflt",
+					zap.String("field", field.Name),
+					zap.Error(e),
+				)
+			}
+			p.Default = dfltPtr.Elem().Interface()
+		}
+
+		p.Type = m.resolveType(field.Type)
+		if p.Default != nil || (len(jsonTokens) >= 2 && jsonTokens[1] == "omitempty") {
+			p.Type = graphql.GetNullable(p.Type).(graphql.Type)
 		}
 
 		index := append(fieldIndexResolver{}, field.Index...)
-		saveField(tag.Name, tag.Description, t, index.Resolve)
+		p.Resolve = index.Resolve
+		saveField(p)
 	}
+}
+
+type fieldInfo struct {
+	Name        string
+	Description string
+	Default     interface{}
+
+	Type    graphql.Type
+	Resolve graphql.FieldResolveFn
 }
 
 // BindFields creates graphql.Field from a struct.
 func BindFields(value interface{}, m FieldTypes) graphql.Fields {
 	fields := graphql.Fields{}
-	m.bindFields(value, func(name, desc string, t graphql.Type, resolve graphql.FieldResolveFn) {
-		fields[name] = &graphql.Field{
-			Type:        t,
-			Description: desc,
-			Resolve:     resolve,
+	m.bindFields(value, func(p fieldInfo) {
+		fields[p.Name] = &graphql.Field{
+			Description: p.Description,
+			Type:        p.Type,
+			Resolve:     p.Resolve,
 		}
 	})
 	return fields
@@ -133,10 +144,11 @@ func BindFields(value interface{}, m FieldTypes) graphql.Fields {
 // BindInputFields creates graphql.InputObjectConfigFieldMap from a struct.
 func BindInputFields(value interface{}, m FieldTypes) graphql.InputObjectConfigFieldMap {
 	fields := graphql.InputObjectConfigFieldMap{}
-	m.bindFields(value, func(name, desc string, t graphql.Type, resolve graphql.FieldResolveFn) {
-		fields[name] = &graphql.InputObjectFieldConfig{
-			Type:        t,
-			Description: desc,
+	m.bindFields(value, func(p fieldInfo) {
+		fields[p.Name] = &graphql.InputObjectFieldConfig{
+			Description:  p.Description,
+			Type:         p.Type,
+			DefaultValue: p.Default,
 		}
 	})
 	return fields
@@ -145,10 +157,11 @@ func BindInputFields(value interface{}, m FieldTypes) graphql.InputObjectConfigF
 // BindArguments creates graphql.FieldConfigArgument from a struct.
 func BindArguments(value interface{}, m FieldTypes) graphql.FieldConfigArgument {
 	fields := graphql.FieldConfigArgument{}
-	m.bindFields(value, func(name, desc string, t graphql.Type, resolve graphql.FieldResolveFn) {
-		fields[name] = &graphql.ArgumentConfig{
-			Type:        t,
-			Description: desc,
+	m.bindFields(value, func(p fieldInfo) {
+		fields[p.Name] = &graphql.ArgumentConfig{
+			Description:  p.Description,
+			Type:         p.Type,
+			DefaultValue: p.Default,
 		}
 	})
 	return fields

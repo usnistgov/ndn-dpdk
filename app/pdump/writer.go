@@ -11,8 +11,9 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"path/filepath"
 	"strconv"
-	"sync"
+	"sync/atomic"
 	"time"
 	"unsafe"
 
@@ -43,6 +44,7 @@ type WriterConfig struct {
 }
 
 func (cfg *WriterConfig) applyDefaults() {
+	cfg.Filename = filepath.Clean(cfg.Filename)
 	if cfg.MaxSize == 0 {
 		cfg.MaxSize = DefaultFileSize
 	}
@@ -63,16 +65,17 @@ func (cfg WriterConfig) validate() error {
 	return multierr.Combine(errs...)
 }
 
-// Writer is a pdump writer thread.
+// Writer is a packet dump writer thread.
 type Writer struct {
 	ealthread.ThreadWithCtrl
-	c     *C.PdumpWriter
-	queue *ringbuffer.Ring
-	mp    *pktmbuf.Pool
+	filename string
+	c        *C.PdumpWriter
+	queue    *ringbuffer.Ring
+	mp       *pktmbuf.Pool
 
-	wg     sync.WaitGroup
-	faces  map[iface.ID]string // faceID => Locator
-	hasSHB bool
+	nSources int32
+	faces    map[iface.ID]string // faceID => Locator
+	hasSHB   bool
 }
 
 var (
@@ -80,16 +83,29 @@ var (
 	_ ealthread.ThreadWithLoadStat = (*Writer)(nil)
 )
 
-func (w *Writer) startDumper() {
-	w.wg.Add(1)
+// startSource records a source starting.
+// The writer cannot be closed until all sources have stopped.
+func (w *Writer) startSource() {
+	n := atomic.AddInt32(&w.nSources, 1)
+	if n <= 0 {
+		panic("attempting to startDumper on stopped Writer")
+	}
 }
 
-func (w *Writer) stopDumper() {
-	w.wg.Done()
+// stopSource records a source stopping.
+// The writer can be closed after all sources have stopped.
+func (w *Writer) stopSource() {
+	n := atomic.AddInt32(&w.nSources, -1)
+	if n < 0 {
+		panic("w.nDumpers is negative")
+	}
 }
 
-// AddFace records a face as NgInterface.
-func (w *Writer) AddFace(face iface.Face) {
+// addFace records a face as NgInterface.
+func (w *Writer) defineFace(face iface.Face) {
+	// w.faces is protected by faceSourcesLock
+	// revisit when implementing FIB entry dumper
+
 	id, loc := face.ID(), iface.LocatorString(face.Locator())
 	if w.faces[id] == loc {
 		return
@@ -132,10 +148,15 @@ func (Writer) ThreadRole() string {
 
 // Close releases resources.
 func (w *Writer) Close() error {
+	if !atomic.CompareAndSwapInt32(&w.nSources, 0, -65536) {
+		return errors.New("cannot stop PdumpWriter with active sources")
+	}
+
 	e := w.Stop()
-	logger.Info("PdumpWriter stopped", zap.Uintptr("queue", uintptr(unsafe.Pointer(w.c.queue))))
-	w.wg.Wait()
-	logger.Info("PdumpWriter close", zap.Uintptr("queue", uintptr(unsafe.Pointer(w.c.queue))))
+	logger.Info("PdumpWriter stopped",
+		zap.Uintptr("queue", uintptr(unsafe.Pointer(w.c.queue))),
+		zap.Error(e),
+	)
 
 	if w.c != nil {
 		C.free(unsafe.Pointer(w.c.filename))
@@ -156,7 +177,7 @@ func (w *Writer) Close() error {
 		w.queue = nil
 	}
 
-	return e
+	return nil
 }
 
 // NewWriter creates a pdump writer thread.
@@ -167,9 +188,10 @@ func NewWriter(cfg WriterConfig) (w *Writer, e error) {
 	}
 
 	w = &Writer{
-		c:     (*C.PdumpWriter)(eal.Zmalloc("PdumpWriter", C.sizeof_PdumpWriter, cfg.Socket)),
-		mp:    pktmbuf.Direct.Get(cfg.Socket),
-		faces: map[iface.ID]string{},
+		filename: cfg.Filename,
+		c:        (*C.PdumpWriter)(eal.Zmalloc("PdumpWriter", C.sizeof_PdumpWriter, cfg.Socket)),
+		mp:       pktmbuf.Direct.Get(cfg.Socket),
+		faces:    map[iface.ID]string{},
 	}
 	w.c.filename = C.CString(cfg.Filename)
 	w.c.maxSize = C.size_t(cfg.MaxSize)
@@ -193,7 +215,10 @@ func NewWriter(cfg WriterConfig) (w *Writer, e error) {
 	}
 	w.c.queue = (*C.struct_rte_ring)(w.queue.Ptr())
 
-	logger.Info("PdumpWriter open", zap.Uintptr("queue", uintptr(unsafe.Pointer(w.c.queue))))
+	logger.Info("PdumpWriter open",
+		zap.String("filename", cfg.Filename),
+		zap.Uintptr("queue", uintptr(unsafe.Pointer(w.c.queue))),
+	)
 	return w, nil
 }
 
