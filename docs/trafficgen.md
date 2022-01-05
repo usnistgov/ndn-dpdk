@@ -3,7 +3,7 @@
 After [installing NDN-DPDK](INSTALL.md) and starting the `ndndpdk-svc` service process, it can be activated as a traffic generator or some other role.
 This page explains how to activate the NDN-DPDK service as a traffic generator, and how to perform some common operations.
 
-See [interactive benchmark](benchmark) for a web application that performs forwarder throughput benchmark using the traffic generator.
+See [interactive benchmark](../sample/benchmark) for a web application that performs forwarder throughput benchmark using the traffic generator.
 
 ## Features and Limitations
 
@@ -68,10 +68,7 @@ After starting the `ndndpdk-svc` service process or container, follow these step
 NDN-DPDK provides TypeScript definitions to help with authoring the parameters.
 You may install the NPM package from `/usr/local/share/ndn-dpdk/ndn-dpdk.npm.tgz` (built from [js](../js) directory), and then construct an object of `ActivateGenArgs` type for activation and `TgConfig` for starting.
 
-[docs/activate](activate) is a sample TypeScript project that generates the parameters.
-You can follow a similar procedure as [forwarder activation and usage](forwarder.md) to use this sample.
-`gen-args.ts` contains activation parameters.
-`gen-config.ts` contains traffic patterns configuration.
+[NDN-DPDK activation sample](../sample/activate) is a sample TypeScript project that generates the parameters.
 
 ### Commonly Used Activation Parameters
 

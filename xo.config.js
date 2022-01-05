@@ -17,13 +17,13 @@ module.exports = {
     },
     {
       files: [
-        "docs/benchmark/**/*.tsx",
+        "sample/benchmark/**/*.tsx",
       ],
       ...merge(js, ts, web, preact),
     },
   ],
   ignores: [
-    "docs/activate",
-    "docs/benchmark",
+    "sample/activate",
+    "sample/benchmark",
   ].filter((d) => !fs.statSync(path.resolve(__dirname, d, "node_modules"), { throwIfNoEntry: false })?.isDirectory()),
 };

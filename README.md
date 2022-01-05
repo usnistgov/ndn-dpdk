@@ -16,6 +16,7 @@ It is in pre-release stage and will continue to be updated.
 * [NDN-DPDK traffic generator activation and usage](docs/trafficgen.md)
 * [NDN-DPDK file server activation and usage](docs/fileserver.md)
 * [hardware known to work with NDN-DPDK](docs/hardware.md)
+* [NDN-DPDK face creation](docs/face.md)
 * [NDN-DPDK performance tuning](docs/tuning.md)
 * [NDN-DPDK interoperability with other NDN software](docs/interop)
 * [NDN-DPDK publications and presentations](docs/publication.md)
@@ -40,8 +41,7 @@ Packet encoding and decoding
 
 Transports
 
-* DPDK-based high-speed transports: Ethernet, VLAN, UDP, VXLAN
-  * Ethernet adapter must be dedicated to DPDK
+* Ethernet-based transports via DPDK: Ethernet, VLAN, UDP, VXLAN
 * Socket-based transports via kernel: UDP, TCP
 * Local application transports: memif, Unix sockets
 
@@ -73,5 +73,7 @@ Management
 * [container](container): data structures.
 * [app](app): application level modules, such as the forwarder data plane.
 * [cmd](cmd): executables.
+* [sample](sample): control plane samples.
+* [docs](docs): documentation.
 
 These is a `README.md` file in most directories of this codebase that explains the relevant module.

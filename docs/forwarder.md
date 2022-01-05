@@ -37,18 +37,7 @@ NDN-DPDK provides TypeScript definitions to help with authoring the activation p
 Commonly used options have description or links to the corresponding Go documentation.
 You may install the NPM package from `/usr/local/share/ndn-dpdk/ndn-dpdk.npm.tgz` (built from [js](../js) directory), and then construct an object of `ActivateFwArgs` type.
 
-[docs/activate](activate) is a sample TypeScript project that generates the activation parameters.
-To use the sample:
-
-1. Make a copy of this directory to somewhere outside the NDN-DPDK repository.
-2. Run `npm install` to install dependencies.
-3. Open the directory in Visual Studio Code or another editor that recognizes TypeScript definitions.
-   If the NDN-DPDK installation is on a remote machine, you may use the Remote-SSH plugin.
-4. Open `fw-args.ts` in the editor, and make changes.
-   The editor can provide hints on available options.
-5. Run `npm run -s typecheck` to verify your arguments conform to the TypeScript definitions.
-6. Run `npm run -s fw-args | jq` to see the JSON document.
-7. Run `npm run -s fw-args | ndndpdk-ctrl activate-forwarder` to send a forwarder activation command.
+[NDN-DPDK activation sample](../sample/activate) is a sample TypeScript project that generates the activation parameters.
 
 ### Commonly Used Activation Parameters
 

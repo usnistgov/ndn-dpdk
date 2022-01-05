@@ -73,7 +73,7 @@ jobs:
           npm install
           make
           sudo make install
-          for D in docs/activate docs/benchmark; do
+          for D in sample/activate sample/benchmark; do
             pushd $D
             npm install
             popd

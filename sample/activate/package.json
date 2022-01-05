@@ -6,6 +6,7 @@
     "fw-args": "node --loader tsm ./fw-args.ts",
     "gen-config": "node --loader tsm ./gen-config.ts",
     "gen-args": "node --loader tsm ./gen-args.ts",
+    "start": "node --loader tsm",
     "typecheck": "tsc"
   },
   "dependencies": {

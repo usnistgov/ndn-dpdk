@@ -17,19 +17,18 @@ This is a web application that performs simple benchmark of NDN-DPDK forwarder.
 ### NDN-DPDK Setup
 
 1. Install NDN-DPDK as systemd service.
-   * You should compile NDN-DPDK in release mode, see [installation guide](../INSTALL.md) "compile-time settings" section.
-2. Setup CPU isolation, see [performance tuning](../tuning.md) "CPU isolation" section.
-3. Follow through [forwarder activation](../forwarder.md) "ndnping" scenario to ensure the forwarder works.
+   * You should compile NDN-DPDK in release mode, see [installation guide](../../docs/INSTALL.md) "compile-time settings" section.
+2. Setup CPU isolation, see [performance tuning](../../docs/tuning.md) "CPU isolation" section.
+3. Follow through [forwarder activation](../../docs/forwarder.md) "ndnping" scenario to ensure the forwarder works.
 
 ### Usage
 
-1. Make a copy of this directory to somewhere outside the NDN-DPDK repository.
-2. Run `npm install` to install dependencies.
-3. Copy `sample.env` as `.env`, and then edit `.env` according to the comments within.
-4. Start NDN-DPDK service on both machines.
-5. Start SSH tunnel for reaching remote NDN-DPDK.
-6. Run `npm start` to start the web application.
-7. Visit `http://localhost:3333` (via SSH tunnel) in your browser.
+1. Run `npm install` to install dependencies.
+2. Copy `sample.env` as `.env`, and then edit `.env` according to the comments within.
+3. Start NDN-DPDK service on both machines.
+4. Start SSH tunnel for reaching remote NDN-DPDK.
+5. Run `npm start` to start the web application.
+6. Visit `http://localhost:3333` (via SSH tunnel) in your browser.
 
 ## Benchmark Description
 

@@ -29,9 +29,7 @@ There are four steps to start a file server and connect it to the forwarder:
 NDN-DPDK provides TypeScript definitions to help with authoring the parameters.
 You may install the NPM package from `/usr/local/share/ndn-dpdk/ndn-dpdk.npm.tgz` (built from [js](../js) directory), and then construct an object of `ActivateFileServerArgs` type.
 
-[docs/activate](activate) is a sample TypeScript project that generates the parameters.
-You can follow a similar procedure as [forwarder activation and usage](forwarder.md) to use this sample.
-`fileserver-args.ts` contains activation parameters.
+[NDN-DPDK activation sample](../sample/activate) is a sample TypeScript project that generates the parameters.
 
 ### Commonly Used Activation Parameters
 
@@ -120,7 +118,7 @@ If you are running [NDN-DPDK in Docker container](Docker.md), start another cont
 The `/run/ndn` directory should be mounted into both containers in order to establish memif connection.
 In this case, you should change `--gqlserver` flag to target the container.
 
-The sample activation parameters given in [docs/activate](activate) may be used in this scenario.
+The sample activation parameters given in [NDN-DPDK activation sample](../sample/activate) may be used in this scenario.
 
 1. Make a copy of this directory to somewhere outside the NDN-DPDK repository.
 2. Run `npm install` to install dependencies.
