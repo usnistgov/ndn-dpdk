@@ -24,14 +24,14 @@ var app = &cli.App{
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:        "gqlserver",
-			Value:       "http://127.0.0.1:3030/",
 			Usage:       "GraphQL `endpoint` of NDN-DPDK service",
+			Value:       "http://127.0.0.1:3030/",
 			Destination: &gqlCfg.HTTPUri,
 		},
 		&cli.BoolFlag{
 			Name:        "cmdout",
-			Value:       false,
 			Usage:       "print command line instead of running the command",
+			Value:       false,
 			Destination: &cmdout,
 		},
 	},

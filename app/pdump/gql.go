@@ -116,7 +116,7 @@ func init() {
 			gqlMutex.Lock()
 			defer gqlMutex.Unlock()
 			if !GqlLCore.Valid() || GqlLCore.IsBusy() {
-				return nil, fmt.Errorf("no LCore for %s role", Role)
+				return nil, fmt.Errorf("no LCore for %s role; check activation parameters and ensure there's no other writer running", Role)
 			}
 
 			cfg := WriterConfig{

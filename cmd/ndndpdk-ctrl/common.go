@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -13,8 +14,19 @@ import (
 
 	"github.com/kballard/go-shellquote"
 	"github.com/urfave/cli/v2"
+	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
 	"github.com/xeipuuv/gojsonschema"
 )
+
+func runDeleteCommand(c *cli.Context, id string) error {
+	return clientDoPrint(c.Context, `
+		mutation delete($id: ID!) {
+			delete(id: $id)
+		}
+	`, map[string]interface{}{
+		"id": id,
+	}, "delete")
+}
 
 func defineDeleteCommand(category, commandName, usage, objectNoun string) {
 	var id string
@@ -31,13 +43,7 @@ func defineDeleteCommand(category, commandName, usage, objectNoun string) {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			return clientDoPrint(c.Context, `
-				mutation delete($id: ID!) {
-					delete(id: $id)
-				}
-			`, map[string]interface{}{
-				"id": id,
-			}, "delete")
+			return runDeleteCommand(c, id)
 		},
 	})
 }
@@ -153,17 +159,21 @@ func (r request) isSubscription() bool {
 	return false
 }
 
-func (r request) Execute(ctx context.Context) error {
+func (r request) Execute(ctx context.Context, ptr interface{}) error {
 	if r.isSubscription() {
 		return r.subscribe(ctx)
 	}
-	return r.do(ctx)
+	return r.do(ctx, ptr)
 }
 
-func (r request) do(ctx context.Context) error {
+func (r request) do(ctx context.Context, ptr interface{}) error {
 	var value interface{}
 	if e := client.Do(ctx, r.Query, r.Vars, r.Key, &value); e != nil {
 		return e
+	}
+
+	if ptr != nil {
+		jsonhelper.Roundtrip(value, ptr)
 	}
 
 	if val := reflect.ValueOf(value); val.Kind() == reflect.Slice {
@@ -190,7 +200,16 @@ func (r request) subscribe(ctx context.Context) error {
 }
 
 func (r request) Print() error {
-	gqArgs := []string{gqlCfg.HTTPUri, "-q", r.Query}
+	query := []byte(r.Query)
+	if bytes.HasPrefix(query, []byte("\n\t")) {
+		prefixLen := len(query) - len(bytes.TrimLeft(query[1:], "\t"))
+		query = bytes.ReplaceAll(query, query[:prefixLen], []byte("\n\t"))
+	}
+	query = bytes.TrimRight(query, "\n\t")
+	query = bytes.ReplaceAll(query, []byte("\t"), []byte("  "))
+	query = append(query, '\n')
+
+	gqArgs := []string{gqlCfg.HTTPUri, "-q", string(query)}
 	if r.isSubscription() {
 		gqArgs[0] = strings.Replace(gqlCfg.WebSocketUri, "ws", "http", 1)
 	}
@@ -210,10 +229,11 @@ func (r request) Print() error {
 	}
 
 	fmt.Println("gq", shellquote.Join(gqArgs...), "|", "jq", shellquote.Join(jqArgs...))
+	fmt.Println()
 	return nil
 }
 
-func clientDoPrint(ctx context.Context, query string, vars map[string]interface{}, key string) error {
+func clientDoPrint(ctx context.Context, query string, vars map[string]interface{}, key string, ptr ...interface{}) error {
 	r := request{
 		Query: query,
 		Vars:  vars,
@@ -223,5 +243,8 @@ func clientDoPrint(ctx context.Context, query string, vars map[string]interface{
 	if cmdout {
 		return r.Print()
 	}
-	return r.Execute(ctx)
+	if len(ptr) == 0 {
+		return r.Execute(ctx, nil)
+	}
+	return r.Execute(ctx, ptr[0])
 }
