@@ -70,8 +70,9 @@ Packet_ParseL3(Packet* npkt)
 }
 
 __attribute__((nonnull, returns_nonnull)) static Packet*
-Clone_Finish(Packet* npkt, struct rte_mbuf* pkt)
+Clone_Finish(const Packet* npkt, struct rte_mbuf* pkt)
 {
+  Mbuf_SetTimestamp(pkt, Mbuf_GetTimestamp(Packet_ToMbuf(npkt)));
   Packet* output = Packet_FromMbuf(pkt);
   Packet_SetType(output, PktType_ToSlim(Packet_GetType(npkt)));
   *Packet_GetPriv_(output) = (const PacketPriv){ 0 };

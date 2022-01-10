@@ -41,6 +41,12 @@ typedef struct PcapngEPB
   rte_le32_t origLen;
 } __rte_packed PcapngEPB;
 
+/** @brief PCAPNG block trailer. */
+typedef struct PcapngTrailer
+{
+  rte_le32_t totalLength;
+} __rte_packed PcapngTrailer;
+
 /** @brief PCAPNG enhanced packet block header and tcpdump DLT_LINUX_SLL header. */
 typedef struct PcapngEPBSLL
 {

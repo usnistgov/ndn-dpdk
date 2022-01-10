@@ -105,3 +105,52 @@ func ctestPName(t *testing.T) {
 		nameEqual(assert, nameAZ[4:48], fromLName(C.PName_Slice(p, 2, -2)))
 	})
 }
+
+type LNamePrefixFilter struct {
+	prefixL [4]C.uint16_t
+	prefixV [1024]C.uint8_t
+}
+
+func (f *LNamePrefixFilter) Builder() *ndni.LNamePrefixFilterBuilder {
+	return ndni.NewLNamePrefixFilterBuilder(unsafe.Pointer(&f.prefixL), unsafe.Sizeof(f.prefixL),
+		unsafe.Pointer(&f.prefixV), unsafe.Sizeof(f.prefixV))
+}
+
+func (f *LNamePrefixFilter) Find(name string) int {
+	n := ndn.ParseName(name)
+	pn := ndni.NewPName(n)
+	defer pn.Free()
+
+	return int(C.LNamePrefixFilter_Find(*(*C.LName)(pn.Ptr()), 4, &f.prefixL[0], &f.prefixV[0]))
+}
+
+func ctestLNamePrefixFilter(t *testing.T) {
+	assert, _ := makeAR(t)
+	longName := "/" + strings.Repeat("Z", 1024)
+
+	var f LNamePrefixFilter
+	b := f.Builder()
+	assert.Equal(0, b.Len())
+	b.Append(ndn.ParseName("/A/B"))
+	b.Append(ndn.ParseName("/A"))
+	b.Append(ndn.ParseName("/A/C"))
+	assert.Equal(3, b.Len())
+
+	assert.Equal(-1, f.Find("/"))
+	assert.Equal(-1, f.Find("/D"))
+	assert.Equal(0, f.Find("/A/B"))
+	assert.Equal(1, f.Find("/A"))
+	assert.Equal(1, f.Find("/A/P"))
+	assert.Equal(1, f.Find("/A/C")) // first match, not longest match
+
+	assert.Error(b.Append(ndn.ParseName(longName)))
+	b.Append(ndn.ParseName("/DD"))
+	assert.Error(b.Append(ndn.ParseName("/E")))
+	assert.Equal(4, b.Len())
+
+	assert.Equal(-1, f.Find(longName))
+	assert.Equal(-1, f.Find("/D"))
+	assert.Equal(-1, f.Find("/DDD"))
+	assert.Equal(3, f.Find("/DD"))
+	assert.Equal(3, f.Find("/DD/Q"))
+}

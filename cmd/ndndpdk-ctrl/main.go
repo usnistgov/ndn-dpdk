@@ -4,7 +4,9 @@ package main
 import (
 	"log"
 	"os"
+	"os/signal"
 	"sort"
+	"syscall"
 
 	"github.com/urfave/cli/v2"
 	"github.com/usnistgov/ndn-dpdk/core/gqlclient"
@@ -12,9 +14,10 @@ import (
 )
 
 var (
-	cmdout bool
-	gqlCfg gqlclient.Config
-	client *gqlclient.Client
+	cmdout    bool
+	gqlCfg    gqlclient.Config
+	client    *gqlclient.Client
+	interrupt = make(chan os.Signal, 1)
 )
 
 var app = &cli.App{
@@ -36,6 +39,7 @@ var app = &cli.App{
 		},
 	},
 	Before: func(c *cli.Context) (e error) {
+		signal.Notify(interrupt, syscall.SIGINT)
 		if e := gqlCfg.Validate(); e != nil {
 			return e
 		}

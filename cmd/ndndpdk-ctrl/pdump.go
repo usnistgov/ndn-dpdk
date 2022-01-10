@@ -2,9 +2,7 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"log"
-	"os"
 	"time"
 
 	"github.com/urfave/cli/v2"
@@ -84,8 +82,9 @@ func init() {
 	}
 
 	defineCommand(&cli.Command{
-		Name:  "pdump-face",
-		Usage: "Dump packet on a face",
+		Category: "pdump",
+		Name:     "pdump-face",
+		Usage:    "Dump packet on a face",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:        "filename",
@@ -159,8 +158,8 @@ func init() {
 				if duration > 0 {
 					time.Sleep(duration)
 				} else {
-					log.Print("traffic dumper running, press ENTER to stop")
-					io.ReadAtLeast(os.Stdin, make([]byte, 1), 1)
+					log.Print("traffic dumper running, press CTRL+C to stop")
+					<-interrupt
 				}
 			}
 

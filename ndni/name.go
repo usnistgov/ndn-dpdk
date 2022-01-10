@@ -6,6 +6,7 @@ package ndni
 import "C"
 import (
 	"errors"
+	"math"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/ndn"
@@ -35,7 +36,7 @@ func (b *LNamePrefixFilterBuilder) Append(name ndn.Name) error {
 	if b.offset+nameL > len(b.prefixV) {
 		return errors.New("prefixV is full")
 	}
-	b.prefixL[b.index] = uint16(len(nameV))
+	b.prefixL[b.index] = uint16(nameL)
 	b.index++
 	copy(b.prefixV[b.offset:], nameV)
 	b.offset += nameL
@@ -49,22 +50,9 @@ func NewLNamePrefixFilterBuilder(prefixL unsafe.Pointer, sizeL uintptr, prefixV 
 		prefixV: unsafe.Slice((*uint8)(prefixV), sizeV),
 	}
 	for i := range b.prefixL {
-		b.prefixL[i] = 0
+		b.prefixL[i] = math.MaxUint16
 	}
 	return b
-}
-
-// PNameToName converts PName to ndn.Name.
-func PNameToName(pname unsafe.Pointer) (name ndn.Name) {
-	p := (*C.PName)(pname)
-	if p.length == 0 {
-		return ndn.Name{}
-	}
-	value := C.GoBytes(unsafe.Pointer(p.value), C.int(p.length))
-	if e := name.UnmarshalBinary(value); e != nil {
-		logger.Panic("name.UnmarshalBinary error", zap.Error(e))
-	}
-	return name
 }
 
 // PName represents a parsed Name.
@@ -73,15 +61,18 @@ type PName C.PName
 // NewPName creates PName from ndn.Name.
 func NewPName(name ndn.Name) *PName {
 	var lname C.LName
+	var value []byte
 	if len(name) > 0 {
-		value, _ := name.MarshalBinary()
-		valueC := C.CBytes(value)
-		lname = C.LName{length: C.uint16_t(len(value)), value: (*C.uint8_t)(valueC)}
+		value, _ = name.MarshalBinary()
+		lname = C.LName{length: C.uint16_t(len(value)), value: (*C.uint8_t)(C.CBytes(value))}
 	}
+
 	pname := (*C.PName)(C.malloc(C.sizeof_PName))
-	ok := bool(C.PName_Parse(pname, lname))
-	if !ok {
-		logger.Panic("PName_Parse error", zap.Stringer("name", name))
+	if !C.PName_Parse(pname, lname) {
+		logger.Panic("PName_Parse error",
+			zap.Stringer("name", name),
+			zap.Binary("value", value),
+		)
 	}
 	return (*PName)(pname)
 }

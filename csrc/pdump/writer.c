@@ -12,7 +12,7 @@ WriteBlock(PdumpWriter* w, struct rte_mbuf* pkt)
 }
 
 __attribute__((nonnull)) static inline void
-WriteSLL(PdumpWriter* w, struct rte_mbuf* pkt, uint32_t len4)
+WriteSLL(PdumpWriter* w, struct rte_mbuf* pkt, uint32_t totalLength)
 {
   uint32_t intf = w->intf[pkt->port];
   if (unlikely(intf == UINT32_MAX)) {
@@ -24,7 +24,7 @@ WriteSLL(PdumpWriter* w, struct rte_mbuf* pkt, uint32_t len4)
   PcapngEPBSLL hdr = {
     .epb = {
       .blockType = rte_cpu_to_le_32(PdumpNgTypeEPB),
-      .totalLength = rte_cpu_to_le_32(sizeof(PcapngEPBSLL) + len4 + sizeof(rte_le32_t)),
+      .totalLength = rte_cpu_to_le_32(totalLength),
       .intf = rte_cpu_to_le_32(intf),
       .timeHi = rte_cpu_to_le_32(time >> 32),
       .timeLo = rte_cpu_to_le_32(time & UINT32_MAX),
@@ -38,27 +38,34 @@ WriteSLL(PdumpWriter* w, struct rte_mbuf* pkt, uint32_t len4)
     },
   };
   rte_memcpy(MmapFd_At(&w->m, w->pos), &hdr, sizeof(hdr));
+
+  PcapngTrailer trailer = {
+    .totalLength = hdr.epb.totalLength,
+  };
+  rte_memcpy(MmapFd_At(&w->m, w->pos + totalLength - sizeof(trailer)), &trailer, sizeof(trailer));
+
   uint8_t* dst = MmapFd_At(&w->m, w->pos + sizeof(hdr));
   const uint8_t* readTo = rte_pktmbuf_read(pkt, 0, pkt->pkt_len, dst);
   if (readTo != dst) {
     rte_memcpy(dst, readTo, pkt->pkt_len);
   }
-  *(rte_le32_t*)RTE_PTR_ADD(dst, len4) = hdr.epb.totalLength;
-  w->pos += sizeof(PcapngEPBSLL) + len4 + sizeof(rte_le32_t);
+
+  w->pos += totalLength;
 }
 
 __attribute__((nonnull)) static inline bool
 ProcessMbuf(PdumpWriter* w, struct rte_mbuf* pkt)
 {
   uint32_t len4 = (pkt->pkt_len + 0x03) & (~0x03);
-  if (w->pos + sizeof(PcapngEPBSLL) + len4 + sizeof(rte_le32_t) > w->m.size) {
+  uint32_t totalLength = sizeof(PcapngEPBSLL) + len4 + sizeof(PcapngTrailer);
+  if (w->pos + totalLength > w->m.size) {
     return true;
   }
 
   switch (pkt->packet_type) {
     case SLLIncoming:
     case SLLOutgoing:
-      WriteSLL(w, pkt, len4);
+      WriteSLL(w, pkt, totalLength);
       break;
     case PdumpNgTypeIDB:
       w->intf[pkt->port] = w->nextIntf++;

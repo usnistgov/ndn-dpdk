@@ -150,7 +150,7 @@ LName_PrintHex(LName name, char buffer[NameHexBufferLength]);
  * @brief Find a matching prefix of @p name .
  * @param name a packet name.
  * @param maxPrefix exclusive upper bound of @p prefixL vector.
- * @param prefixL a vector of name prefix TLV-LENGTH; zero indicates end of vector.
+ * @param prefixL a vector of name prefix TLV-LENGTH; UINT16_MAX indicates end of vector.
  * @param prefixV a buffer of name prefix TLV-VALUE, written consecutively.
  * @pre SUM(prefixL) <= cap(prefixV)
  * @return index of first matching prefix.
@@ -161,7 +161,7 @@ LNamePrefixFilter_Find(LName name, int maxPrefix, const uint16_t* prefixL, const
 {
   size_t offset = 0;
   for (int i = 0; i < maxPrefix; ++i) {
-    if (prefixL[i] == 0) {
+    if (prefixL[i] == UINT16_MAX) {
       break;
     }
 

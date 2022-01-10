@@ -96,7 +96,7 @@ type DataGenConfig struct {
 	PayloadLen      int                     `json:"payloadLen,omitempty"`
 }
 
-// Apply initializes InterestTemplate.
+// Apply initializes DataGen.
 func (cfg DataGenConfig) Apply(gen *DataGen, m *pktmbuf.Packet) {
 	content := make([]byte, cfg.PayloadLen)
 	gen.Init(m, cfg.Suffix, cfg.FreshnessPeriod.Duration(), content)
