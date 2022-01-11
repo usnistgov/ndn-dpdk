@@ -16,6 +16,7 @@ typedef struct PdumpWriter
   size_t maxSize;
   size_t pos;
   uint32_t nextIntf;
+  bool full;
   uint32_t intf[UINT16_MAX + 1];
 } PdumpWriter;
 

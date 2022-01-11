@@ -86,6 +86,11 @@ type Port struct {
 	txl          iface.TxLoop
 }
 
+// EthDev returns the Ethernet device.
+func (port *Port) EthDev() ethdev.EthDev {
+	return port.dev
+}
+
 // Faces returns a list of active faces.
 func (port *Port) Faces() (list []iface.Face) {
 	port.mutex.Lock()

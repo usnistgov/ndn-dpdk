@@ -18,6 +18,12 @@ const (
 	// NgTypeIDB is PCAPNG enhanced packet block type.
 	NgTypeEPB = 0x00000006
 
+	// MbufTypeRaw indicates mbuf should be written unchanged.
+	MbufTypeRaw = 0xF0010000
+
+	// MbufTypeSLL indicates mbuf should be written with SLL header.
+	MbufTypeSLL = 0xF0020000
+
 	_ = "enumgen::Pdump"
 )
 

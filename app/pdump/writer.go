@@ -12,12 +12,10 @@ import (
 	"fmt"
 	"math"
 	"path/filepath"
-	"strconv"
 	"sync/atomic"
 	"time"
 	"unsafe"
 
-	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcapgo"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/logging"
@@ -25,7 +23,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
-	"github.com/usnistgov/ndn-dpdk/iface"
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
 )
@@ -74,7 +71,7 @@ type Writer struct {
 	mp       *pktmbuf.Pool
 
 	nSources int32
-	faces    map[iface.ID]string // faceID => Locator
+	intfs    map[int]pcapgo.NgInterface
 	hasSHB   bool
 }
 
@@ -88,7 +85,7 @@ var (
 func (w *Writer) startSource() {
 	n := atomic.AddInt32(&w.nSources, 1)
 	if n <= 0 {
-		panic("attempting to startDumper on stopped Writer")
+		panic("attempting to startSource on stopped Writer")
 	}
 }
 
@@ -97,22 +94,20 @@ func (w *Writer) startSource() {
 func (w *Writer) stopSource() {
 	n := atomic.AddInt32(&w.nSources, -1)
 	if n < 0 {
-		panic("w.nDumpers is negative")
+		panic("w.nSources is negative")
 	}
 }
 
-// addFace records a face as NgInterface.
-func (w *Writer) defineFace(face iface.Face) {
-	// w.faces is protected by faceSourcesLock
-	// revisit when implementing FIB entry dumper
-
-	id, loc := face.ID(), iface.LocatorString(face.Locator())
-	if w.faces[id] == loc {
+// defineIntf defines an NgInterface.
+// intf.Name, intf.Description, and intf.LinkType should be set; other fields are ignored.
+// Caller should hold sourcesLock.
+func (w *Writer) defineIntf(id int, intf pcapgo.NgInterface) {
+	if w.intfs[id] == intf {
 		return
 	}
-	w.faces[id] = loc
+	w.intfs[id] = intf
 
-	shb, idb := ngMakeHeader(id, loc)
+	shb, idb := ngMakeHeader(id, intf)
 	if !w.hasSHB {
 		w.putBlock(shb, NgTypeSHB, math.MaxUint16)
 		w.hasSHB = true
@@ -149,11 +144,11 @@ func (Writer) ThreadRole() string {
 // Close releases resources.
 func (w *Writer) Close() error {
 	if !atomic.CompareAndSwapInt32(&w.nSources, 0, -65536) {
-		return errors.New("cannot stop PdumpWriter with active sources")
+		return errors.New("cannot stop Writer with active sources")
 	}
 
 	e := w.Stop()
-	logger.Info("PdumpWriter stopped",
+	logger.Info("Writer stopped",
 		zap.Uintptr("queue", uintptr(unsafe.Pointer(w.c.queue))),
 		zap.Error(e),
 	)
@@ -191,7 +186,7 @@ func NewWriter(cfg WriterConfig) (w *Writer, e error) {
 		filename: cfg.Filename,
 		c:        (*C.PdumpWriter)(eal.Zmalloc("PdumpWriter", C.sizeof_PdumpWriter, cfg.Socket)),
 		mp:       pktmbuf.Direct.Get(cfg.Socket),
-		faces:    map[iface.ID]string{},
+		intfs:    map[int]pcapgo.NgInterface{},
 	}
 	w.c.filename = C.CString(cfg.Filename)
 	w.c.maxSize = C.size_t(cfg.MaxSize)
@@ -215,18 +210,18 @@ func NewWriter(cfg WriterConfig) (w *Writer, e error) {
 	}
 	w.c.queue = (*C.struct_rte_ring)(w.queue.Ptr())
 
-	logger.Info("PdumpWriter open",
+	logger.Info("Writer open",
 		zap.String("filename", cfg.Filename),
 		zap.Uintptr("queue", uintptr(unsafe.Pointer(w.c.queue))),
 	)
 	return w, nil
 }
 
-func ngMakeHeader(id iface.ID, loc string) (shb, idb []byte) {
+func ngMakeHeader(id int, info pcapgo.NgInterface) (shb, idb []byte) {
 	intf := pcapgo.DefaultNgInterface
-	intf.Name = strconv.Itoa(int(id))
-	intf.Description = loc
-	intf.LinkType = layers.LinkTypeLinuxSLL
+	intf.Name = info.Name
+	intf.Description = info.Description
+	intf.LinkType = info.LinkType
 	intf.SnapLength = 262144
 
 	wOpt := pcapgo.DefaultNgWriterOptions

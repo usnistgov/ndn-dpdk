@@ -17,6 +17,7 @@ var (
 )
 
 // PrepareRxlTxl starts one RxLoop and one TxLoop.
+// Packets received by the RxLoop are initially dropped.
 // It also ensures ndnitestenv.MakePacket creates packets with sufficient headroom to use with iface.
 func PrepareRxlTxl() {
 	ndnitestenv.MakePacketHeadroom = mbuftestenv.Headroom(pktmbuf.DefaultHeadroom + ndni.LpHeaderHeadroom)

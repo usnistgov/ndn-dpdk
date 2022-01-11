@@ -6,7 +6,7 @@
 #include "../ndni/name.h"
 #include "../ndni/tlv-decoder.h"
 
-static inline LName
+__attribute__((nonnull)) static inline LName
 Pdump_ExtractNameL3_(TlvDecoder* d)
 {
   uint32_t length, type = TlvDecoder_ReadTL_MaybeTruncated(d, &length);
@@ -27,7 +27,7 @@ Pdump_ExtractNameL3_(TlvDecoder* d)
  * contained in this fragment; it may be truncated and contain incomplete name component.
  * Otherwise, return empty LName.
  */
-static inline LName
+__attribute__((nonnull)) static inline LName
 Pdump_ExtractName(struct rte_mbuf* pkt)
 {
   TlvDecoder d;

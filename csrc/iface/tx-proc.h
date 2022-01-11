@@ -3,7 +3,7 @@
 
 /** @file */
 
-#include "../pdump/face.h"
+#include "../pdump/source.h"
 #include "common.h"
 
 /**
@@ -24,7 +24,7 @@ typedef uint16_t (*TxProc_OutputFunc_)(TxProc* tx, Packet* npkt,
 typedef struct TxProc
 {
   Face_L2TxBurst l2Burst;
-  PdumpFaceRef pdump;
+  PdumpSourceRef pdump;
 
   PacketMempools mp; ///< mempools for fragmentation
   TxProc_OutputFunc_ outputFunc[2];

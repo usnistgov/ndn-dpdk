@@ -1,8 +1,8 @@
 package pdump
 
 /*
-#include "../../csrc/pdump/face.h"
 #include "../../csrc/pdump/format.h"
+#include "../../csrc/pdump/source.h"
 #include "../../csrc/iface/face.h"
 */
 import "C"
@@ -15,6 +15,8 @@ import (
 	"sync"
 	"unsafe"
 
+	"github.com/google/gopacket/layers"
+	"github.com/google/gopacket/pcapgo"
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
@@ -36,15 +38,15 @@ const (
 
 var dirImpls = map[Direction]struct {
 	sllType C.rte_be16_t
-	getRef  func(faceC *C.Face) *C.PdumpFaceRef
+	getRef  func(faceC *C.Face) *C.PdumpSourceRef
 }{
 	DirIncoming: {
 		C.SLLIncoming,
-		func(faceC *C.Face) *C.PdumpFaceRef { return &faceC.impl.rx.pdump },
+		func(faceC *C.Face) *C.PdumpSourceRef { return &faceC.impl.rx.pdump },
 	},
 	DirOutgoing: {
 		C.SLLOutgoing,
-		func(faceC *C.Face) *C.PdumpFaceRef { return &faceC.impl.tx.pdump },
+		func(faceC *C.Face) *C.PdumpSourceRef { return &faceC.impl.tx.pdump },
 	},
 }
 
@@ -64,24 +66,23 @@ func parseFaceDir(input string) (fd faceDir, e error) {
 
 var (
 	faceSources     = map[faceDir]*FaceSource{}
-	faceSourcesLock sync.Mutex
 	faceClosingOnce sync.Once
 )
 
 func handleFaceClosing(id iface.ID) {
-	faceSourcesLock.Lock()
-	defer faceSourcesLock.Unlock()
+	sourcesLock.Lock()
+	defer sourcesLock.Unlock()
 
 	for dir := range dirImpls {
-		fs, ok := faceSources[faceDir{id, dir}]
+		s, ok := faceSources[faceDir{id, dir}]
 		if !ok {
 			continue
 		}
-		fs.closeImpl()
+		s.closeImpl()
 	}
 }
 
-// FaceConfig contains face dumper configuration.
+// FaceConfig contains FaceSource configuration.
 type FaceConfig struct {
 	Writer *Writer
 	Face   iface.Face
@@ -129,90 +130,90 @@ type FaceSource struct {
 	FaceConfig
 	key    faceDir
 	logger *zap.Logger
-	c      *C.PdumpFace
+	c      *C.PdumpFaceSource
 }
 
-func (fs *FaceSource) setPdumpFaceRef(expected, newPtr *C.PdumpFace) {
-	ref := dirImpls[fs.Dir].getRef((*C.Face)(fs.Face.Ptr()))
-	if old := C.PdumpFaceRef_Set(ref, newPtr); old != expected {
-		fs.logger.Panic("PdumpFaceRef pointer mismatch",
-			zap.Uintptr("new", uintptr(unsafe.Pointer(newPtr))),
-			zap.Uintptr("old", uintptr(unsafe.Pointer(old))),
-			zap.Uintptr("expected", uintptr(unsafe.Pointer(expected))),
-		)
-	}
+func (s *FaceSource) setRef(expected, newPtr *C.PdumpSource) {
+	ref := dirImpls[s.Dir].getRef((*C.Face)(s.Face.Ptr()))
+	setSourceRef(ref, expected, newPtr)
 }
 
 // Close detaches the dump source.
-func (fs *FaceSource) Close() error {
-	faceSourcesLock.Lock()
-	defer faceSourcesLock.Unlock()
-	return fs.closeImpl()
+func (s *FaceSource) Close() error {
+	sourcesLock.Lock()
+	defer sourcesLock.Unlock()
+	return s.closeImpl()
 }
 
-func (fs *FaceSource) closeImpl() error {
-	fs.logger.Info("PdumpFace close")
-	fs.setPdumpFaceRef(fs.c, nil)
-	delete(faceSources, fs.key)
+func (s *FaceSource) closeImpl() error {
+	s.logger.Info("FaceSource close")
+	s.setRef(&s.c.base, nil)
+	delete(faceSources, s.key)
 
 	go func() {
 		urcu.Synchronize()
-		fs.Writer.stopSource()
-		fs.logger.Info("PdumpFace freed")
-		eal.Free(fs.c)
+		s.Writer.stopSource()
+		s.logger.Info("FaceSource freed")
+		eal.Free(s.c)
 	}()
 	return nil
 }
 
 // NewFaceSource creates a FaceSource.
-func NewFaceSource(cfg FaceConfig) (fs *FaceSource, e error) {
+func NewFaceSource(cfg FaceConfig) (s *FaceSource, e error) {
 	if e := cfg.validate(); e != nil {
 		return nil, e
 	}
 
-	faceSourcesLock.Lock()
-	defer faceSourcesLock.Unlock()
+	sourcesLock.Lock()
+	defer sourcesLock.Unlock()
 
-	fs = &FaceSource{
+	s = &FaceSource{
 		FaceConfig: cfg,
 		key:        faceDir{cfg.Face.ID(), cfg.Dir},
 	}
-	if _, ok := faceSources[fs.key]; ok {
-		return nil, errors.New("another PdumpFace is attached to this face and direction")
+	if _, ok := faceSources[s.key]; ok {
+		return nil, errors.New("another FaceSource is attached to this face and direction")
 	}
-	socket := cfg.Face.NumaSocket()
+	socket := s.Face.NumaSocket()
 
-	fs.logger = logger.With(cfg.Face.ID().ZapField("face"), zap.String("dir", string(cfg.Dir)))
-	fs.c = (*C.PdumpFace)(eal.Zmalloc("PdumpFace", C.sizeof_PdumpFace, socket))
-	*fs.c = C.PdumpFace{
+	s.logger = logger.With(s.Face.ID().ZapField("face"), zap.String("dir", string(s.Dir)))
+	s.c = (*C.PdumpFaceSource)(eal.Zmalloc("PdumpFaceSource", C.sizeof_PdumpFaceSource, socket))
+	s.c.base = C.PdumpSource{
 		directMp: (*C.struct_rte_mempool)(pktmbuf.Direct.Get(socket).Ptr()),
-		queue:    fs.Writer.c.queue,
-		sllType:  dirImpls[cfg.Dir].sllType,
+		queue:    s.Writer.c.queue,
+		filter:   C.PdumpSource_Filter(C.PdumpFaceSource_Filter),
+		mbufType: MbufTypeSLL | C.uint32_t(dirImpls[s.Dir].sllType),
+		mbufPort: C.uint16_t(s.Face.ID()),
+		mbufCopy: true,
 	}
-	C.pcg32_srandom_r(&fs.c.rng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
+	C.pcg32_srandom_r(&s.c.rng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
 
 	// sort by decending name length for longest prefix match
-	sort.Slice(cfg.Names, func(i, j int) bool { return len(cfg.Names[i].Name) > len(cfg.Names[j].Name) })
-	prefixes := ndni.NewLNamePrefixFilterBuilder(unsafe.Pointer(&fs.c.nameL), unsafe.Sizeof(fs.c.nameL),
-		unsafe.Pointer(&fs.c.nameV), unsafe.Sizeof(fs.c.nameV))
-	for i, nf := range cfg.Names {
+	sort.Slice(s.Names, func(i, j int) bool { return len(s.Names[i].Name) > len(s.Names[j].Name) })
+	prefixes := ndni.NewLNamePrefixFilterBuilder(unsafe.Pointer(&s.c.nameL), unsafe.Sizeof(s.c.nameL),
+		unsafe.Pointer(&s.c.nameV), unsafe.Sizeof(s.c.nameV))
+	for i, nf := range s.Names {
 		if e := prefixes.Append(nf.Name); e != nil {
-			eal.Free(fs.c)
+			eal.Free(s.c)
 			return nil, errors.New("names too long")
 		}
-		fs.c.sample[i] = C.uint32_t(math.Ceil(nf.SampleProbability * math.MaxUint32))
+		s.c.sample[i] = C.uint32_t(math.Ceil(nf.SampleProbability * math.MaxUint32))
 	}
 
-	fs.Writer.defineFace(fs.Face)
-	fs.Writer.startSource()
-	fs.setPdumpFaceRef(nil, fs.c)
+	s.Writer.defineIntf(int(s.Face.ID()), pcapgo.NgInterface{
+		Name:        fmt.Sprintf("face%d", s.Face.ID()),
+		Description: iface.LocatorString(s.Face.Locator()),
+		LinkType:    layers.LinkTypeLinuxSLL,
+	})
+	s.Writer.startSource()
+	s.setRef(nil, &s.c.base)
 
 	faceClosingOnce.Do(func() { iface.OnFaceClosing(handleFaceClosing) })
-	faceSources[fs.key] = fs
-
-	fs.logger.Info("PdumpFace open",
-		zap.Uintptr("dumper", uintptr(unsafe.Pointer(fs.c))),
-		zap.Uintptr("queue", uintptr(unsafe.Pointer(fs.c.queue))),
+	faceSources[s.key] = s
+	s.logger.Info("FaceSource open",
+		zap.Uintptr("dumper", uintptr(unsafe.Pointer(s.c))),
+		zap.Uintptr("queue", uintptr(unsafe.Pointer(s.Writer.c.queue))),
 	)
-	return fs, nil
+	return s, nil
 }

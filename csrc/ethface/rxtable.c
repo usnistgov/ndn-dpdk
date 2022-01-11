@@ -24,12 +24,13 @@ EthRxTable_RxBurst(RxGroup* rxg, struct rte_mbuf** pkts, uint16_t nPkts)
   uint16_t nInput = rte_eth_rx_burst(rxt->port, rxt->queue, receives, nPkts);
   uint64_t now = rte_get_tsc_cycles();
 
-  uint16_t nRx = 0, nRej = 0;
-  struct rte_mbuf* rejects[MaxBurstSize];
+  uint16_t nRx = 0, nUnmatch = 0, nDrop = 0;
+  struct rte_mbuf* unmatch[MaxBurstSize];
+  struct rte_mbuf* drop[MaxBurstSize];
   for (uint16_t i = 0; i < nInput; ++i) {
     struct rte_mbuf* m = receives[i];
     if (unlikely(!EthRxTable_Accept(rxt, m))) {
-      rejects[nRej++] = m;
+      unmatch[nUnmatch++] = m;
       continue;
     }
     Mbuf_SetTimestamp(m, now);
@@ -43,11 +44,16 @@ EthRxTable_RxBurst(RxGroup* rxg, struct rte_mbuf** pkts, uint16_t nPkts)
     if (likely(copy != NULL)) {
       pkts[nRx++] = copy;
     }
-    rejects[nRej++] = m;
+    drop[nDrop++] = m;
   }
 
-  if (unlikely(nRej > 0)) {
-    rte_pktmbuf_free_bulk(rejects, nRej);
+  if (unlikely(nUnmatch > 0)) {
+    if (!PdumpSourceRef_Process(&rxt->pdumpUnmatched, unmatch, nUnmatch)) {
+      rte_pktmbuf_free_bulk(unmatch, nUnmatch);
+    }
+  }
+  if (unlikely(nDrop > 0)) {
+    rte_pktmbuf_free_bulk(drop, nDrop);
   }
   return nRx;
 }

@@ -13,7 +13,7 @@ RxLoop_Transfer(RxLoop* rxl, RxGroup* rxg)
       continue;
     }
     RxProc* rx = &face->impl->rx;
-    PdumpFaceRef_Process(&rx->pdump, face->id, &frame, 1);
+    PdumpSourceRef_Process(&rx->pdump, &frame, 1);
     Packet* npkt = RxProc_Input(rx, rxg->rxThread, frame);
     if (npkt == NULL) {
       continue;

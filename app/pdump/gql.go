@@ -162,8 +162,8 @@ func init() {
 			return nil, e
 		}
 
-		faceSourcesLock.Lock()
-		defer faceSourcesLock.Unlock()
+		sourcesLock.Lock()
+		defer sourcesLock.Unlock()
 		return faceSources[fd], nil
 	}
 	GqlFaceSourceNodeType.Delete = func(source interface{}) error {
@@ -256,8 +256,8 @@ func init() {
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 			sources := []interface{}{}
 
-			faceSourcesLock.Lock()
-			defer faceSourcesLock.Unlock()
+			sourcesLock.Lock()
+			defer sourcesLock.Unlock()
 			for _, fs := range faceSources {
 				sources = append(sources, fs)
 			}
