@@ -70,8 +70,8 @@ var (
 )
 
 func handleFaceClosing(id iface.ID) {
-	sourcesLock.Lock()
-	defer sourcesLock.Unlock()
+	sourcesMutex.Lock()
+	defer sourcesMutex.Unlock()
 
 	for dir := range dirImpls {
 		s, ok := faceSources[faceDir{id, dir}]
@@ -140,8 +140,8 @@ func (s *FaceSource) setRef(expected, newPtr *C.PdumpSource) {
 
 // Close detaches the dump source.
 func (s *FaceSource) Close() error {
-	sourcesLock.Lock()
-	defer sourcesLock.Unlock()
+	sourcesMutex.Lock()
+	defer sourcesMutex.Unlock()
 	return s.closeImpl()
 }
 
@@ -165,8 +165,8 @@ func NewFaceSource(cfg FaceConfig) (s *FaceSource, e error) {
 		return nil, e
 	}
 
-	sourcesLock.Lock()
-	defer sourcesLock.Unlock()
+	sourcesMutex.Lock()
+	defer sourcesMutex.Unlock()
 
 	s = &FaceSource{
 		FaceConfig: cfg,

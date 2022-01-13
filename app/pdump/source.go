@@ -11,7 +11,7 @@ import (
 	"go.uber.org/zap"
 )
 
-var sourcesLock sync.Mutex
+var sourcesMutex sync.Mutex
 
 func setSourceRef(ref *C.PdumpSourceRef, expected, newPtr *C.PdumpSource) {
 	if old := C.PdumpSourceRef_Set(ref, newPtr); old != expected {

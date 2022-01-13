@@ -29,11 +29,11 @@ EthRxTable_RxBurst(RxGroup* rxg, struct rte_mbuf** pkts, uint16_t nPkts)
   struct rte_mbuf* drop[MaxBurstSize];
   for (uint16_t i = 0; i < nInput; ++i) {
     struct rte_mbuf* m = receives[i];
+    Mbuf_SetTimestamp(m, now);
     if (unlikely(!EthRxTable_Accept(rxt, m))) {
       unmatch[nUnmatch++] = m;
       continue;
     }
-    Mbuf_SetTimestamp(m, now);
 
     if (likely(rxt->copyTo == NULL)) {
       pkts[nRx++] = m;

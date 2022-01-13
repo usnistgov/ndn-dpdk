@@ -133,7 +133,7 @@ func (w *Writer) putBlock(block []byte, blockType uint32, port uint16) {
 		time.Sleep(10 * time.Millisecond)
 	}
 
-	logger.Info("sent pcapng block", zap.Uint32("type", blockType))
+	logger.Debug("sent pcapng block", zap.Uint32("type", blockType))
 }
 
 // ThreadRole implements ealthread.ThreadWithRole interface.

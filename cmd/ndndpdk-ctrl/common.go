@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"os/signal"
 	"path"
 	"reflect"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/kballard/go-shellquote"
@@ -17,6 +19,13 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
 	"github.com/xeipuuv/gojsonschema"
 )
+
+func waitInterrupt() {
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, syscall.SIGINT)
+	defer signal.Stop(interrupt)
+	<-interrupt
+}
 
 func runDeleteCommand(c *cli.Context, id string) error {
 	return clientDoPrint(c.Context, `

@@ -87,6 +87,7 @@ func TestEthPortUnmatched(t *testing.T) {
 	dump, e := pdump.NewEthPortSource(pdump.EthPortConfig{
 		Writer: w,
 		Port:   portA,
+		Grab:   pdump.EthGrabRxUnmatched,
 	})
 	require.NoError(e)
 

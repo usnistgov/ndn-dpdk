@@ -22,12 +22,21 @@ import (
 	"go.uber.org/zap"
 )
 
+// EthGrab indicates an opportunity to grab packets from Ethernet port.
+type EthGrab string
+
+// EthGrab values.
+const (
+	EthGrabRxUnmatched EthGrab = "RxUnmatched"
+)
+
 var ethPortSources = map[*ethport.Port]*EthPortSource{}
 
 // EthPortConfig contains EthPortSource configuration.
 type EthPortConfig struct {
 	Writer *Writer
 	Port   *ethport.Port
+	Grab   EthGrab
 
 	rxt *C.EthRxTable
 }
@@ -45,11 +54,14 @@ func (cfg *EthPortConfig) validate() error {
 		errs = append(errs, errors.New("port is not using RxTable"))
 	}
 
+	if cfg.Grab != EthGrabRxUnmatched {
+		errs = append(errs, errors.New("grab not supported"))
+	}
+
 	return multierr.Combine(errs...)
 }
 
-// EthPortSource is a packet dump source attached to EthRxTable.
-// It can capture incoming packets not matched to an existing face.
+// EthPortSource is a packet dump source attached to an Ethernet port on a grab opportunity.
 type EthPortSource struct {
 	EthPortConfig
 	logger *zap.Logger
@@ -62,8 +74,8 @@ func (s *EthPortSource) setRef(expected, newPtr *C.PdumpSource) {
 
 // Close detaches the dump source.
 func (s *EthPortSource) Close() error {
-	sourcesLock.Lock()
-	defer sourcesLock.Unlock()
+	sourcesMutex.Lock()
+	defer sourcesMutex.Unlock()
 	return s.closeImpl()
 }
 
@@ -87,8 +99,8 @@ func NewEthPortSource(cfg EthPortConfig) (s *EthPortSource, e error) {
 		return nil, e
 	}
 
-	sourcesLock.Lock()
-	defer sourcesLock.Unlock()
+	sourcesMutex.Lock()
+	defer sourcesMutex.Unlock()
 
 	s = &EthPortSource{
 		EthPortConfig: cfg,

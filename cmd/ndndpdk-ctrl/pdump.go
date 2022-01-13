@@ -10,8 +10,8 @@ import (
 
 func init() {
 	var filename, name string
-	var faces cli.StringSlice
-	var wantRX, wantTX bool
+	var faces, ports cli.StringSlice
+	var wantRX, wantTX, wantRxUnmatched bool
 	var sampleProb float64
 	var duration time.Duration
 
@@ -19,7 +19,7 @@ func init() {
 		ID string `json:"id"`
 	}
 	var writer string
-	var faceSources []string
+	var sources []string
 	createWriter := func(c *cli.Context) error {
 		var result withID
 		if e := clientDoPrint(c.Context, `
@@ -66,14 +66,55 @@ func init() {
 			return e
 		}
 		if cmdout {
-			faceSources = append(faceSources, fmt.Sprintf("FACE-SOURCE-ID:%s:%s", face, dir))
+			sources = append(sources, fmt.Sprintf("FACE-SOURCE-ID:%s:%s", face, dir))
 		} else {
-			faceSources = append(faceSources, result.ID)
+			sources = append(sources, result.ID)
 		}
 		return nil
 	}
+	createEthPortSource := func(c *cli.Context, port, grab string) error {
+		var result withID
+		if e := clientDoPrint(c.Context, `
+			mutation createPdumpEthPortSource($writer: ID!, $port: ID!, $grab: PdumpEthGrab!) {
+				createPdumpEthPortSource(writer: $writer, port: $port, grab: $grab) {
+					id
+					port { id name macAddr }
+					grab
+				}
+			}
+		`, map[string]interface{}{
+			"writer": writer,
+			"port":   port,
+			"grab":   grab,
+		}, "createPdumpEthPortSource", &result); e != nil {
+			return e
+		}
+		if cmdout {
+			sources = append(sources, fmt.Sprintf("ETHPORT-SOURCE-ID:%s:%s", port, grab))
+		} else {
+			sources = append(sources, result.ID)
+		}
+		return nil
+	}
+	waitFinish := func(c *cli.Context) {
+		if cmdout {
+			if duration > 0 {
+				fmt.Printf("sleep %0.1f\n", duration.Seconds())
+			} else {
+				fmt.Println("# traffic dumper running, continue below to stop")
+			}
+			fmt.Println()
+		} else {
+			if duration > 0 {
+				time.Sleep(duration)
+			} else {
+				log.Print("traffic dumper running, press CTRL+C to stop")
+				waitInterrupt()
+			}
+		}
+	}
 	closeAll := func(c *cli.Context) {
-		for _, faceSource := range faceSources {
+		for _, faceSource := range sources {
 			runDeleteCommand(c, faceSource)
 		}
 		if writer != "" {
@@ -81,17 +122,26 @@ func init() {
 		}
 	}
 
+	commonFlags := []cli.Flag{
+		&cli.StringFlag{
+			Name:        "filename",
+			Usage:       "destination `filename`",
+			Destination: &filename,
+			Required:    true,
+		},
+		&cli.DurationFlag{
+			Name:        "duration",
+			Usage:       "packet dump duration",
+			DefaultText: "interactive",
+			Destination: &duration,
+		},
+	}
+
 	defineCommand(&cli.Command{
 		Category: "pdump",
 		Name:     "pdump-face",
 		Usage:    "Dump packet on a face",
-		Flags: []cli.Flag{
-			&cli.StringFlag{
-				Name:        "filename",
-				Usage:       "destination `filename`",
-				Destination: &filename,
-				Required:    true,
-			},
+		Flags: append([]cli.Flag{
 			&cli.StringSliceFlag{
 				Name:        "face",
 				Usage:       "source face `ID` (repeatable)",
@@ -122,13 +172,7 @@ func init() {
 				Value:       1.0,
 				Destination: &sampleProb,
 			},
-			&cli.DurationFlag{
-				Name:        "duration",
-				Usage:       "packet dump duration",
-				DefaultText: "interactive",
-				Destination: &duration,
-			},
-		},
+		}, commonFlags...),
 		Action: func(c *cli.Context) error {
 			defer closeAll(c)
 
@@ -147,22 +191,48 @@ func init() {
 				}
 			}
 
-			if cmdout {
-				if duration > 0 {
-					fmt.Printf("sleep %0.1f\n", duration.Seconds())
-				} else {
-					fmt.Println("# traffic dumper running, continue below to stop")
-				}
-				fmt.Println()
-			} else {
-				if duration > 0 {
-					time.Sleep(duration)
-				} else {
-					log.Print("traffic dumper running, press CTRL+C to stop")
-					<-interrupt
+			waitFinish(c)
+			return nil
+		},
+	})
+
+	defineCommand(&cli.Command{
+		Category: "pdump",
+		Name:     "pdump-ethport",
+		Usage:    "Dump packet on an Ethernet port",
+		Flags: append([]cli.Flag{
+			&cli.StringSliceFlag{
+				Name:        "port",
+				Usage:       "source port `ID` (repeatable)",
+				Destination: &ports,
+				Required:    true,
+			},
+			&cli.BoolFlag{
+				Name:        "rx-unmatched",
+				Usage:       "capture incoming packets not matching a face",
+				Destination: &wantRxUnmatched,
+				Required:    true,
+			},
+		}, commonFlags...),
+		Action: func(c *cli.Context) error {
+			defer closeAll(c)
+
+			if e := createWriter(c); e != nil {
+				return e
+			}
+
+			for _, port := range ports.Value() {
+				for grab, enabled := range map[string]bool{"RxUnmatched": wantRxUnmatched} {
+					if !enabled {
+						continue
+					}
+					if e := createEthPortSource(c, port, grab); e != nil {
+						return e
+					}
 				}
 			}
 
+			waitFinish(c)
 			return nil
 		},
 	})
