@@ -134,7 +134,7 @@ fi
 : "${NDNDPDK_DL_LLVM_APT:=https://apt.llvm.org}"
 : "${NDNDPDK_DL_NODESOURCE_DEB:=https://deb.nodesource.com}"
 : "${NDNDPDK_DL_PYPA_BOOTSTRAP:=https://bootstrap.pypa.io}"
-: "${NDNDPDK_DL_GOLANG:=https://golang.org}"
+: "${NDNDPDK_DL_GODEV:=https://go.dev}"
 : "${NDNDPDK_DL_DPDK:=https://dpdk.org}"
 : "${NDNDPDK_DL_DPDK_PATCHES:=https://patches.dpdk.org}"
 # you can also set the GOPROXY environment variable, which will be persisted
@@ -153,7 +153,7 @@ curl_test NDNDPDK_DL_GITHUB_API /robots.txt
 curl_test NDNDPDK_DL_LLVM_APT
 curl_test NDNDPDK_DL_NODESOURCE_DEB
 curl_test NDNDPDK_DL_PYPA_BOOTSTRAP
-curl_test NDNDPDK_DL_GOLANG /VERSION
+curl_test NDNDPDK_DL_GODEV /VERSION
 curl_test NDNDPDK_DL_DPDK
 curl_test NDNDPDK_DL_DPDK_PATCHES
 
@@ -222,7 +222,9 @@ APT_PKGS=(
   yamllint
 )
 
-if [[ $DISTRO != bionic ]]; then
+if [[ $DISTRO == bionic ]]; then
+  APT_PKGS+=(python3.8)
+else
   APT_PKGS+=(python-is-python3)
 fi
 
@@ -237,7 +239,7 @@ fi
 
 if [[ $GOVER != 0 ]]; then
   if [[ $GOVER == latest ]]; then
-    GOVER=$(curl -fsLS "${NDNDPDK_DL_GOLANG}/VERSION?m=text")
+    GOVER=$(curl -fsLS "${NDNDPDK_DL_GODEV}/VERSION?m=text")
   fi
   echo "Will install Go ${GOVER}"
 elif ! command -v go >/dev/null; then
@@ -314,14 +316,14 @@ $SUDO npm install -g graphqurl
 
 if [[ $DISTRO == bionic ]]; then
   $SUDO update-alternatives --remove-all python || true
-  $SUDO update-alternatives --install /usr/bin/python python /usr/bin/python3 1
+  $SUDO update-alternatives --install /usr/bin/python python /usr/bin/python3.8 1
 fi
 curl -fsLS "${NDNDPDK_DL_PYPA_BOOTSTRAP}/get-pip.py" | $SUDO python
 $SUDO pip install -U meson pyelftools
 
 if [[ $GOVER != 0 ]]; then
   $SUDO rm -rf /usr/local/go
-  curl -fsLS "${NDNDPDK_DL_GOLANG}/dl/${GOVER}.linux-amd64.tar.gz" | $SUDO tar -C /usr/local -xz
+  curl -fsLS "${NDNDPDK_DL_GODEV}/dl/${GOVER}.linux-amd64.tar.gz" | $SUDO tar -C /usr/local -xz
   if ! grep -q go/bin ~/.bashrc; then
     echo 'export PATH=${HOME}/go/bin${PATH:+:}${PATH}' >>~/.bashrc
   fi

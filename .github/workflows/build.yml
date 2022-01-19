@@ -30,11 +30,15 @@ jobs:
         run: |
           wget https://apt.llvm.org/llvm.sh
           sudo bash ./llvm.sh 11
-          sudo apt-get install $CC clang-format-11 doxygen gcc-multilib libelf-dev libpcap-dev liburcu-dev linux-libc-dev python3-pip python3-setuptools python3-wheel
-          sudo update-alternatives --remove-all go || true
-          sudo update-alternatives --install /usr/bin/go go $(which go) 1
+          sudo apt-get install $CC clang-format-11 doxygen gcc-multilib libelf-dev libpcap-dev liburcu-dev linux-libc-dev python3.8 python3-setuptools
+          for C in go gofmt node; do
+            sudo update-alternatives --remove-all $C || true
+            sudo update-alternatives --install /usr/bin/$C $C $(command -v $C) 1
+          done
           go install honnef.co/go/tools/cmd/staticcheck@latest
-          sudo pip3 install meson
+          sudo update-alternatives --remove-all python || true
+          sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.8 1
+          pip install meson
           echo '::set-output name=meson::'$(meson --version)
       - name: install uBPF
         run: |
@@ -45,7 +49,7 @@ jobs:
           make
           sudo make install
         env:
-          UBPFCOMMIT: 9eb26b4bfdec6cafbf629a056155363f12cec972
+          UBPFCOMMIT: 0dd334daf4849137fa40d2b7676d2bf920d5c81d
       - name: install liburing
         run: |
           mkdir -p $HOME/liburing
@@ -61,7 +65,7 @@ jobs:
         with:
           path: |
             ~/setup-dpdk
-          key: ${{ matrix.compiler }}_${{ steps.compilers.outputs.meson }}_20211126
+          key: ${{ matrix.compiler }}_${{ steps.compilers.outputs.meson }}_20220119
       - uses: yoursunny/setup-dpdk@main
         with:
           dpdk-version: '21.11'
