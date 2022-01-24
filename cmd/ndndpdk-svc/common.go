@@ -25,7 +25,6 @@ type CommonArgs struct {
 	Eal        ealconfig.Config        `json:"eal,omitempty"`
 	Mempool    pktmbuf.TemplateUpdates `json:"mempool,omitempty"`
 	LCoreAlloc ealthread.Config        `json:"lcoreAlloc,omitempty"`
-	Hrlog      hrlog.WriterConfig      `json:"hrlog,omitempty"`
 }
 
 func (a *CommonArgs) apply() error {
@@ -48,12 +47,7 @@ func (a *CommonArgs) apply() error {
 		return e
 	}
 	if lc := alloc[hrlog.Role]; len(lc) > 0 {
-		w, e := hrlog.NewWriter(a.Hrlog)
-		if e != nil {
-			return e
-		}
-		w.SetLCore(lc[0])
-		ealthread.Launch(w)
+		hrlog.GqlLCore = lc[0]
 	}
 	if lc := alloc[pdump.Role]; len(lc) > 0 {
 		pdump.GqlLCore = lc[0]

@@ -1,9 +1,5 @@
-import type { Counter, Uint } from "./core";
+import type { Counter } from "./core";
 import type { LCore } from "./dpdk";
-
-export interface HrlogWriterConfig {
-  ringCapacity?: Uint;
-}
 
 export enum HrlogAction {
   OI = 1,

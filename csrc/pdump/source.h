@@ -28,7 +28,7 @@ struct PdumpSource
 __attribute__((nonnull)) void
 PdumpSource_Process(PdumpSource* s, struct rte_mbuf** pkts, uint16_t count);
 
-/** @brief A pointer to PdumpSource. */
+/** @brief RCU-protected pointer to PdumpSource. */
 typedef struct PdumpSourceRef
 {
   PdumpSource* s;

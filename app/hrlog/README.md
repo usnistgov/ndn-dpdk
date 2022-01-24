@@ -4,7 +4,7 @@ This package implements a high resolution logger for per-packet tracing.
 
 ## Activation
 
-User should invoke `Writer.Submit` function or GraphQL `collectHrlog` mutation to start collecting log entries to a file, and invoke `Task.Stop` function or GraphQL `delete` mutation to stop.
+User should invoke `NewWriter` function or GraphQL `createHrlogWriter` mutation to start collecting log entries to a file, and invoke `writer.Close` function or GraphQL `delete` mutation to stop.
 Only one collection can run at any moment.
 Log entries posted when collection is not running are lost.
 
@@ -27,11 +27,3 @@ Each entry has three fields:
    If this is a duration, it is in TSC unit.
 2. 8-bit lcore id.
 3. 8-bit action type. See `entry.h`.
-
-## Integration
-
-To integrate this package in NDN-DPDK codebase:
-
-1. Include `entry.h` header where log entries are generated, and invoke functions in that header.
-2. Allocate an LCore of "HRLOG" role.
-3. Create a `Writer` instance.

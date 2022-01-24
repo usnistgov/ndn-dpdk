@@ -1,6 +1,5 @@
 import type { EalConfig, LCoreAllocConfig, PktmbufPoolTemplateUpdates } from "../dpdk";
 import type { FwdpConfig } from "../fwdp";
-import type { HrlogWriterConfig } from "../hrlog";
 import type { FaceLocator } from "../iface";
 import type { FileServerConfig } from "../tg/mod";
 
@@ -8,8 +7,6 @@ export interface ActivateArgsCommon<Roles extends string = never> {
   eal?: EalConfig;
 
   lcoreAlloc?: LCoreAllocConfig<Roles | "HRLOG" | "PDUMP">;
-
-  hrlog?: HrlogWriterConfig;
 }
 
 /**

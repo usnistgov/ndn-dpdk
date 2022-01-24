@@ -1,49 +1,87 @@
 package hrlog
 
 import (
-	"context"
+	"fmt"
 
-	"github.com/functionalfoundry/graphqlws"
 	"github.com/graphql-go/graphql"
 	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
-	"github.com/usnistgov/ndn-dpdk/core/gqlserver/gqlsub"
+	"github.com/usnistgov/ndn-dpdk/core/gqlserver/gqlsingleton"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
+)
+
+var (
+	// GqlLCore is the LCore used for writer created via GraphQL.
+	GqlLCore  eal.LCore
+	gqlWriter gqlsingleton.Singleton
+)
+
+// GraphQL types.
+var (
+	GqlWriterNodeType *gqlserver.NodeType
+	GqlWriterType     *graphql.Object
 )
 
 func init() {
-	gqlserver.AddSubscription(&graphql.Field{
-		Name:        "collectHrlog",
-		Description: "Perform hrlog collection.",
+	GqlWriterNodeType = gqlserver.NewNodeType((*Writer)(nil))
+	gqlWriter.SetNodeType(GqlWriterNodeType)
+
+	GqlWriterType = graphql.NewObject(GqlWriterNodeType.Annotate(graphql.ObjectConfig{
+		Name:        "HrlogWriter",
+		Description: "High resolution log writer.",
+		Fields: graphql.Fields{
+			"filename": &graphql.Field{
+				Description: "Destination filename.",
+				Type:        gqlserver.NonNullString,
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					w := p.Source.(*Writer)
+					return w.filename, nil
+				},
+			},
+			"worker": ealthread.GqlWithWorker(nil),
+		},
+	}))
+	GqlWriterNodeType.Register(GqlWriterType)
+
+	gqlserver.AddMutation(&graphql.Field{
+		Name:        "createHrlogWriter",
+		Description: "Start high resolution log writer.",
 		Args: graphql.FieldConfigArgument{
 			"filename": &graphql.ArgumentConfig{
-				Type: gqlserver.NonNullString,
+				Description: "Output file name.",
+				Type:        gqlserver.NonNullString,
 			},
 			"count": &graphql.ArgumentConfig{
-				Type: graphql.Int,
+				Description: "Maximum number of entries. Storage will be pre-allocated.",
+				Type:        graphql.Int,
 			},
 		},
-		Type: gqlserver.NonNullBoolean,
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-			if e, ok := p.Info.RootValue.(error); ok {
+		Type: graphql.NewNonNull(GqlWriterType),
+		Resolve: gqlWriter.CreateWith(func(p graphql.ResolveParams) (interface{}, error) {
+			if !GqlLCore.Valid() || GqlLCore.IsBusy() {
+				return nil, fmt.Errorf("no LCore for %s role; check activation parameters and ensure there's no other writer running", Role)
+			}
+
+			cfg := WriterConfig{
+				Filename: p.Args["filename"].(string),
+			}
+			if count, ok := p.Args["count"]; ok {
+				cfg.Count = count.(int)
+			}
+			w, e := NewWriter(cfg)
+			if e != nil {
 				return nil, e
 			}
-			return true, nil
-		},
-	}, func(ctx context.Context, sub *graphqlws.Subscription, updates chan<- interface{}) {
-		defer close(updates)
+			w.SetLCore(GqlLCore)
+			ealthread.Launch(w)
+			return w, nil
+		}),
+	})
 
-		if TheWriter == nil {
-			updates <- ErrDisabled
-			return
-		}
-
-		cfg, ok := TaskConfig{}, true
-		if cfg.Filename, ok = gqlsub.GetArg(sub, "filename", graphql.String).(string); !ok {
-			return
-		}
-		if cfg.Count, ok = gqlsub.GetArg(sub, "count", graphql.Int).(int); !ok {
-			cfg.Count = 0
-		}
-
-		updates <- (<-TheWriter.Submit(ctx, cfg))
+	gqlserver.AddQuery(&graphql.Field{
+		Name:        "hrlogWriters",
+		Description: "List of active high resolution log writers.",
+		Type:        gqlserver.NewNonNullList(GqlWriterType),
+		Resolve:     gqlWriter.QueryList,
 	})
 }

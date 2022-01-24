@@ -10,13 +10,13 @@
 typedef struct HrlogWriter
 {
   ThreadCtrl ctrl;
+  struct rte_ring* queue;
   const char* filename;
-  int64_t nSkip;  ///< how many initial entries to discard
-  int64_t nTotal; ///< how many entries to collect
+  int64_t count;
 } HrlogWriter;
 
 /** @brief Write high resolution logs to a file. */
-bool
-Hrlog_RunWriter(HrlogWriter* w);
+int
+HrlogWriter_Run(HrlogWriter* w);
 
 #endif // NDNDPDK_HRLOG_WRITER_H

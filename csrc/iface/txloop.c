@@ -35,6 +35,7 @@ TxLoop_Transfer(Face* face)
 
   struct rte_mbuf* frames[MaxBurstSize + LpMaxFragments];
   uint16_t nFrames = 0;
+  struct rte_ring* hrlRing = HrlogRing_Get();
   HrlogEntry hrl[MaxBurstSize];
   uint16_t nHrls = 0;
 
@@ -44,7 +45,7 @@ TxLoop_Transfer(Face* face)
     PktType framePktType = PktType_ToFull(Packet_GetType(npkt));
     ++tx->nFrames[framePktType];
 
-    if (Hrlog_Enabled()) {
+    if (hrlRing != NULL) {
       struct rte_mbuf* m = Packet_ToMbuf(npkt);
       TscDuration latency = now - Mbuf_GetTimestamp(m);
       switch (framePktType) {
@@ -72,7 +73,9 @@ TxLoop_Transfer(Face* face)
   if (likely(nFrames > 0)) {
     TxLoop_TxFrames(face, frames, nFrames);
   }
-  Hrlog_Post(hrl, nHrls);
+  if (hrlRing != NULL) {
+    HrlogRing_Post(hrlRing, hrl, nHrls);
+  }
 
   return count;
 }

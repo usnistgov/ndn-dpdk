@@ -5,9 +5,8 @@ package hrlog
 */
 import "C"
 import (
-	"context"
 	"errors"
-	"path"
+	"path/filepath"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
@@ -32,137 +31,102 @@ var (
 
 // WriterConfig contains writer configuration.
 type WriterConfig struct {
-	RingCapacity int `json:"ringCapacity,omitempty"`
+	Filename     string
+	Count        int
+	RingCapacity int
+	Socket       eal.NumaSocket
 }
 
-// TaskConfig contains task configuration.
-type TaskConfig struct {
-	Filename string `json:"filename"`
-	Count    int    `json:"count,omitempty"`
-}
-
-func (cfg *TaskConfig) applyDefaults() {
-	cfg.Filename = path.Clean(cfg.Filename)
-	if cfg.Count <= 0 {
+func (cfg *WriterConfig) applyDefaults() {
+	cfg.Filename = filepath.Clean(cfg.Filename)
+	if cfg.Count == 0 {
 		cfg.Count = 1 << 28 // 268 million samples, 2GB file
 	}
+	cfg.RingCapacity = ringbuffer.AlignCapacity(cfg.RingCapacity, 64, 65536)
+	if cfg.Socket.IsAny() {
+		cfg.Socket = eal.RandomSocket()
+	}
+}
+func (cfg WriterConfig) validate() error {
+	if cfg.Filename == "" {
+		return errors.New("filename is missing")
+	}
+	return nil
 }
 
 // Writer is a hrlog writer thread.
 type Writer struct {
-	ealthread.Thread
-	ring  *ringbuffer.Ring
-	queue chan *writerTask
+	ealthread.ThreadWithCtrl
+	filename string
+	c        *C.HrlogWriter
+	queue    *ringbuffer.Ring
 }
 
-var _ ealthread.ThreadWithRole = (*Writer)(nil)
+var (
+	_ ealthread.ThreadWithRole     = (*Writer)(nil)
+	_ ealthread.ThreadWithLoadStat = (*Writer)(nil)
+)
 
 // ThreadRole implements ealthread.ThreadWithRole interface.
 func (Writer) ThreadRole() string {
 	return Role
 }
 
-// Submit submits a task.
-func (w *Writer) Submit(ctx context.Context, cfg TaskConfig) (res chan error) {
-	cfg.applyDefaults()
-	task := &writerTask{
-		ctx:    ctx,
-		cfg:    cfg,
-		finish: make(chan bool, 1),
+// Close releases resources.
+func (w *Writer) Close() error {
+	e := w.Stop()
+	logger.Info("Writer stopped",
+		zap.Uintptr("queue", uintptr(unsafe.Pointer(w.c.queue))),
+		zap.Error(e),
+	)
+
+	if w.c != nil {
+		C.free(unsafe.Pointer(w.c.filename))
+		eal.Free(w.c)
+		w.c = nil
 	}
 
-	res = make(chan error, 1)
-	select {
-	case w.queue <- task:
-	default:
-		res <- ErrQueueFull
-		return
+	if w.queue != nil {
+		w.queue.Close()
+		w.queue = nil
 	}
 
-	go func() {
-		select {
-		case <-ctx.Done():
-			res <- ctx.Err()
-		case ok := <-task.finish:
-			if ok {
-				res <- nil
-			} else {
-				res <- ErrWriter
-			}
-		}
-	}()
-	return
-}
-
-func (w *Writer) loop() {
-	TheWriter, C.theHrlogRing = w, (*C.struct_rte_ring)(w.ring.Ptr())
-	defer func() {
-		TheWriter, C.theHrlogRing = nil, nil
-		w.ring.Close()
-	}()
-
-	capacity := w.ring.Capacity()
-	logger.Info("writer ready", w.LCore().ZapField("lc"), zap.Int("capacity", capacity))
-	for task := range w.queue {
-		if task.ctx.Err() != nil {
-			continue
-		}
-		logger.Info("writer open", zap.String("filename", task.cfg.Filename))
-		task.run(capacity)
-		logger.Info("writer close", zap.String("filename", task.cfg.Filename))
-	}
-	logger.Info("writer shutdown")
+	return nil
 }
 
 // NewWriter creates a hrlog writer thread.
 func NewWriter(cfg WriterConfig) (w *Writer, e error) {
-	w = &Writer{
-		queue: make(chan *writerTask, 256),
-	}
-
-	w.ring, e = ringbuffer.New(ringbuffer.AlignCapacity(cfg.RingCapacity, 64, 65536),
-		eal.NumaSocket{}, ringbuffer.ProducerMulti, ringbuffer.ConsumerSingle)
-	if e != nil {
+	cfg.applyDefaults()
+	if e := cfg.validate(); e != nil {
 		return nil, e
 	}
 
-	w.Thread = ealthread.New(cptr.Func0.Void(w.loop), ealthread.NewStopClose(w.queue))
-	return w, e
-}
-
-type writerTask struct {
-	ctx    context.Context
-	cfg    TaskConfig
-	finish chan bool
-}
-
-func (task *writerTask) run(nSkip int) {
-	c := (*C.HrlogWriter)(eal.Zmalloc("HrlogWriter", C.sizeof_HrlogWriter, eal.NumaSocket{}))
-	*c = C.HrlogWriter{
-		filename: C.CString(task.cfg.Filename),
-		nSkip:    C.int64_t(nSkip),
-		nTotal:   C.int64_t(task.cfg.Count),
+	w = &Writer{
+		filename: cfg.Filename,
+		c:        (*C.HrlogWriter)(eal.Zmalloc("HrlogWriter", C.sizeof_HrlogWriter, cfg.Socket)),
 	}
-	ctrl := ealthread.InitCtrl(unsafe.Pointer(&c.ctrl))
+	w.c.filename = C.CString(cfg.Filename)
+	w.c.count = C.int64_t(cfg.Count)
+
+	w.ThreadWithCtrl = ealthread.NewThreadWithCtrl(
+		cptr.Func0.C(unsafe.Pointer(C.HrlogWriter_Run), w.c),
+		unsafe.Pointer(&w.c.ctrl),
+	)
 	defer func() {
-		ctrl = nil
-		C.free(unsafe.Pointer(c.filename))
-		eal.Free(c)
+		if e != nil {
+			w.Close()
+		}
 	}()
 
-	finish := make(chan bool, 1)
-	go func() { finish <- bool(C.Hrlog_RunWriter(c)) }()
-
-	select {
-	case <-task.ctx.Done():
-		break
-	case ok := <-finish:
-		task.finish <- ok
-		return
+	w.queue, e = ringbuffer.New(cfg.RingCapacity, cfg.Socket, ringbuffer.ProducerMulti, ringbuffer.ConsumerSingle)
+	if e != nil {
+		return nil, e
 	}
+	w.c.queue = (*C.struct_rte_ring)(w.queue.Ptr())
 
-	stop := ctrl.Stopper()
-	stop.BeforeWait()
-	<-finish
-	stop.AfterWait()
+	logger.Info("Writer open",
+		zap.String("filename", cfg.Filename),
+		zap.Uintptr("queue", uintptr(unsafe.Pointer(w.c.queue))),
+	)
+	return w, nil
 }
