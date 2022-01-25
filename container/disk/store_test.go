@@ -1,22 +1,22 @@
-package diskstore_test
+package disk_test
 
 import (
 	"fmt"
 	"testing"
 	"time"
 
-	"github.com/usnistgov/ndn-dpdk/container/diskstore"
+	"github.com/usnistgov/ndn-dpdk/container/disk"
 	"github.com/usnistgov/ndn-dpdk/dpdk/bdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/spdkenv"
 	"go4.org/must"
 )
 
-func TestDiskStore(t *testing.T) {
+func TestStore(t *testing.T) {
 	assert, require := makeAR(t)
 	defer ealthread.AllocClear()
 
-	device, e := bdev.NewMalloc(diskstore.BlockSize, 256)
+	device, e := bdev.NewMalloc(disk.BlockSize, 256)
 	require.NoError(e)
 	defer device.Close()
 
@@ -27,7 +27,7 @@ func TestDiskStore(t *testing.T) {
 
 	assert.Zero(packetPool.CountInUse())
 
-	store, e := diskstore.New(device, th, 8)
+	store, e := disk.NewStore(device, th, 8)
 	require.NoError(e)
 	defer store.Close()
 

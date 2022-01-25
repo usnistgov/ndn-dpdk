@@ -1,4 +1,4 @@
-package diskstore_test
+package disk_test
 
 import (
 	"testing"

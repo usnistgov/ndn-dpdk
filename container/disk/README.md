@@ -1,13 +1,15 @@
-# ndn-dpdk/container/diskstore
+# ndn-dpdk/container/disk
 
-This package contains the **Disk-backed Data Store (DiskStore)** that implements an on-disk storage of Data packets.
+This package implements an on-disk storage of Data packets.
 
-The DiskStore is backed by an SPDK block device (bdev), whose block size must be 512 bytes.
+## Disk-backed Data Store (DiskStore)
+
+DiskStore is an on-disk storage of Data packets.
+
+It is backed by an SPDK block device (bdev), whose block size must be 512 bytes.
 One or more adjacent blocks are joined together to form a *slot*, identified by a slot number.
 The `DiskStore` type stores and retrieves a Data packet via its slot number.
 It does not have an index, and cannot search Data packets by name.
-
-## Use Case
 
 The intended use case of the DiskStore is to extend the Content Store with additional capacity.
 
@@ -23,3 +25,9 @@ The forwarding core should then re-process the Interest, and use the Data only i
 Multiple CS instances can share the same DiskStore if they use disjoint ranges of slots.
 The CS is responsible for allocating and freeing slot numbers.
 It is unnecessary for the CS to inform the DiskStore when the Data in a slot is no longer needed: the CS can simply overwrite that slot with another Data packet when the time comes.
+
+## Disk Slot Allocator (DiskAlloc)
+
+DiskAlloc allocates disk slots within a consecutive range of a DiskStore.
+Available slots of a DiskStore are statically partitioned and associated with each Content Store instance.
+The CS can then using a `DiskAlloc` instance to allocate a disk slot for each Data packet it wants to write to disk.
