@@ -6,8 +6,14 @@
 #include "common.h"
 #include "cs-enum.h"
 
-/** @brief The prev-next pointers common in CsEntry and CsList. */
 typedef struct CsNode CsNode;
+
+/** @brief The prev-next pointers common in CsEntry and CsList. */
+struct CsNode
+{
+  CsNode* prev;
+  CsNode* next;
+};
 
 /** @brief A doubly linked list within CS. */
 typedef struct CsList

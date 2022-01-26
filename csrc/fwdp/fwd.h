@@ -46,7 +46,7 @@ typedef struct FwFwd
   RunningStat latencyStat;
 } FwFwd;
 
-int
+__attribute__((nonnull)) int
 FwFwd_Run(FwFwd* fwd);
 
 __attribute__((nonnull)) void
@@ -93,7 +93,7 @@ struct FwFwdCtx
   FaceID rxFace;      // F,I,D
 };
 
-static __rte_always_inline void
+__attribute__((nonnull(1))) static __rte_always_inline void
 FwFwdCtx_SetFibEntry(FwFwdCtx* ctx, FibEntry* fibEntry)
 {
   ctx->fibEntry = fibEntry;
@@ -119,7 +119,7 @@ static_assert(FwTokenLength == PccTokenSize + 1, "");
 static_assert(offsetof(LpPitToken, value) + FwTokenOffsetPccToken >= 0, "");
 static_assert(sizeof(((LpPitToken*)NULL)->value) >= sizeof(uint64_t), "");
 
-static __rte_always_inline void
+__attribute__((nonnull)) static __rte_always_inline void
 FwToken_Set(LpPitToken* token, uint8_t fwdID, uint64_t pccToken)
 {
   *token = (LpPitToken){ 0 };
@@ -128,13 +128,13 @@ FwToken_Set(LpPitToken* token, uint8_t fwdID, uint64_t pccToken)
   token->length = FwTokenLength;
 }
 
-static __rte_always_inline uint8_t
+__attribute__((nonnull)) static __rte_always_inline uint8_t
 FwToken_GetFwdID(const LpPitToken* token)
 {
   return token->value[FwTokenOffsetFwdID];
 }
 
-static __rte_always_inline uint64_t
+__attribute__((nonnull)) static __rte_always_inline uint64_t
 FwToken_GetPccToken(const LpPitToken* token)
 {
   return *(const unaligned_uint64_t*)RTE_PTR_ADD(token->value, FwTokenOffsetPccToken);

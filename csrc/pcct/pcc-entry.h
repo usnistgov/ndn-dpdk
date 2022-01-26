@@ -9,10 +9,13 @@
 #include "pit-entry.h"
 
 typedef struct PccEntry PccEntry;
-typedef struct PccEntryExt PccEntryExt;
-typedef struct PccSlot PccSlot;
 
-struct PccSlot
+/**
+ * @brief PCC entry slot.
+ *
+ * Each slot has room for either a PIT entry or a CS entry.
+ */
+typedef struct PccSlot
 {
   PccEntry* pccEntry; ///< NULL indicates unoccupied slot
   union
@@ -20,8 +23,9 @@ struct PccSlot
     PitEntry pitEntry;
     CsEntry csEntry;
   };
-};
+} PccSlot;
 
+/** @brief Identify a PCC entry slot. */
 typedef enum PccSlotIndex
 {
   PCC_SLOT_NONE = 0,
@@ -30,11 +34,27 @@ typedef enum PccSlotIndex
   PCC_SLOT3 = 3,
 } PccSlotIndex;
 
-/** @brief PIT-CS composite entry. */
+/**
+ * @brief PCC entry extension.
+ *
+ * It adds slot2 and slot3 to a PCC entry.
+ */
+typedef struct PccEntryExt
+{
+  PccSlot slot2;
+  PccSlot slot3;
+} PccEntryExt;
+
+/**
+ * @brief PIT-CS composite entry.
+ *
+ * It contains PCC entry index and slot1.
+ */
 struct PccEntry
 {
   PccKey key;
   UT_hash_handle hh;
+
   union
   {
     struct
@@ -69,16 +89,13 @@ struct PccEntry
     } __rte_packed;
     uint64_t tokenQword;
   };
+  RTE_MARKER tokenAfter_;
 
   PccSlot slot1;
   PccEntryExt* ext;
 };
-
-struct PccEntryExt
-{
-  PccSlot slot2;
-  PccSlot slot3;
-};
+static_assert(offsetof(PccEntry, tokenQword) + sizeof(uint64_t) == offsetof(PccEntry, tokenAfter_),
+              "");
 
 __attribute__((nonnull)) static __rte_always_inline PccSlot*
 PccEntry_GetSlot_(PccEntry* entry, PccSlotIndex slot)
@@ -106,7 +123,7 @@ PccEntry_ClearSlot_(PccEntry* entry, PccSlotIndex slot);
 
 /**
  * @brief Get PIT entry of MustBeFresh=0 from @p entry .
- * @warning undefined behavior if @p entry does not have a PIT entry of MustBeFresh=0.
+ * @pre @c entry->hasPitEntry0
  */
 __attribute__((nonnull, returns_nonnull)) static inline PitEntry*
 PccEntry_GetPitEntry0(PccEntry* entry)
@@ -143,7 +160,7 @@ PccEntry_RemovePitEntry0(PccEntry* entry)
 
 /**
  * @brief Get PIT entry of MustBeFresh=1 from @p entry .
- * @warning undefined behavior if @p entry does not have a PIT entry of MustBeFresh=1.
+ * @pre @c entry->hasPitEntry1
  */
 __attribute__((nonnull, returns_nonnull)) static inline PitEntry*
 PccEntry_GetPitEntry1(PccEntry* entry)
@@ -187,7 +204,7 @@ PccEntry_FromPitEntry(PitEntry* pitEntry)
 
 /**
  * @brief Get CS entry from @p entry .
- * @warning undefined behavior if @p entry does not have a CS entry.
+ * @pre @c entry->hasCsEntry
  */
 __attribute__((nonnull, returns_nonnull)) static inline CsEntry*
 PccEntry_GetCsEntry(PccEntry* entry)

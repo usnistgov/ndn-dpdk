@@ -175,8 +175,8 @@ func TestFastrouteProbe(t *testing.T) {
 
 	// face1 is fastest
 	*delay1, *delay2, *delay3 = 1*time.Millisecond, 40*time.Millisecond, 40*time.Millisecond
-	// consumer sends 500 I/s, probe occurs every 1024 Interests, so there must be a probe within 5 seconds
-	time.Sleep(5 * time.Second)
+	// consumer sends 500 I/s, probe occurs every 1024 Interests, so there must be a probe within 8 seconds
+	time.Sleep(8 * time.Second)
 	*cnt1, *cnt2, *cnt3 = 0, 0, 0
 	time.Sleep(2 * time.Second)
 	assert.Greater(*cnt1/4, *cnt2)

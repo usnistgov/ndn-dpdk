@@ -19,47 +19,34 @@ static_assert(offsetof(SgCtx, fibEntryDyn) == offsetof(FwFwdCtx, fibEntryDyn), "
 static_assert(offsetof(SgCtx, pitEntry) == offsetof(FwFwdCtx, pitEntry), "");
 static_assert(sizeof(SgCtx) == offsetof(FwFwdCtx, endofSgCtx), "");
 
-static const size_t FwFwd_OffsetofQueue[PktMax] = {
-  SIZE_MAX,
-  offsetof(FwFwd, queueI),
-  offsetof(FwFwd, queueD),
-  offsetof(FwFwd, queueN),
-};
+typedef void (*RxFunc)(FwFwd* fwd, FwFwdCtx* ctx);
 
-typedef void (*FwFwd_RxFunc)(FwFwd* fwd, FwFwdCtx* ctx);
-static const FwFwd_RxFunc FwFwd_RxFuncs[PktMax] = {
-  NULL,
-  FwFwd_RxInterest,
-  FwFwd_RxData,
-  FwFwd_RxNack,
-};
-
-static __rte_always_inline uint32_t
-FwFwd_RxByType(FwFwd* fwd, PktType pktType)
+__attribute__((nonnull)) static inline uint32_t
+FwFwd_RxBurst(FwFwd* fwd, PktType pktType, PktQueue* q, RxFunc process)
 {
-  NDNDPDK_ASSERT(pktType < PktMax);
   TscTime now = rte_get_tsc_cycles();
-  PktQueue* q = RTE_PTR_ADD(fwd, FwFwd_OffsetofQueue[pktType]);
   struct rte_mbuf* pkts[MaxBurstSize];
   PktQueuePopResult pop = PktQueue_Pop(q, pkts, RTE_DIM(pkts), now);
   if (unlikely(pop.drop)) {
     Packet_GetLpL3Hdr(Packet_FromMbuf(pkts[0]))->congMark = 1;
   }
+
   for (uint32_t i = 0; i < pop.count; ++i) {
     FwFwdCtx ctx = {
       .fwd = fwd,
+      .eventKind = (SgEvent)pktType,
       .pkt = pkts[i],
     };
     ctx.rxFace = ctx.pkt->port;
     ctx.rxTime = Mbuf_GetTimestamp(ctx.pkt);
     ctx.rxToken = Packet_GetLpL3Hdr(ctx.npkt)->pitToken;
-    ctx.eventKind = (SgEvent)pktType;
 
     TscDuration timeSinceRx = now - ctx.rxTime;
     RunningStat_Push1(&fwd->latencyStat, timeSinceRx);
 
-    (*FwFwd_RxFuncs[pktType])(fwd, &ctx);
+    process(fwd, &ctx);
   }
+
   return pop.count;
 }
 
@@ -78,9 +65,9 @@ FwFwd_Run(FwFwd* fwd)
     rcu_quiescent_state();
     Pit_TriggerTimers(fwd->pit);
 
-    nProcessed += FwFwd_RxByType(fwd, PktInterest);
-    nProcessed += FwFwd_RxByType(fwd, PktData);
-    nProcessed += FwFwd_RxByType(fwd, PktNack);
+    nProcessed += FwFwd_RxBurst(fwd, PktInterest, &fwd->queueI, FwFwd_RxInterest);
+    nProcessed += FwFwd_RxBurst(fwd, PktData, &fwd->queueD, FwFwd_RxData);
+    nProcessed += FwFwd_RxBurst(fwd, PktNack, &fwd->queueN, FwFwd_RxNack);
   }
 
   N_LOGI("Stop fwd-id=%" PRIu8, fwd->id);

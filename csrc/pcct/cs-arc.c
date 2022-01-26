@@ -4,7 +4,7 @@
 
 N_LOG_INIT(CsArc);
 
-CsList*
+__attribute__((nonnull)) CsList*
 CsArc_GetList(CsArc* arc, CsListID l)
 {
   switch (l) {
@@ -38,7 +38,7 @@ CsArc_GetList(CsArc* arc, CsListID l)
     N_LOGV("^ move=%p from=" #src " to=" #dst, (entry));                                           \
   } while (false)
 
-static inline void
+__attribute__((nonnull)) static inline void
 CsArc_SetP(CsArc* arc, double p)
 {
   arc->p = p;
@@ -46,7 +46,7 @@ CsArc_SetP(CsArc* arc, double p)
   CsArc_p1(arc) = RTE_MAX(CsArc_p(arc), 1);
 }
 
-void
+__attribute__((nonnull)) void
 CsArc_Init(CsArc* arc, uint32_t capacity)
 {
   CsList_Init(&arc->T1);
@@ -61,7 +61,7 @@ CsArc_Init(CsArc* arc, uint32_t capacity)
   CsArc_SetP(arc, 0.0);
 }
 
-static void
+__attribute__((nonnull)) static void
 CsArc_Replace(CsArc* arc, bool isB2)
 {
   CsEntry* moving = NULL;
@@ -75,7 +75,7 @@ CsArc_Replace(CsArc* arc, bool isB2)
   CsEntry_ClearData(moving);
 }
 
-static void
+__attribute__((nonnull)) static void
 CsArc_AddB1(CsArc* arc, CsEntry* entry)
 {
   double delta1 = 1.0;
@@ -88,7 +88,7 @@ CsArc_AddB1(CsArc* arc, CsEntry* entry)
   CsArc_Move(arc, entry, B1, T2);
 }
 
-static void
+__attribute__((nonnull)) static void
 CsArc_AddB2(CsArc* arc, CsEntry* entry)
 {
   double delta2 = 1.0;
@@ -101,7 +101,7 @@ CsArc_AddB2(CsArc* arc, CsEntry* entry)
   CsArc_Move(arc, entry, B2, T2);
 }
 
-static void
+__attribute__((nonnull)) static void
 CsArc_AddNew(CsArc* arc, CsEntry* entry)
 {
   N_LOGD("Add arc=%p cs-entry=%p found-in=NEW append-to=T1", arc, entry);

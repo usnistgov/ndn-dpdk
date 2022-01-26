@@ -29,8 +29,7 @@ static_assert(sizeof(PitUp) <= 64, "");
 __attribute__((nonnull)) static inline void
 PitUp_Reset(PitUp* up, FaceID face)
 {
-  *up = (const PitUp){ 0 };
-  up->face = face;
+  *up = (const PitUp){ .face = face };
 }
 
 /** @brief Determine if forwarding should be suppressed. */

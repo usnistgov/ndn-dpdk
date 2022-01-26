@@ -31,7 +31,7 @@ TscTime_FromUnixNano(uint64_t n)
 {
   double unixNanoSinceRef = n - TscTimeRefUnixNano_;
   double tscSinceRef = unixNanoSinceRef * TscGHz;
-  return TscTimeRefTsc_ + (TscDuration)tscSinceRef;
+  return TscTimeRefTsc_ + tscSinceRef;
 }
 
 static __rte_always_inline uint64_t
@@ -39,7 +39,7 @@ TscTime_ToUnixNano(TscTime t)
 {
   double tscSinceRef = t - TscTimeRefTsc_;
   double unixNanoSinceRef = tscSinceRef * TscNanos;
-  return TscTimeRefUnixNano_ + (uint64_t)unixNanoSinceRef;
+  return TscTimeRefUnixNano_ + unixNanoSinceRef;
 }
 
 /** @brief Convert milliseconds to @c TscDuration. */
