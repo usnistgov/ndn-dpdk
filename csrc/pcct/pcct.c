@@ -33,7 +33,7 @@ Pcct_KeyHt_Expand_(UT_hash_table* tbl)
 }
 
 bool
-Pcct_Init(Pcct* pcct, const char* id, uint32_t maxEntries, unsigned numaSocket)
+Pcct_Init(Pcct* pcct, const char* id, uint32_t maxEntries, int numaSocket)
 {
   pcct->nKeyHtBuckets = rte_align32prevpow2(maxEntries);
   pcct->lastToken = PccTokenMask - 16;

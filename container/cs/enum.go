@@ -29,13 +29,13 @@ type ListID int
 
 // ListID values.
 const (
-	ListMd ListID = iota
-	ListMdT1
-	ListMdB1
-	ListMdT2
-	ListMdB2
-	ListMdDel
-	ListMi
+	ListDirect ListID = iota
+	ListDirectT1
+	ListDirectB1
+	ListDirectT2
+	ListDirectB2
+	ListDirectDel
+	ListIndirect
 
 	_ = "enumgen:CsListID:Csl:List"
 )

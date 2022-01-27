@@ -4,17 +4,11 @@
 
 N_LOG_INIT(CsArc);
 
-static const ptrdiff_t ArcListOffsets[] = {
-  [CslMdT1] = offsetof(CsArc, T1),   [CslMdB1] = offsetof(CsArc, B1),
-  [CslMdT2] = offsetof(CsArc, T2),   [CslMdB2] = offsetof(CsArc, B2),
-  [CslMdDel] = offsetof(CsArc, Del),
+const ptrdiff_t CsArc_ListOffsets_[] = {
+  [CslDirectT1] = offsetof(CsArc, T1),   [CslDirectB1] = offsetof(CsArc, B1),
+  [CslDirectT2] = offsetof(CsArc, T2),   [CslDirectB2] = offsetof(CsArc, B2),
+  [CslDirectDel] = offsetof(CsArc, Del),
 };
-
-CsList*
-CsArc_GetList(CsArc* arc, CsListID l)
-{
-  return RTE_PTR_ADD(arc, ArcListOffsets[l]);
-}
 
 #define CsArc_c(arc) ((arc)->B1.capacity)
 #define CsArc_2c(arc) ((arc)->B2.capacity)
@@ -23,9 +17,9 @@ CsArc_GetList(CsArc* arc, CsListID l)
 
 #define CsArc_Move(arc, entry, src, dst)                                                           \
   do {                                                                                             \
-    NDNDPDK_ASSERT((entry)->arcList == CslMd##src);                                                \
+    NDNDPDK_ASSERT((entry)->arcList == CslDirect##src);                                            \
     CsList_Remove(&(arc)->src, (entry));                                                           \
-    (entry)->arcList = CslMd##dst;                                                                 \
+    (entry)->arcList = CslDirect##dst;                                                             \
     CsList_Append(&(arc)->dst, (entry));                                                           \
     N_LOGV("^ move=%p from=" #src " to=" #dst, (entry));                                           \
   } while (false)
@@ -123,7 +117,7 @@ CsArc_AddNew(CsArc* arc, CsEntry* entry)
       CsArc_Replace(arc, false);
     }
   }
-  entry->arcList = CslMdT1;
+  entry->arcList = CslDirectT1;
   CsList_Append(&arc->T1, entry);
 }
 
@@ -131,21 +125,21 @@ void
 CsArc_Add(CsArc* arc, CsEntry* entry)
 {
   switch (entry->arcList) {
-    case CslMdT1:
+    case CslDirectT1:
       N_LOGD("Add arc=%p cs-entry=%p found-in=T1", arc, entry);
       CsArc_Move(arc, entry, T1, T2);
       return;
-    case CslMdT2:
+    case CslDirectT2:
       N_LOGD("Add arc=%p cs-entry=%p found-in=T2", arc, entry);
       CsList_MoveToLast(&arc->T2, entry);
       return;
-    case CslMdB1:
+    case CslDirectB1:
       CsArc_AddB1(arc, entry);
       return;
-    case CslMdB2:
+    case CslDirectB2:
       CsArc_AddB2(arc, entry);
       return;
-    case CslMdDel:
+    case CslDirectDel:
       CsList_Remove(&arc->Del, entry);
       entry->arcList = 0;
       // fallthrough

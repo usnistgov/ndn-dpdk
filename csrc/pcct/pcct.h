@@ -46,7 +46,7 @@ Pcct_FromCs(const Cs* cs)
  * @return whether success. Error code is in @c rte_errno .
  */
 bool
-Pcct_Init(Pcct* pcct, const char* id, uint32_t maxEntries, unsigned numaSocket);
+Pcct_Init(Pcct* pcct, const char* id, uint32_t maxEntries, int numaSocket);
 
 /**
  * @brief Clear keyHt and tokenHt, and free cached Data.

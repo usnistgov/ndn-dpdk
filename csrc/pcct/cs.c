@@ -71,33 +71,30 @@ Cs_Evict(Cs* cs, CsList* csl, const char* cslName, CsList_EvictCb evictCb)
   N_LOGD("^ end-count=%" PRIu32, csl->count);
 }
 
-__attribute__((nonnull, returns_nonnull)) static CsList*
+__attribute__((nonnull, returns_nonnull)) static inline CsList*
 Cs_GetList_(Cs* cs, CsListID l)
 {
-  if (l == CslMi) {
+  if (l == CslIndirect) {
     return &cs->indirect;
   }
   return CsArc_GetList(&cs->direct, l);
 }
 
 void
-Cs_Init(Cs* cs, uint32_t capMd, uint32_t capMi)
+Cs_Init(Cs* cs, uint32_t capDirect, uint32_t capIndirect)
 {
-  capMd = RTE_MAX(capMd, CsEvictBulk);
-  capMi = RTE_MAX(capMi, CsEvictBulk);
-
-  CsArc_Init(&cs->direct, capMd);
+  CsArc_Init(&cs->direct, capDirect);
   CsList_Init(&cs->indirect);
-  cs->indirect.capacity = capMi;
+  cs->indirect.capacity = capIndirect;
 
-  N_LOGI("Init cs=%p arc=%p pcct=%p cap-md=%" PRIu32 " cap-mi=%" PRIu32, cs, &cs->direct,
-         Pcct_FromCs(cs), capMd, capMi);
+  N_LOGI("Init cs=%p arc=%p pcct=%p cap-direct=%" PRIu32 " cap-indirect=%" PRIu32, cs, &cs->direct,
+         Pcct_FromCs(cs), capDirect, capIndirect);
 }
 
 uint32_t
 Cs_GetCapacity(Cs* cs, CsListID l)
 {
-  if (l == CslMd) {
+  if (l == CslDirect) {
     return CsArc_GetCapacity(&cs->direct);
   }
   return Cs_GetList_(cs, l)->capacity;
@@ -106,7 +103,7 @@ Cs_GetCapacity(Cs* cs, CsListID l)
 uint32_t
 Cs_CountEntries(Cs* cs, CsListID l)
 {
-  if (l == CslMd) {
+  if (l == CslDirect) {
     return CsArc_CountEntries(&cs->direct);
   }
   return Cs_GetList_(cs, l)->count;

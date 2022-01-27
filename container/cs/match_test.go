@@ -19,7 +19,7 @@ func TestInsertErase(t *testing.T) {
 	ok := fixture.Insert(makeInterest("/A/B"),
 		makeData("/A/B"))
 	assert.True(ok)
-	assert.Equal(1, fixture.Cs.CountEntries(cs.ListMd))
+	assert.Equal(1, fixture.Cs.CountEntries(cs.ListDirect))
 	assert.Zero(fixture.Pit.Len())
 	assert.Equal(1, fixture.CountMpInUse())
 
@@ -30,7 +30,7 @@ func TestInsertErase(t *testing.T) {
 	ok = fixture.Insert(makeInterest("/A/B", ndn.MustBeFreshFlag),
 		makeData("/A/B", 100*time.Millisecond))
 	assert.True(ok)
-	assert.Equal(1, fixture.Cs.CountEntries(cs.ListMd))
+	assert.Equal(1, fixture.Cs.CountEntries(cs.ListDirect))
 
 	csEntry = fixture.Find(makeInterest("/A/B"))
 	require.NotNil(csEntry)
@@ -42,7 +42,7 @@ func TestInsertErase(t *testing.T) {
 		makeInterest("/A/B", ndn.ForwardingHint{ndn.ParseName("/F")}, setActiveFwHint(0)),
 		makeData("/A/B", 200*time.Millisecond))
 	assert.True(ok)
-	assert.Equal(2, fixture.Cs.CountEntries(cs.ListMd))
+	assert.Equal(2, fixture.Cs.CountEntries(cs.ListDirect))
 
 	csEntry3 := fixture.Find(makeInterest("/A/B",
 		ndn.ForwardingHint{ndn.ParseName("/G"), ndn.ParseName("/F")}, setActiveFwHint(1)))
@@ -59,7 +59,7 @@ func TestInsertErase(t *testing.T) {
 
 	fixture.Cs.Erase(csEntry)
 	fixture.Cs.Erase(csEntry3)
-	assert.Zero(fixture.Cs.CountEntries(cs.ListMd))
+	assert.Zero(fixture.Cs.CountEntries(cs.ListDirect))
 	assert.Zero(fixture.CountMpInUse())
 }
 
@@ -72,8 +72,8 @@ func TestPrefixMatch(t *testing.T) {
 	// /A/B/C/D <- [/A/B]
 	ok := fixture.Insert(makeInterest("/A/B", ndn.CanBePrefixFlag), makeData("/A/B/C/D"))
 	assert.True(ok)
-	assert.Equal(1, fixture.Cs.CountEntries(cs.ListMd))
-	assert.Equal(1, fixture.Cs.CountEntries(cs.ListMi))
+	assert.Equal(1, fixture.Cs.CountEntries(cs.ListDirect))
+	assert.Equal(1, fixture.Cs.CountEntries(cs.ListIndirect))
 
 	direct := fixture.Find(makeInterest("/A/B/C/D"))
 	require.NotNil(direct)
@@ -86,21 +86,21 @@ func TestPrefixMatch(t *testing.T) {
 	// /A/B/C/D <- [/A/B, /A/B/C]
 	ok = fixture.Insert(makeInterest("/A/B/C", ndn.CanBePrefixFlag), makeData("/A/B/C/D"))
 	assert.True(ok)
-	assert.Equal(1, fixture.Cs.CountEntries(cs.ListMd))
-	assert.Equal(2, fixture.Cs.CountEntries(cs.ListMi))
+	assert.Equal(1, fixture.Cs.CountEntries(cs.ListDirect))
+	assert.Equal(2, fixture.Cs.CountEntries(cs.ListIndirect))
 
 	assert.Len(direct.ListIndirects(), 2)
 	assert.Same(direct, fixture.Find(makeInterest("/A/B", ndn.CanBePrefixFlag)))
 	assert.Same(direct, fixture.Find(makeInterest("/A/B/C", ndn.CanBePrefixFlag)))
 
 	assert.Nil(fixture.Find(makeInterest("/A/B"))) // no match due to CanBePrefix=0
-	assert.Equal(1, fixture.Cs.CountEntries(cs.ListMd))
-	assert.Equal(2, fixture.Cs.CountEntries(cs.ListMi))
+	assert.Equal(1, fixture.Cs.CountEntries(cs.ListDirect))
+	assert.Equal(2, fixture.Cs.CountEntries(cs.ListIndirect))
 	assert.Len(direct.ListIndirects(), 2)
 
 	fixture.Cs.Erase(direct)
-	assert.Equal(0, fixture.Cs.CountEntries(cs.ListMd))
-	assert.Equal(0, fixture.Cs.CountEntries(cs.ListMi))
+	assert.Equal(0, fixture.Cs.CountEntries(cs.ListDirect))
+	assert.Equal(0, fixture.Cs.CountEntries(cs.ListIndirect))
 	assert.Nil(fixture.Find(makeInterest("/A/B", ndn.CanBePrefixFlag)))
 
 	// /A/B/C/D <- [/A/B] with fh=/F
@@ -108,16 +108,16 @@ func TestPrefixMatch(t *testing.T) {
 		makeInterest("/A/B", ndn.CanBePrefixFlag, ndn.ForwardingHint{ndn.ParseName("/F")}, setActiveFwHint(0)),
 		makeData("/A/B/C/D"))
 	assert.True(ok)
-	assert.Equal(1, fixture.Cs.CountEntries(cs.ListMd))
-	assert.Equal(1, fixture.Cs.CountEntries(cs.ListMi))
+	assert.Equal(1, fixture.Cs.CountEntries(cs.ListDirect))
+	assert.Equal(1, fixture.Cs.CountEntries(cs.ListIndirect))
 
 	// /A/B/C/D <- [/A/B, /A/B/C] with fh=/F
 	ok = fixture.Insert(
 		makeInterest("/A/B/C", ndn.CanBePrefixFlag, ndn.ForwardingHint{ndn.ParseName("/F")}, setActiveFwHint(0)),
 		makeData("/A/B/C/D"))
 	assert.True(ok)
-	assert.Equal(1, fixture.Cs.CountEntries(cs.ListMd))
-	assert.Equal(2, fixture.Cs.CountEntries(cs.ListMi))
+	assert.Equal(1, fixture.Cs.CountEntries(cs.ListDirect))
+	assert.Equal(2, fixture.Cs.CountEntries(cs.ListIndirect))
 
 	assert.Nil(fixture.Find(makeInterest("/A/B", ndn.CanBePrefixFlag))) // no match due to missing fh=/F
 	assert.NotNil(fixture.Find(makeInterest("/A/B", ndn.CanBePrefixFlag, ndn.ForwardingHint{ndn.ParseName("/F")}, setActiveFwHint(0))))
@@ -134,16 +134,16 @@ func TestImplicitDigestMatch(t *testing.T) {
 	fullName01 := data01.ToNPacket().Data.FullName().String()
 	ok := fixture.Insert(makeInterest("/A/B", ndn.CanBePrefixFlag), data01)
 	assert.True(ok)
-	assert.Equal(1, fixture.Cs.CountEntries(cs.ListMd))
-	assert.Equal(1, fixture.Cs.CountEntries(cs.ListMi))
+	assert.Equal(1, fixture.Cs.CountEntries(cs.ListDirect))
+	assert.Equal(1, fixture.Cs.CountEntries(cs.ListIndirect))
 
 	// /A/B/C/D {0x01} <- [/A/B, /A/B/C/D/implicit-digest-01]
 	data01 = makeData("/A/B/C/D", []byte{0x01})
 	nameEqual(assert, fullName01, data01.ToNPacket().Data.FullName())
 	ok = fixture.Insert(makeInterest(fullName01), data01)
 	assert.True(ok)
-	assert.Equal(1, fixture.Cs.CountEntries(cs.ListMd))
-	assert.Equal(2, fixture.Cs.CountEntries(cs.ListMi))
+	assert.Equal(1, fixture.Cs.CountEntries(cs.ListDirect))
+	assert.Equal(2, fixture.Cs.CountEntries(cs.ListIndirect))
 
 	assert.NotNil(fixture.Find(makeInterest("/A/B/C/D")))
 	assert.NotNil(fixture.Find(makeInterest("/A/B", ndn.CanBePrefixFlag)))
@@ -156,8 +156,8 @@ func TestImplicitDigestMatch(t *testing.T) {
 	assert.NotEqual(fullName01, fullName02)
 	ok = fixture.Insert(makeInterest(fullName02), data02)
 	assert.True(ok)
-	assert.Equal(1, fixture.Cs.CountEntries(cs.ListMd))
-	assert.Equal(2, fixture.Cs.CountEntries(cs.ListMi))
+	assert.Equal(1, fixture.Cs.CountEntries(cs.ListDirect))
+	assert.Equal(2, fixture.Cs.CountEntries(cs.ListIndirect))
 
 	assert.NotNil(fixture.Find(makeInterest("/A/B/C/D")))
 	assert.NotNil(fixture.Find(makeInterest("/A/B", ndn.CanBePrefixFlag)))

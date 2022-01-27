@@ -23,8 +23,8 @@ func ReadCounters(p *pit.Pit, c *cs.Cs) (cnt Counters) {
 	pitCnt := p.Counters()
 	cnt.NHits = pitCnt.NCsMatch
 	cnt.NMisses = pitCnt.NInsert + pitCnt.NFound
-	cnt.DirectEntries, cnt.DirectCapacity = readCslCnt(c, cs.ListMd)
-	cnt.IndirectEntries, cnt.IndirectCapacity = readCslCnt(c, cs.ListMi)
+	cnt.DirectEntries, cnt.DirectCapacity = readCslCnt(c, cs.ListDirect)
+	cnt.IndirectEntries, cnt.IndirectCapacity = readCslCnt(c, cs.ListIndirect)
 	return cnt
 }
 
