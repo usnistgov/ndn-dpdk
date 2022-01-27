@@ -12,8 +12,7 @@ import (
 
 func TestEntryExpiry(t *testing.T) {
 	assert, require := makeAR(t)
-	fixture := NewFixture(255)
-	defer fixture.Close()
+	fixture := NewFixture(t, 255)
 
 	nonce1 := ndn.Nonce{0xA0, 0xA1, 0xA2, 0xA3}
 	token1 := []byte{0xB0}
@@ -51,8 +50,7 @@ func TestEntryExpiry(t *testing.T) {
 
 func TestEntryExtend(t *testing.T) {
 	assert, require := makeAR(t)
-	fixture := NewFixture(255)
-	defer fixture.Close()
+	fixture := NewFixture(t, 255)
 
 	var entry *pit.Entry
 
@@ -74,8 +72,7 @@ func TestEntryExtend(t *testing.T) {
 
 func TestEntryLongName(t *testing.T) {
 	assert, require := makeAR(t)
-	fixture := NewFixture(255)
-	defer fixture.Close()
+	fixture := NewFixture(t, 255)
 
 	names := []struct {
 		Name string
@@ -108,8 +105,7 @@ func TestEntryLongName(t *testing.T) {
 
 func TestEntryFibRef(t *testing.T) {
 	assert, require := makeAR(t)
-	fixture := NewFixture(255)
-	defer fixture.Close()
+	fixture := NewFixture(t, 255)
 
 	fibEntry1 := fixture.InsertFibEntry("/A", 1001)
 	interest1 := makeInterest("/A/B")

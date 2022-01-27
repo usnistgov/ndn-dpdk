@@ -13,8 +13,7 @@ import (
 
 func TestInsertErase(t *testing.T) {
 	assert, _ := makeAR(t)
-	fixture := NewFixture(255)
-	defer fixture.Close()
+	fixture := NewFixture(t, 255)
 
 	assert.Zero(fixture.Pit.Len())
 	assert.Zero(fixture.CountMpInUse())
@@ -78,8 +77,7 @@ func TestToken(t *testing.T) {
 	records := make([]testTokenRecord, 255)
 	nImplicitDigest := 32
 	nAllocErr := 2
-	fixture := NewFixture(len(records))
-	defer fixture.Close()
+	fixture := NewFixture(t, len(records))
 	pit := fixture.Pit
 
 	for i := 0; i < len(records)+nAllocErr; i++ {

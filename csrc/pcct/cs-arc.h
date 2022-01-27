@@ -28,7 +28,7 @@ CsArc_Init(CsArc* arc, uint32_t capacity);
 __attribute__((nonnull)) static __rte_always_inline uint32_t
 CsArc_GetCapacity(const CsArc* arc)
 {
-  return arc->B1.capacity;
+  return CsArc_c(arc);
 }
 
 /** @brief Return number of in-memory entries. */

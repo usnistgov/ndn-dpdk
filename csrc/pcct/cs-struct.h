@@ -18,28 +18,42 @@ struct CsNode
 /** @brief A doubly linked list within CS. */
 typedef struct CsList
 {
-  CsNode* prev; // back pointer, self if list is empty
-  CsNode* next; // front pointer, self if list is empty
-  uint32_t count;
-  uint32_t capacity; // unused by CsList
+  CsNode* prev;      ///< back pointer, self if list is empty
+  CsNode* next;      ///< front pointer, self if list is empty
+  uint32_t count;    ///< number of entries
+  uint32_t capacity; ///< unused by CsList
 } CsList;
+
+typedef struct CsEntry CsEntry;
+
+typedef void (*CsArc_MoveCb)(void* arg, CsEntry* entry, CsListID src, CsListID dst);
 
 /** @brief Lists for Adaptive Replacement Cache (ARC). */
 typedef struct CsArc
 {
-  double c;   // capacity as float
-  double p;   // target size of T1
-  CsList T1;  // stored entries that appeared once
-  CsList B1;  // tracked entries that appeared once
-  CsList T2;  // stored entries that appeared more than once
-  CsList B2;  // tracked entries that appeared more than once
-  CsList Del; // deleted entries
-  // B1.capacity is c, the total capacity
-  // B2.capacity is 2c, twice the total capacity
-  // T1.capacity is (uint32_t)p
-  // T2.capacity is MAX(1, (uint32_t)p)
-  // Del.capacity is unused
+  double c;   ///< capacity @c c as float
+  double p;   ///< target size of T1
+  CsList T1;  ///< stored entries that appeared once
+  CsList B1;  ///< tracked entries that appeared once
+  CsList T2;  ///< stored entries that appeared more than once
+  CsList B2;  ///< tracked entries that appeared more than once
+  CsList Del; ///< deleted entries
+
+  CsArc_MoveCb moveCb; ///< handler function when entry is moved between lists
+  void* moveCbArg;     ///< context argument to @c moveCb
 } CsArc;
+
+/** @brief Access @c c as uint32. */
+#define CsArc_c(arc) ((arc)->B1.capacity)
+
+/** @brief Access @c 2c as uint32. */
+#define CsArc_2c(arc) ((arc)->B2.capacity)
+
+/** @brief Access @c p as uint32. */
+#define CsArc_p(arc) ((arc)->T1.capacity)
+
+/** @brief Access @c MAX(p,1) as uint32. */
+#define CsArc_p1(arc) ((arc)->T2.capacity)
 
 typedef struct DiskStore DiskStore;
 typedef struct DiskAlloc DiskAlloc;

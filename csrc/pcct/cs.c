@@ -48,7 +48,7 @@ CsEraseBatch_AddDirect(void* peb0, CsEntry* entry)
 
 /** @brief Erase a CS entry including dependents. */
 __attribute__((nonnull)) static void
-CsEraseEntry(Cs* cs, CsEntry* entry)
+Cs_EraseEntry(Cs* cs, CsEntry* entry)
 {
   PcctEraseBatch peb = PcctEraseBatch_New(Pcct_FromCs(cs));
   if (entry->kind == CsEntryIndirect) {
@@ -124,7 +124,7 @@ Cs_EraseImplicitDigestIndirect(Cs* cs, CsEntry* direct, size_t dataNameL)
     PccEntry* indirectPcc = PccEntry_FromCsEntry(indirect);
     if (unlikely(indirectPcc->key.nameL > dataNameL)) {
       N_LOGD("^ erase-implicit-digest-indirect indirect=%p direct=%p", indirect, direct);
-      CsEraseEntry(cs, indirect);
+      Cs_EraseEntry(cs, indirect);
       break;
     }
   }
@@ -172,8 +172,7 @@ Cs_InsertDirect(Cs* cs, Packet* npkt, PInterest* interest)
   PData* data = Packet_GetDataHdr(npkt);
 
   // construct PccSearch
-  PccSearch search;
-  PccSearch_FromNames(&search, &data->name, interest);
+  PccSearch search = PccSearch_FromNames(&data->name, interest);
 
   // seek PCC entry
   bool isNewPcc = false;
@@ -320,5 +319,5 @@ void
 Cs_Erase(Cs* cs, CsEntry* entry)
 {
   N_LOGD("Erase cs=%p cs-entry=%p", cs, entry);
-  CsEraseEntry(cs, entry);
+  Cs_EraseEntry(cs, entry);
 }

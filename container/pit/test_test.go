@@ -44,8 +44,8 @@ type Fixture struct {
 	FibEntry   *fibreplica.Entry
 }
 
-func NewFixture(pcctCapacity int) *Fixture {
-	fixture := new(Fixture)
+func NewFixture(t testing.TB, pcctCapacity int) *Fixture {
+	fixture := &Fixture{}
 	var e error
 	fixture.Pcct, e = pcct.New(pcct.Config{PcctCapacity: pcctCapacity}, eal.NumaSocket{})
 	if e != nil {
@@ -64,13 +64,11 @@ func NewFixture(pcctCapacity int) *Fixture {
 	fixture.FibReplica = fixture.Fib.Replica(eal.NumaSocket{})
 	fixture.FibEntry = fixture.FibReplica.Lpm(placeholderName)
 
+	t.Cleanup(func() {
+		must.Close(fixture.Fib)
+		must.Close(fixture.Pcct)
+	})
 	return fixture
-}
-
-func (fixture *Fixture) Close() error {
-	must.Close(fixture.Fib)
-	must.Close(fixture.Pcct)
-	return nil
 }
 
 // Return number of in-use entries in PCCT's underlying mempool.

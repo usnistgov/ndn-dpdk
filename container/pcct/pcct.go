@@ -47,13 +47,9 @@ func (pcct *Pcct) Ptr() unsafe.Pointer {
 	return unsafe.Pointer(pcct)
 }
 
-func (pcct *Pcct) ptr() *C.Pcct {
-	return (*C.Pcct)(pcct)
-}
-
 // AsMempool returns underlying mempool of the PCCT.
 func (pcct *Pcct) AsMempool() *mempool.Mempool {
-	return mempool.FromPtr(unsafe.Pointer(pcct.ptr().mp))
+	return mempool.FromPtr(unsafe.Pointer(pcct.mp))
 }
 
 func (pcct *Pcct) String() string {
@@ -62,7 +58,7 @@ func (pcct *Pcct) String() string {
 
 // Close destroys the PCCT.
 func (pcct *Pcct) Close() error {
-	C.Pcct_Clear(pcct.ptr())
+	C.Pcct_Clear((*C.Pcct)(pcct))
 	return pcct.AsMempool().Close()
 }
 

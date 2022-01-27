@@ -60,7 +60,7 @@ Pcct_Clear(Pcct* pcct);
  * @param[out] isNew whether the entry is new
  */
 __attribute__((nonnull)) PccEntry*
-Pcct_Insert(Pcct* pcct, PccSearch* search, bool* isNew);
+Pcct_Insert(Pcct* pcct, const PccSearch* search, bool* isNew);
 
 /**
  * @brief Erase an entry.

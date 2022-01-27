@@ -11,11 +11,10 @@ import (
 // Direct entries use ARC algorithm, but this only tests its LRU behavior.
 func TestDirectLru(t *testing.T) {
 	assert, _ := makeAR(t)
-	var cfg pcct.Config
-	cfg.CsDirectCapacity = 400
-	cfg.CsIndirectCapacity = 100
-	fixture := NewFixture(cfg)
-	defer fixture.Close()
+	fixture := NewFixture(t, pcct.Config{
+		CsDirectCapacity:   400,
+		CsIndirectCapacity: 100,
+	})
 	assert.Equal(400, fixture.Cs.Capacity(cs.ListDirect))
 
 	// insert 1-2000, should keep (most of) 1601-2000 direct entries
@@ -36,11 +35,10 @@ func TestDirectLru(t *testing.T) {
 // This test partially verifies ARC list size updates.
 func TestDirectArc(t *testing.T) {
 	assert, _ := makeAR(t)
-	var cfg pcct.Config
-	cfg.CsDirectCapacity = 100
-	cfg.CsIndirectCapacity = 100
-	fixture := NewFixture(cfg)
-	defer fixture.Close()
+	fixture := NewFixture(t, pcct.Config{
+		CsDirectCapacity:   100,
+		CsIndirectCapacity: 100,
+	})
 
 	// insert 1-100 (NEW), p=0, T1=[1..100]
 	fixture.InsertBulk(1, 100, "/N/%d", "/N/%d")
@@ -101,11 +99,10 @@ func TestDirectArc(t *testing.T) {
 
 func TestIndirectLru(t *testing.T) {
 	assert, _ := makeAR(t)
-	var cfg pcct.Config
-	cfg.CsDirectCapacity = 600
-	cfg.CsIndirectCapacity = 400
-	fixture := NewFixture(cfg)
-	defer fixture.Close()
+	fixture := NewFixture(t, pcct.Config{
+		CsDirectCapacity:   600,
+		CsIndirectCapacity: 400,
+	})
 	assert.Equal(400, fixture.Cs.Capacity(cs.ListIndirect))
 
 	// insert 1-2000, should keep (most of) 1601-2000 indirect entries

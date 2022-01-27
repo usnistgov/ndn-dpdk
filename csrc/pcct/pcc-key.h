@@ -22,30 +22,22 @@ typedef struct PccSearch
 {
   LName name;
   LName fh;
-  uint64_t nameHash;
-  uint64_t fhHash;
+  uint64_t hash;
 } PccSearch;
 
-/** @brief Initialize PccSearch from name and Interest fwhint. */
-__attribute__((nonnull)) static inline void
-PccSearch_FromNames(PccSearch* search, const PName* name, const PInterest* interest)
+/** @brief Create PccSearch from name and Interest fwhint. */
+__attribute__((nonnull)) static inline PccSearch
+PccSearch_FromNames(const PName* name, const PInterest* interest)
 {
-  search->name = PName_ToLName(name);
-  search->nameHash = PName_ComputeHash(name);
+  PccSearch search = {
+    .name = PName_ToLName(name),
+    .hash = PName_ComputeHash(name),
+  };
   if (interest->activeFwHint >= 0) {
-    search->fh = PName_ToLName(&interest->fwHint);
-    search->fhHash = PName_ComputeHash(&interest->fwHint);
-  } else {
-    search->fh.length = 0;
-    search->fhHash = 0;
+    search.fh = PName_ToLName(&interest->fwHint);
+    search.hash ^= PName_ComputeHash(&interest->fwHint);
   }
-}
-
-/** @brief Compute hash value for use in PCCT. */
-__attribute__((nonnull)) static __rte_always_inline uint64_t
-PccSearch_ComputeHash(const PccSearch* search)
-{
-  return search->nameHash ^ search->fhHash;
+  return search;
 }
 
 /**

@@ -78,12 +78,10 @@ Pcct_Clear(Pcct* pcct)
 }
 
 PccEntry*
-Pcct_Insert(Pcct* pcct, PccSearch* search, bool* isNew)
+Pcct_Insert(Pcct* pcct, const PccSearch* search, bool* isNew)
 {
-  uint64_t hash = PccSearch_ComputeHash(search);
-
   PccEntry* entry = NULL;
-  HASH_FIND_BYHASHVALUE(hh, pcct->keyHt, search, 0, hash, entry);
+  HASH_FIND_BYHASHVALUE(hh, pcct->keyHt, search, 0, search->hash, entry);
   if (entry != NULL) {
     *isNew = false;
     return entry;
@@ -102,10 +100,10 @@ Pcct_Insert(Pcct* pcct, PccSearch* search, bool* isNew)
   entry->tokenQword = 0;
   entry->slot1.pccEntry = NULL;
   entry->ext = NULL;
-  HASH_ADD_BYHASHVALUE(hh, pcct->keyHt, key, 0, hash, entry);
+  HASH_ADD_BYHASHVALUE(hh, pcct->keyHt, key, 0, search->hash, entry);
   *isNew = true;
 
-  N_LOGD("Insert pcct=%p hash=%016" PRIx64 " search=%s entry=%p", pcct, hash,
+  N_LOGD("Insert pcct=%p hash=%016" PRIx64 " search=%s entry=%p", pcct, search->hash,
          PccSearch_ToDebugString(search), entry);
   return entry;
 }

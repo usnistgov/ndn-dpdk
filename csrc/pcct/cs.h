@@ -32,7 +32,6 @@ Cs_Insert(Cs* cs, Packet* npkt, PitFindResult pitFound);
 /**
  * @brief Determine whether the CS entry matches an Interest during PIT insertion.
  * @param entry the CS entry, possibly indirect.
- * @post the CS entry is erased if it would conflict with a PIT entry for the Interest.
  */
 __attribute__((nonnull)) bool
 Cs_MatchInterest(Cs* cs, CsEntry* entry, Packet* interestNpkt);

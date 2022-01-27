@@ -45,7 +45,7 @@ type Fixture struct {
 	FibEntry   *fibreplica.Entry
 }
 
-func NewFixture(cfg pcct.Config) (fixture *Fixture) {
+func NewFixture(t testing.TB, cfg pcct.Config) (fixture *Fixture) {
 	cfg.PcctCapacity = 4095
 	if cfg.CsDirectCapacity == 0 {
 		cfg.CsDirectCapacity = 200
@@ -74,13 +74,11 @@ func NewFixture(cfg pcct.Config) (fixture *Fixture) {
 	fixture.FibReplica = fixture.Fib.Replica(eal.NumaSocket{})
 	fixture.FibEntry = fixture.FibReplica.Lpm(placeholderName)
 
+	t.Cleanup(func() {
+		must.Close(fixture.Fib)
+		must.Close(fixture.Pcct)
+	})
 	return fixture
-}
-
-func (fixture *Fixture) Close() error {
-	must.Close(fixture.Fib)
-	must.Close(fixture.Pcct)
-	return nil
 }
 
 // Return number of in-use entries in PCCT's underlying mempool.

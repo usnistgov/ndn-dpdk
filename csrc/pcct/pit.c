@@ -38,8 +38,7 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
   PInterest* interest = Packet_GetInterestHdr(npkt);
 
   // construct PccSearch
-  PccSearch search;
-  PccSearch_FromNames(&search, &interest->name, interest);
+  PccSearch search = PccSearch_FromNames(&interest->name, interest);
 
   // seek PCC entry
   bool isNewPcc = false;

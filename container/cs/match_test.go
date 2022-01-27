@@ -12,9 +12,7 @@ import (
 
 func TestInsertErase(t *testing.T) {
 	assert, require := makeAR(t)
-	var cfg pcct.Config
-	fixture := NewFixture(cfg)
-	defer fixture.Close()
+	fixture := NewFixture(t, pcct.Config{})
 
 	ok := fixture.Insert(makeInterest("/A/B"),
 		makeData("/A/B"))
@@ -65,9 +63,7 @@ func TestInsertErase(t *testing.T) {
 
 func TestPrefixMatch(t *testing.T) {
 	assert, require := makeAR(t)
-	var cfg pcct.Config
-	fixture := NewFixture(cfg)
-	defer fixture.Close()
+	fixture := NewFixture(t, pcct.Config{})
 
 	// /A/B/C/D <- [/A/B]
 	ok := fixture.Insert(makeInterest("/A/B", ndn.CanBePrefixFlag), makeData("/A/B/C/D"))
@@ -125,9 +121,7 @@ func TestPrefixMatch(t *testing.T) {
 
 func TestImplicitDigestMatch(t *testing.T) {
 	assert, _ := makeAR(t)
-	var cfg pcct.Config
-	fixture := NewFixture(cfg)
-	defer fixture.Close()
+	fixture := NewFixture(t, pcct.Config{})
 
 	// /A/B/C/D {0x01} <- [/A/B]
 	data01 := makeData("/A/B/C/D", []byte{0x01})

@@ -23,9 +23,9 @@ func (sc SuppressConfig) CopyToC(ptr unsafe.Pointer) {
 	c := (*C.PitSuppressConfig)(ptr)
 	c.min = C.TscDuration(eal.ToTscDuration(sc.Min.DurationOr(10e6)))
 	c.max = C.TscDuration(eal.ToTscDuration(sc.Max.DurationOr(100e6)))
-	if sc.Multiplier < 1.0 {
-		c.multiplier = 2.0
-	} else {
+	if sc.Multiplier >= 1.0 {
 		c.multiplier = C.double(sc.Multiplier)
+	} else {
+		c.multiplier = 2.0
 	}
 }

@@ -5,7 +5,7 @@ package pit
 #include "../../csrc/pcct/pit.h"
 
 static_assert(offsetof(PitInsertResult, pitEntry) == offsetof(PitInsertResult, csEntry), "");
-void* c_PitInsertResult_GetEntry(PitInsertResult r) { return r.pitEntry; }
+const ptrdiff_t c_PitInsertResult_EntryOffset = offsetof(PitInsertResult, pitEntry);
 */
 import "C"
 import (
@@ -32,23 +32,24 @@ func (pit *Pit) ptr() *C.Pit {
 
 // Len returns number of PIT entries.
 func (pit *Pit) Len() int {
-	return int(pit.ptr().nEntries)
+	return int(pit.nEntries)
 }
 
 // TriggerTimeoutSched triggers the internal timeout scheduler.
 func (pit *Pit) TriggerTimeoutSched() {
-	C.MinSched_Trigger(pit.ptr().timeoutSched)
+	C.MinSched_Trigger(pit.timeoutSched)
 }
 
 // Insert attempts to insert a PIT entry for the given Interest.
 // It returns either a new or existing PIT entry, or a CS entry that satisfies the Interest.
 func (pit *Pit) Insert(interest *ndni.Packet, fibEntry *fibreplica.Entry) (pitEntry *Entry, csEntry *cs.Entry) {
-	res := C.Pit_Insert(pit.ptr(), (*C.Packet)(interest.Ptr()), (*C.FibEntry)(fibEntry.Ptr()))
-	switch res.kind {
+	ir := C.Pit_Insert(pit.ptr(), (*C.Packet)(interest.Ptr()), (*C.FibEntry)(fibEntry.Ptr()))
+	entryPtr := *(*unsafe.Pointer)(unsafe.Add(unsafe.Pointer(&ir), C.c_PitInsertResult_EntryOffset))
+	switch ir.kind {
 	case C.PIT_INSERT_PIT:
-		pitEntry = (*Entry)(C.c_PitInsertResult_GetEntry(res))
+		pitEntry = (*Entry)(entryPtr)
 	case C.PIT_INSERT_CS:
-		csEntry = cs.EntryFromPtr(C.c_PitInsertResult_GetEntry(res))
+		csEntry = cs.EntryFromPtr(entryPtr)
 	}
 	return
 }
@@ -60,17 +61,12 @@ func (pit *Pit) Erase(entry *Entry) {
 
 // FindByData searches for PIT entries matching a Data.
 func (pit *Pit) FindByData(data *ndni.Packet, token uint64) FindResult {
-	resC := C.Pit_FindByData(pit.ptr(), (*C.Packet)(data.Ptr()), C.uint64_t(token))
-	return FindResult(resC)
+	return FindResult(C.Pit_FindByData(pit.ptr(), (*C.Packet)(data.Ptr()), C.uint64_t(token)))
 }
 
 // FindByNack searches for PIT entries matching a Nack.
 func (pit *Pit) FindByNack(nack *ndni.Packet, token uint64) *Entry {
-	entryC := C.Pit_FindByNack(pit.ptr(), (*C.Packet)(nack.Ptr()), C.uint64_t(token))
-	if entryC == nil {
-		return nil
-	}
-	return (*Entry)(entryC)
+	return (*Entry)(C.Pit_FindByNack(pit.ptr(), (*C.Packet)(nack.Ptr()), C.uint64_t(token)))
 }
 
 // FindResult represents the result of Pit.FindByData.

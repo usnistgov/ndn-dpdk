@@ -8,8 +8,6 @@
 
 extern const char* CsEntryKindString[];
 
-typedef struct CsEntry CsEntry;
-
 /**
  * @brief A CS entry.
  *

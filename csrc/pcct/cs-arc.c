@@ -10,11 +10,6 @@ const ptrdiff_t CsArc_ListOffsets_[] = {
   [CslDirectDel] = offsetof(CsArc, Del),
 };
 
-#define CsArc_c(arc) ((arc)->B1.capacity)
-#define CsArc_2c(arc) ((arc)->B2.capacity)
-#define CsArc_p(arc) ((arc)->T1.capacity)
-#define CsArc_p1(arc) ((arc)->T2.capacity)
-
 #define CsArc_Move(arc, entry, src, dst)                                                           \
   do {                                                                                             \
     NDNDPDK_ASSERT((entry)->arcList == CslDirect##src);                                            \
@@ -22,7 +17,21 @@ const ptrdiff_t CsArc_ListOffsets_[] = {
     (entry)->arcList = CslDirect##dst;                                                             \
     CsList_Append(&(arc)->dst, (entry));                                                           \
     N_LOGV("^ move=%p from=" #src " to=" #dst, (entry));                                           \
+    (arc)->moveCb((arc)->moveCbArg, (entry), CslDirect##src, CslDirect##dst);                      \
   } while (false)
+
+/**
+ * @brief Default handler when entry is moved between lists.
+ *
+ * If an entry is moved from T1/T2 to a non-T1/T2 list, its Data packet is released.
+ */
+__attribute__((nonnull)) static inline void
+CsArc_MoveHandler(__rte_unused void* arg, CsEntry* entry, CsListID src, CsListID dst)
+{
+  if ((src == CslDirectT1 || src == CslDirectT2) && !(dst == CslDirectT1 || dst == CslDirectT2)) {
+    CsEntry_Clear(entry);
+  }
+}
 
 __attribute__((nonnull)) static inline void
 CsArc_SetP(CsArc* arc, double p)
@@ -45,20 +54,21 @@ CsArc_Init(CsArc* arc, uint32_t capacity)
   CsArc_c(arc) = capacity;
   CsArc_2c(arc) = 2 * capacity;
   CsArc_SetP(arc, 0.0);
+
+  arc->moveCb = CsArc_MoveHandler;
+  arc->moveCbArg = NULL;
 }
 
 __attribute__((nonnull)) static void
 CsArc_Replace(CsArc* arc, bool isB2)
 {
-  CsEntry* moving = NULL;
   if (isB2 ? arc->T1.count >= CsArc_p1(arc) : arc->T1.count > CsArc_p(arc)) {
-    moving = CsList_GetFront(&arc->T1);
+    CsEntry* moving = CsList_GetFront(&arc->T1);
     CsArc_Move(arc, moving, T1, B1);
   } else {
-    moving = CsList_GetFront(&arc->T2);
+    CsEntry* moving = CsList_GetFront(&arc->T2);
     CsArc_Move(arc, moving, T2, B2);
   }
-  CsEntry_Clear(moving);
 }
 
 __attribute__((nonnull)) static void
@@ -102,7 +112,6 @@ CsArc_AddNew(CsArc* arc, CsEntry* entry)
       NDNDPDK_ASSERT(arc->B1.count == 0);
       N_LOGV("^ evict-from=T1");
       CsEntry* deleting = CsList_GetFront(&arc->T1);
-      CsEntry_Clear(deleting);
       CsArc_Move(arc, deleting, T1, Del);
     }
   } else {
