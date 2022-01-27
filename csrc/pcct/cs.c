@@ -5,11 +5,8 @@
 
 N_LOG_INIT(Cs);
 
-// Bulk size of CS eviction, also the minimum CS capacity.
-#define CS_EVICT_BULK 64
-
 __attribute__((nonnull)) static void
-CsEraseBatch_Append_(PcctEraseBatch* peb, CsEntry* entry, const char* isDirectDbg)
+CsEraseBatch_Append(PcctEraseBatch* peb, CsEntry* entry, const char* isDirectDbg)
 {
   PccEntry* pccEntry = PccEntry_FromCsEntry(entry);
   PccEntry_RemoveCsEntry(pccEntry);
@@ -23,90 +20,71 @@ CsEraseBatch_Append_(PcctEraseBatch* peb, CsEntry* entry, const char* isDirectDb
 
 /** @brief Erase an indirect CS entry. */
 __attribute__((nonnull)) static void
-CsEraseBatch_AddIndirect(PcctEraseBatch* peb, CsEntry* entry)
+CsEraseBatch_AddIndirect(void* peb0, CsEntry* entry)
 {
-  NDNDPDK_ASSERT(!CsEntry_IsDirect(entry));
+  PcctEraseBatch* peb = (PcctEraseBatch*)peb0;
   N_LOGV("^ indirect=%p direct=%p(%" PRId8 ")", entry, entry->direct, entry->direct->nIndirects);
+
   CsEntry_Finalize(entry);
-  CsEraseBatch_Append_(peb, entry, "indirect");
+  CsEraseBatch_Append(peb, entry, "indirect");
 }
 
 /** @brief Erase a direct CS entry; delist and erase indirect entries. */
 __attribute__((nonnull)) static void
-CsEraseBatch_AddDirect(PcctEraseBatch* peb, CsEntry* entry)
+CsEraseBatch_AddDirect(void* peb0, CsEntry* entry)
 {
-  NDNDPDK_ASSERT(CsEntry_IsDirect(entry));
+  PcctEraseBatch* peb = (PcctEraseBatch*)peb0;
   Cs* cs = &peb->pcct->cs;
   for (int i = 0; i < entry->nIndirects; ++i) {
     CsEntry* indirect = entry->indirect[i];
     CsList_Remove(&cs->indirect, indirect);
-    CsEraseBatch_Append_(peb, indirect, "indirect-dep");
+    CsEraseBatch_Append(peb, indirect, "indirect-dep");
   }
   entry->nIndirects = 0;
+
   CsEntry_Finalize(entry);
-  CsEraseBatch_Append_(peb, entry, "direct");
+  CsEraseBatch_Append(peb, entry, "direct");
 }
 
 /** @brief Erase a CS entry including dependents. */
 __attribute__((nonnull)) static void
-Cs_Erase_(Cs* cs, CsEntry* entry)
+CsEraseEntry(Cs* cs, CsEntry* entry)
 {
   PcctEraseBatch peb = PcctEraseBatch_New(Pcct_FromCs(cs));
-  if (CsEntry_IsDirect(entry)) {
-    CsArc_Remove(&cs->direct, entry);
-    CsEraseBatch_AddDirect(&peb, entry);
-  } else {
+  if (entry->kind == CsEntryIndirect) {
     CsList_Remove(&cs->indirect, entry);
     CsEraseBatch_AddIndirect(&peb, entry);
+  } else {
+    CsArc_Remove(&cs->direct, entry);
+    CsEraseBatch_AddDirect(&peb, entry);
   }
   PcctEraseBatch_Finish(&peb);
 }
 
 __attribute__((nonnull)) static void
-Cs_EvictBulk_(Cs* cs, CsList* csl, const char* cslName, CsList_EvictCb evictCb)
+Cs_Evict(Cs* cs, CsList* csl, const char* cslName, CsList_EvictCb evictCb)
 {
   N_LOGD("%p Evict(%s) count=%" PRIu32, cs, cslName, csl->count);
   PcctEraseBatch peb = PcctEraseBatch_New(Pcct_FromCs(cs));
-  CsList_EvictBulk(csl, CS_EVICT_BULK, evictCb, &peb);
+  CsList_EvictBulk(csl, CsEvictBulk, evictCb, &peb);
   PcctEraseBatch_Finish(&peb);
   N_LOGD("^ end-count=%" PRIu32, csl->count);
 }
 
-__attribute__((nonnull)) static __rte_always_inline void
-Cs_Evict(Cs* cs)
+__attribute__((nonnull, returns_nonnull)) static CsList*
+Cs_GetList_(Cs* cs, CsListID l)
 {
-  if (unlikely(cs->indirect.count > cs->indirect.capacity)) {
-    Cs_EvictBulk_(cs, &cs->indirect, "indirect", (CsList_EvictCb)CsEraseBatch_AddIndirect);
+  if (l == CslMi) {
+    return &cs->indirect;
   }
-  if (unlikely(cs->direct.Del.count >= CS_EVICT_BULK)) {
-    Cs_EvictBulk_(cs, &cs->direct.Del, "direct", (CsList_EvictCb)CsEraseBatch_AddDirect);
-  }
-}
-
-static CsList*
-Cs_GetList_(Cs* cs, CsListID cslId)
-{
-  switch (cslId) {
-    case CslMdT1:
-    case CslMdB1:
-    case CslMdT2:
-    case CslMdB2:
-    case CslMdDel:
-      return CsArc_GetList(&cs->direct, cslId - CslMd);
-    case CslMi:
-      return &cs->indirect;
-    case CslMd:
-    default:
-      NDNDPDK_ASSERT(false);
-      return NULL;
-  }
+  return CsArc_GetList(&cs->direct, l);
 }
 
 void
 Cs_Init(Cs* cs, uint32_t capMd, uint32_t capMi)
 {
-  capMd = RTE_MAX(capMd, CS_EVICT_BULK);
-  capMi = RTE_MAX(capMi, CS_EVICT_BULK);
+  capMd = RTE_MAX(capMd, CsEvictBulk);
+  capMi = RTE_MAX(capMi, CsEvictBulk);
 
   CsArc_Init(&cs->direct, capMd);
   CsList_Init(&cs->indirect);
@@ -117,25 +95,46 @@ Cs_Init(Cs* cs, uint32_t capMd, uint32_t capMi)
 }
 
 uint32_t
-Cs_GetCapacity(Cs* cs, CsListID cslId)
+Cs_GetCapacity(Cs* cs, CsListID l)
 {
-  if (cslId == CslMd) {
+  if (l == CslMd) {
     return CsArc_GetCapacity(&cs->direct);
   }
-  return Cs_GetList_(cs, cslId)->capacity;
+  return Cs_GetList_(cs, l)->capacity;
 }
 
 uint32_t
-Cs_CountEntries(Cs* cs, CsListID cslId)
+Cs_CountEntries(Cs* cs, CsListID l)
 {
-  if (cslId == CslMd) {
+  if (l == CslMd) {
     return CsArc_CountEntries(&cs->direct);
   }
-  return Cs_GetList_(cs, cslId)->count;
+  return Cs_GetList_(cs, l)->count;
+}
+
+/**
+ * @brief Erase indirect entry with implicit digest.
+ *
+ * This is called before refreshing a direct entry with newly received Data.
+ * It is necessary because the new Data could have the same name but different implicit digest,
+ * so that the existing implicit digest indirect entry would no longer match the Data.
+ */
+__attribute__((nonnull)) static inline void
+Cs_EraseImplicitDigestIndirect(Cs* cs, CsEntry* direct, size_t dataNameL)
+{
+  for (uint8_t i = 0; i < direct->nIndirects; ++i) {
+    CsEntry* indirect = direct->indirect[i];
+    PccEntry* indirectPcc = PccEntry_FromCsEntry(indirect);
+    if (unlikely(indirectPcc->key.nameL > dataNameL)) {
+      N_LOGD("^ erase-implicit-digest-indirect indirect=%p direct=%p", indirect, direct);
+      CsEraseEntry(cs, indirect);
+      break;
+    }
+  }
 }
 
 /** @brief Add or refresh a direct entry for @p npkt in @p pccEntry . */
-static CsEntry*
+__attribute__((nonnull)) static CsEntry*
 Cs_PutDirect(Cs* cs, Packet* npkt, PccEntry* pccEntry)
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
@@ -146,20 +145,10 @@ Cs_PutDirect(Cs* cs, Packet* npkt, PccEntry* pccEntry)
     // refresh direct entry
     entry = PccEntry_GetCsEntry(pccEntry);
     N_LOGD("PutDirect(refresh) cs=%p npkt=%p pcc-entry=%p cs-entry=%p", cs, npkt, pccEntry, entry);
-    if (CsEntry_IsDirect(entry)) {
-      // erase any indirect entry with implicit digest name, because it may not match new Data
-      for (int8_t i = 0; i < entry->nIndirects; ++i) {
-        CsEntry* indirect = entry->indirect[i];
-        PccEntry* indirectPcc = PccEntry_FromCsEntry(indirect);
-        if (unlikely(indirectPcc->key.nameL > data->name.length)) {
-          N_LOGD("^ erase-implicit-digest-indirect");
-          Cs_Erase_(cs, indirect);
-          break;
-        }
-      }
+    if (entry->kind != CsEntryIndirect) {
+      Cs_EraseImplicitDigestIndirect(cs, entry, data->name.length);
     }
     CsEntry_Clear(entry);
-    CsArc_Add(&cs->direct, entry);
   } else {
     // insert direct entry
     entry = PccEntry_AddCsEntry(pccEntry);
@@ -167,18 +156,19 @@ Cs_PutDirect(Cs* cs, Packet* npkt, PccEntry* pccEntry)
       N_LOGW("PutDirect alloc-err cs=%p npkt=%p pcc-entry=%p", cs, npkt, pccEntry);
       return NULL;
     }
+    CsEntry_Init(entry);
     N_LOGD("PutDirect insert cs=%p npkt=%p pcc-entry=%p cs-entry=%p", cs, npkt, pccEntry, entry);
-    entry->arcList = 0;
-    entry->nIndirects = 0;
-    CsArc_Add(&cs->direct, entry);
   }
+
+  entry->kind = CsEntryMemory;
   entry->data = npkt;
   entry->freshUntil = Mbuf_GetTimestamp(pkt) + TscDuration_FromMillis(data->freshness);
+  CsArc_Add(&cs->direct, entry);
   return entry;
 }
 
 /** @brief Insert a direct entry for @p npkt that was retrieved by @p interest . */
-static CsEntry*
+__attribute__((nonnull)) static CsEntry*
 Cs_InsertDirect(Cs* cs, Packet* npkt, PInterest* interest)
 {
   Pcct* pcct = Pcct_FromCs(cs);
@@ -201,7 +191,7 @@ Cs_InsertDirect(Cs* cs, Packet* npkt, PInterest* interest)
 }
 
 /** @brief Add or refresh an indirect entry in @p pccEntry and associate with @p direct . */
-static bool
+__attribute__((nonnull)) static bool
 Cs_PutIndirect(Cs* cs, CsEntry* direct, PccEntry* pccEntry)
 {
   NDNDPDK_ASSERT(!pccEntry->hasPitEntry0);
@@ -209,16 +199,20 @@ Cs_PutIndirect(Cs* cs, CsEntry* direct, PccEntry* pccEntry)
   CsEntry* entry = NULL;
   if (unlikely(pccEntry->hasCsEntry)) {
     entry = PccEntry_GetCsEntry(pccEntry);
-    if (unlikely(CsEntry_IsDirect(entry) && entry->nIndirects > 0)) {
+    if (likely(entry->kind == CsEntryIndirect)) {
+      // refresh indirect entry
+      CsEntry_Disassoc(entry);
+      CsList_MoveToLast(&cs->indirect, entry);
+    } else if (unlikely(entry->nIndirects > 0)) {
       // don't overwrite direct entry with dependencies
       N_LOGD("PutIndirect has-dependency cs=%p npkt=%p pcc-entry-%p cs-entry=%p", cs, direct,
              pccEntry, entry);
       return false;
+    } else {
+      // change direct entry to indirect entry
+      CsEntry_Clear(entry);
+      CsList_Append(&cs->indirect, entry);
     }
-    // refresh indirect entry
-    // old entry can be either direct without dependency or indirect
-    CsEntry_Clear(entry);
-    CsList_MoveToLast(&cs->indirect, entry);
     N_LOGD("PutIndirect refresh cs=%p npkt=%p pcc-entry-%p cs-entry=%p count=%" PRIu32, cs, direct,
            pccEntry, entry, cs->indirect.count);
   } else {
@@ -228,7 +222,7 @@ Cs_PutIndirect(Cs* cs, CsEntry* direct, PccEntry* pccEntry)
       N_LOGW("PutIndirect alloc-err cs=%p npkt=%p pcc-entry-%p", cs, direct, pccEntry);
       return NULL;
     }
-    entry->nIndirects = 0;
+    CsEntry_Init(entry);
     CsList_Append(&cs->indirect, entry);
     N_LOGD("PutIndirect insert cs=%p npkt=%p pcc-entry-%p cs-entry=%p count=%" PRIu32, cs, direct,
            pccEntry, entry, cs->indirect.count);
@@ -242,7 +236,9 @@ Cs_PutIndirect(Cs* cs, CsEntry* direct, PccEntry* pccEntry)
   N_LOGD("^ indirect-assoc-err");
   CsList_Remove(&cs->indirect, entry);
   PccEntry_RemoveCsEntry(pccEntry);
-  Pcct_Erase(Pcct_FromCs(cs), pccEntry);
+  if (likely(!pccEntry->hasEntries)) {
+    Pcct_Erase(Pcct_FromCs(cs), pccEntry);
+  }
   return false;
 }
 
@@ -267,16 +263,18 @@ Cs_Insert(Cs* cs, Packet* npkt, PitFindResult pitFound)
       }
       return;
     }
-    pkt = NULL; // owned by direct entry, don't free it
+    NULLize(npkt);
+    NULLize(pkt); // owned by direct entry
   }
 
   // delete PIT entries
   Pit_RawErase01_(&pcct->pit, pccEntry);
-  interest = NULL;
+  NULLize(interest);
 
   if (likely(direct == NULL)) {
     // put direct CS entry at pccEntry
     direct = Cs_PutDirect(cs, npkt, pccEntry);
+    // alloc-err cannot happen because PccSlots are freed from PIT entries
     NDNDPDK_ASSERT(direct != NULL);
   } else {
     // put indirect CS entry at pccEntry
@@ -284,33 +282,39 @@ Cs_Insert(Cs* cs, Packet* npkt, PitFindResult pitFound)
   }
 
   // evict if over capacity
-  Cs_Evict(cs);
+  if (unlikely(cs->indirect.count > cs->indirect.capacity)) {
+    Cs_Evict(cs, &cs->indirect, "indirect", CsEraseBatch_AddIndirect);
+  }
+  if (unlikely(cs->direct.Del.count >= CsEvictBulk)) {
+    Cs_Evict(cs, &cs->direct.Del, "direct", CsEraseBatch_AddDirect);
+  }
 }
 
 bool
 Cs_MatchInterest(Cs* cs, CsEntry* entry, Packet* interestNpkt)
 {
   CsEntry* direct = CsEntry_GetDirect(entry);
-  bool hasData = CsEntry_GetData(direct) != NULL;
   PccEntry* pccDirect = PccEntry_FromCsEntry(direct);
+  bool hasData = direct->kind == CsEntryMemory;
 
   PInterest* interest = Packet_GetInterestHdr(interestNpkt);
   bool violateCanBePrefix = !interest->canBePrefix && interest->name.length < pccDirect->key.nameL;
   bool violateMustBeFresh =
-    interest->mustBeFresh &&
-    !CsEntry_IsFresh(direct, Mbuf_GetTimestamp(Packet_ToMbuf(interestNpkt)));
-  N_LOGD("MatchInterest cs=%p cs-entry=%p~%s cbp=%s mbf=%s has-data=%s", cs, entry,
-         CsEntry_IsDirect(entry) ? "direct" : "indirect", violateCanBePrefix ? "N" : "Y",
-         violateMustBeFresh ? "N" : "Y", hasData ? "Y" : "N");
+    interest->mustBeFresh && direct->freshUntil <= Mbuf_GetTimestamp(Packet_ToMbuf(interestNpkt));
+  N_LOGD("MatchInterest cs=%p cs-entry=%p~%s cbp=%c mbf=%c has-data=%c", cs, entry,
+         CsEntryKindString[entry->kind], violateCanBePrefix ? 'N' : 'Y',
+         violateMustBeFresh ? 'N' : 'Y', hasData ? 'Y' : 'N');
 
-  if (likely(!violateCanBePrefix && !violateMustBeFresh)) {
-    if (!CsEntry_IsDirect(entry)) {
-      CsList_MoveToLast(&cs->indirect, entry);
-    }
-    if (likely(hasData)) {
-      CsArc_Add(&cs->direct, direct);
-      return true;
-    }
+  if (unlikely(violateCanBePrefix || violateMustBeFresh)) {
+    return false;
+  }
+
+  if (entry->kind == CsEntryIndirect) {
+    CsList_MoveToLast(&cs->indirect, entry);
+  }
+  if (likely(hasData)) {
+    CsArc_Add(&cs->direct, direct);
+    return true;
   }
   return false;
 }
@@ -319,5 +323,5 @@ void
 Cs_Erase(Cs* cs, CsEntry* entry)
 {
   N_LOGD("Erase cs=%p cs-entry=%p", cs, entry);
-  Cs_Erase_(cs, entry);
+  CsEraseEntry(cs, entry);
 }

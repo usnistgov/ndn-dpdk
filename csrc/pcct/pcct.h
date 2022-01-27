@@ -125,10 +125,11 @@ typedef struct PcctEraseBatch
  * PcctEraseBatch_Finish(&peb);
  * @endcode
  */
-#define PcctEraseBatch_New(thePcct)                                                                \
-  {                                                                                                \
-    .pcct = thePcct                                                                                \
-  }
+__attribute__((nonnull)) static inline PcctEraseBatch
+PcctEraseBatch_New(Pcct* pcct)
+{
+  return (PcctEraseBatch){ .pcct = pcct };
+}
 
 __attribute__((nonnull)) void
 PcctEraseBatch_EraseBurst_(PcctEraseBatch* peb);

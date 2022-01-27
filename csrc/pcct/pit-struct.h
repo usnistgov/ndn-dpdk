@@ -3,7 +3,7 @@
 
 /** @file */
 
-#include "common.h"
+#include "../core/mintmr.h"
 
 typedef struct Pit Pit;
 

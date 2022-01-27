@@ -64,8 +64,10 @@ Pcct_Clear(Pcct* pcct)
       continue;
     }
     CsEntry* csEntry = PccEntry_GetCsEntry(entry);
-    if (CsEntry_IsDirect(csEntry)) {
-      CsEntry_ClearData(csEntry);
+    if (csEntry->kind == CsEntryMemory) {
+      CsEntry_Clear(csEntry);
+      // CsEntryDisk is not cleared, because DiskAlloc will be discarded
+      // CsEntryIndirect is not cleared, because CS index will be discarded
     }
   }
 
@@ -190,7 +192,7 @@ PcctEraseBatch_EraseBurst_(PcctEraseBatch* peb)
     if (entry->ext != NULL) {
       peb->objs[nObjs++] = entry->ext;
     }
-    NDNDPDK_ASSERT((size_t)nObjs < RTE_DIM(peb->objs));
+    NDNDPDK_ASSERT(nObjs < (int)RTE_DIM(peb->objs));
   }
   rte_mempool_put_bulk(peb->pcct->mp, peb->objs, nObjs);
   peb->nEntries = 0;

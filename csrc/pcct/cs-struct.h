@@ -3,7 +3,7 @@
 
 /** @file */
 
-#include "common.h"
+#include "../core/common.h"
 #include "cs-enum.h"
 
 typedef struct CsNode CsNode;
@@ -41,6 +41,9 @@ typedef struct CsArc
   // Del.capacity is unused
 } CsArc;
 
+typedef struct DiskStore DiskStore;
+typedef struct DiskAlloc DiskAlloc;
+
 /**
  * @brief The Content Store (CS).
  *
@@ -50,6 +53,9 @@ typedef struct Cs
 {
   CsArc direct;    ///< ARC lists of direct entries
   CsList indirect; ///< LRU list of indirect entries
+
+  DiskStore* diskStore;
+  DiskAlloc* diskAlloc;
 } Cs;
 
 #endif // NDNDPDK_PCCT_CS_STRUCT_H

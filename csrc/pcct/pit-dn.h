@@ -3,7 +3,7 @@
 
 /** @file */
 
-#include "common.h"
+#include "../iface/faceid.h"
 
 /**
  * @brief A PIT downstream record.

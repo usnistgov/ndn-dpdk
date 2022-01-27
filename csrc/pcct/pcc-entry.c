@@ -52,6 +52,8 @@ void
 PccEntry_ClearSlot_(PccEntry* entry, PccSlotIndex slot)
 {
   switch (slot) {
+    case PCC_SLOT_NONE:
+      return;
     case PCC_SLOT1:
       entry->slot1.pccEntry = NULL;
       return;
@@ -67,8 +69,6 @@ PccEntry_ClearSlot_(PccEntry* entry, PccSlotIndex slot)
         return;
       }
       break;
-    default:
-      return;
   }
 
   rte_mempool_put(PccEntry_ToMempool(entry), entry->ext);

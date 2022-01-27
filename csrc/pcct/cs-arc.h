@@ -8,7 +8,7 @@
 __attribute__((nonnull)) void
 CsArc_Init(CsArc* arc, uint32_t capacity);
 
-__attribute__((nonnull)) CsList*
+__attribute__((nonnull, returns_nonnull)) CsList*
 CsArc_GetList(CsArc* arc, CsListID l);
 
 __attribute__((nonnull)) static __rte_always_inline uint32_t

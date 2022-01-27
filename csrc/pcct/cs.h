@@ -13,11 +13,11 @@ Cs_Init(Cs* cs, uint32_t capMd, uint32_t capMi);
 
 /** @brief Get capacity in number of entries. */
 __attribute__((nonnull)) uint32_t
-Cs_GetCapacity(Cs* cs, CsListID cslId);
+Cs_GetCapacity(Cs* cs, CsListID l);
 
 /** @brief Get number of entries. */
 __attribute__((nonnull)) uint32_t
-Cs_CountEntries(Cs* cs, CsListID cslId);
+Cs_CountEntries(Cs* cs, CsListID l);
 
 /**
  * @brief Insert a CS entry.

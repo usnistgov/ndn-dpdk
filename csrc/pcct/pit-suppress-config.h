@@ -3,7 +3,7 @@
 
 /** @file */
 
-#include "common.h"
+#include "../dpdk/tsc.h"
 
 /** @brief Interest suppression configuration. */
 typedef struct PitSuppressConfig

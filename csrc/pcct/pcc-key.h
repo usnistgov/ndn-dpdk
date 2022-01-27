@@ -3,7 +3,7 @@
 
 /** @file */
 
-#include "common.h"
+#include "../ndni/interest.h"
 
 #define PccKey_CountExtensions_(nameL, fhL)                                                        \
   (DIV_CEIL(nameL - PccKeyNameCapacity, PccKeyExtCapacity) +                                       \

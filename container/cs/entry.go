@@ -2,6 +2,8 @@ package cs
 
 /*
 #include "../../csrc/pcct/cs-entry.h"
+
+static void* CsEntry_Data(CsEntry* entry) { return entry->data; }
 */
 import "C"
 import (
@@ -23,15 +25,15 @@ func (entry *Entry) ptr() *C.CsEntry {
 	return (*C.CsEntry)(entry)
 }
 
-// IsDirect determines whether this is a direct entry.
-func (entry *Entry) IsDirect() bool {
-	return bool(C.CsEntry_IsDirect(entry.ptr()))
+// Kind returns entry kind.
+func (entry *Entry) Kind() EntryKind {
+	return EntryKind(entry.kind)
 }
 
 // ListIndirects returns a list of indirect entries associated with this direct entry.
 // Panics if this is not a direct entry.
 func (entry *Entry) ListIndirects() (indirects []*Entry) {
-	if !entry.IsDirect() {
+	if entry.Kind() == EntryIndirect {
 		panic("Entry.ListIndirects is unavailable on indirect entry")
 	}
 
@@ -45,7 +47,10 @@ func (entry *Entry) ListIndirects() (indirects []*Entry) {
 
 // Data returns the Data packet on this entry.
 func (entry *Entry) Data() *ndni.Packet {
-	return ndni.PacketFromPtr(unsafe.Pointer(C.CsEntry_GetData(entry.ptr())))
+	if entry.Kind() != EntryMemory {
+		panic("Entry.Data is only available on in-memory entry")
+	}
+	return ndni.PacketFromPtr(C.CsEntry_Data((*C.CsEntry)(entry)))
 }
 
 // FreshUntil returns a timestamp when this entry would become non-fresh.

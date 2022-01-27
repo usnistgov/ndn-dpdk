@@ -77,7 +77,7 @@ func TestPrefixMatch(t *testing.T) {
 
 	direct := fixture.Find(makeInterest("/A/B/C/D"))
 	require.NotNil(direct)
-	assert.True(direct.IsDirect())
+	assert.Equal(cs.EntryMemory, direct.Kind())
 
 	assert.Len(direct.ListIndirects(), 1)
 	assert.Same(direct, fixture.Find(makeInterest("/A/B", ndn.CanBePrefixFlag)))

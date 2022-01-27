@@ -3,6 +3,7 @@
 
 /** @file */
 
+#include "../iface/faceid.h"
 #include "pit-suppress-config.h"
 
 typedef struct PitEntry PitEntry;

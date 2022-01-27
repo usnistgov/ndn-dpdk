@@ -4,24 +4,16 @@
 
 N_LOG_INIT(CsArc);
 
-__attribute__((nonnull)) CsList*
+static const ptrdiff_t ArcListOffsets[] = {
+  [CslMdT1] = offsetof(CsArc, T1),   [CslMdB1] = offsetof(CsArc, B1),
+  [CslMdT2] = offsetof(CsArc, T2),   [CslMdB2] = offsetof(CsArc, B2),
+  [CslMdDel] = offsetof(CsArc, Del),
+};
+
+CsList*
 CsArc_GetList(CsArc* arc, CsListID l)
 {
-  switch (l) {
-    case CslMdT1:
-      return &arc->T1;
-    case CslMdB1:
-      return &arc->B1;
-    case CslMdT2:
-      return &arc->T2;
-    case CslMdB2:
-      return &arc->B2;
-    case CslMdDel:
-      return &arc->Del;
-    default:
-      NDNDPDK_ASSERT(false);
-      return NULL;
-  }
+  return RTE_PTR_ADD(arc, ArcListOffsets[l]);
 }
 
 #define CsArc_c(arc) ((arc)->B1.capacity)
@@ -46,7 +38,7 @@ CsArc_SetP(CsArc* arc, double p)
   CsArc_p1(arc) = RTE_MAX(CsArc_p(arc), 1);
 }
 
-__attribute__((nonnull)) void
+void
 CsArc_Init(CsArc* arc, uint32_t capacity)
 {
   CsList_Init(&arc->T1);
@@ -72,7 +64,7 @@ CsArc_Replace(CsArc* arc, bool isB2)
     moving = CsList_GetFront(&arc->T2);
     CsArc_Move(arc, moving, T2, B2);
   }
-  CsEntry_ClearData(moving);
+  CsEntry_Clear(moving);
 }
 
 __attribute__((nonnull)) static void
@@ -116,7 +108,7 @@ CsArc_AddNew(CsArc* arc, CsEntry* entry)
       NDNDPDK_ASSERT(arc->B1.count == 0);
       N_LOGV("^ evict-from=T1");
       CsEntry* deleting = CsList_GetFront(&arc->T1);
-      CsEntry_ClearData(deleting);
+      CsEntry_Clear(deleting);
       CsArc_Move(arc, deleting, T1, Del);
     }
   } else {
@@ -156,7 +148,7 @@ CsArc_Add(CsArc* arc, CsEntry* entry)
     case CslMdDel:
       CsList_Remove(&arc->Del, entry);
       entry->arcList = 0;
-    // fallthrough
+      // fallthrough
     case 0: // this ensures other case constants are non-zero
     default:
       CsArc_AddNew(arc, entry);
