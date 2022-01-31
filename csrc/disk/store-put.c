@@ -4,6 +4,8 @@
 
 N_LOG_INIT(DiskStore);
 
+static_assert((int)SPDK_BDEV_MAX_MBUF_SEGS >= (int)LpMaxFragments, "");
+
 /** @brief Parameters related to PutData, stored over PData.digest field. */
 typedef struct PutDataRequest
 {
@@ -21,9 +23,10 @@ PutData_End(struct spdk_bdev_io* io, bool success, void* npkt0)
   uint64_t slotID = req->slotID;
 
   if (unlikely(!success)) {
-    N_LOGW("PutData_End slot=%" PRIu64 " npkt=%p fail=io-err", slotID, npkt);
+    N_LOGW("PutData error slot=%" PRIu64 " npkt=%p" N_LOG_ERROR("io-err"), slotID, npkt);
   }
 
+  N_LOGD("PutData success slot=%" PRIu64 " npkt=%p", slotID, npkt);
   rte_pktmbuf_free(Packet_ToMbuf(npkt));
   spdk_bdev_free_io(io);
 }
@@ -42,7 +45,7 @@ PutData_Begin(void* npkt0)
   int res = SpdkBdev_WritePacket(store->bdev, store->ch, Packet_ToMbuf(npkt), blockOffset,
                                  blockCount, store->blockSize, PutData_End, (uintptr_t)npkt);
   if (unlikely(res != 0)) {
-    N_LOGW("PutData_Begin slot=%" PRIu64 " npkt=%p fail=write(%d)", slotID, npkt, res);
+    N_LOGW("PutData write error slot=%" PRIu64 " npkt=%p" N_LOG_ERROR_ERRNO, slotID, npkt, res);
     rte_pktmbuf_free(Packet_ToMbuf(npkt));
   }
 }
@@ -53,7 +56,7 @@ DiskStore_PutData(DiskStore* store, uint64_t slotID, Packet* npkt)
   NDNDPDK_ASSERT(slotID > 0);
   uint64_t blockCount = DiskStore_ComputeBlockCount_(store, npkt);
   if (unlikely(blockCount > store->nBlocksPerSlot)) {
-    N_LOGW("PutData slot=%" PRIu64 " npkt=%p fail=packet-too-long", slotID, npkt);
+    N_LOGW("PutData slot=%" PRIu64 " npkt=%p" N_LOG_ERROR("packet-too-long"), slotID, npkt);
     rte_pktmbuf_free(Packet_ToMbuf(npkt));
     return;
   }

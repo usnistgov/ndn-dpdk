@@ -5,6 +5,10 @@
 
 #include "cs-list.h"
 
+#define CsArc_MoveDir(src, dst) (((uint16_t)(src) << 16) | ((uint16_t)(dst) << 0))
+
+#define CsArc_MoveDirC(src, dst) CsArc_MoveDir(CslDirect##src, CslDirect##dst)
+
 extern const ptrdiff_t CsArc_ListOffsets_[];
 
 /**

@@ -1,4 +1,5 @@
 #include "cs.h"
+#include "cs-disk.h"
 #include "pit.h"
 
 #include "../core/logger.h"
@@ -51,12 +52,19 @@ __attribute__((nonnull)) static void
 Cs_EraseEntry(Cs* cs, CsEntry* entry)
 {
   PcctEraseBatch peb = PcctEraseBatch_New(Pcct_FromCs(cs));
-  if (entry->kind == CsEntryIndirect) {
-    CsList_Remove(&cs->indirect, entry);
-    CsEraseBatch_AddIndirect(&peb, entry);
-  } else {
-    CsArc_Remove(&cs->direct, entry);
-    CsEraseBatch_AddDirect(&peb, entry);
+  switch (entry->kind) {
+    case CsEntryIndirect:
+      CsList_Remove(&cs->indirect, entry);
+      CsEraseBatch_AddIndirect(&peb, entry);
+      break;
+    case CsEntryDisk:
+      CsDisk_Delete(cs, entry);
+      // fallthrough
+    case CsEntryNone:
+    case CsEntryMemory:
+      CsArc_Remove(&cs->direct, entry);
+      CsEraseBatch_AddDirect(&peb, entry);
+      break;
   }
   PcctEraseBatch_Finish(&peb);
 }
@@ -72,7 +80,7 @@ Cs_Evict(Cs* cs, CsList* csl, const char* cslName, CsList_EvictCb evictCb)
 }
 
 __attribute__((nonnull, returns_nonnull)) static inline CsList*
-Cs_GetList_(Cs* cs, CsListID l)
+Cs_GetList(Cs* cs, CsListID l)
 {
   if (l == CslIndirect) {
     return &cs->indirect;
@@ -97,7 +105,7 @@ Cs_GetCapacity(Cs* cs, CsListID l)
   if (l == CslDirect) {
     return CsArc_GetCapacity(&cs->direct);
   }
-  return Cs_GetList_(cs, l)->capacity;
+  return Cs_GetList(cs, l)->capacity;
 }
 
 uint32_t
@@ -106,7 +114,7 @@ Cs_CountEntries(Cs* cs, CsListID l)
   if (l == CslDirect) {
     return CsArc_CountEntries(&cs->direct);
   }
-  return Cs_GetList_(cs, l)->count;
+  return Cs_GetList(cs, l)->count;
 }
 
 /**
@@ -291,28 +299,40 @@ Cs_MatchInterest(Cs* cs, CsEntry* entry, Packet* interestNpkt)
 {
   CsEntry* direct = CsEntry_GetDirect(entry);
   PccEntry* pccDirect = PccEntry_FromCsEntry(direct);
-  bool hasData = direct->kind == CsEntryMemory;
 
   PInterest* interest = Packet_GetInterestHdr(interestNpkt);
   bool violateCanBePrefix = !interest->canBePrefix && interest->name.length < pccDirect->key.nameL;
   bool violateMustBeFresh =
     interest->mustBeFresh && direct->freshUntil <= Mbuf_GetTimestamp(Packet_ToMbuf(interestNpkt));
-  N_LOGD("MatchInterest cs=%p cs-entry=%p~%s cbp=%c mbf=%c has-data=%c", cs, entry,
-         CsEntryKindString[entry->kind], violateCanBePrefix ? 'N' : 'Y',
-         violateMustBeFresh ? 'N' : 'Y', hasData ? 'Y' : 'N');
+  N_LOGD(
+    "MatchInterest cs=%p cs-entry=%p entry-kind=%s direct-kind=%s violate-cbp=%d violate-mbf=%d",
+    cs, entry, CsEntryKindString[entry->kind], CsEntryKindString[direct->kind],
+    (int)violateCanBePrefix, (int)violateMustBeFresh);
 
   if (unlikely(violateCanBePrefix || violateMustBeFresh)) {
     return false;
   }
 
+  switch (direct->kind) {
+    case CsEntryNone:
+      return false;
+    case CsEntryMemory:
+      CsArc_Add(&cs->direct, direct);
+      ++cs->nHitMemory;
+      break;
+    case CsEntryDisk:
+      ++cs->nHitDisk;
+      return false; // XXX
+    default:
+      NDNDPDK_ASSERT(false);
+      return false;
+  }
+
   if (entry->kind == CsEntryIndirect) {
     CsList_MoveToLast(&cs->indirect, entry);
+    ++cs->nHitIndirect;
   }
-  if (likely(hasData)) {
-    CsArc_Add(&cs->direct, direct);
-    return true;
-  }
-  return false;
+  return true;
 }
 
 void

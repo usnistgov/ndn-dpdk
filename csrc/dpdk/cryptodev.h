@@ -6,7 +6,7 @@
 #include "../core/common.h"
 #include <rte_cryptodev.h>
 
-static inline enum rte_crypto_op_status
+__attribute__((nonnull)) static inline enum rte_crypto_op_status
 CryptoOp_GetStatus(const struct rte_crypto_op* op)
 {
   return op->status;
@@ -14,7 +14,7 @@ CryptoOp_GetStatus(const struct rte_crypto_op* op)
 
 extern struct rte_crypto_sym_xform theSha256DigestXform;
 
-static inline void
+__attribute__((nonnull)) static inline void
 CryptoOp_PrepareSha256Digest(struct rte_crypto_op* op, struct rte_mbuf* src, uint32_t offset,
                              uint32_t length, uint8_t* output)
 {

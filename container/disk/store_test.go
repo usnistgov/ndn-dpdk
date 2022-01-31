@@ -9,12 +9,11 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/bdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/spdkenv"
-	"go4.org/must"
 )
 
 func TestStore(t *testing.T) {
 	assert, require := makeAR(t)
-	defer ealthread.AllocClear()
+	t.Cleanup(ealthread.AllocClear)
 
 	device, e := bdev.NewMalloc(disk.BlockSize, 256)
 	require.NoError(e)
@@ -54,9 +53,9 @@ func TestStore(t *testing.T) {
 		}
 		if assert.NotNil(data, n) {
 			assert.Equal(time.Duration(n)*time.Millisecond, data.ToNPacket().Data.Freshness, n)
-			must.Close(data)
+			data.Close()
 		}
-		must.Close(interest)
+		interest.Close()
 	}
 
 	for _, n := range []uint64{2, 32} {
@@ -67,7 +66,7 @@ func TestStore(t *testing.T) {
 			continue
 		}
 		assert.Nil(data, n)
-		must.Close(interest)
+		interest.Close()
 	}
 
 	assert.Zero(packetPool.CountInUse())

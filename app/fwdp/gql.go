@@ -8,7 +8,7 @@ import (
 	"unsafe"
 
 	"github.com/graphql-go/graphql"
-	"github.com/usnistgov/ndn-dpdk/container/cs/cscnt"
+	"github.com/usnistgov/ndn-dpdk/container/cs"
 	"github.com/usnistgov/ndn-dpdk/container/pit"
 	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
 	"github.com/usnistgov/ndn-dpdk/core/runningstat"
@@ -167,10 +167,10 @@ func init() {
 			},
 			"csCounters": &graphql.Field{
 				Description: "CS counters.",
-				Type:        graphql.NewNonNull(cscnt.GqlCountersType),
+				Type:        graphql.NewNonNull(cs.GqlCountersType),
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					fwd := p.Source.(*Fwd)
-					return cscnt.ReadCounters(fwd.Pit(), fwd.Cs()), nil
+					return fwd.Cs().Counters(), nil
 				},
 			},
 		},

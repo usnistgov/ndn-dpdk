@@ -28,8 +28,21 @@ const ptrdiff_t CsArc_ListOffsets_[] = {
 __attribute__((nonnull)) static inline void
 CsArc_MoveHandler(__rte_unused void* arg, CsEntry* entry, CsListID src, CsListID dst)
 {
-  if ((src == CslDirectT1 || src == CslDirectT2) && !(dst == CslDirectT1 || dst == CslDirectT2)) {
-    CsEntry_Clear(entry);
+  switch (CsArc_MoveDir(src, dst)) {
+    case CsArc_MoveDirC(T1, B1):
+    case CsArc_MoveDirC(T2, B2):
+      CsEntry_Clear(entry);
+      break;
+    case CsArc_MoveDirC(New, T1):
+    case CsArc_MoveDirC(T1, T2):
+    case CsArc_MoveDirC(B1, T2):
+    case CsArc_MoveDirC(B2, T2):
+    case CsArc_MoveDirC(B1, Del):
+    case CsArc_MoveDirC(T1, Del):
+    case CsArc_MoveDirC(B2, Del):
+      break;
+    default:
+      NDNDPDK_ASSERT(false);
   }
 }
 
@@ -128,12 +141,16 @@ CsArc_AddNew(CsArc* arc, CsEntry* entry)
   }
   entry->arcList = CslDirectT1;
   CsList_Append(&arc->T1, entry);
+  arc->moveCb(arc->moveCbArg, entry, CslDirectNew, CslDirectT1);
 }
 
 void
 CsArc_Add(CsArc* arc, CsEntry* entry)
 {
   switch (entry->arcList) {
+    case CslIndirect:
+      NDNDPDK_ASSERT(false);
+      break;
     case CslDirectT1:
       N_LOGD("Add arc=%p cs-entry=%p found-in=T1", arc, entry);
       CsArc_Move(arc, entry, T1, T2);
@@ -150,10 +167,8 @@ CsArc_Add(CsArc* arc, CsEntry* entry)
       return;
     case CslDirectDel:
       CsList_Remove(&arc->Del, entry);
-      entry->arcList = 0;
       // fallthrough
-    case 0: // this ensures other case constants are non-zero
-    default:
+    case CslDirectNew:
       CsArc_AddNew(arc, entry);
       return;
   }

@@ -37,5 +37,7 @@ const (
 	ListDirectDel
 	ListIndirect
 
+	ListDirectNew = 0
+
 	_ = "enumgen:CsListID:Csl:List"
 )

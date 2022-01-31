@@ -71,7 +71,7 @@ func (th *threadImpl) Stop() error {
 	if !th.IsRunning() {
 		return nil
 	}
-	defer func(lc eal.LCore) { activeThread.Delete(lc) }(th.lc)
+	defer activeThread.Delete(th.lc)
 	th.stop.BeforeWait()
 	exitCode := th.lc.Wait()
 	th.stop.AfterWait()

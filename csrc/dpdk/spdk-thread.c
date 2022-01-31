@@ -11,7 +11,7 @@ SpdkThread_Run(SpdkThread* th)
     rcu_quiescent_state();
     work = spdk_thread_poll(th->spdkTh, 64, 0);
   }
-  spdk_thread_exit(th->spdkTh);
+  spdk_set_thread(NULL);
   rcu_unregister_thread();
   return 0;
 }

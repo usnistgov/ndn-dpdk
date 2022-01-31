@@ -3,11 +3,13 @@ package cs
 
 /*
 #include "../../csrc/pcct/cs.h"
+#include "../../csrc/pcct/cs-disk.h"
 */
 import "C"
 import (
 	"unsafe"
 
+	"github.com/usnistgov/ndn-dpdk/container/disk"
 	"github.com/usnistgov/ndn-dpdk/container/pcct"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
@@ -54,4 +56,12 @@ func (cs *Cs) Erase(entry *Entry) {
 // ReadDirectArcP returns direct entries ARC algorithm 'p' variable (for unit testing).
 func (cs *Cs) ReadDirectArcP() float64 {
 	return float64(cs.ptr().direct.p)
+}
+
+// SetDisk enables on-disk caching.
+func (cs *Cs) SetDisk(store *disk.Store, alloc *disk.Alloc) {
+	cs.diskStore = (*C.DiskStore)(store.Ptr())
+	cs.diskAlloc = (*C.DiskAlloc)(alloc.Ptr())
+	cs.direct.moveCb = C.CsArc_MoveCb(C.CsDisk_ArcMove)
+	cs.direct.moveCbArg = unsafe.Pointer(cs)
 }

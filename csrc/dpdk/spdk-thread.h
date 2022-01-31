@@ -12,7 +12,7 @@ typedef struct SpdkThread
   struct spdk_thread* spdkTh;
 } SpdkThread;
 
-int
+__attribute__((nonnull)) int
 SpdkThread_Run(SpdkThread* th);
 
 #endif // NDNDPDK_DPDK_SPDK_THREAD_H

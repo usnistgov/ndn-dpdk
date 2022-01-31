@@ -25,7 +25,7 @@ GetData_Fail(struct rte_ring* reply, Packet* npkt)
     if (likely(rte_ring_enqueue(reply, npkt) == 0)) {
       return;
     }
-    N_LOGW("GetData_Fail reply=%p npkt=%p fail=enqueue", reply, npkt);
+    N_LOGW("GetData error reply=%p npkt=%p" N_LOG_ERROR("enqueue"), reply, npkt);
   }
   rte_pktmbuf_free(Packet_ToMbuf(npkt));
 }
@@ -40,16 +40,16 @@ GetData_End(struct spdk_bdev_io* io, bool success, void* npkt0)
   struct rte_ring* reply = ((GetDataRequest*)rte_mbuf_to_priv(dataPkt))->reply;
 
   if (unlikely(!success)) {
-    N_LOGW("GetData_End slot=%" PRIu64 " npkt=%p fail=io-err", slotID, npkt);
+    N_LOGW("GetData error slot=%" PRIu64 " npkt=%p" N_LOG_ERROR("io-err"), slotID, npkt);
     GetData_Fail(reply, npkt);
   } else {
     Mbuf_SetTimestamp(dataPkt, rte_get_tsc_cycles());
     if (unlikely(!Packet_Parse(interest->diskData)) ||
         unlikely(Packet_GetType(interest->diskData) != PktData)) {
-      N_LOGW("GetData_End slot=%" PRIu64 " npkt=%p fail=not-Data", slotID, npkt);
+      N_LOGW("GetData error slot=%" PRIu64 " npkt=%p" N_LOG_ERROR("not-Data"), slotID, npkt);
       GetData_Fail(reply, npkt);
     } else if (unlikely(rte_ring_enqueue(reply, npkt) != 0)) {
-      N_LOGW("GetData_End slot=%" PRIu64 " npkt=%p fail=enqueue", slotID, npkt);
+      N_LOGW("GetData error slot=%" PRIu64 " npkt=%p" N_LOG_ERROR("enqueue"), slotID, npkt);
       GetData_Fail(NULL, npkt);
     }
   }
@@ -72,7 +72,7 @@ GetData_Begin(void* npkt0)
   int res = SpdkBdev_ReadPacket(store->bdev, store->ch, dataPkt, blockOffset, store->nBlocksPerSlot,
                                 store->blockSize, GetData_End, (uintptr_t)npkt);
   if (unlikely(res != 0)) {
-    N_LOGW("GetData_Begin slot=%" PRIu64 " npkt=%p fail=read(%d)", slotID, npkt, res);
+    N_LOGW("GetData read error slot=%" PRIu64 " npkt=%p" N_LOG_ERROR_ERRNO, slotID, npkt, res);
     GetData_Fail(req->reply, npkt);
   }
 }
@@ -87,7 +87,7 @@ DiskStore_GetData(DiskStore* store, uint64_t slotID, uint16_t dataLen, Packet* n
   interest->diskData = Packet_FromMbuf(dataBuf);
 
   if (unlikely(rte_pktmbuf_append(dataBuf, dataLen) == NULL)) {
-    N_LOGW("GetData slot=%" PRIu64 " npkt=%p fail=resize-err", slotID, npkt);
+    N_LOGW("GetData error slot=%" PRIu64 " npkt=%p" N_LOG_ERROR("resize"), slotID, npkt);
     GetData_Fail(reply, npkt);
     return;
   }

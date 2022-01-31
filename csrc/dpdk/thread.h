@@ -71,20 +71,20 @@ ThreadCtrl_SleepReset(ThreadCtrl* ctrl)
     atomic_load_explicit(&(ctrl).stop, memory_order_acquire);                                      \
   })
 
-static inline void
+__attribute__((nonnull)) static inline void
 ThreadCtrl_Init(ThreadCtrl* ctrl)
 {
   ctrl->sleepFor = ThreadCtrl_SleepMin;
   atomic_init(&ctrl->stop, true);
 }
 
-static inline void
+__attribute__((nonnull)) static inline void
 ThreadCtrl_RequestStop(ThreadCtrl* ctrl)
 {
   atomic_store_explicit(&ctrl->stop, false, memory_order_release);
 }
 
-static inline void
+__attribute__((nonnull)) static inline void
 ThreadCtrl_FinishStop(ThreadCtrl* ctrl)
 {
   atomic_store_explicit(&ctrl->stop, true, memory_order_release);

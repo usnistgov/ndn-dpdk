@@ -55,7 +55,7 @@ func NewStopChan() (stop StopChan) {
 // StopClose stops a thread by closing a channel.
 // The thread is not restartable.
 type StopClose struct {
-	v reflect.Value
+	v reflect.Value // chan<-
 }
 
 // BeforeWait requests a stop.

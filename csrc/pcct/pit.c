@@ -55,7 +55,6 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
       // CS entry satisfies Interest
       N_LOGD("Insert has-CS pit=%p search=%s pcc=%p", pit, PccSearch_ToDebugString(&search),
              pccEntry);
-      ++pit->nCsMatch;
       return (PitInsertResult){ .kind = PIT_INSERT_CS, .csEntry = CsEntry_GetDirect(csEntry) };
     }
   }

@@ -135,7 +135,7 @@ CsEntry_Clear(CsEntry* entry)
       entry->kind = CsEntryNone;
       break;
     case CsEntryDisk:
-      NDNDPDK_ASSERT(false); // not implemented
+      NDNDPDK_ASSERT(false); // caller must free disk slot
       break;
     case CsEntryIndirect:
       CsEntry_Disassoc(entry);

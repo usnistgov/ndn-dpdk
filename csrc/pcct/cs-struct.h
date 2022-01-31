@@ -70,6 +70,13 @@ typedef struct Cs
 
   DiskStore* diskStore;
   DiskAlloc* diskAlloc;
+
+  uint64_t nHitMemory;
+  uint64_t nHitDisk;
+  uint64_t nHitIndirect;
+  uint64_t nDiskInsert;
+  uint64_t nDiskDelete;
+  uint64_t nDiskFull;
 } Cs;
 
 #endif // NDNDPDK_PCCT_CS_STRUCT_H

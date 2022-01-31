@@ -29,6 +29,11 @@ type Store struct {
 	th *spdkenv.Thread
 }
 
+// Ptr returns *C.DiskAlloc pointer.
+func (store *Store) Ptr() unsafe.Pointer {
+	return unsafe.Pointer(store.c)
+}
+
 // Close closes this DiskStore.
 func (store *Store) Close() error {
 	cptr.Call(store.th.Post, func() { C.spdk_put_io_channel(store.c.ch) })
