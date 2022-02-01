@@ -12,6 +12,7 @@ N_LOG_INIT(FileServerFd);
 
 #define uthash_malloc(sz) rte_malloc("FileServer.uthash", (sz), 0)
 #define uthash_free(ptr, sz) rte_free((ptr))
+#define HASH_FUNCTION HASH_FUNCTION_DONOTUSE
 #define HASH_KEYCMP(a, b, n) (!FdHt_Cmp_((const FileServerFd*)(a), (const LName*)(b)))
 #define uthash_fatal(msg) rte_panic("uthash_fatal %s", msg)
 

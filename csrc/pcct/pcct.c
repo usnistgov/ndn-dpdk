@@ -10,6 +10,7 @@ N_LOG_INIT(Pcct);
 
 #define uthash_malloc(sz) rte_malloc("PCCT.uthash", (sz), 0)
 #define uthash_free(ptr, sz) rte_free((ptr))
+#define HASH_FUNCTION HASH_FUNCTION_DONOTUSE
 #define HASH_KEYCMP(a, b, n) (!PccKey_MatchSearch((const PccKey*)(a), (const PccSearch*)(b)))
 static_assert(offsetof(PccEntry, key) == 0, ""); // casting PccEntry* to const PccKey*
 #define uthash_fatal(msg) rte_panic("uthash_fatal %s", msg)
