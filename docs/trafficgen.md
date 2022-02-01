@@ -105,7 +105,7 @@ You may use `ndndpdk-ctrl stop-trafficgen` command or GraphQL `delete` mutation 
 Sample commands:
 
 ```bash
-TGID=$(npm run -s gen-config | ndndpdk-ctrl start-trafficgen | tee /dev/stderr | jq -r '.id')
+TGID=$(corepack pnpm start -s gen-config.ts | ndndpdk-ctrl start-trafficgen | tee /dev/stderr | jq -r '.id')
 ndndpdk-ctrl watch-trafficgen --id $TGID
 ndndpdk-ctrl stop-trafficgen --id $TGID
 ```

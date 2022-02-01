@@ -5,6 +5,7 @@ const filename = process.argv[2];
 const typ = process.argv[3];
 const schema = TSJ.createGenerator({
   path: filename,
+  skipTypeCheck: true,
   type: typ,
 }).createSchema(typ);
 

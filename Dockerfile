@@ -11,7 +11,7 @@ RUN sh -c 'apt-get -y -qq update' && \
 COPY . /root/ndn-dpdk/
 RUN export PATH=$PATH:/usr/local/go/bin && \
     cd /root/ndn-dpdk && \
-    npm install && \
+    corepack pnpm install && \
     env ${MAKE_ENV} make && \
     make install
 RUN rm -rf \

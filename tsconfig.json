@@ -14,8 +14,9 @@
     "noUnusedLocals": true,
     "outDir": "build/js",
     "rootDir": "js",
+    "skipLibCheck": true,
     "strict": true,
-    "target": "ES2021"
+    "target": "es2021"
   },
   "include": [
     "js/**/*.ts"

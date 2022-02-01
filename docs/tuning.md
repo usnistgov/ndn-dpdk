@@ -113,13 +113,13 @@ Some example queries:
 GQLSERVER=http://127.0.0.1:3030/
 
 # packet buffers usage
-gq $GQLSERVER -q '{pktmbufPoolTemplates{tid pools{numaSocket used}}}' |\
+npx -y graphqurl $GQLSERVER -q '{pktmbufPoolTemplates{tid pools{numaSocket used}}}' |\
   jq -c '.data.pktmbufPoolTemplates[] | select(.pools|length>0)'
 # This query shows how many objects are currently used in each packet buffer pool.
 # You can adjust the packet buffer capacity settings to fit traffic volume.
 
 # memzone report
-gq $GQLSERVER -q '{memoryDiag{memzones}}' | jq -r '.data.memoryDiag.memzones'
+npx -y graphqurl $GQLSERVER -q '{memoryDiag{memzones}}' | jq -r '.data.memoryDiag.memzones'
 # This query shows how DPDK is using hugepages, including size of each memory zone and
 # their placement in physical segments (i.e. hugepages).
 # You can count how many distinct physical segments are being used, which is useful for

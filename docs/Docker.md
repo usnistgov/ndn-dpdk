@@ -7,7 +7,7 @@ This page describes how to run NDN-DPDK service in a Docker container.
 The simplest command to build a Docker image with the provided [Dockerfile](../Dockerfile) is:
 
 ```bash
-docker build -t ndn-dpdk .
+docker build --pull -t ndn-dpdk .
 ```
 
 Some DPDK drivers may require external dependencies.
@@ -26,7 +26,7 @@ You can use `MAKE_ENV` build argument to pass environment variables to the Makef
 Example command to enable mlx5 driver, use alternate GOPROXY, target Skylake CPU, and select release mode:
 
 ```bash
-docker build \
+docker build --pull \
   --build-arg APT_PKGS="libibverbs-dev" \
   --build-arg DEPENDS_ENV="GOPROXY=https://goproxy.io,direct" \
   --build-arg DEPENDS_ARGS="--arch=skylake" \

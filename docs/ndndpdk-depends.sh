@@ -206,6 +206,7 @@ APT_PKGS=(
   clang-11
   clang-format-11
   doxygen
+  file
   git
   lcov
   libaio-dev
@@ -312,7 +313,6 @@ if [[ $NODEVER != 0 ]]; then
 fi
 
 $SUDO env DEBIAN_FRONTEND=noninteractive apt-get -qq install "${APT_PKGS[@]}"
-$SUDO npm install -g graphqurl
 
 if [[ $DISTRO == bionic ]]; then
   $SUDO update-alternatives --remove-all python || true

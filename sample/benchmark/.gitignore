@@ -1,4 +1,4 @@
 .env
-/package-lock.json
+/pnpm-lock.yaml
 /public/bundle.*
 node_modules

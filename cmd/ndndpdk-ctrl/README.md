@@ -16,7 +16,7 @@ You can also discover the schema via introspection.
 With the NDN-DPDK service running (does not need to be activated), run:
 
 ```bash
-gq http://127.0.0.1:3030/ --introspect > ndndpdk-svc.graphql
+npx -y graphqurl http://127.0.0.1:3030/ --introspect > ndndpdk-svc.graphql
 ```
 
 You can view the GraphQL query prepared by this command via the `--cmdout` flag.

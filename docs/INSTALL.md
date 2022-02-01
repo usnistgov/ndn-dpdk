@@ -20,7 +20,6 @@ You can also [build a Docker container](Docker.md), which would work on other op
 * [Data Plane Development Kit (DPDK)](https://www.dpdk.org/) 21.11
 * [Storage Performance Development Kit (SPDK)](https://spdk.io/) 21.10
 * [godoc](https://pkg.go.dev/golang.org/x/tools/cmd/godoc) and [staticcheck](https://pkg.go.dev/honnef.co/go/tools/cmd/staticcheck) commands (optional)
-* [gq](https://www.npmjs.com/package/graphqurl) command (optional, only used in sample commands)
 
 You can run the [ndndpdk-depends.sh](ndndpdk-depends.sh) script to install these dependencies, or refer to the script for specific configuration options.
 Certain hardware drivers may require installing extra dependencies before building DPDK or running the script; see [hardware known to work](hardware.md) for more information.
@@ -37,7 +36,7 @@ See script source code for variable names and their default values.
 ## Build Steps
 
 1. Clone the NDN-DPDK repository.
-2. Run `npm install` to download NPM dependencies.
+2. Run `core pnpm install` to download NPM dependencies.
 3. Run `NDNDPDK_MK_RELEASE=1 make` to compile the project.
 4. Run `sudo make install` to install the programs, and `sudo make uninstall` to uninstall them.
 

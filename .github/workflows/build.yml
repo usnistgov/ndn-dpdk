@@ -74,12 +74,12 @@ jobs:
       - uses: actions/checkout@v2
       - name: build NDN-DPDK in debug mode
         run: |
-          npm install
+          corepack pnpm install
           make
           sudo make install
           for D in sample/activate sample/benchmark; do
             pushd $D
-            npm install
+            corepack pnpm install
             popd
           done
           sudo make uninstall

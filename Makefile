@@ -71,7 +71,8 @@ npm: build/share/ndn-dpdk/ndn-dpdk.npm.tgz
 build/share/ndn-dpdk/ndn-dpdk.npm.tgz:
 	node_modules/.bin/tsc
 	jq -n '{ type: "module" }' >build/js/package.json
-	mv $$(npm pack -s .) $@
+	mkdir -p build/share/ndn-dpdk
+	mv $$(corepack pnpm pack -s .) $@
 
 .PHONY: install
 install:
@@ -99,6 +100,6 @@ coverage:
 
 .PHONY: clean
 clean:
-	awk '!(/node_modules/ || /package-lock/ || /\*/)' .dockerignore | xargs rm -rf
+	awk '!(/node_modules/ || /pnpm-lock/ || /\*/)' .dockerignore | xargs rm -rf
 	awk '/\*/' .dockerignore | xargs -I{} -n1 find -wholename ./{} -delete
 	go clean -cache ./...

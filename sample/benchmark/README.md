@@ -23,11 +23,11 @@ This is a web application that performs simple benchmark of NDN-DPDK forwarder.
 
 ### Usage
 
-1. Run `npm install` to install dependencies.
+1. Run `corepack pnpm install` to install dependencies.
 2. Copy `sample.env` as `.env`, and then edit `.env` according to the comments within.
 3. Start NDN-DPDK service on both machines.
 4. Start SSH tunnel for reaching remote NDN-DPDK.
-5. Run `npm start` to start the web application.
+5. Run `corepack pnpm start` to start the web application.
 6. Visit `http://localhost:3333` (via SSH tunnel) in your browser.
 
 ## Benchmark Description

@@ -119,13 +119,8 @@ The `/run/ndn` directory should be mounted into both containers in order to esta
 In this case, you should change `--gqlserver` flag to target the container.
 
 The sample activation parameters given in [NDN-DPDK activation sample](../sample/activate) may be used in this scenario.
-
-1. Make a copy of this directory to somewhere outside the NDN-DPDK repository.
-2. Run `npm install` to install dependencies.
-3. Run `npm run -s fileserver-args | jq` to see the JSON document.
-   Notice in the output that `.face.role` is set to "client", opposite from the locator sent to the forwarder.
-4. Run `npm run -s fileserver-args | ndndpdk-ctrl --gqlserver http://127.0.0.1:3031 activate-fileserver` to send a file server activation command.
-   Notice the `--gqlserver` flag, targeting the second NDN-DPDK service instance.
+Follow the instructions in the sample, then run `corepack pnpm start -s fileserver-args.ts | ndndpdk-ctrl --gqlserver http://127.0.0.1:3031 activate-fileserver` to send a file server activation command.
+Notice the `--gqlserver` flag, targeting the second NDN-DPDK service instance.
 
 ### Retrieve the File
 

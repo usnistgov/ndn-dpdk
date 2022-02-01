@@ -7,7 +7,7 @@
 /csrc/meson.build
 /mk/meson.build
 /node_modules
-/package-lock.json
+/pnpm-lock.yaml
 _obj
 cgo_test.go
 cgoflags.go

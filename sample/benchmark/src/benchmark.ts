@@ -268,14 +268,14 @@ async function restart(c: GraphQLClient) {
 }
 
 function hexDigit(s: string): string {
-  return s.charCodeAt(0).toString(16).padStart(2, "0").toUpperCase();
+  return s.codePointAt(0)!.toString(16).padStart(2, "0");
 }
 
 function macAddr(node: string, intf: string): string {
   return `02:00:00:00:${hexDigit(node)}:${hexDigit(intf)}`;
 }
 
-const vxlanLocatorFields: Omit<VxlanLocator, keyof EtherLocator> & Pick<VxlanLocator, "scheme"> = {
+const vxlanLocatorFields: Omit<VxlanLocator, Exclude<keyof EtherLocator, "scheme">> = {
   scheme: "vxlan",
   localIP: "192.168.118.0",
   remoteIP: "192.168.118.0",
