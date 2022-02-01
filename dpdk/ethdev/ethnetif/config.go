@@ -82,6 +82,9 @@ func createXDP(cfg Config) (ethdev.EthDev, error) {
 	if e != nil {
 		return nil, e
 	}
+	if !n.Up() {
+		return nil, fmt.Errorf("interface %s is not UP", n.Name)
+	}
 
 	args := map[string]interface{}{
 		"iface":       n.Name,
@@ -108,6 +111,9 @@ func createAfPacket(cfg Config) (ethdev.EthDev, error) {
 	n, e := netIntfByName(cfg.Netif)
 	if e != nil {
 		return nil, e
+	}
+	if !n.Up() {
+		return nil, fmt.Errorf("interface %s is not UP", n.Name)
 	}
 
 	args := map[string]interface{}{

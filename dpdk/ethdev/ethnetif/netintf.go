@@ -33,6 +33,10 @@ func (n netIntf) Logger() *zap.Logger {
 	)
 }
 
+func (n netIntf) Up() bool {
+	return n.Flags&net.FlagUp != 0
+}
+
 func (n netIntf) PCIAddr() (a pciaddr.PCIAddress, e error) {
 	busInfo, e := etht.BusInfo(n.Name)
 	if e != nil {
@@ -161,6 +165,13 @@ func (n netIntf) UnloadXDP() {
 }
 
 func netIntfByName(ifname string) (netIntf, error) {
+	if etht == nil {
+		var e error
+		if etht, e = ethtool.NewEthtool(); e != nil {
+			return netIntf{}, fmt.Errorf("ethtool.NewEthtool: %w", e)
+		}
+	}
+
 	nif, e := net.InterfaceByName(ifname)
 	if e != nil {
 		return netIntf{}, fmt.Errorf("net.InterfaceByName(%s): %w", ifname, e)

@@ -46,7 +46,7 @@ After starting the `ndndpdk-svc` service process or container, follow these step
    You can use the `ndndpdk-ctrl activate-trafficgen` command, or programmatically activate the traffic generator via GraphQL `activate` mutation with `trafficgen` input.
 
 2. Create Ethernet ports for the faces needed in traffic generators.
-   See [face creation](face.md) for instructions.
+   See [face creation](face.md) for instructions on creating the port.
 
    The input dispatching method in the traffic generator requires every face to have a separate input thread.
    Hence, the Ethernet port should be created with PCI driver and the RxFlow feature should be enabled.

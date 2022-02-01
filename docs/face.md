@@ -7,8 +7,11 @@ This page explains how to create faces in NDN-DPDK.
 Face creation parameters are described with **locator**, a JSON document that conforms to the JSON schema `locator.schema.json` (installed in `/usr/local/share/ndn-dpdk` and [available online](https://ndn-dpdk.ndn.today/schema/locator.schema.json)).
 A locator contains the transport protocol, local and remote endpoint addresses, and other related parameters.
 
-After activating NDN-DPDK service, each role offers a different API that accepts a locator for face creation.
-Read [forwarder](forwarder.md), [traffic generator](trafficgen.md), and [file server](fileserver.md) for details.
+After activating NDN-DPDK service, each role offers a different API that accepts a locator for face creation:
+
+* [forwarder](forwarder.md): `ndndpdk-ctrl create-face` command or `createFace` mutation.
+* [traffic generator](trafficgen.md): `ndndpdk-ctrl start-trafficgen` command or `startTrafficGen` mutation.
+* [file server](fileserver.md): `activate` mutation or `ndndpdk-ctrl activate-fileserver` command.
 
 In any role, you can retrieve a list of faces with `ndndpdk-ctrl list-face` command or programmatically via GraphQL `faces` query.
 The return value would contain the locator of each existing face.
@@ -139,6 +142,22 @@ ndndpdk-ctrl create-eth-port --netif $NETIF --mtu 9000
 
 An Ethernet port with AF\_PACKET only works reliably for NDN over Ethernet (without VLAN header).
 While it is possible to create VLAN, UDP, or VXLAN faces on such a port, they may trigger undesirable reactions from the kernel network stack (e.g. ICMP port unreachable packets or UFW drop logs), because the kernel is unaware of NDN-DPDK's UDP endpoint.
+
+By default, DPDK AF\_PACKET driver sets PACKET\_QDISC\_BYPASS socket option, so that outgoing packets do not pass through the kernel's qdisc (traffic control) layer.
+If you need to use kernel traffic shaping features (typically with `tc` command), you can pass `qdisc_bypass=0` argument to the DPDK driver, which disables PACKET\_QDISC\_BYPASS socket option.
+Example GraphQL mutation:
+
+```graphql
+mutation {
+  createEthPort(
+    driver: AF_PACKET
+    netif: "eth1"
+    devargs: { qdisc_bypass: 0 }
+  ) {
+    id
+  }
+}
+```
 
 ### Creating Ethernet-based Face
 

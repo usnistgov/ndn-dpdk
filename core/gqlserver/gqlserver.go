@@ -44,6 +44,20 @@ func AddQuery(f *graphql.Field) {
 
 // AddMutation adds a top-level mutation field.
 func AddMutation(f *graphql.Field) {
+	name, resolve := f.Name, f.Resolve
+	f.Resolve = func(p graphql.ResolveParams) (interface{}, error) {
+		defer func() {
+			if e := recover(); e != nil {
+				logger.Error("panic in GraphQL mutation resolver",
+					zap.String("name", name),
+					zap.Any("error", e),
+					zap.StackSkip("stack", 2),
+				)
+				panic(e)
+			}
+		}()
+		return resolve(p)
+	}
 	Schema.Mutation.AddFieldConfig(f.Name, f)
 }
 
