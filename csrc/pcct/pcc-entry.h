@@ -8,6 +8,13 @@
 #include "pcc-key.h"
 #include "pit-entry.h"
 
+enum
+{
+  PccTokenSize = 6,
+  PccTokenBits = PccTokenSize * CHAR_BIT,
+  PccTokenMask = ((uint64_t)1 << PccTokenBits) - 1,
+};
+
 typedef struct PccEntry PccEntry;
 
 /**
@@ -65,7 +72,7 @@ struct PccEntry
       PccSlotIndex pitEntry1Slot : 2;
       PccSlotIndex csEntrySlot : 2;
       int : 8;
-      uint64_t token : 48;
+      uint64_t token : PccTokenBits;
     } __rte_packed;
     struct
     {

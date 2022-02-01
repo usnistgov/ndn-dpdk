@@ -55,7 +55,7 @@ CsArc_SetP(CsArc* arc, double p)
 }
 
 void
-CsArc_Init(CsArc* arc, uint32_t capacity)
+CsArc_Init(CsArc* arc, uint32_t c, uint32_t capB2)
 {
   CsList_Init(&arc->T1);
   CsList_Init(&arc->B1);
@@ -63,10 +63,11 @@ CsArc_Init(CsArc* arc, uint32_t capacity)
   CsList_Init(&arc->B2);
   CsList_Init(&arc->Del);
 
-  arc->c = (double)capacity;
-  CsArc_c(arc) = capacity;
-  CsArc_2c(arc) = 2 * capacity;
+  arc->c = (double)c;
+  CsArc_c(arc) = c;
+  CsArc_2c(arc) = 2 * c;
   CsArc_SetP(arc, 0.0);
+  arc->B2.capacity = capB2;
 
   arc->moveCb = CsArc_MoveHandler;
   arc->moveCbArg = NULL;
@@ -131,7 +132,7 @@ CsArc_AddNew(CsArc* arc, CsEntry* entry)
     NDNDPDK_ASSERT(nL1 < CsArc_c(arc));
     uint32_t nL1L2 = nL1 + arc->T2.count + arc->B2.count;
     if (nL1L2 >= CsArc_c(arc)) {
-      if (nL1L2 == CsArc_2c(arc)) {
+      if (arc->B2.count >= arc->B2.capacity && nL1L2 >= CsArc_2c(arc)) {
         N_LOGV("^ evict-from=B2");
         CsEntry* deleting = CsList_GetFront(&arc->B2);
         CsArc_Move(arc, deleting, B2, Del);

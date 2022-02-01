@@ -56,7 +56,7 @@ func NewFixture(t *testing.T, modifyConfig ...func(cfg *fwdp.Config)) (fixture *
 	cfg.Fib.StartDepth = 8
 
 	cfg.Pcct.PcctCapacity = 65535
-	cfg.Pcct.CsDirectCapacity = 16384
+	cfg.Pcct.CsMemoryCapacity = 16384
 	cfg.Pcct.CsIndirectCapacity = 16384
 
 	latencySampleFreq := 0

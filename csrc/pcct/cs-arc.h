@@ -23,10 +23,11 @@ CsArc_GetList(CsArc* arc, CsListID l)
 
 /**
  * @brief Initialize ARC.
- * @param capacity nominal capacity @c c .
+ * @param c nominal capacity.
+ * @param capB2 extended capacity of B2 list, used in CsDisk integration.
  */
 __attribute__((nonnull)) void
-CsArc_Init(CsArc* arc, uint32_t capacity);
+CsArc_Init(CsArc* arc, uint32_t c, uint32_t capB2);
 
 /** @brief Return nominal capacity @c c . */
 __attribute__((nonnull)) static __rte_always_inline uint32_t
@@ -37,7 +38,7 @@ CsArc_GetCapacity(const CsArc* arc)
 
 /** @brief Return number of in-memory entries. */
 static __rte_always_inline uint32_t
-CsArc_CountEntries(CsArc* arc)
+CsArc_CountEntries(const CsArc* arc)
 {
   return arc->T1.count + arc->T2.count;
 }

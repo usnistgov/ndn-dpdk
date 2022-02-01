@@ -7,10 +7,6 @@
 #include "pcct.h"
 #include "pit-result.h"
 
-/** @brief Constructor. */
-__attribute__((nonnull)) void
-Cs_Init(Cs* cs, uint32_t capDirect, uint32_t capIndirect);
-
 /** @brief Get capacity in number of entries. */
 __attribute__((nonnull)) uint32_t
 Cs_GetCapacity(Cs* cs, CsListID l);

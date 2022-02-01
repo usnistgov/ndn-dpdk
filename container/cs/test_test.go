@@ -61,8 +61,8 @@ func NewFixture(t testing.TB, cfg pcct.Config) (f *Fixture) {
 	f = &Fixture{t: t}
 
 	cfg.PcctCapacity = 4095
-	if cfg.CsDirectCapacity == 0 {
-		cfg.CsDirectCapacity = 200
+	if cfg.CsMemoryCapacity == 0 {
+		cfg.CsMemoryCapacity = 200
 	}
 	if cfg.CsIndirectCapacity == 0 {
 		cfg.CsIndirectCapacity = 200
@@ -118,7 +118,8 @@ func (f *Fixture) EnableDisk(nSlots int) {
 		f.DiskStore.Close()
 	})
 
-	f.Cs.SetDisk(f.DiskStore, f.DiskAlloc)
+	e = f.Cs.SetDisk(f.DiskStore, f.DiskAlloc)
+	f.noError(e)
 }
 
 // CountMpInUse returns number of in-use entries in PCCT's underlying mempool.

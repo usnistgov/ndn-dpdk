@@ -88,17 +88,6 @@ Cs_GetList(Cs* cs, CsListID l)
   return CsArc_GetList(&cs->direct, l);
 }
 
-void
-Cs_Init(Cs* cs, uint32_t capDirect, uint32_t capIndirect)
-{
-  CsArc_Init(&cs->direct, capDirect);
-  CsList_Init(&cs->indirect);
-  cs->indirect.capacity = capIndirect;
-
-  N_LOGI("Init cs=%p arc=%p pcct=%p cap-direct=%" PRIu32 " cap-indirect=%" PRIu32, cs, &cs->direct,
-         Pcct_FromCs(cs), capDirect, capIndirect);
-}
-
 uint32_t
 Cs_GetCapacity(Cs* cs, CsListID l)
 {

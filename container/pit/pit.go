@@ -14,8 +14,12 @@ import (
 	"github.com/usnistgov/ndn-dpdk/container/cs"
 	"github.com/usnistgov/ndn-dpdk/container/fib/fibreplica"
 	"github.com/usnistgov/ndn-dpdk/container/pcct"
+	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/ndni"
+	"go.uber.org/zap"
 )
+
+var logger = logging.New("pit")
 
 // Pit represents a Pending Interest Table (PIT).
 type Pit C.Pit
@@ -67,6 +71,18 @@ func (pit *Pit) FindByData(data *ndni.Packet, token uint64) FindResult {
 // FindByNack searches for PIT entries matching a Nack.
 func (pit *Pit) FindByNack(nack *ndni.Packet, token uint64) *Entry {
 	return (*Entry)(C.Pit_FindByNack(pit.ptr(), (*C.Packet)(nack.Ptr()), C.uint64_t(token)))
+}
+
+func init() {
+	pcct.InitPit = func(cfg pcct.Config, pcct *pcct.Pcct) {
+		pit := &((*C.Pcct)(pcct.Ptr())).pit
+		logger.Info("init",
+			zap.Uintptr("pcct", uintptr(unsafe.Pointer(pcct))),
+			zap.Uintptr("pit", uintptr(unsafe.Pointer(pit))),
+		)
+
+		C.Pit_Init(pit)
+	}
 }
 
 // FindResult represents the result of Pit.FindByData.

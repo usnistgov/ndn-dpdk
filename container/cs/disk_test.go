@@ -11,7 +11,8 @@ import (
 func TestDisk(t *testing.T) {
 	assert, _ := makeAR(t)
 	fixture := NewFixture(t, pcct.Config{
-		CsDirectCapacity: 200,
+		CsMemoryCapacity: 200,
+		CsDiskCapacity:   300,
 	})
 	fixture.EnableDisk(500)
 
@@ -20,10 +21,10 @@ func TestDisk(t *testing.T) {
 		fixture.Find(makeInterest(fmt.Sprintf("/N/%d", i)))
 	}
 	assert.Equal(200, fixture.Cs.CountEntries(cs.ListDirectT2))
-	assert.Equal(200, fixture.Cs.CountEntries(cs.ListDirectB2))
+	assert.Equal(300, fixture.Cs.CountEntries(cs.ListDirectB2))
 
 	cnt := fixture.Cs.Counters()
-	assert.EqualValues(200, cnt.NDiskInsert-cnt.NDiskDelete)
+	assert.EqualValues(300, cnt.NDiskInsert-cnt.NDiskDelete)
 	assert.NotZero(cnt.NDiskInsert)
 	assert.NotZero(cnt.NDiskDelete)
 }

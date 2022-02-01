@@ -6,6 +6,7 @@ import type { Uint } from "./core";
  */
 export interface PcctConfig {
   pcctCapacity?: Uint;
-  csDirectCapacity?: Uint;
+  csMemoryCapacity?: Uint;
+  csDiskCapacity?: Uint;
   csIndirectCapacity?: Uint;
 }

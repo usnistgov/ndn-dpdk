@@ -3,8 +3,6 @@ package pcct
 
 /*
 #include "../../csrc/pcct/pcct.h"
-#include "../../csrc/pcct/pit.h"
-#include "../../csrc/pcct/cs.h"
 */
 import "C"
 import (
@@ -12,14 +10,26 @@ import (
 	"unsafe"
 
 	"github.com/pkg/math"
+	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/mempool"
+	"go.uber.org/zap"
+)
+
+var logger = logging.New("pcct")
+
+// PIT and CS initialization functions.
+// These are assigned during package pit and package cs initialization.
+var (
+	InitPit func(cfg Config, pcct *Pcct)
+	InitCs  func(cfg Config, pcct *Pcct)
 )
 
 // Config contains PCCT configuration.
 type Config struct {
 	PcctCapacity       int `json:"pcctCapacity,omitempty"`
-	CsDirectCapacity   int `json:"csDirectCapacity,omitempty"`
+	CsMemoryCapacity   int `json:"csMemoryCapacity,omitempty"`
+	CsDiskCapacity     int `json:"csDiskCapacity,omitempty"`
 	CsIndirectCapacity int `json:"csIndirectCapacity,omitempty"`
 }
 
@@ -27,16 +37,6 @@ func (cfg *Config) applyDefaults() {
 	if cfg.PcctCapacity <= 0 {
 		cfg.PcctCapacity = 131071
 	}
-
-	adjustCsCap := func(v *int) {
-		if *v <= 0 {
-			*v = cfg.PcctCapacity / 4
-		}
-		// use C.CsEvictBulk instead of cs.EvictBulk to avoid circular dependency
-		*v = math.MaxInt(*v, C.CsEvictBulk)
-	}
-	adjustCsCap(&cfg.CsDirectCapacity)
-	adjustCsCap(&cfg.CsIndirectCapacity)
 }
 
 // Pcct represents a PIT-CS Composite Table (PCCT).
@@ -90,7 +90,14 @@ func New(cfg Config, socket eal.NumaSocket) (pcct *Pcct, e error) {
 		return nil, fmt.Errorf("Pcct_Init error %w", eal.GetErrno())
 	}
 
-	C.Pit_Init(&pcctC.pit)
-	C.Cs_Init(&pcctC.cs, C.uint32_t(cfg.CsDirectCapacity), C.uint32_t(cfg.CsIndirectCapacity))
-	return (*Pcct)(pcctC), nil
+	pcct = (*Pcct)(pcctC)
+	logger.Info("init",
+		zap.Uintptr("pcct", uintptr(unsafe.Pointer(pcct))),
+		zap.Uintptr("mp", uintptr(unsafe.Pointer(mpC))),
+		zap.Uintptr("token-ht", uintptr(unsafe.Pointer(pcct.tokenHt))),
+	)
+
+	InitPit(cfg, pcct)
+	InitCs(cfg, pcct)
+	return pcct, nil
 }

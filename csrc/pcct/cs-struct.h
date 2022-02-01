@@ -47,7 +47,7 @@ typedef struct CsArc
 #define CsArc_c(arc) ((arc)->B1.capacity)
 
 /** @brief Access @c 2c as uint32. */
-#define CsArc_2c(arc) ((arc)->B2.capacity)
+#define CsArc_2c(arc) ((arc)->Del.capacity)
 
 /** @brief Access @c p as uint32. */
 #define CsArc_p(arc) ((arc)->T1.capacity)

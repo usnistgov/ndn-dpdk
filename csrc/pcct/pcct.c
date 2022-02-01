@@ -48,7 +48,6 @@ Pcct_Init(Pcct* pcct, const char* id, uint32_t maxEntries, int numaSocket)
     return false;
   }
 
-  N_LOGI("Init pcct=%p", pcct);
   return true;
 }
 
@@ -64,10 +63,18 @@ Pcct_Clear(Pcct* pcct)
       continue;
     }
     CsEntry* csEntry = PccEntry_GetCsEntry(entry);
-    if (csEntry->kind == CsEntryMemory) {
-      CsEntry_Clear(csEntry);
-      // CsEntryDisk is not cleared, because DiskAlloc will be discarded
-      // CsEntryIndirect is not cleared, because CS index will be discarded
+    switch (csEntry->kind) {
+      case CsEntryNone:
+        break;
+      case CsEntryMemory:
+        CsEntry_Clear(csEntry);
+        break;
+      case CsEntryDisk:
+        // DiskAlloc will be discarded, unnecessary to clear
+        break;
+      case CsEntryIndirect:
+        // CS index will be discarded, unnecessary to clear entry
+        break;
     }
   }
 
@@ -117,9 +124,11 @@ Pcct_Erase(Pcct* pcct, PccEntry* entry)
 }
 
 uint64_t
-Pcct_AddToken_(Pcct* pcct, PccEntry* entry)
+Pcct_AddToken(Pcct* pcct, PccEntry* entry)
 {
-  NDNDPDK_ASSERT(!entry->hasToken);
+  if (entry->hasToken) {
+    return entry->token;
+  }
 
   uint64_t token = pcct->lastToken;
   while (true) {
@@ -129,7 +138,7 @@ Pcct_AddToken_(Pcct* pcct, PccEntry* entry)
     }
 
     hash_sig_t hash = rte_hash_hash(pcct->tokenHt, &token);
-    if (unlikely(rte_hash_lookup_with_hash(pcct->tokenHt, &token, hash) >= 0)) {
+    if (rte_hash_lookup_with_hash(pcct->tokenHt, &token, hash) >= 0) {
       // token is in use
       continue;
     }
@@ -150,12 +159,14 @@ Pcct_AddToken_(Pcct* pcct, PccEntry* entry)
 }
 
 void
-Pcct_RemoveToken_(Pcct* pcct, PccEntry* entry)
+Pcct_RemoveToken(Pcct* pcct, PccEntry* entry)
 {
-  NDNDPDK_ASSERT(entry->hasToken);
-  NDNDPDK_ASSERT(Pcct_FindByToken(pcct, entry->token) == entry);
+  if (!entry->hasToken) {
+    return;
+  }
 
   uint64_t token = entry->token;
+  NDNDPDK_ASSERT(Pcct_FindByToken(pcct, entry->token) == entry);
   N_LOGD("RemoveToken pcct=%p entry=%p token=%012" PRIx64, pcct, entry, token);
 
   entry->hasToken = false;
@@ -170,7 +181,10 @@ Pcct_FindByToken(const Pcct* pcct, uint64_t token)
 
   void* entry = NULL;
   int res = rte_hash_lookup_data(pcct->tokenHt, &token, &entry);
-  NDNDPDK_ASSERT((res >= 0 && entry != NULL) || (res == -ENOENT && entry == NULL));
+  if (unlikely(res < 0)) {
+    NDNDPDK_ASSERT(res == -ENOENT);
+    return NULL;
+  }
   return (PccEntry*)entry;
 }
 

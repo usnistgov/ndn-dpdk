@@ -10,7 +10,7 @@
 #define PIT_MAX_LIFETIME 120000
 
 /** @brief Constructor. */
-void
+__attribute__((nonnull)) void
 Pit_Init(Pit* pit);
 
 /** @brief Trigger expired timers. */
@@ -23,12 +23,6 @@ Pit_TriggerTimers(Pit* pit)
 /** @brief Set callback when strategy timer expires. */
 __attribute__((nonnull(1))) void
 Pit_SetSgTimerCb(Pit* pit, Pit_SgTimerCb cb, void* arg);
-
-__attribute__((nonnull)) static inline void
-Pit_InvokeSgTimerCb_(Pit* pit, PitEntry* entry)
-{
-  (*pit->sgTimerCb)(pit, entry, pit->sgTimerCbArg);
-}
 
 /**
  * @brief Insert or find a PIT entry for the given Interest.

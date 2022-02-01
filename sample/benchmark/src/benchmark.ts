@@ -81,7 +81,7 @@ export class Benchmark {
       fib: { startDepth: 4 },
       pcct: {
         pcctCapacity: 65535,
-        csDirectCapacity: 4096,
+        csMemoryCapacity: 4096,
         csIndirectCapacity: 4096,
       },
       fwdInterestQueue: { dequeueBurstSize: 32 },

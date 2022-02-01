@@ -52,7 +52,7 @@ For example, to support MTU=9000, this must be set to at least 9146.
 
 **.mempool.DIRECT.capacity** is the maximum quantity of packet buffers on each NUMA socket.
 Every packet received by the forwarder and not yet released, including those buffered in the PIT or cached in the CS, occupies one of the packet buffers.
-Therefore, the capacity must be large enough to accommodate all the queues, PIT entries, and Data packets cached in the CS; otherwise, if the capacity is too small, Ethernet adapters will eventually stop receiving packets due to lack of packet buffers.
+Therefore, the capacity must be large enough to accommodate all the queues, PIT entries, and in-memory Data packets cached in the CS; otherwise, if the capacity is too small, Ethernet adapters will eventually stop receiving packets due to lack of packet buffers.
 This setting also has great impact on the RAM usage of the forwarder: if it's too large, the forwarder may fail to activate due to insufficient hugepage memory.
 
 **.mempool.INDIRECT.capacity** is the maximum quantity of indirect entries on each NUMA socket.
@@ -67,14 +67,14 @@ It should be set to the 90th percentile of the anticipated number of name compon
 **.pcct.pcctCapacity** is the maximum quantity of PCCT entries in each forwarding thread.
 This limits the combined quantity of PIT entries and CS entries in a forwarding thread.
 
-**.pcct.csDirectCapacity** is the maximum quantity of direct CS entries in each forwarding thread.
-Each direct CS entry contains a Data packet and occupies a packet buffer, and can be found with Interests having the same name as the Data.
+**.pcct.csMemoryCapacity** is the maximum quantity of direct in-memory CS entries in each forwarding thread.
+Each direct in-memory CS entry contains a Data packet and occupies a packet buffer, and can be found with Interests having the same name as the Data.
 This capacity, multiplied by the number of forwarding threads, is roughly equivalent to the "CS capacity" in other forwarders.
 
 **.pcct.csIndirectCapacity** is the maximum quantity of indirect CS entries in each forwarding thread.
 Indirect CS entries enable prefix match lookups in the CS.
 Each indirect CS entry is a pointer to a direct CS entry, but does not contain a Data packet by itself and thus does not occupy a packet buffer.
-In most cases, it's recommended to set this to the same as `.pcct.csDirectCapacity`.
+In most cases, it's recommended to set this to the same as `.pcct.csMemoryCapacity`.
 If the majority of traffic in your network is exact match only, you may set a smaller value.
 
 ## Sample Scenario: ndnping

@@ -15,7 +15,7 @@ const args: ActivateFwArgs = {
   },
   pcct: {
     pcctCapacity: 65535,
-    csDirectCapacity: 20000,
+    csMemoryCapacity: 20000,
     csIndirectCapacity: 20000,
   },
 };

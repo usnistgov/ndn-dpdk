@@ -8,14 +8,12 @@ N_LOG_INIT(Pit);
 static void
 Pit_SgTimerCb_Empty(Pit* pit, PitEntry* entry, void* arg)
 {
-  N_LOGD("SgTimerCb pit=%p pit-entry=%p no-callback", pit, entry);
+  NDNDPDK_ASSERT(false);
 }
 
 void
 Pit_Init(Pit* pit)
 {
-  N_LOGI("Init pit=%p pcct=%p", pit, Pcct_FromPit(pit));
-
   // 2^12 slots of 33ms interval, accommodates InterestLifetime up to 136533ms
   pit->timeoutSched = MinSched_New(12, TscHz / 30, PitEntry_Timeout_, (uintptr_t)pit);
   NDNDPDK_ASSERT(MinSched_GetMaxDelay(pit->timeoutSched) >=

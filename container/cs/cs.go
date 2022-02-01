@@ -7,12 +7,18 @@ package cs
 */
 import "C"
 import (
+	"errors"
 	"unsafe"
 
+	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/container/disk"
 	"github.com/usnistgov/ndn-dpdk/container/pcct"
+	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/ndni"
+	"go.uber.org/zap"
 )
+
+var logger = logging.New("cs")
 
 // Cs represents a Content Store (CS).
 type Cs C.Cs
@@ -59,9 +65,62 @@ func (cs *Cs) ReadDirectArcP() float64 {
 }
 
 // SetDisk enables on-disk caching.
-func (cs *Cs) SetDisk(store *disk.Store, alloc *disk.Alloc) {
+func (cs *Cs) SetDisk(store *disk.Store, alloc *disk.Alloc) error {
+	sMin, sMax := store.SlotRange()
+	aMin, aMax := alloc.SlotRange()
+	if sMin > aMin || sMax < aMax {
+		return errors.New("DiskAlloc slot range out of bound")
+	}
+
+	capAlloc, capB2 := alloc.Capacity(), cs.Capacity(ListDirectB2)
+	if capAlloc < capB2 {
+		logger.Warn("disk allocator capacity is smaller than CS index capacity reserved for on-disk entries",
+			zap.Int("cap-alloc", capAlloc),
+			zap.Int("cap-B2", capB2),
+		)
+	}
+
 	cs.diskStore = (*C.DiskStore)(store.Ptr())
 	cs.diskAlloc = (*C.DiskAlloc)(alloc.Ptr())
 	cs.direct.moveCb = C.CsArc_MoveCb(C.CsDisk_ArcMove)
 	cs.direct.moveCbArg = unsafe.Pointer(cs)
+
+	logger.Info("disk caching enabled",
+		zap.Uintptr("cs", uintptr(unsafe.Pointer(cs))),
+		zap.Int("cap-B2", capB2),
+		zap.Uintptr("store", uintptr(store.Ptr())),
+		zap.Uint64s("store-slots", []uint64{sMin, sMax}),
+		zap.Uintptr("alloc", uintptr(alloc.Ptr())),
+		zap.Uint64s("alloc-slots", []uint64{aMin, aMax}),
+		zap.Int("cap-alloc", capAlloc),
+	)
+	return nil
+}
+
+func init() {
+	pcct.InitCs = func(cfg pcct.Config, pcct *pcct.Pcct) {
+		adjustCapacity := func(v, min, dflt int) int {
+			if v <= 0 {
+				v = dflt
+			}
+			return math.MaxInt(v, min)
+		}
+
+		capMemory := adjustCapacity(cfg.CsMemoryCapacity, EvictBulk, cfg.PcctCapacity/4)
+		capDisk := adjustCapacity(cfg.CsDiskCapacity, 0, 0)
+		capIndirect := adjustCapacity(cfg.CsIndirectCapacity, EvictBulk, cfg.PcctCapacity/4)
+
+		cs := &((*C.Pcct)(pcct.Ptr())).cs
+		logger.Info("init",
+			zap.Uintptr("pcct", uintptr(unsafe.Pointer(pcct))),
+			zap.Uintptr("cs", uintptr(unsafe.Pointer(cs))),
+			zap.Int("cap-memory", capMemory),
+			zap.Int("cap-disk", capDisk),
+			zap.Int("cap-indirect", capIndirect),
+		)
+
+		C.CsArc_Init(&cs.direct, C.uint32_t(capMemory), C.uint32_t(capDisk))
+		C.CsList_Init(&cs.indirect)
+		cs.indirect.capacity = C.uint32_t(capIndirect)
+	}
 }

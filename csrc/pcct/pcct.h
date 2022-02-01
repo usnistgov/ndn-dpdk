@@ -7,12 +7,6 @@
 #include "pcc-entry.h"
 #include "pit-struct.h"
 
-enum
-{
-  PccTokenSize = 6,
-  PccTokenMask = ((uint64_t)1 << (PccTokenSize * 8)) - 1,
-};
-
 /** @brief The PIT-CS Composite Table (PCCT). */
 typedef struct Pcct
 {
@@ -45,19 +39,20 @@ Pcct_FromCs(const Cs* cs)
  * @param maxEntries PCCT capacity; hashtable capacity will be calculated accordingly.
  * @return whether success. Error code is in @c rte_errno .
  */
-bool
+__attribute__((nonnull)) bool
 Pcct_Init(Pcct* pcct, const char* id, uint32_t maxEntries, int numaSocket);
 
 /**
  * @brief Clear keyHt and tokenHt, and free cached Data.
  * @post Pcct mempool can be deallocated.
  */
-void
+__attribute__((nonnull)) void
 Pcct_Clear(Pcct* pcct);
 
 /**
  * @brief Insert or find an entry.
  * @param[out] isNew whether the entry is new
+ * @retval NULL allocation error.
  */
 __attribute__((nonnull)) PccEntry*
 Pcct_Insert(Pcct* pcct, const PccSearch* search, bool* isNew);
@@ -69,35 +64,17 @@ Pcct_Insert(Pcct* pcct, const PccSearch* search, bool* isNew);
 __attribute__((nonnull)) void
 Pcct_Erase(Pcct* pcct, PccEntry* entry);
 
-__attribute__((nonnull)) uint64_t
-Pcct_AddToken_(Pcct* pcct, PccEntry* entry);
-
 /**
  * @brief Assign a token to an entry.
  * @retval 0 No token available.
  * @return New or existing token.
  */
-__attribute__((nonnull)) static __rte_always_inline uint64_t
-Pcct_AddToken(Pcct* pcct, PccEntry* entry)
-{
-  if (entry->hasToken) {
-    return entry->token;
-  }
-  return Pcct_AddToken_(pcct, entry);
-}
-
-__attribute__((nonnull)) void
-Pcct_RemoveToken_(Pcct* pcct, PccEntry* entry);
+__attribute__((nonnull)) uint64_t
+Pcct_AddToken(Pcct* pcct, PccEntry* entry);
 
 /** @brief Clear the token on an entry. */
-__attribute__((nonnull)) static __rte_always_inline void
-Pcct_RemoveToken(Pcct* pcct, PccEntry* entry)
-{
-  if (!entry->hasToken) {
-    return;
-  }
-  Pcct_RemoveToken_(pcct, entry);
-}
+__attribute__((nonnull)) void
+Pcct_RemoveToken(Pcct* pcct, PccEntry* entry);
 
 /**
  * @brief Find an entry by token.
