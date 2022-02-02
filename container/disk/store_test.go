@@ -9,6 +9,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/bdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/spdkenv"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 func TestStore(t *testing.T) {
@@ -26,7 +27,7 @@ func TestStore(t *testing.T) {
 
 	assert.Zero(packetPool.CountInUse())
 
-	store, e := disk.NewStore(device, th, 8)
+	store, e := disk.NewStore(device, th, 8, disk.StoreGetDataGo)
 	require.NoError(e)
 	defer store.Close()
 
@@ -44,29 +45,25 @@ func TestStore(t *testing.T) {
 	}
 	time.Sleep(100 * time.Millisecond) // give time for asynchronous PutData operation
 
-	for _, n := range []uint64{1, 31} {
+	getData := func(n uint64) *ndni.Packet {
 		interest := makeInterest(fmt.Sprintf("/A/%d", n))
-		dataBuf := packetPool.MustAlloc(1)
-		data, e := store.GetData(n, dataLens[n], interest, dataBuf[0])
-		if !assert.NoError(e, n) {
-			continue
-		}
+		defer interest.Close()
+		dataBuf := packetPool.MustAlloc(1)[0]
+		dataBuf.Append(make([]byte, dataLens[n]))
+		return store.GetData(n, interest, dataBuf)
+	}
+
+	for _, n := range []uint64{1, 31} {
+		data := getData(n)
 		if assert.NotNil(data, n) {
 			assert.Equal(time.Duration(n)*time.Millisecond, data.ToNPacket().Data.Freshness, n)
 			data.Close()
 		}
-		interest.Close()
 	}
 
 	for _, n := range []uint64{2, 32} {
-		interest := makeInterest(fmt.Sprintf("/A/%d", n))
-		dataBuf := packetPool.MustAlloc(1)
-		data, e := store.GetData(n, dataLens[n], interest, dataBuf[0])
-		if !assert.NoError(e, n) {
-			continue
-		}
+		data := getData(n)
 		assert.Nil(data, n)
-		interest.Close()
 	}
 
 	assert.Zero(packetPool.CountInUse())

@@ -108,7 +108,7 @@ func (f *Fixture) EnableDisk(nSlots int) {
 	f.t.Cleanup(func() { f.SpdkTh.Close() })
 	f.noError(ealthread.AllocLaunch(f.SpdkTh))
 
-	f.DiskStore, e = disk.NewStore(f.Bdev, f.SpdkTh, 16)
+	f.DiskStore, e = disk.NewStore(f.Bdev, f.SpdkTh, 16, disk.StoreGetDataGo)
 	f.noError(e)
 
 	min, max := f.DiskStore.SlotRange()

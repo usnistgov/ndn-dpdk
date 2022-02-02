@@ -39,17 +39,17 @@ func (pkt *Packet) Close() error {
 
 // Len returns packet length in octets.
 func (pkt *Packet) Len() int {
-	return int(pkt.ptr().pkt_len)
+	return int(pkt.pkt_len)
 }
 
 // Port returns ingress network interface.
 func (pkt *Packet) Port() uint16 {
-	return uint16(pkt.ptr().port)
+	return uint16(pkt.port)
 }
 
 // SetPort sets ingress network interface.
 func (pkt *Packet) SetPort(port uint16) {
-	pkt.ptr().port = C.uint16_t(port)
+	pkt.port = C.uint16_t(port)
 }
 
 // Timestamp returns receive timestamp.

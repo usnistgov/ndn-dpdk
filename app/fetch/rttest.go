@@ -24,17 +24,17 @@ func (rtte *RttEst) Init() {
 
 // LastRtt returns last RTT.
 func (rtte *RttEst) LastRtt() time.Duration {
-	return eal.FromTscDuration(int64(rtte.ptr().last))
+	return eal.FromTscDuration(int64(rtte.last))
 }
 
 // SRtt returns smoothed RTT.
 func (rtte *RttEst) SRtt() time.Duration {
-	return eal.FromTscDuration(int64(rtte.ptr().sRtt))
+	return eal.FromTscDuration(int64(rtte.sRtt))
 }
 
 // Rto returns RTO.
 func (rtte *RttEst) Rto() time.Duration {
-	return eal.FromTscDuration(int64(rtte.ptr().rto))
+	return eal.FromTscDuration(int64(rtte.rto))
 }
 
 // Push adds an RTT sample.

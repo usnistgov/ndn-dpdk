@@ -24,17 +24,17 @@ func (fl *Logic) ptr() *C.FetchLogic {
 
 // Window returns the segment state window.
 func (fl *Logic) Window() *Window {
-	return (*Window)(&fl.ptr().win)
+	return (*Window)(&fl.win)
 }
 
 // RttEst returns the RTT estimator.
 func (fl *Logic) RttEst() *RttEst {
-	return (*RttEst)(&fl.ptr().rtte)
+	return (*RttEst)(&fl.rtte)
 }
 
 // Cubic returns the congestion avoidance algorithm.
 func (fl *Logic) Cubic() *Cubic {
-	return (*Cubic)(&fl.ptr().ca)
+	return (*Cubic)(&fl.ca)
 }
 
 // Init initializes the logic and allocates data structures.
@@ -58,7 +58,7 @@ func (fl *Logic) Reset() {
 
 // Close deallocates data structures.
 func (fl *Logic) Close() error {
-	C.MinSched_Close(fl.ptr().sched)
+	C.MinSched_Close(fl.sched)
 	return fl.Window().Close()
 }
 
@@ -74,7 +74,7 @@ func (fl *Logic) Finished() bool {
 
 // TriggerRtoSched triggers the internal RTO scheduler.
 func (fl *Logic) TriggerRtoSched() {
-	C.MinSched_Trigger(fl.ptr().sched)
+	C.MinSched_Trigger(fl.sched)
 }
 
 // TxInterest requests for Interest transmission.

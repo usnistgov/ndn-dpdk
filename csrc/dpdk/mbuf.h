@@ -94,6 +94,7 @@ Mbuf_ChainVector(struct rte_mbuf* vec[], uint16_t count)
 __attribute__((nonnull)) static inline uint16_t
 Mbuf_EnqueueVector(struct rte_mbuf* vec[], uint16_t count, struct rte_ring* ring)
 {
+  // XXX need to free interest->diskData to prevent memory leak
   uint16_t nEnq = rte_ring_enqueue_burst(ring, (void**)vec, count, NULL);
   uint16_t nRej = count - nEnq;
   if (unlikely(nRej > 0)) {

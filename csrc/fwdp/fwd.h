@@ -40,7 +40,7 @@ typedef struct FwFwd
 
   PacketMempools mp; ///< mempools for packet modification
 
-  struct rte_ring* crypto; ///< queue to crypto helper
+  struct rte_ring* cryptoHelper; ///< queue to crypto helper
 
   /** @brief Statistics of latency from packet arrival to start processing. */
   RunningStat latencyStat;

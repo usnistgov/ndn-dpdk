@@ -49,11 +49,12 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
   // check for CS match
   if (pccEntry->hasCsEntry) {
     CsEntry* csEntry = PccEntry_GetCsEntry(pccEntry);
-    if (likely(Cs_MatchInterest(&pcct->cs, csEntry, npkt))) {
+    CsEntry* csDirect = Cs_MatchInterest(&pcct->cs, csEntry, npkt);
+    if (likely(csDirect != NULL)) {
       // CS entry satisfies Interest
-      N_LOGD("Insert has-CS pit=%p search=%s pcc=%p", pit, PccSearch_ToDebugString(&search),
-             pccEntry);
-      return (PitInsertResult){ .kind = PIT_INSERT_CS, .csEntry = CsEntry_GetDirect(csEntry) };
+      N_LOGD("Insert has-CS pit=%p search=%s pcc=%p cs-kind=%s", pit,
+             PccSearch_ToDebugString(&search), pccEntry, CsEntryKind_ToString(csDirect->kind));
+      return (PitInsertResult){ .kind = PIT_INSERT_CS, .csEntry = csDirect };
     }
   }
 
@@ -80,7 +81,7 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
   }
 
   if (unlikely(pitEntry == NULL)) {
-    NDNDPDK_ASSERT(!isNewPcc); // new PccEntry should have unoccupied slot1
+    NDNDPDK_ASSERT(!isNewPcc); // can't happen on new PccEntry, whose slot1 is unoccupied
     ++pit->nAllocErr;
     return (PitInsertResult){ .kind = PIT_INSERT_FULL };
   }

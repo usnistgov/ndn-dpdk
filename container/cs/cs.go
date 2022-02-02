@@ -61,7 +61,7 @@ func (cs *Cs) Erase(entry *Entry) {
 
 // ReadDirectArcP returns direct entries ARC algorithm 'p' variable (for unit testing).
 func (cs *Cs) ReadDirectArcP() float64 {
-	return float64(cs.ptr().direct.p)
+	return float64(cs.direct.p)
 }
 
 // SetDisk enables on-disk caching.

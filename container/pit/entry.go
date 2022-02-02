@@ -42,7 +42,7 @@ func (entry *Entry) PitToken() uint64 {
 
 // FibSeqNum returns the FIB insertion sequence number recorded in this entry.
 func (entry *Entry) FibSeqNum() uint32 {
-	return uint32(entry.ptr().fibSeqNum)
+	return uint32(entry.fibSeqNum)
 }
 
 // DnRecords returns downstream records.

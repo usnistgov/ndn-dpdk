@@ -62,7 +62,7 @@ func (entry *Entry) AccCounters(cnt *fibdef.EntryCounters, t *Table) {
 
 // IsVirt determines whether this is a virtual entry.
 func (entry *Entry) IsVirt() bool {
-	return entry.ptr().height > 0
+	return entry.height > 0
 }
 
 // Real returns the real entry linked from this entry.
@@ -72,7 +72,7 @@ func (entry *Entry) Real() *Entry {
 
 // FibSeqNum returns the FIB insertion sequence number recorded in this entry.
 func (entry *Entry) FibSeqNum() uint32 {
-	return uint32(entry.ptr().seqNum)
+	return uint32(entry.seqNum)
 }
 
 func (entry *Entry) assignReal(u *fibdef.RealUpdate) {

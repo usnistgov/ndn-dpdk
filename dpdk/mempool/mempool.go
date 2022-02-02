@@ -91,12 +91,12 @@ func (mp *Mempool) Close() error {
 }
 
 func (mp *Mempool) String() string {
-	return C.GoString(&mp.ptr().name[0])
+	return C.GoString(&mp.name[0])
 }
 
 // SizeofElement returns element size.
 func (mp *Mempool) SizeofElement() int {
-	return int(mp.ptr().elt_size)
+	return int(mp.elt_size)
 }
 
 // CountAvailable returns number of available objects.

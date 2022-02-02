@@ -18,11 +18,14 @@ CsDisk_Insert(Cs* cs, CsEntry* entry)
     return;
   }
 
-  N_LOGD("Insert entry=%p data=%p slot=%" PRIu64, entry, entry->data, slot);
+  uint16_t dataLen = Packet_ToMbuf(entry->data)->pkt_len;
+  N_LOGD("Insert entry=%p data=%p data-len=%" PRIu16 " slot=%" PRIu64, entry, entry->data, dataLen,
+         slot);
   NDNDPDK_ASSERT(entry->kind == CsEntryMemory);
   DiskStore_PutData(cs->diskStore, slot, entry->data);
   entry->kind = CsEntryDisk;
   entry->diskSlot = slot;
+  entry->dataLen = dataLen;
   ++cs->nDiskInsert;
 }
 

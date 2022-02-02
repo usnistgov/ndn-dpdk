@@ -39,7 +39,7 @@ func (win *Window) Reset() {
 
 // Close deallocates the FetchWindow.
 func (win *Window) Close() error {
-	eal.Free(win.ptr().array)
+	eal.Free(win.array)
 	return nil
 }
 

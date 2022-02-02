@@ -25,9 +25,9 @@ func (fl *Logic) Counters() (cnt Counters) {
 	cnt.SRtt = rtte.SRtt()
 	cnt.Rto = rtte.Rto()
 	cnt.Cwnd = fl.Cubic().Cwnd()
-	cnt.NInFlight = uint32(fl.ptr().nInFlight)
-	cnt.NTxRetx = uint64(fl.ptr().nTxRetx)
-	cnt.NRxData = uint64(fl.ptr().nRxData)
+	cnt.NInFlight = uint32(fl.nInFlight)
+	cnt.NTxRetx = uint64(fl.nTxRetx)
+	cnt.NRxData = uint64(fl.nRxData)
 	return cnt
 }
 

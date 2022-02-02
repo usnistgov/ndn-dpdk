@@ -283,7 +283,7 @@ Cs_Insert(Cs* cs, Packet* npkt, PitFindResult pitFound)
   }
 }
 
-bool
+CsEntry*
 Cs_MatchInterest(Cs* cs, CsEntry* entry, Packet* interestNpkt)
 {
   CsEntry* direct = CsEntry_GetDirect(entry);
@@ -295,33 +295,33 @@ Cs_MatchInterest(Cs* cs, CsEntry* entry, Packet* interestNpkt)
     interest->mustBeFresh && direct->freshUntil <= Mbuf_GetTimestamp(Packet_ToMbuf(interestNpkt));
   N_LOGD(
     "MatchInterest cs=%p cs-entry=%p entry-kind=%s direct-kind=%s violate-cbp=%d violate-mbf=%d",
-    cs, entry, CsEntryKindString[entry->kind], CsEntryKindString[direct->kind],
+    cs, entry, CsEntryKind_ToString(entry->kind), CsEntryKind_ToString(direct->kind),
     (int)violateCanBePrefix, (int)violateMustBeFresh);
 
   if (unlikely(violateCanBePrefix || violateMustBeFresh)) {
-    return false;
+    return NULL;
   }
 
   switch (direct->kind) {
     case CsEntryNone:
-      return false;
+      return NULL;
     case CsEntryMemory:
       CsArc_Add(&cs->direct, direct);
       ++cs->nHitMemory;
       break;
     case CsEntryDisk:
       ++cs->nHitDisk;
-      return false; // XXX
+      break;
     default:
       NDNDPDK_ASSERT(false);
-      return false;
+      return NULL;
   }
 
   if (entry->kind == CsEntryIndirect) {
     CsList_MoveToLast(&cs->indirect, entry);
     ++cs->nHitIndirect;
   }
-  return true;
+  return direct;
 }
 
 void

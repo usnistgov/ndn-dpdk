@@ -8,12 +8,11 @@ N_LOG_INIT(DiskStore);
 typedef struct GetDataRequest
 {
   DiskStore* store;
-  struct rte_ring* reply;
 } GetDataRequest;
 static_assert(sizeof(GetDataRequest) <= sizeof(PacketPriv), "");
 
-__attribute__((nonnull(2))) static void
-GetData_Fail(struct rte_ring* reply, Packet* npkt)
+__attribute__((nonnull)) static void
+GetData_Fail(DiskStore* store, Packet* npkt)
 {
   PInterest* interest = Packet_GetInterestHdr(npkt);
   if (likely(interest->diskData != NULL)) {
@@ -21,13 +20,7 @@ GetData_Fail(struct rte_ring* reply, Packet* npkt)
     interest->diskData = NULL;
   }
 
-  if (likely(reply != NULL)) {
-    if (likely(rte_ring_enqueue(reply, npkt) == 0)) {
-      return;
-    }
-    N_LOGW("GetData error reply=%p npkt=%p" N_LOG_ERROR("enqueue"), reply, npkt);
-  }
-  rte_pktmbuf_free(Packet_ToMbuf(npkt));
+  store->getDataCb(npkt, store->getDataCtx);
 }
 
 __attribute__((nonnull)) static void
@@ -37,23 +30,26 @@ GetData_End(struct spdk_bdev_io* io, bool success, void* npkt0)
   PInterest* interest = Packet_GetInterestHdr(npkt);
   uint64_t slotID = interest->diskSlot;
   struct rte_mbuf* dataPkt = Packet_ToMbuf(interest->diskData);
-  struct rte_ring* reply = ((GetDataRequest*)rte_mbuf_to_priv(dataPkt))->reply;
+  DiskStore* store = ((GetDataRequest*)rte_mbuf_to_priv(dataPkt))->store;
 
   if (unlikely(!success)) {
     N_LOGW("GetData error slot=%" PRIu64 " npkt=%p" N_LOG_ERROR("io-err"), slotID, npkt);
-    GetData_Fail(reply, npkt);
-  } else {
-    Mbuf_SetTimestamp(dataPkt, rte_get_tsc_cycles());
-    if (unlikely(!Packet_Parse(interest->diskData)) ||
-        unlikely(Packet_GetType(interest->diskData) != PktData)) {
-      N_LOGW("GetData error slot=%" PRIu64 " npkt=%p" N_LOG_ERROR("not-Data"), slotID, npkt);
-      GetData_Fail(reply, npkt);
-    } else if (unlikely(rte_ring_enqueue(reply, npkt) != 0)) {
-      N_LOGW("GetData error slot=%" PRIu64 " npkt=%p" N_LOG_ERROR("enqueue"), slotID, npkt);
-      GetData_Fail(NULL, npkt);
-    }
+    goto FAIL;
   }
 
+  Mbuf_SetTimestamp(dataPkt, rte_get_tsc_cycles());
+  if (unlikely(!Packet_Parse(interest->diskData)) ||
+      unlikely(Packet_GetType(interest->diskData) != PktData)) {
+    N_LOGW("GetData error slot=%" PRIu64 " npkt=%p" N_LOG_ERROR("not-Data"), slotID, npkt);
+    goto FAIL;
+  }
+
+  store->getDataCb(npkt, store->getDataCtx);
+  goto FREE;
+
+FAIL:
+  GetData_Fail(store, npkt);
+FREE:
   spdk_bdev_free_io(io);
 }
 
@@ -64,8 +60,7 @@ GetData_Begin(void* npkt0)
   PInterest* interest = Packet_GetInterestHdr(npkt);
   uint64_t slotID = interest->diskSlot;
   struct rte_mbuf* dataPkt = Packet_ToMbuf(interest->diskData);
-  GetDataRequest* req = (GetDataRequest*)rte_mbuf_to_priv(dataPkt);
-  DiskStore* store = req->store;
+  DiskStore* store = ((GetDataRequest*)rte_mbuf_to_priv(dataPkt))->store;
 
   uint64_t blockOffset = DiskStore_ComputeBlockOffset_(store, slotID);
 
@@ -73,28 +68,20 @@ GetData_Begin(void* npkt0)
                                 store->blockSize, GetData_End, (uintptr_t)npkt);
   if (unlikely(res != 0)) {
     N_LOGW("GetData read error slot=%" PRIu64 " npkt=%p" N_LOG_ERROR_ERRNO, slotID, npkt, res);
-    GetData_Fail(req->reply, npkt);
+    GetData_Fail(store, npkt);
   }
 }
 
 void
-DiskStore_GetData(DiskStore* store, uint64_t slotID, uint16_t dataLen, Packet* npkt,
-                  struct rte_mbuf* dataBuf, struct rte_ring* reply)
+DiskStore_GetData(DiskStore* store, uint64_t slotID, Packet* npkt, struct rte_mbuf* dataBuf)
 {
   NDNDPDK_ASSERT(slotID > 0);
   PInterest* interest = Packet_GetInterestHdr(npkt);
   interest->diskSlot = slotID;
   interest->diskData = Packet_FromMbuf(dataBuf);
 
-  if (unlikely(rte_pktmbuf_append(dataBuf, dataLen) == NULL)) {
-    N_LOGW("GetData error slot=%" PRIu64 " npkt=%p" N_LOG_ERROR("resize"), slotID, npkt);
-    GetData_Fail(reply, npkt);
-    return;
-  }
-
   GetDataRequest* req = (GetDataRequest*)rte_mbuf_to_priv(dataBuf);
   req->store = store;
-  req->reply = reply;
 
   spdk_thread_send_msg(store->th, GetData_Begin, npkt);
 }

@@ -6,7 +6,8 @@
 #include "../ndni/packet.h"
 #include "cs-struct.h"
 
-extern const char* CsEntryKindString[];
+__attribute__((returns_nonnull)) const char*
+CsEntryKind_ToString(CsEntryKind kind);
 
 /**
  * @brief A CS entry.
@@ -45,6 +46,12 @@ struct CsEntry
    */
   TscTime freshUntil;
 
+  /**
+   * @brief Data packet length.
+   * @pre kind == CsEntryDisk
+   */
+  uint16_t dataLen;
+
   CsEntryKind kind;
 
   /**
@@ -69,9 +76,7 @@ struct CsEntry
 };
 static_assert(CsMaxIndirects < UINT8_MAX, "");
 
-/**
- * @brief Initialize a CS entry.
- */
+/** @brief Initialize a CS entry. */
 __attribute__((nonnull)) static inline void
 CsEntry_Init(CsEntry* entry)
 {

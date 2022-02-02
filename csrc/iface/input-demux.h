@@ -7,6 +7,7 @@
 #include "faceid.h"
 #include "pktqueue.h"
 
+/** @brief Destination of input packet demultiplexer. */
 typedef struct InputDemuxDest
 {
   PktQueue* queue;
@@ -14,7 +15,6 @@ typedef struct InputDemuxDest
   uint64_t nDropped;
 } InputDemuxDest;
 
-/** @brief Input packet demultiplexer for a single packet type. */
 typedef struct InputDemux InputDemux;
 
 typedef void (*InputDemux_DispatchFunc)(InputDemux* demux, Packet* npkt, const PName* name);
@@ -43,6 +43,7 @@ InputDemux_DispatchByNdt(InputDemux* demux, Packet* npkt, const PName* name);
 __attribute__((nonnull)) void
 InputDemux_DispatchByToken(InputDemux* demux, Packet* npkt, const PName* name);
 
+/** @brief Input packet demultiplexer for a single packet type. */
 struct InputDemux
 {
   InputDemux_DispatchFunc dispatch;

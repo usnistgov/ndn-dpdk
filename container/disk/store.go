@@ -3,18 +3,19 @@ package disk
 
 /*
 #include "../../csrc/disk/store.h"
+
+extern int go_getDataCallback(Packet* npkt, uintptr_t ctx);
 */
 import "C"
 import (
 	"fmt"
-	"runtime"
+	"sync"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/bdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
-	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
 	"github.com/usnistgov/ndn-dpdk/dpdk/spdkenv"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
@@ -22,11 +23,32 @@ import (
 // BlockSize is the supported bdev block size.
 const BlockSize = int(C.DISK_STORE_BLOCK_SIZE)
 
+var (
+	// StoreGetDataCallback is a C function type for store.GetData callback.
+	StoreGetDataCallback = cptr.FunctionType{"Packet"}
+
+	// StoreGetDataGo is a StoreGetDataCallback implementation for receiving the Data in Go code.
+	StoreGetDataGo = StoreGetDataCallback.C(unsafe.Pointer(C.go_getDataCallback), uintptr(0))
+
+	getDataReplyMap sync.Map
+)
+
+//export go_getDataCallback
+func go_getDataCallback(npkt *C.Packet, ctx C.uintptr_t) C.int {
+	reply, ok := getDataReplyMap.LoadAndDelete(npkt)
+	if !ok {
+		panic("unexpected invocation")
+	}
+	close(reply.(chan struct{}))
+	return 0
+}
+
 // Store represents a disk-backed Data Store.
 type Store struct {
-	c  *C.DiskStore
-	bd *bdev.Bdev
-	th *spdkenv.Thread
+	c               *C.DiskStore
+	bd              *bdev.Bdev
+	th              *spdkenv.Thread
+	getDataCbRevoke func()
 }
 
 // Ptr returns *C.DiskAlloc pointer.
@@ -52,40 +74,28 @@ func (store *Store) PutData(slotID uint64, data *ndni.Packet) {
 }
 
 // GetData retrieves a Data packet from specified slot and waits for completion.
-func (store *Store) GetData(slotID uint64, dataLen int, interest *ndni.Packet, dataBuf *pktmbuf.Packet) (data *ndni.Packet, e error) {
-	var reply *ringbuffer.Ring
-	if reply, e = ringbuffer.New(64, eal.NumaSocket{},
-		ringbuffer.ProducerMulti, ringbuffer.ConsumerMulti); e != nil {
-		return nil, e
-	}
-	defer reply.Close()
-
+// This can be used only if the Store was created with StoreGetDataGo.
+func (store *Store) GetData(slotID uint64, interest *ndni.Packet, dataBuf *pktmbuf.Packet) (data *ndni.Packet) {
 	interestC := (*C.Packet)(interest.Ptr())
 	pinterest := C.Packet_GetInterestHdr(interestC)
-	C.DiskStore_GetData(store.c, C.uint64_t(slotID), C.uint16_t(dataLen), interestC,
-		(*C.struct_rte_mbuf)(dataBuf.Ptr()), (*C.struct_rte_ring)(reply.Ptr()))
 
-	pkts := make([]*ndni.Packet, 1)
-	for {
-		if reply.Dequeue(pkts) == 1 {
-			break
-		}
-		runtime.Gosched()
+	reply := make(chan struct{})
+	_, dup := getDataReplyMap.LoadOrStore(interestC, reply)
+	if dup {
+		panic("ongoing GetData on the same mbuf")
 	}
-	pkt := pkts[0]
-	if pkt != interest {
-		panic("unexpected packet in reply ring")
-	}
+
+	C.DiskStore_GetData(store.c, C.uint64_t(slotID), interestC, (*C.struct_rte_mbuf)(dataBuf.Ptr()))
+	<-reply
 
 	if uint64(pinterest.diskSlot) != slotID {
 		panic("unexpected PInterest.diskSlot")
 	}
-	data = ndni.PacketFromPtr(unsafe.Pointer(pinterest.diskData))
-	return data, nil
+	return ndni.PacketFromPtr(unsafe.Pointer(pinterest.diskData))
 }
 
 // NewStore creates a Store.
-func NewStore(device bdev.Device, th *spdkenv.Thread, nBlocksPerSlot int) (store *Store, e error) {
+func NewStore(device bdev.Device, th *spdkenv.Thread, nBlocksPerSlot int, getDataCb cptr.Function) (store *Store, e error) {
 	bdi := device.DevInfo()
 	if bdi.BlockSize() != BlockSize {
 		return nil, fmt.Errorf("bdev block size must be %d", BlockSize)
@@ -104,6 +114,10 @@ func NewStore(device bdev.Device, th *spdkenv.Thread, nBlocksPerSlot int) (store
 	store.c.bdev = (*C.struct_spdk_bdev_desc)(store.bd.Ptr())
 	store.c.nBlocksPerSlot = C.uint64_t(nBlocksPerSlot)
 	store.c.blockSize = C.uint32_t(bdi.BlockSize())
+
+	f, ctx, revoke := StoreGetDataCallback.CallbackReuse(getDataCb)
+	store.c.getDataCb, store.c.getDataCtx, store.getDataCbRevoke = C.DiskStore_GetDataCb(f), C.uintptr_t(ctx), revoke
+
 	cptr.Call(th.Post, func() { store.c.ch = C.spdk_bdev_get_io_channel(store.c.bdev) })
 	return store, nil
 }

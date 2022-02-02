@@ -15,7 +15,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"go4.org/must"
+	"go.uber.org/multierr"
 )
 
 // CryptoConfig contains crypto helper thread configuration.
@@ -66,7 +66,6 @@ func (fwc *Crypto) Init(lc eal.LCore, ndt *ndt.Ndt, fwds []*Fwd) error {
 // Close stops and releases the thread.
 func (fwc *Crypto) Close() error {
 	fwc.Stop()
-	must.Close(ringbuffer.FromPtr(unsafe.Pointer(fwc.c.input)))
 	eal.Free(unsafe.Pointer(fwc.c))
 	return nil
 }
@@ -103,14 +102,16 @@ func (fwcsh *CryptoShared) AssignTo(fwcs []*Crypto) {
 
 // ConnectTo connects forwarding thread to crypto input queue.
 func (fwcsh *CryptoShared) ConnectTo(fwd *Fwd) {
-	fwd.c.crypto = (*C.struct_rte_ring)(fwcsh.input.Ptr())
+	fwd.c.cryptoHelper = (*C.struct_rte_ring)(fwcsh.input.Ptr())
 }
 
 // Close deletes resources.
 func (fwcsh *CryptoShared) Close() error {
-	must.Close(fwcsh.dev)
-	must.Close(fwcsh.opPool)
-	return nil
+	return multierr.Combine(
+		fwcsh.dev.Close(),
+		fwcsh.opPool.Close(),
+		fwcsh.input.Close(),
+	)
 }
 
 func newCryptoShared(cfg CryptoConfig, socket eal.NumaSocket, count int) (fwcsh *CryptoShared, e error) {

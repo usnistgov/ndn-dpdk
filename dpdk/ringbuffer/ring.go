@@ -99,7 +99,7 @@ func (r *Ring) Close() error {
 }
 
 func (r *Ring) String() string {
-	return C.GoString(&r.ptr().name[0])
+	return C.GoString(&r.name[0])
 }
 
 // Capacity returns ring capacity.

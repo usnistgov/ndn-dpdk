@@ -8,7 +8,7 @@ Packet*
 RxProc_Input(RxProc* rx, int thread, struct rte_mbuf* frame)
 {
   FaceID faceID = frame->port;
-  NDNDPDK_ASSERT(faceID != MBUF_INVALID_PORT);
+  NDNDPDK_ASSERT(faceID != RTE_MBUF_PORT_INVALID);
   RxProcThread* rxt = &rx->threads[thread];
   rxt->nFrames[0] += frame->pkt_len;
 

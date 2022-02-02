@@ -10,12 +10,21 @@
 /** @brief Expected block size of the underlying block device. */
 #define DISK_STORE_BLOCK_SIZE 512
 
+/**
+ * @brief DiskStore_GetData completion callback.
+ * @param npkt Interest packet.
+ * @param ctx @c store->getDataCtx .
+ */
+typedef void (*DiskStore_GetDataCb)(Packet* npkt, uintptr_t ctx);
+
 /** @brief Disk-backed Data packet store. */
 typedef struct DiskStore
 {
   struct spdk_thread* th;
   struct spdk_bdev_desc* bdev;
   struct spdk_io_channel* ch;
+  DiskStore_GetDataCb getDataCb;
+  uintptr_t getDataCtx;
   uint64_t nBlocksPerSlot;
   uint32_t blockSize;
 } DiskStore;
@@ -33,22 +42,20 @@ DiskStore_PutData(DiskStore* store, uint64_t slotID, Packet* npkt);
 /**
  * @brief Retrieve a Data packet.
  * @param slotID disk slot number.
- * @param dataLen Data packet length.
  * @param npkt an Interest packet. DiskStore takes ownership.
  * @param dataBuf mbuf for Data packet. DiskStore takes ownership.
- * @param reply where to return results.
+ * @pre @c dataBuf->pkt_len equals stored Data packet length.
  *
  * This function asynchronously reads from a specified slot of the underlying disk, and parses
  * the content as a Data packet.
- * If successful, it assigns @c interest->diskSlot and @c interest->diskData on the Interest.
- * If failure, it assigns @c interest->diskSlot and clears @c interest->diskData to NULL.
- * It then enqueues the Interest into @p reply ring, unless the ring is full.
+ * Upon success, it assigns @c interest->diskSlot and @c interest->diskData .
+ * Upon failure, it assigns @c interest->diskSlot and clears @c interest->diskData .
+ * It then calls @c store->getDataCb with the @p npkt .
  *
  * This function may be invoked on any thread, including non-SPDK thread.
  */
 __attribute__((nonnull)) void
-DiskStore_GetData(DiskStore* store, uint64_t slotID, uint16_t dataLen, Packet* npkt,
-                  struct rte_mbuf* dataBuf, struct rte_ring* reply);
+DiskStore_GetData(DiskStore* store, uint64_t slotID, Packet* npkt, struct rte_mbuf* dataBuf);
 
 __attribute__((nonnull)) static __rte_always_inline uint64_t
 DiskStore_ComputeBlockOffset_(DiskStore* store, uint64_t slotID)

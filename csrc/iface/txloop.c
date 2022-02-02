@@ -54,7 +54,7 @@ TxLoop_Transfer(Face* face)
           break;
         case PktData:
           hrl[nHrls++] =
-            HrlogEntry_New(m->port == MBUF_INVALID_PORT ? HRLOG_OC : HRLOG_OD, latency);
+            HrlogEntry_New(m->port == RTE_MBUF_PORT_INVALID ? HRLOG_OC : HRLOG_OD, latency);
           break;
         case PktNack:
           break;
