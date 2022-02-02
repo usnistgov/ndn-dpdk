@@ -16,11 +16,9 @@ install -m0755 build/bin/ndndpdk-svc "$DESTBIN/"
 install -d -m0755 "$DESTSHARE"
 install -m0644 build/share/ndn-dpdk/* "$DESTSHARE/"
 
-URFAVE_CLI_VERSION=$(awk '$1=="github.com/urfave/cli/v2" { print $2 }' go.mod)
-URFAVE_CLI_BASHCOMP=$(go env GOMODCACHE)/github.com/urfave/cli/v2@${URFAVE_CLI_VERSION}/autocomplete/bash_autocomplete
 install -d -m0755 "$DESTBASHCOMP"
 for CMD in ndndpdk-ctrl ndndpdk-godemo; do
-  install -m0644 "$URFAVE_CLI_BASHCOMP" "$DESTBASHCOMP/$CMD"
+  install -m0644 build/share/bash_autocomplete "$DESTBASHCOMP/$CMD"
 done
 
 install -d -m0755 "$DESTSYSTEMD"

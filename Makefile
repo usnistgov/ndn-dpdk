@@ -60,10 +60,14 @@ build/bpf.done: build/build.ninja bpf/**/*.c csrc/strategyapi/* csrc/fib/enum.h
 	touch $@
 
 .PHONY: cmds
-cmds: build/bin/ndndpdk-ctrl build/bin/ndndpdk-godemo build/bin/ndndpdk-hrlog2histogram build/bin/ndndpdk-jrproxy build/bin/ndndpdk-svc
+cmds: build/share/bash_autocomplete build/bin/ndndpdk-ctrl build/bin/ndndpdk-godemo build/bin/ndndpdk-hrlog2histogram build/bin/ndndpdk-jrproxy build/bin/ndndpdk-svc
 
 build/bin/%: cmd/%/* godeps
 	GOBIN=$$(realpath build/bin) go install "-ldflags=$$(mk/version/ldflags.sh)" ./cmd/$*
+
+build/share/bash_autocomplete: go.mod
+	mkdir -p $(@D)
+	cp $$(go env GOMODCACHE)/github.com/urfave/cli/v2@$$(awk '$$1=="github.com/urfave/cli/v2" { print $$2 }' go.mod)/autocomplete/bash_autocomplete $@
 
 .PHONY: npm
 npm: build/share/ndn-dpdk/ndn-dpdk.npm.tgz
@@ -71,7 +75,7 @@ npm: build/share/ndn-dpdk/ndn-dpdk.npm.tgz
 build/share/ndn-dpdk/ndn-dpdk.npm.tgz:
 	node_modules/.bin/tsc
 	jq -n '{ type: "module" }' >build/js/package.json
-	mkdir -p build/share/ndn-dpdk
+	mkdir -p $(@D)
 	mv $$(corepack pnpm pack -s .) $@
 
 .PHONY: install
