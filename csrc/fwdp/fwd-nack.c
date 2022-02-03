@@ -188,6 +188,5 @@ void
 FwFwd_RxNack(FwFwd* fwd, FwFwdCtx* ctx)
 {
   FwFwd_ProcessNack(fwd, ctx);
-  rte_pktmbuf_free(ctx->pkt);
-  NULLize(ctx->pkt);
+  FwFwdCtx_FreePkt(ctx);
 }

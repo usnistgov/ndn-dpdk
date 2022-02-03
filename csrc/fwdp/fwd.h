@@ -93,7 +93,16 @@ struct FwFwdCtx
   FaceID rxFace;      // F,I,D
 };
 
-__attribute__((nonnull(1))) static __rte_always_inline void
+/** @brief Free the current @c npkt . */
+__attribute__((nonnull)) static inline void
+FwFwdCtx_FreePkt(FwFwdCtx* ctx)
+{
+  Packet_Free(ctx->npkt);
+  NULLize(ctx->npkt);
+}
+
+/** @brief Assign @c fibEntry and @c fibEntryDyn . */
+__attribute__((nonnull(1))) static inline void
 FwFwdCtx_SetFibEntry(FwFwdCtx* ctx, FibEntry* fibEntry)
 {
   ctx->fibEntry = fibEntry;

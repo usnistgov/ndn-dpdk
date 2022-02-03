@@ -46,8 +46,7 @@ func (demux *InputDemux) InitGenericHash(nDest int) {
 
 // InitNdt configures to dispatch via NDT loopup.
 func (demux *InputDemux) InitNdt(ndq *ndt.Querier) {
-	demux.dispatch = C.InputDemux_DispatchFunc(C.InputDemux_DispatchByNdt)
-	demux.ndq = (*C.NdtQuerier)(ndq.Ptr())
+	C.InputDemux_SetDispatchByNdt(demux.ptr(), (*C.NdtQuerier)(ndq.Ptr()))
 }
 
 // InitToken configures to dispatch according to specified octet in the PIT token.

@@ -41,17 +41,17 @@ struct PktQueue
 /**
  * @brief Enqueue a burst of packets.
  * @param pkts packets with timestamp already set.
- * @return number of rejected packets; they have been freed.
+ * @return number of rejected packets; caller must free them.
  */
 __attribute__((nonnull)) static inline uint32_t
 PktQueue_PushPlain(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count)
 {
-  return Mbuf_EnqueueVector(pkts, count, q->ring);
+  return Mbuf_EnqueueVector(pkts, count, q->ring, false);
 }
 
 /**
  * @brief Set timestamp on a burst of packets and enqueue them.
- * @return number of rejected packets; they have been freed.
+ * @return number of rejected packets; caller must free them.
  */
 __attribute__((nonnull)) static inline uint32_t
 PktQueue_Push(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime now)

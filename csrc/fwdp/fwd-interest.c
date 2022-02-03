@@ -2,6 +2,7 @@
 #include "strategy.h"
 
 #include "../core/logger.h"
+#include "../disk/store.h"
 
 N_LOG_INIT(FwFwd);
 
@@ -89,22 +90,38 @@ FwFwd_InterestForward(FwFwd* fwd, FwFwdCtx* ctx)
 }
 
 __attribute__((nonnull)) static void
-FwFwd_InterestHitCs(FwFwd* fwd, FwFwdCtx* ctx, CsEntry* csEntry)
+FwFwd_InterestHitCsMemory(FwFwd* fwd, FwFwdCtx* ctx, CsEntry* csEntry)
 {
   Packet* outNpkt = Packet_Clone(csEntry->data, &fwd->mp, Face_PacketTxAlign(ctx->rxFace));
-  N_LOGD("^ cs-entry=%p data-to=%" PRI_FaceID " npkt=%p dn-token=" PRI_LpPitToken, csEntry,
+  N_LOGD("^ cs-entry-memory=%p data-to=%" PRI_FaceID " npkt=%p dn-token=" PRI_LpPitToken, csEntry,
          ctx->rxFace, outNpkt, LpPitToken_Fmt(&ctx->rxToken));
   if (likely(outNpkt != NULL)) {
     struct rte_mbuf* outPkt = Packet_ToMbuf(outNpkt);
-    outPkt->port = MBUF_INVALID_PORT;
+    outPkt->port = RTE_MBUF_PORT_INVALID;
     Mbuf_SetTimestamp(outPkt, ctx->rxTime);
     LpL3* lpl3 = Packet_GetLpL3Hdr(outNpkt);
     lpl3->pitToken = ctx->rxToken;
     lpl3->congMark = Packet_GetLpL3Hdr(ctx->npkt)->congMark;
     Face_Tx(ctx->rxFace, outNpkt);
   }
-  rte_pktmbuf_free(ctx->pkt);
-  NULLize(ctx->pkt);
+  FwFwdCtx_FreePkt(ctx);
+}
+
+__attribute__((nonnull)) static void
+FwFwd_InterestHitCsDisk(FwFwd* fwd, FwFwdCtx* ctx, CsEntry* csEntry)
+{
+  struct rte_mbuf* dataBuf = rte_pktmbuf_alloc(fwd->mp.packet);
+  if (unlikely(dataBuf == NULL)) {
+    N_LOGD("^ cs-entry-disk=%p disk-slot=%" PRIu64 " drop=alloc-error", csEntry, csEntry->diskSlot);
+    FwFwdCtx_FreePkt(ctx);
+    return;
+  }
+
+  N_LOGD("^ cs-entry-disk=%p disk-slot=%" PRIu64 " helper=disk data-npkt=%p", csEntry,
+         csEntry->diskSlot, dataBuf);
+  char* room = rte_pktmbuf_append(dataBuf, csEntry->dataLen);
+  NDNDPDK_ASSERT(room != NULL);
+  DiskStore_GetData(fwd->cs->diskStore, csEntry->diskSlot, ctx->npkt, dataBuf);
 }
 
 void
@@ -118,8 +135,7 @@ FwFwd_RxInterest(FwFwd* fwd, FwFwdCtx* ctx)
 
   if (unlikely(fwd->cryptoHelper == NULL && interest->name.hasDigestComp)) {
     N_LOGD("^ drop=no-crypto-helper");
-    rte_pktmbuf_free(ctx->pkt);
-    NULLize(ctx->pkt);
+    FwFwdCtx_FreePkt(ctx);
     return;
   }
 
@@ -146,15 +162,23 @@ FwFwd_RxInterest(FwFwd* fwd, FwFwdCtx* ctx)
       break;
     }
     case PIT_INSERT_CS: {
-      FwFwd_InterestHitCs(fwd, ctx, pitIns.csEntry);
+      switch (pitIns.csEntry->kind) {
+        case CsEntryMemory:
+          FwFwd_InterestHitCsMemory(fwd, ctx, pitIns.csEntry);
+          break;
+        case CsEntryDisk:
+          FwFwd_InterestHitCsDisk(fwd, ctx, pitIns.csEntry);
+          break;
+        case CsEntryNone:
+        case CsEntryIndirect:
+          NDNDPDK_ASSERT(false); // CsEntryNone or CsEntryIndirect isn't a match
+          break;
+      }
       break;
     }
     case PIT_INSERT_FULL:
       N_LOGD("^ drop=PIT-full nack-to=%" PRI_FaceID, ctx->rxFace);
       FwFwd_InterestRejectNack(fwd, ctx, NackCongestion);
-      break;
-    default:
-      NDNDPDK_ASSERT(false); // no other cases
       break;
   }
 

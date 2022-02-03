@@ -10,8 +10,7 @@ __attribute__((nonnull)) static void
 FwFwd_DataUnsolicited(FwFwd* fwd, FwFwdCtx* ctx)
 {
   N_LOGD("^ drop=unsolicited");
-  rte_pktmbuf_free(ctx->pkt);
-  NULLize(ctx->pkt);
+  FwFwdCtx_FreePkt(ctx);
 }
 
 __attribute__((nonnull)) static void
@@ -23,8 +22,7 @@ FwFwd_DataNeedDigest(FwFwd* fwd, FwFwdCtx* ctx)
   int res = rte_ring_enqueue(fwd->cryptoHelper, ctx->npkt);
   if (unlikely(res != 0)) {
     N_LOGD("^ error=crypto-enqueue-error-%d", res);
-    rte_pktmbuf_free(ctx->pkt);
-    NULLize(ctx->pkt);
+    FwFwdCtx_FreePkt(ctx);
   } else {
     N_LOGD("^ helper=crypto");
     NULLize(ctx->npkt); // npkt is now owned by FwCrypto
@@ -85,8 +83,7 @@ FwFwd_RxData(FwFwd* fwd, FwFwdCtx* ctx)
          ctx->npkt, LpPitToken_Fmt(&ctx->rxToken));
   if (unlikely(ctx->rxToken.length != FwTokenLength)) {
     N_LOGD("^ drop=bad-token-length");
-    rte_pktmbuf_free(ctx->pkt);
-    NULLize(ctx->pkt);
+    FwFwdCtx_FreePkt(ctx);
     return;
   }
 

@@ -115,6 +115,7 @@ func (q *PktQueue) Close() error {
 }
 
 // Push enqueues a slice of packets.
+// Caller must free rejected packets.
 func (q *PktQueue) Push(vec pktmbuf.Vector, now eal.TscTime) (nRej int) {
 	return int(C.PktQueue_Push(q.ptr(), (**C.struct_rte_mbuf)(vec.Ptr()), C.uint(len(vec)), C.TscTime(now)))
 }

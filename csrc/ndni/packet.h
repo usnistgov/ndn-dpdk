@@ -164,4 +164,24 @@ Packet_ParseL3(Packet* npkt);
 __attribute__((nonnull)) Packet*
 Packet_Clone(Packet* npkt, PacketMempools* mp, PacketTxAlign align);
 
+/**
+ * @brief Free packet mbuf.
+ *
+ * If @p npkt is an Interest and @c interest->diskData is set, it is freed too.
+ * Otherwise, this is equivalent to @c rte_pktmbuf_free .
+ */
+__attribute__((nonnull)) static inline void
+Packet_Free(Packet* npkt)
+{
+  if (Packet_GetType(npkt) == PktInterest) {
+    PInterest* interest = Packet_GetInterestHdr(npkt);
+    if (interest->diskData != NULL) {
+      struct rte_mbuf* mbufs[2] = { Packet_ToMbuf(npkt), Packet_ToMbuf(interest->diskData) };
+      rte_pktmbuf_free_bulk(mbufs, RTE_DIM(mbufs));
+      return;
+    }
+  }
+  rte_pktmbuf_free(Packet_ToMbuf(npkt));
+}
+
 #endif // NDNDPDK_NDNI_PACKET_H

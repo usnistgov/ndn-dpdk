@@ -25,7 +25,7 @@ PdumpSource_Process(PdumpSource* s, struct rte_mbuf** pkts, uint16_t count)
     output[nOutput++] = pkt;
   }
 
-  Mbuf_EnqueueVector(output, nOutput, s->queue);
+  Mbuf_EnqueueVector(output, nOutput, s->queue, true);
 }
 
 __attribute__((nonnull(1))) PdumpSource*

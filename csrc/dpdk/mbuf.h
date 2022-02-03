@@ -89,15 +89,15 @@ Mbuf_ChainVector(struct rte_mbuf* vec[], uint16_t count)
 
 /**
  * @brief Enqueue a burst of packets to a ring buffer.
- * @return number of rejected packets; they have been freed.
+ * @param autoFree if true, rejected packets are freed.
+ * @return number of rejected packets.
  */
-__attribute__((nonnull)) static inline uint16_t
-Mbuf_EnqueueVector(struct rte_mbuf* vec[], uint16_t count, struct rte_ring* ring)
+__attribute__((nonnull)) static __rte_always_inline uint32_t
+Mbuf_EnqueueVector(struct rte_mbuf* vec[], uint32_t count, struct rte_ring* ring, bool autoFree)
 {
-  // XXX need to free interest->diskData to prevent memory leak
-  uint16_t nEnq = rte_ring_enqueue_burst(ring, (void**)vec, count, NULL);
-  uint16_t nRej = count - nEnq;
-  if (unlikely(nRej > 0)) {
+  uint32_t nEnq = rte_ring_enqueue_burst(ring, (void**)vec, count, NULL);
+  uint32_t nRej = count - nEnq;
+  if (autoFree && unlikely(nRej > 0)) {
     rte_pktmbuf_free_bulk(&vec[nEnq], nRej);
   }
   return nRej;

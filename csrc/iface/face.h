@@ -73,7 +73,7 @@ Face_TxBurst(FaceID faceID, Packet** npkts, uint16_t count)
 {
   Face* face = Face_Get(faceID);
   if (likely(face->state == FaceStateUp)) {
-    Mbuf_EnqueueVector((struct rte_mbuf**)npkts, count, face->outputQueue);
+    Mbuf_EnqueueVector((struct rte_mbuf**)npkts, count, face->outputQueue, true);
     // TODO count rejects
   } else {
     rte_pktmbuf_free_bulk((struct rte_mbuf**)npkts, count);

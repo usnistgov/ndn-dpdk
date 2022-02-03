@@ -62,7 +62,9 @@ func TestPktQueuePlain(t *testing.T) {
 
 	assert.Equal(0, fixture.Q.Push(vec[0:100], eal.TscNow()))
 	assert.Equal(0, fixture.Q.Push(vec[100:200], eal.TscNow()))
-	assert.Equal(45, fixture.Q.Push(vec[200:300], eal.TscNow()))
+	if assert.Equal(45, fixture.Q.Push(vec[200:300], eal.TscNow())) {
+		vec[255:300].Close()
+	}
 
 	deq := make(pktmbuf.Vector, 200)
 	count, drop := fixture.PopMax(deq, eal.TscNow())
@@ -132,6 +134,7 @@ func TestPktQueueCoDel(t *testing.T) {
 		require.NoError(e)
 		nRej := fixture.Q.Push(vec, eal.TscNow())
 		nEnq += n - nRej
+		vec[n-nRej:].Close()
 	}
 	deq := func(n int) {
 		vec := make(pktmbuf.Vector, n)

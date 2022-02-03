@@ -43,7 +43,11 @@ CsArc_CountEntries(const CsArc* arc)
   return arc->T1.count + arc->T2.count;
 }
 
-/** @brief Add or refresh an entry. */
+/**
+ * @brief Add or refresh an entry.
+ * @pre PCC entry is populated.
+ * @pre If @p entry is already in ARC, @c entry->kind reflects its old value.
+ */
 __attribute__((nonnull)) void
 CsArc_Add(CsArc* arc, CsEntry* entry);
 

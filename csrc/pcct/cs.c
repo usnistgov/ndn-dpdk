@@ -154,10 +154,10 @@ Cs_PutDirect(Cs* cs, Packet* npkt, PccEntry* pccEntry)
     N_LOGD("PutDirect insert cs=%p npkt=%p pcc-entry=%p cs-entry=%p", cs, npkt, pccEntry, entry);
   }
 
+  CsArc_Add(&cs->direct, entry);
   entry->kind = CsEntryMemory;
   entry->data = npkt;
   entry->freshUntil = Mbuf_GetTimestamp(pkt) + TscDuration_FromMillis(data->freshness);
-  CsArc_Add(&cs->direct, entry);
   return entry;
 }
 
@@ -310,7 +310,31 @@ Cs_MatchInterest(Cs* cs, CsEntry* entry, Packet* interestNpkt)
       ++cs->nHitMemory;
       break;
     case CsEntryDisk:
-      ++cs->nHitDisk;
+      if (interest->diskSlot == direct->diskSlot) {
+        interest->diskSlot = 0;
+        if (unlikely(interest->diskData == NULL)) {
+          N_LOGD("  ^ disk-slot=%" PRIu64 " disk-data-npkt=%p change-kind-as=none",
+                 direct->diskSlot, interest->diskData);
+          CsDisk_Delete(cs, direct);
+          // XXX need to cancel/fail other DiskStore_GetData on the same disk slot
+          return NULL;
+        } else {
+          N_LOGD("  ^ disk-slot=%" PRIu64 " disk-data-npkt=%p change-kind-as=memory",
+                 direct->diskSlot, interest->diskData);
+          CsArc_Add(&cs->direct, direct);
+          direct->kind = CsEntryMemory;
+          direct->data = interest->diskData;
+          interest->diskData = NULL;
+          // not counting cache hit because it's a continuation of previous cache hit
+        }
+      } else {
+        if (unlikely(interest->diskSlot != 0)) {
+          interest->diskSlot = 0;
+          rte_pktmbuf_free(Packet_ToMbuf(interest->diskData));
+          interest->diskData = NULL;
+        }
+        ++cs->nHitDisk;
+      }
       break;
     default:
       NDNDPDK_ASSERT(false);
