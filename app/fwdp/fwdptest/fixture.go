@@ -31,13 +31,13 @@ type Fixture struct {
 }
 
 // NewFixture creates a Fixture.
-func NewFixture(t *testing.T, modifyConfig ...func(cfg *fwdp.Config)) (fixture *Fixture) {
-	fixture = &Fixture{
+func NewFixture(t *testing.T, modifyConfig ...func(cfg *fwdp.Config)) (f *Fixture) {
+	f = &Fixture{
 		require:  require.New(t),
 		StepUnit: 50 * time.Millisecond,
 	}
 	if ealtestenv.UsingThreads {
-		fixture.StepUnit = 200 * time.Millisecond
+		f.StepUnit = 200 * time.Millisecond
 	}
 
 	var cfg fwdp.Config
@@ -67,55 +67,48 @@ func NewFixture(t *testing.T, modifyConfig ...func(cfg *fwdp.Config)) (fixture *
 	}
 
 	dp, e := fwdp.New(cfg)
-	fixture.require.NoError(e)
-	fixture.DataPlane = dp
-	fixture.Ndt = dp.Ndt()
-	fixture.Fib = dp.Fib()
+	f.require.NoError(e)
+	f.DataPlane = dp
+	f.Ndt = dp.Ndt()
+	f.Fib = dp.Fib()
 
-	return fixture
-}
-
-// Close destroys the fixture.
-func (fixture *Fixture) Close() error {
-	must.Close(fixture.DataPlane)
-	strategycode.DestroyAll()
-	return nil
+	t.Cleanup(func() {
+		must.Close(f.DataPlane)
+		strategycode.DestroyAll()
+	})
+	return f
 }
 
 // StepDelay delays a small amount of time for packet forwarding.
-func (fixture *Fixture) StepDelay() {
-	time.Sleep(fixture.StepUnit)
+func (f *Fixture) StepDelay() {
+	time.Sleep(f.StepUnit)
 }
 
 // SetFibEntry inserts or replaces a FIB entry.
-func (fixture *Fixture) SetFibEntry(name string, strategy string, nexthops ...iface.ID) {
-	e := fixture.Fib.Insert(fibtestenv.MakeEntry(name, fixture.makeStrategy(strategy), nexthops...))
-	fixture.require.NoError(e)
+func (f *Fixture) SetFibEntry(name string, strategy string, nexthops ...iface.ID) {
+	sc := strategycode.Find(strategy)
+	if sc == nil {
+		var e error
+		sc, e = strategycode.LoadFile(strategy, "")
+		f.require.NoError(e)
+	}
+
+	e := f.Fib.Insert(fibtestenv.MakeEntry(name, sc, nexthops...))
+	f.require.NoError(e)
 }
 
 // ReadFibCounters returns counters of specified FIB entry.
-func (fixture *Fixture) ReadFibCounters(name string) (cnt fibdef.EntryCounters) {
-	entry := fixture.Fib.Find(ndn.ParseName(name))
+func (f *Fixture) ReadFibCounters(name string) (cnt fibdef.EntryCounters) {
+	entry := f.Fib.Find(ndn.ParseName(name))
 	if entry == nil {
 		return
 	}
 	return entry.Counters()
 }
 
-func (fixture *Fixture) makeStrategy(shortname string) *strategycode.Strategy {
-	if sc := strategycode.Find(shortname); sc != nil {
-		return sc
-	}
-
-	sc, e := strategycode.LoadFile(shortname, "")
-	fixture.require.NoError(e)
-
-	return sc
-}
-
 // SumCounter reads a counter from all FwFwds and compute the sum.
-func (fixture *Fixture) SumCounter(getCounter func(fwd *fwdp.Fwd) uint64) (n uint64) {
-	for _, fwd := range fixture.DataPlane.Fwds() {
+func (f *Fixture) SumCounter(getCounter func(fwd *fwdp.Fwd) uint64) (n uint64) {
+	for _, fwd := range f.DataPlane.Fwds() {
 		n += getCounter(fwd)
 	}
 	return n

@@ -35,3 +35,28 @@ func TestAlloc(t *testing.T) {
 	_, e = a.Alloc()
 	assert.Error(e)
 }
+
+func TestSizeCalc(t *testing.T) {
+	assert, _ := makeAR(t)
+
+	calc := disk.SizeCalc{
+		NThreads:   4,
+		NPackets:   1000,
+		PacketSize: 5000,
+	}
+
+	assert.Equal(10, calc.BlocksPerSlot())
+	assert.Equal(40010, calc.MinBlocks())
+
+	a0 := calc.CreateAlloc(0, eal.NumaSocket{})
+	defer a0.Close()
+	min0, max0 := a0.SlotRange()
+	assert.Equal(uint64(1), min0)
+	assert.Equal(uint64(1000), max0)
+
+	a3 := calc.CreateAlloc(3, eal.NumaSocket{})
+	defer a3.Close()
+	min3, max3 := a3.SlotRange()
+	assert.Equal(uint64(3001), min3)
+	assert.Equal(uint64(4000), max3)
+}

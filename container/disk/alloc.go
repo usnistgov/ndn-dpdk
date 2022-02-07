@@ -63,3 +63,30 @@ func NewAlloc(min, max uint64, socket eal.NumaSocket) *Alloc {
 	a := C.DiskAlloc_New(C.uint64_t(min), C.uint64_t(max), C.int(socket.ID()))
 	return (*Alloc)(a)
 }
+
+// SizeCalc calculates Store and Alloc sizes.
+type SizeCalc struct {
+	// NThreads is number of threads.
+	NThreads int
+	// NPackets is number of packets (capacity) per thread.
+	NPackets int
+	// PacketSize is size of each packet.
+	PacketSize int
+}
+
+// BlocksPerSlot returns number of blocks per packet slot.
+func (calc SizeCalc) BlocksPerSlot() int {
+	return (calc.PacketSize + BlockSize - 1) / BlockSize
+}
+
+// StoreBlocks calculates minimum number of blocks required in the Store.
+func (calc SizeCalc) MinBlocks() int {
+	return calc.BlocksPerSlot() * (1 + calc.NThreads*calc.NPackets)
+}
+
+// CreateAlloc creates an Alloc for i-th thread.
+func (calc SizeCalc) CreateAlloc(i int, socket eal.NumaSocket) *Alloc {
+	min := 1 + uint64(i)*uint64(calc.NPackets)
+	max := min + uint64(calc.NPackets) - 1
+	return NewAlloc(min, max, socket)
+}

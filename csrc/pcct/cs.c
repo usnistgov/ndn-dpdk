@@ -313,13 +313,13 @@ Cs_MatchInterest(Cs* cs, CsEntry* entry, Packet* interestNpkt)
       if (interest->diskSlot == direct->diskSlot) {
         interest->diskSlot = 0;
         if (unlikely(interest->diskData == NULL)) {
-          N_LOGD("  ^ disk-slot=%" PRIu64 " disk-data-npkt=%p change-kind-as=none",
-                 direct->diskSlot, interest->diskData);
+          N_LOGD("^ disk-slot=%" PRIu64 " disk-data-npkt=%p change-kind-as=none", direct->diskSlot,
+                 interest->diskData);
           CsDisk_Delete(cs, direct);
           // XXX need to cancel/fail other DiskStore_GetData on the same disk slot
           return NULL;
         } else {
-          N_LOGD("  ^ disk-slot=%" PRIu64 " disk-data-npkt=%p change-kind-as=memory",
+          N_LOGD("^ disk-slot=%" PRIu64 " disk-data-npkt=%p change-kind-as=memory",
                  direct->diskSlot, interest->diskData);
           CsArc_Add(&cs->direct, direct);
           direct->kind = CsEntryMemory;

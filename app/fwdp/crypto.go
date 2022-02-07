@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"unsafe"
 
-	"github.com/usnistgov/ndn-dpdk/container/ndt"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/cryptodev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
@@ -34,9 +33,8 @@ func (cfg *CryptoConfig) applyDefaults() {
 // Crypto represents a crypto helper thread.
 type Crypto struct {
 	ealthread.ThreadWithCtrl
-	id     int
-	c      *C.FwCrypto
-	demuxD *iface.InputDemux
+	id int
+	c  *C.FwCrypto
 }
 
 var (
@@ -45,7 +43,7 @@ var (
 )
 
 // Init initializes the crypto helper thread.
-func (fwc *Crypto) Init(lc eal.LCore, ndt *ndt.Ndt, fwds []*Fwd) error {
+func (fwc *Crypto) Init(lc eal.LCore, demuxPrep *demuxPreparer) error {
 	socket := lc.NumaSocket()
 	fwc.c = (*C.FwCrypto)(eal.ZmallocAligned("FwCrypto", C.sizeof_FwCrypto, 1, socket))
 	fwc.ThreadWithCtrl = ealthread.NewThreadWithCtrl(
@@ -54,11 +52,7 @@ func (fwc *Crypto) Init(lc eal.LCore, ndt *ndt.Ndt, fwds []*Fwd) error {
 	)
 	fwc.SetLCore(lc)
 
-	fwc.demuxD = iface.InputDemuxFromPtr(unsafe.Pointer(&fwc.c.output))
-	fwc.demuxD.InitNdt(ndt.Queriers()[fwc.id])
-	for i, fwd := range fwds {
-		fwc.demuxD.SetDest(i, fwd.queueD)
-	}
+	demuxPrep.PrepareDemuxD(iface.InputDemuxFromPtr(unsafe.Pointer(&fwc.c.output)))
 
 	return nil
 }
@@ -66,7 +60,7 @@ func (fwc *Crypto) Init(lc eal.LCore, ndt *ndt.Ndt, fwds []*Fwd) error {
 // Close stops and releases the thread.
 func (fwc *Crypto) Close() error {
 	fwc.Stop()
-	eal.Free(unsafe.Pointer(fwc.c))
+	eal.Free(fwc.c)
 	return nil
 }
 

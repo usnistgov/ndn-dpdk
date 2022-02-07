@@ -13,7 +13,7 @@ static int c_spdk_nvme_probe(uintptr_t ctx)
 */
 import "C"
 import (
-	"errors"
+	"fmt"
 	"runtime/cgo"
 
 	"github.com/usnistgov/ndn-dpdk/core/pciaddr"
@@ -21,18 +21,14 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/spdkenv"
 )
 
-type listNvmesResult struct {
-	nvmes []pciaddr.PCIAddress
-}
-
-// ListNvmes returns a list of NVMe drives.
+// ListNvmes returns a list of NVMe controllers.
 func ListNvmes() (nvmes []pciaddr.PCIAddress, e error) {
 	var result listNvmesResult
 	ctx := cgo.NewHandle(&result)
 	defer ctx.Delete()
 	res := eal.CallMain(func() int { return int(C.c_spdk_nvme_probe(C.uintptr_t(ctx))) }).(int)
 	if res != 0 {
-		return nil, errors.New("spdk_nvme_probe error")
+		return nil, fmt.Errorf("spdk_nvme_probe error: %w", eal.MakeErrno(res))
 	}
 	return result.nvmes, nil
 }
@@ -45,7 +41,7 @@ func go_nvmeProbed(ctx C.uintptr_t, trid *C.struct_spdk_nvme_transport_id, opts 
 	return C.bool(false)
 }
 
-// Nvme represents block devices on an NVMe drives.
+// Nvme represents block devices on an NVMe controller.
 type Nvme struct {
 	// Namespaces is a list of NVMe namespaces as block devices.
 	Namespaces []*Info
@@ -53,19 +49,29 @@ type Nvme struct {
 	pciAddr pciaddr.PCIAddress
 }
 
-func (nvme *Nvme) getName() string {
+// ControllerName returns NVMe controller name.
+func (nvme *Nvme) ControllerName() string {
 	return "nvme" + nvme.pciAddr.String()
 }
 
-// AttachNvme attaches block devices on an NVMe drives.
+// Close detaches the NVMe controller.
+func (nvme *Nvme) Close() error {
+	args := nvmeDetachControllerArgs{
+		Name: nvme.ControllerName(),
+	}
+	var ok bool
+	return spdkenv.RPC("bdev_nvme_detach_controller", args, &ok)
+}
+
+// AttachNvme attaches block devices on an NVMe controller.
 func AttachNvme(pciAddr pciaddr.PCIAddress) (nvme *Nvme, e error) {
 	initBdevLib()
-	nvme = new(Nvme)
-	nvme.pciAddr = pciAddr
-	var args bdevNvmeAttachControllerArgs
-	args.Name = nvme.getName()
-	args.TrType = "pcie"
-	args.TrAddr = pciAddr.String()
+	nvme = &Nvme{pciAddr: pciAddr}
+	args := nvmeAttachControllerArgs{
+		Name:   nvme.ControllerName(),
+		TrType: "pcie",
+		TrAddr: pciAddr.String(),
+	}
 
 	var namespaces []string
 	if e = spdkenv.RPC("bdev_nvme_attach_controller", args, &namespaces); e != nil {
@@ -78,20 +84,16 @@ func AttachNvme(pciAddr pciaddr.PCIAddress) (nvme *Nvme, e error) {
 	return nvme, nil
 }
 
-// Close detaches the NVMe drives.
-func (nvme *Nvme) Close() error {
-	var args bdevNvmeDetachControllerArgs
-	args.Name = nvme.getName()
-	var ok bool
-	return spdkenv.RPC("bdev_nvme_detach_controller", args, &ok)
+type listNvmesResult struct {
+	nvmes []pciaddr.PCIAddress
 }
 
-type bdevNvmeAttachControllerArgs struct {
+type nvmeAttachControllerArgs struct {
 	Name   string `json:"name"`
 	TrType string `json:"trtype"`
 	TrAddr string `json:"traddr"`
 }
 
-type bdevNvmeDetachControllerArgs struct {
+type nvmeDetachControllerArgs struct {
 	Name string `json:"name"`
 }

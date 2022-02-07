@@ -1,5 +1,6 @@
 #include "fwd.h"
 #include "strategy.h"
+#include "token.h"
 
 #include "../core/logger.h"
 #include "../disk/store.h"
@@ -122,6 +123,7 @@ FwFwd_InterestHitCsDisk(FwFwd* fwd, FwFwdCtx* ctx, CsEntry* csEntry)
   char* room = rte_pktmbuf_append(dataBuf, csEntry->dataLen);
   NDNDPDK_ASSERT(room != NULL);
   DiskStore_GetData(fwd->cs->diskStore, csEntry->diskSlot, ctx->npkt, dataBuf);
+  NULLize(ctx->npkt);
 }
 
 void

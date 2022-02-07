@@ -15,7 +15,6 @@ import (
 func TestFastroute(t *testing.T) {
 	assert, _ := makeAR(t)
 	fixture := NewFixture(t)
-	defer fixture.Close()
 
 	face1, face2, face3, face4 := intface.MustNew(), intface.MustNew(), intface.MustNew(), intface.MustNew()
 	collect1, collect2, collect3, collect4 := intface.Collect(face1), intface.Collect(face2), intface.Collect(face3), intface.Collect(face4)
@@ -92,7 +91,6 @@ func TestFastroute(t *testing.T) {
 func TestFastrouteProbe(t *testing.T) {
 	assert, _ := makeAR(t)
 	fixture := NewFixture(t)
-	defer fixture.Close()
 
 	face1, face2, face3, face4 := intface.MustNew(), intface.MustNew(), intface.MustNew(), intface.MustNew()
 	fixture.SetFibEntry("/F", "fastroute", face1.ID, face2.ID, face3.ID)
@@ -186,7 +184,6 @@ func TestFastrouteProbe(t *testing.T) {
 func TestSequential(t *testing.T) {
 	assert, _ := makeAR(t)
 	fixture := NewFixture(t)
-	defer fixture.Close()
 
 	face1, face2, face3, face4 := intface.MustNew(), intface.MustNew(), intface.MustNew(), intface.MustNew()
 	collect1, collect2, collect3 := intface.Collect(face1), intface.Collect(face2), intface.Collect(face3)
@@ -228,7 +225,6 @@ func TestSequential(t *testing.T) {
 func TestRoundrobin(t *testing.T) {
 	assert, _ := makeAR(t)
 	fixture := NewFixture(t)
-	defer fixture.Close()
 
 	face1, face2, face3, face4 := intface.MustNew(), intface.MustNew(), intface.MustNew(), intface.MustNew()
 	collect1, collect2, collect3 := intface.Collect(face1), intface.Collect(face2), intface.Collect(face3)

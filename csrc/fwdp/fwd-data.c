@@ -1,5 +1,6 @@
 #include "fwd.h"
 #include "strategy.h"
+#include "token.h"
 
 #include "../core/logger.h"
 #include "../pcct/pit-iterator.h"

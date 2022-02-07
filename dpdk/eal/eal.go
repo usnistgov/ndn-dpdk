@@ -54,7 +54,6 @@ func UpdateLCoreSockets(lcoreSockets map[int]int, mainLCoreID int) (undo func())
 	for socketID := range socketIDs {
 		Sockets = append(Sockets, NumaSocketFromID(socketID))
 	}
-
 	sort.Slice(Sockets, func(i, j int) bool { return Sockets[i].v < Sockets[j].v })
 
 	return

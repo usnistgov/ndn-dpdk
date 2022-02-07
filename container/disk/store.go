@@ -21,7 +21,7 @@ import (
 )
 
 // BlockSize is the supported bdev block size.
-const BlockSize = int(C.DISK_STORE_BLOCK_SIZE)
+const BlockSize = C.DISK_STORE_BLOCK_SIZE
 
 var (
 	// StoreGetDataCallback is a C function type for store.GetData callback.
@@ -58,8 +58,13 @@ func (store *Store) Ptr() unsafe.Pointer {
 
 // Close closes this DiskStore.
 func (store *Store) Close() error {
-	cptr.Call(store.th.Post, func() { C.spdk_put_io_channel(store.c.ch) })
+	cptr.Call(store.th.Post, func() {
+		if store.c.ch != nil {
+			C.spdk_put_io_channel(store.c.ch)
+		}
+	})
 	eal.Free(store.c)
+	store.getDataCbRevoke()
 	return store.bd.Close()
 }
 
@@ -118,6 +123,5 @@ func NewStore(device bdev.Device, th *spdkenv.Thread, nBlocksPerSlot int, getDat
 	f, ctx, revoke := StoreGetDataCallback.CallbackReuse(getDataCb)
 	store.c.getDataCb, store.c.getDataCtx, store.getDataCbRevoke = C.DiskStore_GetDataCb(f), C.uintptr_t(ctx), revoke
 
-	cptr.Call(th.Post, func() { store.c.ch = C.spdk_bdev_get_io_channel(store.c.bdev) })
 	return store, nil
 }

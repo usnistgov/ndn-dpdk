@@ -12,7 +12,6 @@ import (
 func TestDataWrongName(t *testing.T) {
 	assert, _ := makeAR(t)
 	fixture := NewFixture(t)
-	defer fixture.Close()
 
 	face1, face2 := intface.MustNew(), intface.MustNew()
 	collect1, collect2 := intface.Collect(face1), intface.Collect(face2)
@@ -34,7 +33,6 @@ func TestDataWrongName(t *testing.T) {
 func TestDataLongerName(t *testing.T) {
 	assert, _ := makeAR(t)
 	fixture := NewFixture(t)
-	defer fixture.Close()
 
 	face1, face2 := intface.MustNew(), intface.MustNew()
 	collect1, collect2 := intface.Collect(face1), intface.Collect(face2)
@@ -56,7 +54,6 @@ func TestDataLongerName(t *testing.T) {
 func TestDataZeroFreshnessPeriod(t *testing.T) {
 	assert, _ := makeAR(t)
 	fixture := NewFixture(t)
-	defer fixture.Close()
 
 	face1, face2 := intface.MustNew(), intface.MustNew()
 	collect1, collect2 := intface.Collect(face1), intface.Collect(face2)
@@ -78,7 +75,6 @@ func TestDataZeroFreshnessPeriod(t *testing.T) {
 func TestNackWrongName(t *testing.T) {
 	assert, _ := makeAR(t)
 	fixture := NewFixture(t)
-	defer fixture.Close()
 
 	face1, face2 := intface.MustNew(), intface.MustNew()
 	collect1, collect2 := intface.Collect(face1), intface.Collect(face2)
@@ -100,7 +96,6 @@ func TestNackWrongName(t *testing.T) {
 func TestNackWrongNonce(t *testing.T) {
 	assert, _ := makeAR(t)
 	fixture := NewFixture(t)
-	defer fixture.Close()
 
 	face1, face2 := intface.MustNew(), intface.MustNew()
 	collect1, collect2 := intface.Collect(face1), intface.Collect(face2)

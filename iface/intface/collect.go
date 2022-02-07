@@ -28,14 +28,15 @@ func (c *Collector) run(face l3.Face) {
 	}
 }
 
-// Clear deletes collected packets.
-func (c *Collector) Clear() {
+// Clear returns and deletes collected packets.
+func (c *Collector) Clear() (received []*ndn.Packet) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	c.received = nil
+	received, c.received = c.received, nil
+	return
 }
 
-// Peek provides access to the slice of collected packets.
+// Peek provides read-only access to the slice of collected packets.
 func (c *Collector) Peek(f func(received []*ndn.Packet)) {
 	c.lock.RLock()
 	defer c.lock.RUnlock()

@@ -1,7 +1,6 @@
 package fib_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/usnistgov/ndn-dpdk/container/fib"
@@ -32,8 +31,7 @@ func TestReplica1(t *testing.T) {
 
 func TestReplica2(t *testing.T) {
 	if len(eal.Sockets) < 2 {
-		fmt.Println("skipping TestReplica2: only one NUMA socket")
-		return
+		t.Skip("only one NUMA socket")
 	}
 	assert, require := makeAR(t)
 

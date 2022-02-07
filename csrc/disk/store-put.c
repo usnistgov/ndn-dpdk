@@ -22,11 +22,12 @@ PutData_End(struct spdk_bdev_io* io, bool success, void* npkt0)
   PutDataRequest* req = (PutDataRequest*)&data->digest[0];
   uint64_t slotID = req->slotID;
 
-  if (unlikely(!success)) {
+  if (likely(success)) {
+    N_LOGD("PutData success slot=%" PRIu64 " npkt=%p", slotID, npkt);
+  } else {
     N_LOGW("PutData error slot=%" PRIu64 " npkt=%p" N_LOG_ERROR("io-err"), slotID, npkt);
   }
 
-  N_LOGD("PutData success slot=%" PRIu64 " npkt=%p", slotID, npkt);
   rte_pktmbuf_free(Packet_ToMbuf(npkt));
   spdk_bdev_free_io(io);
 }
@@ -39,6 +40,15 @@ PutData_Begin(void* npkt0)
   PutDataRequest* req = (PutDataRequest*)&data->digest[0];
   DiskStore* store = req->store;
   uint64_t slotID = req->slotID;
+
+  if (unlikely(store->ch == NULL)) {
+    store->ch = spdk_bdev_get_io_channel(store->bdev);
+    if (unlikely(store->ch == NULL)) {
+      N_LOGW("PutData no I/O channel" N_LOG_ERROR("spdk_bdev_get_io_channel"));
+      rte_pktmbuf_free(Packet_ToMbuf(npkt));
+      return;
+    }
+  }
 
   uint64_t blockOffset = DiskStore_ComputeBlockOffset_(store, slotID);
   uint64_t blockCount = DiskStore_ComputeBlockCount_(store, npkt);

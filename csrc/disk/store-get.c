@@ -62,8 +62,16 @@ GetData_Begin(void* npkt0)
   struct rte_mbuf* dataPkt = Packet_ToMbuf(interest->diskData);
   DiskStore* store = ((GetDataRequest*)rte_mbuf_to_priv(dataPkt))->store;
 
-  uint64_t blockOffset = DiskStore_ComputeBlockOffset_(store, slotID);
+  if (unlikely(store->ch == NULL)) {
+    store->ch = spdk_bdev_get_io_channel(store->bdev);
+    if (unlikely(store->ch == NULL)) {
+      N_LOGW("GetData no I/O channel" N_LOG_ERROR("spdk_bdev_get_io_channel"));
+      GetData_Fail(store, npkt);
+      return;
+    }
+  }
 
+  uint64_t blockOffset = DiskStore_ComputeBlockOffset_(store, slotID);
   int res = SpdkBdev_ReadPacket(store->bdev, store->ch, dataPkt, blockOffset, store->nBlocksPerSlot,
                                 store->blockSize, GetData_End, (uintptr_t)npkt);
   if (unlikely(res != 0)) {

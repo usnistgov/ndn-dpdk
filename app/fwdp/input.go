@@ -1,7 +1,7 @@
 package fwdp
 
 /*
-#include "../../csrc/fwdp/fwd.h"
+#include "../../csrc/fwdp/token.h"
 */
 import "C"
 import (
@@ -12,6 +12,38 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
+type demuxPreparer struct {
+	Fwds        []*Fwd
+	NdtQueriers []*ndt.Querier
+}
+
+func (p *demuxPreparer) PrepareDemuxI(id int, demux *iface.InputDemux) {
+	ndq := p.NdtQueriers[id]
+	if ndq == nil {
+		panic("duplicate NDT querier ID")
+	}
+	p.NdtQueriers[id] = nil
+
+	demux.InitNdt(ndq)
+	for i, fwd := range p.Fwds {
+		demux.SetDest(i, fwd.queueI)
+	}
+}
+
+func (p *demuxPreparer) PrepareDemuxD(demux *iface.InputDemux) {
+	demux.InitToken(uint8(C.FwTokenOffsetFwdID))
+	for i, fwd := range p.Fwds {
+		demux.SetDest(i, fwd.queueD)
+	}
+}
+
+func (p *demuxPreparer) PrepareDemuxN(demux *iface.InputDemux) {
+	demux.InitToken(uint8(C.FwTokenOffsetFwdID))
+	for i, fwd := range p.Fwds {
+		demux.SetDest(i, fwd.queueN)
+	}
+}
+
 // Input represents an input thread.
 type Input struct {
 	id  int
@@ -19,23 +51,15 @@ type Input struct {
 }
 
 // Init initializes the input thread.
-func (fwi *Input) Init(lc eal.LCore, ndt *ndt.Ndt, fwds []*Fwd) error {
+func (fwi *Input) Init(lc eal.LCore, demuxPrep *demuxPreparer) error {
 	socket := lc.NumaSocket()
 
 	fwi.rxl = iface.NewRxLoop(socket)
 	fwi.rxl.SetLCore(lc)
 
-	demuxI := fwi.rxl.InterestDemux()
-	demuxI.InitNdt(ndt.Queriers()[fwi.id])
-	demuxD := fwi.rxl.DataDemux()
-	demuxD.InitToken(uint8(C.FwTokenOffsetFwdID))
-	demuxN := fwi.rxl.NackDemux()
-	demuxN.InitToken(uint8(C.FwTokenOffsetFwdID))
-	for i, fwd := range fwds {
-		demuxI.SetDest(i, fwd.queueI)
-		demuxD.SetDest(i, fwd.queueD)
-		demuxN.SetDest(i, fwd.queueN)
-	}
+	demuxPrep.PrepareDemuxI(fwi.id, fwi.rxl.InterestDemux())
+	demuxPrep.PrepareDemuxD(fwi.rxl.DataDemux())
+	demuxPrep.PrepareDemuxN(fwi.rxl.NackDemux())
 
 	return nil
 }

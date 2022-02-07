@@ -19,7 +19,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"go4.org/must"
+	"go.uber.org/multierr"
 )
 
 // Fwd represents a forwarding thread.
@@ -85,13 +85,14 @@ func (fwd *Fwd) Init(lc eal.LCore, pcctCfg pcct.Config, qcfgI, qcfgD, qcfgN ifac
 
 // Close stops and releases the thread.
 func (fwd *Fwd) Close() error {
-	fwd.Stop()
-	must.Close(fwd.queueI)
-	must.Close(fwd.queueD)
-	must.Close(fwd.queueN)
-	must.Close(fwd.pcct)
-	eal.Free(fwd.c)
-	return nil
+	defer eal.Free(fwd.c)
+	return multierr.Combine(
+		fwd.Stop(),
+		fwd.queueI.Close(),
+		fwd.queueD.Close(),
+		fwd.queueN.Close(),
+		fwd.pcct.Close(),
+	)
 }
 
 // NumaSocket implements fib.LookupThread interface.

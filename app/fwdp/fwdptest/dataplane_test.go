@@ -29,10 +29,11 @@ func TestDefaultAllocFewLCores(t *testing.T) {
 	alloc, e := fwdp.DefaultAlloc()
 	require.NoError(e)
 	fmt.Println(alloc)
-	assert.Len(alloc[fwdp.RoleCrypto], 1)
-	assert.Len(alloc[fwdp.RoleFwd], 2)
 	assert.Len(alloc[fwdp.RoleInput], 2)
 	assert.Len(alloc[fwdp.RoleOutput], 1)
+	assert.Len(alloc[fwdp.RoleCrypto], 1)
+	assert.Len(alloc[fwdp.RoleDisk], 0)
+	assert.Len(alloc[fwdp.RoleFwd], 2)
 }
 
 func TestDefaultAllocManyLCores(t *testing.T) {
@@ -47,10 +48,11 @@ func TestDefaultAllocManyLCores(t *testing.T) {
 	alloc, e := fwdp.DefaultAlloc()
 	require.NoError(e)
 	fmt.Println(alloc)
-	assert.Len(alloc[fwdp.RoleCrypto], 1)
-	assert.Len(alloc[fwdp.RoleFwd], 7)
 	assert.Len(alloc[fwdp.RoleInput], 4)
 	assert.Len(alloc[fwdp.RoleOutput], 4)
+	assert.Len(alloc[fwdp.RoleCrypto], 1)
+	assert.Len(alloc[fwdp.RoleDisk], 0)
+	assert.Len(alloc[fwdp.RoleFwd], 7)
 	lcInput, lcOutput := alloc[fwdp.RoleInput].ByNumaSocket(), alloc[fwdp.RoleOutput].ByNumaSocket()
 	assert.GreaterOrEqual(len(lcInput[numa0]), 1)
 	assert.GreaterOrEqual(len(lcInput[numa1]), 1)

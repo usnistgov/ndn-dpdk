@@ -12,7 +12,6 @@ import (
 func TestSgTimer(t *testing.T) {
 	assert, _ := makeAR(t)
 	fixture := NewFixture(t)
-	defer fixture.Close()
 
 	face1 := intface.MustNew()
 	face2 := intface.MustNew()

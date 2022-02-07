@@ -2,10 +2,13 @@ package fwdptest
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/app/fwdp"
+	"github.com/usnistgov/ndn-dpdk/container/cs"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface/intface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
@@ -14,7 +17,6 @@ import (
 func TestInterestData(t *testing.T) {
 	assert, _ := makeAR(t)
 	fixture := NewFixture(t)
-	defer fixture.Close()
 
 	face1, face2, face3 := intface.MustNew(), intface.MustNew(), intface.MustNew()
 	collect1, collect2, collect3 := intface.Collect(face1), intface.Collect(face2), intface.Collect(face3)
@@ -44,7 +46,6 @@ func TestInterestData(t *testing.T) {
 func TestInterestDupNonce(t *testing.T) {
 	assert, _ := makeAR(t)
 	fixture := NewFixture(t)
-	defer fixture.Close()
 
 	face1, face2, face3 := intface.MustNew(), intface.MustNew(), intface.MustNew()
 	collect1, collect2, collect3 := intface.Collect(face1), intface.Collect(face2), intface.Collect(face3)
@@ -79,7 +80,6 @@ func TestInterestDupNonce(t *testing.T) {
 func TestInterestSuppress(t *testing.T) {
 	assert, _ := makeAR(t)
 	fixture := NewFixture(t)
-	defer fixture.Close()
 
 	face1, face2, face3 := intface.MustNew(), intface.MustNew(), intface.MustNew()
 	collect3 := intface.Collect(face3)
@@ -109,7 +109,6 @@ func TestInterestSuppress(t *testing.T) {
 func TestInterestNoRoute(t *testing.T) {
 	assert, _ := makeAR(t)
 	fixture := NewFixture(t)
-	defer fixture.Close()
 
 	face1 := intface.MustNew()
 	collect1 := intface.Collect(face1)
@@ -130,7 +129,6 @@ func TestInterestNoRoute(t *testing.T) {
 func TestHopLimit(t *testing.T) {
 	assert, _ := makeAR(t)
 	fixture := NewFixture(t)
-	defer fixture.Close()
 
 	face1, face2, face3, face4 := intface.MustNew(), intface.MustNew(), intface.MustNew(), intface.MustNew()
 	collect1, collect3, collect4 := intface.Collect(face1), intface.Collect(face3), intface.Collect(face4)
@@ -162,10 +160,9 @@ func TestHopLimit(t *testing.T) {
 	assert.Equal(1, collect4.Count())
 }
 
-func TestCsHit(t *testing.T) {
+func TestCsHitMemory(t *testing.T) {
 	assert, _ := makeAR(t)
 	fixture := NewFixture(t)
-	defer fixture.Close()
 
 	face1, face2 := intface.MustNew(), intface.MustNew()
 	collect1, collect2 := intface.Collect(face1), intface.Collect(face2)
@@ -221,10 +218,66 @@ func TestCsHit(t *testing.T) {
 	assert.Equal(uint64(2), fibCnt.NTxInterests)
 }
 
+func TestCsHitDisk(t *testing.T) {
+	assert, require := makeAR(t)
+	fixture := NewFixture(t,
+		func(cfg *fwdp.Config) {
+			lcFwd := cfg.LCoreAlloc[fwdp.RoleFwd]
+			require.Len(lcFwd.LCores, 2)
+			cfg.LCoreAlloc[fwdp.RoleDisk] = ealthread.RoleConfig{LCores: lcFwd.LCores[1:]}
+			cfg.LCoreAlloc[fwdp.RoleFwd] = ealthread.RoleConfig{LCores: lcFwd.LCores[:1]} // only 1 Fwd
+		},
+		func(cfg *fwdp.Config) {
+			cfg.Pcct.CsMemoryCapacity = 200
+			cfg.Pcct.CsDiskCapacity = 500
+		},
+	)
+
+	face1, face2 := intface.MustNew(), intface.MustNew()
+	fixture.SetFibEntry("/B", "multicast", face2.ID)
+
+	for i := 0; i < 400; i++ {
+		face1.Tx <- ndn.MakeInterest(fmt.Sprintf("/B/%d", i))
+		interest2 := <-face2.Rx
+		if !assert.NotNil(interest2.Interest) {
+			return
+		}
+		face2.Tx <- ndn.MakeData(interest2.Interest)
+		<-face1.Rx
+		face1.Tx <- ndn.MakeInterest(fmt.Sprintf("/B/%d", i))
+		<-face1.Rx
+	}
+
+	// 0~199 are inserted to disk
+	assert.EqualValues(200, fixture.SumCounter(func(fwd *fwdp.Fwd) uint64 {
+		return uint64(fwd.Cs().CountEntries(cs.ListDirectB2))
+	}))
+	assert.EqualValues(200, fixture.SumCounter(func(fwd *fwdp.Fwd) uint64 {
+		return uint64(fwd.Cs().Counters().NDiskInsert)
+	}))
+
+	collect1, collect2 := intface.Collect(face1), intface.Collect(face2)
+	for i := 0; i < 200; i++ {
+		face1.Tx <- ndn.MakeInterest(fmt.Sprintf("/B/%d", i))
+		if i%25 == 24 {
+			fixture.StepDelay()
+		}
+	}
+	assert.Len(collect2.Clear(), 0)
+	assert.Len(collect1.Clear(), 200)
+
+	// 0~199 have cache hits on disk, so they are moved to memory and deleted from disk
+	assert.EqualValues(200, fixture.SumCounter(func(fwd *fwdp.Fwd) uint64 {
+		return uint64(fwd.Cs().Counters().NHitDisk)
+	}))
+	assert.EqualValues(200, fixture.SumCounter(func(fwd *fwdp.Fwd) uint64 {
+		return uint64(fwd.Cs().Counters().NDiskDelete)
+	}))
+}
+
 func TestFwHint(t *testing.T) {
 	assert, _ := makeAR(t)
 	fixture := NewFixture(t)
-	defer fixture.Close()
 
 	face1, face2, face3, face4, face5 := intface.MustNew(), intface.MustNew(), intface.MustNew(), intface.MustNew(), intface.MustNew()
 	collect1, collect2, collect3, collect4, collect5 := intface.Collect(face1), intface.Collect(face2), intface.Collect(face3), intface.Collect(face4), intface.Collect(face5)
@@ -301,7 +354,6 @@ func TestFwHint(t *testing.T) {
 func TestImplicitDigestSimple(t *testing.T) {
 	assert, require := makeAR(t)
 	fixture := NewFixture(t)
-	defer fixture.Close()
 
 	face1, face2 := intface.MustNew(), intface.MustNew()
 	collect1, collect2 := intface.Collect(face1), intface.Collect(face2)
@@ -351,7 +403,6 @@ func TestImplicitDigestDisabled(t *testing.T) {
 	fixture := NewFixture(t,
 		func(cfg *fwdp.Config) { delete(cfg.LCoreAlloc, fwdp.RoleCrypto) }, // no CRYPTO thread
 	)
-	defer fixture.Close()
 
 	face1, face2 := intface.MustNew(), intface.MustNew()
 	collect2 := intface.Collect(face2)
@@ -367,9 +418,8 @@ func TestImplicitDigestDisabled(t *testing.T) {
 }
 
 func TestCongMark(t *testing.T) {
-	assert, require := makeAR(t)
+	assert, _ := makeAR(t)
 	fixture := NewFixture(t)
-	defer fixture.Close()
 
 	face1, face2, face3 := intface.MustNew(), intface.MustNew(), intface.MustNew()
 	collect1, collect2, collect3 := intface.Collect(face1), intface.Collect(face2), intface.Collect(face3)
@@ -380,8 +430,7 @@ func TestCongMark(t *testing.T) {
 	face2.Tx <- ndn.MakeInterest(name2)
 	face2.Tx <- ndn.MakeInterest(name3, ndn.LpL3{CongMark: 1})
 	fixture.StepDelay()
-	collect1.Peek(func(received []*ndn.Packet) {
-		require.Len(received, 3)
+	if received := collect1.Clear(); assert.Len(received, 3) {
 		for _, pkt := range received {
 			data := ndn.MakeData(pkt.Interest).ToPacket()
 			if pkt.Interest.Name.Equal(name2) {
@@ -389,12 +438,10 @@ func TestCongMark(t *testing.T) {
 			}
 			face1.Tx <- data
 		}
-	})
-	collect1.Clear()
+	}
 
 	fixture.StepDelay()
-	collect2.Peek(func(received []*ndn.Packet) {
-		require.Len(received, 3)
+	if received := collect2.Clear(); assert.Len(received, 3) {
 		for _, pkt := range received {
 			if pkt.Data.Name.Equal(name1) {
 				assert.EqualValues(0, pkt.Lp.CongMark)
@@ -402,14 +449,13 @@ func TestCongMark(t *testing.T) {
 				assert.EqualValues(1, pkt.Lp.CongMark)
 			}
 		}
-	})
+	}
 
 	face3.Tx <- ndn.MakeInterest(name1, ndn.LpL3{CongMark: 1})
 	face3.Tx <- ndn.MakeInterest(name2)
 	face3.Tx <- ndn.MakeInterest(name3)
 	fixture.StepDelay()
-	collect3.Peek(func(received []*ndn.Packet) {
-		require.Len(received, 3)
+	if received := collect3.Clear(); assert.Len(received, 3) {
 		for _, pkt := range received {
 			if pkt.Data.Name.Equal(name1) {
 				assert.EqualValues(1, pkt.Lp.CongMark)
@@ -417,5 +463,5 @@ func TestCongMark(t *testing.T) {
 				assert.EqualValues(0, pkt.Lp.CongMark)
 			}
 		}
-	})
+	}
 }

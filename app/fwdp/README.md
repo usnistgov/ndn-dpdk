@@ -75,3 +75,10 @@ The FwCrypto then dequeues the completed crypto operations from the cryptodev an
 
 It is possible to disable FwCrypto by assigning zero lcores to "CRYPTO" role.
 In this case, the forwarder does not support implicit digest computation, and incoming Interests with implicit digest component are dropped.
+
+## Disk Helper (FwDisk)
+
+FwDisk enables on-disk caching in the Content Store.
+See [package disk](../../container/disk) for general concepts.
+
+This implementation is work in progress and can only be used in unit testing.

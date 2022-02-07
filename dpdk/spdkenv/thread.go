@@ -34,8 +34,9 @@ type Thread struct {
 }
 
 var (
-	_ eal.PollThread           = (*Thread)(nil)
-	_ ealthread.ThreadWithRole = (*Thread)(nil)
+	_ eal.PollThread               = (*Thread)(nil)
+	_ ealthread.ThreadWithRole     = (*Thread)(nil)
+	_ ealthread.ThreadWithLoadStat = (*Thread)(nil)
 )
 
 // ThreadRole returns "SPDK" used in lcore allocator.

@@ -90,8 +90,7 @@ func TestNvme(t *testing.T) {
 	nvmes, e := bdev.ListNvmes()
 	require.NoError(e)
 	if len(nvmes) == 0 {
-		fmt.Println("skipping TestNvme: no NVMe drive available")
-		return
+		t.Skip("no NVMe drive available")
 	}
 
 	pciAddr := nvmes[0]

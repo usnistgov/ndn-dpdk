@@ -10,6 +10,9 @@ const ptrdiff_t CsArc_ListOffsets_[] = {
   [CslDirectDel] = offsetof(CsArc, Del),
 };
 
+#define CsArc_CallMoveCb(arc, entry, src, dst)                                                     \
+  (arc)->moveCb((arc)->moveCbArg, (entry), CslDirect##src, CslDirect##dst)
+
 #define CsArc_Move(arc, entry, src, dst)                                                           \
   do {                                                                                             \
     NDNDPDK_ASSERT((entry)->arcList == CslDirect##src);                                            \
@@ -17,7 +20,7 @@ const ptrdiff_t CsArc_ListOffsets_[] = {
     (entry)->arcList = CslDirect##dst;                                                             \
     CsList_Append(&(arc)->dst, (entry));                                                           \
     N_LOGV("^ move=%p from=" #src " to=" #dst, (entry));                                           \
-    (arc)->moveCb((arc)->moveCbArg, (entry), CslDirect##src, CslDirect##dst);                      \
+    CsArc_CallMoveCb((arc), (entry), src, dst);                                                    \
   } while (false)
 
 /**
@@ -73,7 +76,7 @@ CsArc_Init(CsArc* arc, uint32_t c, uint32_t capB2)
   arc->moveCbArg = NULL;
 }
 
-__attribute__((nonnull)) static void
+__attribute__((nonnull)) static inline void
 CsArc_Replace(CsArc* arc, bool isB2)
 {
   if (isB2 ? arc->T1.count >= CsArc_p1(arc) : arc->T1.count > CsArc_p(arc)) {
@@ -85,7 +88,7 @@ CsArc_Replace(CsArc* arc, bool isB2)
   }
 }
 
-__attribute__((nonnull)) static void
+__attribute__((nonnull)) static inline void
 CsArc_AddB1(CsArc* arc, CsEntry* entry)
 {
   double delta1 = 1.0;
@@ -98,7 +101,7 @@ CsArc_AddB1(CsArc* arc, CsEntry* entry)
   CsArc_Move(arc, entry, B1, T2);
 }
 
-__attribute__((nonnull)) static void
+__attribute__((nonnull)) static inline void
 CsArc_AddB2(CsArc* arc, CsEntry* entry)
 {
   double delta2 = 1.0;
@@ -142,7 +145,7 @@ CsArc_AddNew(CsArc* arc, CsEntry* entry)
   }
   entry->arcList = CslDirectT1;
   CsList_Append(&arc->T1, entry);
-  arc->moveCb(arc->moveCbArg, entry, CslDirectNew, CslDirectT1);
+  CsArc_CallMoveCb(arc, entry, New, T1);
 }
 
 void

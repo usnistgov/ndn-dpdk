@@ -24,24 +24,6 @@ const (
 // Info provides information about a block device.
 type Info C.struct_spdk_bdev
 
-// List returns a list of existing block devices.
-func List() (list []*Info) {
-	initBdevLib()
-	for d := C.spdk_bdev_first(); d != nil; d = C.spdk_bdev_next(d) {
-		list = append(list, (*Info)(d))
-	}
-	return list
-}
-
-// Find finds a block device by name.
-func Find(name string) *Info {
-	initBdevLib()
-	nameC := C.CString(name)
-	defer C.free(unsafe.Pointer(nameC))
-	d := C.spdk_bdev_get_by_name(nameC)
-	return (*Info)(d)
-}
-
 func (bdi *Info) ptr() *C.struct_spdk_bdev {
 	return (*C.struct_spdk_bdev)(bdi)
 }
@@ -81,6 +63,24 @@ func (bdi *Info) DriverInfo() (value interface{}) {
 		return nil
 	}
 	return value
+}
+
+// List returns a list of existing block devices.
+func List() (list []*Info) {
+	initBdevLib()
+	for d := C.spdk_bdev_first(); d != nil; d = C.spdk_bdev_next(d) {
+		list = append(list, (*Info)(d))
+	}
+	return list
+}
+
+// Find finds a block device by name.
+func Find(name string) *Info {
+	initBdevLib()
+	nameC := C.CString(name)
+	defer C.free(unsafe.Pointer(nameC))
+	d := C.spdk_bdev_get_by_name(nameC)
+	return (*Info)(d)
 }
 
 // Device interface allows retrieving bdev Info.

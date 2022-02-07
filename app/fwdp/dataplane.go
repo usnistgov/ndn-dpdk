@@ -23,6 +23,7 @@ const (
 	RoleInput  = iface.RoleRx
 	RoleOutput = iface.RoleTx
 	RoleCrypto = "CRYPTO"
+	RoleDisk   = "DISK"
 	RoleFwd    = "FWD"
 )
 
@@ -44,7 +45,7 @@ type Config struct {
 
 func (cfg *Config) validate() error {
 	if len(cfg.LCoreAlloc) > 0 {
-		if e := cfg.LCoreAlloc.ValidateRoles(map[string]int{RoleInput: 1, RoleOutput: 1, RoleCrypto: 0, RoleFwd: 1}); e != nil {
+		if e := cfg.LCoreAlloc.ValidateRoles(map[string]int{RoleInput: 1, RoleOutput: 1, RoleCrypto: 0, RoleDisk: 0, RoleFwd: 1}); e != nil {
 			return e
 		}
 	}
@@ -117,12 +118,13 @@ func DefaultAlloc() (m map[string]eal.LCores, e error) {
 
 // DataPlane represents the forwarder data plane.
 type DataPlane struct {
-	ndt   *ndt.Ndt
-	fib   *fib.Fib
-	fwis  []*Input
-	fwcs  []*Crypto
-	fwcsh map[eal.NumaSocket]*CryptoShared
-	fwds  []*Fwd
+	ndt    *ndt.Ndt
+	fib    *fib.Fib
+	fwis   []*Input
+	fwcs   []*Crypto
+	fwcsh  map[eal.NumaSocket]*CryptoShared
+	fwdisk *Disk
+	fwds   []*Fwd
 }
 
 // New creates and launches forwarder data plane.
@@ -141,15 +143,14 @@ func New(cfg Config) (dp *DataPlane, e error) {
 	if e != nil {
 		return nil, e
 	}
-	lcRx, lcTx, lcCrypto, lcFwd := alloc[RoleInput], alloc[RoleOutput], alloc[RoleCrypto], alloc[RoleFwd]
+	lcRx, lcTx, lcCrypto, lcDisk, lcFwd := alloc[RoleInput], alloc[RoleOutput], alloc[RoleCrypto], alloc[RoleDisk], alloc[RoleFwd]
 
 	{
 		ndtSockets := []eal.NumaSocket{}
-		for _, lc := range lcRx {
-			ndtSockets = append(ndtSockets, lc.NumaSocket())
-		}
-		for _, lc := range lcCrypto {
-			ndtSockets = append(ndtSockets, lc.NumaSocket())
+		for _, lcs := range []eal.LCores{lcRx, lcDisk} {
+			for _, lc := range lcs {
+				ndtSockets = append(ndtSockets, lc.NumaSocket())
+			}
 		}
 		dp.ndt = ndt.New(cfg.Ndt, ndtSockets)
 		dp.ndt.Randomize(len(lcFwd))
@@ -173,6 +174,8 @@ func New(cfg Config) (dp *DataPlane, e error) {
 		fibFwds = append(fibFwds, fwd)
 	}
 
+	demuxPrep := &demuxPreparer{Fwds: dp.fwds, NdtQueriers: dp.ndt.Queriers()}
+
 	if dp.fib, e = fib.New(cfg.Fib, fibFwds); e != nil {
 		must.Close(dp)
 		return nil, fmt.Errorf("fib.New: %w", e)
@@ -181,18 +184,18 @@ func New(cfg Config) (dp *DataPlane, e error) {
 	fwcshList := []*CryptoShared{}
 	{
 		dp.fwcsh = map[eal.NumaSocket]*CryptoShared{}
-		fwcID := len(dp.fwis)
+		id := 0
 		for socket, lcs := range lcCrypto.ByNumaSocket() {
 			socketFwcs := []*Crypto{}
 			for _, lc := range lcs {
-				fwc := newCrypto(fwcID)
-				if e = fwc.Init(lc, dp.ndt, dp.fwds); e != nil {
+				fwc := newCrypto(id)
+				if e = fwc.Init(lc, demuxPrep); e != nil {
 					must.Close(dp)
-					return nil, fmt.Errorf("Crypto[%d].Init(): %w", fwcID, e)
+					return nil, fmt.Errorf("Crypto[%d].Init(): %w", id, e)
 				}
 				socketFwcs = append(socketFwcs, fwc)
 				dp.fwcs = append(dp.fwcs, fwc)
-				fwcID++
+				id++
 			}
 
 			fwcsh, e := newCryptoShared(cfg.Crypto, socket, len(socketFwcs))
@@ -206,8 +209,20 @@ func New(cfg Config) (dp *DataPlane, e error) {
 		}
 	}
 
+	if len(lcDisk) > 0 {
+		id := len(lcRx)
+		dp.fwdisk = newDisk(id)
+		if e = dp.fwdisk.Init(lcDisk[0], demuxPrep, cfg.Pcct); e != nil {
+			must.Close(dp)
+			return nil, fmt.Errorf("Disk[%d].Init(): %w", id, e)
+		}
+	}
+
 	for _, fwc := range dp.fwcs {
 		ealthread.Launch(fwc)
+	}
+	if dp.fwdisk != nil {
+		ealthread.Launch(dp.fwdisk)
 	}
 	for _, fwd := range dp.fwds {
 		if fwcsh := dp.fwcsh[fwd.NumaSocket()]; fwcsh != nil {
@@ -220,7 +235,7 @@ func New(cfg Config) (dp *DataPlane, e error) {
 
 	for i, lc := range lcRx {
 		fwi := newInput(i)
-		if e = fwi.Init(lc, dp.ndt, dp.fwds); e != nil {
+		if e = fwi.Init(lc, demuxPrep); e != nil {
 			must.Close(dp)
 			return nil, fmt.Errorf("Input[%d].Init(): %w", i, e)
 		}
@@ -265,6 +280,10 @@ func (dp *DataPlane) Close() error {
 	}
 	for _, fwcsh := range dp.fwcsh {
 		errs = append(errs, fwcsh.Close())
+	}
+	if dp.fwdisk != nil {
+		lcores = append(lcores, dp.fwdisk.LCore())
+		errs = append(errs, dp.fwdisk.Close())
 	}
 	for _, fwd := range dp.fwds {
 		lcores = append(lcores, fwd.LCore())

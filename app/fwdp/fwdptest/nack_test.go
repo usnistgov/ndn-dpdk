@@ -11,7 +11,6 @@ import (
 func TestNackMerge(t *testing.T) {
 	assert, _ := makeAR(t)
 	fixture := NewFixture(t)
-	defer fixture.Close()
 
 	face1, face2, face3 := intface.MustNew(), intface.MustNew(), intface.MustNew()
 	collect1, collect2, collect3 := intface.Collect(face1), intface.Collect(face2), intface.Collect(face3)
@@ -54,7 +53,6 @@ func TestNackMerge(t *testing.T) {
 func TestNackDuplicate(t *testing.T) {
 	assert, _ := makeAR(t)
 	fixture := NewFixture(t)
-	defer fixture.Close()
 
 	face1, face2, face3 := intface.MustNew(), intface.MustNew(), intface.MustNew()
 	collect1, collect2, collect3 := intface.Collect(face1), intface.Collect(face2), intface.Collect(face3)
@@ -94,7 +92,6 @@ func TestNackDuplicate(t *testing.T) {
 func TestReturnNacks(t *testing.T) {
 	assert, _ := makeAR(t)
 	fixture := NewFixture(t)
-	defer fixture.Close()
 
 	face1, face2 := intface.MustNew(), intface.MustNew()
 	collect1 := intface.Collect(face1)
