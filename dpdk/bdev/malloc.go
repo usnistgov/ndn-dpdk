@@ -13,23 +13,17 @@ var _ Device = (*Malloc)(nil)
 
 // Close destroys this block device.
 func (device *Malloc) Close() error {
-	args := mallocDeleteArgs{
-		Name: device.Name(),
-	}
-	var ok bool
-	return spdkenv.RPC("bdev_malloc_delete", args, &ok)
-}
-
-// DevInfo implements Device interface.
-func (device *Malloc) DevInfo() *Info {
-	return device.Info
+	return deleteByName("bdev_malloc_delete", device.Name())
 }
 
 // NewMalloc creates a memory-backed block device.
 func NewMalloc(blockSize int, nBlocks int) (device *Malloc, e error) {
 	initBdevLib()
 	initAccelEngine() // Malloc bdev depends on accelerator engine
-	args := mallocCreateArgs{
+	args := struct {
+		BlockSize int `json:"block_size"`
+		NumBlocks int `json:"num_blocks"`
+	}{
 		BlockSize: blockSize,
 		NumBlocks: nBlocks,
 	}
@@ -38,13 +32,4 @@ func NewMalloc(blockSize int, nBlocks int) (device *Malloc, e error) {
 		return nil, e
 	}
 	return &Malloc{Find(name)}, nil
-}
-
-type mallocCreateArgs struct {
-	BlockSize int `json:"block_size"`
-	NumBlocks int `json:"num_blocks"`
-}
-
-type mallocDeleteArgs struct {
-	Name string `json:"name"`
 }

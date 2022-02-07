@@ -2,7 +2,6 @@ package hwinfo_test
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"testing"
 
@@ -20,7 +19,7 @@ func TestDefault(t *testing.T) {
 		encoder.Encode(obj)
 	}
 	if os.Getenv("HWINFOTEST_SHOW") != "1" {
-		fmt.Println("Set HWINFOTEST_SHOW=1 to show output")
+		t.Log("Set HWINFOTEST_SHOW=1 to show output")
 		printItem = func(obj interface{}) {}
 	}
 

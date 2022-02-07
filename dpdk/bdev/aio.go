@@ -15,22 +15,17 @@ var _ Device = (*Aio)(nil)
 // Close destroys this block device.
 // The underlying file is not deleted.
 func (device *Aio) Close() error {
-	args := aioDeleteArgs{
-		Name: device.Name(),
-	}
-	var ok bool
-	return spdkenv.RPC("bdev_aio_delete", args, &ok)
-}
-
-// DevInfo implements Device interface.
-func (device *Aio) DevInfo() *Info {
-	return device.Info
+	return deleteByName("bdev_aio_delete", device.Name())
 }
 
 // NewAio opens a file-backed block device.
 func NewAio(filename string, blockSize int) (device *Aio, e error) {
 	initBdevLib()
-	args := aioCreateArgs{
+	args := struct {
+		Name      string `json:"name"`
+		Filename  string `json:"filename"`
+		BlockSize int    `json:"block_size,omitempty"`
+	}{
 		Name:      eal.AllocObjectID("bdev.Aio"),
 		Filename:  filename,
 		BlockSize: blockSize,
@@ -40,14 +35,4 @@ func NewAio(filename string, blockSize int) (device *Aio, e error) {
 		return nil, e
 	}
 	return &Aio{Find(name)}, nil
-}
-
-type aioCreateArgs struct {
-	Name      string `json:"name"`
-	Filename  string `json:"filename"`
-	BlockSize int    `json:"block_size,omitempty"`
-}
-
-type aioDeleteArgs struct {
-	Name string `json:"name"`
 }

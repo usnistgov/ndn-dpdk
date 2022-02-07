@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/json"
-	"fmt"
 	"math"
 	"os"
 	"sync"
@@ -202,5 +201,5 @@ func TestServer(t *testing.T) {
 	assert.Greater(cnt.UringSubmitNonBlock, uint64(0))
 	assert.Greater(cnt.SqeSubmit, uint64(0))
 	cntJ, _ := json.Marshal(cnt)
-	fmt.Println(string(cntJ))
+	t.Log(string(cntJ))
 }

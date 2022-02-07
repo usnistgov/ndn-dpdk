@@ -18,8 +18,7 @@ import (
 func TestMemif(t *testing.T) {
 	assert, require := makeAR(t)
 	fixture := ifacetestenv.NewFixture(t)
-	socketName, del := testenv.TempName("subdir/memif.sock")
-	defer del()
+	socketName := testenv.TempName(t, "subdir/memif.sock")
 
 	var locA memifface.Locator
 	locA.SocketName = socketName

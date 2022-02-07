@@ -75,7 +75,7 @@ func New(cfg Config, socket eal.NumaSocket) (pcct *Pcct, e error) {
 		SingleConsumer: true,
 	})
 	if e != nil {
-		return nil, fmt.Errorf("mempool.New error %w", e)
+		return nil, fmt.Errorf("mempool.New error: %w", e)
 	}
 
 	mpC := (*C.struct_rte_mempool)(mp.Ptr())
@@ -87,7 +87,7 @@ func New(cfg Config, socket eal.NumaSocket) (pcct *Pcct, e error) {
 	tokenHtID := C.CString(eal.AllocObjectID("pcct.tokenHt"))
 	defer C.free(unsafe.Pointer(tokenHtID))
 	if ok := bool(C.Pcct_Init(pcctC, tokenHtID, C.uint32_t(cfg.PcctCapacity), C.int(socket.ID()))); !ok {
-		return nil, fmt.Errorf("Pcct_Init error %w", eal.GetErrno())
+		return nil, fmt.Errorf("Pcct_Init error: %w", eal.GetErrno())
 	}
 
 	pcct = (*Pcct)(pcctC)

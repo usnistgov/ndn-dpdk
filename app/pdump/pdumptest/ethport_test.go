@@ -26,9 +26,7 @@ import (
 
 func TestEthPortUnmatched(t *testing.T) {
 	assert, require := makeAR(t)
-
-	filename, del := testenv.TempName()
-	defer del()
+	filename := testenv.TempName(t)
 
 	w, e := pdump.NewWriter(pdump.WriterConfig{
 		Filename:     filename,

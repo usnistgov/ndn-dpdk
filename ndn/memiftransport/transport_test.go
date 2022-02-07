@@ -15,9 +15,7 @@ import (
 
 func TestTransport(t *testing.T) {
 	assert, require := makeAR(t)
-
-	dir, del := testenv.TempDir()
-	defer del()
+	dir := testenv.TempDir(t)
 
 	helper := exec.Command(os.Args[0], memifbridgeArg, dir)
 	helperIn, e := helper.StdinPipe()

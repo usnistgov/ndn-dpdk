@@ -23,9 +23,8 @@ import (
 
 func TestFaceRxTx(t *testing.T) {
 	assert, require := makeAR(t)
+	filename := testenv.TempName(t)
 
-	filename, del := testenv.TempName()
-	defer del()
 	w, e := pdump.NewWriter(pdump.WriterConfig{
 		Filename:     filename,
 		MaxSize:      1 << 22,

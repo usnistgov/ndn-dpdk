@@ -32,7 +32,7 @@ func initRPC() error {
 
 	res := C.spdk_rpc_initialize(sockNameC)
 	if res != 0 {
-		return fmt.Errorf("spdk_rpc_initialize error %w", eal.MakeErrno(res))
+		return fmt.Errorf("spdk_rpc_initialize error: %w", eal.MakeErrno(res))
 	}
 	C.spdk_rpc_set_state(C.SPDK_RPC_RUNTIME)
 

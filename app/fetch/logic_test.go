@@ -1,7 +1,6 @@
 package fetch_test
 
 import (
-	"fmt"
 	"math/rand"
 	"testing"
 	"time"
@@ -69,7 +68,7 @@ func TestLogic(t *testing.T) {
 			txCountFreq[txCount]++
 		}
 	}
-	fmt.Println(txCountFreq)
+	t.Log(txCountFreq)
 	assert.Greater(txCountFreq[1], 1700)
 	assert.Less(txCountFreq[9], 20)
 }

@@ -64,16 +64,13 @@ func Init(args []string) error {
 			initError = rv
 			return
 		case *spdkenv.Thread:
-			eal.MainThread = rv
-			eal.MainReadSide = rv.RcuReadSide
+			eal.MainThread, eal.MainReadSide = rv, rv.RcuReadSide
 		default:
 			panic(rv)
 		}
 
 		updateLogLevels()
-		eal.CallMain(func() {
-			logger.Debug("MainThread is running")
-		})
+		eal.CallMain(func() { logger.Debug("MainThread is running") })
 
 		initError = spdkenv.InitFinal()
 	})

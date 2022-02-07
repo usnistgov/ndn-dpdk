@@ -52,9 +52,8 @@ func TestTCP(t *testing.T) {
 
 func TestUnix(t *testing.T) {
 	_, require := makeAR(t)
+	addr := testenv.TempName(t, "unix.sock")
 
-	addr, del := testenv.TempName("unix.sock")
-	defer del()
 	listener, e := net.Listen("unix", addr)
 	require.NoError(e)
 	defer listener.Close()

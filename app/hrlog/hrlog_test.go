@@ -15,12 +15,10 @@ import (
 func TestWriter(t *testing.T) {
 	t.Cleanup(ealthread.AllocClear)
 	assert, require := makeAR(t)
-
-	file, del := testenv.TempName()
-	defer del()
+	filename := testenv.TempName(t)
 
 	w, e := hrlog.NewWriter(hrlog.WriterConfig{
-		Filename:     file,
+		Filename:     filename,
 		Count:        1000,
 		RingCapacity: 256,
 	})
@@ -44,7 +42,7 @@ func TestWriter(t *testing.T) {
 	w.Close()
 
 	count := 0
-	r, e := hrlogreader.Open(file)
+	r, e := hrlogreader.Open(filename)
 	require.NoError(e)
 	for entry := range r.Read() {
 		count++

@@ -1,7 +1,6 @@
 package fwdptest
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/usnistgov/ndn-dpdk/app/fwdp"
@@ -28,7 +27,7 @@ func TestDefaultAllocFewLCores(t *testing.T) {
 
 	alloc, e := fwdp.DefaultAlloc()
 	require.NoError(e)
-	fmt.Println(alloc)
+	t.Log(alloc)
 	assert.Len(alloc[fwdp.RoleInput], 2)
 	assert.Len(alloc[fwdp.RoleOutput], 1)
 	assert.Len(alloc[fwdp.RoleCrypto], 1)
@@ -47,7 +46,7 @@ func TestDefaultAllocManyLCores(t *testing.T) {
 
 	alloc, e := fwdp.DefaultAlloc()
 	require.NoError(e)
-	fmt.Println(alloc)
+	t.Log(alloc)
 	assert.Len(alloc[fwdp.RoleInput], 4)
 	assert.Len(alloc[fwdp.RoleOutput], 4)
 	assert.Len(alloc[fwdp.RoleCrypto], 1)

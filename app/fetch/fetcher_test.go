@@ -1,7 +1,6 @@
 package fetch_test
 
 import (
-	"fmt"
 	"math/rand"
 	"testing"
 	"time"
@@ -66,7 +65,7 @@ func TestFetcher(t *testing.T) {
 	}
 	fetcher.Stop()
 
-	fmt.Println(nInterests, "Interests in", time.Since(t0))
+	t.Log(nInterests, "Interests in", time.Since(t0))
 	assert.GreaterOrEqual(nInterests, 5000)
 	assert.Less(nInterests, 6000)
 }

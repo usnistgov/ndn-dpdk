@@ -46,45 +46,7 @@ type Bdev struct {
 	nBlocks   int64
 }
 
-// Open opens a block device.
-func Open(device Device, mode Mode) (bd *Bdev, e error) {
-	bdi := device.DevInfo()
-	bd = &Bdev{
-		logger: logger.With(zap.String("name", bdi.Name())),
-	}
-	eal.CallMain(func() {
-		if res := C.spdk_bdev_open_ext(C.spdk_bdev_get_name(bdi.ptr()), C.bool(mode),
-			C.spdk_bdev_event_cb_t(C.go_bdevEvent), nil, &bd.c); res != 0 {
-			e = eal.MakeErrno(res)
-			return
-		}
-		bd.ch = C.spdk_bdev_get_io_channel(bd.c)
-	})
-	if e != nil {
-		return nil, e
-	}
-	bd.blockSize = int64(bdi.BlockSize())
-	bd.nBlocks = int64(bdi.CountBlocks())
-	bd.logger.Info("device opened",
-		zap.Uintptr("ptr", uintptr(bd.Ptr())),
-		zap.String("productName", bdi.ProductName()),
-		zap.Int64("blockSize", bd.blockSize),
-		zap.Int64("nBlocks", bd.nBlocks),
-		zap.Reflect("driver", bdi.DriverInfo()),
-		zap.Bool("canRead", bdi.HasIOType(IORead)),
-		zap.Bool("canWrite", bdi.HasIOType(IOWrite)),
-		zap.Bool("canUnmap", bdi.HasIOType(IOUnmap)),
-	)
-	return bd, nil
-}
-
-//export go_bdevEvent
-func go_bdevEvent(typ C.enum_spdk_bdev_event_type, bdev *C.struct_spdk_bdev, ctx C.uintptr_t) {
-	logger.Info("event",
-		zap.Int("type", int(typ)),
-		zap.Uintptr("bdev", uintptr(unsafe.Pointer(bdev))),
-	)
-}
+var _ Device = (*Bdev)(nil)
 
 // Close closes the block device.
 func (bd *Bdev) Close() error {
@@ -101,7 +63,7 @@ func (bd *Bdev) Ptr() unsafe.Pointer {
 	return unsafe.Pointer(bd.c)
 }
 
-// DevInfo returns Info about this device.
+// DevInfo implements Device interface.
 func (bd *Bdev) DevInfo() (bdi *Info) {
 	return (*Info)(C.spdk_bdev_desc_get_bdev(bd.c))
 }
@@ -150,6 +112,46 @@ func (bd *Bdev) WritePacket(blockOffset, blockCount int64, pkt pktmbuf.Packet) e
 		}
 	}))
 	return <-done
+}
+
+// Open opens a block device.
+func Open(device Device, mode Mode) (bd *Bdev, e error) {
+	bdi := device.DevInfo()
+	bd = &Bdev{
+		logger: logger.With(zap.String("name", bdi.Name())),
+	}
+	eal.CallMain(func() {
+		if res := C.spdk_bdev_open_ext(C.spdk_bdev_get_name(bdi.ptr()), C.bool(mode),
+			C.spdk_bdev_event_cb_t(C.go_bdevEvent), nil, &bd.c); res != 0 {
+			e = eal.MakeErrno(res)
+			return
+		}
+		bd.ch = C.spdk_bdev_get_io_channel(bd.c)
+	})
+	if e != nil {
+		return nil, e
+	}
+	bd.blockSize = int64(bdi.BlockSize())
+	bd.nBlocks = int64(bdi.CountBlocks())
+	bd.logger.Info("device opened",
+		zap.Uintptr("ptr", uintptr(bd.Ptr())),
+		zap.String("productName", bdi.ProductName()),
+		zap.Int64("blockSize", bd.blockSize),
+		zap.Int64("nBlocks", bd.nBlocks),
+		zap.Reflect("driver", bdi.DriverInfo()),
+		zap.Bool("canRead", bdi.HasIOType(IORead)),
+		zap.Bool("canWrite", bdi.HasIOType(IOWrite)),
+		zap.Bool("canUnmap", bdi.HasIOType(IOUnmap)),
+	)
+	return bd, nil
+}
+
+//export go_bdevEvent
+func go_bdevEvent(typ C.enum_spdk_bdev_event_type, bdev *C.struct_spdk_bdev, ctx C.uintptr_t) {
+	logger.Info("event",
+		zap.Int("type", int(typ)),
+		zap.Uintptr("bdev", uintptr(unsafe.Pointer(bdev))),
+	)
 }
 
 //export go_bdevIoComplete

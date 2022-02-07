@@ -38,13 +38,13 @@ func InitEnv() error {
 
 	e := dlopen.LoadGroup("/usr/local/lib/libspdk.so")
 	if e != nil {
-		return fmt.Errorf("dlopen(libspdk.so) error %w", e)
+		return fmt.Errorf("dlopen(libspdk.so) error: %w", e)
 	}
 
 	C.spdk_log_open((*C.logfunc)(C.Logger_Spdk))
 
 	if res := int(C.spdk_env_dpdk_post_init(C.bool(false))); res != 0 {
-		return fmt.Errorf("spdk_env_dpdk_post_init error %w", eal.MakeErrno(res))
+		return fmt.Errorf("spdk_env_dpdk_post_init error: %w", eal.MakeErrno(res))
 	}
 
 	C.c_SpdkLoggerReady()
@@ -62,7 +62,7 @@ func InitMainThread(ret chan<- interface{}) {
 	var e error
 	mainThread, e = NewThread()
 	if e != nil {
-		ret <- fmt.Errorf("SPDK thread error %w", e)
+		ret <- fmt.Errorf("SPDK thread error: %w", e)
 		return
 	}
 	mainThread.SetLCore(eal.MainLCore)
@@ -74,7 +74,7 @@ func InitMainThread(ret chan<- interface{}) {
 func InitFinal() (e error) {
 	e, _ = eal.CallMain(initRPC).(error)
 	if e != nil {
-		return fmt.Errorf("SPDK RPC init error %w", e)
+		return fmt.Errorf("SPDK RPC init error: %w", e)
 	}
 	return nil
 }

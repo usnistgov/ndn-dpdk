@@ -8,6 +8,8 @@ import (
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
+	"github.com/usnistgov/ndn-dpdk/dpdk/spdkenv"
+	"go.uber.org/zap"
 )
 
 // IOType represents an I/O type.
@@ -21,8 +23,15 @@ const (
 	IONvmeIO    IOType = C.SPDK_BDEV_IO_TYPE_NVME_IO
 )
 
+// Device interface allows retrieving bdev Info.
+type Device interface {
+	DevInfo() *Info
+}
+
 // Info provides information about a block device.
 type Info C.struct_spdk_bdev
+
+var _ Device = (*Info)(nil)
 
 func (bdi *Info) ptr() *C.struct_spdk_bdev {
 	return (*C.struct_spdk_bdev)(bdi)
@@ -60,9 +69,18 @@ func (bdi *Info) DriverInfo() (value interface{}) {
 		res = C.spdk_bdev_dump_info_json(bdi.ptr(), (*C.struct_spdk_json_write_ctx)(w))
 	}), &value)
 	if res != 0 || e != nil {
+		logger.Warn("spdk_bdev_dump_info_json error",
+			zap.Int("res", int(res)),
+			zap.Error(e),
+		)
 		return nil
 	}
 	return value
+}
+
+// DevInfo implements Device interface.
+func (bdi *Info) DevInfo() *Info {
+	return bdi
 }
 
 // List returns a list of existing block devices.
@@ -83,12 +101,12 @@ func Find(name string) *Info {
 	return (*Info)(d)
 }
 
-// Device interface allows retrieving bdev Info.
-type Device interface {
-	DevInfo() *Info
-}
-
-// DevInfo implements Device interface.
-func (bdi *Info) DevInfo() *Info {
-	return bdi
+func deleteByName(method, name string) error {
+	args := struct {
+		Name string `json:"name"`
+	}{
+		Name: name,
+	}
+	var ok bool
+	return spdkenv.RPC(method, args, &ok)
 }
