@@ -9,7 +9,7 @@ type Malloc struct {
 	*Info
 }
 
-var _ Device = (*Malloc)(nil)
+var _ DeviceCloser = (*Malloc)(nil)
 
 // Close destroys this block device.
 func (device *Malloc) Close() error {
@@ -31,5 +31,5 @@ func NewMalloc(blockSize int, nBlocks int) (device *Malloc, e error) {
 	if e = spdkenv.RPC("bdev_malloc_create", args, &name); e != nil {
 		return nil, e
 	}
-	return &Malloc{Find(name)}, nil
+	return &Malloc{mustFind(name)}, nil
 }

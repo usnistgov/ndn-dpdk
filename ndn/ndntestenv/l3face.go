@@ -37,7 +37,7 @@ func (c *L3FaceTester) applyDefaults() {
 }
 
 // CheckTransport tests a pair of connected Transport.
-func (c *L3FaceTester) CheckTransport(t *testing.T, trA, trB l3.Transport) {
+func (c *L3FaceTester) CheckTransport(t testing.TB, trA, trB l3.Transport) {
 	_, require := testenv.MakeAR(t)
 	faceA, e := l3.NewFace(trA, l3.FaceConfig{})
 	require.NoError(e)
@@ -47,7 +47,7 @@ func (c *L3FaceTester) CheckTransport(t *testing.T, trA, trB l3.Transport) {
 }
 
 // CheckL3Face tests a pair of connected L3Face.
-func (c *L3FaceTester) CheckL3Face(t *testing.T, faceA, faceB l3.Face) {
+func (c *L3FaceTester) CheckL3Face(t testing.TB, faceA, faceB l3.Face) {
 	c.applyDefaults()
 	assert, require := testenv.MakeAR(t)
 

@@ -17,7 +17,7 @@ import (
 var makeAR = testenv.MakeAR
 
 type ServeFetchFixture struct {
-	t       *testing.T
+	t       testing.TB
 	Bridge  *ndntestenv.Bridge
 	Payload []byte
 	SOpt    segmented.ServeOptions
@@ -58,7 +58,7 @@ func (f *ServeFetchFixture) Fetch() segmented.FetchResult {
 	return segmented.Fetch(f.SOpt.Prefix, f.FOpt)
 }
 
-func NewServeFetchFixture(t *testing.T) (f *ServeFetchFixture) {
+func NewServeFetchFixture(t testing.TB) (f *ServeFetchFixture) {
 	f = &ServeFetchFixture{t: t}
 	f.SOpt.Prefix = ndn.ParseName("/D")
 	return f

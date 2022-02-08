@@ -27,7 +27,7 @@ var makeAR = testenv.MakeAR
 
 // Fixture runs a test that sends and receives packets between a pair of connected faces.
 type Fixture struct {
-	t *testing.T
+	t testing.TB
 
 	PayloadLen      int     // Data payload length
 	DataFrames      int     // expected number of LpPackets per Data packet
@@ -162,7 +162,7 @@ func (fixture *Fixture) CheckCounters() {
 }
 
 // NewFixture creates a Fixture.
-func NewFixture(t *testing.T) (fixture *Fixture) {
+func NewFixture(t testing.TB) (fixture *Fixture) {
 	ndnitestenv.MakePacketHeadroom = mbuftestenv.Headroom(pktmbuf.DefaultHeadroom + ndni.LpHeaderHeadroom)
 
 	_, require := makeAR(t)

@@ -9,7 +9,7 @@ import (
 )
 
 // CheckLocatorMarshal checks JSON marshaling of the Locator.
-func CheckLocatorMarshal(t *testing.T, loc iface.Locator) {
+func CheckLocatorMarshal(t testing.TB, loc iface.Locator) {
 	assert, _ := testenv.MakeAR(t)
 	var locw iface.LocatorWrapper
 	locw.Locator = loc

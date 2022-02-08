@@ -22,7 +22,7 @@ type SignVerifyRecord struct {
 }
 
 // Check runs the test with assigned MakePacket function.
-func (c SignVerifyTester) Check(t *testing.T) (record SignVerifyRecord) {
+func (c SignVerifyTester) Check(t testing.TB) (record SignVerifyRecord) {
 	assert, require := testenv.MakeAR(t)
 
 	name := ndn.ParseName("/NAME")
@@ -46,7 +46,7 @@ func (c SignVerifyTester) Check(t *testing.T) (record SignVerifyRecord) {
 }
 
 // CheckInterest runs the test with non-parameterized Interest packets.
-func (c SignVerifyTester) CheckInterest(t *testing.T) (record SignVerifyRecord) {
+func (c SignVerifyTester) CheckInterest(t testing.TB) (record SignVerifyRecord) {
 	c.MakePacket = func(name ndn.Name) ndn.SignableVerifiable {
 		interest := ndn.MakeInterest(name)
 		return &interest
@@ -55,7 +55,7 @@ func (c SignVerifyTester) CheckInterest(t *testing.T) (record SignVerifyRecord) 
 }
 
 // CheckInterestParameterized runs the test with parameterized Interest packets.
-func (c SignVerifyTester) CheckInterestParameterized(t *testing.T) (record SignVerifyRecord) {
+func (c SignVerifyTester) CheckInterestParameterized(t testing.TB) (record SignVerifyRecord) {
 	c.MakePacket = func(name ndn.Name) ndn.SignableVerifiable {
 		interest := ndn.MakeInterest(name, []byte{0xC0, 0xC1})
 		return &interest
@@ -64,7 +64,7 @@ func (c SignVerifyTester) CheckInterestParameterized(t *testing.T) (record SignV
 }
 
 // CheckData runs the test with Data packets.
-func (c SignVerifyTester) CheckData(t *testing.T) (record SignVerifyRecord) {
+func (c SignVerifyTester) CheckData(t testing.TB) (record SignVerifyRecord) {
 	c.MakePacket = func(name ndn.Name) ndn.SignableVerifiable {
 		data := ndn.MakeData(name, []byte{0xC0, 0xC1})
 		return &data

@@ -17,9 +17,10 @@ type ErrorInjection struct {
 	*Info
 }
 
-var _ Device = (*ErrorInjection)(nil)
+var _ DeviceCloser = (*ErrorInjection)(nil)
 
 // Close destroys this block device.
+// The inner device is not closed.
 func (device *ErrorInjection) Close() error {
 	return deleteByName("bdev_error_delete", device.Name())
 }
@@ -55,5 +56,5 @@ func NewErrorInjection(inner Device) (device *ErrorInjection, e error) {
 	if e = spdkenv.RPC("bdev_error_create", args, &ok); e != nil {
 		return nil, e
 	}
-	return &ErrorInjection{Find("EE_" + args.BaseName)}, nil
+	return &ErrorInjection{mustFind("EE_" + args.BaseName)}, nil
 }

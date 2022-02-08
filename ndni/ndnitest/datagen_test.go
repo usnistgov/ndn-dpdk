@@ -12,7 +12,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
-func testDataGen(t *testing.T, fragmentPayloadSize int, checkMbuf func(m *pktmbuf.Packet)) {
+func testDataGen(t testing.TB, fragmentPayloadSize int, checkMbuf func(m *pktmbuf.Packet)) {
 	assert, require := makeAR(t)
 	payloadMp := ndni.PayloadMempool.Get(eal.NumaSocket{})
 

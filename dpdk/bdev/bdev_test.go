@@ -16,7 +16,7 @@ const (
 	blockCount = 256
 )
 
-func checkSize(t *testing.T, device bdev.Device) {
+func checkSize(t testing.TB, device bdev.Device) {
 	assert, _ := makeAR(t)
 
 	bdi := device.DevInfo()
@@ -24,7 +24,7 @@ func checkSize(t *testing.T, device bdev.Device) {
 	assert.Equal(blockCount, bdi.CountBlocks())
 }
 
-func doRW(t *testing.T, bd *bdev.Bdev) {
+func doRW(t testing.TB, bd *bdev.Bdev) {
 	assert, _ := makeAR(t)
 
 	pkt1 := makePacket(bytes.Repeat([]byte{0xB0}, 500), bytes.Repeat([]byte{0xB1}, 400), bytes.Repeat([]byte{0xB2}, 134))
@@ -42,19 +42,17 @@ func doRW(t *testing.T, bd *bdev.Bdev) {
 	}
 }
 
-func testBdev(t *testing.T, device bdev.Device, mode bdev.Mode, ops ...func(t *testing.T, bd *bdev.Bdev)) {
-	assert, require := makeAR(t)
+func testBdev(t testing.TB, device bdev.Device, mode bdev.Mode, ops ...func(t testing.TB, bd *bdev.Bdev)) {
+	_, require := makeAR(t)
 
 	bd, e := bdev.Open(device, mode)
 	require.NoError(e)
 	require.NotNil(bd)
+	defer must.Close(bd)
 
 	for _, op := range ops {
 		op(t, bd)
 	}
-
-	e = bd.Close()
-	assert.NoError(e)
 }
 
 func TestMalloc(t *testing.T) {
@@ -90,7 +88,7 @@ func TestDelayError(t *testing.T) {
 
 	checkSize(t, errInj)
 	testBdev(t, errInj, bdev.ReadWrite, doRW,
-		func(t *testing.T, bd *bdev.Bdev) {
+		func(t testing.TB, bd *bdev.Bdev) {
 			assert.NoError(errInj.Inject(bdev.IORead, 2))
 			pkt3 := makePacket(make([]byte, blockSize), make([]byte, blockSize))
 			defer pkt3.Close()
@@ -100,8 +98,8 @@ func TestDelayError(t *testing.T) {
 	)
 }
 
-func TestAio(t *testing.T) {
-	_, require := makeAR(t)
+func TestFile(t *testing.T) {
+	assert, require := makeAR(t)
 	filename := testenv.TempName(t)
 
 	file, e := os.Create(filename)
@@ -109,12 +107,18 @@ func TestAio(t *testing.T) {
 	require.NoError(file.Truncate(blockSize * blockCount))
 	file.Close()
 
-	device, e := bdev.NewAio(filename, blockSize)
-	require.NoError(e)
-	defer must.Close(device)
-
-	checkSize(t, device)
-	testBdev(t, device, bdev.ReadWrite, doRW)
+	for _, ctor := range []func() (*bdev.File, error){
+		func() (*bdev.File, error) { return bdev.NewFile(filename, blockSize) },
+		func() (*bdev.File, error) { return bdev.NewFileWithDriver(bdev.FileAio, filename, blockSize) },
+		func() (*bdev.File, error) { return bdev.NewFileWithDriver(bdev.FileUring, filename, blockSize) },
+	} {
+		device, e := ctor()
+		require.NoError(e)
+		assert.Equal(filename, device.Filename())
+		checkSize(t, device)
+		testBdev(t, device, bdev.ReadWrite, doRW)
+		must.Close(device)
+	}
 }
 
 func TestNvme(t *testing.T) {

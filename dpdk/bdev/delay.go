@@ -20,9 +20,10 @@ type Delay struct {
 	*Info
 }
 
-var _ Device = (*Delay)(nil)
+var _ DeviceCloser = (*Delay)(nil)
 
 // Close destroys this block device.
+// The inner device is not closed.
 func (device *Delay) Close() error {
 	return deleteByName("bdev_delay_delete", device.Name())
 }
@@ -48,5 +49,5 @@ func NewDelay(inner Device, cfg DelayConfig) (device *Delay, e error) {
 	if e = spdkenv.RPC("bdev_delay_create", args, &name); e != nil {
 		return nil, e
 	}
-	return &Delay{Find(name)}, nil
+	return &Delay{mustFind(name)}, nil
 }

@@ -5,6 +5,7 @@ package bdev
 */
 import "C"
 import (
+	"io"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
@@ -26,6 +27,12 @@ const (
 // Device interface allows retrieving bdev Info.
 type Device interface {
 	DevInfo() *Info
+}
+
+// DeviceCloser interface is a device that can be closed.
+type DeviceCloser interface {
+	Device
+	io.Closer
 }
 
 // Info provides information about a block device.
@@ -99,6 +106,16 @@ func Find(name string) *Info {
 	defer C.free(unsafe.Pointer(nameC))
 	d := C.spdk_bdev_get_by_name(nameC)
 	return (*Info)(d)
+}
+
+func mustFind(name string) *Info {
+	info := Find(name)
+	if info == nil {
+		logger.Panic("bdev not found",
+			zap.String("name", name),
+		)
+	}
+	return info
 }
 
 func deleteByName(method, name string) error {

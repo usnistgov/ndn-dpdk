@@ -66,7 +66,7 @@ func NewInputDemuxFixture() (fixture *InputDemuxFixture) {
 	}
 }
 
-func testInputDemuxRoundRobin(t *testing.T, n int) {
+func testInputDemuxRoundRobin(t testing.TB, n int) {
 	assert, _ := makeAR(t)
 
 	fixture := NewInputDemuxFixture()
@@ -92,7 +92,7 @@ func TestInputDemuxRoundRobin8(t *testing.T) {
 	testInputDemuxRoundRobin(t, 8)
 }
 
-func testInputDemuxGenericHash(t *testing.T, n int) {
+func testInputDemuxGenericHash(t testing.TB, n int) {
 	assert, _ := makeAR(t)
 
 	fixture := NewInputDemuxFixture()

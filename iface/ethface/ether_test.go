@@ -28,7 +28,7 @@ type topo3 struct {
 	faceAB, faceAC, faceAm, faceBm, faceBA, faceCA iface.Face
 }
 
-func makeTopo3(t *testing.T, forceLinearize bool) (topo topo3) {
+func makeTopo3(t testing.TB, forceLinearize bool) (topo topo3) {
 	_, require := makeAR(t)
 	vnet := createVNet(t, ethringdev.VNetConfig{NNodes: 3})
 	topo.vnet = vnet
@@ -88,7 +88,7 @@ func TestTopoAm(t *testing.T) {
 	topo.CheckCounters()
 }
 
-func testFragmentation(t *testing.T, forceLinearize bool) {
+func testFragmentation(t testing.TB, forceLinearize bool) {
 	assert, require := makeAR(t)
 
 	vnet := createVNet(t, ethringdev.VNetConfig{

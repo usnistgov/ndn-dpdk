@@ -31,7 +31,7 @@ var logger = logging.New("bdev")
 // Mode indicates mode of opening a block device.
 type Mode bool
 
-// Modes of opening a block device.
+// Mode values.
 const (
 	ReadOnly  Mode = false
 	ReadWrite Mode = true

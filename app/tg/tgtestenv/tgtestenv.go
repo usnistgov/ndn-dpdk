@@ -39,7 +39,7 @@ func Init() {
 }
 
 // Open allocates lcores to workers, then connects RxQueues.
-func Open(t *testing.T, m tgdef.Module) {
+func Open(t testing.TB, m tgdef.Module) {
 	_, require := testenv.MakeAR(t)
 	if e := ealthread.AllocThread(m.Workers()...); e != nil {
 		require.NoError(e)

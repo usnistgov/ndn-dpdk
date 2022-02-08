@@ -15,7 +15,7 @@ var (
 	nameIsPrefix = ndntestenv.NameIsPrefix
 )
 
-func checkKeyCertPair(t *testing.T, sigType uint32, pvtA, pvtB keychain.PrivateKey, pubA, pubB keychain.PublicKey) {
+func checkKeyCertPair(t testing.TB, sigType uint32, pvtA, pvtB keychain.PrivateKey, pubA, pubB keychain.PublicKey) {
 	assert, require := makeAR(t)
 
 	pvtWireA, e := keychain.MarshalKey(pvtA)

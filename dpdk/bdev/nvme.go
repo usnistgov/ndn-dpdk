@@ -41,7 +41,7 @@ func go_nvmeProbed(ctx C.uintptr_t, trid *C.struct_spdk_nvme_transport_id, opts 
 	return C.bool(false)
 }
 
-// Nvme represents block devices on an NVMe controller.
+// Nvme represents an NVMe controller.
 type Nvme struct {
 	// Namespaces is a list of NVMe namespaces as block devices.
 	Namespaces []*Info
@@ -79,7 +79,7 @@ func AttachNvme(pciAddr pciaddr.PCIAddress) (nvme *Nvme, e error) {
 	}
 
 	for _, namespace := range namespaces {
-		nvme.Namespaces = append(nvme.Namespaces, Find(namespace))
+		nvme.Namespaces = append(nvme.Namespaces, mustFind(namespace))
 	}
 	return nvme, nil
 }

@@ -31,7 +31,7 @@ type Fixture struct {
 }
 
 // NewFixture creates a Fixture.
-func NewFixture(t *testing.T, modifyConfig ...func(cfg *fwdp.Config)) (f *Fixture) {
+func NewFixture(t testing.TB, modifyConfig ...func(cfg *fwdp.Config)) (f *Fixture) {
 	f = &Fixture{
 		require:  require.New(t),
 		StepUnit: 50 * time.Millisecond,

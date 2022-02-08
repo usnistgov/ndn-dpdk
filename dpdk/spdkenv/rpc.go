@@ -7,6 +7,7 @@ package spdkenv
 */
 import "C"
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/powerman/rpc-codec/jsonrpc2"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"go.uber.org/zap"
 )
 
 var rpcClient *jsonrpc2.Client
@@ -45,6 +47,26 @@ func initRPC() error {
 }
 
 // RPC calls a method on SPDK RPC server.
-func RPC(method string, args interface{}, reply interface{}) error {
-	return rpcClient.Call(method, args, reply)
+func RPC(method string, args interface{}, reply interface{}) (e error) {
+	e = rpcClient.Call(method, args, reply)
+
+	if ce := logger.Check(zap.DebugLevel, "RPC"); ce != nil {
+		errField := zap.Skip()
+		if e != nil {
+			var errV interface{}
+			if json.Unmarshal([]byte(e.Error()), &errV) == nil {
+				errField = zap.Any("error", errV)
+			} else {
+				errField = zap.Error(e)
+			}
+		}
+		ce.Write(
+			zap.String("method", method),
+			zap.Any("args", args),
+			zap.Any("reply", reply),
+			errField,
+		)
+	}
+
+	return e
 }

@@ -61,7 +61,7 @@ func TestUnix(t *testing.T) {
 	checkStream(t, listener)
 }
 
-func checkStream(t *testing.T, listener net.Listener) {
+func checkStream(t testing.TB, listener net.Listener) {
 	_, require := makeAR(t)
 
 	var trA, trB sockettransport.Transport

@@ -41,7 +41,7 @@ var (
 //
 // ifacetestenv.NewFixture should be called after this, so that fixture cleanup (including
 // closing faces) occurs before VNet is closed.
-func createVNet(t *testing.T, cfg ethringdev.VNetConfig) *ethringdev.VNet {
+func createVNet(t testing.TB, cfg ethringdev.VNetConfig) *ethringdev.VNet {
 	_, require := makeAR(t)
 	cfg.RxPool = ndni.PacketMempool.Get(eal.NumaSocket{})
 	vnet, e := ethringdev.NewVNet(cfg)
@@ -54,7 +54,7 @@ func createVNet(t *testing.T, cfg ethringdev.VNetConfig) *ethringdev.VNet {
 // ensurePorts creates a Port for each EthDev on the VNet, if it doesn't already have one.
 //
 // ifacetestenv.NewFixture should be called before this, so that RxLoop and TxLoop exist.
-func ensurePorts(t *testing.T, devs []ethdev.EthDev, cfg ethport.Config) {
+func ensurePorts(t testing.TB, devs []ethdev.EthDev, cfg ethport.Config) {
 	_, require := makeAR(t)
 	for _, dev := range devs {
 		if ethport.Find(dev) != nil {

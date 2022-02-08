@@ -58,7 +58,7 @@ func TestUDP(t *testing.T) {
 	fixture.CheckCounters()
 }
 
-func checkStreamRedialing(t *testing.T, listener net.Listener, makeFaceA func() iface.Face) {
+func checkStreamRedialing(t testing.TB, listener net.Listener, makeFaceA func() iface.Face) {
 	assert, require := makeAR(t)
 	fixture := ifacetestenv.NewFixture(t)
 
