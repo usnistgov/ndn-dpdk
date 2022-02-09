@@ -5,11 +5,13 @@ package fwdp
 */
 import "C"
 import (
+	"errors"
 	"fmt"
+	"os"
+	"path"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/container/disk"
-	"github.com/usnistgov/ndn-dpdk/container/pcct"
 	"github.com/usnistgov/ndn-dpdk/dpdk/bdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
@@ -19,13 +21,60 @@ import (
 	"go.uber.org/multierr"
 )
 
+// DiskMalloc in DiskConfig.Filename specifies a memory-backed bdev.
+const DiskMalloc = "Malloc"
+
+// DiskConfig contains disk helper thread configuration.
+type DiskConfig struct {
+	// Filename is the file used as disk caching block device.
+	//
+	// The file is truncated to the appropriate size required for disk caching.
+	// If the file does not exist, it is created automatically.
+	//
+	// If this is set to DiskMalloc, the disk helper creates a memory-backed bdev as a simulated disk.
+	Filename string `json:"filename"`
+
+	// Bdev specifies the block device.
+	// If set, Filename are ignored.
+	Bdev bdev.Device `json:"-"`
+
+	csDiskCapacity int
+}
+
+func (cfg *DiskConfig) createDevice(minBlocks int64) (bdev.Device, error) {
+	if cfg.Bdev != nil {
+		return cfg.Bdev, nil
+	}
+
+	if cfg.Filename == "" {
+		return nil, errors.New("filename is missing")
+	}
+	if cfg.Filename == DiskMalloc {
+		return bdev.NewMalloc(disk.BlockSize, minBlocks)
+	}
+
+	cfg.Filename = path.Clean(cfg.Filename)
+	file, e := os.Create(cfg.Filename)
+	if e != nil {
+		return nil, fmt.Errorf("os.Create(%s) error: %w", cfg.Filename, e)
+	}
+	size := disk.BlockSize * int64(minBlocks)
+	if e := file.Truncate(size); e != nil {
+		return nil, fmt.Errorf("file.Truncate(%d) error: %w", size, e)
+	}
+	file.Chmod(0o600)
+	file.Close()
+
+	return bdev.NewFile(cfg.Filename, disk.BlockSize)
+}
+
 // Disk represents a disk helper thread.
 type Disk struct {
 	*spdkenv.Thread
 	id int
 	c  *C.FwDisk
 
-	bdev   *bdev.Malloc
+	bdev   bdev.Device
 	store  *disk.Store
 	allocs map[int]*disk.Alloc
 }
@@ -36,7 +85,7 @@ var (
 )
 
 // Init initializes the disk helper.
-func (fwdisk *Disk) Init(lc eal.LCore, demuxPrep *demuxPreparer, pcctCfg pcct.Config) (e error) {
+func (fwdisk *Disk) Init(lc eal.LCore, demuxPrep *demuxPreparer, cfg DiskConfig) (e error) {
 	defer func() {
 		if e == nil {
 			return
@@ -49,10 +98,10 @@ func (fwdisk *Disk) Init(lc eal.LCore, demuxPrep *demuxPreparer, pcctCfg pcct.Co
 
 	calc := disk.SizeCalc{
 		NThreads:   len(demuxPrep.Fwds),
-		NPackets:   pcctCfg.CsDiskCapacity,
+		NPackets:   cfg.csDiskCapacity,
 		PacketSize: ndni.PacketMempool.Config().Dataroom,
 	}
-	if fwdisk.bdev, e = bdev.NewMalloc(disk.BlockSize, calc.MinBlocks()); e != nil {
+	if fwdisk.bdev, e = cfg.createDevice(calc.MinBlocks()); e != nil {
 		return e
 	}
 

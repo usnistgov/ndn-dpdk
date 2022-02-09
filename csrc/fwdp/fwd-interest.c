@@ -113,7 +113,7 @@ FwFwd_InterestHitCsDisk(FwFwd* fwd, FwFwdCtx* ctx, CsEntry* csEntry)
 {
   struct rte_mbuf* dataBuf = rte_pktmbuf_alloc(fwd->mp.packet);
   if (unlikely(dataBuf == NULL)) {
-    N_LOGD("^ cs-entry-disk=%p disk-slot=%" PRIu64 " drop=alloc-error", csEntry, csEntry->diskSlot);
+    N_LOGD("^ cs-entry-disk=%p disk-slot=%" PRIu64 " drop=alloc-err", csEntry, csEntry->diskSlot);
     FwFwdCtx_FreePkt(ctx);
     return;
   }
@@ -229,7 +229,7 @@ SgForwardInterest(SgCtx* ctx0, FaceID nh)
   Packet* outNpkt =
     Interest_ModifyGuiders(ctx->pitEntry->npkt, guiders, &fwd->mp, Face_PacketTxAlign(nh));
   if (unlikely(outNpkt == NULL)) {
-    N_LOGD("^ no-interest-to=%" PRI_FaceID " drop=alloc-error", nh);
+    N_LOGD("^ no-interest-to=%" PRI_FaceID " drop=alloc-err", nh);
     return SGFWDI_ALLOCERR;
   }
 

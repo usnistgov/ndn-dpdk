@@ -1,80 +1,85 @@
 #include "bdev.h"
 
-enum
-{
-  FILLER_LEN = 65536,
-  FILLER_MAX = 16,
-  NIOV_MAX = SPDK_BDEV_MAX_MBUF_SEGS + FILLER_MAX,
-};
-static void* Filler = NULL;
-
-void
-SpdkBdev_InitFiller()
-{
-  Filler = rte_malloc("SpdkBdevFiller", FILLER_LEN, 0);
-  NDNDPDK_ASSERT(Filler != NULL);
-}
+void* BdevFillers_ = NULL;
 
 __attribute__((nonnull)) static int
-SpdkBdev_MakeIovec(struct rte_mbuf* pkt, size_t totalLen, struct iovec iov[NIOV_MAX])
+Bdev_PrepareIovec(Bdev* bd, BdevRequest* req, struct rte_mbuf* pkt, uint32_t blockCount,
+                  void* filler)
 {
-  if (pkt->nb_segs > SPDK_BDEV_MAX_MBUF_SEGS) {
+  if (unlikely(blockCount == 0 || pkt->nb_segs > BdevMaxMbufSegs)) {
     return -EMSGSIZE;
   }
 
-  size_t nIov = 0;
+  int iovcnt = 0;
+  struct rte_mbuf* lastSeg = pkt;
   for (struct rte_mbuf* seg = pkt; seg != NULL; seg = seg->next) {
     if (unlikely(seg->data_len == 0)) {
       continue;
     }
-    iov[nIov].iov_base = rte_pktmbuf_mtod(seg, void*);
-    iov[nIov].iov_len = seg->data_len;
-    ++nIov;
+    req->iov[iovcnt].iov_base = rte_pktmbuf_mtod(seg, void*);
+    req->iov[iovcnt].iov_len = seg->data_len;
+    ++iovcnt;
+    lastSeg = seg;
   }
 
-  // Malloc driver expects SUM(iov[].iov_len) == blockCount*blockSize
-  // XXX filler is unnecessary for AIO and NVMe drivers
-  size_t fillersLen = totalLen - pkt->pkt_len;
-  size_t nFillers = fillersLen / FILLER_LEN;
-  size_t firstFiller = fillersLen % FILLER_LEN;
-  if (firstFiller != 0) {
-    iov[nIov].iov_base = Filler;
-    iov[nIov].iov_len = firstFiller;
-    ++nIov;
-  }
-  if (unlikely(nIov + nFillers >= NIOV_MAX)) {
-    return -EMSGSIZE;
-  }
-  for (size_t i = 0; i < nFillers; ++i) {
-    iov[nIov].iov_base = Filler;
-    iov[nIov].iov_len = FILLER_LEN;
-    ++nIov;
-  }
-  return nIov;
-}
-
-int
-SpdkBdev_ReadPacket(struct spdk_bdev_desc* desc, struct spdk_io_channel* ch, struct rte_mbuf* pkt,
-                    uint64_t blockOffset, uint64_t blockCount, uint32_t blockSize,
-                    spdk_bdev_io_completion_cb cb, uintptr_t ctx)
-{
-  struct iovec iov[NIOV_MAX];
-  int iovcnt = SpdkBdev_MakeIovec(pkt, blockCount * blockSize, iov);
-  if (unlikely(iovcnt < 0)) {
+  size_t fillerLen = (blockCount << bd->blockSizeLog2) - pkt->pkt_len;
+  if (likely(rte_pktmbuf_tailroom(lastSeg) >= fillerLen)) {
+    req->iov[iovcnt - 1].iov_len += fillerLen;
     return iovcnt;
   }
-  return spdk_bdev_readv_blocks(desc, ch, iov, iovcnt, blockOffset, blockCount, cb, (void*)ctx);
+
+  req->iov[iovcnt].iov_base = filler;
+  req->iov[iovcnt].iov_len = fillerLen;
+  ++iovcnt;
+  return iovcnt;
 }
 
-int
-SpdkBdev_WritePacket(struct spdk_bdev_desc* desc, struct spdk_io_channel* ch, struct rte_mbuf* pkt,
-                     uint64_t blockOffset, uint64_t blockCount, uint32_t blockSize,
-                     spdk_bdev_io_completion_cb cb, uintptr_t ctx)
+__attribute__((nonnull)) static void
+Bdev_Complete(struct spdk_bdev_io* io, bool success, void* req0)
 {
-  struct iovec iov[NIOV_MAX];
-  int iovcnt = SpdkBdev_MakeIovec(pkt, blockCount * blockSize, iov);
+  spdk_bdev_free_io(io);
+  NULLize(io);
+
+  BdevRequest* req = (BdevRequest*)req0;
+  int res = success ? 0 : EIO;
+  req->cb(req, res);
+}
+
+void
+Bdev_ReadPacket(Bdev* bd, struct spdk_io_channel* ch, struct rte_mbuf* pkt, uint64_t blockOffset,
+                BdevRequestCb cb, BdevRequest* req)
+{
+  req->cb = cb;
+  uint32_t blockCount = Bdev_ComputeBlockCount(bd, pkt);
+  int iovcnt =
+    Bdev_PrepareIovec(bd, req, pkt, blockCount, RTE_PTR_ADD(BdevFillers_, BdevFillerLen_));
   if (unlikely(iovcnt < 0)) {
-    return iovcnt;
+    req->cb(req, iovcnt);
+    return;
   }
-  return spdk_bdev_writev_blocks(desc, ch, iov, iovcnt, blockOffset, blockCount, cb, (void*)ctx);
+
+  int res = spdk_bdev_readv_blocks(bd->desc, ch, req->iov, iovcnt, blockOffset, blockCount,
+                                   Bdev_Complete, req);
+  if (unlikely(res != 0)) {
+    cb(req, res);
+  }
+}
+
+void
+Bdev_WritePacket(Bdev* bd, struct spdk_io_channel* ch, struct rte_mbuf* pkt, uint64_t blockOffset,
+                 BdevRequestCb cb, BdevRequest* req)
+{
+  req->cb = cb;
+  uint32_t blockCount = Bdev_ComputeBlockCount(bd, pkt);
+  int iovcnt = Bdev_PrepareIovec(bd, req, pkt, blockCount, RTE_PTR_ADD(BdevFillers_, 0));
+  if (unlikely(iovcnt < 0)) {
+    req->cb(req, iovcnt);
+    return;
+  }
+
+  int res = spdk_bdev_writev_blocks(bd->desc, ch, req->iov, iovcnt, blockOffset, blockCount,
+                                    Bdev_Complete, req);
+  if (unlikely(res != 0)) {
+    cb(req, res);
+  }
 }

@@ -80,8 +80,8 @@ func (calc SizeCalc) BlocksPerSlot() int {
 }
 
 // StoreBlocks calculates minimum number of blocks required in the Store.
-func (calc SizeCalc) MinBlocks() int {
-	return calc.BlocksPerSlot() * (1 + calc.NThreads*calc.NPackets)
+func (calc SizeCalc) MinBlocks() int64 {
+	return int64(calc.BlocksPerSlot()) * int64(1+calc.NThreads*calc.NPackets)
 }
 
 // CreateAlloc creates an Alloc for i-th thread.

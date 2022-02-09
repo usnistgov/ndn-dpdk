@@ -4,77 +4,64 @@
 
 N_LOG_INIT(DiskStore);
 
-static_assert((int)SPDK_BDEV_MAX_MBUF_SEGS >= (int)LpMaxFragments, "");
+static_assert((int)BdevMaxMbufSegs >= (int)LpMaxFragments, "");
 
-/** @brief Parameters related to PutData, stored over PData.digest field. */
-typedef struct PutDataRequest
+__attribute__((nonnull)) static inline void
+PutData_Finalize(DiskStoreRequest* req)
 {
-  DiskStore* store;
-  uint64_t slotID;
-} PutDataRequest;
-static_assert(sizeof(PutDataRequest) <= sizeof(((PData*)(NULL))->digest), "");
-
-__attribute__((nonnull)) static void
-PutData_End(struct spdk_bdev_io* io, bool success, void* npkt0)
-{
-  Packet* npkt = (Packet*)npkt0;
-  PData* data = Packet_GetDataHdr(npkt);
-  PutDataRequest* req = (PutDataRequest*)&data->digest[0];
-  uint64_t slotID = req->slotID;
-
-  if (likely(success)) {
-    N_LOGD("PutData success slot=%" PRIu64 " npkt=%p", slotID, npkt);
-  } else {
-    N_LOGW("PutData error slot=%" PRIu64 " npkt=%p" N_LOG_ERROR("io-err"), slotID, npkt);
-  }
-
-  rte_pktmbuf_free(Packet_ToMbuf(npkt));
-  spdk_bdev_free_io(io);
+  rte_pktmbuf_free(req->pkt);
+  rte_mempool_put(req->store->mp, req);
 }
 
 __attribute__((nonnull)) static void
-PutData_Begin(void* npkt0)
+PutData_End(BdevRequest* breq, int res)
 {
-  Packet* npkt = (Packet*)npkt0;
-  PData* data = Packet_GetDataHdr(npkt);
-  PutDataRequest* req = (PutDataRequest*)&data->digest[0];
-  DiskStore* store = req->store;
-  uint64_t slotID = req->slotID;
-
-  if (unlikely(store->ch == NULL)) {
-    store->ch = spdk_bdev_get_io_channel(store->bdev);
-    if (unlikely(store->ch == NULL)) {
-      N_LOGW("PutData no I/O channel" N_LOG_ERROR("spdk_bdev_get_io_channel"));
-      rte_pktmbuf_free(Packet_ToMbuf(npkt));
-      return;
-    }
+  DiskStoreRequest* req = container_of(breq, DiskStoreRequest, breq);
+  if (likely(res == 0)) {
+    N_LOGD("PutData success slot=%" PRIu64 " npkt=%p", req->slotID, req->npkt);
+  } else {
+    N_LOGW("PutData error slot=%" PRIu64 " npkt=%p" N_LOG_ERROR_ERRNO, req->slotID, req->npkt, res);
   }
+  PutData_Finalize(req);
+}
 
-  uint64_t blockOffset = DiskStore_ComputeBlockOffset_(store, slotID);
-  uint64_t blockCount = DiskStore_ComputeBlockCount_(store, npkt);
-  int res = SpdkBdev_WritePacket(store->bdev, store->ch, Packet_ToMbuf(npkt), blockOffset,
-                                 blockCount, store->blockSize, PutData_End, (uintptr_t)npkt);
-  if (unlikely(res != 0)) {
-    N_LOGW("PutData write error slot=%" PRIu64 " npkt=%p" N_LOG_ERROR_ERRNO, slotID, npkt, res);
-    rte_pktmbuf_free(Packet_ToMbuf(npkt));
-  }
+__attribute__((nonnull)) static void
+PutData_Begin(void* req0)
+{
+  DiskStoreRequest* req = (DiskStoreRequest*)req0;
+  uint64_t blockOffset = req->slotID * req->store->nBlocksPerSlot;
+  Bdev_WritePacket(&req->store->bdev, req->store->ch, req->pkt, blockOffset, PutData_End,
+                   &req->breq);
 }
 
 void
 DiskStore_PutData(DiskStore* store, uint64_t slotID, Packet* npkt)
 {
   NDNDPDK_ASSERT(slotID > 0);
-  uint64_t blockCount = DiskStore_ComputeBlockCount_(store, npkt);
+
+  uint32_t blockCount = Bdev_ComputeBlockCount(&store->bdev, Packet_ToMbuf(npkt));
   if (unlikely(blockCount > store->nBlocksPerSlot)) {
-    N_LOGW("PutData slot=%" PRIu64 " npkt=%p" N_LOG_ERROR("packet-too-long"), slotID, npkt);
+    N_LOGW("PutData error slot=%" PRIu64 " npkt=%p" N_LOG_ERROR("packet-too-long"), slotID, npkt);
     rte_pktmbuf_free(Packet_ToMbuf(npkt));
     return;
   }
 
-  PData* data = Packet_GetDataHdr(npkt);
-  data->hasDigest = false;
-  PutDataRequest* req = (PutDataRequest*)&data->digest[0];
+  DiskStoreRequest* req = NULL;
+  int res = rte_mempool_get(store->mp, (void**)&req);
+  if (unlikely(res != 0)) {
+    N_LOGW("PutData error slot=%" PRIu64 " npkt=%p" N_LOG_ERROR("alloc-err"), slotID, npkt);
+    rte_pktmbuf_free(Packet_ToMbuf(npkt));
+    return;
+  }
+
+  N_LOGD("PutData request slot=%" PRIu64 " npkt=%p", slotID, npkt);
   req->store = store;
   req->slotID = slotID;
-  spdk_thread_send_msg(store->th, PutData_Begin, npkt);
+  req->npkt = npkt;
+  res = spdk_thread_send_msg(store->th, PutData_Begin, req);
+  if (unlikely(res != 0)) {
+    N_LOGW("PutData error spdk_thread_send_msg slot=%" PRIu64 " npkt=%p" N_LOG_ERROR_ERRNO, slotID,
+           npkt, res);
+    PutData_Finalize(req);
+  }
 }

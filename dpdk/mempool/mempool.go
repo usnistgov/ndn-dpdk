@@ -10,9 +10,18 @@ import (
 	"errors"
 	"unsafe"
 
+	binutils "github.com/jfoster/binary-utilities"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
+
+// ComputeOptimumCapacity adjusts mempool capacity to be a power of two minus one, if near.
+func ComputeOptimumCapacity(capacity int) int {
+	if binutils.NextPowerOfTwo(int64(capacity)) == int64(capacity) {
+		capacity--
+	}
+	return capacity
+}
 
 // ComputeCacheSize calculates the appropriate cache size for given mempool capacity.
 func ComputeCacheSize(capacity int) int {
@@ -43,37 +52,6 @@ type Config struct {
 
 // Mempool represents a DPDK memory pool for generic objects.
 type Mempool C.struct_rte_mempool
-
-// New creates a Mempool.
-func New(cfg Config) (mp *Mempool, e error) {
-	nameC := C.CString(eal.AllocObjectID("mempool.Mempool"))
-	defer C.free(unsafe.Pointer(nameC))
-
-	var flags C.unsigned
-	if cfg.SingleProducer {
-		flags |= C.MEMPOOL_F_SP_PUT
-	}
-	if cfg.SingleConsumer {
-		flags |= C.MEMPOOL_F_SC_GET
-	}
-
-	var cacheSize int
-	if !cfg.NoCache {
-		cacheSize = ComputeCacheSize(cfg.Capacity)
-	}
-
-	c := C.rte_mempool_create(nameC, C.uint(cfg.Capacity), C.uint(cfg.ElementSize), C.uint(cacheSize),
-		C.unsigned(cfg.PrivSize), nil, nil, nil, nil, C.int(cfg.Socket.ID()), flags)
-	if c == nil {
-		return nil, eal.GetErrno()
-	}
-	return (*Mempool)(c), nil
-}
-
-// FromPtr converts *C.struct_rte_mempool pointer to Mempool.
-func FromPtr(ptr unsafe.Pointer) *Mempool {
-	return (*Mempool)(ptr)
-}
 
 // Ptr returns *C.struct_rte_mempool pointer.
 func (mp *Mempool) Ptr() unsafe.Pointer {
@@ -131,4 +109,34 @@ func (mp *Mempool) Free(objs interface{}) {
 		return
 	}
 	C.rte_mempool_put_bulk(mp.ptr(), (*unsafe.Pointer)(ptr), C.uint(count))
+}
+
+// New creates a Mempool.
+func New(cfg Config) (mp *Mempool, e error) {
+	nameC := C.CString(eal.AllocObjectID("mempool.Mempool"))
+	defer C.free(unsafe.Pointer(nameC))
+
+	var flags C.unsigned
+	if cfg.SingleProducer {
+		flags |= C.MEMPOOL_F_SP_PUT
+	}
+	if cfg.SingleConsumer {
+		flags |= C.MEMPOOL_F_SC_GET
+	}
+
+	capacity, cacheSize := ComputeOptimumCapacity(cfg.Capacity), 0
+	if !cfg.NoCache {
+		cacheSize = ComputeCacheSize(capacity)
+	}
+	c := C.rte_mempool_create(nameC, C.uint(capacity), C.uint(cfg.ElementSize), C.uint(cacheSize),
+		C.unsigned(cfg.PrivSize), nil, nil, nil, nil, C.int(cfg.Socket.ID()), flags)
+	if c == nil {
+		return nil, eal.GetErrno()
+	}
+	return (*Mempool)(c), nil
+}
+
+// FromPtr converts *C.struct_rte_mempool pointer to Mempool.
+func FromPtr(ptr unsafe.Pointer) *Mempool {
+	return (*Mempool)(ptr)
 }

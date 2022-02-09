@@ -15,6 +15,7 @@ export interface FwdpConfig {
   pcct?: PcctConfig;
   suppress?: SuppressConfig;
   crypto?: FwdpCryptoConfig;
+  disk?: FwdpDiskConfig;
   fwdInterestQueue?: PktQueueConfig;
   fwdDataQueue?: PktQueueConfig;
   fwdNackQueue?: PktQueueConfig;
@@ -24,4 +25,8 @@ export interface FwdpConfig {
 export interface FwdpCryptoConfig {
   inputCapacity?: Uint;
   opPoolCapacity?: Uint;
+}
+
+export interface FwdpDiskConfig {
+  filename: string | "Malloc";
 }

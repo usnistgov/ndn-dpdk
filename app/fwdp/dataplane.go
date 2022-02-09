@@ -37,6 +37,7 @@ type Config struct {
 	Suppress pit.SuppressConfig `json:"suppress,omitempty"`
 
 	Crypto            CryptoConfig         `json:"crypto,omitempty"`
+	Disk              DiskConfig           `json:"disk,omitempty"`
 	FwdInterestQueue  iface.PktQueueConfig `json:"fwdInterestQueue,omitempty"`
 	FwdDataQueue      iface.PktQueueConfig `json:"fwdDataQueue,omitempty"`
 	FwdNackQueue      iface.PktQueueConfig `json:"fwdNackQueue,omitempty"`
@@ -210,9 +211,10 @@ func New(cfg Config) (dp *DataPlane, e error) {
 	}
 
 	if len(lcDisk) > 0 {
+		cfg.Disk.csDiskCapacity = cfg.Pcct.CsDiskCapacity
 		id := len(lcRx)
 		dp.fwdisk = newDisk(id)
-		if e = dp.fwdisk.Init(lcDisk[0], demuxPrep, cfg.Pcct); e != nil {
+		if e = dp.fwdisk.Init(lcDisk[0], demuxPrep, cfg.Disk); e != nil {
 			must.Close(dp)
 			return nil, fmt.Errorf("Disk[%d].Init(): %w", id, e)
 		}

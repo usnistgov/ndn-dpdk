@@ -12,16 +12,23 @@ import (
 	"sync"
 	"unsafe"
 
+	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
+	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/dpdk/bdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/mempool"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/spdkenv"
 	"github.com/usnistgov/ndn-dpdk/ndni"
+	"go.uber.org/multierr"
+	"go.uber.org/zap"
 )
 
+var logger = logging.New("disk")
+
 // BlockSize is the supported bdev block size.
-const BlockSize = C.DISK_STORE_BLOCK_SIZE
+const BlockSize = C.DiskStore_BlockSize
 
 var (
 	// StoreGetDataCallback is a C function type for store.GetData callback.
@@ -45,32 +52,38 @@ func go_getDataCallback(npkt *C.Packet, ctx C.uintptr_t) C.int {
 
 // Store represents a disk-backed Data Store.
 type Store struct {
-	c               *C.DiskStore
-	bd              *bdev.Bdev
-	th              *spdkenv.Thread
+	c  *C.DiskStore
+	mp *mempool.Mempool
+	bd *bdev.Bdev
+	th *spdkenv.Thread
+
 	getDataCbRevoke func()
+	getDataGo       bool
 }
 
-// Ptr returns *C.DiskAlloc pointer.
+// Ptr returns *C.DiskStore pointer.
 func (store *Store) Ptr() unsafe.Pointer {
 	return unsafe.Pointer(store.c)
 }
 
-// Close closes this DiskStore.
+// Close closes this Store.
 func (store *Store) Close() error {
-	cptr.Call(store.th.Post, func() {
-		if store.c.ch != nil {
-			C.spdk_put_io_channel(store.c.ch)
-		}
-	})
+	if ch := store.c.ch; ch != nil {
+		// this would panic if SPDK thread is closed
+		store.th.Post(cptr.Func0.Void(func() { C.spdk_put_io_channel(ch) }))
+	}
 	eal.Free(store.c)
+	store.c = nil
 	store.getDataCbRevoke()
-	return store.bd.Close()
+	return multierr.Append(
+		store.mp.Close(),
+		store.bd.Close(),
+	)
 }
 
 // SlotRange returns a range of possible slot numbers.
 func (store *Store) SlotRange() (min, max uint64) {
-	return 1, uint64(store.bd.DevInfo().CountBlocks()/int(store.c.nBlocksPerSlot) - 1)
+	return 1, uint64(store.bd.DevInfo().CountBlocks()/int64(store.c.nBlocksPerSlot) - 1)
 }
 
 // PutData asynchronously stores a Data packet.
@@ -81,20 +94,27 @@ func (store *Store) PutData(slotID uint64, data *ndni.Packet) {
 // GetData retrieves a Data packet from specified slot and waits for completion.
 // This can be used only if the Store was created with StoreGetDataGo.
 func (store *Store) GetData(slotID uint64, interest *ndni.Packet, dataBuf *pktmbuf.Packet) (data *ndni.Packet) {
+	if !store.getDataGo {
+		logger.Panic("Store is not created with StoreGetDataGo, cannot GetData")
+	}
+
 	interestC := (*C.Packet)(interest.Ptr())
 	pinterest := C.Packet_GetInterestHdr(interestC)
 
 	reply := make(chan struct{})
 	_, dup := getDataReplyMap.LoadOrStore(interestC, reply)
 	if dup {
-		panic("ongoing GetData on the same mbuf")
+		logger.Panic("ongoing GetData on the same mbuf")
 	}
 
 	C.DiskStore_GetData(store.c, C.uint64_t(slotID), interestC, (*C.struct_rte_mbuf)(dataBuf.Ptr()))
 	<-reply
 
-	if uint64(pinterest.diskSlot) != slotID {
-		panic("unexpected PInterest.diskSlot")
+	if retSlot := uint64(pinterest.diskSlot); retSlot != slotID {
+		logger.Panic("unexpected PInterest.diskSlot",
+			zap.Uint64("request-slot", slotID),
+			zap.Uint64("return-slot", slotID),
+		)
 	}
 	return ndni.PacketFromPtr(unsafe.Pointer(pinterest.diskData))
 }
@@ -109,19 +129,47 @@ func NewStore(device bdev.Device, th *spdkenv.Thread, nBlocksPerSlot int, getDat
 	store = &Store{
 		th: th,
 	}
+	if store.mp, e = mempool.New(mempool.Config{
+		Capacity:       int(math.MaxInt64(256, math.MinInt64(bdi.CountBlocks()/1024, 8192))),
+		ElementSize:    C.sizeof_DiskStoreRequest,
+		Socket:         th.LCore().NumaSocket(),
+		SingleProducer: true,
+	}); e != nil {
+		return nil, e
+	}
 	if store.bd, e = bdev.Open(device, bdev.ReadWrite); e != nil {
+		store.mp.Close()
 		return nil, e
 	}
 
 	socket := th.LCore().NumaSocket()
 	store.c = (*C.DiskStore)(eal.Zmalloc("DiskStore", C.sizeof_DiskStore, socket))
+	store.bd.CopyToC(unsafe.Pointer(&store.c.bdev))
+	store.c.mp = (*C.struct_rte_mempool)(store.mp.Ptr())
 	store.c.th = (*C.struct_spdk_thread)(th.Ptr())
-	store.c.bdev = (*C.struct_spdk_bdev_desc)(store.bd.Ptr())
 	store.c.nBlocksPerSlot = C.uint64_t(nBlocksPerSlot)
-	store.c.blockSize = C.uint32_t(bdi.BlockSize())
 
 	f, ctx, revoke := StoreGetDataCallback.CallbackReuse(getDataCb)
 	store.c.getDataCb, store.c.getDataCtx, store.getDataCbRevoke = C.DiskStore_GetDataCb(f), C.uintptr_t(ctx), revoke
+	store.getDataGo = getDataCb == StoreGetDataGo
 
+	// SPDK thread processes messages in order, so that this would occur before any other DiskStore usage
+	th.Post(cptr.Func0.Void(func() {
+		if store.c == nil {
+			// in case store is closed without launching the SPDK thread
+			return
+		}
+
+		store.c.ch = C.spdk_bdev_get_io_channel(store.c.bdev.desc)
+		if store.c.ch == nil {
+			logger.Panic("spdk_bdev_get_io_channel failed")
+		}
+
+		logger.Info("DiskStore ready",
+			zap.Uintptr("store", uintptr(unsafe.Pointer(store.c))),
+			zap.String("bdev", store.bd.DevInfo().Name()),
+			zap.Uintptr("ch", uintptr(unsafe.Pointer(store.c.th))),
+		)
+	}))
 	return store, nil
 }

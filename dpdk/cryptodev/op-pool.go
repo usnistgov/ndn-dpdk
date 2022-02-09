@@ -34,25 +34,6 @@ type OpPool struct {
 	mempool.Mempool
 }
 
-// NewOpPool creates an OpPool.
-func NewOpPool(cfg OpPoolConfig, socket eal.NumaSocket) (mp *OpPool, e error) {
-	cfg.applyDefaults()
-	nameC := C.CString(eal.AllocObjectID("cryptodev.OpPool"))
-	defer C.free(unsafe.Pointer(nameC))
-
-	mpC := C.rte_crypto_op_pool_create(nameC, C.RTE_CRYPTO_OP_TYPE_UNDEFINED, C.uint(cfg.Capacity),
-		C.uint(mempool.ComputeCacheSize(cfg.Capacity)), C.uint16_t(cfg.PrivSize), C.int(socket.ID()))
-	if mpC == nil {
-		return nil, eal.GetErrno()
-	}
-	return OpPoolFromPtr(unsafe.Pointer(mpC)), nil
-}
-
-// OpPoolFromPtr converts *C.struct_rte_mempool pointer to OpPool.
-func OpPoolFromPtr(ptr unsafe.Pointer) *OpPool {
-	return (*OpPool)(ptr)
-}
-
 // Alloc allocates Op objects.
 func (mp *OpPool) Alloc(opType OpType, count int) (vec OpVector, e error) {
 	vec = make(OpVector, count)
@@ -63,4 +44,25 @@ func (mp *OpPool) Alloc(opType OpType, count int) (vec OpVector, e error) {
 		return nil, errors.New("rte_crypto_op_bulk_alloc failed")
 	}
 	return vec, nil
+}
+
+// NewOpPool creates an OpPool.
+func NewOpPool(cfg OpPoolConfig, socket eal.NumaSocket) (mp *OpPool, e error) {
+	cfg.applyDefaults()
+	nameC := C.CString(eal.AllocObjectID("cryptodev.OpPool"))
+	defer C.free(unsafe.Pointer(nameC))
+
+	capacity := mempool.ComputeOptimumCapacity(cfg.Capacity)
+	cacheSize := mempool.ComputeCacheSize(capacity)
+	mpC := C.rte_crypto_op_pool_create(nameC, C.RTE_CRYPTO_OP_TYPE_UNDEFINED, C.uint(capacity), C.uint(cacheSize),
+		C.uint16_t(cfg.PrivSize), C.int(socket.ID()))
+	if mpC == nil {
+		return nil, eal.GetErrno()
+	}
+	return OpPoolFromPtr(unsafe.Pointer(mpC)), nil
+}
+
+// OpPoolFromPtr converts *C.struct_rte_mempool pointer to OpPool.
+func OpPoolFromPtr(ptr unsafe.Pointer) *OpPool {
+	return (*OpPool)(ptr)
 }

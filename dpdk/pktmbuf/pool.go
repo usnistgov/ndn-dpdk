@@ -71,7 +71,9 @@ func NewPool(cfg PoolConfig, socket eal.NumaSocket) (mp *Pool, e error) {
 	nameC := C.CString(eal.AllocObjectID("pktmbuf.Pool"))
 	defer C.free(unsafe.Pointer(nameC))
 
-	mpC := C.rte_pktmbuf_pool_create(nameC, C.uint(cfg.Capacity), C.uint(mempool.ComputeCacheSize(cfg.Capacity)),
+	capacity := mempool.ComputeOptimumCapacity(cfg.Capacity)
+	cacheSize := mempool.ComputeCacheSize(capacity)
+	mpC := C.rte_pktmbuf_pool_create(nameC, C.uint(capacity), C.uint(cacheSize),
 		C.uint16_t(cfg.PrivSize), C.uint16_t(cfg.Dataroom), C.int(socket.ID()))
 	if mpC == nil {
 		return nil, eal.GetErrno()

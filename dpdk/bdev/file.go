@@ -54,6 +54,7 @@ func NewFileWithDriver(driver FileDriver, filename string, blockSize int) (devic
 	if e = spdkenv.RPC(fmt.Sprintf("bdev_%s_create", driver), args, &name); e != nil {
 		return nil, e
 	}
+
 	return &File{
 		Info:     mustFind(name),
 		driver:   driver,

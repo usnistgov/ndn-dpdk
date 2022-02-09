@@ -97,7 +97,7 @@ func (f *Fixture) noError(e error) {
 }
 
 // EnableDisk enables on-disk caching on a Malloc Bdev.
-func (f *Fixture) EnableDisk(nSlots int) {
+func (f *Fixture) EnableDisk(nSlots int64) {
 	var e error
 	f.Bdev, e = bdev.NewMalloc(512, (1+nSlots)*16)
 	f.noError(e)

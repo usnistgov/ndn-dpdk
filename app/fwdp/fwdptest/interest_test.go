@@ -8,6 +8,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/app/fwdp"
 	"github.com/usnistgov/ndn-dpdk/container/cs"
+	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface/intface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
@@ -218,7 +219,7 @@ func TestCsHitMemory(t *testing.T) {
 	assert.Equal(uint64(2), fibCnt.NTxInterests)
 }
 
-func TestCsHitDisk(t *testing.T) {
+func testCsHitDisk(t testing.TB, filename string) {
 	assert, require := makeAR(t)
 	fixture := NewFixture(t,
 		func(cfg *fwdp.Config) {
@@ -226,6 +227,10 @@ func TestCsHitDisk(t *testing.T) {
 			require.Len(lcFwd.LCores, 2)
 			cfg.LCoreAlloc[fwdp.RoleDisk] = ealthread.RoleConfig{LCores: lcFwd.LCores[1:]}
 			cfg.LCoreAlloc[fwdp.RoleFwd] = ealthread.RoleConfig{LCores: lcFwd.LCores[:1]} // only 1 Fwd
+
+			if filename != "" {
+				cfg.Disk.Filename = filename
+			}
 		},
 		func(cfg *fwdp.Config) {
 			cfg.Pcct.CsMemoryCapacity = 200
@@ -273,6 +278,15 @@ func TestCsHitDisk(t *testing.T) {
 	assert.EqualValues(200, fixture.SumCounter(func(fwd *fwdp.Fwd) uint64 {
 		return uint64(fwd.Cs().Counters().NDiskDelete)
 	}))
+}
+
+func TestCsHitDiskMalloc(t *testing.T) {
+	testCsHitDisk(t, "")
+}
+
+func TestCsHitDiskFile(t *testing.T) {
+	filename := testenv.TempName(t)
+	testCsHitDisk(t, filename)
 }
 
 func TestFwHint(t *testing.T) {

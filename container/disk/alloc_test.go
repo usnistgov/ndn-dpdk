@@ -46,7 +46,7 @@ func TestSizeCalc(t *testing.T) {
 	}
 
 	assert.Equal(10, calc.BlocksPerSlot())
-	assert.Equal(40010, calc.MinBlocks())
+	assert.Equal(int64(40010), calc.MinBlocks())
 
 	a0 := calc.CreateAlloc(0, eal.NumaSocket{})
 	defer a0.Close()

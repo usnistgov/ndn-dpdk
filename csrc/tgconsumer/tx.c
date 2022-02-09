@@ -19,7 +19,7 @@ TgcTxDigestPattern_Fill(TgcTxPattern* pattern)
   uint16_t nAlloc =
     rte_crypto_op_bulk_alloc(dp->opPool, RTE_CRYPTO_OP_TYPE_SYMMETRIC, ops, RTE_DIM(ops));
   if (unlikely(nAlloc == 0)) {
-    N_LOGW("digest-fill error=alloc-error");
+    N_LOGW("digest-fill" N_LOG_ERROR("alloc-err"));
     return;
   }
 

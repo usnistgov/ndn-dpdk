@@ -32,7 +32,7 @@ FwFwd_TxNacks(FwFwd* fwd, PitEntry* pitEntry, TscTime now, NackReason reason, ui
     PacketTxAlign align = Face_PacketTxAlign(dn->face);
     Packet* output = Interest_ModifyGuiders(pitEntry->npkt, guiders, &fwd->mp, align);
     if (unlikely(output == NULL)) {
-      N_LOGD("^ no-nack-to=%" PRI_FaceID " drop=alloc-error", dn->face);
+      N_LOGD("^ no-nack-to=%" PRI_FaceID " drop=alloc-err", dn->face);
       break;
     }
     output = Nack_FromInterest(output, reason, &fwd->mp, align);
@@ -76,7 +76,7 @@ FwFwd_RxNackDuplicate(FwFwd* fwd, FwFwdCtx* ctx)
   Packet* outNpkt =
     Interest_ModifyGuiders(ctx->pitEntry->npkt, guiders, &fwd->mp, Face_PacketTxAlign(up->face));
   if (unlikely(outNpkt == NULL)) {
-    N_LOGD("^ no-interest-to=%" PRI_FaceID " drop=alloc-error", up->face);
+    N_LOGD("^ no-interest-to=%" PRI_FaceID " drop=alloc-err", up->face);
     return true;
   }
 

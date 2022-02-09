@@ -8,7 +8,7 @@
 #include "../ndni/packet.h"
 
 /** @brief Expected block size of the underlying block device. */
-#define DISK_STORE_BLOCK_SIZE 512
+#define DiskStore_BlockSize 512
 
 /**
  * @brief DiskStore_GetData completion callback.
@@ -20,13 +20,13 @@ typedef void (*DiskStore_GetDataCb)(Packet* npkt, uintptr_t ctx);
 /** @brief Disk-backed Data packet store. */
 typedef struct DiskStore
 {
+  Bdev bdev;
+  struct rte_mempool* mp;
   struct spdk_thread* th;
-  struct spdk_bdev_desc* bdev;
   struct spdk_io_channel* ch;
   DiskStore_GetDataCb getDataCb;
   uintptr_t getDataCtx;
   uint64_t nBlocksPerSlot;
-  uint32_t blockSize;
 } DiskStore;
 
 /**
@@ -57,17 +57,16 @@ DiskStore_PutData(DiskStore* store, uint64_t slotID, Packet* npkt);
 __attribute__((nonnull)) void
 DiskStore_GetData(DiskStore* store, uint64_t slotID, Packet* npkt, struct rte_mbuf* dataBuf);
 
-__attribute__((nonnull)) static __rte_always_inline uint64_t
-DiskStore_ComputeBlockOffset_(DiskStore* store, uint64_t slotID)
+typedef struct DiskStoreRequest
 {
-  return slotID * store->nBlocksPerSlot;
-}
-
-__attribute__((nonnull)) static __rte_always_inline uint64_t
-DiskStore_ComputeBlockCount_(DiskStore* store, Packet* npkt)
-{
-  uint64_t pktLen = Packet_ToMbuf(npkt)->pkt_len;
-  return DIV_CEIL(pktLen, DISK_STORE_BLOCK_SIZE);
-}
+  DiskStore* store;
+  uint64_t slotID;
+  union
+  {
+    Packet* npkt;
+    struct rte_mbuf* pkt;
+  };
+  BdevRequest breq;
+} DiskStoreRequest;
 
 #endif // NDNDPDK_DISK_STORE_H

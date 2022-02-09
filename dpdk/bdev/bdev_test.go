@@ -21,7 +21,7 @@ func checkSize(t testing.TB, device bdev.Device) {
 
 	bdi := device.DevInfo()
 	assert.Equal(blockSize, bdi.BlockSize())
-	assert.Equal(blockCount, bdi.CountBlocks())
+	assert.Equal(int64(blockCount), bdi.CountBlocks())
 }
 
 func doRW(t testing.TB, bd *bdev.Bdev) {
@@ -29,11 +29,11 @@ func doRW(t testing.TB, bd *bdev.Bdev) {
 
 	pkt1 := makePacket(bytes.Repeat([]byte{0xB0}, 500), bytes.Repeat([]byte{0xB1}, 400), bytes.Repeat([]byte{0xB2}, 134))
 	defer pkt1.Close()
-	assert.NoError(bd.WritePacket(100, 16, *pkt1))
+	assert.NoError(bd.WritePacket(100, *pkt1))
 
 	pkt2 := makePacket(bytes.Repeat([]byte{0xC0}, 124), bytes.Repeat([]byte{0xC1}, 400), bytes.Repeat([]byte{0xC2}, 510))
 	defer pkt2.Close()
-	if assert.NoError(bd.ReadPacket(100, 12, *pkt2)) {
+	if assert.NoError(bd.ReadPacket(100, *pkt2)) {
 		assert.Equal(pkt1.Bytes(), pkt2.Bytes())
 	}
 
@@ -92,7 +92,7 @@ func TestDelayError(t *testing.T) {
 			assert.NoError(errInj.Inject(bdev.IORead, 2))
 			pkt3 := makePacket(make([]byte, blockSize), make([]byte, blockSize))
 			defer pkt3.Close()
-			e = bd.ReadPacket(100, 2, *pkt3)
+			e = bd.ReadPacket(100, *pkt3)
 			assert.Error(e)
 		},
 	)

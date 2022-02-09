@@ -65,7 +65,10 @@ func (th *Thread) main() {
 // Post asynchronously posts a function to be run on the SPDK thread.
 func (th *Thread) Post(fn cptr.Function) {
 	f, ctx := cptr.Func0.CallbackOnce(fn)
-	C.c_spdk_thread_send_msg(th.c.spdkTh, C.spdk_msg_fn(f), C.uintptr_t(ctx))
+	res := C.c_spdk_thread_send_msg(th.c.spdkTh, C.spdk_msg_fn(f), C.uintptr_t(ctx))
+	if res != 0 {
+		logger.Panic("spdk_thread_send_msg error", zap.Error(eal.MakeErrno(res)))
+	}
 }
 
 // NewThread creates an SPDK thread.
