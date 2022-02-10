@@ -37,6 +37,7 @@ struct Bdev
   struct spdk_bdev_desc* desc;
   uint32_t blockSizeMinus1;
   uint32_t blockSizeLog2;
+  uint32_t bufAlign;
 };
 
 /**
@@ -50,12 +51,35 @@ Bdev_ComputeBlockCount(Bdev* bd, struct rte_mbuf* pkt)
   return (pkt->pkt_len >> bd->blockSizeLog2) + (int)((pkt->pkt_len & bd->blockSizeMinus1) != 0);
 }
 
-/** @brief Read block device into mbuf via scatter gather list. */
+/**
+ * @brief Read block device into mbuf via scatter gather list.
+ * @pre This must be called in a SPDK thread.
+ * @param ch an SPDK I/O channel associated with the bdev and the current SPDK thread.
+ * @param pkt the packet to read packet into. It must be kept alive until @p cb is called.
+ *
+ * @c pkt->pkt_len determines read length. Since SPDK requires read length to be multiples of the
+ * bdev block size, if @c pkt->pkt_len is not a multiple of block size, the tailroom of
+ * @c rte_pktmbuf_lastseg(pkt) may be overwritten from what's stored on disk.
+ *
+ * Certain SPDK drivers require the buffer to have certain alignment; otherwise, SPDK would use
+ * a bounce buffer and incur an additional copy. To reduce this overhead, if @p pkt is a uniquely
+ * owned, unsegmented, direct mbuf with succifient dataroom, @c pkt->data_off may be adjusted
+ * (either increased or decreased) to achieve proper alignment.
+ */
 __attribute__((nonnull)) void
 Bdev_ReadPacket(Bdev* bd, struct spdk_io_channel* ch, struct rte_mbuf* pkt, uint64_t blockOffset,
                 BdevRequestCb cb, BdevRequest* req);
 
-/** @brief Write block device from mbuf via scatter gather list. */
+/**
+ * @brief Write block device from mbuf via scatter gather list.
+ * @pre This must be called in a SPDK thread.
+ * @param ch an SPDK I/O channel associated with the bdev and the current SPDK thread.
+ * @param pkt the packet to write packet from. It must be kept alive until @p cb is called.
+ *
+ * @c pkt->pkt_len determines write length. Since SPDK requires read length to be multiples of the
+ * bdev block size, if @c pkt->pkt_len is not a multiple of block size, the tailroom of
+ * @c rte_pktmbuf_lastseg(pkt) may be written to disk.
+ */
 __attribute__((nonnull)) void
 Bdev_WritePacket(Bdev* bd, struct spdk_io_channel* ch, struct rte_mbuf* pkt, uint64_t blockOffset,
                  BdevRequestCb cb, BdevRequest* req);

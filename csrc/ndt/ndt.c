@@ -4,7 +4,7 @@ Ndt*
 Ndt_New(uint64_t nEntries, int numaSocket)
 {
   NDNDPDK_ASSERT(rte_is_power_of_2(nEntries));
-  size_t sz = sizeof(Ndt) + nEntries * sizeof(((Ndt*)NULL)->table[0]);
+  size_t sz = sizeof(Ndt) + nEntries * RTE_SIZEOF_FIELD(Ndt, table[0]);
   Ndt* ndt = rte_zmalloc_socket("Ndt", sz, RTE_CACHE_LINE_SIZE, numaSocket);
   if (unlikely(ndt == NULL)) {
     abort();

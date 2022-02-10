@@ -54,7 +54,7 @@ struct TgcTxPattern
 };
 static_assert(offsetof(TgcTxPattern, seqNumL) + 1 == offsetof(TgcTxPattern, seqNumV), "");
 static_assert(offsetof(TgcTxPattern, seqNumT) + TgcSeqNumSize + ImplicitDigestSize ==
-                offsetof(TgcTxPattern, digestV) + sizeof(((TgcTxPattern*)NULL)->digestV),
+                offsetof(TgcTxPattern, digestV) + RTE_SIZEOF_FIELD(TgcTxPattern, digestV),
               "");
 
 /** @brief Traffic generator consumer TX thread. */

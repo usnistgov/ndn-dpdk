@@ -32,9 +32,9 @@ require (
 	github.com/vishvananda/netlink v1.1.0
 	github.com/xeipuuv/gojsonschema v1.2.0
 	go.uber.org/multierr v1.7.0
-	go.uber.org/zap v1.20.0
+	go.uber.org/zap v1.21.0
 	go4.org v0.0.0-20201209231011-d4a079459e60
-	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9
+	golang.org/x/sys v0.0.0-20220209214540-3681064d5158
 	inet.af/netaddr v0.0.0-20211027220019-c74959edd3b6
 )
 

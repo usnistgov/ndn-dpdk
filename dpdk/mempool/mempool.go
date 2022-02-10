@@ -8,16 +8,16 @@ package mempool
 import "C"
 import (
 	"errors"
+	"math/bits"
 	"unsafe"
 
-	binutils "github.com/jfoster/binary-utilities"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
 // ComputeOptimumCapacity adjusts mempool capacity to be a power of two minus one, if near.
 func ComputeOptimumCapacity(capacity int) int {
-	if binutils.NextPowerOfTwo(int64(capacity)) == int64(capacity) {
+	if bits.OnesCount64(uint64(capacity)) == 1 {
 		capacity--
 	}
 	return capacity
@@ -118,10 +118,10 @@ func New(cfg Config) (mp *Mempool, e error) {
 
 	var flags C.unsigned
 	if cfg.SingleProducer {
-		flags |= C.MEMPOOL_F_SP_PUT
+		flags |= C.RTE_MEMPOOL_F_SP_PUT
 	}
 	if cfg.SingleConsumer {
-		flags |= C.MEMPOOL_F_SC_GET
+		flags |= C.RTE_MEMPOOL_F_SC_GET
 	}
 
 	capacity, cacheSize := ComputeOptimumCapacity(cfg.Capacity), 0

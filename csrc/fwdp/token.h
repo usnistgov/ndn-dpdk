@@ -18,7 +18,7 @@ enum
 };
 static_assert(FwTokenLength == PccTokenSize + 1, "");
 static_assert(offsetof(LpPitToken, value) + FwTokenOffsetPccToken >= 0, "");
-static_assert(sizeof(((LpPitToken*)NULL)->value) >= sizeof(uint64_t), "");
+static_assert(RTE_SIZEOF_FIELD(LpPitToken, value) >= sizeof(uint64_t), "");
 
 __attribute__((nonnull)) static __rte_always_inline void
 FwToken_Set(LpPitToken* token, uint8_t fwdID, uint64_t pccToken)

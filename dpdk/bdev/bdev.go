@@ -27,10 +27,10 @@ static int c_spdk_bdev_unmap_blocks(struct spdk_bdev_desc* desc, struct spdk_io_
 import "C"
 import (
 	"fmt"
+	"math/bits"
 	"runtime/cgo"
 	"unsafe"
 
-	binutils "github.com/jfoster/binary-utilities"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
@@ -121,12 +121,12 @@ func (bd *Bdev) WritePacket(blockOffset int64, pkt pktmbuf.Packet) error {
 // Open opens a block device.
 func Open(device Device, mode Mode) (bd *Bdev, e error) {
 	bdi := device.DevInfo()
-	blockSize := int64(bdi.BlockSize())
+	blockSize := uint64(bdi.BlockSize())
 	if blockSize > C.BdevFillerLen_ {
 		// this is an assumption in Bdev_PrepareIovecShort
 		return nil, fmt.Errorf("device block size %d exceeds filler length", blockSize)
 	}
-	if binutils.NextPowerOfTwo(blockSize) != blockSize {
+	if bits.OnesCount64(blockSize) != 1 {
 		return nil, fmt.Errorf("device block size %d is not power of two", blockSize)
 	}
 
@@ -142,8 +142,9 @@ func Open(device Device, mode Mode) (bd *Bdev, e error) {
 		return nil, e
 	}
 
-	bd.c.blockSizeLog2 = C.rte_log2_u64(C.uint64_t(blockSize))
 	bd.c.blockSizeMinus1 = C.uint32_t(blockSize - 1)
+	bd.c.blockSizeLog2 = C.uint32_t(bits.Len64(uint64(blockSize)) - 1)
+	bd.c.bufAlign = C.uint32_t(bdi.BufAlign())
 	logger.Info("device opened",
 		zap.Uintptr("desc", uintptr(unsafe.Pointer(bd.c.desc))),
 		zap.Inline(bdi),

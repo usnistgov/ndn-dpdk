@@ -67,7 +67,7 @@ build/bin/%: cmd/%/* godeps
 
 build/share/bash_autocomplete: go.mod
 	mkdir -p $(@D)
-	cp $$(go env GOMODCACHE)/github.com/urfave/cli/v2@$$(awk '$$1=="github.com/urfave/cli/v2" { print $$2 }' go.mod)/autocomplete/bash_autocomplete $@
+	install -m0644 $$(go env GOMODCACHE)/github.com/urfave/cli/v2@$$(awk '$$1=="github.com/urfave/cli/v2" { print $$2 }' go.mod)/autocomplete/bash_autocomplete $@
 
 .PHONY: npm
 npm: build/share/ndn-dpdk/ndn-dpdk.npm.tgz

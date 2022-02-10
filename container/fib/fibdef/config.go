@@ -1,9 +1,8 @@
 package fibdef
 
 import (
-	"math"
-
-	mathpkg "github.com/pkg/math"
+	binutils "github.com/jfoster/binary-utilities"
+	"github.com/pkg/math"
 )
 
 // Limits and defaults.
@@ -29,17 +28,17 @@ func (cfg *Config) ApplyDefaults() {
 	if cfg.Capacity == 0 {
 		cfg.Capacity = DefaultCapacity
 	} else {
-		cfg.Capacity = mathpkg.MinInt(mathpkg.MaxInt(MinCapacity, cfg.Capacity), MaxCapacity)
+		cfg.Capacity = math.MinInt(math.MaxInt(MinCapacity, cfg.Capacity), MaxCapacity)
 	}
 
 	if cfg.NBuckets <= 0 {
 		cfg.NBuckets = (cfg.Capacity + 1) / 2
 	}
-	cfg.NBuckets = 1 << int(math.Round(math.Log2(float64(cfg.NBuckets))))
+	cfg.NBuckets = int(binutils.NearPowerOfTwo(int64(cfg.NBuckets)))
 
 	if cfg.StartDepth == 0 {
 		cfg.StartDepth = DefaultStartDepth
 	} else {
-		cfg.StartDepth = mathpkg.MinInt(mathpkg.MaxInt(MinStartDepth, cfg.StartDepth), MaxStartDepth)
+		cfg.StartDepth = math.MinInt(math.MaxInt(MinStartDepth, cfg.StartDepth), MaxStartDepth)
 	}
 }

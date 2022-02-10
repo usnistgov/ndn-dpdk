@@ -7,6 +7,7 @@ package ringbuffer
 */
 import "C"
 import (
+	"math/bits"
 	"unsafe"
 
 	binutils "github.com/jfoster/binary-utilities"
@@ -38,10 +39,8 @@ func AlignCapacity(capacity int, opts ...int) int {
 	default:
 		panic("unexpected opts count")
 	}
-	if dflt < min || dflt > max ||
-		binutils.NextPowerOfTwo(int64(min)) != int64(min) ||
-		binutils.NextPowerOfTwo(int64(dflt)) != int64(dflt) ||
-		binutils.NextPowerOfTwo(int64(max)) != int64(max) {
+	if min <= 0 || dflt < min || dflt > max ||
+		bits.OnesCount64(uint64(min)) != 1 || bits.OnesCount64(uint64(dflt)) != 1 || bits.OnesCount64(uint64(max)) != 1 {
 		panic("invalid min, dflt, max")
 	}
 

@@ -56,7 +56,7 @@ func (bdi *Info) ProductName() string {
 	return C.GoString(C.spdk_bdev_get_product_name(bdi.ptr()))
 }
 
-// BlockSize returns logical block size.
+// BlockSize returns logical block size in octets.
 func (bdi *Info) BlockSize() int {
 	return int(C.spdk_bdev_get_block_size(bdi.ptr()))
 }
@@ -64,6 +64,26 @@ func (bdi *Info) BlockSize() int {
 // CountBlocks returns size of block device in logical blocks.
 func (bdi *Info) CountBlocks() int64 {
 	return int64(C.spdk_bdev_get_num_blocks(bdi.ptr()))
+}
+
+// WriteUnitSize returns write unit size in logical blocks.
+func (bdi *Info) WriteUnitSize() int {
+	return int(C.spdk_bdev_get_write_unit_size(bdi.ptr()))
+}
+
+// BufAlign returns minimum I/O buffer address alignment in octets.
+func (bdi *Info) BufAlign() int {
+	return int(C.spdk_bdev_get_buf_align(bdi.ptr()))
+}
+
+// OptimalIOBoundary returns optimal I/O boundary in logical blocks and whether it's mandatory.
+func (bdi *Info) OptimalIOBoundary() (boundary int, mandatory bool) {
+	return int(C.spdk_bdev_get_optimal_io_boundary(bdi.ptr())), bool(bdi.split_on_optimal_io_boundary)
+}
+
+// HasWriteCache returns whether write cache is enabled.
+func (bdi *Info) HasWriteCache() bool {
+	return bool(C.spdk_bdev_has_write_cache(bdi.ptr()))
 }
 
 // HasIOType determines whether the I/O type is supported.
@@ -98,6 +118,12 @@ func (bdi *Info) MarshalLogObject(enc zapcore.ObjectEncoder) error {
 	enc.AddString("product-name", bdi.ProductName())
 	enc.AddInt("block-size", bdi.BlockSize())
 	enc.AddInt64("block-count", bdi.CountBlocks())
+	enc.AddInt("write-unit-size", bdi.WriteUnitSize())
+	enc.AddInt("buf-align", bdi.BufAlign())
+	boundary, mandatory := bdi.OptimalIOBoundary()
+	enc.AddInt("optimal-io-boundary", boundary)
+	enc.AddBool("optimal-io-boundary-mandatory", mandatory)
+	enc.AddBool("has-write-cache", bdi.HasWriteCache())
 	enc.AddBool("can-read", bdi.HasIOType(IORead))
 	enc.AddBool("can-write", bdi.HasIOType(IOWrite))
 	enc.AddBool("can-unmap", bdi.HasIOType(IOUnmap))

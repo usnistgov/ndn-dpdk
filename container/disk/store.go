@@ -122,13 +122,14 @@ func (store *Store) GetData(slotID uint64, interest *ndni.Packet, dataBuf *pktmb
 // NewStore creates a Store.
 func NewStore(device bdev.Device, th *spdkenv.Thread, nBlocksPerSlot int, getDataCb cptr.Function) (store *Store, e error) {
 	bdi := device.DevInfo()
-	if bdi.BlockSize() != BlockSize {
-		return nil, fmt.Errorf("bdev block size must be %d", BlockSize)
+	if blockSz := bdi.BlockSize(); blockSz != BlockSize {
+		return nil, fmt.Errorf("bdev not supported: block size is %d, not %d", blockSz, BlockSize)
+	}
+	if writeUnit := bdi.WriteUnitSize(); writeUnit != 1 {
+		return nil, fmt.Errorf("bdev not supported: write unit size is %d, not 1", writeUnit)
 	}
 
-	store = &Store{
-		th: th,
-	}
+	store = &Store{th: th}
 	if store.mp, e = mempool.New(mempool.Config{
 		Capacity:       int(math.MaxInt64(256, math.MinInt64(bdi.CountBlocks()/1024, 8192))),
 		ElementSize:    C.sizeof_DiskStoreRequest,
