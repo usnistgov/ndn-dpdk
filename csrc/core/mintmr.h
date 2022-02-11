@@ -14,14 +14,14 @@ struct MinTmr
   MinTmr* next;
 };
 
-typedef void (*MinTmrCallback)(MinTmr* tmr, uintptr_t ctx);
+typedef void (*MinTmrCb)(MinTmr* tmr, uintptr_t ctx);
 
 /** @brief Minute scheduler. */
 typedef struct MinSched
 {
   TscDuration interval;
   TscTime nextTime;
-  MinTmrCallback cb;
+  MinTmrCb cb;
   uintptr_t ctx;
   uint64_t nTriggered; ///< count of triggered events
   uint32_t lastSlot;
@@ -37,7 +37,7 @@ typedef struct MinSched
  * @param cb callback function when a timer expires
  */
 __attribute__((returns_nonnull)) MinSched*
-MinSched_New(int nSlotBits, TscDuration interval, MinTmrCallback cb, uintptr_t ctx);
+MinSched_New(int nSlotBits, TscDuration interval, MinTmrCb cb, uintptr_t ctx);
 
 /** @brief Destroy a minute scheduler. */
 __attribute__((nonnull)) void

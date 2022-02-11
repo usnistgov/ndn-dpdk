@@ -11,7 +11,7 @@ const ptrdiff_t CsArc_ListOffsets_[] = {
 };
 
 #define CsArc_CallMoveCb(arc, entry, src, dst)                                                     \
-  (arc)->moveCb((arc)->moveCbArg, (entry), CslDirect##src, CslDirect##dst)
+  (arc)->moveCb((entry), CslDirect##src, CslDirect##dst, (arc)->moveCtx)
 
 #define CsArc_Move(arc, entry, src, dst)                                                           \
   do {                                                                                             \
@@ -29,7 +29,7 @@ const ptrdiff_t CsArc_ListOffsets_[] = {
  * If an entry is moved from T1/T2 to a non-T1/T2 list, its Data packet is released.
  */
 __attribute__((nonnull)) static inline void
-CsArc_MoveHandler(__rte_unused void* arg, CsEntry* entry, CsListID src, CsListID dst)
+CsArc_MoveHandler(CsEntry* entry, CsListID src, CsListID dst, __rte_unused uintptr_t ctx)
 {
   switch (CsArc_MoveDir(src, dst)) {
     case CsArc_MoveDirC(T1, B1):
@@ -73,7 +73,7 @@ CsArc_Init(CsArc* arc, uint32_t c, uint32_t capB2)
   arc->B2.capacity = capB2;
 
   arc->moveCb = CsArc_MoveHandler;
-  arc->moveCbArg = NULL;
+  arc->moveCtx = 0;
 }
 
 __attribute__((nonnull)) static inline void

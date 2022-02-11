@@ -12,9 +12,11 @@ typedef struct SpdkThread
   struct spdk_thread* spdkTh;
 } SpdkThread;
 
+/** @brief Run SPDK thread until stop requested. */
 __attribute__((nonnull)) int
 SpdkThread_Run(SpdkThread* th);
 
+/** @brief Request SPDK thread to exit and wait until exit. */
 __attribute__((nonnull)) int
 SpdkThread_Exit(SpdkThread* th);
 

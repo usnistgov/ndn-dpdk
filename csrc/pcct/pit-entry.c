@@ -121,7 +121,7 @@ PitEntry_Timeout_(MinTmr* tmr, uintptr_t pitPtr)
   if (entry->hasSgTimer) {
     N_LOGD("Timeout(sgtimer) pit=%p pit-entry=%p", pit, entry);
     PitEntry_SetExpiryTimer(entry, pit);
-    (*pit->sgTimerCb)(pit, entry, pit->sgTimerCbArg);
+    pit->sgTimerCb(pit, entry, pit->sgTimerCtx);
   } else {
     N_LOGD("Timeout(expiry) pit=%p pit-entry=%p", pit, entry);
     Pit_Erase(pit, entry);

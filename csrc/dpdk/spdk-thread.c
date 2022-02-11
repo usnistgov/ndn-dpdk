@@ -16,10 +16,17 @@ SpdkThread_Run(SpdkThread* th)
   return 0;
 }
 
+__attribute__((nonnull)) static void
+SpdkThread_DoExit(void* th0)
+{
+  SpdkThread* th = (SpdkThread*)th0;
+  spdk_thread_exit(th->spdkTh);
+}
+
 int
 SpdkThread_Exit(SpdkThread* th)
 {
-  spdk_thread_send_msg(th->spdkTh, (spdk_msg_fn)spdk_thread_exit, th->spdkTh);
+  spdk_thread_send_msg(th->spdkTh, SpdkThread_DoExit, th);
 
   spdk_set_thread(th->spdkTh);
   while (!spdk_thread_is_exited(th->spdkTh)) {

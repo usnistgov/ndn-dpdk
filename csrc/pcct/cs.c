@@ -21,9 +21,8 @@ CsEraseBatch_Append(PcctEraseBatch* peb, CsEntry* entry, const char* isDirectDbg
 
 /** @brief Erase an indirect CS entry. */
 __attribute__((nonnull)) static void
-CsEraseBatch_AddIndirect(void* peb0, CsEntry* entry)
+CsEraseBatch_AddIndirect(PcctEraseBatch* peb, CsEntry* entry)
 {
-  PcctEraseBatch* peb = (PcctEraseBatch*)peb0;
   N_LOGV("^ indirect=%p direct=%p(%" PRId8 ")", entry, entry->direct, entry->direct->nIndirects);
 
   CsEntry_Finalize(entry);
@@ -32,9 +31,8 @@ CsEraseBatch_AddIndirect(void* peb0, CsEntry* entry)
 
 /** @brief Erase a direct CS entry; delist and erase indirect entries. */
 __attribute__((nonnull)) static void
-CsEraseBatch_AddDirect(void* peb0, CsEntry* entry)
+CsEraseBatch_AddDirect(PcctEraseBatch* peb, CsEntry* entry)
 {
-  PcctEraseBatch* peb = (PcctEraseBatch*)peb0;
   Cs* cs = &peb->pcct->cs;
   for (int i = 0; i < entry->nIndirects; ++i) {
     CsEntry* indirect = entry->indirect[i];
@@ -70,11 +68,23 @@ Cs_EraseEntry(Cs* cs, CsEntry* entry)
 }
 
 __attribute__((nonnull)) static void
+Cs_EvictEntryIndirect(CsEntry* entry, uintptr_t ctx)
+{
+  CsEraseBatch_AddIndirect((PcctEraseBatch*)ctx, entry);
+}
+
+__attribute__((nonnull)) static void
+Cs_EvictEntryDirect(CsEntry* entry, uintptr_t ctx)
+{
+  CsEraseBatch_AddDirect((PcctEraseBatch*)ctx, entry);
+}
+
+__attribute__((nonnull)) static void
 Cs_Evict(Cs* cs, CsList* csl, const char* cslName, CsList_EvictCb evictCb)
 {
   N_LOGD("%p Evict(%s) count=%" PRIu32, cs, cslName, csl->count);
   PcctEraseBatch peb = PcctEraseBatch_New(Pcct_FromCs(cs));
-  CsList_EvictBulk(csl, CsEvictBulk, evictCb, &peb);
+  CsList_EvictBulk(csl, CsEvictBulk, evictCb, (uintptr_t)&peb);
   PcctEraseBatch_Finish(&peb);
   N_LOGD("^ end-count=%" PRIu32, csl->count);
 }
@@ -276,10 +286,10 @@ Cs_Insert(Cs* cs, Packet* npkt, PitFindResult pitFound)
 
   // evict if over capacity
   if (unlikely(cs->indirect.count > cs->indirect.capacity)) {
-    Cs_Evict(cs, &cs->indirect, "indirect", CsEraseBatch_AddIndirect);
+    Cs_Evict(cs, &cs->indirect, "indirect", Cs_EvictEntryIndirect);
   }
   if (unlikely(cs->direct.Del.count >= CsEvictBulk)) {
-    Cs_Evict(cs, &cs->direct.Del, "direct", CsEraseBatch_AddDirect);
+    Cs_Evict(cs, &cs->direct.Del, "direct", Cs_EvictEntryDirect);
   }
 }
 

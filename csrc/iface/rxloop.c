@@ -4,7 +4,7 @@ __attribute__((nonnull)) static uint16_t
 RxLoop_Transfer(RxLoop* rxl, RxGroup* rxg)
 {
   struct rte_mbuf* frames[MaxBurstSize];
-  uint16_t nRx = (*rxg->rxBurstOp)(rxg, frames, RTE_DIM(frames));
+  uint16_t nRx = rxg->rxBurstOp(rxg, frames, RTE_DIM(frames));
   for (uint16_t i = 0; i < nRx; ++i) {
     struct rte_mbuf* frame = frames[i];
     Face* face = Face_Get(frame->port);

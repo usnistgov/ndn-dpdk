@@ -66,7 +66,7 @@ PktQueue_Push(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime now)
 __attribute__((nonnull)) static inline PktQueuePopResult
 PktQueue_Pop(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime now)
 {
-  return (*q->pop)(q, pkts, count, now);
+  return q->pop(q, pkts, count, now);
 }
 
 __attribute__((nonnull)) PktQueuePopResult

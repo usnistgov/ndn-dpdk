@@ -21,7 +21,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
-const schedArg = 0xBBB89535DC3634F7
+const schedCtx = 0xBBB89535DC3634F7
 
 func ctestMinTmr(t *testing.T) {
 	assert, _ := testenv.MakeAR(t)
@@ -29,8 +29,7 @@ func ctestMinTmr(t *testing.T) {
 	defer C.free(unsafe.Pointer(records))
 
 	// 2^5 slots * 100ms = 3200ms
-	sched := C.MinSched_New(5, C.TscDuration(eal.ToTscDuration(100*time.Millisecond)),
-		C.MinTmrCallback(C.go_TriggerRecord), schedArg)
+	sched := C.MinSched_New(5, C.TscDuration(eal.ToTscDuration(100*time.Millisecond)), C.MinTmrCb(C.go_TriggerRecord), schedCtx)
 	defer C.MinSched_Close(sched)
 
 	setTimer := func(i int, after time.Duration) bool {
@@ -71,7 +70,7 @@ func ctestMinTmr(t *testing.T) {
 
 //export go_TriggerRecord
 func go_TriggerRecord(tmr *C.MinTmr, arg C.uintptr_t) {
-	if arg != schedArg {
+	if arg != schedCtx {
 		panic(arg)
 	}
 

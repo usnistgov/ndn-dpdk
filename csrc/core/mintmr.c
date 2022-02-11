@@ -5,7 +5,7 @@
 N_LOG_INIT(MinTmr);
 
 MinSched*
-MinSched_New(int nSlotBits, TscDuration interval, MinTmrCallback cb, uintptr_t ctx)
+MinSched_New(int nSlotBits, TscDuration interval, MinTmrCb cb, uintptr_t ctx)
 {
   uint32_t nSlots = 1 << nSlotBits;
   NDNDPDK_ASSERT(nSlots != 0);

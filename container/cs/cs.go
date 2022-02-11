@@ -83,7 +83,7 @@ func (cs *Cs) SetDisk(store *disk.Store, alloc *disk.Alloc) error {
 	cs.diskStore = (*C.DiskStore)(store.Ptr())
 	cs.diskAlloc = (*C.DiskAlloc)(alloc.Ptr())
 	cs.direct.moveCb = C.CsArc_MoveCb(C.CsDisk_ArcMove)
-	cs.direct.moveCbArg = unsafe.Pointer(cs)
+	cs.direct.moveCtx = C.uintptr_t(uintptr(unsafe.Pointer(cs)))
 
 	logger.Info("disk caching enabled",
 		zap.Uintptr("cs", uintptr(unsafe.Pointer(cs))),

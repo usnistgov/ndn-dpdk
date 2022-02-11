@@ -22,7 +22,7 @@ Pit_TriggerTimers(Pit* pit)
 
 /** @brief Set callback when strategy timer expires. */
 __attribute__((nonnull(1))) void
-Pit_SetSgTimerCb(Pit* pit, Pit_SgTimerCb cb, void* arg);
+Pit_SetSgTimerCb(Pit* pit, Pit_SgTimerCb cb, uintptr_t ctx);
 
 /**
  * @brief Insert or find a PIT entry for the given Interest.

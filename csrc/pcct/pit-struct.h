@@ -10,7 +10,7 @@ typedef struct Pit Pit;
 typedef struct PitEntry PitEntry;
 
 /** @brief Callback to handle strategy timer triggers. */
-typedef void (*Pit_SgTimerCb)(Pit* pit, PitEntry* entry, void* arg);
+typedef void (*Pit_SgTimerCb)(Pit* pit, PitEntry* entry, uintptr_t ctx);
 
 /**
  * @brief The Pending Interest Table (PIT).
@@ -33,7 +33,7 @@ struct Pit
 
   MinSched* timeoutSched;
   Pit_SgTimerCb sgTimerCb;
-  void* sgTimerCbArg;
+  uintptr_t sgTimerCtx;
 };
 
 #endif // NDNDPDK_PCCT_PIT_STRUCT_H

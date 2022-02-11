@@ -6,7 +6,7 @@
 N_LOG_INIT(Pit);
 
 static void
-Pit_SgTimerCb_Empty(Pit* pit, PitEntry* entry, void* arg)
+Pit_SgTimerCb_Empty(__rte_unused Pit* pit, __rte_unused PitEntry* entry, __rte_unused uintptr_t arg)
 {
   NDNDPDK_ASSERT(false);
 }
@@ -23,10 +23,10 @@ Pit_Init(Pit* pit)
 }
 
 void
-Pit_SetSgTimerCb(Pit* pit, Pit_SgTimerCb cb, void* arg)
+Pit_SetSgTimerCb(Pit* pit, Pit_SgTimerCb cb, uintptr_t ctx)
 {
   pit->sgTimerCb = cb;
-  pit->sgTimerCbArg = arg;
+  pit->sgTimerCtx = ctx;
 }
 
 PitInsertResult

@@ -62,13 +62,13 @@ CsList_MoveToLast(CsList* csl, CsEntry* entry)
   CsList_AppendNode_(csl, (CsNode*)entry);
 }
 
-typedef void (*CsList_EvictCb)(void* arg, CsEntry* entry);
+typedef void (*CsList_EvictCb)(CsEntry* entry, uintptr_t ctx);
 
 /**
  * @brief Evict up to @p max entries from front of list.
  * @param cb callback to erase an entry; the callback must not invoke CsList_Remove.
  */
-__attribute__((nonnull(1))) uint32_t
-CsList_EvictBulk(CsList* csl, uint32_t max, CsList_EvictCb cb, void* arg);
+__attribute__((nonnull)) uint32_t
+CsList_EvictBulk(CsList* csl, uint32_t max, CsList_EvictCb cb, uintptr_t ctx);
 
 #endif // NDNDPDK_PCCT_CS_LIST_H

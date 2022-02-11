@@ -26,7 +26,7 @@ typedef struct CsList
 
 typedef struct CsEntry CsEntry;
 
-typedef void (*CsArc_MoveCb)(void* arg, CsEntry* entry, CsListID src, CsListID dst);
+typedef void (*CsArc_MoveCb)(CsEntry* entry, CsListID src, CsListID dst, uintptr_t ctx);
 
 /** @brief Lists for Adaptive Replacement Cache (ARC). */
 typedef struct CsArc
@@ -40,7 +40,7 @@ typedef struct CsArc
   CsList Del; ///< deleted entries
 
   CsArc_MoveCb moveCb; ///< handler function when entry is moved between lists
-  void* moveCbArg;     ///< context argument to @c moveCb
+  uintptr_t moveCtx;   ///< context argument to @c moveCb
 } CsArc;
 
 /** @brief Access @c c as uint32. */

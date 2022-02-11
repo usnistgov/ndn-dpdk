@@ -11,7 +11,7 @@ __attribute__((nonnull, returns_nonnull)) const struct rte_bpf_xsym*
 SgGetXsyms(int* nXsyms);
 
 __attribute__((nonnull)) void
-SgTriggerTimer(Pit* pit, PitEntry* pitEntry, void* fwd0);
+SgTriggerTimer(Pit* pit, PitEntry* pitEntry, uintptr_t fwd0);
 
 /** @brief Invoke the strategy. */
 __attribute__((nonnull)) static inline uint64_t

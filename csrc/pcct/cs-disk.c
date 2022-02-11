@@ -40,19 +40,20 @@ CsDisk_Delete(Cs* cs, CsEntry* entry)
 }
 
 void
-CsDisk_ArcMove(void* cs0, CsEntry* entry, CsListID src, CsListID dst)
+CsDisk_ArcMove(CsEntry* entry, CsListID src, CsListID dst, uintptr_t ctx)
 {
+  Cs* cs = (Cs*)ctx;
   switch (CsArc_MoveDir(src, dst)) {
     case CsArc_MoveDirC(T1, B1):
       CsEntry_Clear(entry);
       break;
     case CsArc_MoveDirC(T2, B2):
-      CsDisk_Insert(cs0, entry);
+      CsDisk_Insert(cs, entry);
       break;
     case CsArc_MoveDirC(B2, T2):
     case CsArc_MoveDirC(B2, Del):
       if (entry->kind == CsEntryDisk) {
-        CsDisk_Delete(cs0, entry);
+        CsDisk_Delete(cs, entry);
       }
       break;
     case CsArc_MoveDirC(New, T1):

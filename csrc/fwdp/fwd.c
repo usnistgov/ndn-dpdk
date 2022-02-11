@@ -58,7 +58,7 @@ FwFwd_Run(FwFwd* fwd)
          fwd->pit, fwd->cs, fwd->cryptoHelper);
 
   fwd->sgGlobal.tscHz = TscHz;
-  Pit_SetSgTimerCb(fwd->pit, SgTriggerTimer, fwd);
+  Pit_SetSgTimerCb(fwd->pit, SgTriggerTimer, (uintptr_t)fwd);
 
   uint32_t nProcessed = 0;
   while (ThreadCtrl_Continue(fwd->ctrl, nProcessed)) {

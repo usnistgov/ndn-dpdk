@@ -14,7 +14,7 @@ CsList_Init(CsList* csl)
 }
 
 uint32_t
-CsList_EvictBulk(CsList* csl, uint32_t max, CsList_EvictCb cb, void* arg)
+CsList_EvictBulk(CsList* csl, uint32_t max, CsList_EvictCb cb, uintptr_t ctx)
 {
   uint32_t nErase = RTE_MIN(max, csl->count);
   CsNode* node = csl->next;
@@ -23,7 +23,7 @@ CsList_EvictBulk(CsList* csl, uint32_t max, CsList_EvictCb cb, void* arg)
     NDNDPDK_ASSERT(node != (CsNode*)csl);
     CsEntry* entry = (CsEntry*)node;
     node = node->next;
-    cb(arg, entry);
+    cb(entry, ctx);
   }
 
   node->prev = (CsNode*)csl;

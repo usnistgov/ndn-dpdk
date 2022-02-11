@@ -13,7 +13,7 @@ TxLoop_TxFrames(Face* face, struct rte_mbuf** frames, uint16_t count)
     tx->nOctets += frames[i]->pkt_len;
   }
 
-  uint16_t nQueued = (*tx->l2Burst)(face, frames, count);
+  uint16_t nQueued = tx->l2Burst(face, frames, count);
   uint16_t nRejects = count - nQueued;
   if (unlikely(nRejects > 0)) {
     tx->nDroppedFrames += nRejects;

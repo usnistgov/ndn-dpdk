@@ -5,9 +5,9 @@
 N_LOG_INIT(FwFwd);
 
 void
-SgTriggerTimer(Pit* pit, PitEntry* pitEntry, void* fwd0)
+SgTriggerTimer(Pit* pit, PitEntry* pitEntry, uintptr_t fwd0)
 {
-  FwFwd* fwd = fwd0;
+  FwFwd* fwd = (FwFwd*)fwd0;
   FwFwdCtx ctx = {
     .rxTime = rte_get_tsc_cycles(),
     .fwd = fwd,

@@ -26,7 +26,7 @@ typedef struct StrategyCode
 __attribute__((nonnull)) static inline uint64_t
 StrategyCode_Run(StrategyCode* sc, void* arg, size_t sizeofArg)
 {
-  return (*sc->jit)(arg, sizeofArg);
+  return sc->jit(arg, sizeofArg);
 }
 
 __attribute__((nonnull)) void
