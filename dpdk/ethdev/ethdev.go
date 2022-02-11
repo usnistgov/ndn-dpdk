@@ -194,6 +194,10 @@ func (dev ethDev) Start(cfg Config) error {
 }
 
 func (dev ethDev) stop(close bool) error {
+	if C.rte_eth_dev_is_valid_port(dev.cID()) == 0 { // already detached
+		return nil
+	}
+
 	logEntry := logger.With(
 		zap.Int("id", dev.ID()),
 		zap.String("name", dev.Name()),
@@ -207,8 +211,6 @@ func (dev ethDev) stop(close bool) error {
 	res := C.rte_eth_dev_stop(dev.cID())
 	switch res {
 	case 0, -C.ENOTSUP:
-	case -C.ENODEV: // already detached
-		return nil
 	default:
 		return bail("rte_eth_dev_stop", res)
 	}

@@ -52,7 +52,14 @@ func (th *Thread) Ptr() unsafe.Pointer {
 // Close stops the thread and deallocates data structures.
 func (th *Thread) Close() error {
 	th.Stop()
-	C.spdk_thread_exit(th.c.spdkTh)
+
+	done := make(chan struct{})
+	go func() {
+		C.SpdkThread_Exit(th.c)
+		close(done)
+	}()
+	<-done
+
 	C.spdk_thread_destroy(th.c.spdkTh)
 	eal.Free(th.c)
 	return nil

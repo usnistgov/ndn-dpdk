@@ -4,6 +4,8 @@ package cptr
 import (
 	"reflect"
 	"unsafe"
+
+	_ "github.com/ianlancetaylor/cgosymbolizer"
 )
 
 const sizeofPtr = unsafe.Sizeof(unsafe.Pointer(nil))

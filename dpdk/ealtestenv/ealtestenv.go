@@ -15,9 +15,13 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealinit"
 )
 
-// EnvCpus declares an environment variable to reduce the number of CPU cores to use.
+// EnvCpus declares an environment variable to reduce the number of usable CPU cores.
 // This allows running tests on fewer CPU cores.
 const EnvCpus = "EALTESTENV_CPUS"
+
+// EnvMemory declares an environment variable to specify amount of memory (in MiB) per NUMA socket.
+// Default is no limit, i.e. up to available hugepages.
+const EnvMemory = "EALTESTENV_MEM"
 
 // WantLCores indicates the number of lcores to be created.
 var WantLCores = 6
@@ -51,19 +55,35 @@ func Init() {
 		Provider: hwinfo.Default,
 		MaxCores: WantLCores,
 	}
-	if maxCores, e := strconv.Atoi(os.Getenv(EnvCpus)); e == nil {
+	if env, ok := os.LookupEnv(EnvCpus); ok {
+		maxCores, e := strconv.Atoi(env)
+		if e != nil || maxCores < 1 {
+			panic("invalid " + EnvCpus)
+		}
 		hwInfo.MaxCores = mathpkg.MinInt(hwInfo.MaxCores, maxCores)
 	}
 
 	var cfg ealconfig.Config
 	cfg.FilePrefix = "ealtestenv"
 
-	if cores := hwInfo.Cores(); len(cores) < WantLCores {
+	cores := hwInfo.Cores()
+	if len(cores) < WantLCores {
 		cfg.LCoresPerNuma = map[int]int{}
 		for socket, numaCores := range cores.ByNumaSocket() {
 			cfg.LCoresPerNuma[socket] = int(math.Ceil(float64(WantLCores) * float64(len(numaCores)) / float64(len(cores))))
 		}
 		UsingThreads = true
+	}
+
+	if env, ok := os.LookupEnv(EnvMemory); ok {
+		memPerNuma, e := strconv.Atoi(env)
+		if e != nil || memPerNuma <= 0 {
+			panic("invalid " + EnvMemory)
+		}
+		cfg.MemPerNuma = map[int]int{}
+		for socket := range cores.ByNumaSocket() {
+			cfg.MemPerNuma[socket] = memPerNuma
+		}
 	}
 
 	args, e := cfg.Args(hwInfo)

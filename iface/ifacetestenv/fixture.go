@@ -59,9 +59,10 @@ func (fixture *Fixture) preparePktQueue(demux *iface.InputDemux) *iface.PktQueue
 
 func (fixture *Fixture) close() {
 	iface.CloseAll()
-	eal.Free(fixture.rxQueueI)
-	eal.Free(fixture.rxQueueD)
-	eal.Free(fixture.rxQueueN)
+	for _, q := range []*iface.PktQueue{fixture.rxQueueI, fixture.rxQueueD, fixture.rxQueueN} {
+		q.Close()
+		eal.Free(q)
+	}
 	ealthread.AllocClear()
 }
 

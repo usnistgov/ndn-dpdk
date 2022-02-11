@@ -14,6 +14,7 @@ require (
 	github.com/google/gopacket v1.1.19
 	github.com/graphql-go/graphql v0.8.0
 	github.com/hashicorp/golang-lru v0.5.4
+	github.com/ianlancetaylor/cgosymbolizer v0.0.0-20210303021718-7cb7081f6b86
 	github.com/jfoster/binary-utilities v0.2.1
 	github.com/jwangsadinata/go-multimap v0.0.0-20190620162914-c29f3d7f33b6
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51

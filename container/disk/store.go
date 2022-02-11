@@ -66,21 +66,6 @@ func (store *Store) Ptr() unsafe.Pointer {
 	return unsafe.Pointer(store.c)
 }
 
-// Close closes this Store.
-func (store *Store) Close() error {
-	if ch := store.c.ch; ch != nil {
-		// this would panic if SPDK thread is closed
-		store.th.Post(cptr.Func0.Void(func() { C.spdk_put_io_channel(ch) }))
-	}
-	eal.Free(store.c)
-	store.c = nil
-	store.getDataCbRevoke()
-	return multierr.Append(
-		store.mp.Close(),
-		store.bd.Close(),
-	)
-}
-
 // SlotRange returns a range of possible slot numbers.
 func (store *Store) SlotRange() (min, max uint64) {
 	return 1, uint64(store.bd.DevInfo().CountBlocks()/int64(store.c.nBlocksPerSlot) - 1)
@@ -117,6 +102,36 @@ func (store *Store) GetData(slotID uint64, interest *ndni.Packet, dataBuf *pktmb
 		)
 	}
 	return ndni.PacketFromPtr(unsafe.Pointer(pinterest.diskData))
+}
+
+func (store *Store) finishPendingTasks() {
+	for {
+		if cptr.Call(store.th.Post, func() bool {
+			if store.mp.CountInUse() > 0 {
+				return false
+			}
+			C.spdk_put_io_channel(store.c.ch)
+			store.c.ch = nil
+			return true
+		}).(bool) {
+			break
+		}
+	}
+}
+
+// Close closes this Store.
+// The SPDK thread must still be active.
+func (store *Store) Close() error {
+	if store.c.ch != nil {
+		store.finishPendingTasks()
+	}
+	eal.Free(store.c)
+	store.c = nil
+	store.getDataCbRevoke()
+	return multierr.Append(
+		store.mp.Close(),
+		store.bd.Close(),
+	)
 }
 
 // NewStore creates a Store.

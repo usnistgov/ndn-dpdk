@@ -29,6 +29,8 @@ __attribute__((nonnull)) static void
 PutData_Begin(void* req0)
 {
   DiskStoreRequest* req = (DiskStoreRequest*)req0;
+  NDNDPDK_ASSERT(req->store->ch != NULL);
+
   uint64_t blockOffset = req->slotID * req->store->nBlocksPerSlot;
   Bdev_WritePacket(&req->store->bdev, req->store->ch, req->pkt, blockOffset, PutData_End,
                    &req->breq);
@@ -58,6 +60,7 @@ DiskStore_PutData(DiskStore* store, uint64_t slotID, Packet* npkt)
   req->store = store;
   req->slotID = slotID;
   req->npkt = npkt;
+
   res = spdk_thread_send_msg(store->th, PutData_Begin, req);
   if (unlikely(res != 0)) {
     N_LOGW("PutData error spdk_thread_send_msg slot=%" PRIu64 " npkt=%p" N_LOG_ERROR_ERRNO, slotID,

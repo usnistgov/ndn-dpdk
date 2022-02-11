@@ -15,4 +15,7 @@ typedef struct SpdkThread
 __attribute__((nonnull)) int
 SpdkThread_Run(SpdkThread* th);
 
+__attribute__((nonnull)) int
+SpdkThread_Exit(SpdkThread* th);
+
 #endif // NDNDPDK_DPDK_SPDK_THREAD_H

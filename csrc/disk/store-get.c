@@ -4,11 +4,17 @@
 
 N_LOG_INIT(DiskStore);
 
+__attribute__((nonnull)) static inline void
+GetData_Finalize(DiskStoreRequest* req)
+{
+  rte_mempool_put(req->store->mp, req);
+}
+
 __attribute__((nonnull)) static void
 GetData_Fail(DiskStore* store, Packet* npkt)
 {
   PInterest* interest = Packet_GetInterestHdr(npkt);
-  if (likely(interest->diskData != NULL)) {
+  if (interest->diskData != NULL) {
     rte_pktmbuf_free(Packet_ToMbuf(interest->diskData));
     interest->diskData = NULL;
   }
@@ -40,13 +46,15 @@ GetData_End(BdevRequest* breq, int res)
   req->store->getDataCb(req->npkt, req->store->getDataCtx);
 
 FINISH:
-  rte_mempool_put(req->store->mp, req);
+  GetData_Finalize(req);
 }
 
 __attribute__((nonnull)) static void
 GetData_Begin(void* req0)
 {
   DiskStoreRequest* req = (DiskStoreRequest*)req0;
+  NDNDPDK_ASSERT(req->store->ch != NULL);
+
   uint64_t blockOffset = req->slotID * req->store->nBlocksPerSlot;
   PInterest* interest = Packet_GetInterestHdr(req->npkt);
   Bdev_ReadPacket(&req->store->bdev, req->store->ch, Packet_ToMbuf(interest->diskData), blockOffset,
@@ -57,9 +65,6 @@ void
 DiskStore_GetData(DiskStore* store, uint64_t slotID, Packet* npkt, struct rte_mbuf* dataBuf)
 {
   NDNDPDK_ASSERT(slotID > 0);
-  PInterest* interest = Packet_GetInterestHdr(npkt);
-  interest->diskSlot = slotID;
-  interest->diskData = Packet_FromMbuf(dataBuf);
 
   DiskStoreRequest* req = NULL;
   int res = rte_mempool_get(store->mp, (void**)&req);
@@ -69,15 +74,20 @@ DiskStore_GetData(DiskStore* store, uint64_t slotID, Packet* npkt, struct rte_mb
     return;
   }
 
+  PInterest* interest = Packet_GetInterestHdr(npkt);
+  interest->diskSlot = slotID;
+  interest->diskData = Packet_FromMbuf(dataBuf);
+
   N_LOGD("GetData request slot=%" PRIu64 " npkt=%p", slotID, npkt);
   req->store = store;
   req->slotID = slotID;
   req->npkt = npkt;
+
   res = spdk_thread_send_msg(store->th, GetData_Begin, req);
   if (unlikely(res != 0)) {
     N_LOGW("GetData error spdk_thread_send_msg slot=%" PRIu64 " npkt=%p" N_LOG_ERROR_ERRNO, slotID,
            npkt, res);
     GetData_Fail(store, npkt);
-    rte_mempool_put(store->mp, req);
+    GetData_Finalize(req);
   }
 }

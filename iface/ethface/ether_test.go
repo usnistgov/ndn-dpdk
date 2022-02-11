@@ -149,7 +149,9 @@ func TestReassembly(t *testing.T) {
 		m := mbuftestenv.MakePacket(b)
 		txHdrA.Prepend(m, false)
 		n := txqA.TxBurst(pktmbuf.Vector{m})
-		assert.Equal(1, n)
+		if !assert.Equal(1, n) {
+			m.Close()
+		}
 	}
 
 	locB := makeEtherLocator(vnet.Ports[1])
@@ -159,10 +161,17 @@ func TestReassembly(t *testing.T) {
 	defer must.Close(faceB)
 	prevCntB := faceB.Counters()
 	readCntB := func() (diff iface.Counters) {
-		cntB := faceB.Counters()
-		diff = cntB.Since(prevCntB)
-		prevCntB = cntB
-		return diff
+		time.Sleep(5 * time.Millisecond)
+		cnt0 := faceB.Counters()
+		for { // wait for numbers to stabilize
+			time.Sleep(5 * time.Millisecond)
+			cnt1 := faceB.Counters()
+			if cnt0.RxCounters != prevCntB.RxCounters && cnt1.RxCounters == cnt0.RxCounters {
+				prevCntB, diff = cnt1, cnt1.Since(prevCntB)
+				return diff
+			}
+			cnt0 = cnt1
+		}
 	}
 
 	{ // reassemble 2 fragments
@@ -173,12 +182,11 @@ func TestReassembly(t *testing.T) {
 		require.Len(frags, 2)
 		sendA(frags[0])
 		sendA(frags[1])
-		time.Sleep(5 * time.Millisecond)
 		cntB := readCntB()
-		assert.Equal(2, int(cntB.RxFrames))
-		assert.Equal(1, int(cntB.RxReassPackets))
-		assert.Equal(0, int(cntB.RxReassDrops))
-		assert.Equal(1, int(cntB.RxData))
+		assert.Equal(2, int(cntB.RxFrames), cntB)
+		assert.Equal(1, int(cntB.RxReassPackets), cntB)
+		assert.Equal(0, int(cntB.RxReassDrops), cntB)
+		assert.Equal(1, int(cntB.RxData), cntB)
 	}
 
 	{ // reassemble 3 fragments, with reordering and duplicate
@@ -191,12 +199,11 @@ func TestReassembly(t *testing.T) {
 		sendA(frags[2])
 		sendA(frags[2])
 		sendA(frags[1])
-		time.Sleep(5 * time.Millisecond)
 		cntB := readCntB()
-		assert.Equal(4, int(cntB.RxFrames))
-		assert.Equal(1, int(cntB.RxReassPackets))
-		assert.Equal(1, int(cntB.RxReassDrops))
-		assert.Equal(1, int(cntB.RxData))
+		assert.Equal(4, int(cntB.RxFrames), cntB)
+		assert.Equal(1, int(cntB.RxReassPackets), cntB)
+		assert.Equal(1, int(cntB.RxReassDrops), cntB)
+		assert.Equal(1, int(cntB.RxData), cntB)
 	}
 
 	{ // discard packet due to unexpected FragCount change
@@ -209,12 +216,11 @@ func TestReassembly(t *testing.T) {
 		sendA(frags[0])
 		sendA(frags[2])
 		sendA(frags[1])
-		time.Sleep(5 * time.Millisecond)
 		cntB := readCntB()
-		assert.Equal(3, int(cntB.RxFrames))
-		assert.Equal(0, int(cntB.RxReassPackets))
-		assert.Equal(3, int(cntB.RxReassDrops))
-		assert.Equal(0, int(cntB.RxData))
+		assert.Equal(3, int(cntB.RxFrames), cntB)
+		assert.Equal(0, int(cntB.RxReassPackets), cntB)
+		assert.Equal(3, int(cntB.RxReassDrops), cntB)
+		assert.Equal(0, int(cntB.RxData), cntB)
 	}
 
 	{ // too many incomplete packets
@@ -237,14 +243,13 @@ func TestReassembly(t *testing.T) {
 			}
 			time.Sleep(time.Millisecond)
 		}
-		time.Sleep(5 * time.Millisecond)
 		cntB := readCntB()
-		assert.LessOrEqual(int(cntB.RxFrames), 303)
-		assert.GreaterOrEqual(int(cntB.RxFrames), 303-locB.ReassemblerCapacity)
-		assert.Equal(102, int(cntB.RxReassPackets))
-		assert.LessOrEqual(int(cntB.RxReassDrops), 99)
-		assert.GreaterOrEqual(int(cntB.RxReassDrops), 99-locB.ReassemblerCapacity)
-		assert.Equal(102, int(cntB.RxData))
+		assert.LessOrEqual(int(cntB.RxFrames), 303, cntB)
+		assert.GreaterOrEqual(int(cntB.RxFrames), 303-locB.ReassemblerCapacity, cntB)
+		assert.Equal(102, int(cntB.RxReassPackets), cntB)
+		assert.LessOrEqual(int(cntB.RxReassDrops), 99, cntB)
+		assert.GreaterOrEqual(int(cntB.RxReassDrops), 99-locB.ReassemblerCapacity, cntB)
+		assert.Equal(102, int(cntB.RxData), cntB)
 		// incomplete packets are left in the reassembler; do not add another test after this
 	}
 }
