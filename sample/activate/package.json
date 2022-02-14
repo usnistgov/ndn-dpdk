@@ -5,7 +5,7 @@
     "start": "node --loader tsm",
     "typecheck": "tsc"
   },
-  "packageManager": "pnpm@6.29.1",
+  "packageManager": "pnpm@6.31.0",
   "dependencies": {
     "stdout-stream": "^1.4.1",
     "tslib": "^2.3.1",
@@ -14,9 +14,9 @@
   },
   "devDependencies": {
     "@types/stdout-stream": "^1.4.0",
-    "@usnistgov/ndn-dpdk": "file:///usr/local/share/ndn-dpdk/ndn-dpdk.npm.tgz"
+    "@usnistgov/ndn-dpdk": "file:/usr/local/share/ndn-dpdk/ndn-dpdk.npm.tgz"
   },
   "engines": {
-    "node": "16.x"
+    "node": "17.x"
   }
 }
