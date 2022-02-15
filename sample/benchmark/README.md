@@ -28,7 +28,7 @@ This is a web application that performs simple benchmark of NDN-DPDK forwarder.
 3. Start NDN-DPDK service on both machines.
 4. Start SSH tunnel for reaching remote NDN-DPDK.
 5. Run `corepack pnpm start` to start the web application.
-6. Visit `http://localhost:3333` (via SSH tunnel) in your browser.
+6. Visit `http://127.0.0.1:3333` (via SSH tunnel) in your browser.
 
 ## Benchmark Description
 
