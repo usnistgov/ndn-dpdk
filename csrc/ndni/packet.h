@@ -51,7 +51,6 @@ static_assert(offsetof(PacketPriv, nack) + offsetof(PNack, interest) ==
 __attribute__((nonnull, returns_nonnull)) static __rte_always_inline Packet*
 Packet_FromMbuf(struct rte_mbuf* pkt)
 {
-  NDNDPDK_ASSERT(pkt->priv_size >= sizeof(PacketPriv));
   return (Packet*)pkt;
 }
 

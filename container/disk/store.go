@@ -17,11 +17,9 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/dpdk/bdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
-	"github.com/usnistgov/ndn-dpdk/dpdk/mempool"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/spdkenv"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"go.uber.org/multierr"
 	"go.uber.org/zap"
 )
 
@@ -53,7 +51,6 @@ func go_getDataCallback(npkt *C.Packet, ctx C.uintptr_t) C.int {
 // Store represents a disk-backed Data Store.
 type Store struct {
 	c  *C.DiskStore
-	mp *mempool.Mempool
 	bd *bdev.Bdev
 	th *spdkenv.Thread
 
@@ -107,7 +104,7 @@ func (store *Store) GetData(slotID uint64, interest *ndni.Packet, dataBuf *pktmb
 func (store *Store) finishPendingTasks() {
 	for {
 		if cptr.Call(store.th.Post, func() bool {
-			if store.mp.CountInUse() > 0 {
+			if C.rte_hash_count(store.c.requestHt) > 0 {
 				return false
 			}
 			C.spdk_put_io_channel(store.c.ch)
@@ -125,13 +122,12 @@ func (store *Store) Close() error {
 	if store.c.ch != nil {
 		store.finishPendingTasks()
 	}
+	store.getDataCbRevoke()
+	eal.Free(store.c.requestArray)
+	C.rte_hash_free(store.c.requestHt)
 	eal.Free(store.c)
 	store.c = nil
-	store.getDataCbRevoke()
-	return multierr.Append(
-		store.mp.Close(),
-		store.bd.Close(),
-	)
+	return store.bd.Close()
 }
 
 // NewStore creates a Store.
@@ -145,47 +141,42 @@ func NewStore(device bdev.Device, th *spdkenv.Thread, nBlocksPerSlot int, getDat
 	}
 
 	store = &Store{th: th}
-	if store.mp, e = mempool.New(mempool.Config{
-		Capacity:       int(math.MaxInt64(256, math.MinInt64(bdi.CountBlocks()/1024, 8192))),
-		ElementSize:    C.sizeof_DiskStoreRequest,
-		Socket:         th.LCore().NumaSocket(),
-		SingleProducer: true,
-	}); e != nil {
-		return nil, e
-	}
+	capacity := math.MaxInt64(256, math.MinInt64(bdi.CountBlocks()/1024, 8192))
+	socket := th.LCore().NumaSocket()
+
 	if store.bd, e = bdev.Open(device, bdev.ReadWrite); e != nil {
-		store.mp.Close()
 		return nil, e
 	}
 
-	socket := th.LCore().NumaSocket()
 	store.c = (*C.DiskStore)(eal.Zmalloc("DiskStore", C.sizeof_DiskStore, socket))
 	store.bd.CopyToC(unsafe.Pointer(&store.c.bdev))
-	store.c.mp = (*C.struct_rte_mempool)(store.mp.Ptr())
-	store.c.th = (*C.struct_spdk_thread)(th.Ptr())
 	store.c.nBlocksPerSlot = C.uint64_t(nBlocksPerSlot)
+	store.c.th = (*C.struct_spdk_thread)(th.Ptr())
+
+	htID := C.CString(eal.AllocObjectID("disk.Store.ht"))
+	defer C.free(unsafe.Pointer(htID))
+	if store.c.requestHt = C.HashTable_New(C.struct_rte_hash_parameters{
+		name:       htID,
+		entries:    C.uint32_t(capacity),
+		key_len:    C.sizeof_uint64_t,
+		socket_id:  C.int(socket.ID()),
+		extra_flag: C.RTE_HASH_EXTRA_FLAGS_EXT_TABLE,
+	}); store.c.requestHt == nil {
+		e := eal.GetErrno()
+		store.bd.Close()
+		eal.Free(store.c)
+		return nil, fmt.Errorf("HashTable_New failed: %w", e)
+	}
+	store.c.requestArray = (*C.DiskStoreRequest)(eal.Zmalloc("disk.Store.requestArray",
+		C.sizeof_DiskStoreRequest*(1+C.rte_hash_max_key_id(store.c.requestHt)), socket))
 
 	f, ctx, revoke := StoreGetDataCallback.CallbackReuse(getDataCb)
 	store.c.getDataCb, store.c.getDataCtx, store.getDataCbRevoke = C.DiskStore_GetDataCb(f), C.uintptr_t(ctx), revoke
 	store.getDataGo = getDataCb == StoreGetDataGo
 
-	// SPDK thread processes messages in order, so that this would occur before any other DiskStore usage
-	th.Post(cptr.Func0.Void(func() {
-		if store.c == nil {
-			// in case store is closed without launching the SPDK thread
-			return
-		}
-
-		store.c.ch = C.spdk_bdev_get_io_channel(store.c.bdev.desc)
-		if store.c.ch == nil {
-			logger.Panic("spdk_bdev_get_io_channel failed")
-		}
-
-		logger.Info("DiskStore ready",
-			zap.Uintptr("store", uintptr(unsafe.Pointer(store.c))),
-			zap.String("bdev", store.bd.DevInfo().Name()),
-			zap.Uintptr("ch", uintptr(unsafe.Pointer(store.c.th))),
-		)
-	}))
+	logger.Info("DiskStore ready",
+		zap.Uintptr("store", uintptr(unsafe.Pointer(store.c))),
+		zap.String("bdev", store.bd.DevInfo().Name()),
+	)
 	return store, nil
 }

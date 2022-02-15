@@ -29,6 +29,7 @@ var threadLibInitOnce sync.Once
 // Thread represents an SPDK thread.
 type Thread struct {
 	ealthread.ThreadWithCtrl
+	name        string
 	c           *C.SpdkThread
 	RcuReadSide *urcu.ReadSide
 }
@@ -62,6 +63,10 @@ func (th *Thread) Close() error {
 
 	C.spdk_thread_destroy(th.c.spdkTh)
 	eal.Free(th.c)
+	logger.Info("SPDK thread closed",
+		zap.String("name", th.name),
+		zap.Uintptr("th", uintptr(unsafe.Pointer(th.c))),
+	)
 	return nil
 }
 
@@ -87,12 +92,16 @@ func NewThread() (*Thread, error) {
 		}
 	})
 
-	spdkThread := C.spdk_thread_create(nil, nil)
+	name := eal.AllocObjectID("spdkenv.Thread")
+	nameC := C.CString(name)
+	defer C.free(unsafe.Pointer(nameC))
+	spdkThread := C.spdk_thread_create(nameC, nil)
 	if spdkThread == nil {
 		return nil, errors.New("spdk_thread_create error")
 	}
 
 	th := &Thread{
+		name:        name,
 		c:           (*C.SpdkThread)(eal.Zmalloc("SpdkThread", C.sizeof_SpdkThread, eal.NumaSocket{})),
 		RcuReadSide: &urcu.ReadSide{IsOnline: true},
 	}
@@ -100,6 +109,11 @@ func NewThread() (*Thread, error) {
 	th.ThreadWithCtrl = ealthread.NewThreadWithCtrl(
 		cptr.Func0.C(C.SpdkThread_Run, unsafe.Pointer(th.c)),
 		unsafe.Pointer(&th.c.ctrl),
+	)
+	logger.Info("SPDK thread created",
+		zap.String("name", name),
+		zap.Uintptr("th", uintptr(unsafe.Pointer(th.c))),
+		zap.Uintptr("spdk-thread", uintptr(unsafe.Pointer(th.c.spdkTh))),
 	)
 	return th, nil
 }

@@ -26,6 +26,7 @@ Packet_Parse(Packet* npkt)
 {
   PacketPriv* priv = Packet_GetPriv_(npkt);
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
+  NDNDPDK_ASSERT(pkt->priv_size >= sizeof(*priv));
   pkt->packet_type = 0;
 
   LpHeader* lph = &priv->lp;

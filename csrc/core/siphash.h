@@ -37,7 +37,7 @@ SipHash_Write(SipHash* h, const uint8_t* input, size_t count)
 
 /**
  * @brief Finalize SipHash.
- * @return hash value
+ * @return hash value.
  */
 __attribute__((nonnull)) static inline uint64_t
 SipHash_Final(SipHash* h)
@@ -46,8 +46,8 @@ SipHash_Final(SipHash* h)
 }
 
 /**
- * @brief compute hash value without changing underlying state
- * @return hash value
+ * @brief Compute hash value without changing underlying state.
+ * @return hash value.
  */
 __attribute__((nonnull)) static inline uint64_t
 SipHash_Sum(const SipHash* h)
