@@ -35,3 +35,7 @@ This ensures all requests on the same slot are processed in the order they are r
 DiskAlloc allocates disk slots within a consecutive range of a DiskStore.
 Available slots of a DiskStore are statically partitioned and associated with each Content Store instance.
 The CS can then using a `DiskAlloc` instance to allocate a disk slot for each Data packet it wants to write to disk.
+
+DiskAlloc is implemented as a bitmap.
+If a bit is set to 1, the disk slot is available.
+If a bit is cleared to 0, the disk slot is occupied.

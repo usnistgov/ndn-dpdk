@@ -6,15 +6,13 @@ DiskAlloc_New(uint64_t min, uint64_t max, int numaSocket)
   NDNDPDK_ASSERT(min > 0);
   NDNDPDK_ASSERT(max >= min);
   // no need for more than 2^32 slots, because PCCT cannot index that many entries
-  uint64_t total = RTE_MIN(UINT32_MAX, max - min + 1);
-  size_t size = sizeof(DiskAlloc) + total * sizeof(uint32_t);
+  uint32_t nSlots = RTE_MIN(UINT32_MAX, max - min + 1);
+  uint32_t bmpSize = rte_bitmap_get_memory_footprint(nSlots);
 
-  DiskAlloc* a = rte_malloc_socket("DiskAlloc", size, 0, numaSocket);
+  DiskAlloc* a = rte_malloc_socket("DiskAlloc", sizeof(DiskAlloc) + bmpSize, 0, numaSocket);
   a->min = min;
-  a->count = total;
-  a->total = total;
-  for (uint32_t i = 0; i < total; ++i) {
-    a->arr32[i] = i;
-  }
+  a->max = min + nSlots - 1;
+  struct rte_bitmap* bmp = rte_bitmap_init_with_all_set(nSlots, (uint8_t*)a->bmp, bmpSize);
+  NDNDPDK_ASSERT(bmp == a->bmp);
   return a;
 }

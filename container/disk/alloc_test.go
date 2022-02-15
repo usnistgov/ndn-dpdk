@@ -10,19 +10,23 @@ import (
 func TestAlloc(t *testing.T) {
 	assert, require := makeAR(t)
 
-	a := disk.NewAlloc(512, 1023, eal.NumaSocket{})
+	a := disk.NewAlloc(512, 1011, eal.NumaSocket{})
 	defer a.Close()
+	aMin, aMax := a.SlotRange()
+	assert.EqualValues(512, aMin)
+	assert.EqualValues(1011, aMax)
 
 	slots := map[uint64]bool{}
-	for i := 0; i < 512; i++ {
+	for i := 0; i < 500; i++ {
 		slot, e := a.Alloc()
-		require.NoError(e)
-		assert.LessOrEqual(uint64(512), slot)
-		assert.GreaterOrEqual(uint64(1023), slot)
-		assert.False(slots[slot])
-		slots[slot] = true
+		if assert.NoError(e, i) {
+			assert.LessOrEqual(uint64(512), slot, i)
+			assert.GreaterOrEqual(uint64(1011), slot, i)
+			assert.False(slots[slot], i)
+			slots[slot] = true
+		}
 	}
-	assert.Len(slots, 512)
+	assert.Len(slots, 500)
 
 	_, e := a.Alloc()
 	assert.Error(e)

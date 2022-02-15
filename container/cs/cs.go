@@ -72,7 +72,7 @@ func (cs *Cs) SetDisk(store *disk.Store, alloc *disk.Alloc) error {
 		return errors.New("DiskAlloc slot range out of bound")
 	}
 
-	capAlloc, capB2 := alloc.Capacity(), cs.Capacity(ListDirectB2)
+	capAlloc, capB2 := int(aMax-aMin+1), cs.Capacity(ListDirectB2)
 	if capAlloc < capB2 {
 		logger.Warn("disk allocator capacity is smaller than CS index capacity reserved for on-disk entries",
 			zap.Int("cap-alloc", capAlloc),

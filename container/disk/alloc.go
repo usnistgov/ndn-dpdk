@@ -31,17 +31,7 @@ func (a *Alloc) Close() error {
 
 // SlotRange returns a range of possible slot numbers.
 func (a *Alloc) SlotRange() (min, max uint64) {
-	return uint64(a.min), uint64(a.min + a.total - 1)
-}
-
-// Capacity returns total number of slots.
-func (a *Alloc) Capacity() int {
-	return int(a.total)
-}
-
-// CountAvailable returns number of available slots.
-func (a *Alloc) CountAvailable() int {
-	return int(a.count)
+	return uint64(a.min), uint64(a.max)
 }
 
 // Alloc allocates a disk slot.

@@ -4,35 +4,46 @@
 /** @file */
 
 #include "../core/common.h"
+#include <rte_bitmap.h>
 
-/** @brief Simple non-thread-safe disk slot allocator. */
+/**
+ * @brief Disk slot allocator.
+ *
+ * This data structure is non-thread-safe.
+ */
 typedef struct DiskAlloc
 {
   uint64_t min;
-  uint64_t count;
-  uint64_t total;
-  uint32_t arr32[0];
+  uint64_t max;
+  struct rte_bitmap bmp[0] __rte_cache_aligned;
 } DiskAlloc;
 
 /**
  * @brief Allocate a disk slot.
  * @retval 0 no disk slot available.
  */
-__attribute__((nonnull)) static __rte_always_inline uint64_t
+__attribute__((nonnull)) static inline uint64_t
 DiskAlloc_Alloc(DiskAlloc* a)
 {
-  if (unlikely(a->count == 0)) {
+  uint32_t pos = 0;
+  uint64_t slab = 0;
+  int found = rte_bitmap_scan(a->bmp, &pos, &slab);
+  if (unlikely(found == 0)) {
     return 0;
   }
-  return a->arr32[--a->count] + a->min;
+  pos += rte_bsf64(slab);
+  rte_bitmap_clear(a->bmp, pos);
+  return a->min + pos;
 }
 
 /** @brief Free a disk slot. */
-__attribute__((nonnull)) static __rte_always_inline void
+__attribute__((nonnull)) static inline void
 DiskAlloc_Free(DiskAlloc* a, uint64_t slot)
 {
-  a->arr32[a->count++] = slot - a->min;
-  NDNDPDK_ASSERT(a->count <= a->total);
+  NDNDPDK_ASSERT(slot >= a->min && slot <= a->max);
+  uint32_t pos = slot - a->min;
+  NDNDPDK_ASSERT(rte_bitmap_get(a->bmp, pos) == 0);
+  rte_bitmap_set(a->bmp, pos);
 }
 
 /**
