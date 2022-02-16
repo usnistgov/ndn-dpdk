@@ -37,14 +37,14 @@ fi
 DFLT_CODEROOT=$HOME/code
 DFLT_NODEVER=17.x
 DFLT_GOVER=latest
-DFLT_UBPFVER=HEAD
-DFLT_LIBBPFVER=v0.5.0
+DFLT_UBPFVER=0dd334daf4849137fa40d2b7676d2bf920d5c81d
+DFLT_LIBBPFVER=v0.7.0
 DFLT_URINGVER=liburing-2.1
-DFLT_DPDKVER=21.11
+DFLT_DPDKVER=v22.03-rc1
 DFLT_DPDKPATCH=
 DFLT_DPDKOPTS={}
 DFLT_KMODSVER=HEAD
-DFLT_SPDKVER=21.10
+DFLT_SPDKVER=v22.01
 DFLT_NJOBS=$(nproc)
 DFLT_TARGETARCH=native
 
@@ -130,7 +130,6 @@ EOT
 fi
 
 : "${NDNDPDK_DL_GITHUB:=https://github.com}"
-: "${NDNDPDK_DL_GITHUB_API:=https://api.github.com}"
 : "${NDNDPDK_DL_LLVM_APT:=https://apt.llvm.org}"
 : "${NDNDPDK_DL_NODESOURCE_DEB:=https://deb.nodesource.com}"
 : "${NDNDPDK_DL_PYPA_BOOTSTRAP:=https://bootstrap.pypa.io}"
@@ -149,7 +148,6 @@ curl_test() {
   fi
 }
 curl_test NDNDPDK_DL_GITHUB /robots.txt
-curl_test NDNDPDK_DL_GITHUB_API /robots.txt
 curl_test NDNDPDK_DL_LLVM_APT
 curl_test NDNDPDK_DL_NODESOURCE_DEB
 curl_test NDNDPDK_DL_PYPA_BOOTSTRAP
@@ -157,14 +155,14 @@ curl_test NDNDPDK_DL_GODEV /VERSION
 curl_test NDNDPDK_DL_DPDK
 curl_test NDNDPDK_DL_DPDK_PATCHES
 
-github_resolve_commit() {
-  local COMMIT=$1
-  local REPO=$2
-  if [[ ${#COMMIT} -ne 40 ]]; then
-    curl -fsLS "${NDNDPDK_DL_GITHUB_API}/repos/${REPO}/commits/${COMMIT}" | jq -r '.sha'
-  else
-    echo "${COMMIT}"
-  fi
+github_download() {
+  local REPO=$1
+  local VER=$2
+  local DIR="${REPO#*/}-${VER#v}"
+  cd "$CODEROOT"
+  rm -rf "$DIR"
+  curl -fsLS "${NDNDPDK_DL_GITHUB}/${REPO}/archive/${VER}.tar.gz" | tar -xz
+  readlink -f "$DIR"
 }
 
 DISTRO=$(lsb_release -sc)
@@ -249,19 +247,16 @@ fi
 echo 'Will install Go linters and tools'
 
 if [[ $UBPFVER != 0 ]]; then
-  UBPFVER=$(github_resolve_commit "$UBPFVER" iovisor/ubpf)
   echo "Will install uBPF ${UBPFVER}"
 elif ! [[ -f /usr/local/include/ubpf.h ]]; then
   echo '--ubpf=0 specified but uBPF was not found, which may cause build errors'
 fi
 
 if [[ $LIBBPFVER != 0 ]]; then
-  LIBBPFVER=$(github_resolve_commit "$LIBBPFVER" libbpf/libbpf)
   echo "Will install libbpf ${LIBBPFVER}"
 fi
 
 if [[ $URINGVER != 0 ]]; then
-  URINGVER=$(github_resolve_commit "$URINGVER" axboe/liburing)
   echo "Will install liburing ${URINGVER}"
 elif ! pkg-config liburing; then
   echo '--uring=0 specified but liburing was not found, which may cause build errors'
@@ -346,10 +341,7 @@ if [[ $UBPFVER != 0 ]]; then
 fi
 
 if [[ $LIBBPFVER != 0 ]]; then
-  cd "$CODEROOT"
-  rm -rf "libbpf-${LIBBPFVER}"
-  curl -fsLS "${NDNDPDK_DL_GITHUB}/libbpf/libbpf/archive/${LIBBPFVER}.tar.gz" | tar -xz
-  cd "libbpf-${LIBBPFVER}/src"
+  cd "$(github_download libbpf/libbpf $LIBBPFVER)/src"
   sh -c "umask 0000 && make -j${NJOBS}"
   $SUDO find /usr/local/lib -name 'libbpf.*' -delete
   $SUDO sh -c "umask 0000 && make install PREFIX=/usr/local LIBDIR=/usr/local/lib"
@@ -359,10 +351,7 @@ if [[ $LIBBPFVER != 0 ]]; then
 fi
 
 if [[ $URINGVER != 0 ]]; then
-  cd "$CODEROOT"
-  rm -rf "liburing-${URINGVER}"
-  curl -fsLS "${NDNDPDK_DL_GITHUB}/axboe/liburing/archive/${URINGVER}.tar.gz" | tar -xz
-  cd "liburing-${URINGVER}"
+  cd "$(github_download axboe/liburing $URINGVER)"
   ./configure --prefix=/usr/local
   make -j${NJOBS}
   $SUDO find /usr/local/lib -name 'liburing.*' -delete
@@ -373,10 +362,7 @@ if [[ $URINGVER != 0 ]]; then
 fi
 
 if [[ $DPDKVER != 0 ]]; then
-  cd "$CODEROOT"
-  rm -rf "dpdk-${DPDKVER}"
-  curl -fsLS "${NDNDPDK_DL_GITHUB}/DPDK/dpdk/archive/v${DPDKVER}.tar.gz" | tar -xz
-  cd "dpdk-${DPDKVER}"
+  cd "$(github_download DPDK/dpdk $DPDKVER)"
   echo -n "$DPDKPATCH" | xargs -d, --no-run-if-empty -I{} \
     sh -c "curl -fsLS ${NDNDPDK_DL_DPDK_PATCHES}/series/{}/mbox/ | patch -p1"
   meson $(echo "$DPDKOPTS" | jq -r --arg arch "$TARGETARCH" \
@@ -408,10 +394,7 @@ if [[ $KMODSVER != 0 ]]; then
 fi
 
 if [[ $SPDKVER != 0 ]]; then
-  cd "$CODEROOT"
-  rm -rf "spdk-${SPDKVER}"
-  curl -fsLS "${NDNDPDK_DL_GITHUB}/spdk/spdk/archive/v${SPDKVER}.tar.gz" | tar -xz
-  cd "spdk-${SPDKVER}"
+  cd "$(github_download spdk/spdk $SPDKVER)"
   ./configure --target-arch=${TARGETARCH} --with-shared \
     --disable-tests --disable-unit-tests --disable-examples --disable-apps \
     --with-dpdk --with-uring \
@@ -428,3 +411,5 @@ fi
   go install golang.org/x/tools/cmd/godoc@latest
   go install honnef.co/go/tools/cmd/staticcheck@latest
 )
+
+echo "Dependency installation completed"
