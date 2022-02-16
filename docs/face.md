@@ -103,7 +103,7 @@ sudo ip link set $NETIF up
 
 # if NDN-DPDK is running in a Docker container:
 # (1) move the network interface into the container's network namespace
-CTPID=$(docker inspect --format='{{ .State.Pid }}' ndndpdk-svc)
+CTPID=$(docker inspect -f '{{.State.Pid}}' ndndpdk-svc)
 sudo ip link set $NETIF netns $CTPID
 # (2) bring up the network interface
 docker exec ndndpdk-svc ip link set $NETIF up

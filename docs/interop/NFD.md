@@ -101,7 +101,7 @@ docker run -d --rm --name nfd \
   nfd
 
 # activate the Ethernet adapter in NFD
-B_CTPID=$(docker inspect --format='{{ .State.Pid }}' nfd)
+B_CTPID=$(docker inspect -f '{{.State.Pid}}' nfd)
 sudo ip link set $B_IFNAME netns $B_CTPID
 sudo nsenter -t $B_CTPID -n ip link set $B_IFNAME up
 docker exec nfd pkill -SIGHUP nfd

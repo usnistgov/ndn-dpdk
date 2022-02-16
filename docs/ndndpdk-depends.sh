@@ -210,6 +210,7 @@ APT_PKGS=(
   clang-format-11
   doxygen
   file
+  gcc-multilib
   git
   lcov
   llvm-11
@@ -220,6 +221,7 @@ APT_PKGS=(
   libpcap-dev
   libssl-dev
   liburcu-dev
+  m4
   ninja-build
   pkg-config
   python3-distutils

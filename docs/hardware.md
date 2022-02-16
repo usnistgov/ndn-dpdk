@@ -79,7 +79,7 @@ Example command:
 
 ```bash
 NETIF=enp4s0f0
-CTPID=$(docker inspect --format='{{ .State.Pid }}' ndndpdk-svc)
+CTPID=$(docker inspect -f '{{.State.Pid}}' ndndpdk-svc)
 sudo ip link set $NETIF netns $CTPID
 ```
 
