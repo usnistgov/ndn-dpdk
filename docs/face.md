@@ -112,8 +112,8 @@ docker exec ndndpdk-svc ip link set $NETIF up
 ndndpdk-ctrl create-eth-port --netif $NETIF --xdp --mtu 1500
 ```
 
-XDP driver is installed only if the libbpf library is installed before building DPDK.
-If you have installed dependencies with the `ndndpdk-depends.sh` script, libbpf is installed automatically.
+XDP driver is installed only if the libbpf and libxdp (part of xdp-tools) are installed before building DPDK.
+If you have installed dependencies with the `ndndpdk-depends.sh` script, they are installed automatically.
 
 Due to kernel limitation, MTU is limited to about 3300 octets.
 Setting an unacceptable MTU causes port creation failure.

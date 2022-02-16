@@ -30,7 +30,7 @@ jobs:
         run: |
           wget https://apt.llvm.org/llvm.sh
           sudo bash ./llvm.sh 11
-          sudo apt-get install $CC clang-format-11 doxygen gcc-multilib libelf-dev libpcap-dev liburcu-dev linux-libc-dev python3.8 python3-setuptools
+          sudo apt-get install $CC clang-format-11 doxygen gcc-multilib llvm-11 libelf-dev libpcap-dev liburcu-dev linux-libc-dev python3.8 python3-setuptools
           for C in go gofmt node; do
             sudo update-alternatives --remove-all $C || true
             sudo update-alternatives --install /usr/bin/$C $C $(command -v $C) 1

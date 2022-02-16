@@ -14,11 +14,11 @@ You can also [build a Docker container](Docker.md), which would work on other op
 * Go 1.17
 * Node.js 17.x
 * [Meson build system](https://mesonbuild.com/Getting-meson.html#installing-meson-with-pip)
-* [ubpf](https://github.com/iovisor/ubpf)
-* [libbpf](https://github.com/libbpf/libbpf) 0.5.0 (optional)
+* [ubpf](https://github.com/iovisor/ubpf) 0dd334d
+* [libbpf](https://github.com/libbpf/libbpf) 0.7.0 and [xdp-tools](https://github.com/xdp-project/xdp-tools) 8c486ba (optional)
 * [liburing](https://github.com/axboe/liburing) 2.1
-* [Data Plane Development Kit (DPDK)](https://www.dpdk.org/) 21.11
-* [Storage Performance Development Kit (SPDK)](https://spdk.io/) 21.10
+* [Data Plane Development Kit (DPDK)](https://www.dpdk.org/) 22.03-rc1
+* [Storage Performance Development Kit (SPDK)](https://spdk.io/) 22.01
 * [godoc](https://pkg.go.dev/golang.org/x/tools/cmd/godoc) and [staticcheck](https://pkg.go.dev/honnef.co/go/tools/cmd/staticcheck) commands (optional)
 
 You can run the [ndndpdk-depends.sh](ndndpdk-depends.sh) script to install these dependencies, or refer to the script for specific configuration options.

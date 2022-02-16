@@ -38,10 +38,11 @@ DFLT_CODEROOT=$HOME/code
 DFLT_NODEVER=17.x
 DFLT_GOVER=latest
 DFLT_UBPFVER=0dd334daf4849137fa40d2b7676d2bf920d5c81d
+DFLT_XDPTOOLSVER=8c486ba8563165217208d36984d0d6e5f38b2972
 DFLT_LIBBPFVER=v0.7.0
 DFLT_URINGVER=liburing-2.1
 DFLT_DPDKVER=v22.03-rc1
-DFLT_DPDKPATCH=
+DFLT_DPDKPATCH=21695
 DFLT_DPDKOPTS={}
 DFLT_KMODSVER=HEAD
 DFLT_SPDKVER=v22.01
@@ -61,6 +62,7 @@ NODEVER=$DFLT_NODEVER
 GOVER=$DFLT_GOVER
 UBPFVER=$DFLT_UBPFVER
 LIBBPFVER=$DFLT_LIBBPFVER
+XDPTOOLSVER=$DFLT_XDPTOOLSVER
 URINGVER=$DFLT_URINGVER
 DPDKVER=$DFLT_DPDKVER
 DPDKPATCH=$DFLT_DPDKPATCH
@@ -70,7 +72,7 @@ SPDKVER=$DFLT_SPDKVER
 NJOBS=$DFLT_NJOBS
 TARGETARCH=$DFLT_TARGETARCH
 
-ARGS=$(getopt -o 'hy' -l 'dir:,node:,go:,ubpf:,libbpf:,dpdk:,dpdk-patch:,dpdk-opts:,kmods:,spdk:,uring:,jobs:,arch:' -- "$@")
+ARGS=$(getopt -o 'hy' -l 'dir:,node:,go:,ubpf:,libbpf:,xdp:,dpdk:,dpdk-patch:,dpdk-opts:,kmods:,spdk:,uring:,jobs:,arch:' -- "$@")
 eval set -- "$ARGS"
 while true; do
   case $1 in
@@ -81,6 +83,7 @@ while true; do
     --go) GOVER=$2; shift 2;;
     --ubpf) UBPFVER=$2; shift 2;;
     --libbpf) LIBBPFVER=$2; shift 2;;
+    --xdp) XDPTOOLSVER=$2; shift 2;;
     --uring) URINGVER=$2; shift 2;;
     --dpdk) DPDKVER=$2; DPDKPATCH=''; shift 2;;
     --dpdk-patch) DPDKPATCH=$2; shift 2;;
@@ -109,6 +112,8 @@ ndndpdk-depends.sh [OPTION]...
       Set uBPF branch or commit SHA. '0' to skip.
   --libbpf=${DFLT_LIBBPFVER}
       Set libbpf branch or commit SHA. '0' to skip.
+  --xdp=${DFLT_XDPTOOLSVER}
+      Set xdp-tools branch or commit SHA. '0' to skip.
   --uring=${DFLT_URINGVER}
       Set liburing version. '0' to skip.
   --dpdk=${DFLT_DPDKVER}
@@ -207,6 +212,7 @@ APT_PKGS=(
   file
   git
   lcov
+  llvm-11
   libaio-dev
   libc6-dev-i386
   libelf-dev
@@ -254,6 +260,10 @@ fi
 
 if [[ $LIBBPFVER != 0 ]]; then
   echo "Will install libbpf ${LIBBPFVER}"
+fi
+
+if [[ $XDPTOOLSVER != 0 ]]; then
+  echo "Will install libxdp ${XDPTOOLSVER}"
 fi
 
 if [[ $URINGVER != 0 ]]; then
@@ -350,6 +360,15 @@ if [[ $LIBBPFVER != 0 ]]; then
   $SUDO ldconfig
 fi
 
+if [[ $XDPTOOLSVER != 0 ]]; then
+  cd "$(github_download xdp-project/xdp-tools $XDPTOOLSVER)"
+  CLANG=clang-11 LLC=llc-11 ./configure
+  sh -c "umask 0000 && make -j${NJOBS}"
+  $SUDO find /usr/local/lib '(' -name 'libxdp.*' -or -name 'xdp*.o' ')' -delete
+  $SUDO sh -c "umask 0000 && make install PREFIX=/usr/local LIBDIR=/usr/local/lib"
+  $SUDO ldconfig
+fi
+
 if [[ $URINGVER != 0 ]]; then
   cd "$(github_download axboe/liburing $URINGVER)"
   ./configure --prefix=/usr/local
@@ -412,4 +431,4 @@ fi
   go install honnef.co/go/tools/cmd/staticcheck@latest
 )
 
-echo "Dependency installation completed"
+echo "NDN-DPDK dependencies installation completed"

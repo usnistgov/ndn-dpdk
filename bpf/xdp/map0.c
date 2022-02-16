@@ -9,12 +9,13 @@
  */
 #include "api.h"
 
-struct bpf_map_def SEC("maps") xsks_map = {
-  .type = BPF_MAP_TYPE_XSKMAP,
-  .key_size = sizeof(int),
-  .value_size = sizeof(int),
-  .max_entries = 64,
-};
+struct
+{
+  __uint(type, BPF_MAP_TYPE_XSKMAP);
+  __uint(max_entries, 64);
+  __type(key, int);
+  __type(value, int);
+} xsks_map SEC(".maps");
 
 SEC("xdp_sock") int xdp_sock_prog(struct xdp_md* ctx)
 {
