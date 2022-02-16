@@ -235,7 +235,7 @@ DiskStore_Post(DiskStore* store, uint64_t slotID, Packet* npkt, DiskStoreSlimReq
   if (unlikely(res != 0)) {
     N_LOGW("%s spdk_thread_send_msg error slot=%" PRIu64 " npkt=%p" N_LOG_ERROR_ERRNO,
            DiskStoreOps[Packet_GetType(npkt)].verb, slotID, npkt, res);
-    DiskStoreOps[Packet_GetType(npkt)].finish(store, npkt, EPIPE);
+    DiskStoreOps[Packet_GetType(npkt)].finish(store, npkt, ENOSR);
   }
 }
 

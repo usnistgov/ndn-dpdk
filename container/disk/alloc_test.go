@@ -8,23 +8,29 @@ import (
 )
 
 func TestAlloc(t *testing.T) {
-	assert, require := makeAR(t)
+	assert, _ := makeAR(t)
 
-	a := disk.NewAlloc(512, 1011, eal.NumaSocket{})
+	min, max := uint64(512), uint64(1011)
+	a := disk.NewAlloc(min, max, eal.NumaSocket{})
 	defer a.Close()
 	aMin, aMax := a.SlotRange()
-	assert.EqualValues(512, aMin)
-	assert.EqualValues(1011, aMax)
+	assert.EqualValues(min, aMin)
+	assert.EqualValues(max, aMax)
 
 	slots := map[uint64]bool{}
-	for i := 0; i < 500; i++ {
+	expectAlloc := func(msgAndArgs ...interface{}) uint64 {
 		slot, e := a.Alloc()
-		if assert.NoError(e, i) {
-			assert.LessOrEqual(uint64(512), slot, i)
-			assert.GreaterOrEqual(uint64(1011), slot, i)
-			assert.False(slots[slot], i)
+		if assert.NoError(e, msgAndArgs...) {
+			assert.LessOrEqual(min, slot, msgAndArgs...)
+			assert.GreaterOrEqual(max, slot, msgAndArgs...)
+			assert.False(slots[slot], msgAndArgs...)
 			slots[slot] = true
 		}
+		return slot
+	}
+
+	for i := 0; i < 500; i++ {
+		expectAlloc(i)
 	}
 	assert.Len(slots, 500)
 
@@ -32,9 +38,15 @@ func TestAlloc(t *testing.T) {
 	assert.Error(e)
 
 	a.Free(515)
-	slot, e := a.Alloc()
-	require.NoError(e)
-	assert.Equal(uint64(515), slot)
+	delete(slots, 515)
+	assert.EqualValues(515, expectAlloc(515))
+
+	a.Free(516)
+	delete(slots, 516)
+	a.Free(517)
+	delete(slots, 517)
+	expectAlloc()
+	expectAlloc()
 
 	_, e = a.Alloc()
 	assert.Error(e)

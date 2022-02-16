@@ -69,7 +69,7 @@ DataDigest_Finish(struct rte_crypto_op* op);
   {                                                                                                \
     uint8_t size;                                                                                  \
     uint8_t value[capacity];                                                                       \
-    static_assert(capacity - 2 < 0xFD && (capacity % 8 == 7 || capacity == 0), "");                \
+    static_assert(capacity == 0 || (capacity - 2 < 0xFD && capacity % 8 == 7), "");                \
   }
 
 __attribute__((nonnull)) bool
