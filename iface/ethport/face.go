@@ -46,10 +46,6 @@ type FaceConfig struct {
 	// DisableTxChecksumOffload disables the usage of IPv4 and UDP checksum offloads.
 	DisableTxChecksumOffload bool `json:"disableTxChecksumOffload,omitempty"`
 
-	// TxChecksumRequireLinear indicates software TX checksum requires a linear buffer.
-	// This is set for UDP over IPv6, which requires UDP checksum but rte_ipv6_udptcp_cksum expects a linear buffer.
-	TxChecksumRequireLinear bool `json:"-"`
-
 	// privFaceConfig is hidden from JSON output.
 	privFaceConfig *FaceConfig
 }
@@ -135,9 +131,6 @@ func NewFace(port *Port, loc Locator) (iface.Face, error) {
 			NewRxMatch(face.loc).copyToC(&face.priv.rxMatch)
 			useTxMultiSegOffload := !cfg.DisableTxMultiSegOffload && face.port.devInfo.HasTxMultiSegOffload()
 			useTxChecksumOffload := !cfg.DisableTxChecksumOffload && face.port.devInfo.HasTxChecksumOffload()
-			if !useTxChecksumOffload && cfg.TxChecksumRequireLinear {
-				useTxMultiSegOffload = false
-			}
 			NewTxHdr(face.loc, useTxChecksumOffload).copyToC(&face.priv.txHdr)
 
 			return iface.InitResult{

@@ -343,7 +343,7 @@ func TestLocatorTxHdr(t *testing.T) {
 		defer pkt.Close()
 		txHdr.Prepend(pkt, true)
 
-		parsed := gopacket.NewPacket(pkt.Bytes(), layers.LayerTypeEthernet, gopacket.Default)
+		parsed := gopacket.NewPacket(pkt.Bytes(), layers.LayerTypeEthernet, gopacket.NoCopy)
 		expectedLayerTypes = append(expectedLayerTypes, gopacket.LayerTypePayload)
 		ipLen, actualLayerTypes := 0, []gopacket.LayerType{}
 		for i, l := range parsed.Layers() {
@@ -365,13 +365,15 @@ func TestLocatorTxHdr(t *testing.T) {
 		"local": "02:00:00:00:00:01",
 		"remote": "02:00:00:00:00:02"
 	}`, layers.LayerTypeEthernet)
+
 	checkTxHdr(`{
 		"scheme": "ether",
 		"local": "02:00:00:00:00:01",
 		"remote": "02:00:00:00:00:02",
 		"vlan": 3
 	}`, layers.LayerTypeEthernet, layers.LayerTypeDot1Q)
-	checkTxHdr(`{
+
+	udp4Pkt := checkTxHdr(`{
 		"scheme": "udpe",
 		"local": "02:00:00:00:00:01",
 		"remote": "02:00:00:00:00:02",
@@ -380,7 +382,10 @@ func TestLocatorTxHdr(t *testing.T) {
 		"localUDP": 6363,
 		"remoteUDP": 16363
 	}`, layers.LayerTypeEthernet, layers.LayerTypeIPv4, layers.LayerTypeUDP)
-	checkTxHdr(`{
+	udp4UDP := udp4Pkt.Layer(layers.LayerTypeUDP).(*layers.UDP)
+	assert.Zero(udp4UDP.Checksum)
+
+	udp6Pkt := checkTxHdr(`{
 		"scheme": "udpe",
 		"local": "02:00:00:00:00:01",
 		"remote": "02:00:00:00:00:02",
@@ -389,8 +394,10 @@ func TestLocatorTxHdr(t *testing.T) {
 		"localUDP": 6363,
 		"remoteUDP": 16363
 	}`, layers.LayerTypeEthernet, layers.LayerTypeIPv6, layers.LayerTypeUDP)
+	udp6UDP := udp6Pkt.Layer(layers.LayerTypeUDP).(*layers.UDP)
+	assert.NotZero(udp6UDP.Checksum)
 
-	vxlanParsed := checkTxHdr(`{
+	vxlanPkt := checkTxHdr(`{
 		"scheme": "vxlan",
 		"local": "02:00:00:00:00:01",
 		"remote": "02:00:00:00:00:02",
@@ -400,7 +407,7 @@ func TestLocatorTxHdr(t *testing.T) {
 		"innerLocal": "02:00:00:00:00:03",
 		"innerRemote": "02:00:00:00:00:04"
 	}`, layers.LayerTypeEthernet, layers.LayerTypeIPv6, layers.LayerTypeUDP, layers.LayerTypeVXLAN, layers.LayerTypeEthernet)
-	vxlanUDP := vxlanParsed.Layer(layers.LayerTypeUDP).(*layers.UDP)
+	vxlanUDP := vxlanPkt.Layer(layers.LayerTypeUDP).(*layers.UDP)
 	assert.GreaterOrEqual(uint16(vxlanUDP.SrcPort), uint16(0xC000))
 	assert.EqualValues(4789, vxlanUDP.DstPort)
 }

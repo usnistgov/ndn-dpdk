@@ -63,7 +63,7 @@ EthLocator_CanCoexist(const EthLocator* a, const EthLocator* b)
     return a->localUDP != b->localUDP || a->remoteUDP != b->remoteUDP;
   }
   if (a->localUDP != b->localUDP && a->remoteUDP != b->remoteUDP) {
-    // UDP face an VXLAN face -or- two UDP faces can coexist if both port numbers differ
+    // UDP face and VXLAN face -or- two UDP faces can coexist if both port numbers differ
     return true;
   }
   if (ac.vxlan != bc.vxlan) {
@@ -110,8 +110,8 @@ __attribute__((nonnull)) static uint8_t
 PutIpv4Hdr(uint8_t* buffer, const uint8_t* src, const uint8_t* dst)
 {
   struct rte_ipv4_hdr* ip = (struct rte_ipv4_hdr*)buffer;
-  ip->version_ihl = 0x45;                         // IPv4, header length 5 words
-  ip->fragment_offset = rte_cpu_to_be_16(0x4000); // Don't Fragment
+  ip->version_ihl = RTE_IPV4_VHL_DEF;
+  ip->fragment_offset = rte_cpu_to_be_16(RTE_IPV4_HDR_DF_FLAG);
   ip->time_to_live = IP_HOPLIMIT_VALUE;
   ip->next_proto_id = IPPROTO_UDP;
   rte_memcpy(&ip->src_addr, RTE_PTR_ADD(src, sizeof(V4_IN_V6_PREFIX)), sizeof(ip->src_addr));
@@ -123,7 +123,7 @@ __attribute__((nonnull)) static uint8_t
 PutIpv6Hdr(uint8_t* buffer, const uint8_t* src, const uint8_t* dst)
 {
   struct rte_ipv6_hdr* ip = (struct rte_ipv6_hdr*)buffer;
-  ip->vtc_flow = rte_cpu_to_be_32(6 << 28); // IPv6
+  ip->vtc_flow = rte_cpu_to_be_32(6 << 28); // IP version 6
   ip->proto = IPPROTO_UDP;
   ip->hop_limits = IP_HOPLIMIT_VALUE;
   rte_memcpy(ip->src_addr, src, sizeof(ip->src_addr));
@@ -149,13 +149,13 @@ PutVxlanHdr(uint8_t* buffer, uint32_t vni)
   return sizeof(*vxlan);
 }
 
-__attribute__((nonnull)) static bool
+__attribute__((nonnull)) static inline bool
 MatchAlways(const EthRxMatch* match, const struct rte_mbuf* m)
 {
   return true;
 }
 
-__attribute__((nonnull)) static __rte_always_inline bool
+__attribute__((nonnull)) static inline bool
 MatchVlan(const EthRxMatch* match, const struct rte_mbuf* m)
 {
   const struct rte_vlan_hdr* vlanM =
@@ -166,7 +166,7 @@ MatchVlan(const EthRxMatch* match, const struct rte_mbuf* m)
           (vlanM->vlan_tci & rte_cpu_to_be_16(0x0FFF)) == vlanT->vlan_tci);
 }
 
-__attribute__((nonnull)) static bool
+__attribute__((nonnull)) static inline bool
 MatchEtherUnicast(const EthRxMatch* match, const struct rte_mbuf* m)
 {
   // exact match on Ethernet and VLAN headers
@@ -174,7 +174,7 @@ MatchEtherUnicast(const EthRxMatch* match, const struct rte_mbuf* m)
          MatchVlan(match, m);
 }
 
-__attribute__((nonnull)) static bool
+__attribute__((nonnull)) static inline bool
 MatchEtherMulticast(const EthRxMatch* match, const struct rte_mbuf* m)
 {
   // Ethernet destination must be multicast, exact match on ether_type and VLAN header
@@ -184,7 +184,7 @@ MatchEtherMulticast(const EthRxMatch* match, const struct rte_mbuf* m)
          MatchVlan(match, m);
 }
 
-__attribute__((nonnull)) static bool
+__attribute__((nonnull)) static inline bool
 MatchUdp(const EthRxMatch* match, const struct rte_mbuf* m)
 {
   // UDP: exact match on IP addresses and UDP port numbers
@@ -194,7 +194,7 @@ MatchUdp(const EthRxMatch* match, const struct rte_mbuf* m)
                 RTE_PTR_ADD(match->buf, match->l3matchOff), match->l3matchLen) == 0;
 }
 
-__attribute__((nonnull)) static bool
+__attribute__((nonnull)) static inline bool
 MatchVxlan(const EthRxMatch* match, const struct rte_mbuf* m)
 {
   // exact match on UDP destination port, VNI, and inner Ethernet header
@@ -413,10 +413,9 @@ TxUdp6(const EthTxHdr* hdr, struct rte_mbuf* m, bool newBurst)
 __attribute__((nonnull)) static void
 TxUdp6Checksum(const EthTxHdr* hdr, struct rte_mbuf* m, bool newBurst)
 {
-  NDNDPDK_ASSERT(rte_pktmbuf_is_contiguous(m));
   struct rte_ipv6_hdr* ip = TxUdp6(hdr, m, newBurst);
   struct rte_udp_hdr* udp = RTE_PTR_ADD(ip, sizeof(*ip));
-  udp->dgram_cksum = rte_ipv6_udptcp_cksum(ip, udp);
+  udp->dgram_cksum = rte_ipv6_udptcp_cksum_mbuf(m, ip, hdr->l2len + sizeof(*ip));
 }
 
 __attribute__((nonnull)) static void

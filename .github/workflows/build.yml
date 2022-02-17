@@ -115,7 +115,7 @@ jobs:
       - uses: docker/build-push-action@v2
         with:
           tags: ndn-dpdk
-          context: . # don't use git context: .git directory is missing
+          context: .  # don't use git context: .git directory is missing
           build-args: |
             MAKE_ENV=NDNDPDK_MK_RELEASE=1
       - name: show image size
