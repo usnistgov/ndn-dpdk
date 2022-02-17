@@ -53,7 +53,7 @@ Packet_ParseL3(Packet* npkt)
   PacketPriv* priv = Packet_GetPriv_(npkt);
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   if (unlikely(pkt->data_len == 0)) {
-    // TlvDecoder ensures there's no empty segment, so an empty first segment means an empty packet
+    // TlvDecoder ensures there's no empty segment, so empty first segment means empty packet
     NDNDPDK_ASSERT(pkt->pkt_len == 0);
     return false;
   }

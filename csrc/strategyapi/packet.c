@@ -6,10 +6,10 @@ static_assert(offsetof(SgPacket, packet_type_) == offsetof(struct rte_mbuf, pack
 static_assert(offsetof(SgPacket, mbuf_end_) == sizeof(struct rte_mbuf), "");
 
 static_assert(offsetof(SgPacket, nackReason) - offsetof(SgPacket, mbuf_end_) ==
-                offsetof(PacketPriv, lpl3) + offsetof(LpL3, nackReason),
+                offsetof(PacketPriv, lpl3.nackReason),
               "");
 static_assert(offsetof(SgPacket, congMark) - offsetof(SgPacket, mbuf_end_) ==
-                offsetof(PacketPriv, lpl3) + offsetof(LpL3, congMark),
+                offsetof(PacketPriv, lpl3.congMark),
               "");
 
 static_assert((int)SgNackCongestion == (int)NackCongestion, "");

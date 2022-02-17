@@ -157,7 +157,7 @@ LpHeader_Prepend(struct rte_mbuf* pkt, const LpL3* l3, const LpL2* l2)
       typedef struct PitTokenF
       {
         uint8_t pitTokenT;
-        uint8_t pitTokenLV[0];
+        uint8_t pitTokenLV[];
       } __rte_packed PitTokenF;
 
       size_t sizeofLV = sizeof(l3->pitToken.length) + l3->pitToken.length;

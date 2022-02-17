@@ -8,15 +8,15 @@
 
 typedef struct SgFibEntryDyn
 {
-  char a_[32];
-  char scratch[FibScratchSize];
+  uint8_t a_[32];
+  uint8_t scratch[FibScratchSize];
 } SgFibEntryDyn;
 
 typedef struct SgFibEntry
 {
-  char a_[525];
+  uint8_t a_[525];
   uint8_t nNexthops;
-  char b_[2];
+  uint8_t b_[2];
   FaceID nexthops[FibMaxNexthops];
 } SgFibEntry;
 

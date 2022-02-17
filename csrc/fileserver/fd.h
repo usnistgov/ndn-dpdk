@@ -12,7 +12,7 @@
 /** @brief File descriptor related information in the file server. */
 typedef struct FileServerFd
 {
-  uint8_t self[0];                     ///< self reference used in HASH_ADD_BYHASHVALUE
+  RTE_MARKER self;                     ///< self reference used in HASH_ADD_BYHASHVALUE
   struct statx st;                     ///< statx result (.stx_ino is TscTime nextUpdate)
   UT_hash_handle hh;                   ///< fdHt hashtable handle
   struct rte_mbuf* mbuf;               ///< mbuf storing this entry

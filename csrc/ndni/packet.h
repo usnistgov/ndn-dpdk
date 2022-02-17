@@ -38,11 +38,9 @@ typedef union PacketPriv
   };
   PNack nack;
 } PacketPriv;
-static_assert(offsetof(PacketPriv, lp) + offsetof(LpHeader, l3) == offsetof(PacketPriv, lpl3), "");
-static_assert(offsetof(PacketPriv, nack) + offsetof(PNack, lpl3) == offsetof(PacketPriv, lpl3), "");
-static_assert(offsetof(PacketPriv, nack) + offsetof(PNack, interest) ==
-                offsetof(PacketPriv, interest),
-              "");
+static_assert(offsetof(PacketPriv, lp.l3) == offsetof(PacketPriv, lpl3), "");
+static_assert(offsetof(PacketPriv, nack.lpl3) == offsetof(PacketPriv, lpl3), "");
+static_assert(offsetof(PacketPriv, nack.interest) == offsetof(PacketPriv, interest), "");
 
 /**
  * @brief Convert Packet* from rte_mbuf*.

@@ -27,7 +27,7 @@ typedef struct MinSched
   uint32_t lastSlot;
   uint32_t slotMask;
   uint32_t nSlots;
-  MinTmr slot[0];
+  MinTmr slot[];
 } MinSched;
 
 /**

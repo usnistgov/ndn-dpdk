@@ -212,7 +212,7 @@ DataEnc_PrepareMetaInfo_(void* metaBuf, size_t capacity, ContentType ct, uint32_
     {
       uint8_t finalBlockT;
       uint8_t finalBlockL;
-      uint8_t finalBlockV[0];
+      uint8_t finalBlockV[];
     } __rte_packed* f = NULL;
     APPEND(f);
     if (unlikely((size_t)meta->size + finalBlock.length > capacity)) {

@@ -33,7 +33,7 @@ typedef struct RxBurstCtx
   uint8_t discardIndex;  ///< discard[MaxBurstSize:discardIndex] are dropped Interests
   uint8_t dataCount;     ///< data[:dataCount] are Data packets to be sent
   uint8_t nSqe;
-  char zeroizeEnd_[0];
+  RTE_MARKER zeroizeEnd_;
   struct rte_mbuf* interest[MaxBurstSize];
   union
   {

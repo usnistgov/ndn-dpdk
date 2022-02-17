@@ -14,7 +14,7 @@ typedef struct FaceImpl
 {
   RxProc rx;
   TxProc tx;
-  char priv[0];
+  uint8_t priv[];
 } FaceImpl;
 
 /** @brief Generic network interface. */

@@ -28,7 +28,7 @@ struct FibEntry
   struct cds_lfht_node lfhtnode;
   uint16_t nameL; ///< TLV-LENGTH of name
   uint8_t nameV[FibMaxNameLength];
-  char cachelineA_[0];
+  RTE_MARKER cachelineA_;
 
   union
   {
@@ -62,8 +62,8 @@ struct FibEntry
   FaceID nexthops[FibMaxNexthops];
 
   char padB_[32];
-  char cachelineB_[0];
-  FibEntryDyn dyn[0];
+  RTE_MARKER cachelineB_;
+  FibEntryDyn dyn[];
 };
 static_assert(offsetof(FibEntry, cachelineA_) % RTE_CACHE_LINE_SIZE == 0, "");
 static_assert(offsetof(FibEntry, cachelineB_) % RTE_CACHE_LINE_SIZE == 0, "");

@@ -11,7 +11,7 @@ typedef struct Ndt
   uint64_t indexMask;
   uint64_t sampleMask;
   uint16_t prefixLen;
-  _Atomic uint8_t table[0];
+  _Atomic uint8_t table[];
 } Ndt;
 
 /** @brief Create NDT replica. */
@@ -49,7 +49,7 @@ typedef struct NdtQuerier
 {
   Ndt* ndt;
   uint64_t nLookups;
-  uint32_t nHits[0];
+  uint32_t nHits[];
 } NdtQuerier;
 
 /** @brief Create NDT querier. */
