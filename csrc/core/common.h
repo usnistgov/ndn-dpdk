@@ -44,6 +44,8 @@
 #include <rte_malloc.h>
 #include <rte_memcpy.h>
 
+#include <spdk/util.h>
+
 #ifdef NDEBUG
 #define NDNDPDK_ASSERT(x) RTE_SET_USED(x)
 #else
@@ -51,9 +53,6 @@
 #endif
 
 #endif // __BPF__
-
-/** @brief Compute ceil( @p a / @p b ) . */
-#define DIV_CEIL(a, b) (((a) + (b)-1) / (b))
 
 #ifdef NDEBUG
 #define NULLize(x) RTE_SET_USED(x)

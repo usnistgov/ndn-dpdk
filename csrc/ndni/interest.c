@@ -186,7 +186,7 @@ ModifyGuiders_Linear(Packet* npkt, InterestGuiders guiders, PacketMempools* mp,
   NDNDPDK_ASSERT(type0 == TtInterest);
 
   fragmentPayloadSize -= sizeof(GuiderFields); // keep room for guiders in any fragment
-  uint32_t fragCount = DIV_CEIL(d.length - interest->guiderSize, fragmentPayloadSize);
+  uint32_t fragCount = SPDK_CEIL_DIV(d.length - interest->guiderSize, fragmentPayloadSize);
   NDNDPDK_ASSERT(fragCount < LpMaxFragments);
   struct rte_mbuf* frames[LpMaxFragments];
   if (unlikely(rte_pktmbuf_alloc_bulk(mp->packet, frames, fragCount) != 0)) {

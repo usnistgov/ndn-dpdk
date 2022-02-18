@@ -245,7 +245,7 @@ FileServerRx_Metadata(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
   uint8_t suffixV[20];
   LName suffix = (LName){ .length = 0, .value = suffixV };
   suffixV[0] = TtVersionNameComponent;
-  suffixV[1] = Nni_Encode(&suffixV[2], utcNow.tv_sec * 1000000000 + utcNow.tv_nsec);
+  suffixV[1] = Nni_Encode(&suffixV[2], utcNow.tv_sec * SPDK_SEC_TO_NSEC + utcNow.tv_nsec);
   suffix.length = 2 + suffixV[1];
   suffixV[suffix.length++] = TtSegmentNameComponent;
   suffixV[suffix.length++] = 1;

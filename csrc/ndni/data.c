@@ -279,7 +279,7 @@ Encode_Linear(DataGen* gen, LName prefix, PacketMempools* mp, uint16_t fragmentP
 {
   uint32_t pktLen = L3TypeLengthHeadroom + L3TypeLengthHeadroom + // Data TL + Name TL
                     prefix.length + gen->tpl->pkt_len;
-  uint32_t fragCount = DIV_CEIL(pktLen, fragmentPayloadSize);
+  uint32_t fragCount = SPDK_CEIL_DIV(pktLen, fragmentPayloadSize);
   NDNDPDK_ASSERT(fragCount < LpMaxFragments);
   struct rte_mbuf* frames[LpMaxFragments];
   if (unlikely(rte_pktmbuf_alloc_bulk(mp->packet, frames, fragCount) != 0)) {

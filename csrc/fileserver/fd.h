@@ -83,7 +83,7 @@ FileServerFd_IsDir(const FileServerFd* entry)
 static __rte_always_inline uint64_t
 FileServerFd_StatTime(struct statx_timestamp t)
 {
-  return (uint64_t)t.tv_sec * 1000000000 + (uint64_t)t.tv_nsec;
+  return (uint64_t)t.tv_sec * SPDK_SEC_TO_NSEC + (uint64_t)t.tv_nsec;
 }
 
 /**

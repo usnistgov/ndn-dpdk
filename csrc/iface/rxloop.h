@@ -9,7 +9,7 @@
 /** @brief Context of RxGroup_RxBurstFunc operation. */
 typedef struct RxGroupBurstCtx
 {
-  uint64_t dropBits[DIV_CEIL(MaxBurstSize, 64)];
+  uint64_t dropBits[SPDK_CEIL_DIV(MaxBurstSize, 64)];
   uint16_t nRx;
   RTE_MARKER zeroizeEnd_;
   struct rte_mbuf* pkts[MaxBurstSize];

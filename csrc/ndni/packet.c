@@ -84,7 +84,7 @@ __attribute__((nonnull)) static Packet*
 Clone_Linear(Packet* npkt, PacketMempools* mp, PacketTxAlign align)
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
-  uint32_t fragCount = DIV_CEIL(pkt->pkt_len, align.fragmentPayloadSize);
+  uint32_t fragCount = SPDK_CEIL_DIV(pkt->pkt_len, align.fragmentPayloadSize);
   NDNDPDK_ASSERT(fragCount < LpMaxFragments);
   struct rte_mbuf* frames[LpMaxFragments];
   if (unlikely(rte_pktmbuf_alloc_bulk(mp->packet, frames, fragCount) != 0)) {

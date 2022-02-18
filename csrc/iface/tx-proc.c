@@ -76,7 +76,7 @@ TxProc_ChainedFrag(TxProc* tx, Packet* npkt, struct rte_mbuf* frames[LpMaxFragme
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   LpL2 l2 = { .seqNumBase = tx->nextSeqNum };
-  l2.fragCount = DIV_CEIL(pkt->pkt_len, align.fragmentPayloadSize);
+  l2.fragCount = SPDK_CEIL_DIV(pkt->pkt_len, align.fragmentPayloadSize);
   N_LOGV("chained-frag pktLen=%" PRIu32 " seq=%016" PRIx64 " fragCount=%" PRIu8, pkt->pkt_len,
          l2.seqNumBase, l2.fragCount);
   if (unlikely(l2.fragCount > LpMaxFragments)) {

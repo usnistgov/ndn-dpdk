@@ -76,7 +76,8 @@ FileServerFd_UpdateStatx(FileServer* p, FileServerFd* entry, TscTime now, bool* 
 __attribute__((nonnull)) static inline void
 FileServerFd_PrepapeMeta(FileServer* p, FileServerFd* entry)
 {
-  entry->lastSeg = DIV_CEIL(entry->st.stx_size, p->segmentLen) - (uint64_t)(entry->st.stx_size > 0);
+  entry->lastSeg =
+    SPDK_CEIL_DIV(entry->st.stx_size, p->segmentLen) - (uint64_t)(entry->st.stx_size > 0);
 
   uint16_t nameL = entry->prefixL;
   if (unlikely(FileServerFd_IsDir(entry))) {

@@ -6,8 +6,8 @@
 #include "../ndni/interest.h"
 
 #define PccKey_CountExtensions_(nameL, fhL)                                                        \
-  (DIV_CEIL(nameL - PccKeyNameCapacity, PccKeyExtCapacity) +                                       \
-   DIV_CEIL(fhL - PccKeyFhCapacity, PccKeyExtCapacity))
+  (SPDK_CEIL_DIV(nameL - PccKeyNameCapacity, PccKeyExtCapacity) +                                  \
+   SPDK_CEIL_DIV(fhL - PccKeyFhCapacity, PccKeyExtCapacity))
 
 enum
 {
