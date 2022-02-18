@@ -1,8 +1,6 @@
 #include "rxtable.h"
 #include "face.h"
 
-static const RxGroup_RxBurstFunc _ __rte_unused = EthRxTable_RxBurst;
-
 __attribute__((nonnull)) static bool
 EthRxTable_Accept(EthRxTable* rxt, struct rte_mbuf* m)
 {
@@ -65,3 +63,5 @@ EthRxTable_RxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx)
     rte_pktmbuf_free_bulk(bounceBufs, nBounceBufs);
   }
 }
+
+static const RxGroup_RxBurstFunc _ __rte_unused = EthRxTable_RxBurst;

@@ -121,8 +121,8 @@ var (
 	// Return nil to use default algorithm.
 	ChooseRxLoop = func(rxg RxGroup) RxLoop { return nil }
 
-	rxLoopThreads = make(map[RxLoop]bool)
-	mapRxgRxl     = make(map[RxGroup]RxLoop)
+	rxLoopThreads = map[RxLoop]bool{}
+	mapRxgRxl     = map[RxGroup]RxLoop{}
 )
 
 // ListRxLoops returns a list of RxLoops.

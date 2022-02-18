@@ -28,7 +28,7 @@ type locatorWithSchemeField interface {
 	WithSchemeField()
 }
 
-var locatorTypes = make(map[string]reflect.Type)
+var locatorTypes = map[string]reflect.Type{}
 
 // RegisterLocatorType registers Locator schemes.
 func RegisterLocatorType(loc Locator, schemes ...string) {

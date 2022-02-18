@@ -4,17 +4,63 @@
 /** @file */
 
 #include "faceid.h"
-#include "rx-proc.h"
-#include "tx-proc.h"
+#include "input-demux.h"
+#include "reassembler.h"
 
 #include "../core/urcu.h"
+#include "../pdump/source.h"
 #include <urcu/rcuhlist.h>
 
+/** @brief Face RX per-thread information. */
+typedef struct FaceRxThread
+{
+  uint64_t nFrames[PktMax]; ///< accepted L3 packets; nFrames[0] is nOctets
+  uint64_t nDecodeErr;      ///< decode errors
+  Reassembler reass;
+} __rte_cache_aligned FaceRxThread;
+
+/** @brief Face TX per-thread information. */
+typedef struct FaceTxThread
+{
+  uint64_t nextSeqNum; ///< next fragmentation sequence number
+
+  uint64_t nL3Fragmented; ///< L3 packets that required fragmentation
+  uint64_t nL3OverLength; ///< dropped L3 packets due to over length
+  uint64_t nAllocFails;   ///< dropped L3 packets due to allocation failure
+
+  uint64_t nFrames[PktMax]; ///< sent+dropped L2 frames and L3 packets
+  uint64_t nOctets;         ///< sent+dropped L2 octets (including LpHeader)
+  uint64_t nDroppedFrames;  ///< dropped L2 frames
+  uint64_t nDroppedOctets;  ///< dropped L2 octets
+} __rte_cache_aligned FaceTxThread;
+
+/**
+ * @brief Transmit a burst of L2 frames.
+ * @param pkts L2 frames
+ * @return successfully queued frames
+ * @post FaceImpl owns queued frames, but does not own remaining frames
+ */
+typedef uint16_t (*Face_TxBurstFunc)(Face* face, struct rte_mbuf** pkts, uint16_t nPkts);
+
+/**
+ * @brief Face details.
+ *
+ * Fields in this struct are meant to be accessed in RX and TX threads, but not in
+ * forwarding/producer/consumer threads.
+ */
 typedef struct FaceImpl
 {
-  RxProc rx;
-  TxProc tx;
-  uint8_t priv[];
+  FaceRxThread rx[MaxFaceRxThreads];
+  FaceTxThread tx[MaxFaceTxThreads];
+
+  InputDemuxes* rxDemuxes; ///< per-face demuxes, overrides RxLoop demuxes
+  PdumpSourceRef rxPdump;
+
+  PacketMempools txMempools; ///< mempools for fragmentation
+  Face_TxBurstFunc txBurst;
+  PdumpSourceRef txPdump;
+
+  uint8_t priv[] __rte_cache_aligned;
 } FaceImpl;
 
 /** @brief Generic network interface. */
@@ -26,7 +72,7 @@ struct Face
   PacketTxAlign txAlign;
   FaceID id;
   FaceState state;
-} __rte_cache_aligned;
+};
 static_assert(sizeof(Face) <= RTE_CACHE_LINE_SIZE, "");
 
 __attribute__((nonnull, returns_nonnull)) static inline void*

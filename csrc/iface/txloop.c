@@ -1,35 +1,36 @@
 #include "txloop.h"
 #include "../hrlog/entry.h"
+#include "face-impl.h"
 
 __attribute__((nonnull)) static void
-TxLoop_TxFrames(Face* face, struct rte_mbuf** frames, uint16_t count)
+TxLoop_TxFrames(Face* face, int txThread, struct rte_mbuf** frames, uint16_t count)
 {
   NDNDPDK_ASSERT(count > 0);
-  TxProc* tx = &face->impl->tx;
-  PdumpSourceRef_Process(&tx->pdump, frames, count);
+  PdumpSourceRef_Process(&face->impl->txPdump, frames, count);
 
-  tx->nFrames[PktFragment] += count;
+  FaceTxThread* txt = &face->impl->tx[txThread];
+  txt->nFrames[PktFragment] += count;
   for (uint16_t i = 0; i < count; ++i) {
-    tx->nOctets += frames[i]->pkt_len;
+    txt->nOctets += frames[i]->pkt_len;
   }
 
-  uint16_t nQueued = tx->l2Burst(face, frames, count);
+  uint16_t nQueued = face->impl->txBurst(face, frames, count);
   uint16_t nRejects = count - nQueued;
   if (unlikely(nRejects > 0)) {
-    tx->nDroppedFrames += nRejects;
+    txt->nDroppedFrames += nRejects;
     uint32_t nDroppedOctets = 0;
     for (uint16_t i = nQueued; i < count; ++i) {
       nDroppedOctets += frames[i]->pkt_len;
     }
-    tx->nDroppedOctets += nDroppedOctets;
+    txt->nDroppedOctets += nDroppedOctets;
     rte_pktmbuf_free_bulk(&frames[nQueued], nRejects);
   }
 }
 
 __attribute__((nonnull)) static uint16_t
-TxLoop_Transfer(Face* face)
+TxLoop_Transfer(Face* face, int txThread)
 {
-  TxProc* tx = &face->impl->tx;
+  FaceTxThread* txt = &face->impl->tx[txThread];
   Packet* npkts[MaxBurstSize];
   uint16_t count = rte_ring_dequeue_burst(face->outputQueue, (void**)npkts, MaxBurstSize, NULL);
 
@@ -43,7 +44,7 @@ TxLoop_Transfer(Face* face)
   for (uint16_t i = 0; i < count; ++i) {
     Packet* npkt = npkts[i];
     PktType framePktType = PktType_ToFull(Packet_GetType(npkt));
-    ++tx->nFrames[framePktType];
+    ++txt->nFrames[framePktType];
 
     if (hrlRing != NULL) {
       struct rte_mbuf* m = Packet_ToMbuf(npkt);
@@ -63,15 +64,15 @@ TxLoop_Transfer(Face* face)
       }
     }
 
-    nFrames += TxProc_Output(tx, npkt, &frames[nFrames], face->txAlign);
+    nFrames += FaceTx_Output(face, txThread, npkt, &frames[nFrames]);
     if (unlikely(nFrames >= MaxBurstSize)) {
-      TxLoop_TxFrames(face, frames, nFrames);
+      TxLoop_TxFrames(face, txThread, frames, nFrames);
       nFrames = 0;
     }
   }
 
   if (likely(nFrames > 0)) {
-    TxLoop_TxFrames(face, frames, nFrames);
+    TxLoop_TxFrames(face, txThread, frames, nFrames);
   }
   if (hrlRing != NULL) {
     HrlogRing_Post(hrlRing, hrl, nHrls);
@@ -91,7 +92,8 @@ TxLoop_Run(TxLoop* txl)
     Face* face;
     struct cds_hlist_node* pos;
     cds_hlist_for_each_entry_rcu (face, pos, &txl->head, txlNode) {
-      nProcessed += TxLoop_Transfer(face);
+      static_assert(MaxFaceTxThreads == 1, "");
+      nProcessed += TxLoop_Transfer(face, 0);
     }
     rcu_read_unlock();
   }

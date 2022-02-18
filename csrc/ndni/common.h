@@ -32,7 +32,7 @@ typedef struct PacketMempools
  * Each mbuf will be transmitted as a NDNLPv2 fragment.
  *
  * If @c linearize is set to false, a packet modification function should use indirect mbufs,
- * and @c fragmentPayloadSize is ignored. TxProc will perform fragmentation when necessary.
+ * and @c fragmentPayloadSize is ignored. FaceTx will perform fragmentation when necessary.
  */
 typedef struct PacketTxAlign
 {

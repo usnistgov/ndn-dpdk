@@ -114,7 +114,7 @@ func TestLocatorCoexist(t *testing.T) {
 func TestLocatorRxMatch(t *testing.T) {
 	assert, require := makeAR(t)
 
-	matchers := make(map[string]ethport.RxMatch)
+	matchers := map[string]ethport.RxMatch{}
 	addMatcher := func(key string, locator string) {
 		matchers[key] = ethport.NewRxMatch(parseLocator(locator))
 	}

@@ -101,8 +101,8 @@ var (
 	// Return nil to use default algorithm.
 	ChooseTxLoop = func(face Face) TxLoop { return nil }
 
-	txLoopThreads = make(map[TxLoop]bool)
-	mapFaceTxl    = make(map[ID]TxLoop)
+	txLoopThreads = map[TxLoop]bool{}
+	mapFaceTxl    = map[ID]TxLoop{}
 )
 
 // ListTxLoops returns a list of TxLoops.

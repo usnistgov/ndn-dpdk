@@ -42,11 +42,11 @@ var dirImpls = map[Direction]struct {
 }{
 	DirIncoming: {
 		C.SLLIncoming,
-		func(faceC *C.Face) *C.PdumpSourceRef { return &faceC.impl.rx.pdump },
+		func(faceC *C.Face) *C.PdumpSourceRef { return &faceC.impl.rxPdump },
 	},
 	DirOutgoing: {
 		C.SLLOutgoing,
-		func(faceC *C.Face) *C.PdumpSourceRef { return &faceC.impl.tx.pdump },
+		func(faceC *C.Face) *C.PdumpSourceRef { return &faceC.impl.txPdump },
 	},
 }
 

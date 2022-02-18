@@ -2,9 +2,7 @@ package iface
 
 //go:generate go run ../mk/enumgen/ -guard=NDNDPDK_IFACE_ENUM_H -out=../csrc/iface/enum.h .
 
-import (
-	"strconv"
-)
+import "strconv"
 
 const (
 	// MaxBurstSize is the maximum and default burst size.
@@ -13,8 +11,11 @@ const (
 	// MaxInputDemuxDest is the maximum number of destinations in InputDemux.
 	MaxInputDemuxDest = 128
 
-	// MaxRxProcThreads is the maximum number of RX threads in RxProc.
-	MaxRxProcThreads = 8
+	// MaxFaceRxThreads is the maximum number of RX threads in a face.
+	MaxFaceRxThreads = 8
+
+	// MaxFaceTxThreads is the maximum number of TX threads in a face.
+	MaxFaceTxThreads = 1
 
 	// MinReassemblerCapacity is the minimum partial message store capacity in the reassembler.
 	MinReassemblerCapacity = 4

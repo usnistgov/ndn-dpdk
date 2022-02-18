@@ -151,8 +151,8 @@ type InitResult struct {
 	// See C.PacketTxAlign.linearize field.
 	TxLinearize bool
 
-	// L2TxBurst is a C function of C.Face_L2TxBurst type.
-	L2TxBurst unsafe.Pointer
+	// TxBurst is a C function of C.Face_TxBurstFunc type.
+	TxBurst unsafe.Pointer
 }
 
 // New creates a Face.
@@ -205,8 +205,8 @@ func newFace(p NewParams) (Face, error) {
 		linearize:           C.bool(initResult.TxLinearize),
 		fragmentPayloadSize: C.uint16_t(p.MTU - ndni.LpHeaderHeadroom),
 	}
-	c.impl.tx.l2Burst = (C.Face_L2TxBurst)(initResult.L2TxBurst)
-	(*ndni.Mempools)(unsafe.Pointer(&c.impl.tx.mp)).Assign(p.Socket)
+	c.impl.txBurst = C.Face_TxBurstFunc(initResult.TxBurst)
+	(*ndni.Mempools)(unsafe.Pointer(&c.impl.txMempools)).Assign(p.Socket)
 
 	outputQueue, e := ringbuffer.New(p.OutputQueueSize, p.Socket, ringbuffer.ProducerMulti, ringbuffer.ConsumerSingle)
 	if e != nil {
@@ -215,21 +215,16 @@ func newFace(p NewParams) (Face, error) {
 	}
 	c.outputQueue = (*C.struct_rte_ring)(outputQueue.Ptr())
 
-	for i := 0; i < MaxRxProcThreads; i++ {
-		ok := func() bool {
-			reassID := C.CString(eal.AllocObjectID("iface.Reassembler"))
-			defer C.free(unsafe.Pointer(reassID))
-			return bool(C.Reassembler_Init(&c.impl.rx.threads[i].reass, reassID,
-				C.uint32_t(p.ReassemblerCapacity), C.unsigned(p.Socket.ID())))
-		}()
-		if !ok {
+	for i := 0; i < MaxFaceRxThreads; i++ {
+		reassID := C.CString(eal.AllocObjectID("iface.Reassembler"))
+		defer C.free(unsafe.Pointer(reassID))
+		if ok := bool(C.Reassembler_Init(&c.impl.rx[i].reass, reassID,
+			C.uint32_t(p.ReassemblerCapacity), C.unsigned(p.Socket.ID()))); !ok {
 			e := eal.GetErrno()
 			logEntry.Warn("Reassembler_Init error", zap.Int("rx-thread", i), zap.Error(e))
 			return f.clear(), e
 		}
 	}
-
-	C.TxProc_Init(&c.impl.tx, c.txAlign)
 
 	if e := p.Start(); e != nil {
 		logEntry.Warn("start error", zap.Error(e))
@@ -297,8 +292,8 @@ func (f *face) clear() Face {
 	id, c := f.id, f.ptr()
 	c.state = StateRemoved
 	if c.impl != nil {
-		for i := 0; i < MaxRxProcThreads; i++ {
-			C.Reassembler_Close(&c.impl.rx.threads[i].reass)
+		for i := 0; i < MaxFaceRxThreads; i++ {
+			C.Reassembler_Close(&c.impl.rx[i].reass)
 		}
 		eal.Free(c.impl)
 	}

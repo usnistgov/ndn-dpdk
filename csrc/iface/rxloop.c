@@ -1,4 +1,5 @@
 #include "rxloop.h"
+#include "face-impl.h"
 
 __attribute__((nonnull)) static uint16_t
 RxLoop_Transfer(RxLoop* rxl, RxGroup* rxg)
@@ -24,16 +25,16 @@ RxLoop_Transfer(RxLoop* rxl, RxGroup* rxg)
       continue;
     }
 
-    RxProc* rx = &face->impl->rx;
-    PdumpSourceRef_Process(&rx->pdump, &pkt, 1);
+    PdumpSourceRef_Process(&face->impl->rxPdump, &pkt, 1);
 
-    Packet* npkt = RxProc_Input(rx, rxg->rxThread, pkt);
+    Packet* npkt = FaceRx_Input(face, rxg->rxThread, pkt);
     NULLize(pkt);
     if (npkt == NULL) {
       continue;
     }
 
-    InputDemuxes* demuxes = likely(rx->demuxes == NULL) ? &rxl->demuxes : rx->demuxes;
+    InputDemuxes* demuxes =
+      likely(face->impl->rxDemuxes == NULL) ? &rxl->demuxes : face->impl->rxDemuxes;
     bool accepted = InputDemux_Dispatch(InputDemux_Of(demuxes, Packet_GetType(npkt)), npkt);
     if (unlikely(!accepted)) {
       drops[nDrops++] = Packet_ToMbuf(npkt);

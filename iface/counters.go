@@ -39,7 +39,7 @@ func (cnt RxCounters) Since(prev RxCounters) (diff RxCounters) {
 	return diff
 }
 
-func (cnt *RxCounters) readFrom(c *C.RxProcThread) {
+func (cnt *RxCounters) readFrom(c *C.FaceRxThread) {
 	cnt.RxOctets = uint64(c.nFrames[0])
 	cnt.RxInterests = uint64(c.nFrames[ndni.PktInterest])
 	cnt.RxData = uint64(c.nFrames[ndni.PktData])
@@ -80,7 +80,7 @@ func (cnt TxCounters) Since(prev TxCounters) (diff TxCounters) {
 	return diff
 }
 
-func (cnt *TxCounters) readFrom(c *C.TxProc) {
+func (cnt *TxCounters) readFrom(c *C.FaceTxThread) {
 	cnt.TxFrames = uint64(c.nFrames[ndni.PktFragment] - c.nDroppedFrames)
 	cnt.TxOctets = uint64(c.nOctets - c.nDroppedOctets)
 	cnt.TxInterests = uint64(c.nFrames[ndni.PktInterest])
@@ -137,19 +137,17 @@ func (cnt *Counters) sumRx() {
 func (f *face) Counters() (cnt Counters) {
 	c := f.ptr()
 	if c.impl == nil {
-		return cnt
+		return
 	}
 
-	rxC := &c.impl.rx
-	for _, rxtC := range rxC.threads {
+	for _, rxt := range c.impl.rx {
 		var rxCnt RxCounters
-		rxCnt.readFrom(&rxtC)
+		rxCnt.readFrom(&rxt)
 		cnt.RxThreads = append(cnt.RxThreads, rxCnt)
 	}
 	cnt.sumRx()
 
-	txC := &c.impl.tx
-	cnt.TxCounters.readFrom(txC)
+	cnt.TxCounters.readFrom(&c.impl.tx[0])
 
 	return cnt
 }

@@ -158,7 +158,7 @@ func TestInputDemuxNdt(t *testing.T) {
 
 	prefix := "/..."
 	for {
-		indexSet := make(map[uint64]bool)
+		indexSet := map[uint64]bool{}
 		for i := uint8(0); i < 10; i++ {
 			name := prefix
 			if i < 9 {

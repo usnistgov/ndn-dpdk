@@ -1,5 +1,6 @@
 #include "face.h"
 #include "../core/logger.h"
+#include "../iface/face.h"
 
 N_LOG_INIT(EthFace);
 
@@ -115,3 +116,5 @@ EthFace_TxBurst(Face* face, struct rte_mbuf** pkts, uint16_t nPkts)
   }
   return rte_eth_tx_burst(priv->port, 0, pkts, nPkts);
 }
+
+static const Face_TxBurstFunc _ __rte_unused = EthFace_TxBurst;

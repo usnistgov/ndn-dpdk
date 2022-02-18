@@ -135,7 +135,7 @@ func NewFace(port *Port, loc Locator) (iface.Face, error) {
 
 			return iface.InitResult{
 				Face:        face,
-				L2TxBurst:   C.EthFace_TxBurst,
+				TxBurst:     C.EthFace_TxBurst,
 				TxLinearize: !useTxMultiSegOffload,
 			}, nil
 		},

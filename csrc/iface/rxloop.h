@@ -5,6 +5,7 @@
 
 #include "../dpdk/thread.h"
 #include "face.h"
+#include "input-demux.h"
 
 /** @brief Context of RxGroup_RxBurstFunc operation. */
 typedef struct RxGroupBurstCtx
@@ -40,7 +41,7 @@ struct RxGroup
 {
   struct cds_hlist_node rxlNode;
   RxGroup_RxBurstFunc rxBurst;
-  int rxThread; ///< RX thread number for RxProc_Input
+  int rxThread; ///< Face_RxInput thread number
 };
 
 /** @brief RX loop thread. */

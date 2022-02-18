@@ -4,6 +4,7 @@
 /** @file */
 
 #include "../iface/rxloop.h"
+#include "../pdump/source.h"
 
 /** @brief Table-based software RX dispatching. */
 typedef struct EthRxTable

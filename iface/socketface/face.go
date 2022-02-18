@@ -4,6 +4,7 @@ package socketface
 /*
 #include "../../csrc/iface/face.h"
 extern uint16_t go_SocketFace_TxBurst(Face* faceC, struct rte_mbuf** pkts, uint16_t nPkts);
+static const Face_TxBurstFunc _ __rte_unused = go_SocketFace_TxBurst;
 */
 import "C"
 import (
@@ -71,8 +72,8 @@ func Wrap(transport sockettransport.Transport, cfg Config) (iface.Face, error) {
 		Init: func(f iface.Face) (iface.InitResult, error) {
 			face.Face = f
 			return iface.InitResult{
-				Face:      face,
-				L2TxBurst: C.go_SocketFace_TxBurst,
+				Face:    face,
+				TxBurst: C.go_SocketFace_TxBurst,
 			}, nil
 		},
 		Start: func() error {

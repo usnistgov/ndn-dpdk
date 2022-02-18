@@ -1,14 +1,14 @@
-#include "tx-proc.h"
+#include "face-impl.h"
 
 #include "../core/logger.h"
 #include "../ndni/tlv-decoder.h"
 
-N_LOG_INIT(TxProc);
-
 static_assert((int)MinMTU > (int)LpHeaderHeadroom, "");
 
+N_LOG_INIT(FaceTx);
+
 __attribute__((nonnull)) static __rte_always_inline uint16_t
-TxProc_One(const char* logVerb, Packet* npkt, struct rte_mbuf* frames[LpMaxFragments])
+FaceTx_One(const char* logVerb, Packet* npkt, struct rte_mbuf* frames[LpMaxFragments])
 {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   N_LOGV("%s pktLen=%" PRIu32, logVerb, pkt->pkt_len);
@@ -20,25 +20,23 @@ TxProc_One(const char* logVerb, Packet* npkt, struct rte_mbuf* frames[LpMaxFragm
 }
 
 __attribute__((nonnull)) static uint16_t
-TxProc_LinearOne(TxProc* tx, Packet* npkt, struct rte_mbuf* frames[LpMaxFragments],
-                 PacketTxAlign align)
+FaceTx_LinearOne(Face* face, int txThread, Packet* npkt, struct rte_mbuf* frames[LpMaxFragments])
 {
-  return TxProc_One("linear-one", npkt, frames);
+  return FaceTx_One("linear-one", npkt, frames);
 }
 
 __attribute__((nonnull)) static uint16_t
-TxProc_ChainedOne(TxProc* tx, Packet* npkt, struct rte_mbuf* frames[LpMaxFragments],
-                  PacketTxAlign align)
+FaceTx_ChainedOne(Face* face, int txThread, Packet* npkt, struct rte_mbuf* frames[LpMaxFragments])
 {
-  return TxProc_One("chained-one", npkt, frames);
+  return FaceTx_One("chained-one", npkt, frames);
 }
 
 __attribute__((nonnull)) static uint16_t
-TxProc_LinearFrag(TxProc* tx, Packet* npkt, struct rte_mbuf* frames[LpMaxFragments],
-                  PacketTxAlign align)
+FaceTx_LinearFrag(Face* face, int txThread, Packet* npkt, struct rte_mbuf* frames[LpMaxFragments])
 {
+  FaceTxThread* txt = &face->impl->tx[txThread];
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
-  LpL2 l2 = { .seqNumBase = tx->nextSeqNum, .fragCount = pkt->nb_segs };
+  LpL2 l2 = { .seqNumBase = txt->nextSeqNum, .fragCount = pkt->nb_segs };
   N_LOGV("linear-frag pktLen=%" PRIu32 " seq=%016" PRIx64 " fragCount=%" PRIu8, pkt->pkt_len,
          l2.seqNumBase, l2.fragCount);
   LpL3* l3 = Packet_GetLpL3Hdr(npkt);
@@ -53,8 +51,8 @@ TxProc_LinearFrag(TxProc* tx, Packet* npkt, struct rte_mbuf* frames[LpMaxFragmen
     pkt->nb_segs = 1;
     pkt->pkt_len = pkt->data_len;
 
-    TxProc_CheckDirectFragmentMbuf_(pkt);
-    NDNDPDK_ASSERT(pkt->pkt_len <= align.fragmentPayloadSize);
+    FaceTx_CheckDirectFragmentMbuf_(pkt);
+    NDNDPDK_ASSERT(pkt->pkt_len <= face->txAlign.fragmentPayloadSize);
 
     LpHeader_Prepend(pkt, l3, &l2);
     Mbuf_SetTimestamp(pkt, timestamp);
@@ -65,26 +63,26 @@ TxProc_LinearFrag(TxProc* tx, Packet* npkt, struct rte_mbuf* frames[LpMaxFragmen
     pkt = next;
   }
 
-  ++tx->nL3Fragmented;
-  tx->nextSeqNum += l2.fragCount;
+  ++txt->nL3Fragmented;
+  txt->nextSeqNum += l2.fragCount;
   return l2.fragCount;
 }
 
 __attribute__((nonnull)) static uint16_t
-TxProc_ChainedFrag(TxProc* tx, Packet* npkt, struct rte_mbuf* frames[LpMaxFragments],
-                   PacketTxAlign align)
+FaceTx_ChainedFrag(Face* face, int txThread, Packet* npkt, struct rte_mbuf* frames[LpMaxFragments])
 {
+  FaceTxThread* txt = &face->impl->tx[txThread];
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
-  LpL2 l2 = { .seqNumBase = tx->nextSeqNum };
-  l2.fragCount = SPDK_CEIL_DIV(pkt->pkt_len, align.fragmentPayloadSize);
+  LpL2 l2 = { .seqNumBase = txt->nextSeqNum };
+  l2.fragCount = SPDK_CEIL_DIV(pkt->pkt_len, face->txAlign.fragmentPayloadSize);
   N_LOGV("chained-frag pktLen=%" PRIu32 " seq=%016" PRIx64 " fragCount=%" PRIu8, pkt->pkt_len,
          l2.seqNumBase, l2.fragCount);
   if (unlikely(l2.fragCount > LpMaxFragments)) {
-    ++tx->nL3OverLength;
+    ++txt->nL3OverLength;
     return 0;
   }
-  if (unlikely(rte_pktmbuf_alloc_bulk(tx->mp.header, frames, l2.fragCount) != 0)) {
-    ++tx->nAllocFails;
+  if (unlikely(rte_pktmbuf_alloc_bulk(face->impl->txMempools.header, frames, l2.fragCount) != 0)) {
+    ++txt->nAllocFails;
     rte_pktmbuf_free(pkt);
     return 0;
   }
@@ -99,17 +97,18 @@ TxProc_ChainedFrag(TxProc* tx, Packet* npkt, struct rte_mbuf* frames[LpMaxFragme
     struct rte_mbuf* frame = frames[l2.fragIndex];
     frame->data_off = RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom;
 
-    uint32_t fragSize = RTE_MIN(align.fragmentPayloadSize, d.length);
-    struct rte_mbuf* payload = TlvDecoder_Clone(&d, fragSize, tx->mp.indirect, NULL);
+    uint32_t fragSize = RTE_MIN(face->txAlign.fragmentPayloadSize, d.length);
+    struct rte_mbuf* payload =
+      TlvDecoder_Clone(&d, fragSize, face->impl->txMempools.indirect, NULL);
     if (unlikely(payload == NULL)) {
-      ++tx->nAllocFails;
+      ++txt->nAllocFails;
       rte_pktmbuf_free_bulk(frames, l2.fragCount);
       rte_pktmbuf_free(pkt);
       return 0;
     }
 
     if (unlikely(!Mbuf_Chain(frame, frame, payload))) {
-      ++tx->nL3OverLength;
+      ++txt->nL3OverLength;
       rte_pktmbuf_free_bulk(frames, l2.fragCount);
       rte_pktmbuf_free(payload);
       rte_pktmbuf_free(pkt);
@@ -123,19 +122,14 @@ TxProc_ChainedFrag(TxProc* tx, Packet* npkt, struct rte_mbuf* frames[LpMaxFragme
   }
 
   rte_pktmbuf_free(pkt);
-  ++tx->nL3Fragmented;
-  tx->nextSeqNum += l2.fragCount;
+  ++txt->nL3Fragmented;
+  txt->nextSeqNum += l2.fragCount;
   return l2.fragCount;
 }
 
-__attribute__((nonnull)) void
-TxProc_Init(TxProc* tx, PacketTxAlign align)
-{
-  if (align.linearize) {
-    tx->outputFunc[0] = TxProc_LinearFrag;
-    tx->outputFunc[1] = TxProc_LinearOne;
-  } else {
-    tx->outputFunc[0] = TxProc_ChainedFrag;
-    tx->outputFunc[1] = TxProc_ChainedOne;
-  }
-}
+FaceTx_OutputFunc FaceTx_OutputFuncs[] = {
+  [FaceTx_OutputFuncIndex(true, true)] = FaceTx_LinearOne,
+  [FaceTx_OutputFuncIndex(true, false)] = FaceTx_LinearFrag,
+  [FaceTx_OutputFuncIndex(false, true)] = FaceTx_ChainedOne,
+  [FaceTx_OutputFuncIndex(false, false)] = FaceTx_ChainedFrag,
+};

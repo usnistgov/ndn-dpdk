@@ -20,7 +20,7 @@ EPB is crafted directly in C code.
 ## Capturing from Face
 
 **FaceSource** type defines a packet dump source attached to a face, on either incoming or outgoing direction.
-It is referenced by both **RxProc** and **TxProc** in an RCU protected pointer.
+It is referenced by **FaceImpl** in RCU protected pointers.
 If assigned, every packet received or sent by a face is processed through `PdumpFace_Process` function.
 
 The configuration contains one or more name prefixes under which the packet should be captured, and the probability of capturing a packet that matches the prefix.

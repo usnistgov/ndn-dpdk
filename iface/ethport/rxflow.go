@@ -79,8 +79,8 @@ func (impl *rxFlow) Start(face *Face) error {
 	if nRxQueues > len(impl.availQueues) {
 		return fmt.Errorf("%d RX queues requested but only %d available on Port", nRxQueues, len(impl.availQueues))
 	}
-	if nRxQueues > iface.MaxRxProcThreads {
-		return fmt.Errorf("number of RX queues cannot exceed %d", iface.MaxRxProcThreads)
+	if nRxQueues > iface.MaxFaceRxThreads {
+		return fmt.Errorf("number of RX queues cannot exceed %d", iface.MaxFaceRxThreads)
 	}
 
 	queues := impl.availQueues[:nRxQueues]

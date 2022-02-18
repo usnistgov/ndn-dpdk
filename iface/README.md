@@ -29,11 +29,11 @@ This type can be marshaled as JSON.
 Lower layer implementation places each face into one or more **RxGroup**s, which are then added into RxLoops.
 `RxLoop_Run` function continually invokes `RxGroup.rxBurst` function to retrieve L2 frames arriving on these faces.
 
-Each frame is decoded by **RxProc**, which also performs NDNLPv2 reassembly on fragments using the **Reassembler**.
+Each frame is decoded by **FaceRx**, which also performs NDNLPv2 reassembly on fragments using the **Reassembler**.
 Successfully decoded L3 Interest, Data, or Nack packets are passed to the upper layer (such as the forwarder's input thread) via an **InputDemux** of that packet type.
 
 It's possible to receive packets arriving on one face in multiple **RxLoop** threads, by placing the face into multiple **RxGroup**s.
-However, currently only "thread 0" can perform reassembly; fragments arriving on other threads are dropped.
+NDNLPv2 reassembly works only if all fragments of a network layer packets are arriving at the same **RxGroup**.
 
 ## Send Path
 
@@ -42,9 +42,8 @@ It enqueues a burst of L3 packets in `Face.txQueue` (the "before-Tx queue").
 `Face_TxBurst` function is thread-safe.
 
 **TxLoop** type implements the send path.
-It dequeues a burst of L3 packets from `Face.txQueue`, calls **TxProc** to encode them into L2 frames.
-It then passes a burst of L2 frames to the lower layer implementation via `TxProc.l2Burst` function.
-TxProc is non-thread-safe, so that only one thread should be running TxProc for a face.
+It dequeues a burst of L3 packets from `Face.txQueue`, calls `FaceTx_Output` to encode them into L2 frames.
+It then passes a burst of L2 frames to the lower layer implementation via `Face_TxBurstFunc` function.
 
 ## Packet Queue
 

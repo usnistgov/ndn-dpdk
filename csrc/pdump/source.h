@@ -67,7 +67,7 @@ PdumpSourceRef_Process(PdumpSourceRef* ref, struct rte_mbuf** pkts, uint16_t cou
   return true;
 }
 
-/** @brief Packet dump from a face RxProc or TxProc. */
+/** @brief Packet dump from a face on RX or TX direction. */
 typedef struct PdumpFaceSource
 {
   PdumpSource base;
