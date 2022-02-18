@@ -4,6 +4,7 @@
 /** @file */
 
 #include "../pdump/source.h"
+#include "input-demux.h"
 #include "reassembler.h"
 
 /** @brief RxProc per-thread information. */
@@ -18,6 +19,7 @@ typedef struct RxProcThread
 typedef struct RxProc
 {
   RxProcThread threads[MaxRxProcThreads];
+  InputDemuxes* demuxes; ///< per-face demuxes, overrides RxLoop demuxes
   PdumpSourceRef pdump;
 } RxProc;
 
@@ -25,7 +27,7 @@ typedef struct RxProc
  * @brief Process an incoming L2 frame.
  * @param pkt incoming L2 frame, starting from NDNLP header;
  *            RxProc takes ownership of this packet.
- * @return L3 packet after @c Packet_ParseL3;
+ * @return L3 packet after @c Packet_ParseL3 ;
  *         RxProc releases ownership of this packet.
  * @retval NULL no L3 packet is ready at this moment.
  */

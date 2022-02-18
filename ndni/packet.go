@@ -55,16 +55,7 @@ func (pkt *Packet) Type() PktType {
 
 // PName returns *PName pointer.
 func (pkt *Packet) PName() *PName {
-	switch pkt.Type() {
-	case PktInterest:
-		return (*PName)(&C.Packet_GetInterestHdr(pkt.ptr()).name)
-	case PktData:
-		return (*PName)(&C.Packet_GetDataHdr(pkt.ptr()).name)
-	case PktNack:
-		return (*PName)(&C.Packet_GetNackHdr(pkt.ptr()).interest.name)
-	default:
-		return nil
-	}
+	return (*PName)(C.Packet_GetName(pkt.ptr()))
 }
 
 // PitToken retrieves the PIT token.

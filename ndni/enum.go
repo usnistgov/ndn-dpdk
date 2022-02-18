@@ -97,7 +97,7 @@ const (
 	PktSData     // Data unparsed
 	PktSNack     // Nack unparsed
 
-	PktMax = PktNack + 1 // maximum excluding slim types
+	PktMax = PktNack + 1 // exclusive maximum excluding slim types
 
 	_ = "enumgen:PktType"
 )

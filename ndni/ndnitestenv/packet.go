@@ -20,7 +20,7 @@ import (
 )
 
 // MakePacketHeadroom is the mbuf headroom used in MakePacket().
-var MakePacketHeadroom = mbuftestenv.Headroom(pktmbuf.DefaultHeadroom)
+var MakePacketHeadroom mbuftestenv.Headroom = pktmbuf.DefaultHeadroom + ndni.LpHeaderHeadroom
 
 // MakePacket creates a packet.
 // input: packet bytes as []byte or HEX.

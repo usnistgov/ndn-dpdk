@@ -98,7 +98,7 @@ func checkStreamRedialing(t testing.TB, listener net.Listener, makeFaceA func() 
 	assert.True(hasUpEvt)
 
 	var cntMap map[string]interface{}
-	require.NoError(jsonhelper.Roundtrip(faceA.ReadExCounters(), &cntMap))
+	require.NoError(jsonhelper.Roundtrip(faceA.ExCounters(), &cntMap))
 	assert.InDelta(1.5, cntMap["nRedials"], 0.6) // redial counter should be 1 or 2
 }
 

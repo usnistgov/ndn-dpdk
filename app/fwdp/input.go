@@ -10,6 +10,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 type demuxPreparer struct {
@@ -31,14 +32,14 @@ func (p *demuxPreparer) PrepareDemuxI(id int, demux *iface.InputDemux) {
 }
 
 func (p *demuxPreparer) PrepareDemuxD(demux *iface.InputDemux) {
-	demux.InitToken(uint8(C.FwTokenOffsetFwdID))
+	demux.InitToken(C.FwTokenOffsetFwdID)
 	for i, fwd := range p.Fwds {
 		demux.SetDest(i, fwd.queueD)
 	}
 }
 
 func (p *demuxPreparer) PrepareDemuxN(demux *iface.InputDemux) {
-	demux.InitToken(uint8(C.FwTokenOffsetFwdID))
+	demux.InitToken(C.FwTokenOffsetFwdID)
 	for i, fwd := range p.Fwds {
 		demux.SetDest(i, fwd.queueN)
 	}
@@ -57,9 +58,9 @@ func (fwi *Input) Init(lc eal.LCore, demuxPrep *demuxPreparer) error {
 	fwi.rxl = iface.NewRxLoop(socket)
 	fwi.rxl.SetLCore(lc)
 
-	demuxPrep.PrepareDemuxI(fwi.id, fwi.rxl.InterestDemux())
-	demuxPrep.PrepareDemuxD(fwi.rxl.DataDemux())
-	demuxPrep.PrepareDemuxN(fwi.rxl.NackDemux())
+	demuxPrep.PrepareDemuxI(fwi.id, fwi.rxl.DemuxOf(ndni.PktInterest))
+	demuxPrep.PrepareDemuxD(fwi.rxl.DemuxOf(ndni.PktData))
+	demuxPrep.PrepareDemuxN(fwi.rxl.DemuxOf(ndni.PktNack))
 
 	return nil
 }

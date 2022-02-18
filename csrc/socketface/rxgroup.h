@@ -12,7 +12,7 @@ typedef struct SocketRxGroup
   struct rte_ring* ring;
 } SocketRxGroup;
 
-__attribute__((nonnull)) uint16_t
-SocketRxGroup_RxBurst(RxGroup* rxg, struct rte_mbuf** pkts, uint16_t nPkts);
+__attribute__((nonnull)) void
+SocketRxGroup_RxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx);
 
 #endif // NDNDPDK_SOCKETFACE_RXGROUP_H

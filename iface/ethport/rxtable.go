@@ -75,7 +75,7 @@ func newRxgTable(port *Port) (rxt *rxgTable) {
 	c := (*C.EthRxTable)(eal.Zmalloc("EthRxTable", C.sizeof_EthRxTable, socket))
 	c.port = C.uint16_t(port.dev.ID())
 	c.queue = 0
-	c.base.rxBurstOp = C.RxGroup_RxBurst(C.EthRxTable_RxBurst)
+	c.base.rxBurst = C.RxGroup_RxBurstFunc(C.EthRxTable_RxBurst)
 	c.base.rxThread = 0
 	if port.rxBouncePool != nil {
 		rxPool := ndni.PacketMempool.Get(socket)

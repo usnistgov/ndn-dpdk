@@ -3,45 +3,47 @@
 __attribute__((nonnull)) static uint16_t
 RxLoop_Transfer(RxLoop* rxl, RxGroup* rxg)
 {
-  struct rte_mbuf* frames[MaxBurstSize];
-  uint16_t nRx = rxg->rxBurstOp(rxg, frames, RTE_DIM(frames));
-  for (uint16_t i = 0; i < nRx; ++i) {
-    struct rte_mbuf* frame = frames[i];
-    Face* face = Face_Get(frame->port);
-    if (unlikely(face->impl == NULL)) {
-      rte_pktmbuf_free(frame);
+  RxGroupBurstCtx ctx;
+  memset(&ctx, 0, offsetof(RxGroupBurstCtx, zeroizeEnd_));
+  rxg->rxBurst(rxg, &ctx);
+
+  struct rte_mbuf* drops[MaxBurstSize];
+  uint16_t nDrops = 0;
+  for (uint16_t i = 0; i < ctx.nRx; ++i) {
+    struct rte_mbuf* pkt = ctx.pkts[i];
+
+    bool dropped = (ctx.dropBits[i >> 6] & (1 << (i & 0x3F))) != 0;
+    if (unlikely(dropped)) {
+      drops[nDrops++] = pkt;
       continue;
     }
+
+    Face* face = Face_Get(pkt->port);
+    if (unlikely(face->impl == NULL)) {
+      drops[nDrops++] = pkt;
+      continue;
+    }
+
     RxProc* rx = &face->impl->rx;
-    PdumpSourceRef_Process(&rx->pdump, &frame, 1);
-    Packet* npkt = RxProc_Input(rx, rxg->rxThread, frame);
+    PdumpSourceRef_Process(&rx->pdump, &pkt, 1);
+
+    Packet* npkt = RxProc_Input(rx, rxg->rxThread, pkt);
+    NULLize(pkt);
     if (npkt == NULL) {
       continue;
     }
 
-    switch (Packet_GetType(npkt)) {
-      case PktInterest: {
-        PInterest* interest = Packet_GetInterestHdr(npkt);
-        InputDemux_Dispatch(&rxl->demuxI, npkt, &interest->name);
-        break;
-      }
-      case PktData: {
-        PData* data = Packet_GetDataHdr(npkt);
-        InputDemux_Dispatch(&rxl->demuxD, npkt, &data->name);
-        break;
-      }
-      case PktNack: {
-        PNack* nack = Packet_GetNackHdr(npkt);
-        InputDemux_Dispatch(&rxl->demuxN, npkt, &nack->interest.name);
-        break;
-      }
-      default:
-        NDNDPDK_ASSERT(false);
-        break;
+    InputDemuxes* demuxes = likely(rx->demuxes == NULL) ? &rxl->demuxes : rx->demuxes;
+    bool accepted = InputDemux_Dispatch(InputDemux_Of(demuxes, Packet_GetType(npkt)), npkt);
+    if (unlikely(!accepted)) {
+      drops[nDrops++] = Packet_ToMbuf(npkt);
     }
   }
 
-  return nRx;
+  if (unlikely(nDrops > 0)) {
+    rte_pktmbuf_free_bulk(drops, nDrops);
+  }
+  return ctx.nRx;
 }
 
 int

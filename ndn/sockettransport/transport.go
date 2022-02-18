@@ -55,10 +55,10 @@ type Counters struct {
 	NRedials int `json:"nRedials"`
 
 	// RxQueueLength is the current number of packets in the RX queue.
-	RxQueueLength int
+	RxQueueLength int `json:"rxQueueLength"`
 
-	// RxQueueLength is the current number of packets in the TX queue.
-	TxQueueLength int
+	// TxQueueLength is the current number of packets in the TX queue.
+	TxQueueLength int `json:"txQueueLength"`
 }
 
 func (cnt Counters) String() string {

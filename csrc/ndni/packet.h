@@ -153,6 +153,25 @@ __attribute__((nonnull, warn_unused_result)) bool
 Packet_ParseL3(Packet* npkt);
 
 /**
+ * @brief Retrieve packet name.
+ * @pre @p npkt is fully parsed and has an L3 type.
+ */
+__attribute__((nonnull)) static inline PName*
+Packet_GetName(Packet* npkt)
+{
+  switch (Packet_GetType(npkt)) {
+    case PktInterest:
+      return &Packet_GetInterestHdr(npkt)->name;
+    case PktData:
+      return &Packet_GetDataHdr(npkt)->name;
+    case PktNack:
+      return &Packet_GetNackHdr(npkt)->interest.name;
+    default:
+      return NULL;
+  }
+}
+
+/**
  * @brief Clone packet to new mbufs.
  * @retval NULL allocation failure.
  * @return new mbufs that fulfill @p align requirements.

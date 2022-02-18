@@ -31,6 +31,8 @@ type rxGroup struct {
 	c      *C.SocketRxGroup
 }
 
+var _ iface.RxGroup = (*rxGroup)(nil)
+
 var rxg = &rxGroup{}
 
 func (*rxGroup) IsRxGroup() {}
@@ -60,7 +62,7 @@ func (rxg *rxGroup) addFace(capacity int) (e error) {
 		}
 
 		rxg.c = (*C.SocketRxGroup)(eal.Zmalloc("SocketRxGroup", C.sizeof_SocketRxGroup, eal.NumaSocket{}))
-		rxg.c.base.rxBurstOp = C.RxGroup_RxBurst(C.SocketRxGroup_RxBurst)
+		rxg.c.base.rxBurst = C.RxGroup_RxBurstFunc(C.SocketRxGroup_RxBurst)
 		rxg.c.ring = (*C.struct_rte_ring)(rxg.ring.Ptr())
 
 		iface.ActivateRxGroup(rxg)

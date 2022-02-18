@@ -16,7 +16,7 @@ typedef struct EthRxTable
   uint16_t queue;
 } EthRxTable;
 
-__attribute__((nonnull)) uint16_t
-EthRxTable_RxBurst(RxGroup* rxg, struct rte_mbuf** pkts, uint16_t nPkts);
+__attribute__((nonnull)) void
+EthRxTable_RxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx);
 
 #endif // NDNDPDK_ETHFACE_RXTABLE_H

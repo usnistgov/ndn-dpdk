@@ -10,6 +10,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealtestenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 // Demuxes in RxLoop.
@@ -24,7 +25,7 @@ func Init() {
 	ealtestenv.Init()
 
 	rxl := iface.NewRxLoop(eal.RandomSocket())
-	DemuxI, DemuxD, DemuxN = rxl.InterestDemux(), rxl.DataDemux(), rxl.NackDemux()
+	DemuxI, DemuxD, DemuxN = rxl.DemuxOf(ndni.PktInterest), rxl.DemuxOf(ndni.PktData), rxl.DemuxOf(ndni.PktNack)
 	DemuxI.InitFirst()
 	DemuxD.InitFirst()
 	DemuxN.InitFirst()

@@ -15,15 +15,23 @@ typedef struct InputDemuxDest
   uint64_t nDropped;
 } InputDemuxDest;
 
-typedef struct InputDemux InputDemux;
-
-typedef void (*InputDemux_DispatchFunc)(InputDemux* demux, Packet* npkt, const PName* name);
+typedef enum InputDemuxFunc
+{
+  InputDemuxFuncDrop,
+  InputDemuxFuncToFirst,
+  InputDemuxFuncRoundrobinDiv,
+  InputDemuxFuncRoundrobinMask,
+  InputDemuxFuncGenericHashDiv,
+  InputDemuxFuncGenericHashMask,
+  InputDemuxFuncByNdt,
+  InputDemuxFuncByToken,
+} InputDemuxFunc;
 
 /** @brief Input packet demultiplexer for a single packet type. */
-struct InputDemux
+typedef struct InputDemux
 {
-  InputDemux_DispatchFunc dispatch;
   uint64_t nDrops;
+  InputDemuxFunc dispatch;
   union
   {
     struct
@@ -42,10 +50,10 @@ struct InputDemux
     } byToken;
   };
   InputDemuxDest dest[MaxInputDemuxDest];
-};
+} InputDemux;
 
-__attribute__((nonnull)) void
-InputDemux_DispatchDrop(InputDemux* demux, Packet* npkt, const PName* name);
+typedef bool (*InputDemux_DispatchFunc)(InputDemux* demux, Packet* npkt);
+extern const InputDemux_DispatchFunc InputDemux_DispatchFuncTable[];
 
 __attribute__((nonnull)) void
 InputDemux_SetDispatchByNdt(InputDemux* demux, NdtQuerier* ndq);
@@ -58,14 +66,25 @@ InputDemux_SetDispatchByToken(InputDemux* demux, uint8_t offset);
 
 /**
  * @brief Dispatch a packet.
- * @param npkt parsed packet; InputDemux takes ownership.
+ * @param npkt parsed L3 packet.
  * @param name packet name.
- * @post packet is either dispatched or dropped (freed).
+ * @retval true packet is dispatched.
+ * @retval false packet is rejected and should be freed by caller.
  */
-__attribute__((nonnull)) static inline void
-InputDemux_Dispatch(InputDemux* demux, Packet* npkt, const PName* name)
+__attribute__((nonnull, warn_unused_result)) static inline bool
+InputDemux_Dispatch(InputDemux* demux, Packet* npkt)
 {
-  (*demux->dispatch)(demux, npkt, name);
+  return InputDemux_DispatchFuncTable[demux->dispatch](demux, npkt);
+}
+
+/** @brief InputDemuxes for Interest, Data, Nack. */
+typedef InputDemux InputDemuxes[PktMax - 1];
+
+/** @brief Retrieve InputDemux by packet type. */
+__attribute__((nonnull, returns_nonnull)) static __rte_always_inline InputDemux*
+InputDemux_Of(InputDemuxes* demuxes, PktType t)
+{
+  return &((InputDemux*)demuxes)[PktType_ToFull(t) - 1];
 }
 
 #endif // NDNDPDK_IFACE_INPUT_DEMUX_H

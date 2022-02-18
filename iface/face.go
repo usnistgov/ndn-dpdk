@@ -39,8 +39,8 @@ type Face interface {
 	// Counters returns basic face counters.
 	Counters() Counters
 
-	// ReadExCounters returns extended counters.
-	ReadExCounters() interface{}
+	// ExCounters returns extended counters.
+	ExCounters() interface{}
 
 	// TxAlign returns TX packet alignment requirement.
 	TxAlign() ndni.PacketTxAlign
@@ -136,9 +136,9 @@ type NewParams struct {
 	// This is always invoked on the main thread.
 	Close func() error
 
-	// ReadExCounters callback returns extended counters.
+	// ExCounters callback returns extended counters.
 	// This is optional.
-	ReadExCounters func() interface{}
+	ExCounters func() interface{}
 }
 
 // InitResult contains results of NewParams.Init callback.
@@ -173,12 +173,12 @@ func New(p NewParams) (face Face, e error) {
 
 func newFace(p NewParams) (Face, error) {
 	f := &face{
-		id:                     AllocID(),
-		socket:                 p.Socket,
-		locatorCallback:        p.Locator,
-		stopCallback:           p.Stop,
-		closeCallback:          p.Close,
-		readExCountersCallback: p.ReadExCounters,
+		id:                 AllocID(),
+		socket:             p.Socket,
+		locatorCallback:    p.Locator,
+		stopCallback:       p.Stop,
+		closeCallback:      p.Close,
+		exCountersCallback: p.ExCounters,
 	}
 	logEntry := logger.With(
 		f.id.ZapField("id"),
@@ -243,12 +243,12 @@ func newFace(p NewParams) (Face, error) {
 }
 
 type face struct {
-	id                     ID
-	socket                 eal.NumaSocket
-	locatorCallback        func() Locator
-	stopCallback           func() error
-	closeCallback          func() error
-	readExCountersCallback func() interface{}
+	id                 ID
+	socket             eal.NumaSocket
+	locatorCallback    func() Locator
+	stopCallback       func() error
+	closeCallback      func() error
+	exCountersCallback func() interface{}
 }
 
 func (f *face) ptr() *C.Face {
@@ -310,9 +310,9 @@ func (f *face) clear() Face {
 	return nil
 }
 
-func (f *face) ReadExCounters() interface{} {
-	if f.readExCountersCallback != nil {
-		return f.readExCountersCallback()
+func (f *face) ExCounters() interface{} {
+	if f.exCountersCallback != nil {
+		return f.exCountersCallback()
 	}
 	return nil
 }

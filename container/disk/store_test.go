@@ -133,7 +133,7 @@ func TestStoreQueue(t *testing.T) {
 	}))
 	f.MakeStore(8)
 
-	dataLen1a := f.PutData(1, "/A/1", make([]byte, 2000))
+	dataLen1a := f.PutData(1, "/A/1", make([]byte, 1777))
 	var wg sync.WaitGroup
 	for k := 0; k < 2; k++ {
 		wg.Add(4)

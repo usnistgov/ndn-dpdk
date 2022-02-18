@@ -1,8 +1,10 @@
 #include "rxgroup.h"
 
-uint16_t
-SocketRxGroup_RxBurst(RxGroup* rxg, struct rte_mbuf** pkts, uint16_t nPkts)
+static const RxGroup_RxBurstFunc _ __rte_unused = SocketRxGroup_RxBurst;
+
+void
+SocketRxGroup_RxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx)
 {
   SocketRxGroup* srxg = container_of(rxg, SocketRxGroup, base);
-  return rte_ring_dequeue_burst(srxg->ring, (void**)pkts, nPkts, NULL);
+  ctx->nRx = rte_ring_dequeue_burst(srxg->ring, (void**)ctx->pkts, RTE_DIM(ctx->pkts), NULL);
 }

@@ -1,8 +1,6 @@
 package tg
 
 import (
-	"reflect"
-
 	"github.com/usnistgov/ndn-dpdk/app/fetch"
 	"github.com/usnistgov/ndn-dpdk/app/fileserver"
 	"github.com/usnistgov/ndn-dpdk/app/tgconsumer"
@@ -17,24 +15,18 @@ func init() {
 		}
 	})
 
-	makeRetrieveByFaceID := func(methodName string) func(id iface.ID) interface{} {
-		typ := reflect.TypeOf(&TrafficGen{})
-		method, _ := typ.MethodByName(methodName)
+	makeRetrieveByFaceID := func(fromGen func(gen *TrafficGen) interface{}) func(id iface.ID) interface{} {
 		return func(id iface.ID) interface{} {
 			gen := Get(id)
 			if gen == nil {
 				return nil
 			}
-			val := method.Func.Call([]reflect.Value{reflect.ValueOf(gen)})[0]
-			if val.IsNil() {
-				return nil
-			}
-			return val.Interface()
+			return fromGen(gen)
 		}
 	}
 
-	tgproducer.GqlRetrieveByFaceID = makeRetrieveByFaceID("Producer")
-	fileserver.GqlRetrieveByFaceID = makeRetrieveByFaceID("FileServer")
-	tgconsumer.GqlRetrieveByFaceID = makeRetrieveByFaceID("Consumer")
-	fetch.GqlRetrieveByFaceID = makeRetrieveByFaceID("Fetcher")
+	tgproducer.GqlRetrieveByFaceID = makeRetrieveByFaceID(func(gen *TrafficGen) interface{} { return gen.Producer() })
+	fileserver.GqlRetrieveByFaceID = makeRetrieveByFaceID(func(gen *TrafficGen) interface{} { return gen.FileServer() })
+	tgconsumer.GqlRetrieveByFaceID = makeRetrieveByFaceID(func(gen *TrafficGen) interface{} { return gen.Consumer() })
+	fetch.GqlRetrieveByFaceID = makeRetrieveByFaceID(func(gen *TrafficGen) interface{} { return gen.Fetcher() })
 }

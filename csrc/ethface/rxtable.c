@@ -1,6 +1,8 @@
 #include "rxtable.h"
 #include "face.h"
 
+static const RxGroup_RxBurstFunc _ __rte_unused = EthRxTable_RxBurst;
+
 __attribute__((nonnull)) static bool
 EthRxTable_Accept(EthRxTable* rxt, struct rte_mbuf* m)
 {
@@ -16,44 +18,50 @@ EthRxTable_Accept(EthRxTable* rxt, struct rte_mbuf* m)
   return false;
 }
 
-uint16_t
-EthRxTable_RxBurst(RxGroup* rxg, struct rte_mbuf** pkts, uint16_t nPkts)
+void
+EthRxTable_RxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx)
 {
   EthRxTable* rxt = container_of(rxg, EthRxTable, base);
-  struct rte_mbuf* receives[MaxBurstSize];
-  uint16_t nInput = rte_eth_rx_burst(rxt->port, rxt->queue, receives, nPkts);
+  PdumpSource* pdumpUnmatched = PdumpSourceRef_Get(&rxt->pdumpUnmatched);
+  ctx->nRx = rte_eth_rx_burst(rxt->port, rxt->queue, ctx->pkts, RTE_DIM(ctx->pkts));
   uint64_t now = rte_get_tsc_cycles();
 
-  uint16_t nRx = 0, nUnmatch = 0, nDrop = 0;
   struct rte_mbuf* unmatch[MaxBurstSize];
-  struct rte_mbuf* drop[MaxBurstSize];
-  for (uint16_t i = 0; i < nInput; ++i) {
-    struct rte_mbuf* m = receives[i];
+  struct rte_mbuf* bounceBufs[MaxBurstSize];
+  uint16_t nUnmatch = 0, nBounceBufs = 0;
+  for (uint16_t i = 0; i < ctx->nRx; ++i) {
+    struct rte_mbuf* m = ctx->pkts[i];
     Mbuf_SetTimestamp(m, now);
     if (unlikely(!EthRxTable_Accept(rxt, m))) {
-      unmatch[nUnmatch++] = m;
+      RxGroupBurstCtx_Drop(ctx, i);
+      if (pdumpUnmatched != NULL) {
+        unmatch[nUnmatch++] = m;
+        ctx->pkts[i] = NULL;
+      } else if (rxt->copyTo != NULL) {
+        // free bounce bufs locally instead of via RxLoop, because rte_pktmbuf_free_bulk is most
+        // efficient when consecutive mbufs are from the same mempool such as the main mempool
+        bounceBufs[nBounceBufs++] = m;
+        ctx->pkts[i] = NULL;
+      }
       continue;
     }
 
-    if (likely(rxt->copyTo == NULL)) {
-      pkts[nRx++] = m;
+    if (rxt->copyTo == NULL) {
       continue;
     }
 
     struct rte_mbuf* copy = rte_pktmbuf_copy(m, rxt->copyTo, 0, UINT32_MAX);
-    if (likely(copy != NULL)) {
-      pkts[nRx++] = copy;
+    ctx->pkts[i] = copy;
+    if (unlikely(copy == NULL)) {
+      RxGroupBurstCtx_Drop(ctx, i);
     }
-    drop[nDrop++] = m;
+    bounceBufs[nBounceBufs++] = m;
   }
 
-  if (unlikely(nUnmatch > 0)) {
-    if (!PdumpSourceRef_Process(&rxt->pdumpUnmatched, unmatch, nUnmatch)) {
-      rte_pktmbuf_free_bulk(unmatch, nUnmatch);
-    }
+  if (pdumpUnmatched != NULL && nUnmatch > 0) {
+    PdumpSource_Process(pdumpUnmatched, unmatch, nUnmatch);
   }
-  if (unlikely(nDrop > 0)) {
-    rte_pktmbuf_free_bulk(drop, nDrop);
+  if (nBounceBufs > 0) {
+    rte_pktmbuf_free_bulk(bounceBufs, nBounceBufs);
   }
-  return nRx;
 }

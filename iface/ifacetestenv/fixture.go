@@ -14,7 +14,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
-	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
@@ -164,8 +163,6 @@ func (fixture *Fixture) CheckCounters() {
 
 // NewFixture creates a Fixture.
 func NewFixture(t testing.TB) (fixture *Fixture) {
-	ndnitestenv.MakePacketHeadroom = mbuftestenv.Headroom(pktmbuf.DefaultHeadroom + ndni.LpHeaderHeadroom)
-
 	_, require := makeAR(t)
 	fixture = &Fixture{
 		t:               t,
@@ -177,9 +174,9 @@ func NewFixture(t testing.TB) (fixture *Fixture) {
 	}
 
 	fixture.rxl = iface.NewRxLoop(eal.NumaSocket{})
-	fixture.rxQueueI = fixture.preparePktQueue(fixture.rxl.InterestDemux())
-	fixture.rxQueueD = fixture.preparePktQueue(fixture.rxl.DataDemux())
-	fixture.rxQueueN = fixture.preparePktQueue(fixture.rxl.NackDemux())
+	fixture.rxQueueI = fixture.preparePktQueue(fixture.rxl.DemuxOf(ndni.PktInterest))
+	fixture.rxQueueD = fixture.preparePktQueue(fixture.rxl.DemuxOf(ndni.PktData))
+	fixture.rxQueueN = fixture.preparePktQueue(fixture.rxl.DemuxOf(ndni.PktNack))
 	fixture.txl = iface.NewTxLoop(eal.NumaSocket{})
 	require.NoError(ealthread.AllocLaunch(fixture.rxl))
 	require.NoError(ealthread.AllocLaunch(fixture.txl))

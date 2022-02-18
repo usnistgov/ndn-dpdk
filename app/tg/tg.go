@@ -17,6 +17,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 	"go.uber.org/multierr"
 )
 
@@ -88,7 +89,7 @@ func (gen TrafficGen) Workers() []ealthread.ThreadWithRole {
 func (gen *TrafficGen) Launch() error {
 	ealthread.Launch(gen.txl)
 	for _, rxl := range gen.rxl {
-		gen.configureDemux(rxl.InterestDemux(), rxl.DataDemux(), rxl.NackDemux())
+		gen.configureDemux(rxl.DemuxOf(ndni.PktInterest), rxl.DemuxOf(ndni.PktData), rxl.DemuxOf(ndni.PktNack))
 		ealthread.Launch(rxl)
 	}
 
@@ -106,10 +107,6 @@ func (gen *TrafficGen) Launch() error {
 }
 
 func (gen *TrafficGen) configureDemux(demuxI, demuxD, demuxN *iface.InputDemux) {
-	demuxI.InitDrop()
-	demuxD.InitDrop()
-	demuxN.InitDrop()
-
 	if gen.producer != nil {
 		gen.producer.ConnectRxQueues(demuxI)
 	} else if gen.fileServer != nil {

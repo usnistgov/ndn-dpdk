@@ -180,6 +180,8 @@ type rxgFlow struct {
 	queue uint16
 }
 
+var _ iface.RxGroup = (*rxgFlow)(nil)
+
 func (*rxgFlow) IsRxGroup() {}
 
 func (rxf *rxgFlow) NumaSocket() eal.NumaSocket {

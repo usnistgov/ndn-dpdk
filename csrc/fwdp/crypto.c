@@ -47,12 +47,19 @@ FwCrypto_Output(FwCrypto* fwc, CryptoQueuePair cqp)
     }
   }
 
+  struct rte_mbuf* drops[FW_CRYPTO_BURST_SIZE];
+  uint16_t nDrops = 0;
   for (uint16_t i = 0; i < nFinish; ++i) {
     Packet* npkt = npkts[i];
-    PData* data = Packet_GetDataHdr(npkt);
-    InputDemux_Dispatch(&fwc->output, npkt, &data->name);
+    bool accepted = InputDemux_Dispatch(&fwc->output, npkt);
+    if (unlikely(!accepted)) {
+      drops[nDrops++] = Packet_ToMbuf(npkt);
+    }
   }
 
+  if (unlikely(nDrops > 0)) {
+    rte_pktmbuf_free_bulk(drops, nDrops);
+  }
   return nDeq;
 }
 

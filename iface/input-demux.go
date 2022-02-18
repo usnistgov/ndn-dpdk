@@ -13,6 +13,8 @@ import (
 )
 
 // InputDemux is a demultiplexer for incoming packets of one L3 type.
+//
+// The zero value drops all packets.
 type InputDemux C.InputDemux
 
 // InputDemuxFromPtr converts *C.InputDemux pointer to InputDemux.
@@ -26,7 +28,7 @@ func (demux *InputDemux) ptr() *C.InputDemux {
 
 // InitDrop configures to drop all packets.
 func (demux *InputDemux) InitDrop() {
-	demux.dispatch = C.InputDemux_DispatchFunc(C.InputDemux_DispatchDrop)
+	demux.dispatch = C.InputDemuxFuncDrop
 }
 
 // InitFirst configures to pass all packets to the first and only destination.
@@ -50,7 +52,7 @@ func (demux *InputDemux) InitNdt(ndq *ndt.Querier) {
 }
 
 // InitToken configures to dispatch according to specified octet in the PIT token.
-func (demux *InputDemux) InitToken(offset uint8) {
+func (demux *InputDemux) InitToken(offset int) {
 	C.InputDemux_SetDispatchByToken(demux.ptr(), C.uint8_t(offset))
 }
 
@@ -60,8 +62,9 @@ func (demux *InputDemux) SetDest(i int, q *PktQueue) {
 }
 
 // Dispatch submits a packet for dispatching.
-func (demux *InputDemux) Dispatch(pkt *ndni.Packet) {
-	C.InputDemux_Dispatch(demux.ptr(), (*C.Packet)(pkt.Ptr()), (*C.PName)(unsafe.Pointer(pkt.PName())))
+// Returns true if accepted, false if rejected (in this case, pkt must be freed by caller).
+func (demux *InputDemux) Dispatch(pkt *ndni.Packet) bool {
+	return bool(C.InputDemux_Dispatch(demux.ptr(), (*C.Packet)(pkt.Ptr())))
 }
 
 // InputDemuxCounters contains InputDemux counters.
@@ -86,4 +89,11 @@ func (demux *InputDemux) DestCounters(i int) (cnt InputDemuxDestCounters) {
 	cnt.NQueued = uint64(demux.dest[i].nQueued)
 	cnt.NDropped = uint64(demux.dest[i].nDropped)
 	return cnt
+}
+
+// WithInputDemuxes is an object that contains per L3 type InputDemux.
+type WithInputDemuxes interface {
+	// DemuxOf returns InputDemux of specified PktType.
+	// t must be a valid L3 type (not ndni.PktFragment).
+	DemuxOf(t ndni.PktType) *InputDemux
 }

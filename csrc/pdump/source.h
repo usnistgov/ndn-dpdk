@@ -34,9 +34,23 @@ typedef struct PdumpSourceRef
   PdumpSource* s;
 } PdumpSourceRef;
 
-/** @brief Assign or clear PdumpSource in PdumpSourceRef. */
+/**
+ * @brief Assign or clear PdumpSource in PdumpSourceRef.
+ * @return old pointer value.
+ */
 __attribute__((nonnull(1))) PdumpSource*
 PdumpSourceRef_Set(PdumpSourceRef* ref, PdumpSource* s);
+
+/**
+ * @brief Retrieve dumper if enabled.
+ * @return the dumper, NULL if dumper is disabled.
+ * @pre Calling thread holds rcu_read_lock.
+ */
+__attribute__((nonnull)) static __rte_always_inline PdumpSource*
+PdumpSourceRef_Get(PdumpSourceRef* ref)
+{
+  return rcu_dereference(ref->s);
+}
 
 /**
  * @brief Submit packets for potential dumping if dumper is enabled.
@@ -45,7 +59,7 @@ PdumpSourceRef_Set(PdumpSourceRef* ref, PdumpSource* s);
 __attribute__((nonnull)) static __rte_always_inline bool
 PdumpSourceRef_Process(PdumpSourceRef* ref, struct rte_mbuf** pkts, uint16_t count)
 {
-  PdumpSource* s = rcu_dereference(ref->s);
+  PdumpSource* s = PdumpSourceRef_Get(ref);
   if (s == NULL) {
     return false;
   }

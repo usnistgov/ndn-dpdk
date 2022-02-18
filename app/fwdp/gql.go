@@ -15,6 +15,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 var (
@@ -86,7 +87,7 @@ func init() {
 		}
 		GqlFwdCountersType.AddFieldConfig(fieldName, field)
 	}
-	defineFwdPktCounter := func(plural string, getDemux func(iface.RxLoop) *iface.InputDemux) {
+	defineFwdPktCounter := func(t ndni.PktType, plural string) {
 		GqlFwdCountersType.AddFieldConfig(fmt.Sprintf("n%sQueued", plural), &graphql.Field{
 			Description: fmt.Sprintf("%s queued in input thread.", plural),
 			Type:        gqlserver.NonNullInt,
@@ -94,7 +95,7 @@ func init() {
 				index := p.Source.(*Fwd).id
 				var sum uint64
 				for _, input := range GqlDataPlane.fwis {
-					sum += getDemux(input.rxl).DestCounters(index).NQueued
+					sum += input.rxl.DemuxOf(t).DestCounters(index).NQueued
 				}
 				return sum, nil
 			},
@@ -106,7 +107,7 @@ func init() {
 				index := p.Source.(*Fwd).id
 				var sum uint64
 				for _, input := range GqlDataPlane.fwis {
-					sum += getDemux(input.rxl).DestCounters(index).NDropped
+					sum += input.rxl.DemuxOf(t).DestCounters(index).NDropped
 				}
 				return sum, nil
 			},
@@ -122,9 +123,9 @@ func init() {
 			},
 		})
 	}
-	defineFwdPktCounter("Interests", iface.RxLoop.InterestDemux)
-	defineFwdPktCounter("Data", iface.RxLoop.DataDemux)
-	defineFwdPktCounter("Nacks", iface.RxLoop.NackDemux)
+	defineFwdPktCounter(ndni.PktInterest, "Interests")
+	defineFwdPktCounter(ndni.PktData, "Data")
+	defineFwdPktCounter(ndni.PktNack, "Nacks")
 
 	GqlFwdNodeType = gqlserver.NewNodeType((*Fwd)(nil))
 	GqlFwdNodeType.Retrieve = func(id string) (interface{}, error) {

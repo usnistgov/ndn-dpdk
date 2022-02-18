@@ -16,12 +16,6 @@ type PktQueueFixture struct {
 	Q *iface.PktQueue
 }
 
-func (fixture *PktQueueFixture) Close() error {
-	fixture.Q.Close()
-	eal.Free(fixture.Q)
-	return nil
-}
-
 func (fixture *PktQueueFixture) PopMax(vec pktmbuf.Vector, now eal.TscTime) (count int, drop bool) {
 	for {
 		n, d := fixture.Q.Pop(vec[count:], now)
@@ -33,10 +27,17 @@ func (fixture *PktQueueFixture) PopMax(vec pktmbuf.Vector, now eal.TscTime) (cou
 	}
 }
 
-func NewPktQueueFixture() (fixture *PktQueueFixture) {
-	return &PktQueueFixture{
+func NewPktQueueFixture(t testing.TB, cfg iface.PktQueueConfig) (fixture *PktQueueFixture) {
+	_, require := makeAR(t)
+	fixture = &PktQueueFixture{
 		Q: (*iface.PktQueue)(eal.ZmallocAligned("PktQueue", unsafe.Sizeof(iface.PktQueue{}), 1, eal.NumaSocket{})),
 	}
+	t.Cleanup(func() {
+		fixture.Q.Close()
+		eal.Free(fixture.Q)
+	})
+	require.NoError(fixture.Q.Init(cfg, eal.NumaSocket{}))
+	return
 }
 
 func gatherMbufPtrs(vec pktmbuf.Vector) (ptrs []unsafe.Pointer) {
@@ -48,13 +49,10 @@ func gatherMbufPtrs(vec pktmbuf.Vector) (ptrs []unsafe.Pointer) {
 
 func TestPktQueuePlain(t *testing.T) {
 	assert, require := makeAR(t)
-
-	fixture := NewPktQueueFixture()
-	defer fixture.Close()
-	require.NoError(fixture.Q.Init(iface.PktQueueConfig{
+	fixture := NewPktQueueFixture(t, iface.PktQueueConfig{
 		Capacity:     256,
 		DisableCoDel: true,
-	}, eal.NumaSocket{}))
+	})
 
 	vec, e := mbuftestenv.DirectMempool().Alloc(400)
 	require.NoError(e)
@@ -86,14 +84,11 @@ func TestPktQueuePlain(t *testing.T) {
 
 func TestPktQueueDelay(t *testing.T) {
 	assert, require := makeAR(t)
-
-	fixture := NewPktQueueFixture()
-	defer fixture.Close()
 	const delay = 20 * time.Millisecond
-	require.NoError(fixture.Q.Init(iface.PktQueueConfig{
+	fixture := NewPktQueueFixture(t, iface.PktQueueConfig{
 		DequeueBurstSize: 30,
 		Delay:            nnduration.Nanoseconds(delay),
-	}, eal.NumaSocket{}))
+	})
 
 	vec, e := mbuftestenv.DirectMempool().Alloc(50)
 	require.NoError(e)
@@ -123,10 +118,7 @@ func TestPktQueueDelay(t *testing.T) {
 
 func TestPktQueueCoDel(t *testing.T) {
 	assert, require := makeAR(t)
-
-	fixture := NewPktQueueFixture()
-	defer fixture.Close()
-	require.NoError(fixture.Q.Init(iface.PktQueueConfig{}, eal.NumaSocket{}))
+	fixture := NewPktQueueFixture(t, iface.PktQueueConfig{})
 
 	nEnq, nDeq, nDrop := 0, 0, 0
 	enq := func(n int) {

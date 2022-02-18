@@ -13,6 +13,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 // RoleRx is the thread role for RxLoop.
@@ -37,10 +38,7 @@ type RxLoop interface {
 	ealthread.ThreadWithRole
 	ealthread.ThreadWithLoadStat
 	io.Closer
-
-	InterestDemux() *InputDemux
-	DataDemux() *InputDemux
-	NackDemux() *InputDemux
+	WithInputDemuxes
 
 	CountRxGroups() int
 	Add(rxg RxGroup)
@@ -53,10 +51,6 @@ func NewRxLoop(socket eal.NumaSocket) RxLoop {
 		c:      (*C.RxLoop)(eal.Zmalloc("RxLoop", C.sizeof_RxLoop, socket)),
 		socket: socket,
 	}
-	(*InputDemux)(&rxl.c.demuxI).InitDrop()
-	(*InputDemux)(&rxl.c.demuxD).InitDrop()
-	(*InputDemux)(&rxl.c.demuxN).InitDrop()
-
 	rxl.ThreadWithCtrl = ealthread.NewThreadWithCtrl(
 		cptr.Func0.C(unsafe.Pointer(C.RxLoop_Run), rxl.c),
 		unsafe.Pointer(&rxl.c.ctrl),
@@ -87,16 +81,8 @@ func (rxl *rxLoop) Close() error {
 	return nil
 }
 
-func (rxl *rxLoop) InterestDemux() *InputDemux {
-	return InputDemuxFromPtr(unsafe.Pointer(&rxl.c.demuxI))
-}
-
-func (rxl *rxLoop) DataDemux() *InputDemux {
-	return InputDemuxFromPtr(unsafe.Pointer(&rxl.c.demuxD))
-}
-
-func (rxl *rxLoop) NackDemux() *InputDemux {
-	return InputDemuxFromPtr(unsafe.Pointer(&rxl.c.demuxN))
+func (rxl *rxLoop) DemuxOf(t ndni.PktType) *InputDemux {
+	return (*InputDemux)(C.InputDemux_Of(&rxl.c.demuxes, C.PktType(t)))
 }
 
 func (rxl *rxLoop) CountRxGroups() int {
@@ -105,8 +91,8 @@ func (rxl *rxLoop) CountRxGroups() int {
 
 func (rxl *rxLoop) Add(rxg RxGroup) {
 	rxgC := (*C.RxGroup)(rxg.Ptr())
-	if rxgC.rxBurstOp == nil {
-		logger.Panic("RxGroup missing rxBurstOp")
+	if rxgC.rxBurst == nil {
+		logger.Panic("RxGroup missing rxBurst")
 	}
 
 	if mapRxgRxl[rxg] != nil {

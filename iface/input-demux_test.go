@@ -9,72 +9,103 @@ import (
 	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
-	"go4.org/must"
 )
 
 type InputDemuxFixture struct {
-	D *iface.InputDemux
-	Q []*PktQueueFixture
+	t       testing.TB
+	D       *iface.InputDemux
+	Q       []*iface.PktQueue
+	Rejects pktmbuf.Vector
 }
 
 func (fixture *InputDemuxFixture) SetDests(n int) {
-	fixture.Q = make([]*PktQueueFixture, n)
+	fixture.Q = make([]*iface.PktQueue, n)
 	for i := range fixture.Q {
-		q := NewPktQueueFixture()
-		q.Q.Init(iface.PktQueueConfig{
+		q := NewPktQueueFixture(fixture.t, iface.PktQueueConfig{
 			Capacity:     65536,
 			DisableCoDel: true,
-		}, eal.NumaSocket{})
-		fixture.D.SetDest(i, q.Q)
+		}).Q
+		fixture.D.SetDest(i, q)
 		fixture.Q[i] = q
 	}
 }
 
-func (fixture *InputDemuxFixture) DispatchInterests(prefix string, n int, suffix string) (pkts []*ndni.Packet) {
+func (fixture *InputDemuxFixture) Dispatch(pkt *ndni.Packet) (accepted bool) {
+	accepted = fixture.D.Dispatch(pkt)
+	if !accepted {
+		fixture.Rejects = append(fixture.Rejects, pkt.Mbuf())
+	}
+	return
+}
+
+func (fixture *InputDemuxFixture) DispatchInterests(prefix string, n int, suffix string) (pkts []*ndni.Packet, nRejected int) {
 	for i := 0; i < n; i++ {
 		name := fmt.Sprintf("%s/%d%s", prefix, i, suffix)
 		pkt := ndnitestenv.MakeInterest(name)
 		pkts = append(pkts, pkt)
-		fixture.D.Dispatch(pkt)
+		if accepted := fixture.Dispatch(pkt); !accepted {
+			nRejected++
+		}
 	}
-	return pkts
+	return
 }
 
 func (fixture *InputDemuxFixture) Counts() (cnt []int) {
 	cnt = make([]int, len(fixture.Q))
 	for i, q := range fixture.Q {
-		cnt[i] = q.Q.Ring().CountInUse()
+		cnt[i] = q.Ring().CountInUse()
 	}
 	return cnt
 }
 
-func (fixture *InputDemuxFixture) Close() error {
-	for _, q := range fixture.Q {
-		must.Close(q)
-	}
-	eal.Free(fixture.D)
-	return nil
-}
+func NewInputDemuxFixture(t testing.TB) (fixture *InputDemuxFixture) {
+	t.Cleanup(func() {
+		eal.Free(fixture.D)
+		fixture.Rejects.Close()
+	})
 
-func NewInputDemuxFixture() (fixture *InputDemuxFixture) {
 	return &InputDemuxFixture{
+		t: t,
 		D: (*iface.InputDemux)(eal.Zmalloc("InputDemux", unsafe.Sizeof(iface.InputDemux{}), eal.NumaSocket{})),
 	}
 }
 
+func TestInputDemuxDrop(t *testing.T) {
+	assert, _ := makeAR(t)
+	fixture := NewInputDemuxFixture(t)
+	fixture.SetDests(2)
+	// zero value of InputDemux drops packets
+
+	fixture.DispatchInterests("/I", 500, "")
+	assert.Len(fixture.Rejects, 500)
+	assert.Equal([]int{0, 0}, fixture.Counts())
+}
+
+func TestInputDemuxFirst(t *testing.T) {
+	assert, _ := makeAR(t)
+	fixture := NewInputDemuxFixture(t)
+	fixture.SetDests(2)
+	fixture.D.InitFirst()
+
+	fixture.DispatchInterests("/I", 500, "")
+	assert.Empty(fixture.Rejects)
+	assert.Equal([]int{500, 0}, fixture.Counts())
+}
+
 func testInputDemuxRoundRobin(t testing.TB, n int) {
 	assert, _ := makeAR(t)
-
-	fixture := NewInputDemuxFixture()
-	defer fixture.Close()
+	fixture := NewInputDemuxFixture(t)
 	fixture.SetDests(n)
 	fixture.D.InitRoundrobin(n)
 
 	fixture.DispatchInterests("/I", 500, "")
+	assert.Empty(fixture.Rejects)
+
 	cnt := fixture.Counts()
 	sum := 0
 	for _, c := range cnt {
@@ -94,14 +125,14 @@ func TestInputDemuxRoundRobin8(t *testing.T) {
 
 func testInputDemuxGenericHash(t testing.TB, n int) {
 	assert, _ := makeAR(t)
-
-	fixture := NewInputDemuxFixture()
-	defer fixture.Close()
+	fixture := NewInputDemuxFixture(t)
 	fixture.SetDests(n)
 	fixture.D.InitGenericHash(n)
 
 	fixture.DispatchInterests("/I", 500, "/32=x")
-	pkts := fixture.DispatchInterests("/I", 500, "")
+	pkts, _ := fixture.DispatchInterests("/I", 500, "")
+	assert.Empty(fixture.Rejects)
+
 	cnt := make([]int, n)
 	for _, pkt := range pkts {
 		hash := pkt.PName().ComputeHash()
@@ -124,6 +155,7 @@ func TestInputDemuxNdt(t *testing.T) {
 
 	theNdt := ndt.New(ndt.Config{PrefixLen: 2}, []eal.NumaSocket{eal.Sockets[0]})
 	defer theNdt.Close()
+
 	prefix := "/..."
 	for {
 		indexSet := make(map[uint64]bool)
@@ -142,32 +174,37 @@ func TestInputDemuxNdt(t *testing.T) {
 		prefix = fmt.Sprintf("/%d", rand.Int())
 	}
 
-	fixture := NewInputDemuxFixture()
-	defer fixture.Close()
+	fixture := NewInputDemuxFixture(t)
 	fixture.SetDests(10)
 	fixture.D.InitNdt(theNdt.Queriers()[0])
 
-	fixture.D.Dispatch(ndnitestenv.MakeInterest(prefix))
+	fixture.Dispatch(ndnitestenv.MakeInterest(prefix))
 	fixture.DispatchInterests(prefix, 8, "")
 	fixture.DispatchInterests(prefix, 8, "/A")
 	fixture.DispatchInterests(prefix, 7, "/B")
+	assert.Empty(fixture.Rejects)
 
 	assert.Equal([]int{3, 3, 3, 3, 3, 3, 3, 2, 0, 1}, fixture.Counts())
 }
 
 func TestInputDemuxToken(t *testing.T) {
 	assert, _ := makeAR(t)
-
-	fixture := NewInputDemuxFixture()
-	defer fixture.Close()
+	fixture := NewInputDemuxFixture(t)
 	fixture.SetDests(11)
 	fixture.D.InitToken(1)
 
 	for i := byte(0); i < 200; i++ {
-		fixture.D.Dispatch(ndnitestenv.MakeInterest(fmt.Sprintf("/I/%d", i),
+		accepted := fixture.Dispatch(ndnitestenv.MakeInterest(fmt.Sprintf("/I/%d", i),
 			ndnitestenv.SetPitToken([]byte{i / 100, i % 100, 0xA1})))
+		if i%100 < 11 {
+			assert.True(accepted, i)
+		} else {
+			assert.False(accepted, i)
+		}
 	}
-	fixture.D.Dispatch(ndnitestenv.MakeInterest("/I/X", ndnitestenv.SetPitToken([]byte{0xA2})))
+	accepted := fixture.Dispatch(ndnitestenv.MakeInterest("/I/X", ndnitestenv.SetPitToken([]byte{0xA2})))
+	assert.False(accepted)
+	assert.Len(fixture.Rejects, 179)
 
 	assert.Equal([]int{2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2}, fixture.Counts())
 	assert.Equal(179, int(fixture.D.Counters().NDrops))

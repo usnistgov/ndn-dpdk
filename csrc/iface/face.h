@@ -18,7 +18,7 @@ typedef struct FaceImpl
 } FaceImpl;
 
 /** @brief Generic network interface. */
-typedef struct Face
+struct Face
 {
   FaceImpl* impl;
   struct rte_ring* outputQueue;
@@ -26,10 +26,10 @@ typedef struct Face
   PacketTxAlign txAlign;
   FaceID id;
   FaceState state;
-} __rte_cache_aligned Face;
+} __rte_cache_aligned;
 static_assert(sizeof(Face) <= RTE_CACHE_LINE_SIZE, "");
 
-static inline void*
+__attribute__((nonnull, returns_nonnull)) static inline void*
 Face_GetPriv(Face* face)
 {
   return face->impl->priv;
@@ -38,8 +38,12 @@ Face_GetPriv(Face* face)
 /** @brief Static array of all faces. */
 extern Face gFaces[];
 
-/** @brief Retrieve face by ID. */
-static inline Face*
+/**
+ * @brief Retrieve face by ID.
+ *
+ * Return value will not be NULL. @c face->impl==NULL indicates non-existent face.
+ */
+__attribute__((returns_nonnull)) static inline Face*
 Face_Get(FaceID id)
 {
   return &gFaces[id];

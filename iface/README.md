@@ -27,7 +27,7 @@ This type can be marshaled as JSON.
 
 **RxLoop** type implements the receive path.
 Lower layer implementation places each face into one or more **RxGroup**s, which are then added into RxLoops.
-`RxLoop_Run` function continually invokes `RxGroup.rxBurstOp` function to retrieve L2 frames arriving on these faces.
+`RxLoop_Run` function continually invokes `RxGroup.rxBurst` function to retrieve L2 frames arriving on these faces.
 
 Each frame is decoded by **RxProc**, which also performs NDNLPv2 reassembly on fragments using the **Reassembler**.
 Successfully decoded L3 Interest, Data, or Nack packets are passed to the upper layer (such as the forwarder's input thread) via an **InputDemux** of that packet type.
