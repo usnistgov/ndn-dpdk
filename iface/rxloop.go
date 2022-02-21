@@ -14,6 +14,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/ndni"
+	"go.uber.org/zap"
 )
 
 // RoleRx is the thread role for RxLoop.
@@ -24,11 +25,14 @@ const RoleRx = "RX"
 type RxGroup interface {
 	eal.WithNumaSocket
 
-	// IsRxGroup identifies an implementation as RxGroup.
-	IsRxGroup()
+	// RxGroup returns *C.RxGroup pointer and description.
+	RxGroup() (ptr unsafe.Pointer, desc string)
+}
 
-	// Ptr returns *C.RxGroup pointer.
-	Ptr() unsafe.Pointer
+// RxGroupSingleFace indicates this kind of RxGroup can serve at most one face.
+type RxGroupSingleFace interface {
+	RxGroup
+	RxGroupIsSingleFace()
 }
 
 // RxLoop is the input thread that processes incoming packets on a set of RxGroups.
@@ -37,8 +41,8 @@ type RxLoop interface {
 	eal.WithNumaSocket
 	ealthread.ThreadWithRole
 	ealthread.ThreadWithLoadStat
-	io.Closer
 	WithInputDemuxes
+	io.Closer
 
 	CountRxGroups() int
 	Add(rxg RxGroup)
@@ -56,6 +60,9 @@ func NewRxLoop(socket eal.NumaSocket) RxLoop {
 		unsafe.Pointer(&rxl.c.ctrl),
 	)
 	rxLoopThreads[rxl] = true
+	logger.Info("RxLoop created",
+		zap.Uintptr("rxl-ptr", uintptr(unsafe.Pointer(rxl.c))),
+	)
 	return rxl
 }
 
@@ -77,6 +84,9 @@ func (rxl *rxLoop) ThreadRole() string {
 func (rxl *rxLoop) Close() error {
 	rxl.Stop()
 	delete(rxLoopThreads, rxl)
+	logger.Info("RxLoop closed",
+		zap.Uintptr("rxl-ptr", uintptr(unsafe.Pointer(rxl.c))),
+	)
 	eal.Free(rxl.c)
 	return nil
 }
@@ -90,28 +100,46 @@ func (rxl *rxLoop) CountRxGroups() int {
 }
 
 func (rxl *rxLoop) Add(rxg RxGroup) {
-	rxgC := (*C.RxGroup)(rxg.Ptr())
+	rxgPtr, rxgDesc := rxg.RxGroup()
+	logEntry := logger.With(
+		zap.Uintptr("rxl-ptr", uintptr(unsafe.Pointer(rxl.c))),
+		rxl.LCore().ZapField("rxl-lc"),
+		zap.Uintptr("rxg-ptr", uintptr(rxgPtr)),
+		zap.String("rxg", rxgDesc),
+	)
+
+	rxgC := (*C.RxGroup)(rxgPtr)
 	if rxgC.rxBurst == nil {
-		logger.Panic("RxGroup missing rxBurst")
+		logEntry.Panic("RxGroup missing rxBurst")
 	}
 
 	if mapRxgRxl[rxg] != nil {
-		logger.Panic("RxGroup is in another RxLoop")
+		logEntry.Panic("RxGroup is in another RxLoop")
 	}
 	mapRxgRxl[rxg] = rxl
 	rxl.nRxgs++
 
+	logEntry.Info("adding RxGroup to RxLoop")
 	C.cds_hlist_add_head_rcu(&rxgC.rxlNode, &rxl.c.head)
 }
 
 func (rxl *rxLoop) Remove(rxg RxGroup) {
+	rxgPtr, rxgDesc := rxg.RxGroup()
+	logEntry := logger.With(
+		zap.Uintptr("rxl-ptr", uintptr(unsafe.Pointer(rxl.c))),
+		rxl.LCore().ZapField("rxl-lc"),
+		zap.Uintptr("rxg-ptr", uintptr(rxgPtr)),
+		zap.String("rxg", rxgDesc),
+	)
+
+	rxgC := (*C.RxGroup)(rxgPtr)
 	if mapRxgRxl[rxg] != rxl {
 		logger.Panic("RxGroup is not in this RxLoop")
 	}
 	delete(mapRxgRxl, rxg)
 	rxl.nRxgs--
 
-	rxgC := (*C.RxGroup)(rxg.Ptr())
+	logEntry.Info("removing RxGroup from RxLoop")
 	C.cds_hlist_del_rcu(&rxgC.rxlNode)
 	urcu.Barrier()
 }
@@ -133,24 +161,35 @@ func ListRxLoops() (list []RxLoop) {
 	return list
 }
 
-// ActivateRxGroup selects an available RxLoop and adds the RxGroup to it.
+// ActivateRxGroup selects an RxLoop and adds the RxGroup to it.
 // Returns chosen RxLoop.
-// Panics if no RxLoop is available.
+//
+// The default logic selects among existing RxLoops for the least loaded one, preferably on the
+// same NUMA socket as the RxGroup. In case no RxLoop exists, one is created and launched
+// automatically. This does not respect LCoreAlloc, and may panic if no LCore is available.
+//
+// This logic may be overridden via ChooseRxLoop.
 func ActivateRxGroup(rxg RxGroup) RxLoop {
 	if rxl := ChooseRxLoop(rxg); rxl != nil {
 		rxl.Add(rxg)
 		return rxl
 	}
+
+	socket := rxg.NumaSocket()
 	if len(rxLoopThreads) == 0 {
-		logger.Panic("no RxLoop available")
+		rxl := NewRxLoop(socket)
+		if e := ealthread.AllocLaunch(rxl); e != nil {
+			logger.Panic("no RxLoop available and cannot launch new RxLoop", zap.Error(e))
+		}
+		rxl.Add(rxg)
+		return rxl
 	}
 
-	rxgSocket := rxg.NumaSocket()
 	var bestRxl RxLoop
 	bestScore := math.MaxInt32
 	for rxl := range rxLoopThreads {
 		score := rxl.CountRxGroups()
-		if !rxgSocket.Match(rxl.NumaSocket()) {
+		if !socket.Match(rxl.NumaSocket()) {
 			score += 1000000
 		}
 		if score <= bestScore {

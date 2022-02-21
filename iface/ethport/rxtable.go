@@ -5,6 +5,7 @@ package ethport
 */
 import "C"
 import (
+	"fmt"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
@@ -54,14 +55,13 @@ type rxgTable C.EthRxTable
 
 var _ iface.RxGroup = &rxgTable{}
 
-func (*rxgTable) IsRxGroup() {}
-
 func (rxt *rxgTable) NumaSocket() eal.NumaSocket {
 	return ethdev.FromID(int(rxt.port)).NumaSocket()
 }
 
-func (rxt *rxgTable) Ptr() unsafe.Pointer {
-	return unsafe.Pointer(&rxt.base)
+func (rxt *rxgTable) RxGroup() (ptr unsafe.Pointer, desc string) {
+	return unsafe.Pointer(&rxt.base),
+		fmt.Sprintf("EthRxTable(port=%d,queue=%d)", rxt.port, rxt.queue)
 }
 
 func (rxt *rxgTable) Close() error {
@@ -72,17 +72,16 @@ func (rxt *rxgTable) Close() error {
 
 func newRxgTable(port *Port) (rxt *rxgTable) {
 	socket := port.dev.NumaSocket()
-	c := (*C.EthRxTable)(eal.Zmalloc("EthRxTable", C.sizeof_EthRxTable, socket))
-	c.port = C.uint16_t(port.dev.ID())
-	c.queue = 0
-	c.base.rxBurst = C.RxGroup_RxBurstFunc(C.EthRxTable_RxBurst)
-	c.base.rxThread = 0
+	rxt = (*rxgTable)(eal.Zmalloc("EthRxTable", C.sizeof_EthRxTable, socket))
+	rxt.port = C.uint16_t(port.dev.ID())
+	rxt.queue = 0
+	rxt.base.rxBurst = C.RxGroup_RxBurstFunc(C.EthRxTable_RxBurst)
+	rxt.base.rxThread = 0
 	if port.rxBouncePool != nil {
 		rxPool := ndni.PacketMempool.Get(socket)
-		c.copyTo = (*C.struct_rte_mempool)(rxPool.Ptr())
+		rxt.copyTo = (*C.struct_rte_mempool)(rxPool.Ptr())
 	}
 
-	rxt = (*rxgTable)(c)
 	iface.ActivateRxGroup(rxt)
 	return rxt
 }

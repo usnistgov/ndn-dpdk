@@ -35,14 +35,12 @@ var _ iface.RxGroup = (*rxGroup)(nil)
 
 var rxg = &rxGroup{}
 
-func (*rxGroup) IsRxGroup() {}
-
 func (rxg *rxGroup) NumaSocket() eal.NumaSocket {
 	return rxg.socket
 }
 
-func (rxg *rxGroup) Ptr() unsafe.Pointer {
-	return unsafe.Pointer(rxg.c)
+func (rxg *rxGroup) RxGroup() (ptr unsafe.Pointer, desc string) {
+	return unsafe.Pointer(rxg.c), "SocketRxGroup"
 }
 
 func (rxg *rxGroup) addFace(capacity int) (e error) {

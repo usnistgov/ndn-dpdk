@@ -48,11 +48,11 @@ After starting the `ndndpdk-svc` service process or container, follow these step
 2. Create Ethernet ports for the faces needed in traffic generators.
    See [face creation](face.md) for instructions on creating the port.
 
-   The input dispatching method in the traffic generator requires every face to have a separate input thread.
-   Hence, the Ethernet port should be created with PCI driver and the RxFlow feature should be enabled.
+   It's recommended to create the Ethernet port with PCI driver and enable RxFlow feature.
+   This gives the best performance, and allows running multiple traffic generators on the same port.
 
-   For Ethernet ports with non-PCI driver or RxFlow disabled, you can run one traffic generator instance per port.
-   However, such setup is not recommended because it is unreliable and slower.
+   For any other setup (non-PCI, no RxFlow, SocketFace, etc), you can only run one traffic generator.
+   Creating multiple traffic generators could cause unreliable results and possibly crash.
 
 3. Start a traffic generator with traffic patterns.
    This requests the service process to create a face, allocate producer and consumer threads, and launch them with the provided traffic patterns.
@@ -73,7 +73,7 @@ You may install the NPM package from `/usr/local/share/ndn-dpdk/ndn-dpdk.npm.tgz
 ### Commonly Used Activation Parameters
 
 **.mempool.DIRECT.dataroom** is the size of each packet buffer.
-The maximum Ethernet port MTU supported by the forwarder is this dataroom minus DPDK mbuf headroom (`RTE_PKTMBUF_HEADROOM`, normally 128) and Ethernet+VLAN header length (18).
+The maximum Ethernet port MTU supported by the traffic generator is this dataroom minus DPDK mbuf headroom (`RTE_PKTMBUF_HEADROOM`, normally 128) and Ethernet+VLAN header length (18).
 For example, to support MTU=9000, this must be set to at least 9146.
 
 ### Commonly Used Traffic Pattern Configuration Parameters

@@ -2,7 +2,6 @@
 package tg
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -89,7 +88,6 @@ func (gen TrafficGen) Workers() []ealthread.ThreadWithRole {
 func (gen *TrafficGen) Launch() error {
 	ealthread.Launch(gen.txl)
 	for _, rxl := range gen.rxl {
-		gen.configureDemux(rxl.DemuxOf(ndni.PktInterest), rxl.DemuxOf(ndni.PktData), rxl.DemuxOf(ndni.PktNack))
 		ealthread.Launch(rxl)
 	}
 
@@ -106,7 +104,10 @@ func (gen *TrafficGen) Launch() error {
 	return nil
 }
 
-func (gen *TrafficGen) configureDemux(demuxI, demuxD, demuxN *iface.InputDemux) {
+func (gen *TrafficGen) configureDemux() {
+	gen.face.EnableInputDemuxes()
+	demuxI, demuxD, demuxN := gen.face.DemuxOf(ndni.PktInterest), gen.face.DemuxOf(ndni.PktData), gen.face.DemuxOf(ndni.PktNack)
+
 	if gen.producer != nil {
 		gen.producer.ConnectRxQueues(demuxI)
 	} else if gen.fileServer != nil {
@@ -195,6 +196,9 @@ func New(cfg Config) (gen *TrafficGen, e error) {
 
 	defer saveChooseRxlTxl()()
 	iface.ChooseRxLoop = func(rxg iface.RxGroup) iface.RxLoop {
+		if _, ok := rxg.(iface.RxGroupSingleFace); !ok {
+			return nil
+		}
 		rxl := iface.NewRxLoop(rxg.NumaSocket())
 		gen.rxl = append(gen.rxl, rxl)
 		gen.workers = append(gen.workers, rxl)
@@ -210,10 +214,10 @@ func New(cfg Config) (gen *TrafficGen, e error) {
 		return nil, fmt.Errorf("error creating face %w", e)
 	}
 	if len(gen.rxl) == 0 {
-		return nil, errors.New("face creation did not result in RxLoop creation; this face is incompatible with traffic generator")
+		logger.Warn("face creation did not result in dedicated RxLoop creation; this face is incompatible with traffic generator: results are inaccurate, closing any traffic generator may cause a crash")
 	}
 	if gen.txl == nil {
-		return nil, errors.New("face creation did not result in TxLoop creation; this face is incompatible with traffic generator")
+		logger.Warn("face creation did not result in dedicated TxLoop creation; this face is incompatible with traffic generator: results are inaccurate, closing any traffic generator may cause a crash")
 	}
 
 	if cfg.Producer != nil {
@@ -250,6 +254,7 @@ func New(cfg Config) (gen *TrafficGen, e error) {
 		gen.fetcher = fetcher
 	}
 
+	gen.configureDemux()
 	if e := ealthread.AllocThread(gen.workers...); e != nil {
 		return nil, fmt.Errorf("error allocating gen.workers %w", e)
 	}

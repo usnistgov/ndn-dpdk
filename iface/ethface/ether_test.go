@@ -133,7 +133,7 @@ func TestReassembly(t *testing.T) {
 	rand.Read(payload)
 
 	vnet := createVNet(t, ethringdev.VNetConfig{NNodes: 2})
-	ifacetestenv.NewFixture(t) // provides RxLoop + TxLoop
+	defer iface.CloseAll()
 	ensurePorts(t, vnet.Ports[1:], ethport.Config{})
 
 	portA := vnet.Ports[0]

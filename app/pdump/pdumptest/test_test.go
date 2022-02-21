@@ -5,13 +5,11 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealtestenv"
-	"github.com/usnistgov/ndn-dpdk/iface/ifacetestenv"
 	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
 )
 
 func TestMain(m *testing.M) {
 	ealtestenv.Init()
-	ifacetestenv.PrepareRxlTxl()
 	testenv.Exit(m.Run())
 }
 

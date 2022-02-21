@@ -25,6 +25,7 @@ var logger = logging.New("iface")
 // Face represents a network layer face.
 type Face interface {
 	eal.WithNumaSocket
+	WithInputDemuxes
 	io.Closer
 
 	// Ptr returns *C.Face pointer.
@@ -44,6 +45,10 @@ type Face interface {
 
 	// TxAlign returns TX packet alignment requirement.
 	TxAlign() ndni.PacketTxAlign
+
+	// EnableInputDemuxes enables per-face InputDemuxes.
+	// They can then be retrieved with DemuxOf() method.
+	EnableInputDemuxes()
 
 	// SetDown changes face UP/DOWN state.
 	SetDown(isDown bool)
@@ -295,10 +300,15 @@ func (f *face) clear() Face {
 		for i := 0; i < MaxFaceRxThreads; i++ {
 			C.Reassembler_Close(&c.impl.rx[i].reass)
 		}
+		if c.impl.rxDemuxes != nil {
+			eal.Free(c.impl.rxDemuxes)
+		}
 		eal.Free(c.impl)
+		c.impl = nil
 	}
 	if c.outputQueue != nil {
 		must.Close(ringbuffer.FromPtr(unsafe.Pointer(c.outputQueue)))
+		c.outputQueue = nil
 	}
 	c.id = 0
 	gFaces[id] = nil
@@ -314,6 +324,22 @@ func (f *face) ExCounters() interface{} {
 
 func (f *face) TxAlign() ndni.PacketTxAlign {
 	return *(*ndni.PacketTxAlign)(unsafe.Pointer(&f.ptr().txAlign))
+}
+
+func (f *face) DemuxOf(t ndni.PktType) *InputDemux {
+	demuxes := f.ptr().impl.rxDemuxes
+	if demuxes == nil {
+		return nil
+	}
+	return (*InputDemux)(C.InputDemux_Of(demuxes, C.PktType(t)))
+}
+
+func (f *face) EnableInputDemuxes() {
+	impl := f.ptr().impl
+	if impl.rxDemuxes != nil {
+		return
+	}
+	impl.rxDemuxes = (*C.InputDemuxes)(eal.Zmalloc("InputDemux", unsafe.Sizeof(C.InputDemuxes{}), f.socket))
 }
 
 func (f *face) SetDown(isDown bool) {

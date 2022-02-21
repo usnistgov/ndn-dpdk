@@ -13,6 +13,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
+	"go.uber.org/zap"
 )
 
 // RoleTx is the thread role for TxLoop.
@@ -42,6 +43,9 @@ func NewTxLoop(socket eal.NumaSocket) TxLoop {
 		unsafe.Pointer(&txl.c.ctrl),
 	)
 	txLoopThreads[txl] = true
+	logger.Info("TxLoop created",
+		zap.Uintptr("txl-ptr", uintptr(unsafe.Pointer(txl.c))),
+	)
 	return txl
 }
 
@@ -63,6 +67,9 @@ func (txl *txLoop) ThreadRole() string {
 func (txl *txLoop) Close() error {
 	txl.Stop()
 	delete(txLoopThreads, txl)
+	logger.Info("TxLoop closed",
+		zap.Uintptr("txl-ptr", uintptr(unsafe.Pointer(txl.c))),
+	)
 	eal.Free(txl.c)
 	return nil
 }
@@ -73,24 +80,38 @@ func (txl *txLoop) CountFaces() int {
 
 func (txl *txLoop) Add(face Face) {
 	id := face.ID()
+	logEntry := logger.With(
+		zap.Uintptr("txl-ptr", uintptr(unsafe.Pointer(txl.c))),
+		txl.LCore().ZapField("txl-lc"),
+		id.ZapField("face"),
+	)
+
 	if mapFaceTxl[id] != nil {
-		logger.Panic("face is in another TxLoop")
+		logEntry.Panic("face is in another TxLoop")
 	}
 	mapFaceTxl[id] = txl
 	txl.nFaces++
 
+	logEntry.Info("adding face to TxLoop")
 	faceC := (*C.Face)(face.Ptr())
 	C.cds_hlist_add_head_rcu(&faceC.txlNode, &txl.c.head)
 }
 
 func (txl *txLoop) Remove(face Face) {
 	id := face.ID()
+	logEntry := logger.With(
+		zap.Uintptr("txl-ptr", uintptr(unsafe.Pointer(txl.c))),
+		txl.LCore().ZapField("txl-lc"),
+		id.ZapField("face"),
+	)
+
 	if mapFaceTxl[id] != txl {
-		logger.Panic("face is not in this TxLoop")
+		logEntry.Panic("face is not in this TxLoop")
 	}
 	delete(mapFaceTxl, id)
 	txl.nFaces--
 
+	logEntry.Info("removing face from TxLoop")
 	faceC := (*C.Face)(face.Ptr())
 	C.cds_hlist_del_rcu(&faceC.txlNode)
 	urcu.Barrier()
@@ -113,24 +134,35 @@ func ListTxLoops() (list []TxLoop) {
 	return list
 }
 
-// ActivateTxFace selects an available TxLoop and adds the Face to it.
-// Returns chosen TxLoop
-// Panics if no TxLoop is available.
+// ActivateTxFace selects an TxLoop and adds the face to it.
+// Returns chosen TxLoop.
+//
+// The default logic selects among existing TxLoops for the least loaded one, preferably on the
+// same NUMA socket as the face. In case no TxLoop exists, one is created and launched
+// automatically. This does not respect LCoreAlloc, and may panic if no LCore is available.
+//
+// This logic may be overridden via ChooseTxLoop.
 func ActivateTxFace(face Face) TxLoop {
 	if txl := ChooseTxLoop(face); txl != nil {
 		txl.Add(face)
 		return txl
 	}
+
+	socket := face.NumaSocket()
 	if len(txLoopThreads) == 0 {
-		logger.Panic("no TxLoop available")
+		txl := NewTxLoop(socket)
+		if e := ealthread.AllocLaunch(txl); e != nil {
+			logger.Panic("no RxLoop available and cannot launch new RxLoop", zap.Error(e))
+		}
+		txl.Add(face)
+		return txl
 	}
 
-	faceSocket := face.NumaSocket()
 	var bestTxl TxLoop
 	bestScore := math.MaxInt32
 	for txl := range txLoopThreads {
 		score := txl.CountFaces()
-		if !faceSocket.Match(txl.NumaSocket()) {
+		if !socket.Match(txl.NumaSocket()) {
 			score += 1000000
 		}
 		if score <= bestScore {

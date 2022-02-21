@@ -180,14 +180,18 @@ type rxgFlow struct {
 	queue uint16
 }
 
-var _ iface.RxGroup = (*rxgFlow)(nil)
-
-func (*rxgFlow) IsRxGroup() {}
+var (
+	_ iface.RxGroup           = (*rxgFlow)(nil)
+	_ iface.RxGroupSingleFace = (*rxgFlow)(nil)
+)
 
 func (rxf *rxgFlow) NumaSocket() eal.NumaSocket {
 	return rxf.face.NumaSocket()
 }
 
-func (rxf *rxgFlow) Ptr() unsafe.Pointer {
-	return unsafe.Pointer(&rxf.face.priv.rxf[rxf.index].base)
+func (rxf *rxgFlow) RxGroup() (ptr unsafe.Pointer, desc string) {
+	return unsafe.Pointer(&rxf.face.priv.rxf[rxf.index].base),
+		fmt.Sprintf("EthRxFlow(face=%d,port=%d,queue=%d)", rxf.face.ID(), rxf.face.port.EthDev().ID(), rxf.queue)
 }
+
+func (rxgFlow) RxGroupIsSingleFace() {}
