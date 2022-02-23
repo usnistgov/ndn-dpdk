@@ -105,7 +105,7 @@ func NewFace(port *Port, loc Locator) (iface.Face, error) {
 	return iface.New(iface.NewParams{
 		Config:     face.loc.EthFaceConfig().Config.WithMaxMTU(face.port.cfg.MTU - NewTxHdr(face.loc, false).IPLen()),
 		Socket:     face.port.dev.NumaSocket(),
-		SizeofPriv: uintptr(C.sizeof_EthFacePriv),
+		SizeofPriv: C.sizeof_EthFacePriv,
 		Init: func(f iface.Face) (iface.InitResult, error) {
 			face.port.mutex.Lock()
 			defer face.port.mutex.Unlock()

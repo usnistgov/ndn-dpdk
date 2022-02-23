@@ -112,10 +112,9 @@ func New(cfg fibdef.Config, nDyns int, socket eal.NumaSocket) (*Table, error) {
 	cfg.ApplyDefaults()
 	mp, e := mempool.New(mempool.Config{
 		Capacity:       cfg.Capacity,
-		ElementSize:    int(C.sizeof_FibEntry) + nDyns*int(C.sizeof_FibEntryDyn),
-		PrivSize:       int(C.sizeof_Fib),
+		ElementSize:    C.sizeof_FibEntry + nDyns*C.sizeof_FibEntryDyn,
+		PrivSize:       C.sizeof_Fib,
 		Socket:         socket,
-		NoCache:        true,
 		SingleProducer: true,
 		SingleConsumer: true,
 	})

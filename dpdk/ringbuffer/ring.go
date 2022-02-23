@@ -137,9 +137,9 @@ func New(capacity int, socket eal.NumaSocket, pm ProducerMode, cm ConsumerMode) 
 	capacity = AlignCapacity(capacity)
 	flags := C.uint(pm) | C.uint(cm)
 
-	ringC := C.rte_ring_create(nameC, C.uint(capacity), C.int(socket.ID()), flags)
-	if ringC == nil {
+	r = (*Ring)(C.rte_ring_create(nameC, C.uint(capacity), C.int(socket.ID()), flags))
+	if r == nil {
 		return nil, eal.GetErrno()
 	}
-	return (*Ring)(ringC), nil
+	return r, nil
 }

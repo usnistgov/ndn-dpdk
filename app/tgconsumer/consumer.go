@@ -113,7 +113,7 @@ func (c *Consumer) assignPattern(i int, pattern Pattern, dataGenVec pktmbuf.Vect
 	txP := &c.txC.pattern[i]
 	*txP = C.TgcTxPattern{
 		seqNumT: an.TtGenericNameComponent,
-		seqNumL: C.uint8_t(C.sizeof_uint64_t),
+		seqNumL: C.sizeof_uint64_t,
 		seqNumV: C.uint64_t(rand.Uint64()),
 		digestT: an.TtImplicitSha256DigestComponent,
 		digestL: ndni.ImplicitDigestLength,

@@ -145,8 +145,7 @@ func Find(name string) *Info {
 	initBdevLib()
 	nameC := C.CString(name)
 	defer C.free(unsafe.Pointer(nameC))
-	d := C.spdk_bdev_get_by_name(nameC)
-	return (*Info)(d)
+	return (*Info)(C.spdk_bdev_get_by_name(nameC))
 }
 
 func mustFind(name string) *Info {

@@ -45,7 +45,6 @@ type Config struct {
 	PrivSize    int
 	Socket      eal.NumaSocket
 
-	NoCache        bool
 	SingleProducer bool
 	SingleConsumer bool
 }
@@ -124,16 +123,14 @@ func New(cfg Config) (mp *Mempool, e error) {
 		flags |= C.RTE_MEMPOOL_F_SC_GET
 	}
 
-	capacity, cacheSize := ComputeOptimumCapacity(cfg.Capacity), 0
-	if !cfg.NoCache {
-		cacheSize = ComputeCacheSize(capacity)
-	}
-	c := C.rte_mempool_create(nameC, C.uint(capacity), C.uint(cfg.ElementSize), C.uint(cacheSize),
-		C.unsigned(cfg.PrivSize), nil, nil, nil, nil, C.int(cfg.Socket.ID()), flags)
-	if c == nil {
+	capacity := ComputeOptimumCapacity(cfg.Capacity)
+	cacheSize := ComputeCacheSize(capacity)
+	mp = (*Mempool)(C.rte_mempool_create(nameC, C.uint(capacity), C.uint(cfg.ElementSize), C.uint(cacheSize),
+		C.unsigned(cfg.PrivSize), nil, nil, nil, nil, C.int(cfg.Socket.ID()), flags))
+	if mp == nil {
 		return nil, eal.GetErrno()
 	}
-	return (*Mempool)(c), nil
+	return mp, nil
 }
 
 // FromPtr converts *C.struct_rte_mempool pointer to Mempool.

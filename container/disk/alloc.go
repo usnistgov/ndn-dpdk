@@ -50,8 +50,7 @@ func (a *Alloc) Free(slot uint64) {
 
 // NewAlloc creates an Alloc.
 func NewAlloc(min, max uint64, socket eal.NumaSocket) *Alloc {
-	a := C.DiskAlloc_New(C.uint64_t(min), C.uint64_t(max), C.int(socket.ID()))
-	return (*Alloc)(a)
+	return (*Alloc)(C.DiskAlloc_New(C.uint64_t(min), C.uint64_t(max), C.int(socket.ID())))
 }
 
 // SizeCalc calculates Store and Alloc sizes.

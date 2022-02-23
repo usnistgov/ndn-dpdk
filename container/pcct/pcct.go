@@ -67,10 +67,9 @@ func New(cfg Config, socket eal.NumaSocket) (pcct *Pcct, e error) {
 	cfg.applyDefaults()
 	mp, e := mempool.New(mempool.Config{
 		Capacity:       cfg.PcctCapacity,
-		ElementSize:    math.MaxInt(int(C.sizeof_PccEntry), int(C.sizeof_PccEntryExt)),
-		PrivSize:       int(C.sizeof_Pcct),
+		ElementSize:    math.MaxInt(C.sizeof_PccEntry, C.sizeof_PccEntryExt),
+		PrivSize:       C.sizeof_Pcct,
 		Socket:         socket,
-		NoCache:        true,
 		SingleProducer: true,
 		SingleConsumer: true,
 	})

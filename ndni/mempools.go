@@ -37,7 +37,7 @@ var (
 func init() {
 	PacketMempool = pktmbuf.Direct
 	PacketMempool.Update(pktmbuf.PoolConfig{
-		PrivSize: int(C.sizeof_PacketPriv),
+		PrivSize: C.sizeof_PacketPriv,
 	})
 
 	IndirectMempool = pktmbuf.Indirect
@@ -45,25 +45,25 @@ func init() {
 	const headerDataroom = pktmbuf.DefaultHeadroom + LpHeaderHeadroom
 	HeaderMempool = pktmbuf.RegisterTemplate("HEADER", pktmbuf.PoolConfig{
 		Capacity: 65535,
-		PrivSize: int(C.sizeof_PacketPriv),
+		PrivSize: C.sizeof_PacketPriv,
 		Dataroom: headerDataroom + L3TypeLengthHeadroom, // Interest TL for Interest_ModifyGuiders
 	})
 
 	InterestMempool = pktmbuf.RegisterTemplate("INTEREST", pktmbuf.PoolConfig{
 		Capacity: 65535,
-		PrivSize: int(C.sizeof_PacketPriv),
+		PrivSize: C.sizeof_PacketPriv,
 		Dataroom: headerDataroom + InterestTemplateDataroom,
 	})
 
 	DataMempool = pktmbuf.RegisterTemplate("DATA", pktmbuf.PoolConfig{
 		Capacity: 65535,
-		PrivSize: int(C.sizeof_PacketPriv),
+		PrivSize: C.sizeof_PacketPriv,
 		Dataroom: headerDataroom + DataGenDataroom,
 	})
 
 	PayloadMempool = pktmbuf.RegisterTemplate("PAYLOAD", pktmbuf.PoolConfig{
 		Capacity: 1023,
-		PrivSize: int(C.sizeof_PacketPriv),
+		PrivSize: C.sizeof_PacketPriv,
 		Dataroom: headerDataroom + DataGenBufLen + 9000,
 	})
 }

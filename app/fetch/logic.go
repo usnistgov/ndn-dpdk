@@ -5,8 +5,9 @@ package fetch
 */
 import "C"
 import (
-	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"unsafe"
+
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
 // Logic implements fetcher congestion control and scheduling logic.
@@ -19,7 +20,7 @@ func LogicFromPtr(ptr unsafe.Pointer) (fl *Logic) {
 }
 
 func (fl *Logic) ptr() *C.FetchLogic {
-	return (*C.FetchLogic)(unsafe.Pointer(fl))
+	return (*C.FetchLogic)(fl)
 }
 
 // Window returns the segment state window.
