@@ -92,7 +92,7 @@ PutVlanHdr(uint8_t* buffer, uint16_t vid, uint16_t etherType)
   struct rte_vlan_hdr* vlan = (struct rte_vlan_hdr*)buffer;
   vlan->vlan_tci = rte_cpu_to_be_16(vid);
   vlan->eth_proto = rte_cpu_to_be_16(etherType);
-  return sizeof(*vlan);
+  return RTE_VLAN_HLEN;
 }
 
 __attribute__((nonnull)) static uint8_t
@@ -161,7 +161,7 @@ MatchVlan(const EthRxMatch* match, const struct rte_mbuf* m)
   const struct rte_vlan_hdr* vlanM =
     rte_pktmbuf_mtod_offset(m, const struct rte_vlan_hdr*, RTE_ETHER_HDR_LEN);
   const struct rte_vlan_hdr* vlanT = RTE_PTR_ADD(match->buf, RTE_ETHER_HDR_LEN);
-  return match->l2len != RTE_ETHER_HDR_LEN + sizeof(struct rte_vlan_hdr) ||
+  return match->l2len != RTE_ETHER_HDR_LEN + RTE_VLAN_HLEN ||
          (vlanM->eth_proto == vlanT->eth_proto &&
           (vlanM->vlan_tci & rte_cpu_to_be_16(0x0FFF)) == vlanT->vlan_tci);
 }
@@ -291,6 +291,7 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, const EthLocator* loc)
 
   if (loc->vlan != 0) {
     flow->vlanMask.hdr.vlan_tci = rte_cpu_to_be_16(0x0FFF); // don't mask PCP & DEI bits
+    MASK(flow->vlanMask.hdr.eth_proto);
     PutVlanHdr((uint8_t*)(&flow->vlanSpec.hdr), loc->vlan, c.etherType);
     APPEND(VLAN, vlan);
   }
@@ -316,13 +317,16 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, const EthLocator* loc)
   }
 
   MASK(flow->udpMask.hdr.dst_port);
+  MASK(flow->udpMask.hdr.src_port);
   PutUdpHdr((uint8_t*)(&flow->udpSpec.hdr), loc->remoteUDP, loc->localUDP);
-  APPEND(UDP, udp);
 
   if (!c.vxlan) {
-    MASK(flow->udpMask.hdr.src_port);
+    APPEND(UDP, udp);
     return;
   }
+
+  flow->udpMask.hdr.src_port = 0; // VXLAN packet can have any UDP source port
+  APPEND(UDP, udp);
 
   flow->vxlanMask.hdr.vx_vni = ~rte_cpu_to_be_32(0xFF); // don't mask reserved byte
   PutVxlanHdr((uint8_t*)(&flow->vxlanSpec.hdr), loc->vxlan);
