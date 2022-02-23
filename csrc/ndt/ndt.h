@@ -44,17 +44,17 @@ Ndt_Lookup(Ndt* ndt, const PName* name, uint64_t* index)
   return Ndt_Read(ndt, *index);
 }
 
-/** @brief NDT querier with counters. */
+/**
+ * @brief NDT querier with counters.
+ *
+ * This is embedded in thread structure that needs to query the NDT.
+ */
 typedef struct NdtQuerier
 {
   Ndt* ndt;
   uint64_t nLookups;
-  uint32_t nHits[];
+  uint32_t* nHits;
 } NdtQuerier;
-
-/** @brief Create NDT querier. */
-__attribute__((nonnull, returns_nonnull)) NdtQuerier*
-NdtQuerier_New(Ndt* ndt, int numaSocket);
 
 /** @brief Query NDT by name with counting. */
 __attribute__((nonnull)) static inline uint8_t

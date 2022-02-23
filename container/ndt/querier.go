@@ -2,10 +2,6 @@ package ndt
 
 /*
 #include "../../csrc/ndt/ndt.h"
-
-enum {
-	c_NdtQuerier_offsetof_nHits = offsetof(NdtQuerier, nHits)
-};
 */
 import "C"
 import (
@@ -28,10 +24,22 @@ func (ndq *Querier) ptr() *C.NdtQuerier {
 	return (*C.NdtQuerier)(ndq)
 }
 
-// Close releases memory.
-func (ndq *Querier) Close() error {
-	eal.Free(ndq)
-	return nil
+// Init initializes the Querier.
+func (ndq *Querier) Init(ndt *Ndt, socket eal.NumaSocket) {
+	*ndq = Querier{
+		ndt:   ndt.getReplica(socket).ptr(),
+		nHits: (*C.uint32_t)(eal.ZmallocAligned("NdtQuerier.nHits", C.sizeof_uint32_t*ndt.cfg.Capacity, 1, socket)),
+	}
+	ndt.queriers[ndq] = true
+}
+
+// Clear releases memory allocated in Init.
+func (ndq *Querier) Clear(ndt *Ndt) {
+	delete(ndt.queriers, ndq)
+	if ndq.nHits != nil {
+		eal.Free(ndq.nHits)
+	}
+	*ndq = Querier{}
 }
 
 // Lookup queries a name and increments hit counters.
@@ -42,9 +50,10 @@ func (ndq *Querier) Lookup(name ndn.Name) uint8 {
 }
 
 func (ndq *Querier) hitCounters(nEntries int) (hits []uint32) {
-	return unsafe.Slice((*uint32)(unsafe.Add(unsafe.Pointer(ndq), C.c_NdtQuerier_offsetof_nHits)), nEntries)
+	return unsafe.Slice((*uint32)(unsafe.Pointer(ndq.nHits)), nEntries)
 }
 
-func newQuerier(ndt *Ndt, socket eal.NumaSocket) *Querier {
-	return (*Querier)(C.NdtQuerier_New(ndt.replicas[socket].ptr(), C.int(socket.ID())))
+// QuerierFromPtr converts *C.NdtQuerier to *Querier.
+func QuerierFromPtr(ptr unsafe.Pointer) *Querier {
+	return (*Querier)(ptr)
 }

@@ -153,7 +153,7 @@ func TestInputDemuxGenericHash8(t *testing.T) {
 func TestInputDemuxNdt(t *testing.T) {
 	assert, _ := makeAR(t)
 
-	theNdt := ndt.New(ndt.Config{PrefixLen: 2}, []eal.NumaSocket{eal.Sockets[0]})
+	theNdt := ndt.New(ndt.Config{PrefixLen: 2}, nil)
 	defer theNdt.Close()
 
 	prefix := "/..."
@@ -176,7 +176,9 @@ func TestInputDemuxNdt(t *testing.T) {
 
 	fixture := NewInputDemuxFixture(t)
 	fixture.SetDests(10)
-	fixture.D.InitNdt(theNdt.Queriers()[0])
+	ndq := fixture.D.InitNdt()
+	ndq.Init(theNdt, eal.NumaSocket{})
+	defer ndq.Clear(theNdt)
 
 	fixture.Dispatch(ndnitestenv.MakeInterest(prefix))
 	fixture.DispatchInterests(prefix, 8, "")

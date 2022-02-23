@@ -105,15 +105,15 @@ InputDemux_SetDispatchDiv(InputDemux* demux, uint32_t nDest, bool byGenericHash)
 __attribute__((nonnull)) static bool
 InputDemux_DispatchByNdt(InputDemux* demux, Packet* npkt)
 {
-  uint8_t index = NdtQuerier_Lookup(demux->ndq, Packet_GetName(npkt));
+  uint8_t index = NdtQuerier_Lookup(&demux->ndq, Packet_GetName(npkt));
   return InputDemux_PassTo(demux, npkt, index);
 }
 
-void
-InputDemux_SetDispatchByNdt(InputDemux* demux, NdtQuerier* ndq)
+NdtQuerier*
+InputDemux_SetDispatchByNdt(InputDemux* demux)
 {
-  demux->ndq = ndq;
   demux->dispatch = InputDemuxFuncByNdt;
+  return &demux->ndq;
 }
 
 __attribute__((nonnull)) static bool

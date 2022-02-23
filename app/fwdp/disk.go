@@ -123,7 +123,7 @@ func (fwdisk *Disk) Init(lc eal.LCore, demuxPrep *demuxPreparer, cfg DiskConfig)
 		}
 	}
 
-	demuxPrep.PrepareDemuxI(fwdisk.id, iface.InputDemuxFromPtr(unsafe.Pointer(&fwdisk.c.output)))
+	demuxPrep.PrepareDemuxI(iface.InputDemuxFromPtr(unsafe.Pointer(&fwdisk.c.output)), socket)
 
 	return nil
 }

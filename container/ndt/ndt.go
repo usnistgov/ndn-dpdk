@@ -7,7 +7,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"go.uber.org/multierr"
 )
 
 // Entry contains information from an NDT entry.
@@ -21,7 +20,7 @@ type Entry struct {
 type Ndt struct {
 	cfg      Config
 	replicas map[eal.NumaSocket]*replica
-	queriers []*Querier
+	queriers map[*Querier]bool
 }
 
 // Config returns effective configuration.
@@ -36,23 +35,24 @@ func (ndt *Ndt) firstReplica() *replica {
 	panic("NDT has no replica")
 }
 
-// Queriers returns queriers.
-func (ndt *Ndt) Queriers() (list []*Querier) {
-	return ndt.queriers
+func (ndt *Ndt) getReplica(socket eal.NumaSocket) *replica {
+	if ndtr, ok := ndt.replicas[socket]; ok {
+		return ndtr
+	}
+	return ndt.firstReplica()
 }
 
 // Close releases memory of all replicas and threads.
 func (ndt *Ndt) Close() error {
-	errs := []error{}
-	for _, ndtt := range ndt.queriers {
-		errs = append(errs, ndtt.Close())
+	for ndq := range ndt.queriers {
+		ndq.Clear(ndt)
 	}
 	ndt.queriers = nil
 	for _, ndtr := range ndt.replicas {
-		errs = append(errs, ndtr.Close())
+		eal.Free(ndtr)
 	}
 	ndt.replicas = nil
-	return multierr.Combine(errs...)
+	return nil
 }
 
 // ComputeHash computes the hash used for a name.
@@ -78,7 +78,7 @@ func (ndt *Ndt) IndexOfName(name ndn.Name) uint64 {
 // Get returns one entry.
 func (ndt *Ndt) Get(index uint64) (entry Entry) {
 	entry = ndt.firstReplica().Read(index)
-	for _, ndq := range ndt.Queriers() {
+	for ndq := range ndt.queriers {
 		entry.Hits += ndq.hitCounters(ndt.cfg.Capacity)[index]
 	}
 	return entry
@@ -92,7 +92,7 @@ func (ndt *Ndt) List() (list []Entry) {
 		list[i] = ndtr.Read(i)
 	}
 
-	for _, ndq := range ndt.Queriers() {
+	for ndq := range ndt.queriers {
 		for index, hit := range ndq.hitCounters(ndt.cfg.Capacity) {
 			list[index].Hits += hit
 		}
@@ -120,24 +120,24 @@ func (ndt *Ndt) Lookup(name ndn.Name) (index uint64, value uint8) {
 	return ndt.firstReplica().Lookup(name)
 }
 
-// New creates an Ndt.
-// sockets indicates NUMA sockets of lookup threads.
+// New creates an NDT.
+// sockets are NUMA sockets that may query the NDT, duplicates are ignored.
 func New(cfg Config, sockets []eal.NumaSocket) (ndt *Ndt) {
 	cfg.applyDefaults()
 	ndt = &Ndt{
 		cfg:      cfg,
 		replicas: map[eal.NumaSocket]*replica{},
-		queriers: make([]*Querier, len(sockets)),
+		queriers: map[*Querier]bool{},
 	}
 
-	for i, socket := range sockets {
-		if socket.IsAny() {
-			socket = eal.Sockets[0]
-		}
+	if len(sockets) == 0 {
+		sockets = []eal.NumaSocket{{}}
+	}
+	for _, socket := range sockets {
+		socket = eal.RewriteAnyNumaSocketFirst.Rewrite(socket)
 		if ndt.replicas[socket] == nil {
 			ndt.replicas[socket] = newReplica(cfg, socket)
 		}
-		ndt.queriers[i] = newQuerier(ndt, socket)
 	}
 	return ndt
 }

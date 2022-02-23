@@ -16,16 +16,3 @@ Ndt_New(uint64_t nEntries, int numaSocket)
   }
   return ndt;
 }
-
-NdtQuerier*
-NdtQuerier_New(Ndt* ndt, int numaSocket)
-{
-  NdtQuerier* ndq = NULL;
-  size_t sz = sizeof(NdtQuerier) + (ndt->indexMask + 1) * sizeof(ndq->nHits[0]);
-  ndq = rte_zmalloc_socket("NdtQuerier", sz, RTE_CACHE_LINE_SIZE, numaSocket);
-  if (unlikely(ndq == NULL)) {
-    abort();
-  }
-  ndq->ndt = ndt;
-  return ndq;
-}

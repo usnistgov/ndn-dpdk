@@ -46,9 +46,13 @@ func (demux *InputDemux) InitGenericHash(nDest int) {
 	C.InputDemux_SetDispatchDiv(demux.ptr(), C.uint32_t(nDest), true)
 }
 
-// InitNdt configures to dispatch via NDT loopup.
-func (demux *InputDemux) InitNdt(ndq *ndt.Querier) {
-	C.InputDemux_SetDispatchByNdt(demux.ptr(), (*C.NdtQuerier)(ndq.Ptr()))
+// InitNdt configures to dispatch via NDT lookup.
+//
+// Caller must Init() the returned NDT querier to link with a valid NDT table and arrange to
+// Clear() the NDT querier before freeing the InputDemux or changing dispatch function.
+func (demux *InputDemux) InitNdt() *ndt.Querier {
+	ndq := C.InputDemux_SetDispatchByNdt(demux.ptr())
+	return ndt.QuerierFromPtr(unsafe.Pointer(ndq))
 }
 
 // InitToken configures to dispatch according to specified octet in the PIT token.

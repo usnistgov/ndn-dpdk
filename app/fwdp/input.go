@@ -14,18 +14,13 @@ import (
 )
 
 type demuxPreparer struct {
-	Fwds        []*Fwd
-	NdtQueriers []*ndt.Querier
+	Ndt  *ndt.Ndt
+	Fwds []*Fwd
 }
 
-func (p *demuxPreparer) PrepareDemuxI(id int, demux *iface.InputDemux) {
-	ndq := p.NdtQueriers[id]
-	if ndq == nil {
-		panic("duplicate NDT querier ID")
-	}
-	p.NdtQueriers[id] = nil
-
-	demux.InitNdt(ndq)
+func (p *demuxPreparer) PrepareDemuxI(demux *iface.InputDemux, socket eal.NumaSocket) {
+	ndq := demux.InitNdt()
+	ndq.Init(p.Ndt, socket)
 	for i, fwd := range p.Fwds {
 		demux.SetDest(i, fwd.queueI)
 	}
@@ -58,7 +53,7 @@ func (fwi *Input) Init(lc eal.LCore, demuxPrep *demuxPreparer) error {
 	fwi.rxl = iface.NewRxLoop(socket)
 	fwi.rxl.SetLCore(lc)
 
-	demuxPrep.PrepareDemuxI(fwi.id, fwi.rxl.DemuxOf(ndni.PktInterest))
+	demuxPrep.PrepareDemuxI(fwi.rxl.DemuxOf(ndni.PktInterest), socket)
 	demuxPrep.PrepareDemuxD(fwi.rxl.DemuxOf(ndni.PktData))
 	demuxPrep.PrepareDemuxN(fwi.rxl.DemuxOf(ndni.PktNack))
 

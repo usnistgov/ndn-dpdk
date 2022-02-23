@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"testing"
 	"time"
+	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
@@ -32,18 +33,6 @@ type lookupTestThread struct {
 	Entries []lookupTestEntry
 }
 
-func newNdtLookupTestThread(ndq *ndt.Querier, names []ndn.Name) *lookupTestThread {
-	th := &lookupTestThread{
-		stop: ealthread.NewStopChan(),
-		ndq:  ndq,
-	}
-	for _, name := range names {
-		th.Entries = append(th.Entries, lookupTestEntry{name, nil})
-	}
-	th.Thread = ealthread.New(cptr.Func0.Void(th.main), th.stop)
-	return th
-}
-
 func (th *lookupTestThread) ThreadRole() string {
 	return "TEST"
 }
@@ -64,6 +53,24 @@ func (th *lookupTestThread) main() {
 	}
 }
 
+func newLookupTestThread(t testing.TB, table *ndt.Ndt, names []ndn.Name) *lookupTestThread {
+	ndqPtr := eal.Zmalloc("NdtQuerier", unsafe.Sizeof(ndt.Querier{}), eal.NumaSocket{})
+	t.Cleanup(func() {
+		eal.Free(ndqPtr)
+	})
+
+	th := &lookupTestThread{
+		stop: ealthread.NewStopChan(),
+		ndq:  ndt.QuerierFromPtr(ndqPtr),
+	}
+	th.ndq.Init(table, eal.NumaSocket{})
+	for _, name := range names {
+		th.Entries = append(th.Entries, lookupTestEntry{name, nil})
+	}
+	th.Thread = ealthread.New(cptr.Func0.Void(th.main), th.stop)
+	return th
+}
+
 func TestNdt(t *testing.T) {
 	defer ealthread.AllocClear()
 	assert, require := makeAR(t)
@@ -73,38 +80,34 @@ func TestNdt(t *testing.T) {
 		Capacity:       256,
 		SampleInterval: 4,
 	}
-	table := ndt.New(cfg, make([]eal.NumaSocket, 4))
+	table := ndt.New(cfg, nil)
 	defer table.Close()
 
 	var names []ndn.Name
 	var nameIndices map[uint64]bool
 	for len(nameIndices) != 7 {
 		suffix := "_" + strconv.FormatUint(rand.Uint64(), 16)
-		nameUris := []string{
-			"/",
-			"/" + suffix,
-			"/A" + suffix + "/2=C",
-			"/A" + suffix + "/A/C",
-			"/A" + suffix + "/A/D",
-			"/B" + suffix,
-			"/B" + suffix + "/2=C",
-			"/B" + suffix + "/C",
+		names = []ndn.Name{
+			ndn.ParseName("/"),
+			ndn.ParseName("/" + suffix),
+			ndn.ParseName("/A" + suffix + "/2=C"),
+			ndn.ParseName("/A" + suffix + "/A/C"),
+			ndn.ParseName("/A" + suffix + "/A/D"),
+			ndn.ParseName("/B" + suffix),
+			ndn.ParseName("/B" + suffix + "/2=C"),
+			ndn.ParseName("/B" + suffix + "/C"),
 		}
-		names = make([]ndn.Name, len(nameUris))
-		nameIndices = make(map[uint64]bool)
-		for i, nameStr := range nameUris {
-			names[i] = ndn.ParseName(nameStr)
-			nameIndices[table.IndexOfName(names[i])] = true
+		nameIndices = map[uint64]bool{}
+		for _, name := range names {
+			nameIndices[table.IndexOfName(name)] = true
 		}
 	}
 
-	queriers := table.Queriers()
-	require.Len(queriers, 4)
 	threads := []*lookupTestThread{
-		newNdtLookupTestThread(queriers[0], names[:6]),
-		newNdtLookupTestThread(queriers[1], names[:6]),
-		newNdtLookupTestThread(queriers[2], names[:6]),
-		newNdtLookupTestThread(queriers[3], names[6:]),
+		newLookupTestThread(t, table, names[:6]),
+		newLookupTestThread(t, table, names[:6]),
+		newLookupTestThread(t, table, names[:6]),
+		newLookupTestThread(t, table, names[6:]),
 	}
 
 	table.Randomize(250)
@@ -127,8 +130,8 @@ func TestNdt(t *testing.T) {
 	// all counters are zero initially
 	require.Len(list0, 256)
 	for i, entry := range list0 {
-		assert.EqualValues(i, entry.Index, "%d", i)
-		assert.Zero(entry.Hits, "%d", i)
+		assert.EqualValues(i, entry.Index, i)
+		assert.Zero(entry.Hits, i)
 	}
 
 	// each name has one or two results
@@ -153,9 +156,9 @@ func TestNdt(t *testing.T) {
 		require.Len(list, 256)
 		for i, entry := range list {
 			if nameIndices[uint64(i)] {
-				assert.NotZero(entry.Hits, "%d", i)
+				assert.NotZero(entry.Hits, i)
 			} else {
-				assert.Zero(entry.Hits, "%d", i)
+				assert.Zero(entry.Hits, i)
 			}
 		}
 	}

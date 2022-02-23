@@ -149,8 +149,8 @@ func New(cfg Config) (dp *DataPlane, e error) {
 	{
 		ndtSockets := []eal.NumaSocket{}
 		for _, lcs := range []eal.LCores{lcRx, lcDisk} {
-			for _, lc := range lcs {
-				ndtSockets = append(ndtSockets, lc.NumaSocket())
+			for socket := range lcs.ByNumaSocket() {
+				ndtSockets = append(ndtSockets, socket)
 			}
 		}
 		dp.ndt = ndt.New(cfg.Ndt, ndtSockets)
@@ -175,14 +175,14 @@ func New(cfg Config) (dp *DataPlane, e error) {
 		fibFwds = append(fibFwds, fwd)
 	}
 
-	demuxPrep := &demuxPreparer{
-		Fwds:        dp.fwds,
-		NdtQueriers: append([]*ndt.Querier{}, dp.ndt.Queriers()...), // make a copy: PrepareDemuxI modifies the list
-	}
-
 	if dp.fib, e = fib.New(cfg.Fib, fibFwds); e != nil {
 		must.Close(dp)
 		return nil, fmt.Errorf("fib.New: %w", e)
+	}
+
+	demuxPrep := &demuxPreparer{
+		Ndt:  dp.ndt,
+		Fwds: dp.fwds,
 	}
 
 	fwcshList := []*CryptoShared{}
@@ -279,6 +279,10 @@ func (dp *DataPlane) Close() error {
 	}
 
 	errs = append(errs, iface.CloseAll())
+	if dp.ndt != nil {
+		// close NDT before input & disk threads, so that NDT queriers are freed
+		errs = append(errs, dp.ndt.Close())
+	}
 	for _, fwc := range dp.fwcs {
 		lcores = append(lcores, fwc.LCore())
 		errs = append(errs, fwc.Close())
@@ -299,9 +303,6 @@ func (dp *DataPlane) Close() error {
 	}
 	if dp.fib != nil {
 		errs = append(errs, dp.fib.Close())
-	}
-	if dp.ndt != nil {
-		errs = append(errs, dp.ndt.Close())
 	}
 
 	ealthread.AllocFree(lcores...)

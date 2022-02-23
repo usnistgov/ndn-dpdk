@@ -16,11 +16,6 @@ func (ndtr *replica) ptr() *C.Ndt {
 	return (*C.Ndt)(ndtr)
 }
 
-func (ndtr *replica) Close() error {
-	eal.Free(ndtr.ptr())
-	return nil
-}
-
 func (ndtr *replica) Read(i uint64) Entry {
 	return Entry{
 		Index: i,

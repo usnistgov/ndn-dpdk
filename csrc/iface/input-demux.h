@@ -43,7 +43,7 @@ typedef struct InputDemux
         uint32_t mask;
       };
     } div;
-    NdtQuerier* ndq;
+    NdtQuerier ndq;
     struct
     {
       uint8_t offset;
@@ -55,8 +55,8 @@ typedef struct InputDemux
 typedef bool (*InputDemux_DispatchFunc)(InputDemux* demux, Packet* npkt);
 extern const InputDemux_DispatchFunc InputDemux_DispatchFuncTable[];
 
-__attribute__((nonnull)) void
-InputDemux_SetDispatchByNdt(InputDemux* demux, NdtQuerier* ndq);
+__attribute__((nonnull, returns_nonnull)) NdtQuerier*
+InputDemux_SetDispatchByNdt(InputDemux* demux);
 
 __attribute__((nonnull)) void
 InputDemux_SetDispatchDiv(InputDemux* demux, uint32_t nDest, bool byGenericHash);
