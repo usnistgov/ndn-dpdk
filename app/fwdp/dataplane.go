@@ -154,7 +154,7 @@ func New(cfg Config) (dp *DataPlane, e error) {
 			}
 		}
 		dp.ndt = ndt.New(cfg.Ndt, ndtSockets)
-		dp.ndt.Randomize(len(lcFwd))
+		dp.ndt.Randomize(uint8(len(lcFwd)))
 	}
 
 	for _, lc := range lcTx {
@@ -175,7 +175,10 @@ func New(cfg Config) (dp *DataPlane, e error) {
 		fibFwds = append(fibFwds, fwd)
 	}
 
-	demuxPrep := &demuxPreparer{Fwds: dp.fwds, NdtQueriers: dp.ndt.Queriers()}
+	demuxPrep := &demuxPreparer{
+		Fwds:        dp.fwds,
+		NdtQueriers: append([]*ndt.Querier{}, dp.ndt.Queriers()...), // make a copy: PrepareDemuxI modifies the list
+	}
 
 	if dp.fib, e = fib.New(cfg.Fib, fibFwds); e != nil {
 		must.Close(dp)

@@ -127,7 +127,7 @@ func TestNdt(t *testing.T) {
 	// all counters are zero initially
 	require.Len(list0, 256)
 	for i, entry := range list0 {
-		assert.Equal(i, entry.Index, "%d", i)
+		assert.EqualValues(i, entry.Index, "%d", i)
 		assert.Zero(entry.Hits, "%d", i)
 	}
 

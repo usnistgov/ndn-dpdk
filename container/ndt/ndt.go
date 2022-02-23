@@ -12,8 +12,8 @@ import (
 
 // Entry contains information from an NDT entry.
 type Entry struct {
-	Index int    `json:"index" gqldesc:"Entry index."`
-	Value int    `json:"value" gqldesc:"Entry value, i.e. forwarding thread index."`
+	Index uint64 `json:"index" gqldesc:"Entry index."`
+	Value uint8  `json:"value" gqldesc:"Entry value, i.e. forwarding thread index."`
 	Hits  uint32 `json:"hits" gqldesc:"Hit counter value, wrapping at uint32 limit."`
 }
 
@@ -77,7 +77,7 @@ func (ndt *Ndt) IndexOfName(name ndn.Name) uint64 {
 
 // Get returns one entry.
 func (ndt *Ndt) Get(index uint64) (entry Entry) {
-	entry = ndt.firstReplica().Read(int(index))
+	entry = ndt.firstReplica().Read(index)
 	for _, ndq := range ndt.Queriers() {
 		entry.Hits += ndq.hitCounters(ndt.cfg.Capacity)[index]
 	}
@@ -88,7 +88,7 @@ func (ndt *Ndt) Get(index uint64) (entry Entry) {
 func (ndt *Ndt) List() (list []Entry) {
 	list = make([]Entry, ndt.cfg.Capacity)
 	ndtr := ndt.firstReplica()
-	for i := range list {
+	for i := uint64(0); i < uint64(ndt.cfg.Capacity); i++ {
 		list[i] = ndtr.Read(i)
 	}
 
@@ -109,9 +109,9 @@ func (ndt *Ndt) Update(index uint64, value uint8) {
 
 // Randomize updates all elements to random values < max.
 // This should only be used during initialization.
-func (ndt *Ndt) Randomize(max int) {
+func (ndt *Ndt) Randomize(max uint8) {
 	for i := 0; i < ndt.cfg.Capacity; i++ {
-		ndt.Update(uint64(i), uint8(rand.Intn(max)))
+		ndt.Update(uint64(i), uint8(rand.Intn(int(max))))
 	}
 }
 

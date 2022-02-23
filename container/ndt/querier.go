@@ -3,7 +3,9 @@ package ndt
 /*
 #include "../../csrc/ndt/ndt.h"
 
-uint32_t* c_NdtQuerier_Hits(NdtQuerier* ndq) { return ndq->nHits; }
+enum {
+	c_NdtQuerier_offsetof_nHits = offsetof(NdtQuerier, nHits)
+};
 */
 import "C"
 import (
@@ -40,10 +42,9 @@ func (ndq *Querier) Lookup(name ndn.Name) uint8 {
 }
 
 func (ndq *Querier) hitCounters(nEntries int) (hits []uint32) {
-	return unsafe.Slice((*uint32)(unsafe.Pointer(C.c_NdtQuerier_Hits(ndq.ptr()))), nEntries)
+	return unsafe.Slice((*uint32)(unsafe.Add(unsafe.Pointer(ndq), C.c_NdtQuerier_offsetof_nHits)), nEntries)
 }
 
 func newQuerier(ndt *Ndt, socket eal.NumaSocket) *Querier {
-	c := C.NdtQuerier_New(ndt.replicas[socket].ptr(), C.int(socket.ID()))
-	return (*Querier)(c)
+	return (*Querier)(C.NdtQuerier_New(ndt.replicas[socket].ptr(), C.int(socket.ID())))
 }

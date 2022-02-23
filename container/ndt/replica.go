@@ -21,10 +21,10 @@ func (ndtr *replica) Close() error {
 	return nil
 }
 
-func (ndtr *replica) Read(i int) Entry {
+func (ndtr *replica) Read(i uint64) Entry {
 	return Entry{
 		Index: i,
-		Value: int(uint8(C.Ndt_Read(ndtr.ptr(), C.uint64_t(i)))),
+		Value: uint8(C.Ndt_Read(ndtr.ptr(), C.uint64_t(i))),
 	}
 }
 
