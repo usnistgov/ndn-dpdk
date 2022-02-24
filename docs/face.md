@@ -90,7 +90,7 @@ This driver communicates with the Ethernet adapter via AF\_XDP socket, optimized
 
 To create an Ethernet port with XDP driver, you should:
 
-1. Ensure the network interface is "up" and visible to the NDN-DPDK service process.
+1. If NDN-DPDK is running in a container, move the network interface into the container's network namespace.
 2. Run `ndndpdk-ctrl create-eth-port` command with `--netif` and `--xdp` flags.
 
 Example commands:
@@ -98,15 +98,9 @@ Example commands:
 ```bash
 NETIF=eth1
 
-# if NDN-DPDK is running on the host: bring up the network interface
-sudo ip link set $NETIF up
-
-# if NDN-DPDK is running in a Docker container:
-# (1) move the network interface into the container's network namespace
+# if NDN-DPDK is running in a Docker container, move the network interface into the container's network namespace
 CTPID=$(docker inspect -f '{{.State.Pid}}' ndndpdk-svc)
 sudo ip link set $NETIF netns $CTPID
-# (2) bring up the network interface
-docker exec ndndpdk-svc ip link set $NETIF up
 
 # create an Ethernet port with XDP driver
 ndndpdk-ctrl create-eth-port --netif $NETIF --xdp --mtu 1500
@@ -128,13 +122,17 @@ If neither PCI driver nor XDP driver can be used, as a last resort you may use t
 This driver communicates with the Ethernet adapter via AF\_PACKET socket, which is substantially slower than the other two options.
 To create an Ethernet port with XDP driver, you should:
 
-1. Ensure the network interface is "up" and visible to the NDN-DPDK service process.
+1. If NDN-DPDK is running in a container, move the network interface into the container's network namespace.
 2. Run `ndndpdk-ctrl create-eth-port` command with `--netif` flag.
 
 Example commands:
 
 ```bash
-# see previous section for how to bring up the interface and make it visible to the NDN-DPDK service process
+NETIF=eth1
+
+# if NDN-DPDK is running in a Docker container, move the network interface into the container's network namespace
+CTPID=$(docker inspect -f '{{.State.Pid}}' ndndpdk-svc)
+sudo ip link set $NETIF netns $CTPID
 
 # create an Ethernet port with AF_PACKET driver
 ndndpdk-ctrl create-eth-port --netif $NETIF --mtu 9000

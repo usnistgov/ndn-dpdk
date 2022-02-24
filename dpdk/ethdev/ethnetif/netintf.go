@@ -23,18 +23,47 @@ var logger = logging.New("ethnetif")
 var etht *ethtool.Ethtool
 
 type netIntf struct {
-	*net.Interface
+	*netlink.LinkAttrs
+	Link   netlink.Link
+	logger *zap.Logger
 }
 
-func (n netIntf) Logger() *zap.Logger {
-	return logger.With(
-		zap.String("netif", n.Name),
+func (n *netIntf) save(link netlink.Link) {
+	n.Link = link
+	n.LinkAttrs = link.Attrs()
+	n.logger = logger.With(
 		zap.Int("ifindex", n.Index),
+		zap.String("ifname", n.Name),
 	)
 }
 
-func (n netIntf) Up() bool {
-	return n.Flags&net.FlagUp != 0
+func (n *netIntf) refresh() {
+	link, e := netlink.LinkByIndex(n.Index)
+	if e != nil {
+		n.logger.Warn("refresh error", zap.Error(e))
+		return
+	}
+	n.save(link)
+}
+
+func (n netIntf) VDevName(drv string) string {
+	return fmt.Sprintf("%s_%d", drv, n.Index)
+}
+
+func (n *netIntf) EnsureLinkUp(skipBringUp bool) error {
+	if n.Flags&net.FlagUp != 0 {
+		return nil
+	}
+	if skipBringUp {
+		return fmt.Errorf("interface %s is not UP", n.Name)
+	}
+	if e := netlink.LinkSetUp(n.Link); e != nil {
+		n.logger.Error("netlink.LinkSetUp error", zap.Error(e))
+		return fmt.Errorf("netlink.LinkSetUp(%s): %w", n.Name, e)
+	}
+	n.logger.Info("brought up the interface")
+	n.refresh()
+	return nil
 }
 
 func (n netIntf) PCIAddr() (a pciaddr.PCIAddress, e error) {
@@ -65,21 +94,18 @@ func (n netIntf) FindDev() (dev ethdev.EthDev) {
 			return dev
 		}
 	}
-	if dev = ethdev.FromName(ethdev.DriverXDP + "_" + n.Name); dev != nil {
-		return dev
-	}
-	if dev = ethdev.FromName(ethdev.DriverAfPacket + "_" + n.Name); dev != nil {
-		return dev
+	for _, drv := range []string{ethdev.DriverXDP, ethdev.DriverAfPacket} {
+		if dev = ethdev.FromName(n.VDevName(drv)); dev != nil {
+			return dev
+		}
 	}
 	return nil
 }
 
-func (n netIntf) SetOneChannel() {
-	logEntry := n.Logger()
-
+func (n *netIntf) SetOneChannel() {
 	channels, e := etht.GetChannels(n.Name)
 	if e != nil {
-		logEntry.Error("ethtool.GetChannels error", zap.Error(e))
+		n.logger.Error("ethtool.GetChannels error", zap.Error(e))
 		return
 	}
 
@@ -87,7 +113,7 @@ func (n netIntf) SetOneChannel() {
 	channelsUpdate.RxCount = mathpkg.MinUint32(channels.MaxRx, 1)
 	channelsUpdate.CombinedCount = mathpkg.MinUint32(channels.MaxCombined, 1)
 
-	logEntry = logEntry.With(
+	logEntry := n.logger.With(
 		zap.Uint32("old-rx", channels.RxCount),
 		zap.Uint32("old-combined", channels.CombinedCount),
 		zap.Uint32("new-rx", channelsUpdate.RxCount),
@@ -106,10 +132,11 @@ func (n netIntf) SetOneChannel() {
 	}
 
 	logEntry.Debug("changed to 1 channel")
+	n.refresh()
 }
 
-func (n netIntf) DisableVLANOffload() {
-	logEntry := n.Logger()
+func (n *netIntf) DisableVLANOffload() {
+	logEntry := n.logger
 
 	features, e := etht.Features(n.Name)
 	if e != nil {
@@ -137,44 +164,37 @@ func (n netIntf) DisableVLANOffload() {
 	}
 
 	logEntry.Debug("disabled rxvlan offload")
+	n.refresh()
 }
 
-func (n netIntf) UnloadXDP() {
-	logEntry := n.Logger()
-
-	link, e := netlink.LinkByIndex(n.Index)
-	if e != nil {
-		logEntry.Error("netlink.LinkByIndex error", zap.Error(e))
+func (n *netIntf) UnloadXDP() {
+	if n.Xdp == nil || !n.Xdp.Attached {
+		n.logger.Debug("netlink has no attached XDP program")
 		return
 	}
-	attrs := link.Attrs()
 
-	if attrs.Xdp == nil || !attrs.Xdp.Attached {
-		logEntry.Debug("netlink has no attached XDP program")
-		return
-	}
-	logEntry = logEntry.With(zap.Uint32("old-xdp-prog", attrs.Xdp.ProgId))
-
-	e = netlink.LinkSetXdpFd(link, math.MaxUint32)
-	if e != nil {
+	logEntry := n.logger.With(zap.Uint32("old-xdp-prog", n.Xdp.ProgId))
+	if e := netlink.LinkSetXdpFd(n.Link, math.MaxUint32); e != nil {
 		logEntry.Error("netlink.LinkSetXdpFd error", zap.Error(e))
 		return
 	}
 
 	logEntry.Debug("unloaded previous XDP program")
+	n.refresh()
 }
 
-func netIntfByName(ifname string) (netIntf, error) {
+func netIntfByName(ifname string) (n netIntf, e error) {
 	if etht == nil {
-		var e error
 		if etht, e = ethtool.NewEthtool(); e != nil {
 			return netIntf{}, fmt.Errorf("ethtool.NewEthtool: %w", e)
 		}
 	}
 
-	nif, e := net.InterfaceByName(ifname)
+	link, e := netlink.LinkByName(ifname)
 	if e != nil {
-		return netIntf{}, fmt.Errorf("net.InterfaceByName(%s): %w", ifname, e)
+		return netIntf{}, fmt.Errorf("netlink.LinkByName(%s): %w", ifname, e)
 	}
-	return netIntf{nif}, nil
+
+	n.save(link)
+	return n, nil
 }

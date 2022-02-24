@@ -182,7 +182,7 @@ func TestLocatorRxMatch(t *testing.T) {
 	payload := make(gopacket.Payload, 200)
 	rand.Read([]byte(payload))
 	onlyMatch := func(matcherKey string, headers ...gopacket.SerializableLayer) {
-		pkt := packetFromLayers(append(append([]gopacket.SerializableLayer{}, headers...), payload)...)
+		pkt := pktmbufFromLayers(append(append([]gopacket.SerializableLayer{}, headers...), payload)...)
 		defer pkt.Close()
 
 		pktLen := pkt.Len()

@@ -34,7 +34,7 @@ func TestEthDev(t *testing.T) {
 	const rxFinishWait = 10 * time.Millisecond
 
 	nReceived := 0
-	rxBurstSizeFreq := make(map[int]int)
+	rxBurstSizeFreq := map[int]int{}
 	rxQuit := make(chan bool)
 	eal.Workers[0].RemoteLaunch(cptr.Func0.Void(func() {
 		for {

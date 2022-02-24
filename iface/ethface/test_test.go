@@ -1,6 +1,7 @@
 package ethface_test
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/google/gopacket"
@@ -40,7 +41,7 @@ var (
 // createVNet creates a VNet from config template, and schedules its cleanup.
 //
 // Faces and ports must be closed before closing VNet. One way to ensure this condition is
-// calling `defer iface.CloseAll()` or `ifacetestenv.NewFixture`` after this function.
+// calling `defer iface.CloseAll()` or `ifacetestenv.NewFixture` after this function.
 func createVNet(t testing.TB, cfg ethringdev.VNetConfig) *ethringdev.VNet {
 	_, require := makeAR(t)
 	cfg.RxPool = ndni.PacketMempool.Get(eal.NumaSocket{})
@@ -76,7 +77,11 @@ func parseLocator(j string) ethport.Locator {
 	return locw.Locator.(ethport.Locator)
 }
 
-func packetFromLayers(hdrs ...gopacket.SerializableLayer) *pktmbuf.Packet {
+var serializeBufferPool = sync.Pool{
+	New: func() interface{} { return gopacket.NewSerializeBuffer() },
+}
+
+func packetFromLayers(hdrs ...gopacket.SerializableLayer) []byte {
 	type TransportLayer interface {
 		SetNetworkLayerForChecksum(l gopacket.NetworkLayer) error
 	}
@@ -92,7 +97,12 @@ func packetFromLayers(hdrs ...gopacket.SerializableLayer) *pktmbuf.Packet {
 		}
 	}
 
-	buf := gopacket.NewSerializeBuffer()
+	buf := serializeBufferPool.Get().(gopacket.SerializeBuffer)
+	defer func() {
+		buf.Clear()
+		serializeBufferPool.Put(buf)
+	}()
+
 	e := gopacket.SerializeLayers(buf, gopacket.SerializeOptions{
 		FixLengths:       true,
 		ComputeChecksums: true,
@@ -100,5 +110,10 @@ func packetFromLayers(hdrs ...gopacket.SerializableLayer) *pktmbuf.Packet {
 	if e != nil {
 		panic(e)
 	}
-	return makePacket(mbuftestenv.Headroom(0), buf.Bytes())
+	return buf.Bytes()
+}
+
+func pktmbufFromLayers(hdrs ...gopacket.SerializableLayer) *pktmbuf.Packet {
+	buf := packetFromLayers(hdrs...)
+	return makePacket(mbuftestenv.Headroom(0), buf)
 }

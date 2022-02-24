@@ -1,7 +1,7 @@
 #include "rxtable.h"
 #include "face.h"
 
-__attribute__((nonnull)) static bool
+__attribute__((nonnull)) static inline bool
 EthRxTable_Accept(EthRxTable* rxt, struct rte_mbuf* m)
 {
   // RCU lock is inherited from RxLoop_Run

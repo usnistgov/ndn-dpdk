@@ -14,19 +14,20 @@ require (
 	github.com/google/gopacket v1.1.19
 	github.com/graphql-go/graphql v0.8.0
 	github.com/hashicorp/golang-lru v0.5.4
-	github.com/ianlancetaylor/cgosymbolizer v0.0.0-20210303021718-7cb7081f6b86
+	github.com/ianlancetaylor/cgosymbolizer v0.0.0-20220217162856-c813f11194b9
 	github.com/jfoster/binary-utilities v0.2.1
 	github.com/jwangsadinata/go-multimap v0.0.0-20190620162914-c29f3d7f33b6
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/korylprince/go-graphql-ws v0.3.6
 	github.com/machinebox/graphql v0.2.2
-	github.com/peterbourgon/mergemap v0.0.0-20130613134717-e21c03b7a721
+	github.com/peterbourgon/mergemap v0.0.1
 	github.com/pkg/math v0.0.0-20141027224758-f2ed9e40e245
 	github.com/powerman/rpc-codec v1.2.2
 	github.com/rickb777/plural v1.4.1
 	github.com/safchain/ethtool v0.1.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/soh335/sliceflag v0.0.0-20160923061056-d2d28a5acab8
+	github.com/songgao/water v0.0.0-20200317203138-2b4b6d7c09d8
 	github.com/stretchr/testify v1.7.0
 	github.com/tul/emission v0.0.0-20180606124623-7d2aae804ca2
 	github.com/urfave/cli/v2 v2.3.0
@@ -35,7 +36,7 @@ require (
 	go.uber.org/multierr v1.7.0
 	go.uber.org/zap v1.21.0
 	go4.org v0.0.0-20201209231011-d4a079459e60
-	golang.org/x/sys v0.0.0-20220209214540-3681064d5158
+	golang.org/x/sys v0.0.0-20220224120231-95c6836cb0e7
 	inet.af/netaddr v0.0.0-20211027220019-c74959edd3b6
 )
 
@@ -63,8 +64,9 @@ require (
 	go.uber.org/atomic v1.7.0 // indirect
 	go4.org/intern v0.0.0-20211027215823-ae77deb06f29 // indirect
 	go4.org/unsafe/assume-no-moving-gc v0.0.0-20211027215541-db492cf91b37 // indirect
-	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
-	golang.org/x/net v0.0.0-20210428140749-89ef3d95e781 // indirect
+	golang.org/x/crypto v0.0.0-20211108221036-ceb1ce70b4fa // indirect
+	golang.org/x/net v0.0.0-20211111083644-e5c967477495 // indirect
+	golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )

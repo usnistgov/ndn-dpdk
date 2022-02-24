@@ -29,11 +29,21 @@ type Config struct {
 	PCIAddr *pciaddr.PCIAddress    `json:"pciAddr,omitempty" gqldesc:"PCI address (PCI devices)."`
 	DevArgs map[string]interface{} `json:"devargs,omitempty" gqldesc:"DPDK device arguments."`
 
-	SkipEthtool bool `json:"skipEthtool,omitempty" gqldesc:"Don't perform ethtool updates for XDP."`
+	SkipBringUp bool   `json:"skipBringUp,omitempty" gqldesc:"Don't attempt to bring up the interface."`
+	SkipEthtool bool   `json:"skipEthtool,omitempty" gqldesc:"Don't perform ethtool updates for XDP."`
+	XDPProgram  string `json:"-"` // override XDP program
+}
+
+func (cfg *Config) applyDefaults() {
+	if cfg.XDPProgram == "" {
+		cfg.XDPProgram = XDPProgram
+	}
 }
 
 // CreateEthDev creates an Ethernet device.
 func CreateEthDev(cfg Config) (ethdev.EthDev, error) {
+	cfg.applyDefaults()
+
 	if cfg.Netif != "" {
 		if n, e := netIntfByName(cfg.Netif); e == nil {
 			if dev := n.FindDev(); dev != nil {
@@ -82,8 +92,8 @@ func createXDP(cfg Config) (ethdev.EthDev, error) {
 	if e != nil {
 		return nil, e
 	}
-	if !n.Up() {
-		return nil, fmt.Errorf("interface %s is not UP", n.Name)
+	if e = n.EnsureLinkUp(cfg.SkipBringUp); e != nil {
+		return nil, e
 	}
 
 	args := map[string]interface{}{
@@ -91,8 +101,8 @@ func createXDP(cfg Config) (ethdev.EthDev, error) {
 		"start_queue": 0,
 		"queue_count": 1,
 	}
-	if XDPProgram != "" {
-		args["xdp_prog"] = XDPProgram
+	if cfg.XDPProgram != "" {
+		args["xdp_prog"] = cfg.XDPProgram
 	}
 	args = mergemap.Merge(args, cfg.DevArgs)
 
@@ -104,7 +114,7 @@ func createXDP(cfg Config) (ethdev.EthDev, error) {
 		}
 	}
 
-	return ethdev.NewVDev(ethdev.DriverXDP+"_"+n.Name, args, n.NumaSocket())
+	return ethdev.NewVDev(n.VDevName(ethdev.DriverXDP), args, n.NumaSocket())
 }
 
 func createAfPacket(cfg Config) (ethdev.EthDev, error) {
@@ -112,8 +122,8 @@ func createAfPacket(cfg Config) (ethdev.EthDev, error) {
 	if e != nil {
 		return nil, e
 	}
-	if !n.Up() {
-		return nil, fmt.Errorf("interface %s is not UP", n.Name)
+	if e = n.EnsureLinkUp(cfg.SkipBringUp); e != nil {
+		return nil, e
 	}
 
 	args := map[string]interface{}{
@@ -122,5 +132,5 @@ func createAfPacket(cfg Config) (ethdev.EthDev, error) {
 	}
 	args = mergemap.Merge(args, cfg.DevArgs)
 
-	return ethdev.NewVDev(ethdev.DriverAfPacket+"_"+n.Name, args, n.NumaSocket())
+	return ethdev.NewVDev(n.VDevName(ethdev.DriverAfPacket), args, n.NumaSocket())
 }
