@@ -6,7 +6,7 @@ package eal
 #include <rte_launch.h>
 #include <rte_lcore.h>
 
-int c_rte_eal_remote_launch(void* f, uintptr_t arg, unsigned worker_id)
+static int c_rte_eal_remote_launch(void* f, uintptr_t arg, unsigned worker_id)
 {
 	return rte_eal_remote_launch((lcore_function_t*)f, (void*)arg, worker_id);
 }

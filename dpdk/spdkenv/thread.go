@@ -4,9 +4,9 @@ package spdkenv
 #include "../../csrc/dpdk/spdk-thread.h"
 
 // workaround gopls "compiler(InvalidCall)" false positive
-int c_SpdkThread_Run(SpdkThread* th) { return SpdkThread_Run(th); }
+static int c_SpdkThread_Run(SpdkThread* th) { return SpdkThread_Run(th); }
 
-int c_spdk_thread_send_msg(const struct spdk_thread* th, spdk_msg_fn fn, uintptr_t ctx)
+static int c_spdk_thread_send_msg(const struct spdk_thread* th, spdk_msg_fn fn, uintptr_t ctx)
 {
 	return spdk_thread_send_msg(th, fn, (void*)ctx);
 }
@@ -24,7 +24,13 @@ import (
 	"go.uber.org/zap"
 )
 
-var threadLibInitOnce sync.Once
+var initThreadLibOnce sync.Once
+
+func initThreadLib() {
+	if res := C.spdk_thread_lib_init(nil, 0); res != 0 {
+		logger.Fatal("spdk_thread_lib_init error", zap.Error(eal.MakeErrno(res)))
+	}
+}
 
 // Thread represents an SPDK thread.
 type Thread struct {
@@ -86,11 +92,7 @@ func (th *Thread) Post(fn cptr.Function) {
 // NewThread creates an SPDK thread.
 // The caller needs to assigned it a DPDK lcore and launch it.
 func NewThread() (*Thread, error) {
-	threadLibInitOnce.Do(func() {
-		if res := C.spdk_thread_lib_init(nil, 0); res != 0 {
-			logger.Fatal("spdk_thread_lib_init error", zap.Error(eal.MakeErrno(res)))
-		}
-	})
+	initThreadLibOnce.Do(initThreadLib)
 
 	name := eal.AllocObjectID("spdkenv.Thread")
 	nameC := C.CString(name)

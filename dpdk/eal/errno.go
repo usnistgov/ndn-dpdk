@@ -3,7 +3,7 @@ package eal
 /*
 #include "../../csrc/core/common.h"
 
-int c_rte_errno() { return rte_errno; }
+static int c_rte_errno() { return rte_errno; }
 */
 import "C"
 import (

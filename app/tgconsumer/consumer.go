@@ -5,9 +5,9 @@ package tgconsumer
 #include "../../csrc/tgconsumer/rx.h"
 #include "../../csrc/tgconsumer/tx.h"
 
-TgcTxDigestPattern** c_TgcTxPattern_digest(TgcTxPattern* pattern) { return &pattern->digest; }
-uint32_t* c_TgcTxPattern_seqNumOffset(TgcTxPattern* pattern) { return &pattern->seqNumOffset; }
-void c_TgcTxDigestPattern_putPrefix(TgcTxDigestPattern* dp, uint16_t length, const uint8_t* value)
+static TgcTxDigestPattern** c_TgcTxPattern_digest(TgcTxPattern* pattern) { return &pattern->digest; }
+static uint32_t* c_TgcTxPattern_seqNumOffset(TgcTxPattern* pattern) { return &pattern->seqNumOffset; }
+static void c_TgcTxDigestPattern_putPrefix(TgcTxDigestPattern* dp, uint16_t length, const uint8_t* value)
 {
 	dp->prefix.length = length;
 	dp->prefix.value = rte_memcpy(RTE_PTR_ADD(dp, sizeof(*dp)), value, length);

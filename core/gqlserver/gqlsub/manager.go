@@ -7,6 +7,7 @@ import (
 
 	"github.com/functionalfoundry/graphqlws"
 	"github.com/graphql-go/graphql"
+	"github.com/graphql-go/graphql/gqlerrors"
 )
 
 type updater struct {
@@ -14,8 +15,8 @@ type updater struct {
 	cancel context.CancelFunc
 }
 
-// SubscriptionManager enhances graphqlws.SubscriptionManager.
-type SubscriptionManager struct {
+// Manager enhances graphqlws.Manager.
+type Manager struct {
 	ctx      context.Context
 	schema   *graphql.Schema
 	inner    graphqlws.SubscriptionManager
@@ -26,12 +27,12 @@ type SubscriptionManager struct {
 }
 
 // Subscriptions implements graphqlws.SubscriptionManager interface.
-func (m *SubscriptionManager) Subscriptions() graphqlws.Subscriptions {
+func (m *Manager) Subscriptions() graphqlws.Subscriptions {
 	return m.inner.Subscriptions()
 }
 
 // AddSubscription implements graphqlws.SubscriptionManager interface.
-func (m *SubscriptionManager) AddSubscription(conn graphqlws.Connection, sub *graphqlws.Subscription) []error {
+func (m *Manager) AddSubscription(conn graphqlws.Connection, sub *graphqlws.Subscription) []error {
 	errs := m.inner.AddSubscription(conn, sub)
 	if len(errs) == 0 {
 		m.addSub(conn, sub)
@@ -40,24 +41,24 @@ func (m *SubscriptionManager) AddSubscription(conn graphqlws.Connection, sub *gr
 }
 
 // RemoveSubscription implements graphqlws.SubscriptionManager interface.
-func (m *SubscriptionManager) RemoveSubscription(conn graphqlws.Connection, sub *graphqlws.Subscription) {
+func (m *Manager) RemoveSubscription(conn graphqlws.Connection, sub *graphqlws.Subscription) {
 	m.removeSub(conn, sub)
 	m.inner.RemoveSubscription(conn, sub)
 }
 
 // RemoveSubscriptions implements graphqlws.SubscriptionManager interface.
-func (m *SubscriptionManager) RemoveSubscriptions(conn graphqlws.Connection) {
+func (m *Manager) RemoveSubscriptions(conn graphqlws.Connection) {
 	for _, sub := range m.Subscriptions()[conn] {
 		m.removeSub(conn, sub)
 	}
 	m.inner.RemoveSubscriptions(conn)
 }
 
-func (m *SubscriptionManager) makeID(conn graphqlws.Connection, sub *graphqlws.Subscription) string {
+func (m *Manager) makeID(conn graphqlws.Connection, sub *graphqlws.Subscription) string {
 	return conn.ID() + ":" + sub.ID
 }
 
-func (m *SubscriptionManager) addSub(conn graphqlws.Connection, sub *graphqlws.Subscription) {
+func (m *Manager) addSub(conn graphqlws.Connection, sub *graphqlws.Subscription) {
 	if len(sub.Fields) != 1 {
 		return
 	}
@@ -79,6 +80,13 @@ func (m *SubscriptionManager) addSub(conn graphqlws.Connection, sub *graphqlws.S
 	updates := make(chan interface{})
 	go func() {
 		for update := range updates {
+			if e, ok := update.(error); ok {
+				sub.SendData(&graphqlws.DataMessagePayload{
+					Errors: []error{gqlerrors.FormatError(e)},
+				})
+				cancel()
+				continue
+			}
 			result := graphql.Execute(graphql.ExecuteParams{
 				Schema:        *m.schema,
 				Root:          update,
@@ -96,7 +104,7 @@ func (m *SubscriptionManager) addSub(conn graphqlws.Connection, sub *graphqlws.S
 	go h(ctx, sub, updates)
 }
 
-func (m *SubscriptionManager) removeSub(conn graphqlws.Connection, sub *graphqlws.Subscription) {
+func (m *Manager) removeSub(conn graphqlws.Connection, sub *graphqlws.Subscription) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -107,13 +115,13 @@ func (m *SubscriptionManager) removeSub(conn graphqlws.Connection, sub *graphqlw
 	}
 }
 
-// NewManager creates a SubscriptionManager.
-func NewManager(ctx context.Context, schema *graphql.Schema, handlers HandlerMap) (m *SubscriptionManager) {
-	return &SubscriptionManager{
+// NewManager creates a Manager.
+func NewManager(ctx context.Context, schema *graphql.Schema, handlers HandlerMap) (m *Manager) {
+	return &Manager{
 		ctx:      ctx,
 		schema:   schema,
 		inner:    graphqlws.NewSubscriptionManager(schema),
 		handlers: handlers,
-		updaters: make(map[string]*updater),
+		updaters: map[string]*updater{},
 	}
 }

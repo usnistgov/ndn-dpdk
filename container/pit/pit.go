@@ -5,7 +5,7 @@ package pit
 #include "../../csrc/pcct/pit.h"
 
 static_assert(offsetof(PitInsertResult, pitEntry) == offsetof(PitInsertResult, csEntry), "");
-const ptrdiff_t c_PitInsertResult_EntryOffset = offsetof(PitInsertResult, pitEntry);
+enum { c_PitInsertResult_EntryOffset = offsetof(PitInsertResult, pitEntry) };
 */
 import "C"
 import (

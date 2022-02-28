@@ -110,8 +110,8 @@ func init() {
 }
 
 var (
-	subHandlers = make(gqlsub.HandlerMap)
-	subManager  *gqlsub.SubscriptionManager
+	subHandlers = gqlsub.HandlerMap{}
+	subManager  *gqlsub.Manager
 )
 
 // Prepare compiles the schema and adds handlers on http.DefaultServeMux.

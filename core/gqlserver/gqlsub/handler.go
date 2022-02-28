@@ -11,7 +11,7 @@ import (
 // Handler callback is invoked when a subscription is added to the specified field.
 //  ctx: a context that is canceled when the subscription is removed.
 //  sub: the subscription.
-//  updates: a channel for sending updates; it should be closed when Handler returns.
+//  updates: a channel for sending updates or errors; it should be closed when Handler returns.
 type Handler func(ctx context.Context, sub *graphqlws.Subscription, updates chan<- interface{})
 
 // HandlerMap is a map from field name to Handler.
