@@ -23,6 +23,11 @@ export interface TgcPattern extends InterestTemplate {
    */
   weight?: Uint;
 
+  /**
+   * @default 0
+   */
+  seqNumOffset?: Uint;
+
   digest?: DataGen;
 }
 

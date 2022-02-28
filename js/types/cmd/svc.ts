@@ -13,7 +13,7 @@ export interface ActivateArgsCommon<Roles extends string = never> {
  * Forwarder activation arguments.
  * These are provided to the 'activate' mutation in GraphQL.
  */
-export interface ActivateFwArgs extends ActivateArgsCommon<"RX" | "TX" | "CRYPTO" | "FWD">, FwdpConfig {
+export interface ActivateFwArgs extends ActivateArgsCommon<"RX" | "TX" | "CRYPTO" | "DISK" | "FWD">, FwdpConfig {
   mempool?: PktmbufPoolTemplateUpdates<"DIRECT" | "INDIRECT" | "HEADER">;
 }
 

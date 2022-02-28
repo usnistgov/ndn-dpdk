@@ -269,6 +269,11 @@ func (dp *DataPlane) Fwds() []*Fwd {
 // Close stops the data plane and releases resources.
 func (dp *DataPlane) Close() error {
 	var lcores eal.LCores
+	deferFreeLCore := func(lc eal.LCore) {
+		if lc.Valid() {
+			lcores = append(lcores, lc)
+		}
+	}
 	errs := []error{}
 
 	for _, rxl := range iface.ListRxLoops() {
@@ -284,18 +289,18 @@ func (dp *DataPlane) Close() error {
 		errs = append(errs, dp.ndt.Close())
 	}
 	for _, fwc := range dp.fwcs {
-		lcores = append(lcores, fwc.LCore())
+		deferFreeLCore(fwc.LCore())
 		errs = append(errs, fwc.Close())
 	}
 	for _, fwcsh := range dp.fwcsh {
 		errs = append(errs, fwcsh.Close())
 	}
 	if dp.fwdisk != nil {
-		lcores = append(lcores, dp.fwdisk.LCore())
+		deferFreeLCore(dp.fwdisk.LCore())
 		errs = append(errs, dp.fwdisk.Close())
 	}
 	for _, fwd := range dp.fwds {
-		lcores = append(lcores, fwd.LCore())
+		deferFreeLCore(fwd.LCore())
 		errs = append(errs, fwd.Close())
 	}
 	for _, fwi := range dp.fwis {
