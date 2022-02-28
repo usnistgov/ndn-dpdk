@@ -118,6 +118,15 @@ func TestStore(t *testing.T) {
 	}
 
 	assert.Zero(packetPool.CountInUse())
+
+	cnt := f.Store.Counters()
+	assert.EqualValues(3, cnt.NPutDataBegin)
+	assert.EqualValues(2, cnt.NPutDataSuccess)
+	assert.EqualValues(1, cnt.NPutDataFailure)
+	assert.EqualValues(4, cnt.NGetDataBegin)
+	assert.EqualValues(0, cnt.NGetDataReuse)
+	assert.EqualValues(2, cnt.NGetDataSuccess)
+	assert.EqualValues(2, cnt.NGetDataFailure)
 }
 
 func TestStoreQueue(t *testing.T) {
@@ -136,7 +145,7 @@ func TestStoreQueue(t *testing.T) {
 	dataLen1a := f.PutData(1, "/A/1", make([]byte, 1777))
 	var wg sync.WaitGroup
 	for k := 0; k < 2; k++ {
-		wg.Add(4)
+		wg.Add(8)
 		for i := 0; i < 4; i++ {
 			go func(k, i int) {
 				defer wg.Done()
@@ -145,7 +154,21 @@ func TestStoreQueue(t *testing.T) {
 					data.Close()
 				}
 			}(k, i)
+			go func(k, i int) {
+				defer wg.Done()
+				data := f.GetData(7, 1024, "/A/1")
+				assert.Nil(data, "%d %d", k, i)
+			}(k, i)
 		}
 		wg.Wait()
 	}
+
+	cnt := f.Store.Counters()
+	assert.EqualValues(1, cnt.NPutDataBegin)
+	assert.EqualValues(1, cnt.NPutDataSuccess)
+	assert.EqualValues(0, cnt.NPutDataFailure)
+	assert.EqualValues(16, cnt.NGetDataBegin+cnt.NGetDataReuse)
+	assert.GreaterOrEqual(cnt.NGetDataReuse, uint64(4))
+	assert.EqualValues(8, cnt.NGetDataSuccess)
+	assert.EqualValues(8, cnt.NGetDataFailure)
 }

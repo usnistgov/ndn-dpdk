@@ -53,6 +53,13 @@ struct DiskStore
   struct spdk_io_channel* ch;
   DiskStore_GetDataCb getDataCb;
   uintptr_t getDataCtx;
+
+  uint64_t nPutDataBegin;
+  uint64_t nPutDataFinish[2]; // 0=failure, 1=success
+  uint64_t nGetDataBegin;
+  uint64_t nGetDataReuse;
+  uint64_t nGetDataSuccess;
+  uint64_t nGetDataFailure;
 };
 
 /**

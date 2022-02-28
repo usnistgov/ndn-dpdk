@@ -25,8 +25,9 @@ DiskStoreSlimRequest_FromPacket(Packet* npkt)
 }
 
 __attribute__((nonnull)) static inline void
-PutData_Finish(__rte_unused DiskStore* store, Packet* npkt, __rte_unused int res)
+PutData_Finish(__rte_unused DiskStore* store, Packet* npkt, int res)
 {
+  ++store->nPutDataFinish[(int)(res == 0)];
   rte_pktmbuf_free(Packet_ToMbuf(npkt));
 }
 
@@ -36,6 +37,7 @@ PutData_End(BdevRequest* breq, int res);
 __attribute__((nonnull)) static inline void
 PutData_Begin(DiskStore* store, DiskStoreRequest* req, Packet* npkt, uint64_t slotID)
 {
+  ++store->nPutDataBegin;
   N_LOGD("PutData begin slot=%" PRIu64 " npkt=%p", slotID, npkt);
   uint64_t blockOffset = slotID * store->nBlocksPerSlot;
   Bdev_WritePacket(&store->bdev, store->ch, req->pkt, blockOffset, PutData_End, &req->breq);
@@ -45,7 +47,10 @@ __attribute__((nonnull)) static inline void
 GetData_Finish(DiskStore* store, Packet* npkt, int res)
 {
   PInterest* interest = Packet_GetInterestHdr(npkt);
-  if (unlikely(res != 0)) {
+  if (likely(res == 0)) {
+    ++store->nGetDataSuccess;
+  } else {
+    ++store->nGetDataFailure;
     rte_pktmbuf_free(Packet_ToMbuf(interest->diskData));
     interest->diskData = NULL;
   }
@@ -58,6 +63,7 @@ GetData_End(BdevRequest* breq, int res);
 __attribute__((nonnull)) static inline void
 GetData_Begin(DiskStore* store, DiskStoreRequest* req, Packet* npkt, uint64_t slotID)
 {
+  ++store->nGetDataBegin;
   N_LOGD("GetData begin slot=%" PRIu64 " npkt=%p", slotID, npkt);
   uint64_t blockOffset = slotID * store->nBlocksPerSlot;
   PInterest* interest = Packet_GetInterestHdr(npkt);
@@ -65,7 +71,7 @@ GetData_Begin(DiskStore* store, DiskStoreRequest* req, Packet* npkt, uint64_t sl
                   GetData_End, &req->breq);
 }
 
-__attribute__((nonnull)) static inline void
+__attribute__((nonnull)) static void
 DiskStore_ProcessQueue(DiskStore* store, DiskStoreRequest* head, struct rte_mbuf* dataPkt, int res)
 {
   uint64_t slotID = head->s.slotID;
@@ -79,8 +85,9 @@ DiskStore_ProcessQueue(DiskStore* store, DiskStoreRequest* head, struct rte_mbuf
       return;
     }
 
+    ++store->nGetDataReuse;
     if (unlikely(res != 0)) {
-      // if current request failed, subsequent GetData requests will fail too
+      // current request failed, subsequent GetData requests will fail too
       GetData_Finish(store, head->npkt, res);
       continue;
     }

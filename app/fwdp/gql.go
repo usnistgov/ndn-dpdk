@@ -9,6 +9,7 @@ import (
 
 	"github.com/graphql-go/graphql"
 	"github.com/usnistgov/ndn-dpdk/container/cs"
+	"github.com/usnistgov/ndn-dpdk/container/disk"
 	"github.com/usnistgov/ndn-dpdk/container/pit"
 	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
 	"github.com/usnistgov/ndn-dpdk/core/runningstat"
@@ -195,6 +196,17 @@ func init() {
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					dp := p.Source.(*DataPlane)
 					return dp.fwds, nil
+				},
+			},
+			"diskCounters": &graphql.Field{
+				Description: "Disk store counters.",
+				Type:        disk.GqlStoreCountersType,
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					dp := p.Source.(*DataPlane)
+					if dp.fwdisk == nil {
+						return nil, nil
+					}
+					return dp.fwdisk.store.Counters(), nil
 				},
 			},
 		},
