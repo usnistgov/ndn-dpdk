@@ -59,7 +59,8 @@ export class Snapshot {
   public add(other: Readonly<Snapshot>): Snapshot {
     if (this.len === 0n) {
       return new Snapshot(other.toJSON());
-    } if (other.len === 0n) {
+    }
+    if (other.len === 0n) {
       return new Snapshot(this.toJSON());
     }
 

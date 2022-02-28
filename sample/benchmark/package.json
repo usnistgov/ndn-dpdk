@@ -4,14 +4,14 @@
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
-  "packageManager": "pnpm@6.31.0",
+  "packageManager": "pnpm@6.32.2",
   "dependencies": {
     "@strattadb/environment": "^8.0.2",
-    "@typescript/lib-dom": "npm:@types/web@0.0.46",
+    "@typescript/lib-dom": "npm:@types/web@0.0.53",
     "@usnistgov/ndn-dpdk": "file:/usr/local/share/ndn-dpdk/ndn-dpdk.npm.tgz",
     "delay": "^5.0.0",
-    "dotenv": "^15.0.1",
-    "fastify": "^3.27.1",
+    "dotenv": "^16.0.0",
+    "fastify": "^3.27.2",
     "fastify-express": "^0.3.3",
     "fastify-http-proxy": "^6.2.2",
     "fastify-static": "^4.5.0",
@@ -21,7 +21,7 @@
     "ts-loader": "^9.2.6",
     "tslib": "^2.3.1",
     "typescript": "~4.5.5",
-    "webpack": "^5.68.0",
+    "webpack": "^5.69.1",
     "webpack-dev-middleware": "^5.3.1"
   },
   "engines": {

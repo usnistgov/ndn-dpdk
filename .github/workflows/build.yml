@@ -61,13 +61,14 @@ jobs:
         env:
           CXX: false
           URINGVER: liburing-2.1
-      - uses: actions/cache@v2
+      - name: cache DPDK and SPDK
+        uses: actions/cache@v2
         with:
           path: ~/setup-dpdk
-          key: ${{ matrix.compiler }}_${{ steps.compilers.outputs.meson }}_20220216
+          key: ${{ matrix.compiler }}_${{ steps.compilers.outputs.meson }}_20220228
       - uses: yoursunny/setup-dpdk@main
         with:
-          dpdk-version: '22.03-rc1'
+          dpdk-version: '22.03-rc2'
           spdk-version: '22.01'
           target-arch: haswell
       - uses: actions/checkout@v2
