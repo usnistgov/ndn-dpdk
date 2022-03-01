@@ -7,6 +7,7 @@ import "C"
 import (
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"path"
 	"unsafe"
@@ -34,6 +35,11 @@ type DiskConfig struct {
 	// If this is set to DiskMalloc, the disk helper creates a memory-backed bdev as a simulated disk.
 	Filename string `json:"filename"`
 
+	// Overprovision is the ratio of block device size divided by CS disk capacity.
+	// Setting this above 1.00 can reduce disk full errors due to some slots still occupied by async I/O.
+	// Default is 1.05.
+	Overprovision float64 `json:"overprovision"`
+
 	// Bdev specifies the block device.
 	// If set, Filename are ignored.
 	Bdev bdev.Device `json:"-"`
@@ -41,16 +47,21 @@ type DiskConfig struct {
 	csDiskCapacity int
 }
 
-func (cfg *DiskConfig) createDevice(minBlocks int64) (bdev.Device, error) {
+func (cfg *DiskConfig) createDevice(nBlocks int64) (bdev.Device, error) {
 	if cfg.Bdev != nil {
 		return cfg.Bdev, nil
 	}
+
+	if !(cfg.Overprovision >= 1.0) {
+		cfg.Overprovision = 1.05
+	}
+	nBlocks = int64(math.Ceil(float64(nBlocks) * cfg.Overprovision))
 
 	if cfg.Filename == "" {
 		return nil, errors.New("filename is missing")
 	}
 	if cfg.Filename == DiskMalloc {
-		return bdev.NewMalloc(disk.BlockSize, minBlocks)
+		return bdev.NewMalloc(disk.BlockSize, nBlocks)
 	}
 
 	cfg.Filename = path.Clean(cfg.Filename)
@@ -58,7 +69,7 @@ func (cfg *DiskConfig) createDevice(minBlocks int64) (bdev.Device, error) {
 	if e != nil {
 		return nil, fmt.Errorf("os.Create(%s) error: %w", cfg.Filename, e)
 	}
-	size := disk.BlockSize * int64(minBlocks)
+	size := disk.BlockSize * int64(nBlocks)
 	if e := file.Truncate(size); e != nil {
 		return nil, fmt.Errorf("file.Truncate(%d) error: %w", size, e)
 	}
@@ -116,7 +127,7 @@ func (fwdisk *Disk) Init(lc eal.LCore, demuxPrep *demuxPreparer, cfg DiskConfig)
 
 	fwdisk.allocs = map[int]*disk.Alloc{}
 	for i, fwd := range demuxPrep.Fwds {
-		alloc := calc.CreateAlloc(i, fwd.NumaSocket())
+		alloc := disk.NewAllocIn(fwdisk.store, i, len(demuxPrep.Fwds), fwd.NumaSocket())
 		fwdisk.allocs[fwd.id] = alloc
 		if e = fwd.Cs().SetDisk(fwdisk.store, alloc); e != nil {
 			return fmt.Errorf("Cs[%d].SetDisk: %w", fwd.id, e)

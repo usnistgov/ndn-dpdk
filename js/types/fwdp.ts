@@ -29,4 +29,10 @@ export interface FwdpCryptoConfig {
 
 export interface FwdpDiskConfig {
   filename: string | "Malloc";
+
+  /**
+   * @min 1.00
+   * @default 1.05
+   */
+  overprovision?: number;
 }

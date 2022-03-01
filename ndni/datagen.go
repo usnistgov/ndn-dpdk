@@ -61,8 +61,7 @@ DecodeLoop:
 		logger.Panic("mbuf.Append error", zap.Error(e))
 	}
 
-	c := gen.ptr()
-	*c = C.DataGen{
+	*gen = DataGen{
 		tpl:     (*C.struct_rte_mbuf)(m.Ptr()),
 		suffixL: C.uint16_t(nameL),
 	}
@@ -70,9 +69,9 @@ DecodeLoop:
 
 // Close discards this DataGen.
 func (gen *DataGen) Close() error {
-	c := gen.ptr()
-	defer func() { c.tpl = nil }()
-	return pktmbuf.PacketFromPtr(unsafe.Pointer(c.tpl)).Close()
+	tpl := gen.tpl
+	gen.tpl = nil
+	return pktmbuf.PacketFromPtr(unsafe.Pointer(tpl)).Close()
 }
 
 // Encode encodes a Data packet.

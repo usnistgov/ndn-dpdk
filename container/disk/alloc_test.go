@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/usnistgov/ndn-dpdk/container/disk"
+	"github.com/usnistgov/ndn-dpdk/dpdk/bdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
@@ -64,13 +65,17 @@ func TestSizeCalc(t *testing.T) {
 	assert.Equal(10, calc.BlocksPerSlot())
 	assert.Equal(int64(40010), calc.MinBlocks())
 
-	a0 := calc.CreateAlloc(0, eal.NumaSocket{})
+	f := NewStoreFixture(t)
+	f.AddDevice(bdev.NewMalloc(disk.BlockSize, calc.MinBlocks()))
+	f.MakeStore(calc.BlocksPerSlot())
+
+	a0 := disk.NewAllocIn(f.Store, 0, calc.NThreads, eal.NumaSocket{})
 	defer a0.Close()
 	min0, max0 := a0.SlotRange()
 	assert.Equal(uint64(1), min0)
 	assert.Equal(uint64(1000), max0)
 
-	a3 := calc.CreateAlloc(3, eal.NumaSocket{})
+	a3 := disk.NewAllocIn(f.Store, 3, calc.NThreads, eal.NumaSocket{})
 	defer a3.Close()
 	min3, max3 := a3.SlotRange()
 	assert.Equal(uint64(3001), min3)

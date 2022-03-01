@@ -28,7 +28,7 @@ struct CsEntry
     Packet* data;
 
     /**
-     * @brief The Data packet.
+     * @brief Disk slot containing the Data packet.
      * @pre kind == CsEntryDisk
      */
     uint64_t diskSlot;
