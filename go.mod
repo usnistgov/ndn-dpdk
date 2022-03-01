@@ -33,10 +33,10 @@ require (
 	github.com/urfave/cli/v2 v2.3.0
 	github.com/vishvananda/netlink v1.1.0
 	github.com/xeipuuv/gojsonschema v1.2.0
-	go.uber.org/multierr v1.7.0
+	go.uber.org/multierr v1.8.0
 	go.uber.org/zap v1.21.0
 	go4.org v0.0.0-20201209231011-d4a079459e60
-	golang.org/x/sys v0.0.0-20220224120231-95c6836cb0e7
+	golang.org/x/sys v0.0.0-20220227234510-4e6760a101f9
 	inet.af/netaddr v0.0.0-20211027220019-c74959edd3b6
 )
 
@@ -64,9 +64,8 @@ require (
 	go.uber.org/atomic v1.7.0 // indirect
 	go4.org/intern v0.0.0-20211027215823-ae77deb06f29 // indirect
 	go4.org/unsafe/assume-no-moving-gc v0.0.0-20211027215541-db492cf91b37 // indirect
-	golang.org/x/crypto v0.0.0-20211108221036-ceb1ce70b4fa // indirect
-	golang.org/x/net v0.0.0-20211111083644-e5c967477495 // indirect
-	golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1 // indirect
+	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
+	golang.org/x/net v0.0.0-20210428140749-89ef3d95e781 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )

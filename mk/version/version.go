@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"strconv"
 	"time"
-
-	"github.com/graphql-go/graphql"
 )
 
 // Variables replaced via -ldflags -X.
@@ -48,27 +46,4 @@ func Get() (v Version) {
 	}
 	v.Version = fmt.Sprintf("v0.0.0-%s-%s%s", v.Date.Format("20060102150405"), commit[:12], dirtySuffix)
 	return
-}
-
-// GqlVersionType is the GraphQL type for Version struct.
-var GqlVersionType *graphql.Object
-
-func init() {
-	GqlVersionType = graphql.NewObject(graphql.ObjectConfig{
-		Name: "Version",
-		Fields: graphql.Fields{
-			"version": &graphql.Field{
-				Type: graphql.String,
-			},
-			"commit": &graphql.Field{
-				Type: graphql.String,
-			},
-			"date": &graphql.Field{
-				Type: graphql.DateTime,
-			},
-			"dirty": &graphql.Field{
-				Type: graphql.Boolean,
-			},
-		},
-	})
 }

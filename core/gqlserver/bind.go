@@ -61,10 +61,14 @@ func (m FieldTypes) resolveType(typ reflect.Type) graphql.Type {
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32,
 		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32:
 		return NonNullInt
+	case reflect.Uint64:
+		return NonNullUint64
+	case reflect.Int64:
+		return NonNullInt64
 	case reflect.Float32, reflect.Float64:
 		// NaN is null, so this would not allow NaN
 		return graphql.NewNonNull(graphql.Float)
-	case reflect.Uint64, reflect.Int64, reflect.String:
+	case reflect.String:
 		return NonNullString
 	}
 

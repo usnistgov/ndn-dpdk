@@ -5,15 +5,14 @@ package gqlserver
 import (
 	"context"
 	"net/http"
+	"reflect"
 	"time"
 
 	"github.com/bhoriuchi/graphql-go-tools/handler"
 	"github.com/functionalfoundry/graphqlws"
 	"github.com/graphql-go/graphql"
 	"github.com/sirupsen/logrus"
-	"github.com/usnistgov/ndn-dpdk/core/gqlserver/gqlsub"
 	"github.com/usnistgov/ndn-dpdk/core/logging"
-	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/mk/version"
 	"go.uber.org/zap"
 )
@@ -62,57 +61,30 @@ func AddMutation(f *graphql.Field) {
 }
 
 // AddSubscription adds a top-level subscription field.
-func AddSubscription(f *graphql.Field, h gqlsub.Handler) {
+func AddSubscription(f *graphql.Field) {
+	if f.Resolve == nil {
+		f.Resolve = func(p graphql.ResolveParams) (interface{}, error) {
+			return p.Info.RootValue, nil
+		}
+	}
 	Schema.Subscription.AddFieldConfig(f.Name, f)
-	subHandlers[f.Name] = h
 }
 
 func init() {
+	versionType := graphql.NewObject(graphql.ObjectConfig{
+		Name: "Version",
+		Fields: BindFields(version.Version{}, FieldTypes{
+			reflect.TypeOf(time.Time{}): graphql.DateTime,
+		}),
+	})
 	AddQuery(&graphql.Field{
 		Name: "version",
-		Type: graphql.NewNonNull(version.GqlVersionType),
+		Type: graphql.NewNonNull(versionType),
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 			return version.Get(), nil
 		},
 	})
-
-	AddSubscription(&graphql.Field{
-		Name:        "tick",
-		Description: "time.Ticker subscription for testing subscription implementations.",
-		Type:        graphql.NewNonNull(graphql.DateTime),
-		Args: graphql.FieldConfigArgument{
-			"interval": &graphql.ArgumentConfig{
-				Type: graphql.NewNonNull(nnduration.GqlNanoseconds),
-			},
-		},
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-			t := p.Info.RootValue.(time.Time)
-			return t, nil
-		},
-	}, func(ctx context.Context, sub *graphqlws.Subscription, updates chan<- interface{}) {
-		defer close(updates)
-
-		interval, ok := gqlsub.GetArg(sub, "interval", nnduration.GqlNanoseconds).(nnduration.Nanoseconds)
-		if !ok {
-			return
-		}
-
-		ticker := time.NewTicker(interval.Duration())
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case t := <-ticker.C:
-				updates <- t
-			}
-		}
-	})
 }
-
-var (
-	subHandlers = gqlsub.HandlerMap{}
-	subManager  *gqlsub.Manager
-)
 
 // Prepare compiles the schema and adds handlers on http.DefaultServeMux.
 func Prepare() {
@@ -126,9 +98,8 @@ func Prepare() {
 	Schema = nil
 
 	logrus.SetLevel(logrus.PanicLevel)
-	subManager = gqlsub.NewManager(context.Background(), &sch, subHandlers)
 	http.Handle("/subscriptions", graphqlws.NewHandler(graphqlws.HandlerConfig{
-		SubscriptionManager: subManager,
+		SubscriptionManager: newSubManager(context.Background(), &sch),
 	}))
 
 	http.Handle("/", handler.New(&handler.Config{

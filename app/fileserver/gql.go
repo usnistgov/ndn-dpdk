@@ -53,7 +53,7 @@ func init() {
 			"counters": &graphql.Field{
 				Description: "Counters.",
 				Type:        graphql.NewNonNull(GqlCountersType),
-				Resolve:     gqlserver.MethodResolver("Counters"),
+				Resolve:     gqlserver.MethodResolver((*Server)(nil), "Counters"),
 			},
 		}),
 	}))

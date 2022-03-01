@@ -10,9 +10,14 @@ import (
 
 // Scalar types.
 var (
-	JSON           = tools_scalars.ScalarJSON
+	JSON   = tools_scalars.ScalarJSON
+	Bytes  = go2gql_scalars.GraphQLBytesScalar
+	Uint64 = go2gql_scalars.GraphQLUInt64Scalar
+	Int64  = go2gql_scalars.GraphQLInt64Scalar
+
 	NonNullJSON    = graphql.NewNonNull(JSON)
-	Bytes          = go2gql_scalars.GraphQLBytesScalar
+	NonNullUint64  = graphql.NewNonNull(Uint64)
+	NonNullInt64   = graphql.NewNonNull(Int64)
 	NonNullID      = graphql.NewNonNull(graphql.ID)
 	NonNullBoolean = graphql.NewNonNull(graphql.Boolean)
 	NonNullInt     = graphql.NewNonNull(graphql.Int)
@@ -72,11 +77,16 @@ func Optional(value interface{}, optionalValid ...bool) interface{} {
 }
 
 // MethodResolver creates a FieldResolveFn that invokes the named method with p.Source receiver and no arguments.
-func MethodResolver(methodName string) graphql.FieldResolveFn {
+func MethodResolver(value interface{}, methodName string) graphql.FieldResolveFn {
+	typ := reflect.TypeOf(value)
+	method, ok := typ.MethodByName(methodName)
+	if !ok || !method.IsExported() || method.Type.NumIn() != 1 ||
+		method.Type.NumOut() != 1 {
+		panic("cannot create MethodResolver")
+	}
 	return func(p graphql.ResolveParams) (interface{}, error) {
 		val := reflect.ValueOf(p.Source)
-		method := val.MethodByName(methodName)
-		result := method.Call(nil)
+		result := method.Func.Call([]reflect.Value{val})
 		return result[0].Interface(), nil
 	}
 }

@@ -1,11 +1,8 @@
 package tg
 
 import (
-	"context"
 	"errors"
-	"time"
 
-	"github.com/functionalfoundry/graphqlws"
 	"github.com/graphql-go/graphql"
 	"github.com/usnistgov/ndn-dpdk/app/fetch"
 	"github.com/usnistgov/ndn-dpdk/app/fileserver"
@@ -13,9 +10,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/app/tgconsumer"
 	"github.com/usnistgov/ndn-dpdk/app/tgproducer"
 	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
-	"github.com/usnistgov/ndn-dpdk/core/gqlserver/gqlsub"
 	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
-	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"go4.org/must"
 )
@@ -164,49 +159,23 @@ func init() {
 	gqlserver.AddSubscription(&graphql.Field{
 		Name:        "tgCounters",
 		Description: "Obtain traffic generator counters.",
-		Args: graphql.FieldConfigArgument{
+		Args: gqlserver.IntervalArgs((*TrafficGen)(nil), graphql.FieldConfigArgument{
 			"id": &graphql.ArgumentConfig{
 				Description: "Traffic generator ID.",
 				Type:        gqlserver.NonNullID,
 			},
-			"interval": &graphql.ArgumentConfig{
-				Description: "Interval between updates.",
-				Type:        nnduration.GqlNanoseconds,
-			},
-		},
+		}),
 		Type: GqlCountersType,
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-			return p.Info.RootValue.(*TrafficGen), nil
-		},
-	}, func(ctx context.Context, sub *graphqlws.Subscription, updates chan<- interface{}) {
-		defer close(updates)
-
-		id, ok := gqlsub.GetArg(sub, "id", graphql.ID).(string)
-		if !ok {
-			return
-		}
-
-		var gen *TrafficGen
-		if e := gqlserver.RetrieveNodeOfType(GqlTrafficGenNodeType, id, &gen); e != nil {
-			return
-		}
-
-		interval, ok := gqlsub.GetArg(sub, "interval", nnduration.GqlNanoseconds).(nnduration.Nanoseconds)
-		if !ok {
-			return
-		}
-
-		ticker := time.NewTicker(interval.Duration())
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-gen.exit:
-				return
-			case <-ticker.C:
-				updates <- gen
+		Subscribe: func(p graphql.ResolveParams) (interface{}, error) {
+			id := p.Args["id"].(string)
+			var gen *TrafficGen
+			if e := gqlserver.RetrieveNodeOfType(GqlTrafficGenNodeType, id, &gen); e != nil {
+				return nil, e
 			}
-		}
+
+			return gqlserver.PublishInterval(p, func() interface{} {
+				return gen
+			}, gen.exit)
+		},
 	})
 }

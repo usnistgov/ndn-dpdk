@@ -1,16 +1,11 @@
 package ealthread
 
 import (
-	"context"
 	"errors"
 	"strconv"
-	"time"
 
-	"github.com/functionalfoundry/graphqlws"
 	"github.com/graphql-go/graphql"
 	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
-	"github.com/usnistgov/ndn-dpdk/core/gqlserver/gqlsub"
-	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
@@ -99,67 +94,35 @@ func init() {
 		Fields: gqlserver.BindFields(LoadStat{}, nil),
 	})
 
-	threadLoadStatDefaultInterval := nnduration.Nanoseconds(time.Second)
 	gqlserver.AddSubscription(&graphql.Field{
 		Name:        "threadLoadStat",
 		Description: "Obtain thread load statistics.",
-		Args: graphql.FieldConfigArgument{
+		Args: gqlserver.IntervalArgs(LoadStat{}, graphql.FieldConfigArgument{
 			"id": &graphql.ArgumentConfig{
 				Description: "Worker ID.",
 				Type:        gqlserver.NonNullID,
 			},
-			"interval": &graphql.ArgumentConfig{
-				Description:  "Interval between updates.",
-				Type:         nnduration.GqlNanoseconds,
-				DefaultValue: threadLoadStatDefaultInterval,
-			},
-		},
+		}),
 		Type: GqlLoadStatType,
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-			return p.Info.RootValue.(LoadStat), nil
-		},
-	}, func(ctx context.Context, sub *graphqlws.Subscription, updates chan<- interface{}) {
-		defer close(updates)
-
-		id, ok := gqlsub.GetArg(sub, "id", graphql.ID).(string)
-		if !ok {
-			updates <- errors.New("bad id")
-			return
-		}
-		var lc eal.LCore
-		if e := gqlserver.RetrieveNodeOfType(GqlWorkerNodeType, id, &lc); e != nil {
-			updates <- errors.New("worker not found")
-			return
-		}
-		thObj, ok := activeThread.Load(lc)
-		if !ok {
-			updates <- errors.New("thread not found")
-			return
-		}
-		th, ok := thObj.(ThreadWithLoadStat)
-		if !ok {
-			updates <- errors.New("thread does not support load statistics")
-			return
-		}
-
-		interval, _ := gqlsub.GetArg(sub, "interval", nnduration.GqlNanoseconds).(nnduration.Nanoseconds)
-
-		prev := th.ThreadLoadStat()
-		ticker := time.NewTicker(interval.DurationOr(threadLoadStatDefaultInterval))
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-th.threadImpl().stopped:
-				updates <- errors.New("thread stopped")
-				return
-			case <-ticker.C:
-				stat := th.ThreadLoadStat()
-				updates <- stat.Sub(prev)
-				prev = stat
+		Subscribe: func(p graphql.ResolveParams) (interface{}, error) {
+			id := p.Args["id"].(string)
+			var lc eal.LCore
+			if e := gqlserver.RetrieveNodeOfType(GqlWorkerNodeType, id, &lc); e != nil {
+				return nil, e
 			}
-		}
+			thObj, ok := activeThread.Load(lc)
+			if !ok {
+				return nil, errors.New("thread not found")
+			}
+			th, ok := thObj.(ThreadWithLoadStat)
+			if !ok {
+				return nil, errors.New("thread does not support load statistics")
+			}
+
+			return gqlserver.PublishInterval(p, func() interface{} {
+				return th.ThreadLoadStat()
+			}, th.threadImpl().stopped)
+		},
 	})
 }
 

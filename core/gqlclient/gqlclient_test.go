@@ -28,7 +28,7 @@ func TestClient(t *testing.T) {
 	assert.NoError(e)
 	assert.NotZero(reply.Version)
 
-	ticks := make(chan time.Time, 20)
+	ticks := make(chan int, 20)
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	e = c.Subscribe(ctx, `

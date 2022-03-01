@@ -10,6 +10,11 @@ type Snapshot struct {
 	v runningStat
 }
 
+var (
+	_ json.Marshaler   = Snapshot{}
+	_ json.Unmarshaler = (*Snapshot)(nil)
+)
+
 // Count returns number of inputs.
 func (s Snapshot) Count() uint64 {
 	return s.v.I
