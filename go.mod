@@ -5,6 +5,7 @@ go 1.17
 require (
 	github.com/EGT-Ukraine/go2gql v0.0.0-20190528134259-79533208556f
 	github.com/FDio/vpp v21.10.1+incompatible
+	github.com/VojtechVitek/mergemaps v0.0.0-20141203190546-051fb3759de5
 	github.com/bhoriuchi/graphql-go-tools v0.3.2
 	github.com/c9s/goprocinfo v0.0.0-20210130143923-c95fcf8c64a8
 	github.com/coreos/go-systemd/v22 v22.3.2

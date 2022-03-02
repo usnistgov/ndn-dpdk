@@ -1,7 +1,6 @@
 package ealthread
 
 import (
-	"errors"
 	"strconv"
 
 	"github.com/graphql-go/graphql"
@@ -93,35 +92,38 @@ func init() {
 		Name:   "ThreadLoadStat",
 		Fields: gqlserver.BindFields(LoadStat{}, nil),
 	})
-
-	gqlserver.AddSubscription(&graphql.Field{
-		Name:        "threadLoadStat",
-		Description: "Obtain thread load statistics.",
-		Args: gqlserver.IntervalArgs(LoadStat{}, graphql.FieldConfigArgument{
+	gqlserver.AddCounters(&gqlserver.Counters{
+		Description:  "Thread load statistics.",
+		Type:         GqlLoadStatType,
+		Value:        LoadStat{},
+		Parent:       GqlWorkerType,
+		Name:         "loadStat",
+		Subscription: "threadLoadStat",
+		FindArgs: graphql.FieldConfigArgument{
 			"id": &graphql.ArgumentConfig{
 				Description: "Worker ID.",
 				Type:        gqlserver.NonNullID,
 			},
-		}),
-		Type: GqlLoadStatType,
-		Subscribe: func(p graphql.ResolveParams) (interface{}, error) {
+		},
+		Find: func(p graphql.ResolveParams) (root interface{}, enders []interface{}, e error) {
 			id := p.Args["id"].(string)
 			var lc eal.LCore
 			if e := gqlserver.RetrieveNodeOfType(GqlWorkerNodeType, id, &lc); e != nil {
-				return nil, e
+				return nil, nil, e
 			}
+			return lc, nil, nil
+		},
+		Read: func(p graphql.ResolveParams) (interface{}, error) {
+			lc := p.Source.(eal.LCore)
 			thObj, ok := activeThread.Load(lc)
 			if !ok {
-				return nil, errors.New("thread not found")
+				return nil, nil
 			}
 			th, ok := thObj.(ThreadWithLoadStat)
 			if !ok {
-				return nil, errors.New("thread does not support load statistics")
+				return nil, nil
 			}
-
-			return gqlserver.PublishInterval(p, func() interface{} {
-				return th.ThreadLoadStat()
-			}, th.threadImpl().stopped)
+			return th.ThreadLoadStat(), nil
 		},
 	})
 }

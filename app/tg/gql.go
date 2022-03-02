@@ -156,26 +156,27 @@ func init() {
 		},
 	})
 
-	gqlserver.AddSubscription(&graphql.Field{
-		Name:        "tgCounters",
-		Description: "Obtain traffic generator counters.",
-		Args: gqlserver.IntervalArgs((*TrafficGen)(nil), graphql.FieldConfigArgument{
+	gqlserver.AddCounters(&gqlserver.Counters{
+		Description:  "Obtain traffic generator counters.",
+		Type:         GqlCountersType,
+		Value:        (*TrafficGen)(nil),
+		Subscription: "tgCounters",
+		FindArgs: graphql.FieldConfigArgument{
 			"id": &graphql.ArgumentConfig{
 				Description: "Traffic generator ID.",
 				Type:        gqlserver.NonNullID,
 			},
-		}),
-		Type: GqlCountersType,
-		Subscribe: func(p graphql.ResolveParams) (interface{}, error) {
+		},
+		Find: func(p graphql.ResolveParams) (root interface{}, enders []interface{}, e error) {
 			id := p.Args["id"].(string)
 			var gen *TrafficGen
 			if e := gqlserver.RetrieveNodeOfType(GqlTrafficGenNodeType, id, &gen); e != nil {
-				return nil, e
+				return nil, nil, e
 			}
-
-			return gqlserver.PublishInterval(p, func() interface{} {
-				return gen
-			}, gen.exit)
+			return gen, []interface{}{gen.exit}, nil
+		},
+		Read: func(p graphql.ResolveParams) (interface{}, error) {
+			return p.Source.(*TrafficGen), nil
 		},
 	})
 }

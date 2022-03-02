@@ -23,11 +23,11 @@ var (
 // GraphQL types.
 var (
 	GqlPktQueueInput  *graphql.InputObject
+	GqlFaceNodeType   *gqlserver.NodeType
+	GqlFaceType       *graphql.Object
 	GqlRxCountersType *graphql.Object
 	GqlTxCountersType *graphql.Object
 	GqlCountersType   *graphql.Object
-	GqlFaceNodeType   *gqlserver.NodeType
-	GqlFaceType       *graphql.Object
 )
 
 func init() {
@@ -36,22 +36,6 @@ func init() {
 		Description: "Packet queue configuration.",
 		Fields: gqlserver.BindInputFields(PktQueueConfig{}, gqlserver.FieldTypes{
 			reflect.TypeOf(nnduration.Nanoseconds(0)): nnduration.GqlNanoseconds,
-		}),
-	})
-
-	GqlRxCountersType = graphql.NewObject(graphql.ObjectConfig{
-		Name:   "FaceRxCounters",
-		Fields: gqlserver.BindFields(RxCounters{}, nil),
-	})
-	GqlTxCountersType = graphql.NewObject(graphql.ObjectConfig{
-		Name:   "FaceTxCounters",
-		Fields: gqlserver.BindFields(TxCounters{}, nil),
-	})
-	GqlCountersType = graphql.NewObject(graphql.ObjectConfig{
-		Name: "FaceCounters",
-		Fields: gqlserver.BindFields(Counters{}, gqlserver.FieldTypes{
-			reflect.TypeOf(RxCounters{}): GqlRxCountersType,
-			reflect.TypeOf(TxCounters{}): GqlTxCountersType,
 		}),
 	})
 
@@ -91,14 +75,6 @@ func init() {
 				},
 			},
 			"numaSocket": eal.GqlWithNumaSocket,
-			"counters": &graphql.Field{
-				Type:        GqlCountersType,
-				Description: "Face counters.",
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					face := p.Source.(Face)
-					return face.Counters(), nil
-				},
-			},
 			"txLoop": &graphql.Field{
 				Type:        ealthread.GqlWorkerType,
 				Description: "TxLoop serving this face.",
@@ -145,6 +121,48 @@ func init() {
 				return nil, e
 			}
 			return locw.Locator.CreateFace()
+		},
+	})
+
+	GqlRxCountersType = graphql.NewObject(graphql.ObjectConfig{
+		Name:   "FaceRxCounters",
+		Fields: gqlserver.BindFields(RxCounters{}, nil),
+	})
+	GqlTxCountersType = graphql.NewObject(graphql.ObjectConfig{
+		Name:   "FaceTxCounters",
+		Fields: gqlserver.BindFields(TxCounters{}, nil),
+	})
+	GqlCountersType = graphql.NewObject(graphql.ObjectConfig{
+		Name: "FaceCounters",
+		Fields: gqlserver.BindFields(Counters{}, gqlserver.FieldTypes{
+			reflect.TypeOf(RxCounters{}): GqlRxCountersType,
+			reflect.TypeOf(TxCounters{}): GqlTxCountersType,
+		}),
+	})
+	gqlserver.AddCounters(&gqlserver.Counters{
+		Description:  "Face counters.",
+		Type:         GqlCountersType,
+		Value:        Counters{},
+		Parent:       GqlFaceType,
+		Name:         "counters",
+		Subscription: "faceCounters",
+		FindArgs: graphql.FieldConfigArgument{
+			"id": &graphql.ArgumentConfig{
+				Description: "Face ID.",
+				Type:        gqlserver.NonNullID,
+			},
+		},
+		Find: func(p graphql.ResolveParams) (root interface{}, enders []interface{}, e error) {
+			id := p.Args["id"].(string)
+			var face Face
+			if e := gqlserver.RetrieveNodeOfType(GqlFaceNodeType, id, &face); e != nil {
+				return nil, nil, e
+			}
+			return face, nil, nil
+		},
+		Read: func(p graphql.ResolveParams) (interface{}, error) {
+			face := p.Source.(Face)
+			return face.Counters(), nil
 		},
 	})
 }

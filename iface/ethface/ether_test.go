@@ -167,7 +167,7 @@ func TestReassembly(t *testing.T) {
 			time.Sleep(5 * time.Millisecond)
 			cnt1 := faceB.Counters()
 			if cnt0.RxCounters != prevCntB.RxCounters && cnt1.RxCounters == cnt0.RxCounters {
-				prevCntB, diff = cnt1, cnt1.Since(prevCntB)
+				prevCntB, diff = cnt1, cnt1.Sub(prevCntB)
 				return diff
 			}
 			cnt0 = cnt1

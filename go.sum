@@ -21,6 +21,8 @@ github.com/EGT-Ukraine/go2gql v0.0.0-20190528134259-79533208556f h1:JSJztNmBVd1O
 github.com/EGT-Ukraine/go2gql v0.0.0-20190528134259-79533208556f/go.mod h1:f4BU/i1HklBQk2IOMIiApryvGJJ1Qnf/l5mWLTLHtiY=
 github.com/FDio/vpp v21.10.1+incompatible h1:RCQsKbVHybGrJhL7ZPl8mayg+H/60vLxJdAcjzT52QI=
 github.com/FDio/vpp v21.10.1+incompatible/go.mod h1:fWoqUodOWSgkemrSJih4oOIeAVvG7w91Gru7sNcdaMA=
+github.com/VojtechVitek/mergemaps v0.0.0-20141203190546-051fb3759de5 h1:vFjP3TRKHvdTYsDY9TTgXyN8k2sZYtr5bMc2oKdfh4E=
+github.com/VojtechVitek/mergemaps v0.0.0-20141203190546-051fb3759de5/go.mod h1:PWGaryWLybyfTFfsoJ7KkSsmOyXklXdVtOTM1NvcFQI=
 github.com/benbjohnson/clock v1.1.0 h1:Q92kusRqC1XV2MjkWETPvjJVqKetz1OzxZB7mHJLju8=
 github.com/benbjohnson/clock v1.1.0/go.mod h1:J11/hYXuz8f4ySSvYwY0FKfm+ezbsZBKZxNJlLklBHA=
 github.com/bhoriuchi/graphql-go-tools v0.3.2 h1:fEIve72ee3RoUJ2HFLGnSn/kbVD0kHvWyNKKOCsPtW0=
