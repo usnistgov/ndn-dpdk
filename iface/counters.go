@@ -30,15 +30,6 @@ func (cnt RxCounters) String() string {
 		cnt.RxFrames, cnt.RxOctets, cnt.RxInterests, cnt.RxData, cnt.RxNacks, cnt.RxDecodeErrs, cnt.RxReassPackets, cnt.RxReassDrops)
 }
 
-// Sub computes the difference between cnt and prev.
-func (cnt RxCounters) Sub(prev RxCounters) (diff RxCounters) {
-	cntV, prevV, diffV := reflect.ValueOf(cnt), reflect.ValueOf(prev), reflect.ValueOf(&diff).Elem()
-	for field, nFields := 0, diffV.NumField(); field < nFields; field++ {
-		diffV.Field(field).SetUint(cntV.Field(field).Uint() - prevV.Field(field).Uint())
-	}
-	return diff
-}
-
 func (cnt *RxCounters) readFrom(c *C.FaceRxThread) {
 	cnt.RxOctets = uint64(c.nFrames[0])
 	cnt.RxInterests = uint64(c.nFrames[ndni.PktInterest])
@@ -71,15 +62,6 @@ func (cnt TxCounters) String() string {
 		cnt.TxFrames, cnt.TxOctets, cnt.TxInterests, cnt.TxData, cnt.TxNacks, cnt.TxFragGood, cnt.TxFragBad, cnt.TxAllocErrs, cnt.TxDropped)
 }
 
-// Sub computes the difference between cnt and prev.
-func (cnt TxCounters) Sub(prev TxCounters) (diff TxCounters) {
-	cntV, prevV, diffV := reflect.ValueOf(cnt), reflect.ValueOf(prev), reflect.ValueOf(&diff).Elem()
-	for field, nFields := 0, diffV.NumField(); field < nFields; field++ {
-		diffV.Field(field).SetUint(cntV.Field(field).Uint() - prevV.Field(field).Uint())
-	}
-	return diff
-}
-
 func (cnt *TxCounters) readFrom(c *C.FaceTxThread) {
 	cnt.TxFrames = uint64(c.nFrames[ndni.PktFragment] - c.nDroppedFrames)
 	cnt.TxOctets = uint64(c.nOctets - c.nDroppedOctets)
@@ -103,17 +85,6 @@ type Counters struct {
 
 func (cnt Counters) String() string {
 	return fmt.Sprintf("RX %s TX %s", cnt.RxCounters, cnt.TxCounters)
-}
-
-// Sub computes the difference between cnt and prev.
-func (cnt Counters) Sub(prev Counters) (diff Counters) {
-	diff.RxCounters = cnt.RxCounters.Sub(prev.RxCounters)
-	diff.TxCounters = cnt.TxCounters.Sub(prev.TxCounters)
-	diff.RxThreads = make([]RxCounters, math.MinInt(len(cnt.RxThreads), len(prev.RxThreads)))
-	for i := range diff.RxThreads {
-		diff.RxThreads[i] = cnt.RxThreads[i].Sub(prev.RxThreads[i])
-	}
-	return diff
 }
 
 func (cnt *Counters) sumRx() {

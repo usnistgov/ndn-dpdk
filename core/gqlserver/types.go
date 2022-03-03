@@ -80,8 +80,7 @@ func Optional(value interface{}, optionalValid ...bool) interface{} {
 func MethodResolver(value interface{}, methodName string) graphql.FieldResolveFn {
 	typ := reflect.TypeOf(value)
 	method, ok := typ.MethodByName(methodName)
-	if !ok || !method.IsExported() || method.Type.NumIn() != 1 ||
-		method.Type.NumOut() != 1 {
+	if !ok || !method.IsExported() || method.Type.NumIn() != 1 || method.Type.NumOut() != 1 {
 		panic("cannot create MethodResolver")
 	}
 	return func(p graphql.ResolveParams) (interface{}, error) {

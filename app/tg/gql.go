@@ -2,6 +2,7 @@ package tg
 
 import (
 	"errors"
+	"reflect"
 
 	"github.com/graphql-go/graphql"
 	"github.com/usnistgov/ndn-dpdk/app/fetch"
@@ -85,28 +86,13 @@ func init() {
 	gqlserver.AddMutation(&graphql.Field{
 		Name:        "startTrafficGen",
 		Description: "Create and start a traffic generator.",
-		Args: graphql.FieldConfigArgument{
-			"face": &graphql.ArgumentConfig{
-				Description: "JSON object that satisfies the schema given in 'locator.schema.json'.",
-				Type:        gqlserver.NonNullJSON,
-			},
-			"producer": &graphql.ArgumentConfig{
-				Description: "Producer configuration.",
-				Type:        tgproducer.GqlConfigInput,
-			},
-			"fileServer": &graphql.ArgumentConfig{
-				Description: "File server configuration.",
-				Type:        fileserver.GqlConfigInput,
-			},
-			"consumer": &graphql.ArgumentConfig{
-				Description: "Consumer configuration.",
-				Type:        tgconsumer.GqlConfigInput,
-			},
-			"fetcher": &graphql.ArgumentConfig{
-				Description: "Fetcher configuration.",
-				Type:        fetch.GqlConfigInput,
-			},
-		},
+		Args: gqlserver.BindArguments(Config{}, gqlserver.FieldTypes{
+			reflect.TypeOf(iface.LocatorWrapper{}): gqlserver.JSON,
+			reflect.TypeOf(tgproducer.Config{}):    tgproducer.GqlConfigInput,
+			reflect.TypeOf(fileserver.Config{}):    fileserver.GqlConfigInput,
+			reflect.TypeOf(tgconsumer.Config{}):    tgconsumer.GqlConfigInput,
+			reflect.TypeOf(fetch.FetcherConfig{}):  fetch.GqlConfigInput,
+		}),
 		Type: graphql.NewNonNull(GqlTrafficGenType),
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 			if !GqlCreateEnabled {
@@ -131,35 +117,20 @@ func init() {
 	})
 
 	GqlCountersType = graphql.NewObject(graphql.ObjectConfig{
-		Name: "TgCounters",
-		Fields: graphql.Fields{
-			"producer": &graphql.Field{
-				Type: tgproducer.GqlCountersType,
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					producer := p.Source.(*TrafficGen).Producer()
-					if producer == nil {
-						return nil, nil
-					}
-					return producer.Counters(), nil
-				},
-			},
-			"consumer": &graphql.Field{
-				Type: tgconsumer.GqlCountersType,
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					consumer := p.Source.(*TrafficGen).Consumer()
-					if consumer == nil {
-						return nil, nil
-					}
-					return consumer.Counters(), nil
-				},
-			},
-		},
+		Name:        "TgCounters",
+		Description: "Traffic generator counters.",
+		Fields: gqlserver.BindFields(Counters{}, gqlserver.FieldTypes{
+			reflect.TypeOf(tgproducer.Counters{}): tgproducer.GqlCountersType,
+			reflect.TypeOf(fileserver.Counters{}): fileserver.GqlCountersType,
+			reflect.TypeOf(tgconsumer.Counters{}): tgconsumer.GqlCountersType,
+		}),
 	})
 
 	gqlserver.AddCounters(&gqlserver.Counters{
-		Description:  "Obtain traffic generator counters.",
+		Description:  "Traffic generator counters.",
 		Type:         GqlCountersType,
-		Value:        (*TrafficGen)(nil),
+		Parent:       GqlTrafficGenType,
+		Name:         "counters",
 		Subscription: "tgCounters",
 		FindArgs: graphql.FieldConfigArgument{
 			"id": &graphql.ArgumentConfig{
@@ -176,7 +147,7 @@ func init() {
 			return gen, []interface{}{gen.exit}, nil
 		},
 		Read: func(p graphql.ResolveParams) (interface{}, error) {
-			return p.Source.(*TrafficGen), nil
+			return p.Source.(*TrafficGen).Counters(), nil
 		},
 	})
 }

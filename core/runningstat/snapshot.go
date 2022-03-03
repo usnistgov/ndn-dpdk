@@ -93,7 +93,7 @@ func (s Snapshot) Add(o Snapshot) (sum Snapshot) {
 	return
 }
 
-// Sub subtracts stats in another instance.
+// Sub computes numerical difference.
 func (s Snapshot) Sub(o Snapshot) (diff Snapshot) {
 	diff.v.I = s.v.I - o.v.I
 	diff.v.N = s.v.N - o.v.N
@@ -121,7 +121,7 @@ func (s Snapshot) Scale(ratio float64) (o Snapshot) {
 
 // MarshalJSON implements json.Marshaler interface.
 func (s Snapshot) MarshalJSON() ([]byte, error) {
-	m := make(map[string]interface{})
+	m := map[string]interface{}{}
 	m["count"] = s.Count()
 	m["len"] = s.Len()
 	m["m1"] = s.v.M1
@@ -142,24 +142,29 @@ func (s Snapshot) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements json.Unmarshaler interface.
 func (s *Snapshot) UnmarshalJSON(p []byte) (e error) {
-	m := make(map[string]interface{})
-	if e = json.Unmarshal(p, &m); e != nil {
+	v := struct {
+		I   uint64   `json:"count"`
+		N   uint64   `json:"len"`
+		Min *float64 `json:"min"`
+		Max *float64 `json:"max"`
+		M1  *float64 `json:"m1"`
+		M2  *float64 `json:"m2"`
+	}{}
+	if e = json.Unmarshal(p, &v); e != nil {
 		return e
 	}
 
-	readNum := func(key string) float64 {
-		if i, ok := m[key]; ok {
-			if v, ok := i.(float64); ok {
-				return v
-			}
+	readNum := func(x *float64) float64 {
+		if x == nil {
+			return math.NaN()
 		}
-		return math.NaN()
+		return *x
 	}
-	s.v.I = uint64(readNum("count"))
-	s.v.N = uint64(readNum("len"))
-	s.v.Min = readNum("min")
-	s.v.Max = readNum("max")
-	s.v.M1 = readNum("m1")
-	s.v.M2 = readNum("m2")
+	s.v.I = v.I
+	s.v.N = v.N
+	s.v.Min = readNum(v.Min)
+	s.v.Max = readNum(v.Max)
+	s.v.M1 = readNum(v.M1)
+	s.v.M2 = readNum(v.M2)
 	return nil
 }

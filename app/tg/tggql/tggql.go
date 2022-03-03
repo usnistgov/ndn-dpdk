@@ -18,6 +18,10 @@ type withCommonFields interface {
 
 // CommonFields adds 'workers' and 'face' fields.
 func CommonFields(fields graphql.Fields) graphql.Fields {
+	if fields == nil {
+		fields = graphql.Fields{}
+	}
+
 	fields["workers"] = &graphql.Field{
 		Description: "Worker threads.",
 		Type:        gqlserver.NewNonNullList(ealthread.GqlWorkerType),

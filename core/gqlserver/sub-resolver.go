@@ -7,6 +7,7 @@ import (
 	"github.com/VojtechVitek/mergemaps"
 	"github.com/graphql-go/graphql"
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
+	"github.com/usnistgov/ndn-dpdk/core/subtract"
 )
 
 // PublishChan publishes a channel in reply to GraphQL subscription.
@@ -22,14 +23,8 @@ func PublishChan(f func(updates chan<- interface{})) (interface{}, error) {
 	return updates, nil
 }
 
-// IntervalDiffPublisher helps publishes counters and their difference at an interval in reply to GraphQL subscription.
-type IntervalDiffPublisher struct {
-	typ reflect.Type
-	sub reflect.Value
-}
-
-// Args adds 'interval' and 'diff' arguments.
-func (idp *IntervalDiffPublisher) Args(args graphql.FieldConfigArgument) graphql.FieldConfigArgument {
+// IntervalDiffArgs adds 'interval' and 'diff' arguments.
+func IntervalDiffArgs(args graphql.FieldConfigArgument) graphql.FieldConfigArgument {
 	if args == nil {
 		args = graphql.FieldConfigArgument{}
 	}
@@ -40,12 +35,10 @@ func (idp *IntervalDiffPublisher) Args(args graphql.FieldConfigArgument) graphql
 		DefaultValue: nnduration.Nanoseconds(time.Second),
 	}
 
-	if idp.sub.IsValid() {
-		args["diff"] = &graphql.ArgumentConfig{
-			Description:  "Report value difference since last update instead of accumulative total.",
-			Type:         graphql.Boolean,
-			DefaultValue: false,
-		}
+	args["diff"] = &graphql.ArgumentConfig{
+		Description:  "Report value difference since last update instead of accumulative total.",
+		Type:         graphql.Boolean,
+		DefaultValue: false,
 	}
 
 	return args
@@ -55,18 +48,14 @@ func (idp *IntervalDiffPublisher) Args(args graphql.FieldConfigArgument) graphql
 //
 // read is a callback function that returns a single result.
 // enders are channels that indicate the subscription should be canceled, when a value is received or the channel is closed.
-func (idp *IntervalDiffPublisher) Publish(p graphql.ResolveParams, read graphql.FieldResolveFn, enders ...interface{}) (interface{}, error) {
+func PublishInterval(p graphql.ResolveParams, read graphql.FieldResolveFn, enders ...interface{}) (results interface{}, e error) {
 	interval := p.Args["interval"].(nnduration.Nanoseconds).Duration()
 
 	diff := false
-	var prev reflect.Value
-	if idp.sub.IsValid() {
-		if diff = p.Args["diff"].(bool); diff {
-			value, e := read(p)
-			if e != nil {
-				return nil, e
-			}
-			prev = reflect.ValueOf(value)
+	var prev interface{}
+	if diff = p.Args["diff"].(bool); diff {
+		if prev, e = read(p); e != nil {
+			return nil, e
 		}
 	}
 
@@ -82,10 +71,8 @@ func (idp *IntervalDiffPublisher) Publish(p graphql.ResolveParams, read graphql.
 				return
 			}
 			if diff {
-				val := reflect.ValueOf(value)
-				delta := idp.sub.Call([]reflect.Value{val, prev})
-				updates <- delta[0].Interface()
-				prev = val
+				updates <- subtract.Sub(value, prev)
+				prev = value
 			} else {
 				updates <- value
 			}
@@ -118,32 +105,15 @@ func (idp *IntervalDiffPublisher) Publish(p graphql.ResolveParams, read graphql.
 	})
 }
 
-// NewIntervalDiffPublisher creates an IntervalDiffPublisher for the given value type.
-func NewIntervalDiffPublisher(value interface{}) (idp *IntervalDiffPublisher) {
-	idp = &IntervalDiffPublisher{
-		typ: reflect.TypeOf(value),
-	}
-
-	sub, hasSub := idp.typ.MethodByName("Sub")
-	if hasSub &&
-		sub.Type.NumIn() == 2 && sub.Type.In(0) == idp.typ && sub.Type.In(1) == idp.typ &&
-		sub.Type.NumOut() == 1 && sub.Type.Out(0) == idp.typ {
-		idp.sub = sub.Func
-	}
-
-	return idp
-}
-
 func init() {
-	tickIdp := NewIntervalDiffPublisher(int(0))
 	AddSubscription(&graphql.Field{
 		Name:        "tick",
 		Description: "time.Ticker subscription for testing subscription implementations.",
 		Type:        NonNullInt,
-		Args:        tickIdp.Args(nil),
+		Args:        IntervalDiffArgs(nil),
 		Subscribe: func(p graphql.ResolveParams) (interface{}, error) {
 			n := 0
-			return tickIdp.Publish(p, func(p graphql.ResolveParams) (interface{}, error) {
+			return PublishInterval(p, func(p graphql.ResolveParams) (interface{}, error) {
 				n++
 				return n, nil
 			})
@@ -158,8 +128,6 @@ type Counters struct {
 	Args graphql.FieldConfigArgument
 	// Type declares GraphQL return type.
 	Type graphql.Output
-	// Value is a representative value of counters. It should match Type.
-	Value interface{}
 
 	// Parent is the parent object to define a query field.
 	// If nil, no query field is defined.
@@ -183,8 +151,6 @@ type Counters struct {
 	//  p.Source is a value from Parent or a return value from Find.
 	//  p.Args contains arguments declared in Args.
 	Read graphql.FieldResolveFn
-
-	idp IntervalDiffPublisher
 }
 
 func (cfg Counters) subscribe(p graphql.ResolveParams) (interface{}, error) {
@@ -194,7 +160,7 @@ func (cfg Counters) subscribe(p graphql.ResolveParams) (interface{}, error) {
 	}
 
 	p.Source = source
-	return cfg.idp.Publish(p, cfg.Read, enders...)
+	return PublishInterval(p, cfg.Read, enders...)
 }
 
 // AddCounters defines a counters-like field as both a query field and a subscription.
@@ -212,10 +178,9 @@ func AddCounters(cfg *Counters) {
 		args := graphql.FieldConfigArgument{}
 		mergemaps.MergeInto(args, cfg.Args, 0)
 		mergemaps.MergeInto(args, cfg.FindArgs, 0)
-		cfg.idp = *NewIntervalDiffPublisher(cfg.Value)
 		AddSubscription(&graphql.Field{
 			Name:      cfg.Subscription,
-			Args:      cfg.idp.Args(args),
+			Args:      IntervalDiffArgs(args),
 			Type:      cfg.Type,
 			Subscribe: cfg.subscribe,
 		})

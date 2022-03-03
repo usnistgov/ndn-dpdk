@@ -95,7 +95,6 @@ func init() {
 	gqlserver.AddCounters(&gqlserver.Counters{
 		Description:  "Thread load statistics.",
 		Type:         GqlLoadStatType,
-		Value:        LoadStat{},
 		Parent:       GqlWorkerType,
 		Name:         "loadStat",
 		Subscription: "threadLoadStat",

@@ -142,7 +142,6 @@ func init() {
 	gqlserver.AddCounters(&gqlserver.Counters{
 		Description:  "Face counters.",
 		Type:         GqlCountersType,
-		Value:        Counters{},
 		Parent:       GqlFaceType,
 		Name:         "counters",
 		Subscription: "faceCounters",
