@@ -41,7 +41,7 @@ func ToUint64(a net.HardwareAddr) uint64 {
 		return 0
 	}
 	b := make([]byte, 8)
-	copy(b[2:], []byte(a))
+	copy(b[2:], a)
 	return binary.BigEndian.Uint64(b)
 }
 

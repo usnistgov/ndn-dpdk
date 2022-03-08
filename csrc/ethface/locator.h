@@ -4,6 +4,7 @@
 /** @file */
 
 #include "../dpdk/ethdev.h"
+#include "xdp-locator.h"
 
 /** @brief EthFace header buffer length. */
 #define ETHHDR_MAXLEN                                                                              \
@@ -80,6 +81,10 @@ EthRxMatch_Match(const EthRxMatch* match, struct rte_mbuf* m)
   }
   return false;
 }
+
+/** @brief Prepare XDP locator from locator. */
+__attribute__((nonnull)) void
+EthXdpLocator_Prepare(EthXdpLocator* xl, const EthLocator* loc);
 
 /** @brief EthFace rte_flow pattern. */
 typedef struct EthFlowPattern

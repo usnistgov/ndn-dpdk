@@ -10,15 +10,12 @@ import (
 
 	mathpkg "github.com/pkg/math"
 	"github.com/safchain/ethtool"
-	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/core/pciaddr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/vishvananda/netlink"
 	"go.uber.org/zap"
 )
-
-var logger = logging.New("ethnetif")
 
 var etht *ethtool.Ethtool
 
@@ -37,7 +34,7 @@ func (n *netIntf) save(link netlink.Link) {
 	)
 }
 
-func (n *netIntf) refresh() {
+func (n *netIntf) Refresh() {
 	link, e := netlink.LinkByIndex(n.Index)
 	if e != nil {
 		n.logger.Warn("refresh error", zap.Error(e))
@@ -62,7 +59,7 @@ func (n *netIntf) EnsureLinkUp(skipBringUp bool) error {
 		return fmt.Errorf("netlink.LinkSetUp(%s): %w", n.Name, e)
 	}
 	n.logger.Info("brought up the interface")
-	n.refresh()
+	n.Refresh()
 	return nil
 }
 
@@ -132,7 +129,7 @@ func (n *netIntf) SetOneChannel() {
 	}
 
 	logEntry.Debug("changed to 1 channel")
-	n.refresh()
+	n.Refresh()
 }
 
 func (n *netIntf) DisableVLANOffload() {
@@ -164,7 +161,7 @@ func (n *netIntf) DisableVLANOffload() {
 	}
 
 	logEntry.Debug("disabled rxvlan offload")
-	n.refresh()
+	n.Refresh()
 }
 
 func (n *netIntf) UnloadXDP() {
@@ -180,7 +177,7 @@ func (n *netIntf) UnloadXDP() {
 	}
 
 	logEntry.Debug("unloaded previous XDP program")
-	n.refresh()
+	n.Refresh()
 }
 
 func netIntfByName(ifname string) (n netIntf, e error) {

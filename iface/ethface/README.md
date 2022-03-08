@@ -40,7 +40,7 @@ Caveats and limitations:
     sudo ip neigh replace 2001:0db8::3cfe lladdr 5e:c8:55:7a:c9:1f nud noarp dev eth1
     ```
 
-  * For mlx5 or af\_xdp driver and IPv4: add the IP address to the kernel using `ip addr` command, but do not create the VXLAN interface.
+  * For mlx5 or XDP driver and IPv4: add the IP address to the kernel using `ip addr` command, but do not create the VXLAN interface.
     Even if DPDK is controlling the Ethernet adapter, the kernel can still receive broadcast frames such as ARP queries and respond to them.
     In this case, it is unnecessary to configure MAC-IP binding on the IP router.
 
@@ -54,6 +54,3 @@ Caveats and limitations:
 
 * If a VXLAN face has multiple RX queues, NDNLPv2 reassembly works only if all fragments of a network layer packets are sent with the same UDP source port number.
   NDN-DPDK send path and the VXLAN driver in the Linux kernel both fulfill this requirement.
-
-* The default eBPF program used with AF\_XDP driver only supports UDP tunnels on port 6363.
-  It does not support UDP tunnels on other ports or VXLAN tunnels.

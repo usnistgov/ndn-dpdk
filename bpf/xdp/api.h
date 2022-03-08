@@ -3,7 +3,7 @@
 
 /** @file */
 
-#include "../../csrc/core/common.h"
+#include "../../csrc/ethface/xdp-locator.h"
 #include "../../csrc/ndni/an.h"
 
 #include <linux/bpf.h>
@@ -21,6 +21,17 @@ struct vlanhdr
   uint16_t vlan_tci;
   uint16_t eth_proto;
 } __rte_packed;
+
+struct vxlanhdr
+{
+  uint32_t vx_flags;
+  uint32_t vx_vni;
+} __rte_packed;
+
+enum
+{
+  UDPPortVXLAN = 4789,
+};
 
 #define PacketPtrAs_(ptr, size, ...)                                                               \
   __extension__({                                                                                  \

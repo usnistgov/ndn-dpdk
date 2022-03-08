@@ -39,7 +39,7 @@ func New(rxRings, txRings []*ringbuffer.Ring, socket eal.NumaSocket) (dev ethdev
 
 	mac := macaddr.MakeRandom(false)
 	var macC C.struct_rte_ether_addr
-	copy(cptr.AsByteSlice(&macC.addr_bytes), []byte(mac))
+	copy(cptr.AsByteSlice(&macC.addr_bytes), mac)
 	res = C.rte_eth_dev_mac_addr_add(C.uint16_t(dev.ID()), &macC, 0)
 	if res != 0 {
 		dev.Close()

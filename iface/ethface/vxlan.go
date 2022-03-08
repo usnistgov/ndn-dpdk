@@ -11,12 +11,10 @@ import (
 
 const (
 	// MinVXLAN is the minimum VXLAN Network Identifier.
-	MinVXLAN = 0x000000
+	MinVXLAN = 0
 
 	// MaxVXLAN is the maximum VXLAN Network Identifier.
-	MaxVXLAN = 0xFFFFFF
-
-	vxlanPort = 4789
+	MaxVXLAN = 1<<24 - 1
 )
 
 // Error conditions.
@@ -67,11 +65,11 @@ func (loc VxlanLocator) Validate() error {
 // EthCLocator implements ethport.Locator interface.
 func (loc VxlanLocator) EthCLocator() (c ethport.CLocator) {
 	c = loc.IPLocator.cLoc()
-	c.LocalUDP = vxlanPort
-	c.RemoteUDP = vxlanPort
+	c.LocalUDP = ethport.UDPPortVXLAN
+	c.RemoteUDP = ethport.UDPPortVXLAN
 	c.Vxlan = uint32(loc.VXLAN)
-	copy(c.InnerLocal.Bytes[:], ([]byte)(loc.InnerLocal.HardwareAddr))
-	copy(c.InnerRemote.Bytes[:], ([]byte)(loc.InnerRemote.HardwareAddr))
+	copy(c.InnerLocal.Bytes[:], loc.InnerLocal.HardwareAddr)
+	copy(c.InnerRemote.Bytes[:], loc.InnerRemote.HardwareAddr)
 	return
 }
 

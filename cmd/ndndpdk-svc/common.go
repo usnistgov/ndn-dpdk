@@ -56,7 +56,7 @@ func (a *CommonArgs) apply() error {
 }
 
 func initXDPProgram() {
-	path, e := bpf.XDP.Find("map0")
+	path, e := bpf.XDP.Find("redir")
 	if e != nil {
 		logger.Warn("XDP program not found, AF_XDP may not work correctly", zap.Error(e))
 		return

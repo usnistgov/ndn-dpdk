@@ -113,8 +113,9 @@ Due to kernel limitation, MTU is limited to about 3300 octets.
 Setting an unacceptable MTU causes port creation failure.
 
 During XDP driver activation, the Ethernet adapter is configured to have only 1 RX channel and RX-VLAN offload is disabled, and then an XDP program is loaded.
-The XDP program recognizes NDN over Ethernet (with optional VLAN header) and NDN over IPv4/IPv6 + UDP on port 6363; it does not recognize VXLAN or other UDP ports.
-If you need VXLAN, you can create a kernel interface with `ip link add` command, and create an Ethernet port on that network interface.
+NDN-DPDK service presents face locators to the XDP program via a BPF hash map.
+The XDP program performs header matching on each incoming packet and redirects matching packets to the NDN-DPDK service process.
+All other traffic will continue to be processed by the kernel.
 
 ### Ethernet Port using AF\_PACKET Driver
 

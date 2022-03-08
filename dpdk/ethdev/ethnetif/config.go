@@ -1,3 +1,4 @@
+// Package ethnetif manages EthDevs associated with kernel network interfaces.
 package ethnetif
 
 import (
@@ -5,9 +6,12 @@ import (
 	"fmt"
 
 	"github.com/peterbourgon/mergemap"
+	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/core/pciaddr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 )
+
+var logger = logging.New("ethnetif")
 
 // XDPProgram is the absolute path to an XDP program ELF object.
 // This should be assigned by package main.
@@ -114,7 +118,17 @@ func createXDP(cfg Config) (ethdev.EthDev, error) {
 		}
 	}
 
-	return ethdev.NewVDev(n.VDevName(ethdev.DriverXDP), args, n.NumaSocket())
+	dev, e := ethdev.NewVDev(n.VDevName(ethdev.DriverXDP), args, n.NumaSocket())
+	if e != nil {
+		return nil, e
+	}
+	id := dev.ID()
+	xdpDevs[id] = &xdpDev{n: n}
+	ethdev.OnClose(dev, func() {
+		xdpDevs[id].Close()
+		delete(xdpDevs, id)
+	})
+	return dev, nil
 }
 
 func createAfPacket(cfg Config) (ethdev.EthDev, error) {

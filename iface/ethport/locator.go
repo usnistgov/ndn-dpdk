@@ -12,8 +12,17 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
+// UDPPortVXLAN is the default UDP destination port for VXLAN.
+const UDPPortVXLAN = C.RTE_VXLAN_DEFAULT_PORT
+
 func (loc *CLocator) ptr() *C.EthLocator {
 	return (*C.EthLocator)(unsafe.Pointer(loc))
+}
+
+func (loc CLocator) toXDP() (b []byte) {
+	b = make([]byte, C.sizeof_EthXdpLocator)
+	C.EthXdpLocator_Prepare((*C.EthXdpLocator)(unsafe.Pointer(&b[0])), loc.ptr())
+	return
 }
 
 // Locator is an Ethernet-based face locator.

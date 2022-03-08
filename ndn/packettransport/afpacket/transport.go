@@ -93,7 +93,7 @@ func (tr *transport) prepare(loc packettransport.Locator) error {
 			Ifindex: int32(ifindex),
 			Type:    unix.PACKET_MR_MULTICAST,
 		}
-		mreq.Alen = uint16(copy(mreq.Address[:], []byte(loc.Remote.HardwareAddr)))
+		mreq.Alen = uint16(copy(mreq.Address[:], loc.Remote.HardwareAddr))
 		if e := unix.SetsockoptPacketMreq(fd, unix.SOL_PACKET, unix.PACKET_ADD_MEMBERSHIP, &mreq); e != nil {
 			return fmt.Errorf("setsockopt(fd=%d, ifindex=%d, PACKET_ADD_MEMBERSHIP=%s) %w", fd, ifindex, loc.Remote, e)
 		}

@@ -23,10 +23,12 @@ func (Locator) Scheme() string {
 	return schemeMemif
 }
 
+// EthCLocator implements ethport.Locator interface.
 func (loc Locator) EthCLocator() (c ethport.CLocator) {
 	return
 }
 
+// EthFaceConfig implements ethport.Locator interface.
 func (loc Locator) EthFaceConfig() (cfg ethport.FaceConfig) {
 	return
 }

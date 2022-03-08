@@ -3,9 +3,9 @@
 This is a Node.js application that generates activation parameters for NDN-DPDK service.
 
 * [fw-args.ts](fw-args.ts): [forwarder](../docs/forwarder.md) activation parameters.
-* [gen-args.ts](gen-args.ts): [forwarder](../docs/forwarder.md) activation parameters.
-* [gen-config.ts](gen-config.ts): [forwarder](../docs/forwarder.md) activation parameters.
-* [fileserver-args.ts](fileserver-args.ts): [forwarder](../docs/forwarder.md) activation parameters.
+* [gen-args.ts](gen-args.ts): [traffic generator](../docs/trafficgen.md) activation parameters.
+* [gen-config.ts](gen-config.ts): [traffic generator](../docs/trafficgen.md) activation parameters.
+* [fileserver-args.ts](fileserver-args.ts): [file server](../docs/fileserver.md) activation parameters.
 
 ## Usage
 
