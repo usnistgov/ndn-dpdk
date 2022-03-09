@@ -65,10 +65,10 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/setup-dpdk
-          key: ${{ matrix.compiler }}_${{ steps.compilers.outputs.meson }}_20220228
+          key: ${{ matrix.compiler }}_${{ steps.compilers.outputs.meson }}_20220309
       - uses: yoursunny/setup-dpdk@main
         with:
-          dpdk-version: '22.03-rc2'
+          dpdk-version: '22.03-rc3'
           spdk-version: '22.01'
           target-arch: haswell
       - uses: actions/checkout@v2
@@ -100,7 +100,7 @@ jobs:
         run: make doxygen
       - name: build docs site
         run: bash mk/netlify.sh
-        if: ${{ matrix.compiler == 'gcc-10' && github.repository == 'yoursunny/ndn-dpdk' && github.event_name == 'push' }}
+        if: ${{ matrix.compiler == 'gcc-7' && github.repository == 'yoursunny/ndn-dpdk' && github.event_name == 'push' }}
       - name: deploy docs site
         uses: South-Paw/action-netlify-deploy@v1.2.1
         with:
@@ -108,7 +108,7 @@ jobs:
           netlify-auth-token: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           netlify-site-id: a0fbfa66-eecb-46d0-9e0b-093ddd1d0fad
           build-dir: ./build/netlify/
-        if: ${{ matrix.compiler == 'gcc-10' && github.repository == 'yoursunny/ndn-dpdk' && github.event_name == 'push' }}
+        if: ${{ matrix.compiler == 'gcc-7' && github.repository == 'yoursunny/ndn-dpdk' && github.event_name == 'push' }}
   docker:
     runs-on: ubuntu-20.04
     steps:
@@ -116,7 +116,7 @@ jobs:
       - uses: docker/build-push-action@v2
         with:
           tags: ndn-dpdk
-          context: .  # don't use git context: .git directory is missing
+          context: .  # don't use git context: it won't download .git directory into build context
           build-args: |
             MAKE_ENV=NDNDPDK_MK_RELEASE=1
       - name: show image size
@@ -135,7 +135,7 @@ jobs:
           sudo dpkg -i tinygo_${TINYGO_VERSION}_amd64.deb
         working-directory: /tmp
         env:
-          TINYGO_VERSION: "0.21.0"
+          TINYGO_VERSION: "0.22.0"
       - uses: actions/checkout@v2
       - name: build for Linux without cgo
         run: |

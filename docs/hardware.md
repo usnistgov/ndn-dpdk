@@ -98,10 +98,8 @@ ndndpdk-ctrl create-eth-port --pci 04:00.0 --mtu 1500 --rx-flow 16
 
 ### Intel Ethernet Adapters
 
-The PCI device must use igb\_uio driver.
-The `ndndpdk-depends.sh` script automatically installs this kernel module if kernel headers are present.
-
-If you have upgraded the kernel or you are using the Docker container, you can install the kernel module manually:
+The PCI device must use igb\_uio driver, available in [dpdk-kmods repository](https://git.dpdk.org/dpdk-kmods).
+To install this driver, first install kernel headers, then:
 
 ```bash
 git clone https://dpdk.org/git/dpdk-kmods
@@ -120,7 +118,8 @@ sudo modprobe igb_uio
 sudo dpdk-devbind.py -b igb_uio 04:00.0
 ```
 
-To use Intel adapters in Docker container, add these flags when you launch the service container:
+To use Intel adapters in Docker container, the driver must still be installed and loaded on the host.
+Then, add these flags when you launch the NDN-DPDK service container:
 
 ```bash
 docker run \

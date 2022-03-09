@@ -38,24 +38,15 @@ DFLT_CODEROOT=$HOME/code
 DFLT_NODEVER=17.x
 DFLT_GOVER=latest
 DFLT_UBPFVER=0dd334daf4849137fa40d2b7676d2bf920d5c81d
-DFLT_XDPTOOLSVER=971bb03362238c154619ac52e15e30bf7c85bd20
+DFLT_XDPTOOLSVER=06eab9b24479ed0494a0f144b4129b8ba0bfc444
 DFLT_LIBBPFVER=v0.7.0
 DFLT_URINGVER=liburing-2.1
-DFLT_DPDKVER=v22.03-rc2
+DFLT_DPDKVER=v22.03-rc3
 DFLT_DPDKPATCH=
 DFLT_DPDKOPTS={}
-DFLT_KMODSVER=HEAD
 DFLT_SPDKVER=v22.01
 DFLT_NJOBS=$(nproc)
 DFLT_TARGETARCH=native
-
-KERNELVER=$(uname -r)
-HAS_KERNEL_HEADERS=0
-if [[ -d /usr/src/linux-headers-${KERNELVER} ]]; then
-  HAS_KERNEL_HEADERS=1
-else
-  DFLT_KMODSVER=0
-fi
 
 CODEROOT=$DFLT_CODEROOT
 NODEVER=$DFLT_NODEVER
@@ -72,7 +63,7 @@ SPDKVER=$DFLT_SPDKVER
 NJOBS=$DFLT_NJOBS
 TARGETARCH=$DFLT_TARGETARCH
 
-ARGS=$(getopt -o 'hy' -l 'dir:,node:,go:,ubpf:,libbpf:,xdp:,dpdk:,dpdk-patch:,dpdk-opts:,kmods:,spdk:,uring:,jobs:,arch:' -- "$@")
+ARGS=$(getopt -o 'hy' -l 'dir:,node:,go:,ubpf:,libbpf:,xdp:,dpdk:,dpdk-patch:,dpdk-opts:,spdk:,uring:,jobs:,arch:' -- "$@")
 eval set -- "$ARGS"
 while true; do
   case $1 in
@@ -88,7 +79,6 @@ while true; do
     --dpdk) DPDKVER=$2; DPDKPATCH=''; shift 2;;
     --dpdk-patch) DPDKPATCH=$2; shift 2;;
     --dpdk-opts) DPDKOPTS=$2; shift 2;;
-    --kmods) KMODSVER=$2; shift 2;;
     --spdk) SPDKVER=$2; shift 2;;
     --jobs) NJOBS=$2; shift 2;;
     --arch) TARGETARCH=$2; shift 2;;
@@ -122,8 +112,6 @@ ndndpdk-depends.sh [OPTION]...
       Add DPDK patch series (comma separated). '0' to skip.
   --dpdk-opts=${DFLT_DPDKOPTS}
       Set/override DPDK Meson options (JSON object).
-  --kmods=${DFLT_KMODSVER}
-      Set DPDK kernel modules branch or commit SHA. '0' to skip.
   --spdk=${DFLT_SPDKVER}
       Set SPDK version. '0' to skip.
   --jobs=${DFLT_NJOBS}
@@ -139,7 +127,6 @@ fi
 : "${NDNDPDK_DL_NODESOURCE_DEB:=https://deb.nodesource.com}"
 : "${NDNDPDK_DL_PYPA_BOOTSTRAP:=https://bootstrap.pypa.io}"
 : "${NDNDPDK_DL_GODEV:=https://go.dev}"
-: "${NDNDPDK_DL_DPDK:=https://dpdk.org}"
 : "${NDNDPDK_DL_DPDK_PATCHES:=https://patches.dpdk.org}"
 # you can also set the GOPROXY environment variable, which will be persisted
 
@@ -157,7 +144,6 @@ curl_test NDNDPDK_DL_LLVM_APT
 curl_test NDNDPDK_DL_NODESOURCE_DEB
 curl_test NDNDPDK_DL_PYPA_BOOTSTRAP
 curl_test NDNDPDK_DL_GODEV /VERSION
-curl_test NDNDPDK_DL_DPDK
 curl_test NDNDPDK_DL_DPDK_PATCHES
 
 github_download() {
@@ -184,7 +170,7 @@ case $DISTRO in
     ;;
 esac
 
-if [[ $(echo "$KERNELVER" | awk -F. '{ print ($1*1000+$2>=5004) }') -ne 1 ]] &&
+if [[ $(uname -r | awk -F. '{ print ($1*1000+$2>=5004) }') -ne 1 ]] &&
    [[ -z $SKIPKERNELCHECK ]] && ! [[ -f /.dockerenv ]]; then
   echo 'Linux kernel 5.4 or newer is required'
   if [[ $DISTRO == bionic ]]; then
@@ -193,15 +179,6 @@ if [[ $(echo "$KERNELVER" | awk -F. '{ print ($1*1000+$2>=5004) }') -ne 1 ]] &&
   fi
   echo 'To skip this check, set the environment variable SKIPKERNELCHECK=1'
   exit 1
-fi
-
-if [[ $HAS_KERNEL_HEADERS == 0 ]] && ! [[ -f /.dockerenv ]]; then
-  echo 'Will skip certain features due to missing kernel headers. To install, run:'
-  if [[ $DISTRO == bullseye ]]; then
-    echo "  ${APTINSTALL} linux-headers-amd64 linux-headers-${KERNELVER}-amd64"
-  else
-    echo "  ${APTINSTALL} linux-generic linux-headers-${KERNELVER}"
-  fi
 fi
 
 APT_PKGS=(
@@ -279,11 +256,6 @@ if [[ $DPDKVER != 0 ]]; then
   echo -n "$DPDKPATCH" | xargs -d, --no-run-if-empty -I{} echo "Will patch DPDK with ${NDNDPDK_DL_DPDK_PATCHES}/series/{}/mbox/"
 elif ! pkg-config libdpdk; then
   echo '--dpdk=0 specified but DPDK was not found, which may cause build errors'
-fi
-
-if [[ $KMODSVER != 0 ]]; then
-  echo "Will install DPDK kernel modules ${KMODSVER}"
-  APT_PKGS+=(kmod)
 fi
 
 if [[ $SPDKVER != 0 ]]; then
@@ -395,23 +367,6 @@ if [[ $DPDKVER != 0 ]]; then
   $SUDO ninja install
   $SUDO find /usr/local/lib -name 'librte_*.a' -delete
   $SUDO ldconfig
-fi
-
-if [[ $KMODSVER != 0 ]]; then
-  cd "$CODEROOT"
-  rm -rf dpdk-kmods
-  if [[ $KMODSVER == HEAD ]]; then
-    git clone --single-branch --depth=1 $KMODSDEPTH "${NDNDPDK_DL_DPDK}/git/dpdk-kmods"
-  else
-    git clone $KMODSDEPTH "${NDNDPDK_DL_DPDK}/git/dpdk-kmods"
-    git -C dpdk-kmods -c advice.detachedHead=false checkout $KMODSVER
-  fi
-  cd dpdk-kmods/linux/igb_uio
-  make -j${NJOBS}
-  UIODIR=/lib/modules/${KERNELVER}/kernel/drivers/uio
-  $SUDO install -d -m0755 "$UIODIR"
-  $SUDO install -m0644 igb_uio.ko "$UIODIR"
-  $SUDO depmod
 fi
 
 if [[ $SPDKVER != 0 ]]; then
