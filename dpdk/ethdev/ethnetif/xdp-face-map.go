@@ -87,6 +87,7 @@ func xdpMatchHashMap(mid uint32, wantName string) (hash *gobpfld.HashMap) {
 	name, def := m.GetName(), m.GetDefinition()
 	if def.Type != bpftypes.BPF_MAP_TYPE_HASH || name.String() != wantName {
 		m.Close()
+		return nil
 	}
 
 	// don't call m.Load() - it would make a copy of the map instead of operating on the existing map
