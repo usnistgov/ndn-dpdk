@@ -31,14 +31,6 @@ const (
 
 const defaultInterval = 1 * time.Millisecond
 
-// Error conditions.
-var (
-	ErrNoPattern         = errors.New("no pattern specified")
-	ErrTooManyPatterns   = fmt.Errorf("cannot add more than %d patterns", MaxPatterns)
-	ErrFirstSeqNumOffset = errors.New("first pattern cannot have SeqNumOffset")
-	ErrTooManyWeights    = fmt.Errorf("sum of weight cannot exceed %d", MaxSumWeight)
-)
-
 // Config describes consumer configuration.
 type Config struct {
 	RxQueue iface.PktQueueConfig `json:"rxQueue,omitempty"`
@@ -53,8 +45,7 @@ type Config struct {
 	// It must contain between 1 and MaxPatterns entries.
 	Patterns []Pattern `json:"patterns"`
 
-	nWeights        int
-	nDigestPatterns int
+	nWeights, nDigestPatterns int
 }
 
 // Validate applies defaults and validates the configuration.
@@ -62,10 +53,10 @@ func (cfg *Config) Validate() error {
 	cfg.RxQueue.DisableCoDel = true
 
 	if len(cfg.Patterns) == 0 {
-		return ErrNoPattern
+		return errors.New("no pattern specified")
 	}
 	if len(cfg.Patterns) > MaxPatterns {
-		return ErrTooManyPatterns
+		return fmt.Errorf("cannot add more than %d patterns", MaxPatterns)
 	}
 
 	patterns := []Pattern{}
@@ -73,16 +64,21 @@ func (cfg *Config) Validate() error {
 	for i, pattern := range cfg.Patterns {
 		pattern.applyDefaults()
 		patterns = append(patterns, pattern)
-		if pattern.SeqNumOffset != 0 && i == 0 {
-			return ErrFirstSeqNumOffset
-		}
 		nWeights += pattern.Weight
 		if pattern.Digest != nil {
 			nDigestPatterns++
 		}
+		if pattern.SeqNumOffset != 0 {
+			if pattern.Digest != nil {
+				return errors.New("pattern cannot have both Digest and SeqNumOffset")
+			}
+			if i == 0 {
+				return errors.New("first pattern cannot have SeqNumOffset")
+			}
+		}
 	}
 	if nWeights > MaxSumWeight {
-		return ErrTooManyWeights
+		return fmt.Errorf("sum of weight cannot exceed %d", MaxSumWeight)
 	}
 	cfg.Patterns, cfg.nWeights, cfg.nDigestPatterns = patterns, nWeights, nDigestPatterns
 	return nil
@@ -95,14 +91,14 @@ type Pattern struct {
 
 	ndni.InterestTemplateConfig
 
+	// If specified, append implicit digest to Interest name.
+	// For Data to satisfy Interests, the producer pattern must reply with the same DataGenConfig.
+	Digest *ndni.DataGenConfig `json:"digest,omitempty"`
+
 	// If non-zero, request cached Data. This must appear after a pattern without SeqNumOffset.
 	// The consumer derives sequence number by subtracting SeqNumOffset from the previous pattern's
 	// sequence number. Sufficient CS capacity is necessary for Data to actually come from CS.
 	SeqNumOffset int `json:"seqNumOffset,omitempty"`
-
-	// If specified, append implicit digest to Interest name.
-	// For Data to satisfy Interests, the producer pattern must reply with the same DataGenConfig.
-	Digest *ndni.DataGenConfig `json:"digest,omitempty"`
 }
 
 func (pattern *Pattern) applyDefaults() {

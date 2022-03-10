@@ -135,7 +135,7 @@ InputDemux_SetDispatchByToken(InputDemux* demux, uint8_t offset)
   demux->dispatch = InputDemuxFuncByToken;
 }
 
-const InputDemux_DispatchFunc InputDemux_DispatchFuncTable[] = {
+const InputDemux_DispatchFunc InputDemux_DispatchJmp[] = {
   [InputDemuxFuncDrop] = InputDemux_DispatchDrop,
   [InputDemuxFuncToFirst] = InputDemux_DispatchToFirst,
   [InputDemuxFuncRoundrobinDiv] = InputDemux_DispatchRoundrobinDiv,

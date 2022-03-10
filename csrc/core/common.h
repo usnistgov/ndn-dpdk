@@ -54,6 +54,9 @@
 
 #endif // __BPF__
 
+#define STATIC_ASSERT_FUNC_TYPE(typ, func)                                                         \
+  static_assert(__builtin_types_compatible_p(typ, typeof(&func)), "")
+
 #ifdef NDEBUG
 #define NULLize(x) RTE_SET_USED(x)
 #else

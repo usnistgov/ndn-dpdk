@@ -46,8 +46,8 @@ struct TgcTxPattern
 
   union
   {
-    uint32_t seqNumOffset;
     TgcTxDigestPattern* digest;
+    uint64_t seqNumOffset;
   };
 
   InterestTemplate tpl;

@@ -26,7 +26,7 @@ FaceTx_CheckDirectFragmentMbuf_(struct rte_mbuf* pkt)
 typedef uint16_t (*FaceTx_OutputFunc)(Face* face, int txThread, Packet* npkt,
                                       struct rte_mbuf* frames[LpMaxFragments]);
 
-extern FaceTx_OutputFunc FaceTx_OutputFuncs[];
+extern FaceTx_OutputFunc FaceTx_OutputJmp[];
 
 #define FaceTx_OutputFuncIndex(linear, oneFrag) (((int)(linear) << 1) | ((int)(oneFrag) << 0))
 
@@ -43,7 +43,7 @@ FaceTx_Output(Face* face, int txThread, Packet* npkt, struct rte_mbuf* frames[Lp
   FaceTx_CheckDirectFragmentMbuf_(pkt);
 
   bool isOneFragment = pkt->pkt_len <= face->txAlign.fragmentPayloadSize;
-  return FaceTx_OutputFuncs[FaceTx_OutputFuncIndex(face->txAlign.linearize, isOneFragment)](
+  return FaceTx_OutputJmp[FaceTx_OutputFuncIndex(face->txAlign.linearize, isOneFragment)](
     face, txThread, npkt, frames);
 }
 

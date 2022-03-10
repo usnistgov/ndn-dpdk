@@ -42,7 +42,7 @@ sudo ndndpdk-godemo --mtu 9000 pingclient --name /pingdemo --interval 100ms --li
 ```
 
 * `--name` flag (required) specifies the NDN name prefix.
-  * Unlike [ndnping from ndn-tools](https://github.com/named-data/ndn-tools/tree/ndn-tools-0.7.1/tools/ping), this program does not automatically append a `ping` component.
+  * Unlike [ndnping from ndn-tools](https://github.com/named-data/ndn-tools/tree/ndn-tools-22.02/tools/ping), this program does not automatically append a `ping` component.
 * `--mtu` flag specifies the MTU of memif interface between this program and the local NDN-DPDK forwarder.
   * This flag must appear between 'ndndpdk-godemo' and the subcommand name.
 * `--payload` flag (pingserver only) specifies Content payload length in octets.

@@ -64,4 +64,4 @@ EthRxTable_RxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx)
   }
 }
 
-static const RxGroup_RxBurstFunc _ __rte_unused = EthRxTable_RxBurst;
+STATIC_ASSERT_FUNC_TYPE(RxGroup_RxBurstFunc, EthRxTable_RxBurst);

@@ -1,6 +1,9 @@
 #include "tx.h"
-
 #include "../core/logger.h"
+
+STATIC_ASSERT_FUNC_TYPE(TgcTxPattern_MakeSuffix, TgcTxPattern_MakeSuffix_Digest);
+STATIC_ASSERT_FUNC_TYPE(TgcTxPattern_MakeSuffix, TgcTxPattern_MakeSuffix_Offset);
+STATIC_ASSERT_FUNC_TYPE(TgcTxPattern_MakeSuffix, TgcTxPattern_MakeSuffix_Increment);
 
 N_LOG_INIT(Tgc);
 
@@ -77,8 +80,7 @@ TgcTxPattern_MakeSuffix_Digest(TgcTx* ct, uint8_t patternID, TgcTxPattern* patte
 uint16_t
 TgcTxPattern_MakeSuffix_Offset(TgcTx* ct, uint8_t patternID, TgcTxPattern* pattern)
 {
-  TgcTxPattern* basePattern = &ct->pattern[patternID - 1];
-  uint64_t seqNum = basePattern->seqNumV - pattern->seqNumOffset;
+  uint64_t seqNum = ct->pattern[patternID - 1].seqNumV - pattern->seqNumOffset;
   if (unlikely(pattern->seqNumV - seqNum <= UINT32_MAX)) { // same seqNum already requested
     seqNum = pattern->seqNumV + 1;
   }
@@ -107,7 +109,7 @@ TgcTx_MakeInterest(TgcTx* ct, struct rte_mbuf* pkt, TscTime now)
   TgcTxPattern* pattern = &ct->pattern[id];
   ++pattern->nInterests;
 
-  uint16_t suffixL = (pattern->makeSuffix)(ct, id, pattern);
+  uint16_t suffixL = pattern->makeSuffix(ct, id, pattern);
   if (unlikely(suffixL == 0)) {
     N_LOGW("error pattern=%" PRIu8, id);
     return false;

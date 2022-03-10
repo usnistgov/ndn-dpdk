@@ -53,7 +53,7 @@ typedef struct InputDemux
 } InputDemux;
 
 typedef bool (*InputDemux_DispatchFunc)(InputDemux* demux, Packet* npkt);
-extern const InputDemux_DispatchFunc InputDemux_DispatchFuncTable[];
+extern const InputDemux_DispatchFunc InputDemux_DispatchJmp[];
 
 __attribute__((nonnull, returns_nonnull)) NdtQuerier*
 InputDemux_SetDispatchByNdt(InputDemux* demux);
@@ -74,7 +74,7 @@ InputDemux_SetDispatchByToken(InputDemux* demux, uint8_t offset);
 __attribute__((nonnull, warn_unused_result)) static inline bool
 InputDemux_Dispatch(InputDemux* demux, Packet* npkt)
 {
-  return InputDemux_DispatchFuncTable[demux->dispatch](demux, npkt);
+  return InputDemux_DispatchJmp[demux->dispatch](demux, npkt);
 }
 
 /** @brief InputDemuxes for Interest, Data, Nack. */

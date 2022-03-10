@@ -65,11 +65,7 @@ func TestConsumer(t *testing.T) {
 	defer c.Close()
 	tgtestenv.Open(t, c)
 
-	nInterestsA := 0
-	nInterestsB1 := 0
-	nInterestsB2 := 0
-	nInterestsB2Far := 0
-	nInterestsC := 0
+	nInterestsA, nInterestsB1, nInterestsB2, nInterestsB2Far, nInterestsC := 0, 0, 0, 0, 0
 	var lastSeqB uint64
 	go func() {
 		for packet := range face.Rx {

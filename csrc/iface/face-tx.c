@@ -127,7 +127,7 @@ FaceTx_ChainedFrag(Face* face, int txThread, Packet* npkt, struct rte_mbuf* fram
   return l2.fragCount;
 }
 
-FaceTx_OutputFunc FaceTx_OutputFuncs[] = {
+FaceTx_OutputFunc FaceTx_OutputJmp[] = {
   [FaceTx_OutputFuncIndex(true, true)] = FaceTx_LinearOne,
   [FaceTx_OutputFuncIndex(true, false)] = FaceTx_LinearFrag,
   [FaceTx_OutputFuncIndex(false, true)] = FaceTx_ChainedOne,

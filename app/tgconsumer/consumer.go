@@ -5,13 +5,8 @@ package tgconsumer
 #include "../../csrc/tgconsumer/rx.h"
 #include "../../csrc/tgconsumer/tx.h"
 
-static TgcTxDigestPattern** c_TgcTxPattern_digest(TgcTxPattern* pattern) { return &pattern->digest; }
-static uint32_t* c_TgcTxPattern_seqNumOffset(TgcTxPattern* pattern) { return &pattern->seqNumOffset; }
-static void c_TgcTxDigestPattern_putPrefix(TgcTxDigestPattern* dp, uint16_t length, const uint8_t* value)
-{
-	dp->prefix.length = length;
-	dp->prefix.value = rte_memcpy(RTE_PTR_ADD(dp, sizeof(*dp)), value, length);
-}
+static_assert(offsetof(TgcTxPattern, digest) == offsetof(TgcTxPattern, seqNumOffset), "");
+enum { c_TgcTxPattern_DigestSeqNumOffsetOffset = offsetof(TgcTxPattern, digest) };
 */
 import "C"
 import (
@@ -53,11 +48,12 @@ func (worker) ThreadRole() string {
 
 // Consumer represents a traffic generator consumer instance.
 type Consumer struct {
-	cfg Config
-	rx  *worker
-	tx  *worker
-	rxC *C.TgcRx
-	txC *C.TgcTx
+	cfg    Config
+	socket eal.NumaSocket
+	rx     *worker
+	tx     *worker
+	rxC    *C.TgcRx
+	txC    *C.TgcTx
 
 	digestOpPool *cryptodev.OpPool
 	digestCrypto *cryptodev.CryptoDev
@@ -65,10 +61,6 @@ type Consumer struct {
 }
 
 var _ tgdef.Consumer = &Consumer{}
-
-func (c Consumer) socket() eal.NumaSocket {
-	return c.Face().NumaSocket()
-}
 
 // Patterns returns traffic patterns.
 func (c Consumer) Patterns() []Pattern {
@@ -81,7 +73,7 @@ func (c *Consumer) initPatterns() (e error) {
 	}
 	var dataGenVec pktmbuf.Vector
 	if c.cfg.nDigestPatterns > 0 {
-		payloadMp := ndni.PayloadMempool.Get(c.socket())
+		payloadMp := ndni.PayloadMempool.Get(c.socket)
 		dataGenVec, e = payloadMp.Alloc(c.cfg.nDigestPatterns)
 		if e != nil {
 			return e
@@ -125,7 +117,7 @@ func (c *Consumer) assignPattern(i int, pattern Pattern, dataGenVec pktmbuf.Vect
 		c.assignDigestPattern(pattern, txP, dataGenVec)
 	case pattern.SeqNumOffset != 0:
 		txP.makeSuffix = C.TgcTxPattern_MakeSuffix(C.TgcTxPattern_MakeSuffix_Offset)
-		*C.c_TgcTxPattern_seqNumOffset(txP) = C.uint32_t(pattern.SeqNumOffset)
+		*(*C.uint64_t)(unsafe.Add(unsafe.Pointer(txP), C.c_TgcTxPattern_DigestSeqNumOffsetOffset)) = C.uint64_t(pattern.SeqNumOffset)
 	default:
 		txP.makeSuffix = C.TgcTxPattern_MakeSuffix(C.TgcTxPattern_MakeSuffix_Increment)
 	}
@@ -140,19 +132,20 @@ func (c *Consumer) assignDigestPattern(pattern Pattern, txP *C.TgcTxPattern, dat
 	nameV, _ := tlv.EncodeValueOnly(name.Field())
 
 	d := len(c.dPatterns)
-	dp := (*C.TgcTxDigestPattern)(eal.Zmalloc("TgcTxDigestPattern", C.sizeof_TgcTxDigestPattern+len(nameV), c.socket()))
-	(*ndni.Mempools)(unsafe.Pointer(&dp.dataMp)).Assign(c.socket(), ndni.DataMempool)
+	dp := (*C.TgcTxDigestPattern)(eal.Zmalloc("TgcTxDigestPattern", C.sizeof_TgcTxDigestPattern+len(nameV), c.socket))
+	(*ndni.Mempools)(unsafe.Pointer(&dp.dataMp)).Assign(c.socket, ndni.DataMempool)
 	dp.opPool = (*C.struct_rte_mempool)(c.digestOpPool.Ptr())
 	c.digestCrypto.QueuePairs()[d].CopyToC(unsafe.Pointer(&dp.cqp))
 
 	dataGen := ndni.DataGenFromPtr(unsafe.Pointer(&dp.dataGen))
 	pattern.Digest.Apply(dataGen, dataGenVec[d])
 
-	nameVC := C.CBytes(nameV)
-	defer C.free(nameVC)
-	C.c_TgcTxDigestPattern_putPrefix(dp, C.uint16_t(len(nameV)), (*C.uint8_t)(nameVC))
+	nameVC := unsafe.Add(unsafe.Pointer(dp), C.sizeof_TgcTxDigestPattern)
+	copy(unsafe.Slice((*byte)(nameVC), len(nameV)), nameV)
+	dp.prefix.value = (*C.uint8_t)(nameVC)
+	dp.prefix.length = C.uint16_t(len(nameV))
 
-	*C.c_TgcTxPattern_digest(txP) = dp
+	*(**C.TgcTxDigestPattern)(unsafe.Add(unsafe.Pointer(txP), C.c_TgcTxPattern_DigestSeqNumOffsetOffset)) = dp
 	c.dPatterns = append(c.dPatterns, dp)
 }
 
@@ -164,14 +157,14 @@ func (c *Consumer) prepareDigest(nDigestPatterns int) (e error) {
 
 	c.digestOpPool, e = cryptodev.NewOpPool(cryptodev.OpPoolConfig{
 		Capacity: 2 * nDigestPatterns * (DigestLowWatermark + DigestBurstSize),
-	}, c.socket())
+	}, c.socket)
 	if e != nil {
 		return e
 	}
 
 	var cfg cryptodev.VDevConfig
 	cfg.NQueuePairs = nDigestPatterns
-	cfg.Socket = c.socket()
+	cfg.Socket = c.socket
 	c.digestCrypto, e = cryptodev.CreateVDev(cfg)
 	if e != nil {
 		return e
@@ -221,7 +214,7 @@ func (c *Consumer) Stop() error {
 	return c.StopDelay(0)
 }
 
-// Stop stops the TX thread, delay for the specified duration, then stops the RX thread.
+// Stop stops the TX thread, sleep for the specified duration, then stops the RX thread.
 func (c *Consumer) StopDelay(delay time.Duration) error {
 	eTx := c.tx.Stop()
 	time.Sleep(delay)
@@ -264,9 +257,10 @@ func New(face iface.Face, cfg Config) (c *Consumer, e error) {
 
 	socket := face.NumaSocket()
 	c = &Consumer{
-		cfg: cfg,
-		rxC: (*C.TgcRx)(eal.Zmalloc("TgcRx", C.sizeof_TgcRx, socket)),
-		txC: (*C.TgcTx)(eal.Zmalloc("TgcTx", C.sizeof_TgcTx, socket)),
+		cfg:    cfg,
+		socket: socket,
+		rxC:    (*C.TgcRx)(eal.Zmalloc("TgcRx", C.sizeof_TgcRx, socket)),
+		txC:    (*C.TgcTx)(eal.Zmalloc("TgcTx", C.sizeof_TgcTx, socket)),
 	}
 
 	if e := c.rxQueue().Init(cfg.RxQueue, socket); e != nil {
