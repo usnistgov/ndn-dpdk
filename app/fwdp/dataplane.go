@@ -11,12 +11,16 @@ import (
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
 	"github.com/usnistgov/ndn-dpdk/container/pcct"
 	"github.com/usnistgov/ndn-dpdk/container/pit"
+	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 	"go.uber.org/multierr"
 	"go4.org/must"
 )
+
+var logger = logging.New("fwdp")
 
 // Thread roles.
 const (
@@ -174,6 +178,9 @@ func New(cfg Config) (dp *DataPlane, e error) {
 		dp.fwds = append(dp.fwds, fwd)
 		fibFwds = append(fibFwds, fwd)
 	}
+	if len(eal.Sockets)*ndni.PacketMempool.Config().Capacity < len(dp.fwds)*cfg.Pcct.CsMemoryCapacity {
+		logger.Warn("total DIRECT mempool capacity is less than total CsMemoryCapacity; packet reception failure will occur when CS is full")
+	}
 
 	if dp.fib, e = fib.New(cfg.Fib, fibFwds); e != nil {
 		must.Close(dp)
@@ -221,6 +228,8 @@ func New(cfg Config) (dp *DataPlane, e error) {
 			must.Close(dp)
 			return nil, fmt.Errorf("Disk[%d].Init(): %w", id, e)
 		}
+	} else if cfg.Pcct.CsDiskCapacity > 0 {
+		logger.Warn("CsDiskCapacity is non-zero but no lcore is allocated for DISK role; disk caching will not work")
 	}
 
 	for _, fwc := range dp.fwcs {
@@ -285,7 +294,6 @@ func (dp *DataPlane) Close() error {
 
 	errs = append(errs, iface.CloseAll())
 	if dp.ndt != nil {
-		// close NDT before input & disk threads, so that NDT queriers are freed
 		errs = append(errs, dp.ndt.Close())
 	}
 	for _, fwc := range dp.fwcs {

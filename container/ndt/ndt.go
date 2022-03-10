@@ -121,7 +121,7 @@ func (ndt *Ndt) Lookup(name ndn.Name) (index uint64, value uint8) {
 }
 
 // New creates an NDT.
-// sockets are NUMA sockets that may query the NDT, duplicates are ignored.
+// sockets are NUMA sockets where NDT replicas are needed; duplicates are permitted.
 func New(cfg Config, sockets []eal.NumaSocket) (ndt *Ndt) {
 	cfg.applyDefaults()
 	ndt = &Ndt{
