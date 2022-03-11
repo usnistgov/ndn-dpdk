@@ -1,3 +1,4 @@
+// Package hwinfo gathers hardware information.
 package hwinfo
 
 import (

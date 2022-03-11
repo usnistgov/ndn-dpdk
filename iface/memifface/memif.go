@@ -1,3 +1,4 @@
+// Package memifface implements memif faces.
 package memifface
 
 import (

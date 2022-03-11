@@ -11,7 +11,9 @@ This section describes how to use the minute scheduler in the context of this us
 1. Embed a `MinTmr` struct in the table entry.
 2. Create a `MinSched` instance using the `MinSched_New` constructor.
 3. Arm a timer with the `MinTmr_After` function.
-4. Invoke `MinSched_Trigger` periodically from the main loop. The callback function specified in the constructor will be invoked for each timer that has expired. The callback function can recover the table entry from the `MinTmr*` via the `container_of` macro and then deallocate the entry.
+4. Invoke `MinSched_Trigger` periodically from the main loop.
+   The callback function specified in the constructor will be invoked for each timer that has expired.
+   The callback function can recover the table entry from the `MinTmr*` via the `container_of` macro and then deallocate the entry.
 
 ## Design
 

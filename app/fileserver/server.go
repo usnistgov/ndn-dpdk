@@ -1,3 +1,4 @@
+// Package fileserver implements a file server.
 package fileserver
 
 import (

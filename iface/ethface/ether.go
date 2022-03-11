@@ -1,3 +1,4 @@
+// Package ethface implements Ethernet-based faces.
 package ethface
 
 import (

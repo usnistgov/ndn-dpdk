@@ -7,21 +7,17 @@ package urcu
 import "C"
 import (
 	"runtime"
+
+	"github.com/usnistgov/ndn-dpdk/core/logging"
 )
+
+var logger = logging.New("urcu")
 
 // ReadSide represents an RCU read-side thread.
 // Fields are exported so that they can be updated to reflect what C code did.
 type ReadSide struct {
 	IsOnline bool
 	NLocks   int
-}
-
-// NewReadSide registers current thread an an RCU read-side thread.
-// If the thread is registered in C code, do not call this function, use a zero ReadSide instead.
-func NewReadSide() *ReadSide {
-	runtime.LockOSThread()
-	C.rcu_register_thread()
-	return &ReadSide{true, 0}
 }
 
 // Close unregisters current thread as an RCU read-side thread.
@@ -35,7 +31,7 @@ func (*ReadSide) Close() error {
 // Offline marks current thread offline.
 func (rs *ReadSide) Offline() {
 	if rs.NLocks > 0 {
-		panic("cannot go offline when locked")
+		logger.Panic("cannot go offline when locked")
 	}
 	rs.IsOnline = false
 	C.rcu_thread_offline()
@@ -50,7 +46,7 @@ func (rs *ReadSide) Online() {
 // Quiescent indicates current thread is quiescent.
 func (rs *ReadSide) Quiescent() {
 	if rs.NLocks > 0 {
-		panic("cannot go quiescent when locked")
+		logger.Panic("cannot go quiescent when locked")
 	}
 	C.rcu_quiescent_state()
 }
@@ -58,7 +54,7 @@ func (rs *ReadSide) Quiescent() {
 // Lock obtains read-side lock.
 func (rs *ReadSide) Lock() {
 	if !rs.IsOnline {
-		panic("cannot lock when offline")
+		logger.Panic("cannot lock when offline")
 	}
 	rs.NLocks++
 	C.rcu_read_lock()
@@ -71,4 +67,12 @@ func (rs *ReadSide) Unlock() {
 	}
 	C.rcu_read_unlock()
 	rs.NLocks--
+}
+
+// NewReadSide registers current thread an an RCU read-side thread.
+// If the thread is registered in C code, do not call this function, use a zero ReadSide instead.
+func NewReadSide() *ReadSide {
+	runtime.LockOSThread()
+	C.rcu_register_thread()
+	return &ReadSide{true, 0}
 }

@@ -1,3 +1,4 @@
+// Package ethport implements faces using DPDK ethdev as transport.
 package ethport
 
 import (

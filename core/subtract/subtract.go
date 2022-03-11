@@ -1,3 +1,4 @@
+// Package subtract computes struct numerical difference.
 package subtract
 
 import (
@@ -6,17 +7,16 @@ import (
 	"github.com/pkg/math"
 )
 
-// SubFields computes the numerical difference between two structs of the same type.
+// Sub computes the numerical difference between two structs of the same type.
 // It returns the result in a new instance of the same type, and does not modify the arguments.
 //
-// If the struct has `func (T) Sub(T) T` method, it is used; otherwise, SubFields is used.
+// If the struct has `func (T) Sub(T) T` method, it is used; otherwise, this calls SubFields.
 func Sub(curr, prev interface{}) (diff interface{}) {
 	return subV(reflect.ValueOf(curr), reflect.ValueOf(prev)).Interface()
 }
 
 func subV(currV, prevV reflect.Value) (diffV reflect.Value) {
 	typ := currV.Type()
-
 	if method, ok := typ.MethodByName("Sub"); ok &&
 		method.Type.NumIn() == 2 && method.Type.NumOut() == 1 && method.Type.In(1) == typ && method.Type.Out(0) == typ {
 		return method.Func.Call([]reflect.Value{currV, prevV})[0]
