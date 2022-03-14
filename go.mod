@@ -4,14 +4,13 @@ go 1.17
 
 require (
 	github.com/EGT-Ukraine/go2gql v0.0.0-20190528134259-79533208556f
-	github.com/FDio/vpp v21.10.1+incompatible
+	github.com/FDio/vpp v1.0.1-0.20220223130241-7911f29c518c
 	github.com/VojtechVitek/mergemaps v0.0.0-20141203190546-051fb3759de5
 	github.com/bhoriuchi/graphql-go-tools v0.3.2
 	github.com/c9s/goprocinfo v0.0.0-20210130143923-c95fcf8c64a8
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/dylandreimerink/gobpfld v0.6.0
 	github.com/functionalfoundry/graphqlws v0.0.0-20200611113535-7bc58903ce7b
-	github.com/gabstv/freeport v0.0.0-20171005142102-7952fe2e67ce
 	github.com/gogf/greuse v1.1.0
 	github.com/google/gopacket v1.1.19
 	github.com/graphql-go/graphql v0.8.0
@@ -26,7 +25,7 @@ require (
 	github.com/pkg/math v0.0.0-20141027224758-f2ed9e40e245
 	github.com/powerman/rpc-codec v1.2.2
 	github.com/rickb777/plural v1.4.1
-	github.com/safchain/ethtool v0.1.0
+	github.com/safchain/ethtool v0.2.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/soh335/sliceflag v0.0.0-20160923061056-d2d28a5acab8
 	github.com/songgao/water v0.0.0-20200317203138-2b4b6d7c09d8
@@ -38,7 +37,7 @@ require (
 	go.uber.org/multierr v1.8.0
 	go.uber.org/zap v1.21.0
 	go4.org v0.0.0-20201209231011-d4a079459e60
-	golang.org/x/sys v0.0.0-20220307203707-22a9840ba4d7
+	golang.org/x/sys v0.0.0-20220310020820-b874c991c1a5
 	inet.af/netaddr v0.0.0-20211027220019-c74959edd3b6
 )
 

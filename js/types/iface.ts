@@ -176,6 +176,12 @@ export interface MemifLocator {
  */
 export interface SocketFaceConfig extends FaceConfig {
   /**
+   * @minimum 960
+   * @maximum 65000
+   */
+  mtu?: Uint;
+
+  /**
    * @minimum 256
    * @default 4096
    */
@@ -191,12 +197,10 @@ export interface SocketFaceConfig extends FaceConfig {
  * Socket face locator.
  * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/iface/socketface#Locator>
  */
-export interface SocketFaceLocator {
+export interface SocketFaceLocator extends SocketFaceConfig {
   scheme: "udp" | "tcp" | "unix";
   local?: string;
   remote: string;
-
-  config?: SocketFaceConfig;
 }
 
 /**

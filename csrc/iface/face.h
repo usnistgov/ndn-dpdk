@@ -36,8 +36,8 @@ typedef struct FaceTxThread
 
 /**
  * @brief Transmit a burst of L2 frames.
- * @param pkts L2 frames
- * @return successfully queued frames
+ * @param pkts L2 frames.
+ * @return successfully queued frames.
  * @post FaceImpl owns queued frames, but does not own remaining frames
  */
 typedef uint16_t (*Face_TxBurstFunc)(Face* face, struct rte_mbuf** pkts, uint16_t nPkts);

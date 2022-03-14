@@ -8,12 +8,10 @@ import (
 	"sync"
 	"unsafe"
 
-	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"go4.org/must"
 )
 
 // Limits of RxGroupCapacity.
@@ -32,7 +30,6 @@ type rxGroup struct {
 }
 
 var _ iface.RxGroup = (*rxGroup)(nil)
-
 var rxg = &rxGroup{}
 
 func (rxg *rxGroup) NumaSocket() eal.NumaSocket {
@@ -49,17 +46,12 @@ func (rxg *rxGroup) addFace(capacity int) (e error) {
 
 	if rxg.nFaces == 0 {
 		rxg.socket = eal.RandomSocket()
-
-		if capacity == 0 {
-			capacity = DefaultRxGroupCapacity
-		} else {
-			capacity = math.MaxInt(capacity, MinRxGroupCapacity)
-		}
+		capacity = ringbuffer.AlignCapacity(capacity, MinRxGroupCapacity, DefaultRxGroupCapacity)
 		if rxg.ring, e = ringbuffer.New(capacity, rxg.socket, ringbuffer.ProducerMulti, ringbuffer.ConsumerSingle); e != nil {
 			return e
 		}
 
-		rxg.c = (*C.SocketRxGroup)(eal.Zmalloc("SocketRxGroup", C.sizeof_SocketRxGroup, eal.NumaSocket{}))
+		rxg.c = (*C.SocketRxGroup)(eal.Zmalloc("SocketRxGroup", C.sizeof_SocketRxGroup, rxg.socket))
 		rxg.c.base.rxBurst = C.RxGroup_RxBurstFunc(C.SocketRxGroup_RxBurst)
 		rxg.c.ring = (*C.struct_rte_ring)(rxg.ring.Ptr())
 
@@ -81,13 +73,11 @@ func (rxg *rxGroup) removeFace() {
 
 	iface.DeactivateRxGroup(rxg)
 	eal.Free(rxg.c)
-	must.Close(rxg.ring)
+	rxg.ring.Close()
 	rxg.c, rxg.ring = nil, nil
 }
 
 func (rxg *rxGroup) rx(vec pktmbuf.Vector) {
 	nEnq := rxg.ring.Enqueue(vec)
-	for _, m := range vec[nEnq:] {
-		must.Close(m)
-	}
+	vec[nEnq:].Close()
 }

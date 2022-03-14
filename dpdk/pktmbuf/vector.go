@@ -25,10 +25,9 @@ func (vec Vector) ptr() **C.struct_rte_mbuf {
 
 // Close releases the mbufs.
 func (vec Vector) Close() error {
-	if len(vec) == 0 {
-		return nil
+	if len(vec) > 0 {
+		C.rte_pktmbuf_free_bulk(vec.ptr(), C.uint(len(vec)))
 	}
-	C.rte_pktmbuf_free_bulk(vec.ptr(), C.uint(len(vec)))
 	return nil
 }
 

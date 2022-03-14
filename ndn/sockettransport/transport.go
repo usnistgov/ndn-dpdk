@@ -83,18 +83,6 @@ type Transport interface {
 	Counters() Counters
 }
 
-type transport struct {
-	*l3.TransportBase
-	p       *l3.TransportBasePriv
-	cfg     Config
-	impl    impl
-	conn    atomic.Value // net.Conn
-	err     chan error
-	cnt     Counters
-	closing chan struct{}
-	closed  int32 // atomic bool
-}
-
 // New creates a socket transport.
 func New(conn net.Conn, cfg Config) (Transport, error) {
 	network := conn.LocalAddr().Network()
@@ -120,6 +108,18 @@ func New(conn net.Conn, cfg Config) (Transport, error) {
 	go tr.txLoop()
 	go tr.redialLoop()
 	return tr, nil
+}
+
+type transport struct {
+	*l3.TransportBase
+	p       *l3.TransportBasePriv
+	cfg     Config
+	impl    impl
+	conn    atomic.Value // net.Conn
+	err     chan error
+	cnt     Counters
+	closing chan struct{}
+	closed  int32 // atomic bool
 }
 
 func (tr *transport) Conn() net.Conn {

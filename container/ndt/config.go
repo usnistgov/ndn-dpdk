@@ -13,7 +13,7 @@ const (
 	DefaultPrefixLen = 2
 
 	MinCapacity     = 1 << 4
-	MaxCapacity     = 1 << 60
+	MaxCapacity     = 1 << 31
 	DefaultCapacity = 1 << 16
 
 	MinSampleInterval     = 1 << 0

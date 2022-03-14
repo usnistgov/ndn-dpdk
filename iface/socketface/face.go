@@ -4,7 +4,7 @@ package socketface
 /*
 #include "../../csrc/iface/face.h"
 extern uint16_t go_SocketFace_TxBurst(Face* faceC, struct rte_mbuf** pkts, uint16_t nPkts);
-static const Face_TxBurstFunc _ __rte_unused = go_SocketFace_TxBurst;
+STATIC_ASSERT_FUNC_TYPE(Face_TxBurstFunc, go_SocketFace_TxBurst);
 */
 import "C"
 import (
@@ -48,6 +48,7 @@ func New(loc Locator) (iface.Face, error) {
 	}
 
 	var dialer sockettransport.Dialer
+	dialer.MTU = cfg.MTU
 	dialer.RxBufferLength = ndni.PacketMempool.Config().Dataroom
 	dialer.RxQueueSize = cfg.RxQueueSize
 	dialer.TxQueueSize = cfg.TxQueueSize
@@ -122,10 +123,6 @@ type socketFace struct {
 	iface.Face
 	transport sockettransport.Transport
 	rxMempool *pktmbuf.Pool
-}
-
-func (face *socketFace) ptr() *C.Face {
-	return (*C.Face)(face.Ptr())
 }
 
 func (face *socketFace) rxLoop() {

@@ -4,11 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"strconv"
 	"testing"
 	"time"
 
-	"github.com/gabstv/freeport"
 	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/iface"
@@ -30,21 +28,26 @@ func TestUDP(t *testing.T) {
 	assert, require := makeAR(t)
 	fixture := ifacetestenv.NewFixture(t)
 
-	portA, portB := 0, 0
-	for portA == portB {
-		portA, _ = freeport.UDP()
-		portB, _ = freeport.UDP()
+	var addrA, addrB string
+	{
+		addr, e := net.ResolveUDPAddr("udp", "127.0.0.1:0")
+		require.NoError(e)
+		listenerA, e := net.ListenUDP("udp", addr)
+		require.NoError(e)
+		listenerB, e := net.ListenUDP("udp", addr)
+		require.NoError(e)
+		addrA, addrB = listenerA.LocalAddr().String(), listenerB.LocalAddr().String()
+		listenerA.Close()
+		listenerB.Close()
 	}
-	addrA := "127.0.0.1:" + strconv.Itoa(portA)
-	addrB := "127.0.0.1:" + strconv.Itoa(portB)
 
-	locA := mustParseLocator(`{ "scheme": "udp", "local": "` + addrA + `", "remote": "` + addrB + `" }`)
+	locA := mustParseLocator(`{"scheme":"udp", "local":"` + addrA + `", "remote":"` + addrB + `"}`)
 	ifacetestenv.CheckLocatorMarshal(t, locA)
 	faceA, e := socketface.New(locA)
 	require.NoError(e)
 	defer faceA.Close()
 
-	locB := mustParseLocator(`{ "scheme": "udp", "local": "` + addrB + `", "remote": "` + addrA + `" }`)
+	locB := mustParseLocator(`{"scheme":"udp", "local":"` + addrB + `", "remote":"` + addrA + `"}`)
 	faceB, e := socketface.New(locB)
 	require.NoError(e)
 	defer faceB.Close()
@@ -97,9 +100,9 @@ func checkStreamRedialing(t testing.TB, listener net.Listener, makeFaceA func() 
 	assert.True(hasDownEvt)
 	assert.True(hasUpEvt)
 
-	var cntMap map[string]interface{}
-	require.NoError(jsonhelper.Roundtrip(faceA.ExCounters(), &cntMap))
-	assert.InDelta(1.5, cntMap["nRedials"], 0.6) // redial counter should be 1 or 2
+	var cnt sockettransport.Counters
+	require.NoError(jsonhelper.Roundtrip(faceA.ExCounters(), &cnt))
+	assert.InDelta(1.5, float64(cnt.NRedials), 0.6) // redial counter should be 1 or 2
 }
 
 func TestTCP(t *testing.T) {
@@ -113,7 +116,7 @@ func TestTCP(t *testing.T) {
 	*addr = *listener.Addr().(*net.TCPAddr)
 
 	checkStreamRedialing(t, listener, func() iface.Face {
-		loc := mustParseLocator(fmt.Sprintf(`{ "scheme": "tcp", "remote": "127.0.0.1:%d" }`, addr.Port))
+		loc := mustParseLocator(fmt.Sprintf(`{"scheme":"tcp", "remote":"127.0.0.1:%d"}`, addr.Port))
 		face, e := socketface.New(loc)
 		require.NoError(e)
 
@@ -135,7 +138,7 @@ func TestUnix(t *testing.T) {
 	defer listener.Close()
 
 	checkStreamRedialing(t, listener, func() iface.Face {
-		loc := mustParseLocator(fmt.Sprintf(`{ "scheme": "unix", "remote": "%s" }`, addr))
+		loc := mustParseLocator(fmt.Sprintf(`{"scheme":"unix", "remote":"%s"}`, addr))
 		face, e := socketface.New(loc)
 		require.NoError(e)
 

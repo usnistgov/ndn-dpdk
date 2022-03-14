@@ -16,12 +16,10 @@ const (
 
 // Locator describes network and addresses of a socket.
 type Locator struct {
+	*Config
 	Network string `json:"scheme"`
 	Local   string `json:"local,omitempty"`
 	Remote  string `json:"remote"`
-
-	// Config specifies additional configuration for transport creation.
-	Config *Config `json:"config,omitempty"`
 }
 
 // Scheme returns the protocol.

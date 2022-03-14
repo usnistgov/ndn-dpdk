@@ -41,7 +41,7 @@ struct RxGroup
 {
   struct cds_hlist_node rxlNode;
   RxGroup_RxBurstFunc rxBurst;
-  int rxThread; ///< Face_RxInput thread number
+  int rxThread; ///< FaceRx_Input thread number
 };
 
 /** @brief RX loop thread. */
