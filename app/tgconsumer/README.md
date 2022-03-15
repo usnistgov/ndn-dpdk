@@ -39,14 +39,14 @@ Name suffix cannot be used in the Data template.
 
 ## Relative Sequence Number
 
-Normally, each traffic pattern in the consumer has an independent sequence number that is incremented every time the pattern is selected.
+Normally, each traffic pattern in the consumer has an independent sequence number that is incremented by one every time the pattern is selected.
 If the `seqNumOffset` option is specified to a non-zero value, the traffic pattern would instead use a relative sequence number.
 
-Every time this traffic pattern is selected:
+Suppose the `seqNumOffset` option is specified on traffic pattern *i*, every time pattern *i* is selected:
 
-1. The consumer reads the last sequence number of the previous pattern.
-2. This sequence number is subtracted by `seqNumOffset`.
-3. In the unlikely case that the computed sequence number is already requested recently, the sequence number is incremented.
+1. The consumer reads the last sequence number of pattern *i-1*.
+2. This sequence number is subtracted by the `seqNumOffset` of pattern *i*.
+3. In the unlikely case that the computed sequence number same as the last sequence number of pattern *i* (i.e. pattern *i-1* has not been selected between two consecutive selections of pattern *i*), the sequence number is incremented by one.
 
 This feature enables the consumer to generate Interests that can potentially be satisfied by cached Data in a forwarder, if the `seqNumOffset` setting is appropriate for the cache capacity and network latency.
 
@@ -54,8 +54,8 @@ Limitations of this feature:
 
 * `seqNumOffset` cannot be specified on the first pattern.
 * `seqNumOffset` cannot be specified together with implicit digest.
-* Even if the previous pattern has implicit digest, Interests from this pattern do not have implicit digest.
-* To reduce the probability of incremented sequence number (step 3), this pattern should be assigned a lower weight than the previous pattern.
+* Even if pattern *i-1* has implicit digest, Interests from pattern *i* will not have implicit digest.
+* To reduce the probability of incremented sequence number (step 3) that reduces the effectiveness of generating cache hits, pattern *i* should be assigned a lower weight than pattern *i-1*.
 
 ## PIT token usage
 

@@ -15,12 +15,12 @@ Compare to an IP/Ethernet traffic generator, the NDN-DPDK traffic generator unde
 For example, an NDN producer must receive incoming Interests and respond with matching names, which is not supported by IP/Ethernet traffic generators.
 
 The traffic generator supports flexible, randomized traffic patterns.
-For example, a producer may be configured with these traffic patterns:
+For example, a [producer](../app/tgproducer) may be configured with these traffic patterns:
 
 * If the Interest name starts with `/D`, reply with Data packet with 1000-octet payload.
 * If the Interest name starts with `/T`, with 10% probability the packet is dropped, otherwise it is replied with a Data packet.
 
-Likewise, a consumer may be configured with these traffic patterns:
+Likewise, a [consumer](../app/tgconsumer) may be configured with these traffic patterns:
 
 * Send one Interest every 100 microseconds on average.
 * With 30% probability, send an Interest named `/A` followed by an increasing sequence number *seqA*, set the CanBePrefix flag.
@@ -34,6 +34,7 @@ You can start multiple traffic generators on different faces within the same `nd
 Traffic generator associated with each face is given dedicated packet queues and CPU lcores.
 Generally, each face requires 1 input thread, 1 output thread, 2 consumer threads, and 1 producer thread.
 They should be on the same NUMA socket as the Ethernet adapter.
+Packet buffer mempools are shared among traffic generators on the same NUMA socket.
 
 ## Start the Traffic Generator
 
