@@ -15,9 +15,9 @@ You can also [build a Docker container](Docker.md), which would work on other op
 * Node.js 17.x
 * [Meson build system](https://mesonbuild.com/Getting-meson.html#installing-meson-with-pip)
 * [ubpf](https://github.com/iovisor/ubpf) 0dd334d
-* [libbpf](https://github.com/libbpf/libbpf) 0.7.0 and [xdp-tools](https://github.com/xdp-project/xdp-tools) 06eab9b (optional)
+* [libbpf](https://github.com/libbpf/libbpf) 0.7.0 and [libxdp](https://github.com/xdp-project/xdp-tools) 5186b51 (optional)
 * [liburing](https://github.com/axboe/liburing) 2.1
-* [Data Plane Development Kit (DPDK)](https://www.dpdk.org/) 22.03-rc3
+* [Data Plane Development Kit (DPDK)](https://www.dpdk.org/) 22.03-rc4
 * [Storage Performance Development Kit (SPDK)](https://spdk.io/) 22.01
 * [godoc](https://pkg.go.dev/golang.org/x/tools/cmd/godoc) and [staticcheck](https://pkg.go.dev/honnef.co/go/tools/cmd/staticcheck) commands (optional)
 
@@ -38,7 +38,7 @@ See script source code for variable names and their default values.
 1. Clone the NDN-DPDK repository.
 2. Run `core pnpm install` to download NPM dependencies.
 3. Run `NDNDPDK_MK_RELEASE=1 make` to compile the project.
-4. Run `sudo make install` to install the programs, and `sudo make uninstall` to uninstall them.
+4. Run `sudo make install` to install the programs.
 
 Installed files include:
 
@@ -57,7 +57,7 @@ See [DPDK system requirements](https://doc.dpdk.org/guides/linux_gsg/sys_reqs.ht
 Depending on your hardware, you may need to change PCI driver bindings using the `dpdk-devbind.py` script.
 See [DPDK Network Interface Controller Drivers](https://doc.dpdk.org/guides/nics/) and [hardware known to work](hardware.md) for more information.
 
-You can then run `sudo ndndpdk-ctrl systemd start` to start the NDN-DPDK service, use `ndndpdk-ctrl` command to activate it as a forwarder or some other role, and then control the service.
+You can run `sudo ndndpdk-ctrl systemd start` to start the NDN-DPDK service, use `ndndpdk-ctrl` command to activate it as a forwarder or some other role, and then control the service.
 See [forwarder activation and usage](forwarder.md), [traffic generator activation and usage](trafficgen.md), [file server activation and usage](fileserver.md) for basic usage in each role.
 You can view logs from the NDN-DPDK service with `ndndpdk-ctrl systemd logs -f` command, which is especially useful in case of errors during activation and face creation.
 

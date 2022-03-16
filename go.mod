@@ -29,15 +29,15 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/soh335/sliceflag v0.0.0-20160923061056-d2d28a5acab8
 	github.com/songgao/water v0.0.0-20200317203138-2b4b6d7c09d8
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.1
 	github.com/tul/emission v0.0.0-20180606124623-7d2aae804ca2
-	github.com/urfave/cli/v2 v2.3.0
+	github.com/urfave/cli/v2 v2.4.0
 	github.com/vishvananda/netlink v1.1.1-0.20220117225832-796d4ea903f3
 	github.com/xeipuuv/gojsonschema v1.2.0
 	go.uber.org/multierr v1.8.0
 	go.uber.org/zap v1.21.0
 	go4.org v0.0.0-20201209231011-d4a079459e60
-	golang.org/x/sys v0.0.0-20220310020820-b874c991c1a5
+	golang.org/x/sys v0.0.0-20220315194320-039c03cc5b86
 	inet.af/netaddr v0.0.0-20211027220019-c74959edd3b6
 )
 
