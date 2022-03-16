@@ -126,6 +126,19 @@ func (fwd *Fwd) Counters() (cnt FwdCounters) {
 	return cnt
 }
 
+// PktQueueOf returns PktQueue of specified PktType.
+func (fwd *Fwd) PktQueueOf(t ndni.PktType) *iface.PktQueue {
+	switch t {
+	case ndni.PktInterest:
+		return fwd.queueI
+	case ndni.PktData:
+		return fwd.queueD
+	case ndni.PktNack:
+		return fwd.queueN
+	}
+	return nil
+}
+
 func (fwd *Fwd) String() string {
 	return fmt.Sprintf("fwd%d", fwd.id)
 }

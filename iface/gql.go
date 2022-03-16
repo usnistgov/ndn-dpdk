@@ -139,9 +139,8 @@ func init() {
 			reflect.TypeOf(TxCounters{}): GqlTxCountersType,
 		}),
 	})
-	gqlserver.AddCounters(&gqlserver.Counters{
+	gqlserver.AddCounters(&gqlserver.CountersConfig{
 		Description:  "Face counters.",
-		Type:         GqlCountersType,
 		Parent:       GqlFaceType,
 		Name:         "counters",
 		Subscription: "faceCounters",
@@ -159,6 +158,7 @@ func init() {
 			}
 			return face, nil, nil
 		},
+		Type: GqlCountersType,
 		Read: func(p graphql.ResolveParams) (interface{}, error) {
 			face := p.Source.(Face)
 			return face.Counters(), nil

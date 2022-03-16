@@ -23,26 +23,22 @@ func PublishChan(f func(updates chan<- interface{})) (interface{}, error) {
 	return updates, nil
 }
 
-// IntervalDiffArgs adds 'interval' and 'diff' arguments.
-func IntervalDiffArgs(args graphql.FieldConfigArgument) graphql.FieldConfigArgument {
-	if args == nil {
-		args = graphql.FieldConfigArgument{}
+var (
+	subArgInterval = graphql.FieldConfigArgument{
+		"interval": &graphql.ArgumentConfig{
+			Description:  "Interval between updates.",
+			Type:         nnduration.GqlNanoseconds,
+			DefaultValue: nnduration.Nanoseconds(time.Second),
+		},
 	}
-
-	args["interval"] = &graphql.ArgumentConfig{
-		Description:  "Interval between updates.",
-		Type:         nnduration.GqlNanoseconds,
-		DefaultValue: nnduration.Nanoseconds(time.Second),
+	subArgDiff = graphql.FieldConfigArgument{
+		"diff": &graphql.ArgumentConfig{
+			Description:  "Report value difference since last update instead of accumulative total.",
+			Type:         graphql.Boolean,
+			DefaultValue: false,
+		},
 	}
-
-	args["diff"] = &graphql.ArgumentConfig{
-		Description:  "Report value difference since last update instead of accumulative total.",
-		Type:         graphql.Boolean,
-		DefaultValue: false,
-	}
-
-	return args
-}
+)
 
 // Publish publishes results at an interval in reply to GraphQL subscription.
 //
@@ -53,7 +49,8 @@ func PublishInterval(p graphql.ResolveParams, read graphql.FieldResolveFn, ender
 
 	diff := false
 	var prev interface{}
-	if diff = p.Args["diff"].(bool); diff {
+	if diffB, ok := p.Args["diff"].(bool); ok && diffB {
+		diff = true
 		if prev, e = read(p); e != nil {
 			return nil, e
 		}
@@ -110,7 +107,7 @@ func init() {
 		Name:        "tick",
 		Description: "time.Ticker subscription for testing subscription implementations.",
 		Type:        NonNullInt,
-		Args:        IntervalDiffArgs(nil),
+		Args:        subArgInterval,
 		Subscribe: func(p graphql.ResolveParams) (interface{}, error) {
 			n := 0
 			return PublishInterval(p, func(p graphql.ResolveParams) (interface{}, error) {
@@ -121,13 +118,9 @@ func init() {
 	})
 }
 
-// Counters contains options to publish a counters-like type.
-type Counters struct {
+// CountersConfig contains options to publish a counters-like type.
+type CountersConfig struct {
 	Description string
-	// Args declares GraphQL arguments for customizing counters.
-	Args graphql.FieldConfigArgument
-	// Type declares GraphQL return type.
-	Type graphql.Output
 
 	// Parent is the parent object to define a query field.
 	// If nil, no query field is defined.
@@ -139,21 +132,28 @@ type Counters struct {
 	// Subscription is the field name to be defined as subscription.
 	// If empty, no subscription is defined.
 	Subscription string
+	// NoDiff indicates diff=true is not supported.
+	// This should be set if some fields are lazily-injected with FieldResolveFn, as subtract algorithm cannot see them.
+	NoDiff bool
 	// FindArgs declares GraphQL arguments for finding the source object.
 	FindArgs graphql.FieldConfigArgument
-	// Find finds source object and channels that would cancel the subscription.
+	// Find finds source object from FindArgs in a subscription.
 	// p.Source is unspecified.
 	// p.Args contains arguments declared in both Args and FindArgs.
-	// This is only invoked for subscription operation.
+	// enders: see PublishInterval.
 	Find func(p graphql.ResolveParams) (source interface{}, enders []interface{}, e error)
 
+	// Type declares GraphQL return type.
+	Type graphql.Output
+	// Args declares GraphQL arguments for customizing counters.
+	Args graphql.FieldConfigArgument
 	// Read retrieves counters from p.Source.
-	//  p.Source is a value from Parent or a return value from Find.
-	//  p.Args contains arguments declared in Args.
+	// p.Source is a value from Parent or a return value from Find.
+	// p.Args contains arguments declared in Args.
 	Read graphql.FieldResolveFn
 }
 
-func (cfg Counters) subscribe(p graphql.ResolveParams) (interface{}, error) {
+func (cfg CountersConfig) subscribe(p graphql.ResolveParams) (interface{}, error) {
 	source, enders, e := cfg.Find(p)
 	if e != nil {
 		return nil, e
@@ -164,7 +164,7 @@ func (cfg Counters) subscribe(p graphql.ResolveParams) (interface{}, error) {
 }
 
 // AddCounters defines a counters-like field as both a query field and a subscription.
-func AddCounters(cfg *Counters) {
+func AddCounters(cfg *CountersConfig) {
 	if cfg.Parent != nil && cfg.Name != "" {
 		cfg.Parent.AddFieldConfig(cfg.Name, &graphql.Field{
 			Description: cfg.Description,
@@ -178,11 +178,16 @@ func AddCounters(cfg *Counters) {
 		args := graphql.FieldConfigArgument{}
 		mergemaps.MergeInto(args, cfg.Args, 0)
 		mergemaps.MergeInto(args, cfg.FindArgs, 0)
+		mergemaps.MergeInto(args, subArgInterval, 0)
+		if !cfg.NoDiff {
+			mergemaps.MergeInto(args, subArgDiff, 0)
+		}
 		AddSubscription(&graphql.Field{
-			Name:      cfg.Subscription,
-			Args:      IntervalDiffArgs(args),
-			Type:      cfg.Type,
-			Subscribe: cfg.subscribe,
+			Name:        cfg.Subscription,
+			Description: cfg.Description,
+			Args:        args,
+			Type:        cfg.Type,
+			Subscribe:   cfg.subscribe,
 		})
 	}
 }

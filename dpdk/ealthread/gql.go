@@ -92,9 +92,8 @@ func init() {
 		Name:   "ThreadLoadStat",
 		Fields: gqlserver.BindFields(LoadStat{}, nil),
 	})
-	gqlserver.AddCounters(&gqlserver.Counters{
+	gqlserver.AddCounters(&gqlserver.CountersConfig{
 		Description:  "Thread load statistics.",
-		Type:         GqlLoadStatType,
 		Parent:       GqlWorkerType,
 		Name:         "loadStat",
 		Subscription: "threadLoadStat",
@@ -112,6 +111,7 @@ func init() {
 			}
 			return lc, nil, nil
 		},
+		Type: GqlLoadStatType,
 		Read: func(p graphql.ResolveParams) (interface{}, error) {
 			lc := p.Source.(eal.LCore)
 			thObj, ok := activeThread.Load(lc)

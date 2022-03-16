@@ -126,9 +126,8 @@ func init() {
 		}),
 	})
 
-	gqlserver.AddCounters(&gqlserver.Counters{
+	gqlserver.AddCounters(&gqlserver.CountersConfig{
 		Description:  "Traffic generator counters.",
-		Type:         GqlCountersType,
 		Parent:       GqlTrafficGenType,
 		Name:         "counters",
 		Subscription: "tgCounters",
@@ -146,6 +145,7 @@ func init() {
 			}
 			return gen, []interface{}{gen.exit}, nil
 		},
+		Type: GqlCountersType,
 		Read: func(p graphql.ResolveParams) (interface{}, error) {
 			return p.Source.(*TrafficGen).Counters(), nil
 		},

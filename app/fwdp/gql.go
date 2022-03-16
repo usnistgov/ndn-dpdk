@@ -3,7 +3,6 @@ package fwdp
 import (
 	"errors"
 	"fmt"
-	"reflect"
 	"strconv"
 	"unsafe"
 
@@ -15,7 +14,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/runningstat"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
-	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
@@ -30,10 +28,10 @@ var (
 var (
 	GqlInputNodeType   *gqlserver.NodeType
 	GqlInputType       *graphql.Object
-	GqlFwdCountersType *graphql.Object
 	GqlFwdNodeType     *gqlserver.NodeType
 	GqlFwdType         *graphql.Object
 	GqlDataPlaneType   *graphql.Object
+	GqlFwdCountersType *graphql.Object
 )
 
 func init() {
@@ -65,69 +63,6 @@ func init() {
 	}))
 	GqlInputNodeType.Register(GqlInputType)
 
-	GqlFwdCountersType = graphql.NewObject(graphql.ObjectConfig{
-		Name: "FwFwdCounters",
-		Fields: graphql.Fields{
-			"inputLatency": &graphql.Field{
-				Description: "Latency between packet arrival and dequeuing at forwarding thread, in nanoseconds.",
-				Type:        graphql.NewNonNull(runningstat.GqlSnapshotType),
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					fwd := p.Source.(*Fwd)
-					latencyStat := runningstat.FromPtr(unsafe.Pointer(&fwd.c.latencyStat))
-					return latencyStat.Read().Scale(eal.TscNanos), nil
-				},
-			},
-		},
-	})
-	for fieldName, field := range gqlserver.BindFields(FwdCounters{}, nil) {
-		resolveFromCounters := field.Resolve
-		field.Resolve = func(p graphql.ResolveParams) (interface{}, error) {
-			fwd := p.Source.(*Fwd)
-			p.Source = fwd.Counters()
-			return resolveFromCounters(p)
-		}
-		GqlFwdCountersType.AddFieldConfig(fieldName, field)
-	}
-	defineFwdPktCounter := func(t ndni.PktType, plural string) {
-		GqlFwdCountersType.AddFieldConfig(fmt.Sprintf("n%sQueued", plural), &graphql.Field{
-			Description: fmt.Sprintf("%s queued in input thread.", plural),
-			Type:        gqlserver.NonNullInt,
-			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				index := p.Source.(*Fwd).id
-				var sum uint64
-				for _, input := range GqlDataPlane.fwis {
-					sum += input.rxl.DemuxOf(t).DestCounters(index).NQueued
-				}
-				return sum, nil
-			},
-		})
-		GqlFwdCountersType.AddFieldConfig(fmt.Sprintf("n%sDropped", plural), &graphql.Field{
-			Description: fmt.Sprintf("%s dropped in input thread.", plural),
-			Type:        gqlserver.NonNullInt,
-			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				index := p.Source.(*Fwd).id
-				var sum uint64
-				for _, input := range GqlDataPlane.fwis {
-					sum += input.rxl.DemuxOf(t).DestCounters(index).NDropped
-				}
-				return sum, nil
-			},
-		})
-		pktQueueF, _ := reflect.TypeOf(Fwd{}).FieldByName("queue" + plural[:1])
-		GqlFwdCountersType.AddFieldConfig(fmt.Sprintf("n%sCongMarked", plural), &graphql.Field{
-			Description: fmt.Sprintf("Congestion marks added to %s.", plural),
-			Type:        gqlserver.NonNullInt,
-			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				fwdV := reflect.ValueOf(p.Source.(*Fwd)).Elem()
-				q := fwdV.FieldByIndex(pktQueueF.Index).Interface().(*iface.PktQueue)
-				return int(q.Counters().NDrops), nil
-			},
-		})
-	}
-	defineFwdPktCounter(ndni.PktInterest, "Interests")
-	defineFwdPktCounter(ndni.PktData, "Data")
-	defineFwdPktCounter(ndni.PktNack, "Nacks")
-
 	GqlFwdNodeType = gqlserver.NewNodeType((*Fwd)(nil))
 	GqlFwdNodeType.Retrieve = func(id string) (interface{}, error) {
 		if GqlDataPlane == nil {
@@ -152,29 +87,6 @@ func init() {
 				},
 			},
 			"worker": ealthread.GqlWithWorker(nil),
-			"counters": &graphql.Field{
-				Description: "Forwarding counters.",
-				Type:        graphql.NewNonNull(GqlFwdCountersType),
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					return p.Source, nil
-				},
-			},
-			"pitCounters": &graphql.Field{
-				Description: "PIT counters.",
-				Type:        graphql.NewNonNull(pit.GqlCountersType),
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					fwd := p.Source.(*Fwd)
-					return fwd.Pit().Counters(), nil
-				},
-			},
-			"csCounters": &graphql.Field{
-				Description: "CS counters.",
-				Type:        graphql.NewNonNull(cs.GqlCountersType),
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					fwd := p.Source.(*Fwd)
-					return fwd.Cs().Counters(), nil
-				},
-			},
 		},
 	}))
 	GqlFwdNodeType.Register(GqlFwdType)
@@ -198,17 +110,6 @@ func init() {
 					return dp.fwds, nil
 				},
 			},
-			"diskCounters": &graphql.Field{
-				Description: "Disk store counters.",
-				Type:        disk.GqlStoreCountersType,
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					dp := p.Source.(*DataPlane)
-					if dp.fwdisk == nil {
-						return nil, nil
-					}
-					return dp.fwdisk.store.Counters(), nil
-				},
-			},
 		},
 	})
 
@@ -218,6 +119,133 @@ func init() {
 		Type:        GqlDataPlaneType,
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 			return GqlDataPlane, nil
+		},
+	})
+
+	GqlFwdCountersType = graphql.NewObject(graphql.ObjectConfig{
+		Name:   "FwFwdCounters",
+		Fields: gqlserver.BindFields(FwdCounters{}, nil),
+	})
+	GqlFwdCountersType.AddFieldConfig("inputLatency", &graphql.Field{
+		Description: "Latency between packet arrival and dequeuing at forwarding thread, in nanoseconds.",
+		Type:        graphql.NewNonNull(runningstat.GqlSnapshotType),
+		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+			index := p.Source.(FwdCounters).id
+			fwd := GqlDataPlane.fwds[index]
+			latencyStat := runningstat.FromPtr(unsafe.Pointer(&fwd.c.latencyStat))
+			return latencyStat.Read().Scale(eal.TscNanos), nil
+		},
+	})
+	for t, plural := range map[ndni.PktType]string{ndni.PktInterest: "Interests", ndni.PktData: "Data", ndni.PktNack: "Nacks"} {
+		t := t
+		GqlFwdCountersType.AddFieldConfig(fmt.Sprintf("n%sQueued", plural), &graphql.Field{
+			Description: fmt.Sprintf("%s queued in input thread.", plural),
+			Type:        gqlserver.NonNullUint64,
+			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				index := p.Source.(FwdCounters).id
+				var sum uint64
+				for _, input := range GqlDataPlane.fwis {
+					sum += input.rxl.DemuxOf(t).DestCounters(index).NQueued
+				}
+				return sum, nil
+			},
+		})
+		GqlFwdCountersType.AddFieldConfig(fmt.Sprintf("n%sDropped", plural), &graphql.Field{
+			Description: fmt.Sprintf("%s dropped in input thread.", plural),
+			Type:        gqlserver.NonNullUint64,
+			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				index := p.Source.(FwdCounters).id
+				var sum uint64
+				for _, input := range GqlDataPlane.fwis {
+					sum += input.rxl.DemuxOf(t).DestCounters(index).NDropped
+				}
+				return sum, nil
+			},
+		})
+		GqlFwdCountersType.AddFieldConfig(fmt.Sprintf("n%sCongMarked", plural), &graphql.Field{
+			Description: fmt.Sprintf("Congestion marks added to %s.", plural),
+			Type:        gqlserver.NonNullUint64,
+			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				index := p.Source.(FwdCounters).id
+				fwd := GqlDataPlane.fwds[index]
+				q := fwd.PktQueueOf(t)
+				return q.Counters().NDrops, nil
+			},
+		})
+	}
+
+	fwdCountersConfigTemplate := gqlserver.CountersConfig{
+		FindArgs: graphql.FieldConfigArgument{
+			"id": &graphql.ArgumentConfig{
+				Description: "Forwarding thread ID.",
+				Type:        gqlserver.NonNullID,
+			},
+		},
+		Find: func(p graphql.ResolveParams) (source interface{}, enders []interface{}, e error) {
+			id := p.Args["id"].(string)
+			var fwd *Fwd
+			if e := gqlserver.RetrieveNodeOfType(GqlFwdNodeType, id, &fwd); e != nil {
+				return nil, nil, e
+			}
+			return fwd, nil, nil
+		},
+	}
+	gqlserver.AddCounters(&gqlserver.CountersConfig{
+		Description:  "Forwarding thread counters in forwarder data plane.",
+		Parent:       GqlFwdType,
+		Name:         "counters",
+		Subscription: "fwFwdCounters",
+		NoDiff:       true,
+		FindArgs:     fwdCountersConfigTemplate.FindArgs,
+		Find:         fwdCountersConfigTemplate.Find,
+		Type:         graphql.NewNonNull(GqlFwdCountersType),
+		Read: func(p graphql.ResolveParams) (interface{}, error) {
+			fwd := p.Source.(*Fwd)
+			return fwd.Counters(), nil
+		},
+	})
+	gqlserver.AddCounters(&gqlserver.CountersConfig{
+		Description:  "PIT counters in forwarder data plane.",
+		Parent:       GqlFwdType,
+		Name:         "pitCounters",
+		Subscription: "fwPitCounters",
+		FindArgs:     fwdCountersConfigTemplate.FindArgs,
+		Find:         fwdCountersConfigTemplate.Find,
+		Type:         graphql.NewNonNull(pit.GqlCountersType),
+		Read: func(p graphql.ResolveParams) (interface{}, error) {
+			fwd := p.Source.(*Fwd)
+			return fwd.Pit().Counters(), nil
+		},
+	})
+	gqlserver.AddCounters(&gqlserver.CountersConfig{
+		Description:  "CS counters in forwarder data plane.",
+		Parent:       GqlFwdType,
+		Name:         "csCounters",
+		Subscription: "fwCsCounters",
+		FindArgs:     fwdCountersConfigTemplate.FindArgs,
+		Find:         fwdCountersConfigTemplate.Find,
+		Type:         graphql.NewNonNull(cs.GqlCountersType),
+		Read: func(p graphql.ResolveParams) (interface{}, error) {
+			fwd := p.Source.(*Fwd)
+			return fwd.Cs().Counters(), nil
+		},
+	})
+
+	gqlserver.AddCounters(&gqlserver.CountersConfig{
+		Description:  "DiskStore counters in forwarder data plane.",
+		Parent:       GqlDataPlaneType,
+		Name:         "diskCounters",
+		Subscription: "fwDiskCounters",
+		Find: func(p graphql.ResolveParams) (source interface{}, enders []interface{}, e error) {
+			return GqlDataPlane, nil, nil
+		},
+		Type: disk.GqlStoreCountersType,
+		Read: func(p graphql.ResolveParams) (interface{}, error) {
+			dp := p.Source.(*DataPlane)
+			if dp.fwdisk == nil {
+				return nil, nil
+			}
+			return dp.fwdisk.store.Counters(), nil
 		},
 	})
 }
