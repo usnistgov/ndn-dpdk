@@ -7,6 +7,7 @@ package fwdp
 import "C"
 import (
 	"fmt"
+	"math/rand"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/container/cs"
@@ -72,13 +73,14 @@ func (fwd *Fwd) Init(lc eal.LCore, pcctCfg pcct.Config, qcfgI, qcfgD, qcfgN ifac
 	fwd.c.pit = &pcctC.pit
 	fwd.c.cs = &pcctC.cs
 
+	C.pcg32_srandom_r(&fwd.c.sgRng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
+	suppressCfg.CopyToC(unsafe.Pointer(&fwd.c.suppressCfg))
+
 	(*ndni.Mempools)(unsafe.Pointer(&fwd.c.mp)).Assign(socket)
 
 	latencyStat := runningstat.FromPtr(unsafe.Pointer(&fwd.c.latencyStat))
 	latencyStat.Clear(false)
 	latencyStat.SetSampleRate(latencySampleFreq)
-
-	suppressCfg.CopyToC(unsafe.Pointer(&fwd.c.suppressCfg))
 
 	return nil
 }

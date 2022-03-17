@@ -6,7 +6,7 @@
 #include "../strategyapi/api.h"
 #include "fwd.h"
 
-/** @brief Obtain external symbols available to strategy eBPF program. */
+/** @brief Obtain external symbols available to strategy eBPF programs. */
 __attribute__((nonnull, returns_nonnull)) const struct rte_bpf_xsym*
 SgGetXsyms(int* nXsyms);
 

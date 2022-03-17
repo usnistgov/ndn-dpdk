@@ -13,7 +13,7 @@ import (
 var logger = logging.New("eal")
 
 // Version is DPDK version.
-// This is populated during package ealinit initialization.
+// This is assigned during package ealinit initialization.
 var Version string
 
 // EAL variables, available after ealinit.Init().

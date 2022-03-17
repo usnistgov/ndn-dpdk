@@ -54,9 +54,7 @@ Probe(SgCtx* ctx)
   if (ctx->fibEntry->nNexthops == 1) {
     return S_PROBE_NONE;
   }
-  uint8_t i = ((uint16_t)ctx->now ^ (uint16_t)(ctx->now >> 16) ^ (uint16_t)(ctx->now >> 32) ^
-               (uint16_t)(ctx->now >> 48)) %
-              (uint16_t)(ctx->fibEntry->nNexthops - 1);
+  uint32_t i = SgRandInt(ctx, ctx->fibEntry->nNexthops - 1);
   if (i >= fei->selectedNexthop) {
     ++i;
   }

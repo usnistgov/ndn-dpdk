@@ -13,7 +13,8 @@ import (
 	"go4.org/must"
 )
 
-// External symbols available to eBPF programs, provided by ndn-dpdk/app/fwdp package.
+// External symbols available to eBPF programs.
+// These are assigned during package fwdp initialization.
 var (
 	Xsyms  unsafe.Pointer
 	NXsyms int

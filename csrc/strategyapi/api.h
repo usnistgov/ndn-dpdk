@@ -85,6 +85,14 @@ SgFibNexthopIt_InitCtx(SgFibNexthopIt* it, const SgCtx* ctx)
   })
 
 /**
+ * @brief Generate a random integer.
+ * @param max exclusive maximum.
+ * @return uniformly distributed random number r, where 0 <= r < max .
+ */
+__attribute__((nonnull)) uint32_t
+SgRandInt(SgCtx* ctx, uint32_t max);
+
+/**
  * @brief Set a timer to invoke strategy after a duration.
  * @param after duration in TSC unit, cannot exceed PIT entry expiration time.
  * @pre Not available in @c SGEVT_DATA.

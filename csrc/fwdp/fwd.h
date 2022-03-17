@@ -28,6 +28,7 @@ typedef struct FwFwd
   Pit* pit;
   Cs* cs;
 
+  pcg32_random_t sgRng;
   PitSuppressConfig suppressCfg;
 
   uint8_t id;          ///< fwd process id
