@@ -14,7 +14,7 @@ import (
 var (
 	idKey      [64]byte
 	idEncoding = base32.HexEncoding.WithPadding(base32.NoPadding)
-	nodeTypes  = make(map[string]*NodeType)
+	nodeTypes  = map[string]*NodeType{}
 
 	//lint:ignore ST1005 'Node' is a proper noun referring to GraphQL type
 	errNotFound   = errors.New("Node not found")

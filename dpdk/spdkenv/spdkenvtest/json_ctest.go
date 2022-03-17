@@ -1,4 +1,4 @@
-package cptrtest
+package spdkenvtest
 
 /*
 #include <spdk/env.h>
@@ -10,15 +10,17 @@ import (
 	"testing"
 	"unsafe"
 
-	"github.com/usnistgov/ndn-dpdk/core/cptr"
+	"github.com/usnistgov/ndn-dpdk/core/testenv"
+	"github.com/usnistgov/ndn-dpdk/dpdk/spdkenv"
 )
 
-func init() {
-	// As of SPDK 21.04, explicitly calling a function in libspdk_env_dpdk.so is needed to prevent a linker error.
-	C.spdk_env_get_core_count()
-}
+var makeAR = testenv.MakeAR
 
-func ctestSpdkJSON(t *testing.T) {
+// As of SPDK 22.01, explicitly calling a function in libspdk_env_dpdk.so is needed to prevent a linker error:
+//  /usr/local/lib/libspdk_util.so: undefined reference to `spdk_realloc'
+var _ = C.spdk_env_get_core_count()
+
+func ctestJSON(t *testing.T) {
 	assert, _ := makeAR(t)
 
 	content := make([]byte, 1048576)
@@ -29,7 +31,7 @@ func ctestSpdkJSON(t *testing.T) {
 		V string `json:"v"`
 	}
 
-	e := cptr.CaptureSpdkJSON(cptr.SpdkJSONObject(func(w0 unsafe.Pointer) {
+	e := spdkenv.CaptureJSON(spdkenv.JSONObject(func(w0 unsafe.Pointer) {
 		keyN := []C.char{'n', 0}
 		keyV := []C.char{'v', 0}
 		valueV := []C.char{'v', 'a', 'l', 'u', 'e', 0}

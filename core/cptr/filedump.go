@@ -98,7 +98,7 @@ func CaptureFileDump(f func(fp unsafe.Pointer)) (data []byte, e error) {
 	if e != nil {
 		return nil, e
 	}
-	defer must.Close(p)
+	defer p.Close()
 
 	done := make(chan struct{})
 	go func() {

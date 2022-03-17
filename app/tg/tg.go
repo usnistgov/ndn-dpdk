@@ -31,7 +31,7 @@ const (
 var logger = logging.New("tg")
 
 var (
-	mapFaceGen      = make(map[iface.ID]*TrafficGen)
+	mapFaceGen      = map[iface.ID]*TrafficGen{}
 	mapFaceGenMutex sync.RWMutex
 )
 

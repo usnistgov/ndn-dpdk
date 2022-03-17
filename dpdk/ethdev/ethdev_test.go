@@ -57,7 +57,7 @@ func TestEthDev(t *testing.T) {
 		}
 	}))
 
-	txRetryFreq := make(map[int]int)
+	txRetryFreq := map[int]int{}
 	eal.Workers[1].RemoteLaunch(cptr.Func0.Void(func() {
 		for i := 0; i < txLoops; i++ {
 			vec := directMp.MustAlloc(txBurstSize)

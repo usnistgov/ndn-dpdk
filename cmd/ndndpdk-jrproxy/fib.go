@@ -9,7 +9,7 @@ import (
 
 var (
 	fibLock    sync.Mutex
-	fibNameGid = make(map[string]string)
+	fibNameGid = map[string]string{}
 )
 
 func fibToGid(name ndn.Name) (gID string) {

@@ -20,7 +20,7 @@ func parseResultData(j json.RawMessage, key string, ptr interface{}) error {
 		return json.Unmarshal([]byte(j), ptr)
 	}
 
-	m := make(map[string]json.RawMessage)
+	m := map[string]json.RawMessage{}
 	if e := json.Unmarshal([]byte(j), &m); e != nil {
 		return e
 	}

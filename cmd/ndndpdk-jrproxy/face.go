@@ -9,7 +9,7 @@ import (
 
 var (
 	faceLock   sync.Mutex
-	faceNidGid = make(map[int]string)
+	faceNidGid = map[int]string{}
 )
 
 var errNoFace = errors.New("face not found")

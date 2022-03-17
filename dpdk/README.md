@@ -15,6 +15,7 @@ DPDK:
 
 SPDK:
 
+* json
 * thread
 * poller
 * bdev

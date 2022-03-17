@@ -6,12 +6,12 @@ type histogram struct {
 	Counts []int
 }
 
-func newHistogram(act uint8, lcore uint8) (h *histogram) {
-	h = new(histogram)
-	h.Act = act
-	h.LCore = lcore
-	h.Counts = make([]int, 4096)
-	return h
+func newHistogram(act uint8, lcore uint8) *histogram {
+	return &histogram{
+		Act:    act,
+		LCore:  lcore,
+		Counts: make([]int, 4096),
+	}
 }
 
 func (h *histogram) Add(value int) {

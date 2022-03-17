@@ -17,7 +17,7 @@ type RunningStat struct {
 
 // New constructs a new RunningStat instance in Go memory.
 func New() (s *RunningStat) {
-	s = new(RunningStat)
+	s = &RunningStat{}
 	s.Clear(true)
 	return s
 }

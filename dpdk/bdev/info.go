@@ -9,7 +9,6 @@ import (
 	"io"
 	"unsafe"
 
-	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/spdkenv"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -94,7 +93,7 @@ func (bdi *Info) HasIOType(ioType IOType) bool {
 // DriverInfo returns driver-specific information.
 func (bdi *Info) DriverInfo() (value interface{}) {
 	var res C.int
-	e := cptr.CaptureSpdkJSON(cptr.SpdkJSONObject(func(w unsafe.Pointer) {
+	e := spdkenv.CaptureJSON(spdkenv.JSONObject(func(w unsafe.Pointer) {
 		res = C.spdk_bdev_dump_info_json(bdi.ptr(), (*C.struct_spdk_json_write_ctx)(w))
 	}), &value)
 	if res != 0 || e != nil {

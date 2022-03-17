@@ -27,7 +27,7 @@ type pkgConsts struct {
 
 func (pc *pkgConsts) RecognizeFiles(path string) {
 	pc.fset = token.NewFileSet()
-	pc.Enums = make(map[string]*enumDecl)
+	pc.Enums = map[string]*enumDecl{}
 
 	pkgs, e := parser.ParseDir(pc.fset, path, nil, 0)
 	if e != nil {

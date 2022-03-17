@@ -123,7 +123,7 @@ func defineStdinJSONCommand(opts stdinJSONCommand) {
 			},
 		}, opts.Flags...),
 		Action: func(c *cli.Context) error {
-			arg := make(map[string]interface{})
+			arg := map[string]interface{}{}
 			loader, stdin := gojsonschema.NewReaderLoader(os.Stdin)
 			decoder := json.NewDecoder(stdin)
 

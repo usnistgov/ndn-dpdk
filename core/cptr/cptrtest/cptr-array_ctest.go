@@ -2,6 +2,7 @@ package cptrtest
 
 /*
 #include <stdlib.h>
+#include <spdk/env.h>
 */
 import "C"
 import (
@@ -10,6 +11,9 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 )
+
+// As of Go 1.17.8 + gcc 7 + SPDK 22.01, calling an SPDK function significantly reduces linker execution time.
+var _ = C.spdk_get_ticks()
 
 func ctestCptrArray(t *testing.T) {
 	assert, _ := makeAR(t)

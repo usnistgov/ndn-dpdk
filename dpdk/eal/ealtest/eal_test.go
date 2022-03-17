@@ -17,7 +17,7 @@ func TestEal(t *testing.T) {
 	assert.NotEmpty(eal.Sockets)
 
 	require.Len(eal.Workers, ealtestenv.WantLCores-1)
-	workersSet := make(map[eal.LCore]bool)
+	workersSet := map[eal.LCore]bool{}
 	for _, worker := range eal.Workers {
 		workersSet[worker] = true
 		assert.True(worker.Valid())

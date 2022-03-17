@@ -1,4 +1,4 @@
-package cptr
+package spdkenv
 
 /*
 #include "../../csrc/core/common.h"
@@ -22,14 +22,10 @@ import (
 	"unsafe"
 )
 
-// As of SPDK 21.10, explicitly calling a function in libspdk_env_dpdk.so is needed to prevent a linker error:
-//  /usr/local/lib/libspdk_util.so: undefined reference to `spdk_realloc'
-var _ = C.spdk_env_get_core_count()
-
-// CaptureSpdkJSON invokes a function that writes to *C.struct_spdk_json_write_ctx, and unmarshals what's been written.
-func CaptureSpdkJSON(f func(w unsafe.Pointer), ptr interface{}) (e error) {
-	buf := new(bytes.Buffer)
-	ctx := cgo.NewHandle(buf)
+// CaptureJSON invokes a function that writes to *C.struct_spdk_json_write_ctx, and unmarshals what's been written.
+func CaptureJSON(f func(w unsafe.Pointer), ptr interface{}) (e error) {
+	var buf bytes.Buffer
+	ctx := cgo.NewHandle(&buf)
 	defer ctx.Delete()
 
 	w := C.c_spdk_json_write_begin(C.go_spdkJSONWrite, C.uintptr_t(ctx), 0)
@@ -40,8 +36,8 @@ func CaptureSpdkJSON(f func(w unsafe.Pointer), ptr interface{}) (e error) {
 	return json.Unmarshal(buf.Bytes(), ptr)
 }
 
-// SpdkJSONObject can be used with CaptureSpdkJSON to wrap the output in a JSON object.
-func SpdkJSONObject(f func(w unsafe.Pointer)) func(w unsafe.Pointer) {
+// JSONObject can be used with CaptureJSON to wrap the output in a JSON object.
+func JSONObject(f func(w unsafe.Pointer)) func(w unsafe.Pointer) {
 	return func(w unsafe.Pointer) {
 		jw := (*C.struct_spdk_json_write_ctx)(w)
 		C.spdk_json_write_object_begin(jw)

@@ -26,8 +26,9 @@ func (a *CArgs) Close() error {
 
 // NewCArgs constructs CArgs.
 func NewCArgs(args []string) *CArgs {
-	a := new(CArgs)
-	a.Argc = len(args)
+	a := &CArgs{
+		Argc: len(args),
+	}
 
 	var b *C.char
 	ptrSize := int(unsafe.Sizeof(b))

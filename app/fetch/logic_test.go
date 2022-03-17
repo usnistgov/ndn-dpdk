@@ -25,7 +25,7 @@ func TestLogic(t *testing.T) {
 	fl.SetFinalSegNum(FINAL_SEG)
 
 	rxData := make(chan uint64)
-	txCounts := make(map[uint64]int)
+	txCounts := map[uint64]int{}
 	for !fl.Finished() {
 		time.Sleep(10 * time.Microsecond)
 		fl.TriggerRtoSched()

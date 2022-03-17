@@ -11,7 +11,7 @@ import (
 	"go.uber.org/zap"
 )
 
-var templates = make(map[string]*template)
+var templates = map[string]*template{}
 
 func validateTemplateID(id string) bool {
 	for _, ch := range id {
@@ -149,7 +149,7 @@ func RegisterTemplate(id string, cfg PoolConfig) Template {
 	tpl := &template{
 		id:    id,
 		cfg:   cfg,
-		pools: make(map[eal.NumaSocket]*Pool),
+		pools: map[eal.NumaSocket]*Pool{},
 	}
 	templates[id] = tpl
 	return tpl

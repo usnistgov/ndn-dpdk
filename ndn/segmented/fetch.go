@@ -116,7 +116,7 @@ func (f *fetcher) Unordered(ctx context.Context, unordered chan<- *ndn.Data) err
 
 	rtte := newRttEstimator()
 	ca := newCubic()
-	pendings := make(map[uint64]*fetchSeg)
+	pendings := map[uint64]*fetchSeg{}
 	retxQ := list.New()
 	ticker := time.NewTicker(time.Millisecond)
 	segNext, segLast := f.SegmentBegin, f.SegmentEnd-1
@@ -230,7 +230,7 @@ func (f *fetcher) Ordered(ctx context.Context, ordered chan<- *ndn.Data) error {
 	go func() { done <- f.Unordered(ctx, unordered) }()
 
 	next := f.SegmentBegin
-	buffer := make(map[uint64]*ndn.Data)
+	buffer := map[uint64]*ndn.Data{}
 	for data := range unordered {
 		seg, ok := extractSegment(data.Name, len(f.prefix))
 		switch {

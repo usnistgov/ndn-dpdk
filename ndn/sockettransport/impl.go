@@ -15,7 +15,7 @@ type impl interface {
 	RxLoop(tr *transport) error
 }
 
-var implByNetwork = make(map[string]impl)
+var implByNetwork = map[string]impl{}
 
 // noLocalAddrDialer dials with only remote addr.
 type noLocalAddrDialer struct{}

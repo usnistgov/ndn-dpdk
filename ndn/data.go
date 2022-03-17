@@ -108,8 +108,7 @@ func (data Data) ComputeDigest() []byte {
 	var e error
 
 	if data.packet == nil {
-		data.packet = new(Packet)
-		data.packet.Data = &data
+		data.packet = &Packet{Data: &data}
 	}
 
 	if data.packet.l3type != an.TtData {

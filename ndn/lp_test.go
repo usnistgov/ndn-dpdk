@@ -39,7 +39,7 @@ func TestLpReassembler(t *testing.T) {
 
 	fragmenter := ndn.NewLpFragmenter(999)
 	frames := [][]byte{}
-	packetSet := make(map[int]bool)
+	packetSet := map[int]bool{}
 	for i := 1000; i < 8000; i += 100 {
 		packetSet[i] = true
 		data := ndn.MakeData(fmt.Sprint("/D/", i), bytes.Repeat([]byte{0xCC}, i))
