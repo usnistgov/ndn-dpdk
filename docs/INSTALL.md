@@ -17,7 +17,7 @@ You can also [build a Docker container](Docker.md), which would work on other op
 * [ubpf](https://github.com/iovisor/ubpf) 0dd334d
 * [libbpf](https://github.com/libbpf/libbpf) 0.7.0 and [libxdp](https://github.com/xdp-project/xdp-tools) 5186b51 (optional)
 * [liburing](https://github.com/axboe/liburing) 2.1
-* [Data Plane Development Kit (DPDK)](https://www.dpdk.org/) 22.03-rc4
+* [Data Plane Development Kit (DPDK)](https://www.dpdk.org/) 22.03
 * [Storage Performance Development Kit (SPDK)](https://spdk.io/) 22.01
 * [godoc](https://pkg.go.dev/golang.org/x/tools/cmd/godoc) and [staticcheck](https://pkg.go.dev/honnef.co/go/tools/cmd/staticcheck) commands (optional)
 
