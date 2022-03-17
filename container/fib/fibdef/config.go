@@ -3,6 +3,7 @@ package fibdef
 import (
 	binutils "github.com/jfoster/binary-utilities"
 	"github.com/pkg/math"
+	"github.com/usnistgov/ndn-dpdk/dpdk/mempool"
 )
 
 // Limits and defaults.
@@ -30,6 +31,7 @@ func (cfg *Config) ApplyDefaults() {
 	} else {
 		cfg.Capacity = math.MinInt(math.MaxInt(MinCapacity, cfg.Capacity), MaxCapacity)
 	}
+	cfg.Capacity = mempool.ComputeOptimumCapacity(cfg.Capacity)
 
 	if cfg.NBuckets <= 0 {
 		cfg.NBuckets = (cfg.Capacity + 1) / 2

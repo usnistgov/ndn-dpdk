@@ -48,12 +48,12 @@ FwFwd_TxNacks(FwFwd* fwd, PitEntry* pitEntry, TscTime now, NackReason reason, ui
 }
 
 void
-SgReturnNacks(SgCtx* ctx0, SgNackReason reason)
+SgReturnNacks(SgCtx* ctx0, NackReason reason)
 {
   FwFwdCtx* ctx = (FwFwdCtx*)ctx0;
   NDNDPDK_ASSERT(ctx->eventKind == SGEVT_INTEREST);
 
-  FwFwd_TxNacks(ctx->fwd, ctx->pitEntry, rte_get_tsc_cycles(), (NackReason)reason, 1);
+  FwFwd_TxNacks(ctx->fwd, ctx->pitEntry, rte_get_tsc_cycles(), reason, 1);
 }
 
 __attribute__((nonnull)) static bool

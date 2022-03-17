@@ -28,6 +28,7 @@
 #define ALLOW_EXPERIMENTAL_API
 #include <rte_config.h>
 
+#include <rte_bitops.h>
 #include <rte_branch_prediction.h>
 #include <rte_common.h>
 

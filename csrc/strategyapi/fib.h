@@ -27,7 +27,7 @@ typedef uint32_t SgFibNexthopFilter;
  *
  * @code
  * SgFibNexthopIt it;
- * for (SgFibNexthopIt_Init(&it, entry, filter); // or SgFibNexthopIt_Init2(&it, ctx)
+ * for (SgFibNexthopIt_Init(&it, entry, filter); // or SgFibNexthopIt_InitCtx(&it, ctx)
  *      SgFibNexthopIt_Valid(&it);
  *      SgFibNexthopIt_Next(&it)) {
  *   int index = it.i;
@@ -43,17 +43,18 @@ typedef struct SgFibNexthopIt
   FaceID nh;
 } SgFibNexthopIt;
 
-inline bool
+SUBROUTINE bool
 SgFibNexthopIt_Valid(const SgFibNexthopIt* it)
 {
   return it->i < it->entry->nNexthops;
 }
 
-inline void
+SUBROUTINE void
 SgFibNexthopIt_Advance_(SgFibNexthopIt* it)
 {
   for (; SgFibNexthopIt_Valid(it); ++it->i) {
-    if (it->filter & (1 << it->i)) {
+    static_assert(sizeof(it->filter) == sizeof(uint32_t), "");
+    if (it->filter & RTE_BIT32(it->i)) {
       continue;
     }
     it->nh = it->entry->nexthops[it->i];
@@ -62,7 +63,7 @@ SgFibNexthopIt_Advance_(SgFibNexthopIt* it)
   it->nh = 0;
 }
 
-inline void
+SUBROUTINE void
 SgFibNexthopIt_Init(SgFibNexthopIt* it, const SgFibEntry* entry, SgFibNexthopFilter filter)
 {
   it->entry = entry;
@@ -71,7 +72,7 @@ SgFibNexthopIt_Init(SgFibNexthopIt* it, const SgFibEntry* entry, SgFibNexthopFil
   SgFibNexthopIt_Advance_(it);
 }
 
-inline void
+SUBROUTINE void
 SgFibNexthopIt_Next(SgFibNexthopIt* it)
 {
   ++it->i;

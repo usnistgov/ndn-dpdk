@@ -142,14 +142,7 @@ func init() {
 
 			var list []Entry
 			for _, entry := range GqlFib.List() {
-				hasNh := false
-				for _, nh := range entry.Nexthops {
-					if nh == faceID {
-						hasNh = true
-						break
-					}
-				}
-				if hasNh {
+				if entry.HasNextHop(faceID) {
 					list = append(list, entry)
 				}
 			}
@@ -193,6 +186,10 @@ func init() {
 				Description: "Forwarding strategy.",
 				Type:        graphql.ID,
 			},
+			"scratch": &graphql.ArgumentConfig{
+				Description: "Initial scratch area content.",
+				Type:        gqlserver.Bytes,
+			},
 		},
 		Type: graphql.NewNonNull(GqlEntryType),
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
@@ -218,6 +215,10 @@ func init() {
 				entry.Strategy = sc.ID()
 			} else if GqlDefaultStrategy != nil {
 				entry.Strategy = GqlDefaultStrategy.ID()
+			}
+
+			if scratch, ok := p.Args["scratch"].([]byte); ok {
+				entry.Scratch = scratch
 			}
 
 			if e := GqlFib.Insert(entry); e != nil {

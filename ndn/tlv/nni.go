@@ -1,9 +1,17 @@
 package tlv
 
-import "math"
+import (
+	"encoding"
+	"math"
+)
 
 // NNI is a non-negative integer.
 type NNI uint64
+
+var (
+	_ Fielder                    = NNI(0)
+	_ encoding.BinaryUnmarshaler = (*NNI)(nil)
+)
 
 // Size returns the wire encoding size.
 func (n NNI) Size() int {

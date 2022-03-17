@@ -8,7 +8,7 @@ SUBROUTINE uint64_t
 RxInterest(SgCtx* ctx)
 {
   SgFibNexthopIt it;
-  for (SgFibNexthopIt_Init2(&it, ctx); SgFibNexthopIt_Valid(&it); SgFibNexthopIt_Next(&it)) {
+  for (SgFibNexthopIt_InitCtx(&it, ctx); SgFibNexthopIt_Valid(&it); SgFibNexthopIt_Next(&it)) {
     SgForwardInterest(ctx, it.nh);
   }
   return 0;

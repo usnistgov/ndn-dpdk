@@ -4,20 +4,16 @@
 /** @file */
 
 #include "../fib/fib.h"
+#include "pit-const.h"
 #include "pit-dn.h"
 #include "pit-struct.h"
 #include "pit-up.h"
 
 enum
 {
-  PitMaxDns = 6,
-  PitMaxUps = 2,
-  PitMaxExtDns = 6,
-  PitMaxExtUps = 4,
-  PitScratchSize = 64,
   PitFibPrefixLenBits_ = 9,
 };
-static_assert((1 << PitFibPrefixLenBits_) > FibMaxNameLength, "");
+static_assert(RTE_BIT32(PitFibPrefixLenBits_) > FibMaxNameLength, "");
 
 typedef struct PitEntryExt PitEntryExt;
 

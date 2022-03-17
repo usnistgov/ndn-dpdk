@@ -14,6 +14,12 @@ typedef uint16_t FaceID;
 #error always_inline attribute is required
 #endif
 
-#define SUBROUTINE __attribute__((always_inline)) static inline
+/**
+ * @brief Indicate that a function is a subroutine.
+ *
+ * uBPF cannot resolve internal CALL instructions. Thus, every subroutine must be marked inline
+ * with this macro to ensure it does not compile into a CALL instruction.
+ */
+#define SUBROUTINE __attribute__((always_inline)) inline
 
 #endif // NDNDPDK_STRATEGYAPI_COMMON_H

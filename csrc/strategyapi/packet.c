@@ -11,8 +11,3 @@ static_assert(offsetof(SgPacket, nackReason) - offsetof(SgPacket, mbuf_end_) ==
 static_assert(offsetof(SgPacket, congMark) - offsetof(SgPacket, mbuf_end_) ==
                 offsetof(PacketPriv, lpl3.congMark),
               "");
-
-static_assert((int)SgNackCongestion == (int)NackCongestion, "");
-static_assert((int)SgNackDuplicate == (int)NackDuplicate, "");
-static_assert((int)SgNackNoRoute == (int)NackNoRoute, "");
-static_assert((int)SgNackUnspecified == (int)NackUnspecified, "");

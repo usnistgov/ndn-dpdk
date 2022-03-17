@@ -88,7 +88,7 @@ RxInterest(SgCtx* ctx)
 
   // multicast Interest
   SgFibNexthopIt it;
-  for (SgFibNexthopIt_Init2(&it, ctx); SgFibNexthopIt_Valid(&it); SgFibNexthopIt_Next(&it)) {
+  for (SgFibNexthopIt_InitCtx(&it, ctx); SgFibNexthopIt_Valid(&it); SgFibNexthopIt_Next(&it)) {
     SgForwardInterest(ctx, it.nh);
   }
   pei->multicastOrProbe = true;
@@ -129,7 +129,7 @@ RxNack(SgCtx* ctx)
   if (fei->hasSelectedNexthop &&
       ctx->fibEntry->nexthops[fei->selectedNexthop] == ctx->pkt->rxFace) {
     SgFibNexthopIt it;
-    for (SgFibNexthopIt_Init2(&it, ctx); SgFibNexthopIt_Valid(&it); SgFibNexthopIt_Next(&it)) {
+    for (SgFibNexthopIt_InitCtx(&it, ctx); SgFibNexthopIt_Valid(&it); SgFibNexthopIt_Next(&it)) {
       if (it.i != fei->selectedNexthop) {
         SgForwardInterest(ctx, it.nh);
       }

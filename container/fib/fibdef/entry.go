@@ -1,6 +1,7 @@
 package fibdef
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/usnistgov/ndn-dpdk/iface"
@@ -11,15 +12,26 @@ import (
 type EntryBody struct {
 	Nexthops []iface.ID `json:"nexthops"`
 	Strategy int        `json:"strategy"`
+	Scratch  []byte     `json:"scratch"`
 }
 
-// Equals determines whether two EntryBody records have the same values.
-func (body EntryBody) Equals(other EntryBody) bool {
-	if body.Strategy != other.Strategy || len(body.Nexthops) != len(other.Nexthops) {
+// HasNextHop determines whether a nexthop face exists.
+func (entry EntryBody) HasNextHop(id iface.ID) bool {
+	for _, nh := range entry.Nexthops {
+		if nh == id {
+			return true
+		}
+	}
+	return false
+}
+
+// EntryBodyEquals determines whether two EntryBody records have the same values.
+func EntryBodyEquals(lhs, rhs EntryBody) bool {
+	if lhs.Strategy != rhs.Strategy || len(lhs.Nexthops) != len(rhs.Nexthops) {
 		return false
 	}
-	for i, n := range body.Nexthops {
-		if n != other.Nexthops[i] {
+	for i, n := range lhs.Nexthops {
+		if n != rhs.Nexthops[i] {
 			return false
 		}
 	}
@@ -33,15 +45,18 @@ type Entry struct {
 }
 
 // Validate checks entry fields.
-func (entry *Entry) Validate() error {
+func (entry Entry) Validate() error {
 	if entry.Name.Length() > MaxNameLength {
-		return ErrNameTooLong
+		return errors.New("FIB entry name too long")
 	}
 	if len(entry.Nexthops) < 1 || len(entry.Nexthops) > MaxNexthops {
-		return ErrNexthops
+		return fmt.Errorf("number of nexthops must be between 1 and %d", MaxNexthops)
 	}
 	if entry.Strategy == 0 {
-		return ErrStrategy
+		return errors.New("missing strategy")
+	}
+	if len(entry.Scratch) > ScratchSize {
+		return fmt.Errorf("initial scratch area content cannot exceed %d octets", ScratchSize)
 	}
 	return nil
 }

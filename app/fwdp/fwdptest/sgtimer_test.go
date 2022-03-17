@@ -1,6 +1,7 @@
 package fwdptest
 
 import (
+	"encoding/binary"
 	"testing"
 	"time"
 
@@ -16,7 +17,9 @@ func TestSgTimer(t *testing.T) {
 	face1 := intface.MustNew()
 	face2 := intface.MustNew()
 	collect2 := intface.Collect(face2)
-	fixture.SetFibEntry("/A", "delay", face2.ID)
+	scratch := make([]byte, 8)
+	binary.LittleEndian.PutUint64(scratch, 200)
+	fixture.SetFibEntryScratch("/A", "delay", scratch, face2.ID)
 
 	// The strategy sets a 200ms timer, and then sends the Interest.
 	// InterestLifetime is shorter than 200ms, so that strategy timer would not be triggered.

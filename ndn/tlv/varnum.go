@@ -7,6 +7,8 @@ import (
 // VarNum represents a number in variable size encoding for TLV-TYPE or TLV-LENGTH.
 type VarNum uint64
 
+var _ Decoder = (*VarNum)(nil)
+
 // Size returns the wire encoding size.
 func (n VarNum) Size() int {
 	switch {

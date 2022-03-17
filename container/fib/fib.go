@@ -89,7 +89,7 @@ func (fib *Fib) Erase(name ndn.Name) (e error) {
 }
 
 func (fib *Fib) doUpdate(tu fibdef.Update) error {
-	updates := make(map[*fibreplica.Table]*fibreplica.UpdateCommand)
+	updates := map[*fibreplica.Table]*fibreplica.UpdateCommand{}
 	for socket, replica := range fib.replicas {
 		u, e := replica.PrepareUpdate(tu)
 		if e != nil {
@@ -115,7 +115,7 @@ func New(cfg fibdef.Config, threads []LookupThread) (*Fib, error) {
 
 	fib := &Fib{
 		tree:     fibtree.New(cfg.StartDepth),
-		replicas: make(map[eal.NumaSocket]*fibreplica.Table),
+		replicas: map[eal.NumaSocket]*fibreplica.Table{},
 	}
 
 	threadByNuma := eal.ClassifyByNumaSocket(threads, eal.RewriteAnyNumaSocketFirst).(map[eal.NumaSocket][]LookupThread)

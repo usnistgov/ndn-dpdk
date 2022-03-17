@@ -55,7 +55,7 @@ build/cgodeps.done: build/build.ninja
 	ninja -C build cgoflags cgostruct cgotest schema
 	touch $@
 
-build/bpf.done: build/build.ninja bpf/**/*.c csrc/strategyapi/* csrc/fib/enum.h
+build/bpf.done: build/build.ninja bpf/**/*.c csrc/strategyapi/* csrc/fib/enum.h csrc/ndni/an.h csrc/pcct/pit-const.h
 	ninja -C build bpf
 	touch $@
 

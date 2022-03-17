@@ -24,7 +24,8 @@ func init() {
 	}
 	GqlStrategyNodeType.Delete = func(source interface{}) error {
 		strategy := source.(*Strategy)
-		return strategy.Close()
+		strategy.Unref()
+		return nil
 	}
 
 	GqlStrategyType = graphql.NewObject(GqlStrategyNodeType.Annotate(graphql.ObjectConfig{

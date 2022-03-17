@@ -4,14 +4,12 @@ package strategycode
 import (
 	"fmt"
 	"sync"
-
-	"go4.org/must"
 )
 
 // Table of Strategy instances.
 var (
 	lastID    int
-	table     = make(map[int]*Strategy)
+	table     = map[int]*Strategy{}
 	tableLock sync.Mutex
 )
 
@@ -57,6 +55,6 @@ func DestroyAll() {
 		if nRefs := sc.CountRefs(); nRefs > 1 {
 			panic(fmt.Errorf("%s has %d refs", sc, nRefs))
 		}
-		must.Close(sc)
+		sc.Unref()
 	}
 }

@@ -96,7 +96,7 @@ func (u *realUpdate) execute(t *Table, allocated []*Entry) {
 	switch u.Action {
 	case fibdef.ActInsert, fibdef.ActReplace:
 		u.newReal = allocated[0]
-		u.newReal.assignReal(u.RealUpdate)
+		u.newReal.assignReal(u.RealUpdate, t.nDyns)
 		if u.WithVirt != nil {
 			u.newVirt = allocated[1]
 			u.newVirt.assignVirt(u.WithVirt, u.newReal)

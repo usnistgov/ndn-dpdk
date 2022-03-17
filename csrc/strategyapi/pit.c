@@ -20,9 +20,3 @@ static_assert(offsetof(SgPitEntryExt, next) == offsetof(PitEntryExt, next), "");
 static_assert(offsetof(SgPitEntryExt, dns) == offsetof(PitEntryExt, dns), "");
 static_assert(offsetof(SgPitEntryExt, ups) == offsetof(PitEntryExt, ups), "");
 static_assert(sizeof(SgPitEntryExt) == sizeof(PitEntryExt), "");
-
-static_assert(SG_PIT_ENTRY_MAX_DNS == PitMaxDns, "");
-static_assert(SG_PIT_ENTRY_MAX_UPS == PitMaxUps, "");
-static_assert(SG_PIT_ENTRY_EXT_MAX_DNS == PitMaxExtDns, "");
-static_assert(SG_PIT_ENTRY_EXT_MAX_UPS == PitMaxExtUps, "");
-static_assert(SG_PIT_ENTRY_SCRATCH == PitScratchSize, "");

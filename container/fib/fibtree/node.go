@@ -77,6 +77,6 @@ func (n *node) appendListTo(parentNameV string, list *[]fibdef.Entry) {
 
 func newNode() *node {
 	return &node{
-		children: make(map[string]*node),
+		children: map[string]*node{},
 	}
 }

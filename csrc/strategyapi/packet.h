@@ -3,6 +3,7 @@
 
 /** @file */
 
+#include "../ndni/an.h"
 #include "common.h"
 
 typedef struct SgPacket
@@ -25,13 +26,5 @@ typedef struct SgPacket
   uint8_t nackReason;
   uint8_t congMark;
 } SgPacket;
-
-typedef enum SgNackReason
-{
-  SgNackCongestion = 50,
-  SgNackDuplicate = 100,
-  SgNackNoRoute = 150,
-  SgNackUnspecified = 255,
-} SgNackReason;
 
 #endif // NDNDPDK_STRATEGYAPI_PACKET_H

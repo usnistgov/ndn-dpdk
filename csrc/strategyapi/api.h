@@ -54,14 +54,18 @@ typedef struct SgCtx
 } SgCtx;
 
 /** @brief Convert milliseconds to TscDuration. */
-#define SgTscFromMillis(ctx, millis) ((millis) * (ctx)->global->tscHz / 1000)
+SUBROUTINE TscDuration
+SgTscFromMillis(SgCtx* ctx, uint64_t millis)
+{
+  return millis * ctx->global->tscHz / 1000;
+}
 
 /**
  * @brief Iterate over FIB nexthops passing ctx->nhFlt.
  * @sa SgFibNexthopIt
  */
-inline void
-SgFibNexthopIt_Init2(SgFibNexthopIt* it, const SgCtx* ctx)
+SUBROUTINE void
+SgFibNexthopIt_InitCtx(SgFibNexthopIt* it, const SgCtx* ctx)
 {
   SgFibNexthopIt_Init(it, ctx->fibEntry, ctx->nhFlt);
 }
@@ -76,7 +80,7 @@ SgFibNexthopIt_Init2(SgFibNexthopIt* it, const SgCtx* ctx)
 /** @brief Access PIT entry scratch area as T* type. */
 #define SgCtx_PitScratchT(ctx, T)                                                                  \
   __extension__({                                                                                  \
-    static_assert(sizeof(T) <= SG_PIT_ENTRY_SCRATCH, "");                                          \
+    static_assert(sizeof(T) <= PitScratchSize, "");                                                \
     (T*)(ctx)->pitEntry->scratch;                                                                  \
   })
 
@@ -114,7 +118,7 @@ SgForwardInterest(SgCtx* ctx, FaceID nh);
  * @pre Only available in @c SGEVT_INTEREST.
  */
 __attribute__((nonnull)) void
-SgReturnNacks(SgCtx* ctx, SgNackReason reason);
+SgReturnNacks(SgCtx* ctx, NackReason reason);
 
 /**
  * @brief The strategy program.

@@ -88,6 +88,11 @@ func (f *Fixture) StepDelay() {
 
 // SetFibEntry inserts or replaces a FIB entry.
 func (f *Fixture) SetFibEntry(name string, strategy string, nexthops ...iface.ID) {
+	f.SetFibEntryScratch(name, strategy, nil, nexthops...)
+}
+
+// SetFibEntryScratch inserts or replaces a FIB entry.
+func (f *Fixture) SetFibEntryScratch(name string, strategy string, scratch []byte, nexthops ...iface.ID) {
 	sc := strategycode.Find(strategy)
 	if sc == nil {
 		var e error
@@ -95,7 +100,9 @@ func (f *Fixture) SetFibEntry(name string, strategy string, nexthops ...iface.ID
 		f.require.NoError(e)
 	}
 
-	e := f.Fib.Insert(fibtestenv.MakeEntry(name, sc, nexthops...))
+	entry := fibtestenv.MakeEntry(name, sc, nexthops...)
+	entry.Scratch = scratch
+	e := f.Fib.Insert(entry)
 	f.require.NoError(e)
 }
 

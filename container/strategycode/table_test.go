@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/usnistgov/ndn-dpdk/container/strategycode"
-	"go4.org/must"
 )
 
 func TestTable(t *testing.T) {
@@ -29,7 +28,7 @@ func TestTable(t *testing.T) {
 	assert.Len(strategycode.List(), 3)
 	assert.Same(scP, strategycode.Get(idP))
 
-	must.Close(scP2)
+	scP2.Unref()
 	assert.Len(strategycode.List(), 2)
 
 	strategycode.DestroyAll()

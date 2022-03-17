@@ -81,18 +81,6 @@ FibEntry_GetReal(FibEntry* entry)
   return entry->realEntry;
 }
 
-static inline FibEntry**
-FibEntry_PtrRealEntry(FibEntry* entry)
-{
-  return &entry->realEntry;
-}
-
-static inline StrategyCode**
-FibEntry_PtrStrategy(FibEntry* entry)
-{
-  return &entry->strategy;
-}
-
 static inline FibEntryDyn*
 FibEntry_PtrDyn(FibEntry* entry, int index)
 {

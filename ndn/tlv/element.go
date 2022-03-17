@@ -11,9 +11,16 @@ type Element struct {
 	Value []byte
 }
 
+var (
+	_ Fielder     = Element{}
+	_ Decoder     = (*Element)(nil)
+	_ Unmarshaler = (*Element)(nil)
+)
+
 // Size returns encoded size.
 func (element Element) Size() int {
-	return VarNum(element.Type).Size() + VarNum(element.Length()).Size() + len(element.Value)
+	length := element.Length()
+	return VarNum(element.Type).Size() + VarNum(length).Size() + length
 }
 
 // Length returns TLV-LENGTH.

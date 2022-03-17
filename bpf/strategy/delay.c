@@ -1,15 +1,20 @@
 /**
  * @file
- * The delay strategy delays every incoming Interest by 200 milliseconds,
- * and then forwards it to the first available nexthop.
+ * The delay strategy delays every Interest then forwards it to the first available nexthop.
+ * Delay duration is configured via FibEntryInfo.
  */
 #include "api.h"
+
+typedef struct FibEntryInfo
+{
+  uint32_t delay; ///< delay duration in milliseconds
+} FibEntryInfo;
 
 SUBROUTINE uint64_t
 Timer(SgCtx* ctx)
 {
   SgFibNexthopIt it;
-  for (SgFibNexthopIt_Init2(&it, ctx); SgFibNexthopIt_Valid(&it); SgFibNexthopIt_Next(&it)) {
+  for (SgFibNexthopIt_InitCtx(&it, ctx); SgFibNexthopIt_Valid(&it); SgFibNexthopIt_Next(&it)) {
     SgForwardInterestResult res = SgForwardInterest(ctx, it.nh);
     if (res == SGFWDI_OK) {
       return 0;
@@ -21,7 +26,8 @@ Timer(SgCtx* ctx)
 SUBROUTINE uint64_t
 RxInterest(SgCtx* ctx)
 {
-  bool ok = SgSetTimer(ctx, SgTscFromMillis(ctx, 200));
+  FibEntryInfo* fei = SgCtx_FibScratchT(ctx, FibEntryInfo);
+  bool ok = SgSetTimer(ctx, SgTscFromMillis(ctx, fei->delay));
   return ok ? 0 : 3;
 }
 

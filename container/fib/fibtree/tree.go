@@ -12,6 +12,8 @@ type update struct {
 	revert func()
 }
 
+var _ fibdef.Update = update{}
+
 func (u update) Real() *fibdef.RealUpdate {
 	return u.real
 }
@@ -94,7 +96,7 @@ func (t *Tree) Insert(entry fibdef.Entry) fibdef.Update {
 	u := update{}
 
 	n, isNewNode := t.seek(entry.Name, true)
-	if n.EntryBody.Equals(entry.EntryBody) {
+	if fibdef.EntryBodyEquals(n.EntryBody, entry.EntryBody) {
 		// if n.EntryBody is the same, it cannot be a new node
 		return u
 	}

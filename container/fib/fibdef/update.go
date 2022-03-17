@@ -9,7 +9,7 @@ type UpdateAction int
 
 // UpdateAction values.
 const (
-	ActInsert UpdateAction = iota
+	ActInsert UpdateAction = iota + 1
 	ActReplace
 	ActErase
 )

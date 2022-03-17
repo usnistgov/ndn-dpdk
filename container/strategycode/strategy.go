@@ -39,14 +39,14 @@ func (sc *Strategy) CountRefs() int {
 	return int(sc.nRefs)
 }
 
-// Close reduces the number of references by one.
-// The strategy will be unloaded when its reference count reaches zero.
-func (sc *Strategy) Close() error {
+// Unref reduces the number of references by one.
+// The strategy cannot be retrieved via Get(), Find(), List().
+// It will be unloaded when its reference count reaches zero.
+func (sc *Strategy) Unref() {
 	tableLock.Lock()
 	defer tableLock.Unlock()
 	delete(table, sc.ID())
 	C.StrategyCode_Unref(sc.ptr())
-	return nil
 }
 
 func (sc *Strategy) String() string {

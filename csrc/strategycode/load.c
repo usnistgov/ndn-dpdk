@@ -54,28 +54,33 @@ rte_bpf_load(const struct rte_bpf_prm* prm)
   struct rte_bpf* bpf = (struct rte_bpf*)rte_zmalloc("rte_bpf", sizeof(struct rte_bpf), 0);
   if (bpf == NULL) {
     rte_errno = ENOMEM;
-    return NULL;
+    goto FAIL;
   }
 
   struct ubpf_vm* vm = ubpf_create();
   if (vm == NULL) {
     N_LOGE("ubpf_create error" N_LOG_ERROR_BLANK);
     rte_errno = ENOMEM;
-    rte_free(bpf);
-    return NULL;
+    goto FAIL_ALLOC;
   }
 
   N_LOGD("rte_bpf_load-monkeypatch prm=%p bpf=%p vm=%p", prm, bpf, vm);
 
   rte_errno = StrategyCode_LoadUbpf(bpf, prm, vm);
   if (rte_errno != 0) {
-    ubpf_destroy(vm);
-    rte_free(bpf);
-    return NULL;
+    goto FAIL_VM;
   }
 
+  static_assert(sizeof(bpf->prm.xsym) == sizeof(vm), "");
   bpf->prm.xsym = (void*)vm;
   return bpf;
+
+FAIL_VM:
+  ubpf_destroy(vm);
+FAIL_ALLOC:
+  rte_free(bpf);
+FAIL:
+  return NULL;
 }
 
 void

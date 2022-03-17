@@ -21,6 +21,10 @@ NackReason_ToString(NackReason reason)
 Packet*
 Nack_FromInterest(Packet* npkt, NackReason reason, PacketMempools* mp, PacketTxAlign align)
 {
+  if (unlikely(reason == NackNone)) {
+    reason = NackUnspecified;
+  }
+
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   NDNDPDK_ASSERT(RTE_MBUF_DIRECT(pkt));
   NDNDPDK_ASSERT(rte_mbuf_refcnt_read(pkt) == 1);

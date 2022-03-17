@@ -3,6 +3,7 @@
 
 /** @file */
 
+#include "../pcct/pit-const.h"
 #include "common.h"
 
 typedef struct SgPitDn
@@ -24,27 +25,21 @@ typedef struct SgPitUp
   uint16_t nTx;
 } __rte_aligned(64) SgPitUp;
 
-#define SG_PIT_ENTRY_MAX_DNS 6
-#define SG_PIT_ENTRY_MAX_UPS 2
-#define SG_PIT_ENTRY_EXT_MAX_DNS 6
-#define SG_PIT_ENTRY_EXT_MAX_UPS 4
-#define SG_PIT_ENTRY_SCRATCH 64
-
 typedef struct SgPitEntryExt SgPitEntryExt;
 
 typedef struct SgPitEntry
 {
   uint8_t a_[48];
   SgPitEntryExt* ext;
-  SgPitDn dns[SG_PIT_ENTRY_MAX_DNS];
-  SgPitUp ups[SG_PIT_ENTRY_MAX_UPS];
-  uint64_t scratch[SG_PIT_ENTRY_SCRATCH / 8];
+  SgPitDn dns[PitMaxDns];
+  SgPitUp ups[PitMaxUps];
+  uint64_t scratch[PitScratchSize / 8];
 } SgPitEntry;
 
 struct SgPitEntryExt
 {
-  SgPitDn dns[SG_PIT_ENTRY_EXT_MAX_DNS];
-  SgPitUp ups[SG_PIT_ENTRY_EXT_MAX_UPS];
+  SgPitDn dns[PitMaxExtDns];
+  SgPitUp ups[PitMaxExtUps];
   SgPitEntryExt* next;
 };
 
