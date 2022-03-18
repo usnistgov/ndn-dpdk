@@ -24,7 +24,7 @@ func addRetxLimitTestProducer(invokeCount *int) (endpoint.Producer, error) {
 }
 
 func TestRetxLimit(t *testing.T) {
-	defer l3.DeleteDefaultForwarder()
+	t.Cleanup(l3.DeleteDefaultForwarder)
 	assert, require := makeAR(t)
 
 	tests := []struct {
@@ -53,7 +53,7 @@ func TestRetxLimit(t *testing.T) {
 }
 
 func TestConsumerCancel(t *testing.T) {
-	defer l3.DeleteDefaultForwarder()
+	t.Cleanup(l3.DeleteDefaultForwarder)
 	assert, require := makeAR(t)
 
 	var invokeCount int

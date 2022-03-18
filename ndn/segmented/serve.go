@@ -64,14 +64,14 @@ func Serve(ctx context.Context, source io.ReaderAt, opts ServeOptions) (endpoint
 	opts.applyDefaults()
 	prefixLen := len(opts.Prefix)
 
-	var finalBlock ndn.NameComponent
+	dataTpl := ndn.Data{
+		ContentType: opts.ContentType,
+		Freshness:   opts.Freshness,
+	}
 	if seeker, ok := source.(io.Seeker); ok {
 		if size, e := seeker.Seek(0, io.SeekEnd); e == nil {
-			lastSeg := uint64(size)/uint64(opts.ChunkSize) - 1
-			if size%int64(opts.ChunkSize) != 0 {
-				lastSeg++
-			}
-			finalBlock = makeSegmentNameComponent(lastSeg)
+			nSegs := (uint64(size) + uint64(opts.ChunkSize) - 1) / uint64(opts.ChunkSize)
+			dataTpl.FinalBlock = makeSegmentNameComponent(nSegs - 1)
 		}
 	}
 
@@ -81,10 +81,8 @@ func Serve(ctx context.Context, source io.ReaderAt, opts ServeOptions) (endpoint
 			return data, errors.New("segment component not found")
 		}
 
+		data = dataTpl
 		data.Name = interest.Name
-		data.ContentType = opts.ContentType
-		data.Freshness = opts.Freshness
-		data.FinalBlock = finalBlock
 
 		payload := make([]byte, opts.ChunkSize+1)
 		n, e := source.ReadAt(payload, int64(seg)*int64(opts.ChunkSize))

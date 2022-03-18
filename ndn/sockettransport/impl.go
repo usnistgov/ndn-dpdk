@@ -1,8 +1,6 @@
 package sockettransport
 
-import (
-	"net"
-)
+import "net"
 
 type impl interface {
 	// Dial the socket.

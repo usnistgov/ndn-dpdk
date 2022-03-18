@@ -1,8 +1,6 @@
 package tlv
 
-import (
-	"errors"
-)
+import "errors"
 
 // Error conditions.
 var (

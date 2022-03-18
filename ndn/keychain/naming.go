@@ -1,8 +1,8 @@
 package keychain
 
 import (
+	"crypto/rand"
 	"errors"
-	"math/rand"
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/ndn"

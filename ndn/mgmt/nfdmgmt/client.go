@@ -39,7 +39,7 @@ var _ mgmt.Client = (*Client)(nil)
 //
 // Transport type and socket path are read from NDN_CLIENT_TRANSPORT environment variable.
 // However, this does not support client.conf file.
-// https://named-data.net/doc/ndn-cxx/current/manpages/ndn-client.conf.html
+// https://named-data.net/doc/ndn-cxx/0.8.0/manpages/ndn-client.conf.html
 //
 // NFD uses in-band management where the prefix registration commands are sent over the same face.
 // To use prefix registration feature, calling code need to:

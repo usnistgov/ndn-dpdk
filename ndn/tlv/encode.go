@@ -1,9 +1,6 @@
 package tlv
 
-import (
-	"bytes"
-	"math"
-)
+import "math"
 
 // EncodingBuffer is an encoding buffer.
 // Zero value is an empty buffer.
@@ -45,7 +42,8 @@ type Field struct {
 }
 
 // Encode appends to the byte slice.
-func (f Field) Encode(b []byte) (o []byte, e error) {
+// Returns modified slice and error.
+func (f Field) Encode(b []byte) ([]byte, error) {
 	switch f.typ {
 	case fieldTypeEmpty:
 		return b, nil
@@ -66,9 +64,9 @@ func (f Field) Encode(b []byte) (o []byte, e error) {
 
 func (f Field) encodeTLVFields(b []byte) (o []byte, e error) {
 	subs := f.object.([]Field)
-	parts := make([][]byte, 2+len(subs))
+	parts := make([][]byte, len(subs))
 	for i, sub := range subs {
-		if parts[2+i], e = sub.Encode(nil); e != nil {
+		if parts[i], e = sub.Encode(nil); e != nil {
 			return nil, e
 		}
 	}
@@ -77,33 +75,40 @@ func (f Field) encodeTLVFields(b []byte) (o []byte, e error) {
 
 func (f Field) encodeTLVFielders(b []byte) (o []byte, e error) {
 	subs := f.object.([]Fielder)
-	parts := make([][]byte, 2+len(subs))
+	parts := make([][]byte, len(subs))
 	for i, sub := range subs {
-		if parts[2+i], e = sub.Field().Encode(nil); e != nil {
+		if parts[i], e = sub.Field().Encode(nil); e != nil {
 			return nil, e
 		}
 	}
 	return f.encodeTLVFinish(b, parts)
 }
 
-func (f Field) encodeTLVFinish(b []byte, parts [][]byte) ([]byte, error) {
+func (f Field) encodeTLVFinish(b []byte, value [][]byte) ([]byte, error) {
 	length := 0
-	for _, part := range parts {
+	for _, part := range value {
 		length += len(part)
 	}
 
-	if f.integer < math.MaxUint64 { // for EncodeValueOnly
-		parts[1] = VarNum(f.integer).Encode(parts[1])
-		parts[1] = VarNum(length).Encode(parts[1])
+	if f.integer < math.MaxUint64 { // not EncodeValueOnly
+		b = VarNum(f.integer).Encode(b)
+		b = VarNum(length).Encode(b)
 	}
 
-	parts[0] = b
-	return bytes.Join(parts, nil), nil
+	for _, part := range value {
+		b = append(b, part...)
+	}
+	return b, nil
 }
 
 // Field implements Fielder interface.
 func (f Field) Field() Field {
 	return f
+}
+
+// Fielder is the interface implemented by an object that can encode itself to a Field.
+type Fielder interface {
+	Field() Field
 }
 
 // FieldError creates a Field that generates an error.

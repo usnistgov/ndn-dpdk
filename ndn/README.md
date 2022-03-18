@@ -42,7 +42,7 @@ KeyChain
   * RSA: yes
   * HMAC-SHA256: no
   * Null: yes
-* [NDN certificates](https://named-data.net/doc/ndn-cxx/0.7.1/specs/certificate-format.html): basic support
+* [NDN certificates](https://named-data.net/doc/ndn-cxx/0.8.0/specs/certificate.html): basic support
 * Persistent key and certificate storage: no
 * Trust schema: no
 

@@ -80,21 +80,17 @@ func (comp NameComponent) writeStringTo(w *strings.Builder) {
 	w.WriteString(strconv.Itoa(int(comp.Type)))
 	w.WriteByte('=')
 
-	nNonPeriods := 0
+	allPeriods := true
 	for _, b := range comp.Value {
 		if bytes.IndexByte(unescapedChars, b) >= 0 {
 			w.WriteByte(b)
 		} else {
-			w.WriteByte('%')
-			w.WriteByte(hexChars[b>>4])
-			w.WriteByte(hexChars[b&0x0F])
+			w.Write([]byte{'%', hexChars[b>>4], hexChars[b&0x0F]})
 		}
-		if b != '.' {
-			nNonPeriods++
-		}
+		allPeriods = allPeriods && (b == '.')
 	}
 
-	if nNonPeriods == 0 {
+	if allPeriods {
 		w.WriteString("...")
 	}
 }

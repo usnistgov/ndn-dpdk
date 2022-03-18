@@ -1,8 +1,6 @@
 package l3
 
-import (
-	"github.com/usnistgov/ndn-dpdk/core/events"
-)
+import "github.com/usnistgov/ndn-dpdk/core/events"
 
 const (
 	evtStateChange = "StateChange"

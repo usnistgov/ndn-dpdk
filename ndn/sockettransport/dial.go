@@ -1,8 +1,6 @@
 package sockettransport
 
-import (
-	"fmt"
-)
+import "fmt"
 
 // Dial opens a socket transport using a default Dialer.
 func Dial(network, local, remote string) (Transport, error) {

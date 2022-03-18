@@ -1,8 +1,6 @@
 package sockettransport
 
-import (
-	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
-)
+import "github.com/usnistgov/ndn-dpdk/ndn/tlv"
 
 type streamRxLooper struct{}
 

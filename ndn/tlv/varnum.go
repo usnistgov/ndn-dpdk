@@ -1,8 +1,7 @@
+// Package tlv implements NDN Type-Length-Value (TLV) encoding.
 package tlv
 
-import (
-	"math"
-)
+import "math"
 
 // VarNum represents a number in variable size encoding for TLV-TYPE or TLV-LENGTH.
 type VarNum uint64

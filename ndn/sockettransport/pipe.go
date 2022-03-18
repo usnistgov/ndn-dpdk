@@ -1,8 +1,6 @@
 package sockettransport
 
-import (
-	"net"
-)
+import "net"
 
 // Pipe creates a pair of transports connected via net.Pipe().
 func Pipe(cfg Config) (trA, trB Transport, e error) {

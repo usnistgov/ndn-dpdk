@@ -108,8 +108,8 @@ func (m *Metadata) decodeName(de tlv.DecodingElement) error {
 	return de.UnmarshalValue(&m.Name)
 }
 
-// Metadata extension decoder.
-type (
-	MetadataFieldDecoder func(de tlv.DecodingElement) error
-	MetadataDecoderMap   map[uint32]MetadataFieldDecoder
-)
+// MetadataFieldDecoder is a callback function to decode a Metadata extension TLV.
+type MetadataFieldDecoder func(de tlv.DecodingElement) error
+
+// MetadataDecoderMap is a set of MetadataFieldDecoders where each key is a TLV-TYPE.
+type MetadataDecoderMap map[uint32]MetadataFieldDecoder

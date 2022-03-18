@@ -61,7 +61,7 @@ func TestSignVerify(t *testing.T) {
 }
 
 func TestProducerNonMatch(t *testing.T) {
-	defer l3.DeleteDefaultForwarder()
+	t.Cleanup(l3.DeleteDefaultForwarder)
 	assert, require := makeAR(t)
 
 	p, e := endpoint.Produce(context.Background(), endpoint.ProducerOptions{
@@ -80,7 +80,7 @@ func TestProducerNonMatch(t *testing.T) {
 }
 
 func TestProducerConcurrent(t *testing.T) {
-	defer l3.DeleteDefaultForwarder()
+	t.Cleanup(l3.DeleteDefaultForwarder)
 	assert, require := makeAR(t)
 
 	var pCompleted, pCanceled int32
@@ -146,7 +146,7 @@ func (dest *readvertiseDestinationMock) Withdraw(prefix ndn.Name) error {
 }
 
 func TestProducerAdvertise(t *testing.T) {
-	defer l3.DeleteDefaultForwarder()
+	t.Cleanup(l3.DeleteDefaultForwarder)
 	assert, require := makeAR(t)
 
 	var dest readvertiseDestinationMock
@@ -182,7 +182,7 @@ func TestProducerAdvertise(t *testing.T) {
 }
 
 func TestProducerNoAdvertise(t *testing.T) {
-	defer l3.DeleteDefaultForwarder()
+	t.Cleanup(l3.DeleteDefaultForwarder)
 	assert, require := makeAR(t)
 
 	var dest readvertiseDestinationMock
