@@ -15,7 +15,6 @@ typedef struct TgcTxPattern TgcTxPattern;
 typedef struct TgcTxDigestPattern
 {
   PacketMempools dataMp;
-  struct rte_mempool* opPool;
   CryptoQueuePair cqp;
   DataGen dataGen;
   LName prefix;

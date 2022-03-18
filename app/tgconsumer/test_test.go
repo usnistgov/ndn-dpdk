@@ -5,6 +5,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/app/tg/tgtestenv"
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
+	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 )
 
 func TestMain(m *testing.M) {
@@ -12,4 +13,7 @@ func TestMain(m *testing.M) {
 	testenv.Exit(m.Run())
 }
 
-var makeAR = testenv.MakeAR
+var (
+	makeAR    = testenv.MakeAR
+	nameEqual = ndntestenv.NameEqual
+)

@@ -3,6 +3,9 @@
 #include "tlv-decoder.h"
 #include "tlv-encoder.h"
 
+// helperScratch should be small enough not to increase PacketPriv size
+static_assert(sizeof(PData) <= sizeof(PInterest), "");
+
 static struct
 {
   unaligned_uint16_t sigInfoTL;
@@ -133,12 +136,20 @@ PData_CanSatisfy(PData* data, PInterest* interest)
   return cmp == 0 ? DataSatisfyYes : DataSatisfyNo;
 }
 
-void
-DataDigest_Prepare(Packet* npkt, struct rte_crypto_op* op)
+struct rte_crypto_op*
+DataDigest_Prepare(Packet* npkt)
 {
   PData* data = Packet_GetDataHdr(npkt);
+  static_assert(sizeof(struct rte_crypto_op) + sizeof(struct rte_crypto_sym_op) <=
+                  sizeof(data->helperScratch),
+                "");
+  struct rte_crypto_op* op = (void*)data->helperScratch;
+  __rte_crypto_op_reset(op, RTE_CRYPTO_OP_TYPE_SYMMETRIC);
+  op->mempool = NULL;
+
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   CryptoOp_PrepareSha256Digest(op, pkt, 0, pkt->pkt_len, data->digest);
+  return op;
 }
 
 uint16_t
@@ -147,29 +158,18 @@ DataDigest_Enqueue(CryptoQueuePair cqp, struct rte_crypto_op** ops, uint16_t cou
   if (unlikely(count == 0)) {
     return 0;
   }
-
   uint16_t nEnq = rte_cryptodev_enqueue_burst(cqp.dev, cqp.qp, ops, count);
-  for (uint16_t i = nEnq; i < count; ++i) {
-    Packet* npkt = DataDigest_Finish(ops[i]);
-    NDNDPDK_ASSERT(npkt == NULL);
-  }
   return count - nEnq;
 }
 
-Packet*
-DataDigest_Finish(struct rte_crypto_op* op)
+bool
+DataDigest_Finish(struct rte_crypto_op* op, Packet** npkt)
 {
-  if (unlikely(op->status != RTE_CRYPTO_OP_STATUS_SUCCESS)) {
-    rte_pktmbuf_free(op->sym->m_src);
-    rte_crypto_op_free(op);
-    return NULL;
-  }
-
-  Packet* npkt = Packet_FromMbuf(op->sym->m_src);
-  PData* data = Packet_GetDataHdr(npkt);
-  data->hasDigest = true;
-  rte_crypto_op_free(op);
-  return npkt;
+  NDNDPDK_ASSERT(op->mempool == NULL);
+  *npkt = Packet_FromMbuf(op->sym->m_src);
+  PData* data = Packet_GetDataHdr(*npkt);
+  data->hasDigest = op->status == RTE_CRYPTO_OP_STATUS_SUCCESS;
+  return data->hasDigest;
 }
 
 bool
@@ -178,13 +178,13 @@ DataEnc_PrepareMetaInfo_(void* metaBuf, size_t capacity, ContentType ct, uint32_
 {
   DataEnc_MetaInfoBuffer(0)* meta = metaBuf;
   meta->size = 2;
-#define APPEND(ptr)                                                                                \
+#define APPEND(ptr, extraLength)                                                                   \
   do {                                                                                             \
-    if (unlikely((size_t)meta->size + sizeof(*ptr) > capacity)) {                                  \
+    if (unlikely((size_t)meta->size + sizeof(*ptr) + (extraLength) > capacity)) {                  \
       return false;                                                                                \
     }                                                                                              \
     ptr = RTE_PTR_ADD(meta->value, meta->size);                                                    \
-    meta->size += sizeof(*ptr);                                                                    \
+    meta->size += sizeof(*ptr) + (extraLength);                                                    \
   } while (false)
 
   if (unlikely(ct != ContentBlob)) {
@@ -193,7 +193,7 @@ DataEnc_PrepareMetaInfo_(void* metaBuf, size_t capacity, ContentType ct, uint32_
       unaligned_uint16_t contentTypeTL;
       uint8_t contentTypeV;
     } __rte_packed* f = NULL;
-    APPEND(f);
+    APPEND(f, 0);
     f->contentTypeTL = TlvEncoder_ConstTL1(TtContentType, sizeof(f->contentTypeV));
     f->contentTypeV = ct;
   }
@@ -203,7 +203,7 @@ DataEnc_PrepareMetaInfo_(void* metaBuf, size_t capacity, ContentType ct, uint32_
       unaligned_uint16_t freshnessTL;
       unaligned_uint32_t freshnessV;
     } __rte_packed* f = NULL;
-    APPEND(f);
+    APPEND(f, 0);
     f->freshnessTL = TlvEncoder_ConstTL1(TtFreshnessPeriod, sizeof(f->freshnessV));
     f->freshnessV = rte_cpu_to_be_32(freshness);
   }
@@ -214,11 +214,7 @@ DataEnc_PrepareMetaInfo_(void* metaBuf, size_t capacity, ContentType ct, uint32_
       uint8_t finalBlockL;
       uint8_t finalBlockV[];
     } __rte_packed* f = NULL;
-    APPEND(f);
-    if (unlikely((size_t)meta->size + finalBlock.length > capacity)) {
-      return false;
-    }
-    meta->size += finalBlock.length;
+    APPEND(f, finalBlock.length);
     f->finalBlockT = TtFinalBlock;
     f->finalBlockL = finalBlock.length;
     rte_memcpy(f->finalBlockV, finalBlock.value, finalBlock.length);

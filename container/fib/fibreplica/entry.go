@@ -4,7 +4,7 @@ package fibreplica
 #include "../../../csrc/fib/entry.h"
 
 static_assert(offsetof(FibEntry, strategy) == offsetof(FibEntry, realEntry), "");
-enum { c_FibEntry_StrategyRealOffset = offsetof(FibEntry, strategy) };
+enum { c_offsetof_FibEntry_StrategyReal = offsetof(FibEntry, strategy) };
 */
 import "C"
 import (
@@ -33,11 +33,11 @@ func (entry *Entry) ptr() *C.FibEntry {
 }
 
 func (entry *Entry) ptrStrategy() **C.StrategyCode {
-	return (**C.StrategyCode)(unsafe.Add(entry.Ptr(), C.c_FibEntry_StrategyRealOffset))
+	return (**C.StrategyCode)(unsafe.Add(entry.Ptr(), C.c_offsetof_FibEntry_StrategyReal))
 }
 
 func (entry *Entry) ptrReal() **C.FibEntry {
-	return (**C.FibEntry)(unsafe.Add(entry.Ptr(), C.c_FibEntry_StrategyRealOffset))
+	return (**C.FibEntry)(unsafe.Add(entry.Ptr(), C.c_offsetof_FibEntry_StrategyReal))
 }
 
 // Read converts Entry to fibdef.Entry.

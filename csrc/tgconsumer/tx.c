@@ -18,13 +18,8 @@ void
 TgcTxDigestPattern_Fill(TgcTxPattern* pattern)
 {
   TgcTxDigestPattern* dp = pattern->digest;
+  Packet* npkts[TgcDigestBurstSize];
   struct rte_crypto_op* ops[TgcDigestBurstSize];
-  uint16_t nAlloc =
-    rte_crypto_op_bulk_alloc(dp->opPool, RTE_CRYPTO_OP_TYPE_SYMMETRIC, ops, RTE_DIM(ops));
-  if (unlikely(nAlloc == 0)) {
-    N_LOGW("digest-fill" N_LOG_ERROR("alloc-err"));
-    return;
-  }
 
   for (int i = 0; i < TgcDigestBurstSize; ++i) {
     ++*TgcTxDigestPattern_DataSeqNum(pattern);
@@ -33,13 +28,15 @@ TgcTxDigestPattern_Fill(TgcTxPattern* pattern)
     *Packet_GetLpL3Hdr(npkt) = (const LpL3){ 0 };
     bool ok = Packet_ParseL3(npkt);
     NDNDPDK_ASSERT(ok && Packet_GetType(npkt) == PktData);
-    DataDigest_Prepare(npkt, ops[i]);
+    npkts[i] = npkt;
+    ops[i] = DataDigest_Prepare(npkt);
   }
 
   uint16_t nRej = DataDigest_Enqueue(dp->cqp, ops, TgcDigestBurstSize);
   if (unlikely(nRej > 0)) {
     N_LOGW("digest-fill error=enqueue-reject count=%" PRIu16 " nRej=%" PRIu16, TgcDigestBurstSize,
            nRej);
+    rte_pktmbuf_free_bulk((struct rte_mbuf**)&npkts[TgcDigestBurstSize - nRej], nRej);
     return;
   }
   N_LOGD("digest-fill count=%" PRIu16, TgcDigestBurstSize);
@@ -60,9 +57,10 @@ TgcTxPattern_MakeSuffix_Digest(TgcTx* ct, uint8_t patternID, TgcTxPattern* patte
     N_LOGW("digest-pull error=dequeue-empty");
     return 0;
   }
-  Packet* npkt = DataDigest_Finish(op);
-  if (unlikely(npkt == NULL)) {
+  Packet* npkt = NULL;
+  if (unlikely(!DataDigest_Finish(op, &npkt))) {
     N_LOGW("digest-pull error=digest-fail");
+    rte_pktmbuf_free(Packet_ToMbuf(npkt));
     return 0;
   }
 

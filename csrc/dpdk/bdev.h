@@ -16,9 +16,7 @@ enum
 
 extern void* BdevFillers_;
 
-typedef struct Bdev Bdev;
 typedef struct BdevRequest BdevRequest;
-
 typedef void (*BdevRequestCb)(BdevRequest* req, int res);
 
 /** @brief Bdev I/O request. */
@@ -28,17 +26,14 @@ struct BdevRequest
   struct iovec iov[BdevMaxMbufSegs + 1];
 };
 
-typedef int (*Bdev_PrepareIovecFunc)(Bdev* bd, BdevRequest* req, struct rte_mbuf* pkt,
-                                     uint64_t blockCount, void* filler);
-
 /** @brief Block device and related information. */
-struct Bdev
+typedef struct Bdev
 {
   struct spdk_bdev_desc* desc;
   uint32_t blockSizeMinus1;
   uint32_t blockSizeLog2;
   uint32_t bufAlign;
-};
+} Bdev;
 
 /**
  * @brief Determine number of blocks needed to store a packet.
@@ -76,7 +71,7 @@ Bdev_ReadPacket(Bdev* bd, struct spdk_io_channel* ch, struct rte_mbuf* pkt, uint
  * @param ch an SPDK I/O channel associated with the bdev and the current SPDK thread.
  * @param pkt the packet to write packet from. It must be kept alive until @p cb is called.
  *
- * @c pkt->pkt_len determines write length. Since SPDK requires read length to be multiples of the
+ * @c pkt->pkt_len determines write length. Since SPDK requires write length to be multiples of the
  * bdev block size, if @c pkt->pkt_len is not a multiple of block size, the tailroom of
  * @c rte_pktmbuf_lastseg(pkt) may be written to disk.
  */

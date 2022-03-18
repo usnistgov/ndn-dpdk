@@ -2,6 +2,8 @@ package cryptodev
 
 /*
 #include "../../csrc/dpdk/cryptodev.h"
+
+enum { c_offsetof_Op_status = offsetof(struct rte_crypto_op, status) };
 */
 import "C"
 import (
@@ -41,14 +43,18 @@ func (op *Op) ptr() *C.struct_rte_crypto_op {
 	return (*C.struct_rte_crypto_op)(op)
 }
 
+func (op *Op) status() C.enum_rte_crypto_op_status {
+	return C.enum_rte_crypto_op_status(*(*C.uint8_t)(unsafe.Add(unsafe.Pointer(op), C.c_offsetof_Op_status)))
+}
+
 // IsNew returns true if this operation has not been processed.
 func (op *Op) IsNew() bool {
-	return C.CryptoOp_GetStatus(op.ptr()) == C.RTE_CRYPTO_OP_STATUS_NOT_PROCESSED
+	return op.status() == C.RTE_CRYPTO_OP_STATUS_NOT_PROCESSED
 }
 
 // IsSuccess returns true if this operation has completed successfully.
 func (op *Op) IsSuccess() bool {
-	return C.CryptoOp_GetStatus(op.ptr()) == C.RTE_CRYPTO_OP_STATUS_SUCCESS
+	return op.status() == C.RTE_CRYPTO_OP_STATUS_SUCCESS
 }
 
 // Error returns an error if this operation has failed, otherwise returns nil.
@@ -57,7 +63,7 @@ func (op *Op) Error() error {
 	case op.IsNew(), op.IsSuccess():
 		return nil
 	}
-	return fmt.Errorf("CryptoOpStatus %d", C.CryptoOp_GetStatus(op.ptr()))
+	return fmt.Errorf("CryptoOpStatus %d", op.status())
 }
 
 // PrepareSha256Digest prepares a SHA256 digest generation operation.

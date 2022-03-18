@@ -11,7 +11,6 @@ typedef struct FwCrypto
 {
   ThreadCtrl ctrl;
   struct rte_ring* input;
-  struct rte_mempool* opPool;
   InputDemux output;
 
   uint64_t nDrops;

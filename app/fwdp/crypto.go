@@ -79,9 +79,8 @@ func newCrypto(id int) *Crypto {
 
 // CryptoShared contains per NUMA socket shared resources for crypto helper threads.
 type CryptoShared struct {
-	input  *ringbuffer.Ring
-	opPool *cryptodev.OpPool
-	dev    *cryptodev.CryptoDev
+	input *ringbuffer.Ring
+	dev   *cryptodev.CryptoDev
 }
 
 // AssignTo assigns shared resources to crypto helper threads.
@@ -89,7 +88,6 @@ func (fwcsh *CryptoShared) AssignTo(fwcs []*Crypto) {
 	qp := fwcsh.dev.QueuePairs()
 	for i, fwc := range fwcs {
 		fwc.c.input = (*C.struct_rte_ring)(fwcsh.input.Ptr())
-		fwc.c.opPool = (*C.struct_rte_mempool)(fwcsh.opPool.Ptr())
 		qp[i].CopyToC(unsafe.Pointer(&fwc.c.cqp))
 	}
 }
@@ -101,9 +99,8 @@ func (fwcsh *CryptoShared) ConnectTo(fwd *Fwd) {
 
 // Close deletes resources.
 func (fwcsh *CryptoShared) Close() error {
-	return multierr.Combine(
+	return multierr.Append(
 		fwcsh.dev.Close(),
-		fwcsh.opPool.Close(),
 		fwcsh.input.Close(),
 	)
 }
@@ -120,11 +117,6 @@ func newCryptoShared(cfg CryptoConfig, socket eal.NumaSocket, count int) (fwcsh 
 	fwcsh.input, e = ringbuffer.New(cfg.InputCapacity, socket, ringbuffer.ProducerMulti, ringConsumerMode)
 	if e != nil {
 		return nil, fmt.Errorf("ringbuffer.New: %w", e)
-	}
-
-	fwcsh.opPool, e = cryptodev.NewOpPool(cryptodev.OpPoolConfig{Capacity: cfg.OpPoolCapacity}, socket)
-	if e != nil {
-		return nil, fmt.Errorf("cryptodev.NewOpPool: %w", e)
 	}
 
 	var vcfg cryptodev.VDevConfig

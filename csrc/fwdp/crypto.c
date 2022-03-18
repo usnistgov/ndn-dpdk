@@ -12,23 +12,20 @@ FwCrypto_Input(FwCrypto* fwc)
   Packet* npkts[FW_CRYPTO_BURST_SIZE];
   uint16_t nDeq = rte_ring_dequeue_burst(fwc->input, (void**)npkts, FW_CRYPTO_BURST_SIZE, NULL);
   if (nDeq == 0) {
-    return nDeq;
+    return 0;
   }
 
   struct rte_crypto_op* ops[FW_CRYPTO_BURST_SIZE];
-  uint16_t nAlloc = rte_crypto_op_bulk_alloc(fwc->opPool, RTE_CRYPTO_OP_TYPE_SYMMETRIC, ops, nDeq);
-  if (unlikely(nAlloc == 0)) {
-    N_LOGW("rte_crypto_op_bulk_alloc fail fwc=%p", fwc);
-    rte_pktmbuf_free_bulk((struct rte_mbuf**)npkts, nDeq);
-    return nDeq;
-  }
-
   for (uint16_t i = 0; i < nDeq; ++i) {
     Packet* npkt = npkts[i];
-    DataDigest_Prepare(npkt, ops[i]);
+    ops[i] = DataDigest_Prepare(npkt);
   }
 
-  fwc->nDrops += DataDigest_Enqueue(fwc->cqp, ops, nDeq);
+  uint16_t nRej = DataDigest_Enqueue(fwc->cqp, ops, nDeq);
+  if (unlikely(nRej > 0)) {
+    fwc->nDrops += nRej;
+    rte_pktmbuf_free_bulk((struct rte_mbuf**)&npkts[nDeq - nRej], nRej);
+  }
   return nDeq;
 }
 
@@ -40,15 +37,17 @@ FwCrypto_Output(FwCrypto* fwc, CryptoQueuePair cqp)
 
   Packet* npkts[FW_CRYPTO_BURST_SIZE];
   uint16_t nFinish = 0;
+  struct rte_mbuf* drops[FW_CRYPTO_BURST_SIZE];
+  uint16_t nDrops = 0;
+
   for (uint16_t i = 0; i < nDeq; ++i) {
-    npkts[nFinish] = DataDigest_Finish(ops[i]);
-    if (likely(npkts[nFinish] != NULL)) {
+    if (likely(DataDigest_Finish(ops[i], &npkts[nFinish]))) {
       ++nFinish;
+    } else {
+      drops[nDrops++] = Packet_ToMbuf(npkts[nFinish]);
     }
   }
 
-  struct rte_mbuf* drops[FW_CRYPTO_BURST_SIZE];
-  uint16_t nDrops = 0;
   for (uint16_t i = 0; i < nFinish; ++i) {
     Packet* npkt = npkts[i];
     bool accepted = InputDemux_Dispatch(&fwc->output, npkt);
@@ -66,8 +65,8 @@ FwCrypto_Output(FwCrypto* fwc, CryptoQueuePair cqp)
 void
 FwCrypto_Run(FwCrypto* fwc)
 {
-  N_LOGI("Run fwc=%p input=%p pool=%p cryptodev=%" PRIu8 "-%" PRIu16, fwc, fwc->input, fwc->opPool,
-         fwc->cqp.dev, fwc->cqp.qp);
+  N_LOGI("Run fwc=%p input=%p cryptodev=%" PRIu8 "-%" PRIu16, fwc, fwc->input, fwc->cqp.dev,
+         fwc->cqp.qp);
   uint16_t nProcessed = 0;
   while (ThreadCtrl_Continue(fwc->ctrl, nProcessed)) {
     nProcessed += FwCrypto_Output(fwc, fwc->cqp);

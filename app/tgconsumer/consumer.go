@@ -6,7 +6,7 @@ package tgconsumer
 #include "../../csrc/tgconsumer/tx.h"
 
 static_assert(offsetof(TgcTxPattern, digest) == offsetof(TgcTxPattern, seqNumOffset), "");
-enum { c_TgcTxPattern_DigestSeqNumOffsetOffset = offsetof(TgcTxPattern, digest) };
+enum { c_offsetof_TgcTxPattern_DigestSeqNumOffse = offsetof(TgcTxPattern, digest) };
 */
 import "C"
 import (
@@ -55,7 +55,6 @@ type Consumer struct {
 	rxC    *C.TgcRx
 	txC    *C.TgcTx
 
-	digestOpPool *cryptodev.OpPool
 	digestCrypto *cryptodev.CryptoDev
 	dPatterns    []*C.TgcTxDigestPattern
 }
@@ -117,7 +116,7 @@ func (c *Consumer) assignPattern(i int, pattern Pattern, dataGenVec pktmbuf.Vect
 		c.assignDigestPattern(pattern, txP, dataGenVec)
 	case pattern.SeqNumOffset != 0:
 		txP.makeSuffix = C.TgcTxPattern_MakeSuffix(C.TgcTxPattern_MakeSuffix_Offset)
-		*(*C.uint64_t)(unsafe.Add(unsafe.Pointer(txP), C.c_TgcTxPattern_DigestSeqNumOffsetOffset)) = C.uint64_t(pattern.SeqNumOffset)
+		*(*C.uint64_t)(unsafe.Add(unsafe.Pointer(txP), C.c_offsetof_TgcTxPattern_DigestSeqNumOffse)) = C.uint64_t(pattern.SeqNumOffset)
 	default:
 		txP.makeSuffix = C.TgcTxPattern_MakeSuffix(C.TgcTxPattern_MakeSuffix_Increment)
 	}
@@ -134,7 +133,6 @@ func (c *Consumer) assignDigestPattern(pattern Pattern, txP *C.TgcTxPattern, dat
 	d := len(c.dPatterns)
 	dp := (*C.TgcTxDigestPattern)(eal.Zmalloc("TgcTxDigestPattern", C.sizeof_TgcTxDigestPattern+len(nameV), c.socket))
 	(*ndni.Mempools)(unsafe.Pointer(&dp.dataMp)).Assign(c.socket, ndni.DataMempool)
-	dp.opPool = (*C.struct_rte_mempool)(c.digestOpPool.Ptr())
 	c.digestCrypto.QueuePairs()[d].CopyToC(unsafe.Pointer(&dp.cqp))
 
 	dataGen := ndni.DataGenFromPtr(unsafe.Pointer(&dp.dataGen))
@@ -145,7 +143,7 @@ func (c *Consumer) assignDigestPattern(pattern Pattern, txP *C.TgcTxPattern, dat
 	dp.prefix.value = (*C.uint8_t)(nameVC)
 	dp.prefix.length = C.uint16_t(len(nameV))
 
-	*(**C.TgcTxDigestPattern)(unsafe.Add(unsafe.Pointer(txP), C.c_TgcTxPattern_DigestSeqNumOffsetOffset)) = dp
+	*(**C.TgcTxDigestPattern)(unsafe.Add(unsafe.Pointer(txP), C.c_offsetof_TgcTxPattern_DigestSeqNumOffse)) = dp
 	c.dPatterns = append(c.dPatterns, dp)
 }
 
@@ -153,13 +151,6 @@ func (c *Consumer) prepareDigest(nDigestPatterns int) (e error) {
 	c.closeDigest()
 	if nDigestPatterns == 0 {
 		return nil
-	}
-
-	c.digestOpPool, e = cryptodev.NewOpPool(cryptodev.OpPoolConfig{
-		Capacity: 2 * nDigestPatterns * (DigestLowWatermark + DigestBurstSize),
-	}, c.socket)
-	if e != nil {
-		return e
 	}
 
 	var cfg cryptodev.VDevConfig
@@ -236,10 +227,6 @@ func (c *Consumer) closeDigest() {
 	if c.digestCrypto != nil {
 		must.Close(c.digestCrypto)
 		c.digestCrypto = nil
-	}
-	if c.digestOpPool != nil {
-		must.Close(c.digestOpPool)
-		c.digestOpPool = nil
 	}
 	for _, dp := range c.dPatterns {
 		dataGen := ndni.DataGenFromPtr(unsafe.Pointer(&dp.dataGen))

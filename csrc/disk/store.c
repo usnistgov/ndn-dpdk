@@ -7,12 +7,19 @@ N_LOG_INIT(DiskStore);
 static_assert((int)BdevMaxMbufSegs >= (int)LpMaxFragments, "");
 
 __attribute__((nonnull, returns_nonnull)) static __rte_always_inline DiskStoreSlimRequest*
+DiskStoreSlimRequest_FromData(PData* data)
+{
+  static_assert(sizeof(DiskStoreSlimRequest) <= sizeof(data->helperScratch), "");
+  return (void*)data->helperScratch;
+}
+
+__attribute__((nonnull, returns_nonnull)) static __rte_always_inline DiskStoreSlimRequest*
 DiskStoreSlimRequest_FromPacket(Packet* npkt)
 {
   switch (Packet_GetType(npkt)) {
     case PktData: {
       PData* data = Packet_GetDataHdr(npkt);
-      return (void*)data->digest;
+      return DiskStoreSlimRequest_FromData(data);
     }
     case PktInterest: {
       PInterest* interest = Packet_GetInterestHdr(npkt);
@@ -259,9 +266,7 @@ DiskStore_PutData(DiskStore* store, uint64_t slotID, Packet* npkt)
   }
 
   PData* data = Packet_GetDataHdr(npkt);
-  data->hasDigest = false;
-  static_assert(sizeof(DiskStoreSlimRequest) <= sizeof(data->digest), "");
-  DiskStoreSlimRequest* sr = (void*)data->digest;
+  DiskStoreSlimRequest* sr = DiskStoreSlimRequest_FromData(data);
   DiskStore_Post(store, slotID, npkt, sr);
 }
 

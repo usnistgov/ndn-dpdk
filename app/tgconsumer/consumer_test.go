@@ -97,7 +97,9 @@ func TestConsumer(t *testing.T) {
 				face.Tx <- ndn.MakeData(interest)
 			case nameC.IsPrefixOf(interest.Name) && len(interest.Name) == 3 && interest.Name[2].Type == an.TtImplicitSha256DigestComponent:
 				nInterestsC++
-				face.Tx <- ndn.MakeData(interest.Name.GetPrefix(-1), contentC, packet.Lp)
+				data := ndn.MakeData(interest.Name.GetPrefix(-1), contentC, packet.Lp)
+				nameEqual(assert, data.FullName(), interest.Name)
+				face.Tx <- data
 			default:
 				assert.Fail("unexpected Interest", "%v", interest)
 			}

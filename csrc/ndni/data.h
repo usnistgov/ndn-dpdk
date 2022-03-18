@@ -13,6 +13,8 @@ typedef struct PData
   bool hasDigest;
   RTE_MARKER64 a_;
   uint8_t digest[ImplicitDigestLength];
+  RTE_MARKER64 b_;
+  uint8_t helperScratch[192]; ///< scratch area for helper threads
 } PData;
 
 /**
@@ -30,14 +32,14 @@ PData_CanSatisfy(PData* data, PInterest* interest);
 /**
  * @brief Prepare a crypto_op for Data digest computation.
  * @param npkt Data packet.
- * @param[out] op an allocated crypto_op; will be populated but not enqueued.
+ * @return rte_crypto_op placed in PData.helperScratch.
  */
-__attribute__((nonnull)) void
-DataDigest_Prepare(Packet* npkt, struct rte_crypto_op* op);
+__attribute__((nonnull, returns_nonnull)) struct rte_crypto_op*
+DataDigest_Prepare(Packet* npkt);
 
 /**
  * @brief Enqueue crypto_ops for Data digest computation.
- * @return number of rejections, which have been freed.
+ * @return number of rejected packets; they should be freed by caller.
  */
 __attribute__((nonnull)) uint16_t
 DataDigest_Enqueue(CryptoQueuePair cqp, struct rte_crypto_op** ops, uint16_t count);
@@ -45,10 +47,11 @@ DataDigest_Enqueue(CryptoQueuePair cqp, struct rte_crypto_op** ops, uint16_t cou
 /**
  * @brief Finish Data digest computation.
  * @param op a dequeued crypto_op; will be freed.
- * @return the Data packet, or NULL if crypto_op was unsuccessful.
+ * @param [out] npkt the Data packet; DataDigest releases ownership.
+ * @return whether success.
  */
-__attribute__((nonnull)) Packet*
-DataDigest_Finish(struct rte_crypto_op* op);
+__attribute__((nonnull)) bool
+DataDigest_Finish(struct rte_crypto_op* op, Packet** npkt);
 
 /**
  * @brief Declare a buffer from preparing Data MetaInfo.

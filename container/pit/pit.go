@@ -5,7 +5,7 @@ package pit
 #include "../../csrc/pcct/pit.h"
 
 static_assert(offsetof(PitInsertResult, pitEntry) == offsetof(PitInsertResult, csEntry), "");
-enum { c_PitInsertResult_EntryOffset = offsetof(PitInsertResult, pitEntry) };
+enum { c_offsetof_PitInsertResult_Entry = offsetof(PitInsertResult, pitEntry) };
 */
 import "C"
 import (
@@ -48,7 +48,7 @@ func (pit *Pit) TriggerTimeoutSched() {
 // It returns either a new or existing PIT entry, or a CS entry that satisfies the Interest.
 func (pit *Pit) Insert(interest *ndni.Packet, fibEntry *fibreplica.Entry) (pitEntry *Entry, csEntry *cs.Entry) {
 	ir := C.Pit_Insert(pit.ptr(), (*C.Packet)(interest.Ptr()), (*C.FibEntry)(fibEntry.Ptr()))
-	entryPtr := *(*unsafe.Pointer)(unsafe.Add(unsafe.Pointer(&ir), C.c_PitInsertResult_EntryOffset))
+	entryPtr := *(*unsafe.Pointer)(unsafe.Add(unsafe.Pointer(&ir), C.c_offsetof_PitInsertResult_Entry))
 	switch ir.kind {
 	case C.PIT_INSERT_PIT:
 		pitEntry = (*Entry)(entryPtr)
