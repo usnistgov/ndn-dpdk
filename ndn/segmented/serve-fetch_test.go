@@ -15,6 +15,7 @@ import (
 )
 
 var makeAR = testenv.MakeAR
+var fetchTimeout = 10 * time.Second
 
 type ServeFetchFixture struct {
 	t       testing.TB
@@ -75,7 +76,7 @@ func TestInexact(t *testing.T) {
 	defer fixture.Serve()()
 
 	f := fixture.Fetch()
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), fetchTimeout)
 	defer cancel()
 	pkts, e := f.Packets(ctx)
 	require.NoError(e)
@@ -102,7 +103,7 @@ func TestExact(t *testing.T) {
 	defer fixture.Serve()()
 
 	f := fixture.Fetch()
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), fetchTimeout)
 	defer cancel()
 
 	chunks := make(chan []byte, 64)
@@ -126,7 +127,7 @@ func TestEmpty(t *testing.T) {
 
 	f1 := fixture.Fetch()
 	f2 := fixture.Fetch()
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), fetchTimeout)
 	defer cancel()
 
 	pkts, e := f1.Packets(ctx)

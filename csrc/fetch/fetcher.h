@@ -28,7 +28,7 @@ typedef struct FetchThread
   FaceID face;
 } FetchThread;
 
-int
+__attribute__((nonnull)) int
 FetchThread_Run(FetchThread* fth);
 
 #endif // NDNDPDK_FETCH_FETCHER_H

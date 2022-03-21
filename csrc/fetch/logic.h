@@ -3,7 +3,7 @@
 
 /** @file */
 
-#include "rttest.h"
+#include "../core/rttest.h"
 #include "tcpcubic.h"
 #include "window.h"
 
@@ -25,21 +25,21 @@ typedef struct FetchLogic
   uint32_t nInFlight;
 } FetchLogic;
 
-void
+__attribute__((nonnull)) void
 FetchLogic_Init_(FetchLogic* fl);
 
 /**
  * @brief Set final segment number.
  * @param segNum segment number of the last segment, inclusive.
  */
-static inline void
+__attribute__((nonnull)) static inline void
 FetchLogic_SetFinalSegNum(FetchLogic* fl, uint64_t segNum)
 {
   fl->finalSegNum = segNum;
 }
 
 /** @brief Determine if all segments have been fetched. */
-static inline bool
+__attribute__((nonnull)) static inline bool
 FetchLogic_Finished(FetchLogic* fl)
 {
   return fl->win.loSegNum > fl->finalSegNum;
@@ -50,7 +50,7 @@ FetchLogic_Finished(FetchLogic* fl)
  * @param[out] segNums segment numbers to retrieve.
  * @param limit size of segNums array.
  */
-size_t
+__attribute__((nonnull)) size_t
 FetchLogic_TxInterestBurst(FetchLogic* fl, uint64_t* segNums, size_t limit);
 
 typedef struct FetchLogicRxData
@@ -64,7 +64,7 @@ typedef struct FetchLogicRxData
  * @param pkts fields extracted from arrived Data.
  * @param count size of segNums array.
  */
-void
+__attribute__((nonnull)) void
 FetchLogic_RxDataBurst(FetchLogic* fl, const FetchLogicRxData* pkts, size_t count);
 
 #endif // NDNDPDK_FETCH_LOGIC_H

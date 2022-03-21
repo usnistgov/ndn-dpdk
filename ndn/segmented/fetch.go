@@ -11,6 +11,7 @@ import (
 	"time"
 
 	mathpkg "github.com/pkg/math"
+	"github.com/usnistgov/ndn-dpdk/core/rttest"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndn/endpoint"
@@ -114,7 +115,7 @@ func (f *fetcher) Unordered(ctx context.Context, unordered chan<- *ndn.Data) err
 	}
 	defer face.Close()
 
-	rtte := newRttEstimator()
+	rtte := rttest.New()
 	ca := newCubic()
 	pendings := map[uint64]*fetchSeg{}
 	retxQ := list.New()
@@ -204,7 +205,7 @@ func (f *fetcher) Unordered(ctx context.Context, unordered chan<- *ndn.Data) err
 			fs := pendings[seg]
 			fs.RetxElement = nil
 
-			fs.setTimeNow(rtte.Rto())
+			fs.setTimeNow(rtte.RTO())
 			fs.NRetx++
 			face.Send(f.makeInterest(seg).ToPacket())
 
@@ -213,7 +214,7 @@ func (f *fetcher) Unordered(ctx context.Context, unordered chan<- *ndn.Data) err
 			segNext++
 
 			fs := &fetchSeg{}
-			fs.setTimeNow(rtte.Rto())
+			fs.setTimeNow(rtte.RTO())
 			pendings[seg] = fs
 			face.Send(f.makeInterest(seg).ToPacket())
 

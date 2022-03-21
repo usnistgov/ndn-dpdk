@@ -3,7 +3,31 @@
 
 /** @file */
 
-#include "seg.h"
+#include "../core/mintmr.h"
+
+typedef TAILQ_ENTRY(FetchSeg) FetchRetxNode;
+
+/** @brief Per-segment state. */
+typedef struct FetchSeg
+{
+  uint64_t segNum;     ///< segment number
+  TscTime txTime;      ///< last Interest tx time
+  MinTmr rtoExpiry;    ///< RTO expiration timer
+  FetchRetxNode retxQ; ///< retx queue node
+  bool deleted_;       ///< (private for FetchWindow) whether seg has been deleted
+  bool inRetxQ;        ///< whether segment is scheduled for retx
+  uint16_t nRetx;      ///< number of Interest retx, increment upon TX
+} __rte_cache_aligned FetchSeg;
+
+__attribute__((nonnull)) static inline void
+FetchSeg_Init(FetchSeg* seg, uint64_t segNum)
+{
+  seg->segNum = segNum;
+  seg->txTime = 0;
+  MinTmr_Init(&seg->rtoExpiry);
+  seg->inRetxQ = false;
+  seg->nRetx = 0;
+}
 
 /** @brief Window of segment states. */
 typedef struct FetchWindow
@@ -16,7 +40,7 @@ typedef struct FetchWindow
 } FetchWindow;
 
 /** @brief Determine whether a segment number is in the window. */
-static inline bool
+__attribute__((nonnull)) static inline bool
 FetchWindow_Contains_(FetchWindow* win, uint64_t segNum)
 {
   return win->loSegNum <= segNum && segNum < win->hiSegNum;
@@ -26,7 +50,7 @@ FetchWindow_Contains_(FetchWindow* win, uint64_t segNum)
  * @brief Access FetchSeg* of a segment number.
  * @pre FetchWindow_Contains_(win, segNum)
  */
-static inline FetchSeg*
+__attribute__((nonnull, returns_nonnull)) static inline FetchSeg*
 FetchWindow_Access_(FetchWindow* win, uint64_t segNum)
 {
   uint64_t pos = (segNum - win->loSegNum + win->loPos) & win->capacityMask;
@@ -37,7 +61,7 @@ FetchWindow_Access_(FetchWindow* win, uint64_t segNum)
  * @brief Retrieve a segment's state.
  * @retval NULL segment is not in the window or has been deleted.
  */
-static inline FetchSeg*
+__attribute__((nonnull)) static inline FetchSeg*
 FetchWindow_Get(FetchWindow* win, uint64_t segNum)
 {
   if (unlikely(!FetchWindow_Contains_(win, segNum))) {
@@ -54,7 +78,7 @@ FetchWindow_Get(FetchWindow* win, uint64_t segNum)
  * @brief Create state for the next segment.
  * @retval NULL window has reached its capacity limit.
  */
-static inline FetchSeg*
+__attribute__((nonnull)) static inline FetchSeg*
 FetchWindow_Append(FetchWindow* win)
 {
   uint64_t segNum = win->hiSegNum;
@@ -69,21 +93,11 @@ FetchWindow_Append(FetchWindow* win)
 }
 
 /** @brief Move loPos and loSegNum after some segment states have been deleted. */
-static __rte_noinline void
-FetchWindow_Advance_(FetchWindow* win)
-{
-  while (win->loSegNum < win->hiSegNum) {
-    FetchSeg* seg = &win->array[win->loPos];
-    if (unlikely(!seg->deleted_)) {
-      break;
-    }
-    win->loPos = (win->loPos + 1) & win->capacityMask;
-    ++win->loSegNum;
-  }
-}
+__attribute__((nonnull)) void
+FetchWindow_Advance_(FetchWindow* win);
 
 /** @brief Discard a segment's state. */
-static inline void
+__attribute__((nonnull)) static inline void
 FetchWindow_Delete(FetchWindow* win, uint64_t segNum)
 {
   FetchSeg* seg = FetchWindow_Get(win, segNum);

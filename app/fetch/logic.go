@@ -13,12 +13,6 @@ import (
 // Logic implements fetcher congestion control and scheduling logic.
 type Logic C.FetchLogic
 
-// LogicFromPtr converts *C.FetchLogic to *Logic.
-// ptr must be in C memory due to TAILQ_HEAD usage.
-func LogicFromPtr(ptr unsafe.Pointer) (fl *Logic) {
-	return (*Logic)(ptr)
-}
-
 func (fl *Logic) ptr() *C.FetchLogic {
 	return (*C.FetchLogic)(fl)
 }
@@ -26,11 +20,6 @@ func (fl *Logic) ptr() *C.FetchLogic {
 // Window returns the segment state window.
 func (fl *Logic) Window() *Window {
 	return (*Window)(&fl.win)
-}
-
-// RttEst returns the RTT estimator.
-func (fl *Logic) RttEst() *RttEst {
-	return (*RttEst)(&fl.rtte)
 }
 
 // Cubic returns the congestion avoidance algorithm.
@@ -41,7 +30,7 @@ func (fl *Logic) Cubic() *Cubic {
 // Init initializes the logic and allocates data structures.
 func (fl *Logic) Init(windowCapacity int, socket eal.NumaSocket) {
 	fl.Window().Init(windowCapacity, socket)
-	fl.RttEst().Init()
+	C.RttEst_Init(&fl.rtte)
 	fl.Cubic().Init()
 	C.FetchLogic_Init_(fl.ptr())
 }
@@ -52,7 +41,7 @@ func (fl *Logic) Reset() {
 	C.MinSched_Close(c.sched)
 	*c = C.FetchLogic{win: c.win}
 	fl.Window().Reset()
-	fl.RttEst().Init()
+	C.RttEst_Init(&fl.rtte)
 	fl.Cubic().Init()
 	C.FetchLogic_Init_(fl.ptr())
 }
@@ -93,4 +82,10 @@ func (fl *Logic) RxData(segNum uint64, hasCongMark bool) {
 		pkt.congMark = 1
 	}
 	C.FetchLogic_RxDataBurst(fl.ptr(), &pkt, 1)
+}
+
+// LogicFromPtr converts *C.FetchLogic to *Logic.
+// ptr must be in C memory due to TAILQ_HEAD usage.
+func LogicFromPtr(ptr unsafe.Pointer) (fl *Logic) {
+	return (*Logic)(ptr)
 }

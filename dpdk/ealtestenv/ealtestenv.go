@@ -7,7 +7,6 @@ import (
 	"os"
 	"reflect"
 	"strconv"
-	"time"
 
 	mathpkg "github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/core/hwinfo"
@@ -49,8 +48,6 @@ func (hwInfo *hwInfoLimitCores) Cores() hwinfo.Cores {
 
 // Init initializes EAL for unit testing.
 func Init() {
-	rand.Seed(time.Now().UnixNano())
-
 	hwInfo := &hwInfoLimitCores{
 		Provider: hwinfo.Default,
 		MaxCores: WantLCores,

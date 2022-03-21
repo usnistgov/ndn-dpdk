@@ -9,49 +9,6 @@ import (
 )
 
 const (
-	rtteK       = 4
-	rtteAlpha   = 0.125
-	rtteBeta    = 0.25
-	rtteInitRto = 1
-	rtteMinRto  = 0.2
-	rtteMaxRto  = 10
-)
-
-type rttEstimator struct {
-	sRtt   float64
-	rttVar float64
-	rto    float64
-}
-
-func (rtte *rttEstimator) Push(rtt time.Duration, nPending int) {
-	rttV := rtt.Seconds()
-	if rtte.rto == 0 {
-		rtte.sRtt = rttV
-		rtte.rttVar = rttV / 2
-	} else {
-		alpha, beta := rtteAlpha/float64(nPending), rtteBeta/float64(nPending)
-		rtte.rttVar = (1-beta)*rtte.rttVar + beta*math.Abs(rtte.sRtt-rttV)
-		rtte.sRtt = (1-alpha)*rtte.sRtt + alpha*rttV
-	}
-	rtte.rto = rtte.sRtt + rtteK*rtte.rttVar
-}
-
-func (rtte *rttEstimator) Backoff() {
-	rtte.rto *= 2
-}
-
-func (rtte rttEstimator) Rto() time.Duration {
-	rto := math.Max(rtteMinRto, math.Min(rtte.rto, rtteMaxRto))
-	return time.Duration(rto * float64(time.Second))
-}
-
-func newRttEstimator() *rttEstimator {
-	return &rttEstimator{
-		rto: rtteInitRto,
-	}
-}
-
-const (
 	cubicIw    = 2
 	cubicC     = 0.4
 	cubicBeta  = 0.7

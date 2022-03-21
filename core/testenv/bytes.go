@@ -20,7 +20,7 @@ func BytesFromHex(input string) []byte {
 	}, input)
 	decoded, e := hex.DecodeString(s)
 	if e != nil {
-		panic(fmt.Sprintf("hex.DecodeString error %v", e))
+		panic(fmt.Errorf("hex.DecodeString error %w", e))
 	}
 	return decoded
 }

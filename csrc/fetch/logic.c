@@ -88,7 +88,7 @@ FetchLogic_RxData(FetchLogic* fl, TscTime now, uint64_t segNum, bool hasCongMark
   if (unlikely(hasCongMark)) {
     FetchLogic_DecreaseCwnd(fl, "RxDataCongMark", segNum, now);
   } else {
-    TcpCubic_Increase(&fl->ca, now, fl->rtte.sRtt);
+    TcpCubic_Increase(&fl->ca, now, fl->rtte.rttv.sRtt);
   }
 
   fl->hiDataSegNum = RTE_MAX(fl->hiDataSegNum, segNum);
@@ -139,5 +139,5 @@ FetchLogic_Init_(FetchLogic* fl)
 
   // 2^16 slots of 1ms interval, accommodates RTO up to 65536ms
   fl->sched = MinSched_New(16, TscHz / 1000, FetchLogic_RtoTimeout, (uintptr_t)fl);
-  NDNDPDK_ASSERT(MinSched_GetMaxDelay(fl->sched) >= (TscDuration)(RTTEST_MAXRTO_MS * TscHz / 1000));
+  NDNDPDK_ASSERT(MinSched_GetMaxDelay(fl->sched) >= RttEstTscMaxRto);
 }

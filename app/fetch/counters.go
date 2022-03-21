@@ -3,6 +3,8 @@ package fetch
 import (
 	"fmt"
 	"time"
+
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
 // Counters contains counters of Logic.
@@ -20,10 +22,9 @@ type Counters struct {
 // Counters retrieves counters.
 func (fl *Logic) Counters() (cnt Counters) {
 	cnt.Time = time.Now()
-	rtte := fl.RttEst()
-	cnt.LastRtt = rtte.LastRtt()
-	cnt.SRtt = rtte.SRtt()
-	cnt.Rto = rtte.Rto()
+	cnt.LastRtt = eal.FromTscDuration(int64(fl.rtte.last))
+	cnt.SRtt = eal.FromTscDuration(int64(fl.rtte.rttv.sRtt))
+	cnt.Rto = eal.FromTscDuration(int64(fl.rtte.rto))
 	cnt.Cwnd = fl.Cubic().Cwnd()
 	cnt.NInFlight = uint32(fl.nInFlight)
 	cnt.NTxRetx = uint64(fl.nTxRetx)
