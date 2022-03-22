@@ -108,6 +108,7 @@ func (f *Fixture) SetFibEntryScratch(name string, strategy string, scratch []byt
 
 // ReadFibCounters returns counters of specified FIB entry.
 func (f *Fixture) ReadFibCounters(name string) (cnt fibdef.EntryCounters) {
+	f.StepDelay()
 	entry := f.Fib.Find(ndn.ParseName(name))
 	if entry == nil {
 		return
@@ -115,7 +116,7 @@ func (f *Fixture) ReadFibCounters(name string) (cnt fibdef.EntryCounters) {
 	return entry.Counters()
 }
 
-// SumCounter reads a counter from all FwFwds and compute the sum.
+// SumCounter reads a counter from all FwFwds and computes the sum.
 func (f *Fixture) SumCounter(getCounter func(fwd *fwdp.Fwd) uint64) (n uint64) {
 	for _, fwd := range f.DataPlane.Fwds() {
 		n += getCounter(fwd)

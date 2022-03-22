@@ -226,12 +226,12 @@ PName_Slice(const PName* p, int16_t start, int16_t end)
   if (unlikely(start < 0)) {
     start += p->nComps;
   }
-  start = RTE_MAX(0, RTE_MIN(start, (int16_t)p->nComps));
+  start = CLAMP(start, 0, (int16_t)p->nComps);
 
   if (unlikely(end < 0)) {
     end += p->nComps;
   }
-  end = RTE_MAX(0, RTE_MIN(end, (int16_t)p->nComps));
+  end = CLAMP(end, 0, (int16_t)p->nComps);
 
   if (unlikely(start >= end)) {
     return (LName){ 0 };

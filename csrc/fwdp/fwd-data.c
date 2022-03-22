@@ -31,6 +31,23 @@ FwFwd_DataNeedDigest(FwFwd* fwd, FwFwdCtx* ctx)
 }
 
 __attribute__((nonnull)) static void
+FwFwd_DataSeekFib(FwFwd* fwd, FwFwdCtx* ctx)
+{
+  FwFwdCtx_SetFibEntry(ctx, PitEntry_FindFibEntry(ctx->pitEntry, fwd->fib));
+  if (unlikely(ctx->fibEntryDyn == NULL)) {
+    return;
+  }
+
+  ++ctx->fibEntryDyn->nRxData;
+  PitUp* up = PitEntry_FindUp(ctx->pitEntry, ctx->rxFace);
+  if (likely(up != NULL) && likely(up->nTx == 1) &&
+      likely(up->nexthopIndex < ctx->fibEntry->nNexthops) &&
+      likely(ctx->fibEntry->nexthops[up->nexthopIndex] == ctx->rxFace)) {
+    RttValue_Push(&ctx->fibEntryDyn->rtt[up->nexthopIndex], ctx->rxTime - up->lastTx);
+  }
+}
+
+__attribute__((nonnull)) static void
 FwFwd_DataSatisfy(FwFwd* fwd, FwFwdCtx* ctx)
 {
   uint8_t upCongMark = Packet_GetLpL3Hdr(ctx->npkt)->congMark;
@@ -70,7 +87,6 @@ FwFwd_DataSatisfy(FwFwd* fwd, FwFwdCtx* ctx)
   }
 
   if (likely(ctx->fibEntry != NULL)) {
-    ++ctx->fibEntryDyn->nRxData;
     uint64_t res = SgInvoke(ctx->fibEntry->strategy, ctx);
     N_LOGD("^ fib-entry-depth=%" PRIu8 " sg-id=%d sg-res=%" PRIu64, ctx->fibEntry->nComps,
            ctx->fibEntry->strategy->id, res);
@@ -98,24 +114,24 @@ FwFwd_RxData(FwFwd* fwd, FwFwdCtx* ctx)
     return;
   }
 
-  ctx->nhFlt = ~0; // disallow all forwarding
+  ctx->nhFlt = ~0; // disallow any Interest forwarding
   rcu_read_lock();
 
   if (PitFindResult_Is(pitFound, PIT_FIND_PIT0)) {
     ctx->pitEntry = PitFindResult_GetPitEntry0(pitFound);
-    FwFwdCtx_SetFibEntry(ctx, PitEntry_FindFibEntry(ctx->pitEntry, fwd->fib));
+    FwFwd_DataSeekFib(fwd, ctx);
     FwFwd_DataSatisfy(fwd, ctx);
   }
   if (PitFindResult_Is(pitFound, PIT_FIND_PIT1)) {
     ctx->pitEntry = PitFindResult_GetPitEntry1(pitFound);
     if (likely(ctx->fibEntry == NULL)) {
-      FwFwdCtx_SetFibEntry(ctx, PitEntry_FindFibEntry(ctx->pitEntry, fwd->fib));
+      FwFwd_DataSeekFib(fwd, ctx);
     }
-    // XXX if both PIT entries have the same downstream, Data is sent twice
     FwFwd_DataSatisfy(fwd, ctx);
   }
 
   NULLize(ctx->fibEntry); // fibEntry is inaccessible upon RCU unlock
+  NULLize(ctx->fibEntryDyn);
   rcu_read_unlock();
 
   Cs_Insert(fwd->cs, ctx->npkt, pitFound);

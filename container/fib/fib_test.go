@@ -24,9 +24,9 @@ func TestReplica1(t *testing.T) {
 
 	assert.Equal(f.Replica(eal.NumaSocket{}).Ptr(), th0.Replica)
 	assert.Equal(th0.Replica, th1.Replica)
-	assert.NotEqual(th0.Index, th1.Index)
-	assert.Less(th0.Index, 2)
-	assert.Less(th1.Index, 2)
+	assert.NotEqual(th0.DynIndex, th1.DynIndex)
+	assert.Less(th0.DynIndex, 2)
+	assert.Less(th1.DynIndex, 2)
 }
 
 func TestReplica2(t *testing.T) {
@@ -48,8 +48,8 @@ func TestReplica2(t *testing.T) {
 	assert.Equal(f.Replica(eal.Sockets[0]).Ptr(), th0.Replica)
 	assert.Equal(f.Replica(eal.Sockets[1]).Ptr(), th1.Replica)
 	assert.NotEqual(th0.Replica, th1.Replica)
-	assert.Equal(0, th0.Index)
-	assert.Equal(0, th1.Index)
+	assert.Equal(0, th0.DynIndex)
+	assert.Equal(0, th1.DynIndex)
 }
 
 func TestLpm(t *testing.T) {

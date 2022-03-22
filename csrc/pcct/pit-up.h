@@ -21,11 +21,12 @@ typedef struct PitUp
   TscTime lastTx;       ///< when last Interest was sent
   TscDuration suppress; ///< suppression duration since lastTx
   uint16_t nTx;         ///< how many Interests were sent
+  uint8_t nexthopIndex; ///< FIB nexthop index
 
   /// nonces rejected by Nack~Duplicate from upstream
   uint32_t rejectedNonces[PIT_UP_MAX_REJ_NONCES];
-} __rte_aligned(64) PitUp;
-static_assert(sizeof(PitUp) <= 64, "");
+} __rte_cache_aligned PitUp;
+static_assert(sizeof(PitUp) <= RTE_CACHE_LINE_SIZE, "");
 
 __attribute__((nonnull)) static inline void
 PitUp_Reset(PitUp* up, FaceID face)

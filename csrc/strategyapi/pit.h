@@ -11,7 +11,7 @@ typedef struct SgPitDn
   TscTime expiry;
   char a_[4];
   FaceID face;
-} __rte_aligned(64) SgPitDn;
+} __rte_cache_aligned SgPitDn;
 
 typedef struct SgPitUp
 {
@@ -23,7 +23,7 @@ typedef struct SgPitUp
   TscTime lastTx;
   TscDuration suppress;
   uint16_t nTx;
-} __rte_aligned(64) SgPitUp;
+} __rte_cache_aligned SgPitUp;
 
 typedef struct SgPitEntryExt SgPitEntryExt;
 

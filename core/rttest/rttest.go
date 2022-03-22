@@ -47,12 +47,26 @@ func (rtte *RttEstimator) Push(rtt time.Duration, nPendings int) {
 		rtte.rttVar = (1-beta)*rtte.rttVar + beta*math.Abs(rtte.sRtt-rttV)
 		rtte.sRtt = (1-alpha)*rtte.sRtt + alpha*rttV
 	}
-	rtte.setRTO(rtte.sRtt + K*rtte.rttVar)
+	rtte.updateRTO()
 }
 
 // Backoff performs exponential backoff.
 func (rtte *RttEstimator) Backoff() {
 	rtte.setRTO(rtte.rto * 2)
+}
+
+// Assign sets SRTT and RTTVAR values.
+func (rtte *RttEstimator) Assign(sRtt, rttVar time.Duration) {
+	rtte.sRtt, rtte.rttVar = sRtt.Seconds(), rttVar.Seconds()
+	if rtte.sRtt == 0 {
+		rtte.rto = InitRtoSeconds
+	} else {
+		rtte.updateRTO()
+	}
+}
+
+func (rtte *RttEstimator) updateRTO() {
+	rtte.setRTO(rtte.sRtt + K*rtte.rttVar)
 }
 
 func (rtte *RttEstimator) setRTO(rto float64) {

@@ -3,6 +3,7 @@
 
 /** @file */
 
+#include "../core/rttest.h"
 #include "../core/urcu.h"
 #include "../iface/faceid.h"
 #include "../strategycode/strategy-code.h"
@@ -15,8 +16,9 @@ typedef struct FibEntryDyn
   uint32_t nRxData;
   uint32_t nRxNacks;
   uint32_t nTxInterests;
-  char pad_[16];
+  char a_[16];
   char scratch[FibScratchSize];
+  RttValue rtt[FibMaxNexthops];
 } FibEntryDyn;
 static_assert(sizeof(FibEntryDyn) % RTE_CACHE_LINE_SIZE == 0, "");
 
@@ -61,7 +63,7 @@ struct FibEntry
 
   FaceID nexthops[FibMaxNexthops];
 
-  char padB_[32];
+  char b_[32];
   RTE_MARKER cachelineB_;
   FibEntryDyn dyn[];
 };

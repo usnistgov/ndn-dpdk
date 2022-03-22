@@ -3,10 +3,7 @@
 
 /** @file */
 
-#include "../core/common.h"
-
-typedef uint64_t TscTime;
-typedef int64_t TscDuration;
+#include "../dpdk/tsc.h"
 
 typedef uint16_t FaceID;
 
@@ -20,6 +17,6 @@ typedef uint16_t FaceID;
  * uBPF cannot resolve internal CALL instructions. Thus, every subroutine must be marked inline
  * with this macro to ensure it does not compile into a CALL instruction.
  */
-#define SUBROUTINE __attribute__((always_inline)) inline
+#define SUBROUTINE __rte_always_inline
 
 #endif // NDNDPDK_STRATEGYAPI_COMMON_H

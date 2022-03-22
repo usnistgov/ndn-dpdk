@@ -30,6 +30,8 @@ func TestInterestData(t *testing.T) {
 	assert.Equal(1, collect2.Count())
 	assert.Equal(0, collect3.Count())
 
+	producerDelay := 12 * fixture.StepUnit
+	time.Sleep(producerDelay)
 	face2.Tx <- ndn.MakeData(collect2.Get(-1).Interest)
 	fixture.StepDelay()
 	assert.Equal(1, collect1.Count())
@@ -37,11 +39,112 @@ func TestInterestData(t *testing.T) {
 		assert.EqualValues(token, packet.Lp.PitToken)
 	}
 
-	fibCnt := fixture.ReadFibCounters("/B")
-	assert.Equal(uint64(1), fibCnt.NRxInterests)
+	fibCntB := fixture.ReadFibCounters("/B")
+	assert.Equal(uint64(1), fibCntB.NRxInterests)
+	assert.Equal(uint64(1), fibCntB.NRxData)
+	assert.Equal(uint64(0), fibCntB.NRxNacks)
+	assert.Equal(uint64(1), fibCntB.NTxInterests)
+
+	if entryB := fixture.Fib.Find(ndn.ParseName("/B")); assert.NotNil(entryB) {
+		nNonZeroRtt := 0
+		for _, fwd := range fixture.DataPlane.Fwds() {
+			rttMap := entryB.NexthopRtts(fwd)
+			if assert.NotNil(rttMap) {
+				assert.Len(rttMap, 1)
+				if rtt2 := rttMap[face2.ID]; assert.NotNil(rtt2) {
+					if sRtt := rtt2.SRTT(); sRtt > 0 {
+						assert.GreaterOrEqual(sRtt, producerDelay)
+						assert.Less(sRtt, producerDelay+3*fixture.StepUnit)
+						nNonZeroRtt++
+					}
+				}
+			}
+		}
+		assert.Equal(1, nNonZeroRtt)
+	}
+
+	fibCntC := fixture.ReadFibCounters("/C")
+	assert.Equal(uint64(0), fibCntC.NRxInterests)
+	assert.Equal(uint64(0), fibCntC.NRxData)
+	assert.Equal(uint64(0), fibCntC.NRxNacks)
+	assert.Equal(uint64(0), fibCntC.NTxInterests)
+}
+
+func TestCanBePrefix(t *testing.T) {
+	assert, require := makeAR(t)
+	fixture := NewFixture(t)
+
+	face1, face2 := intface.MustNew(), intface.MustNew()
+	collect1, collect2 := intface.Collect(face1), intface.Collect(face2)
+	fixture.SetFibEntry("/P", "multicast", face2.ID)
+
+	tokenA, tokenB := makeToken(), makeToken()
+	face1.Tx <- ndn.MakeInterest("/P/1", tokenA.LpL3())
+	fixture.StepDelay()
+	require.Equal(1, collect2.Count())
+	if packet := collect2.Get(-1); assert.NotNil(packet.Interest) {
+		assert.False(packet.Interest.CanBePrefix)
+	}
+
+	face1.Tx <- ndn.MakeInterest("/P/1", ndn.CanBePrefixFlag, tokenB.LpL3())
+	fixture.StepDelay()
+	require.Equal(2, collect2.Count())
+	if packet := collect2.Get(-1); assert.NotNil(packet.Interest) {
+		assert.True(packet.Interest.CanBePrefix)
+	}
+
+	face2.Tx <- ndn.MakeData(collect2.Get(-1).Interest)
+	fixture.StepDelay()
+	require.Equal(1, collect1.Count())
+	if packet := collect1.Get(-1); assert.NotNil(packet.Data) {
+		assert.EqualValues(tokenB, packet.Lp.PitToken)
+	}
+
+	fibCnt := fixture.ReadFibCounters("/P")
+	assert.Equal(uint64(2), fibCnt.NRxInterests)
 	assert.Equal(uint64(1), fibCnt.NRxData)
 	assert.Equal(uint64(0), fibCnt.NRxNacks)
-	assert.Equal(uint64(1), fibCnt.NTxInterests)
+	assert.Equal(uint64(2), fibCnt.NTxInterests)
+}
+
+func TestMustBeFresh(t *testing.T) {
+	assert, require := makeAR(t)
+	fixture := NewFixture(t)
+
+	face1, face2 := intface.MustNew(), intface.MustNew()
+	collect1, collect2 := intface.Collect(face1), intface.Collect(face2)
+	fixture.SetFibEntry("/P", "multicast", face2.ID)
+
+	tokenA, tokenB := makeToken(), makeToken()
+	face1.Tx <- ndn.MakeInterest("/P/1", tokenA.LpL3())
+	fixture.StepDelay()
+	require.Equal(1, collect2.Count())
+	if packet := collect2.Get(-1); assert.NotNil(packet.Interest) {
+		assert.False(packet.Interest.MustBeFresh)
+	}
+
+	face1.Tx <- ndn.MakeInterest("/P/1", ndn.MustBeFreshFlag, tokenB.LpL3())
+	fixture.StepDelay()
+	require.Equal(2, collect2.Count())
+	if packet := collect2.Get(-1); assert.NotNil(packet.Interest) {
+		assert.True(packet.Interest.MustBeFresh)
+	}
+
+	face2.Tx <- ndn.MakeData(collect2.Get(-1).Interest)
+	fixture.StepDelay()
+	require.Equal(2, collect1.Count())
+	if packet := collect1.Get(0); assert.NotNil(packet.Data) {
+		assert.EqualValues(tokenA, packet.Lp.PitToken)
+	}
+	if packet := collect1.Get(1); assert.NotNil(packet.Data) {
+		assert.EqualValues(tokenB, packet.Lp.PitToken)
+	}
+
+	fibCnt := fixture.ReadFibCounters("/P")
+	assert.Equal(uint64(2), fibCnt.NRxInterests)
+	assert.Equal(uint64(1), fibCnt.NRxData)
+	assert.Equal(uint64(0), fibCnt.NRxNacks)
+	assert.Equal(uint64(2), fibCnt.NTxInterests)
 }
 
 func TestInterestDupNonce(t *testing.T) {

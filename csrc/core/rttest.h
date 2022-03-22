@@ -6,13 +6,6 @@
 #include "../dpdk/tsc.h"
 #include "rttest-enum.h"
 
-#define RttEstAlpha (1.0 * RttEstAlphaDividend / RttEstAlphaDivisor)
-#define RttEstBeta (1.0 * RttEstBetaDividend / RttEstBetaDivisor)
-
-extern TscDuration RttEstTscInitRto;
-extern TscDuration RttEstTscMinRto;
-extern TscDuration RttEstTscMaxRto;
-
 /**
  * @brief SRTT and RTTVAR values in RTT estimator.
  * @sa https://tools.ietf.org/html/rfc6298
@@ -23,6 +16,17 @@ typedef struct RttValue
   float rttVar;
 } RttValue;
 static_assert(sizeof(RttValue) == sizeof(uint64_t), "");
+
+__attribute__((nonnull)) static __rte_always_inline TscDuration
+RttValue_RTO(RttValue* rttv)
+{
+  return rttv->sRtt + RttEstK * rttv->rttVar;
+}
+
+#ifndef __BPF__
+
+#define RttEstAlpha (1.0 * RttEstAlphaDividend / RttEstAlphaDivisor)
+#define RttEstBeta (1.0 * RttEstBetaDividend / RttEstBetaDivisor)
 
 /**
  * @brief Add RTT sample.
@@ -39,10 +43,14 @@ RttValue_Push(RttValue* rttv, TscDuration rtt)
     rttv->sRtt = rtt;
     rttv->rttVar = rtt / 2.0;
   } else {
-    rttv->rttVar = (1.0 - RttEstBeta) * rttv->rttVar + RttEstBeta * fabsf(rttv->sRtt - rtt);
+    rttv->rttVar = (1.0 - RttEstBeta) * rttv->rttVar + RttEstBeta * fabs(rttv->sRtt - rtt);
     rttv->sRtt = (1.0 - RttEstAlpha) * rttv->sRtt + RttEstAlpha * rtt;
   }
 }
+
+extern TscDuration RttEstTscInitRto;
+extern TscDuration RttEstTscMinRto;
+extern TscDuration RttEstTscMaxRto;
 
 /**
  * @brief RTT estimator.
@@ -62,7 +70,7 @@ RttEst_Init(RttEst* rtte);
 __attribute__((nonnull)) static inline void
 RttEst_SetRTO_(RttEst* rtte, TscDuration rto)
 {
-  rtte->rto = RTE_MAX(RttEstTscMinRto, RTE_MIN(rto, RttEstTscMaxRto));
+  rtte->rto = CLAMP(rto, RttEstTscMinRto, RttEstTscMaxRto);
 }
 
 /**
@@ -78,7 +86,7 @@ RttEst_Push(RttEst* rtte, TscTime now, TscDuration rtt)
   }
 
   RttValue_Push(&rtte->rttv, rtt);
-  RttEst_SetRTO_(rtte, rtte->rttv.sRtt + RttEstK * rtte->rttv.rttVar);
+  RttEst_SetRTO_(rtte, RttValue_RTO(&rtte->rttv));
   rtte->next_ = now + rtte->rttv.sRtt;
 }
 
@@ -88,5 +96,7 @@ RttEst_Backoff(RttEst* rtte)
 {
   RttEst_SetRTO_(rtte, rtte->rto * 2);
 }
+
+#endif // __BPF__
 
 #endif // NDNDPDK_CORE_RTTEST_H

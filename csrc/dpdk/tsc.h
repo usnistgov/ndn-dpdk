@@ -5,6 +5,14 @@
 
 #include "../core/common.h"
 
+/** @brief TSC clock time point. */
+typedef uint64_t TscTime;
+
+/** @brief Duration in TscTime unit. */
+typedef int64_t TscDuration;
+
+#ifndef __BPF__
+
 /** @brief TSC time units in one second. */
 extern uint64_t TscHz;
 
@@ -16,12 +24,6 @@ extern double TscSeconds;
 
 /** @brief Nanoseconds in one TSC time unit, @c 1/TscGHz . */
 extern double TscNanos;
-
-/** @brief TSC clock time point. */
-typedef uint64_t TscTime;
-
-/** @brief Duration in TscTime unit. */
-typedef int64_t TscDuration;
 
 extern double TscTimeRefUnixNano_;
 extern double TscTimeRefTsc_;
@@ -55,5 +57,7 @@ TscDuration_ToMillis(TscDuration d)
 {
   return d * 1000 / TscHz;
 }
+
+#endif // __BPF__
 
 #endif // NDNDPDK_DPDK_TSC_H

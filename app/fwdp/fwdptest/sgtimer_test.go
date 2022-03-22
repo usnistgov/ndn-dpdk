@@ -14,8 +14,7 @@ func TestSgTimer(t *testing.T) {
 	assert, _ := makeAR(t)
 	fixture := NewFixture(t)
 
-	face1 := intface.MustNew()
-	face2 := intface.MustNew()
+	face1, face2 := intface.MustNew(), intface.MustNew()
 	collect2 := intface.Collect(face2)
 	scratch := make([]byte, 8)
 	binary.LittleEndian.PutUint64(scratch, 200)

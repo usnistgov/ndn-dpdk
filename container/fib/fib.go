@@ -140,6 +140,6 @@ func New(cfg fibdef.Config, threads []LookupThread) (*Fib, error) {
 // LookupThread represents an entity that can perform FIB lookups, such as a forwarding thread.
 type LookupThread interface {
 	eal.WithNumaSocket
-
-	SetFib(replica unsafe.Pointer, i int)
+	GetFib() (replica unsafe.Pointer, dynIndex int)
+	SetFib(replica unsafe.Pointer, dynIndex int)
 }

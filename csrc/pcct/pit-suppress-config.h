@@ -21,7 +21,7 @@ __attribute__((nonnull)) static inline TscDuration
 PitSuppressConfig_Compute(const PitSuppressConfig* cfg, TscDuration d)
 {
   d *= cfg->multiplier;
-  return RTE_MIN(cfg->max, RTE_MAX(cfg->min, d));
+  return CLAMP(d, cfg->min, cfg->max);
 }
 
 #endif // NDNDPDK_PCCT_PIT_SUPPRESS_CONFIG_H

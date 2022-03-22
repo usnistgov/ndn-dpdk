@@ -216,6 +216,19 @@ PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt)
 }
 
 PitUp*
+PitEntry_FindUp(PitEntry* entry, FaceID face)
+{
+  PitUpIt it;
+  for (PitUpIt_Init(&it, entry); PitUpIt_Valid(&it); PitUpIt_Next(&it)) {
+    PitUp* up = it.up;
+    if (up->face == face) {
+      return up;
+    }
+  }
+  return NULL;
+}
+
+PitUp*
 PitEntry_ReserveUp(PitEntry* entry, Pit* pit, FaceID face)
 {
   PitUpIt it;

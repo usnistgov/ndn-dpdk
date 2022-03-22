@@ -69,6 +69,15 @@ func (entry *Entry) AccCounters(cnt *fibdef.EntryCounters, t *Table) {
 	}
 }
 
+// NexthopRtt reads RTT measurement of a nexthop.
+// Return values are in TSC duration units.
+func (entry *Entry) NexthopRtt(dynIndex, nexthopIndex int) (sRtt, rttVar int64) {
+	c := entry.Real().ptr()
+	dyn := C.FibEntry_PtrDyn(c, C.int(dynIndex))
+	rtt := dyn.rtt[nexthopIndex]
+	return int64(rtt.sRtt), int64(rtt.rttVar)
+}
+
 // IsVirt determines whether this is a virtual entry.
 func (entry *Entry) IsVirt() bool {
 	return entry.height > 0
@@ -76,7 +85,10 @@ func (entry *Entry) IsVirt() bool {
 
 // Real returns the real entry linked from this entry.
 func (entry *Entry) Real() *Entry {
-	return entryFromPtr(C.FibEntry_GetReal(entry.ptr()))
+	if entry != nil && entry.IsVirt() {
+		return entryFromPtr(C.FibEntry_GetReal(entry.ptr()))
+	}
+	return entry
 }
 
 // FibSeqNum returns the FIB insertion sequence number recorded in this entry.

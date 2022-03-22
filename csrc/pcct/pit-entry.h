@@ -169,6 +169,15 @@ __attribute__((nonnull)) PitDn*
 PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt);
 
 /**
+ * @brief Find existing UP record.
+ * @param entry PIT entry, must be initialized.
+ * @param face upstream face.
+ * @return UP record, or NULL if not exist.
+ */
+__attribute__((nonnull)) PitUp*
+PitEntry_FindUp(PitEntry* entry, FaceID face);
+
+/**
  * @brief Find existing UP record, or reserve slot for new UP record.
  * @param entry PIT entry, must be initialized.
  * @param face upstream face.

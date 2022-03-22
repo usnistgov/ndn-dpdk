@@ -29,12 +29,12 @@ typedef enum PitFindResultFlag
 {
   PIT_FIND_NONE = 0, ///< no PIT match
 
-  PIT_FIND_PIT0 = (1 << 0), ///< matched PIT entry of MustBeFresh=0
-  PIT_FIND_PIT1 = (1 << 1), ///< matched PIT entry of MustBeFresh=1
+  PIT_FIND_PIT0 = RTE_BIT32(0), ///< matched PIT entry of MustBeFresh=0
+  PIT_FIND_PIT1 = RTE_BIT32(1), ///< matched PIT entry of MustBeFresh=1
 
   /// need Data digest to determine match, PccEntry is set on PitInsertResult,
   /// PIT_FIND_PIT0 and PIT_FIND_PIT1 indicate existence of PIT entries.
-  PIT_FIND_NEED_DIGEST = (1 << 2),
+  PIT_FIND_NEED_DIGEST = RTE_BIT32(2),
 } PitFindResultFlag;
 
 /** @brief Result of PIT find. */

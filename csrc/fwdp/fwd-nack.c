@@ -152,13 +152,14 @@ FwFwd_ProcessNack(FwFwd* fwd, FwFwdCtx* ctx)
   // find FIB entry; FIB entry is optional for Nack processing
   rcu_read_lock();
   FwFwdCtx_SetFibEntry(ctx, PitEntry_FindFibEntry(ctx->pitEntry, fwd->fib));
-  if (likely(ctx->fibEntry != NULL)) {
+  if (likely(ctx->fibEntryDyn != NULL)) {
     ++ctx->fibEntryDyn->nRxNacks;
   }
 
   // Duplicate: record rejected nonce, resend with an alternate nonce if possible
   if (reason == NackDuplicate && FwFwd_RxNackDuplicate(fwd, ctx)) {
     NULLize(ctx->fibEntry); // fibEntry is inaccessible upon RCU unlock
+    NULLize(ctx->fibEntryDyn);
     rcu_read_unlock();
     return;
   }
@@ -171,6 +172,7 @@ FwFwd_ProcessNack(FwFwd* fwd, FwFwdCtx* ctx)
            ctx->fibEntry->strategy->id, res);
   }
   NULLize(ctx->fibEntry); // fibEntry is inaccessible upon RCU unlock
+  NULLize(ctx->fibEntryDyn);
   rcu_read_unlock();
 
   // if there are more pending upstream or strategy retries, wait for them

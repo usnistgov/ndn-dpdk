@@ -102,10 +102,15 @@ func (fwd *Fwd) NumaSocket() eal.NumaSocket {
 	return fwd.LCore().NumaSocket()
 }
 
+// GetFib implements fib.LookupThread interface.
+func (fwd *Fwd) GetFib() (replica unsafe.Pointer, dynIndex int) {
+	return unsafe.Pointer(fwd.c.fib), int(fwd.c.fibDynIndex)
+}
+
 // SetFib implements fib.LookupThread interface.
-func (fwd *Fwd) SetFib(replica unsafe.Pointer, index int) {
+func (fwd *Fwd) SetFib(replica unsafe.Pointer, dynIndex int) {
 	fwd.c.fib = (*C.Fib)(replica)
-	fwd.c.fibDynIndex = C.uint8_t(index)
+	fwd.c.fibDynIndex = C.uint8_t(dynIndex)
 }
 
 // Pit returns the PIT.

@@ -3,6 +3,7 @@
 
 /** @file */
 
+#include "../core/rttest.h"
 #include "../fib/enum.h"
 #include "common.h"
 
@@ -10,6 +11,7 @@ typedef struct SgFibEntryDyn
 {
   uint8_t a_[32];
   uint8_t scratch[FibScratchSize];
+  RttValue rtt[FibMaxNexthops];
 } SgFibEntryDyn;
 
 typedef struct SgFibEntry

@@ -16,7 +16,7 @@ typedef struct PitDn
   uint8_t congMark;
   bool canBePrefix; ///< Interest has CanBePrefix?
   LpPitToken token; ///< downstream's token
-} __rte_aligned(64) PitDn;
-static_assert(sizeof(PitDn) <= 64, "");
+} __rte_cache_aligned PitDn;
+static_assert(sizeof(PitDn) <= RTE_CACHE_LINE_SIZE, "");
 
 #endif // NDNDPDK_PCCT_PIT_DN_H
