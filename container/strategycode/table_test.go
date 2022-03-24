@@ -21,7 +21,6 @@ func TestTable(t *testing.T) {
 
 	assert.Same(scP, strategycode.Get(idP))
 	assert.Same(scP, strategycode.Find("P"))
-	assert.Same(scP, strategycode.FromPtr(ptrP))
 
 	scP2 := strategycode.MakeEmpty("P")
 	assert.NotEqual(idP, scP2.ID())

@@ -22,11 +22,12 @@ import (
 
 // Table represents a FIB replica.
 type Table struct {
-	mp    *mempool.Mempool
-	c     *C.Fib
-	nDyns int
-	free  chan []unsafe.Pointer
-	wg    sync.WaitGroup
+	mp        *mempool.Mempool
+	c         *C.Fib
+	nDyns     int
+	sgGlobals []unsafe.Pointer
+	free      chan []unsafe.Pointer
+	wg        sync.WaitGroup
 }
 
 // Ptr returns *C.Fib pointer.
@@ -108,8 +109,9 @@ func (t *Table) freeLoop() {
 }
 
 // New creates a Table.
-func New(cfg fibdef.Config, nDyns int, socket eal.NumaSocket) (*Table, error) {
+func New(cfg fibdef.Config, sgGlobals []unsafe.Pointer, socket eal.NumaSocket) (*Table, error) {
 	cfg.ApplyDefaults()
+	nDyns := len(sgGlobals)
 	mp, e := mempool.New(mempool.Config{
 		Capacity:       cfg.Capacity,
 		ElementSize:    C.sizeof_FibEntry + nDyns*C.sizeof_FibEntryDyn,
@@ -122,9 +124,10 @@ func New(cfg fibdef.Config, nDyns int, socket eal.NumaSocket) (*Table, error) {
 		return nil, e
 	}
 	t := &Table{
-		mp:    mp,
-		nDyns: nDyns,
-		free:  make(chan []unsafe.Pointer),
+		mp:        mp,
+		nDyns:     nDyns,
+		sgGlobals: sgGlobals,
+		free:      make(chan []unsafe.Pointer),
 	}
 
 	mpC := (*C.struct_rte_mempool)(t.mp.Ptr())

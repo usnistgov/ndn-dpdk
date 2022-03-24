@@ -2,12 +2,14 @@
 package fib
 
 import (
+	"errors"
 	"fmt"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/container/fib/fibdef"
 	"github.com/usnistgov/ndn-dpdk/container/fib/fibreplica"
 	"github.com/usnistgov/ndn-dpdk/container/fib/fibtree"
+	"github.com/usnistgov/ndn-dpdk/container/strategycode"
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/ndn"
@@ -74,6 +76,12 @@ func (fib *Fib) Insert(entry fibdef.Entry) (e error) {
 		return fmt.Errorf("entry.Validate: %w", e)
 	}
 
+	if sc := strategycode.Get(entry.Strategy); sc == nil {
+		return errors.New("entry.Strategy not found")
+	} else if e := sc.ValidateParams(entry.Params); e != nil {
+		return fmt.Errorf("entry.Strategy.ValidateParams: %w", e)
+	}
+
 	eal.CallMain(func() {
 		e = fib.doUpdate(fib.tree.Insert(entry))
 	})
@@ -120,7 +128,12 @@ func New(cfg fibdef.Config, threads []LookupThread) (*Fib, error) {
 
 	threadByNuma := eal.ClassifyByNumaSocket(threads, eal.RewriteAnyNumaSocketFirst).(map[eal.NumaSocket][]LookupThread)
 	for socket, ths := range threadByNuma {
-		replica, e := fibreplica.New(cfg, len(ths), socket)
+		sgGlobals := make([]unsafe.Pointer, len(ths))
+		for i, th := range ths {
+			sgGlobals[i] = th.GetFibSgGlobal()
+		}
+
+		replica, e := fibreplica.New(cfg, sgGlobals, socket)
 		if e != nil {
 			fib.doClose()
 			return nil, fmt.Errorf("fibreplica.New(%v): %w", socket, e)
@@ -140,6 +153,7 @@ func New(cfg fibdef.Config, threads []LookupThread) (*Fib, error) {
 // LookupThread represents an entity that can perform FIB lookups, such as a forwarding thread.
 type LookupThread interface {
 	eal.WithNumaSocket
+	GetFibSgGlobal() unsafe.Pointer
 	GetFib() (replica unsafe.Pointer, dynIndex int)
 	SetFib(replica unsafe.Pointer, dynIndex int)
 }

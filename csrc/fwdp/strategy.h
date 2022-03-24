@@ -6,9 +6,9 @@
 #include "../strategyapi/api.h"
 #include "fwd.h"
 
-/** @brief Obtain external symbols available to strategy eBPF programs. */
+/** @brief Obtain external symbols available to strategy dataplane eBPF programs. */
 __attribute__((nonnull, returns_nonnull)) const struct rte_bpf_xsym*
-SgGetXsyms(int* nXsyms);
+SgGetXsyms(uint32_t* nXsyms);
 
 __attribute__((nonnull)) void
 SgTriggerTimer(Pit* pit, PitEntry* pitEntry, uintptr_t fwd0);

@@ -51,7 +51,7 @@ SgSetTimer(SgCtx* ctx0, TscDuration after)
 }
 
 const struct rte_bpf_xsym*
-SgGetXsyms(int* nXsyms)
+SgGetXsyms(uint32_t* nXsyms)
 {
   static const struct rte_bpf_xsym xsyms[] = {
     {

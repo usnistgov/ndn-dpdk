@@ -5,7 +5,7 @@ Every loaded strategy is identified by a numeric ID and has a (non-unique) short
 
 ## Strategy Loader
 
-This package loads an eBPF program from an ELF object using two libraries: the DPDK BPF library and the [uBPF](https://github.com/iovisor/ubpf) library.
+This package loads eBPF programs from an ELF object using two libraries: the DPDK BPF library and the [uBPF](https://github.com/iovisor/ubpf) library.
 DPDK contains a BPF validator that disallows loops, which is necessary for a forwarding strategy.
 uBPF has a limited ELF parser that is unable to handle ELF objects compiled by clang-4.0 and later.
 

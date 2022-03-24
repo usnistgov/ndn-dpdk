@@ -2,17 +2,25 @@ package fibreplica
 
 /*
 #include "../../../csrc/fib/entry.h"
+#include "../../../csrc/strategyapi/api.h"
 
 static_assert(offsetof(FibEntry, strategy) == offsetof(FibEntry, realEntry), "");
 enum { c_offsetof_FibEntry_StrategyReal = offsetof(FibEntry, strategy) };
+
+extern bool go_SgGetJSON(SgCtx* ctx, char* path, int index, int64_t* dst);
 */
 import "C"
 import (
+	"runtime/cgo"
+	"strconv"
+	"strings"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/container/fib/fibdef"
 	"github.com/usnistgov/ndn-dpdk/container/strategycode"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
+	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
@@ -40,6 +48,10 @@ func (entry *Entry) ptrReal() **C.FibEntry {
 	return (**C.FibEntry)(unsafe.Add(entry.Ptr(), C.c_offsetof_FibEntry_StrategyReal))
 }
 
+func (entry *Entry) ptrDyn(dynIndex int) *C.FibEntryDyn {
+	return C.FibEntry_PtrDyn(entry.ptr(), C.int(dynIndex))
+}
+
 // Read converts Entry to fibdef.Entry.
 func (entry *Entry) Read() (de fibdef.Entry) {
 	if entry.height > 0 {
@@ -53,15 +65,14 @@ func (entry *Entry) Read() (de fibdef.Entry) {
 		de.Nexthops[i] = iface.ID(entry.nexthops[i])
 	}
 
-	de.Strategy = strategycode.FromPtr(unsafe.Pointer(*entry.ptrStrategy())).ID()
+	de.Strategy = int((*entry.ptrStrategy()).id)
 	return
 }
 
 // AccCounters adds to counters.
 func (entry *Entry) AccCounters(cnt *fibdef.EntryCounters, t *Table) {
-	c := entry.Real().ptr()
 	for i := 0; i < t.nDyns; i++ {
-		dyn := C.FibEntry_PtrDyn(c, C.int(i))
+		dyn := entry.Real().ptrDyn(i)
 		cnt.NRxInterests += uint64(dyn.nRxInterests)
 		cnt.NRxData += uint64(dyn.nRxData)
 		cnt.NRxNacks += uint64(dyn.nRxNacks)
@@ -72,8 +83,7 @@ func (entry *Entry) AccCounters(cnt *fibdef.EntryCounters, t *Table) {
 // NexthopRtt reads RTT measurement of a nexthop.
 // Return values are in TSC duration units.
 func (entry *Entry) NexthopRtt(dynIndex, nexthopIndex int) (sRtt, rttVar int64) {
-	c := entry.Real().ptr()
-	dyn := C.FibEntry_PtrDyn(c, C.int(dynIndex))
+	dyn := entry.Real().ptrDyn(dynIndex)
 	rtt := dyn.rtt[nexthopIndex]
 	return int64(rtt.sRtt), int64(rtt.rttVar)
 }
@@ -96,7 +106,7 @@ func (entry *Entry) FibSeqNum() uint32 {
 	return uint32(entry.seqNum)
 }
 
-func (entry *Entry) assignReal(u *fibdef.RealUpdate, nDyns int) {
+func (entry *Entry) assignReal(u *fibdef.RealUpdate, sgGlobals []unsafe.Pointer) {
 	entry.height = 0
 
 	nameV, _ := u.Name.MarshalBinary()
@@ -108,12 +118,25 @@ func (entry *Entry) assignReal(u *fibdef.RealUpdate, nDyns int) {
 		entry.nexthops[i] = C.FaceID(nh)
 	}
 
-	*entry.ptrStrategy() = (*C.StrategyCode)(strategycode.Get(u.Strategy).Ptr())
+	sc := strategycode.Get(u.Strategy)
+	*entry.ptrStrategy() = (*C.StrategyCode)(sc.Ptr())
 
-	if len(u.Scratch) > 0 {
-		for i := 0; i < nDyns; i++ {
-			dyn := C.FibEntry_PtrDyn(entry.ptr(), C.int(i))
-			copy(cptr.AsByteSlice(&dyn.scratch), u.Scratch)
+	if sgInit := sc.InitFunc(); sgInit != nil {
+		var params interface{}
+		jsonhelper.Roundtrip(u.Params, &params)
+		paramsHdl := cgo.NewHandle(params)
+		defer paramsHdl.Delete()
+		now := C.TscTime(eal.TscNow())
+		for i, sgGlobal := range sgGlobals {
+			ctx := (*C.FibSgInitCtx)(eal.Zmalloc("FibSgInitCtx", C.sizeof_FibSgInitCtx, eal.NumaSocket{}))
+			*ctx = C.FibSgInitCtx{
+				global:   (*C.SgGlobal)(sgGlobal),
+				now:      now,
+				entry:    entry.ptr(),
+				dyn:      entry.ptrDyn(i),
+				goHandle: C.uintptr_t(paramsHdl),
+			}
+			sgInit(unsafe.Pointer(ctx), C.sizeof_SgCtx)
 		}
 	}
 }
@@ -126,4 +149,50 @@ func (entry *Entry) assignVirt(u *fibdef.VirtUpdate, real *Entry) {
 	entry.nComps = C.uint8_t(len(u.Name))
 
 	*entry.ptrReal() = real.ptr()
+}
+
+func jsonExtract(obj interface{}, path []string, index int) (value int64, ok bool) {
+	switch field := obj.(type) {
+	case nil:
+		return 0, false
+	case map[string]interface{}:
+		if len(path) > 0 {
+			return jsonExtract(field[path[0]], path[1:], index)
+		}
+	case []interface{}:
+		switch {
+		case len(path) > 0:
+			return 0, false
+		case index == C.SGJSON_LEN:
+			return int64(len(field)), true
+		case index >= 0 && index < len(field):
+			return jsonExtract(field[index], nil, C.SGJSON_SCALAR)
+		}
+	case bool:
+		return map[bool]int64{false: 0, true: 1}[field], index == C.SGJSON_SCALAR
+	case float64:
+		return int64(field), index == C.SGJSON_SCALAR
+	case string:
+		value, e := strconv.ParseInt(field, 10, 64)
+		return value, e == nil && index == C.SGJSON_SCALAR
+	}
+	return 0, false
+}
+
+//export go_SgGetJSON
+func go_SgGetJSON(ctx0 *C.SgCtx, pathC *C.char, index C.int, dst *C.int64_t) C.bool {
+	ctx := (*C.FibSgInitCtx)(unsafe.Pointer(ctx0))
+	params := cgo.Handle(ctx.goHandle).Value()
+	path := strings.Split(C.GoString(pathC), ".")
+
+	value, ok := jsonExtract(params, path, int(index))
+	if ok {
+		*dst = C.int64_t(value)
+		return true
+	}
+	return false
+}
+
+func init() {
+	C.StrategyCode_GetJSON = C.StrategyCode_GetJSONFunc(C.go_SgGetJSON)
 }

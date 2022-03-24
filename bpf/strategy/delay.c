@@ -7,7 +7,7 @@
 
 typedef struct FibEntryInfo
 {
-  uint32_t delay; ///< delay duration in milliseconds
+  TscDuration delay;
 } FibEntryInfo;
 
 SUBROUTINE uint64_t
@@ -27,7 +27,7 @@ SUBROUTINE uint64_t
 RxInterest(SgCtx* ctx)
 {
   FibEntryInfo* fei = SgCtx_FibScratchT(ctx, FibEntryInfo);
-  bool ok = SgSetTimer(ctx, SgTscFromMillis(ctx, fei->delay));
+  bool ok = SgSetTimer(ctx, fei->delay);
   return ok ? 0 : 3;
 }
 
@@ -43,3 +43,26 @@ SgMain(SgCtx* ctx)
       return 2;
   }
 }
+
+uint64_t
+SgInit(SgCtx* ctx)
+{
+  FibEntryInfo* fei = SgCtx_FibScratchT(ctx, FibEntryInfo);
+  fei->delay = SgTscFromMillis(ctx, SgGetJSONScalar(ctx, "delay", 1));
+  return 0;
+}
+
+SGJSON_SCHEMA({
+  "$schema" : "http://json-schema.org/draft-07/schema#",
+  "type" : "object",
+  "properties" : {
+    "delay" : {
+      "description" : "Interest delay in milliseconds",
+      "type" : "integer",
+      "minimum" : 1,
+      "maximum" : 10000
+    }
+  },
+  "required" : ["delay"],
+  "additionalProperties" : false
+});

@@ -186,9 +186,9 @@ func init() {
 				Description: "Forwarding strategy.",
 				Type:        graphql.ID,
 			},
-			"scratch": &graphql.ArgumentConfig{
-				Description: "Initial scratch area content.",
-				Type:        gqlserver.Bytes,
+			"params": &graphql.ArgumentConfig{
+				Description: "Forwarding strategy parameters.",
+				Type:        gqlserver.JSON,
 			},
 		},
 		Type: graphql.NewNonNull(GqlEntryType),
@@ -207,18 +207,16 @@ func init() {
 				entry.Nexthops = append(entry.Nexthops, face.ID())
 			}
 
+			sc := GqlDefaultStrategy
 			if strategy, ok := p.Args["strategy"].(string); ok {
-				var sc *strategycode.Strategy
 				if e := gqlserver.RetrieveNodeOfType(strategycode.GqlStrategyNodeType, strategy, &sc); e != nil {
 					return nil, fmt.Errorf("strategy not found: %w", e)
 				}
-				entry.Strategy = sc.ID()
-			} else if GqlDefaultStrategy != nil {
-				entry.Strategy = GqlDefaultStrategy.ID()
 			}
+			entry.Strategy = sc.ID()
 
-			if scratch, ok := p.Args["scratch"].([]byte); ok {
-				entry.Scratch = scratch
+			if params, ok := p.Args["params"].(map[string]interface{}); ok {
+				entry.Params = params
 			}
 
 			if e := GqlFib.Insert(entry); e != nil {

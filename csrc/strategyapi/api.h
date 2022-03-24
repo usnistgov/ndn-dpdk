@@ -3,6 +3,7 @@
 
 /** @file */
 
+#include "../strategycode/sec.h"
 #include "fib.h"
 #include "packet.h"
 #include "pit.h"
@@ -95,9 +96,9 @@ SgRandInt(SgCtx* ctx, uint32_t max);
 /**
  * @brief Set a timer to invoke strategy after a duration.
  * @param after duration in TSC unit, cannot exceed PIT entry expiration time.
- * @pre Not available in @c SGEVT_DATA.
+ * @pre Not available in @c SGEVT_DATA .
  *
- * Strategy program will be invoked again with @c SGEVT_TIMER after @p after.
+ * Strategy program will be invoked again with @c SGEVT_TIMER after @p after .
  * However, the timer would be cancelled if strategy program is invoked for any other event,
  * a different timer is set, or the strategy choice has been changed.
  */
@@ -116,25 +117,73 @@ typedef enum SgForwardInterestResult
 
 /**
  * @brief Forward an Interest to a nexthop.
- * @pre Not available in @c SGEVT_DATA.
+ * @pre Not available in @c SGEVT_DATA .
  */
 __attribute__((nonnull)) SgForwardInterestResult
 SgForwardInterest(SgCtx* ctx, FaceID nh);
 
 /**
  * @brief Return Nacks downstream and erase PIT entry.
- * @pre Only available in @c SGEVT_INTEREST.
+ * @pre Only available in @c SGEVT_INTEREST .
  */
 __attribute__((nonnull)) void
 SgReturnNacks(SgCtx* ctx, NackReason reason);
 
 /**
  * @brief The strategy program.
- * @return status code, ignored by forwarding but appears in logs.
+ * @return status code, ignored but appears in logs.
  *
  * Every strategy must implement this function.
  */
-__attribute__((nonnull)) uint64_t
+__attribute__((section(SGSEC_MAIN), used, nonnull)) uint64_t
 SgMain(SgCtx* ctx);
+
+enum
+{
+  SGJSON_SCALAR = -1,
+  SGJSON_LEN = -2,
+};
+
+/**
+ * @brief Retrieve JSON parameter integer value.
+ * @param path JSON property path, using '.' separator for nested path.
+ *             Due to eBPF loader limitation, this string should be written as a mutable char[]
+ *             allocated on stack. A string literal may cause "resolve_xsym(.L.str) error -2".
+ * @param index index into JSON array, or @c SGJSON_SCALAR to retrieve scalar value,
+ *              or @c SGJSON_LEN to retrieve array length.
+ * @param dst destination pointer.
+ * @return whether success.
+ * @pre Only available in @c SgInit .
+ */
+__attribute__((nonnull)) bool
+SgGetJSON(SgCtx* ctx, const char* path, int index, int64_t* dst);
+
+/**
+ * @brief Retrieve JSON paramter integer scalar value.
+ * @param path JSON property path, using '.' separator for nested path.
+ * @param dflt default value.
+ * @return retrieved or default value.
+ */
+#define SgGetJSONScalar(ctx, path, dflt)                                                           \
+  __extension__({                                                                                  \
+    int64_t value = (dflt);                                                                        \
+    char pathA[] = (path);                                                                         \
+    SgGetJSON((ctx), pathA, SGJSON_SCALAR, &value);                                                \
+    value;                                                                                         \
+  })
+
+/**
+ * @brief The strategy initialization procedure.
+ * @return status code, ignored but appears in logs.
+ *
+ * This is called when a strategy is activated on a FIB entry.
+ * It should populate FIB entry scratch area according to JSON parameters.
+ */
+__attribute__((section(SGSEC_INIT), used, nonnull)) uint64_t
+SgInit(SgCtx* ctx);
+
+/** @brief Declare JSON schema. */
+#define SGJSON_SCHEMA(...)                                                                         \
+  char SgJSONSchema[] __attribute__((section(SGSEC_SCHEMA), used)) = #__VA_ARGS__;
 
 #endif // NDNDPDK_STRATEGYAPI_API_H

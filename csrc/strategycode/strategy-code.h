@@ -8,25 +8,37 @@
 
 typedef uint64_t (*StrategyCodeFunc)(void*, size_t);
 
-/** @brief BPF program of a forwarding strategy. */
+/** @brief BPF program in a forwarding strategy. */
+typedef struct StrategyCodeProg
+{
+  struct rte_bpf* bpf;  ///< BPF execution context
+  StrategyCodeFunc jit; ///< JIT-compiled function
+} StrategyCodeProg;
+
+__attribute__((nonnull)) static inline uint64_t
+StrategyCodeProg_Run(StrategyCodeProg prog, void* arg, size_t sizeofArg)
+{
+  return prog.jit(arg, sizeofArg);
+}
+
+/** @brief Forwarding strategy BPF programs. */
 typedef struct StrategyCode
 {
-  char* name;           ///< descriptive name
-  struct rte_bpf* bpf;  ///< BPF execution context
-  StrategyCodeFunc jit; ///< JIT-compiled strategy function
-  int id;               ///< identifier
-  atomic_int nRefs;     ///< how many FibEntry* reference this
+  StrategyCodeProg main; ///< dataplane BPF program
+  uintptr_t goHandle;    ///< cgo.Handle reference of Go *strategycode.Strategy
+  int id;                ///< strategy ID
+  atomic_int nRefs;      ///< how many FibEntry* reference this
 } StrategyCode;
 
 /**
- * @brief Run the strategy's BPF program.
+ * @brief Run the forwarding strategy dataplane BPF program.
  * @param arg argument to BPF program.
  * @param sizeofArg sizeof(*arg)
  */
 __attribute__((nonnull)) static inline uint64_t
 StrategyCode_Run(StrategyCode* sc, void* arg, size_t sizeofArg)
 {
-  return sc->jit(arg, sizeofArg);
+  return StrategyCodeProg_Run(sc->main, arg, sizeofArg);
 }
 
 __attribute__((nonnull)) void
@@ -35,7 +47,14 @@ StrategyCode_Ref(StrategyCode* sc);
 __attribute__((nonnull)) void
 StrategyCode_Unref(StrategyCode* sc);
 
-__attribute__((nonnull, returns_nonnull)) const struct ebpf_insn*
-StrategyCode_GetEmptyProgram_(uint32_t* nInsn);
+typedef void (*StrategyCode_FreeFunc)(uintptr_t goHandle);
+extern StrategyCode_FreeFunc StrategyCode_Free;
+
+typedef struct SgCtx SgCtx;
+typedef bool (*StrategyCode_GetJSONFunc)(SgCtx* ctx, const char* path, int index, int64_t* dst);
+extern StrategyCode_GetJSONFunc StrategyCode_GetJSON;
+
+__attribute__((nonnull, returns_nonnull)) const struct rte_bpf_xsym*
+SgInitGetXsyms(uint32_t* nXsyms);
 
 #endif // NDNDPDK_STRATEGYCODE_STRATEGY_CODE_H

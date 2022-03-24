@@ -10,9 +10,9 @@ import (
 
 // EntryBody contains logical FIB entry contents except name.
 type EntryBody struct {
-	Nexthops []iface.ID `json:"nexthops"`
-	Strategy int        `json:"strategy"`
-	Scratch  []byte     `json:"scratch"`
+	Nexthops []iface.ID             `json:"nexthops"`
+	Strategy int                    `json:"strategy"`
+	Params   map[string]interface{} `json:"params"`
 }
 
 // HasNextHop determines whether a nexthop face exists.
@@ -54,9 +54,6 @@ func (entry Entry) Validate() error {
 	}
 	if entry.Strategy == 0 {
 		return errors.New("missing strategy")
-	}
-	if len(entry.Scratch) > ScratchSize {
-		return fmt.Errorf("initial scratch area content cannot exceed %d octets", ScratchSize)
 	}
 	return nil
 }

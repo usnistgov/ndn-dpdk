@@ -1,10 +1,16 @@
 #include "strategy-code.h"
+#include "../strategyapi/api.h"
+
+StrategyCode_FreeFunc StrategyCode_Free;
+StrategyCode_GetJSONFunc StrategyCode_GetJSON;
 
 void
 StrategyCode_Ref(StrategyCode* sc)
 {
-  NDNDPDK_ASSERT(sc->bpf != NULL);
-  NDNDPDK_ASSERT(sc->jit != NULL);
+  NDNDPDK_ASSERT(sc->main.bpf != NULL);
+  NDNDPDK_ASSERT(sc->main.jit != NULL);
+  NDNDPDK_ASSERT(sc->id != 0);
+  NDNDPDK_ASSERT(sc->goHandle != 0);
   atomic_fetch_add_explicit(&sc->nRefs, 1, memory_order_acq_rel);
 }
 
@@ -17,24 +23,36 @@ StrategyCode_Unref(StrategyCode* sc)
     return;
   }
 
-  rte_bpf_destroy(sc->bpf);
-  free(sc->name);
-  rte_free(sc);
+  StrategyCode_Free(sc->goHandle);
 }
 
-const struct ebpf_insn*
-StrategyCode_GetEmptyProgram_(uint32_t* nInsn)
+bool
+SgGetJSON(SgCtx* ctx, const char* path, int index, int64_t* dst)
 {
-  static const struct ebpf_insn program[] = {
+  NDNDPDK_ASSERT(StrategyCode_GetJSON != NULL);
+  return StrategyCode_GetJSON(ctx, path, index, dst);
+}
+
+const struct rte_bpf_xsym*
+SgInitGetXsyms(uint32_t* nXsyms)
+{
+  static const struct rte_bpf_xsym xsyms[] = {
     {
-      .code = BPF_ALU | EBPF_MOV | BPF_K,
-      .dst_reg = EBPF_REG_0,
-      .imm = 0,
-    },
-    {
-      .code = BPF_JMP | EBPF_EXIT,
+      .name = "SgGetJSON",
+      .type = RTE_BPF_XTYPE_FUNC,
+      .func = {
+        .val = (void*)SgGetJSON,
+        .nb_args = 4,
+        .args = {
+          { .type = RTE_BPF_ARG_PTR, .size = sizeof(SgCtx) },
+          { .type = RTE_BPF_ARG_RAW },
+          { .type = RTE_BPF_ARG_RAW },
+          { .type = RTE_BPF_ARG_PTR, .size = sizeof(int64_t) },
+        },
+        .ret = { .type = RTE_BPF_ARG_RAW },
+      },
     },
   };
-  *nInsn = RTE_DIM(program);
-  return program;
+  *nXsyms = RTE_DIM(xsyms);
+  return xsyms;
 }

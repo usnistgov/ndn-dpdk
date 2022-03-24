@@ -102,6 +102,11 @@ func (fwd *Fwd) NumaSocket() eal.NumaSocket {
 	return fwd.LCore().NumaSocket()
 }
 
+// GetFibSgGlobal implements fib.LookupThread interface.
+func (fwd *Fwd) GetFibSgGlobal() unsafe.Pointer {
+	return unsafe.Pointer(&fwd.c.sgGlobal)
+}
+
 // GetFib implements fib.LookupThread interface.
 func (fwd *Fwd) GetFib() (replica unsafe.Pointer, dynIndex int) {
 	return unsafe.Pointer(fwd.c.fib), int(fwd.c.fibDynIndex)
@@ -169,7 +174,7 @@ type FwdCounters struct {
 }
 
 func init() {
-	var nXsyms C.int
-	strategycode.Xsyms = unsafe.Pointer(C.SgGetXsyms(&nXsyms))
-	strategycode.NXsyms = int(nXsyms)
+	var nXsyms C.uint32_t
+	xsyms := C.SgGetXsyms(&nXsyms)
+	strategycode.XsymsMain.Assign(unsafe.Pointer(xsyms), int(nXsyms))
 }

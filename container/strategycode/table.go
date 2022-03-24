@@ -2,9 +2,13 @@
 package strategycode
 
 import (
-	"fmt"
 	"sync"
+
+	"github.com/usnistgov/ndn-dpdk/core/logging"
+	"go.uber.org/zap"
 )
+
+var logger = logging.New("strategycode")
 
 // Table of Strategy instances.
 var (
@@ -17,12 +21,7 @@ var (
 func Get(id int) *Strategy {
 	tableLock.Lock()
 	defer tableLock.Unlock()
-	if sc := table[id]; sc != nil {
-		// Directly 'return table[id]' would return interface with nil underlying
-		// value. This conditional prevents that.
-		return sc
-	}
-	return nil
+	return table[id]
 }
 
 // Find retrieves strategy by name.
@@ -30,7 +29,7 @@ func Find(name string) *Strategy {
 	tableLock.Lock()
 	defer tableLock.Unlock()
 	for _, sc := range table {
-		if sc.Name() == name {
+		if sc.name == name {
 			return sc
 		}
 	}
@@ -53,7 +52,10 @@ func List() []*Strategy {
 func DestroyAll() {
 	for _, sc := range List() {
 		if nRefs := sc.CountRefs(); nRefs > 1 {
-			panic(fmt.Errorf("%s has %d refs", sc, nRefs))
+			logger.Panic("DestroyAll strategy has non-zero refs",
+				zap.Int("id", sc.ID()),
+				zap.Int("refs", nRefs),
+			)
 		}
 		sc.Unref()
 	}

@@ -1,6 +1,5 @@
-#include "../core/common.h"
 #include "../core/logger.h"
-#include <rte_bpf.h>
+#include "strategy-code.h"
 #include <ubpf.h>
 
 N_LOG_INIT(StrategyCodeLoad);
@@ -13,7 +12,7 @@ struct rte_bpf
   uint32_t stack_sz;
 };
 
-static int
+__attribute__((nonnull)) static int
 StrategyCode_LoadUbpf(struct rte_bpf* bpf, const struct rte_bpf_prm* prm, struct ubpf_vm* vm)
 {
   for (uint32_t i = 0; i < prm->nb_xsym; ++i) {
@@ -34,7 +33,7 @@ StrategyCode_LoadUbpf(struct rte_bpf* bpf, const struct rte_bpf_prm* prm, struct
   char* err = NULL;
   int res = ubpf_load(vm, prm->ins, prm->nb_ins * sizeof(prm->ins[0]), &err);
   if (res != 0) {
-    N_LOGE("ubpf_load" N_LOG_ERROR_STR, err);
+    N_LOGE("ubpf_load error" N_LOG_ERROR_STR, err);
     return EINVAL;
   }
 
@@ -51,7 +50,7 @@ StrategyCode_LoadUbpf(struct rte_bpf* bpf, const struct rte_bpf_prm* prm, struct
 struct rte_bpf*
 rte_bpf_load(const struct rte_bpf_prm* prm)
 {
-  struct rte_bpf* bpf = (struct rte_bpf*)rte_zmalloc("rte_bpf", sizeof(struct rte_bpf), 0);
+  struct rte_bpf* bpf = rte_zmalloc("rte_bpf", sizeof(struct rte_bpf), 0);
   if (bpf == NULL) {
     rte_errno = ENOMEM;
     goto FAIL;
@@ -64,7 +63,7 @@ rte_bpf_load(const struct rte_bpf_prm* prm)
     goto FAIL_ALLOC;
   }
 
-  N_LOGD("rte_bpf_load-monkeypatch prm=%p bpf=%p vm=%p", prm, bpf, vm);
+  N_LOGD("rte_bpf_load monkeypatch prm=%p bpf=%p vm=%p", prm, bpf, vm);
 
   rte_errno = StrategyCode_LoadUbpf(bpf, prm, vm);
   if (rte_errno != 0) {
@@ -86,8 +85,8 @@ FAIL:
 void
 rte_bpf_destroy(struct rte_bpf* bpf)
 {
-  struct ubpf_vm* vm = (struct ubpf_vm*)(bpf->prm.xsym);
-  N_LOGD("rte_bpf_destroy-monkeypatch bpf=%p vm=%p", bpf, vm);
+  struct ubpf_vm* vm = (void*)bpf->prm.xsym;
+  N_LOGD("rte_bpf_destroy monkeypatch bpf=%p vm=%p", bpf, vm);
 
   ubpf_destroy(vm);
   rte_free(bpf);

@@ -2,6 +2,7 @@ package fibreplica_test
 
 import (
 	"testing"
+	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/container/fib/fibdef"
 	"github.com/usnistgov/ndn-dpdk/container/fib/fibreplica"
@@ -16,7 +17,7 @@ func TestInsertErase(testingT *testing.T) {
 	t, e := fibreplica.New(fibdef.Config{
 		Capacity:   1023,
 		StartDepth: 2,
-	}, 1, eal.NumaSocket{})
+	}, []unsafe.Pointer{nil}, eal.NumaSocket{})
 	require.NoError(e)
 	defer t.Close()
 

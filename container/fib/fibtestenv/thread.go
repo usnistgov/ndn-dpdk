@@ -18,6 +18,12 @@ func (th *LookupThread) NumaSocket() eal.NumaSocket {
 	return th.Socket
 }
 
+// GetFibSgGlobal returns nil.
+// This may not work with strategy with SgInit function.
+func (th *LookupThread) GetFibSgGlobal() unsafe.Pointer {
+	return nil
+}
+
 // GetFib returns saved arguments.
 func (th *LookupThread) GetFib() (replica unsafe.Pointer, dynIndex int) {
 	return th.Replica, th.DynIndex

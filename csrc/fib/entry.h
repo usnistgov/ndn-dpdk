@@ -89,4 +89,17 @@ FibEntry_PtrDyn(FibEntry* entry, int index)
   return &entry->dyn[index];
 }
 
+typedef struct SgGlobal SgGlobal;
+
+typedef struct FibSgInitCtx
+{
+  SgGlobal* global;
+  TscTime now;
+  uint8_t a_[16];
+  FibEntry* entry;
+  FibEntryDyn* dyn;
+  uint8_t b_[8];
+  uintptr_t goHandle;
+} FibSgInitCtx;
+
 #endif // NDNDPDK_FIB_ENTRY_H
