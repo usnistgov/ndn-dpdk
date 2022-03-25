@@ -23,10 +23,11 @@ import (
 // Table represents a FIB replica.
 type Table struct {
 	mp        *mempool.Mempool
+	mpC       *C.struct_rte_mempool
 	c         *C.Fib
 	nDyns     int
 	sgGlobals []unsafe.Pointer
-	free      chan []unsafe.Pointer
+	free      chan []*Entry
 	wg        sync.WaitGroup
 }
 
@@ -61,8 +62,7 @@ func (t *Table) allocBulk(entries []*Entry) error {
 	if len(entries) == 0 {
 		return nil
 	}
-	ok := C.Fib_AllocBulk(t.c, (**C.FibEntry)(unsafe.Pointer(&entries[0])), C.uint(len(entries)))
-	if !bool(ok) {
+	if !C.Fib_AllocBulk(t.mpC, (**C.FibEntry)(unsafe.Pointer(&entries[0])), C.uint(len(entries))) {
 		return errors.New("allocation failure")
 	}
 	return nil
@@ -77,28 +77,29 @@ func (t *Table) erase(entry *Entry) {
 }
 
 func (t *Table) deferredFree(entries ...*Entry) {
-	objs := []unsafe.Pointer{}
-	for _, entry := range entries {
-		if entry != nil {
-			objs = append(objs, entry.Ptr())
-		}
-	}
-	if len(objs) == 0 {
-		return
-	}
-
-	t.free <- objs
+	t.free <- entries
 }
 
 func (t *Table) freeLoop() {
 	var wg sync.WaitGroup
-	for objs := range t.free {
+	for entries := range t.free {
 		wg.Add(1)
-		go func(objs []unsafe.Pointer) {
+		go func(entries []*Entry) {
+			defer wg.Done()
 			urcu.Synchronize()
-			t.mp.Free(objs)
-			wg.Done()
-		}(objs)
+			objs := []unsafe.Pointer{}
+			for _, entry := range entries {
+				if entry != nil {
+					if !entry.IsVirt() {
+						C.StrategyCode_Unref(*entry.ptrStrategy())
+					}
+					objs = append(objs, entry.Ptr())
+				}
+			}
+			if len(objs) > 0 {
+				t.mp.Free(objs)
+			}
+		}(entries)
 	}
 	wg.Wait()
 
@@ -125,15 +126,14 @@ func New(cfg fibdef.Config, sgGlobals []unsafe.Pointer, socket eal.NumaSocket) (
 	}
 	t := &Table{
 		mp:        mp,
+		mpC:       (*C.struct_rte_mempool)(mp.Ptr()),
 		nDyns:     nDyns,
 		sgGlobals: sgGlobals,
-		free:      make(chan []unsafe.Pointer),
+		free:      make(chan []*Entry),
 	}
 
-	mpC := (*C.struct_rte_mempool)(t.mp.Ptr())
-	t.c = (*C.Fib)(C.rte_mempool_get_priv(mpC))
+	t.c = (*C.Fib)(C.rte_mempool_get_priv(t.mpC))
 	*t.c = C.Fib{
-		mp:           mpC,
 		startDepth:   C.int(cfg.StartDepth),
 		insertSeqNum: C.uint32_t(rand.Uint32()),
 	}

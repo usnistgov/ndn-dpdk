@@ -153,7 +153,7 @@ func (pkt *Packet) Append(input []byte) error {
 // tail will be freed when pkt is freed.
 func (pkt *Packet) Chain(tail *Packet) error {
 	pktC := pkt.ptr()
-	if ok := C.Mbuf_Chain(pktC, C.rte_pktmbuf_lastseg(pktC), tail.ptr()); !bool(ok) {
+	if !C.Mbuf_Chain(pktC, C.rte_pktmbuf_lastseg(pktC), tail.ptr()) {
 		return errors.New("too many segments")
 	}
 	return nil

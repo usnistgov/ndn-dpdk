@@ -15,6 +15,11 @@ typedef struct StrategyCodeProg
   StrategyCodeFunc jit; ///< JIT-compiled function
 } StrategyCodeProg;
 
+/**
+ * @brief Run BPF program.
+ * @param arg argument to BPF program.
+ * @param sizeofArg sizeof(*arg)
+ */
 __attribute__((nonnull)) static inline uint64_t
 StrategyCodeProg_Run(StrategyCodeProg prog, void* arg, size_t sizeofArg)
 {
@@ -29,17 +34,6 @@ typedef struct StrategyCode
   int id;                ///< strategy ID
   atomic_int nRefs;      ///< how many FibEntry* reference this
 } StrategyCode;
-
-/**
- * @brief Run the forwarding strategy dataplane BPF program.
- * @param arg argument to BPF program.
- * @param sizeofArg sizeof(*arg)
- */
-__attribute__((nonnull)) static inline uint64_t
-StrategyCode_Run(StrategyCode* sc, void* arg, size_t sizeofArg)
-{
-  return StrategyCodeProg_Run(sc->main, arg, sizeofArg);
-}
 
 __attribute__((nonnull)) void
 StrategyCode_Ref(StrategyCode* sc);

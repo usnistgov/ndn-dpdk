@@ -41,4 +41,12 @@ func TestSgTimer(t *testing.T) {
 	}))
 	time.Sleep(150 * time.Millisecond)
 	assert.Equal(1, collect2.Count())
+
+	// Changing delay to 500ms.
+	fixture.SetFibEntryParams("/A", "delay", map[string]interface{}{"delay": 500}, face2.ID)
+	face1.A.Tx() <- ndn.MakeInterest("/A/2", 1000*time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
+	assert.Equal(1, collect2.Count())
+	time.Sleep(400 * time.Millisecond)
+	assert.Equal(2, collect2.Count())
 }

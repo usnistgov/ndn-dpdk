@@ -8,9 +8,8 @@
 /** @brief A replica of the Forwarding Information Base (FIB). */
 typedef struct Fib
 {
-  struct rte_mempool* mp; ///< entry mempool
-  struct cds_lfht* lfht;  ///< URCU hashtable
-  int startDepth;         ///< starting depth ('M' of 2-stage LPM algorithm)
+  struct cds_lfht* lfht; ///< URCU hashtable
+  int startDepth;        ///< starting depth ('M' of 2-stage LPM algorithm)
   uint32_t insertSeqNum;
 } Fib;
 
@@ -23,7 +22,7 @@ Fib_Clear(Fib* fib);
 
 /** @brief Allocate and zero entries. */
 __attribute__((nonnull)) bool
-Fib_AllocBulk(Fib* fib, FibEntry* entries[], unsigned count);
+Fib_AllocBulk(struct rte_mempool* fibMp, FibEntry* entries[], unsigned count);
 
 /**
  * @brief Insert or replace a FIB entry.

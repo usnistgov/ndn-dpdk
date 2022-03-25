@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/suzuki-shunsuke/go-dataeq/dataeq"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 )
@@ -34,6 +35,9 @@ func EntryBodyEquals(lhs, rhs EntryBody) bool {
 		if n != rhs.Nexthops[i] {
 			return false
 		}
+	}
+	if eq, e := dataeq.JSON.Equal(lhs.Params, rhs.Params); e != nil || !eq {
+		return false
 	}
 	return true
 }

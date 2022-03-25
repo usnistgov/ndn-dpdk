@@ -26,16 +26,16 @@ Fib_Clear(Fib* fib)
 }
 
 bool
-Fib_AllocBulk(Fib* fib, FibEntry* entries[], unsigned count)
+Fib_AllocBulk(struct rte_mempool* fibMp, FibEntry* entries[], unsigned count)
 {
-  int res = rte_mempool_get_bulk(fib->mp, (void**)entries, count);
+  int res = rte_mempool_get_bulk(fibMp, (void**)entries, count);
   if (unlikely(res != 0)) {
     return false;
   }
 
   for (unsigned i = 0; i < count; ++i) {
     FibEntry* entry = entries[i];
-    memset(entry, 0, fib->mp->elt_size);
+    memset(entry, 0, fibMp->elt_size);
     cds_lfht_node_init(&entry->lfhtnode);
   }
   return true;

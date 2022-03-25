@@ -40,8 +40,7 @@ func MakePacket(input interface{}, modifiers ...PacketModifier) *ndni.Packet {
 	m.SetTimestamp(eal.TscNow())
 
 	pkt := ndni.PacketFromPtr(m.Ptr())
-	ok := C.Packet_Parse((*C.Packet)(pkt.Ptr()))
-	if !bool(ok) {
+	if !C.Packet_Parse((*C.Packet)(pkt.Ptr())) {
 		panic("C.Packet_Parse error")
 	}
 
@@ -125,7 +124,7 @@ type modifyActiveFwHint int
 func (m modifyActiveFwHint) modify(pkt *ndni.Packet) {
 	pinterest := C.Packet_GetInterestHdr((*C.Packet)(pkt.Ptr()))
 	ok := C.PInterest_SelectFwHint(pinterest, C.int(m))
-	if !bool(ok) {
+	if !ok {
 		panic("C.PInterest_SelectFwHint error")
 	}
 }

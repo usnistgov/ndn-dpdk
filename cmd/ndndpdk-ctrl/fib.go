@@ -1,6 +1,9 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
+
 	"github.com/urfave/cli/v2"
 )
 
@@ -29,9 +32,8 @@ func init() {
 }
 
 func init() {
-	var name string
+	var name, strategy, params string
 	var nexthops cli.StringSlice
-	var strategy string
 
 	defineCommand(&cli.Command{
 		Category: "fib",
@@ -56,6 +58,11 @@ func init() {
 				Usage:       "forwarding strategy `ID`",
 				Destination: &strategy,
 			},
+			&cli.StringFlag{
+				Name:        "params",
+				Usage:       "forwarding strategy parameters `JSON`",
+				Destination: &params,
+			},
 		},
 		Action: func(c *cli.Context) error {
 			vars := map[string]interface{}{
@@ -65,10 +72,17 @@ func init() {
 			if strategy != "" {
 				vars["strategy"] = strategy
 			}
+			if params != "" {
+				var paramsJ map[string]interface{}
+				if e := json.Unmarshal([]byte(params), &paramsJ); e != nil {
+					return fmt.Errorf("params: %w", e)
+				}
+				vars["params"] = paramsJ
+			}
 
 			return clientDoPrint(c.Context, `
-				mutation insertFibEntry($name: Name!, $nexthops: [ID!]!, $strategy: ID) {
-					insertFibEntry(name: $name, nexthops: $nexthops, strategy: $strategy) {
+				mutation insertFibEntry($name: Name!, $nexthops: [ID!]!, $strategy: ID, $params: JSON) {
+					insertFibEntry(name: $name, nexthops: $nexthops, strategy: $strategy, params: $params) {
 						id
 					}
 				}
