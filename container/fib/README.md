@@ -28,7 +28,7 @@ Update commands are carried out, sequentially, in these steps:
 4. Allocate new entries in each replica.
    If allocation fails, revert the update in the tree.
 5. Insert or replace new entries in each replica.
-6. Release the memory of old entries via RCU.
+6. Release the memory of old entries after an RCU grace period.
 
 The FIB uses the [fibreplica](./fibreplica) package to access replicas that are implemented in C.
 

@@ -78,6 +78,11 @@ func (rtte RttEstimator) SRTT() time.Duration {
 	return time.Duration(rtte.sRtt * float64(time.Second))
 }
 
+// RTTVAR returns round-trip time variance.
+func (rtte RttEstimator) RTTVAR() time.Duration {
+	return time.Duration(rtte.rttVar * float64(time.Second))
+}
+
 // RTO returns retransmission timer.
 func (rtte RttEstimator) RTO() time.Duration {
 	return time.Duration(rtte.rto * float64(time.Second))

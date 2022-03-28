@@ -9,11 +9,14 @@ import (
 	"github.com/graphql-go/graphql"
 	"github.com/usnistgov/ndn-dpdk/container/cs"
 	"github.com/usnistgov/ndn-dpdk/container/disk"
+	"github.com/usnistgov/ndn-dpdk/container/fib"
 	"github.com/usnistgov/ndn-dpdk/container/pit"
 	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
+	"github.com/usnistgov/ndn-dpdk/core/rttest"
 	"github.com/usnistgov/ndn-dpdk/core/runningstat"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
+	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
@@ -24,14 +27,21 @@ var (
 	errNoGqlDataPlane = errors.New("DataPlane unavailable")
 )
 
+type gqlFibNexthopRttRecord struct {
+	*rttest.RttEstimator
+	Face iface.Face `json:"face"`
+	Fwd  *Fwd       `json:"fwd"`
+}
+
 // GraphQL types.
 var (
-	GqlInputNodeType   *gqlserver.NodeType
-	GqlInputType       *graphql.Object
-	GqlFwdNodeType     *gqlserver.NodeType
-	GqlFwdType         *graphql.Object
-	GqlDataPlaneType   *graphql.Object
-	GqlFwdCountersType *graphql.Object
+	GqlInputNodeType     *gqlserver.NodeType
+	GqlInputType         *graphql.Object
+	GqlFwdNodeType       *gqlserver.NodeType
+	GqlFwdType           *graphql.Object
+	GqlDataPlaneType     *graphql.Object
+	GqlFwdCountersType   *graphql.Object
+	GqlFibNexthopRttType *graphql.Object
 )
 
 func init() {
@@ -228,6 +238,69 @@ func init() {
 		Read: func(p graphql.ResolveParams) (interface{}, error) {
 			fwd := p.Source.(*Fwd)
 			return fwd.Cs().Counters(), nil
+		},
+	})
+
+	GqlFibNexthopRttType = graphql.NewObject(graphql.ObjectConfig{
+		Name:        "FibNexthopRtt",
+		Description: "FIB nexthop and RTT measurements in a forwarding thread.",
+		Fields: graphql.Fields{
+			"face": &graphql.Field{Type: iface.GqlFaceType},
+			"fwd":  &graphql.Field{Type: graphql.NewNonNull(GqlFwdType)},
+			"srtt": &graphql.Field{
+				Type: graphql.NewNonNull(graphql.Float),
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					return p.Source.(gqlFibNexthopRttRecord).SRTT().Seconds(), nil
+				},
+			},
+			"rttvar": &graphql.Field{
+				Type: graphql.NewNonNull(graphql.Float),
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					return p.Source.(gqlFibNexthopRttRecord).RTTVAR().Seconds(), nil
+				},
+			},
+			"rto": &graphql.Field{
+				Type: graphql.NewNonNull(graphql.Float),
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					return p.Source.(gqlFibNexthopRttRecord).RTO().Seconds(), nil
+				},
+			},
+		},
+	})
+	fib.GqlEntryType.AddFieldConfig("nexthopRtts", &graphql.Field{
+		Description: "FIB nexthops and their RTT measurements in a forwarding thread.",
+		Type:        gqlserver.NewNonNullList(GqlFibNexthopRttType),
+		Args: graphql.FieldConfigArgument{
+			"fwd": &graphql.ArgumentConfig{
+				Description: "Forwarding thread ID. Default is the result of NDT lookup with FIB entry name.",
+				Type:        graphql.ID,
+			},
+		},
+		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+			entry := p.Source.(fib.Entry)
+			var fwd *Fwd
+			if fwdID := p.Args["fwd"]; fwdID != nil {
+				if e := gqlserver.RetrieveNodeOfType(GqlFwdNodeType, fwdID, &fwd); e != nil {
+					return nil, e
+				}
+			} else if GqlDataPlane == nil {
+				return nil, errNoGqlDataPlane
+			} else if _, fwdIndex := GqlDataPlane.ndt.Lookup(entry.Name); int(fwdIndex) >= len(GqlDataPlane.fwds) {
+				return nil, errors.New("cannot determine forwarding thread from NDT")
+			} else {
+				fwd = GqlDataPlane.fwds[fwdIndex]
+			}
+
+			rtts := entry.NexthopRtts(fwd)
+			var list []gqlFibNexthopRttRecord
+			for _, nh := range entry.Nexthops {
+				list = append(list, gqlFibNexthopRttRecord{
+					RttEstimator: rtts[nh],
+					Face:         iface.Get(nh),
+					Fwd:          fwd,
+				})
+			}
+			return list, nil
 		},
 	})
 

@@ -52,7 +52,7 @@ SgInit(SgCtx* ctx)
   return 0;
 }
 
-SGJSON_SCHEMA({
+SGINIT_SCHEMA({
   "$schema" : "http://json-schema.org/draft-07/schema#",
   "type" : "object",
   "properties" : {

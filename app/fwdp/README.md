@@ -24,6 +24,7 @@ Then it reads packets from the input queues and handles each packet separately:
 ### Data Structure Usage
 
 All FwFwd threads have read-only access to a shared [FIB](../../container/fib) replica on the same NUMA socket.
+Each FwFwd thread has read-write access to a `FibEntryDyn` struct associated with each FIB entry.
 
 Each FwFwd has a private partition of [PIT and CS](../../container/pcct).
 An outgoing Interest from a FwFwd must carry the identifier of this FwFwd as the first 8 bits of its PIT token, so that returning Data or Nack can be dispatched to the same FwFwd and thus use the same PIT-CS partition.
@@ -81,4 +82,5 @@ In this case, the forwarder does not support implicit digest computation, and in
 FwDisk enables on-disk caching in the Content Store.
 See [package disk](../../container/disk) for general concepts.
 
-This implementation is work in progress and can only be used in unit testing.
+This implementation is work in progress.
+Currently, it can only use emulated block device with Malloc or file backend, but not a hardware NVMe device.

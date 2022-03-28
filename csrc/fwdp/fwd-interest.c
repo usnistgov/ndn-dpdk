@@ -185,6 +185,7 @@ FwFwd_RxInterest(FwFwd* fwd, FwFwdCtx* ctx)
   }
 
   NULLize(ctx->fibEntry); // fibEntry is inaccessible upon RCU unlock
+  NULLize(ctx->fibEntryDyn);
   rcu_read_unlock();
 }
 

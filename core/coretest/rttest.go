@@ -12,6 +12,7 @@ type RttEstimator interface {
 	Push(now time.Time, rtt time.Duration, withinRTT bool)
 	Backoff()
 	SRTT() time.Duration
+	RTTVAR() time.Duration
 	RTO() time.Duration
 }
 
@@ -26,6 +27,7 @@ func RunRttEstimatorTest(t testing.TB, rtte RttEstimator) {
 	rtte.Push(now, 500*time.Millisecond, false)
 	// sRtt=500ms, rttVar=250ms
 	assert.InDelta(500*time.Millisecond, rtte.SRTT(), durationDelta)
+	assert.InDelta(250*time.Millisecond, rtte.RTTVAR(), durationDelta)
 	assert.InDelta(1500*time.Millisecond, rtte.RTO(), durationDelta)
 
 	now = now.Add(300 * time.Millisecond)
@@ -37,6 +39,7 @@ func RunRttEstimatorTest(t testing.TB, rtte RttEstimator) {
 	rtte.Push(now, 800*time.Millisecond, false)
 	// sRtt=537.5ms, rttVar=262.5ms
 	assert.InDelta(537*time.Millisecond, rtte.SRTT(), durationDelta)
+	assert.InDelta(262*time.Millisecond, rtte.RTTVAR(), durationDelta)
 	assert.InDelta(1587*time.Millisecond, rtte.RTO(), durationDelta)
 
 	rtte.Backoff()
@@ -47,16 +50,19 @@ func RunRttEstimatorTest(t testing.TB, rtte RttEstimator) {
 	rtte.Push(now, 100*time.Millisecond, false)
 	// sRtt=482.8175ms, rttVar=306.25ms
 	assert.InDelta(482*time.Millisecond, rtte.SRTT(), durationDelta)
+	assert.InDelta(306*time.Millisecond, rtte.RTTVAR(), durationDelta)
 	assert.InDelta(1707*time.Millisecond, rtte.RTO(), durationDelta)
 
 	rtte.Backoff()
 	assert.InDelta(482*time.Millisecond, rtte.SRTT(), durationDelta)
+	assert.InDelta(306*time.Millisecond, rtte.RTTVAR(), durationDelta)
 	assert.InDelta(3415*time.Millisecond, rtte.RTO(), durationDelta)
 
 	for i := 0; i < 20; i++ {
 		rtte.Backoff()
 	}
 	assert.InDelta(482*time.Millisecond, rtte.SRTT(), durationDelta)
+	assert.InDelta(306*time.Millisecond, rtte.RTTVAR(), durationDelta)
 	assert.InDelta(60*time.Second, rtte.RTO(), durationDelta)
 
 	for i := 0; i < 80; i++ {

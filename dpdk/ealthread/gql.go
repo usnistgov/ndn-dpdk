@@ -68,12 +68,12 @@ func init() {
 		Type:        gqlserver.NewNonNullList(GqlWorkerType),
 		Args: graphql.FieldConfigArgument{
 			"role": &graphql.ArgumentConfig{
-				Type:        graphql.String,
 				Description: "Filter by assigned role. Empty string matches unassigned LCores.",
+				Type:        graphql.String,
 			},
 			"numaSocket": &graphql.ArgumentConfig{
-				Type:        graphql.Int,
 				Description: "Filter by NUMA socket.",
+				Type:        graphql.Int,
 			},
 		},
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {

@@ -183,7 +183,7 @@ __attribute__((section(SGSEC_INIT), used, nonnull)) uint64_t
 SgInit(SgCtx* ctx);
 
 /** @brief Declare JSON schema. */
-#define SGJSON_SCHEMA(...)                                                                         \
+#define SGINIT_SCHEMA(...)                                                                         \
   char SgJSONSchema[] __attribute__((section(SGSEC_SCHEMA), used)) = #__VA_ARGS__;
 
 #endif // NDNDPDK_STRATEGYAPI_API_H

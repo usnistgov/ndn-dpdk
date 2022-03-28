@@ -25,6 +25,10 @@ func (rtte *cRttEst) SRTT() time.Duration {
 	return eal.FromTscDuration(int64(rtte.rttv.sRtt))
 }
 
+func (rtte *cRttEst) RTTVAR() time.Duration {
+	return eal.FromTscDuration(int64(rtte.rttv.rttVar))
+}
+
 func (rtte *cRttEst) RTO() time.Duration {
 	return eal.FromTscDuration(int64(rtte.rto))
 }

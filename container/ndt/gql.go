@@ -54,8 +54,8 @@ func init() {
 		Type:        gqlserver.NewNonNullList(GqlEntryType),
 		Args: graphql.FieldConfigArgument{
 			"name": &graphql.ArgumentConfig{
-				Type:        ndni.GqlNameType,
 				Description: "Filter by name.",
+				Type:        ndni.GqlNameType,
 			},
 		},
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
