@@ -3,12 +3,15 @@ package fwdptest
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/app/fwdp"
 	"github.com/usnistgov/ndn-dpdk/container/cs"
+	"github.com/usnistgov/ndn-dpdk/core/pciaddr"
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
+	"github.com/usnistgov/ndn-dpdk/dpdk/bdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface/intface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
@@ -322,7 +325,7 @@ func TestCsHitMemory(t *testing.T) {
 	assert.Equal(uint64(2), fibCnt.NTxInterests)
 }
 
-func testCsHitDisk(t testing.TB, filename string) {
+func testCsHitDisk(t testing.TB, loc bdev.Locator) {
 	assert, require := makeAR(t)
 	fixture := NewFixture(t,
 		func(cfg *fwdp.Config) {
@@ -330,10 +333,7 @@ func testCsHitDisk(t testing.TB, filename string) {
 			require.Len(lcFwd.LCores, 2)
 			cfg.LCoreAlloc[fwdp.RoleDisk] = ealthread.RoleConfig{LCores: lcFwd.LCores[1:]}
 			cfg.LCoreAlloc[fwdp.RoleFwd] = ealthread.RoleConfig{LCores: lcFwd.LCores[:1]} // only 1 Fwd
-
-			if filename != "" {
-				cfg.Disk.Filename = filename
-			}
+			cfg.Disk.Locator = loc
 		},
 		func(cfg *fwdp.Config) {
 			cfg.Pcct.CsMemoryCapacity = 200
@@ -384,12 +384,29 @@ func testCsHitDisk(t testing.TB, filename string) {
 }
 
 func TestCsHitDiskMalloc(t *testing.T) {
-	testCsHitDisk(t, "")
+	testCsHitDisk(t, bdev.Locator{
+		Malloc: true,
+	})
 }
 
 func TestCsHitDiskFile(t *testing.T) {
-	filename := testenv.TempName(t)
-	testCsHitDisk(t, filename)
+	testCsHitDisk(t, bdev.Locator{
+		File: testenv.TempName(t),
+	})
+}
+
+func TestCsHitDiskNvme(t *testing.T) {
+	_, require := makeAR(t)
+	envPCI, ok := os.LookupEnv("FWDPTEST_NVME")
+	if !ok {
+		t.Skip("NVMe test disabled; rerun test suite and specify device PCI address in FWDPTEST_NVME=00:00.0 environ (will destroy data).")
+	}
+	pciAddr, e := pciaddr.Parse(envPCI)
+	require.NoError(e)
+
+	testCsHitDisk(t, bdev.Locator{
+		PCIAddr: &pciAddr,
+	})
 }
 
 func TestFwHint(t *testing.T) {

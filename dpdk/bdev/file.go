@@ -2,6 +2,7 @@ package bdev
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/spdkenv"
@@ -73,4 +74,17 @@ func NewFile(filename string, blockSize int) (*File, error) {
 		return device, nil
 	}
 	return nil, multierr.Append(e0, e1)
+}
+
+// TruncateFile creates and truncates a file.
+func TruncateFile(filename string, size int64) error {
+	file, e := os.Create(filename)
+	if e != nil {
+		return fmt.Errorf("os.Create(%s) error: %w", filename, e)
+	}
+	if e := file.Truncate(size); e != nil {
+		return fmt.Errorf("file.Truncate(%d) error: %w", size, e)
+	}
+	file.Chmod(0o600)
+	return file.Close()
 }

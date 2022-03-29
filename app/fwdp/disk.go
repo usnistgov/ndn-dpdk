@@ -5,11 +5,9 @@ package fwdp
 */
 import "C"
 import (
-	"errors"
 	"fmt"
+	"io"
 	"math"
-	"os"
-	"path"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/container/disk"
@@ -22,18 +20,10 @@ import (
 	"go.uber.org/multierr"
 )
 
-// DiskMalloc in DiskConfig.Filename specifies a memory-backed bdev.
-const DiskMalloc = "Malloc"
-
 // DiskConfig contains disk helper thread configuration.
 type DiskConfig struct {
-	// Filename is the file used as disk caching block device.
-	//
-	// The file is truncated to the appropriate size required for disk caching.
-	// If the file does not exist, it is created automatically.
-	//
-	// If this is set to DiskMalloc, the disk helper creates a memory-backed bdev as a simulated disk.
-	Filename string `json:"filename"`
+	// Locator describes where to create or attach a block device.
+	bdev.Locator
 
 	// Overprovision is the ratio of block device size divided by CS disk capacity.
 	// Setting this above 1.00 can reduce disk full errors due to some slots still occupied by async I/O.
@@ -41,15 +31,18 @@ type DiskConfig struct {
 	Overprovision float64 `json:"overprovision"`
 
 	// Bdev specifies the block device.
-	// If set, Filename are ignored.
+	// If set, Locator and Overprovision are ignored.
 	Bdev bdev.Device `json:"-"`
+
+	// BdevCloser allows closing the block device.
+	BdevCloser io.Closer `json:"-"`
 
 	csDiskCapacity int
 }
 
-func (cfg *DiskConfig) createDevice(nBlocks int64) (bdev.Device, error) {
+func (cfg *DiskConfig) createDevice(nBlocks int64) (bdev.Device, io.Closer, error) {
 	if cfg.Bdev != nil {
-		return cfg.Bdev, nil
+		return cfg.Bdev, cfg.BdevCloser, nil
 	}
 
 	if !(cfg.Overprovision >= 1.0) {
@@ -57,26 +50,7 @@ func (cfg *DiskConfig) createDevice(nBlocks int64) (bdev.Device, error) {
 	}
 	nBlocks = int64(math.Ceil(float64(nBlocks) * cfg.Overprovision))
 
-	if cfg.Filename == "" {
-		return nil, errors.New("filename is missing")
-	}
-	if cfg.Filename == DiskMalloc {
-		return bdev.NewMalloc(disk.BlockSize, nBlocks)
-	}
-
-	cfg.Filename = path.Clean(cfg.Filename)
-	file, e := os.Create(cfg.Filename)
-	if e != nil {
-		return nil, fmt.Errorf("os.Create(%s) error: %w", cfg.Filename, e)
-	}
-	size := disk.BlockSize * int64(nBlocks)
-	if e := file.Truncate(size); e != nil {
-		return nil, fmt.Errorf("file.Truncate(%d) error: %w", size, e)
-	}
-	file.Chmod(0o600)
-	file.Close()
-
-	return bdev.NewFile(cfg.Filename, disk.BlockSize)
+	return cfg.Locator.Create(disk.BlockSize, nBlocks)
 }
 
 // Disk represents a disk helper thread.
@@ -85,9 +59,10 @@ type Disk struct {
 	id int
 	c  *C.FwDisk
 
-	bdev   bdev.Device
-	store  *disk.Store
-	allocs map[int]*disk.Alloc
+	bdev       bdev.Device
+	bdevCloser io.Closer
+	store      *disk.Store
+	allocs     map[int]*disk.Alloc
 }
 
 var (
@@ -112,7 +87,7 @@ func (fwdisk *Disk) Init(lc eal.LCore, demuxPrep *demuxPreparer, cfg DiskConfig)
 		NPackets:   cfg.csDiskCapacity,
 		PacketSize: ndni.PacketMempool.Config().Dataroom,
 	}
-	if fwdisk.bdev, e = cfg.createDevice(calc.MinBlocks()); e != nil {
+	if fwdisk.bdev, fwdisk.bdevCloser, e = cfg.createDevice(calc.MinBlocks()); e != nil {
 		return e
 	}
 
@@ -149,6 +124,10 @@ func (fwdisk *Disk) Close() error {
 	if fwdisk.store != nil {
 		errs = append(errs, fwdisk.store.Close())
 		fwdisk.store = nil
+	}
+	if fwdisk.bdevCloser != nil {
+		errs = append(errs, fwdisk.bdevCloser.Close())
+		fwdisk.bdev, fwdisk.bdevCloser = nil, nil
 	}
 	if fwdisk.Thread != nil {
 		errs = append(errs, fwdisk.Thread.Close())

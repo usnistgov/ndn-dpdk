@@ -82,8 +82,7 @@ func (pkt *Packet) SegmentLengths() (list []int) {
 
 // DataPtr returns void* pointer to data in first segment.
 func (pkt *Packet) DataPtr() unsafe.Pointer {
-	pktC := pkt.ptr()
-	return unsafe.Add(pktC.buf_addr, pktC.data_off)
+	return unsafe.Add(pkt.buf_addr, pkt.data_off)
 }
 
 // Bytes returns a []byte that contains a copy of the data in this packet.
@@ -106,11 +105,10 @@ func (pkt *Packet) SetHeadroom(headroom int) error {
 	if pkt.Len() > 0 {
 		return errors.New("cannot change headroom of non-empty packet")
 	}
-	pktC := pkt.ptr()
-	if C.uint16_t(headroom) > pktC.buf_len {
+	if C.uint16_t(headroom) > pkt.buf_len {
 		return errors.New("headroom cannot exceed buffer length")
 	}
-	pktC.data_off = C.uint16_t(headroom)
+	pkt.data_off = C.uint16_t(headroom)
 	return nil
 }
 

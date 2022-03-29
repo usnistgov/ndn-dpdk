@@ -103,10 +103,7 @@ func TestFile(t *testing.T) {
 	assert, require := makeAR(t)
 	filename := testenv.TempName(t)
 
-	file, e := os.Create(filename)
-	require.NoError(e)
-	require.NoError(file.Truncate(blockSize * blockCount))
-	file.Close()
+	require.NoError(bdev.TruncateFile(filename, blockSize*blockCount))
 
 	for _, ctor := range []func() (*bdev.File, error){
 		func() (*bdev.File, error) { return bdev.NewFile(filename, blockSize) },

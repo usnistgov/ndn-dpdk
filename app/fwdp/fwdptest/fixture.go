@@ -51,7 +51,7 @@ func NewFixture(t testing.TB, modifyConfig ...func(cfg *fwdp.Config)) (f *Fixtur
 	cfg.Crypto.InputCapacity = 64
 	cfg.Crypto.OpPoolCapacity = 1023
 
-	cfg.Disk.Filename = fwdp.DiskMalloc
+	cfg.Disk.Malloc = true
 
 	cfg.Fib.Capacity = 65535
 	cfg.Fib.NBuckets = 256

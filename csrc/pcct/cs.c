@@ -326,7 +326,6 @@ Cs_MatchInterest(Cs* cs, CsEntry* entry, Packet* interestNpkt)
           N_LOGD("^ disk-slot=%" PRIu64 " disk-data-npkt=%p change-kind-as=none", direct->diskSlot,
                  interest->diskData);
           CsDisk_Delete(cs, direct);
-          // XXX need to cancel/fail other DiskStore_GetData on the same disk slot
           return NULL;
         } else {
           N_LOGD("^ disk-slot=%" PRIu64 " disk-data-npkt=%p change-kind-as=memory",

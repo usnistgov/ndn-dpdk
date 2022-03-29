@@ -1,4 +1,5 @@
 import type { Uint } from "./core";
+import type { BdevLocator } from "./dpdk";
 import type { FibConfig } from "./fib";
 import type { NdtConfig } from "./ndt";
 import type { PcctConfig } from "./pcct";
@@ -27,12 +28,10 @@ export interface FwdpCryptoConfig {
   opPoolCapacity?: Uint;
 }
 
-export interface FwdpDiskConfig {
-  filename: string | "Malloc";
-
+export type FwdpDiskConfig = BdevLocator & {
   /**
    * @min 1.00
    * @default 1.05
    */
   overprovision?: number;
-}
+};

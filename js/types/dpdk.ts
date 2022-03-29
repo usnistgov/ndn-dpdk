@@ -112,3 +112,26 @@ export namespace EthNetifConfig {
     netif: string;
   }
 }
+
+/**
+ * SPDK block device creation parameters.
+ * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/dpdk/bdev#Locator>
+ */
+export type BdevLocator = BdevLocator.Malloc | BdevLocator.File | BdevLocator.Nvme;
+
+export namespace BdevLocator {
+  export interface Malloc {
+    malloc: true;
+  }
+
+  export interface File {
+    file: string;
+    fileDriver?: FileDriver;
+  }
+
+  export type FileDriver = "aio" | "uring";
+
+  export interface Nvme {
+    pciAddr: string;
+  }
+}
