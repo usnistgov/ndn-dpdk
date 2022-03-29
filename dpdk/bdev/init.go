@@ -15,16 +15,16 @@ import (
 	"go.uber.org/zap"
 )
 
-var (
-	initBdevLibOnce     sync.Once
-	initAccelEngineOnce sync.Once
-)
+var initBdevLibOnce sync.Once
 
 // Initialize SPDK block device library.
 func initBdevLib() {
 	initBdevLibOnce.Do(func() {
-		logger.Info("initializing block device library")
-		eal.CallMain(func() { C.spdk_bdev_initialize(C.spdk_bdev_init_cb(C.go_bdevInitialized), nil) })
+		logger.Info("initializing block device library and acceleration engine")
+		eal.CallMain(func() {
+			C.spdk_accel_engine_initialize()
+			C.spdk_bdev_initialize(C.spdk_bdev_init_cb(C.go_bdevInitialized), nil)
+		})
 	})
 }
 
@@ -34,11 +34,4 @@ func go_bdevInitialized(ctx unsafe.Pointer, rc C.int) {
 		logger.Panic("spdk_bdev_initialize error", zap.Error(eal.MakeErrno(rc)))
 	}
 	C.BdevFillers_ = eal.ZmallocAligned("BdevFiller", 2*C.BdevFillerLen_, 4096/C.RTE_CACHE_LINE_SIZE, eal.CurrentLCore().NumaSocket())
-}
-
-func initAccelEngine() {
-	initAccelEngineOnce.Do(func() {
-		logger.Info("initializing acceleration engine")
-		eal.CallMain(func() { C.spdk_accel_engine_initialize() })
-	})
 }

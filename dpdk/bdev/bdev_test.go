@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/usnistgov/ndn-dpdk/core/pciaddr"
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/bdev"
 	"go4.org/must"
@@ -124,14 +125,12 @@ func TestFile(t *testing.T) {
 func TestNvme(t *testing.T) {
 	assert, require := makeAR(t)
 
-	nvmes, e := bdev.ListNvmes()
-	require.NoError(e)
-	if len(nvmes) == 0 {
-		t.Skip("no NVMe drive available")
+	envPCI, ok := os.LookupEnv("BDEVTEST_NVME")
+	if !ok {
+		t.Skip("NVMe test disabled; rerun test suite and specify device PCI address in BDEVTEST_NVME=00:00.0 environ.")
 	}
-
-	pciAddr := nvmes[0]
-	t.Logf("%d NVMe drives available (%v), testing on %s\n", len(nvmes), nvmes, pciAddr)
+	pciAddr, e := pciaddr.Parse(envPCI)
+	require.NoError(e)
 
 	nvme, e := bdev.AttachNvme(pciAddr)
 	require.NoError(e)

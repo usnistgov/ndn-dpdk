@@ -28,6 +28,7 @@ elif [[ $# -eq 1 ]]; then
   PKG=${1%/}
   TESTPKG=$(getTestPkg "$PKG")
 
+  $SUDO rm -f /tmp/gotest.cover
   $SUDO go test -cover -covermode count -coverpkg ./"$PKG" -coverprofile /tmp/gotest.cover ./"$TESTPKG" -v -count=$TESTCOUNT
   $SUDO chown "$(id -u)" /tmp/gotest.cover
   go tool cover -html /tmp/gotest.cover -o /tmp/gotest.cover.html
