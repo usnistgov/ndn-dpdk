@@ -8,6 +8,7 @@
 #include "packet.h"
 #include "pit.h"
 
+/** @brief Global static parameters. */
 typedef struct SgGlobal
 {
   uint64_t tscHz;
@@ -130,8 +131,8 @@ __attribute__((nonnull)) void
 SgReturnNacks(SgCtx* ctx, NackReason reason);
 
 /**
- * @brief The strategy program.
- * @return status code, ignored but appears in logs.
+ * @brief The strategy dataplane program.
+ * @return status code, ignored but may appear in logs.
  *
  * Every strategy must implement this function.
  */
@@ -159,7 +160,7 @@ __attribute__((nonnull)) bool
 SgGetJSON(SgCtx* ctx, const char* path, int index, int64_t* dst);
 
 /**
- * @brief Retrieve JSON paramter integer scalar value.
+ * @brief Retrieve JSON parameter integer scalar value.
  * @param path JSON property path, using '.' separator for nested path.
  * @param dflt default value.
  * @return retrieved or default value.
@@ -173,16 +174,44 @@ SgGetJSON(SgCtx* ctx, const char* path, int index, int64_t* dst);
   })
 
 /**
+ * @brief Retrieve JSON parameter integer array.
+ * @param dst destination array.
+ * @param path JSON property path, using '.' separator for nested path.
+ * @param dflt default value.
+ * @return retrieved length.
+ */
+#define SgGetJSONSlice(dst, ctx, path, dflt)                                                       \
+  __extension__({                                                                                  \
+    int64_t length = (0);                                                                          \
+    char pathA[] = (path);                                                                         \
+    SgGetJSON((ctx), pathA, SGJSON_LEN, &length);                                                  \
+    for (int64_t i = 0; i < RTE_DIM((dst)); ++i) {                                                 \
+      int64_t value = (dflt);                                                                      \
+      if (i < length) {                                                                            \
+        SgGetJSON((ctx), pathA, i, &value);                                                        \
+      }                                                                                            \
+      (dst)[i] = value;                                                                            \
+    }                                                                                              \
+    length;                                                                                        \
+  })
+
+/**
  * @brief The strategy initialization procedure.
- * @return status code, ignored but appears in logs.
+ * @return status code, ignored but may appear in logs.
  *
+ * A strategy should implement this function if it accepts parameters.
  * This is called when a strategy is activated on a FIB entry.
  * It should populate FIB entry scratch area according to JSON parameters.
  */
 __attribute__((section(SGSEC_INIT), used, nonnull)) uint64_t
 SgInit(SgCtx* ctx);
 
-/** @brief Declare JSON schema. */
+/**
+ * @brief Declare JSON schema.
+ *
+ * A strategy should provide a JSON schema if it accepts parameters.
+ * Input parameters are validated against this schema prior to calling @c SgInit .
+ */
 #define SGINIT_SCHEMA(...)                                                                         \
   char SgJSONSchema[] __attribute__((section(SGSEC_SCHEMA), used)) = #__VA_ARGS__;
 

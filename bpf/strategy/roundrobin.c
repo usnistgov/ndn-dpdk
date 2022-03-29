@@ -1,8 +1,8 @@
 /**
  * @file
  * The roundrobin strategy uses each nexthop sequentially for Interests under the same FIB entry.
+ * If the chosen nexthop is unusable (face down, supression, etc), packet is lost.
  * Initial and retransmitted Interests are treated the same.
- * If a nexthop is unusable (face down, supression, etc), packet is lost.
  */
 #include "api.h"
 

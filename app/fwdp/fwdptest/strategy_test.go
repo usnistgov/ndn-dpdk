@@ -268,3 +268,52 @@ func TestRoundrobin(t *testing.T) {
 	assert.Equal(1, collect2.Count())
 	assert.Equal(2, collect3.Count())
 }
+
+func TestWeighted(t *testing.T) {
+	assert, _ := makeAR(t)
+	fixture := NewFixture(t)
+
+	face1, face2, face3, face4 := intface.MustNew(), intface.MustNew(), intface.MustNew(), intface.MustNew()
+	collect1, collect2, collect3 := intface.Collect(face1), intface.Collect(face2), intface.Collect(face3)
+	w1, w2, w3 := 6.0, 3.0, 1.0
+	fixture.SetFibEntryParams("/P", "weighted", map[string]interface{}{"weights": []float64{w1, w2, w3}},
+		face1.ID, face2.ID, face3.ID)
+
+	for i := 0; i < 200; i++ {
+		face1.Tx <- ndn.MakeInterest(fmt.Sprintf("/P/1/%d", i))
+		face2.Tx <- ndn.MakeInterest(fmt.Sprintf("/P/2/%d", i))
+		face4.Tx <- ndn.MakeInterest(fmt.Sprintf("/P/4/%d", i))
+		time.Sleep(time.Millisecond)
+	}
+	fixture.StepDelay()
+
+	countInterests := func(c *intface.Collector, n1, n2, n4 *int) {
+		c.Peek(func(received []*ndn.Packet) {
+			for _, p := range received {
+				if assert.NotNil(p.Interest) && assert.Len(p.Interest.Name, 3) && assert.Len(p.Interest.Name[1].Value, 1) {
+					switch p.Interest.Name[1].Value[0] {
+					case '1':
+						*n1++
+					case '2':
+						*n2++
+					case '4':
+						*n4++
+					default:
+						assert.Fail("unexpected Interest name", p.Interest.Name.String())
+					}
+				}
+			}
+		})
+	}
+
+	var n11, n12, n13, n21, n22, n23, n41, n42, n43 int
+	countInterests(collect1, &n11, &n21, &n41)
+	countInterests(collect2, &n12, &n22, &n42)
+	countInterests(collect3, &n13, &n23, &n43)
+	assert.Zero(n11)
+	assert.InDelta(w2/(w2+w3), float64(n12)/float64(n12+n13), 0.1)
+	assert.Zero(n22)
+	assert.InDelta(w1/(w1+w3), float64(n21)/float64(n21+n23), 0.1)
+	assert.InDelta(w1/(w1+w2+w3), float64(n41)/float64(n41+n42+n43), 0.1)
+	assert.InDelta(w2/(w1+w2+w3), float64(n42)/float64(n41+n42+n43), 0.1)
+}

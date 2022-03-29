@@ -24,6 +24,13 @@ typedef struct SgFibEntry
 
 typedef uint32_t SgFibNexthopFilter;
 
+SUBROUTINE bool
+SgFibNexthopFilter_Rejected(SgFibNexthopFilter filter, uint8_t i)
+{
+  static_assert(sizeof(filter) == sizeof(uint32_t), "");
+  return (filter & RTE_BIT32(i)) != 0;
+}
+
 /**
  * @brief Iterator of FIB nexthops passing a filter.
  *
@@ -55,8 +62,7 @@ SUBROUTINE void
 SgFibNexthopIt_Advance_(SgFibNexthopIt* it)
 {
   for (; SgFibNexthopIt_Valid(it); ++it->i) {
-    static_assert(sizeof(it->filter) == sizeof(uint32_t), "");
-    if (it->filter & RTE_BIT32(it->i)) {
+    if (SgFibNexthopFilter_Rejected(it->filter, it->i)) {
       continue;
     }
     it->nh = it->entry->nexthops[it->i];

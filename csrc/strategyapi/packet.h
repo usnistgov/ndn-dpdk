@@ -22,7 +22,7 @@ typedef struct SgPacket
     };
   };
   uint8_t d_[92];
-  RTE_MARKER mbuf_end_;
+  RTE_MARKER endofMbuf_;
   uint8_t nackReason;
   uint8_t congMark;
 } SgPacket;
