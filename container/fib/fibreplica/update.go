@@ -1,6 +1,9 @@
 package fibreplica
 
-import "github.com/usnistgov/ndn-dpdk/container/fib/fibdef"
+import (
+	"github.com/usnistgov/ndn-dpdk/container/fib/fibdef"
+	"github.com/usnistgov/ndn-dpdk/dpdk/mempool"
+)
 
 // UpdateCommand represents a prepared update command.
 type UpdateCommand struct {
@@ -41,7 +44,7 @@ func (t *Table) ExecuteUpdate(u *UpdateCommand) {
 // DiscardUpdate releases resources in an unexecuted update.
 func (t *Table) DiscardUpdate(u *UpdateCommand) {
 	if u.allocated != nil {
-		t.mp.Free(u.allocated)
+		mempool.Free(t.mp, u.allocated)
 	}
 	u.clear()
 }

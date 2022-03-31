@@ -18,6 +18,5 @@ func Post(rs *urcu.ReadSide, entries []uint64) {
 	rs.Lock()
 	defer rs.Unlock()
 
-	ptr, count := cptr.ParseCptrArray(entries)
-	C.Hrlog_Post((*C.HrlogEntry)(ptr), C.uint16_t(count))
+	C.Hrlog_Post(cptr.FirstPtr[C.HrlogEntry](entries), C.uint16_t(len(entries)))
 }

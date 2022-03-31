@@ -78,6 +78,6 @@ func (rxg *rxGroup) removeFace() {
 }
 
 func (rxg *rxGroup) rx(vec pktmbuf.Vector) {
-	nEnq := rxg.ring.Enqueue(vec)
+	nEnq := ringbuffer.Enqueue(rxg.ring, vec)
 	vec[nEnq:].Close()
 }

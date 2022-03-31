@@ -37,10 +37,8 @@ type OpPool struct {
 // Alloc allocates Op objects.
 func (mp *OpPool) Alloc(opType OpType, count int) (vec OpVector, e error) {
 	vec = make(OpVector, count)
-	ptr, _ := cptr.ParseCptrArray(vec)
-	res := C.rte_crypto_op_bulk_alloc((*C.struct_rte_mempool)(mp.Ptr()), C.enum_rte_crypto_op_type(opType),
-		(**C.struct_rte_crypto_op)(ptr), C.uint16_t(count))
-	if res == 0 {
+	if C.rte_crypto_op_bulk_alloc((*C.struct_rte_mempool)(mp.Ptr()), C.enum_rte_crypto_op_type(opType),
+		cptr.FirstPtr[*C.struct_rte_crypto_op](vec), C.uint16_t(count)) == 0 {
 		return nil, errors.New("rte_crypto_op_bulk_alloc failed")
 	}
 	return vec, nil

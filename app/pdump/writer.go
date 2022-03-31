@@ -128,7 +128,7 @@ func (w *Writer) putBlock(block []byte, blockType uint32, port uint16) {
 		panic(e)
 	}
 
-	for w.queue.Enqueue(vec) != 1 {
+	for ringbuffer.Enqueue(w.queue, vec) != 1 {
 		logger.Warn("queue full for pcapng block, retrying", zap.Uint32("type", blockType))
 		time.Sleep(10 * time.Millisecond)
 	}
@@ -162,7 +162,7 @@ func (w *Writer) Close() error {
 	if w.queue != nil {
 		for {
 			vec := make(pktmbuf.Vector, WriterBurstSize)
-			nDeq := w.queue.Dequeue(vec)
+			nDeq := ringbuffer.Dequeue(w.queue, vec)
 			if nDeq == 0 {
 				break
 			}

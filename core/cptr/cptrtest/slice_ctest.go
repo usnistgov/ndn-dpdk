@@ -2,6 +2,7 @@ package cptrtest
 
 /*
 #include <stdint.h>
+#include <spdk/env.h>
 */
 import "C"
 import (
@@ -9,6 +10,9 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 )
+
+// As of Go 1.17.8 + gcc 7 + SPDK 22.01, calling an SPDK function significantly reduces linker execution time.
+var _ = C.spdk_get_ticks()
 
 func ctestByteSlice(t *testing.T) {
 	assert, _ := makeAR(t)
@@ -31,4 +35,16 @@ func ctestByteSlice(t *testing.T) {
 	assert.EqualValues(0x40, b[2])
 	b[3] = 0x41
 	assert.EqualValues(0x41, uint8Slice[3])
+}
+
+func ctestFirstPtr(t *testing.T) {
+	assert, require := makeAR(t)
+
+	assert.Zero(cptr.FirstPtr[*int](make([]*int, 0)))
+
+	a0 := 9001
+	a := []*int{&a0, nil}
+	p0 := cptr.FirstPtr[*int](a)
+	require.NotNil(p0)
+	assert.Equal(&a0, *p0)
 }

@@ -5,6 +5,7 @@ package ethdev
 */
 import "C"
 import (
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 )
 
@@ -21,7 +22,7 @@ func (q RxQueue) RxBurst(vec pktmbuf.Vector) int {
 		return 0
 	}
 	res := C.rte_eth_rx_burst(C.uint16_t(q.Port), C.uint16_t(q.Queue),
-		(**C.struct_rte_mbuf)(vec.Ptr()), C.uint16_t(len(vec)))
+		cptr.FirstPtr[*C.struct_rte_mbuf](vec), C.uint16_t(len(vec)))
 	return int(res)
 }
 
@@ -34,12 +35,8 @@ type TxQueue struct {
 // TxBurst transmits a burst of output packets.
 // Returns the number of packets enqueued.
 func (q TxQueue) TxBurst(vec pktmbuf.Vector) int {
-	if len(vec) == 0 {
-		return 0
-	}
-	res := C.rte_eth_tx_burst(C.uint16_t(q.Port), C.uint16_t(q.Queue),
-		(**C.struct_rte_mbuf)(vec.Ptr()), C.uint16_t(len(vec)))
-	return int(res)
+	return int(C.rte_eth_tx_burst(C.uint16_t(q.Port), C.uint16_t(q.Queue),
+		cptr.FirstPtr[*C.struct_rte_mbuf](vec), C.uint16_t(len(vec))))
 }
 
 func (port ethDev) RxQueues() (list []RxQueue) {

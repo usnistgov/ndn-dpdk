@@ -363,6 +363,5 @@ func IsDown(id ID) bool {
 
 // TxBurst transmits a burst of L3 packets.
 func TxBurst(id ID, pkts []*ndni.Packet) {
-	ptr, count := cptr.ParseCptrArray(pkts)
-	C.Face_TxBurst(C.FaceID(id), (**C.Packet)(ptr), C.uint16_t(count))
+	C.Face_TxBurst(C.FaceID(id), cptr.FirstPtr[*C.Packet](pkts), C.uint16_t(len(pkts)))
 }

@@ -97,7 +97,7 @@ func (t *Table) freeLoop() {
 				}
 			}
 			if len(objs) > 0 {
-				t.mp.Free(objs)
+				mempool.Free(t.mp, objs)
 			}
 		}(entries)
 	}

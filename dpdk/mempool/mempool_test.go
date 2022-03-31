@@ -23,20 +23,20 @@ func TestMempool(t *testing.T) {
 	assert.Equal(0, mp.CountInUse())
 
 	var objs [64]unsafe.Pointer
-	e = mp.Alloc(objs[:])
+	e = mempool.Alloc(mp, objs[:])
 	assert.Error(e)
 	assert.Equal(63, mp.CountAvailable())
 	assert.Equal(0, mp.CountInUse())
 
-	e = mp.Alloc(objs[:30])
+	e = mempool.Alloc(mp, objs[:30])
 	assert.NoError(e)
 	assert.Equal(33, mp.CountAvailable())
 	assert.Equal(30, mp.CountInUse())
 
-	mp.Free(objs[0:1])
+	mempool.Free(mp, objs[0:1])
 	assert.Equal(34, mp.CountAvailable())
 	assert.Equal(29, mp.CountInUse())
 
-	mp.Free(objs[1:30])
+	mempool.Free(mp, objs[1:30])
 	assert.Equal(63, mp.CountAvailable())
 }

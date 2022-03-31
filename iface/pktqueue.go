@@ -8,6 +8,7 @@ import (
 	"time"
 	"unsafe"
 
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
@@ -105,7 +106,7 @@ func (q *PktQueue) Close() error {
 
 	vec := make(pktmbuf.Vector, MaxBurstSize)
 	for {
-		n := ring.Dequeue(vec)
+		n := ringbuffer.Dequeue(ring, vec)
 		if n == 0 {
 			break
 		}
@@ -117,12 +118,12 @@ func (q *PktQueue) Close() error {
 // Push enqueues a slice of packets.
 // Caller must free rejected packets.
 func (q *PktQueue) Push(vec pktmbuf.Vector, now eal.TscTime) (nRej int) {
-	return int(C.PktQueue_Push(q.ptr(), (**C.struct_rte_mbuf)(vec.Ptr()), C.uint(len(vec)), C.TscTime(now)))
+	return int(C.PktQueue_Push(q.ptr(), cptr.FirstPtr[*C.struct_rte_mbuf](vec), C.uint(len(vec)), C.TscTime(now)))
 }
 
 // Pop dequeues a slice of packets.
 func (q *PktQueue) Pop(vec pktmbuf.Vector, now eal.TscTime) (count int, drop bool) {
-	res := C.PktQueue_Pop(q.ptr(), (**C.struct_rte_mbuf)(vec.Ptr()), C.uint(len(vec)), C.TscTime(now))
+	res := C.PktQueue_Pop(q.ptr(), cptr.FirstPtr[*C.struct_rte_mbuf](vec), C.uint(len(vec)), C.TscTime(now))
 	return int(res.count), bool(res.drop)
 }
 

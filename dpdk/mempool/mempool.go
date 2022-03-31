@@ -86,30 +86,6 @@ func (mp *Mempool) CountInUse() int {
 	return int(C.rte_mempool_in_use_count(mp.ptr()))
 }
 
-// Alloc allocates several objects.
-// objs should be a slice of C void* pointers.
-func (mp *Mempool) Alloc(objs any) error {
-	ptr, count := cptr.ParseCptrArray(objs)
-	if count == 0 {
-		return nil
-	}
-	res := C.rte_mempool_get_bulk(mp.ptr(), (*unsafe.Pointer)(ptr), C.uint(count))
-	if res != 0 {
-		return errors.New("mempool object allocation failed")
-	}
-	return nil
-}
-
-// Free releases several objects.
-// objs should be a slice of C void* pointers.
-func (mp *Mempool) Free(objs any) {
-	ptr, count := cptr.ParseCptrArray(objs)
-	if count == 0 {
-		return
-	}
-	C.rte_mempool_put_bulk(mp.ptr(), (*unsafe.Pointer)(ptr), C.uint(count))
-}
-
 // New creates a Mempool.
 func New(cfg Config) (mp *Mempool, e error) {
 	nameC := C.CString(eal.AllocObjectID("mempool.Mempool"))
@@ -136,4 +112,23 @@ func New(cfg Config) (mp *Mempool, e error) {
 // FromPtr converts *C.struct_rte_mempool pointer to Mempool.
 func FromPtr(ptr unsafe.Pointer) *Mempool {
 	return (*Mempool)(ptr)
+}
+
+// Alloc allocates several objects.
+func Alloc[T any, A ~[]T](mp *Mempool, objs A) error {
+	if len(objs) == 0 {
+		return nil
+	}
+	if C.rte_mempool_get_bulk(mp.ptr(), cptr.FirstPtr[unsafe.Pointer](objs), C.uint(len(objs))) != 0 {
+		return errors.New("mempool object allocation failed")
+	}
+	return nil
+}
+
+// Free releases several objects.
+func Free[T any, A ~[]T](mp *Mempool, objs A) {
+	if len(objs) == 0 {
+		return
+	}
+	C.rte_mempool_put_bulk(mp.ptr(), cptr.FirstPtr[unsafe.Pointer](objs), C.uint(len(objs)))
 }

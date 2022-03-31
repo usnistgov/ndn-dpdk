@@ -13,14 +13,8 @@ import (
 // Vector is a vector of packet buffers.
 type Vector []*Packet
 
-// Ptr returns **C.struct_rte_mbuf pointer.
-func (vec Vector) Ptr() unsafe.Pointer {
-	ptr, _ := cptr.ParseCptrArray(vec)
-	return ptr
-}
-
 func (vec Vector) ptr() **C.struct_rte_mbuf {
-	return (**C.struct_rte_mbuf)(vec.Ptr())
+	return cptr.FirstPtr[*C.struct_rte_mbuf](vec)
 }
 
 // Close releases the mbufs.

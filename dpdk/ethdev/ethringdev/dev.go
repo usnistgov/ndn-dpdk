@@ -25,12 +25,9 @@ func New(rxRings, txRings []*ringbuffer.Ring, socket eal.NumaSocket) (dev ethdev
 	nameC := C.CString(eal.AllocObjectID("ethringdev.EthDev"))
 	defer C.free(unsafe.Pointer(nameC))
 
-	rxRingPtr, rxRingCount := cptr.ParseCptrArray(rxRings)
-	txRingPtr, txRingCount := cptr.ParseCptrArray(txRings)
-
 	res := C.rte_eth_from_rings(nameC,
-		(**C.struct_rte_ring)(rxRingPtr), C.uint(rxRingCount),
-		(**C.struct_rte_ring)(txRingPtr), C.uint(txRingCount),
+		cptr.FirstPtr[*C.struct_rte_ring](rxRings), C.uint(len(rxRings)),
+		cptr.FirstPtr[*C.struct_rte_ring](txRings), C.uint(len(txRings)),
 		C.uint(socket.ID()))
 	if res < 0 {
 		return nil, eal.GetErrno()

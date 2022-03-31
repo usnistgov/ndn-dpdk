@@ -116,20 +116,6 @@ func (r *Ring) CountInUse() int {
 	return int(C.rte_ring_count(r.ptr()))
 }
 
-// Enqueue enqueues several objects on a ring.
-// objs should be a slice of C void* pointers.
-func (r *Ring) Enqueue(objs any) (nEnqueued int) {
-	ptr, count := cptr.ParseCptrArray(objs)
-	return int(C.rte_ring_enqueue_burst(r.ptr(), (*unsafe.Pointer)(ptr), C.uint(count), nil))
-}
-
-// Dequeue dequeues several objects from a ring.
-// objs should be a slice of C void* pointers.
-func (r *Ring) Dequeue(objs any) (nDequeued int) {
-	ptr, count := cptr.ParseCptrArray(objs)
-	return int(C.rte_ring_dequeue_burst(r.ptr(), (*unsafe.Pointer)(ptr), C.uint(count), nil))
-}
-
 // New creates a Ring.
 func New(capacity int, socket eal.NumaSocket, pm ProducerMode, cm ConsumerMode) (r *Ring, e error) {
 	nameC := C.CString(eal.AllocObjectID("ringbuffer.Ring"))
@@ -142,4 +128,14 @@ func New(capacity int, socket eal.NumaSocket, pm ProducerMode, cm ConsumerMode) 
 		return nil, eal.GetErrno()
 	}
 	return r, nil
+}
+
+// Enqueue enqueues several objects.
+func Enqueue[T any, A ~[]T](r *Ring, objs A) (nEnqueued int) {
+	return int(C.rte_ring_enqueue_burst(r.ptr(), cptr.FirstPtr[unsafe.Pointer](objs), C.uint(len(objs)), nil))
+}
+
+// Dequeue dequeues several objects.
+func Dequeue[T any, A ~[]T](r *Ring, objs A) (nDequeued int) {
+	return int(C.rte_ring_dequeue_burst(r.ptr(), cptr.FirstPtr[unsafe.Pointer](objs), C.uint(len(objs)), nil))
 }
